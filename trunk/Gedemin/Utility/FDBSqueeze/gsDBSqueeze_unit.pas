@@ -66,7 +66,7 @@ type
 implementation
 
 uses
-  SysUtils, mdf_MetaData_unit, gdcInvDocument_unit;
+  SysUtils, mdf_MetaData_unit, gdcInvDocument_unit, contnrs;
 
 { TgsDBSqueeze }
 
@@ -149,7 +149,7 @@ begin
    Tr.StartTransaction;
    q.Transaction := Tr;
 
-   q.SQL.Text := 
+   q.SQL.Text :=
      'SELECT GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0) AS NEW_ID ' +
      'FROM RDB$DATABASE ';
    q.ExecQuery;
@@ -161,7 +161,7 @@ begin
   end;
 end;
 
-procedure TgsDBSqueeze.CalculateAcSaldo;  // подсчет бухгалтерского сальдо        
+procedure TgsDBSqueeze.CalculateAcSaldo;  // подсчет бухгалтерского сальдо
 var
   q: TIBSQL;
   Tr: TIBTransaction;
@@ -199,8 +199,9 @@ var
         'WHERE NOT EXISTS (SELECT id FROM ac_entry) ';
       q2.ExecQuery;
 
-      q2.SQL.Text := 'DELETE FROM ac_entry_balance';
-      q2.ExecQuery;
+       {TODO: проверить на существование}
+      //q2.SQL.Text := 'DELETE FROM ac_entry_balance';
+      //q2.ExecQuery;
 
       Tr.Commit;
       Tr.StartTransaction;
@@ -562,7 +563,7 @@ begin
     OstatkiAccountKey := q.FieldByName('OstatkiAccountKey').AsInteger;
     q.Close;
 
-    CalculateAcSaldo_CreateAcEntries;
+    //CalculateAcSaldo_CreateAcEntries;                                             {TODO: раскомм. тест}
 
     DeleteOldAcEntry;
 
@@ -575,7 +576,7 @@ begin
   end;
 end;
 
-procedure TgsDBSqueeze.CalculateInvSaldo;                                       
+procedure TgsDBSqueeze.CalculateInvSaldo;
 var
   q, q2: TIBSQL;
   Tr: TIBTransaction;
@@ -628,8 +629,8 @@ var
   end;
 
   function CreateHeaderInvDoc(
-    const AFromContact, AToContact, ACompanyKey: Integer;
-    const AInvDocType, ACurUserContactKey: Integer
+    AFromContact, AToContact, ACompanyKey: Integer;
+    AInvDocType, ACurUserContactKey: Integer
   ): Integer;
   var
     NewDocumentKey: Integer;
@@ -675,9 +676,9 @@ var
   end;
 
   function CreatePositionInvDoc(
-    const ADocumentParentKey, AFromContact, AToContact, ACompanyKey, ACardGoodKey: Integer;
+    ADocumentParentKey, AFromContact, AToContact, ACompanyKey, ACardGoodKey: Integer;
     const AGoodQuantity: Currency;
-    const AInvDocType, ACurUserContactKey: Integer;
+    AInvDocType, ACurUserContactKey: Integer;
     AUsrFieldsDataset: TIBSQL = nil
   ): Integer;
   var
@@ -743,7 +744,7 @@ var
 
       for I := 0 to UsrFieldsList.Count - 1 do
       begin
-        if Trim(UsrFieldsList[I]) <> 'USR$INV_ADDLINEKEY' then                    
+        if Trim(UsrFieldsList[I]) <> 'USR$INV_ADDLINEKEY' then
         begin
           if Assigned(AUsrFieldsDataset) then
             q3.ParamByName(Trim(UsrFieldsList[I])).AsVariant :=
@@ -1154,6 +1155,40 @@ var
     end;
   end;
 
+  procedure SetTriggerActive(SetActive: Boolean);
+  const
+    AlterTriggerCount = 3;
+    AlterTriggerArray: array[0 .. AlterTriggerCount - 1] of String =
+      ('INV_BD_MOVEMENT', 'INV_BU_MOVEMENT', 'INV_BU_CARD');     //'AC_ENTRY_DO_BALANCE', 
+  var
+    StateStr: String;
+    I: Integer;
+  begin
+
+
+    if SetActive then
+    begin
+      StateStr := 'ACTIVE';
+
+    end
+    else
+    begin
+      StateStr := 'INACTIVE';
+
+    end;
+
+      for I := 0 to AlterTriggerCount - 1 do
+      begin
+        q.SQL.Text := 'ALTER TRIGGER ' + AlterTriggerArray[I] + ' '  + StateStr;
+        q.ExecQuery;
+        q.Close;
+      end;
+
+    Tr.Commit;
+    Tr.StartTransaction;
+
+  end;
+
 begin
   Tr := TIBTransaction.Create(nil);
   q := TIBSQL.Create(nil);
@@ -1258,11 +1293,11 @@ begin
     DecimalSeparator := '.';   // тип Currency в SQL имееет DecimalSeparator = ','
 
     // Пройдем по остаткам ТМЦ
-    while not q.EOF do                                                          /// Tr
+   { while not q.EOF do                                                          /// Tr
     begin
 
-      // Если кол-во позиций в документе > 1000(например), то создадим новую шапку документа
-      { ...}
+      // Если кол-во позиций в документе > 1000(например), то создадим новую шапку документа  ...
+
 
       if q.FieldByName('BALANCE').AsCurrency >= 0 then
       begin //приход на ContactKey от PseudoClientKey
@@ -1306,12 +1341,25 @@ begin
       end;
 
       q.Next;
-    end;
+    end;                                        } {TODO: раском. тест}
     q.Close;
 
-    RebindInvCards;
+    //RebindInvCards;                           {TODO: раском. тест}
+
+    SetTriggerActive(False);
+
+    q.SQL.Text := 'DELETE FROM inv_movement WHERE movementdate < :Date';
+    q.ParamByName('Date').AsString := FDocumentdateWhereClause;
+    q.ExecQuery;
+
+    q.SQL.Text := 'DELETE FROM inv_balance';                                    {TODO: что еще почистить}
+    q.ExecQuery;
 
     Tr.Commit;
+    Tr.StartTransaction;
+
+    SetTriggerActive(True);
+
   finally
     q.Free;
     q2.Free;
@@ -1323,261 +1371,6 @@ end;
 
 
 procedure TgsDBSqueeze.DeleteDocuments;                                         {TODO: неточный алгоритм DoCascade - переделать}
-
-  procedure DoCascade(const ATableName: String; ATr: TIBTransaction);
-  var
-    q, q2, q3: TIBSQL;
-    Count: Integer; ///test
-    Tr2: TIBTransaction;
-  begin
-    q := TIBSQL.Create(nil);
-    q2 := TIBSQL.Create(nil);
-    q3 := TIBSQL.Create(nil);
-    Tr2 := TIBTransaction.Create(nil);
-    try
-      Tr2.DefaultDatabase := FIBDatabase;
-      Tr2.StartTransaction;
-      q3.Transaction := Tr2;
-
-      q2.Transaction := ATr;
-      q.Transaction := ATr;
-
-      LogEvent('DoCascade...   --test');
-
-      q.SQL.Text :=
-        'SELECT ' +
-        '  fc.relation_name, ' +
-        '  fc.list_fields, ' +
-        '  pc.list_fields AS pk_fields ' +
-        'FROM dbs_fk_constraints fc ' +
-        '  JOIN dbs_pk_unique_constraints pc ' +
-        '    ON pc.relation_name = fc.relation_name ' +
-        '  AND pc.constraint_type = ''PRIMARY KEY'' ' +
-        'WHERE fc.update_rule = ''CASCADE'' ' +
-        '  AND UPPER(fc.ref_relation_name) = :rln ';
-      q.ParamByName('rln').AsString := UpperCase(ATableName);
-      q.ExecQuery;
-
-      while not q.EOF do
-      begin
-        q2.SQL.Text :=
-          'SELECT COUNT(fc.RELATION_NAME) as Kolvo ' +
-          'FROM DBS_FK_CONSTRAINTS fc ' +
-          'WHERE UPPER(fc.ref_relation_name) = :rln ' +
-          '  AND fc.update_rule IN (''RESTRICT'', ''NO ACTION'') ';
-        q2.ParamByName('rln').AsString := UpperCase(q.FieldByName('relation_name').AsString);
-        q2.ExecQuery;
-
-        if q2.FieldByName('Kolvo').AsInteger = 0 then
-        begin
-          q2.Close;
-
-          if Pos(',', q.FieldByName('pk_fields').AsString) = 0 then
-          begin
-            q2.SQL.Text :=
-              'SELECT ' +                                                       //проверка типа поля РК
-              '  CASE F.RDB$FIELD_TYPE ' +
-              '    WHEN 8 THEN ''INTEGER'' ' +
-              '    ELSE ''NOT INTEGER'' ' +
-              '  END FIELD_TYPE ' +
-              'FROM RDB$RELATION_FIELDS RF ' +
-              'JOIN RDB$FIELDS F ON (F.RDB$FIELD_NAME = RF.RDB$FIELD_SOURCE) ' +
-              'WHERE (RF.RDB$RELATION_NAME = :RELAT_NAME) AND (RF.RDB$FIELD_NAME = :FIELD) ';
-            q2.ParamByName('RELAT_NAME').AsString := q.FieldByName('relation_name').AsString;
-            q2.ParamByName('FIELD').AsString := q.FieldByName('pk_fields').AsString;
-            q2.ExecQuery;
-
-            if q2.FieldByName('FIELD_TYPE').AsString = 'INTEGER' then
-            begin
-              q2.Close;
-              q2.SQL.Text :=
-              'SELECT ' +                                                       //проверка типа поля
-              '  CASE F.RDB$FIELD_TYPE ' +
-              '    WHEN 8 THEN ' +
-              '      CASE F.RDB$FIELD_SUB_TYPE ' +
-              '        WHEN 0 THEN ''INTEGER'' ' +
-              '        ELSE ''NOT INTEGER'' ' +
-              '    END ' +
-              '    ELSE ''NOT INTEGER'' ' +
-              '  END FIELD_TYPE ' +
-              'FROM RDB$RELATION_FIELDS RF ' +
-              '  JOIN RDB$FIELDS F ON (F.RDB$FIELD_NAME = RF.RDB$FIELD_SOURCE) ' +
-              'WHERE (RF.RDB$RELATION_NAME = :RELAT_NAME) AND (RF.RDB$FIELD_NAME = :FIELD) ';
-              q2.ParamByName('RELAT_NAME').AsString := q.FieldByName('relation_name').AsString;
-
-              q2.ParamByName('FIELD').AsString := q.FieldByName('list_fields').AsString;
-              q2.ExecQuery;
-
-              if q2.FieldByName('FIELD_TYPE').AsString = 'INTEGER' then
-              begin
-                q2.Close;
-                q3.SQL.Text :=
-                  'SELECT COUNT(g_his_include(0, ' + q.FieldByName('pk_fields').AsString + ')) AS Kolvo ' +
-                  'FROM ' +
-                  '  ' + q.FieldByName('relation_name').AsString + ' ' +
-                  'WHERE ' +
-                  '  g_his_has(0, ' + q.FieldByName('list_fields').AsString + ') = 1 AND ' +
-                     q.FieldByName('pk_fields').AsString + ' > 147000000 ';
-                q3.ExecQuery;
-
-                //LogEvent('test--COUNT HIS now: ' + q3.FieldByName('Kolvo').AsString);
-
-                Count := Count + q3.FieldByName('Kolvo').AsInteger;             { TODO :  Count убрать. test }
-
-
-                q3.Close;
-
-                Tr2.Commit;                                                     { TODO: оставить ATr? }
-                Tr2.DefaultDatabase := FIBDatabase;
-                Tr2.StartTransaction;
-
-                DoCascade(q.FieldByName('relation_name').AsString, ATr);
-              end
-              else
-                q2.Close;
-            end
-            else
-              q2.Close;
-          end;
-        end;
-        q2.Close;
-        q.Next;
-      end;
-      q.Close;
-      LogEvent('test--COUNT in HIS: ' + IntToStr(Count));
-      LogEvent('DoCascade...OK   --test');
-    finally
-      q2.Free;
-      q3.Free;
-      q.Free;
-    end;
-  end;
-
-  procedure ExcludeFKs(ATr: TIBTransaction);
-  var
-    q: TIBSQL;
-  begin
-    q := TIBSQL.Create(nil);
-    try
-      q.Transaction := ATr;
-      LogEvent('ExcludeFKs...   --test');
-
- {     ///--for test
-      if RelationExist2('DBS_EXCLUDED_FIELDS', ATr) then
-      begin
-        q.SQL.Text := ' DELETE FROM DBS_EXCLUDED_FIELDS ';
-        q.ExecQuery;
-        LogEvent('Table DBS_EXCLUDED_FIELDS exists. --for test');
-      end else
-      begin
-        q.SQL.Text :=
-          'CREATE TABLE DBS_EXCLUDED_FK_FIELDS ( ' +
-          '  TABLE_NAME    CHAR(31) NOT NULL, ' +
-          '  FK_FIELD_NAME CHAR(31) NOT NULL, ' +
-          '  PRIMARY KEY (FK_FIELD_NAME, TABLE_NAME)) ';
-        q.ExecQuery;
-        LogEvent('Table DBS_EXCLUDED_FIELDS has been created. --for test');
-      end;
-      q.Close;
-      ATr.Commit;
-      ATr.DefaultDatabase := FIBDatabase;
-      ATr.StartTransaction;
- }
-
-      q.SQL.Text :=
-      {
-        'EXECUTE BLOCK ' +
-        'AS ' +
-        '  DECLARE VARIABLE RN CHAR(31); ' +
-        '  DECLARE VARIABLE FN CHAR(31); ' +
-        '  DECLARE VARIABLE S  VARCHAR(8192); ' +
-        'BEGIN ' +
-        '  FOR ' +
-        '    SELECT ' +
-        '      DISTINCT c.relation_name ' +
-        '    FROM ' +
-        '      dbs_fk_constraints c ' +
-        '    INTO :RN ' +
-        '  DO BEGIN ' +
-        '    S = ''''; ' +
-        '    FOR ' +
-        '      SELECT ' +
-        '        c.list_fields  ' +
-        '      FROM ' +
-        '        dbs_fk_constraints c ' +
-        '        JOIN rdb$relation_fields rf ON rf.rdb$field_name = c.list_fields ' +
-        '          AND rf.rdb$relation_name = c.relation_name ' +
-        '        JOIN rdb$fields f ON f.rdb$field_name = rf.rdb$field_source ' +
-        '      WHERE ' +
-        '        c.update_rule IN (''RESTRICT'', ''NO ACTION'') ' +
-        '        AND f.rdb$field_type = 8 ' +
-        '        AND c.relation_name = :RN ' +
-        '      INTO :FN ' +
-        '    DO BEGIN ' +
-        '      S = IIF(:S = '''', :S, :S || '','') || ' +
-        '        '' SUM(g_his_exclude(0, '' || :FN || ''))''; ' +
-        '    END ' +
-        '    EXECUTE STATEMENT ''SELECT '' || :S || '' FROM '' || :RN; ' +
-        '  END ' +
-        'END; ';
-       }
-                        ///предыдущая(моя) версия
-        'EXECUTE BLOCK ' +
-        'AS ' +
-        'DECLARE VARIABLE NOT_EOF INTEGER; ' +                                  ///test
-        'DECLARE VARIABLE iid INTEGER; ' +
-        'DECLARE VARIABLE type_field VARCHAR(20); ' +
-        'DECLARE VARIABLE RELAT_NAME VARCHAR(31); ' +
-        'DECLARE VARIABLE FIELD VARCHAR(31); ' +
-        'BEGIN ' +
-        '  FOR ' +
-        '    SELECT RELATION_NAME, LIST_FIELDS ' +
-        '    FROM DBS_FK_CONSTRAINTS ' +
-        '    WHERE update_rule IN (''RESTRICT'', ''NO ACTION'') ' +
-        '    INTO :RELAT_NAME, :FIELD ' +
-        '  DO BEGIN ' +
-        '    SELECT ' +
-        '    CASE F.RDB$FIELD_TYPE ' +
-        '      WHEN 8 THEN ' +
-        '        ''INTEGER'' ' +
-        '      ELSE ''NOT INTEGER'' ' +
-        '    END FIELD_TYPE ' +
-        '    FROM RDB$RELATION_FIELDS RF ' +
-        '      JOIN RDB$FIELDS F ON (F.RDB$FIELD_NAME = RF.RDB$FIELD_SOURCE) ' +
-        '    WHERE (RF.RDB$RELATION_NAME = :RELAT_NAME) AND (RF.RDB$FIELD_NAME = :FIELD) ' +
-        '    INTO :type_field ; ' +
-        '    if (:type_field = ''INTEGER'') then ' +
-        '    begin ' +
-        '      FOR ' +
-        '        EXECUTE STATEMENT ''SELECT '' || :FIELD || '' FROM '' || :RELAT_NAME ' +
-        '      INTO :iid ' +
-        '      DO BEGIN ' +
-        '        if (g_his_has(0, :iid) = 1) then ' +
-        '        begin ' +
-      { '          SELECT COUNT(FK_FIELD_NAME) FROM DBS_EXCLUDED_FK_FIELDS ' +          ///
-        '            WHERE (TABLE_NAME = :RELAT_NAME) AND (FK_FIELD_NAME = :FIELD) ' +  ///
-        '          INTO :NOT_EOF; ' +                                                   ///
-        '          if (:NOT_EOF = 0) then ' +                                           ///
-        '          begin ' +                                                            ///
-        '            INSERT INTO DBS_EXCLUDED_FK_FIELDS (TABLE_NAME, FK_FIELD_NAME) ' + ///test
-        '              VALUES (:RELAT_NAME, :FIELD); ' +                                ///
-        '          end ' +   }
-        '          g_his_exclude(0, :iid); ' +
-        '        end ' +
-        '      END ' +
-        '    end ' +
-        '  END ' +
-        'END ';
-      q.ExecQuery;
-      ATr.Commit;
-      ATr.DefaultDatabase := FIBDatabase;
-      ATr.StartTransaction;
-
-      LogEvent('ExcludeFKs... OK  --test');
-    finally
-      q.Free;
-    end;
-  end;
 
   procedure test;                                                               /// test
   var
@@ -1603,20 +1396,23 @@ procedure TgsDBSqueeze.DeleteDocuments;                                         
       q.Close;
 
       q.SQL.Text :=
-        'SELECT relation_name as RN, list_fields as LF ' +
+        'SELECT relation_name AS RN, list_fields AS LF ' +
         'FROM dbs_pk_unique_constraints ' +
         'WHERE constraint_type = ''PRIMARY KEY'' ' ;
       q.ExecQuery;
 
       while not q.EOF do
       begin
-        q2.SQL.Text :=
-          'SELECT count( ' + q.FieldByName('LF').AsString + ' ) as Kolvo ' +
-          'FROM ' + q.FieldByName('RN').AsString + ' ' +
-          'WHERE g_his_has(0, ' + q.FieldByName('LF').AsString + ') = 1';
+        if Pos(',', q.FieldByName('LF').AsString) = 0 then
+        begin
+          q2.SQL.Text :=
+            'SELECT count( ' + q.FieldByName('LF').AsString + ' ) as Kolvo ' +
+            'FROM ' + q.FieldByName('RN').AsString + ' ' +
+            'WHERE g_his_has(0, ' + q.FieldByName('LF').AsString + ') = 1';
           q2.ExecQuery;
           Count := Count + q2.FieldByName('Kolvo').AsInteger;
           q2.Close;
+        end;
       end;
       LogEvent('[test] COUNT AFTER: ' + IntToStr(Count));
       q.Close;
@@ -1629,14 +1425,251 @@ procedure TgsDBSqueeze.DeleteDocuments;                                         
 
 var
   q: TIBSQL;
+  //q2: TIBSQL;
+  //q3: TIBSQL;
+  //q4: TIBSQL;
   Tr: TIBTransaction;
+  Tr2: TIBTransaction;
+  Count: Integer; ///test
+
+  procedure DoCascade(const ATableName: String; ATr, ATr2: TIBTransaction);           {TODO: оптимизировать - вынести sql}
+  var
+    q: TIBSQL;
+    q2: TIBSQL;
+    q3: TIBSQL;
+    q4: TIBSQL;
+    TblsNamesList: TStringList;    //Queue: TQueue;
+    i_test: Integer; ///test
+  begin
+    TblsNamesList := TStringList.Create;
+    q := TIBSQL.Create(nil);
+    q2 := TIBSQL.Create(nil);
+    q3 := TIBSQL.Create(nil);
+    q4 := TIBSQL.Create(nil);
+    try
+      TblsNamesList.Append(ATableName);
+      //Queue.Push(@ATableName);
+
+      q.Transaction := ATr;
+      q2.Transaction := ATr;
+      q4.Transaction := ATr;
+      q3.Transaction := ATr2;
+
+      i_test := 0;
+      while TblsNamesList.Count <> 0 do
+      begin
+        //
+        q2.SQL.Text :=
+          'SELECT ' +                                                       //проверка типа поля 
+          '  CASE F.RDB$FIELD_TYPE ' +
+          '    WHEN 8 THEN ''INTEGER'' ' +
+          '    ELSE ''NOT INTEGER'' ' +
+          '  END FIELD_TYPE ' +
+          'FROM RDB$RELATION_FIELDS RF ' +
+          '  JOIN RDB$FIELDS F ON (F.RDB$FIELD_NAME = RF.RDB$FIELD_SOURCE) ' +
+          'WHERE (RF.RDB$RELATION_NAME = :RELAT_NAME) AND (RF.RDB$FIELD_NAME = :FIELD) ';
+        q2.Prepare;
+        q4.SQL.Text :=
+          'SELECT ' +                                                       //проверка типа поля 
+          '  CASE F.RDB$FIELD_TYPE ' +
+          '    WHEN 8 THEN ''INTEGER'' ' +
+          '    ELSE ''NOT INTEGER'' ' +
+          '  END FIELD_TYPE ' +
+          'FROM RDB$RELATION_FIELDS RF ' +
+          '  JOIN RDB$FIELDS F ON (F.RDB$FIELD_NAME = RF.RDB$FIELD_SOURCE) ' +
+          'WHERE (RF.RDB$RELATION_NAME = :RELAT_NAME) AND (RF.RDB$FIELD_NAME = :FIELD) ';
+        q4.Prepare;
+        
+        //
+        q.SQL.Text :=
+          'SELECT ' +
+          '  fc.relation_name AS relation_name, ' +
+          '  fc.list_fields AS list_fields, ' +
+          '  pc.list_fields AS pk_fields ' +
+          'FROM dbs_fk_constraints fc ' +
+          '  JOIN dbs_pk_unique_constraints pc ' +
+          '    ON pc.relation_name = fc.relation_name ' +
+          '  AND pc.constraint_type = ''PRIMARY KEY'' ' +
+          'WHERE fc.update_rule = ''CASCADE'' ' +
+          '  AND fc.ref_relation_name = :rln ' +
+          '  AND pc.list_fields NOT LIKE ''%,%'' ' +
+          '  AND fc.list_fields NOT LIKE ''%,%'' ' ;
+        q.ParamByName('rln').AsString := UpperCase(TblsNamesList[0]);
+        q.ExecQuery;
+      
+        TblsNamesList.Delete(0);
+
+        while not q.EOF do
+        begin
+          q2.ParamByName('RELAT_NAME').AsString := UpperCase(q.FieldByName('relation_name').AsString);
+          q2.ParamByName('FIELD').AsString := UpperCase(q.FieldByName('pk_fields').AsString);
+          q2.ExecQuery;
+
+          if AnsiCompareStr(q2.FieldByName('FIELD_TYPE').AsString, 'INTEGER') = 1 then //q2.FieldByName('FIELD_TYPE').AsString = ''INTEGER'' then
+          begin
+            q2.Close;
+            
+            //// избыточно
+            q4.ParamByName('RELAT_NAME').AsString := UpperCase(q.FieldByName('relation_name').AsString);
+            q4.ParamByName('FIELD').AsString := UpperCase(q.FieldByName('list_fields').AsString);
+            q4.ExecQuery;
+
+            if AnsiCompareStr(q4.FieldByName('FIELD_TYPE').AsString, 'INTEGER') = 1 then //q2.FieldByName('FIELD_TYPE').AsString = 'INTEGER' then
+            begin
+              q4.Close;                                              
+              
+              q3.SQL.Text :=
+                'SELECT COUNT(g_his_include(0, ' + q.FieldByName('pk_fields').AsString + ')) AS Kolvo ' +
+                'FROM ' +
+                '  ' + q.FieldByName('relation_name').AsString + ' ' +
+                'WHERE ' +
+                '  g_his_has(0, ' + q.FieldByName('list_fields').AsString + ') = 1 AND ' +
+                   q.FieldByName('pk_fields').AsString + ' > 147000000 ';
+              q3.ExecQuery;
+
+              Count := Count + q3.FieldByName('Kolvo').AsInteger;             { TODO :  Count убрать. test }
+
+              if (Count div 50000000) > i_test then
+              begin
+                LogEvent('[test] HIS + 50 millions. Count = ' + IntToStr(Count));
+                Inc(i_test);
+              end;
+              q3.Close;
+
+              TblsNamesList.Append(q.FieldByName('relation_name').AsString);
+              end
+            else
+              q4.Close; 
+          end
+          else
+            q2.Close;
+          q.Next;
+        end;
+        q.Close;
+      end;
+      ATr2.Commit;
+      ATr2.StartTransaction;
+    finally
+      TblsNamesList.Free;
+      q.Free;
+      q2.Free;
+      q3.Free;
+      q4.Free;
+    end;  
+  end;
+
+  procedure ExcludeFKs(ATr: TIBTransaction);
+  var
+    q, q2: TIBSQL;
+    Tr2: TIBTransaction;
+    Count2: Integer;
+  begin
+    Count2 := Count;
+    q := TIBSQL.Create(nil);
+    q2 := TIBSQL.Create(nil);
+    Tr2 := TIBTransaction.Create(nil);
+    try
+      Tr2.DefaultDatabase := FIBDatabase;
+      Tr2.StartTransaction;
+
+      q.Transaction := ATr;
+      q2.Transaction := Tr2;
+
+      LogEvent('[test] ExcludeFKs... ');
+
+      q.SQL.Text :=
+        'SELECT ' +
+        '  fc.relation_name, ' +
+        '  fc.list_fields, ' +
+        '  pc.list_fields AS pk_fields ' +
+        'FROM dbs_fk_constraints fc ' +
+        '  JOIN dbs_pk_unique_constraints pc ' +
+        '    ON pc.relation_name = fc.relation_name ' +
+        '  AND pc.constraint_type = ''PRIMARY KEY'' ' +
+        'WHERE fc.update_rule IN (''RESTRICT'', ''NO ACTION'') ' ;
+      q.ExecQuery;
+
+      while not q.EOF do
+      begin
+        if Pos(',', q.FieldByName('pk_fields').AsString) = 0 then
+        begin
+          q2.SQL.Text :=
+            'SELECT ' +                                                       //проверка типа поля
+            '  CASE F.RDB$FIELD_TYPE ' +
+            '    WHEN 8 THEN ''INTEGER'' ' +
+            '    ELSE ''NOT INTEGER'' ' +
+            '  END FIELD_TYPE ' +
+            'FROM RDB$RELATION_FIELDS RF ' +
+            '  JOIN RDB$FIELDS F ON (F.RDB$FIELD_NAME = RF.RDB$FIELD_SOURCE) ' +
+            'WHERE (RF.RDB$RELATION_NAME = :RELAT_NAME) AND (RF.RDB$FIELD_NAME = :FIELD) ';
+          q2.ParamByName('RELAT_NAME').AsString := UpperCase(q.FieldByName('relation_name').AsString);
+          q2.ParamByName('FIELD').AsString := UpperCase(q.FieldByName('list_fields').AsString);
+          q2.ExecQuery;
+
+          if AnsiCompareStr(q2.FieldByName('FIELD_TYPE').AsString, 'INTEGER') = 1 then // q2.FieldByName('FIELD_TYPE').AsString = 'INTEGER' then
+          begin
+            q2.Close;
+            q2.SQL.Text :=
+            'SELECT ' +                                                       //проверка типа поля
+            '  CASE F.RDB$FIELD_TYPE ' +
+            '    WHEN 8 THEN ''INTEGER'' ' +
+            '    ELSE ''NOT INTEGER'' ' +
+            '  END FIELD_TYPE ' +
+            'FROM RDB$RELATION_FIELDS RF ' +
+            '  JOIN RDB$FIELDS F ON (F.RDB$FIELD_NAME = RF.RDB$FIELD_SOURCE) ' +
+            'WHERE (RF.RDB$RELATION_NAME = :RELAT_NAME) AND (RF.RDB$FIELD_NAME = :FIELD) ';
+            q2.ParamByName('RELAT_NAME').AsString := UpperCase(q.FieldByName('relation_name').AsString);
+            q2.ParamByName('FIELD').AsString := UpperCase(q.FieldByName('pk_fields').AsString);
+            q2.ExecQuery;
+
+            if AnsiCompareStr(q2.FieldByName('FIELD_TYPE').AsString, 'INTEGER') = 1 then //q2.FieldByName('FIELD_TYPE').AsString = 'INTEGER' then
+            begin
+              q2.Close;
+
+              q2.SQL.Text :=
+                'SELECT COUNT(g_his_exclude(0, ' + q.FieldByName('pk_fields').AsString + ')) AS Kolvo ' +
+                'FROM ' +
+                '  ' + q.FieldByName('relation_name').AsString + ' ' +
+                'WHERE ' +
+                '  g_his_has(0, ' + q.FieldByName('list_fields').AsString + ') = 1 ' +
+                '  AND g_his_has(0, ' + q.FieldByName('pk_fields').AsString + ') = 0 ';                /// логика ошибка
+              q2.ExecQuery;
+
+              Count2 := Count2 - q2.FieldByName('Kolvo').AsInteger;
+                          { TODO :  Count убрать. test }
+              q2.Close;
+              //Tr2.Commit;
+              //Tr2.StartTransaction;
+            end
+            else
+              q2.Close;
+          end
+          else
+            q2.Close;
+        end;
+        q2.Close;
+        q.Next;
+      end;
+      q.Close;
+      Tr2.Commit;           //
+
+      Count := Count2;
+      LogEvent('[test] ExcludeFKs... OK');
+    finally
+      q2.Free;
+      q.Free;
+      Tr2.Free;
+    end;
+  end;
+
 begin
   Assert(Connected);
 
   Tr := TIBTransaction.Create(nil);
   q := TIBSQL.Create(nil);
+  Tr2 := TIBTransaction.Create(nil);
   try
-    Tr.DefaultDatabase := FIBDatabase;
+    Tr.DefaultDatabase := FIBDatabase;                                                                   ////
     Tr.StartTransaction;
     q.Transaction := Tr;
 
@@ -1651,14 +1684,22 @@ begin
     q.ParamByName('Date').AsString := FDocumentdateWhereClause;
     q.ExecQuery;
 
-    LogEvent('[test] COUNT doc records for delete: ' + q.FieldByName('Kolvo').AsString);
+    LogEvent('[test] COUNT doc records for delete (without filters): ' + q.FieldByName('Kolvo').AsString);
     q.Close;
 
     Tr.Commit;
     Tr.StartTransaction;
 
-    DoCascade('gd_document', Tr);   ///without FKs22
-    //ExcludeFKs(Tr);
+    Tr2.DefaultDatabase := FIBDatabase;
+    Tr2.StartTransaction;
+
+
+    LogEvent('[test] DoCascade...');
+    DoCascade('gd_document', Tr, Tr2);
+    LogEvent('[test] DoCascade...OK');
+    LogEvent('[test] COUNT in HIS(with restr): ' + IntToStr(Count));
+    ExcludeFKs(Tr);
+    LogEvent('[test] COUNT in HIS(without restr): ' + IntToStr(Count));
 
     test;                                                                       /// test
 
@@ -1681,6 +1722,7 @@ begin
     q.ExecQuery;
 
     Tr.Commit;
+    Tr.StartTransaction;
     test;                                                                       /// test
 
     q.SQL.Text :=
@@ -1692,6 +1734,7 @@ begin
   finally
     q.Free;
     Tr.Free;
+    Tr2.Free;
   end;
 
 end;
@@ -1715,10 +1758,7 @@ var
       'WHERE RDB$TRIGGER_INACTIVE = 1 ' +
       '  AND RDB$SYSTEM_FLAG = 0';
     q.ExecQuery;
-
-    //Tr.Commit;
-    //Tr.StartTransaction;
-
+    
     q.SQL.Text :=
       'EXECUTE BLOCK ' +
       'AS ' +
@@ -1735,6 +1775,8 @@ var
       '    EXECUTE STATEMENT ''ALTER TRIGGER '' || :TN || '' INACTIVE ''; ' +
       'END';
     q.ExecQuery;
+    Tr.Commit;
+    Tr.StartTransaction;
     LogEvent('Triggers deactivated.');
   end;
 
@@ -1747,9 +1789,6 @@ var
       'WHERE RDB$INDEX_INACTIVE = 1 ' +
       '  AND RDB$SYSTEM_FLAG = 0';
     q.ExecQuery;
-
-    //Tr.Commit;
-    //Tr.StartTransaction;
 
     q.SQL.Text :=
       'EXECUTE BLOCK ' +
@@ -1768,6 +1807,8 @@ var
       '    EXECUTE STATEMENT ''ALTER INDEX '' || :N || '' INACTIVE ''; ' +
       'END';
     q.ExecQuery;
+    Tr.Commit;
+    Tr.StartTransaction;
     LogEvent('Indices deactivated.');
   end;
 
@@ -1796,8 +1837,7 @@ var
       '   AND (NOT c.rdb$constraint_name LIKE ''RDB$%'') ' +
       '   AND (NOT c.rdb$constraint_name LIKE ''INTEG_%'') '; // NOT c.RDB$INDEX_NAME
     q.ExecQuery;
-    //Tr.Commit;
-    //Tr.StartTransaction;
+
     q.SQL.Text :=
       'EXECUTE BLOCK ' +
       'AS ' +
@@ -1812,6 +1852,8 @@ var
       '    EXECUTE STATEMENT ''ALTER TABLE '' || :RN || '' DROP CONSTRAINT '' || :CN; ' +
       'END';
     q.ExecQuery;
+    Tr.Commit;
+    Tr.StartTransaction;
     LogEvent('PKs&UNIQs dropped.');
   end;
 
@@ -1864,6 +1906,8 @@ var
       '    EXECUTE STATEMENT ''ALTER TABLE '' || :RN || '' DROP CONSTRAINT '' || :CN; ' +
       'END';
     q.ExecQuery;
+    Tr.Commit;
+    Tr.StartTransaction;
     LogEvent('FKs dropped.');
   end;
 
