@@ -103,6 +103,10 @@ type
     actFLTInUses: TAction;
     TBItem13: TTBItem;
     TBItem14: TTBItem;
+    TBSeparatorItem7: TTBSeparatorItem;
+    chbxUpdate: TCheckBox;
+    TBControlItem5: TTBControlItem;
+    TBSeparatorItem8: TTBSeparatorItem;
     procedure actChooseDirExecute(Sender: TObject);
     procedure actCompareUpdate(Sender: TObject);
     procedure actCompareExecute(Sender: TObject);
@@ -181,9 +185,12 @@ end;
 
 procedure Tat_frmSyncNamespace.actCompareExecute(Sender: TObject);
 begin
-  Log('Начато обновление даты изменения объекта...');
-  TgdcNamespace.UpdateCurrModified;
-  Log('Окончено обновление даты изменения объекта...');
+  if chbxUpdate.Checked then
+  begin
+    Log('Начато обновление даты изменения объекта...');
+    TgdcNamespace.UpdateCurrModified;
+    Log('Окончено обновление даты изменения объекта...');
+  end;  
 
   cds.DisableControls;
   try

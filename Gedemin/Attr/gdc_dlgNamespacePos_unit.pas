@@ -17,10 +17,13 @@ type
     dbchbxincludesiblings: TDBCheckBox;
     dbtxtName: TDBText;
     gdcNSDependent: TgdcNamespaceObject;
-    dsNSDependent: TDataSource;                              
-    gsIBGrid1: TgsIBGrid;
+    dsNSDependent: TDataSource;
+    ibgr: TgsIBGrid;
     iblkupNamespace: TgsIBLookupComboBox;
     Label1: TLabel;
+    Label2: TLabel;
+    iblkupHeadObject: TgsIBLookupComboBox;
+    Label3: TLabel;
     procedure FormCreate(Sender: TObject);
   private
     { Private declarations }
