@@ -506,8 +506,7 @@ begin
         continue;
       if Pos(';' + Strings[I] + ';', UsesString) = 0 then
         Parent.Add(Objects[I]);
-    end;
-
+    end;   
 
     for I := 0 to Parent.Count - 1 do
       AddNode(nil, TgsNSNode(Parent[I]));
@@ -525,9 +524,12 @@ procedure TgsNSList.FillTree(ATreeView: TgsTreeView);
   begin
     if not yamlNode.Valid then
     begin
-      if Assigned(FLog) then
+      if Assigned(FLog) and (FErrorNS.IndexOf(yamlNode.Name) = -1) then
+      begin
         FLog('Файл (RUID = ' + yamlNode.RUID + ') не найден!');
-      Temp := ATreeView.Items.AddChildObject(Node, yamlNode.RUID, yamlNode);
+        FErrorNS.Add(yamlNode.Name);
+      end;
+      Temp := ATreeView.Items.AddChildObject(Node, yamlNode.Name, yamlNode);
       Temp.StateIndex := 0;
     end else
     begin
