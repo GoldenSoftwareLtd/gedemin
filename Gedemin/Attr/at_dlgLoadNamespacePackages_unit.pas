@@ -187,11 +187,14 @@ begin
     if cdsSelected in State then
       gsTreeView.Canvas.Font.Color := clWhite
     else if not TgsNSNode(Node.Data).Valid then
-      gsTreeView.Canvas.Font.Color := InvalidFile
-    else
-     gsTreeView.Canvas.Font.Color := TItemColor[TgsNSNode(Node.Data).GetNSState];
-
-    gsTreeView.Canvas.Font.Style := TItemFontStyles[TgsNSNode(Node.Data).GetNSState]; 
+    begin
+      gsTreeView.Canvas.Font.Color := InvalidFile;
+      gsTreeView.Canvas.Font.Style := gsTreeView.Canvas.Font.Style + [fsStrikeOut];
+    end else
+    begin
+      gsTreeView.Canvas.Font.Color := TItemColor[TgsNSNode(Node.Data).GetNSState];
+      gsTreeView.Canvas.Font.Style := TItemFontStyles[TgsNSNode(Node.Data).GetNSState];
+    end;  
     if not TgsNSNode(Node.Data).CheckDBVersion then
       gsTreeView.Canvas.Font.Style := gsTreeView.Canvas.Font.Style + [fsStrikeOut];
     DefaultDraw := True;
