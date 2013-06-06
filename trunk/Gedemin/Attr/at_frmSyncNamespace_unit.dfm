@@ -1,7 +1,7 @@
 object at_frmSyncNamespace: Tat_frmSyncNamespace
   Left = 312
   Top = 193
-  Width = 981
+  Width = 1131
   Height = 518
   Caption = 'Синхронизация пространств имен'
   Color = clBtnFace
@@ -17,7 +17,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
   object splMessages: TSplitter
     Left = 0
     Top = 395
-    Width = 965
+    Width = 1115
     Height = 3
     Cursor = crVSplit
     Align = alBottom
@@ -25,7 +25,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
   object sb: TStatusBar
     Left = 0
     Top = 461
-    Width = 965
+    Width = 1115
     Height = 19
     Panels = <>
     SimplePanel = False
@@ -33,7 +33,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
   object TBDock: TTBDock
     Left = 0
     Top = 0
-    Width = 965
+    Width = 1115
     Height = 26
     object TBToolbar: TTBToolbar
       Left = 0
@@ -58,6 +58,11 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       object TBItem2: TTBItem
         Action = actCompare
         AutoCheck = True
+      end
+      object TBSeparatorItem8: TTBSeparatorItem
+      end
+      object TBControlItem5: TTBControlItem
+        Control = chbxUpdate
       end
       object TBSeparatorItem4: TTBSeparatorItem
       end
@@ -96,6 +101,9 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       end
       object TBSeparatorItem5: TTBSeparatorItem
       end
+      object TBControlItem1: TTBControlItem
+        Control = lSearch
+      end
       object tbiFLTOnlyInDB: TTBItem
         Action = actFLTOnlyInDB
       end
@@ -125,17 +133,16 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       end
       object TBSeparatorItem6: TTBSeparatorItem
       end
-      object TBControlItem1: TTBControlItem
-        Control = lSearch
-      end
       object TBControlItem3: TTBControlItem
         Control = edFilter
+      end
+      object TBSeparatorItem7: TTBSeparatorItem
       end
       object TBControlItem4: TTBControlItem
         Control = cbInternal
       end
       object lSearch: TLabel
-        Left = 664
+        Left = 526
         Top = 4
         Width = 45
         Height = 13
@@ -149,7 +156,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
         TabOrder = 0
       end
       object edFilter: TEdit
-        Left = 709
+        Left = 789
         Top = 0
         Width = 140
         Height = 21
@@ -157,21 +164,32 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
         OnChange = edFilterChange
       end
       object cbInternal: TCheckBox
-        Left = 849
+        Left = 935
         Top = 2
-        Width = 97
+        Width = 66
         Height = 17
         Action = actFLTInternal
+        Caption = 'Пакеты'
         Checked = True
         State = cbChecked
         TabOrder = 2
+      end
+      object chbxUpdate: TCheckBox
+        Left = 215
+        Top = 2
+        Width = 74
+        Height = 17
+        Caption = 'Обновить'
+        Checked = True
+        State = cbChecked
+        TabOrder = 3
       end
     end
   end
   object gr: TgsDBGrid
     Left = 0
     Top = 26
-    Width = 965
+    Width = 1115
     Height = 369
     Align = alClient
     BorderStyle = bsNone
@@ -232,7 +250,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       item
         Expanded = False
         FieldName = 'FileNamespaceName'
-        Width = 364
+        Width = 514
         Visible = True
       end
       item
@@ -275,7 +293,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
   object mMessages: TMemo
     Left = 0
     Top = 398
-    Width = 965
+    Width = 1115
     Height = 63
     Align = alBottom
     ScrollBars = ssVertical

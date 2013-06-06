@@ -6,6 +6,13 @@ inherited gdc_dlgNamespacePos: Tgdc_dlgNamespacePos
   ClientWidth = 522
   PixelsPerInch = 96
   TextHeight = 13
+  object Label2: TLabel [0]
+    Left = 9
+    Top = 137
+    Width = 122
+    Height = 13
+    Caption = 'Подчиненные объекты:'
+  end
   inherited btnAccess: TButton
     Left = 8
     Top = 360
@@ -26,11 +33,11 @@ inherited gdc_dlgNamespacePos: Tgdc_dlgNamespacePos
     Left = 444
     Top = 358
   end
-  object Panel1: TPanel [5]
+  object Panel1: TPanel [6]
     Left = 0
     Top = 0
     Width = 522
-    Height = 113
+    Height = 130
     Align = alTop
     BevelOuter = bvNone
     TabOrder = 5
@@ -52,50 +59,57 @@ inherited gdc_dlgNamespacePos: Tgdc_dlgNamespacePos
     end
     object Label1: TLabel
       Left = 8
-      Top = 32
+      Top = 33
       Width = 102
       Height = 13
       Caption = 'Пространство имен:'
     end
+    object Label3: TLabel
+      Left = 8
+      Top = 57
+      Width = 88
+      Height = 13
+      Caption = 'Главный объект:'
+    end
     object dbchbxalwaysoverwrite: TDBCheckBox
       Left = 8
-      Top = 56
+      Top = 78
       Width = 217
       Height = 17
       Caption = 'Всегда перезаписывать при загрузке'
       DataField = 'alwaysoverwrite'
       DataSource = dsgdcBase
-      TabOrder = 1
+      TabOrder = 2
       ValueChecked = '1'
       ValueUnchecked = '0'
     end
     object dbchbxdontremove: TDBCheckBox
       Left = 8
-      Top = 75
+      Top = 97
       Width = 257
       Height = 17
       Caption = 'Не удалять при удалении пространства имен'
       DataField = 'dontremove'
       DataSource = dsgdcBase
-      TabOrder = 2
+      TabOrder = 3
       ValueChecked = '1'
       ValueUnchecked = '0'
     end
     object dbchbxincludesiblings: TDBCheckBox
       Left = 8
-      Top = 93
+      Top = 115
       Width = 329
       Height = 17
       Caption = 'Для древовидных иерархий включать вложенные объекты'
       DataField = 'includesiblings'
       DataSource = dsgdcBase
-      TabOrder = 3
+      TabOrder = 4
       ValueChecked = '1'
       ValueUnchecked = '0'
     end
     object iblkupNamespace: TgsIBLookupComboBox
       Left = 115
-      Top = 28
+      Top = 29
       Width = 238
       Height = 21
       HelpContext = 1
@@ -108,12 +122,28 @@ inherited gdc_dlgNamespacePos: Tgdc_dlgNamespacePos
       ItemHeight = 13
       TabOrder = 0
     end
+    object iblkupHeadObject: TgsIBLookupComboBox
+      Left = 115
+      Top = 53
+      Width = 238
+      Height = 21
+      HelpContext = 1
+      Transaction = ibtrCommon
+      DataSource = dsgdcBase
+      DataField = 'HEADOBJECTKEY'
+      ListTable = 'at_object'
+      ListField = 'objectname'
+      KeyField = 'id'
+      ReadOnly = True
+      ItemHeight = 13
+      TabOrder = 1
+    end
   end
-  object gsIBGrid1: TgsIBGrid [6]
+  object ibgr: TgsIBGrid [7]
     Left = 8
-    Top = 114
+    Top = 152
     Width = 505
-    Height = 239
+    Height = 199
     DataSource = dsNSDependent
     Options = [dgTitles, dgColumnResize, dgColLines, dgTabs, dgRowSelect, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit]
     ReadOnly = True

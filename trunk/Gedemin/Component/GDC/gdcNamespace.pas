@@ -2699,14 +2699,11 @@ begin
 
         gdcNamespace.SaveNamespaceToStream(SS, IDCANCEL);
       finally
-        if Tr.InTransaction then
-          Tr.Rollback;
-        Tr.Free;
         gdcNamespace.Free;
+        Tr.Free;
       end;
     end else
       SaveNamespaceToStream(SS, IDCANCEL);
-
 
     ScriptComparer.Compare(SS.DataString, SS1251.DataString);
     ScriptComparer.LeftCaption('Текущее состояние в базе данных:');
@@ -2817,8 +2814,11 @@ begin
     WasDelete := False;
     Obj := TgdcNamespaceObject.Create(nil);
     try
-      Obj.Transaction := Transaction;
-      Obj.ReadTransaction := Transaction;
+      if Transaction.InTransaction then
+      begin
+        Obj.Transaction := Transaction;
+        Obj.ReadTransaction := Transaction;
+      end;  
       Obj.SubSet := 'ByNamespace';
       Obj.ParamByName('namespacekey').AsInteger := Self.ID;
       Obj.Open;
