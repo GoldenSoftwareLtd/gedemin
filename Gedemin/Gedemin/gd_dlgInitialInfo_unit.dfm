@@ -1,6 +1,6 @@
 object gd_dlgInitialInfo: Tgd_dlgInitialInfo
-  Left = 411
-  Top = 203
+  Left = 414
+  Top = 296
   BorderStyle = bsDialog
   Caption = 'Начальная информация'
   ClientHeight = 486
@@ -153,6 +153,7 @@ object gd_dlgInitialInfo: Tgd_dlgInitialInfo
       Height = 21
       Color = 10526975
       TabOrder = 0
+      OnDblClick = edNameDblClick
     end
     object edPhone: TEdit
       Left = 96
