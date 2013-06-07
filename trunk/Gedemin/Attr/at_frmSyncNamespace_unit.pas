@@ -561,7 +561,7 @@ end;
 procedure Tat_frmSyncNamespace.ApplyFilter;
 begin
   cds.Filtered := False;
-  cds.Filtered := (edFilter.Text > '') or StatusFilterSet;
+  cds.Filtered := (edFilter.Text > '') or StatusFilterSet or cbInternal.Checked;
 end;
 
 procedure Tat_frmSyncNamespace.edFilterChange(Sender: TObject);
@@ -571,30 +571,33 @@ end;
 
 procedure Tat_frmSyncNamespace.cdsFilterRecord(DataSet: TDataSet;
   var Accept: Boolean);
-begin  
+begin
   Accept :=
     (cds.FieldByName('operation').AsString = '')
+
     or
     (
-      cbInternal.Checked
-      and
       (
         (
-          (cds.FieldByName('filename').AsString > '')
+          cbInternal.Checked
           and
-          (cds.FieldByName('fileinternal').AsInteger = 0)
+          (
+            (
+              (cds.FieldByName('filename').AsString > '')
+              and
+              (cds.FieldByName('fileinternal').AsInteger = 0)
+            )
+            or
+            (
+              (cds.FieldByName('namespacekey').AsInteger > 0)
+              and
+              (cds.FieldByName('namespaceinternal').AsInteger = 0)
+            )
+          )
         )
         or
-        (
-          (cds.FieldByName('namespacekey').AsInteger > 0)
-          and
-          (cds.FieldByName('namespaceinternal').AsInteger = 0)
-        )
+          not cbInternal.Checked
       )
-    )
-    or
-    (
-      not cbInternal.Checked
       and
       (
         (edFilter.Text = '')
@@ -660,8 +663,8 @@ begin
     or actFLTNone.Checked
     or actFLTEqualOlder.Checked
     or actFLTEqualNewer.Checked
-    or actFLTInUses.Checked
-    or cbInternal.Checked;
+    or actFLTInUses.Checked;
+ //   or cbInternal.Checked;
 end;
 
 procedure Tat_frmSyncNamespace.actSelectAllExecute(Sender: TObject);
