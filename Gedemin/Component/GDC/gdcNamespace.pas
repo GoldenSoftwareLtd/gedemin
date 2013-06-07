@@ -469,6 +469,13 @@ begin
           ftFloat: AWriter.WriteFloat(F.AsFloat);
           ftCurrency: AWriter.WriteCurrency(F.AsCurrency);
           ftLargeint: AWriter.WriteString(F.AsString);
+          ftBCD:
+          begin
+            if DecimalSeparator <> '.' then
+              AWriter.WriteText(StringReplace(F.AsString, DecimalSeparator, '.', []), qSingleQuoted)
+            else
+              AWriter.WriteText(F.AsString, qSingleQuoted);
+          end;
           ftBlob, ftGraphic:
           begin
             Flag := False;
@@ -1179,8 +1186,8 @@ begin
       if (CompanyStorage <> nil) and CompanyStorage.IsModified then
         CompanyStorage.SaveToDatabase;
 
-      DesktopManager.WriteDesktopData('Последний', True);
-      FreeAllForms(False);
+     // DesktopManager.WriteDesktopData('Последний', True);
+     // FreeAllForms(False);
       ConnectDatabase;
       for I := 0 to ANamespaceList.Count - 1 do
       begin
@@ -1782,6 +1789,7 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
   var
     TempS: String;
     Flag: Boolean;
+    I: Integer;
   begin
     if TyamlScalar(N).IsNull then
       Field.Clear
@@ -1791,9 +1799,17 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
       case Field.DataType of
         ftDateTime, ftTime: Field.AsDateTime := TyamlDateTime(N).AsDateTime;
         ftDate: Field.AsDateTime := TyamlDate(N).AsDate;
-        ftInteger, ftLargeint, ftSmallint, ftWord: Field.AsInteger := TyamlScalar(N).AsInteger;
+        ftInteger, ftSmallint, ftWord: Field.AsInteger := TyamlScalar(N).AsInteger;
         ftFloat, ftCurrency: Field.AsFloat := TyamlScalar(N).AsFloat;
         ftBoolean: Field.AsBoolean := TyamlBoolean(N).AsBoolean;
+        ftBCD:
+        begin
+          Temps := TyamlString(N).AsString;
+          for I := 1 to Length(Temps) do
+            if (Temps[I] in ['.', ',']) and (Temps[I] <> DecimalSeparator) then
+              Temps[I] := DecimalSeparator;
+          Field.AsString := TempS;
+        end;
         ftBlob, ftGraphic:
         begin
           Flag := False;
@@ -1801,13 +1817,7 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
           if
             (AnObj.ClassName = 'TgdcStorageValue')
             and
-            (
-              (SourceFields.ReadString('name') = 'dfm')
-              or
-              CheckRUID(SourceFields.ReadString('name'))
-              or
-              (atDatabase.Relations.ByRelationName(SourceFields.ReadString('name')) <> nil)
-            ) then
+            (N is TyamlString) then
           begin
             TempS := TyamlScalar(N).AsString;
             if TryObjectTextToBinary(TempS) then
@@ -1818,20 +1828,18 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
           end else if
             (AnObj.ClassName = 'TgdcTemplate')
             and
-            (SourceFields.ReadString('templatetype') = 'FR4')
-            and
-            (Field.FieldName = 'TEMPLATEDATA') then
+            (N is TyamlString) then
           begin
             Field.AsString := TyamlScalar(N).AsString;
             Flag := True;
           end;
-          if not Flag then
-          begin
+          if not Flag and (N is TyamlBinary) then
+          begin  
             TBlobField(Field).LoadFromStream(TyamlBinary(N).AsStream);
           end;
         end;
-      else 
-        Field.AsString := TyamlScalar(N).AsString;
+      else  
+        Field.AsString := TyamlString(N).AsString;
       end;
     end;
   end;
@@ -2989,13 +2997,20 @@ begin
         nsOlder: ADataSet.FieldByName('operation').AsString := '>>';
         nsEqual:
         begin
-          UsesStates := ANSList.NSTree.GetDependState(NSNode.RUID);
-          if nsNewer in UsesStates then
-            ADataSet.FieldByName('operation').AsString := '<='
-          else if nsOlder in UsesStates then
-             ADataSet.FieldByName('operation').AsString := '=>'
-          else
-            ADataSet.FieldByName('operation').AsString := '==';
+          q.ParamByName('nsk').AsInteger := NSNode.Namespacekey;
+          q.ExecQuery;
+          if q.Eof then
+          begin
+            UsesStates := ANSList.NSTree.GetDependState(NSNode.RUID);
+            if nsNewer in UsesStates then
+              ADataSet.FieldByName('operation').AsString := '<='
+            else if nsOlder in UsesStates then
+               ADataSet.FieldByName('operation').AsString := '=>'
+            else
+              ADataSet.FieldByName('operation').AsString := '==';
+          end else
+             ADataSet.FieldByName('operation').AsString := '?';
+          q.Close;
         end;
       end;
       ADataSet.Post;

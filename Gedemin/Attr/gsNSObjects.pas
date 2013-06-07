@@ -253,7 +253,7 @@ begin
     q.Transaction := gdcBaseManager.ReadTransaction;
     q.SQL.Text :=
       'SELECT n.id, n.name, n.version, n.filetimestamp, ' +
-      '  r.xid || ''_'' || r.dbid as RUID ' +
+      '  r.xid || ''_'' || r.dbid as RUID, n.internal, n.optional ' +
       'FROM at_namespace n JOIN gd_ruid r ' +
       '  ON n.id = r.id ' +
       'WHERE UPPER(n.name) = UPPER(:n)';
@@ -275,6 +275,8 @@ begin
             N.Namespacekey := q.Fields[0].AsInteger;
             N.NamespaceName := q.Fields[1].AsString;
             N.NamespaceTimestamp := q.Fields[3].AsDateTime;
+            N.NamespaceOptional := Boolean(q.Fields[6].AsInteger);
+            N.NamespaceInternal := Boolean(q.Fields[5].AsInteger);
             if Assigned(FLog) then
               FLog('Пространство имен "' + N.Name + '" найдено по имени.');
             Ind := IndexOf(q.Fields[4].AsString);
