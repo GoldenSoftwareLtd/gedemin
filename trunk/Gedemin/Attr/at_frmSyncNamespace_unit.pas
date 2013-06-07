@@ -488,8 +488,12 @@ begin
     begin
       if cds.Locate('namespacekey', FSaveFileList[I], []) then
         SaveID(nil, '');
-    end;  
-    FgdcNamespace.InstallPackages(FLoadFileList, AlwaysOverwrite, DontRemove);
+    end;
+    if FLoadFileList.Count > 0 then
+    begin
+      FgdcNamespace.InstallPackages(FLoadFileList, AlwaysOverwrite, DontRemove);
+      ModalResult := mrOK;
+    end;
     actCompare.Execute;
   end;
 end;
@@ -535,6 +539,7 @@ begin
   if FNSList.NSTree.CheckNSCorrect(cds.FieldByName('fileruid').AsString, Error) then
   begin
     FNSList.NSTree.SetNSFileName(cds.FieldByName('fileruid').AsString, FLoadFileList);
+    FgdcNamespace.InstallPackages(FLoadFileList);
   end else
     Application.MessageBox(
       PChar(Error + #13#10 +
