@@ -331,8 +331,8 @@ end;
 procedure Tat_frmSyncNamespace.actSetForLoadingExecute(Sender: TObject);
 begin
   IterateSelected(SetOperation, cds, '<<');
-  if StatusFilterSet then
-    actFLTNewer.Checked := True;
+  if StatusFilterSet and (not actFLTNewer.Checked) then
+    actFLTNewer.Execute;
 end;
 
 procedure Tat_frmSyncNamespace.SetOperation(AnObj: TObject; const AData: String);
@@ -397,8 +397,8 @@ end;
 procedure Tat_frmSyncNamespace.actSetForSavingExecute(Sender: TObject);
 begin
   IterateSelected(SetOperation, cds, '>>');
-  if StatusFilterSet then
-    actFLTOlder.Checked := True;
+  if StatusFilterSet and (not actFLTOlder.Checked) then
+    actFLTOlder.Execute;
 end;
 
 procedure Tat_frmSyncNamespace.actClearUpdate(Sender: TObject);
