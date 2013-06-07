@@ -22,6 +22,7 @@ type
     procedure GetWhereClauseConditions(S: TStrings); override;
     procedure DoLoadNamespace(ANamespaceList: TStringList;
       const AnAlwaysoverwrite: Boolean = False; const ADontRemove: Boolean = False);
+
   public
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
@@ -3700,7 +3701,8 @@ begin
               'merge into at_object o '#13#10 +
               '  using (select r.xid, r.dbid, d.editiondate '#13#10 +
               '    from ' + LT + ' d join gd_ruid r '#13#10 +
-              '    on r.id = d.id) de on o.xid=de.xid and o.dbid=de.dbid '#13#10 +
+              '    on r.id = d.id) de '#13#10 +
+              '  on o.xid=de.xid and o.dbid=de.dbid and o.curr_modified < de.editiondate'#13#10 +
               'when matched then '#13#10 +
               '  update set o.curr_modified = de.editiondate';
             q.ExecQuery;
