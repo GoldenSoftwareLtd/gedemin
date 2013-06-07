@@ -152,6 +152,7 @@ type
     procedure SaveID(AnObj: TObject; const AData: String);
     procedure DeleteFile(AnObj: TObject; const AData: String); 
     procedure Log(const S: String);
+    function StatusFilterSet: Boolean;
 
   public
     constructor Create(AnOwner: TComponent); override;
@@ -194,6 +195,7 @@ begin
     Log('Начато обновление даты изменения объекта...');
     TgdcNamespace.UpdateCurrModified;
     Log('Окончено обновление даты изменения объекта...');
+    chbxUpdate.Checked := False;
   end;  
 
   cds.DisableControls;
@@ -329,6 +331,8 @@ end;
 procedure Tat_frmSyncNamespace.actSetForLoadingExecute(Sender: TObject);
 begin
   IterateSelected(SetOperation, cds, '<<');
+  if StatusFilterSet then
+    actFLTNewer.Checked := True;
 end;
 
 procedure Tat_frmSyncNamespace.SetOperation(AnObj: TObject; const AData: String);
@@ -393,6 +397,8 @@ end;
 procedure Tat_frmSyncNamespace.actSetForSavingExecute(Sender: TObject);
 begin
   IterateSelected(SetOperation, cds, '>>');
+  if StatusFilterSet then
+    actFLTOlder.Checked := True;
 end;
 
 procedure Tat_frmSyncNamespace.actClearUpdate(Sender: TObject);
@@ -555,17 +561,7 @@ end;
 procedure Tat_frmSyncNamespace.ApplyFilter;
 begin
   cds.Filtered := False;
-  cds.Filtered := (edFilter.Text > '')
-    or actFLTOnlyInDB.Checked
-    or actFLTOlder.Checked
-    or actFLTEqual.Checked
-    or actFLTOnlyInFile.Checked
-    or actFLTNewer.Checked
-    or actFLTNone.Checked
-    or actFLTEqualOlder.Checked
-    or actFLTEqualNewer.Checked
-    or actFLTInUses.Checked
-    or cbInternal.Checked;
+  cds.Filtered := (edFilter.Text > '') or StatusFilterSet;
 end;
 
 procedure Tat_frmSyncNamespace.edFilterChange(Sender: TObject);
@@ -615,25 +611,7 @@ begin
       )
       and
       (
-        (
-          (not actFLTOnlyInDB.Checked)
-          and
-          (not actFLTOlder.Checked)
-          and
-          (not actFLTEqual.Checked)
-          and
-          (not actFLTOnlyInFile.Checked)
-          and
-          (not actFLTNewer.Checked)
-          and
-          (not actFLTNone.Checked)
-          and
-          (not actFLTEqualOlder.Checked)
-          and
-          (not actFLTEqualNewer.Checked)
-          and
-          (not actFLTInUses.Checked)
-        )
+        (not StatusFilterSet)
         or
         (actFLTOnlyInDB.Checked and (cds.FieldByName('operation').AsString = actFLTOnlyInDB.Caption))
         or
@@ -670,6 +648,20 @@ end;
 procedure Tat_frmSyncNamespace.actFLTInternalExecute(Sender: TObject);
 begin
   ApplyFilter;
+end;
+
+function Tat_frmSyncNamespace.StatusFilterSet: Boolean;
+begin
+  Result := actFLTOnlyInDB.Checked
+    or actFLTOlder.Checked
+    or actFLTEqual.Checked
+    or actFLTOnlyInFile.Checked
+    or actFLTNewer.Checked
+    or actFLTNone.Checked
+    or actFLTEqualOlder.Checked
+    or actFLTEqualNewer.Checked
+    or actFLTInUses.Checked
+    or cbInternal.Checked;
 end;
 
 procedure Tat_frmSyncNamespace.actSelectAllExecute(Sender: TObject);

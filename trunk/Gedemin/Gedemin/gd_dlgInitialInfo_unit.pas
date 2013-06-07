@@ -91,6 +91,7 @@ type
     procedure actOkExecute(Sender: TObject);
     procedure actCancelExecute(Sender: TObject);
     procedure actOkUpdate(Sender: TObject);
+    procedure edNameDblClick(Sender: TObject);
   end;
 
 var
@@ -390,6 +391,18 @@ begin
     and (Trim(edUser.Text) > '')
     and (Trim(edLogin.Text) > '')
     and (edPassword.Text = edPassword2.Text);
+end;
+
+procedure Tgd_dlgInitialInfo.edNameDblClick(Sender: TObject);
+begin
+  {$IFDEF DUNIT_TEST}
+  edName.Text := '1';
+  edUser.Text := '1';
+  edLogin.Text := '1';
+  edPassword.Text := '1';
+  edPassword2.Text := '1';
+  actOk.Execute;
+  {$ENDIF}
 end;
 
 end.
