@@ -57,7 +57,6 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       end
       object TBItem2: TTBItem
         Action = actCompare
-        AutoCheck = True
       end
       object TBSeparatorItem8: TTBSeparatorItem
       end
@@ -585,6 +584,12 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       OnExecute = actFLTOnlyInDBExecute
       OnUpdate = actFLTOnlyInDBUpdate
     end
+    object actSelectAll: TAction
+      Caption = 'Выделить все'
+      ShortCut = 16449
+      OnExecute = actSelectAllExecute
+      OnUpdate = actSelectAllUpdate
+    end
   end
   object pmSync: TPopupMenu
     Images = dmImages.il16x16
@@ -625,6 +630,9 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
     end
     object N6: TMenuItem
       Action = actClear
+    end
+    object actSelectAll1: TMenuItem
+      Action = actSelectAll
     end
   end
 end

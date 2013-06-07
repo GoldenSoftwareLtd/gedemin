@@ -107,6 +107,8 @@ type
     chbxUpdate: TCheckBox;
     TBControlItem5: TTBControlItem;
     TBSeparatorItem8: TTBSeparatorItem;
+    actSelectAll: TAction;
+    actSelectAll1: TMenuItem;
     procedure actChooseDirExecute(Sender: TObject);
     procedure actCompareUpdate(Sender: TObject);
     procedure actCompareExecute(Sender: TObject);
@@ -136,6 +138,8 @@ type
     procedure actFLTOnlyInDBExecute(Sender: TObject);
     procedure actFLTOnlyInDBUpdate(Sender: TObject);
     procedure actFLTInternalExecute(Sender: TObject);
+    procedure actSelectAllExecute(Sender: TObject);
+    procedure actSelectAllUpdate(Sender: TObject);
 
   private
     FgdcNamespace: TgdcNamespace;
@@ -666,6 +670,22 @@ end;
 procedure Tat_frmSyncNamespace.actFLTInternalExecute(Sender: TObject);
 begin
   ApplyFilter;
+end;
+
+procedure Tat_frmSyncNamespace.actSelectAllExecute(Sender: TObject);
+begin
+  gr.SelectedRows.Clear;
+  cds.First;
+  while not cds.Eof do
+  begin
+    gr.SelectedRows.CurrentRowSelected := True;
+    cds.Next;
+  end;
+end;
+
+procedure Tat_frmSyncNamespace.actSelectAllUpdate(Sender: TObject);
+begin
+  (Sender as TAction).Enabled := not cds.IsEmpty;
 end;
 
 initialization
