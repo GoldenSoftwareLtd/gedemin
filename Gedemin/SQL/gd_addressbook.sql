@@ -317,8 +317,9 @@ COMMIT;
 /* Типы счетов*/
 CREATE TABLE GD_COMPACCTYPE
 (
-  id   dintkey,
-  name dname
+  id          dintkey,
+  name        dname,
+  editiondate deditiondate
 );
 
 COMMIT;
@@ -353,7 +354,8 @@ CREATE TABLE gd_companyaccount
   accounttypekey dforeignkey,        /* код тыпа рахунку (разліковы, ссудны...)   */
   disabled       dboolean DEFAULT 0,
 
-  accounttype    dtext20             /* для совместимости с предыдущей версией    */
+  accounttype    dtext20,            /* для совместимости с предыдущей версией    */
+  editiondate    deditiondate
 );
 
 ALTER TABLE gd_companyaccount ADD CONSTRAINT gd_pk_companyaccount

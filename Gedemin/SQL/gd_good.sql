@@ -146,7 +146,8 @@ CREATE TABLE gd_value
   name          dname,          /* Наименование                    */
   description   dtext80,        /* Описание                        */
   goodkey       dforeignkey,    /* Ссылка на ТМЦ по данной ед.изм. */
-  ispack        dboolean        /* Используется для упаковки       */
+  ispack        dboolean,       /* Используется для упаковки       */
+  editiondate   deditiondate
 );
 
 ALTER TABLE gd_value ADD CONSTRAINT gd_pk_value
@@ -182,14 +183,14 @@ CREATE TABLE gd_tnvd
 (
   id            dintkey,        /* Первичный ключ               */
   name          dname,          /* Наименование                 */
-  description   dtext180        /* Описание                     */
+  description   dtext180,       /* Описание                     */
+  editiondate   deditiondate
 );
 
 ALTER TABLE gd_tnvd ADD CONSTRAINT gd_pk_tnvd
   PRIMARY KEY (id);
 
 COMMIT;
-
 
 SET TERM ^ ;
 
@@ -200,14 +201,12 @@ AS
 BEGIN
   IF (NEW.ID IS NULL) THEN
     NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
-
 END
 ^
 
 SET TERM ; ^
 
 COMMIT;
-
 
 /****************************************************
 
@@ -386,16 +385,14 @@ CREATE TABLE gd_tax
   id            dintkey,        /* Ключ уникальный              */
   name          dname,          /* Наименование                 */
   shot          dtext20,        /* Наименование переменной      */
-  rate          dtax            /* Ставка                       */
+  rate          dtax,           /* Ставка                       */
+  editiondate   deditiondate
 );
 
 ALTER TABLE gd_tax ADD CONSTRAINT gd_pk_tax
   PRIMARY KEY (id);
 
-COMMIT;
-
 CREATE UNIQUE INDEX gd_x_tax_name ON gd_tax
-  /*COMPUTED BY (UPPER(name));*/
   (name);
 
 COMMIT;
@@ -409,8 +406,8 @@ AS
 BEGIN
   IF (NEW.ID IS NULL) THEN
     NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
-      
-END;^
+END
+^
 
 SET TERM ; ^
 
@@ -520,7 +517,8 @@ CREATE TABLE gd_preciousemetal
 (
   id            dintkey,        /* Ключ уникальный              */
   name          dname,          /* Наименование                 */
-  description   dtext180        /* Описание */
+  description   dtext180,       /* Описание */
+  editiondate   deditiondate
 );
 
 ALTER TABLE gd_preciousemetal ADD CONSTRAINT gd_pk_preciousemetal

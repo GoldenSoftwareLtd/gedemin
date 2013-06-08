@@ -38,11 +38,12 @@ CREATE TABLE flt_componentfilter
   formname          dtext20,            /* наименование владельца компонента */
   applicationname   dtext20,            /* наименование приложения */
   crc               dinteger,           /* crc поля fullname */
-  fullname          dtext255            /* полное наименование компонента:
+  fullname          dtext255,           /* полное наименование компонента:
                                            наименование приложения + \ +
                                            наименование владельца + \ +
                                            имя компоненты фильтра (Добавлено из-за
                                            предыдущего органичения на имя фильтра 20 символов)*/
+  editiondate       deditiondate                                            
 );
 
 ALTER TABLE flt_componentfilter

@@ -1361,6 +1361,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (174, '0000.0001.0000.0205', '05.06.2013', 'Corrections for NS triggers.');
 
+INSERT INTO fin_versioninfo
+  VALUES (175, '0000.0001.0000.0206', '08.06.2013', 'Add missing edition date fields #2.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
@@ -1860,10 +1863,9 @@ CREATE TABLE gd_sql_statement
   id               dintkey,
   crc              INTEGER NOT NULL UNIQUE,
   kind             SMALLINT NOT NULL,          /* 0 -- sql, 1 -- params */
-  data             dblobtext80_1251 not null
+  data             dblobtext80_1251 not null,
+  editiondate      deditiondate
 );
-
-COMMIT;
 
 ALTER TABLE gd_sql_statement ADD CONSTRAINT gd_pk_sql_statement
   PRIMARY KEY (id);
@@ -2164,7 +2166,8 @@ CREATE TABLE gd_place (
   name        dname,
   placetype   dplacetype,
   telprefix   dtext8,           /* телефонный код места (города ) */
-  code        dtext8            /* код местности*/
+  code        dtext8,           /* код местности*/
+  editiondate deditiondate
 );
 
 COMMIT;
@@ -2245,6 +2248,7 @@ CREATE TABLE gd_curr
   name_1         dtext60, /* В родительном падеже, если заканчивается на 2-4 */
   centname_0     dtext60, /* В родительном падеже, если заканчивается на 0, 5-9*/
   centname_1     dtext60, /* В родительном падеже, если заканчивается на 2-4 */
+  editiondate    deditiondate,
   reserved       dreserved
 );
 
@@ -2254,13 +2258,10 @@ ALTER TABLE gd_curr ADD CONSTRAINT gd_pk_curr
   PRIMARY KEY (id);
 
 CREATE UNIQUE ASC INDEX gd_x_currfullname ON gd_curr
-  /*COMPUTED BY (UPPER(name));*/
   (name);
 
 CREATE UNIQUE ASC INDEX gd_x_currshortname ON gd_curr
-  /*COMPUTED BY (UPPER(shortname));*/
   (shortname);
-
 
 SET TERM ^ ;
 
@@ -2323,7 +2324,8 @@ CREATE TABLE gd_currrate
   fromcurr       dintkey,
   tocurr         dintkey,
   fordate        ddate NOT NULL,
-  coeff          dcurrrate
+  coeff          dcurrrate,
+  editiondate    deditiondate
 );
 
 COMMIT;
@@ -2383,9 +2385,10 @@ COMMIT;
 
 RECREATE TABLE wg_position
 (
-  id         dintkey,
-  name       dname UNIQUE,
-  reserved   dreserved,
+  id           dintkey,
+  name         dname UNIQUE,
+  editiondate  deditiondate,
+  reserved     dreserved,
 
   CONSTRAINT wg_pk_position_id PRIMARY KEY (id)
 );
@@ -2413,6 +2416,7 @@ RECREATE TABLE wg_holiday
   id          dintkey,
   holidaydate ddate NOT NULL UNIQUE,
   name        dname,
+  editiondate deditiondate,
   disabled    ddisabled,
 
   CONSTRAINT wg_pk_holiday_id PRIMARY KEY (id)
@@ -2520,6 +2524,8 @@ RECREATE TABLE wg_tblcal
   w8_start4    dtime_notnull DEFAULT '00:00:00',
   w8_end4      dtime_notnull DEFAULT '00:00:00',
 
+  editiondate  deditiondate,
+
   CONSTRAINT wg_pk_tblcal PRIMARY KEY (id)
 );
 
@@ -2539,6 +2545,8 @@ RECREATE TABLE wg_tblcalday
   wend3      dtimestamp_notnull DEFAULT '1900-01-01 00:00:00',
   wstart4    dtimestamp_notnull DEFAULT '1900-01-01 00:00:00',
   wend4      dtimestamp_notnull DEFAULT '1900-01-01 00:00:00',
+
+  editiondate deditiondate,
 
   WDURATION  COMPUTED BY (G_M_ROUNDNN(((wend1 - wstart1) + (wend2 - wstart2) + (wend3 - wstart3) + (wend4 - wstart4))*24, 0.01)),
 
@@ -2915,8 +2923,9 @@ COMMIT;
 /* Типы счетов*/
 CREATE TABLE GD_COMPACCTYPE
 (
-  id   dintkey,
-  name dname
+  id          dintkey,
+  name        dname,
+  editiondate deditiondate
 );
 
 COMMIT;
@@ -2951,7 +2960,8 @@ CREATE TABLE gd_companyaccount
   accounttypekey dforeignkey,        /* код тыпа рахунку (разліковы, ссудны...)   */
   disabled       dboolean DEFAULT 0,
 
-  accounttype    dtext20             /* для совместимости с предыдущей версией    */
+  accounttype    dtext20,            /* для совместимости с предыдущей версией    */
+  editiondate    deditiondate
 );
 
 ALTER TABLE gd_companyaccount ADD CONSTRAINT gd_pk_companyaccount
@@ -6736,11 +6746,12 @@ CREATE TABLE flt_componentfilter
   formname          dtext20,            /* наименование владельца компонента */
   applicationname   dtext20,            /* наименование приложения */
   crc               dinteger,           /* crc поля fullname */
-  fullname          dtext255            /* полное наименование компонента:
+  fullname          dtext255,           /* полное наименование компонента:
                                            наименование приложения + \ +
                                            наименование владельца + \ +
                                            имя компоненты фильтра (Добавлено из-за
                                            предыдущего органичения на имя фильтра 20 символов)*/
+  editiondate       deditiondate                                            
 );
 
 ALTER TABLE flt_componentfilter
@@ -8359,7 +8370,8 @@ CREATE TABLE gd_value
   name          dname,          /* Наименование                    */
   description   dtext80,        /* Описание                        */
   goodkey       dforeignkey,    /* Ссылка на ТМЦ по данной ед.изм. */
-  ispack        dboolean        /* Используется для упаковки       */
+  ispack        dboolean,       /* Используется для упаковки       */
+  editiondate   deditiondate
 );
 
 ALTER TABLE gd_value ADD CONSTRAINT gd_pk_value
@@ -8395,14 +8407,14 @@ CREATE TABLE gd_tnvd
 (
   id            dintkey,        /* Первичный ключ               */
   name          dname,          /* Наименование                 */
-  description   dtext180        /* Описание                     */
+  description   dtext180,       /* Описание                     */
+  editiondate   deditiondate
 );
 
 ALTER TABLE gd_tnvd ADD CONSTRAINT gd_pk_tnvd
   PRIMARY KEY (id);
 
 COMMIT;
-
 
 SET TERM ^ ;
 
@@ -8413,14 +8425,12 @@ AS
 BEGIN
   IF (NEW.ID IS NULL) THEN
     NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
-
 END
 ^
 
 SET TERM ; ^
 
 COMMIT;
-
 
 /****************************************************
 
@@ -8599,16 +8609,14 @@ CREATE TABLE gd_tax
   id            dintkey,        /* Ключ уникальный              */
   name          dname,          /* Наименование                 */
   shot          dtext20,        /* Наименование переменной      */
-  rate          dtax            /* Ставка                       */
+  rate          dtax,           /* Ставка                       */
+  editiondate   deditiondate
 );
 
 ALTER TABLE gd_tax ADD CONSTRAINT gd_pk_tax
   PRIMARY KEY (id);
 
-COMMIT;
-
 CREATE UNIQUE INDEX gd_x_tax_name ON gd_tax
-  /*COMPUTED BY (UPPER(name));*/
   (name);
 
 COMMIT;
@@ -8622,8 +8630,8 @@ AS
 BEGIN
   IF (NEW.ID IS NULL) THEN
     NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
-      
-END;^
+END
+^
 
 SET TERM ; ^
 
@@ -8733,7 +8741,8 @@ CREATE TABLE gd_preciousemetal
 (
   id            dintkey,        /* Ключ уникальный              */
   name          dname,          /* Наименование                 */
-  description   dtext180        /* Описание */
+  description   dtext180,       /* Описание */
+  editiondate   deditiondate
 );
 
 ALTER TABLE gd_preciousemetal ADD CONSTRAINT gd_pk_preciousemetal
@@ -11028,10 +11037,16 @@ CREATE TABLE AC_AUTOTRRECORD (
     FOLDERKEY         DFOREIGNKEY
 );
 
-
-ALTER TABLE AC_AUTOTRRECORD ADD PRIMARY KEY (ID);
-ALTER TABLE AC_AUTOTRRECORD ADD CONSTRAINT FK_AC_AUTOTRRECORD_FOLDER FOREIGN KEY (FOLDERKEY) REFERENCES GD_COMMAND (ID) ON DELETE SET NULL ON UPDATE SET NULL;
-ALTER TABLE AC_AUTOTRRECORD ADD CONSTRAINT FK_AC_AUTOTRRECORD_ID FOREIGN KEY (ID) REFERENCES AC_TRRECORD (ID) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE AC_AUTOTRRECORD ADD
+  PRIMARY KEY (ID);
+ALTER TABLE AC_AUTOTRRECORD ADD CONSTRAINT FK_AC_AUTOTRRECORD_FOLDER
+  FOREIGN KEY (FOLDERKEY) REFERENCES GD_COMMAND (ID)
+  ON DELETE SET NULL
+  ON UPDATE SET NULL;
+ALTER TABLE AC_AUTOTRRECORD ADD CONSTRAINT FK_AC_AUTOTRRECORD_ID
+  FOREIGN KEY (ID) REFERENCES AC_TRRECORD (ID)
+  ON DELETE CASCADE
+  ON UPDATE CASCADE;
 
 COMMIT;
 
@@ -11042,19 +11057,25 @@ CREATE TABLE AC_AUTOENTRY (
     BEGINDATE      DDATE_NOTNULL NOT NULL,
     ENDDATE        DDATE_NOTNULL NOT NULL,
     CREDITACCOUNT  DINTKEY NOT NULL,
-    DEBITACCOUNT   DINTKEY NOT NULL
+    DEBITACCOUNT   DINTKEY NOT NULL,
+    EDITIONDATE    DEDITIONDATE
 );
 
-ALTER TABLE AC_AUTOENTRY ADD CONSTRAINT PK_AC_AUTOENTRY PRIMARY KEY (ID);
-ALTER TABLE AC_AUTOENTRY ADD CONSTRAINT FK_AC_AUTOENTRY_CREDIT FOREIGN KEY (CREDITACCOUNT) REFERENCES AC_ACCOUNT (ID);
-ALTER TABLE AC_AUTOENTRY ADD CONSTRAINT FK_AC_AUTOENTRY_DEBIT FOREIGN KEY (DEBITACCOUNT) REFERENCES AC_ACCOUNT (ID);
-ALTER TABLE AC_AUTOENTRY ADD CONSTRAINT FK_AC_AUTOENTRY_ENTRYKEY FOREIGN KEY (ENTRYKEY) REFERENCES AC_ENTRY (ID) ON DELETE CASCADE;
-ALTER TABLE AC_AUTOENTRY ADD CONSTRAINT FK_AC_AUTOENTRY_TRRECORDKEY FOREIGN KEY (TRRECORDKEY) REFERENCES AC_TRRECORD (ID) ON DELETE CASCADE;
-
+ALTER TABLE AC_AUTOENTRY ADD CONSTRAINT PK_AC_AUTOENTRY
+  PRIMARY KEY (ID);
+ALTER TABLE AC_AUTOENTRY ADD CONSTRAINT FK_AC_AUTOENTRY_CREDIT
+  FOREIGN KEY (CREDITACCOUNT) REFERENCES AC_ACCOUNT (ID);
+ALTER TABLE AC_AUTOENTRY ADD CONSTRAINT FK_AC_AUTOENTRY_DEBIT
+  FOREIGN KEY (DEBITACCOUNT) REFERENCES AC_ACCOUNT (ID);
+ALTER TABLE AC_AUTOENTRY ADD CONSTRAINT FK_AC_AUTOENTRY_ENTRYKEY
+  FOREIGN KEY (ENTRYKEY) REFERENCES AC_ENTRY (ID) ON DELETE CASCADE;
+ALTER TABLE AC_AUTOENTRY ADD CONSTRAINT FK_AC_AUTOENTRY_TRRECORDKEY
+  FOREIGN KEY (TRRECORDKEY) REFERENCES AC_TRRECORD (ID) ON DELETE CASCADE;
 
 COMMIT;
 
 /*Таблица для хранения настроек главной книги*/
+
 CREATE TABLE AC_GENERALLEDGER (
     ID             DINTKEY NOT NULL,
     NAME           DNAME NOT NULL COLLATE PXW_CYRL,
@@ -11067,17 +11088,21 @@ CREATE TABLE AC_GENERALLEDGER (
     CURRSCALE      DINTEGER_NOTNULL NOT NULL,
     CURRKEY        DFOREIGNKEY,
     ACCOUNTKEY     DFOREIGNKEY,
-    ENHANCEDSALDO  DBOOLEAN
+    ENHANCEDSALDO  DBOOLEAN,
+    EDITIONDATE    DEDITIONDATE
 );
 
-ALTER TABLE AC_GENERALLEDGER ADD CONSTRAINT PK_AC_GENERALLEDGER PRIMARY KEY (ID);
-ALTER TABLE AC_GENERALLEDGER ADD CONSTRAINT FK_AC_GENERALLEDGER_ACKEY FOREIGN KEY (ACCOUNTKEY) REFERENCES AC_ACCOUNT (ID);
-ALTER TABLE AC_GENERALLEDGER ADD CONSTRAINT FK_AC_GENERALLEDGER_CURRKEY FOREIGN KEY (CURRKEY) REFERENCES GD_CURR (ID);
-
-COMMIT;
+ALTER TABLE AC_GENERALLEDGER ADD CONSTRAINT PK_AC_GENERALLEDGER
+  PRIMARY KEY (ID);
+ALTER TABLE AC_GENERALLEDGER ADD CONSTRAINT FK_AC_GENERALLEDGER_ACKEY
+  FOREIGN KEY (ACCOUNTKEY) REFERENCES AC_ACCOUNT (ID);
+ALTER TABLE AC_GENERALLEDGER ADD CONSTRAINT FK_AC_GENERALLEDGER_CURRKEY
+  FOREIGN KEY (CURRKEY) REFERENCES GD_CURR (ID);
 
 CREATE UNIQUE INDEX ac_x_generalledger_name ON ac_generalledger
   (name);
+
+COMMIT;
 
 /*Таблица для хранения связки настройки главной книги и счетов*/
 CREATE TABLE AC_G_LEDGERACCOUNT (
@@ -11100,10 +11125,15 @@ CREATE TABLE AC_ACCT_CONFIG (
     CONFIG          DBLOB,
     SHOWINEXPLORER  DBOOLEAN,
     FOLDER          DFOREIGNKEY,
-    IMAGEINDEX      DINTEGER
+    IMAGEINDEX      DINTEGER,
+    EDITIONDATE     DEDITIONDATE
 );
+
 ALTER TABLE AC_ACCT_CONFIG ADD CONSTRAINT PK_AC_ACCT_CONFIG_ID PRIMARY KEY (ID);
-ALTER TABLE AC_ACCT_CONFIG ADD CONSTRAINT FK_AC_ACCT_CONFIG_FOLDER FOREIGN KEY (FOLDER) REFERENCES GD_COMMAND (ID) ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE AC_ACCT_CONFIG ADD CONSTRAINT FK_AC_ACCT_CONFIG_FOLDER
+  FOREIGN KEY (FOLDER) REFERENCES GD_COMMAND (ID)
+  ON DELETE SET NULL
+  ON UPDATE CASCADE;
 
 COMMIT;
 
@@ -11127,17 +11157,13 @@ CREATE UNIQUE INDEX ac_idx_accvalue
 
 COMMIT;
 
-ALTER TABLE ac_accvalue
-ADD CONSTRAINT fk_ac_accvalue_account
-FOREIGN KEY (accountkey)
-REFERENCES ac_account(id)
+ALTER TABLE ac_accvalue ADD CONSTRAINT fk_ac_accvalue_account
+  FOREIGN KEY (accountkey) REFERENCES ac_account(id)
   ON UPDATE CASCADE
   ON DELETE CASCADE;
 
-ALTER TABLE ac_accvalue
-ADD CONSTRAINT fk_ac_accvalue_value
-FOREIGN KEY (valuekey)
-REFERENCES gd_value(id)
+ALTER TABLE ac_accvalue ADD CONSTRAINT fk_ac_accvalue_value
+  FOREIGN KEY (valuekey) REFERENCES gd_value(id)
   ON UPDATE CASCADE
   ON DELETE CASCADE;
 
@@ -11164,19 +11190,16 @@ CREATE UNIQUE INDEX ac_idx_quantity
 
 COMMIT;
 
-ALTER TABLE ac_quantity
-ADD CONSTRAINT fk_ac_quantity_entry
-FOREIGN KEY (entrykey)
-REFERENCES ac_entry(id)
+ALTER TABLE ac_quantity ADD CONSTRAINT fk_ac_quantity_entry
+  FOREIGN KEY (entrykey) REFERENCES ac_entry(id)
   ON UPDATE CASCADE
   ON DELETE CASCADE;
 
-ALTER TABLE ac_quantity
-ADD CONSTRAINT fk_ac_quantity_accvalue
-FOREIGN KEY (valuekey)
-REFERENCES gd_value(id)
+ALTER TABLE ac_quantity ADD CONSTRAINT fk_ac_quantity_accvalue
+  FOREIGN KEY (valuekey) REFERENCES gd_value(id)
   ON UPDATE CASCADE
   ON DELETE CASCADE;
+
 COMMIT;
 
 CREATE TABLE AC_LEDGER_ACCOUNTS (
@@ -15993,15 +16016,13 @@ COMMIT;
 /* Таблица типов отчетов бухгалтерии */
 
 CREATE TABLE gd_taxtype
-(                               
-  id       dintkey  PRIMARY KEY,
-  name     dname
+(
+  id          dintkey  PRIMARY KEY,
+  name        dname,
+  editiondate deditiondate
  );
 
-COMMIT;
-
 CREATE UNIQUE INDEX gd_idx_taxtype ON gd_taxtype
-  /*COMPUTED BY (UPPER(name));*/
   (name);
 
 COMMIT;
@@ -16056,14 +16077,19 @@ CREATE TABLE GD_TAXNAME (
     ID              DINTKEY,
     NAME            DNAME,
     TRANSACTIONKEY  DFOREIGNKEY NOT NULL,
-    ACCOUNTKEY      DFOREIGNKEY NOT NULL
+    ACCOUNTKEY      DFOREIGNKEY NOT NULL,
+    EDITIONDATE     DEDITIONDATE
 );
-COMMIT;
-ALTER TABLE GD_TAXNAME ADD PRIMARY KEY (ID);
-ALTER TABLE GD_TAXNAME ADD CONSTRAINT FK_GD_TAXNAME FOREIGN KEY (TRANSACTIONKEY) REFERENCES AC_TRANSACTION (ID);
-ALTER TABLE GD_TAXNAME ADD CONSTRAINT FK_GD_TAXNAME_ACCOUNTKEY FOREIGN KEY (ACCOUNTKEY) REFERENCES AC_ACCOUNT (ID);
-COMMIT;
-CREATE UNIQUE INDEX GD_IDX_TAXNAME ON GD_TAXNAME (NAME);
+
+ALTER TABLE GD_TAXNAME ADD
+  PRIMARY KEY (ID);
+ALTER TABLE GD_TAXNAME ADD CONSTRAINT FK_GD_TAXNAME
+  FOREIGN KEY (TRANSACTIONKEY) REFERENCES AC_TRANSACTION (ID);
+ALTER TABLE GD_TAXNAME ADD CONSTRAINT FK_GD_TAXNAME_ACCOUNTKEY
+  FOREIGN KEY (ACCOUNTKEY) REFERENCES AC_ACCOUNT (ID);
+CREATE UNIQUE INDEX GD_IDX_TAXNAME
+  ON GD_TAXNAME (NAME);
+
 COMMIT;
 
 /* таблица актуальности налогов */
@@ -16076,21 +16102,28 @@ CREATE TABLE GD_TAXACTUAL (
     REPORTDAY       DSMALLINT NOT NULL,
     TYPEKEY         DINTKEY,
     DESCRIPTION     DTEXT120,
-    TRRECORDKEY     DFOREIGNKEY NOT NULL
+    TRRECORDKEY     DFOREIGNKEY NOT NULL,
+    EDITIONDATE     DEDITIONDATE
 );
 
-COMMIT;
-
-ALTER TABLE GD_TAXACTUAL ADD CONSTRAINT CHK_GD_TAXACTUAL_RD CHECK (0 < reportday AND reportday < 32);
+ALTER TABLE GD_TAXACTUAL ADD CONSTRAINT CHK_GD_TAXACTUAL_RD
+  CHECK (0 < reportday AND reportday < 32);
 ALTER TABLE GD_TAXACTUAL ADD PRIMARY KEY (ID);
-ALTER TABLE GD_TAXACTUAL ADD CONSTRAINT FK_GD_TAXACTUAL FOREIGN KEY (TAXNAMEKEY) REFERENCES GD_TAXNAME (ID) on update CASCADE;
-ALTER TABLE GD_TAXACTUAL ADD CONSTRAINT FK_GD_TAXACTUAL_T FOREIGN KEY (TYPEKEY) REFERENCES GD_TAXTYPE (ID) on update CASCADE;
-ALTER TABLE GD_TAXACTUAL ADD CONSTRAINT FK_GD_TAXACTUAL_TRG FOREIGN KEY (REPORTGROUPKEY) REFERENCES RP_REPORTGROUP (ID) on update CASCADE;
-ALTER TABLE GD_TAXACTUAL ADD CONSTRAINT FK_GD_TAXACTUAL_TRRECORD FOREIGN KEY (TRRECORDKEY) REFERENCES AC_TRRECORD (ID) on update CASCADE;
+ALTER TABLE GD_TAXACTUAL ADD CONSTRAINT FK_GD_TAXACTUAL
+  FOREIGN KEY (TAXNAMEKEY) REFERENCES GD_TAXNAME (ID)
+  on update CASCADE;
+ALTER TABLE GD_TAXACTUAL ADD CONSTRAINT FK_GD_TAXACTUAL_T
+  FOREIGN KEY (TYPEKEY) REFERENCES GD_TAXTYPE (ID)
+  on update CASCADE;
+ALTER TABLE GD_TAXACTUAL ADD CONSTRAINT FK_GD_TAXACTUAL_TRG
+  FOREIGN KEY (REPORTGROUPKEY) REFERENCES RP_REPORTGROUP (ID)
+  on update CASCADE;
+ALTER TABLE GD_TAXACTUAL ADD CONSTRAINT FK_GD_TAXACTUAL_TRRECORD
+  FOREIGN KEY (TRRECORDKEY) REFERENCES AC_TRRECORD (ID)
+  on update CASCADE;
 
-COMMIT;
-
-CREATE UNIQUE INDEX GD_IDX_TAXACTUAL ON GD_TAXACTUAL (TAXNAMEKEY, ACTUALDATE);
+CREATE UNIQUE INDEX GD_IDX_TAXACTUAL
+  ON GD_TAXACTUAL (TAXNAMEKEY, ACTUALDATE);
 
 COMMIT;
 
@@ -16334,7 +16367,6 @@ CREATE TABLE at_object (
   curr_modified   TIMESTAMP,
 
   CONSTRAINT at_pk_object PRIMARY KEY (id),
-  CONSTRAINT at_uk_object UNIQUE (namespacekey, xid, dbid),
   CONSTRAINT at_fk_object_namespacekey FOREIGN KEY (namespacekey)
     REFERENCES at_namespace (id)
     ON DELETE CASCADE
@@ -16345,6 +16377,9 @@ CREATE TABLE at_object (
     ON UPDATE CASCADE,
   CONSTRAINT at_chk_object_hk CHECK (headobjectkey IS DISTINCT FROM id)
 );
+
+CREATE UNIQUE INDEX at_x_object
+  ON at_object (xid, dbid, namespacekey);
 
 SET TERM ^ ;
 
@@ -16720,7 +16755,8 @@ CREATE TABLE GD_BLOCK_RULE
   ID                    DINTKEY,                     /*Первичный ключ*/
   NAME                  DNAME,                       /*Наименование правила*/
   ORDR                  DINTEGER_NOTNULL,            /*Порядковый номер правила*/
-  DISABLED              DDISABLED DEFAULT 0          /*Правило отключено*/
+  DISABLED              DDISABLED DEFAULT 0,         /*Правило отключено*/
+  EDITIONDATE           DEDITIONDATE
 );
 
 COMMIT;

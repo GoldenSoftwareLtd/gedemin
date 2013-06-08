@@ -26,7 +26,8 @@ CREATE TABLE gd_place (
   name        dname,
   placetype   dplacetype,
   telprefix   dtext8,           /* телефонный код места (города ) */
-  code        dtext8            /* код местности*/
+  code        dtext8,           /* код местности*/
+  editiondate deditiondate
 );
 
 COMMIT;
