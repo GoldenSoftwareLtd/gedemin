@@ -203,7 +203,6 @@ CREATE TABLE at_object (
   curr_modified   TIMESTAMP,
 
   CONSTRAINT at_pk_object PRIMARY KEY (id),
-  CONSTRAINT at_uk_object UNIQUE (namespacekey, xid, dbid),
   CONSTRAINT at_fk_object_namespacekey FOREIGN KEY (namespacekey)
     REFERENCES at_namespace (id)
     ON DELETE CASCADE
@@ -214,6 +213,9 @@ CREATE TABLE at_object (
     ON UPDATE CASCADE,
   CONSTRAINT at_chk_object_hk CHECK (headobjectkey IS DISTINCT FROM id)
 );
+
+CREATE UNIQUE INDEX at_x_object
+  ON at_object (xid, dbid, namespacekey);
 
 SET TERM ^ ;
 

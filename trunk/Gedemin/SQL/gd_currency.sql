@@ -27,6 +27,7 @@ CREATE TABLE gd_curr
   name_1         dtext60, /* ¬ родительном падеже, если заканчиваетс€ на 2-4 */
   centname_0     dtext60, /* ¬ родительном падеже, если заканчиваетс€ на 0, 5-9*/
   centname_1     dtext60, /* ¬ родительном падеже, если заканчиваетс€ на 2-4 */
+  editiondate    deditiondate,
   reserved       dreserved
 );
 
@@ -36,13 +37,10 @@ ALTER TABLE gd_curr ADD CONSTRAINT gd_pk_curr
   PRIMARY KEY (id);
 
 CREATE UNIQUE ASC INDEX gd_x_currfullname ON gd_curr
-  /*COMPUTED BY (UPPER(name));*/
   (name);
 
 CREATE UNIQUE ASC INDEX gd_x_currshortname ON gd_curr
-  /*COMPUTED BY (UPPER(shortname));*/
   (shortname);
-
 
 SET TERM ^ ;
 
@@ -105,7 +103,8 @@ CREATE TABLE gd_currrate
   fromcurr       dintkey,
   tocurr         dintkey,
   fordate        ddate NOT NULL,
-  coeff          dcurrrate
+  coeff          dcurrrate,
+  editiondate    deditiondate
 );
 
 COMMIT;

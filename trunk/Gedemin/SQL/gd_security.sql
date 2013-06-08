@@ -475,10 +475,9 @@ CREATE TABLE gd_sql_statement
   id               dintkey,
   crc              INTEGER NOT NULL UNIQUE,
   kind             SMALLINT NOT NULL,          /* 0 -- sql, 1 -- params */
-  data             dblobtext80_1251 not null
+  data             dblobtext80_1251 not null,
+  editiondate      deditiondate
 );
-
-COMMIT;
 
 ALTER TABLE gd_sql_statement ADD CONSTRAINT gd_pk_sql_statement
   PRIMARY KEY (id);

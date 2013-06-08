@@ -23,9 +23,10 @@
 
 RECREATE TABLE wg_position
 (
-  id         dintkey,
-  name       dname UNIQUE,
-  reserved   dreserved,
+  id           dintkey,
+  name         dname UNIQUE,
+  editiondate  deditiondate,
+  reserved     dreserved,
 
   CONSTRAINT wg_pk_position_id PRIMARY KEY (id)
 );
@@ -53,6 +54,7 @@ RECREATE TABLE wg_holiday
   id          dintkey,
   holidaydate ddate NOT NULL UNIQUE,
   name        dname,
+  editiondate deditiondate,
   disabled    ddisabled,
 
   CONSTRAINT wg_pk_holiday_id PRIMARY KEY (id)
@@ -160,6 +162,8 @@ RECREATE TABLE wg_tblcal
   w8_start4    dtime_notnull DEFAULT '00:00:00',
   w8_end4      dtime_notnull DEFAULT '00:00:00',
 
+  editiondate  deditiondate,
+
   CONSTRAINT wg_pk_tblcal PRIMARY KEY (id)
 );
 
@@ -179,6 +183,8 @@ RECREATE TABLE wg_tblcalday
   wend3      dtimestamp_notnull DEFAULT '1900-01-01 00:00:00',
   wstart4    dtimestamp_notnull DEFAULT '1900-01-01 00:00:00',
   wend4      dtimestamp_notnull DEFAULT '1900-01-01 00:00:00',
+
+  editiondate deditiondate,
 
   WDURATION  COMPUTED BY (G_M_ROUNDNN(((wend1 - wstart1) + (wend2 - wstart2) + (wend3 - wstart3) + (wend4 - wstart4))*24, 0.01)),
 

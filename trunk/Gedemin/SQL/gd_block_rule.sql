@@ -22,7 +22,8 @@ CREATE TABLE GD_BLOCK_RULE
   ID                    DINTKEY,                     /*Первичный ключ*/
   NAME                  DNAME,                       /*Наименование правила*/
   ORDR                  DINTEGER_NOTNULL,            /*Порядковый номер правила*/
-  DISABLED              DDISABLED DEFAULT 0          /*Правило отключено*/
+  DISABLED              DDISABLED DEFAULT 0,         /*Правило отключено*/
+  EDITIONDATE           DEDITIONDATE
 );
 
 COMMIT;

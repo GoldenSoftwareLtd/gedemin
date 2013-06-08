@@ -17,6 +17,7 @@ procedure AddUqConstraintToGD_RUID2(IBDB: TIBDatabase; Log: TModifyLog);
 procedure AddCurrModified(IBDB: TIBDatabase; Log: TModifyLog);
 procedure AddEditionDate(IBDB: TIBDatabase; Log: TModifyLog);
 procedure CorrectNSTriggers(IBDB: TIBDatabase; Log: TModifyLog);
+procedure AddEditionDate2(IBDB: TIBDatabase; Log: TModifyLog);
 
 implementation
 
@@ -778,14 +779,59 @@ procedure AddEditionDate(IBDB: TIBDatabase; Log: TModifyLog);
 var
   q: TIBSQL;
   Tr: TIBTransaction;
+begin
+  Tr := TIBTransaction.Create(nil);
+  q := TIBSQL.Create(nil);
+  try
+    Tr.DefaultDatabase := IBDB;
+    Tr.StartTransaction;
+
+    try
+      q.Transaction := Tr;
+      q.SQL.Text :=
+        'UPDATE OR INSERT INTO fin_versioninfo ' +
+        '  VALUES (173, ''0000.0001.0000.0204'', ''20.05.2013'', ''Missed editiondate fields added.'') ' +
+        '  MATCHING (id)';
+      q.ExecQuery;
+
+      Tr.Commit;
+    except
+      on E: Exception do
+      begin
+        Log('Произошла ошибка: ' + E.Message);
+        if Tr.InTransaction then
+          Tr.Rollback;
+        raise;
+      end;
+    end;
+  finally
+    q.Free;
+    Tr.Free;
+  end;
+end;
+
+procedure AddEditionDate2(IBDB: TIBDatabase; Log: TModifyLog);
+var
+  q: TIBSQL;
+  Tr: TIBTransaction;
 
   procedure AddEditionDateField(const ATableName: String);
   begin
-    if not FieldExist2(ATableName, 'editiondate', Tr) then
+    if RelationExist2(ATableName, Tr) then
     begin
-      q.SQL.Text := 'ALTER TABLE ' + ATableName + ' ADD editiondate deditiondate';
+      if not FieldExist2(ATableName, 'editiondate', Tr) then
+      begin
+        q.SQL.Text := 'ALTER TABLE ' + ATableName + ' ADD editiondate deditiondate';
+        q.ExecQuery;
+
+        Tr.Commit;
+        Tr.StartTransaction;
+      end;
+
+      q.SQL.Text := 'UPDATE ' + ATableName + ' SET editiondate = ''01.01.2000'' ' +
+        'WHERE editiondate IS NULL';
       q.ExecQuery;
-    end;
+    end;  
   end;
 
 begin
@@ -799,6 +845,22 @@ begin
       q.ParamCheck := False;
       q.Transaction := Tr;
 
+      DropConstraint2('at_object', 'at_uk_object', Tr);
+
+      if not IndexExist2('at_x_object', Tr) then
+      begin
+        q.SQL.Text :=
+          'CREATE UNIQUE INDEX at_x_object ' +
+          '  ON at_object (xid, dbid, namespacekey)';
+        q.ExecQuery;
+      end;
+
+      q.SQL.Text := 'ALTER TRIGGER GD_BU_TAXTYPE INACTIVE';
+      q.ExecQuery;
+
+      Tr.Commit;
+      Tr.StartTransaction;
+
       AddEditionDateField('AT_CHECK_CONSTRAINTS');
       AddEditionDateField('GD_COMMAND');
       AddEditionDateField('rp_reportgroup');
@@ -807,10 +869,36 @@ begin
       AddEditionDateField('ac_transaction');
       AddEditionDateField('ac_trrecord');
 
+      AddEditionDateField('AC_ACCT_CONFIG');
+      AddEditionDateField('AC_AUTOENTRY');
+      AddEditionDateField('AC_GENERALLEDGER');
+      AddEditionDateField('FLT_COMPONENTFILTER');
+      AddEditionDateField('GD_BLOCK_RULE');
+      AddEditionDateField('GD_COMPACCTYPE');
+      AddEditionDateField('GD_COMPANYACCOUNT');
+      AddEditionDateField('GD_CURR');
+      AddEditionDateField('GD_CURRRATE');
+      AddEditionDateField('GD_PLACE');
+      AddEditionDateField('GD_PRECIOUSEMETAL');
+      AddEditionDateField('GD_SQL_STATEMENT');
+      AddEditionDateField('GD_TAX');
+      AddEditionDateField('GD_TAXACTUAL');
+      AddEditionDateField('GD_TAXNAME');
+      AddEditionDateField('GD_TAXTYPE');
+      AddEditionDateField('GD_TNVD');
+      AddEditionDateField('GD_VALUE');
+      AddEditionDateField('WG_HOLIDAY');
+      AddEditionDateField('WG_POSITION');
+      AddEditionDateField('WG_TBLCAL');
+      AddEditionDateField('WG_TBLCALDAY');
+
+      q.SQL.Text := 'ALTER TRIGGER GD_BU_TAXTYPE ACTIVE';
+      q.ExecQuery;
+
       q.Close;
       q.SQL.Text :=
         'UPDATE OR INSERT INTO fin_versioninfo ' +
-        '  VALUES (173, ''0000.0001.0000.0204'', ''20.05.2013'', ''Missed editiondate fields added.'') ' +
+        '  VALUES (175, ''0000.0001.0000.0206'', ''08.06.2013'', ''Add missing edition date fields #2.'') ' +
         '  MATCHING (id)';
       q.ExecQuery;
 
