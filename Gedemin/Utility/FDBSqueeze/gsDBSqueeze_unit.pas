@@ -1159,34 +1159,25 @@ var
   const
     AlterTriggerCount = 3;
     AlterTriggerArray: array[0 .. AlterTriggerCount - 1] of String =
-      ('INV_BD_MOVEMENT', 'INV_BU_MOVEMENT', 'INV_BU_CARD');     //'AC_ENTRY_DO_BALANCE',
+      ('INV_BD_MOVEMENT', 'INV_BU_MOVEMENT', 'INV_BU_CARD'); 
   var
     StateStr: String;
     I: Integer;
   begin
-
-
     if SetActive then
-    begin
-      StateStr := 'ACTIVE';
-
-    end
+      StateStr := 'ACTIVE'
     else
-    begin
       StateStr := 'INACTIVE';
 
+    for I := 0 to AlterTriggerCount - 1 do
+    begin
+      q.SQL.Text := 'ALTER TRIGGER ' + AlterTriggerArray[I] + ' '  + StateStr;
+      q.ExecQuery;
+      q.Close;
     end;
-
-      for I := 0 to AlterTriggerCount - 1 do
-      begin
-        q.SQL.Text := 'ALTER TRIGGER ' + AlterTriggerArray[I] + ' '  + StateStr;
-        q.ExecQuery;
-        q.Close;
-      end;
 
     Tr.Commit;
     Tr.StartTransaction;
-
   end;
 
 begin
@@ -1352,12 +1343,12 @@ begin
     q.ParamByName('Date').AsString := FDocumentdateWhereClause;
     q.ExecQuery;
 
-    q.SQL.Text := 'DELETE FROM inv_balance';                                    {TODO: что еще почистить}
+    q.SQL.Text := 'DELETE FROM inv_balance';                                    //TODO: что еще почистить?
     q.ExecQuery;
 
     Tr.Commit;
     Tr.StartTransaction;
-
+  
     SetTriggerActive(True);
 
   finally
@@ -1386,7 +1377,6 @@ var
     q5: TIBSQL;
     TblsNamesList: TStringList;    //Queue: TQueue;
     AllProcessedTblsNames: TStringList;
-    i_test: Integer; ///test
     countBefore: Integer;
   begin
     LogEvent('[test] AddCascadeKeys...');
@@ -1417,13 +1407,11 @@ var
       ATr.Commit;
       ATr.StartTransaction;
 
-
-      i_test := 0;
       while TblsNamesList.Count <> 0 do
       begin
         //
         q2.SQL.Text :=
-          'SELECT ' +                                                       //i?iaa?ea oeia iiey
+          'SELECT ' +                                                      
           '  CASE F.RDB$FIELD_TYPE ' +
           '    WHEN 8 THEN ''INTEGER'' ' +
           '    ELSE ''NOT INTEGER'' ' +
@@ -1433,7 +1421,7 @@ var
           'WHERE (RF.RDB$RELATION_NAME = :RELAT_NAME) AND (RF.RDB$FIELD_NAME = :FIELD) ';
         q2.Prepare;
         q4.SQL.Text :=
-          'SELECT ' +                                                       //i?iaa?ea oeia iiey
+          'SELECT ' +
           '  CASE F.RDB$FIELD_TYPE ' +
           '    WHEN 8 THEN ''INTEGER'' ' +
           '    ELSE ''NOT INTEGER'' ' +
@@ -1508,7 +1496,6 @@ var
           begin
             q2.Close;
 
-            //// ecauoi?ii
             q4.ParamByName('RELAT_NAME').AsString := UpperCase(q.FieldByName('relation_name').AsString);
             q4.ParamByName('FIELD').AsString := UpperCase(q.FieldByName('list_fields').AsString);
             q4.ExecQuery;
@@ -1528,17 +1515,12 @@ var
               q3.ExecQuery;
 
               Count := Count + q3.FieldByName('Kolvo').AsInteger;
-             { if (Count div 1000000) > i_test then
-              begin
-                LogEvent('[test] HIS + 1 millions. Count = ' + IntToStr(Count));
-                Inc(i_test);
-              end;
-             } 
+
               if q3.FieldByName('Kolvo').AsInteger <> 0 then
               begin
                 countBefore := AllProcessedTblsNames.Count;
                 AllProcessedTblsNames.Append(q.FieldByName('relation_name').AsString);
-                if countBefore <> AllProcessedTblsNames.Count then   //anee yoo oaaeeoo aua ia ia?aaaouaaee, oi aiaaaei a nienie aey ia?aaioee
+                if countBefore <> AllProcessedTblsNames.Count then
                   TblsNamesList.Add(q.FieldByName('relation_name').AsString);
                 
               end;    
@@ -1969,7 +1951,7 @@ begin
     RestoreIndices;
     RestoreTriggers;
     RestorePkUniqueConstraints;
-    RestoreFKConstraints;                                                    
+    RestoreFKConstraints; 
 
     Tr.Commit;
   finally
