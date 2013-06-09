@@ -2571,45 +2571,28 @@ end;
 
 type
   TTreeViewNexus = class(TForm)
-  private
+  protected
     FDatabase: TatDatabase;
 
     procedure WMStartMultiTransaction(var Msg: TMessage);
       message WM_STARTMULTITRANSACTION;
     procedure WMLogOff(var Msg: TMessage);
       message WM_LOGOFF;
-
-  protected
-
-  public
-    constructor Create(AnOwner: TatDatabase); reintroduce;
-
-
   end;
-
 
 { TTreeViewNexus }
 
-constructor TTreeViewNexus.Create(AnOwner: TatDatabase);
-begin
-  inherited CreateNew(nil);
-
-  FDatabase := AnOwner;
-end;
-
 procedure TTreeViewNexus.WMStartMultiTransaction(var Msg: TMessage);
 begin
-  inherited;
-  FDatabase.StartMultiConnectionTransaction;
+  if FDatabase <> nil then
+    FDatabase.StartMultiConnectionTransaction;
 end;
 
 procedure TTreeViewNexus.WMLogOff(var Msg: TMessage);
 begin
-  inherited;
-  if IBLogin.LoggedIn then
+  if (IBLogin <> nil) and IBLogin.LoggedIn then
     IBLogin.LogOff;
 end;
-
 
 { TatBodyDatabase }
 
@@ -2635,7 +2618,8 @@ begin
   FLoaded := False;
   FLoading := False;
 
-  FTreeNexus := TTreeViewNexus.Create(Self);
+  FTreeNexus := TTreeViewNexus.CreateNew(nil);
+  TTreeViewNexus(FTreeNexus).FDatabase := Self;
 
   FMultiConnectionTransaction := 0;
 
@@ -3967,7 +3951,7 @@ begin
       if FgdClass = nil then
         FgdClassName := '';
     end else
-      FgdClass := nil;    
+      FgdClass := nil;
 
     FgdSubType := ReadString;
     FID := ReadInteger;

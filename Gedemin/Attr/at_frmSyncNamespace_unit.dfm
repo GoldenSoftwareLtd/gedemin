@@ -1,6 +1,6 @@
 object at_frmSyncNamespace: Tat_frmSyncNamespace
-  Left = 312
-  Top = 193
+  Left = 315
+  Top = 378
   Width = 1131
   Height = 518
   Caption = 'Синхронизация пространств имен'
@@ -138,7 +138,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       object TBSeparatorItem7: TTBSeparatorItem
       end
       object TBControlItem4: TTBControlItem
-        Control = cbInternal
+        Control = cbPackets
       end
       object lSearch: TLabel
         Left = 526
@@ -162,7 +162,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
         TabOrder = 1
         OnChange = edFilterChange
       end
-      object cbInternal: TCheckBox
+      object cbPackets: TCheckBox
         Left = 935
         Top = 2
         Width = 66
@@ -537,31 +537,37 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
     end
     object actFLTOnlyInDB: TAction
       Caption = '>'
+      Hint = 'Присутствует в БД, отсутствует на диске'
       OnExecute = actFLTOnlyInDBExecute
       OnUpdate = actFLTOnlyInDBUpdate
     end
     object actFLTEqual: TAction
       Caption = '=='
+      Hint = 'Пространство имен в БД соответствует записанному на диске'
       OnExecute = actFLTOnlyInDBExecute
       OnUpdate = actFLTOnlyInDBUpdate
     end
     object actFLTOlder: TAction
       Caption = '>>'
+      Hint = 'В БД новее, чем на диске'
       OnExecute = actFLTOnlyInDBExecute
       OnUpdate = actFLTOnlyInDBUpdate
     end
     object actFLTNewer: TAction
       Caption = '<<'
+      Hint = 'На диске новее, чем в БД'
       OnExecute = actFLTOnlyInDBExecute
       OnUpdate = actFLTOnlyInDBUpdate
     end
     object actFLTNone: TAction
       Caption = '?'
+      Hint = 'Пространство имен изменено и в БД и на диске'
       OnExecute = actFLTOnlyInDBExecute
       OnUpdate = actFLTOnlyInDBUpdate
     end
     object actFLTOnlyInFile: TAction
       Caption = '<'
+      Hint = 'Отсутствует в БД, присутствует на диске'
       OnExecute = actFLTOnlyInDBExecute
       OnUpdate = actFLTOnlyInDBUpdate
     end
@@ -571,21 +577,29 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
     end
     object actFLTEqualOlder: TAction
       Caption = '=>'
+      Hint = 
+        'Хотя бы одно из ПИ, от которых зависит данное ПИ, новее, чем зап' +
+        'исанное на диске'
       OnExecute = actFLTOnlyInDBExecute
       OnUpdate = actFLTOnlyInDBUpdate
     end
     object actFLTEqualNewer: TAction
       Caption = '<='
+      Hint = 
+        'Хотя бы одно из ПИ, от которых зависит данное ПИ, новее на диске' +
+        ', чем в БД'
       OnExecute = actFLTOnlyInDBExecute
       OnUpdate = actFLTOnlyInDBUpdate
     end
     object actFLTInUses: TAction
       Caption = '!'
+      Hint = 'Перечислено в списке зависимости, но не найдено в БД и на диске'
       OnExecute = actFLTOnlyInDBExecute
       OnUpdate = actFLTOnlyInDBUpdate
     end
     object actSelectAll: TAction
       Caption = 'Выделить все'
+      Hint = 'Выделить все записи'
       ShortCut = 16449
       OnExecute = actSelectAllExecute
       OnUpdate = actSelectAllUpdate
