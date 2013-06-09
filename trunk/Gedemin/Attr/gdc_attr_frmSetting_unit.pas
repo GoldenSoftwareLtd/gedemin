@@ -1718,20 +1718,13 @@ procedure Tgdc_frmSetting.actSet2NSAllExecute(Sender: TObject);
 var
   q: TIBSQL;
   Tr: TIBTransaction;
-  BuildSetting: Boolean;
 begin
-  BuildSetting := MessageBox(Handle,
-    'Формировать настройки перед конвертацией?',
-    'Внимание',
-    MB_ICONQUESTION or MB_YESNO) = IDYES;
-
   gdcObject.First;
   while not gdcObject.EOF do
   begin
     (gdcDetailObject as TgdcSettingPos).Valid;
     gdcDetailObject.First;
-    if BuildSetting then
-      (gdcObject as TgdcSetting).SaveSettingToBlob(sttBinaryOld);
+    (gdcObject as TgdcSetting).SaveSettingToBlob(sttBinaryOld);
     SaveObjectToNS;
     gdcObject.Next;
   end;

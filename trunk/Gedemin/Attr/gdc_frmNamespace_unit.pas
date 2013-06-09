@@ -35,10 +35,6 @@ type
     procedure actNSObjectsExecute(Sender: TObject);
     procedure actNSObjectsUpdate(Sender: TObject);
     procedure actLoadFromFileExecute(Sender: TObject);
-  private
-    { Private declarations }
-  public
-    { Public declarations }
   end;
 
 implementation

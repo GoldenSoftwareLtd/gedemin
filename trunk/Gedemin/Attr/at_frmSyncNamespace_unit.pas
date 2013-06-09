@@ -93,7 +93,7 @@ type
     actFLTOnlyInFile: TAction;
     cdsFileRUID: TStringField;
     cdsFileInternal: TIntegerField;
-    cbInternal: TCheckBox;
+    cbPackets: TCheckBox;
     TBControlItem4: TTBControlItem;
     actFLTInternal: TAction;
     cdsNamespaceInternal: TIntegerField;
@@ -192,7 +192,7 @@ procedure Tat_frmSyncNamespace.actCompareExecute(Sender: TObject);
 begin
   if chbxUpdate.Checked then
   begin
-    Log('Начато обновление даты изменения объекта...');
+    Log('Обновление даты изменения объекта...');
     TgdcNamespace.UpdateCurrModified;
     Log('Окончено обновление даты изменения объекта...');
     chbxUpdate.Checked := False;
@@ -309,14 +309,24 @@ procedure Tat_frmSyncNamespace.IterateSelected(Proc: TIterateProc;
   AnObj: TObject; const AData: String);
 var
   I: Integer;
-begin  
+  Bm: String;
+begin
+  gr.SelectedRows.Refresh;
   if gr.SelectedRows.Count > 0 then
   begin
-    for I := 0 to gr.SelectedRows.Count - 1 do
-    begin
-      cds.Bookmark := gr.SelectedRows[I];
-      Proc(AnObj, AData);
-      UpdateWindow(mMessages.Handle);
+    Bm := cds.Bookmark;
+    cds.DisableControls;
+    try
+      for I := 0 to gr.SelectedRows.Count - 1 do
+      begin
+        cds.Bookmark := gr.SelectedRows[I];
+        Proc(AnObj, AData);
+        UpdateWindow(mMessages.Handle);
+      end;
+      if cds.BookmarkValid(Pointer(Bm)) then
+        cds.Bookmark := Bm;
+    finally
+      cds.EnableControls;
     end;
   end
   else if not cds.IsEmpty then
@@ -332,7 +342,7 @@ procedure Tat_frmSyncNamespace.actSetForLoadingExecute(Sender: TObject);
 begin
   IterateSelected(SetOperation, cds, '<<');
   if StatusFilterSet and (not actFLTNewer.Checked) then
-    actFLTNewer.Execute;
+    gr.SelectedRows.Clear;
 end;
 
 procedure Tat_frmSyncNamespace.SetOperation(AnObj: TObject; const AData: String);
@@ -398,7 +408,7 @@ procedure Tat_frmSyncNamespace.actSetForSavingExecute(Sender: TObject);
 begin
   IterateSelected(SetOperation, cds, '>>');
   if StatusFilterSet and (not actFLTOlder.Checked) then
-    actFLTOlder.Execute;
+    gr.SelectedRows.Clear;
 end;
 
 procedure Tat_frmSyncNamespace.actClearUpdate(Sender: TObject);
@@ -409,6 +419,8 @@ end;
 procedure Tat_frmSyncNamespace.actClearExecute(Sender: TObject);
 begin
   IterateSelected(SetOperation, cds, '  ');
+  if StatusFilterSet and (not actFLTNone.Checked) then
+    gr.SelectedRows.Clear;
 end;
 
 procedure Tat_frmSyncNamespace.SaveID(AnObj: TObject; const AData: String);
@@ -479,7 +491,7 @@ begin
   end;
 
   with TdlgCheckOperation.Create(nil) do
-  begin
+  try
     lLoadRecords.Caption := 'Помечено для загрузки из файла ' + IntToStr(FLoadFileList.Count) + ' ПИ.';
     lSaveRecords.Caption := 'Помечено для сохранения в файл ' + IntToStr(FSaveFileList.Count) + ' ПИ.';
     if ShowModal = mrOk then
@@ -489,6 +501,8 @@ begin
       DontRemove := cbDontRemove.Checked;
       IncVersion := cbIncVersion.Checked;
     end;
+  finally
+    Free;
   end;
 
   if Sync then
@@ -560,8 +574,9 @@ end;
 
 procedure Tat_frmSyncNamespace.ApplyFilter;
 begin
+  gr.SelectedRows.Clear;
   cds.Filtered := False;
-  cds.Filtered := (edFilter.Text > '') or StatusFilterSet or cbInternal.Checked;
+  cds.Filtered := (edFilter.Text > '') or StatusFilterSet or cbPackets.Checked;
 end;
 
 procedure Tat_frmSyncNamespace.edFilterChange(Sender: TObject);
@@ -573,13 +588,16 @@ procedure Tat_frmSyncNamespace.cdsFilterRecord(DataSet: TDataSet;
   var Accept: Boolean);
 begin
   Accept :=
-    (cds.FieldByName('operation').AsString = '')
-
+    (
+      (cds.FieldByName('operation').AsString = '')
+      and
+      (cds.FieldByName('fileversion').AsString = '')
+    )
     or
     (
       (
         (
-          cbInternal.Checked
+          cbPackets.Checked
           and
           (
             (
@@ -596,7 +614,7 @@ begin
           )
         )
         or
-          not cbInternal.Checked
+          not cbPackets.Checked
       )
       and
       (
@@ -626,7 +644,15 @@ begin
         or
         (actFLTNewer.Checked and (cds.FieldByName('operation').AsString = actFLTNewer.Caption))
         or
-        (actFLTNone.Checked and (cds.FieldByName('operation').AsString = actFLTNone.Caption))
+        (
+          actFLTNone.Checked
+          and
+          (
+            (cds.FieldByName('operation').AsString = actFLTNone.Caption)
+            or
+            (cds.FieldByName('operation').AsString = '  ')
+          )
+        )
         or
         (actFLTEqualOlder.Checked and (cds.FieldByName('operation').AsString = actFLTEqualOlder.Caption))
         or
@@ -664,17 +690,44 @@ begin
     or actFLTEqualOlder.Checked
     or actFLTEqualNewer.Checked
     or actFLTInUses.Checked;
- //   or cbInternal.Checked;
 end;
 
 procedure Tat_frmSyncNamespace.actSelectAllExecute(Sender: TObject);
+var
+  Bm, FirstBm: String;
+  FirstSet, InGroup: Boolean;
 begin
-  gr.SelectedRows.Clear;
-  cds.First;
-  while not cds.Eof do
-  begin
-    gr.SelectedRows.CurrentRowSelected := True;
-    cds.Next;
+  FirstSet := False;
+  InGroup := False;
+  Bm := cds.Bookmark;
+  cds.DisableControls;
+  try
+    gr.SelectedRows.Clear;
+    cds.First;
+    while not cds.Eof do
+    begin
+      if (cds.FieldByName('namespacename').AsString > '') or (cds.FieldByName('filename').AsString > '') then
+      begin
+        if not FirstSet then
+        begin
+          FirstSet := True;
+          FirstBm := cds.Bookmark;
+        end;
+
+        if cds.Bookmark = Bm then
+          InGroup := True;
+
+        gr.SelectedRows.CurrentRowSelected := True;
+      end;
+      cds.Next;
+    end;
+
+    if (not InGroup) and FirstSet and cds.BookmarkValid(Pointer(FirstBm)) then
+      cds.Bookmark := FirstBm
+    else if cds.BookmarkValid(Pointer(Bm)) then
+      cds.Bookmark := Bm;
+  finally
+    cds.EnableControls;
   end;
 end;
 

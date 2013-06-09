@@ -8,16 +8,21 @@ uses
 
 type
   TdlgCheckOperation = class(TForm)
-    Panel1: TPanel;
+    pnlWorkArea: TPanel;
     Panel2: TPanel;
+    btnOK: TButton;
+    btnCancel: TButton;
+    GroupBox1: TGroupBox;
     lLoadRecords: TLabel;
     cbAlwaysOverwrite: TCheckBox;
     cbDontRemove: TCheckBox;
-    Panel3: TPanel;
+    Memo1: TMemo;
+    Label1: TLabel;
+    GroupBox2: TGroupBox;
+    Label3: TLabel;
+    Memo2: TMemo;
     lSaveRecords: TLabel;
     cbIncVersion: TCheckBox;
-    btnOK: TButton;
-    btnCancel: TButton;
   private
     { Private declarations }
   public
