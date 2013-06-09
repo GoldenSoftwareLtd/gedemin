@@ -55,7 +55,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
     Left = 8
     Top = 152
     Width = 183
-    Height = 17
+    Height = 13
     Caption = 'Рассчитать и сохранить сальдо по: '
   end
   object edDatabaseName: TEdit
@@ -64,7 +64,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
     Width = 272
     Height = 21
     TabOrder = 0
-    Text = 'C:\_AKSAMIT.fdb'
+    Text = 'C:\_AKSAMIT2.fdb'
   end
   object edUserName: TEdit
     Left = 39
