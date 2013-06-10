@@ -3708,7 +3708,7 @@ begin
               '  union all '#13#10 +
               '    select d.id as xid, 17 as dbid, d.editiondate '#13#10 +
               '    from ' + LT + ' d '#13#10 +
-              '    where id < 147000000) de '#13#10 +
+              '    where d.id < 147000000) de '#13#10 +
               '  on o.xid=de.xid and o.dbid=de.dbid and ((o.curr_modified IS NULL) or (o.curr_modified < de.editiondate))'#13#10 +
               'when matched then '#13#10 +
               '  update set o.curr_modified = de.editiondate';
