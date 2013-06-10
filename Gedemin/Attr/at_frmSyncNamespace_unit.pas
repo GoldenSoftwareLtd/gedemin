@@ -263,7 +263,6 @@ begin
     Log('Обновление даты изменения объекта...');
     TgdcNamespace.UpdateCurrModified;
     Log('Окончено обновление даты изменения объекта...');
-    chbxUpdate.Checked := False;
   end;  
 
   cds.DisableControls;
