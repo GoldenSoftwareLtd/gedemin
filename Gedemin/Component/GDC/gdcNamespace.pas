@@ -185,8 +185,8 @@ end;
 function CompareFolder(List: TStringList; Index1, Index2: Integer): Integer;
 begin
   Result := AnsiCompareText(
-    ExtractFilePath((List.Objects[Index1] as TgsNSNode).FileName),
-    ExtractFilePath((List.Objects[Index2] as TgsNSNode).FileName));
+    ExtractFilePath((List.Objects[Index1] as TgsNSNode).GetDisplayFolder),
+    ExtractFilePath((List.Objects[Index2] as TgsNSNode).GetDisplayFolder));
 end;
 
 class function TgdcNamespace.GetDialogFormClassName(const ASubType: TgdcSubType): String;
@@ -2951,9 +2951,9 @@ begin
     begin
       NSNode := ANSList.Objects[I] as TgsNSNode;
 
-      if ExtractFilePath(NSNode.FileName) <> CurrDir then
+      if NSNode.GetDisplayFolder <> CurrDir then
       begin
-        CurrDir := ExtractFilePath(NSNode.FileName);
+        CurrDir := NSNode.GetDisplayFolder;
         ADataSet.Append;
         ADataSet.FieldByName('filenamespacename').AsString := CurrDir;
         ADataSet.Post;

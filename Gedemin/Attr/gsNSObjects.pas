@@ -12,6 +12,7 @@ type
   TNSLog = procedure(const AMessage: string) of object;
 
   TgsNSNode = class;
+  TgsNSList = class;
 
   TgsNSTreeNode = class(TObject)
   public
@@ -51,18 +52,21 @@ type
     NamespaceTimestamp: TDateTime;
     NamespaceOptional: Boolean;
     NamespaceInternal: Boolean;
+    NSList: TgsNSList;
     UsesList: TStringList;
 
 
-    constructor Create(const ARUID: String; const AName: String = '');
+    constructor Create(ANSList: TgsNSList; const ARUID: String; const AName: String = '');
     destructor Destroy; override;
 
     function GetUsesString: String;
     function GetNSState: TgsNSState;
     function CheckDBVersion: Boolean;
-    function CheckOnlyInDB: Boolean; 
+    function CheckOnlyInDB: Boolean;
+    function GetDisplayFolder: String;
     procedure FillInfo(S: TStrings);
     function Valid: Boolean;
+
   end;
 
   TgsNSList = class(TStringList)
@@ -95,11 +99,12 @@ uses
   Windows, SysUtils, ComCtrls, gd_common_functions, gd_FileList_unit,
   yaml_parser, IB, IBSQL, gdcBaseInterface, jclFileUtils, Forms, gd_security, gdcNamespace;
 
-constructor TgsNSNode.Create(const ARUID: String; const AName: String = '');
+constructor TgsNSNode.Create(ANSList: TgsNSList; const ARUID: String; const AName: String = '');
 begin
   inherited Create;
   RUID := ARUID;
-  Name := AName; 
+  Name := AName;
+  NSList := ANSList;
   UsesList := TStringList.Create;
   UsesList.Sorted := True;
   UsesList.Duplicates := dupError;    
@@ -129,6 +134,13 @@ begin
   for I := 0 to UsesList.Count - 1 do
     Result := Result + UsesList[I] + ';';
   SetLength(Result, Length(Result) - 1);  
+end;
+
+function TgsNSNode.GetDisplayFolder: String;
+begin
+  Result := ExtractFilePath(FileName);
+  if (Result = '') and (Pos(';' + RUID + ';', NSList.GetAllUsesString) > 0) then
+    Result := '<Не найдены>';
 end;
 
 function TgsNSNode.GetNSState: TgsNSState;
@@ -327,7 +339,7 @@ procedure TgsNSList.GetFilesForPath(const Path: String);
           Obj := Self.Objects[Ind] as TgsNSNode;
         end else
         begin
-          Obj := TgsNSNode.Create(q.Fields[4].AsString);
+          Obj := TgsNSNode.Create(Self, q.Fields[4].AsString);
           AddObject(q.Fields[4].AsString, Obj);
         end;
         Obj.VersionInDB := q.Fields[2].AsString;
@@ -382,7 +394,7 @@ procedure TgsNSList.GetFilesForPath(const Path: String);
             Ind := Self.IndexOf(M.ReadString('Properties\RUID'));
             if Ind = -1 then
             begin
-              Obj := TgsNSNode.Create(M.ReadString('Properties\RUID'));
+              Obj := TgsNSNode.Create(Self, M.ReadString('Properties\RUID'));
               AddObject(M.ReadString('Properties\RUID'), Obj);
             end else
               Obj := Self.Objects[Ind] as TgsNSNode;
@@ -436,7 +448,7 @@ procedure TgsNSList.GetFilesForPath(const Path: String);
                           (Self.Objects[Ind] as TgsNSNode).Name + '''!');
                     end else
                     begin
-                      Self.AddObject(RUID, TgsNSNode.Create(RUID, Temps));
+                      Self.AddObject(RUID, TgsNSNode.Create(Self, RUID, Temps));
                       Obj.UsesList.Add(RUID);
                     end;
                   end;
