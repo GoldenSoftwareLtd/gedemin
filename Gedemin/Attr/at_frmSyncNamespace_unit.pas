@@ -11,7 +11,7 @@ uses
 
 type
   TIterateProc = procedure (AnObj: TObject; const Data: String) of object;
-
+  
   Tat_frmSyncNamespace = class(TCreateableForm)
     cds: TClientDataSet;
     ds: TDataSource;
@@ -145,6 +145,7 @@ type
     FgdcNamespace: TgdcNamespace;
     FNSList: TgsNSList;
     FLoadFileList, FSaveFileList: TStringList;
+    FLoadNS: TForm;
 
     procedure ApplyFilter;
     procedure IterateSelected(Proc: TIterateProc; AnObj: TObject; const AData: String);
@@ -171,6 +172,73 @@ implementation
 
 uses
   FileCtrl, gd_GlobalParams_unit, gd_ExternalEditor, jclStrings, at_dlgCheckOperation_unit;
+
+const
+  WM_LOADPACK = WM_USER + 16653;
+  WM_SAVENS   = WM_USER + 16654;
+
+type
+  TLoadNSForm = class(TForm)
+  private
+    procedure Log(const S: String);
+  protected
+    FLoadList: TStringList;
+    FSaveList: TStringList;
+    FCDS: TDataSet;
+    FgdcNamespace: TgdcNamespace;
+    FAlwaysOverwrite: Boolean;
+    FDontRemove: Boolean;
+    FPath: String;
+    FMemo: TMemo;
+
+    procedure WMLoadPackages(var Msg: TMessage);
+      message WM_LOADPACK;
+    procedure WMSAVENS(var Msg: TMessage);
+      message WM_SAVENS;
+  end;
+
+procedure TLoadNSForm.Log(const S: String);
+begin
+  if FMemo <> nil then
+    FMemo.Lines.Add(FormatDateTime('hh:nn:ss ', Now) + S);
+end;
+
+procedure TLoadNSForm.WMLoadPackages(var Msg: TMessage);
+begin
+  if (FgdcNamespace <> nil)
+    and (FLoadList <> nil)
+    and (FLoadList.Count > 0)
+  then
+    FgdcNamespace.InstallPackages(FLoadList, FAlwaysOverwrite, FDontRemove);
+end;
+
+procedure TLoadNSForm.WMSAVENS(var Msg: TMessage);
+var
+  I: Integer;
+begin
+  if (FgdcNamespace <> nil)
+    and (FCDS <> nil)
+    and (FSaveList <> nil)
+    and (FPath > '')
+  then
+  begin
+    for I := 0 to FSaveList.Count - 1 do
+    begin
+
+      if FCDS. Locate('namespacekey', FSaveList[I], []) then 
+      begin
+        if not FgdcNamespace.EOF then
+        begin
+          if FCDS.FieldByName('filename').AsString > '' then
+            FgdcNamespace.SaveNamespaceToFile(FCDS.FieldByName('filename').AsString)
+          else
+            FgdcNamespace.SaveNamespaceToFile(FPath);
+          Log('Пространство имен "' + FgdcNamespace.ObjectName + '" записано в файл.');
+        end;
+      end;
+    end;
+  end;
+end;
 
 procedure Tat_frmSyncNamespace.actChooseDirExecute(Sender: TObject);
 var
@@ -294,6 +362,7 @@ begin
   FSaveFileList.Sorted := True;
   FSaveFileList.Duplicates := dupIgnore;
   cds.LogChanges := False;
+  FLoadNS := TLoadNSForm.CreateNew(nil);
 end;
 
 destructor Tat_frmSyncNamespace.Destroy;
@@ -302,6 +371,7 @@ begin
   FNSList.Free;
   FLoadFileList.Free;
   FSaveFileList.Free;
+  FLoadNS.Free;
   inherited;
 end;
 
@@ -351,14 +421,15 @@ procedure Tat_frmSyncNamespace.SetOperation(AnObj: TObject; const AData: String)
   var
     I: Integer;
   begin
-    if Node <> nil then
+    if (Node <> nil)
+      and cds.Locate('fileruid', Node.YamlNode.RUID, [])
+      and (cds.FieldByName('operation').AsString <> AData)
+    then
     begin
-      if cds.Locate('fileruid', Node.YamlNode.RUID, []) then
-      begin
-        (AnObj as TClientDataSet).Edit;
-        (AnObj as TClientDataSet).FieldByName('operation').AsString := AData;
-        (AnObj as TClientDataSet).Post;
-      end;
+      (AnObj as TClientDataSet).Edit;
+      (AnObj as TClientDataSet).FieldByName('operation').AsString := AData;
+      (AnObj as TClientDataSet).Post;
+
       for I := 0 to Node.UsesObject.Count - 1 do
         SetLoadState(Node.UsesObject.Objects[I] as TgsNSTreeNode);
     end;
@@ -451,17 +522,10 @@ end;
 
 procedure Tat_frmSyncNamespace.actSyncExecute(Sender: TObject);
 var
-  Error: String;
-  AlwaysOverwrite, DontRemove, IncVersion: Boolean;
-  Sync: Boolean;
-  I: Integer;
+  Error: String;   
 begin
   FLoadFileList.Clear;
   FSaveFileList.Clear;
-  Sync := False;
-  AlwaysOverwrite := False;
-  DontRemove := False;
-  IncVersion := False;
   cds.DisableControls;
   try
     cds.First;
@@ -496,29 +560,26 @@ begin
     lSaveRecords.Caption := 'Помечено для сохранения в файл ' + IntToStr(FSaveFileList.Count) + ' ПИ.';
     if ShowModal = mrOk then
     begin
-      Sync := True;
-      AlwaysOverwrite := cbAlwaysOverwrite.Checked;
-      DontRemove := cbDontRemove.Checked;
-      IncVersion := cbIncVersion.Checked;
+      FgdcNamespace.IncBuildVersion := cbIncVersion.Checked;
+      TLoadNSForm(FLoadNS).FgdcNamespace := FgdcNamespace;
+      TLoadNSForm(FLoadNS).FLoadList := FLoadFileList;
+      TLoadNSForm(FLoadNS).FAlwaysOverwrite := cbAlwaysOverwrite.Checked;
+      TLoadNSForm(FLoadNS).FDontRemove := cbDontRemove.Checked;
+      TLoadNSForm(FLoadNS).FCDS := cds;
+      TLoadNSForm(FLoadNS).FPath := tbedPath.Text;
+      TLoadNSForm(FLoadNS).FSaveList := FSaveFileList;
+      TLoadNSForm(FLoadNS).FMemo := mMessages;
+      if FSaveFileList.Count > 0 then
+      begin
+        SendMessage(FLoadNS.Handle, WM_SAVENS, 0, 0);
+        actCompare.Execute;
+      end;
+      if FLoadFileList.Count > 0 then
+        PostMessage(FLoadNS.Handle, WM_LOADPACK, 0, 0);
+      exit;
     end;
   finally
     Free;
-  end;
-
-  if Sync then
-  begin
-    FgdcNamespace.IncBuildVersion := IncVersion;
-    for I := 0 to FSaveFileList.Count - 1 do
-    begin
-      if cds.Locate('namespacekey', FSaveFileList[I], []) then
-        SaveID(nil, '');
-    end;
-    if FLoadFileList.Count > 0 then
-    begin
-      FgdcNamespace.InstallPackages(FLoadFileList, AlwaysOverwrite, DontRemove);
-      ModalResult := mrOK;
-    end;
-    actCompare.Execute;
   end;
 end;
 
