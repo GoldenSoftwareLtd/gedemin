@@ -1367,7 +1367,9 @@ begin
                     gdcNamespaceObj.FieldByName('dontremove').AsInteger := Integer(ObjMapping.ReadBoolean('Properties\DontRemove'));
                     gdcNamespaceObj.FieldByName('includesiblings').AsInteger := Integer(ObjMapping.ReadBoolean('Properties\IncludeSiblings'));
                     if Obj.FindField('editiondate') <> nil then
-                      gdcNamespaceObj.FieldByName('modified').AsDateTime := Obj.FieldByName('editiondate').AsDateTime;
+                      gdcNamespaceObj.FieldByName('modified').AsDateTime := Obj.FieldByName('editiondate').AsDateTime
+                    else
+                      gdcNamespaceObj.FieldByName('modified').Clear;
                     gdcNamespaceObj.FieldByName('curr_modified').Clear;
 
                     HeadRUID := ObjMapping.ReadString('Properties\HeadObject');
@@ -2293,6 +2295,7 @@ begin
         AnObj.ModifyFromStream := AlwaysOverwrite;
         RuidRec := gdcBaseManager.GetRUIDRecByXID(StrToRUID(RUID).XID,
           StrToRUID(RUID).DBID, ATr);
+
         D := RuidRec.ID;
 
         if (D = -1) and (StrToRUID(RUID).XID < cstUserIDStart) then
@@ -2410,7 +2413,7 @@ begin
                   StrToRUID(RUID).DBID,
                   now, IBLogin.ContactKey, ATr);
               end;
-            end;
+            end;   
 
             if Result in [lsNone, lsUnModified] then
             begin
@@ -2971,7 +2974,7 @@ begin
       ADataSet.FieldByName('namespacename').AsString := NSNode.NamespaceName;
       ADataSet.FieldByName('namespaceversion').AsString := NSNode.VersionInDB;
       ADataSet.FieldByName('namespaceinternal').AsInteger := Integer(NSNode.NamespaceInternal);
-      if  NSNode.NamespaceTimestamp <> 0 then
+      if NSNode.NamespaceTimestamp <> 0 then
         ADataSet.FieldByName('namespacetimestamp').AsDateTime := NSNode.NamespaceTimestamp;
       case NSNode.GetNSState of
         nsUndefined:
@@ -2998,9 +3001,11 @@ begin
         nsOlder: ADataSet.FieldByName('operation').AsString := '>>';
         nsEqual:
         begin
-          q.ParamByName('nsk').AsInteger := NSNode.Namespacekey;
-          q.ExecQuery;
-          if q.Eof then
+          if ADataSet.FieldByName('filetimestamp').AsDateTime <>
+            ADataSet.FieldByName('namespacetimestamp').AsDateTime then
+          begin
+            ADataSet.FieldByName('operation').AsString := '?';
+          end else
           begin
             UsesStates := ANSList.NSTree.GetDependState(NSNode.RUID);
             if nsNewer in UsesStates then
@@ -3009,9 +3014,7 @@ begin
                ADataSet.FieldByName('operation').AsString := '=>'
             else
               ADataSet.FieldByName('operation').AsString := '==';
-          end else
-             ADataSet.FieldByName('operation').AsString := '?';
-          q.Close;
+          end; 
         end;
       end;
       ADataSet.Post;
@@ -3702,7 +3705,7 @@ begin
               '  using (select r.xid, r.dbid, d.editiondate '#13#10 +
               '    from ' + LT + ' d join gd_ruid r '#13#10 +
               '    on r.id = d.id) de '#13#10 +
-              '  on o.xid=de.xid and o.dbid=de.dbid and o.curr_modified < de.editiondate'#13#10 +
+              '  on o.xid=de.xid and o.dbid=de.dbid and ((o.curr_modified IS NULL) or (o.curr_modified < de.editiondate))'#13#10 +
               'when matched then '#13#10 +
               '  update set o.curr_modified = de.editiondate';
             q.ExecQuery;

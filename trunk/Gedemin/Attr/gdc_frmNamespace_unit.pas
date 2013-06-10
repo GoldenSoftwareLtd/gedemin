@@ -137,12 +137,8 @@ end;
 
 procedure Tgdc_frmNamespace.actLoadFromFileExecute(Sender: TObject);
 begin
-  with Tat_frmSyncNamespace.Create(self) do
-  try
-    ShowModal;
-  finally
-    Free;
-  end; 
+  with Tat_frmSyncNamespace.Create(nil) do
+    Show;
 end;
 
 initialization
