@@ -422,6 +422,7 @@ procedure Tat_frmSyncNamespace.SetOperation(AnObj: TObject; const AData: String)
   begin
     if (Node <> nil)
       and cds.Locate('fileruid', Node.YamlNode.RUID, [])
+      and (cds.FieldByName('fileversion').AsString > '')
       and (cds.FieldByName('operation').AsString <> AData)
     then
     begin
