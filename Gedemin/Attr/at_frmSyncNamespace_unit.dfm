@@ -187,9 +187,9 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
   end
   object gr: TgsDBGrid
     Left = 0
-    Top = 26
+    Top = 49
     Width = 1115
-    Height = 369
+    Height = 346
     Align = alClient
     BorderStyle = bsNone
     DataSource = ds
@@ -218,13 +218,13 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       item
         Expanded = False
         FieldName = 'NamespaceName'
-        Width = 40
+        Width = 112
         Visible = True
       end
       item
         Expanded = False
         FieldName = 'NamespaceVersion'
-        Width = 112
+        Width = 40
         Visible = True
       end
       item
@@ -234,6 +234,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
         Visible = True
       end
       item
+        Color = clActiveCaption
         Expanded = False
         FieldName = 'Operation'
         Title.Caption = 'Op'
@@ -287,6 +288,12 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
         FieldName = 'NamespaceInternal'
         Width = -1
         Visible = False
+      end
+      item
+        Expanded = False
+        FieldName = 'HiddenRow'
+        Width = -1
+        Visible = False
       end>
   end
   object mMessages: TMemo
@@ -297,6 +304,16 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
     Align = alBottom
     ScrollBars = ssVertical
     TabOrder = 3
+  end
+  object Panel1: TPanel
+    Left = 0
+    Top = 26
+    Width = 1115
+    Height = 23
+    Align = alTop
+    Caption = 'База данных      <<----->>      Файлы на диске'
+    Color = clWindow
+    TabOrder = 4
   end
   object cds: TClientDataSet
     Active = True
@@ -360,6 +377,11 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       item
         Name = 'NamespaceInternal'
         DataType = ftInteger
+      end
+      item
+        Name = 'HiddenRow'
+        Attributes = [faHiddenCol]
+        DataType = ftInteger
       end>
     IndexDefs = <
       item
@@ -374,7 +396,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
     Left = 552
     Top = 296
     Data = {
-      850100009619E0BD01000000180000000D00000000000300000085010C4E616D
+      AD0100009619E0BD01000000180000000E000000000003000000AD010C4E616D
       6573706163656B657904000100000000000D4E616D6573706163654E616D6502
       0049000000010005574944544802000200FF00104E616D657370616365566572
       73696F6E0100490000000100055749445448020002001400124E616D65737061
@@ -386,7 +408,8 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       6D7008000800000000000846696C6553697A6504000100000000000846696C65
       5255494401004900000001000557494454480200020014000C46696C65496E74
       65726E616C0400010000000000114E616D657370616365496E7465726E616C04
-      000100000000000000}
+      000100000000000948696464656E526F77040001000100000001000D44454641
+      554C545F4F524445520200820000000000}
     object cdsNamespacekey: TIntegerField
       FieldName = 'Namespacekey'
       Visible = False
@@ -440,6 +463,12 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
     end
     object cdsFileInternal: TIntegerField
       FieldName = 'FileInternal'
+      ProviderFlags = []
+      Visible = False
+    end
+    object cdsHiddenRow: TIntegerField
+      DefaultExpression = '0'
+      FieldName = 'HiddenRow'
       Visible = False
     end
   end

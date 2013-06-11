@@ -109,6 +109,8 @@ type
     TBSeparatorItem8: TTBSeparatorItem;
     actSelectAll: TAction;
     actSelectAll1: TMenuItem;
+    cdsHiddenRow: TIntegerField;
+    Panel1: TPanel;
     procedure actChooseDirExecute(Sender: TObject);
     procedure actCompareUpdate(Sender: TObject);
     procedure actCompareExecute(Sender: TObject);
@@ -634,10 +636,65 @@ begin
 end;
 
 procedure Tat_frmSyncNamespace.ApplyFilter;
+var
+  NewHiddenRow: Integer;
+  Bm: String;
 begin
   gr.SelectedRows.Clear;
-  cds.Filtered := False;
-  cds.Filtered := (edFilter.Text > '') or StatusFilterSet or cbPackets.Checked;
+  cds.DisableControls;
+  try
+    cds.Filtered := False;
+
+    cds.First;
+    while not cds.EOF do
+    begin
+      if cds.FieldByName('hiddenrow').AsInteger <> 0 then
+      begin
+        cds.Edit;
+        cds.FieldByName('hiddenrow').AsInteger := 0;
+        cds.Post;
+      end;
+
+      cds.Next;
+    end;
+
+    cds.Filtered := (edFilter.Text > '') or StatusFilterSet or cbPackets.Checked;
+
+    cds.First;
+    while not cds.EOF do
+    begin
+      NewHiddenRow := 0;
+
+      if (cds.FieldByName('namespacename').AsString = '')
+        and (cds.FieldByName('fileversion').AsString = '') then
+      begin
+        Bm := cds.Bookmark;          
+        cds.Next;
+
+        if cds.EOF or ((cds.FieldByName('namespacename').AsString = '')
+          and (cds.FieldByName('fileversion').AsString = '')) then
+        begin
+          NewHiddenRow := 1;
+        end;
+
+        cds.Bookmark := Bm;
+      end;
+
+      if cds.FieldByName('hiddenrow').AsInteger <> NewHiddenRow then
+      begin
+        cds.Edit;
+        cds.FieldByName('hiddenrow').AsInteger := NewHiddenRow;
+        cds.Post;
+
+        cds.First;
+      end else
+        cds.Next;
+    end;
+
+    cds.First;
+  finally
+    cds.EnableControls;
+  end;
 end;
 
 procedure Tat_frmSyncNamespace.edFilterChange(Sender: TObject);
@@ -649,77 +706,81 @@ procedure Tat_frmSyncNamespace.cdsFilterRecord(DataSet: TDataSet;
   var Accept: Boolean);
 begin
   Accept :=
-    (
-      (cds.FieldByName('operation').AsString = '')
-      and
-      (cds.FieldByName('fileversion').AsString = '')
-    )
-    or
+    (cds.FieldByName('hiddenrow').AsInteger = 0)
+    and
     (
       (
+        (cds.FieldByName('operation').AsString = '')
+        and
+        (cds.FieldByName('fileversion').AsString = '')
+      )
+      or
+      (
         (
-          cbPackets.Checked
-          and
           (
+            cbPackets.Checked
+            and
             (
-              (cds.FieldByName('filename').AsString > '')
-              and
-              (cds.FieldByName('fileinternal').AsInteger = 0)
-            )
-            or
-            (
-              (cds.FieldByName('namespacekey').AsInteger > 0)
-              and
-              (cds.FieldByName('namespaceinternal').AsInteger = 0)
+              (
+                (cds.FieldByName('filename').AsString > '')
+                and
+                (cds.FieldByName('fileinternal').AsInteger = 0)
+              )
+              or
+              (
+                (cds.FieldByName('namespacekey').AsInteger > 0)
+                and
+                (cds.FieldByName('namespaceinternal').AsInteger = 0)
+              )
             )
           )
+          or
+            not cbPackets.Checked
         )
-        or
-          not cbPackets.Checked
-      )
-      and
-      (
-        (edFilter.Text = '')
-        or
+        and
         (
-          StrIPos(edFilter.Text, cds.FieldByName('namespacename').AsString +
-          cds.FieldByName('NamespaceVersion').AsString +
-          cds.FieldByName('NamespaceTimeStamp').AsString +
-          cds.FieldByName('FileNamespaceName').AsString +
-          cds.FieldByName('FileVersion').AsString +
-          cds.FieldByName('FileTimeStamp').AsString +
-          cds.FieldByName('FileSize').AsString) > 0
-        )
-      )
-      and
-      (
-        (not StatusFilterSet)
-        or
-        (actFLTOnlyInDB.Checked and (cds.FieldByName('operation').AsString = actFLTOnlyInDB.Caption))
-        or
-        (actFLTOlder.Checked and (cds.FieldByName('operation').AsString = actFLTOlder.Caption))
-        or
-        (actFLTEqual.Checked and (cds.FieldByName('operation').AsString = actFLTEqual.Caption))
-        or
-        (actFLTOnlyInFile.Checked and (cds.FieldByName('operation').AsString = actFLTOnlyInFile.Caption))
-        or
-        (actFLTNewer.Checked and (cds.FieldByName('operation').AsString = actFLTNewer.Caption))
-        or
-        (
-          actFLTNone.Checked
-          and
+          (edFilter.Text = '')
+          or
           (
-            (cds.FieldByName('operation').AsString = actFLTNone.Caption)
-            or
-            (cds.FieldByName('operation').AsString = '  ')
+            StrIPos(edFilter.Text, cds.FieldByName('namespacename').AsString +
+            cds.FieldByName('NamespaceVersion').AsString +
+            cds.FieldByName('NamespaceTimeStamp').AsString +
+            cds.FieldByName('FileNamespaceName').AsString +
+            cds.FieldByName('FileVersion').AsString +
+            cds.FieldByName('FileTimeStamp').AsString +
+            cds.FieldByName('FileSize').AsString) > 0
           )
         )
-        or
-        (actFLTEqualOlder.Checked and (cds.FieldByName('operation').AsString = actFLTEqualOlder.Caption))
-        or
-        (actFLTEqualNewer.Checked and (cds.FieldByName('operation').AsString = actFLTEqualNewer.Caption))
-        or
-        (actFLTInUses.Checked and (cds.FieldByName('operation').AsString = actFLTInUses.Caption))
+        and
+        (
+          (not StatusFilterSet)
+          or
+          (actFLTOnlyInDB.Checked and (cds.FieldByName('operation').AsString = actFLTOnlyInDB.Caption))
+          or
+          (actFLTOlder.Checked and (cds.FieldByName('operation').AsString = actFLTOlder.Caption))
+          or
+          (actFLTEqual.Checked and (cds.FieldByName('operation').AsString = actFLTEqual.Caption))
+          or
+          (actFLTOnlyInFile.Checked and (cds.FieldByName('operation').AsString = actFLTOnlyInFile.Caption))
+          or
+          (actFLTNewer.Checked and (cds.FieldByName('operation').AsString = actFLTNewer.Caption))
+          or
+          (
+            actFLTNone.Checked
+            and
+            (
+              (cds.FieldByName('operation').AsString = actFLTNone.Caption)
+              or
+              (cds.FieldByName('operation').AsString = '  ')
+            )
+          )
+          or
+          (actFLTEqualOlder.Checked and (cds.FieldByName('operation').AsString = actFLTEqualOlder.Caption))
+          or
+          (actFLTEqualNewer.Checked and (cds.FieldByName('operation').AsString = actFLTEqualNewer.Caption))
+          or
+          (actFLTInUses.Checked and (cds.FieldByName('operation').AsString = actFLTInUses.Caption))
+        )
       )
     );
 end;
