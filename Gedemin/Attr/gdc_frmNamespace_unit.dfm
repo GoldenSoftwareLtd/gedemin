@@ -1,6 +1,6 @@
 inherited gdc_frmNamespace: Tgdc_frmNamespace
-  Left = 326
-  Top = 220
+  Left = 310
+  Top = 41
   Width = 1090
   Height = 742
   Caption = 'Пространство имен'
@@ -76,6 +76,12 @@ inherited gdc_frmNamespace: Tgdc_frmNamespace
       Height = 347
       inherited TBDockDetail: TTBDock
         Width = 1056
+        inherited tbDetailCustom: TTBToolbar
+          Images = dmImages.il16x16
+          object TBItem5: TTBItem
+            Action = actShowObject
+          end
+        end
       end
       inherited pnlSearchDetail: TPanel
         Height = 321
@@ -127,6 +133,14 @@ inherited gdc_frmNamespace: Tgdc_frmNamespace
       ImageIndex = 181
       OnExecute = actNSObjectsExecute
       OnUpdate = actNSObjectsUpdate
+    end
+    object actShowObject: TAction
+      Category = 'Detail'
+      Caption = 'Открыть объект'
+      Hint = 'Открыть объект'
+      ImageIndex = 131
+      OnExecute = actShowObjectExecute
+      OnUpdate = actShowObjectUpdate
     end
   end
   object gdcNamespace: TgdcNamespace

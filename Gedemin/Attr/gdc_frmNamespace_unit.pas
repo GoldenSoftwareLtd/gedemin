@@ -22,6 +22,8 @@ type
     TBItem4: TTBItem;
     actNSObjects: TAction;
     TBItem6: TTBItem;
+    actShowObject: TAction;
+    TBItem5: TTBItem;
     procedure FormCreate(Sender: TObject);
     procedure actSetObjectPosExecute(Sender: TObject);
     procedure actSaveToFileExecute(Sender: TObject);
@@ -35,6 +37,8 @@ type
     procedure actNSObjectsExecute(Sender: TObject);
     procedure actNSObjectsUpdate(Sender: TObject);
     procedure actLoadFromFileExecute(Sender: TObject);
+    procedure actShowObjectExecute(Sender: TObject);
+    procedure actShowObjectUpdate(Sender: TObject);
   end;
 
 implementation
@@ -139,6 +143,17 @@ procedure Tgdc_frmNamespace.actLoadFromFileExecute(Sender: TObject);
 begin
   with Tat_frmSyncNamespace.Create(nil) do
     Show;
+end;
+
+procedure Tgdc_frmNamespace.actShowObjectExecute(Sender: TObject);
+begin
+  (gdcDetailObject as TgdcNamespaceObject).ShowObject;
+end;
+
+procedure Tgdc_frmNamespace.actShowObjectUpdate(Sender: TObject);
+begin
+  actShowObject.Enabled := (gdcDetailObject <> nil)
+    and (not gdcDetailObject.EOF);
 end;
 
 initialization
