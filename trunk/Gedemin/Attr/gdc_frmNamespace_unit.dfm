@@ -1,6 +1,6 @@
 inherited gdc_frmNamespace: Tgdc_frmNamespace
-  Left = 310
-  Top = 41
+  Left = 46
+  Top = 79
   Width = 1090
   Height = 742
   Caption = 'Пространство имен'
@@ -28,6 +28,9 @@ inherited gdc_frmNamespace: Tgdc_frmNamespace
       end
       object TBItem6: TTBItem
         Action = actNSObjects
+      end
+      object TBItem7: TTBItem
+        Action = actViewNS
       end
     end
   end
@@ -141,6 +144,12 @@ inherited gdc_frmNamespace: Tgdc_frmNamespace
       ImageIndex = 131
       OnExecute = actShowObjectExecute
       OnUpdate = actShowObjectUpdate
+    end
+    object actViewNS: TAction
+      Caption = 'Показать файлы пространств имен'
+      Hint = 'Показать файлы пространств имен'
+      ImageIndex = 80
+      OnExecute = actViewNSExecute
     end
   end
   object gdcNamespace: TgdcNamespace
