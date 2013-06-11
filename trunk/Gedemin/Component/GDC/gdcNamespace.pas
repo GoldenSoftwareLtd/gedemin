@@ -2942,7 +2942,12 @@ begin
   q := TIBSQL.Create(nil);
   try
     q.Transaction := gdcBaseManager.ReadTransaction;
-    q.SQL.Text := 'SELECT * FROM at_object o WHERE namespacekey = :nsk and o.modified is distinct from o.curr_modified';
+    q.SQL.Text :=
+      'SELECT * FROM at_object o ' +
+      'WHERE namespacekey = :nsk ' +
+      '  AND DATEDIFF(SECOND, ' +
+      '    COALESCE(o.curr_modified, ''01.01.2000 00:00:00.0000''), ' +
+      '    COALESCE(o.modified,      ''01.01.2000 00:00:00.0000'')) > 0';
     ANSList.CustomSort(CompareFolder);
 
     TempS := ANSList.GetAllUsesString;

@@ -193,7 +193,6 @@ type
 
     procedure MetaDataCreate;
 
-    function GetSelectClause: String; override;
     function CreateDialogForm: TCreateableForm; override;
 
     procedure CustomInsert(Buff: Pointer); override;
@@ -2249,52 +2248,6 @@ end;
 class function TgdcRelation.GetListTable(const ASubType: TgdcSubType): String;
 begin
   Result := 'at_relations';
-end;
-
-function TgdcRelation.GetSelectClause: String;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_GETSELECTCLAUSE('TGDCRELATION', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCRELATION', KEYGETSELECTCLAUSE);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYGETSELECTCLAUSE]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCRELATION') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCRELATION',
-  {M}          'GETSELECTCLAUSE', KEYGETSELECTCLAUSE, Params, LResult) then
-  {M}          begin
-  {M}            if (VarType(LResult) = varOleStr) or (VarType(LResult) = varString) then
-  {M}              Result := String(LResult)
-  {M}            else
-  {M}              begin
-  {M}                raise Exception.Create('Для метода ''' + 'GETSELECTCLAUSE' + ' ''' +
-  {M}                  ' класса ' + Self.ClassName + TgdcBase(Self).SubType + #10#13 +
-  {M}                  'Из макроса возвращен не строковый тип');
-  {M}              end;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCRELATION' then
-  {M}        begin
-  {M}          Result := Inherited GetSelectClause;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  Result := inherited GetSelectClause;
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCRELATION', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCRELATION', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE);
-  {M}  end;
-  {END MACRO}
 end;
 
 procedure TgdcRelation.GetWhereClauseConditions(S: TStrings);

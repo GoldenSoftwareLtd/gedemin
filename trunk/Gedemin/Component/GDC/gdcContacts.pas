@@ -496,7 +496,7 @@ begin
     '  z.account, ' +
     '  z.accounttypekey, ' +
     '  z.payername, ' +
-//    '  z.ismainaccount, ' +
+    '  z.editiondate, ' +
     '  c.name AS bankname, ' +
     '  b.bankcode, ' +
     '  b.bankmfo, ' +

@@ -98,7 +98,6 @@ type
   TgdcStorageValue = class(TgdcStorage)
   protected
     procedure GetWhereClauseConditions(S: TStrings); override;
-    function GetSelectClause: String; override;
 
   public
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
@@ -319,66 +318,6 @@ class function TgdcStorageValue.GetDialogFormClassName(
   const ASubType: TgdcSubType): String;
 begin
   Result := 'Tgdc_dlgStorageValue';
-end;
-
-function TgdcStorageValue.GetSelectClause: String;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_GETSELECTCLAUSE('TGDCSTORAGEVALUE', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCSTORAGEVALUE', KEYGETSELECTCLAUSE);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYGETSELECTCLAUSE]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCSTORAGEVALUE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCSTORAGEVALUE',
-  {M}          'GETSELECTCLAUSE', KEYGETSELECTCLAUSE, Params, LResult) then
-  {M}          begin
-  {M}            if (VarType(LResult) = varOleStr) or (VarType(LResult) = varString) then
-  {M}              Result := String(LResult)
-  {M}            else
-  {M}              begin
-  {M}                raise Exception.Create('Для метода ''' + 'GETSELECTCLAUSE' + ' ''' +
-  {M}                  ' класса ' + Self.ClassName + TGDCSTORAGEVALUE(Self).SubType + #10#13 +
-  {M}                  'Из макроса возвращен не строковый тип');
-  {M}              end;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCSTORAGEVALUE' then
-  {M}        begin
-  {M}          Result := Inherited GetSelectClause;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  Result := inherited GetSelectClause;
-
-  {Result := Format('SELECT %s.*, ' +
-    'CASE data_type ' +
-    '  WHEN ''S'' THEN str_data ' +
-    '  WHEN ''I'' THEN CAST(int_data AS VARCHAR(120)) ' +
-    '  WHEN ''L'' THEN IIF(int_data = 0, ''False'', ''True'') ' +
-    '  WHEN ''D'' THEN CAST(datetime_data AS VARCHAR(120)) ' +
-    '  WHEN ''C'' THEN CAST(curr_data AS VARCHAR(120)) ' +
-    '  WHEN ''B'' THEN ''Размер данных: '' || CAST(CHAR_LENGTH(blob_data) AS VARCHAR(120)) || '' байт'' ' +
-    'ELSE ' +
-    '  '''' ' +
-    'END', [GetListTableAlias]);}
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCSTORAGEVALUE', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCSTORAGEVALUE', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE);
-  {M}  end;
-  {END MACRO}
 end;
 
 procedure TgdcStorageValue.GetWhereClauseConditions(S: TStrings);
