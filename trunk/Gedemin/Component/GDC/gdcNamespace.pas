@@ -32,7 +32,8 @@ type
 
     class procedure WriteObject(AgdcObject: TgdcBase; AWriter: TyamlWriter;
       const AHeadObject: String; AnAlwaysoverwrite: Boolean = True;
-      ADontremove: Boolean = False; AnIncludesiblings: Boolean = False; const ATr: TIBTransaction = nil);
+      ADontremove: Boolean = False; AnIncludesiblings: Boolean = False;
+      const ATr: TIBTransaction = nil);
     class function LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
       UpdateList: TObjectList; RUIDList: TStringList; ATr: TIBTransaction;
       const AnAlwaysoverwrite: Boolean = False): TLoadedStatus;
@@ -64,7 +65,8 @@ type
     procedure CompareWithData(const AFileName: String);
     procedure DeleteNamespaceWithObjects;
 
-    property IncBuildVersion: Boolean read FIncBuildVersion write FIncBuildVersion default False;
+    property IncBuildVersion: Boolean read FIncBuildVersion write FIncBuildVersion
+      default False;
   end;
 
   TgdcNamespaceObject = class(TgdcBase)
@@ -265,7 +267,7 @@ class procedure TgdcNamespace.WriteObject(AgdcObject: TgdcBase; AWriter: TyamlWr
           try
             AWriter.StartNewLine;
             AWriter.WriteKey('Table');
-            AWriter.WriteText(SetAttr.RefTableName, qSingleQuoted);
+            AWriter.WriteText(SetAttr.RefTableName, qDoubleQuoted);
 
             AWriter.StartNewLine;
             AWriter.WriteKey('Items');
@@ -294,7 +296,7 @@ class procedure TgdcNamespace.WriteObject(AgdcObject: TgdcBase; AWriter: TyamlWr
                   AWriter.WriteText(GetReferenceString(
                     gdcBaseManager.GetRUIDStringByID(
                       q.Fields[0].AsInteger, AObj.Transaction),
-                    FN), qSingleQuoted);  
+                    FN), qDoubleQuoted);  
                   q.Next;
                 end;
               finally
@@ -343,12 +345,12 @@ begin
   AWriter.IncIndent;
   AWriter.StartNewLine;
   AWriter.WriteKey('Class');
-  AWriter.WriteText(AgdcObject.Classname, qSingleQuoted);
+  AWriter.WriteText(AgdcObject.Classname, qDoubleQuoted);
   if AgdcObject.SubType > '' then
   begin
     AWriter.StartNewLine;
     AWriter.WriteKey('SubType');
-    AWriter.WriteText(AgdcObject.SubType, qSingleQuoted);
+    AWriter.WriteText(AgdcObject.SubType, qDoubleQuoted);
   end;
   AWriter.StartNewLine;
   AWriter.WriteKey('RUID');
@@ -449,7 +451,7 @@ begin
                 AWriter.WriteText(GetReferenceString(
                   gdcBaseManager.GetRUIDStringByID(
                     F.AsInteger, AgdcObject.Transaction),
-                  FN), qSingleQuoted);
+                  FN), qDoubleQuoted);
                 continue;
               end;
             end;
@@ -473,9 +475,9 @@ begin
           ftBCD:
           begin
             if DecimalSeparator <> '.' then
-              AWriter.WriteText(StringReplace(F.AsString, DecimalSeparator, '.', []), qSingleQuoted)
+              AWriter.WriteText(StringReplace(F.AsString, DecimalSeparator, '.', []), qDoubleQuoted)
             else
-              AWriter.WriteText(F.AsString, qSingleQuoted);
+              AWriter.WriteText(F.AsString, qDoubleQuoted);
           end;
           ftBlob, ftGraphic:
           begin
@@ -520,7 +522,7 @@ begin
             end;
           end;
         else
-          AWriter.WriteText(F.AsString, qSingleQuoted);
+          AWriter.WriteText(F.AsString, qDoubleQuoted);
         end;
       end else
         AWriter.WriteNull;
@@ -2756,7 +2758,7 @@ begin
     W.WriteDirective(dirYAML11);
     W.StartNewLine;
     W.WriteKey('StructureVersion');
-    W.WriteText('1.0', qSingleQuoted);
+    W.WriteText('1.0', qDoubleQuoted);
     W.StartNewLine;
     W.WriteKey('Properties');
     W.IncIndent;
@@ -2765,10 +2767,10 @@ begin
     W.WriteString(RUIDToStr(GetRUID));
     W.StartNewLine;
     W.WriteKey('Name');
-    W.WriteText(FieldByName('name').AsString, qSingleQuoted);
+    W.WriteText(FieldByName('name').AsString, qDoubleQuoted);
     W.StartNewLine;
     W.WriteKey('Caption');
-    W.WriteText(FieldByName('caption').AsString, qSingleQuoted);
+    W.WriteText(FieldByName('caption').AsString, qDoubleQuoted);
     W.StartNewLine;
     W.WriteKey('Version');
     W.WriteString(FieldByName('version').AsString);
@@ -2813,14 +2815,15 @@ begin
         W.WriteText(GetReferenceString(
           q.FieldByName('ruid').AsString,
           q.FieldByName('name').AsString),
-          qSingleQuoted);
+          qDoubleQuoted);
         q.Next;
       end;
       W.DecIndent;
       W.StartNewLine;
     end;
     q.Close;
-    q.SQL.Text := 'SELECT xid || ''_'' || dbid as ruid FROM at_object WHERE id = :id';
+    q.SQL.Text :=
+      'SELECT xid || ''_'' || dbid as ruid FROM at_object WHERE id = :id';
 
     CheckIncludesiblings;
     WasDelete := False;
@@ -2939,9 +2942,6 @@ begin
   try
     q.Transaction := gdcBaseManager.ReadTransaction;
     q.SQL.Text := 'SELECT * FROM at_object o WHERE namespacekey = :nsk and o.modified is distinct from o.curr_modified';
-   // ANSList.Sorted := False;
-   // ANSList.Log := Log;
-   // ANSList.GetFilesForPath(APath);
     ANSList.CustomSort(CompareFolder);
 
     TempS := ANSList.GetAllUsesString;
