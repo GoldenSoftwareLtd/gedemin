@@ -2986,7 +2986,7 @@ begin
         nsUndefined:
         begin
           if Pos(';' + NSNode.RUID + ';', TempS) > 0 then
-            ADataSet.FieldByName('operation').AsString := '!'
+            ADataSet.FieldByName('operation').AsString := '!' 
           else if NSNode.VersionInDB > '' then
             ADataSet.FieldByName('operation').AsString := '>'
           else
@@ -3025,7 +3025,7 @@ begin
               else
                 ADataSet.FieldByName('operation').AsString := '==';
             end else
-              ADataSet.FieldByName('operation').AsString := '?';
+              ADataSet.FieldByName('operation').AsString := '>>';
             q.Close;
           end; 
         end;
