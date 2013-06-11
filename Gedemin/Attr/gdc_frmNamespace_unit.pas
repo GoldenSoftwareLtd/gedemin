@@ -24,6 +24,8 @@ type
     TBItem6: TTBItem;
     actShowObject: TAction;
     TBItem5: TTBItem;
+    actViewNS: TAction;
+    TBItem7: TTBItem;
     procedure FormCreate(Sender: TObject);
     procedure actSetObjectPosExecute(Sender: TObject);
     procedure actSaveToFileExecute(Sender: TObject);
@@ -39,6 +41,7 @@ type
     procedure actLoadFromFileExecute(Sender: TObject);
     procedure actShowObjectExecute(Sender: TObject);
     procedure actShowObjectUpdate(Sender: TObject);
+    procedure actViewNSExecute(Sender: TObject);
   end;
 
 implementation
@@ -47,7 +50,7 @@ implementation
 
 uses
   gd_ClassList, at_frmDuplicates_unit, at_frmNSRecursion_unit,
-  at_frmNSObjects_unit, at_frmSyncNamespace_unit;
+  at_frmNSObjects_unit, at_frmSyncNamespace_unit, at_dlgLoadNamespacePackages_unit;
 
 procedure Tgdc_frmNamespace.FormCreate(Sender: TObject);
 begin
@@ -154,6 +157,16 @@ procedure Tgdc_frmNamespace.actShowObjectUpdate(Sender: TObject);
 begin
   actShowObject.Enabled := (gdcDetailObject <> nil)
     and (not gdcDetailObject.EOF);
+end;
+
+procedure Tgdc_frmNamespace.actViewNSExecute(Sender: TObject);
+begin
+  with Tat_dlgLoadNamespacePackages.Create(nil) do
+  try
+    ShowModal;
+  finally
+    Free;
+  end;
 end;
 
 initialization

@@ -1370,7 +1370,7 @@ begin
                     gdcNamespaceObj.FieldByName('dontremove').AsInteger := Integer(ObjMapping.ReadBoolean('Properties\DontRemove'));
                     gdcNamespaceObj.FieldByName('includesiblings').AsInteger := Integer(ObjMapping.ReadBoolean('Properties\IncludeSiblings'));
                     if Obj.FindField('editiondate') <> nil then
-                      gdcNamespaceObj.FieldByName('modified').AsDateTime := Obj.FieldByName('editiondate').AsDateTime
+                      gdcNamespaceObj.FieldByName('modified').Value := Obj.FieldByName('editiondate').Value
                     else
                       gdcNamespaceObj.FieldByName('modified').Clear;
                     gdcNamespaceObj.FieldByName('curr_modified').Clear;
@@ -2946,8 +2946,8 @@ begin
       'SELECT * FROM at_object o ' +
       'WHERE namespacekey = :nsk ' +
       '  AND DATEDIFF(SECOND, ' +
-      '    COALESCE(o.curr_modified, ''01.01.2000 00:00:00.0000''), ' +
-      '    COALESCE(o.modified,      ''01.01.2000 00:00:00.0000'')) > 0';
+      '    COALESCE(o.curr_modified, cast(''01.01.2000 00:00:00.0000'' as TIMESTAMP)), ' +
+      '    COALESCE(o.modified,      cast(''01.01.2000 00:00:00.0000'' as TIMESTAMP))) > 0';
     ANSList.CustomSort(CompareFolder);
 
     TempS := ANSList.GetAllUsesString;
@@ -3013,13 +3013,20 @@ begin
             ADataSet.FieldByName('operation').AsString := '?';
           end else
           begin
-            UsesStates := ANSList.NSTree.GetDependState(NSNode.RUID);
-            if nsNewer in UsesStates then
-              ADataSet.FieldByName('operation').AsString := '<='
-            else if nsOlder in UsesStates then
-               ADataSet.FieldByName('operation').AsString := '=>'
-            else
-              ADataSet.FieldByName('operation').AsString := '==';
+            q.ParamByName('nsk').AsInteger := NSNode.Namespacekey;
+            q.ExecQuery;
+            if q.Eof then
+            begin
+              UsesStates := ANSList.NSTree.GetDependState(NSNode.RUID);
+              if nsNewer in UsesStates then
+                ADataSet.FieldByName('operation').AsString := '<='
+              else if nsOlder in UsesStates then
+                 ADataSet.FieldByName('operation').AsString := '=>'
+              else
+                ADataSet.FieldByName('operation').AsString := '==';
+            end else
+              ADataSet.FieldByName('operation').AsString := '?';
+            q.Close;
           end; 
         end;
       end;
