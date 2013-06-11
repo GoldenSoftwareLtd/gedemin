@@ -2946,8 +2946,8 @@ begin
       'SELECT * FROM at_object o ' +
       'WHERE namespacekey = :nsk ' +
       '  AND DATEDIFF(SECOND, ' +
-      '    COALESCE(o.curr_modified, cast(''01.01.2000 00:00:00.0000'' as TIMESTAMP)), ' +
-      '    COALESCE(o.modified,      cast(''01.01.2000 00:00:00.0000'' as TIMESTAMP))) > 0';
+      '    COALESCE(o.modified,      cast(''01.01.2000 00:00:00.0000'' as TIMESTAMP)), ' +
+      '    COALESCE(o.curr_modified, cast(''01.01.2000 00:00:00.0000'' as TIMESTAMP))) > 0';
     ANSList.CustomSort(CompareFolder);
 
     TempS := ANSList.GetAllUsesString;
