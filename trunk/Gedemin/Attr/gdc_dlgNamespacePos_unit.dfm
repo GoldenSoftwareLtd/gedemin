@@ -1,6 +1,6 @@
 inherited gdc_dlgNamespacePos: Tgdc_dlgNamespacePos
-  Left = 397
-  Top = 433
+  Left = 401
+  Top = 169
   Caption = 'Свойства'
   ClientHeight = 388
   ClientWidth = 522
@@ -138,6 +138,14 @@ inherited gdc_dlgNamespacePos: Tgdc_dlgNamespacePos
       ItemHeight = 13
       TabOrder = 1
     end
+    object btnShowObject: TButton
+      Left = 437
+      Top = 108
+      Width = 75
+      Height = 21
+      Action = actShowObject
+      TabOrder = 5
+    end
   end
   object ibgr: TgsIBGrid [7]
     Left = 8
@@ -164,6 +172,11 @@ inherited gdc_dlgNamespacePos: Tgdc_dlgNamespacePos
   inherited alBase: TActionList
     Left = 454
     Top = 7
+    object actShowObject: TAction
+      Caption = 'Объект...'
+      OnExecute = actShowObjectExecute
+      OnUpdate = actShowObjectUpdate
+    end
   end
   inherited dsgdcBase: TDataSource
     Left = 360

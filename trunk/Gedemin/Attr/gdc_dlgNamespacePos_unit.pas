@@ -24,7 +24,11 @@ type
     Label2: TLabel;
     iblkupHeadObject: TgsIBLookupComboBox;
     Label3: TLabel;
+    btnShowObject: TButton;
+    actShowObject: TAction;
     procedure FormCreate(Sender: TObject);
+    procedure actShowObjectExecute(Sender: TObject);
+    procedure actShowObjectUpdate(Sender: TObject);
   private
     { Private declarations }
   public
@@ -45,6 +49,16 @@ procedure Tgdc_dlgNamespacePos.FormCreate(Sender: TObject);
 begin
   inherited;
   gdcNSDependent.Open;
+end;
+
+procedure Tgdc_dlgNamespacePos.actShowObjectExecute(Sender: TObject);
+begin
+  (gdcObject as TgdcNamespaceObject).ShowObject;
+end;
+
+procedure Tgdc_dlgNamespacePos.actShowObjectUpdate(Sender: TObject);
+begin
+  actShowObject.Enabled := gdcObject <> nil;
 end;
 
 initialization

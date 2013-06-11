@@ -79,6 +79,8 @@ type
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetSubSetList: String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
+
+    procedure ShowObject;
   end;
 
   function GetReferenceString(const ARUID: String; const AName: String): String;
@@ -139,7 +141,6 @@ type
     ClassName: String;
     SubType: String;
   end;
-
 
 procedure Register;
 begin
@@ -3726,6 +3727,34 @@ begin
     q.Free;
     qList.Free;
     Tr.Free;
+  end;
+end;
+
+procedure TgdcNamespaceObject.ShowObject;
+var
+  ObjID: Integer;
+  Obj: TgdcBase;
+  Cl: TPersistentClass;
+begin
+  Obj := nil;
+  try
+    ObjID := gdcBaseManager.GetIDByRUID(FieldByName('xid').AsInteger,
+      FieldByName('dbid').AsInteger);
+    if ObjID <> -1 then
+    begin
+      Cl := GetClass(FieldByName('objectclass').AsString);
+      if (Cl <> nil) and Cl.InheritsFrom(TgdcBase) then
+      begin
+        Obj := CgdcBase(Cl).CreateWithID(nil, nil, nil,
+          ObjID,
+          FieldByName('subtype').AsString);
+        Obj.Open;
+        if not Obj.IsEmpty then
+          Obj.EditDialog;
+      end;
+    end;
+  finally
+    Obj.Free;
   end;
 end;
 
