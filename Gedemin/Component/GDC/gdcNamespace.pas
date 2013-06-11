@@ -188,8 +188,8 @@ end;
 function CompareFolder(List: TStringList; Index1, Index2: Integer): Integer;
 begin
   Result := AnsiCompareText(
-    ExtractFilePath((List.Objects[Index1] as TgsNSNode).GetDisplayFolder),
-    ExtractFilePath((List.Objects[Index2] as TgsNSNode).GetDisplayFolder));
+    (List.Objects[Index1] as TgsNSNode).GetDisplayFolder,
+    (List.Objects[Index2] as TgsNSNode).GetDisplayFolder);
 end;
 
 class function TgdcNamespace.GetDialogFormClassName(const ASubType: TgdcSubType): String;
