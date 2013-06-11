@@ -1,8 +1,7 @@
 
 {++
 
-
-  Copyright (c) 2001 by Golden Software of Belarus
+  Copyright (c) 2001-2013 by Golden Software of Belarus
 
   Module
 
@@ -100,23 +99,6 @@ type
     class function GetDialogFormClassName(const ASubType: TgdcSubType): string; override;
     class function GetDisplayName(const ASubType: TgdcSubType): String; override;
   end;
-  //Используется TgdcAcctEntryRegister в функции CreateEntry
-  //По хорошему там можно использовать простой ИБСКЛ
-{  TgdcAcctEntryDocument = class(TgdcBaseAcctTransactionEntry)
-  private
-    FDocumentTypeKey: Integer;
-
-  protected
-    procedure DoBeforeOpen; override;
-    procedure _DoOnNewRecord; override;
-    procedure DoBeforePost; override;
-
-    procedure GetWhereClauseConditions(S: TStrings); override;
-  public
-    constructor Create(AnOwner: TComponent); override;
-
-    property DocumentTypeKey: Integer read FDocumentTypeKey write FDocumentTypeKey;
-  end;}
 
   EgdcAcctTransaction = class(Exception);
 
@@ -254,8 +236,6 @@ begin
        (CD.ClassName   = 'TgdcAutoTrRecord') ) or
      ( (Self.ClassName = 'TgdcAcctTransaction') and
        (CD.ClassName   = 'TgdcAcctTransactionEntry') ) then
-
-//  if CD.Obj is TgdcAcctTransactionEntry then
   begin
     for I := 0 to CD.ObjectCount - 1 do
     begin
@@ -305,7 +285,7 @@ begin
 // Не используется БО. Плохо.
       for I := 0 to CD.ObjectCount - 1 do
       begin
-      
+
         key := -1;
         if CD.Obj.Locate('ID', CD.ObjectArr[I].ID, []) then
           key := CD.Obj.FieldByName('recordkey').AsInteger
@@ -358,8 +338,7 @@ end;
 
 class function TgdcBaseAcctTransaction.GetSubSetList: String;
 begin
-  Result := inherited GetSubSetList + 'ByCompany;' (*+ ByAutoTransaction + ';' +
-    ByTransaction + ';'*);
+  Result := inherited GetSubSetList + 'ByCompany;';
 end;
 
 procedure TgdcBaseAcctTransaction.GetWhereClauseConditions(S: TStrings);
@@ -403,7 +382,6 @@ begin
 
   S.Add(' (Z.AUTOTRANSACTION IS NULL OR Z.AUTOTRANSACTION = 0) ');
 end;
-
 
 { TgdcBaseAcctTransactionEntry }
 
@@ -463,39 +441,6 @@ begin
   {END MACRO}
 end;
 
-
-
-
-{procedure TgdcBaseAcctTransactionEntry.UpdateAccountName;
-begin
-  if not CachedUpdates then Exit;
-
-  if FAccountSQL = nil then
-  begin
-    FAccountSQL := TIBSQL.Create(nil);
-    FAccountSQL.Transaction := ReadTransaction;
-    FAccountSQL.Database := Database;
-    FAccountSQL.SQL.Text := 'SELECT ac.name FROM ac_account ac WHERE ac.id = :id';
-    FAccountSQL.Prepare;
-  end;
-
-  FAccountSQL.Close;
-  FAccountSQL.ParamByName('id').AsInteger :=
-    FieldByName('accountkey').AsInteger;
-  FAccountSQL.ExecQuery;
-
-  if FAccountSQL.RecordCount > 0 then
-  begin
-    if not (State in dsEditModes) then
-      Edit;
-
-    FieldByName('description').AsString := ' * ' +
-      FAccountSQL.Fields[0].AsString;
-  end;
-
-  FAccountSQL.Close;
-end;}
-
 class function TgdcBaseAcctTransactionEntry.GetSubSetList: String;
 begin
   Result := inherited GetSubSetList + ByRecord + ';' + ByTransaction + ';';
@@ -544,6 +489,7 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
   inherited;
   TransactionCache.Clear;
 
@@ -749,137 +695,6 @@ begin
   {M}  end;
   {END MACRO}
 end;
-
-{ TgdcAcctEntryDocument }
-
-(*constructor TgdcAcctEntryDocument.Create(AnOwner: TComponent);
-begin
-  inherited Create(AnOwner);
-  FDocumentTypeKey := -1;
-end;
-
-procedure TgdcAcctEntryDocument.DoBeforeOpen;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCACCTENTRYDOCUMENT', 'DOBEFOREOPEN', KEYDOBEFOREOPEN)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCACCTENTRYDOCUMENT', KEYDOBEFOREOPEN);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOBEFOREOPEN]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCACCTENTRYDOCUMENT') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCACCTENTRYDOCUMENT',
-  {M}          'DOBEFOREOPEN', KEYDOBEFOREOPEN, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCACCTENTRYDOCUMENT' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  inherited;
-  ParamByName(fnDocumenttypekey).AsInteger := DocumentTypeKey;
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCACCTENTRYDOCUMENT', 'DOBEFOREOPEN', KEYDOBEFOREOPEN)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCACCTENTRYDOCUMENT', 'DOBEFOREOPEN', KEYDOBEFOREOPEN);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcAcctEntryDocument.DoBeforePost;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCACCTENTRYDOCUMENT', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCACCTENTRYDOCUMENT', KEYDOBEFOREPOST);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOBEFOREPOST]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCACCTENTRYDOCUMENT') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCACCTENTRYDOCUMENT',
-  {M}          'DOBEFOREPOST', KEYDOBEFOREPOST, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCACCTENTRYDOCUMENT' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  inherited;
-
-  if not (sMultiple in BaseState) then
-  begin
-    if FieldByName(fnDocumenttypekey).IsNull then
-      FieldByName(fnDocumenttypekey).AsInteger := DocumentTypeKey;
-  end;
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCACCTENTRYDOCUMENT', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCACCTENTRYDOCUMENT', 'DOBEFOREPOST', KEYDOBEFOREPOST);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcAcctEntryDocument._DoOnNewRecord;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCACCTENTRYDOCUMENT', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCACCTENTRYDOCUMENT', KEY_DOONNEWRECORD);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEY_DOONNEWRECORD]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCACCTENTRYDOCUMENT') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCACCTENTRYDOCUMENT',
-  {M}          '_DOONNEWRECORD', KEY_DOONNEWRECORD, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCACCTENTRYDOCUMENT' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  inherited;
-  if DocumentTypeKey <> -1 then
-    FieldByName(fnDocumenttypekey).AsInteger := DocumentTypeKey;
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCACCTENTRYDOCUMENT', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCACCTENTRYDOCUMENT', '_DOONNEWRECORD', KEY_DOONNEWRECORD);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcAcctEntryDocument.GetWhereClauseConditions(S: TStrings);
-begin
-  inherited;
-  S.Add(' z.documenttypekey = :documenttypekey ');
-end;*)
-
 
 { TTransactionCache }
 
@@ -1093,17 +908,14 @@ begin
   end;
 end;
 
-
 initialization
   RegisterGdcClass(TgdcAcctTransaction);
   RegisterGdcClass(TgdcAcctTransactionEntry);
-//  RegisterGdcClass(TgdcAcctEntryDocument);
   RegistergdcClass(TgdcBaseAcctTransaction);
 
 finalization
   UnRegisterGdcClass(TgdcAcctTransaction);
   UnRegisterGdcClass(TgdcAcctTransactionEntry);
-//  UnRegisterGdcClass(TgdcAcctEntryDocument);
   UnRegisterGdcClass(TgdcBaseAcctTransaction);
 
   FreeAndNil(_TransactionCache);
