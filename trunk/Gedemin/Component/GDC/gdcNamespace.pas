@@ -2930,27 +2930,15 @@ var
   I: Integer;
   CurrDir: String;
   NSNode: TgsNSNode;
-  NL: TStringList;
-  q: TIBSQL;
-  TempS: String;
-  UsesStates: TgsNSStates;
+  NL: TStringList;  
+  NSTreeNode: TgsNSTreeNode;
 begin
   Assert(ADataSet <> nil);
   Assert(ANSList <> nil);
 
   NL := TStringList.Create;
-  q := TIBSQL.Create(nil);
   try
-    q.Transaction := gdcBaseManager.ReadTransaction;
-    q.SQL.Text :=
-      'SELECT * FROM at_object o ' +
-      'WHERE namespacekey = :nsk ' +
-      '  AND DATEDIFF(SECOND, ' +
-      '    COALESCE(o.modified,      cast(''01.01.2000 00:00:00.0000'' as TIMESTAMP)), ' +
-      '    COALESCE(o.curr_modified, cast(''01.01.2000 00:00:00.0000'' as TIMESTAMP))) > 0';
     ANSList.CustomSort(CompareFolder);
-
-    TempS := ANSList.GetAllUsesString;
     CurrDir := '';
 
     for I := ANSList.Count - 1 downto 0 do
@@ -2982,60 +2970,21 @@ begin
       ADataSet.FieldByName('namespaceinternal').AsInteger := Integer(NSNode.NamespaceInternal);
       if NSNode.NamespaceTimestamp <> 0 then
         ADataSet.FieldByName('namespacetimestamp').AsDateTime := NSNode.NamespaceTimestamp;
-      case NSNode.GetNSState of
-        nsUndefined:
-        begin
-          if Pos(';' + NSNode.RUID + ';', TempS) > 0 then
-            ADataSet.FieldByName('operation').AsString := '!' 
-          else if NSNode.VersionInDB > '' then
-            ADataSet.FieldByName('operation').AsString := '>'
-          else
-            ADataSet.FieldByName('operation').AsString := '';
-        end;
-
-        nsNotInstalled: ADataSet.FieldByName('operation').AsString := '<';
-        nsNewer:
-        begin
-          q.ParamByName('nsk').AsInteger := NSNode.Namespacekey;
-          q.ExecQuery;
-          if not q.Eof then
-            ADataSet.FieldByName('operation').AsString := '?'
-          else
-            ADataSet.FieldByName('operation').AsString := '<<';
-          q.Close;  
-        end;
-        nsOlder: ADataSet.FieldByName('operation').AsString := '>>';
-        nsEqual:
-        begin
-          if ADataSet.FieldByName('filetimestamp').AsDateTime <>
-            ADataSet.FieldByName('namespacetimestamp').AsDateTime then
-          begin
-            ADataSet.FieldByName('operation').AsString := '?';
-          end else
-          begin
-            q.ParamByName('nsk').AsInteger := NSNode.Namespacekey;
-            q.ExecQuery;
-            if q.Eof then
-            begin
-              UsesStates := ANSList.NSTree.GetDependState(NSNode.RUID);
-              if nsNewer in UsesStates then
-                ADataSet.FieldByName('operation').AsString := '<='
-              else if nsOlder in UsesStates then
-                 ADataSet.FieldByName('operation').AsString := '=>'
-              else
-                ADataSet.FieldByName('operation').AsString := '==';
-            end else
-              ADataSet.FieldByName('operation').AsString := '>>';
-            q.Close;
-          end; 
-        end;
+      ADataSet.FieldByName('operation').AsString := NSNode.GetOperation;
+      if ADataSet.FieldByName('operation').AsString = '!' then
+      begin
+        NSTreeNode := ANSList.NSTree.GetTreeNodeByRUID(NSNode.RUID);
+        if (NSTreeNode <> nil)
+          and (NSTreeNode.Parent <> nil)
+          and (NSTreeNode.Parent.YamlNode <> nil)
+        then
+          ADataSet.FieldByName('filenamespacename').AsString := NSNode.Name + '(' + NSTreeNode.Parent.YamlNode.Name + ')';
       end;
       ADataSet.Post;
     end;
 
     ADataSet.First;
-  finally
-    q.Free;
+  finally 
     NL.Free;
   end;
 end;

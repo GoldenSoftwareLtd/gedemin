@@ -16,6 +16,7 @@ type
 
   TgsNSTreeNode = class(TObject)
   public
+    Parent: TgsNSTreeNode;
     YamlNode: TgsNSNode;
     UsesObject: TStringList;
 
@@ -27,7 +28,7 @@ type
   public   
     function AddNode(Node: TgsNSTreeNode; yamlNode: TgsNSNode): TgsNSTreeNode;
     function GetTreeNodeByRUID(const ARUID: String): TgsNSTreeNode;
-    function GetDependState(const ARUID: String): TgsNSStates;
+    function GetDependState(const ARUID: String): String;
     function CheckNSCorrect(const ARUID: String; var AError: String): Boolean;
     procedure SetNSFileName(const ARUID: String; AFileList: TStringList);
   end;
@@ -61,6 +62,7 @@ type
 
     function GetUsesString: String;
     function GetNSState: TgsNSState;
+    function GetOperation: String;
     function CheckDBVersion: Boolean;
     function CheckOnlyInDB: Boolean;
     function GetDisplayFolder: String;
@@ -84,7 +86,8 @@ type
     constructor Create;
     destructor Destroy; override;
 
-    function GetAllUsesString: String;  
+    function GetAllUsesString: String;
+    function GetNSDependOn(const ARUID: String): String;
     procedure GetFilesForPath(const Path: String);
     procedure Clear; override;
     procedure FillTree(ATreeView: TgsTreeView);
@@ -160,6 +163,75 @@ begin
     else
       Result := nsEqual;
   end;
+end;
+
+function TgsNSNode.GetOperation: String;
+var
+  NSTreeNode: TgsNSTreeNode;
+  q: TIBSQL;
+  TempS: String;
+begin
+  q := TIBSQL.Create(nil);
+  try
+    q.Transaction := gdcBaseManager.ReadTransaction;
+    q.SQL.Text :=
+      'SELECT * FROM at_object o ' +
+      'WHERE namespacekey = :nsk ' +
+      '  AND DATEDIFF(SECOND, ' +
+      '    COALESCE(o.modified,      cast(''01.01.2000 00:00:00.0000'' as TIMESTAMP)), ' +
+      '    COALESCE(o.curr_modified, cast(''01.01.2000 00:00:00.0000'' as TIMESTAMP))) > 0';
+    case GetNSState of
+      nsUndefined:
+      begin
+        NSTreeNode := NSList.NSTree.GetTreeNodeByRUID(RUID);
+        if (NSTreeNode <> nil)
+          and (NSTreeNode.Parent <> nil) then
+        begin
+          Result := '!';
+        end else if VersionInDB > '' then
+          Result := '>'
+        else
+          Result := '';
+      end;
+      nsNotInstalled: Result := '<';
+      nsNewer:
+      begin
+        q.ParamByName('nsk').AsInteger := Namespacekey;
+        q.ExecQuery;
+        if not q.Eof then
+          Result := '?'
+        else
+          Result := '<<';
+        q.Close;
+      end;
+      nsOlder: Result := '>>';
+      nsEqual:
+      begin
+        if filetimestamp <> namespacetimestamp then
+        begin
+          Result := '?';
+        end else
+        begin
+          q.ParamByName('nsk').AsInteger := Namespacekey;
+          q.ExecQuery;
+          if q.Eof then
+          begin
+            TempS := NSList.NSTree.GetDependState(RUID);
+            if TempS = '<<' then
+              Result := '<='
+            else if TempS = '>>' then
+              Result := '=>'
+            else
+              Result := '==';
+          end else
+            Result := '>>';
+          q.Close;
+        end;
+      end;
+    end;  
+  finally
+    q.Free;
+  end; 
 end;
 
 function TgsNSNode.CheckDBVersion: Boolean;
@@ -311,6 +383,10 @@ begin
   end;
 end;
 
+function TgsNSList.GetNSDependOn(const ARUID: String): String;
+begin
+ //for 
+end;
 
 procedure TgsNSList.GetFilesForPath(const Path: String);
 
@@ -692,14 +768,16 @@ begin
   begin
     Result := TgsNSTreeNode.Create;
     Result.YamlNode := yamlNode;
+    Result.Parent := Node;
     AddObject(yamlNode.RUID, Result);
   end else
   begin
     Result := TgsNSTreeNode.Create;
     Result.YamlNode := yamlNode;
+    Result.Parent := Node;
     Node.UsesObject.AddObject(yamlNode.RUID, Result);
   end;
-end;
+end;  
 
 function TgsNSTree.GetTreeNodeByRUID(const ARUID: String): TgsNSTreeNode;
 
@@ -709,7 +787,7 @@ function TgsNSTree.GetTreeNodeByRUID(const ARUID: String): TgsNSTreeNode;
   begin
     Result := nil;
     Ind := Node.UsesObject.IndexOf(ARUID);
-    if Ind > 0 then
+    if Ind > -1 then
     begin
       Result := Node.UsesObject.Objects[Ind] as TgsNSTreeNode;
     end else
@@ -722,7 +800,7 @@ function TgsNSTree.GetTreeNodeByRUID(const ARUID: String): TgsNSTreeNode;
       end;
     end;
   end;
-  
+
 var
   I, Ind: Integer;
 begin
@@ -742,27 +820,41 @@ begin
   end;
 end;
 
-function TgsNSTree.GetDependState(const ARUID: String): TgsNSStates;
+function TgsNSTree.GetDependState(const ARUID: String): String;
 
-  procedure SetState(Node: TgsNSTreeNode; var State: TgsNSStates);
+  function SetState(Node: TgsNSTreeNode): String;
   var
     I: Integer;
   begin
+    Result := '';
     if Node.YamlNode <> nil then
     begin
       if not Node.YamlNode.CheckOnlyInDB then
-        Include(State, Node.YamlNode.GetNSState);
-      for I := 0 to Node.UsesObject.Count - 1 do
-        SetState(Node.UsesObject.Objects[I] as TgsNSTreeNode, State);
+        Result := Node.YamlNode.GetOperation;
+      if (Result <> '>>') or (Result <> '<<') then
+      begin
+        for I := 0 to Node.UsesObject.Count - 1 do
+        begin
+          Result := SetState(Node.UsesObject.Objects[I] as TgsNSTreeNode);
+          if (Result = '>>') or (Result = '<<') then
+            break;
+        end;
+      end;
    end;
   end;
 var
-  Node: TgsNSTreeNode; 
+  Node: TgsNSTreeNode;
+  I: Integer;
 begin
-  Result := [];
+  Result := '';
   Node := GetTreeNodeByRUID(ARUID);
   if Node <> nil then
-    SetState(Node, Result);
+  for I := 0 to Node.UsesObject.Count - 1 do
+  begin
+    Result := SetState(Node.UsesObject.Objects[I] as TgsNSTreeNode);
+    if (Result = '>>') or (Result = '<<') then
+      break;
+  end;
 end;
 
 constructor TgsNSTreeNode.Create;
