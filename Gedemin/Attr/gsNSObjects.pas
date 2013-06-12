@@ -30,7 +30,7 @@ type
     function GetTreeNodeByRUID(const ARUID: String): TgsNSTreeNode;
     function GetDependState(const ARUID: String): String;
     function CheckNSCorrect(const ARUID: String; var AError: String): Boolean;
-    procedure SetNSFileName(const ARUID: String; AFileList: TStringList);
+    function SetNSFileName(const ARUID: String; AFileList: TStringList): String;
   end;
 
   TgsNSNode = class(TObject)
@@ -55,7 +55,7 @@ type
     NamespaceInternal: Boolean;
     NSList: TgsNSList;
     UsesList: TStringList;
-
+    CurrOperation: String;
 
     constructor Create(ANSList: TgsNSList; const ARUID: String; const AName: String = '');
     destructor Destroy; override;
@@ -110,7 +110,8 @@ begin
   NSList := ANSList;
   UsesList := TStringList.Create;
   UsesList.Sorted := True;
-  UsesList.Duplicates := dupError;    
+  UsesList.Duplicates := dupError;
+  CurrOperation := '';    
 end;
 
 destructor TgsNSNode.Destroy;
@@ -171,6 +172,8 @@ var
   q: TIBSQL;
   TempS: String;
 begin
+  Result := '';
+  CurrOperation := '';
   q := TIBSQL.Create(nil);
   try
     q.Transaction := gdcBaseManager.ReadTransaction;
@@ -233,10 +236,11 @@ begin
           q.Close;
         end;
       end;
-    end;  
+    end;
   finally
     q.Free;
-  end; 
+    CurrOperation := Result;
+  end;   
 end;
 
 function TgsNSNode.CheckDBVersion: Boolean;
@@ -743,28 +747,36 @@ begin
   end;
 end;
 
-procedure TgsNSTree.SetNSFileName(const ARUID: String; AFileList: TStringList);
+function TgsNSTree.SetNSFileName(const ARUID: String; AFileList: TStringList): String;
 
-  procedure FillFileList(Node: TgsNSTreeNode);
+  procedure FillFileList(Node: TgsNSTreeNode; var Names: String);
   var
     I: Integer;
   begin
     if Node.YamlNode <> nil then
     begin
       for I := 0 to Node.UsesObject.Count - 1 do
-        FillFileList(Node.UsesObject.Objects[I] as TgsNSTreeNode);
-      if AFileList.IndexOf(Node.YamlNode.FileName) = -1 then
+        FillFileList(Node.UsesObject.Objects[I] as TgsNSTreeNode, Names);
+      if Node.YamlNode.Valid
+        and (AFileList.IndexOf(Node.YamlNode.FileName) = -1) then
+      begin
         AFileList.Add(Node.YamlNode.FileName);
+        Names := Names + Node.YamlNode.Name + ', ';
+      end;
    end;
   end;
 var
   Node: TgsNSTreeNode;
 begin
   Assert(AFileList <> nil);
-
+  Result := '';
   Node := GetTreeNodeByRUID(ARUID);
   if Node <> nil then
-    FillFileList(Node);
+  begin
+    FillFileList(Node, Result);
+    if Result > '' then
+      Setlength(Result, Length(Result) - 2);
+    end;
 end;
 
 function TgsNSTree.AddNode(Node: TgsNSTreeNode; yamlNode: TgsNSNode): TgsNSTreeNode;
@@ -831,13 +843,17 @@ function TgsNSTree.GetDependState(const ARUID: String): String;
   var
     I: Integer;
   begin
-    Result := '';
     if Node.YamlNode <> nil then
     begin
       if not Node.YamlNode.CheckOnlyInDB then
-        Result := Result + Node.YamlNode.GetOperation + ';';
-      for I := 0 to Node.UsesObject.Count - 1 do
-        SetState(Node.UsesObject.Objects[I] as TgsNSTreeNode, Result);
+      begin
+        if Node.YamlNode.CurrOperation > '' then
+          Operations := Operations + Node.YamlNode.CurrOperation + ';'
+        else
+          Operations := Operations + Node.YamlNode.GetOperation + ';';
+        for I := 0 to Node.UsesObject.Count - 1 do
+          SetState(Node.UsesObject.Objects[I] as TgsNSTreeNode, Operations);
+      end;
     end;
   end;
 var

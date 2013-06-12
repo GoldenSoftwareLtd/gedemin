@@ -14418,8 +14418,10 @@ begin
     q.Next;
 
     if q.RecordCount = 1 then
-    begin
-      AddText('Объект "' + FieldByName(GetListField(SubType)).AsString + '" найден по уникальному ключу', clBlue);
+    begin       
+      AddText('Объект найден по уникальному ключу ' + ClassName + ' ' +
+        RUIDToStr(GetRUID) + ' "' + FieldByName(GetListField(SubType)).AsString + '"', clBlack);
+     // AddText('Объект "' + FieldByName(GetListField(SubType)).AsString + '" найден по уникальному ключу', clBlue);
       if (sLoadFromStream in BaseState) and NeedDeleteTheSame(SubType) then
       begin
         DeleteTheSame(q.Fields[0].AsInteger, FieldByName(GetListField(SubType)).AsString);
