@@ -79,6 +79,8 @@ procedure TgsDBSqueeze_MainForm.actConnectExecute(Sender: TObject);
 begin
   FSThread.SetDBParams(edDatabaseName.Text, edUserName.Text, edPassword.Text);
   FSThread.Connect;
+
+  btnGo.Enabled := True;
 end;
 
 procedure TgsDBSqueeze_MainForm.actConnectUpdate(Sender: TObject);
@@ -111,6 +113,7 @@ begin
     rbAllOurCompanies.Checked,
     rbCompany.Checked);
 
+  btnGo.Enabled := False;
 end;
 
 procedure TgsDBSqueeze_MainForm.actGoUpdate(Sender: TObject);
