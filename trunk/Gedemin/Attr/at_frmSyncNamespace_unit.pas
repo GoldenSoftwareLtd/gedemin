@@ -189,8 +189,7 @@ type
     FCDS: TDataSet;
     FgdcNamespace: TgdcNamespace;
     FAlwaysOverwrite: Boolean;
-    FDontRemove: Boolean;
-    FPath: String;
+    FDontRemove: Boolean;  
     FMemo: TMemo;
 
     procedure WMLoadPackages(var Msg: TMessage);
@@ -217,25 +216,23 @@ end;
 procedure TLoadNSForm.WMSAVENS(var Msg: TMessage);
 var
   I: Integer;
+  CurrTime: TDateTime;
 begin
   if (FgdcNamespace <> nil)
     and (FCDS <> nil)
-    and (FSaveList <> nil)
-    and (FPath > '')
+    and (FSaveList <> nil)   
   then
   begin
     for I := 0 to FSaveList.Count - 1 do
     begin
-
       if FCDS. Locate('namespacekey', FSaveList[I], []) then 
       begin
         if not FgdcNamespace.EOF then
         begin
-          if FCDS.FieldByName('filename').AsString > '' then
-            FgdcNamespace.SaveNamespaceToFile(FCDS.FieldByName('filename').AsString)
-          else
-            FgdcNamespace.SaveNamespaceToFile(FPath);
-          Log('Пространство имен "' + FgdcNamespace.ObjectName + '" записано в файл.');
+          CurrTime := Now;
+          FgdcNamespace.SaveNamespaceToFile(FCDS.FieldByName('filename').AsString);
+          if CurrTime <= FgdcNamespace.FieldByName('filetimestamp').AsDateTime then
+            Log('Пространство имен "' + FgdcNamespace.ObjectName + '" записано в файл.');
         end;
       end;
     end;
@@ -497,16 +494,17 @@ begin
 end;
 
 procedure Tat_frmSyncNamespace.SaveID(AnObj: TObject; const AData: String);
+var
+  CurrTime: TDateTime;
 begin
   if cds.FieldByName('namespacekey').AsInteger > 0 then
   begin
     if not FgdcNamespace.EOF then
     begin
-      if cds.FieldByName('filename').AsString > '' then
-        FgdcNamespace.SaveNamespaceToFile(cds.FieldByName('filename').AsString)
-      else
-        FgdcNamespace.SaveNamespaceToFile(tbedPath.Text);
-      Log('Пространство имен "' + FgdcNamespace.ObjectName + '" записано в файл.');
+      CurrTime := Now;
+      FgdcNamespace.SaveNamespaceToFile(cds.FieldByName('filename').AsString);
+      if CurrTime <= FgdcNamespace.FieldByName('filetimestamp').AsDateTime then
+        Log('Пространство имен "' + FgdcNamespace.ObjectName + '" записано в файл.');
     end;
   end;
 end; 
@@ -567,8 +565,7 @@ begin
       TLoadNSForm(FLoadNS).FLoadList := FLoadFileList;
       TLoadNSForm(FLoadNS).FAlwaysOverwrite := cbAlwaysOverwrite.Checked;
       TLoadNSForm(FLoadNS).FDontRemove := cbDontRemove.Checked;
-      TLoadNSForm(FLoadNS).FCDS := cds;
-      TLoadNSForm(FLoadNS).FPath := tbedPath.Text;
+      TLoadNSForm(FLoadNS).FCDS := cds; 
       TLoadNSForm(FLoadNS).FSaveList := FSaveFileList;
       TLoadNSForm(FLoadNS).FMemo := mMessages;
       if FSaveFileList.Count > 0 then

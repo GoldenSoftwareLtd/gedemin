@@ -217,12 +217,17 @@ begin
           if q.Eof then
           begin
             TempS := NSList.NSTree.GetDependState(RUID);
-            if TempS = '<<' then
-              Result := '<='
-            else if TempS = '>>' then
-              Result := '=>'
-            else
-              Result := '==';
+            if (Pos(';<<;', TempS) > 0) then
+            begin
+              if (Pos(';>>;', TempS) > 0) then
+                Result := '?'
+              else
+                Result := '<=';
+            end else
+              if (Pos(';>>;', TempS) > 0) then
+                Result := '=>'
+              else
+                Result := '==';
           end else
             Result := '>>';
           q.Close;
@@ -822,7 +827,7 @@ end;
 
 function TgsNSTree.GetDependState(const ARUID: String): String;
 
-  function SetState(Node: TgsNSTreeNode): String;
+  procedure SetState(Node: TgsNSTreeNode; var Operations: String);
   var
     I: Integer;
   begin
@@ -830,17 +835,10 @@ function TgsNSTree.GetDependState(const ARUID: String): String;
     if Node.YamlNode <> nil then
     begin
       if not Node.YamlNode.CheckOnlyInDB then
-        Result := Node.YamlNode.GetOperation;
-      if (Result <> '>>') or (Result <> '<<') then
-      begin
-        for I := 0 to Node.UsesObject.Count - 1 do
-        begin
-          Result := SetState(Node.UsesObject.Objects[I] as TgsNSTreeNode);
-          if (Result = '>>') or (Result = '<<') then
-            break;
-        end;
-      end;
-   end;
+        Result := Result + Node.YamlNode.GetOperation + ';';
+      for I := 0 to Node.UsesObject.Count - 1 do
+        SetState(Node.UsesObject.Objects[I] as TgsNSTreeNode, Result);
+    end;
   end;
 var
   Node: TgsNSTreeNode;
@@ -850,11 +848,9 @@ begin
   Node := GetTreeNodeByRUID(ARUID);
   if Node <> nil then
   for I := 0 to Node.UsesObject.Count - 1 do
-  begin
-    Result := SetState(Node.UsesObject.Objects[I] as TgsNSTreeNode);
-    if (Result = '>>') or (Result = '<<') then
-      break;
-  end;
+    SetState(Node.UsesObject.Objects[I] as TgsNSTreeNode, Result);
+  if Result > '' then
+    Result := ';' + Result;
 end;
 
 constructor TgsNSTreeNode.Create;
