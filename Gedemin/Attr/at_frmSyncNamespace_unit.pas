@@ -522,10 +522,12 @@ end;
 
 procedure Tat_frmSyncNamespace.actSyncExecute(Sender: TObject);
 var
-  Error: String;   
+  Error, TempS: String;
+  I: Integer;
 begin
   FLoadFileList.Clear;
   FSaveFileList.Clear;
+  TempS := '';
   cds.DisableControls;
   try
     cds.First;
@@ -534,7 +536,10 @@ begin
       if Pos('>', cds.FieldByName('operation').AsString) = 1 then
       begin
         if cds.FieldByName('namespacekey').AsInteger > 0 then
+        begin
           FSaveFileList.Add(cds.FieldByName('namespacekey').AsString);
+          TempS := TempS + cds.FieldByName('namespacename').AsString + ', ';
+        end;
       end else if Pos('<', cds.FieldByName('operation').AsString) = 1 then
       begin
         if FNSList.NSTree.CheckNSCorrect(cds.FieldByName('fileruid').AsString, Error) then
@@ -549,15 +554,32 @@ begin
       end;
       cds.Next;
     end;
+    SetLength(TempS, Length(TempS) - 2);
   finally
     cds.First;
     cds.EnableControls;
   end;
 
+
   with TdlgCheckOperation.Create(nil) do
   try
     lLoadRecords.Caption := 'Помечено для загрузки из файла ' + IntToStr(FLoadFileList.Count) + ' ПИ.';
     lSaveRecords.Caption := 'Помечено для сохранения в файл ' + IntToStr(FSaveFileList.Count) + ' ПИ.';
+    cds.DisableControls;
+    try
+      mSaveList.Lines.Text := TempS;
+      TempS := '';
+      for I := 0 to FLoadFileList.Count - 1 do
+      begin
+        if cds.Locate('filename', FLoadFileList[I], []) then
+          TempS := TempS + cds.FieldByName('filenamespacename').AsString + ', ';
+      end;
+      SetLength(TempS, Length(TempS) - 2);
+      mLoadList.Lines.Text := TempS;
+    finally
+      cds.EnableControls;
+    end;
+
     if ShowModal = mrOk then
     begin
       FgdcNamespace.IncBuildVersion := cbIncVersion.Checked;

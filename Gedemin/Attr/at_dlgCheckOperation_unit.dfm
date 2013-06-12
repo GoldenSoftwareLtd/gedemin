@@ -68,7 +68,7 @@ object dlgCheckOperation: TdlgCheckOperation
           Caption = 'Не удалять объекты, отсутствующие в загружаемом файле'
           TabOrder = 1
         end
-        object Memo1: TMemo
+        object mLoadList: TMemo
           Left = 10
           Top = 98
           Width = 687
@@ -121,7 +121,7 @@ object dlgCheckOperation: TdlgCheckOperation
         Height = 13
         Caption = 'Выбрано для сохранения пространств имен, включая зависимые: ХХ'
       end
-      object Memo2: TMemo
+      object mSaveList: TMemo
         Left = 10
         Top = 83
         Width = 687

@@ -2237,7 +2237,8 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
           if RefList.IndexOf(FN) > -1 then
           begin
             CDS.FieldByName('LR_Ref').AsInteger := 1;
-            CDS.FieldByName('L_' + FN).AsString := gdcBaseManager.GetRUIDStringByID(AnObj.Fields[I].AsInteger, ATr);
+            if not AnObj.Fields[I].IsNull then
+              CDS.FieldByName('L_' + FN).AsString := gdcBaseManager.GetRUIDStringByID(AnObj.Fields[I].AsInteger, ATr);
             N := Fields.FindByName(FN);
             if (N <> nil) and (N is TyamlString) then
             begin
