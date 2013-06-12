@@ -267,6 +267,7 @@ object dlgToNamespace: TdlgToNamespace
     object actClear: TAction
       Caption = 'Удалить'
       OnExecute = actClearExecute
+      OnUpdate = actClearUpdate
     end
   end
   object IBTransaction: TIBTransaction

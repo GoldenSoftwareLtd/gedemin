@@ -733,26 +733,23 @@ var
   function LoadedNS(const Name: String; var RUID: String): TNSFound;
   var
     q: TIBSQL;
-    Temps: String;
   begin
     Result := nsfNone;
-    Temps := RUID;
-    RUID := '';
     q := TIBSQL.Create(nil);
     try
       q.Transaction := Tr;
       q.SQL.Text := 'SELECT * FROM at_namespace n ' +
         'LEFT JOIN gd_ruid r ON n.id = r.id ' +
         'WHERE r.xid || ''_'' || r.dbid = :ruid';
-      q.ParamByName('ruid').AsString := Temps;
+      q.ParamByName('ruid').AsString := RUID;
       q.ExecQuery;
 
       if not q.Eof then
       begin
-        RUID := Temps;
         Result := nsfByRUID;
       end else
       begin
+        RUID := '';
         q.Close;
         q.SQL.Text := 'SELECT r.xid || ''_'' || r.dbid as ruid FROM at_namespace n ' +
           'LEFT JOIN gd_ruid r ON n.id = r.id ' +
@@ -1190,8 +1187,6 @@ begin
       if (CompanyStorage <> nil) and CompanyStorage.IsModified then
         CompanyStorage.SaveToDatabase;
 
-     // DesktopManager.WriteDesktopData('Последний', True);
-     // FreeAllForms(False);
       ConnectDatabase;
       for I := 0 to ANamespaceList.Count - 1 do
       begin
@@ -1229,10 +1224,13 @@ begin
               gdcNamespace.SubSet := 'ByID';
               gdcNamespace.ID := gdcBaseManager.GetIDByRUIDString(CurrNSRuid, Tr);
               gdcNamespace.Open;
-              if not gdcNamespace.Eof then
-                gdcNamespace.Edit
-              else
+              if gdcNamespace.Eof then
+              begin
+                gdcBaseManager.DeleteRUIDbyXID(StrToRUID(CurrNSRuid).XID, StrToRUID(CurrNSRuid).DBID, Tr);
                 gdcNamespace.Insert;
+              end else
+                gdcNamespace.Edit;
+
               gdcNamespace.FieldByName('name').AsString := M.ReadString('Properties\Name');
               gdcNamespace.FieldByName('caption').AsString := M.ReadString('Properties\Caption');
               gdcNamespace.FieldByName('version').AsString := M.ReadString('Properties\Version');
@@ -1248,6 +1246,20 @@ begin
               gdcNamespace.FieldByName('filename').AsString := ANamespaceList[I];
               gdcNamespace.Post;
               TempNamespaceID := gdcNamespace.ID;
+
+              if gdcBaseManager.GetRUIDRecByID(gdcNamespace.ID, Tr).XID = -1 then
+              begin
+                gdcBaseManager.InsertRUID(gdcNamespace.ID,
+                  StrToRUID(LoadNSRUID).XID,
+                  StrToRUID(LoadNSRUID).DBID,
+                  Now, IBLogin.ContactKey, Tr);
+              end else
+              begin
+                gdcBaseManager.UpdateRUIDByID(gdcNamespace.ID,
+                  StrToRUID(LoadNSRUID).XID,
+                  StrToRUID(LoadNSRUID).DBID,
+                  Now, IBLogin.ContactKey, Tr);
+              end;
             finally
               gdcNamespace.Free;
             end;
@@ -2978,7 +2990,7 @@ begin
           and (NSTreeNode.Parent <> nil)
           and (NSTreeNode.Parent.YamlNode <> nil)
         then
-          ADataSet.FieldByName('filenamespacename').AsString := NSNode.Name + '(' + NSTreeNode.Parent.YamlNode.Name + ')';
+          ADataSet.FieldByName('filenamespacename').AsString := NSNode.Name + ' (' + NSTreeNode.Parent.YamlNode.Name + ')';
       end;
       ADataSet.Post;
     end;
