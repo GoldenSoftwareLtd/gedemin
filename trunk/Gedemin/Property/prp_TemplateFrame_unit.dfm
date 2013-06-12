@@ -147,7 +147,7 @@ inherited TemplateFrame: TTemplateFrame
   inherited ActionList1: TActionList
     Left = 44
     inherited actAddToSetting: TAction
-      Caption = 'Добавить шаблон в настройку ...'
+      Caption = 'Добавить шаблон в пространство имен...'
     end
     object actEditTemplate: TAction
       Caption = 'Редактировать шаблон'

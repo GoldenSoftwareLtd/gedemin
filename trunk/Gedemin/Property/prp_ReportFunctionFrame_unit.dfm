@@ -111,7 +111,7 @@ inherited ReportFunctionFrame: TReportFunctionFrame
     Left = 256
     Top = 40
     inherited actAddToSetting: TAction
-      Caption = 'Добавить функцию в настройку ...'
+      Caption = 'Добавить функцию в пространство имен...'
     end
     object actDeleteFunction: TAction
       Caption = 'Удалить функцию'

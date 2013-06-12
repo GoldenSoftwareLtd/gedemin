@@ -182,6 +182,7 @@ type
     TBSeparatorItem16: TTBSeparatorItem;
     TBItem28: TTBItem;
     TBItem29: TTBItem;
+    TBSeparatorItem17: TTBSeparatorItem;
     procedure FormCreate(Sender: TObject);
     procedure actExplorerExecute(Sender: TObject);
     procedure actExplorerUpdate(Sender: TObject);
@@ -1772,17 +1773,10 @@ begin
   Application.HelpContext(HelpContext);
 end;
 
-// установка настроек
 procedure TfrmGedeminMain.actLoadPackageExecute(Sender: TObject);
 begin
-  with Tat_dlgLoadPackages.Create(Self) do
-  try 
-    ShowModal;
-  finally
-    Free;
-  end; 
+  ViewFormByClass('Tat_frmSyncNamespace', '', False);
 end;
-
 
 procedure TfrmGedeminMain.actWorkingCompaniesUpdate(Sender: TObject);
 begin
@@ -2065,7 +2059,7 @@ end;
 
 procedure TfrmGedeminMain.actSettingsExecute(Sender: TObject);
 begin
-  ViewFormByClass('TgdcSetting', '', False);
+  ViewFormByClass('TgdcNamespace', '', False);
 end;
 
 procedure TfrmGedeminMain.actSettingsUpdate(Sender: TObject);

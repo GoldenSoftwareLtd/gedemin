@@ -485,8 +485,8 @@ object DataBaseCompare: TDataBaseCompare
       OnExecute = actMacrosDblClickExecute
     end
     object actAddPos: TAction
-      Caption = 'Добавить в настройку ...'
-      Hint = 'Добавить в настройку'
+      Caption = 'Пространство имен...'
+      Hint = 'Добавить в пространство имен'
       ImageIndex = 81
       OnExecute = actAddPosExecute
       OnUpdate = actAddPosUpdate

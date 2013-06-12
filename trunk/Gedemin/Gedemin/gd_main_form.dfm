@@ -26,7 +26,7 @@ object frmGedeminMain: TfrmGedeminMain
   object TBDockMain: TTBDock
     Left = 0
     Top = 0
-    Width = 961
+    Width = 953
     Height = 26
     LimitToOneRow = True
     object tbMainMenu: TTBToolbar
@@ -171,15 +171,16 @@ object frmGedeminMain: TfrmGedeminMain
         end
         object TBSeparatorItem12: TTBSeparatorItem
         end
+        object TBItem22: TTBItem
+          Action = actLoadPackage
+        end
         object tbiSettings: TTBItem
           Action = actSettings
         end
+        object TBSeparatorItem17: TTBSeparatorItem
+        end
         object TBItem17: TTBItem
           Action = actCompareDataBases
-        end
-        object TBItem22: TTBItem
-          Action = actLoadPackage
-          Caption = 'Установить пакеты настроек...'
         end
         object TBSeparatorItem13: TTBSeparatorItem
         end
@@ -322,21 +323,21 @@ object frmGedeminMain: TfrmGedeminMain
         Control = lblDatabase
       end
       object Label1: TLabel
-        Left = 224
+        Left = 235
         Top = 4
         Width = 32
         Height = 13
         Caption = 'Стол: '
       end
       object Label2: TLabel
-        Left = 476
+        Left = 487
         Top = 4
         Width = 73
         Height = 13
         Caption = 'Организация: '
       end
       object lblDatabase: TLabel
-        Left = 723
+        Left = 734
         Top = 4
         Width = 3
         Height = 13
@@ -345,7 +346,7 @@ object frmGedeminMain: TfrmGedeminMain
         OnDblClick = actCopyExecute
       end
       object cbDesktop: TComboBox
-        Left = 256
+        Left = 267
         Top = 0
         Width = 145
         Height = 21
@@ -358,7 +359,7 @@ object frmGedeminMain: TfrmGedeminMain
         OnChange = cbDesktopChange
       end
       object gsiblkupCompany: TgsIBLookupComboBox
-        Left = 549
+        Left = 560
         Top = 0
         Width = 145
         Height = 21
@@ -381,7 +382,7 @@ object frmGedeminMain: TfrmGedeminMain
   object TBDockForms: TTBDock
     Left = 0
     Top = 26
-    Width = 961
+    Width = 953
     Height = 27
     BoundLines = [blTop]
     Color = clWindow
@@ -599,8 +600,8 @@ object frmGedeminMain: TfrmGedeminMain
     end
     object actLoadPackage: TAction
       Category = 'Actions'
-      Caption = 'Установить настройки...'
-      Hint = 'Установить пакеты настроек...'
+      Caption = 'Установить пакеты'
+      Hint = 'Установить пакеты'
       ImageIndex = 80
       OnExecute = actLoadPackageExecute
       OnUpdate = actLoadPackageUpdate
@@ -647,7 +648,8 @@ object frmGedeminMain: TfrmGedeminMain
     end
     object actSettings: TAction
       Category = 'Service'
-      Caption = 'Настройки'
+      Caption = 'Пространства имен'
+      Hint = 'Пространства имен'
       ImageIndex = 7
       OnExecute = actSettingsExecute
       OnUpdate = actSettingsUpdate

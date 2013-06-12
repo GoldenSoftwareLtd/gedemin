@@ -145,7 +145,7 @@ object gdc_dlgG: Tgdc_dlgG
       OnUpdate = actCopySettingsFromUserUpdate
     end
     object actAddToSetting: TAction
-      Caption = 'Добавить в настройку...'
+      Caption = 'Пространство имен...'
       ImageIndex = 81
       OnExecute = actAddToSettingExecute
       OnUpdate = actAddToSettingUpdate

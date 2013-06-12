@@ -163,7 +163,7 @@ inherited dfPropertyTree: TdfPropertyTree
       OnExecute = actDisableExecute
     end
     object actAddToSetting: TAction
-      Caption = 'Добавить в настройку...'
+      Caption = 'Пространство имен...'
       ImageIndex = 81
       OnExecute = actAddToSettingExecute
       OnUpdate = actAddToSettingUpdate

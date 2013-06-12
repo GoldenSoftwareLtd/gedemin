@@ -276,7 +276,7 @@ begin
   if gdcEvent.State = dsEdit then
     inherited
   else
-    MessageBox(Application.Handle, 'Перед добавлением в настройку метод необходимо сохранить.',
+    MessageBox(Application.Handle, 'Перед добавлением в пространство имен метод необходимо сохранить.',
       MSG_WARNING, MB_OK or MB_ICONWARNING or MB_TASKMODAL);
 end;
 class function TMethodFrame.GetNameFromDb(Id: Integer): string;
