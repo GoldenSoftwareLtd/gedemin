@@ -16,11 +16,11 @@ type
     lLoadRecords: TLabel;
     cbAlwaysOverwrite: TCheckBox;
     cbDontRemove: TCheckBox;
-    Memo1: TMemo;
+    mLoadList: TMemo;
     Label1: TLabel;
     GroupBox2: TGroupBox;
     Label3: TLabel;
-    Memo2: TMemo;
+    mSaveList: TMemo;
     lSaveRecords: TLabel;
     cbIncVersion: TCheckBox;
   private
