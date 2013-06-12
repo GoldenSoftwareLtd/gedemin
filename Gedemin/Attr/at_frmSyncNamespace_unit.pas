@@ -564,8 +564,8 @@ begin
 
   with TdlgCheckOperation.Create(nil) do
   try
-    lLoadRecords.Caption := 'Помечено для загрузки из файла ' + IntToStr(FLoadFileList.Count) + ' ПИ.';
-    lSaveRecords.Caption := 'Помечено для сохранения в файл ' + IntToStr(FSaveFileList.Count) + ' ПИ.';
+    lLoadRecords.Caption := 'Выбрано для загрузки из файлов: ' + IntToStr(FLoadFileList.Count);
+    lSaveRecords.Caption := 'Выбрано для сохранения в файлы: ' + IntToStr(FSaveFileList.Count);
     cds.DisableControls;
     try
       mSaveList.Lines.Text := SaveNS;
@@ -708,6 +708,14 @@ begin
   finally
     cds.EnableControls;
   end;
+
+  if cds.Filtered then
+  begin
+    sb.SimpleText := 'К данным применен фильтр.';
+    if cbPackets.Checked then
+      sb.SimpleText := sb.SimpleText + ' Отображаются только пакеты.';
+  end else
+    sb.SimpleText := '';
 end;
 
 procedure Tat_frmSyncNamespace.edFilterChange(Sender: TObject);
