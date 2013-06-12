@@ -33,12 +33,15 @@ type
     lblLegendNewer: TLabel;
     lblLegendEqual: TLabel;
     lblLegendOlder: TLabel;
+    btnSelectFolder: TButton;
+    actSelectFolder: TAction;
     procedure actSearchExecute(Sender: TObject);
     procedure FormCreate(Sender: TObject);  
     procedure gsTreeViewAdvancedCustomDrawItem(Sender: TCustomTreeView;
       Node: TTreeNode; State: TCustomDrawState; Stage: TCustomDrawStage;
       var PaintImages, DefaultDraw: Boolean);
     procedure gsTreeViewClick(Sender: TObject);
+    procedure actSelectFolderExecute(Sender: TObject);
   private
     FgdcNamespace: TgdcNamespace;
     FOldWndProc: TWndMethod;
@@ -91,23 +94,16 @@ begin
 end;
 
 procedure Tat_dlgLoadNamespacePackages.actSearchExecute(Sender: TObject);
-var
-  Path: String;
 begin
-  Path := eSearchPath.Text;
   mInfo.Clear;
-  if SelectDirectory(Path, [], 0) then
-  begin
-    eSearchPath.Text := Path;
-    List.GetFilesForPath(Path);
+  List.GetFilesForPath(eSearchPath.Text);
 
-    gsTreeView.Items.BeginUpdate;
-    try
-      gsTreeView.Items.Clear;
-      List.FillTree(gsTreeView);
-    finally
-      gsTreeView.Items.EndUpdate;
-    end;
+  gsTreeView.Items.BeginUpdate;
+  try
+    gsTreeView.Items.Clear;
+    List.FillTree(gsTreeView);
+  finally
+    gsTreeView.Items.EndUpdate;
   end;
 end;
 
@@ -211,7 +207,17 @@ begin
     TgsNSNode(Node.Data).FillInfo(mInfo.Lines);
 end;
 
-initialization  
+procedure Tat_dlgLoadNamespacePackages.actSelectFolderExecute(
+  Sender: TObject);
+var
+  Path: String;
+begin
+  Path := eSearchPath.Text;
+  if SelectDirectory(Path, [], 0) then
+    eSearchPath.Text := Path;
+end;
+
+initialization
   RegisterClass(Tat_dlgLoadNamespacePackages);
 
 finalization

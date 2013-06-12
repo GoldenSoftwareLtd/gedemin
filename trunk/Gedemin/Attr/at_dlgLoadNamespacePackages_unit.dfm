@@ -3,7 +3,7 @@ object at_dlgLoadNamespacePackages: Tat_dlgLoadNamespacePackages
   Top = 131
   Width = 670
   Height = 584
-  Caption = 'Загрузка пространств имен'
+  Caption = 'Зависимости файлов пространств имен'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -73,7 +73,7 @@ object at_dlgLoadNamespacePackages: Tat_dlgLoadNamespacePackages
     end
     object lPackages: TLabel
       Left = 5
-      Top = 31
+      Top = 32
       Width = 102
       Height = 13
       Caption = 'Пространства имен:'
@@ -86,11 +86,19 @@ object at_dlgLoadNamespacePackages: Tat_dlgLoadNamespacePackages
       TabOrder = 0
     end
     object btnSearch: TButton
-      Left = 398
+      Left = 438
       Top = 7
       Width = 73
       Height = 21
       Action = actSearch
+      TabOrder = 2
+    end
+    object btnSelectFolder: TButton
+      Left = 396
+      Top = 7
+      Width = 25
+      Height = 21
+      Action = actSelectFolder
       TabOrder = 1
     end
   end
@@ -110,7 +118,7 @@ object at_dlgLoadNamespacePackages: Tat_dlgLoadNamespacePackages
       Height = 167
       TabStop = False
       Align = alClient
-      Color = clWhite
+      Color = clInfoBk
       ReadOnly = True
       ScrollBars = ssVertical
       TabOrder = 0
@@ -131,6 +139,7 @@ object at_dlgLoadNamespacePackages: Tat_dlgLoadNamespacePackages
         Caption = 'ОК'
         ModalResult = 1
         TabOrder = 3
+        Visible = False
       end
       object btnClose: TButton
         Left = 148
@@ -139,6 +148,7 @@ object at_dlgLoadNamespacePackages: Tat_dlgLoadNamespacePackages
         Height = 21
         Cancel = True
         Caption = 'Закрыть'
+        Default = True
         ModalResult = 2
         TabOrder = 4
       end
@@ -149,6 +159,7 @@ object at_dlgLoadNamespacePackages: Tat_dlgLoadNamespacePackages
         Height = 17
         Caption = 'Всегда перезаписывать'
         TabOrder = 1
+        Visible = False
       end
       object cbDontRemove: TCheckBox
         Left = 17
@@ -157,6 +168,7 @@ object at_dlgLoadNamespacePackages: Tat_dlgLoadNamespacePackages
         Height = 17
         Caption = 'Не удалять объекты'
         TabOrder = 2
+        Visible = False
       end
       object GroupBox1: TGroupBox
         Left = 7
@@ -168,9 +180,9 @@ object at_dlgLoadNamespacePackages: Tat_dlgLoadNamespacePackages
         object lblLegendNotInstalled: TLabel
           Left = 11
           Top = 16
-          Width = 125
+          Width = 94
           Height = 13
-          Caption = 'Пакет не установлен'
+          Caption = 'Не установлено'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clWindowText
           Font.Height = -11
@@ -181,9 +193,9 @@ object at_dlgLoadNamespacePackages: Tat_dlgLoadNamespacePackages
         object lblLegendNewer: TLabel
           Left = 11
           Top = 32
-          Width = 175
+          Width = 127
           Height = 13
-          Caption = 'В файле новая версия пакета '
+          Caption = 'В файле новая версия'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clRed
           Font.Height = -11
@@ -223,6 +235,10 @@ object at_dlgLoadNamespacePackages: Tat_dlgLoadNamespacePackages
     end
     object actInstallPackage: TAction
       Caption = 'Установить'
+    end
+    object actSelectFolder: TAction
+      Caption = '...'
+      OnExecute = actSelectFolderExecute
     end
   end
 end

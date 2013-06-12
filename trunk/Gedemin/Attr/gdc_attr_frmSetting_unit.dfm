@@ -14,7 +14,7 @@ inherited gdc_frmSetting: Tgdc_frmSetting
   inherited TBDockTop: TTBDock
     Width = 799
     inherited tbMainCustom: TTBToolbar
-      Left = 431
+      Left = 430
       DockPos = 431
       object tbiSetActive: TTBItem
         Action = actSetActive
@@ -46,6 +46,8 @@ inherited gdc_frmSetting: Tgdc_frmSetting
       end
       object TBItem9: TTBItem
         Action = actSet2Txt
+      end
+      object TBSeparatorItem4: TTBSeparatorItem
       end
       object TBItem11: TTBItem
         Action = actSet2NS
@@ -123,7 +125,7 @@ inherited gdc_frmSetting: Tgdc_frmSetting
       end
     end
     inherited tbChooseMain: TTBToolbar
-      Left = 398
+      Left = 397
       DockPos = 398
     end
   end
@@ -517,7 +519,7 @@ inherited gdc_frmSetting: Tgdc_frmSetting
       OnUpdate = actSet2TxtUpdate
     end
     object actSet2NS: TAction
-      Caption = 'Set2NS'
+      Caption = 'OneSet2NS'
       OnExecute = actSet2NSExecute
     end
     object actSet2NSAll: TAction
