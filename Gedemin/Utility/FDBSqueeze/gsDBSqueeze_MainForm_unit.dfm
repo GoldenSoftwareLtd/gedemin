@@ -1,6 +1,6 @@
 object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
-  Left = 59
-  Top = 176
+  Left = 33
+  Top = 189
   BorderStyle = bsDialog
   Caption = 'gsDBSqueeze_MainForm'
   ClientHeight = 465
@@ -134,7 +134,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
   end
   object btnGo: TButton
     Left = 104
-    Top = 320
+    Top = 328
     Width = 75
     Height = 21
     Action = actGo

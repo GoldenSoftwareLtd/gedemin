@@ -1343,7 +1343,7 @@ begin
     q.ParamByName('Date').AsString := FDocumentdateWhereClause;
     q.ExecQuery;
 
-    q.SQL.Text := 'DELETE FROM inv_balance';                                    //TODO: что еще почистить?
+    q.SQL.Text := 'DELETE FROM inv_balance';                                    //TODO: мб еще что-то
     q.ExecQuery;
 
     Tr.Commit;
@@ -1419,7 +1419,7 @@ var
 
         TblsNamesList.Delete(0);
 
-                                                                                /// добавить проверку типа PК ТblsNamesList[0]
+                                                                                /// TODO: добавить проверку типа PК ТblsNamesList[0]
 
         while not q.EOF do
         begin
@@ -1458,7 +1458,7 @@ var
             q4.ExecQuery;
 
             if AnsiCompareStr(q4.FieldByName('FIELD_TYPE').AsString, 'INTEGER') = 1 then //q2.FieldByName('FIELD_TYPE').AsString = 'INTEGER' then
-            begin                                                               { TODO: избыточно проверять тип FK! }
+            begin                                                               { TODO: избыточно проверять тип FK }
 
               q3.SQL.Text :=
                 'SELECT COUNT(g_his_include(0, ' + q.FieldByName('pk_fields').AsString + ')) AS Kolvo ' +
@@ -1517,9 +1517,9 @@ var
         while not q.EOF do
         begin
           //если rectrict/noAction НЕ перекрыт удаляемым cascade, то записи будут потом исключены из HIS вместе с цепочкой ссылок на них
-          if not AllProcessedTblsNames.IndexOf(q.FieldByName('relation_name').AsString) <> -1 then
+          if AllProcessedTblsNames.IndexOf(q.FieldByName('relation_name').AsString) = -1 then
           begin
-            q2.SQL.Text :=           
+            q2.SQL.Text :=
               'SELECT ' +
               '  COUNT(g_his_include(1, ' + q.FieldByName('list_fields').AsString + ')), ' +
               '  COUNT(g_his_exclude(0, ' + q.FieldByName('list_fields').AsString + ')) AS Kolvo ' +
