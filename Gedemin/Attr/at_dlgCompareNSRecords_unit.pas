@@ -10,24 +10,30 @@ type
   TLoadRecord = (lrNone, lrFromFile, lrNotLoad);
 
   TdlgCompareNSRecords = class(TForm)
-    Panel1: TPanel;
+    pnlWorkArea: TPanel;
     actList: TActionList;
     lCaption: TLabel;
-    sgMain: TStringGrid;
     Panel2: TPanel;
     actOK: TAction;
     actCancel: TAction;
-    btnOK: TButton;
-    btnCancel: TButton;
+    actShowOnlyDiff: TAction;
+    pnlGrid: TPanel;
+    sgMain: TStringGrid;
+    pnlTop: TPanel;
     lTitle: TLabel;
     lObjClass: TLabel;
-    lblClassName: TLabel;
-    lblName: TLabel;
     lObjName: TLabel;
     lObjID: TLabel;
     lblID: TLabel;
+    lblName: TLabel;
+    lblClassName: TLabel;
+    pnlRight: TPanel;
     cbShowOnlyDiff: TCheckBox;
-    actShowOnlyDiff: TAction; 
+    actClose: TAction;
+    rbSave: TRadioButton;
+    rbCancel: TRadioButton;
+    pnlRightBottom: TPanel;
+    btnOK: TButton;
     procedure FormShow(Sender: TObject);
     procedure actOKExecute(Sender: TObject);
     procedure actCancelExecute(Sender: TObject);
@@ -36,6 +42,8 @@ type
     procedure sgMainDrawCell(Sender: TObject; ACol, ARow: Integer;
       Rect: TRect; State: TGridDrawState);
     procedure actShowOnlyDiffExecute(Sender: TObject);
+    procedure pnlGridResize(Sender: TObject);
+    procedure actCloseExecute(Sender: TObject);
   private
     { Private declarations }
   public
@@ -51,27 +59,20 @@ implementation
 
 procedure TdlgCompareNSRecords.FormShow(Sender: TObject);
 begin 
-  sgMain.ColWidths[1] := Trunc((sgMain.Width - GetSystemMetrics(SM_CYHSCROLL)) / 2.8);
-  sgMain.ColWidths[2] := sgMain.ColWidths[1];
-  sgMain.ColWidths[0] := Trunc(sgMain.Width - sgMain.ColWidths[1] * 2 - GetSystemMetrics(SM_CYHSCROLL) * 1.5);
   sgMain.Cells[0, 0] := 'Поле';
-  sgMain.Cells[1, 0] := 'Объект из базы';
-  sgMain.Cells[2, 0] := 'Загружаемый объект';
-
-  actShowOnlyDiff.Execute;   
+  sgMain.Cells[1, 0] := 'Объект в базе данных';
+  sgMain.Cells[2, 0] := 'Объект в файле';
+  actShowOnlyDiff.Execute;
 end;
 
 procedure TdlgCompareNSRecords.actOKExecute(Sender: TObject);
 begin
-  Self.Close;
-  Self.ModalResult := mrOK;
+  ModalResult := mrOK;
 end;
-
 
 procedure TdlgCompareNSRecords.actCancelExecute(Sender: TObject);
 begin
-  Self.Close;
-  Self.ModalResult := mrCancel;
+  ModalResult := mrCancel;
 end;
 
 procedure TdlgCompareNSRecords.sgMainMouseDown(Sender: TObject;
@@ -164,6 +165,21 @@ begin
     sgMain.RowCount := FieldsCount + 1;
   end;
   sgMain.Refresh;
+end;
+
+procedure TdlgCompareNSRecords.pnlGridResize(Sender: TObject);
+begin
+  sgMain.ColWidths[1] := Trunc((sgMain.Width - GetSystemMetrics(SM_CYHSCROLL)) / 2.8);
+  sgMain.ColWidths[2] := sgMain.ColWidths[1];
+  sgMain.ColWidths[0] := Trunc(sgMain.Width - sgMain.ColWidths[1] * 2 - GetSystemMetrics(SM_CYHSCROLL) * 1.5);
+end;
+
+procedure TdlgCompareNSRecords.actCloseExecute(Sender: TObject);
+begin
+  if rbSave.Checked then
+    actOk.Execute
+  else
+    actCancel.Execute;  
 end;
 
 end.

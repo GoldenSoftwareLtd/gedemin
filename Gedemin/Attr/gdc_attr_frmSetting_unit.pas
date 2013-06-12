@@ -98,6 +98,7 @@ type
     TBItem11: TTBItem;
     actSet2NSAll: TAction;
     TBItem12: TTBItem;
+    TBSeparatorItem4: TTBSeparatorItem;
     procedure FormCreate(Sender: TObject);
     procedure actDetailNewExecute(Sender: TObject);
     procedure actSetActiveExecute(Sender: TObject);

@@ -1,6 +1,6 @@
 inherited gdc_frmNamespace: Tgdc_frmNamespace
-  Left = 46
-  Top = 79
+  Left = 294
+  Top = 101
   Width = 1090
   Height = 742
   Caption = 'Пространство имен'
@@ -31,6 +31,8 @@ inherited gdc_frmNamespace: Tgdc_frmNamespace
       end
       object TBItem7: TTBItem
         Action = actViewNS
+        Caption = 'Зависимости файлов пространств имен'
+        Hint = 'Показать зависимости между файлами пространств имен'
       end
     end
   end
