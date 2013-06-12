@@ -225,7 +225,7 @@ begin
   else
     Result := Format('SELECT %s FROM %s WHERE UPPER(cmd) = ''%s''',
       [GetKeyField(SubType), GetListTable(SubType),
-       AnsiUpperCase(FieldByName('cmd').AsString)]);
+       StringReplace(AnsiUpperCase(FieldByName('cmd').AsString), '''', '"', [rfReplaceAll])]);
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCEXPLORER', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then

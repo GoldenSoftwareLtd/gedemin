@@ -138,8 +138,8 @@ object st_dlgFind: Tst_dlgFind
     ItemIndex = 0
     Items.Strings = (
       'Все'
-      'Если входит в настройку'
-      'Если не входит в настройку')
+      'Входит в пространство имен'
+      'Не входит в пространство имен')
     TabOrder = 2
   end
 end

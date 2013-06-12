@@ -422,16 +422,16 @@ object st_frmMain: Tst_frmMain
     end
     object actAddFolderToSetting: TAction
       Category = 'Folders'
-      Caption = 'Добавить в настройку...'
-      Hint = 'Добавить в настройку'
+      Caption = 'Пространство имен...'
+      Hint = 'Добавить папку в пространство имен'
       ImageIndex = 81
       OnExecute = actAddFolderToSettingExecute
       OnUpdate = actAddFolderToSettingUpdate
     end
     object actAddValueToSetting: TAction
       Category = 'Values'
-      Caption = 'Добавить в настройку...'
-      Hint = 'Добавить значение в настройку'
+      Caption = 'Пространство имен...'
+      Hint = 'Добавить значение в пространство имен'
       ImageIndex = 81
       OnExecute = actAddValueToSettingExecute
       OnUpdate = actAddValueToSettingUpdate
@@ -452,7 +452,7 @@ object st_frmMain: Tst_frmMain
     end
     object actShowInSett: TAction
       Category = 'Folders'
-      Caption = 'Показывать входящие в настройку'
+      Caption = 'Показывать входящие в пространство имен'
       OnExecute = actShowInSettExecute
       OnUpdate = actShowInSettUpdate
     end

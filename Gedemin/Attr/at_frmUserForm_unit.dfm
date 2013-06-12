@@ -415,8 +415,8 @@ object at_frmUserForm: Tat_frmUserForm
     end
     object actMainToSetting: TAction
       Category = 'Commands'
-      Caption = 'Добавить в настройку ...'
-      Hint = 'Добавить в настройку'
+      Caption = 'Пространство имен...'
+      Hint = 'Добавить в пространство имен'
       OnExecute = actMainToSettingExecute
       OnUpdate = actMainToSettingUpdate
     end

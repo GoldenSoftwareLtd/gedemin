@@ -464,7 +464,7 @@ inherited ReportFrame: TReportFrame
     Left = 104
     Top = 64
     inherited actAddToSetting: TAction
-      Caption = 'Добавить отчет в настройку ...'
+      Caption = 'Добавить отчет в пространство имен...'
     end
     inherited actProperty: TAction
       OnUpdate = nil

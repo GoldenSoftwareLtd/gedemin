@@ -50,7 +50,7 @@ begin
   (AnSender as TPopupMenu).Items.Add(TMenuItem.Create(AnSender as TPopupMenu));
   (AnSender as TPopupMenu).Items[(AnSender as TPopupMenu).Items.Count - 1].OnClick := pmAddToSetting;
   (AnSender as TPopupMenu).Items[(AnSender as TPopupMenu).Items.Count - 1].Name := 'pmiAddToSetting';
-  (AnSender as TPopupMenu).Items[(AnSender as TPopupMenu).Items.Count - 1].Caption := 'Добавить в настройку';
+  (AnSender as TPopupMenu).Items[(AnSender as TPopupMenu).Items.Count - 1].Caption := 'Пространство имен...';
 end;
 
 function TQueryFilterGDC.GetFilterPath: String;

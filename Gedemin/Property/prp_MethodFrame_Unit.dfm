@@ -1,8 +1,6 @@
 inherited MethodFrame: TMethodFrame
-  Height = 297
   HelpContext = 324
   inherited PageControl: TSuperPageControl
-    Height = 297
     inherited tsProperty: TSuperTabSheet
       inherited TBDock1: TTBDock
         inherited TBToolbar1: TTBToolbar
@@ -14,7 +12,6 @@ inherited MethodFrame: TMethodFrame
         end
       end
       inherited pMain: TPanel
-        Height = 242
         TabOrder = 0
         inherited lbName: TLabel
           Top = 32
@@ -98,23 +95,6 @@ inherited MethodFrame: TMethodFrame
       end
       inherited pnlCaption: TPanel
         Width = 437
-      end
-    end
-    inherited tsDependencies: TSuperTabSheet
-      inherited Splitter1: TSplitter
-        Height = 274
-      end
-      inherited pnlDependent: TPanel
-        Height = 274
-        inherited lbDependent: TListBox
-          Height = 257
-        end
-      end
-      inherited pnlDependedFrom: TPanel
-        Height = 274
-        inherited lbDependedFrom: TListBox
-          Height = 257
-        end
       end
     end
   end
