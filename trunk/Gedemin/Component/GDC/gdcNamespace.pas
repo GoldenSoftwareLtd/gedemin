@@ -1094,7 +1094,8 @@ var
                   q.ParamByName('xid').AsInteger := StrToRUID(At_Obj.RUID).XID;
                   q.ParamByName('dbid').AsInteger := StrToRUID(At_Obj.RUID).DBID;
                   q.ExecQuery;
-                  AddText('Объект ''' + At_Obj.ObjectName + ''' удален в процессе загрузки нового пространства имен.', clBlack);
+                  AddText('Удален объект ' + At_Obj.ClassName + ' ' + At_Obj.RUID + ' "' + At_Obj.ObjectName + '"', clBlack);
+                //  AddText('Объект ''' + At_Obj.ObjectName + ''' удален в процессе загрузки нового пространства имен.', clBlack);
                   for J := 0 to OL.Count - 1 do
                   begin
                     if (OL.Objects[J] as TgdcAt_Object).Headobjectkey = At_Obj.ID then
@@ -1141,7 +1142,7 @@ var
   TempNamespaceID: Integer;
   M, ObjMapping: TyamlMapping;
   N: TyamlNode;
-  RUID, HeadRUID, LoadNSRUID, CurrNSRuid: String;
+  RUID, HeadRUID, LoadNSRUID, CurrNSRuid, OLDRUID: String;
   WasMetaData, WasMetaDataInSetting, SubTypeFound: Boolean;
   LoadClassName, LoadSubType: String;
   C: TClass;
@@ -1204,7 +1205,7 @@ begin
           if (Parser.YAMLStream.Count > 0)
             and ((Parser.YAMLStream[0] as TyamlDocument).Count > 0)
             and ((Parser.YAMLStream[0] as TyamlDocument)[0] is TyamlMapping) then
-          begin   
+          begin
             if WasMetaDataInSetting then
             begin
               atDataBase.ProceedLoading(True);
@@ -1216,7 +1217,7 @@ begin
             LoadNSRUID := M.ReadString('Properties\RUID');
             CurrNSRuid := LoadNSRUID;
             LoadedNS(M.ReadString('Properties\Name'), CurrNSRuid);
-            AddText('Начата загрузка пространства имен ' + M.ReadString('Properties\Name'), clBlack);
+            AddText('Загрузка пространства имен "' + M.ReadString('Properties\Name') + '"', clBlack);
             gdcNamespace := TgdcNamespace.Create(nil);
             try
               gdcNamespace.ReadTransaction := Tr;
@@ -1255,10 +1256,13 @@ begin
                   Now, IBLogin.ContactKey, Tr);
               end else
               begin
+                OLDRUID := RUIDToStr(gdcNamespace.GetRUID);
                 gdcBaseManager.UpdateRUIDByID(gdcNamespace.ID,
                   StrToRUID(LoadNSRUID).XID,
                   StrToRUID(LoadNSRUID).DBID,
                   Now, IBLogin.ContactKey, Tr);
+                if OLDRUID <> LoadNSRUID then
+                  AddText(OLDRUID + ' -> ' + LoadNSRUID, clBlack);
               end;
             finally
               gdcNamespace.Free;
@@ -1452,7 +1456,7 @@ begin
             LoadNamespace.Add(ANamespaceList[I]);
             RunMultiConnection;
 
-            AddText('Закончена загрузка пространства имен ' + M.ReadString('Properties\Name'), clBlack);
+            AddText('Окончена загрузка пространства имен "' + M.ReadString('Properties\Name') + '"', clBlack);
           end;
         finally
           Parser.Free;
@@ -1662,7 +1666,7 @@ begin
               StrToRUID(RUID).DBID,
               Now, IBLogin.ContactKey, ATr);
           end else
-          begin
+          begin  
             gdcBaseManager.UpdateRUIDByID(gdcNamespace.ID,
               StrToRUID(RUID).XID,
               StrToRUID(RUID).DBID,
@@ -2005,8 +2009,9 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
         begin
           try
             Obj.Post;
-            AddText('Объект обновлен данными из загружаемого пространства имен!', clBlack);
             Result := lsModified;
+            AddText('Создан объект ' + Obj.ClassName + ' ' + RUID + ' "' +
+              Obj.FieldByName(Obj.GetListField(Obj.SubType)).AsString + '"', clBlack);
           except
             on E: EIBError do
             begin
@@ -2026,6 +2031,7 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
         begin
           Obj.Post;
           Result := lsInsert;
+          AddText('Обновлен объект ' + Obj.ClassName + ' ' + RUIDToStr(Obj.GetRUID) + ' "' + Obj.FieldByName(Obj.GetListField(Obj.SubType)).AsString + '"', clBlack);
         end else
         begin
           if Obj.DSModified then
@@ -2070,6 +2076,8 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
 
   function InsertRecord(SourceYAML: TyamlMapping; Obj: TgdcBase;
     UL: TObjectList; const RUID: String): TLoadedStatus;
+  var
+    OLDRUID: String;
   begin 
     Obj.Insert;
     if StrToRUID(RUID).XID < cstUserIDStart then
@@ -2084,8 +2092,11 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
           now, IBLogin.ContactKey, ATr);
       end else
       begin
+        OLDRUID := RUIDToStr(Obj.GetRUID);
         gdcBaseManager.UpdateRUIDByID(Obj.ID, StrToRUID(RUID).XID, StrToRUID(RUID).DBID,
           now, IBLogin.ContactKey, ATr);
+        if OLDRUID <> RUID then
+          AddText(OLDRUID + ' -> ' + RUID, clBlack);
       end;
     end;
   end;
@@ -2238,7 +2249,10 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
           begin
             CDS.FieldByName('LR_Ref').AsInteger := 1;
             if not AnObj.Fields[I].IsNull then
-              CDS.FieldByName('L_' + FN).AsString := gdcBaseManager.GetRUIDStringByID(AnObj.Fields[I].AsInteger, ATr);
+              CDS.FieldByName('L_' + FN).AsString := gdcBaseManager.GetRUIDStringByID(AnObj.Fields[I].AsInteger, ATr)
+            else
+              CDS.FieldByName('L_' + FN).Clear;
+              
             N := Fields.FindByName(FN);
             if (N <> nil) and (N is TyamlString) then
             begin
@@ -2246,17 +2260,17 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
                 CDS.FieldByName('R_' + FN).AsString := RUID;
             end;
           end else
-          begin 
-            if (Obj.Fields[I].AsString > '')
-              and (Trim(Obj.Fields[I].AsString) = '')
-            then
-              CDS.FieldByName('L_' + FN).AsString := Obj.Fields[I].AsString
-            else
-              CDS.FieldByName('L_' + FN).AsString := Trim(Obj.Fields[I].AsString);
+          begin
+            CDS.FieldByName('L_' + FN).Value := Obj.Fields[I].Value;
+            CDS.FieldByName('R_' + FN).Clear;
 
             N := Fields.FindByName(FN);
             F := CDS.FieldByName('R_' + FN);
-            if (N <> nil) and (F <> nil) then
+            if (N <> nil)
+              and (N is TyamlScalar)
+              and (not TyamlScalar(N).IsNull)
+              and (F <> nil)
+            then
               SetValue(F, N, Fields);
           end;
           CDS.Post;
@@ -2303,10 +2317,7 @@ begin
   try
     if AMapping.FindByName('Fields') <> nil then
     begin
-      try
-        AddText('Начата загрузка объекта ' +
-          AMapping.ReadString('Properties\Class') + ' ' +
-          AMapping.ReadString('Properties\RUID'), clBlack);
+      try 
         AnObj.BaseState := AnObj.BaseState + [sLoadFromStream];
         AnObj.ModifyFromStream := AlwaysOverwrite;
         RuidRec := gdcBaseManager.GetRUIDRecByXID(StrToRUID(RUID).XID,
@@ -2347,9 +2358,7 @@ begin
 
             Result := InsertRecord(AMapping, AnObj, UpdateList, RUID);
           end else
-          begin
-            AddText('Объект найден по РУИДу'#13#10, clBlue);
-
+          begin 
             Ind := RUIDList.IndexOf(RUID);
             if (Ind > -1) then
             begin
@@ -2389,7 +2398,13 @@ begin
                             begin
                               if CDS.FieldByName('LR_NewValue').AsInteger = 1 then
                               begin
-                                if CDS.FieldByName('LR_Ref').AsInteger = 1 then
+                                if CDS.FieldByName('R_' + AnObj.Fields[I].FieldName).IsNull then
+                                begin
+                                  AnObj.Fields[I].Clear;
+                                  continue;
+                                end;
+
+                                if (CDS.FieldByName('LR_Ref').AsInteger = 1) then
                                 begin
                                   TempID := gdcBaseManager.GetIDByRUIDString(CDS.FieldByName('R_' + AnObj.Fields[I].FieldName).AsString, ATr);
                                   if TempID > 0 then

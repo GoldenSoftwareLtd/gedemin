@@ -522,12 +522,12 @@ end;
 
 procedure Tat_frmSyncNamespace.actSyncExecute(Sender: TObject);
 var
-  Error, TempS: String;
-  I: Integer;
+  Error, SaveNS, LoadNS: String;
 begin
   FLoadFileList.Clear;
   FSaveFileList.Clear;
-  TempS := '';
+  SaveNS := '';
+  LoadNS := '';
   cds.DisableControls;
   try
     cds.First;
@@ -538,13 +538,13 @@ begin
         if cds.FieldByName('namespacekey').AsInteger > 0 then
         begin
           FSaveFileList.Add(cds.FieldByName('namespacekey').AsString);
-          TempS := TempS + cds.FieldByName('namespacename').AsString + ', ';
+          SaveNS := SaveNS + cds.FieldByName('namespacename').AsString + ', ';
         end;
       end else if Pos('<', cds.FieldByName('operation').AsString) = 1 then
       begin
         if FNSList.NSTree.CheckNSCorrect(cds.FieldByName('fileruid').AsString, Error) then
         begin
-          FNSList.NSTree.SetNSFileName(cds.FieldByName('fileruid').AsString, FLoadFileList);
+          LoadNS := LoadNS + FNSList.NSTree.SetNSFileName(cds.FieldByName('fileruid').AsString, FLoadFileList) + ', ';
         end else
           Application.MessageBox(
             PChar(Error + #13#10 +
@@ -554,7 +554,8 @@ begin
       end;
       cds.Next;
     end;
-    SetLength(TempS, Length(TempS) - 2);
+    SetLength(SaveNS, Length(SaveNS) - 2);
+    SetLength(LoadNS, Length(LoadNS) - 2);
   finally
     cds.First;
     cds.EnableControls;
@@ -567,15 +568,8 @@ begin
     lSaveRecords.Caption := 'Помечено для сохранения в файл ' + IntToStr(FSaveFileList.Count) + ' ПИ.';
     cds.DisableControls;
     try
-      mSaveList.Lines.Text := TempS;
-      TempS := '';
-      for I := 0 to FLoadFileList.Count - 1 do
-      begin
-        if cds.Locate('filename', FLoadFileList[I], []) then
-          TempS := TempS + cds.FieldByName('filenamespacename').AsString + ', ';
-      end;
-      SetLength(TempS, Length(TempS) - 2);
-      mLoadList.Lines.Text := TempS;
+      mSaveList.Lines.Text := SaveNS;
+      mLoadList.Lines.Text := LoadNS;
     finally
       cds.EnableControls;
     end;
