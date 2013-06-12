@@ -41,6 +41,7 @@ type
     procedure actClearExecute(Sender: TObject);
     procedure actShowLinkUpdate(Sender: TObject);
     procedure lkupChange(Sender: TObject);
+    procedure actClearUpdate(Sender: TObject);
     
   private
     FgdcObject: TgdcBase;
@@ -431,6 +432,11 @@ begin
       FClearID := lkup.CurrentKeyInt;
     CheckLink;
   end;
+end;
+
+procedure TdlgToNamespace.actClearUpdate(Sender: TObject);
+begin
+  (Sender as TAction).Enabled := lkup.CurrentKey > '';
 end;
 
 end.
