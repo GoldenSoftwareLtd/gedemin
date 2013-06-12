@@ -195,8 +195,8 @@ var
       Tr.StartTransaction;
 
       q2.SQL.Text :=
-        'DELETE FROM ac_autoentry ' +
-        'WHERE NOT EXISTS (SELECT id FROM ac_entry) ';
+        'DELETE FROM ac_autoentry aae ' +
+        'WHERE NOT EXISTS(SELECT 1 FROM ac_entry ae WHERE ae.id = aae.ENTRYKEY)';
       q2.ExecQuery;
 
        {TODO: проверить на существование}
@@ -1376,15 +1376,12 @@ var
     q4: TIBSQL;
     TblsNamesList: TStringList;    //Queue: TQueue;
     AllProcessedTblsNames: TStringList;
-    countBefore: Integer;
-    indexFind: Integer;
   begin
     LogEvent('[test] AddCascadeKeys...');
     TblsNamesList := TStringList.Create; // Process Queue
     AllProcessedTblsNames := TStringList.Create;
 
-    AllProcessedTblsNames.Duplicates := dupIgnore;
-    AllProcessedTblsNames.Sorted := True;
+    //AllProcessedTblsNames.Duplicates := dupIgnore;AllProcessedTblsNames.Sorted := True;
 
     q := TIBSQL.Create(nil);
     q2 := TIBSQL.Create(nil);
@@ -1399,30 +1396,9 @@ var
       q4.Transaction := ATr;
       q3.Transaction := ATr2;
 
-      //------------------ добавление в HIS всех цепочек cascade. Создание AllProcessedTblsNames
+      //------------------ добавление в HIS всех цепочек cascade, создание списка обработанных таблиц AllProcessedTblsNames
       while TblsNamesList.Count <> 0 do
       begin
-        //
-        q2.SQL.Text :=
-          'SELECT ' +
-          '  CASE F.RDB$FIELD_TYPE ' +
-          '    WHEN 8 THEN ''INTEGER'' ' +
-          '    ELSE ''NOT INTEGER'' ' +
-          '  END FIELD_TYPE ' +
-          'FROM RDB$RELATION_FIELDS RF ' +
-          '  JOIN RDB$FIELDS F ON (F.RDB$FIELD_NAME = RF.RDB$FIELD_SOURCE) ' +
-          'WHERE (RF.RDB$RELATION_NAME = :RELAT_NAME) AND (RF.RDB$FIELD_NAME = :FIELD) ';
-        q2.Prepare;
-        q4.SQL.Text :=
-          'SELECT ' +
-          '  CASE F.RDB$FIELD_TYPE ' +
-          '    WHEN 8 THEN ''INTEGER'' ' +
-          '    ELSE ''NOT INTEGER'' ' +
-          '  END FIELD_TYPE ' +
-          'FROM RDB$RELATION_FIELDS RF ' +
-          '  JOIN RDB$FIELDS F ON (F.RDB$FIELD_NAME = RF.RDB$FIELD_SOURCE) ' +
-          'WHERE (RF.RDB$RELATION_NAME = :RELAT_NAME) AND (RF.RDB$FIELD_NAME = :FIELD) ';
-        q4.Prepare;
 
         //
         q.SQL.Text :=
@@ -1443,23 +1419,46 @@ var
 
         TblsNamesList.Delete(0);
 
+                                                                                /// добавить проверку типа PК ТblsNamesList[0]
+
         while not q.EOF do
         begin
+          // проверка типа поля на INTEGER
+          q2.SQL.Text :=
+            'SELECT ' +
+            '  CASE F.RDB$FIELD_TYPE ' +
+            '    WHEN 8 THEN ''INTEGER'' ' +
+            '    ELSE ''NOT INTEGER'' ' +
+            '  END FIELD_TYPE ' +
+            'FROM RDB$RELATION_FIELDS RF ' +
+            '  JOIN RDB$FIELDS F ON (F.RDB$FIELD_NAME = RF.RDB$FIELD_SOURCE) ' +
+            'WHERE (RF.RDB$RELATION_NAME = :RELAT_NAME) AND (RF.RDB$FIELD_NAME = :FIELD) ';
+//          q2.Prepare;
+          q4.SQL.Text :=
+            'SELECT ' +
+            '  CASE F.RDB$FIELD_TYPE ' +
+            '    WHEN 8 THEN ''INTEGER'' ' +
+            '    ELSE ''NOT INTEGER'' ' +
+            '  END FIELD_TYPE ' +
+            'FROM RDB$RELATION_FIELDS RF ' +
+            '  JOIN RDB$FIELDS F ON (F.RDB$FIELD_NAME = RF.RDB$FIELD_SOURCE) ' +
+            'WHERE (RF.RDB$RELATION_NAME = :RELAT_NAME) AND (RF.RDB$FIELD_NAME = :FIELD) ';
+//          q4.Prepare;
+
+
           q2.ParamByName('RELAT_NAME').AsString := UpperCase(q.FieldByName('relation_name').AsString);
           q2.ParamByName('FIELD').AsString := UpperCase(q.FieldByName('pk_fields').AsString);
           q2.ExecQuery;
 
           if AnsiCompareStr(q2.FieldByName('FIELD_TYPE').AsString, 'INTEGER') = 1 then //q2.FieldByName('FIELD_TYPE').AsString = ''INTEGER'' then
           begin
-            q2.Close;
 
             q4.ParamByName('RELAT_NAME').AsString := UpperCase(q.FieldByName('relation_name').AsString);
             q4.ParamByName('FIELD').AsString := UpperCase(q.FieldByName('list_fields').AsString);
             q4.ExecQuery;
 
             if AnsiCompareStr(q4.FieldByName('FIELD_TYPE').AsString, 'INTEGER') = 1 then //q2.FieldByName('FIELD_TYPE').AsString = 'INTEGER' then
-            begin
-              q4.Close;
+            begin                                                               { TODO: избыточно проверять тип FK! }
 
               q3.SQL.Text :=
                 'SELECT COUNT(g_his_include(0, ' + q.FieldByName('pk_fields').AsString + ')) AS Kolvo ' +
@@ -1472,23 +1471,22 @@ var
 
               Count := Count + q3.FieldByName('Kolvo').AsInteger;
 
-              if q3.FieldByName('Kolvo').AsInteger > 0 then
+              if (q3.FieldByName('Kolvo').AsInteger > 0) and
+                 (AllProcessedTblsNames.IndexOf(q.FieldByName('relation_name').AsString) = -1) then
               begin
-                countBefore := AllProcessedTblsNames.Count;
                 AllProcessedTblsNames.Append(q.FieldByName('relation_name').AsString);
-                if countBefore <> AllProcessedTblsNames.Count then
-                  TblsNamesList.Add(q.FieldByName('relation_name').AsString);
+                TblsNamesList.Append(q.FieldByName('relation_name').AsString);
               end;
+              
               q3.Close;
-            end
-            else
-              q4.Close;
-          end
-          else
-            q2.Close;
+            end;
 
+          end;
           q.Next;
+          q2.Close;
+          q4.Close;
         end;
+
         q.Close;
       end;
       ATr2.Commit;
@@ -1500,7 +1498,6 @@ var
       q.ExecQuery;
       ATr.Commit;
       ATr.StartTransaction;
-      
 
       while AllProcessedTblsNames.Count <> 0 do
       begin
@@ -1520,7 +1517,7 @@ var
         while not q.EOF do
         begin
           //если rectrict/noAction НЕ перекрыт удаляемым cascade, то записи будут потом исключены из HIS вместе с цепочкой ссылок на них
-          if not AllProcessedTblsNames.Find(q.FieldByName('relation_name').AsString, indexFind) then
+          if not AllProcessedTblsNames.IndexOf(q.FieldByName('relation_name').AsString) <> -1 then
           begin
             q2.SQL.Text :=           
               'SELECT ' +
@@ -1528,7 +1525,7 @@ var
               '  COUNT(g_his_exclude(0, ' + q.FieldByName('list_fields').AsString + ')) AS Kolvo ' +
               'FROM '+ 
                  q.FieldByName('relation_name').AsString + ' ' +
-              'WHERE ' + 
+              'WHERE ' +
               '  g_his_has(0, '+ q.FieldByName('list_fields').AsString + ') = 1';   
             q2.ExecQuery;
             ///Count := Count - q2.FieldByName('Kolvo').AsInteger;
@@ -1551,7 +1548,7 @@ var
           '    ON pc.relation_name = fc.relation_name ' +
           '  AND pc.constraint_type = ''PRIMARY KEY'' ' +
           'WHERE fc.update_rule = ''CASCADE'' ' +
-          '  AND fc.relation_name = :rln ' + 
+          '  AND fc.relation_name = :rln ' +
           '  AND fc.list_fields NOT LIKE ''%,%'' ';
         q.ParamByName('rln').AsString := AllProcessedTblsNames[0];
         q.ExecQuery; 
@@ -1585,7 +1582,6 @@ var
       q.ExecQuery;
       ATr.Commit;
       ATr.StartTransaction;
-
 
       LogEvent('[test] AddCascadeKeys... OK');
     finally
@@ -1647,7 +1643,7 @@ begin
       '    INTO :RN, :FN ' +
       '  DO BEGIN ' +
       '    EXECUTE STATEMENT ''DELETE FROM '' || :RN || ' +
-      '      '' WHERE g_his_has(0, '' || :FN || '') = 1''; ' +
+      '      '' WHERE g_his_has(0, '' || :FN || '') = 1 AND '' ||:FN || '' > 147000000''; ' +
       '  END ' +
       'END';
     q.ExecQuery;
@@ -1995,7 +1991,7 @@ begin
     RestoreTriggers;
     RestorePkUniqueConstraints;
     RestoreFKConstraints; 
-
+   
     Tr.Commit;
   finally
     q.Free;
