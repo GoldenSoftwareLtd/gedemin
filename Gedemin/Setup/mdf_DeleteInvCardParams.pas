@@ -18,6 +18,7 @@ procedure AddCurrModified(IBDB: TIBDatabase; Log: TModifyLog);
 procedure AddEditionDate(IBDB: TIBDatabase; Log: TModifyLog);
 procedure CorrectNSTriggers(IBDB: TIBDatabase; Log: TModifyLog);
 procedure AddEditionDate2(IBDB: TIBDatabase; Log: TModifyLog);
+procedure AddADAtObjectTrigger(IBDB: TIBDatabase; Log: TModifyLog);
 
 implementation
 
@@ -1072,6 +1073,56 @@ begin
       q.SQL.Text :=
         'UPDATE OR INSERT INTO fin_versioninfo ' +
         '  VALUES (174, ''0000.0001.0000.0205'', ''05.06.2013'', ''Corrections for NS triggers.'') ' +
+        '  MATCHING (id)';
+      q.ExecQuery;
+
+      Tr.Commit;
+    except
+      on E: Exception do
+      begin
+        Log('Произошла ошибка: ' + E.Message);
+        if Tr.InTransaction then
+          Tr.Rollback;
+        raise;
+      end;
+    end;
+  finally
+    q.Free;
+    Tr.Free;
+  end;
+end;
+
+procedure AddADAtObjectTrigger(IBDB: TIBDatabase; Log: TModifyLog);
+var
+  q: TIBSQL;
+  Tr: TIBTransaction;
+begin
+  Tr := TIBTransaction.Create(nil);
+  q := TIBSQL.Create(nil);
+  try
+    Tr.DefaultDatabase := IBDB;
+    Tr.StartTransaction;
+
+    try
+      q.ParamCheck := False;
+      q.Transaction := Tr;
+
+      q.SQL.Text :=
+        'CREATE OR ALTER TRIGGER at_ad_object FOR at_object'#13#10 +
+        '  ACTIVE'#13#10 +
+        '  AFTER DELETE'#13#10 +
+        '  POSITION 0'#13#10 +
+        'AS'#13#10 +
+        'BEGIN'#13#10 +
+        '  UPDATE at_namespace SET filetimestamp = CURRENT_TIMESTAMP'#13#10 +
+        '    WHERE id = OLD.namespacekey;'#13#10 +
+        'END';
+      q.ExecQuery;
+
+      q.Close;
+      q.SQL.Text :=
+        'UPDATE OR INSERT INTO fin_versioninfo ' +
+        '  VALUES (176, ''0000.0001.0000.0207'', ''13.06.2013'', ''Added trigger to at_object.'') ' +
         '  MATCHING (id)';
       q.ExecQuery;
 

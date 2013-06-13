@@ -1364,6 +1364,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (175, '0000.0001.0000.0206', '08.06.2013', 'Add missing edition date fields #2.');
 
+INSERT INTO fin_versioninfo
+  VALUES (176, '0000.0001.0000.0207', '13.06.2013', 'Added trigger to at_object.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
@@ -16492,6 +16495,17 @@ BEGIN
       END
     END  
   END
+END
+^
+
+CREATE OR ALTER TRIGGER at_ad_object FOR at_object
+  ACTIVE
+  AFTER DELETE
+  POSITION 0
+AS
+BEGIN
+  UPDATE at_namespace SET filetimestamp = CURRENT_TIMESTAMP
+    WHERE id = OLD.namespacekey;
 END
 ^
 

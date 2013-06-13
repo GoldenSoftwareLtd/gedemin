@@ -1775,7 +1775,15 @@ end;
 
 procedure TfrmGedeminMain.actLoadPackageExecute(Sender: TObject);
 begin
-  ViewFormByClass('Tat_frmSyncNamespace', '', False);
+  if (GetAsyncKeyState(VK_SHIFT) shr 1) = 0 then
+    ViewFormByClass('Tat_frmSyncNamespace', '', False)
+  else
+    with Tat_dlgLoadPackages.Create(Self) do
+    try
+      ShowModal;
+    finally
+      Free;
+    end;
 end;
 
 procedure TfrmGedeminMain.actWorkingCompaniesUpdate(Sender: TObject);

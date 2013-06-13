@@ -27,13 +27,13 @@ type
     lMessage: TLabel;
     pnlButtons: TPanel;
     Label1: TLabel;
-    btnDelete: TBitBtn;
-    Panel1: TPanel;
-    btnOK: TBitBtn;
-    btnCancel: TBitBtn;
+    pnlRightBottom: TPanel;
     IBTransaction: TIBTransaction;
     Label2: TLabel;
     edObjectName: TEdit;
+    btnClear: TButton;
+    btnOk: TButton;
+    Button2: TButton;
     procedure FormCreate(Sender: TObject);
     procedure actShowLinkExecute(Sender: TObject);
     procedure actOKExecute(Sender: TObject);
@@ -42,7 +42,7 @@ type
     procedure actShowLinkUpdate(Sender: TObject);
     procedure lkupChange(Sender: TObject);
     procedure actClearUpdate(Sender: TObject);
-    
+
   private
     FgdcObject: TgdcBase;
     FClearId: Integer;
@@ -53,13 +53,14 @@ type
     procedure AddObjects;
     procedure CheckLink;
     procedure DeleteLinkObject;
+
   protected
     procedure CreateFields;
 
   public
     constructor Create(AnOwner: TComponent); override;
     destructor Destroy; override;
-    
+
     procedure SetupParams(AnObject: TgdcBase; BL: TBookmarkList);
   end;
 
