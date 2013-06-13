@@ -522,7 +522,7 @@ end;
 
 procedure Tat_frmSyncNamespace.actSyncExecute(Sender: TObject);
 var
-  Error, SaveNS, LoadNS: String;
+  Error, SaveNS, LoadNS, Temps: String;
 begin
   FLoadFileList.Clear;
   FSaveFileList.Clear;
@@ -544,7 +544,9 @@ begin
       begin
         if FNSList.NSTree.CheckNSCorrect(cds.FieldByName('fileruid').AsString, Error) then
         begin
-          LoadNS := LoadNS + FNSList.NSTree.SetNSFileName(cds.FieldByName('fileruid').AsString, FLoadFileList) + ', ';
+          Temps := FNSList.NSTree.SetNSFileName(cds.FieldByName('fileruid').AsString, FLoadFileList);
+          if TempS > '' then
+            LoadNS := LoadNS + TempS + ', ';
         end else
           Application.MessageBox(
             PChar(Error + #13#10 +
