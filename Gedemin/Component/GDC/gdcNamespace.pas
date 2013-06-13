@@ -321,8 +321,7 @@ const
   PassFieldName =
     ';ID;CREATORKEY;EDITORKEY;ACHAG;AVIEW;AFULL;LB;RB;RESERVED' +
     ';BREAKPOINTS;EDITORSTATE;TESTRESULT' +
-    ';RDB$PROCEDURE_BLR;RDB$TRIGGER_BLR;RDB$VIEW_BLR;LASTEXTIME' +
-    ';PARENTINDEX;';
+    ';LASTEXTIME;PARENTINDEX;';
 var
   I, L: Integer;
   R: TatRelation;
@@ -370,13 +369,7 @@ begin
     AWriter.StartNewLine;
     AWriter.WriteKey('HeadObject');
     AWriter.WriteString(AHeadObject);
-  end;
-  if AgdcObject.FindField('editiondate') <> nil then
-  begin
-    AWriter.StartNewLine;
-    AWriter.WriteKey('Modified');
-    AWriter.WriteTimestamp(AgdcObject.FieldByName('editiondate').AsDateTime);
-  end;
+  end;    
   AWriter.DecIndent;
   AWriter.StartNewLine;
   AWriter.WriteKey('Fields');
@@ -387,7 +380,9 @@ begin
     begin
       F := AgdcObject.Fields[I];
 
-      if StrIPos(';' + F.FieldName + ';', PassFieldName) > 0 then
+      if  (StrIPos('RDB$', F.FieldName) = 1)
+        or (StrIPos(';' + F.FieldName + ';', PassFieldName) > 0)
+      then
         continue;
 
       FN := '';
@@ -1365,10 +1360,14 @@ begin
                     gdcNamespaceObj.FieldByName('dontremove').AsInteger := Integer(ObjMapping.ReadBoolean('Properties\DontRemove'));
                     gdcNamespaceObj.FieldByName('includesiblings').AsInteger := Integer(ObjMapping.ReadBoolean('Properties\IncludeSiblings'));
                     if Obj.FindField('editiondate') <> nil then
-                      gdcNamespaceObj.FieldByName('modified').Value := Obj.FieldByName('editiondate').Value
-                    else
-                      gdcNamespaceObj.FieldByName('modified').Clear;
-                    gdcNamespaceObj.FieldByName('curr_modified').Clear;
+                    begin
+                      gdcNamespaceObj.FieldByName('modified').Value := Obj.FieldByName('editiondate').Value;
+                      gdcNamespaceObj.FieldByName('curr_modified').Value := Obj.FieldByName('editiondate').Value;
+                    end else
+                    begin
+                      gdcNamespaceObj.FieldByName('modified').AsDateTime := Now;
+                      gdcNamespaceObj.FieldByName('curr_modified').Value := gdcNamespaceObj.FieldByName('modified').AsDateTime;
+                    end;
 
                     HeadRUID := ObjMapping.ReadString('Properties\HeadObject');
                     if HeadRUID <> '' then
@@ -2186,9 +2185,10 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
       CDS.FieldDefs.Add('LR_NewValue', ftInteger, 0 , False);
       for I := 0 to Obj.FieldDefs.Count - 1 do
       begin
-        if (Obj.FieldDefs[I].DataType in [ftBlob, ftGraphic])
-          or Obj.FieldDefs[I].InternalCalcField
+        if (StrIPos('RDB$', Obj.FieldDefs[I].Name) = 1)
           or (StrIPos(';' + Obj.FieldDefs[I].Name + ';', PassFieldName) > 0)
+          or Obj.FieldDefs[I].InternalCalcField
+          or (Obj.FieldDefs[I].DataType in [ftBlob, ftGraphic])
         then
           continue;
           
@@ -2277,7 +2277,7 @@ var
   at_obj: TgdcAt_Object;
   Compare: Boolean; 
   CDS: TClientDataSet;
-  TempID: Integer;
+  TempID: Integer;   
 begin
   Assert(ATr <> nil);
   Assert(gdcBaseManager <> nil);
@@ -2285,7 +2285,7 @@ begin
 
   Result := lsNone;
   RUID := AMapping.ReadString('Properties\RUID');
-  Modify := AMapping.ReadDateTime('Properties\Modified');
+  Modify := AMapping.ReadDateTime('Fields\EDITIONDATE');
   AlwaysOverwrite := AMapping.ReadBoolean('Properties\AlwaysOverwrite')
     or AnAlwaysoverwrite;    
 
@@ -2295,12 +2295,13 @@ begin
     ULCreated := True;
   end else
     ULCreated := False;
-  try
+  try   
     if AMapping.FindByName('Fields') <> nil then
     begin
       try 
         AnObj.BaseState := AnObj.BaseState + [sLoadFromStream];
         AnObj.ModifyFromStream := AlwaysOverwrite;
+
         RuidRec := gdcBaseManager.GetRUIDRecByXID(StrToRUID(RUID).XID,
           StrToRUID(RUID).DBID, ATr);
 

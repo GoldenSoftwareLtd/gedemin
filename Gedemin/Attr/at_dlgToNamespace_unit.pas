@@ -291,6 +291,8 @@ begin
            InstObj := CgdcBase(InstClass).CreateSubType(nil,
              cdsLink.FieldByName('subtype').AsString, 'ByID');
            try
+             InstObj.Transaction := IBTransaction;
+             InstObj.ReadTransaction := IBTransaction;
              InstObj.ID := cdsLink.FieldByName('id').AsInteger;
              InstObj.Open;
              if not InstObj.EOF then
