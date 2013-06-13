@@ -51,7 +51,7 @@ uses
   mdf_DeletecbAnalyticFromScript;
 
 const
-  cProcCount = 190;
+  cProcCount = 191;
 
 type
   TModifyProc = record
@@ -349,7 +349,8 @@ const
     (ModifyProc: AddCurrModified; ModifyVersion: '0000.0001.0000.0202'; NeedDBShutdown: False),
     (ModifyProc: AddEditionDate; ModifyVersion: '0000.0001.0000.0203'; NeedDBShutdown: False),
     (ModifyProc: CorrectNSTriggers; ModifyVersion: '0000.0001.0000.0204'; NeedDBShutdown: False),
-    (ModifyProc: AddEditionDate2; ModifyVersion: '0000.0001.0000.0205'; NeedDBShutdown: True)
+    (ModifyProc: AddEditionDate2; ModifyVersion: '0000.0001.0000.0205'; NeedDBShutdown: True),
+    (ModifyProc: AddADAtObjectTrigger; ModifyVersion: '0000.0001.0000.0206'; NeedDBShutdown: False)
   );
 
 implementation

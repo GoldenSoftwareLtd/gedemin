@@ -71,58 +71,30 @@ object dlgToNamespace: TdlgToNamespace
       Align = alBottom
       BevelOuter = bvNone
       TabOrder = 1
-      object btnDelete: TBitBtn
-        Left = 7
-        Top = 6
-        Width = 80
-        Height = 21
-        Action = actClear
-        Caption = 'Удалить'
-        Font.Charset = DEFAULT_CHARSET
-        Font.Color = clWindowText
-        Font.Height = -11
-        Font.Name = 'Tahoma'
-        Font.Style = []
-        ParentFont = False
-        TabOrder = 1
-      end
-      object Panel1: TPanel
-        Left = 569
+      object pnlRightBottom: TPanel
+        Left = 520
         Top = 0
-        Width = 175
+        Width = 224
         Height = 31
         Align = alRight
         BevelOuter = bvNone
         TabOrder = 0
-        object btnOK: TBitBtn
-          Left = 1
+        object btnOk: TButton
+          Left = 61
           Top = 5
-          Width = 80
+          Width = 75
           Height = 21
           Action = actOK
-          Caption = '&ОК'
           Default = True
-          Font.Charset = DEFAULT_CHARSET
-          Font.Color = clWindowText
-          Font.Height = -11
-          Font.Name = 'Tahoma'
-          Font.Style = []
-          ParentFont = False
           TabOrder = 0
         end
-        object btnCancel: TBitBtn
-          Left = 87
+        object Button2: TButton
+          Left = 141
           Top = 5
-          Width = 80
+          Width = 75
           Height = 21
           Action = actCancel
-          Caption = '&Отмена'
-          Font.Charset = DEFAULT_CHARSET
-          Font.Color = clWindowText
-          Font.Height = -11
-          Font.Name = 'Tahoma'
-          Font.Style = []
-          ParentFont = False
+          Cancel = True
           TabOrder = 1
         end
       end
@@ -165,7 +137,7 @@ object dlgToNamespace: TdlgToNamespace
       Caption = 'Объект:'
     end
     object cbIncludeSiblings: TCheckBox
-      Left = 334
+      Left = 358
       Top = 55
       Width = 337
       Height = 17
@@ -176,10 +148,10 @@ object dlgToNamespace: TdlgToNamespace
       Font.Name = 'Tahoma'
       Font.Style = []
       ParentFont = False
-      TabOrder = 4
+      TabOrder = 5
     end
     object cbDontRemove: TCheckBox
-      Left = 334
+      Left = 358
       Top = 39
       Width = 331
       Height = 17
@@ -190,10 +162,10 @@ object dlgToNamespace: TdlgToNamespace
       Font.Name = 'Tahoma'
       Font.Style = []
       ParentFont = False
-      TabOrder = 3
+      TabOrder = 4
     end
     object cbAlwaysOverwrite: TCheckBox
-      Left = 334
+      Left = 358
       Top = 22
       Width = 233
       Height = 17
@@ -204,7 +176,7 @@ object dlgToNamespace: TdlgToNamespace
       Font.Name = 'Tahoma'
       Font.Style = []
       ParentFont = False
-      TabOrder = 2
+      TabOrder = 3
     end
     object lkup: TgsIBLookupComboBox
       Left = 8
@@ -231,6 +203,16 @@ object dlgToNamespace: TdlgToNamespace
       Height = 21
       Color = clBtnFace
       ReadOnly = True
+      TabOrder = 2
+    end
+    object btnClear: TButton
+      Left = 313
+      Top = 23
+      Width = 24
+      Height = 21
+      Action = actClear
+      ParentShowHint = False
+      ShowHint = True
       TabOrder = 1
     end
   end
@@ -265,7 +247,8 @@ object dlgToNamespace: TdlgToNamespace
       OnExecute = actCancelExecute
     end
     object actClear: TAction
-      Caption = 'Удалить'
+      Caption = 'X'
+      Hint = 'Удалить объект из пространства имен'
       OnExecute = actClearExecute
       OnUpdate = actClearUpdate
     end
