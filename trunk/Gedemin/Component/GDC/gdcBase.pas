@@ -14508,7 +14508,9 @@ begin
                   Cancel;
                 raise;
               end;
-              AddText('Объект "' + FieldByName(GetListField(SubType)).AsString + '" обновлен данными из потока!', clBlack);
+              AddText('Обновлен объект ' + ClassName + ' ' + RUIDToStr(GetRUID) + ' "' +
+                FieldByName(GetListField(SubType)).AsString + '"', clBlack);
+            //  AddText('Объект "' + FieldByName(GetListField(SubType)).AsString + '" обновлен данными из потока!', clBlack);
             except
               Cancel;
             end;
