@@ -1021,7 +1021,7 @@ var
           InstObj.Transaction := Tr;
           InstObj.ID := gdcBaseManager.GetRUIDRecByXID(StrToRUID(At_Obj.RUID).XID, StrToRUID(At_Obj.RUID).DBID, Tr).ID;
           InstObj.Open;
-          if not InstObj.Eof then
+          if (not InstObj.Eof) then
           begin
             if (At_Obj.Filetimestamp > 0)
               and (At_Obj.Curr_modified > 0)
@@ -1087,13 +1087,13 @@ var
       for I := CurrOL.Count - 1 downto 0 do
       begin
         Ind := LoadOL.IndexOf(CurrOL[I]);
-        if Ind = -1 then
+        if (Ind = -1) and not ADontRemove then
         begin
           DeleteObject(CurrOL.Objects[I] as TgdcAt_Object, CurrOL);
         end else
         begin
           at_obj := CurrOL.Objects[I] as TgdcAt_Object;  
-          if (LoadOL.Objects[Ind] as TgdcAt_Object).Namespacekey <> at_obj.NamespaceKey then
+          if ((LoadOL.Objects[Ind] as TgdcAt_Object).Namespacekey <> at_obj.NamespaceKey) or ADontRemove then
           begin
             q.ParamByName('nsk').AsInteger := at_obj.NamespaceKey;
             q.ParamByName('xid').AsInteger := StrToRUID(at_obj.RUID).XID;
@@ -2085,7 +2085,7 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
         gdcBaseManager.UpdateRUIDByID(Obj.ID, StrToRUID(RUID).XID, StrToRUID(RUID).DBID,
           now, IBLogin.ContactKey, ATr);
         CurrRUID := gdcBaseManager.GetRUIDRecByID(Obj.ID, ATr);
-        if (OLDRUID.XID <> CurrRUID.XID) and (OLDRUID.DBID <> CurrRUID.DBID) then
+        if (OLDRUID.XID <> CurrRUID.XID) or (OLDRUID.DBID <> CurrRUID.DBID) then
         begin
           q := TIBSQL.Create(nil);
           try
@@ -2097,6 +2097,7 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
             q.ParamByName('xid2').AsInteger := OLDRUID.XID;
             q.ParamByName('dbid2').AsInteger := OLDRUID.DBID;
             q.ExecQuery;
+            AddText(IntToStr(OLDRUID.XID) + '_' + IntToStr(OLDRUID.DBID) + ' -> ' + IntToStr(CurrRUID.XID) + '_' + IntToStr(CurrRUID.DBID), clBlack);
           finally
             q.Free;
           end;
