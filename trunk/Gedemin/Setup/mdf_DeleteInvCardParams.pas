@@ -1107,22 +1107,19 @@ begin
       q.ParamCheck := False;
       q.Transaction := Tr;
 
-      q.SQL.Text :=
-        'CREATE OR ALTER TRIGGER at_ad_object FOR at_object'#13#10 +
-        '  ACTIVE'#13#10 +
-        '  AFTER DELETE'#13#10 +
-        '  POSITION 0'#13#10 +
-        'AS'#13#10 +
-        'BEGIN'#13#10 +
-        '  UPDATE at_namespace SET filetimestamp = CURRENT_TIMESTAMP'#13#10 +
-        '    WHERE id = OLD.namespacekey;'#13#10 +
-        'END';
-      q.ExecQuery;
+      DropTrigger2('at_ad_object', Tr);
 
       q.Close;
       q.SQL.Text :=
         'UPDATE OR INSERT INTO fin_versioninfo ' +
         '  VALUES (176, ''0000.0001.0000.0207'', ''13.06.2013'', ''Added trigger to at_object.'') ' +
+        '  MATCHING (id)';
+      q.ExecQuery;
+
+      q.Close;
+      q.SQL.Text :=
+        'UPDATE OR INSERT INTO fin_versioninfo ' +
+        '  VALUES (177, ''0000.0001.0000.0208'', ''14.06.2013'', ''Revert last changes.'') ' +
         '  MATCHING (id)';
       q.ExecQuery;
 

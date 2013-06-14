@@ -331,17 +331,6 @@ BEGIN
 END
 ^
 
-CREATE OR ALTER TRIGGER at_ad_object FOR at_object
-  ACTIVE
-  AFTER DELETE
-  POSITION 0
-AS
-BEGIN
-  UPDATE at_namespace SET filetimestamp = CURRENT_TIMESTAMP
-    WHERE id = OLD.namespacekey;
-END
-^
-
 SET TERM ; ^
 
 CREATE TABLE at_namespace_link (

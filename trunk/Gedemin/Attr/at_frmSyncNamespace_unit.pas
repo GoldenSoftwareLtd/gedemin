@@ -35,8 +35,6 @@ type
     TBItem2: TTBItem;   
     mMessages: TMemo;
     splMessages: TSplitter;
-    actSaveToFile: TAction;
-    TBItem3: TTBItem;
     pmSync: TPopupMenu;
     actEditNamespace: TAction;
     actEditNamespace1: TMenuItem;
@@ -44,11 +42,9 @@ type
     N1: TMenuItem;
     actCompareWithData: TAction;
     N2: TMenuItem;
-    TBSeparatorItem2: TTBSeparatorItem;
     TBItem4: TTBItem;
     TBItem5: TTBItem;
     TBItem6: TTBItem;
-    actSaveToFile1: TMenuItem;
     actSetForSaving: TAction;
     actSetForLoading: TAction;
     actClear: TAction;
@@ -59,9 +55,6 @@ type
     tbedPath: TEdit;
     TBControlItem2: TTBControlItem;
     N7: TMenuItem;
-    actLoadFromFile: TAction;
-    N8: TMenuItem;
-    TBItem7: TTBItem;
     TBSeparatorItem4: TTBSeparatorItem;
     TBSeparatorItem1: TTBSeparatorItem;
     TBItem8: TTBItem;
@@ -71,7 +64,6 @@ type
     actSync: TAction;
     TBItem11: TTBItem;
     actDeleteFile: TAction;
-    N9: TMenuItem;
     N10: TMenuItem;
     TBSeparatorItem5: TTBSeparatorItem;
     tbiFLTOnlyInFile: TTBItem;
@@ -111,11 +103,12 @@ type
     actSelectAll1: TMenuItem;
     cdsHiddenRow: TIntegerField;
     Panel1: TPanel;
+    N8: TMenuItem;
+    N9: TMenuItem;
+    N11: TMenuItem;
     procedure actChooseDirExecute(Sender: TObject);
     procedure actCompareUpdate(Sender: TObject);
     procedure actCompareExecute(Sender: TObject);
-    procedure actSaveToFileUpdate(Sender: TObject);
-    procedure actSaveToFileExecute(Sender: TObject);
     procedure actEditNamespaceUpdate(Sender: TObject);
     procedure actEditNamespaceExecute(Sender: TObject);
     procedure actEditFileUpdate(Sender: TObject);
@@ -129,12 +122,10 @@ type
     procedure actSetForSavingExecute(Sender: TObject);
     procedure actClearUpdate(Sender: TObject);
     procedure actClearExecute(Sender: TObject);
-    procedure actLoadFromFileUpdate(Sender: TObject);
     procedure actSyncUpdate(Sender: TObject);
     procedure actSyncExecute(Sender: TObject);
     procedure actDeleteFileUpdate(Sender: TObject);
     procedure actDeleteFileExecute(Sender: TObject);
-    procedure actLoadFromFileExecute(Sender: TObject);
     procedure edFilterChange(Sender: TObject);
     procedure cdsFilterRecord(DataSet: TDataSet; var Accept: Boolean);
     procedure actFLTOnlyInDBExecute(Sender: TObject);
@@ -152,7 +143,6 @@ type
     procedure ApplyFilter;
     procedure IterateSelected(Proc: TIterateProc; AnObj: TObject; const AData: String);
     procedure SetOperation(AnObj: TObject; const AData: String);
-    procedure SaveID(AnObj: TObject; const AData: String);
     procedure DeleteFile(AnObj: TObject; const AData: String); 
     procedure Log(const S: String);
     function StatusFilterSet: Boolean;
@@ -288,18 +278,6 @@ procedure Tat_frmSyncNamespace.SaveSettings;
 begin
   gd_GlobalParams.NamespacePath := tbedPath.Text;
   inherited;
-end;
-
-procedure Tat_frmSyncNamespace.actSaveToFileUpdate(Sender: TObject);
-begin
-  actSaveToFile.Enabled := DirectoryExists(tbedPath.Text)
-    and (not cds.IsEmpty)
-    and (cds.FieldByName('namespacename').AsString > '');
-end;
-
-procedure Tat_frmSyncNamespace.actSaveToFileExecute(Sender: TObject);
-begin
-  IterateSelected(SaveID, nil, '');
 end;
 
 procedure Tat_frmSyncNamespace.actEditNamespaceUpdate(Sender: TObject);
@@ -493,28 +471,6 @@ begin
     gr.SelectedRows.Clear;
 end;
 
-procedure Tat_frmSyncNamespace.SaveID(AnObj: TObject; const AData: String);
-var
-  CurrTime: TDateTime;
-begin
-  if cds.FieldByName('namespacekey').AsInteger > 0 then
-  begin
-    if not FgdcNamespace.EOF then
-    begin
-      CurrTime := Now;
-      FgdcNamespace.SaveNamespaceToFile(cds.FieldByName('filename').AsString);
-      if CurrTime <= FgdcNamespace.FieldByName('filetimestamp').AsDateTime then
-        Log('Пространство имен "' + FgdcNamespace.ObjectName + '" записано в файл.');
-    end;
-  end;
-end; 
-
-procedure Tat_frmSyncNamespace.actLoadFromFileUpdate(Sender: TObject);
-begin
-  actLoadFromFile.Enabled := (not cds.IsEmpty)
-    and (cds.FieldByName('fileversion').AsString > '');
-end;
-
 procedure Tat_frmSyncNamespace.actSyncUpdate(Sender: TObject);
 begin
   actSync.Enabled := not cds.IsEmpty;
@@ -533,14 +489,14 @@ begin
     cds.First;
     while not cds.Eof do
     begin
-      if Pos('>', cds.FieldByName('operation').AsString) = 1 then
+      if Pos('>', cds.FieldByName('operation').AsString) > 0 then
       begin
         if cds.FieldByName('namespacekey').AsInteger > 0 then
         begin
           FSaveFileList.Add(cds.FieldByName('namespacekey').AsString);
           SaveNS := SaveNS + cds.FieldByName('namespacename').AsString + ', ';
         end;
-      end else if Pos('<', cds.FieldByName('operation').AsString) = 1 then
+      end else if Pos('<', cds.FieldByName('operation').AsString) > 0 then
       begin
         if FNSList.NSTree.CheckNSCorrect(cds.FieldByName('fileruid').AsString, Error) then
         begin
@@ -549,20 +505,23 @@ begin
             LoadNS := LoadNS + TempS + ', ';
         end else
           Application.MessageBox(
-            PChar(Error + #13#10 +
-            'Пространство имен ''' + cds.FieldByName('FileNamespaceName').AsString + ''' не будет загружен.'),
-            'Внимание',
+            PChar(
+            'Невозможно загрузить пространство имен: ' +
+              cds.FieldByName('FileNamespaceName').AsString + #13#10#13#10 +
+              Error),
+            'Ошибка',
             MB_ICONERROR or MB_OK or MB_TASKMODAL);
       end;
       cds.Next;
     end;
-    SetLength(SaveNS, Length(SaveNS) - 2);
-    SetLength(LoadNS, Length(LoadNS) - 2);
+    if Length(SaveNS) >= 2 then
+      SetLength(SaveNS, Length(SaveNS) - 2);
+    if Length(LoadNS) >= 2 then
+      SetLength(LoadNS, Length(LoadNS) - 2);
   finally
     cds.First;
     cds.EnableControls;
   end;
-
 
   with TdlgCheckOperation.Create(nil) do
   try
@@ -631,23 +590,6 @@ end;
 procedure Tat_frmSyncNamespace.Log(const S: String);
 begin
   mMessages.Lines.Add(FormatDateTime('hh:nn:ss ', Now) + S);
-end;
-
-procedure Tat_frmSyncNamespace.actLoadFromFileExecute(Sender: TObject);
-var
-  Error: String;
-begin
-  FLoadFileList.Clear;
-  if FNSList.NSTree.CheckNSCorrect(cds.FieldByName('fileruid').AsString, Error) then
-  begin
-    FNSList.NSTree.SetNSFileName(cds.FieldByName('fileruid').AsString, FLoadFileList);
-    FgdcNamespace.InstallPackages(FLoadFileList);
-  end else
-    Application.MessageBox(
-      PChar(Error + #13#10 +
-      'Пространство имен ''' + cds.FieldByName('FileNamespaceName').AsString + ''' не будет загружен.'),
-      'Внимание',
-      MB_ICONERROR or MB_OK or MB_TASKMODAL);
 end;
 
 procedure Tat_frmSyncNamespace.ApplyFilter;

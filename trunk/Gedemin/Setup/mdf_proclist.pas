@@ -350,7 +350,7 @@ const
     (ModifyProc: AddEditionDate; ModifyVersion: '0000.0001.0000.0203'; NeedDBShutdown: False),
     (ModifyProc: CorrectNSTriggers; ModifyVersion: '0000.0001.0000.0204'; NeedDBShutdown: False),
     (ModifyProc: AddEditionDate2; ModifyVersion: '0000.0001.0000.0205'; NeedDBShutdown: True),
-    (ModifyProc: AddADAtObjectTrigger; ModifyVersion: '0000.0001.0000.0206'; NeedDBShutdown: False)
+    (ModifyProc: AddADAtObjectTrigger; ModifyVersion: '0000.0001.0000.0207'; NeedDBShutdown: False)
   );
 
 implementation
