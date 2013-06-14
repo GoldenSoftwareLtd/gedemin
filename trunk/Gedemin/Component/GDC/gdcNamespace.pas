@@ -1113,7 +1113,7 @@ var
   LoadObjectsRUID: TStringList;
   CurrObjectsRUID: TStringList;
   Parser: TyamlParser;
-  I, J, Ind, K: Integer;
+  I, J, Ind, K, LoadPos: Integer;
   gdcNamespace: TgdcNamespace;
   TempNamespaceID: Integer;
   M, ObjMapping: TyamlMapping;
@@ -1191,6 +1191,7 @@ begin
             atDatabase.SyncIndicesAndTriggers(Tr);   
 
             M := (Parser.YAMLStream[0] as TyamlDocument)[0] as TyamlMapping;
+            LoadPos := 0;
             LoadNSRUID := M.ReadString('Properties\RUID');
             CurrNSRuid := LoadNSRUID;
             LoadedNS(M.ReadString('Properties\Name'), CurrNSRuid);
@@ -1327,7 +1328,7 @@ begin
                     Obj.SubSet := 'ByID';
                   Obj.Open;
 
-                  IsLoad := LoadObject(Obj, ObjMapping, UpdateList, CurrObjectsRUID, Tr);
+                  IsLoad := LoadObject(Obj, ObjMapping, UpdateList, CurrObjectsRUID, Tr, AnAlwaysoverwrite);
 
                   if (Obj is TgdcRelationField) then
                     RelName := Obj.FieldByName('relationname').AsString
@@ -1353,6 +1354,7 @@ begin
                     else
                       gdcNamespaceObj.FieldByName('objectname').AsString := RUIDToStr(Obj.GetRUID);
                     gdcNamespaceObj.FieldByName('objectclass').AsString := Obj.ClassName;
+                    gdcNamespaceObj.FieldByName('objectpos').AsInteger := LoadPos;
                     gdcNamespaceObj.FieldByName('subtype').AsString := Obj.SubType;
                     gdcNamespaceObj.FieldByName('xid').AsInteger := Obj.GetRUID.XID;
                     gdcNamespaceObj.FieldByName('dbid').AsInteger := Obj.GetRUID.DBID;
@@ -1368,6 +1370,7 @@ begin
                       gdcNamespaceObj.FieldByName('modified').AsDateTime := Now;
                       gdcNamespaceObj.FieldByName('curr_modified').Value := gdcNamespaceObj.FieldByName('modified').AsDateTime;
                     end;
+                    Inc(LoadPos);
 
                     HeadRUID := ObjMapping.ReadString('Properties\HeadObject');
                     if HeadRUID <> '' then
