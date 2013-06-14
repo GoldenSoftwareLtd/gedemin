@@ -1021,7 +1021,9 @@ var
           InstObj.Transaction := Tr;
           InstObj.ID := gdcBaseManager.GetRUIDRecByXID(StrToRUID(At_Obj.RUID).XID, StrToRUID(At_Obj.RUID).DBID, Tr).ID;
           InstObj.Open;
-          if (not InstObj.Eof) and (InstObj.ID >= cstUserIDStart) then
+          if (not InstObj.Eof)
+            and (InstObj.ID >= cstUserIDStart)
+            and (InstObj.CanDelete) then
           begin
             if (At_Obj.Filetimestamp > 0)
               and (At_Obj.Curr_modified > 0)
@@ -1042,8 +1044,20 @@ var
 
               if CanDelete then
               begin
-                InstObj.Delete;
-                AddText('Удален объект ' + At_Obj.Objectclass + ' ' + At_Obj.RUID + ' "' + At_Obj.ObjectName + '"', clBlack);
+                try
+                  InstObj.Delete;
+                  AddText('Удален объект ' + At_Obj.Objectclass + ' ' + At_Obj.RUID + ' "' + At_Obj.ObjectName + '"', clBlack);
+                except
+                  on Ex: EIBError do
+                  begin
+                    if (Ex.IBErrorCode = isc_foreign_key) or ((Ex.IBErrorCode = isc_except) and (
+                      StrIPos('GD_E_FKMANAGER', Ex.Message) > 0))
+                    then
+                      AddWarning('Запись "' + InstObj.FieldByName(InstObj.GetListField(InstObj.SubType)).AsString + '" невозможно удалить так как на нее ссылаются другие записи.', clRed)
+                    else
+                      AddWarning(Ex.Message, clRed);
+                  end;
+                end;
 
                 q.Close;
                 q.ParamByName('nsk').AsInteger := At_Obj.NamespaceKey;
