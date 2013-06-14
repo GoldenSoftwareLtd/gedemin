@@ -12596,38 +12596,41 @@ end;
 
 procedure TgdcBase._CustomDelete(Buff: Pointer);
 begin
-  try
-    CustomDelete(Buff);
-  except
-    on Ex: EIBError do
-    begin
-      if (Ex.IBErrorCode = isc_foreign_key) or ((Ex.IBErrorCode = isc_except) and (
-        StrIPos('GD_E_FKMANAGER', Ex.Message) > 0)) then
+  if sLoadFromStream in BaseState then
+    CustomDelete(Buff)
+  else
+    try
+      CustomDelete(Buff);
+    except
+      on Ex: EIBError do
       begin
-        if sMultiple in BaseState then
+        if (Ex.IBErrorCode = isc_foreign_key) or ((Ex.IBErrorCode = isc_except) and (
+          StrIPos('GD_E_FKMANAGER', Ex.Message) > 0)) then
         begin
-          if sAskMultiple in BaseState then
+          if sMultiple in BaseState then
           begin
-            if MessageBox(ParentHandle,
-              PChar('«апись "' + ObjectName + '" невозможно удалить так как на нее ссылаютс€ другие записи.'#13#10#13#10 +
-              'ѕропустить указанную запись и продолжить удаление по списку?'),
-              '¬нимание',
-              MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = IDYES then
+            if sAskMultiple in BaseState then
             begin
-              BaseState := BaseState + [sSkipMultiple];
+              if MessageBox(ParentHandle,
+                PChar('«апись "' + ObjectName + '" невозможно удалить так как на нее ссылаютс€ другие записи.'#13#10#13#10 +
+                'ѕропустить указанную запись и продолжить удаление по списку?'),
+                '¬нимание',
+                MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = IDYES then
+              begin
+                BaseState := BaseState + [sSkipMultiple];
+              end;
+              BaseState := BaseState - [sAskMultiple];
             end;
-            BaseState := BaseState - [sAskMultiple];
-          end;
 
-          if not (sSkipMultiple in BaseState) then
+            if not (sSkipMultiple in BaseState) then
+              isUse;
+          end else
             isUse;
+          Abort;
         end else
-          isUse;
-        Abort;
-      end else
-        raise;
+          raise;
+      end;
     end;
-  end;
 
   DoAfterCustomProcess(Buff, cpDelete);
 end;

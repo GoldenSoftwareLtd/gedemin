@@ -90,6 +90,7 @@ type
   TgdcStorageFolder = class(TgdcStorage)
   protected
     procedure GetWhereClauseConditions(S: TStrings); override;
+    function GetCanDelete: Boolean; override;
 
   public
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
@@ -327,6 +328,11 @@ begin
 end;
 
 { TgdcStorageFolder }
+
+function TgdcStorageFolder.GetCanDelete: Boolean;
+begin
+  Result := inherited GetCanDelete and (not FieldByName('parent').IsNull);
+end;
 
 class function TgdcStorageFolder.GetDialogFormClassName(
   const ASubType: TgdcSubType): String;
