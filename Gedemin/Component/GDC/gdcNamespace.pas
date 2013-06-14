@@ -38,7 +38,7 @@ type
       UpdateList: TObjectList; RUIDList: TStringList; ATr: TIBTransaction;
       const AnAlwaysoverwrite: Boolean = False): TLoadedStatus;
     class procedure ScanDirectory(ADataSet: TDataSet; ANSList: TgsNSList;
-      Log: TNSLog);
+      Log: TNSLog);   
 
     class procedure SetNamespaceForObject(AnObject: TgdcBase;
       ANSL: TgdKeyStringAssoc; ATr: TIBTransaction = nil);
@@ -50,7 +50,7 @@ type
       ADontremove: Integer = 0; AnIncludesiblings: Integer = 0);
     class function LoadNSInfo(const Path: String; ATr: TIBTransaction): Integer;
     class procedure UpdateCurrModified(const ANamespaceKey: Integer = -1);
-    class procedure FillSet(AnObj: TgdcBase; AnOL: TObjectList; ATr: TIBTransaction); 
+    class procedure FillSet(AnObj: TgdcBase; AnOL: TObjectList; ATr: TIBTransaction);
 
     procedure AddObject2(AnObject: TgdcBase; AnUL: TObjectList;
       const AHeadObjectRUID: String = ''; AnAlwaysOverwrite: Integer = 1;
@@ -1021,7 +1021,7 @@ var
           InstObj.Transaction := Tr;
           InstObj.ID := gdcBaseManager.GetRUIDRecByXID(StrToRUID(At_Obj.RUID).XID, StrToRUID(At_Obj.RUID).DBID, Tr).ID;
           InstObj.Open;
-          if (not InstObj.Eof) then
+          if (not InstObj.Eof) and (InstObj.ID >= cstUserIDStart) then
           begin
             if (At_Obj.Filetimestamp > 0)
               and (At_Obj.Curr_modified > 0)
