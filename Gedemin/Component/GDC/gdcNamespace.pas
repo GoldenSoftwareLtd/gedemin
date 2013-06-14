@@ -976,7 +976,7 @@ var
               StrToRUID(RUID).XID, StrToRUID(RUID).DBID,
               Now, IBLogin.ContactKey, Tr);
           end else
-          begin
+          begin 
             gdcBaseManager.UpdateRUIDByID(NSID,
               StrToRUID(RUID).XID, StrToRUID(RUID).DBID,
               Now, IBLogin.ContactKey, Tr);
@@ -2063,7 +2063,10 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
   end;
 
   function InsertRecord(SourceYAML: TyamlMapping; Obj: TgdcBase;
-    UL: TObjectList; const RUID: String): TLoadedStatus;     
+    UL: TObjectList; const RUID: String): TLoadedStatus;
+  var
+    OLDRUID, CurrRUID: TRUIDRec;
+    q: TIBSQL;
   begin 
     Obj.Insert;
     if StrToRUID(RUID).XID < cstUserIDStart then
@@ -2078,8 +2081,26 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
           now, IBLogin.ContactKey, ATr);
       end else
       begin
+        OLDRUID := gdcBaseManager.GetRUIDRecByID(Obj.ID, ATr);
         gdcBaseManager.UpdateRUIDByID(Obj.ID, StrToRUID(RUID).XID, StrToRUID(RUID).DBID,
           now, IBLogin.ContactKey, ATr);
+        CurrRUID := gdcBaseManager.GetRUIDRecByID(Obj.ID, ATr);
+        if (OLDRUID.XID <> CurrRUID.XID) and (OLDRUID.DBID <> CurrRUID.DBID) then
+        begin
+          q := TIBSQL.Create(nil);
+          try
+            q.Transaction := ATr;
+            q.SQL.Text := 'UPDATE at_object SET xid = :xid, dbid = :dbid ' +
+              'WHERE xid = :xid2 and dbid = :dbid2';
+            q.ParamByName('xid').AsInteger := CurrRUID.XID;
+            q.ParamByName('dbid').AsInteger := CurrRUID.DBID;
+            q.ParamByName('xid2').AsInteger := OLDRUID.XID;
+            q.ParamByName('dbid2').AsInteger := OLDRUID.DBID;
+            q.ExecQuery;
+          finally
+            q.Free;
+          end;
+        end;
       end;
     end;
   end;
