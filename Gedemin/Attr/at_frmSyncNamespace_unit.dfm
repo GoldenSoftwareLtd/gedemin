@@ -65,14 +65,6 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       end
       object TBSeparatorItem4: TTBSeparatorItem
       end
-      object TBItem7: TTBItem
-        Action = actLoadFromFile
-      end
-      object TBItem3: TTBItem
-        Action = actSaveToFile
-      end
-      object TBSeparatorItem2: TTBSeparatorItem
-      end
       object TBItem4: TTBItem
         Action = actEditNamespace
       end
@@ -141,7 +133,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
         Control = cbPackets
       end
       object lSearch: TLabel
-        Left = 526
+        Left = 474
         Top = 4
         Width = 45
         Height = 13
@@ -155,7 +147,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
         TabOrder = 0
       end
       object edFilter: TEdit
-        Left = 789
+        Left = 737
         Top = 0
         Width = 140
         Height = 21
@@ -163,7 +155,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
         OnChange = edFilterChange
       end
       object cbPackets: TCheckBox
-        Left = 935
+        Left = 883
         Top = 2
         Width = 66
         Height = 17
@@ -494,13 +486,6 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       OnExecute = actCompareExecute
       OnUpdate = actCompareUpdate
     end
-    object actSaveToFile: TAction
-      Caption = '--> Сохранить в файл'
-      Hint = 'Сохранить в файл'
-      ImageIndex = 202
-      OnExecute = actSaveToFileExecute
-      OnUpdate = actSaveToFileUpdate
-    end
     object actEditNamespace: TAction
       Caption = '<-- Редактировать объект'
       Hint = 'Редактировать объект'
@@ -522,19 +507,19 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       OnExecute = actCompareWithDataExecute
       OnUpdate = actCompareWithDataUpdate
     end
-    object actSetForSaving: TAction
-      Caption = '>> Пометить для сохранения'
-      Hint = 'Пометить для сохранения'
-      ImageIndex = 240
-      OnExecute = actSetForSavingExecute
-      OnUpdate = actSetForSavingUpdate
-    end
     object actSetForLoading: TAction
       Caption = '<< Пометить для загрузки'
       Hint = 'Пометить для загрузки'
       ImageIndex = 239
       OnExecute = actSetForLoadingExecute
       OnUpdate = actSetForLoadingUpdate
+    end
+    object actSetForSaving: TAction
+      Caption = '>> Пометить для сохранения'
+      Hint = 'Пометить для сохранения'
+      ImageIndex = 240
+      OnExecute = actSetForSavingExecute
+      OnUpdate = actSetForSavingUpdate
     end
     object actClear: TAction
       Caption = 'Снять отметку'
@@ -543,15 +528,8 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       OnExecute = actClearExecute
       OnUpdate = actClearUpdate
     end
-    object actLoadFromFile: TAction
-      Caption = 'Загрузить из файла <--'
-      Hint = 'Загрузить из файла'
-      ImageIndex = 27
-      OnExecute = actLoadFromFileExecute
-      OnUpdate = actLoadFromFileUpdate
-    end
     object actSync: TAction
-      Caption = 'Синхронизировать'
+      Caption = 'Синхронизировать...'
       Hint = 'Синхронизировать'
       ImageIndex = 21
       OnExecute = actSyncExecute
@@ -644,23 +622,14 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
     object N1: TMenuItem
       Action = actEditFile
     end
-    object N2: TMenuItem
-      Action = actCompareWithData
+    object N10: TMenuItem
+      Action = actDeleteFile
     end
     object N7: TMenuItem
       Caption = '-'
     end
-    object actSaveToFile1: TMenuItem
-      Action = actSaveToFile
-    end
-    object N8: TMenuItem
-      Action = actLoadFromFile
-    end
-    object N9: TMenuItem
-      Caption = '-'
-    end
-    object N10: TMenuItem
-      Action = actDeleteFile
+    object N2: TMenuItem
+      Action = actCompareWithData
     end
     object N3: TMenuItem
       Caption = '-'
@@ -674,8 +643,17 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
     object N6: TMenuItem
       Action = actClear
     end
+    object N8: TMenuItem
+      Caption = '-'
+    end
     object actSelectAll1: TMenuItem
       Action = actSelectAll
+    end
+    object N9: TMenuItem
+      Caption = '-'
+    end
+    object N11: TMenuItem
+      Action = actSync
     end
   end
 end
