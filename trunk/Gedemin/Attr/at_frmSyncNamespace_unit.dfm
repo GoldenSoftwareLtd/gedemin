@@ -1,6 +1,6 @@
 object at_frmSyncNamespace: Tat_frmSyncNamespace
-  Left = 315
-  Top = 378
+  Left = 184
+  Top = 89
   Width = 1131
   Height = 518
   Caption = 'Синхронизация пространств имен'
@@ -40,6 +40,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       Top = 0
       Caption = 'TBToolbar'
       CloseButton = False
+      DockMode = dmCannotFloatOrChangeDocks
       DockPos = 104
       FullSize = True
       Images = dmImages.il16x16

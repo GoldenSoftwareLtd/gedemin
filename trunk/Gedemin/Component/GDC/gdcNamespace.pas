@@ -468,13 +468,7 @@ begin
           ftFloat: AWriter.WriteFloat(F.AsFloat);
           ftCurrency: AWriter.WriteCurrency(F.AsCurrency);
           ftLargeint: AWriter.WriteString(F.AsString);
-          ftBCD:
-          begin
-            if DecimalSeparator <> '.' then
-              AWriter.WriteText(StringReplace(F.AsString, DecimalSeparator, '.', []), qDoubleQuoted)
-            else
-              AWriter.WriteText(F.AsString, qDoubleQuoted);
-          end;
+          ftBCD: AWriter.WriteBCD(F.AsString);
           ftBlob, ftGraphic:
           begin
             Flag := False;
@@ -2823,7 +2817,7 @@ begin
     W.WriteText(FieldByName('caption').AsString, qDoubleQuoted);
     W.StartNewLine;
     W.WriteKey('Version');
-    W.WriteString(FieldByName('version').AsString);
+    W.WriteText(FieldByName('version').AsString, qDoubleQuoted);
     W.StartNewLine;
     W.WriteKey('Optional');
     W.WriteBoolean(FieldByName('optional').AsInteger <> 0);
