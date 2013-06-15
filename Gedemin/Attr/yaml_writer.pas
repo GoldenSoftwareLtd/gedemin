@@ -27,10 +27,12 @@ type
     procedure WriteDocumentStart(const Folding: TyamlScalarStyle = sPlain);
     procedure WriteDocumentEnd;
     procedure WriteInteger(const I: Integer);
-    procedure WriteTimestamp(const Timestamp: TDateTime; const tzbias: Integer = 0);
+    procedure WriteLargeInt(const I: Int64);
+    procedure WriteTimestamp(const Timestamp: TDateTime);
     procedure WriteDate(const Date: TDateTime);
     procedure WriteFloat(const D: Double);
     procedure WriteCurrency(const C: Currency);
+    procedure WriteBCD(const Value: AnsiString);
     procedure WriteBinary(AStream: TStream);
     procedure WriteBoolean(const Value: Boolean);
     procedure WriteNull;
@@ -51,10 +53,13 @@ type
 implementation
 
 uses
-  JclStrings, JclMime;
+  JclStrings, JclMime, Windows;
 
 const
   DefBufferSize   = 65536;
+
+var
+  FTZBias: Integer;
 
 constructor TyamlWriter.Create(AStream: TStream);
 begin
@@ -143,7 +148,7 @@ begin
     WriteBuffer(TempS);
 end;
 
-procedure TyamlWriter.WriteTimestamp(const Timestamp: TDateTime; const tzbias: Integer = 0);
+procedure TyamlWriter.WriteTimestamp(const Timestamp: TDateTime);
 
   function ISO8601Timezone(tzbias: Integer): AnsiString;
   var
@@ -159,13 +164,14 @@ procedure TyamlWriter.WriteTimestamp(const Timestamp: TDateTime; const tzbias: I
         Sign := '-';
       end else
         Sign := '+';
-      Result := Result + Format(' %s%2.2d:%2.2d',
+      Result := Result + Format('%s%2.2d:%2.2d',
         [Sign, tzbias div 60, tzbias mod 60]);
     end;
   end;
-  
+
 begin
-  WriteBuffer(FormatDateTime('yyyy-mm-dd" "hh":"nn":"ss', Timestamp) + ISO8601Timezone(tzbias));
+  WriteBuffer(FormatDateTime('yyyy-mm-dd"T"hh":"nn":"ss', Timestamp) +
+    ISO8601Timezone(FTZBias));
 end;
 
 procedure TyamlWriter.WriteDate(const Date: TDateTime);
@@ -364,4 +370,26 @@ begin
   WriteString('%' + ADirective);
 end;
 
+var
+  TZInfo: TTimeZoneInformation;
+
+procedure TyamlWriter.WriteBCD(const Value: AnsiString);
+begin
+  Assert(Value > '');
+  if DecimalSeparator <> '.' then
+    WriteText(StringReplace(Value, DecimalSeparator, '.', []), qDoubleQuoted)
+  else
+    WriteText(Value, qDoubleQuoted);
+end;
+
+procedure TyamlWriter.WriteLargeInt(const I: Int64);
+begin
+  WriteBuffer(IntToStr(I));
+end;
+
+initialization
+  if GetTimeZoneInformation(TZInfo) <> TIME_ZONE_ID_INVALID then
+    FTZBias := TZInfo.Bias
+  else
+    FTZBias := 0;
 end.

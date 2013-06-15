@@ -284,7 +284,7 @@ begin
   P := Length(S);
   if (P >= 8) and (S[3] = ':') and (S[6] = ':') then
   begin
-    while (P >= 1) and (S[P] <> 'Z') do
+    while (P >= 1) and (not (S[P] in ['+', '-', 'Z'])) do
       Dec(P);
     if P >= 9 then
     begin
