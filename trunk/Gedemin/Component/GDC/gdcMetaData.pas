@@ -7789,16 +7789,8 @@ begin
       begin
         if Trim(S[I]) > '' then
         begin
-          //AddText('Запуск SQL-скрипта...', clBlue);
-          AddText({TranslateText(}S[I]{)}, clBlack);
-
+          AddText({TranslateText(}S[I]{)});
           Transaction.ExecSQLImmediate(S[I]);
-{          ibsql.Close;
-          ibsql.ParamCheck := False;
-          ibsql.SQL.Text := S[I];
-          ibsql.ExecQuery; }
-
-          //AddText('SQL-скрипт выполнен!', clBlue);
         end;
       end;
 
@@ -7813,9 +7805,8 @@ begin
     end;
 
     if atDatabase.InMultiConnection then
-      AddText( 'Начата сложная операция обновления ' +
-        'данных! Для ее окончания необходимо переподключение к ' +
-        'базе данных!' + #13#10, clGreen);
+      AddText('Для выполнения операции необходимо переподключение к ' +
+        'базе данных!');
   finally
    if DidActivate then
       Transaction.Commit;

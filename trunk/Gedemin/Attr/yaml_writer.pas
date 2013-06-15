@@ -53,13 +53,10 @@ type
 implementation
 
 uses
-  JclStrings, JclMime, Windows;
+  JclStrings, JclMime;
 
 const
   DefBufferSize   = 65536;
-
-var
-  FTZBias: Integer;
 
 constructor TyamlWriter.Create(AStream: TStream);
 begin
@@ -149,29 +146,8 @@ begin
 end;
 
 procedure TyamlWriter.WriteTimestamp(const Timestamp: TDateTime);
-
-  function ISO8601Timezone(tzbias: Integer): AnsiString;
-  var
-    Sign: AnsiChar;
-  begin
-    if tzbias = 0 then
-      Result := 'Z'
-    else
-    begin
-      if tzbias < 0 then
-      begin
-        tzbias := -tzbias;
-        Sign := '-';
-      end else
-        Sign := '+';
-      Result := Result + Format('%s%2.2d:%2.2d',
-        [Sign, tzbias div 60, tzbias mod 60]);
-    end;
-  end;
-
 begin
-  WriteBuffer(FormatDateTime('yyyy-mm-dd"T"hh":"nn":"ss', Timestamp) +
-    ISO8601Timezone(FTZBias));
+  WriteBuffer(FormatDateTime('yyyy-mm-dd"T"hh":"nn":"ss', Timestamp) + TZBiasString);
 end;
 
 procedure TyamlWriter.WriteDate(const Date: TDateTime);
@@ -370,9 +346,6 @@ begin
   WriteString('%' + ADirective);
 end;
 
-var
-  TZInfo: TTimeZoneInformation;
-
 procedure TyamlWriter.WriteBCD(const Value: AnsiString);
 begin
   Assert(Value > '');
@@ -387,9 +360,4 @@ begin
   WriteBuffer(IntToStr(I));
 end;
 
-initialization
-  if GetTimeZoneInformation(TZInfo) <> TIME_ZONE_ID_INVALID then
-    FTZBias := TZInfo.Bias
-  else
-    FTZBias := 0;
 end.
