@@ -227,7 +227,6 @@ begin
     for J := 0 to TableList.Count - 1 do
     begin
       RN := TableList[J];
-      WriteString(FN, 'Table', RN);
       Temps := GetPassFieldName(RN);
       SL.Clear;
       SetFKFields(SL, RN);
@@ -247,6 +246,7 @@ begin
 
       while not q.Eof do
       begin
+        WriteString(FN, 'Table', RN);
         for I := 0 to SL.Count - 1 do
         begin
           if q.FieldByName(SL[I]).IsNull then
@@ -278,5 +278,6 @@ begin
     FN.Free;
   end;
 end;
+
 end.
 

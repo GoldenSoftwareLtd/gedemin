@@ -162,8 +162,6 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
         Height = 17
         Action = actFLTInternal
         Caption = 'Пакеты'
-        Checked = True
-        State = cbChecked
         TabOrder = 2
       end
       object chbxUpdate: TCheckBox

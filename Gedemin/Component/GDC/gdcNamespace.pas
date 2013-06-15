@@ -290,7 +290,7 @@ class procedure TgdcNamespace.WriteObject(AgdcObject: TgdcBase; AWriter: TyamlWr
                   InstObj.ID := q.Fields[0].AsInteger;
                   InstObj.Open;
                   if not InstObj.EOF then
-                    FN := InstObj.FieldByName(InstObj.GetListField(InstObj.SubType)).AsString
+                    FN := InstObj.ObjectName
                   else
                     FN := '';
 
@@ -320,8 +320,8 @@ class procedure TgdcNamespace.WriteObject(AgdcObject: TgdcBase; AWriter: TyamlWr
 const
   PassFieldName =
     ';ID;CREATORKEY;EDITORKEY;ACHAG;AVIEW;AFULL;LB;RB;RESERVED' +
-    ';BREAKPOINTS;EDITORSTATE;TESTRESULT' +
-    ';LASTEXTIME;PARENTINDEX;';
+    ';BREAKPOINTS;EDITORSTATE;TESTRESULT;LASTEXTIME;PARENTINDEX' +
+    ';RDB$TRIGGER_BLR;RDB$PROCEDURE_BLR;RDB$VIEW_BLR;RDB$SECURITY_CLASS;';
 var
   I, L: Integer;
   R: TatRelation;
@@ -380,9 +380,7 @@ begin
     begin
       F := AgdcObject.Fields[I];
 
-      if  (StrIPos('RDB$', F.FieldName) = 1)
-        or (StrIPos(';' + F.FieldName + ';', PassFieldName) > 0)
-      then
+      if  StrIPos(';' + F.FieldName + ';', PassFieldName) > 0 then
         continue;
 
       FN := '';
@@ -655,7 +653,7 @@ begin
                         Obj.Open;
                         Obj.Insert;
                         Obj.FieldByName('namespacekey').AsInteger := Self.ID;
-                        Obj.FieldByName('objectname').AsString := gdcTree.FieldByName(gdcTree.GetListField(gdcTree.SubType)).AsString;
+                        Obj.FieldByName('objectname').AsString := gdcTree.ObjectName;
                         Obj.FieldByName('objectclass').AsString := gdcTree.ClassName;
                         Obj.FieldByName('subtype').AsString := gdcTree.SubType;
                         Obj.FieldByName('xid').AsInteger := gdcTree.GetRUID.XID;
@@ -1027,7 +1025,7 @@ var
             else
               if MessageBox(0,
                 PChar(
-                  'В базе данных найден объект "' + InstObj.FieldByName(InstObj.GetListField(InstObj.SubType)).AsString + '"'#13#10 +
+                  'В базе данных найден объект "' + InstObj.ObjectName + '"'#13#10 +
                   'RUID: ' +  At_Obj.RUID + #13#10 +
                   'Класс: ' + At_Obj.Objectclass + At_Obj.SubType + #13#10#13#10 +
                   'Удалить объект из базы данных?'),
@@ -1040,16 +1038,20 @@ var
               begin
                 try
                   InstObj.Delete;
-                  AddText('Удален объект ' + At_Obj.Objectclass + ' ' + At_Obj.RUID + ' "' + At_Obj.ObjectName + '"', clBlack);
+                  AddText('Удален объект: ' +
+                    At_Obj.ObjectClass +
+                    At_Obj.SubType + ' ' +
+                    At_Obj.RUID + ' "' + At_Obj.ObjectName + '"');
                 except
                   on Ex: EIBError do
                   begin
                     if (Ex.IBErrorCode = isc_foreign_key) or ((Ex.IBErrorCode = isc_except) and (
                       StrIPos('GD_E_FKMANAGER', Ex.Message) > 0))
                     then
-                      AddWarning('Запись "' + InstObj.FieldByName(InstObj.GetListField(InstObj.SubType)).AsString + '" невозможно удалить так как на нее ссылаются другие записи.', clRed)
+                      AddWarning('Запись "' + InstObj.ObjectName +
+                        '" невозможно удалить так как на нее ссылаются другие записи.', clRed)
                     else
-                      AddWarning(Ex.Message, clRed);
+                      AddMistake(Ex.Message);
                   end;
                 end;
 
@@ -1203,7 +1205,7 @@ begin
             LoadNSRUID := M.ReadString('Properties\RUID');
             CurrNSRuid := LoadNSRUID;
             LoadedNS(M.ReadString('Properties\Name'), CurrNSRuid);
-            AddText('Загрузка пространства имен "' + M.ReadString('Properties\Name') + '"', clBlack);
+            AddText('Загрузка пространства имен "' + M.ReadString('Properties\Name') + '"');
             gdcNamespace := TgdcNamespace.Create(nil);
             try
               gdcNamespace.ReadTransaction := Tr;
@@ -1357,8 +1359,8 @@ begin
                     else
                       gdcNamespaceObj.Edit;
                     gdcNamespaceObj.FieldByName('namespacekey').AsInteger := TempNamespaceID;
-                    if Obj.FieldByName(Obj.GetListField(Obj.SubType)).AsString <> '' then
-                      gdcNamespaceObj.FieldByName('objectname').AsString := Obj.FieldByName(Obj.GetListField(Obj.SubType)).AsString
+                    if Obj.ObjectName <> '' then
+                      gdcNamespaceObj.FieldByName('objectname').AsString := Obj.ObjectName
                     else
                       gdcNamespaceObj.FieldByName('objectname').AsString := RUIDToStr(Obj.GetRUID);
                     gdcNamespaceObj.FieldByName('objectclass').AsString := Obj.ClassName;
@@ -1448,7 +1450,7 @@ begin
             LoadNamespace.Add(ANamespaceList[I]);
             RunMultiConnection;
 
-            AddText('Окончена загрузка пространства имен "' + M.ReadString('Properties\Name') + '"', clBlack);
+            AddText('Окончена загрузка пространства имен "' + M.ReadString('Properties\Name') + '"');
           end;
         finally
           Parser.Free;
@@ -1464,7 +1466,7 @@ begin
         if Tr.InTransaction then
           Tr.Rollback;
           
-        AddMistake(E.Message, clRed);
+        AddMistake(E.Message);
         raise;
       end;
     end;
@@ -1732,8 +1734,8 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
   UpdateList: TObjectList; RUIDList: TStringList; ATr: TIBTransaction;
   const AnAlwaysoverwrite: Boolean = False): TLoadedStatus;  
 
-  function InsertRecord(SourceYAML: TyamlMapping; Obj: TgdcBase;
-    UL: TObjectList; const RUID: String): TLoadedStatus; forward;
+  function InsertRecord(ASourceYAML: TyamlMapping; AnObj: TgdcBase;
+    AnUL: TObjectList; const ARUID: TRUID): TLoadedStatus; forward;
 
   procedure CheckDataType(F: TField; Value: TyamlNode);
   var
@@ -1929,9 +1931,9 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
                 if Key > -1 then
                   TargetField.AsInteger := Key;
               end else
-                AddWarning(#13#10 + 'RUID ''' + RefRUID + ''' некорректен!'#13#10, clRed);
+                AddWarning('Неверный RUID ' + RefRUID, clRed);
             end;
-            Continue;
+            continue;
           end;
 
           if (F <> nil) and (F.References <> nil) then
@@ -1947,7 +1949,7 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
               IsNull := True;
 
             if (RefRUID > '') and not CheckRUID(RefRUID) then
-              AddWarning(#13#10 + 'RUID ''' + RefRUID + ''' некорректен!'#13#10, clRed);
+              AddWarning('Неверный RUID ' + RefRUID, clRed);
 
             if not IsNull then
             begin
@@ -2004,18 +2006,21 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
           try
             Obj.Post;
             Result := lsModified;
-            AddText('Обновлен объект ' + Obj.ClassName + ' ' + RUID + ' "' +
-              Obj.FieldByName(Obj.GetListField(Obj.SubType)).AsString + '"', clBlack);
+            AddText('Обновлен объект: ' +
+              Obj.ClassName +
+              Obj.SubType + ' ' +
+              RUID +
+              ' "' + Obj.ObjectName + '"');
           except
             on E: EIBError do
             begin
               if (E.IBErrorCode = isc_no_dup) or (E.IBErrorCode = isc_except) then
               begin
                 Obj.Cancel;
-                AddText('РУИД некорректен. Попытка найти объект по уникальному ключу.', clBlack);
+                AddText('РУИД не определен. Поиск объекта по уникальному ключу.');
                 gdcBaseManager.DeleteRUIDByXID(StrToRUID(RUID).XID,
                   StrToRUID(RUID).XID, ATr);
-                InsertRecord(SourceYAML, Obj, UL, RUID);
+                InsertRecord(SourceYAML, Obj, UL, StrToRUID(RUID));
               end else
                 raise;
             end;
@@ -2025,13 +2030,17 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
         begin
           Obj.Post;
           Result := lsInsert;
-          AddText('Создан объект ' + Obj.ClassName + ' ' + RUIDToStr(Obj.GetRUID) + ' "' + Obj.FieldByName(Obj.GetListField(Obj.SubType)).AsString + '"', clBlack);
+          AddText('Создан объект: ' +
+            Obj.ClassName +
+            Obj.SubType + ' ' +
+            RUIDToStr(Obj.GetRUID) +
+            ' "' + Obj.ObjectName + '"');
         end else
         begin
           if Obj.DSModified then
           begin
             Result := lsModified;
-            AddText(RUIDToStr(Obj.GetRUID) + ' -> ' + RUID, clBlack);
+            AddText(RUIDToStr(Obj.GetRUID) + ' -> ' + RUID);
           end else
             Result := lsUnModified;
         end;
@@ -2060,7 +2069,7 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
                Fields.ReadString(Obj.GetListField(Obj.SubType)),
                RUID]);
 
-          AddMistake(ErrorSt, clRed);
+          AddMistake(ErrorSt);
           Obj.Cancel;
         end;
       end;
@@ -2070,47 +2079,54 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
     end;
   end;
 
-  function InsertRecord(SourceYAML: TyamlMapping; Obj: TgdcBase;
-    UL: TObjectList; const RUID: String): TLoadedStatus;
+  function InsertRecord(ASourceYAML: TyamlMapping; AnObj: TgdcBase;
+    AnUL: TObjectList; const ARUID: TRUID): TLoadedStatus;
   var
-    OLDRUID, CurrRUID: TRUIDRec;
+    OldRUID, CurrRUID: TRUIDRec;
     q: TIBSQL;
-  begin 
-    Obj.Insert;
-    if StrToRUID(RUID).XID < cstUserIDStart then
-      Obj.ID := StrToRUID(RUID).XID;
-    Result := CopyRecord(SourceYAML, Obj, UL);
-    if  Result <> lsNone then
-    begin
-      Obj.CheckBrowseMode;
-      if gdcBaseManager.GetRUIDRecByID(Obj.ID, ATr).XID = -1 then
+  begin
+    AnObj.Insert;
+    try
+      if IsGedeminSystemID(ARUID.XID) then
+        AnObj.ID := ARUID.XID;
+      Result := CopyRecord(ASourceYAML, AnObj, AnUL);
+      if Result <> lsNone then
       begin
-        gdcBaseManager.InsertRUID(Obj.ID, StrToRUID(RUID).XID, StrToRUID(RUID).DBID,
-          now, IBLogin.ContactKey, ATr);
-      end else
-      begin
-        OLDRUID := gdcBaseManager.GetRUIDRecByID(Obj.ID, ATr);
-        gdcBaseManager.UpdateRUIDByID(Obj.ID, StrToRUID(RUID).XID, StrToRUID(RUID).DBID,
-          now, IBLogin.ContactKey, ATr);
-        CurrRUID := gdcBaseManager.GetRUIDRecByID(Obj.ID, ATr);
-        if (OLDRUID.XID <> CurrRUID.XID) or (OLDRUID.DBID <> CurrRUID.DBID) then
-        begin
-          q := TIBSQL.Create(nil);
-          try
-            q.Transaction := ATr;
-            q.SQL.Text := 'UPDATE at_object SET xid = :xid, dbid = :dbid ' +
-              'WHERE xid = :xid2 and dbid = :dbid2';
-            q.ParamByName('xid').AsInteger := CurrRUID.XID;
-            q.ParamByName('dbid').AsInteger := CurrRUID.DBID;
-            q.ParamByName('xid2').AsInteger := OLDRUID.XID;
-            q.ParamByName('dbid2').AsInteger := OLDRUID.DBID;
-            q.ExecQuery;
-            AddText(IntToStr(OLDRUID.XID) + '_' + IntToStr(OLDRUID.DBID) + ' -> ' + IntToStr(CurrRUID.XID) + '_' + IntToStr(CurrRUID.DBID), clBlack);
-          finally
-            q.Free;
+        if AnObj.State in [dsInsert, dsEdit] then
+          AnObj.Post;
+
+        OldRUID := gdcBaseManager.GetRUIDRecByID(AnObj.ID, ATr);
+
+        if OldRUID.XID = -1 then
+          gdcBaseManager.InsertRUID(AnObj.ID, ARUID.XID, ARUID.DBID, Now,
+            IBLogin.ContactKey, ATr)
+        else begin
+          gdcBaseManager.UpdateRUIDByID(AnObj.ID, ARUID.XID, ARUID.DBID, Now,
+            IBLogin.ContactKey, ATr);
+          CurrRUID := gdcBaseManager.GetRUIDRecByID(AnObj.ID, ATr);
+          if (OldRUID.XID <> CurrRUID.XID) or (OldRUID.DBID <> CurrRUID.DBID) then
+          begin
+            q := TIBSQL.Create(nil);
+            try
+              q.Transaction := ATr;
+              q.SQL.Text := 'UPDATE at_object SET xid = :xid, dbid = :dbid ' +
+                'WHERE xid = :xid2 and dbid = :dbid2';
+              q.ParamByName('xid').AsInteger := CurrRUID.XID;
+              q.ParamByName('dbid').AsInteger := CurrRUID.DBID;
+              q.ParamByName('xid2').AsInteger := OldRUID.XID;
+              q.ParamByName('dbid2').AsInteger := OldRUID.DBID;
+              q.ExecQuery;
+              AddText(RUIDToStr(RUID(OldRUID.XID, OldRUID.DBID)) + ' -> ' +
+                RUIDToStr(RUID(CurrRUID.XID, CurrRUID.DBID)));
+            finally
+              q.Free;
+            end;
           end;
         end;
       end;
+    finally
+      if AnObj.State in [dsInsert, dsEdit] then
+        AnObj.Cancel;
     end;
   end;
 
@@ -2186,11 +2202,12 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
                     UL.Add(RU);
                   end;
                 end else
-                  AddWarning(#13#10 + 'Запись ''' + (Items[J] as TyamlScalar).AsString + ''' в таблицу ' + RN + ' не добавлена! RUID некорректен!'#13#10, clRed);
+                  AddWarning('Запись "' + (Items[J] as TyamlScalar).AsString +
+                    '" в таблицу ' + RN + ' не добавлена! RUID некорректен!', clRed);
               end;
             end;
           end else
-             AddWarning(#13#10 + 'Данные множества ' + RN + ' не были добавлены!'#13#10, clRed);
+             AddWarning('Данные множества ' + RN + ' не были добавлены!', clRed);
         end;
       end;
     finally
@@ -2318,7 +2335,7 @@ begin
 
   Result := lsNone;
   RUID := AMapping.ReadString('Properties\RUID');
-  Modify := AMapping.ReadDateTime('Fields\EDITIONDATE');
+  Modify := AMapping.ReadDateTime('Fields\EDITIONDATE', Now);
   AlwaysOverwrite := AMapping.ReadBoolean('Properties\AlwaysOverwrite')
     or AnAlwaysoverwrite;    
 
@@ -2357,10 +2374,8 @@ begin
         end;
 
         if D = -1 then
-        begin
-          Result := InsertRecord(AMapping, AnObj, UpdateList, RUID);
-        end else
-        begin
+          Result := InsertRecord(AMapping, AnObj, UpdateList, StrToRUID(RUID))
+        else begin
           if AnObj.SubSet <> 'ByID' then
             AnObj.SubSet := 'ByID';
           AnObj.ID := D;
@@ -2371,7 +2386,7 @@ begin
             gdcBaseManager.DeleteRUIDbyXID(StrToRUID(RUID).XID,
               StrToRUID(RUID).DBID, ATr);
 
-            Result := InsertRecord(AMapping, AnObj, UpdateList, RUID);
+            Result := InsertRecord(AMapping, AnObj, UpdateList, StrToRUID(RUID));
           end else
           begin 
             Ind := RUIDList.IndexOf(RUID);
@@ -2400,8 +2415,8 @@ begin
                       with TdlgCompareNSRecords.Create(nil) do
                       try
                         Records := CDS;
-                        lblClassname.Caption := AnObj.GetDisplayName(AnObj.SubType);
-                        lblName.Caption := AnObj.FieldByName(AnObj.GetListField(AnObj.SubType)).AsString;
+                        lblClassname.Caption := AnObj.ClassName + AnObj.SubType;
+                        lblName.Caption := AnObj.ObjectName;
                         lblID.Caption := IntToStr(AnObj.ID);
                         if ShowModal = mrOK then
                         begin
@@ -2425,7 +2440,9 @@ begin
                                   if TempID > 0 then
                                     AnObj.Fields[I].AsInteger := TempID
                                   else
-                                    AddWarning(#13#10 + 'При обновлении данных, объект (RUID =  ''' + CDS.FieldByName('R_' + AnObj.Fields[I].FieldName).AsString + ''') в базе не найден! '#13#10, clRed);
+                                    AddWarning('При обновлении данных, объект (RUID = ' +
+                                      CDS.FieldByName('R_' + AnObj.Fields[I].FieldName).AsString +
+                                      ') в базе не найден!', clRed);
                                 end else
                                   AnObj.Fields[I].Value := CDS.FieldByName('R_' + AnObj.Fields[I].FieldName).Value;
                               end;
@@ -2799,8 +2816,10 @@ begin
       q.Transaction := gdcBaseManager.ReadTransaction
     else
       q.Transaction := Transaction;
-    //W.WriteDirective(dirYAML11);
-    //W.StartNewLine;
+    W.WriteDirective(dirYAML11);
+    W.StartNewLine;
+    W.WriteDocumentStart;
+    W.StartNewLine;
     W.WriteKey('StructureVersion');
     W.WriteText('1.0', qDoubleQuoted);
     W.StartNewLine;
@@ -2877,7 +2896,7 @@ begin
       begin
         Obj.Transaction := Transaction;
         Obj.ReadTransaction := Transaction;
-      end;  
+      end;
       Obj.SubSet := 'ByNamespace';
       Obj.ParamByName('namespacekey').AsInteger := Self.ID;
       Obj.Open;
@@ -2887,6 +2906,7 @@ begin
         W.WriteKey('Objects');
         W.IncIndent;
       end;
+
       while not Obj.Eof do
       begin
         InstID := gdcBaseManager.GetIDByRUID(Obj.FieldByName('xid').AsInteger,
@@ -3435,7 +3455,7 @@ begin
         begin
           gdcNamespaceObject.Insert;
           gdcNamespaceObject.FieldByName('namespacekey').AsInteger := Self.ID;
-          gdcNamespaceObject.FieldByName('objectname').AsString := AnObject.FieldByName(AnObject.GetListField(AnObject.SubType)).AsString;
+          gdcNamespaceObject.FieldByName('objectname').AsString := AnObject.ObjectName;
           gdcNamespaceObject.FieldByName('objectclass').AsString :=  AnObject.GetCurrRecordClass.gdClass.ClassName;
           gdcNamespaceObject.FieldByName('subtype').AsString := AnObject.SubType;
           gdcNamespaceObject.FieldByName('xid').AsInteger := AnObject.GetRUID.XID;
@@ -3504,7 +3524,7 @@ procedure TgdcNamespace.DeleteObject(xid, dbid: Integer; RemoveObj: Boolean = Tr
             StrIPos('GD_E_FKMANAGER', Ex.Message) > 0)) then
           begin
             Result := False;
-            Error := 'Запись "' + Obj.FieldByName(Obj.GetListField(Obj.SubType)).AsString + '" невозможно удалить так как на нее ссылаются другие записи.';
+            Error := 'Запись "' + Obj.ObjectName + '" невозможно удалить так как на нее ссылаются другие записи.';
           end;
         end;
       end;
@@ -3570,7 +3590,7 @@ begin
                 end else
                 begin
                   WasDelete := False;
-                  AddMistake(Error, clRed);
+                  AddMistake(Error);
                 end;
               end;
             finaLLY

@@ -1,7 +1,7 @@
 object dlgToNamespace: TdlgToNamespace
   Left = 445
   Top = 223
-  Width = 760
+  Width = 737
   Height = 542
   Caption = 'Добавление объекта в пространство имен'
   Color = clBtnFace
@@ -18,7 +18,7 @@ object dlgToNamespace: TdlgToNamespace
   object pnlGrid: TPanel
     Left = 0
     Top = 112
-    Width = 744
+    Width = 721
     Height = 392
     Align = alClient
     BevelOuter = bvNone
@@ -26,7 +26,7 @@ object dlgToNamespace: TdlgToNamespace
     object dbgrListLink: TgsDBGrid
       Left = 0
       Top = 0
-      Width = 744
+      Width = 721
       Height = 361
       Align = alClient
       DataSource = dsMain
@@ -66,13 +66,13 @@ object dlgToNamespace: TdlgToNamespace
     object pnlButtons: TPanel
       Left = 0
       Top = 361
-      Width = 744
+      Width = 721
       Height = 31
       Align = alBottom
       BevelOuter = bvNone
       TabOrder = 1
       object pnlRightBottom: TPanel
-        Left = 520
+        Left = 497
         Top = 0
         Width = 224
         Height = 31
@@ -103,7 +103,7 @@ object dlgToNamespace: TdlgToNamespace
   object pnlTop: TPanel
     Left = 0
     Top = 0
-    Width = 744
+    Width = 721
     Height = 112
     Align = alTop
     BevelOuter = bvNone
@@ -137,7 +137,7 @@ object dlgToNamespace: TdlgToNamespace
       Caption = 'Объект:'
     end
     object cbIncludeSiblings: TCheckBox
-      Left = 358
+      Left = 344
       Top = 55
       Width = 337
       Height = 17
@@ -151,7 +151,7 @@ object dlgToNamespace: TdlgToNamespace
       TabOrder = 5
     end
     object cbDontRemove: TCheckBox
-      Left = 358
+      Left = 344
       Top = 39
       Width = 331
       Height = 17
@@ -165,7 +165,7 @@ object dlgToNamespace: TdlgToNamespace
       TabOrder = 4
     end
     object cbAlwaysOverwrite: TCheckBox
-      Left = 358
+      Left = 344
       Top = 22
       Width = 233
       Height = 17

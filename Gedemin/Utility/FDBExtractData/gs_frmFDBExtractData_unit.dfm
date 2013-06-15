@@ -59,11 +59,10 @@ object gs_frmFDBExtractData: Tgs_frmFDBExtractData
     end
     object sbSelectOutPutFile: TSpeedButton
       Left = 258
-      Top = 128
+      Top = 127
       Width = 23
-      Height = 22
+      Height = 21
       Action = actSelectOutPutFile
-      Caption = '...'
     end
     object eDatabase: TEdit
       Left = 64
@@ -78,6 +77,7 @@ object gs_frmFDBExtractData: Tgs_frmFDBExtractData
       Width = 217
       Height = 21
       TabOrder = 1
+      Text = 'SYSDBA'
     end
     object ePassword: TEdit
       Left = 64
@@ -86,6 +86,7 @@ object gs_frmFDBExtractData: Tgs_frmFDBExtractData
       Height = 21
       PasswordChar = '*'
       TabOrder = 2
+      Text = 'masterkey'
     end
     object eSave: TEdit
       Left = 8
@@ -98,7 +99,7 @@ object gs_frmFDBExtractData: Tgs_frmFDBExtractData
       Left = 168
       Top = 160
       Width = 115
-      Height = 25
+      Height = 21
       Action = actExtract
       TabOrder = 4
     end
@@ -111,6 +112,7 @@ object gs_frmFDBExtractData: Tgs_frmFDBExtractData
       OnExecute = actSeletDBExecute
     end
     object actSelectOutPutFile: TAction
+      Caption = '...'
       OnExecute = actSelectOutPutFileExecute
     end
     object actExtract: TAction

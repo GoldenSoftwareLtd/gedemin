@@ -277,7 +277,7 @@ end;
 
 function ConvertToTime(const S: AnsiString; out DT: TDateTime): Boolean;
 var
-  P: Integer;
+  P, Bias, MSec: Integer;
   MS: AnsiString;
 begin
   Result := False;
@@ -289,18 +289,34 @@ begin
     if P >= 9 then
     begin
       try
-        MS := Copy(S, 10, P - 10);
-        if Length(MS) = 1 then
-          MS := MS + '00'
+        MS := Trim(Copy(S, 10, P - 10));
+        if MS = '' then
+          MSec := 0
+        else if Length(MS) = 1 then
+          MSec := StrToInt(MS) * 100
         else if Length(MS) = 2 then
-          MS := MS + '0'
-        else if Length(MS) > 3 then
-          SetLength(MS, 3);
+          MSec := StrToInt(MS) * 10
+        else
+          MSec := StrToInt(Copy(MS, 1, 3));
         DT := EncodeTime(
           StrToIntDef(Copy(S, 1, 2), -1),
           StrToIntDef(Copy(S, 4, 2), -1),
           StrToIntDef(Copy(S, 7, 2), -1),
-          StrToIntDef(MS, 0));
+          MSec);
+
+        if (Length(S) - P = 5) and (S[P] in ['+', '-']) then
+        begin
+          Bias :=
+            StrToInt(S[P + 1]) * 10 * 60 +
+            StrToInt(S[P + 2]) * 60 +
+            StrToInt(S[P + 4]) * 10 +
+            StrToInt(S[P + 5]);
+          if S[P] = '+' then
+            DT := DT - (Bias + TZBias) / 60 / 24
+          else
+            DT := DT + (Bias - TZBias) / 60 / 24;
+        end;
+
         Result := True;
       except
         on EConvertError do
@@ -573,7 +589,7 @@ var
   N: TyamlNode;
 begin
   N := FindByName(AName);
-  if N is TyamlScalar then
+  if (N is TyamlScalar) and (not TyamlScalar(N).IsNull) then
     Result := TyamlScalar(N).AsBoolean
   else
     Result := DefValue;
@@ -585,7 +601,7 @@ var
   N: TyamlNode;
 begin
   N := FindByName(AName);
-  if N is TyamlScalar then
+  if (N is TyamlScalar) and (not TyamlScalar(N).IsNull) then
     Result := TyamlScalar(N).AsDateTime
   else
     Result := DefValue;
@@ -597,7 +613,7 @@ var
   N: TyamlNode;
 begin
   N := FindByName(AName);
-  if N is TyamlScalar then
+  if (N is TyamlScalar) and (not TyamlScalar(N).IsNull) then
     Result := TyamlScalar(N).AsInteger
   else
     Result := DefValue;
@@ -608,7 +624,7 @@ var
   N: TyamlNode;
 begin
   N := FindByName(AName);
-  if N is TyamlScalar then
+  if (N is TyamlScalar) and (not TyamlScalar(N).IsNull) then
     Result := TyamlScalar(N).AsString
   else
     Result := DefValue;
