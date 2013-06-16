@@ -9,7 +9,7 @@ uses
 type
   Tgd_GlobalParams = class(TObject)
   private
-    FLocalAddDataDir: String;
+    FLocalAppDataDir: String;
     FNetworkDrive: Boolean;
     FCDROMDrive: Boolean;
     FSecondaryInstance: Boolean;
@@ -39,7 +39,7 @@ type
 
     function GetExternalEditor(const ALang: String): String;
 
-    property LocalAppDataDir: String read FLocalAddDataDir;
+    property LocalAppDataDir: String read FLocalAppDataDir;
     property NetworkDrive: Boolean read FNetworkDrive;
     property CDROMDrive: Boolean read FCDROMDrive;
     property SecondaryInstance: Boolean read FSecondaryInstance write FSecondaryInstance;
@@ -67,21 +67,34 @@ const
   CSIDL_LOCAL_APPDATA = $001c;
 var
   DriveType: Integer;
+  LocalIniFileName: String;
 begin
   inherited;
-  FLocalAddDataDir := IncludeTrailingBackslash(
+
+  FLocalAppDataDir := IncludeTrailingBackslash(
     GetSpecialFolderLocation(CSIDL_LOCAL_APPDATA)) + 'Gedemin';
-  if not DirectoryExists(FLocalAddDataDir) then
-    CreateDir(FLocalAddDataDir);
+
+  if not DirectoryExists(FLocalAppDataDir) then
+    if not CreateDir(FLocalAppDataDir) then
+      FLocalAppDataDir := '';
+
   DriveType := GetDriveType(PChar(
     IncludeTrailingBackslash(ExtractFileDrive(Application.ExeName))));
   FNetworkDrive := DriveType = DRIVE_REMOTE;
   FCDROMDrive := DriveType = DRIVE_CDROM;
-  if FNetworkDrive or FCDROMDrive then
-    FIniFileName := IncludeTrailingBackslash(FLocalAddDataDir)
-  else
-    FIniFileName := ExtractFilePath(Application.EXEName);
-  FIniFileName := FIniFileName + 'gedemin.ini';
+
+  FIniFileName := ExtractFilePath(Application.EXEName) + 'gedemin.ini';
+
+  if (FNetworkDrive or FCDROMDrive) and (FLocalAppDataDir > '') then
+  begin
+    LocalIniFileName := IncludeTrailingBackslash(FLocalAppDataDir) + 'gedemin.ini';
+
+    if not FileExists(LocalIniFileName) then
+      CopyFile(PChar(FIniFileName), PChar(LocalIniFileName), True);
+
+    FIniFileName := LocalIniFileName;  
+  end;
+
   FIniFile := TIniFile.Create(FIniFileName);
   ReadFromIniFile;
 end;

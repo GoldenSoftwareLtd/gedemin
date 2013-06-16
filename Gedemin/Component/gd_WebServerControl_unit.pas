@@ -266,7 +266,7 @@ var
   LParams, LResult: Variant;
   Processed: Boolean;
   I: Integer;
-  SL: TStringList;
+  //SL: TStringList;
 begin
   Assert(FHTTPGetHandlerList <> nil);
 
@@ -336,7 +336,7 @@ begin
 
       if not Processed then
       begin
-        if FileExists(ExtractFilePath(Application.EXEName) + 'test.html') then
+        {if FileExists(ExtractFilePath(Application.EXEName) + 'test.html') then
         begin
           SL := TStringList.Create;
           try
@@ -347,7 +347,7 @@ begin
           finally
             SL.Free;
           end;
-        end else
+        end else}
         begin
           S := 'Gedemin Web Server.';
           S := S + '<br/>Copyright (c) 2013 by <a href="http://gsbelarus.com">Golden Software of Belarus, Ltd.</a>';
@@ -513,13 +513,12 @@ begin
 
   Log(FRequestInfo.RemoteIP, 'QERY', FRequestInfo.Params);
 
-  if (AnsiCompareText(FRequestInfo.Params.Values['update_token'], 'POSITIVE_CASH') = 0)
-    or (AnsiCompareText(FRequestInfo.Params.Values['update_token'], 'POSITIVE_CHECK') = 0) then
-  begin
-    exit;
-  end;
+  if FRequestInfo.Params.Values['c_name'] = '!TEST!' then
+    FResponseInfo.ContentText := 'MSGBLK';
 
-  if DirectoryExists(gd_GlobalParams.GetWebServerUpdatePath) then
+  if (AnsiCompareText(FRequestInfo.Params.Values['update_token'], 'POSITIVE_CASH') <> 0)
+    and (AnsiCompareText(FRequestInfo.Params.Values['update_token'], 'POSITIVE_CHECK') <> 0)
+    and DirectoryExists(gd_GlobalParams.GetWebServerUpdatePath) then
   begin
     FLastToken := '';
 
@@ -553,7 +552,7 @@ begin
         if TFLItem.CompareVersionStrings(FI.Version,
           FRequestInfo.Params.Values['exe_ver'], 4) > 0 then
         begin
-          FResponseInfo.ContentText := 'UPDATE';
+          FResponseInfo.ContentText := FResponseInfo.ContentText + 'UPDATE';
           FLastToken := FRequestInfo.Params.Values['update_token'];
         end;
       end;
