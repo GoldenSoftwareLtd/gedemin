@@ -101,7 +101,8 @@ uses
   IBSQL, IBDatabase, gd_ClassList, {$IFDEF FR4}frxClass,{$ENDIF} FR_Class, ZLIB,
   jclBase, {$IFDEF EXCMAGIC_GEDEMIN}ExcMagic,{$ENDIF} TB2Version
   {$IFDEF GEDEMIN}, FastMM4{$ENDIF} {$IFDEF WITH_INDY}, gd_FileList_unit, IdGlobal,
-  gd_WebClientControl_unit, gd_WebServerControl_unit{$ENDIF}, gd_GlobalParams_unit;
+  gd_WebClientControl_unit, gd_WebServerControl_unit{$ENDIF}, gd_GlobalParams_unit,
+  gd_DatabasesList_unit;
 
 type
   TMemoryStatusEx = record
@@ -385,6 +386,9 @@ begin
     finally
       Free;
     end;
+
+  AddSpaces('databases.ini', gd_DatabasesList.IniFileName);
+  AddSpaces('gedemin.ini', gd_GlobalParams.IniFileName);
 
   S := '';
   for I := 1 to ParamCount do

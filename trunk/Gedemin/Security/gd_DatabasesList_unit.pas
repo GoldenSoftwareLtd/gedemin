@@ -366,13 +366,25 @@ end;
 { Tgd_DatabasesList }
 
 constructor Tgd_DatabasesList.Create;
+var
+  LocalIniFileName: String;
 begin
   inherited Create(Tgd_DatabaseItem);
-  if gd_GlobalParams.NetworkDrive or gd_GlobalParams.CDROMDrive then
-    FIniFileName := IncludeTrailingBackslash(gd_GlobalParams.LocalAppDataDir)
-  else
-    FIniFileName := ExtractFilePath(Application.EXEName);
-  FIniFileName := FIniFileName + 'databases.ini';
+
+  FIniFileName := ExtractFilePath(Application.EXEName) + 'databases.ini';
+
+  if (gd_GlobalParams.NetworkDrive or gd_GlobalParams.CDROMDrive)
+    and (gd_GlobalParams.LocalAppDataDir > '') then
+  begin
+    LocalIniFileName := IncludeTrailingBackslash(gd_GlobalParams.LocalAppDataDir) +
+      'databases.ini';
+
+    if not FileExists(LocalIniFileName) then
+      CopyFile(PChar(FIniFileName), PChar(LocalIniFileName), True);
+
+    FIniFileName := LocalIniFileName;
+  end;
+
   ReadFromIniFile;
   ReadFromCmdLine;
 end;
