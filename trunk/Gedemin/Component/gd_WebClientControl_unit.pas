@@ -110,6 +110,9 @@ begin
   if FConnected.Value <> 0 then
     exit;
 
+  if gd_CmdLineParams.Embedding then
+    exit;  
+
   gdWebServerURL := gd_GlobalParams.GetWebClientRemoteServer;
   if gdWebServerURL > '' then
   begin
