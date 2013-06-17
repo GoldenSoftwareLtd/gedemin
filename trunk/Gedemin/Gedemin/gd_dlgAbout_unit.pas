@@ -428,6 +428,14 @@ begin
     AddSpaces('—имволы компил€ции', S);
   end;
 
+  AddSection('√лобальные параметры');
+  AddSpaces('LocalAppDataDir', gd_GlobalParams.LocalAppDataDir);
+  AddBoolean('NetworkDrive', gd_GlobalParams.NetworkDrive);
+  AddBoolean('CDROMDrive', gd_GlobalParams.CDROMDrive);
+  AddBoolean('SecondaryInstance', gd_GlobalParams.SecondaryInstance);
+  AddBoolean('CanUpdate', gd_GlobalParams.CanUpdate);
+  AddBoolean('NeedRestartForUpdate', gd_GlobalParams.NeedRestartForUpdate);
+
   {$IFDEF WITH_INDY}
   AddSection('Web Server');
   AddBoolean('јктивен', gdWebServerControl.Active);

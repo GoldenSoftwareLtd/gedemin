@@ -242,7 +242,6 @@ begin
         PostThreadMessage(ThreadID, WM_GD_PROCESS_SERVER_RESPONSE, 0, 0);
 
     WM_GD_UPDATE_FILES:
-      if FAutoUpdate and FCanUpdate then
       begin
         FInUpdate.Value := 1;
         if LoadFilesList then
@@ -251,8 +250,7 @@ begin
           FInUpdate.Value := 0;
           PostThreadMessage(ThreadID, WM_GD_PROCESS_SERVER_RESPONSE, 0, 0);
         end;
-      end else
-          PostThreadMessage(ThreadID, WM_GD_PROCESS_SERVER_RESPONSE, 0, 0);
+      end;
 
     WM_GD_PROCESS_UPDATE_COMMAND:
       if ProcessUpdateCommand then
@@ -273,7 +271,8 @@ begin
         begin
           FWebServerResponse.Value := StringReplace(FWebServerResponse.Value,
             'UPDATE', '', []);
-          PostThreadMessage(ThreadID, WM_GD_UPDATE_FILES, 0, 0);
+          if FAutoUpdate and FCanUpdate then
+            PostThreadMessage(ThreadID, WM_GD_UPDATE_FILES, 0, 0);
         end
         else if Pos('MSG', FWebServerResponse.Value) > 0 then
         begin
