@@ -13,7 +13,7 @@ type
     pnlWorkArea: TPanel;
     actList: TActionList;
     lCaption: TLabel;
-    Panel2: TPanel;
+    pnlBottom: TPanel;
     actOK: TAction;
     actCancel: TAction;
     actShowOnlyDiff: TAction;
@@ -34,6 +34,8 @@ type
     rbCancel: TRadioButton;
     pnlRightBottom: TPanel;
     btnOK: TButton;
+    btnView: TButton;
+    actView: TAction;
     procedure FormShow(Sender: TObject);
     procedure actOKExecute(Sender: TObject);
     procedure actCancelExecute(Sender: TObject);
@@ -44,6 +46,8 @@ type
     procedure actShowOnlyDiffExecute(Sender: TObject);
     procedure pnlGridResize(Sender: TObject);
     procedure actCloseExecute(Sender: TObject);
+    procedure actViewExecute(Sender: TObject);
+    procedure actViewUpdate(Sender: TObject);
   private
     { Private declarations }
   public
@@ -56,6 +60,9 @@ var
 implementation
 
 {$R *.DFM}
+
+uses
+  prp_ScriptComparer_unit;
 
 procedure TdlgCompareNSRecords.FormShow(Sender: TObject);
 begin 
@@ -179,7 +186,27 @@ begin
   if rbSave.Checked then
     actOk.Execute
   else
-    actCancel.Execute;  
+    actCancel.Execute;
+end;
+
+procedure TdlgCompareNSRecords.actViewExecute(Sender: TObject);
+var
+  ScriptComparer: Tprp_ScriptComparer;
+begin
+  ScriptComparer := Tprp_ScriptComparer.Create(nil);
+  try
+    ScriptComparer.Compare(sgMain.Cells[1, sgMain.Row], sgMain.Cells[2, sgMain.Row]);
+    ScriptComparer.LeftCaption('Â áàçå äàííûõ:');
+    ScriptComparer.RightCaption('Â ôàéëå:');
+    ScriptComparer.ShowModal;
+  finally
+    ScriptComparer.Free;
+  end;
+end;
+
+procedure TdlgCompareNSRecords.actViewUpdate(Sender: TObject);
+begin
+  actView.Enabled := sgMain.RowCount > 1;
 end;
 
 end.

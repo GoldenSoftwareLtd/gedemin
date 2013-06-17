@@ -29,14 +29,14 @@ object dlgCompareNSRecords: TdlgCompareNSRecords
       Width = 3
       Height = 13
     end
-    object Panel2: TPanel
+    object pnlBottom: TPanel
       Left = 0
       Top = 416
       Width = 632
       Height = 40
       Align = alBottom
       BevelOuter = bvNone
-      TabOrder = 0
+      TabOrder = 1
       object rbSave: TRadioButton
         Left = 11
         Top = 1
@@ -76,19 +76,19 @@ object dlgCompareNSRecords: TdlgCompareNSRecords
     end
     object pnlGrid: TPanel
       Left = 0
-      Top = 81
+      Top = 91
       Width = 632
-      Height = 335
+      Height = 325
       Align = alClient
       BevelOuter = bvNone
       BorderWidth = 4
-      TabOrder = 1
+      TabOrder = 0
       OnResize = pnlGridResize
       object sgMain: TStringGrid
         Left = 4
         Top = 4
         Width = 624
-        Height = 327
+        Height = 317
         Align = alClient
         ColCount = 3
         DefaultRowHeight = 18
@@ -115,19 +115,19 @@ object dlgCompareNSRecords: TdlgCompareNSRecords
       Left = 0
       Top = 0
       Width = 632
-      Height = 81
+      Height = 91
       Align = alTop
       BevelOuter = bvNone
       TabOrder = 2
       object lTitle: TLabel
         Left = 8
-        Top = 65
-        Width = 377
-        Height = 17
+        Top = 64
+        Width = 369
+        Height = 27
         AutoSize = False
         Caption = 
-          'Выделите в таблице значения, которые будут записаны в базу данны' +
-          'х.'
+          'Двойным щелчком мыши выделите в таблице значения, которые будут ' +
+          'записаны в базу данных.'
         WordWrap = True
       end
       object lObjClass: TLabel
@@ -173,20 +173,28 @@ object dlgCompareNSRecords: TdlgCompareNSRecords
         Caption = 'lblClassName'
       end
       object pnlRight: TPanel
-        Left = 384
+        Left = 448
         Top = 0
-        Width = 248
-        Height = 81
+        Width = 184
+        Height = 91
         Align = alRight
         BevelOuter = bvNone
         TabOrder = 0
         object cbShowOnlyDiff: TCheckBox
-          Left = 74
-          Top = 64
+          Left = 6
+          Top = 7
           Width = 169
           Height = 17
           Action = actShowOnlyDiff
           TabOrder = 0
+        end
+        object btnView: TButton
+          Left = 104
+          Top = 68
+          Width = 75
+          Height = 21
+          Action = actView
+          TabOrder = 1
         end
       end
     end
@@ -209,6 +217,12 @@ object dlgCompareNSRecords: TdlgCompareNSRecords
     object actClose: TAction
       Caption = 'Закрыть'
       OnExecute = actCloseExecute
+    end
+    object actView: TAction
+      Caption = 'Просмотр...'
+      ShortCut = 114
+      OnExecute = actViewExecute
+      OnUpdate = actViewUpdate
     end
   end
 end
