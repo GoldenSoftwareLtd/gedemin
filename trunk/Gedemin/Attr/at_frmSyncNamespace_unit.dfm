@@ -1,6 +1,6 @@
 object at_frmSyncNamespace: Tat_frmSyncNamespace
-  Left = 184
-  Top = 89
+  Left = 329
+  Top = 330
   Width = 1131
   Height = 518
   Caption = 'Синхронизация пространств имен'
@@ -482,6 +482,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       Caption = 'Сравнить'
       Hint = 'Сравнить с файлами'
       ImageIndex = 131
+      ShortCut = 116
       OnExecute = actCompareExecute
       OnUpdate = actCompareUpdate
     end
@@ -524,6 +525,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       Caption = 'Снять отметку'
       Hint = 'Снять пометку'
       ImageIndex = 117
+      ShortCut = 8238
       OnExecute = actClearExecute
       OnUpdate = actClearUpdate
     end
@@ -531,6 +533,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       Caption = 'Синхронизировать...'
       Hint = 'Синхронизировать'
       ImageIndex = 21
+      ShortCut = 120
       OnExecute = actSyncExecute
       OnUpdate = actSyncUpdate
     end
