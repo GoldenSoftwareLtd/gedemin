@@ -1726,6 +1726,7 @@ begin
     (gdcDetailObject as TgdcSettingPos).Valid;
     gdcDetailObject.First;
     (gdcObject as TgdcSetting).SaveSettingToBlob(sttBinaryOld);
+    OutputDebugString(PChar(gdcObject.ObjectName));
     SaveObjectToNS;
     gdcObject.Next;
   end;
@@ -1736,6 +1737,7 @@ begin
     Tr.DefaultDatabase := gdcBaseManager.Database;
     Tr.StartTransaction;
 
+    OutputDebugString('Set alwaysoverwrite flags');
     q.Transaction := Tr;
     q.SQL.Text :=
       'UPDATE at_object o '#13#10 +
@@ -1745,6 +1747,7 @@ begin
       'AND o.alwaysoverwrite <> 0';
     q.ExecQuery;
 
+    OutputDebugString('Set dependencies');
     q.SQL.Text :=
       'EXECUTE BLOCK '#13#10 +
       'AS '#13#10 +

@@ -1535,6 +1535,9 @@ type
     // функция возвращает True, если подтипы есть, иначе - False
     class function GetSubTypeList(SubTypeList: TStrings): Boolean; virtual;
 
+    //
+    class function CheckSubType(const ASubType: String): Boolean;
+
     // вяртае _нфармацыю аб структуры галоўнай табл_цы БА, выкарыстоўваючы
     // атДатабэйз. Так_м чынам гэты метад можа быць выкл_каны ў любы момант
     // адразу пасля таго як створаны _ _н_цыял_заваны аб'ект атДатабэйз.
@@ -11494,41 +11497,16 @@ begin
 end;
 
 procedure TgdcBase.SetSubType(const Value: String);
-var
-  SL: TStringList;
-  I: Integer;
-  F: Boolean;
 begin
   if FSubType <> Value then
   begin
     if FSubType > '' then
     begin
       if (ComponentState * [csDesigning, csLoading] = []) then
-      begin
-        raise EgdcException.CreateObj('Cannot change subtype', Self);
-      end;
+        raise EgdcException.CreateObj('Can not change subtype', Self);
 
-      if Value > '' then
-      begin
-        SL := TStringList.Create;
-        try
-          GetSubTypeList(SL);
-          F := False;
-          for I := 0 to SL.Count - 1 do
-          begin
-            if Pos('=' + Value + '^', SL[I] + '^') > 0 then
-            begin
-              F := True;
-              break;
-            end;
-          end;
-
-          if not F then
-            raise EgdcException.Create('Invalid subtype specified');
-        finally
-          SL.Free;
-        end;
-      end;
+      if not CheckSubType(Value) then
+        raise EgdcException.CreateObj('Invalid subtype specified', Self);
     end;
 
     Close;
@@ -18044,6 +18022,32 @@ begin
     end;
   end else
     inherited;
+end;
+
+class function TgdcBase.CheckSubType(const ASubType: String): Boolean;
+var
+  SL: TStringList;
+  I: Integer;
+begin
+  if ASubType = '' then
+    Result := True
+  else begin
+    Result := False;
+    SL := TStringList.Create;
+    try
+      GetSubTypeList(SL);
+      for I := 0 to SL.Count - 1 do
+      begin
+        if Pos('=' + ASubType + '^', SL[I] + '^') > 0 then
+        begin
+          Result := True;
+          break;
+        end;
+      end;
+    finally
+      SL.Free;
+    end;
+  end;
 end;
 
 initialization

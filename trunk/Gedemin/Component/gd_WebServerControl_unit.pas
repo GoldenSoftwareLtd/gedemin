@@ -513,12 +513,13 @@ begin
 
   Log(FRequestInfo.RemoteIP, 'QERY', FRequestInfo.Params);
 
-  if FRequestInfo.Params.Values['c_name'] = '!TEST!' then
-    FResponseInfo.ContentText := 'MSGBLK';
+  if (AnsiCompareText(FRequestInfo.Params.Values['update_token'], 'POSITIVE_CASH') = 0)
+    or (AnsiCompareText(FRequestInfo.Params.Values['update_token'], 'POSITIVE_CHECK') = 0) then
+  begin
+    exit;
+  end;
 
-  if (AnsiCompareText(FRequestInfo.Params.Values['update_token'], 'POSITIVE_CASH') <> 0)
-    and (AnsiCompareText(FRequestInfo.Params.Values['update_token'], 'POSITIVE_CHECK') <> 0)
-    and DirectoryExists(gd_GlobalParams.GetWebServerUpdatePath) then
+  if DirectoryExists(gd_GlobalParams.GetWebServerUpdatePath) then
   begin
     FLastToken := '';
 
@@ -552,7 +553,7 @@ begin
         if TFLItem.CompareVersionStrings(FI.Version,
           FRequestInfo.Params.Values['exe_ver'], 4) > 0 then
         begin
-          FResponseInfo.ContentText := FResponseInfo.ContentText + 'UPDATE';
+          FResponseInfo.ContentText := 'UPDATE';
           FLastToken := FRequestInfo.Params.Values['update_token'];
         end;
       end;

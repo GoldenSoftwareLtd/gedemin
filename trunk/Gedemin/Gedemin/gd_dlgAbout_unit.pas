@@ -387,9 +387,6 @@ begin
       Free;
     end;
 
-  AddSpaces('databases.ini', gd_DatabasesList.IniFileName);
-  AddSpaces('gedemin.ini', gd_GlobalParams.IniFileName);
-
   S := '';
   for I := 1 to ParamCount do
     if Pos(' ', ParamStr(I)) = 0 then
@@ -429,12 +426,14 @@ begin
   end;
 
   AddSection('Глобальные параметры');
-  AddSpaces('LocalAppDataDir', gd_GlobalParams.LocalAppDataDir);
-  AddBoolean('NetworkDrive', gd_GlobalParams.NetworkDrive);
-  AddBoolean('CDROMDrive', gd_GlobalParams.CDROMDrive);
-  AddBoolean('SecondaryInstance', gd_GlobalParams.SecondaryInstance);
   AddBoolean('CanUpdate', gd_GlobalParams.CanUpdate);
+  AddBoolean('CDROMDrive', gd_GlobalParams.CDROMDrive);
+  AddSpaces('databases.ini', gd_DatabasesList.IniFileName);
+  AddSpaces('gedemin.ini', gd_GlobalParams.IniFileName);
+  AddSpaces('LocalAppDataDir', gd_GlobalParams.LocalAppDataDir);
   AddBoolean('NeedRestartForUpdate', gd_GlobalParams.NeedRestartForUpdate);
+  AddBoolean('NetworkDrive', gd_GlobalParams.NetworkDrive);
+  AddBoolean('SecondaryInstance', gd_GlobalParams.SecondaryInstance);
 
   {$IFDEF WITH_INDY}
   AddSection('Web Server');

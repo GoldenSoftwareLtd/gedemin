@@ -1177,7 +1177,7 @@ var
   M, ObjMapping: TyamlMapping;
   N: TyamlNode;
   RUID, HeadRUID, LoadNSRUID, CurrNSRuid: String;
-  WasMetaData, WasMetaDataInSetting, SubTypeFound: Boolean;
+  WasMetaData, WasMetaDataInSetting: Boolean;
   LoadClassName, LoadSubType: String;
   C: TClass;
   ObjList: TStringList;
@@ -1191,7 +1191,8 @@ var
   TimeStamp: TDateTime;
   at_obj: TgdcAt_Object;
 begin
-  Assert(atDatabase <> nil, 'Не загружена atDatabase');
+  Assert(atDatabase <> nil);
+  Assert(IBLogin.Database <> nil);
 
   LoadNamespace:= TStringlist.Create;
   LoadObjectsRUID := TStringList.Create;
@@ -1202,6 +1203,9 @@ begin
   q := TIBSQL.Create(nil);
   Tr := TIBTransaction.Create(nil);
   try
+    ObjList.Sorted := True;
+    ObjList.Duplicates := dupError;
+
     Tr.DefaultDatabase := IBLogin.Database;
     Tr.Params.Add('nowait');
     Tr.Params.Add('read_committed');
@@ -1215,7 +1219,7 @@ begin
       'WHERE xid || ''_'' || dbid = :r AND namespacekey = :nk';
     try
       if (GlobalStorage <> nil) and GlobalStorage.IsModified then
-      GlobalStorage.SaveToDatabase;
+        GlobalStorage.SaveToDatabase;
 
       if (UserStorage <> nil) and UserStorage.IsModified then
         UserStorage.SaveToDatabase;
@@ -1350,26 +1354,8 @@ begin
                     Ind := ObjList.IndexOf(LoadClassName + '('+ LoadSubType + ')');
                     if Ind = -1 then
                     begin
-                      if LoadSubType > '' then
-                      begin
-                        SubTypes := TStringList.Create;
-                        try
-                          CgdcBase(C).GetSubTypeList(SubTypes);
-                          SubTypeFound := False;
-                          for K := 0 to SubTypes.Count - 1 do
-                          begin
-                            if Pos('=' + LoadSubType + '^', SubTypes[K] + '^') > 0 then
-                            begin
-                              SubTypeFound := True;
-                              break;
-                            end;
-                          end;
-                          if not SubTypeFound then
-                            ReconnectDatabase;
-                        finally
-                          SubTypes.Free;
-                        end;
-                      end;
+                      if not CgdcBase(C).CheckSubType(LoadSubType) then
+                         ReconnectDatabase;
 
                       Obj := CgdcBase(C).CreateWithParams(nil,
                         Tr.DefaultDatabase, Tr, LoadSubType);
@@ -1377,9 +1363,8 @@ begin
                       Obj.ReadTransaction := Tr;
                       Obj.SetRefreshSQLOn(False);
                       ObjList.AddObject(LoadClassName + '('+ LoadSubType + ')', Obj);
-                      ObjList.Sort;
                     end else
-                      Obj := TgdcBase(ObjList.Objects[Ind]);
+                      Obj := ObjList.Objects[Ind] as TgdcBase;
                   end;
 
                   if Obj.SubSet <> 'ByID' then
@@ -1548,7 +1533,7 @@ begin
 
       for I := 0 to ObjList.Count - 1 do
         ObjList.Objects[I].Free;
-      ObjList.Free; 
+      ObjList.Free;
     end;
   end;
 end;
@@ -3835,7 +3820,9 @@ begin
               '    select d.id as xid, 17 as dbid, d.editiondate '#13#10 +
               '    from ' + LT + ' d '#13#10 +
               '    where d.id < 147000000) de '#13#10 +
-              '  on o.xid=de.xid and o.dbid=de.dbid and ((o.curr_modified IS NULL) or (o.curr_modified <> de.editiondate))'#13#10 +
+              '  on o.xid=de.xid and o.dbid=de.dbid '#13#10 +
+              '    and ((o.curr_modified IS NULL) '#13#10 +
+              '      or (o.curr_modified <> de.editiondate))'#13#10 +
               'when matched then '#13#10 +
               '  update set o.curr_modified = de.editiondate';
             q.ExecQuery;
