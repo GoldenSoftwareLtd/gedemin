@@ -35,10 +35,6 @@ type
     function ProcessUpdateCommand: Boolean;
     procedure FinishUpdate;
     procedure SyncFinishUpdate;
-    procedure ProcessShowMessageCommand;
-    procedure SyncShowMessageCommand;
-    procedure ProcessBlockCommand;
-    procedure SyncBlockCommand;
 
     function GetgdWebServerURL: String;
     procedure SetgdWebServerURL(const Value: String);
@@ -51,8 +47,6 @@ type
   protected
     function ProcessMessage(var Msg: TMsg): Boolean; override;
     procedure LogErrorSync; override;
-    procedure Setup; override;
-    procedure TearDown; override;
 
   public
     constructor Create;
@@ -82,11 +76,10 @@ uses
 const
   WM_GD_AFTER_CONNECTION       = WM_USER + 1118;
   WM_GD_QUERY_SERVER           = WM_USER + 1119;
-  WM_GD_UPDATE_FILES           = WM_USER + 1120;
-  WM_GD_GET_FILES_LIST         = WM_USER + 1121;
+  WM_GD_GET_FILES_LIST         = WM_USER + 1120;
+  WM_GD_UPDATE_FILES           = WM_USER + 1121;
   WM_GD_PROCESS_UPDATE_COMMAND = WM_USER + 1122;
   WM_GD_FINISH_UPDATE          = WM_USER + 1123;
-  WM_GD_PROCESS_SERVER_RESPONSE= WM_USER + 1124;
 
 { TgdWebClientThread }
 
@@ -114,9 +107,6 @@ begin
 
   if FConnected.Value <> 0 then
     exit;
-
-  if gd_CmdLineParams.Embedding then
-    exit;  
 
   gdWebServerURL := gd_GlobalParams.GetWebClientRemoteServer;
   if gdWebServerURL > '' then
@@ -239,17 +229,18 @@ begin
 
     WM_GD_QUERY_SERVER:
       if QueryWebServer then
-        PostThreadMessage(ThreadID, WM_GD_PROCESS_SERVER_RESPONSE, 0, 0);
+      begin
+        if (Pos('UPDATE', FWebServerResponse.Value) > 0) and FAutoUpdate and FCanUpdate then
+          PostThreadMessage(ThreadID, WM_GD_UPDATE_FILES, 0, 0);
+      end;
 
     WM_GD_UPDATE_FILES:
       begin
         FInUpdate.Value := 1;
         if LoadFilesList then
           PostThreadMessage(ThreadID, WM_GD_PROCESS_UPDATE_COMMAND, 0, 0)
-        else begin
+        else
           FInUpdate.Value := 0;
-          PostThreadMessage(ThreadID, WM_GD_PROCESS_SERVER_RESPONSE, 0, 0);
-        end;
       end;
 
     WM_GD_PROCESS_UPDATE_COMMAND:
@@ -262,32 +253,6 @@ begin
       begin
         FinishUpdate;
         FInUpdate.Value := 0;
-        PostThreadMessage(ThreadID, WM_GD_PROCESS_SERVER_RESPONSE, 0, 0);
-      end;
-
-    WM_GD_PROCESS_SERVER_RESPONSE:
-      begin
-        if Pos('UPDATE', FWebServerResponse.Value) > 0 then
-        begin
-          FWebServerResponse.Value := StringReplace(FWebServerResponse.Value,
-            'UPDATE', '', []);
-          if FAutoUpdate and FCanUpdate then
-            PostThreadMessage(ThreadID, WM_GD_UPDATE_FILES, 0, 0);
-        end
-        else if Pos('MSG', FWebServerResponse.Value) > 0 then
-        begin
-          FWebServerResponse.Value := StringReplace(FWebServerResponse.Value,
-            'MSG', '', []);
-          ProcessShowMessageCommand;
-          PostThreadMessage(ThreadID, WM_GD_PROCESS_SERVER_RESPONSE, 0, 0);
-        end
-        else if Pos('BLK', FWebServerResponse.Value) > 0 then
-        begin
-          FWebServerResponse.Value := StringReplace(FWebServerResponse.Value,
-            'BLK', '', []);
-          ProcessBlockCommand;
-          PostThreadMessage(ThreadID, WM_GD_PROCESS_SERVER_RESPONSE, 0, 0);
-        end;
       end;
   else
     Result := False;
@@ -304,18 +269,6 @@ begin
     FPI.Message := ErrorMessage;
     Synchronize(SyncProgressWatch);
   end;
-end;
-
-procedure TgdWebClientThread.Setup;
-begin
-  inherited;
-  //Assert(CoInitialize(nil) = S_OK);
-end;
-
-procedure TgdWebClientThread.TearDown;
-begin
-  //CoUninitialize;
-  inherited;
 end;
 
 destructor TgdWebClientThread.Destroy;
@@ -422,32 +375,6 @@ begin
       'Обновление файлов',
       MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
   end;
-end;
-
-procedure TgdWebClientThread.ProcessShowMessageCommand;
-begin
-  Synchronize(SyncShowMessageCommand);
-end;
-
-procedure TgdWebClientThread.ProcessBlockCommand;
-begin
-  Synchronize(SyncBlockCommand);
-end;
-
-procedure TgdWebClientThread.SyncShowMessageCommand;
-begin
-  MessageBox(0,
-    'Test',
-    'Test',
-    MB_OK or MB_ICONEXCLAMATION OR MB_TASKMODAL);
-end;
-
-procedure TgdWebClientThread.SyncBlockCommand;
-begin
-  MessageBox(0,
-    'Block',
-    'Block',
-    MB_OK or MB_ICONEXCLAMATION OR MB_TASKMODAL);
 end;
 
 initialization
