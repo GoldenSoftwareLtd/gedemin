@@ -281,6 +281,8 @@ procedure TgsNSList.Clear;
 var
   I: Integer;
 begin
+  NSTree.Clear;
+  FErrorNS.Clear;
   for I := 0 to Count - 1 do
     Objects[I].Free;
   inherited;
