@@ -465,6 +465,7 @@ var
   NSNode: TgsNSNode;
   SL: TStringList;
   gdcNamespace: TgdcNamespace;
+  Error: String;
 begin
   NSList := TgsNSList.Create;
   try
@@ -481,13 +482,21 @@ begin
       SL := TStringList.Create;
       gdcNamespace := TgdcNamespace.Create(nil);
       try
-        NSList.GetAllUses(NSNode.RUID, SL);
-        gdcNamespace.InstallPackages(SL);
+        if NSList.NSTree.CheckNSCorrect(NSNode.RUID, Error) then
+        begin
+          NSList.NSTree.SetNSFileName(NSNode.RUID, SL);
+          gdcNamespace.InstallPackages(SL);
+        end else
+          MessageBox(0, PChar(Error), 'Gedemin', MB_OK or MB_ICONERROR or MB_TASKMODAL);
       finally
         SL.Free;
         gdcNamespace.Free;
       end;
-    end;
+    end else
+      MessageBox(0,
+        PChar('Пространство имен "' + LoadSettingFileName + '" не найдено!'),
+        'Gedemin',
+        MB_OK or MB_ICONERROR or MB_TASKMODAL);
   finally
     NSList.Free;
   end;
