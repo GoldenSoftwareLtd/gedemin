@@ -1186,8 +1186,11 @@ begin
     if (AnIndex >= 0) and (AnIndex < HugeIntSetMaxCount)
       and (arrHugeIntSet[AnIndex] <> nil) then
     begin
-      arrHugeIntSet[AnIndex].Exclude(AnElement);
-      Result := 1;
+      if arrHugeIntSet[AnIndex].Has(AnElement) then
+      begin  
+        arrHugeIntSet[AnIndex].Exclude(AnElement);
+        Result := 1;
+      end;  
     end;
   finally
     csHugeIntSet.Leave;
@@ -1203,8 +1206,11 @@ begin
     if (AnIndex >= 0) and (AnIndex < HugeIntSetMaxCount)
       and (AnElement >= 147000000) and (arrHugeIntSet[AnIndex] <> nil) then
     begin
-      arrHugeIntSet[AnIndex].Include(AnElement);
-      Result := 1;
+      if not arrHugeIntSet[AnIndex].Has(AnElement) then
+      begin
+        arrHugeIntSet[AnIndex].Include(AnElement);
+        Result := 1;
+      end;  
     end;
   finally
     csHugeIntSet.Leave;
@@ -1215,16 +1221,14 @@ function g_his_has(var AnIndex: Integer; var AnElement: Integer): Integer;
   cdecl; export;
 begin
   csHugeIntSet.Enter;
+  Result := 0;
   try
     if (AnIndex >= 0) and (AnIndex < HugeIntSetMaxCount)
       and (arrHugeIntSet[AnIndex] <> nil) then
     begin
-      if (AnElement < 147000000) or arrHugeIntSet[AnIndex].Has(AnElement) then
-        Result := 1
-      else
-        Result := 0;
-    end else
-      Result := 0;
+      if arrHugeIntSet[AnIndex].Has(AnElement) then   //if (AnElement < 147000000) or arrHugeIntSet[AnIndex].Has(AnElement) then
+        Result := 1;
+    end;
   finally
     csHugeIntSet.Leave;
   end;
@@ -1252,6 +1256,7 @@ begin
     csHugeIntSet.Leave;
   end;
 end;
+
 
 exports
   g_sec_test,
