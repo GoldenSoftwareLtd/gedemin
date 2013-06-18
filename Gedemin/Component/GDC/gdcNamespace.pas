@@ -15,7 +15,6 @@ type
   private
     FIncBuildVersion: Boolean;
     procedure CheckIncludesiblings;
-     
   protected
     function GetOrderClause: String; override;
     procedure _DoOnNewRecord; override;
@@ -38,7 +37,7 @@ type
       UpdateList: TObjectList; RUIDList: TStringList; ATr: TIBTransaction;
       const AnAlwaysoverwrite: Boolean = False): TLoadedStatus;
     class procedure ScanDirectory(ADataSet: TDataSet; ANSList: TgsNSList;
-      Log: TNSLog);   
+      Log: TNSLog);
 
     class procedure SetNamespaceForObject(AnObject: TgdcBase;
       ANSL: TgdKeyStringAssoc; ATr: TIBTransaction = nil);
@@ -49,9 +48,10 @@ type
       xid, dbid: Integer; ATr: TIBTransaction; AnAlwaysoverwrite: Integer = 1;
       ADontremove: Integer = 0; AnIncludesiblings: Integer = 0);
     class function LoadNSInfo(const Path: String; ATr: TIBTransaction): Integer;
+    class function CompareObj(ADataSet: TDataSet): Boolean;
     class procedure UpdateCurrModified(const ANamespaceKey: Integer = -1);
     class procedure FillSet(AnObj: TgdcBase; AnOL: TObjectList; ATr: TIBTransaction);
-
+    class procedure WriteChanges(ADataSet: TDataSet; AnObj: TgdcBase; ATr: TIBTransaction); 
     procedure AddObject2(AnObject: TgdcBase; AnUL: TObjectList;
       const AHeadObjectRUID: String = ''; AnAlwaysOverwrite: Integer = 1;
       ADontRemove: Integer = 0; AnIncludeSiblings: Integer = 0);
@@ -583,6 +583,54 @@ begin
     Tr.Commit;
   finally
     q.Free;
+  end;
+end;
+
+class procedure TgdcNamespace.WriteChanges(ADataSet: TDataSet; AnObj: TgdcBase; ATr: TIBTransaction);
+var
+  I, TempID: Integer;
+begin
+  Assert(ADataSet <> nil);
+  Assert(AnObj <> nil);
+  Assert(ATr <> nil);
+  Assert(ATr.InTransaction);
+
+  ADataSet.DisableControls;
+  try
+    ADataSet.First;
+    AnObj.Edit;
+    try
+      for I := 0 to AnObj.Fields.Count - 1 do
+      begin
+        if ADataSet.Locate('LR_FieldName',  AnObj.Fields[I].FieldName, [])
+          and (ADataSet.FieldByName('LR_NewValue').AsInteger = 1) then
+        begin
+          if ADataSet.FieldByName('R_' + AnObj.Fields[I].FieldName).IsNull then
+          begin
+            AnObj.Fields[I].Clear;
+            continue;
+          end;
+
+          if (ADataSet.FieldByName('LR_Ref').AsInteger = 1) then
+          begin
+            TempID := gdcBaseManager.GetIDByRUIDString(ADataSet.FieldByName('R_' + AnObj.Fields[I].FieldName).AsString, ATr);
+            if TempID > 0 then
+              AnObj.Fields[I].AsInteger := TempID
+            else
+              AddWarning('При обновлении данных, объект (RUID = ' +
+                ADataSet.FieldByName('R_' + AnObj.Fields[I].FieldName).AsString +
+                ') в базе не найден!', clRed);
+          end else
+            AnObj.Fields[I].Value := ADataSet.FieldByName('R_' + AnObj.Fields[I].FieldName).Value;
+        end;
+      end;
+      AnObj.Post
+    finally
+      if AnObj.State in dsEditModes then
+        AnObj.Cancel;
+    end;
+  finally
+    ADataSet.EnableControls;
   end;
 end;
 
@@ -1371,14 +1419,17 @@ begin
                     gdcNamespaceObj.FieldByName('alwaysoverwrite').AsInteger := Integer(ObjMapping.ReadBoolean('Properties\AlwaysOverwrite'));
                     gdcNamespaceObj.FieldByName('dontremove').AsInteger := Integer(ObjMapping.ReadBoolean('Properties\DontRemove'));
                     gdcNamespaceObj.FieldByName('includesiblings').AsInteger := Integer(ObjMapping.ReadBoolean('Properties\IncludeSiblings'));
-                    if Obj.FindField('editiondate') <> nil then
+                    if IsLoad in [lsModified, lsInsert] then
                     begin
-                      gdcNamespaceObj.FieldByName('modified').Value := Obj.FieldByName('editiondate').Value;
-                      gdcNamespaceObj.FieldByName('curr_modified').Value := Obj.FieldByName('editiondate').Value;
-                    end else
-                    begin
-                      gdcNamespaceObj.FieldByName('modified').AsDateTime := Now;
-                      gdcNamespaceObj.FieldByName('curr_modified').Value := gdcNamespaceObj.FieldByName('modified').AsDateTime;
+                      if Obj.FindField('editiondate') <> nil then
+                      begin
+                        gdcNamespaceObj.FieldByName('modified').Value := Obj.FieldByName('editiondate').Value;
+                        gdcNamespaceObj.FieldByName('curr_modified').Value := Obj.FieldByName('editiondate').Value;
+                      end else
+                      begin
+                        gdcNamespaceObj.FieldByName('modified').AsDateTime := Now;
+                        gdcNamespaceObj.FieldByName('curr_modified').Value := gdcNamespaceObj.FieldByName('modified').AsDateTime;
+                      end;
                     end;
                     Inc(LoadPos);
 
@@ -2233,6 +2284,7 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
       CDS.FieldDefs.Add('LR_FieldName', ftString, 255, False); 
       CDS.FieldDefs.Add('LR_Ref', ftInteger, 0, False);
       CDS.FieldDefs.Add('LR_NewValue', ftInteger, 0 , False);
+      CDS.FieldDefs.Add('LR_Equal', ftInteger, 0, False);
       for I := 0 to Obj.FieldDefs.Count - 1 do
       begin
         if (StrIPos('RDB$', Obj.FieldDefs[I].Name) = 1)
@@ -2276,6 +2328,7 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
           CDS.Insert;
           CDS.FieldByName('LR_FieldName').AsString := FN;
           CDS.FieldByName('LR_NewValue').AsInteger := 1;
+          CDS.FieldByName('LR_Equal').AsInteger := 1;
           if RefList.IndexOf(FN) > -1 then
           begin
             CDS.FieldByName('LR_Ref').AsInteger := 1;
@@ -2285,11 +2338,14 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
               CDS.FieldByName('L_' + FN).Clear;
               
             N := Fields.FindByName(FN);
-            if (N <> nil) and (N is TyamlString) then
+            if (N <> nil)
+              and (N is TyamlString)
+              and (not TyamlString(N).IsNull) then
             begin
               if ParseReferenceString(TyamlString(N).AsString, RUID, Name) then
                 CDS.FieldByName('R_' + FN).AsString := RUID;
-            end;
+            end else
+              CDS.FieldByName('R_' + FN).Clear;
           end else
           begin
             CDS.FieldByName('L_' + FN).Value := Obj.Fields[I].Value;
@@ -2317,7 +2373,7 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
   end;
 
 var
-  D, J, I: Integer;
+  D, J: Integer;
   RUID: String;
   RuidRec: TRuidRec;
   AlwaysOverwrite, ULCreated: Boolean;
@@ -2325,9 +2381,10 @@ var
   Ind: Integer;
   Modify: TDateTime;
   at_obj: TgdcAt_Object;
-  Compare: Boolean; 
-  CDS: TClientDataSet;
-  TempID: Integer;   
+  Compare: Boolean;
+  CDS: TClientDataSet; 
+  Overwrite: Boolean;
+  CreateDate: TDateTime;
 begin
   Assert(ATr <> nil);
   Assert(gdcBaseManager <> nil);
@@ -2336,8 +2393,9 @@ begin
   Result := lsNone;
   RUID := AMapping.ReadString('Properties\RUID');
   Modify := AMapping.ReadDateTime('Fields\EDITIONDATE', Now);
-  AlwaysOverwrite := AMapping.ReadBoolean('Properties\AlwaysOverwrite')
-    or AnAlwaysoverwrite;    
+  CreateDate := AMapping.ReadDateTime('Fields\CREATIONDATE', Now);
+  AlwaysOverwrite := AMapping.ReadBoolean('Properties\AlwaysOverwrite');
+  Overwrite := AlwaysOverwrite or AnAlwaysoverwrite;
 
   if UpdateList = nil then
   begin
@@ -2350,7 +2408,7 @@ begin
     begin
       try 
         AnObj.BaseState := AnObj.BaseState + [sLoadFromStream];
-        AnObj.ModifyFromStream := AlwaysOverwrite;
+        AnObj.ModifyFromStream := Overwrite;
 
         RuidRec := gdcBaseManager.GetRUIDRecByXID(StrToRUID(RUID).XID,
           StrToRUID(RUID).DBID, ATr);
@@ -2397,7 +2455,7 @@ begin
               begin
                 if at_obj.modified = AnObj.FieldByName('editiondate').AsDateTime then
                 begin
-                  AlwaysOverwrite := AlwaysOverwrite or (Modify > AnObj.FieldByName('editiondate').AsDateTime);
+                  Overwrite := AlwaysOverwrite or AnAlwaysoverwrite or (Modify > AnObj.FieldByName('editiondate').AsDateTime);
                 end else
                 begin
                   Compare := (AnObj.FieldByName('editiondate').AsDateTime > at_obj.modified)
@@ -2412,48 +2470,47 @@ begin
                     CDS := TClientDataSet.Create(nil);
                     try
                       FillDataSet(CDS, AnObj, AMapping.FindByName('Fields') as TyamlMapping);
-                      with TdlgCompareNSRecords.Create(nil) do
-                      try
-                        Records := CDS;
-                        lblClassname.Caption := AnObj.ClassName + AnObj.SubType;
-                        lblName.Caption := AnObj.ObjectName;
-                        lblID.Caption := IntToStr(AnObj.ID);
-                        if ShowModal = mrOK then
-                        begin
-                          CDS.First;
-                          AnObj.Edit;
-                          for I := 0 to AnObj.Fields.Count - 1 do
+                      if CompareObj(CDS) then
+                      begin
+                        with TdlgCompareNSRecords.Create(nil) do
+                        try
+                          Records := CDS;
+                          lblClassname.Caption := AnObj.ClassName + AnObj.SubType;
+                          lblName.Caption := AnObj.ObjectName;
+                          lblID.Caption := IntToStr(AnObj.ID);
+                          if ShowModal = mrOK then
                           begin
-                            if CDS.Locate('LR_FieldName',  AnObj.Fields[I].FieldName, []) then
+                            if CDS.Locate('LR_Equal', 0, []) then
                             begin
-                              if CDS.FieldByName('LR_NewValue').AsInteger = 1 then
-                              begin
-                                if CDS.FieldByName('R_' + AnObj.Fields[I].FieldName).IsNull then
-                                begin
-                                  AnObj.Fields[I].Clear;
-                                  continue;
-                                end;
-
-                                if (CDS.FieldByName('LR_Ref').AsInteger = 1) then
-                                begin
-                                  TempID := gdcBaseManager.GetIDByRUIDString(CDS.FieldByName('R_' + AnObj.Fields[I].FieldName).AsString, ATr);
-                                  if TempID > 0 then
-                                    AnObj.Fields[I].AsInteger := TempID
-                                  else
-                                    AddWarning('При обновлении данных, объект (RUID = ' +
-                                      CDS.FieldByName('R_' + AnObj.Fields[I].FieldName).AsString +
-                                      ') в базе не найден!', clRed);
-                                end else
-                                  AnObj.Fields[I].Value := CDS.FieldByName('R_' + AnObj.Fields[I].FieldName).Value;
-                              end;
-                            end;
-                          end;
+                              WriteChanges(CDS, AnObj, ATr);
+                              Result := lsModified;
+                            end else
+                              Result := lsUnModified;
+                          end else
+                            Result := lsUnModified;
+                        finally
+                          Free;
+                        end;
+                      end else
+                      begin
+                        Result := lsUnModified;
+                        if (AnObj.FindField('editiondate') <> nil)
+                          and (Modify <> AnObj.FieldByName('editiondate').AsDateTime) then
+                        begin
+                          AnObj.Edit;
+                          AnObj.FieldByName('editiondate').AsDateTime := Modify;
                           AnObj.Post;
                           Result := lsModified;
-                        end else
-                          Result := lsUnModified;
-                      finally
-                        Free;
+                        end;
+                        
+                        if (AnObj.FindField('creationdate') <> nil)
+                          and (CreateDate <> AnObj.FieldByName('creationdate').AsDateTime) then
+                        begin
+                          AnObj.Edit;
+                          AnObj.FieldByName('editiondate').AsDateTime := CreateDate;
+                          AnObj.Post;
+                          Result := lsModified;
+                        end;
                       end;
                     finally
                       CDS.Free;
@@ -2463,10 +2520,10 @@ begin
               end;
             end;
 
-            if (Result = lsNone) and (AlwaysOverwrite) then
+            if (Result = lsNone) and (Overwrite) then
             begin
               AnObj.Edit;
-              AnObj.ModifyFromStream := AlwaysOverwrite;
+              AnObj.ModifyFromStream := Overwrite;
               Result := CopyRecord(AMapping, AnObj, UpdateList);
               if Result <> lsNone then
               begin
@@ -2611,7 +2668,11 @@ begin
     begin
       FN := QuerySaveFileName('', 'yml', 'Файлы YML|*.yml');
       if FN = '' then
+      begin
+        if DidActivate and Transaction.InTransaction then
+          Transaction.Rollback;
         exit;
+      end;
     end;
 
     FS := TFileStream.Create(FN, fmCreate);
@@ -2622,7 +2683,7 @@ begin
         begin
           Edit;
           FieldByName('Version').AsString := IncVersion(FieldByName('Version').AsString, '.');
-          Post; 
+          Post;
         end;
         SaveNamespaceToStream(SS1251);
         SSUTF8 := TStringStream.Create(WideStringToUTF8(StringToWideStringEx(
@@ -2643,9 +2704,13 @@ begin
     FieldByName('filename').AsString := FN;
     FieldByName('filetimestamp').AsDateTime := gd_common_functions.GetFileLastWrite(FN);
     Post;
-  finally
+
     if DidActivate and Transaction.InTransaction then
       Transaction.Commit;
+  except
+    if DidActivate and Transaction.InTransaction then
+      Transaction.Rollback;
+    raise;
   end;
 end;
 
@@ -2731,6 +2796,42 @@ begin
   end;
 
   Delete;
+end;
+
+class function TgdcNamespace.CompareObj(ADataSet: TDataSet): Boolean;
+var
+  FN, Str1, Str2: String;
+begin
+  Result := False;
+  ADataSet.DisableControls;
+  try
+    ADataSet.First;
+    while not ADataSet.Eof do
+    begin
+      FN := ADataSet.FieldByName('LR_FieldName').AsString;
+      Str1 := ADataSet.FieldByName('L_' + FN).AsString;
+      Str2 := ADataSet.FieldByName('R_' + FN).AsString;
+      if (Trim(Str1) <> '') then
+        Str1 := Trim(Str1);
+      if (Trim(Str2) <> '') then
+        Str2 := Trim(Str2);
+      if AnsiCompareStr(Str1, Str2) <> 0 then
+      begin
+        ADataSet.Edit;
+        try
+          ADataSet.FieldByName('LR_Equal').AsInteger := 0;
+          ADataSet.Post;
+          Result := True;
+        finally
+          if ADataSet.State in dsEditModes then
+            ADataSet.Cancel;
+        end;
+      end;
+      ADataSet.Next;
+    end;
+  finally
+    ADataSet.EnableControls;
+  end;
 end;
 
 procedure TgdcNamespace.CompareWithData(const AFileName: String);
@@ -2889,7 +2990,7 @@ begin
       'SELECT xid || ''_'' || dbid as ruid FROM at_object WHERE id = :id';
 
     CheckIncludesiblings;
-    WasDelete := False;
+    WasDelete := False;  
     Obj := TgdcNamespaceObject.Create(nil);
     try
       if Transaction.InTransaction then

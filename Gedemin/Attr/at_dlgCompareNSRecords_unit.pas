@@ -144,7 +144,7 @@ begin
     while not Records.Eof do
     begin
       FN := Records.FieldByName('LR_FieldName').AsString;
-      if AnsiCompareStr(Records.FieldByName('L_' + FN).AsString, Records.FieldByName('R_' + FN).AsString) <> 0 then
+      if Records.FieldByName('LR_Equal').AsInteger = 0 then  
       begin
         sgMain.Cells[0, FieldsCount + 1] := FN;
         sgMain.Cells[1, FieldsCount + 1] := Records.FieldByName('L_' + FN).AsString;
