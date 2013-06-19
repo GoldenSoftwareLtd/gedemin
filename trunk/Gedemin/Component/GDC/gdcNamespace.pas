@@ -768,6 +768,7 @@ var
   function LoadedNS(const Name: String; var RUID: String): TNSFound;
   var
     q: TIBSQL;
+    T_RUID: TRUID;
   begin
     Result := nsfNone;
     q := TIBSQL.Create(nil);
@@ -775,8 +776,10 @@ var
       q.Transaction := Tr;
       q.SQL.Text := 'SELECT * FROM at_namespace n ' +
         'LEFT JOIN gd_ruid r ON n.id = r.id ' +
-        'WHERE r.xid || ''_'' || r.dbid = :ruid';
-      q.ParamByName('ruid').AsString := RUID;
+        'WHERE r.xid = :xid and r.dbid = :dbid';
+      T_RUID := StrToRUID(RUID);
+      q.ParamByName('xid').AsInteger := T_RUID.XID;
+      q.ParamByName('dbid').AsInteger := T_RUID.DBID;
       q.ExecQuery;
 
       if not q.Eof then
@@ -802,14 +805,14 @@ var
     end;   
   end;
 
-  procedure FillObjectsRUIDInDB(const RUID: String; SL: TStringList);
+  procedure FillObjectsRUIDInDB(const RUID: TRUID; SL: TStringList);
   var
     q: TIBSQL;
     At_Obj: TgdcAt_Object;
   begin
     Assert(SL <> nil);
 
-    if RUID = '' then
+    if (RUID.XID = -1) or (RUID.DBID = -1) then
       exit;
 
     q := TIBSQL.Create(nil);
@@ -823,9 +826,10 @@ var
         '    ON o.namespacekey = n.id ' +
         '  LEFT JOIN gd_ruid r' +
         '    ON  n.id = r.id ' +
-        'WHERE r.xid || ''_'' || r.dbid = :ruid ' +
+        'WHERE r.xid = :xid and r.dbid = :dbid ' +  
         'ORDER BY o.objectpos asc';
-      q.ParamByName('ruid').AsString := RUID;
+      q.ParamByName('xid').AsInteger := RUID.XID;
+      q.ParamByName('dbid').AsInteger := RUID.DBID;
       q.ExecQuery;
 
       while not q.Eof do
@@ -1171,12 +1175,13 @@ var
   LoadObjectsRUID: TStringList;
   CurrObjectsRUID: TStringList;
   Parser: TyamlParser;
-  I, J, Ind, K, LoadPos: Integer;
+  I, J, Ind, K, LoadPos, ID: Integer;
   gdcNamespace: TgdcNamespace;
   TempNamespaceID: Integer;
   M, ObjMapping: TyamlMapping;
   N: TyamlNode;
-  RUID, HeadRUID, LoadNSRUID, CurrNSRuid: String;
+  RecRUID, RUID: TRUID;
+  HeadRUID, CurrNSRUID, LoadNSRUID: String;
   WasMetaData, WasMetaDataInSetting: Boolean;
   LoadClassName, LoadSubType: String;
   C: TClass;
@@ -1216,7 +1221,7 @@ begin
     q.Transaction := Tr;
     q.SQL.Text :=
       'SELECT * FROM at_object ' +
-      'WHERE xid || ''_'' || dbid = :r AND namespacekey = :nk';
+      'WHERE xid = :xid and dbid = :dbid AND namespacekey = :nk';
     try
       if (GlobalStorage <> nil) and GlobalStorage.IsModified then
         GlobalStorage.SaveToDatabase;
@@ -1267,7 +1272,8 @@ begin
               gdcNamespace.Open;
               if gdcNamespace.Eof then
               begin
-                gdcBaseManager.DeleteRUIDbyXID(StrToRUID(CurrNSRuid).XID, StrToRUID(CurrNSRuid).DBID, Tr);
+                RecRUID := StrToRUID(CurrNSRuid);
+                gdcBaseManager.DeleteRUIDbyXID(RecRUID.XID, RecRUID.DBID, Tr);
                 gdcNamespace.Insert;
               end else
                 gdcNamespace.Edit;
@@ -1288,27 +1294,30 @@ begin
               gdcNamespace.Post;
               TempNamespaceID := gdcNamespace.ID;
 
+              RecRUID := StrToRUID(LoadNSRUID);
               if gdcBaseManager.GetRUIDRecByID(gdcNamespace.ID, Tr).XID = -1 then
               begin
                 gdcBaseManager.InsertRUID(gdcNamespace.ID,
-                  StrToRUID(LoadNSRUID).XID,
-                  StrToRUID(LoadNSRUID).DBID,
+                  RecRUID.XID,
+                  RecRUID.DBID,
                   Now, IBLogin.ContactKey, Tr);
               end else
               begin
                 gdcBaseManager.UpdateRUIDByID(gdcNamespace.ID,
-                  StrToRUID(LoadNSRUID).XID,
-                  StrToRUID(LoadNSRUID).DBID,
+                  RecRUID.XID,
+                  RecRUID.DBID,
                   Now, IBLogin.ContactKey, Tr);
               end;
             finally
               gdcNamespace.Free;
             end;
 
-            if gdcBaseManager.GetIDByRUIDString(CurrNSRuid, Tr) > -1 then
+            RecRUID := StrToRUID(CurrNSRuid);
+            ID := gdcBaseManager.GetRUIDRecByXID(RecRUID.XID, RecRUID.DBID, Tr).ID;
+            if  ID > -1 then
             begin
-              UpdateCurrModified(gdcBaseManager.GetIDByRUIDString(CurrNSRuid, Tr));
-              FillObjectsRUIDInDB(CurrNSRuid, CurrObjectsRUID);
+              UpdateCurrModified(ID);
+              FillObjectsRUIDInDB(RecRUID, CurrObjectsRUID);
             end;
 
             N := M.FindByName('Objects');
@@ -1324,9 +1333,12 @@ begin
                   ObjMapping := Items[J] as TyamlMapping;
                   LoadClassName := ObjMapping.ReadString('Properties\Class');
                   LoadSubType := ObjMapping.ReadString('Properties\SubType');
-                  RUID := ObjMapping.ReadString('Properties\RUID');
+                  RUID := StrToRUID(ObjMapping.ReadString('Properties\RUID'));
 
-                  if (LoadClassName = '') or (RUID = '') or not CheckRUID(RUID) then
+                  if (LoadClassName = '')
+                    or (RUID.XID = -1)
+                    or (RUID.DBID = -1)
+                  then
                     raise Exception.Create('Invalid object!');
 
                   C := GetClass(LoadClassName);
@@ -1419,10 +1431,12 @@ begin
                     Inc(LoadPos);
 
                     HeadRUID := ObjMapping.ReadString('Properties\HeadObject');
+                    RecRUID := StrToRUID(HeadRUID);
                     if HeadRUID <> '' then
                     begin
                       q.Close;
-                      q.ParamByName('r').AsString := HeadRUID;
+                      q.ParamByName('xid').AsInteger := RecRUID.XID;
+                      q.ParamByName('dbid').AsInteger := RecRUID.DBID;
                       q.ParamByName('nk').AsInteger := TempNamespaceID;
                       q.ExecQuery;
 
@@ -2359,7 +2373,7 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
 
 var
   D, J: Integer;
-  RUID: String;
+  RUID: TRUID;
   RuidRec: TRuidRec;
   AlwaysOverwrite, ULCreated: Boolean;
   N: TyamlNode;
@@ -2376,7 +2390,7 @@ begin
   Assert(AMapping <> nil);
 
   Result := lsNone;
-  RUID := AMapping.ReadString('Properties\RUID');
+  RUID := StrToRUID(AMapping.ReadString('Properties\RUID'));
   Modify := AMapping.ReadDateTime('Fields\EDITIONDATE', Now);
   CreateDate := AMapping.ReadDateTime('Fields\CREATIONDATE', Now);
   AlwaysOverwrite := AMapping.ReadBoolean('Properties\AlwaysOverwrite');
@@ -2395,29 +2409,29 @@ begin
         AnObj.BaseState := AnObj.BaseState + [sLoadFromStream];
         AnObj.ModifyFromStream := Overwrite;
 
-        RuidRec := gdcBaseManager.GetRUIDRecByXID(StrToRUID(RUID).XID,
-          StrToRUID(RUID).DBID, ATr);
+        RuidRec := gdcBaseManager.GetRUIDRecByXID(RUID.XID,
+          RUID.DBID, ATr);
 
         D := RuidRec.ID;
 
-        if (D = -1) and (StrToRUID(RUID).XID < cstUserIDStart) then
+        if (D = -1) and (RUID.XID < cstUserIDStart) then
         begin
           if AnObj.SubSet <> 'ByID' then
             AnObj.SubSet := 'ByID';
-          AnObj.ID := StrToRUID(RUID).XID;
+          AnObj.ID := RUID.XID;
           AnObj.Open;
 
           if not AnObj.EOF then
           begin
-            gdcBaseManager.InsertRUID(StrToRUID(RUID).XID,
-              StrToRUID(RUID).XID,
-              StrToRUID(RUID).DBID, Now, IBLogin.ContactKey, ATr);
-            D := StrToRUID(RUID).XID;
+            gdcBaseManager.InsertRUID(RUID.XID,
+              RUID.XID,
+              RUID.DBID, Now, IBLogin.ContactKey, ATr);
+            D := RUID.XID;
           end;
         end;
 
         if D = -1 then
-          Result := InsertRecord(AMapping, AnObj, UpdateList, StrToRUID(RUID))
+          Result := InsertRecord(AMapping, AnObj, UpdateList, RUID)
         else begin
           if AnObj.SubSet <> 'ByID' then
             AnObj.SubSet := 'ByID';
@@ -2426,13 +2440,13 @@ begin
 
           if AnObj.EOF then
           begin
-            gdcBaseManager.DeleteRUIDbyXID(StrToRUID(RUID).XID,
-              StrToRUID(RUID).DBID, ATr);
+            gdcBaseManager.DeleteRUIDbyXID(RUID.XID,
+              RUID.DBID, ATr);
 
-            Result := InsertRecord(AMapping, AnObj, UpdateList, StrToRUID(RUID));
+            Result := InsertRecord(AMapping, AnObj, UpdateList, RUID);
           end else
           begin 
-            Ind := RUIDList.IndexOf(RUID);
+            Ind := RUIDList.IndexOf(RUIDToStr(RUID));
             if (Ind > -1) then
             begin
               at_obj := RUIDList.Objects[Ind] as TgdcAt_Object;
@@ -2514,8 +2528,8 @@ begin
               begin
                 AnObj.CheckBrowseMode;
                 gdcBaseManager.UpdateRUIDByXID(AnObj.ID,
-                  StrToRUID(RUID).XID,
-                  StrToRUID(RUID).DBID,
+                  RUID.XID,
+                  RUID.DBID,
                   now, IBLogin.ContactKey, ATr);
               end;
             end;   
@@ -3552,9 +3566,11 @@ begin
           if Trim(AHeadObjectRUID) <> '' then
           begin
             q.Close;
-            q.SQL.Text := 'SELECT * FROM at_object WHERE namespacekey = :nk and xid || ''_'' ||dbid = :r';
+            q.SQL.Text := 'SELECT * FROM at_object ' +
+              'WHERE namespacekey = :nk and xid = :xid and dbid = :dbid';
             q.ParamByName('nk').AsInteger := Self.ID;
-            q.ParamByName('r').AsString := AHeadObjectRUID;
+            q.ParamByName('xid').AsInteger := StrToRUID(AHeadObjectRUID).XID;
+            q.ParamByName('dbid').AsInteger := StrToRUID(AHeadObjectRUID).DBID;
             q.ExecQuery;
 
             if not q.Eof then
@@ -3763,6 +3779,7 @@ var
   Tr: TIBTransaction;
   qList, q: TIBSQL;
   C: TPersistentClass;
+  RN: String;
 begin
   Assert(IBLogin <> nil);
   Assert(IBLogin.Database <> nil);
@@ -3790,12 +3807,12 @@ begin
       C := GetClass(qList.FieldByName('objectclass').AsString);
       if (C <> nil) and C.InheritsFrom(TgdcBase) then
       begin
+        RN := UpperCase(CgdcBase(C).GetListTable(qList.FieldByName('subtype').AsString));
         q.Close;
         q.SQL.Text :=
           'SELECT rdb$relation_name FROM rdb$relation_fields ' +
           'WHERE rdb$relation_name = :RN AND rdb$field_name = ''EDITIONDATE'' ';
-        q.ParamByName('RN').AsString :=
-          UpperCase(CgdcBase(C).GetListTable(qList.FieldByName('subtype').AsString));
+        q.ParamByName('RN').AsString := RN;
         q.ExecQuery;
 
         if not q.EOF then
@@ -3804,20 +3821,23 @@ begin
           q.SQL.Text :=
             'merge into at_object o '#13#10 +
             '  using (select r.xid, r.dbid, d.editiondate '#13#10 +
-            '    from ' + LT + ' d join gd_ruid r '#13#10 +
+            '    from ' + RN + ' d join gd_ruid r '#13#10 +
             '    on r.id = d.id '#13#10 +
             '  union all '#13#10 +
             '    select d.id as xid, 17 as dbid, d.editiondate '#13#10 +
-            '    from ' + LT + ' d '#13#10 +
+            '    from ' + RN + ' d '#13#10 +
             '    where d.id < 147000000) de '#13#10 +
             '  on o.xid=de.xid and o.dbid=de.dbid '#13#10 +
-            '    and o.objectclass = :OC and o.subype = :ST'#13#10 +
+            '    and o.objectclass = :OC and o.subtype IS NOT DISTINCT FROM :ST'#13#10 +
             '    and ((o.curr_modified IS NULL) '#13#10 +
             '      or (o.curr_modified IS DISTINCT FROM de.editiondate))'#13#10 +
             'when matched then '#13#10 +
             '  update set o.curr_modified = de.editiondate';
           q.ParamByName('OC').AsString := qList.FieldByName('objectclass').AsString;
-          q.ParamByName('ST').AsString := qList.FieldByName('subtype').AsString;
+          if qList.FieldByName('subtype').IsNull then
+            q.ParamByName('ST').Clear
+          else
+            q.ParamByName('ST').AsString := qList.FieldByName('subtype').AsString;
           q.ExecQuery;
         end;
       end;
