@@ -172,6 +172,12 @@ var
   q: TIBSQL;
   TempS: String;
 begin
+  if CurrOperation > '' then
+  begin
+    Result := CurrOperation;
+    exit;
+  end;
+  
   Result := '';
   CurrOperation := '';
   q := TIBSQL.Create(nil);
