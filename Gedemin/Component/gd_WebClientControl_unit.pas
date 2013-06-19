@@ -153,11 +153,14 @@ begin
         '&loc_ip=' + FLocalIP +
         '&exe_ver=' + FExeVer +
         '&update_token=' + FUpdateToken));
-      Result := True;
       gdNotifierThread.Add('Подключение прошло успешно.', 0, 2000);
+      Result := True;
     except
-      gdNotifierThread.Add('Произошла ошибка в процессе подключения!', 0, 2000);
-      raise;
+      on E: Exception do
+      begin
+        ErrorMessage := E.Message;
+        gdNotifierThread.Add(ErrorMessage, 0, 2000);
+      end;
     end;
   end;
 end;
@@ -186,33 +189,43 @@ function TgdWebClientThread.LoadFilesList: Boolean;
 var
   ResponseData: TStringStream;
 begin
+  Result := False;
+
   if not gd_GlobalParams.CanUpdate then
-    Result := False
-  else begin
-    if FServerFileList = nil then
-    begin
-      ResponseData := TStringStream.Create('');
-      try
-        FHTTP.Get(TidURI.URLEncode(gdWebServerURL + '/get_files_list?' +
-          'update_token=' + FUpdateToken),
-          ResponseData);
-        if ResponseData.Size > 0 then
-          ResponseData.Position := 0;
-        FServerFileList := TFLCollection.Create;
-        FServerFileList.UpdateToken := FUpdateToken;
-        FServerFileList.ParseYAML(ResponseData);
-        FServerFileList.OnProgressWatch := DoOnProgressWatch;
-      finally
-        ResponseData.Free;
+    exit;
+
+  if FServerFileList <> nil then
+    FreeAndNil(FServerFileList);
+
+  ResponseData := TStringStream.Create('');
+  try
+    try
+      FHTTP.Get(TidURI.URLEncode(gdWebServerURL + '/get_files_list?' +
+        'update_token=' + FUpdateToken),
+        ResponseData);
+      if ResponseData.Size > 0 then
+        ResponseData.Position := 0;
+      FServerFileList := TFLCollection.Create;
+      FServerFileList.UpdateToken := FUpdateToken;
+      FServerFileList.ParseYAML(ResponseData);
+      FServerFileList.OnProgressWatch := DoOnProgressWatch;
+
+      if FCmdList = nil then
+        FCmdList := TStringList.Create
+      else
+        FCmdList.Clear;
+
+      Result := True;
+      gdNotifierThread.Add('Загружен список файлов...', 0, 2000);
+    except
+      on E: Exception do
+      begin
+        ErrorMessage := E.Message;
+        gdNotifierThread.Add(ErrorMessage, 0, 2000);
       end;
     end;
-
-    if FCmdList = nil then
-      FCmdList := TStringList.Create
-    else
-      FCmdList.Clear;
-
-    Result := True;
+  finally
+    ResponseData.Free;
   end;
 end;
 

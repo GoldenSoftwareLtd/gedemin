@@ -2406,7 +2406,7 @@ end;
 procedure TfrmGedeminMain.UpdateNotification(const ANotification: String);
 begin
   if (not (csDestroying in ComponentState)) and Visible then
-    lblDatabase.Caption := ANotification;
+    lblDatabase.Caption := StringReplace(ANotification, #13#10, ' ', [rfReplaceAll]);
 end;
 
 procedure TfrmGedeminMain.actDatabasesListExecute(Sender: TObject);
