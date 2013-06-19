@@ -3808,6 +3808,7 @@ begin
       if (C <> nil) and C.InheritsFrom(TgdcBase) then
       begin
         RN := UpperCase(CgdcBase(C).GetListTable(qList.FieldByName('subtype').AsString));
+
         q.Close;
         q.SQL.Text :=
           'SELECT rdb$relation_name FROM rdb$relation_fields ' +
