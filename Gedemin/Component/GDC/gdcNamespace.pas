@@ -3763,8 +3763,6 @@ var
   Tr: TIBTransaction;
   qList, q: TIBSQL;
   C: TPersistentClass;
-  LT: String;
-  SL: TStringList;
 begin
   Assert(IBLogin <> nil);
   Assert(IBLogin.Database <> nil);
@@ -3772,10 +3770,7 @@ begin
   Tr := TIBTransaction.Create(nil);
   qList := TIBSQL.Create(nil);
   q := TIBSQL.Create(nil);
-  SL := TStringList.Create;
   try
-    SL.Sorted := True;
-
     Tr.DefaultDatabase := IBLogin.Database;
     Tr.StartTransaction;
 
@@ -3795,38 +3790,35 @@ begin
       C := GetClass(qList.FieldByName('objectclass').AsString);
       if (C <> nil) and C.InheritsFrom(TgdcBase) then
       begin
-        LT := CgdcBase(C).GetListTable(qList.FieldByName('subtype').AsString);
+        q.Close;
+        q.SQL.Text :=
+          'SELECT rdb$relation_name FROM rdb$relation_fields ' +
+          'WHERE rdb$relation_name = :RN AND rdb$field_name = ''EDITIONDATE'' ';
+        q.ParamByName('RN').AsString :=
+          UpperCase(CgdcBase(C).GetListTable(qList.FieldByName('subtype').AsString));
+        q.ExecQuery;
 
-        if SL.IndexOf(LT) = -1 then
+        if not q.EOF then
         begin
-          SL.Add(LT);
-
           q.Close;
           q.SQL.Text :=
-            'SELECT rdb$relation_name FROM rdb$relation_fields ' +
-            'WHERE rdb$relation_name = :RN AND rdb$field_name = ''EDITIONDATE'' ';
-          q.ParamByName('RN').AsString := UpperCase(LT);
+            'merge into at_object o '#13#10 +
+            '  using (select r.xid, r.dbid, d.editiondate '#13#10 +
+            '    from ' + LT + ' d join gd_ruid r '#13#10 +
+            '    on r.id = d.id '#13#10 +
+            '  union all '#13#10 +
+            '    select d.id as xid, 17 as dbid, d.editiondate '#13#10 +
+            '    from ' + LT + ' d '#13#10 +
+            '    where d.id < 147000000) de '#13#10 +
+            '  on o.xid=de.xid and o.dbid=de.dbid '#13#10 +
+            '    and o.objectclass = :OC and o.subype = :ST'#13#10 +
+            '    and ((o.curr_modified IS NULL) '#13#10 +
+            '      or (o.curr_modified IS DISTINCT FROM de.editiondate))'#13#10 +
+            'when matched then '#13#10 +
+            '  update set o.curr_modified = de.editiondate';
+          q.ParamByName('OC').AsString := qList.FieldByName('objectclass').AsString;
+          q.ParamByName('ST').AsString := qList.FieldByName('subtype').AsString;
           q.ExecQuery;
-
-          if not q.EOF then
-          begin
-            q.Close;
-            q.SQL.Text :=
-              'merge into at_object o '#13#10 +
-              '  using (select r.xid, r.dbid, d.editiondate '#13#10 +
-              '    from ' + LT + ' d join gd_ruid r '#13#10 +
-              '    on r.id = d.id '#13#10 +
-              '  union all '#13#10 +
-              '    select d.id as xid, 17 as dbid, d.editiondate '#13#10 +
-              '    from ' + LT + ' d '#13#10 +
-              '    where d.id < 147000000) de '#13#10 +
-              '  on o.xid=de.xid and o.dbid=de.dbid '#13#10 +
-              '    and ((o.curr_modified IS NULL) '#13#10 +
-              '      or (o.curr_modified <> de.editiondate))'#13#10 +
-              'when matched then '#13#10 +
-              '  update set o.curr_modified = de.editiondate';
-            q.ExecQuery;
-          end;
         end;
       end;
 
@@ -3835,7 +3827,6 @@ begin
 
     Tr.Commit;
   finally
-    SL.Free;
     q.Free;
     qList.Free;
     Tr.Free;
