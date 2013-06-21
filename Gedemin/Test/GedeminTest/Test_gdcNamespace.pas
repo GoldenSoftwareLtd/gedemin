@@ -13,6 +13,7 @@ type
   protected
     FTableName, FTableName2, FNamespaceName: String;
     FNamespaceKey: Integer;
+    FTableNameForType: String;
 
     function GetFileName: String;
 
@@ -23,6 +24,7 @@ type
     procedure TestAlwaysoverwrite;
     procedure TestSet;
     procedure TestIncludesiblings;
+    procedure TestType;
   published
     procedure DoTest;
   end;
@@ -31,7 +33,7 @@ implementation
 
 uses
   gdcMetaData, Sysutils, Windows, gdcBaseInterface, gdcGood, IBSQL,
-  gdcContacts;
+  gdcContacts, yaml_writer, yaml_parser, yaml_common;
 
 const
   Alwaysoverwrite = 1;
@@ -49,7 +51,8 @@ begin
   TestLoadNamespaceFromFile;
   TestAlwaysoverwrite;
   TestSet;
-  TestIncludesiblings;
+  TestIncludesiblings;  
+  TestType;
 end;
 
 function Tgs_gdcNamespaceTest.CheckTable(const AName: String): Boolean;
@@ -616,6 +619,199 @@ begin
     Good.Delete;
   finally
     Good.Free;
+  end;
+end;
+
+procedure Tgs_gdcNamespaceTest.TestType;
+
+  procedure InsertRecord(const AStr: String; ADouble: Double; ACurr: Currency; ADateTime: TDateTime;
+    const ABlob: String; AInt: Integer; ABigInt: Int64);
+  var
+    q: TIBSQL;
+  begin
+    q := TIBSQL.Create(nil);
+    try
+      q.Transaction := FTr;
+      q.SQL.Text :=
+        'INSERT INTO ' + FTableNameForType +
+        '  (USR$FLOAT, USR$CURRENCY, USR$TIMESTAMP, USR$VARCHAR, USR$BLOB, USR$INT, USR$BIGINT) ' +
+        '  VALUES(:f, :c, :t, :v, :b, :i, :bi)';
+      q.ParamByName('f').AsDouble := ADouble;
+      q.ParamByName('c').AsCurrency := ACurr;
+      q.ParamByName('t').AsDateTime := ADateTime;
+      q.ParamByName('v').AsString := AStr;
+      q.ParamByName('b').AsString := ABlob;
+      q.ParamByName('i').AsInteger := AInt;
+      q.ParamByName('bi').AsInt64 := ABigInt;
+      q.ExecQuery;
+      q.Close;
+
+      FTr.Commit;
+      FTr.StartTransaction;
+    finally
+      q.Free;
+    end;
+  end;
+
+  procedure WriteYAML(AStream: TStream);
+  var
+    Writer: TyamlWriter;
+    q: TIBSQL;    
+  begin
+    Assert(AStream <> nil);
+
+    Writer := TyamlWriter.Create(AStream);
+    q := TIBSQL.Create(nil);
+    try
+      q.Transaction := FTr;
+      q.SQL.Text := 'SELECT USR$FLOAT, USR$CURRENCY, USR$TIMESTAMP, ' +
+        'USR$VARCHAR, USR$BLOB, USR$INT, USR$BIGINT FROM ' + FTableNameForType;
+      q.ExecQuery;
+      if not q.EOF then
+      begin
+        Writer.WriteKey('Fields');
+        Writer.IncIndent;
+        Writer.StartNewLine;
+        Writer.WriteKey('USR$FLOAT');
+        Writer.WriteFloat(q.Fields[0].AsDouble);
+        Writer.StartNewLine;
+        Writer.WriteKey('USR$CURRENCY');
+        Writer.WriteCurrency(q.Fields[1].AsCurrency);
+        Writer.StartNewLine;
+        Writer.WriteKey('USR$TIMESTAMP');
+        Writer.WriteTimestamp(q.Fields[2].AsDateTime);
+        Writer.StartNewLine;
+        Writer.WriteKey('USR$VARCHAR');
+        Writer.WriteText(q.Fields[3].AsString, qDoubleQuoted);
+        Writer.StartNewLine;
+        Writer.WriteKey('USR$BLOB');
+        Writer.WriteText(q.Fields[4].AsString, qDoubleQuoted);
+        Writer.StartNewLine;
+        Writer.WriteKey('USR$INT');
+        Writer.WriteInteger(q.Fields[5].AsInteger);
+        Writer.StartNewLine;
+        Writer.WriteKey('USR$BIGINT');
+        Writer.WriteString(q.Fields[6].AsString)
+      end;
+    finally
+      Writer.Free;
+      q.Free;
+    end;
+  end;
+
+  procedure CheckRead(AStream: TStream);
+  var
+    Parser: TyamlParser;
+    M: TyamlMapping;
+    N: TyamlNode;
+    q: TIBSQL;
+    C: Currency;
+  begin
+    Assert(AStream <> nil);
+
+    Parser := TyamlParser.Create;
+    q := TIBSQL.Create(nil);
+    try
+      q.Transaction := FTr;
+      q.SQL.Text := 'SELECT USR$FLOAT, USR$CURRENCY, USR$TIMESTAMP, ' +
+        'USR$VARCHAR, USR$BLOB, USR$INT, USR$BIGINT FROM ' + FTableNameForType;
+
+      Parser.Parse(AStream);
+      if (Parser.YAMLStream.Count > 0)
+        and ((Parser.YAMLStream[0] as TyamlDocument).Count > 0)
+        and ((Parser.YAMLStream[0] as TyamlDocument)[0] is TyamlMapping) then
+      begin
+        q.ExecQuery;
+        M := (Parser.YAMLStream[0] as TyamlDocument)[0] as TyamlMapping;
+        N := M.FindByName('Fields\USR$FLOAT');
+        Check(N <> nil);
+        Check(N is TyamlFloat);
+        Check(q.Fields[0].AsDouble = (N as TyamlFloat).AsFloat);
+        N := M.FindByName('Fields\USR$CURRENCY');
+        Check(N <> nil);
+        Check(N is TyamlFloat);
+        C := (N as TyamlFloat).AsFloat;
+        Check(q.Fields[1].AsCurrency = C);
+
+        N := M.FindByName('Fields\USR$TIMESTAMP');
+        Check(N <> nil);
+        Check(N is TyamlDateTime);
+        Check(q.Fields[2].AsDateTime = (N as TyamlDateTime).AsDateTime);
+        N := M.FindByName('Fields\USR$VARCHAR');
+        Check(N <> nil);
+        Check(N is TyamlString);
+        Check(q.Fields[3].AsString = (N as TyamlString).AsString);
+
+        N := M.FindByName('Fields\USR$BLOB');
+        Check(N <> nil);
+        Check(N is TyamlString);
+        Check(q.Fields[4].AsString = (N as TyamlString).AsString);
+
+        N := M.FindByName('Fields\USR$INT');
+        Check(N <> nil);
+        Check(N is TyamlInteger);
+        Check(q.Fields[5].AsInteger = (N as TyamlInteger).AsInteger);
+
+        N := M.FindByName('Fields\USR$BIGINT');
+        Check(N <> nil);
+        Check(N is TyamlInt64);
+        Check(q.Fields[6].AsInt64 = (N as TyamlInt64).AsInt64);
+      end;
+    finally
+      Parser.Free;
+      q.Free;
+    end;
+  end;
+var
+  q: TIBSQL;
+  S: TMemoryStream;
+begin
+  FTableNameForType := 'USR$TEST' + IntToStr(Random(1000000)) + 'A';
+  S := TMemoryStream.Create;
+  q := TIBSQL.Create(nil);
+  try
+    q.Transaction := FTr;
+    q.SQL.Text :=
+      'CREATE TABLE ' + FTableNameForType + '( ' +
+      '  USR$FLOAT DOUBLE PRECISION, ' +
+      '  USR$CURRENCY DCURRENCY, ' +
+      '  USR$TIMESTAMP TIMESTAMP, ' +
+      '  USR$VARCHAR VARCHAR(20), ' +
+      '  USR$BLOB DBLOBTEXT80_1251, ' +
+      '  USR$BIGINT BIGINT, ' +
+      '  USR$INT INTEGER ' +
+      ')';
+    q.ExecQuery;
+    q.Close;
+    q.SQL.Text := 'DELETE FROM ' + FTableNameForType;
+    FTr.Commit;
+    FTr.StartTransaction;
+
+    InsertRecord(' ', 9.123456, 46.1234, Now, '   test'#13#10'test   ', MaxInt, High(Int64));
+    WriteYAML(S);
+    S.Position := 0;
+    CheckRead(S);
+
+    S.Clear;
+    q.ExecQuery;
+    q.Close;
+    FTr.Commit;
+    FTr.StartTransaction;
+
+    InsertRecord(' ', 9.123, 46.12, Now, '   test'#13#10''#13#10''#13#10'  ', Low(Integer), Low(Int64));
+    WriteYAML(S);
+    S.Position := 0;
+    CheckRead(S);
+
+    q.Close;
+    q.SQL.Text := 'DROP TABLE ' + FTableNameForType;
+    q.ExecQuery;
+
+    FTr.Commit;
+    FTr.StartTransaction;
+  finally
+    q.Free;
+    S.Free;
   end;
 end;
 

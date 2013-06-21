@@ -32,12 +32,14 @@ type
     function GetAsString: AnsiString; virtual;
     function GetAsBoolean: Boolean; virtual;
     function GetIsNull: Boolean; virtual;
+    function GetAsInt64: Int64; virtual;
     procedure SetAsDate(const Value: TDateTime); virtual;
     procedure SetAsDateTime(const Value: TDateTime); virtual;
     procedure SetAsFloat(const Value: Double); virtual;
     procedure SetAsInteger(const Value: Integer); virtual;
     procedure SetAsString(const Value: AnsiString); virtual;
     procedure SetAsBoolean(const Value: Boolean); virtual;
+    procedure SetAsInt64(const Value: Int64); virtual;
   public
     procedure Parse(Scanner: TyamlScanner); override;
 
@@ -48,6 +50,7 @@ type
     property AsDateTime: TDateTime read GetAsDateTime write SetAsDateTime;
     property AsBoolean: Boolean read GetAsBoolean write SetAsBoolean;
     property IsNull: Boolean read GetIsNull;
+    property AsInt64: Int64 read GetAsInt64 write SetAsInt64;
   end;
 
   TyamlNumeric = class(TyamlScalar);
@@ -83,6 +86,19 @@ type
   public
     constructor CreateInteger(const AValue: Integer); overload;
     constructor CreateInteger(const AValue: AnsiString); overload;
+  end;
+
+  TyamlInt64 = class(TyamlNumeric)
+  private
+    FValue: Int64;
+
+  protected
+    function GetAsInt64: Int64; override;
+    procedure SetAsInt64(const Value: Int64); override;
+
+  public
+    constructor CreateInt64(const AValue: Int64); overload;
+    constructor CreateInt64(const AValue: AnsiString); overload;
   end;
 
   TyamlDateTime = class(TyamlScalar)
@@ -242,6 +258,12 @@ begin
   Result := (I <> MAXINT) or (StrToIntDef(S, -1) <> -1);
 end;
 
+function ConvertToInt64(const S: AnsiString; out I: Int64): Boolean;
+begin
+  I := StrToInt64Def(S, High(Int64));
+  Result := (I <> High(Int64)) or (StrToInt64Def(S, -1) <> -1);
+end;
+
 function ConvertToBoolean(const S: AnsiString; out B: Boolean): Boolean;
 begin
   if AnsiCompareText(S, 'True') = 0 then
@@ -383,6 +405,11 @@ begin
   raise EyamlException.Create('Data type is not supported.');
 end;
 
+function TyamlScalar.GetAsInt64: Int64;
+begin
+  raise EyamlException.Create('Data type is not supported.');
+end;
+
 function TyamlScalar.GetAsString: AnsiString;
 begin
   raise EyamlException.Create('Data type is not supported.');
@@ -431,6 +458,11 @@ begin
   raise EyamlException.Create('Data type is not supported.');
 end;
 
+procedure TyamlScalar.SetAsInt64(const Value: Int64);
+begin
+  raise EyamlException.Create('Data type is not supported.');
+end;
+
 { TyamlNode }
 
 constructor TyamlNode.Create;
@@ -445,6 +477,7 @@ var
   Tag: AnsiString;
   B: Boolean;
   I: Integer;
+  I64: Int64;
 begin
   case Scanner.Token of
     tKey:
@@ -467,6 +500,8 @@ begin
           Result := TyamlDate.CreateDate(DT)
         else if ConvertToInteger(Scanner.Scalar, I) then
           Result := TyamlInteger.CreateInteger(I)
+        else if ConvertToInt64(Scanner.Scalar, I64) then
+          Result := TyamlInt64.CreateInt64(I64)
         else if ConvertToFloat(Scanner.Scalar, F) then
           Result := TyamlFloat.CreateFloat(F)
         else if ConvertToBoolean(Scanner.Scalar, B) then
@@ -715,6 +750,31 @@ end;
 procedure TyamlInteger.SetAsInteger(const Value: Integer);
 begin
   FValue := Value;
+end;
+
+{ TyamlInt64 }
+
+constructor TyamlInt64.CreateInt64(const AValue: Int64);
+begin
+  inherited Create;
+  FValue := AValue;
+end;
+
+constructor TyamlInt64.CreateInt64(const AValue: AnsiString);
+begin
+  inherited Create;
+  if not ConvertToInt64(AValue, FValue) then
+    raise EyamlSyntaxError.Create('Not an int64 value');
+end;
+
+procedure TyamlInt64.SetAsInt64(const Value: Int64);
+begin
+  FValue := Value;
+end;
+
+function TyamlInt64.GetAsInt64: Int64;
+begin
+  Result := FValue;
 end;
 
 { TyamlString }
