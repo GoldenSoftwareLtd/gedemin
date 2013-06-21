@@ -1795,11 +1795,12 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
     case F.DataType of
       ftDateTime, ftTime: Flag := Value is TyamlDateTime;
       ftDate: Flag := Value is TyamlDate;
-      ftInteger, ftLargeint, ftSmallint, ftWord: Flag := Value is TyamlInteger;
+      ftInteger, ftSmallint, ftWord: Flag := Value is TyamlInteger;
       ftFloat, ftCurrency: Flag := Value is TyamlNumeric;
       ftBlob, ftGraphic: Flag := (Value is TyamlBinary) or (Value is TyamlString);
       ftString, ftMemo, ftBCD: Flag := Value is TyamlString;
       ftBoolean: Flag := Value is TyamlBoolean;
+      ftLargeint: Flag := Value is TyamlInt64;
     end;
     if not Flag then
       raise Exception.Create('Invalid data type, fieldtype = ' + IntToStr(Integer(F.DataType)));
@@ -1868,6 +1869,7 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
         ftDateTime, ftTime: Field.AsDateTime := TyamlDateTime(N).AsDateTime;
         ftDate: Field.AsDateTime := TyamlDate(N).AsDate;
         ftInteger, ftSmallint, ftWord: Field.AsInteger := TyamlScalar(N).AsInteger;
+        ftLargeint: TLargeintField(Field).AsLargeInt := TyamlInt64(N).AsInt64;
         ftFloat, ftCurrency: Field.AsFloat := TyamlScalar(N).AsFloat;
         ftBoolean: Field.AsBoolean := TyamlBoolean(N).AsBoolean;
         ftBCD:
