@@ -3601,55 +3601,13 @@ begin
 end;
 
 procedure TgdcNamespace.DeleteObject(xid, dbid: Integer; RemoveObj: Boolean = True);
-
-  function CanDeleteObj(Obj: TgdcBase; var Error: String): Boolean;
-  var
-    Tr: TIBTransaction;
-    q: TIBSQL;
-  begin
-    
-    Result := True;
-    Error := '';
-    Tr := TIBTransaction.Create(nil);
-    q := TIBSQL.Create(nil);
-    try
-      Tr.DefaultDatabase := gdcBaseManager.Database;
-      Tr.StartTransaction;
-      try
-        q.Transaction := Tr;
-        q.SQL.Text := Format('DELETE FROM %0:s WHERE %1:s = :id',
-          [Obj.GetListTable(Obj.SubType), Obj.GetKeyField(Obj.SubType)]);
-        q.ParamByName('id').AsInteger := Obj.ID;
-        q.ExecQuery;
-      except
-        on Ex: EIBError do
-        begin
-          if (Ex.IBErrorCode = isc_foreign_key) or ((Ex.IBErrorCode = isc_except) and (
-            StrIPos('GD_E_FKMANAGER', Ex.Message) > 0)) then
-          begin
-            Result := False;
-            Error := 'Запись "' + Obj.ObjectName + '" невозможно удалить так как на нее ссылаются другие записи.';
-          end;
-        end;
-      end;
-    finally
-      if Tr.InTransaction then
-        Tr.Rollback;
-      q.Free;
-      Tr.Free;
-    end;
-  end;
-
 var
   gdcNamespaceObject: TgdcNamespaceObject;
   q: TIBSQL;
   InstObj: TgdcBase;
-  InstClass: TPersistentClass;
-  Error: String;
-  WasDelete: Boolean;
+  InstClass: TPersistentClass;  
   RUIDRec: TRUIDRec;
-begin
-  WasDelete := True;
+begin 
   gdcNamespaceObject := TgdcNamespaceObject.Create(nil);
   q := TIBSQL.Create(nil);
   try
@@ -3687,16 +3645,7 @@ begin
               InstObj.ID := RUIDRec.ID;
               InstObj.Open;
               if (not InstObj.EOF) then
-              begin
-                if CanDeleteObj(InstObj, Error) then
-                begin
-                  InstObj.Delete;
-                end else
-                begin
-                  WasDelete := False;
-                  AddMistake(Error);
-                end;
-              end;
+                InstObj.Delete;
             finaLLY
               InstObj.Free;
             end;
@@ -3704,8 +3653,7 @@ begin
         end;
         q.Close;
       end;
-      if WasDelete then
-        gdcNamespaceObject.Delete;
+      gdcNamespaceObject.Delete;
     end;
   finally
     gdcNamespaceObject.Free;
