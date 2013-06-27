@@ -14,8 +14,9 @@ type
     FTableName, FTableName2, FNamespaceName: String;
     FNamespaceKey: Integer;
     FTableNameForType: String;
+    FContactName, FContactName2, FGroup, FFolderName: String;
 
-    function GetFileName: String;
+    function GetFileName(const APath: String = ''): String;
 
     procedure TestCreateNamespace;
     procedure TestAddObject;
@@ -25,6 +26,9 @@ type
     procedure TestSet;
     procedure TestIncludesiblings;
     procedure TestType;
+    procedure TestOperation;
+    procedure TestObjectPos;
+
   published
     procedure DoTest;
   end;
@@ -33,7 +37,8 @@ implementation
 
 uses
   gdcMetaData, Sysutils, Windows, gdcBaseInterface, gdcGood, IBSQL,
-  gdcContacts, yaml_writer, yaml_parser, yaml_common;
+  gdcContacts, yaml_writer, yaml_parser, yaml_common, gsNSObjects,
+  gdcConst, contnrs, dbclient, DB, gdcPlace;
 
 const
   Alwaysoverwrite = 1;
@@ -53,6 +58,8 @@ begin
   TestSet;
   TestIncludesiblings;  
   TestType;
+  TestOperation;
+ // TestObjectPos;
 end;
 
 function Tgs_gdcNamespaceTest.CheckTable(const AName: String): Boolean;
@@ -75,10 +82,19 @@ begin
   FQ.Close;
 end;
 
-function Tgs_gdcNamespaceTest.GetFileName: String;
+function Tgs_gdcNamespaceTest.GetFileName(const APath: String = ''): String;
+var
+  Path: String;
 begin
-  Check(FNamespacename > '');
-  Result := IncludeTrailingBackslash(TempPath) + FNamespacename + '.yml'
+  Path := IncludeTrailingBackslash(TempPath) + 'yml\';
+  Result := ExtractFileDir(Path);
+  if Result = '' then
+    CreateDir(Path);
+
+  if APath = '' then
+    Result := IncludeTrailingBackslash(Path) + FNamespacename + '.yml'
+  else
+    Result := IncludeTrailingBackslash(Path) + APath + '.yml';
 end;
 
 procedure Tgs_gdcNamespaceTest.TestIncludesiblings;
@@ -812,6 +828,510 @@ begin
   finally
     q.Free;
     S.Free;
+  end;
+end;
+
+procedure Tgs_gdcNamespaceTest.TestOperation;
+var
+  ID, ID2, ID3: Integer;
+  ConstID, ConstID2, ConstID3: Integer;
+
+  procedure CreateNS(out AnID: Integer; out AConstID: Integer);
+  var
+    gdcNamespace: TgdcNamespace;
+    gdcConst: TgdcConst;
+    Name: String;
+    OL: TObjectList;
+  begin
+    AnID := -1;
+    AConstID := -1;
+    Name := 'TEST' + IntToStr(Random(1000000)) + 'N';
+    OL := TObjectList.Create;
+    gdcNamespace := TgdcNamespace.Create(nil);
+    try
+      gdcNamespace.Transaction := FTr;
+      gdcNamespace.Open;
+      gdcNamespace.Insert;
+      gdcNamespace.FieldByName('name').AsString := Name;
+      gdcNamespace.Post;
+      gdcConst := TgdcConst.Create(nil);
+      try
+        gdcConst.Transaction := FTr;
+        gdcConst.Open;
+        gdcConst.Insert;
+        gdcConst.FieldByName('name').AsString := 'TEST' + IntToStr(Random(1000000)) + 'C';
+        gdcConst.Post;
+        AConstID := gdcConst.ID;
+        gdcNamespace.AddObject2(gdcConst, OL);
+      finally
+        gdcConst.Free;
+      end;
+      AnID := gdcNamespace.ID;
+    finally
+      gdcNamespace.Free;
+      OL.Free;
+    end;
+  end;
+
+  procedure SetUses(AParent, AnID: Integer);
+  var
+    q: TIBSQL;
+  begin
+    q := TIBSQL.Create(nil);
+    try
+      q.Transaction := FTr;
+      q.SQL.Text := 'INSERT INTO at_namespace_link (namespacekey, useskey) ' +
+        'VALUES (:nk, :uk)';
+      q.ParamByName('nk').AsInteger := AParent;
+      q.ParamByName('uk').AsInteger := AnID;
+      q.ExecQuery;
+      q.Close;
+    finally
+      q.Free;
+    end;
+  end;
+
+  procedure CheckOperation(AData: String; ANSList: TgsNSList; AnID: Integer);
+  var
+    q: TIBSQL;
+    RUID: String;
+    Ind: Integer;
+    Node: TgsNSNode;
+  begin
+    q := TIBSQL.Create(nil);
+    try
+      q.Transaction := FTr;
+      q.SQL.Text := 'SELECT * FROM gd_ruid WHERE id = :id';
+      q.ParamByName('id').AsInteger := AnID;
+      q.ExecQuery;
+      Check(not q.Eof);
+      RUID := q.FieldByName('xid').AsString + '_' + q.FieldByName('dbid').AsString;
+      Ind := ANSList.IndexOf(RUID);
+      Check(Ind > - 1);
+      Node := ANSList.Objects[Ind] as TgsNSNode;
+      Check(Node.GetOperation = AData);
+    finally
+      q.Free;
+    end;
+  end;
+
+  procedure SaveNS;
+  var
+    gdcNamespace: TgdcNamespace;
+  begin
+    gdcNamespace := TgdcNamespace.Create(nil);
+    try
+      gdcNamespace.ReadTransaction := FTr;
+      gdcNamespace.Transaction := FTr;
+      gdcNamespace.SubSet := 'ByID';
+      gdcNamespace.ID := ID;
+      gdcNamespace.Open;
+      gdcNamespace.SaveNamespaceToFile(GetFileName(gdcNamespace.ObjectName));
+      gdcNamespace.Close;
+      gdcNamespace.ID := ID2;
+      gdcNamespace.Open;
+      gdcNamespace.SaveNamespaceToFile(GetFileName(gdcNamespace.ObjectName));
+      gdcNamespace.ID := ID3;
+      gdcNamespace.Open;
+      gdcNamespace.SaveNamespaceToFile(GetFileName(gdcNamespace.ObjectName));
+    finally
+      gdcNamespace.Free;
+    end;
+
+    FTr.Commit;
+    FTr.StartTransaction;
+  end;
+
+  procedure DeleteNS;
+  var
+    gdcNamespace: TgdcNamespace;
+    gdcConst: TgdcConst;
+  begin
+    gdcNamespace := TgdcNamespace.Create(nil);
+    try
+      gdcNamespace.Transaction := FTr;
+      gdcNamespace.SubSet := 'ByID';
+      gdcNamespace.ID := ID;
+      gdcNamespace.Open;
+      Check(not gdcNamespace.Eof);
+      gdcNamespace.Delete;
+      gdcNamespace.Close;
+
+      gdcNamespace.ID := ID2;
+      gdcNamespace.Open;
+      Check(not gdcNamespace.Eof);
+      gdcNamespace.Delete;
+      gdcNamespace.Close;
+
+      gdcNamespace.ID := ID3;
+      gdcNamespace.Open;
+      Check(not gdcNamespace.Eof);
+      gdcNamespace.Delete;
+      gdcNamespace.Close;
+    finally
+      gdcNamespace.Free;
+    end;
+
+    gdcConst := TgdcConst.Create(nil);
+    try
+      gdcConst.SubSet := 'ByID';
+      gdcConst.ID := ConstID;
+      gdcConst.Open;
+      Check(not gdcConst.Eof);
+      gdcConst.Delete;
+      gdcConst.Close;
+
+      gdcConst.ID := ConstID2;
+      gdcConst.Open;
+      Check(not gdcConst.Eof);
+      gdcConst.Delete;
+      gdcConst.Close;
+
+      gdcConst.ID := ConstID3;
+      gdcConst.Open;
+      Check(not gdcConst.Eof);
+      gdcConst.Delete;
+      gdcConst.Close;
+    finally
+      gdcConst.Free;
+    end;
+
+    FTr.Commit;
+    FTr.StartTransaction;
+  end;
+
+var 
+  NSLISt: TgsNSList; 
+  gdcNamespace: TgdcNamespace;
+  gdcConst: TgdcConst;
+begin
+
+  CreateNS(ID, ConstID);
+  CreateNS(ID2, ConstID2);
+  CreateNS(ID3, ConstID3);
+  SetUses(ID, ID2);
+  SetUses(ID, ID3);
+
+  FTr.Commit;
+  FTr.StartTransaction;
+
+  SaveNS;
+
+  TgdcNamespace.UpdateCurrModified;
+  NSList := TgsNSList.Create;
+  try 
+    NSList.GetFilesForPath(IncludeTrailingBackslash(TempPath) + 'yml\');
+    CheckOperation('==', NSList, ID);
+
+    gdcNamespace := TgdcNamespace.Create(nil);
+    try
+      gdcNamespace.ReadTransaction := FTr;
+      gdcNamespace.Transaction := FTr;
+      gdcNamespace.SubSet := 'ByID';
+      gdcNamespace.ID := ID2;
+      gdcNamespace.Open;
+      Check(not gdcNamespace.Eof);
+      gdcNamespace.Edit;
+      gdcNamespace.FieldByName('filetimestamp').AsDateTime := gdcNamespace.FieldByName('filetimestamp').AsDateTime - 1;
+      gdcNamespace.Post;
+      gdcNamespace.Close;
+      gdcNamespace.ID := ID3;
+      gdcNamespace.Open;
+      gdcNamespace.Edit;
+      gdcNamespace.FieldByName('version').AsString :=
+        IncVersion(gdcNamespace.FieldByName('version').AsString, '.');
+      gdcNamespace.Post;
+    finally
+      gdcNamespace.Free;
+    end;
+
+    FTr.Commit;
+    FTr.StartTransaction; 
+
+    NSList.Clear;
+    NSList.GetFilesForPath(IncludeTrailingBackslash(TempPath) + 'yml\');
+    
+    CheckOperation('?', NSList, ID2);
+    CheckOperation('=>', NSList, ID);
+    CheckOperation('>>', NSList, ID3);
+
+    SaveNS;
+
+    gdcConst := TgdcConst.Create(nil);
+    try
+      gdcConst.Transaction := FTr;
+      gdcConst.ReadTransaction := FTr;
+      gdcConst.SubSet := 'ByID';
+      gdcConst.ID := ConstID2;
+      gdcConst.Open;
+      gdcConst.Edit;
+      gdcConst.FieldByName('editiondate').AsDateTime := gdcConst.FieldByName('editiondate').AsDateTime + 1;
+      gdcConst.Post;
+    finally
+      gdcConst.Free;
+    end;
+
+    FTr.Commit;
+    FTr.StartTransaction;
+
+    TgdcNamespace.UpdateCurrModified;
+    NSList.Clear;
+    NSList.GetFilesForPath(IncludeTrailingBackslash(TempPath) + 'yml\');
+
+    CheckOperation('>>', NSList, ID2);
+    CheckOperation('=>', NSList, ID);
+    CheckOperation('==', NSList, ID3);
+
+    gdcNamespace := TgdcNamespace.Create(nil);
+    try
+      gdcNamespace.ReadTransaction := FTr;
+      gdcNamespace.Transaction := FTr;
+      gdcNamespace.SubSet := 'ByID';
+      gdcNamespace.ID := ID3;
+      gdcNamespace.Open;
+      Check(not gdcNamespace.Eof);
+      gdcNamespace.Edit;
+      gdcNamespace.FieldByName('version').AsString := '1.0.0.0';
+      gdcNamespace.Post;
+    finally
+      gdcNamespace.Free;
+    end;
+    FTr.Commit;
+    FTr.StartTransaction;
+
+    NSList.Clear;
+    NSList.GetFilesForPath(IncludeTrailingBackslash(TempPath) + 'yml\');
+    CheckOperation('<<', NSList, ID3);
+    CheckOperation('?', NSList, ID);
+    CheckOperation('>>', NSList, ID2);
+  finally
+    NSList.Free;
+  end;
+
+  DeleteNS;
+end;
+
+procedure Tgs_gdcNamespaceTest.TestObjectPos;
+var
+  cds: TClientDataSet;
+  //GroupName: String;
+ // GroupID, GoodID, ValueID: Integer;
+  ContactID, ContactID2, GroupID, FolderID: Integer;
+
+  procedure CreateFields;
+  begin
+    cds.FieldDefs.Add('id', ftInteger, 0, True);
+    cds.FieldDefs.Add('displayname', ftString, 255, False);
+    cds.FieldDefs.Add('class', ftString, 60, True);
+    cds.FieldDefs.Add('subtype', ftString, 60, False);
+    cds.FieldDefs.Add('name', ftString, 60, False);
+    cds.FieldDefs.Add('namespace', ftString, 255, False);
+    cds.FieldDefs.Add('namespacekey', ftInteger, 0, False);
+    cds.FieldDefs.Add('headobject', ftString, 21, False);
+  end;
+
+  procedure CreateObject;
+  var
+    Group: TgdcGroup;
+    Contact: TgdcContact;
+    Folder: TgdcFolder;
+    q: TIBSQL;
+  begin
+    Folder := TgdcFolder.Create(nil);
+    try
+      Folder.Transaction := FTr;
+      Folder.Open;
+      Folder.Insert;
+      FFolderName := 'TEST' + IntToStr(Random(1000000)) + 'F';
+      Folder.FieldByName('name').AsString := FFolderName;
+      Folder.Post;
+      FolderID := Folder.ID;
+    finally
+      Folder.Free;
+    end;
+
+    Contact := TgdcContact.Create(nil);
+    try
+      Contact.Transaction := FTr;
+      Contact.Open;
+      Contact.Insert;
+      FContactName := 'TEST' + IntToStr(Random(1000000)) + 'C';
+      Contact.FieldByName('name').AsString := FContactName;
+      Contact.FieldByName('surname').AsString := 'Test';
+      Contact.FieldByName('parent').AsInteger := FolderID;
+      Contact.Post;
+      ContactID := Contact.ID;
+
+      Contact.Insert;
+      FContactName2 := 'TEST' + IntToStr(Random(1000000)) + 'C';
+      Contact.FieldByName('name').AsString := FContactName2;
+      Contact.FieldByName('surname').AsString := 'Test';
+      Contact.FieldByName('parent').AsInteger := FolderID;
+      Contact.Post;
+      ContactID2 := Contact.ID;
+    finally
+      Contact.Free;
+    end;
+
+    Group := TgdcGroup.Create(nil);
+    try
+      Group.Transaction := FTr;
+      Group.Open;
+      Group.Insert;
+      FGroup := 'TEST' + IntToStr(Random(1000000)) + 'G';
+      Group.FieldByName('name').AsString := FGroup;
+     // Group.FieldByname('parent').AsInteger := FolderID;
+      Group.FieldByname('parent').Clear;
+      Group.Post;
+      GroupID := Group.ID;
+    finally
+      Group.Free;
+    end;
+
+    q := TIBSQL.Create(nil);
+    try
+      q.Transaction := FTr;
+      q.SQL.Text := 'INSERT INTO gd_contactlist (groupkey, contactkey) ' +
+        'VALUES(:gk, :ck)';
+      q.ParamByName('gk').AsInteger := GroupID;
+      q.ParamByName('ck').AsInteger := ContactID;
+      q.ExecQuery;
+      q.Close;
+      q.ParamByName('gk').AsInteger := GroupID;
+      q.ParamByName('ck').AsInteger := ContactID2;
+      q.ExecQuery;
+    finally
+      q.Free;
+    end;
+
+    FTr.Commit;
+    FTr.StartTransaction;
+  end;
+
+ { procedure CreateObject;
+  var
+    GoodGroup: TgdcGoodGroup;
+    Good: TgdcGood;
+    Value: TgdcValue;
+  begin
+    GoodGroup := TgdcGoodGroup.Create(nil);
+    try
+      GoodGroup.Transaction := FTr;
+      GoodGroup.Open;
+      GroupName := 'TEST' + IntToStr(Random(1000000)) + 'G';
+      GoodGroup.Insert;
+      GoodGroup.FieldByName('name').AsString := GroupName;
+      GoodGroup.Post;
+      GroupID := GoodGroup.ID;
+    finally
+      GoodGroup.Free;
+    end;
+
+    Value := TgdcValue.Create(nil);
+    try
+      Value.Transaction := FTr;
+      Value.Open;
+      Value.Insert;
+      Value.FieldByName('name').AsString := 'Test';
+      Value.Post;
+      ValueID := Value.ID;
+    finally
+      Value.Free;
+    end;
+
+    Good := TgdcGood.Create(nil);
+    try
+      Good.Transaction := FTr;
+      Good.Open;
+      Good.Insert;
+      Good.FieldByName('name').AsString := 'Test_Good';
+      Good.FieldByname('valuekey').AsInteger := ValueID;
+      Good.FieldByname('groupkey').AsInteger := GroupID;
+      Good.Post;
+      GoodID := Good.ID;
+    finally
+      Good.Free;
+    end;
+
+
+    FTr.Commit;
+    FTr.StartTransaction;
+  end;
+
+  procedure DeleteObject;
+  var
+    GoodGroup: TgdcGoodGroup;
+    Good: TgdcGood;
+    Value: TgdcValue;
+  begin
+     Good := TgdcGood.Create(nil);
+     try
+       Good.Transaction := FTr;
+       Good.ReadTransaction := FTr;
+       Good.SubSet := 'ByID';
+       Good.ID := GoodID;
+       Good.Open;
+       Check(not Good.Eof);
+       Good.Delete;
+     finally
+       Good.Free;
+     end;
+
+     GoodGroup := TgdcGoodGroup.Create(nil);
+     try
+       GoodGroup.Transaction := FTr;
+       GoodGroup.ReadTransaction := FTr;
+       GoodGroup.SubSet := 'ByID';
+       GoodGroup.ID := GroupID;
+       GoodGroup.Open;
+       Check(not GoodGroup.Eof);
+       GoodGroup.Delete;
+     finally
+       GoodGroup.Free;
+     end;
+
+     Value := TgdcValue.Create(nil);
+     try
+       Value.Transaction := FTr;
+       Value.ReadTransaction := FTr;
+       Value.SubSet := 'ByID';
+       Value.ID := ValueID;
+       Value.Open;
+       Check(not Value.Eof);
+       Value.Delete;
+     finally
+       Value.Free;
+     end;
+
+     FTr.Commit;
+     FTr.StartTransaction;
+  end; }
+{var
+  Good: TgdcGood;}
+begin
+  cds := TClientDataSet.Create(nil);
+  try
+    CreateFields;
+    cds.CreateDataSet;
+    cds.Open;
+    CreateObject;
+  {  Good := TgdcGood.Create(nil);
+    try
+      Good.Transaction := FTr;
+      Good.ReadTransaction := FTr;
+      Good.SubSet := 'ByID';
+      Good.ID := GoodID;
+      Good.Open;
+      Check(not Good.Eof);
+      TgdcNamespace.SetObjectLink(Good, cds, FTr);
+
+
+    finally
+      Good.Free;
+    end; }
+   // DeleteObject;
+  finally
+    cds.Free;
   end;
 end;
 
