@@ -140,7 +140,7 @@ type
     RefTableName: String;
     ClassName: String;
     SubType: String;
-  end;
+  end; 
 
 procedure Register;
 begin
@@ -3198,6 +3198,10 @@ end;
 
 
 class procedure TgdcNamespace.SetObjectLink(AnObject: TgdcBase; ADataSet: TDataSet; ATr: TIBTransaction);
+var
+  ObjList: TStringList;
+
+  procedure GetBindedObjectsForTable(AnObj: TgdcBase; const ATableName: String); forward;
 
   procedure GetTableList(Obj: TgdcBase; SL: TStringList);
   var
@@ -3223,37 +3227,50 @@ class procedure TgdcNamespace.SetObjectLink(AnObject: TgdcBase; ADataSet: TDataS
     end;
   end;
 
-  procedure FillRecord(AnObj: TgdcBase; const AHeadObj: String = '');
+  procedure FillRecord(AnObj: TgdcBase; AnIndex: Integer; const AHeadObj: String = '');
   var
     KSA: TgdKeyStringAssoc;
+    I: Integer;
+    RUID: String;
   begin
-    ADataSet.Append;
-    ADataSet.FieldByName('id').AsInteger := AnObj.ID;
-    ADataSet.FieldByName('name').AsString := AnObj.ObjectName;
-    ADataSet.FieldByname('class').AsString := AnObj.GetCurrRecordClass.gdClass.ClassName;
-    ADataSet.FieldByName('subtype').AsString := AnObj.SubType;
-    ADataSet.FieldByName('headobject').AsString := AHeadObj;
-    if AnObj.SubType > '' then
-      ADataSet.FieldByName('displayname').AsString := AnObj.ClassName + '\' + AnObj.SubType
-    else
-      ADataSet.FieldByName('displayname').AsString := AnObj.GetCurrRecordClass.gdClass.ClassName;
-    ADataSet.FieldByName('displayname').AsString := ADataSet.FieldByName('displayname').AsString +
-      '/' + AnObj.ObjectName;
-    KSA := TgdKeyStringAssoc.Create;
-    try
-      SetNamespaceForObject(AnObj, KSA, ATr);
-      if KSA.Count > 0 then
-      begin
-        ADataSet.FieldByName('namespacekey').AsInteger := KSA[0];
-        ADataSet.FieldByName('namespace').AsString := KSA.ValuesByIndex[0];
-        ADataSet.FieldByName('displayname').AsString := ADataSet.FieldByName('displayname').AsString +
-          '/' + KSA.ValuesByIndex[0];
-      end;
-    finally
-      KSA.Free;
+    RUID := RUIDToStr(AnObj.GetRUID);
+    for I := AnIndex - 1 downto 0 do
+    begin
+      if (ObjList.Values[ObjList.Names[I]] = RUID)
+        and not ADataSet.Locate('id', (ObjList.Objects[I] as TgdcBase).ID, [])
+      then
+        FillRecord(ObjList.Objects[I] as TgdcBase, I, RUID);
     end;
-    ADataSet.Post;
-  end;
+    if not ADataSet.Locate('id', AnObj.ID, []) then
+    begin
+      ADataSet.Append;
+      ADataSet.FieldByName('id').AsInteger := AnObj.ID;
+      ADataSet.FieldByName('name').AsString := AnObj.ObjectName;
+      ADataSet.FieldByname('class').AsString := AnObj.GetCurrRecordClass.gdClass.ClassName;
+      ADataSet.FieldByName('subtype').AsString := AnObj.SubType;
+      ADataSet.FieldByName('headobject').AsString := AHeadObj;
+      if AnObj.SubType > '' then
+        ADataSet.FieldByName('displayname').AsString := AnObj.ClassName + '\' + AnObj.SubType
+      else
+        ADataSet.FieldByName('displayname').AsString := AnObj.GetCurrRecordClass.gdClass.ClassName;
+      ADataSet.FieldByName('displayname').AsString := ADataSet.FieldByName('displayname').AsString +
+        '/' + AnObj.ObjectName;
+      KSA := TgdKeyStringAssoc.Create;
+      try
+        SetNamespaceForObject(AnObj, KSA, ATr);
+        if KSA.Count > 0 then
+        begin
+          ADataSet.FieldByName('namespacekey').AsInteger := KSA[0];
+          ADataSet.FieldByName('namespace').AsString := KSA.ValuesByIndex[0];
+          ADataSet.FieldByName('displayname').AsString := ADataSet.FieldByName('displayname').AsString +
+            '/' + KSA.ValuesByIndex[0];
+        end;
+      finally
+        KSA.Free;
+      end;
+      ADataSet.Post;
+    end;
+  end;  
 
   procedure GetSetAttr(AnObj: TgdcBase);
   var
@@ -3262,13 +3279,14 @@ class procedure TgdcNamespace.SetObjectLink(AnObject: TgdcBase; ADataSet: TDataS
     InstClass: TPersistentClass;
     SetAttr: TgdcSetAttr;
     q: TIBSQL;
-    I: Integer;
+    I, Ind, J: Integer;
+    SL: TStringList;
   begin
     OL := TObjectList.Create;
     q := TIBSQL.Create(nil);
     try
       q.Transaction := ATr;
-      FillSet(AnObject, OL, ATr);
+      FillSet(AnObj, OL, ATr);
 
       for I := 0 to OL.Count - 1 do
       begin
@@ -3280,29 +3298,40 @@ class procedure TgdcNamespace.SetObjectLink(AnObject: TgdcBase; ADataSet: TDataS
           begin
             q.Close;
             q.SQL.Text := SetAttr.SQL;
-            q.ParamByName('rf').AsInteger := AnObject.FieldByName(SetAttr.RefFieldName).AsInteger;
+            q.ParamByName('rf').AsInteger := AnObj.FieldByName(SetAttr.RefFieldName).AsInteger;
             q.ExecQuery;
 
             if not q.Eof then
             begin
-              InstObj := CgdcBase(InstClass).CreateSubType(nil,
-                SetAttr.SubType, 'ByID');
-              try
-                while not q.Eof do
+              while not q.Eof do
+              begin
+                Ind := ObjList.IndexOfName(gdcBaseManager.GetRUIDStringByID(q.Fields[0].AsInteger));
+                if Ind = -1 then
                 begin
-                  InstObj.Close;
-                  InstObj.ID := q.Fields[0].AsInteger;
-                  InstObj.Open;
-                  if not InstObj.EOF then
+                  InstObj := CgdcBase(InstClass).CreateSingularByID(nil,
+                    ATr.DefaultDatabase,
+                    ATr,
+                    q.Fields[0].AsInteger,
+                    SetAttr.SubType);
+                  if InstObj <> nil then
                   begin
-                    if not ADataSet.Locate('id', InstObj.ID, []) then
-                      FillRecord(InstObj);
+                    ObjList.AddObject(RUIDToStr(InstObj.GetRUID) + '=', InstObj);
+
+                    SL := TStringList.Create;
+                    try
+                      GetTableList(InstObj, SL);
+                      for J := 0 to SL.Count - 1 do
+                        GetBindedObjectsForTable(InstObj, SL[J]);
+                      if InstObj.SetTable > '' then
+                        GetBindedObjectsForTable(InstObj, InstObj.SetTable);
+                    finally
+                      SL.Free;
+                    end;
                   end;
-                  q.Next;
-                end;
-              finally
-                InstObj.Free;
-              end;
+                end else
+                  ObjList.Move(Ind, ObjList.Count - 1);
+                q.Next;
+              end;  
             end;
           end;
         end;
@@ -3318,7 +3347,7 @@ class procedure TgdcNamespace.SetObjectLink(AnObject: TgdcBase; ADataSet: TDataS
     NotSavedField = ';CREATORKEY;EDITORKEY;';
   var
     R: TatRelation;
-    I, J: Integer;
+    I, J, Ind: Integer;
     C: TgdcFullClass;
     Obj: TgdcBase;
     F: TField;
@@ -3361,32 +3390,34 @@ class procedure TgdcNamespace.SetObjectLink(AnObject: TgdcBase; ADataSet: TDataS
         and
         (F.AsInteger <> AnObj.ID) then
       begin
-        Obj := C.gdClass.CreateSingularByID(nil,
-          ATr.DefaultDatabase,
-          ATr,
-          F.AsInteger,
-          C.SubType);
-        try
-          if not ADataSet.Locate('id', Obj.ID, []) then
+        Ind := ObjList.IndexOfName(gdcBaseManager.GetRUIDStringByID(F.AsInteger, ATr));
+        if Ind = -1 then
+        begin
+          Obj := C.gdClass.CreateSingularByID(nil,
+            ATr.DefaultDatabase,
+            ATr,
+            F.AsInteger,
+            C.SubType);
+          if Obj <> nil then
           begin
+            ObjList.AddObject(RUIDToStr(Obj.GetRUID) + '=' + RUIDToStr(AnObj.GetRUID), Obj);
             GetSetAttr(Obj);
-            
-            FillRecord(Obj, RUIDToStr(AnObj.GetRUID));
 
             SL := TStringList.Create;
             try
               GetTableList(Obj, SL);
               for J := 0 to SL.Count - 1 do
+              begin
                 GetBindedObjectsForTable(Obj, SL[J]);
+              end;
               if Obj.SetTable > '' then
                 GetBindedObjectsForTable(Obj, Obj.SetTable);
             finally
               SL.Free;
             end;
           end;
-        finally
-          Obj.Free;
-        end;
+        end else
+          ObjList.Move(Ind, ObjList.Count - 1);
       end;
     end;
   end;
@@ -3401,6 +3432,7 @@ begin
   if (ATr = nil) or (not ATr.InTransaction) then
     raise Exception.Create('Invalid transaction!');
 
+  ObjList := TStringList.Create;
   LinkTableList := TStringList.Create;
   try
     GetTableList(AnObject, LinkTableList);
@@ -3412,8 +3444,14 @@ begin
       GetBindedObjectsForTable(AnObject, AnObject.SetTable);
 
      GetSetAttr(AnObject);
+
+     for I := ObjList.Count - 1 downto 0 do
+       FillRecord(ObjList.Objects[I] as TgdcBase, I, ObjList.Values[ObjList.Names[I]]);
   finally
     LinkTableList.Free;
+    for I := 0 to ObjList.Count - 1 do
+      ObjList.Objects[I].Free;
+    ObjList.Free;  
   end;
 end;
 
