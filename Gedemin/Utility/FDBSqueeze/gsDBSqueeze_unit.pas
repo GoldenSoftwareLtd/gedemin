@@ -1,3 +1,8 @@
+{$A+,B-,C+,D+,E-,F-,G+,H+,I+,J+,K-,L+,M-,N+,O+,P+,Q-,R-,S-,T-,U-,V+,W-,X+,Y+,Z1}
+{$MINSTACKSIZE $00004000}
+{$MAXSTACKSIZE $00100000}
+{$IMAGEBASE $00400000}
+{$APPTYPE GUI}
 unit gsDBSqueeze_unit;
 
 interface
@@ -182,25 +187,20 @@ var
       q2.SQL.Text :=
         'DELETE FROM AC_RECORD ' +
         'WHERE ' +
-        '  recorddate < ' + ' ''' + FDocumentdateWhereClause +  ''' ';
-      if FOnlyCompanySaldo then
+        '  recorddate < ' + ' ''' + FDocumentdateWhereClause +  ''' ';                 //TODO: а-та-та!
+    {  if FOnlyCompanySaldo then                                                       
         q2.SQL.Add(' ' +
           'AND companykey = ' + IntToStr(CompanyKey))
       else if FAllOurCompaniesSaldo then
         q2.SQL.Add(' ' +
-          'AND companykey IN(' + OurCompaniesListStr + ')');
+          'AND companykey IN(' + OurCompaniesListStr + ')');      }
       q2.ExecQuery;
 
       Tr.Commit;
       Tr.StartTransaction;
 
-      q2.SQL.Text :=
-        'DELETE FROM ac_autoentry aae ' +
-        'WHERE NOT EXISTS(SELECT 1 FROM ac_entry ae WHERE ae.id = aae.ENTRYKEY)';
-      q2.ExecQuery;
-
-       {TODO: проверить на существование}
-      //q2.SQL.Text := 'DELETE FROM ac_entry_balance';
+                                                                           {TODO: проверить на существование.}
+      //q2.SQL.Text := 'DELETE FROM ac_entry_balance';                           // TODO: нужно ли очищать ?
       //q2.ExecQuery;
 
       Tr.Commit;
@@ -864,7 +864,7 @@ var
         '  inv_card c ' +
         'SET ' +
         '  c.firstdocumentkey = :NewDockey, ' +
-        '  c.firstdate = :NewDate ' +                              //{TODO: убрать}
+        '  c.firstdate = :NewDate ' +                              {TODO: убрать}
         'WHERE ' +
         '  c.firstdocumentkey = :OldDockey ';
       qUpdateFirstDocKey.Prepare;
@@ -1109,7 +1109,7 @@ var
             q4.ParamByName('FieldName').AsString := CardkeyFieldNames[I];
             q4.ExecQuery;
 
-            if not q4.RecordCount > 0 then
+            if not q4.RecordCount > 0 then //если доп таблица содержит поле TOCARDKEY/FROMCARDKEY, то обновим их ссылки новыми карточками
             begin
               q4.Close;
               q4.SQL.Text := Format(
@@ -1289,7 +1289,6 @@ begin
 
       // Если кол-во позиций в документе > 1000(например), то создадим новую шапку документа  ...
 
-
       if q.FieldByName('BALANCE').AsCurrency >= 0 then
       begin //приход на ContactKey от PseudoClientKey
         DocumentParentKey := CreateHeaderInvDoc(                                /// Tr2_
@@ -1298,6 +1297,7 @@ begin
           q.FieldByName('COMPANYKEY').AsInteger,
           InvDocTypeKey,
           StrToInt(FCurUserContactKey));
+
 
         CreatePositionInvDoc(                                                   /// Tr2_
           DocumentParentKey,
@@ -1309,6 +1309,7 @@ begin
           InvDocTypeKey,
           StrToInt(FCurUserContactKey),
           q);
+
       end
       else begin
         // Приход на PseudoClientKey от ContactKey (с положит. кол-вом ТМЦ)
@@ -1339,13 +1340,13 @@ begin
 
     SetTriggerActive(False);
 
-    q.SQL.Text := 'DELETE FROM inv_movement WHERE movementdate < :Date';
+  {  q.SQL.Text := 'DELETE FROM inv_movement WHERE movementdate < :Date';      /// удалятся при удалении карточки - удалении дока
     q.ParamByName('Date').AsString := FDocumentdateWhereClause;
     q.ExecQuery;
 
     q.SQL.Text := 'DELETE FROM inv_balance';                                    //TODO: мб еще что-то
     q.ExecQuery;
-
+  }
     Tr.Commit;
     Tr.StartTransaction;
 
@@ -1374,14 +1375,17 @@ var
     q2: TIBSQL;
     q3: TIBSQL;
     q4: TIBSQL;
-    TblsNamesList: TStringList;
-    AllProcessedTblsNames: TStringList;
-    Count_test: Integer;
-    IsDuplicate, DoNothing, GoToFirst: Boolean;
+    TblsNamesList, AllProcessedTblsNames: TStringList;
+    ProcTblsNamesList, CascadeProcTbls: TStringList;
+    Count_test, I, IndexEnd: Integer;
+    IsDuplicate, DoNothing, GoToFirst, GoToLast: Boolean;
+    MainDuplicateTblName: String;
   begin
     LogEvent('[test] AddCascadeKeys...');
     TblsNamesList := TStringList.Create; // Process Queue
     AllProcessedTblsNames := TStringList.Create;
+    ProcTblsNamesList := TStringList.Create;
+    CascadeProcTbls := TStringList.Create;
 
     q := TIBQuery.Create(nil);
     q2 := TIBSQL.Create(nil);
@@ -1403,6 +1407,12 @@ var
       ATr.Commit;
       ATr.StartTransaction;
         /// end
+
+
+      IsDuplicate := False;
+      DoNothing := False;
+      GoToFirst := False;
+      GoToLast := False;
       //------------------ добавление в HIS всех цепочек cascade, создание списка обработанных таблиц AllProcessedTblsNames
       while TblsNamesList.Count <> 0 do
       begin
@@ -1416,19 +1426,19 @@ var
           '  JOIN dbs_pk_unique_constraints pc ' +
           '    ON pc.relation_name = fc.relation_name ' +
           '  AND pc.constraint_type = ''PRIMARY KEY'' ' +
-          'WHERE fc.update_rule = ''CASCADE'' ' +
+          'WHERE ((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) ' +                   ///delete TEST
           '  AND fc.ref_relation_name = :rln ' +
           '  AND pc.list_fields NOT LIKE ''%,%'' ' +
           '  AND fc.list_fields NOT LIKE ''%,%'' ' ;
         q.ParamByName('rln').AsString := UpperCase(TblsNamesList[0]);
         q.Open;
 
-        IsDuplicate := False;
-        DoNothing := False;
-        GoToFirst := False;
+ //       LogEvent('[test] TblsNamesList[0] = ' + UpperCase(TblsNamesList[0]));
+ //       LogEvent('[test] TblsNamesList = ' + UpperCase(TblsNamesList.CommaText));
+
+
         while not q.EOF do
         begin
-
           // проверка типа поля на INTEGER
           q2.SQL.Text :=
             'SELECT ' +
@@ -1447,10 +1457,10 @@ var
           begin
             q3.SQL.Text :=
               'SELECT COUNT(g_his_include(0, ' + q.FieldByName('pk_fields').AsString + ')) AS Kolvo, ' +
-              '  SUM(g_his_include(1, ' + q.FieldByName('pk_fields').AsString + ')) AS RealKolvo ' +///TEST
+              '  SUM(g_his_include(1, ' + q.FieldByName('pk_fields').AsString + ')) AS RealKolvo ' +        /// TEST
               'FROM ' +
               '  ' + q.FieldByName('relation_name').AsString + ' ' +
-              'WHERE ' +                                                                                            /////////////////////
+              'WHERE ' +
               '  g_his_has(0, ' + q.FieldByName('list_fields').AsString + ') = 1 ' +
               '  AND ' + q.FieldByName('pk_fields').AsString + ' > 147000000 ';
             q3.ExecQuery;
@@ -1458,67 +1468,112 @@ var
             Count := Count + q3.FieldByName('Kolvo').AsInteger;
             Count_test :=  Count_test + q3.FieldByName('RealKolvo').AsInteger;
 
-            if q3.FieldByName('Kolvo').AsInteger > 0 then
+            if q3.FieldByName('Kolvo').AsInteger <> 0 then
             begin
-              if AllProcessedTblsNames.IndexOf(Trim(q.FieldByName('relation_name').AsString)) = 1 then
+              if AllProcessedTblsNames.IndexOf(Trim(q.FieldByName('relation_name').AsString)) <> -1 then
               begin
                 //LogEvent('REALKolvo included = ' + q3.FieldByName('RealKolvo').AsString + ' addList: ' + Trim(q.FieldByName('relation_name').AsString));   ///TEST
-                if (q3.FieldByName('RealKolvo').AsInteger > 0) then    /// зайдет только на первом круге
+                if q3.FieldByName('RealKolvo').AsInteger <> 0 then
                 begin
-                  if TblsNamesList.IndexOf(Trim(q.FieldByName('relation_name').AsString)) = 1 then
+                  if TblsNamesList.IndexOf(Trim(q.FieldByName('relation_name').AsString)) <> -1 then
                   begin
                     DoNothing := True;
-                     // Случай 1: этот FK является ссылкой таблицы на саму себя
+                    
+                    // Случай 1: этот FK является ссылкой таблицы на саму себя
                     if q.FieldByName('relation_name').AsString = q.FieldByName('ref_relation_name').AsString then
+                    begin
+                      repeat
+                        q3.Close;
+                        q3.SQL.Text :=
+                          'SELECT COUNT(g_his_include(0, ' + q.FieldByName('pk_fields').AsString + ')) AS Kolvo, ' +
+                          '  SUM(g_his_include(1, ' + q.FieldByName('pk_fields').AsString + ')) AS RealKolvo ' +        /// TEST
+                          'FROM ' +
+                          '  ' + q.FieldByName('relation_name').AsString + ' ' +
+                          'WHERE ' +
+                          '  g_his_has(0, ' + q.FieldByName('list_fields').AsString + ') = 1 ' +
+                          '  AND ' + q.FieldByName('pk_fields').AsString + ' > 147000000 ';
+                        q3.ExecQuery;
+                        Count := Count + q3.FieldByName('Kolvo').AsInteger;
+                        Count_test :=  Count_test + q3.FieldByName('RealKolvo').AsInteger;
+                      until q3.FieldByName('RealKolvo').AsInteger = 0;
+
                       GoToFirst := True;
-                    //else // Cлучай 2: еще не обработали таблицы, ссылающиеся каскадно на эту таблицу
-                    //  q.Next;
+                    end;
+                      
+                    //else
+                      // Cлучай 2: еще не обработали таблицы, ссылающиеся каскадно на эту таблицу =>  q.Next;
                   end
                   // Cлучай 3: уже обработали таблицы, ссылающиеся каскадно на эту таблицу
                   else begin
-                    IsDuplicate := True;
+                    if not IsDuplicate then // первый круг
+                    begin
+                      IsDuplicate := True;
+                      MainDuplicateTblName := q.FieldByName('relation_name').AsString;
+                    end;
+
+                    if q.FieldByName('relation_name').AsString = MainDuplicateTblName then
+                    begin
+                      TblsNamesList.Clear;
+                      GoToLast := True;
+                    end;
                   end;
                 end
                 else begin
-                   if (q.FieldByName('relation_name').AsString = q.FieldByName('ref_relation_name').AsString)
-                     and (DoNothing)  then // 2 круг встретили повтор (Ситуация 1)
-                     DoNothing := False
-                   else DoNothing := True;
+                  //Ситуация 1. 2 круг
+                  DoNothing := True;
+
+                  //если НЕ(Ситуация 1. 2 круг. дошли до ссылки на себя), то мб Ситуация 3 конец переобработки
+                  if (q.FieldByName('relation_name').AsString <> q.FieldByName('ref_relation_name').AsString)
+                    and(q.FieldByName('relation_name').AsString = MainDuplicateTblName) then // ситуация 3. заканчиваем цикл переобработки
+                  begin
+                    IsDuplicate := False;
+                    MainDuplicateTblName := '';
+                  end;
                 end;
 
-                if IsDuplicate then
+                if (IsDuplicate) and (not DoNothing) then
                 begin
                   AllProcessedTblsNames.Delete(AllProcessedTblsNames.IndexOf(Trim(q.FieldByName('relation_name').AsString)));
-                  if TblsNamesList.IndexOf(Trim(q.FieldByName('relation_name').AsString)) = 1 then
-                    TblsNamesList.Delete(AllProcessedTblsNames.IndexOf(Trim(q.FieldByName('relation_name').AsString)));
                 end;
               end;
 
-              if (not DoNothing)
-                and (q.FieldByName('relation_name').AsString <> q.FieldByName('ref_relation_name').AsString) then
+              if not DoNothing then
               begin
-                AllProcessedTblsNames.Append(Trim(q.FieldByName('relation_name').AsString));
-                TblsNamesList.Append(Trim(q.FieldByName('relation_name').AsString));
+                  AllProcessedTblsNames.Append(Trim(q.FieldByName('relation_name').AsString));
+                  TblsNamesList.Append(Trim(q.FieldByName('relation_name').AsString));
+              end
+              else //(IsDuplicate) and (DoNothing) then // закончили переобработку Ситуации 3. круг 2
+              begin
+                DoNothing := False;
               end;
-            end
-            else
-              IsDuplicate := False;  //пока Count>0 переобрабатываем цепь, подчищая, если count=0, то цепт закончена - очищать больше не надо
+            end;
             //LogEvent('REALKolvo included = ' + q3.FieldByName('RealKolvo').AsString + ' addList: ' + Trim(q.FieldByName('relation_name').AsString));   ///TEST
             q3.Close;
           end;
           q2.Close;
 
           if GoToFirst then
-            q.First
-          else
+          begin
+            q.First;
+            GoToFirst := False;
+          end
+          else begin
+            if GoToLast then
+              q.Last;
             q.Next;
+          end;
         end;
         q.Close;
 
-        TblsNamesList.Delete(0);
+        if GoToLast then
+          GoToLast := False
+        else
+          TblsNamesList.Delete(0);
       end;
       ATr2.Commit;
       ATr2.StartTransaction;
+
+
         /// TEST begin
       q.SQL.Text :=
         'EXECUTE BLOCK AS BEGIN g_his_destroy(1); END';
@@ -1534,6 +1589,7 @@ var
       q.Close;
          /// end
 
+
       //------------------ исключение из HIS PK, на которые есть restrict/noAction
       q.SQL.Text :=
         'EXECUTE BLOCK AS BEGIN g_his_create(1, 0); END';  // HIS_2
@@ -1541,54 +1597,14 @@ var
       ATr.Commit;
       ATr.StartTransaction;
 
+      TblsNamesList.CommaText := AllProcessedTblsNames.CommaText;
 
-      LogEvent('AllProcessedTblsNames: ' + AllProcessedTblsNames.CommaText);     /// TEST
-      while AllProcessedTblsNames.Count <> 0 do
+      LogEvent('[test] AllProcessedTblsNames: ' + TblsNamesList.CommaText);     /// TEST
+      while TblsNamesList.Count <> 0 do
       begin
-        // получим PKs текущей таблицы, которые нужно исключить из HIS
+        ProcTblsNamesList.Append(TblsNamesList[0]);
 
-        q.SQL.Text :=
-          'SELECT ' +
-          '  fc.relation_name AS relation_name, ' +
-          '  fc.list_fields AS list_fields ' +
-          'FROM dbs_fk_constraints fc ' +
-          'WHERE fc.update_rule IN (''RESTRICT'', ''NO ACTION'') ' +
-          '  AND fc.ref_relation_name = :rln ' +
-          '  AND fc.list_fields NOT LIKE ''%,%'' ' ;
-        q.ParamByName('rln').AsString := UpperCase(AllProcessedTblsNames[0]);
-        q.Open;
-
-        while not q.EOF do
-        begin
-          // если rectrict/noAction НЕ перекрыт удаляемым cascade, то записи будут потом исключены из HIS вместе с цепочкой ссылок на них
-          if AllProcessedTblsNames.IndexOf(q.FieldByName('relation_name').AsString) = -1 then
-          begin
-            q2.SQL.Text :=
-              'SELECT ' +
-              '  COUNT(g_his_include(1, ' + q.FieldByName('list_fields').AsString + ')), ' +
-              '  SUM(g_his_exclude(0, ' + q.FieldByName('list_fields').AsString + ')) AS Kolvo ' +
-              'FROM '+
-                 q.FieldByName('relation_name').AsString + ' ' +
-              'WHERE ' +
-              '  g_his_has(0, ' + q.FieldByName('list_fields').AsString + ') = 1';
-            q2.ExecQuery;
-            Count_test := Count_test + q2.FieldByName('Kolvo').AsInteger;
-            q2.Close;
-          end;
-          q.Next;
-        end;
-        q.Close;
-        ATr.Commit;
-        ATr.StartTransaction;
-
-          ///TEST
-        q.SQL.Text := 'SELECT g_his_has(0, 147065354) AS IsHas FROM rdb$database ';
-        q.Open;
-        LogEvent('[test] doc id 147038012 in HIS [1]: ' + q.FieldByName('IsHas').AsString + ' table: ' + AllProcessedTblsNames[0]);
-        q.Close;
-
-
-        // получим все FK cascade поля в таблице, которые являются звеном цепи, которая исключается из HIS
+        // получим все FK cascade поля в таблице
         q.SQL.Text :=
           'SELECT ' +
           '  fc.list_fields AS fk_field, ' +
@@ -1597,14 +1613,13 @@ var
           '  JOIN dbs_pk_unique_constraints pc ' +
           '    ON pc.relation_name = fc.relation_name ' +
           '  AND pc.constraint_type = ''PRIMARY KEY'' ' +
-          'WHERE fc.update_rule = ''CASCADE'' ' +
+         'WHERE ((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) ' +           ///delete TEST
           '  AND fc.relation_name = :rln ' +
-          '  AND fc.list_fields NOT LIKE ''%,%'' ' +
-          'ORDER BY fc.list_fields DESC'; ///TEST
-        q.ParamByName('rln').AsString := AllProcessedTblsNames[0];
+          '  AND fc.list_fields NOT LIKE ''%,%'' ';
+        q.ParamByName('rln').AsString := TblsNamesList[0];
         q.Open;
 
-        // если FK есть в HIS_2, то добавим в HIS_2 PK, чтобы исключить всю цепь
+        // если FK есть в HIS_2, то исключим PK из HIS
         while not q.EOF do
         begin
           q2.SQL.Text :=
@@ -1612,35 +1627,188 @@ var
             '  COUNT(g_his_include(1, ' + q.FieldByName('pk_field').AsString + ')), ' +
             '  SUM(g_his_exclude(0, ' + q.FieldByName('pk_field').AsString + ')) AS Kolvo ' +
             'FROM '+
-               AllProcessedTblsNames[0] + ' ' +
+               TblsNamesList[0] + ' ' +
             'WHERE ' +
             '  g_his_has(1, ' + q.FieldByName('fk_field').AsString + ') = 1 ' +
-            '  AND g_his_has(1, ' + q.FieldByName('pk_field').AsString + ') = 1';
+            '  AND g_his_has(1, ' + q.FieldByName('pk_field').AsString + ') = 1 ';
           q2.ExecQuery;
           Count_test := Count_test + q2.FieldByName('Kolvo').AsInteger;
           q2.Close;
+          q.Next;
+        end;
+        q.Close;
 
-          ///TEST
-          q2.SQL.Text :='SELECT g_his_has(0, 147038012) AS IsHas FROM rdb$database ';
+        // ищем RESTRICT/NO ACTION на таблицу
+        q.SQL.Text :=
+          'SELECT ' +
+          '  fc.relation_name AS relation_name, ' +
+          '  fc.list_fields AS list_fields ' +
+          'FROM dbs_fk_constraints fc ' +
+          'WHERE fc.update_rule IN (''RESTRICT'', ''NO ACTION'') ' +
+          '  AND fc.ref_relation_name = :rln ' +
+          '  AND fc.list_fields NOT LIKE ''%,%'' ' ;
+        q.ParamByName('rln').AsString := TblsNamesList[0];
+        q.Open;
+
+        while not q.EOF do
+        begin
+          //извлекаем FK restrict HIS вместе с цепью
+          q2.SQL.Text :=
+            'SELECT ' +
+            '  SUM(g_his_include(1, ' + q.FieldByName('list_fields').AsString + ')), ' +
+            '  SUM(g_his_exclude(0, ' + q.FieldByName('list_fields').AsString + ')) AS Kolvo ' +
+            'FROM ' +
+               q.FieldByName('relation_name').AsString;
+
+          // если таблица с rectrict/noAction содержит предположительно удаляемый cascade
+          if AllProcessedTblsNames.IndexOf(q.FieldByName('relation_name').AsString) <> -1 then  ///? перепроверить
+          begin  //извлекаем FK restrict HIS вместе с цепью, если ВСЕ каскады отсутствуют в HIS
+            
+            q4.SQL.Text :=  // получим все FK cascade поля в таблице
+              'SELECT ' +
+              '  fc.list_fields AS fk_field ' +
+              'FROM dbs_fk_constraints fc ' +
+              'WHERE ((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) ' +     ///delete TEST
+              '  AND fc.relation_name = :rln ' +
+              '  AND fc.list_fields NOT LIKE ''%,%'' ';
+            q4.ParamByName('rln').AsString := q.FieldByName('relation_name').AsString;
+            q4.ExecQuery;
+
+            q2.SQL.Add(' WHERE (0 ');
+            while not q4.EOF do
+            begin
+              q2.SQL.Add(
+                ' + g_his_has(0, ' + q4.FieldByName('fk_field').AsString + ') ');
+              q4.Next;
+            end;
+            q2.SQL.Add(') = 0');
+            q4.Close;
+          end;
           q2.ExecQuery;
-          if q2.FieldByName('IsHas').AsInteger = 0 then
-            LogEvent('[test] !! doc id 147038012 in HIS: ' + q2.FieldByName('IsHas').AsString + ' table: ' + AllProcessedTblsNames[0] +
-              ', pk_field: ' + q.FieldByName('pk_field').AsString + ', fk_field: ' + q.FieldByName('fk_field').AsString);
-          q2.Close;
+
+          Count_test := Count_test + q2.FieldByName('Kolvo').AsInteger;
+
+          if q2.FieldByName('Kolvo').AsInteger > 0 then // есть смысл исключать по цепи
+          begin
+            q2.Close;
+            I:=0;
+            // исключение цепи из HIS
+            while ProcTblsNamesList.Count > 0 do
+            begin
+              if I = 0 then  //движемся от конца к началу ProcTblsNamesList
+              begin
+                CascadeProcTbls.Add(ProcTblsNamesList[ProcTblsNamesList.Count-1]);   //список элементов цепи каскадной
+                IndexEnd := AllProcessedTblsNames.IndexOf(CascadeProcTbls[0]);  
+
+                while CascadeProcTbls.Count > 0 do
+                begin
+                  q2.SQL.Text :=
+                    'SELECT ' +
+                    '  fc.list_fields, ' +
+                    '  fc.ref_relation_name, ' +
+                    '  pc.list_fields AS pk_fields ' +
+                    'FROM dbs_fk_constraints fc ' +
+                    '  JOIN dbs_pk_unique_constraints pc ' +
+                    '    ON pc.relation_name = fc.relation_name ' +
+                    '    AND pc.constraint_type = ''PRIMARY KEY'' ' +
+                    'WHERE ((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) ' +    ///delete TEST
+                    '  AND fc.relation_name = :rln ' +
+                    '  AND fc.ref_relation_name IN (';
+                  for I:=0 to ProcTblsNamesList.Count-1 do                      /// или AllProc ?
+                  begin
+                    q2.SQL.Add(' ''' + ProcTblsNamesList[I] + '''');
+                    if I <> ProcTblsNamesList.Count-1 then
+                      q2.SQL.Add(',');
+                  end;
+                  q2.SQL.Add(') ');
+
+                  q2.ParamByName('rln').AsString := CascadeProcTbls[0];     
+                  q2.ExecQuery;
+
+                  while not q2.EOF do
+                  begin
+                    q4.SQL.Text :=
+                      'SELECT ' +
+                      '  COUNT(g_his_include(1, ' + q2.FieldByName('list_fields').AsString + ')), ' +
+                      '  SUM(g_his_exclude(0, ' + q2.FieldByName('list_fields').AsString + ')) AS Kolvo ' +
+                      'FROM ' +
+                         CascadeProcTbls[0] + ' ' +
+                      'WHERE ' +
+                      '  g_his_has(0, ' + q2.FieldByName('list_fields').AsString + ') = 1 ' +  /// не надо вроде
+                      '  AND g_his_has(1, ' + q2.FieldByName('pk_fields').AsString + ') = 1 ';
+                    q4.ExecQuery;
+                    Count_test := Count_test + q4.FieldByName('Kolvo').AsInteger;
+                    q4.Close;
+
+                    if CascadeProcTbls.IndexOf(q2.FieldByName('ref_relation_name').AsString) = -1 then
+                      CascadeProcTbls.Add(q2.FieldByName('ref_relation_name').AsString);
+
+                    q2.Next;
+                  end;
+                  q2.Close;
+
+                  if ProcTblsNamesList.IndexOf(CascadeProcTbls[0]) <> -1 then
+                    ProcTblsNamesList.Delete(ProcTblsNamesList.IndexOf(CascadeProcTbls[0]));
+                  CascadeProcTbls.Delete(0);
+                end;
+              end
+              else begin   // движемся от начала к концу ProcTblsNamesList
+                q2.SQL.Text :=
+                  'SELECT ' +
+                  '  fc.list_fields, ' +
+                  '  fc.ref_relation_name, ' +
+                  '  pc.list_fields AS pk_fields ' +
+                  'FROM dbs_fk_constraints fc ' +
+                  '  JOIN dbs_pk_unique_constraints pc ' +
+                  '    ON pc.relation_name = fc.relation_name ' +
+                  '    AND pc.constraint_type = ''PRIMARY KEY'' ' +
+                  'WHERE ((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) ' +    ///delete TEST
+                  '  AND fc.relation_name = :rln ' +
+                  '  AND fc.ref_relation_name IN (';
+                for I:=0 to IndexEnd do                                     
+                begin
+                  q2.SQL.Add(' ''' + AllProcessedTblsNames[I] + '''');
+                  if I <> IndexEnd then
+                    q2.SQL.Add(',');
+                end;
+                q2.SQL.Add(') ');
+
+                q2.ParamByName('rln').AsString := ProcTblsNamesList[0];
+                q2.ExecQuery;
+
+                while not q2.EOF do
+                begin
+                  q4.SQL.Text :=
+                    'SELECT ' +
+                    '  COUNT(g_his_include(1, ' + q2.FieldByName('pk_fields').AsString + ')), ' +
+                    '  SUM(g_his_exclude(0, ' + q2.FieldByName('pk_fields').AsString + ')) AS Kolvo ' +
+                    'FROM ' +
+                       ProcTblsNamesList[0] + ' ' +
+                    'WHERE ' +
+                    '  g_his_has(0, ' + q2.FieldByName('pk_fields').AsString + ') = 1 ' +  /// не надо вроде
+                    '  AND g_his_has(1, ' + q2.FieldByName('list_fields').AsString + ') = 1 ';
+                  q4.ExecQuery;
+                  Count_test := Count_test + q4.FieldByName('Kolvo').AsInteger;
+                  q4.Close;
+
+                  q2.Next;
+                end;
+                q2.Close;
+
+                ProcTblsNamesList.Delete(0);
+              end;
+
+              I:=1;  // 1 - значит обработали каскад от таблицы на которую есть рестрикт. т.е. прошли первый круг.
+            end;
+          end;
 
           q.Next;
         end;
+        q.Close;
         ATr.Commit;
         ATr.StartTransaction;
-        q.Close;
 
-        ///TEST
-        q.SQL.Text :='SELECT g_his_has(0, 147038012) AS IsHas FROM rdb$database ';
-        q.Open;
-        LogEvent('[test] doc id 147038012 in HIS [2]: ' + q.FieldByName('IsHas').AsString + ' table: ' + AllProcessedTblsNames[0]);
-        q.Close;
-
-        AllProcessedTblsNames.Delete(0);
+        TblsNamesList.Delete(0);
       end;
       LogEvent('COUNT excluded: ' + IntToStr(Count_test));
 
@@ -1650,6 +1818,7 @@ var
       q.ExecSQL;
       ATr.Commit;
       ATr.StartTransaction;
+
       ///TEST
       q.SQL.Text :='SELECT g_his_has(0, 147038012) AS IsHas FROM rdb$database ';
       q.Open;
@@ -1658,6 +1827,8 @@ var
 
       LogEvent('[test] AddCascadeKeys... OK');
     finally
+      CascadeProcTbls.Free;
+      ProcTblsNamesList.Free;
       TblsNamesList.Free;
       AllProcessedTblsNames.Free;
       q.Free;
@@ -2035,6 +2206,7 @@ var
       '      IIF(update_rule = ''RESTRICT'', '''', '' ON UPDATE '' || update_rule) || ' +
       '      IIF(delete_rule = ''RESTRICT'', '''', '' ON DELETE '' || delete_rule) ' +
       '    FROM dbs_fk_constraints ' +
+      '    ORDER BY relation_name DESC ' +                                      /// TODO: тест убрать
       '    INTO :S ' +
       '  DO ' +
       '    EXECUTE STATEMENT :S; ' +
