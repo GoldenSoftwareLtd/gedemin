@@ -70,7 +70,7 @@ type
     function GetTag(const AStr: String; var I: Integer): Cardinal;
     function GetLen(const AStr: String; var I: Integer): Cardinal;
     function GetData(const AStr: String): TOutPutInfo;
-    procedure InternalMessages(ATag: String; ATrNumber: Cardinal;
+    procedure InternalMessages(const ATag: String; ATrNumber: Cardinal;
       ACashNumber: Cardinal; const ASumm: Currency = -1; const ACurrCode: Integer = -1;
       const AParam: TgsTRPOSParamData = nil);
     procedure SetHost(const AValue: String);
@@ -101,6 +101,10 @@ type
       ACashNumber: Cardinal; const ACurrCode: Integer = -1;
       const AParam: TgsTRPOSParamData = nil);
     procedure Balance(ATrNumber: Cardinal; ACashNumber: Cardinal;
+      const AParam: TgsTRPOSParamData = nil);
+    procedure ResetLockJournal(ATrNumber: Cardinal; ACashNumber: Cardinal;
+      const AParam: TgsTRPOSParamData = nil);
+    procedure Calculation(ATrNumber: Cardinal; ACashNumber: Cardinal;
       const AParam: TgsTRPOSParamData = nil);
     procedure ReconciliationResults(ATrNumber: Cardinal; ACashNumber: Cardinal);
     procedure TestPinPad(ATrNumber: Cardinal; ACashNumber: Cardinal);
@@ -155,6 +159,8 @@ const
   OM_PreAuthorize      = 'AUT';
   OM_PMNPreAuthorize   = 'AUH';
   OM_Balance           = 'BAL';
+  OM_ResetLockJRN      = 'CLR';
+  OM_Calculation       = 'CMP';
 
   SRV_RevResult        = $02;
   SRV_TestPinpad       = $03;
@@ -538,7 +544,19 @@ begin
   InternalMessages(OM_PMNPreAuthorize, ATrNumber, ACashNumber, ASumm, ACurrCode, AParam);
 end;
 
-procedure TgsTRPOS_TLVClient.InternalMessages(ATag: String; ATrNumber: Cardinal;
+procedure TgsTRPOS_TLVClient.ResetLockJournal(ATrNumber: Cardinal; ACashNumber: Cardinal;
+  const AParam: TgsTRPOSParamData = nil);
+begin
+  InternalMessages(OM_ResetLockJRN, ATrNumber, ACashNumber, -1, -1, AParam);
+end;
+
+procedure TgsTRPOS_TLVClient.Calculation(ATrNumber: Cardinal; ACashNumber: Cardinal;
+  const AParam: TgsTRPOSParamData = nil);
+begin
+  InternalMessages(OM_Calculation, ATrNumber, ACashNumber, -1, -1, AParam);
+end; 
+
+procedure TgsTRPOS_TLVClient.InternalMessages(const ATag: String; ATrNumber: Cardinal;
   ACashNumber: Cardinal; const ASumm: Currency = -1; const ACurrCode: Integer = -1;
   const AParam: TgsTRPOSParamData = nil);
 var
