@@ -18,6 +18,13 @@ type
     Receipt: String;
     InvoiceNumber: String;
     AuthorizationID: String;
+    Date: String;
+    Time: String;
+    VerificationChr: String;
+    RRN: String;
+    TVR: String;
+    TerminalID: String;
+    CardDataEnc: String;
   end;
 
   TgsTRPOSParamData = class(TObject)
@@ -31,6 +38,7 @@ type
     FAuthorizationID: Integer;
     FMerchantID: Integer;
     FRRN: String;
+    FCardDataEnc: String;
   public 
     property Track1Data: String read FTrack1Data write FTrack1Data;
     property Track2Data: String read FTrack2Data write FTrack2Data;
@@ -41,6 +49,7 @@ type
     property AuthorizationID: Integer read FAuthorizationID write FAuthorizationID default -1;
     property MerchantID: Integer read FMerchantID write FMerchantID default -1;
     property RRN: String read FRRN write FRRN;
+    property CardDataEnc: String read FCardDataEnc write FCardDataEnc;
   end;
 
 
@@ -85,6 +94,12 @@ type
     procedure Disconnect;
     procedure Payment(ASumm: Currency; ATrNumber: Cardinal;
       ACashNumber: Cardinal; const ACurrCode: Integer = -1;
+      const APreAUT: Boolean = False; const AParam: TgsTRPOSParamData = nil);
+    procedure Cash(ASumm: Currency; ATrNumber: Cardinal;
+      ACashNumber: Cardinal; const ACurrCode: Integer = -1;
+      const AParam: TgsTRPOSParamData = nil);
+    procedure Replenishment(ASumm: Currency; ATrNumber: Cardinal;
+      ACashNumber: Cardinal; const ACurrCode: Integer = -1;
       const AParam: TgsTRPOSParamData = nil);
     procedure Cancel(ASumm: Currency; ATrNumber: Cardinal;
       ACashNumber: Cardinal; const ACurrCode: Integer = -1;
@@ -92,11 +107,8 @@ type
     procedure Return(ASumm: Currency; ATrNumber: Cardinal;
       ACashNumber: Cardinal; const ACurrCode: Integer = -1;
       const AParam: TgsTRPOSParamData = nil);
-    procedure ResultByNumberOfCheck(ATrNumber: Cardinal; ACashNumber: Cardinal;
-      const AParam: TgsTRPOSParamData = nil);
-    procedure PaymentPreAuthorize(ASumm: Currency; ATrNumber: Cardinal;
-      ACashNumber: Cardinal; const ACurrCode: Integer = -1;
-      const AParam: TgsTRPOSParamData = nil);
+    procedure ReadJournal(ATrNumber: Cardinal; ACashNumber: Cardinal;
+      const AParam: TgsTRPOSParamData = nil);  
     procedure PreAuthorize(ASumm: Currency; ATrNumber: Cardinal;
       ACashNumber: Cardinal; const ACurrCode: Integer = -1;
       const AParam: TgsTRPOSParamData = nil);
@@ -105,6 +117,10 @@ type
     procedure ResetLockJournal(ATrNumber: Cardinal; ACashNumber: Cardinal;
       const AParam: TgsTRPOSParamData = nil);
     procedure Calculation(ATrNumber: Cardinal; ACashNumber: Cardinal;
+      const AParam: TgsTRPOSParamData = nil);
+    procedure Ping(ATrNumber: Cardinal; ACashNumber: Cardinal;
+      const AParam: TgsTRPOSParamData = nil);
+    procedure ReadCard(ATrNumber: Cardinal; ACashNumber: Cardinal;
       const AParam: TgsTRPOSParamData = nil);
     procedure ReconciliationResults(ATrNumber: Cardinal; ACashNumber: Cardinal);
     procedure TestPinPad(ATrNumber: Cardinal; ACashNumber: Cardinal);
@@ -150,6 +166,14 @@ const
   OT_AuthorizationID   = $8C;
   OT_Approve           = $A1;
   OT_Receipt           = $9C;
+  OT_Date              = $8D;
+  OT_Time              = $8E;
+  OT_VerificationChr   = $94;
+  OT_RRN               = $98;
+  OT_TVR               = $95;
+  OT_TerminalID        = $9D;
+  OT_CardDataEnc       = $C0;
+  
 
   OM_Payment           = 'PUR';
   OM_Cancel            = 'VOI';
@@ -161,6 +185,10 @@ const
   OM_Balance           = 'BAL';
   OM_ResetLockJRN      = 'CLR';
   OM_Calculation       = 'CMP';
+  OM_Ping              = 'PNG';
+  OM_ReadCard          = 'VER';
+  OM_Cash              = 'CSH';
+  OM_Replenishment     = 'CRE';
 
   SRV_RevResult        = $02;
   SRV_TestPinpad       = $03;
@@ -464,6 +492,13 @@ begin
       OT_AuthorizationID: Result.AuthorizationID := System.Copy(AStr, I, Len);
       OT_Approve: Result.Approve := System.Copy(AStr, I, Len);
       OT_Receipt: Result.Receipt := System.Copy(AStr, I, Len);
+      OT_Date: Result.Date := System.Copy(AStr, I, Len);
+      OT_Time: Result.Time := System.Copy(AStr, I, Len);
+      OT_VerificationChr: Result.VerificationChr := System.Copy(AStr, I, Len);
+      OT_RRN: Result.RRN := System.Copy(AStr, I, Len);
+      OT_TVR: Result.TVR := System.Copy(AStr, I, Len);
+      OT_TerminalID: Result.TerminalID := System.Copy(AStr, I, Len);
+      OT_CardDataEnc: Result.CardDataEnc := System.Copy(AStr, I, Len);
     end;
     Inc(I, Len);
   end;
@@ -505,9 +540,12 @@ end;
 
 procedure TgsTRPOS_TLVClient.Payment(ASumm: Currency; ATrNumber: Cardinal;
   ACashNumber: Cardinal; const ACurrCode: Integer = -1;
-  const AParam: TgsTRPOSParamData = nil);
+  const APreAUT: Boolean = False; const AParam: TgsTRPOSParamData = nil);
 begin
-  InternalMessages(OM_Payment, ATrNumber, ACashNumber, ASumm, ACurrCode, AParam);
+  if APreAUT then
+    InternalMessages(OM_PMNPreAuthorize, ATrNumber, ACashNumber, ASumm, ACurrCode, AParam)
+  else
+    InternalMessages(OM_Payment, ATrNumber, ACashNumber, ASumm, ACurrCode, AParam);
 end;
 
 procedure TgsTRPOS_TLVClient.Return(ASumm: Currency; ATrNumber: Cardinal;
@@ -524,24 +562,17 @@ begin
   InternalMessages(OM_Cancel, ATrNumber, ACashNumber, ASumm, ACurrCode, AParam);
 end;
 
-procedure TgsTRPOS_TLVClient.ResultByNumberOfCheck(ATrNumber: Cardinal; ACashNumber: Cardinal;
+procedure TgsTRPOS_TLVClient.ReadJournal(ATrNumber: Cardinal; ACashNumber: Cardinal;
   const AParam: TgsTRPOSParamData = nil);
 begin
   InternalMessages(OM_Journal, ATrNumber, ACashNumber, -1, -1, AParam);
-end;
-
-procedure TgsTRPOS_TLVClient.PaymentPreAuthorize(ASumm: Currency; ATrNumber: Cardinal;
-  ACashNumber: Cardinal; const ACurrCode: Integer = -1;
-  const AParam: TgsTRPOSParamData = nil);
-begin
-  InternalMessages(OM_PMNPreAuthorize, ATrNumber, ACashNumber, ASumm, ACurrCode, AParam);
-end;
+end; 
 
 procedure TgsTRPOS_TLVClient.PreAuthorize(ASumm: Currency; ATrNumber: Cardinal;
   ACashNumber: Cardinal; const ACurrCode: Integer = -1;
   const AParam: TgsTRPOSParamData = nil);
 begin
-  InternalMessages(OM_PMNPreAuthorize, ATrNumber, ACashNumber, ASumm, ACurrCode, AParam);
+  InternalMessages(OM_PreAuthorize, ATrNumber, ACashNumber, ASumm, ACurrCode, AParam);
 end;
 
 procedure TgsTRPOS_TLVClient.ResetLockJournal(ATrNumber: Cardinal; ACashNumber: Cardinal;
@@ -554,7 +585,33 @@ procedure TgsTRPOS_TLVClient.Calculation(ATrNumber: Cardinal; ACashNumber: Cardi
   const AParam: TgsTRPOSParamData = nil);
 begin
   InternalMessages(OM_Calculation, ATrNumber, ACashNumber, -1, -1, AParam);
-end; 
+end;
+
+procedure TgsTRPOS_TLVClient.ReadCard(ATrNumber: Cardinal; ACashNumber: Cardinal;
+  const AParam: TgsTRPOSParamData = nil);
+begin
+  InternalMessages(OM_ReadCard, ATrNumber, ACashNumber, -1, -1, AParam);
+end;
+
+procedure TgsTRPOS_TLVClient.Ping(ATrNumber: Cardinal; ACashNumber: Cardinal;
+  const AParam: TgsTRPOSParamData = nil);
+begin
+  InternalMessages(OM_Ping, ATrNumber, ACashNumber, -1, -1, AParam);
+end;
+
+procedure TgsTRPOS_TLVClient.Cash(ASumm: Currency; ATrNumber: Cardinal;
+  ACashNumber: Cardinal; const ACurrCode: Integer = -1;
+  const AParam: TgsTRPOSParamData = nil);
+begin
+  InternalMessages(OM_Cash, ATrNumber, ACashNumber, ASumm, ACurrCode, AParam);
+end;
+
+procedure TgsTRPOS_TLVClient.Replenishment(ASumm: Currency; ATrNumber: Cardinal;
+  ACashNumber: Cardinal; const ACurrCode: Integer = -1;
+  const AParam: TgsTRPOSParamData = nil);
+begin
+  InternalMessages(OM_Replenishment, ATrNumber, ACashNumber, ASumm, ACurrCode, AParam);
+end;
 
 procedure TgsTRPOS_TLVClient.InternalMessages(const ATag: String; ATrNumber: Cardinal;
   ACashNumber: Cardinal; const ASumm: Currency = -1; const ACurrCode: Integer = -1;
