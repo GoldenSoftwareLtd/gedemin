@@ -1596,15 +1596,16 @@ var
         // если FK есть в HIS_2, то исключим PK из HIS (исключение цепи, что выше)
         while not q.EOF do
         begin
-          'SELECT ' +
-          '  SUM(' +
-          '    IIF(g_his_exclude(0, ' + q.FieldByName('pk_field').AsString + ') = 1, ' +
-          '      g_his_include(1, ' + q.FieldByName('pk_field').AsString + '), 0)' +
-          '  ) AS Kolvo ' +
-          'FROM ' +
-             TblsNamesList[0] +
-          'WHERE ' +
-          '  g_his_has(1, ' + q.FieldByName('fk_field').AsString + ') = 1 ';
+          q2.SQL.Text :=
+            'SELECT ' +
+            '  SUM(' +
+            '    IIF(g_his_exclude(0, ' + q.FieldByName('pk_field').AsString + ') = 1, ' +
+            '      g_his_include(1, ' + q.FieldByName('pk_field').AsString + '), 0)' +
+            '  ) AS Kolvo ' +
+            'FROM ' +
+               TblsNamesList[0] +
+            'WHERE ' +
+            '  g_his_has(1, ' + q.FieldByName('fk_field').AsString + ') = 1 ';
           q2.ExecQuery;
           Count := Count - q2.FieldByName('Kolvo').AsInteger;
           q2.Close;
