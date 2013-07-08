@@ -1377,8 +1377,8 @@ var
     q4: TIBSQL;
     TblsNamesList, AllProcessedTblsNames: TStringList;
     ProcTblsNamesList, CascadeProcTbls: TStringList;
-    Count_test, I, IndexEnd: Integer;
-    IsDuplicate, DoNothing, GoToFirst, GoToLast: Boolean;
+    I, IndexEnd: Integer;
+    IsDuplicate, DoNothing, GoToFirst, GoToLast, IsFirstIteration: Boolean;
     MainDuplicateTblName: String;
   begin
     LogEvent('[test] AddCascadeKeys...');
@@ -1392,22 +1392,13 @@ var
     q3 := TIBSQL.Create(nil);
     q4 := TIBSQL.Create(nil);
     try
-      TblsNamesList.Append(ATableName);    //Queue.Push(@ATableName);
+      TblsNamesList.Append(ATableName);    
       AllProcessedTblsNames.Append(ATableName);
 
       q.Transaction := ATr;
       q2.Transaction := ATr;
       q4.Transaction := ATr;
       q3.Transaction := ATr2;
-
-        /// TEST begin
-      q.SQL.Text :=
-        'EXECUTE BLOCK AS BEGIN g_his_create(1, 0); END';  // HIS_2
-      q.ExecSQL;
-      ATr.Commit;
-      ATr.StartTransaction;
-        /// end
-
 
       IsDuplicate := False;
       DoNothing := False;
@@ -1426,26 +1417,19 @@ var
           '  JOIN dbs_pk_unique_constraints pc ' +
           '    ON pc.relation_name = fc.relation_name ' +
           '  AND pc.constraint_type = ''PRIMARY KEY'' ' +
-          'WHERE ((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) ' +                   ///delete TEST
+          'WHERE ((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) ' +         ///delete_rule TEST
           '  AND fc.ref_relation_name = :rln ' +
           '  AND pc.list_fields NOT LIKE ''%,%'' ' +
           '  AND fc.list_fields NOT LIKE ''%,%'' ' ;
         q.ParamByName('rln').AsString := UpperCase(TblsNamesList[0]);
         q.Open;
 
- //       LogEvent('[test] TblsNamesList[0] = ' + UpperCase(TblsNamesList[0]));
- //       LogEvent('[test] TblsNamesList = ' + UpperCase(TblsNamesList.CommaText));
-
-
         while not q.EOF do
         begin
           // проверка типа поля на INTEGER
           q2.SQL.Text :=
             'SELECT ' +
-            '  CASE F.RDB$FIELD_TYPE ' +
-            '    WHEN 8 THEN ''INTEGER'' ' +
-            '    ELSE ''NOT INTEGER'' ' +
-            '  END FIELD_TYPE ' +
+            '  IIF(F.RDB$FIELD_TYPE = 8, ''INTEGER'', ''NOT INTEGER'') AS FIELD_TYPE ' +
             'FROM RDB$RELATION_FIELDS RF ' +
             '  JOIN RDB$FIELDS F ON (F.RDB$FIELD_NAME = RF.RDB$FIELD_SOURCE) ' +
             'WHERE (RF.RDB$RELATION_NAME = :RELAT_NAME) AND (RF.RDB$FIELD_NAME = :FIELD) ';
@@ -1456,8 +1440,9 @@ var
           if AnsiCompareStr(q2.FieldByName('FIELD_TYPE').AsString, 'INTEGER') = 1 then //q2.FieldByName('FIELD_TYPE').AsString = ''INTEGER'' then
           begin
             q3.SQL.Text :=
-              'SELECT COUNT(g_his_include(0, ' + q.FieldByName('pk_fields').AsString + ')) AS Kolvo, ' +
-              '  SUM(g_his_include(1, ' + q.FieldByName('pk_fields').AsString + ')) AS RealKolvo ' +        /// TEST
+              'SELECT ' +
+              '  SUM(IIF(g_his_has(0, ' + q.FieldByName('pk_fields').AsString + ') = 0, 1, 0)) AS RealKolvo, ' +
+              '  COUNT(g_his_include(0, ' + q.FieldByName('pk_fields').AsString + ')) AS Kolvo ' +
               'FROM ' +
               '  ' + q.FieldByName('relation_name').AsString + ' ' +
               'WHERE ' +
@@ -1465,14 +1450,12 @@ var
               '  AND ' + q.FieldByName('pk_fields').AsString + ' > 147000000 ';
             q3.ExecQuery;
 
-            Count := Count + q3.FieldByName('Kolvo').AsInteger;
-            Count_test :=  Count_test + q3.FieldByName('RealKolvo').AsInteger;
+            Count := Count + q3.FieldByName('RealKolvo').AsInteger;
 
             if q3.FieldByName('Kolvo').AsInteger <> 0 then
             begin
               if AllProcessedTblsNames.IndexOf(Trim(q.FieldByName('relation_name').AsString)) <> -1 then
               begin
-                //LogEvent('REALKolvo included = ' + q3.FieldByName('RealKolvo').AsString + ' addList: ' + Trim(q.FieldByName('relation_name').AsString));   ///TEST
                 if q3.FieldByName('RealKolvo').AsInteger <> 0 then
                 begin
                   if TblsNamesList.IndexOf(Trim(q.FieldByName('relation_name').AsString)) <> -1 then
@@ -1485,23 +1468,22 @@ var
                       repeat
                         q3.Close;
                         q3.SQL.Text :=
-                          'SELECT COUNT(g_his_include(0, ' + q.FieldByName('pk_fields').AsString + ')) AS Kolvo, ' +
-                          '  SUM(g_his_include(1, ' + q.FieldByName('pk_fields').AsString + ')) AS RealKolvo ' +        /// TEST
+                          'SELECT ' +
+                          '  SUM(g_his_include(0, ' + q.FieldByName('pk_fields').AsString + ')) AS RealKolvo ' +
                           'FROM ' +
                           '  ' + q.FieldByName('relation_name').AsString + ' ' +
                           'WHERE ' +
                           '  g_his_has(0, ' + q.FieldByName('list_fields').AsString + ') = 1 ' +
                           '  AND ' + q.FieldByName('pk_fields').AsString + ' > 147000000 ';
                         q3.ExecQuery;
-                        Count := Count + q3.FieldByName('Kolvo').AsInteger;
-                        Count_test :=  Count_test + q3.FieldByName('RealKolvo').AsInteger;
+                        
+                        Count := Count + q3.FieldByName('RealKolvo').AsInteger;
                       until q3.FieldByName('RealKolvo').AsInteger = 0;
 
                       GoToFirst := True;
                     end;
-                      
                     //else
-                      // Cлучай 2: еще не обработали таблицы, ссылающиеся каскадно на эту таблицу =>  q.Next;
+                    //  Cлучай 2: еще не обработали таблицы, ссылающиеся каскадно на эту таблицу =>  q.Next;
                   end
                   // Cлучай 3: уже обработали таблицы, ссылающиеся каскадно на эту таблицу
                   else begin
@@ -1542,12 +1524,11 @@ var
                   AllProcessedTblsNames.Append(Trim(q.FieldByName('relation_name').AsString));
                   TblsNamesList.Append(Trim(q.FieldByName('relation_name').AsString));
               end
-              else //(IsDuplicate) and (DoNothing) then // закончили переобработку Ситуации 3. круг 2
+              else // закончили переобработку Ситуации 3. круг 2
               begin
                 DoNothing := False;
               end;
             end;
-            //LogEvent('REALKolvo included = ' + q3.FieldByName('RealKolvo').AsString + ' addList: ' + Trim(q.FieldByName('relation_name').AsString));   ///TEST
             q3.Close;
           end;
           q2.Close;
@@ -1573,22 +1554,15 @@ var
       ATr2.Commit;
       ATr2.StartTransaction;
 
-
-        /// TEST begin
-      q.SQL.Text :=
-        'EXECUTE BLOCK AS BEGIN g_his_destroy(1); END';
-      q.ExecSQL;
-      ATr.Commit;
-      ATr.StartTransaction;
-      LogEvent('[test] COUNT real incuded: ' + IntToStr(Count_test));
-      Count_test := 0;
-
-      q.SQL.Text :='SELECT g_his_has(0, 147038012) AS IsHas FROM rdb$database ';
+      LogEvent('[test] COUNT real incuded: ' + IntToStr(Count));
+      /// TEST begin
+      q.SQL.Text :='SELECT g_his_has(0, 147160138) AS IsHas FROM rdb$database ';
+      q.SQL.Text :='SELECT g_his_has(0, 147160138) AS IsHas_1, g_his_has(0, 147160139) AS IsHas_2 FROM rdb$database ';
       q.Open;
-      LogEvent('[test] doc id 147038012 in HIS before exclude: ' + q.FieldByName('IsHas').AsString);
+      LogEvent('[test] doc id 147160138 in HIS before exclude: ' + q.FieldByName('IsHas_1').AsString);
+      LogEvent('[test] doc id 147160139 in HIS before exclude: ' + q.FieldByName('IsHas_2').AsString);
       q.Close;
-         /// end
-
+        /// end
 
       //------------------ исключение из HIS PK, на которые есть restrict/noAction
       q.SQL.Text :=
@@ -1599,7 +1573,7 @@ var
 
       TblsNamesList.CommaText := AllProcessedTblsNames.CommaText;
 
-      LogEvent('[test] AllProcessedTblsNames: ' + TblsNamesList.CommaText);     /// TEST
+      LogEvent('[test] AllProcessedTblsNames: ' + TblsNamesList.CommaText);      /// TEST
       while TblsNamesList.Count <> 0 do
       begin
         ProcTblsNamesList.Append(TblsNamesList[0]);
@@ -1613,26 +1587,26 @@ var
           '  JOIN dbs_pk_unique_constraints pc ' +
           '    ON pc.relation_name = fc.relation_name ' +
           '  AND pc.constraint_type = ''PRIMARY KEY'' ' +
-         'WHERE ((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) ' +           ///delete TEST
+          'WHERE ((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) ' +           ///delete TEST
           '  AND fc.relation_name = :rln ' +
           '  AND fc.list_fields NOT LIKE ''%,%'' ';
         q.ParamByName('rln').AsString := TblsNamesList[0];
         q.Open;
 
-        // если FK есть в HIS_2, то исключим PK из HIS
+        // если FK есть в HIS_2, то исключим PK из HIS (исключение цепи, что выше)
         while not q.EOF do
         begin
-          q2.SQL.Text :=
-            'SELECT ' +
-            '  COUNT(g_his_include(1, ' + q.FieldByName('pk_field').AsString + ')), ' +
-            '  SUM(g_his_exclude(0, ' + q.FieldByName('pk_field').AsString + ')) AS Kolvo ' +
-            'FROM '+
-               TblsNamesList[0] + ' ' +
-            'WHERE ' +
-            '  g_his_has(1, ' + q.FieldByName('fk_field').AsString + ') = 1 ' +
-            '  AND g_his_has(1, ' + q.FieldByName('pk_field').AsString + ') = 1 ';
+          'SELECT ' +
+          '  SUM(' +
+          '    IIF(g_his_exclude(0, ' + q.FieldByName('pk_field').AsString + ') = 1, ' +
+          '      g_his_include(1, ' + q.FieldByName('pk_field').AsString + '), 0)' +
+          '  ) AS Kolvo ' +
+          'FROM ' +
+             TblsNamesList[0] +
+          'WHERE ' +
+          '  g_his_has(1, ' + q.FieldByName('fk_field').AsString + ') = 1 ';
           q2.ExecQuery;
-          Count_test := Count_test + q2.FieldByName('Kolvo').AsInteger;
+          Count := Count - q2.FieldByName('Kolvo').AsInteger;
           q2.Close;
           q.Next;
         end;
@@ -1652,18 +1626,19 @@ var
 
         while not q.EOF do
         begin
-          //извлекаем FK restrict HIS вместе с цепью
+          // извлекаем FK restrict HIS вместе с цепью
           q2.SQL.Text :=
             'SELECT ' +
-            '  SUM(g_his_include(1, ' + q.FieldByName('list_fields').AsString + ')), ' +
-            '  SUM(g_his_exclude(0, ' + q.FieldByName('list_fields').AsString + ')) AS Kolvo ' +
+            '  SUM(g_his_include(1, ' + q.FieldByName('list_fields').AsString + ')) AS Kolvo ' +
             'FROM ' +
-               q.FieldByName('relation_name').AsString;
+               q.FieldByName('relation_name').AsString + ' ' +
+            'WHERE ' +
+            '  g_his_exclude(0, ' + q.FieldByName('list_fields').AsString + ') = 1 ';
 
           // если таблица с rectrict/noAction содержит предположительно удаляемый cascade
           if AllProcessedTblsNames.IndexOf(q.FieldByName('relation_name').AsString) <> -1 then  ///? перепроверить
           begin  //извлекаем FK restrict HIS вместе с цепью, если ВСЕ каскады отсутствуют в HIS
-            
+
             q4.SQL.Text :=  // получим все FK cascade поля в таблице
               'SELECT ' +
               '  fc.list_fields AS fk_field ' +
@@ -1674,7 +1649,7 @@ var
             q4.ParamByName('rln').AsString := q.FieldByName('relation_name').AsString;
             q4.ExecQuery;
 
-            q2.SQL.Add(' WHERE (0 ');
+            q2.SQL.Add(' AND (0 ');
             while not q4.EOF do
             begin
               q2.SQL.Add(
@@ -1686,21 +1661,21 @@ var
           end;
           q2.ExecQuery;
 
-          Count_test := Count_test + q2.FieldByName('Kolvo').AsInteger;
+          Count := Count - q2.FieldByName('Kolvo').AsInteger;
 
           if q2.FieldByName('Kolvo').AsInteger > 0 then // есть смысл исключать по цепи
           begin
             q2.Close;
-            I:=0;
-            // исключение цепи из HIS
-            while ProcTblsNamesList.Count > 0 do
+            IsFirstIteration := True;
+            // исключение цепи из HIS   (исключение цепи, что ниже)
+            while ProcTblsNamesList.Count <> 0 do
             begin
-              if I = 0 then  //движемся от конца к началу ProcTblsNamesList
+              if IsFirstIteration then  //движемся от конца к началу ProcTblsNamesList
               begin
                 CascadeProcTbls.Add(ProcTblsNamesList[ProcTblsNamesList.Count-1]);   //список элементов цепи каскадной
                 IndexEnd := AllProcessedTblsNames.IndexOf(CascadeProcTbls[0]);  
 
-                while CascadeProcTbls.Count > 0 do
+                while CascadeProcTbls.Count <> 0 do
                 begin
                   q2.SQL.Text :=
                     'SELECT ' +
@@ -1729,15 +1704,17 @@ var
                   begin
                     q4.SQL.Text :=
                       'SELECT ' +
-                      '  COUNT(g_his_include(1, ' + q2.FieldByName('list_fields').AsString + ')), ' +
-                      '  SUM(g_his_exclude(0, ' + q2.FieldByName('list_fields').AsString + ')) AS Kolvo ' +
+                      '  SUM( ' +
+                      '    IIF(g_his_exclude(0, ' + q2.FieldByName('list_fields').AsString + ') = 1, ' +
+                      '      g_his_include(1, ' + q2.FieldByName('list_fields').AsString + '), 0) ' +
+                      '  ) AS Kolvo ' +
                       'FROM ' +
                          CascadeProcTbls[0] + ' ' +
                       'WHERE ' +
-                      '  g_his_has(0, ' + q2.FieldByName('list_fields').AsString + ') = 1 ' +  /// не надо вроде
-                      '  AND g_his_has(1, ' + q2.FieldByName('pk_fields').AsString + ') = 1 ';
+                      '  g_his_has(1, ' + q2.FieldByName('pk_fields').AsString + ') = 1 ';
+
                     q4.ExecQuery;
-                    Count_test := Count_test + q4.FieldByName('Kolvo').AsInteger;
+                    Count := Count - q4.FieldByName('Kolvo').AsInteger;
                     q4.Close;
 
                     if CascadeProcTbls.IndexOf(q2.FieldByName('ref_relation_name').AsString) = -1 then
@@ -1780,15 +1757,16 @@ var
                 begin
                   q4.SQL.Text :=
                     'SELECT ' +
-                    '  COUNT(g_his_include(1, ' + q2.FieldByName('pk_fields').AsString + ')), ' +
-                    '  SUM(g_his_exclude(0, ' + q2.FieldByName('pk_fields').AsString + ')) AS Kolvo ' +
+                    '  SUM(' +
+                    '    IIF(g_his_exclude(0, ' + q2.FieldByName('pk_fields').AsString ') = 1, ' +
+                    '      g_his_include(1, ' + q2.FieldByName('pk_fields').AsString + '), 0) ' +
+                    '  ) AS Kolvo ' +///переделать если в HIS_2 уже может быть находиться этот элемент => вернет 0 при добавлении, а он то БЫЛ исключен!
                     'FROM ' +
                        ProcTblsNamesList[0] + ' ' +
                     'WHERE ' +
-                    '  g_his_has(0, ' + q2.FieldByName('pk_fields').AsString + ') = 1 ' +  /// не надо вроде
-                    '  AND g_his_has(1, ' + q2.FieldByName('list_fields').AsString + ') = 1 ';
+                    '  g_his_has(1, ' + q2.FieldByName('list_fields').AsString + ') = 1 ';
                   q4.ExecQuery;
-                  Count_test := Count_test + q4.FieldByName('Kolvo').AsInteger;
+                  Count := Count - q4.FieldByName('Kolvo').AsInteger;
                   q4.Close;
 
                   q2.Next;
@@ -1798,7 +1776,7 @@ var
                 ProcTblsNamesList.Delete(0);
               end;
 
-              I:=1;  // 1 - значит обработали каскад от таблицы на которую есть рестрикт. т.е. прошли первый круг.
+              IsFirstIteration := False;  // значит обработали каскад от таблицы на которую есть рестрикт. т.е. прошли первый круг.
             end;
           end;
 
@@ -1810,7 +1788,7 @@ var
 
         TblsNamesList.Delete(0);
       end;
-      LogEvent('COUNT excluded: ' + IntToStr(Count_test));
+      LogEvent('[test] COUNT HIS after exclude: ' + IntToStr(Count));
 
       q.Close;
       q.SQL.Text :=
@@ -1820,11 +1798,12 @@ var
       ATr.StartTransaction;
 
       ///TEST
-      q.SQL.Text :='SELECT g_his_has(0, 147038012) AS IsHas FROM rdb$database ';
+      q.SQL.Text :='SELECT g_his_has(0, 147160138) AS IsHas_1, g_his_has(0, 147160139) AS IsHas_2 FROM rdb$database ';
       q.Open;
-      LogEvent('[test] doc id 147038012 in HIS after exclude: ' + q.FieldByName('IsHas').AsString);
+      LogEvent('[test] doc id 147160138 in HIS after exclude: ' + q.FieldByName('IsHas_1').AsString);
+      LogEvent('[test] doc id 147160139 in HIS after exclude: ' + q.FieldByName('IsHas_2').AsString);
       q.Close;
-
+      ///
       LogEvent('[test] AddCascadeKeys... OK');
     finally
       CascadeProcTbls.Free;
@@ -1868,10 +1847,10 @@ begin
     Tr.Commit;
     Tr.StartTransaction;
 
-    LogEvent('[test] COUNT in HIS without cascade: ' + IntToStr(Count));
+    LogEvent('COUNT in HIS without cascade: ' + IntToStr(Count));
 
     AddCascadeKeys('GD_DOCUMENT', Tr, Tr2);
-    LogEvent('[test] COUNT in HIS with CASCADE: ' + IntToStr(Count));
+    LogEvent('COUNT in HIS with CASCADE: ' + IntToStr(Count));
 
     q.SQL.Text :=
       'EXECUTE BLOCK ' +
@@ -1887,7 +1866,7 @@ begin
       '    INTO :RN, :FN ' +
       '  DO BEGIN ' +
       '    EXECUTE STATEMENT ''DELETE FROM '' || :RN || ' +
-      '      '' WHERE g_his_has(0, '' || :FN || '') = 1 AND '' ||:FN || '' > 147000000''; ' +
+      '      '' WHERE g_his_has(0, '' || :FN || '') = 1 AND '' || :FN || '' > 147000000''; ' +
       '  END ' +
       'END';
     q.ExecQuery;
@@ -1925,8 +1904,8 @@ var
       'INSERT INTO DBS_INACTIVE_TRIGGERS (TRIGGER_NAME) ' +
       'SELECT RDB$TRIGGER_NAME ' +
       'FROM RDB$TRIGGERS ' +
-      'WHERE RDB$TRIGGER_INACTIVE = 1 ' +
-      '  AND RDB$SYSTEM_FLAG = 0';
+      'WHERE RDB$TRIGGER_INACTIVE = 1 '; {+
+      '  AND RDB$SYSTEM_FLAG = 0';  }
     q.ExecQuery;
     
     q.SQL.Text :=
@@ -1938,8 +1917,8 @@ var
       '    SELECT rdb$trigger_name ' +
       '    FROM rdb$triggers ' +
       '    WHERE rdb$trigger_inactive = 0 ' +
-      '      AND RDB$SYSTEM_FLAG = 0 ' +
-      '      AND RDB$TRIGGER_NAME NOT IN (SELECT RDB$TRIGGER_NAME FROM RDB$CHECK_CONSTRAINTS) ' +
+      '      AND RDB$SYSTEM_FLAG = 0 ' +        
+      '      AND RDB$TRIGGER_NAME NOT IN (SELECT RDB$TRIGGER_NAME FROM RDB$CHECK_CONSTRAINTS) ' + 
       '    INTO :TN ' +
       '  DO ' +
       '  BEGIN ' +
@@ -1972,9 +1951,9 @@ var
       '    SELECT rdb$index_name ' +
       '    FROM rdb$indices ' +
       '    WHERE rdb$index_inactive = 0 ' +
-     // '      AND RDB$SYSTEM_FLAG = 0 ' +                                           //
+      //'      AND RDB$SYSTEM_FLAG = 0 ' +                                         
       '      AND (NOT rdb$index_name LIKE ''RDB$%'') ' +
-      '      AND (NOT rdb$index_name LIKE ''INTEG_$%'') ' +
+      '      AND (NOT rdb$index_name LIKE ''INTEG_$%'') ' +          ////
       '    INTO :N ' +
       '  DO ' +
       '    EXECUTE STATEMENT ''ALTER INDEX '' || :N || '' INACTIVE ''; ' +
@@ -2001,14 +1980,14 @@ var
       'FROM ' +
       '  RDB$RELATION_CONSTRAINTS c ' +
       '  JOIN (SELECT inx.RDB$INDEX_NAME, ' +
-      '    list(inx.RDB$FIELD_NAME) as List_Fields ' +
+      '    list(TRIM(inx.RDB$FIELD_NAME)) as List_Fields ' +
       '    FROM RDB$INDEX_SEGMENTS inx ' +
       '    GROUP BY inx.RDB$INDEX_NAME ' +
       '  ) i ON c.RDB$INDEX_NAME = i.RDB$INDEX_NAME ' +
       'WHERE ' +
       '  (c.rdb$constraint_type = ''PRIMARY KEY'' OR c.rdb$constraint_type = ''UNIQUE'') ' +
-      '   AND (NOT c.rdb$constraint_name LIKE ''RDB$%'') ' +
-      '   AND (NOT c.rdb$constraint_name LIKE ''INTEG_%'') '; // NOT c.RDB$INDEX_NAME
+      '   AND (NOT c.rdb$constraint_name LIKE ''RDB$%'') ';
+      //'   AND (NOT c.rdb$constraint_name LIKE ''INTEG_%'') '; // NOT c.RDB$INDEX_NAME
     q.ExecQuery;
 
     q.SQL.Text :=
@@ -2057,7 +2036,7 @@ var
       'WHERE ' +
       '  (c.rdb$constraint_type = ''FOREIGN KEY'')  ' +                        
       '  AND (NOT c.rdb$constraint_name LIKE ''RDB$%'') ' +
-      '    AND (NOT c.rdb$constraint_name LIKE ''INTEG_%'') '  + // c.rdb$index_name LIKE ''INTEG_%'' '
+      //'    AND (NOT c.rdb$constraint_name LIKE ''INTEG_%'') '  + // c.rdb$index_name LIKE ''INTEG_%'' '
       'GROUP BY ' +
       '  1, 2, 3, 4, 5';
     q.ExecQuery;                                                                
@@ -2130,7 +2109,7 @@ var
       '    INTO :TN ' +
       '  DO ' +
       '    EXECUTE STATEMENT ''ALTER TRIGGER '' || :TN || '' ACTIVE ''; ' +
-      '  DELETE FROM dbs_inactive_triggers; ' +
+      //'  DELETE FROM dbs_inactive_triggers; ' +                               ///test   
       'END';
     q.ExecQuery;
 
@@ -2157,7 +2136,7 @@ var
       '    INTO :N ' +
       '  DO ' +
       '    EXECUTE STATEMENT ''ALTER INDEX '' || :N || '' ACTIVE ''; ' +
-      '  DELETE FROM dbs_inactive_indices; ' +
+      //'  DELETE FROM dbs_inactive_indices; ' +                                ///test
       'END';
     q.ExecQuery;
 
@@ -2182,7 +2161,7 @@ var
       '    INTO :S ' +
       '  DO ' +
       '    EXECUTE STATEMENT :S; ' +
-      '  DELETE FROM dbs_pk_unique_constraints; ' +
+      //'  DELETE FROM dbs_pk_unique_constraints; ' +                            ///test
       'END';
     q.ExecQuery;
 
@@ -2210,7 +2189,7 @@ var
       '    INTO :S ' +
       '  DO ' +
       '    EXECUTE STATEMENT :S; ' +
-      '  DELETE FROM dbs_fk_constraints; ' +
+      //'  DELETE FROM dbs_fk_constraints; ' +                                    /// test
       'END';
     q.ExecQuery;
 
