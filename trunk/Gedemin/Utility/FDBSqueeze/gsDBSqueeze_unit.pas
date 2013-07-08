@@ -1759,9 +1759,9 @@ var
                   q4.SQL.Text :=
                     'SELECT ' +
                     '  SUM(' +
-                    '    IIF(g_his_exclude(0, ' + q2.FieldByName('pk_fields').AsString ') = 1, ' +
+                    '    IIF(g_his_exclude(0, ' + q2.FieldByName('pk_fields').AsString + ') = 1, ' +
                     '      g_his_include(1, ' + q2.FieldByName('pk_fields').AsString + '), 0) ' +
-                    '  ) AS Kolvo ' +///переделать если в HIS_2 уже может быть находиться этот элемент => вернет 0 при добавлении, а он то БЫЛ исключен!
+                    '  ) AS Kolvo ' +
                     'FROM ' +
                        ProcTblsNamesList[0] + ' ' +
                     'WHERE ' +
