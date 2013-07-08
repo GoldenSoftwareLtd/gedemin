@@ -1603,7 +1603,7 @@ var
             '      g_his_include(1, ' + q.FieldByName('pk_field').AsString + '), 0)' +
             '  ) AS Kolvo ' +
             'FROM ' +
-               TblsNamesList[0] +
+               TblsNamesList[0] + ' ' +
             'WHERE ' +
             '  g_his_has(1, ' + q.FieldByName('fk_field').AsString + ') = 1 ';
           q2.ExecQuery;
