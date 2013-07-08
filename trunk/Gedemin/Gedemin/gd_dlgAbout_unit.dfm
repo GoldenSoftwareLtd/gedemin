@@ -3,7 +3,7 @@ object gd_dlgAbout: Tgd_dlgAbout
   Top = 200
   HelpContext = 119
   BorderStyle = bsDialog
-  Caption = 'IniFileName'
+  Caption = 'О программе'
   ClientHeight = 415
   ClientWidth = 564
   Color = clBtnFace
