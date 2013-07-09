@@ -166,6 +166,8 @@ type
 
     function GetCompanyKey: Integer;
     function GetCompanyName: String;
+    function GetCompanyPhone: String;
+    function GetCompanyEmail: String;
     function GetIsHolding: Boolean;
     function GetHoldingList: String;
     function GetHoldingKey: Integer;
@@ -299,6 +301,8 @@ type
     // Компания
     property CompanyKey: Integer read GetCompanyKey;
     property CompanyName: String read GetCompanyName;
+    property CompanyPhone: String read GetCompanyPhone;
+    property CompanyEmail: String read GetCompanyEmail;
     property IsHolding: Boolean read GetIsHolding;     // является ли данная компания холдингом
     property HoldingList: String read GetHoldingList;  // если является, то список ключей компаний входящих в этот холдинг
     property HoldingKey: Integer read GetHoldingKey;   // если, компания входит в некоторый холдинг, то эт его ключ

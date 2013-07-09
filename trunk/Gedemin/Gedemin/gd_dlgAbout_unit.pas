@@ -238,6 +238,8 @@ begin
         Free;
       end;
     mSendData.Lines.Add('UPDATE_TOKEN = ' + gd_GlobalParams.UpdateToken);
+    mSendData.Lines.Add('C_PHONE = ' + IBLogin.CompanyPhone);
+    mSendData.Lines.Add('C_EMAIL = ' + IBLogin.CompanyEmail);
   end;
 
   chbxAutoUpdate.Checked := gd_GlobalParams.AutoUpdate;
