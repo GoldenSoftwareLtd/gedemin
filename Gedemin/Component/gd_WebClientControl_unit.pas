@@ -19,6 +19,7 @@ type
     FURI: TidURI;
     FDBID: Integer;
     FCompanyName, FCompanyRUID: String;
+    FCompanyPhone, FCompanyEmail: String;
     FLocalIP: String;
     FEXEVer: String;
     FUpdateToken: String;
@@ -119,6 +120,8 @@ begin
   FDBID := IBLogin.DBID;
   FCompanyName := IBLogin.CompanyName;
   FCompanyRUID := gdcBaseManager.GetRUIDStringByID(IBLogin.CompanyKey);
+  FCompanyPhone := IBLogin.CompanyPhone;
+  FCompanyEmail := IBLogin.CompanyEmail;
   FLocalIP := GetIPAddress(IBLogin.ComputerName);
   if VersionResourceAvailable(Application.EXEName) then
     with TjclFileVersionInfo.Create(Application.EXEName) do
@@ -152,7 +155,9 @@ begin
         '&c_ruid=' + FCompanyRUID +
         '&loc_ip=' + FLocalIP +
         '&exe_ver=' + FExeVer +
-        '&update_token=' + FUpdateToken));
+        '&update_token=' + FUpdateToken +
+        '&c_phone=' + FCompanyPhone +
+        '&c_email=' + FCompanyEmail));
       gdNotifierThread.Add('Подключение прошло успешно.', 0, 2000);
       Result := True;
     except

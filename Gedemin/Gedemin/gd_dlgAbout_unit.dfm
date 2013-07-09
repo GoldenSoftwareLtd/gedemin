@@ -23,7 +23,7 @@ object gd_dlgAbout: Tgd_dlgAbout
     Top = 8
     Width = 547
     Height = 371
-    ActivePage = tsUpdate
+    ActivePage = tsAbout
     TabOrder = 0
     object tsAbout: TTabSheet
       Caption = 'О программе'
@@ -111,13 +111,16 @@ object gd_dlgAbout: Tgd_dlgAbout
           
             'Дмитрий Образцов, Алексей Гайдуков, Александр Кишко, Наталья Шук' +
             'лина, Жанна Хилько, Ольга Борисенко,'
-          'Юрий Шойхет, Александр Харитоненко.'
+          
+            'Юрий Шойхет, Александр Харитоненко, Марина Карпухина, Марина Бур' +
+            'акина.'
           ''
           'Отдельное спасибо:'
           
             'ООО Святогор, Владимир Гетманец, Stefan Boether, Евгений Кучеряв' +
             'енко, Сергей "Дейрас" Борисовец,'
-          'Андрей Башун, Наталья Белковская.')
+          'Андрей Башун, Наталья Белковская.'
+          ' ')
         ParentFont = False
         ReadOnly = True
         TabOrder = 0
@@ -1290,7 +1293,7 @@ object gd_dlgAbout: Tgd_dlgAbout
               ShortCut = 24642
             end>
           ReadOnly = True
-          ScrollBars = ssNone
+          ScrollBars = ssVertical
         end
       end
     end

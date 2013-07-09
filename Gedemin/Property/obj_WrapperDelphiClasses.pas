@@ -2265,6 +2265,8 @@ type
     procedure BrushCopy(DestX1: Integer; DestY1: Integer; DestX2: Integer; DestY2: Integer;
                         const ABitmap: IgsBitmap; SourceX1: Integer; SourceY1: Integer;
                         SourceX2: Integer; SourceY2: Integer; Color: Integer); safecall;
+    procedure TextRect(Left: Integer; Top: Integer; Right: Integer; Bottom: Integer; X: Integer;
+                       Y: Integer; const Text: WideString); safecall;
   public
     class function CreateObject(const DelphiClass: TClass; const Params: OleVariant): TObject; override;
   end;
@@ -14941,6 +14943,12 @@ procedure TwrpCanvas.BrushCopy(DestX1, DestY1, DestX2, DestY2: Integer;
 begin
   GetCanvas.BrushCopy(Rect(DestX1, DestY1, DestX2, DestY2), InterfaceToObject(ABitmap) as TBitmap,
     Rect(SourceX1, SourceY1, SourceX2, SourceY2), Color);
+end;
+
+procedure TwrpCanvas.TextRect(Left, Top, Right, Bottom, X, Y: Integer;
+  const Text: WideString);
+begin
+  GetCanvas.TextRect(Rect(Left, Top, Right, Bottom), X, Y, Text);
 end;
 
 { TwrpCustomControlBar }

@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 1998-2012 by Golden Software of Belarus
+  Copyright (c) 1998-2013 by Golden Software of Belarus
 
   Module
     gd_security.pas
@@ -113,6 +113,8 @@ type
     // Компания
     FCompanyKey: Integer;
     FCompanyName: String;
+    FCompanyPhone: String;
+    FCompanyEmail: String;
 
     //
     FDBID: Integer;
@@ -143,6 +145,8 @@ type
     function GetAllowUserAudit: Boolean;
     function GetCompanyKey: Integer;
     function GetCompanyName: String;
+    function GetCompanyPhone: String;
+    function GetCompanyEmail: String;
     function GetContactKey: Integer;
     function GetContactName: String;
     function GetDBReleaseDate: TDateTime;
@@ -680,10 +684,19 @@ begin
 
     q.Transaction := Tr;
     q.SQL.Text :=
-      'SELECT uc.companykey AS CompanyKey, oc.afull AS AFull, c.name AS CompanyName ' +
-      'FROM gd_usercompany uc JOIN gd_contact c ON c.id = uc.companykey  ' +
-      '  JOIN gd_ourcompany oc ON oc.companykey = c.id ' +
-      'WHERE uc.userkey = :UK';
+      'SELECT ' +
+      '  uc.companykey AS CompanyKey, ' +
+      '  oc.afull AS AFull, ' +
+      '  c.name AS CompanyName, ' +
+      '  c.phone, ' +
+      '  c.email ' +
+      'FROM ' +
+      '  gd_usercompany uc JOIN gd_contact c ' +
+      '    ON c.id = uc.companykey ' +
+      '  JOIN gd_ourcompany oc ' +
+      '    ON oc.companykey = c.id ' +
+      'WHERE ' +
+      '  uc.userkey = :UK';
     q.ParamByName('UK').AsInteger := UserKey;
     q.ExecQuery;
 
@@ -691,10 +704,15 @@ begin
     begin
       q.Close;
       q.SQL.Text :=
-        'SELECT oc.companykey AS CompanyKey, c.afull AS AFull, c.name AS CompanyName ' +
-        'FROM gd_ourcompany oc JOIN gd_contact c ON c.id = oc.companykey ';
-        //'WHERE BIN_AND(BIN_OR(oc.afull, 1), :ig) <> 0';
-        //q.ParamByName('ig').AsInteger := InGroup;
+        'SELECT ' +
+        '  oc.companykey AS CompanyKey, ' +
+        '  c.afull AS AFull, ' +
+        '  c.name AS CompanyName, ' +
+        '  c.phone, ' +
+        '  c.email ' +
+        'FROM ' +
+        '  gd_ourcompany oc JOIN gd_contact c ' +
+        '    ON c.id = oc.companykey';
       q.ExecQuery;
     end;
 
@@ -704,6 +722,8 @@ begin
       if FCompanyOpened then DoBeforeChangeCompany;
       FCompanyKey := q.FieldByName('CompanyKey').AsInteger;
       FCompanyName := q.FieldByName('CompanyName').AsString;
+      FCompanyPhone := q.FieldByName('phone').AsString;
+      FCompanyEmail := q.FieldByName('email').AsString;
       FCompanyOpened := True;
       DoAfterChangeCompany;
     end else
@@ -2229,6 +2249,16 @@ end;
 function TboLogin.GetReLogining: Boolean;
 begin
   Result := FRelogining;
+end;
+
+function TboLogin.GetCompanyEmail: String;
+begin
+  Result := FCompanyEmail;
+end;
+
+function TboLogin.GetCompanyPhone: String;
+begin
+  Result := FCompanyPhone;
 end;
 
 end.
