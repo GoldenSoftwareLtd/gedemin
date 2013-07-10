@@ -1983,7 +1983,6 @@ begin
           Log(Format('Ошибка: %s', [E.Message]));
       end;
 
-      {$IFDEF GEDEMIN}
       Header :=
         '  (DATEEND DATE, '#13#10 +
         '   ACCOUNTKEY INTEGER, '#13#10 +
@@ -2081,7 +2080,6 @@ begin
         on E: Exception do
           Log(Format('Ошибка: %s', [E.Message]));
       end;
-     {$ENDIF}
 
       IbTr.StartTransaction;
 
@@ -3077,11 +3075,9 @@ begin
     q.Transaction := IBTr;
 
     try
-
       IBDB.Connected := False;
       IBDB.Connected := True;
 
-      {$IFDEF GEDEMIN}
       Header :=
         '  (DATEEND DATE, '#13#10 +
         '   ACCOUNTKEY INTEGER, '#13#10 +
@@ -3176,7 +3172,6 @@ begin
         on E: Exception do
           Log(Format('Ошибка: %s', [E.Message]));
       end;
-     {$ENDIF}
 
       IbTr.Commit;
       IbTr.StartTransaction;
