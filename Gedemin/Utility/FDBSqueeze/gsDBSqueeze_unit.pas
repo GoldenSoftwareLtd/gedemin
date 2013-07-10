@@ -3,12 +3,15 @@ unit gsDBSqueeze_unit;
 interface
 
 uses
-  IB, IBDatabase, IBSQL, Classes, gd_ProgressNotifier_unit;
+  SysUtils, IB, IBDatabase, IBSQL, Classes, gd_ProgressNotifier_unit;
 
 type
-  TOnLogEvent = procedure(const S: String) of object;
   TActivateFlag = (aiActivate, aiDeactivate);
+
+  TOnLogEvent = procedure(const S: String) of object;
   TOnSetItemsCbbEvent = procedure(const ACompanies: TStringList) of object;
+
+  EgsDBSqueeze = class(Exception);
 
   TgsDBSqueeze = class(TObject)
   private
@@ -24,12 +27,14 @@ type
     FAllOurCompaniesSaldo: Boolean;
     FOnlyCompanySaldo: Boolean;
 
-    FCurDate, FCurUserContactKey: String;
+    FCurDate: TDateTime;
+    FCurUserContactKey: Integer;
 
     procedure LogEvent(const AMsg: String);
 
     function GetNewID: Integer;
     function GetConnected: Boolean;
+
   public
     constructor Create;
     destructor Destroy; override;
@@ -66,7 +71,7 @@ type
 implementation
 
 uses
-  SysUtils, mdf_MetaData_unit, gdcInvDocument_unit, contnrs, IBQuery;
+  mdf_MetaData_unit, gdcInvDocument_unit, contnrs, IBQuery;
 
 { TgsDBSqueeze }
 
@@ -104,6 +109,7 @@ begin
   try
     Tr.DefaultDatabase := FIBDatabase;
     Tr.StartTransaction;
+
     q.Transaction := Tr;
     q.SQL.Text :=
       'SELECT ' +
@@ -112,14 +118,14 @@ begin
       'FROM ' +
       '  GD_USER gu ' +
       'WHERE ' +
-      '  gu.ibname = CURRENT_USER ';
+      '  gu.ibname = CURRENT_USER';
     q.ExecQuery;
-    FCurDate := q.FieldByName('CurDate').AsString;
-    FCurUserContactKey := q.FieldByName('CurUserContactKey').AsString;
 
-    q.Close;
-    Tr.Commit;
-    Tr.StartTransaction;
+    if q.EOF then
+      raise EgsDBSqueeze.Create('Invalid GD_USER data');
+
+    FCurDate := q.FieldByName('CurDate').AsDateTime;
+    FCurUserContactKey := q.FieldByName('CurUserContactKey').AsInteger;
   finally
     q.Free;
     Tr.Free;
@@ -219,38 +225,36 @@ var
     CurrentCompanyKey: Integer;
     NewDocumentKey, NewRecordKey: Integer;
 
-    procedure CreateHeaderAcDoc(const AId: Integer; const ACompanyKey: Integer);  // создание документа для бух проводок
+    procedure CreateHeaderAcDoc(const AnId: Integer; const ACompanyKey: Integer);  // создание документа для бух проводок
     var
-      q5: TIBSQL;
+      q: TIBSQL;
+      Tr: TIBTransaction;
     begin
-      q5 := TIBSQL.Create(nil);
+      Tr := TIBTransaction.Create(nil);
+      q := TIBSQL.Create(nil);
       try
-        q5.Transaction := Tr2;
+        Tr.DefaultDatabase := FIBDatabase;
+        Tr.StartTransaction;
 
-        q5.SQL.Text :=
+        q.Transaction := Tr;
+        q.SQL.Text :=
           'INSERT INTO GD_DOCUMENT ( ' +
           '  ID, DOCUMENTTYPEKEY, NUMBER, DOCUMENTDATE, COMPANYKEY, ' +
           '  AFULL, ACHAG, AVIEW, CREATORKEY, EDITORKEY) ' +
-        {  'VALUES (:ID, :DOCUMENTTYPEKEY, 1, :DOCUMENTDATE, :COMPANYKEY, ' +
-          '  -1, -1, -1, :USERKEY)'; }
-          'VALUES (' +  IntToStr(AId) + ', ' +
-             IntToStr(AccDocTypeKey) + ', ' +
-             '1, ''' +
-             FCurDate + ''', ' +                                                 ///  FDocumentdateWhereClause -1
-             IntToStr(ACompanyKey) + ', -1, -1, -1, ''' +
-             FCurUserContactKey + ''', ''' + FCurUserContactKey + ''') ';
+          'VALUES (:ID, :DOCUMENTTYPEKEY, ''б/н'', :DOCUMENTDATE, :COMPANYKEY, ' +
+          '  -1, -1, -1, :USERKEY, :USERKEY)';
 
-       { q5.ParamByName('DOCUMENTTYPEKEY').AsInteger := AccDocTypeKey;
-        q5.ParamByName('ID').AsInteger := AId;
-        q5.ParamByName('DOCUMENTDATE').AsString := FCurDate;
-        q5.ParamByName('COMPANYKEY').AsInteger := ACompanyKey;
-        q5.ParamByName('USERKEY').AsString := FCurUserContactKey;       }
+        q.ParamByName('ID').AsInteger := AnId;
+        q.ParamByName('DOCUMENTTYPEKEY').AsInteger := AccDocTypeKey;
+        q.ParamByName('DOCUMENTDATE').AsDateTime := FCurDate;
+        q.ParamByName('COMPANYKEY').AsInteger := ACompanyKey;
+        q.ParamByName('USERKEY').AsInteger := FCurUserContactKey;
 
-        q5.ExecQuery;
-        Tr2.Commit;
-        Tr2.StartTransaction;
+        q.ExecQuery;
+        Tr.Commit;
       finally
-        q5.Free;
+        q.Free;
+        Tr.Free;
       end;
     end;
 
@@ -315,7 +319,7 @@ var
 
 
         q5.ParamByName('ID').AsInteger := GetNewID;
-        q5.ParamByName('ENTRYDATE').AsString := FCurDate;                       /// FDocumentdateWhereClause -1
+        q5.ParamByName('ENTRYDATE').AsDateTime := FCurDate;
         q5.ParamByName('RECORDKEY').AsInteger := ARecordKey;
         q5.ParamByName('TRANSACTIONKEY').AsInteger := ProizvolnyeTransactionKey;
         q5.ParamByName('DOCUMENTKEY').AsInteger := ADocumentKey;
@@ -457,7 +461,7 @@ var
             '  :DOCUMENTKEY, -1, -1, -1, :COMPANYKEY)';
 
           q4.ParamByName('ID').AsInteger := NewRecordKey;
-          q4.ParamByName('RECORDDATE').AsString := FCurDate;      /// FDocumentdateWhereClause - 1 !ИСПРАВИТЬ И В ДРУГИХ МЕСТАХ
+          q4.ParamByName('RECORDDATE').AsDateTime := FCurDate;      /// FDocumentdateWhereClause - 1 !ИСПРАВИТЬ И В ДРУГИХ МЕСТАХ
           q4.ParamByName('TRRECORDKEY').AsInteger := ProizvolnyeTrRecordKey;
           q4.ParamByName('TRANSACTIONKEY').AsInteger := ProizvolnyeTransactionKey;
           q4.ParamByName('DOCUMENTKEY').AsInteger := NewDocumentKey;
@@ -636,7 +640,6 @@ var
 
     q3 := TIBSQL.Create(nil);
     Tr2 := TIBTransaction.Create(nil);
-    NewDocumentKey := -1;
     try
       Tr2.DefaultDatabase := FIBDatabase;
       Tr2.StartTransaction;
@@ -1005,7 +1008,7 @@ var
                 CurrentFromContactkey,
                 q3.FieldByName('companykey').AsInteger,
                 InvDocTypeKey,
-                StrToInt(FCurUserContactKey));
+                FCurUserContactKey);
 
               CalculateInvBalance(q5);  // По компании строим запрос на складские остатки
               NewCardKey := CreatePositionInvDoc(                               /// Tr2_
@@ -1016,7 +1019,7 @@ var
                 q3.FieldByName('goodkey').AsInteger,
                 0,
                 InvDocTypeKey,
-                StrToInt(FCurUserContactKey),
+                FCurUserContactKey,
                 q5);
               q5.Close;
 
@@ -1291,7 +1294,7 @@ begin
           q.FieldByName('ContactKey').AsInteger,
           q.FieldByName('COMPANYKEY').AsInteger,
           InvDocTypeKey,
-          StrToInt(FCurUserContactKey));
+          FCurUserContactKey);
 
 
         CreatePositionInvDoc(                                                   /// Tr2_
@@ -1302,7 +1305,7 @@ begin
           q.FieldByName('GOODKEY').AsInteger,
           q.FieldByName('BALANCE').AsCurrency,
           InvDocTypeKey,
-          StrToInt(FCurUserContactKey),
+          FCurUserContactKey,
           q);
 
       end
@@ -1313,7 +1316,7 @@ begin
           PseudoClientKey,
           q.FieldByName('COMPANYKEY').AsInteger,
           InvDocTypeKey,
-          StrToInt(FCurUserContactKey));
+          FCurUserContactKey);
 
         CreatePositionInvDoc(                                                   /// Tr2_
           DocumentParentKey,
@@ -1323,7 +1326,7 @@ begin
           q.FieldByName('GOODKEY').AsInteger,
           -(q.FieldByName('BALANCE').AsCurrency),
           InvDocTypeKey,
-          StrToInt(FCurUserContactKey),
+          FCurUserContactKey,
           q);
       end;
 
