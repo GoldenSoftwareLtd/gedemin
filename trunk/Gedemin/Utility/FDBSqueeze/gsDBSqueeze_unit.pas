@@ -1,8 +1,3 @@
-{$A+,B-,C+,D+,E-,F-,G+,H+,I+,J+,K-,L+,M-,N+,O+,P+,Q-,R-,S-,T-,U-,V+,W-,X+,Y+,Z1}
-{$MINSTACKSIZE $00004000}
-{$MAXSTACKSIZE $00100000}
-{$IMAGEBASE $00400000}
-{$APPTYPE GUI}
 unit gsDBSqueeze_unit;
 
 interface
@@ -320,7 +315,7 @@ var
 
 
         q5.ParamByName('ID').AsInteger := GetNewID;
-        q5.ParamByName('ENTRYDATE').AsString := FCurDate;                    /// FDocumentdateWhereClause -1
+        q5.ParamByName('ENTRYDATE').AsString := FCurDate;                       /// FDocumentdateWhereClause -1
         q5.ParamByName('RECORDKEY').AsInteger := ARecordKey;
         q5.ParamByName('TRANSACTIONKEY').AsInteger := ProizvolnyeTransactionKey;
         q5.ParamByName('DOCUMENTKEY').AsInteger := ADocumentKey;
@@ -552,8 +547,8 @@ begin
       '  GD_DOCUMENTTYPE gd, GD_USER gu, AC_TRANSACTION atr, AC_ACCOUNT aac, GD_DOCUMENTTYPE gd_inv ' +
       '  JOIN AC_TRRECORD atrr ON atr.id = atrr.transactionkey ' +
       'WHERE ' +
-      '  gd.name = ''Хозяйственная операция'' ' +                                { TODO: 'Хозяйственная операция' }
-      '  AND atr.name = ''Произвольные проводки'' ' +                            { TODO: 'Произвольные проводки' }
+      '  gd.name = ''Хозяйственная операция'' ' +
+      '  AND atr.name = ''Произвольные проводки'' ' +
       '  AND aac.fullname = ''00 Остатки'' ';
     q.ExecQuery;
 
@@ -622,7 +617,7 @@ var
         StringReplace(UsrFieldsNames, 'USR$', 'ic.USR$', [rfReplaceAll, rfIgnoreCase]));
     q.SQL.Add(' ' +
       'ORDER BY ' +
-      '  gc.name ');                                                                ///  ?
+      '  gc.name ');                                                            ///  ?
 
     q.ParamByName('RemainsDate').AsString := FDocumentdateWhereClause;
     q.ExecQuery;
@@ -661,7 +656,7 @@ var
       q3.ParamByName('DOCUMENTTYPEKEY').AsInteger := AInvDocType;
       q3.ParamByName('PARENT').Clear;
       q3.ParamByName('COMPANYKEY').AsInteger := ACompanyKey;
-      q3.ParamByName('DOCUMENTDATE').AsString := FDocumentdateWhereClause;       //?
+      q3.ParamByName('DOCUMENTDATE').AsString := FDocumentdateWhereClause;      ///?
       q3.ParamByName('CREATORKEY').AsInteger := ACurUserContactKey;
       q3.ParamByName('EDITORKEY').AsInteger := ACurUserContactKey;
       q3.ExecQuery;
@@ -736,7 +731,7 @@ var
       q3.SQL.Add(
         ')');
 
-      q3.ParamByName('FIRSTDATE').AsString := FDocumentdateWhereClause; //FCurDate;
+      q3.ParamByName('FIRSTDATE').AsString := FDocumentdateWhereClause;         ///FCurDate;
       q3.ParamByName('ID').AsInteger := NewCardKey;
       q3.ParamByName('GOODKEY').AsInteger := ACardGoodKey;
       q3.ParamByName('DOCUMENTKEY').AsInteger := NewDocumentKey;
@@ -754,7 +749,7 @@ var
 
         end
         else // Заполним поле USR$INV_ADDLINEKEY карточки нового остатка ссылкой на позицию
-          q3.ParamByName('USR$INV_ADDLINEKEY').AsInteger := NewDocumentKey;        { TODO:  избавиться USR$INV_ADDLINEKEY? }
+          q3.ParamByName('USR$INV_ADDLINEKEY').AsInteger := NewDocumentKey;     { TODO:  избавиться USR$INV_ADDLINEKEY? }
       end;
 
       q3.ExecQuery;
@@ -770,7 +765,7 @@ var
         'VALUES ' +
         '  (:movementkey, :movementdate, :documentkey, :contactkey, :cardkey, :debit, :credit) ';
 
-      q3.ParamByName('MOVEMENTDATE').AsString := FDocumentdateWhereClause;       /// ?
+      q3.ParamByName('MOVEMENTDATE').AsString := FDocumentdateWhereClause;      /// ?
       q3.ParamByName('MOVEMENTKEY').AsInteger := NewMovementKey;
       q3.ParamByName('DOCUMENTKEY').AsInteger := NewDocumentKey;
       q3.ParamByName('CONTACTKEY').AsInteger := AToContact;
@@ -789,7 +784,7 @@ var
         'VALUES ' +
         '  (:movementkey, :movementdate, :documentkey, :contactkey, :cardkey, :debit, :credit) ';
 
-      q3.ParamByName('MOVEMENTDATE').AsString := FDocumentdateWhereClause;       /// ?
+      q3.ParamByName('MOVEMENTDATE').AsString := FDocumentdateWhereClause;      /// ?
       q3.ParamByName('MOVEMENTKEY').AsInteger := NewMovementKey;
       q3.ParamByName('DOCUMENTKEY').AsInteger := NewDocumentKey;
       q3.ParamByName('CONTACTKEY').AsInteger := AFromContact;
@@ -864,7 +859,7 @@ var
         '  inv_card c ' +
         'SET ' +
         '  c.firstdocumentkey = :NewDockey, ' +
-        '  c.firstdate = :NewDate ' +                              {TODO: убрать}
+        '  c.firstdate = :NewDate ' +                                           {TODO: убрать}
         'WHERE ' +
         '  c.firstdocumentkey = :OldDockey ';
       qUpdateFirstDocKey.Prepare;
@@ -974,7 +969,7 @@ var
           else begin
             // ищем карточку без доп. признаков
             q4.Close;
-            q4.SQL.Text :=                                                         {TODO: вынести. Prepare  }
+            q4.SQL.Text :=                                                      {TODO: вынести. Prepare  }
               'SELECT FIRST(1) ' +
               '  c.id AS cardkey, ' +
               '  c.firstdocumentkey, ' +
@@ -1340,11 +1335,11 @@ begin
 
     SetTriggerActive(False);
 
-  {  q.SQL.Text := 'DELETE FROM inv_movement WHERE movementdate < :Date';      /// удалятся при удалении карточки - удалении дока
+  {  q.SQL.Text := 'DELETE FROM inv_movement WHERE movementdate < :Date';       /// удалятся при удалении карточки - удалении дока
     q.ParamByName('Date').AsString := FDocumentdateWhereClause;
     q.ExecQuery;
 
-    q.SQL.Text := 'DELETE FROM inv_balance';                                    //TODO: мб еще что-то
+    q.SQL.Text := 'DELETE FROM inv_balance';                                    ///TODO: мб еще что-то
     q.ExecQuery;
   }
     Tr.Commit;
@@ -1573,7 +1568,7 @@ var
 
       TblsNamesList.CommaText := AllProcessedTblsNames.CommaText;
 
-      LogEvent('[test] AllProcessedTblsNames: ' + TblsNamesList.CommaText);      /// TEST
+      LogEvent('[test] AllProcessedTblsNames: ' + TblsNamesList.CommaText);     /// TEST
       while TblsNamesList.Count <> 0 do
       begin
         ProcTblsNamesList.Append(TblsNamesList[0]);
@@ -1777,7 +1772,7 @@ var
                 ProcTblsNamesList.Delete(0);
               end;
 
-              IsFirstIteration := False;  // значит обработали каскад от таблицы на которую есть рестрикт. т.е. прошли первый круг.
+              IsFirstIteration := False;  // значит обработали каскад от таблицы на которую есть рестрикт. т.е. прошли первый круг
             end;
           end;
 
@@ -1825,7 +1820,7 @@ begin
   q := TIBSQL.Create(nil);
   Tr2 := TIBTransaction.Create(nil);
   try
-    Tr.DefaultDatabase := FIBDatabase;                                                                   ////
+    Tr.DefaultDatabase := FIBDatabase;
     Tr.StartTransaction;
     Tr2.DefaultDatabase := FIBDatabase;
     Tr2.StartTransaction;
@@ -1905,8 +1900,8 @@ var
       'INSERT INTO DBS_INACTIVE_TRIGGERS (TRIGGER_NAME) ' +
       'SELECT RDB$TRIGGER_NAME ' +
       'FROM RDB$TRIGGERS ' +
-      'WHERE RDB$TRIGGER_INACTIVE = 1 '; {+
-      '  AND RDB$SYSTEM_FLAG = 0';  }
+      'WHERE RDB$TRIGGER_INACTIVE = 1 '+
+      '  AND RDB$SYSTEM_FLAG = 0';                                           
     q.ExecQuery;
     
     q.SQL.Text :=
@@ -1952,9 +1947,9 @@ var
       '    SELECT rdb$index_name ' +
       '    FROM rdb$indices ' +
       '    WHERE rdb$index_inactive = 0 ' +
-      //'      AND RDB$SYSTEM_FLAG = 0 ' +                                         
-      '      AND (NOT rdb$index_name LIKE ''RDB$%'') ' +
-      '      AND (NOT rdb$index_name LIKE ''INTEG_$%'') ' +          ////
+      '      AND RDB$SYSTEM_FLAG = 0 ' +
+      '      AND ((NOT rdb$index_name LIKE ''RDB$%'') OR ((rdb$index_name LIKE ''RDB$PRIMARY%'') OR (rdb$index_name LIKE ''RDB$FOREIGN%''))) ' + ///'      AND (NOT rdb$index_name LIKE ''RDB$%'') ' +
+      ///'      AND (NOT rdb$index_name LIKE ''INTEG_$%'') ' +
       '    INTO :N ' +
       '  DO ' +
       '    EXECUTE STATEMENT ''ALTER INDEX '' || :N || '' INACTIVE ''; ' +
@@ -1988,7 +1983,7 @@ var
       'WHERE ' +
       '  (c.rdb$constraint_type = ''PRIMARY KEY'' OR c.rdb$constraint_type = ''UNIQUE'') ' +
       '   AND (NOT c.rdb$constraint_name LIKE ''RDB$%'') ';
-      //'   AND (NOT c.rdb$constraint_name LIKE ''INTEG_%'') '; // NOT c.RDB$INDEX_NAME
+      ///'   AND (NOT c.rdb$constraint_name LIKE ''INTEG_%'') '; 
     q.ExecQuery;
 
     q.SQL.Text :=
@@ -2037,13 +2032,11 @@ var
       'WHERE ' +
       '  (c.rdb$constraint_type = ''FOREIGN KEY'')  ' +                        
       '  AND (NOT c.rdb$constraint_name LIKE ''RDB$%'') ' +
-      //'    AND (NOT c.rdb$constraint_name LIKE ''INTEG_%'') '  + // c.rdb$index_name LIKE ''INTEG_%'' '
+      ///'  AND (NOT c.rdb$constraint_name LIKE ''INTEG_%'') '  + 
       'GROUP BY ' +
       '  1, 2, 3, 4, 5';
-    q.ExecQuery;                                                                
+    q.ExecQuery;
 
-    //Tr.Commit;
-    //Tr.StartTransaction;
 
     q.SQL.Text :=
       'EXECUTE BLOCK ' +
@@ -2162,7 +2155,7 @@ var
       '    INTO :S ' +
       '  DO ' +
       '    EXECUTE STATEMENT :S; ' +
-      //'  DELETE FROM dbs_pk_unique_constraints; ' +                            ///test
+      //'  DELETE FROM dbs_pk_unique_constraints; ' +                           /// test
       'END';
     q.ExecQuery;
 
@@ -2190,7 +2183,7 @@ var
       '    INTO :S ' +
       '  DO ' +
       '    EXECUTE STATEMENT :S; ' +
-      //'  DELETE FROM dbs_fk_constraints; ' +                                    /// test
+      //'  DELETE FROM dbs_fk_constraints; ' +                                  /// test
       'END';
     q.ExecQuery;
 
