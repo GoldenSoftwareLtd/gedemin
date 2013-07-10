@@ -1862,7 +1862,7 @@ begin
       '    INTO :RN, :FN ' +
       '  DO BEGIN ' +
       '    EXECUTE STATEMENT ''DELETE FROM '' || :RN || ' +
-      '      '' WHERE g_his_has(0, '' || :FN || '') = 1 AND '' || :FN || '' > 147000000''; ' +
+      '      '' WHERE g_his_has(0, '' || :FN || '') = 1 AND '' || :FN || '' > 147000000 ''; ' +
       '  END ' +
       'END';
     q.ExecQuery;
@@ -1913,8 +1913,8 @@ var
       '    SELECT rdb$trigger_name ' +
       '    FROM rdb$triggers ' +
       '    WHERE rdb$trigger_inactive = 0 ' +
-      '      AND RDB$SYSTEM_FLAG = 0 ' +        
-      '      AND RDB$TRIGGER_NAME NOT IN (SELECT RDB$TRIGGER_NAME FROM RDB$CHECK_CONSTRAINTS) ' + 
+      '     AND RDB$SYSTEM_FLAG = 0 ' +
+      '      AND RDB$TRIGGER_NAME NOT IN (SELECT RDB$TRIGGER_NAME FROM RDB$CHECK_CONSTRAINTS) ' +
       '    INTO :TN ' +
       '  DO ' +
       '  BEGIN ' +
@@ -1925,6 +1925,7 @@ var
     q.ExecQuery;
     Tr.Commit;
     Tr.StartTransaction;
+    
     LogEvent('Triggers deactivated.');
   end;
 
