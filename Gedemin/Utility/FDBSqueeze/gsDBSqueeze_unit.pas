@@ -216,6 +216,7 @@ var
     q3: TIBSQL;
     q4: TIBSQL;
     Tr2: TIBTransaction;
+    Tr: TIBTransaction;
 
     I: Integer;
     AllUsrFieldsNames: String;     // список всех аналитик (в разных Ѕƒ отличаютс€)
@@ -343,10 +344,13 @@ var
     q2 := TIBSQL.Create(nil);
     q3 := TIBSQL.Create(nil);
     q4 := TIBSQL.Create(nil);
+    Tr := TIBTransaction.Create(nil);
     Tr2 := TIBTransaction.Create(nil);
     try
       Tr2.DefaultDatabase := FIBDatabase;
       Tr2.StartTransaction;
+      Tr.DefaultDatabase := FIBDatabase;
+      Tr.StartTransaction;
       q2.Transaction := Tr;
       q3.Transaction := Tr;
       q4.Transaction := Tr2;
@@ -504,6 +508,7 @@ var
       q3.Free;
       q4.Free;
       Tr2.Free;
+      Tr.Free;
     end;
     LogEvent('[test] CalculateAcSaldo_CreateAcEntries... OK');
   end;
@@ -814,6 +819,7 @@ var
     CardkeyFieldNames: array[0..CardkeyFieldCount - 1] of String = ('FROMCARDKEY', 'TOCARDKEY');
   var
     I: Integer;
+    Tr2: TIBTransaction;
     q3, q4, q5: TIBSQL;
     qUpdateCard: TIBSQL;
     qUpdateFirstDocKey: TIBSQL;
@@ -827,6 +833,9 @@ var
   begin
     LogEvent('Rebinding cards...');
 
+    NewCardKey := -1;
+
+    Tr2 := TIBTransaction.Create(nil);
     q3 := TIBSQL.Create(nil);
     q4 := TIBSQL.Create(nil);
     q5 := TIBSQL.Create(nil);
@@ -834,12 +843,15 @@ var
     qUpdateFirstDocKey := TIBSQL.Create(nil);
     qUpdateInvMovement := TIBSQL.Create(nil);
     try
-      q3.Transaction := Tr;
-      q4.Transaction := Tr;
-      q5.Transaction := Tr;
-      qUpdateCard.Transaction := Tr;
-      qUpdateFirstDocKey.Transaction := Tr;
-      qUpdateInvMovement.Transaction := Tr;
+      Tr2.DefaultDatabase := FIBDatabase;
+      Tr2.StartTransaction;
+
+      q3.Transaction := Tr2;
+      q4.Transaction := Tr2;
+      q5.Transaction := Tr2;
+      qUpdateCard.Transaction := Tr2;
+      qUpdateFirstDocKey.Transaction := Tr2;
+      qUpdateInvMovement.Transaction := Tr2;
 
       // обновл€ет ссылку на родительскую карточку
       qUpdateCard.SQL.Text :=
@@ -913,7 +925,7 @@ var
 
       FirstDocumentKey := -1;                                                   
       FirstDate := FClosingDate;                                                  //TODO: уточнить FirstDate
-      while not q3.EOF do                                                       /// Tr
+      while not q3.EOF do
       begin
         if q3.FieldByName('CardkeyOld').IsNull then
           CurrentCardKey := q3.FieldByName('CardkeyNew').AsInteger
@@ -1006,7 +1018,7 @@ var
             end
             else begin // »наче вставим документ нулевого прихода, переприв€зывать будем потом на созданную им карточку
 
-              DocumentParentKey := CreateHeaderInvDoc(                          /// Tr2_
+              DocumentParentKey := CreateHeaderInvDoc(
                 CurrentFromContactkey,
                 CurrentFromContactkey,
                 q3.FieldByName('companykey').AsInteger,
@@ -1014,7 +1026,7 @@ var
                 FCurUserContactKey);
 
               CalculateInvBalance(q5);  // ѕо компании строим запрос на складские остатки
-              NewCardKey := CreatePositionInvDoc(                               /// Tr2_
+              NewCardKey := CreatePositionInvDoc(                               
                 DocumentParentKey,
                 CurrentFromContactkey,
                 CurrentFromContactkey,
@@ -1143,8 +1155,7 @@ var
         q3.Next;
       end;
       q3.Close;
-      Tr.Commit;
-      Tr.StartTransaction;
+      Tr2.Commit;
       LogEvent('Rebinding cards... OK');
     finally
       q3.Free;
@@ -1153,6 +1164,7 @@ var
       qUpdateInvMovement.Free;
       qUpdateFirstDocKey.Free;
       qUpdateCard.Free;
+      Tr2.Free;
     end;
   end;
 
@@ -1164,21 +1176,33 @@ var
   var
     StateStr: String;
     I: Integer;
+    q: TIBSQL;
+    Tr: TIBTransaction;
   begin
-    if SetActive then
-      StateStr := 'ACTIVE'
-    else
-      StateStr := 'INACTIVE';
+    Tr := TIBTransaction.Create(nil);
+    q := TIBSQL.Create(nil);
+    try
+      Tr.DefaultDatabase := FIBDatabase;
+      Tr.StartTransaction;
+      q.Transaction := Tr;
 
-    for I := 0 to AlterTriggerCount - 1 do
-    begin
-      q.SQL.Text := 'ALTER TRIGGER ' + AlterTriggerArray[I] + ' '  + StateStr;
-      q.ExecQuery;
-      q.Close;
+      if SetActive then
+        StateStr := 'ACTIVE'
+      else
+        StateStr := 'INACTIVE';
+
+      for I := 0 to AlterTriggerCount - 1 do
+      begin
+        q.SQL.Text := 'ALTER TRIGGER ' + AlterTriggerArray[I] + ' '  + StateStr;
+        q.ExecQuery;
+        q.Close;
+      end;
+
+      Tr.Commit;
+    finally
+      q.Free;
+      Tr.Free;
     end;
-
-    Tr.Commit;
-    Tr.StartTransaction;
   end;
 
 begin
@@ -1367,11 +1391,11 @@ procedure TgsDBSqueeze.DeleteDocuments;
 var
   q: TIBSQL;
   Tr: TIBTransaction;
-  Tr2: TIBTransaction;
   Count: Integer; ///test
 
-  procedure AddCascadeKeys(const ATableName: String; ATr, ATr2: TIBTransaction);
+  procedure AddCascadeKeys(const ATableName: String);
   var
+    Tr, Tr2: TIBTransaction;
     q: TIBQuery;
     q2: TIBSQL;
     q3: TIBSQL;
@@ -1392,14 +1416,21 @@ var
     q2 := TIBSQL.Create(nil);
     q3 := TIBSQL.Create(nil);
     q4 := TIBSQL.Create(nil);
+
+    Tr := TIBTransaction.Create(nil);
+    Tr2 := TIBTransaction.Create(nil);
     try
-      TblsNamesList.Append(ATableName);    
+      TblsNamesList.Append(ATableName);
       AllProcessedTblsNames.Append(ATableName);
 
-      q.Transaction := ATr;
-      q2.Transaction := ATr;
-      q4.Transaction := ATr;
-      q3.Transaction := ATr2;
+      Tr.DefaultDatabase := FIBDatabase;
+      Tr.StartTransaction;
+      Tr2.DefaultDatabase := FIBDatabase;
+      Tr2.StartTransaction;
+      q.Transaction := Tr;
+      q2.Transaction := Tr;
+      q4.Transaction := Tr;
+      q3.Transaction := Tr2;
 
       IsDuplicate := False;
       DoNothing := False;
@@ -1462,7 +1493,7 @@ var
                   if TblsNamesList.IndexOf(Trim(q.FieldByName('relation_name').AsString)) <> -1 then
                   begin
                     DoNothing := True;
-                    
+
                     // —лучай 1: этот FK €вл€етс€ ссылкой таблицы на саму себ€
                     if q.FieldByName('relation_name').AsString = q.FieldByName('ref_relation_name').AsString then
                     begin
@@ -1477,7 +1508,7 @@ var
                           '  g_his_has(0, ' + q.FieldByName('list_fields').AsString + ') = 1 ' +
                           '  AND ' + q.FieldByName('pk_fields').AsString + ' > 147000000 ';
                         q3.ExecQuery;
-                        
+
                         Count := Count + q3.FieldByName('RealKolvo').AsInteger;
                       until q3.FieldByName('RealKolvo').AsInteger = 0;
 
@@ -1552,8 +1583,8 @@ var
         else
           TblsNamesList.Delete(0);
       end;
-      ATr2.Commit;
-      ATr2.StartTransaction;
+      Tr2.Commit;                                                               
+      Tr2.StartTransaction;
 
       LogEvent('[test] COUNT real incuded: ' + IntToStr(Count));
       /// TEST begin
@@ -1569,8 +1600,8 @@ var
       q.SQL.Text :=
         'EXECUTE BLOCK AS BEGIN g_his_create(1, 0); END';  // HIS_2
       q.ExecSQL;
-      ATr.Commit;
-      ATr.StartTransaction;
+      Tr.Commit;
+      Tr.StartTransaction;
 
       TblsNamesList.CommaText := AllProcessedTblsNames.CommaText;
 
@@ -1786,8 +1817,8 @@ var
           q.Next;
         end;
         q.Close;
-        ATr.Commit;
-        ATr.StartTransaction;
+        Tr.Commit;
+        Tr.StartTransaction;
 
         TblsNamesList.Delete(0);
       end;
@@ -1797,8 +1828,8 @@ var
       q.SQL.Text :=
         'EXECUTE BLOCK AS BEGIN g_his_destroy(1); END';
       q.ExecSQL;
-      ATr.Commit;
-      ATr.StartTransaction;
+      Tr.Commit;
+      Tr.StartTransaction;
 
       ///TEST
       q.SQL.Text :='SELECT g_his_has(0, 147160138) AS IsHas_1, g_his_has(0, 147160139) AS IsHas_2 FROM rdb$database ';
@@ -1817,6 +1848,8 @@ var
       q2.Free;
       q3.Free;
       q4.Free;
+      Tr.Free;
+      Tr2.Free;
     end;
   end;
 
@@ -1825,12 +1858,9 @@ begin
 
   Tr := TIBTransaction.Create(nil);
   q := TIBSQL.Create(nil);
-  Tr2 := TIBTransaction.Create(nil);
   try
     Tr.DefaultDatabase := FIBDatabase;
     Tr.StartTransaction;
-    Tr2.DefaultDatabase := FIBDatabase;
-    Tr2.StartTransaction;
 
     q.Transaction := Tr;
 
@@ -1852,7 +1882,7 @@ begin
 
     LogEvent('COUNT in HIS without cascade: ' + IntToStr(Count));
 
-    AddCascadeKeys('GD_DOCUMENT', Tr, Tr2);
+    AddCascadeKeys('GD_DOCUMENT');
     LogEvent('COUNT in HIS with CASCADE: ' + IntToStr(Count));
 
     q.SQL.Text :=
@@ -1886,7 +1916,6 @@ begin
   finally
     q.Free;
     Tr.Free;
-    Tr2.Free;
   end;
 
 end;
@@ -2045,7 +2074,6 @@ var
       '  1, 2, 3, 4, 5';
     q.ExecQuery;
 
-
     q.SQL.Text :=
       'EXECUTE BLOCK ' +
       'AS ' +
@@ -2147,7 +2175,6 @@ var
 
     LogEvent('Indices reactivated.');
   end;
-
 
   procedure RestorePkUniqueConstraints;
   begin
