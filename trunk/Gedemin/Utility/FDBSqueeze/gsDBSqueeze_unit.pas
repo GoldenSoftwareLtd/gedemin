@@ -29,7 +29,7 @@ type
 
     FCurUserContactKey: Integer;
 
-    procedure LogEvent(const AMsg: String);
+    procedure LogEvent(const AMsg: String);   
 
     function GetNewID: Integer;
     function GetConnected: Boolean;
@@ -49,7 +49,6 @@ type
     procedure RestoreDB;
     procedure SetItemsCbbEvent;
     procedure TestAndCreateMetadata;
-
 
     property AllOurCompaniesSaldo: Boolean read FAllOurCompaniesSaldo write FAllOurCompaniesSaldo;
     property OnlyCompanySaldo: Boolean read FOnlyCompanySaldo write FOnlyCompanySaldo;
@@ -912,8 +911,8 @@ var
       q3.ParamByName('ClosingDate').AsDateTime := FClosingDate;
       q3.ExecQuery;
 
-      FirstDocumentKey := -1;                                                     //////////////////////////////
-      FirstDate := FClosingDate;                                      //////////////////////////////
+      FirstDocumentKey := -1;                                                   
+      FirstDate := FClosingDate;                                                  //TODO: уточнить FirstDate
       while not q3.EOF do                                                       /// Tr
       begin
         if q3.FieldByName('CardkeyOld').IsNull then
@@ -976,7 +975,7 @@ var
           else begin
             // ищем карточку без доп. признаков
             q4.Close;
-            q4.SQL.Text :=                                                      {TODO: вынести. Prepare  }
+            q4.SQL.Text :=                                                      // TODO: вынести. Prepare
               'SELECT FIRST(1) ' +
               '  c.id AS cardkey, ' +
               '  c.firstdocumentkey, ' +
@@ -1419,7 +1418,7 @@ var
           '  JOIN dbs_pk_unique_constraints pc ' +
           '    ON pc.relation_name = fc.relation_name ' +
           '  AND pc.constraint_type = ''PRIMARY KEY'' ' +
-          'WHERE ((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) ' +         ///delete_rule TEST
+          'WHERE ((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) ' +         ///TODO: delete_rule TEST
           '  AND fc.ref_relation_name = :rln ' +
           '  AND pc.list_fields NOT LIKE ''%,%'' ' +
           '  AND fc.list_fields NOT LIKE ''%,%'' ' ;
@@ -1575,7 +1574,7 @@ var
 
       TblsNamesList.CommaText := AllProcessedTblsNames.CommaText;
 
-      LogEvent('[test] AllProcessedTblsNames: ' + TblsNamesList.CommaText);     /// TEST
+      LogEvent('[test] AllProcessedTblsNames: ' + TblsNamesList.CommaText);
       while TblsNamesList.Count <> 0 do
       begin
         ProcTblsNamesList.Append(TblsNamesList[0]);
@@ -1589,7 +1588,7 @@ var
           '  JOIN dbs_pk_unique_constraints pc ' +
           '    ON pc.relation_name = fc.relation_name ' +
           '  AND pc.constraint_type = ''PRIMARY KEY'' ' +
-          'WHERE ((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) ' +           ///delete TEST
+          'WHERE ((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) ' +           ///TODO:delete TEST
           '  AND fc.relation_name = :rln ' +
           '  AND fc.list_fields NOT LIKE ''%,%'' ';
         q.ParamByName('rln').AsString := TblsNamesList[0];
@@ -1639,14 +1638,14 @@ var
             '  g_his_exclude(0, ' + q.FieldByName('list_fields').AsString + ') = 1 ';
 
           // если таблица с rectrict/noAction содержит предположительно удаляемый cascade
-          if AllProcessedTblsNames.IndexOf(q.FieldByName('relation_name').AsString) <> -1 then  ///? перепроверить
+          if AllProcessedTblsNames.IndexOf(q.FieldByName('relation_name').AsString) <> -1 then  
           begin  //извлекаем FK restrict HIS вместе с цепью, если ВСЕ каскады отсутствуют в HIS
 
             q4.SQL.Text :=  // получим все FK cascade поля в таблице
               'SELECT ' +
               '  fc.list_fields AS fk_field ' +
               'FROM dbs_fk_constraints fc ' +
-              'WHERE ((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) ' +     ///delete TEST
+              'WHERE ((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) ' +     ///TODO: delete TEST
               '  AND fc.relation_name = :rln ' +
               '  AND fc.list_fields NOT LIKE ''%,%'' ';
             q4.ParamByName('rln').AsString := q.FieldByName('relation_name').AsString;
@@ -1690,10 +1689,10 @@ var
                     '  JOIN dbs_pk_unique_constraints pc ' +
                     '    ON pc.relation_name = fc.relation_name ' +
                     '    AND pc.constraint_type = ''PRIMARY KEY'' ' +
-                    'WHERE ((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) ' +    ///delete TEST
+                    'WHERE ((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) ' +    ///TODO: delete TEST
                     '  AND fc.relation_name = :rln ' +
                     '  AND fc.ref_relation_name IN (';
-                  for I:=0 to ProcTblsNamesList.Count-1 do                      /// или AllProc ?
+                  for I:=0 to ProcTblsNamesList.Count-1 do                      /// TODO:или AllProc
                   begin
                     q2.SQL.Add(' ''' + ProcTblsNamesList[I] + '''');
                     if I <> ProcTblsNamesList.Count-1 then
@@ -1743,7 +1742,7 @@ var
                   '  JOIN dbs_pk_unique_constraints pc ' +
                   '    ON pc.relation_name = fc.relation_name ' +
                   '    AND pc.constraint_type = ''PRIMARY KEY'' ' +
-                  'WHERE ((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) ' +    ///delete TEST
+                  'WHERE ((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) ' +    ///TODO: delete TEST
                   '  AND fc.relation_name = :rln ' +
                   '  AND fc.ref_relation_name IN (';
                 for I:=0 to IndexEnd do                                     
@@ -2112,7 +2111,7 @@ var
       '    INTO :TN ' +
       '  DO ' +
       '    EXECUTE STATEMENT ''ALTER TRIGGER '' || :TN || '' ACTIVE ''; ' +
-      //'  DELETE FROM dbs_inactive_triggers; ' +                               ///test   
+      //'  DELETE FROM dbs_inactive_triggers; ' +                               ///TODO: test   
       'END';
     q.ExecQuery;
 
@@ -2139,7 +2138,7 @@ var
       '    INTO :N ' +
       '  DO ' +
       '    EXECUTE STATEMENT ''ALTER INDEX '' || :N || '' ACTIVE ''; ' +
-      //'  DELETE FROM dbs_inactive_indices; ' +                                ///test
+      //'  DELETE FROM dbs_inactive_indices; ' +                                ///TODO: test
       'END';
     q.ExecQuery;
 
@@ -2164,7 +2163,7 @@ var
       '    INTO :S ' +
       '  DO ' +
       '    EXECUTE STATEMENT :S; ' +
-      //'  DELETE FROM dbs_pk_unique_constraints; ' +                           /// test
+      //'  DELETE FROM dbs_pk_unique_constraints; ' +                           /// TODO: test
       'END';
     q.ExecQuery;
 
@@ -2192,7 +2191,7 @@ var
       '    INTO :S ' +
       '  DO ' +
       '    EXECUTE STATEMENT :S; ' +
-      //'  DELETE FROM dbs_fk_constraints; ' +                                  /// test
+      //'  DELETE FROM dbs_fk_constraints; ' +                                  /// TODO:test
       'END';
     q.ExecQuery;
 
@@ -2320,7 +2319,7 @@ var
 
   procedure CreateDBSPkUniqueConstraints;
   begin
-    if RelationExist2('DBS_PK_UNIQUE_CONSTRAINTS', Tr) then                     {TODO: не выполняется RelationExist2}
+    if RelationExist2('DBS_PK_UNIQUE_CONSTRAINTS', Tr) then                    
     begin
       q.SQL.Text := 'DELETE FROM DBS_PK_UNIQUE_CONSTRAINTS';
       q.ExecQuery;
@@ -2342,13 +2341,13 @@ var
 
   procedure CreateDBSFKConstraints;
   begin
-    {if RelationExist2('DBS_FK_CONSTRAINTS', Tr) then                           
+    if RelationExist2('DBS_FK_CONSTRAINTS', Tr) then
     begin
       q.SQL.Text := 'DELETE FROM DBS_FK_CONSTRAINTS';
       q.ExecQuery;
       LogEvent('Table DBS_FK_CONSTRAINTS exists.');
     end else
-    begin }
+    begin
       q.SQL.Text :=
         'CREATE TABLE DBS_FK_CONSTRAINTS ( ' +
         '  CONSTRAINT_NAME   CHAR(31), ' +
@@ -2361,7 +2360,7 @@ var
         '  PRIMARY KEY (CONSTRAINT_NAME)) ';
       q.ExecQuery;
       LogEvent('Table DBS_FK_CONSTRAINTS has been created.');
-    //end;
+    end;
   end;
 
   procedure CreateUDFs;
