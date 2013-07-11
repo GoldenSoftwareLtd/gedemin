@@ -2258,35 +2258,36 @@ var
   CompaniesList: TStringList;
 begin
   Assert(Connected);
+
+  if not Assigned(FOnSetItemsCbbEvent) then
+    exit;
+
   Tr := TIBTransaction.Create(nil);
   q := TIBSQL.Create(nil);
   CompaniesList := TStringList.Create;
-  if Assigned(FOnSetItemsCbbEvent) then
-  begin
-    try
-      Tr.DefaultDatabase := FIBDatabase;
-      Tr.StartTransaction;
+  try
+    Tr.DefaultDatabase := FIBDatabase;
+    Tr.StartTransaction;
 
-      q.Transaction := Tr;
-      q.SQL.Text :=
-        'SELECT gc.fullname as CompName ' +
-        'FROM GD_OURCOMPANY go ' +
-        '  JOIN GD_COMPANY gc ON go.companykey = gc.contactkey ';
-      q.ExecQuery;
-      while not q.EOF do
-      begin
-        CompaniesList.Add(q.FieldByName('CompName').AsString);
-        q.Next;
-      end;
-      
-      FOnSetItemsCbbEvent(CompaniesList);
-      q.Close;
-      Tr.Commit;
-    finally
-      q.Free;
-      Tr.Free;
-      CompaniesList.Free;
+    q.Transaction := Tr;
+    q.SQL.Text :=
+      'SELECT gc.fullname as CompName ' +
+      'FROM GD_OURCOMPANY go ' +
+      '  JOIN GD_COMPANY gc ON go.companykey = gc.contactkey ';
+    q.ExecQuery;
+    while not q.EOF do
+    begin
+      CompaniesList.Add(q.FieldByName('CompName').AsString);
+      q.Next;
     end;
+
+    FOnSetItemsCbbEvent(CompaniesList);
+
+    Tr.Commit;
+  finally
+    q.Free;
+    Tr.Free;
+    CompaniesList.Free;
   end;
 end;
 
