@@ -3,7 +3,7 @@ unit gsDBSqueezeThread_unit;
 interface
 
 uses
-  Classes, SyncObjs, Messages, gsDBSqueeze_unit, gdMessagedThread, Windows,
+  SysUtils, Classes, SyncObjs, Messages, gsDBSqueeze_unit, gdMessagedThread, Windows,
   idThreadSafe, gd_ProgressNotifier_unit;
 
 const
@@ -11,7 +11,7 @@ const
   WM_DBS_CONNECT               = WM_USER + 2;
   WM_DBS_SETSALDOPARAMS        = WM_USER + 3;
   WM_DBS_SETCBBITEMS           = WM_USER + 4;
-  WM_DBS_SETDOCWHERECLAUSE     = WM_USER + 5;
+  WM_DBS_SETCLOSINGDATE        = WM_USER + 5;
   WM_DBS_SETCOMPANYNAME        = WM_USER + 6;
   WM_DBS_TESTANDCREATEMETADATA = WM_USER + 7;
   WM_DBS_CALCULATESALDO        = WM_USER + 8;
@@ -30,7 +30,7 @@ type
     FCompanyName: TidThreadSafeString;
     FConnected: TidThreadSafeInteger;
     FDatabaseName, FUserName, FPassword: TidThreadSafeString;
-    FDocumentdateWhereClause: TidThreadSafeString;
+    FClosingDate: TDateTime;
     FDBS: TgsDBSqueeze;
     FMessageStrList: TStringList;
     FOnSetItemsCbb: TCbbEvent;
@@ -58,7 +58,7 @@ type
     procedure SetCompanyName(const ACompanyName: String);
     procedure SetDBParams(const ADatabaseName: String; const AUserName: String;
       const APassword: String);
-    procedure SetDocumentdateWhereClause(const ADocumentdateWhereClause: String);
+    procedure SetClosingDate(const AClosingDate: TDateTime);
 
     property Busy: Boolean read GetBusy;
     property Connected: Boolean read GetConnected;
@@ -77,7 +77,6 @@ begin
   FDatabaseName := TIdThreadSafeString.Create;
   FUserName := TIdThreadSafeString.Create;
   FPassword := TIdThreadSafeString.Create;
-  FDocumentdateWhereClause := TIdThreadSafeString.Create;
   FCompanyName := TIdThreadSafeString.Create;
   FConnected := TIdThreadSafeInteger.Create;
   FBusy := TIdThreadSafeInteger.Create;
@@ -92,7 +91,6 @@ begin
   FDatabaseName.Free;
   FUserName.Free;
   FPassword.Free;
-  FDocumentdateWhereClause.Free;
   FCompanyName.Free;
   FConnected.Free;
   FBusy.Free;
@@ -157,15 +155,15 @@ begin
       begin
         if FConnected.Value = 1 then
         begin
-          FBusy.Value := 1;
+          //FBusy.Value := 1;
           FDBS.SetItemsCbbEvent;
         end;
         Result := True;
       end;
 
-    WM_DBS_SETDOCWHERECLAUSE:
+    WM_DBS_SETCLOSINGDATE:
       begin
-        FDBS.DocumentdateWhereClause := FDocumentdateWhereClause.Value;
+        FDBS.ClosingDate := FClosingDate;
         Result := True;
       end;
 
@@ -269,10 +267,10 @@ begin
   PostMsg(WM_DBS_SETPARAMS);
 end;
 
-procedure TgsDBSqueezeThread.SetDocumentdateWhereClause(const ADocumentdateWhereClause: String);
+procedure TgsDBSqueezeThread.SetClosingDate(const AClosingDate: TDateTime);
 begin
-  FDocumentdateWhereClause.Value := ADocumentdateWhereClause;
-  PostMsg(WM_DBS_SETDOCWHERECLAUSE);
+  FClosingDate := AClosingDate;
+  PostMsg(WM_DBS_SETCLOSINGDATE);
 end;
 
 procedure TgsDBSqueezeThread.SetSaldoParams(const AAllOurCompanies: Boolean; const AOnlyCompany: Boolean);

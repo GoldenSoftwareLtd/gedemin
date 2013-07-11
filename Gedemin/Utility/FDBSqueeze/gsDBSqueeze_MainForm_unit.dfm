@@ -1,10 +1,10 @@
 object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
-  Left = 39
-  Top = 192
+  Left = 272
+  Top = 150
   BorderStyle = bsDialog
   Caption = 'gsDBSqueeze_MainForm'
   ClientHeight = 465
-  ClientWidth = 673
+  ClientWidth = 674
   Color = clBtnFace
   Font.Charset = RUSSIAN_CHARSET
   Font.Color = clWindowText
@@ -107,7 +107,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
     ScrollBars = ssVertical
     TabOrder = 1
   end
-  object dtpDocumentdateWhereClause: TDateTimePicker
+  object dtpClosingDate: TDateTimePicker
     Left = 199
     Top = 117
     Width = 81

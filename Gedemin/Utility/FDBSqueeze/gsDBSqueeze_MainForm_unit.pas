@@ -18,7 +18,7 @@ type
     btnDisconnect: TButton;
     btnGo: TButton;
     cbbCompany: TComboBox;
-    dtpDocumentdateWhereClause: TDateTimePicker;
+    dtpClosingDate: TDateTimePicker;
     edDatabaseName: TEdit;
     edUserName: TEdit;
     edPassword: TEdit;
@@ -32,6 +32,7 @@ type
     rbAllOurCompanies: TRadioButton;
     rbCompany: TRadioButton;
     actCompany: TAction;
+    
 
     procedure actConnectExecute(Sender: TObject);
     procedure actConnectUpdate(Sender: TObject);
@@ -98,6 +99,7 @@ end;
 
 procedure TgsDBSqueeze_MainForm.actDisconnectExecute(Sender: TObject);
 begin
+  cbbCompany.Clear;
   FSThread.Disconnect;
 end;
 
@@ -106,8 +108,7 @@ begin
   if rbCompany.Checked then
     FSThread.SetCompanyName(cbbCompany.Text);
 
-  FSThread.SetDocumentdateWhereClause(
-    FormatDateTime('dd.mm.yyyy', dtpDocumentdateWhereClause.Date));
+  FSThread.SetClosingDate(dtpClosingDate.Date);
 
   FSThread.SetSaldoParams(
     rbAllOurCompanies.Checked,
@@ -134,7 +135,10 @@ end;
 procedure TgsDBSqueeze_MainForm.SetItemsCbbEvent(const ACompanies: TStringList);
 begin
   if rbCompany.Checked then
+  begin
+    cbbCompany.Clear;
     cbbCompany.Items.AddStrings(ACompanies);
+  end;  
 end;
 
 procedure TgsDBSqueeze_MainForm.UpdateProgress(
@@ -146,7 +150,7 @@ end;
 
 procedure TgsDBSqueeze_MainForm.actCompanyUpdate(Sender: TObject);
 begin
-  cbbCompany.Enabled := rbCompany.Checked ;
+  cbbCompany.Enabled := (rbCompany.Checked) and (FSThread.Connected);
 end;
 
 procedure TgsDBSqueeze_MainForm.actCompanyExecute(Sender: TObject);
