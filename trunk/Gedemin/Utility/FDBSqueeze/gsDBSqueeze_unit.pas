@@ -1390,6 +1390,7 @@ end;
 procedure TgsDBSqueeze.DeleteDocuments;
 var
   q: TIBSQL;
+  q2: TIBSQL; ///t
   Tr: TIBTransaction;
   Count: Integer; ///test
 
@@ -1858,11 +1859,13 @@ begin
 
   Tr := TIBTransaction.Create(nil);
   q := TIBSQL.Create(nil);
+  q2 := TIBSQL.Create(nil);
   try
     Tr.DefaultDatabase := FIBDatabase;
     Tr.StartTransaction;
 
     q.Transaction := Tr;
+    q2.Transaction := Tr;
 
     LogEvent('Deleting from DB... ');
 
@@ -1886,23 +1889,38 @@ begin
     LogEvent('COUNT in HIS with CASCADE: ' + IntToStr(Count));
 
     q.SQL.Text :=
-      'EXECUTE BLOCK ' +
-      'AS ' +
-      '  DECLARE VARIABLE RN CHAR(31); ' +
-      '  DECLARE VARIABLE FN VARCHAR(310); ' +
-      'BEGIN ' +
-      '  FOR ' +
-      '    SELECT relation_name, list_fields ' +
-      '    FROM dbs_pk_unique_constraints ' +
-      '    WHERE constraint_type = ''PRIMARY KEY'' ' +
-      '      AND list_fields NOT LIKE ''%,%'' ' +
-      '    INTO :RN, :FN ' +
-      '  DO BEGIN ' +
-      '    EXECUTE STATEMENT ''DELETE FROM '' || :RN || ' +
-      '      '' WHERE g_his_has(0, '' || :FN || '') = 1 AND '' || :FN || '' > 147000000 ''; ' +
-      '  END ' +
-      'END';
+      'SELECT relation_name as RN, list_fields AS FN ' +
+      'FROM dbs_pk_unique_constraints ' +
+      'WHERE constraint_type = ''PRIMARY KEY'' ' +
+      '  AND (NOT list_fields LIKE ''%,%'') ';
     q.ExecQuery;
+    while not q.EOF do
+    begin
+      LogEvent('Table: ' + q.FieldByName('RN').AsString + 'PK field: ' + q.FieldByName('FN').AsString );
+
+      // проверка типа поля на INTEGER
+      q2.SQL.Text :=
+        'SELECT ' +
+        '  IIF(F.RDB$FIELD_TYPE = 8, ''INTEGER'', ''NOT INTEGER'') AS FIELD_TYPE ' +
+        'FROM RDB$RELATION_FIELDS RF ' +
+        '  JOIN RDB$FIELDS F ON (F.RDB$FIELD_NAME = RF.RDB$FIELD_SOURCE) ' +
+        'WHERE (RF.RDB$RELATION_NAME = :RELAT_NAME) AND (RF.RDB$FIELD_NAME = :FIELD) ';
+      q2.ParamByName('RELAT_NAME').AsString := UpperCase(q.FieldByName('RN').AsString);
+      q2.ParamByName('FIELD').AsString := UpperCase(q.FieldByName('FN').AsString);
+      q2.ExecQuery;
+
+      if q2.FieldByName('FIELD_TYPE').AsString = 'INTEGER' then
+      begin
+        q2.Close;
+        q2.SQL.Text :=
+          'DELETE FROM ' + q.FieldByName('RN').AsString +
+          ' WHERE g_his_has(0, ' +  q.FieldByName('FN').AsString  +') = 1 ';//AND :PkField > 147000000
+        q2.ExecQuery;
+      end
+      else
+        q2.Close;
+      q.Next;
+    end;
 
     Tr.Commit;
     Tr.StartTransaction;
@@ -1915,9 +1933,9 @@ begin
     LogEvent('Deleting from DB... OK');
   finally
     q.Free;
+    q2.Free;
     Tr.Free;
   end;
-
 end;
 
 function TgsDBSqueeze.GetConnected: Boolean;

@@ -68,6 +68,7 @@ begin
   FSThread := TgsDBSqueezeThread.Create(False);
   FSThread.ProgressWatch := Self;
   FSThread.OnSetItemsCbb := SetItemsCbbEvent;
+  mLog.ReadOnly:=True;
 end;
 
 destructor TgsDBSqueeze_MainForm.Destroy;
