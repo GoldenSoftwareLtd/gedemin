@@ -391,7 +391,7 @@ var
       q2.ParamByName('EntryDate').AsDateTime := FClosingDate;
       q2.ExecQuery;
 
-      while (not q2.EOF) do // считаем сальдо для каждого счета                 /// Tr
+      while (not q2.EOF) do // считаем сальдо для каждого счета
       begin
         UsrFieldsList.Text := StringReplace(AllUsrFieldsNames, ',', #13#10, [rfReplaceAll, rfIgnoreCase]);
         // получаем cписок аналитик, по которым ведется учет для счета
@@ -446,19 +446,19 @@ var
         CurrentCompanyKey := -1;
         NewDocumentKey := -1;
 
-        while not q3.EOF do                                                     /// Tr
+        while not q3.EOF do
         begin
           if CurrentCompanyKey <> q3.FieldByName('COMPANYKEY').AsInteger then
           begin
             CurrentCompanyKey := q3.FieldByName('COMPANYKEY').AsInteger;
             NewDocumentKey := GetNewID;
 
-            CreateHeaderAcDoc(NewDocumentKey, CurrentCompanyKey);               /// Tr3_
+            CreateHeaderAcDoc(NewDocumentKey, CurrentCompanyKey);
           end;
 
           NewRecordKey := GetNewID;
 
-          q4.SQL.Text :=                                                        /// Tr2_
+          q4.SQL.Text :=
             'INSERT INTO ac_record (' +
             '  ID, RECORDDATE, TRRECORDKEY, TRANSACTIONKEY, DOCUMENTKEY, ' +
             '  MASTERDOCKEY, AFULL, ACHAG, AVIEW, COMPANYKEY) ' +
@@ -467,7 +467,7 @@ var
             '  :DOCUMENTKEY, -1, -1, -1, :COMPANYKEY)';
 
           q4.ParamByName('ID').AsInteger := NewRecordKey;
-          q4.ParamByName('RECORDDATE').AsDateTime := FClosingDate;    /// FCurDate.old
+          q4.ParamByName('RECORDDATE').AsDateTime := FClosingDate;              /// FCurDate.old
           q4.ParamByName('TRRECORDKEY').AsInteger := ProizvolnyeTrRecordKey;
           q4.ParamByName('TRANSACTIONKEY').AsInteger := ProizvolnyeTransactionKey;
           q4.ParamByName('DOCUMENTKEY').AsInteger := NewDocumentKey;
@@ -480,7 +480,7 @@ var
           DecimalSeparator := '.';   // тип Currency в SQL имееет DecimalSeparator = ','
 
           // проводка по текущему счету
-          InsertAcEntry(                                                        /// Tr4_
+          InsertAcEntry(                                                        
             q2.FieldByName('id').AsInteger,
             CurrentCompanyKey,
             NewRecordKey,
@@ -666,7 +666,7 @@ var
       q3.ParamByName('DOCUMENTTYPEKEY').AsInteger := AInvDocType;
       q3.ParamByName('PARENT').Clear;
       q3.ParamByName('COMPANYKEY').AsInteger := ACompanyKey;
-      q3.ParamByName('DOCUMENTDATE').AsDateTime := FClosingDate;      ///?
+      q3.ParamByName('DOCUMENTDATE').AsDateTime := FClosingDate;                ///?
       q3.ParamByName('CREATORKEY').AsInteger := ACurUserContactKey;
       q3.ParamByName('EDITORKEY').AsInteger := ACurUserContactKey;
       q3.ExecQuery;
@@ -741,7 +741,7 @@ var
       q3.SQL.Add(
         ')');
 
-      q3.ParamByName('FIRSTDATE').AsDateTime := FClosingDate;                   /////////////////////
+      q3.ParamByName('FIRSTDATE').AsDateTime := FClosingDate;                   ///?
       q3.ParamByName('ID').AsInteger := NewCardKey;
       q3.ParamByName('GOODKEY').AsInteger := ACardGoodKey;
       q3.ParamByName('DOCUMENTKEY').AsInteger := NewDocumentKey;
@@ -775,7 +775,7 @@ var
         'VALUES ' +
         '  (:movementkey, :movementdate, :documentkey, :contactkey, :cardkey, :debit, :credit) ';
 
-      q3.ParamByName('MOVEMENTDATE').AsDateTime := FClosingDate;      /// ?
+      q3.ParamByName('MOVEMENTDATE').AsDateTime := FClosingDate;                /// ?
       q3.ParamByName('MOVEMENTKEY').AsInteger := NewMovementKey;
       q3.ParamByName('DOCUMENTKEY').AsInteger := NewDocumentKey;
       q3.ParamByName('CONTACTKEY').AsInteger := AToContact;
@@ -794,7 +794,7 @@ var
         'VALUES ' +
         '  (:movementkey, :movementdate, :documentkey, :contactkey, :cardkey, :debit, :credit) ';
 
-      q3.ParamByName('MOVEMENTDATE').AsDateTime := FClosingDate;      /// ?
+      q3.ParamByName('MOVEMENTDATE').AsDateTime := FClosingDate;                /// ?
       q3.ParamByName('MOVEMENTKEY').AsInteger := NewMovementKey;
       q3.ParamByName('DOCUMENTKEY').AsInteger := NewDocumentKey;
       q3.ParamByName('CONTACTKEY').AsInteger := AFromContact;
@@ -924,7 +924,7 @@ var
       q3.ExecQuery;
 
       FirstDocumentKey := -1;                                                   
-      FirstDate := FClosingDate;                                                  //TODO: уточнить FirstDate
+      FirstDate := FClosingDate;                                                // TODO: уточнить FirstDate
       while not q3.EOF do
       begin
         if q3.FieldByName('CardkeyOld').IsNull then
@@ -1309,14 +1309,14 @@ begin
     DecimalSeparator := '.';   // тип Currency в SQL имееет DecimalSeparator = ','
 
     // Пройдем по остаткам ТМЦ
-    while not q.EOF do                                                          /// Tr
+    while not q.EOF do                                                          
     begin
 
       // Если кол-во позиций в документе > 1000(например), то создадим новую шапку документа  ...
 
       if q.FieldByName('BALANCE').AsCurrency >= 0 then
       begin //приход на ContactKey от PseudoClientKey
-        DocumentParentKey := CreateHeaderInvDoc(                                /// Tr2_
+        DocumentParentKey := CreateHeaderInvDoc(
           PseudoClientKey, // поставщик
           q.FieldByName('ContactKey').AsInteger,
           q.FieldByName('COMPANYKEY').AsInteger,
@@ -1324,7 +1324,7 @@ begin
           FCurUserContactKey);
 
 
-        CreatePositionInvDoc(                                                   /// Tr2_
+        CreatePositionInvDoc(
           DocumentParentKey,
           PseudoClientKey, // поставщик
           q.FieldByName('ContactKey').AsInteger,
@@ -1338,14 +1338,14 @@ begin
       end
       else begin
         // Приход на PseudoClientKey от ContactKey (с положит. кол-вом ТМЦ)
-        DocumentParentKey := CreateHeaderInvDoc(                                /// Tr2_
+        DocumentParentKey := CreateHeaderInvDoc(
           q.FieldByName('ContactKey').AsInteger,
           PseudoClientKey,
           q.FieldByName('COMPANYKEY').AsInteger,
           InvDocTypeKey,
           FCurUserContactKey);
 
-        CreatePositionInvDoc(                                                   /// Tr2_
+        CreatePositionInvDoc(
           DocumentParentKey,
           q.FieldByName('ContactKey').AsInteger,
           PseudoClientKey,
@@ -1450,7 +1450,7 @@ var
           '  JOIN dbs_pk_unique_constraints pc ' +
           '    ON pc.relation_name = fc.relation_name ' +
           '  AND pc.constraint_type = ''PRIMARY KEY'' ' +
-          'WHERE ((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) ' +         ///TODO: delete_rule TEST
+          'WHERE ((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) ' +        
           '  AND fc.ref_relation_name = :rln ' +
           '  AND pc.list_fields NOT LIKE ''%,%'' ' +
           '  AND fc.list_fields NOT LIKE ''%,%'' ' ;
@@ -1588,14 +1588,6 @@ var
       Tr2.StartTransaction;
 
       LogEvent('[test] COUNT real incuded: ' + IntToStr(Count));
-      /// TEST begin
-      q.SQL.Text :='SELECT g_his_has(0, 147160138) AS IsHas FROM rdb$database ';
-      q.SQL.Text :='SELECT g_his_has(0, 147160138) AS IsHas_1, g_his_has(0, 147160139) AS IsHas_2 FROM rdb$database ';
-      q.Open;
-      LogEvent('[test] doc id 147160138 in HIS before exclude: ' + q.FieldByName('IsHas_1').AsString);
-      LogEvent('[test] doc id 147160139 in HIS before exclude: ' + q.FieldByName('IsHas_2').AsString);
-      q.Close;
-        /// end
 
       //------------------ исключение из HIS PK, на которые есть restrict/noAction
       q.SQL.Text :=
@@ -1620,7 +1612,7 @@ var
           '  JOIN dbs_pk_unique_constraints pc ' +
           '    ON pc.relation_name = fc.relation_name ' +
           '  AND pc.constraint_type = ''PRIMARY KEY'' ' +
-          'WHERE ((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) ' +           ///TODO:delete TEST
+          'WHERE ((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) ' +           
           '  AND fc.relation_name = :rln ' +
           '  AND fc.list_fields NOT LIKE ''%,%'' ';
         q.ParamByName('rln').AsString := TblsNamesList[0];
@@ -1677,7 +1669,7 @@ var
               'SELECT ' +
               '  fc.list_fields AS fk_field ' +
               'FROM dbs_fk_constraints fc ' +
-              'WHERE ((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) ' +     ///TODO: delete TEST
+              'WHERE ((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) ' +     
               '  AND fc.relation_name = :rln ' +
               '  AND fc.list_fields NOT LIKE ''%,%'' ';
             q4.ParamByName('rln').AsString := q.FieldByName('relation_name').AsString;
@@ -1721,7 +1713,7 @@ var
                     '  JOIN dbs_pk_unique_constraints pc ' +
                     '    ON pc.relation_name = fc.relation_name ' +
                     '    AND pc.constraint_type = ''PRIMARY KEY'' ' +
-                    'WHERE ((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) ' +    ///TODO: delete TEST
+                    'WHERE ((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) ' +    
                     '  AND fc.relation_name = :rln ' +
                     '  AND fc.ref_relation_name IN (';
                   for I:=0 to ProcTblsNamesList.Count-1 do                      /// TODO:или AllProc
@@ -1774,7 +1766,7 @@ var
                   '  JOIN dbs_pk_unique_constraints pc ' +
                   '    ON pc.relation_name = fc.relation_name ' +
                   '    AND pc.constraint_type = ''PRIMARY KEY'' ' +
-                  'WHERE ((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) ' +    ///TODO: delete TEST
+                  'WHERE ((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) ' +    
                   '  AND fc.relation_name = :rln ' +
                   '  AND fc.ref_relation_name IN (';
                 for I:=0 to IndexEnd do                                     
@@ -1832,13 +1824,6 @@ var
       Tr.Commit;
       Tr.StartTransaction;
 
-      ///TEST
-      q.SQL.Text :='SELECT g_his_has(0, 147160138) AS IsHas_1, g_his_has(0, 147160139) AS IsHas_2 FROM rdb$database ';
-      q.Open;
-      LogEvent('[test] doc id 147160138 in HIS after exclude: ' + q.FieldByName('IsHas_1').AsString);
-      LogEvent('[test] doc id 147160139 in HIS after exclude: ' + q.FieldByName('IsHas_2').AsString);
-      q.Close;
-      ///
       LogEvent('[test] AddCascadeKeys... OK');
     finally
       CascadeProcTbls.Free;
@@ -1898,7 +1883,7 @@ begin
     begin
       LogEvent('Table: ' + q.FieldByName('RN').AsString + 'PK field: ' + q.FieldByName('FN').AsString );
 
-      // проверка типа поля на INTEGER
+      // проверка типа поля PK на INTEGER
       q2.SQL.Text :=
         'SELECT ' +
         '  IIF(F.RDB$FIELD_TYPE = 8, ''INTEGER'', ''NOT INTEGER'') AS FIELD_TYPE ' +
@@ -1913,8 +1898,9 @@ begin
       begin
         q2.Close;
         q2.SQL.Text :=
-          'DELETE FROM ' + q.FieldByName('RN').AsString +
-          ' WHERE g_his_has(0, ' +  q.FieldByName('FN').AsString  +') = 1 ';//AND :PkField > 147000000
+          'DELETE FROM ' + q.FieldByName('RN').AsString + ' ' +
+          'WHERE g_his_has(0, ' +  q.FieldByName('FN').AsString  +') = 1 ' +
+          '  AND ' + q.FieldByName('FN').AsString + ' > 147000000 ';
         q2.ExecQuery;
       end
       else
@@ -2003,8 +1989,10 @@ var
       '    FROM rdb$indices ' +
       '    WHERE rdb$index_inactive = 0 ' +
       '      AND RDB$SYSTEM_FLAG = 0 ' +
-      '      AND ((NOT rdb$index_name LIKE ''RDB$%'') OR ((rdb$index_name LIKE ''RDB$PRIMARY%'') OR (rdb$index_name LIKE ''RDB$FOREIGN%''))) ' + ///'      AND (NOT rdb$index_name LIKE ''RDB$%'') ' +
-      ///'      AND (NOT rdb$index_name LIKE ''INTEG_$%'') ' +
+      '      AND ((NOT rdb$index_name LIKE ''RDB$%'') ' +
+      '        OR ((rdb$index_name LIKE ''RDB$PRIMARY%'') ' +
+      '        OR (rdb$index_name LIKE ''RDB$FOREIGN%'')) ' +
+      '      ) ' + 
       '    INTO :N ' +
       '  DO ' +
       '    EXECUTE STATEMENT ''ALTER INDEX '' || :N || '' INACTIVE ''; ' +
@@ -2038,7 +2026,6 @@ var
       'WHERE ' +
       '  (c.rdb$constraint_type = ''PRIMARY KEY'' OR c.rdb$constraint_type = ''UNIQUE'') ' +
       '   AND (NOT c.rdb$constraint_name LIKE ''RDB$%'') ';
-      ///'   AND (NOT c.rdb$constraint_name LIKE ''INTEG_%'') '; 
     q.ExecQuery;
 
     q.SQL.Text :=
@@ -2087,7 +2074,6 @@ var
       'WHERE ' +
       '  (c.rdb$constraint_type = ''FOREIGN KEY'')  ' +                        
       '  AND (NOT c.rdb$constraint_name LIKE ''RDB$%'') ' +
-      ///'  AND (NOT c.rdb$constraint_name LIKE ''INTEG_%'') '  + 
       'GROUP BY ' +
       '  1, 2, 3, 4, 5';
     q.ExecQuery;
@@ -2157,7 +2143,6 @@ var
       '    INTO :TN ' +
       '  DO ' +
       '    EXECUTE STATEMENT ''ALTER TRIGGER '' || :TN || '' ACTIVE ''; ' +
-      //'  DELETE FROM dbs_inactive_triggers; ' +                               ///TODO: test   
       'END';
     q.ExecQuery;
 
@@ -2184,7 +2169,6 @@ var
       '    INTO :N ' +
       '  DO ' +
       '    EXECUTE STATEMENT ''ALTER INDEX '' || :N || '' ACTIVE ''; ' +
-      //'  DELETE FROM dbs_inactive_indices; ' +                                ///TODO: test
       'END';
     q.ExecQuery;
 
@@ -2208,7 +2192,6 @@ var
       '    INTO :S ' +
       '  DO ' +
       '    EXECUTE STATEMENT :S; ' +
-      //'  DELETE FROM dbs_pk_unique_constraints; ' +                           /// TODO: test
       'END';
     q.ExecQuery;
 
@@ -2232,11 +2215,9 @@ var
       '      IIF(update_rule = ''RESTRICT'', '''', '' ON UPDATE '' || update_rule) || ' +
       '      IIF(delete_rule = ''RESTRICT'', '''', '' ON DELETE '' || delete_rule) ' +
       '    FROM dbs_fk_constraints ' +
-      '    ORDER BY relation_name DESC ' +                                      /// TODO: тест убрать
       '    INTO :S ' +
       '  DO ' +
       '    EXECUTE STATEMENT :S; ' +
-      //'  DELETE FROM dbs_fk_constraints; ' +                                  /// TODO:test
       'END';
     q.ExecQuery;
 
