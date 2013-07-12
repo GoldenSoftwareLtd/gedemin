@@ -32,6 +32,11 @@ type
     rbAllOurCompanies: TRadioButton;
     rbCompany: TRadioButton;
     actCompany: TAction;
+    edServer: TEdit;
+    chbServer: TCheckBox;
+    actServer: TAction;
+    grpDatabase: TGroupBox;
+    grpOptions: TGroupBox;
     
 
     procedure actConnectExecute(Sender: TObject);
@@ -43,6 +48,8 @@ type
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
     procedure actCompanyUpdate(Sender: TObject);
     procedure actCompanyExecute(Sender: TObject);
+    procedure actServerExecute(Sender: TObject);
+    procedure actServerUpdate(Sender: TObject);
 
   private
     FSThread: TgsDBSqueezeThread;
@@ -68,7 +75,8 @@ begin
   FSThread := TgsDBSqueezeThread.Create(False);
   FSThread.ProgressWatch := Self;
   FSThread.OnSetItemsCbb := SetItemsCbbEvent;
-  mLog.ReadOnly:=True;
+  mLog.ReadOnly := True;
+  dtpClosingDate.Date := Date;
 end;
 
 destructor TgsDBSqueeze_MainForm.Destroy;
@@ -79,7 +87,11 @@ end;
 
 procedure TgsDBSqueeze_MainForm.actConnectExecute(Sender: TObject);
 begin
-  FSThread.SetDBParams(edDatabaseName.Text, edUserName.Text, edPassword.Text);
+  if (actServer.Enabled) and (chbServer.Checked) then
+    FSThread.SetDBParams(edServer.Text + ':' + edDatabaseName.Text, edUserName.Text, edPassword.Text)
+  else
+    FSThread.SetDBParams(edDatabaseName.Text, edUserName.Text, edPassword.Text);
+
   FSThread.Connect;
 
   btnGo.Enabled := True;
@@ -102,6 +114,8 @@ procedure TgsDBSqueeze_MainForm.actDisconnectExecute(Sender: TObject);
 begin
   cbbCompany.Clear;
   FSThread.Disconnect;
+  chbServer.Checked := False;
+  chbServer.Enabled := True;
 end;
 
 procedure TgsDBSqueeze_MainForm.actGoExecute(Sender: TObject);
@@ -158,5 +172,19 @@ procedure TgsDBSqueeze_MainForm.actCompanyExecute(Sender: TObject);
 begin
   FSThread.DoSetItemsCbb;
 end;
+
+
+procedure TgsDBSqueeze_MainForm.actServerExecute(Sender: TObject);
+begin
+  //
+end;
+
+procedure TgsDBSqueeze_MainForm.actServerUpdate(Sender: TObject);
+begin
+  edServer.Enabled:= chbServer.Checked;
+  actServer.Enabled := edServer.Text > '';
+end;
+
+
 
 end.

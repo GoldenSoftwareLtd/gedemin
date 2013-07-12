@@ -24,6 +24,8 @@ type
     FPassword: String;
     FUserName: String;
 
+    FInactivBlockTriggers: String; // неактивные триггеры блокировки периода
+
     FAllOurCompaniesSaldo: Boolean;
     FOnlyCompanySaldo: Boolean;
 
@@ -38,6 +40,8 @@ type
     constructor Create;
     destructor Destroy; override;
 
+    procedure SetBlockTriggerActive(SetActive: Boolean);
+    
     procedure Connect;
     procedure Disconnect;
     // подсчет и формирование бухгалтерского сальдо
@@ -163,6 +167,93 @@ begin
   end;
 end;
 
+procedure TgsDBSqueeze.SetBlockTriggerActive(SetActive: Boolean);       //TODO: доработать. отключение триггеров блокировки периода
+var
+  StateStr: String;
+  I: Integer;
+  q: TIBSQL;
+  q2: TIBSQL;
+  Tr: TIBTransaction;
+begin
+  Tr := TIBTransaction.Create(nil);
+  q := TIBSQL.Create(nil);
+  q2 := TIBSQL.Create(nil);
+  try
+    Tr.DefaultDatabase := FIBDatabase;
+    Tr.StartTransaction;
+    q.Transaction := Tr;
+    q2.Transaction := Tr;
+
+    if FInactivBlockTriggers = '' then
+      LogEvent('TEST FInactivBlockTriggers=""')
+    else
+      LogEvent('TEST FInactivBlockTriggers=' + FInactivBlockTriggers);
+
+    if FInactivBlockTriggers = '' then
+    begin
+      q.SQL.Text :=
+        'SELECT ' +
+        '  rdb$trigger_name AS TN ' +
+        'FROM ' +
+        '  rdb$triggers ' +
+        'WHERE ' +
+        '  rdb$system_flag = 0 ' +
+        '  AND rdb$trigger_name LIKE ''%BLOCK%'' ' +
+        '  AND rdb$trigger_inactive = 1 ';
+      q.ExecQuery;
+      while not q.EOF do
+      begin
+        FInactivBlockTriggers := FInactivBlockTriggers + ' ''' + q.FieldByName('TN').AsString + '''';
+
+        q.Next;
+        if not q.EOF then
+          FInactivBlockTriggers := FInactivBlockTriggers + ', ';
+      end;
+      q.Close;
+    end;
+
+    FInactivBlockTriggers := FInactivBlockTriggers + ' ';
+
+    q.SQL.Text :=
+      'SELECT ' +
+      '  rdb$trigger_name AS TN ' +
+      'FROM ' +
+      '  rdb$triggers ' +
+      'WHERE ' +
+      '  rdb$system_flag = 0 ' +
+      '  AND rdb$trigger_name LIKE ''%BLOCK%'' ' +
+      '  AND rdb$trigger_inactive = :IsInactiv ';
+    if FInactivBlockTriggers <> ' ' then
+      q.SQL.Add(
+      '  AND rdb$trigger_name NOT IN (' + FInactivBlockTriggers + ')');
+
+    if SetActive then
+    begin
+      StateStr := 'ACTIVE';
+      q.ParamByName('IsInactiv').AsInteger := 1;
+    end
+    else begin
+      StateStr := 'INACTIVE';
+      q.ParamByName('IsInactiv').AsInteger := 0;
+    end;
+    q.ExecQuery;
+
+    while not q.EOF do
+    begin
+      q2.SQL.Text := 'ALTER TRIGGER ' + q.FieldByName('TN').AsString + ' '  + StateStr;
+      q2.ExecQuery;
+      q2.Close;
+      q.Next;
+    end;
+
+    Tr.Commit;
+  finally
+    q.Free;
+    q2.Free;
+    Tr.Free;
+  end;
+end;
+
 procedure TgsDBSqueeze.CalculateAcSaldo;  // подсчет бухгалтерского сальдо
 var
   q: TIBSQL;
@@ -224,18 +315,13 @@ var
     CurrentCompanyKey: Integer;
     NewDocumentKey, NewRecordKey: Integer;
 
-    procedure CreateHeaderAcDoc(const AnId: Integer; const ACompanyKey: Integer);  // создание документа для бух проводок
+    procedure CreateHeaderAcDoc(const AnId: Integer; const ACompanyKey: Integer; ATr: TIBTransaction);  // создание документа для бух проводок
     var
       q: TIBSQL;
-      Tr: TIBTransaction;
     begin
-      Tr := TIBTransaction.Create(nil);
       q := TIBSQL.Create(nil);
       try
-        Tr.DefaultDatabase := FIBDatabase;
-        Tr.StartTransaction;
-
-        q.Transaction := Tr;
+        q.Transaction := ATr;
         q.SQL.Text :=
           'INSERT INTO GD_DOCUMENT ( ' +
           '  ID, DOCUMENTTYPEKEY, NUMBER, DOCUMENTDATE, COMPANYKEY, ' +
@@ -250,10 +336,8 @@ var
         q.ParamByName('USERKEY').AsInteger := FCurUserContactKey;
 
         q.ExecQuery;
-        Tr.Commit;
       finally
         q.Free;
-        Tr.Free;
       end;
     end;
 
@@ -262,19 +346,15 @@ var
       const ACompanyKey: Integer;
       const ARecordKey: Integer;
       const ADocumentKey: Integer;
-      const AnIBSQLSaldo: TIBSQL);
+      const AnIBSQLSaldo: TIBSQL;
+      ATr: TIBTransaction);
     var
       J: Integer;
       q: TIBSQL;
-      Tr: TIBTransaction;
     begin
       q := TIBSQL.Create(nil);
-      Tr := TIBTransaction.Create(nil);
       try
-        Tr.DefaultDatabase := FIBDatabase;
-        Tr.StartTransaction;
-
-        q.Transaction := Tr;
+        q.Transaction := ATr;
         q.SQL.Text :=
           'INSERT INTO ac_entry (' +
           '  ID, ENTRYDATE, RECORDKEY, TRANSACTIONKEY, DOCUMENTKEY, ' +
@@ -331,10 +411,8 @@ var
         q.ParamByName('CURRKEY').AsInteger := AnIBSQLSaldo.FieldByName('currkey').AsInteger;
 
         q.ExecQuery;
-        Tr.Commit;
       finally
         q.Free;
-        Tr.Free;
       end;
     end;
 
@@ -367,7 +445,7 @@ var
 
       //-------------------------------------------- вычисление сальдо для счета
 
-      q2.SQL.Text :=
+      q2.SQL.Text :=                                                             //TODO: оптимизировать
         'SELECT ' +
         '  ac.id, ' +
            StringReplace(AllUsrFieldsNames, 'USR$', 'ac.USR$', [rfReplaceAll, rfIgnoreCase]) + ' ' +
@@ -422,19 +500,19 @@ var
           '  AND entrydate < :EntryDate ');
         if FOnlyCompanySaldo then
           q3.SQL.Add(' ' +
-            'AND companykey = ' + IntToStr(CompanyKey))
+            'AND companykey = ' + IntToStr(CompanyKey) + ' ')
         else if FAllOurCompaniesSaldo then
           q3.SQL.Add(' ' +
             'AND companykey IN (' + OurCompaniesListStr + ') ');
         q3.SQL.Add(' ' +
           'GROUP BY ' +
           '  companykey, ' +
-          '  currkey');
+          '  currkey ');
         for I := 0 to UsrFieldsList.Count - 1 do
           q3.SQL.Add(', ' + UsrFieldsList[I]);
         q3.SQL.Add(' ' +
           'HAVING ' +
-          '  (SUM(debitncu)  - SUM(creditncu))  <> 0 ' +
+          '  (SUM(debitncu) - SUM(creditncu)) <> 0 ' +
           '   OR (SUM(debitcurr) - SUM(creditcurr)) <> 0 ' +
           '   OR (SUM(debiteq)   - SUM(crediteq))   <> 0 ');
 
@@ -453,7 +531,7 @@ var
             CurrentCompanyKey := q3.FieldByName('COMPANYKEY').AsInteger;
             NewDocumentKey := GetNewID;
 
-            CreateHeaderAcDoc(NewDocumentKey, CurrentCompanyKey);
+            CreateHeaderAcDoc(NewDocumentKey, CurrentCompanyKey, Tr2);
           end;
 
           NewRecordKey := GetNewID;
@@ -474,18 +552,19 @@ var
           q4.ParamByName('COMPANYKEY').AsInteger := CurrentCompanyKey;
 
           q4.ExecQuery;
-          Tr2.Commit;
-          Tr2.StartTransaction;
+          //Tr2.Commit;
+          //Tr2.StartTransaction;
 
           DecimalSeparator := '.';   // тип Currency в SQL имееет DecimalSeparator = ','
 
           // проводка по текущему счету
-          InsertAcEntry(                                                        
+          InsertAcEntry(                                                        ///ОШИБКА (BIGAUTO_NEW.FDB) validation error for column ISSIMPLE, value "*** null ***"
             q2.FieldByName('id').AsInteger,
             CurrentCompanyKey,
             NewRecordKey,
             NewDocumentKey,
-            q3);
+            q3,
+            Tr2);
 
           // проводка по счету '00 Остатки'
           InsertAcEntry(
@@ -493,7 +572,8 @@ var
             CurrentCompanyKey,
             NewRecordKey,
             NewDocumentKey,
-            q3);
+            q3,
+            Tr2);
 
           q3.Next;
         end;
@@ -502,6 +582,7 @@ var
 
         q2.Next;
       end;
+      Tr2.Commit;
       q2.Close;
     finally
       q2.Free;
@@ -626,9 +707,6 @@ var
     if (UsrFieldsNames <> '') then
       q.SQL.Add(', ' +
         StringReplace(UsrFieldsNames, 'USR$', 'ic.USR$', [rfReplaceAll, rfIgnoreCase]));
-    q.SQL.Add(' ' +
-      'ORDER BY ' +
-      '  gc.name ');                                                            ///  ?
 
     q.ParamByName('RemainsDate').AsDateTime := FClosingDate;
     q.ExecQuery;
@@ -636,21 +714,18 @@ var
 
   function CreateHeaderInvDoc(
     AFromContact, AToContact, ACompanyKey: Integer;
-    AInvDocType, ACurUserContactKey: Integer
+    AInvDocType, ACurUserContactKey: Integer;
+    ATr2: TIBTransaction
   ): Integer;
   var
     NewDocumentKey: Integer;
     q3: TIBSQL;
-    Tr2: TIBTransaction;
   begin
     Assert(Connected);
 
     q3 := TIBSQL.Create(nil);
-    Tr2 := TIBTransaction.Create(nil);
     try
-      Tr2.DefaultDatabase := FIBDatabase;
-      Tr2.StartTransaction;
-      q3.Transaction := Tr2;
+      q3.Transaction := ATr2;
 
       NewDocumentKey := GetNewID;
 
@@ -672,11 +747,8 @@ var
       q3.ExecQuery;
 
       Result := NewDocumentKey;
-
-      Tr2.Commit;
     finally
       q3.Free;
-      Tr2.Free;
     end;
   end;
 
@@ -684,23 +756,20 @@ var
     ADocumentParentKey, AFromContact, AToContact, ACompanyKey, ACardGoodKey: Integer;
     const AGoodQuantity: Currency;
     AInvDocType, ACurUserContactKey: Integer;
+    ATr2: TIBTransaction;
     AUsrFieldsDataset: TIBSQL = nil
   ): Integer;
   var
     NewDocumentKey, NewMovementKey, NewCardKey: Integer;
     I: Integer;
     q3: TIBSQL;
-    Tr2: TIBTransaction;
   begin
     Assert(Connected);
 
-    Tr2 := TIBTransaction.Create(nil);
     q3 := TIBSQL.Create(nil);
     NewCardKey := -1;
     try
-      Tr2.DefaultDatabase := FIBDatabase;
-      Tr2.StartTransaction;
-      q3.Transaction := Tr2;
+      q3.Transaction := ATr2;
 
       NewDocumentKey := GetNewID;
 
@@ -720,8 +789,6 @@ var
       q3.ParamByName('USERKEY').AsInteger := ACurUserContactKey;
 
       q3.ExecQuery;
-      Tr2.Commit;
-      Tr2.StartTransaction;
 
       NewCardKey := GetNewID;
 
@@ -759,12 +826,10 @@ var
 
         end
         else // Заполним поле USR$INV_ADDLINEKEY карточки нового остатка ссылкой на позицию
-          q3.ParamByName('USR$INV_ADDLINEKEY').AsInteger := NewDocumentKey;     { TODO:  избавиться USR$INV_ADDLINEKEY? }
+          q3.ParamByName('USR$INV_ADDLINEKEY').AsInteger := NewDocumentKey;     // TODO:  избавиться USR$INV_ADDLINEKEY?
       end;
 
       q3.ExecQuery;
-      Tr2.Commit;
-      Tr2.StartTransaction;
 
       NewMovementKey := GetNewID;
 
@@ -784,8 +849,6 @@ var
       q3.ParamByName('CREDIT').AsCurrency := 0;
 
       q3.ExecQuery;
-      Tr2.Commit;
-      Tr2.StartTransaction;
 
       // Создадим кредитовую часть складского движения
       q3.SQL.Text :=
@@ -803,12 +866,10 @@ var
       q3.ParamByName('CREDIT').AsCurrency := AGoodQuantity;
 
       q3.ExecQuery;
-      Tr2.Commit;
     finally
       Result := NewCardKey;
 
       q3.Free;
-      Tr2.Free;
     end;
   end;
 
@@ -1023,7 +1084,8 @@ var
                 CurrentFromContactkey,
                 q3.FieldByName('companykey').AsInteger,
                 InvDocTypeKey,
-                FCurUserContactKey);
+                FCurUserContactKey,
+                Tr2);
 
               CalculateInvBalance(q5);  // По компании строим запрос на складские остатки
               NewCardKey := CreatePositionInvDoc(                               
@@ -1035,6 +1097,7 @@ var
                 0,
                 InvDocTypeKey,
                 FCurUserContactKey,
+                Tr2,
                 q5);
               q5.Close;
 
@@ -1172,7 +1235,7 @@ var
   const
     AlterTriggerCount = 3;
     AlterTriggerArray: array[0 .. AlterTriggerCount - 1] of String =
-      ('INV_BD_MOVEMENT', 'INV_BU_MOVEMENT', 'INV_BU_CARD');
+      ('INV_BD_MOVEMENT', 'INV_BU_MOVEMENT', 'INV_BU_CARD');  ///'AC_ENTRY_DO_BALANCE'
   var
     StateStr: String;
     I: Integer;
@@ -1312,7 +1375,7 @@ begin
     while not q.EOF do                                                          
     begin
 
-      // Если кол-во позиций в документе > 1000(например), то создадим новую шапку документа  ...
+      /// TODO: Если кол-во позиций в документе > 1000(например), то создадим новую шапку документа  ...
 
       if q.FieldByName('BALANCE').AsCurrency >= 0 then
       begin //приход на ContactKey от PseudoClientKey
@@ -1321,7 +1384,8 @@ begin
           q.FieldByName('ContactKey').AsInteger,
           q.FieldByName('COMPANYKEY').AsInteger,
           InvDocTypeKey,
-          FCurUserContactKey);
+          FCurUserContactKey,
+          Tr);
 
 
         CreatePositionInvDoc(
@@ -1333,6 +1397,7 @@ begin
           q.FieldByName('BALANCE').AsCurrency,
           InvDocTypeKey,
           FCurUserContactKey,
+          Tr,
           q);
 
       end
@@ -1343,7 +1408,8 @@ begin
           PseudoClientKey,
           q.FieldByName('COMPANYKEY').AsInteger,
           InvDocTypeKey,
-          FCurUserContactKey);
+          FCurUserContactKey,
+          Tr);
 
         CreatePositionInvDoc(
           DocumentParentKey,
@@ -1354,6 +1420,7 @@ begin
           -(q.FieldByName('BALANCE').AsCurrency),
           InvDocTypeKey,
           FCurUserContactKey,
+          Tr,
           q);
       end;
 
@@ -1361,9 +1428,12 @@ begin
     end;
     q.Close;
 
+    Tr.Commit;
+    Tr.StartTransaction;
+
     RebindInvCards;
 
-    SetTriggerActive(False);
+    //SetTriggerActive(False);
 
   {  q.SQL.Text := 'DELETE FROM inv_movement WHERE movementdate < :Date';       /// удалятся при удалении карточки - удалении дока
     q.ParamByName('Date').AsString := FClosingDate;
@@ -1375,7 +1445,7 @@ begin
     Tr.Commit;
     Tr.StartTransaction;
 
-    SetTriggerActive(True);
+    //SetTriggerActive(True);
 
   finally
     q.Free;
@@ -1881,8 +1951,6 @@ begin
     q.ExecQuery;
     while not q.EOF do
     begin
-      LogEvent('Table: ' + q.FieldByName('RN').AsString + 'PK field: ' + q.FieldByName('FN').AsString );
-
       // проверка типа поля PK на INTEGER
       q2.SQL.Text :=
         'SELECT ' +
@@ -2121,7 +2189,7 @@ begin
   end;
 end;
 
-procedure TgsDBSqueeze.RestoreDB;
+procedure TgsDBSqueeze.RestoreDB;                                   //TODO:GD_RUID почистить
 var
   Tr: TIBTransaction;
   q: TIBSQL;
@@ -2258,36 +2326,35 @@ var
   CompaniesList: TStringList;
 begin
   Assert(Connected);
-
-  if not Assigned(FOnSetItemsCbbEvent) then
-    exit;
-
   Tr := TIBTransaction.Create(nil);
   q := TIBSQL.Create(nil);
   CompaniesList := TStringList.Create;
-  try
-    Tr.DefaultDatabase := FIBDatabase;
-    Tr.StartTransaction;
+  if Assigned(FOnSetItemsCbbEvent) then
+  begin
+    try
+      Tr.DefaultDatabase := FIBDatabase;
+      Tr.StartTransaction;
 
-    q.Transaction := Tr;
-    q.SQL.Text :=
-      'SELECT gc.fullname as CompName ' +
-      'FROM GD_OURCOMPANY go ' +
-      '  JOIN GD_COMPANY gc ON go.companykey = gc.contactkey ';
-    q.ExecQuery;
-    while not q.EOF do
-    begin
-      CompaniesList.Add(q.FieldByName('CompName').AsString);
-      q.Next;
+      q.Transaction := Tr;
+      q.SQL.Text :=
+        'SELECT gc.fullname as CompName ' +
+        'FROM GD_OURCOMPANY go ' +
+        '  JOIN GD_COMPANY gc ON go.companykey = gc.contactkey ';
+      q.ExecQuery;
+      while not q.EOF do
+      begin
+        CompaniesList.Add(q.FieldByName('CompName').AsString);
+        q.Next;
+      end;
+      
+      FOnSetItemsCbbEvent(CompaniesList);
+      q.Close;
+      Tr.Commit;
+    finally
+      q.Free;
+      Tr.Free;
+      CompaniesList.Free;
     end;
-
-    FOnSetItemsCbbEvent(CompaniesList);
-
-    Tr.Commit;
-  finally
-    q.Free;
-    Tr.Free;
-    CompaniesList.Free;
   end;
 end;
 

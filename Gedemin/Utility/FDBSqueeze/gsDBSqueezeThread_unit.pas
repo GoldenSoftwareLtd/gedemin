@@ -193,8 +193,10 @@ begin
         if FConnected.Value = 1 then
         begin
           FBusy.Value := 1;
+          FDBS.SetBlockTriggerActive(False);
           FDBS.CalculateAcSaldo;
           FDBS.CalculateInvSaldo;
+          FDBS.SetBlockTriggerActive(True);
 
           PostThreadMessage(ThreadID, WM_DBS_PREPAREDB, 0, 0);
         end;
