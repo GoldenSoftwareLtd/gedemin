@@ -897,6 +897,7 @@ type
     KW_CURRENT_USER,
     KW_CURRENT_ROLE,
     KW_CURRENT_TIMESTAMP,
+    KW_CURRENT_TIMESTAMP_0,
     KW_NOW,
     KW_NULL);
 
@@ -907,6 +908,7 @@ const
     'CURRENT_USER',
     'CURRENT_ROLE',
     'CURRENT_TIMESTAMP',
+    'CURRENT_TIMESTAMP(0)',
     'NOW',
     'NULL');
 
@@ -1003,6 +1005,8 @@ end;
 
 //Возвращает значение по-умолчанию в зависимости от переданного параметра
 function GetDefaultExpression(const ADefaultExpression: String): Variant;
+var
+  H, M, S, Ms: Word;
 begin
   Assert(IBLogin <> nil);
   Assert(ADefaultExpression > '');
@@ -1018,6 +1022,11 @@ begin
         Result := Time
       else if AnsiCompareText(ADefaultExpression, cst_def_KeyWords[KW_CURRENT_TIMESTAMP]) = 0 then
         Result := Now
+      else if AnsiCompareText(ADefaultExpression, cst_def_KeyWords[KW_CURRENT_TIMESTAMP_0]) = 0 then
+      begin
+        DecodeTime(Now, H, M, S, Ms);
+        Result := EncodeTime(H, M, S, 0);
+      end
       else if AnsiCompareText(ADefaultExpression, cst_def_KeyWords[KW_CURRENT_USER]) = 0 then
         Result := IBLogin.IBName
       else if AnsiCompareText(ADefaultExpression, cst_def_KeyWords[KW_CURRENT_ROLE]) = 0 then

@@ -9518,13 +9518,13 @@ begin
       if RR.XID = -1 then
       begin
         XID := ID;
+
         if ID < cstUserIDStart then
           DBID := cstEtalonDBID
         else
           DBID := IBLogin.DBID;
 
         InsertRUID(ID, XID, DBID, Now, IBLogin.ContactKey, Tr);
-
       end else
       begin
         XID := RR.XID;
@@ -9566,7 +9566,6 @@ function TgdcBase.GetRUID: TRUID;
 var
   XID, DBID: TID;
 begin
-  //CheckBrowseMode;
   if (State = dsInactive) or IsEmpty then
     raise EgdcException.CreateObj('Cannot generate RUID for an empty object.', Self);
   if sLoadFromStream in BaseState then

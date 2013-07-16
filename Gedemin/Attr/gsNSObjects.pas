@@ -81,8 +81,8 @@ type
     procedure CorrectFill;
     procedure CreateNSTree;
     procedure CorrectPack(const ARUID: String);
-  public
 
+  public
     constructor Create;
     destructor Destroy; override;
 
@@ -92,6 +92,7 @@ type
     procedure Clear; override;
     procedure FillTree(ATreeView: TgsTreeView);
     procedure GetAllUses(const RUID: String; SL: TStringList);
+
     property Log: TNSLog read FLog write FLog;
     property NSTree: TgsNSTree read FNSTree;
   end;
@@ -277,8 +278,8 @@ end;
 
 destructor TgsNSList.Destroy;
 begin
-  FNSTree.Free;
   Clear;
+  FNSTree.Free;
   FErrorNS.Free;
   inherited;
 end;
@@ -347,6 +348,7 @@ var
   I, Ind: Integer;
   SL: TStringList;
   N: TgsNSNode;
+  XID, DBID: TID;
 begin
   q := TIBSQL.Create(nil);
   SL := TStringList.Create;
@@ -354,9 +356,8 @@ begin
     q.Transaction := gdcBaseManager.ReadTransaction;
     q.SQL.Text :=
       'SELECT n.id, n.name, n.version, n.filetimestamp, ' +
-      '  r.xid || ''_'' || r.dbid as RUID, n.internal, n.optional ' +
-      'FROM at_namespace n JOIN gd_ruid r ' +
-      '  ON n.id = r.id ' +
+      '  n.internal, n.optional ' +
+      'FROM at_namespace n ' +
       'WHERE UPPER(n.name) = UPPER(:n)';
 
     for I := 0 to Count - 1 do
@@ -372,17 +373,20 @@ begin
 
           if not q.Eof then
           begin
-            N.VersionInDB := q.Fields[2].AsString;
-            N.Namespacekey := q.Fields[0].AsInteger;
-            N.NamespaceName := q.Fields[1].AsString;
-            N.NamespaceTimestamp := q.Fields[3].AsDateTime;
-            N.NamespaceOptional := Boolean(q.Fields[6].AsInteger);
-            N.NamespaceInternal := Boolean(q.Fields[5].AsInteger);
+            N.Namespacekey := q.FieldByName('id').AsInteger;
+            N.NamespaceName := q.FieldByName('name').AsString;
+            N.VersionInDB := q.FieldByName('version').AsString;
+            N.NamespaceTimestamp := q.FieldByName('filetimestamp').AsDateTime;
+            N.NamespaceInternal := q.FieldByName('internal').AsInteger <> 0;
+            N.NamespaceOptional := q.FieldByName('optional').AsInteger <> 0;
             if Assigned(FLog) then
               FLog('Пространство имен "' + N.Name + '" найдено по имени.');
-            Ind := IndexOf(q.Fields[4].AsString);
-            if (Ind > - 1) and (not (Objects[Ind] as TgsNSNode).Valid) then
-              SL.Add(q.Fields[4].AsString);
+
+            gdcBaseManager.GetRUIDByID(q.FieldByName('id').AsInteger, XID, DBID);
+
+            Ind := IndexOf(RUIDToStr(RUID(XID, DBID)));
+            if (Ind > -1) and (not (Objects[Ind] as TgsNSNode).Valid) then
+              SL.Add(RUIDToStr(RUID(XID, DBID)));
           end;
         end;
       end;
@@ -390,7 +394,7 @@ begin
 
     for I := 0 to SL.Count - 1 do
     begin
-      Ind := Indexof(SL[I]);
+      Ind := IndexOf(SL[I]);
       Objects[Ind].Free;
       Delete(Ind);
     end;
@@ -412,35 +416,34 @@ procedure TgsNSList.GetFilesForPath(const Path: String);
     q: TIBSQL;
     Ind: Integer;
     Obj: TgsNSNode;
+    XID, DBID: TID;
   begin
     q := TIBSQL.Create(nil);
     try
       q.Transaction := gdcBaseManager.ReadTransaction;
-
-      q.SQL.Text :=
-        'SELECT n.id, n.name, n.version, n.filetimestamp, ' +
-        '  r.xid || ''_'' || r.dbid as RUID, n.internal, n.optional ' +
-        'FROM at_namespace n JOIN gd_ruid r ' +
-        '  ON n.id = r.id ';
+      q.SQL.Text := 'SELECT * FROM at_namespace n ';
       q.ExecQuery;
 
       while not q.Eof do
       begin
-        Ind := Self.IndexOf(q.Fields[4].AsString);
+        gdcBaseManager.GetRUIDByID(q.FieldByName('id').AsInteger, XID, DBID);
+
+        Ind := Self.IndexOf(RUIDToStr(RUID(XID, DBID)));
         if Ind > -1 then
         begin
           Obj := Self.Objects[Ind] as TgsNSNode;
         end else
         begin
-          Obj := TgsNSNode.Create(Self, q.Fields[4].AsString);
-          AddObject(q.Fields[4].AsString, Obj);
+          Obj := TgsNSNode.Create(Self, RUIDToStr(RUID(XID, DBID)));
+          AddObject(RUIDToStr(RUID(XID, DBID)), Obj);
         end;
-        Obj.VersionInDB := q.Fields[2].AsString;
-        Obj.Namespacekey := q.Fields[0].AsInteger;
-        Obj.NamespaceName := q.Fields[1].AsString;
-        Obj.NamespaceTimestamp := q.Fields[3].AsDateTime;
-        Obj.NamespaceOptional := Boolean(q.Fields[6].AsInteger);
-        Obj.NamespaceInternal := Boolean(q.Fields[5].AsInteger);
+        Obj.Namespacekey := q.FieldByName('id').AsInteger;
+        Obj.NamespaceName := q.FieldByName('name').AsString;
+        Obj.VersionInDB := q.FieldByName('version').AsString;
+        Obj.NamespaceTimestamp := q.FieldByName('filetimestamp').AsDateTime;
+        Obj.NamespaceOptional := q.FieldByName('optional').AsInteger <> 0;
+        Obj.NamespaceInternal := q.FieldByName('internal').AsInteger <> 0;
+
         q.Next;
       end;
     finally
