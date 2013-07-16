@@ -583,6 +583,7 @@ begin
     Tr.Commit;
   finally
     q.Free;
+    Tr.Free;
   end;
 end;
 
@@ -1201,7 +1202,7 @@ begin
 
   LoadNamespace:= TStringlist.Create;
   LoadObjectsRUID := TStringList.Create;
-  CurrObjectsRUID := TStringList.Create;   
+  CurrObjectsRUID := TStringList.Create;
   UpdateList := TObjectList.Create(True);
   ObjList := TStringList.Create;
   UpdateHeadList := TStringList.Create;
@@ -1255,7 +1256,7 @@ begin
               atDataBase.ProceedLoading(True);
               WasMetaDataInSetting := False;
             end;
-            atDatabase.SyncIndicesAndTriggers(Tr);   
+            atDatabase.SyncIndicesAndTriggers(Tr);
 
             M := (Parser.YAMLStream[0] as TyamlDocument)[0] as TyamlMapping;
             LoadPos := 0;
@@ -1355,7 +1356,7 @@ begin
                     if WasMetaData then
                       ReconnectDatabase;
                     WasMetaData := False;
-                  end;  
+                  end;
 
                   RunMultiConnection;
 
@@ -1515,7 +1516,7 @@ begin
       begin
         if Tr.InTransaction then
           Tr.Rollback;
-          
+
         AddMistake(E.Message);
         raise;
       end;
@@ -1538,7 +1539,7 @@ begin
       for I := 0 to CurrObjectsRUID.Count - 1 do
         CurrObjectsRUID.Objects[I].Free;
       CurrObjectsRUID.Free;
-      Tr.Free;  
+      Tr.Free;
       UpdateList.Free;
       q.Free;
       for I := 0 to UpdateHeadList.Count - 1 do
@@ -1556,7 +1557,7 @@ end;
 class procedure TgdcNamespace.FillSet(AnObj: TgdcBase; AnOL: TObjectList; ATr: TIBTransaction);
 var
   I, K: Integer;
-  F, FD: TatRelationField;  
+  F, FD: TatRelationField;
   q: TIBSQL;
   RL, LT: TStrings;
   SetAttr: TgdcSetAttr;
