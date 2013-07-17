@@ -1215,10 +1215,11 @@ begin
         (TReportFrame(F.Components[i]).ObjectId = Value) then
       begin
         case MessageBox(Application.Handle,
-          'Данный отчёт уже открыт на редактирование'#13#10 +
-          'Нажмите "Да" для открытия нового редактора,'#13#10 +
-          '"Нет" перейти на открытый отчет', MSG_WARNING,
-          MB_YESNOCANCEL or MB_TASKMODAL or MB_ICONWARNING) of
+          'Данный отчёт уже открыт в окне редактора.'#13#10#13#10 +
+          'Открыть в новом окне?'#13#10#13#10 +
+          '("Нет" -- перейти в существующее окно)',
+          MSG_WARNING,
+          MB_YESNOCANCEL or MB_TASKMODAL or MB_ICONQUESTION) of
           ID_NO:
           begin
             TReportFrame(F.Components[i]).SpeedButton.Click;

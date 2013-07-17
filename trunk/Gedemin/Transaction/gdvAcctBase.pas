@@ -1,3 +1,4 @@
+
 unit gdvAcctBase;
 
 // TODO: отсюда и из всех наследников поудал€ть код относ€щийс€ к старому методу построени€ бух. отчетов
@@ -58,7 +59,6 @@ type
     //ƒанные свойства необходимы дл€ журнал-ордера во врем€ подсчета итого
     property Analytic: Boolean read FAnalytic write SetAnalytic;
     property ValueFieldName: String read FValueFieldName write SetValueFieldName;
-    //
   end;
 
 
@@ -85,6 +85,7 @@ type
     procedure FillCompanyList;
     procedure SetAllHolding(const Value: Boolean);
     procedure SetUseEntryBalance(const Value: Boolean);
+    function GetCompanyName: String;
 
     { ”меньшает длину текста запроса путем удалени€ лишних пробелов и отступов }
     {$IFNDEF DEBUG}
@@ -124,7 +125,7 @@ type
     procedure DoSaveConfig(Config: TBaseAcctConfig); virtual;
 
     procedure DoBeforeBuildReport; virtual;
-    procedure SetSQLParams; virtual;            
+    procedure SetSQLParams; virtual;
     procedure DoBuildSQL; virtual;
     procedure DoEmptySQL; virtual;
     procedure DoAfterBuildSQL; virtual;
@@ -155,7 +156,7 @@ type
     procedure ShowInQuantity(DecDigits: Integer = -1; Scale: Integer = 0);
 
     // ƒобавл€ет счета, по которому будет выполн€тьс€ расчет
-    procedure AddAccount(AccountKey: TID); 
+    procedure AddAccount(AccountKey: TID);
     // ƒобавл€ет счета, по котором будут считатьс€ корреспондирующие проводки
     procedure AddCorrAccount(AccountKey: TID);
     // ƒобавл€ет условие, например USR$GS_CUSTOMER = 147567392
@@ -181,12 +182,13 @@ type
     property DateEnd: TDate read FDateEnd write FDateEnd;
     property MakeEmpty: Boolean read FMakeEmpty write FMakeEmpty;
     property CompanyKey: TID read FCompanyKey write SetCompanyKey;
+    property CompanyName: String read GetCompanyName;
     property AllHolding: Boolean read FAllHolding write SetAllHolding;
     property WithSubAccounts: Boolean read FWithSubAccounts write FWithSubAccounts;
     property IncludeInternalMovement: Boolean read FIncludeInternalMovement write FIncludeInternalMovement;
     property ShowExtendedFields: Boolean read FShowExtendedFields write FShowExtendedFields;
-
     property UseEntryBalance: Boolean read FUseEntryBalance write SetUseEntryBalance;
+
   published
     { TIBCustomDataSet }
     property BufferChunks;
@@ -1218,6 +1220,42 @@ begin
 end;
 {$ENDIF}
 
+function TgdvAcctBase.GetCompanyName: String;
+var
+  q: TIBSQL;
+begin
+  Assert(gdcBaseManager <> nil);
+
+  q := TIBSQL.Create(nil);
+  try
+    q.Transaction := gdcBaseManager.ReadTransaction;
+
+    q.SQL.Text :=
+      'SELECT ' +
+      '  LIST(s.name) ' +
+      'FROM ' +
+      '  (SELECT c.name ' +
+      '   FROM gd_contact c JOIN gd_holding h ' +
+      '     ON h.companykey = c.id ' +
+      '   WHERE h.holdingkey = :HK ' +
+      ' ' +
+      '   UNION ' +
+      ' ' +
+      '   SELECT c.name ' +
+      '   FROM gd_contact c ' +
+      '   WHERE c.id = :CK) s';
+    if AllHolding then
+      q.ParamByName('HK').AsInteger := CompanyKey
+    else
+      q.ParamByName('HK').AsInteger := -1;
+    q.ParamByName('CK').AsInteger := CompanyKey;
+    q.ExecQuery;
+    Result := q.Fields[0].AsString;
+  finally
+    q.Free;
+  end;
+end;
+
 { TgdvFieldInfo }
 
 procedure TgdvFieldInfo.SetDisplayFormat(const Value: string);
@@ -1317,4 +1355,3 @@ begin
 end;
 
 end.
- 

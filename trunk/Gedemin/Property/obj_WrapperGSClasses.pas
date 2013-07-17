@@ -49,7 +49,8 @@ uses
   , gsModem
   {$ENDIF}
   , gdcStreamSaver, gdvAcctBase, gdvAcctAccCard, gdvAcctAccReview, gdvAcctLedger,
-  gdvAcctGeneralLedger, gdvAcctCirculationList, prm_ParamFunctions_unit, gd_main_form, gsFTPClient
+  gdvAcctGeneralLedger, gdvAcctCirculationList, gdv_frmAcctBaseForm_unit,
+  prm_ParamFunctions_unit, gd_main_form, gsFTPClient
   {$IFDEF WITH_INDY}
   , gd_WebServerControl_unit
   {$ENDIF}
@@ -2758,6 +2759,13 @@ type
     procedure Set_DateEnd(Value: TDateTime); safecall;
   end;
 
+  TwrpGdv_frmAcctBaseForm = class(TwrpGdv_frmG, IgsGdv_frmAcctBaseForm)
+  private
+    function  GetGdv_frmAcctBaseForm: Tgdv_frmAcctBaseForm;
+  protected
+    function  Get_gdvObject: IgsGdvAcctBase; safecall;
+  end;
+
   TwrpGdc_frmMDH = class(TwrpGdc_frmG, IgsGdc_frmMDH)
   private
     function GetGdc_frmMDH: Tgdc_frmMDH;
@@ -3645,6 +3653,7 @@ type
     procedure Set_IncludeInternalMovement(Value: WordBool); safecall;
     function  Get_ShowExtendedFields: WordBool; safecall;
     procedure Set_ShowExtendedFields(Value: WordBool); safecall;
+    function  Get_CompanyName: WideString; safecall;
   public
     class function CreateObject(const DelphiClass: TClass; const Params: OleVariant): TObject; override;
   end;
@@ -17729,6 +17738,11 @@ begin
   Result := GetGdcOLEObject(GetGdvAcctBase.ParamByName(ParamName)) as IgsIBXSQLVAR;
 end;
 
+function TwrpGdvAcctBase.Get_CompanyName: WideString;
+begin
+  Result := GetGdvAcctBase.CompanyName;
+end;
+
 { TwrpGdvAcctAccReview }
 
 class function TwrpGdvAcctAccReview.CreateObject(const DelphiClass: TClass;
@@ -18392,6 +18406,18 @@ begin
   Result := GetGsComScaner.IntCode;
 end;
 
+{ TwrpGdv_frmAcctBaseForm }
+
+function TwrpGdv_frmAcctBaseForm.GetGdv_frmAcctBaseForm: Tgdv_frmAcctBaseForm;
+begin
+  Result := GetObject as Tgdv_frmAcctBaseForm;
+end;
+
+function TwrpGdv_frmAcctBaseForm.Get_gdvObject: IgsGdvAcctBase;
+begin
+  Result := GetGdcOLEObject(GetGdv_frmAcctBaseForm.gdvObject) as IgsGdvAcctBase;
+end;
+
 initialization
 
   RegisterGdcOLEClass(TgsIBGrid, TwrpGsIBGrid, ComServer.TypeLib, IID_IgsGsIBGrid);
@@ -18502,6 +18528,7 @@ initialization
   RegisterGdcOLEClass(Tgdc_frmMD2H, TwrpGdc_frmMD2H, ComServer.TypeLib, IID_IgsGdc_frmMD2H);
   RegisterGdcOLEClass(Tgdc_frmSGR, TwrpGdc_frmSGR, ComServer.TypeLib, IID_IgsGdc_frmSGR);
   RegisterGdcOLEClass(Tgdv_frmG, TwrpGdv_frmG, ComServer.TypeLib, IID_IgsGdv_frmG);
+  RegisterGdcOLEClass(Tgdv_frmAcctBaseForm, TwrpGdv_frmAcctBaseForm, ComServer.TypeLib, IID_IgsGdv_frmAcctBaseForm);
   RegisterGdcOLEClass(Tgdc_frmInvCard, TwrpGdc_frmInvCard, ComServer.TypeLib, IID_IgsGdc_frmInvCard);
   RegisterGdcOLEClass(TGridCheckBox, TwrpGridCheckBox, ComServer.TypeLib, IID_IgsGridCheckBox);
   RegisterGdcOLEClass(TColumnExpand, TwrpColumnExpand, ComServer.TypeLib, IID_IgsColumnExpand);
