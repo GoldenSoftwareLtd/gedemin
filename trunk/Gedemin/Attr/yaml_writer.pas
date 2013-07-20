@@ -34,7 +34,8 @@ type
     procedure WriteCurrency(const C: Currency);
     procedure WriteBCD(const Value: AnsiString);
     procedure WriteBinary(AStream: TStream);
-    procedure WriteBoolean(const Value: Boolean);
+    procedure WriteBoolean(const Value: Boolean); overload;
+    procedure WriteBoolean(const Value: Integer); overload;
     procedure WriteNull;
     procedure WriteKey(const AKey: AnsiString);
     procedure WriteChar(const Ch: AnsiChar);
@@ -48,6 +49,12 @@ type
 
     procedure IncIndent;
     procedure DecIndent;
+
+    procedure WriteTextValue(const AKey: AnsiString; const AText: AnsiString;
+      AQuoting: TyamlScalarQuoting = qPlain; AStyle: TyamlScalarStyle = sPlain);
+    procedure WriteStringValue(const AKey: AnsiString; const AStr: AnsiString);
+    procedure WriteBooleanValue(const AKey: AnsiString; const Value: Boolean); overload;
+    procedure WriteBooleanValue(const AKey: AnsiString; const Value: Integer); overload;
   end;
 
 implementation
@@ -161,6 +168,11 @@ begin
     WriteBuffer('True')
   else
     WriteBuffer('False');
+end;
+
+procedure TyamlWriter.WriteBoolean(const Value: Integer);
+begin
+  WriteBoolean(Value <> 0);
 end;
 
 procedure TyamlWriter.WriteNull;
@@ -358,6 +370,37 @@ end;
 procedure TyamlWriter.WriteLargeInt(const I: Int64);
 begin
   WriteBuffer(IntToStr(I));
+end;
+
+procedure TyamlWriter.WriteTextValue(const AKey, AText: AnsiString;
+  AQuoting: TyamlScalarQuoting; AStyle: TyamlScalarStyle);
+begin
+  StartNewLine;
+  WriteKey(AKey);
+  WriteText(AText, AQuoting, AStyle);
+end;
+
+procedure TyamlWriter.WriteStringValue(const AKey, AStr: AnsiString);
+begin
+  StartNewLine;
+  WriteKey(AKey);
+  WriteString(AStr);
+end;
+
+procedure TyamlWriter.WriteBooleanValue(const AKey: AnsiString;
+  const Value: Boolean);
+begin
+  StartNewLine;
+  WriteKey(AKey);
+  WriteBoolean(Value);
+end;
+
+procedure TyamlWriter.WriteBooleanValue(const AKey: AnsiString;
+  const Value: Integer);
+begin
+  StartNewLine;
+  WriteKey(AKey);
+  WriteBoolean(Value);
 end;
 
 end.

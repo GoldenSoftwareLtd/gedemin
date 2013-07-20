@@ -3321,8 +3321,9 @@ SET TERM ; ^
 /* Хранит связку холдинговой компании и входящих в нее компаний */
 
 CREATE TABLE gd_holding (
-  holdingkey dintkey NOT NULL,
-  companykey dintkey NOT NULL);
+  holdingkey dintkey,
+  companykey dintkey
+);
 
 ALTER TABLE gd_holding ADD CONSTRAINT gd_pk_holding
   PRIMARY KEY (holdingkey, companykey);
@@ -3330,10 +3331,10 @@ ALTER TABLE gd_holding ADD CONSTRAINT gd_pk_holding
 ALTER TABLE gd_holding ADD  CONSTRAINT gd_fk_holding_companykey
   FOREIGN KEY (companykey) REFERENCES gd_company (contactkey)
   ON DELETE CASCADE ON UPDATE CASCADE;
+
 ALTER TABLE gd_holding ADD  CONSTRAINT gd_fk_holding_holdingkey
   FOREIGN KEY (holdingkey) REFERENCES gd_company (contactkey)
   ON DELETE CASCADE ON UPDATE CASCADE;
-
 
 COMMIT;
 
