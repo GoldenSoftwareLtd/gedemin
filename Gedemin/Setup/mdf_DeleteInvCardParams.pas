@@ -536,40 +536,38 @@ begin
       q.SQL.Text := 'SELECT COUNT(*) FROM gd_ruid';
       q.ExecQuery;
 
-      if q.Fields[0].AsInteger > 100000000 then
-      begin
-        if MessageBox(0,
+      if (q.Fields[0].AsInteger < 20000000) or
+        (MessageBox(0,
           PChar('Таблица GD_RUID содержит ' + q.Fields[0].AsString + ' записей.'#13#10 +
           'Поиск дубликатов может занять несколько десятков минут.'#13#10#13#10 +
           'Продолжить?'),
           'Внимание',
-          MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = IDYES then
-        begin
-          q.Close;
-          q.SQL.Text :=
-            'execute block ' +
-            'as ' +
-            '  declare variable id integer; ' +
-            '  declare variable xid integer; ' +
-            '  declare variable dbid integer; ' +
-            '  declare variable c integer; ' +
-            'begin ' +
-            '  for ' +
-            '    select xid, dbid, count(*) from gd_ruid ' +
-            '    group by xid, dbid ' +
-            '    having count(*) > 1 ' +
-            '    into :xid, :dbid, :c ' +
-            '  do begin ' +
-            '    for ' +
-            '      select skip 1 id from gd_ruid ' +
-            '      where xid = :xid and dbid = :dbid ' +
-            '      into :id ' +
-            '    do ' +
-            '      delete from gd_ruid where id = :id; ' +
-            '  end' +
-            'end';
-          q.ExecQuery;
-        end;
+          MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = IDYES) then
+      begin
+        q.Close;
+        q.SQL.Text :=
+          'execute block ' +
+          'as ' +
+          '  declare variable id integer; ' +
+          '  declare variable xid integer; ' +
+          '  declare variable dbid integer; ' +
+          '  declare variable c integer; ' +
+          'begin ' +
+          '  for ' +
+          '    select xid, dbid, count(*) from gd_ruid ' +
+          '    group by xid, dbid ' +
+          '    having count(*) > 1 ' +
+          '    into :xid, :dbid, :c ' +
+          '  do begin ' +
+          '    for ' +
+          '      select skip 1 id from gd_ruid ' +
+          '      where xid = :xid and dbid = :dbid ' +
+          '      into :id ' +
+          '    do ' +
+          '      delete from gd_ruid where id = :id; ' +
+          '  end' +
+          'end';
+        q.ExecQuery;
       end;
 
       q.Close;
