@@ -101,7 +101,8 @@ implementation
 
 uses
   Windows, SysUtils, ComCtrls, gd_common_functions, gd_FileList_unit,
-  yaml_parser, IB, IBSQL, gdcBaseInterface, jclFileUtils, Forms, gd_security, gdcNamespace;
+  yaml_parser, IB, IBSQL, gdcBaseInterface, jclFileUtils, Forms, gd_security,
+  gdcNamespace;
 
 constructor TgsNSNode.Create(ANSList: TgsNSList; const ARUID: String; const AName: String = '');
 begin

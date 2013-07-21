@@ -453,6 +453,7 @@ type
     procedure CheckMultiConnectionTransaction; override;
 
     procedure SyncIndicesAndTriggers(ATransaction: TIBTransaction); override;
+    procedure GetCrossByRelationName(RL: TStrings; CL: TStrings); override;
   end;
 
   EatDatabaseError = class(Exception);
@@ -963,6 +964,7 @@ var
   SL: TStringList;
 begin
   Result := RelationFields.ByFieldName(FListField);
+
   if Result = nil then
      // По умолчанию name
      Result := RelationFields.ByFieldName('name')
@@ -1036,6 +1038,9 @@ begin
     if (Result = nil) and (RelationFields.Count > 0) then
       Result := RelationFields[0];
   end;
+
+  if Result = nil then
+    raise EatDatabaseError.Create('Invalid database structure');
 end;
 
 procedure TatBodyRelation.LoadFromStream(S: TStream);
@@ -3599,6 +3604,63 @@ begin
   end;
 end;
 
+procedure TatBodyDatabase.GetCrossByRelationName(RL, CL: TStrings);
+var
+  I, K: Integer;
+  F, FD: TatRelationField;
+  S: String;
+begin
+  for I := 0 to Self.PrimaryKeys.Count - 1 do
+    with Self.PrimaryKeys[I] do
+    if ConstraintFields.Count > 1 then
+    begin
+      F := nil;
+      FD := nil;
+
+      for K := 0 to RL.Count - 1 do
+      begin
+        if (ConstraintFields[0].References <> nil) and
+          (AnsiCompareText(ConstraintFields[0].References.RelationName,
+           RL[K]) = 0)
+        then
+        begin
+          F := ConstraintFields[0];
+          Break;
+        end;
+      end;
+
+      if not Assigned(F) then
+        continue;
+
+      //Вытянем поле со второй ссылкой
+      for K := 1 to ConstraintFields.Count - 1 do
+      begin
+        if (ConstraintFields[K].References <> nil) and
+           (ConstraintFields[K] <> F) and (FD = nil)
+        then
+        begin
+          FD := ConstraintFields[K];
+          Break;
+        end else
+
+        //Если у нас полей-ссылок в первичном ключе > 2
+        if (ConstraintFields[K].References <> nil) and
+           (ConstraintFields[K] <> F) and (FD <> nil)
+        then
+        begin
+          continue;
+        end;
+      end;
+
+      if not Assigned(FD) then
+        continue;
+
+      S := FD.Relation.RelationName + '=' + FD.References.RelationName;
+      if CL.IndexOf(S) = -1 then
+        CL.Add(S);
+    end;
+end;
+
 { TatBodyRelationField }
 
 constructor TatBodyRelationField.Create(atRelation: TatRelation);
@@ -4024,16 +4086,6 @@ begin
   else
     FCrossRelationField := nil;
 end;
-
-(*
-function TatBodyRelationField.GetIsSecurityDescriptor: Boolean;
-begin
-  Result := (FieldName = 'AFULL')
-    or (FieldName = 'ACHAG')
-    or (FieldName = 'AVIEW');
-//  Result := StrIPos(FieldName + ',', 'afull,achag,aview,') > 0;
-end;
-*)
 
 function TatBodyRelationField.GetVisible: Boolean;
 begin
