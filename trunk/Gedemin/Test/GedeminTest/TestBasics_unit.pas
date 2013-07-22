@@ -162,6 +162,7 @@ procedure TBasicsTest.TestCommonFunctions;
 var
   Server, FileName: String;
   Port: Integer;
+  RN, FN: String;
 begin
   ParseDatabaseName('', Server, Port, FileName);
   Check(Server = '');
@@ -217,6 +218,19 @@ begin
     Check(False);
   except
   end;
+
+  Check(ParseFieldOrigin('', RN, FN) = False);
+  Check((RN = '') and (FN = ''));
+  Check(ParseFieldOrigin('gd_contact.name', RN, FN));
+  Check((RN = 'gd_contact') and (FN = 'name'));
+  Check(ParseFieldOrigin('name', RN, FN));
+  Check((RN = '') and (FN = 'name'));
+  Check(ParseFieldOrigin('"gd_contact"."name"', RN, FN));
+  Check((RN = 'gd_contact') and (FN = 'name'));
+  Check(ParseFieldOrigin('"name"', RN, FN));
+  Check((RN = '') and (FN = 'name'));
+  Check(not ParseFieldOrigin('"gd_contact".', RN, FN));
+  Check((RN = 'gd_contact') and (FN = ''));
 end;
 
 procedure TBasicsTest.TestHugeIntSet;

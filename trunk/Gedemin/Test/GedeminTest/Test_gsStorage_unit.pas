@@ -36,7 +36,6 @@ const
    (FileName: 'ber_global_data.dat'; FC:  256; VC: 1457; DataSize: 3475475),
    (FileName: 'ber_admin_data.dat';  FC: 1708; VC: 4524; DataSize:  693951)
   );
-  TestFolder = '\golden\gedemin\test\gedemintest\data';
 
 procedure TgsStorageTest.TestDublicateItems;
 begin
@@ -70,9 +69,9 @@ var
 begin
   for I := 1 to TestCount do
   begin
-    Check(FileExists(TestFolder + '\' + TestData[I].FileName),
+    Check(FileExists(TestDataPath + '\' + TestData[I].FileName),
       'Файл "' + TestData[I].FileName + '" с тестовыми данными не найден.');
-    FS := TFileStream.Create(TestFolder + '\' + TestData[I].FileName, fmOpenRead);
+    FS := TFileStream.Create(TestDataPath + '\' + TestData[I].FileName, fmOpenRead);
     try
       S := TgsIBStorage.Create;
       try

@@ -1,0 +1,6 @@
+select
+  a.code,
+  a.name,
+  (select c.name from cities c where c.code = a.city_code)
+from
+  clients a

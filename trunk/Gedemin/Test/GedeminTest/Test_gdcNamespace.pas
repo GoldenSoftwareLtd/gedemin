@@ -10,6 +10,7 @@ type
   private
     function CheckTable(const AName: String): Boolean;
     function CheckNamespace(const AName: String): Boolean;
+    
   protected
     FTableName, FTableName2, FNamespaceName: String;
     FNamespaceKey: Integer;
