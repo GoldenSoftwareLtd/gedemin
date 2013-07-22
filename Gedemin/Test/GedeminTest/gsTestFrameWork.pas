@@ -178,8 +178,11 @@ end;
 
 function TgsTestCase.GetTestDataPath: String;
 begin
-  Result := ExtractFileDrive(Application.EXEName) +
-    '\Golden\Gedemin\Test\GedeminTest\Data';
+  Result := ExtractFilePath(Application.EXEName) + '\Data';
+
+  if not DirectoryExists(Result) then
+    Result := ExtractFileDrive(Application.EXEName) +
+      '\Golden\Gedemin\Test\GedeminTest\Data';
 end;
 
 procedure TgsTestCase.SetUp;
