@@ -226,6 +226,10 @@ type
 
     procedure RecordAcquired; virtual; abstract;
 
+    //¬озвращает таблицу, если первичный ключ содержит только одно поле,
+    //и оно €вл€етс€ ссылкой
+    function GetReferencesRelation: TatRelation; virtual; abstract;
+
     property RelationType: TatRelationType read FRelationType;
     property IsStandartTreeRelation: Boolean read GetIsStandartTreeRelation;
     property IsLBRBTreeRelation: Boolean read GetIsLBRBTreeRelation;
@@ -256,21 +260,14 @@ type
 
     property IsDropped: Boolean read FIsDropped;
     property BranchKey: Integer read FBranchKey;
-
-    //¬озвращает таблицу, если первичный ключ содержит только одно поле,
-    //и оно €вл€етс€ ссылкой
-    function GetReferencesRelation: TatRelation;
   end;
 
   TatRelations = class(TObject)
-  private
-
   protected
     FTreeNode: TTreeNode;
 
     function GetCount: Integer; virtual; abstract;
     function GetItems(Index: Integer): TatRelation; virtual; abstract;
-    //function GetGlobalNameSpace: TatRelation; virtual; abstract;
 
   public
     procedure RefreshData(const WithCommit: Boolean = True; const IsRefreshFields: Boolean = False); overload; virtual; abstract;
@@ -703,19 +700,6 @@ procedure TatDatabase.IncrementGarbageCount;
 begin
   Inc(FGarbageCount);
 end;
-
-{ TatRelation }
-
-function TatRelation.GetReferencesRelation: TatRelation;
-begin
-  Result := nil;
-  if Assigned(PrimaryKey) and (PrimaryKey.ConstraintFields.Count = 1) and
-    (PrimaryKey.ConstraintFields[0].References <> nil)
-  then
-    Result := PrimaryKey.ConstraintFields[0].References;
-end;
-
-{ TatRelationField }
 
 end.
 

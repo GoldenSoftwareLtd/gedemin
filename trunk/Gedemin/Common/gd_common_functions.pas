@@ -23,6 +23,7 @@ function HexToAnsiChar(const St: AnsiString; const P: Integer = 1): AnsiChar;
 function TryObjectBinaryToText(var S: String): Boolean;
 function TryObjectTextToBinary(var S: String): Boolean;
 function GetFileLastWrite(const AFullName: String): TDateTime;
+function ParseFieldOrigin(const AnOrigin: String; out ARelationName, AFieldName: String): Boolean;
 
 implementation
 
@@ -251,6 +252,42 @@ begin
       FileClose(f);
     end;
   end;
+end;
+
+function ParseFieldOrigin(const AnOrigin: String; out ARelationName, AFieldName: String): Boolean;
+var
+  P: Integer;
+begin
+  ARelationName := '';
+  AFieldName := '';
+
+  if AnOrigin > '' then
+  begin
+    if AnOrigin[1] = '"' then
+    begin
+      P := 2;
+      while (P <= Length(AnOrigin)) and (AnOrigin[P] <> '"') do
+        Inc(P);
+      if (P < Length(AnOrigin)) and (AnOrigin[P + 1] = '.') then
+      begin
+        ARelationName := Copy(AnOrigin, 2, P - 2);
+        AFieldName := Copy(AnOrigin, P + 3, Length(AnOrigin) - P - 3);
+      end
+      else if P = Length(AnOrigin) then
+        AFieldName := Copy(AnOrigin, 2, P - 2);
+    end else
+    begin
+      P := Pos('.', AnOrigin);
+      if P > 0 then
+      begin
+        ARelationName := Copy(AnOrigin, 1, P - 1);
+        AFieldName := Copy(AnOrigin, P + 1, 255);
+      end else
+        AFieldName := AnOrigin;
+    end;
+  end;
+
+  Result := AFieldName > '';
 end;
 
 end.

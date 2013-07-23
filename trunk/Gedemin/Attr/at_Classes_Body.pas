@@ -171,6 +171,8 @@ type
     procedure RefreshConstraints(aDatabase: TIBDatabase; aTransaction: TIBTransaction); overload; override;
 
     procedure RecordAcquired; override;
+
+    function GetReferencesRelation: TatRelation; override;
   end;
 
   TatBodyRelations = class(TatRelations)
@@ -5025,11 +5027,19 @@ begin
     (RelationFields.ByFieldName('AVIEW') <> nil);
 end;
 
+function TatBodyRelation.GetReferencesRelation: TatRelation;
+begin
+  Result := nil;
+  if Assigned(PrimaryKey) and (PrimaryKey.ConstraintFields.Count = 1) and
+    (PrimaryKey.ConstraintFields[0].References <> nil)
+  then
+    Result := PrimaryKey.ConstraintFields[0].References;
+end;
+
 initialization
   atDatabase := TatBodyDatabase.Create;
 
 finalization
   FreeAndNil(atDatabase);
-
 end.
 

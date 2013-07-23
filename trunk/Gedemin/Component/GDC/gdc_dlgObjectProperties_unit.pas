@@ -90,7 +90,7 @@ type
     procedure actGoToMethodsParentExecute(Sender: TObject);
     procedure actGoToMethodsUpdate(Sender: TObject);
     procedure actGoToMethodsSubtypeUpdate(Sender: TObject);
-    procedure actGoToMethodsParentUpdate(Sender: TObject); 
+    procedure actGoToMethodsParentUpdate(Sender: TObject);
 
   private
     function GetCurrentSecField(const ATI: TgdcTableInfos = []): TField;

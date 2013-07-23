@@ -383,7 +383,7 @@ type
     function GetIDByRUID(const XID, DBID: TID; const Tr: TIBTransaction = nil): TID;
     function GetIDByRUIDString(const RUID: TRUIDString; const Tr: TIBTransaction = nil): TID;
     //Возвращает поля xid, dbid из таблицы gd_ruid по id
-    //Если запись по id не найдена вернет -1, -1
+    //Если запись по id не найдена создаст новый РУИД
     procedure GetRUIDByID(const ID: TID; out XID, DBID: TID; const Tr: TIBTransaction = nil);
     function  GetRUIDStringByID(const ID: TID; const Tr: TIBTransaction = nil): TRUIDString;
     //Возвращает поля xid, dbid из таблицы gd_ruid по id
@@ -2359,10 +2359,7 @@ begin
       (R.PrimaryKey.ConstraintFields.Count = 1) and
       ((not Assigned(R.PrimaryKey.ConstraintFields[0].References)) or
        Assigned(R.PrimaryKey.ConstraintFields[0].References) and
-       (AnsiCompareText(R.PrimaryKey.ConstraintFields[0].FieldName, 'ID') = 0)) (*or
-    {Или, возможно мы имеем дело со множеством}
-       (StrIPos('USR$CROSS', ARelationName) <> 1)*)
-    then
+       (AnsiCompareText(R.PrimaryKey.ConstraintFields[0].FieldName, 'ID') = 0)) then
     begin
       Result.gdClass := CgdcBase(GetClass('TgdcAttrUserDefined'));
       Result.SubType := ARelationName;
@@ -8898,11 +8895,6 @@ begin
             if StrIPos('FLT_LASTFILTER', CL.Names[I]) = 1 then
               continue;
 
-            {
-            //Сохранять будем только пользовательские множества
-            if StrIPos(UserPrefix, CL.Names[I]) <> 1 then
-              continue;
-            }
             //Находим базовый класс
             C := GetBaseClassForRelation(CL.Values[CL.Names[I]]);
             if C.gdClass <> nil then
@@ -10820,7 +10812,7 @@ var
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-  I, P: Integer;
+  I: Integer;
   F: TatRelationField;
   FieldName, RelationName: String;
   FFieldList: TStringHashMap;
@@ -10853,23 +10845,7 @@ begin
     // локализуем экранные метки полей
     for I := 0 to FieldCount - 1 do
     begin
-      RelationName := Fields[I].Origin;
-      P := Pos('.', RelationName);
-      if P > 0 then
-      begin
-        FieldName := System.Copy(RelationName, P + 1, 1024);
-        SetLength(RelationName, P - 1);
-      end else
-      begin
-        FieldName := RelationName;
-        RelationName := '';
-      end;
-
-      if (Length(FieldName) > 2) and (FieldName[1] = '"') then
-        FieldName := System.Copy(FieldName, 2, Length(FieldName) - 2);
-      if (Length(RelationName) > 2) and (RelationName[1] = '"') then
-        RelationName := System.Copy(RelationName, 2, Length(RelationName) - 2);
-
+      ParseFieldOrigin(Fields[I].Origin, RelationName, FieldName);
       F := atDatabase.FindRelationField(RelationName, FieldName);
 
       if F <> nil then
@@ -11170,15 +11146,10 @@ end;
 
 function TgdcBase.FieldNameByAliasName(const AnAliasName: String): String;
 var
-  F: TField;
+  RelationName, FieldName: String;
 begin
-  { TODO : 
-если наименование таблицы будет в себе содержать
-точку, то привет -- будет ошибка }
-  F := FieldByName(AnAliasName);
-  Result := ExtractIdentifier(Database.SQLDialect,
-    System.Copy(F.Origin, Pos('.', F.Origin) + 1, 255));
-  //Result := QSelect.FieldByName(AnAliasName).AsXSQLVAR.sqlname;
+  ParseFieldOrigin(FieldByName(AnAliasName).Origin, RelationName, FieldName);
+  Result := FieldName;
 end;
 
 procedure TgdcBase.CustomDelete(Buff: Pointer);
@@ -13314,23 +13285,14 @@ end;
 
 function TgdcBase.ShowFieldInGrid(AField: TField): Boolean;
 var
-  P: Integer;
   RN, FN: String;
   RF: TatRelationField;
 begin
   Assert((AField <> nil) and (AField.DataSet = Self));
 
-  RN := AField.Origin;
-  P := Pos('.', RN);
-  if P > 0 then
-  begin
-    FN := System.Copy(RN, P + 1, 1024);
-    SetLength(RN, P - 1);
-    if (Length(FN) > 2) and (FN[1] = '"') then
-      FN := System.Copy(FN, 2, Length(FN) - 2);
-    if (Length(RN) > 2) and (RN[1] = '"') then
-      RN := System.Copy(RN, 2, Length(RN) - 2);
-  end else
+  ParseFieldOrigin(AField.Origin, RN, FN);
+
+  if RN = '' then
   begin
     Result := True;
     exit;
@@ -13633,6 +13595,7 @@ var
   I: Integer;
   Origin: String;
 begin
+  Result := nil;
   Origin := UpperCase('"' + ARelationName + '"."' + AFieldName + '"');
   for I := 0 to FieldCount - 1 do
   begin
@@ -13642,38 +13605,6 @@ begin
       exit;
     end;
   end;
-  Result := nil;
-
-  (*
-  ARelationName := UpperCase(ARelationName);
-  AFieldName := UpperCase(AFieldName);
-  L := Length(ARelationName) + Length(AFieldName) + 5; // 5 = Length('"".""')
-  for I := 0 to FieldCount - 1 do
-  begin
-    Origin := UpperCase(Fields[I].Origin);
-    P := Pos(ARelationName, Origin);
-    if (P > 0) and (Pos(AFieldName, Origin) > P) and (Length(Origin) = L) then
-    begin
-      Result := Fields[I];
-      break;
-    end;
-  end;
-  *)
-
-(*
-  if ARelationName = '' then
-    Result := FindField(AFieldName)
-  else begin
-    Result := nil;
-    for I := 0 to FieldCount - 1 do
-      if (AnsiCompareText(AFieldName, FieldNameByAliasName(Fields[I].FieldName)) = 0)
-        and (AnsiCompareText(ARelationName, RelationByAliasName(Fields[I].FieldName)) = 0) then
-    begin
-      Result := Fields[I];
-      break;
-    end;
-  end;
-*)
 end;
 
 function TgdcBase.FieldByName(const ARelationName,

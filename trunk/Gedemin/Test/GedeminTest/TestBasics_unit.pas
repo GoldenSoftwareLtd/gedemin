@@ -14,6 +14,7 @@ type
     procedure TestCommonFunctions;
     procedure TestHugeIntSet;
     procedure TestNotifierThread;
+    procedure TestParseOrigin;
   end;
 
 implementation
@@ -162,7 +163,6 @@ procedure TBasicsTest.TestCommonFunctions;
 var
   Server, FileName: String;
   Port: Integer;
-  RN, FN: String;
 begin
   ParseDatabaseName('', Server, Port, FileName);
   Check(Server = '');
@@ -218,19 +218,6 @@ begin
     Check(False);
   except
   end;
-
-  Check(ParseFieldOrigin('', RN, FN) = False);
-  Check((RN = '') and (FN = ''));
-  Check(ParseFieldOrigin('gd_contact.name', RN, FN));
-  Check((RN = 'gd_contact') and (FN = 'name'));
-  Check(ParseFieldOrigin('name', RN, FN));
-  Check((RN = '') and (FN = 'name'));
-  Check(ParseFieldOrigin('"gd_contact"."name"', RN, FN));
-  Check((RN = 'gd_contact') and (FN = 'name'));
-  Check(ParseFieldOrigin('"name"', RN, FN));
-  Check((RN = '') and (FN = 'name'));
-  Check(not ParseFieldOrigin('"gd_contact".', RN, FN));
-  Check((RN = 'gd_contact') and (FN = ''));
 end;
 
 procedure TBasicsTest.TestHugeIntSet;
@@ -286,6 +273,37 @@ begin
   gdNotifierThread.Add('Это сообщение с таймером и будет показываться 60 сек... <tmr>', 0, 60000);
   gdNotifierThread.Add('Это сообщение будет показываться 30 сек...', 0, 30000);
   Check(gdNotifierThread.Suspended = False);
+end;
+
+procedure TBasicsTest.TestParseOrigin;
+var
+  RN, FN: String;
+begin
+  Check(ParseFieldOrigin('', RN, FN) = False);
+  Check((RN = '') and (FN = ''));
+  Check(ParseFieldOrigin('gd_contact.name', RN, FN));
+  Check((RN = 'gd_contact') and (FN = 'name'));
+  Check(ParseFieldOrigin('name', RN, FN));
+  Check((RN = '') and (FN = 'name'));
+  Check(ParseFieldOrigin('"gd_contact"."name"', RN, FN));
+  Check((RN = 'gd_contact') and (FN = 'name'));
+  Check(ParseFieldOrigin('"name"', RN, FN));
+  Check((RN = '') and (FN = 'name'));
+  Check(not ParseFieldOrigin('"gd_contact".', RN, FN));
+  Check((RN = 'gd_contact') and (FN = ''));
+
+  Check(ParseFieldOrigin(' ', RN, FN) = True);
+  Check((RN = '') and (FN = ' '));
+  Check(ParseFieldOrigin('gd_contact . name', RN, FN));
+  Check((RN = 'gd_contact ') and (FN = ' name'));
+  Check(ParseFieldOrigin(' name', RN, FN));
+  Check((RN = '') and (FN = ' name'));
+  Check(ParseFieldOrigin(' "gd_contact"."name"', RN, FN));
+  Check((RN = ' "gd_contact"') and (FN = '"name"'));
+  Check(ParseFieldOrigin(' "name" ', RN, FN));
+  Check((RN = '') and (FN = ' "name" '));
+  Check(ParseFieldOrigin(' "gd_contact". ', RN, FN));
+  Check((RN = ' "gd_contact"') and (FN = ' '));
 end;
 
 initialization
