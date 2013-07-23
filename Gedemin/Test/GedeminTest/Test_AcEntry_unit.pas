@@ -44,7 +44,8 @@ type
 implementation
 
 uses
-  DB, SysUtils, gdcBaseInterface, gd_security, gdcAcctEntryRegister, jclStrings;
+  DB, IB, SysUtils, gdcBaseInterface, gd_security, gdcAcctEntryRegister,
+  jclStrings;
 
 { Tgs_AcEntry }
 
@@ -284,7 +285,9 @@ const
     FQ.ExecQuery;
     Check(FQ.Fields[0].AsString > '');
 
+    StartExpectingException(EIBInterBaseError);
     FTr.Commit;
+    StopExpectingException('');
     FTr.StartTransaction;
 
     FQ.Close;

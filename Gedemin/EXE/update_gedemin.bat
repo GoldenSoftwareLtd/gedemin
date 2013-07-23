@@ -312,12 +312,12 @@ echo **                                             **
 echo **                                             **
 echo *************************************************
 
-for %%F in (gedemin.exe midas.dll midas.sxs.manifest gedemin.exe.manifest ib_util.dll) do xcopy %%F \\vienna\web\%target_dir% /Y
-for %%F in (icudt30.dll icuin30.dll icuuc30.dll fbembed.dll firebird.msg) do xcopy %%F \\vienna\web\%target_dir% /Y
-for %%F in (microsoft.vc80.crt.manifest msvcp80.dll msvcr80.dll gedemin_upd.exe) do xcopy %%F \\vienna\web\%target_dir% /Y
-xcopy udf\gudf.dll     \\vienna\web\%target_dir%\udf\ /Y
-xcopy intl\fbintl.conf \\vienna\web\%target_dir%\intl\ /Y
-xcopy intl\fbintl.dll  \\vienna\web\%target_dir%\intl\ /Y
+for %%F in (gedemin.exe midas.dll midas.sxs.manifest gedemin.exe.manifest ib_util.dll) do xcopy %%F \\basel\web\%target_dir% /Y
+for %%F in (icudt30.dll icuin30.dll icuuc30.dll fbembed.dll firebird.msg) do xcopy %%F \\basel\web\%target_dir% /Y
+for %%F in (microsoft.vc80.crt.manifest msvcp80.dll msvcr80.dll gedemin_upd.exe) do xcopy %%F \\basel\web\%target_dir% /Y
+xcopy udf\gudf.dll     \\basel\web\%target_dir%\udf\ /Y
+xcopy intl\fbintl.conf \\basel\web\%target_dir%\intl\ /Y
+xcopy intl\fbintl.dll  \\basel\web\%target_dir%\intl\ /Y
  
 :exit
 
