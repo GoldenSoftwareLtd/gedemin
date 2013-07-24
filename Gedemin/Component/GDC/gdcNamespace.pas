@@ -9,7 +9,10 @@ uses
   IBDatabase, gd_security, dbgrids, gd_KeyAssoc, contnrs, IB, gsNSObjects;
 
 type
-  TLoadedStatus = (lsNone, lsUnModified, lsModified, lsInsert);
+  TnsLoadedStatus = (lsNone, lsUnModified, lsModified, lsInsert);
+  TnsOverwrite = (ovOverwriteIfNewer, ovAlwaysOverwrite);
+  TnsRemove = (rmRemove, rmDontRemove);
+  TnsIncludeSiblings = (isDontInclude, isInclude);
 
   TgdcNamespace = class(TgdcBase)
   private
@@ -35,7 +38,7 @@ type
       ADontRemove: Boolean = False; AnIncludesiblings: Boolean = False);
     class function LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
       UpdateList: TObjectList; RUIDList: TStringList; ATr: TIBTransaction;
-      const AnAlwaysoverwrite: Boolean = False): TLoadedStatus;
+      const AnAlwaysoverwrite: Boolean = False): TnsLoadedStatus;
     class procedure ScanDirectory(ADataSet: TDataSet; ANSList: TgsNSList;
       Log: TNSLog);
 
@@ -43,10 +46,12 @@ type
       ANSL: TgdKeyStringAssoc; ATr: TIBTransaction = nil);
     class procedure SetObjectLink(AnObject: TgdcBase; ADataSet: TDataSet;
       ATr: TIBTransaction);
-    class procedure AddObject(ANamespacekey: Integer; const AName: String;
-      const AClass: String; const ASubType: String;
-      xid, dbid: Integer; ATr: TIBTransaction; AnAlwaysoverwrite: Integer = 1;
-      ADontremove: Integer = 0; AnIncludesiblings: Integer = 0);
+    class procedure AddObject(const ANamespaceKey: Integer;
+      const AName: String; const AClass: String; const ASubType: String;
+      const XID, DBID: Integer; ATr: TIBTransaction;
+      const AnAlwaysoverwrite: TnsOverwrite;
+      const ADontRemove: TnsRemove;
+      const AnIncludeSiblings: TnsIncludeSiblings);
     class function LoadNSInfo(const Path: String; ATr: TIBTransaction): Integer;
     class function CompareObj(ADataSet: TDataSet): Boolean;
     class procedure UpdateCurrModified(const ANamespaceKey: Integer = -1);
@@ -635,7 +640,7 @@ begin
             ListObj.Close;
 
           ListObj.ParamByName('RootID').AsInteger := gdcBaseManager.GetIDByRUID(
-            q.FieldByName('xid').AsInteger, q.FieldByName('dbid').AsInteger);
+            q.FieldByName('xid').AsInteger, q.FieldByName('dbid').AsInteger, Transaction);
           ListObj.Open;
           while not ListObj.Eof do
           begin
@@ -1149,7 +1154,7 @@ var
   UpdateHeadList, SubTypes: TStringList;
   q: TIBSQL; 
   gdcFullClass: TgdcFullClass;
-  IsLoad: TLoadedStatus;
+  IsLoad: TnsLoadedStatus;
   TimeStamp: TDateTime;
   at_obj: TgdcAt_Object;
 begin
@@ -1690,10 +1695,10 @@ end;
 
 class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
   UpdateList: TObjectList; RUIDList: TStringList; ATr: TIBTransaction;
-  const AnAlwaysoverwrite: Boolean = False): TLoadedStatus;  
+  const AnAlwaysoverwrite: Boolean = False): TnsLoadedStatus;
 
   function InsertRecord(ASourceYAML: TyamlMapping; AnObj: TgdcBase;
-    AnUL: TObjectList; const ARUID: TRUID): TLoadedStatus; forward;
+    AnUL: TObjectList; const ARUID: TRUID): TnsLoadedStatus; forward;
 
   procedure CheckDataType(F: TField; Value: TyamlNode);
   var
@@ -1822,7 +1827,7 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
     end;
   end;
 
-  function CopyRecord(SourceYAML: TyamlMapping; Obj: TgdcBase; UL: TObjectList): TLoadedStatus;
+  function CopyRecord(SourceYAML: TyamlMapping; Obj: TgdcBase; UL: TObjectList): TnsLoadedStatus;
   var
     I, Key: Integer;
     R: TatRelation;
@@ -2040,7 +2045,7 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
   end;
 
   function InsertRecord(ASourceYAML: TyamlMapping; AnObj: TgdcBase;
-    AnUL: TObjectList; const ARUID: TRUID): TLoadedStatus;
+    AnUL: TObjectList; const ARUID: TRUID): TnsLoadedStatus;
   var
     OldRUID, CurrRUID: TRUIDRec;
     q: TIBSQL;
@@ -2841,7 +2846,6 @@ begin
     Obj := TgdcNamespaceObject.Create(nil);
     try
       Obj.Transaction := Transaction;
-      Obj.ReadTransaction := Transaction;
       Obj.SubSet := 'ByNamespace';
       Obj.ParamByName('namespacekey').AsInteger := Self.ID;
       Obj.Open;
@@ -2854,7 +2858,7 @@ begin
         while not Obj.Eof do
         begin
           InstID := gdcBaseManager.GetIDByRUID(Obj.FieldByName('xid').AsInteger,
-            Obj.FieldByName('dbid').AsInteger);
+            Obj.FieldByName('dbid').AsInteger, Transaction);
 
           InstClass := GetClass(Obj.FieldByName('objectclass').AsString);
           if (InstClass <> nil) and InstClass.InheritsFrom(TgdcBase) then
@@ -3304,59 +3308,75 @@ begin
   end;
 end;
 
-class procedure TgdcNamespace.AddObject(ANamespacekey: Integer;
+class procedure TgdcNamespace.AddObject(const ANamespaceKey: Integer;
   const AName: String; const AClass: String; const ASubType: String;
-  xid, dbid: Integer; ATr: TIBTransaction; AnAlwaysoverwrite: Integer = 1;
-  ADontremove: Integer = 0; AnIncludesiblings: Integer = 0);
+  const XID, DBID: Integer; ATr: TIBTransaction;
+  const AnAlwaysoverwrite: TnsOverwrite;
+  const ADontRemove: TnsRemove;
+  const AnIncludeSiblings: TnsIncludeSiblings);
 var
-  q, SQL: TIBSQL;
+  q, qFind: TIBSQL;
 begin
-  if (ATr = nil) or (not ATr.InTransaction) then
-    raise Exception.Create('Invalid transaction!');
+  Assert(Assigned(ATr));
+  Assert(ATr.InTransaction);
 
   q := TIBSQL.Create(nil);
-  SQL := TIBSQL.Create(nil);
+  qFind := TIBSQL.Create(nil);
   try
     q.Transaction := ATr;
 
-    SQL.Transaction := ATr;
-    SQL.SQL.Text :=
-      'SELECT * FROM at_object ' +
+    qFind.Transaction := ATr;
+    qFind.SQL.Text :=
+      'SELECT namespacekey FROM at_object ' +
       'WHERE namespacekey <> :nk and xid = :xid and dbid = :dbid';
-    SQL.ParamByName('nk').AsInteger := ANamespacekey;
-    SQL.ParamByName('xid').AsInteger := xid;
-    SQL.ParamByName('dbid').AsInteger := dbid;
-    SQL.ExecQuery;
+    qFind.ParamByName('nk').AsInteger := ANamespaceKey;
+    qFind.ParamByName('xid').AsInteger := XID;
+    qFind.ParamByName('dbid').AsInteger := DBID;
+    qFind.ExecQuery;
 
-    if (not SQL.Eof) then
+    if not qFind.EOF then
     begin
-      q.SQL.Text := 'UPDATE OR INSERT INTO at_namespace_link ' +
+      q.SQL.Text :=
+        'UPDATE OR INSERT INTO at_namespace_link ' +
         '  (namespacekey, useskey) ' +
         'VALUES (:nk, :uk) ' +
         'MATCHING (namespacekey, useskey)';
-      q.ParamByName('nk').AsInteger := ANamespacekey;
-      q.ParamByName('uk').AsInteger := SQL.FieldByName('namespacekey').AsInteger;
-      q.ExecQuery;
+      q.ParamByName('nk').AsInteger := ANamespaceKey;
+      q.ParamByName('uk').AsInteger := qFind.FieldByName('namespacekey').AsInteger;
     end else
     begin
       q.SQL.Text :=
         'UPDATE OR INSERT INTO at_object ' +
         '  (namespacekey, objectname, objectclass, subtype, xid, dbid, ' +
         '  alwaysoverwrite, dontremove, includesiblings) ' +
-        'VALUES (:NSK, :ON, :OC, :ST, :XID, :DBID, :OW, :DR, :IS) ' +
-        'MATCHING (xid, dbid, namespacekey)';
-      q.ParamByName('NSK').AsInteger := ANamespacekey;
-      q.ParamByName('ON').AsString := AName;
-      q.ParamByName('OC').AsString := AClass;
-      q.ParamByName('ST').AsString := ASubType;
-      q.ParamByName('XID').AsInteger := XID;;
-      q.ParamByName('DBID').AsInteger := DBID;
-      q.ParamByName('OW').AsInteger := AnAlwaysOverwrite;
-      q.ParamByName('DR').AsInteger := ADontRemove;
-      q.ParamByName('IS').AsInteger := AnIncludeSiblings;
-      q.ExecQuery;
+        'VALUES ' +
+        '  (:namespacekey, :objectname, :objectclass, :subtype, :xid, :dbid, ' +
+        '  :alwaysoverwrite, :dontremove, :includesiblings) ' +
+        'MATCHING ' +
+        '  (xid, dbid, namespacekey)';
+      q.ParamByName('namespacekey').AsInteger := ANamespaceKey;
+      q.ParamByName('objectname').AsString := AName;
+      q.ParamByName('objectclass').AsString := AClass;
+      q.ParamByName('subtype').AsString := ASubType;
+      q.ParamByName('xid').AsInteger := XID;;
+      q.ParamByName('dbid').AsInteger := DBID;
+      if AnAlwaysOverwrite = ovAlwaysOverwrite then
+        q.ParamByName('alwaysoverwrite').AsInteger := 1
+      else
+        q.ParamByName('alwaysoverwrite').AsInteger := 0;
+      if ADontRemove = rmDontRemove then
+        q.ParamByName('dontremove').AsInteger := 1
+      else
+        q.ParamByName('dontremove').AsInteger := 0;
+      if AnIncludeSiblings = isInclude then
+        q.ParamByName('includesiblings').AsInteger := 1
+      else
+        q.ParamByName('includesiblings').AsInteger := 0;
     end;
+
+    q.ExecQuery;
   finally
+    qFind.Free;
     q.Free;
   end;
 end;
