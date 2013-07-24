@@ -55,50 +55,12 @@ begin
 end;
 
 procedure Tgdc_dlgTR.SetupTransaction;
-{var
-  I: Integer;
-  L: TList;}
 begin
-  //inherited;
-
   // присваивание базы данных должно предворять присваивание
   // датасета в датасоурс, потому что при последнем будет
   // вызвана синхронизация лукапа, а тот в свою очередь
   // обратится к транзакции, а у нее нет датабэйза :(
   ibtrCommon.DefaultDatabase := gdcObject.Database;
-
-  // в режиме проектирования формы и в режиме
-  // выполнения могут быть разные датасеты, базы
-  // и транзакции
-  {for I := 0 to ComponentCount - 1 do
-    if Components[I].ClassNameIs('TIBDataSet') then
-    begin
-      if (Components[I] as TIBCustomDataSet).Transaction <> ibtrCommon then
-      begin
-        (Components[I] as TIBCustomDataSet).Active := False;
-        (Components[I] as TIBCustomDataSet).DataBase := gdcObject.DataBase;
-        (Components[I] as TIBCustomDataSet).Transaction := gdcObject.Transaction;
-      end;
-    end;}
-
-  //
-  {if FIsTransaction then
-  begin
-    L := TList.Create;
-    try
-      for I := 0 to ibtrCommon.SQLObjectCount - 1 do
-      begin
-        L.Add(ibtrCommon.SQLObjects[I]);
-      end;
-
-      for I := 0 to L.Count - 1 do
-      begin
-        TIBBase(L[I]).Transaction := gdcObject.Transaction;
-      end;
-    finally
-      L.Free;
-    end;
-  end;}
 end;
 
 procedure Tgdc_dlgTR.FormCreate(Sender: TObject);
@@ -112,7 +74,6 @@ end;
 constructor Tgdc_dlgTR.Create(AnOwner: TComponent);
 begin
   inherited;
-
 end;
 
 procedure Tgdc_dlgTR.DoDestroy;

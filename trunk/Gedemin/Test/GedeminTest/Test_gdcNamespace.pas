@@ -25,12 +25,12 @@ type
     procedure TestLoadNamespaceFromFile;
     procedure TestAlwaysoverwrite;
     procedure TestSet;
-    procedure TestIncludesiblings;
     procedure TestType;
     procedure TestOperation;
     procedure TestObjectPos;
 
   published
+    procedure TestIncludesiblings;
     procedure DoTest;
   end;
 
@@ -57,7 +57,7 @@ begin
   TestLoadNamespaceFromFile;
   TestAlwaysoverwrite;
   TestSet;
-  TestIncludesiblings;  
+  //TestIncludesiblings;
   TestType;
   TestOperation;
  // TestObjectPos;
@@ -99,121 +99,112 @@ begin
 end;
 
 procedure Tgs_gdcNamespaceTest.TestIncludesiblings;
-
-  function Check_folder(const AName: String): Boolean;
-  begin
-    FQ.Close;
-    FQ.SQL.Text := 'SELECT * FROM gd_contact WHERE contacttype = 0 AND name = :n';
-    FQ.ParamByName('n').AsString := AName;
-    FQ.ExecQuery;
-    Result := not FQ.Eof;
-    FQ.Close;
-  end;
-
 var
   F: TgdcFolder;
-  Id1: Integer;
-  Name1, Name2: String;
-  Obj: TgdcNamespace;
+  C: TgdcCompany;
+  FID1, FID2: Integer;
+  FRUID: TRUID;
+  NS: TgdcNamespace;
+  FName: String;
+  q: TIBSQL;
+  Tr: TIBTransaction;
 begin
-  Name1 := 'TEST' + IntToStr(Random(1000000)) + 'F';
-  Name2 := 'TEST' + IntToStr(Random(1000000)) + 'F';
-  F := TgdcFolder.Create(nil);
+  Tr := TIBTransaction.Create(nil);
   try
-    F.Open;
-    F.Insert;
-    F.FieldByName('contacttype').AsInteger := 0;
-    F.FieldByname('name').AsString := Name1;
-    F.Post;
-    ID1 := F.ID;
+    Tr.DefaultDatabase := gdcBaseManager.Database;
+    Tr.StartTransaction;
 
-    F.Insert;
-    F.FieldByName('parent').AsInteger := ID1;
-    F.FieldByName('contacttype').AsInteger := 0;
-    F.FieldByname('name').AsString := Name2;
-    F.Post; 
+    F := TgdcFolder.Create(nil);
+    try
+      F.Transaction := Tr;
+      F.Open;
+      F.Insert;
+      F.FieldByName('name').AsString := 'Folder 1';
+      F.Parent := 650001;
+      F.Post;
+      FID1 := F.ID;
+      FRUID := F.GetRUID;
+
+      F.Insert;
+      F.FieldByName('name').AsString := 'Folder 2';
+      F.Parent := FID1;
+      F.Post;
+      FID2 := F.ID;
+    finally
+      F.Free;
+    end;
+
+    C := TgdcCompany.Create(nil);
+    try
+      C.Transaction := Tr;
+      C.Open;
+      C.Insert;
+      C.FieldByName('name').AsString := 'Company 1';
+      C.Parent := FID1;
+      C.Post;
+
+      C.Insert;
+      C.FieldByName('name').AsString := 'Company 2';
+      C.Parent := FID2;
+      C.Post;
+    finally
+      C.Free;
+    end;
+
+    NS := TgdcNamespace.Create(nil);
+    try
+      NS.Transaction := Tr;
+      NS.Open;
+      NS.Insert;
+      NS.FieldByName('name').AsString := 'Namespace 1';
+      NS.Post;
+
+      NS.AddObject(NS.ID, 'Folder 1', 'TgdcFolder', '', FRUID.XID,  FRUID.DBID,
+        Tr, ovAlwaysOverwrite, rmDontRemove, isInclude);
+
+      FName := TempPath + '\ns.yml';
+      SysUtils.DeleteFile(FName);
+
+      NS.SaveNamespaceToFile(FName);
+      try
+        q := TIBSQL.Create(nil);
+        try
+          q.Transaction := Tr;
+          q.SQL.Text :=
+            'SELECT objectname ' +
+            'FROM at_object ' +
+            'WHERE namespacekey = :nsk ' +
+            'ORDER BY objectpos';
+          q.ParamByName('nsk').AsInteger := NS.ID;  
+          q.ExecQuery;
+
+          Check(q.FieldByName('objectname').AsString = 'Folder 1');
+          q.Next;
+          Check((q.FieldByName('objectname').AsString = 'Folder 2')
+            or (q.FieldByName('objectname').AsString = 'Company 1')
+            or (q.FieldByName('objectname').AsString = 'Company 2'));
+          q.Next;
+          Check((q.FieldByName('objectname').AsString = 'Folder 2')
+            or (q.FieldByName('objectname').AsString = 'Company 1')
+            or (q.FieldByName('objectname').AsString = 'Company 2'));
+          q.Next;
+          Check((q.FieldByName('objectname').AsString = 'Folder 2')
+            or (q.FieldByName('objectname').AsString = 'Company 1')
+            or (q.FieldByName('objectname').AsString = 'Company 2'));
+          q.Next;
+          Check(q.EOF);
+        finally
+          q.Free;
+        end;
+      finally
+        SysUtils.DeleteFile(FName);
+      end;
+    finally
+      NS.Free;
+    end;
   finally
-    F.Free;
+    Tr.Free;
   end;
-
-  TestCreateNamespace;
-
-  ReConnect;
-
-  F := TgdcFolder.Create(nil);
-  try
-    F.SubSet := 'ByID';
-    F.Id := ID1;
-    F.Open;
-    Check(not F.Eof);
-    TgdcNamespace.AddObject(FNamespacekey,
-      F.FieldByName(F.GetListField(F.SubType)).AsString,
-      F.ClassName,
-      F.Subtype,
-      F.GetRuid.XID,
-      F.GetRuid.DBID,
-      FTr, Alwaysoverwrite, NotDontremove, Includesiblings);
-  finally
-    F.Free;
-  end;
-
-  FTr.Commit;
-  FTr.StartTransaction;
-
-  Obj := TgdcNamespace.Create(nil);
-  try
-    Obj.SubSet := 'ByName';
-    Obj.ParamByName(Obj.GetListField(Obj.SubType)).AsString := FNamespaceName;
-    Obj.Open;
-    Check(not Obj.Eof);
-
-    Obj.SaveNamespaceToFile(GetFileName);
-    FQ.Close;
-    FQ.SQL.Text := 'SELECT count(*) FROM at_object WHERE namespacekey = :nk AND (objectname = :n1 or objectname = :n2)';
-    FQ.ParamByName('nk').AsInteger := FNamespaceKey;
-    FQ.ParamByName('n1').AsString := Name1;
-    FQ.ParamByName('n2').AsString := Name2;
-    FQ.ExecQuery;
-
-    Check(not FQ.Eof);
-    Check(FQ.FieldByName('count').AsInteger = 2);
-    FQ.Close;
-
-    Obj.DeleteNamespaceWithObjects;
-  finally
-    Obj.Free;
-  end;
-
-  Check(not Check_folder(Name1));
-  Check(not Check_folder(Name2));
-
-  Obj := TgdcNamespace.Create(nil);
-  try
-    Obj.Open;
-    Obj.LoadFromFile(GetFileName);
-  finally
-    Obj.Free;
-  end;
-
-  ReConnect;
-
-  Check(Check_folder(Name1));
-  Check(Check_folder(Name2));
-
-  Obj := TgdcNamespace.Create(nil);
-  try
-    Obj.SubSet := 'ByName';
-    Obj.ParamByName(Obj.GetListField(Obj.SubType)).AsString := FNamespaceName;
-    Obj.Open;
-    Check(not Obj.Eof);
-
-    Obj.SaveNamespaceToFile(GetFileName);
-    Obj.DeleteNamespaceWithObjects;
-  finally
-    Obj.Free;
-  end;
-
-  ReConnect;
 end;
 
 procedure Tgs_gdcNamespaceTest.TestLoadNamespaceFromFile;
@@ -332,7 +323,8 @@ begin
       FTable.Subtype,
       RUID.XID,
       RUID.DBID,
-      FTr);
+      FTr,
+      ovAlwaysOverwrite, rmDontRemove, isDontInclude);
   finally
     FTable.Free;      
   end;
@@ -390,7 +382,7 @@ begin
       FTable.Subtype,
       FTable.GetRuid.XID,
       FTable.GetRuid.DBID,
-      FTr, NotAlwaysoverwrite, Dontremove);
+      FTr, ovOverwriteIfNewer, rmDontRemove, isDontInclude);
 
     FTable.Close;
     FTable.ParamByName(FTable.GetListField(FTable.SubType)).AsString := FTableName2;
@@ -404,7 +396,7 @@ begin
       FTable.Subtype,
       FTable.GetRuid.XID,
       FTable.GetRuid.DBID,
-      FTr, Alwaysoverwrite, Dontremove);
+      FTr, ovAlwaysOverwrite, rmDontRemove, isDontInclude);
   finally
     FTable.Free;
   end;
@@ -572,7 +564,7 @@ begin
       Good.Subtype,
       Good.GetRuid.XID,
       Good.GetRuid.DBID,
-      FTr, Alwaysoverwrite, Dontremove);
+      FTr, ovAlwaysOverwrite, rmDontRemove, isDontInclude);
   finally
     Good.Free;
   end;
