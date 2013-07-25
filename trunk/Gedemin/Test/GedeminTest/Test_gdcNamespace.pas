@@ -116,6 +116,7 @@ begin
 
     F := TgdcFolder.Create(nil);
     try
+      F.ReadTransaction := Tr;
       F.Transaction := Tr;
       F.Open;
       F.Insert;
@@ -136,6 +137,7 @@ begin
 
     C := TgdcCompany.Create(nil);
     try
+      C.ReadTransaction := Tr;
       C.Transaction := Tr;
       C.Open;
       C.Insert;
@@ -153,6 +155,7 @@ begin
 
     NS := TgdcNamespace.Create(nil);
     try
+      NS.ReadTransaction := Tr;
       NS.Transaction := Tr;
       NS.Open;
       NS.Insert;
@@ -175,7 +178,7 @@ begin
             'FROM at_object ' +
             'WHERE namespacekey = :nsk ' +
             'ORDER BY objectpos';
-          q.ParamByName('nsk').AsInteger := NS.ID;  
+          q.ParamByName('nsk').AsInteger := NS.ID;
           q.ExecQuery;
 
           Check(q.FieldByName('objectname').AsString = 'Folder 1');
