@@ -239,7 +239,10 @@ class procedure TgdcNamespace.WriteObject(AgdcObject: TgdcBase;
     OL := TObjectList.Create;
     q := TIBSQL.Create(nil);
     try
-      q.Transaction := gdcBaseManager.ReadTransaction;
+      if AnObj.Transaction.InTransaction then
+        q.Transaction := AnObj.Transaction
+      else
+        q.Transaction := AnObj.ReadTransaction;
       FillSet(AnObj, OL);
       for I := 0 to OL.Count - 1 do
       begin
@@ -276,7 +279,7 @@ class procedure TgdcNamespace.WriteObject(AgdcObject: TgdcBase;
                 AWriter.WriteSequenceIndicator;
                 AWriter.WriteText(
                   GetReferenceString(gdcBaseManager.GetRUIDStringByID(
-                    q.Fields[0].AsInteger),
+                    q.Fields[0].AsInteger, AnObj.Transaction),
                   q.Fields[1].AsString),
                   qDoubleQuoted);
                 q.Next;
@@ -326,7 +329,7 @@ begin
   AWriter.WriteTextValue('Class', AgdcObject.Classname, qDoubleQuoted);
   if AgdcObject.SubType > '' then
     AWriter.WriteTextValue('SubType', AgdcObject.SubType, qDoubleQuoted);
-  AWriter.WriteStringValue('RUID', gdcBaseManager.GetRUIDStringByID(AgdcObject.ID));
+  AWriter.WriteStringValue('RUID', RUIDToStr(AgdcObject.GetRUID));
   AWriter.WriteBooleanValue('AlwaysOverwrite', AnAlwaysoverwrite);
   AWriter.WriteBooleanValue('DontRemove', ADontremove);
   AWriter.WriteBooleanValue('IncludeSiblings', AnIncludesiblings);
@@ -373,15 +376,17 @@ begin
                 C := GetBaseClassForRelation(RF.References.RelationName);
                 if C.gdClass <> nil then
                 begin
-                  Obj := C.gdClass.CreateWithID(nil,
-                    nil,
-                    nil,
-                    F.AsInteger,
-                    C.SubType);
+                  Obj := C.gdClass.Create(nil);
                   try
+                    Obj.SubType := C.SubType;
+                    Obj.ReadTransaction := AgdcObject.ReadTransaction;
+                    Obj.Transaction := AgdcObject.Transaction;
+                    Obj.SubSet := 'ByID';
+                    Obj.ID := F.AsInteger;
                     Obj.Open;
-                    if not Obj.EOF then
-                    begin
+                    if Obj.EOF then
+                      ObjName := ''
+                    else begin
                       if Obj is TgdcTree then
                         ObjName := TgdcTree(Obj).GetPath
                       else
@@ -392,10 +397,9 @@ begin
                   end;
                 end;
 
-                AWriter.WriteTextValue(F.FieldName,
-                  GetReferenceString(gdcBaseManager.GetRUIDStringByID(F.AsInteger),
-                    ObjName),
-                  qDoubleQuoted);
+                AWriter.WriteTextValue(F.FieldName, GetReferenceString(
+                  gdcBaseManager.GetRUIDStringByID(F.AsInteger, AgdcObject.Transaction),
+                  ObjName), qDoubleQuoted);
                 continue;
               end;
             end;
@@ -633,6 +637,7 @@ begin
           if ListObj = nil then
           begin
             ListObj := ClTree.gdClass.Create(nil);
+            ListObj.ReadTransaction := Transaction;
             ListObj.Transaction := Transaction;
             ListObj.SubType := ClTree.SubType;
             ListObj.SubSet := 'ByRootID';
@@ -655,6 +660,7 @@ begin
               if Obj = nil then
               begin
                 Obj := TgdcNamespaceObject.Create(nil);
+                Obj.ReadTransaction := Transaction;
                 Obj.Transaction := Transaction;
                 Obj.Open;
               end;
@@ -951,6 +957,7 @@ var
     q := TIBSQL.Create(nil);
     try
       q.Transaction := Tr;
+      gdcNamespace.ReadTransaction := Tr;
       gdcNamespace.Transaction := Tr;
 
       for I := 0 to Seq.Count - 1 do
@@ -1024,6 +1031,7 @@ var
         InstObj := CgdcBase(InstClass).CreateSubType(nil,
           At_Obj.SubType, 'ByID');
         try
+          InstObj.ReadTransaction := Tr;
           InstObj.Transaction := Tr;
           InstObj.ID := gdcBaseManager.GetRUIDRecByXID(StrToRUID(At_Obj.RUID).XID, StrToRUID(At_Obj.RUID).DBID, Tr).ID;
           InstObj.Open;
@@ -1354,8 +1362,8 @@ begin
 
                   gdcNamespaceObj :=  TgdcNamespaceObject.Create(nil);
                   try
-                    gdcNamespaceObj.Transaction := Tr;
                     gdcNamespaceObj.ReadTransaction := Tr;
+                    gdcNamespaceObj.Transaction := Tr;
                     gdcNamespaceObj.SubSet := 'ByObject';
                     gdcNamespaceObj.ParamByName('namespacekey').AsInteger := TempNamespaceID;
                     gdcNamespaceObj.ParamByName('xid').AsInteger := Obj.GetRUID.XID;
@@ -1589,8 +1597,8 @@ begin
   Result := -1;
   gdcNamespace := TgdcNamespace.Create(nil);
   try
-    gdcNamespace.Transaction := ATr;
     gdcNamespace.ReadTransaction := ATr;
+    gdcNamespace.Transaction := ATr;
     gdcNamespace.SubSet := 'ByID';
 
     Parser := TyamlParser.Create;
@@ -1640,8 +1648,8 @@ begin
               raise Exception.Create('Invalid objects!');
             gdcNamespaceObj := TgdcNamespaceObject.Create(nil);
             try
-              gdcNamespaceObj.Transaction := ATr;
               gdcNamespaceObj.ReadTransaction := ATr;
+              gdcNamespaceObj.Transaction := ATr;
               gdcNamespaceObj.SubSet := 'ByObject';
 
               with N as TyamlSequence do
@@ -1747,8 +1755,8 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
           Obj := (UL[I] as TgdcReferenceUpdate).FullClass.gdClass.CreateSubType(nil,
             (UL[I] as TgdcReferenceUpdate).FullClass.SubType, 'ByID');
           try
-            Obj.Transaction := ATr;
             Obj.ReadTransaction := ATr;
+            Obj.Transaction := ATr;
             Obj.ID := (UL[I] as TgdcReferenceUpdate).ID;
             Obj.Open;
             if Obj.RecordCount > 0 then
@@ -2740,8 +2748,8 @@ begin
       try
         Tr.DefaultDatabase := gdcBaseManager.Database;
         Tr.StartTransaction;
-        gdcNamespace.Transaction := Tr;
         gdcNamespace.ReadTransaction := Tr;
+        gdcNamespace.Transaction := Tr;
         gdcNamespace.SubSet := 'ByID';
         gdcNamespace.ID := TgdcNamespace.LoadNSInfo(AFileName, Tr);
         gdcNamespace.Open;
@@ -2828,7 +2836,7 @@ begin
         W.StartNewLine;
         W.WriteSequenceIndicator;
         W.WriteText(GetReferenceString(
-          gdcBaseManager.GetRUIDStringByID(q.FieldByName('id').AsInteger),
+          gdcBaseManager.GetRUIDStringByID(q.FieldByName('id').AsInteger, Transaction),
           q.FieldByName('name').AsString),
           qDoubleQuoted);
         q.Next;
@@ -2845,6 +2853,7 @@ begin
     Deleted := False;
     Obj := TgdcNamespaceObject.Create(nil);
     try
+      Obj.ReadTransaction := Transaction;
       Obj.Transaction := Transaction;
       Obj.SubSet := 'ByNamespace';
       Obj.ParamByName('namespacekey').AsInteger := Self.ID;
@@ -2865,6 +2874,7 @@ begin
           begin
             InstObj := CgdcBase(InstClass).Create(nil);
             try
+              InstObj.ReadTransaction := Obj.Transaction;
               InstObj.Transaction := Obj.Transaction;
               InstObj.SubType := Obj.FieldByName('subtype').AsString;
               InstObj.SubSet := 'ByID';
@@ -3134,7 +3144,11 @@ var
     OL := TObjectList.Create;
     q := TIBSQL.Create(nil);
     try
-      q.Transaction := gdcBaseManager.ReadTransaction;
+      if AnObj.Transaction.InTransaction then
+        q.Transaction := AnObj.Transaction
+      else
+        q.Transaction := AnObj.ReadTransaction;
+        
       FillSet(AnObj, OL);
 
       for I := 0 to OL.Count - 1 do
@@ -3152,7 +3166,8 @@ var
 
         while not q.EOF do
         begin
-          Ind := ObjList.IndexOfName(gdcBaseManager.GetRUIDStringByID(q.Fields[0].AsInteger));
+          Ind := ObjList.IndexOfName(gdcBaseManager.GetRUIDStringByID(q.Fields[0].AsInteger,
+            AnObj.Transaction));
 
           if Ind > -1 then
             ObjList.Move(Ind, ObjList.Count - 1)
@@ -3453,6 +3468,7 @@ begin
     begin
       gdcNamespaceObject := TgdcNamespaceObject.Create(nil);
       try
+        gdcNamespaceObject.ReadTransaction := Transaction;
         gdcNamespaceObject.Transaction := Transaction;
         gdcNamespaceObject.SubSet := 'ByObject';
         gdcNamespaceObject.ParamByName('namespacekey').AsInteger := Self.ID;
@@ -3522,6 +3538,8 @@ begin
     q.SQL.Text :=
       'SELECT * FROM at_object ' +
       'WHERE namespacekey <> :nk and xid = :xid and dbid = :dbid';
+
+    gdcNamespaceObject.ReadTransaction := Transaction;
     gdcNamespaceObject.Transaction := Transaction;
     gdcNamespaceObject.SubSet := 'ByObject';
     gdcNamespaceObject.ParamByName('namespacekey').AsInteger := Self.ID;

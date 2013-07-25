@@ -16,6 +16,11 @@ inherited gdc_dlgTRPC: Tgdc_dlgTRPC
     Top = 278
     TabOrder = 4
   end
+  inherited btnHelp: TButton
+    Left = 151
+    Top = 278
+    TabOrder = 5
+  end
   inherited btnOK: TButton
     Left = 284
     Top = 278
@@ -25,11 +30,6 @@ inherited gdc_dlgTRPC: Tgdc_dlgTRPC
     Left = 358
     Top = 278
     TabOrder = 2
-  end
-  inherited btnHelp: TButton
-    Left = 151
-    Top = 278
-    TabOrder = 5
   end
   object pgcMain: TPageControl [5]
     Left = 4

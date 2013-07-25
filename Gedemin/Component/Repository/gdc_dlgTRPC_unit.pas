@@ -149,7 +149,6 @@ var
   AttrLast: Boolean;
   OL: TObjectList;
   FList, LinkTableList: TStrings;
-
 begin
   //
   AttrLast := tbsAttr.PageIndex = pgcMain.PageCount - 1;
@@ -250,7 +249,6 @@ begin
           TS.Name := cstTabSheetPrefix + CorrectRelationName(FD.Relation.RelationName);
           TS.Caption := '';
           TS.PageControl := pgcMain;
-          //TS.TabVisible := NeedVisibleTabSheet(FD.Relation.RelationName);
 
           with F.References do
             for J := 0 to RelationFields.Count - 1 do
