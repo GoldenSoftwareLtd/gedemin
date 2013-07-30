@@ -5,7 +5,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   ActnList, StdCtrls, gsDBSqueezeThread_unit, gd_ProgressNotifier_unit,
-  ComCtrls, DBCtrls;
+  ComCtrls, DBCtrls, Buttons, ExtCtrls;
 
 type
   TgsDBSqueeze_MainForm = class(TForm, IgdProgressWatch)
@@ -26,7 +26,6 @@ type
     lbl2: TLabel;
     lbl3: TLabel;
     lbl6: TLabel;
-    lbl4: TLabel;
     lbl5: TLabel;
     mLog: TMemo;
     rbAllOurCompanies: TRadioButton;
@@ -37,6 +36,10 @@ type
     actServer: TAction;
     grpDatabase: TGroupBox;
     grpOptions: TGroupBox;
+    btnDatabaseBrowse: TButton;
+    pnl1: TPanel;
+    lbl7: TLabel;
+    actDatabaseBrowse: TAction;
     
 
     procedure actConnectExecute(Sender: TObject);
@@ -50,6 +53,7 @@ type
     procedure actCompanyExecute(Sender: TObject);
     procedure actServerExecute(Sender: TObject);
     procedure actServerUpdate(Sender: TObject);
+    procedure actDatabaseBrowseExecute(Sender: TObject);
 
   private
     FSThread: TgsDBSqueezeThread;
@@ -185,6 +189,22 @@ begin
   actServer.Enabled := edServer.Text > '';
 end;
 
+procedure TgsDBSqueeze_MainForm.actDatabaseBrowseExecute(Sender: TObject);
+var
+  openDialog : TOpenDialog;
+begin
+  openDialog := TOpenDialog.Create(Self);
+  try
+    openDialog.InitialDir := GetCurrentDir;
+    openDialog.Options := [ofFileMustExist];
+    openDialog.Filter := 'Firebird Database File (*.FDB)|*.fdb|InterBase Database File (*.GDB)|*.gdb|All Files|*.*';
+    openDialog.FilterIndex := 1;
 
+    if openDialog.Execute then
+      edDatabaseName.Text := openDialog.FileName;
+  finally
+    openDialog.Free;
+  end;  
+end;
 
 end.
