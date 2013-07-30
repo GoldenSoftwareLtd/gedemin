@@ -170,7 +170,6 @@ end;
 procedure TgsDBSqueeze.SetBlockTriggerActive(SetActive: Boolean);       //TODO: доработать. отключение триггеров блокировки периода
 var
   StateStr: String;
-  I: Integer;
   q: TIBSQL;
   q2: TIBSQL;
   Tr: TIBTransaction;

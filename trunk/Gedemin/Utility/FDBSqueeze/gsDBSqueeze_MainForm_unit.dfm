@@ -1,9 +1,9 @@
 object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
-  Left = 475
-  Top = 130
+  Left = 7
+  Top = 202
   BorderStyle = bsDialog
-  ClientHeight = 448
-  ClientWidth = 698
+  ClientHeight = 432
+  ClientWidth = 814
   Color = clBtnFace
   Font.Charset = RUSSIAN_CHARSET
   Font.Color = clWindowText
@@ -15,37 +15,44 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
   OnCloseQuery = FormCloseQuery
   PixelsPerInch = 96
   TextHeight = 13
-  object lbl4: TLabel
-    Left = 311
-    Top = 15
-    Width = 71
-    Height = 13
-    Caption = 'Выполняется:'
+  object pnl1: TPanel
+    Left = 416
+    Top = 16
+    Width = 384
+    Height = 404
+    TabOrder = 0
+    object lbl7: TLabel
+      Left = 7
+      Top = 1
+      Width = 84
+      Height = 13
+      Caption = 'Ход выполнения'
+    end
   end
   object grpOptions: TGroupBox
     Left = 8
-    Top = 200
-    Width = 293
-    Height = 169
+    Top = 177
+    Width = 393
+    Height = 152
     Caption = ' Options '
     DragMode = dmAutomatic
-    TabOrder = 2
+    TabOrder = 3
     object lbl5: TLabel
-      Left = 10
+      Left = 20
       Top = 23
       Width = 183
       Height = 13
       Caption = 'Удалить записи из gd_document до:'
     end
     object lbl6: TLabel
-      Left = 11
+      Left = 21
       Top = 46
       Width = 183
       Height = 13
       Caption = 'Рассчитать и сохранить сальдо по: '
     end
     object dtpClosingDate: TDateTimePicker
-      Left = 197
+      Left = 212
       Top = 20
       Width = 86
       Height = 21
@@ -61,16 +68,16 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
       TabOrder = 0
     end
     object cbbCompany: TComboBox
-      Left = 35
+      Left = 56
       Top = 111
-      Width = 248
+      Width = 241
       Height = 21
       Enabled = False
       ItemHeight = 13
       TabOrder = 3
     end
     object rbAllOurCompanies: TRadioButton
-      Left = 17
+      Left = 37
       Top = 63
       Width = 225
       Height = 17
@@ -78,7 +85,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
       TabOrder = 1
     end
     object rbCompany: TRadioButton
-      Left = 17
+      Left = 38
       Top = 87
       Width = 225
       Height = 17
@@ -90,78 +97,78 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
   object grpDatabase: TGroupBox
     Left = 8
     Top = 19
-    Width = 293
-    Height = 167
+    Width = 393
+    Height = 134
     BiDiMode = bdLeftToRight
-    Caption = ' Database '
+    Caption = ' Database Connection '
     ParentBiDiMode = False
-    TabOrder = 0
+    TabOrder = 1
     object lbl1: TLabel
-      Left = 10
+      Left = 21
       Top = 45
-      Width = 75
+      Width = 71
       Height = 13
-      Caption = 'Database path:'
+      Caption = 'Database Path'
     end
     object lbl2: TLabel
-      Left = 10
-      Top = 102
-      Width = 26
+      Left = 70
+      Top = 70
+      Width = 22
       Height = 13
-      Caption = 'User:'
+      Caption = 'User'
     end
     object lbl3: TLabel
-      Left = 139
-      Top = 102
-      Width = 50
+      Left = 200
+      Top = 70
+      Width = 46
       Height = 13
-      Caption = 'Password:'
+      Caption = 'Password'
     end
     object edDatabaseName: TEdit
-      Left = 10
-      Top = 67
-      Width = 272
+      Left = 100
+      Top = 43
+      Width = 253
       Height = 21
       TabOrder = 2
       Text = 'C:\_AKSAMIT2.fdb'
     end
     object edUserName: TEdit
-      Left = 40
-      Top = 99
+      Left = 99
+      Top = 67
       Width = 88
       Height = 21
-      TabOrder = 3
+      TabOrder = 4
       Text = 'SYSDBA'
     end
     object edPassword: TEdit
-      Left = 194
-      Top = 99
-      Width = 88
+      Left = 254
+      Top = 67
+      Width = 99
       Height = 21
       PasswordChar = '*'
-      TabOrder = 4
+      TabOrder = 5
       Text = 'masterkey'
     end
     object btnConnect: TButton
-      Left = 119
-      Top = 131
+      Left = 191
+      Top = 99
       Width = 75
       Height = 21
       Action = actConnect
-      TabOrder = 5
+      TabOrder = 6
     end
     object btnDisconnect: TButton
-      Left = 206
-      Top = 131
+      Left = 277
+      Top = 99
       Width = 75
       Height = 21
       Action = actDisconnect
-      TabOrder = 6
+      TabOrder = 7
     end
     object edServer: TEdit
-      Left = 88
+      Left = 100
       Top = 19
-      Width = 88
+      Width = 89
       Height = 21
       Enabled = False
       TabOrder = 0
@@ -170,31 +177,40 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
     object chbServer: TCheckBox
       Left = 10
       Top = 21
-      Width = 56
+      Width = 87
       Height = 17
       Action = actServer
-      Caption = 'Server'
+      Caption = 'Server (IPv4)'
       TabOrder = 1
+    end
+    object btnDatabaseBrowse: TButton
+      Left = 361
+      Top = 43
+      Width = 20
+      Height = 20
+      Action = actDatabaseBrowse
+      Caption = '...'
+      TabOrder = 3
     end
   end
   object btnGo: TButton
-    Left = 116
-    Top = 382
+    Left = 164
+    Top = 362
     Width = 75
     Height = 21
     Action = actGo
     Caption = 'Go!'
     ParentShowHint = False
     ShowHint = True
-    TabOrder = 3
+    TabOrder = 4
   end
   object mLog: TMemo
-    Left = 310
+    Left = 419
     Top = 32
     Width = 377
     Height = 384
     ScrollBars = ssVertical
-    TabOrder = 1
+    TabOrder = 2
   end
   object ActionList: TActionList
     Left = 269
@@ -223,6 +239,10 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
       Caption = 'actServer'
       OnExecute = actServerExecute
       OnUpdate = actServerUpdate
+    end
+    object actDatabaseBrowse: TAction
+      Caption = 'actDatabaseBrowse'
+      OnExecute = actDatabaseBrowseExecute
     end
   end
 end
