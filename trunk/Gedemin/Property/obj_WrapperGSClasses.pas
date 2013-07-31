@@ -50,7 +50,7 @@ uses
   {$ENDIF}
   , gdcStreamSaver, gdvAcctBase, gdvAcctAccCard, gdvAcctAccReview, gdvAcctLedger,
   gdvAcctGeneralLedger, gdvAcctCirculationList, gdv_frmAcctBaseForm_unit,
-  prm_ParamFunctions_unit, gd_main_form, gsFTPClient
+  prm_ParamFunctions_unit, gd_main_form, gsFTPClient, gsTRPOS_TLVClient
   {$IFDEF WITH_INDY}
   , gd_WebServerControl_unit
   {$ENDIF}
@@ -3831,6 +3831,51 @@ type
     function CreateDir(const DirName: WideString): WordBool; safecall;
     function DeleteDir(const DirName: WideString): WordBool; safecall;
   end;
+
+  TwrpTRPOSClient = class(TwrpObject, IgsTRPOSClient)
+  private
+    function GetTRPOSClient: TgsTRPOSClient;
+  protected
+    function Get_Host: WideString; safecall;
+    procedure Set_Host(const Value: WideString); safecall;
+    function  Get_Port: Integer; safecall;
+    procedure Set_Port(Value: Integer); safecall;
+    function  Get_ReadTimeOut: Integer; safecall;
+    procedure Set_ReadTimeOut(Value: Integer); safecall;
+    function  Get_Connected: WordBool; safecall;
+    procedure TestHost(ATrNumber: LongWord; ACashNumber: LongWord); safecall;
+    procedure TestPinPad(ATrNumber: LongWord; ACashNumber: LongWord); safecall;
+    procedure Connect; safecall;
+    procedure Disconnect; safecall;
+    procedure ReadData(const AParams: IgsTRPOSOutPutData); safecall;
+  public
+    class function CreateObject(const DelphiClass: TClass; const Params: OleVariant): TObject; override;
+  end;
+
+  TwrpTRPOSOutPutData = class(TwrpObject, IgsTRPOSOutPutData)
+  private
+    function GetTRPOSOutPutData: TgsTRPOSOutPutData;
+  protected
+    function  Get_MessageID: WideString; safecall;
+    function  Get_ECRnumber: LongWord; safecall;
+    function  Get_ERN: LongWord; safecall;
+    function  Get_ResponseCode: WideString; safecall;
+    function  Get_TransactionAmount: WideString; safecall;
+    function  Get_Pan: WideString; safecall;
+    function  Get_ExpDate: WideString; safecall;
+    function  Get_Approve: WideString; safecall;
+    function  Get_Receipt: WideString; safecall;
+    function  Get_InvoiceNumber: WideString; safecall;
+    function  Get_AuthorizationID: WideString; safecall;
+    function  Get_Date: WideString; safecall;
+    function  Get_Time: WideString; safecall;
+    function  Get_VerificationChr: WideString; safecall;
+    function  Get_RRN: WideString; safecall;
+    function  Get_TVR: WideString; safecall;
+    function  Get_TerminalID: WideString; safecall;
+    function  Get_CardDataEnc: WideString; safecall;
+  end;
+
 
 implementation
 
@@ -18391,6 +18436,172 @@ begin
   Result := GetFTPClient.DeleteDir(DirName);
 end;
 
+function TwrpTRPOSClient.GetTRPOSClient: TgsTRPOSClient;
+begin
+  Result := GetObject as TgsTRPOSClient;
+end;
+
+function TwrpTRPOSClient.Get_Host: WideString;
+begin
+  Result := GetTRPOSClient.Host;
+end;
+
+function TwrpTRPOSClient.Get_Port: Integer;
+begin
+  Result := GetTRPOSClient.Port;
+end;
+
+procedure TwrpTRPOSClient.Set_Host(const Value: WideString);
+begin
+  GetTRPOSClient.Host := Value;
+end;
+
+procedure TwrpTRPOSClient.Set_Port(Value: Integer);
+begin
+  GetTRPOSClient.Port := Value;
+end;
+
+procedure TwrpTRPOSClient.TestHost(ATrNumber: LongWord; ACashNumber: LongWord);
+begin
+  GetTRPOSClient.TestHost(ATrNumber, ACashNumber);
+end;
+
+procedure TwrpTRPOSClient.TestPinPad(ATrNumber: LongWord; ACashNumber: LongWord);
+begin
+  GetTRPOSClient.TestPinPad(ATrNumber, ACashNumber);
+end;
+
+procedure TwrpTRPOSClient.Connect;
+begin
+  GetTRPOSClient.Connect;
+end;
+
+procedure TwrpTRPOSClient.Disconnect;
+begin
+  GetTRPOSClient.Disconnect;
+end;
+
+function TwrpTRPOSClient.Get_Connected: WordBool;
+begin
+  Result := GetTRPOSClient.Connected;
+end;
+
+procedure TwrpTRPOSClient.ReadData(const AParams: IgsTRPOSOutPutData);
+begin
+  GetTRPOSClient.ReadData(InterfaceToObject(AParams) as TgsTRPOSOutPutData);
+end;
+
+function TwrpTRPOSClient.Get_ReadTimeOut: Integer;
+begin
+  Result := GetTRPOSClient.ReadTimeOut;
+end;
+
+procedure TwrpTRPOSClient.Set_ReadTimeOut(Value: Integer);
+begin
+  GetTRPOSClient.ReadTimeOut := Value;
+end;
+
+class function TwrpTRPOSClient.CreateObject(const DelphiClass: TClass; const Params: OleVariant): TObject;
+begin
+  Assert(DelphiClass.InheritsFrom(TgsTRPOSClient), 'Invalide Delphi class');
+  Result := TgsTRPOSClient.Create;
+end;
+
+function TwrpTRPOSOutPutData.GetTRPOSOutPutData: TgsTRPOSOutPutData;
+begin
+  Result := GetObject as TgsTRPOSOutPutData;
+end;
+
+function  TwrpTRPOSOutPutData.Get_MessageID: WideString;
+begin
+  Result := GetTRPOSOutPutData.MessageID;
+end;
+
+function TwrpTRPOSOutPutData.Get_ECRnumber: LongWord;
+begin
+  Result := GetTRPOSOutPutData.ECRnumber;
+end;
+
+function TwrpTRPOSOutPutData.Get_ERN: LongWord;
+begin
+  Result := GetTRPOSOutPutData.ERN;
+end;
+
+function TwrpTRPOSOutPutData.Get_ResponseCode: WideString;
+begin
+  Result := GetTRPOSOutPutData.ResponseCode;
+end;
+
+function TwrpTRPOSOutPutData.Get_TransactionAmount: WideString;
+begin
+  Result := GetTRPOSOutPutData.TransactionAmount;
+end;
+
+function TwrpTRPOSOutPutData.Get_Pan: WideString;
+begin
+  Result := GetTRPOSOutPutData.Pan;
+end;
+
+function TwrpTRPOSOutPutData.Get_ExpDate: WideString;
+begin
+  Result := GetTRPOSOutPutData.ExpDate;
+end;
+
+function TwrpTRPOSOutPutData.Get_Approve: WideString;
+begin
+  Result := GetTRPOSOutPutData.Approve;
+end;
+
+function TwrpTRPOSOutPutData.Get_Receipt: WideString;
+begin
+  Result := GetTRPOSOutPutData.Receipt;
+end;
+
+function TwrpTRPOSOutPutData.Get_InvoiceNumber: WideString;
+begin
+  Result := GetTRPOSOutPutData.InvoiceNumber;
+end;
+
+function TwrpTRPOSOutPutData.Get_AuthorizationID: WideString;
+begin
+  Result := GetTRPOSOutPutData.AuthorizationID;
+end;
+
+function TwrpTRPOSOutPutData.Get_Date: WideString;
+begin
+  Result := GetTRPOSOutPutData.Date;
+end;
+
+function TwrpTRPOSOutPutData.Get_Time: WideString;
+begin
+  Result := GetTRPOSOutPutData.Time;
+end;
+
+function TwrpTRPOSOutPutData.Get_VerificationChr: WideString;
+begin
+  Result := GetTRPOSOutPutData.VerificationChr;
+end;
+
+function TwrpTRPOSOutPutData.Get_RRN: WideString;
+begin
+  Result := GetTRPOSOutPutData.RRN;
+end;
+
+function TwrpTRPOSOutPutData.Get_TVR: WideString;
+begin
+  Result := GetTRPOSOutPutData.TVR;
+end;
+
+function TwrpTRPOSOutPutData.Get_TerminalID: WideString;
+begin
+  Result := GetTRPOSOutPutData.TerminalID;
+end;
+
+function TwrpTRPOSOutPutData.Get_CardDataEnc: WideString;
+begin
+  Result := GetTRPOSOutPutData.CardDataEnc;
+end;
+
 function TwrpGsComScaner.Get_PacketSize: Integer;
 begin
   Result := GetGsComScaner.PacketSize;
@@ -18660,4 +18871,7 @@ initialization
   RegisterGdcOLEClass(TgdWebServerControl, TwrpGdWebServerControl, ComServer.TypeLib, IID_IgdWebServerControl);
   {$ENDIF}
   RegisterGdcOLEClass(TgsFTPClient, TwrpFTPClient, ComServer.TypeLib, IID_IgsFTPClient);
+  RegisterGdcOLEClass(TgsTRPOSClient, TwrpTRPOSClient, ComServer.TypeLib, IID_IgsTRPOSClient);
+  RegisterGdcOLEClass(TgsTRPOSOutPutData, TwrpTRPOSOutPutData, ComServer.TypeLib, IID_IgsTRPOSOutPutData);
+
 end.
