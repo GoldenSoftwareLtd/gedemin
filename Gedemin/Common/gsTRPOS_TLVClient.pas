@@ -6,25 +6,28 @@ uses
   Windows, Classes, SysUtils, IdTCPClient, IdGlobal;
 
 type
-  TOutPutInfo = record
-    MessageID: String;
+  TgsTRPOSOutPutData = class(TObject)
+  public
+    MessageID: AnsiString;
     ECRnumber: Cardinal;
     ERN: Cardinal;
-    ResponseCode: String;
-    TransactionAmount: String;
-    Pan: String;
-    ExpDate: String;
-    Approve: String;
-    Receipt: String;
-    InvoiceNumber: String;
-    AuthorizationID: String;
-    Date: String;
-    Time: String;
-    VerificationChr: String;
-    RRN: String;
-    TVR: String;
-    TerminalID: String;
-    CardDataEnc: String;
+    ResponseCode: AnsiString;
+    TransactionAmount: AnsiString;
+    Pan: AnsiString;
+    ExpDate: AnsiString;
+    Approve: AnsiString;
+    Receipt: AnsiString;
+    InvoiceNumber: AnsiString;
+    AuthorizationID: AnsiString;
+    Date: AnsiString;
+    Time: AnsiString;
+    VerificationChr: AnsiString;
+    RRN: AnsiString;
+    TVR: AnsiString;
+    TerminalID: AnsiString;
+    CardDataEnc: AnsiString;
+
+    procedure Clear;
   end;
 
   TgsTRPOSParamData = class(TObject)
@@ -53,7 +56,7 @@ type
   end;
 
 
-  TgsTRPOS_TLVClient = class(TObject)
+  TgsTRPOSClient = class(TObject)
   private
     FTCPClient: TIdTCPClient;
     FHost: String;
@@ -63,6 +66,7 @@ type
     function GetParamString(ATag: Cardinal; ALen: Integer;
       const AValue: String; const AFixedLen: Boolean = True): String; overload;
     function GetParamString(AParam: TgsTRPOSParamData): String; overload;
+    function GetConnected: Boolean;
 
     function GetTrack1Data(const AData: String): String;
     function GetTrack2Data(const AData: String): String;
@@ -75,10 +79,10 @@ type
     function GetERN(const ANumber: Cardinal): String;
     function GetCurrencyCode(const ANumber: Integer): String;
     function GetTransactionAmount(const ASumm: Currency): String;
-    function GetSubFunction(const AID: Cardinal): String;    
+    function GetSubFunction(const AID: Cardinal): String;
     function GetTag(const AStr: String; var I: Integer): Cardinal;
     function GetLen(const AStr: String; var I: Integer): Cardinal;
-    function GetData(const AStr: String): TOutPutInfo;
+    procedure GetData(const AStr: String; AParams: TgsTRPOSOutPutData);
     procedure InternalMessages(const ATag: String; ATrNumber: Cardinal;
       ACashNumber: Cardinal; const ASumm: Currency = -1; const ACurrCode: Integer = -1;
       const AParam: TgsTRPOSParamData = nil);
@@ -88,8 +92,8 @@ type
   public
     constructor Create;
     destructor Destroy; override;
-    
-    function ReadData: TOutPutInfo;
+
+    procedure ReadData(AParams: TgsTRPOSOutPutData);
     procedure Connect;
     procedure Disconnect;
     procedure Payment(ASumm: Currency; ATrNumber: Cardinal;
@@ -138,9 +142,10 @@ type
     property Host: String read FHost write SetHost;
     property Port: Integer read FPort write SetPort;
     property ReadTimeOut: Integer read FReadTimeOut write FReadTimeOut default IdTimeoutDefault;
+    property Connected: Boolean read GetConnected;
   end;
 
-  EgsTRPOS_TLVClient = class(Exception);
+  EgsTRPOSClient = class(Exception);
 
 implementation
 
@@ -220,20 +225,20 @@ begin
   BinToHex(@Buffer[1], @Result[1], Length(Buffer));
 end;
 
-constructor TgsTRPOS_TLVClient.Create;
+constructor TgsTRPOSClient.Create;
 begin
-  inherited;
+  inherited Create;
   FTCPClient := TIdTCPClient.Create(nil);
 end;
 
-destructor TgsTRPOS_TLVClient.Destroy;
+destructor TgsTRPOSClient.Destroy;
 begin
   Disconnect;
   FTCPClient.Free;
   inherited;
 end;
 
-procedure TgsTRPOS_TLVClient.ReconciliationResults(ATrNumber: Cardinal; ACashNumber: Cardinal);
+procedure TgsTRPOSClient.ReconciliationResults(ATrNumber: Cardinal; ACashNumber: Cardinal);
 begin
   WriteBuffer(GetMessageID(OM_SRVOperation) +
     GetECRnumber(ACashNumber) +
@@ -241,7 +246,7 @@ begin
     GetERN(ATrNumber));
 end;
 
-procedure TgsTRPOS_TLVClient.TestPinPad(ATrNumber: Cardinal; ACashNumber: Cardinal);
+procedure TgsTRPOSClient.TestPinPad(ATrNumber: Cardinal; ACashNumber: Cardinal);
 begin
   WriteBuffer(GetMessageID(OM_SRVOperation) +
     GetECRnumber(ACashNumber) +
@@ -249,7 +254,7 @@ begin
     GetERN(ATrNumber));
 end;
 
-procedure TgsTRPOS_TLVClient.TestHost(ATrNumber: Cardinal; ACashNumber: Cardinal);
+procedure TgsTRPOSClient.TestHost(ATrNumber: Cardinal; ACashNumber: Cardinal);
 begin
   WriteBuffer(GetMessageID(OM_SRVOperation) +
     GetECRnumber(ACashNumber) +
@@ -257,7 +262,7 @@ begin
     GetERN(ATrNumber));
 end;
 
-procedure TgsTRPOS_TLVClient.Duplicate(ATrNumber: Cardinal; ACashNumber: Cardinal);
+procedure TgsTRPOSClient.Duplicate(ATrNumber: Cardinal; ACashNumber: Cardinal);
 begin
   WriteBuffer(GetMessageID(OM_SRVOperation) +
     GetECRnumber(ACashNumber) +
@@ -265,7 +270,7 @@ begin
     GetERN(ATrNumber));
 end;
 
-procedure TgsTRPOS_TLVClient.JRNClean(ATrNumber: Cardinal; ACashNumber: Cardinal);
+procedure TgsTRPOSClient.JRNClean(ATrNumber: Cardinal; ACashNumber: Cardinal);
 begin
   WriteBuffer(GetMessageID(OM_SRVOperation) +
     GetECRnumber(ACashNumber) +
@@ -273,7 +278,7 @@ begin
     GetERN(ATrNumber));
 end;
 
-procedure TgsTRPOS_TLVClient.FullClean(ATrNumber: Cardinal; ACashNumber: Cardinal);
+procedure TgsTRPOSClient.FullClean(ATrNumber: Cardinal; ACashNumber: Cardinal);
 begin
   WriteBuffer(GetMessageID(OM_SRVOperation) +
     GetECRnumber(ACashNumber) +
@@ -281,7 +286,7 @@ begin
     GetERN(ATrNumber));
 end;
 
-procedure TgsTRPOS_TLVClient.RVRClean(ATrNumber: Cardinal; ACashNumber: Cardinal);
+procedure TgsTRPOSClient.RVRClean(ATrNumber: Cardinal; ACashNumber: Cardinal);
 begin
   WriteBuffer(GetMessageID(OM_SRVOperation) +
     GetECRnumber(ACashNumber) +
@@ -289,7 +294,7 @@ begin
     GetERN(ATrNumber));
 end;
 
-procedure TgsTRPOS_TLVClient.MenuPrintReport(ATrNumber: Cardinal; ACashNumber: Cardinal);
+procedure TgsTRPOSClient.MenuPrintReport(ATrNumber: Cardinal; ACashNumber: Cardinal);
 begin
   WriteBuffer(GetMessageID(OM_SRVOperation) +
     GetECRnumber(ACashNumber) +
@@ -297,7 +302,7 @@ begin
     GetERN(ATrNumber));
 end;
 
-procedure TgsTRPOS_TLVClient.DSortByDate(ATrNumber: Cardinal; ACashNumber: Cardinal);
+procedure TgsTRPOSClient.DSortByDate(ATrNumber: Cardinal; ACashNumber: Cardinal);
 begin
   WriteBuffer(GetMessageID(OM_SRVOperation) +
     GetECRnumber(ACashNumber) +
@@ -305,7 +310,7 @@ begin
     GetERN(ATrNumber));
 end;
 
-procedure TgsTRPOS_TLVClient.DSortByIssuer(ATrNumber: Cardinal; ACashNumber: Cardinal);
+procedure TgsTRPOSClient.DSortByIssuer(ATrNumber: Cardinal; ACashNumber: Cardinal);
 begin
   WriteBuffer(GetMessageID(OM_SRVOperation) +
     GetECRnumber(ACashNumber) +
@@ -313,7 +318,7 @@ begin
     GetERN(ATrNumber));
 end;
 
-procedure TgsTRPOS_TLVClient.SSortByDate(ATrNumber: Cardinal; ACashNumber: Cardinal);
+procedure TgsTRPOSClient.SSortByDate(ATrNumber: Cardinal; ACashNumber: Cardinal);
 begin
   WriteBuffer(GetMessageID(OM_SRVOperation) +
     GetECRnumber(ACashNumber) +
@@ -321,7 +326,7 @@ begin
     GetERN(ATrNumber));
 end;
 
-procedure TgsTRPOS_TLVClient.RePrint(ATrNumber: Cardinal; ACashNumber: Cardinal);
+procedure TgsTRPOSClient.RePrint(ATrNumber: Cardinal; ACashNumber: Cardinal);
 begin
   WriteBuffer(GetMessageID(OM_SRVOperation) +
     GetECRnumber(ACashNumber) +
@@ -329,37 +334,37 @@ begin
     GetERN(ATrNumber));
 end;
 
-function TgsTRPOS_TLVClient.GetTrack1Data(const AData: String): String;
+function TgsTRPOSClient.GetTrack1Data(const AData: String): String;
 begin
   Result := GetParamString(TagValue[IT_Track1Data], TagLength[IT_Track1Data], AData, False);
 end;
 
-function TgsTRPOS_TLVClient.GetTrack2Data(const AData: String): String;
+function TgsTRPOSClient.GetTrack2Data(const AData: String): String;
 begin
   Result := GetParamString(TagValue[IT_Track2Data], TagLength[IT_Track2Data], AData, False);
 end;
 
-function TgsTRPOS_TLVClient.GetTrack3Data(const AData: String): String;
+function TgsTRPOSClient.GetTrack3Data(const AData: String): String;
 begin
   Result := GetParamString(TagValue[IT_Track3Data], TagLength[IT_Track3Data], AData, False);
 end;
 
-function TgsTRPOS_TLVClient.GetPan(const AData: String): String;
+function TgsTRPOSClient.GetPan(const AData: String): String;
 begin
   Result := GetParamString(TagValue[IT_Pan], TagLength[IT_Pan], AData, False);
 end;
 
-function TgsTRPOS_TLVClient.GetExpDate(const AData: String): String;
+function TgsTRPOSClient.GetExpDate(const AData: String): String;
 begin
   Result := GetParamString(TagValue[IT_ExpDate], TagLength[IT_ExpDate], AData);
 end;
 
-function TgsTRPOS_TLVClient.GetInvoiceNumber(const ANumber: Integer): String;
+function TgsTRPOSClient.GetInvoiceNumber(const ANumber: Integer): String;
 begin
   Result := GetParamString(TagValue[IT_InvoiceNumber], TagLength[IT_InvoiceNumber], IntToStr(ANumber));
 end;
 
-function TgsTRPOS_TLVClient.GetParamString(AParam: TgsTRPOSParamData): String;
+function TgsTRPOSClient.GetParamString(AParam: TgsTRPOSParamData): String;
 begin
   Result := '';
   if AParam <> nil then
@@ -379,37 +384,37 @@ begin
   end;
 end;
 
-function TgsTRPOS_TLVClient.ReadData: TOutPutInfo;
+procedure TgsTRPOSClient.ReadData(AParams: TgsTRPOSOutPutData);
 begin
-  Result := GetData(FTCPClient.ReadLn('', FReadTimeOut));
+  GetData(FTCPClient.ReadLn('', FReadTimeOut), AParams);
 end;
 
-function TgsTRPOS_TLVClient.GetSubFunction(const AID: Cardinal): String;
+function TgsTRPOSClient.GetSubFunction(const AID: Cardinal): String;
 begin
   Result := GetParamString(TagValue[IT_SRVsubfunction], TagLength[IT_SRVsubfunction], IntToStr(AID));
 end;
 
-function TgsTRPOS_TLVClient.GetParamString(ATag: Cardinal; ALen: Integer;
+function TgsTRPOSClient.GetParamString(ATag: Cardinal; ALen: Integer;
   const AValue: String; const AFixedLen: Boolean = True): String;
 begin
   if Length(AValue) > ALen then
-    raise EgsTRPOS_TLVClient.Create('Incorrect input parameter!');
+    raise EgsTRPOSClient.Create('Incorrect input parameter!');
   if AFixedLen then
   begin
     SetLength(Result, ALen);
-    FillChar(Result, SizeOf(Result), ord('0'));
+    FillChar(Result[1], Length(Result), ord('0'));
     Move(AValue[1], Result[abs(ALen - Length(AValue)) + 1], Length(AValue));
     Result := chr(ATag) + chr(ALen) + Result;
   end else
     Result := chr(ATag) + chr(Length(AValue)) + AValue;
 end;
 
-function TgsTRPOS_TLVClient.GetCurrencyCode(const ANumber: Integer): String;
+function TgsTRPOSClient.GetCurrencyCode(const ANumber: Integer): String;
 begin
   Result := GetParamString(TagValue[IT_Currency], TagLength[IT_Currency], IntToStr(ANumber));
 end;
 
-function TgsTRPOS_TLVClient.GetTag(const AStr: String; var I: Integer): Cardinal;
+function TgsTRPOSClient.GetTag(const AStr: String; var I: Integer): Cardinal;
 var
   Tag: String;
   IsTag: Boolean;
@@ -432,7 +437,7 @@ begin
   Inc(I);
 end;
 
-function TgsTRPOS_TLVClient.GetLen(const AStr: String; var I: Integer): Cardinal;
+function TgsTRPOSClient.GetLen(const AStr: String; var I: Integer): Cardinal;
 var
   Count: Integer;
 begin
@@ -446,22 +451,22 @@ begin
   Inc(I, Count);
 end;
 
-function TgsTRPOS_TLVClient.GetMessageID(const AMessage: String): String;
+function TgsTRPOSClient.GetMessageID(const AMessage: String): String;
 begin
   Result := GetParamString(TagValue[IT_MessageID], TagLength[IT_MessageID], AMessage);
 end;
 
-function TgsTRPOS_TLVClient.GetECRnumber(const ANumber: Cardinal): String;
+function TgsTRPOSClient.GetECRnumber(const ANumber: Cardinal): String;
 begin
   Result := GetParamString(TagValue[IT_ECRnumber], TagLength[IT_ECRnumber], IntToStr(ANumber));
 end;
 
-function TgsTRPOS_TLVClient.GetERN(const ANumber: Cardinal): String;
+function TgsTRPOSClient.GetERN(const ANumber: Cardinal): String;
 begin
   Result := GetParamString(TagValue[IT_ERN], TagLength[IT_ERN], IntToStr(ANumber));
 end;
 
-function TgsTRPOS_TLVClient.GetTransactionAmount(const ASumm: Currency): String;
+function TgsTRPOSClient.GetTransactionAmount(const ASumm: Currency): String;
 var
   TempS: String;
 begin
@@ -470,41 +475,40 @@ begin
   Result := GetParamString(TagValue[IT_TransactionAmount], TagLength[IT_TransactionAmount], TempS);
 end;
 
-function TgsTRPOS_TLVClient.GetData(const AStr: String): TOutPutInfo;
+procedure TgsTRPOSClient.GetData(const AStr: String; AParams: TgsTRPOSOutPutData);
 var
   I, Len, Tag: Integer;
 begin
-  FillChar(Result, SizeOf(Result), 0);
   I := 1;
   while I < Length(AStr) do
   begin
     Tag := GetTag(AStr, I);
     Len := GetLen(AStr, I);
     case Tag of
-      OT_MessageID: Result.MessageID := System.Copy(AStr, I, Len);
-      OT_ECRnumber: Result.ECRnumber := StrToInt(System.Copy(AStr, I, Len));
-      OT_ERN: Result.ERN := StrToInt(System.Copy(AStr, I, Len));
-      OT_ResponseCode:  Result.ResponseCode := System.Copy(AStr, I, Len);
-      OT_TransactionAmount: Result.TransactionAmount := System.Copy(AStr, I, Len);
-      OT_PAN: Result.Pan := System.Copy(AStr, I, Len);
-      OT_ExpDate: Result.ExpDate := System.Copy(AStr, I, Len);
-      OT_InvoiceNumber: Result.InvoiceNumber := System.Copy(AStr, I, Len);
-      OT_AuthorizationID: Result.AuthorizationID := System.Copy(AStr, I, Len);
-      OT_Approve: Result.Approve := System.Copy(AStr, I, Len);
-      OT_Receipt: Result.Receipt := System.Copy(AStr, I, Len);
-      OT_Date: Result.Date := System.Copy(AStr, I, Len);
-      OT_Time: Result.Time := System.Copy(AStr, I, Len);
-      OT_VerificationChr: Result.VerificationChr := System.Copy(AStr, I, Len);
-      OT_RRN: Result.RRN := System.Copy(AStr, I, Len);
-      OT_TVR: Result.TVR := System.Copy(AStr, I, Len);
-      OT_TerminalID: Result.TerminalID := System.Copy(AStr, I, Len);
-      OT_CardDataEnc: Result.CardDataEnc := System.Copy(AStr, I, Len);
+      OT_MessageID: AParams.MessageID := System.Copy(AStr, I, Len);
+      OT_ECRnumber: AParams.ECRnumber := StrToInt(System.Copy(AStr, I, Len));
+      OT_ERN: AParams.ERN := StrToInt(System.Copy(AStr, I, Len));
+      OT_ResponseCode: AParams.ResponseCode := System.Copy(AStr, I, Len);
+      OT_TransactionAmount: AParams.TransactionAmount := System.Copy(AStr, I, Len);
+      OT_PAN: AParams.Pan := System.Copy(AStr, I, Len);
+      OT_ExpDate: AParams.ExpDate := System.Copy(AStr, I, Len);
+      OT_InvoiceNumber: AParams.InvoiceNumber := System.Copy(AStr, I, Len);
+      OT_AuthorizationID: AParams.AuthorizationID := System.Copy(AStr, I, Len);
+      OT_Approve: AParams.Approve := System.Copy(AStr, I, Len);
+      OT_Receipt: AParams.Receipt := System.Copy(AStr, I, Len);
+      OT_Date: AParams.Date := System.Copy(AStr, I, Len);
+      OT_Time: AParams.Time := System.Copy(AStr, I, Len);
+      OT_VerificationChr: AParams.VerificationChr := System.Copy(AStr, I, Len);
+      OT_RRN: AParams.RRN := System.Copy(AStr, I, Len);
+      OT_TVR: AParams.TVR := System.Copy(AStr, I, Len);
+      OT_TerminalID: AParams.TerminalID := System.Copy(AStr, I, Len);
+      OT_CardDataEnc: AParams.CardDataEnc := System.Copy(AStr, I, Len);
     end;
     Inc(I, Len);
   end;
 end;
 
-procedure TgsTRPOS_TLVClient.Connect;
+procedure TgsTRPOSClient.Connect;
 begin
   if not FTCPClient.Connected then
   begin
@@ -514,13 +518,13 @@ begin
   end;
 end;
 
-procedure TgsTRPOS_TLVClient.Disconnect;
+procedure TgsTRPOSClient.Disconnect;
 begin
   if FTCPClient.Connected then
     FTCPClient.Disconnect;
 end;
 
-procedure TgsTRPOS_TLVClient.SetHost(const AValue: String);
+procedure TgsTRPOSClient.SetHost(const AValue: String);
 begin
   if FHost <> AValue then
   begin
@@ -529,7 +533,7 @@ begin
   end;
 end;
 
-procedure TgsTRPOS_TLVClient.SetPort(const AValue: Integer);
+procedure TgsTRPOSClient.SetPort(const AValue: Integer);
 begin
   if FPort <> AValue then
   begin
@@ -538,7 +542,12 @@ begin
   end;
 end;
 
-procedure TgsTRPOS_TLVClient.Payment(ASumm: Currency; ATrNumber: Cardinal;
+function TgsTRPOSClient.GetConnected: Boolean;
+begin
+  Result := FTCPClient.Connected;
+end;
+
+procedure TgsTRPOSClient.Payment(ASumm: Currency; ATrNumber: Cardinal;
   ACashNumber: Cardinal; const ACurrCode: Integer = -1;
   const APreAUT: Boolean = False; const AParam: TgsTRPOSParamData = nil);
 begin
@@ -548,72 +557,72 @@ begin
     InternalMessages(OM_Payment, ATrNumber, ACashNumber, ASumm, ACurrCode, AParam);
 end;
 
-procedure TgsTRPOS_TLVClient.Return(ASumm: Currency; ATrNumber: Cardinal;
+procedure TgsTRPOSClient.Return(ASumm: Currency; ATrNumber: Cardinal;
   ACashNumber: Cardinal; const ACurrCode: Integer = -1;
   const AParam: TgsTRPOSParamData = nil);
 begin
   InternalMessages(OM_Return, ATrNumber, ACashNumber, ASumm, ACurrCode, AParam);
 end;
 
-procedure TgsTRPOS_TLVClient.Cancel(ASumm: Currency; ATrNumber: Cardinal;
+procedure TgsTRPOSClient.Cancel(ASumm: Currency; ATrNumber: Cardinal;
   ACashNumber: Cardinal; const ACurrCode: Integer = -1;
   const AParam: TgsTRPOSParamData = nil);
 begin  
   InternalMessages(OM_Cancel, ATrNumber, ACashNumber, ASumm, ACurrCode, AParam);
 end;
 
-procedure TgsTRPOS_TLVClient.ReadJournal(ATrNumber: Cardinal; ACashNumber: Cardinal;
+procedure TgsTRPOSClient.ReadJournal(ATrNumber: Cardinal; ACashNumber: Cardinal;
   const AParam: TgsTRPOSParamData = nil);
 begin
   InternalMessages(OM_Journal, ATrNumber, ACashNumber, -1, -1, AParam);
 end; 
 
-procedure TgsTRPOS_TLVClient.PreAuthorize(ASumm: Currency; ATrNumber: Cardinal;
+procedure TgsTRPOSClient.PreAuthorize(ASumm: Currency; ATrNumber: Cardinal;
   ACashNumber: Cardinal; const ACurrCode: Integer = -1;
   const AParam: TgsTRPOSParamData = nil);
 begin
   InternalMessages(OM_PreAuthorize, ATrNumber, ACashNumber, ASumm, ACurrCode, AParam);
 end;
 
-procedure TgsTRPOS_TLVClient.ResetLockJournal(ATrNumber: Cardinal; ACashNumber: Cardinal;
+procedure TgsTRPOSClient.ResetLockJournal(ATrNumber: Cardinal; ACashNumber: Cardinal;
   const AParam: TgsTRPOSParamData = nil);
 begin
   InternalMessages(OM_ResetLockJRN, ATrNumber, ACashNumber, -1, -1, AParam);
 end;
 
-procedure TgsTRPOS_TLVClient.Calculation(ATrNumber: Cardinal; ACashNumber: Cardinal;
+procedure TgsTRPOSClient.Calculation(ATrNumber: Cardinal; ACashNumber: Cardinal;
   const AParam: TgsTRPOSParamData = nil);
 begin
   InternalMessages(OM_Calculation, ATrNumber, ACashNumber, -1, -1, AParam);
 end;
 
-procedure TgsTRPOS_TLVClient.ReadCard(ATrNumber: Cardinal; ACashNumber: Cardinal;
+procedure TgsTRPOSClient.ReadCard(ATrNumber: Cardinal; ACashNumber: Cardinal;
   const AParam: TgsTRPOSParamData = nil);
 begin
   InternalMessages(OM_ReadCard, ATrNumber, ACashNumber, -1, -1, AParam);
 end;
 
-procedure TgsTRPOS_TLVClient.Ping(ATrNumber: Cardinal; ACashNumber: Cardinal;
+procedure TgsTRPOSClient.Ping(ATrNumber: Cardinal; ACashNumber: Cardinal;
   const AParam: TgsTRPOSParamData = nil);
 begin
   InternalMessages(OM_Ping, ATrNumber, ACashNumber, -1, -1, AParam);
 end;
 
-procedure TgsTRPOS_TLVClient.Cash(ASumm: Currency; ATrNumber: Cardinal;
+procedure TgsTRPOSClient.Cash(ASumm: Currency; ATrNumber: Cardinal;
   ACashNumber: Cardinal; const ACurrCode: Integer = -1;
   const AParam: TgsTRPOSParamData = nil);
 begin
   InternalMessages(OM_Cash, ATrNumber, ACashNumber, ASumm, ACurrCode, AParam);
 end;
 
-procedure TgsTRPOS_TLVClient.Replenishment(ASumm: Currency; ATrNumber: Cardinal;
+procedure TgsTRPOSClient.Replenishment(ASumm: Currency; ATrNumber: Cardinal;
   ACashNumber: Cardinal; const ACurrCode: Integer = -1;
   const AParam: TgsTRPOSParamData = nil);
 begin
   InternalMessages(OM_Replenishment, ATrNumber, ACashNumber, ASumm, ACurrCode, AParam);
 end;
 
-procedure TgsTRPOS_TLVClient.InternalMessages(const ATag: String; ATrNumber: Cardinal;
+procedure TgsTRPOSClient.InternalMessages(const ATag: String; ATrNumber: Cardinal;
   ACashNumber: Cardinal; const ASumm: Currency = -1; const ACurrCode: Integer = -1;
   const AParam: TgsTRPOSParamData = nil);
 var
@@ -630,15 +639,37 @@ begin
   WriteBuffer(TempS);
 end;
 
-procedure TgsTRPOS_TLVClient.Balance(ATrNumber: Cardinal; ACashNumber: Cardinal;
+procedure TgsTRPOSClient.Balance(ATrNumber: Cardinal; ACashNumber: Cardinal;
   const AParam: TgsTRPOSParamData = nil);
 begin
   InternalMessages(OM_Balance, ATrNumber, ACashNumber, -1, -1, AParam);
 end;
 
-procedure TgsTRPOS_TLVClient.WriteBuffer(const ABuffer: String);
+procedure TgsTRPOSClient.WriteBuffer(const ABuffer: String);
 begin
   FTCPClient.WriteLn(ABuffer);
+end;
+
+procedure TgsTRPOSOutPutData.Clear;
+begin
+  MessageID := '';
+  ECRnumber := 0;
+  ERN := 0;
+  ResponseCode := '';
+  TransactionAmount := '';
+  Pan := '';
+  ExpDate := '';
+  Approve := '';
+  Receipt := '';
+  InvoiceNumber := '';
+  AuthorizationID := '';
+  Date := '';
+  Time := '';
+  VerificationChr := '';
+  RRN := '';
+  TVR := '';
+  TerminalID := '';
+  CardDataEnc := '';
 end;
 
 end.
