@@ -3848,6 +3848,27 @@ type
     procedure Connect; safecall;
     procedure Disconnect; safecall;
     procedure ReadData(const AParams: IgsTRPOSOutPutData); safecall;
+    procedure Payment(ASumm: Currency; ATrNumber: LongWord; ACashNumber: LongWord;
+      ACurrCode: Integer; APreAUT: WordBool; const AParam: IgsTRPOSParamData); safecall;
+    procedure Cash(ASumm: Currency; ATrNumber: LongWord; ACashNumber: LongWord; ACurrCode: Integer; 
+      const AParam: IgsTRPOSParamData); safecall;
+    procedure Replenishment(ASumm: Currency; ATrNumber: LongWord; ACashNumber: LongWord; 
+      ACurrCode: Integer; const AParam: IgsTRPOSParamData); safecall;
+    procedure Cancel(ASumm: Currency; ATrNumber: LongWord; ACashNumber: LongWord; 
+      ACurrCode: Integer; const AParam: IgsTRPOSParamData); safecall;
+    procedure Return(ASumm: Currency; ATrNumber: LongWord; ACashNumber: LongWord; 
+      ACurrCode: Integer; const AParam: IgsTRPOSParamData); safecall;
+    procedure ReadJournal(ATrNumber: LongWord; ACashNumber: LongWord; 
+      const AParam: IgsTRPOSParamData); safecall;
+    procedure PreAuthorize(ASumm: Currency; ATrNumber: LongWord; ACashNumber: LongWord; 
+      ACurrCode: Integer; const AParam: IgsTRPOSParamData); safecall;
+    procedure Balance(ATrNumber: LongWord; ACashNumber: LongWord; const AParam: IgsTRPOSParamData); safecall;
+    procedure ResetLockJournal(ATrNumber: LongWord; ACashNumber: LongWord; 
+      const AParam: IgsTRPOSParamData); safecall;
+    procedure Calculation(ATrNumber: LongWord; ACashNumber: LongWord; 
+      const AParam: IgsTRPOSParamData); safecall;
+    procedure Ping(ATrNumber: LongWord; ACashNumber: LongWord; const AParam: IgsTRPOSParamData); safecall;
+    procedure ReadCard(ATrNumber: LongWord; ACashNumber: LongWord; const AParam: IgsTRPOSParamData); safecall;
   public
     class function CreateObject(const DelphiClass: TClass; const Params: OleVariant): TObject; override;
   end;
@@ -3874,6 +3895,32 @@ type
     function  Get_TVR: WideString; safecall;
     function  Get_TerminalID: WideString; safecall;
     function  Get_CardDataEnc: WideString; safecall;
+  end;
+
+  TwrpTRPOSParamData = class(TwrpObject, IgsTRPOSParamData)
+  private
+    function GetTRPOSParamData: TgsTRPOSParamData;
+  protected
+    function  Get_Track1Data: WideString; safecall;
+    procedure Set_Track1Data(const Value: WideString); safecall;
+    function  Get_Track2Data: WideString; safecall;
+    procedure Set_Track2Data(const Value: WideString); safecall;
+    function  Get_Track3Data: WideString; safecall;
+    procedure Set_Track3Data(const Value: WideString); safecall;
+    function  Get_Pan: WideString; safecall;
+    procedure Set_Pan(const Value: WideString); safecall;
+    function  Get_ExpDate: WideString; safecall;
+    procedure Set_ExpDate(const Value: WideString); safecall;
+    function  Get_InvoiceNumber: Integer; safecall;
+    procedure Set_InvoiceNumber(Value: Integer); safecall;
+    function  Get_AuthorizationID: Integer; safecall;
+    procedure Set_AuthorizationID(Value: Integer); safecall;
+    function  Get_MerchantID: Integer; safecall;
+    procedure Set_MerchantID(Value: Integer); safecall;
+    function  Get_RRN: WideString; safecall;
+    procedure Set_RRN(const Value: WideString); safecall;
+    function  Get_CardDataEnc: WideString; safecall;
+    procedure Set_CardDataEnc(const Value: WideString); safecall;  
   end;
 
 
@@ -18491,6 +18538,81 @@ begin
   GetTRPOSClient.ReadData(InterfaceToObject(AParams) as TgsTRPOSOutPutData);
 end;
 
+procedure TwrpTRPOSClient.Payment(ASumm: Currency; ATrNumber: LongWord; ACashNumber: LongWord;
+  ACurrCode: Integer; APreAUT: WordBool; const AParam: IgsTRPOSParamData);
+begin
+  GetTRPOSClient.Payment(ASumm, ATrNumber, ACashNumber, ACurrCode, APreAUT,
+    InterfaceToObject(AParam) as TgsTRPOSParamData);
+end;
+
+procedure TwrpTRPOSClient.Cash(ASumm: Currency; ATrNumber: LongWord; ACashNumber: LongWord; ACurrCode: Integer;
+  const AParam: IgsTRPOSParamData); safecall;
+begin
+  GetTRPOSClient.Cash(ASumm, ATrNumber, ACashNumber, ACurrCode,
+    InterfaceToObject(AParam) as TgsTRPOSParamData);
+end;
+
+procedure TwrpTRPOSClient.Replenishment(ASumm: Currency; ATrNumber: LongWord; ACashNumber: LongWord;
+  ACurrCode: Integer; const AParam: IgsTRPOSParamData); safecall;
+begin
+  GetTRPOSClient.Replenishment(ASumm, ATrNumber, ACashNumber, ACurrCode,
+    InterfaceToObject(AParam) as TgsTRPOSParamData);
+end;
+
+procedure TwrpTRPOSClient.Cancel(ASumm: Currency; ATrNumber: LongWord; ACashNumber: LongWord;
+  ACurrCode: Integer; const AParam: IgsTRPOSParamData); safecall;
+begin
+  GetTRPOSClient.Cancel(ASumm, ATrNumber, ACashNumber, ACurrCode,
+    InterfaceToObject(AParam) as TgsTRPOSParamData);
+end;
+
+procedure TwrpTRPOSClient.Return(ASumm: Currency; ATrNumber: LongWord; ACashNumber: LongWord;
+  ACurrCode: Integer; const AParam: IgsTRPOSParamData); safecall;
+begin
+  GetTRPOSClient.Return(ASumm, ATrNumber, ACashNumber, ACurrCode,
+    InterfaceToObject(AParam) as TgsTRPOSParamData);
+end;
+
+procedure TwrpTRPOSClient.ReadJournal(ATrNumber: LongWord; ACashNumber: LongWord;
+  const AParam: IgsTRPOSParamData); safecall;
+begin
+  GetTRPOSClient.ReadJournal(ATrNumber, ACashNumber, InterfaceToObject(AParam) as TgsTRPOSParamData);
+end;
+
+procedure TwrpTRPOSClient.PreAuthorize(ASumm: Currency; ATrNumber: LongWord; ACashNumber: LongWord;
+  ACurrCode: Integer; const AParam: IgsTRPOSParamData);
+begin
+  GetTRPOSClient.PreAuthorize(ASumm, ATrNumber, ACashNumber, ACurrCode,
+    InterfaceToObject(AParam) as TgsTRPOSParamData);
+end;
+
+procedure TwrpTRPOSClient.Balance(ATrNumber: LongWord; ACashNumber: LongWord; const AParam: IgsTRPOSParamData);
+begin
+  GetTRPOSClient.Balance(ATrNumber, ACashNumber, InterfaceToObject(AParam) as TgsTRPOSParamData);
+end;
+
+procedure TwrpTRPOSClient.ResetLockJournal(ATrNumber: LongWord; ACashNumber: LongWord;
+  const AParam: IgsTRPOSParamData);
+begin
+  GetTRPOSClient.ResetLockJournal(ATrNumber, ACashNumber, InterfaceToObject(AParam) as TgsTRPOSParamData);
+end;
+
+procedure TwrpTRPOSClient.Calculation(ATrNumber: LongWord; ACashNumber: LongWord;
+  const AParam: IgsTRPOSParamData);
+begin
+  GetTRPOSClient.Calculation(ATrNumber, ACashNumber, InterfaceToObject(AParam) as TgsTRPOSParamData);
+end;
+
+procedure TwrpTRPOSClient.Ping(ATrNumber: LongWord; ACashNumber: LongWord; const AParam: IgsTRPOSParamData);
+begin
+  GetTRPOSClient.Ping(ATrNumber, ACashNumber, InterfaceToObject(AParam) as TgsTRPOSParamData);
+end;
+
+procedure TwrpTRPOSClient.ReadCard(ATrNumber: LongWord; ACashNumber: LongWord; const AParam: IgsTRPOSParamData);
+begin
+  GetTRPOSClient.ReadCard(ATrNumber, ACashNumber, InterfaceToObject(AParam) as TgsTRPOSParamData);
+end;
+
 function TwrpTRPOSClient.Get_ReadTimeOut: Integer;
 begin
   Result := GetTRPOSClient.ReadTimeOut;
@@ -18600,6 +18722,110 @@ end;
 function TwrpTRPOSOutPutData.Get_CardDataEnc: WideString;
 begin
   Result := GetTRPOSOutPutData.CardDataEnc;
+end;
+
+function TwrpTRPOSParamData.GetTRPOSParamData: TgsTRPOSParamData;
+begin
+  Result := GetObject as TgsTRPOSParamData;
+end;
+
+function TwrpTRPOSParamData.Get_Track1Data: WideString;
+begin
+  Result := GetTRPOSParamData.Track1Data;
+end;
+
+procedure TwrpTRPOSParamData.Set_Track1Data(const Value: WideString);
+begin
+  GetTRPOSParamData.Track1Data := Value;
+end;
+
+function TwrpTRPOSParamData.Get_Track2Data: WideString;
+begin
+  Result := GetTRPOSParamData.Track2Data;
+end;
+
+procedure TwrpTRPOSParamData.Set_Track2Data(const Value: WideString);
+begin
+  GetTRPOSParamData.Track2Data := Value;
+end;
+
+function TwrpTRPOSParamData.Get_Track3Data: WideString;
+begin
+  Result := GetTRPOSParamData.Track3Data;
+end;
+
+procedure TwrpTRPOSParamData.Set_Track3Data(const Value: WideString);
+begin
+  GetTRPOSParamData.Track3Data := Value;
+end;
+
+function TwrpTRPOSParamData.Get_Pan: WideString;
+begin
+  Result := GetTRPOSParamData.Pan;
+end;
+
+procedure TwrpTRPOSParamData.Set_Pan(const Value: WideString);
+begin
+  GetTRPOSParamData.Pan := Value;
+end;
+
+function TwrpTRPOSParamData.Get_ExpDate: WideString;
+begin
+  Result := GetTRPOSParamData.ExpDate;
+end;
+
+procedure TwrpTRPOSParamData.Set_ExpDate(const Value: WideString);
+begin
+  GetTRPOSParamData.ExpDate := Value;
+end;
+
+function TwrpTRPOSParamData.Get_InvoiceNumber: Integer;
+begin
+  Result := GetTRPOSParamData.InvoiceNumber;
+end;
+
+procedure TwrpTRPOSParamData.Set_InvoiceNumber(Value: Integer);
+begin
+  GetTRPOSParamData.InvoiceNumber := Value;
+end;
+
+function TwrpTRPOSParamData.Get_AuthorizationID: Integer;
+begin
+  Result := GetTRPOSParamData.AuthorizationID;
+end;
+
+procedure TwrpTRPOSParamData.Set_AuthorizationID(Value: Integer);
+begin
+end;
+
+function TwrpTRPOSParamData.Get_MerchantID: Integer;
+begin
+  Result := GetTRPOSParamData.MerchantID;
+end;
+
+procedure TwrpTRPOSParamData.Set_MerchantID(Value: Integer);
+begin
+  GetTRPOSParamData.MerchantID := Value;
+end;
+
+function TwrpTRPOSParamData.Get_RRN: WideString;
+begin
+  Result := GetTRPOSParamData.RRN;
+end;
+
+procedure TwrpTRPOSParamData.Set_RRN(const Value: WideString);
+begin
+  GetTRPOSParamData.RRN := Value;
+end;
+
+function TwrpTRPOSParamData.Get_CardDataEnc: WideString;
+begin
+  Result := GetTRPOSParamData.CardDataEnc;
+end;
+
+procedure TwrpTRPOSParamData.Set_CardDataEnc(const Value: WideString);
+begin
+  GetTRPOSParamData.CardDataEnc := Value;
 end;
 
 function TwrpGsComScaner.Get_PacketSize: Integer;
@@ -18873,5 +19099,6 @@ initialization
   RegisterGdcOLEClass(TgsFTPClient, TwrpFTPClient, ComServer.TypeLib, IID_IgsFTPClient);
   RegisterGdcOLEClass(TgsTRPOSClient, TwrpTRPOSClient, ComServer.TypeLib, IID_IgsTRPOSClient);
   RegisterGdcOLEClass(TgsTRPOSOutPutData, TwrpTRPOSOutPutData, ComServer.TypeLib, IID_IgsTRPOSOutPutData);
+  RegisterGdcOLEClass(TgsTRPOSParamData, TwrpTRPOSParamData, ComServer.TypeLib, IID_IgsTRPOSParamData);
 
 end.
