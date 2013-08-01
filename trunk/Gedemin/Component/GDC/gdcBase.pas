@@ -272,6 +272,26 @@ type
   end;
 
   //
+  TgdcSetAttribute = class(TObject)
+  private
+    FCrossRelationName: String;
+    FReferenceRelationName: String;
+    FSQL: String;
+    FCaption: String;
+
+  public
+    constructor Create(const ACrossRelationName: String;
+      const AReferenceRelationName: String;
+      const ASQL: String;
+      const ACaption: String);
+
+    property CrossRelationName: String read FCrossRelationName;
+    property ReferenceRelationName: String read FReferenceRelationName;
+    property SQL: String read FSQL;
+    property Caption: String read FCaption;
+  end;
+
+  //
   TgdcObjectSet = class
   private
     FgdClass: CgdcBase;
@@ -500,13 +520,10 @@ type
   // то мы должны перекрывать борландовские методы и
   // выполнять вставку, изменение, удаление по-свойму
 
-  { TODO : 
-фактически в КастомИнсерт и КастомМодифай нет никакого толку.
-Только КастомДелете сейчас используется в удалении нескольких
-одновременно. }
   TgsCustomProcess = (cpInsert, cpModify, cpDelete);
   TgsCustomProcesses = set of TgsCustomProcess;
 
+  /////////////////////////////////////////////////////////
   // используется для сохранения значений полей до редактирования
   // для того чтобы в последствии можно было отменить исправления
   TFieldValue = class(TObject)
@@ -600,6 +617,7 @@ type
     FDlgStack: TObjectStack;
     FSavedParams: TObjectList;
     FSetMasterField, FSetItemField: String;
+    FSetAttributes: TObjectList;
 
     FBeforeShowDialog: TgdcDoBeforeShowDialog;
     FAfterShowDialog: TgdcDoAfterShowDialog;
@@ -742,6 +760,9 @@ type
 
     procedure UpdateOldValues(Field: TField);
     procedure CheckDoFieldChange;
+    function GetSetAttributes(Index: Integer): TgdcSetAttribute;
+    function GetSetAttributesCount: Integer;
+    procedure CheckSetAttributes;
 
   protected
     FgdcDataLink: TgdcDataLink;
@@ -1777,6 +1798,10 @@ type
     property StreamProcessingAnswer: Word read FStreamProcessingAnswer write FStreamProcessingAnswer;
     // При копировании записи сюда заносится ключ оригинальной записи
     property CopiedObjectKey: TID read FCopiedObjectKey write FCopiedObjectKey;
+
+    //
+    property SetAttributesCount: Integer read GetSetAttributesCount;
+    property SetAttributes[Index: Integer]: TgdcSetAttribute read GetSetAttributes;
 
   published
     //У нас есть класс-функция, которая по умолчанию возвращает для класса
@@ -5162,6 +5187,9 @@ begin
 
   FVariables.Free;
   FObjects.Free;
+
+  FSetAttributes.Free;
+
   inherited Destroy;
 end;
 
@@ -17977,6 +18005,107 @@ begin
     finally
       SL.Free;
     end;
+  end;
+end;
+
+{ TgdcSetAttribute }
+
+constructor TgdcSetAttribute.Create(const ACrossRelationName,
+  AReferenceRelationName, ASQL, ACaption: String);
+begin
+  FCrossRelationName := ACrossRelationName;
+  FReferenceRelationName := AReferenceRelationName;
+  FSQL := ASQL;
+  FCaption := ACaption;
+end;
+
+function TgdcBase.GetSetAttributes(Index: Integer): TgdcSetAttribute;
+begin
+  CheckSetAttributes;
+  if (FSetAttributes = nil) or (Index < 0) or (Index >= FSetAttributes.Count) then
+    raise EgdcException.CreateObj('Invalid index', Self);
+  Result := FSetAttributes[Index] as TgdcSetAttribute;
+end;
+
+function TgdcBase.GetSetAttributesCount: Integer;
+begin
+  CheckSetAttributes;
+  if FSetAttributes = nil then
+    Result := 0
+  else
+    Result := FSetAttributes.Count;
+end;
+
+procedure TgdcBase.CheckSetAttributes;
+var
+  I, J: Integer;
+  PK: TatPrimaryKey;
+  RL: TStringList;
+  Capt: String;
+  C: TgdcFullClass;
+begin
+  if FSetAttributes <> nil then
+    exit;
+
+  FSetAttributes := TObjectList.Create(True);
+
+  RL := TStringList.Create;
+  try
+    RL.Sorted := True;
+    RL.Duplicates := dupIgnore;
+
+    GetTablesName(SelectSQL.Text, TStrings(RL));
+
+    for I := RL.Count - 1 downto 0 do
+    begin
+      if not Self.ClassType.InheritsFrom(GetBaseClassForRelation(RL[I]).gdClass) then
+        RL.Delete(I);
+    end;
+
+    for I := 0 to atDatabase.PrimaryKeys.Count - 1 do
+    begin
+      PK := atDatabase.PrimaryKeys[I];
+
+      if (PK.ConstraintFields.Count < 2)
+        or (PK.ConstraintFields[0].References = nil)
+        or (PK.ConstraintFields[1].References = nil)
+        or (RL.IndexOf(PK.ConstraintFields[0].References.RelationName) = -1) then
+        continue;
+
+      Capt := '';
+
+      for J := 0 to PK.ConstraintFields[0].References.RelationFields.Count - 1 do
+        if PK.ConstraintFields[0].References.RelationFields[J].CrossRelation = PK.Relation then
+        begin
+          Capt := PK.ConstraintFields[0].References.RelationFields[J].LShortName;
+          break;
+        end;
+
+      if Capt = '' then
+      begin
+        C := GetBaseClassForRelation(PK.Relation.RelationName);
+        if C.gdClass <> nil then
+          Capt := C.gdClass.GetDisplayName(C.SubType)
+        else
+          Capt := PK.Relation.LShortName;
+      end;
+
+      FSetAttributes.Add(TgdcSetAttribute.Create(
+        PK.Relation.RelationName,
+        PK.ConstraintFields[1].References.RelationName,
+        'SELECT cr.' + PK.ConstraintFields[1].FieldName + ',' +
+        '  rf.' + PK.ConstraintFields[1].References.ListField.FieldName + ' ' +
+        'FROM ' +
+        '  ' + PK.Relation.RelationName + ' cr ' +
+        '    JOIN ' + PK.ConstraintFields[1].References.RelationName + ' rf ' +
+        '      ON cr.' + PK.ConstraintFields[1].FieldName + '=' +
+            PK.ConstraintFields[1].ReferencesField.FieldName + ' ' +
+        'WHERE ' +
+        '  cr.' + PK.ConstraintFields[0].FieldName + '=:rf',
+        Capt));
+    end;
+  finally
+    RL.Free;
   end;
 end;
 

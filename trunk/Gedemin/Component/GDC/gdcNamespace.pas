@@ -55,7 +55,6 @@ type
     class function LoadNSInfo(const Path: String; ATr: TIBTransaction): Integer;
     class function CompareObj(ADataSet: TDataSet): Boolean;
     class procedure UpdateCurrModified(const ANamespaceKey: Integer = -1);
-    class procedure FillSet(AnObj: TgdcBase; AnOL: TObjectList);
     class procedure WriteChanges(ADataSet: TDataSet; AnObj: TgdcBase; ATr: TIBTransaction);
 
     procedure AddObject2(AnObject: TgdcBase; AnUL: TObjectList;
@@ -139,22 +138,6 @@ type
     Headobjectkey: Integer;
   end;
 
-  TgdcSetAttr = class(TObject)
-  private
-    FCrossRelationName: String;
-    FSQL: String;
-    FReferenceRelationName: String;
-
-  public
-    constructor Create(const ACrossRelationName: String;
-      const AReferenceRelationName: String;
-      const ASQL: String);
-
-    property CrossRelationName: String read FCrossRelationName;
-    property ReferenceRelationName: String read FReferenceRelationName;
-    property SQL: String read FSQL;
-  end;
-
 procedure Register;
 begin
   RegisterComponents('gdcNamespace', [TgdcNamespace, TgdcNamespaceObject]);
@@ -227,7 +210,6 @@ class procedure TgdcNamespace.WriteObject(AgdcObject: TgdcBase;
 
   procedure WriteSet(AnObj: TgdcBase; AWriter: TyamlWriter);
   var
-    OL: TObjectList;
     I: Integer;
     q: TIBSQL;
     SectionAdded: Boolean;
@@ -236,17 +218,21 @@ class procedure TgdcNamespace.WriteObject(AgdcObject: TgdcBase;
     Assert(AWriter <> nil);
 
     SectionAdded := False;
-    OL := TObjectList.Create;
     q := TIBSQL.Create(nil);
     try
       if AnObj.Transaction.InTransaction then
         q.Transaction := AnObj.Transaction
       else
         q.Transaction := AnObj.ReadTransaction;
-      FillSet(AnObj, OL);
-      for I := 0 to OL.Count - 1 do
+      for I := 0 to AnObj.SetAttributesCount - 1 do
       begin
-        q.SQL.Text := (OL[I] as TgdcSetAttr).SQL;
+        if AnsiCompareText(AnObj.SetAttributes[I].CrossRelationName, 'GD_LASTNUMBER') = 0 then
+          continue;
+
+        if AnsiCompareText(AnObj.SetAttributes[I].CrossRelationName, 'FLT_LASTFILTER') = 0 then
+          continue;
+
+        q.SQL.Text := AnObj.SetAttributes[I].SQL;
         q.ParamByName('rf').AsInteger := AnObj.ID;
         q.ExecQuery;
 
@@ -266,7 +252,7 @@ class procedure TgdcNamespace.WriteObject(AgdcObject: TgdcBase;
           AWriter.IncIndent;
           try
             AWriter.WriteTextValue('Table',
-              (OL[I] as TgdcSetAttr).CrossRelationName, qDoubleQuoted);
+              AnObj.SetAttributes[I].CrossRelationName, qDoubleQuoted);
 
             AWriter.StartNewLine;
             AWriter.WriteKey('Items');
@@ -295,7 +281,6 @@ class procedure TgdcNamespace.WriteObject(AgdcObject: TgdcBase;
         q.Close;
       end;
     finally
-      OL.Free;
       q.Free;
     end;
   end;
@@ -1519,65 +1504,6 @@ begin
         ObjList.Objects[I].Free;
       ObjList.Free;
     end;
-  end;
-end;
-
-
-class procedure TgdcNamespace.FillSet(AnObj: TgdcBase; AnOL: TObjectList);
-var
-  I: Integer;
-  PK: TatPrimaryKey;
-  RL: TStringList;
-begin
-  Assert(AnOL <> nil);
-  Assert(AnObj <> nil);
-
-  RL := TStringList.Create;
-  try
-    RL.Sorted := True;
-    RL.Duplicates := dupIgnore;
-
-    GetTablesName(AnObj.SelectSQL.Text, TStrings(RL));
-
-    for I := RL.Count - 1 downto 0 do
-    begin
-      if not AnObj.ClassType.InheritsFrom(GetBaseClassForRelation(RL[I]).gdClass) then
-        RL.Delete(I);
-    end;
-
-    for I := 0 to atDatabase.PrimaryKeys.Count - 1 do
-    begin
-      PK := atDatabase.PrimaryKeys[I];
-
-      if PK.ConstraintFields.Count <> 2 then
-        continue;
-
-      if AnsiCompareText(PK.Relation.RelationName, 'GD_LASTNUMBER') = 0 then
-        continue;
-
-      if AnsiCompareText(PK.Relation.RelationName, 'FLT_LASTFILTER') = 0 then
-        continue;
-
-      if (PK.ConstraintFields[0].References = nil)
-        or (PK.ConstraintFields[1].References = nil)
-        or (RL.IndexOf(PK.ConstraintFields[0].References.RelationName) = -1) then
-        continue;
-
-      AnOL.Add(TgdcSetAttr.Create(
-        PK.Relation.RelationName,
-        PK.ConstraintFields[1].References.RelationName,
-        'SELECT cr.' + PK.ConstraintFields[1].FieldName + ',' +
-        '  rf.' + PK.ConstraintFields[1].References.ListField.FieldName + ' ' +
-        'FROM ' +
-        '  ' + PK.Relation.RelationName + ' cr ' +
-        '    JOIN ' + PK.ConstraintFields[1].References.RelationName + ' rf ' +
-        '      ON cr.' + PK.ConstraintFields[1].FieldName + '=' +
-            PK.ConstraintFields[1].ReferencesField.FieldName + ' ' +
-        'WHERE ' +
-        '  cr.' + PK.ConstraintFields[0].FieldName + '=:rf'));
-    end;
-  finally
-    RL.Free;
   end;
 end;
 
@@ -3131,9 +3057,7 @@ var
 
   procedure GetSetAttr(AnObj: TgdcBase);
   var
-    OL: TObjectList;
     InstObj: TgdcBase;
-    SetAttr: TgdcSetAttr;
     q: TIBSQL;
     I, Ind, J: Integer;
     SL: TStringList;
@@ -3141,26 +3065,28 @@ var
   begin
     Assert(AnObj <> nil);
 
-    OL := TObjectList.Create;
     q := TIBSQL.Create(nil);
     try
       if AnObj.Transaction.InTransaction then
         q.Transaction := AnObj.Transaction
       else
         q.Transaction := AnObj.ReadTransaction;
-        
-      FillSet(AnObj, OL);
 
-      for I := 0 to OL.Count - 1 do
+      for I := 0 to AnObj.SetAttributesCount - 1 do
       begin
-        SetAttr := OL[I] as TgdcSetAttr;
+        if AnsiCompareText(AnObj.SetAttributes[I].CrossRelationName, 'GD_LASTNUMBER') = 0 then
+          continue;
 
-        gdcFullClass := GetBaseClassForRelation(SetAttr.ReferenceRelationName);
+        if AnsiCompareText(AnObj.SetAttributes[I].CrossRelationName, 'FLT_LASTFILTER') = 0 then
+          continue;
+      
+        gdcFullClass := GetBaseClassForRelation(AnObj.SetAttributes[I].ReferenceRelationName);
+
         if gdcFullClass.gdClass = nil then
           continue;
 
         q.Close;
-        q.SQL.Text := SetAttr.SQL;
+        q.SQL.Text := AnObj.SetAttributes[I].SQL;
         q.ParamByName('rf').AsInteger := AnObj.ID;
         q.ExecQuery;
 
@@ -3205,7 +3131,6 @@ var
         end;
       end;
     finally
-      OL.Free;
       q.Free;
     end;
   end;
@@ -3755,15 +3680,6 @@ begin
   finally
     Obj.Free;
   end;
-end;
-
-{ TgdcSetAttr }
-
-constructor TgdcSetAttr.Create(const ACrossRelationName, AReferenceRelationName, ASQL: String);
-begin
-  FCrossRelationName := ACrossRelationName;
-  FReferenceRelationName := AReferenceRelationName;
-  FSQL := ASQL;
 end;
 
 initialization
