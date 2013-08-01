@@ -140,15 +140,12 @@ end;
 
 procedure Tgdc_dlgTRPC.CreateTabSheet;
 var
-  I, J, K: Integer;
-  F, FD: TatRelationField;
+  I: Integer;
   TS: TTabSheet;
   SO: TgdcBase;
   C: TgdcFullClass;
   Fr: Tgdc_framSetControl;
   AttrLast: Boolean;
-  OL: TObjectList;
-  FList, LinkTableList: TStrings;
 begin
   //
   AttrLast := tbsAttr.PageIndex = pgcMain.PageCount - 1;
@@ -157,6 +154,61 @@ begin
     and (not FIsShowSetTabSheet)
     and Assigned(gdcObject) then
   begin
+    FIsShowSetTabSheet := True;
+
+    for I := 0 to gdcObject.SetAttributesCount - 1 do
+    begin
+      if not NeedVisibleTabSheet(gdcObject.SetAttributes[I].CrossRelationName) then
+        continue;
+
+      C := GetBaseClassForRelation(gdcObject.SetAttributes[I].ReferenceRelationName);
+
+      if C.gdClass = nil then
+        continue;
+
+      TS := TTabSheet.Create(Self);
+      TS.Name := cstTabSheetPrefix + CorrectRelationName(gdcObject.SetAttributes[I].CrossRelationName);
+      TS.Caption := gdcObject.SetAttributes[I].Caption;
+      TS.PageControl := pgcMain;
+
+      Fr := Tgdc_framSetControl.Create(Self);
+      Fr.Name := cstFramePrefix + CorrectRelationName(gdcObject.SetAttributes[I].CrossRelationName);
+      Fr.Parent := TS;
+      Fr.Transaction := ibtrCommon;
+      Fr.LoadSettings;
+      Fr.Align := alClient;
+
+      if GetgdcClass(gdcObject.SetAttributes[I].CrossRelationName) > '' then
+        Fr.gdcClass := GetgdcClass(gdcObject.SetAttributes[I].CrossRelationName)
+      else
+        Fr.gdcClass := C.gdClass.ClassName;
+
+      if GetChooseComponentName(gdcObject.SetAttributes[I].CrossRelationName) > '' then
+        Fr.ChooseComponentName := GetChooseComponentName(gdcObject.SetAttributes[I].CrossRelationName);
+
+      if GetChooseSubSet(gdcObject.SetAttributes[I].CrossRelationName) > '' then
+        Fr.ChooseSubSet := GetChooseSubSet(gdcObject.SetAttributes[I].CrossRelationName);
+
+      if GetChooseSubType(gdcObject.SetAttributes[I].CrossRelationName) > '' then
+        Fr.ChooseSubType := GetChooseSubType(gdcObject.SetAttributes[I].CrossRelationName)
+      else
+        Fr.ChooseSubType := C.SubType;
+
+      SO := C.gdClass.CreateSubType(Self, C.SubType);
+      SO.Name := cstFramePrefix + CorrectRelationName(gdcObject.SetAttributes[I].CrossRelationName)
+        + '_gdc';
+      SO.MasterSource := dsgdcBase;
+      SO.SetTable := gdcObject.SetAttributes[I].CrossRelationName;
+      SO.ReadTransaction := gdcObject.Transaction;
+
+      Fr.DS.DataSet := SO;
+
+      Fr.Lk.Transaction := ibtrCommon;
+      Fr.Lk.SubType := Fr.ChooseSubType;
+      Fr.Lk.gdClassName := Fr.gdcClass;
+    end;
+
+    (*
     LinkTableList := TStringList.Create;
     try
       FIsShowSetTabSheet := True;
@@ -313,7 +365,9 @@ begin
     finally
       LinkTableList.Free;
     end;
+    *)
   end;
+
   if AttrLast then
     tbsAttr.PageIndex := pgcMain.PageCount - 1;
 end;
