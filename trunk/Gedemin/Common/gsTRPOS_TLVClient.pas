@@ -391,7 +391,7 @@ end;
 
 function TgsTRPOSClient.GetSubFunction(const AID: Cardinal): String;
 begin
-  Result := GetParamString(TagValue[IT_SRVsubfunction], TagLength[IT_SRVsubfunction], IntToStr(AID));
+  Result := GetParamString(TagValue[IT_SRVsubfunction], TagLength[IT_SRVsubfunction], chr(AID));
 end;
 
 function TgsTRPOSClient.GetParamString(ATag: Cardinal; ALen: Integer;
