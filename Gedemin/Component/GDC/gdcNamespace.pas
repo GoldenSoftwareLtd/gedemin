@@ -4,7 +4,7 @@ unit gdcNamespace;
 interface
 
 uses
-  SysUtils, gdcBase, gdcBaseInterface, Classes, gd_ClassList,
+  SysUtils, gdcBase, gdcBaseInterface, Classes, gd_ClassList, JclStrHashMap,
   gd_createable_form, at_classes, IBSQL, db, yaml_writer, yaml_parser,
   IBDatabase, gd_security, dbgrids, gd_KeyAssoc, contnrs, IB, gsNSObjects;
 
@@ -34,8 +34,9 @@ type
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
 
     class procedure WriteObject(AgdcObject: TgdcBase; AWriter: TyamlWriter;
-      const AHeadObject: String; AnAlwaysoverwrite: Boolean = True;
-      ADontRemove: Boolean = False; AnIncludesiblings: Boolean = False);
+      const AHeadObject: String; const AnAlwaysOverwrite: Boolean;
+      const ADontRemove: Boolean; const AnIncludeSiblings: Boolean;
+      AnObjCache: TStringHashMap);
     class function LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
       UpdateList: TObjectList; RUIDList: TStringList; ATr: TIBTransaction;
       const AnAlwaysoverwrite: Boolean = False): TnsLoadedStatus;
@@ -203,10 +204,10 @@ begin
   Result := 'Tgdc_frmNamespace';
 end;
 
-class procedure TgdcNamespace.WriteObject(AgdcObject: TgdcBase;
-  AWriter: TyamlWriter; const AHeadObject: String;
-  AnAlwaysoverwrite: Boolean = True; ADontRemove: Boolean = False;
-  AnIncludesiblings: Boolean = False);
+class procedure TgdcNamespace.WriteObject(AgdcObject: TgdcBase; AWriter: TyamlWriter;
+  const AHeadObject: String; const AnAlwaysOverwrite: Boolean;
+  const ADontRemove: Boolean; const AnIncludeSiblings: Boolean;
+  AnObjCache: TStringHashMap);
 
   procedure WriteSet(AnObj: TgdcBase; AWriter: TyamlWriter);
   var
@@ -302,7 +303,7 @@ var
   C: TgdcFullClass;
   BlobStream: TStream;
   TempS: String;
-  Flag: Boolean;
+  Flag, MustFreeObj: Boolean;
 begin
   Assert(gdcBaseManager <> nil);
   Assert(atDatabase <> nil);
@@ -311,7 +312,7 @@ begin
 
   AWriter.WriteKey('Properties');
   AWriter.IncIndent;
-  AWriter.WriteTextValue('Class', AgdcObject.Classname, qDoubleQuoted);
+  AWriter.WriteTextValue('Class', AgdcObject.ClassName, qDoubleQuoted);
   if AgdcObject.SubType > '' then
     AWriter.WriteTextValue('SubType', AgdcObject.SubType, qDoubleQuoted);
   AWriter.WriteStringValue('RUID', RUIDToStr(AgdcObject.GetRUID));
@@ -330,7 +331,7 @@ begin
     begin
       F := AgdcObject.Fields[I];
 
-      if  StrIPos(';' + F.FieldName + ';', PassFieldName) > 0 then
+      if StrIPos(';' + F.FieldName + ';', PassFieldName) > 0 then
         continue;
 
       if (F.Origin > '') and not F.IsNull then
@@ -342,7 +343,7 @@ begin
           R := atDatabase.Relations.ByRelationName(RelationName);
           if Assigned(R) then
           begin
-            RF := R.RelationFields.ByFieldName(F.FieldName);
+            RF := R.RelationFields.ByFieldName(FieldName);
             if Assigned(RF) then
             begin
               if Assigned(RF.CrossRelation) then
@@ -361,12 +362,25 @@ begin
                 C := GetBaseClassForRelation(RF.References.RelationName);
                 if C.gdClass <> nil then
                 begin
-                  Obj := C.gdClass.Create(nil);
-                  try
+                  Obj := nil;
+                  MustFreeObj := False;
+
+                  if (AnObjCache = nil) or (not AnObjCache.Find(C.gdClass.ClassName + C.SubType, Obj)) then
+                  begin
+                    Obj := C.gdClass.Create(nil);
                     Obj.SubType := C.SubType;
                     Obj.ReadTransaction := AgdcObject.ReadTransaction;
                     Obj.Transaction := AgdcObject.Transaction;
                     Obj.SubSet := 'ByID';
+
+                    if AnObjCache = nil then
+                      MustFreeObj := True
+                    else
+                      AnObjCache.Add(C.gdClass.ClassName + C.SubType, Obj);
+                  end;
+
+                  try
+                    Obj.Close;
                     Obj.ID := F.AsInteger;
                     Obj.Open;
                     if Obj.EOF then
@@ -378,7 +392,8 @@ begin
                         ObjName := Obj.ObjectName;
                     end;
                   finally
-                    Obj.Free;
+                    if MustFreeObj then
+                      Obj.Free;
                   end;
                 end;
 
@@ -398,7 +413,7 @@ begin
       begin
         case F.DataType of
           ftDate: AWriter.WriteDate(F.AsDateTime);
-          ftDateTime, ftTime: AWriter.WriteTimestamp(F.AsDateTime);
+          ftDateTime, ftTime: AWriter.WriteTimeStamp(F.AsDateTime);
           ftMemo: AWriter.WriteText(F.AsString, qPlain, sLiteral);
           ftInteger, ftSmallint, ftWord: AWriter.WriteInteger(F.AsInteger);
           ftBoolean: AWriter.WriteBoolean(F.AsBoolean);
@@ -2703,13 +2718,13 @@ procedure TgdcNamespace.SaveNamespaceToStream(St: TStream; const AnAnswer: Integ
 var
   Obj: TgdcNamespaceObject;
   W: TyamlWriter;
-  InstID: Integer;
   InstObj: TgdcBase;
   InstClass: TPersistentClass;
   q: TIBSQL;
   HeadObject: String;
   Deleted: Boolean;
   Answer: Integer;
+  ObjCache: TStringHashMap;
 begin
   Assert(St <> nil);
 
@@ -2787,24 +2802,35 @@ begin
 
       if not Obj.Eof then
       begin
-        W.WriteKey('Objects');
-        W.IncIndent;
+        ObjCache := TStringHashMap.Create(CaseInsensitiveTraits, 1024);
+        try
+          W.WriteKey('Objects');
+          W.IncIndent;
 
-        while not Obj.Eof do
-        begin
-          InstID := gdcBaseManager.GetIDByRUID(Obj.FieldByName('xid').AsInteger,
-            Obj.FieldByName('dbid').AsInteger, Transaction);
-
-          InstClass := GetClass(Obj.FieldByName('objectclass').AsString);
-          if (InstClass <> nil) and InstClass.InheritsFrom(TgdcBase) then
+          while not Obj.Eof do
           begin
-            InstObj := CgdcBase(InstClass).Create(nil);
-            try
-              InstObj.ReadTransaction := Obj.Transaction;
-              InstObj.Transaction := Obj.Transaction;
-              InstObj.SubType := Obj.FieldByName('subtype').AsString;
-              InstObj.SubSet := 'ByID';
-              InstObj.ID := InstID;
+            if not ObjCache.Find(Obj.FieldByName('objectclass').AsString +
+              Obj.FieldByName('subtype').AsString, InstObj) then
+            begin
+              InstObj := nil;
+              InstClass := GetClass(Obj.FieldByName('objectclass').AsString);
+              if (InstClass <> nil) and InstClass.InheritsFrom(TgdcBase) then
+              begin
+                InstObj := CgdcBase(InstClass).Create(nil);
+                InstObj.ReadTransaction := Obj.Transaction;
+                InstObj.Transaction := Obj.Transaction;
+                InstObj.SubType := Obj.FieldByName('subtype').AsString;
+                InstObj.SubSet := 'ByID';
+                ObjCache.Add(Obj.FieldByName('objectclass').AsString +
+                  Obj.FieldByName('subtype').AsString, InstObj);
+              end;
+            end;
+
+            if InstObj <> nil then
+            begin
+              InstObj.Close;
+              InstObj.ID := gdcBaseManager.GetIDByRUID(Obj.FieldByName('xid').AsInteger,
+                Obj.FieldByName('dbid').AsInteger, Transaction);
               InstObj.Open;
 
               if not InstObj.EOF then
@@ -2815,11 +2841,10 @@ begin
                 try
                   W.StartNewLine;
                   HeadObject := '';
-                  if Obj.FieldByName('headobjectkey').AsInteger > 0 then
+                  if not Obj.FieldByName('headobjectkey').IsNull then
                   begin
                     q.ParamByName('id').AsInteger := Obj.FieldByName('headobjectkey').AsInteger;
                     q.ExecQuery;
-
                     if not q.Eof then
                       HeadObject := q.FieldByName('ruid').AsString;
                     q.Close;
@@ -2827,12 +2852,14 @@ begin
                   WriteObject(InstObj, W, HeadObject,
                     Obj.FieldByName('alwaysoverwrite').AsInteger <> 0,
                     Obj.FieldByName('dontremove').AsInteger <> 0,
-                    Obj.FieldByName('includesiblings').AsInteger <> 0);
+                    Obj.FieldByName('includesiblings').AsInteger <> 0,
+                    ObjCache);
 
-                  if InstObj.FindField('editiondate') <> nil then
+                  if (InstObj.FindField('editiondate') <> nil)
+                    and (not InstObj.FieldByName('editiondate').IsNull) then
                   begin
                     Obj.Edit;
-                    Obj.FieldByName('modified').Value := InstObj.FindField('editiondate').Value;
+                    Obj.FieldByName('modified').AsDateTime := InstObj.FieldByName('editiondate').AsDateTime;
                     Obj.Post;
                   end;
                 finally
@@ -2855,15 +2882,16 @@ begin
                   Deleted := True;
                 end;
               end;
-            finally
-              InstObj.Free;
             end;
-          end;
 
-          if Deleted then
-            Deleted := False
-          else
-            Obj.Next;
+            if Deleted then
+              Deleted := False
+            else
+              Obj.Next;
+          end;
+        finally
+          ObjCache.Iterate(nil, Iterate_FreeObjects);
+          ObjCache.Free;
         end;
       end;
     finally
@@ -2986,30 +3014,6 @@ var
 
   procedure GetBindedObjectsForTable(AnObj: TgdcBase; const ATableName: String); forward;
 
-  procedure GetTableList(Obj: TgdcBase; SL: TStringList);
-  var
-    LT: TStrings;
-    I: Integer;
-  begin 
-    LT := TStringList.Create;
-    try
-      (LT as TStringList).Duplicates := dupIgnore;
-      GetTablesName(Obj.SelectSQL.Text, LT);
-      SL.Clear;
-      SL.Add(Obj.GetListTable(Obj.SubType));
-
-      for I := 0 to LT.Count - 1 do
-      begin
-        if (SL.IndexOf(LT[I]) = -1)
-          and (Obj.ClassType.InheritsFrom(GetBaseClassForRelation(LT[I]).gdClass))
-        then
-          SL.Add(LT[I]);
-      end;
-    finally
-      LT.Free;
-    end;
-  end;
-
   procedure FillRecord(AnObj: TgdcBase; AnIndex: Integer; const AHeadObj: String = '');
   var
     KSA: TgdKeyStringAssoc;
@@ -3113,7 +3117,7 @@ var
                 try
                   SL.Sorted := True;
                   SL.Duplicates := dupIgnore;
-                  GetTableList(InstObj, SL);
+                  GetTablesName(InstObj.SelectSQL.Text, SL);
                   for J := 0 to SL.Count - 1 do
                     GetBindedObjectsForTable(InstObj, SL[J]);
                   if InstObj.SetTable > '' then
@@ -3198,11 +3202,11 @@ var
 
             SL := TStringList.Create;
             try
-              GetTableList(Obj, SL);
+              SL.Sorted := True;
+              SL.Duplicates := dupIgnore;
+              GetTablesName(Obj.SelectSQL.Text, SL);
               for J := 0 to SL.Count - 1 do
-              begin
                 GetBindedObjectsForTable(Obj, SL[J]);
-              end;
               if Obj.SetTable > '' then
                 GetBindedObjectsForTable(Obj, Obj.SetTable);
             finally
@@ -3228,7 +3232,10 @@ begin
   ObjList := TStringList.Create;
   LinkTableList := TStringList.Create;
   try
-    GetTableList(AnObject, LinkTableList);
+    LinkTableList.Sorted := True;
+    LinkTableList.Duplicates := dupIgnore;
+
+    GetTablesName(AnObject.SelectSQL.Text, LinkTableList);
 
     for I := 0 to LinkTableList.Count - 1 do
       GetBindedObjectsForTable(AnObject, LinkTableList[I]);
@@ -3244,7 +3251,7 @@ begin
     LinkTableList.Free;
     for I := 0 to ObjList.Count - 1 do
       ObjList.Objects[I].Free;
-    ObjList.Free;  
+    ObjList.Free;
   end;
 end;
 

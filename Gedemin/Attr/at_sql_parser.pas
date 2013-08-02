@@ -1,6 +1,6 @@
 {++
 
-  Copyright (c) 2001-2012 by Golden Software of Belarus
+  Copyright (c) 2001-2013 by Golden Software of Belarus
 
   Module
                                                            
@@ -996,8 +996,8 @@ VALUES (<value_list>)
 
     procedure Parse;
     procedure Build(out sql: String);
-    procedure GetFields(out FList: TStringList);
-    procedure GetTables(out FList: TStrings);
+    procedure GetFields(FList: TStrings);
+    procedure GetTables(FList: TStrings);
 
     property Statements: TObjectList read FMainStatements;
     property ObjectClassName: String read FObjectClassName write FObjectClassName;
@@ -1006,9 +1006,8 @@ VALUES (<value_list>)
 
   EatParserError = class(Exception);
 
-  procedure GetFieldsName(const AnSql: String; out FList: TStringList);
-  procedure GetTablesName(const AnSql: String; out FList: TStrings);
-
+  procedure GetFieldsName(const AnSql: String; FList: TStrings);
+  procedure GetTablesName(const AnSql: String; FList: TStrings);
 
 implementation
 
@@ -1037,9 +1036,8 @@ begin
   end;
 end;
 
-procedure GetTablesName(const AnSql: String; out FList: TStrings);
+procedure GetTablesName(const AnSql: String; FList: TStrings);
 begin
-  FList.Clear;
   with TsqlParser.Create(AnSql) do
   try
     GetTables(FList);
@@ -1048,11 +1046,8 @@ begin
   end;
 end;
 
-procedure GetFieldsName(const AnSql: String; out FList: TStringList);
-(* Если в запросе вместо перечисления полей используется *,
-   то в список вместо названия полей будет занесена *;*)
+procedure GetFieldsName(const AnSql: String; FList: TStrings);
 begin
-  FList.Clear;
   with TsqlParser.Create(AnSql) do
   try
     GetFields(FList);
@@ -6645,7 +6640,7 @@ begin
 end;
 
 //Процедура для считывания полей
-procedure TsqlParser.GetFields(out FList: TStringList);
+procedure TsqlParser.GetFields(FList: TStrings);
 var
   I, J: Integer;
 
@@ -6666,6 +6661,7 @@ var
   end;
 
 begin
+  Assert(FList <> nil);
   FList.Clear;
   Parse;
   for I := 0 to FMainStatements.Count - 1 do
@@ -6711,7 +6707,7 @@ begin
 end;
 
 {Возвращает список таблиц, входящих во фром-часть запроса, без повторений}
-procedure TsqlParser.GetTables(out FList: TStrings);
+procedure TsqlParser.GetTables(FList: TStrings);
 var
   I, J: Integer;
 
@@ -6742,6 +6738,7 @@ var
   end;
 
 begin
+  Assert(FList <> nil);
   FList.Clear;
   Parse;
   for I := 0 to FMainStatements.Count - 1 do
