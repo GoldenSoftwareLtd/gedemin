@@ -2852,33 +2852,6 @@ ALTER TABLE gd_company ADD CONSTRAINT gd_fk_company_chiefacckey
   ON UPDATE CASCADE;
 
 
-/*
- *
- *  Таблица дополнительных свойств контактов.
- *  Дополнительные свойства контактов добавляются через атрибуты
- *
- */
-
-
-/*CREATE TABLE gd_contactprops
-(
-  contactkey     dintkey,                       * / /* ключ клиента */
-/*  reserved       dinteger                      */   /* зарезервировано */
-/*);
-
-
-COMMIT;
-
-ALTER TABLE gd_contactprops ADD CONSTRAINT gd_pk_contactprops_contact
-  PRIMARY KEY (contactkey);
-
-COMMIT;
-
-ALTER TABLE gd_contactprops ADD CONSTRAINT gd_fk_contactprops_contact
-  FOREIGN KEY (contactkey) REFERENCES gd_contact (id)
-  ON UPDATE CASCADE ON DELETE CASCADE;
-*/
-
 CREATE TABLE gd_companycode
 (
   companykey    dintkey,
@@ -3099,72 +3072,7 @@ BEGIN
   ELSE
     RDB$SET_CONTEXT('USER_TRANSACTION', 'LBRB_DELTA', '1');
 END
-^                                  
-
-/*
-CREATE TRIGGER gd_bi_contact_2 FOR gd_contact
-  BEFORE INSERT
-  POSITION 2
-AS
-  DECLARE VARIABLE AFULL INTEGER;
-  DECLARE VARIABLE ACHAG INTEGER;
-  DECLARE VARIABLE AVIEW INTEGER;
-BEGIN
-  IF (NEW.parent IS NOT NULL) THEN
-  BEGIN
-    SELECT C.AFULL, C.ACHAG, C.AVIEW
-    FROM GD_CONTACT C
-    WHERE C.ID = NEW.Parent
-    INTO :AFULL, :ACHAG, :AVIEW;
-    NEW.AFULL = g_b_or(g_b_and(NEW.AFULL, :AFULL), 1);
-    NEW.ACHAG = g_b_or(g_b_and(NEW.ACHAG, :ACHAG), 1);
-    NEW.AVIEW = g_b_or(g_b_and(NEW.AVIEW, :AVIEW), 1);
-  END
-END
 ^
-*/
-
-/*
-
-  При изменении прав доступа к объекту или перетаскивании его в
-  другую папку гарантируем, что у всех входящих в него объектов
-  права будут такие же или МЕНЬШЕ, но не БОЛЬШЕ.
-
-*/
-
-/*
-CREATE TRIGGER gd_bu_contact_2 FOR gd_contact
-  BEFORE UPDATE
-  POSITION 2
-AS
-  DECLARE VARIABLE AFULL INTEGER;
-  DECLARE VARIABLE ACHAG INTEGER;
-  DECLARE VARIABLE AVIEW INTEGER;
-BEGIN
-  IF ((NEW.parent IS NOT NULL) AND (NEW.parent <> OLD.parent)) THEN
-  BEGIN
-    SELECT C.AFULL, C.ACHAG, C.AVIEW
-    FROM GD_CONTACT C
-    WHERE C.ID = NEW.Parent
-    INTO :AFULL, :ACHAG, :AVIEW;
-    NEW.AFULL = g_b_or(g_b_and(NEW.AFULL, :AFULL), 1);
-    NEW.ACHAG = g_b_or(g_b_and(NEW.ACHAG, :ACHAG), 1);
-    NEW.AVIEW = g_b_or(g_b_and(NEW.AVIEW, :AVIEW), 1);
-  END
-
-  IF ((NEW.afull <> OLD.afull) OR (NEW.achag <> OLD.achag) OR (NEW.aview <> OLD.aview)) THEN
-  BEGIN
-    UPDATE GD_CONTACT C
-    SET
-      C.AFULL = g_b_or(g_b_and(NEW.AFULL, C.AFULL), 1),
-      C.ACHAG = g_b_or(g_b_and(NEW.ACHAG, C.ACHAG), 1),
-      C.AVIEW = g_b_or(g_b_and(NEW.AVIEW, C.AVIEW), 1)
-    WHERE
-      C.Parent = New.ID;
-  END
-END
-^
-*/
 
 /*
 
@@ -3203,12 +3111,12 @@ BEGIN
 END
 ^
 
-
 /*
  *  Мы паставілі сартыроўку па назве непасрэдна ў тэксце
  *  працэдуры. !!!
  *
  */
+
 CREATE PROCEDURE gd_p_getfolderelement(parent Integer)
 RETURNS
 (
@@ -3247,74 +3155,6 @@ BEGIN
   END
 END
 ^
-
-
-
-
-/*
-
-  Данная процедура для заданной головной компании вытягивает
-  список подразделений и сотрудников, так, что этот список можно ото-
-  бразить в дереве.
-
-*/
-
-/*
-CREATE GENERATOR gd_g_contact_virt_id
-^
-SET GENERATOR gd_g_contact_virt_id TO 2147483646
-^
-
-CREATE PROCEDURE gd_p_people_and_departments (Master INTEGER)
-  RETURNS (
-    id INTEGER,
-    parent INTEGER,
-    name VARCHAR(60),
-    origid INTEGER,
-    origparent INTEGER,
-    contacttype INTEGER
-  )
-AS
-  DECLARE VARIABLE GK INTEGER;
-BEGIN
-  id = 2147483646;
-
-  FOR
-    SELECT d.id, d.parent, d.name, d.id, d.parent, 4
-    FROM gd_contact d
-      JOIN gd_contact p ON d.lb >= p.lb AND d.rb <= p.rb AND p.id=:Master
-    WHERE d.contacttype=4 AND (NOT d.disabled=1)
-    INTO :id, :parent, :name, :origid, :origparent, :contacttype
-  DO BEGIN
-    SUSPEND;
-
-    Parent = :ID;
-    GK = :OrigID;
-
-    FOR
-      SELECT GEN_ID(gd_g_contact_virt_id, -1), c.name, c.id, c.parent, 2
-      FROM gd_contact c
-        JOIN gd_contactlist l ON l.contactkey=c.id AND l.groupkey=:GK
-      WHERE c.contacttype=2 AND (NOT c.disabled=1)
-      INTO :id, :name, :origid, :origparent, :contacttype
-    DO BEGIN
-      SUSPEND;
-    END
-  END
-
-  IF (:id < 1000000000) THEN
-  BEGIN
-    FOR
-      SELECT GEN_ID(gd_g_contact_virt_id, 1147483646)
-      FROM rdb$database
-      INTO :id
-    DO BEGIN
-      id = 1;
-    END
-  END
-END
-^
-*/
 
 SET TERM ; ^
 
@@ -5094,6 +4934,26 @@ END
 SET TERM ; ^
 
 COMMIT;
+
+CREATE GLOBAL TEMPORARY TABLE gd_object_dependencies (
+  sessionid         dintkey,
+  masterid          dintkey,
+  reflevel          dintkey,
+  relationname      dtablename NOT NULL,
+  fieldname         dfieldname NOT NULL,
+  crossrelation     dboolean_notnull,
+  refobjectid       dintkey,
+  refobjectname     dname,
+  refrelationname   dname,
+  refclassname      dname,
+  refsubtype        dname,
+
+  PRIMARY KEY (sessionid, masterid, reflevel, relationname, fieldname)
+)
+  ON COMMIT PRESERVE ROWS;
+
+COMMIT;
+
 
 
 

@@ -1539,5 +1539,25 @@ SET TERM ; ^
 
 COMMIT;
 
+CREATE GLOBAL TEMPORARY TABLE gd_object_dependencies (
+  sessionid         dintkey,
+  masterid          dintkey,
+  reflevel          dintkey,
+  relationname      dtablename NOT NULL,
+  fieldname         dfieldname NOT NULL,
+  crossrelation     dboolean_notnull,
+  refobjectid       dintkey,
+  refobjectname     dname,
+  refrelationname   dname,
+  refclassname      dname,
+  refsubtype        dname,
+
+  PRIMARY KEY (sessionid, masterid, reflevel, relationname, fieldname)
+)
+  ON COMMIT PRESERVE ROWS;
+
+COMMIT;
+
+
 
 

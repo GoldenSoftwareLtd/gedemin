@@ -43,8 +43,6 @@ type
     class procedure ScanDirectory(ADataSet: TDataSet; ANSList: TgsNSList;
       Log: TNSLog);
 
-    class procedure SetNamespaceForObject(AnObject: TgdcBase;
-      ANSL: TgdKeyStringAssoc; ATr: TIBTransaction = nil);
     class procedure SetObjectLink(AnObject: TgdcBase; ADataSet: TDataSet;
       ATr: TIBTransaction);
     class procedure AddObject(const ANamespaceKey: Integer;
@@ -2977,281 +2975,73 @@ begin
     DoLoadNamespace(ANSList, AnAlwaysOverwrite, ADontRemove);
 end;
 
-class procedure TgdcNamespace.SetNamespaceForObject(AnObject: TgdcBase;
-  ANSL: TgdKeyStringAssoc; ATr: TIBTransaction = nil);
+class procedure TgdcNamespace.SetObjectLink(AnObject: TgdcBase; ADataSet: TDataSet; ATr: TIBTransaction);
 var
-  q: TIBSQL;
+  q, qNS: TIBSQL;
+  SessionID, XID, DBID: TID;
 begin
-  Assert(AnObject <> nil);
-  Assert(ANSL <> nil);
+  Assert(ADataSet <> nil);
+
+  SessionID := AnObject.GetNextID;
+  AnObject.GetDependencies(SessionID, ';EDITORKEY;CREATORKEY;');
 
   q := TIBSQL.Create(nil);
+  qNS := TIBSQL.Create(nil);
   try
-    if ATr = nil then
-      q.Transaction := gdcBaseManager.ReadTransaction
-    else
-      q.Transaction := ATr;
-
-    q.SQL.Text :=
+    qNS.Transaction := gdcBaseManager.ReadTransaction;
+    qNS.SQL.Text :=
       'SELECT n.id, n.name ' +
       'FROM at_object o ' +
       '  JOIN at_namespace n ON o.namespacekey = n.id ' +
       'WHERE o.xid = :xid and o.dbid = :dbid';
-    q.ParamByName('xid').AsInteger := AnObject.GetRUID.XID;
-    q.ParamByName('dbid').AsInteger := AnObject.GetRUID.DBID;
+
+    q.Transaction := gdcBaseManager.ReadTransaction;
+    q.SQL.Text :=
+      'SELECT * FROM gd_object_dependencies ' +
+      'WHERE sessionid = :sid AND masterid = :mid ' +
+      'ORDER BY reflevel DESC';
+    q.ParamByName('sid').AsInteger := SessionID;
+    q.ParamByName('mid').AsInteger := AnObject.ID;
     q.ExecQuery;
-    if not q.EOF then
-      ANSL.ValuesByIndex[ANSL.Add(q.FieldByName('id').AsInteger)] := q.FieldByName('name').AsString;
-  finally
-    q.Free;
-  end;
-end;
 
-
-class procedure TgdcNamespace.SetObjectLink(AnObject: TgdcBase; ADataSet: TDataSet; ATr: TIBTransaction);
-var
-  ObjList: TStringList;
-
-  procedure GetBindedObjectsForTable(AnObj: TgdcBase; const ATableName: String); forward;
-
-  procedure FillRecord(AnObj: TgdcBase; AnIndex: Integer; const AHeadObj: String = '');
-  var
-    KSA: TgdKeyStringAssoc;
-    I: Integer;
-    RUID: String;
-  begin
-    RUID := RUIDToStr(AnObj.GetRUID);
-    for I := AnIndex - 1 downto 0 do
+    while not q.EOF do
     begin
-      if (ObjList.Values[ObjList.Names[I]] = RUID)
-        and not ADataSet.Locate('id', (ObjList.Objects[I] as TgdcBase).ID, [])
-      then
-        FillRecord(ObjList.Objects[I] as TgdcBase, I, RUID);
-    end;
-    if not ADataSet.Locate('id', AnObj.ID, []) then
-    begin
-      ADataSet.Append;
-      ADataSet.FieldByName('id').AsInteger := AnObj.ID;
-      ADataSet.FieldByName('name').AsString := AnObj.ObjectName;
-      ADataSet.FieldByname('class').AsString := AnObj.GetCurrRecordClass.gdClass.ClassName;
-      ADataSet.FieldByName('subtype').AsString := AnObj.SubType;
-      ADataSet.FieldByName('headobject').AsString := AHeadObj;
-      if AnObj.SubType > '' then
-        ADataSet.FieldByName('displayname').AsString := AnObj.ClassName + '\' + AnObj.SubType
-      else
-        ADataSet.FieldByName('displayname').AsString := AnObj.GetCurrRecordClass.gdClass.ClassName;
-      ADataSet.FieldByName('displayname').AsString := ADataSet.FieldByName('displayname').AsString +
-        '/' + AnObj.ObjectName;
-      KSA := TgdKeyStringAssoc.Create;
-      try
-        SetNamespaceForObject(AnObj, KSA, ATr);
-        if KSA.Count > 0 then
-        begin
-          ADataSet.FieldByName('namespacekey').AsInteger := KSA[0];
-          ADataSet.FieldByName('namespace').AsString := KSA.ValuesByIndex[0];
+      if not ADataSet.Locate('id', q.FieldByName('refobjectid').AsInteger, []) then
+      begin
+        ADataSet.Append;
+        ADataSet.FieldByName('id').AsInteger := q.FieldByName('refobjectid').AsInteger;
+        ADataSet.FieldByName('name').AsString := q.FieldByName('refobjectname').AsString;
+        ADataSet.FieldByname('class').AsString := q.FieldByName('refclassname').AsString;
+        ADataSet.FieldByName('subtype').AsString := q.FieldByName('refsubtype').AsString;
+        ADataSet.FieldByName('headobject').AsInteger := AnObject.ID;
+        ADataSet.FieldByName('displayname').AsString := q.FieldByName('refclassname').AsString;
+        if q.FieldByName('refsubtype').AsString > '' then
           ADataSet.FieldByName('displayname').AsString := ADataSet.FieldByName('displayname').AsString +
-            '/' + KSA.ValuesByIndex[0];
-        end;
-      finally
-        KSA.Free;
-      end;
-      ADataSet.Post;
-    end;
-  end;  
+          '\' + q.FieldByName('refsubtype').AsString;
+        ADataSet.FieldByName('displayname').AsString := ADataSet.FieldByName('displayname').AsString +
+          '\' + q.FieldByName('refobjectname').AsString;
 
-  procedure GetSetAttr(AnObj: TgdcBase);
-  var
-    InstObj: TgdcBase;
-    q: TIBSQL;
-    I, Ind, J: Integer;
-    SL: TStringList;
-    gdcFullClass: TgdcFullClass;
-  begin
-    Assert(AnObj <> nil);
-
-    q := TIBSQL.Create(nil);
-    try
-      if AnObj.Transaction.InTransaction then
-        q.Transaction := AnObj.Transaction
-      else
-        q.Transaction := AnObj.ReadTransaction;
-
-      for I := 0 to AnObj.SetAttributesCount - 1 do
-      begin
-        if AnsiCompareText(AnObj.SetAttributes[I].CrossRelationName, 'GD_LASTNUMBER') = 0 then
-          continue;
-
-        if AnsiCompareText(AnObj.SetAttributes[I].CrossRelationName, 'FLT_LASTFILTER') = 0 then
-          continue;
-      
-        gdcFullClass := GetBaseClassForRelation(AnObj.SetAttributes[I].ReferenceRelationName);
-
-        if gdcFullClass.gdClass = nil then
-          continue;
-
-        q.Close;
-        q.SQL.Text := AnObj.SetAttributes[I].SQL;
-        q.ParamByName('rf').AsInteger := AnObj.ID;
-        q.ExecQuery;
-
-        while not q.EOF do
+        gdcBaseManager.GetRUIDByID(q.FieldByName('refobjectid').AsInteger, XID, DBID);
+        qNS.ParamByName('xid').AsInteger := XID;
+        qNS.ParamByName('dbid').AsInteger := DBID;
+        qNS.ExecQuery;
+        while not qNS.EOF do
         begin
-          Ind := ObjList.IndexOfName(gdcBaseManager.GetRUIDStringByID(q.Fields[0].AsInteger,
-            AnObj.Transaction));
-
-          if Ind > -1 then
-            ObjList.Move(Ind, ObjList.Count - 1)
-          else begin
-            InstObj := gdcFullClass.gdClass.Create(nil);
-            try
-              InstObj.SubType := gdcFullClass.SubType;
-              InstObj.SubSet := 'ByID';
-              InstObj.ID := q.Fields[0].AsInteger;
-              InstObj.Open;
-
-              if not InstObj.EOF then
-              begin
-                ObjList.AddObject(RUIDToStr(InstObj.GetRUID) + '=', InstObj);
-
-                SL := TStringList.Create;
-                try
-                  SL.Sorted := True;
-                  SL.Duplicates := dupIgnore;
-                  GetTablesName(InstObj.SelectSQL.Text, SL);
-                  for J := 0 to SL.Count - 1 do
-                    GetBindedObjectsForTable(InstObj, SL[J]);
-                  if InstObj.SetTable > '' then
-                    GetBindedObjectsForTable(InstObj, InstObj.SetTable);
-                finally
-                  SL.Free;
-                end;
-              end;
-            finally
-              InstObj.Free;
-            end;
-          end;
-
-          q.Next;
+          ADataSet.FieldByName('namespacekey').AsInteger := qNS.FieldByName('id').AsInteger;
+          ADataSet.FieldByName('namespace').AsString := qNS.FieldByName('name').AsString;
+          ADataSet.FieldByName('displayname').AsString := ADataSet.FieldByName('displayname').AsString +
+            '\' + qNS.FieldByName('name').AsString;
+          qNS.Next;
         end;
+        qNS.Close;
+
+        ADataSet.Post;
       end;
-    finally
-      q.Free;
+      q.Next;
     end;
-  end;
-
-  procedure GetBindedObjectsForTable(AnObj: TgdcBase; const ATableName: String);
-  const
-    NotSavedField = ';CREATORKEY;EDITORKEY;';
-  var
-    R: TatRelation;
-    I, J, Ind: Integer;
-    C: TgdcFullClass;
-    Obj: TgdcBase;
-    F: TField;
-    SL: TStringList;
-  begin
-    R := atDatabase.Relations.ByRelationName(ATableName);
-    Assert(R <> nil);
-
-    for I := 0 to R.RelationFields.Count - 1 do
-    begin
-      if AnsiPos(';' + Trim(R.RelationFields[I].FieldName) + ';', NotSavedField) > 0 then
-        continue;
-
-      F := AnObj.FindField(R.RelationName, R.RelationFields[I].FieldName);
-      if (F = nil) or F.IsNull or (F.DataType <> ftInteger) then
-      begin
-        continue;
-      end;
-
-      if R.RelationFields[I].gdClass <> nil then
-      begin
-        C.gdClass := CgdcBase(R.RelationFields[I].gdClass);
-        C.SubType := R.RelationFields[I].gdSubType;
-      end else
-      begin
-        C.gdClass := nil;
-        C.SubType := '';
-      end;
-
-      if (C.gdClass = nil) and (R.RelationFields[I].References <> nil) then
-      begin
-        C := GetBaseClassForRelationByID(R.RelationFields[I].References.RelationName,
-          AnObj.FieldByName(R.RelationName, R.RelationFields[I].FieldName).AsInteger,
-          ATr);
-      end;
-
-      if (C.gdClass <> nil)
-        and
-        (F.AsInteger > cstUserIDStart)
-        and
-        (F.AsInteger <> AnObj.ID) then
-      begin
-        Ind := ObjList.IndexOfName(gdcBaseManager.GetRUIDStringByID(F.AsInteger, ATr));
-        if Ind = -1 then
-        begin
-          Obj := C.gdClass.CreateSingularByID(nil,
-            ATr.DefaultDatabase,
-            ATr,
-            F.AsInteger,
-            C.SubType);
-          if Obj <> nil then
-          begin
-            ObjList.AddObject(RUIDToStr(Obj.GetRUID) + '=' + RUIDToStr(AnObj.GetRUID), Obj);
-            GetSetAttr(Obj);
-
-            SL := TStringList.Create;
-            try
-              SL.Sorted := True;
-              SL.Duplicates := dupIgnore;
-              GetTablesName(Obj.SelectSQL.Text, SL);
-              for J := 0 to SL.Count - 1 do
-                GetBindedObjectsForTable(Obj, SL[J]);
-              if Obj.SetTable > '' then
-                GetBindedObjectsForTable(Obj, Obj.SetTable);
-            finally
-              SL.Free;
-            end;
-          end;
-        end else
-          ObjList.Move(Ind, ObjList.Count - 1);
-      end;
-    end;
-  end;
-
-var
-  LinkTableList: TStringList;
-  I: Integer;
-begin
-  Assert(atDatabase <> nil);
-  Assert(ADataSet <> nil);
-
-  if (ATr = nil) or (not ATr.InTransaction) then
-    raise Exception.Create('Invalid transaction!');
-
-  ObjList := TStringList.Create;
-  LinkTableList := TStringList.Create;
-  try
-    LinkTableList.Sorted := True;
-    LinkTableList.Duplicates := dupIgnore;
-
-    GetTablesName(AnObject.SelectSQL.Text, LinkTableList);
-
-    for I := 0 to LinkTableList.Count - 1 do
-      GetBindedObjectsForTable(AnObject, LinkTableList[I]);
-
-    if AnObject.SetTable > '' then
-      GetBindedObjectsForTable(AnObject, AnObject.SetTable);
-
-     GetSetAttr(AnObject);
-
-     for I := ObjList.Count - 1 downto 0 do
-       FillRecord(ObjList.Objects[I] as TgdcBase, I, ObjList.Values[ObjList.Names[I]]);
   finally
-    LinkTableList.Free;
-    for I := 0 to ObjList.Count - 1 do
-      ObjList.Objects[I].Free;
-    ObjList.Free;
+    qNS.Free;
+    q.Free;
   end;
 end;
 
