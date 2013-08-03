@@ -26,10 +26,6 @@ type
     //указывает, отображены ли уже страницы-множества
     FIsShowSetTabSheet: Boolean;
 
-    //Указывает есть ли у объекта связанные таблицы-множества
-    //Инициализируется в методе Setup
-    FHasTabSheet: Boolean;
-
     class procedure RegisterMethod;
 
   protected
@@ -42,11 +38,6 @@ type
     //Создает дополнительные страницы для работы с множествами
     procedure CreateTabSheet;
 
-    { TODO : 
-много где мы работаем используя эту функцию, но
-ведь не только закладки с множествами нас должны интересовать
-но и компоненты -- выпадающие списки множеств -- на
-закладке атрибутов }
     //Проверяет, если ли страницы для работы со множествами
     function HasTabSheet: Boolean;
 
@@ -131,7 +122,6 @@ begin
               DS.DataSet.Open;
               SetupGrid;
             end;
-
           end;
 
           break;
@@ -150,7 +140,7 @@ begin
   //
   AttrLast := tbsAttr.PageIndex = pgcMain.PageCount - 1;
 
-  if FHasTabSheet
+  if HasTabSheet
     and (not FIsShowSetTabSheet)
     and Assigned(gdcObject) then
   begin
@@ -207,165 +197,6 @@ begin
       Fr.Lk.SubType := Fr.ChooseSubType;
       Fr.Lk.gdClassName := Fr.gdcClass;
     end;
-
-    (*
-    LinkTableList := TStringList.Create;
-    try
-      FIsShowSetTabSheet := True;
-
-      // теперь найдем все таблицы, первичный ключ которых одновременно
-      // является ссылкой на нашу запись, т.е. таблицы связанные
-      // жесткой связью один-к-одному с нашей таблицей
-      // записи в таких таблицах, в совокупности с записью в главной
-      // таблице, представляют данные одного объекта
-      // пример: gd_contact -- gd_company -- gd_companycode
-      OL := TObjectList.Create(False);
-      FList := TStringList.Create;
-      try
-        (FList as TStringList).Sorted := True;
-        //Считаем все таблицы, входящие в селект запрос
-        GetTablesName(gdcObject.SelectSQL.Text, FList);
-        atDatabase.ForeignKeys.ConstraintsByReferencedRelation(
-          gdcObject.GetListTable(SubType), OL);
-        for I := 0 to OL.Count - 1 do
-          with OL[I] as TatForeignKey do
-        begin
-          if IsSimpleKey
-            and (Relation.PrimaryKey <> nil)
-            and (Relation.PrimaryKey.ConstraintFields.Count = 1)
-            and (ConstraintField = Relation.PrimaryKey.ConstraintFields[0])
-            and (FList.IndexOf(AnsiUpperCase(Trim(Relation.RelationName))) > -1) then
-          begin
-            //Сохраним только те таблицы, которые ссылаются на главную таблицу 1:1
-            //и присутствуют в селект запросе объекта
-            LinkTableList.Add(Trim(Relation.RelationName));
-          end;
-        end;
-      finally
-        OL.Free;
-        FList.Free;
-      end;
-
-      //Добавим в список и главную таблицу объекта
-      LinkTableList.Insert(0, gdcObject.GetListTable(SubType));
-
-      for I := 0 to atDatabase.PrimaryKeys.Count - 1 do
-        with atDatabase.PrimaryKeys[I] do
-        if ConstraintFields.Count > 1 then
-        begin
-          F := nil;
-          FD := nil;
-
-          for K := 0 to LinkTableList.Count - 1 do
-          begin
-            if (ConstraintFields[0].References <> nil) and
-              (AnsiCompareText(ConstraintFields[0].References.RelationName,
-               LinkTableList[K]) = 0)
-            then
-            begin
-              F := ConstraintFields[0];
-              Break;
-            end;
-          end;
-
-          if not Assigned(F) then
-            continue;
-
-          //Вытянем поле со второй ссылкой
-          for K := 1 to ConstraintFields.Count - 1 do
-          begin
-            if (ConstraintFields[K].References <> nil) and
-               (ConstraintFields[K] <> F) and (FD = nil)
-            then
-            begin
-              FD := ConstraintFields[K];
-              Break;
-            end else
-
-            //Если у нас полей-ссылок в первичном ключе > 2
-            if (ConstraintFields[K].References <> nil) and
-               (ConstraintFields[K] <> F) and (FD <> nil)
-            then
-            begin
-              continue;
-            end;
-          end;
-
-          if not Assigned(FD) then
-            continue;
-
-          if not NeedVisibleTabSheet(FD.Relation.RelationName) then
-            continue;
-
-          TS := TTabSheet.Create(Self);
-          TS.Name := cstTabSheetPrefix + CorrectRelationName(FD.Relation.RelationName);
-          TS.Caption := '';
-          TS.PageControl := pgcMain;
-
-          with F.References do
-            for J := 0 to RelationFields.Count - 1 do
-              if RelationFields[J].CrossRelation = F.Relation then
-              begin
-                TS.Caption := RelationFields[J].LShortName;
-                break;
-              end;
-
-          if TS.Caption = '' then
-          begin
-            C := GetBaseClassForRelation(FD.Relation.RelationName);
-            if C.gdClass <> nil then
-              TS.Caption := C.gdClass.GetDisplayName(C.SubType)
-            else
-              TS.Caption := FD.Relation.LShortName;
-          end;
-
-          C := GetBaseClassForRelation(FD.References.RelationName);
-
-          if C.gdClass <> nil then
-          begin
-            Fr := Tgdc_framSetControl.Create(Self);
-            Fr.Name := cstFramePrefix + CorrectRelationName(FD.Relation.RelationName);
-            Fr.Parent := TS;
-            Fr.Transaction := ibtrCommon;
-            Fr.LoadSettings;
-            Fr.Align := alClient;
-
-            if GetgdcClass(FD.Relation.RelationName) > '' then
-              Fr.gdcClass := GetgdcClass(FD.Relation.RelationName)
-            else
-              Fr.gdcClass := C.gdClass.ClassName;
-
-            if GetChooseComponentName(FD.Relation.RelationName) > '' then
-              Fr.ChooseComponentName := GetChooseComponentName(FD.Relation.RelationName);
-
-            if GetChooseSubSet(FD.Relation.RelationName) > '' then
-              Fr.ChooseSubSet := GetChooseSubSet(FD.Relation.RelationName);
-
-            if GetChooseSubType(FD.Relation.RelationName) > '' then
-              Fr.ChooseSubType := GetChooseSubType(FD.Relation.RelationName)
-            else
-              Fr.ChooseSubType := C.SubType;
-
-            SO := C.gdClass.CreateSubType(Self, C.SubType);
-            SO.Name := cstFramePrefix + CorrectRelationName(FD.Relation.RelationName)
-              + '_gdc';
-            SO.MasterSource := dsgdcBase;
-            SO.SetTable := FD.Relation.RelationName;
-            SO.ReadTransaction := gdcObject.Transaction;
-
-            Fr.DS.DataSet := SO;
-
-            Fr.Lk.Transaction := ibtrCommon;
-            Fr.Lk.SubType := Fr.ChooseSubType;
-            Fr.Lk.gdClassName := Fr.gdcClass;
-          end
-          else
-            TS.Free;
-        end;
-    finally
-      LinkTableList.Free;
-    end;
-    *)
   end;
 
   if AttrLast then
@@ -450,7 +281,7 @@ begin
   {M}    end;
   {END MACRO}
 
-  if FHasTabSheet then
+  if HasTabSheet then
   begin
     if gdcObject.State = dsInsert then
     begin
@@ -746,12 +577,9 @@ begin
   {END MACRO}
 
   FIsShowSetTabSheet := False;
-  FHasTabSheet := HasTabSheet;
 
-  if FHasTabSheet then
-  begin
+  if HasTabSheet then
     ActivateTransaction(gdcObject.Transaction);
-  end;
 
   inherited;
 
@@ -766,112 +594,8 @@ begin
 end;
 
 function Tgdc_dlgTRPC.HasTabSheet: Boolean;
-var
-  I, K: Integer;
-  F, FD: TatRelationField;
-  OL: TObjectList;
-  FList: TStrings;
-  LinkTableList: TStrings;
 begin
-  Assert(Assigned(gdcObject));
-  Assert(Assigned(atDatabase));
-
-  Result := False;
-
-  // теперь найдем все таблицы, первичный ключ которых одновременно
-  // является ссылкой на нашу запись, т.е. таблицы связанные
-  // жесткой связью один-к-одному с нашей таблицей
-  // записи в таких таблицах, в совокупности с записью в главной
-  // таблице, представляют данные одного объекта
-  // пример: gd_contact -- gd_company -- gd_companycode
-  LinkTableList := TStringList.Create;
-  try
-    OL := TObjectList.Create(False);
-    FList := TStringList.Create;
-    try
-      (FList as TStringList).Sorted := True;
-      //Считаем все таблицы, входящие в селект запрос
-      GetTablesName(gdcObject.SelectSQL.Text, FList);
-      atDatabase.ForeignKeys.ConstraintsByReferencedRelation(
-        gdcObject.GetListTable(SubType), OL);
-      for I := 0 to OL.Count - 1 do
-        with OL[I] as TatForeignKey do
-      begin
-        if IsSimpleKey
-          and (Relation.PrimaryKey <> nil)
-          and (Relation.PrimaryKey.ConstraintFields.Count = 1)
-          and (ConstraintField = Relation.PrimaryKey.ConstraintFields[0])
-          and (FList.IndexOf(AnsiUpperCase(Trim(Relation.RelationName))) > -1) then
-        begin
-          //Сохраним только те таблицы, которые ссылаются на главную таблицу 1:1
-          //и присутствуют в селект запросе объекта
-          LinkTableList.Add(Trim(Relation.RelationName));
-        end;
-      end;
-    finally
-      OL.Free;
-      FList.Free;
-    end;
-
-    //Добавим в список и главную таблицу объекта
-    LinkTableList.Insert(0, gdcObject.GetListTable(SubType));
-
-    for I := 0 to atDatabase.PrimaryKeys.Count - 1 do
-      with atDatabase.PrimaryKeys[I] do
-      if ConstraintFields.Count > 1 then
-      begin
-        {
-        if not NeedVisibleTabSheet(Relation.RelationName) then
-          continue;
-        }  
-
-        F := nil;
-        FD := nil;
-
-        for K := 0 to LinkTableList.Count - 1 do
-        begin
-          if (ConstraintFields[0].References <> nil) and
-            (AnsiCompareText(ConstraintFields[0].References.RelationName,
-             LinkTableList[K]) = 0)
-          then
-          begin
-            F := ConstraintFields[0];
-            Break;
-          end;
-        end;
-
-        if not Assigned(F) then
-          continue;
-
-        //Вытянем поле со второй ссылкой
-        for K := 0 to ConstraintFields.Count - 1 do
-        begin
-          if (ConstraintFields[K].References <> nil) and
-             (ConstraintFields[K] <> F) and (FD = nil)
-          then
-          begin
-            FD := ConstraintFields[K];
-            Break;
-          end else
-
-          //Если у нас полей-ссылок в первичном ключе > 2
-          if (ConstraintFields[K].References <> nil) and
-             (ConstraintFields[K] <> F) and (FD <> nil)
-          then
-          begin
-            continue;
-          end;
-        end;
-
-        if not Assigned(FD) then
-          continue;
-
-        Result := True;
-        Break;
-      end;
-  finally
-    LinkTableList.Free;
-  end;
+  Result := (gdcObject <> nil) and (gdcObject.SetAttributesCount > 0);
 end;
 
 procedure Tgdc_dlgTRPC.actNewExecute(Sender: TObject);
@@ -958,15 +682,12 @@ begin
   {M}    end;
   {END MACRO}
 
-  { TODO : тут кажется этот вызов лишний... }
-  if FHasTabSheet then
-  begin
+  if HasTabSheet then
     ActivateTransaction(gdcObject.Transaction);
-  end;
 
   inherited;
 
-  if FHasTabSheet and (not FIsShowSetTabSheet) then
+  if HasTabSheet and (not FIsShowSetTabSheet) then
   begin
     CreateTabSheet;
     ShowTabSheet;
