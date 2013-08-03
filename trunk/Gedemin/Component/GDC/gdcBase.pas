@@ -1607,6 +1607,9 @@ type
     procedure LoadSelectedFromStream(S: TStream);
 
     //
+    procedure GetDependencies(const ASessionID: Integer; const AnIgnoreFields: String = '');
+
+    //
     class function SelectObject(const AMessage: String = '';
       const ATitle: String = '';
       const AHelpCtxt: Integer = 0;
@@ -18106,6 +18109,234 @@ begin
     end;
   finally
     RL.Free;
+  end;
+end;
+
+procedure TgdcBase.GetDependencies(const ASessionID: Integer; const AnIgnoreFields: String = '');
+
+  procedure _ProcessObject(AnObject: TgdcBase; const ALevel: Integer;
+    AProcessed: TgdKeyArray; AHash: TStringHashMap; AnObjects: TObjectList;
+    AqInsert: TIBSQL);
+  var
+    I, RefCount: Integer;
+    RelationName, FieldName: String;
+    R: TatRelation;
+    F: TatRelationField;
+    C, CCurr: TgdcFullClass;
+    Obj: TgdcBase;
+    ArrObjects: array[0..1024] of TgdcBase;
+    ArrIDs: array[0..1024] of TID;
+    Locked: Boolean;
+  begin
+    Assert(not AnObject.EOF);
+
+    AProcessed.Add(AnObject.ID);
+
+    R := nil;
+    RefCount := 0;
+
+    for I := 0 to AnObject.FieldCount - 1 do
+    begin
+      if (AnObject.Fields[I].DataType <> ftInteger) or (AProcessed.IndexOf(AnObject.Fields[I].AsInteger) <> -1) then
+        continue;
+
+      ParseFieldOrigin(AnObject.Fields[I].Origin, RelationName, FieldName);
+
+      if RelationName = '' then
+        continue;
+
+      if StrIPos(';' + FieldName + ';', AnIgnoreFields) > 0 then
+        continue;  
+
+      if (R = nil) or (AnsiCompareText(R.RelationName, RelationName) <> 0) then
+        R := atDatabase.Relations.ByRelationName(RelationName);
+
+      if R = nil then
+        continue;
+
+      F := R.RelationFields.ByFieldName(FieldName);
+
+      if (F = nil) or (F.References = nil) then
+        continue;
+
+      C := GetBaseClassForRelation(F.References.RelationName);
+
+      if C.gdClass = nil then
+        continue;
+
+      Obj := nil;
+      AHash.Find(C.gdClass.ClassName + C.SubType, Obj);
+      Locked := (Obj <> nil) and Obj.Active;
+
+      if (Obj = nil) or Locked then
+      begin
+        Obj := C.gdClass.Create(nil);
+        AnObjects.Add(Obj);
+        if not Locked then
+          AHash.Add(C.gdClass.ClassName + C.SubType, Obj);
+        Obj.SubType := C.SubType;
+        Obj.SubSet := 'ByID';
+      end;
+
+      Obj.ID := AnObject.Fields[I].AsInteger;
+      Obj.Open;
+
+      if Obj.EOF then
+      begin
+        Obj.Close;
+        continue;
+      end;
+
+      CCurr := Obj.GetCurrRecordClass;
+
+      if (CCurr.gdClass.ClassName <> Obj.ClassName) or (CCurr.SubType <> Obj.SubType) then
+      begin
+        Obj.Close;
+
+        Obj := nil;
+        AHash.Find(CCurr.gdClass.ClassName + CCurr.SubType, Obj);
+        Locked := (Obj <> nil) and Obj.Active;
+
+        if (Obj = nil) or Locked then
+        begin
+          Obj := CCurr.gdClass.Create(nil);
+          AnObjects.Add(Obj);
+          if not Locked then
+            AHash.Add(CCurr.gdClass.ClassName + CCurr.SubType, Obj);
+          Obj.SubType := CCurr.SubType;
+          Obj.SubSet := 'ByID';
+        end;
+
+        Obj.ID := AnObject.Fields[I].AsInteger;
+        Obj.Open;
+      end;
+
+      if Obj.EOF then
+      begin
+        Obj.Close;
+        continue;
+      end;
+
+      AqInsert.ParamByName('reflevel').AsInteger := ALevel;
+      AqInsert.ParamByName('relationname').AsString := RelationName;
+      AqInsert.ParamByName('fieldname').AsString := FieldName;
+      AqInsert.ParamByName('crossrelation').AsInteger := 0;
+      AqInsert.ParamByName('refobjectid').AsInteger := Obj.ID;
+      AqInsert.ParamByName('refobjectname').AsString := Copy(Obj.ObjectName, 1, 60);
+      AqInsert.ParamByName('refrelationname').AsString := R.RelationName;
+      AqInsert.ParamByName('refclassname').AsString := Obj.ClassName;
+      AqInsert.ParamByName('refsubtype').AsString := Obj.SubType;
+      AqInsert.ExecQuery;
+
+      if RefCount < High(ArrObjects) then
+      begin
+        ArrObjects[RefCount] := Obj;
+        ArrIDs[RefCount] := Obj.ID;
+        Inc(RefCount);
+      end;
+
+      Obj.Close;
+    end;
+
+    for I := 0 to RefCount - 1 do
+    begin
+      Assert(not ArrObjects[I].Active);
+
+      ArrObjects[I].ID := ArrIDs[I];
+      ArrObjects[I].Open;
+
+      if not ArrObjects[I].EOF then
+        _ProcessObject(ArrObjects[I], ALevel + 1, AProcessed, AHash, AnObjects, AqInsert);
+
+      ArrObjects[I].Close;  
+    end;
+
+    for I := 0 to AnObject.SetAttributesCount - 1 do
+    begin
+      C := GetBaseClassForRelation(AnObject.SetAttributes[I].ReferenceRelationName);
+
+      if C.gdClass = nil then
+        continue;
+
+      Obj := nil;
+      AHash.Find(C.gdClass.ClassName + C.SubType + AnObject.SetAttributes[I].CrossRelationName, Obj);
+      Locked := (Obj <> nil) and Obj.Active;
+
+      if (Obj = nil) or Locked then
+      begin
+        Obj := C.gdClass.Create(nil);
+        AnObjects.Add(Obj);
+        if not Locked then
+          AHash.Add(C.gdClass.ClassName + C.SubType + AnObject.SetAttributes[I].CrossRelationName, Obj);
+        Obj.SubType := C.SubType;
+        Obj.SubSet := 'All';
+        Obj.SetTable := AnObject.SetAttributes[I].CrossRelationName;
+      end;
+
+      Obj.ParamByName('master_record_id').AsInteger := AnObject.ID;
+      Obj.Open;
+
+      while not Obj.Eof do
+      begin
+        if AProcessed.IndexOf(AnObject.Fields[I].AsInteger) = -1 then
+        begin
+          AqInsert.ParamByName('reflevel').AsInteger := ALevel;
+          AqInsert.ParamByName('relationname').AsString := AnObject.SetAttributes[I].CrossRelationName;
+          AqInsert.ParamByName('fieldname').AsString := '';
+          AqInsert.ParamByName('crossrelation').AsInteger := 1;
+          AqInsert.ParamByName('refobjectid').AsInteger := Obj.ID;
+          AqInsert.ParamByName('refobjectname').AsString := Copy(Obj.ObjectName, 1, 60);
+          AqInsert.ParamByName('refrelationname').AsString := AnObject.SetAttributes[I].ReferenceRelationName;
+          AqInsert.ParamByName('refclassname').AsString := Obj.ClassName;
+          AqInsert.ParamByName('refsubtype').AsString := Obj.SubType;
+          AqInsert.ExecQuery;
+        end;
+
+        _ProcessObject(Obj, ALevel + 1, AProcessed, AHash, AnObjects, AqInsert);
+        Obj.Next;
+      end;
+
+      Obj.Close;
+    end;
+  end;
+
+var
+  Hash: TStringHashMap;
+  Processed: TgdKeyArray;
+  Objects: TObjectList;
+  q: TIBSQL;
+  Tr: TIBTRansaction;
+begin
+  Assert(atDatabase <> nil);
+
+  Hash := TStringHashMap.Create(CaseSensitiveTraits, 1024);
+  Processed := TgdKeyArray.Create;
+  Objects := TObjectList.Create(True);
+  Tr := TIBTransaction.Create(nil);
+  q := TIBSQL.Create(nil);
+  try
+    Tr.DefaultDatabase := Database;
+    Tr.StartTransaction;
+
+    q.Transaction := Tr;
+    q.SQL.Text :=
+      'INSERT INTO gd_object_dependencies ( ' +
+      '  sessionid, masterid, reflevel, relationname, fieldname, crossrelation, ' +
+      '  refobjectid, refrelationname, refclassname, refsubtype) ' +
+      'VALUES ' +
+      '  (:sessionid, :masterid, :reflevel, :relationname, :fieldname, :crossrelation, ' +
+      '  :refobjectid, :refrelationname, :refclassname, :refsubtype) ';
+    q.ParamByName('sessionid').AsInteger := ASessionID;
+    q.ParamByName('masterid').AsInteger := Self.ID;
+
+    _ProcessObject(Self, 0, Processed, Hash, Objects, q);
+
+    Tr.Commit;
+  finally
+    Processed.Free;
+    Hash.Free;
+    Objects.Free;
+    Tr.Free;
   end;
 end;
 
