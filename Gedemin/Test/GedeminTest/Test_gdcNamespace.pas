@@ -162,8 +162,8 @@ begin
       NS.FieldByName('name').AsString := 'Namespace 1';
       NS.Post;
 
-      NS.AddObject(NS.ID, 'Folder 1', 'TgdcFolder', '', FRUID.XID,  FRUID.DBID,
-        Tr, ovAlwaysOverwrite, rmDontRemove, isInclude);
+      NS.AddObject(NS.ID, 'Folder 1', 'TgdcFolder', '', FRUID.XID,  FRUID.DBID, 0,
+        ovAlwaysOverwrite, rmDontRemove, isInclude, Tr);
 
       FName := TempPath + '\ns.yml';
       SysUtils.DeleteFile(FName);
@@ -326,8 +326,9 @@ begin
       FTable.Subtype,
       RUID.XID,
       RUID.DBID,
-      FTr,
-      ovAlwaysOverwrite, rmDontRemove, isDontInclude);
+      0,
+      ovAlwaysOverwrite, rmDontRemove, isDontInclude,
+      FTr);
   finally
     FTable.Free;      
   end;
@@ -385,7 +386,9 @@ begin
       FTable.Subtype,
       FTable.GetRuid.XID,
       FTable.GetRuid.DBID,
-      FTr, ovOverwriteIfNewer, rmDontRemove, isDontInclude);
+      0,
+      ovOverwriteIfNewer, rmDontRemove, isDontInclude,
+      FTr);
 
     FTable.Close;
     FTable.ParamByName(FTable.GetListField(FTable.SubType)).AsString := FTableName2;
@@ -399,7 +402,9 @@ begin
       FTable.Subtype,
       FTable.GetRuid.XID,
       FTable.GetRuid.DBID,
-      FTr, ovAlwaysOverwrite, rmDontRemove, isDontInclude);
+      0,
+      ovAlwaysOverwrite, rmDontRemove, isDontInclude,
+      FTr);
   finally
     FTable.Free;
   end;
@@ -567,7 +572,9 @@ begin
       Good.Subtype,
       Good.GetRuid.XID,
       Good.GetRuid.DBID,
-      FTr, ovAlwaysOverwrite, rmDontRemove, isDontInclude);
+      0,
+      ovAlwaysOverwrite, rmDontRemove, isDontInclude,
+      FTr);
   finally
     Good.Free;
   end;

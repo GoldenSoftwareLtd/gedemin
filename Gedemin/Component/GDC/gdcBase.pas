@@ -1607,7 +1607,9 @@ type
     procedure LoadSelectedFromStream(S: TStream);
 
     //
-    procedure GetDependencies(const ASessionID: Integer; const AnIgnoreFields: String = '');
+    procedure GetDependencies(const ASessionID: Integer;
+      const AnIncludeSystemObjects: Boolean = False;
+      const AnIgnoreFields: String = '');
 
     //
     class function SelectObject(const AMessage: String = '';
@@ -18112,7 +18114,9 @@ begin
   end;
 end;
 
-procedure TgdcBase.GetDependencies(const ASessionID: Integer; const AnIgnoreFields: String = '');
+procedure TgdcBase.GetDependencies(const ASessionID: Integer;
+  const AnIncludeSystemObjects: Boolean = False;
+  const AnIgnoreFields: String = '');
 
   procedure _ProcessObject(AnObject: TgdcBase; const ALevel: Integer;
     AProcessed: TgdKeyArray; AHash: TStringHashMap; AnObjects: TObjectList;
@@ -18146,7 +18150,7 @@ procedure TgdcBase.GetDependencies(const ASessionID: Integer; const AnIgnoreFiel
         continue;
 
       if StrIPos(';' + FieldName + ';', AnIgnoreFields) > 0 then
-        continue;  
+        continue;
 
       if (R = nil) or (AnsiCompareText(R.RelationName, RelationName) <> 0) then
         R := atDatabase.Relations.ByRelationName(RelationName);
@@ -18217,16 +18221,19 @@ procedure TgdcBase.GetDependencies(const ASessionID: Integer; const AnIgnoreFiel
         continue;
       end;
 
-      AqInsert.ParamByName('reflevel').AsInteger := ALevel;
-      AqInsert.ParamByName('relationname').AsString := RelationName;
-      AqInsert.ParamByName('fieldname').AsString := FieldName;
-      AqInsert.ParamByName('crossrelation').AsInteger := 0;
-      AqInsert.ParamByName('refobjectid').AsInteger := Obj.ID;
-      AqInsert.ParamByName('refobjectname').AsString := Copy(Obj.ObjectName, 1, 60);
-      AqInsert.ParamByName('refrelationname').AsString := R.RelationName;
-      AqInsert.ParamByName('refclassname').AsString := Obj.ClassName;
-      AqInsert.ParamByName('refsubtype').AsString := Obj.SubType;
-      AqInsert.ExecQuery;
+      if AnIncludeSystemObjects or (Obj.ID >= cstUserIDStart) then
+      begin
+        AqInsert.ParamByName('reflevel').AsInteger := ALevel;
+        AqInsert.ParamByName('relationname').AsString := RelationName;
+        AqInsert.ParamByName('fieldname').AsString := FieldName;
+        AqInsert.ParamByName('crossrelation').AsInteger := 0;
+        AqInsert.ParamByName('refobjectid').AsInteger := Obj.ID;
+        AqInsert.ParamByName('refobjectname').AsString := System.Copy(Obj.ObjectName, 1, 60);
+        AqInsert.ParamByName('refrelationname').AsString := R.RelationName;
+        AqInsert.ParamByName('refclassname').AsString := Obj.ClassName;
+        AqInsert.ParamByName('refsubtype').AsString := Obj.SubType;
+        AqInsert.ExecQuery;
+      end;
 
       if RefCount < High(ArrObjects) then
       begin
@@ -18248,7 +18255,7 @@ procedure TgdcBase.GetDependencies(const ASessionID: Integer; const AnIgnoreFiel
       if not ArrObjects[I].EOF then
         _ProcessObject(ArrObjects[I], ALevel + 1, AProcessed, AHash, AnObjects, AqInsert);
 
-      ArrObjects[I].Close;  
+      ArrObjects[I].Close;
     end;
 
     for I := 0 to AnObject.SetAttributesCount - 1 do
@@ -18280,16 +18287,19 @@ procedure TgdcBase.GetDependencies(const ASessionID: Integer; const AnIgnoreFiel
       begin
         if AProcessed.IndexOf(AnObject.Fields[I].AsInteger) = -1 then
         begin
-          AqInsert.ParamByName('reflevel').AsInteger := ALevel;
-          AqInsert.ParamByName('relationname').AsString := AnObject.SetAttributes[I].CrossRelationName;
-          AqInsert.ParamByName('fieldname').AsString := '';
-          AqInsert.ParamByName('crossrelation').AsInteger := 1;
-          AqInsert.ParamByName('refobjectid').AsInteger := Obj.ID;
-          AqInsert.ParamByName('refobjectname').AsString := Copy(Obj.ObjectName, 1, 60);
-          AqInsert.ParamByName('refrelationname').AsString := AnObject.SetAttributes[I].ReferenceRelationName;
-          AqInsert.ParamByName('refclassname').AsString := Obj.ClassName;
-          AqInsert.ParamByName('refsubtype').AsString := Obj.SubType;
-          AqInsert.ExecQuery;
+          if AnIncludeSystemObjects or (Obj.ID >= cstUserIDStart) then
+          begin
+            AqInsert.ParamByName('reflevel').AsInteger := ALevel;
+            AqInsert.ParamByName('relationname').AsString := AnObject.SetAttributes[I].CrossRelationName;
+            AqInsert.ParamByName('fieldname').AsString := '';
+            AqInsert.ParamByName('crossrelation').AsInteger := 1;
+            AqInsert.ParamByName('refobjectid').AsInteger := Obj.ID;
+            AqInsert.ParamByName('refobjectname').AsString := System.Copy(Obj.ObjectName, 1, 60);
+            AqInsert.ParamByName('refrelationname').AsString := AnObject.SetAttributes[I].ReferenceRelationName;
+            AqInsert.ParamByName('refclassname').AsString := Obj.ClassName;
+            AqInsert.ParamByName('refsubtype').AsString := Obj.SubType;
+            AqInsert.ExecQuery;
+          end;  
         end;
 
         _ProcessObject(Obj, ALevel + 1, AProcessed, AHash, AnObjects, AqInsert);
@@ -18322,10 +18332,10 @@ begin
     q.SQL.Text :=
       'INSERT INTO gd_object_dependencies ( ' +
       '  sessionid, masterid, reflevel, relationname, fieldname, crossrelation, ' +
-      '  refobjectid, refrelationname, refclassname, refsubtype) ' +
+      '  refobjectid, refobjectname, refrelationname, refclassname, refsubtype) ' +
       'VALUES ' +
       '  (:sessionid, :masterid, :reflevel, :relationname, :fieldname, :crossrelation, ' +
-      '  :refobjectid, :refrelationname, :refclassname, :refsubtype) ';
+      '  :refobjectid, :refobjectname, :refrelationname, :refclassname, :refsubtype) ';
     q.ParamByName('sessionid').AsInteger := ASessionID;
     q.ParamByName('masterid').AsInteger := Self.ID;
 
