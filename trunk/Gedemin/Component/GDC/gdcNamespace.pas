@@ -47,10 +47,11 @@ type
       ATr: TIBTransaction);
     class procedure AddObject(const ANamespaceKey: Integer;
       const AName: String; const AClass: String; const ASubType: String;
-      const XID, DBID: Integer; ATr: TIBTransaction;
+      const XID, DBID: Integer; const AHeadObjectKey: Integer;
       const AnAlwaysoverwrite: TnsOverwrite;
       const ADontRemove: TnsRemove;
-      const AnIncludeSiblings: TnsIncludeSiblings);
+      const AnIncludeSiblings: TnsIncludeSiblings;
+      ATr: TIBTransaction);
     class function LoadNSInfo(const Path: String; ATr: TIBTransaction): Integer;
     class function CompareObj(ADataSet: TDataSet): Boolean;
     class procedure UpdateCurrModified(const ANamespaceKey: Integer = -1);
@@ -2977,25 +2978,30 @@ end;
 
 class procedure TgdcNamespace.SetObjectLink(AnObject: TgdcBase; ADataSet: TDataSet; ATr: TIBTransaction);
 var
+  Tr: TIBTransaction;
   q, qNS: TIBSQL;
   SessionID, XID, DBID: TID;
 begin
   Assert(ADataSet <> nil);
 
   SessionID := AnObject.GetNextID;
-  AnObject.GetDependencies(SessionID, ';EDITORKEY;CREATORKEY;');
+  AnObject.GetDependencies(SessionID, False, ';EDITORKEY;CREATORKEY;');
 
+  Tr := TIBTransaction.Create(nil);
   q := TIBSQL.Create(nil);
   qNS := TIBSQL.Create(nil);
   try
-    qNS.Transaction := gdcBaseManager.ReadTransaction;
+    Tr.DefaultDatabase := gdcBaseManager.Database;
+    Tr.StartTransaction;
+
+    qNS.Transaction := Tr;
     qNS.SQL.Text :=
       'SELECT n.id, n.name ' +
       'FROM at_object o ' +
       '  JOIN at_namespace n ON o.namespacekey = n.id ' +
       'WHERE o.xid = :xid and o.dbid = :dbid';
 
-    q.Transaction := gdcBaseManager.ReadTransaction;
+    q.Transaction := Tr;
     q.SQL.Text :=
       'SELECT * FROM gd_object_dependencies ' +
       'WHERE sessionid = :sid AND masterid = :mid ' +
@@ -3013,7 +3019,7 @@ begin
         ADataSet.FieldByName('name').AsString := q.FieldByName('refobjectname').AsString;
         ADataSet.FieldByname('class').AsString := q.FieldByName('refclassname').AsString;
         ADataSet.FieldByName('subtype').AsString := q.FieldByName('refsubtype').AsString;
-        ADataSet.FieldByName('headobject').AsInteger := AnObject.ID;
+        ADataSet.FieldByName('headobject').AsString := RUIDToStr(AnObject.GetRUID);
         ADataSet.FieldByName('displayname').AsString := q.FieldByName('refclassname').AsString;
         if q.FieldByName('refsubtype').AsString > '' then
           ADataSet.FieldByName('displayname').AsString := ADataSet.FieldByName('displayname').AsString +
@@ -3039,18 +3045,28 @@ begin
       end;
       q.Next;
     end;
+
+    q.Close;
+    q.SQL.Text :=
+      'DELETE FROM gd_object_dependencies ' +
+      'WHERE sessionid = :sid ';
+    q.ExecQuery;
+
+    Tr.Commit;
   finally
     qNS.Free;
     q.Free;
+    Tr.Free;
   end;
 end;
 
 class procedure TgdcNamespace.AddObject(const ANamespaceKey: Integer;
   const AName: String; const AClass: String; const ASubType: String;
-  const XID, DBID: Integer; ATr: TIBTransaction;
+  const XID, DBID: Integer; const AHeadObjectKey: Integer;
   const AnAlwaysoverwrite: TnsOverwrite;
   const ADontRemove: TnsRemove;
-  const AnIncludeSiblings: TnsIncludeSiblings);
+  const AnIncludeSiblings: TnsIncludeSiblings;
+  ATr: TIBTransaction);
 var
   q, qFind: TIBSQL;
 begin
@@ -3084,10 +3100,10 @@ begin
     begin
       q.SQL.Text :=
         'UPDATE OR INSERT INTO at_object ' +
-        '  (namespacekey, objectname, objectclass, subtype, xid, dbid, ' +
+        '  (namespacekey, objectname, objectclass, subtype, xid, dbid, headobjectkey, ' +
         '  alwaysoverwrite, dontremove, includesiblings) ' +
         'VALUES ' +
-        '  (:namespacekey, :objectname, :objectclass, :subtype, :xid, :dbid, ' +
+        '  (:namespacekey, :objectname, :objectclass, :subtype, :xid, :dbid, :headobjectkey, ' +
         '  :alwaysoverwrite, :dontremove, :includesiblings) ' +
         'MATCHING ' +
         '  (xid, dbid, namespacekey)';
@@ -3097,6 +3113,10 @@ begin
       q.ParamByName('subtype').AsString := ASubType;
       q.ParamByName('xid').AsInteger := XID;;
       q.ParamByName('dbid').AsInteger := DBID;
+      if AHeadObjectKey = 0 then
+        q.ParamByName('headobjectkey').Clear
+      else
+        q.ParamByName('headobjectkey').AsInteger := AHeadObjectKey;
       if AnAlwaysOverwrite = ovAlwaysOverwrite then
         q.ParamByName('alwaysoverwrite').AsInteger := 1
       else

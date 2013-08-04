@@ -131,9 +131,8 @@ end;
 procedure TdlgToNamespace.SetupParams(AnObject: TgdcBase; BL: TBookmarkList);
 var
   q: TIBSQL;
-  KSA: TgdKeyStringAssoc;
 begin
-  Assert(gdcBaseManager <> nil);
+  Assert(AnObject <> nil);
   Assert(not AnObject.EOF);
 
   FgdcObject := AnObject;
@@ -142,47 +141,37 @@ begin
   if not IBTransaction.InTransaction then
     IBTransaction.StartTransaction;
 
-  FClearId := -1;
-
-  KSA := TgdKeyStringAssoc.Create;
+  q := TIBSQL.Create(nil);
   try
-    TgdcNamespace.SetNamespaceForObject(FgdcObject, KSA, IBTransaction);
-    if KSA.Count > 0 then
-    begin  
-      lkup.CurrentKeyInt := KSA[0];
-      FClearId := KSA[0];
-      q := TIBSQL.Create(nil);
-      try
-        q.Transaction := IBTransaction;
-        q.SQL.Text := 'SELECT * FROM at_object WHERE xid = :xid AND dbid = :dbid';
-        q.ParamByName('xid').AsInteger := FgdcObject.GetRuid.XID;
-        q.ParamByName('dbid').AsInteger := FgdcObject.GetRuid.DBID;
-        q.ExecQuery;
+    q.Transaction := IBTransaction;
+    q.SQL.Text :=
+      'SELECT n.id, o.alwaysoverwrite, o.dontremove, o.includesiblings ' +
+      'FROM at_object o JOIN at_namespace n ON n.id = o.namespacekey ' +
+      'WHERE o.xid = :xid AND o.dbid = :dbid';
+    q.ParamByName('xid').AsInteger := FgdcObject.GetRuid.XID;
+    q.ParamByName('dbid').AsInteger := FgdcObject.GetRuid.DBID;
+    q.ExecQuery;
 
-        if not q.EOF then
-        begin
-          cbAlwaysOverwrite.Checked := q.FieldByName('alwaysoverwrite').AsInteger = 1;
-          cbDontRemove.Checked := q.FieldByName('dontremove').AsInteger = 1;
-          cbIncludeSiblings.Checked := q.FieldByName('includesiblings').AsInteger = 1;
-        end;
-      finally
-        q.Free;
-      end;
+    if q.EOF then
+      FClearId := -1
+    else begin
+      FClearId := q.FieldByName('id').AsInteger;
+      lkup.CurrentKeyInt := q.FieldByName('id').AsInteger;
+      cbAlwaysOverwrite.Checked := q.FieldByName('alwaysoverwrite').AsInteger <> 0;
+      cbDontRemove.Checked := q.FieldByName('dontremove').AsInteger <> 0;
+      cbIncludeSiblings.Checked := q.FieldByName('includesiblings').AsInteger <> 0;
     end;
   finally
-    KSA.Free;
+    q.Free;
   end;
 
   actShowLink.Execute;
 
-  if FgdcObject <> nil then
-  begin
-    edObjectName.Text := FgdcObject.ObjectName + ' ('
-      + FgdcObject.GetDisplayName(FgdcObject.SubType) + ')';
-    if (BL <> nil) and (BL.Count > 1) then
-      edObjectName.Text := edObjectName.Text + ' и еще ' +
-        IntToStr(BL.Count - 1) + ' объект(а, ов)';
-  end;
+  edObjectName.Text := FgdcObject.ObjectName + ' ('
+    + FgdcObject.GetDisplayName(FgdcObject.SubType) + ')';
+  if (FBL <> nil) and (FBL.Count > 1) then
+    edObjectName.Text := edObjectName.Text + ' и еще ' +
+      IntToStr(BL.Count - 1) + ' объект(а, ов)';
 end;
 
 procedure TdlgToNamespace.DeleteObject;
@@ -282,33 +271,36 @@ begin
     IBTransaction.DefaultDatabase, IBTransaction, lkup.CurrentKeyInt) as TgdcNamespace;
   OL := TObjectList.Create(True);
   try
-    for I := dbgrListLink.CheckBox.CheckList.Count - 1 downto 0 do
+    cdsLink.First;
+    while not cdsLink.EOF do
     begin
-      if cdsLink.Locate('id', dbgrListLink.CheckBox.CheckList[I], []) then
+      if dbgrListLink.CheckBox.CheckList.IndexOf(cdsLink.FieldByName('id').AsString)) > -1 then
       begin
-         InstClass := GetClass(cdsLink.FieldByName('class').AsString);
-         if (InstClass <> nil) and InstClass.InheritsFrom(TgdcBase) then
-         begin
-           InstObj := CgdcBase(InstClass).CreateSubType(nil,
-             cdsLink.FieldByName('subtype').AsString, 'ByID');
-           try
-             InstObj.Transaction := IBTransaction;
-             InstObj.ReadTransaction := IBTransaction;
-             InstObj.ID := cdsLink.FieldByName('id').AsInteger;
-             InstObj.Open;
-             if not InstObj.EOF then
-             begin
-               gdcNamespace.AddObject2(InstObj, OL,
-                 cdsLink.FieldByName('headobject').AsString,
-                 Integer(cbAlwaysOverwrite.Checked),
-                 Integer(cbDontRemove.Checked),
-                 Integer(cbIncludeSiblings.Checked));
-             end;
-           finally
-             InstObj.Free;
+       InstClass := GetClass(cdsLink.FieldByName('class').AsString);
+       if (InstClass <> nil) and InstClass.InheritsFrom(TgdcBase) then
+       begin
+         InstObj := CgdcBase(InstClass).CreateSubType(nil,
+           cdsLink.FieldByName('subtype').AsString, 'ByID');
+         try
+           InstObj.Transaction := IBTransaction;
+           InstObj.ReadTransaction := IBTransaction;
+           InstObj.ID := cdsLink.FieldByName('id').AsInteger;
+           InstObj.Open;
+           if not InstObj.EOF then
+           begin
+             gdcNamespace.AddObject2(InstObj, OL,
+               cdsLink.FieldByName('headobject').AsString,
+               Integer(cbAlwaysOverwrite.Checked),
+               Integer(cbDontRemove.Checked),
+               Integer(cbIncludeSiblings.Checked));
            end;
+         finally
+           InstObj.Free;
          end;
+       end;
       end;
+
+      cdsLink.Next;
     end;
 
     if (FgdcObject.State in [dsEdit, dsInsert]) or (FBL = nil) then

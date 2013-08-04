@@ -1542,7 +1542,7 @@ COMMIT;
 CREATE GLOBAL TEMPORARY TABLE gd_object_dependencies (
   sessionid         dintkey,
   masterid          dintkey,
-  reflevel          dintkey,
+  reflevel          dinteger_notnull,
   relationname      dtablename NOT NULL,
   fieldname         dfieldname NOT NULL,
   crossrelation     dboolean_notnull,
