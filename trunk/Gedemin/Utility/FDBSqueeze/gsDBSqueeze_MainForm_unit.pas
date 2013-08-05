@@ -40,7 +40,25 @@ type
     pnl1: TPanel;
     lbl7: TLabel;
     actDatabaseBrowse: TAction;
-    
+    grpDBProperties: TGroupBox;
+    txt1: TStaticText;
+    txt2: TStaticText;
+    txt3: TStaticText;
+    txt4: TStaticText;
+    txt5: TStaticText;
+    txt6: TStaticText;
+    txt7: TStaticText;
+    txt8: TStaticText;
+    txt9: TStaticText;
+    txt11: TStaticText;
+    txt12: TStaticText;
+    txt13: TStaticText;
+    txt14: TStaticText;
+    txt15: TStaticText;
+    txt10: TStaticText;
+    btnGetStatistics: TButton;
+    actGet: TAction;
+    actUpdate: TAction;
 
     procedure actConnectExecute(Sender: TObject);
     procedure actConnectUpdate(Sender: TObject);
@@ -54,11 +72,15 @@ type
     procedure actServerExecute(Sender: TObject);
     procedure actServerUpdate(Sender: TObject);
     procedure actDatabaseBrowseExecute(Sender: TObject);
+    procedure actGetExecute(Sender: TObject);
+    procedure actGetUpdate(Sender: TObject);
 
   private
     FSThread: TgsDBSqueezeThread;
 
     procedure SetItemsCbbEvent(const ACompanies: TStringList);
+    procedure GetDBSizeEvent(const AnDBSize: String);
+    procedure GetStatisticsEvent(const AGdDoc: String; const AnAcEntry: String; const AnInvMovement: String);
     procedure UpdateProgress(const AProgressInfo: TgdProgressInfo);
 
   public
@@ -79,6 +101,8 @@ begin
   FSThread := TgsDBSqueezeThread.Create(False);
   FSThread.ProgressWatch := Self;
   FSThread.OnSetItemsCbb := SetItemsCbbEvent;
+  FSThread.OnGetDBSize := GetDBSizeEvent;
+  FSThread.OnGetStatistics := GetStatisticsEvent;
   mLog.ReadOnly := True;
   dtpClosingDate.Date := Date;
 end;
@@ -95,6 +119,8 @@ begin
     FSThread.SetDBParams(edServer.Text + ':' + edDatabaseName.Text, edUserName.Text, edPassword.Text)
   else
     FSThread.SetDBParams(edDatabaseName.Text, edUserName.Text, edPassword.Text);
+
+  FSThread.DoGetDBSize;
 
   FSThread.Connect;
 
@@ -120,6 +146,8 @@ begin
   FSThread.Disconnect;
   chbServer.Checked := False;
   chbServer.Enabled := True;
+
+  FSThread.DoGetDBSize;
 end;
 
 procedure TgsDBSqueeze_MainForm.actGoExecute(Sender: TObject);
@@ -142,13 +170,37 @@ begin
     and (rbAllOurCompanies.Checked or rbCompany.Checked);
 end;
 
-procedure TgsDBSqueeze_MainForm.FormCloseQuery(Sender: TObject;
+procedure TgsDBSqueeze_MainForm.FormCloseQuery(Sender: TObject;                  ///TODO: доработать
   var CanClose: Boolean);
 begin
   CanClose := not FSThread.Busy;
 
   if CanClose and FSThread.Connected then
     FSThread.Disconnect;
+end;
+
+procedure TgsDBSqueeze_MainForm.GetDBSizeEvent(const AnDBSize: String);
+begin
+  if Trim(txt9.Caption) = '' then
+    txt9.Caption := AnDBSize
+  else
+   txt12.Caption := AnDBSize;
+end;
+
+procedure TgsDBSqueeze_MainForm.GetStatisticsEvent(const AGdDoc: String; const AnAcEntry: String; const AnInvMovement: String);
+begin
+  if (Trim(txt6.Caption) = '') and (Trim(txt7.Caption) = '') and (Trim(txt8.Caption) = '') then
+  begin
+    txt6.Caption := AGdDoc;
+    txt7.Caption := AnAcEntry;
+    txt8.Caption := AnInvMovement;
+  end
+  else
+  begin
+    txt13.Caption := AGdDoc;
+    txt14.Caption := AnAcEntry;
+    txt15.Caption := AnInvMovement;
+  end;
 end;
 
 procedure TgsDBSqueeze_MainForm.SetItemsCbbEvent(const ACompanies: TStringList);
@@ -177,7 +229,6 @@ begin
   FSThread.DoSetItemsCbb;
 end;
 
-
 procedure TgsDBSqueeze_MainForm.actServerExecute(Sender: TObject);
 begin
   //
@@ -204,7 +255,18 @@ begin
       edDatabaseName.Text := openDialog.FileName;
   finally
     openDialog.Free;
-  end;  
+  end;
+end;
+
+
+procedure TgsDBSqueeze_MainForm.actGetExecute(Sender: TObject);
+begin
+  FSThread.DoGetStatistics;
+end;
+
+procedure TgsDBSqueeze_MainForm.actGetUpdate(Sender: TObject);
+begin
+      //
 end;
 
 end.
