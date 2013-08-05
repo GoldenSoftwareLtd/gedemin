@@ -1607,7 +1607,7 @@ type
     procedure LoadSelectedFromStream(S: TStream);
 
     //
-    procedure GetDependencies(const ASessionID: Integer;
+    procedure GetDependencies(ATr: TIBTransaction; const ASessionID: Integer;
       const AnIncludeSystemObjects: Boolean = False;
       const AnIgnoreFields: String = '');
 
@@ -18114,13 +18114,16 @@ begin
   end;
 end;
 
-procedure TgdcBase.GetDependencies(const ASessionID: Integer;
+procedure TgdcBase.GetDependencies(ATr: TIBTransaction; const ASessionID: Integer;
   const AnIncludeSystemObjects: Boolean = False;
   const AnIgnoreFields: String = '');
 
+  const
+    LimitCount = 8192;
+
   procedure _ProcessObject(AnObject: TgdcBase; const ALevel: Integer;
     AProcessed: TgdKeyArray; AHash: TStringHashMap; AnObjects: TObjectList;
-    AqInsert: TIBSQL);
+    AqInsert: TIBSQL; var ACount: Integer);
   var
     I, RefCount: Integer;
     RelationName, FieldName: String;
@@ -18132,6 +18135,9 @@ procedure TgdcBase.GetDependencies(const ASessionID: Integer;
     ArrIDs: array[0..1024] of TID;
     Locked: Boolean;
   begin
+    if ACount >= LimitCount then
+      exit;
+
     Assert(not AnObject.EOF);
 
     AProcessed.Add(AnObject.ID);
@@ -18233,6 +18239,7 @@ procedure TgdcBase.GetDependencies(const ASessionID: Integer;
         AqInsert.ParamByName('refclassname').AsString := Obj.ClassName;
         AqInsert.ParamByName('refsubtype').AsString := Obj.SubType;
         AqInsert.ExecQuery;
+        Inc(ACount);
       end;
 
       if RefCount < High(ArrObjects) then
@@ -18253,7 +18260,7 @@ procedure TgdcBase.GetDependencies(const ASessionID: Integer;
       ArrObjects[I].Open;
 
       if not ArrObjects[I].EOF then
-        _ProcessObject(ArrObjects[I], ALevel + 1, AProcessed, AHash, AnObjects, AqInsert);
+        _ProcessObject(ArrObjects[I], ALevel + 1, AProcessed, AHash, AnObjects, AqInsert, ACount);
 
       ArrObjects[I].Close;
     end;
@@ -18287,7 +18294,8 @@ procedure TgdcBase.GetDependencies(const ASessionID: Integer;
       begin
         if AProcessed.IndexOf(AnObject.Fields[I].AsInteger) = -1 then
         begin
-          if AnIncludeSystemObjects or (Obj.ID >= cstUserIDStart) then
+          if (AnIncludeSystemObjects or (Obj.ID >= cstUserIDStart))
+            and (ACount < LimitCount) then
           begin
             AqInsert.ParamByName('reflevel').AsInteger := ALevel;
             AqInsert.ParamByName('relationname').AsString := AnObject.SetAttributes[I].CrossRelationName;
@@ -18299,10 +18307,11 @@ procedure TgdcBase.GetDependencies(const ASessionID: Integer;
             AqInsert.ParamByName('refclassname').AsString := Obj.ClassName;
             AqInsert.ParamByName('refsubtype').AsString := Obj.SubType;
             AqInsert.ExecQuery;
-          end;  
+            Inc(ACount);
+          end;
         end;
 
-        _ProcessObject(Obj, ALevel + 1, AProcessed, AHash, AnObjects, AqInsert);
+        _ProcessObject(Obj, ALevel + 1, AProcessed, AHash, AnObjects, AqInsert, ACount);
         Obj.Next;
       end;
 
@@ -18315,20 +18324,18 @@ var
   Processed: TgdKeyArray;
   Objects: TObjectList;
   q: TIBSQL;
-  Tr: TIBTRansaction;
+  Count: Integer;
 begin
   Assert(atDatabase <> nil);
+  Assert(ATr <> nil);
+  Assert(ATr.InTransaction);
 
   Hash := TStringHashMap.Create(CaseSensitiveTraits, 1024);
   Processed := TgdKeyArray.Create;
   Objects := TObjectList.Create(True);
-  Tr := TIBTransaction.Create(nil);
   q := TIBSQL.Create(nil);
   try
-    Tr.DefaultDatabase := Database;
-    Tr.StartTransaction;
-
-    q.Transaction := Tr;
+    q.Transaction := ATr;
     q.SQL.Text :=
       'INSERT INTO gd_object_dependencies ( ' +
       '  sessionid, masterid, reflevel, relationname, fieldname, crossrelation, ' +
@@ -18339,14 +18346,13 @@ begin
     q.ParamByName('sessionid').AsInteger := ASessionID;
     q.ParamByName('masterid').AsInteger := Self.ID;
 
-    _ProcessObject(Self, 0, Processed, Hash, Objects, q);
-
-    Tr.Commit;
+    Count := 0;
+    _ProcessObject(Self, 0, Processed, Hash, Objects, q, Count);
   finally
+    q.Free;
     Processed.Free;
     Hash.Free;
     Objects.Free;
-    Tr.Free;
   end;
 end;
 

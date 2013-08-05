@@ -1554,7 +1554,7 @@ CREATE GLOBAL TEMPORARY TABLE gd_object_dependencies (
 
   PRIMARY KEY (sessionid, masterid, reflevel, relationname, fieldname)
 )
-  ON COMMIT PRESERVE ROWS;
+  ON COMMIT DELETE ROWS;
 
 COMMIT;
 
