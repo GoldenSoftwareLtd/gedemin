@@ -1,8 +1,8 @@
 object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
-  Left = 7
-  Top = 202
+  Left = 507
+  Top = 114
   BorderStyle = bsDialog
-  ClientHeight = 432
+  ClientHeight = 528
   ClientWidth = 814
   Color = clBtnFace
   Font.Charset = RUSSIAN_CHARSET
@@ -31,12 +31,12 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
   end
   object grpOptions: TGroupBox
     Left = 8
-    Top = 177
+    Top = 313
     Width = 393
     Height = 152
     Caption = ' Options '
     DragMode = dmAutomatic
-    TabOrder = 3
+    TabOrder = 4
     object lbl5: TLabel
       Left = 20
       Top = 23
@@ -195,14 +195,14 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
   end
   object btnGo: TButton
     Left = 164
-    Top = 362
+    Top = 483
     Width = 75
     Height = 21
     Action = actGo
     Caption = 'Go!'
     ParentShowHint = False
     ShowHint = True
-    TabOrder = 4
+    TabOrder = 5
   end
   object mLog: TMemo
     Left = 419
@@ -211,6 +211,173 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
     Height = 384
     ScrollBars = ssVertical
     TabOrder = 2
+  end
+  object grpDBProperties: TGroupBox
+    Left = 8
+    Top = 160
+    Width = 393
+    Height = 145
+    Caption = ' Properties '
+    TabOrder = 3
+    object txt1: TStaticText
+      Left = 32
+      Top = 48
+      Width = 82
+      Height = 17
+      BorderStyle = sbsSingle
+      Caption = 'DB File Size        '
+      Color = clInactiveCaption
+      ParentColor = False
+      TabOrder = 4
+    end
+    object txt2: TStaticText
+      Left = 32
+      Top = 64
+      Width = 242
+      Height = 17
+      Caption = '                 Number of records in a table                 '
+      Color = clWhite
+      ParentColor = False
+      TabOrder = 5
+    end
+    object txt3: TStaticText
+      Left = 32
+      Top = 80
+      Width = 80
+      Height = 17
+      BorderStyle = sbsSingle
+      Caption = 'GD_DOCUMENT'
+      Color = clInactiveCaption
+      ParentColor = False
+      TabOrder = 6
+    end
+    object txt4: TStaticText
+      Left = 32
+      Top = 96
+      Width = 80
+      Height = 17
+      BorderStyle = sbsSingle
+      Caption = 'AC_ENTRY        '
+      Color = clInactiveCaption
+      ParentColor = False
+      TabOrder = 10
+    end
+    object txt5: TStaticText
+      Left = 32
+      Top = 112
+      Width = 82
+      Height = 17
+      BorderStyle = sbsSingle
+      Caption = 'INV_MOVEMENT'
+      Color = clInactiveCaption
+      ParentColor = False
+      TabOrder = 13
+    end
+    object txt6: TStaticText
+      Left = 112
+      Top = 80
+      Width = 82
+      Height = 17
+      BorderStyle = sbsSunken
+      Caption = '                          '
+      TabOrder = 7
+    end
+    object txt7: TStaticText
+      Left = 112
+      Top = 96
+      Width = 82
+      Height = 17
+      BorderStyle = sbsSunken
+      Caption = '                          '
+      TabOrder = 11
+    end
+    object txt8: TStaticText
+      Left = 112
+      Top = 112
+      Width = 82
+      Height = 17
+      BorderStyle = sbsSunken
+      Caption = '                          '
+      TabOrder = 14
+    end
+    object txt9: TStaticText
+      Left = 112
+      Top = 47
+      Width = 82
+      Height = 17
+      BorderStyle = sbsSunken
+      Caption = '                          '
+      TabOrder = 2
+    end
+    object txt11: TStaticText
+      Left = 192
+      Top = 24
+      Width = 81
+      Height = 17
+      BorderStyle = sbsSingle
+      Caption = 'AFTER               '
+      TabOrder = 1
+    end
+    object txt12: TStaticText
+      Left = 192
+      Top = 47
+      Width = 82
+      Height = 17
+      BorderStyle = sbsSunken
+      Caption = '                          '
+      TabOrder = 3
+    end
+    object txt13: TStaticText
+      Left = 192
+      Top = 80
+      Width = 82
+      Height = 17
+      BorderStyle = sbsSunken
+      Caption = '                          '
+      TabOrder = 8
+    end
+    object txt14: TStaticText
+      Left = 192
+      Top = 96
+      Width = 82
+      Height = 17
+      BorderStyle = sbsSunken
+      Caption = '                          '
+      TabOrder = 12
+    end
+    object txt15: TStaticText
+      Left = 192
+      Top = 112
+      Width = 82
+      Height = 17
+      BorderStyle = sbsSunken
+      Caption = '                          '
+      TabOrder = 15
+    end
+    object txt10: TStaticText
+      Left = 112
+      Top = 24
+      Width = 79
+      Height = 17
+      BorderStyle = sbsSingle
+      Caption = 'BEFORE            '
+      TabOrder = 0
+    end
+    object btnGetStatistics: TButton
+      Left = 288
+      Top = 80
+      Width = 89
+      Height = 49
+      Action = actGet
+      Caption = 'GET STATISTICS'
+      Font.Charset = RUSSIAN_CHARSET
+      Font.Color = clWindowText
+      Font.Height = -11
+      Font.Name = 'Tahoma'
+      Font.Style = []
+      ParentFont = False
+      TabOrder = 9
+    end
   end
   object ActionList: TActionList
     Left = 269
@@ -243,6 +410,14 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
     object actDatabaseBrowse: TAction
       Caption = 'actDatabaseBrowse'
       OnExecute = actDatabaseBrowseExecute
+    end
+    object actGet: TAction
+      Caption = 'actGet'
+      OnExecute = actGetExecute
+      OnUpdate = actGetUpdate
+    end
+    object actUpdate: TAction
+      Caption = 'actUpdate'
     end
   end
 end
