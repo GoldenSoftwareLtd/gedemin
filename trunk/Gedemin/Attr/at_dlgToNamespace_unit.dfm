@@ -12,7 +12,6 @@ object dlgToNamespace: TdlgToNamespace
   Font.Style = []
   OldCreateOrder = False
   Position = poScreenCenter
-  OnCreate = FormCreate
   PixelsPerInch = 96
   TextHeight = 13
   object pnlGrid: TPanel
@@ -22,14 +21,15 @@ object dlgToNamespace: TdlgToNamespace
     Height = 392
     Align = alClient
     BevelOuter = bvNone
+    BorderWidth = 8
     TabOrder = 1
     object dbgrListLink: TgsDBGrid
-      Left = 0
-      Top = 0
-      Width = 721
-      Height = 361
+      Left = 8
+      Top = 8
+      Width = 705
+      Height = 348
       Align = alClient
-      DataSource = dsMain
+      DataSource = dsLink
       Options = [dgTitles, dgColumnResize, dgColLines, dgRowLines, dgTabs, dgRowSelect, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit]
       ParentFont = False
       ReadOnly = True
@@ -57,31 +57,31 @@ object dlgToNamespace: TdlgToNamespace
       ConditionsActive = False
       CheckBox.DisplayField = 'class'
       CheckBox.FieldName = 'id'
-      CheckBox.Visible = True
+      CheckBox.Visible = False
       CheckBox.FirstColumn = True
       ScaleColumns = True
       MinColWidth = 40
       ShowTotals = False
     end
     object pnlButtons: TPanel
-      Left = 0
-      Top = 361
-      Width = 721
-      Height = 31
+      Left = 8
+      Top = 356
+      Width = 705
+      Height = 28
       Align = alBottom
       BevelOuter = bvNone
       TabOrder = 1
       object pnlRightBottom: TPanel
-        Left = 497
+        Left = 481
         Top = 0
         Width = 224
-        Height = 31
+        Height = 28
         Align = alRight
         BevelOuter = bvNone
         TabOrder = 0
         object btnOk: TButton
-          Left = 61
-          Top = 5
+          Left = 68
+          Top = 7
           Width = 75
           Height = 21
           Action = actOK
@@ -89,8 +89,8 @@ object dlgToNamespace: TdlgToNamespace
           TabOrder = 0
         end
         object Button2: TButton
-          Left = 141
-          Top = 5
+          Left = 148
+          Top = 7
           Width = 75
           Height = 21
           Action = actCancel
@@ -121,13 +121,6 @@ object dlgToNamespace: TdlgToNamespace
       Font.Style = []
       ParentFont = False
       WordWrap = True
-    end
-    object Label1: TLabel
-      Left = 8
-      Top = 96
-      Width = 245
-      Height = 13
-      Caption = 'Связанные объекты (показано не более 60-ти):'
     end
     object Label2: TLabel
       Left = 8
@@ -185,7 +178,7 @@ object dlgToNamespace: TdlgToNamespace
       Height = 21
       HelpContext = 1
       Database = dmDatabase.ibdbGAdmin
-      Transaction = IBTransaction
+      Transaction = ibtr
       ListTable = 'at_namespace'
       ListField = 'name'
       KeyField = 'ID'
@@ -194,13 +187,13 @@ object dlgToNamespace: TdlgToNamespace
       ParentShowHint = False
       ShowHint = True
       TabOrder = 0
-      OnChange = lkupChange
     end
     object edObjectName: TEdit
       Left = 8
       Top = 66
       Width = 305
       Height = 21
+      TabStop = False
       Color = clBtnFace
       ReadOnly = True
       TabOrder = 2
@@ -215,29 +208,25 @@ object dlgToNamespace: TdlgToNamespace
       ShowHint = True
       TabOrder = 1
     end
+    object chbxIncludeLinked: TCheckBox
+      Left = 8
+      Top = 95
+      Width = 330
+      Height = 17
+      Caption = 'Включить связанные объекты'
+      Checked = True
+      State = cbChecked
+      TabOrder = 6
+    end
   end
-  object cdsLink: TClientDataSet
-    Aggregates = <>
-    FieldDefs = <>
-    IndexDefs = <>
-    Params = <>
-    StoreDefs = True
-    Left = 336
-    Top = 216
-  end
-  object dsMain: TDataSource
-    DataSet = cdsLink
+  object dsLink: TDataSource
+    DataSet = ibdsLink
     Left = 304
     Top = 216
   end
   object ActionList: TActionList
     Left = 400
     Top = 216
-    object actShowLink: TAction
-      Caption = 'Показать'
-      OnExecute = actShowLinkExecute
-      OnUpdate = actShowLinkUpdate
-    end
     object actOK: TAction
       Caption = '&ОК'
       OnExecute = actOKExecute
@@ -253,7 +242,7 @@ object dlgToNamespace: TdlgToNamespace
       OnUpdate = actClearUpdate
     end
   end
-  object IBTransaction: TIBTransaction
+  object ibtr: TIBTransaction
     Active = False
     DefaultDatabase = dmDatabase.ibdbGAdmin
     Params.Strings = (
@@ -262,6 +251,38 @@ object dlgToNamespace: TdlgToNamespace
       'nowait')
     AutoStopAction = saNone
     Left = 368
+    Top = 216
+  end
+  object ibdsLink: TIBDataSet
+    Database = dmDatabase.ibdbGAdmin
+    Transaction = ibtr
+    SelectSQL.Strings = (
+      'SELECT'
+      '  od.refobjectid as id,'
+      '  od.reflevel,'
+      
+        '  (od.refclassname || od.refsubtype || '#39' - '#39' || od.refobjectname' +
+        ') as displayname,'
+      '  od.refclassname as class,'
+      '  od.refsubtype as subtype,'
+      '  od.refobjectname as name,'
+      '  n.name as namespace,'
+      '  n.id as namespacekey,'
+      '  o.headobjectkey as headobject'
+      'FROM'
+      '  gd_object_dependencies od'
+      '  LEFT JOIN gd_p_getruid(od.refobjectid) r'
+      '    ON 1=1'
+      '  LEFT JOIN at_object o'
+      '    ON o.xid = r.xid AND o.dbid = r.dbid'
+      '  LEFT JOIN at_namespace n'
+      '    ON n.id = o.namespacekey'
+      'WHERE'
+      '  od.sessionid = :sid'
+      ' '
+      ' ')
+    ReadTransaction = ibtr
+    Left = 336
     Top = 216
   end
 end

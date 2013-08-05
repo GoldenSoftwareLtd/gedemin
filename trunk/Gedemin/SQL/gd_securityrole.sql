@@ -234,4 +234,6 @@ GRANT ALL ON gd_ref_constraint_data TO administrator;
 GRANT ALL ON gd_weblog        TO administrator;
 GRANT ALL ON gd_weblogdata    TO administrator;
 
+GRANT ALL ON gd_object_dependencies TO administrator;
+
 COMMIT;

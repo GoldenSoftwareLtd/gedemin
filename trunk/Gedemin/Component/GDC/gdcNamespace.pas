@@ -43,8 +43,6 @@ type
     class procedure ScanDirectory(ADataSet: TDataSet; ANSList: TgsNSList;
       Log: TNSLog);
 
-    class procedure SetObjectLink(AnObject: TgdcBase; ADataSet: TDataSet;
-      ATr: TIBTransaction);
     class procedure AddObject(const ANamespaceKey: Integer;
       const AName: String; const AClass: String; const ASubType: String;
       const XID, DBID: Integer; const AHeadObjectKey: Integer;
@@ -2974,90 +2972,6 @@ begin
 
   if ANSList.Count > 0 then
     DoLoadNamespace(ANSList, AnAlwaysOverwrite, ADontRemove);
-end;
-
-class procedure TgdcNamespace.SetObjectLink(AnObject: TgdcBase; ADataSet: TDataSet; ATr: TIBTransaction);
-var
-  Tr: TIBTransaction;
-  q, qNS: TIBSQL;
-  SessionID, XID, DBID: TID;
-begin
-  Assert(ADataSet <> nil);
-
-  SessionID := AnObject.GetNextID;
-  AnObject.GetDependencies(SessionID, False, ';EDITORKEY;CREATORKEY;');
-
-  Tr := TIBTransaction.Create(nil);
-  q := TIBSQL.Create(nil);
-  qNS := TIBSQL.Create(nil);
-  try
-    Tr.DefaultDatabase := gdcBaseManager.Database;
-    Tr.StartTransaction;
-
-    qNS.Transaction := Tr;
-    qNS.SQL.Text :=
-      'SELECT n.id, n.name ' +
-      'FROM at_object o ' +
-      '  JOIN at_namespace n ON o.namespacekey = n.id ' +
-      'WHERE o.xid = :xid and o.dbid = :dbid';
-
-    q.Transaction := Tr;
-    q.SQL.Text :=
-      'SELECT * FROM gd_object_dependencies ' +
-      'WHERE sessionid = :sid AND masterid = :mid ' +
-      'ORDER BY reflevel DESC';
-    q.ParamByName('sid').AsInteger := SessionID;
-    q.ParamByName('mid').AsInteger := AnObject.ID;
-    q.ExecQuery;
-
-    while not q.EOF do
-    begin
-      if not ADataSet.Locate('id', q.FieldByName('refobjectid').AsInteger, []) then
-      begin
-        ADataSet.Append;
-        ADataSet.FieldByName('id').AsInteger := q.FieldByName('refobjectid').AsInteger;
-        ADataSet.FieldByName('name').AsString := q.FieldByName('refobjectname').AsString;
-        ADataSet.FieldByname('class').AsString := q.FieldByName('refclassname').AsString;
-        ADataSet.FieldByName('subtype').AsString := q.FieldByName('refsubtype').AsString;
-        ADataSet.FieldByName('headobject').AsString := RUIDToStr(AnObject.GetRUID);
-        ADataSet.FieldByName('displayname').AsString := q.FieldByName('refclassname').AsString;
-        if q.FieldByName('refsubtype').AsString > '' then
-          ADataSet.FieldByName('displayname').AsString := ADataSet.FieldByName('displayname').AsString +
-          '\' + q.FieldByName('refsubtype').AsString;
-        ADataSet.FieldByName('displayname').AsString := ADataSet.FieldByName('displayname').AsString +
-          '\' + q.FieldByName('refobjectname').AsString;
-
-        gdcBaseManager.GetRUIDByID(q.FieldByName('refobjectid').AsInteger, XID, DBID);
-        qNS.ParamByName('xid').AsInteger := XID;
-        qNS.ParamByName('dbid').AsInteger := DBID;
-        qNS.ExecQuery;
-        while not qNS.EOF do
-        begin
-          ADataSet.FieldByName('namespacekey').AsInteger := qNS.FieldByName('id').AsInteger;
-          ADataSet.FieldByName('namespace').AsString := qNS.FieldByName('name').AsString;
-          ADataSet.FieldByName('displayname').AsString := ADataSet.FieldByName('displayname').AsString +
-            '\' + qNS.FieldByName('name').AsString;
-          qNS.Next;
-        end;
-        qNS.Close;
-
-        ADataSet.Post;
-      end;
-      q.Next;
-    end;
-
-    q.Close;
-    q.SQL.Text :=
-      'DELETE FROM gd_object_dependencies ' +
-      'WHERE sessionid = :sid ';
-    q.ExecQuery;
-
-    Tr.Commit;
-  finally
-    qNS.Free;
-    q.Free;
-    Tr.Free;
-  end;
 end;
 
 class procedure TgdcNamespace.AddObject(const ANamespaceKey: Integer;
