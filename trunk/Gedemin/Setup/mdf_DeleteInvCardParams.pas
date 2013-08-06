@@ -565,7 +565,7 @@ begin
           '      into :id ' +
           '    do ' +
           '      delete from gd_ruid where id = :id; ' +
-          '  end' +
+          '  end ' +
           'end';
         q.ExecQuery;
       end;

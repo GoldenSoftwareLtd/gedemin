@@ -276,17 +276,23 @@ type
   private
     FCrossRelationName: String;
     FReferenceRelationName: String;
+    FObjectLinkFieldName: String;
+    FReferenceLinkFieldName: String;
     FSQL: String;
     FCaption: String;
 
   public
     constructor Create(const ACrossRelationName: String;
       const AReferenceRelationName: String;
+      const AObjectLinkFieldName: String;
+      const AReferenceLinkFieldName: String;
       const ASQL: String;
       const ACaption: String);
 
     property CrossRelationName: String read FCrossRelationName;
     property ReferenceRelationName: String read FReferenceRelationName;
+    property ObjectLinkFieldName: String read FObjectLinkFieldName;
+    property ReferenceLinkFieldName: String read FReferenceLinkFieldName;
     property SQL: String read FSQL;
     property Caption: String read FCaption;
   end;
@@ -18016,10 +18022,13 @@ end;
 { TgdcSetAttribute }
 
 constructor TgdcSetAttribute.Create(const ACrossRelationName,
-  AReferenceRelationName, ASQL, ACaption: String);
+  AReferenceRelationName, AObjectLinkFieldName, AReferenceLinkFieldName,
+  ASQL, ACaption: String);
 begin
   FCrossRelationName := ACrossRelationName;
   FReferenceRelationName := AReferenceRelationName;
+  FObjectLinkFieldName := AObjectLinkFieldName;
+  FReferenceLinkFieldName := AReferenceLinkFieldName;
   FSQL := ASQL;
   FCaption := ACaption;
 end;
@@ -18098,6 +18107,8 @@ begin
       FSetAttributes.Add(TgdcSetAttribute.Create(
         PK.Relation.RelationName,
         PK.ConstraintFields[1].References.RelationName,
+        PK.ConstraintFields[0].FieldName,
+        PK.ConstraintFields[1].FieldName,
         'SELECT cr.' + PK.ConstraintFields[1].FieldName + ',' +
         '  rf.' + PK.ConstraintFields[1].References.ListField.FieldName + ' ' +
         'FROM ' +
@@ -18292,14 +18303,14 @@ procedure TgdcBase.GetDependencies(ATr: TIBTransaction; const ASessionID: Intege
 
       while not Obj.Eof do
       begin
-        if AProcessed.IndexOf(AnObject.Fields[I].AsInteger) = -1 then
+        if AProcessed.IndexOf(Obj.ID) = -1 then
         begin
           if (AnIncludeSystemObjects or (Obj.ID >= cstUserIDStart))
             and (ACount < LimitCount) then
           begin
             AqInsert.ParamByName('reflevel').AsInteger := ALevel;
             AqInsert.ParamByName('relationname').AsString := AnObject.SetAttributes[I].CrossRelationName;
-            AqInsert.ParamByName('fieldname').AsString := '';
+            AqInsert.ParamByName('fieldname').AsString := AnObject.SetAttributes[I].ReferenceLinkFieldName;
             AqInsert.ParamByName('crossrelation').AsInteger := 1;
             AqInsert.ParamByName('refobjectid').AsInteger := Obj.ID;
             AqInsert.ParamByName('refobjectname').AsString := System.Copy(Obj.ObjectName, 1, 60);
@@ -18309,9 +18320,10 @@ procedure TgdcBase.GetDependencies(ATr: TIBTransaction; const ASessionID: Intege
             AqInsert.ExecQuery;
             Inc(ACount);
           end;
+
+          _ProcessObject(Obj, ALevel + 1, AProcessed, AHash, AnObjects, AqInsert, ACount);
         end;
 
-        _ProcessObject(Obj, ALevel + 1, AProcessed, AHash, AnObjects, AqInsert, ACount);
         Obj.Next;
       end;
 
