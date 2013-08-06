@@ -37,6 +37,7 @@ type
     procedure actCancelExecute(Sender: TObject);
     procedure actClearExecute(Sender: TObject);
     procedure actClearUpdate(Sender: TObject);
+    procedure actOKUpdate(Sender: TObject);
 
   private
     FgdcObject: TgdcBase;
@@ -135,7 +136,9 @@ begin
   ibdsLink.FieldByName('subtype').Visible := False;
   ibdsLink.FieldByName('name').Visible := False;
   ibdsLink.FieldByName('namespacekey').Visible := False;
+  ibdsLink.FieldByName('namespace').Visible := False;
   ibdsLink.FieldByName('headobject').Visible := False;
+  ibdsLink.FieldByName('displayname').DisplayLabel := 'Класс - Имя объекта (Пространство имен)';
 
   dsLink.DataSet := ibdsLink;
 
@@ -147,15 +150,53 @@ begin
 end;
 
 procedure TdlgToNamespace.actOKExecute(Sender: TObject);
+var
+  gdcNamespaceObject: TgdcNamespaceObject;
 begin
-  if lkup.CurrentKey = '' then
-  begin
+  gdcNamespaceObject := TgdcNamespaceObject.Create(nil);
+  try
+    gdcNamespaceObject.ReadTransaction := ibtr;
+    gdcNamespaceObject.Transaction := ibtr;
+    gdcNamespaceObject.SubSet := 'ByObject';
 
-  end else
-  begin
+    if (FPrevNSID > -1) and (lkup.CurrentKeyInt = -1) then
+    begin
+      gdcNamespaceObject.ParamByName('namespacekey').AsInteger := FPrevNSID;
+      gdcNamespaceObject.ParamByName('xid').AsInteger := FgdcObject.GetRUID.XID;
+      gdcNamespaceObject.ParamByName('dbid').AsInteger := FgdcObject.GetRUID.DBID;
+      gdcNamespaceObject.Open;
+      if not gdcNamespaceObject.EOF then
+        gdcNamespaceObject.Delete;
+    end
+    else if (FPrevNSID > -1) and (lkup.CurrentKeyInt > -1)
+      and (FPrevNSID <> lkup.CurrentKeyInt) then
+    begin
+      gdcNamespaceObject.SubSet := 'ByObject';
+      gdcNamespaceObject.ParamByName('namespacekey').AsInteger := FPrevNSID;
+      gdcNamespaceObject.ParamByName('xid').AsInteger := FgdcObject.GetRUID.XID;
+      gdcNamespaceObject.ParamByName('dbid').AsInteger := FgdcObject.GetRUID.DBID;
+      gdcNamespaceObject.Open;
+      if not gdcNamespaceObject.EOF then
+      begin
+        gdcNamespaceObject.Edit;
+        gdcNamespaceObject.FieldByName('namespacekey').AsInteger := lkup.CurrentKeyInt;
+        gdcNamespaceObject.Post;
+      end;
+    end
+    else if (FPrevNSID = -1) and (lkup.CurrentKeyInt > -1) then
+    begin
+      ibdsLink.Close;
+      ibdsLink.Open;
+
+      ibdsLink.First;
+      while not ibdsLink.EOF do
+      begin
+        ibdsLink.Next;
+      end;
+    end;
+  finally
+    gdcNamespaceObject.Free;
   end;
-
-  ibdsLink.Close;
 
   if ibtr.InTransaction then
     ibtr.Commit;
@@ -165,8 +206,6 @@ end;
 
 procedure TdlgToNamespace.actCancelExecute(Sender: TObject);
 begin
-  ibdsLink.Close;
-
   if ibtr.InTransaction then
     ibtr.Rollback;
 
@@ -181,6 +220,11 @@ end;
 procedure TdlgToNamespace.actClearUpdate(Sender: TObject);
 begin
   (Sender as TAction).Enabled := lkup.CurrentKey > '';
+end;
+
+procedure TdlgToNamespace.actOKUpdate(Sender: TObject);
+begin
+  actOk.Enabled := lkup.CurrentKeyInt <> FPrevNSID;
 end;
 
 end.

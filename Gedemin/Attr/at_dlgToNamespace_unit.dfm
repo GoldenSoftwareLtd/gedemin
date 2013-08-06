@@ -30,7 +30,7 @@ object dlgToNamespace: TdlgToNamespace
       Height = 348
       Align = alClient
       DataSource = dsLink
-      Options = [dgTitles, dgColumnResize, dgColLines, dgRowLines, dgTabs, dgRowSelect, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit]
+      Options = [dgTitles, dgColLines, dgRowLines, dgTabs, dgRowSelect, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit]
       ParentFont = False
       ReadOnly = True
       TabOrder = 0
@@ -230,6 +230,7 @@ object dlgToNamespace: TdlgToNamespace
     object actOK: TAction
       Caption = '&ОК'
       OnExecute = actOKExecute
+      OnUpdate = actOKUpdate
     end
     object actCancel: TAction
       Caption = '&Отмена'
@@ -262,7 +263,10 @@ object dlgToNamespace: TdlgToNamespace
       '  od.reflevel,'
       
         '  (od.refclassname || od.refsubtype || '#39' - '#39' || od.refobjectname' +
-        ') as displayname,'
+        ' ||'
+      
+        '    iif(n.id IS NULL, '#39#39', '#39' ('#39' || n.name || '#39')'#39')) as displayname' +
+        ','
       '  od.refclassname as class,'
       '  od.refsubtype as subtype,'
       '  od.refobjectname as name,'
@@ -279,6 +283,7 @@ object dlgToNamespace: TdlgToNamespace
       '    ON n.id = o.namespacekey'
       'WHERE'
       '  od.sessionid = :sid'
+      ' '
       ' '
       ' ')
     ReadTransaction = ibtr
