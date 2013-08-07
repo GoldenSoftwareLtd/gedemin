@@ -171,7 +171,7 @@ object dlgToNamespace: TdlgToNamespace
       ParentFont = False
       TabOrder = 3
     end
-    object lkup: TgsIBLookupComboBox
+    object lkupNS: TgsIBLookupComboBox
       Left = 8
       Top = 24
       Width = 305
