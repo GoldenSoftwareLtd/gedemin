@@ -508,8 +508,7 @@ begin
       OT_CardDataEnc: AParams.CardDataEnc := System.Copy(AStr, I, Len);
     end;
     Inc(I, Len);
-  end;
-  AParams.ResponseCode := AStr;
+  end;  
 end;
 
 procedure TgsTRPOSClient.Connect;
