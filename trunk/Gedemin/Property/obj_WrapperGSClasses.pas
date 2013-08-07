@@ -3830,6 +3830,8 @@ type
     function RenameFile(const OldName: WideString; const NewName: WideString; const Path: WideString): WordBool; safecall;
     function CreateDir(const DirName: WideString): WordBool; safecall;
     function DeleteDir(const DirName: WideString): WordBool; safecall;
+  public
+    class function CreateObject(const DelphiClass: TClass; const Params: OleVariant): TObject; override;
   end;
 
   TwrpTRPOSClient = class(TwrpObject, IgsTRPOSClient)
@@ -3905,6 +3907,7 @@ type
     function  Get_TVR: WideString; safecall;
     function  Get_TerminalID: WideString; safecall;
     function  Get_CardDataEnc: WideString; safecall;
+    procedure Clear; safecall;
   end;
 
   TwrpTRPOSParamData = class(TwrpObject, IgsTRPOSParamData)
@@ -18492,6 +18495,12 @@ begin
   Result := GetFTPClient.DeleteDir(DirName);
 end;
 
+class function TwrpFTPClient.CreateObject(const DelphiClass: TClass; const Params: OleVariant): TObject;
+begin
+  Assert(DelphiClass.InheritsFrom(TgsFTPClient), 'Invalide Delphi class');
+  Result := TgsFTPClient.Create;
+end;
+
 function TwrpTRPOSClient.GetTRPOSClient: TgsTRPOSClient;
 begin
   Result := GetObject as TgsTRPOSClient;
@@ -18781,6 +18790,11 @@ end;
 function TwrpTRPOSOutPutData.Get_CardDataEnc: WideString;
 begin
   Result := GetTRPOSOutPutData.CardDataEnc;
+end;
+
+procedure TwrpTRPOSOutPutData.Clear;
+begin
+  GetTRPOSOutPutData.Clear;
 end;
 
 function TwrpTRPOSParamData.GetTRPOSParamData: TgsTRPOSParamData;
