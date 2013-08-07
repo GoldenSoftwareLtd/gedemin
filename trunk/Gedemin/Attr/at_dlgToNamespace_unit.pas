@@ -21,7 +21,7 @@ type
     cbIncludeSiblings: TCheckBox;
     cbDontRemove: TCheckBox;
     cbAlwaysOverwrite: TCheckBox;
-    lkup: TgsIBLookupComboBox;
+    lkupNS: TgsIBLookupComboBox;
     lMessage: TLabel;
     pnlButtons: TPanel;
     pnlRightBottom: TPanel;
@@ -97,7 +97,7 @@ begin
     if not q.EOF then
     begin
       FPrevNSID := q.FieldByName('id').AsInteger;
-      lkup.CurrentKeyInt := q.FieldByName('id').AsInteger;
+      lkupNS.CurrentKeyInt := q.FieldByName('id').AsInteger;
       cbAlwaysOverwrite.Checked := q.FieldByName('alwaysoverwrite').AsInteger <> 0;
       cbDontRemove.Checked := q.FieldByName('dontremove').AsInteger <> 0;
       cbIncludeSiblings.Checked := q.FieldByName('includesiblings').AsInteger <> 0;
@@ -159,7 +159,7 @@ begin
     gdcNamespaceObject.Transaction := ibtr;
     gdcNamespaceObject.SubSet := 'ByObject';
 
-    if (FPrevNSID > -1) and (lkup.CurrentKeyInt = -1) then
+    if (FPrevNSID > -1) and (lkupNS.CurrentKeyInt = -1) then
     begin
       gdcNamespaceObject.ParamByName('namespacekey').AsInteger := FPrevNSID;
       gdcNamespaceObject.ParamByName('xid').AsInteger := FgdcObject.GetRUID.XID;
@@ -168,8 +168,8 @@ begin
       if not gdcNamespaceObject.EOF then
         gdcNamespaceObject.Delete;
     end
-    else if (FPrevNSID > -1) and (lkup.CurrentKeyInt > -1)
-      and (FPrevNSID <> lkup.CurrentKeyInt) then
+    else if (FPrevNSID > -1) and (lkupNS.CurrentKeyInt > -1)
+      and (FPrevNSID <> lkupNS.CurrentKeyInt) then
     begin
       gdcNamespaceObject.SubSet := 'ByObject';
       gdcNamespaceObject.ParamByName('namespacekey').AsInteger := FPrevNSID;
@@ -179,11 +179,11 @@ begin
       if not gdcNamespaceObject.EOF then
       begin
         gdcNamespaceObject.Edit;
-        gdcNamespaceObject.FieldByName('namespacekey').AsInteger := lkup.CurrentKeyInt;
+        gdcNamespaceObject.FieldByName('namespacekey').AsInteger := lkupNS.CurrentKeyInt;
         gdcNamespaceObject.Post;
       end;
     end
-    else if (FPrevNSID = -1) and (lkup.CurrentKeyInt > -1) then
+    else if (FPrevNSID = -1) and (lkupNS.CurrentKeyInt > -1) then
     begin
       ibdsLink.Close;
       ibdsLink.Open;
@@ -214,17 +214,17 @@ end;
 
 procedure TdlgToNamespace.actClearExecute(Sender: TObject);
 begin
-  lkup.CurrentKey := '';
+  lkupNS.CurrentKey := '';
 end;
 
 procedure TdlgToNamespace.actClearUpdate(Sender: TObject);
 begin
-  (Sender as TAction).Enabled := lkup.CurrentKey > '';
+  (Sender as TAction).Enabled := lkupNS.CurrentKey > '';
 end;
 
 procedure TdlgToNamespace.actOKUpdate(Sender: TObject);
 begin
-  actOk.Enabled := lkup.CurrentKeyInt <> FPrevNSID;
+  actOk.Enabled := lkupNS.CurrentKeyInt <> FPrevNSID;
 end;
 
 end.
