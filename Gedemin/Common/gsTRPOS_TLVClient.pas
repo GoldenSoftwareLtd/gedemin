@@ -8,24 +8,24 @@ uses
 type
   TgsTRPOSOutPutData = class(TObject)
   public
-    MessageID: AnsiString;
+    MessageID: String;
     ECRnumber: Cardinal;
     ERN: Cardinal;
-    ResponseCode: AnsiString;
-    TransactionAmount: AnsiString;
-    Pan: AnsiString;
-    ExpDate: AnsiString;
-    Approve: AnsiString;
-    Receipt: AnsiString;
-    InvoiceNumber: AnsiString;
-    AuthorizationID: AnsiString;
-    Date: AnsiString;
-    Time: AnsiString;
-    VerificationChr: AnsiString;
-    RRN: AnsiString;
-    TVR: AnsiString;
-    TerminalID: AnsiString;
-    CardDataEnc: AnsiString;
+    ResponseCode: String;
+    TransactionAmount: String;
+    Pan: String;
+    ExpDate: String;
+    Approve: String;
+    Receipt: String;
+    InvoiceNumber: String;
+    AuthorizationID: String;
+    Date: String;
+    Time: String;
+    VerificationChr: String;
+    RRN: String;
+    TVR: String;
+    TerminalID: String;
+    CardDataEnc: String;
 
     procedure Clear;
   end;
@@ -384,8 +384,11 @@ begin
   end;
 end;
 
-procedure TgsTRPOSClient.ReadData(AParams: TgsTRPOSOutPutData);
+procedure TgsTRPOSClient.ReadData(AParams: TgsTRPOSOutPutData); 
 begin
+  if not Connected then
+    exit;
+    
   GetData(FTCPClient.ReadLn('', FReadTimeOut), AParams);
 end;
 
@@ -506,6 +509,7 @@ begin
     end;
     Inc(I, Len);
   end;
+  AParams.ResponseCode := AStr;
 end;
 
 procedure TgsTRPOSClient.Connect;
