@@ -1551,6 +1551,7 @@ CREATE GLOBAL TEMPORARY TABLE gd_object_dependencies (
   refrelationname   dname,
   refclassname      dname,
   refsubtype        dname,
+  refeditiondate    TIMESTAMP,
 
   PRIMARY KEY (sessionid, masterid, reflevel, relationname, fieldname)
 )

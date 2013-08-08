@@ -55,9 +55,6 @@ type
     class procedure UpdateCurrModified(const ANamespaceKey: Integer = -1);
     class procedure WriteChanges(ADataSet: TDataSet; AnObj: TgdcBase; ATr: TIBTransaction);
 
-    procedure AddObject2(AnObject: TgdcBase; AnUL: TObjectList;
-      const AHeadObjectRUID: String = ''; AnAlwaysOverwrite: Integer = 1;
-      ADontRemove: Integer = 0; AnIncludeSiblings: Integer = 0);
     procedure DeleteObject(xid, dbid: Integer; RemoveObj: Boolean = True);
     procedure InstallPackages(ANSList: TStringList;
       const AnAlwaysoverwrite: Boolean = False; const ADontremove: Boolean = False);
@@ -208,9 +205,10 @@ class procedure TgdcNamespace.WriteObject(AgdcObject: TgdcBase; AWriter: TyamlWr
 
   procedure WriteSet(AnObj: TgdcBase; AWriter: TyamlWriter);
   var
-    I: Integer;
+    I, J: Integer;
     q: TIBSQL;
     SectionAdded: Boolean;
+    R: TatRelation;
   begin
     Assert(AnObj <> nil);
     Assert(AWriter <> nil);
@@ -245,6 +243,11 @@ class procedure TgdcNamespace.WriteObject(AgdcObject: TgdcBase; AWriter: TyamlWr
             SectionAdded := True;
           end;
 
+          if AnObj.SetAttributes[I].HasAdditionalFields then
+            R := atDatabase.Relations.ByRelationName(AnObj.SetAttributes[I].CrossRelationName)
+          else
+            R := nil;
+
           AWriter.StartNewLine;
           AWriter.WriteSequenceIndicator;
           AWriter.IncIndent;
@@ -261,11 +264,20 @@ class procedure TgdcNamespace.WriteObject(AgdcObject: TgdcBase; AWriter: TyamlWr
               begin
                 AWriter.StartNewLine;
                 AWriter.WriteSequenceIndicator;
-                AWriter.WriteText(
+                AWriter.IncIndent;
+                AWriter.WriteTextValue(AnObj.SetAttributes[I].ReferenceLinkFieldName,
                   GetReferenceString(gdcBaseManager.GetRUIDStringByID(
-                    q.Fields[0].AsInteger, AnObj.Transaction),
-                  q.Fields[1].AsString),
+                    q.FieldByName(AnObj.SetAttributes[I].ReferenceLinkFieldName).AsInteger, AnObj.Transaction),
+                  q.FieldByName(AnObj.SetAttributes[I].ReferenceObjectNameFieldName).AsString),
                   qDoubleQuoted);
+                if R <> nil then
+                begin
+                  for J := 0 to R.RelationFields.Count - 1 do
+                  begin
+                    //...
+                  end;
+                end;
+                AWriter.DecIndent;
                 q.Next;
               end;
             finally
@@ -3052,141 +3064,14 @@ begin
   end;
 end;
 
-procedure TgdcNamespace.AddObject2(AnObject: TgdcBase; AnUL: TObjectList;
-  const AHeadObjectRUID: String = ''; AnAlwaysOverwrite: Integer = 1;
-  ADontRemove: Integer = 0; AnIncludeSiblings: Integer = 0);
-
-  procedure HeadObjectUpdate(UL: TObjectList; SourceRUID: String; TargetKeyValue: Integer);
-  var
-    I: Integer;
-    q: TIBSQL;
-  begin
-    q := TIBSQL.Create(nil);
-    try
-      q.Transaction := Transaction;
-      q.SQL.Text :=
-        'UPDATE at_object SET headobjectkey = :hk ' +
-        'WHERE namespacekey = :nk AND xid = :xid AND dbid = :dbid';
-      for I := UL.Count - 1 downto 0 do
-      begin
-        if ((UL[I] as TgdcHeadObjectUpdate).RefRUID = SourceRUID)
-          and ((UL[I] as TgdcHeadObjectUpdate).NamespaceKey = Self.ID) then
-        begin
-          q.ParamByName('hk').AsInteger := TargetKeyValue;
-          q.ParamByName('nk').AsInteger := Self.ID;
-          q.ParamByName('xid').AsInteger := StrToRUID((UL[I] as TgdcHeadObjectUpdate).RUID).XID;
-          q.ParamByName('dbid').AsInteger := StrToRUID((UL[I] as TgdcHeadObjectUpdate).RUID).dbid;
-          q.ExecQuery;
-
-          UL.Delete(I);
-        end;
-      end;
-    finally
-      q.Free;
-    end;
-  end; 
-var
-  q: TIBSQL;
-  HO: TgdcHeadObjectUpdate;
-  gdcNamespaceObject: TgdcNamespaceObject;
-begin
-  Assert(AnObject <> nil);
-  Assert(not AnObject.Eof);
-
-  q := TIBSQL.Create(nil);
-  try
-    q.Transaction := Transaction;
-    q.SQL.Text :=
-      'EXECUTE BLOCK(namespacekey INTEGER = :nk, xid INTEGER = :xid, dbid INTEGER = :dbid) ' +
-      'RETURNS (res integer) ' +
-      'AS ' +
-        'DECLARE VARIABLE tempkey INTEGER; ' +
-      'BEGIN ' +
-      '  FOR SELECT namespacekey FROM at_object ' +
-      '    WHERE namespacekey <> :namespacekey ' +
-      '      AND xid = :xid AND dbid = :dbid INTO :tempkey  ' +
-      '  DO BEGIN ' +
-      '    UPDATE OR INSERT INTO at_namespace_link ' +
-      '      (namespacekey, useskey) ' +
-      '    VALUES (:namespacekey, :tempkey) ' +
-      '    MATCHING (namespacekey, useskey); ' +
-      '    res = 1; ' +
-      '    SUSPEND; ' +
-      '    BREAK; ' +
-      '  END ' +
-      'END ';
-    q.ParamByName('nk').AsInteger := Self.ID;
-    q.ParamByName('xid').AsInteger := AnObject.GetRUID.XID;
-    q.ParamByName('dbid').AsInteger := AnObject.GetRUID.DBID;
-    q.ExecQuery;
-
-    if q.Eof then
-    begin
-      gdcNamespaceObject := TgdcNamespaceObject.Create(nil);
-      try
-        gdcNamespaceObject.ReadTransaction := Transaction;
-        gdcNamespaceObject.Transaction := Transaction;
-        gdcNamespaceObject.SubSet := 'ByObject';
-        gdcNamespaceObject.ParamByName('namespacekey').AsInteger := Self.ID;
-        gdcNamespaceObject.ParamByName('xid').AsInteger := AnObject.GetRUID.XID;
-        gdcNamespaceObject.ParamByName('dbid').AsInteger := AnObject.GetRUID.DBID;
-        gdcNamespaceObject.Open;
-
-        if gdcNamespaceObject.Eof then
-        begin
-          gdcNamespaceObject.Insert;
-          gdcNamespaceObject.FieldByName('namespacekey').AsInteger := Self.ID;
-          gdcNamespaceObject.FieldByName('objectname').AsString := AnObject.ObjectName;
-          gdcNamespaceObject.FieldByName('objectclass').AsString :=  AnObject.GetCurrRecordClass.gdClass.ClassName;
-          gdcNamespaceObject.FieldByName('subtype').AsString := AnObject.SubType;
-          gdcNamespaceObject.FieldByName('xid').AsInteger := AnObject.GetRUID.XID;
-          gdcNamespaceObject.FieldByName('dbid').AsInteger := AnObject.GetRUID.DBID;
-          gdcNamespaceObject.FieldByName('alwaysoverwrite').AsInteger := AnAlwaysOverwrite;
-          gdcNamespaceObject.FieldByName('dontremove').AsInteger := ADontRemove;
-          gdcNamespaceObject.FieldByName('includesiblings').AsInteger := AnIncludeSiblings;
-          if Trim(AHeadObjectRUID) <> '' then
-          begin
-            q.Close;
-            q.SQL.Text := 'SELECT * FROM at_object ' +
-              'WHERE namespacekey = :nk and xid = :xid and dbid = :dbid';
-            q.ParamByName('nk').AsInteger := Self.ID;
-            q.ParamByName('xid').AsInteger := StrToRUID(AHeadObjectRUID).XID;
-            q.ParamByName('dbid').AsInteger := StrToRUID(AHeadObjectRUID).DBID;
-            q.ExecQuery;
-
-            if not q.Eof then
-            begin
-              gdcNamespaceObject.FieldByName('headobjectkey').AsInteger := q.FieldByName('id').AsInteger;
-            end else
-            begin
-              HO := TgdcHeadObjectUpdate.Create;
-              HO.NamespaceKey := Self.ID;
-              HO.RUID := RUIDToStr(AnObject.GetRUID);
-              HO.RefRUID := AHeadObjectRUID;
-              AnUL.Add(HO);
-            end;
-          end;
-          gdcNamespaceObject.Post;
-        end;
-
-        HeadObjectUpdate(AnUL, RUIDToStr(AnObject.GetRUID), gdcNamespaceObject.ID);
-      finally
-        gdcNamespaceObject.Free;
-      end;
-    end;
-  finally
-    q.Free;
-  end;
-end;
-
 procedure TgdcNamespace.DeleteObject(xid, dbid: Integer; RemoveObj: Boolean = True);
 var
   gdcNamespaceObject: TgdcNamespaceObject;
   q: TIBSQL;
   InstObj: TgdcBase;
-  InstClass: TPersistentClass;  
+  InstClass: TPersistentClass;
   RUIDRec: TRUIDRec;
-begin 
+begin
   gdcNamespaceObject := TgdcNamespaceObject.Create(nil);
   q := TIBSQL.Create(nil);
   try

@@ -129,7 +129,7 @@ object dlgToNamespace: TdlgToNamespace
       Height = 13
       Caption = 'Объект:'
     end
-    object cbIncludeSiblings: TCheckBox
+    object chbxIncludeSiblings: TCheckBox
       Left = 344
       Top = 55
       Width = 337
@@ -143,7 +143,7 @@ object dlgToNamespace: TdlgToNamespace
       ParentFont = False
       TabOrder = 5
     end
-    object cbDontRemove: TCheckBox
+    object chbxDontRemove: TCheckBox
       Left = 344
       Top = 39
       Width = 331
@@ -157,7 +157,7 @@ object dlgToNamespace: TdlgToNamespace
       ParentFont = False
       TabOrder = 4
     end
-    object cbAlwaysOverwrite: TCheckBox
+    object chbxAlwaysOverwrite: TCheckBox
       Left = 344
       Top = 22
       Width = 233
@@ -260,6 +260,8 @@ object dlgToNamespace: TdlgToNamespace
     SelectSQL.Strings = (
       'SELECT'
       '  od.refobjectid as id,'
+      '  r.xid as xid,'
+      '  r.dbid as dbid,'
       '  od.reflevel,'
       
         '  (od.refclassname || od.refsubtype || '#39' - '#39' || od.refobjectname' +
@@ -272,7 +274,8 @@ object dlgToNamespace: TdlgToNamespace
       '  od.refobjectname as name,'
       '  n.name as namespace,'
       '  n.id as namespacekey,'
-      '  o.headobjectkey as headobject'
+      '  o.headobjectkey as headobject,'
+      '  od.refeditiondate as editiondate'
       'FROM'
       '  gd_object_dependencies od'
       '  LEFT JOIN gd_p_getruid(od.refobjectid) r'
@@ -283,6 +286,7 @@ object dlgToNamespace: TdlgToNamespace
       '    ON n.id = o.namespacekey'
       'WHERE'
       '  od.sessionid = :sid'
+      ' '
       ' '
       ' '
       ' ')
