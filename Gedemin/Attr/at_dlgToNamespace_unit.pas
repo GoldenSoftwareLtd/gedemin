@@ -18,9 +18,9 @@ type
     pnlGrid: TPanel;
     dbgrListLink: TgsDBGrid;
     pnlTop: TPanel;
-    cbIncludeSiblings: TCheckBox;
-    cbDontRemove: TCheckBox;
-    cbAlwaysOverwrite: TCheckBox;
+    chbxIncludeSiblings: TCheckBox;
+    chbxDontRemove: TCheckBox;
+    chbxAlwaysOverwrite: TCheckBox;
     lkupNS: TgsIBLookupComboBox;
     lMessage: TLabel;
     pnlButtons: TPanel;
@@ -98,9 +98,9 @@ begin
     begin
       FPrevNSID := q.FieldByName('id').AsInteger;
       lkupNS.CurrentKeyInt := q.FieldByName('id').AsInteger;
-      cbAlwaysOverwrite.Checked := q.FieldByName('alwaysoverwrite').AsInteger <> 0;
-      cbDontRemove.Checked := q.FieldByName('dontremove').AsInteger <> 0;
-      cbIncludeSiblings.Checked := q.FieldByName('includesiblings').AsInteger <> 0;
+      chbxAlwaysOverwrite.Checked := q.FieldByName('alwaysoverwrite').AsInteger <> 0;
+      chbxDontRemove.Checked := q.FieldByName('dontremove').AsInteger <> 0;
+      chbxIncludeSiblings.Checked := q.FieldByName('includesiblings').AsInteger <> 0;
     end;
   finally
     q.Free;
@@ -138,6 +138,7 @@ begin
   ibdsLink.FieldByName('namespacekey').Visible := False;
   ibdsLink.FieldByName('namespace').Visible := False;
   ibdsLink.FieldByName('headobject').Visible := False;
+  ibdsLink.FieldByName('editiondate').Visible := False;
   ibdsLink.FieldByName('displayname').DisplayLabel := 'Класс - Имя объекта (Пространство имен)';
 
   dsLink.DataSet := ibdsLink;
@@ -152,15 +153,17 @@ end;
 procedure TdlgToNamespace.actOKExecute(Sender: TObject);
 var
   gdcNamespaceObject: TgdcNamespaceObject;
+  HeadObjectKey, HeadObjectPos: Integer;
+  q: TIBSQL;
 begin
   gdcNamespaceObject := TgdcNamespaceObject.Create(nil);
   try
     gdcNamespaceObject.ReadTransaction := ibtr;
     gdcNamespaceObject.Transaction := ibtr;
-    gdcNamespaceObject.SubSet := 'ByObject';
 
     if (FPrevNSID > -1) and (lkupNS.CurrentKeyInt = -1) then
     begin
+      gdcNamespaceObject.SubSet := 'ByObject';
       gdcNamespaceObject.ParamByName('namespacekey').AsInteger := FPrevNSID;
       gdcNamespaceObject.ParamByName('xid').AsInteger := FgdcObject.GetRUID.XID;
       gdcNamespaceObject.ParamByName('dbid').AsInteger := FgdcObject.GetRUID.DBID;
@@ -185,13 +188,106 @@ begin
     end
     else if (FPrevNSID = -1) and (lkupNS.CurrentKeyInt > -1) then
     begin
+      gdcNamespaceObject.SubSet := 'All';
+      gdcNamespaceObject.Open;
+      gdcNamespaceObject.Insert;
+      gdcNamespaceObject.FieldByName('namespacekey').AsInteger := lkupNS.CurrentKeyInt;
+      gdcNamespaceObject.FieldByName('objectname').AsString := FgdcObject.ObjectName;
+      gdcNamespaceObject.FieldByName('objectclass').AsString := FgdcObject.ClassName;
+      gdcNamespaceObject.FieldByName('subtype').AsString := FgdcObject.SubType;
+      gdcNamespaceObject.FieldByName('xid').AsInteger := FgdcObject.GetRUID.XID;
+      gdcNamespaceObject.FieldByName('dbid').AsInteger := FgdcObject.GetRUID.DBID;
+      gdcNamespaceObject.FieldByName('objectpos').Clear;
+      if chbxAlwaysOverwrite.Checked then
+        gdcNamespaceObject.FieldByName('alwaysoverwrite').AsInteger := 1
+      else
+        gdcNamespaceObject.FieldByName('alwaysoverwrite').AsInteger := 0;
+      if chbxDontRemove.Checked then
+        gdcNamespaceObject.FieldByName('dontremove').AsInteger := 1
+      else
+        gdcNamespaceObject.FieldByName('dontremove').AsInteger := 0;
+      if chbxIncludeSiblings.Checked then
+        gdcNamespaceObject.FieldByName('includesiblings').AsInteger := 1
+      else
+        gdcNamespaceObject.FieldByName('includesiblings').AsInteger := 0;
+      gdcNamespaceObject.FieldByName('headobjectkey').Clear;
+      if FgdcObject.FindField('editiondate') <> nil then
+      begin
+        gdcNamespaceObject.FieldByName('modified').AsDateTime :=
+          FgdcObject.FieldByName('editiondate').AsDateTime;
+        gdcNamespaceObject.FieldByName('curr_modified').AsDateTime :=
+          FgdcObject.FieldByName('editiondate').AsDateTime;
+      end else
+      begin
+        gdcNamespaceObject.FieldByName('modified').AsDateTime := Now;
+        gdcNamespaceObject.FieldByName('curr_modified').AsDateTime := Now;
+      end;
+      gdcNamespaceObject.Post;
+
+      HeadObjectKey := gdcNamespaceObject.ID;
+      HeadObjectPos := gdcNamespaceObject.FieldByName('objectpos').AsInteger;
+
       ibdsLink.Close;
       ibdsLink.Open;
 
-      ibdsLink.First;
-      while not ibdsLink.EOF do
-      begin
-        ibdsLink.Next;
+      q := TIBSQL.Create(nil);
+      try
+        q.Transaction := ibtr;
+        q.SQL.Text :=
+          'UPDATE OR INSERT INTO at_namespace_link (namespacekey, useskey) ' +
+          '  VALUES (:nsk, :uk) ' +
+          '  MATCHING (namespacekey, useskey) ';
+        q.ParamByName('nsk').AsInteger := lkupNS.CurrentKeyInt;
+
+        ibdsLink.Last;
+        while not ibdsLink.BOF do
+        begin
+          if ibdsLink.FieldByName('namespacekey').IsNull then
+          begin
+            gdcNamespaceObject.Insert;
+            gdcNamespaceObject.FieldByName('namespacekey').AsInteger := lkupNS.CurrentKeyInt;
+            gdcNamespaceObject.FieldByName('objectname').AsString := ibdsLink.FieldByName('name').AsString;
+            gdcNamespaceObject.FieldByName('objectclass').AsString := ibdsLink.FieldByName('class').AsString;
+            gdcNamespaceObject.FieldByName('subtype').AsString := ibdsLink.FieldByName('subtype').AsString;
+            gdcNamespaceObject.FieldByName('xid').AsInteger := ibdsLink.FieldByName('xid').AsInteger;
+            gdcNamespaceObject.FieldByName('dbid').AsInteger := ibdsLink.FieldByName('dbid').AsInteger;
+            gdcNamespaceObject.FieldByName('objectpos').AsInteger := HeadObjectPos;
+            if chbxAlwaysOverwrite.Checked then
+              gdcNamespaceObject.FieldByName('alwaysoverwrite').AsInteger := 1
+            else
+              gdcNamespaceObject.FieldByName('alwaysoverwrite').AsInteger := 0;
+            if chbxDontRemove.Checked then
+              gdcNamespaceObject.FieldByName('dontremove').AsInteger := 1
+            else
+              gdcNamespaceObject.FieldByName('dontremove').AsInteger := 0;
+            if chbxIncludeSiblings.Checked then
+              gdcNamespaceObject.FieldByName('includesiblings').AsInteger := 1
+            else
+              gdcNamespaceObject.FieldByName('includesiblings').AsInteger := 0;
+            gdcNamespaceObject.FieldByName('headobjectkey').AsInteger := HeadObjectKey;
+            if ibdsLink.FieldByName('editiondate').IsNull then
+            begin
+              gdcNamespaceObject.FieldByName('modified').AsDateTime := Now;
+              gdcNamespaceObject.FieldByName('curr_modified').AsDateTime := Now;
+            end else
+            begin
+              gdcNamespaceObject.FieldByName('modified').AsDateTime :=
+                ibdsLink.FieldByName('editiondate').AsDateTime;
+              gdcNamespaceObject.FieldByName('curr_modified').AsDateTime :=
+                ibdsLink.FieldByName('editiondate').AsDateTime;
+            end;
+            gdcNamespaceObject.Post;
+          end
+          else if ibdsLink.FieldByName('namespacekey').AsInteger <> lkupNS.CurrentKeyInt then
+          begin
+            q.ParamByName('uk').AsInteger := ibdsLink.FieldByName('namespacekey').AsInteger;
+            q.ExecQuery;
+          end;
+
+          ibdsLink.Prior;
+        end;
+      finally
+        q.Free;
       end;
     end;
   finally

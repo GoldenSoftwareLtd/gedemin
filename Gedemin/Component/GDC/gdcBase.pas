@@ -278,23 +278,29 @@ type
     FReferenceRelationName: String;
     FObjectLinkFieldName: String;
     FReferenceLinkFieldName: String;
+    FReferenceObjectNameFieldName: String;
     FSQL: String;
     FCaption: String;
+    FHasAdditionalFields: Boolean;
 
   public
     constructor Create(const ACrossRelationName: String;
       const AReferenceRelationName: String;
       const AObjectLinkFieldName: String;
       const AReferenceLinkFieldName: String;
+      const AReferenceObjectNameFieldName: String;
       const ASQL: String;
-      const ACaption: String);
+      const ACaption: String;
+      const AHasAdditionalFields: Boolean);
 
     property CrossRelationName: String read FCrossRelationName;
     property ReferenceRelationName: String read FReferenceRelationName;
     property ObjectLinkFieldName: String read FObjectLinkFieldName;
     property ReferenceLinkFieldName: String read FReferenceLinkFieldName;
+    property ReferenceObjectNameFieldName: String read FReferenceObjectNameFieldName;
     property SQL: String read FSQL;
     property Caption: String read FCaption;
+    property HasAdditionalFields: Boolean read FHasAdditionalFields;
   end;
 
   //
@@ -18023,14 +18029,17 @@ end;
 
 constructor TgdcSetAttribute.Create(const ACrossRelationName,
   AReferenceRelationName, AObjectLinkFieldName, AReferenceLinkFieldName,
-  ASQL, ACaption: String);
+  AReferenceObjectNameFieldName, ASQL, ACaption: String;
+  const AHasAdditionalFields: Boolean);
 begin
   FCrossRelationName := ACrossRelationName;
   FReferenceRelationName := AReferenceRelationName;
   FObjectLinkFieldName := AObjectLinkFieldName;
   FReferenceLinkFieldName := AReferenceLinkFieldName;
+  FReferenceObjectNameFieldName := AReferenceObjectNameFieldName;
   FSQL := ASQL;
   FCaption := ACaption;
+  FHasAdditionalFields := AHasAdditionalFields;
 end;
 
 function TgdcBase.GetSetAttributes(Index: Integer): TgdcSetAttribute;
@@ -18109,8 +18118,9 @@ begin
         PK.ConstraintFields[1].References.RelationName,
         PK.ConstraintFields[0].FieldName,
         PK.ConstraintFields[1].FieldName,
-        'SELECT cr.' + PK.ConstraintFields[1].FieldName + ',' +
-        '  rf.' + PK.ConstraintFields[1].References.ListField.FieldName + ' ' +
+        'refobjectname_',
+        'SELECT cr.*, ' +
+        '  rf.' + PK.ConstraintFields[1].References.ListField.FieldName + ' AS refobjectname_ ' +
         'FROM ' +
         '  ' + PK.Relation.RelationName + ' cr ' +
         '    JOIN ' + PK.ConstraintFields[1].References.RelationName + ' rf ' +
@@ -18118,7 +18128,7 @@ begin
             PK.ConstraintFields[1].ReferencesField.FieldName + ' ' +
         'WHERE ' +
         '  cr.' + PK.ConstraintFields[0].FieldName + '=:rf',
-        Capt));
+        Capt, PK.Relation.RelationFields.Count > 2));
     end;
   finally
     RL.Free;
@@ -18249,6 +18259,10 @@ procedure TgdcBase.GetDependencies(ATr: TIBTransaction; const ASessionID: Intege
         AqInsert.ParamByName('refrelationname').AsString := R.RelationName;
         AqInsert.ParamByName('refclassname').AsString := Obj.ClassName;
         AqInsert.ParamByName('refsubtype').AsString := Obj.SubType;
+        if Obj.FindField('editiondate') <> nil then
+          AqInsert.ParamByName('refeditiondate').AsDateTime := Obj.FieldByName('editiondate').AsDateTime
+        else
+          AqInsert.ParamByName('refeditiondate').Clear;
         AqInsert.ExecQuery;
         Inc(ACount);
       end;
@@ -18317,6 +18331,10 @@ procedure TgdcBase.GetDependencies(ATr: TIBTransaction; const ASessionID: Intege
             AqInsert.ParamByName('refrelationname').AsString := AnObject.SetAttributes[I].ReferenceRelationName;
             AqInsert.ParamByName('refclassname').AsString := Obj.ClassName;
             AqInsert.ParamByName('refsubtype').AsString := Obj.SubType;
+            if Obj.FindField('editiondate') <> nil then
+              AqInsert.ParamByName('refeditiondate').AsDateTime := Obj.FieldByName('editiondate').AsDateTime
+            else
+              AqInsert.ParamByName('refeditiondate').Clear;
             AqInsert.ExecQuery;
             Inc(ACount);
           end;
@@ -18351,10 +18369,12 @@ begin
     q.SQL.Text :=
       'INSERT INTO gd_object_dependencies ( ' +
       '  sessionid, masterid, reflevel, relationname, fieldname, crossrelation, ' +
-      '  refobjectid, refobjectname, refrelationname, refclassname, refsubtype) ' +
+      '  refobjectid, refobjectname, refrelationname, refclassname, refsubtype, ' +
+      '  refeditiondate) ' +
       'VALUES ' +
       '  (:sessionid, :masterid, :reflevel, :relationname, :fieldname, :crossrelation, ' +
-      '  :refobjectid, :refobjectname, :refrelationname, :refclassname, :refsubtype) ';
+      '  :refobjectid, :refobjectname, :refrelationname, :refclassname, :refsubtype, ' +
+      '  :refeditiondate)';
     q.ParamByName('sessionid').AsInteger := ASessionID;
     q.ParamByName('masterid').AsInteger := Self.ID;
 

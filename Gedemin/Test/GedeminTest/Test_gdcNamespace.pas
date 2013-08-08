@@ -865,7 +865,7 @@ var
         gdcConst.FieldByName('name').AsString := 'TEST' + IntToStr(Random(1000000)) + 'C';
         gdcConst.Post;
         AConstID := gdcConst.ID;
-        gdcNamespace.AddObject2(gdcConst, OL);
+        //gdcNamespace.AddObject2(gdcConst, OL);
       finally
         gdcConst.Free;
       end;
