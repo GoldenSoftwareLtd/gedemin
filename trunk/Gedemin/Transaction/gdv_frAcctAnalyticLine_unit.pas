@@ -478,7 +478,9 @@ begin
     begin
       for I := 0 to FLookUp.Count - 1 do
       begin
-        if (FLookUp[I] as TgsIBLookupComboBox).CurrentKey > '' then
+        if chkNull.Checked
+          and ((FLookUp[I] as TgsIBLookupComboBox).CurrentKey > '')
+        then
           Result := Result + lAnaliticName.Caption + ' ' + (FLookUp[I] as TgsIBLookupComboBox).Text + '; ';
       end;
       if Result > '' then
