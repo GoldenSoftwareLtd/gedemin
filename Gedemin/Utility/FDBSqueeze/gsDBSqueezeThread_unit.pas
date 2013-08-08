@@ -243,13 +243,15 @@ begin
       begin
         if FConnected.Value = 1 then
         begin
-          FBusy.Value := 1;
-
           //FDBS.SetBlockTriggerActive(False);
-          //FDBS.PrepareBeforeInsert;
-          FDBS.CalculateAcSaldo;
+          ///FDBS.PrepareBeforeInsert;
+
+          //FDBS.CalculateAcSaldo;
+
+        
+          ///FDBS.CreateAcEntries;
           //FDBS.RestoreAfterInsert;
-          FDBS.CalculateInvSaldo;
+           //FDBS.CalculateInvSaldo;
           //FDBS.SetBlockTriggerActive(True);
 
           PostThreadMessage(ThreadID, WM_DBS_PREPAREDB, 0, 0);
@@ -272,7 +274,8 @@ begin
         if FConnected.Value = 1 then
         begin
           FBusy.Value := 1;
-          FDBS.DeleteDocuments;
+          //FDBS.DeleteDocuments;
+          //FDBS.CreateAcEntries;                                                 ///TODO: оформить
           PostThreadMessage(ThreadID, WM_DBS_RESTOREDB, 0, 0);
         end;
         Result := True;

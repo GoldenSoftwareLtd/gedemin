@@ -1,6 +1,6 @@
 object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
-  Left = 507
-  Top = 114
+  Left = 269
+  Top = 116
   BorderStyle = bsDialog
   ClientHeight = 528
   ClientWidth = 814
