@@ -344,7 +344,7 @@ var
   F: TField;
   C: TAccCardConfig;
   FI: TgdvFieldInfo;
-  Form: TCreateableForm;
+  Form: TCreateableForm;  
 begin
   Form := gd_createable_form.FindForm(Tgdv_frmAcctAccCard);
 
@@ -361,6 +361,9 @@ begin
 
       C.IncCorrSubAccounts := False;
       C.CorrAccounts := '';
+
+      C.IncSubAccounts := (tvGroup.Selected <> nil)
+        and (tvGroup.Selected.getFirstChild <> nil);
 
       FI := FFieldInfos.FindInfo(F.FieldName);
       if (FI <> nil) and (FI is TgdvLedgerFieldInfo) then
