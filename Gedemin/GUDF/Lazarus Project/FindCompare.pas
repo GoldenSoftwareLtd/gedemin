@@ -13,8 +13,8 @@ interface
 // if IndistinctMatching(4, "поисковая строка", "оригинальная строка  - эталон") > 40 then ...
 
 function IndistinctMatching(MaxMatching     : Integer;
-                            strInputMatching: PChar;
-                            strInputStandart: PChar): Integer;
+                            strInputMatching: PAnsiChar;
+                            strInputStandart: PAnsiChar): Integer;
 implementation
 
 Uses SysUtils;
@@ -26,8 +26,8 @@ Type
                 end;
 
 //------------------------------------------------------------------------------
-function Matching(const StrInputA: PChar;
-                  const StrInputB: PChar;
+function Matching(const StrInputA: PAnsiChar;
+                  const StrInputB: PAnsiChar;
                   const lngLen: Integer) : TRetCount;
 Var
     TempRet   : TRetCount;
@@ -60,8 +60,8 @@ end; { function }
 
 //------------------------------------------------------------------------------
 function IndistinctMatching(MaxMatching     : Integer;
-                            strInputMatching: PChar;
-                            strInputStandart: PChar): Integer;
+                            strInputMatching: PAnsiChar;
+                            strInputStandart: PAnsiChar): Integer;
 Var
     gret     : TRetCount;
     tret     : TRetCount;

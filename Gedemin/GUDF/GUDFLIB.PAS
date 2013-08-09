@@ -63,7 +63,7 @@ const                               // Date translation constants
 implementation
 
 uses
-  JclStrings, FindCompare, GsHugeIntSet, syncobjs;
+  FindCompare, GsHugeIntSet, syncobjs;
 
 const
   SmallNumber        = 0.0000000000001;
@@ -628,7 +628,7 @@ end;
 function g_s_ansipos(A, B: PChar): SmallInt;
   cdecl; export;
 begin
-  Result := StrIPos(A, B);
+  Result := AnsiPos(AnsiUpperCase(A), AnsiUpperCase(B));
 end;
 
 function g_s_fuzzymatch(var MaxMatching: Integer; A, B: PChar): Integer;
@@ -645,7 +645,7 @@ function g_s_ansiposreg(A, B: PChar; var R: SmallInt): SmallInt;
   cdecl; export;
 begin
   if R = 1 then
-    Result := StrIPos(A, B)
+    Result := g_s_ansipos(A, B)
   else
     Result := AnsiPos(A, B);
 end;

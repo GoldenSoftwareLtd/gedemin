@@ -55,6 +55,14 @@ type
     procedure WriteStringValue(const AKey: AnsiString; const AStr: AnsiString);
     procedure WriteBooleanValue(const AKey: AnsiString; const Value: Boolean); overload;
     procedure WriteBooleanValue(const AKey: AnsiString; const Value: Integer); overload;
+    procedure WriteBinaryValue(const AKey: AnsiString; AStream: TStream);
+    procedure WriteLargeIntValue(const AKey: AnsiString; const AValue: Int64);
+    procedure WriteIntegerValue(const AKey: AnsiString; const AValue: Integer);
+    procedure WriteFloatValue(const AKey: AnsiString; const AValue: Double);
+    procedure WriteDateValue(const AKey: AnsiString; const AValue: TDateTime);
+    procedure WriteTimeStampValue(const AKey: AnsiString; const AValue: TDateTime);
+    procedure WriteCurrencyValue(const AKey: AnsiString; const AValue: Currency);
+    procedure WriteNullValue(const AKey: AnsiString);
   end;
 
 implementation
@@ -401,6 +409,69 @@ begin
   StartNewLine;
   WriteKey(AKey);
   WriteBoolean(Value);
+end;
+
+procedure TyamlWriter.WriteBinaryValue(const AKey: AnsiString;
+  AStream: TStream);
+begin
+  StartNewLine;
+  WriteKey(AKey);
+  WriteBinary(AStream);
+end;
+
+procedure TyamlWriter.WriteLargeIntValue(const AKey: AnsiString;
+  const AValue: Int64);
+begin
+  StartNewLine;
+  WriteKey(AKey);
+  WriteLargeInt(AValue);
+end;
+
+procedure TyamlWriter.WriteIntegerValue(const AKey: AnsiString;
+  const AValue: Integer);
+begin
+  StartNewLine;
+  WriteKey(AKey);
+  WriteInteger(AValue);
+end;
+
+procedure TyamlWriter.WriteFloatValue(const AKey: AnsiString;
+  const AValue: Double);
+begin
+  StartNewLine;
+  WriteKey(AKey);
+  WriteFloat(AValue);
+end;
+
+procedure TyamlWriter.WriteDateValue(const AKey: AnsiString;
+  const AValue: TDateTime);
+begin
+  StartNewLine;
+  WriteKey(AKey);
+  WriteDate(AValue);
+end;
+
+procedure TyamlWriter.WriteTimeStampValue(const AKey: AnsiString;
+  const AValue: TDateTime);
+begin
+  StartNewLine;
+  WriteKey(AKey);
+  WriteTimestamp(AValue);
+end;
+
+procedure TyamlWriter.WriteCurrencyValue(const AKey: AnsiString;
+  const AValue: Currency);
+begin
+  StartNewLine;
+  WriteKey(AKey);
+  WriteCurrency(AValue);
+end;
+
+procedure TyamlWriter.WriteNullValue(const AKey: AnsiString);
+begin
+  StartNewLine;
+  WriteKey(AKey);
+  WriteNull;
 end;
 
 end.
