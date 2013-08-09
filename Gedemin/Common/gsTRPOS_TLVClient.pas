@@ -384,12 +384,19 @@ begin
   end;
 end;
 
-procedure TgsTRPOSClient.ReadData(AParams: TgsTRPOSOutPutData); 
+procedure TgsTRPOSClient.ReadData(AParams: TgsTRPOSOutPutData);
+var
+  ReadStr: String;
 begin
   if not Connected then
     exit;
     
-  GetData(FTCPClient.ReadLn('', FReadTimeOut), AParams);
+  ReadStr := FTCPClient.CurrentReadBuffer;
+  if Length(ReadStr) > 2 then
+  begin
+    ReadStr := Copy(ReadStr, 3, MaxInt);
+    GetData(ReadStr, AParams);
+  end;
 end;
 
 function TgsTRPOSClient.GetSubFunction(const AID: Cardinal): String;
@@ -482,7 +489,7 @@ procedure TgsTRPOSClient.GetData(const AStr: String; AParams: TgsTRPOSOutPutData
 var
   I, Len, Tag: Integer;
 begin
-  I := 1;
+  I := 1;   
   while I < Length(AStr) do
   begin
     Tag := GetTag(AStr, I);
@@ -649,8 +656,11 @@ begin
 end;
 
 procedure TgsTRPOSClient.WriteBuffer(const ABuffer: String);
+var
+  Len: Integer;
 begin
-  FTCPClient.WriteLn(ABuffer);
+  Len := Length(ABuffer);
+  FTCPClient.WriteLn(chr(Hi(Len)) + chr(Lo(Len)) + ABuffer);
 end;
 
 procedure TgsTRPOSOutPutData.Clear;
