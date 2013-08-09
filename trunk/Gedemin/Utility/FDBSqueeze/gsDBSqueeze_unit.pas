@@ -120,7 +120,7 @@ begin
     'user_name=' + FUserName + #13#10 +
     'password=' + FPassword + #13#10 +
     'lc_ctype=win1251' + #13#10 +
-    'force_write=0' + #13#10;// +
+    'force_write=0' + #13#10;
    // 'no_garbage_collect=1';
   FIBDatabase.Connected := True;
   LogEvent('Connecting to DB... OK');
@@ -600,7 +600,7 @@ var
   AllUsrFieldsNames: String;     // список всех аналитик (в разных БД отличаются)
   OstatkiAccountKey: Integer;
 
-  OurCompaniesList: TStringList;
+  OurCompaniesList, TmpList: TStringList;
 
   CompanyKey: Integer;
   OurCompaniesListStr: String;
@@ -608,7 +608,8 @@ var
 begin
   LogEvent('Calculating entry balance...');
   Assert(Connected);
-  
+
+  TmpList := TStringList.Create;
   UsrFieldsList := TStringList.Create;
   OurCompaniesList := TStringList.Create; // список компания - документ для проводок
 
@@ -650,8 +651,9 @@ begin
 
     if FAllOurCompaniesSaldo then
     begin
-      OurCompaniesList.CommaText := StringReplace(OurCompaniesListStr, ',', '=' + IntToStr(GetNewID) + ',', [rfReplaceAll, rfIgnoreCase]) +
-        '=' + IntToStr(GetNewID);
+      TmpList.Text := StringReplace(OurCompaniesListStr, ',', #13#10, [rfReplaceAll, rfIgnoreCase]);
+      for i := 0 to TmpList.Count-1 do
+        OurCompaniesList.Append(TmpList[i] + '=' + IntToStr(GetNewID));
     end;
 
     q2.SQL.Text :=
@@ -1058,6 +1060,7 @@ begin
     Tr.Free;
     UsrFieldsList.Free;
     OurCompaniesList.Free;
+    TmpList.Free;
   end;
   LogEvent('Calculating entry balance... OK');
 end;
