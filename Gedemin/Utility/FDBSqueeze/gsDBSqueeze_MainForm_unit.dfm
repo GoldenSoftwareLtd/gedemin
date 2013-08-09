@@ -1,9 +1,9 @@
 object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
-  Left = 269
-  Top = 116
+  Left = 9
+  Top = 35
   BorderStyle = bsDialog
-  ClientHeight = 528
-  ClientWidth = 814
+  ClientHeight = 662
+  ClientWidth = 1009
   Color = clBtnFace
   Font.Charset = RUSSIAN_CHARSET
   Font.Color = clWindowText
@@ -18,8 +18,8 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
   object pnl1: TPanel
     Left = 416
     Top = 16
-    Width = 384
-    Height = 404
+    Width = 585
+    Height = 641
     TabOrder = 0
     object lbl7: TLabel
       Left = 7
@@ -31,7 +31,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
   end
   object grpOptions: TGroupBox
     Left = 8
-    Top = 313
+    Top = 462
     Width = 393
     Height = 152
     Caption = ' Options '
@@ -195,7 +195,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
   end
   object btnGo: TButton
     Left = 164
-    Top = 483
+    Top = 627
     Width = 75
     Height = 21
     Action = actGo
@@ -205,10 +205,10 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
     TabOrder = 5
   end
   object mLog: TMemo
-    Left = 419
-    Top = 32
-    Width = 377
-    Height = 384
+    Left = 420
+    Top = 34
+    Width = 575
+    Height = 607
     ScrollBars = ssVertical
     TabOrder = 2
   end
@@ -216,7 +216,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
     Left = 8
     Top = 160
     Width = 393
-    Height = 145
+    Height = 297
     Caption = ' Properties '
     TabOrder = 3
     object txt1: TStaticText
