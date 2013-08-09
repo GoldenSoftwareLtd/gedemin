@@ -10274,13 +10274,10 @@ var
     R: TatRelation;
   begin
     R := atDatabase.Relations.ByRelationName(TableName);
-    if R = nil then
+    if (R = nil) or (R.PrimaryKey.ConstraintFields.Count <> 1) then
       Result := ''
-    else begin
-      if R.PrimaryKey.ConstraintFields.Count <> 1 then
-        raise EgdcException.CreateObj('Composite primary keys are not supported', Self);
+    else
       Result := R.PrimaryKey.ConstraintFields[0].FieldName;
-    end;
   end;
 
   procedure AddTable(const TableName: String);
@@ -10303,7 +10300,7 @@ var
       begin
         FK := Lst[I] as TatForeignKey;
 
-        if FK.IsSimpleKey {and (FK.DeleteRule in [udrRestrict, udrNoAction])} then
+        if FK.IsSimpleKey and (GetPrimary(FK.Relation.RelationName) > '') then
         begin
           sql.Close;
           sql.SQL.Text := 'SELECT FIRST 1 * FROM ' + FK.Relation.RelationName +
@@ -10321,70 +10318,6 @@ var
       Lst.Free;
       sql.Free;
     end;
-
-    {try
-      sql := TIBSQL.Create(nil);
-      sqlvalue := TIBSQL.Create(nil);
-      try
-        sql.Database := Database;
-        sql.Transaction := Transaction;
-        sqlValue.Database := Database;
-        sqlValue.Transaction := Transaction;
-
-        sql.sql.Text :=
-          ' SELECT ' +
-          '   isg2.rdb$field_name AS targetfield, ' +
-          '   rc2.rdb$relation_name AS targettable ' +
-          ' FROM ' +
-          '   rdb$relation_constraints rc1 ' +
-          '   JOIN rdb$ref_constraints rfc ON rfc.rdb$const_name_uq = rc1.rdb$constraint_name ' +
-          '   JOIN rdb$relation_constraints rc2 ON rfc.rdb$constraint_name = rc2.rdb$constraint_name ' +
-          '   JOIN rdb$index_segments isg2 ON rc2.rdb$index_name = isg2.rdb$index_name ' +
-          '   JOIN rdb$relation_constraints rc3 ON rc3.rdb$relation_name = rc2.rdb$relation_name ' +
-          '   JOIN rdb$ref_constraints rrc ON rrc.rdb$constraint_name = rc2.rdb$constraint_name ' +
-          ' WHERE ' +
-          '   rc1.rdb$relation_name = UPPER(''' + TableName + ''')' +
-          '   AND rc3.rdb$constraint_type = ''PRIMARY KEY''' +
-          '   AND (rrc.rdb$delete_rule = ''RESTRICT'' OR rrc.rdb$delete_rule = ''NO ACTION'') ' +
-          ' ORDER BY ' +
-          '   rc2.rdb$relation_name ';
-        sql.ExecQuery;
-
-        NewTable := '';
-        while not sql.Eof do
-        begin
-          try
-            if NewTable <> sql.FieldByName(fnTargettable).AsTrimString then
-            begin
-              NewTable := sql.FieldByName(fnTargettable).AsTrimString;
-              NewPrimary := GetPrimary(NewTable);
-            end;
-
-            sqlValue.Close;
-            sqlValue.sql.Text := 'SELECT ' + sql.FieldByName(fnTargetField).AsTrimString +
-              ' FROM ' + NewTable + ' WHERE ' + sql.FieldByName(fnTargetField).AsTrimString +
-              ' = ' + FKey; //!!!
-            sqlValue.ExecQuery;
-            if sqlValue.RecordCount > 0 then
-            begin
-              FTableList.Add(NewTable);
-              FForeignList.Add(sql.FieldByName(fnTargetfield).AsTrimString);
-              FKeyList.Add(NewPrimary);
-
-              if NewPrimary = sql.FieldByName(fnTargetfield).AsTrimString then
-                AddTable(NewTable);
-            end;
-          except
-          end;
-          sql.Next;
-        end;
-
-      finally
-        sql.Free;
-        sqlValue.Free;
-      end;
-    except
-    end;}
   end;
 
 var

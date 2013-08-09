@@ -88,13 +88,14 @@ object dlgToNamespace: TdlgToNamespace
           Default = True
           TabOrder = 0
         end
-        object Button2: TButton
+        object btnCancel: TButton
           Left = 148
           Top = 7
           Width = 75
           Height = 21
-          Action = actCancel
           Cancel = True
+          Caption = '&Отмена'
+          ModalResult = 2
           TabOrder = 1
         end
       end
@@ -178,7 +179,6 @@ object dlgToNamespace: TdlgToNamespace
       Height = 21
       HelpContext = 1
       Database = dmDatabase.ibdbGAdmin
-      Transaction = ibtr
       ListTable = 'at_namespace'
       ListField = 'name'
       KeyField = 'ID'
@@ -220,7 +220,6 @@ object dlgToNamespace: TdlgToNamespace
     end
   end
   object dsLink: TDataSource
-    DataSet = ibdsLink
     Left = 304
     Top = 216
   end
@@ -232,67 +231,11 @@ object dlgToNamespace: TdlgToNamespace
       OnExecute = actOKExecute
       OnUpdate = actOKUpdate
     end
-    object actCancel: TAction
-      Caption = '&Отмена'
-      OnExecute = actCancelExecute
-    end
     object actClear: TAction
       Caption = 'X'
       Hint = 'Удалить объект из пространства имен'
       OnExecute = actClearExecute
       OnUpdate = actClearUpdate
     end
-  end
-  object ibtr: TIBTransaction
-    Active = False
-    DefaultDatabase = dmDatabase.ibdbGAdmin
-    Params.Strings = (
-      'read_committed'
-      'rec_version'
-      'nowait')
-    AutoStopAction = saNone
-    Left = 368
-    Top = 216
-  end
-  object ibdsLink: TIBDataSet
-    Database = dmDatabase.ibdbGAdmin
-    Transaction = ibtr
-    SelectSQL.Strings = (
-      'SELECT'
-      '  od.refobjectid as id,'
-      '  r.xid as xid,'
-      '  r.dbid as dbid,'
-      '  od.reflevel,'
-      
-        '  (od.refclassname || od.refsubtype || '#39' - '#39' || od.refobjectname' +
-        ' ||'
-      
-        '    iif(n.id IS NULL, '#39#39', '#39' ('#39' || n.name || '#39')'#39')) as displayname' +
-        ','
-      '  od.refclassname as class,'
-      '  od.refsubtype as subtype,'
-      '  od.refobjectname as name,'
-      '  n.name as namespace,'
-      '  n.id as namespacekey,'
-      '  o.headobjectkey as headobject,'
-      '  od.refeditiondate as editiondate'
-      'FROM'
-      '  gd_object_dependencies od'
-      '  LEFT JOIN gd_p_getruid(od.refobjectid) r'
-      '    ON 1=1'
-      '  LEFT JOIN at_object o'
-      '    ON o.xid = r.xid AND o.dbid = r.dbid'
-      '  LEFT JOIN at_namespace n'
-      '    ON n.id = o.namespacekey'
-      'WHERE'
-      '  od.sessionid = :sid'
-      ' '
-      ' '
-      ' '
-      ' '
-      ' ')
-    ReadTransaction = ibtr
-    Left = 336
-    Top = 216
   end
 end

@@ -1,9 +1,9 @@
-unit gdcNamescapeController;
+unit gdcNamespaceController;
 
 interface
 
 uses
-  IBDatabase, IBCustomDataSet, gdcBase, DBGrids;
+  DB, IBDatabase, IBCustomDataSet, gdcBase, DBGrids;
 
 type
   TgdcNamespaceController = class(TObject)
@@ -11,45 +11,43 @@ type
     FIBTransaction: TIBTransaction;
     FibdsLink: TIBDataSet;
     FgdcObject: TgdcBase;
+    FBL: TBookmarkList;
     FPrevNSID: Integer;
-    FSessionID: Integer;
+    FCurrentNSID: Integer;
     FAlwaysOverwrite: Boolean;
     FDontRemove: Boolean;
     FIncludeSiblings: Boolean;
     FObjectName: String;
 
   public
+    constructor Create;
     destructor Destroy; override;
 
-    procedure Setup(AnObject: TgdcObject; ABL: TBookmarkList);
+    procedure Setup(AnObject: TgdcBase; ABL: TBookmarkList);
+    procedure Include;
+
+    property ObjectName: String read FObjectName;
+    property AlwaysOverwrite: Boolean read FAlwaysOverwrite write FAlwaysOverwrite;
+    property DontRemove: Boolean read FDontRemove write FDontRemove;
+    property IncludeSiblings: Boolean read FIncludeSiblings write FIncludeSiblings;
+    property PrevNSID: Integer read FPrevNSID write FPrevNSID;
+    property CurrentNSID: Integer read FCurrentNSID write FCurrentNSID;
+    property ibdsLink: TIBDataSet read FibdsLink;
   end;
 
 implementation
 
 uses
-  IBSQL, gdcBaseInterface;
+  SysUtils, IBSQL, gdcBaseInterface, gdcNamespace;
 
 { TgdcNamespaceController }
 
-destructor TgdcNamespaceController.Destroy;
+constructor TgdcNamespaceController.Create;
 begin
-  FibdsLink.Free;
-  FIBTransaction.Free;
   inherited;
-end;
 
-procedure TgdcNamespaceController.Setup(AnObject: TgdcObject;
-  ABL: TBookmarkList);
-var
-  q: TIBSQL;
-  I: Integer;
-  Bm: String;
-begin
-  Assert(AnObject <> nil);
-  Assert(not AnObject.EOF);
-  Assert(FIBTransaction = nil);
-  Assert(FibdsLink = nil);
-  Assert(gdcBaseManager <> nil);
+  FPrevNSID := -1;
+  FCurrentNSID := -1;
 
   FIBTransaction := TIBTransaction.Create(nil);
   FIBTransaction.Params.CommaText := 'read_committed,rec_version,nowait';
@@ -67,6 +65,7 @@ begin
     '  od.reflevel, '#13#10 +
     '  (od.refclassname || od.refsubtype || '' - '' || od.refobjectname || '#13#10 +
     '    iif(n.id IS NULL, '''', '' ('' || n.name || '')'')) as displayname, '#13#10 +
+    '  od.refclassname as class, '#13#10 +
     '  od.refsubtype as subtype, '#13#10 +
     '  od.refobjectname as name, '#13#10 +
     '  n.name as namespace, '#13#10 +
@@ -83,10 +82,177 @@ begin
     '    ON n.id = o.namespacekey '#13#10 +
     'WHERE '#13#10 +
     '  od.sessionid = :sid ';
+end;
 
-  FPrevNSID := -1;
+destructor TgdcNamespaceController.Destroy;
+begin
+  FibdsLink.Free;
+  FIBTransaction.Free;
+  inherited;
+end;
+
+procedure TgdcNamespaceController.Include;
+var
+  gdcNamespaceObject: TgdcNamespaceObject;
+  HeadObjectKey, HeadObjectPos: Integer;
+  q: TIBSQL;
+begin
+  Assert(FIBTransaction.InTransaction);
+
+  gdcNamespaceObject := TgdcNamespaceObject.Create(nil);
+  try
+    gdcNamespaceObject.ReadTransaction := FIBTransaction;
+    gdcNamespaceObject.Transaction := FIBTransaction;
+
+    if (FPrevNSID > -1) and (FCurrentNSID = -1) then
+    begin
+      gdcNamespaceObject.SubSet := 'ByObject';
+      gdcNamespaceObject.ParamByName('namespacekey').AsInteger := FPrevNSID;
+      gdcNamespaceObject.ParamByName('xid').AsInteger := FgdcObject.GetRUID.XID;
+      gdcNamespaceObject.ParamByName('dbid').AsInteger := FgdcObject.GetRUID.DBID;
+      gdcNamespaceObject.Open;
+      if not gdcNamespaceObject.EOF then
+        gdcNamespaceObject.Delete;
+    end
+    else if (FPrevNSID > -1) and (FCurrentNSID > -1)
+      and (FPrevNSID <> FCurrentNSID) then
+    begin
+      gdcNamespaceObject.SubSet := 'ByObject';
+      gdcNamespaceObject.ParamByName('namespacekey').AsInteger := FPrevNSID;
+      gdcNamespaceObject.ParamByName('xid').AsInteger := FgdcObject.GetRUID.XID;
+      gdcNamespaceObject.ParamByName('dbid').AsInteger := FgdcObject.GetRUID.DBID;
+      gdcNamespaceObject.Open;
+      if not gdcNamespaceObject.EOF then
+      begin
+        gdcNamespaceObject.Edit;
+        gdcNamespaceObject.FieldByName('namespacekey').AsInteger := FCurrentNSID;
+        gdcNamespaceObject.Post;
+      end;
+    end
+    else if (FPrevNSID = -1) and (FCurrentNSID > -1) then
+    begin
+      gdcNamespaceObject.SubSet := 'All';
+      gdcNamespaceObject.Open;
+      gdcNamespaceObject.Insert;
+      gdcNamespaceObject.FieldByName('namespacekey').AsInteger := FCurrentNSID;
+      gdcNamespaceObject.FieldByName('objectname').AsString := FgdcObject.ObjectName;
+      gdcNamespaceObject.FieldByName('objectclass').AsString := FgdcObject.ClassName;
+      gdcNamespaceObject.FieldByName('subtype').AsString := FgdcObject.SubType;
+      gdcNamespaceObject.FieldByName('xid').AsInteger := FgdcObject.GetRUID.XID;
+      gdcNamespaceObject.FieldByName('dbid').AsInteger := FgdcObject.GetRUID.DBID;
+      gdcNamespaceObject.FieldByName('objectpos').Clear;
+      if FAlwaysOverwrite then
+        gdcNamespaceObject.FieldByName('alwaysoverwrite').AsInteger := 1
+      else
+        gdcNamespaceObject.FieldByName('alwaysoverwrite').AsInteger := 0;
+      if FDontRemove then
+        gdcNamespaceObject.FieldByName('dontremove').AsInteger := 1
+      else
+        gdcNamespaceObject.FieldByName('dontremove').AsInteger := 0;
+      if FIncludeSiblings then
+        gdcNamespaceObject.FieldByName('includesiblings').AsInteger := 1
+      else
+        gdcNamespaceObject.FieldByName('includesiblings').AsInteger := 0;
+      gdcNamespaceObject.FieldByName('headobjectkey').Clear;
+      if FgdcObject.FindField('editiondate') <> nil then
+      begin
+        gdcNamespaceObject.FieldByName('modified').AsDateTime :=
+          FgdcObject.FieldByName('editiondate').AsDateTime;
+        gdcNamespaceObject.FieldByName('curr_modified').AsDateTime :=
+          FgdcObject.FieldByName('editiondate').AsDateTime;
+      end else
+      begin
+        gdcNamespaceObject.FieldByName('modified').AsDateTime := Now;
+        gdcNamespaceObject.FieldByName('curr_modified').AsDateTime := Now;
+      end;
+      gdcNamespaceObject.Post;
+
+      HeadObjectKey := gdcNamespaceObject.ID;
+      HeadObjectPos := gdcNamespaceObject.FieldByName('objectpos').AsInteger;
+
+      FibdsLink.Close;
+      FibdsLink.Open;
+
+      q := TIBSQL.Create(nil);
+      try
+        q.Transaction := FIBTransaction;
+        q.SQL.Text :=
+          'UPDATE OR INSERT INTO at_namespace_link (namespacekey, useskey) ' +
+          '  VALUES (:nsk, :uk) ' +
+          '  MATCHING (namespacekey, useskey) ';
+        q.ParamByName('nsk').AsInteger := FCurrentNSID;
+
+        FibdsLink.Last;
+        while not FibdsLink.BOF do
+        begin
+          if FibdsLink.FieldByName('namespacekey').IsNull then
+          begin
+            gdcNamespaceObject.Insert;
+            gdcNamespaceObject.FieldByName('namespacekey').AsInteger := FCurrentNSID;
+            gdcNamespaceObject.FieldByName('objectname').AsString := FibdsLink.FieldByName('name').AsString;
+            gdcNamespaceObject.FieldByName('objectclass').AsString := FibdsLink.FieldByName('class').AsString;
+            gdcNamespaceObject.FieldByName('subtype').AsString := FibdsLink.FieldByName('subtype').AsString;
+            gdcNamespaceObject.FieldByName('xid').AsInteger := FibdsLink.FieldByName('xid').AsInteger;
+            gdcNamespaceObject.FieldByName('dbid').AsInteger := FibdsLink.FieldByName('dbid').AsInteger;
+            gdcNamespaceObject.FieldByName('objectpos').AsInteger := HeadObjectPos;
+            if FAlwaysOverwrite then
+              gdcNamespaceObject.FieldByName('alwaysoverwrite').AsInteger := 1
+            else
+              gdcNamespaceObject.FieldByName('alwaysoverwrite').AsInteger := 0;
+            if FDontRemove then
+              gdcNamespaceObject.FieldByName('dontremove').AsInteger := 1
+            else
+              gdcNamespaceObject.FieldByName('dontremove').AsInteger := 0;
+            if FIncludeSiblings then
+              gdcNamespaceObject.FieldByName('includesiblings').AsInteger := 1
+            else
+              gdcNamespaceObject.FieldByName('includesiblings').AsInteger := 0;
+            gdcNamespaceObject.FieldByName('headobjectkey').AsInteger := HeadObjectKey;
+            if FibdsLink.FieldByName('editiondate').IsNull then
+            begin
+              gdcNamespaceObject.FieldByName('modified').AsDateTime := Now;
+              gdcNamespaceObject.FieldByName('curr_modified').AsDateTime := Now;
+            end else
+            begin
+              gdcNamespaceObject.FieldByName('modified').AsDateTime :=
+                FibdsLink.FieldByName('editiondate').AsDateTime;
+              gdcNamespaceObject.FieldByName('curr_modified').AsDateTime :=
+                FibdsLink.FieldByName('editiondate').AsDateTime;
+            end;
+            gdcNamespaceObject.Post;
+          end
+          else if FibdsLink.FieldByName('namespacekey').AsInteger <> FCurrentNSID then
+          begin
+            q.ParamByName('uk').AsInteger := FibdsLink.FieldByName('namespacekey').AsInteger;
+            q.ExecQuery;
+          end;
+
+          FibdsLink.Prior;
+        end;
+      finally
+        q.Free;
+      end;
+    end;
+  finally
+    gdcNamespaceObject.Free;
+  end;
+
+  FIBTransaction.Commit;
+end;
+
+procedure TgdcNamespaceController.Setup(AnObject: TgdcBase; ABL: TBookmarkList);
+var
+  q: TIBSQL;
+  I: Integer;
+  Bm: String;
+  FSessionID: Integer;
+begin
+  Assert(AnObject <> nil);
+  Assert(not AnObject.EOF);
+  Assert(FibdsLink.State = dsInactive);
+
   FgdcObject := AnObject;
-  FBL := BL;
+  FBL := ABL;
 
   if FBL <> nil then
   begin
