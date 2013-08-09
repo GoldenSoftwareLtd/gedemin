@@ -3320,6 +3320,10 @@ begin
       'EXECUTE BLOCK AS BEGIN g_his_destroy(0); END';
     q.ExecQuery;
 
+    q.SQL.Text :=
+      'DELETE FROM dbs_fk_constraints WHERE constraint_name LIKE ''dbs_%''';
+    q.ExecQuery;
+    
     Tr.Commit;
     LogEvent('Deleting from DB... OK');
   finally
@@ -3654,8 +3658,6 @@ var
       '      IIF(update_rule = ''RESTRICT'', '''', '' ON UPDATE '' || update_rule) || ' +
       '      IIF(delete_rule = ''RESTRICT'', '''', '' ON DELETE '' || delete_rule) ' +
       '    FROM dbs_fk_constraints ' +
-      '    WHERE ' +
-      '      constraint_name NOT LIKE ''dbs_%'' ' +
       '    INTO :S ' +
       '  DO BEGIN ' +
       '    SUSPEND; ' +
