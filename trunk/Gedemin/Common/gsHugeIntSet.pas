@@ -3,7 +3,7 @@ unit GsHugeIntSet;
 interface
 
 uses
-  SysUtils, Classes, Contnrs, Windows;
+  SysUtils, Classes;
 
 type
   EgsHugeIntSet = class(Exception);

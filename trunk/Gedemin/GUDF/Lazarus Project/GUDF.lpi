@@ -29,7 +29,7 @@
         <LaunchingApplication PathPlusParams="/usr/X11R6/bin/xterm -T 'Lazarus Run Output' -e $(LazarusDir)/tools/runwait.sh $(TargetCmdLine)"/>
       </local>
     </RunParams>
-    <Units Count="12">
+    <Units Count="15">
       <Unit0>
         <Filename Value="GUDF.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -49,8 +49,8 @@
         <IsVisibleTab Value="True"/>
         <EditorIndex Value="1"/>
         <WindowIndex Value="0"/>
-        <TopLine Value="1034"/>
-        <CursorPos X="82" Y="1057"/>
+        <TopLine Value="47"/>
+        <CursorPos X="30" Y="61"/>
         <UsageCount Value="20"/>
         <Loaded Value="True"/>
       </Unit1>
@@ -119,15 +119,36 @@
       <Unit11>
         <Filename Value="FindCompare.pas"/>
         <UnitName Value="FindCompare"/>
-        <EditorIndex Value="2"/>
         <WindowIndex Value="0"/>
         <TopLine Value="1"/>
         <CursorPos X="1" Y="1"/>
         <UsageCount Value="10"/>
-        <Loaded Value="True"/>
       </Unit11>
+      <Unit12>
+        <Filename Value="..\..\jcl\source\common\JclStrings.pas"/>
+        <UnitName Value="JclStrings"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="38"/>
+        <CursorPos X="2" Y="53"/>
+        <UsageCount Value="10"/>
+      </Unit12>
+      <Unit13>
+        <Filename Value="..\..\jcl\source\jcl.inc"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="132"/>
+        <CursorPos X="7" Y="147"/>
+        <UsageCount Value="10"/>
+      </Unit13>
+      <Unit14>
+        <Filename Value="GsHugeIntSet.pas"/>
+        <UnitName Value="GsHugeIntSet"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="1"/>
+        <CursorPos X="20" Y="6"/>
+        <UsageCount Value="10"/>
+      </Unit14>
     </Units>
-    <JumpHistory Count="14" HistoryIndex="13">
+    <JumpHistory Count="19" HistoryIndex="18">
       <Position1>
         <Filename Value="gudflib.pas"/>
         <Caret Line="7" Column="22" TopLine="1"/>
@@ -137,66 +158,90 @@
         <Caret Line="9" Column="24" TopLine="1"/>
       </Position2>
       <Position3>
-        <Filename Value="FindCompare.pas"/>
-        <Caret Line="1" Column="1" TopLine="1"/>
+        <Filename Value="gudflib.pas"/>
+        <Caret Line="70" Column="16" TopLine="49"/>
       </Position3>
       <Position4>
-        <Filename Value="FindCompare.pas"/>
-        <Caret Line="49" Column="18" TopLine="29"/>
+        <Filename Value="gudflib.pas"/>
+        <Caret Line="1" Column="1" TopLine="1"/>
       </Position4>
       <Position5>
         <Filename Value="gudflib.pas"/>
-        <Caret Line="70" Column="16" TopLine="49"/>
+        <Caret Line="635" Column="20" TopLine="621"/>
       </Position5>
       <Position6>
         <Filename Value="gudflib.pas"/>
-        <Caret Line="1" Column="1" TopLine="1"/>
+        <Caret Line="539" Column="64" TopLine="525"/>
       </Position6>
       <Position7>
         <Filename Value="gudflib.pas"/>
-        <Caret Line="635" Column="20" TopLine="621"/>
+        <Caret Line="635" Column="16" TopLine="621"/>
       </Position7>
       <Position8>
         <Filename Value="gudflib.pas"/>
-        <Caret Line="539" Column="64" TopLine="525"/>
+        <Caret Line="1057" Column="82" TopLine="1043"/>
       </Position8>
       <Position9>
         <Filename Value="gudflib.pas"/>
-        <Caret Line="635" Column="16" TopLine="621"/>
+        <Caret Line="635" Column="53" TopLine="630"/>
       </Position9>
       <Position10>
-        <Filename Value="gudflib.pas"/>
-        <Caret Line="1057" Column="82" TopLine="1043"/>
+        <Filename Value="GUDF.lpr"/>
+        <Caret Line="9" Column="32" TopLine="1"/>
       </Position10>
       <Position11>
         <Filename Value="gudflib.pas"/>
-        <Caret Line="635" Column="53" TopLine="630"/>
+        <Caret Line="652" Column="54" TopLine="638"/>
       </Position11>
       <Position12>
-        <Filename Value="GUDF.lpr"/>
-        <Caret Line="9" Column="32" TopLine="1"/>
+        <Filename Value="gudflib.pas"/>
+        <Caret Line="40" Column="15" TopLine="26"/>
       </Position12>
       <Position13>
         <Filename Value="gudflib.pas"/>
-        <Caret Line="652" Column="54" TopLine="638"/>
+        <Caret Line="1" Column="1" TopLine="1"/>
       </Position13>
       <Position14>
         <Filename Value="gudflib.pas"/>
-        <Caret Line="40" Column="15" TopLine="26"/>
+        <Caret Line="66" Column="3" TopLine="57"/>
       </Position14>
+      <Position15>
+        <Filename Value="gudflib.pas"/>
+        <Caret Line="631" Column="55" TopLine="616"/>
+      </Position15>
+      <Position16>
+        <Filename Value="gudflib.pas"/>
+        <Caret Line="648" Column="26" TopLine="624"/>
+      </Position16>
+      <Position17>
+        <Filename Value="gudflib.pas"/>
+        <Caret Line="535" Column="44" TopLine="520"/>
+      </Position17>
+      <Position18>
+        <Filename Value="gudflib.pas"/>
+        <Caret Line="1161" Column="49" TopLine="1146"/>
+      </Position18>
+      <Position19>
+        <Filename Value="gudflib.pas"/>
+        <Caret Line="1093" Column="35" TopLine="1068"/>
+      </Position19>
     </JumpHistory>
   </ProjectOptions>
   <CompilerOptions>
-    <Version Value="9"/>
+    <Version Value="11"/>
     <PathDelim Value="\"/>
     <SearchPaths>
-      <SrcPath Value="..\..\Common"/>
+      <IncludeFiles Value="..\..\jcl\source"/>
+      <OtherUnitFiles Value="..\..\jcl\source\common;..\..\jcl\source;..\..\common"/>
     </SearchPaths>
     <Parsing>
       <SyntaxOptions>
         <UseAnsiStrings Value="False"/>
       </SyntaxOptions>
     </Parsing>
+    <CodeGeneration>
+      <TargetOS Value="win64"/>
+    </CodeGeneration>
     <Linking>
       <Options>
         <ExecutableType Value="Library"/>

@@ -3,20 +3,16 @@
 {                                                        }
 {       InterBase User Defined Fuctions                  }
 {       GUDF library                                     }
-{       Copyright (c) 1999-2000 by Golden Software       }
+{       Copyright (c) 1999-2013 by Golden Software       }
 {                                                        }
 {       Thanks:                                          }
 {         Oleg Kukarthev                                 }
 {                                                        }
 {********************************************************}
 
-//  21.03.2002 Nick добавлена сложного округления  g_m_complround
-
 {$ALIGN OFF}
 
 unit GUDFlib;
-
-{$mode objfpc}{$H+}
 
 interface
 
@@ -67,7 +63,7 @@ const                               // Date translation constants
 implementation
 
 uses
-  {JclStrings,} FindCompare, GsHugeIntSet, syncobjs;
+  FindCompare, GsHugeIntSet, syncobjs;
 
 const
   SmallNumber        = 0.0000000000001;
@@ -151,7 +147,7 @@ function g_b_shr(var A, B: Integer): Integer;
 begin
   Result := A shr B;
 end;
-
+                                                                      
 function g_b_not(var A: Integer): Integer;
   cdecl; export;
 begin
@@ -632,7 +628,7 @@ end;
 function g_s_ansipos(A, B: PChar): SmallInt;
   cdecl; export;
 begin
-  Result := Pos(AnsiUpperCase(A), AnsiUpperCase(B));
+  Result := AnsiPos(AnsiUpperCase(A), AnsiUpperCase(B));
 end;
 
 function g_s_fuzzymatch(var MaxMatching: Integer; A, B: PChar): Integer;
@@ -649,7 +645,7 @@ function g_s_ansiposreg(A, B: PChar; var R: SmallInt): SmallInt;
   cdecl; export;
 begin
   if R = 1 then
-    Result := Pos(AnsiUpperCase(A), AnsiUpperCase(B))
+    Result := g_s_ansipos(A, B)
   else
     Result := AnsiPos(A, B);
 end;
@@ -1162,59 +1158,105 @@ begin
   end;
 end;
 
-function g_his_create: Integer;
+function g_his_create(var AnIndex: Integer; var ASize: Integer): Integer;
   cdecl; export;
-var
-  I: Integer;
 begin
-  Result := -1;
+  Result := 0;
   csHugeIntSet.Enter;
   try
-    for I := 0 to HugeIntSetMaxCount - 1 do
+    if (AnIndex >= 0) and (AnIndex < HugeIntSetMaxCount) then
     begin
-      if arrHugeIntSet[I] = nil then
-      begin
-        arrHugeIntSet[I] := TgsHugeIntSet.Create;
-        Result := I;
-        break;
-      end;
+      if arrHugeIntSet[AnIndex] = nil then
+        arrHugeIntSet[AnIndex] := TgsHugeIntSet.Create
+      else
+        (arrHugeIntSet[AnIndex] as TgsHugeIntSet).Clear;
+      Result := 1;
     end;
   finally
     csHugeIntSet.Leave;
   end;
 end;
 
-procedure g_his_exclude(var AnIndex: Integer; var AnElement: Integer); cdecl; export;
+function g_his_exclude(var AnIndex: Integer; var AnElement: Integer): Integer;
+  cdecl; export;
 begin
-  if arrHugeIntSet[AnIndex] <> nil then
-    arrHugeIntSet[AnIndex].Exclude(AnElement);
+  Result := 0;
+  csHugeIntSet.Enter;
+  try
+    if (AnIndex >= 0) and (AnIndex < HugeIntSetMaxCount)
+      and (arrHugeIntSet[AnIndex] <> nil) then
+    begin
+      if arrHugeIntSet[AnIndex].Has(AnElement) then
+      begin  
+        arrHugeIntSet[AnIndex].Exclude(AnElement);
+        Result := 1;
+      end;  
+    end;
+  finally
+    csHugeIntSet.Leave;
+  end;
 end;
 
-procedure g_his_include(var AnIndex: Integer; var AnElement: Integer); cdecl; export;
+function g_his_include(var AnIndex: Integer; var AnElement: Integer): Integer;
+  cdecl; export;
 begin
-  if arrHugeIntSet[AnIndex] <> nil then
-    arrHugeIntSet[AnIndex].Include(AnElement);
+  Result := 0;
+  csHugeIntSet.Enter;
+  try
+    if (AnIndex >= 0) and (AnIndex < HugeIntSetMaxCount)
+      and (AnElement >= 147000000) and (arrHugeIntSet[AnIndex] <> nil) then
+    begin
+      if not arrHugeIntSet[AnIndex].Has(AnElement) then
+      begin
+        arrHugeIntSet[AnIndex].Include(AnElement);
+        Result := 1;
+      end;  
+    end;
+  finally
+    csHugeIntSet.Leave;
+  end;
 end;
 
 function g_his_has(var AnIndex: Integer; var AnElement: Integer): Integer;
   cdecl; export;
 begin
-  if arrHugeIntSet[AnIndex] <> nil then
-    Result := Integer(arrHugeIntSet[AnIndex].Has(AnElement))
-  else
-    Result := 0;
-end;
-
-procedure g_his_destroy(var AnIndex: Integer); cdecl; export;
-begin
   csHugeIntSet.Enter;
+  Result := 0;
   try
-    if arrHugeIntSet[AnIndex] <> nil then
-      FreeAndNil(arrHugeIntSet[AnIndex]);
+    if (AnIndex >= 0) and (AnIndex < HugeIntSetMaxCount)
+      and (arrHugeIntSet[AnIndex] <> nil) then
+    begin
+      if arrHugeIntSet[AnIndex].Has(AnElement) then   //if (AnElement < 147000000) or arrHugeIntSet[AnIndex].Has(AnElement) then
+        Result := 1;
+    end;
   finally
     csHugeIntSet.Leave;
   end;
 end;
+
+function g_his_count(var AnIndex: Integer): Integer;
+  cdecl; export;
+begin
+  Result := 0;
+end;
+
+function g_his_destroy(var AnIndex: Integer): Integer;
+  cdecl; export;
+begin
+  Result := 0;
+  csHugeIntSet.Enter;
+  try
+    if (AnIndex >= 0) and (AnIndex < HugeIntSetMaxCount)
+      and (arrHugeIntSet[AnIndex] <> nil) then
+    begin
+      FreeAndNil(arrHugeIntSet[AnIndex]);
+      Result := 1;
+    end;
+  finally
+    csHugeIntSet.Leave;
+  end;
+end;
+
 
 exports
   g_sec_test,
@@ -1274,6 +1316,13 @@ exports
   g_ais_getitemscount,
   g_ais_getitembyindex,
   g_ais_inarray,
+
+  g_his_has,
+  g_his_create,
+  g_his_include,
+  g_his_exclude,
+  g_his_destroy,
+  g_his_count,
 
   g_blob_info,
   g_blob_size,

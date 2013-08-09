@@ -289,6 +289,7 @@ object dlgToNamespace: TdlgToNamespace
       ' '
       ' '
       ' '
+      ' '
       ' ')
     ReadTransaction = ibtr
     Left = 336

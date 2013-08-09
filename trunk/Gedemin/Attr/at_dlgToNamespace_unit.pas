@@ -6,7 +6,8 @@ uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   Db, DBClient, StdCtrls, IBDatabase, gsIBLookupComboBox, Grids, DBGrids,
   gsDBGrid, ActnList, dmDatabase_unit, gdcBaseInterface, gdcBase,
-  DBCtrls, Buttons, gd_createable_form, xSpin, ExtCtrls, IBCustomDataSet;
+  DBCtrls, Buttons, gd_createable_form, xSpin, ExtCtrls, IBCustomDataSet,
+  gdcNamespaceController;
 
 type
   TdlgToNamespace = class(TCreateableForm)

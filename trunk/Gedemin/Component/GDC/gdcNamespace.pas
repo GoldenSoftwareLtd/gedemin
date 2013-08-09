@@ -92,13 +92,14 @@ type
 implementation
 
 uses
-  Windows, Controls, ComCtrls, gdc_dlgNamespacePos_unit, gdc_dlgNamespace_unit,
-  gdc_frmNamespace_unit, at_sql_parser, jclStrings, gdcTree, yaml_common,
-  gd_common_functions, prp_ScriptComparer_unit, gdc_dlgNamespaceObjectPos_unit,
-  jclUnicode, at_frmSyncNamespace_unit, jclFileUtils, gd_directories_const,
+  Windows, Controls, ComCtrls, IBHeader, IBErrorCodes, Graphics, DBClient,
+  gdc_dlgNamespacePos_unit, gdc_dlgNamespace_unit, gdc_frmNamespace_unit,
+  at_sql_parser, jclStrings, gdcTree, yaml_common, gd_common_functions,
+  prp_ScriptComparer_unit, gdc_dlgNamespaceObjectPos_unit, jclUnicode,
+  at_frmSyncNamespace_unit, jclFileUtils, gd_directories_const,
   gd_FileList_unit, gdcClasses, at_sql_metadata, gdcConstants, at_frmSQLProcess,
-  Graphics, IBErrorCodes, Storages, gdcMetadata, at_sql_setup, gsDesktopManager,
-  at_Classes_body, dbclient, at_dlgCompareNSRecords_unit;
+  Storages, gdcMetadata, at_sql_setup, gsDesktopManager, at_Classes_body,
+  at_dlgCompareNSRecords_unit;
 
 type
   TNSFound = (nsfNone, nsfByName, nsfByRUID);
@@ -209,6 +210,8 @@ class procedure TgdcNamespace.WriteObject(AgdcObject: TgdcBase; AWriter: TyamlWr
     q: TIBSQL;
     SectionAdded: Boolean;
     R: TatRelation;
+    F: TIBXSQLVAR;
+    MS: TMemoryStream;
   begin
     Assert(AnObj <> nil);
     Assert(AWriter <> nil);
@@ -274,7 +277,51 @@ class procedure TgdcNamespace.WriteObject(AgdcObject: TgdcBase; AWriter: TyamlWr
                 begin
                   for J := 0 to R.RelationFields.Count - 1 do
                   begin
-                    //...
+                    if R.RelationFields[J] = R.PrimaryKey.ConstraintFields[0] then
+                      continue;
+                    if R.RelationFields[J] = R.PrimaryKey.ConstraintFields[1] then
+                      continue;
+                    F := q.FieldByName(R.RelationFields[J].FieldName);
+                    if F.IsNull then
+                      AWriter.WriteNullValue(R.RelationFields[J].FieldName)
+                    else
+                      case F.SQLType of
+                        SQL_BLOB:
+                          if F.AsXSQLVar.sqlsubtype = 1 then
+                            AWriter.WriteTextValue(R.RelationFields[J].FieldName, F.AsString, qPlain, sLiteral)
+                          else begin
+                            MS := TMemoryStream.Create;
+                            try
+                              F.SaveToStream(MS);
+                              MS.Position := 0;
+                              AWriter.WriteBinaryValue(R.RelationFields[J].FieldName, MS);
+                            finally
+                              MS.Free;
+                            end;
+                          end;
+                        SQL_INT64:
+                          if F.AsXSQLVAR.sqlscale = 0 then
+                            AWriter.WriteLargeIntValue(R.RelationFields[J].FieldName, F.AsInt64)
+                          else
+                            AWriter.WriteCurrencyValue(R.RelationFields[J].FieldName, F.AsCurrency);
+                        SQL_FLOAT, SQL_D_FLOAT, SQL_DOUBLE:
+                          AWriter.WriteFloatValue(R.RelationFields[J].FieldName, F.AsFloat);
+                        SQL_LONG, SQL_SHORT:
+                          if F.AsXSQLVAR.sqlscale = 0 then
+                            AWriter.WriteIntegerValue(R.RelationFields[J].FieldName, F.AsInteger)
+                          else
+                            AWriter.WriteCurrencyValue(R.RelationFields[J].FieldName, F.AsCurrency);
+                        SQL_TIMESTAMP, SQL_TYPE_TIME:
+                          AWriter.WriteTimeStampValue(R.RelationFields[J].FieldName, F.AsDateTime);
+                        SQL_TYPE_DATE:
+                          AWriter.WriteDateValue(R.RelationFields[J].FieldName, F.AsDate);
+                        SQL_TEXT:
+                          AWriter.WriteTextValue(R.RelationFields[J].FieldName,
+                            F.AsTrimString, qDoubleQuoted);
+                      else
+                        AWriter.WriteTextValue(R.RelationFields[J].FieldName,
+                          F.AsString, qDoubleQuoted);
+                      end;
                   end;
                 end;
                 AWriter.DecIndent;
