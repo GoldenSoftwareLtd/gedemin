@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2001-2012 by Golden Software of Belarus
+  Copyright (c) 2001-2013 by Golden Software of Belarus
 
   Module
 
@@ -644,7 +644,7 @@ begin
 
   inherited;
 
-  FieldByName('accounttype').AsString := 'A';
+  FieldByName('activity').AsString := 'A';
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCACCTACCOUNT', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
   {M}  finally
@@ -652,7 +652,6 @@ begin
   {M}      ClearMacrosStack2('TGDCACCTACCOUNT', '_DOONNEWRECORD', KEY_DOONNEWRECORD);
   {M}  end;
   {END MACRO}
-
 end;
 
 { TgdcAcctSubAccount }

@@ -6,14 +6,13 @@
  *  P - (passive) пассивный
  *  B - (both) активно-пассивный
  *
- *  Пустое значение - для групп счетов, планов счетов
+ *  NULL - для групп счетов, планов счетов
  *
  */
 
 CREATE DOMAIN daccountactivity
-  AS VARCHAR(1)
-  CHECK ((VALUE IS NULL) OR (VALUE = 'A') OR (VALUE = 'P') OR (VALUE = 'B'));
-
+  AS CHAR(1)
+  CHECK (VALUE IN ('A', 'P', 'B'));
 
 /*
  *
@@ -25,11 +24,10 @@ CREATE DOMAIN daccountactivity
  *
  */
 
-
 CREATE DOMAIN dchartofaccountpart
-  AS VARCHAR(1)
-  CHECK ((VALUE = 'C') OR (VALUE = 'F') OR (VALUE = 'A') OR (VALUE = 'S'));
-
+  AS CHAR(1)
+  NOT NULL
+  CHECK (VALUE IN ('C', 'F', 'A', 'S'));
 
 /*
  *
@@ -70,7 +68,11 @@ CREATE TABLE ac_account
   description      dblobtext80_1251,
 
   disabled         dboolean DEFAULT 0,
-  reserved         dinteger
+  reserved         dinteger,
+
+  CONSTRAINT ac_chk_account_activity CHECK(
+    (activity IS NULL AND accounttype IN ('C', 'F')) OR (activity IS NOT NULL)
+  )
 );
 
 COMMIT;

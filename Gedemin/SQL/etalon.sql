@@ -1370,6 +1370,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (177, '0000.0001.0000.0208', '14.06.2013', 'Revert last changes.');
 
+INSERT INTO fin_versioninfo
+  VALUES (178, '0000.0001.0000.0209', '10.08.2013', 'Added check for account activity.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
@@ -8669,14 +8672,13 @@ COMMIT;
  *  P - (passive) пассивный
  *  B - (both) активно-пассивный
  *
- *  Пустое значение - для групп счетов, планов счетов
+ *  NULL - для групп счетов, планов счетов
  *
  */
 
 CREATE DOMAIN daccountactivity
-  AS VARCHAR(1)
-  CHECK ((VALUE IS NULL) OR (VALUE = 'A') OR (VALUE = 'P') OR (VALUE = 'B'));
-
+  AS CHAR(1)
+  CHECK (VALUE IN ('A', 'P', 'B'));
 
 /*
  *
@@ -8688,11 +8690,10 @@ CREATE DOMAIN daccountactivity
  *
  */
 
-
 CREATE DOMAIN dchartofaccountpart
-  AS VARCHAR(1)
-  CHECK ((VALUE = 'C') OR (VALUE = 'F') OR (VALUE = 'A') OR (VALUE = 'S'));
-
+  AS CHAR(1)
+  NOT NULL
+  CHECK (VALUE IN ('C', 'F', 'A', 'S'));
 
 /*
  *
@@ -8733,7 +8734,11 @@ CREATE TABLE ac_account
   description      dblobtext80_1251,
 
   disabled         dboolean DEFAULT 0,
-  reserved         dinteger
+  reserved         dinteger,
+
+  CONSTRAINT ac_chk_account_activity CHECK(
+    (activity IS NULL AND accounttype IN ('C', 'F')) OR (activity IS NOT NULL)
+  )
 );
 
 COMMIT;
@@ -20073,10 +20078,10 @@ INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCUR
 INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (311006, 311000, 'Прочие материалы', '10.06', 'A', 'S', 0, 0, -1, -1, -1);
 INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (311007, 311000, 'Материалы, переданные в переработку на сторону', '10.07', 'A', 'S', 0, 0, -1, -1, -1);
 INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (311008, 311000, 'Строительные материалы', '10.08', 'A', 'S', 0, 0, -1, -1, -1);
-INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (311009, 311000, 'Инвентарь и хояйственные принадлежности', '10.09', NULL, 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (311009, 311000, 'Инвентарь и хояйственные принадлежности', '10.09', 'A', 'S', 0, 0, -1, -1, -1);
 INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (311100, 310000, 'Животные на выращивании и откорме', '11', 'A', 'A', 0, 0, -1, -1, -1);
-INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (311010, 311000, 'Специальная оснастка и специальная одежда на складе', '10.10', NULL, 'S', 0, 0, -1, -1, -1);
-INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (311011, 311000, 'Специальная оснастка и специальная одежда в эксплуатации', '10.11', NULL, 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (311010, 311000, 'Специальная оснастка и специальная одежда на складе', '10.10', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (311011, 311000, 'Специальная оснастка и специальная одежда в эксплуатации', '10.11', 'A', 'S', 0, 0, -1, -1, -1);
 INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (311400, 310000, 'Резервы под снижение стоимости материальных ценностей', '14', 'A', 'A', 0, 0, -1, -1, -1);
 INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (311500, 310000, 'Заготовление и приобретение материалов', '15', 'A', 'A', 0, 0, -1, -1, -1);
 INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (311600, 310000, 'Отклонение в стоимости материалов', '16', 'A', 'A', 0, 0, -1, -1, -1);

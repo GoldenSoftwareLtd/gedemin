@@ -19,6 +19,7 @@ procedure AddEditionDate(IBDB: TIBDatabase; Log: TModifyLog);
 procedure CorrectNSTriggers(IBDB: TIBDatabase; Log: TModifyLog);
 procedure AddEditionDate2(IBDB: TIBDatabase; Log: TModifyLog);
 procedure AddADAtObjectTrigger(IBDB: TIBDatabase; Log: TModifyLog);
+procedure SetDefaultForAccountType(IBDB: TIBDatabase; Log: TModifyLog);
 
 implementation
 
@@ -1178,6 +1179,50 @@ begin
       q.SQL.Text :=
         'UPDATE OR INSERT INTO fin_versioninfo ' +
         '  VALUES (173, ''0000.0001.0000.0204'', ''20.05.2013'', ''Missed editiondate fields added.'') ' +
+        '  MATCHING (id)';
+      q.ExecQuery;
+
+      Tr.Commit;
+    except
+      on E: Exception do
+      begin
+        Log('Произошла ошибка: ' + E.Message);
+        if Tr.InTransaction then
+          Tr.Rollback;
+        raise;
+      end;
+    end;
+  finally
+    q.Free;
+    Tr.Free;
+  end;
+end;
+
+procedure SetDefaultForAccountType(IBDB: TIBDatabase; Log: TModifyLog);
+var
+  q: TIBSQL;
+  Tr: TIBTransaction;
+begin
+  Tr := TIBTransaction.Create(nil);
+  q := TIBSQL.Create(nil);
+  try
+    Tr.DefaultDatabase := IBDB;
+    Tr.StartTransaction;
+
+    try
+      q.ParamCheck := False;
+      q.Transaction := Tr;
+
+      q.SQL.Text :=
+        'ALTER TABLE ac_account ADD CONSTRAINT ac_chk_account_activity CHECK( ' +
+        '  (activity IS NULL AND accounttype IN (''C'', ''F'')) OR (activity IS NOT NULL) ' +
+        ')';
+      q.ExecQuery;
+
+      q.Close;
+      q.SQL.Text :=
+        'UPDATE OR INSERT INTO fin_versioninfo ' +
+        '  VALUES (178, ''0000.0001.0000.0209'', ''10.08.2013'', ''Added check for account activity.'') ' +
         '  MATCHING (id)';
       q.ExecQuery;
 

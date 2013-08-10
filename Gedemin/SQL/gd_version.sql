@@ -563,6 +563,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (177, '0000.0001.0000.0208', '14.06.2013', 'Revert last changes.');
 
+INSERT INTO fin_versioninfo
+  VALUES (178, '0000.0001.0000.0209', '10.08.2013', 'Added check for account activity.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
