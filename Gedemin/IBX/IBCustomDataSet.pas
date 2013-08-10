@@ -5986,10 +5986,6 @@ begin
                 f.DefaultExpression := Copy(f.DefaultExpression, 2, Length(f.DefaultExpression) - 2);
               end;
               {$ENDIF}
-
-              { TODO : такие дефаулты не обрабатываем }
-             { if Pos('CURRENT_', f.DefaultExpression) = 1 then
-                f.DefaultExpression := '';}
             end;
 
           //!!!!

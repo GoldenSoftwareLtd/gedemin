@@ -59,6 +59,7 @@ begin
   chbxAlwaysOverwrite.Checked := FgdcNamespaceController.AlwaysOverwrite;
   chbxDontRemove.Checked := FgdcNamespaceController.DontRemove;
   chbxIncludeSiblings.Checked := FgdcNamespaceController.IncludeSiblings;
+  chbxIncludeLinked.Checked := FgdcNamespaceController.IncludeLinked;
   edObjectName.Text := FgdcNamespaceController.ObjectName;
   dsLink.DataSet := FgdcNamespaceController.ibdsLink;
 end;
@@ -68,6 +69,7 @@ begin
   FgdcNamespaceController.AlwaysOverwrite := chbxAlwaysOverwrite.Checked;
   FgdcNamespaceController.DontRemove := chbxDontRemove.Checked;
   FgdcNamespaceController.IncludeSiblings := chbxIncludeSiblings.Checked;
+  FgdcNamespaceController.IncludeLinked := chbxIncludeLinked.Checked;
   FgdcNamespaceController.CurrentNSID := lkupNS.CurrentKeyInt;
   FgdcNamespaceController.Include;
   ModalResult := mrOk;

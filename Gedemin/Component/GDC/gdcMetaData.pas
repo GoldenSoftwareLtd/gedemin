@@ -2968,7 +2968,7 @@ begin
   {END MACRO}
 end;
 
-procedure TGDCBASETABLE.DropTable;
+procedure TgdcBaseTable.DropTable;
 var
   ibsql: TIBSQL;
   FSQL: TSQLProcessList;
@@ -2976,28 +2976,35 @@ begin
   ibsql := CreateReadIBSQL;
   FSQL := TSQLProcessList.Create;
   try
-    ibsql.SQL.Text := 'SELECT * FROM rdb$dependencies WHERE rdb$depended_on_name = :depname ' +
-      ' AND (rdb$dependent_type = 1 OR rdb$dependent_type = 5) ';
+    ibsql.SQL.Text :=
+      'SELECT * FROM rdb$dependencies ' +
+      'WHERE rdb$depended_on_name = :depname ' +
+      '  AND (rdb$dependent_type = 1 OR rdb$dependent_type = 5) ';
     ibsql.ParamByName('depname').AsString := FieldByName('relationname').AsString;
     ibsql.ExecQuery;
-    if ibsql.RecordCount > 0 then
-      raise EgdcIBError.Create('Нельзя удалить таблицу т.к. она используется в процедурах или представлениях');
+    if not ibsql.EOF then
+      raise EgdcIBError.Create('Нельзя удалить таблицу т.к. она используется в процедурах или представлениях!');
 
     ibsql.Close;
-
-    ibsql.SQL.Text := 'SELECT * FROM rdb$triggers WHERE rdb$relation_name = :relname AND rdb$system_flag = 0';
+    ibsql.SQL.Text :=
+      'SELECT * FROM rdb$triggers ' +
+      'WHERE rdb$relation_name = :relname AND rdb$system_flag = 0';
     ibsql.ParamByName('relname').AsString := FieldByName('relationname').AsString;
     ibsql.ExecQuery;
 
     while not ibsql.EOF do
     begin
-      FSQL.Add(Format('DROP TRIGGER %s', [ibsql.FieldByName('rdb$trigger_name').AsString]), False);
+      FSQL.Add('DROP TRIGGER ' + ibsql.FieldByName('rdb$trigger_name').AsTrimString, False);
       ibsql.Next;
     end;
-
     ibsql.Close;
-    ibsql.SQL.Text := 'SELECT * FROM rdb$relation_constraints WHERE rdb$relation_name = :relname ' +
-      'AND rdb$constraint_type = ''FOREIGN KEY'' ';
+
+    {
+    ibsql.Close;
+    ibsql.SQL.Text :=
+      'SELECT * FROM rdb$relation_constraints ' +
+      'WHERE rdb$relation_name = :relname ' +
+      '  AND rdb$constraint_type = ''FOREIGN KEY'' ';
     ibsql.ParamByName('relname').AsString := FieldByName('relationname').AsString;
     ibsql.ExecQuery;
 
@@ -3006,7 +3013,6 @@ begin
       FSQL.Add(Format('ALTER TABLE %s DROP CONSTRAINT %s ',
         [FieldByName('relationname').AsString,
         ibsql.FieldByName('rdb$constraint_name').AsString]), False);
-
       ibsql.Next;
     end;
 
@@ -3014,8 +3020,10 @@ begin
       atDatabase.NotifyMultiConnectionTransaction;
 
     ibsql.Close;
-    ibsql.SQL.Text := 'SELECT * FROM rdb$relation_constraints WHERE rdb$relation_name = :relname ' +
-      'AND rdb$constraint_type = ''PRIMARY KEY'' ';
+    ibsql.SQL.Text :=
+      'SELECT * FROM rdb$relation_constraints ' +
+      'WHERE rdb$relation_name = :relname ' +
+      '  AND rdb$constraint_type = ''PRIMARY KEY'' ';
     ibsql.ParamByName('relname').AsString := FieldByName('relationname').AsString;
     ibsql.ExecQuery;
 
@@ -3024,29 +3032,18 @@ begin
       FSQL.Add(Format('ALTER TABLE %s DROP CONSTRAINT %s ',
         [FieldByName('relationname').AsString,
         ibsql.FieldByName('rdb$constraint_name').AsString]), False);
-
       ibsql.Next;
     end;
-
-    ibsql.Close;
+    }
 
     DropCrossTable;
 
     FSQL.Add('DROP TABLE ' + FieldByName('relationname').AsString);
-    case TableType of
-      ttIntervalTree: FSQL.Add(Format('DELETE FROM GD_COMMAND WHERE classname = ''TgdcAttrUserDefinedLBRBTree'' AND ' +
-          ' UPPER(SubType) = UPPER(''%s'')', [FieldByName('relationname').AsString]));
-      ttTree: FSQL.Add(Format('DELETE FROM GD_COMMAND WHERE classname = ''TgdcAttrUserDefinedTree'' AND ' +
-          ' UPPER(SubType) = UPPER(''%s'')', [FieldByName('relationname').AsString]));
-      else
-        FSQL.Add(Format('DELETE FROM GD_COMMAND WHERE classname = ''TgdcAttrUserDefined'' AND ' +
-          ' UPPER(SubType) = UPPER(''%s'')', [FieldByName('relationname').AsString]));
-    end;
+    FSQL.Add(Format('DELETE FROM GD_COMMAND WHERE UPPER(subtype) = UPPER(''%s'')',
+      [FieldByName('relationname').AsString]));
 
     ShowSQLProcess(FSQL);
-
   finally
-
     ibsql.Free;
     FSQL.Free;
   end;
@@ -7334,7 +7331,7 @@ begin
     ibsql.ExecQuery;
     while not ibsql.EOF do
     begin
-      FSQL.Add('DROP TRIGGER ' + ibsql.FieldByName('rdb$trigger_name').AsString, False);
+      FSQL.Add('DROP TRIGGER ' + ibsql.FieldByName('rdb$trigger_name').AsTrimString, False);
       ibsql.Next;
     end;
 
@@ -7346,16 +7343,16 @@ begin
       FSQL.Add('DROP PROCEDURE ' + Names.ChldCtName, False);
     if Names.ExceptName > '' then
       FSQL.Add('DROP EXCEPTION ' + Names.ExceptName, False);
-
+                              
     DropCrossTable;
 
     FSQL.Add('DROP TABLE ' + FieldByName('relationname').AsString);
 
-    FSQL.Add(Format('DELETE FROM GD_COMMAND WHERE classname = ''TgdcAttrUserDefinedLBRBTree'' AND ' +
-      ' UPPER(SubType) = UPPER(''%s'')', [FieldByName('relationname').AsString]));
+    FSQL.Add(Format(
+      'DELETE FROM GD_COMMAND WHERE UPPER(SubType) = UPPER(''%s'')',
+      [FieldByName('relationname').AsString]));
 
-    atDatabase.NotifyMultiConnectionTransaction;
-    ShowSQlProcess(FSQL);
+    ShowSQLProcess(FSQL);
   finally
     ibsql.Free;
     FSQL.Free;
@@ -10022,14 +10019,12 @@ end;
 
 procedure TgdcTableToTable.DropTable;
 var
-  ibsql: TIBSQL;
   FSQL: TSQLProcessList;
   KeyField: TatRelationField;
   KeyDomain: TatField;
 begin
   Assert(atDatabase <> nil);
 
-  ibsql := CreateReadIBSQL;
   FSQL := TSQLProcessList.Create;
   try
     KeyField := atDatabase.FindRelationField(FieldByName('relationname').AsString,
@@ -10042,6 +10037,7 @@ begin
     if (KeyDomain = nil) or (KeyDomain.RefTable = nil) then
        raise EgdcIBError.Create('При удалении таблицы произошла ошибка. Требуется переподключение');
 
+    {
     ibsql.SQL.Text := 'SELECT * FROM rdb$dependencies WHERE rdb$depended_on_name = :depname ' +
       ' AND (rdb$dependent_type = 1 OR rdb$dependent_type = 5) ';
     ibsql.ParamByName('depname').AsString := FieldByName('relationname').AsString;
@@ -10078,17 +10074,14 @@ begin
 
     DropCrossTable;
     FSQL.Add('DROP TABLE ' + FieldByName('relationname').AsString);
+    }
 
-    FSQL.Add(Format('DROP DOMAIN %s', [KeyDomain.FieldName]));
+    inherited;
 
-    FSQL.Add(Format('DELETE FROM gd_command WHERE classname = ''TgdcAttrUserDefined'' AND ' +
-      ' UPPER(SubType) = UPPER(''%s'')', [FieldByName('relationname').AsString]));
+    FSQL.Add('DROP DOMAIN ' + KeyDomain.FieldName);
 
-    atDatabase.NotifyMultiConnectionTransaction;
     ShowSQLProcess(FSQL);
-
   finally
-    ibsql.Free;
     FSQL.Free;
   end;
 end;
@@ -10253,19 +10246,18 @@ begin
     try
       DidActivate := ActivateTransaction;
 
-//Проверяем есть ли у таблицы поля-ссылки на таблицу множество
-      ibsql.SQL.Text := 'SELECT id, crosstablekey, crosstable FROM at_relation_fields ' +
-        ' WHERE relationkey = :relationkey AND crosstablekey IS NOT NULL ';
+      ibsql.SQL.Text :=
+        'SELECT id, crosstablekey, crosstable FROM at_relation_fields ' +
+        'WHERE relationkey = :relationkey AND crosstablekey IS NOT NULL ';
       ibsql.ParamByName('relationkey').AsInteger := ID;
       ibsql.ExecQuery;
 
       while not ibsql.Eof do
       begin
-//Убираем ссылку на таблицу-множество
         gdcRelField.Close;
         gdcRelField.ID := ibsql.FieldByName('id').AsInteger;
         gdcRelField.Open;
-        if gdcRelField.RecordCount > 0 then
+        if not gdcRelField.EOF then
           gdcRelField.Delete;
 
         ibsql.Next;
@@ -10273,7 +10265,6 @@ begin
 
       if DidActivate and Transaction.InTransaction then
         Transaction.Commit;
-
     except
       if DidActivate and Transaction.InTransaction then
         Transaction.Rollback;

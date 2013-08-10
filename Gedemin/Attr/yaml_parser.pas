@@ -494,20 +494,22 @@ begin
             or (Scanner.Style <> sPlain) then
           Result := TyamlString.CreateString(Scanner.Scalar, Scanner.Quoting,
             Scanner.Style)
+        else if Scanner.Scalar = '~' then
+          Result := TyamlNull.Create
+        else if Pos('_', Scanner.Scalar) > 0 then
+          Result := TyamlString.CreateString(Scanner.Scalar, Scanner.Quoting, Scanner.Style)
+        else if ConvertToInteger(Scanner.Scalar, I) then
+          Result := TyamlInteger.CreateInteger(I)
         else if ConvertToDateTime(Scanner.Scalar, DT) then
           Result := TyamlDateTime.CreateDateTime(DT)
         else if ConvertToDate(Scanner.Scalar, DT) then
           Result := TyamlDate.CreateDate(DT)
-        else if ConvertToInteger(Scanner.Scalar, I) then
-          Result := TyamlInteger.CreateInteger(I)
         else if ConvertToInt64(Scanner.Scalar, I64) then
           Result := TyamlInt64.CreateInt64(I64)
         else if ConvertToFloat(Scanner.Scalar, F) then
           Result := TyamlFloat.CreateFloat(F)
         else if ConvertToBoolean(Scanner.Scalar, B) then
           Result := TyamlBoolean.CreateBoolean(B)
-        else if Scanner.Scalar = '~' then
-          Result := TyamlNull.Create
         else
           Result := TyamlString.CreateString(Scanner.Scalar, Scanner.Quoting,
             Scanner.Style);
