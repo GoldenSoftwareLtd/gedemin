@@ -461,18 +461,14 @@ begin
       Add(AddSpaces('Левая граница:') + IntToStr((gdcObject as TgdcLBRBTree).LB));
       Add(AddSpaces('Правая граница:') + IntToStr((gdcObject as TgdcLBRBTree).RB));
     end;
-    if tiCreationInfo in gdcObject.gdcTableInfos then
-    begin
+    if tiCreationDate in gdcObject.gdcTableInfos then
       Add(AddSpaces('Когда создан:') + gdcObject.FieldByName('creationdate').AsString);
-      if gdcObject.CreatorName > '' then
-        Add(AddSpaces('Кем создан:') + gdcObject.CreatorName);
-    end;
-    if tiEditionInfo in gdcObject.gdcTableInfos then
-    begin
+    if (tiCreatorKey in gdcObject.gdcTableInfos) and (gdcObject.CreatorName > '') then
+      Add(AddSpaces('Кем создан:') + gdcObject.CreatorName);
+    if tiEditionDate in gdcObject.gdcTableInfos then
       Add(AddSpaces('Когда изменен:') + gdcObject.FieldByName('editiondate').AsString);
-      if gdcObject.EditorName > '' then
-        Add(AddSpaces('Кем изменен:') + gdcObject.EditorName);
-    end;
+    if (tiEditorKey in gdcObject.gdcTableInfos) and (gdcObject.EditorName > '') then
+      Add(AddSpaces('Кем изменен:') + gdcObject.EditorName);
     Add(AddSpaces('Главная таблица:') + gdcObject.GetListTable(gdcObject.SubType));
     S := '';
     Lst := TObjectList.Create(False);

@@ -114,8 +114,10 @@ type
     tiID,              // Єсць ≥дэнтыф≥катар
     tiParent,          // Єсць спасылка на бацькоҐск≥ зап≥с (дравав≥дна€ структура)
     tiLBRB,            // Єсць пал≥ з межам≥ (≥нтэрвальнае дрэва)
-    tiCreationInfo,    // ≥нфармацы€ аб тым, хто ≥ кал≥ стварыҐ аб'ект
-    tiEditionInfo,     // ≥нфармацы€ аб тым, хто ≥ кал≥ выправ≥Ґ аб'ект
+    tiCreationDate,
+    tiCreatorKey,
+    tiEditionDate,
+    tiEditorKey,
     tiDisabled,
     tiXID,
     tiDBID,

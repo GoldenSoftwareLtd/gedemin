@@ -1223,7 +1223,7 @@ begin
 
       TableInfo := AObj.GetTableInfos(AObj.SubType);
       // Будем сохранять поле MODIFIED_FIELD только если есть необходимая информация в БО
-      if (tiCreationInfo in TableInfo) or (tiEditionInfo in TableInfo) then
+      if (tiCreationDate in TableInfo) or (tiEditionDate in TableInfo) then
         CDS.FieldByName(MODIFIED_FIELD).AsDateTime := AObj.EditionDate;
     end
     else
@@ -1484,7 +1484,7 @@ begin
     Dataset.FieldDefs.Add(DBID_FIELD, ftInteger, 0, True);
     TableInfo := ABusinessObject.GetTableInfos(ABusinessObject.SubType);
     // Будем сохранять поле MODIFIED_FIELD только если есть необходимая информация в БО
-    if (tiCreationInfo in TableInfo) or (tiEditionInfo in TableInfo) then
+    if (tiCreationDate in TableInfo) or (tiEditionDate in TableInfo) then
       Dataset.FieldDefs.Add(MODIFIED_FIELD, ftDateTime, 0, True);
   end;
   Dataset.FieldDefs.Add(INSERT_FROM_STREAM_FIELD, ftBoolean, 0, False);

@@ -6853,10 +6853,14 @@ begin
     Result := Result + 'tiParent ';
   if tiLBRB in GetGDCBase.gdcTableInfos then
     Result := Result + 'tiLBRB ';
-  if tiCreationInfo in GetGDCBase.gdcTableInfos then
-    Result := Result + 'tiCreationInfo ';
-  if tiEditionInfo in GetGDCBase.gdcTableInfos then
-    Result := Result + 'tiEditionInfo ';
+  if tiCreatorKey in GetGDCBase.gdcTableInfos then
+    Result := Result + 'tiCreatorKey ';
+  if tiCreationDate in GetGDCBase.gdcTableInfos then
+    Result := Result + 'tiCreationDate ';
+  if tiEditorKey in GetGDCBase.gdcTableInfos then
+    Result := Result + 'tiEditorKey ';
+  if tiEditionDate in GetGDCBase.gdcTableInfos then
+    Result := Result + 'tiEditionDate ';
   if tiAFull in GetGDCBase.gdcTableInfos then
     Result := Result + 'tiAFull ';
   if tiAChag in GetGDCBase.gdcTableInfos then
@@ -7082,10 +7086,14 @@ begin
     Result := Result + 'tiParent ';
   if tiLBRB in LInfo then
     Result := Result + 'tiLBRB ';
-  if tiCreationInfo in LInfo then
-    Result := Result + 'tiCreationInfo ';
-  if tiEditionInfo in LInfo then
-    Result := Result + 'tiEditionInfo ';
+  if tiCreatorKey in LInfo then
+    Result := Result + 'tiCreatorKey ';
+  if tiCreationDate in LInfo then
+    Result := Result + 'tiCreationDate ';
+  if tiEditorKey in LInfo then
+    Result := Result + 'tiEditorKey ';
+  if tiEditionDate in LInfo then
+    Result := Result + 'tiEditionDate ';
   if tiAFull in LInfo then
     Result := Result + 'tiAFull ';
   if tiAChag in LInfo then
