@@ -82,6 +82,7 @@ type
 
   TgdcAcctAccount = class(TgdcAcctBase)
   protected
+    procedure _DoOnNewRecord; override;
     procedure GetWhereClauseConditions(S: TStrings); override;
     function GetAccountType: String; override;
     procedure DoBeforePost; override;
@@ -151,7 +152,7 @@ begin
 
   FieldByName('accounttype').AsString := GetAccountType;
   FieldByName('parent').Required := True;
-  
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCACCTBASE', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -612,6 +613,46 @@ procedure TgdcAcctAccount.GetWhereClauseConditions(S: TStrings);
 begin
   inherited;
   S.Add('z.accounttype in (''A'', ''S'')');
+end;
+
+procedure TgdcAcctAccount._DoOnNewRecord;
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+begin
+  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCACCTACCOUNT', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCACCTACCOUNT', KEY_DOONNEWRECORD);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEY_DOONNEWRECORD]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCACCTACCOUNT') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCACCTACCOUNT',
+  {M}          '_DOONNEWRECORD', KEY_DOONNEWRECORD, Params, LResult) then exit;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCACCTACCOUNT' then
+  {M}        begin
+  {M}          Inherited;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  inherited;
+
+  FieldByName('accounttype').AsString := 'A';
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCACCTACCOUNT', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCACCTACCOUNT', '_DOONNEWRECORD', KEY_DOONNEWRECORD);
+  {M}  end;
+  {END MACRO}
+
 end;
 
 { TgdcAcctSubAccount }
