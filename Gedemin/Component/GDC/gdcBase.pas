@@ -3267,15 +3267,10 @@ begin
 
   if dsEdit = State then
   begin
-    if Assigned(IBLogin) then
-    begin
-      if tiEditionInfo in gdcTableInfos then
-      begin
-        FieldByName('EDITORKEY').AsInteger := IBLogin.ContactKey;
-        if (not (sLoadFromStream in BaseState)) or FieldByName('EDITIONDATE').IsNull then
-          FieldByName('EDITIONDATE').AsDateTime := Sysutils.Now;
-      end;
-    end;
+    if tiEditorKey in gdcTableInfos then
+      FieldByName(fnEditorKey).AsInteger := IBLogin.ContactKey;
+    if (tiEditionDate in gdcTableInfos) and ((not (sLoadFromStream in BaseState)) or FieldByName(fnEditionDate).IsNull) then
+      FieldByName(fnEditionDate).AsDateTime := SysUtils.Now;
   end;
 
   // смысл использования sMultiple
@@ -3521,22 +3516,14 @@ procedure TgdcBase.CloseOpen;
 var
   OldID: TID;
 begin
-  { TODO : 
-если делать дизэйбл контролс, то в гриде остается выделение
-записей, если там был мульти селект }
-  //DisableControls;
-  try
-    if Active and not IsEmpty then
-      OldID := ID
-    else
-      OldID := -1;
-    Close;
-    Open;
-    if OldID <> -1 then
-      Locate(GetKeyField(SubType), OldID, []);
-  finally
-    //EnableControls;
-  end;
+  if Active and not IsEmpty then
+    OldID := ID
+  else
+    OldID := -1;
+  Close;
+  Open;
+  if OldID <> -1 then
+    Locate(GetKeyField(SubType), OldID, []);
 end;
 
 function TgdcBase.GetNotCopyField: String;
@@ -3578,10 +3565,15 @@ begin
   {END MACRO}
 
   Result := GetKeyField(SubType);
-  if tiCreationInfo in gdcTableInfos then
-    Result := Result + ',CREATORKEY,CREATIONDATE';
-  if tiEditionInfo in gdcTableInfos then
-    Result := Result + ',EDITORKEY,EDITIONDATE';
+  if tiCreatorKey in gdcTableInfos then
+    Result := Result + ',CREATORKEY';
+  if tiCreationDate in gdcTableInfos then
+    Result := Result + ',CREATIONDATE';
+  if tiEditorKey in gdcTableInfos then
+    Result := Result + ',EDITORKEY';
+  if tiEditionDate in gdcTableInfos then
+    Result := Result + ',EDITIONDATE';
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASE', 'GETNOTCOPYFIELD', KEYGETNOTCOPYFIELD)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -12632,12 +12624,14 @@ begin
       Include(Result, gdcBaseInterface.tiXID);
     if R.RelationFields.ByFieldName(fndbid) <> nil then
       Include(Result, gdcBaseInterface.tiDBID);
-    if (R.RelationFields.ByFieldName(fncreationdate) <> nil)
-        and (R.RelationFields.ByFieldName(fncreatorkey) <> nil) then
-      Include(Result, tiCreationInfo);
-    if (R.RelationFields.ByFieldName(fneditiondate) <> nil)
-        and (R.RelationFields.ByFieldName(fneditorkey) <> nil) then
-      Include(Result, tiEditionInfo);
+    if R.RelationFields.ByFieldName(fncreationdate) <> nil then
+      Include(Result, tiCreationDate);
+    if R.RelationFields.ByFieldName(fncreatorkey) <> nil then
+      Include(Result, tiCreatorKey);
+    if R.RelationFields.ByFieldName(fneditiondate) <> nil then
+      Include(Result, tiEditionDate);
+    if R.RelationFields.ByFieldName(fneditorkey) <> nil then
+      Include(Result, tiEditorKey);
     if R.RelationFields.ByFieldName(fndisabled) <> nil then
       Include(Result, tiDisabled);
     if R.RelationFields.ByFieldName(fnaview) <> nil then
@@ -14049,7 +14043,7 @@ end;
 
 function TgdcBase.GetCreationDate: TDateTime;
 begin
-  if tiCreationInfo in gdcTableInfos then
+  if tiCreationDate in gdcTableInfos then
     Result := FieldByName(fncreationdate).AsDateTime
   else
     Result := GetEditionDate;
@@ -14057,7 +14051,7 @@ end;
 
 function TgdcBase.GetCreatorKey: TID;
 begin
-  if tiCreationInfo in gdcTableInfos then
+  if tiCreatorKey in gdcTableInfos then
     Result := FieldByName(fncreatorkey).AsInteger
   else
     Result := GetEditorKey;
@@ -14087,7 +14081,7 @@ function TgdcBase.GetEditionDate: TDateTime;
 var
   RR: TRUIDRec;
 begin
-  if tiEditionInfo in gdcTableInfos then
+  if tiEditionDate in gdcTableInfos then
     Result := FieldByName(fneditiondate).AsDateTime
   else begin
     RR := gdcBaseManager.GetRUIDRecByID(ID, ReadTransaction);
@@ -14102,7 +14096,7 @@ function TgdcBase.GetEditorKey: TID;
 var
   RR: TRUIDRec;
 begin
-  if tiEditionInfo in gdcTableInfos then
+  if tiEditorKey in gdcTableInfos then
     Result := FieldByName(fneditorkey).AsInteger
   else begin
     RR := gdcBaseManager.GetRUIDRecByID(ID, ReadTransaction);
@@ -14733,22 +14727,17 @@ begin
     FieldByName(fndisabled).AsInteger := 0;
   end;
 
-  // присваиваем права записи по-умолчанию
-  if Assigned(IBLogin) then
-  begin
-    if tiCreationInfo in gdcTableInfos then
-    begin
-      FieldByName(fnCREATORKEY).AsInteger := IBLogin.ContactKey;
-      FieldByName(fnCREATIONDATE).AsDateTime := Now;
-    end;
+  if tiCreatorKey in gdcTableInfos then
+    FieldByName(fnCREATORKEY).AsInteger := IBLogin.ContactKey;
 
-    if tiEditionInfo in gdcTableInfos then
-    begin
-      FieldByName(fnEDITORKEY).AsInteger := IBLogin.ContactKey;
-      FieldByName(fnEDITIONDATE).AsDateTime := Now;
-    end;
-  end else
-    raise EgdcException.CreateObj('IBLogin is not assigned', Self);
+  if tiCreationDate in gdcTableInfos then
+    FieldByName(fnCREATIONDATE).AsDateTime := SysUtils.Now;
+
+  if tiEditorKey in gdcTableInfos then
+    FieldByName(fnEDITORKEY).AsInteger := IBLogin.ContactKey;
+
+  if tiEditionDate in gdcTableInfos then
+    FieldByName(fnEDITIONDATE).AsDateTime := SysUtils.Now;
 
   // если объект связан с другим объектом, то проинициализируем ссылку
   if (MasterSource <> nil)
