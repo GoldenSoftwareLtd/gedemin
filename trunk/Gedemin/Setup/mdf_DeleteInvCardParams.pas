@@ -1214,6 +1214,11 @@ begin
       q.Transaction := Tr;
 
       q.SQL.Text :=
+        'UPDATE ac_account SET activity = ''A'' ' +
+        'WHERE activity IS NULL AND accounttype IN (''A'', ''S'') ';
+      q.ExecQuery;  
+
+      q.SQL.Text :=
         'ALTER TABLE ac_account ADD CONSTRAINT ac_chk_account_activity CHECK( ' +
         '  (activity IS NULL AND accounttype IN (''C'', ''F'')) OR (activity IS NOT NULL) ' +
         ')';

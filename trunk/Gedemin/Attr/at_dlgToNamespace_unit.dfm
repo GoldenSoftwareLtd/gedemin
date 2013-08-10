@@ -179,6 +179,7 @@ object dlgToNamespace: TdlgToNamespace
       Height = 21
       HelpContext = 1
       Database = dmDatabase.ibdbGAdmin
+      Transaction = at_frmNSObjects.ibtr
       ListTable = 'at_namespace'
       ListField = 'name'
       KeyField = 'ID'

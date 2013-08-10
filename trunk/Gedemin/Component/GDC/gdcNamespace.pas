@@ -83,7 +83,9 @@ type
     procedure ShowObject;
   end;
 
-  function GetReferenceString(const ARUID: String; const AName: String): String;
+  function GetReferenceString(AnIDField: TField; AnObjectNameField: TField; ATr: TIBTransaction): String; overload;
+  function GetReferenceString(AnIDField: TField; const AnObjectName: String; ATr: TIBTransaction): String; overload;
+  function GetReferenceString(AnIDField: TIBXSQLVAR; AnObjectNameField: TIBXSQLVAR; ATr: TIBTransaction): String; overload;
   function ParseReferenceString(const AStr: String; out ARUID: String; out AName: String): Boolean;
   function IncVersion(const V: String; const Divider: Char = '.'): String;
 
@@ -139,9 +141,34 @@ begin
   RegisterComponents('gdcNamespace', [TgdcNamespace, TgdcNamespaceObject]);
 end;
 
-function GetReferenceString(const ARUID: String; const AName: String): String;
+function GetReferenceString(AnIDField: TField; AnObjectNameField: TField; ATr: TIBTransaction): String; overload;
 begin
-  Result := ARUID + ' ' + AName;
+  if AnIDField.IsNull then
+    Result := '~'
+  else begin
+    Result := gdcBaseManager.GetRUIDStringByID(AnIDField.AsInteger, ATr) + ' ' +
+      AnObjectNameField.AsString;
+  end;
+end;
+
+function GetReferenceString(AnIDField: TField; const AnObjectName: String; ATr: TIBTransaction): String; overload
+begin
+  if AnIDField.IsNull then
+    Result := '~'
+  else begin
+    Result := gdcBaseManager.GetRUIDStringByID(AnIDField.AsInteger, ATr) + ' ' +
+      AnObjectName;
+  end;
+end;
+
+function GetReferenceString(AnIDField: TIBXSQLVAR; AnObjectNameField: TIBXSQLVAR; ATr: TIBTransaction): String; overload;
+begin
+  if AnIDField.IsNull then
+    Result := '~'
+  else begin
+    Result := gdcBaseManager.GetRUIDStringByID(AnIDField.AsInteger, ATr) + ' ' +
+      AnObjectNameField.AsString;
+  end;
 end;
 
 function ParseReferenceString(const AStr: String;
@@ -269,9 +296,8 @@ class procedure TgdcNamespace.WriteObject(AgdcObject: TgdcBase; AWriter: TyamlWr
                 AWriter.WriteSequenceIndicator;
                 AWriter.IncIndent;
                 AWriter.WriteTextValue(AnObj.SetAttributes[I].ReferenceLinkFieldName,
-                  GetReferenceString(gdcBaseManager.GetRUIDStringByID(
-                    q.FieldByName(AnObj.SetAttributes[I].ReferenceLinkFieldName).AsInteger, AnObj.Transaction),
-                  q.FieldByName(AnObj.SetAttributes[I].ReferenceObjectNameFieldName).AsString),
+                  GetReferenceString(q.FieldByName(AnObj.SetAttributes[I].ReferenceLinkFieldName),
+                    q.FieldByName(AnObj.SetAttributes[I].ReferenceObjectNameFieldName), AnObj.Transaction),
                   qDoubleQuoted);
                 if R <> nil then
                 begin
@@ -453,9 +479,8 @@ begin
                   end;
                 end;
 
-                AWriter.WriteTextValue(F.FieldName, GetReferenceString(
-                  gdcBaseManager.GetRUIDStringByID(F.AsInteger, AgdcObject.Transaction),
-                  ObjName), qDoubleQuoted);
+                AWriter.WriteTextValue(F.FieldName,
+                  GetReferenceString(F, ObjName, AgdcObject.Transaction), qDoubleQuoted);
                 continue;
               end;
             end;
@@ -2781,14 +2806,17 @@ var
   Deleted: Boolean;
   Answer: Integer;
   ObjCache: TStringHashMap;
+  DidActivate: Boolean;
 begin
   Assert(St <> nil);
+  Assert(Transaction <> nil);
 
   if State <> dsBrowse then
     raise EgdcException.CreateObj('Not in a browse state', Self);
 
-  if (Transaction = nil) or (not Transaction.InTransaction) then
-    raise EgdcException.CreateObj('Transaction is not active', Self);
+  DidActivate := not Transaction.InTransaction;
+  if DidActivate then
+    Transaction.StartTransaction;
 
   Answer := AnAnswer;
   W := TyamlWriter.Create(St);
@@ -2832,9 +2860,8 @@ begin
       begin
         W.StartNewLine;
         W.WriteSequenceIndicator;
-        W.WriteText(GetReferenceString(
-          gdcBaseManager.GetRUIDStringByID(q.FieldByName('id').AsInteger, Transaction),
-          q.FieldByName('name').AsString),
+        W.WriteText(
+          GetReferenceString(q.FieldByName('id'), q.FieldByName('name'), Transaction),
           qDoubleQuoted);
         q.Next;
       end;
@@ -2956,6 +2983,9 @@ begin
   finally
     W.Free;
     q.Free;
+
+    if DidActivate and Transaction.InTransaction then
+      Transaction.Commit;
   end;
 end;
 
@@ -2965,7 +2995,7 @@ var
   I: Integer;
   CurrDir: String;
   NSNode: TgsNSNode;
-  NL: TStringList;  
+  NL: TStringList;
   NSTreeNode: TgsNSTreeNode;
 begin
   Assert(ADataSet <> nil);
