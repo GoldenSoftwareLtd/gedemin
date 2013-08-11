@@ -351,7 +351,7 @@ const
     (ModifyProc: CorrectNSTriggers; ModifyVersion: '0000.0001.0000.0204'; NeedDBShutdown: False),
     (ModifyProc: AddEditionDate2; ModifyVersion: '0000.0001.0000.0205'; NeedDBShutdown: True),
     (ModifyProc: AddADAtObjectTrigger; ModifyVersion: '0000.0001.0000.0207'; NeedDBShutdown: False),
-    (ModifyProc: SetDefaultForAccountType; ModifyVersion: '0000.0001.0000.0208'; NeedDBShutdown: False)
+    (ModifyProc: SetDefaultForAccountType; ModifyVersion: '0000.0001.0000.0209'; NeedDBShutdown: False)
   );
 
 implementation

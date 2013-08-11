@@ -1,7 +1,8 @@
 
 CREATE DOMAIN drelationtype
-  AS VARCHAR(1)
-  CHECK ((VALUE IN ('T', 'V')));
+  AS CHAR(1)
+  NOT NULL
+  CHECK (VALUE IN ('T', 'V'));
 
 COMMIT;
 

@@ -262,9 +262,9 @@ COMMIT;
  */
 
 CREATE DOMAIN daccountpart
-  AS VARCHAR(1)
-  CHECK ((VALUE = 'D') OR (VALUE = 'C'));
-
+  AS CHAR(1)
+  NOT NULL
+  CHECK (VALUE IN ('D', 'C'));
 
 /*
  *
@@ -535,8 +535,8 @@ SET TERM ;^
  */
 
 CREATE DOMAIN daccountingscriptkind
-  AS VARCHAR(1)
-  CHECK ((VALUE IS NULL) OR (VALUE = 'B') OR (VALUE = 'A') OR (VALUE = 'E'));
+  AS CHAR(1)
+  CHECK (VALUE IN ('B', 'A', 'E'));
 
 SET TERM ^ ;
 
@@ -855,9 +855,6 @@ BEGIN
     FOR EXECUTE STATEMENT (:STM) INTO :ID
     DO BEGIN
       EXCEPTION ac_e_invalidentry 'Попытка сохранить некорректную проводку с ИД: ' || :ID;
-      /*
-      EXECUTE STATEMENT ('DELETE FROM ac_record WHERE id=' || :ID);
-      */
     END
   END
 END
