@@ -146,6 +146,8 @@ type
   protected
     function GetAsBoolean: Boolean; override;
     procedure SetAsBoolean(const Value: Boolean); override;
+    function GetAsInteger: Integer; override;
+    procedure SetAsInteger(const Value: Integer); override;
 
   public
     constructor CreateBoolean(const AValue: Boolean); overload;
@@ -901,9 +903,22 @@ begin
   Result := FValue;
 end;
 
+function TyamlBoolean.GetAsInteger: Integer;
+begin
+  if FValue then
+    Result := 1
+  else
+    Result := 0;
+end;
+
 procedure TyamlBoolean.SetAsBoolean(const Value: Boolean);
 begin
   FValue := Value;
+end;
+
+procedure TyamlBoolean.SetAsInteger(const Value: Integer);
+begin
+  FValue := Value <> 0;
 end;
 
 { TyamlNull }

@@ -1216,18 +1216,33 @@ begin
       q.SQL.Text :=
         'UPDATE ac_account SET activity = ''A'' ' +
         'WHERE activity IS NULL AND accounttype IN (''A'', ''S'') ';
-      q.ExecQuery;  
+      q.ExecQuery;
 
       q.SQL.Text :=
-        'ALTER TABLE ac_account ADD CONSTRAINT ac_chk_account_activity CHECK( ' +
-        '  (activity IS NULL AND accounttype IN (''C'', ''F'')) OR (activity IS NOT NULL) ' +
-        ')';
+        'UPDATE ac_account SET activity = NULL ' +
+        'WHERE activity IS NOT NULL AND accounttype IN (''C'', ''F'') ';
       q.ExecQuery;
+
+      if not ConstraintExist2('AC_ACCOUNT', 'AC_CHK_ACCOUNT_ACTIVITY', Tr) then
+      begin
+        q.SQL.Text :=
+          'ALTER TABLE ac_account ADD CONSTRAINT ac_chk_account_activity CHECK( ' +
+          '  (activity IS NULL AND accounttype IN (''C'', ''F'')) OR (activity IS NOT NULL) ' +
+          ')';
+        q.ExecQuery;
+      end;
 
       q.Close;
       q.SQL.Text :=
         'UPDATE OR INSERT INTO fin_versioninfo ' +
         '  VALUES (178, ''0000.0001.0000.0209'', ''10.08.2013'', ''Added check for account activity.'') ' +
+        '  MATCHING (id)';
+      q.ExecQuery;
+
+      q.Close;
+      q.SQL.Text :=
+        'UPDATE OR INSERT INTO fin_versioninfo ' +
+        '  VALUES (179, ''0000.0001.0000.0210'', ''11.08.2013'', ''Added check for account activity #2.'') ' +
         '  MATCHING (id)';
       q.ExecQuery;
 
