@@ -5835,7 +5835,6 @@ begin
   if Assigned(atDatabase) then
   begin
     R := atDatabase.Relations.ByRelationName(GetListTable(ASubType));
-    { TODO : может предусмотреть два метода: один возвращает длинное имя, второй короткое? }
     if R <> nil then
     begin
       if AnsiCompareText(R.LShortName, GetListTable(ASubType)) = 0 then

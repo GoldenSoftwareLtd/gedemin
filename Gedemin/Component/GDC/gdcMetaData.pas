@@ -1169,12 +1169,12 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
   inherited;
 
   FieldByName('alignment').AsString := 'L';
-  FieldByName('visible').AsString := '1';
-  FieldByName('readonly').AsString := '0';
-
+  FieldByName('visible').AsInteger := 1;
+  FieldByName('readonly').AsInteger := 0;
   FieldByName('fieldname').AsString := '';
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCFIELD', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
@@ -1930,7 +1930,6 @@ var
   DidActivate: Boolean;
   S: String;
   I: Integer;
-
 begin
   {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCFIELD', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
   {M}  try
@@ -1967,7 +1966,6 @@ begin
        raise Exception.Create('Название домена должно быть на английском языке!');
      end;
 
-
   FieldByName('defsource').AsString := Trim(FieldByName('defsource').AsString);
   if not (sMultiple in BaseState) then
   begin
@@ -1992,7 +1990,7 @@ begin
           ibsql.SQL.Text := 'SELECT * FROM at_relations WHERE relationname = :RN';
           ibsql.ParamByName('RN').AsString := AnsiUpperCase(Trim(FieldByName('reftable').AsString));
           ibsql.ExecQuery;
-          if ibsql.RecordCount > 0 then
+          if not ibsql.EOF then
             FieldByName('reftablekey').AsInteger := ibsql.FieldByName('id').AsInteger;
         end;
 
@@ -2003,7 +2001,7 @@ begin
           ibsql.SQL.Text := 'SELECT * FROM at_relations WHERE id = :id';
           ibsql.ParamByName('id').AsInteger := FieldByName('reftablekey').AsInteger;
           ibsql.ExecQuery;
-          if ibsql.RecordCount > 0 then
+          if not ibsql.EOF then
             FieldByName('reftable').AsString := ibsql.FieldByName('relationname').AsString;
         end;
 
@@ -2016,7 +2014,7 @@ begin
           ibsql.ParamByName('RN').AsString := AnsiUpperCase(Trim(FieldByName('reftable').AsString));
           ibsql.ParamByName('FN').AsString := AnsiUpperCase(Trim(FieldByName('reflistfield').AsString));
           ibsql.ExecQuery;
-          if ibsql.RecordCount > 0 then
+          if not ibsql.EOF then
             FieldByName('reflistfieldkey').AsInteger := ibsql.FieldByName('id').AsInteger;
         end;
 
@@ -2027,7 +2025,7 @@ begin
           ibsql.SQL.Text := 'SELECT * FROM at_relation_fields WHERE id = :id';
           ibsql.ParamByName('id').AsInteger := FieldByName('reflistfieldkey').AsInteger;
           ibsql.ExecQuery;
-          if ibsql.RecordCount > 0 then
+          if not ibsql.EOF then
             FieldByName('reflistfield').AsString := ibsql.FieldByName('fieldname').AsString;
         end;
 
@@ -2039,7 +2037,7 @@ begin
           ibsql.SQL.Text := 'SELECT * FROM at_relations WHERE relationname = :RN';
           ibsql.ParamByName('RN').AsString := AnsiUpperCase(Trim(FieldByName('settable').AsString));
           ibsql.ExecQuery;
-          if ibsql.RecordCount > 0 then
+          if not ibsql.EOF then
             FieldByName('settablekey').AsInteger := ibsql.FieldByName('id').AsInteger;
         end;
 
@@ -2050,7 +2048,7 @@ begin
           ibsql.SQL.Text := 'SELECT * FROM at_relations WHERE id = :id';
           ibsql.ParamByName('id').AsInteger := FieldByName('settablekey').AsInteger;
           ibsql.ExecQuery;
-          if ibsql.RecordCount > 0 then
+          if not ibsql.EOF then
             FieldByName('settable').AsString := ibsql.FieldByName('relationname').AsString;
         end;
 
@@ -2063,7 +2061,7 @@ begin
           ibsql.ParamByName('RN').AsString := AnsiUpperCase(Trim(FieldByName('settable').AsString));
           ibsql.ParamByName('FN').AsString := AnsiUpperCase(Trim(FieldByName('setlistfield').AsString));
           ibsql.ExecQuery;
-          if ibsql.RecordCount > 0 then
+          if not ibsql.EOF then
             FieldByName('setlistfieldkey').AsInteger := ibsql.FieldByName('id').AsInteger;
         end;
 
@@ -2074,13 +2072,12 @@ begin
           ibsql.SQL.Text := 'SELECT * FROM at_relation_fields WHERE id = :id';
           ibsql.ParamByName('id').AsInteger := FieldByName('setlistfieldkey').AsInteger;
           ibsql.ExecQuery;
-          if ibsql.RecordCount > 0 then
+          if not ibsql.EOF then
             FieldByName('setlistfield').AsString := ibsql.FieldByName('fieldname').AsString;
         end;
 
         if DidActivate and Transaction.InTransaction then
           Transaction.Commit;
-
       except
         if DidActivate and Transaction.InTransaction then
           Transaction.Rollback;
@@ -7784,8 +7781,6 @@ begin
             ibsql.ParamCheck := True;
             ibsql.ExecQuery;
             ibsql.Close;
-
-            //AddText('SQL-скрипт сохранен!', clGreen);
           end;
         end;
 
