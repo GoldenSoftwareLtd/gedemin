@@ -56,8 +56,8 @@ type
     class procedure WriteChanges(ADataSet: TDataSet; AnObj: TgdcBase; ATr: TIBTransaction);
 
     procedure DeleteObject(xid, dbid: Integer; RemoveObj: Boolean = True);
-    procedure InstallPackages(ANSList: TStringList;
-      const AnAlwaysoverwrite: Boolean = False; const ADontremove: Boolean = False);
+    procedure InstallPackages(ANSList: TStrings;
+      const AnAlwaysOverwrite: Boolean = False; const ADontRemove: Boolean = False);
     function MakePos: Boolean;
     procedure LoadFromFile(const AFileName: String = ''); override;
     procedure SaveNamespaceToStream(St: TStream; const AnAnswer: Integer = 0);
@@ -101,7 +101,7 @@ uses
   at_frmSyncNamespace_unit, jclFileUtils, gd_directories_const,
   gd_FileList_unit, gdcClasses, at_sql_metadata, gdcConstants, at_frmSQLProcess,
   Storages, gdcMetadata, at_sql_setup, gsDesktopManager, at_Classes_body,
-  at_dlgCompareNSRecords_unit;
+  at_dlgCompareNSRecords_unit, gdcNamespaceLoader;
 
 type
   TNSFound = (nsfNone, nsfByName, nsfByRUID);
@@ -128,12 +128,12 @@ type
     RUID: String;
     ObjectName: String;
     NamespaceKey: Integer; 
-    Objectclass: String;
+    ObjectClass: String;
     SubType: String;
     Modified: TDateTime;
     Curr_modified: TDateTime;
-    Filetimestamp: TDateTime;
-    Headobjectkey: Integer;
+    FileTimestamp: TDateTime;
+    HeadObjectKey: Integer;
   end;
 
 procedure Register;
@@ -3054,13 +3054,24 @@ begin
   end;
 end;
 
-procedure TgdcNamespace.InstallPackages(ANSList: TStringList;
-  const AnAlwaysoverwrite: Boolean = False; const ADontremove: Boolean = False);
+procedure TgdcNamespace.InstallPackages(ANSList: TStrings;
+  const AnAlwaysOverwrite: Boolean = False; const ADontRemove: Boolean = False);
 begin
   Assert(ANSList <> nil);
 
   if ANSList.Count > 0 then
-    DoLoadNamespace(ANSList, AnAlwaysOverwrite, ADontRemove);
+  begin
+    //DoLoadNamespace(ANSList, AnAlwaysOverwrite, ADontRemove);
+
+    with TgdcNamespaceLoader.Create do
+    try
+      AlwaysOverwrite := AnAlwaysOverwrite;
+      DontRemove := ADontRemove;
+      Load(ANSList);
+    finally
+      Free;
+    end;
+  end;
 end;
 
 class procedure TgdcNamespace.AddObject(const ANamespaceKey: Integer;
@@ -3291,49 +3302,40 @@ begin
       'SELECT DISTINCT o.objectclass, o.subtype ' +
       'FROM at_object o ';
     if ANamespaceKey > -1 then
-      qList.SQL.Text := qList.SQL.Text +
-        'WHERE o.namespacekey = ' + IntToStr(ANamespaceKey);
+    begin
+      qList.SQL.Text := qList.SQL.Text + 'WHERE o.namespacekey = :nk';
+      qList.ParamByName('nk').AsInteger := ANamespaceKey;
+    end;
     qList.ExecQuery;
 
     while not qList.EOF do
     begin
       C := GetClass(qList.FieldByName('objectclass').AsString);
-      if (C <> nil) and C.InheritsFrom(TgdcBase) then
+      if (C <> nil) and C.InheritsFrom(TgdcBase)
+        and (tiEditionDate in CgdcBase(C).GetTableInfos(qList.FieldByName('subtype').AsString)) then
       begin
         RN := UpperCase(CgdcBase(C).GetListTable(qList.FieldByName('subtype').AsString));
-
-        q.Close;
         q.SQL.Text :=
-          'SELECT rdb$relation_name FROM rdb$relation_fields ' +
-          'WHERE rdb$relation_name = :RN AND rdb$field_name = ''EDITIONDATE'' ';
-        q.ParamByName('RN').AsString := RN;
+          'merge into at_object o '#13#10 +
+          '  using (select r.xid, r.dbid, d.editiondate '#13#10 +
+          '    from ' + RN + ' d join gd_ruid r '#13#10 +
+          '    on r.id = d.id '#13#10 +
+          '  union all '#13#10 +
+          '    select d.id as xid, 17 as dbid, d.editiondate '#13#10 +
+          '    from ' + RN + ' d '#13#10 +
+          '    where d.id < 147000000) de '#13#10 +
+          '  on o.xid=de.xid and o.dbid=de.dbid '#13#10 +
+          '    and o.objectclass = :OC and o.subtype IS NOT DISTINCT FROM :ST'#13#10 +
+          '    and ((o.curr_modified IS NULL) '#13#10 +
+          '      or (o.curr_modified IS DISTINCT FROM de.editiondate))'#13#10 +
+          'when matched then '#13#10 +
+          '  update set o.curr_modified = de.editiondate';
+        q.ParamByName('OC').AsString := qList.FieldByName('objectclass').AsString;
+        if qList.FieldByName('subtype').IsNull then
+          q.ParamByName('ST').Clear
+        else
+          q.ParamByName('ST').AsString := qList.FieldByName('subtype').AsString;
         q.ExecQuery;
-
-        if not q.EOF then
-        begin
-          q.Close;
-          q.SQL.Text :=
-            'merge into at_object o '#13#10 +
-            '  using (select r.xid, r.dbid, d.editiondate '#13#10 +
-            '    from ' + RN + ' d join gd_ruid r '#13#10 +
-            '    on r.id = d.id '#13#10 +
-            '  union all '#13#10 +
-            '    select d.id as xid, 17 as dbid, d.editiondate '#13#10 +
-            '    from ' + RN + ' d '#13#10 +
-            '    where d.id < 147000000) de '#13#10 +
-            '  on o.xid=de.xid and o.dbid=de.dbid '#13#10 +
-            '    and o.objectclass = :OC and o.subtype IS NOT DISTINCT FROM :ST'#13#10 +
-            '    and ((o.curr_modified IS NULL) '#13#10 +
-            '      or (o.curr_modified IS DISTINCT FROM de.editiondate))'#13#10 +
-            'when matched then '#13#10 +
-            '  update set o.curr_modified = de.editiondate';
-          q.ParamByName('OC').AsString := qList.FieldByName('objectclass').AsString;
-          if qList.FieldByName('subtype').IsNull then
-            q.ParamByName('ST').Clear
-          else
-            q.ParamByName('ST').AsString := qList.FieldByName('subtype').AsString;
-          q.ExecQuery;
-        end;
       end;
 
       qList.Next;

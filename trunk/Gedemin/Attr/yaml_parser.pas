@@ -227,7 +227,8 @@ type
   public
     procedure Parse(Scanner: TyamlScanner); override;
     function FindByName(const AName: String): TyamlNode;
-    function ReadString(const AName: String; const DefValue: String = ''): String;
+    function ReadString(const AName: String; const AMaxLength: Integer = -1;
+      const DefValue: String = ''): String;
     function ReadInteger(const AName: String; const DefValue: Integer = 0): Integer;
     function ReadDateTime(const AName: String; const DefValue: TDateTime = 0): TDateTime;
     function ReadBoolean(const AName: String; const DefValue: Boolean = False): Boolean;
@@ -658,7 +659,8 @@ begin
     Result := DefValue;
 end;
 
-function TyamlMapping.ReadString(const AName, DefValue: String): String;
+function TyamlMapping.ReadString(const AName: String; const AMaxLength: Integer;
+  const DefValue: String): String;
 var
   N: TyamlNode;
 begin
@@ -667,6 +669,8 @@ begin
     Result := TyamlScalar(N).AsString
   else
     Result := DefValue;
+  if (AMaxLength > -1) and (Length(Result) > AMaxLength) then
+    SetLength(Result, AMaxLength);
 end;
 
 function TyamlMapping.TestString(const AName, AString: String): Boolean;

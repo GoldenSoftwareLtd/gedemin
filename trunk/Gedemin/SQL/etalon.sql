@@ -1373,6 +1373,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (178, '0000.0001.0000.0209', '10.08.2013', 'Added check for account activity.');
 
+INSERT INTO fin_versioninfo
+  VALUES (179, '0000.0001.0000.0210', '11.08.2013', 'Added check for account activity #2.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
@@ -3399,8 +3402,9 @@ END
 SET TERM ; ^
 
 CREATE DOMAIN drelationtype
-  AS VARCHAR(1)
-  CHECK ((VALUE IN ('T', 'V')));
+  AS CHAR(1)
+  NOT NULL
+  CHECK (VALUE IN ('T', 'V'));
 
 COMMIT;
 
@@ -8928,9 +8932,9 @@ COMMIT;
  */
 
 CREATE DOMAIN daccountpart
-  AS VARCHAR(1)
-  CHECK ((VALUE = 'D') OR (VALUE = 'C'));
-
+  AS CHAR(1)
+  NOT NULL
+  CHECK (VALUE IN ('D', 'C'));
 
 /*
  *
@@ -9201,8 +9205,8 @@ SET TERM ;^
  */
 
 CREATE DOMAIN daccountingscriptkind
-  AS VARCHAR(1)
-  CHECK ((VALUE IS NULL) OR (VALUE = 'B') OR (VALUE = 'A') OR (VALUE = 'E'));
+  AS CHAR(1)
+  CHECK (VALUE IN ('B', 'A', 'E'));
 
 SET TERM ^ ;
 
@@ -9521,9 +9525,6 @@ BEGIN
     FOR EXECUTE STATEMENT (:STM) INTO :ID
     DO BEGIN
       EXCEPTION ac_e_invalidentry 'Попытка сохранить некорректную проводку с ИД: ' || :ID;
-      /*
-      EXECUTE STATEMENT ('DELETE FROM ac_record WHERE id=' || :ID);
-      */
     END
   END
 END
