@@ -12,7 +12,6 @@ object dlgCompareNSRecords: TdlgCompareNSRecords
   Font.Style = []
   OldCreateOrder = False
   Position = poScreenCenter
-  OnShow = FormShow
   PixelsPerInch = 96
   TextHeight = 13
   object pnlWorkArea: TPanel
@@ -92,6 +91,7 @@ object dlgCompareNSRecords: TdlgCompareNSRecords
         Align = alClient
         ColCount = 3
         DefaultRowHeight = 18
+        DefaultDrawing = False
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clWindowText
         Font.Height = -11
@@ -180,7 +180,7 @@ object dlgCompareNSRecords: TdlgCompareNSRecords
         Align = alRight
         BevelOuter = bvNone
         TabOrder = 0
-        object cbShowOnlyDiff: TCheckBox
+        object chbxShowOnlyDiff: TCheckBox
           Left = 6
           Top = 7
           Width = 169
@@ -202,17 +202,10 @@ object dlgCompareNSRecords: TdlgCompareNSRecords
   object actList: TActionList
     Left = 320
     Top = 184
-    object actOK: TAction
-      Caption = 'Записать'
-      OnExecute = actOKExecute
-    end
-    object actCancel: TAction
-      Caption = 'Сохранить'
-      OnExecute = actCancelExecute
-    end
     object actShowOnlyDiff: TAction
       Caption = 'Показывать только различия'
       OnExecute = ActShowOnlyDiffExecute
+      OnUpdate = actShowOnlyDiffUpdate
     end
     object actClose: TAction
       Caption = 'Закрыть'

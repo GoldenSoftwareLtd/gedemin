@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  ActnList, StdCtrls, ExtCtrls, Grids, db;
+  ActnList, StdCtrls, ExtCtrls, Grids, gdcNamespaceRecCmpController;
 
 type
   TLoadRecord = (lrNone, lrFromFile, lrNotLoad);
@@ -14,8 +14,6 @@ type
     actList: TActionList;
     lCaption: TLabel;
     pnlBottom: TPanel;
-    actOK: TAction;
-    actCancel: TAction;
     actShowOnlyDiff: TAction;
     pnlGrid: TPanel;
     sgMain: TStringGrid;
@@ -28,7 +26,7 @@ type
     lblName: TLabel;
     lblClassName: TLabel;
     pnlRight: TPanel;
-    cbShowOnlyDiff: TCheckBox;
+    chbxShowOnlyDiff: TCheckBox;
     actClose: TAction;
     rbSave: TRadioButton;
     rbCancel: TRadioButton;
@@ -36,9 +34,6 @@ type
     btnOK: TButton;
     btnView: TButton;
     actView: TAction;
-    procedure FormShow(Sender: TObject);
-    procedure actOKExecute(Sender: TObject);
-    procedure actCancelExecute(Sender: TObject);
     procedure sgMainMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
     procedure sgMainDrawCell(Sender: TObject; ACol, ARow: Integer;
@@ -48,10 +43,10 @@ type
     procedure actCloseExecute(Sender: TObject);
     procedure actViewExecute(Sender: TObject);
     procedure actViewUpdate(Sender: TObject);
-  private
-    { Private declarations }
+    procedure actShowOnlyDiffUpdate(Sender: TObject);
+
   public
-    Records: TDataSet;   
+    FgdcNamespaceRecCmpController: TgdcNamespaceRecCmpController;
   end;
 
 var
@@ -64,29 +59,12 @@ implementation
 uses
   prp_ScriptComparer_unit;
 
-procedure TdlgCompareNSRecords.FormShow(Sender: TObject);
-begin 
-  sgMain.Cells[0, 0] := 'Поле';
-  sgMain.Cells[1, 0] := 'Объект в базе данных';
-  sgMain.Cells[2, 0] := 'Объект в файле';
-  actShowOnlyDiff.Execute;
-end;
-
-procedure TdlgCompareNSRecords.actOKExecute(Sender: TObject);
-begin
-  ModalResult := mrOK;
-end;
-
-procedure TdlgCompareNSRecords.actCancelExecute(Sender: TObject);
-begin
-  ModalResult := mrCancel;
-end;
-
 procedure TdlgCompareNSRecords.sgMainMouseDown(Sender: TObject;
   Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 begin
   if (ssDouble in Shift) then
   begin
+    {
     if Records.Locate('LR_FieldName', sgMain.Cells[0, sgMain.Row], []) then
     begin
       if sgMain.Col = 1 then
@@ -103,75 +81,53 @@ begin
         end;
       sgMain.Refresh;
     end;
-  end; 
+    }
+  end;
 end;
 
 procedure TdlgCompareNSRecords.sgMainDrawCell(Sender: TObject; ACol,
   ARow: Integer; Rect: TRect; State: TGridDrawState);
 begin
-  if (State * [gdSelected, gdFocused]) <> [] then
+  if FgdcNamespaceRecCmpController = nil then
+    exit;
+
+  sgMain.Canvas.Brush.Color := clWindow;
+  sgMain.Canvas.Font.Color := clWindowText;
+
+  if (gdSelected in State) or (gdFocused in State) then
+  begin
+    sgMain.Canvas.Brush.Color := clActiveCaption;
+    sgMain.Canvas.Font.Color := clCaptionText;
+  end;
+
+  if gdFixed in State then
   begin
     sgMain.Canvas.Brush.Color := clBtnFace;
-    sgMain.Canvas.FillRect(Rect);
+    sgMain.Canvas.Font.Color := clBtnText;
   end;
-  
-  Records.Locate('LR_FieldName', sgMain.Cells[0, ARow], []);
-  if (ACol <> 0) and (ARow <> 0) then
+
+  sgMain.Canvas.FillRect(Rect);
+
+  if (ARow > 0) and (ACol > 0) then
   begin
-    if ((ACol = 1) and (Records.FieldByName('LR_NewValue').AsInteger = 1))
-      or ((ACol = 2) and (Records.FieldByName('LR_NewValue').AsInteger = 0))
-    then
-      sgMain.Canvas.Font.Color := clGray
-    else
+    if ((ACol = 1) and (FgdcNamespaceRecCmpController.OverwriteFields.IndexOf(sgMain.Cells[0, ARow]) = -1))
+      or ((ACol = 2) and (FgdcNamespaceRecCmpController.OverwriteFields.IndexOf(sgMain.Cells[0, ARow]) > -1)) then
     begin
       sgMain.Canvas.Font.Style := [fsBold];
-      sgMain.Canvas.Font.Color := clBlack;
+      sgMain.Canvas.Font.Color := clWindowText;
+    end else
+    begin
+      sgMain.Canvas.Font.Style := [];
+      sgMain.Canvas.Font.Color := clGrayText;
     end;
-      
-    sgMain.Canvas.TextOut(Rect.Left + 2, Rect.Top + 2, sgMain.Cells[ACol, ARow]);
   end;
+
+  sgMain.Canvas.TextOut(Rect.Left + 2, Rect.Top + 2, sgMain.Cells[ACol, ARow]);
 end;
 
 procedure TdlgCompareNSRecords.actShowOnlyDiffExecute(Sender: TObject);
-var
-  FieldsCount: Integer;
-  FN: String;
 begin
-  FieldsCount := 0;
-  Records.First;
-  if cbShowOnlyDiff.Checked then
-  begin
-    while not Records.Eof do
-    begin
-      FN := Records.FieldByName('LR_FieldName').AsString;
-      if Records.FieldByName('LR_Equal').AsInteger = 0 then  
-      begin
-        sgMain.Cells[0, FieldsCount + 1] := FN;
-        sgMain.Cells[1, FieldsCount + 1] := Records.FieldByName('L_' + FN).AsString;
-        sgMain.Cells[2, FieldsCount + 1] := Records.FieldByName('R_' + FN).AsString;
-        Inc(FieldsCount);
-      end;
-      Records.Next;
-    end;
-
-    if FieldsCount = 0 then
-      sgMain.RowCount := 2
-    else
-      sgMain.RowCount := FieldsCount + 1;
-  end else
-  begin
-    while not Records.Eof do
-    begin
-      FN := Records.FieldByName('LR_FieldName').AsString;
-      sgMain.Cells[0, FieldsCount + 1] := FN;
-      sgMain.Cells[1, FieldsCount + 1] := Records.FieldByName('L_' + FN).AsString; 
-      sgMain.Cells[2, FieldsCount + 1] := Records.FieldByName('R_' + FN).AsString;
-      Inc(FieldsCount);
-      Records.Next;
-    end;
-    sgMain.RowCount := FieldsCount + 1;
-  end;
-  sgMain.Refresh;
+  FgdcNamespaceRecCmpController.FillGrid(sgMain, not chbxShowOnlyDiff.Checked);
 end;
 
 procedure TdlgCompareNSRecords.pnlGridResize(Sender: TObject);
@@ -184,9 +140,9 @@ end;
 procedure TdlgCompareNSRecords.actCloseExecute(Sender: TObject);
 begin
   if rbSave.Checked then
-    actOk.Execute
+    ModalResult := mrOk
   else
-    actCancel.Execute;
+    ModalResult := mrCancel;
 end;
 
 procedure TdlgCompareNSRecords.actViewExecute(Sender: TObject);
@@ -207,6 +163,11 @@ end;
 procedure TdlgCompareNSRecords.actViewUpdate(Sender: TObject);
 begin
   actView.Enabled := sgMain.RowCount > 1;
+end;
+
+procedure TdlgCompareNSRecords.actShowOnlyDiffUpdate(Sender: TObject);
+begin
+  actShowOnlyDiff.Enabled := FgdcNamespaceRecCmpController <> nil;
 end;
 
 end.

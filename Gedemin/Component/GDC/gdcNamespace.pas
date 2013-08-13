@@ -2210,7 +2210,7 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
     end;
   end;  
 
-  procedure FillDataSet(CDS: TClientDataSet; Obj: TgdcBase; Fields: TyamlMapping);
+  {procedure FillDataSet(CDS: TClientDataSet; Obj: TgdcBase; Fields: TyamlMapping);
   const
     PassFieldName = ';ID;EDITIONDATE;CREATIONDATE;CREATORKEY;EDITORKEY;ACHAG;AVIEW;AFULL;LB;RB;RESERVED;';
   var
@@ -2225,7 +2225,7 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
   begin
     RefList := TStringList.Create;
     try
-      CDS.FieldDefs.Add('LR_FieldName', ftString, 255, False); 
+      CDS.FieldDefs.Add('LR_FieldName', ftString, 255, False);
       CDS.FieldDefs.Add('LR_Ref', ftInteger, 0, False);
       CDS.FieldDefs.Add('LR_NewValue', ftInteger, 0 , False);
       CDS.FieldDefs.Add('LR_Equal', ftInteger, 0, False);
@@ -2237,7 +2237,7 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
           or (Obj.FieldDefs[I].DataType in [ftBlob, ftGraphic])
         then
           continue;
-          
+
         R := atDatabase.Relations.ByRelationName(Obj.RelationByAliasName(Obj.FieldDefs[I].Name));
         if R <> nil then
         begin
@@ -2280,7 +2280,7 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
               CDS.FieldByName('L_' + FN).AsString := gdcBaseManager.GetRUIDStringByID(AnObj.Fields[I].AsInteger, ATr)
             else
               CDS.FieldByName('L_' + FN).Clear;
-              
+
             N := Fields.FindByName(FN);
             if (N <> nil)
               and (N is TyamlString)
@@ -2314,7 +2314,7 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
     finally
       RefList.Free;
     end;
-  end;
+  end;}
 
 var
   D, J: Integer;
@@ -2326,9 +2326,9 @@ var
   Modify: TDateTime;
   at_obj: TgdcAt_Object;
   Compare: Boolean;
-  CDS: TClientDataSet; 
+  //CDS: TClientDataSet;
   Overwrite: Boolean;
-  CreateDate: TDateTime;
+  //CreateDate: TDateTime;
 begin
   Assert(ATr <> nil);
   Assert(gdcBaseManager <> nil);
@@ -2337,7 +2337,7 @@ begin
   Result := lsNone;
   RUID := StrToRUID(AMapping.ReadString('Properties\RUID'));
   Modify := AMapping.ReadDateTime('Fields\EDITIONDATE', Now);
-  CreateDate := AMapping.ReadDateTime('Fields\CREATIONDATE', Now);
+  //CreateDate := AMapping.ReadDateTime('Fields\CREATIONDATE', Now);
   AlwaysOverwrite := AMapping.ReadBoolean('Properties\AlwaysOverwrite');
   Overwrite := AlwaysOverwrite or AnAlwaysoverwrite;
 
@@ -2411,7 +2411,7 @@ begin
                     );
                   if Compare then
                   begin
-                    CDS := TClientDataSet.Create(nil);
+                    {CDS := TClientDataSet.Create(nil);
                     try
                       FillDataSet(CDS, AnObj, AMapping.FindByName('Fields') as TyamlMapping);
                       if CompareObj(CDS) then
@@ -2446,7 +2446,7 @@ begin
                           AnObj.Post;
                           Result := lsModified;
                         end;
-                        
+
                         if (AnObj.FindField('creationdate') <> nil)
                           and (CreateDate <> AnObj.FieldByName('creationdate').AsDateTime) then
                         begin
@@ -2458,7 +2458,7 @@ begin
                       end;
                     finally
                       CDS.Free;
-                    end;
+                    end;}
                   end;
                 end;
               end;
