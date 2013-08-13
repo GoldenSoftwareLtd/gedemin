@@ -4,8 +4,8 @@ unit gdcNamespaceLoader;
 interface
 
 uses
-  Classes, SysUtils, IBDatabase, IBSQL, yaml_parser, gdcNamespace,
-  JclStrHashMap;
+  Classes, SysUtils, DB, IBDatabase, IBSQL, yaml_parser, gdcBaseInterface,
+  gdcBase, gdcNamespace, JclStrHashMap;
 
 type
   EgdcNamespaceLoader = class(Exception);
@@ -24,7 +24,10 @@ type
 
     procedure FlushStorages;
     procedure LoadAtObjectCache(const ANamespaceKey: Integer);
-    procedure LoadObject(AMapping: TYAMLMapping);
+    procedure LoadObject(AMapping: TYAMLMapping; const AFileTimeStamp: TDateTime);
+    procedure CopyData(AnObj: TgdcBase; AMapping: TYAMLMapping; AnOverwriteFields: TStrings);
+    procedure CopyField(AField: TField; AMapping: TYAMLMapping);
+    procedure ParseReferenceString(const AStr: String; out ARUID: TRUID; out AName: String);
 
   public
     constructor Create;
@@ -39,8 +42,8 @@ type
 implementation
 
 uses
-  Storages, gd_security, gdcBaseInterface, gdcBase, at_frmSQLProcess,
-  gd_common_functions;
+  Storages, gd_security, at_classes, at_frmSQLProcess, gd_common_functions,
+  gdcNamespaceRecCmpController;
 
 type
   TAtObjectRecord = class(TObject)
@@ -57,6 +60,62 @@ type
   end;
 
 { TgdcNamespaceLoader }
+
+procedure TgdcNamespaceLoader.CopyData(AnObj: TgdcBase;
+  AMapping: TYAMLMapping; AnOverwriteFields: TStrings);
+var
+  I: Integer;
+begin
+  Assert(AnObj <> nil);
+  Assert(AMapping <> nil);
+  Assert(AnObj.State in [dsEdit, dsInsert]);
+
+  if AnOverwriteFields = nil then
+    for I := 0 to AnObj.FieldCount - 1 do
+      CopyField(AnObj.Fields[I], AMapping)
+  else
+    for I := 0 to AnOverwriteFields.Count - 1 do
+      CopyField(AnObj.FindField(AnOverwriteFields[I]), AMapping);
+end;
+
+procedure TgdcNamespaceLoader.CopyField(AField: TField;
+  AMapping: TYAMLMapping);
+var
+  N: TYAMLNode;
+  RelationName, FieldName: String;
+  R: TatRelation;
+  RF: TatRelationField;
+begin
+  if AField.ReadOnly or AField.Calculated then
+    exit;
+
+  N := AMapping.FindByName(AField.FieldName);
+
+  if N = nil then
+    exit;
+
+  if N is TYAMLNull then
+    AField.Clear
+  else begin
+    if (AField.DataType = ftInteger) and (AField.Origin > '') then
+    begin
+      ParseFieldOrigin(AField.Origin, RelationName, FieldName);
+
+      R := atDatabase.Relations.ByRelationName(RelationName);
+
+      if R <> nil then
+      begin
+        RF := R.RelationFields.ByFieldName(FieldName);
+        if (RF <> nil) and (RF.References <> nil) then
+        begin
+
+
+
+        end;
+      end;
+    end;
+  end;
+end;
 
 constructor TgdcNamespaceLoader.Create;
 begin
@@ -227,7 +286,7 @@ begin
         begin
           if not (Objects[J] is TYAMLMapping) then
             raise EgdcNamespaceLoader.Create('Invalid YAML stream.');
-          LoadObject(Objects[J] as TYAMLMapping);
+          LoadObject(Objects[J] as TYAMLMapping, FgdcNamespace.FieldByName('filetimestamp').AsDateTime);
         end;
 
         FTr.Commit;
@@ -284,12 +343,14 @@ begin
   end;
 end;
 
-procedure TgdcNamespaceLoader.LoadObject(AMapping: TYAMLMapping);
+procedure TgdcNamespaceLoader.LoadObject(AMapping: TYAMLMapping;
+  const AFileTimeStamp: TDateTime);
 var
   HashKey: String;
   Obj: TgdcBase;
   C: TPersistentClass;
   AtObjectRecord: TatObjectRecord;
+  ObjRUID: TRUID;
 begin
   HashKey := AMapping.ReadString('Properties\Class') + AMapping.ReadString('Properties\SubType');
 
@@ -301,21 +362,65 @@ begin
       raise EgdcNamespaceLoader.Create('Invalid class name ' + AMapping.ReadString('Properties\Class'));
 
     Obj := CgdcBase(C).Create(nil);
-    Obj.SubType := AMapping.ReadString('Properties\SubType');
-    Obj.ReadTransaction := FTr;
-    Obj.Transaction := FTr;
-    Obj.SubSet := 'ByID';
+    try
+      Obj.SubType := AMapping.ReadString('Properties\SubType');
+      Obj.ReadTransaction := FTr;
+      Obj.Transaction := FTr;
+      Obj.SubSet := 'ByID';
+      Obj.BaseState := Obj.BaseState + [sLoadFromStream];
+    except
+      Obj.Free;
+      raise;
+    end;
+
     FgdcObjectCache.Add(HashKey, Obj);
   end;
 
   if not FAtObjectRecordCache.Find(AMapping.ReadString('Properties\RUID'), AtObjectRecord) then
     AtObjectRecord := nil;
 
-  {
   if FAlwaysOverwrite
     or AMapping.ReadBoolean('Properties\AlwaysOverwrite', False)
-    or ((tiEditionDate in Obj.TableInfo) and ...
-  }    
+    or (AtObjectRecord = nil)
+    or ((tiEditionDate in Obj.GetTableInfos(Obj.SubType))
+         and
+        (AMapping.ReadDateTime('Fields\EDITIONDATE', 0) > AtObjectRecord.CurrModified)) then
+  begin
+    ObjRUID := StrToRUID(AMapping.ReadString('Properties\RUID'));
+
+    if AtObjectRecord <> nil then
+    begin
+      Obj.Close;
+      Obj.ID := gdcBaseManager.GetIDByRUID(ObjRUID.XID, ObjRUID.DBID, FTr);
+    end;
+
+    Obj.Open;
+
+    if not Obj.EOF then
+      with TgdcNamespaceRecCmpController.Create do
+      try
+        Compare(nil, Obj, AMapping);
+      finally
+        Free;
+      end;
+  end;
+end;
+
+procedure TgdcNamespaceLoader.ParseReferenceString(const AStr: String;
+  out ARUID: TRUID; out AName: String);
+var
+  P: Integer;
+begin
+  P := Pos(' ', AStr);
+  if P = 0 then
+  begin
+    ARUID := StrToRUID(AStr);
+    AName := '';
+  end else
+  begin
+    ARUID := StrToRUID(System.Copy(AStr, 1, P - 1));
+    AName := System.Copy(AStr, P + 1, MaxInt);
+  end;
 end;
 
 end.
