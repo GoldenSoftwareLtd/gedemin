@@ -3907,6 +3907,7 @@ type
     function  Get_TVR: WideString; safecall;
     function  Get_TerminalID: WideString; safecall;
     function  Get_CardDataEnc: WideString; safecall;
+    function  Get_VisualHostResponse: WideString; safecall;
     procedure Clear; safecall;
   end;
 
@@ -18798,6 +18799,11 @@ end;
 function TwrpTRPOSOutPutData.Get_CardDataEnc: WideString;
 begin
   Result := GetTRPOSOutPutData.CardDataEnc;
+end;
+
+function TwrpTRPOSOutPutData.Get_VisualHostResponse: WideString;
+begin
+  Result := GetTRPOSOutPutData.VisualHostResponse;
 end;
 
 procedure TwrpTRPOSOutPutData.Clear;
