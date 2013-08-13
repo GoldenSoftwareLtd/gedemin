@@ -373,6 +373,12 @@ uses
   {$ENDIF}
   ;
 
+type
+  TEntryAttr = record
+    Fields: array of Variant;
+    Quantity: array of Variant;
+  end;
+
 procedure Register;
 begin
   RegisterComponents('gdcAcctAccount', [TgdcAcctEntryRegister, TgdcAcctViewEntryRegister, TgdcAcctQuantity]);
@@ -3973,18 +3979,26 @@ end;
 
 function TgdcAcctComplexRecord.Copy(const AFields: String;
   AValues: Variant; const ACopyDetail, APost, AnAppend: Boolean): Boolean;
-var
-  V: array of Variant;
-  I, J: Integer;
+var  
+  Rec: array of TEntryAttr;
+  I, J, K, Index: Integer;
   L: TgdcAcctEntryLine;
-begin
-  SetLength(V, EntryLines.Count);
+begin  
+  Setlength(Rec, EntryLines.Count);
   for I := 0 to EntryLines.Count - 1 do
   begin
-    V[I] := VarArrayCreate([0, EntryLines[I].Fields.Count - 1], varVariant);
+    Rec[I].Fields := VarArrayCreate([0, EntryLines[I].Fields.Count - 1], varVariant);
     for J := 0 to EntryLines[I].Fields.Count - 1 do
+      Rec[I].Fields[J] := EntryLines[I].Fields[J].Value;  
+
+    while not EntryLines[I].gdcQuantity.Eof do
     begin
-      V[I][J] := EntryLines[I].Fields[J].Value;
+      Setlength(Rec[I].Quantity, High(Rec[I].Quantity) + 2);
+      Index := High(Rec[I].Quantity);
+      Rec[I].Quantity[Index] := VarArrayCreate([0, EntryLines[I].gdcQuantity.Fields.Count - 1], varVariant);
+      for J := 0 to EntryLines[I].gdcQuantity.Fields.Count - 1 do
+        Rec[I].Quantity[Index][J] := EntryLines[I].gdcQuantity.Fields[J].Value;
+      EntryLines[I].gdcQuantity.Next;
     end;
   end;
 
@@ -3993,20 +4007,33 @@ begin
   if Result then
   begin
     EntryLines.Clear;
-    for I := VarArrayLowBound(V, 1) to VarArrayHighBound(V, 1) do
+    for I := Low(Rec) to High(Rec) do
     begin
       L := AppendLine;
       L.Insert;
       for J := 0 to L.Fields.Count -1 do
       begin
         if L.Fields[J].FieldName <> 'ID' then
-        begin
-          L.Fields[J].Value := V[I][J];
-        end;  
+          L.Fields[J].Value := Rec[I].Fields[J];
       end;
-      L.FieldByName('recordkey').AsInteger := FieldByName('id').AsInteger;
-      if APost then
-        L.Post;
+      L.FieldByName('recordkey').AsInteger := Self.ID;
+      if APost then L.Post;
+
+      if High(Rec[I].Quantity) = -1 then
+        continue;
+
+      for K := VarArrayLowBound(Rec[I].Quantity, 1) to VarArrayHighBound(Rec[I].Quantity, 1) do
+      begin
+        L.gdcQuantity.Insert;
+
+        for J := 0 to L.gdcQuantity.Fields.Count -1 do
+        begin
+          if L.gdcQuantity.Fields[J].FieldName <> 'ID' then
+            L.gdcQuantity.Fields[J].Value := Rec[I].Quantity[K][J];
+        end;
+        L.gdcQuantity.FieldByName('entrykey').AsInteger := L.ID;
+        if APost then L.gdcQuantity.Post;  
+      end;
     end;
   end;
 end;

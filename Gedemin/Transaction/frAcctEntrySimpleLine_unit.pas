@@ -397,7 +397,7 @@ begin
       try
         with FDataSet as TgdcAcctEntryLine do
         begin
-          gdcQuantity.Cancel;
+          //gdcQuantity.Cancel;
           gdcQuantity.First;
           while not gdcQuantity.Eof do
           begin
