@@ -26,6 +26,7 @@ type
     TVR: String;
     TerminalID: String;
     CardDataEnc: String;
+    VisualHostResponse: String;
 
     procedure Clear;
   end;
@@ -160,24 +161,25 @@ const
   TagLength: array [TInputTag] of Integer = ($03, $02, $0A, $03, $0C, $01, $4C,
     $25, $6B, $13, $04, $06);
 
-  OT_MessageID         = $81;
-  OT_ECRnumber         = $82;
-  OT_ERN               = $83;
-  OT_ResponseCode      = $9B;
-  OT_TransactionAmount = $84;
-  OT_PAN               = $89;
-  OT_ExpDate           = $8A;
-  OT_InvoiceNumber     = $8B;
-  OT_AuthorizationID   = $8C;
-  OT_Approve           = $A1;
-  OT_Receipt           = $9C;
-  OT_Date              = $8D;
-  OT_Time              = $8E;
-  OT_VerificationChr   = $94;
-  OT_RRN               = $98;
-  OT_TVR               = $95;
-  OT_TerminalID        = $9D;
-  OT_CardDataEnc       = $C0;
+  OT_MessageID          = $81;
+  OT_ECRnumber          = $82;
+  OT_ERN                = $83;
+  OT_ResponseCode       = $9B;
+  OT_TransactionAmount  = $84;
+  OT_PAN                = $89;
+  OT_ExpDate            = $8A;
+  OT_InvoiceNumber      = $8B;
+  OT_AuthorizationID    = $8C;
+  OT_Approve            = $A1;
+  OT_Receipt            = $9C;
+  OT_Date               = $8D;
+  OT_Time               = $8E;
+  OT_VerificationChr    = $94;
+  OT_RRN                = $98;
+  OT_TVR                = $95;
+  OT_TerminalID         = $9D;
+  OT_CardDataEnc        = $C0;
+  OT_VisualHostResponse = $A0;
   
 
   OM_Payment           = 'PUR';
@@ -388,9 +390,11 @@ procedure TgsTRPOSClient.ReadData(AParams: TgsTRPOSOutPutData);
 var
   ReadStr: String;
 begin
+  Assert(AParams <> nil);
   if not Connected then
     exit;
-    
+
+  AParams.Clear;  
   ReadStr := FTCPClient.CurrentReadBuffer;
   if Length(ReadStr) > 2 then
   begin
@@ -513,6 +517,7 @@ begin
       OT_TVR: AParams.TVR := System.Copy(AStr, I, Len);
       OT_TerminalID: AParams.TerminalID := System.Copy(AStr, I, Len);
       OT_CardDataEnc: AParams.CardDataEnc := System.Copy(AStr, I, Len);
+      OT_VisualHostResponse: AParams.VisualHostResponse := System.Copy(AStr, I, Len);
     end;
     Inc(I, Len);
   end;  
