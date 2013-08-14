@@ -9373,51 +9373,48 @@ begin
 end;
 
 function TgdcBaseManager.GetIDByRUID(const XID, DBID: TID; const Tr: TIBTransaction = nil): TID;
-var
-  S: String;
-  RR: TRUIDRec;
 begin
-  if (XID = -1) and (DBID = -1) then
-  begin
-    Result := -1;
-  end else
-  begin
-    if CacheList = nil then
-      CacheList := TStringHashMap.Create(CaseSensitiveTraits, 1024);
-
-    if Assigned(IBLogin) and (IBLogin.DBID <> CacheDBID) then
-    begin
-      CacheList.Clear;
-      CacheDBID := IBLogin.DBID;
-    end;
-
-    S := RUIDToStr(RUID(XID, DBID));
-    if not CacheList.Find(S, Result) then
-    begin
-      RR := GetRUIDRecByXID(XID, DBID, Tr);
-      if RR.ID = -1 then
-      begin
-        //Возможно РУИД еще не попал в таблицу
-        if (IBLogin.DBID = DBID) or (DBID = cstEtalonDBID) then
-          Result := XID
-        else
-          Result := -1;
-      end else
-      begin
-        Result := RR.ID;
-        CacheList.Add(S, Result);
-      end;
-    end;
-  end;
+  Result := GetIDByRUIDString(RUIDToStr(XID, DBID), Tr);
 end;
 
 function TgdcBaseManager.GetIDByRUIDString(const RUID: TRUIDString;
   const Tr: TIBTransaction = nil): TID;
 var
   R: TRUID;
+  RR: TRUIDRec;
 begin
-  R := StrToRUID(RUID);
-  Result := GetIDByRUID(R.XID, R.DBID, Tr);
+  if RUID = '' then
+  begin
+    Result := -1;
+    exit;
+  end;
+
+  if CacheList = nil then
+    CacheList := TStringHashMap.Create(CaseSensitiveTraits, 1024);
+
+  if Assigned(IBLogin) and (IBLogin.DBID <> CacheDBID) then
+  begin
+    CacheList.Clear;
+    CacheDBID := IBLogin.DBID;
+  end;
+
+  if not CacheList.Find(RUID, Result) then
+  begin
+    R := StrToRUID(RUID);
+    RR := GetRUIDRecByXID(R.XID, R.DBID, Tr);
+    if RR.ID = -1 then
+    begin
+      //Возможно РУИД еще не попал в таблицу
+      if (IBLogin.DBID = R.DBID) or (R.DBID = cstEtalonDBID) then
+        Result := R.XID
+      else
+        Result := -1;
+    end else
+    begin
+      Result := RR.ID;
+      CacheList.Add(RUID, Result);
+    end;
+  end;
 end;
 
 function TgdcBaseManager.GetNextID(const ResetCache: Boolean = False): TID;

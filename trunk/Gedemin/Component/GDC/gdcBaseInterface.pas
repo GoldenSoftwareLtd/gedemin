@@ -129,7 +129,8 @@ type
 
   //Проверяет, является ли переданная строка руидом
   function CheckRuid(const RUIDString: String): Boolean;
-  function RUIDToStr(const ARUID: TRUID): String;
+  function RUIDToStr(const ARUID: TRUID): String; overload;
+  function RUIDToStr(const XID, DBID: TID): String; overload;
   function StrToRUID(const AString: String): TRUID;
   function RUID(const XID, DBID: TID): TRUID;
 
@@ -159,13 +160,17 @@ begin
     and (StrToIntDef(Copy(RUIDString, I + 1, 1024), -1) >= 0);
 end;
 
-function RUIDToStr(const ARUID: TRUID): String;
+function RUIDToStr(const ARUID: TRUID): String; overload;
 begin
-  with ARUID do
-    if (XID = -1) or (DBID = -1) then
-      Result := ''
-    else
-      Result := IntToStr(XID) + '_' + IntToStr(DBID);
+  Result := RUIDToStr(ARUID.XID, ARUID.DBID);
+end;
+
+function RUIDToStr(const XID, DBID: TID): String; overload;
+begin
+  if (XID = -1) or (DBID = -1) then
+    Result := ''
+  else
+    Result := IntToStr(XID) + '_' + IntToStr(DBID);
 end;
 
 function StrToRUID(const AString: String): TRUID;
