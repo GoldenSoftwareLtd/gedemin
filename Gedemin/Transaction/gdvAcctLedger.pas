@@ -1672,7 +1672,11 @@ begin
         '       ac_entry_balance bal '#13#10 +
         '     WHERE '#13#10 +
           IIF(AccountIDs <> '', ' bal.accountkey IN (' + AccountIDs + ') AND '#13#10, '') +
-          IIF(FCurrSumInfo.Show and (FCurrKey > 0), ' bal.currkey = ' + IntToStr(FCurrKey) + ' AND '#13#10, '') +
+          IIF(FCurrSumInfo.Show,
+            IIF(FCurrKey > 0,
+              ' bal.currkey = ' + IntToStr(FCurrKey) + ' AND '#13#10,
+              IIF(FNCUCurrKey > 0, ' bal.currkey <> ' + IntToStr(FNCUCurrKey) + ' AND '#13#10, '')),
+            '') +
         '       bal.companykey + 0 IN (' + FCompanyList + ') '#13#10 +
           AnalyticFilterBal +
         '  '#13#10 +
@@ -1701,7 +1705,11 @@ begin
             ' e1.entrydate >= :closedate AND e1.entrydate < :datebegin '#13#10) +
         '     WHERE '#13#10 +
           IIF(AccountIDs <> '', ' e.accountkey IN (' + AccountIDs + ') AND '#13#10, '') +
-          IIF(FCurrSumInfo.Show and (FCurrKey > 0), ' e.currkey = ' + IntToStr(FCurrKey) + ' AND '#13#10, '') +
+          IIF(FCurrSumInfo.Show,
+            IIF(FCurrKey > 0,
+              ' e.currkey = ' + IntToStr(FCurrKey) + ' AND '#13#10,
+              IIF(FNCUCurrKey > 0, ' e.currkey <> ' + IntToStr(FNCUCurrKey) + ' AND '#13#10, '')),
+            '') + 
           IIF(FEntryBalanceDate > FDateBegin,
             ' e.entrydate >= :datebegin AND '#13#10,
             ' e.entrydate >= :closedate AND '#13#10) +
@@ -1728,7 +1736,11 @@ begin
             ' WHERE '#13#10 +
               IIF(AccountIDs <> '', ' em.accountkey IN (' + AccountIDs + ') AND '#13#10, '') +
             '   em.companykey + 0 IN (' + FCompanyList + ') '#13#10 +
-              IIF(FCurrSumInfo.Show and (FCurrKey > 0), ' AND em.currkey = ' + IntToStr(FCurrKey) + #13#10, '') +
+              IIF(FCurrSumInfo.Show,
+                IIF(FCurrKey > 0,
+                  ' AND em.currkey = ' + IntToStr(FCurrKey) + #13#10,
+                  IIF(FNCUCurrKey > 0, ' AND em.currkey <> ' + IntToStr(FNCUCurrKey) + #13#10, '')),
+                '') +
             '   AND em.entrydate >= :datebegin AND em.entrydate <= :dateend '#13#10 +
               IIF(FIncludeInternalMovement, '', Self.InternalMovementClause('em') + #13#10) +
               AnalyticFilterEM + #13#10 +
@@ -1766,7 +1778,11 @@ begin
             ' WHERE '#13#10 +
               IIF(AccountIDs <> '', ' em.accountkey IN (' + AccountIDs + ') AND '#13#10, '') +
             '   em.companykey + 0 IN (' + FCompanyList + ') '#13#10 +
-              IIF(FCurrSumInfo.Show and (FCurrKey > 0), ' AND em.currkey = ' + IntToStr(FCurrKey), '') +
+              IIF(FCurrSumInfo.Show,
+                IIF(FCurrKey > 0,
+                  ' AND em.currkey = ' + IntToStr(FCurrKey),
+                  IIF(FNCUCurrKey > 0, ' AND em.currkey <> ' + IntToStr(FNCUCurrKey), '')),
+                '') +
             '   AND em.entrydate >= :datebegin '#13#10 +
             '   AND em.entrydate <= :dateend '#13#10 +
               IIF(FIncludeInternalMovement, '', Self.InternalMovementClause('em') + #13#10) +
@@ -2002,11 +2018,15 @@ begin
       if AnalyticFilter > '' then
         AnalyticFilter := ' AND '#13#10 + AnalyticFilter + #13#10;
 
-      if FCurrSumInfo.Show and (FCurrKey > 0) then
-        CurrId := Format('  AND e.currkey = %d'#13#10, [FCurrKey])
-      else
-        CurrId := '';
-
+      CurrId := '';
+      if FCurrSumInfo.Show then
+      begin
+        if FCurrKey > 0 then
+          CurrId := Format('  AND e.currkey = %d'#13#10, [FCurrKey])
+        else if FNCUCurrKey > 0 then
+          CurrId := Format('  AND e.currkey <> %d'#13#10, [FNCUCurrKey]);
+      end;
+      
       NcuDecDig := Format('NUMERIC(15, %d)', [FNcuSumInfo.DecDigits]);
       CurrDecDig := Format('NUMERIC(15, %d)', [FCurrSumInfo.DecDigits]);
       EQDecDig := Format('NUMERIC(15, %d)', [FEQSumInfo.DecDigits]);
@@ -2517,9 +2537,12 @@ begin
   SQL.SQL.Add('e.entrydate < :datebegin AND');
 
   SQL.SQL.Add(Format('r.companykey IN (%s) AND', [FCompanyList]));
-  if FCurrSumInfo.Show and  (FCurrKey > 0) then
+  if FCurrSumInfo.Show then
   begin
-    SQL.SQL.Add(Format(' e.currkey = %d AND ', [FCurrKey]));
+    if (FCurrKey > 0) then
+      SQL.SQL.Add(Format(' e.currkey = %d AND ', [FCurrKey]))
+    else if FNCUCurrKey > 0 then
+      SQL.SQL.Add(Format(' e.currkey <> %d AND ', [FNCUCurrKey]));
   end;
 
   SQL.SQL.Text := SQL.SQL.Text + #13#10 + GetCondition('e');

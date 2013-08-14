@@ -111,6 +111,7 @@ type
     FEQSumInfo: TgdvSumInfo;
     FQuantitySumInfo: TgdvSumInfo;
     FCurrKey: TID;
+    FNCUCurrKey: TID;
 
     FAccounts: TgdKeyArray;
     FCorrAccounts: TgdKeyArray;
@@ -1075,7 +1076,10 @@ end;
 procedure TgdvAcctBase.SetDefaultParams;
 var
   DefaultDecDigits: Integer;
+  R: OleVariant;
 begin
+  Assert(gdcBaseManager <> nil);
+  
   FConfigKey := -1;
   // по умолчанию установим текущую рабочую организацию
   if Assigned(IBLogin) then
@@ -1117,6 +1121,12 @@ begin
     Scale := 1;
   end;
   FCurrKey := -1;
+
+  gdcBaseManager.ExecSingleQueryResult('SELECT id FROM gd_curr WHERE isncu=1', 0, R);
+  if not VarIsEmpty(R) then
+    FNCUCurrKey := R[0, 0]
+  else
+    FNCUCurrKey := -1;
 end;
 
 procedure TgdvAcctBase.DoAfterBuildReport;
