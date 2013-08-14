@@ -21,12 +21,14 @@ type
     FgdcNamespace: TgdcNamespace;
     FAtObjectRecordCache: TStringHashMap;
     FgdcObjectCache: TStringHashMap;
+    FDelayedUpdate: TStringList;
+    FqDelayed: TIBSQL;
 
     procedure FlushStorages;
     procedure LoadAtObjectCache(const ANamespaceKey: Integer);
     procedure LoadObject(AMapping: TYAMLMapping; const AFileTimeStamp: TDateTime);
     procedure CopyData(AnObj: TgdcBase; AMapping: TYAMLMapping; AnOverwriteFields: TStrings);
-    procedure CopyField(AField: TField; AMapping: TYAMLMapping);
+    procedure CopyField(AField: TField; N: TyamlScalar);
     procedure ParseReferenceString(const AStr: String; out ARUID: TRUID; out AName: String);
 
   public
@@ -65,6 +67,8 @@ procedure TgdcNamespaceLoader.CopyData(AnObj: TgdcBase;
   AMapping: TYAMLMapping; AnOverwriteFields: TStrings);
 var
   I: Integer;
+  N: TYAMLNode;
+  F: TField;
 begin
   Assert(AnObj <> nil);
   Assert(AMapping <> nil);
@@ -72,48 +76,86 @@ begin
 
   if AnOverwriteFields = nil then
     for I := 0 to AnObj.FieldCount - 1 do
-      CopyField(AnObj.Fields[I], AMapping)
+    begin
+      F := AnObj.Fields[I];
+      N := AMapping.FindByName(F.FieldName);
+      if not (N is TyamlScalar) then
+        raise EgdcNamespaceLoader.Create('Invalid data type');
+      CopyField(F, N as TyamlScalar);
+    end
   else
     for I := 0 to AnOverwriteFields.Count - 1 do
-      CopyField(AnObj.FindField(AnOverwriteFields[I]), AMapping);
+    begin
+      F := AnObj.FindField(AnOverwriteFields[I]);
+      N := AMapping.FindByName(F.FieldName);
+      if not (N is TyamlScalar) then
+        raise EgdcNamespaceLoader.Create('Invalid data type');
+      CopyField(F, N as TyamlScalar);
+    end;
 end;
 
-procedure TgdcNamespaceLoader.CopyField(AField: TField;
-  AMapping: TYAMLMapping);
+procedure TgdcNamespaceLoader.CopyField(AField: TField; N: TyamlScalar);
 var
-  N: TYAMLNode;
   RelationName, FieldName: String;
+  RefName: String;
+  RefRUID: TRUID;
+  RefID: TID;
   R: TatRelation;
   RF: TatRelationField;
 begin
+  Assert(AField <> nil);
+  Assert(N <> nil);
+
   if AField.ReadOnly or AField.Calculated then
     exit;
 
-  N := AMapping.FindByName(AField.FieldName);
-
-  if N = nil then
+  if N.IsNull then
+  begin
+    AField.Clear;
     exit;
+  end;
 
-  if N is TYAMLNull then
-    AField.Clear
-  else begin
-    if (AField.DataType = ftInteger) and (AField.Origin > '') then
+  if (AField.DataType = ftInteger) and (AField.Origin > '') then
+  begin
+    ParseFieldOrigin(AField.Origin, RelationName, FieldName);
+    R := atDatabase.Relations.ByRelationName(RelationName);
+    if R <> nil then
     begin
-      ParseFieldOrigin(AField.Origin, RelationName, FieldName);
-
-      R := atDatabase.Relations.ByRelationName(RelationName);
-
-      if R <> nil then
+      RF := R.RelationFields.ByFieldName(FieldName);
+      if (RF <> nil) and (RF.References <> nil)
+        and (R.PrimaryKey <> nil)
+        and (R.PrimaryKey.ConstraintFields.Count > 0)
+        and (R.PrimaryKey.ConstraintFields[0] <> RF) then
       begin
-        RF := R.RelationFields.ByFieldName(FieldName);
-        if (RF <> nil) and (RF.References <> nil) then
+        ParseReferenceString(N.AsString, RefRUID, RefName);
+        RefID := gdcBaseManager.GetIDByRUID(RefRUID.XID, RefRUID.DBID, FTr);
+        if RefID = -1 then
         begin
-
-
-
+          AField.Clear;
+          FDelayedUpdate.Add('UPDATE ' + RelationName + ' SET ' +
+            FieldName + ' = (SELECT id FROM gd_ruid WHERE xid = ' +
+            IntToStr(RefRUID.XID) + ' AND dbid = ' +
+            IntToStr(RefRUID.DBID) + ')');
+          exit;
+        end else
+        begin
+          AField.AsInteger := RefID;
+          exit;
         end;
       end;
     end;
+  end;
+
+  case AField.DataType of
+    ftSmallint, ftInteger: AField.AsInteger := N.AsInteger;
+    ftCurrency, ftBCD: AField.AsCurrency := N.AsCurrency;
+    ftTime, ftDateTime: AField.AsDateTime := N.AsDateTime;
+    ftDate: AField.AsDateTime := N.AsDate;
+    ftFloat: AField.AsFloat := N.AsFloat;
+    ftBoolean: AField.AsBoolean := N.AsBoolean;
+    ftLargeInt: (AField as TLargeIntField).AsLargeInt := N.AsInt64;
+  else
+    AField.AsString := N.AsString;
   end;
 end;
 
@@ -152,9 +194,9 @@ begin
   FqLoadAtObject := TIBSQL.Create(nil);
   FqLoadAtObject.Transaction := FTr;
   FqLoadAtObject.SQL.Text :=
-    'SELECT * ' +
-    'FROM at_object ' +
-    'WHERE namespacekey = :nk ';
+    'SELECT o.* ' +
+    'FROM at_object o ' +
+    'WHERE o.namespacekey = :nk ';
 
   FgdcNamespace := TgdcNamespace.Create(nil);
   FgdcNamespace.SubSet := 'ByID';
@@ -163,10 +205,16 @@ begin
 
   FAtObjectRecordCache := TStringHashMap.Create(CaseSensitiveTraits, 65536);
   FgdcObjectCache := TStringHashMap.Create(CaseSensitiveTraits, 1024);
+
+  FDelayedUpdate := TStringList.Create;
+  FqDelayed := TIBSQL.Create(nil);
+  FqDelayed.Transaction := FTr;
 end;
 
 destructor TgdcNamespaceLoader.Destroy;
 begin
+  FqDelayed.Free;
+  FDelayedUpdate.Free;
   FgdcObjectCache.Iterate(nil, Iterate_FreeObjects);
   FgdcObjectCache.Free;
   FAtObjectRecordCache.Iterate(nil, Iterate_FreeObjects);
@@ -193,7 +241,7 @@ end;
 
 procedure TgdcNamespaceLoader.Load(AList: TStrings);
 var
-  I, J: Integer;
+  I, J, K: Integer;
   Parser: TyamlParser;
   Mapping: TyamlMapping;
   Objects: TyamlSequence;
@@ -288,6 +336,14 @@ begin
             raise EgdcNamespaceLoader.Create('Invalid YAML stream.');
           LoadObject(Objects[J] as TYAMLMapping, FgdcNamespace.FieldByName('filetimestamp').AsDateTime);
         end;
+
+        for K := 0 to FDelayedUpdate.Count - 1 do
+        begin
+          FqDelayed.SQL.Text := FDelayedUpdate[K];
+          FqDelayed.ExecQuery;
+        end;
+
+        FDelayedUpdate.Clear;
 
         FTr.Commit;
 
@@ -384,25 +440,58 @@ begin
     or (AtObjectRecord = nil)
     or ((tiEditionDate in Obj.GetTableInfos(Obj.SubType))
          and
-        (AMapping.ReadDateTime('Fields\EDITIONDATE', 0) > AtObjectRecord.CurrModified)) then
+        (AMapping.ReadDateTime('Fields\EDITIONDATE', 0) > AtObjectRecord.CurrModified))
+    or ((not (tiEditionDate in Obj.GetTableInfos(Obj.SubType)))
+         and
+        (AFileTimeStamp > AtObjectRecord.CurrModified)) then
   begin
     ObjRUID := StrToRUID(AMapping.ReadString('Properties\RUID'));
+    Obj.Close;
 
     if AtObjectRecord <> nil then
     begin
-      Obj.Close;
       Obj.ID := gdcBaseManager.GetIDByRUID(ObjRUID.XID, ObjRUID.DBID, FTr);
+      Obj.Open;
+
+      if Obj.EOF then
+      begin
+        Obj.Insert;
+        CopyData(Obj, AMapping, nil);
+        Obj.Post;
+      end else
+      begin
+        if (AtObjectRecord.Modified < AtObjectRecord.CurrModified)
+          and (not FAlwaysOverwrite)
+          and (not AMapping.ReadBoolean('Properties\AlwaysOverwrite', False)) then
+        begin
+          with TgdcNamespaceRecCmpController.Create do
+          try
+            if Compare(nil, Obj, AMapping) then
+            begin
+              Obj.Edit;
+              CopyData(Obj, AMapping, OverwriteFields);
+              Obj.Post;
+            end;
+          finally
+            Free;
+          end;
+        end else
+        begin
+          Obj.Edit;
+          CopyData(Obj, AMapping, nil);
+          Obj.Post;
+        end;
+      end;
+    end else
+    begin
+      Obj.ID := -1;
+      Obj.Open;
+      Obj.Insert;
+      CopyData(Obj, AMapping, nil);
+      Obj.Post;
     end;
 
-    Obj.Open;
-
-    if not Obj.EOF then
-      with TgdcNamespaceRecCmpController.Create do
-      try
-        Compare(nil, Obj, AMapping);
-      finally
-        Free;
-      end;
+    Obj.Close;
   end;
 end;
 

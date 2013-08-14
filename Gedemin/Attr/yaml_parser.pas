@@ -13,7 +13,7 @@ type
     FTag: AnsiString;
 
   protected
-    function ExtractNode(Scanner: TyamlScanner; const ATag: String = ''): TyamlNode;
+    function ExtractNode(Scanner: TyamlScanner; const ATag: AnsiString = ''): TyamlNode;
 
   public
     constructor Create; virtual;
@@ -40,6 +40,9 @@ type
     procedure SetAsString(const Value: AnsiString); virtual;
     procedure SetAsBoolean(const Value: Boolean); virtual;
     procedure SetAsInt64(const Value: Int64); virtual;
+    function GetAsCurrency: Currency; virtual;
+    procedure SetAsCurrency(const Value: Currency); virtual;
+    
   public
     procedure Parse(Scanner: TyamlScanner); override;
 
@@ -51,6 +54,7 @@ type
     property AsBoolean: Boolean read GetAsBoolean write SetAsBoolean;
     property IsNull: Boolean read GetIsNull;
     property AsInt64: Int64 read GetAsInt64 write SetAsInt64;
+    property AsCurrency: Currency read GetAsCurrency write SetAsCurrency;
   end;
 
   TyamlNumeric = class(TyamlScalar);
@@ -95,6 +99,8 @@ type
   protected
     function GetAsInt64: Int64; override;
     procedure SetAsInt64(const Value: Int64); override;
+    function GetAsBoolean: Boolean; override;
+    procedure SetAsBoolean(const Value: Boolean); override;
 
   public
     constructor CreateInt64(const AValue: Int64); overload;
@@ -111,7 +117,7 @@ type
 
   public
     constructor CreateDateTime(const AValue: TDateTime); overload;
-    constructor CreateDateTime(const AValue: String); overload;
+    constructor CreateDateTime(const AValue: AnsiString); overload;
   end;
 
   TyamlDate = class(TyamlScalar)
@@ -126,6 +132,19 @@ type
     constructor CreateDate(const AValue: TDateTime);
   end;
 
+  TyamlCurrency = class(TyamlNumeric)
+  private
+    FValue: Currency;
+
+  protected
+    function GetAsCurrency: Currency; override;
+    procedure SetAsCurrency(const AValue: Currency); override;
+
+  public
+    constructor CreateCurrency(const AValue: Currency); overload;
+    constructor CreateCurrency(const AValue: AnsiString); overload;
+  end;
+
   TyamlFloat = class(TyamlNumeric)
   private
     FValue: Double;
@@ -136,7 +155,7 @@ type
 
   public
     constructor CreateFloat(const AValue: Double); overload;
-    constructor CreateFloat(const AValue: String); overload;
+    constructor CreateFloat(const AValue: AnsiString); overload;
   end;
 
   TyamlBoolean = class(TyamlScalar)
@@ -151,7 +170,7 @@ type
 
   public
     constructor CreateBoolean(const AValue: Boolean); overload;
-    constructor CreateBoolean(const AValue: String); overload;
+    constructor CreateBoolean(const AValue: AnsiString); overload;
   end;
 
   TyamlNull = class(TyamlScalar)
@@ -226,13 +245,13 @@ type
   TyamlMapping = class(TyamlContainer)
   public
     procedure Parse(Scanner: TyamlScanner); override;
-    function FindByName(const AName: String): TyamlNode;
-    function ReadString(const AName: String; const AMaxLength: Integer = -1;
-      const DefValue: String = ''): String;
-    function ReadInteger(const AName: String; const DefValue: Integer = 0): Integer;
-    function ReadDateTime(const AName: String; const DefValue: TDateTime = 0): TDateTime;
-    function ReadBoolean(const AName: String; const DefValue: Boolean = False): Boolean;
-    function TestString(const AName: String; const AString: String): Boolean;
+    function FindByName(const AName: AnsiString): TyamlNode;
+    function ReadString(const AName: AnsiString; const AMaxLength: Integer = -1;
+      const DefValue: AnsiString = ''): AnsiString;
+    function ReadInteger(const AName: AnsiString; const DefValue: Integer = 0): Integer;
+    function ReadDateTime(const AName: AnsiString; const DefValue: TDateTime = 0): TDateTime;
+    function ReadBoolean(const AName: AnsiString; const DefValue: Boolean = False): Boolean;
+    function TestString(const AName: AnsiString; const AString: AnsiString): Boolean;
   end;
 
   TyamlParser = class(TObject)
@@ -243,8 +262,8 @@ type
     constructor Create;
     destructor Destroy; override;
 
-    procedure Parse(AStream: TStream; const AStopKey: String = ''); overload;
-    procedure Parse(const AFileName: String; const AStopKey: String = '';
+    procedure Parse(AStream: TStream; const AStopKey: AnsiString = ''); overload;
+    procedure Parse(const AFileName: AnsiString; const AStopKey: AnsiString = '';
       const ALimitSize: Integer = 0); overload;
 
     property YAMLStream: TyamlStream read FYAMLStream;
@@ -365,13 +384,41 @@ begin
     Result := False;
 end;
 
+function ConvertToCurrency(S: AnsiString; out C: Currency): Boolean;
+var
+  I: Integer;
+begin
+  for I := 1 to Length(S) do
+    if (S[I] in ['.', ',']) and (S[I] <> DecimalSeparator) then
+    begin
+      S[I] := DecimalSeparator;
+      break;
+    end;
+
+  try
+    if Length(S) - I <= 4 then
+    begin
+      C := StrToCurr(S);
+      Result := True;
+    end else
+      Result := False;  
+  except
+    on EConvertError do
+      Result := False;
+  end;
+end;
+
 function ConvertToFloat(S: AnsiString; out F: Double): Boolean;
 var
   I: Integer;
 begin
   for I := 1 to Length(S) do
     if (S[I] in ['.', ',']) and (S[I] <> DecimalSeparator) then
+    begin
       S[I] := DecimalSeparator;
+      break;
+    end;
+
   try
     F := StrToFloat(S);
     Result := True;
@@ -400,7 +447,7 @@ end;
 
 function TyamlScalar.GetAsFloat: Double;
 begin
-  Result := AsInteger;
+  Result := AsCurrency;
 end;
 
 function TyamlScalar.GetAsInteger: Integer;
@@ -410,7 +457,7 @@ end;
 
 function TyamlScalar.GetAsInt64: Int64;
 begin
-  raise EyamlException.Create('Data type is not supported.');
+  Result := AsInteger;
 end;
 
 function TyamlScalar.GetAsString: AnsiString;
@@ -453,7 +500,7 @@ end;
 
 procedure TyamlScalar.SetAsInteger(const Value: Integer);
 begin
-  AsFloat := Value;
+  AsCurrency := Value;
 end;
 
 procedure TyamlScalar.SetAsString(const Value: AnsiString);
@@ -463,7 +510,17 @@ end;
 
 procedure TyamlScalar.SetAsInt64(const Value: Int64);
 begin
-  raise EyamlException.Create('Data type is not supported.');
+  AsFloat := Value;
+end;
+
+function TyamlScalar.GetAsCurrency: Currency;
+begin
+  Result := AsInteger;
+end;
+
+procedure TyamlScalar.SetAsCurrency(const Value: Currency);
+begin
+  AsFloat := Value;
 end;
 
 { TyamlNode }
@@ -473,7 +530,7 @@ begin
   FIndent := 0;
 end;
 
-function TyamlNode.ExtractNode(Scanner: TyamlScanner; const ATag: String = ''): TyamlNode;
+function TyamlNode.ExtractNode(Scanner: TyamlScanner; const ATag: AnsiString = ''): TyamlNode;
 var
   DT: TDateTime;
   F: Double;
@@ -481,6 +538,7 @@ var
   B: Boolean;
   I: Integer;
   I64: Int64;
+  C: Currency;
 begin
   case Scanner.Token of
     tKey:
@@ -509,6 +567,8 @@ begin
           Result := TyamlDate.CreateDate(DT)
         else if ConvertToInt64(Scanner.Scalar, I64) then
           Result := TyamlInt64.CreateInt64(I64)
+        else if ConvertToCurrency(Scanner.Scalar, C) then
+          Result := TyamlCurrency.CreateCurrency(C)
         else if ConvertToFloat(Scanner.Scalar, F) then
           Result := TyamlFloat.CreateFloat(F)
         else if ConvertToBoolean(Scanner.Scalar, B) then
@@ -581,10 +641,10 @@ begin
   inherited;
 end;
 
-function TyamlMapping.FindByName(const AName: String): TyamlNode;
+function TyamlMapping.FindByName(const AName: AnsiString): TyamlNode;
 var
   I, E: Integer;
-  S: String;
+  S: AnsiString;
 begin
   Result := nil;
 
@@ -623,7 +683,7 @@ begin
   //
 end;
 
-function TyamlMapping.ReadBoolean(const AName: String;
+function TyamlMapping.ReadBoolean(const AName: AnsiString;
   const DefValue: Boolean): Boolean;
 var
   N: TyamlNode;
@@ -635,7 +695,7 @@ begin
     Result := DefValue;
 end;
 
-function TyamlMapping.ReadDateTime(const AName: String;
+function TyamlMapping.ReadDateTime(const AName: AnsiString;
   const DefValue: TDateTime): TDateTime;
 var
   N: TyamlNode;
@@ -647,7 +707,7 @@ begin
     Result := DefValue;
 end;
 
-function TyamlMapping.ReadInteger(const AName: String;
+function TyamlMapping.ReadInteger(const AName: AnsiString;
   const DefValue: Integer): Integer;
 var
   N: TyamlNode;
@@ -659,8 +719,8 @@ begin
     Result := DefValue;
 end;
 
-function TyamlMapping.ReadString(const AName: String; const AMaxLength: Integer;
-  const DefValue: String): String;
+function TyamlMapping.ReadString(const AName: AnsiString; const AMaxLength: Integer;
+  const DefValue: AnsiString): AnsiString;
 var
   N: TyamlNode;
 begin
@@ -673,7 +733,7 @@ begin
     SetLength(Result, AMaxLength);
 end;
 
-function TyamlMapping.TestString(const AName, AString: String): Boolean;
+function TyamlMapping.TestString(const AName, AString: AnsiString): Boolean;
 begin
   Result := AnsiCompareText(AString, ReadString(AName)) = 0;
 end;
@@ -691,7 +751,7 @@ begin
   inherited;
 end;
 
-procedure TyamlParser.Parse(AStream: TStream; const AStopKey: String = '');
+procedure TyamlParser.Parse(AStream: TStream; const AStopKey: AnsiString = '');
 var
   Scanner: TyamlScanner;
 begin
@@ -705,7 +765,7 @@ begin
   end;
 end;
 
-procedure TyamlParser.Parse(const AFileName: String; const AStopKey: String = '';
+procedure TyamlParser.Parse(const AFileName: AnsiString; const AStopKey: AnsiString = '';
   const ALimitSize: Integer = 0);
 var
   FS: TFileStream;
@@ -785,6 +845,19 @@ begin
   Result := FValue;
 end;
 
+function TyamlInt64.GetAsBoolean: Boolean;
+begin
+  Result := FValue <> 0;
+end;
+
+procedure TyamlInt64.SetAsBoolean(const Value: Boolean);
+begin
+  if Value then
+    FValue := 1
+  else
+    FValue := 0;
+end;
+
 { TyamlString }
 
 constructor TyamlString.CreateString(const AValue: AnsiString;
@@ -827,7 +900,7 @@ begin
   FValue := AValue;
 end;
 
-constructor TyamlDateTime.CreateDateTime(const AValue: String);
+constructor TyamlDateTime.CreateDateTime(const AValue: AnsiString);
 begin
   inherited Create;
   if not ConvertToDateTime(AValue, FValue) then
@@ -870,7 +943,7 @@ begin
   FValue := AValue;
 end;
 
-constructor TyamlFloat.CreateFloat(const AValue: String);
+constructor TyamlFloat.CreateFloat(const AValue: AnsiString);
 begin
   inherited Create;
   if not ConvertToFloat(AValue, FValue) then
@@ -895,7 +968,7 @@ begin
   FValue := AValue;
 end;
 
-constructor TyamlBoolean.CreateBoolean(const AValue: String);
+constructor TyamlBoolean.CreateBoolean(const AValue: AnsiString);
 begin
   inherited Create;
   if not ConvertToBoolean(AValue, FValue) then
@@ -1056,6 +1129,31 @@ begin
   I := Scanner.Indent;
   while (Scanner.Token = tKey) and (Scanner.Indent = I) do
     Add(TyamlKeyValue.Create).Parse(Scanner);
+end;
+
+{ TyamlCurrency }
+
+constructor TyamlCurrency.CreateCurrency(const AValue: Currency);
+begin
+  inherited Create;
+  FValue := AValue;
+end;
+
+constructor TyamlCurrency.CreateCurrency(const AValue: AnsiString);
+begin
+  inherited Create;
+  if not ConvertToCurrency(AValue, FValue) then
+    raise EyamlSyntaxError.Create('Not a currency value');
+end;
+
+function TyamlCurrency.GetAsCurrency: Currency;
+begin
+  Result := FValue;
+end;
+
+procedure TyamlCurrency.SetAsCurrency(const AValue: Currency);
+begin
+  FValue := AValue;
 end;
 
 end.

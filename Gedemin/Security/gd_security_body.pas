@@ -1836,7 +1836,7 @@ begin
         Tr.DefaultDatabase := Database;
         Tr.StartTransaction;
 
-        q.Transaction := FTransaction;
+        q.Transaction := Tr;
         q.SQL.Text := 'UPDATE gd_user SET passw = :p, mustchange = 0 WHERE id = :id';
         q.ParamByName('id').AsInteger := UserKey;
         q.ParamByName('p').AsString := Copy(edPassword.Text, 1, max_password_length);
