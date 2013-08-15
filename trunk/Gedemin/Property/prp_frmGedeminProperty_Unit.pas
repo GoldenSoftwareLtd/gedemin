@@ -3134,9 +3134,12 @@ begin
 end;
 
 procedure TfrmGedeminProperty.Restore;
+var
+  Msg: TMsg;
 begin
-  Application.ProcessMessages;
-  if not Application.Terminated then
+  //Application.ProcessMessages;
+  //if not Application.Terminated then
+  if not PeekMessage(Msg, 0, WM_QUIT, WM_QUIT, PM_NOREMOVE) then
     Application.Restore;
 end;
 

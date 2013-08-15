@@ -601,7 +601,7 @@ begin
             end;
           end;
         end;
-//        SendMessage(EventControl.GetPropertyHanlde, CM_ACTIVATE, 0, 0);
+
         //Входим в цикл ожидания изменения статуса
         while not Application.Terminated and (fDebuggerState = dsPaused) do
         begin
