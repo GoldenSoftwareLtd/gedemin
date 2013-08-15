@@ -60,7 +60,7 @@ const
   DontBalanceAnalyticStorageValue = 'DontBalanceAnalyticList';
 
 const
-//Шаблоны запросов
+  //Шаблоны запросов
   cInternalMovementClauseTemplate =
     ' AND NOT EXISTS('#13#10 +
     '    SELECT'#13#10 +
