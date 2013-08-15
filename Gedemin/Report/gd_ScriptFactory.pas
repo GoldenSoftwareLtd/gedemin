@@ -1241,6 +1241,7 @@ var
   ScriptModule: IScriptModule;
   ExcFuncPresent: Boolean;
   LastFunctionKey: Integer;
+  Msg: TMsg;
 const
   cError = 'Ошибка';
 
@@ -1355,13 +1356,14 @@ begin
       end else
         AddErrorMsgInLog('**неизвестно**', LErrorItem.Msg, -1, 0);
 
-      Application.HandleMessage;
-      Application.Restore;
-      DefWindowProc(Application.Handle, WM_SYSCOMMAND, SC_RESTORE, 0);
-      Application.HandleMessage;
-
-      if Application.Terminated then
+      //if Application.Terminated then
+      if PeekMessage(Msg, 0, WM_QUIT, WM_QUIT, PM_NOREMOVE) then
         exit;
+
+      //Application.HandleMessage;
+      Application.Restore;
+      //DefWindowProc(Application.Handle, WM_SYSCOMMAND, SC_RESTORE, 0);
+      //Application.HandleMessage;
 
       // Проверяем права пользователя и его настройки
       // Выдаем сообщение об ошибке, если пользователь не администратор, или,
