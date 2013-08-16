@@ -88,6 +88,7 @@ var
   AccWhere: String;
   CompanySBalance: String;
   AccWhereBalance: String;
+  AccWhereQuantity: String;
   ValueSelect, ValueJoin, ValueAlias, QuantityAlias, IDValues: String;
   K: Integer;
   ASelect, AFrom, AGroup, ACorrSelect, ACorrFrom, ACorrGroup: String;
@@ -171,6 +172,7 @@ var
 begin
   ValueSelect := '';
   ValueJoin := '';
+  AccWhereQuantity := '';
   //Количественные показатели
   if FAcctValues.Count > 0 then
   begin
@@ -197,7 +199,8 @@ begin
           '     %0:s.valuekey = %1:s'#13#10 +
           '  LEFT JOIN gd_value %2:s ON %2:s.id = %0:s.valuekey',
           [QuantityAlias, FAcctValues.Names[K], ValueAlias]);
-    end;
+      AccWhereQuantity := AccWhereQuantity + Format(' %0:s.quantity <> 0 OR ', [QuantityAlias]);
+    end; 
   end;
 
   // Аналитика
@@ -368,7 +371,7 @@ begin
     ValueJoin + #13#10 + AFrom + ACorrFrom + #13#10 +
     ' WHERE '#13#10 + AccWhere +
     '  ' + CompanyS + ' AND '#13#10 +
-    '  (e.debitncu <> 0 OR e.creditncu <> 0 OR e.debitcurr <> 0 OR e.creditcurr <> 0 OR e.debiteq <> 0 OR e.crediteq <> 0) AND'#13#10 +
+    '  (' + AccWhereQuantity + ' e.debitncu <> 0 OR e.creditncu <> 0 OR e.debitcurr <> 0 OR e.creditcurr <> 0 OR e.debiteq <> 0 OR e.crediteq <> 0) AND'#13#10 +
     '  e.entrydate >= :begindate AND e.entrydate <= :enddate '#13#10 +
       IIF(EntryCondition <> '', ' AND ' + EntryCondition, '') +
     Self.InternalMovementClause,

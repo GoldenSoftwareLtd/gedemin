@@ -683,6 +683,7 @@ var
   MainJoin, MainGroup, MainOrder, MainInto: String;
   CorrSelect, CorrSubSelect, CorrSubSubSelect: String;
   CorrJoin, CorrWhere, CorrGroup, CorrOrder, CorrInto: String;
+  AccWhereQuantity: String;
 
   procedure ProcessAnalytic(CurrentAnalytic: TgdvAnalytics; IsTreeAnalytic: Boolean = False);
   var
@@ -1368,6 +1369,7 @@ var
   end;
 
 begin
+  AccWhereQuantity := '';
   if FUseEntryBalance then
   begin
     // Список счетов в строковом виде
@@ -2126,7 +2128,7 @@ begin
             VKeyAlias := Self.GetKeyAlias(FAcctValues.Names[K]);
             ValueAlias := 'v_' + Self.GetKeyAlias(FAcctValues.Names[K]);
             QuantityAlias := 'q_' + Self.GetKeyAlias(FAcctValues.Names[K]);
-
+            AccWhereQuantity := AccWhereQuantity + Format(' SUM(%0:s.quantity) <> 0 OR ', [QuantityAlias]);
             if not FEntryDateInFields then
             begin
               BC := TgdvSimpleLedgerTotalBlock;
@@ -2325,10 +2327,10 @@ begin
 
         HavingClause := GetHavingClause;
         if HavingClause > '' then HavingClause := HavingClause + ' OR '#13#10 ;
-        HavingClause := HavingClause + 'SUM(e2.debitncu) <> 0 OR '#13#10 +
+        HavingClause := HavingClause + AccWhereQuantity + ' SUM(e2.debitncu) <> 0 OR '#13#10 +
           '  SUM(e2.creditncu) <> 0 OR '#13#10 +
-          '  SUM(e1.debitncu - e1.creditncu) <> 0 '#13#10 ;
-
+          '  SUM(e1.debitncu - e1.creditncu) <> 0'#13#10;
+          
         if FCurrSumInfo.Show then
         begin
           HavingClause := HavingClause + ' OR '#13#10 +

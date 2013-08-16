@@ -253,7 +253,7 @@ end;
 procedure TgdvAcctAccReview.DoBuildSQL;
 var
   BalanceCondition, EntryCondition, CompanyS: String;
-  AccWhere: String;
+  AccWhere, AccWhereQuantity: String;
   ValueSelect, ValueJoin, ValueAlias, QuantityAlias: string;
   K: Integer;
 //  ASelect, AGroup, AFrom, ACorrSelect, ACorrFrom, ACorrGroup: string;
@@ -346,6 +346,7 @@ var
 begin
   ValueSelect := '';
   ValueJoin := '';
+  AccWhereQuantity := '';
   //Количественные показатели
   if FAcctValues.Count > 0 then
   begin
@@ -365,7 +366,8 @@ begin
           '     %0:s.valuekey = %1:s'#13#10 +
           '  LEFT JOIN gd_value %2:s ON %2:s.id = %0:s.valuekey',
           [QuantityAlias, FAcctValues.Names[K], ValueAlias]);
-    end;
+      AccWhereQuantity := AccWhereQuantity + Format(' %0:s.quantity <> 0 OR ', [QuantityAlias]);
+    end;  
   end;
 
   // Аналитика
@@ -535,7 +537,7 @@ begin
           '') +
       '      WHERE '#13#10 +
         AccWhere + #13#10 + CompanyS + ' AND '#13#10 +
-      '        (e.debitncu <> 0 '#13#10 +
+      '        (' + AccWhereQuantity + ' e.debitncu <> 0 '#13#10 +
       '          OR e.creditncu <> 0 '#13#10 +
       '          OR e.debitcurr <> 0 '#13#10 +
       '          OR e.creditcurr <> 0 '#13#10 +
@@ -597,7 +599,7 @@ begin
       '  LEFT JOIN ac_account a ON a.id = e.accountkey '#13#10 +
       ValueJoin + #13#10 + {AFrom + ACorrFrom +} #13#10 +
       ' where '#13#10 + AccWhere + #13#10 + CompanyS + ' AND '#13#10 +
-      '  (e.debitncu <> 0 OR e.creditncu <> 0 OR e.debitcurr <> 0 OR e.creditcurr <> 0 OR e.debiteq <> 0 OR e.crediteq <> 0) AND'#13#10 +
+      '  (' + AccWhereQuantity + ' e.debitncu <> 0 OR e.creditncu <> 0 OR e.debitcurr <> 0 OR e.creditcurr <> 0 OR e.debiteq <> 0 OR e.crediteq <> 0) AND'#13#10 +
       '  e.entrydate >= :begindate AND e.entrydate <= :enddate '#13#10 +
       IIF(EntryCondition <> '', ' AND '#13#10 + EntryCondition + #13#10, '') +
       InternalMovementClause,
