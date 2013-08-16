@@ -502,11 +502,13 @@ begin
         begin
           FieldName := Format('c%d', [I]);
           F := gdvObject.FindField(FieldName);
-          if (F <> nil) and not F.IsNull then
+          if F <> nil then
           begin
             if A > '' then A := A + #13#10;
-
-            A := A + frAcctAnalyticsGroup.Selected[I].FieldName + '=' + Trim(F.AsString);
+            if not F.IsNull then
+              A := A + frAcctAnalyticsGroup.Selected[I].FieldName + '=' + Trim(F.AsString)
+            else
+              A := A + frAcctAnalyticsGroup.Selected[I].FieldName + '=NULL';
           end;
         end;
       end;

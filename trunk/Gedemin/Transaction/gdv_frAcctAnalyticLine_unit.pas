@@ -25,7 +25,7 @@ type
   private
     FField: TatRelationField;
     FOnValueChange: TNotifyEvent;
-    FNeedNull: boolean;
+    FNeedNull: Boolean;
     FNeedSet: Boolean;
     FButtons, FLookUp: TObjectList;
     FKASet: TgdKeyArray;
@@ -36,12 +36,12 @@ type
     function CreateButton: TSpeedButton;
     procedure SetField(const Value: TatRelationField);
     procedure Check;
-    procedure SetValue(const Value: string);
-    function GetValue: string;
+    procedure SetValue(const Value: String);
+    function GetValue: String;
     function FieldType: TAnalyticFieldType;
     procedure SetOnValueChange(const Value: TNotifyEvent);
-    function GetIsNull: boolean;
-    procedure SetIsNull(const Value: boolean);
+    function GetIsNull: Boolean;
+    procedure SetIsNull(const Value: Boolean);
     procedure SetNeedNull(const Value: Boolean);
     function GetDescription: String;
 
@@ -56,9 +56,9 @@ type
     procedure ReSizeControls;
     procedure Clear;
     property Field: TatRelationField read FField write SetField;
-    property Value: string read GetValue write SetValue;
-    function IsEmpty: boolean;
-    property IsNull: boolean read GetIsNull write SetIsNull;
+    property Value: String read GetValue write SetValue;
+    function IsEmpty: Boolean;
+    property IsNull: Boolean read GetIsNull write SetIsNull;
     property OnValueChange: TNotifyEvent read FOnValueChange write SetOnValueChange;
     property NeedNull: Boolean read FNeedNull write SetNeedNull;
     property NeedSet: Boolean read FNeedSet write FNeedSet;
@@ -88,7 +88,7 @@ begin
   Height := FrameHeight;
   FKASet := TgdKeyArray.Create;
   lAnaliticName.Enabled := False;
-  ParentFont := False; 
+  ParentFont := False;   
 end;
 
 destructor TfrAcctAnalyticLine.Destroy;
@@ -107,8 +107,7 @@ end;
 
 procedure TfrAcctAnalyticLine.Check;
 begin
-  Assert(FField <> nil, 'не присвоено значение поля аналитики');
-
+  Assert(FField <> nil, 'не присвоено значение поля аналитики'); 
 end;
 
 function TfrAcctAnalyticLine.FieldType: TAnalyticFieldType;
@@ -130,10 +129,10 @@ begin
     Result := aftString;
 end;
 
-function TfrAcctAnalyticLine.GetValue: string;
+function TfrAcctAnalyticLine.GetValue: String;
 var
   lDateSeparator: char;
-  lShortDateFormat: string;
+  lShortDateFormat: String;
   I: Integer;
 begin
   Check;
@@ -182,7 +181,7 @@ begin
   end;
 end;
 
-function TfrAcctAnalyticLine.IsEmpty: boolean;
+function TfrAcctAnalyticLine.IsEmpty: Boolean;
 begin
   Result := (Value = '') or (not chkNull.Checked and FNeedNull);
 end;
@@ -221,36 +220,39 @@ begin
   xdeDateTime.OnChange := OnValueChange;
 end;
 
-procedure TfrAcctAnalyticLine.SetValue(const Value: string);
+procedure TfrAcctAnalyticLine.SetValue(const Value: String);
+
+  function ConvertStrToDate(const strDate: String): TDateTime;
+  var
+    Day, Month, Year: Word;
+    strTmp: String;
+  begin
+    if Pos('-', strDate) > 0 then
+    begin
+      Year := StrToInt(copy(strDate, 1, Pos('-', strDate) - 1));
+      strTmp := copy(strDate, Pos('-', strDate) + 1, 255);
+      Month := StrToInt(copy(strTmp, 1, Pos('-', strTmp) - 1));
+      Day := StrToInt(copy(strTmp, Pos('-', strTmp) + 1, 255));
+      Result := EncodeDate(Year, Month, Day);
+    end
+    else
+      Result := StrToDate(strDate);
+  end;
+  
 var
   I: Integer;
-
-function ConvertStrToDate(const strDate: String): TDateTime;
-var
-  Day, Month, Year: Word;
-  strTmp: String;
-begin
-  if Pos('-', strDate) > 0 then
-  begin
-    Year := StrToInt(copy(strDate, 1, Pos('-', strDate) - 1));
-    strTmp := copy(strDate, Pos('-', strDate) + 1, 255);
-    Month := StrToInt(copy(strTmp, 1, Pos('-', strTmp) - 1));
-    Day := StrToInt(copy(strTmp, Pos('-', strTmp) + 1, 255));
-    Result := EncodeDate(Year, Month, Day);
-  end
-  else
-    Result := StrToDate(strDate);
-end;
-
 begin
   Check;
-  if Value = 'NULL' then begin
+
+  if Value = 'NULL' then
+  begin
     chkNull.Checked:= True;
     Exit;
   end;
+
   lAnaliticName.Enabled :=  not FNeedNull;
   chkNull.Checked := (Value <> '') and FNeedNull; 
-    
+
   case FieldType of
     aftReference:
     begin
@@ -284,20 +286,20 @@ begin
     end;
   else
     eAnalitic.Text := Value;
-  end; 
+  end;
 end;
 
-function TfrAcctAnalyticLine.GetIsNull: boolean;
+function TfrAcctAnalyticLine.GetIsNull: Boolean;
 begin
   Result:= chkNull.Checked and (Value = '');
 end;
 
-procedure TfrAcctAnalyticLine.SetIsNull(const Value: boolean);
+procedure TfrAcctAnalyticLine.SetIsNull(const Value: Boolean);
 begin
   chkNull.Checked:= not Value;
 end;
 
-procedure TfrAcctAnalyticLine.SetNeedNull(const Value: boolean);
+procedure TfrAcctAnalyticLine.SetNeedNull(const Value: Boolean);
 begin
   FNeedNull := Value;
   if not FNeedNull then
@@ -458,6 +460,7 @@ begin
     if FLookUp.Count = 1 then
       (FLookUp[0] as TgsIBLookupComboBox).CurrentKey := '';
   end;
+
   SetValue('');
 end;
 
