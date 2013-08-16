@@ -256,7 +256,6 @@ type
     procedure actEditBusinessObjectExecute(Sender: TObject);
     procedure actEditBusinessObjectUpdate(Sender: TObject);
     procedure dbgResultDblClick(Sender: TObject);
-    procedure actDeleteBusinessObjectUpdate(Sender: TObject);
     procedure actDeleteBusinessObjectExecute(Sender: TObject);
     procedure pcMainChanging(Sender: TObject; var AllowChange: Boolean);
     procedure actParseUpdate(Sender: TObject);
@@ -281,7 +280,6 @@ type
     procedure seQueryChange(Sender: TObject);
     procedure pnlTestResize(Sender: TObject);
     procedure actRefreshMonitorUpdate(Sender: TObject);
-    procedure actShowViewFormUpdate(Sender: TObject);
     procedure actShowViewFormExecute(Sender: TObject);
     procedure actMakeSelectUpdate(Sender: TObject);
     procedure actMakeSelectExecute(Sender: TObject);
@@ -321,7 +319,7 @@ type
     procedure LoadHistory;
     procedure DrawChart;
     {$IFDEF GEDEMIN}
-    function CreateBusinessObject: TgdcBase;
+    function CreateBusinessObject(out Obj: TgdcBase): Boolean;
     {$ENDIF}
 
     procedure AddSQLHistory(const AnExecute: Boolean);
@@ -360,7 +358,8 @@ uses
   {$IFDEF GEDEMIN}
   gdcBaseInterface, flt_sql_parser, at_sql_setup,
   {$ENDIF}
-  gd_directories_const, Clipbrd, gd_security, gd_ExternalEditor
+  gd_directories_const, Clipbrd, gd_security, gd_ExternalEditor,
+  gd_common_functions
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -1317,93 +1316,61 @@ begin
 end;
 
 {$IFDEF GEDEMIN}
-function TfrmSQLEditorSyn.CreateBusinessObject: TgdcBase;
+function TfrmSQLEditorSyn.CreateBusinessObject(out Obj: TgdcBase): Boolean;
 var
-  SL: TStringList;
   C: TgdcFullClass;
-  RN, FN, Org: String;
-  Obj: TgdcBase;
   R: TatRelation;
-  I: Integer;
+  RF: TatRelationField;
+  RelationName, FieldName: String;
 begin
-  Result := nil;
-  SL := TStringList.Create;
-  try
-    ExtractTablesList(ibqryWork.QSelect.SQL.Text, SL, False, True);
-    if SL.Count > 0 then
+  Assert(not ibqryWork.EOF);
+  Assert(dbgResult.Visible);
+  Assert(dbgResult.SelectedField <> nil);
+  Assert(not dbgResult.SelectedField.IsNull);
+  Assert(dbgResult.SelectedField.Origin > '');
+
+  Obj := nil;
+  C.gdClass := nil;
+
+  ParseFieldOrigin(dbgResult.SelectedField.Origin, RelationName, FieldName);
+
+  R := atDatabase.Relations.ByRelationName(RelationName);
+  if Assigned(R) then
+  begin
+    RF := R.RelationFields.ByFieldName(FieldName);
+    if Assigned(RF) then
     begin
-      if (SL.Count > 1) and (SL.IndexOfName('z') > -1) then
-        RN := Sl.Values['z']
-      else
-        RN := SL.Values[SL.Names[0]];
-
-      C := GetBaseClassForRelation(RN);
-      if C.gdClass <> nil then
-      begin
-        Obj := C.gdClass.CreateSubType(Application, C.SubType, 'ByID');
-        try
-          if ibqryWork.IsEmpty then
-          begin
-            Obj.Transaction := ibtrEditor;
-            Obj.Open;
-            Result := Obj;
-            Obj := nil;
-          end else
-          begin
-            R := atDatabase.Relations.ByRelationName(RN);
-            if (R <> nil)
-              and (R.PrimaryKey <> nil)
-              and (R.PrimaryKey.ConstraintFields.Count = 1) then
-            begin
-              FN := R.PrimaryKey.ConstraintFields[0].FieldName;
-            end else
-              FN := 'id';
-
-            Org := '"' + RN + '"."' + FN + '"';
-
-            for I := 0 to ibqryWork.Fields.Count - 1 do
-            begin
-              if (AnsiCompareText(ibqryWork.Fields[I].Origin, Org) = 0) and
-                (ibqryWork.Fields[I] is TIntegerField) then
-              begin
-                Obj.ID := ibqryWork.Fields[I].AsInteger;
-                Obj.Open;
-                if not Obj.EOF then
-                begin
-                  C := Obj.GetCurrRecordClass;
-                  if (C.gdClass <> nil) and
-                    ((Obj.ClassType <> C.gdClass) or (Obj.SubType <> C.SubType)) then
-                  begin
-                    Obj.Free;
-                    Obj := C.gdClass.CreateSubType(Application, C.SubType, 'ByID');
-                    Obj.Transaction := ibtrEditor;
-                    Obj.ID := ibqryWork.Fields[I].AsInteger;
-                    Obj.Open;
-                    if Obj.EOF then
-                      FreeAndNil(Obj);
-                  end;
-
-                  Result := Obj;
-                  Obj := nil;
-                end;
-                break;
-              end;
-            end;
-          end;
-        finally
-          Obj.Free;
-        end;
-      end;
+      if Assigned(RF.ForeignKey) and RF.ForeignKey.IsSimpleKey then
+        C := GetBaseClassForRelation(RF.References.RelationName)
+      else if Assigned(R.PrimaryKey) and (R.PrimaryKey.ConstraintFields[0] = RF) then
+        C := GetBaseClassForRelation(R.RelationName);
     end;
-  finally
-    SL.Free;
   end;
 
-  if Result = nil then
+  if C.gdClass <> nil then
+  begin
+    Obj := C.gdClass.Create(nil);
+    Obj.SubType := C.SubType;
+    Obj.SubSet := 'ByID';
+
+    try
+      Obj.ID := dbgResult.SelectedField.AsInteger;
+      Obj.Open;
+      if Obj.EOF then
+        FreeAndNil(Obj);
+    except
+      FreeAndNil(Obj);
+      raise;
+    end;
+  end;
+
+  if Obj = nil then
     MessageBox(Handle,
       'Не удалось создать бизнес-объект для текущей записи.',
       'Информация',
       MB_OK or MB_ICONINFORMATION or MB_TASKMODAL);
+
+  Result := Obj <> nil;
 end;
 {$ENDIF}
 
@@ -1591,10 +1558,9 @@ procedure TfrmSQLEditorSyn.actEditBusinessObjectExecute(Sender: TObject);
 var
   Obj: TgdcBase;
 begin
-  Obj := CreateBusinessObject;
+  if CreateBusinessObject(Obj) then
   try
-    if Obj <> nil then
-      Obj.EditDialog('');
+    Obj.EditDialog('');
   finally
     Obj.Free;
   end;
@@ -1605,8 +1571,12 @@ end;
 
 procedure TfrmSQLEditorSyn.actEditBusinessObjectUpdate(Sender: TObject);
 begin
-  actEditBusinessObject.Enabled := ibqryWork.Active {and
-    (not ibqryWork.IsEmpty)};
+  (Sender as TAction).Enabled := ibqryWork.Active
+    and (not ibqryWork.EOF)
+    and dbgResult.Visible
+    and (dbgResult.SelectedField is TIntegerField)
+    and (dbgResult.SelectedField.AsInteger > 0)
+    and (dbgResult.SelectedField.Origin > '');
 end;
 
 procedure TfrmSQLEditorSyn.dbgResultDblClick(Sender: TObject);
@@ -1614,28 +1584,19 @@ begin
   actEditBusinessObject.Execute;
 end;
 
-procedure TfrmSQLEditorSyn.actDeleteBusinessObjectUpdate(Sender: TObject);
-begin
-  actDeleteBusinessObject.Enabled := ibqryWork.Active and
-    (not ibqryWork.IsEmpty);
-end;
-
 procedure TfrmSQLEditorSyn.actDeleteBusinessObjectExecute(Sender: TObject);
 {$IFDEF GEDEMIN}
 var
   Obj: TgdcBase;
 begin
-  Obj := CreateBusinessObject;
+  if CreateBusinessObject(Obj) then
   try
-    if Obj <> nil then
+    if MessageBox(Handle,
+      PChar('Удалить объект ' + Obj.GetDisplayName(Obj.SubType) + ' ' + Obj.ObjectName + '?'),
+      'Внимание',
+      MB_ICONEXCLAMATION or MB_YESNO) = IDYES then
     begin
-      if MessageBox(Handle,
-        'Удалить выбранный объект?',
-        'Внимание',
-        MB_ICONEXCLAMATION or MB_YESNO) = IDYES then
-      begin
-        Obj.Delete;
-      end;
+      Obj.Delete;
     end;
   finally
     Obj.Free;
@@ -2003,9 +1964,7 @@ begin
           L.Width := 150;
           L.Caption := F.FieldName + ':';
           L.ShowHint := True;
-          L.Hint := F.FieldName + #13#10 +
-            //ibqryWork.Fields[I].DisplayLabel + #13#10 +
-            F.Origin;
+          L.Hint := F.FieldName + #13#10 + F.Origin;
 
           if ((F is TStringField) or (F is TMemoField)) and (Length(F.AsString) > 80) then
             E := TDBMemo.Create(sbRecord)
@@ -2069,27 +2028,19 @@ begin
   actRefreshMonitor.Enabled := ibtrMonitor.DefaultDatabase <> nil;
 end;
 
-procedure TfrmSQLEditorSyn.actShowViewFormUpdate(Sender: TObject);
-begin
-  actShowViewForm.Enabled := ibqryWork.Active;
-end;
-
 procedure TfrmSQLEditorSyn.actShowViewFormExecute(Sender: TObject);
 {$IFDEF GEDEMIN}
 var
   Obj: TgdcBase;
   F: TCustomForm;
 begin
-  Obj := CreateBusinessObject;
+  if CreateBusinessObject(Obj) then
   try
-    if Obj <> nil then
+    F := Obj.CreateViewForm(Application.MainForm, '', Obj.SubType, True);
+    if F <> nil then
     begin
-      F := Obj.CreateViewForm(Application.MainForm, '', Obj.SubType, True);
-      if F <> nil then
-      begin
-        F.ShowModal;
-        F.Free;
-      end;
+      F.ShowModal;
+      F.Free;
     end;
   finally
     Obj.Free;

@@ -27,7 +27,7 @@ type
     procedure FlushStorages;
     procedure LoadAtObjectCache(const ANamespaceKey: Integer);
     procedure LoadObject(AMapping: TYAMLMapping; const AFileTimeStamp: TDateTime);
-    procedure CopyData(AnObj: TgdcBase; AMapping: TYAMLMapping; AnOverwriteFields: TStrings);
+    procedure CopyRecord(AnObj: TgdcBase; AMapping: TYAMLMapping; AnOverwriteFields: TStrings);
     procedure CopyField(AField: TField; N: TyamlScalar);
     procedure ParseReferenceString(const AStr: String; out ARUID: TRUID; out AName: String);
 
@@ -63,7 +63,7 @@ type
 
 { TgdcNamespaceLoader }
 
-procedure TgdcNamespaceLoader.CopyData(AnObj: TgdcBase;
+procedure TgdcNamespaceLoader.CopyRecord(AnObj: TgdcBase;
   AMapping: TYAMLMapping; AnOverwriteFields: TStrings);
 var
   I: Integer;
@@ -456,7 +456,7 @@ begin
       if Obj.EOF then
       begin
         Obj.Insert;
-        CopyData(Obj, AMapping, nil);
+        CopyRecord(Obj, AMapping, nil);
         Obj.Post;
       end else
       begin
@@ -469,7 +469,7 @@ begin
             if Compare(nil, Obj, AMapping) then
             begin
               Obj.Edit;
-              CopyData(Obj, AMapping, OverwriteFields);
+              CopyRecord(Obj, AMapping, OverwriteFields);
               Obj.Post;
             end;
           finally
@@ -478,7 +478,7 @@ begin
         end else
         begin
           Obj.Edit;
-          CopyData(Obj, AMapping, nil);
+          CopyRecord(Obj, AMapping, nil);
           Obj.Post;
         end;
       end;
@@ -487,9 +487,15 @@ begin
       Obj.ID := -1;
       Obj.Open;
       Obj.Insert;
-      CopyData(Obj, AMapping, nil);
+      CopyRecord(Obj, AMapping, nil);
       Obj.Post;
     end;
+
+    FqOverwriteNSRUID.ParamByName('id').AsInteger := Obj.ID;
+    FqOverwriteNSRUID.ParamByName('xid').AsInteger := ObjRUID.XID;
+    FqOverwriteNSRUID.ParamByName('dbid').AsInteger := ObjRUID.DBID;
+    FqOverwriteNSRUID.ParamByName('editorkey').AsInteger := IBLogin.ContactKey;
+    FqOverwriteNSRUID.ExecQuery;
 
     Obj.Close;
   end;
