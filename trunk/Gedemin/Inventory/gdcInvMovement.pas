@@ -134,8 +134,6 @@ type
 
   TgdcInvMovement = class(TgdcBase)
   private
-
-//    FInvPosition: TgdcInvPosition;
     FibsqlCardInfo: TIBSQL;           // Запрос для получения информации по карточке
     ibsqlLastRemains: TIBSQL;
     ibsqlCardList: TIBSQL;
@@ -482,13 +480,9 @@ type
     FContactType: Integer;
     FgdcDocumentLine: TgdcDocument;
 
-//    function SearchPositionInList: Integer;
     function GetCountPosition: Integer;
-//    function PlanStr: String;
-
     procedure AddPosition;
     procedure SetgdcDocumentLine(const Value: TgdcDocument);
-//    procedure DelPosition;
 
   protected
 
@@ -549,14 +543,6 @@ type
   protected
     procedure SetOptions_New; override;
   end;
-
-{  TgdcInvCardFull = class(TgdcBase)
-  public
-    class function GetListTable(const ASubType: TgdcSubType): String; override;
-    class function GetListField(const ASubType: TgdcSubType): String; override;
-    class function GetKeyField(const ASubType: TgdcSubType): String; override;
-
-  end;}
 
   TgdcInvCard = class(TgdcBase)
   private

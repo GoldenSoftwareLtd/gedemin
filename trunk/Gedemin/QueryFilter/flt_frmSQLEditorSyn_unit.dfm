@@ -33,7 +33,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
       Height = 453
       BorderStyle = bsNone
       TabsVisible = True
-      ActivePage = tsQuery
+      ActivePage = tsResult
       Align = alClient
       TabHeight = 23
       TabOrder = 0
@@ -1767,7 +1767,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
       Hint = 'Удалить бизнес-объект'
       ImageIndex = 2
       OnExecute = actDeleteBusinessObjectExecute
-      OnUpdate = actDeleteBusinessObjectUpdate
+      OnUpdate = actEditBusinessObjectUpdate
     end
     object actParse: TAction
       Caption = 'Разобрать запрос'
@@ -1817,7 +1817,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
       Hint = 'Открыть форму просмотра'
       ImageIndex = 210
       OnExecute = actShowViewFormExecute
-      OnUpdate = actShowViewFormUpdate
+      OnUpdate = actEditBusinessObjectUpdate
     end
     object actMakeSelect: TAction
       Caption = 'Создать запрос для таблицы'
