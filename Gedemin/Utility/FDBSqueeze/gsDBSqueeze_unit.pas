@@ -127,20 +127,45 @@ begin
 end;
 
 procedure TgsDBSqueeze.Connect(ANoGarbageCollect: Boolean; AOffForceWrite: Boolean);
+var
+  Tr: TIBTransaction;
+  q: TIBSQL;
 begin
   FIBDatabase.DatabaseName := FDatabaseName;
   FIBDatabase.LoginPrompt := False;
-  FIBDatabase.Params.Text :=
-    'user_name=' + FUserName + #13#10 +
-    'password=' + FPassword + #13#10 +
+  FIBDatabase.Params.CommaText :=
+    'user_name=' + FUserName + ',' +
+    'password=' + FPassword + ',' +
     'lc_ctype=win1251';
   if ANoGarbageCollect then
-    FIBDatabase.Params.Append('no_garbage_collect=1');
+    FIBDatabase.Params.Append('no_garbage_collect');
   if AOffForceWrite then
     FIBDatabase.Params.Append('force_write=0');
 
   FIBDatabase.Connected := True;
-  LogEvent('Connecting to DB (no_garbage_collect=' + IntToStr(Integer(ANoGarbageCollect)) + '; force_write=' + IntToStr(Integer(ANoGarbageCollect)) + '; lc_ctype=win1251)... OK');
+  LogEvent('Connecting to DB... OK');
+
+  Tr := TIBTransaction.Create(nil);
+  q := TIBSQL.Create(nil);
+  try
+    Tr.DefaultDatabase := FIBDatabase;
+    Tr.StartTransaction;
+
+    q.Transaction := Tr;
+    q.SQL.Text := 'SELECT * FROM mon$database';
+    q.ExecQuery;
+    LogEvent('MON$PAGE_SIZE = ' + q.FieldByName('mon$page_size').AsString);
+    LogEvent('MON$PAGE_BUFFERS = ' + q.FieldByName('mon$page_buffers').AsString);
+    LogEvent('MON$FORCED_WRITES = ' + q.FieldByName('mon$forced_writes').AsString);
+
+    q.Close;
+    q.SQL.Text := 'SELECT * FROM mon$attachments WHERE mon$attachment_id = CURRENT_CONNECTION';
+    q.ExecQuery;
+    LogEvent('MON$GARBAGE_COLLECTION = ' + q.FieldByName('mon$garbage_collection').AsString);
+  finally
+    q.Free;
+    Tr.Free;
+  end;
 end;
 
 procedure TgsDBSqueeze.Reconnect(ANoGarbageCollect: Boolean; AOffForceWrite: Boolean);

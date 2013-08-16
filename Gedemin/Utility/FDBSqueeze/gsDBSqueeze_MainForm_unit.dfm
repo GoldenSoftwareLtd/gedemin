@@ -47,7 +47,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
     object lbl6: TLabel
       Left = 21
       Top = 46
-      Width = 183
+      Width = 184
       Height = 13
       Caption = 'Рассчитать и сохранить сальдо по: '
     end
@@ -384,7 +384,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
     Top = 602
     Width = 123
     Height = 25
-    Caption = 'Прервать выполение'
+    Caption = 'Прервать выполнение'
     TabOrder = 6
   end
   object ActionList: TActionList
