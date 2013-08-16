@@ -1,8 +1,8 @@
 object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
-  Left = 9
-  Top = 35
+  Left = 176
+  Top = 44
   BorderStyle = bsDialog
-  ClientHeight = 662
+  ClientHeight = 650
   ClientWidth = 1009
   Color = clBtnFace
   Font.Charset = RUSSIAN_CHARSET
@@ -31,7 +31,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
   end
   object grpOptions: TGroupBox
     Left = 8
-    Top = 462
+    Top = 390
     Width = 393
     Height = 152
     Caption = ' Options '
@@ -195,7 +195,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
   end
   object btnGo: TButton
     Left = 164
-    Top = 627
+    Top = 564
     Width = 75
     Height = 21
     Action = actGo
@@ -216,7 +216,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
     Left = 8
     Top = 160
     Width = 393
-    Height = 297
+    Height = 217
     Caption = ' Properties '
     TabOrder = 3
     object txt1: TStaticText
@@ -378,6 +378,14 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
       ParentFont = False
       TabOrder = 9
     end
+  end
+  object btnStop: TButton
+    Left = 279
+    Top = 602
+    Width = 123
+    Height = 25
+    Caption = 'Прервать выполение'
+    TabOrder = 6
   end
   object ActionList: TActionList
     Left = 269

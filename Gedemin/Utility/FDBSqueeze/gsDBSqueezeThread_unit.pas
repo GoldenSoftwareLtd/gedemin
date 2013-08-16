@@ -10,18 +10,22 @@ const
   WM_DBS_SETPARAMS             = WM_USER + 1;
   WM_DBS_GETDBSIZE             = WM_USER + 2;
   WM_DBS_CONNECT               = WM_USER + 3;
-  WM_DBS_GETSTATISTICS         = WM_USER + 4;
-  WM_DBS_SETSALDOPARAMS        = WM_USER + 5;
-  WM_DBS_SETCBBITEMS           = WM_USER + 6;
-  WM_DBS_SETCLOSINGDATE        = WM_USER + 7;
-  WM_DBS_SETCOMPANYNAME        = WM_USER + 8;
-  WM_DBS_TESTANDCREATEMETADATA = WM_USER + 9;
-  WM_DBS_CALCULATESALDO        = WM_USER + 10;
-  WM_DBS_PREPAREDB             = WM_USER + 11;
-  WM_DBS_DELETEDOCS            = WM_USER + 12;
-  WM_DBS_RESTOREDB             = WM_USER + 13;
-  WM_DBS_FINISHED              = WM_USER + 14;
-  WM_DBS_DISCONNECT            = WM_USER + 15;
+  WM_DBS_CREATESTATEJOURNAL    = WM_USER + 4;
+  WM_DBS_GETSTATISTICS         = WM_USER + 5;
+  WM_DBS_SETSALDOPARAMS        = WM_USER + 6;
+  WM_DBS_SETCBBITEMS           = WM_USER + 7;
+  WM_DBS_SETCLOSINGDATE        = WM_USER + 8;
+  WM_DBS_SETCOMPANYNAME        = WM_USER + 9;
+  WM_DBS_CREATEMETADATA        = WM_USER + 10;
+  WM_DBS_SAVEMETADATA          = WM_USER + 11;
+  WM_DBS_CALCULATEACSALDO      = WM_USER + 12;
+  WM_DBS_CALCULATEINVSALDO     = WM_USER + 13;
+  WM_DBS_CREATEHIS_INCLUDEHIS  = WM_USER + 14;
+  WM_DBS_PREPAREDB             = WM_USER + 15;
+  WM_DBS_DELETEDOCS            = WM_USER + 16;
+  WM_DBS_RESTOREDB             = WM_USER + 17;
+  WM_DBS_FINISHED              = WM_USER + 18;
+  WM_DBS_DISCONNECT            = WM_USER + 19;
 
 type
   TCbbEvent = procedure (const MsgStrList: TStringList) of object;
@@ -179,9 +183,20 @@ begin
 
     WM_DBS_CONNECT:
       begin
-        FDBS.Connect;
+        FDBS.Connect(False, True);        // garbage collect ON
         FConnected.Value := 1;
 
+        FDBS.SetFVariables;
+
+        Result := True;
+      end;
+
+    WM_DBS_CREATESTATEJOURNAL:
+      begin
+        if FConnected.Value = 1 then
+        begin
+          FDBS.CreateStateJournal;
+        end;
         Result := True;
       end;
 
@@ -198,7 +213,7 @@ begin
       begin
         FDBS.AllOurCompaniesSaldo := FAllOurCompaniesSaldo;
         FDBS.OnlyCompanySaldo := FOnlyCompanySaldo;
-        PostThreadMessage(ThreadID, WM_DBS_TESTANDCREATEMETADATA, 0, 0);
+        PostThreadMessage(ThreadID, WM_DBS_CREATEMETADATA, 0, 0);
         Result := True;
       end;
 
@@ -228,27 +243,55 @@ begin
         Result := True;
       end;
 
-    WM_DBS_TESTANDCREATEMETADATA:
+    WM_DBS_CREATEMETADATA:
       begin
         if FConnected.Value = 1 then
         begin
           FBusy.Value := 1;
-          FDBS.TestAndCreateMetadata;
-          PostThreadMessage(ThreadID, WM_DBS_CALCULATESALDO, 0, 0);
+          FDBS.CreateMetadata;
+          PostThreadMessage(ThreadID, WM_DBS_SAVEMETADATA, 0, 0);
         end;
         Result := True;
       end;
 
-    WM_DBS_CALCULATESALDO:
+    WM_DBS_SAVEMETADATA:
       begin
         if FConnected.Value = 1 then
         begin
-          //FDBS.SetBlockTriggerActive(False);
+          FBusy.Value := 1;
+          FDBS.SaveMetadata;
+          PostThreadMessage(ThreadID, WM_DBS_CALCULATEACSALDO, 0, 0);
+        end;
+        Result := True;
+      end;
 
+    WM_DBS_CALCULATEACSALDO:
+      begin
+        if FConnected.Value = 1 then
+        begin
           FDBS.CalculateAcSaldo;
+
+          PostThreadMessage(ThreadID, WM_DBS_CALCULATEINVSALDO, 0, 0);
+        end;
+        Result := True;
+      end;
+
+    WM_DBS_CALCULATEINVSALDO:
+      begin
+        if FConnected.Value = 1 then
+        begin
           //FDBS.CalculateInvSaldo;
 
-          //FDBS.SetBlockTriggerActive(True);
+          PostThreadMessage(ThreadID, WM_DBS_CREATEHIS_INCLUDEHIS, 0, 0);
+        end;
+        Result := True;
+      end;
+
+    WM_DBS_CREATEHIS_INCLUDEHIS:
+      begin
+        if FConnected.Value = 1 then
+        begin
+          FDBS.CreateHIS_IncludeInHIS;
 
           PostThreadMessage(ThreadID, WM_DBS_PREPAREDB, 0, 0);
         end;
@@ -259,19 +302,32 @@ begin
       begin
         if FConnected.Value = 1 then
         begin
+          //FDBS.Reconnect(True, True);    // garbage collect OFF
           FDBS.PrepareDB;
+
           PostThreadMessage(ThreadID, WM_DBS_DELETEDOCS, 0, 0);
         end;
         Result := True;
       end;
+
 
     WM_DBS_DELETEDOCS:
       begin
         if FConnected.Value = 1 then
         begin
           FBusy.Value := 1;
-          FDBS.DeleteDocuments;
-          FDBS.CreateAcEntries;                                                 ///TODO: оформить
+
+          ///FDBS.DeleteOldAcEntryBalance;
+          ///FDBS.DeleteDocuments_DeleteHIS;
+          ///FDBS.CreateAcEntries;                                                
+          FDBS.CreateInvSaldo;
+
+          //FDBS.RestoreDB;
+          FDBS.PrepareRebindInvCards;
+          //FDBS.PrepareDB;
+
+          FDBS.RebindInvCards;
+
           PostThreadMessage(ThreadID, WM_DBS_RESTOREDB, 0, 0);
         end;
         Result := True;
@@ -281,6 +337,8 @@ begin
       begin
         if FConnected.Value = 1 then
         begin
+          //FDBS.Reconnect(False, True);   // garbage collect ON
+
           FDBS.RestoreDB;
           PostThreadMessage(ThreadID, WM_DBS_FINISHED, 0, 0);
         end;

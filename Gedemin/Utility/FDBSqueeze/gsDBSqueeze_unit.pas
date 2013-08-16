@@ -28,44 +28,61 @@ type
     FPassword: String;
     FUserName: String;
 
-    FInactivBlockTriggers: String; // неактивные триггеры блокировки периода
-
     FAllOurCompaniesSaldo: Boolean;
     FOnlyCompanySaldo: Boolean;
 
     FCurUserContactKey: Integer;
+    
+    FEntryAnalyticsStr: String; // список всех бухгалтерских аналитик  
+    FCardFeaturesStr: String;   // cписок полей-признаков складской карточки
 
     procedure LogEvent(const AMsg: String);
+    procedure LogSQL(const AnIBSQL: TIBSQL);
 
     function GetNewID: Integer;
     function GetConnected: Boolean;
+
+    function CreateHIS(AnIndex: Integer): Integer;
+    function DestroyHIS(AnIndex: Integer): Integer;
 
   public
     constructor Create;
     destructor Destroy; override;
 
-    procedure PrepareBeforeInsert;
-    procedure RestoreAfterInsert;
-    procedure SetBlockTriggerActive(SetActive: Boolean);
+    procedure CreateStateJournal;
+    procedure SetFVariables;
+
+    procedure SaveMetadata;
     
-    procedure Connect;
+    procedure Connect(ANoGarbageCollect: Boolean; AOffForceWrite: Boolean);
     procedure Disconnect;
+    procedure Reconnect(ANoGarbageCollect: Boolean; AOffForceWrite: Boolean);
 
     // подсчет бухгалтерского сальдо
     procedure CalculateAcSaldo;
     // формирование бухгалтерского сальдо
     procedure CreateAcEntries;
 
-    // подсчет и формирование складских остатков
+    // подсчет складских остатков
     procedure CalculateInvSaldo;
-    
-    procedure DeleteDocuments;
+    // формирование складских остатков
+    procedure CreateInvSaldo;
+
+    procedure PrepareRebindInvCards;
+    procedure RebindInvCards;
+
+    // удаление старого бух сальдо
+    procedure DeleteOldAcEntryBalance;
+
+    procedure CreateHIS_IncludeInHIS;
+    procedure DeleteDocuments_DeleteHIS;
+
     procedure PrepareDB;
     procedure RestoreDB;
     procedure SetItemsCbbEvent;
     procedure GetDBSizeEvent;
     procedure GetStatisticsEvent;
-    procedure TestAndCreateMetadata;
+    procedure CreateMetadata;
 
     property AllOurCompaniesSaldo: Boolean read FAllOurCompaniesSaldo write FAllOurCompaniesSaldo;
     property OnlyCompanySaldo: Boolean read FOnlyCompanySaldo write FOnlyCompanySaldo;
@@ -109,21 +126,45 @@ begin
   inherited;
 end;
 
-procedure TgsDBSqueeze.Connect;
-var
-  q: TIBSQL;
-  Tr: TIBTransaction;
+procedure TgsDBSqueeze.Connect(ANoGarbageCollect: Boolean; AOffForceWrite: Boolean);
 begin
   FIBDatabase.DatabaseName := FDatabaseName;
   FIBDatabase.LoginPrompt := False;
   FIBDatabase.Params.Text :=
     'user_name=' + FUserName + #13#10 +
     'password=' + FPassword + #13#10 +
-    'lc_ctype=win1251' + #13#10 +
-    'force_write=0' + #13#10;
-   // 'no_garbage_collect=1';
+    'lc_ctype=win1251';
+  if ANoGarbageCollect then
+    FIBDatabase.Params.Append('no_garbage_collect=1');
+  if AOffForceWrite then
+    FIBDatabase.Params.Append('force_write=0');
+
   FIBDatabase.Connected := True;
-  LogEvent('Connecting to DB... OK');
+  LogEvent('Connecting to DB (no_garbage_collect=' + IntToStr(Integer(ANoGarbageCollect)) + '; force_write=' + IntToStr(Integer(ANoGarbageCollect)) + '; lc_ctype=win1251)... OK');
+end;
+
+procedure TgsDBSqueeze.Reconnect(ANoGarbageCollect: Boolean; AOffForceWrite: Boolean);
+begin
+  LogEvent('Reconnecting to DB...');
+
+  Disconnect;
+  Connect(ANoGarbageCollect, AOffForceWrite);
+
+  LogEvent('Reconnecting to DB... OK');
+end;
+
+procedure TgsDBSqueeze.Disconnect;
+begin
+  FIBDatabase.Connected := False;
+  LogEvent('Disconnecting from DB... OK');
+end;
+
+procedure TgsDBSqueeze.SetFVariables;
+var
+  q: TIBSQL;
+  Tr: TIBTransaction;
+begin
+  Assert(Connected);
 
   Tr := TIBTransaction.Create(nil);
   q := TIBSQL.Create(nil);
@@ -145,170 +186,45 @@ begin
       raise EgsDBSqueeze.Create('Invalid GD_USER data');
 
     FCurUserContactKey := q.FieldByName('CurUserContactKey').AsInteger;
-
-    {q.Close;
-    q.SQL.Text :=
-      'SELECT RDB$GET_CONTEXT(''SYSTEM'', ''ENGINE_VERSION'') as Ver FROM rdb$database ';    ///TODO: перенести
-    q.ExecQuery;
-
-    LogEvent('Firebird Server ver. ' + q.FieldByName('Ver').AsString);  }
-    //Tr.Commit;
-  finally
-    q.Free;
-    Tr.Free;
-  end;
-end;
-
-procedure TgsDBSqueeze.Disconnect;
-begin
-  FIBDatabase.Connected := False;
-  LogEvent('Disconnecting from DB... OK');
-end;
-
-function TgsDBSqueeze.GetNewID: Integer;
-var
-  q: TIBSQL;
-  Tr: TIBTransaction;
-  Id: Integer;
-begin
-  Assert(Connected);
-
-  Id := -1;
-
-  Tr := TIBTransaction.Create(nil);
-  q := TIBSQL.Create(nil);
-  try
-   Tr.DefaultDatabase := FIBDatabase;
-   Tr.StartTransaction;
-   q.Transaction := Tr;
-
-   q.SQL.Text :=
-     'SELECT GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0) AS NEW_ID ' +
-     'FROM RDB$DATABASE ';
-   q.ExecQuery;
-   Id := q.FieldByName('NEW_ID').AsInteger;
-  finally
-    Result := Id;
-    q.Free;
-    Tr.Free;
-  end;
-end;
-
-procedure TgsDBSqueeze.SetBlockTriggerActive(SetActive: Boolean);       //TODO: доработать. отключение триггеров блокировки периода
-var
-  StateStr: String;
-  q: TIBSQL;
-  q2: TIBSQL;
-  Tr: TIBTransaction;
-begin
-  Tr := TIBTransaction.Create(nil);
-  q := TIBSQL.Create(nil);
-  q2 := TIBSQL.Create(nil);
-  try
-    Tr.DefaultDatabase := FIBDatabase;
-    Tr.StartTransaction;
-    q.Transaction := Tr;
-    q2.Transaction := Tr;
-
-    if FInactivBlockTriggers = '' then
-      LogEvent('[test] FInactivBlockTriggers=""')
-    else
-      LogEvent('[test] FInactivBlockTriggers=' + FInactivBlockTriggers);
-
-    if FInactivBlockTriggers = '' then
-    begin
-      q.SQL.Text :=
-        'SELECT ' +
-        '  rdb$trigger_name AS TN ' +
-        'FROM ' +
-        '  rdb$triggers ' +
-        'WHERE ' +
-        '  rdb$system_flag = 0 ' +
-        '  AND rdb$trigger_name LIKE ''%BLOCK%'' ' +
-        '  AND rdb$trigger_inactive <> 0 ';                                     ///=1
-      q.ExecQuery;
-      while not q.EOF do
-      begin
-        FInactivBlockTriggers := FInactivBlockTriggers + ' ''' + q.FieldByName('TN').AsString + '''';
-
-        q.Next;
-        if not q.EOF then
-          FInactivBlockTriggers := FInactivBlockTriggers + ', ';
-      end;
-      q.Close;
-    end;
-
-    FInactivBlockTriggers := FInactivBlockTriggers + ' ';
-
-    q.SQL.Text :=
-      'SELECT ' +
-      '  rdb$trigger_name AS TN ' +
-      'FROM ' +
-      '  rdb$triggers ' +
-      'WHERE ' +
-      '  rdb$system_flag = 0 ' +
-      '  AND rdb$trigger_name LIKE ''%BLOCK%'' ' +
-      '  AND rdb$trigger_inactive = :IsInactiv ';
-    if FInactivBlockTriggers <> ' ' then
-      q.SQL.Add(
-      '  AND rdb$trigger_name NOT IN (' + FInactivBlockTriggers + ')');
-
-    if SetActive then
-    begin
-      StateStr := 'ACTIVE';
-      q.ParamByName('IsInactiv').AsInteger := 1;
-    end
-    else begin
-      StateStr := 'INACTIVE';
-      q.ParamByName('IsInactiv').AsInteger := 0;
-    end;
-    q.ExecQuery;
-
-    while not q.EOF do
-    begin
-      q2.SQL.Text := 'ALTER TRIGGER ' + q.FieldByName('TN').AsString + ' '  + StateStr;
-      q2.ExecQuery;
-      q2.Close;
-      q.Next;
-    end;
     q.Close;
 
-    Tr.Commit;
-    Tr.StartTransaction;
-
-    q.SQL.Text :=                                                                ///
-      'EXECUTE BLOCK ' +
-      'AS ' +
-      '  DECLARE VARIABLE TN CHAR(31); ' +
-      'BEGIN ' +
-      '  FOR ' +
-      '    SELECT rdb$trigger_name ' +
-      '    FROM rdb$triggers ' +
-      '    WHERE rdb$trigger_inactive = 0 ' +
-      '     AND RDB$SYSTEM_FLAG = 0 ' +
-     // '    AND rdb$relation_name = ''AC_ENTRY'' ' +
-      '     AND rdb$trigger_name NOT LIKE ''%ISSIMPLE%'' ' + 
-      '    INTO :TN ' +
-      '  DO ' +
-      '  BEGIN ' +
-      '      EXECUTE STATEMENT ''ALTER TRIGGER '' || :TN || '' INACTIVE ''; ' +
-      '  END ' +
-      'END';
+    q.SQL.Text :=
+      'SELECT LIST( ' +
+      '  TRIM(rf.rdb$field_name)) AS UsrFieldsList ' +
+      'FROM ' + 
+      '  rdb$relation_fields rf ' +
+      'WHERE ' +
+      '  rf.rdb$relation_name = ''AC_ACCOUNT'' ' +
+      '  AND rf.rdb$field_name LIKE ''USR$%'' ';
     q.ExecQuery;
 
-    Tr.Commit;
+    FEntryAnalyticsStr := q.FieldByName('UsrFieldsList').AsString;
+    q.Close;
+
+    q.SQL.Text :=
+      'SELECT LIST( ' + 
+      ' TRIM(rf.rdb$field_name)) AS UsrFieldsList ' +
+      'FROM ' + 
+      '  rdb$relation_fields rf ' +
+      'WHERE ' + 
+      '  rf.rdb$relation_name = ''INV_CARD'' ' +
+      '  AND rf.rdb$field_name LIKE ''USR$%'' ';
+    q.ExecQuery;
+
+    FCardFeaturesStr := q.FieldByName('UsrFieldsList').AsString;
+    q.Close;
   finally
     q.Free;
-    q2.Free;
     Tr.Free;
   end;
 end;
 
-procedure TgsDBSqueeze.PrepareBeforeInsert;
+function TgsDBSqueeze.GetNewID: Integer; // return next unique id
 var
-  Tr: TIBTransaction;
   q: TIBSQL;
+  Tr: TIBTransaction;
 begin
+  Result := -1;
   Assert(Connected);
 
   Tr := TIBTransaction.Create(nil);
@@ -316,302 +232,73 @@ begin
   try
     Tr.DefaultDatabase := FIBDatabase;
     Tr.StartTransaction;
-    LogEvent('[test] PrepareBeforeInsert...');
     q.Transaction := Tr;
 
-    // fk
     q.SQL.Text :=
-      'INSERT INTO DBS_FK_CONSTRAINTS ( ' +
-      '  CONSTRAINT_NAME, RELATION_NAME, REF_RELATION_NAME, ' +
-      '  UPDATE_RULE, DELETE_RULE, LIST_FIELDS, LIST_REF_FIELDS) ' +
       'SELECT ' +
-      '  c.RDB$CONSTRAINT_NAME AS Constraint_Name, ' +
-      '  c.RDB$RELATION_NAME AS Relation_Name, ' +
-      '  c2.RDB$RELATION_NAME AS Ref_Relation_Name, ' +
-      '  refc.RDB$UPDATE_RULE AS Update_Rule, ' +
-      '  refc.RDB$DELETE_RULE AS Delete_Rule, ' +
-      '  LIST(iseg.rdb$field_name) AS Fields, ' +
-      '  LIST(ref_iseg.rdb$field_name) AS Ref_Fields ' +
+      '  GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0) AS NewID ' +
       'FROM ' +
-      '  RDB$RELATION_CONSTRAINTS c ' +
-      '  JOIN RDB$REF_CONSTRAINTS refc ' +
-      '    ON c.RDB$CONSTRAINT_NAME = refc.RDB$CONSTRAINT_NAME ' +
-      '  JOIN RDB$RELATION_CONSTRAINTS c2 ' +
-      '    ON refc.RDB$CONST_NAME_UQ = c2.RDB$CONSTRAINT_NAME ' +
-      '  JOIN rdb$index_segments iseg ' +
-      '    ON iseg.rdb$index_name = c.rdb$index_name ' +
-      '  JOIN rdb$index_segments ref_iseg ' +
-      '    ON ref_iseg.rdb$index_name = c2.rdb$index_name ' +
-      'WHERE ' +
-      '  (c.rdb$constraint_type = ''FOREIGN KEY'')  ' +
-      '  AND (NOT c.rdb$constraint_name LIKE ''RDB$%'') ' +
-      'GROUP BY ' +
-      '  1, 2, 3, 4, 5';
+      '  rdb$database ';
     q.ExecQuery;
 
-    q.SQL.Text :=
-      'EXECUTE BLOCK ' +
-      'AS ' +
-      '  DECLARE VARIABLE CN CHAR(31); ' +
-      '  DECLARE VARIABLE RN CHAR(31); ' +
-      'BEGIN ' +
-      '  FOR ' +
-      '    SELECT constraint_name, relation_name ' +
-      '    FROM DBS_FK_CONSTRAINTS ' +
-      '    INTO :CN, :RN ' +
-      '  DO ' +
-      '    EXECUTE STATEMENT ''ALTER TABLE '' || :RN || '' DROP CONSTRAINT '' || :CN; ' +
-      'END';
-    q.ExecQuery;
-    Tr.Commit;
-    Tr.StartTransaction;
-
-    // pk, unique
-    q.SQL.Text :=
-      'INSERT INTO DBS_PK_UNIQUE_CONSTRAINTS ( ' +
-      '  RELATION_NAME, ' +
-      '  CONSTRAINT_NAME, ' +
-      '  CONSTRAINT_TYPE, ' +
-      '  LIST_FIELDS ) ' +
-      'SELECT ' +
-      '  c.RDB$RELATION_NAME, ' +
-      '  c.RDB$CONSTRAINT_NAME, ' +
-      '  c.RDB$CONSTRAINT_TYPE, ' +
-      '  i.List_Fields ' +
-      'FROM ' +
-      '  RDB$RELATION_CONSTRAINTS c ' +
-      '  JOIN (SELECT inx.RDB$INDEX_NAME, ' +
-      '    list(TRIM(inx.RDB$FIELD_NAME)) as List_Fields ' +
-      '    FROM RDB$INDEX_SEGMENTS inx ' +
-      '    GROUP BY inx.RDB$INDEX_NAME ' +
-      '  ) i ON c.RDB$INDEX_NAME = i.RDB$INDEX_NAME ' +
-      'WHERE ' +
-      '  (c.rdb$constraint_type = ''PRIMARY KEY'' OR c.rdb$constraint_type = ''UNIQUE'') ' +
-      '   AND c.rdb$relation_name IN (''AC_ENTRY'', ''AC_RECORD'', ''GD_DOCUMENT'', ''INV_CARD'', ''INV_MOVEMENT'') ' +///
-      '   AND (NOT c.rdb$constraint_name LIKE ''RDB$%'') ';
-    q.ExecQuery;
-
-    q.SQL.Text :=
-      'EXECUTE BLOCK ' +
-      'AS ' +
-      '  DECLARE VARIABLE CN CHAR(31); ' +
-      '  DECLARE VARIABLE RN CHAR(31); ' +
-      'BEGIN ' +
-      '  FOR ' +
-     '    SELECT constraint_name, relation_name ' +
-      '    FROM DBS_PK_UNIQUE_CONSTRAINTS ' +
-      '    INTO :CN, :RN ' +
-      '  DO ' +
-      '    EXECUTE STATEMENT ''ALTER TABLE '' || :RN || '' DROP CONSTRAINT '' || :CN; ' +
-      'END';
-    q.ExecQuery;
-    Tr.Commit;
-    Tr.StartTransaction;
-
-    //триггеры
-    q.SQL.Text :=
-      'INSERT INTO DBS_INACTIVE_TRIGGERS (TRIGGER_NAME) ' +
-      'SELECT RDB$TRIGGER_NAME ' +
-      'FROM RDB$TRIGGERS ' +
-      'WHERE RDB$TRIGGER_INACTIVE <> 0 ' + ///=1
-      '  AND RDB$SYSTEM_FLAG = 0';                                           
-    q.ExecQuery;
-    
-    q.SQL.Text :=
-      'EXECUTE BLOCK ' +
-      'AS ' +
-      '  DECLARE VARIABLE TN CHAR(31); ' +
-      'BEGIN ' +
-      '  FOR ' +
-      '    SELECT rdb$trigger_name ' +
-      '    FROM rdb$triggers ' +
-      '    WHERE rdb$trigger_inactive = 0 ' +
-      '      AND RDB$SYSTEM_FLAG = 0 ' +
-      '      AND rdb$relation_name IN (''AC_ENTRY'',''AC_RECORD'',''GD_DOCUMENT'',''INV_CARD'',''INV_MOVEMENT'') ' +///
-      '      AND RDB$TRIGGER_NAME NOT IN (SELECT RDB$TRIGGER_NAME FROM RDB$CHECK_CONSTRAINTS) ' +
-      '      AND rdb$trigger_name NOT LIKE ''%ISSIMPLE%'' ' +                   ////
-      '    INTO :TN ' +
-      '  DO ' +
-      '  BEGIN ' +
-      '    IN AUTONOMOUS TRANSACTION DO ' +
-      '      EXECUTE STATEMENT ''ALTER TRIGGER '' || :TN || '' INACTIVE ''; ' +
-      '  END ' +
-      'END';
-    q.ExecQuery;
-    Tr.Commit;
-    Tr.StartTransaction;
-
-    // indices
-    q.SQL.Text :=
-      'INSERT INTO DBS_INACTIVE_INDICES (INDEX_NAME) ' +
-      'SELECT RDB$INDEX_NAME ' +
-      'FROM RDB$INDICES ' +
-      'WHERE RDB$INDEX_INACTIVE <> 0 ' + ///=1
-      '  AND RDB$SYSTEM_FLAG = 0';
-    q.ExecQuery;
-
-    q.SQL.Text :=
-      'EXECUTE BLOCK ' +
-      'AS ' +
-      '  DECLARE VARIABLE N CHAR(31); ' +
-      'BEGIN ' +
-      '  FOR ' +
-      '    SELECT rdb$index_name ' +
-      '    FROM rdb$indices ' +
-      '    WHERE rdb$index_inactive = 0 ' +
-      '      AND RDB$SYSTEM_FLAG = 0 ' +
-      '      AND rdb$relation_name IN (''AC_ENTRY'', ''AC_RECORD'', ''GD_DOCUMENT'', ''INV_CARD'', ''INV_MOVEMENT'') ' +///
-      '      AND ((NOT rdb$index_name LIKE ''RDB$%'') ' +
-      '        OR ((rdb$index_name LIKE ''RDB$PRIMARY%'') ' +
-      '        OR (rdb$index_name LIKE ''RDB$FOREIGN%'')) ' +
-      '      ) ' + 
-      '    INTO :N ' +
-      '  DO ' +
-      '    EXECUTE STATEMENT ''ALTER INDEX '' || :N || '' INACTIVE ''; ' +
-      'END';
-    q.ExecQuery;   
-    
-    Tr.Commit;
-    LogEvent('[test] PrepareBeforeInsert... OK');
+    Result := q.FieldByName('NewID').AsInteger;
   finally
     q.Free;
     Tr.Free;
   end;
-end; 
+end;
 
-procedure TgsDBSqueeze.RestoreAfterInsert;
+procedure TgsDBSqueeze.CreateStateJournal;
 var
-  Tr: TIBTransaction;
   q: TIBSQL;
+  Tr: TIBTransaction;
 begin
   Assert(Connected);
-
+  
   Tr := TIBTransaction.Create(nil);
   q := TIBSQL.Create(nil);
   try
     Tr.DefaultDatabase := FIBDatabase;
     Tr.StartTransaction;
-    LogEvent('[test] RestoreAfterInsert...');
-
     q.Transaction := Tr;
 
-    // indices
-    q.SQL.Text :=
-      'EXECUTE BLOCK ' +
-      'AS ' +
-      '  DECLARE VARIABLE N CHAR(31); ' +
-      'BEGIN ' +
-      '  FOR ' +
-      '    SELECT i.rdb$index_name ' +
-      '    FROM rdb$indices i ' +
-      '      LEFT JOIN dbs_inactive_indices ii ON ii.index_name = i.rdb$index_name ' +
-      '    WHERE i.rdb$index_inactive = 0 ' +
-      '      AND i.rdb$system_flag = 0 ' +
-      '      AND ii.index_name IS NULL ' +
-      '    INTO :N ' +
-      '  DO ' +
-      '    EXECUTE STATEMENT ''ALTER INDEX '' || :N || '' ACTIVE ''; ' + 
-      '  DELETE FROM dbs_inactive_indices; ' +
-      'END';
-    q.ExecQuery;
+    if not RelationExist2('DBS_JOURNAL_STATE', Tr) then
+    begin
+     { q.SQL.Text :=
+        'CREATE TABLE DBS_JOURNAL_STATE ( ' +
+        '  CONSTRAINT PK_DBS_ PRIMARY KEY (CONSTRAINT_NAME))';
+      q.ExecQuery;
+      LogEvent('Table DBS_FK_CONSTRAINTS has been created.');
+      }
+    end;   
 
     Tr.Commit;
-    Tr.StartTransaction;
-
-    // triggers
-    q.SQL.Text :=
-      'EXECUTE BLOCK ' +
-      'AS ' +
-      '  DECLARE VARIABLE TN CHAR(31); ' +
-      'BEGIN ' +
-      '  FOR ' +
-      '    SELECT t.rdb$trigger_name ' +
-      '    FROM rdb$triggers t ' +
-      '      LEFT JOIN dbs_inactive_triggers it ON it.trigger_name = t.rdb$trigger_name ' +
-      '    WHERE t.rdb$trigger_inactive = 0 ' +
-      '      AND t.rdb$system_flag = 0 ' +
-      '      AND it.trigger_name IS NULL ' +
-      '    INTO :TN ' +
-      '  DO ' +
-      '    EXECUTE STATEMENT ''ALTER TRIGGER '' || :TN || '' ACTIVE ''; ' +
-      '  DELETE FROM dbs_inactive_triggers; ' +
-      'END';
-    q.ExecQuery;
-
-    Tr.Commit;
-    Tr.StartTransaction;
-
-    // pk, unique
-    q.SQL.Text :=
-      'EXECUTE BLOCK ' +
-      'AS ' +
-      '  DECLARE VARIABLE S CHAR(16384); ' +
-      'BEGIN ' +
-      '  FOR ' +
-      '    SELECT ''ALTER TABLE '' || relation_name || '' ADD CONSTRAINT '' || ' +
-      '      constraint_name || '' '' || constraint_type ||'' ('' || list_fields || '') '' ' +
-      '    FROM dbs_pk_unique_constraints ' +
-      '    INTO :S ' +
-      '  DO ' +
-      '    EXECUTE STATEMENT :S; ' +
-      '  DELETE FROM dbs_pk_unique_constraints; ' +
-      'END';
-    q.ExecQuery;
-
-    Tr.Commit;
-    Tr.StartTransaction;
-
-    // fk
-    q.SQL.Text :=
-      'EXECUTE BLOCK ' +
-      'AS ' +
-      '  DECLARE VARIABLE S CHAR(16384); ' +
-      'BEGIN ' +
-      '  FOR ' +
-      '    SELECT ''ALTER TABLE '' || relation_name || '' ADD CONSTRAINT '' || ' +
-      '      constraint_name || '' FOREIGN KEY ('' || list_fields || '') REFERENCES '' || ' +
-      '      ref_relation_name || ''('' || list_ref_fields || '') '' || ' +
-      '      IIF(update_rule = ''RESTRICT'', '''', '' ON UPDATE '' || update_rule) || ' +
-      '      IIF(delete_rule = ''RESTRICT'', '''', '' ON DELETE '' || delete_rule) ' +
-      '    FROM dbs_fk_constraints ' +
-      '    INTO :S ' +
-      '  DO ' +
-      '    EXECUTE STATEMENT :S; ' +
-      '  DELETE FROM dbs_fk_constraints; ' +
-      'END';
-    q.ExecQuery;
-
-    Tr.Commit;
-    LogEvent('[test] RestoreAfterInsert... OK');
   finally
     q.Free;
     Tr.Free;
   end;
+
 end;
 
 procedure TgsDBSqueeze.CalculateAcSaldo;  // подсчет бухгалтерского сальдо
 var
-  q2: TIBSQL;
-  q3: TIBSQL;
-  Tr2: TIBTransaction;
-  Tr: TIBTransaction;
-
+  q2, q3: TIBSQL;
+  Tr, Tr2: TIBTransaction;
   I: Integer;
-  AllUsrFieldsNames: String;     // список всех аналитик (в разных БД отличаются)
-  OstatkiAccountKey: Integer;
 
-  OurCompaniesList, TmpList: TStringList;
+  OstatkiAccountKey: Integer;
+  AvailableAnalyticsList: TStringList;  // cписок активных аналитик для счета
 
   CompanyKey: Integer;
   OurCompaniesListStr: String;
-  UsrFieldsList: TStringList;  // cписок активных аналитик для счета
+  OurCompany_EntryDocList, TmpList: TStringList;
 begin
   LogEvent('Calculating entry balance...');
   Assert(Connected);
 
   TmpList := TStringList.Create;
-  UsrFieldsList := TStringList.Create;
-  OurCompaniesList := TStringList.Create; // список компания - документ для проводок
+  AvailableAnalyticsList := TStringList.Create;
+  OurCompany_EntryDocList := TStringList.Create; // список "компания=документ для проводок"
 
   q2 := TIBSQL.Create(nil);
   q3 := TIBSQL.Create(nil);
@@ -635,6 +322,12 @@ begin
       OurCompaniesListStr := q2.FieldByName('OurCompaniesList').AsString;
       LogEvent('[test] OurCompaniesList: ' + OurCompaniesListStr);
       q2.Close;
+
+      TmpList.Text := StringReplace(OurCompaniesListStr, ',', #13#10, [rfReplaceAll, rfIgnoreCase]);
+      for I := 0 to TmpList.Count-1 do
+        OurCompany_EntryDocList.Append(TmpList[I] + '=' + IntToStr(GetNewID));
+
+      TmpList.Clear;  
     end
     else if FOnlyCompanySaldo then
     begin
@@ -649,13 +342,6 @@ begin
       q2.Close;
     end;
 
-    if FAllOurCompaniesSaldo then
-    begin
-      TmpList.Text := StringReplace(OurCompaniesListStr, ',', #13#10, [rfReplaceAll, rfIgnoreCase]);
-      for i := 0 to TmpList.Count-1 do
-        OurCompaniesList.Append(TmpList[i] + '=' + IntToStr(GetNewID));
-    end;
-
     q2.SQL.Text :=
       'SELECT ' +
       '  aac.id  AS OstatkiAccountKey ' +
@@ -665,35 +351,26 @@ begin
     q2.ExecQuery;
     OstatkiAccountKey := q2.FieldByName('OstatkiAccountKey').AsInteger;
     q2.Close;
-
-    q2.SQL.Text :=
-      'SELECT LIST(rf.rdb$field_name) AS UsrFieldsList ' +
-      'FROM RDB$RELATION_FIELDS rf ' +
-      'WHERE rf.rdb$relation_name = ''AC_ACCOUNT'' ' +
-      '  AND rf.rdb$field_name LIKE ''USR$%'' ';
-    q2.ExecQuery;
-
-    AllUsrFieldsNames := q2.FieldByName('UsrFieldsList').AsString;
-    q2.Close;
-
     //-------------------------------------------- вычисление сальдо для счета
     // получаем счета
     q2.SQL.Text :=
       'SELECT DISTINCT ' +
       '  ae.accountkey AS id, ' +
-         StringReplace(AllUsrFieldsNames, 'USR$', 'ac.USR$', [rfReplaceAll, rfIgnoreCase]) + ' ' +
+         StringReplace(FEntryAnalyticsStr, 'USR$', 'ac.USR$', [rfReplaceAll, rfIgnoreCase]) + ' ' +
       'FROM AC_ENTRY ae ' +
       '  JOIN AC_ACCOUNT ac ON ae.accountkey = ac.id ' +
       'WHERE ' +
       '  ae.entrydate < :EntryDate ';
     if FOnlyCompanySaldo then
       q2.SQL.Add(
-        'AND ae.companykey = ' + IntToStr(CompanyKey))
+        'AND ae.companykey = :CompanyKey ')
     else if FAllOurCompaniesSaldo then
       q2.SQL.Add(' ' +
         'AND ae.companykey IN (' + OurCompaniesListStr + ') ');
 
     q2.ParamByName('EntryDate').AsDateTime := FClosingDate;                     ///TODO: проверить
+    if FOnlyCompanySaldo then
+      q2.ParamByName('CompanyKey').AsInteger := CompanyKey;
     LogEvent('[test] SELECT account begin');
     q2.ExecQuery;
     LogEvent('[test] SELECT account end');
@@ -704,14 +381,14 @@ begin
     begin
       LogEvent('[test] acc++');
 
-      UsrFieldsList.Text := StringReplace(AllUsrFieldsNames, ',', #13#10, [rfReplaceAll, rfIgnoreCase]);
+      AvailableAnalyticsList.Text := StringReplace(FEntryAnalyticsStr, ',', #13#10, [rfReplaceAll, rfIgnoreCase]);
       // получаем cписок активных аналитик, по которым ведется учет для счета
       I := 0;
-      while I < UsrFieldsList.Count - 1 do
+      while I < AvailableAnalyticsList.Count - 1 do
       begin
-        if (q2.FieldByName(Trim(UsrFieldsList[I])).AsInteger = 0) or (q2.FieldByName(Trim(UsrFieldsList[I])).IsNull) then
+        if (q2.FieldByName(Trim(AvailableAnalyticsList[I])).AsInteger = 0) or (q2.FieldByName(Trim(AvailableAnalyticsList[I])).IsNull) then
         begin
-          UsrFieldsList.Delete(I);
+          AvailableAnalyticsList.Delete(I);
         end
         else
           Inc(I);
@@ -735,8 +412,8 @@ begin
         '  debitncu, ' +
         '  debitcurr, ' +
         '  debiteq ';
-      for I := 0 to UsrFieldsList.Count - 1 do
-        q3.SQL.Add(', ' + UsrFieldsList[I]);
+      for I := 0 to AvailableAnalyticsList.Count - 1 do
+        q3.SQL.Add(', ' + AvailableAnalyticsList[I]);
 
       q3.SQL.Add(
         ') ' +
@@ -749,20 +426,20 @@ begin
       begin                  // documentkey
         q3.SQL.Add(' ' +
           'CASE companykey ');
-        for i := 0 to OurCompaniesList.Count-1 do
+        for I := 0 to OurCompany_EntryDocList.Count-1 do
         begin
           q3.SQL.Add(' ' +
-            'WHEN ' + OurCompaniesList.Names[i] + ' THEN ' + OurCompaniesList.Values[OurCompaniesList.Names[i]]);
+            'WHEN ' + OurCompany_EntryDocList.Names[I] + ' THEN ' + OurCompany_EntryDocList.Values[OurCompany_EntryDocList.Names[I]]);
         end;
         q3.SQL.Add(' ' +
           'END, ');
                              //masterdocumentkey
         q3.SQL.Add(
           'CASE companykey ');
-        for i := 0 to OurCompaniesList.Count-1 do
+        for I := 0 to OurCompany_EntryDocList.Count-1 do
         begin
           q3.SQL.Add(' ' +
-            'WHEN ' + OurCompaniesList.Names[i] + ' THEN ' + OurCompaniesList.Values[OurCompaniesList.Names[i]]);
+            'WHEN ' + OurCompany_EntryDocList.Names[I] + ' THEN ' + OurCompany_EntryDocList.Values[OurCompany_EntryDocList.Names[I]]);
         end;
         q3.SQL.Add(' ' +
           'END, ');
@@ -781,8 +458,8 @@ begin
         '  0.0000 , ' + 
         '  0.0000 , ' +
         '  0.0000');
-      for I := 0 to UsrFieldsList.Count - 1 do
-        q3.SQL.Add(', ' + UsrFieldsList[I]);
+      for I := 0 to AvailableAnalyticsList.Count - 1 do
+        q3.SQL.Add(', ' + AvailableAnalyticsList[I]);
 
       q3.SQL.Add(' ' +
         'FROM AC_ENTRY ' +
@@ -790,7 +467,7 @@ begin
         '  AND entrydate < :EntryDate ');
       if FOnlyCompanySaldo then
         q3.SQL.Add(' ' +
-          'AND companykey = ' + IntToStr(CompanyKey) + ' ')
+          'AND companykey = :CompanyKey ')
       else if FAllOurCompaniesSaldo then
         q3.SQL.Add(' ' +
           'AND companykey IN (' + OurCompaniesListStr + ') ');
@@ -799,8 +476,8 @@ begin
         '  accountkey, ' +
         '  companykey, ' +
         '  currkey ');
-      for I := 0 to UsrFieldsList.Count - 1 do
-        q3.SQL.Add(', ' + UsrFieldsList[I]);
+      for I := 0 to AvailableAnalyticsList.Count - 1 do
+        q3.SQL.Add(', ' + AvailableAnalyticsList[I]);
       q3.SQL.Add(' ' +
         'HAVING ' +
         '  (SUM(debitncu) - SUM(creditncu)) < 0.0000 ' +
@@ -817,20 +494,20 @@ begin
       begin       //documentkey   
         q3.SQL.Add(' ' +
           'CASE companykey ');
-        for i := 0 to OurCompaniesList.Count-1 do
+        for I := 0 to OurCompany_EntryDocList.Count-1 do
         begin
           q3.SQL.Add(' ' +
-            'WHEN ' + OurCompaniesList.Names[i] + ' THEN ' + OurCompaniesList.Values[OurCompaniesList.Names[i]]);
+            'WHEN ' + OurCompany_EntryDocList.Names[I] + ' THEN ' + OurCompany_EntryDocList.Values[OurCompany_EntryDocList.Names[I]]);
         end;
         q3.SQL.Add(' ' +
           'END, ');
                   //masterdocumentkey
         q3.SQL.Add(
           'CASE companykey ');
-        for i := 0 to OurCompaniesList.Count-1 do
+        for i := 0 to OurCompany_EntryDocList.Count-1 do
         begin
           q3.SQL.Add(' ' +
-            'WHEN ' + OurCompaniesList.Names[i] + ' THEN ' + OurCompaniesList.Values[OurCompaniesList.Names[i]]);
+            'WHEN ' + OurCompany_EntryDocList.Names[I] + ' THEN ' + OurCompany_EntryDocList.Values[OurCompany_EntryDocList.Names[I]]);
         end;
         q3.SQL.Add(' ' +
           'END, ');
@@ -849,8 +526,8 @@ begin
         '  ABS(SUM(debitncu)  - SUM(creditncu)), ' +
         '  ABS(SUM(debitcurr) - SUM(creditcurr)), ' +
         '  ABS(SUM(debiteq)   - SUM(crediteq)) ');
-      for I := 0 to UsrFieldsList.Count - 1 do
-        q3.SQL.Add(', ' + UsrFieldsList[I]);
+      for I := 0 to AvailableAnalyticsList.Count - 1 do
+        q3.SQL.Add(', ' + AvailableAnalyticsList[I]);
 
       q3.SQL.Add( ' ' +
         'FROM AC_ENTRY ' +
@@ -858,7 +535,7 @@ begin
         '  AND entrydate < :EntryDate ');
       if FOnlyCompanySaldo then
         q3.SQL.Add(' ' +
-          'AND companykey = ' + IntToStr(CompanyKey) + ' ')
+          'AND companykey = :CompanyKey ')
       else if FAllOurCompaniesSaldo then
         q3.SQL.Add(' ' +
           'AND companykey IN (' + OurCompaniesListStr + ') ');
@@ -867,8 +544,8 @@ begin
         '  accountkey, ' +
         '  companykey, ' +
         '  currkey ');
-      for I := 0 to UsrFieldsList.Count - 1 do
-        q3.SQL.Add(', ' + UsrFieldsList[I]);
+      for I := 0 to AvailableAnalyticsList.Count - 1 do
+        q3.SQL.Add(', ' + AvailableAnalyticsList[I]);
       q3.SQL.Add(' ' +
         'HAVING ' +
         '  (SUM(debitncu) - SUM(creditncu)) > 0.0000 ' +
@@ -877,6 +554,8 @@ begin
 
       q3.ParamByName('AccountKey').AsInteger := q2.FieldByName('id').AsInteger;
       q3.ParamByName('EntryDate').AsDateTime := FClosingDate;
+      if FOnlyCompanySaldo then
+        q3.ParamByName('CompanyKey').AsInteger := CompanyKey;
       LogEvent('[test] select SALDO_1 begin');
       q3.ExecQuery;
       LogEvent('[test] select SALDO_1 end');
@@ -898,8 +577,8 @@ begin
         '  debitncu, ' +
         '  debitcurr, ' +
         '  debiteq ';
-      for I := 0 to UsrFieldsList.Count - 1 do
-        q3.SQL.Add(', ' + UsrFieldsList[I]);
+      for I := 0 to AvailableAnalyticsList.Count - 1 do
+        q3.SQL.Add(', ' + AvailableAnalyticsList[I]);
   
       q3.SQL.Add(
         ') ' +
@@ -912,20 +591,20 @@ begin
       begin       //documentkey   
         q3.SQL.Add(' ' +
           'CASE companykey ');
-        for i := 0 to OurCompaniesList.Count-1 do
+        for I := 0 to OurCompany_EntryDocList.Count-1 do
         begin
           q3.SQL.Add(' ' +
-            'WHEN ' + OurCompaniesList.Names[i] + ' THEN ' + OurCompaniesList.Values[OurCompaniesList.Names[i]]);
+            'WHEN ' + OurCompany_EntryDocList.Names[I] + ' THEN ' + OurCompany_EntryDocList.Values[OurCompany_EntryDocList.Names[I]]);
         end;
         q3.SQL.Add(' ' +
           'END, ');
                   //masterdocumentkey
         q3.SQL.Add(
           'CASE companykey ');
-        for i := 0 to OurCompaniesList.Count-1 do
+        for I := 0 to OurCompany_EntryDocList.Count-1 do
         begin
           q3.SQL.Add(' ' +
-            'WHEN ' + OurCompaniesList.Names[i] + ' THEN ' + OurCompaniesList.Values[OurCompaniesList.Names[i]]);
+            'WHEN ' + OurCompany_EntryDocList.Names[I] + ' THEN ' + OurCompany_EntryDocList.Values[OurCompany_EntryDocList.Names[I]]);
         end;
         q3.SQL.Add(' ' +
           'END, ');
@@ -944,8 +623,8 @@ begin
         '  0.0000 , ' +
         '  0.0000 , ' +
         '  0.0000');
-      for I := 0 to UsrFieldsList.Count - 1 do
-        q3.SQL.Add(', ' + UsrFieldsList[I]);
+      for I := 0 to AvailableAnalyticsList.Count - 1 do
+        q3.SQL.Add(', ' + AvailableAnalyticsList[I]);
 
       q3.SQL.Add( ' ' +
         'FROM AC_ENTRY ' +
@@ -953,7 +632,7 @@ begin
         '  AND entrydate < :EntryDate ');
       if FOnlyCompanySaldo then
         q3.SQL.Add(' ' +
-          'AND companykey = ' + IntToStr(CompanyKey) + ' ')
+          'AND companykey = :CompanyKey ')
       else if FAllOurCompaniesSaldo then
         q3.SQL.Add(' ' +
           'AND companykey IN (' + OurCompaniesListStr + ') ');
@@ -962,8 +641,8 @@ begin
         '  accountkey, ' +
         '  companykey, ' +
         '  currkey ');
-      for I := 0 to UsrFieldsList.Count - 1 do
-        q3.SQL.Add(', ' + UsrFieldsList[I]);
+      for I := 0 to AvailableAnalyticsList.Count - 1 do
+        q3.SQL.Add(', ' + AvailableAnalyticsList[I]);
       q3.SQL.Add(' ' +
         'HAVING ' +
         '  (SUM(debitncu) - SUM(creditncu)) < 0.0000 ' +
@@ -980,20 +659,20 @@ begin
       begin       //documentkey   
         q3.SQL.Add(' ' +
           'CASE companykey ');
-        for i := 0 to OurCompaniesList.Count-1 do
+        for I := 0 to OurCompany_EntryDocList.Count-1 do
         begin
           q3.SQL.Add(' ' +
-            'WHEN ' + OurCompaniesList.Names[i] + ' THEN ' + OurCompaniesList.Values[OurCompaniesList.Names[i]]);
+            'WHEN ' + OurCompany_EntryDocList.Names[I] + ' THEN ' + OurCompany_EntryDocList.Values[OurCompany_EntryDocList.Names[I]]);
         end;
         q3.SQL.Add(' ' +
           'END, ');
                   //masterdocumentkey
         q3.SQL.Add(
           'CASE companykey ');
-        for i := 0 to OurCompaniesList.Count-1 do
+        for i := 0 to OurCompany_EntryDocList.Count-1 do
         begin
           q3.SQL.Add(' ' +
-            'WHEN ' + OurCompaniesList.Names[i] + ' THEN ' + OurCompaniesList.Values[OurCompaniesList.Names[i]]);
+            'WHEN ' + OurCompany_EntryDocList.Names[I] + ' THEN ' + OurCompany_EntryDocList.Values[OurCompany_EntryDocList.Names[I]]);
         end;
         q3.SQL.Add(' ' +
           'END, ');
@@ -1012,8 +691,8 @@ begin
         '  ABS(SUM(debitncu)  - SUM(creditncu)), ' +
         '  ABS(SUM(debitcurr) - SUM(creditcurr)), ' +
         '  ABS(SUM(debiteq)   - SUM(crediteq)) ');
-      for I := 0 to UsrFieldsList.Count - 1 do
-        q3.SQL.Add(', ' + UsrFieldsList[I]);
+      for I := 0 to AvailableAnalyticsList.Count - 1 do
+        q3.SQL.Add(', ' + AvailableAnalyticsList[I]);
 
       q3.SQL.Add( ' ' +
         'FROM AC_ENTRY ' +
@@ -1021,7 +700,7 @@ begin
         '  AND entrydate < :EntryDate ');
       if FOnlyCompanySaldo then
         q3.SQL.Add(' ' +
-          'AND companykey = ' + IntToStr(CompanyKey) + ' ')
+          'AND companykey = :CompanyKey ')
       else if FAllOurCompaniesSaldo then
         q3.SQL.Add(' ' +
           'AND companykey IN (' + OurCompaniesListStr + ') ');
@@ -1030,8 +709,8 @@ begin
         '  accountkey, ' +
         '  companykey, ' +
         '  currkey ');
-      for I := 0 to UsrFieldsList.Count - 1 do
-        q3.SQL.Add(', ' + UsrFieldsList[I]);
+      for I := 0 to AvailableAnalyticsList.Count - 1 do
+        q3.SQL.Add(', ' + AvailableAnalyticsList[I]);
       q3.SQL.Add(' ' +
         'HAVING ' +
         '  (SUM(debitncu) - SUM(creditncu)) > 0.0000 ' +
@@ -1040,12 +719,15 @@ begin
 
       q3.ParamByName('AccountKey').AsInteger := OstatkiAccountKey ;
       q3.ParamByName('EntryDate').AsDateTime := FClosingDate;
+      if FOnlyCompanySaldo then
+        q3.ParamByName('CompanyKey').AsInteger := CompanyKey;
+        
       LogEvent('[test] select SALDO_2 begin');
       q3.ExecQuery;
       LogEvent('[test] select SALDO_2 end');
 
 
-      UsrFieldsList.Clear;
+      AvailableAnalyticsList.Clear;
       q3.Close;
 
       q2.Next;
@@ -1058,58 +740,81 @@ begin
     q3.Free;
     Tr2.Free;
     Tr.Free;
-    UsrFieldsList.Free;
-    OurCompaniesList.Free;
+    AvailableAnalyticsList.Free;
+    OurCompany_EntryDocList.Free;
     TmpList.Free;
   end;
   LogEvent('Calculating entry balance... OK');
+end;
+
+procedure TgsDBSqueeze.DeleteOldAcEntryBalance; // удаление старого бухгалтерского сальдо
+const
+  IB_DATE_DELTA = 15018; // разница в днях между "нулевыми" датами Delphi и InterBase
+var
+  q: TIBSQL;
+  Tr: TIBTransaction;
+  CalculatedBalanceDate: TDateTime;   
+begin
+  LogEvent('Deleting old entries balance...');
+  q := TIBSQL.Create(nil);
+  Tr := TIBTransaction.Create(nil);
+  try
+    Tr.DefaultDatabase := FIBDatabase;
+    Tr.StartTransaction;
+
+    q.Transaction := Tr;
+
+    if RelationExist2('AC_ENTRY_BALANCE', Tr) then
+    begin
+      q.SQL.Text := 
+        'SELECT ' + 
+        '  rdb$generator_name ' + 
+        'FROM ' + 
+        '  rdb$generators ' + 
+        'WHERE ' + 
+        '  rdb$generator_name = ''GD_G_ENTRY_BALANCE_DATE''';
+      q.ExecQuery;
+      if q.RecordCount <> 0 then
+      begin
+        q.Close;
+        q.SQL.Text :=
+          'SELECT ' +
+          '  (GEN_ID(gd_g_entry_balance_date, 0) - ' + IntToStr(IB_DATE_DELTA) + ') AS CalculatedBalanceDate ' +
+          'FROM rdb$database ';
+        q.ExecQuery;
+
+        if q.FieldByName('CalculatedBalanceDate').AsInteger > 0 then
+        begin
+          CalculatedBalanceDate := q.FieldByName('CalculatedBalanceDate').AsInteger;
+
+          LogEvent('[test] CalculatedBalanceDate=' + DateTimeToStr(CalculatedBalanceDate));
+
+          if CalculatedBalanceDate < FClosingDate then
+          begin
+            q.Close;
+            q.SQL.Text := 'DELETE FROM ac_entry_balance';
+            q.ExecQuery;
+
+            q.SQL.Text := 'SET GENERATOR gd_g_entry_balance_date TO 0'; // ALTER SEQUENCE gd_g_entry_balance_date RESTART WITH
+            q.ExecQuery;
+          end;
+        end;
+        Tr.Commit;
+      end;
+    end;
+
+    LogEvent('Deleting old entries balance... OK');
+  finally
+    q.Free;
+    Tr.Free;
+  end;
 end;
 
 procedure TgsDBSqueeze.CreateAcEntries;
 var
   q: TIBSQL;
   Tr: TIBTransaction;
-  AllUsrFieldsNames: String;
   ProizvolnyeTransactionKey, ProizvolnyeTrRecordKey, AccDocTypeKey: Integer;
-
-  procedure DeleteOldAcEntry; // удаление старых бухгалтерских проводок
-  var
-    q2: TIBSQL;
-    Tr2: TIBTransaction;
-  begin
-    LogEvent('Deleting old entries...');
-    q2 := TIBSQL.Create(nil);
-    Tr2 := TIBTransaction.Create(nil);
-    try
-      Tr2.DefaultDatabase := FIBDatabase;
-      Tr2.StartTransaction;
-
-      q2.Transaction := Tr2;
-      q2.SQL.Text :=
-        'DELETE FROM AC_RECORD ' +                                              ///TODO: если отключены триггеры, почистить AC_ENTRY
-        'WHERE ' +
-        '  recorddate < :ClosingDate ';
-//      if FOnlyCompanySaldo then                                               ///
-//        q2.SQL.Add(' ' +
-//          'AND companykey = ' + IntToStr(CompanyKey))
-//      else if FAllOurCompaniesSaldo then
-//        q2.SQL.Add(' ' +
-//          'AND companykey IN(' + OurCompaniesListStr + ')');
-
-      q2.ParamByName('ClosingDate').AsDateTime := FClosingDate;
-      q2.ExecQuery;
-
-//      q2.SQL.Text := 'DELETE FROM ac_entry_balance';                          ///TODO: проверить на существование
-//      q2.ExecQuery;
-
-      Tr2.Commit;
-      LogEvent('Deleting old entries... OK');
-    finally
-      q2.Free;
-      Tr2.Free;
-    end;
-  end;
-
 begin
   LogEvent('[test] CreateAcEntries...');
 
@@ -1122,21 +827,22 @@ begin
 
     q.SQL.Text :=
       'SELECT ' +
-      '  gd.id    AS AccDocTypeKey ' +
-      'FROM GD_DOCUMENTTYPE gd ' +
+      '  gd.id AS AccDocTypeKey ' +
+      'FROM ' + 
+      '  GD_DOCUMENTTYPE gd ' +
       'WHERE ' +
       '  gd.name = ''Хозяйственная операция'' ';
     q.ExecQuery;
     AccDocTypeKey := q.FieldByName('AccDocTypeKey').AsInteger;
-
-//    q.Close;                                                                    ///TODO: проверить на существование
+                                                                                       ///TODO: проверить на существование
+//    q.Close;                                                                    
 //    q.SQL.Text :=
 //      'SELECT ' +
 //      '  atr.id   AS ProizvolnyeTransactionKey ' +    // 807001
 //      'FROM ' +
 //      '  AC_TRANSACTION atr ' +
 //      'WHERE ' +
-//      '  atr.name IN (''Произвольные проводки'', ''Произвольная проводка'') ';
+//      '  atr.name IN (''Произвольные проводки'', ''Произвольная проводка'') ';  
 //    q.ExecQuery;
     ProizvolnyeTransactionKey := 807001; //q.FieldByName('ProizvolnyeTransactionKey').AsInteger;
 
@@ -1151,15 +857,6 @@ begin
     ProizvolnyeTrRecordKey := 807100; //q.FieldByName('ProizvolnyeTrRecordKey').AsInteger;
 
     q.Close;
-    q.SQL.Text :=
-      'SELECT LIST(rf.rdb$field_name) AS UsrFieldsList ' +
-      'FROM RDB$RELATION_FIELDS rf ' +
-      'WHERE rf.rdb$relation_name = ''AC_ACCOUNT'' ' +
-      '  AND rf.rdb$field_name LIKE ''USR$%'' ';
-    q.ExecQuery;
-
-    AllUsrFieldsNames := q.FieldByName('UsrFieldsList').AsString;
-    q.Close;
 
     // перенос документов
     q.SQL.Text :=                                                                 
@@ -1172,17 +869,22 @@ begin
       '  afull, achag, aview, creatorkey, editorkey) ' +
       'SELECT DISTINCT ' +      
       '  documentkey, ' + 
-         IntToStr(AccDocTypeKey) + ', ' +
-      '  ''б/н'', ''' + 
-         DateToStr(FClosingDate) + ''', ' +
+      '  :AccDocTypeKey, ' +
+      '  :Number, ' +
+      '  :ClosingDate, ' +
       '  companykey, ' +
-      '  -1, -1, -1, ' + IntToStr(FCurUserContactKey) + ',' + IntToStr(FCurUserContactKey) + ' ' +
+      '  -1, -1, -1, :CurUserContactKey, :CurUserContactKey ' +
       'FROM DBS_TMP_AC_SALDO ';
+    q.ParamByName('AccDocTypeKey').AsInteger := AccDocTypeKey;
+    q.ParamByName('Number').AsString := 'б/н';
+    q.ParamByName('ClosingDate').AsDateTime := FClosingDate;
+    q.ParamByName('CurUserContactKey').AsInteger := FCurUserContactKey;
+
     LogEvent('[test] INSERT INTO GD_DOCUMENT SELECT begin');
     q.ExecQuery;
     LogEvent('[test] INSERT INTO GD_DOCUMENT SELECT end');
 
-    // перенос записей проводок
+    // перенос проводок
     q.SQL.Text :=
       'INSERT INTO AC_RECORD ( ' +
       '  id, ' +
@@ -1191,12 +893,16 @@ begin
       '  transactionkey, ' + 
       '  documentkey, masterdockey, afull, achag, aview, companykey) ' +
       'SELECT DISTINCT ' +
-      '  recordkey, ''' + 
-         DateToStr(FClosingDate) + ''', ' +
-         IntToStr(ProizvolnyeTrRecordKey) + ', ' + 
-         IntToStr(ProizvolnyeTransactionKey) + ', ' +
+      '  recordkey, ' +
+      '  :ClosingDate, ' +
+      '  :ProizvolnyeTrRecordKey, ' +
+      '  :ProizvolnyeTransactionKey, ' +
       '  documentkey, masterdockey, -1, -1, -1, companykey ' +
       'FROM DBS_TMP_AC_SALDO ';
+    q.ParamByName('ClosingDate').AsDateTime := FClosingDate;
+    q.ParamByName('ProizvolnyeTrRecordKey').AsInteger := ProizvolnyeTrRecordKey;
+    q.ParamByName('ProizvolnyeTransactionKey').AsInteger := ProizvolnyeTransactionKey;
+    
     LogEvent('[test] INSERT INTO AC_RECORD SELECT begin');
     q.ExecQuery;
     LogEvent('[test] INSERT INTO AC_RECORD SELECT end');
@@ -1212,29 +918,26 @@ begin
       '  documentkey, masterdockey, companykey, accountkey, currkey, accountpart, ' +
       '  creditncu, creditcurr, crediteq, ' +
       '  debitncu, debitcurr, debiteq, ' +
-         AllUsrFieldsNames + ') ' +
+         FEntryAnalyticsStr + ') ' +
       'SELECT ' +
       '  1, ' +
-      '  id, ''' + 
-         DateToStr(FClosingDate) + ''', ' +
+      '  id, ' +
+      '  :ClosingDate, ' +
       '  recordkey, ' +
-         IntToStr(ProizvolnyeTransactionKey) + ', ' +
+      '  :ProizvolnyeTransactionKey, ' +
       '  documentkey, masterdockey, companykey, accountkey, currkey, accountpart, ' +
       '  creditncu, creditcurr, crediteq, ' +
       '  debitncu, debitcurr, debiteq, ' +
-         AllUsrFieldsNames + ' ' +
+         FEntryAnalyticsStr + ' ' +
       'FROM DBS_TMP_AC_SALDO ';
+    q.ParamByName('ClosingDate').AsDateTime := FClosingDate;
+    q.ParamByName('ProizvolnyeTransactionKey').AsInteger := ProizvolnyeTransactionKey;
+
     LogEvent('[test] INSERT INTO AC_ENTRY SELECT begin');
     q.ExecQuery;
     LogEvent('[test] INSERT INTO AC_ENTRY SELECT end');
 
-//   q.SQL.Text := 'DELETE FROM DBS_TMP_AC_SALDO';
-//   q.ExecQuery;
-
     Tr.Commit;
-
-    //test// DeleteOldAcEntry;
-    
   finally
     q.Free;
     Tr.Free; 
@@ -1243,536 +946,16 @@ begin
 end;
 
 
-procedure TgsDBSqueeze.CalculateInvSaldo;
+procedure TgsDBSqueeze.CalculateInvSaldo; 
 var
-  q, q2, qInsertGdDoc, qInsertInvCard, qInsertInvMovement: TIBSQL;
+  q: TIBSQL;
   Tr: TIBTransaction;
-  InvDocTypeKey: Integer;
-  PseudoClientKey: Integer;
-  UsrFieldsNames: String;
-  UsrFieldsList: TStringList;
 
   DocumentParentKey: Integer;
-  CompanyKey: Integer;
-
-  procedure SetTriggerActive(SetActive: Boolean);
-  const
-    AlterTriggerCount = 3;
-    AlterTriggerArray: array[0 .. AlterTriggerCount - 1] of String =
-      ('INV_BD_MOVEMENT', 'INV_BU_MOVEMENT', 'INV_BU_CARD');  ///'AC_ENTRY_DO_BALANCE'
-  var
-    StateStr: String;
-    I: Integer;
-    q: TIBSQL;
-    Tr: TIBTransaction;
-  begin
-    Tr := TIBTransaction.Create(nil);
-    q := TIBSQL.Create(nil);
-    try
-      Tr.DefaultDatabase := FIBDatabase;
-      Tr.StartTransaction;
-      q.Transaction := Tr;
-
-      if SetActive then
-        StateStr := 'ACTIVE'
-      else
-        StateStr := 'INACTIVE';
-
-      for I := 0 to AlterTriggerCount - 1 do
-      begin
-        q.SQL.Text := 'ALTER TRIGGER ' + AlterTriggerArray[I] + ' '  + StateStr;
-        q.ExecQuery;
-        q.Close;
-      end;
-
-      Tr.Commit;
-    finally
-      q.Free;
-      Tr.Free;
-    end;
-  end;
-
-  procedure CalculateInvBalance(q: TIBSQL); // формируем складской остаток на дату
-  begin
-    // запрос на складские остатки
-    q.SQL.Text :=
-      'SELECT ' +
-      '  im.contactkey AS ContactKey, ' +
-      '  gc.name AS ContactName, ' +
-      '  ic.goodkey, ' +
-      '  ic.companykey ';  ///,
-    ///  '  SUM(im.debit - im.credit) AS balance ';
-    if (UsrFieldsNames <> '') then
-      q.SQL.Add(', ' +
-        StringReplace(UsrFieldsNames, 'USR$', 'ic.USR$', [rfReplaceAll, rfIgnoreCase]) + ' ');
-    q.SQL.Add(
-      'FROM  inv_movement im ' +
-      '  JOIN inv_card ic ON im.cardkey = ic.id ' +
-      '  LEFT JOIN gd_contact gc ON gc.id = im.contactkey ' +
-      'WHERE ' +
-      '  im.disabled = 0 ' +
-      '  AND im.movementdate < :RemainsDate ');
-    if FOnlyCompanySaldo then
-      q.SQL.Add(
-        'AND ic.companykey = ' + IntToStr(CompanyKey));
-    q.SQL.Add(' ' +
-      'GROUP BY ' +
-      '  im.contactkey, ' +
-      '  gc.name, ' +
-      '  ic.goodkey, ' +
-      '  ic.companykey ');
-    if (UsrFieldsNames <> '') then
-      q.SQL.Add(', ' +
-        StringReplace(UsrFieldsNames, 'USR$', 'ic.USR$', [rfReplaceAll, rfIgnoreCase]));
-    q.ParamByName('RemainsDate').AsDateTime := FClosingDate;
-    LogEvent('[test] SELECT...[begin]');
-    q.ExecQuery;
-    LogEvent('[test] SELECT...[end]');                                          ///TODO: обработка долгая (20 мин - 2 Гб) GROUP BY избавиться
-  end;
-
-  function CreatePositionInvDoc(
-    ADocumentParentKey, AFromContact, AToContact, ACompanyKey, ACardGoodKey: Integer;
-    const AGoodQuantity: Currency;
-    AInvDocType, ACurUserContactKey: Integer;
-    AUsrFieldsDataset: TIBSQL = nil
-  ): Integer;
-  var
-    NewDocumentKey, NewMovementKey, NewCardKey: Integer;
-    I: Integer;
-  begin
-    Assert(Connected);
-
-    NewCardKey := -1;
-    try
-      NewDocumentKey := GetNewID;
-
-      qInsertGdDoc.ParamByName('ID').AsInteger := NewDocumentKey;
-      qInsertGdDoc.ParamByName('DOCUMENTTYPEKEY').AsInteger := AInvDocType;
-      qInsertGdDoc.ParamByName('PARENT').AsInteger := ADocumentParentKey;
-      qInsertGdDoc.ParamByName('COMPANYKEY').AsInteger := ACompanyKey;
-      qInsertGdDoc.ParamByName('USERKEY').AsInteger := ACurUserContactKey;
-      qInsertGdDoc.ExecQuery;
-
-      NewCardKey := GetNewID;
-
-      // Создадим новую складскую карточку
-
-      qInsertInvCard.ParamByName('ID').AsInteger := NewCardKey;
-      qInsertInvCard.ParamByName('GOODKEY').AsInteger := ACardGoodKey;
-      qInsertInvCard.ParamByName('DOCUMENTKEY').AsInteger := NewDocumentKey;
-      qInsertInvCard.ParamByName('COMPANYKEY').AsInteger := ACompanyKey;
-
-      for I := 0 to UsrFieldsList.Count - 1 do
-      begin
-        if Trim(UsrFieldsList[I]) <> 'USR$INV_ADDLINEKEY' then
-        begin
-          if Assigned(AUsrFieldsDataset) then
-            qInsertInvCard.ParamByName(Trim(UsrFieldsList[I])).AsVariant :=
-              AUsrFieldsDataset.FieldByName(Trim(UsrFieldsList[I])).AsVariant
-          else
-            qInsertInvCard.ParamByName(Trim(UsrFieldsList[I])).Clear;
-
-        end
-        else // Заполним поле USR$INV_ADDLINEKEY карточки нового остатка ссылкой на позицию
-          qInsertInvCard.ParamByName('USR$INV_ADDLINEKEY').AsInteger := NewDocumentKey;
-      end;
-
-      qInsertInvCard.ExecQuery;
-
-      NewMovementKey := GetNewID;
-
-      // Создадим дебетовую часть складского движения
-      qInsertInvMovement.ParamByName('ID').AsInteger := GetNewID;
-      qInsertInvMovement.ParamByName('GOODKEY').AsInteger := ACardGoodKey;
-      qInsertInvMovement.ParamByName('MOVEMENTKEY').AsInteger := NewMovementKey;
-      qInsertInvMovement.ParamByName('DOCUMENTKEY').AsInteger := NewDocumentKey;
-      qInsertInvMovement.ParamByName('CONTACTKEY').AsInteger := AToContact;
-      qInsertInvMovement.ParamByName('CARDKEY').AsInteger := NewCardKey;
-      qInsertInvMovement.ParamByName('DEBIT').AsCurrency := AGoodQuantity;
-      qInsertInvMovement.ParamByName('CREDIT').AsCurrency := 0;
-
-      qInsertInvMovement.ExecQuery;
-
-      // Создадим кредитовую часть складского движения
-      qInsertInvMovement.ParamByName('ID').AsInteger := GetNewID;
-      qInsertInvMovement.ParamByName('GOODKEY').AsInteger := ACardGoodKey;
-      qInsertInvMovement.ParamByName('MOVEMENTKEY').AsInteger := NewMovementKey;
-      qInsertInvMovement.ParamByName('DOCUMENTKEY').AsInteger := NewDocumentKey;
-      qInsertInvMovement.ParamByName('CONTACTKEY').AsInteger := AFromContact;
-      qInsertInvMovement.ParamByName('CARDKEY').AsInteger := NewCardKey;
-      qInsertInvMovement.ParamByName('DEBIT').AsCurrency := 0;
-      qInsertInvMovement.ParamByName('CREDIT').AsCurrency := AGoodQuantity;
-
-      qInsertInvMovement.ExecQuery;
-    finally
-      Result := NewCardKey;
-    end;
-  end;
-
-  // Перепривязка складских карточек и движения
-  procedure RebindInvCards(ATr: TIBTransaction);
-  const
-    CardkeyFieldCount = 2;
-    CardkeyFieldNames: array[0..CardkeyFieldCount - 1] of String = ('FROMCARDKEY', 'TOCARDKEY');
-  var
-    I: Integer;
-    q3, q4, q5: TIBSQL;
-    qUpdateCard: TIBSQL;
-    qUpdateFirstDocKey: TIBSQL;
-    qUpdateInvMovement: TIBSQL;
-
-    CurrentCardKey, CurrentFirstDocKey, CurrentFromContactkey, CurrentToContactkey: Integer;
-    NewCardKey, FirstDocumentKey: Integer;
-    FirstDate: TDateTime;
-    CurrentRelationName: String;
-    DocumentParentKey: Integer;
-  begin
-    LogEvent('Rebinding cards...');
-
-    NewCardKey := -1;
-
-    ATr := TIBTransaction.Create(nil);
-    q3 := TIBSQL.Create(nil);
-    q4 := TIBSQL.Create(nil);
-    q5 := TIBSQL.Create(nil);
-    qUpdateCard := TIBSQL.Create(nil);
-    qUpdateFirstDocKey := TIBSQL.Create(nil);
-    qUpdateInvMovement := TIBSQL.Create(nil);
-    try
-      ATr.DefaultDatabase := FIBDatabase;
-      ATr.StartTransaction;
-
-      q3.Transaction := ATr;
-      q4.Transaction := ATr;
-      q5.Transaction := ATr;
-      qUpdateCard.Transaction := ATr;
-      qUpdateFirstDocKey.Transaction := ATr;
-      qUpdateInvMovement.Transaction := ATr;
-
-      // обновляет ссылку на родительскую карточку
-      qUpdateCard.SQL.Text :=
-        'UPDATE ' +
-        '  inv_card c ' +
-        'SET ' +
-        '  c.parent = :NewParent ' +
-        'WHERE ' +
-        '  c.parent = :OldParent ' +
-        '  AND (' +
-        '    SELECT FIRST(1) m.movementdate ' +
-        '    FROM inv_movement m ' +
-        '    WHERE m.cardkey = c.id ' +
-        '    ORDER BY m.movementdate DESC' +
-        '  ) >= :CloseDate ';
-      qUpdateCard.ParamByName('CloseDate').AsDateTime := FClosingDate;
-      qUpdateCard.Prepare;
-
-      // oбновляет ссылку на документ прихода и дату прихода
-      qUpdateFirstDocKey.SQL.Text :=
-        'UPDATE ' +
-        '  inv_card c ' +
-        'SET ' +
-        '  c.firstdocumentkey = :NewDockey, ' +
-        '  c.firstdate = :NewDate ' +                                           {TODO: убрать}
-        'WHERE ' +
-        '  c.firstdocumentkey = :OldDockey ';
-      qUpdateFirstDocKey.Prepare;
-
-      // обновляет в движении ссылки на складские карточки
-      qUpdateInvMovement.SQL.Text :=
-        'UPDATE ' +
-        '  inv_movement m ' +
-        'SET ' +
-        '  m.cardkey = :NewCardkey ' +
-        'WHERE ' +
-        '  m.cardkey = :OldCardkey ' +
-        '  AND m.movementdate >= :CloseDate ';
-      qUpdateInvMovement.ParamByName('CloseDate').AsDateTime := FClosingDate;
-      qUpdateInvMovement.Prepare;
-
-      // выбираем все карточки, которые находятся в движении во время закрытия
-      q3.SQL.Text :=
-        'SELECT' +
-        '  m1.contactkey AS FromConactKey,' +
-        '  m.contactkey AS ToContactKey,' +
-        '  linerel.relationname,' +
-        '  c.id AS CardkeyNew, ' +
-        '  c1.id AS CardkeyOld,' +
-        '  c.goodkey,' +
-        '  c.companykey, ' +
-        '  c.firstdocumentkey';
-      if UsrFieldsNames <> '' then q.SQL.Add(', ' +
-        StringReplace(UsrFieldsNames, 'USR$', 'c.USR$', [rfReplaceAll, rfIgnoreCase]) + ' ');                                                                       /// c.
-      q3.SQL.Add(' ' +
-        'FROM gd_document d ' +
-        '  JOIN gd_documenttype t ON t.id = d.documenttypekey ' +
-        '  LEFT JOIN inv_movement m ON m.documentkey = d.id ' +
-        '  LEFT JOIN inv_movement m1 ON m1.movementkey = m.movementkey AND m1.id <> m.id ' +
-        '  LEFT JOIN inv_card c ON c.id = m.cardkey ' +
-        '  LEFT JOIN inv_card c1 ON c1.id = m1.cardkey ' +
-        '  LEFT JOIN gd_document d_old ON ((d_old.id = c.documentkey) or (d_old.id = c1.documentkey)) ' +
-        '  LEFT JOIN at_relations linerel ON linerel.id = t.linerelkey ' +
-        'WHERE ' +
-        '  d.documentdate >= :ClosingDate ' +
-        '  AND t.classname = ''TgdcInvDocumentType'' ' +
-        '  AND t.documenttype = ''D'' ' +
-        '  AND d_old.documentdate < :ClosingDate ');      
-      q3.ParamByName('ClosingDate').AsDateTime := FClosingDate;
-      q3.ExecQuery;
-
-      FirstDocumentKey := -1;                                                   
-      FirstDate := FClosingDate;                                                /// TODO: уточнить FirstDate
-      while not q3.EOF do
-      begin
-        if q3.FieldByName('CardkeyOld').IsNull then
-          CurrentCardKey := q3.FieldByName('CardkeyNew').AsInteger
-        else
-          CurrentCardKey := q3.FieldByName('CardkeyOld').AsInteger;
-        CurrentFirstDocKey := q3.FieldByName('firstfocumentkey').AsInteger;
-        CurrentFromContactkey := q3.FieldByName('FromConactKey').AsInteger;
-        CurrentToContactkey := q3.FieldByName('ToContactKey').AsInteger;
-        CurrentRelationName := q3.FieldByName('relationname').AsString;
-
-        if (CurrentFromContactkey > 0) or (CurrentToContactkey > 0) then
-        begin
-          // ищем подходящую карточку в документе остатков для замены удаляемой
-          q4.SQL.Text :=
-            'SELECT FIRST(1) ' +
-            '  c.id AS cardkey, ' +
-            '  c.firstdocumentkey, ' +
-            '  c.firstdate ' +
-            'FROM gd_document d ' +
-            '  LEFT JOIN inv_movement m ON m.documentkey = d.id ' +
-            '  LEFT JOIN inv_card c ON c.id = m.cardkey ' +
-            'WHERE ' +
-            '  d.documenttypekey = :DocTypeKey ' +
-            '  AND d.documentdate = :ClosingDate ' +
-            '  AND c.goodkey = :GoodKey ' +
-            '  AND ' +
-            '    ((m.contactkey = :contact1) ' +
-            '    OR (m.contactkey = :contact2)) ';
-          for I := 0 to UsrFieldsList.Count - 1 do
-          begin
-            if not q4.FieldByName(Trim(UsrFieldsList[I])).IsNull then
-              q4.SQL.Add(Format(
-              'AND c.%0:s = :%0:s ', [Trim(UsrFieldsList[I])]) + ' ')
-            else
-              q4.SQL.Add(Format(
-              'AND c.%0:s IS NULL ', [Trim(UsrFieldsList[I])]) + ' ');
-          end;
-
-          q4.ParamByName('DocTypeKey').AsInteger := InvDocTypeKey;
-          q4.ParamByName('ClosingDate').AsDateTime := FClosingDate;
-          q4.ParamByName('GoodKey').AsInteger := q3.FieldByName('goodkey').AsInteger;
-          q4.ParamByName('CONTACT1').AsInteger := CurrentFromContactkey;
-          q4.ParamByName('CONTACT2').AsInteger := CurrentToContactkey;
-          for I := 0 to UsrFieldsList.Count - 1 do
-          begin
-            if not q.FieldByName(Trim(UsrFieldsList[I])).IsNull then
-              q4.ParamByName(Trim(UsrFieldsList[I])).AsVariant := q3.FieldByName(Trim(UsrFieldsList[I])).AsVariant;
-          end;
-
-          q4.ExecQuery;
-
-          // если нашли подходящую карточку, созданную документом остатков
-          if q4.RecordCount > 0 then
-          begin
-            NewCardKey := q4.FieldByName('CardKey').AsInteger;
-            FirstDocumentKey := q4.FieldByName('FirstDocumentKey').AsInteger;
-            FirstDate := q4.FieldByName('FirstDate').AsDateTime;
-          end
-          else begin
-            // ищем карточку без доп. признаков
-            q4.Close;
-            q4.SQL.Text :=                                                      // TODO: вынести. Prepare
-              'SELECT FIRST(1) ' +
-              '  c.id AS cardkey, ' +
-              '  c.firstdocumentkey, ' +
-              '  c.firstdate ' +
-              'FROM gd_document d ' +
-              '  LEFT JOIN inv_movement m ON m.documentkey = d.id ' +
-              '  LEFT JOIN inv_card c ON c.id = m.cardkey ' +
-              'WHERE ' +
-              '  d.documenttypekey = :DocTypeKey ' +
-              '  AND d.documentdate = :ClosingDate ' +
-              '  AND c.goodkey = :GoodKey ' +
-              '  AND ' +
-              '    ((m.contactkey = :contact1) ' +
-              '    OR (m.contactkey = :contact2)) ';
-
-            q4.ParamByName('DocTypeKey').AsInteger := InvDocTypeKey;
-            q4.ParamByName('ClosingDate').AsDateTime := FClosingDate;
-            q4.ParamByName('GoodKey').AsInteger := q3.FieldByName('goodkey').AsInteger;
-            q4.ParamByName('CONTACT1').AsInteger := CurrentFromContactkey;
-            q4.ParamByName('CONTACT2').AsInteger := CurrentToContactkey;
-            q4.ExecQuery;
-
-            if q4.RecordCount > 0 then
-            begin
-              NewCardKey := q4.FieldByName('CardKey').AsInteger;
-              FirstDocumentKey := q4.FieldByName('FirstDocumentKey').AsInteger;
-              FirstDate := q4.FieldByName('FirstDate').AsDateTime;
-            end
-            else begin // Иначе вставим документ нулевого прихода, перепривязывать будем потом на созданную им карточку
-
-              DocumentParentKey := GetNewID;
-              qInsertGdDoc.ParamByName('ID').AsInteger :=  DocumentParentKey;
-              qInsertGdDoc.ParamByName('PARENT').Clear;
-              qInsertGdDoc.ParamByName('DOCUMENTTYPEKEY').AsInteger := InvDocTypeKey;
-              qInsertGdDoc.ParamByName('COMPANYKEY').AsInteger := q3.FieldByName('COMPANYKEY').AsInteger;
-              qInsertGdDoc.ParamByName('USERKEY').AsInteger := FCurUserContactKey;
-              qInsertGdDoc.ExecQuery;
-
-              CalculateInvBalance(q5);  // По компании строим запрос на складские остатки
-
-              NewCardKey := CreatePositionInvDoc(
-                DocumentParentKey,
-                CurrentFromContactkey,
-                CurrentFromContactkey,
-                q3.FieldByName('companykey').AsInteger,
-                q3.FieldByName('goodkey').AsInteger,
-                0,
-                InvDocTypeKey,
-                FCurUserContactKey,
-                q5);
-              q5.Close;
-
-            end;
-          end;
-          q4.Close;
-        end
-        else begin
-          // ищем подходящую карточку для замены удаляемой
-          q4.SQL.Text :=
-            'SELECT FIRST(1) ' +
-            '  c.id AS cardkey, ' +
-            '  c.firstdocumentkey, ' +
-            '  c.firstdate ' +
-            'FROM gd_document d ' +
-            '  LEFT JOIN inv_movement m ON m.documentkey = d.id ' +
-            '  LEFT JOIN inv_card c ON c.id = m.cardkey ' +
-            'WHERE ' +
-            '  d.documenttypekey = :DocTypeKey ' +
-            '  AND d.documentdate = :ClosingDate ' +
-            '  AND c.goodkey = :GoodKey ';
-          for I := 0 to UsrFieldsList.Count - 1 do
-          begin
-            if not q3.FieldByName(Trim(UsrFieldsList[I])).IsNull then
-              q4.SQL.Add(Format(
-              'AND c.%0:s = :%0:s ', [Trim(UsrFieldsList[I])]))
-            else
-              q4.SQL.Add(Format(
-              'AND c.%0:s IS NULL ', [Trim(UsrFieldsList[I])]));
-          end;
-
-          q4.ParamByName('ClosingDate').AsDateTime := FClosingDate;
-          q4.ParamByName('DocTypeKey').AsInteger := InvDocTypeKey;
-          q4.ParamByName('GoodKey').AsInteger := q3.FieldByName('GOODKEY').AsInteger;
-          for I := 0 to UsrFieldsList.Count - 1 do
-          begin
-            if not q3.FieldByName(Trim(UsrFieldsList[I])).IsNull then
-              q4.ParamByName(Trim(UsrFieldsList[I])).AsVariant := q3.FieldByName(Trim(UsrFieldsList[I])).AsVariant;
-          end;
-
-          q4.ExecQuery;
-
-          if q4.RecordCount > 0 then
-            NewCardKey := q4.FieldByName('CardKey').AsInteger
-          else
-            NewCardKey := -1;
-
-          q4.Close;
-        end;
-
-
-        if NewCardKey > 0 then
-        begin
-          // обновление ссылок на родительскую карточку
-          qUpdateCard.ParamByName('OldParent').AsInteger := CurrentCardKey;
-          qUpdateCard.ParamByName('NewParent').AsInteger := NewCardKey;
-          qUpdateCard.ExecQuery;
-          qUpdateCard.Close;
-
-          // обновление ссылок на документ прихода и дату прихода
-          if FirstDocumentKey > -1 then
-          begin
-            qUpdateFirstDocKey.ParamByName('OldDockey').AsInteger := CurrentFirstDocKey;
-            qUpdateFirstDocKey.ParamByName('NewDockey').AsInteger := FirstDocumentKey;
-            qUpdateFirstDocKey.ParamByName('NewDate').AsDateTime := FirstDate;
-            qUpdateFirstDocKey.ExecQuery;
-            qUpdateFirstDocKey.Close;
-          end;
-
-          // обновление ссылок на карточки из движения
-          qUpdateInvMovement.ParamByName('OldCardkey').AsInteger := CurrentCardKey;
-          qUpdateInvMovement.ParamByName('NewCardkey').AsInteger := NewCardKey;
-          qUpdateInvMovement.ExecQuery;
-          qUpdateInvMovement.Close;
-
-          // обновление в дополнительнных таблицах складских документов ссылок на складские карточки
-          for I := 0 to CardkeyFieldCount - 1 do
-          begin
-            q4.SQL.Text :=
-              'SELECT RDB$FIELD_NAME' +
-              'FROM RDB$RELATION_FIELDS ' +
-              'WHERE RDB$RELATION_NAME = :RelationName' +
-              '  AND RDB$FIELD_NAME = :FieldName';
-            q4.ParamByName('RelationName').AsString := CurrentRelationName;
-            q4.ParamByName('FieldName').AsString := CardkeyFieldNames[I];
-            q4.ExecQuery;
-
-            if not q4.RecordCount > 0 then //если доп таблица содержит поле TOCARDKEY/FROMCARDKEY, то обновим их ссылки новыми карточками
-            begin
-              q4.Close;
-              q4.SQL.Text := Format(
-                'UPDATE ' +
-                '  %0:s line ' +
-                'SET ' +
-                '  line.%1:s = :NewCardkey ' +
-                'WHERE ' +
-                '  line.%1:s = :OldCardkey ' +
-                '  AND ( '+
-                '    SELECT doc.documentdate ' +
-                '    FROM gd_document doc ' +
-                '    WHERE doc.id = line.documentkey' +
-                '  ) >= :ClosingDate ',
-                [CurrentRelationName, CardkeyFieldNames[I]]);
-
-              q4.ParamByName('OldCardkey').AsInteger := CurrentCardKey;
-              q4.ParamByName('NewCardkey').AsInteger := NewCardKey;
-              q4.ParamByName('ClosingDate').AsDateTime := FClosingDate;
-              q4.ExecQuery;
-            end;
-            q4.Close;
-
-          end;
-        end
-        else begin
-          LogEvent('Error rebinding card!');
-        end;
-
-        q3.Next;
-      end;
-      q3.Close;
-      LogEvent('Rebinding cards... OK');
-    finally
-      q3.Free;
-      q4.Free;
-      q5.Free;
-      qUpdateInvMovement.Free;
-      qUpdateFirstDocKey.Free;
-      qUpdateCard.Free;
-    end;
-  end;
-
+  CompanyKey: Integer;  
 begin
   Tr := TIBTransaction.Create(nil);
   q := TIBSQL.Create(nil);
-  q2 := TIBSQL.Create(nil);
-  qInsertGdDoc := TIBSQL.Create(nil);
-  qInsertInvCard := TIBSQL.Create(nil);
-  qInsertInvMovement := TIBSQL.Create(nil);
-
-  UsrFieldsList := TStringList.Create;
 
   LogEvent('Calculating inventory balance...');
 
@@ -1780,16 +963,12 @@ begin
     Tr.DefaultDatabase := FIBDatabase;
     Tr.StartTransaction;
     q.Transaction := Tr;
-    q2.Transaction := Tr;
-    qInsertGdDoc.Transaction := Tr;
-    qInsertInvCard.Transaction := Tr;
-    qInsertInvMovement.Transaction := Tr;
 
     if FOnlyCompanySaldo then
     begin
       q.SQL.Text :=
         'SELECT contactkey AS CompanyKey ' +
-        'FROM GD_COMPANY gc ' +
+        'FROM GD_COMPANY ' +
         'WHERE fullname = :CompanyName ';
       q.ParamByName('CompanyName').AsString := FCompanyName;
       q.ExecQuery;
@@ -1797,6 +976,76 @@ begin
       CompanyKey := q.FieldByName('CompanyKey').AsInteger;
       q.Close;
     end;
+
+    // запрос на складские остатки
+    q.SQL.Text :=
+      'INSERT INTO DBS_TMP_INV_SALDO ' +  
+      'SELECT ' +
+      '  GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0), ' + // DOCUMENT ID
+      '  GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0), ' + // MASTERDOCKEY
+      '  GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0), ' + // ID_CARD
+      '  GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0), ' + // ID_MOVEMENT_D
+      '  GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0), ' + // ID_MOVEMENT_C
+      '  im.contactkey AS ContactKey, ' +
+      '  ic.goodkey, ' +
+      '  ic.companykey, ' + 
+      '  SUM(im.debit - im.credit) AS Balance ';
+    if (FCardFeaturesStr <> '') then
+      q.SQL.Add(', ' +
+        StringReplace(FCardFeaturesStr, 'USR$', 'ic.USR$', [rfReplaceAll, rfIgnoreCase]) + ' ');
+    q.SQL.Add(
+      'FROM inv_movement im ' +
+      '  JOIN inv_card ic ON im.cardkey = ic.id ' +
+      'WHERE ' +
+      '  im.cardkey > 0 '); // первый столбец в индексе, чтобы его задействовать
+    if FOnlyCompanySaldo then
+      q.SQL.Add(
+        'AND ic.companykey = :CompanyKey ');
+    q.SQL.Add(' ' +
+      '  AND im.movementdate < :RemainsDate ' +
+      '  AND im.disabled = 0 ' +
+      'GROUP BY ' +
+      '  im.contactkey, ' +
+      '  ic.goodkey, ' +
+      '  ic.companykey ');
+    if (FCardFeaturesStr <> '') then
+      q.SQL.Add(', ' +
+        StringReplace(FCardFeaturesStr, 'USR$', 'ic.USR$', [rfReplaceAll, rfIgnoreCase]));
+    
+    q.ParamByName('RemainsDate').AsDateTime := FClosingDate;
+    if FOnlyCompanySaldo then
+      q.ParamByName('CompanyKey').AsInteger := CompanyKey;
+    LogEvent('[test] SELECT...[begin]');
+    LogSQL(q);
+    q.ExecQuery;
+    LogEvent('[test] SELECT...[end]');                                          ///TODO: обработка долгая (20 мин - 2 Гб) GROUP BY 
+
+    Tr.Commit;
+  finally
+    q.Free;
+    Tr.Free;
+  end;
+  LogEvent('Calculating inventory balance... OK');
+end;
+
+procedure TgsDBSqueeze.CreateInvSaldo;
+var
+  q, q2: TIBSQL;
+  Tr: TIBTransaction;
+  InvDocTypeKey: Integer;
+  PseudoClientKey: Integer;
+begin
+  Tr := TIBTransaction.Create(nil);
+  q := TIBSQL.Create(nil);
+  q2 := TIBSQL.Create(nil);
+
+  LogEvent('CreateInvSaldo...');
+
+  try
+    Tr.DefaultDatabase := FIBDatabase;
+    Tr.StartTransaction;
+    q.Transaction := Tr;
+    q2.Transaction := Tr;
 
     q.SQL.Text :=
       'SELECT ' +
@@ -1809,19 +1058,6 @@ begin
 
     InvDocTypeKey := q.FieldByName('InvDocTypeKey').AsInteger;
     q.Close;
-
-   // список полей-признаков складской карточки
-    q.SQL.Text :=
-      'SELECT LIST(rf.rdb$field_name) as UsrFieldsList ' +
-      'FROM RDB$RELATION_FIELDS rf ' +
-      'WHERE rf.rdb$relation_name = ''INV_CARD'' ' +
-      '  AND rf.rdb$field_name LIKE ''USR$%'' ';
-    q.ExecQuery;
-
-    UsrFieldsNames := q.FieldByName('UsrFieldsList').AsString;
-    q.Close;
-
-    UsrFieldsList.Text := StringReplace(UsrFieldsNames, ',', #13#10, [rfReplaceAll, rfIgnoreCase]);
 
     q.SQL.Text :=
       'SELECT id ' +
@@ -1870,14 +1106,246 @@ begin
       PseudoClientKey := q.FieldByName('id').AsInteger;
     q.Close;
 
+    // create parent docs
+    q.SQL.Text :=
+      'INSERT INTO gd_document (' +
+      '  id, ' + 
+      '  documenttypekey, ' +
+      '  number, '  + 
+      '  documentdate, ' + 
+      '  companykey, afull, achag, aview, ' +
+      '  creatorkey, editorkey) ' +
+      'SELECT ' + 
+      '  id_parentdoc, ' +
+      '  :InvDocTypeKey, ' +
+      '  ''1'', ' +
+      '  :ClosingDate, ' +
+      '  companykey, -1, -1, -1, ' +
+      '  :CurUserContactKey, :CurUserContactKey ' +
+      'FROM DBS_TMP_INV_SALDO ';
+    q.ParamByName('InvDocTypeKey').AsInteger := InvDocTypeKey;
+    q.ParamByName('ClosingDate').AsDateTime := FClosingDate;
+    q.ParamByName('CurUserContactKey').AsInteger := FCurUserContactKey;
+
+    q.ExecQuery;
+
+    Tr.Commit;
+    Tr.StartTransaction;
+
+  // CreatePositionInvDoc
+   
+    q.SQL.Text :=
+      'INSERT INTO gd_document (' + 
+      '  id, ' + 
+      '  parent, ' +
+      '  documenttypekey, ' +
+      '  number, '  + 
+      '  documentdate, ' + 
+      '  companykey, afull, achag, aview, ' +
+      '  creatorkey, editorkey) ' +
+      'SELECT ' +
+      '  id_document, ' +
+      '  id_parentdoc, ' +
+      '  :InvDocTypeKey, ' +
+      '  ''1'', ' +
+      '  :ClosingDate, ' +
+      '  companykey, -1, -1, -1, ' +
+      '  :CurUserContactKey, :CurUserContactKey ' +
+      'FROM DBS_TMP_INV_SALDO ';
+    q.ParamByName('InvDocTypeKey').AsInteger := InvDocTypeKey;
+    q.ParamByName('ClosingDate').AsDateTime := FClosingDate;
+    q.ParamByName('CurUserContactKey').AsInteger := FCurUserContactKey;
+
+    q.ExecQuery;
+
+    Tr.Commit;
+    Tr.StartTransaction;
+
+    // Создадим новую складскую карточку  
+
+    q.SQL.Text :=
+      'INSERT INTO inv_card (' +
+      '  id, ' +
+      '  goodkey, ' +
+      '  documentkey, firstdocumentkey, ' + 
+      '  firstdate, ' +
+      '  companykey ';
+    if (FCardFeaturesStr <> '') then
+    begin
+      if Pos('USR$INV_ADDLINEKEY', FCardFeaturesStr) <> 0 then
+      begin
+        if Pos('USR$INV_ADDLINEKEY,', FCardFeaturesStr) <> 0 then
+          q.SQL.Add(', ' +
+            StringReplace(FCardFeaturesStr, 'USR$INV_ADDLINEKEY,', ' ', [rfReplaceAll, rfIgnoreCase]) +
+            ', USR$INV_ADDLINEKEY ')
+        else
+          q.SQL.Add(', ' + FCardFeaturesStr);
+      end
+      else
+        q.SQL.Add(', ' + FCardFeaturesStr);
+    end;
+    q.SQL.Add(
+      ') ' +  // поля-признаки 
+      'SELECT ' +
+      '  id_card, ' +
+      '  goodkey, ' +
+      '  id_document, id_document, ' +
+      '  :ClosingDate, ' +
+      '  companykey ');
+    if (FCardFeaturesStr <> '') then
+    begin
+      if Pos('USR$INV_ADDLINEKEY', FCardFeaturesStr) <> 0 then  // Заполним поле USR$INV_ADDLINEKEY карточки нового остатка ссылкой на позицию
+      begin
+        if Pos('USR$INV_ADDLINEKEY,', FCardFeaturesStr) <> 0 then  //не последний в списке - вырежем
+          q.SQL.Add(', ' +
+            StringReplace(FCardFeaturesStr, 'USR$INV_ADDLINEKEY,', ' ', [rfReplaceAll, rfIgnoreCase]) +
+            ', id_document ')
+        else
+          q.SQL.Add(', ' +
+            StringReplace(FCardFeaturesStr, 'USR$INV_ADDLINEKEY', 'id_document ', [rfReplaceAll, rfIgnoreCase]));
+      end
+      else
+        q.SQL.Add(', ' + FCardFeaturesStr + ' ');
+    end;
+    q.SQL.Add(
+      'FROM  DBS_TMP_INV_SALDO ');
+
+    q.ParamByName('ClosingDate').AsDateTime := FClosingDate;
+    q.ExecQuery;    ///ERROR
+
+    Tr.Commit;
+    Tr.StartTransaction;
+    // Создадим дебетовую часть складского движения
+    
+    q.SQL.Text :=
+      'INSERT INTO inv_movement ( ' +
+      '  id, goodkey, movementkey, ' + 
+      '  movementdate, ' +
+      '  documentkey, cardkey, ' +
+      '  debit, ' +
+      '  credit, ' +
+      '  contactkey) ' +       ///id, goodkey test
+      'SELECT ' +
+      '  id_movement_d, goodkey, id_movement_d, ' +
+      '  :ClosingDate, ' +
+      '  id_document, id_card, ' +
+      '  ABS(balance), ' +
+      '  0, ' +
+      '  IIF((balance > 0) OR (balance = 0), ' +
+      '    contactkey, ' +
+      '    :PseudoClientKey) ' +
+      'FROM  DBS_TMP_INV_SALDO ';
+    q.ParamByName('PseudoClientKey').AsInteger := PseudoClientKey;
+    q.ParamByName('ClosingDate').AsDateTime := FClosingDate;
+
+    q.ExecQuery;
+
+    Tr.Commit;  
+    Tr.StartTransaction;
+    // Создадим кредитовую часть складского движения
+ 
+    q.SQL.Text :=
+      'INSERT INTO inv_movement ( ' +
+      '  id, goodkey, movementkey, ' + 
+      '  movementdate, ' +
+      '  documentkey, cardkey, ' +
+      '  debit, ' +
+      '  credit, ' +
+      '  contactkey) ' +       ///id, goodkey test
+      'SELECT ' +
+      '  id_movement_c, goodkey, id_movement_d, ' + 
+      '  :ClosingDate, ' +
+      '  id_document, id_card, ' +
+      '  0, ' +
+      '  ABS(balance), ' +
+      '  IIF((balance > 0) OR (balance = 0), ' + 
+      '    :PseudoClientKey, ' +
+      '    contactkey) ' +
+      'FROM  DBS_TMP_INV_SALDO ';
+      //LogEvent('[test] ' + q.SQL.Text);
+    q.ParamByName('ClosingDate').AsDateTime := FClosingDate;
+    q.ParamByName('PseudoClientKey').AsInteger := PseudoClientKey;
+
+    q.ExecQuery;
+
+    Tr.Commit;
+  finally
+    q.Free;
+    q2.Free;
+    Tr.Free;
+  end;
+end;
+
+// Перепривязка складских карточек и движения
+procedure TgsDBSqueeze.PrepareRebindInvCards;
+const
+  CardkeyFieldCount = 2;
+  CardkeyFieldNames: array[0..CardkeyFieldCount - 1] of String = ('FROMCARDKEY', 'TOCARDKEY');
+var
+  I: Integer;
+  Tr: TIBTransaction;
+  q3, q4, qInsertGdDoc, qInsertInvCard, qInsertInvMovement, qInsertTmpRebind: TIBSQL;
+  CurrentCardKey, CurrentFirstDocKey, CurrentFromContactkey, CurrentToContactkey: Integer;
+  NewCardKey, FirstDocumentKey: Integer;
+  FirstDate: TDateTime;
+  CurrentRelationName: String;
+  DocumentParentKey: Integer;
+  CardFeaturesList: TStringList;  
+  NewDocumentKey, NewMovementKey: Integer;
+  InvDocTypeKey: Integer;
+begin
+  LogEvent('[test] PrepareRebindInvCards...');
+
+  CardFeaturesList := TStringList.Create;
+
+  NewCardKey := -1;
+
+  Tr := TIBTransaction.Create(nil);
+  q3 := TIBSQL.Create(nil);
+  q4 := TIBSQL.Create(nil);
+  qInsertTmpRebind := TIBSQL.Create(nil);
+  qInsertGdDoc := TIBSQL.Create(nil);
+  qInsertInvCard := TIBSQL.Create(nil);
+  qInsertInvMovement := TIBSQL.Create(nil);
+
+  try
+    Tr.DefaultDatabase := FIBDatabase;
+    Tr.StartTransaction;
+
+    q3.Transaction := Tr;
+    q4.Transaction := Tr;
+    qInsertGdDoc.Transaction := Tr;
+    qInsertInvCard.Transaction := Tr;
+    qInsertInvMovement.Transaction := Tr;
+    qInsertTmpRebind.Transaction := Tr;
+ 
+    CardFeaturesList.Text := StringReplace(FCardFeaturesStr, ',', #13#10, [rfReplaceAll, rfIgnoreCase]);
+
+    q3.SQL.Text :=
+      'SELECT ' +
+      '  gd.id AS InvDocTypeKey ' +
+      'FROM ' +
+      '  GD_DOCUMENTTYPE gd ' +
+      'WHERE ' +
+      '  gd.name = ''Произвольный тип'' ';
+    q3.ExecQuery;
+
+    InvDocTypeKey := q3.FieldByName('InvDocTypeKey').AsInteger;
+    q3.Close;
+
+    qInsertTmpRebind.SQL.Text := 
+      'INSERT INTO DBS_TMP_REBIND_INV_CARDS ' +
+      '  (CUR_CARDKEY, NEW_CARDKEY, CUR_FIRST_DOCKEY, FIRST_DOCKEY, FIRST_DATE, CUR_RELATION_NAME) ' +
+      'VALUES (:CurrentCardKey, :NewCardKey, :CurrentFirstDocKey, :FirstDocumentKey, :FirstDate, :CurrentRelationName) ';
+    qInsertTmpRebind.Prepare;
+
     qInsertGdDoc.SQL.Text :=
       'INSERT INTO gd_document ' +
       '  (id, parent, documenttypekey, number, documentdate, companykey, afull, achag, aview, ' +
-        'creatorkey, editorkey) ' +
+      'creatorkey, editorkey) ' +
       'VALUES ' +
       '  (:id, :parent, :documenttypekey, ''1'', :documentdate, :companykey, -1, -1, -1, ' +     ///NUMBER!
-        ':userkey, :userkey) ';
-
+      ':userkey, :userkey) ';
     qInsertGdDoc.ParamByName('DOCUMENTDATE').AsDateTime := FClosingDate;
     qInsertGdDoc.Prepare;
 
@@ -1886,461 +1354,123 @@ begin
       '  (id, goodkey, documentkey, firstdocumentkey, firstdate, companykey';
     // Поля-признаки
     qInsertInvCard.SQL.Add(', ' +
-          UsrFieldsNames);
+          FCardFeaturesStr);
     qInsertInvCard.SQL.Add(
       ') VALUES ' +
       '  (:id, :goodkey, :documentkey, :documentkey, :firstdate, :companykey');
     // Поля-признаки
     qInsertInvCard.SQL.Add(', ' +
-      StringReplace(UsrFieldsNames, 'USR$', ':USR$', [rfReplaceAll, rfIgnoreCase]));
+      StringReplace(FCardFeaturesStr, 'USR$', ':USR$', [rfReplaceAll, rfIgnoreCase]));
     qInsertInvCard.SQL.Add(
       ')');
 
-    qInsertInvCard.ParamByName('FIRSTDATE').AsDateTime := FClosingDate;                   ///
+    qInsertInvCard.ParamByName('FIRSTDATE').AsDateTime := FClosingDate;                       ///
     qInsertInvCard.Prepare;
-
 
     qInsertInvMovement.SQL.Text :=
       'INSERT INTO inv_movement ' +
       '  (id, goodkey, movementkey, movementdate, documentkey, contactkey, cardkey, debit, credit) ' +       ///id, goodkey test
       'VALUES ' +
       '  (:id, :goodkey, :movementkey, :movementdate, :documentkey, :contactkey, :cardkey, :debit, :credit) ';
-
     qInsertInvMovement.ParamByName('MOVEMENTDATE').AsDateTime := FClosingDate;                ///
     qInsertInvMovement.Prepare;
 
-
-
-    CalculateInvBalance(q);  // строим запрос на складские остатки для компании
-    LogEvent('[test]');
-
-    ///PrepareBeforeInsert;                                                        ///
-
-    DecimalSeparator := '.';   // тип Currency в SQL имееет DecimalSeparator = ','
-    LogEvent('[test] SELECT is done.');
-    // Пройдем по остаткам ТМЦ
-    while not q.EOF do
-    begin
-
-      if q.FieldByName('BALANCE').AsCurrency >= 0 then
-      begin
-        // Приход на ContactKey от PseudoClientKey
-        DocumentParentKey := GetNewID;                                           
-        qInsertGdDoc.ParamByName('ID').AsInteger :=  DocumentParentKey;
-        qInsertGdDoc.ParamByName('PARENT').Clear;
-        qInsertGdDoc.ParamByName('DOCUMENTTYPEKEY').AsInteger := InvDocTypeKey;
-        qInsertGdDoc.ParamByName('COMPANYKEY').AsInteger := q.FieldByName('COMPANYKEY').AsInteger;
-        qInsertGdDoc.ParamByName('USERKEY').AsInteger := FCurUserContactKey;
-        qInsertGdDoc.ExecQuery;
-
-        CreatePositionInvDoc(
-          DocumentParentKey,
-          PseudoClientKey, // поставщик
-          q.FieldByName('ContactKey').AsInteger,
-          q.FieldByName('COMPANYKEY').AsInteger,
-          q.FieldByName('GOODKEY').AsInteger,
-          q.FieldByName('BALANCE').AsCurrency,
-          InvDocTypeKey,
-          FCurUserContactKey,
-          q);
-      end
-      else begin
-        // Приход на PseudoClientKey от ContactKey (с положит. кол-вом ТМЦ)
-        DocumentParentKey := GetNewID;                                                 
-        qInsertGdDoc.ParamByName('ID').AsInteger := DocumentParentKey;
-        qInsertGdDoc.ParamByName('PARENT').Clear;
-        qInsertGdDoc.ParamByName('DOCUMENTTYPEKEY').AsInteger := InvDocTypeKey;
-        qInsertGdDoc.ParamByName('COMPANYKEY').AsInteger := q.FieldByName('COMPANYKEY').AsInteger;
-        qInsertGdDoc.ParamByName('USERKEY').AsInteger := FCurUserContactKey;
-        qInsertGdDoc.ExecQuery;
-
-        CreatePositionInvDoc(
-          DocumentParentKey,
-          q.FieldByName('ContactKey').AsInteger,
-          PseudoClientKey,
-          q.FieldByName('COMPANYKEY').AsInteger,
-          q.FieldByName('GOODKEY').AsInteger,
-          -(q.FieldByName('BALANCE').AsCurrency),
-          InvDocTypeKey,
-          FCurUserContactKey,
-          q);
-      end;
-
-      q.Next;
-    end;
-    q.Close;
-
-    Tr.Commit;
-
-    //RestoreAfterInsert;
-
-    Tr.StartTransaction;
-
-    RebindInvCards(Tr);
-    Tr.Commit;
-
-    //SetTriggerActive(False);
-
-  {  q.SQL.Text := 'DELETE FROM inv_movement WHERE movementdate < :Date';       /// удалятся при удалении карточки - удалении дока
-    q.ParamByName('Date').AsString := FClosingDate;
-    q.ExecQuery;
-
-    q.SQL.Text := 'DELETE FROM inv_balance';                                    ///TODO: мб еще что-то
-    q.ExecQuery;
-  }
-    //SetTriggerActive(True);
-
-  finally
-    q.Free;
-    q2.Free;
-    qInsertGdDoc.Free;
-    qInsertInvCard.Free;
-    qInsertInvMovement.Free;
-    Tr.Free;
-    UsrFieldsList.Free;
-  end;
-  LogEvent('Calculating inventory balance... OK');
-end;
-
-{
-procedure TgsDBSqueeze.CalculateInvSaldo;
-var
-  q, q2: TIBSQL;
-  Tr: TIBTransaction;
-  InvDocTypeKey: Integer;
-  PseudoClientKey: Integer;
-  UsrFieldsNames: String;
-  UsrFieldsList: TStringList;
-
-  DocumentParentKey: Integer;
-  CompanyKey: Integer;
-
-  procedure CalculateInvBalance(q: TIBSQL); // формируем складской остаток на дату
-  begin
-    // запрос на складские остатки
-    q.SQL.Text :=
-      'SELECT ' +
-      '  im.contactkey AS ContactKey, ' +
-      '  gc.name AS ContactName, ' +
-      '  ic.goodkey, ' +
-      '  ic.companykey, ' +
-      '  SUM(im.debit - im.credit) AS balance ';
-    if (UsrFieldsNames <> '') then
-      q.SQL.Add(', ' +
-        StringReplace(UsrFieldsNames, 'USR$', 'ic.USR$', [rfReplaceAll, rfIgnoreCase]) + ' ');
-    q.SQL.Add(
-      'FROM  inv_movement im ' +
-      '  JOIN inv_card ic ON im.cardkey = ic.id ' +
-      '  LEFT JOIN gd_contact gc ON gc.id = im.contactkey ' +
+    // выбираем все карточки, которые находятся в движении во время закрытия
+    q3.SQL.Text :=
+      'SELECT' +
+      '  m1.contactkey AS FromConactKey,' +
+      '  m.contactkey AS ToContactKey,' +
+      '  linerel.relationname,' +
+      '  c.id AS CardkeyNew, ' +
+      '  c1.id AS CardkeyOld,' +
+      '  c.goodkey,' +
+      '  c.companykey, ' +
+      '  c.firstdocumentkey';
+    if FCardFeaturesStr <> '' then 
+    q3.SQL.Add(', ' +
+      StringReplace(FCardFeaturesStr, 'USR$', 'c.USR$', [rfReplaceAll, rfIgnoreCase]) + ' ');                                                                       /// c.
+    q3.SQL.Add(' ' +
+      'FROM gd_document d ' +
+      '  JOIN gd_documenttype t ON t.id = d.documenttypekey ' +
+      '  LEFT JOIN inv_movement m ON m.documentkey = d.id ' +
+      '  LEFT JOIN inv_movement m1 ON m1.movementkey = m.movementkey AND m1.id <> m.id ' +
+      '  LEFT JOIN inv_card c ON c.id = m.cardkey ' +
+      '  LEFT JOIN inv_card c1 ON c1.id = m1.cardkey ' +
+      '  LEFT JOIN gd_document d_old ON ((d_old.id = c.documentkey) or (d_old.id = c1.documentkey)) ' +
+      '  LEFT JOIN at_relations linerel ON linerel.id = t.linerelkey ' +
       'WHERE ' +
-      '  im.disabled = 0 ' +
-      '  AND im.movementdate < :RemainsDate ');
-    if FOnlyCompanySaldo then
-      q.SQL.Add(
-        'AND ic.companykey = ' + IntToStr(CompanyKey));
-    q.SQL.Add(' ' +
-      'GROUP BY ' +
-      '  im.contactkey, ' +
-      '  gc.name, ' +
-      '  ic.goodkey, ' +
-      '  ic.companykey ');
-    if (UsrFieldsNames <> '') then
-      q.SQL.Add(', ' +
-        StringReplace(UsrFieldsNames, 'USR$', 'ic.USR$', [rfReplaceAll, rfIgnoreCase]));
+      '  d.documentdate >= :ClosingDate ' +
+      '  AND t.classname = ''TgdcInvDocumentType'' ' +
+      '  AND t.documenttype = ''D'' ' +
+      '  AND d_old.documentdate < :ClosingDate ');
+    q3.ParamByName('ClosingDate').AsDateTime := FClosingDate;
+    q3.ExecQuery;
 
-    q.ParamByName('RemainsDate').AsDateTime := FClosingDate;
-    q.ExecQuery;
-  end;
+    FirstDocumentKey := -1;
+    FirstDate := FClosingDate;                                 /// TODO: уточнить FirstDate
+    while not q3.EOF do
+    begin
+      if q3.FieldByName('CardkeyOld').IsNull then
+        CurrentCardKey := q3.FieldByName('CardkeyNew').AsInteger
+      else
+        CurrentCardKey := q3.FieldByName('CardkeyOld').AsInteger;
+      CurrentFirstDocKey := q3.FieldByName('firstfocumentkey').AsInteger;
+      CurrentFromContactkey := q3.FieldByName('FromConactKey').AsInteger;
+      CurrentToContactkey := q3.FieldByName('ToContactKey').AsInteger;
+      CurrentRelationName := q3.FieldByName('relationname').AsString;
 
-  function CreateHeaderInvDoc(
-    AFromContact, AToContact, ACompanyKey: Integer;
-    AInvDocType, ACurUserContactKey: Integer;
-    ATr2: TIBTransaction
-  ): Integer;
-  var
-    NewDocumentKey: Integer;
-    q3: TIBSQL;
-  begin
-    Assert(Connected);
-
-    q3 := TIBSQL.Create(nil);
-    try
-      q3.Transaction := ATr2;
-
-      NewDocumentKey := GetNewID;
-
-      q3.SQL.Text :=
-        'INSERT INTO gd_document ' +
-        '  (id, parent, documenttypekey, number, documentdate, companykey, afull, achag, aview, ' +
-          'creatorkey, editorkey) ' +
-        'VALUES ' +
-        '  (:id, :parent, :documenttypekey, ''1'', :documentdate, :companykey, -1, -1, -1, ' +              /// NUMBER!
-          ':creatorkey, :editorkey) ';
-
-      q3.ParamByName('ID').AsInteger := NewDocumentKey;
-      q3.ParamByName('DOCUMENTTYPEKEY').AsInteger := AInvDocType;
-      q3.ParamByName('PARENT').Clear;
-      q3.ParamByName('COMPANYKEY').AsInteger := ACompanyKey;
-      q3.ParamByName('DOCUMENTDATE').AsDateTime := FClosingDate;                ///
-      q3.ParamByName('CREATORKEY').AsInteger := ACurUserContactKey;
-      q3.ParamByName('EDITORKEY').AsInteger := ACurUserContactKey;
-      q3.ExecQuery;
-
-      Result := NewDocumentKey;
-    finally
-      q3.Free;
-    end;
-  end;
-
-  function CreatePositionInvDoc(
-    ADocumentParentKey, AFromContact, AToContact, ACompanyKey, ACardGoodKey: Integer;
-    const AGoodQuantity: Currency;
-    AInvDocType, ACurUserContactKey: Integer;
-    ATr2: TIBTransaction;
-    AUsrFieldsDataset: TIBSQL = nil
-  ): Integer;
-  var
-    NewDocumentKey, NewMovementKey, NewCardKey: Integer;
-    I: Integer;
-    q3: TIBSQL;
-  begin
-    Assert(Connected);
-
-    q3 := TIBSQL.Create(nil);
-    NewCardKey := -1;
-    try
-      q3.Transaction := ATr2;
-
-      NewDocumentKey := GetNewID;
-
-      q3.SQL.Text :=
-        'INSERT INTO gd_document ' +
-        '  (id, parent, documenttypekey, number, documentdate, companykey, afull, achag, aview, ' +
-          'creatorkey, editorkey) ' +
-        'VALUES ' +
-        '  (:id, :parent, :documenttypekey, ''1'', :documentdate, :companykey, -1, -1, -1, ' +     ///NUMBER!
-          ':userkey, :userkey) ';
-
-      q3.ParamByName('ID').AsInteger := NewDocumentKey;
-      q3.ParamByName('DOCUMENTTYPEKEY').AsInteger := AInvDocType;
-      q3.ParamByName('PARENT').AsInteger := ADocumentParentKey;
-      q3.ParamByName('COMPANYKEY').AsInteger := ACompanyKey;
-      q3.ParamByName('DOCUMENTDATE').AsDateTime := FClosingDate;
-      q3.ParamByName('USERKEY').AsInteger := ACurUserContactKey;
-
-      q3.ExecQuery;
-
-      NewCardKey := GetNewID;
-
-      // Создадим новую складскую карточку
-      q3.SQL.Text :=
-        'INSERT INTO inv_card ' +
-        '  (id, goodkey, documentkey, firstdocumentkey, firstdate, companykey';
-      // Поля-признаки
-      q3.SQL.Add(', ' +
-            UsrFieldsNames);
-      q3.SQL.Add(
-        ') VALUES ' +
-        '  (:id, :goodkey, :documentkey, :documentkey, :firstdate, :companykey');
-      // Поля-признаки
-      q3.SQL.Add(', ' +
-        StringReplace(UsrFieldsNames, 'USR$', ':USR$', [rfReplaceAll, rfIgnoreCase]));
-      q3.SQL.Add(
-        ')');
-
-      q3.ParamByName('FIRSTDATE').AsDateTime := FClosingDate;                   ///
-      q3.ParamByName('ID').AsInteger := NewCardKey;
-      q3.ParamByName('GOODKEY').AsInteger := ACardGoodKey;
-      q3.ParamByName('DOCUMENTKEY').AsInteger := NewDocumentKey;
-      q3.ParamByName('COMPANYKEY').AsInteger := ACompanyKey;
-
-      for I := 0 to UsrFieldsList.Count - 1 do
+      if (CurrentFromContactkey > 0) or (CurrentToContactkey > 0) then
       begin
-        if Trim(UsrFieldsList[I]) <> 'USR$INV_ADDLINEKEY' then
+        // ищем подходящую карточку в документе остатков для замены удаляемой
+        q4.SQL.Text :=
+          'SELECT FIRST(1) ' +
+          '  c.id AS cardkey, ' +
+          '  c.firstdocumentkey, ' +
+          '  c.firstdate ' +
+          'FROM gd_document d ' +
+          '  LEFT JOIN inv_movement m ON m.documentkey = d.id ' +
+          '  LEFT JOIN inv_card c ON c.id = m.cardkey ' +
+          'WHERE ' +
+          '  d.documenttypekey = :DocTypeKey ' +
+          '  AND d.documentdate = :ClosingDate ' +
+          '  AND c.goodkey = :GoodKey ' +
+          '  AND ' +
+          '    ((m.contactkey = :contact1) ' +
+          '    OR (m.contactkey = :contact2)) ';
+        for I := 0 to CardFeaturesList.Count - 1 do
         begin
-          if Assigned(AUsrFieldsDataset) then
-            q3.ParamByName(Trim(UsrFieldsList[I])).AsVariant :=
-              AUsrFieldsDataset.FieldByName(Trim(UsrFieldsList[I])).AsVariant
+          if not q4.FieldByName(Trim(CardFeaturesList[I])).IsNull then
+            q4.SQL.Add(Format(
+            'AND c.%0:s = :%0:s ', [Trim(CardFeaturesList[I])]) + ' ')
           else
-            q3.ParamByName(Trim(UsrFieldsList[I])).Clear;
+            q4.SQL.Add(Format(
+            'AND c.%0:s IS NULL ', [Trim(CardFeaturesList[I])]) + ' ');
+        end;
 
-        end
-        else // Заполним поле USR$INV_ADDLINEKEY карточки нового остатка ссылкой на позицию
-          q3.ParamByName('USR$INV_ADDLINEKEY').AsInteger := NewDocumentKey;
-      end;
-
-      q3.ExecQuery;
-
-      NewMovementKey := GetNewID;
-
-      // Создадим дебетовую часть складского движения
-      q3.SQL.Text :=
-        'INSERT INTO inv_movement ' +
-        '  (movementkey, movementdate, documentkey, contactkey, cardkey, debit, credit) ' +
-        'VALUES ' +
-        '  (:movementkey, :movementdate, :documentkey, :contactkey, :cardkey, :debit, :credit) ';
-
-      q3.ParamByName('MOVEMENTDATE').AsDateTime := FClosingDate;                ///
-      q3.ParamByName('MOVEMENTKEY').AsInteger := NewMovementKey;
-      q3.ParamByName('DOCUMENTKEY').AsInteger := NewDocumentKey;
-      q3.ParamByName('CONTACTKEY').AsInteger := AToContact;
-      q3.ParamByName('CARDKEY').AsInteger := NewCardKey;
-      q3.ParamByName('DEBIT').AsCurrency := AGoodQuantity;
-      q3.ParamByName('CREDIT').AsCurrency := 0;
-
-      q3.ExecQuery;
-
-      // Создадим кредитовую часть складского движения
-      q3.SQL.Text :=
-        'INSERT INTO inv_movement ' +
-        '  (movementkey, movementdate, documentkey, contactkey, cardkey, debit, credit) ' +
-        'VALUES ' +
-        '  (:movementkey, :movementdate, :documentkey, :contactkey, :cardkey, :debit, :credit) ';
-
-      q3.ParamByName('MOVEMENTDATE').AsDateTime := FClosingDate;                /// 
-      q3.ParamByName('MOVEMENTKEY').AsInteger := NewMovementKey;
-      q3.ParamByName('DOCUMENTKEY').AsInteger := NewDocumentKey;
-      q3.ParamByName('CONTACTKEY').AsInteger := AFromContact;
-      q3.ParamByName('CARDKEY').AsInteger := NewCardKey;
-      q3.ParamByName('DEBIT').AsCurrency := 0;
-      q3.ParamByName('CREDIT').AsCurrency := AGoodQuantity;
-
-      q3.ExecQuery;
-    finally
-      Result := NewCardKey;
-
-      q3.Free;
-    end;
-  end;
-
-  // Перепривязка складских карточек и движения
-  procedure RebindInvCards;
-  const
-    CardkeyFieldCount = 2;
-    CardkeyFieldNames: array[0..CardkeyFieldCount - 1] of String = ('FROMCARDKEY', 'TOCARDKEY');
-  var
-    I: Integer;
-    Tr2: TIBTransaction;
-    q3, q4, q5: TIBSQL;
-    qUpdateCard: TIBSQL;
-    qUpdateFirstDocKey: TIBSQL;
-    qUpdateInvMovement: TIBSQL;
-
-    CurrentCardKey, CurrentFirstDocKey, CurrentFromContactkey, CurrentToContactkey: Integer;
-    NewCardKey, FirstDocumentKey: Integer;
-    FirstDate: TDateTime;
-    CurrentRelationName: String;
-    DocumentParentKey: Integer;
-  begin
-    LogEvent('Rebinding cards...');
-
-    NewCardKey := -1;
-
-    Tr2 := TIBTransaction.Create(nil);
-    q3 := TIBSQL.Create(nil);
-    q4 := TIBSQL.Create(nil);
-    q5 := TIBSQL.Create(nil);
-    qUpdateCard := TIBSQL.Create(nil);
-    qUpdateFirstDocKey := TIBSQL.Create(nil);
-    qUpdateInvMovement := TIBSQL.Create(nil);
-    try
-      Tr2.DefaultDatabase := FIBDatabase;
-      Tr2.StartTransaction;
-
-      q3.Transaction := Tr2;
-      q4.Transaction := Tr2;
-      q5.Transaction := Tr2;
-      qUpdateCard.Transaction := Tr2;
-      qUpdateFirstDocKey.Transaction := Tr2;
-      qUpdateInvMovement.Transaction := Tr2;
-
-      // обновляет ссылку на родительскую карточку
-      qUpdateCard.SQL.Text :=
-        'UPDATE ' +
-        '  inv_card c ' +
-        'SET ' +
-        '  c.parent = :NewParent ' +
-        'WHERE ' +
-        '  c.parent = :OldParent ' +
-        '  AND (' +
-        '    SELECT FIRST(1) m.movementdate ' +
-        '    FROM inv_movement m ' +
-        '    WHERE m.cardkey = c.id ' +
-        '    ORDER BY m.movementdate DESC' +
-        '  ) >= :CloseDate ';
-      qUpdateCard.ParamByName('CloseDate').AsDateTime := FClosingDate;
-      qUpdateCard.Prepare;
-
-      // oбновляет ссылку на документ прихода и дату прихода
-      qUpdateFirstDocKey.SQL.Text :=
-        'UPDATE ' +
-        '  inv_card c ' +
-        'SET ' +
-        '  c.firstdocumentkey = :NewDockey, ' +
-        '  c.firstdate = :NewDate ' +                                           //TODO: убрать
-        'WHERE ' +
-        '  c.firstdocumentkey = :OldDockey ';
-      qUpdateFirstDocKey.Prepare;
-
-      // обновляет в движении ссылки на складские карточки
-      qUpdateInvMovement.SQL.Text :=
-        'UPDATE ' +
-        '  inv_movement m ' +
-        'SET ' +
-        '  m.cardkey = :NewCardkey ' +
-        'WHERE ' +
-        '  m.cardkey = :OldCardkey ' +
-        '  AND m.movementdate >= :CloseDate ';
-      qUpdateInvMovement.ParamByName('CloseDate').AsDateTime := FClosingDate;
-      qUpdateInvMovement.Prepare;
-
-      // выбираем все карточки, которые находятся в движении во время закрытия
-      q3.SQL.Text :=
-        'SELECT' +
-        '  m1.contactkey AS FromConactKey,' +
-        '  m.contactkey AS ToContactKey,' +
-        '  linerel.relationname,' +
-        '  c.id AS CardkeyNew, ' +
-        '  c1.id AS CardkeyOld,' +
-        '  c.goodkey,' +
-        '  c.companykey, ' +
-        '  c.firstdocumentkey';
-      if UsrFieldsNames <> '' then q.SQL.Add(', ' +
-        StringReplace(UsrFieldsNames, 'USR$', 'c.USR$', [rfReplaceAll, rfIgnoreCase]) + ' ');                                                                       /// c.
-      q3.SQL.Add(' ' +
-        'FROM gd_document d ' +
-        '  JOIN gd_documenttype t ON t.id = d.documenttypekey ' +
-        '  LEFT JOIN inv_movement m ON m.documentkey = d.id ' +
-        '  LEFT JOIN inv_movement m1 ON m1.movementkey = m.movementkey AND m1.id <> m.id ' +
-        '  LEFT JOIN inv_card c ON c.id = m.cardkey ' +
-        '  LEFT JOIN inv_card c1 ON c1.id = m1.cardkey ' +
-        '  LEFT JOIN gd_document d_old ON ((d_old.id = c.documentkey) or (d_old.id = c1.documentkey)) ' +
-        '  LEFT JOIN at_relations linerel ON linerel.id = t.linerelkey ' +
-        'WHERE ' +
-        '  d.documentdate >= :ClosingDate ' +
-        '  AND t.classname = ''TgdcInvDocumentType'' ' +
-        '  AND t.documenttype = ''D'' ' +
-        '  AND d_old.documentdate < :ClosingDate ');      
-      q3.ParamByName('ClosingDate').AsDateTime := FClosingDate;
-      q3.ExecQuery;
-
-      FirstDocumentKey := -1;                                                   
-      FirstDate := FClosingDate;                                                /// TODO: уточнить FirstDate
-      while not q3.EOF do
-      begin
-        if q3.FieldByName('CardkeyOld').IsNull then
-          CurrentCardKey := q3.FieldByName('CardkeyNew').AsInteger
-        else
-          CurrentCardKey := q3.FieldByName('CardkeyOld').AsInteger;
-        CurrentFirstDocKey := q3.FieldByName('firstfocumentkey').AsInteger;
-        CurrentFromContactkey := q3.FieldByName('FromConactKey').AsInteger;
-        CurrentToContactkey := q3.FieldByName('ToContactKey').AsInteger;
-        CurrentRelationName := q3.FieldByName('relationname').AsString;
-
-        if (CurrentFromContactkey > 0) or (CurrentToContactkey > 0) then
+        q4.ParamByName('DocTypeKey').AsInteger := InvDocTypeKey;
+        q4.ParamByName('ClosingDate').AsDateTime := FClosingDate;
+        q4.ParamByName('GoodKey').AsInteger := q3.FieldByName('goodkey').AsInteger;
+        q4.ParamByName('CONTACT1').AsInteger := CurrentFromContactkey;
+        q4.ParamByName('CONTACT2').AsInteger := CurrentToContactkey;
+        for I := 0 to CardFeaturesList.Count - 1 do
         begin
-          // ищем подходящую карточку в документе остатков для замены удаляемой
-          q4.SQL.Text :=
+          if not q3.FieldByName(Trim(CardFeaturesList[I])).IsNull then
+            q4.ParamByName(Trim(CardFeaturesList[I])).AsVariant := q3.FieldByName(Trim(CardFeaturesList[I])).AsVariant;
+        end;
+
+        q4.ExecQuery;
+
+        // если нашли подходящую карточку, созданную документом остатков
+        if q4.RecordCount > 0 then
+        begin
+          NewCardKey := q4.FieldByName('CardKey').AsInteger;
+          FirstDocumentKey := q4.FieldByName('FirstDocumentKey').AsInteger;
+          FirstDate := q4.FieldByName('FirstDate').AsDateTime;
+        end
+        else begin
+          // ищем карточку без доп. признаков
+          q4.Close;
+          q4.SQL.Text :=                                                      // TODO: вынести. Prepare
             'SELECT FIRST(1) ' +
             '  c.id AS cardkey, ' +
             '  c.firstdocumentkey, ' +
@@ -2355,454 +1485,403 @@ var
             '  AND ' +
             '    ((m.contactkey = :contact1) ' +
             '    OR (m.contactkey = :contact2)) ';
-          for I := 0 to UsrFieldsList.Count - 1 do
-          begin
-            if not q4.FieldByName(Trim(UsrFieldsList[I])).IsNull then
-              q4.SQL.Add(Format(
-              'AND c.%0:s = :%0:s ', [Trim(UsrFieldsList[I])]) + ' ')
-            else
-              q4.SQL.Add(Format(
-              'AND c.%0:s IS NULL ', [Trim(UsrFieldsList[I])]) + ' ');
-          end;
 
           q4.ParamByName('DocTypeKey').AsInteger := InvDocTypeKey;
           q4.ParamByName('ClosingDate').AsDateTime := FClosingDate;
           q4.ParamByName('GoodKey').AsInteger := q3.FieldByName('goodkey').AsInteger;
           q4.ParamByName('CONTACT1').AsInteger := CurrentFromContactkey;
           q4.ParamByName('CONTACT2').AsInteger := CurrentToContactkey;
-          for I := 0 to UsrFieldsList.Count - 1 do
-          begin
-            if not q.FieldByName(Trim(UsrFieldsList[I])).IsNull then
-              q4.ParamByName(Trim(UsrFieldsList[I])).AsVariant := q3.FieldByName(Trim(UsrFieldsList[I])).AsVariant;
-          end;
-
           q4.ExecQuery;
 
-          // если нашли подходящую карточку, созданную документом остатков
           if q4.RecordCount > 0 then
           begin
             NewCardKey := q4.FieldByName('CardKey').AsInteger;
             FirstDocumentKey := q4.FieldByName('FirstDocumentKey').AsInteger;
             FirstDate := q4.FieldByName('FirstDate').AsDateTime;
           end
-          else begin
-            // ищем карточку без доп. признаков
-            q4.Close;
-            q4.SQL.Text :=                                                      // TODO: вынести. Prepare
-              'SELECT FIRST(1) ' +
-              '  c.id AS cardkey, ' +
-              '  c.firstdocumentkey, ' +
-              '  c.firstdate ' +
-              'FROM gd_document d ' +
-              '  LEFT JOIN inv_movement m ON m.documentkey = d.id ' +
-              '  LEFT JOIN inv_card c ON c.id = m.cardkey ' +
-              'WHERE ' +
-              '  d.documenttypekey = :DocTypeKey ' +
-              '  AND d.documentdate = :ClosingDate ' +
-              '  AND c.goodkey = :GoodKey ' +
-              '  AND ' +
-              '    ((m.contactkey = :contact1) ' +
-              '    OR (m.contactkey = :contact2)) ';
+          else begin // Иначе вставим документ нулевого прихода, перепривязывать будем потом на созданную им карточку
 
-            q4.ParamByName('DocTypeKey').AsInteger := InvDocTypeKey;
-            q4.ParamByName('ClosingDate').AsDateTime := FClosingDate;
-            q4.ParamByName('GoodKey').AsInteger := q3.FieldByName('goodkey').AsInteger;
-            q4.ParamByName('CONTACT1').AsInteger := CurrentFromContactkey;
-            q4.ParamByName('CONTACT2').AsInteger := CurrentToContactkey;
-            q4.ExecQuery;
+            DocumentParentKey := GetNewID;
+            qInsertGdDoc.ParamByName('ID').AsInteger :=  DocumentParentKey;
+            qInsertGdDoc.ParamByName('PARENT').Clear;
+            qInsertGdDoc.ParamByName('DOCUMENTTYPEKEY').AsInteger := InvDocTypeKey;
+            qInsertGdDoc.ParamByName('COMPANYKEY').AsInteger := q3.FieldByName('COMPANYKEY').AsInteger;
+            qInsertGdDoc.ParamByName('USERKEY').AsInteger := FCurUserContactKey;
+            qInsertGdDoc.ExecQuery;
 
-            if q4.RecordCount > 0 then
+            NewDocumentKey := GetNewID;
+
+            qInsertGdDoc.ParamByName('ID').AsInteger := NewDocumentKey;
+            qInsertGdDoc.ParamByName('DOCUMENTTYPEKEY').AsInteger := InvDocTypeKey;
+            qInsertGdDoc.ParamByName('PARENT').AsInteger := DocumentParentKey;
+            qInsertGdDoc.ParamByName('COMPANYKEY').AsInteger := q3.FieldByName('companykey').AsInteger;
+            qInsertGdDoc.ParamByName('USERKEY').AsInteger := FCurUserContactKey;
+            qInsertGdDoc.ExecQuery;
+        
+            NewCardKey := GetNewID;
+        
+            // Создадим новую складскую карточку
+
+            qInsertInvCard.ParamByName('ID').AsInteger := NewCardKey;
+            qInsertInvCard.ParamByName('GOODKEY').AsInteger := q3.FieldByName('goodkey').AsInteger;
+            qInsertInvCard.ParamByName('DOCUMENTKEY').AsInteger := NewDocumentKey;
+            qInsertInvCard.ParamByName('COMPANYKEY').AsInteger := q3.FieldByName('companykey').AsInteger;
+
+            for I := 0 to CardFeaturesList.Count - 1 do
             begin
-              NewCardKey := q4.FieldByName('CardKey').AsInteger;
-              FirstDocumentKey := q4.FieldByName('FirstDocumentKey').AsInteger;
-              FirstDate := q4.FieldByName('FirstDate').AsDateTime;
-            end
-            else begin // Иначе вставим документ нулевого прихода, перепривязывать будем потом на созданную им карточку
-
-              DocumentParentKey := CreateHeaderInvDoc(
-                CurrentFromContactkey,
-                CurrentFromContactkey,
-                q3.FieldByName('companykey').AsInteger,
-                InvDocTypeKey,
-                FCurUserContactKey,
-                Tr2);
-
-              CalculateInvBalance(q5);  // По компании строим запрос на складские остатки
-              NewCardKey := CreatePositionInvDoc(                               
-                DocumentParentKey,
-                CurrentFromContactkey,
-                CurrentFromContactkey,
-                q3.FieldByName('companykey').AsInteger,
-                q3.FieldByName('goodkey').AsInteger,
-                0,
-                InvDocTypeKey,
-                FCurUserContactKey,
-                Tr2,
-                q5);
-              q5.Close;
-
+              if Trim(CardFeaturesList[I]) <> 'USR$INV_ADDLINEKEY' then
+                qInsertInvCard.ParamByName(Trim(CardFeaturesList[I])).Clear
+              else // Заполним поле USR$INV_ADDLINEKEY карточки нового остатка ссылкой на позицию
+                qInsertInvCard.ParamByName('USR$INV_ADDLINEKEY').AsInteger := NewDocumentKey;
             end;
+
+            qInsertInvCard.ExecQuery;
+
+            NewMovementKey := GetNewID;
+
+            // Создадим дебетовую часть складского движения
+            qInsertInvMovement.ParamByName('ID').AsInteger := GetNewID;
+            qInsertInvMovement.ParamByName('GOODKEY').AsInteger := q3.FieldByName('goodkey').AsInteger;
+            qInsertInvMovement.ParamByName('MOVEMENTKEY').AsInteger := NewMovementKey;
+            qInsertInvMovement.ParamByName('DOCUMENTKEY').AsInteger := NewDocumentKey;
+            qInsertInvMovement.ParamByName('CONTACTKEY').AsInteger := CurrentFromContactkey;
+            qInsertInvMovement.ParamByName('CARDKEY').AsInteger := NewCardKey;
+            qInsertInvMovement.ParamByName('DEBIT').AsCurrency := 0;
+            qInsertInvMovement.ParamByName('CREDIT').AsCurrency := 0;
+        
+            qInsertInvMovement.ExecQuery;
+
+            // Создадим кредитовую часть складского движения
+            qInsertInvMovement.ParamByName('ID').AsInteger := GetNewID;
+            qInsertInvMovement.ParamByName('GOODKEY').AsInteger := q3.FieldByName('goodkey').AsInteger;
+            qInsertInvMovement.ParamByName('MOVEMENTKEY').AsInteger := NewMovementKey;
+            qInsertInvMovement.ParamByName('DOCUMENTKEY').AsInteger := NewDocumentKey;
+            qInsertInvMovement.ParamByName('CONTACTKEY').AsInteger := CurrentFromContactkey;
+            qInsertInvMovement.ParamByName('CARDKEY').AsInteger := NewCardKey;
+            qInsertInvMovement.ParamByName('DEBIT').AsCurrency := 0;
+            qInsertInvMovement.ParamByName('CREDIT').AsCurrency := 0;
+
+            qInsertInvMovement.ExecQuery;
           end;
-          q4.Close;
-        end
-        else begin
-          // ищем подходящую карточку для замены удаляемой
-          q4.SQL.Text :=
-            'SELECT FIRST(1) ' +
-            '  c.id AS cardkey, ' +
-            '  c.firstdocumentkey, ' +
-            '  c.firstdate ' +
-            'FROM gd_document d ' +
-            '  LEFT JOIN inv_movement m ON m.documentkey = d.id ' +
-            '  LEFT JOIN inv_card c ON c.id = m.cardkey ' +
-            'WHERE ' +
-            '  d.documenttypekey = :DocTypeKey ' +
-            '  AND d.documentdate = :ClosingDate ' +
-            '  AND c.goodkey = :GoodKey ';
-          for I := 0 to UsrFieldsList.Count - 1 do
-          begin
-            if not q3.FieldByName(Trim(UsrFieldsList[I])).IsNull then
-              q4.SQL.Add(Format(
-              'AND c.%0:s = :%0:s ', [Trim(UsrFieldsList[I])]))
-            else
-              q4.SQL.Add(Format(
-              'AND c.%0:s IS NULL ', [Trim(UsrFieldsList[I])]));
-          end;
-
-          q4.ParamByName('ClosingDate').AsDateTime := FClosingDate;
-          q4.ParamByName('DocTypeKey').AsInteger := InvDocTypeKey;
-          q4.ParamByName('GoodKey').AsInteger := q3.FieldByName('GOODKEY').AsInteger;
-          for I := 0 to UsrFieldsList.Count - 1 do
-          begin
-            if not q3.FieldByName(Trim(UsrFieldsList[I])).IsNull then
-              q4.ParamByName(Trim(UsrFieldsList[I])).AsVariant := q3.FieldByName(Trim(UsrFieldsList[I])).AsVariant;
-          end;
-
-          q4.ExecQuery;
-
-          if q4.RecordCount > 0 then
-            NewCardKey := q4.FieldByName('CardKey').AsInteger
-          else
-            NewCardKey := -1;
-
-          q4.Close;
         end;
-
-
-        if NewCardKey > 0 then
+        q4.Close;
+      end
+      else begin
+        // ищем подходящую карточку для замены удаляемой
+        q4.SQL.Text :=
+          'SELECT FIRST(1) ' +
+          '  c.id AS cardkey, ' +
+          '  c.firstdocumentkey, ' +
+          '  c.firstdate ' +
+          'FROM gd_document d ' +
+          '  LEFT JOIN inv_movement m ON m.documentkey = d.id ' +
+          '  LEFT JOIN inv_card c ON c.id = m.cardkey ' +
+          'WHERE ' +
+          '  d.documenttypekey = :DocTypeKey ' +
+          '  AND d.documentdate = :ClosingDate ' +
+          '  AND c.goodkey = :GoodKey ';
+        for I := 0 to CardFeaturesList.Count - 1 do
         begin
-          // обновление ссылок на родительскую карточку
-          qUpdateCard.ParamByName('OldParent').AsInteger := CurrentCardKey;
-          qUpdateCard.ParamByName('NewParent').AsInteger := NewCardKey;
-          qUpdateCard.ExecQuery;
-          qUpdateCard.Close;
-
-          // обновление ссылок на документ прихода и дату прихода
-          if FirstDocumentKey > -1 then
-          begin
-            qUpdateFirstDocKey.ParamByName('OldDockey').AsInteger := CurrentFirstDocKey;
-            qUpdateFirstDocKey.ParamByName('NewDockey').AsInteger := FirstDocumentKey;
-            qUpdateFirstDocKey.ParamByName('NewDate').AsDateTime := FirstDate;
-            qUpdateFirstDocKey.ExecQuery;
-            qUpdateFirstDocKey.Close;
-          end;
-
-          // обновление ссылок на карточки из движения
-          qUpdateInvMovement.ParamByName('OldCardkey').AsInteger := CurrentCardKey;
-          qUpdateInvMovement.ParamByName('NewCardkey').AsInteger := NewCardKey;
-          qUpdateInvMovement.ExecQuery;
-          qUpdateInvMovement.Close;
-
-          // обновление в дополнительнных таблицах складских документов ссылок на складские карточки
-          for I := 0 to CardkeyFieldCount - 1 do
-          begin
-            q4.SQL.Text :=
-              'SELECT RDB$FIELD_NAME' +
-              'FROM RDB$RELATION_FIELDS ' +
-              'WHERE RDB$RELATION_NAME = :RelationName' +
-              '  AND RDB$FIELD_NAME = :FieldName';
-            q4.ParamByName('RelationName').AsString := CurrentRelationName;
-            q4.ParamByName('FieldName').AsString := CardkeyFieldNames[I];
-            q4.ExecQuery;
-
-            if not q4.RecordCount > 0 then //если доп таблица содержит поле TOCARDKEY/FROMCARDKEY, то обновим их ссылки новыми карточками
-            begin
-              q4.Close;
-              q4.SQL.Text := Format(
-                'UPDATE ' +
-                '  %0:s line ' +
-                'SET ' +
-                '  line.%1:s = :NewCardkey ' +
-                'WHERE ' +
-                '  line.%1:s = :OldCardkey ' +
-                '  AND ( '+
-                '    SELECT doc.documentdate ' +
-                '    FROM gd_document doc ' +
-                '    WHERE doc.id = line.documentkey' +
-                '  ) >= :ClosingDate ',
-                [CurrentRelationName, CardkeyFieldNames[I]]);
-
-              q4.ParamByName('OldCardkey').AsInteger := CurrentCardKey;
-              q4.ParamByName('NewCardkey').AsInteger := NewCardKey;
-              q4.ParamByName('ClosingDate').AsDateTime := FClosingDate;
-              q4.ExecQuery;
-            end;
-            q4.Close;
-
-          end;
-        end
-        else begin
-          LogEvent('Error rebinding card!');
+          if not q3.FieldByName(Trim(CardFeaturesList[I])).IsNull then
+            q4.SQL.Add(Format(
+            'AND c.%0:s = :%0:s ', [Trim(CardFeaturesList[I])]))
+          else
+            q4.SQL.Add(Format(
+            'AND c.%0:s IS NULL ', [Trim(CardFeaturesList[I])]));
         end;
 
-        q3.Next;
-      end;
-      q3.Close;
-      Tr2.Commit;
-      LogEvent('Rebinding cards... OK');
-    finally
-      q3.Free;
-      q4.Free;
-      q5.Free;
-      qUpdateInvMovement.Free;
-      qUpdateFirstDocKey.Free;
-      qUpdateCard.Free;
-      Tr2.Free;
-    end;
-  end;
+        q4.ParamByName('ClosingDate').AsDateTime := FClosingDate;
+        q4.ParamByName('DocTypeKey').AsInteger := InvDocTypeKey;
+        q4.ParamByName('GoodKey').AsInteger := q3.FieldByName('GOODKEY').AsInteger;
+        for I := 0 to CardFeaturesList.Count - 1 do
+        begin
+          if not q3.FieldByName(Trim(CardFeaturesList[I])).IsNull then
+            q4.ParamByName(Trim(CardFeaturesList[I])).AsVariant := q3.FieldByName(Trim(CardFeaturesList[I])).AsVariant;
+        end;
 
-  procedure SetTriggerActive(SetActive: Boolean);
-  const
-    AlterTriggerCount = 3;
-    AlterTriggerArray: array[0 .. AlterTriggerCount - 1] of String =
-      ('INV_BD_MOVEMENT', 'INV_BU_MOVEMENT', 'INV_BU_CARD');  ///'AC_ENTRY_DO_BALANCE'
-  var
-    StateStr: String;
-    I: Integer;
-    q: TIBSQL;
-    Tr: TIBTransaction;
-  begin
-    Tr := TIBTransaction.Create(nil);
-    q := TIBSQL.Create(nil);
-    try
-      Tr.DefaultDatabase := FIBDatabase;
-      Tr.StartTransaction;
-      q.Transaction := Tr;
+        q4.ExecQuery;
 
-      if SetActive then
-        StateStr := 'ACTIVE'
-      else
-        StateStr := 'INACTIVE';
+        if q4.RecordCount > 0 then
+          NewCardKey := q4.FieldByName('CardKey').AsInteger
+        else
+          NewCardKey := -1;
 
-      for I := 0 to AlterTriggerCount - 1 do
-      begin
-        q.SQL.Text := 'ALTER TRIGGER ' + AlterTriggerArray[I] + ' '  + StateStr;
-        q.ExecQuery;
-        q.Close;
+        q4.Close;
       end;
 
-      Tr.Commit;
-    finally
-      q.Free;
-      Tr.Free;
-    end;
-  end;
+      qInsertTmpRebind.ParamByName('CurrentCardKey').AsInteger := CurrentCardKey;
+      qInsertTmpRebind.ParamByName('NewCardKey').AsInteger := NewCardKey;
+      qInsertTmpRebind.ParamByName('CurrentFirstDocKey').AsInteger := CurrentFirstDocKey;
+      qInsertTmpRebind.ParamByName('FirstDocumentKey').AsInteger := FirstDocumentKey;
+      qInsertTmpRebind.ParamByName('FirstDate').AsDateTime := FirstDocumentKey;
+      qInsertTmpRebind.ParamByName('CurrentRelationName').AsString := CurrentRelationName;
+      qInsertTmpRebind.ExecQuery;
 
+      q3.Next;
+    end;
+    Tr.Commit;
+    LogEvent('[test] PrepareRebindInvCards... OK');
+  finally
+    q3.Free;
+    q4.Free;
+    qInsertGdDoc.Free;
+    qInsertInvCard.Free;
+    qInsertInvMovement.Free;
+    qInsertTmpRebind.Free;
+    Tr.Free;
+    CardFeaturesList.Free;
+  end;
+end;
+
+
+// Перепривязка складских карточек и движения
+procedure TgsDBSqueeze.RebindInvCards;
+const
+  CardkeyFieldCount = 2;
+  CardkeyFieldNames: array[0..CardkeyFieldCount - 1] of String = ('FROMCARDKEY', 'TOCARDKEY');
+var
+  I: Integer;
+  Tr: TIBTransaction;
+  q3, q4: TIBSQL;
+  qUpdateCard: TIBSQL;
+  qUpdateFirstDocKey: TIBSQL;
+  qUpdateInvMovement: TIBSQL;
 begin
+  LogEvent('Rebinding cards...');
+
   Tr := TIBTransaction.Create(nil);
-  q := TIBSQL.Create(nil);
-  q2 := TIBSQL.Create(nil);
-  UsrFieldsList := TStringList.Create;
-
-  LogEvent('Calculating inventory balance...');
-
+  q3 := TIBSQL.Create(nil);
+  q4 := TIBSQL.Create(nil);
+  qUpdateCard := TIBSQL.Create(nil);
+  qUpdateFirstDocKey := TIBSQL.Create(nil);
+  qUpdateInvMovement := TIBSQL.Create(nil);
   try
     Tr.DefaultDatabase := FIBDatabase;
     Tr.StartTransaction;
-    q.Transaction := Tr;
-    q2.Transaction := Tr;
 
-    if FOnlyCompanySaldo then
-    begin
-      q.SQL.Text :=
-        'SELECT contactkey AS CompanyKey ' +
-        'FROM GD_COMPANY gc ' +
-        'WHERE fullname = :CompanyName ';
-      q.ParamByName('CompanyName').AsString := FCompanyName;
-      q.ExecQuery;
+    q3.Transaction := Tr;
+    q4.Transaction := Tr;
+    qUpdateCard.Transaction := Tr;
+    qUpdateFirstDocKey.Transaction := Tr;
+    qUpdateInvMovement.Transaction := Tr;
 
-      CompanyKey := q.FieldByName('CompanyKey').AsInteger;
-      q.Close;
-    end;
-
-    q.SQL.Text :=
-      'SELECT ' +
-      '  gd.id AS InvDocTypeKey ' +
-      'FROM ' +
-      '  GD_DOCUMENTTYPE gd ' +
+    // обновляет ссылку на родительскую карточку
+    qUpdateCard.SQL.Text :=
+      'UPDATE ' +
+      '  inv_card c ' +
+      'SET ' +
+      '  c.parent = :NewParent ' +
       'WHERE ' +
-      '  gd.name = ''Произвольный тип'' ';
-    q.ExecQuery;
+      '  c.parent = :OldParent ' +
+      '  AND (' +
+      '    SELECT FIRST(1) m.movementdate ' +
+      '    FROM inv_movement m ' +
+      '    WHERE m.cardkey = c.id ' +
+      '    ORDER BY m.movementdate DESC' +
+      '  ) >= :CloseDate ';
+    qUpdateCard.ParamByName('CloseDate').AsDateTime := FClosingDate;
+    qUpdateCard.Prepare;
 
-    InvDocTypeKey := q.FieldByName('InvDocTypeKey').AsInteger;
-    q.Close;
+    // oбновляет ссылку на документ прихода и дату прихода
+    qUpdateFirstDocKey.SQL.Text :=
+      'UPDATE ' +
+      '  inv_card c ' +
+      'SET ' +
+      '  c.firstdocumentkey = :NewDockey, ' +
+      '  c.firstdate = :NewDate ' +                                           {TODO: убрать}
+      'WHERE ' +
+      '  c.firstdocumentkey = :OldDockey ';
+    qUpdateFirstDocKey.Prepare;
 
-   // список полей-признаков складской карточки
-    q.SQL.Text :=
-      'SELECT LIST(rf.rdb$field_name) as UsrFieldsList ' +
-      'FROM RDB$RELATION_FIELDS rf ' +
-      'WHERE rf.rdb$relation_name = ''INV_CARD'' ' +
-      '  AND rf.rdb$field_name LIKE ''USR$%'' ';
-    q.ExecQuery;
+    // обновляет в движении ссылки на складские карточки
+    qUpdateInvMovement.SQL.Text :=
+      'UPDATE ' +
+      '  inv_movement m ' +
+      'SET ' +
+      '  m.cardkey = :NewCardkey ' +
+      'WHERE ' +
+      '  m.cardkey = :OldCardkey ' +
+      '  AND m.movementdate >= :CloseDate ';
+    qUpdateInvMovement.ParamByName('CloseDate').AsDateTime := FClosingDate;
+    qUpdateInvMovement.Prepare;
 
-    UsrFieldsNames := q.FieldByName('UsrFieldsList').AsString;
-    q.Close;
 
-    UsrFieldsList.Text := StringReplace(UsrFieldsNames, ',', #13#10, [rfReplaceAll, rfIgnoreCase]);
+    q3.SQL.Text :=
+      'SELECT ' +
+      '  CUR_CARDKEY       AS CurrentCardKey, ' +
+      '  NEW_CARDKEY       AS NewCardKey, ' +
+      '  CUR_FIRST_DOCKEY  AS CurrentFirstDocKey, ' +
+      '  FIRST_DOCKEY      AS FirstDocumentKey, ' +
+      '  FIRST_DATE        AS FirstDate, ' +
+      '  CUR_RELATION_NAME AS CurrentRelationName ' +
+      'FROM ' +
+      '  DBS_TMP_REBIND_INV_CARDS ';
+    q3.ExecQuery;
 
-    q.SQL.Text :=
-      'SELECT id ' +
-      'FROM gd_contact ' +
-      'WHERE name = ''Псевдоклиент'' ';
-    q.ExecQuery;
-
-    if q.EOF then // если Псевдоклиента не существует, то создадим
+    while not q3.EOF do
     begin
-      q.Close;
-      q2.SQL.Text :=
-        'SELECT ' +
-        '  gc.id AS ParentId ' +
-        'FROM gd_contact gc ' +
-        'WHERE gc.name = ''Организации'' ';
-      q2.ExecQuery;
+      if q3.FieldByName('NewCardKey').AsInteger > 0 then
+      begin
+        // обновление ссылок на родительскую карточку
+        qUpdateCard.ParamByName('OldParent').AsInteger :=  q3.FieldByName('CurrentCardKey').AsInteger;
+        qUpdateCard.ParamByName('NewParent').AsInteger := q3.FieldByName('NewCardKey').AsInteger;
+        qUpdateCard.ExecQuery;
+        qUpdateCard.Close;
 
-      PseudoClientKey := GetNewID;
+        // обновление ссылок на документ прихода и дату прихода
+        if q3.FieldByName('FirstDocumentKey').AsInteger > -1 then
+        begin
+          qUpdateFirstDocKey.ParamByName('OldDockey').AsInteger := q3.FieldByName('CurrentFirstDocKey').AsInteger;
+          qUpdateFirstDocKey.ParamByName('NewDockey').AsInteger := q3.FieldByName('FirstDocumentKey').AsInteger;
+          qUpdateFirstDocKey.ParamByName('NewDate').AsDateTime := q3.FieldByName('FirstDate').AsDateTime;
+          qUpdateFirstDocKey.ExecQuery;
+          qUpdateFirstDocKey.Close;
+        end;
 
-      q.SQL.Text :=
-        'INSERT INTO gd_contact ( ' +
-        '  id, ' +
-        '  parent, ' +
-        '  name, ' +
-        '  contacttype, ' +
-        '  afull, ' +
-        '  achag, ' +
-        '  aview) ' +
-        'VALUES (' +
-        '  :id, ' +
-        '  :parent, ' +
-        '  ''Псевдоклиент'', ' +
-        '  3, ' +
-        '  -1, ' +
-        '  -1, ' +
-        '  -1)';
-      q.ParamByName('id').AsInteger := PseudoClientKey;
-      q.ParamByName('parent').AsInteger := q2.FieldByName('ParentId').AsInteger;
+        // обновление ссылок на карточки из движения
+        qUpdateInvMovement.ParamByName('OldCardkey').AsInteger := q3.FieldByName('CurrentCardKey').AsInteger;
+        qUpdateInvMovement.ParamByName('NewCardkey').AsInteger := q3.FieldByName('NewCardKey').AsInteger;
+        qUpdateInvMovement.ExecQuery;
+        qUpdateInvMovement.Close;
 
-      q.ExecQuery;
-      q2.Close;
-      Tr.Commit;
-      Tr.StartTransaction;
-    end
-    else
-      PseudoClientKey := q.FieldByName('id').AsInteger;
-    q.Close;
+        // обновление в дополнительнных таблицах складских документов ссылок на складские карточки
+        for I := 0 to CardkeyFieldCount - 1 do
+        begin
+          q4.SQL.Text :=
+            'SELECT ' +
+            '  RDB$FIELD_NAME' +
+            'FROM ' +
+            '  RDB$RELATION_FIELDS ' +
+            'WHERE ' +
+            '  RDB$RELATION_NAME = :RelationName' +
+            '  AND RDB$FIELD_NAME = :FieldName';
+          q4.ParamByName('RelationName').AsString := q3.FieldByName('CurrentRelationName').AsString;
+          q4.ParamByName('FieldName').AsString := CardkeyFieldNames[I];
+          q4.ExecQuery;
 
-    CalculateInvBalance(q);  // строим запрос на складские остатки для компании
+          if not q4.RecordCount > 0 then //если доп таблица содержит поле TOCARDKEY/FROMCARDKEY, то обновим их ссылки новыми карточками
+          begin
+            q4.Close;
+            q4.SQL.Text := Format(
+              'UPDATE ' +
+              '  %0:s line ' +
+              'SET ' +
+              '  line.%1:s = :NewCardkey ' +
+              'WHERE ' +
+              '  line.%1:s = :OldCardkey ' +
+              '  AND ( '+
+              '    SELECT doc.documentdate ' +
+              '    FROM gd_document doc ' +
+              '    WHERE doc.id = line.documentkey' +
+              '  ) >= :ClosingDate ',
+              [q3.FieldByName('CurrentRelationName').AsString, CardkeyFieldNames[I]]);
 
-    DecimalSeparator := '.';   // тип Currency в SQL имееет DecimalSeparator = ','
-
-    // Пройдем по остаткам ТМЦ
-    while not q.EOF do                                                          
-    begin
-
-      if q.FieldByName('BALANCE').AsCurrency >= 0 then
-      begin //приход на ContactKey от PseudoClientKey
-        DocumentParentKey := CreateHeaderInvDoc(
-          PseudoClientKey, // поставщик
-          q.FieldByName('ContactKey').AsInteger,
-          q.FieldByName('COMPANYKEY').AsInteger,
-          InvDocTypeKey,
-          FCurUserContactKey,
-          Tr);
-
-        CreatePositionInvDoc(
-          DocumentParentKey,
-          PseudoClientKey, // поставщик
-          q.FieldByName('ContactKey').AsInteger,
-          q.FieldByName('COMPANYKEY').AsInteger,
-          q.FieldByName('GOODKEY').AsInteger,
-          q.FieldByName('BALANCE').AsCurrency,
-          InvDocTypeKey,
-          FCurUserContactKey,
-          Tr,
-          q);
+            q4.ParamByName('OldCardkey').AsInteger := q3.FieldByName('CurrentCardKey').AsInteger;
+            q4.ParamByName('NewCardkey').AsInteger := q3.FieldByName('NewCardKey').AsInteger;
+            q4.ParamByName('ClosingDate').AsDateTime := FClosingDate;
+            q4.ExecQuery;
+          end;
+          q4.Close;
+        end;
       end
       else begin
-        // Приход на PseudoClientKey от ContactKey (с положит. кол-вом ТМЦ)
-        DocumentParentKey := CreateHeaderInvDoc(
-          q.FieldByName('ContactKey').AsInteger,
-          PseudoClientKey,
-          q.FieldByName('COMPANYKEY').AsInteger,
-          InvDocTypeKey,
-          FCurUserContactKey,
-          Tr);
-
-        CreatePositionInvDoc(
-          DocumentParentKey,
-          q.FieldByName('ContactKey').AsInteger,
-          PseudoClientKey,
-          q.FieldByName('COMPANYKEY').AsInteger,
-          q.FieldByName('GOODKEY').AsInteger,
-          -(q.FieldByName('BALANCE').AsCurrency),
-          InvDocTypeKey,
-          FCurUserContactKey,
-          Tr,
-          q);
+        LogEvent('Error rebinding card! cardkey=' + q3.FieldByName('CurrentCardKey').AsString);
       end;
-
-      q.Next;
+      q3.Next;
     end;
+    Tr.Commit;
+    LogEvent('Rebinding cards... OK');
+  finally
+    q3.Free;
+    q4.Free;
+    qUpdateInvMovement.Free;
+    qUpdateFirstDocKey.Free;
+    qUpdateCard.Free;
+    Tr.Free;
+  end;
+end;
+
+function TgsDBSqueeze.CreateHIS(AnIndex: Integer): Integer;
+var
+  Tr: TIBTransaction;
+  q: TIBSQL;
+begin
+  Result := 0;
+  Assert(Connected);
+
+  Tr := TIBTransaction.Create(nil);	
+  q := TIBSQL.Create(nil);
+  try
+    Tr.DefaultDatabase := FIBDatabase;
+    Tr.StartTransaction;
+    q.Transaction := Tr; 
+
+    q.SQL.Text := Format(
+      'SELECT g_his_create(%d, 0) FROM rdb$database', [AnIndex]);
+    q.ExecQuery;
+
+    Result :=  q.Fields[0].AsInteger;
     q.Close;
 
     Tr.Commit;
-    Tr.StartTransaction;
-
-    RebindInvCards;
-
-    //SetTriggerActive(False);
-
-  //{  q.SQL.Text := 'DELETE FROM inv_movement WHERE movementdate < :Date';       /// удалятся при удалении карточки - удалении дока
-  //  q.ParamByName('Date').AsString := FClosingDate;
-  //  q.ExecQuery;
-
-  //  q.SQL.Text := 'DELETE FROM inv_balance';                                    ///TODO: мб еще что-то
-  //  q.ExecQuery;
-  //
-    Tr.Commit;
-    Tr.StartTransaction;
-
-    //SetTriggerActive(True);
-
+ 
+    if Result = 1 then
+      LogEvent(Format('HIS[%d] создан успешно.', [AnIndex]))
+    else begin
+      LogEvent(Format('Попытка создания HIS[%d] завершилась неудачей!', [AnIndex]));
+      //TODO: кидать exeption
+    end;         
   finally
     q.Free;
-    q2.Free;
-    Tr.Free;
-    UsrFieldsList.Free;
+    Tr.Free;  
   end;
-  LogEvent('Calculating inventory balance... OK');
 end;
- }
 
-
-procedure TgsDBSqueeze.DeleteDocuments;
+function TgsDBSqueeze.DestroyHIS(AnIndex: Integer): Integer;
 var
-  q: TIBSQL;
-  q2: TIBSQL; ///t
   Tr: TIBTransaction;
+  q: TIBSQL;
+begin
+  Result := 0;
+  Assert(Connected);
+
+  Tr := TIBTransaction.Create(nil);	
+  q := TIBSQL.Create(nil);
+  try
+    Tr.DefaultDatabase := FIBDatabase;
+    Tr.StartTransaction;
+    q.Transaction := Tr; 
+
+    q.SQL.Text := Format(
+      'SELECT g_his_destroy(%d) FROM rdb$database', [AnIndex]);
+    q.ExecQuery;
+
+    Result :=  q.Fields[0].AsInteger;
+    q.Close;
+
+    Tr.Commit;
+ 
+    if Result = 1 then
+      LogEvent(Format('HIS[%d] разрушен успешно.', [AnIndex]))
+    else begin
+      LogEvent(Format('Попытка разрушения HIS[%d] завершилась неудачей!', [AnIndex]));
+      //TODO: кидать exeption
+    end;         
+  finally
+    q.Free;
+    Tr.Free;  
+  end;
+end;
+
+procedure TgsDBSqueeze.CreateHIS_IncludeInHIS;
+var
+  Tr: TIBTransaction;
+  q: TIBSQL;
   Count: Integer; ///test
 
-  procedure AddCascadeKeys(const ATableName: String);
+  function IncludeCascadingSequences(const ATableName: String): Integer;  // return real Count included
   var
+    Count: Integer;
     Tr, Tr2: TIBTransaction;
     q: TIBQuery;
     q2: TIBSQL;
@@ -2814,7 +1893,8 @@ var
     IsDuplicate, DoNothing, GoToFirst, GoToLast, IsFirstIteration: Boolean;
     MainDuplicateTblName: String;
   begin
-    LogEvent('[test] AddCascadeKeys...');
+    Result := 0;
+    LogEvent('[test] IncludeCascadingSequences...');
     TblsNamesList := TStringList.Create; // Process Queue
     AllProcessedTblsNames := TStringList.Create;
     ProcTblsNamesList := TStringList.Create;
@@ -2852,126 +1932,111 @@ var
           '  fc.relation_name, ' +
           '  fc.list_fields, ' +
           '  fc.ref_relation_name, ' +
-          '  pc.list_fields AS pk_fields ' +
+          '  st.list_fields AS pk_fields ' +
           'FROM dbs_fk_constraints fc ' +
-          '  JOIN dbs_pk_unique_constraints pc ' +
-          '    ON pc.relation_name = fc.relation_name ' +
-          '  AND pc.constraint_type = ''PRIMARY KEY'' ' +
-          'WHERE ((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) ' +        
-          '  AND fc.ref_relation_name = :rln ' +
-          '  AND pc.list_fields NOT LIKE ''%,%'' ' +
+          '  JOIN DBS_SUITABLE_TABLES st ' +
+          '    ON st.relation_name = fc.relation_name ' +
+          'WHERE ' + 
+          '  fc.ref_relation_name = :rln ' +
+          '  AND ((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) ' +        
           '  AND fc.list_fields NOT LIKE ''%,%'' ' ;
+        
         q.ParamByName('rln').AsString := UpperCase(TblsNamesList[0]);
         q.Open;
 
         while not q.EOF do
         begin
-          // проверка типа поля на INTEGER
-          q2.SQL.Text :=
+          q3.SQL.Text :=
             'SELECT ' +
-            '  IIF(F.RDB$FIELD_TYPE = 8, ''INTEGER'', ''NOT INTEGER'') AS FIELD_TYPE ' +
-            'FROM RDB$RELATION_FIELDS RF ' +
-            '  JOIN RDB$FIELDS F ON (F.RDB$FIELD_NAME = RF.RDB$FIELD_SOURCE) ' +
-            'WHERE (RF.RDB$RELATION_NAME = :RELAT_NAME) AND (RF.RDB$FIELD_NAME = :FIELD) ';
-          q2.ParamByName('RELAT_NAME').AsString := UpperCase(q.FieldByName('relation_name').AsString);
-          q2.ParamByName('FIELD').AsString := UpperCase(q.FieldByName('pk_fields').AsString);
-          q2.ExecQuery;
+            '  SUM(IIF(g_his_has(0, ' + q.FieldByName('pk_fields').AsString + ') = 0, 1, 0)) AS RealKolvo, ' +
+            '  COUNT(g_his_include(0, ' + q.FieldByName('pk_fields').AsString + ')) AS Kolvo ' +
+            'FROM ' +
+               q.FieldByName('relation_name').AsString + ' ' +
+            'WHERE ' +
+            '  g_his_has(0, ' + q.FieldByName('list_fields').AsString + ') = 1 ' +
+            '  AND ' + q.FieldByName('pk_fields').AsString + ' > 147000000 ';                    ///
+          q3.ExecQuery;
 
-          if AnsiCompareStr(q2.FieldByName('FIELD_TYPE').AsString, 'INTEGER') = 1 then //q2.FieldByName('FIELD_TYPE').AsString = ''INTEGER'' then
+          Count := Count + q3.FieldByName('RealKolvo').AsInteger;
+
+          if q3.FieldByName('Kolvo').AsInteger <> 0 then
           begin
-            q3.SQL.Text :=
-              'SELECT ' +
-              '  SUM(IIF(g_his_has(0, ' + q.FieldByName('pk_fields').AsString + ') = 0, 1, 0)) AS RealKolvo, ' +
-              '  COUNT(g_his_include(0, ' + q.FieldByName('pk_fields').AsString + ')) AS Kolvo ' +
-              'FROM ' +
-              '  ' + q.FieldByName('relation_name').AsString + ' ' +
-              'WHERE ' +
-              '  g_his_has(0, ' + q.FieldByName('list_fields').AsString + ') = 1 ' +
-              '  AND ' + q.FieldByName('pk_fields').AsString + ' > 147000000 ';
-            q3.ExecQuery;
-
-            Count := Count + q3.FieldByName('RealKolvo').AsInteger;
-
-            if q3.FieldByName('Kolvo').AsInteger <> 0 then
+            if AllProcessedTblsNames.IndexOf(Trim(q.FieldByName('relation_name').AsString)) <> -1 then
             begin
-              if AllProcessedTblsNames.IndexOf(Trim(q.FieldByName('relation_name').AsString)) <> -1 then
+              if q3.FieldByName('RealKolvo').AsInteger <> 0 then
               begin
-                if q3.FieldByName('RealKolvo').AsInteger <> 0 then
+                if TblsNamesList.IndexOf(Trim(q.FieldByName('relation_name').AsString)) <> -1 then
                 begin
-                  if TblsNamesList.IndexOf(Trim(q.FieldByName('relation_name').AsString)) <> -1 then
-                  begin
-                    DoNothing := True;
-
-                    // Случай 1: этот FK является ссылкой таблицы на саму себя
-                    if q.FieldByName('relation_name').AsString = q.FieldByName('ref_relation_name').AsString then
-                    begin
-                      repeat
-                        q3.Close;
-                        q3.SQL.Text :=
-                          'SELECT ' +
-                          '  SUM(g_his_include(0, ' + q.FieldByName('pk_fields').AsString + ')) AS RealKolvo ' +
-                          'FROM ' +
-                          '  ' + q.FieldByName('relation_name').AsString + ' ' +
-                          'WHERE ' +
-                          '  g_his_has(0, ' + q.FieldByName('list_fields').AsString + ') = 1 ' +
-                          '  AND ' + q.FieldByName('pk_fields').AsString + ' > 147000000 ';
-                        q3.ExecQuery;
-
-                        Count := Count + q3.FieldByName('RealKolvo').AsInteger;
-                      until q3.FieldByName('RealKolvo').AsInteger = 0;
-
-                      GoToFirst := True;
-                    end;
-                    //else
-                    //  Cлучай 2: еще не обработали таблицы, ссылающиеся каскадно на эту таблицу =>  q.Next;
-                  end
-                  // Cлучай 3: уже обработали таблицы, ссылающиеся каскадно на эту таблицу
-                  else begin
-                    if not IsDuplicate then // первый круг
-                    begin
-                      IsDuplicate := True;
-                      MainDuplicateTblName := q.FieldByName('relation_name').AsString;
-                    end;
-
-                    if q.FieldByName('relation_name').AsString = MainDuplicateTblName then
-                    begin
-                      TblsNamesList.Clear;
-                      GoToLast := True;
-                    end;
-                  end;
-                end
-                else begin
-                  //Ситуация 1. 2 круг
                   DoNothing := True;
 
-                  //если НЕ(Ситуация 1. 2 круг. дошли до ссылки на себя), то мб Ситуация 3 конец переобработки
-                  if (q.FieldByName('relation_name').AsString <> q.FieldByName('ref_relation_name').AsString)
-                    and(q.FieldByName('relation_name').AsString = MainDuplicateTblName) then // ситуация 3. заканчиваем цикл переобработки
+                  // Случай 1: этот FK является ссылкой таблицы на саму себя
+                  if q.FieldByName('relation_name').AsString = q.FieldByName('ref_relation_name').AsString then
                   begin
-                    IsDuplicate := False;
-                    MainDuplicateTblName := '';
+                    repeat
+                      q3.Close;
+                      q3.SQL.Text :=
+                        'SELECT ' +
+                        '  SUM(g_his_include(0, ' + q.FieldByName('pk_fields').AsString + ')) AS RealKolvo ' +
+                        'FROM ' +
+                           q.FieldByName('relation_name').AsString + ' ' +
+                        'WHERE ' +
+                        '  g_his_has(0, ' + q.FieldByName('list_fields').AsString + ') = 1 ' +
+                        '  AND ' + q.FieldByName('pk_fields').AsString + ' > 147000000 ';          ///
+                      q3.ExecQuery;
+
+                      Count := Count + q3.FieldByName('RealKolvo').AsInteger;
+                    until q3.FieldByName('RealKolvo').AsInteger = 0;     ///TODO: не логично! сравнить версии файлов
+
+                    GoToFirst := True;             
+                  end;
+                    //else
+                    //  Cлучай 2: еще не обработали таблицы, ссылающиеся каскадно на эту таблицу =>  q.Next;
+                end
+                // Cлучай 3: уже обработали таблицы, ссылающиеся каскадно на эту таблицу
+                else begin
+                  if not IsDuplicate then // первый круг
+                  begin
+                    IsDuplicate := True;
+                    MainDuplicateTblName := q.FieldByName('relation_name').AsString;
+                  end;
+
+                  if q.FieldByName('relation_name').AsString = MainDuplicateTblName then
+                  begin
+                    TblsNamesList.Clear;
+                    GoToLast := True;
                   end;
                 end;
+              end
+              else begin
+                //Ситуация 1. 2 круг
+                DoNothing := True;
 
-                if (IsDuplicate) and (not DoNothing) then
+                //если НЕ(Ситуация 1. 2 круг. дошли до ссылки на себя), то мб Ситуация 3 конец переобработки
+                if (q.FieldByName('relation_name').AsString <> q.FieldByName('ref_relation_name').AsString)
+                  and (q.FieldByName('relation_name').AsString = MainDuplicateTblName) then // ситуация 3. заканчиваем цикл переобработки
                 begin
-                  AllProcessedTblsNames.Delete(AllProcessedTblsNames.IndexOf(Trim(q.FieldByName('relation_name').AsString)));
+                  IsDuplicate := False;
+                  MainDuplicateTblName := '';
                 end;
               end;
 
-              if not DoNothing then
+              if (IsDuplicate) and (not DoNothing) then
               begin
-                  AllProcessedTblsNames.Append(Trim(q.FieldByName('relation_name').AsString));
-                  TblsNamesList.Append(Trim(q.FieldByName('relation_name').AsString));
-              end
-              else // закончили переобработку Ситуации 3. круг 2
-              begin
-                DoNothing := False;
+                AllProcessedTblsNames.Delete(AllProcessedTblsNames.IndexOf(Trim(q.FieldByName('relation_name').AsString)));
               end;
             end;
-            q3.Close;
+
+            if not DoNothing then
+            begin
+                AllProcessedTblsNames.Append(Trim(q.FieldByName('relation_name').AsString));
+                TblsNamesList.Append(Trim(q.FieldByName('relation_name').AsString));
+            end
+            else // закончили переобработку Ситуации 3. круг 2
+            begin
+              DoNothing := False;
+            end;
           end;
-          q2.Close;
+          q3.Close;
 
           if GoToFirst then
           begin
@@ -2994,16 +2059,13 @@ var
       Tr2.Commit;                                                               
       Tr2.StartTransaction;
 
-      LogEvent('[test] COUNT real incuded: ' + IntToStr(Count));
+      LogEvent('[test] COUNT ref real incuded: ' + IntToStr(Count));
 
       //------------------ исключение из HIS PK, на которые есть restrict/noAction
-      q.SQL.Text :=
-        'EXECUTE BLOCK AS BEGIN g_his_create(1, 0); END';  // HIS_2
-      q.ExecSQL;
-      Tr.Commit;
-      Tr.StartTransaction;
+      
+      CreateHIS(1);
 
-      TblsNamesList.CommaText := AllProcessedTblsNames.CommaText;
+      TblsNamesList.CommaText := AllProcessedTblsNames.CommaText;     ///TODO: перепроверить, заменить commatext->text
 
       LogEvent('[test] AllProcessedTblsNames: ' + TblsNamesList.CommaText);
       while TblsNamesList.Count <> 0 do
@@ -3011,14 +2073,13 @@ var
         ProcTblsNamesList.Append(TblsNamesList[0]);
 
         // получим все FK cascade поля в таблице
-        q.SQL.Text :=
-          'SELECT ' +
+        q.SQL.Text :=                                                 ///TODO: вынести. Prepare
+          'SELECT ' + 
           '  fc.list_fields AS fk_field, ' +
           '  pc.list_fields AS pk_field ' +
           'FROM dbs_fk_constraints fc ' +
-          '  JOIN dbs_pk_unique_constraints pc ' +
+          '  JOIN DBS_SUITABLE_TABLES pc ' +
           '    ON pc.relation_name = fc.relation_name ' +
-          '  AND pc.constraint_type = ''PRIMARY KEY'' ' +
           'WHERE ((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) ' +           
           '  AND fc.relation_name = :rln ' +
           '  AND fc.list_fields NOT LIKE ''%,%'' ';
@@ -3109,7 +2170,7 @@ var
                 CascadeProcTbls.Add(ProcTblsNamesList[ProcTblsNamesList.Count-1]);   //список элементов цепи каскадной
                 IndexEnd := AllProcessedTblsNames.IndexOf(CascadeProcTbls[0]);
 
-                while CascadeProcTbls.Count <> 0 do
+                while CascadeProcTbls.Count <> 0 do                                  ///////////////ERROR
                 begin
                   q2.SQL.Text :=
                     'SELECT ' +
@@ -3117,21 +2178,23 @@ var
                     '  fc.ref_relation_name, ' +
                     '  pc.list_fields AS pk_fields ' +
                     'FROM dbs_fk_constraints fc ' +
-                    '  JOIN dbs_pk_unique_constraints pc ' +
+                    '  JOIN DBS_SUITABLE_TABLES pc ' +
                     '    ON pc.relation_name = fc.relation_name ' +
-                    '    AND pc.constraint_type = ''PRIMARY KEY'' ' +
                     'WHERE ((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) ' +    
                     '  AND fc.relation_name = :rln ' +
                     '  AND fc.ref_relation_name IN (';
                   for I:=0 to ProcTblsNamesList.Count-1 do                      /// TODO:или AllProc
                   begin
-                    q2.SQL.Add(' ''' + ProcTblsNamesList[I] + '''');
+                    q2.SQL.Add(' ''' + ProcTblsNamesList[I] + '''');   ///TODO: возможно пуст? error
                     if I <> ProcTblsNamesList.Count-1 then
                       q2.SQL.Add(',');
                   end;
                   q2.SQL.Add(') ');
 
-                  q2.ParamByName('rln').AsString := CascadeProcTbls[0];     
+                  q2.ParamByName('rln').AsString := CascadeProcTbls[0]; 
+
+                  LogSQL(q2);
+
                   q2.ExecQuery;
 
                   while not q2.EOF do
@@ -3168,11 +2231,10 @@ var
                   'SELECT ' +
                   '  fc.list_fields, ' +
                   '  fc.ref_relation_name, ' +
-                  '  pc.list_fields AS pk_fields ' +
+                  '  st.list_fields AS pk_fields ' +
                   'FROM dbs_fk_constraints fc ' +
-                  '  JOIN dbs_pk_unique_constraints pc ' +
-                  '    ON pc.relation_name = fc.relation_name ' +
-                  '    AND pc.constraint_type = ''PRIMARY KEY'' ' +
+                  '  JOIN DBS_SUITABLE_TABLES st ' +
+                  '    ON st.relation_name = fc.relation_name ' +
                   'WHERE ((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) ' +    
                   '  AND fc.relation_name = :rln ' +
                   '  AND fc.ref_relation_name IN (';
@@ -3185,6 +2247,9 @@ var
                 q2.SQL.Add(') ');
 
                 q2.ParamByName('rln').AsString := ProcTblsNamesList[0];
+                
+                LogSQL(q2);
+
                 q2.ExecQuery;
 
                 while not q2.EOF do
@@ -3222,16 +2287,14 @@ var
 
         TblsNamesList.Delete(0);
       end;
+      
       LogEvent('[test] COUNT HIS after exclude: ' + IntToStr(Count));
-
-      q.Close;
-      q.SQL.Text :=
-        'EXECUTE BLOCK AS BEGIN g_his_destroy(1); END';
-      q.ExecSQL;
       Tr.Commit;
-      Tr.StartTransaction;
 
-      LogEvent('[test] AddCascadeKeys... OK');
+      DestroyHIS(1);
+     
+      LogEvent('[test] IncludeCascadingSequences... OK');
+      Result := Count;
     finally
       CascadeProcTbls.Free;
       ProcTblsNamesList.Free;
@@ -3251,19 +2314,15 @@ begin
 
   Tr := TIBTransaction.Create(nil);
   q := TIBSQL.Create(nil);
-  q2 := TIBSQL.Create(nil);
   try
+    CreateHIS(0);
+
     Tr.DefaultDatabase := FIBDatabase;
     Tr.StartTransaction;
 
     q.Transaction := Tr;
-    q2.Transaction := Tr;
 
-    LogEvent('Deleting from DB... ');
-
-    q.SQL.Text :=
-      'EXECUTE BLOCK AS BEGIN g_his_create(0, 0); END';
-    q.ExecQuery;
+    LogEvent('Including IDs In HugeIntSet... ');
 
     q.SQL.Text :=
       'SELECT COUNT(g_his_include(0, id)) as Kolvo FROM gd_document WHERE documentdate < :Date';
@@ -3272,53 +2331,49 @@ begin
 
     Count := q.FieldByName('Kolvo').AsInteger;
     q.Close;
+
+    LogEvent(Format('COUNT in HIS without cascade: %d', [Count]));
+    IncludeCascadingSequences('GD_DOCUMENT');
+    LogEvent(Format('COUNT in HIS with CASCADE: %d', [Count]));
+
+    Tr.Commit;
+    LogEvent('Including PKs In HugeIntSet... OK');
+  finally
+    q.Free;
+    Tr.Free;
+  end;
+end;
+
+procedure TgsDBSqueeze.DeleteDocuments_DeleteHIS;
+var
+  q: TIBSQL;
+  Tr: TIBTransaction;
+begin
+  Assert(Connected);
+
+  Tr := TIBTransaction.Create(nil);
+  q := TIBSQL.Create(nil);
+  try
+    Tr.DefaultDatabase := FIBDatabase;
+    Tr.StartTransaction;
+
+    q.Transaction := Tr;
+
+    LogEvent('Deleting from DB... ');
+                                          ///TODO: проверить можно ли в HIS добавить id < 147000000
+    q.SQL.Text :=
+      'SELECT ' + 
+      ''' DELETE FROM '' || relation_name || ' + 
+      ''' WHERE g_his_has(0, '' || list_fields  || '') = 1 ' + 
+      '     AND '' || list_fields || '' > 147000000 '' ' + 
+      'FROM ' + 
+      '  DBS_SUITABLE_TABLES ';
+    q.ExecQuery;
+
     Tr.Commit;
     Tr.StartTransaction;
 
-    LogEvent('COUNT in HIS without cascade: ' + IntToStr(Count));
-
-    AddCascadeKeys('GD_DOCUMENT');
-    LogEvent('COUNT in HIS with CASCADE: ' + IntToStr(Count));
-
-    q.SQL.Text :=
-      'SELECT relation_name as RN, list_fields AS FN ' +
-      'FROM dbs_pk_unique_constraints ' +
-      'WHERE constraint_type = ''PRIMARY KEY'' ' +
-      '  AND (NOT list_fields LIKE ''%,%'') ';
-    q.ExecQuery;
-    while not q.EOF do
-    begin
-      // проверка типа поля PK на INTEGER
-      q2.SQL.Text :=
-        'SELECT ' +
-        '  IIF(F.RDB$FIELD_TYPE = 8, ''INTEGER'', ''NOT INTEGER'') AS FIELD_TYPE ' +
-        'FROM RDB$RELATION_FIELDS RF ' +
-        '  JOIN RDB$FIELDS F ON (F.RDB$FIELD_NAME = RF.RDB$FIELD_SOURCE) ' +
-        'WHERE (RF.RDB$RELATION_NAME = :RELAT_NAME) AND (RF.RDB$FIELD_NAME = :FIELD) ';
-      q2.ParamByName('RELAT_NAME').AsString := UpperCase(q.FieldByName('RN').AsString);
-      q2.ParamByName('FIELD').AsString := UpperCase(q.FieldByName('FN').AsString);
-      q2.ExecQuery;
-
-      if q2.FieldByName('FIELD_TYPE').AsString = 'INTEGER' then
-      begin
-        q2.Close;
-        q2.SQL.Text :=
-          'DELETE FROM ' + q.FieldByName('RN').AsString + ' ' +
-          'WHERE g_his_has(0, ' +  q.FieldByName('FN').AsString  +') = 1 ' +
-          '  AND ' + q.FieldByName('FN').AsString + ' > 147000000 ';
-        q2.ExecQuery;
-      end
-      else
-        q2.Close;
-      q.Next;
-    end;
-
-    Tr.Commit;
-    Tr.StartTransaction;
-
-    q.SQL.Text :=
-      'EXECUTE BLOCK AS BEGIN g_his_destroy(0); END';
-    q.ExecQuery;
+    DestroyHIS(0);
 
     q.SQL.Text :=
       'DELETE FROM dbs_fk_constraints WHERE constraint_name LIKE ''dbs_%''';
@@ -3328,7 +2383,6 @@ begin
     LogEvent('Deleting from DB... OK');
   finally
     q.Free;
-    q2.Free;
     Tr.Free;
   end;
 end;
@@ -3345,14 +2399,6 @@ var
 
   procedure PrepareTriggers;
   begin
-    q.SQL.Text :=
-      'INSERT INTO DBS_INACTIVE_TRIGGERS (TRIGGER_NAME) ' +
-      'SELECT RDB$TRIGGER_NAME ' +
-      'FROM RDB$TRIGGERS ' +
-      'WHERE (RDB$TRIGGER_INACTIVE <> 0) AND (RDB$TRIGGER_INACTIVE IS NOT NULL) ' + ///=1
-      '  AND ((RDB$SYSTEM_FLAG = 0) OR (RDB$SYSTEM_FLAG IS NULL)) ';                                           
-    q.ExecQuery;
-    
     q.SQL.Text :=
       'EXECUTE BLOCK ' +
       'AS ' +
@@ -3381,14 +2427,6 @@ var
   procedure PrepareIndices;
   begin
     q.SQL.Text :=
-      'INSERT INTO DBS_INACTIVE_INDICES (INDEX_NAME) ' +
-      'SELECT RDB$INDEX_NAME ' +
-      'FROM RDB$INDICES ' +
-      'WHERE (RDB$INDEX_INACTIVE <> 0) AND (RDB$INDEX_INACTIVE IS NOT NULL) ' + ///=1
-      '  AND ((RDB$SYSTEM_FLAG = 0) OR (RDB$SYSTEM_FLAG IS NULL))';
-    q.ExecQuery;
-
-    q.SQL.Text :=
       'EXECUTE BLOCK ' +
       'AS ' +
       '  DECLARE VARIABLE N CHAR(31); ' +
@@ -3415,36 +2453,13 @@ var
   procedure PreparePkUniqueConstraints;
   begin
     q.SQL.Text :=
-      'INSERT INTO DBS_PK_UNIQUE_CONSTRAINTS ( ' +
-      '  RELATION_NAME, ' +
-      '  CONSTRAINT_NAME, ' +
-      '  CONSTRAINT_TYPE, ' +
-      '  LIST_FIELDS ) ' +
-      'SELECT ' +
-      '  c.RDB$RELATION_NAME, ' +
-      '  c.RDB$CONSTRAINT_NAME, ' +
-      '  c.RDB$CONSTRAINT_TYPE, ' +
-      '  i.List_Fields ' +
-      'FROM ' +
-      '  RDB$RELATION_CONSTRAINTS c ' +
-      '  JOIN (SELECT inx.RDB$INDEX_NAME, ' +
-      '    list(TRIM(inx.RDB$FIELD_NAME)) as List_Fields ' +
-      '    FROM RDB$INDEX_SEGMENTS inx ' +
-      '    GROUP BY inx.RDB$INDEX_NAME ' +
-      '  ) i ON c.RDB$INDEX_NAME = i.RDB$INDEX_NAME ' +
-      'WHERE ' +
-      '  (c.rdb$constraint_type = ''PRIMARY KEY'' OR c.rdb$constraint_type = ''UNIQUE'') ' +
-      '   AND c.rdb$constraint_name NOT LIKE ''RDB$%'' ';
-    q.ExecQuery;
-
-    q.SQL.Text :=
       'EXECUTE BLOCK ' +
       'AS ' +
       '  DECLARE VARIABLE CN CHAR(31); ' +
       '  DECLARE VARIABLE RN CHAR(31); ' +
       'BEGIN ' +
       '  FOR ' +
-     '    SELECT constraint_name, relation_name ' +
+      '    SELECT constraint_name, relation_name ' +
       '    FROM DBS_PK_UNIQUE_CONSTRAINTS ' +
       '    INTO :CN, :RN ' +
       '  DO ' +
@@ -3459,35 +2474,6 @@ var
   procedure PrepareFKConstraints;
   begin
     q.SQL.Text :=
-      'INSERT INTO DBS_FK_CONSTRAINTS ( ' +
-      '  CONSTRAINT_NAME, RELATION_NAME, REF_RELATION_NAME, ' +
-      '  UPDATE_RULE, DELETE_RULE, LIST_FIELDS, LIST_REF_FIELDS) ' +
-      'SELECT ' +
-      '  c.RDB$CONSTRAINT_NAME AS Constraint_Name, ' +
-      '  c.RDB$RELATION_NAME AS Relation_Name, ' +
-      '  c2.RDB$RELATION_NAME AS Ref_Relation_Name, ' +
-      '  refc.RDB$UPDATE_RULE AS Update_Rule, ' +
-      '  refc.RDB$DELETE_RULE AS Delete_Rule, ' +
-      '  LIST(iseg.rdb$field_name) AS Fields, ' +
-      '  LIST(ref_iseg.rdb$field_name) AS Ref_Fields ' +
-      'FROM ' +
-      '  RDB$RELATION_CONSTRAINTS c ' +
-      '  JOIN RDB$REF_CONSTRAINTS refc ' +
-      '    ON c.RDB$CONSTRAINT_NAME = refc.RDB$CONSTRAINT_NAME ' +
-      '  JOIN RDB$RELATION_CONSTRAINTS c2 ' +
-      '    ON refc.RDB$CONST_NAME_UQ = c2.RDB$CONSTRAINT_NAME ' +
-      '  JOIN rdb$index_segments iseg ' +
-      '    ON iseg.rdb$index_name = c.rdb$index_name ' +
-      '  JOIN rdb$index_segments ref_iseg ' +
-      '    ON ref_iseg.rdb$index_name = c2.rdb$index_name ' +
-      'WHERE ' +
-      '  c.rdb$constraint_type = ''FOREIGN KEY''  ' +
-      '  AND c.rdb$constraint_name NOT LIKE ''RDB$%'' ' +
-      'GROUP BY ' +
-      '  1, 2, 3, 4, 5';
-    q.ExecQuery;
-
-    q.SQL.Text :=
       'EXECUTE BLOCK ' +
       'AS ' +
       '  DECLARE VARIABLE CN CHAR(31); ' +
@@ -3496,29 +2482,12 @@ var
       '  FOR ' +
       '    SELECT constraint_name, relation_name ' +
       '    FROM DBS_FK_CONSTRAINTS ' +
+      '    WHERE constraint_name NOT LIKE ''dbs_%'' ' +
       '    INTO :CN, :RN ' +
       '  DO ' +
       '    EXECUTE STATEMENT ''ALTER TABLE '' || :RN || '' DROP CONSTRAINT '' || :CN; ' +
       'END';
     q.ExecQuery;
-
-    q.SQL.Text :=
-      'INSERT INTO DBS_FK_CONSTRAINTS ( ' +
-      '  relation_name, ' +
-      '  ref_relation_name, ' +
-      '  constraint_name, ' +
-      '  list_fields, list_ref_fields, update_rule, delete_rule) ' +
-      'SELECT ' +
-      '  IIF(relation_name = ''AC_ENTRY'', ''DBS_TMP_AC_SALDO'', relation_name), ' +
-      '  IIF(ref_relation_name = ''AC_ENTRY'', ''DBS_TMP_AC_SALDO'', ref_relation_name), ' +
-      '  ''dbs_'' || constraint_name, ' +
-      '  list_fields, list_ref_fields, update_rule, delete_rule ' +
-      'FROM  ' +
-      '  DBS_FK_CONSTRAINTS  ' +
-      'WHERE  ' +
-      '  ((RELATION_NAME = ''AC_ENTRY'') AND (LIST_FIELDS NOT LIKE ''%TRANSACTIONKEY%'') ) ' +
-      '  OR ((REF_RELATION_NAME = ''AC_ENTRY'') AND (LIST_REF_FIELDS NOT LIKE ''%TRANSACTIONKEY%'')) ';
-    q.ExecQuery;   
 
     Tr.Commit;
     Tr.StartTransaction;
@@ -3551,11 +2520,148 @@ begin
   end;
 end;
 
+procedure TgsDBSqueeze.SaveMetadata;
+var
+  Tr: TIBTransaction;
+  q: TIBSQL;
+begin
+  Assert(Connected);
+
+  Tr := TIBTransaction.Create(nil);
+  q := TIBSQL.Create(nil);
+  try
+    LogEvent('Saving metadata...');
+    Tr.DefaultDatabase := FIBDatabase;
+    Tr.StartTransaction;
+
+    q.Transaction := Tr;
+
+    // inactive triggers
+    q.SQL.Text :=
+      'INSERT INTO DBS_INACTIVE_TRIGGERS (TRIGGER_NAME) ' +
+      'SELECT RDB$TRIGGER_NAME ' +
+      'FROM RDB$TRIGGERS ' +
+      'WHERE (RDB$TRIGGER_INACTIVE <> 0) AND (RDB$TRIGGER_INACTIVE IS NOT NULL) ' +
+      '  AND ((RDB$SYSTEM_FLAG = 0) OR (RDB$SYSTEM_FLAG IS NULL)) ';
+    q.ExecQuery;
+
+    // inactive indices
+    q.SQL.Text :=
+      'INSERT INTO DBS_INACTIVE_INDICES (INDEX_NAME) ' +
+      'SELECT RDB$INDEX_NAME ' +
+      'FROM RDB$INDICES ' +
+      'WHERE (RDB$INDEX_INACTIVE <> 0) AND (RDB$INDEX_INACTIVE IS NOT NULL) ' +
+      '  AND ((RDB$SYSTEM_FLAG = 0) OR (RDB$SYSTEM_FLAG IS NULL))';
+    q.ExecQuery;
+
+    // PKs and Uniques constraints
+    q.SQL.Text :=
+      'INSERT INTO DBS_PK_UNIQUE_CONSTRAINTS ( ' +
+      '  RELATION_NAME, ' +
+      '  CONSTRAINT_NAME, ' +
+      '  CONSTRAINT_TYPE, ' +
+      '  LIST_FIELDS ) ' +
+      'SELECT ' +
+      '  c.RDB$RELATION_NAME, ' +
+      '  c.RDB$CONSTRAINT_NAME, ' +
+      '  c.RDB$CONSTRAINT_TYPE, ' +
+      '  i.List_Fields ' +
+      'FROM ' +
+      '  RDB$RELATION_CONSTRAINTS c ' +
+      '  JOIN (SELECT inx.RDB$INDEX_NAME, ' +
+      '    list(TRIM(inx.RDB$FIELD_NAME)) as List_Fields ' +
+      '    FROM RDB$INDEX_SEGMENTS inx ' +
+      '    GROUP BY inx.RDB$INDEX_NAME ' +
+      '  ) i ON c.RDB$INDEX_NAME = i.RDB$INDEX_NAME ' +
+      'WHERE ' +
+      '  (c.rdb$constraint_type = ''PRIMARY KEY'' OR c.rdb$constraint_type = ''UNIQUE'') ' +
+      '   AND c.rdb$constraint_name NOT LIKE ''RDB$%'' ';
+    q.ExecQuery;
+
+    Tr.Commit;
+    Tr.StartTransaction;
+
+    // Имена таблиц и их поля PK, который подходит для добавление в множество HIS для удаления 
+    q.SQL.Text :=
+      'INSERT INTO DBS_SUITABLE_TABLES ' +
+      'SELECT ' +
+      '  pk.relation_name AS RN, ' +
+      '  pk.list_fields AS FN ' +
+      'FROM DBS_PK_UNIQUE_CONSTRAINTS pk ' +
+      '  JOIN rdb$relation_fields rf ' +
+      '    ON rf.rdb$relation_name = pk.relation_name ' +
+      '      AND rf.rdb$field_name = pk.list_fields ' +
+      '    JOIN rdb$fields f ON f.rdb$field_name = rf.rdb$field_source ' +
+      'WHERE constraint_type = ''PRIMARY KEY'' ' +
+      '  AND list_fields NOT LIKE ''%,%'' ' +
+      '  AND f.rdb$field_type = 8 ';
+    q.ExecQuery;
+
+    // FK constraints
+    q.SQL.Text :=
+      'INSERT INTO DBS_FK_CONSTRAINTS ( ' +
+      '  CONSTRAINT_NAME, RELATION_NAME, REF_RELATION_NAME, ' +
+      '  UPDATE_RULE, DELETE_RULE, LIST_FIELDS, LIST_REF_FIELDS) ' +
+      'SELECT ' +
+      '  c.RDB$CONSTRAINT_NAME AS Constraint_Name, ' +
+      '  c.RDB$RELATION_NAME AS Relation_Name, ' +
+      '  c2.RDB$RELATION_NAME AS Ref_Relation_Name, ' +
+      '  refc.RDB$UPDATE_RULE AS Update_Rule, ' +
+      '  refc.RDB$DELETE_RULE AS Delete_Rule, ' +
+      '  LIST(iseg.rdb$field_name) AS Fields, ' +
+      '  LIST(ref_iseg.rdb$field_name) AS Ref_Fields ' +
+      'FROM ' +
+      '  RDB$RELATION_CONSTRAINTS c ' +
+      '  JOIN RDB$REF_CONSTRAINTS refc ' +
+      '    ON c.RDB$CONSTRAINT_NAME = refc.RDB$CONSTRAINT_NAME ' +
+      '  JOIN RDB$RELATION_CONSTRAINTS c2 ' +
+      '    ON refc.RDB$CONST_NAME_UQ = c2.RDB$CONSTRAINT_NAME ' +
+      '  JOIN rdb$index_segments iseg ' +
+      '    ON iseg.rdb$index_name = c.rdb$index_name ' +
+      '  JOIN rdb$index_segments ref_iseg ' +
+      '    ON ref_iseg.rdb$index_name = c2.rdb$index_name ' +
+      'WHERE ' +
+      '  c.rdb$constraint_type = ''FOREIGN KEY''  ' +
+      '  AND c.rdb$constraint_name NOT LIKE ''RDB$%'' ' +
+      'GROUP BY ' +
+      '  1, 2, 3, 4, 5';
+    q.ExecQuery;
+
+    Tr.Commit;
+    Tr.StartTransaction;
+
+    q.SQL.Text :=
+      'INSERT INTO DBS_FK_CONSTRAINTS ( ' +
+      '  relation_name, ' +
+      '  ref_relation_name, ' +
+      '  constraint_name, ' +
+      '  list_fields, list_ref_fields, update_rule, delete_rule) ' +
+      'SELECT ' +
+      '  IIF(relation_name = ''AC_ENTRY'', ''DBS_TMP_AC_SALDO'', relation_name), ' +
+      '  IIF(ref_relation_name = ''AC_ENTRY'', ''DBS_TMP_AC_SALDO'', ref_relation_name), ' +
+      '  ''dbs_'' || constraint_name, ' +
+      '  list_fields, list_ref_fields, update_rule, delete_rule ' +
+      'FROM  ' +
+      '  DBS_FK_CONSTRAINTS  ' +
+      'WHERE  ' +
+      '  ((RELATION_NAME = ''AC_ENTRY'') AND (LIST_FIELDS NOT LIKE ''%TRANSACTIONKEY%'') ) ' +
+      '  OR ((REF_RELATION_NAME = ''AC_ENTRY'') AND (LIST_REF_FIELDS NOT LIKE ''%TRANSACTIONKEY%'')) ';
+    q.ExecQuery;
+
+
+
+    Tr.Commit;
+    LogEvent('Metadata saved.');
+  finally
+    q.Free;
+    Tr.Free;
+  end;
+end;
+
 procedure TgsDBSqueeze.RestoreDB;                                               ///TODO: GD_RUID почистить
 var
   Tr: TIBTransaction;
   q: TIBSQL;
-  S: String;
 
   procedure RestoreTriggers;
   begin
@@ -3612,21 +2718,20 @@ var
   procedure RestorePkUniqueConstraints;
   begin
     q.SQL.Text :=
-        'EXECUTE BLOCK ' +
-        '  RETURNS(S VARCHAR(16384)) ' +
-        'AS ' +
-        'BEGIN ' +
-        '  FOR ' +
-        '    SELECT ''ALTER TABLE '' || relation_name || '' ADD CONSTRAINT '' || ' +
-        '      constraint_name || '' '' || constraint_type ||'' ('' || list_fields || '') '' ' +
-        '    FROM dbs_pk_unique_constraints ' +
-        '    INTO :S ' +
-        '  DO BEGIN ' +
-        '    SUSPEND; ' +
-        '    EXECUTE STATEMENT :S WITH AUTONOMOUS TRANSACTION;' +
-        '  END ' +
-        'END';
-        
+      'EXECUTE BLOCK ' +
+      '  RETURNS(S VARCHAR(16384)) ' +
+      'AS ' +
+      'BEGIN ' +
+      '  FOR ' +
+      '    SELECT ''ALTER TABLE '' || relation_name || '' ADD CONSTRAINT '' || ' +
+      '      constraint_name || '' '' || constraint_type ||'' ('' || list_fields || '') '' ' +
+      '    FROM dbs_pk_unique_constraints ' +
+      '    INTO :S ' +
+      '  DO BEGIN ' +
+      '    SUSPEND; ' +
+      '    EXECUTE STATEMENT :S WITH AUTONOMOUS TRANSACTION;' +
+      '  END ' +
+      'END';
     try
       q.ExecQuery;
       while not q.Eof do
@@ -3636,7 +2741,6 @@ var
       LogEvent('PK Query: ' + q.FieldByName('S').AsString);
       raise;
     end;
-
 
     Tr.Commit;
     Tr.StartTransaction;
@@ -3658,10 +2762,11 @@ var
       '      IIF(update_rule = ''RESTRICT'', '''', '' ON UPDATE '' || update_rule) || ' +
       '      IIF(delete_rule = ''RESTRICT'', '''', '' ON DELETE '' || delete_rule) ' +
       '    FROM dbs_fk_constraints ' +
+      '    WHERE constraint_name NOT LIKE ''dbs_%'' ' +
       '    INTO :S ' +
       '  DO BEGIN ' +
       '    SUSPEND; ' +
-      '    EXECUTE STATEMENT :S WITH AUTONOMOUS TRANSACTION; ' +
+      '    EXECUTE STATEMENT :S; ' +          ///with anonimus transaction
       '  END ' +
       'END';
 
@@ -3696,13 +2801,6 @@ begin
     RestoreIndices;
     RestoreTriggers;
     RestorePkUniqueConstraints;
-
-    //Disconnect;
-    //Connect;
-
-    //Tr.DefaultDatabase := FIBDatabase;
-   // Tr.StartTransaction;
-
     RestoreFKConstraints;
    
    // Tr.Commit;
@@ -3763,85 +2861,186 @@ begin
   end;
 end;
 
-procedure TgsDBSqueeze.TestAndCreateMetadata;
+procedure TgsDBSqueeze.LogSQL(const AnIBSQL: TIBSQL);           //TODO: доработать
+begin
+  LogEvent('[test] ' + AnIBSQL.SQL.Text);
+end;
+
+procedure TgsDBSqueeze.CreateMetadata;
 var
   q: TIBSQL;
   q2: TIBSQL;
   Tr: TIBTransaction;
 
+  procedure CreateDBSTmpRebindInvCards;
+  begin
+    if RelationExist2('DBS_TMP_REBIND_INV_CARDS', Tr) then
+    begin
+      q.SQL.Text := 'DELETE FROM DBS_TMP_REBIND_INV_CARDS';
+      q.ExecQuery;
+      LogEvent('Table DBS_TMP_REBIND_INV_CARDS exists.');
+    end else
+    begin
+      q.SQL.Text :=
+        'CREATE TABLE DBS_TMP_REBIND_INV_CARDS ( ' +
+        '  CUR_CARDKEY       INTEGER, ' +
+        '  NEW_CARDKEY       INTEGER, ' +
+        '  CUR_FIRST_DOCKEY  INTEGER, ' +
+        '  FIRST_DOCKEY      INTEGER, ' +
+        '  FIRST_DATE        DATE, ' +
+        '  CUR_RELATION_NAME VARCHAR(31), ' +
+        '  PRIMARY KEY (CUR_CARDKEY))';  //TODO: CUR_CARDKEY проверить уникальность
+      q.ExecQuery;
+      LogEvent('Table DBS_TMP_REBIND_INV_CARDS has been created.');
+    end;
+  end;
+
   procedure CreateDBSTmpAcSaldo;
   begin
     if RelationExist2('DBS_TMP_AC_SALDO', Tr) then
     begin
-//      q.SQL.Text := 'DELETE FROM DBS_TMP_AC_SALDO';       ///tmp
-//      q.ExecQuery;
-//      LogEvent('Table DBS_TMP_AC_SALDO exists.');
-
-////test
-      q.SQL.Text := 'DROP TABLE DBS_TMP_AC_SALDO';       ///tmp                 ///TODO: убрать. временное решение для березы
+      q.SQL.Text := 'DELETE FROM DBS_TMP_AC_SALDO';
       q.ExecQuery;
-      Tr.Commit;
-      Tr.StartTransaction;
-       q2.SQL.Text :=
-        'SELECT LIST(rf.rdb$field_name, '' INTEGER, '') AS AllUsrFieldsList ' +
-        'FROM RDB$RELATION_FIELDS rf ' +
-        'WHERE rf.rdb$relation_name = ''AC_ACCOUNT'' ' +
-        '  AND rf.rdb$field_name LIKE ''USR$%'' ';
-      q2.ExecQuery;
-
-      q.SQL.Text :=
-        'CREATE TABLE DBS_TMP_AC_SALDO ( ' +
-        '  ID INTEGER, ' +
-        '  COMPANYKEY INTEGER, ' +
-        '  CURRKEY    INTEGER, ' +
-        '  ACCOUNTKEY INTEGER, ' +
-        '  MASTERDOCKEY  INTEGER, ' +
-        '  DOCUMENTKEY INTEGER, ' +
-        '  RECORDKEY   INTEGER, ' +
-        '  ACCOUNTPART VARCHAR(1), ' +
-        '  CREDITNCU  DECIMAL(15,4), ' +
-        '  CREDITCURR DECIMAL(15,4), ' +
-        '  CREDITEQ   DECIMAL(15,4), ' +
-        '  DEBITNCU   DECIMAL(15,4), ' +
-        '  DEBITCURR  DECIMAL(15,4), ' +
-        '  DEBITEQ    DECIMAL(15,4), ' +
-        q2.FieldByName('AllUsrFieldsList').AsString + ' INTEGER, ' +
-        '  PRIMARY KEY (ID))';
-      q.ExecQuery;
-      q2.Close;
-      LogEvent('Table DBS_TMP_AC_SALDO has been created.');
-//////
+      LogEvent('Table DBS_TMP_AC_SALDO exists.');
     end else
     begin
-
       q2.SQL.Text :=
-        'SELECT LIST(rf.rdb$field_name, '' INTEGER, '') AS AllUsrFieldsList ' +
-        'FROM RDB$RELATION_FIELDS rf ' +
-        'WHERE rf.rdb$relation_name = ''AC_ACCOUNT'' ' +
-        '  AND rf.rdb$field_name LIKE ''USR$%'' ';
+        'SELECT LIST( ' +
+        '  TRIM(rf.rdb$field_name) || '' '' || ' +
+        '  CASE f.rdb$field_type ' +
+        '    WHEN 7 THEN ' +
+        '      CASE f.rdb$field_sub_type ' +
+        '        WHEN 0 THEN '' SMALLINT'' ' +
+        '        WHEN 1 THEN '' NUMERIC('' || f.rdb$field_precision || '','' || (-f.rdb$field_scale) || '')'' ' +
+        '        WHEN 2 THEN '' DECIMAL(''  || f.rdb$field_precision || '','' || (-f.rdb$field_scale) || '')'' ' +
+        '      END ' +
+        '    WHEN 8 THEN ' +
+        '      CASE f.rdb$field_sub_type ' +
+        '        WHEN 0 THEN '' INTEGER'' ' +
+        '        WHEN 1 THEN '' NUMERIC(''  || f.rdb$field_precision || '','' || (-f.rdb$field_scale) || '')'' ' +
+        '        WHEN 2 THEN '' DECIMAL(''  || f.rdb$field_precision || '','' || (-f.rdb$field_scale) || '')'' ' +
+        '      END ' +
+        '    WHEN 9 THEN '' QUAD'' ' +
+        '    WHEN 10 THEN '' FLOAT'' ' +
+        '    WHEN 12 THEN '' DATE'' ' +
+        '    WHEN 13 THEN '' TIME'' ' +
+        '    WHEN 14 THEN '' CHAR('' || (TRUNC(f.rdb$field_length / ch.rdb$bytes_per_character)) || '')'' ' +
+        '    WHEN 16 THEN ' +
+        '      CASE f.rdb$field_sub_type ' +
+        '        WHEN 0 THEN '' BIGINT'' ' +
+        '        WHEN 1 THEN '' NUMERIC(''  || f.rdb$field_precision || '','' || (-f.rdb$field_scale) || '')'' ' +
+        '        WHEN 2 THEN '' DECIMAL(''  || f.rdb$field_precision || '','' || (-f.rdb$field_scale) || '')'' ' +
+        '      END ' +
+        '    WHEN 27 THEN '' DOUBLE'' ' +
+        '    WHEN 35 THEN '' TIMESTAMP'' ' +
+        '    WHEN 37 THEN '' VARCHAR('' || (TRUNC(f.rdb$field_length / ch.rdb$bytes_per_character)) || '')'' ' +
+        '    WHEN 40 THEN '' CSTRING('' || (TRUNC(f.rdb$field_length / ch.rdb$bytes_per_character)) || '')'' ' +
+        '    WHEN 45 THEN '' BLOB_ID'' ' +
+        '    WHEN 261 THEN '' BLOB'' ' +
+        '    ELSE '' RDB$FIELD_TYPE:?'' ' +
+        '  END)  AS AllUsrFieldsList ' +
+        'FROM rdb$relation_fields rf ' +
+        '  JOIN rdb$fields f ON (f.rdb$field_name = rf.rdb$field_source) ' +
+        '  LEFT OUTER JOIN rdb$character_sets ch ON (ch.rdb$character_set_id = f.rdb$character_set_id) ' +
+        'WHERE ' +
+        '  rf.rdb$relation_name = ''AC_ENTRY'' ' +
+        '  AND rf.rdb$field_name LIKE ''USR$%'' ' +
+        '  AND COALESCE(rf.rdb$system_flag, 0) = 0 ';
       q2.ExecQuery;
 
       q.SQL.Text :=
         'CREATE TABLE DBS_TMP_AC_SALDO ( ' +
-        '  ID INTEGER, ' +
-        '  COMPANYKEY INTEGER, ' +
-        '  CURRKEY    INTEGER, ' +
-        '  ACCOUNTKEY INTEGER, ' +
-        '  MASTERDOCKEY  INTEGER, ' +
-        '  DOCUMENTKEY INTEGER, ' +
-        '  RECORDKEY   INTEGER, ' +
-        '  ACCOUNTPART VARCHAR(1), ' +
-        '  CREDITNCU  DECIMAL(15,4), ' +
-        '  CREDITCURR DECIMAL(15,4), ' +
-        '  CREDITEQ   DECIMAL(15,4), ' +
-        '  DEBITNCU   DECIMAL(15,4), ' +
-        '  DEBITCURR  DECIMAL(15,4), ' +
-        '  DEBITEQ    DECIMAL(15,4), ' +
-        q2.FieldByName('AllUsrFieldsList').AsString + ' INTEGER, ' +
+        '  ID           INTEGER, ' +
+        '  COMPANYKEY   INTEGER, ' +
+        '  CURRKEY      INTEGER, ' +
+        '  ACCOUNTKEY   INTEGER, ' +
+        '  MASTERDOCKEY INTEGER, ' +
+        '  DOCUMENTKEY  INTEGER, ' +
+        '  RECORDKEY    INTEGER, ' +
+        '  ACCOUNTPART  VARCHAR(1), ' +
+        '  CREDITNCU    DECIMAL(15,4), ' +
+        '  CREDITCURR   DECIMAL(15,4), ' +
+        '  CREDITEQ     DECIMAL(15,4), ' +
+        '  DEBITNCU     DECIMAL(15,4), ' +
+        '  DEBITCURR    DECIMAL(15,4), ' +
+        '  DEBITEQ      DECIMAL(15,4), ' +
+      q2.FieldByName('AllUsrFieldsList').AsString + ', ' +
         '  PRIMARY KEY (ID))';
       q.ExecQuery;
       q2.Close;
       LogEvent('Table DBS_TMP_AC_SALDO has been created.');
+    end;
+  end;
+
+  procedure CreateDBSTmpInvSaldo;
+  begin
+    if RelationExist2('DBS_TMP_INV_SALDO', Tr) then
+    begin
+      q.SQL.Text := 'DELETE FROM DBS_TMP_INV_SALDO';
+      q.ExecQuery;
+      LogEvent('Table DBS_TMP_INV_SALDO exists.');
+    end else
+    begin
+      q2.SQL.Text :=
+        'SELECT LIST( ' +
+        '  TRIM(rf.rdb$field_name) || '' '' || ' +
+        '  CASE f.rdb$field_type ' +
+        '    WHEN 7 THEN ' +
+        '      CASE f.rdb$field_sub_type ' +
+        '        WHEN 0 THEN '' SMALLINT'' ' +
+        '        WHEN 1 THEN '' NUMERIC('' || f.rdb$field_precision || '','' || (-f.rdb$field_scale) || '')'' ' +
+        '        WHEN 2 THEN '' DECIMAL(''  || f.rdb$field_precision || '','' || (-f.rdb$field_scale) || '')'' ' +
+        '      END ' +
+        '    WHEN 8 THEN ' +
+        '      CASE f.rdb$field_sub_type ' +
+        '        WHEN 0 THEN '' INTEGER'' ' +
+        '        WHEN 1 THEN '' NUMERIC(''  || f.rdb$field_precision || '','' || (-f.rdb$field_scale) || '')'' ' +
+        '        WHEN 2 THEN '' DECIMAL(''  || f.rdb$field_precision || '','' || (-f.rdb$field_scale) || '')'' ' +
+        '      END ' +
+        '    WHEN 9 THEN '' QUAD'' ' +
+        '    WHEN 10 THEN '' FLOAT'' ' +
+        '    WHEN 12 THEN '' DATE'' ' +
+        '    WHEN 13 THEN '' TIME'' ' +
+        '    WHEN 14 THEN '' CHAR('' || (TRUNC(f.rdb$field_length / ch.rdb$bytes_per_character)) || '')'' ' +
+        '    WHEN 16 THEN ' +
+        '      CASE f.rdb$field_sub_type ' +
+        '        WHEN 0 THEN '' BIGINT'' ' +
+        '        WHEN 1 THEN '' NUMERIC(''  || f.rdb$field_precision || '','' || (-f.rdb$field_scale) || '')'' ' +
+        '        WHEN 2 THEN '' DECIMAL(''  || f.rdb$field_precision || '','' || (-f.rdb$field_scale) || '')'' ' +
+        '      END ' +
+        '    WHEN 27 THEN '' DOUBLE'' ' +
+        '    WHEN 35 THEN '' TIMESTAMP'' ' +
+        '    WHEN 37 THEN '' VARCHAR('' || (TRUNC(f.rdb$field_length / ch.rdb$bytes_per_character)) || '')'' ' +
+        '    WHEN 40 THEN '' CSTRING('' || (TRUNC(f.rdb$field_length / ch.rdb$bytes_per_character)) || '')'' ' +
+        '    WHEN 45 THEN '' BLOB_ID'' ' +
+        '    WHEN 261 THEN '' BLOB'' ' +
+        '    ELSE '' RDB$FIELD_TYPE:?'' ' +
+        '  END)  AS AllUsrFieldsList ' +
+        'FROM rdb$relation_fields rf ' +
+        '  JOIN rdb$fields f ON (f.rdb$field_name = rf.rdb$field_source) ' +
+        '  LEFT OUTER JOIN rdb$character_sets ch ON (ch.rdb$character_set_id = f.rdb$character_set_id) ' +
+        'WHERE ' +
+        '  rf.rdb$relation_name = ''INV_CARD'' ' +
+        '  AND rf.rdb$field_name LIKE ''USR$%'' ' +
+        '  AND COALESCE(rf.rdb$system_flag, 0) = 0 ';
+      q2.ExecQuery;
+
+      q.SQL.Text :=
+        'CREATE TABLE DBS_TMP_INV_SALDO ( ' +
+        '  ID_DOCUMENT   INTEGER, ' +
+        '  ID_PARENTDOC  INTEGER, ' +
+        '  ID_CARD       INTEGER, ' +
+        '  ID_MOVEMENT_D INTEGER, ' +
+        '  ID_MOVEMENT_C INTEGER, ' +
+        '  CONTACTKEY    INTEGER, ' +
+        '  GOODKEY       INTEGER, ' +
+        '  COMPANYKEY    INTEGER, ' +
+        '  BALANCE       DECIMAL(15,4), ' +
+      q2.FieldByName('AllUsrFieldsList').AsString + ', ' +
+        '  PRIMARY KEY (ID_DOCUMENT))';
+      q.ExecQuery;
+      q2.Close;
+      LogEvent('Table DBS_TMP_INV_SALDO has been created.');
     end;
   end;
 
@@ -3903,6 +3102,26 @@ var
     end;
   end;
 
+  procedure CreateDBSSuitableTables;
+  begin
+    if RelationExist2('DBS_SUITABLE_TABLES', Tr) then
+    begin
+      q.SQL.Text := 'DELETE FROM DBS_SUITABLE_TABLES';
+      q.ExecQuery;
+      LogEvent('Table DBS_SUITABLE_TABLES exist.');
+    end
+    else begin
+      q.SQL.Text :=
+        'CREATE TABLE DBS_SUITABLE_TABLES ( ' +
+	'  RELATION_NAME     CHAR(31), ' +
+	'  LIST_FIELDS       VARCHAR(310), ' +
+	'  PRIMARY KEY (RELATION_NAME)) ';
+      q.ExecQuery;
+      q.Close;
+      LogEvent('Table DBS_SUITABLE_TABLES has been created.');
+    end;
+  end;
+
   procedure CreateDBSFKConstraints;
   begin
     if RelationExist2('DBS_FK_CONSTRAINTS', Tr) then
@@ -3921,7 +3140,6 @@ var
         '  LIST_REF_FIELDS   VARCHAR(8192), ' +
         '  UPDATE_RULE       CHAR(11), ' +
         '  DELETE_RULE       CHAR(11), ' +
-       /// '  PRIMARY KEY PK_MY_TABLE  (CONSTRAINT_NAME)) ';
         '  CONSTRAINT PK_DBS_FK_CONSTRAINTS PRIMARY KEY (CONSTRAINT_NAME))';
       q.ExecQuery;
       LogEvent('Table DBS_FK_CONSTRAINTS has been created.');
@@ -4031,11 +3249,14 @@ begin
     q2.Transaction := Tr;
 
     CreateDBSTmpAcSaldo;
+    CreateDBSTmpInvSaldo;
 
     CreateDBSInactiveTriggers;
     CreateDBSInactiveIndices;
     CreateDBSPkUniqueConstraints;
+    CreateDBSSuitableTables;
     CreateDBSFKConstraints;
+    CreateDBSTmpRebindInvCards;
     CreateUDFs;
 
     Tr.Commit;
