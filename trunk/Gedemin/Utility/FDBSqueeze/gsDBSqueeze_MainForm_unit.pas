@@ -59,6 +59,7 @@ type
     btnGetStatistics: TButton;
     actGet: TAction;
     actUpdate: TAction;
+    btnStop: TButton;
 
     procedure actConnectExecute(Sender: TObject);
     procedure actConnectUpdate(Sender: TObject);
@@ -172,8 +173,13 @@ end;
 
 procedure TgsDBSqueeze_MainForm.FormCloseQuery(Sender: TObject;                  ///TODO: доработать
   var CanClose: Boolean);
+var
+  MsgStr: String;
 begin
-  CanClose := not FSThread.Busy;
+  MsgStr:= 'You have not saved. Do you really want to close?';
+  ///CanClose := not FSThread.Busy;
+  if MessageDlg(MsgStr, mtConfirmation, [mbOk, mbCancel], 0) = mrCancel then
+    CanClose := False;
 
   if CanClose and FSThread.Connected then
     FSThread.Disconnect;
