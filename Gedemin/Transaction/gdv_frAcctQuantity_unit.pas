@@ -264,7 +264,8 @@ begin
         'GROUP BY q.valuekey, v.name ' +
         'HAVING (SUM(e2.debitncu) <> 0 or SUM(e2.creditncu) <> 0 or '#13#10 +
         'SUM(e1.debitncu - e1.creditncu) <> 0 or SUM(e1.debitcurr - e1.creditcurr) <> 0 or '#13#10 +
-        'SUM(e2.debitcurr) <> 0 or SUM(e2.creditcurr) <> 0)';
+        'SUM(e2.debitcurr) <> 0 or SUM(e2.creditcurr) <> 0) or '#13#10 +
+        'SUM(q.quantity) <> 0';
 //      SQL.ParamByName('begindate').AsDateTime := BeginDate;
       SQL.ParamByName('enddate').AsDateTime := EndDate;
       SQl.ExecQuery;
