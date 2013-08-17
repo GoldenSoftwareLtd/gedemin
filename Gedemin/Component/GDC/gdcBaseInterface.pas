@@ -81,6 +81,9 @@ type
     //Обновляет РУИД по id
     procedure UpdateRUIDByID(const AnID, AXID, ADBID: TID; const AModified: TDateTime;
       const AnEditorKey: Integer; Transaction: TIBTransaction);
+
+    procedure RemoveRUIDFromCache(const AXID, ADBID: TID);
+
     // выполняет заданный СКЛ запрос
     // коммит не делает
     procedure ExecSingleQuery(const S: String; const Transaction: TIBTransaction = nil); overload;

@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2001-2012 by Golden Software of Belarus
+  Copyright (c) 2001-2013 by Golden Software of Belarus
 
   Module
 
@@ -107,10 +107,6 @@ type
     function AcceptClipboard(CD: PgdcClipboardData): Boolean; override;
     procedure InternalSetFieldData(Field: TField; Buffer: Pointer); override;
 
-    //Кэширует документтайп и возвращает индекс в кэше
-    function CacheDocumentType: Integer;
-    class function CacheDocumentTypeByRUID(RUIDString: string): Integer;
-    class function DoCacheDocumentType(ADocTypeKey: Integer; RUID: string = ''; ByRUID: Boolean = False): Integer;
     //Выполняет функцию настройки транзактионкей
     procedure ExecuteTransactionFunction;
     function GetMasterObject: TgdcDocument; virtual;
@@ -148,6 +144,12 @@ type
     class function GetSubSetList: String; override;
 
     function GetCurrRecordClass: TgdcFullClass; override;
+
+    //Кэширует документтайп и возвращает индекс в кэше
+    function CacheDocumentType: Integer;
+    class function CacheDocumentTypeByRUID(const RUIDString: String): Integer;
+    class function DoCacheDocumentType(const ADocTypeKey: Integer;
+      const RUID: String = ''; const ByRUID: Boolean = False): Integer;
 
     // Возвращает класс документа
     class function GetDocumentClass(const TypeKey: Integer;
@@ -355,6 +357,7 @@ type
     FDTClassName: String;
     FHeaderRelKey: Integer;
     FLineRelKey: Integer;
+
     procedure SetHeaderFunctionKey(const Value: Integer);
     procedure SetIsCommon(const Value: Boolean);
     procedure SetLineFunctionKey(const Value: Integer);
@@ -363,15 +366,16 @@ type
     procedure SetRUID(const Value: string);
     procedure SetHeaderRelKey(const Value: Integer);
     procedure SetLineRelKey(const Value: Integer);
+
   public
     property HeaderFunctionKey: Integer read FHeaderFunctionKey write SetHeaderFunctionKey;
     property LineFunctionKey: Integer read FLineFunctionKey write SetLineFunctionKey;
     property HeaderRelKey: Integer read FHeaderRelKey write SetHeaderRelKey;
     property LineRelKey: Integer read FLineRelKey write SetLineRelKey;
     property IsCommon: Boolean read FIsCommon write SetIsCommon;
-    property Name: string read FName write SetName;
-    property Description: string read FDescription write SetDescription;
-    property RUID: string read FRUID write SetRUID;
+    property Name: String read FName write SetName;
+    property Description: String read FDescription write SetDescription;
+    property RUID: String read FRUID write SetRUID;
     property IsCheckNumber: TIsCheckNumber read FIsCheckNumber write FIsCheckNumber;
     property Options: String read FOptions write FOptions;
     property ID: Integer read FID write FID;
@@ -393,6 +397,7 @@ type
     function QueryInterface(const IID: TGUID; out Obj): HResult; virtual; stdcall;
     function _AddRef: Integer; stdcall;
     function _Release: Integer; stdcall;
+
   public
     constructor Create;
     destructor Destroy; override;
@@ -1344,7 +1349,6 @@ function TgdcDocument.GetCurrRecordClass: TgdcFullClass;
 var
   S: String;
   ibsql: TIBSQL;
-  //C: TPersistentClass;
   C: CgdcBase;
   ClName, RUID: String;
   DTK, Idx: Integer;
@@ -1419,17 +1423,6 @@ begin
 
     if S > '' then
     begin
-      { TODO :
-тут не мешало бы извлекать класс из нашего списка,
-а не из общего }
-
-{      C := GetClass(S);
-      if (C <> nil) and C.InheritsFrom(TgdcBase) then
-      begin
-        Result.gdClass := CgdcBase(C);
-        Result.SubType := RUID;
-      end;}
-
       C := gdcClassList.GetGDCClass(gdcFullClassName(S, RUID));
 
       if C <> nil then
@@ -1527,11 +1520,20 @@ begin
 end;
 
 class function TgdcDocument.GetDisplayName(const ASubType: TgdcSubType): String;
+var
+  Idx: Integer;
 begin
   if GetDocumentClassPart = dcpHeader then
     Result := 'Документ'
   else
     Result := 'Позиция';
+
+  if ASubType > '' then
+  begin
+    Idx := CacheDocumentTypeByRUID(ASubType);
+    if Idx > -1 then
+      Result := Result + ' ' + DocTypeCache.CacheItemsByIndex[Idx].Name;
+  end;
 end;
 
 class function TgdcDocument.GetSubSetList: String;
@@ -1866,8 +1868,8 @@ begin
   end;
 end;
 
-class function TgdcDocument.DoCacheDocumentType(ADocTypeKey: Integer; RUID: string = '';
-  ByRUID: Boolean = False): Integer;
+class function TgdcDocument.DoCacheDocumentType(const ADocTypeKey: Integer;
+  const RUID: String = ''; const ByRUID: Boolean = False): Integer;
 var
   ibsql: TIBSQL;
   CI: TDocumentTypeCacheItem;
@@ -1886,7 +1888,8 @@ begin
     Result := DocTypeCache.IndexOf(ADocTypeKey);
   end;
 
-  if Result > - 1 then Exit;
+  if Result > -1 then
+    exit;
 
   ibsql := TIBSQL.Create(nil);
   try
@@ -1901,7 +1904,7 @@ begin
       ibsql.ParamByName(fnId).AsInteger := ADocTypeKey;
     end;
     ibsql.ExecQuery;
-    if (ibsql.RecordCount > 0)  then
+    if not ibsql.EOF then
     begin
       CI := TDocumentTypeCacheItem.Create;
       CI.ID := ibsql.FieldByName(fnID).AsInteger;
@@ -1950,7 +1953,7 @@ begin
   end;
 end;
 
-class function TgdcDocument.CacheDocumentTypeByRUID(RUIDString: string): Integer;
+class function TgdcDocument.CacheDocumentTypeByRUID(const RUIDString: String): Integer;
 begin
   Result := DoCacheDocumentType(0, RUIDString, True)
 end;
@@ -2978,7 +2981,7 @@ end;
 class function TgdcDocumentType.GetDisplayName(
   const ASubType: TgdcSubType): String;
 begin
-  Result := 'Документ';
+  Result := 'Тип документа';
 end;
 
 procedure TgdcDocumentType.GetWhereClauseConditions(S: TStrings);

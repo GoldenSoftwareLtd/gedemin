@@ -2,7 +2,7 @@
 {++
 
 
-  Copyright (c) 2001 by Golden Software of Belarus
+  Copyright (c) 2001-2013 by Golden Software of Belarus
 
   Module
 
@@ -433,14 +433,15 @@ type
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetSubTypeList(SubTypeList: TStrings): Boolean; override;
     class function IsAbstractClass: Boolean; override;
+    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
 
     function GetRemainsName: String;
 
-// Набор свойств карточки необходимый для отображения остатаков
+// Набор свойств карточки необходимый для отображения остатков
     property ViewFeatures: TStringList read FViewFeatures write SetViewFeatures;
 // Набор свойств карточки по которым необходимо осуществлять суммирование
     property SumFeatures: TStringList read FSumFeatures write SetSumFeatures;
-// Набор свойств карточки необходимый для отображения остатаков
+// Набор свойств карточки необходимый для отображения остатков
     property GoodViewFeatures: TStringList read FGoodViewFeatures write SetGoodViewFeatures;
 // Набор свойств карточки по которым необходимо осуществлять суммирование
     property GoodSumFeatures: TStringList read FGoodSumFeatures write SetGoodSumFeatures;
@@ -5572,6 +5573,21 @@ end;
 class function TgdcInvBaseRemains.IsAbstractClass: Boolean;
 begin
   Result := Self.ClassNameIs('TgdcInvBaseRemains');
+end;
+
+class function TgdcInvBaseRemains.GetDisplayName(
+  const ASubType: TgdcSubType): String;
+var
+  Idx: Integer;
+begin
+  Result := 'Остатки ТМЦ';
+
+  if ASubType > '' then
+  begin
+    Idx := TgdcDocument.CacheDocumentTypeByRUID(ASubType);
+    if Idx > -1 then
+      Result := Result + ' ' + gdcClasses.DocTypeCache.CacheItemsByIndex[Idx].Name;
+  end;
 end;
 
 { TgdcInvRemains }

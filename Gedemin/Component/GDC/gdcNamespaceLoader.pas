@@ -30,6 +30,7 @@ type
     procedure CopyRecord(AnObj: TgdcBase; AMapping: TYAMLMapping; AnOverwriteFields: TStrings);
     procedure CopyField(AField: TField; N: TyamlScalar);
     procedure ParseReferenceString(const AStr: String; out ARUID: TRUID; out AName: String);
+    procedure OverwriteRUID(const AnID, AXID, ADBID: TID);
 
   public
     constructor Create;
@@ -321,11 +322,7 @@ begin
         FgdcNamespace.FieldByName('filename').AsString := System.Copy(AList[I], 1, 255);
         FgdcNamespace.Post;
 
-        FqOverwriteNSRUID.ParamByName('id').AsInteger := FgdcNamespace.ID;
-        FqOverwriteNSRUID.ParamByName('xid').AsInteger := NSRUID.XID;
-        FqOverwriteNSRUID.ParamByName('dbid').AsInteger := NSRUID.DBID;
-        FqOverwriteNSRUID.ParamByName('editorkey').AsInteger := IBLogin.ContactKey;
-        FqOverwriteNSRUID.ExecQuery;
+        OverwriteRUID(FgdcNamespace.ID, NSRUID.XID, NSRUID.DBID);
 
         TgdcNamespace.UpdateCurrModified(FgdcNamespace.ID);
         LoadAtObjectCache(FgdcNamespace.ID);
@@ -491,11 +488,7 @@ begin
       Obj.Post;
     end;
 
-    FqOverwriteNSRUID.ParamByName('id').AsInteger := Obj.ID;
-    FqOverwriteNSRUID.ParamByName('xid').AsInteger := ObjRUID.XID;
-    FqOverwriteNSRUID.ParamByName('dbid').AsInteger := ObjRUID.DBID;
-    FqOverwriteNSRUID.ParamByName('editorkey').AsInteger := IBLogin.ContactKey;
-    FqOverwriteNSRUID.ExecQuery;
+    OverwriteRUID(Obj.ID, ObjRUID.XID, ObjRUID.DBID);
 
     Obj.Close;
   end;
@@ -516,6 +509,17 @@ begin
     ARUID := StrToRUID(System.Copy(AStr, 1, P - 1));
     AName := System.Copy(AStr, P + 1, MaxInt);
   end;
+end;
+
+procedure TgdcNamespaceLoader.OverwriteRUID(const AnID, AXID, ADBID: TID);
+begin
+  FqOverwriteNSRUID.ParamByName('id').AsInteger := AnID;
+  FqOverwriteNSRUID.ParamByName('xid').AsInteger := AXID;
+  FqOverwriteNSRUID.ParamByName('dbid').AsInteger := ADBID;
+  FqOverwriteNSRUID.ParamByName('editorkey').AsInteger := IBLogin.ContactKey;
+  FqOverwriteNSRUID.ExecQuery;
+
+  gdcBaseManager.RemoveRUIDFromCache(AXID, ADBID);
 end;
 
 end.
