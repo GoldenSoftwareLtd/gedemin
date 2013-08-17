@@ -1,7 +1,7 @@
 object frmSQLEditorSyn: TfrmSQLEditorSyn
   Left = 296
   Top = 267
-  Width = 871
+  Width = 963
   Height = 556
   HelpContext = 121
   BorderIcons = [biSystemMenu, biMaximize]
@@ -21,7 +21,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
   object pnlMain: TPanel
     Left = 0
     Top = 0
-    Width = 855
+    Width = 947
     Height = 488
     Align = alClient
     BevelOuter = bvNone
@@ -29,11 +29,11 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
     object pcMain: TSuperPageControl
       Left = 9
       Top = 26
-      Width = 837
+      Width = 929
       Height = 453
       BorderStyle = bsNone
       TabsVisible = True
-      ActivePage = tsResult
+      ActivePage = tsQuery
       Align = alClient
       TabHeight = 23
       TabOrder = 0
@@ -45,7 +45,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         object splQuery: TSplitter
           Left = 0
           Top = 357
-          Width = 831
+          Width = 923
           Height = 5
           Cursor = crVSplit
           Align = alBottom
@@ -53,7 +53,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         object seQuery: TSynEdit
           Left = 0
           Top = 0
-          Width = 831
+          Width = 923
           Height = 357
           Cursor = crIBeam
           Align = alClient
@@ -404,7 +404,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         object mmPlan: TMemo
           Left = 0
           Top = 362
-          Width = 831
+          Width = 923
           Height = 62
           Align = alBottom
           Font.Charset = DEFAULT_CHARSET
@@ -425,7 +425,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         object pnlNavigator: TPanel
           Left = 0
           Top = 0
-          Width = 831
+          Width = 923
           Height = 26
           Align = alTop
           BevelOuter = bvNone
@@ -441,7 +441,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
           end
           object tbResult: TTBToolbar
             Left = 120
-            Top = 0
+            Top = 2
             Width = 150
             Height = 22
             Caption = 'tbResult'
@@ -479,7 +479,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         object dbgResult: TgsDBGrid
           Left = 0
           Top = 26
-          Width = 831
+          Width = 923
           Height = 398
           HelpContext = 3
           Align = alClient
@@ -502,7 +502,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         object tvResult: TgsDBTreeView
           Left = 0
           Top = 26
-          Width = 831
+          Width = 923
           Height = 398
           KeyField = 'ID'
           ParentField = 'PARENT'
@@ -522,7 +522,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         object pnlRecord: TPanel
           Left = 0
           Top = 26
-          Width = 831
+          Width = 923
           Height = 398
           Align = alClient
           BevelInner = bvLowered
@@ -532,7 +532,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
           object sbRecord: TScrollBox
             Left = 1
             Top = 1
-            Width = 829
+            Width = 921
             Height = 396
             Align = alClient
             BorderStyle = bsNone
@@ -545,8 +545,8 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         Caption = 'История'
         object Splitter2: TSplitter
           Left = 0
-          Top = 432
-          Width = 839
+          Top = 421
+          Width = 923
           Height = 3
           Cursor = crVSplit
           Align = alBottom
@@ -554,8 +554,8 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         object pnlTest: TPanel
           Left = 0
           Top = 0
-          Width = 839
-          Height = 432
+          Width = 923
+          Height = 421
           Align = alClient
           TabOrder = 0
           OnResize = pnlTestResize
@@ -569,7 +569,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         object tsStatisticExtra: TSuperPageControl
           Left = 0
           Top = 26
-          Width = 831
+          Width = 923
           Height = 398
           BorderStyle = bsNone
           TabsVisible = True
@@ -582,8 +582,8 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
             object ChReads: TChart
               Left = 0
               Top = 0
-              Width = 839
-              Height = 386
+              Width = 923
+              Height = 375
               BackWall.Brush.Color = clWhite
               BackWall.Brush.Style = bsClear
               Title.Text.Strings = (
@@ -828,7 +828,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
             object lvReads: TListView
               Left = 184
               Top = 0
-              Width = 647
+              Width = 739
               Height = 375
               Align = alClient
               Columns = <
@@ -867,7 +867,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         object TBDock5: TTBDock
           Left = 0
           Top = 0
-          Width = 831
+          Width = 923
           Height = 26
           object tbStatistic: TTBToolbar
             Left = 0
@@ -943,8 +943,8 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         object pnlTrace: TPanel
           Left = 0
           Top = 0
-          Width = 839
-          Height = 435
+          Width = 923
+          Height = 424
           Align = alClient
           TabOrder = 0
           OnResize = pnlTraceResize
@@ -957,8 +957,8 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         object mmLog: TMemo
           Left = 0
           Top = 0
-          Width = 839
-          Height = 435
+          Width = 923
+          Height = 424
           Align = alClient
           ScrollBars = ssVertical
           TabOrder = 0
@@ -970,7 +970,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         object Panel3: TPanel
           Left = 0
           Top = 0
-          Width = 831
+          Width = 923
           Height = 18
           Align = alTop
           Alignment = taLeftJustify
@@ -987,7 +987,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         object chlbTransactionParams: TCheckListBox
           Left = 0
           Top = 18
-          Width = 831
+          Width = 923
           Height = 406
           Align = alClient
           ItemHeight = 13
@@ -1001,7 +1001,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         object Panel4: TPanel
           Left = 0
           Top = 0
-          Width = 831
+          Width = 923
           Height = 26
           Align = alTop
           BevelOuter = bvNone
@@ -1046,7 +1046,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         object pnlMonitor: TPanel
           Left = 0
           Top = 26
-          Width = 831
+          Width = 923
           Height = 398
           Align = alClient
           BevelOuter = bvNone
@@ -1088,7 +1088,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
           object dbseSQLText: TDBSynEdit
             Left = 502
             Top = 0
-            Width = 329
+            Width = 421
             Height = 398
             Cursor = crIBeam
             DataField = 'sql_text'
@@ -1442,11 +1442,76 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
           end
         end
       end
+      object tsClasses: TSuperTabSheet
+        Caption = 'Бизнес-классы'
+        object pnlClassesToolbar: TPanel
+          Left = 0
+          Top = 0
+          Width = 929
+          Height = 26
+          Align = alTop
+          BevelOuter = bvNone
+          TabOrder = 0
+          object lblClassesCount: TLabel
+            Left = 72
+            Top = 6
+            Width = 3
+            Height = 13
+          end
+          object tbClasses: TTBToolbar
+            Left = 6
+            Top = 2
+            Width = 46
+            Height = 22
+            Caption = 'tbClasses'
+            Images = dmImages.il16x16
+            ParentShowHint = False
+            ShowHint = True
+            TabOrder = 0
+            object TBItem32: TTBItem
+              Action = actClassesShowSelectSQL
+            end
+            object TBItem33: TTBItem
+              Action = actClassesShowViewForm
+            end
+          end
+        end
+        object lvClasses: TListView
+          Left = 0
+          Top = 26
+          Width = 929
+          Height = 404
+          Align = alClient
+          Columns = <
+            item
+              Caption = 'Бизнес-класс'
+              Width = 180
+            end
+            item
+              Caption = 'Подтип'
+              Width = 180
+            end
+            item
+              Caption = 'Описание'
+              Width = 240
+            end
+            item
+              Caption = 'Таблица'
+              Width = 180
+            end>
+          HideSelection = False
+          ReadOnly = True
+          RowSelect = True
+          SortType = stText
+          TabOrder = 1
+          ViewStyle = vsReport
+        end
+      end
     end
     object TBDock1: TTBDock
       Left = 0
       Top = 0
-      Width = 855
+      Width = 947
       Height = 26
       object TBToolbar1: TTBToolbar
         Left = 0
@@ -1580,7 +1645,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
       Position = dpLeft
     end
     object TBDock3: TTBDock
-      Left = 846
+      Left = 938
       Top = 26
       Width = 9
       Height = 453
@@ -1589,7 +1654,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
     object TBDock4: TTBDock
       Left = 0
       Top = 479
-      Width = 855
+      Width = 947
       Height = 9
       Position = dpBottom
     end
@@ -1597,14 +1662,14 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
   object pModal: TPanel
     Left = 0
     Top = 488
-    Width = 855
+    Width = 947
     Height = 30
     Align = alBottom
     BevelOuter = bvNone
     TabOrder = 1
     Visible = False
     object Button1: TButton
-      Left = 695
+      Left = 787
       Top = 4
       Width = 75
       Height = 21
@@ -1613,7 +1678,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
       TabOrder = 0
     end
     object Button2: TButton
-      Left = 776
+      Left = 868
       Top = 4
       Width = 75
       Height = 21
@@ -1854,6 +1919,22 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
       ImageIndex = 177
       OnExecute = actExternalEditorExecute
       OnUpdate = actExternalEditorUpdate
+    end
+    object actClassesShowSelectSQL: TAction
+      Category = 'Classes'
+      Caption = 'Показать запрос'
+      Hint = 'Показать запрос для выбранного класса'
+      ImageIndex = 152
+      OnExecute = actClassesShowSelectSQLExecute
+      OnUpdate = actClassesShowSelectSQLUpdate
+    end
+    object actClassesShowViewForm: TAction
+      Category = 'Classes'
+      Caption = 'actClassesShowViewForm'
+      Hint = 'Открыть форму просмотра для выбранного класса'
+      ImageIndex = 210
+      OnExecute = actClassesShowViewFormExecute
+      OnUpdate = actClassesShowSelectSQLUpdate
     end
   end
   object ibsqlPlan: TIBSQL

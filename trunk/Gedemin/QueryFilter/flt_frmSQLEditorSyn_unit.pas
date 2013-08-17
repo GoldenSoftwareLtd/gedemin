@@ -227,6 +227,15 @@ type
     chlbTransactionParams: TCheckListBox;
     actExternalEditor: TAction;
     TBItem31: TTBItem;
+    tsClasses: TSuperTabSheet;
+    pnlClassesToolbar: TPanel;
+    lvClasses: TListView;
+    tbClasses: TTBToolbar;
+    actClassesShowSelectSQL: TAction;
+    TBItem32: TTBItem;
+    actClassesShowViewForm: TAction;
+    TBItem33: TTBItem;
+    lblClassesCount: TLabel;
     procedure actPrepareExecute(Sender: TObject);
     procedure actExecuteExecute(Sender: TObject);
     procedure actCommitExecute(Sender: TObject);
@@ -293,6 +302,9 @@ type
       var Special: Boolean; var FG, BG: TColor);
     procedure actExternalEditorExecute(Sender: TObject);
     procedure actExternalEditorUpdate(Sender: TObject);
+    procedure actClassesShowSelectSQLUpdate(Sender: TObject);
+    procedure actClassesShowSelectSQLExecute(Sender: TObject);
+    procedure actClassesShowViewFormExecute(Sender: TObject);
   private
     FOldDelete, FOldInsert, FOldUpdate, FOldIndRead, FOldSeqRead: TStrings;
     FOldRead, FOldWrite, FOldFetches: Integer;
@@ -320,6 +332,7 @@ type
     procedure DrawChart;
     {$IFDEF GEDEMIN}
     function CreateBusinessObject(out Obj: TgdcBase): Boolean;
+    function CreateCurrClassBusinessObject(out Obj: TgdcBase): Boolean;
     {$ENDIF}
 
     procedure AddSQLHistory(const AnExecute: Boolean);
@@ -330,6 +343,7 @@ type
     procedure ClearError;
     function GetTransactionParams: String;
     function ConcatErrorMessage(const M: String): String;
+    procedure FillClassesList;
 
   public
     FDatabase: TIBDatabase;
@@ -359,7 +373,7 @@ uses
   gdcBaseInterface, flt_sql_parser, at_sql_setup,
   {$ENDIF}
   gd_directories_const, Clipbrd, gd_security, gd_ExternalEditor,
-  gd_common_functions
+  gd_common_functions, gd_classlist
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -1539,6 +1553,63 @@ begin
   end;
 end;
 
+procedure TfrmSQLEditorSyn.FillClassesList;
+{$IFDEF GEDEMIN}
+var
+  SL: TStringList;
+  I, J, T: Integer;
+  LI: TListItem;
+  SubType: String;
+  Cursor: TCursor;
+{$ENDIF}
+begin
+  if lvClasses.Items.Count > 0 then
+    exit;
+
+  {$IFDEF GEDEMIN}
+  Cursor := Screen.Cursor;
+  SL := TStringList.Create;
+  try
+    Screen.Cursor := crSQLWait;
+    for I := 0 to gdcClassList.Count - 1 do
+    begin
+      LI := lvClasses.Items.Add;
+      LI.Caption := gdcClassList[I].ClassName;
+
+      if gdcClassList[I].IsAbstractClass then
+        LI.SubItems.Text :=
+          '<Абстрактный базовый класс>'#13#10 +
+          gdcClassList[I].GetDisplayName('') + #13#10 +
+          gdcClassList[I].GetListTable('')
+      else
+        LI.SubItems.Text := #13#10 +
+          gdcClassList[I].GetDisplayName('') + #13#10 +
+          gdcClassList[I].GetListTable('');
+
+      gdcClassList[I].GetSubTypeList(SL);
+      for J := 0 to SL.Count - 1 do
+      begin
+        LI := lvClasses.Items.Add;
+        LI.Caption := gdcClassList[I].ClassName;
+        T := Pos('=', SL[J]);
+        if T = 0 then
+          SubType := SL[J]
+        else
+          SubType := Copy(SL[J], T + 1, 255);
+        LI.SubItems.Text := SubType;
+        LI.SubItems.Add(gdcClassList[I].GetDisplayName(SubType));
+        LI.SubItems.Add(gdcClassList[I].GetListTable(SubType));
+      end;
+    end;
+  finally
+    Screen.Cursor := Cursor;
+    SL.Free;
+  end;
+  {$ENDIF}
+
+  lblClassesCount.Caption := 'Бизнес-классов: ' + IntToStr(lvClasses.Items.Count);
+end;
+
 procedure TfrmSQLEditorSyn.OnHistoryDblClick(Sender: TObject);
 begin
   {$IFDEF GEDEMIN}
@@ -1854,13 +1925,11 @@ end;
 procedure TfrmSQLEditorSyn.pcMainChange(Sender: TObject);
 begin
   if (pcMain.ActivePage = tsMonitor) and (ibdsMonitor <> nil) then
-  begin
-    actRefreshMonitor.Execute;
-  end
+    actRefreshMonitor.Execute
   else if pcMain.ActivePage = tsHistory then
-  begin
-    AddSQLHistory(False);
-  end
+    AddSQLHistory(False)
+  else if pcMain.ActivePage = tsClasses then
+    FillClassesList
   else if (pcMain.ActivePage = tsResult) and (not tsResult.TabVisible) then
     pcMain.ActivePage := tsQuery;
 end;
@@ -2151,10 +2220,88 @@ begin
     and (seQuery.Text > '');
 end;
 
+procedure TfrmSQLEditorSyn.actClassesShowSelectSQLUpdate(Sender: TObject);
+begin
+  (Sender as TAction).Enabled := lvClasses.Selected <> nil;
+end;
+
+procedure TfrmSQLEditorSyn.actClassesShowSelectSQLExecute(Sender: TObject);
+{$IFDEF GEDEMIN}
+var
+  Obj: TgdcBase;
+  Cursor: TCursor;
+{$ENDIF}
+begin
+{$IFDEF GEDEMIN}
+  if CreateCurrClassBusinessObject(Obj) then
+  begin
+    Cursor := Screen.Cursor;
+    Screen.Cursor := crSQLWait;
+    try
+      Obj.Open;
+      ClearError;
+      seQuery.Text := Obj.SelectSQL.Text;
+      seQuery.Show;
+    finally
+      Screen.Cursor := Cursor;
+      Obj.Free;
+    end;
+  end;
+{$ENDIF}
+end;
+
+procedure TfrmSQLEditorSyn.actClassesShowViewFormExecute(Sender: TObject);
+{$IFDEF GEDEMIN}
+var
+  Obj: TgdcBase;
+  F: TCustomForm;
+{$ENDIF}
+begin
+{$IFDEF GEDEMIN}
+  if CreateCurrClassBusinessObject(Obj) then
+  try
+    F := Obj.CreateViewForm(Application.MainForm, '', Obj.SubType, True);
+    if F <> nil then
+    begin
+      F.ShowModal;
+      F.Free;
+    end;
+  finally
+    Obj.Free;
+  end;
+{$ENDIF}
+end;
+
+{$IFDEF GEDEMIN}
+function TfrmSQLEditorSyn.CreateCurrClassBusinessObject(out Obj: TgdcBase): Boolean;
+var
+  C: TPersistentClass;
+begin
+  Assert(lvClasses.Selected <> nil);
+
+  Obj := nil;
+  C := GetClass(lvClasses.Selected.Caption);
+
+  if (C <> nil) and C.InheritsFrom(TgdcBase) then
+  begin
+    Obj := CgdcBase(C).Create(nil);
+    if Pos('<', lvClasses.Selected.SubItems[0]) = 0 then
+      Obj.SubType := lvClasses.Selected.SubItems[0];
+  end;
+
+  Result := Obj <> nil;
+end;
+{$ENDIF}
+
 initialization
   RegisterClass(TfrmSQLEditorSyn);
 
 finalization
   UnRegisterClass(TfrmSQLEditorSyn);
 end.
+
+
+
+
+
 

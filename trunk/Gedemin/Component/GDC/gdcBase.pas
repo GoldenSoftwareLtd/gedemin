@@ -405,9 +405,9 @@ type
     procedure Notification(AComponent: TComponent; Operation: TOperation); override;
 
   public
-
     constructor Create(AnOwner: TComponent); override;
     destructor Destroy; override;
+
     //  TZCompressionLevel = (zcNone, zcFastest, zcDefault, zcMax);
     procedure PackStream(SourceStream, DestStream: TStream; CompressionLevel: TZCompressionLevel);
     procedure UnPackStream(SourceStream, DestStream: TStream);
@@ -443,30 +443,32 @@ type
     procedure Class_SetSecDesc(C: TClass; const ASubType: TgdcSubType;
       const AView, AChag, AFull: Integer);
 
-    property ReadTransaction: TIBTransaction read GetReadTransaction;
-
     //Проверяет руид на корректность
     //Возвращает id или -1 в случае, если РУИД не существует
     function GetRUIDRecByXID(const XID, DBID: TID; Transaction: TIBTransaction): TRUIDRec;
-    //
     function GetRUIDRecByID(const AnID: TID; Transaction: TIBTransaction): TRUIDRec;
-    //Удаляет РУИД по XID и DBID
+
     procedure DeleteRUIDByXID(const XID, DBID: TID; Transaction: TIBTransaction);
-    //Обновляет РУИД по xid
+    procedure DeleteRUIDByID(const AnID: TID; Transaction: TIBTransaction);
+
     procedure UpdateRUIDByXID(const AnID, AXID, ADBID: TID; const AModified: TDateTime;
       const AnEditorKey: Integer; Transaction: TIBTransaction);
-    procedure DeleteRUIDByID(const AnID: TID; Transaction: TIBTransaction);
-    //Обновляет РУИД по id
     procedure UpdateRUIDByID(const AnID, AXID, ADBID: TID; const AModified: TDateTime;
       const AnEditorKey: Integer; Transaction: TIBTransaction);
+
     procedure InsertRUID(const AnID, AXID, ADBID: TID; const AModified: TDateTime;
       const AnEditorKey: Integer; Transaction: TIBTransaction);
-    // выполняет заданный СКЛ запрос
+
+    procedure RemoveRUIDFromCache(const AXID, ADBID: TID);
+
+    // выполняет заданный SQL запрос
     // коммит не делает
     procedure ExecSingleQuery(const S: String; const Transaction: TIBTransaction = nil); overload;
     procedure ExecSingleQuery(const S: String; Param: Variant; const Transaction: TIBTransaction = nil); overload;
     procedure ExecSingleQueryResult(const S: String; Param: Variant;
       out Res: OleVariant; const Transaction: TIBTransaction = nil); //overload;
+
+    property ReadTransaction: TIBTransaction read GetReadTransaction;
 
   published
     property Database: TIBDatabase read GetDatabase write SetDatabase;
@@ -9304,7 +9306,7 @@ begin
   end;
   try
     if WasCreate then
-      Tr.DefaultDatabase := IBLogin.Database;
+      Tr.DefaultDatabase := Self.Database;
 
     FIBSQL.Close;
     DidActivate := not Tr.InTransaction;
@@ -9321,9 +9323,7 @@ begin
       if DidActivate and Tr.InTransaction then
         Tr.Commit;
 
-      if (CacheList <> nil) and CacheList.Has(RUIDToStr(RUID(XID, DBID))) then
-        CacheList.Remove(RUIDToStr(RUID(XID, DBID)));
-
+      RemoveRUIDFromCache(XID, DBID);
     except
       if DidActivate and Tr.InTransaction then
         Tr.Rollback;
@@ -9616,133 +9616,6 @@ begin
   end
 end;
 
-(*
-function TgdcBaseManager.ProcessSQL(const S: String): String;
-var
-  tg, check: boolean;
-  tag, rez: string;
-  i: integer;
-
-  procedure parse_tag;
-  const
-    NCU: Integer = 0;
-  var
-    k, j: byte;
-    R: OleVariant;
-    tmp, temp: string;
-    xid, dbid, id: tid;
-  begin
-    tag := UpperCase(tag);
-    if tag = 'INGROUP' then
-      temp := IntToStr(IBLogin.InGroup);
-    if tag = 'COMPANYKEY' then
-      temp := IntToStr(IBLogin.COMPANYKEY);
-    if tag = 'CONTACTKEY' then
-      temp := IntToStr(IBLogin.CONTACTKEY);
-    if tag = 'HOLDINGLIST' then
-      temp := IBLogin.HOLDINGLIST;
-    if tag = 'NCU' then
-    begin
-      if NCU = 0 then
-      begin
-        gdcBaseManager.ExecSingleQueryResult('SELECT id FROM gd_curr WHERE isncu=1', 0, R);
-        if not VarIsEmpty(R) then
-          NCU := R[0, 0];
-      end;
-      temp := IntToStr(NCU);
-    end;
-    if copy(tag, 1, 4) = 'RUID' then
-    begin
-      K := Pos('XID', tag);
-      if K = 0 then
-        raise EgdcBaseManager.Create('Invalid RUID data.');
-      J := K + 4 - 1;
-      Tmp := '';
-      while (J < Length(tag))and(tag[J]in['0'..'9', '"', '=', ' ']) do
-      begin
-        if tag[J]in['0'..'9']then
-          Tmp := Tmp + tag[J];
-        Inc(J);
-      end;
-      XID := StrToIntDef(Tmp, -1);
-      if XID = -1 then
-        raise EgdcBaseManager.Create('Invalid RUID data.');
-      K := Pos('DBID', tag);
-      if K = 0 then
-        raise EgdcBaseManager.Create('Invalid RUID data.');
-      J := K + 5 - 1;
-      Tmp := '';
-      while(J < Length(tag))and(tag[J]in['0'..'9', '"', '=', ' ']) do
-      begin
-        if tag[J]in['0'..'9']then
-          Tmp := Tmp + tag[J];
-        Inc(J);
-      end;
-      DBID := StrToIntDef(Tmp, -1);
-      if DBID = -1 then
-        raise EgdcBaseManager.Create('Invalid RUID data.');
-      ID := GetIDByRUID(XID, DBID);
-      if ID = -1 then
-        raise EgdcBaseManager.Create('Unknown RUID.');
-      temp := IntToStr(ID);
-    end;
-    //rez := rez + temp;
-    j:=1;
-    for k:=i-1-length(tag) to i-1 do
-      begin
-      rez[k]:=temp[j];
-      inc(j);
-      end;
-  end;
-
-begin
-  setlength(rez, length(s));
-  result := '';
-  tag := '';
-  tg := false;
-  check := false;
-  i := 1;
-  while i <= length(s) do
-  begin
-    if not tg then
-    begin
-      if (s[i] = '<')and(i < length(s)) then
-      begin
-        if UpCase(s[i+1])in['I', 'C', 'H', 'N', 'R'] then
-        begin
-          tg := true;
-          check := true;
-          rez := copy(s, 1, i-1);
-        end;
-      end else
-      if check then
-        rez[i] := s[i];
-      inc(i);
-    end else
-    begin
-      if (s[i] = '/')and(i < length(s)) then
-      begin
-        if s[i+1] = '>' then
-        begin
-          tg := false;
-          parse_tag;
-          tag := '';
-          inc(i, 2);
-        end;
-      end else
-      begin
-        tag := tag + s[i];// здесь небольшие сомнения
-        inc(i);
-      end;
-    end;
-  end;
-  if not check then
-    result := s
-  else
-    result := rez;
-end;
-*)
-
 function TgdcBaseManager.ProcessSQL(const S: String): String;
 const
   NCU: Integer = 0;
@@ -9852,7 +9725,7 @@ begin
     begin
       if NCU = 0 then
       begin
-        gdcBaseManager.ExecSingleQueryResult('SELECT id FROM gd_curr WHERE isncu=1',
+        gdcBaseManager.ExecSingleQueryResult('SELECT id FROM gd_curr WHERE isncu = 1',
           0, R);
         if not VarIsEmpty(R) then
           NCU := R[0, 0];  
@@ -11509,7 +11382,7 @@ begin
   begin
     WasCreate := True;
     Tr := TIBTransaction.Create(nil);
-    Tr.DefaultDatabase := IBLogin.Database;
+    Tr.DefaultDatabase := Self.Database;
   end;
   try
     FIBSQL.Close;
@@ -11519,9 +11392,9 @@ begin
 
       FIBSQL.Transaction := Tr;
       FIBSQL.SQL.Text := cst_sql_UpdateRUIDByXID;
+      FIBSQL.ParamByName(fnid).AsInteger := AnID;
       FIBSQL.ParamByName(fnxid).AsInteger := AXID;
       FIBSQL.ParamByName(fndbid).AsInteger := ADBID;
-      FIBSQL.ParamByName(fnid).AsInteger := AnID;
       FIBSQL.ParamByName(fneditorkey).AsInteger := AnEditorKey;
       FIBSQL.ParamByName(fnmodified).AsDateTime := AModified;
 
@@ -11531,8 +11404,7 @@ begin
       if DidActivate and Tr.InTransaction then
         Tr.Commit;
 
-      if (CacheList <> nil) and CacheList.Has(RUIDToStr(RUID(AXID, ADBID))) then
-        CacheList.Remove(RUIDToStr(RUID(AXID, ADBID)));
+      RemoveRUIDFromCache(AXID, ADBID);
     except
       if DidActivate and Tr.InTransaction then
         Tr.Rollback;
@@ -11602,7 +11474,7 @@ begin
 
   try
     if WasCreate then
-      Tr.DefaultDatabase := IBLogin.Database;
+      Tr.DefaultDatabase := Self.Database;
 
     FIBSQL.Close;
     DidActivate := not Tr.InTransaction;
@@ -11611,7 +11483,6 @@ begin
         Tr.StartTransaction;
 
       FIBSQL.Transaction := Tr;
-
       FIBSQL.SQL.Text :=
         'INSERT INTO gd_ruid (id, xid, dbid, editorkey, modified) ' +
         '  VALUES (:id, :xid, :dbid, :editorkey, :modified) ';
@@ -11635,8 +11506,7 @@ begin
             'Попытка добавить повторяющийся РУИД в таблицу GD_RUID.'#13#10 +
             'ID=' + IntToStr(AnID) + ', XID=' + IntToStr(AXID) + ', DBID=' + IntToStr(ADBID));
 
-        if (CacheList <> nil) and CacheList.Has(RUIDToStr(RUID(AXID, ADBID))) then
-          CacheList.Remove(RUIDToStr(RUID(AXID, ADBID)));
+        RemoveRUIDFromCache(AXID, ADBID);
 
         FIBSQL.Close;
         FIBSQL.SQL.Text :=
@@ -11661,7 +11531,7 @@ begin
 
         if CacheList <> nil then
         begin
-          S := RUIDToStr(RUID(AXID, ADBID));
+          S := RUIDToStr(AXID, ADBID);
           if not CacheList.Has(S) then
             CacheList.Add(S, AnID);
         end;
@@ -11692,7 +11562,7 @@ begin
   begin
     WasCreate := True;
     Tr := TIBTransaction.Create(nil);
-    Tr.DefaultDatabase := IBLogin.Database;
+    Tr.DefaultDatabase := Self.Database;
   end;
   try
     FIBSQL.Close;
@@ -11711,7 +11581,6 @@ begin
 
       if CacheList <> nil then
         CacheList.RemoveData(AnID);
-
     except
       if DidActivate and Tr.InTransaction then
         Tr.Rollback;
@@ -11742,7 +11611,7 @@ begin
   end;
   try
     if WasCreate then
-      Tr.DefaultDatabase := IBLogin.Database;
+      Tr.DefaultDatabase := Self.Database;
 
     FIBSQL.Close;
     DidActivate := not Tr.InTransaction;
@@ -11765,7 +11634,6 @@ begin
 
       if CacheList <> nil then
         CacheList.RemoveData(AnID);
-
     except
       if DidActivate and Tr.InTransaction then
         Tr.Rollback;
@@ -12798,6 +12666,18 @@ begin
     FSecDescArr[I, 3] := AChag;
     FSecDescArr[I, 4] := AFull;
   end;
+end;
+
+procedure TgdcBaseManager.RemoveRUIDFromCache(const AXID, ADBID: TID);
+var
+  S: String;
+begin
+  if CacheList <> nil then
+  begin
+    S := RUIDToStr(AXID, ADBID);
+    if CacheList.Has(S) then
+      CacheList.Remove(S);
+  end;    
 end;
 
 { TgdcObjectSet }
