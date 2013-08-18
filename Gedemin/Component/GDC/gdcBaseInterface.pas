@@ -58,7 +58,7 @@ type
     function AdjustMetaName(const S: String): String;
     function GetExplorer: IgdcBase;
     procedure SetExplorer(const Value: IgdcBase);
-    function GenerateNewDBID: Integer;
+    function GenerateNewDBID: TID;
     function GetNextID(const ResetCache: Boolean = False): TID;
     procedure ClearSecDescArr;
     procedure PackStream(SourceStream, DestStream: TStream; CompressionLevel: TZCompressionLevel);
