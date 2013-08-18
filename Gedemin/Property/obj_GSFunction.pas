@@ -10,12 +10,6 @@ type
   TBalanceType = (gsDebit, gsCredit);
 
 type
-  {TgsSetTaxFunction = class(TComponent, IgsSetTaxDate)
-  private
-    procedure SetBPeriod(const ADate: TDate);
-    procedure SetEPeriod(const ADate: TDate);
-  end;}
-
   TobjGSFunction = class;
 
   TGsFunctionNotifier = class(TComponent)
@@ -232,7 +226,7 @@ end;
 function TobjGSFunction.SALDO(const Account: WideString;
   OnDate: TDateTime; const Analytics: WideString): Currency;
 begin
-  Assert(false, 'ghgfhfghgfh');
+  Assert(False, 'Функция не реализована.');
 end;
 
 function TobjGSFunction.NK(cDate: TDateTime): TDateTime;
@@ -1998,9 +1992,9 @@ end;
 procedure TobjGSFunction.SetupTransaction(SQL: TIBSQl);
 begin
   if FTransaction <> nil then
-    SQl.Transaction := FTransaction
+    SQL.Transaction := FTransaction
   else
-    SQl.Transaction := gdcBaseManager.ReadTransaction;  
+    SQL.Transaction := gdcBaseManager.ReadTransaction;  
 end;
 
 function TobjGSFunction.Get_Transaction: IgsIBTransaction;

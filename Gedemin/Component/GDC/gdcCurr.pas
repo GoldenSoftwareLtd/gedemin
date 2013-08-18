@@ -29,6 +29,9 @@ type
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
+
+    class function GetNCUCurrKey: TID;
+    class function GetEqCurrKey: TID;
   end;
 
   TgdcCurrRate = class(TgdcBase)
@@ -52,7 +55,7 @@ type
     class function GetListField(const ASubType: TgdcSubType): String; override;
   end;
 
-  //Возвращет курс валюты
+  // Возвращает курс валюты
   function gs_GetCurrRate(DocumentDate: TDateTime; CurrKey: Integer;
     Transaction: TIBTransaction): Currency;
   procedure Register;
@@ -84,54 +87,32 @@ end;
 
 function gs_GetCurrRate(DocumentDate: TDateTime; CurrKey: Integer;
   Transaction: TIBTransaction): Currency;
-const
-  NCUCurrKey: Integer = -1;
 var
   ibsql: TIBSQL;
 begin
   ibsql := TIBSQL.Create(nil);
   try
-    Result := 0;
     if Assigned(Transaction) and Transaction.InTransaction then
       ibsql.Transaction := Transaction
     else
       ibsql.Transaction := gdcBaseManager.ReadTransaction;
 
-    //Найдем ключ национальной валюты
-    if NCUCurrKey = -1 then
-    begin
-      ibsql.Close;
-      ibsql.SQL.Text := 'SELECT id FROM gd_curr WHERE isncu = 1';
-      ibsql.ExecQuery;
-      if ibsql.RecordCount > 0 then
-        ibsql.Next;
-
-      if ibsql.RecordCount = 0 then
-        raise EgdcIBError.Create('Не указана национальная валюта!')
-      else if ibsql.RecordCount > 1 then
-        raise EgdcIBError.Create('Не однозначно указана национальная валюта!');
-
-      NCUCurrKey := ibsql.FieldByName('id').AsInteger;
-    end;
-
-    //Найдем курс на указанную дату
-    ibsql.Close;
-    ibsql.SQL.Text := 'SELECT c.coeff FROM gd_currrate c WHERE ' +
+    ibsql.SQL.Text :=
+      'SELECT c.coeff FROM gd_currrate c WHERE ' +
       ' c.fromcurr = :currkey AND c.tocurr = :tocurrkey and ' +
       ' c.fordate = (SELECT MAX(c1.fordate) FROM gd_currrate c1 WHERE ' +
       ' c1.fromcurr = :currkey AND c1.tocurr = :tocurrkey and ' +
       ' c1.fordate <= :curdate) ';
 
     ibsql.ParamByName('currkey').AsInteger := CurrKey;
-    ibsql.ParamByName('tocurrkey').AsInteger := NCUCurrKey;
+    ibsql.ParamByName('tocurrkey').AsInteger := TgdcCurr.GetNCUCurrKey;
     ibsql.ParamByName('curdate').AsVariant := DocumentDate;
     ibsql.ExecQuery;
 
-    if ibsql.RecordCount > 0 then
-      Result := ibsql.FieldByName('coeff').AsCurrency;
-
-    ibsql.Close;
-
+    if not ibsql.EOF then
+      Result := ibsql.FieldByName('coeff').AsCurrency
+    else
+      Result := 0;
   finally
     ibsql.Free;
   end;
@@ -488,14 +469,53 @@ begin
   Result := 'Tgdc_dlgCurr';
 end;
 
-initialization
+class function TgdcCurr.GetEqCurrKey: TID;
+var
+  q: TIBSQL;
+begin
+  Assert(gdcBaseManager <> nil);
 
+  q := TIBSQL.Create(nil);
+  try
+    q.Transaction := gdcBaseManager.ReadTransaction;
+    q.SQL.Text := 'SELECT id FROM gd_curr WHERE iseq <> 0';
+    q.ExecQuery;
+
+    if q.EOF then
+      Result := -1
+    else
+      Result := q.FieldByName('id').AsInteger;
+  finally
+    q.Free;
+  end;
+end;
+
+class function TgdcCurr.GetNCUCurrKey: TID;
+var
+  q: TIBSQL;
+begin
+  Assert(gdcBaseManager <> nil);
+
+  q := TIBSQL.Create(nil);
+  try
+    q.Transaction := gdcBaseManager.ReadTransaction;
+    q.SQL.Text := 'SELECT id FROM gd_curr WHERE isncu <> 0';
+    q.ExecQuery;
+
+    if q.EOF then
+      Result := -1
+    else
+      Result := q.FieldByName('id').AsInteger;
+  finally
+    q.Free;
+  end;
+end;
+
+initialization
   RegisterGdcClass(TgdcCurr);
   RegisterGdcClass(TgdcCurrRate);
 
 finalization
-
   UnRegisterGdcClass(TgdcCurr);
   UnRegisterGdcClass(TgdcCurrRate);
-
 end.

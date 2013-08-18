@@ -1007,10 +1007,6 @@ type
     procedure LoadEventList; virtual;
     function GetGroupID: Integer; virtual;
 
-    // Для Copy и Past
-    {function GetCopyFieldName: String; virtual;
-    function GetCopyValue: Variant; virtual;}
-
     // Список полей, которые не надо копировать
     // при копировании объекта
     // наименования полей разделены запятой

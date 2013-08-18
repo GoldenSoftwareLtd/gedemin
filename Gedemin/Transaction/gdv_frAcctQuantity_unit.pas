@@ -242,8 +242,9 @@ begin
     SQL := TIBSQL.Create(nil);
     try
       SQL.Transaction := gdcBaseManager.ReadTransaction;
-      SQL.SQl.Text :=  'SELECT DISTINCT ' +
-        'q.valuekey, v.name ' +
+      SQL.SQl.Text :=
+        'SELECT DISTINCT ' +
+        '  q.valuekey, v.name ' +
         'FROM ' +
         '  ac_entry e ' +
         '  LEFT JOIN ac_record r ON r.id = e.recordkey ' +
@@ -256,24 +257,23 @@ begin
       if AccountList.Count > 0 then
         SQL.SQL.Add('  e.accountkey IN(' + GetIDList + ') AND ');
 
-      SQL.SQL.Text := SQL.SQl.Text +
+      SQL.SQL.Text := SQL.SQL.Text +
         '  e.entrydate <= :enddate AND ' +
-        '  r.companykey IN(' + IBLogin.HoldingList + ' ) AND ' +
-        '  G_SEC_TEST ( r.aview, ' + IntToStr(IBLogin.InGroup) + ' ) <> 0 AND ' +
+        '  r.companykey IN(' + IBLogin.HoldingList + ') AND ' +
+        '  BIN_AND(BIN_OR(r.aview, 1), ' + IntToStr(IBLogin.InGroup) + ') <> 0 AND ' +
         '  v.id IN (' + IDList + ') ' +
         'GROUP BY q.valuekey, v.name ' +
-        'HAVING (SUM(e2.debitncu) <> 0 or SUM(e2.creditncu) <> 0 or '#13#10 +
-        'SUM(e1.debitncu - e1.creditncu) <> 0 or SUM(e1.debitcurr - e1.creditcurr) <> 0 or '#13#10 +
-        'SUM(e2.debitcurr) <> 0 or SUM(e2.creditcurr) <> 0) or '#13#10 +
-        'SUM(q.quantity) <> 0';
-//      SQL.ParamByName('begindate').AsDateTime := BeginDate;
+        'HAVING SUM(e2.debitncu) <> 0 OR SUM(e2.creditncu) <> 0 '#13#10 +
+        '  OR SUM(e1.debitncu - e1.creditncu) <> 0 OR SUM(e1.debitcurr - e1.creditcurr) <> 0 '#13#10 +
+        '  OR SUM(e2.debitcurr) <> 0 OR SUM(e2.creditcurr) <> 0 '#13#10 +
+        '  OR SUM(q.quantity) <> 0';
       SQL.ParamByName('enddate').AsDateTime := EndDate;
-      SQl.ExecQuery;
-      while not SQl.Eof do
+      SQL.ExecQuery;
+      while not SQL.Eof do
       begin
         ValueList.Add(SQL.FieldByName('valuekey').AsString + '=' +
-          SQl.FieldByName('name').AsString);
-        SQl.Next;
+          SQL.FieldByName('name').AsString);
+        SQL.Next;
       end;
     finally
       SQL.Free;

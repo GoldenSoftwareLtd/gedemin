@@ -253,7 +253,8 @@ end;
 procedure TgdvAcctAccReview.DoBuildSQL;
 var
   BalanceCondition, EntryCondition, CompanyS: String;
-  AccWhere, AccWhereQuantity: String;
+  AccWhere: String;
+  AccWhereQuantity: String;
   ValueSelect, ValueJoin, ValueAlias, QuantityAlias: string;
   K: Integer;
 //  ASelect, AGroup, AFrom, ACorrSelect, ACorrFrom, ACorrGroup: string;
@@ -366,7 +367,7 @@ begin
           '     %0:s.valuekey = %1:s'#13#10 +
           '  LEFT JOIN gd_value %2:s ON %2:s.id = %0:s.valuekey',
           [QuantityAlias, FAcctValues.Names[K], ValueAlias]);
-      AccWhereQuantity := AccWhereQuantity + Format(' %0:s.quantity <> 0 OR ', [QuantityAlias]);
+      AccWhereQuantity := AccWhereQuantity + QuantityAlias + '.quantity <> 0 OR ';
     end;  
   end;
 

@@ -1357,7 +1357,7 @@ begin
   if Assigned(MasterSource) and (MasterSource.DataSet is TgdcBankStatement) then
   begin
     if (MasterSource.DataSet.FieldByName('bscurrkey').IsNull) or
-      (MasterSource.DataSet.FieldByName('isncu').AsInteger = 1)then
+      (MasterSource.DataSet.FieldByName('isncu').AsInteger <> 0)then
     begin
       FieldByName('dsumcurr').ReadOnly := True;
       FieldByName('csumcurr').ReadOnly := True;
