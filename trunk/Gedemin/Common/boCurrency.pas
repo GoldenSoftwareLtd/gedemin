@@ -57,29 +57,30 @@ uses
 
 procedure TboCurrency.LoadData;
 var
-  Q: TIBQuery;
+  q: TIBSQL;
 begin
-  if (IBLogin <> nil) and (IBLogin.DataBase <> nil) then
-  begin
-    NCU := -1;
-    Eq := -1;
-    Q := TIBQuery.Create(Self);
-    try
-      Q.DataBase := IBLogin.DataBase;
-      Q.SQL.Text := ' SELECT c.id, c.isncu, c.iseq FROM gd_curr c WHERE c.isncu = 1 OR c.isEq = 1';
-      Q.Open;
-      while not Q.Eof do
-      begin
-        if Q.FieldByName('isNCU').AsInteger = 1 then
-          NCU := Q.FieldByName('id').AsInteger
-        else
-          if Q.FieldByName('isEq').AsInteger = 1 then
-            Eq := Q.FieldByName('id').AsInteger;
-        Q.Next;
-      end;
-    finally
-      Q.Free;
-    end;
+  Assert(gdcBaseManager <> nil);
+
+  q := TIBSQL.Create(nil);
+  try
+    q.Transaction := gdcBaseManager.ReadTransaction;
+
+    q.SQL.Text := 'SELECT id FROM gd_curr WHERE isncu <> 0';
+    q.ExecQuery;
+    if not q.EOF then
+      NCU := q.Fields[0].AsInteger
+    else
+      NCU := -1;
+
+    q.Close;
+    q.SQL.Text := 'SELECT id FROM gd_curr WHERE iseq <> 0';
+    q.ExecQuery;
+    if not q.EOF then
+      Eq := q.Fields[0].AsInteger
+    else
+      Eq := -1;
+  finally
+    q.Free;
   end;
 end;
 

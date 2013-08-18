@@ -2024,9 +2024,9 @@ begin
       if FCurrSumInfo.Show then
       begin
         if FCurrKey > 0 then
-          CurrId := Format('  AND e.currkey = %d'#13#10, [FCurrKey])
+          CurrId := '  AND e.currkey = ' + IntToStr(FCurrKey) + #13#10
         else if FNCUCurrKey > 0 then
-          CurrId := Format('  AND e.currkey <> %d'#13#10, [FNCUCurrKey]);
+          CurrId := '  AND e.currkey <> ' + IntToStr(FNCUCurrKey) + #13#10;
       end;
       
       NcuDecDig := Format('NUMERIC(15, %d)', [FNcuSumInfo.DecDigits]);
@@ -2128,7 +2128,7 @@ begin
             VKeyAlias := Self.GetKeyAlias(FAcctValues.Names[K]);
             ValueAlias := 'v_' + Self.GetKeyAlias(FAcctValues.Names[K]);
             QuantityAlias := 'q_' + Self.GetKeyAlias(FAcctValues.Names[K]);
-            AccWhereQuantity := AccWhereQuantity + Format(' SUM(%0:s.quantity) <> 0 OR ', [QuantityAlias]);
+            AccWhereQuantity := AccWhereQuantity + 'SUM(' + QuantityAlias + '.quantity) <> 0 OR ';
             if not FEntryDateInFields then
             begin
               BC := TgdvSimpleLedgerTotalBlock;
@@ -2326,7 +2326,8 @@ begin
         end;
 
         HavingClause := GetHavingClause;
-        if HavingClause > '' then HavingClause := HavingClause + ' OR '#13#10 ;
+        if HavingClause > '' then
+          HavingClause := HavingClause + ' OR '#13#10 ;
         HavingClause := HavingClause + AccWhereQuantity + ' SUM(e2.debitncu) <> 0 OR '#13#10 +
           '  SUM(e2.creditncu) <> 0 OR '#13#10 +
           '  SUM(e1.debitncu - e1.creditncu) <> 0'#13#10;
@@ -2345,12 +2346,6 @@ begin
             '  SUM(e2.debiteq) <> 0 OR SUM(e2.crediteq) <> 0 ';
         end;
 
-    {    if FEntryDateInFields then
-        begin
-          HavingClause := '(' + HavingClause + ') AND '#13#10 +
-            '(e.entrydate >= :begindate and e.entrydate <= :enddate) ';
-        end;
-  }
         HavingClause := 'HAVING ' + HavingClause;
 
         DebitCreditSQL := Format(cDebitCredit, [SelectClause, NcuBegin,
@@ -2541,10 +2536,10 @@ begin
   SQL.SQL.Add(Format('r.companykey IN (%s) AND', [FCompanyList]));
   if FCurrSumInfo.Show then
   begin
-    if (FCurrKey > 0) then
-      SQL.SQL.Add(Format(' e.currkey = %d AND ', [FCurrKey]))
+    if FCurrKey > 0 then
+      SQL.SQL.Add(' e.currkey = ' + IntToStr(FCurrKey) + ' AND ')
     else if FNCUCurrKey > 0 then
-      SQL.SQL.Add(Format(' e.currkey <> %d AND ', [FNCUCurrKey]));
+      SQL.SQL.Add(' e.currkey <> ' + IntToStr(FNCUCurrKey) + ' AND ');
   end;
 
   SQL.SQL.Text := SQL.SQL.Text + #13#10 + GetCondition('e');

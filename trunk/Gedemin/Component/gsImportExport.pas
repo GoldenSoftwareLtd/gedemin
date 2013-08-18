@@ -601,10 +601,11 @@ var
       if ISO > '' then
       begin
         ibsql.Close;
-        ibsql.SQL.Text := 'SELECT * FROM gd_curr WHERE ISO = ''' + ISO + '''';
+        ibsql.SQL.Text := 'SELECT * FROM gd_curr WHERE ISO = :iso';
+        ibsql.ParamByName('iso').AsString := ISO;
         ibsql.ExecQuery;
 
-        if (ibsql.RecordCount = 0) or (ibsql.FieldByName('isncu').AsInteger = 1) then
+        if ibsql.EOF or (ibsql.FieldByName('isncu').AsInteger <> 0) then
           ISO := '';
       end;
 

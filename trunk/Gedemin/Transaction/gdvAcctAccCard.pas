@@ -199,7 +199,7 @@ begin
           '     %0:s.valuekey = %1:s'#13#10 +
           '  LEFT JOIN gd_value %2:s ON %2:s.id = %0:s.valuekey',
           [QuantityAlias, FAcctValues.Names[K], ValueAlias]);
-      AccWhereQuantity := AccWhereQuantity + Format(' %0:s.quantity <> 0 OR ', [QuantityAlias]);
+      AccWhereQuantity := AccWhereQuantity + QuantityAlias + '.quantity <> 0 OR ';
     end; 
   end;
 

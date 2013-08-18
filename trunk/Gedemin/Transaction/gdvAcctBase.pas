@@ -1,14 +1,12 @@
 
 unit gdvAcctBase;
 
-// TODO: отсюда и из всех наследников поудалять код относящийся к старому методу построения бух. отчетов
-
 interface
 
 uses
-  Windows, classes, IBCustomDataSet, Controls, IBSQL,
-  gdcBaseInterface, gd_KeyAssoc, at_classes, contnrs, DB,
-  gdv_AvailAnalytics_unit, AcctUtils, gdv_AcctConfig_unit;
+  Windows, classes, IBCustomDataSet, Controls, IBSQL, gdcBaseInterface,
+  gd_KeyAssoc, at_classes, contnrs, DB, gdv_AvailAnalytics_unit, AcctUtils,
+  gdv_AcctConfig_unit;
 
 type
   TgdvFieldVisible = (fvUnknown, fvVisible, fvHidden);
@@ -297,7 +295,8 @@ implementation
 
 uses
   Sysutils, Dialogs, gd_security, AcctStrings, IBBlob, gd_common_functions,
-  Forms, dmImages_unit, gdcConstants, gd_security_operationconst, IBHeader;
+  Forms, dmImages_unit, gdcConstants, gd_security_operationconst, IBHeader,
+  gdcCurr;
 
 type
   EgsLargeSQLStatement = class(Exception);
@@ -1076,19 +1075,16 @@ end;
 procedure TgdvAcctBase.SetDefaultParams;
 var
   DefaultDecDigits: Integer;
-  R: OleVariant;
 begin
-  Assert(gdcBaseManager <> nil);
-  
   FConfigKey := -1;
-  // по умолчанию установим текущую рабочую организацию
+
   if Assigned(IBLogin) then
   begin
     FCompanyKey := IBLogin.CompanyKey;
     FillCompanyList;
-  end
-  else
+  end else
     FCompanyKey := -1;
+
   FAllHolding := True;
 
   FWithSubAccounts := False;
@@ -1121,12 +1117,7 @@ begin
     Scale := 1;
   end;
   FCurrKey := -1;
-
-  gdcBaseManager.ExecSingleQueryResult('SELECT id FROM gd_curr WHERE isncu=1', 0, R);
-  if not VarIsEmpty(R) then
-    FNCUCurrKey := R[0, 0]
-  else
-    FNCUCurrKey := -1;
+  FNCUCurrKey := TgdcCurr.GetNCUCurrKey;
 end;
 
 procedure TgdvAcctBase.DoAfterBuildReport;

@@ -219,7 +219,7 @@ begin
     ibsql1.ExecQuery;
 
     if (ibsql1.FieldByName('currkey').AsInteger = 0) or
-      (ibsql1.FieldByName('isncu').AsInteger = 1)
+      (ibsql1.FieldByName('isncu').AsInteger <> 0)
     then
     begin
       xdbcRate.Enabled := False;
@@ -227,7 +227,7 @@ begin
     begin
       xdbcRate.Enabled := True;
       if (ibsql1.FieldByName('currkey').AsInteger > 0) and
-         (ibsql1.FieldByName('isncu').AsInteger <> 1) and
+         (ibsql1.FieldByName('isncu').AsInteger = 0) and
          (gdcObject.State = dsInsert) and gdcObject.FieldByName('rate').IsNull
       then
         gdcObject.FieldByName('rate').AsCurrency :=
@@ -306,7 +306,7 @@ begin
       ibsql1.ExecQuery;
 
       if (ibsql1.FieldByName('currkey').AsInteger = 0) or
-        (ibsql1.FieldByName('isncu').AsInteger = 1)
+        (ibsql1.FieldByName('isncu').AsInteger <> 0)
       then
       begin
         NotDoFieldChange := True;
