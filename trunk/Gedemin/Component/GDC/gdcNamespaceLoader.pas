@@ -17,12 +17,14 @@ type
     FLoadedNSList: TStringList;
     FTr: TIBTransaction;
     FqFindNS, FqOverwriteNSRUID: TIBSQL;
-    FqLoadAtObject: TIBSQL;
+    FqLoadAtObject, FqClearAtObject: TIBSQL;
     FgdcNamespace: TgdcNamespace;
+    FgdcNamespaceObject: TgdcNamespaceObject;
     FAtObjectRecordCache: TStringHashMap;
     FgdcObjectCache: TStringHashMap;
     FDelayedUpdate: TStringList;
     FqDelayed: TIBSQL;
+    FqFindAtObject: TIBSQL;
 
     procedure FlushStorages;
     procedure LoadAtObjectCache(const ANamespaceKey: Integer);
@@ -31,6 +33,8 @@ type
     procedure CopyField(AField: TField; N: TyamlScalar);
     procedure ParseReferenceString(const AStr: String; out ARUID: TRUID; out AName: String);
     procedure OverwriteRUID(const AnID, AXID, ADBID: TID);
+    function Iterate_RemoveGDCObjects(AUserData: PUserData; const AStr: string; var APtr: PData): Boolean;
+    function CacheObject(const AClassName: String; const ASubtype: String): TgdcBase;
 
   public
     constructor Create;
@@ -60,6 +64,7 @@ type
     AlwaysOverwrite: Boolean;
     DontRemove: Boolean;
     HeadObjectKey: Integer;
+    Loaded: Boolean;
   end;
 
 { TgdcNamespaceLoader }
@@ -204,16 +209,34 @@ begin
   FgdcNamespace.ReadTransaction := FTr;
   FgdcNamespace.Transaction := FTr;
 
+  FgdcNamespaceObject := TgdcNamespaceObject.Create(nil);
+  FgdcNamespaceObject.SubSet := 'All';
+  FgdcNamespaceObject.ReadTransaction := FTr;
+  FgdcNamespaceObject.Transaction := FTr;
+
   FAtObjectRecordCache := TStringHashMap.Create(CaseSensitiveTraits, 65536);
   FgdcObjectCache := TStringHashMap.Create(CaseSensitiveTraits, 1024);
 
   FDelayedUpdate := TStringList.Create;
   FqDelayed := TIBSQL.Create(nil);
   FqDelayed.Transaction := FTr;
+
+  FqClearAtObject := TIBSQL.Create(nil);
+  FqClearAtObject.Transaction := FTr;
+  FqClearAtObject.SQL.Text :=
+    'DELETE FROM at_object WHERE namespacekey = :nk';
+
+  FqFindAtObject := TIBSQL.Create(nil);
+  FqFindAtObject.Transaction := FTr;
+  FqFindAtObject.SQL.Text :=
+    'SELECT id FROM at_object WHERE namespacekey <> :nk ' +
+    '  AND xid = :xid AND dbid = :dbid';
 end;
 
 destructor TgdcNamespaceLoader.Destroy;
 begin
+  FqFindAtObject.Free;
+  FqClearAtObject.Free;
   FqDelayed.Free;
   FDelayedUpdate.Free;
   FgdcObjectCache.Iterate(nil, Iterate_FreeObjects);
@@ -222,6 +245,7 @@ begin
   FAtObjectRecordCache.Free;
   FLoadedNSList.Free;
   FgdcNamespace.Free;
+  FgdcNamespaceObject.Free;
   FqFindNS.Free;
   FqOverwriteNSRUID.Free;
   FqLoadAtObject.Free;
@@ -327,6 +351,11 @@ begin
         TgdcNamespace.UpdateCurrModified(FgdcNamespace.ID);
         LoadAtObjectCache(FgdcNamespace.ID);
 
+        FqClearAtObject.ParamByName('nk').AsInteger := FgdcNamespace.ID;
+        FqClearAtObject.ExecQuery;
+
+        FgdcNamespaceObject.Open;
+
         for J := 0 to Objects.Count - 1 do
         begin
           if not (Objects[J] is TYAMLMapping) then
@@ -341,6 +370,8 @@ begin
         end;
 
         FDelayedUpdate.Clear;
+
+        FAtObjectRecordCache.IterateMethod(nil, Iterate_RemoveGDCObjects);
 
         FTr.Commit;
 
@@ -386,6 +417,7 @@ begin
         AR.DontRemove := FqLoadAtObject.FieldByName('dontremove').AsInteger <> 0;
         AR.Modified := FqLoadAtObject.FieldByName('modified').AsDateTime;
         AR.CurrModified := FqLoadAtObject.FieldByName('curr_modified').AsDateTime;
+        AR.Loaded := False;
         FAtObjectRecordCache.Add(ObjectRUID, AR);
       end;
 
@@ -399,38 +431,22 @@ end;
 procedure TgdcNamespaceLoader.LoadObject(AMapping: TYAMLMapping;
   const AFileTimeStamp: TDateTime);
 var
-  HashKey: String;
   Obj: TgdcBase;
-  C: TPersistentClass;
   AtObjectRecord: TatObjectRecord;
-  ObjRUID: TRUID;
+  ObjRUID, HeadObjectRUID: TRUID;
+  ObjName: String;
 begin
-  HashKey := AMapping.ReadString('Properties\Class') + AMapping.ReadString('Properties\SubType');
+  Obj := CacheObject(AMapping.ReadString('Properties\Class'), AMapping.ReadString('Properties\SubType'));
 
-  if not FgdcObjectCache.Find(HashKey, Obj) then
+  if FAtObjectRecordCache.Find(AMapping.ReadString('Properties\RUID'), AtObjectRecord) then
   begin
-    C := GetClass(AMapping.ReadString('Properties\Class'));
-
-    if (C = nil) or (not C.InheritsFrom(TgdcBase)) then
-      raise EgdcNamespaceLoader.Create('Invalid class name ' + AMapping.ReadString('Properties\Class'));
-
-    Obj := CgdcBase(C).Create(nil);
-    try
-      Obj.SubType := AMapping.ReadString('Properties\SubType');
-      Obj.ReadTransaction := FTr;
-      Obj.Transaction := FTr;
-      Obj.SubSet := 'ByID';
-      Obj.BaseState := Obj.BaseState + [sLoadFromStream];
-    except
-      Obj.Free;
-      raise;
-    end;
-
-    FgdcObjectCache.Add(HashKey, Obj);
-  end;
-
-  if not FAtObjectRecordCache.Find(AMapping.ReadString('Properties\RUID'), AtObjectRecord) then
+    AtObjectRecord.Loaded := True;
+    ObjName := AtObjectRecord.ObjectName;
+  end else
+  begin
     AtObjectRecord := nil;
+    ObjName := '';
+  end;
 
   if FAlwaysOverwrite
     or AMapping.ReadBoolean('Properties\AlwaysOverwrite', False)
@@ -490,7 +506,52 @@ begin
 
     OverwriteRUID(Obj.ID, ObjRUID.XID, ObjRUID.DBID);
 
+    ObjName := Obj.ObjectName;
     Obj.Close;
+  end;
+
+  FgdcNamespaceObject.Insert;
+  FgdcNamespaceObject.FieldByName('namespacekey').AsInteger := FgdcNamespace.ID;
+  FgdcNamespaceObject.FieldByName('objectname').AsString := ObjName;
+  FgdcNamespaceObject.FieldByName('objectclass').AsString := AMapping.ReadString('Properties\Class');
+  FgdcNamespaceObject.FieldByName('subtype').AsString := AMapping.ReadString('Properties\Subtype');
+  FgdcNamespaceObject.FieldByName('xid').AsInteger := ObjRUID.XID;
+  FgdcNamespaceObject.FieldByName('dbid').AsInteger := ObjRUID.DBID;
+  if AMapping.ReadBoolean('Properties\AlwaysOverwrite', False) then
+    FgdcNamespaceObject.FieldByName('alwaysoverwrite').AsInteger := 1
+  else
+    FgdcNamespaceObject.FieldByName('alwaysoverwrite').AsInteger := 0;
+  if AMapping.ReadBoolean('Properties\DontRemove', False) then
+    FgdcNamespaceObject.FieldByName('dontremove').AsInteger := 1
+  else
+    FgdcNamespaceObject.FieldByName('dontremove').AsInteger := 0;
+  if AMapping.ReadBoolean('Properties\IncludeSiblings', False) then
+    FgdcNamespaceObject.FieldByName('includesiblings').AsInteger := 1
+  else
+    FgdcNamespaceObject.FieldByName('includesiblings').AsInteger := 0;
+  if tiEditionDate in Obj.GetTableInfos(Obj.SubType) then
+  begin
+    FgdcNamespaceObject.FieldByName('modified').AsDateTime := AMapping.ReadDateTime('Fields\EDITIONDATE');
+    FgdcNamespaceObject.FieldByName('curr_modified').AsDateTime := AMapping.ReadDateTime('Fields\EDITIONDATE');
+  end else
+  begin
+    FgdcNamespaceObject.FieldByName('modified').AsDateTime := SysUtils.Now;
+    FgdcNamespaceObject.FieldByName('curr_modified').AsDateTime :=
+      FgdcNamespaceObject.FieldByName('modified').AsDateTime;
+  end;
+  FgdcNamespaceObject.Post;
+
+  HeadObjectRUID := StrToRUID(AMapping.ReadString('Properties\HeadObject', 21, ''));
+  if HeadObjectRUID.XID > -1 then
+  begin
+    FDelayedUpdate.Add(
+      'UPDATE at_object SET headobjectkey = ' +
+      '  (SELECT id FROM at_object WHERE namespacekey = ' + IntToStr(FgdcNamespace.ID) +
+      '     AND xid = ' + IntToStr(HeadObjectRUID.XID) +
+      '     AND dbid = ' + IntToStr(HeadObjectRUID.DBID) +
+      '  ) ' +
+      'WHERE id = ' + IntToStr(FgdcNamespaceObject.ID)
+    );
   end;
 end;
 
@@ -520,6 +581,69 @@ begin
   FqOverwriteNSRUID.ExecQuery;
 
   gdcBaseManager.RemoveRUIDFromCache(AXID, ADBID);
+end;
+
+function TgdcNamespaceLoader.Iterate_RemoveGDCObjects(AUserData: PUserData;
+  const AStr: string; var APtr: PData): Boolean;
+var
+  AR: TatObjectRecord;
+  ObjRUID: TRUID;
+  Obj: TgdcBase;
+begin
+  AR := TatObjectRecord(APtr);
+  ObjRUID := StrToRUID(AStr);
+
+  FqFindAtObject.Close;
+  FqFindAtObject.ParamByName('nk').AsInteger := FgdcNamespace.ID;
+  FqFindAtObject.ParamByName('xid').AsInteger := ObjRUID.XID;
+  FqFindAtObject.ParamByName('dbid').AsInteger := ObjRUID.DBID;
+  FqFindAtObject.ExecQuery;
+
+  if FqFindAtObject.EOF and (not AR.DontRemove) then
+  begin
+    Obj := CacheObject(AR.ObjectClass.ClassName, AR.ObjectSubType);
+    Obj.Close;
+    Obj.ID := gdcBaseManager.GetIDByRUIDString(AStr);
+    Obj.Open;
+    if not Obj.EOF then
+      Obj.Delete;
+    Obj.Close;
+  end;
+
+  FqFindAtObject.Close;
+
+  Result := True;
+end;
+
+function TgdcNamespaceLoader.CacheObject(const AClassName,
+  ASubtype: String): TgdcBase;
+var
+  HashKey: String;
+  C: TPersistentClass;
+begin
+  HashKey := AClassName + ASubType;
+
+  if not FgdcObjectCache.Find(HashKey, Result) then
+  begin
+    C := GetClass(AClassName);
+
+    if (C = nil) or (not C.InheritsFrom(TgdcBase)) then
+      raise EgdcNamespaceLoader.Create('Invalid class name ' + AClassName);
+
+    Result := CgdcBase(C).Create(nil);
+    try
+      Result.SubType := ASubType;
+      Result.ReadTransaction := FTr;
+      Result.Transaction := FTr;
+      Result.SubSet := 'ByID';
+      Result.BaseState := Result.BaseState + [sLoadFromStream];
+    except
+      Result.Free;
+      raise;
+    end;
+
+    FgdcObjectCache.Add(HashKey, Result);
+  end;
 end;
 
 end.

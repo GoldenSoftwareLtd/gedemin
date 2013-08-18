@@ -433,7 +433,7 @@ type
     procedure IDCacheFlush;
 
     //
-    function GenerateNewDBID: Integer;
+    function GenerateNewDBID: TID;
 
     // AnAccess: 0, 1, 2 -- aview, achag, afull
     function Class_TestUserRights(C: TClass;
@@ -9349,7 +9349,7 @@ begin
   inherited;
 end;
 
-function TgdcBaseManager.GenerateNewDBID: Integer;
+function TgdcBaseManager.GenerateNewDBID: TID;
 var
   D: TDateTime;
 begin
@@ -15854,7 +15854,6 @@ procedure TgdcBase.SetSetTable(const Value: String);
 var
   WasActive: Boolean;
 begin
-  //CheckDataSetClosed;
   if FSetTable <> Value then
   begin
     WasActive := Active;
