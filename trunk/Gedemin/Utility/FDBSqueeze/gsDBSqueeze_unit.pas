@@ -49,7 +49,7 @@ type
     constructor Create;
     destructor Destroy; override;
 
-    procedure CreateStateJournal;
+    procedure CreateDBSStateJournal;
     procedure SetFVariables;
 
     procedure SaveMetadata;
@@ -273,7 +273,7 @@ begin
   end;
 end;
 
-procedure TgsDBSqueeze.CreateStateJournal;
+procedure TgsDBSqueeze.CreateDBSStateJournal;
 var
   q: TIBSQL;
   Tr: TIBTransaction;
@@ -289,13 +289,33 @@ begin
 
     if not RelationExist2('DBS_JOURNAL_STATE', Tr) then
     begin
-     { q.SQL.Text :=
-        'CREATE TABLE DBS_JOURNAL_STATE ( ' +
-        '  CONSTRAINT PK_DBS_ PRIMARY KEY (CONSTRAINT_NAME))';
+      q.SQL.Text :=
+        'CREATE TABLE DBS_JOURNAL_STATE( ' +
+        '  FUNCTIONKEY   INTEGER, ' +
+        '  STATE         SMALLINT, ' +        //1-успешно,0-ошибка, NULL-выполнение было прервано пользователем
+        '  CALL_TIME     TIMESTAMP, ' +
+        '  ERROR_MESSAGE VARCHAR(32000), ' +
+        '  CONSTRAINT PK_DBS_PRIMARY KEY (ID))';
       q.ExecQuery;
       LogEvent('Table DBS_FK_CONSTRAINTS has been created.');
-      }
-    end;   
+    end
+    else begin
+      q.SQL.Text:=
+        'SELECT COUNT(*) FROM DBS_JOURNAL_STATE';
+      q.ExecQuery;
+      if q.RecordCount <> 0 then
+      begin
+        //IsUsedDB := True;
+        ///CREATE EVENT!
+        q.Close;
+        q.SQL.Text :=
+          'SELECT * FROM DBS_JOURNAL_STATE ORDER BY CALL_TIME DESC';
+        q.ExecQuery;  
+      //////TODO: сигнал на форму! продолжить или заново
+      /// отправим все данные последней записи
+      end;
+      q.Close;
+    end;
 
     Tr.Commit;
   finally
@@ -1002,6 +1022,8 @@ begin
       q.Close;
     end;
 
+    FCardFeaturesStr := ''; ///TODO: отпала необходимость
+
     // запрос на складские остатки
     q.SQL.Text :=
       'INSERT INTO DBS_TMP_INV_SALDO ' +  
@@ -1015,9 +1037,9 @@ begin
       '  ic.goodkey, ' +
       '  ic.companykey, ' + 
       '  SUM(im.debit - im.credit) AS Balance ';
-    if (FCardFeaturesStr <> '') then
+    {if (FCardFeaturesStr <> '') then
       q.SQL.Add(', ' +
-        StringReplace(FCardFeaturesStr, 'USR$', 'ic.USR$', [rfReplaceAll, rfIgnoreCase]) + ' ');
+        StringReplace(FCardFeaturesStr, 'USR$', 'ic.USR$', [rfReplaceAll, rfIgnoreCase]) + ' '); }
     q.SQL.Add(
       'FROM inv_movement im ' +
       '  JOIN inv_card ic ON im.cardkey = ic.id ' +
@@ -1033,10 +1055,10 @@ begin
       '  im.contactkey, ' +
       '  ic.goodkey, ' +
       '  ic.companykey ');
-    if (FCardFeaturesStr <> '') then
+ {   if (FCardFeaturesStr <> '') then
       q.SQL.Add(', ' +
-        StringReplace(FCardFeaturesStr, 'USR$', 'ic.USR$', [rfReplaceAll, rfIgnoreCase]));
-    
+        StringReplace(FCardFeaturesStr, 'USR$', 'ic.USR$', [rfReplaceAll, rfIgnoreCase]));  }
+
     q.ParamByName('RemainsDate').AsDateTime := FClosingDate;
     if FOnlyCompanySaldo then
       q.ParamByName('CompanyKey').AsInteger := CompanyKey;
@@ -1195,7 +1217,7 @@ begin
       '  documentkey, firstdocumentkey, ' + 
       '  firstdate, ' +
       '  companykey ';
-    if (FCardFeaturesStr <> '') then
+    if (FCardFeaturesStr <> '') then      // поля-признаки
     begin
       if Pos('USR$INV_ADDLINEKEY', FCardFeaturesStr) <> 0 then
       begin
@@ -1210,7 +1232,7 @@ begin
         q.SQL.Add(', ' + FCardFeaturesStr);
     end;
     q.SQL.Add(
-      ') ' +  // поля-признаки 
+      ') ' +
       'SELECT ' +
       '  id_card, ' +
       '  goodkey, ' +
@@ -1236,7 +1258,7 @@ begin
       'FROM  DBS_TMP_INV_SALDO ');
 
     q.ParamByName('ClosingDate').AsDateTime := FClosingDate;
-    q.ExecQuery;    ///ERROR
+    q.ExecQuery;
 
     Tr.Commit;
     Tr.StartTransaction;
@@ -1315,7 +1337,7 @@ var
   FirstDate: TDateTime;
   CurrentRelationName: String;
   DocumentParentKey: Integer;
-  CardFeaturesList: TStringList;  
+  CardFeaturesList: TStringList;
   NewDocumentKey, NewMovementKey: Integer;
   InvDocTypeKey: Integer;
 begin
@@ -1378,14 +1400,15 @@ begin
       'INSERT INTO inv_card ' +
       '  (id, goodkey, documentkey, firstdocumentkey, firstdate, companykey';
     // Поля-признаки
-    qInsertInvCard.SQL.Add(', ' +
-          FCardFeaturesStr);
+    if FCardFeaturesStr <> '' then
+      qInsertInvCard.SQL.Add(', ' + FCardFeaturesStr);
     qInsertInvCard.SQL.Add(
       ') VALUES ' +
       '  (:id, :goodkey, :documentkey, :documentkey, :firstdate, :companykey');
     // Поля-признаки
-    qInsertInvCard.SQL.Add(', ' +
-      StringReplace(FCardFeaturesStr, 'USR$', ':USR$', [rfReplaceAll, rfIgnoreCase]));
+    if FCardFeaturesStr <> '' then
+      qInsertInvCard.SQL.Add(', ' +
+        StringReplace(FCardFeaturesStr, 'USR$', ':USR$', [rfReplaceAll, rfIgnoreCase]));
     qInsertInvCard.SQL.Add(
       ')');
 
@@ -1411,7 +1434,7 @@ begin
       '  c.goodkey,' +
       '  c.companykey, ' +
       '  c.firstdocumentkey';
-    if FCardFeaturesStr <> '' then 
+    if FCardFeaturesStr <> '' then
     q3.SQL.Add(', ' +
       StringReplace(FCardFeaturesStr, 'USR$', 'c.USR$', [rfReplaceAll, rfIgnoreCase]) + ' ');                                                                       /// c.
     q3.SQL.Add(' ' +
@@ -1462,7 +1485,7 @@ begin
           '  AND ' +
           '    ((m.contactkey = :contact1) ' +
           '    OR (m.contactkey = :contact2)) ';
-        for I := 0 to CardFeaturesList.Count - 1 do
+        for I := 0 to CardFeaturesList.Count - 1 do  
         begin
           if not q4.FieldByName(Trim(CardFeaturesList[I])).IsNull then
             q4.SQL.Add(Format(
@@ -1470,7 +1493,7 @@ begin
           else
             q4.SQL.Add(Format(
             'AND c.%0:s IS NULL ', [Trim(CardFeaturesList[I])]) + ' ');
-        end;
+        end;   
 
         q4.ParamByName('DocTypeKey').AsInteger := InvDocTypeKey;
         q4.ParamByName('ClosingDate').AsDateTime := FClosingDate;
@@ -1481,7 +1504,7 @@ begin
         begin
           if not q3.FieldByName(Trim(CardFeaturesList[I])).IsNull then
             q4.ParamByName(Trim(CardFeaturesList[I])).AsVariant := q3.FieldByName(Trim(CardFeaturesList[I])).AsVariant;
-        end;
+        end;       
 
         q4.ExecQuery;
 
@@ -1558,7 +1581,7 @@ begin
                 qInsertInvCard.ParamByName(Trim(CardFeaturesList[I])).Clear
               else // Заполним поле USR$INV_ADDLINEKEY карточки нового остатка ссылкой на позицию
                 qInsertInvCard.ParamByName('USR$INV_ADDLINEKEY').AsInteger := NewDocumentKey;
-            end;
+            end;    
 
             qInsertInvCard.ExecQuery;
 
@@ -1613,7 +1636,7 @@ begin
           else
             q4.SQL.Add(Format(
             'AND c.%0:s IS NULL ', [Trim(CardFeaturesList[I])]));
-        end;
+        end;  
 
         q4.ParamByName('ClosingDate').AsDateTime := FClosingDate;
         q4.ParamByName('DocTypeKey').AsInteger := InvDocTypeKey;
@@ -1622,7 +1645,7 @@ begin
         begin
           if not q3.FieldByName(Trim(CardFeaturesList[I])).IsNull then
             q4.ParamByName(Trim(CardFeaturesList[I])).AsVariant := q3.FieldByName(Trim(CardFeaturesList[I])).AsVariant;
-        end;
+        end;   
 
         q4.ExecQuery;
 
@@ -1965,7 +1988,6 @@ var
           '  fc.ref_relation_name = :rln ' +
           '  AND ((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) ' +        
           '  AND fc.list_fields NOT LIKE ''%,%'' ' ;
-        
         q.ParamByName('rln').AsString := UpperCase(TblsNamesList[0]);
         q.Open;
 
@@ -2012,7 +2034,7 @@ var
                       Count := Count + q3.FieldByName('RealKolvo').AsInteger;
                     until q3.FieldByName('RealKolvo').AsInteger = 0;     ///TODO: не логично! сравнить версии файлов
 
-                    GoToFirst := True;             
+                    GoToFirst := True;
                   end;
                     //else
                     //  Cлучай 2: еще не обработали таблицы, ссылающиеся каскадно на эту таблицу =>  q.Next;
@@ -2081,31 +2103,33 @@ var
         else
           TblsNamesList.Delete(0);
       end;
-      Tr2.Commit;                                                               
+      Tr2.Commit;
       Tr2.StartTransaction;
 
       LogEvent('[test] COUNT ref real incuded: ' + IntToStr(Count));
 
       //------------------ исключение из HIS PK, на которые есть restrict/noAction
-      
+
       CreateHIS(1);
 
       TblsNamesList.CommaText := AllProcessedTblsNames.CommaText;     ///TODO: перепроверить, заменить commatext->text
-
       LogEvent('[test] AllProcessedTblsNames: ' + TblsNamesList.CommaText);
-      while TblsNamesList.Count <> 0 do
+      while TblsNamesList.Count > 0 do
       begin
         ProcTblsNamesList.Append(TblsNamesList[0]);
+        LogEvent(ProcTblsNamesList.Text);
+        IndexEnd := -1;
 
+        q.Close;
         // получим все FK cascade поля в таблице
         q.SQL.Text :=                                                 ///TODO: вынести. Prepare
-          'SELECT ' + 
+          'SELECT ' +
           '  fc.list_fields AS fk_field, ' +
           '  pc.list_fields AS pk_field ' +
           'FROM dbs_fk_constraints fc ' +
           '  JOIN DBS_SUITABLE_TABLES pc ' +
           '    ON pc.relation_name = fc.relation_name ' +
-          'WHERE ((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) ' +           
+          'WHERE ((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) ' +
           '  AND fc.relation_name = :rln ' +
           '  AND fc.list_fields NOT LIKE ''%,%'' ';
         q.ParamByName('rln').AsString := TblsNamesList[0];
@@ -2145,6 +2169,7 @@ var
 
         while not q.EOF do
         begin
+          q2.Close;
           // извлекаем FK restrict HIS вместе с цепью
           q2.SQL.Text :=
             'SELECT ' +
@@ -2155,14 +2180,14 @@ var
             '  g_his_exclude(0, ' + q.FieldByName('list_fields').AsString + ') = 1 ';
 
           // если таблица с rectrict/noAction содержит предположительно удаляемый cascade
-          if AllProcessedTblsNames.IndexOf(q.FieldByName('relation_name').AsString) <> -1 then  
+          if AllProcessedTblsNames.IndexOf(q.FieldByName('relation_name').AsString) <> -1 then
           begin  //извлекаем FK restrict HIS вместе с цепью, если ВСЕ каскады отсутствуют в HIS
 
             q4.SQL.Text :=  // получим все FK cascade поля в таблице
               'SELECT ' +
               '  fc.list_fields AS fk_field ' +
               'FROM dbs_fk_constraints fc ' +
-              'WHERE ((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) ' +     
+              'WHERE ((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) ' +
               '  AND fc.relation_name = :rln ' +
               '  AND fc.list_fields NOT LIKE ''%,%'' ';
             q4.ParamByName('rln').AsString := q.FieldByName('relation_name').AsString;
@@ -2178,7 +2203,8 @@ var
             q2.SQL.Add(') = 0');
             q4.Close;
           end;
-          q2.ExecQuery;
+          LogSQL(q2);
+          q2.ExecQuery;              ///ERR
 
           Count := Count - q2.FieldByName('Kolvo').AsInteger;
 
@@ -2188,26 +2214,28 @@ var
             IndexEnd := 0;
             IsFirstIteration := True;
             // исключение цепи из HIS   (исключение цепи, что ниже)
-            while ProcTblsNamesList.Count <> 0 do
+            while ProcTblsNamesList.Count > 0 do
             begin
               if IsFirstIteration then  //движемся от конца к началу ProcTblsNamesList
               begin
                 CascadeProcTbls.Add(ProcTblsNamesList[ProcTblsNamesList.Count-1]);   //список элементов цепи каскадной
                 IndexEnd := AllProcessedTblsNames.IndexOf(CascadeProcTbls[0]);
 
-                while CascadeProcTbls.Count <> 0 do                                  ///////////////ERROR
+                while CascadeProcTbls.Count > 0 do                                  ///////////////ERROR
                 begin
                   q2.SQL.Text :=
                     'SELECT ' +
-                    '  fc.list_fields, ' +
-                    '  fc.ref_relation_name, ' +
-                    '  pc.list_fields AS pk_fields ' +
+                    '  TRIM(fc.list_fields) AS list_fields, ' +
+                    '  TRIM(fc.ref_relation_name) AS ref_relation_name, ' +
+                    '  TRIM(pc.list_fields) AS pk_fields ' +
                     'FROM dbs_fk_constraints fc ' +
                     '  JOIN DBS_SUITABLE_TABLES pc ' +
                     '    ON pc.relation_name = fc.relation_name ' +
                     'WHERE ((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) ' +    
                     '  AND fc.relation_name = :rln ' +
                     '  AND fc.ref_relation_name IN (';
+
+                  LogEvent('[test] ProcTblsNamesList: ' + ProcTblsNamesList.CommaText);
                   for I:=0 to ProcTblsNamesList.Count-1 do                      /// TODO:или AllProc
                   begin
                     q2.SQL.Add(' ''' + ProcTblsNamesList[I] + '''');   ///TODO: возможно пуст? error
@@ -2240,14 +2268,22 @@ var
                     q4.Close;
 
                     if CascadeProcTbls.IndexOf(q2.FieldByName('ref_relation_name').AsString) = -1 then
+                    begin
+                      LogEvent('[test]CascadeProcTbls: ' + CascadeProcTbls.CommaText);
+                      LogEvent('[test]CascadeProcTbls.Add: ' + q2.FieldByName('ref_relation_name').AsString);
                       CascadeProcTbls.Add(q2.FieldByName('ref_relation_name').AsString);
-
+                      LogEvent('[test]CascadeProcTbls: ' + CascadeProcTbls.CommaText);
+                    end;
                     q2.Next;
                   end;
                   q2.Close;
 
                   if ProcTblsNamesList.IndexOf(CascadeProcTbls[0]) <> -1 then
+                  begin
+                    LogEvent('[test] CascadeProcTbls[0]=' +CascadeProcTbls[0] );
+                    LogEvent('[test] ProcTblsNamesList: ' + ProcTblsNamesList.CommaText);
                     ProcTblsNamesList.Delete(ProcTblsNamesList.IndexOf(CascadeProcTbls[0]));
+                  end;
                   CascadeProcTbls.Delete(0);
                 end;
               end
@@ -2263,7 +2299,7 @@ var
                   'WHERE ((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) ' +    
                   '  AND fc.relation_name = :rln ' +
                   '  AND fc.ref_relation_name IN (';
-                for I:=0 to IndexEnd do                                     
+                for I:=0 to IndexEnd do
                 begin
                   q2.SQL.Add(' ''' + AllProcessedTblsNames[I] + '''');
                   if I <> IndexEnd then
@@ -2309,6 +2345,15 @@ var
         q.Close;
         Tr.Commit;
         Tr.StartTransaction;
+
+        if IndexEnd <> -1 then   //если нашли подходящий рестрикт т.е. ProcTblsNamesList пуст
+        begin
+          ProcTblsNamesList.Clear;                                           ///
+          for I:=0 to IndexEnd do                                            ///
+          begin                                                              ///
+            ProcTblsNamesList.Append(AllProcessedTblsNames[I]);              ///
+          end;                                                               ///
+        end;
 
         TblsNamesList.Delete(0);
       end;
@@ -2999,7 +3044,7 @@ var
 
   procedure CreateDBSTmpInvSaldo;
   begin
-    if RelationExist2('DBS_TMP_INV_SALDO', Tr) then
+    {if RelationExist2('DBS_TMP_INV_SALDO', Tr) then
     begin
       q.SQL.Text := 'DELETE FROM DBS_TMP_INV_SALDO';
       q.ExecQuery;
@@ -3061,12 +3106,38 @@ var
         '  GOODKEY       INTEGER, ' +
         '  COMPANYKEY    INTEGER, ' +
         '  BALANCE       DECIMAL(15,4), ' +
-      q2.FieldByName('AllUsrFieldsList').AsString + ', ' +
+  ///    q2.FieldByName('AllUsrFieldsList').AsString + ', ' +               ///TODO: отпала необходимость
         '  PRIMARY KEY (ID_DOCUMENT))';
       q.ExecQuery;
       q2.Close;
       LogEvent('Table DBS_TMP_INV_SALDO has been created.');
+    end;}
+
+    ///TODO:временно для березы
+    if RelationExist2('DBS_TMP_INV_SALDO', Tr) then
+    begin
+      q.SQL.Text := 'DROP TABLE DBS_TMP_INV_SALDO';
+      q.ExecQuery;
+      LogEvent('Table DBS_TMP_INV_SALDO exists.');
+      Tr.Commit;
+      Tr.StartTransaction;
     end;
+    q.SQL.Text :=
+      'CREATE TABLE DBS_TMP_INV_SALDO ( ' +
+      '  ID_DOCUMENT   INTEGER, ' +
+      '  ID_PARENTDOC  INTEGER, ' +
+      '  ID_CARD       INTEGER, ' +
+      '  ID_MOVEMENT_D INTEGER, ' +
+      '  ID_MOVEMENT_C INTEGER, ' +
+      '  CONTACTKEY    INTEGER, ' +
+      '  GOODKEY       INTEGER, ' +
+      '  COMPANYKEY    INTEGER, ' +
+      '  BALANCE       DECIMAL(15,4), ' +
+      '  PRIMARY KEY (ID_DOCUMENT))';
+    q.ExecQuery;
+    q2.Close;
+    LogEvent('Table DBS_TMP_INV_SALDO has been created.');
+  ////
   end;
 
   procedure CreateDBSInactiveTriggers;
@@ -3292,9 +3363,9 @@ begin
   end;
 end;
 
-procedure TgsDBSqueeze.GetDBSizeEvent;                   ///TODO: неправильный размер файлов больше 4 Гб
+procedure TgsDBSqueeze.GetDBSizeEvent;                   ///TODO: доделать
 var
-  hFile, fileSize: Int64;
+  fileSize: Int64;
 
   function BytesToStr(const i64Size: Int64): String;
   const
@@ -3302,21 +3373,36 @@ var
     i64MB = 1024 * 1024;
     i64KB = 1024;
   begin
-   if i64Size div i64GB > 0 then
-     Result := Format('%.2f GB', [i64Size / i64GB])
-   else if i64Size div i64MB > 0 then
-     Result := Format('%.2f MB', [i64Size / i64MB])
-   else if i64Size div i64KB > 0 then
-     Result := Format('%.2f KB', [i64Size / i64KB])
-   else
-     Result := IntToStr(i64Size) + ' Byte(s)';
+    if i64Size div i64GB > 0 then
+      Result := Format('%.2f GB', [i64Size / i64GB])
+    else if i64Size div i64MB > 0 then
+      Result := Format('%.2f MB', [i64Size / i64MB])
+    else if i64Size div i64KB > 0 then
+      Result := Format('%.2f KB', [i64Size / i64KB])
+    else
+      Result := IntToStr(i64Size) + ' Byte(s)';
+  end;
+
+  function GetFileSize(DatabaseName :String): Int64;
+  var
+    Handle: tHandle;
+    FindData: tWin32FindData;
+  begin
+    Handle := FindFirstFile(PChar(DatabaseName), FindData);
+    //if Handle = INVALID_HANDLE_VALUE then
+    //  RaiseLastOSError;
+
+    Windows.FindClose(Handle);
+    if (FindData.dwFileAttributes and FILE_ATTRIBUTE_DIRECTORY) <> 0 then
+      Result := 0  // Размер каталога всегда считаем равным 0
+    else begin
+      Int64Rec(Result).Hi := FindData.nFileSizeHigh;
+      Int64Rec(Result).Lo := FindData.nFileSizeLow;
+    end;
   end;
 
 begin
-  hFile := FileOpen(FDatabaseName, fmOpenRead);
-  fileSize := GetFileSize(hFile, nil);
-  FileClose(hFile);
-
+  fileSize := GetFileSize(FDatabaseName);
   FOnGetDBSizeEvent(BytesToStr(fileSize));
 end;
 

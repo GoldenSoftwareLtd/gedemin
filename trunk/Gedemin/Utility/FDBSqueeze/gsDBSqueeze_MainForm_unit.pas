@@ -176,7 +176,7 @@ procedure TgsDBSqueeze_MainForm.FormCloseQuery(Sender: TObject;                 
 var
   MsgStr: String;
 begin
-  MsgStr:= 'You have not saved. Do you really want to close?';
+  MsgStr:= 'Do you really want to close?';
   ///CanClose := not FSThread.Busy;
   if MessageDlg(MsgStr, mtConfirmation, [mbOk, mbCancel], 0) = mrCancel then
     CanClose := False;
