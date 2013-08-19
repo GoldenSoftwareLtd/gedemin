@@ -189,7 +189,7 @@ begin
       '¬нимание',
       MB_OK or MB_ICONINFORMATION or MB_TASKMODAL);
   end else
-    inherited; 
+    inherited;
 end;
 
 procedure Tgdv_frmGeneralLedger.UpdateControls;
@@ -203,43 +203,35 @@ begin
       FAccountIDs := TList.Create;
 
     FAccountIDs.Clear;
-    if (gdcAcctChart.FieldByName('accounttype').AsString[1] in ['A', 'S']) or chkBuildGroup.Checked then
+    if (iblConfiguratior.CurrentKey > '')
+      and (cbAccounts.Text <> '') then
     begin
-      SQL := TIBSQL.Create(nil);
-      try
-        SQL.Transaction := gdcBaseManager.ReadTransaction;
-        //≈сли не задана конфигураци€ книги то
-        //строим книгу по счету и его субсчетам в противном случае
-        //в книгу должны попасть только нужные субсчета
-        if iblConfiguratior.CurrentKey > '' then
-        begin
-          SQL.SQL.Text := Format(
-            ' SELECT a2.id FROM ac_account a1 LEFT JOIN ac_account a2 ON ' +
-            ' a2.lb >= a1.lb and a2.rb <= a1.rb and a2.ACCOUNTTYPE in (''A'', ''S'') ' +
-            ' WHERE a1.id = %d AND ' +
-            ' (a2.id IN (SELECT accountkey FROM AC_G_LEDGERACCOUNT ' +
-            ' WHERE ledgerkey = %d) OR a2.id = a1.id)',
-            [gdcAcctChart.FieldByName('id').AsInteger, iblConfiguratior.CurrentKeyInt]);
-
-        end else
-        begin
+      SetAccountIDs(cbAccounts, FAccountIDs, cbShowCorrSubAccount.Checked, False);
+    end else
+    begin
+      if (gdcAcctChart.FieldByName('accounttype').AsString[1] in ['A', 'S']) or chkBuildGroup.Checked then
+      begin
+        SQL := TIBSQL.Create(nil);
+        try
+          SQL.Transaction := gdcBaseManager.ReadTransaction;
           SQL.SQL.Text := Format(' SELECT a2.id FROM ac_account a1 LEFT JOIN ac_account a2 ON ' +
             ' a2.lb >= a1.lb and a2.rb <= a1.rb and a2.ACCOUNTTYPE in (''A'', ''S'') ' +
 //          if chkBuildGroup.checked then
 //            ' WHERE a1.lb >= %d AND a1.rb <= %d ', [gdcAcctChart.FieldByName('lb').AsInteger, gdcAcctChart.FieldByName('rb').AsInteger]);
 //          else
             ' WHERE a1.id = %d ', [gdcAcctChart.FieldByName('id').AsInteger]);
-        end;                
 
-        SQL.ExecQuery;
-        while not SQl.Eof do
-        begin
-          if FAccountIDs.IndexOf(Pointer(SQL.FieldByName(fnId).AsInteger)) = - 1 then
-            FAccountIDs.Add(Pointer(SQL.FieldByName(fnId).AsInteger));
-          SQL.Next;
+
+          SQL.ExecQuery;
+          while not SQl.Eof do
+          begin
+            if FAccountIDs.IndexOf(Pointer(SQL.FieldByName(fnId).AsInteger)) = - 1 then
+              FAccountIDs.Add(Pointer(SQL.FieldByName(fnId).AsInteger));
+            SQL.Next;
+          end;
+        finally
+          SQL.Free;
         end;
-      finally
-        SQL.Free;
       end;
     end;
 
@@ -354,7 +346,12 @@ begin
     C := TAccCardConfig.Create;
     try
       DoSaveConfig(C);
-      C.Accounts := gdcAcctChart.FieldByName('alias').AsString;
+      if (iblConfiguratior.CurrentKeyInt > -1)
+        and (cbAccounts.Text <> '')
+      then
+        C.Accounts := cbAccounts.Text
+      else
+        C.Accounts := gdcAcctChart.FieldByName('alias').AsString;
 
       C.CompanyKey := frAcctCompany.iblCompany.CurrentKeyInt;
       C.AllHoldingCompanies := frAcctCompany.cbAllCompanies.Checked;
@@ -422,6 +419,7 @@ begin
       FAccountIDs.Clear;
     SetAcctChartExtraConditions;
     gdcAcctChart.Open;
+    UpdateControls;
   end;
 end;
 
@@ -448,11 +446,7 @@ begin
     TgdvAcctGeneralLedger(gdvObject).ShowDebit := cbShowDebit.Checked;
     TgdvAcctGeneralLedger(gdvObject).ShowCredit := cbShowCredit.Checked;
     TgdvAcctGeneralLedger(gdvObject).ShowCorrSubAccounts := cbShowCorrSubAccount.Checked;
-    TgdvAcctGeneralLedger(gdvObject).EnchancedSaldo := cbEnchancedSaldo.Checked;
-
-    gdvObject.Accounts.Clear;
-    if (gdcAcctChart.FieldByName('accounttype').AsString[1] in ['A', 'S']) or chkBuildGroup.Checked then
-      gdvObject.AddAccount(gdcAcctChart.FieldByName('id').AsInteger);
+    TgdvAcctGeneralLedger(gdvObject).EnchancedSaldo := cbEnchancedSaldo.Checked;  
     gdvObject.AllHolding := frAcctCompany.cbAllCompanies.Checked;
   end;
 end;
