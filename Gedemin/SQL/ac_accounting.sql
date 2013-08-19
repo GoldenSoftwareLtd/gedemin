@@ -63,7 +63,7 @@ CREATE TABLE ac_account
 
   editiondate      deditiondate,
 
-  fullname         COMPUTED BY (case when ALIAS is null then '' else ALIAS || ' ' end || case when NAME is null then '' else NAME end),
+  fullname         COMPUTED BY (COALESCE(ALIAS, '') || ' ' || COALESCE(NAME, '')),
 
   description      dblobtext80_1251,
 
@@ -109,7 +109,7 @@ CREATE OR ALTER TRIGGER AC_AIU_ACCOUNT_CHECKALIAS FOR AC_ACCOUNT
   AFTER INSERT OR UPDATE
   POSITION 32000
 AS
-  DECLARE VARIABLE P VARCHAR(1) = NULL;
+  DECLARE VARIABLE P CHAR(1) = NULL;
   DECLARE VARIABLE A daccountalias;
 BEGIN
   IF (INSERTING OR (NEW.alias <> OLD.alias)) THEN
@@ -1359,8 +1359,8 @@ DECLARE VARIABLE saldo NUMERIC(15, 4);
         FROM 
           ac_entry e 
         WHERE 
-          e.accountkey = ' || CAST(:accountkey AS VARCHAR(20)) || ' 
-          AND e.entrydate >= ''' || CAST(:closedate AS VARCHAR(20)) || ''' 
+          e.accountkey = ' || CAST(:accountkey AS VARCHAR(20)) || '
+          AND e.entrydate >= ''' || CAST(:closedate AS VARCHAR(20)) || '''
           AND e.entrydate < ''' || CAST(:dateend AS VARCHAR(20)) || ''' 
           AND (e.companykey = ' || CAST(:companykey AS VARCHAR(20)) || ' OR 
             (' || CAST(:allholdingcompanies AS VARCHAR(20)) || ' = 1 
@@ -1503,15 +1503,15 @@ returns (
     eq_end_credit numeric(15,4),
     offbalance integer)
 as
-declare variable activity varchar(1);
-declare variable saldo numeric(15,4);
-declare variable saldocurr numeric(15,4);
-declare variable saldoeq numeric(15,4);
-declare variable fieldname varchar(60);
-declare variable lb integer;
-declare variable rb integer;
-BEGIN                                                                                                  
-  /* Procedure Text */                                                                                 
+  DECLARE VARIABLE ACTIVITY CHAR(1);
+  DECLARE VARIABLE SALDO NUMERIC(15,4);
+  DECLARE VARIABLE SALDOCURR NUMERIC(15,4);
+  DECLARE VARIABLE SALDOEQ NUMERIC(15,4);
+  DECLARE VARIABLE FIELDNAME VARCHAR(60);
+  DECLARE VARIABLE LB INTEGER;
+  DECLARE VARIABLE RB INTEGER;
+BEGIN
+  /* Procedure Text */
  
   SELECT c.lb, c.rb FROM ac_account c                                                                  
   WHERE c.id = :ACCOUNTKEY 
@@ -1803,7 +1803,7 @@ RETURNS (
   eq_end_credit NUMERIC(15,4),
   offbalance INTEGER)
 AS
-  DECLARE VARIABLE activity VARCHAR(1);
+  DECLARE VARIABLE activity CHAR(1);
   DECLARE VARIABLE saldo NUMERIC(15, 4); 
   DECLARE VARIABLE saldocurr NUMERIC(15, 4); 
   DECLARE VARIABLE saldoeq NUMERIC(15, 4); 
@@ -3319,12 +3319,12 @@ CREATE PROCEDURE AC_L_Q (
     ENTRYKEY INTEGER,
     VALUEKEY INTEGER,
     ACCOUNTKEY INTEGER,
-    AACCOUNTPART VARCHAR(1))
+    AACCOUNTPART CHAR(1))
 RETURNS (
     DEBITQUANTITY NUMERIC(15,4),
     CREDITQUANTITY NUMERIC(15,4))
 AS
-DECLARE VARIABLE ACCOUNTPART VARCHAR(1);
+DECLARE VARIABLE ACCOUNTPART CHAR(1);
 DECLARE VARIABLE QUANTITY NUMERIC(15,4);
 begin
   SELECT

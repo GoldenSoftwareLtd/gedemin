@@ -1,6 +1,7 @@
+
 {++
 
-  Copyright (c) 2001 by Golden Software of Belarus
+  Copyright (c) 2001-2013 by Golden Software of Belarus
 
   Module
 
@@ -1096,12 +1097,6 @@ begin
                 id := D.iblName.CurrentKeyInt;
               end else
               begin
-                {
-                SQL.SQL.Text := 'SELECT gen_id(gd_g_unique, 1) FROM RDB$DATABASE';
-                SQL.ExecQuery;
-                Id := SQL.Fields[0].AsInteger;
-                SQL.Close;
-                }
                 Id := gdcBaseManager.GetNextID;
                 
                 SQL.SQL.Text := 'INSERT INTO ac_acct_config (id, name, config, ' +
@@ -1118,8 +1113,7 @@ begin
               SQL.ParamByName(fnConfig).LoadFromStream(Str);
               SQL.ExecQuery;
 
-//              if DidActivate then
-                Transaction.Commit;
+              Transaction.Commit;
               iblConfiguratior.CurrentKeyInt := Id;
               if FSaveGridSetting then
               begin
@@ -1127,8 +1121,7 @@ begin
                   actSaveGridSetting.Execute;
               end;
             except
-//              if DidActivate then
-                Transaction.RollBack;
+              Transaction.RollBack;
               raise;
             end;
           finally
@@ -1370,8 +1363,8 @@ end;
 
 initialization
   RegisterFrmClass(Tgdv_frmAcctBaseForm);
+
 finalization
   FreeAndNil(AcctFormList_);
   UnRegisterFrmClass(Tgdv_frmAcctBaseForm);
-
 end.

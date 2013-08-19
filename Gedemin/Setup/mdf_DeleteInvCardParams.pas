@@ -20,6 +20,7 @@ procedure CorrectNSTriggers(IBDB: TIBDatabase; Log: TModifyLog);
 procedure AddEditionDate2(IBDB: TIBDatabase; Log: TModifyLog);
 procedure AddADAtObjectTrigger(IBDB: TIBDatabase; Log: TModifyLog);
 procedure SetDefaultForAccountType(IBDB: TIBDatabase; Log: TModifyLog);
+procedure AddGdObjectDependencies(IBDB: TIBDatabase; Log: TModifyLog);
 
 implementation
 
@@ -1243,6 +1244,76 @@ begin
       q.SQL.Text :=
         'UPDATE OR INSERT INTO fin_versioninfo ' +
         '  VALUES (179, ''0000.0001.0000.0210'', ''11.08.2013'', ''Added check for account activity #2.'') ' +
+        '  MATCHING (id)';
+      q.ExecQuery;
+
+      Tr.Commit;
+    except
+      on E: Exception do
+      begin
+        Log('Произошла ошибка: ' + E.Message);
+        if Tr.InTransaction then
+          Tr.Rollback;
+        raise;
+      end;
+    end;
+  finally
+    q.Free;
+    Tr.Free;
+  end;
+end;
+
+procedure AddGdObjectDependencies(IBDB: TIBDatabase; Log: TModifyLog);
+var
+  q: TIBSQL;
+  Tr: TIBTransaction;
+begin
+  Tr := TIBTransaction.Create(nil);
+  q := TIBSQL.Create(nil);
+  try
+    Tr.DefaultDatabase := IBDB;
+    Tr.StartTransaction;
+
+    try
+      q.ParamCheck := False;
+      q.Transaction := Tr;
+
+      if RelationExist2('GD_OBJECT_DEPENDENCIES', Tr) then
+      begin
+        q.SQL.Text := 'DROP TABLE GD_OBJECT_DEPENDENCIES';
+        q.ExecQuery;
+
+        Tr.Commit;
+        Tr.StartTransaction;
+      end;
+
+      q.SQL.Text :=
+        'CREATE GLOBAL TEMPORARY TABLE gd_object_dependencies ( '#13#10 +
+        '  sessionid         dintkey, '#13#10 +
+        '  masterid          dintkey, '#13#10 +
+        '  reflevel          dinteger_notnull, '#13#10 +
+        '  relationname      dtablename NOT NULL, '#13#10 +
+        '  fieldname         dfieldname NOT NULL, '#13#10 +
+        '  crossrelation     dboolean_notnull, '#13#10 +
+        '  refobjectid       dintkey, '#13#10 +
+        '  refobjectname     dname, '#13#10 +
+        '  refrelationname   dname, '#13#10 +
+        '  refclassname      dname, '#13#10 +
+        '  refsubtype        dname, '#13#10 +
+        '  refeditiondate    TIMESTAMP, '#13#10 +
+        ' '#13#10 +
+        '  PRIMARY KEY (sessionid, masterid, reflevel, relationname, fieldname) '#13#10 +
+        ') '#13#10 +
+        '  ON COMMIT DELETE ROWS ';
+      q.ExecQuery;
+
+      q.SQL.Text := 'GRANT ALL ON gd_object_dependencies TO administrator';
+      q.ExecQuery;
+
+      q.Close;
+      q.SQL.Text :=
+        'UPDATE OR INSERT INTO fin_versioninfo ' +
+        '  VALUES (180, ''0000.0001.0000.0211'', ''19.08.2013'', ''gd_object_dependencies table added.'') ' +
         '  MATCHING (id)';
       q.ExecQuery;
 

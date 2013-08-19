@@ -569,6 +569,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (179, '0000.0001.0000.0210', '11.08.2013', 'Added check for account activity #2.');
 
+INSERT INTO fin_versioninfo
+  VALUES (180, '0000.0001.0000.0211', '19.08.2013', 'gd_object_dependencies table added.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id

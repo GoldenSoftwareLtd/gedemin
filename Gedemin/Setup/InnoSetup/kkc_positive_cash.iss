@@ -59,7 +59,7 @@ Source: "midas.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "midas.sxs.manifest"; DestDir: "{app}"; Flags: ignoreversion
 Source: "Help\fr24rus.chm"; DestDir: "{app}\Help"; Flags: ignoreversion
 Source: "Help\vbs55.chm"; DestDir: "{app}\Help"; Flags: ignoreversion
-Source: "menufront.jpg"; DestDir: "{app}"; DestName: "gedemin.jpg"; Flags: ignoreversion
+;Source: "menufront.jpg"; DestDir: "{app}"; DestName: "gedemin.jpg"; Flags: ignoreversion
 Source: "Database\cash.bk"; DestDir: "{app}\Database"; Flags: deleteafterinstall; Tasks: databasefile
 Source: "USBPD.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "PDPosiFlexCommand.dll"; DestDir: "{app}"; Flags: ignoreversion 
