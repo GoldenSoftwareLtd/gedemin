@@ -1,8 +1,8 @@
 object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
-  Left = 176
-  Top = 44
+  Left = 34
+  Top = 20
   BorderStyle = bsDialog
-  ClientHeight = 650
+  ClientHeight = 675
   ClientWidth = 1009
   Color = clBtnFace
   Font.Charset = RUSSIAN_CHARSET
@@ -47,7 +47,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
     object lbl6: TLabel
       Left = 21
       Top = 46
-      Width = 184
+      Width = 183
       Height = 13
       Caption = 'Рассчитать и сохранить сальдо по: '
     end

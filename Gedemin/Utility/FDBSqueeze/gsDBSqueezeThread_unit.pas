@@ -10,7 +10,7 @@ const
   WM_DBS_SETPARAMS             = WM_USER + 1;
   WM_DBS_GETDBSIZE             = WM_USER + 2;
   WM_DBS_CONNECT               = WM_USER + 3;
-  WM_DBS_CREATESTATEJOURNAL    = WM_USER + 4;
+  WM_DBS_CREATEDBSSTATEJOURNAL = WM_USER + 4;
   WM_DBS_GETSTATISTICS         = WM_USER + 5;
   WM_DBS_SETSALDOPARAMS        = WM_USER + 6;
   WM_DBS_SETCBBITEMS           = WM_USER + 7;
@@ -188,15 +188,17 @@ begin
 
         FDBS.SetFVariables;
 
+        PostThreadMessage(ThreadID, WM_DBS_CREATEDBSSTATEJOURNAL, 0, 0);
         Result := True;
       end;
 
-    WM_DBS_CREATESTATEJOURNAL:
+    WM_DBS_CREATEDBSSTATEJOURNAL:                                          ///TODO: доделать
       begin
         if FConnected.Value = 1 then
         begin
-          FDBS.CreateStateJournal;
+          FDBS.CreateDBSStateJournal;
         end;
+
         Result := True;
       end;
 
@@ -280,7 +282,7 @@ begin
       begin
         if FConnected.Value = 1 then
         begin
-          //FDBS.CalculateInvSaldo;
+          FDBS.CalculateInvSaldo;
 
           PostThreadMessage(ThreadID, WM_DBS_CREATEHIS_INCLUDEHIS, 0, 0);
         end;
@@ -317,14 +319,12 @@ begin
         begin
           FBusy.Value := 1;
 
-          ///FDBS.DeleteOldAcEntryBalance;
-          ///FDBS.DeleteDocuments_DeleteHIS;
-          ///FDBS.CreateAcEntries;                                                
+          FDBS.DeleteOldAcEntryBalance;
+          FDBS.DeleteDocuments_DeleteHIS;
+          FDBS.CreateAcEntries;
           FDBS.CreateInvSaldo;
 
-          //FDBS.RestoreDB;
           FDBS.PrepareRebindInvCards;
-          //FDBS.PrepareDB;
 
           FDBS.RebindInvCards;
 
