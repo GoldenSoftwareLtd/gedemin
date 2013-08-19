@@ -5,13 +5,15 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  ExtCtrls, gd_splash, StdCtrls, jpeg, gd_resourcestring;
+  ExtCtrls, gd_splash, StdCtrls, jpeg;
 
 type
   TfrmSplash = class(TForm, IgdSplash)
     Timer: TTimer;
-    Image: TImage;
-    Label1: TLabel;
+    imgGedemin: TImage;
+    lblPositiveLoading: TLabel;
+    imgPositive: TImage;
+    lblGedeminLoading: TLabel;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure TimerTimer(Sender: TObject);
@@ -30,6 +32,9 @@ implementation
 
 {$R *.DFM}
 
+uses
+  gd_GlobalParams_unit, gd_resourcestring;
+
 { TfrmSplash }
 
 procedure TfrmSplash.ShowSplash;
@@ -45,17 +50,24 @@ procedure TfrmSplash.ShowText(const AText: String);
 begin
   if gdSplash <> nil then
   begin
-    Label1.Caption := AText;
-    Label1.Repaint;
+    if lblGedeminLoading.Visible then
+    begin
+      lblGedeminLoading.Caption := AText + '...';
+      lblGedeminLoading.Repaint;
+    end else
+    begin
+      lblPositiveLoading.Caption := AText + '...';
+      lblPositiveLoading.Repaint;
+    end;
   end;
 end;
 
 procedure TfrmSplash.FormCreate(Sender: TObject);
-var
+{var
   FN: String;
-  P: TPicture;
+  P: TPicture;}
 begin
-  FN := ChangeFileExt(Application.EXEName, '.JPG');
+  {FN := ChangeFileExt(Application.EXEName, '.JPG');
   if FileExists(FN) then
   begin
     P := TPicture.Create;
@@ -71,6 +83,20 @@ begin
     finally
       P.Free;
     end;
+  end;}
+
+  if Pos('POSITIVE_', AnsiUpperCase(gd_GlobalParams.UpdateToken)) > 0 then
+  begin
+    imgGedemin.Visible := False;
+    lblGedeminLoading.Visible := False;
+    imgPositive.Visible := True;
+    lblPositiveLoading.Visible := True;
+  end else
+  begin
+    imgGedemin.Visible := True;
+    lblGedeminLoading.Visible := True;
+    imgPositive.Visible := False;
+    lblPositiveLoading.Visible := False;
   end;
 
   gdSplash := Self;
@@ -89,7 +115,6 @@ end;
 
 procedure TfrmSplash.FreeSplash(const Immediately: Boolean = False);
 begin
-//Проверяем, отправили ли мы форму на уничтожение
   if gdSplash = nil then
     exit;
 

@@ -494,21 +494,23 @@ class function TgdcCurr.GetNCUCurrKey: TID;
 var
   q: TIBSQL;
 begin
-  Assert(gdcBaseManager <> nil);
+  if gdcBaseManager = nil then
+    Result := -1
+  else begin
+    q := TIBSQL.Create(nil);
+    try
+      q.Transaction := gdcBaseManager.ReadTransaction;
+      q.SQL.Text := 'SELECT id FROM gd_curr WHERE isncu <> 0';
+      q.ExecQuery;
 
-  q := TIBSQL.Create(nil);
-  try
-    q.Transaction := gdcBaseManager.ReadTransaction;
-    q.SQL.Text := 'SELECT id FROM gd_curr WHERE isncu <> 0';
-    q.ExecQuery;
-
-    if q.EOF then
-      Result := -1
-    else
-      Result := q.FieldByName('id').AsInteger;
-  finally
-    q.Free;
-  end;
+      if q.EOF then
+        Result := -1
+      else
+        Result := q.FieldByName('id').AsInteger;
+    finally
+      q.Free;
+    end;
+  end;  
 end;
 
 initialization

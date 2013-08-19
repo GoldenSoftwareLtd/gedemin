@@ -10,9 +10,8 @@ procedure UniqueLName(IBDB: TIBDatabase; Log: TModifyLog);
 
 implementation
 
-
 uses
-  SysUtils, IBSQL;
+  SysUtils, IBSQL, mdf_metadata_unit;
 
 procedure UniqueLName(IBDB: TIBDatabase; Log: TModifyLog);
 var
@@ -21,11 +20,12 @@ var
 begin
   Log('Проверка уникальности локализованных имен');
   try
-    tr := TIBTransaction.Create(nil);
+    Tr := TIBTransaction.Create(nil);
     q := TIBSQL.Create(nil);
     try
       Tr.DefaultDatabase := IBDB;
       q.Transaction := Tr;
+
       Tr.StartTransaction;
 
       q.SQL.Text := 'update at_relations a ' +
@@ -49,11 +49,9 @@ begin
       q.Free;
       Tr.free;
     end;
-
   except
     Log('Ошибка при проверки уникальности');
   end;
-
 
   Log('Adding fields into gd_company');
   try
@@ -63,54 +61,43 @@ begin
       Tr.DefaultDatabase := IBDB;
       q.Transaction := Tr;
 
-      if not Tr.InTransaction then
-        Tr.StartTransaction;
-      try
+      Tr.StartTransaction;
+
+      if not FieldExist2('GD_COMPANY', 'DIRECTORKEY', Tr) then
+      begin
         q.SQL.Text := 'ALTER TABLE gd_company ADD directorkey dforeignkey ';
         q.ExecQuery;
-        Tr.Commit;
-      except
       end;
 
-      if not Tr.InTransaction then
-        Tr.StartTransaction;
-      try
+      if not ConstraintExist2('GD_COMPANY', 'GD_FK_COMPANY_DIRECTORKEY', Tr) then
+      begin
         q.SQL.Text := 'ALTER TABLE gd_company ADD CONSTRAINT gd_fk_company_directorkey ' +
           'FOREIGN KEY (directorkey) REFERENCES gd_people(contactkey) ' +
           'ON UPDATE CASCADE ';
         q.ExecQuery;
-        Tr.Commit;
-      except
       end;
 
-      if not Tr.InTransaction then
-        Tr.StartTransaction;
-      try
+      if not FieldExist2('GD_COMPANY', 'CHIEFACCOUNTANTKEY', Tr) then
+      begin
         q.SQL.Text := 'ALTER TABLE gd_company ADD chiefaccountantkey dforeignkey ';
         q.ExecQuery;
-        Tr.Commit;
-      except
       end;
 
-      if not Tr.InTransaction then
-        Tr.StartTransaction;
-      try
+      if not ConstraintExist2('GD_COMPANY', 'GD_FK_COMPANY_CHIEFACCOUNTANTKEY', Tr) then
+      begin
         q.SQL.Text := 'ALTER TABLE gd_company ADD CONSTRAINT gd_fk_company_chiefaccountantkey ' +
           'FOREIGN KEY (chiefaccountantkey) REFERENCES gd_people(contactkey) ' +
           'ON UPDATE CASCADE ';
         q.ExecQuery;
-        Tr.Commit;
-      except
       end;
 
-      if not Tr.InTransaction then
-        Tr.StartTransaction;
-      try
+      if not FieldExist2('AC_ACCOUNT', 'DESCRIPTION', Tr) then
+      begin
         q.SQL.Text := 'ALTER TABLE ac_account ADD description      dblobtext80_1251';
         q.ExecQuery;
-        Tr.Commit;
-      except
       end;
+
+      Tr.Commit;
     finally
       q.Free;
       Tr.free;

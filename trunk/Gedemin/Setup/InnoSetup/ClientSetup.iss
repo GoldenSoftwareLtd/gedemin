@@ -35,7 +35,7 @@ Name: "quicklaunchicon"; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescrip
 [Files]
 Source: "gedemin.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "gds32.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "gedemin.jpg"; DestDir: "{app}"; Flags: ignoreversion
+;Source: "gedemin.jpg"; DestDir: "{app}"; Flags: ignoreversion
 Source: "gsdbquery.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "ib_util.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "msvcr70.dll"; DestDir: "{app}"

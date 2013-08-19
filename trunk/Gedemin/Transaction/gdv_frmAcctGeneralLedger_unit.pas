@@ -196,6 +196,8 @@ procedure Tgdv_frmGeneralLedger.UpdateControls;
 var
   SQL: TIBSQL;
 begin
+  Assert(gdcBaseManager <> nil);
+
   if tvGroup.Selected <> nil then
   begin
     //Добавляем в список счета и субсчета выбранного счета
@@ -203,29 +205,23 @@ begin
       FAccountIDs := TList.Create;
 
     FAccountIDs.Clear;
-    if (iblConfiguratior.CurrentKey > '')
-      and (cbAccounts.Text <> '') then
-    begin
-      SetAccountIDs(cbAccounts, FAccountIDs, cbShowCorrSubAccount.Checked, False);
-    end else
-    begin
+    if (iblConfiguratior.CurrentKey > '') and (cbAccounts.Text > '') then
+      SetAccountIDs(cbAccounts, FAccountIDs, cbShowCorrSubAccount.Checked, False)
+    else begin
       if (gdcAcctChart.FieldByName('accounttype').AsString[1] in ['A', 'S']) or chkBuildGroup.Checked then
       begin
         SQL := TIBSQL.Create(nil);
         try
           SQL.Transaction := gdcBaseManager.ReadTransaction;
-          SQL.SQL.Text := Format(' SELECT a2.id FROM ac_account a1 LEFT JOIN ac_account a2 ON ' +
+          SQL.SQL.Text :=
+            ' SELECT a2.id FROM ac_account a1 LEFT JOIN ac_account a2 ON ' +
             ' a2.lb >= a1.lb and a2.rb <= a1.rb and a2.ACCOUNTTYPE in (''A'', ''S'') ' +
-//          if chkBuildGroup.checked then
-//            ' WHERE a1.lb >= %d AND a1.rb <= %d ', [gdcAcctChart.FieldByName('lb').AsInteger, gdcAcctChart.FieldByName('rb').AsInteger]);
-//          else
-            ' WHERE a1.id = %d ', [gdcAcctChart.FieldByName('id').AsInteger]);
-
-
+            ' WHERE a1.id = :id ';
+          SQL.ParamByName('id').AsInteger := gdcAcctChart.FieldByName('id').AsInteger;
           SQL.ExecQuery;
-          while not SQl.Eof do
+          while not SQL.EOF do
           begin
-            if FAccountIDs.IndexOf(Pointer(SQL.FieldByName(fnId).AsInteger)) = - 1 then
+            if FAccountIDs.IndexOf(Pointer(SQL.FieldByName(fnId).AsInteger)) = -1 then
               FAccountIDs.Add(Pointer(SQL.FieldByName(fnId).AsInteger));
             SQL.Next;
           end;
@@ -346,9 +342,7 @@ begin
     C := TAccCardConfig.Create;
     try
       DoSaveConfig(C);
-      if (iblConfiguratior.CurrentKeyInt > -1)
-        and (cbAccounts.Text <> '')
-      then
+      if (iblConfiguratior.CurrentKeyInt > -1) and (cbAccounts.Text > '') then
         C.Accounts := cbAccounts.Text
       else
         C.Accounts := gdcAcctChart.FieldByName('alias').AsString;
