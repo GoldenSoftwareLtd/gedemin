@@ -19,8 +19,8 @@ object dlgAnaliticSelect: TdlgAnaliticSelect
   TextHeight = 13
   object Panel1: TPanel
     Left = 0
-    Top = 182
-    Width = 246
+    Top = 171
+    Width = 238
     Height = 26
     Align = alBottom
     BevelOuter = bvNone
@@ -48,10 +48,11 @@ object dlgAnaliticSelect: TdlgAnaliticSelect
   object clbAlalitics: TCheckListBox
     Left = 0
     Top = 0
-    Width = 246
-    Height = 182
+    Width = 238
+    Height = 171
     Align = alClient
     ItemHeight = 13
+    Sorted = True
     TabOrder = 1
   end
   object ActionList: TActionList
