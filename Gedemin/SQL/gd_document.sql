@@ -14,8 +14,9 @@ CREATE EXCEPTION GD_E_DOCUMENTTYPE_NAME
  */
 
 CREATE DOMAIN ddocumenttype
-  AS VARCHAR(1)
-  CHECK ((VALUE = 'B') OR (VALUE = 'D'));
+  AS CHAR(1)
+  NOT NULL
+  CHECK (VALUE IN ('B', 'D'));
 
 /* Тип документа */
 CREATE TABLE gd_documenttype

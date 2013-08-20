@@ -26,7 +26,6 @@
 
 --}
 
-
 unit gdcClasses;
 
 interface
@@ -2519,7 +2518,6 @@ begin
   DidActivate := False;
   ibsql := TIBSQL.Create(nil);
   try
-    ibsql.Database := Database;
     ibsql.Transaction := Transaction;
 
     DidActivate := ActivateTransaction;
@@ -2533,7 +2531,7 @@ begin
     // ≈сли запись еще не добавлена
     // осуществл€ем добавление. ѕеред этип провер€ем на наличие общей ветки
 
-    if ibsql.RecordCount = 0 then
+    if ibsql.EOF then
     begin
       ibsql.Close;
       ibsql.SQL.Text :=
@@ -2546,7 +2544,7 @@ begin
       // ≈сли не была добавлена главна€ ветка отчетов осуществл€ем
       // ее добавление
 
-      if ibsql.RecordCount = 0 then
+      if ibsql.EOF then
       begin
         ibsql.Close;
         ibsql.SQL.Text :=
@@ -2784,7 +2782,7 @@ begin
     ibsql.ParamByName('id').AsInteger := ID;
     ibsql.ExecQuery;
 
-    if ibsql.RecordCount > 0 then
+    if not ibsql.EOF then
     begin
       if (sLoadFromStream in BaseState) then
       begin
@@ -2804,18 +2802,16 @@ begin
           'с именем "' + FieldByName('name').AsString + '".' +
           'ƒублирование наименований недопустимо!');
     end;
-    ibsql.Close;
-
   finally
     ibsql.Free;
   end;
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASEDOCUMENTTYPE', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
   {M}      ClearMacrosStack2('TGDCBASEDOCUMENTTYPE', 'DOBEFOREPOST', KEYDOBEFOREPOST);
   {M}  end;
   {END MACRO}
-
 end;
 
 function TgdcBaseDocumentType.GetNotCopyField: String;
@@ -2926,7 +2922,7 @@ end;
 procedure TgdcDocumentBranch.GetWhereClauseConditions(S: TStrings);
 begin
   inherited;
-  S.Add( ' z.documenttype = ''B'' ');
+  S.Add(' z.documenttype = ''B'' ');
 end;
 
 class function TgdcDocumentBranch.GetDialogFormClassName(
@@ -2963,6 +2959,7 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
   inherited;
 
   FieldByName('documenttype').AsString := 'D';
@@ -3038,9 +3035,11 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
   Result := inherited GetFromClause(ARefresh) +
     ' LEFT JOIN gd_lastnumber ln ON ln.ourcompanykey = ' + IntToStr(IBLogin.CompanyKey)
     + ' AND ln.documenttypekey = z.id ';
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCDOCUMENTTYPE', 'GETFROMCLAUSE', KEYGETFROMCLAUSE)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -3107,7 +3106,6 @@ var
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
   q: TIBSQL;
-//  gdcExplorer: TgdcExplorer;
 begin
   {@UNFOLD MACRO INH_ORIG_DOAFTERCUSTOMPROCESS('TGDCDOCUMENTTYPE', 'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS)}
   {M}  try
@@ -3130,6 +3128,7 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
   inherited;
 
   if Process <> cpDelete then
