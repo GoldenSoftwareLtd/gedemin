@@ -936,15 +936,19 @@ var
           // ≈сли это поле даты проводки - ENTRYDATE
           if F.FieldName = ENTRYDATE then
           begin
-            if FEntryDateInFields and (not FEntryDateIsFirst) then
+            if FEntryDateInFields then
             begin
               // «аполн€ем секции SELECT, ORDER BY, INTO главного запроса
               if MainSelect > '' then MainSelect := MainSelect + ', ';
               MainSelect := MainSelect +
                 Format(' m.dateparam_%0:s, m.dateparam_%0:s, m.dateparam_%0:s '#13#10, [Alias]);
-              if MainOrder > '' then MainOrder := MainOrder + ', ';
-              MainOrder := MainOrder +
-                Format(' m.dateparam_%0:s '#13#10, [Alias]);
+
+              if (not FEntryDateIsFirst) then
+              begin
+                if MainOrder > '' then MainOrder := MainOrder + ', ';
+                MainOrder := MainOrder +
+                  Format(' m.dateparam_%0:s '#13#10, [Alias]);
+              end;
 
               if MainInto > '' then MainInto := MainInto + ', ';
               MainInto := MainInto +
@@ -1007,21 +1011,25 @@ var
           // ≈сли текуща€ аналитика не физическое поле (мес€ц, год, квартал)
 
           // ≈сли в аналитиках присутствует дата, но она не стоит на первом месте
-          if FEntryDateInFields and (not FEntryDateIsFirst) then
+          if FEntryDateInFields then
           begin
             if MainSelect > '' then MainSelect := MainSelect + ', ';
             MainSelect := MainSelect +
               Format(' m.dateparam_%0:s, m.dateparam_%0:s, m.dateparam_%0:s '#13#10, [Alias]);
-            if MainOrder > '' then MainOrder := MainOrder + ', ';
-            MainOrder := MainOrder +
-              Format(' m.dateparam_%0:s '#13#10, [Alias]);
+
+            if (not FEntryDateIsFirst) then
+            begin
+              if MainOrder > '' then MainOrder := MainOrder + ', ';
+              MainOrder := MainOrder +
+                Format(' m.dateparam_%0:s '#13#10, [Alias]);
+            end;
 
             if MainInto > '' then MainInto := MainInto + ', ';
             MainInto := MainInto +
               ':' + Alias + ', ' +
               ':' + Name + ', ' +
               ':' + SortName + #13#10;
-          end;
+          end; 
 
           if MainSubSelect > '' then MainSubSelect := MainSubSelect + ', ';
           MainSubSelect := MainSubSelect +
