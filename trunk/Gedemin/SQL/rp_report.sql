@@ -157,43 +157,6 @@ BEGIN
   RDB$SET_CONTEXT('USER_TRANSACTION', 'LBRB_DELTA', '100');
 END
 ^
-
-/*CREATE PROCEDURE rp_p_checkgrouptree (newparent INTEGER, id INTEGER)
-RETURNS (
-    include INTEGER
-)
-AS
-  DECLARE VARIABLE I INTEGER;
-begin
-  IF (newparent = id) THEN
-  BEGIN
-    include = 1;
-    EXIT;
-  END ELSE
-    include = 0;
-  FOR SELECT id FROM rp_reportgroup WHERE parent = :id INTO :I do
-  BEGIN
-    IF (newparent = I) THEN
-    BEGIN
-      include = 1;
-      EXIT;
-    END ELSE
-    BEGIN
-      EXECUTE PROCEDURE rp_p_checkgrouptree(:newparent, :I) RETURNING_VALUES :include;
-      if (include = 1) then
-        EXIT;
-    END
-  END
-END
-^*/
-
-/* для шаблона используются метки */
-/* rp - префикс названия */
-/* reportgroup - название без префикса */
-/* rp_reportgroup - название */
-
-/*SET TERM ^ ;*/
-
 SET TERM ; ^
 
 COMMIT;
@@ -303,7 +266,36 @@ BEGIN
   IF (NEW.editorkey IS NULL) THEN
     NEW.editorkey = 650002;
   IF (NEW.editiondate IS NULL) THEN
-    NEW.editiondate = CURRENT_TIMESTAMP;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
+END
+^
+
+CREATE OR ALTER TRIGGER gd_ad_documenttype FOR gd_documenttype
+  ACTIVE
+  AFTER DELETE
+  POSITION 20000
+AS
+BEGIN
+  IF (NOT EXISTS(
+    SELECT *
+    FROM gd_documenttype
+    WHERE id <> OLD.id
+      AND reportgroupkey = OLD.reportgroupkey)) THEN
+  BEGIN
+    IF (EXISTS(
+      SELECT *
+      FROM rp_reportlist l
+        JOIN rp_reportgroup g ON l.reportgroupkey = g.id
+        JOIN rp_reportgroup g_up ON g.lb >= g_up.lb AND g.rb <= g_up.rb
+      WHERE
+        g_up.id = OLD.reportgroupkey)) THEN
+    BEGIN
+      EXCEPTION gd_e_exception 'Перед удалением типа документа следует ' ||
+        'удалить или переместить в другую группу связанные с ним отчеты.';
+    END
+
+    DELETE FROM rp_reportgroup WHERE id = OLD.reportgroupkey;
+  END
 END
 ^
 

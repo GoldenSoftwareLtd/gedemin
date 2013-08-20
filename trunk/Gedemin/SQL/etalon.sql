@@ -1376,6 +1376,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (179, '0000.0001.0000.0210', '11.08.2013', 'Added check for account activity #2.');
 
+INSERT INTO fin_versioninfo
+  VALUES (180, '0000.0001.0000.0211', '19.08.2013', 'gd_object_dependencies table added.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
@@ -5400,8 +5403,9 @@ CREATE EXCEPTION GD_E_DOCUMENTTYPE_NAME
  */
 
 CREATE DOMAIN ddocumenttype
-  AS VARCHAR(1)
-  CHECK ((VALUE = 'B') OR (VALUE = 'D'));
+  AS CHAR(1)
+  NOT NULL
+  CHECK (VALUE IN ('B', 'D'));
 
 /* Тип документа */
 CREATE TABLE gd_documenttype
@@ -8733,7 +8737,7 @@ CREATE TABLE ac_account
 
   editiondate      deditiondate,
 
-  fullname         COMPUTED BY (case when ALIAS is null then '' else ALIAS || ' ' end || case when NAME is null then '' else NAME end),
+  fullname         COMPUTED BY (COALESCE(ALIAS, '') || ' ' || COALESCE(NAME, '')),
 
   description      dblobtext80_1251,
 
@@ -8779,7 +8783,7 @@ CREATE OR ALTER TRIGGER AC_AIU_ACCOUNT_CHECKALIAS FOR AC_ACCOUNT
   AFTER INSERT OR UPDATE
   POSITION 32000
 AS
-  DECLARE VARIABLE P VARCHAR(1) = NULL;
+  DECLARE VARIABLE P CHAR(1) = NULL;
   DECLARE VARIABLE A daccountalias;
 BEGIN
   IF (INSERTING OR (NEW.alias <> OLD.alias)) THEN
@@ -10029,8 +10033,8 @@ DECLARE VARIABLE saldo NUMERIC(15, 4);
         FROM 
           ac_entry e 
         WHERE 
-          e.accountkey = ' || CAST(:accountkey AS VARCHAR(20)) || ' 
-          AND e.entrydate >= ''' || CAST(:closedate AS VARCHAR(20)) || ''' 
+          e.accountkey = ' || CAST(:accountkey AS VARCHAR(20)) || '
+          AND e.entrydate >= ''' || CAST(:closedate AS VARCHAR(20)) || '''
           AND e.entrydate < ''' || CAST(:dateend AS VARCHAR(20)) || ''' 
           AND (e.companykey = ' || CAST(:companykey AS VARCHAR(20)) || ' OR 
             (' || CAST(:allholdingcompanies AS VARCHAR(20)) || ' = 1 
@@ -10173,15 +10177,15 @@ returns (
     eq_end_credit numeric(15,4),
     offbalance integer)
 as
-declare variable activity varchar(1);
-declare variable saldo numeric(15,4);
-declare variable saldocurr numeric(15,4);
-declare variable saldoeq numeric(15,4);
-declare variable fieldname varchar(60);
-declare variable lb integer;
-declare variable rb integer;
-BEGIN                                                                                                  
-  /* Procedure Text */                                                                                 
+  DECLARE VARIABLE ACTIVITY CHAR(1);
+  DECLARE VARIABLE SALDO NUMERIC(15,4);
+  DECLARE VARIABLE SALDOCURR NUMERIC(15,4);
+  DECLARE VARIABLE SALDOEQ NUMERIC(15,4);
+  DECLARE VARIABLE FIELDNAME VARCHAR(60);
+  DECLARE VARIABLE LB INTEGER;
+  DECLARE VARIABLE RB INTEGER;
+BEGIN
+  /* Procedure Text */
  
   SELECT c.lb, c.rb FROM ac_account c                                                                  
   WHERE c.id = :ACCOUNTKEY 
@@ -10473,7 +10477,7 @@ RETURNS (
   eq_end_credit NUMERIC(15,4),
   offbalance INTEGER)
 AS
-  DECLARE VARIABLE activity VARCHAR(1);
+  DECLARE VARIABLE activity CHAR(1);
   DECLARE VARIABLE saldo NUMERIC(15, 4); 
   DECLARE VARIABLE saldocurr NUMERIC(15, 4); 
   DECLARE VARIABLE saldoeq NUMERIC(15, 4); 
@@ -11989,12 +11993,12 @@ CREATE PROCEDURE AC_L_Q (
     ENTRYKEY INTEGER,
     VALUEKEY INTEGER,
     ACCOUNTKEY INTEGER,
-    AACCOUNTPART VARCHAR(1))
+    AACCOUNTPART CHAR(1))
 RETURNS (
     DEBITQUANTITY NUMERIC(15,4),
     CREDITQUANTITY NUMERIC(15,4))
 AS
-DECLARE VARIABLE ACCOUNTPART VARCHAR(1);
+DECLARE VARIABLE ACCOUNTPART CHAR(1);
 DECLARE VARIABLE QUANTITY NUMERIC(15,4);
 begin
   SELECT
@@ -13941,43 +13945,6 @@ BEGIN
   RDB$SET_CONTEXT('USER_TRANSACTION', 'LBRB_DELTA', '100');
 END
 ^
-
-/*CREATE PROCEDURE rp_p_checkgrouptree (newparent INTEGER, id INTEGER)
-RETURNS (
-    include INTEGER
-)
-AS
-  DECLARE VARIABLE I INTEGER;
-begin
-  IF (newparent = id) THEN
-  BEGIN
-    include = 1;
-    EXIT;
-  END ELSE
-    include = 0;
-  FOR SELECT id FROM rp_reportgroup WHERE parent = :id INTO :I do
-  BEGIN
-    IF (newparent = I) THEN
-    BEGIN
-      include = 1;
-      EXIT;
-    END ELSE
-    BEGIN
-      EXECUTE PROCEDURE rp_p_checkgrouptree(:newparent, :I) RETURNING_VALUES :include;
-      if (include = 1) then
-        EXIT;
-    END
-  END
-END
-^*/
-
-/* для шаблона используются метки */
-/* rp - префикс названия */
-/* reportgroup - название без префикса */
-/* rp_reportgroup - название */
-
-/*SET TERM ^ ;*/
-
 SET TERM ; ^
 
 COMMIT;
@@ -14087,7 +14054,36 @@ BEGIN
   IF (NEW.editorkey IS NULL) THEN
     NEW.editorkey = 650002;
   IF (NEW.editiondate IS NULL) THEN
-    NEW.editiondate = CURRENT_TIMESTAMP;
+    NEW.editiondate = CURRENT_TIMESTAMP(0);
+END
+^
+
+CREATE OR ALTER TRIGGER gd_ad_documenttype FOR gd_documenttype
+  ACTIVE
+  AFTER DELETE
+  POSITION 20000
+AS
+BEGIN
+  IF (NOT EXISTS(
+    SELECT *
+    FROM gd_documenttype
+    WHERE id <> OLD.id
+      AND reportgroupkey = OLD.reportgroupkey)) THEN
+  BEGIN
+    IF (EXISTS(
+      SELECT *
+      FROM rp_reportlist l
+        JOIN rp_reportgroup g ON l.reportgroupkey = g.id
+        JOIN rp_reportgroup g_up ON g.lb >= g_up.lb AND g.rb <= g_up.rb
+      WHERE
+        g_up.id = OLD.reportgroupkey)) THEN
+    BEGIN
+      EXCEPTION gd_e_exception 'Перед удалением типа документа следует ' ||
+        'удалить или переместить в другую группу связанные с ним отчеты.';
+    END
+
+    DELETE FROM rp_reportgroup WHERE id = OLD.reportgroupkey;
+  END
 END
 ^
 
@@ -21324,7 +21320,7 @@ COMMIT;
 
 /*
 
-  Copyright (c) 2000-2012 by Golden Software of Belarus
+  Copyright (c) 2000-2013 by Golden Software of Belarus
 
   Script
 

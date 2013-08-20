@@ -21,6 +21,7 @@ procedure AddEditionDate2(IBDB: TIBDatabase; Log: TModifyLog);
 procedure AddADAtObjectTrigger(IBDB: TIBDatabase; Log: TModifyLog);
 procedure SetDefaultForAccountType(IBDB: TIBDatabase; Log: TModifyLog);
 procedure AddGdObjectDependencies(IBDB: TIBDatabase; Log: TModifyLog);
+procedure Issue1041(IBDB: TIBDatabase; Log: TModifyLog);
 
 implementation
 
@@ -1314,6 +1315,74 @@ begin
       q.SQL.Text :=
         'UPDATE OR INSERT INTO fin_versioninfo ' +
         '  VALUES (180, ''0000.0001.0000.0211'', ''19.08.2013'', ''gd_object_dependencies table added.'') ' +
+        '  MATCHING (id)';
+      q.ExecQuery;
+
+      Tr.Commit;
+    except
+      on E: Exception do
+      begin
+        Log('Произошла ошибка: ' + E.Message);
+        if Tr.InTransaction then
+          Tr.Rollback;
+        raise;
+      end;
+    end;
+  finally
+    q.Free;
+    Tr.Free;
+  end;
+end;
+
+procedure Issue1041(IBDB: TIBDatabase; Log: TModifyLog);
+var
+  q: TIBSQL;
+  Tr: TIBTransaction;
+begin
+  Tr := TIBTransaction.Create(nil);
+  q := TIBSQL.Create(nil);
+  try
+    Tr.DefaultDatabase := IBDB;
+    Tr.StartTransaction;
+
+    try
+      q.ParamCheck := False;
+      q.Transaction := Tr;
+
+      q.SQL.Text :=
+        'CREATE OR ALTER TRIGGER gd_ad_documenttype FOR gd_documenttype '#13#10 +
+        '  ACTIVE '#13#10 +
+        '  AFTER DELETE '#13#10 +
+        '  POSITION 20000 '#13#10 +
+        'AS '#13#10 +
+        'BEGIN '#13#10 +
+        '  IF (NOT EXISTS( '#13#10 +
+        '    SELECT * '#13#10 +
+        '    FROM gd_documenttype '#13#10 +
+        '    WHERE id <> OLD.id '#13#10 +
+        '      AND reportgroupkey = OLD.reportgroupkey)) THEN '#13#10 +
+        '  BEGIN '#13#10 +
+        '    IF (EXISTS( '#13#10 +
+        '      SELECT * '#13#10 +
+        '      FROM rp_reportlist l '#13#10 +
+        '        JOIN rp_reportgroup g ON l.reportgroupkey = g.id '#13#10 +
+        '        JOIN rp_reportgroup g_up ON g.lb >= g_up.lb AND g.rb <= g_up.rb '#13#10 +
+        '      WHERE '#13#10 +
+        '        g_up.id = OLD.reportgroupkey)) THEN '#13#10 +
+        '    BEGIN '#13#10 +
+        '      EXCEPTION gd_e_exception ''Перед удалением типа документа следует '' || '#13#10 +
+        '        ''удалить или переместить в другую группу связанные с ним отчеты.''; '#13#10 +
+        '    END '#13#10 +
+        ' '#13#10 +
+        '    DELETE FROM rp_reportgroup WHERE id = OLD.reportgroupkey; '#13#10 +
+        '  END '#13#10 +
+        'END';
+      q.ExecQuery;
+
+      q.Close;
+      q.SQL.Text :=
+        'UPDATE OR INSERT INTO fin_versioninfo ' +
+        '  VALUES (181, ''0000.0001.0000.0212'', ''20.08.2013'', ''Issue 1041.'') ' +
         '  MATCHING (id)';
       q.ExecQuery;
 
