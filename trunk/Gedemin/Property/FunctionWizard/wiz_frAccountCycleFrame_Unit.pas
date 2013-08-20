@@ -53,6 +53,7 @@ type
   private
     { Private declarations }
     FCardOfAccountKey: Integer;
+    FFiltered: Boolean;
   protected
     procedure SetBlock(const Value: TVisualBlock); override;
     function GetAccounts: string;
@@ -71,9 +72,12 @@ var
   frAccountCycleFrame: TfrAccountCycleFrame;
 
 implementation
-uses tax_frmAnalytics_unit, wiz_dlgAliticSelect_unit, wiz_Utils_unit,
-  wiz_ExpressionEditorForm_unit, Storages;
+
 {$R *.DFM}
+
+uses
+  tax_frmAnalytics_unit, wiz_dlgAliticSelect_unit, wiz_Utils_unit,
+  wiz_ExpressionEditorForm_unit, Storages, gsStorage_CompPath;
 
 { TfrAccountCycleFrame }
 
@@ -81,13 +85,21 @@ constructor TfrAccountCycleFrame.Create(AOwner: TComponent);
 begin
   inherited;
   if UserStorage <> nil then
+  begin
     UserStorage.LoadComponent(gsIBGrid, gsIBGrid.LoadFromStream);
+    FFiltered := UserStorage.ReadBoolean(BuildComponentPath(gsIBGrid),
+      'OnlySelected', False);
+  end;
 end;
 
 destructor TfrAccountCycleFrame.Destroy;
 begin
   if UserStorage <> nil then
+  begin
     UserStorage.SaveComponent(gsIBGrid, gsIBGrid.SaveToStream);
+    UserStorage.WriteBoolean(BuildComponentPath(gsIBGrid), 'OnlySelected',
+      IBDataSet.Filtered);
+  end;
 
   inherited;
 end;
@@ -148,6 +160,13 @@ begin
     eOrder.Text := Order;
     IBDataSet.First;
   end;
+
+  if FFiltered and (gsIBGrid.CheckBox.CheckCount > 0)  then
+  begin
+    IBDataSet.Filtered := True;
+    FFiltered := False;
+  end;
+
 end;
 
 function TfrAccountCycleFrame.GetAccounts: string;
@@ -264,7 +283,7 @@ end;
 
 procedure TfrAccountCycleFrame.actOnlySelectedExecute(Sender: TObject);
 begin
-  IBDataSet.Filtered := not IBDataSet.Filtered 
+  IBDataSet.Filtered := not IBDataSet.Filtered
 end;
 
 end.
