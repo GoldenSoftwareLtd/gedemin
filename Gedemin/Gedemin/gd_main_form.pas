@@ -951,7 +951,9 @@ begin
 
   gdcBaseManager.Database.TraceFlags := [];
 
-  if Assigned(GlobalStorage)
+  if (not IBLogin.Relogining)
+    and (gd_CmdLineParams.LoadSettingFileName = '')
+    and Assigned(GlobalStorage)
     and GlobalStorage.ReadBoolean('Options\Arch', 'Enabled', False, False)
     and (GlobalStorage.ReadInteger('Options\Arch', 'Interval', 7, False) > 0)
     and (GlobalStorage.ReadBoolean('Options\Arch', 'AnyAccount', True, False)

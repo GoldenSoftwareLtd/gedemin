@@ -143,12 +143,7 @@ end;
 
 function GetReferenceString(AnIDField: TField; AnObjectNameField: TField; ATr: TIBTransaction): String; overload;
 begin
-  if AnIDField.IsNull then
-    Result := '~'
-  else begin
-    Result := gdcBaseManager.GetRUIDStringByID(AnIDField.AsInteger, ATr) + ' ' +
-      AnObjectNameField.AsString;
-  end;
+  Result := GetReferenceString(AnIDField, AnObjectNameField.AsString, ATr);
 end;
 
 function GetReferenceString(AnIDField: TField; const AnObjectName: String; ATr: TIBTransaction): String; overload
@@ -156,8 +151,9 @@ begin
   if AnIDField.IsNull then
     Result := '~'
   else begin
-    Result := gdcBaseManager.GetRUIDStringByID(AnIDField.AsInteger, ATr) + ' ' +
-      AnObjectName;
+    Result := gdcBaseManager.GetRUIDStringByID(AnIDField.AsInteger, ATr);
+    if AnObjectName > '' then
+      Result := Result + ' ' + AnObjectName;
   end;
 end;
 
@@ -441,6 +437,8 @@ begin
                 then
                   continue;
 
+                ObjName := '';
+
                 C := GetBaseClassForRelation(RF.References.RelationName);
                 if C.gdClass <> nil then
                 begin
@@ -465,9 +463,8 @@ begin
                     Obj.Close;
                     Obj.ID := F.AsInteger;
                     Obj.Open;
-                    if Obj.EOF then
-                      ObjName := ''
-                    else begin
+                    if not Obj.EOF then
+                    begin
                       if Obj is TgdcTree then
                         ObjName := TgdcTree(Obj).GetPath
                       else

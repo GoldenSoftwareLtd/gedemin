@@ -279,7 +279,7 @@ type
     FObjectLinkFieldName: String;
     FReferenceLinkFieldName: String;
     FReferenceObjectNameFieldName: String;
-    FSQL: String;
+    FSQL, FInsertSQL: String;
     FCaption: String;
     FHasAdditionalFields: Boolean;
 
@@ -290,6 +290,7 @@ type
       const AReferenceLinkFieldName: String;
       const AReferenceObjectNameFieldName: String;
       const ASQL: String;
+      const AnInsertSQL: String;
       const ACaption: String;
       const AHasAdditionalFields: Boolean);
 
@@ -17822,7 +17823,7 @@ end;
 
 constructor TgdcSetAttribute.Create(const ACrossRelationName,
   AReferenceRelationName, AObjectLinkFieldName, AReferenceLinkFieldName,
-  AReferenceObjectNameFieldName, ASQL, ACaption: String;
+  AReferenceObjectNameFieldName, ASQL, AnInsertSQL, ACaption: String;
   const AHasAdditionalFields: Boolean);
 begin
   FCrossRelationName := ACrossRelationName;
@@ -17831,6 +17832,7 @@ begin
   FReferenceLinkFieldName := AReferenceLinkFieldName;
   FReferenceObjectNameFieldName := AReferenceObjectNameFieldName;
   FSQL := ASQL;
+  FInsertSQL := AnInsertSQL;
   FCaption := ACaption;
   FHasAdditionalFields := AHasAdditionalFields;
 end;
@@ -17854,10 +17856,10 @@ end;
 
 procedure TgdcBase.CheckSetAttributes;
 var
-  I, J: Integer;
+  I, J, K: Integer;
   PK: TatPrimaryKey;
   RL: TStringList;
-  Capt: String;
+  Capt, Fields: String;
   C: TgdcFullClass;
 begin
   if FSetAttributes <> nil then
@@ -17906,6 +17908,11 @@ begin
           Capt := PK.Relation.LShortName;
       end;
 
+      Fields := '';
+      for K := 0 to PK.Relation.RelationFields.Count - 1 do
+        Fields := Fields + ':' + PK.Relation.RelationFields[K].FieldName + ',';
+      SetLength(Fields, Length(Fields) - 1);
+
       FSetAttributes.Add(TgdcSetAttribute.Create(
         PK.Relation.RelationName,
         PK.ConstraintFields[1].References.RelationName,
@@ -17921,6 +17928,12 @@ begin
             PK.ConstraintFields[1].ReferencesField.FieldName + ' ' +
         'WHERE ' +
         '  cr.' + PK.ConstraintFields[0].FieldName + '=:rf',
+        'UPDATE OR INSERT INTO ' + PK.Relation.RelationName +
+        ' (' + StringReplace(Fields, ':', '', [rfReplaceAll]) + ') ' +
+        'VALUES' +
+        ' (' + Fields + ') ' +
+        'MATCHING (' + PK.ConstraintFields[0].FieldName + ',' +
+          PK.ConstraintFields[1].FieldName + ')',
         Capt, PK.Relation.RelationFields.Count > 2));
     end;
   finally

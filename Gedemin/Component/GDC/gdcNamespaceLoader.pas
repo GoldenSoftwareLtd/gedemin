@@ -31,6 +31,7 @@ type
     procedure LoadObject(AMapping: TYAMLMapping; const AFileTimeStamp: TDateTime);
     procedure CopyRecord(AnObj: TgdcBase; AMapping: TYAMLMapping; AnOverwriteFields: TStrings);
     procedure CopyField(AField: TField; N: TyamlScalar);
+    procedure CopySetAttributes(AnObj: TgdcBase; ASequence: TYAMLSequence);
     procedure ParseReferenceString(const AStr: String; out ARUID: TRUID; out AName: String);
     procedure OverwriteRUID(const AnID, AXID, ADBID: TID);
     function Iterate_RemoveGDCObjects(AUserData: PUserData; const AStr: string; var APtr: PData): Boolean;
@@ -508,6 +509,9 @@ begin
 
     ObjName := Obj.ObjectName;
     Obj.Close;
+
+    if AMapping.FindByName('Set') is TYAMLSequence then
+      CopySetAttributes(Obj, AMapping.FindByName('Set') as TYAMLSequence);
   end;
 
   FgdcNamespaceObject.Insert;
@@ -643,6 +647,44 @@ begin
     end;
 
     FgdcObjectCache.Add(HashKey, Result);
+  end;
+end;
+
+procedure TgdcNamespaceLoader.CopySetAttributes(AnObj: TgdcBase;
+  ASequence: TYAMLSequence);
+var
+  I, J: Integer;
+  q: TIBSQL;
+  R: TatRelation;
+  Mapping: TYAMLMapping;
+begin
+  for I := 0 to ASequence.Count - 1 do
+  begin
+    if not (ASequence[I] is TYAMLMapping) then
+      break;
+
+    Mapping := ASequence[I] as TYAMLMapping;
+
+    for J := 0 to AnObj.SetAttributesCount - 1 do
+    begin
+      if AnsiCompareText(Mapping.ReadString('Table'),
+        AnObj.SetAttributes[J].CrossRelationName) = 0 then
+      begin
+        R := atDatabase.Relations.ByRelationName(AnObj.SetAttributes[J].CrossRelationName);
+        if (R <> nil) and (Mapping.FindByName('Items') is TYAMLSequence) then
+        begin
+          q := TIBSQL.Create(nil);
+          try
+            q.Transaction := AnObj.Transaction;
+
+          finally
+            q.Free;
+          end;
+        end;
+
+        break;
+      end;
+    end;
   end;
 end;
 

@@ -251,6 +251,7 @@ type
     function ReadInteger(const AName: AnsiString; const DefValue: Integer = 0): Integer;
     function ReadDateTime(const AName: AnsiString; const DefValue: TDateTime = 0): TDateTime;
     function ReadBoolean(const AName: AnsiString; const DefValue: Boolean = False): Boolean;
+    function ReadNull(const AName: AnsiString): Boolean;
     function TestString(const AName: AnsiString; const AString: AnsiString): Boolean;
   end;
 
@@ -1129,6 +1130,11 @@ begin
   I := Scanner.Indent;
   while (Scanner.Token = tKey) and (Scanner.Indent = I) do
     Add(TyamlKeyValue.Create).Parse(Scanner);
+end;
+
+function TyamlMapping.ReadNull(const AName: AnsiString): Boolean;
+begin
+  Result := FindByName(AName) is TYAMLNull;
 end;
 
 { TyamlCurrency }
