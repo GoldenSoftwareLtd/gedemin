@@ -1,9 +1,9 @@
 object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
-  Left = 34
-  Top = 20
+  Left = 268
+  Top = 73
   BorderStyle = bsDialog
-  ClientHeight = 675
-  ClientWidth = 1009
+  ClientHeight = 664
+  ClientWidth = 1004
   Color = clBtnFace
   Font.Charset = RUSSIAN_CHARSET
   Font.Color = clWindowText
@@ -27,6 +27,22 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
       Width = 84
       Height = 13
       Caption = 'Ход выполнения'
+    end
+    object lblMsgForForm: TLabel
+      Left = 104
+      Top = 592
+      Width = 69
+      Height = 13
+      Caption = 'lblMsgForForm'
+      Visible = False
+    end
+    object lblErrorMsgForForm: TLabel
+      Left = 8
+      Top = 592
+      Width = 93
+      Height = 13
+      Caption = 'lblErrorMsgForForm'
+      Visible = False
     end
   end
   object grpOptions: TGroupBox
@@ -208,7 +224,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
     Left = 420
     Top = 34
     Width = 575
-    Height = 607
+    Height = 567
     ScrollBars = ssVertical
     TabOrder = 2
   end
@@ -386,6 +402,16 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
     Height = 25
     Caption = 'Прервать выполнение'
     TabOrder = 6
+    Visible = False
+  end
+  object mErrorLog: TMemo
+    Left = 420
+    Top = 624
+    Width = 575
+    Height = 25
+    ScrollBars = ssVertical
+    TabOrder = 7
+    Visible = False
   end
   object ActionList: TActionList
     Left = 269
