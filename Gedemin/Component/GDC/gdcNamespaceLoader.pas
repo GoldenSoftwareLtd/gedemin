@@ -653,10 +653,11 @@ end;
 procedure TgdcNamespaceLoader.CopySetAttributes(AnObj: TgdcBase;
   ASequence: TYAMLSequence);
 var
-  I, J: Integer;
+  I, J, K, T: Integer;
   q: TIBSQL;
   R: TatRelation;
-  Mapping: TYAMLMapping;
+  Mapping, CrossFields: TYAMLMapping;
+  Items: TYAMLSequence;
 begin
   for I := 0 to ASequence.Count - 1 do
   begin
@@ -668,23 +669,65 @@ begin
     for J := 0 to AnObj.SetAttributesCount - 1 do
     begin
       if AnsiCompareText(Mapping.ReadString('Table'),
-        AnObj.SetAttributes[J].CrossRelationName) = 0 then
+        AnObj.SetAttributes[J].CrossRelationName) <> 0 then
+		    continue;
+		
+      R := atDatabase.Relations.ByRelationName(AnObj.SetAttributes[J].CrossRelationName);
+      if (R <> nil) and (R.PrimaryKey <> nil)
+        and (Mapping.FindByName('Items') is TYAMLSequence) then
       begin
-        R := atDatabase.Relations.ByRelationName(AnObj.SetAttributes[J].CrossRelationName);
-        if (R <> nil) and (Mapping.FindByName('Items') is TYAMLSequence) then
-        begin
-          q := TIBSQL.Create(nil);
-          try
-            q.Transaction := AnObj.Transaction;
-
-          finally
-            q.Free;
+        Items := Mapping.FindbyName('Items') as TYAMLSequence;     
+        q := TIBSQL.Create(nil);
+        try
+          q.Transaction := AnObj.Transaction;
+          
+          q.SQL.Text := 'DELETE FROM ' + R.RelationName +
+            ' WHERE ' + R.PrimaryKey.ConstraintFields[0].FieldName +
+            '=' + IntToStr(AnObj.ID);
+          q.ExecQuery;  
+          
+          q.SQL.Text := AnObj.SetAttributes[J].InsertSQL;
+          for K := 0 to Items.Count - 1 do
+          begin
+            if not (Items[K] is TYAMLMapping) then
+              break;
+            CrossFields := Items[K] as TYAMLMapping;
+            for T := 0 to R.RelationFields.Count - 1 do
+            begin
+              FieldName := R.RelationFields[T].FieldName;           
+            
+              if (R.PrimaryKey.ConstraintFields[0] = R.RelationFields[T]) then
+                q.ParamByName(FieldName).AsInteger := AnObj.ID
+              else begin
+                if (CrossFields.FindByName(FieldName) = nil) or CrossFields.ReadNull(FieldName) then
+                begin
+                  q.ParamByName(FieldName).Clear;
+                  continue; 
+                end;                
+ 
+                if (R.RelationFields[T].References <> nil) 
+                  and (R.RelationFields[T].References.PrimaryKey.ConstraintFields.Count = 1) then
+                begin
+                  if ParseReferenceString(CrossFields.ReadString(FieldName), RefRUID, RefName) then
+                    q.ParamByName(FieldName).AsInteger := gdcBaseManager.GetIDByRUIDString(RefRUID, AnObj.Transaction)
+                  else
+                    q.ParamByName(FieldName).Clear;                  
+                end else
+                begin
+                  case R.RelationFields[T].DataType of
+                  end;
+                end;                
+              end;
+            end;
+            q.ExecQuery;            
           end;
+        finally
+          q.Free;
         end;
-
-        break;
       end;
-    end;
+
+      break;
+    end;  
   end;
 end;
 
