@@ -300,6 +300,7 @@ type
     property ReferenceLinkFieldName: String read FReferenceLinkFieldName;
     property ReferenceObjectNameFieldName: String read FReferenceObjectNameFieldName;
     property SQL: String read FSQL;
+    property InsertSQL: String read FInsertSQL;
     property Caption: String read FCaption;
     property HasAdditionalFields: Boolean read FHasAdditionalFields;
   end;

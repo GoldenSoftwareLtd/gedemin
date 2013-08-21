@@ -31,7 +31,7 @@ type
     procedure LoadObject(AMapping: TYAMLMapping; const AFileTimeStamp: TDateTime);
     procedure CopyRecord(AnObj: TgdcBase; AMapping: TYAMLMapping; AnOverwriteFields: TStrings);
     procedure CopyField(AField: TField; N: TyamlScalar);
-    procedure CopySetAttributes(AnObj: TgdcBase; ASequence: TYAMLSequence);
+    procedure CopySetAttributes(AnObj: TgdcBase; const AnObjID: TID; ASequence: TYAMLSequence);
     procedure ParseReferenceString(const AStr: String; out ARUID: TRUID; out AName: String);
     procedure OverwriteRUID(const AnID, AXID, ADBID: TID);
     function Iterate_RemoveGDCObjects(AUserData: PUserData; const AStr: string; var APtr: PData): Boolean;
@@ -50,7 +50,7 @@ type
 implementation
 
 uses
-  Storages, gd_security, at_classes, at_frmSQLProcess, gd_common_functions,
+  IBHeader, Storages, gd_security, at_classes, at_frmSQLProcess, gd_common_functions,
   gdcNamespaceRecCmpController;
 
 type
@@ -86,18 +86,16 @@ begin
     begin
       F := AnObj.Fields[I];
       N := AMapping.FindByName(F.FieldName);
-      if not (N is TyamlScalar) then
-        raise EgdcNamespaceLoader.Create('Invalid data type');
-      CopyField(F, N as TyamlScalar);
+      if N is TyamlScalar then
+        CopyField(F, N as TyamlScalar);
     end
   else
     for I := 0 to AnOverwriteFields.Count - 1 do
     begin
       F := AnObj.FindField(AnOverwriteFields[I]);
       N := AMapping.FindByName(F.FieldName);
-      if not (N is TyamlScalar) then
-        raise EgdcNamespaceLoader.Create('Invalid data type');
-      CopyField(F, N as TyamlScalar);
+      if N is TyamlScalar then
+        CopyField(F, N as TyamlScalar);
     end;
 end;
 
@@ -301,13 +299,13 @@ begin
       if Mapping.ReadString('StructureVersion') <> '1.0' then
         raise EgdcNamespaceLoader.Create('Unsupported YAML stream version.');
 
-      Objects := Mapping.FindByName('Objects') as TYAMLSequence;
-
-      if (Objects = nil) or (not (Objects is TYAMLSequence)) then
-        raise EgdcNamespaceLoader.Create('Invalid YAML stream.');
-
       NSRUID := StrToRUID(Mapping.ReadString('Properties\RUID'));
       NSName := Mapping.ReadString('Properties\Name');
+
+      if not (Mapping.FindByName('Objects') is TYAMLSequence) then
+        raise EgdcNamespaceLoader.Create('Invalid YAML stream.');
+
+      Objects := Mapping.FindByName('Objects') as TYAMLSequence;
 
       FTr.StartTransaction;
       try
@@ -436,10 +434,15 @@ var
   AtObjectRecord: TatObjectRecord;
   ObjRUID, HeadObjectRUID: TRUID;
   ObjName: String;
+  Fields: TYAMLMapping;
+  ObjID: TID;
 begin
-  Obj := CacheObject(AMapping.ReadString('Properties\Class'), AMapping.ReadString('Properties\SubType'));
+  Obj := CacheObject(AMapping.ReadString('Properties\Class'),
+    AMapping.ReadString('Properties\SubType'));
+  ObjRUID := StrToRUID(AMapping.ReadString('Properties\RUID'));
 
-  if FAtObjectRecordCache.Find(AMapping.ReadString('Properties\RUID'), AtObjectRecord) then
+  if FAtObjectRecordCache.Find(AMapping.ReadString('Properties\RUID'),
+    AtObjectRecord) then
   begin
     AtObjectRecord.Loaded := True;
     ObjName := AtObjectRecord.ObjectName;
@@ -449,17 +452,21 @@ begin
     ObjName := '';
   end;
 
+  if not (AMapping.FindByName('Fields') is TYAMLMapping) then
+    raise EgdcNamespaceLoader.Create('Invalid data structure');
+
+  Fields := AMapping.FindByName('Fields') as TYAMLMapping;
+
   if FAlwaysOverwrite
     or AMapping.ReadBoolean('Properties\AlwaysOverwrite', False)
     or (AtObjectRecord = nil)
     or ((tiEditionDate in Obj.GetTableInfos(Obj.SubType))
          and
-        (AMapping.ReadDateTime('Fields\EDITIONDATE', 0) > AtObjectRecord.CurrModified))
+        (Fields.ReadDateTime('EDITIONDATE', 0) > AtObjectRecord.CurrModified))
     or ((not (tiEditionDate in Obj.GetTableInfos(Obj.SubType)))
          and
         (AFileTimeStamp > AtObjectRecord.CurrModified)) then
   begin
-    ObjRUID := StrToRUID(AMapping.ReadString('Properties\RUID'));
     Obj.Close;
 
     if AtObjectRecord <> nil then
@@ -469,8 +476,9 @@ begin
 
       if Obj.EOF then
       begin
+        gdcBaseManager.DeleteRUIDByXID(ObjRUID.XID, ObjRUID.DBID, FTr);
         Obj.Insert;
-        CopyRecord(Obj, AMapping, nil);
+        CopyRecord(Obj, Fields, nil);
         Obj.Post;
       end else
       begin
@@ -483,7 +491,7 @@ begin
             if Compare(nil, Obj, AMapping) then
             begin
               Obj.Edit;
-              CopyRecord(Obj, AMapping, OverwriteFields);
+              CopyRecord(Obj, Fields, OverwriteFields);
               Obj.Post;
             end;
           finally
@@ -492,7 +500,7 @@ begin
         end else
         begin
           Obj.Edit;
-          CopyRecord(Obj, AMapping, nil);
+          CopyRecord(Obj, Fields, nil);
           Obj.Post;
         end;
       end;
@@ -501,17 +509,18 @@ begin
       Obj.ID := -1;
       Obj.Open;
       Obj.Insert;
-      CopyRecord(Obj, AMapping, nil);
+      CopyRecord(Obj, Fields, nil);
       Obj.Post;
     end;
 
     OverwriteRUID(Obj.ID, ObjRUID.XID, ObjRUID.DBID);
 
+    ObjID := Obj.ID;
     ObjName := Obj.ObjectName;
     Obj.Close;
 
     if AMapping.FindByName('Set') is TYAMLSequence then
-      CopySetAttributes(Obj, AMapping.FindByName('Set') as TYAMLSequence);
+      CopySetAttributes(Obj, ObjID, AMapping.FindByName('Set') as TYAMLSequence);
   end;
 
   FgdcNamespaceObject.Insert;
@@ -535,8 +544,8 @@ begin
     FgdcNamespaceObject.FieldByName('includesiblings').AsInteger := 0;
   if tiEditionDate in Obj.GetTableInfos(Obj.SubType) then
   begin
-    FgdcNamespaceObject.FieldByName('modified').AsDateTime := AMapping.ReadDateTime('Fields\EDITIONDATE');
-    FgdcNamespaceObject.FieldByName('curr_modified').AsDateTime := AMapping.ReadDateTime('Fields\EDITIONDATE');
+    FgdcNamespaceObject.FieldByName('modified').AsDateTime := Fields.ReadDateTime('EDITIONDATE');
+    FgdcNamespaceObject.FieldByName('curr_modified').AsDateTime := Fields.ReadDateTime('EDITIONDATE');
   end else
   begin
     FgdcNamespaceObject.FieldByName('modified').AsDateTime := SysUtils.Now;
@@ -595,26 +604,33 @@ var
   Obj: TgdcBase;
 begin
   AR := TatObjectRecord(APtr);
-  ObjRUID := StrToRUID(AStr);
 
-  FqFindAtObject.Close;
-  FqFindAtObject.ParamByName('nk').AsInteger := FgdcNamespace.ID;
-  FqFindAtObject.ParamByName('xid').AsInteger := ObjRUID.XID;
-  FqFindAtObject.ParamByName('dbid').AsInteger := ObjRUID.DBID;
-  FqFindAtObject.ExecQuery;
-
-  if FqFindAtObject.EOF and (not AR.DontRemove) then
+  if not AR.Loaded then
   begin
-    Obj := CacheObject(AR.ObjectClass.ClassName, AR.ObjectSubType);
-    Obj.Close;
-    Obj.ID := gdcBaseManager.GetIDByRUIDString(AStr);
-    Obj.Open;
-    if not Obj.EOF then
-      Obj.Delete;
-    Obj.Close;
-  end;
+    ObjRUID := StrToRUID(AStr);
 
-  FqFindAtObject.Close;
+    FqFindAtObject.Close;
+    FqFindAtObject.ParamByName('nk').AsInteger := FgdcNamespace.ID;
+    FqFindAtObject.ParamByName('xid').AsInteger := ObjRUID.XID;
+    FqFindAtObject.ParamByName('dbid').AsInteger := ObjRUID.DBID;
+    FqFindAtObject.ExecQuery;
+
+    if FqFindAtObject.EOF and (not AR.DontRemove) then
+    begin
+      Obj := CacheObject(AR.ObjectClass.ClassName, AR.ObjectSubType);
+      Obj.Close;
+      Obj.ID := gdcBaseManager.GetIDByRUIDString(AStr);
+      Obj.Open;
+      if not Obj.EOF then
+      begin
+        AddText('Удаляется объект ' + Obj.ObjectName);
+        Obj.Delete;
+      end;
+      Obj.Close;
+    end;
+
+    FqFindAtObject.Close;
+  end;  
 
   Result := True;
 end;
@@ -651,13 +667,17 @@ begin
 end;
 
 procedure TgdcNamespaceLoader.CopySetAttributes(AnObj: TgdcBase;
-  ASequence: TYAMLSequence);
+  const AnObjID: TID; ASequence: TYAMLSequence);
 var
   I, J, K, T: Integer;
   q: TIBSQL;
   R: TatRelation;
   Mapping, CrossFields: TYAMLMapping;
   Items: TYAMLSequence;
+  FieldName, RefName: String;
+  RefRUID: TRUID;
+  MS: TStream;
+  Param: TIBXSQLVAR;
 begin
   for I := 0 to ASequence.Count - 1 do
   begin
@@ -670,56 +690,85 @@ begin
     begin
       if AnsiCompareText(Mapping.ReadString('Table'),
         AnObj.SetAttributes[J].CrossRelationName) <> 0 then
-		    continue;
-		
+        continue;
+
       R := atDatabase.Relations.ByRelationName(AnObj.SetAttributes[J].CrossRelationName);
       if (R <> nil) and (R.PrimaryKey <> nil)
         and (Mapping.FindByName('Items') is TYAMLSequence) then
       begin
-        Items := Mapping.FindbyName('Items') as TYAMLSequence;     
+        Items := Mapping.FindbyName('Items') as TYAMLSequence;
         q := TIBSQL.Create(nil);
         try
           q.Transaction := AnObj.Transaction;
-          
+
           q.SQL.Text := 'DELETE FROM ' + R.RelationName +
             ' WHERE ' + R.PrimaryKey.ConstraintFields[0].FieldName +
-            '=' + IntToStr(AnObj.ID);
-          q.ExecQuery;  
-          
+            '=' + IntToStr(AnObjID);
+          q.ExecQuery;
+
           q.SQL.Text := AnObj.SetAttributes[J].InsertSQL;
           for K := 0 to Items.Count - 1 do
           begin
             if not (Items[K] is TYAMLMapping) then
               break;
+
             CrossFields := Items[K] as TYAMLMapping;
             for T := 0 to R.RelationFields.Count - 1 do
             begin
-              FieldName := R.RelationFields[T].FieldName;           
-            
+              FieldName := R.RelationFields[T].FieldName;
+              Param := q.ParamByName(FieldName);
+
               if (R.PrimaryKey.ConstraintFields[0] = R.RelationFields[T]) then
-                q.ParamByName(FieldName).AsInteger := AnObj.ID
+                Param.AsInteger := AnObjID
               else begin
                 if (CrossFields.FindByName(FieldName) = nil) or CrossFields.ReadNull(FieldName) then
                 begin
-                  q.ParamByName(FieldName).Clear;
-                  continue; 
-                end;                
- 
-                if (R.RelationFields[T].References <> nil) 
-                  and (R.RelationFields[T].References.PrimaryKey.ConstraintFields.Count = 1) then
-                begin
-                  if ParseReferenceString(CrossFields.ReadString(FieldName), RefRUID, RefName) then
-                    q.ParamByName(FieldName).AsInteger := gdcBaseManager.GetIDByRUIDString(RefRUID, AnObj.Transaction)
-                  else
-                    q.ParamByName(FieldName).Clear;                  
-                end else
-                begin
-                  case R.RelationFields[T].DataType of
+                  Param.Clear;
+                  continue;
+                end;
+
+                case Param.SQLType of
+                SQL_LONG, SQL_SHORT:
+                  if R.RelationFields[T].References <> nil then
+                  begin
+                    ParseReferenceString(CrossFields.ReadString(FieldName), RefRUID, RefName);
+                    Param.AsInteger := gdcBaseManager.GetIDByRUID(RefRUID.XID,
+                      RefRUID.DBID, AnObj.Transaction);
+                  end else
+                  begin
+                    if Param.AsXSQLVAR.sqlscale = 0 then
+                      Param.AsInteger := CrossFields.ReadInteger(FieldName)
+                    else
+                      Param.AsCurrency := CrossFields.ReadCurrency(FieldName);
                   end;
-                end;                
+                SQL_INT64:
+                  if Param.AsXSQLVAR.sqlscale = 0 then
+                    Param.AsInt64 := CrossFields.ReadInt64(FieldName)
+                  else
+                    Param.AsCurrency := CrossFields.ReadCurrency(FieldName);
+                SQL_FLOAT, SQL_D_FLOAT, SQL_DOUBLE:
+                  Param.AsFloat := CrossFields.ReadFloat(FieldName);
+                SQL_TYPE_DATE, SQL_TIMESTAMP, SQL_TYPE_TIME:
+                  Param.AsDateTime := CrossFields.ReadDateTime(FieldName);
+                SQL_BLOB:
+                  if Param.AsXSQLVar.sqlsubtype = 1 then
+                    Param.AsString := CrossFields.ReadString(FieldName)
+                  else begin
+                    MS := TMemoryStream.Create;
+                    try
+                      CrossFields.ReadStream(FieldName, MS);
+                      MS.Position := 0;
+                      Param.LoadFromStream(MS);
+                    finally
+                      MS.Free;
+                    end;
+                  end;
+                else
+                  Param.AsString := CrossFields.ReadString(FieldName);
+                end;
               end;
             end;
-            q.ExecQuery;            
+            q.ExecQuery;
           end;
         finally
           q.Free;
@@ -727,7 +776,7 @@ begin
       end;
 
       break;
-    end;  
+    end;
   end;
 end;
 

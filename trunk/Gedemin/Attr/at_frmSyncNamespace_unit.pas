@@ -173,13 +173,14 @@ type
   TLoadNSForm = class(TForm)
   private
     procedure Log(const S: String);
+
   protected
     FLoadList: TStringList;
     FSaveList: TStringList;
     FCDS: TDataSet;
     FgdcNamespace: TgdcNamespace;
     FAlwaysOverwrite: Boolean;
-    FDontRemove: Boolean;  
+    FDontRemove: Boolean;
     FMemo: TMemo;
 
     procedure WMLoadPackages(var Msg: TMessage);
