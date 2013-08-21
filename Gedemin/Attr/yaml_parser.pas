@@ -68,8 +68,14 @@ type
   protected
     function GetAsString: AnsiString; override;
     function GetAsInteger: Integer; override;
+    function GetAsCurrency: Currency; override;
+    function GetAsFloat: Double; override;
+    function GetAsInt64: Int64; override;
     procedure SetAsString(const Value: AnsiString); override;
     procedure SetAsInteger(const Value: Integer); override;
+    procedure SetAsCurrency(const Value: Currency); override;
+    procedure SetAsFloat(const Value: Double); override;
+    procedure SetAsInt64(const Value: Int64); override;
 
   public
     constructor CreateString(const AValue: AnsiString; const AQuoting: TyamlScalarQuoting;
@@ -249,9 +255,13 @@ type
     function ReadString(const AName: AnsiString; const AMaxLength: Integer = -1;
       const DefValue: AnsiString = ''): AnsiString;
     function ReadInteger(const AName: AnsiString; const DefValue: Integer = 0): Integer;
+    function ReadInt64(const AName: AnsiString; const DefValue: Int64 = 0): Int64;
+    function ReadCurrency(const AName: AnsiString; const DefValue: Currency = 0): Currency;
+    function ReadFloat(const AName: AnsiString; const DefValue: Double = 0): Double;
     function ReadDateTime(const AName: AnsiString; const DefValue: TDateTime = 0): TDateTime;
     function ReadBoolean(const AName: AnsiString; const DefValue: Boolean = False): Boolean;
     function ReadNull(const AName: AnsiString): Boolean;
+    procedure ReadStream(const AName: AnsiString; S: TStream);
     function TestString(const AName: AnsiString; const AString: AnsiString): Boolean;
   end;
 
@@ -873,6 +883,24 @@ begin
   FStyle := AStyle;
 end;
 
+function TyamlString.GetAsCurrency: Currency;
+begin
+  if not ConvertToCurrency(FValue, Result) then
+    raise Exception.Create('Conversion error');
+end;
+
+function TyamlString.GetAsFloat: Double;
+begin
+  if not ConvertToFloat(FValue, Result) then
+    raise Exception.Create('Conversion error');
+end;
+
+function TyamlString.GetAsInt64: Int64;
+begin
+  if not ConvertToInt64(FValue, Result) then
+    raise Exception.Create('Conversion error');
+end;
+
 function TyamlString.GetAsInteger: Integer;
 begin
   Result := StrToInt(AsString);
@@ -881,6 +909,25 @@ end;
 function TyamlString.GetAsString: AnsiString;
 begin
   Result := FValue;
+end;
+
+procedure TyamlString.SetAsCurrency(const Value: Currency);
+begin
+  FValue := CurrToStr(Value);
+  if DecimalSeparator <> '.' then
+    FValue := StringReplace(FValue, DecimalSeparator, '.', []);
+end;
+
+procedure TyamlString.SetAsFloat(const Value: Double);
+begin
+  FValue := FloatToStr(Value);
+  if DecimalSeparator <> '.' then
+    FValue := StringReplace(FValue, DecimalSeparator, '.', []);
+end;
+
+procedure TyamlString.SetAsInt64(const Value: Int64);
+begin
+  FValue := IntToStr(Value);
 end;
 
 procedure TyamlString.SetAsInteger(const Value: Integer);
@@ -1135,6 +1182,52 @@ end;
 function TyamlMapping.ReadNull(const AName: AnsiString): Boolean;
 begin
   Result := FindByName(AName) is TYAMLNull;
+end;
+
+procedure TyamlMapping.ReadStream(const AName: AnsiString; S: TStream);
+var
+  N: TYAMLNode;
+begin
+  Assert(S <> nil);
+  N := FindByName(AName);
+  if N is TyamlBinary then
+    S.CopyFrom(TyamlBinary(N).AsStream, 0);
+end;
+
+function TyamlMapping.ReadInt64(const AName: AnsiString;
+  const DefValue: Int64): Int64;
+var
+  N: TyamlNode;
+begin
+  N := FindByName(AName);
+  if (N is TyamlScalar) and (not TyamlScalar(N).IsNull) then
+    Result := TyamlScalar(N).AsInt64
+  else
+    Result := DefValue;
+end;
+
+function TyamlMapping.ReadCurrency(const AName: AnsiString;
+  const DefValue: Currency): Currency;
+var
+  N: TyamlNode;
+begin
+  N := FindByName(AName);
+  if (N is TyamlScalar) and (not TyamlScalar(N).IsNull) then
+    Result := TyamlScalar(N).AsCurrency
+  else
+    Result := DefValue;
+end;
+
+function TyamlMapping.ReadFloat(const AName: AnsiString;
+  const DefValue: Double): Double;
+var
+  N: TyamlNode;
+begin
+  N := FindByName(AName);
+  if (N is TyamlScalar) and (not TyamlScalar(N).IsNull) then
+    Result := TyamlScalar(N).AsFloat
+  else
+    Result := DefValue;
 end;
 
 { TyamlCurrency }
