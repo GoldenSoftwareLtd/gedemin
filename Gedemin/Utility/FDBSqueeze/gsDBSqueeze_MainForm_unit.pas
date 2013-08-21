@@ -1,6 +1,6 @@
 unit gsDBSqueeze_MainForm_unit;
 
-interface
+interface                                       
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
@@ -60,6 +60,9 @@ type
     actGet: TAction;
     actUpdate: TAction;
     btnStop: TButton;
+    mErrorLog: TMemo;
+    lblMsgForForm: TLabel;
+    lblErrorMsgForForm: TLabel;
 
     procedure actConnectExecute(Sender: TObject);
     procedure actConnectUpdate(Sender: TObject);
@@ -79,6 +82,9 @@ type
   private
     FSThread: TgsDBSqueezeThread;
 
+ {   procedure ErrorLogEvent(const AMsg: String);
+    procedure MsgForFormEvent(const AMsg: String; AIsError: Integer); //1-ошибка
+    procedure MsgForDialogEvent(const AMsg: String; AIsError: Integer); //1-ошибка  }
     procedure SetItemsCbbEvent(const ACompanies: TStringList);
     procedure GetDBSizeEvent(const AnDBSize: String);
     procedure GetStatisticsEvent(const AGdDoc: String; const AnAcEntry: String; const AnInvMovement: String);
@@ -101,10 +107,12 @@ begin
   inherited;
   FSThread := TgsDBSqueezeThread.Create(False);
   FSThread.ProgressWatch := Self;
+ { FSThread.OnErrorLogEvent := ErrorLogEvent;     }
   FSThread.OnSetItemsCbb := SetItemsCbbEvent;
   FSThread.OnGetDBSize := GetDBSizeEvent;
   FSThread.OnGetStatistics := GetStatisticsEvent;
   mLog.ReadOnly := True;
+  mErrorLog.ReadOnly := True;
   dtpClosingDate.Date := Date;
 end;
 
@@ -121,7 +129,7 @@ begin
   else
     FSThread.SetDBParams(edDatabaseName.Text, edUserName.Text, edPassword.Text);
 
-  FSThread.DoGetDBSize;
+  //FSThread.DoGetDBSize;
 
   FSThread.Connect;
 
@@ -217,11 +225,33 @@ begin
     cbbCompany.Items.AddStrings(ACompanies);
   end;  
 end;
+ {
+procedure TgsDBSqueeze_MainForm.ErrorLogEvent(const AMsg: String);
+begin
+  if AMsg > '' then
+    mErrorLog.Lines.Add(FormatDateTime('h:nn:ss', Now) + ' -- ' + AMsg);
+end;
+
+procedure TgsDBSqueeze_MainForm.MsgForFormEvent(const AMsg: String; AIsError: Integer=0); //1-ошибка
+begin
+  if (AMsg > '') and (AIsError=0) then
+    lblMsgForForm.Caption := AMsg
+  else if (AMsg > '') then
+  begin
+    lblErrorMsgForForm.Caption := AMsg;
+    /// TODO: сигнал об ошибке
+  end;
+end;
+
+procedure TgsDBSqueeze_MainForm.MsgForDialogEvent(const AMsg: String; AIsError: Integer); //1-ошибка
+begin
+  ////
+end;   }
 
 procedure TgsDBSqueeze_MainForm.UpdateProgress(
   const AProgressInfo: TgdProgressInfo);
 begin
-  if AProgressInfo.Message > '' then
+  if (AProgressInfo.Message > '') then
     mLog.Lines.Add(FormatDateTime('h:nn:ss', Now) + ' -- ' + AProgressInfo.Message);
 end;
 

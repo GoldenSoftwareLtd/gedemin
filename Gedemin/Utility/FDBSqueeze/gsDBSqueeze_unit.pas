@@ -28,6 +28,8 @@ type
     FPassword: String;
     FUserName: String;
 
+    FDBProperties: TStringList; //FDBPropertiesAssocList: TStringList;
+
     FAllOurCompaniesSaldo: Boolean;
     FOnlyCompanySaldo: Boolean;
 
@@ -36,7 +38,7 @@ type
     FEntryAnalyticsStr: String; // список всех бухгалтерских аналитик  
     FCardFeaturesStr: String;   // cписок полей-признаков складской карточки
 
-    procedure LogEvent(const AMsg: String);
+
     procedure LogSQL(const AnIBSQL: TIBSQL);
 
     function GetNewID: Integer;
@@ -49,7 +51,10 @@ type
     constructor Create;
     destructor Destroy; override;
 
+     procedure LogEvent(const AMsg: String);
+
     procedure CreateDBSStateJournal;
+    procedure InsertDBSStateJournal(const AFunctionKey: Integer; const AState: Integer; const AErrorMsg: String = '');
     procedure SetFVariables;
 
     procedure SaveMetadata;
@@ -57,6 +62,8 @@ type
     procedure Connect(ANoGarbageCollect: Boolean; AOffForceWrite: Boolean);
     procedure Disconnect;
     procedure Reconnect(ANoGarbageCollect: Boolean; AOffForceWrite: Boolean);
+    procedure StartTestConnection;
+    procedure StopTestConnection;
 
     // подсчет бухгалтерского сальдо
     procedure CalculateAcSaldo;
@@ -82,13 +89,17 @@ type
     procedure SetItemsCbbEvent;
     procedure GetDBSizeEvent;
     procedure GetStatisticsEvent;
+    procedure GetServerVersionEvent;
+    procedure GetDBPropertiesEvent;
+
     procedure CreateMetadata;
 
+
+    property Connected: Boolean read GetConnected;
     property AllOurCompaniesSaldo: Boolean read FAllOurCompaniesSaldo write FAllOurCompaniesSaldo;
     property OnlyCompanySaldo: Boolean read FOnlyCompanySaldo write FOnlyCompanySaldo;
 
     property CompanyName: String read FCompanyName write FCompanyName;
-    property Connected: Boolean read GetConnected;
     property DatabaseName: String read FDatabaseName write FDatabaseName;
     property ClosingDate: TDateTime read FClosingDate
       write FClosingDate;
@@ -115,7 +126,7 @@ constructor TgsDBSqueeze.Create;
 begin
   inherited;
   FIBDatabase := TIBDatabase.Create(nil);
-
+  FDBProperties := TStringList.Create;
 end;
 
 destructor TgsDBSqueeze.Destroy;
@@ -123,6 +134,8 @@ begin
   if Connected then
     Disconnect;
   FIBDatabase.Free;
+  FDBProperties.Free;
+  
   inherited;
 end;
 
@@ -244,6 +257,34 @@ begin
   end;
 end;
 
+procedure TgsDBSqueeze.StartTestConnection;
+begin
+  FIBDatabase.DatabaseName := FDatabaseName;
+  FIBDatabase.LoginPrompt := False;
+  FIBDatabase.Params.CommaText :=
+    'user_name=' + FUserName + ',' +
+    'password=' + FPassword + ',' +
+    'lc_ctype=win1251';
+  //try
+    FIBDatabase.Connected := True;
+  //except on E:Exception do
+  //  begin
+       ////НА ФОРМУ ('Connect test failed' + #13#10 + E.Message);
+  //  end;
+  //end;
+
+  if FIBDatabase.Connected then
+  begin
+    //GetServerVersionEvent;
+  end;
+end;
+
+procedure TgsDBSqueeze.StopTestConnection;
+
+begin
+  FIBDatabase.Connected := False;
+end;
+
 function TgsDBSqueeze.GetNewID: Integer; // return next unique id
 var
   q: TIBSQL;
@@ -279,7 +320,7 @@ var
   Tr: TIBTransaction;
 begin
   Assert(Connected);
-  
+
   Tr := TIBTransaction.Create(nil);
   q := TIBSQL.Create(nil);
   try
@@ -294,13 +335,12 @@ begin
         '  FUNCTIONKEY   INTEGER, ' +
         '  STATE         SMALLINT, ' +        //1-успешно,0-ошибка, NULL-выполнение было прервано пользователем
         '  CALL_TIME     TIMESTAMP, ' +
-        '  ERROR_MESSAGE VARCHAR(32000), ' +
-        '  CONSTRAINT PK_DBS_PRIMARY KEY (ID))';
+        '  ERROR_MESSAGE VARCHAR(32000))';
       q.ExecQuery;
       LogEvent('Table DBS_FK_CONSTRAINTS has been created.');
     end
     else begin
-      q.SQL.Text:=
+      {q.SQL.Text:=
         'SELECT COUNT(*) FROM DBS_JOURNAL_STATE';
       q.ExecQuery;
       if q.RecordCount <> 0 then
@@ -312,9 +352,9 @@ begin
           'SELECT * FROM DBS_JOURNAL_STATE ORDER BY CALL_TIME DESC';
         q.ExecQuery;  
       //////TODO: сигнал на форму! продолжить или заново
-      /// отправим все данные последней записи
-      end;
-      q.Close;
+      /// отправим все данные последней записи      
+      end;                                         
+      q.Close;      }
     end;
 
     Tr.Commit;
@@ -322,13 +362,49 @@ begin
     q.Free;
     Tr.Free;
   end;
+end;
 
+procedure TgsDBSqueeze.InsertDBSStateJournal(
+  const AFunctionKey: Integer;
+  const AState: Integer;
+  const AErrorMsg: String = '');
+var
+  q: TIBSQL;
+  Tr: TIBTransaction;
+begin
+  Assert(Connected);
+
+  Tr := TIBTransaction.Create(nil);
+  q := TIBSQL.Create(nil);
+  try
+    Tr.DefaultDatabase := FIBDatabase;
+    Tr.StartTransaction;
+    q.Transaction := Tr;
+
+    q.SQL.Text :=
+      'INSERT INTO DBS_JOURNAL_STATE ' +
+      'VALUES(:FunctionKey, :State, :Now, :ErrorMsg)';
+    q.ParamByName('FunctionKey').AsInteger := AFunctionKey;
+    q.ParamByName('State').AsInteger := AState;
+    q.ParamByName('Now').AsDateTime := Now;
+    if AErrorMsg = '' then
+      q.ParamByName('ErrorMsg').Clear
+    else
+      q.ParamByName('ErrorMsg').AsString := AErrorMsg;
+
+    q.ExecQuery;
+
+    Tr.Commit;
+  finally
+    q.Free;
+    Tr.Free;
+  end;
 end;
 
 procedure TgsDBSqueeze.CalculateAcSaldo;  // подсчет бухгалтерского сальдо
 var
   q2, q3: TIBSQL;
-  Tr, Tr2: TIBTransaction;
+  Tr: TIBTransaction;
   I: Integer;
 
   OstatkiAccountKey: Integer;
@@ -348,10 +424,7 @@ begin
   q2 := TIBSQL.Create(nil);
   q3 := TIBSQL.Create(nil);
   Tr := TIBTransaction.Create(nil);
-  Tr2 := TIBTransaction.Create(nil);
   try
-    Tr2.DefaultDatabase := FIBDatabase;
-    Tr2.StartTransaction;
     Tr.DefaultDatabase := FIBDatabase;
     Tr.StartTransaction;
     q2.Transaction := Tr;
@@ -413,7 +486,7 @@ begin
       q2.SQL.Add(' ' +
         'AND ae.companykey IN (' + OurCompaniesListStr + ') ');
 
-    q2.ParamByName('EntryDate').AsDateTime := FClosingDate;                     ///TODO: проверить
+    q2.ParamByName('EntryDate').AsDateTime := FClosingDate;
     if FOnlyCompanySaldo then
       q2.ParamByName('CompanyKey').AsInteger := CompanyKey;
     LogEvent('[test] SELECT account begin');
@@ -778,12 +851,10 @@ begin
       q2.Next;
     end;
     Tr.Commit;
-    Tr2.Commit;
     q2.Close;
   finally
     q2.Free;
     q3.Free;
-    Tr2.Free;
     Tr.Free;
     AvailableAnalyticsList.Free;
     OurCompany_EntryDocList.Free;
@@ -879,7 +950,7 @@ begin
       '  gd.name = ''Хозяйственная операция'' ';
     q.ExecQuery;
     AccDocTypeKey := q.FieldByName('AccDocTypeKey').AsInteger;
-                                                                                       ///TODO: проверить на существование
+                                                                                ///TODO: проверить на существование
 //    q.Close;                                                                    
 //    q.SQL.Text :=
 //      'SELECT ' +
@@ -1094,6 +1165,7 @@ begin
     q.Transaction := Tr;
     q2.Transaction := Tr;
 
+   try
     q.SQL.Text :=
       'SELECT ' +
       '  gd.id AS InvDocTypeKey ' +
@@ -1316,6 +1388,13 @@ begin
     q.ExecQuery;
 
     Tr.Commit;
+   except
+    on E: Exception do
+    begin
+      Tr.Rollback;
+      raise;
+    end;
+   end;
   finally
     q.Free;
     q2.Free;
@@ -1972,6 +2051,7 @@ var
       DoNothing := False;
       GoToFirst := False;
       GoToLast := False;
+     try
       //------------------ добавление в HIS всех цепочек cascade, создание списка обработанных таблиц AllProcessedTblsNames
       while TblsNamesList.Count <> 0 do
       begin
@@ -2032,7 +2112,7 @@ var
                       q3.ExecQuery;
 
                       Count := Count + q3.FieldByName('RealKolvo').AsInteger;
-                    until q3.FieldByName('RealKolvo').AsInteger = 0;     ///TODO: не логично! сравнить версии файлов
+                    until q3.FieldByName('RealKolvo').AsInteger = 0;     ///TODO: перепроверить алгоритм. сравнить версии файлов
 
                     GoToFirst := True;
                   end;
@@ -2112,7 +2192,7 @@ var
 
       CreateHIS(1);
 
-      TblsNamesList.CommaText := AllProcessedTblsNames.CommaText;     ///TODO: перепроверить, заменить commatext->text
+      TblsNamesList.CommaText := AllProcessedTblsNames.CommaText;     
       LogEvent('[test] AllProcessedTblsNames: ' + TblsNamesList.CommaText);
       while TblsNamesList.Count > 0 do
       begin
@@ -2204,7 +2284,7 @@ var
             q4.Close;
           end;
           LogSQL(q2);
-          q2.ExecQuery;              ///ERR
+          q2.ExecQuery;
 
           Count := Count - q2.FieldByName('Kolvo').AsInteger;
 
@@ -2221,7 +2301,7 @@ var
                 CascadeProcTbls.Add(ProcTblsNamesList[ProcTblsNamesList.Count-1]);   //список элементов цепи каскадной
                 IndexEnd := AllProcessedTblsNames.IndexOf(CascadeProcTbls[0]);
 
-                while CascadeProcTbls.Count > 0 do                                  ///////////////ERROR
+                while CascadeProcTbls.Count > 0 do                                  ///
                 begin
                   q2.SQL.Text :=
                     'SELECT ' +
@@ -2236,9 +2316,9 @@ var
                     '  AND fc.ref_relation_name IN (';
 
                   LogEvent('[test] ProcTblsNamesList: ' + ProcTblsNamesList.CommaText);
-                  for I:=0 to ProcTblsNamesList.Count-1 do                      /// TODO:или AllProc
+                  for I:=0 to ProcTblsNamesList.Count-1 do                     
                   begin
-                    q2.SQL.Add(' ''' + ProcTblsNamesList[I] + '''');   ///TODO: возможно пуст? error
+                    q2.SQL.Add(' ''' + ProcTblsNamesList[I] + '''');
                     if I <> ProcTblsNamesList.Count-1 then
                       q2.SQL.Add(',');
                   end;
@@ -2290,9 +2370,9 @@ var
               else begin   // движемся от начала к концу ProcTblsNamesList
                 q2.SQL.Text :=
                   'SELECT ' +
-                  '  fc.list_fields, ' +
-                  '  fc.ref_relation_name, ' +
-                  '  st.list_fields AS pk_fields ' +
+                  '  TRIM(fc.list_fields) AS list_fields, ' +
+                  '  TRIM(fc.ref_relation_name) AS ref_relation_name, ' +
+                  '  TRIM(st.list_fields) AS pk_fields ' +
                   'FROM dbs_fk_constraints fc ' +
                   '  JOIN DBS_SUITABLE_TABLES st ' +
                   '    ON st.relation_name = fc.relation_name ' +
@@ -2357,12 +2437,20 @@ var
 
         TblsNamesList.Delete(0);
       end;
-      
+
       LogEvent('[test] COUNT HIS after exclude: ' + IntToStr(Count));
       Tr.Commit;
 
       DestroyHIS(1);
-     
+     except
+      on E: Exception do
+      begin
+        Tr.Rollback;
+        Tr2.Rollback;
+        raise;
+      end;
+     end;
+
       LogEvent('[test] IncludeCascadingSequences... OK');
       Result := Count;
     finally
@@ -2576,14 +2664,21 @@ begin
     Tr.StartTransaction;
 
     q.Transaction := Tr;
-
+   try
     PrepareFKConstraints;
     PreparePkUniqueConstraints;
     PrepareTriggers;
     PrepareIndices;
-    
+
     Tr.Commit;
     LogEvent('Prepare DB... OK');
+   except
+     on E: Exception do
+     begin
+       Tr.Rollback;
+       raise;
+     end;
+   end
   finally
     q.Free;
     Tr.Free;
@@ -2648,10 +2743,7 @@ begin
       '   AND c.rdb$constraint_name NOT LIKE ''RDB$%'' ';
     q.ExecQuery;
 
-    Tr.Commit;
-    Tr.StartTransaction;
-
-    // Имена таблиц и их поля PK, который подходит для добавление в множество HIS для удаления 
+    // Имена таблиц и их поля PK, который подходит для добавление в множество HIS для удаления
     q.SQL.Text :=
       'INSERT INTO DBS_SUITABLE_TABLES ' +
       'SELECT ' +
@@ -2697,9 +2789,6 @@ begin
       '  1, 2, 3, 4, 5';
     q.ExecQuery;
 
-    Tr.Commit;
-    Tr.StartTransaction;
-
     q.SQL.Text :=
       'INSERT INTO DBS_FK_CONSTRAINTS ( ' +
       '  relation_name, ' +
@@ -2718,11 +2807,9 @@ begin
       '  OR ((REF_RELATION_NAME = ''AC_ENTRY'') AND (LIST_REF_FIELDS NOT LIKE ''%TRANSACTIONKEY%'')) ';
     q.ExecQuery;
 
-
-
     Tr.Commit;
     LogEvent('Metadata saved.');
-  finally
+  finally   
     q.Free;
     Tr.Free;
   end;
@@ -2851,7 +2938,6 @@ var
     end;
 
     Tr.Commit;
- //   Tr.StartTransaction;
 
     LogEvent('FKs restored.');
   end;
@@ -2867,13 +2953,18 @@ begin
 
     q.ParamCheck := False;
     q.Transaction := Tr;
-
+   try
     RestoreIndices;
     RestoreTriggers;
     RestorePkUniqueConstraints;
     RestoreFKConstraints;
-   
-   // Tr.Commit;
+   except
+     on E: Exception do
+     begin
+       Tr.Rollback;
+       raise;
+     end;
+   end;
   finally
     q.Free;
     Tr.Free;
@@ -3033,9 +3124,12 @@ var
         '  CREDITEQ     DECIMAL(15,4), ' +
         '  DEBITNCU     DECIMAL(15,4), ' +
         '  DEBITCURR    DECIMAL(15,4), ' +
-        '  DEBITEQ      DECIMAL(15,4), ' +
-      q2.FieldByName('AllUsrFieldsList').AsString + ', ' +
-        '  PRIMARY KEY (ID))';
+        '  DEBITEQ      DECIMAL(15,4), ';
+      if q2.RecordCount <> 0 then
+        q.SQL.Add(q2.FieldByName('AllUsrFieldsList').AsString + ', ');
+
+      q.SQL.Add(
+        '  PRIMARY KEY (ID))');
       q.ExecQuery;
       q2.Close;
       LogEvent('Table DBS_TMP_AC_SALDO has been created.');
@@ -3044,76 +3138,6 @@ var
 
   procedure CreateDBSTmpInvSaldo;
   begin
-    {if RelationExist2('DBS_TMP_INV_SALDO', Tr) then
-    begin
-      q.SQL.Text := 'DELETE FROM DBS_TMP_INV_SALDO';
-      q.ExecQuery;
-      LogEvent('Table DBS_TMP_INV_SALDO exists.');
-    end else
-    begin
-      q2.SQL.Text :=
-        'SELECT LIST( ' +
-        '  TRIM(rf.rdb$field_name) || '' '' || ' +
-        '  CASE f.rdb$field_type ' +
-        '    WHEN 7 THEN ' +
-        '      CASE f.rdb$field_sub_type ' +
-        '        WHEN 0 THEN '' SMALLINT'' ' +
-        '        WHEN 1 THEN '' NUMERIC('' || f.rdb$field_precision || '','' || (-f.rdb$field_scale) || '')'' ' +
-        '        WHEN 2 THEN '' DECIMAL(''  || f.rdb$field_precision || '','' || (-f.rdb$field_scale) || '')'' ' +
-        '      END ' +
-        '    WHEN 8 THEN ' +
-        '      CASE f.rdb$field_sub_type ' +
-        '        WHEN 0 THEN '' INTEGER'' ' +
-        '        WHEN 1 THEN '' NUMERIC(''  || f.rdb$field_precision || '','' || (-f.rdb$field_scale) || '')'' ' +
-        '        WHEN 2 THEN '' DECIMAL(''  || f.rdb$field_precision || '','' || (-f.rdb$field_scale) || '')'' ' +
-        '      END ' +
-        '    WHEN 9 THEN '' QUAD'' ' +
-        '    WHEN 10 THEN '' FLOAT'' ' +
-        '    WHEN 12 THEN '' DATE'' ' +
-        '    WHEN 13 THEN '' TIME'' ' +
-        '    WHEN 14 THEN '' CHAR('' || (TRUNC(f.rdb$field_length / ch.rdb$bytes_per_character)) || '')'' ' +
-        '    WHEN 16 THEN ' +
-        '      CASE f.rdb$field_sub_type ' +
-        '        WHEN 0 THEN '' BIGINT'' ' +
-        '        WHEN 1 THEN '' NUMERIC(''  || f.rdb$field_precision || '','' || (-f.rdb$field_scale) || '')'' ' +
-        '        WHEN 2 THEN '' DECIMAL(''  || f.rdb$field_precision || '','' || (-f.rdb$field_scale) || '')'' ' +
-        '      END ' +
-        '    WHEN 27 THEN '' DOUBLE'' ' +
-        '    WHEN 35 THEN '' TIMESTAMP'' ' +
-        '    WHEN 37 THEN '' VARCHAR('' || (TRUNC(f.rdb$field_length / ch.rdb$bytes_per_character)) || '')'' ' +
-        '    WHEN 40 THEN '' CSTRING('' || (TRUNC(f.rdb$field_length / ch.rdb$bytes_per_character)) || '')'' ' +
-        '    WHEN 45 THEN '' BLOB_ID'' ' +
-        '    WHEN 261 THEN '' BLOB'' ' +
-        '    ELSE '' RDB$FIELD_TYPE:?'' ' +
-        '  END)  AS AllUsrFieldsList ' +
-        'FROM rdb$relation_fields rf ' +
-        '  JOIN rdb$fields f ON (f.rdb$field_name = rf.rdb$field_source) ' +
-        '  LEFT OUTER JOIN rdb$character_sets ch ON (ch.rdb$character_set_id = f.rdb$character_set_id) ' +
-        'WHERE ' +
-        '  rf.rdb$relation_name = ''INV_CARD'' ' +
-        '  AND rf.rdb$field_name LIKE ''USR$%'' ' +
-        '  AND COALESCE(rf.rdb$system_flag, 0) = 0 ';
-      q2.ExecQuery;
-
-      q.SQL.Text :=
-        'CREATE TABLE DBS_TMP_INV_SALDO ( ' +
-        '  ID_DOCUMENT   INTEGER, ' +
-        '  ID_PARENTDOC  INTEGER, ' +
-        '  ID_CARD       INTEGER, ' +
-        '  ID_MOVEMENT_D INTEGER, ' +
-        '  ID_MOVEMENT_C INTEGER, ' +
-        '  CONTACTKEY    INTEGER, ' +
-        '  GOODKEY       INTEGER, ' +
-        '  COMPANYKEY    INTEGER, ' +
-        '  BALANCE       DECIMAL(15,4), ' +
-  ///    q2.FieldByName('AllUsrFieldsList').AsString + ', ' +               ///TODO: отпала необходимость
-        '  PRIMARY KEY (ID_DOCUMENT))';
-      q.ExecQuery;
-      q2.Close;
-      LogEvent('Table DBS_TMP_INV_SALDO has been created.');
-    end;}
-
-    ///TODO:временно для березы
     if RelationExist2('DBS_TMP_INV_SALDO', Tr) then
     begin
       q.SQL.Text := 'DROP TABLE DBS_TMP_INV_SALDO';
@@ -3122,6 +3146,52 @@ var
       Tr.Commit;
       Tr.StartTransaction;
     end;
+    {
+    q2.SQL.Text :=
+      'SELECT LIST( ' +
+      '  TRIM(rf.rdb$field_name) || '' '' || ' +
+      '  CASE f.rdb$field_type ' +
+      '    WHEN 7 THEN ' +
+      '      CASE f.rdb$field_sub_type ' +
+      '        WHEN 0 THEN '' SMALLINT'' ' +
+      '        WHEN 1 THEN '' NUMERIC('' || f.rdb$field_precision || '','' || (-f.rdb$field_scale) || '')'' ' +
+      '        WHEN 2 THEN '' DECIMAL(''  || f.rdb$field_precision || '','' || (-f.rdb$field_scale) || '')'' ' +
+      '      END ' +
+      '    WHEN 8 THEN ' +
+      '      CASE f.rdb$field_sub_type ' +
+      '        WHEN 0 THEN '' INTEGER'' ' +
+      '        WHEN 1 THEN '' NUMERIC(''  || f.rdb$field_precision || '','' || (-f.rdb$field_scale) || '')'' ' +
+      '        WHEN 2 THEN '' DECIMAL(''  || f.rdb$field_precision || '','' || (-f.rdb$field_scale) || '')'' ' +
+      '      END ' +
+      '    WHEN 9 THEN '' QUAD'' ' +
+      '    WHEN 10 THEN '' FLOAT'' ' +
+      '    WHEN 12 THEN '' DATE'' ' +
+      '    WHEN 13 THEN '' TIME'' ' +
+      '    WHEN 14 THEN '' CHAR('' || (TRUNC(f.rdb$field_length / ch.rdb$bytes_per_character)) || '')'' ' +
+      '    WHEN 16 THEN ' +
+      '      CASE f.rdb$field_sub_type ' +
+      '        WHEN 0 THEN '' BIGINT'' ' +
+      '        WHEN 1 THEN '' NUMERIC(''  || f.rdb$field_precision || '','' || (-f.rdb$field_scale) || '')'' ' +
+      '        WHEN 2 THEN '' DECIMAL(''  || f.rdb$field_precision || '','' || (-f.rdb$field_scale) || '')'' ' +
+      '      END ' +
+      '    WHEN 27 THEN '' DOUBLE'' ' +
+      '    WHEN 35 THEN '' TIMESTAMP'' ' +
+      '    WHEN 37 THEN '' VARCHAR('' || (TRUNC(f.rdb$field_length / ch.rdb$bytes_per_character)) || '')'' ' +
+      '    WHEN 40 THEN '' CSTRING('' || (TRUNC(f.rdb$field_length / ch.rdb$bytes_per_character)) || '')'' ' +
+      '    WHEN 45 THEN '' BLOB_ID'' ' +
+      '    WHEN 261 THEN '' BLOB'' ' +
+      '    ELSE '' RDB$FIELD_TYPE:?'' ' +
+      '  END)  AS AllUsrFieldsList ' +
+      'FROM rdb$relation_fields rf ' +
+      '  JOIN rdb$fields f ON (f.rdb$field_name = rf.rdb$field_source) ' +
+      '  LEFT OUTER JOIN rdb$character_sets ch ON (ch.rdb$character_set_id = f.rdb$character_set_id) ' +
+      'WHERE ' +
+      '  rf.rdb$relation_name = ''INV_CARD'' ' +
+      '  AND rf.rdb$field_name LIKE ''USR$%'' ' +
+      '  AND COALESCE(rf.rdb$system_flag, 0) = 0 ';
+    q2.ExecQuery;
+    }
+
     q.SQL.Text :=
       'CREATE TABLE DBS_TMP_INV_SALDO ( ' +
       '  ID_DOCUMENT   INTEGER, ' +
@@ -3133,11 +3203,11 @@ var
       '  GOODKEY       INTEGER, ' +
       '  COMPANYKEY    INTEGER, ' +
       '  BALANCE       DECIMAL(15,4), ' +
+  ///    q2.FieldByName('AllUsrFieldsList').AsString + ', ' +                   ///TODO: отпала необходимость
       '  PRIMARY KEY (ID_DOCUMENT))';
     q.ExecQuery;
     q2.Close;
     LogEvent('Table DBS_TMP_INV_SALDO has been created.');
-  ////
   end;
 
   procedure CreateDBSInactiveTriggers;
@@ -3388,16 +3458,20 @@ var
     Handle: tHandle;
     FindData: tWin32FindData;
   begin
+    Result := 0;
     Handle := FindFirstFile(PChar(DatabaseName), FindData);
-    //if Handle = INVALID_HANDLE_VALUE then
-    //  RaiseLastOSError;
-
-    Windows.FindClose(Handle);
-    if (FindData.dwFileAttributes and FILE_ATTRIBUTE_DIRECTORY) <> 0 then
-      Result := 0  // Размер каталога всегда считаем равным 0
+    if Handle = INVALID_HANDLE_VALUE then
+    begin
+      //exeption;
+    end
     else begin
-      Int64Rec(Result).Hi := FindData.nFileSizeHigh;
-      Int64Rec(Result).Lo := FindData.nFileSizeLow;
+      Windows.FindClose(Handle);
+      if (FindData.dwFileAttributes and FILE_ATTRIBUTE_DIRECTORY) <> 0 then
+        Result := 0  // Размер каталога всегда считаем равным 0
+      else begin
+        Int64Rec(Result).Hi := FindData.nFileSizeHigh;
+        Int64Rec(Result).Lo := FindData.nFileSizeLow;
+      end;
     end;
   end;
 
@@ -3408,13 +3482,13 @@ end;
 
 procedure TgsDBSqueeze.GetStatisticsEvent;
 var
-  q1: TIBSQL;
-  q2: TIBSQL;
-  q3: TIBSQL;
+  q1, q2, q3: TIBSQL;
   Tr: TIBTransaction;
+  DBProperties: TStringList;
 begin
   Assert(Connected);
 
+  DBProperties := TStringList.Create;
   Tr := TIBTransaction.Create(nil);
   q1 := TIBSQL.Create(nil);
   q2 := TIBSQL.Create(nil);
@@ -3448,6 +3522,100 @@ begin
     q1.Free;
     q2.Free;
     q3.Free;
+    Tr.Free;
+  end;
+end;
+
+
+procedure TgsDBSqueeze.GetDBPropertiesEvent;
+var
+  q: TIBSQL;
+  Tr: TIBTransaction;
+begin
+  Assert(Connected);
+
+  Tr := TIBTransaction.Create(nil);
+  q := TIBSQL.Create(nil);
+  try
+    LogEvent('[test] ...');
+    Tr.DefaultDatabase := FIBDatabase;
+    Tr.StartTransaction;
+
+    q.Transaction := Tr;
+
+    q.SQL.Text :=
+      'SELECT ' +
+      '  rdb$get_context(''SYSTEM'', ''ENGINE_VERSION'') AS ServerVer' +
+      'FROM rdb$database';
+    q.ExecQuery;
+    FDBProperties.Append('Server=' + q.FieldByName('ServerVer').AsString);
+    q.Close;
+
+    q.SQL.Text :=
+      'SELECT ' +
+      '  MON$DATABASE_NAME   AS DBName, ' +
+      '  MON$ODS_MAJOR||''.''||MON$ODS_MINOR AS ODS, ' +
+      '  MON$PAGE_SIZE       AS PageSize, ' +
+      '  MON$PAGE_BUFFERS    AS PageBuffers, ' +
+      '  MON$SQL_DIALECT     AS SQLDialect, ' +
+      '  MON$FORCED_WRITES   AS ForcedWrites' +
+      'FROM MON$DATABASE';
+    q.ExecQuery;
+    FDBProperties.Append('DBName=' + q.FieldByName('DBName').AsString);
+    FDBProperties.Append('ODS=' + q.FieldByName('ODS').AsString);
+    FDBProperties.Append('PageSize=' + q.FieldByName('PageSize').AsString);
+    FDBProperties.Append('PageBuffers=' + q.FieldByName('PageBuffers').AsString);
+    FDBProperties.Append('SQLDialect=' + q.FieldByName('SQLDialect').AsString);
+    FDBProperties.Append('ForcedWrites=' + q.FieldByName('ForcedWrites').AsString);
+    q.Close;
+
+    q.SQL.Text :=
+      'SELECT ' +
+      '  MON$USER AS User, ' +
+      '  MON$REMOTE_PROTOCOL AS RemProtocol, ' +
+      '  MON$REMOTE_ADDRESS AS RemAddress, ' +
+      '  MON$GARBAGE_COLLECTION AS GarbCollection, ' +
+      'FROM MON$ATTACHMENTS ' +
+      'WHERE  MON$ATTACHMENT_ID = CURRENT_CONNECTION ';
+    q.ExecQuery;
+    FDBProperties.Append('User=' + q.FieldByName('User').AsString);
+    FDBProperties.Append('RemoteProtocol=' + q.FieldByName('RemProtocol').AsString);
+    FDBProperties.Append('RemoteAddress=' + q.FieldByName('RemAddress').AsString);
+    FDBProperties.Append('GarbageCollection=' + q.FieldByName('GarbCollection').AsString);
+    q.Close;
+
+    ///FOnGetDBProperties(FDBProperties);
+
+    Tr.Commit;
+    LogEvent('[test] ... OK');
+  finally
+    q.Free;
+    Tr.Free;
+  end;
+end;
+
+procedure TgsDBSqueeze.GetServerVersionEvent;
+var
+  q: TIBSQL;
+  Tr: TIBTransaction;
+begin
+  Assert(Connected);
+
+  Tr := TIBTransaction.Create(nil);
+  q := TIBSQL.Create(nil);
+  try
+    Tr.DefaultDatabase := FIBDatabase;
+    Tr.StartTransaction;
+    q.Transaction := Tr;
+
+    q.SQL.Text :=
+      'SELECT rdb$get_context(''SYSTEM'', ''ENGINE_VERSION'') AS ServerVer ' +
+      'FROM rdb$database';
+    q.ExecQuery;
+
+    //FOnGetServerVersion(q.FieldByName('ServerVer').AsString);
+  finally
+    q.Free;
     Tr.Free;
   end;
 end;
