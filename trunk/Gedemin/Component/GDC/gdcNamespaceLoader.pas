@@ -23,8 +23,9 @@ type
     FAtObjectRecordCache: TStringHashMap;
     FgdcObjectCache: TStringHashMap;
     FDelayedUpdate: TStringList;
-    FqDelayed: TIBSQL;
     FqFindAtObject: TIBSQL;
+    FMetadataCounter: Integer;
+    FRelName: String;
 
     procedure FlushStorages;
     procedure LoadAtObjectCache(const ANamespaceKey: Integer);
@@ -36,6 +37,8 @@ type
     procedure OverwriteRUID(const AnID, AXID, ADBID: TID);
     function Iterate_RemoveGDCObjects(AUserData: PUserData; const AStr: string; var APtr: PData): Boolean;
     function CacheObject(const AClassName: String; const ASubtype: String): TgdcBase;
+    procedure UpdateUses(ASequence: TYAMLSequence; ANamespace: TgdcNamespace);
+    procedure ProcessMetadata;
 
   public
     constructor Create;
@@ -50,8 +53,8 @@ type
 implementation
 
 uses
-  IBHeader, Storages, gd_security, at_classes, at_frmSQLProcess, gd_common_functions,
-  gdcNamespaceRecCmpController;
+  IBHeader, Storages, gd_security, at_classes, at_frmSQLProcess, at_sql_metadata,
+  gd_common_functions, gdcNamespaceRecCmpController, gdcMetadata;
 
 type
   TAtObjectRecord = class(TObject)
@@ -97,6 +100,11 @@ begin
       if N is TyamlScalar then
         CopyField(F, N as TyamlScalar);
     end;
+
+  if AnObj.State = dsInsert then
+    AddText('Создан объект: ' + AnObj.ObjectName)
+  else
+    AddText('Изменен объект: ' + AnObj.ObjectName);
 end;
 
 procedure TgdcNamespaceLoader.CopyField(AField: TField; N: TyamlScalar);
@@ -217,8 +225,6 @@ begin
   FgdcObjectCache := TStringHashMap.Create(CaseSensitiveTraits, 1024);
 
   FDelayedUpdate := TStringList.Create;
-  FqDelayed := TIBSQL.Create(nil);
-  FqDelayed.Transaction := FTr;
 
   FqClearAtObject := TIBSQL.Create(nil);
   FqClearAtObject.Transaction := FTr;
@@ -236,7 +242,6 @@ destructor TgdcNamespaceLoader.Destroy;
 begin
   FqFindAtObject.Free;
   FqClearAtObject.Free;
-  FqDelayed.Free;
   FDelayedUpdate.Free;
   FgdcObjectCache.Iterate(nil, Iterate_FreeObjects);
   FgdcObjectCache.Free;
@@ -271,14 +276,18 @@ var
   Objects: TyamlSequence;
   NSRUID: TRUID;
   NSName: String;
+  NeedRelogin: Boolean;
 begin
   Assert(AList <> nil);
+  Assert(IBLogin <> nil);
 
   for I := 0 to AList.Count - 1 do
   begin
     if FLoadedNSList.IndexOf(AList[I]) > -1 then
       continue;
 
+    NeedRelogin := False;
+    FMetadataCounter := 0;
     FlushStorages;
 
     AddText('Файл: ' + AList[I]);
@@ -302,11 +311,6 @@ begin
       NSRUID := StrToRUID(Mapping.ReadString('Properties\RUID'));
       NSName := Mapping.ReadString('Properties\Name');
 
-      if not (Mapping.FindByName('Objects') is TYAMLSequence) then
-        raise EgdcNamespaceLoader.Create('Invalid YAML stream.');
-
-      Objects := Mapping.FindByName('Objects') as TYAMLSequence;
-
       FTr.StartTransaction;
       try
         FqFindNS.ParamByName('xid').AsInteger := NSRUID.XID;
@@ -314,22 +318,20 @@ begin
         FqFindNS.ParamByName('name').AsString := AnsiUpperCase(NSName);
         FqFindNS.ExecQuery;
 
-        AddText('Пространство имен: ' + NSName);
-
         if FqFindNS.EOF then
         begin
           FgdcNamespace.Open;
           FgdcNamespace.Insert;
-          AddText('Создано в базе данных');
+          AddText('Создано новое пространство имен: ' + NSName);
         end else
         begin
           FgdcNamespace.ID := FqFindNS.FieldByName('id').AsInteger;
           FgdcNamespace.Open;
           FgdcNamespace.Edit;
           if FqFindNS.FieldByName('ByName').AsInteger <> 0 then
-            AddText('Найдено по имени')
+            AddText('Пространство имен ' + NSName + ' найдено по наименованию')
           else
-            AddText('Найдено по РУИДу');
+            AddText('Пространство имен ' + NSName + ' найдено по РУИД');
         end;
 
         FgdcNamespace.FieldByName('name').AsString := Mapping.ReadString('Properties\Name', 255);
@@ -353,28 +355,40 @@ begin
         FqClearAtObject.ParamByName('nk').AsInteger := FgdcNamespace.ID;
         FqClearAtObject.ExecQuery;
 
-        FgdcNamespaceObject.Open;
-
-        for J := 0 to Objects.Count - 1 do
+        if Mapping.FindByName('Objects') is TYAMLSequence then
         begin
-          if not (Objects[J] is TYAMLMapping) then
-            raise EgdcNamespaceLoader.Create('Invalid YAML stream.');
-          LoadObject(Objects[J] as TYAMLMapping, FgdcNamespace.FieldByName('filetimestamp').AsDateTime);
+          FgdcNamespaceObject.Open;
+          Objects := Mapping.FindByName('Objects') as TYAMLSequence;
+
+          for J := 0 to Objects.Count - 1 do
+          begin
+            if not (Objects[J] is TYAMLMapping) then
+              raise EgdcNamespaceLoader.Create('Invalid YAML stream.');
+            LoadObject(Objects[J] as TYAMLMapping, FgdcNamespace.FieldByName('filetimestamp').AsDateTime);
+          end;
+
+          for K := 0 to FDelayedUpdate.Count - 1 do
+            FTr.ExecSQLImmediate(FDelayedUpdate[K]);
+          FDelayedUpdate.Clear;
+
+          FAtObjectRecordCache.IterateMethod(nil, Iterate_RemoveGDCObjects);
+
+          if FMetadataCounter > 0 then
+          begin
+            ProcessMetadata;
+            atDatabase.SyncIndicesAndTriggers(FTr);
+            NeedRelogin := True;
+          end;
         end;
 
-        for K := 0 to FDelayedUpdate.Count - 1 do
-        begin
-          FqDelayed.SQL.Text := FDelayedUpdate[K];
-          FqDelayed.ExecQuery;
-        end;
-
-        FDelayedUpdate.Clear;
-
-        FAtObjectRecordCache.IterateMethod(nil, Iterate_RemoveGDCObjects);
+        if Mapping.FindByName('Uses') is TYAMLSequence then
+          UpdateUses(Mapping.FindByName('Uses') as TYAMLSequence, FgdcNamespace);
 
         FTr.Commit;
 
         FLoadedNSList.Add(AList[I]);
+
+        AddText('Закончена загрузка пространства имен ' + NSName);
       finally
         if FTr.InTransaction then
           FTr.Rollback;
@@ -384,6 +398,9 @@ begin
     finally
       Parser.Free;
     end;
+
+    if NeedRelogin then
+      IBLogin.Relogin;
   end;
 end;
 
@@ -440,6 +457,11 @@ begin
   Obj := CacheObject(AMapping.ReadString('Properties\Class'),
     AMapping.ReadString('Properties\SubType'));
   ObjRUID := StrToRUID(AMapping.ReadString('Properties\RUID'));
+
+  if Obj is TgdcMetaBase then
+    Inc(FMetadataCounter)
+  else if (FMetadataCounter > 0) then
+    ProcessMetadata;
 
   if FAtObjectRecordCache.Find(AMapping.ReadString('Properties\RUID'),
     AtObjectRecord) then
@@ -517,6 +539,8 @@ begin
 
     ObjID := Obj.ID;
     ObjName := Obj.ObjectName;
+    if (Obj is TgdcRelationField) then
+      FRelName := Obj.FieldByName('relationname').AsString;
     Obj.Close;
 
     if AMapping.FindByName('Set') is TYAMLSequence then
@@ -625,6 +649,8 @@ begin
       begin
         AddText('Удаляется объект ' + Obj.ObjectName);
         Obj.Delete;
+        if Obj is TgdcMetaBase then
+          Inc(FMetadataCounter);
       end;
       Obj.Close;
     end;
@@ -778,6 +804,129 @@ begin
       break;
     end;
   end;
+end;
+
+procedure TgdcNamespaceLoader.UpdateUses(ASequence: TYAMLSequence;
+  ANamespace: TgdcNamespace);
+var
+  I: Integer;
+  q: TIBSQL;
+  NSRUID: TRUID;
+  NSName: String;
+  NSID: TID;
+begin
+  Assert(ASequence <> nil);
+  Assert(ANamespace <> nil);
+
+  q := TIBSQL.Create(nil);
+  try
+    q.Transaction := FTr;
+
+    q.SQL.Text :=
+      'DELETE FROM at_namespace_link WHERE namespacekey = :nk';
+    q.ParamByName('nk').AsInteger := ANamespace.ID;
+    q.ExecQuery;
+
+    for I := 0 to ASequence.Count - 1 do
+    begin
+      if not (ASequence[I] is TYAMLString) then
+        raise EgdcNamespaceLoader.Create('Invalid data structure');
+
+      ParseReferenceString((ASequence[I] as TYAMLString).AsString, NSRUID, NSName);
+
+      q.Close;
+      q.SQL.Text :=
+        'SELECT n.id FROM at_namespace n JOIN gd_ruid r ' +
+        '  ON r.id = n.id ' +
+        'WHERE r.xid = :xid AND r.dbid = :dbid';
+      q.ParamByName('xid').AsInteger := NSRUID.XID;
+      q.ParamByName('dbid').AsInteger := NSRUID.DBID;
+      q.ExecQuery;
+
+      if not q.EOF then
+      begin
+        NSID := q.FieldByName('id').AsInteger;
+        q.Close;
+      end else
+      begin
+        NSID := gdcBaseManager.GetNextID;
+
+        q.Close;
+        q.SQL.Text :=
+          'INSERT INTO at_namespace (id, name) ' +
+          'VALUES (:id, :name)';
+        q.ParamByName('id').AsInteger := NSID;
+        q.ParamByName('name').AsString := NSName;
+        q.ExecQuery;
+
+        q.SQL.Text :=
+          'UPDATE OR INSERT INTO gd_ruid (id, xid, dbid, modified, editorkey) ' +
+          'VALUES (:id, :xid, :dbid, CURRENT_TIMESTAMP, :editorkey) ' +
+          'MATCHING (xid, dbid)';
+        q.ParamByName('id').AsInteger := NSID;
+        q.ParamByName('xid').AsInteger := NSRUID.XID;
+        q.ParamByName('dbid').AsInteger := NSRUID.DBID;
+        q.ParamByName('editorkey').AsInteger := IBLogin.ContactKey;
+        q.ExecQuery;
+      end;
+
+      q.SQL.Text :=
+        'INSERT INTO at_namespace_link (namespacekey, useskey) ' +
+        'VALUES (:namespacekey, :useskey)';
+      q.ParamByName('namespacekey').AsInteger := ANamespace.ID;
+      q.ParamByName('useskey').AsInteger := NSID;
+      q.ExecQuery;
+    end;
+  finally
+    q.Free;
+  end;
+end;
+
+procedure TgdcNamespaceLoader.ProcessMetadata;
+var
+  q: TIBSQL;
+  R: TatRelation;
+  RunMulticonnection: Boolean;
+begin
+  Assert(atDatabase <> nil);
+
+  q := TIBSQL.Create(nil);
+  try
+    q.Transaction := FTr;
+    q.SQL.Text := 'SELECT * FROM at_transaction';
+    q.ExecQuery;
+    RunMulticonnection := not q.EOF;
+  finally
+    q.Free;
+  end;
+
+  FTr.Commit;
+  gdcBaseManager.ReadTransaction.Commit;
+  gdcBaseManager.Database.Connected := False;
+  try
+    if RunMulticonnection then
+      with TmetaMultiConnection.Create do
+      try
+        RunScripts(False);
+      finally
+        Free;
+      end;
+  finally
+    gdcBaseManager.Database.Connected := True;
+    gdcBaseManager.ReadTransaction.StartTransaction;
+    FTr.StartTransaction;
+  end;
+
+  if FRelName > '' then
+  begin
+    R := atDatabase.Relations.ByRelationName(FRelName);
+    if Assigned(R) then
+      R.RefreshConstraints(FTr.DefaultDatabase, FTr);
+    FRelName := '';  
+  end;
+
+  atDatabase.CancelMultiConnectionTransaction(True);
+  FMetadataCounter := 0;
 end;
 
 end.

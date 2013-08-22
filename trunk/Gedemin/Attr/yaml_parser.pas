@@ -92,6 +92,8 @@ type
   protected
     function GetAsInteger: Integer; override;
     procedure SetAsInteger(const Value: Integer); override;
+    function GetAsString: AnsiString; override;
+    procedure SetAsString(const Value: AnsiString); override;
 
   public
     constructor CreateInteger(const AValue: Integer); overload;
@@ -173,6 +175,8 @@ type
     procedure SetAsBoolean(const Value: Boolean); override;
     function GetAsInteger: Integer; override;
     procedure SetAsInteger(const Value: Integer); override;
+    function GetAsString: AnsiString; override;
+    procedure SetAsString(const Value: AnsiString); override;
 
   public
     constructor CreateBoolean(const AValue: Boolean); overload;
@@ -826,9 +830,19 @@ begin
   Result := FValue;
 end;
 
+function TyamlInteger.GetAsString: AnsiString;
+begin
+  Result := IntToStr(FValue);
+end;
+
 procedure TyamlInteger.SetAsInteger(const Value: Integer);
 begin
   FValue := Value;
+end;
+
+procedure TyamlInteger.SetAsString(const Value: AnsiString);
+begin
+  FValue := StrToInt(Value);
 end;
 
 { TyamlInt64 }
@@ -1036,6 +1050,14 @@ begin
     Result := 0;
 end;
 
+function TyamlBoolean.GetAsString: AnsiString;
+begin
+  if FValue then
+    Result := 'True'
+  else
+    Result := 'False';
+end;
+
 procedure TyamlBoolean.SetAsBoolean(const Value: Boolean);
 begin
   FValue := Value;
@@ -1044,6 +1066,11 @@ end;
 procedure TyamlBoolean.SetAsInteger(const Value: Integer);
 begin
   FValue := Value <> 0;
+end;
+
+procedure TyamlBoolean.SetAsString(const Value: AnsiString);
+begin
+  FValue := Value = 'True';
 end;
 
 { TyamlNull }

@@ -71,7 +71,7 @@ uses
   gd_localization_stub,
   {$ENDIF}
 
-  IBSQL, gsNSObjects, gdcNamespace;
+  IBSQL, gsNSObjects, gdcNamespace, gdcNamespaceLoader;
 
 {$R *.DFM}
 
@@ -485,7 +485,12 @@ begin
         if NSList.NSTree.CheckNSCorrect(NSNode.RUID, Error) then
         begin
           NSList.NSTree.SetNSFileName(NSNode.RUID, SL);
-          gdcNamespace.InstallPackages(SL);
+          with TgdcNamespaceLoader.Create do
+          try
+            Load(SL);
+          finally
+            Free;
+          end;
         end else
           MessageBox(0, PChar(Error), 'Gedemin', MB_OK or MB_ICONERROR or MB_TASKMODAL);
       finally
