@@ -436,7 +436,8 @@ begin
                   Obj := nil;
                   MustFreeObj := False;
 
-                  if (AnObjCache = nil) or (not AnObjCache.Find(C.gdClass.ClassName + C.SubType, Obj)) then
+                  if (AnObjCache = nil) or (not AnObjCache.Find(C.gdClass.ClassName + C.SubType, Obj))
+                    or (Obj = nil) or Obj.Active then
                   begin
                     Obj := C.gdClass.Create(nil);
                     Obj.SubType := C.SubType;
@@ -444,14 +445,13 @@ begin
                     Obj.Transaction := AgdcObject.Transaction;
                     Obj.SubSet := 'ByID';
 
-                    if AnObjCache = nil then
+                    if (AnObjCache = nil) or AnObjCache.Has(C.gdClass.ClassName + C.SubType) then
                       MustFreeObj := True
                     else
                       AnObjCache.Add(C.gdClass.ClassName + C.SubType, Obj);
                   end;
 
                   try
-                    Obj.Close;
                     Obj.ID := F.AsInteger;
                     Obj.Open;
                     if not Obj.EOF then
@@ -463,7 +463,9 @@ begin
                     end;
                   finally
                     if MustFreeObj then
-                      Obj.Free;
+                      Obj.Free
+                    else
+                      Obj.Close;
                   end;
                 end;
 
@@ -2109,7 +2111,7 @@ begin
             end;
 
             if InstObj <> nil then
-            begin
+            try
               InstObj.Close;
               InstObj.ID := gdcBaseManager.GetIDByRUID(Obj.FieldByName('xid').AsInteger,
                 Obj.FieldByName('dbid').AsInteger, Transaction);
@@ -2164,6 +2166,8 @@ begin
                   Deleted := True;
                 end;
               end;
+            finally
+              InstObj.Close;
             end;
 
             if Deleted then
