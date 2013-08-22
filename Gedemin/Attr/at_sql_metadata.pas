@@ -1,8 +1,7 @@
 
 {++
 
-
-  Copyright (c) 2001 by Golden Software of Belarus
+  Copyright (c) 2001-2013 by Golden Software of Belarus
 
   Module
 
@@ -53,8 +52,7 @@ type
     constructor Create;
     destructor Destroy; override;
 
-    function RunScripts(Const TransferToModal: Boolean = True): Boolean;
-
+    function RunScripts(const TransferToModal: Boolean = True): Boolean;
   end;
 
 
@@ -92,7 +90,6 @@ var
 begin
   ibsqlWork := TIBSQL.Create(nil);
   try
-    ibsqlWork.Database := D;
     ibsqlWork.Transaction := T;
     ibsqlWork.SQL.Text := Format(
       'SELECT GEN_ID(%s, 1) FROM rdb$database', [GenName]
@@ -100,11 +97,9 @@ begin
     ibsqlWork.ExecQuery;
     Result := ibsqlWork.Fields[0].AsString;
   finally
-    ibsqlWork.Close;
     ibsqlWork.Free;
   end;
 end;
-
 
 { TmetaMultiConnection }
 
@@ -115,11 +110,8 @@ begin
   FOrders := TStringList.Create;
   FSuccessful := TStringList.Create;
 
-{  FDatabase := TIBDatabase.Create(nil); }
-
   FTransaction := TIBTransaction.Create(nil);
-  FTransaction.Params.Text :=
-    'read_committed'#13#10'rec_version'#13#10'nowait'#13#10;
+  FTransaction.Params.CommaText := 'read_committed,rec_version,nowait';
 
   FCurrTransaction := 0;
   FStartOrder := 1;
@@ -143,17 +135,16 @@ var
   OldScript: String;
   CurrTransaction: String;
 begin
-  //
-  // Устанавливаем настройки для подключения
+  Assert(IBLogin <> nil);
+  Assert(atDatabase <> nil);
 
   FDataBase := IBLogin.Database;
-
   FTransaction.DefaultDatabase := FDatabase;
 
-  Assert(atDatabase <> nil);
   CurrTransaction := '';
 
   Result := True;
+
   //Сбрасываем флаг "Требуется переподключение"
   atDatabase.CancelMultiConnectionTransaction(True);
 
@@ -169,7 +160,6 @@ begin
 
       try
         ibsql.Transaction := FTransaction;
-        ibsql.Database := FDatabase;
         ibsql.ParamCheck := False;
 
         while FOperations.Count > 0 do
@@ -184,10 +174,8 @@ begin
           //  Вносим sql-скрипт
           try
             if OldScript = '' then
-            begin
-              //AddText(TranslateText(FOperations[0]), clBlack);
               AddText(FOperations[0], clBlack);
-            end;
+
             ibsql.SQL.Text := FOperations[0];
 
             if frmIBUserList = nil then
@@ -225,7 +213,6 @@ begin
                   'Обратитесь к системному администратору.',
                   'Серьезная ошибка',
                   MB_OK or MB_ICONHAND or MB_TASKMODAL);
-                //Application.Terminate;
                 System.Halt(1);
               end;
 
@@ -299,7 +286,6 @@ begin
           end;
         end;
         Self.FDatabase.Connected := False;
-
       finally
         ibsql.Free;
         FreeAndNil(frmIBUserList);
@@ -318,11 +304,9 @@ begin
           {$ENDIF}
         end;
       end;
-
     except
       Result := False;
     end;
-
   end;
 end;
 

@@ -278,8 +278,8 @@ begin
             'FROM'#13#10 +
             '  ' +  CgdcBase(C).GetListTable('') + ' r'#13#10 +
             '  JOIN gd_ruid ruid ON ruid.id = r.id'#13#10 +
-            '  LEFT JOIN at_object o ON o.xid = ruid.xid AND o.dbid = ruid.dbid'#13#10 +
-            '  LEFT JOIN at_namespace n ON n.id = o.namespacekey'#13#10;
+            '  JOIN at_object o ON o.xid = ruid.xid AND o.dbid = ruid.dbid'#13#10 +
+            '  JOIN at_namespace n ON n.id = o.namespacekey'#13#10;
           if gsPeriodEdit.Text > '' then
             S := S +
             'WHERE '#13#10 +

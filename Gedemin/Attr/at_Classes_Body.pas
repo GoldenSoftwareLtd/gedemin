@@ -3532,13 +3532,12 @@ begin
 
     ibsql.ExecQuery;
 
-    if ibsql.RecordCount > 0 then
-      FMultiConnectionTransaction := 1
+    if ibsql.EOF then
+      FMultiConnectionTransaction := 0
     else
-      FMultiConnectionTransaction := 0;
+      FMultiConnectionTransaction := 1;
 
     ibsql.Close;
-
     Transaction.Commit;
   finally
     ibsql.Free;

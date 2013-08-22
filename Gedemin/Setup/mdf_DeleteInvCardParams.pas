@@ -22,6 +22,7 @@ procedure AddADAtObjectTrigger(IBDB: TIBDatabase; Log: TModifyLog);
 procedure SetDefaultForAccountType(IBDB: TIBDatabase; Log: TModifyLog);
 procedure AddGdObjectDependencies(IBDB: TIBDatabase; Log: TModifyLog);
 procedure Issue1041(IBDB: TIBDatabase; Log: TModifyLog);
+procedure Issue3218(IBDB: TIBDatabase; Log: TModifyLog);
 
 implementation
 
@@ -1383,6 +1384,95 @@ begin
       q.SQL.Text :=
         'UPDATE OR INSERT INTO fin_versioninfo ' +
         '  VALUES (181, ''0000.0001.0000.0212'', ''20.08.2013'', ''Issue 1041.'') ' +
+        '  MATCHING (id)';
+      q.ExecQuery;
+
+      Tr.Commit;
+    except
+      on E: Exception do
+      begin
+        Log('Произошла ошибка: ' + E.Message);
+        if Tr.InTransaction then
+          Tr.Rollback;
+        raise;
+      end;
+    end;
+  finally
+    q.Free;
+    Tr.Free;
+  end;
+end;
+
+procedure Issue3218(IBDB: TIBDatabase; Log: TModifyLog);
+var
+  q: TIBSQL;
+  Tr: TIBTransaction;
+begin
+  Tr := TIBTransaction.Create(nil);
+  q := TIBSQL.Create(nil);
+  try
+    Tr.DefaultDatabase := IBDB;
+    Tr.StartTransaction;
+
+    try
+      q.ParamCheck := False;
+      q.Transaction := Tr;
+
+      q.SQL.Text :=
+        'ALTER VIEW GD_V_OURCOMPANY '#13#10 +
+        '( '#13#10 +
+        '  ID, '#13#10 +
+        '  COMPNAME, '#13#10 +
+        '  COMPFULLNAME, '#13#10 +
+        '  COMPANYTYPE, '#13#10 +
+        '  COMPLB, '#13#10 +
+        '  COMPRB, '#13#10 +
+        '  AFULL, '#13#10 +
+        '  ACHAG, '#13#10 +
+        '  AVIEW, '#13#10 +
+        '  ADDRESS, '#13#10 +
+        '  CITY, '#13#10 +
+        '  COUNTRY, '#13#10 +
+        '  PHONE, '#13#10 +
+        '  FAX, '#13#10 +
+        '  ACCOUNT, '#13#10 +
+        '  BANKCODE, '#13#10 +
+        '  BANKMFO, '#13#10 +
+        '  BANKNAME, '#13#10 +
+        '  BANKADDRESS, '#13#10 +
+        '  BANKCITY, '#13#10 +
+        '  BANKCOUNTRY, '#13#10 +
+        '  TAXID, '#13#10 +
+        '  OKULP, '#13#10 +
+        '  OKPO, '#13#10 +
+        '  LICENCE, '#13#10 +
+        '  OKNH, '#13#10 +
+        '  SOATO, '#13#10 +
+        '  SOOU '#13#10 +
+        ') '#13#10 +
+        'AS '#13#10 +
+        'SELECT '#13#10 +
+        '  C.ID, C.NAME, COMP.FULLNAME, COMP.COMPANYTYPE, '#13#10 +
+        '  C.LB, C.RB, O.AFULL, O.ACHAG, O.AVIEW, '#13#10 +
+        '  C.ADDRESS, C.CITY, C.COUNTRY, C.PHONE, C.FAX, '#13#10 +
+        '  AC.ACCOUNT, BANK.BANKCODE, BANK.BANKMFO, '#13#10 +
+        '  BANKC.NAME, BANKC.ADDRESS, BANKC.CITY, BANKC.COUNTRY, '#13#10 +
+        '  CC.TAXID, CC.OKULP, CC.OKPO, CC.LICENCE, CC.OKNH, CC.SOATO, CC.SOOU '#13#10 +
+        ' '#13#10 +
+        'FROM '#13#10 +
+        '  GD_OURCOMPANY O '#13#10 +
+        '    JOIN GD_CONTACT C ON (O.COMPANYKEY = C.ID) '#13#10 +
+        '    JOIN GD_COMPANY COMP ON (COMP.CONTACTKEY = O.COMPANYKEY) '#13#10 +
+        '    LEFT JOIN GD_COMPANYACCOUNT AC ON COMP.COMPANYACCOUNTKEY = AC.ID '#13#10 +
+        '    LEFT JOIN GD_BANK BANK ON AC.BANKKEY = BANK.BANKKEY '#13#10 +
+        '    LEFT JOIN GD_COMPANYCODE CC ON COMP.CONTACTKEY = CC.COMPANYKEY '#13#10 +
+        '    LEFT JOIN GD_CONTACT BANKC ON BANK.BANKKEY = BANKC.ID;';
+      q.ExecQuery;
+
+      q.Close;
+      q.SQL.Text :=
+        'UPDATE OR INSERT INTO fin_versioninfo ' +
+        '  VALUES (182, ''0000.0001.0000.0213'', ''22.08.2013'', ''Issue 3218.'') ' +
         '  MATCHING (id)';
       q.ExecQuery;
 

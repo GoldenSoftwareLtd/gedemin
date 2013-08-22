@@ -714,7 +714,6 @@ SET TERM ; ^
 
 COMMIT;
 
-/* Таблица генераторов */
 CREATE TABLE at_generators (
   id               dintkey,
   generatorname    dtablename NOT NULL,
