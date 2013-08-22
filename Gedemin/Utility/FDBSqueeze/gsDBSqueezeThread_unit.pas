@@ -8,32 +8,36 @@ uses
 
 const
   WM_DBS_SETPARAMS             = WM_USER + 1;
-  WM_DBS_GETDBSIZE             = WM_USER + 2;
-  WM_DBS_CONNECT               = WM_USER + 3;
-  WM_DBS_SETFVARIABLLES        = WM_USER + 4;
-  WM_DBS_CREATEDBSSTATEJOURNAL = WM_USER + 5;
-  WM_DBS_GETSTATISTICS         = WM_USER + 6;
-  WM_DBS_SETSALDOPARAMS        = WM_USER + 7;
-  WM_DBS_SETCBBITEMS           = WM_USER + 8;
-  WM_DBS_SETCLOSINGDATE        = WM_USER + 9;
-  WM_DBS_SETCOMPANYNAME        = WM_USER + 10;
-  WM_DBS_CREATEMETADATA        = WM_USER + 11;
-  WM_DBS_SAVEMETADATA          = WM_USER + 12;
-  WM_DBS_CALCULATEACSALDO      = WM_USER + 13;
-  WM_DBS_CALCULATEINVSALDO     = WM_USER + 14;
-  WM_DBS_CREATEHIS_INCLUDEHIS  = WM_USER + 15;
-  WM_DBS_PREPAREDB             = WM_USER + 16;
-  WM_DBS_DELETEOLDBALANCE      = WM_USER + 17;
-  WM_DBS_DELETEDOCHIS          = WM_USER + 18;
-  WM_DBS_CREATEACENTRIES       = WM_USER + 19;
-  WM_DBS_CREATEINVSALDO        = WM_USER + 20;
-  WM_DBS_REBINDINVCARDS        = WM_USER + 21;
-  WM_DBS_RESTOREDB             = WM_USER + 22;
-  WM_DBS_FINISHED              = WM_USER + 23;
-  WM_DBS_DISCONNECT            = WM_USER + 24;
+  WM_DBS_STARTTESTCONNECTION   = WM_USER + 2;
+  WM_DBS_GETSERVERVERSION      = WM_USER + 3;
+  WM_DBS_STOPTESTCONNECTION    = WM_USER + 4;
+  WM_DBS_GETDBSIZE             = WM_USER + 5;
+  WM_DBS_CONNECT               = WM_USER + 6;
+  WM_DBS_SETFVARIABLLES        = WM_USER + 7;
+  WM_DBS_CREATEDBSSTATEJOURNAL = WM_USER + 8;
+  WM_DBS_GETSTATISTICS         = WM_USER + 9;
+  WM_DBS_SETSALDOPARAMS        = WM_USER + 10;
+  WM_DBS_SETCBBITEMS           = WM_USER + 11;
+  WM_DBS_SETCLOSINGDATE        = WM_USER + 12;
+  WM_DBS_SETCOMPANYNAME        = WM_USER + 13;
+  WM_DBS_CREATEMETADATA        = WM_USER + 14;
+  WM_DBS_SAVEMETADATA          = WM_USER + 15;
+  WM_DBS_CALCULATEACSALDO      = WM_USER + 16;
+  WM_DBS_CALCULATEINVSALDO     = WM_USER + 17;
+  WM_DBS_CREATEHIS_INCLUDEHIS  = WM_USER + 18;
+  WM_DBS_PREPAREDB             = WM_USER + 19;
+  WM_DBS_DELETEOLDBALANCE      = WM_USER + 20;
+  WM_DBS_DELETEDOCHIS          = WM_USER + 21;
+  WM_DBS_CREATEACENTRIES       = WM_USER + 22;
+  WM_DBS_CREATEINVSALDO        = WM_USER + 23;
+  WM_DBS_REBINDINVCARDS        = WM_USER + 24;
+  WM_DBS_RESTOREDB             = WM_USER + 25;
+  WM_DBS_FINISHED              = WM_USER + 26;
+  WM_DBS_DISCONNECT            = WM_USER + 27;
 
 type
   //TGetConnectedEvent = procedure (const MsgConnected: Boolean) of object;
+  TGetServerVersionEvent = procedure (const MsgServerVersionStr: String) of object;
   TCbbEvent = procedure (const MsgStrList: TStringList) of object;
   TGetDBSizeEvent = procedure (const MsgStr: String) of object;
   TGetStatisticsEvent = procedure (const MsgGdDocStr: String; const MsgAcEntryStr: String; const MsgInvMovementStr: String) of object;
@@ -47,16 +51,16 @@ type
 
     FDBS: TgsDBSqueeze;
 
-    FConnected: TidThreadSafeInteger;
-
     FState: TidThreadSafeInteger;
 
     //FMessageConnected: Boolean;
+    FMessageServerVersionStr: String;    
     FMessageStrList: TStringList;
     FMessageDBSizeStr: String;
     FMessageGdDocStr, FMessageAcEntryStr, FMessageInvMovementStr: String;
 
-    //TOnGetConnected: TGetConnectedEvent;
+    //FOnGetConnected: TGetConnectedEvent;
+    FOnGetServerVersion: TGetServerVersionEvent;
     FOnSetItemsCbb: TCbbEvent;
     FOnGetDBSize: TGetDBSizeEvent;
     FOnGetStatistics: TGetStatisticsEvent;
@@ -65,14 +69,18 @@ type
     FOnlyCompanySaldo: Boolean;
 
     //procedure DoOnGetConnectedSync;
+    procedure DoOnGetServerVersionSync;
     procedure DoOnSetItemsCbbSync;
     procedure DoOnGetDBSizeSync;
     procedure DoOnGetStatisticsSync;
+
     //procedure GetConnected(const MessageConnected: Boolean);
+    procedure GetServerVersion(const AMessageServerVersionStr: String);
     procedure SetItemsCbb(const AMessageStrList: TStringList);
     procedure GetDBSize(const AMessageDBSizeStr: String);
     procedure GetStatistics(const AMessageGdDocStr: String; const AMessageAcEntryStr: String; const AMessageInvMovementStr: String);
 
+    function GetConnected: Boolean;
     function GetBusy: Boolean;
     function GetState: Boolean;
   protected
@@ -85,8 +93,12 @@ type
     procedure Connect;
     procedure Disconnect;
 
+    procedure StartTestConnection;
+    procedure StopTestConnection;
+
     procedure SetSaldoParams(const AAllOurCompanies: Boolean; const AOnlyCompany: Boolean);
     //procedure DoGetConnected;
+    procedure DoGetServerVersion;
     procedure DoSetItemsCbb;
     procedure DoGetDBSize;
     procedure DoGetStatistics;
@@ -94,12 +106,12 @@ type
     procedure SetDBParams(const ADatabaseName: String; const AUserName: String;
       const APassword: String);
     procedure SetClosingDate(const AClosingDate: TDateTime);
-    function GetConnected: Boolean;
-    
+
     property Connected: Boolean read GetConnected;
     property State: Boolean read GetState;
     property Busy: Boolean read GetBusy;
     //property OnGetConnected: TGetConnectedEvent read TOnGetConnected write TOnGetConnected;
+    property OnGetServerVersion: TGetServerVersionEvent read FOnGetServerVersion write FOnGetServerVersion;
     property OnSetItemsCbb: TCbbEvent read FOnSetItemsCbb write FOnSetItemsCbb;
     property OnGetDBSize: TGetDBSizeEvent read FOnGetDBSize write FOnGetDBSize;
     property OnGetStatistics: TGetStatisticsEvent read FOnGetStatistics write FOnGetStatistics;
@@ -114,6 +126,7 @@ begin
   FDBS := TgsDBSqueeze.Create;
   FDBS.OnProgressWatch := DoOnProgressWatch;
   //FDBS.OnGetConnected := DoOnGetConnected;
+  FDBS.OnGetServerVersionEvent := GetServerVersion;
   FDBS.OnSetItemsCbbEvent := SetItemsCbb;
   FDBS.OnGetDBSizeEvent := GetDBSize;
   FDBS.OnGetStatistics := GetStatistics;
@@ -122,8 +135,6 @@ begin
   FPassword := TIdThreadSafeString.Create;
   FCompanyName := TIdThreadSafeString.Create;
   FBusy := TIdThreadSafeInteger.Create;
-  FState := TIdThreadSafeInteger.Create;
-  FConnected := TIdThreadSafeInteger.Create;
 
   inherited Create(CreateSuspended);
 end;
@@ -137,20 +148,41 @@ begin
   FPassword.Free;
   FCompanyName.Free;
   FBusy.Free;
-  FState.Free;
-  FConnected.Free;
+end;
+
+function TgsDBSqueezeThread.GetConnected: Boolean;
+begin
+  Result := FDBS.Connected;
 end;
 
 procedure TgsDBSqueezeThread.Connect;
 begin
-  if not Connected then
+  if not FDBS.Connected then
     PostMsg(WM_DBS_CONNECT);
 end;
 
 procedure TgsDBSqueezeThread.Disconnect;
 begin
-  if Connected and (not Busy) then
+  if FDBS.Connected and (not Busy) then
     PostMsg(WM_DBS_DISCONNECT);
+end;
+
+procedure TgsDBSqueezeThread.StartTestConnection;
+begin
+  if Connected and (not Busy) then
+    PostMsg(WM_DBS_STARTTESTCONNECTION);
+end;
+
+procedure TgsDBSqueezeThread.StopTestConnection;
+begin
+  if Connected and (not Busy) then
+    PostMsg(WM_DBS_STOPTESTCONNECTION);
+end;
+
+procedure TgsDBSqueezeThread.DoOnGetServerVersionSync;
+begin
+  if Assigned(FOnGetServerVersion) then
+    FOnGetServerVersion(FMessageServerVersionStr);
 end;
 
 procedure TgsDBSqueezeThread.DoOnSetItemsCbbSync;
@@ -181,11 +213,6 @@ begin
   Result := FState.Value <> 0;
 end;
 
-function TgsDBSqueezeThread.GetConnected: Boolean;
-begin
-  Result := FConnected.Value <> 0;
-end;
-
 function TgsDBSqueezeThread.ProcessMessage(var Msg: TMsg): Boolean;
 begin
  try
@@ -200,12 +227,42 @@ begin
         Result := True;
       end;
 
+    WM_DBS_STARTTESTCONNECTION:
+      begin
+        FDBS.StartTestConnection;
+
+        FDBS.InsertDBSStateJournal(Msg.Message, 1);
+        FState.Value := 1;
+
+        Result := True;
+      end;
+
+    WM_DBS_GETSERVERVERSION:
+      begin
+        FDBS.GetServerVersionEvent;
+
+        FDBS.InsertDBSStateJournal(Msg.Message, 1);
+        FState.Value := 1;
+
+        Result := True;
+      end;
+
+    WM_DBS_STOPTESTCONNECTION:
+      begin
+        FDBS.StopTestConnection;
+
+        FDBS.InsertDBSStateJournal(Msg.Message, 1);
+        FState.Value := 1;
+        
+        Result := True;
+      end;
+
     WM_DBS_GETDBSIZE:
       begin
-        if FConnected.Value = 0 then
-        begin
+        //if FConnected.Value = 0 then
+        //begin
           FDBS.GetDBSizeEvent;
-        end;
+        //end;
         Result := True;
       end;
 
@@ -213,7 +270,8 @@ begin
       begin
         try
           FDBS.Connect(False, True);        // garbage collect ON
-          FConnected.Value := 1;
+
+          FDBS.InsertDBSStateJournal(Msg.Message, 1);
           FState.Value := 1;
 
           PostThreadMessage(ThreadID, WM_DBS_CREATEDBSSTATEJOURNAL, 0, 0);
@@ -222,19 +280,17 @@ begin
           on E: Exception do
           begin
             FDBS.LogEvent('[error]' + E.Message);  /// в лог ошибок
-
             FState.Value := 0;
-            //Event на форму
+            //Event на форму: перепроверьте корректность данных.
           end;
         end;
       end;
 
     WM_DBS_CREATEDBSSTATEJOURNAL:
       begin
-        //if FConnected.Value = 1 then
-        //begin
+
           FDBS.CreateDBSStateJournal;
-        //end;
+
 
         FDBS.InsertDBSStateJournal(Msg.Message, 1);
         FState.Value := 1;
@@ -250,6 +306,7 @@ begin
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
           FState.Value := 1;
 
+          PostThreadMessage(ThreadID, WM_DBS_CREATEDBSSTATEJOURNAL, 0, 0);
           Result := True;
       end;
 
@@ -277,11 +334,10 @@ begin
 
     WM_DBS_SETCBBITEMS:
       begin
-        //if FConnected.Value = 1 then
-       // begin
+
           //FBusy.Value := 1;
           FDBS.SetItemsCbbEvent;
-       // end;
+
 
         FDBS.InsertDBSStateJournal(Msg.Message, 1);
         FState.Value := 1;
@@ -297,18 +353,16 @@ begin
 
     WM_DBS_SETCOMPANYNAME:
       begin
-       // if FConnected.Value = 1 then
-       // begin
+
           FBusy.Value := 1;
           FDBS.CompanyName := FCompanyName.Value;
-       // end;
+
         Result := True;
       end;
 
     WM_DBS_CREATEMETADATA:
       begin
-       // if FConnected.Value = 1 then
-       // begin
+
           FBusy.Value := 1;
           FDBS.CreateMetadata;
 
@@ -316,14 +370,13 @@ begin
           FState.Value := 1;
 
           PostThreadMessage(ThreadID, WM_DBS_SAVEMETADATA, 0, 0);
-       // end;
+
         Result := True;
       end;
 
     WM_DBS_SAVEMETADATA:
       begin
-       // if FConnected.Value = 1 then
-       // begin
+
           FBusy.Value := 1;
           FDBS.SaveMetadata;
 
@@ -331,14 +384,13 @@ begin
           FState.Value := 1;
 
           PostThreadMessage(ThreadID, WM_DBS_CALCULATEACSALDO, 0, 0);
-       // end;
+
         Result := True;
       end;
 
     WM_DBS_CALCULATEACSALDO:
       begin
-       // if FConnected.Value = 1 then
-       // begin
+
           FBusy.Value := 1;
           FDBS.CalculateAcSaldo;
 
@@ -346,14 +398,13 @@ begin
           FState.Value := 1;
 
           PostThreadMessage(ThreadID, WM_DBS_CALCULATEINVSALDO, 0, 0);
-        //end;
+
         Result := True;
       end;
 
     WM_DBS_CALCULATEINVSALDO:
       begin
-        //if FConnected.Value = 1 then
-       // begin
+
           FBusy.Value := 1;
           FDBS.CalculateInvSaldo;
 
@@ -361,14 +412,13 @@ begin
           FState.Value := 1;
 
           PostThreadMessage(ThreadID, WM_DBS_CREATEHIS_INCLUDEHIS, 0, 0);
-        //end;
+
         Result := True;
       end;
 
     WM_DBS_CREATEHIS_INCLUDEHIS:
       begin
-       // if FConnected.Value = 1 then
-       // begin
+
           FBusy.Value := 1;
           FDBS.CreateHIS_IncludeInHIS;
 
@@ -376,14 +426,13 @@ begin
           FState.Value := 1;
 
           PostThreadMessage(ThreadID, WM_DBS_PREPAREDB, 0, 0);
-       // end;
+
         Result := True;
       end;
 
     WM_DBS_PREPAREDB:
       begin
-       // if FConnected.Value = 1 then
-       // begin
+
           FBusy.Value := 1;
           //FDBS.Reconnect(True, True);    // garbage collect OFF
           FDBS.PrepareDB;
@@ -392,14 +441,13 @@ begin
           FState.Value := 1;
 
           PostThreadMessage(ThreadID, WM_DBS_DELETEOLDBALANCE, 0, 0);
-       // end;
+
         Result := True;
       end;
 
     WM_DBS_DELETEOLDBALANCE:
       begin
-       // if FConnected.Value = 1 then
-       // begin
+
           FBusy.Value := 1;
 
           FDBS.DeleteOldAcEntryBalance;
@@ -407,15 +455,14 @@ begin
           FState.Value := 1;
 
           PostThreadMessage(ThreadID, WM_DBS_DELETEDOCHIS, 0, 0);
-       // end;
+
 
         Result := True;
       end;
 
     WM_DBS_DELETEDOCHIS:
       begin
-       // if FConnected.Value = 1 then
-       // begin
+
           FBusy.Value := 1;
 
           FDBS.DeleteOldAcEntryBalance;
@@ -423,15 +470,14 @@ begin
           FState.Value := 1;
 
           PostThreadMessage(ThreadID, WM_DBS_CREATEACENTRIES, 0, 0);
-       // end;
+
 
         Result := True;
       end;
 
     WM_DBS_CREATEACENTRIES:
       begin
-       // if FConnected.Value = 1 then
-       // begin
+
           FBusy.Value := 1;
 
           FDBS.CreateAcEntries;
@@ -439,15 +485,14 @@ begin
           FState.Value := 1;
 
           PostThreadMessage(ThreadID, WM_DBS_CREATEINVSALDO, 0, 0);
-       // end;
+
 
         Result := True;
       end;
 
     WM_DBS_CREATEINVSALDO:
       begin
-       // if FConnected.Value = 1 then
-       // begin
+
           FBusy.Value := 1;
 
           FDBS.CreateInvSaldo;
@@ -455,15 +500,14 @@ begin
           FState.Value := 1;
 
           PostThreadMessage(ThreadID, WM_DBS_REBINDINVCARDS, 0, 0);
-       // end;
+
 
         Result := True;
       end;
 
     WM_DBS_REBINDINVCARDS:
       begin
-       // if FConnected.Value = 1 then
-       // begin
+
           FBusy.Value := 1;
 
           FDBS.PrepareRebindInvCards;
@@ -473,14 +517,13 @@ begin
           FState.Value := 1;
 
           PostThreadMessage(ThreadID, WM_DBS_RESTOREDB, 0, 0);
-       // end;
+
         Result := True;
       end;
 
     WM_DBS_RESTOREDB:
       begin
-       // if FConnected.Value = 1 then
-       // begin
+
           //FDBS.Reconnect(False, True);   // garbage collect ON
 
           FDBS.RestoreDB;
@@ -489,7 +532,7 @@ begin
           FState.Value := 1;
 
           PostThreadMessage(ThreadID, WM_DBS_FINISHED, 0, 0);
-       // end;
+
         Result := True;
       end;
 
@@ -501,13 +544,11 @@ begin
 
     WM_DBS_DISCONNECT:
       begin
-        if FConnected.Value = 1 then
-        begin
+
           FDBS.Disconnect;
-          FConnected.Value := 0;
 
           FState.Value := 1;
-        end;
+        
         Result := True;
       end;
   else
@@ -518,7 +559,7 @@ begin
   begin
     FDBS.LogEvent('[error]' + E.Message);  /// в лог ошибок
     FState.Value := 0;
-    //Event на форму
+    //Event на форму: завершение!
   end;
  end;
 end;
@@ -560,6 +601,17 @@ procedure TgsDBSqueezeThread.SetItemsCbb(const AMessageStrList: TStringList);
 begin
   FMessageStrList := AMessageStrList;
   Synchronize(DoOnSetItemsCbbSync);
+end;
+
+procedure TgsDBSqueezeThread.DoGetServerVersion;
+begin
+  PostMsg(WM_DBS_GETSERVERVERSION);
+end;
+
+procedure TgsDBSqueezeThread.GetServerVersion(const AMessageServerVersionStr: String);
+begin
+  FMessageServerVersionStr := AMessageServerVersionStr;
+  Synchronize(DoOnGetServerVersionSync);
 end;
 
 procedure TgsDBSqueezeThread.DoGetDBSize;
