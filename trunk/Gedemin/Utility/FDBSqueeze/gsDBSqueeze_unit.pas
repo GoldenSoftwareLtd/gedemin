@@ -9,6 +9,7 @@ type
   TActivateFlag = (aiActivate, aiDeactivate);
 
   TOnLogEvent = procedure(const S: String) of object;
+  TOnGetServerVersionEvent = procedure(const AServerVersion: String) of object;
   TOnSetItemsCbbEvent = procedure(const ACompanies: TStringList) of object;
   TOnGetDBSizeEvent = procedure(const ADBSize: String) of object;
   TOnGetStatistics = procedure(const AnGdDoc: String; const AnAcEntry: String; const AnInvMovement: String) of object;
@@ -22,6 +23,8 @@ type
     FClosingDate: TDateTime;
     FIBDatabase: TIBDatabase;
     FOnProgressWatch: TProgressWatchEvent;
+
+    FOnGetServerVersionEvent: TOnGetServerVersionEvent;
     FOnSetItemsCbbEvent: TOnSetItemsCbbEvent;
     FOnGetDBSizeEvent: TOnGetDBSizeEvent;
     FOnGetStatistics: TOnGetStatistics;
@@ -94,17 +97,19 @@ type
 
     procedure CreateMetadata;
 
-
-    property Connected: Boolean read GetConnected;
     property AllOurCompaniesSaldo: Boolean read FAllOurCompaniesSaldo write FAllOurCompaniesSaldo;
     property OnlyCompanySaldo: Boolean read FOnlyCompanySaldo write FOnlyCompanySaldo;
 
     property CompanyName: String read FCompanyName write FCompanyName;
+    property Connected: Boolean read GetConnected;
     property DatabaseName: String read FDatabaseName write FDatabaseName;
     property ClosingDate: TDateTime read FClosingDate
       write FClosingDate;
     property OnProgressWatch: TProgressWatchEvent read FOnProgressWatch
       write FOnProgressWatch;
+
+    property OnGetServerVersionEvent: TOnGetServerVersionEvent read FOnGetServerVersionEvent
+      write FOnGetServerVersionEvent;
     property OnSetItemsCbbEvent: TOnSetItemsCbbEvent read FOnSetItemsCbbEvent
       write FOnSetItemsCbbEvent;
     property OnGetDBSizeEvent: TOnGetDBSizeEvent read FOnGetDBSizeEvent
@@ -272,11 +277,6 @@ begin
        ////НА ФОРМУ ('Connect test failed' + #13#10 + E.Message);
   //  end;
   //end;
-
-  if FIBDatabase.Connected then
-  begin
-    //GetServerVersionEvent;
-  end;
 end;
 
 procedure TgsDBSqueeze.StopTestConnection;
@@ -340,7 +340,7 @@ begin
       LogEvent('Table DBS_FK_CONSTRAINTS has been created.');
     end
     else begin
-      {q.SQL.Text:=
+      q.SQL.Text:=
         'SELECT COUNT(*) FROM DBS_JOURNAL_STATE';
       q.ExecQuery;
       if q.RecordCount <> 0 then
@@ -352,9 +352,9 @@ begin
           'SELECT * FROM DBS_JOURNAL_STATE ORDER BY CALL_TIME DESC';
         q.ExecQuery;  
       //////TODO: сигнал на форму! продолжить или заново
-      /// отправим все данные последней записи      
-      end;                                         
-      q.Close;      }
+      /// отправим все данные последней записи
+      end;
+      q.Close;
     end;
 
     Tr.Commit;
@@ -383,10 +383,9 @@ begin
 
     q.SQL.Text :=
       'INSERT INTO DBS_JOURNAL_STATE ' +
-      'VALUES(:FunctionKey, :State, :Now, :ErrorMsg)';
+      'VALUES(:FunctionKey, :State, NOW(), :ErrMsg)';
     q.ParamByName('FunctionKey').AsInteger := AFunctionKey;
     q.ParamByName('State').AsInteger := AState;
-    q.ParamByName('Now').AsDateTime := Now;
     if AErrorMsg = '' then
       q.ParamByName('ErrorMsg').Clear
     else
@@ -2112,7 +2111,7 @@ var
                       q3.ExecQuery;
 
                       Count := Count + q3.FieldByName('RealKolvo').AsInteger;
-                    until q3.FieldByName('RealKolvo').AsInteger = 0;     ///TODO: перепроверить алгоритм. сравнить версии файлов
+                    until q3.FieldByName('RealKolvo').AsInteger = 0;     ///TODO: не логично! сравнить версии файлов
 
                     GoToFirst := True;
                   end;
@@ -2192,7 +2191,7 @@ var
 
       CreateHIS(1);
 
-      TblsNamesList.CommaText := AllProcessedTblsNames.CommaText;     
+      TblsNamesList.CommaText := AllProcessedTblsNames.CommaText;     ///TODO: перепроверить, заменить commatext->text
       LogEvent('[test] AllProcessedTblsNames: ' + TblsNamesList.CommaText);
       while TblsNamesList.Count > 0 do
       begin
@@ -2284,7 +2283,7 @@ var
             q4.Close;
           end;
           LogSQL(q2);
-          q2.ExecQuery;
+          q2.ExecQuery;              ///ERR
 
           Count := Count - q2.FieldByName('Kolvo').AsInteger;
 
@@ -2301,7 +2300,7 @@ var
                 CascadeProcTbls.Add(ProcTblsNamesList[ProcTblsNamesList.Count-1]);   //список элементов цепи каскадной
                 IndexEnd := AllProcessedTblsNames.IndexOf(CascadeProcTbls[0]);
 
-                while CascadeProcTbls.Count > 0 do                                  ///
+                while CascadeProcTbls.Count > 0 do                                  ///////////////ERROR
                 begin
                   q2.SQL.Text :=
                     'SELECT ' +
@@ -2316,9 +2315,9 @@ var
                     '  AND fc.ref_relation_name IN (';
 
                   LogEvent('[test] ProcTblsNamesList: ' + ProcTblsNamesList.CommaText);
-                  for I:=0 to ProcTblsNamesList.Count-1 do                     
+                  for I:=0 to ProcTblsNamesList.Count-1 do                      /// TODO:или AllProc
                   begin
-                    q2.SQL.Add(' ''' + ProcTblsNamesList[I] + '''');
+                    q2.SQL.Add(' ''' + ProcTblsNamesList[I] + '''');   ///TODO: возможно пуст? error
                     if I <> ProcTblsNamesList.Count-1 then
                       q2.SQL.Add(',');
                   end;
@@ -2370,9 +2369,9 @@ var
               else begin   // движемся от начала к концу ProcTblsNamesList
                 q2.SQL.Text :=
                   'SELECT ' +
-                  '  TRIM(fc.list_fields) AS list_fields, ' +
-                  '  TRIM(fc.ref_relation_name) AS ref_relation_name, ' +
-                  '  TRIM(st.list_fields) AS pk_fields ' +
+                  '  fc.list_fields, ' +
+                  '  fc.ref_relation_name, ' +
+                  '  st.list_fields AS pk_fields ' +
                   'FROM dbs_fk_constraints fc ' +
                   '  JOIN DBS_SUITABLE_TABLES st ' +
                   '    ON st.relation_name = fc.relation_name ' +
