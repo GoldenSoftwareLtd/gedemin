@@ -40,15 +40,15 @@ type
     Caption: String;
     FileName: String;
     FileTimestamp: TDateTime;
+    FileSize: Integer;
     Version: String;
     DBVersion: String;
     Optional: Boolean;
     Internal: Boolean;
     Comment: String;
-    Filesize: Integer;
 
     VersionInDB: String;
-    Namespacekey: Integer;
+    NamespaceKey: Integer;
     NamespaceName: String;
     NamespaceTimestamp: TDateTime;
     NamespaceOptional: Boolean;

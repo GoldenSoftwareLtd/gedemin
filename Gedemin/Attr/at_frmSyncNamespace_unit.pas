@@ -7,7 +7,7 @@ uses
   dmImages_unit, gd_createable_form, TB2ExtItems, TB2Item, ActnList, Db,
   Grids, DBGrids, gsDBGrid, TB2Dock, TB2Toolbar, ComCtrls, DBClient,
   StdCtrls, ExtCtrls, Menus, dmDatabase_unit, IBCustomDataSet, gdcBase,
-  gdcNamespace, IBDatabase, gsNSObjects;
+  gdcNamespace, IBDatabase, gsNSObjects, gdcNamespaceSyncController;
 
 type
   TIterateProc = procedure (AnObj: TObject; const Data: String) of object;
@@ -139,11 +139,12 @@ type
     FNSList: TgsNSList;
     FLoadFileList, FSaveFileList: TStringList;
     FLoadNS: TForm;
+    FgdcNamespaceSyncController: TgdcNamespaceSyncController;
 
     procedure ApplyFilter;
     procedure IterateSelected(Proc: TIterateProc; AnObj: TObject; const AData: String);
     procedure SetOperation(AnObj: TObject; const AData: String);
-    procedure DeleteFile(AnObj: TObject; const AData: String); 
+    procedure DeleteFile(AnObj: TObject; const AData: String);
     procedure Log(const S: String);
     function StatusFilterSet: Boolean;
 
@@ -250,12 +251,9 @@ end;
 
 procedure Tat_frmSyncNamespace.actCompareExecute(Sender: TObject);
 begin
-  if chbxUpdate.Checked then
-  begin
-    Log('Обновление даты изменения объекта...');
-    TgdcNamespace.UpdateCurrModified;
-    Log('Окончено обновление даты изменения объекта...');
-  end;  
+  FgdcNamespaceSyncController.UpdateCurrModified := chbxUpdate.Checked;
+  FgdcNamespaceSyncController.Directory := tbedPath.Text;
+  FgdcNamespaceSyncController.Scan;
 
   cds.DisableControls;
   try
@@ -274,12 +272,11 @@ end;
 procedure Tat_frmSyncNamespace.LoadSettingsAfterCreate;
 begin
   inherited;
-  tbedPath.Text := gd_GlobalParams.NamespacePath;
+  tbedPath.Text := FgdcNamespaceSyncController.Directory;
 end;
 
 procedure Tat_frmSyncNamespace.SaveSettings;
 begin
-  gd_GlobalParams.NamespacePath := tbedPath.Text;
   inherited;
 end;
 
@@ -308,11 +305,13 @@ end;
 
 procedure Tat_frmSyncNamespace.FormCreate(Sender: TObject);
 begin
+  ds.DataSet := FgdcNamespaceSyncController.DataSet;
+
   FgdcNamespace.SubSet := 'ByID';
   FgdcNamespace.MasterSource := ds;
   FgdcNamespace.MasterField := 'namespacekey';
   FgdcNamespace.DetailField := 'id';
-  FgdcNamespace.Open;
+  //FgdcNamespace.Open;
 end;
 
 procedure Tat_frmSyncNamespace.actCompareWithDataUpdate(Sender: TObject);
@@ -342,10 +341,13 @@ begin
   FSaveFileList.Duplicates := dupIgnore;
   cds.LogChanges := False;
   FLoadNS := TLoadNSForm.CreateNew(nil);
+  FgdcNamespaceSyncController := TgdcNamespaceSyncController.Create;
+  FgdcNamespaceSyncController.OnLogMessage := Log;
 end;
 
 destructor Tat_frmSyncNamespace.Destroy;
 begin
+  FgdcNamespaceSyncController.Free;
   FgdcNamespace.Free;
   FNSList.Free;
   FLoadFileList.Free;

@@ -48,8 +48,9 @@ type
       ATr: TIBTransaction);
     class function LoadNSInfo(const Path: String; ATr: TIBTransaction): Integer;
     class function CompareObj(ADataSet: TDataSet): Boolean;
-    class procedure UpdateCurrModified(const ANamespaceKey: Integer = -1);
     class procedure WriteChanges(ADataSet: TDataSet; AnObj: TgdcBase; ATr: TIBTransaction);
+    class procedure UpdateCurrModified(const ANamespaceKey: Integer = -1);
+    class procedure ParseReferenceString(const AStr: String; out ARUID: TRUID; out AName: String);
 
     function MakePos: Boolean;
     procedure LoadFromFile(const AFileName: String = ''); override;
@@ -660,6 +661,93 @@ begin
   end;
 end;
 
+class procedure TgdcNamespace.UpdateCurrModified(const ANamespaceKey: Integer = -1);
+var
+  Tr: TIBTransaction;
+  qList, q: TIBSQL;
+  C: TPersistentClass;
+  RN: String;
+begin
+  Assert(gdcBaseManager <> nil);
+
+  Tr := TIBTransaction.Create(nil);
+  qList := TIBSQL.Create(nil);
+  q := TIBSQL.Create(nil);
+  try
+    Tr.DefaultDatabase := gdcBaseManager.Database;
+    Tr.StartTransaction;
+
+    q.Transaction := Tr;
+
+    qList.Transaction := Tr;
+    qList.SQL.Text :=
+      'SELECT DISTINCT o.objectclass, o.subtype ' +
+      'FROM at_object o ';
+    if ANamespaceKey > -1 then
+    begin
+      qList.SQL.Text := qList.SQL.Text + 'WHERE o.namespacekey = :nk';
+      qList.ParamByName('nk').AsInteger := ANamespaceKey;
+    end;
+    qList.ExecQuery;
+
+    while not qList.EOF do
+    begin
+      C := GetClass(qList.FieldByName('objectclass').AsString);
+      if (C <> nil) and C.InheritsFrom(TgdcBase)
+        and (tiEditionDate in CgdcBase(C).GetTableInfos(qList.FieldByName('subtype').AsString)) then
+      begin
+        RN := UpperCase(CgdcBase(C).GetListTable(qList.FieldByName('subtype').AsString));
+        q.SQL.Text :=
+          'merge into at_object o '#13#10 +
+          '  using (select r.xid, r.dbid, d.editiondate '#13#10 +
+          '    from ' + RN + ' d join gd_ruid r '#13#10 +
+          '    on r.id = d.id '#13#10 +
+          '  union all '#13#10 +
+          '    select d.id as xid, 17 as dbid, d.editiondate '#13#10 +
+          '    from ' + RN + ' d '#13#10 +
+          '    where d.id < 147000000) de '#13#10 +
+          '  on o.xid=de.xid and o.dbid=de.dbid '#13#10 +
+          '    and o.objectclass = :OC and o.subtype IS NOT DISTINCT FROM :ST'#13#10 +
+          '    and ((o.curr_modified IS NULL) '#13#10 +
+          '      or (o.curr_modified IS DISTINCT FROM de.editiondate))'#13#10 +
+          'when matched then '#13#10 +
+          '  update set o.curr_modified = de.editiondate';
+        q.ParamByName('OC').AsString := qList.FieldByName('objectclass').AsString;
+        if qList.FieldByName('subtype').IsNull then
+          q.ParamByName('ST').Clear
+        else
+          q.ParamByName('ST').AsString := qList.FieldByName('subtype').AsString;
+        q.ExecQuery;
+      end;
+
+      qList.Next;
+    end;
+
+    Tr.Commit;
+  finally
+    q.Free;
+    qList.Free;
+    Tr.Free;
+  end;
+end;
+
+class procedure TgdcNamespace.ParseReferenceString(const AStr: String;
+  out ARUID: TRUID; out AName: String);
+var
+  P: Integer;
+begin
+  P := Pos(' ', AStr);
+  if P = 0 then
+  begin
+    ARUID := StrToRUID(AStr);
+    AName := '';
+  end else
+  begin
+    ARUID := StrToRUID(System.Copy(AStr, 1, P - 1));
+    AName := System.Copy(AStr, P + 1, MaxInt);
+  end;
+end;
+
 procedure TgdcNamespace.CheckIncludesiblings;
 var
   Obj: TgdcNamespaceObject;
@@ -1047,7 +1135,7 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
             TBlobField(Field).LoadFromStream(TyamlBinary(N).AsStream);
           end;
         end;
-      else  
+      else
         Field.AsString := TyamlString(N).AsString;
       end;
     end;
@@ -1065,24 +1153,25 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
     RUOL: TList;
     Fields: TyamlMapping;
     N: TyamlNode;
-    RUID, RefRUID, Name, KeyField: String;
+    Name, KeyField: String;
+    RUID, RefRUID: TRUID;
   begin
     Assert(Obj.State in [dsInsert, dsEdit], 'Not in a insert or edit state!');
-    
+
     Result := lsNone;
     RUOL := nil;
     try
       Fields := SourceYAML.FindByName('Fields') as TyamlMapping;
       if Fields = nil then
         raise Exception.Create('Data fields is not found!');
-      RUID := SourceYAML.ReadString('Properties\RUID');
+      RUID := StrToRUID(SourceYAML.ReadString('Properties\RUID'));
       KeyField := Obj.GetKeyField(Obj.SubType);
       for I := 0 to Obj.Fields.Count - 1 do
       begin
         TargetField := Obj.Fields[I];
         if TargetField = nil then
-          raise Exception.Create('Invalid field!');   
-          
+          raise Exception.Create('Invalid field!');
+
         N := Fields.FindByName(TargetField.FieldName);
         if N <> nil then
         begin
@@ -1116,13 +1205,10 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
               if not (N is TyamlString) then
                 raise Exception.Create('Invalid YAML data type!');
 
-              if ParseReferenceString(TyamlString(N).AsString, RefRUID, Name) then
-              begin
-                Key := gdcBaseManager.GetIDByRUIDString(RefRUID, ATr);
-                if Key > -1 then
-                  TargetField.AsInteger := Key;
-              end else
-                AddWarning('Неверный RUID ' + RefRUID, clRed);
+              ParseReferenceString(TyamlString(N).AsString, RefRUID, Name);
+              Key := gdcBaseManager.GetIDByRUID(RefRUID.XID, RefRUID.DBID, ATr);
+              if Key > -1 then
+                TargetField.AsInteger := Key;
             end;
             continue;
           end;
@@ -1139,18 +1225,15 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
             else
               IsNull := True;
 
-            if (RefRUID > '') and not CheckRUID(RefRUID) then
-              AddWarning('Неверный RUID ' + RefRUID, clRed);
-
             if not IsNull then
             begin
-              if (RUID = RefRUID) and
+              if (RUID.XID = RefRUID.XID) and (RUID.DBID = RefRUID.DBID) and
                 (Obj.ID > 0)
               then
                 Key := Obj.ID
               else
               begin
-                Key := gdcBaseManager.GetIDByRUIDString(RefRUID, ATr);
+                Key := gdcBaseManager.GetIDByRUID(RefRUID.XID, RefRUID.DBID, ATr);
                 IsNull := Key = -1;
               end;
 
@@ -1165,7 +1248,7 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
                 RU.FullClass.SubType := Obj.SubType;
                 RU.ID := -1;
                 RU.SQL := '';
-                RU.RefRUID := RefRUID;
+                RU.RefRUID := RUIDToStr(RefRUID);
                 UL.Add(RU);
                 RUOL.Add(RU);
                 IsNull := True;
@@ -1200,7 +1283,7 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
             AddText('Обновлен объект: ' +
               Obj.ClassName +
               Obj.SubType + ' ' +
-              RUID +
+              RUIDToSTR(RUID) +
               ' "' + Obj.ObjectName + '"');
           except
             on E: EIBError do
@@ -1209,9 +1292,8 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
               begin
                 Obj.Cancel;
                 AddText('РУИД не определен. Поиск объекта по уникальному ключу.');
-                gdcBaseManager.DeleteRUIDByXID(StrToRUID(RUID).XID,
-                  StrToRUID(RUID).XID, ATr);
-                InsertRecord(SourceYAML, Obj, UL, StrToRUID(RUID));
+                gdcBaseManager.DeleteRUIDByXID(RUID.XID, RUID.XID, ATr);
+                InsertRecord(SourceYAML, Obj, UL, RUID);
               end else
                 raise;
             end;
@@ -1231,7 +1313,7 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
           if Obj.DSModified then
           begin
             Result := lsModified;
-            AddText(RUIDToStr(Obj.GetRUID) + ' -> ' + RUID);
+            AddText(RUIDToStr(Obj.GetRUID) + ' -> ' + RUIDToStr(RUID));
           end else
             Result := lsUnModified;
         end;
@@ -1243,7 +1325,7 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
         end;
 
         ApplyDelayedUpdates(UL,
-          RUID,
+          RUIDToStr(RUID),
           Obj.ID);
 
       except
@@ -1253,12 +1335,12 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
             ErrorSt := Format('Невозможно добавить объект: %s %s %s ',
               [Obj.ClassName,
                Fields.ReadString(Obj.GetListField(Obj.SubType)),
-               RUID])
+               RUIDToStr(RUID)])
           else
             ErrorSt := Format('Невозможно обновить объект: %s %s %s',
               [Obj.ClassName,
                Fields.ReadString(Obj.GetListField(Obj.SubType)),
-               RUID]);
+               RUIDToStr(RUID)]);
 
           AddMistake(ErrorSt);
           Obj.Cancel;
@@ -1331,7 +1413,8 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
     ID: Integer;
     Pr: TatPrimaryKey;
     RU: TgdcReferenceUpdate;
-    Name, RUID: String;
+    Name: String;
+    RUID: TRUID;
   begin
     q := TIBSQL.Create(nil);
     try
@@ -1375,26 +1458,22 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
                 if not (Items[J] is TyamlScalar) then
                   raise Exception.Create('Invalid data!');
 
-                if ParseReferenceString((Items[J] as TyamlScalar).AsString, RUID, Name) then
+                ParseReferenceString((Items[J] as TyamlScalar).AsString, RUID, Name);
+                ID := gdcBaseManager.GetIDByRUID(RUID.XID, RUID.DBID, ATr);
+                if ID > 0 then
                 begin
-                  ID := gdcBaseManager.GetIDByRUIDString(RUID, ATr);
-                  if ID > 0 then
-                  begin
-                    q.ParamByName('id1').AsInteger := AnID;
-                    q.ParambyName('id2').AsInteger := ID;
-                    q.ExecQuery;
-                    q.Close;
-                  end else
-                  begin
-                    RU := TgdcReferenceUpdate.Create;
-                    RU.ID := AnID;
-                    RU.SQL := q.SQl.Text;
-                    RU.RefRUID := (Items[J] as TyamlScalar).AsString;
-                    UL.Add(RU);
-                  end;
+                  q.ParamByName('id1').AsInteger := AnID;
+                  q.ParambyName('id2').AsInteger := ID;
+                  q.ExecQuery;
+                  q.Close;
                 end else
-                  AddWarning('Запись "' + (Items[J] as TyamlScalar).AsString +
-                    '" в таблицу ' + RN + ' не добавлена! RUID некорректен!', clRed);
+                begin
+                  RU := TgdcReferenceUpdate.Create;
+                  RU.ID := AnID;
+                  RU.SQL := q.SQl.Text;
+                  RU.RefRUID := (Items[J] as TyamlScalar).AsString;
+                  UL.Add(RU);
+                end;
               end;
             end;
           end else
@@ -2396,77 +2475,6 @@ begin
   inherited;
   if HasSubSet('BySettingRUID') then
     S.Add('z.settingruid=:SettingRUID');
-end;
-
-class procedure TgdcNamespace.UpdateCurrModified(const ANamespaceKey: Integer = -1);
-var
-  Tr: TIBTransaction;
-  qList, q: TIBSQL;
-  C: TPersistentClass;
-  RN: String;
-begin
-  Assert(IBLogin <> nil);
-  Assert(IBLogin.Database <> nil);
-
-  Tr := TIBTransaction.Create(nil);
-  qList := TIBSQL.Create(nil);
-  q := TIBSQL.Create(nil);
-  try
-    Tr.DefaultDatabase := IBLogin.Database;
-    Tr.StartTransaction;
-
-    q.Transaction := Tr;
-
-    qList.Transaction := Tr;
-    qList.SQL.Text :=
-      'SELECT DISTINCT o.objectclass, o.subtype ' +
-      'FROM at_object o ';
-    if ANamespaceKey > -1 then
-    begin
-      qList.SQL.Text := qList.SQL.Text + 'WHERE o.namespacekey = :nk';
-      qList.ParamByName('nk').AsInteger := ANamespaceKey;
-    end;
-    qList.ExecQuery;
-
-    while not qList.EOF do
-    begin
-      C := GetClass(qList.FieldByName('objectclass').AsString);
-      if (C <> nil) and C.InheritsFrom(TgdcBase)
-        and (tiEditionDate in CgdcBase(C).GetTableInfos(qList.FieldByName('subtype').AsString)) then
-      begin
-        RN := UpperCase(CgdcBase(C).GetListTable(qList.FieldByName('subtype').AsString));
-        q.SQL.Text :=
-          'merge into at_object o '#13#10 +
-          '  using (select r.xid, r.dbid, d.editiondate '#13#10 +
-          '    from ' + RN + ' d join gd_ruid r '#13#10 +
-          '    on r.id = d.id '#13#10 +
-          '  union all '#13#10 +
-          '    select d.id as xid, 17 as dbid, d.editiondate '#13#10 +
-          '    from ' + RN + ' d '#13#10 +
-          '    where d.id < 147000000) de '#13#10 +
-          '  on o.xid=de.xid and o.dbid=de.dbid '#13#10 +
-          '    and o.objectclass = :OC and o.subtype IS NOT DISTINCT FROM :ST'#13#10 +
-          '    and ((o.curr_modified IS NULL) '#13#10 +
-          '      or (o.curr_modified IS DISTINCT FROM de.editiondate))'#13#10 +
-          'when matched then '#13#10 +
-          '  update set o.curr_modified = de.editiondate';
-        q.ParamByName('OC').AsString := qList.FieldByName('objectclass').AsString;
-        if qList.FieldByName('subtype').IsNull then
-          q.ParamByName('ST').Clear
-        else
-          q.ParamByName('ST').AsString := qList.FieldByName('subtype').AsString;
-        q.ExecQuery;
-      end;
-
-      qList.Next;
-    end;
-
-    Tr.Commit;
-  finally
-    q.Free;
-    qList.Free;
-    Tr.Free;
-  end;
 end;
 
 procedure TgdcNamespaceObject.ShowObject;
