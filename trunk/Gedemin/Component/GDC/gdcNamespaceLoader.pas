@@ -33,7 +33,6 @@ type
     procedure CopyRecord(AnObj: TgdcBase; AMapping: TYAMLMapping; AnOverwriteFields: TStrings);
     procedure CopyField(AField: TField; N: TyamlScalar);
     procedure CopySetAttributes(AnObj: TgdcBase; const AnObjID: TID; ASequence: TYAMLSequence);
-    procedure ParseReferenceString(const AStr: String; out ARUID: TRUID; out AName: String);
     procedure OverwriteRUID(const AnID, AXID, ADBID: TID);
     function Iterate_RemoveGDCObjects(AUserData: PUserData; const AStr: string; var APtr: PData): Boolean;
     function CacheObject(const AClassName: String; const ASubtype: String): TgdcBase;
@@ -140,7 +139,7 @@ begin
         and (R.PrimaryKey.ConstraintFields.Count > 0)
         and (R.PrimaryKey.ConstraintFields[0] <> RF) then
       begin
-        ParseReferenceString(N.AsString, RefRUID, RefName);
+        TgdcNamespace.ParseReferenceString(N.AsString, RefRUID, RefName);
         RefID := gdcBaseManager.GetIDByRUID(RefRUID.XID, RefRUID.DBID, FTr);
         if RefID = -1 then
         begin
@@ -592,23 +591,6 @@ begin
   end;
 end;
 
-procedure TgdcNamespaceLoader.ParseReferenceString(const AStr: String;
-  out ARUID: TRUID; out AName: String);
-var
-  P: Integer;
-begin
-  P := Pos(' ', AStr);
-  if P = 0 then
-  begin
-    ARUID := StrToRUID(AStr);
-    AName := '';
-  end else
-  begin
-    ARUID := StrToRUID(System.Copy(AStr, 1, P - 1));
-    AName := System.Copy(AStr, P + 1, MaxInt);
-  end;
-end;
-
 procedure TgdcNamespaceLoader.OverwriteRUID(const AnID, AXID, ADBID: TID);
 begin
   FqOverwriteNSRUID.ParamByName('id').AsInteger := AnID;
@@ -757,7 +739,8 @@ begin
                 SQL_LONG, SQL_SHORT:
                   if R.RelationFields[T].References <> nil then
                   begin
-                    ParseReferenceString(CrossFields.ReadString(FieldName), RefRUID, RefName);
+                    TgdcNamespace.ParseReferenceString(
+                      CrossFields.ReadString(FieldName), RefRUID, RefName);
                     Param.AsInteger := gdcBaseManager.GetIDByRUID(RefRUID.XID,
                       RefRUID.DBID, AnObj.Transaction);
                   end else
@@ -832,7 +815,8 @@ begin
       if not (ASequence[I] is TYAMLString) then
         raise EgdcNamespaceLoader.Create('Invalid data structure');
 
-      ParseReferenceString((ASequence[I] as TYAMLString).AsString, NSRUID, NSName);
+      TgdcNamespace.ParseReferenceString(
+        (ASequence[I] as TYAMLString).AsString, NSRUID, NSName);
 
       q.Close;
       q.SQL.Text :=

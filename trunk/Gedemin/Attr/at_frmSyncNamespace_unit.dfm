@@ -464,7 +464,6 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
     end
   end
   object ds: TDataSource
-    DataSet = cds
     Left = 600
     Top = 296
   end

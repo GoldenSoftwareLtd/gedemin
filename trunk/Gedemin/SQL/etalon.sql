@@ -1379,6 +1379,12 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (180, '0000.0001.0000.0211', '19.08.2013', 'gd_object_dependencies table added.');
 
+INSERT INTO fin_versioninfo
+  VALUES (181, '0000.0001.0000.0212', '20.08.2013', 'Issue 1041.');
+
+INSERT INTO fin_versioninfo
+  VALUES (182, '0000.0001.0000.0213', '22.08.2013', 'Issue 3218.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
@@ -3262,16 +3268,40 @@ COMMIT;
 
 CREATE VIEW GD_V_OURCOMPANY
 (
-  ID, COMPNAME, COMPFULLNAME, COMPANYTYPE, COMPLB, COMPRB,
-  AFULL, ACHAG, AVIEW, ADDRESS, CITY, COUNTRY,
-  ACCOUNT, BANKCODE, BANKMFO, BANKNAME, BANKADDRESS, BANKCITY,
-  BANKCOUNTRY, TAXID, OKULP, OKPO, LICENCE, OKNH, SOATO, SOOU
+  ID,
+  COMPNAME,
+  COMPFULLNAME,
+  COMPANYTYPE,
+  COMPLB,
+  COMPRB,
+  AFULL,
+  ACHAG,
+  AVIEW,
+  ADDRESS,
+  CITY,
+  COUNTRY,
+  PHONE,
+  FAX,
+  ACCOUNT,
+  BANKCODE,
+  BANKMFO,
+  BANKNAME,
+  BANKADDRESS,
+  BANKCITY,
+  BANKCOUNTRY,
+  TAXID,
+  OKULP,
+  OKPO,
+  LICENCE,
+  OKNH,
+  SOATO,
+  SOOU
 )
 AS
 SELECT
-  C.ID, C.NAME, COMP.FULLNAME, COMP.COMPANYTYPE, 
+  C.ID, C.NAME, COMP.FULLNAME, COMP.COMPANYTYPE,
   C.LB, C.RB, O.AFULL, O.ACHAG, O.AVIEW,
-  C.ADDRESS, C.CITY, C.COUNTRY,
+  C.ADDRESS, C.CITY, C.COUNTRY, C.PHONE, C.FAX,
   AC.ACCOUNT, BANK.BANKCODE, BANK.BANKMFO,
   BANKC.NAME, BANKC.ADDRESS, BANKC.CITY, BANKC.COUNTRY,
   CC.TAXID, CC.OKULP, CC.OKPO, CC.LICENCE, CC.OKNH, CC.SOATO, CC.SOOU
@@ -3284,6 +3314,7 @@ FROM
     LEFT JOIN GD_BANK BANK ON AC.BANKKEY = BANK.BANKKEY
     LEFT JOIN GD_COMPANYCODE CC ON COMP.CONTACTKEY = CC.COMPANYKEY
     LEFT JOIN GD_CONTACT BANKC ON BANK.BANKKEY = BANKC.ID;
+
 COMMIT;
 
 
@@ -4119,7 +4150,6 @@ SET TERM ; ^
 
 COMMIT;
 
-/* Таблица генераторов */
 CREATE TABLE at_generators (
   id               dintkey,
   generatorname    dtablename NOT NULL,
@@ -16459,9 +16489,52 @@ END
 
 SET TERM ; ^
 
+CREATE GLOBAL TEMPORARY TABLE at_namespace_file (
+  filename      dtext255,
+  filetimestamp TIMESTAMP,
+  filesize      dinteger,
+  name          dtext255 NOT NULL UNIQUE,
+  caption       dtext255,
+  version       dtext20,
+  dbversion     dtext20,
+  optional      dboolean_notnull DEFAULT 0,
+  internal      dboolean_notnull DEFAULT 1,
+  comment       dblobtext80_1251,
+  xid           dinteger,
+  dbid          dinteger,
+
+  CONSTRAINT at_pk_namespace_file PRIMARY KEY (filename)
+)
+  ON COMMIT DELETE ROWS;
+
+CREATE GLOBAL TEMPORARY TABLE at_namespace_file_link (
+  filename      dtext255 NOT NULL,
+  uses_xid      dintkey,
+  uses_dbid     dintkey,
+  uses_name     dtext255 NOT NULL,
+
+  PRIMARY KEY (filename, uses_xid, uses_dbid),
+  FOREIGN KEY (filename) REFERENCES at_namespace_file (filename)
+)
+  ON COMMIT DELETE ROWS;
+
+CREATE GLOBAL TEMPORARY TABLE at_namespace_sync (
+  namespacekey  dforeignkey,
+  filename      dtext255,
+  operation     CHAR(2) DEFAULT '  ' NOT NULL,
+
+  FOREIGN KEY (namespacekey) REFERENCES at_namespace (id),
+  FOREIGN KEY (filename) REFERENCES at_namespace_file (filename),
+  CHECK (operation IN ('  ', '< ', '> ', '>>', '<<', '==', '=>', '<=', '! ', '? '))
+)
+  ON COMMIT DELETE ROWS;
+
 GRANT ALL     ON at_namespace             TO administrator;
 GRANT ALL     ON at_object                TO administrator;
 GRANT ALL     ON at_namespace_link        TO administrator;
+GRANT ALL     ON at_namespace_file        TO administrator;
+GRANT ALL     ON at_namespace_file_link   TO administrator;
+GRANT ALL     ON at_namespace_sync        TO administrator;
 GRANT EXECUTE ON PROCEDURE at_p_findnsrec TO administrator;
 GRANT EXECUTE ON PROCEDURE at_p_del_duplicates TO administrator;
 
