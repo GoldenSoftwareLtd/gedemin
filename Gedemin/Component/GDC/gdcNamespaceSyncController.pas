@@ -247,14 +247,20 @@ begin
     '    VALUES (j.filename, IIF(j.xid IS NULL, ''  '', ''< '')); ' +
     ' ' +
     '  UPDATE at_namespace_sync SET operation = ''> '' ' +
-    '  WHERE operation = ''  '' AND namespacekey IS NOT NULL ' +
+    '  WHERE namespacekey IS NOT NULL ' +
     '    AND filename IS NULL; ' +
     ' ' +
     '  UPDATE at_namespace_sync s SET s.operation = ''>>'' ' +
     '  WHERE ' +
-    '    EXISTS (SELECT * FROM at_object o ' +
-    '      WHERE o.namespacekey = s.namespacekey ' +
-    '        AND DATEDIFF(SECOND, o.modified, o.curr_modified) >= 1) ' +
+    '    (EXISTS (SELECT * FROM at_object o ' +
+    '       WHERE o.namespacekey = s.namespacekey ' +
+    '         AND DATEDIFF(SECOND, o.modified, o.curr_modified) >= 1) ' +
+    '     OR ' +
+    '     (SELECT n.filetimestamp FROM at_namespace n ' +
+    '       WHERE n.id = s.namespacekey) > ' +
+    '     (SELECT f.filetimestamp FROM at_namespace_file  f ' +
+    '       WHERE f.filename = s.filename) ' +
+    '    ) ' +
     '    AND (s.operation = ''  ''); ' +
     ' ' +
     '  UPDATE at_namespace_sync s SET s.operation = ' +
@@ -266,7 +272,31 @@ begin
     '      WHERE n.id = s.namespacekey) ' +
     '    AND (s.operation = ''  ''); ' +
     ' ' +
-
+    '  UPDATE at_namespace_sync s SET s.operation = ''! '' ' +
+    '  WHERE ' +
+    '    EXISTS (' +
+    '      SELECT * FROM at_namespace_file_link l ' +
+    '        LEFT JOIN ' +
+    '       (SELECT r.xid, r.dbid FROM gd_ruid r JOIN at_namespace n ' +
+    '          ON n.id = r.id ' +
+    '        UNION ' +
+    '        SELECT f.xid, f.dbid FROM at_namespace_file f) j ' +
+    '        ON l.uses_xid = j.xid AND l.uses_dbid = j.dbid ' +
+    '      WHERE l.filename = s.filename AND j.xid IS NULL) ' +
+    '    AND (s.operation IN (''<<'', ''< '')); ' +
+    ' ' +
+    '  UPDATE at_namespace_sync s SET s.operation = ''=='' ' +
+    '  WHERE s.operation = ''  '' AND s.namespacekey IS NOT NULL ' +
+    '    AND s.filename IS NOT NULL; ' +
+    ' ' +
+    '  UPDATE at_namespace_sync s SET s.operation = ''<='' ' +
+    '  WHERE s.operation = ''=='' AND EXISTS (' +
+    '    SELECT * FROM at_namespace_sync y JOIN at_namespace_file f ' +
+    '      ON y.filename = f.filename ' +
+    '    JOIN at_namespace_file_link l ' +
+    '      ON l.uses_xid = f.xid AND l.uses_dbid = f.dbid ' +
+    '    WHERE l.filename = s.filename ' +
+    '      AND y.operation IN (''<<'', ''< '', ''<='')); ' +
     'END';
 
   FDataSet.ReadTransaction := FTr;
