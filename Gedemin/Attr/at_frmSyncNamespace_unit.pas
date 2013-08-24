@@ -127,7 +127,6 @@ type
     procedure actDeleteFileUpdate(Sender: TObject);
     procedure actDeleteFileExecute(Sender: TObject);
     procedure edFilterChange(Sender: TObject);
-    procedure cdsFilterRecord(DataSet: TDataSet; var Accept: Boolean);
     procedure actFLTOnlyInDBExecute(Sender: TObject);
     procedure actFLTOnlyInDBUpdate(Sender: TObject);
     procedure actFLTInternalExecute(Sender: TObject);
@@ -262,8 +261,6 @@ begin
     FNSList.GetFilesForPath(tbedPath.Text);
     TgdcNamespace.ScanDirectory(cds, FNSList, Log);
     gr.SelectedRows.Clear;
-    Log('Выполнено сравнение с каталогом ' + tbedPath.Text);
-    ApplyFilter;
   finally
     cds.EnableControls;
   end;
@@ -566,25 +563,14 @@ end;
 
 procedure Tat_frmSyncNamespace.actDeleteFileUpdate(Sender: TObject);
 begin
-  actDeleteFile.Enabled := (not cds.IsEmpty)
-    and (cds.FieldByName('fileversion').AsString > '');
+  actDeleteFile.Enabled := (not FgdcNamespaceSyncController.DataSet.IsEmpty)
+    and (not FgdcNamespaceSyncController.DataSet.FieldByName('filetimestamp').IsNull);
 end;
 
 procedure Tat_frmSyncNamespace.DeleteFile(AnObj: TObject;
   const AData: String);
 begin
-  if SysUtils.DeleteFile(cds.FieldByName('filename').AsString) then
-  begin
-    Log('Файл ' + cds.FieldByName('filename').AsString + ' был удален.');
-    cds.Edit;
-    cds.FieldByName('filename').Clear;
-    cds.FieldByName('filenamespacename').Clear;
-    cds.FieldByName('fileversion').Clear;
-    cds.FieldByName('filetimestamp').Clear;
-    cds.FieldByName('filesize').Clear;
-    cds.FieldByName('operation').Clear;
-    cds.Post;
-  end;
+  FgdcNamespaceSyncController.DeleteFile(FgdcNamespaceSyncController.DataSet.FieldByName('filename').AsString);
 end;
 
 procedure Tat_frmSyncNamespace.actDeleteFileExecute(Sender: TObject);
@@ -598,70 +584,13 @@ begin
 end;
 
 procedure Tat_frmSyncNamespace.ApplyFilter;
-var
-  NewHiddenRow: Integer;
-  Bm: String;
 begin
   gr.SelectedRows.Clear;
-  cds.DisableControls;
-  try
-    cds.Filtered := False;
-
-    cds.First;
-    while not cds.EOF do
-    begin
-      if cds.FieldByName('hiddenrow').AsInteger <> 0 then
-      begin
-        cds.Edit;
-        cds.FieldByName('hiddenrow').AsInteger := 0;
-        cds.Post;
-      end;
-
-      cds.Next;
-    end;
-
-    cds.Filtered := (edFilter.Text > '') or StatusFilterSet or cbPackets.Checked;
-
-    cds.First;
-    while not cds.EOF do
-    begin
-      NewHiddenRow := 0;
-
-      if (cds.FieldByName('namespacename').AsString = '')
-        and (cds.FieldByName('fileversion').AsString = '') then
-      begin
-        Bm := cds.Bookmark;          
-        cds.Next;
-
-        if cds.EOF or ((cds.FieldByName('namespacename').AsString = '')
-          and (cds.FieldByName('fileversion').AsString = '')) then
-        begin
-          NewHiddenRow := 1;
-        end;
-
-        cds.Bookmark := Bm;
-      end;
-
-      if cds.FieldByName('hiddenrow').AsInteger <> NewHiddenRow then
-      begin
-        cds.Edit;
-        cds.FieldByName('hiddenrow').AsInteger := NewHiddenRow;
-        cds.Post;
-
-        cds.First;
-      end else
-        cds.Next;
-    end;
-
-    cds.First;
-  finally
-    cds.EnableControls;
-  end;
-
-  if cds.Filtered then
+  FgdcNamespaceSyncController.ApplyFilter;
+  if FgdcNamespaceSyncController.Filtered then
   begin
     sb.SimpleText := 'К данным применен фильтр.';
-    if cbPackets.Checked then
+    if FgdcNamespaceSyncController.FilterOnlyPackages then
       sb.SimpleText := sb.SimpleText + ' Отображаются только пакеты.';
   end else
     sb.SimpleText := '';
@@ -669,95 +598,25 @@ end;
 
 procedure Tat_frmSyncNamespace.edFilterChange(Sender: TObject);
 begin
+  FgdcNamespaceSyncController.FilterText := edFilter.Text;
   ApplyFilter;
-end;
-
-procedure Tat_frmSyncNamespace.cdsFilterRecord(DataSet: TDataSet;
-  var Accept: Boolean);
-begin
-  Accept :=
-    (cds.FieldByName('hiddenrow').AsInteger = 0)
-    and
-    (
-      (
-        (cds.FieldByName('operation').AsString = '')
-        and
-        (cds.FieldByName('fileversion').AsString = '')
-      )
-      or
-      (
-        (
-          (
-            cbPackets.Checked
-            and
-            (
-              (
-                (cds.FieldByName('filename').AsString > '')
-                and
-                (cds.FieldByName('fileinternal').AsInteger = 0)
-              )
-              or
-              (
-                (cds.FieldByName('namespacekey').AsInteger > 0)
-                and
-                (cds.FieldByName('namespaceinternal').AsInteger = 0)
-              )
-            )
-          )
-          or
-            not cbPackets.Checked
-        )
-        and
-        (
-          (edFilter.Text = '')
-          or
-          (
-            StrIPos(edFilter.Text, cds.FieldByName('namespacename').AsString +
-            cds.FieldByName('NamespaceVersion').AsString +
-            cds.FieldByName('NamespaceTimeStamp').AsString +
-            cds.FieldByName('FileNamespaceName').AsString +
-            cds.FieldByName('FileVersion').AsString +
-            cds.FieldByName('FileTimeStamp').AsString +
-            cds.FieldByName('FileSize').AsString) > 0
-          )
-        )
-        and
-        (
-          (not StatusFilterSet)
-          or
-          (actFLTOnlyInDB.Checked and (cds.FieldByName('operation').AsString = actFLTOnlyInDB.Caption))
-          or
-          (actFLTOlder.Checked and (cds.FieldByName('operation').AsString = actFLTOlder.Caption))
-          or
-          (actFLTEqual.Checked and (cds.FieldByName('operation').AsString = actFLTEqual.Caption))
-          or
-          (actFLTOnlyInFile.Checked and (cds.FieldByName('operation').AsString = actFLTOnlyInFile.Caption))
-          or
-          (actFLTNewer.Checked and (cds.FieldByName('operation').AsString = actFLTNewer.Caption))
-          or
-          (
-            actFLTNone.Checked
-            and
-            (
-              (cds.FieldByName('operation').AsString = actFLTNone.Caption)
-              or
-              (cds.FieldByName('operation').AsString = '  ')
-            )
-          )
-          or
-          (actFLTEqualOlder.Checked and (cds.FieldByName('operation').AsString = actFLTEqualOlder.Caption))
-          or
-          (actFLTEqualNewer.Checked and (cds.FieldByName('operation').AsString = actFLTEqualNewer.Caption))
-          or
-          (actFLTInUses.Checked and (cds.FieldByName('operation').AsString = actFLTInUses.Caption))
-        )
-      )
-    );
 end;
 
 procedure Tat_frmSyncNamespace.actFLTOnlyInDBExecute(Sender: TObject);
 begin
-  (Sender as TAction).Checked := not (Sender as TAction).Checked;
+  if (Sender as TAction).Checked  then
+  begin
+    (Sender as TAction).Checked := False;
+    FgdcNamespaceSyncController.FilterOperation :=
+      StringReplace(FgdcNamespaceSyncController.FilterOperation,
+        (Sender as TAction).Caption, '', [rfReplaceAll]);
+  end else
+  begin
+    (Sender as TAction).Checked := True;
+    FgdcNamespaceSyncController.FilterOperation :=
+      FgdcNamespaceSyncController.FilterOperation +
+      (Sender as TAction).Caption;
+  end;
   ApplyFilter;
 end;
 
@@ -768,20 +627,13 @@ end;
 
 procedure Tat_frmSyncNamespace.actFLTInternalExecute(Sender: TObject);
 begin
+  FgdcNamespaceSyncController.FilterOnlyPackages := cbPackets.Checked;
   ApplyFilter;
 end;
 
 function Tat_frmSyncNamespace.StatusFilterSet: Boolean;
 begin
-  Result := actFLTOnlyInDB.Checked
-    or actFLTOlder.Checked
-    or actFLTEqual.Checked
-    or actFLTOnlyInFile.Checked
-    or actFLTNewer.Checked
-    or actFLTNone.Checked
-    or actFLTEqualOlder.Checked
-    or actFLTEqualNewer.Checked
-    or actFLTInUses.Checked;
+  Result := FgdcNamespaceSyncController.FilterOperation > '';
 end;
 
 procedure Tat_frmSyncNamespace.actSelectAllExecute(Sender: TObject);
@@ -791,41 +643,42 @@ var
 begin
   FirstSet := False;
   InGroup := False;
-  Bm := cds.Bookmark;
-  cds.DisableControls;
+  Bm := FgdcNamespaceSyncController.DataSet.Bookmark;
+  FgdcNamespaceSyncController.DataSet.DisableControls;
   try
     gr.SelectedRows.Clear;
-    cds.First;
-    while not cds.Eof do
+    FgdcNamespaceSyncController.DataSet.First;
+    while not FgdcNamespaceSyncController.DataSet.Eof do
     begin
-      if (cds.FieldByName('namespacename').AsString > '') or (cds.FieldByName('filename').AsString > '') then
+      if (not FgdcNamespaceSyncController.DataSet.FieldByName('namespacename').IsNull)
+        or (not FgdcNamespaceSyncController.DataSet.FieldByName('fileruid').IsNull) then
       begin
         if not FirstSet then
         begin
           FirstSet := True;
-          FirstBm := cds.Bookmark;
+          FirstBm := FgdcNamespaceSyncController.DataSet.Bookmark;
         end;
 
-        if cds.Bookmark = Bm then
+        if FgdcNamespaceSyncController.DataSet.Bookmark = Bm then
           InGroup := True;
 
         gr.SelectedRows.CurrentRowSelected := True;
       end;
-      cds.Next;
+      FgdcNamespaceSyncController.DataSet.Next;
     end;
 
-    if (not InGroup) and FirstSet and cds.BookmarkValid(Pointer(FirstBm)) then
-      cds.Bookmark := FirstBm
-    else if cds.BookmarkValid(Pointer(Bm)) then
-      cds.Bookmark := Bm;
+    if (not InGroup) and FirstSet then
+      FgdcNamespaceSyncController.DataSet.Bookmark := FirstBm
+    else
+      FgdcNamespaceSyncController.DataSet.Bookmark := Bm;
   finally
-    cds.EnableControls;
+    FgdcNamespaceSyncController.DataSet.EnableControls;
   end;
 end;
 
 procedure Tat_frmSyncNamespace.actSelectAllUpdate(Sender: TObject);
 begin
-  (Sender as TAction).Enabled := not cds.IsEmpty;
+  (Sender as TAction).Enabled := not FgdcNamespaceSyncController.DataSet.IsEmpty;
 end;
 
 initialization

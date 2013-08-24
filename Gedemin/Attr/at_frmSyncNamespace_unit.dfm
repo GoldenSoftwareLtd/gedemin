@@ -1,6 +1,6 @@
 object at_frmSyncNamespace: Tat_frmSyncNamespace
-  Left = 329
-  Top = 330
+  Left = 323
+  Top = 367
   Width = 1131
   Height = 518
   Caption = 'Синхронизация пространств имен'
@@ -148,7 +148,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
         TabOrder = 0
       end
       object edFilter: TEdit
-        Left = 737
+        Left = 749
         Top = 0
         Width = 140
         Height = 21
@@ -156,7 +156,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
         OnChange = edFilterChange
       end
       object cbPackets: TCheckBox
-        Left = 883
+        Left = 895
         Top = 2
         Width = 66
         Height = 17
@@ -383,7 +383,6 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       end>
     Params = <>
     StoreDefs = True
-    OnFilterRecord = cdsFilterRecord
     Left = 552
     Top = 296
     Data = {
@@ -544,7 +543,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       OnUpdate = actDeleteFileUpdate
     end
     object actFLTOnlyInDB: TAction
-      Caption = '>'
+      Caption = '> '
       Hint = 'Присутствует в БД, отсутствует на диске'
       OnExecute = actFLTOnlyInDBExecute
       OnUpdate = actFLTOnlyInDBUpdate
@@ -568,13 +567,13 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       OnUpdate = actFLTOnlyInDBUpdate
     end
     object actFLTNone: TAction
-      Caption = '?'
+      Caption = '? '
       Hint = 'Пространство имен изменено и в БД и на диске'
       OnExecute = actFLTOnlyInDBExecute
       OnUpdate = actFLTOnlyInDBUpdate
     end
     object actFLTOnlyInFile: TAction
-      Caption = '<'
+      Caption = '< '
       Hint = 'Отсутствует в БД, присутствует на диске'
       OnExecute = actFLTOnlyInDBExecute
       OnUpdate = actFLTOnlyInDBUpdate
@@ -600,7 +599,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       OnUpdate = actFLTOnlyInDBUpdate
     end
     object actFLTInUses: TAction
-      Caption = '!'
+      Caption = '! '
       Hint = 'Перечислено в списке зависимости, но не найдено в БД и на диске'
       OnExecute = actFLTOnlyInDBExecute
       OnUpdate = actFLTOnlyInDBUpdate
