@@ -249,6 +249,24 @@ begin
     '  UPDATE at_namespace_sync SET operation = ''> '' ' +
     '  WHERE operation = ''  '' AND namespacekey IS NOT NULL ' +
     '    AND filename IS NULL; ' +
+    ' ' +
+    '  UPDATE at_namespace_sync s SET s.operation = ''>>'' ' +
+    '  WHERE ' +
+    '    EXISTS (SELECT * FROM at_object o ' +
+    '      WHERE o.namespacekey = s.namespacekey ' +
+    '        AND DATEDIFF(SECOND, o.modified, o.curr_modified) >= 1) ' +
+    '    AND (s.operation = ''  ''); ' +
+    ' ' +
+    '  UPDATE at_namespace_sync s SET s.operation = ' +
+    '    iif(s.operation = ''  '', ''<<'', ''? '') ' +
+    '  WHERE ' +
+    '    (SELECT f.filetimestamp FROM at_namespace_file f ' +
+    '      WHERE f.filename = s.filename) > ' +
+    '    (SELECT n.filetimestamp FROM at_namespace n ' +
+    '      WHERE n.id = s.namespacekey) ' +
+    '    AND (s.operation = ''  ''); ' +
+    ' ' +
+
     'END';
 
   FDataSet.ReadTransaction := FTr;
