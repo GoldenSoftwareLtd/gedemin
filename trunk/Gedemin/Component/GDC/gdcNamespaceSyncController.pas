@@ -21,22 +21,33 @@ type
     FDirectory: String;
     FUpdateCurrModified: Boolean;
     FOnLogMessage: TOnLogMessage;
+    FFilterOnlyPackages: Boolean;
+    FFilterText: String;
+    FFilterOperation: String;
+    Fq: TIBSQL;
 
     procedure Init;
     procedure DoLog(const AMessage: String);
     procedure AnalyzeFile(const AFileName: String);
     function GetDataSet: TDataSet;
+    function GetFiltered: Boolean;
 
   public
     constructor Create;
     destructor Destroy; override;
 
     procedure Scan;
+    procedure ApplyFilter;
+    procedure DeleteFile(const AFileName: String);
 
     property Directory: String read FDirectory write FDirectory;
     property UpdateCurrModified: Boolean read FUpdateCurrModified write FUpdateCurrModified;
     property OnLogMessage: TOnLogMessage read FOnLogMessage write FOnLogMessage;
     property DataSet: TDataSet read GetDataSet;
+    property FilterOnlyPackages: Boolean read FFilterOnlyPackages write FFilterOnlyPackages;
+    property FilterText: String read FFilterText write FFilterText;
+    property FilterOperation: String read FFilterOperation write FFilterOperation;
+    property Filtered: Boolean read GetFiltered;
   end;
 
 implementation
@@ -84,52 +95,49 @@ begin
 
     if (Parser.YAMLStream.Count > 0)
       and ((Parser.YAMLStream[0] as TyamlDocument).Count > 0)
-      and ((Parser.YAMLStream[0] as TyamlDocument)[0] is TyamlMapping) then
+      and ((Parser.YAMLStream[0] as TyamlDocument)[0] is TyamlMapping)
+      and (((Parser.YAMLStream[0] as TyamlDocument)[0] as TyamlMapping).ReadString('Properties\Name') > '') then
     begin
       M := (Parser.YAMLStream[0] as TyamlDocument)[0] as TyamlMapping;
-      if M.ReadString('Properties\Name') = '' then
-        DoLog('Неверный формат файла ' + AFileName)
-      else
+      NSRUID := StrToRUID(M.ReadString('Properties\RUID'));
+
+      FqFindFile.Close;
+      FqFindFile.ParamByName('name').AsString := M.ReadString('Properties\Name');
+      FqFindFile.ParamByName('xid').AsInteger := NSRUID.XID;
+      FqFindFile.ParamByName('dbid').AsInteger := NSRUID.DBID;
+      FqFindFile.ExecQuery;
+
+      if not FqFindFile.EOF then
       begin
-        NSRUID := StrToRUID(M.ReadString('Properties\RUID'));
+        DoLog(
+          'Пространство имен: "' + M.ReadString('Properties\Name') + '" содержится в файлах:' + #13#10 +
+          '1: ' + FqFindFile.FieldByName('filename').AsString + #13#10 +
+          '2: ' + AFileName + #13#10 +
+          'Только первый файл будет обработан!');
+      end else
+      begin
+        FqInsertFile.ParamByName('filename').AsString := AFileName;
+        FqInsertFile.ParamByName('filetimestamp').AsDateTime := gd_common_functions.GetFileLastWrite(AFileName);
+        FqInsertFile.ParamByName('filesize').AsInteger := FileGetSize(AFileName);
+        FqInsertFile.ParamByName('name').AsString := M.ReadString('Properties\Name');
+        FqInsertFile.ParamByName('caption').AsString := M.ReadString('Properties\Caption');
+        FqInsertFile.ParamByName('version').AsString := M.ReadString('Properties\Version');
+        FqInsertFile.ParamByName('dbversion').AsString := M.ReadString('Properties\DBVersion');
+        FqInsertFile.ParamByName('optional').AsInteger := M.ReadInteger('Properties\Optional');
+        FqInsertFile.ParamByName('internal').AsInteger := M.ReadInteger('Properties\Internal');
+        FqInsertFile.ParamByName('comment').AsString := M.ReadString('Properties\Comment');
+        FqInsertFile.ParamByName('xid').AsInteger := NSRUID.XID;
+        FqInsertFile.ParamByName('dbid').AsInteger := NSRUID.DBID;
+        FqInsertFile.ExecQuery;
 
-        FqFindFile.Close;
-        FqFindFile.ParamByName('name').AsString := M.ReadString('Properties\Name');
-        FqFindFile.ParamByName('xid').AsInteger := NSRUID.XID;
-        FqFindFile.ParamByName('dbid').AsInteger := NSRUID.DBID;
-        FqFindFile.ExecQuery;
-
-        if not FqFindFile.EOF then
+        if M.FindByName('Uses') is TYAMLSequence then
         begin
-          DoLog(
-            'Пространство имен: "' + M.ReadString('Properties\Name') + '" содержится в файлах:' + #13#10 +
-            '1: ' + FqFindFile.FieldByName('filename').AsString + #13#10 +
-            '2: ' + AFileName + #13#10 +
-            'Только первый файл будет обработан!');
-        end else
-        begin
-          FqInsertFile.ParamByName('filename').AsString := AFileName;
-          FqInsertFile.ParamByName('filetimestamp').AsDateTime := gd_common_functions.GetFileLastWrite(AFileName);
-          FqInsertFile.ParamByName('filesize').AsInteger := FileGetSize(AFileName);
-          FqInsertFile.ParamByName('name').AsString := M.ReadString('Properties\Name');
-          FqInsertFile.ParamByName('caption').AsString := M.ReadString('Properties\Caption');
-          FqInsertFile.ParamByName('version').AsString := M.ReadString('Properties\Version');
-          FqInsertFile.ParamByName('dbversion').AsString := M.ReadString('Properties\DBVersion');
-          FqInsertFile.ParamByName('optional').AsInteger := M.ReadInteger('Properties\Optional');
-          FqInsertFile.ParamByName('internal').AsInteger := M.ReadInteger('Properties\Internal');
-          FqInsertFile.ParamByName('comment').AsString := M.ReadString('Properties\Comment');
-          FqInsertFile.ParamByName('xid').AsInteger := NSRUID.XID;
-          FqInsertFile.ParamByName('dbid').AsInteger := NSRUID.DBID;
-          FqInsertFile.ExecQuery;
-
-          if M.FindByName('Uses') is TYAMLSequence then
+          S := M.FindByName('Uses') as TyamlSequence;
+          for I := 0 to S.Count - 1 do
           begin
-            S := M.FindByName('Uses') as TyamlSequence;
-            for I := 0 to S.Count - 1 do
-            begin
-              if not (S.Items[I] is TyamlString) then
-                raise Exception.Create('Invalid data!');
-
+            if not (S.Items[I] is TyamlString) then
+              DoLog('Ошибка в секции USES файла ' + AFileName)
+            else begin
               TgdcNamespace.ParseReferenceString((S.Items[I] as TyamlString).AsString, UsesRUID, UsesName);
 
               FqInsertLink.ParamByName('filename').AsString := AFileName;
@@ -140,11 +148,84 @@ begin
             end;
           end;
         end;
+        DoLog(AFileName);
       end;
-    end;
+    end else
+      DoLog('Неверный формат файла ' + AFileName);
   finally
     Parser.Free;
   end;
+end;
+
+procedure TgdcNamespaceSyncController.ApplyFilter;
+begin
+  FDataSet.Close;
+  FDataSet.SelectSQL.Text :=
+    'SELECT ' +
+    '  n.id AS NamespaceKey, ' +
+    '  n.name AS NamespaceName, ' +
+    '  n.version AS NamespaceVersion, ' +
+    '  n.filetimestamp AS NamespaceTimestamp, ' +
+    '  n.internal AS NamespaceInternal, ' +
+    '  s.operation, ' +
+    '  f.filename, ' +
+    '  f.name AS FileNamespaceName, ' +
+    '  f.version AS FileVersion, ' +
+    '  f.filetimestamp AS FileTimeStamp, ' +
+    '  f.filesize AS FileSize, ' +
+    '  (f.xid || ''_'' || f.dbid) AS FileRUID, ' +
+    '  f.internal AS FileInternal ' +
+    'FROM ' +
+    '  at_namespace_sync s ' +
+    '  LEFT JOIN at_namespace n ON n.id = s.namespacekey ' +
+    '  LEFT JOIN at_namespace_file f ON f.filename = s.filename ';
+
+  if FFilterOnlyPackages or (FFilterText > '') or (FFilterOperation > '') then
+  begin
+    FDataSet.SelectSQL.Text := FDataSet.SelectSQL.Text +
+      'WHERE (s.operation = ''  '') OR (';
+
+    if FFilterOnlyPackages then
+      FDataSet.SelectSQL.Text := FDataSet.SelectSQL.Text +
+        '((n.id IS NOT NULL AND n.internal = 0) OR (f.name IS NOT NULL AND f.internal = 0))';
+
+    if FFilterText > '' then
+    begin
+      if FFilterOnlyPackages then
+        FDataSet.SelectSQL.Text := FDataSet.SelectSQL.Text + ' AND ';
+      FDataSet.SelectSQL.Text := FDataSet.SelectSQL.Text +
+        '(POSITION(:t IN UPPER(' +
+        '  COALESCE(n.name, '''') || ' +
+        '  COALESCE(n.version, '''') || ' +
+        '  COALESCE(n.filetimestamp, '''') || ' +
+        '  COALESCE(f.filename, '''') || ' +
+        '  COALESCE(f.name, '''') || ' +
+        '  COALESCE(f.version, '''') || ' +
+        '  COALESCE(f.filetimestamp, ''''))) > 0)';
+    end;
+
+    if FFilterOperation > '' then
+    begin
+      if FFilterOnlyPackages or (FFilterText > '') then
+        FDataSet.SelectSQL.Text := FDataSet.SelectSQL.Text + ' AND ';
+      FDataSet.SelectSQL.Text := FDataSet.SelectSQL.Text +
+        '(POSITION(CAST(s.operation AS VARCHAR(1024)) IN :op) > 0)';
+    end;
+
+    FDataSet.SelectSQL.Text := FDataSet.SelectSQL.Text + ')';
+  end;
+
+  FDataSet.SelectSQL.Text := FDataSet.SelectSQL.Text +
+    'ORDER BY ' +
+    '  f.filename';
+
+  if FFilterText > '' then
+    FDataSet.ParamByName('t').AsString := AnsiUpperCase(FFilterText);
+
+  if FFilterOperation > '' then
+    FDataSet.ParamByName('op').AsString := FFilterOperation;
+
+  FDataSet.Open;
 end;
 
 constructor TgdcNamespaceSyncController.Create;
@@ -154,8 +235,23 @@ begin
   FDataSet := TIBDataSet.Create(nil);
 end;
 
+procedure TgdcNamespaceSyncController.DeleteFile(const AFileName: String);
+begin
+  if SysUtils.DeleteFile(AFileName) then
+  begin
+    DoLog('Файл ' + AFileName + ' был удален.');
+
+    Fq.Close;
+    Fq.SQL.Text :=
+      'DELETE FROM at_namespace_file WHERE UPPER(filename) = :fn';
+    Fq.ParamByName('fn').AsString := AnsiUpperCase(AFileName);
+    Fq.ExecQuery;
+  end;
+end;
+
 destructor TgdcNamespaceSyncController.Destroy;
 begin
+  Fq.Free;
   FDataSet.Free;
   FqFillSync.Free;
   FqFindDirectory.Free;
@@ -175,6 +271,13 @@ end;
 function TgdcNamespaceSyncController.GetDataSet: TDataSet;
 begin
   Result := FDataSet as TDataSet;
+end;
+
+function TgdcNamespaceSyncController.GetFiltered: Boolean;
+begin
+  Result := FFilterOnlyPackages
+    or (FFilterText > '')
+    or (FFilterOperation > '');
 end;
 
 procedure TgdcNamespaceSyncController.Init;
@@ -297,31 +400,21 @@ begin
     '      ON l.uses_xid = f.xid AND l.uses_dbid = f.dbid ' +
     '    WHERE l.filename = s.filename ' +
     '      AND y.operation IN (''<<'', ''< '', ''<='')); ' +
+    ' ' +
+    '  UPDATE at_namespace_sync s SET s.operation = ''=>'' ' +
+    '  WHERE s.operation = ''=='' AND EXISTS (' +
+    '    SELECT * FROM at_namespace_sync y ' +
+    '    JOIN at_namespace_link l ' +
+    '      ON l.useskey = y.namespacekey ' +
+    '    WHERE l.namespacekey = s.namespacekey ' +
+    '      AND y.operation IN (''>>'', ''> '', ''=>'')); ' +
     'END';
 
   FDataSet.ReadTransaction := FTr;
   FDataSet.Transaction := FTr;
-  FDataSet.SelectSQL.Text :=
-    'SELECT ' +
-    '  n.id AS NamespaceKey, ' +
-    '  n.name AS NamespaceName, ' +
-    '  n.version AS NamespaceVersion, ' +
-    '  n.filetimestamp AS NamespaceTimestamp, ' +
-    '  n.internal AS NamespaceInternal, ' +
-    '  s.operation, ' +
-    '  f.filename, ' +
-    '  f.name AS FileNamespaceName, ' +
-    '  f.version AS FileVersion, ' +
-    '  f.filetimestamp AS FileTimeStamp, ' +
-    '  f.filesize AS FileSize, ' +
-    '  (f.xid || ''_'' || f.dbid) AS FileRUID, ' +
-    '  f.internal AS FileInternal ' +
-    'FROM ' +
-    '  at_namespace_sync s ' +
-    '  LEFT JOIN at_namespace n ON n.id = s.namespacekey ' +
-    '  LEFT JOIN at_namespace_file f ON f.filename = s.filename ' +
-    'ORDER BY ' +
-    '  f.filename'; 
+
+  Fq := TIBSQL.Create(nil);
+  Fq.Transaction := FTr;
 end;
 
 procedure TgdcNamespaceSyncController.Scan;
@@ -335,7 +428,6 @@ begin
   begin
     DoLog('Обновление даты изменения объекта...');
     TgdcNamespace.UpdateCurrModified;
-    DoLog('Окончено обновление даты изменения объекта...');
   end;
 
   SL := TStringList.Create;
@@ -344,18 +436,27 @@ begin
       faAnyFile, SL, amAny, [flFullNames, flRecursive], '*.*', nil) then
     begin
       for I := 0 to SL.Count - 1 do
+      try
         AnalyzeFile(SL[I]);
+      except
+        on E: Exception do
+        begin
+          DoLog('Ошибка в процессе обработки файла ' + SL[I]);
+          DoLog(E.Message);
+        end;
+      end;
     end;
   finally
     SL.Free;
   end;
 
+  DoLog('Определение статуса...');
   FqFillSync.ExecQuery;
 
-  FDataSet.Close;
-  FDataSet.Open;
+  ApplyFilter;
 
   gd_GlobalParams.NamespacePath := FDirectory;
+  DoLog('Выполнено сравнение с каталогом ' + FDirectory);
 end;
 
 end.
