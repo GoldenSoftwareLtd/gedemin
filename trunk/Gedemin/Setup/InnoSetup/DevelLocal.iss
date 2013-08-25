@@ -1,32 +1,9 @@
 ; External components: Windows Script Host, Windows Script Control
 
+#define public GedAppName "Гедымин: Разработчик"
+#define public GedAppVerName "Гедымин: Разработчик"
+#define public GedSafeAppName "Разработчик"
+#define public DBFileOnlyName "devel"
+
 #include "CommonLocal.iss"
-
-[Setup]
-AppName=Гедымин: Разработчик
-AppVerName=Гедымин: Разработчик
-
-[Files]
-Source: "Database\devel.bk"; DestDir: "{app}\Database"; Flags: deleteafterinstall; Tasks: databasefile
-
-[Code]
-function GetSafeAppName(Param: String): String;
-begin
-  Result := 'Разработчик';
-end;
-
-function GetDBFileName(Param: String): String;
-begin
-  Result := 'devel.fdb';
-end;
-
-function GetBKFileName(Param: String): String;
-begin
-  Result := 'devel.bk';
-end;
-
-function GetRegAccessSubKey(Param: String): String;
-begin
-  Result := GetSafeAppName('');
-end;
 
