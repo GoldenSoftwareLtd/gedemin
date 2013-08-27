@@ -79,7 +79,6 @@ end;
 procedure TgdvAcctGeneralLedger.DoBuildSQL;
 var
   K, I: Integer;
-  SQL: TIBSQL;
   FI: TgdvFieldInfo;
   DebitStrings, CreditStrings: TgdvCorrFieldInfoList;
   Accounts: TStringList;
@@ -170,23 +169,9 @@ var
 
 begin
   if FEnchancedSaldo then
-  begin
-    SQL := TIBSQL.Create(nil);
-    try
-      SQL.Transaction := gdcBaseManager.ReadTransaction;
-      SQL.SQL.Text := 'SELECT f.fieldname FROM ac_account a LEFT JOIN ' +
-        ' at_relation_fields f ON a.analyticalfield = f.id WHERE a.id = :id ';
-      SQL.ParamByName('id').AsInteger := FAccounts.Keys[0];
-      SQL.ExecQuery;
-      AnalyticField := SQL.FieldByName('fieldname').AsString;
-    finally
-      SQL.Free;
-    end;
-  end
+    AnalyticField :=  GetGeneralAnalyticField(FAccounts.Keys[0])
   else
-  begin
-    AnalyticField := '';
-  end;
+    AnalyticField := '';   
 
   if Assigned(FFieldInfos) then
   begin

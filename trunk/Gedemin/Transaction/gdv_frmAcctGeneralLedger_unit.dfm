@@ -10,10 +10,10 @@ inherited gdv_frmGeneralLedger: Tgdv_frmGeneralLedger
   TextHeight = 13
   inherited sLeft: TSplitter
     Left = 273
-    Height = 565
+    Height = 554
   end
   inherited TBDock1: TTBDock
-    Width = 1058
+    Width = 1050
     inherited tbMainToolbar: TTBToolbar
       DockPos = -5
     end
@@ -44,35 +44,35 @@ inherited gdv_frmGeneralLedger: Tgdv_frmGeneralLedger
   end
   inherited Panel1: TPanel
     Left = 279
-    Width = 770
-    Height = 565
+    Width = 762
+    Height = 554
     TabOrder = 2
     inherited ibgrMain: TgsIBGrid
-      Width = 770
-      Height = 565
+      Width = 762
+      Height = 554
     end
   end
   inherited TBDock2: TTBDock
-    Height = 565
+    Height = 554
   end
   inherited TBDock3: TTBDock
-    Left = 1049
-    Height = 565
+    Left = 1041
+    Height = 554
   end
   inherited TBDock4: TTBDock
-    Top = 595
-    Width = 1058
+    Top = 584
+    Width = 1050
   end
   inherited pLeft: TPanel
     Width = 264
-    Height = 565
+    Height = 554
     TabOrder = 1
     inherited ScrollBox: TScrollBox
       Width = 264
-      Height = 548
+      Height = 537
       inherited Panel5: TPanel
         Top = 184
-        Width = 248
+        Width = 247
         Height = 93
         TabOrder = 1
         inherited Label17: TLabel
@@ -151,44 +151,44 @@ inherited gdv_frmGeneralLedger: Tgdv_frmGeneralLedger
       end
       inherited frAcctQuantity: TfrAcctQuantity
         Top = 318
-        Width = 248
+        Width = 247
         TabOrder = 4
         inherited ppMain: TgdvParamPanel
-          Width = 248
+          Width = 247
         end
       end
       inherited frAcctSum: TfrAcctSum
         Top = 359
-        Width = 248
+        Width = 247
         TabOrder = 6
         inherited ppMain: TgdvParamPanel
-          Width = 248
+          Width = 247
           inherited pnlEQ: TPanel
-            Width = 236
+            Width = 235
           end
           inherited pnlQuantity: TPanel
-            Width = 236
+            Width = 235
           end
           inherited pnlTop: TPanel
-            Width = 236
+            Width = 235
           end
         end
       end
       inherited frAcctAnalytics: TfrAcctAnalytics
         Top = 277
-        Width = 248
+        Width = 247
         TabOrder = 2
         Visible = False
         inherited ppAnalytics: TgdvParamPanel
-          Width = 248
+          Width = 247
         end
       end
       inherited frAcctCompany: TfrAcctCompany
         Top = 580
-        Width = 248
+        Width = 247
         TabOrder = 3
         inherited ppMain: TgdvParamPanel
-          Width = 248
+          Width = 247
           inherited cbAllCompanies: TCheckBox
             Width = 211
           end
@@ -200,7 +200,7 @@ inherited gdv_frmGeneralLedger: Tgdv_frmGeneralLedger
       end
       inherited ppAppear: TgdvParamPanel
         Top = 640
-        Width = 248
+        Width = 247
         Height = 38
         inherited cbExtendedFields: TCheckBox
           Top = 37
@@ -226,7 +226,7 @@ inherited gdv_frmGeneralLedger: Tgdv_frmGeneralLedger
       object pCardOfAccount: TPanel
         Left = 0
         Top = 0
-        Width = 248
+        Width = 247
         Height = 184
         Align = alTop
         BevelOuter = bvNone
@@ -243,7 +243,7 @@ inherited gdv_frmGeneralLedger: Tgdv_frmGeneralLedger
         object ptvGroup: TPanel
           Left = 3
           Top = 16
-          Width = 242
+          Width = 241
           Height = 165
           Align = alBottom
           Anchors = [akLeft, akTop, akRight, akBottom]
@@ -253,7 +253,7 @@ inherited gdv_frmGeneralLedger: Tgdv_frmGeneralLedger
           object tvGroup: TgsDBTreeView
             Left = 1
             Top = 1
-            Width = 240
+            Width = 239
             Height = 163
             DataSource = dsAcctChart
             KeyField = 'ID'
@@ -297,6 +297,14 @@ inherited gdv_frmGeneralLedger: Tgdv_frmGeneralLedger
       Caption = 'Перейти на карту счета'
       Hint = 'Перейти на карту счета'
     end
+    object actGotoLedger: TAction
+      Caption = 'Перейти в журнал-ордер'
+      Hint = 'Перейти в журнал-ордер'
+      ImageIndex = 186
+      ShortCut = 16460
+      OnExecute = actGotoLedgerExecute
+      OnUpdate = actGotoLedgerUpdate
+    end
   end
   inherited gdMacrosMenu: TgdMacrosMenu
     Top = 48
@@ -314,6 +322,9 @@ inherited gdv_frmGeneralLedger: Tgdv_frmGeneralLedger
   inherited ppMain: TPopupMenu
     Left = 440
     Top = 48
+    object N1: TMenuItem
+      Action = actGotoLedger
+    end
   end
   inherited AccountDelayTimer: TTimer
     Left = 264

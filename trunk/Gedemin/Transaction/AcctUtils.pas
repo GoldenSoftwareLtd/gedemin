@@ -55,6 +55,7 @@ function GetDontBalanceAnalyticList: String;
 procedure SetSaldoValue(AValue: Currency; ADebit, ACredit: TEdit; ADecDigits: Integer);
 
 function CheckActiveAccount(CompanyKey: Integer; AShowMessage: Boolean = True): Boolean;
+function GetGeneralAnalyticField(AnAccountID: Integer): String;
 
 const
   cInputParam = '/*INPUT PARAM*/';
@@ -283,7 +284,7 @@ end;
 
 function GetAlias(Id: Integer): string;
 var
-  SQl: TIBSQL;
+  SQL: TIBSQL;
 begin
   SQL := TIBSQL.Create(nil);
   try
@@ -293,6 +294,29 @@ begin
     SQL.ParamByName('id').AsInteger := Id;
     SQl.ExecQuery;
     Result := SQl.FieldByName('alias').AsString;
+  finally
+    SQL.Free;
+  end;
+end;
+
+function GetGeneralAnalyticField(AnAccountID: Integer): String;
+var
+  SQL: TIBSQL;
+begin
+  SQL := TIBSQL.Create(nil);
+  try
+    SQL.Transaction := gdcBaseManager.ReadTransaction;
+    SQL.SQL.Text :=
+      'SELECT rf.fieldname FROM ac_account a ' +
+      '  JOIN at_relation_fields rf ON rf.id = a.analyticalfield ' +
+      'WHERE ' +
+      '  a.id = :id';
+    SQL.ParamByName('id').AsInteger := AnAccountID;
+    SQL.ExecQuery;
+    if not SQL.Eof then
+      Result := SQL.FieldByName('fieldname').AsString
+    else
+      Result := '';
   finally
     SQL.Free;
   end;

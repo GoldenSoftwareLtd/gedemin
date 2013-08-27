@@ -33,12 +33,16 @@ type
     cbAutoBuildReport: TCheckBox;
     chkBuildGroup: TCheckBox;
     ibdsMain: TgdvAcctGeneralLedger;
+    N1: TMenuItem;
+    actGotoLedger: TAction;
     procedure FormCreate(Sender: TObject);
     procedure tvGroupChange(Sender: TObject; Node: TTreeNode);
     procedure frAcctCompanyiblCompanyChange(Sender: TObject);
     procedure actRunUpdate(Sender: TObject);
     procedure iblConfiguratiorChange(Sender: TObject);
     procedure chkBuildGroupClick(Sender: TObject);
+    procedure actGotoLedgerExecute(Sender: TObject);
+    procedure actGotoLedgerUpdate(Sender: TObject);
   protected
     function GetGdvObject: TgdvAcctBase; override;
     procedure SetParams; override;
@@ -64,7 +68,7 @@ implementation
 
 uses
   gsStorage_CompPath, gdv_frmAcctAccCard_unit, gd_createable_form,
-  gd_KeyAssoc;
+  gd_KeyAssoc, gd_common_functions, gdv_frmAcctLedger_unit, JclDateTime;
   
 const
   cAutoBuildReport = 'AutoBuildReport';
@@ -332,7 +336,8 @@ var
   F: TField;
   C: TAccCardConfig;
   FI: TgdvFieldInfo;
-  Form: TCreateableForm;  
+  Form: TCreateableForm;
+  M, Y: Integer;
 begin
   Form := gd_createable_form.FindForm(Tgdv_frmAcctAccCard);
 
@@ -369,8 +374,10 @@ begin
       begin
         with Tgdv_frmAcctAccCard(Tgdv_frmAcctAccCard.CreateAndAssign(Application)) do
         begin
-          DateBegin := Self.DateBegin;
-          DateEnd := Self.DateEnd;
+          Y := Self.gdvObject.FieldByName('Y').AsInteger;
+          M := Self.gdvObject.FieldByName('M').AsInteger;
+          DateBegin := EncodeDate(Y, M, 1);
+          DateEnd := EncodeDate(Y, M, DaysInMonth(EncodeDate(Y, M, 1)));
 
           Show;
           Execute(C);
@@ -379,8 +386,10 @@ begin
       begin
         with Tgdv_frmAcctAccCard(Tgdv_frmAcctAccCard.Create(Application)) do
         begin
-          DateBegin := Self.DateBegin;
-          DateEnd := Self.DateEnd;
+          Y := Self.gdvObject.FieldByName('Y').AsInteger;
+          M := Self.gdvObject.FieldByName('M').AsInteger;
+          DateBegin := EncodeDate(Y, M, 1);
+          DateEnd := EncodeDate(Y, M, DaysInMonth(EncodeDate(Y, M, 1)));
 
           Show;
           Execute(C);
@@ -440,7 +449,7 @@ begin
     TgdvAcctGeneralLedger(gdvObject).ShowDebit := cbShowDebit.Checked;
     TgdvAcctGeneralLedger(gdvObject).ShowCredit := cbShowCredit.Checked;
     TgdvAcctGeneralLedger(gdvObject).ShowCorrSubAccounts := cbShowCorrSubAccount.Checked;
-    TgdvAcctGeneralLedger(gdvObject).EnchancedSaldo := cbEnchancedSaldo.Checked;  
+    TgdvAcctGeneralLedger(gdvObject).EnchancedSaldo := cbEnchancedSaldo.Checked;
     gdvObject.AllHolding := frAcctCompany.cbAllCompanies.Checked;
   end;
 end;
@@ -490,6 +499,93 @@ begin
       ibgrMain.Conditions[I].DisplayFields := DisplayFields;
     end;
   end;
+end;
+
+procedure Tgdv_frmGeneralLedger.actGotoLedgerExecute(Sender: TObject);
+var
+  ibsql: TIBSQL;
+  AnalizeField: String;
+  I: Integer;
+  C: TAccLedgerConfig;
+  S: TStrings;
+  M, Y: Integer;  
+  F: TField;
+begin
+  F := ibgrMain.SelectedField;
+  if (F <> nil) and (gdvObject.Accounts.Count > 0) then 
+  begin
+    AnalizeField := '';
+    ibsql := TIBSQL.Create(nil);
+    try
+      ibsql.Transaction := gdcBaseManager.ReadTransaction;
+      ibsql.SQL.Text := 'SELECT * FROM ac_account a LEFT JOIN at_relation_fields atr ' +
+        ' ON a.analyticalfield = atr.id WHERE a.id = :id';
+      ibsql.ParamByName('id').AsInteger := gdvObject.Accounts[0];
+      ibsql.ExecQuery;
+      if not ibsql.Eof
+        and (ibsql.FieldByName('accounttype').AsString[1] in ['A', 'S'])  then
+      begin
+        if ibsql.FieldByName('analyticalfield').AsInteger > 0 then
+          AnalizeField := ibsql.FieldByName('fieldname').AsString
+        else
+        begin
+          for I:= 0 to ibsql.Current.Count - 1 do
+            if ((Pos(UserPrefix, ibsql.Fields[I].Name) = 1) and (ibsql.Fields[I].AsInteger = 1)) then
+            begin
+              AnalizeField := ibsql.Fields[I].Name;
+              Break;
+            end;
+        end;
+
+        if AnalizeField > '' then
+        begin
+          C := TAccLedgerConfig.Create;
+          try
+            DoSaveConfig(C);
+            C.Accounts := GetAlias(gdvObject.Accounts[0]);
+            S := TStringList.Create;
+            try
+              S.Text := AnalizeField;
+              SaveIntegerToStream(S.Count, C.AnalyticsGroup);
+              for I := 0 to S.Count - 1 do
+              begin
+                SaveStringToStream(S[I], C.AnalyticsGroup);
+                SaveBooleanToStream(True, C.AnalyticsGroup);
+              end;
+            finally
+              S.Free;
+            end;
+            C.IncSubAccounts := True;
+
+            with Tgdv_frmAcctLedger.CreateAndAssign(Application) as Tgdv_frmAcctLedger do
+            begin
+              Y := Self.gdvObject.FieldByName('Y').AsInteger;
+              M := Self.gdvObject.FieldByName('M').AsInteger;
+              DateBegin := EncodeDate(Y, M, 1);
+              DateEnd := EncodeDate(Y, M, DaysInMonth(EncodeDate(Y, M, 1)));
+
+              Show;
+              Execute(C);
+            end;
+
+          finally
+            C.Free;
+          end;
+        end
+        else
+          MessageDlg('По данному счету нет объектов аналитического учета', mtWarning,
+            [mbOk], -1);
+      end;
+    finally
+      ibsql.Free;
+    end;
+  end;
+end;
+
+procedure Tgdv_frmGeneralLedger.actGotoLedgerUpdate(Sender: TObject);
+begin
+  TAction(Sender).Enabled := gdvObject.Active and (gdvObject.Accounts.Count > 0) and
+    not gdvObject.IsEmpty
 end;
 
 initialization

@@ -240,7 +240,7 @@ var
   F: TField;
   C: TAccCardConfig;
   FI: TgdvFieldInfo;
-  A: String;
+ // A: String;
   Form: TCreateableForm;
 begin
   Form := gd_createable_form.FindForm(Tgdv_frmAcctAccCard);
@@ -265,7 +265,7 @@ begin
         C.AccountPart := TgdvLedgerFieldInfo(FI).AccountPart;
       end;
 
-      A := '';
+   //   A := '';
 {      for I := 0 to frAcctAnalyticsGroup.Selected.Count - 1 do
       begin
         if (frAcctAnalyticsGroup.Selected[I].Field <> nil) and
@@ -282,8 +282,8 @@ begin
         end;
       end;}
 
-      if A > '' then
-        C.Analytics := A;
+      //if A > '' then
+       // C.Analytics := A;
 
       if not NewWindow or (Form = nil) then
       begin
@@ -366,12 +366,12 @@ procedure Tgdv_frmAcctCirculationList.actGotoLedgerExecute(
 var
   ibsql: TIBSQL;
   AnalizeField: String;
-  i: Integer;
+  I: Integer;
   C: TAccLedgerConfig;
   S: TStrings;
 begin
   AnalizeField := '';
-  ibsql := TIBSQL.Create(Self);
+  ibsql := TIBSQL.Create(nil);
   try
     ibsql.Transaction := gdcBaseManager.ReadTransaction;
     ibsql.SQL.Text := 'SELECT * FROM ac_account a LEFT JOIN at_relation_fields atr ' +
@@ -379,10 +379,10 @@ begin
     ibsql.ParamByName('id').AsInteger := gdvObject.FieldByName('id').AsInteger;
     ibsql.ExecQuery;
     if ibsql.FieldByName('analyticalfield').AsInteger > 0 then
-      AnalizeField := ibsql.FieldByName('fieldname').asString
+      AnalizeField := ibsql.FieldByName('fieldname').AsString
     else
     begin
-      for i:= 0 to ibsql.Current.Count - 1 do
+      for I:= 0 to ibsql.Current.Count - 1 do
         if ((Pos(UserPrefix, ibsql.Fields[i].Name) = 1) and (ibsql.Fields[i].AsInteger = 1)) then
         begin
           AnalizeField := ibsql.Fields[i].Name;
@@ -398,7 +398,7 @@ begin
     C := TAccLedgerConfig.Create;
     try
       DoSaveConfig(C);
-      C.Accounts := GetAlias(gdvObject.FieldByName('id').AsInteger);
+      C.Accounts := gdvObject.FieldByName('alias').AsString;
       S := TStringList.Create;
       try
         S.Text := AnalizeField;
