@@ -441,7 +441,7 @@ type
     procedure SetShowTotals(const Value: Boolean);
     function GetShowFooter: Boolean;
     procedure SetShowFooter(const Value: Boolean);
-    procedure FindColumn(const FromStart: Boolean); 
+    procedure FindColumn(const FromStart: Boolean);
 
   protected
     procedure EditColumn(AColumn: TgsColumn);
@@ -1176,7 +1176,7 @@ begin
       begin
         lbExpandedLines.Items.Add(Column.Title.Caption);
         lbExpandedLines.Items.Objects[lbExpandedLines.Items.Count - 1] :=
-          FNewExpands[I];
+          FNewExpands[I]; 
       end;
     end;
 
@@ -2416,6 +2416,7 @@ end;
 procedure TdlgMaster.actColumnAddExpExecute(Sender: TObject);
 var
   NewExpand: TColumnExpand;
+  Column: TgsColumn;
 begin
   NewExpand := FNewExpands.Add;
   NewExpand.DisplayField := CurrField.FieldName;
@@ -2428,6 +2429,12 @@ begin
     else begin
       PrepareExpands(CurrColumn);
       cbColumnExpanded.Checked := True;
+      Column := ColumnByFieldName(NewExpand.FieldName);
+      if (Column <> nil) and not FNewExpands.IsMain(Column) then
+      begin
+        Column.Visible := False;
+        lvColumns.Invalidate;
+      end;
     end;
   finally
     Free;
@@ -2485,18 +2492,30 @@ begin
 end;
 
 procedure TdlgMaster.actColumnEditExpExecute(Sender: TObject);
+var
+  E: TColumnExpand;
+  C: TgsColumn;
 begin
+  E :=  TColumnExpand(lbExpandedLines.Items.Objects[lbExpandedLines.ItemIndex]);
   with TdlgColumnExpand.Create
   (
     Self,
     FNewColumns,
     CurrColumn,
-    TColumnExpand(lbExpandedLines.Items.Objects[lbExpandedLines.ItemIndex]),
+    E,
     True
   ) do
   try
     if ShowModal = mrOk then
+    begin
       PrepareExpands(CurrColumn);
+      C := ColumnByFieldName(E.FieldName);
+      if (C <> nil) and not FNewExpands.IsMain(C) then
+      begin
+        C.Visible := False;
+        lvColumns.Invalidate;
+      end;
+    end;
   finally
     Free;
   end;

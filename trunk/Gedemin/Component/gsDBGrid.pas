@@ -448,6 +448,7 @@ type
     procedure Assign(Source: TPersistent); override;
     function IsExpandValid(ADataLink: TGridDataLink): Boolean;
 
+
     // Таблица, которой принадлежит данная коллекция
     property Grid: TgsCustomDBGrid read GetGrid;
 
@@ -478,7 +479,8 @@ type
     constructor Create(Grid: TgsCustomDBGrid);
     destructor Destroy; override;
 
-    function  Add: TColumnExpand;
+    function Add: TColumnExpand;
+    function IsMain(ACol: TColumn): Boolean;
 
     // Таблица, которой принадлежит коллекция
     property Grid: TgsCustomDBGrid read FGrid;
@@ -3047,9 +3049,24 @@ end;
   Добавляет новый элемент коллекции.
 }
 
-function  TColumnExpands.Add: TColumnExpand;
+function TColumnExpands.Add: TColumnExpand;
 begin
   Result := TColumnExpand(inherited Add);
+end;
+
+function TColumnExpands.IsMain(ACol: TColumn): Boolean;
+var
+  I: Integer;
+begin
+  Result := False;
+  for I := 0 to Count - 1 do
+  begin
+    if AnsiCompareText(Items[I].DisplayField, ACol.FieldName) = 0 then
+    begin
+      Result := True;
+      break;
+    end;
+  end;   
 end;
 
 {
