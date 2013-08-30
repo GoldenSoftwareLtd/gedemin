@@ -21,6 +21,10 @@
   #define public SupportPhone "+375-17-2561759"
 #endif
 
+#ifndef UpdateToken
+  #define public UpdateToken "NORMAL"
+#endif
+
 #define public GedFileVersion "2.5.0.0"
 
 [Setup]
@@ -63,6 +67,11 @@ Name: "databasefile"; Description: "Установить файл базы данных"; GroupDescripti
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags:
 Name: "quicklaunchicon"; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
+#ifdef Cash
+  Name: "ppserver"; Description: "Установить драйвер платежного терминала"; GroupDescription: "Торговое оборудование:"; Flags:
+  Name: "usbpd"; Description: "Установить драйвер дисплея покупателя"; GroupDescription: "Торговое оборудование:"; Flags:
+#endif
+
 [Files]
 Source: "gedemin.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "gedemin_upd.exe"; DestDir: "{app}"; Flags: ignoreversion
@@ -86,7 +95,17 @@ Source: "Help\fr24rus.chm"; DestDir: "{app}\Help"; Flags: ignoreversion
 Source: "Help\vbs55.chm"; DestDir: "{app}\Help"; Flags: ignoreversion
 Source: "Database\{#DBFileOnlyName}.bk"; DestDir: "{app}\Database"; Flags: deleteafterinstall; Tasks: databasefile
 
+#ifdef Cash
+  Source: "USBPD.dll"; DestDir: "{app}"; Flags: ignoreversion; Tasks: usbpd
+  Source: "PDPosiFlexCommand.dll"; DestDir: "{app}"; Flags: ignoreversion regserver; Tasks: usbpd
+  Source: "PDComWriter.dll"; DestDir: "{app}"; Flags: ignoreversion regserver; Tasks: usbpd
+  Source: "trhems.ini"; DestDir: "{app}"; Flags: ignoreversion; Tasks: ppserver
+  Source: "settings.xml"; DestDir: "{app}"; Flags: ignoreversion; Tasks: ppserver
+  Source: "ppServer.exe"; DestDir: "{app}"; Flags: ignoreversion; Tasks: ppserver
+#endif
+
 [INI]
+Filename: "{app}\gedemin.ini"; Section: "WEB CLIENT"; Key: "Token"; String: "{#UpdateToken}"; 
 Filename: "{app}\databases.ini"; Section: "{#GedSafeAppName}"; Key: "FileName"; String: "Database\{#DBFileOnlyName}.fdb"; Tasks: "databasefile"
 Filename: "{app}\databases.ini"; Section: "{#GedSafeAppName}"; Key: "Selected"; String: "1"; Tasks: "databasefile"
 
@@ -96,10 +115,16 @@ Name: "{group}\www.gsbelarus.com"; Filename: "{#URL}"; IconFileName: "{app}\gede
 Name: "{commondesktop}\{#GedSafeAppName}"; Filename: "{app}\gedemin.exe"; Tasks: desktopicon
 Name: "{userappdata}\Microsoft\Internet Explorer\Quick Launch\{#GedSafeAppName}"; Filename: "{app}\gedemin.exe"; Tasks: quicklaunchicon
 Name: "{group}\{cm:UninstallProgram,{#GedSafeAppName}}"; Filename: "{uninstallexe}"; WorkingDir: "{app}"
+#ifdef Cash
+  Name: "{commonstartmenu}\ppServer"; Filename: "{app}\ppServer.exe"; WorkingDir: "{app}"; Tasks: ppserver
+#endif
 
 [Run]
 FileName: "{app}\gedemin.exe"; Parameters: "/rd /r EMBEDDED ""{app}\Database\{#DBFileOnlyName}.bk"" ""{app}\Database\{#DBFileOnlyName}.fdb"" SYSDBA masterkey 8192 8192"; WorkingDir: {app}; StatusMsg: "Распаковка базы данных..."; Flags: waituntilterminated runhidden; Tasks: databasefile
 Filename: "{app}\gedemin.exe"; Description: "{cm:LaunchProgram,{#GedSafeAppName}}"; WorkingDir: {app}; Flags: nowait postinstall skipifsilent
+
+[InstallDelete]
+Type: files; Name: "{app}\gedemin.jpg"
 
 [UninstallDelete]
 Type: files; Name: "{app}\gedemin.ini"
@@ -110,10 +135,3 @@ Type: filesandordirs; Name: "{app}\udf"
 Type: filesandordirs; Name: "{app}\Intl"
 Type: filesandordirs; Name: "{app}\Help"
 Type: dirifempty; Name: "{app}\Database"
-
-;[Code]
-;
-;function ShouldSkipPage(PageID: Integer): Boolean;
-;begin
-;  Result := PageID = wpFinished;
-;end;

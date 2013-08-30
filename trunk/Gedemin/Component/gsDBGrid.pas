@@ -2614,6 +2614,7 @@ end;
 procedure TCondition.SetFont(const Value: TFont);
 begin
   FFont.Assign(Value);
+  FFont.CharSet := RUSSIAN_CHARSET;
 
   if Assigned(Grid) then
     Grid.Invalidate;
