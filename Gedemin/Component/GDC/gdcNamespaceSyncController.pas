@@ -25,6 +25,7 @@ type
     FFilterText: String;
     FFilterOperation: String;
     Fq: TIBSQL;
+    FqUpdateOperation: TIBSQL;
 
     procedure Init;
     procedure DoLog(const AMessage: String);
@@ -39,6 +40,7 @@ type
     procedure Scan;
     procedure ApplyFilter;
     procedure DeleteFile(const AFileName: String);
+    procedure SetOperation(const AnOp: String);
 
     property Directory: String read FDirectory write FDirectory;
     property UpdateCurrModified: Boolean read FUpdateCurrModified write FUpdateCurrModified;
@@ -158,74 +160,98 @@ begin
 end;
 
 procedure TgdcNamespaceSyncController.ApplyFilter;
+var
+  NK: Integer;
+  FN: String;
 begin
-  FDataSet.Close;
-  FDataSet.SelectSQL.Text :=
-    'SELECT ' +
-    '  n.id AS NamespaceKey, ' +
-    '  n.name AS NamespaceName, ' +
-    '  n.version AS NamespaceVersion, ' +
-    '  n.filetimestamp AS NamespaceTimestamp, ' +
-    '  n.internal AS NamespaceInternal, ' +
-    '  s.operation, ' +
-    '  f.filename, ' +
-    '  f.name AS FileNamespaceName, ' +
-    '  f.version AS FileVersion, ' +
-    '  f.filetimestamp AS FileTimeStamp, ' +
-    '  f.filesize AS FileSize, ' +
-    '  (f.xid || ''_'' || f.dbid) AS FileRUID, ' +
-    '  f.internal AS FileInternal ' +
-    'FROM ' +
-    '  at_namespace_sync s ' +
-    '  LEFT JOIN at_namespace n ON n.id = s.namespacekey ' +
-    '  LEFT JOIN at_namespace_file f ON f.filename = s.filename ';
-
-  if FFilterOnlyPackages or (FFilterText > '') or (FFilterOperation > '') then
+  if not FDataSet.EOF then
   begin
-    FDataSet.SelectSQL.Text := FDataSet.SelectSQL.Text +
-      'WHERE (s.operation = ''  '') OR (';
-
-    if FFilterOnlyPackages then
-      FDataSet.SelectSQL.Text := FDataSet.SelectSQL.Text +
-        '((n.id IS NOT NULL AND n.internal = 0) OR (f.name IS NOT NULL AND f.internal = 0))';
-
-    if FFilterText > '' then
-    begin
-      if FFilterOnlyPackages then
-        FDataSet.SelectSQL.Text := FDataSet.SelectSQL.Text + ' AND ';
-      FDataSet.SelectSQL.Text := FDataSet.SelectSQL.Text +
-        '(POSITION(:t IN UPPER(' +
-        '  COALESCE(n.name, '''') || ' +
-        '  COALESCE(n.version, '''') || ' +
-        '  COALESCE(n.filetimestamp, '''') || ' +
-        '  COALESCE(f.filename, '''') || ' +
-        '  COALESCE(f.name, '''') || ' +
-        '  COALESCE(f.version, '''') || ' +
-        '  COALESCE(f.filetimestamp, ''''))) > 0)';
-    end;
-
-    if FFilterOperation > '' then
-    begin
-      if FFilterOnlyPackages or (FFilterText > '') then
-        FDataSet.SelectSQL.Text := FDataSet.SelectSQL.Text + ' AND ';
-      FDataSet.SelectSQL.Text := FDataSet.SelectSQL.Text +
-        '(POSITION(CAST(s.operation AS VARCHAR(1024)) IN :op) > 0)';
-    end;
-
-    FDataSet.SelectSQL.Text := FDataSet.SelectSQL.Text + ')';
+    NK := FDataSet.FieldByName('namespacekey').AsInteger;
+    FN := FDataSet.FieldByName('filename').AsString;
+  end else
+  begin
+    NK := 0;
+    FN := '';
   end;
 
-  FDataSet.SelectSQL.Text := FDataSet.SelectSQL.Text +
-    'ORDER BY ' +
-    '  f.filename';
+  FDataSet.DisableControls;
+  try
+    FDataSet.Close;
+    FDataSet.SelectSQL.Text :=
+      'SELECT ' +
+      '  n.id AS NamespaceKey, ' +
+      '  n.name AS NamespaceName, ' +
+      '  n.version AS NamespaceVersion, ' +
+      '  n.filetimestamp AS NamespaceTimestamp, ' +
+      '  n.internal AS NamespaceInternal, ' +
+      '  s.operation, ' +
+      '  f.filename, ' +
+      '  f.name AS FileNamespaceName, ' +
+      '  f.version AS FileVersion, ' +
+      '  f.filetimestamp AS FileTimeStamp, ' +
+      '  f.filesize AS FileSize, ' +
+      '  (f.xid || ''_'' || f.dbid) AS FileRUID, ' +
+      '  f.internal AS FileInternal ' +
+      'FROM ' +
+      '  at_namespace_sync s ' +
+      '  LEFT JOIN at_namespace n ON n.id = s.namespacekey ' +
+      '  LEFT JOIN at_namespace_file f ON f.filename = s.filename ';
 
-  if FFilterText > '' then
-    FDataSet.ParamByName('t').AsString := AnsiUpperCase(FFilterText);
+    if FFilterOnlyPackages or (FFilterText > '') or (FFilterOperation > '') then
+    begin
+      FDataSet.SelectSQL.Text := FDataSet.SelectSQL.Text +
+        'WHERE (s.operation = ''  '') OR (';
 
-  if FFilterOperation > '' then
-    FDataSet.ParamByName('op').AsString := FFilterOperation;
+      if FFilterOnlyPackages then
+        FDataSet.SelectSQL.Text := FDataSet.SelectSQL.Text +
+          '((n.id IS NOT NULL AND n.internal = 0) OR (f.name IS NOT NULL AND f.internal = 0))';
 
-  FDataSet.Open;
+      if FFilterText > '' then
+      begin
+        if FFilterOnlyPackages then
+          FDataSet.SelectSQL.Text := FDataSet.SelectSQL.Text + ' AND ';
+        FDataSet.SelectSQL.Text := FDataSet.SelectSQL.Text +
+          '(POSITION(:t IN UPPER(' +
+          '  COALESCE(n.name, '''') || ' +
+          '  COALESCE(n.version, '''') || ' +
+          '  COALESCE(n.filetimestamp, '''') || ' +
+          '  COALESCE(f.filename, '''') || ' +
+          '  COALESCE(f.name, '''') || ' +
+          '  COALESCE(f.version, '''') || ' +
+          '  COALESCE(f.filetimestamp, ''''))) > 0)';
+      end;
+
+      if FFilterOperation > '' then
+      begin
+        if FFilterOnlyPackages or (FFilterText > '') then
+          FDataSet.SelectSQL.Text := FDataSet.SelectSQL.Text + ' AND ';
+        FDataSet.SelectSQL.Text := FDataSet.SelectSQL.Text +
+          '(POSITION(CAST(s.operation AS VARCHAR(1024)) IN :op) > 0)';
+      end;
+
+      FDataSet.SelectSQL.Text := FDataSet.SelectSQL.Text + ')';
+    end;
+
+    FDataSet.SelectSQL.Text := FDataSet.SelectSQL.Text +
+      'ORDER BY ' +
+      '  f.filename';
+
+    if FFilterText > '' then
+      FDataSet.ParamByName('t').AsString := AnsiUpperCase(FFilterText);
+
+    if FFilterOperation > '' then
+      FDataSet.ParamByName('op').AsString := FFilterOperation;
+
+    FDataSet.Open;
+
+    if (NK = 0) or (not FDataSet.Locate('namespacekey', NK, [])) then
+    begin
+      if FN > '' then
+        FDataSet.Locate('filename', FN, []);
+    end;
+  finally
+    FDataSet.EnableControls;
+  end;
 end;
 
 constructor TgdcNamespaceSyncController.Create;
@@ -251,6 +277,7 @@ end;
 
 destructor TgdcNamespaceSyncController.Destroy;
 begin
+  FqUpdateOperation.Free;
   Fq.Free;
   FDataSet.Free;
   FqFillSync.Free;
@@ -415,6 +442,13 @@ begin
 
   Fq := TIBSQL.Create(nil);
   Fq.Transaction := FTr;
+
+  FqUpdateOperation := TIBSQL.Create(nil);
+  FqUpdateOperation.Transaction := FTr;
+  FqUpdateOperation.SQL.Text :=
+    'UPDATE at_namespace_sync SET operation = :op ' +
+    'WHERE namespacekey IS NOT DISTINCT FROM :nk ' +
+    '  AND filename IS NOT DISTINCT FROM :fn';
 end;
 
 procedure TgdcNamespaceSyncController.Scan;
@@ -457,6 +491,42 @@ begin
 
   gd_GlobalParams.NamespacePath := FDirectory;
   DoLog('Выполнено сравнение с каталогом ' + FDirectory);
+end;
+
+procedure TgdcNamespaceSyncController.SetOperation(const AnOp: String);
+begin
+  Assert(not FDataSet.EOF);
+
+  if
+    (
+      (AnOp = '<<')
+      and
+      (FDataSet.FieldByName('fileversion').AsString > '')
+    )
+    or
+    (
+      (AnOp = '>>')
+      and
+      (not FDataSet.FieldByName('namespacekey').IsNull)
+    )
+    or
+    (
+      AnOp = '  '
+    ) then
+  begin
+    if FDataSet.FieldByName('namespacekey').IsNull then
+      FqUpdateOperation.ParamByName('nk').Clear
+    else
+      FqUpdateOperation.ParamByName('nk').AsInteger := FDataSet.FieldByName('namespacekey').AsInteger;
+
+    if FDataSet.FieldByName('fileversion').AsString > '' then
+      FqUpdateOperation.ParamByName('fn').AsString := FDataSet.FieldByName('filename').AsString
+    else
+      FqUpdateOperation.ParamByName('fn').Clear;
+
+    FqUpdateOperation.ParamByName('op').AsString := AnOp;
+    FqUpdateOperation.ExecQuery;  
+  end;
 end;
 
 end.

@@ -10,7 +10,7 @@ uses
   gdcNamespace, IBDatabase, gsNSObjects, gdcNamespaceSyncController;
 
 type
-  TIterateProc = procedure (AnObj: TObject; const Data: String) of object;
+  TIterateProc = procedure (const AData: String) of object;
   
   Tat_frmSyncNamespace = class(TCreateableForm)
     cds: TClientDataSet;
@@ -141,11 +141,10 @@ type
     FgdcNamespaceSyncController: TgdcNamespaceSyncController;
 
     procedure ApplyFilter;
-    procedure IterateSelected(Proc: TIterateProc; AnObj: TObject; const AData: String);
-    procedure SetOperation(AnObj: TObject; const AData: String);
-    procedure DeleteFile(AnObj: TObject; const AData: String);
+    procedure IterateSelected(Proc: TIterateProc; const AData: String = '');
+    procedure SetOperation(const AData: String);
+    procedure DeleteFile(const AData: String);
     procedure Log(const S: String);
-    function StatusFilterSet: Boolean;
 
   public
     constructor Create(AnOwner: TComponent); override;
@@ -354,7 +353,7 @@ begin
 end;
 
 procedure Tat_frmSyncNamespace.IterateSelected(Proc: TIterateProc;
-  AnObj: TObject; const AData: String);
+  const AData: String = '');
 var
   I: Integer;
   Bm: String;
@@ -362,23 +361,24 @@ begin
   gr.SelectedRows.Refresh;
   if gr.SelectedRows.Count > 0 then
   begin
-    Bm := cds.Bookmark;
-    cds.DisableControls;
+    Bm := FgdcNamespaceSyncController.DataSet.Bookmark;
+    FgdcNamespaceSyncController.DataSet.DisableControls;
     try
       for I := 0 to gr.SelectedRows.Count - 1 do
       begin
-        cds.Bookmark := gr.SelectedRows[I];
-        Proc(AnObj, AData);
+        FgdcNamespaceSyncController.DataSet.Bookmark := gr.SelectedRows[I];
+        Proc(AData);
         UpdateWindow(mMessages.Handle);
       end;
-      if cds.BookmarkValid(Pointer(Bm)) then
-        cds.Bookmark := Bm;
+      if FgdcNamespaceSyncController.DataSet.BookmarkValid(Pointer(Bm)) then
+        FgdcNamespaceSyncController.DataSet.Bookmark := Bm;
     finally
-      cds.EnableControls;
+      FgdcNamespaceSyncController.DataSet.EnableControls;
     end;
   end
-  else if not cds.IsEmpty then
-    Proc(AnObj, AData);
+  else if not FgdcNamespaceSyncController.DataSet.IsEmpty then
+    Proc(AData);
+  ApplyFilter;
 end;
 
 procedure Tat_frmSyncNamespace.actSetForLoadingUpdate(Sender: TObject);
@@ -388,65 +388,12 @@ end;
 
 procedure Tat_frmSyncNamespace.actSetForLoadingExecute(Sender: TObject);
 begin
-  IterateSelected(SetOperation, cds, '<<');
-  if StatusFilterSet and (not actFLTNewer.Checked) then
-    gr.SelectedRows.Clear;
+  IterateSelected(SetOperation, '<<');
 end;
 
-procedure Tat_frmSyncNamespace.SetOperation(AnObj: TObject; const AData: String);
-
-  procedure SetLoadState(Node: TgsNSTreeNode);
-  var
-    I: Integer;
-  begin
-    if (Node <> nil)
-      and cds.Locate('fileruid', Node.YamlNode.RUID, [])
-      and (cds.FieldByName('fileversion').AsString > '')
-      and (cds.FieldByName('operation').AsString <> AData)
-    then
-    begin
-      (AnObj as TClientDataSet).Edit;
-      (AnObj as TClientDataSet).FieldByName('operation').AsString := AData;
-      (AnObj as TClientDataSet).Post;
-
-      for I := 0 to Node.UsesObject.Count - 1 do
-        SetLoadState(Node.UsesObject.Objects[I] as TgsNSTreeNode);
-    end;
-  end;
+procedure Tat_frmSyncNamespace.SetOperation(const AData: String);
 begin
-  Assert(AnObj is TClientDataSet);
-  if
-    (
-      (AData = '<<')
-      and
-      ((AnObj as TClientDataSet).FieldByName('fileversion').AsString > '')
-    )
-    or
-    (
-      (AData = '>>')
-      and
-      ((AnObj as TClientDataSet).FieldByName('namespacename').AsString > '')
-    )
-    or
-    (
-      AData = '  '
-    ) then
-  begin
-    if AData = '<<' then
-    begin
-      (AnObj as TClientDataSet).DisableControls;
-      try
-        SetLoadState(FNSList.NSTree.GetTreeNodeByRUID((AnObj as TClientDataSet).FieldByName('fileruid').AsString))
-      finally
-        (AnObj as TClientDataSet).EnableControls;
-      end;
-    end else
-    begin
-      (AnObj as TClientDataSet).Edit;
-      (AnObj as TClientDataSet).FieldByName('operation').AsString := AData;
-      (AnObj as TClientDataSet).Post;
-    end;
-  end;
+  FgdcNamespaceSyncController.SetOperation(AData);
 end;
 
 procedure Tat_frmSyncNamespace.actSetForSavingUpdate(Sender: TObject);
@@ -456,26 +403,22 @@ end;
 
 procedure Tat_frmSyncNamespace.actSetForSavingExecute(Sender: TObject);
 begin
-  IterateSelected(SetOperation, cds, '>>');
-  if StatusFilterSet and (not actFLTOlder.Checked) then
-    gr.SelectedRows.Clear;
+  IterateSelected(SetOperation, '>>');
 end;
 
 procedure Tat_frmSyncNamespace.actClearUpdate(Sender: TObject);
 begin
-  actClear.Enabled := not cds.IsEmpty;
+  actClear.Enabled := not FgdcNamespaceSyncController.DataSet.IsEmpty;
 end;
 
 procedure Tat_frmSyncNamespace.actClearExecute(Sender: TObject);
 begin
-  IterateSelected(SetOperation, cds, '  ');
-  if StatusFilterSet and (not actFLTNone.Checked) then
-    gr.SelectedRows.Clear;
+  IterateSelected(SetOperation, '  ');
 end;
 
 procedure Tat_frmSyncNamespace.actSyncUpdate(Sender: TObject);
 begin
-  actSync.Enabled := not cds.IsEmpty;
+  actSync.Enabled := not FgdcNamespaceSyncController.DataSet.IsEmpty;
 end;
 
 procedure Tat_frmSyncNamespace.actSyncExecute(Sender: TObject);
@@ -567,15 +510,15 @@ begin
     and (not FgdcNamespaceSyncController.DataSet.FieldByName('filetimestamp').IsNull);
 end;
 
-procedure Tat_frmSyncNamespace.DeleteFile(AnObj: TObject;
-  const AData: String);
+procedure Tat_frmSyncNamespace.DeleteFile(const AData: String);
 begin
-  FgdcNamespaceSyncController.DeleteFile(FgdcNamespaceSyncController.DataSet.FieldByName('filename').AsString);
+  FgdcNamespaceSyncController.DeleteFile(
+    FgdcNamespaceSyncController.DataSet.FieldByName('filename').AsString);
 end;
 
 procedure Tat_frmSyncNamespace.actDeleteFileExecute(Sender: TObject);
 begin
-  IterateSelected(DeleteFile, nil, '');
+  IterateSelected(DeleteFile);
 end;
 
 procedure Tat_frmSyncNamespace.Log(const S: String);
@@ -622,18 +565,13 @@ end;
 
 procedure Tat_frmSyncNamespace.actFLTOnlyInDBUpdate(Sender: TObject);
 begin
-  (Sender as TAction).Enabled := cds.Filtered or (not cds.IsEmpty);
+  (Sender as TAction).Enabled := not FgdcNamespaceSyncController.DataSet.IsEmpty;
 end;
 
 procedure Tat_frmSyncNamespace.actFLTInternalExecute(Sender: TObject);
 begin
   FgdcNamespaceSyncController.FilterOnlyPackages := cbPackets.Checked;
   ApplyFilter;
-end;
-
-function Tat_frmSyncNamespace.StatusFilterSet: Boolean;
-begin
-  Result := FgdcNamespaceSyncController.FilterOperation > '';
 end;
 
 procedure Tat_frmSyncNamespace.actSelectAllExecute(Sender: TObject);

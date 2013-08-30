@@ -14,10 +14,10 @@
 #define public GedSafeAppName "POSitive Check"
 #define public DBFileOnlyName "menufront"
 
-#include "CommonLocal.iss"
+#define public UpdateToken "POSITIVE_CHECK"
+#define public Cash "True"
 
-[INI]
-Filename: "{app}\gedemin.ini"; Section: "WEB CLIENT"; Key: "Token"; String: "POSITIVE_CHECK"; 
+#include "CommonLocal.iss"
 
 [Icons]
 Name: "{group}\{#GedSafeAppName} Фронт-офис"; Filename: "{app}\gedemin.exe"; Parameters: "/sn ""{app}\Database\{#DBFileOnlyName}.fdb"" /user Term /password 1"; WorkingDir: "{app}"

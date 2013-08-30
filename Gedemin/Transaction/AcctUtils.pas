@@ -3,8 +3,7 @@ unit AcctUtils;
 interface
 
 uses
-  classes, Windows, {gsDBGrid,}
-  stdctrls, Forms, Controls, Dialogs,
+  classes, Windows, stdctrls, Forms, Controls, Dialogs,
   gdcBaseInterface, AcctStrings, gd_KeyAssoc;
 
 type
@@ -55,7 +54,7 @@ function GetDontBalanceAnalyticList: String;
 procedure SetSaldoValue(AValue: Currency; ADebit, ACredit: TEdit; ADecDigits: Integer);
 
 function CheckActiveAccount(CompanyKey: Integer; AShowMessage: Boolean = True): Boolean;
-function GetGeneralAnalyticField(AnAccountID: Integer): String;
+function GetGeneralAnalyticField(const AnAccountID: Integer): String;
 
 const
   cInputParam = '/*INPUT PARAM*/';
@@ -299,26 +298,28 @@ begin
   end;
 end;
 
-function GetGeneralAnalyticField(AnAccountID: Integer): String;
+function GetGeneralAnalyticField(const AnAccountID: Integer): String;
 var
-  SQL: TIBSQL;
+  q: TIBSQL;
 begin
-  SQL := TIBSQL.Create(nil);
+  Assert(gdcBaseManager <> nil);
+  
+  q := TIBSQL.Create(nil);
   try
-    SQL.Transaction := gdcBaseManager.ReadTransaction;
-    SQL.SQL.Text :=
+    q.Transaction := gdcBaseManager.ReadTransaction;
+    q.SQL.Text :=
       'SELECT rf.fieldname FROM ac_account a ' +
       '  JOIN at_relation_fields rf ON rf.id = a.analyticalfield ' +
       'WHERE ' +
       '  a.id = :id';
-    SQL.ParamByName('id').AsInteger := AnAccountID;
-    SQL.ExecQuery;
-    if not SQL.Eof then
-      Result := SQL.FieldByName('fieldname').AsString
+    q.ParamByName('id').AsInteger := AnAccountID;
+    q.ExecQuery;
+    if not q.Eof then
+      Result := q.FieldByName('fieldname').AsString
     else
       Result := '';
   finally
-    SQL.Free;
+    q.Free;
   end;
 end;
 
