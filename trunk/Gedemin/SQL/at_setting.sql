@@ -449,10 +449,12 @@ CREATE GLOBAL TEMPORARY TABLE at_namespace_file_link (
   uses_dbid     dintkey,
   uses_name     dtext255 NOT NULL,
 
-  PRIMARY KEY (filename, uses_xid, uses_dbid),
-  FOREIGN KEY (filename) REFERENCES at_namespace_file (filename)
-    ON UPDATE CASCADE
-    ON DELETE CASCADE
+  CONSTRAINT at_pk_namespace_file_link
+    PRIMARY KEY (filename, uses_xid, uses_dbid),
+  CONSTRAINT at_fk_namespace_file_link_fn
+    FOREIGN KEY (filename) REFERENCES at_namespace_file (filename)
+      ON UPDATE CASCADE
+      ON DELETE CASCADE
 )
   ON COMMIT DELETE ROWS;
 
@@ -461,11 +463,14 @@ CREATE GLOBAL TEMPORARY TABLE at_namespace_sync (
   filename      dtext255,
   operation     CHAR(2) DEFAULT '  ' NOT NULL,
 
-  FOREIGN KEY (namespacekey) REFERENCES at_namespace (id),
-  FOREIGN KEY (filename) REFERENCES at_namespace_file (filename)
-    ON UPDATE CASCADE
-    ON DELETE CASCADE,
-  CHECK (operation IN ('  ', '< ', '> ', '>>', '<<', '==', '=>', '<=', '! ', '? '))
+  CONSTRAINT at_fk_namespace_sync_nsk
+    FOREIGN KEY (namespacekey) REFERENCES at_namespace (id),
+  CONSTRAINT at_fk_namespace_sync_fn
+    FOREIGN KEY (filename) REFERENCES at_namespace_file (filename)
+      ON UPDATE CASCADE
+      ON DELETE CASCADE,
+  CONSTRAINT at_chk_namespace_sync_op
+    CHECK (operation IN ('  ', '< ', '> ', '>>', '<<', '==', '=>', '<=', '! ', '? '))
 )
   ON COMMIT DELETE ROWS;
 

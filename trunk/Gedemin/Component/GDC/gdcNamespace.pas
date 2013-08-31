@@ -219,6 +219,12 @@ class procedure TgdcNamespace.WriteObject(AgdcObject: TgdcBase; AWriter: TyamlWr
   const ADontRemove: Boolean; const AnIncludeSiblings: Boolean;
   AnObjCache: TStringHashMap);
 
+const
+  PassFieldName =
+    ';ID;CREATORKEY;EDITORKEY;ACHAG;AVIEW;AFULL;LB;RB;RESERVED' +
+    ';BREAKPOINTS;EDITORSTATE;TESTRESULT;LASTEXTIME;PARENTINDEX' +
+    ';RDB$TRIGGER_BLR;RDB$PROCEDURE_BLR;RDB$VIEW_BLR;RDB$SECURITY_CLASS;';
+
   procedure WriteSet(AnObj: TgdcBase; AWriter: TyamlWriter);
   var
     I, J: Integer;
@@ -295,6 +301,8 @@ class procedure TgdcNamespace.WriteObject(AgdcObject: TgdcBase; AWriter: TyamlWr
                       continue;
                     if R.RelationFields[J] = R.PrimaryKey.ConstraintFields[1] then
                       continue;
+                    if Pos(';' + R.RelationFields[J].FieldName + ';', PassFieldName) > 0 then
+                      continue;
                     F := q.FieldByName(R.RelationFields[J].FieldName);
                     if F.IsNull then
                       AWriter.WriteNullValue(R.RelationFields[J].FieldName)
@@ -356,11 +364,6 @@ class procedure TgdcNamespace.WriteObject(AgdcObject: TgdcBase; AWriter: TyamlWr
     end;
   end;
 
-const
-  PassFieldName =
-    ';ID;CREATORKEY;EDITORKEY;ACHAG;AVIEW;AFULL;LB;RB;RESERVED' +
-    ';BREAKPOINTS;EDITORSTATE;TESTRESULT;LASTEXTIME;PARENTINDEX' +
-    ';RDB$TRIGGER_BLR;RDB$PROCEDURE_BLR;RDB$VIEW_BLR;RDB$SECURITY_CLASS;';
 var
   I: Integer;
   R: TatRelation;
@@ -875,12 +878,7 @@ begin
     SL := TStringList.Create;
     try
       SL.Add(FN);
-      with TgdcNamespaceLoader.Create do
-      try
-        Load(SL);
-      finally
-        Free;
-      end;
+      TgdcNamespaceLoader.LoadDelayed(SL, False, False);
     finally
       SL.Free;
     end;

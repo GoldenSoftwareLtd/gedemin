@@ -41,6 +41,9 @@ type
     procedure ApplyFilter;
     procedure DeleteFile(const AFileName: String);
     procedure SetOperation(const AnOp: String);
+    procedure Sync;
+    procedure EditNamespace;
+    procedure CompareWithData(const AFileName: String);
 
     property Directory: String read FDirectory write FDirectory;
     property UpdateCurrModified: Boolean read FUpdateCurrModified write FUpdateCurrModified;
@@ -55,8 +58,8 @@ type
 implementation
 
 uses
-  SysUtils, jclFileUtils, gdcBaseInterface, gdcBase, gdcNamespace,
-  gd_GlobalParams_unit, yaml_parser, gd_common_functions;
+  SysUtils, Controls, jclFileUtils, gdcBaseInterface, gdcBase, gdcNamespace,
+  gd_GlobalParams_unit, yaml_parser, gd_common_functions, at_dlgCheckOperation_unit;
 
 { TgdcNamespaceSyncController }
 
@@ -200,7 +203,7 @@ begin
     if FFilterOnlyPackages or (FFilterText > '') or (FFilterOperation > '') then
     begin
       FDataSet.SelectSQL.Text := FDataSet.SelectSQL.Text +
-        'WHERE (s.operation = ''  '') OR (';
+        'WHERE (f.name CONTAINING ''\'') OR (';
 
       if FFilterOnlyPackages then
         FDataSet.SelectSQL.Text := FDataSet.SelectSQL.Text +
@@ -254,6 +257,24 @@ begin
   end;
 end;
 
+procedure TgdcNamespaceSyncController.CompareWithData(
+  const AFileName: String);
+begin
+  Assert(not FDataSet.IsEmpty);
+  Assert(FDataSet.FieldByName('namespacekey').AsInteger > 0);
+
+  with TgdcNamespace.Create(nil) do
+  try
+    SubSet := 'ByID';
+    ID := FDataSet.FieldByName('namespacekey').AsInteger;
+    Open;
+    if not EOF then
+      CompareWithData(AFileName);
+  finally
+    Free;
+  end;
+end;
+
 constructor TgdcNamespaceSyncController.Create;
 begin
   FUpdateCurrModified := True;
@@ -293,6 +314,23 @@ procedure TgdcNamespaceSyncController.DoLog(const AMessage: String);
 begin
   if Assigned(FOnLogMessage) then
     FOnLogMessage(AMessage);
+end;
+
+procedure TgdcNamespaceSyncController.EditNamespace;
+begin
+  Assert(not FDataSet.IsEmpty);
+  Assert(FDataSet.FieldByName('namespacekey').AsInteger > 0);
+
+  with TgdcNamespace.Create(nil) do
+  try
+    SubSet := 'ByID';
+    ID := FDataSet.FieldByName('namespacekey').AsInteger;
+    Open;
+    if not EOF then
+      EditDialog;
+  finally
+    Free;
+  end;
 end;
 
 function TgdcNamespaceSyncController.GetDataSet: TDataSet;
@@ -525,7 +563,70 @@ begin
       FqUpdateOperation.ParamByName('fn').Clear;
 
     FqUpdateOperation.ParamByName('op').AsString := AnOp;
-    FqUpdateOperation.ExecQuery;  
+    FqUpdateOperation.ExecQuery;
+  end;
+end;
+
+procedure TgdcNamespaceSyncController.Sync;
+var
+  NS: TgdcNamespace;
+begin
+  with TdlgCheckOperation.Create(nil) do
+  try
+    Fq.Close;
+
+    Fq.SQL.Text :=
+      'SELECT LIST(n.name, '', ''), COUNT(*) FROM at_namespace n ' +
+      '  JOIN at_namespace_sync s ON s.namespacekey = n.id ' +
+      'WHERE s.operation IN (''> '', ''>>'')';
+    Fq.ExecQuery;
+    mSaveList.Lines.Text := Fq.Fields[0].AsString;
+    lSaveRecords.Caption := 'Выбрано для сохранения в файлы: ' + Fq.Fields[1].AsString;
+    Fq.Close;
+
+    Fq.SQL.Text :=
+      'SELECT LIST(n.name, '', ''), COUNT(*) FROM at_namespace n ' +
+      '  JOIN at_namespace_sync s ON s.namespacekey = n.id ' +
+      'WHERE s.operation IN (''< '', ''<<'')';
+    Fq.ExecQuery;
+    mLoadList.Lines.Text := Fq.Fields[0].AsString;
+    lLoadRecords.Caption := 'Выбрано для загрузки из файлов: ' + Fq.Fields[1].AsString;
+    Fq.Close;
+
+    if ShowModal = mrOk then
+    begin
+      if mSaveList.Lines.Text > '' then
+      begin
+        NS := TgdcNamespace.Create(nil);
+        try
+          NS.Transaction := FTr;
+          NS.ReadTransaction := FTr;
+          NS.SubSet := 'ByID';
+
+          Fq.SQL.Text :=
+            'SELECT n.id, s.filename FROM at_namespace n ' +
+            '  JOIN at_namespace_sync s ON s.namespacekey = n.id ' +
+            'WHERE s.operation IN (''> '', ''>>'')';
+          Fq.ExecQuery;
+
+          while not Fq.EOF do
+          begin
+            NS.Close;
+            NS.ID := Fq.FieldByName('id').AsInteger;
+            NS.Open;
+            if (not NS.EOF) and NS.SaveNamespaceToFile(Fq.FieldByName('filename').AsString, chbxIncVersion.Checked) then
+              DoLog('Пространство имен ' + NS.ObjectName + ' записано в файл.');
+            Fq.Next;
+          end;
+
+          Fq.Close;
+        finally
+          NS.Free;
+        end;
+      end;
+    end;
+  finally
+    Free;
   end;
 end;
 
