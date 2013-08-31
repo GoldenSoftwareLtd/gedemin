@@ -23,6 +23,7 @@ procedure SetDefaultForAccountType(IBDB: TIBDatabase; Log: TModifyLog);
 procedure AddGdObjectDependencies(IBDB: TIBDatabase; Log: TModifyLog);
 procedure Issue1041(IBDB: TIBDatabase; Log: TModifyLog);
 procedure Issue3218(IBDB: TIBDatabase; Log: TModifyLog);
+procedure AddNSSyncTables(IBDB: TIBDatabase; Log: TModifyLog);
 
 implementation
 
@@ -1473,6 +1474,113 @@ begin
       q.SQL.Text :=
         'UPDATE OR INSERT INTO fin_versioninfo ' +
         '  VALUES (182, ''0000.0001.0000.0213'', ''22.08.2013'', ''Issue 3218.'') ' +
+        '  MATCHING (id)';
+      q.ExecQuery;
+
+      Tr.Commit;
+    except
+      on E: Exception do
+      begin
+        Log('Произошла ошибка: ' + E.Message);
+        if Tr.InTransaction then
+          Tr.Rollback;
+        raise;
+      end;
+    end;
+  finally
+    q.Free;
+    Tr.Free;
+  end;
+end;
+
+procedure AddNSSyncTables(IBDB: TIBDatabase; Log: TModifyLog);
+var
+  q: TIBSQL;
+  Tr: TIBTransaction;
+begin
+  Tr := TIBTransaction.Create(nil);
+  q := TIBSQL.Create(nil);
+  try
+    Tr.DefaultDatabase := IBDB;
+    Tr.StartTransaction;
+
+    try
+      q.ParamCheck := False;
+      q.Transaction := Tr;
+
+      if not RelationExist2('AT_NAMESPACE_FILE', Tr) then
+      begin
+        q.SQL.Text :=
+          'CREATE GLOBAL TEMPORARY TABLE at_namespace_file ( '#13#10 +
+          '  filename      dtext255, '#13#10 +
+          '  filetimestamp TIMESTAMP, '#13#10 +
+          '  filesize      dinteger, '#13#10 +
+          '  name          dtext255 NOT NULL UNIQUE, '#13#10 +
+          '  caption       dtext255, '#13#10 +
+          '  version       dtext20, '#13#10 +
+          '  dbversion     dtext20, '#13#10 +
+          '  optional      dboolean_notnull DEFAULT 0, '#13#10 +
+          '  internal      dboolean_notnull DEFAULT 1, '#13#10 +
+          '  comment       dblobtext80_1251, '#13#10 +
+          '  xid           dinteger, '#13#10 +
+          '  dbid          dinteger, '#13#10 +
+          ' '#13#10 +
+          '  CONSTRAINT at_pk_namespace_file PRIMARY KEY (filename) '#13#10 +
+          ') '#13#10 +
+          '  ON COMMIT DELETE ROWS';
+        q.ExecQuery;
+      end;
+
+      if not RelationExist2('AT_NAMESPACE_FILE_LINK', Tr) then
+      begin
+        q.SQL.Text :=
+          'CREATE GLOBAL TEMPORARY TABLE at_namespace_file_link ( '#13#10 +
+          '  filename      dtext255 NOT NULL, '#13#10 +
+          '  uses_xid      dintkey, '#13#10 +
+          '  uses_dbid     dintkey, '#13#10 +
+          '  uses_name     dtext255 NOT NULL, '#13#10 +
+          ' '#13#10 +
+          '  CONSTRAINT at_pk_namespace_file_link '#13#10 +
+          '    PRIMARY KEY (filename, uses_xid, uses_dbid), '#13#10 +
+          '  CONSTRAINT at_fk_namespace_file_link_fn '#13#10 +
+          '    FOREIGN KEY (filename) REFERENCES at_namespace_file (filename) '#13#10 +
+          '      ON UPDATE CASCADE '#13#10 +
+          '      ON DELETE CASCADE '#13#10 +
+          ') '#13#10 +
+          '  ON COMMIT DELETE ROWS;';
+        q.ExecQuery;
+      end;
+
+      if not RelationExist2('AT_NAMESPACE_SYNC', Tr) then
+      begin
+        q.SQL.Text :=
+          'CREATE GLOBAL TEMPORARY TABLE at_namespace_sync ( '#13#10 +
+          '  namespacekey  dforeignkey, '#13#10 +
+          '  filename      dtext255, '#13#10 +
+          '  operation     CHAR(2) DEFAULT ''  '' NOT NULL, '#13#10 +
+          ' '#13#10 +
+          '  CONSTRAINT at_fk_namespace_sync_nsk '#13#10 +
+          '    FOREIGN KEY (namespacekey) REFERENCES at_namespace (id), '#13#10 +
+          '  CONSTRAINT at_fk_namespace_sync_fn '#13#10 +
+          '    FOREIGN KEY (filename) REFERENCES at_namespace_file (filename) '#13#10 +
+          '      ON UPDATE CASCADE '#13#10 +
+          '      ON DELETE CASCADE, '#13#10 +
+          '  CONSTRAINT at_chk_namespace_sync_op '#13#10 +
+          '    CHECK (operation IN (''  '', ''< '', ''> '', ''>>'', ''<<'', ''=='', ''=>'', ''<='', ''! '',  '#13#10 +'''? '')) '#13#10 +
+          ') '#13#10 +
+          '  ON COMMIT DELETE ROWS;';
+       q.ExecQuery;
+      end;
+
+      q.SQL.Text := 'GRANT ALL ON at_namespace_file TO administrator';
+      q.SQL.Text := 'GRANT ALL ON at_namespace_file_link TO administrator';
+      q.SQL.Text := 'GRANT ALL ON at_namespace_sync TO administrator';
+      q.ExecQuery;
+
+      q.Close;
+      q.SQL.Text :=
+        'UPDATE OR INSERT INTO fin_versioninfo ' +
+        '  VALUES (183, ''0000.0001.0000.0214'', ''31.08.2013'', ''Added NS sync tables.'') ' +
         '  MATCHING (id)';
       q.ExecQuery;
 

@@ -578,6 +578,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (182, '0000.0001.0000.0213', '22.08.2013', 'Issue 3218.');
 
+INSERT INTO fin_versioninfo
+  VALUES (183, '0000.0001.0000.0214', '31.08.2013', 'Added NS sync tables.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id

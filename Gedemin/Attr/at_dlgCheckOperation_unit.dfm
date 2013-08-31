@@ -23,15 +23,15 @@ object dlgCheckOperation: TdlgCheckOperation
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 0
-    object Panel2: TPanel
+    object pnlLoad: TPanel
       Left = 0
       Top = 0
       Width = 727
       Height = 244
       Align = alTop
       BevelOuter = bvNone
-      TabOrder = 0
-      object GroupBox1: TGroupBox
+      TabOrder = 2
+      object gbLoad: TGroupBox
         Left = 11
         Top = 8
         Width = 708
@@ -41,9 +41,9 @@ object dlgCheckOperation: TdlgCheckOperation
         object lLoadRecords: TLabel
           Left = 11
           Top = 21
-          Width = 283
+          Width = 25
           Height = 13
-          Caption = 'Выбрано для загрузки файлов, включая зависимые: ХХ'
+          Caption = 'lLoad'
         end
         object Label1: TLabel
           Left = 12
@@ -73,8 +73,6 @@ object dlgCheckOperation: TdlgCheckOperation
           Top = 98
           Width = 687
           Height = 123
-          Lines.Strings = (
-            'Memo1')
           ReadOnly = True
           ScrollBars = ssVertical
           TabOrder = 2
@@ -86,10 +84,9 @@ object dlgCheckOperation: TdlgCheckOperation
       Top = 484
       Width = 75
       Height = 21
-      Caption = 'ОК'
+      Action = actOk
       Default = True
-      ModalResult = 1
-      TabOrder = 2
+      TabOrder = 0
     end
     object btnCancel: TButton
       Left = 643
@@ -98,41 +95,39 @@ object dlgCheckOperation: TdlgCheckOperation
       Height = 21
       Caption = 'Отмена'
       ModalResult = 2
-      TabOrder = 3
+      TabOrder = 1
     end
-    object GroupBox2: TGroupBox
+    object gbSave: TGroupBox
       Left = 11
       Top = 245
       Width = 708
       Height = 233
       Caption = ' Сохранение объектов на диске '
-      TabOrder = 1
+      TabOrder = 3
       object Label3: TLabel
         Left = 12
         Top = 65
-        Width = 218
+        Width = 239
         Height = 13
-        Caption = 'Список пространств имен для сохранения:'
+        Caption = 'Список пространств имен для записи в файлы:'
       end
       object lSaveRecords: TLabel
         Left = 11
         Top = 22
-        Width = 350
+        Width = 26
         Height = 13
-        Caption = 'Выбрано для сохранения пространств имен, включая зависимые: ХХ'
+        Caption = 'lSave'
       end
       object mSaveList: TMemo
         Left = 10
         Top = 83
         Width = 687
         Height = 140
-        Lines.Strings = (
-          'Memo1')
         ReadOnly = True
         ScrollBars = ssVertical
         TabOrder = 1
       end
-      object cbIncVersion: TCheckBox
+      object chbxIncVersion: TCheckBox
         Left = 11
         Top = 42
         Width = 169
@@ -142,6 +137,15 @@ object dlgCheckOperation: TdlgCheckOperation
         State = cbChecked
         TabOrder = 0
       end
+    end
+  end
+  object ActionList: TActionList
+    Left = 467
+    Top = 184
+    object actOk: TAction
+      Caption = 'Ok'
+      OnExecute = actOkExecute
+      OnUpdate = actOkUpdate
     end
   end
 end

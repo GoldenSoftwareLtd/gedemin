@@ -4,11 +4,31 @@ unit gdcNamespaceLoader;
 interface
 
 uses
-  Classes, SysUtils, DB, IBDatabase, IBSQL, yaml_parser, gdcBaseInterface,
-  gdcBase, gdcNamespace, JclStrHashMap;
+  Classes, Windows, Messages, Controls, SysUtils, DB, IBDatabase, IBSQL,
+  yaml_parser, gdcBaseInterface, gdcBase, gdcNamespace, JclStrHashMap;
+
+const
+  WM_LOAD_NAMESPACE = WM_USER + 1001;
 
 type
   EgdcNamespaceLoader = class(Exception);
+
+  TgdcNamespaceLoaderNexus = class(TWinControl)
+  private
+    FList: TStringList;
+    FAlwaysOverwrite: Boolean;
+    FDontRemove: Boolean;
+    FLoading: Boolean;
+
+    procedure WMLoadNamespace(var Msg: TMessage);
+      message WM_LOAD_NAMESPACE;
+
+  public
+    destructor Destroy; override;
+
+    procedure LoadNamespace(AList: TStrings; const AnAlwaysOverwrite: Boolean;
+      const ADontRemove: Boolean);
+  end;
 
   TgdcNamespaceLoader = class(TObject)
   private
@@ -39,11 +59,15 @@ type
     procedure UpdateUses(ASequence: TYAMLSequence; ANamespace: TgdcNamespace);
     procedure ProcessMetadata;
 
+  protected
+    procedure Load(AList: TStrings);
+
   public
     constructor Create;
     destructor Destroy; override;
 
-    procedure Load(AList: TStrings);
+    class procedure LoadDelayed(AList: TStrings; const AnAlwaysOverwrite: Boolean;
+      const ADontRemove: Boolean);
 
     property AlwaysOverwrite: Boolean read FAlwaysOverwrite write FAlwaysOverwrite;
     property DontRemove: Boolean read FDontRemove write FDontRemove;
@@ -69,6 +93,9 @@ type
     HeadObjectKey: Integer;
     Loaded: Boolean;
   end;
+
+var
+  FNexus: TgdcNamespaceLoaderNexus;
 
 { TgdcNamespaceLoader }
 
@@ -913,4 +940,59 @@ begin
   FMetadataCounter := 0;
 end;
 
+class procedure TgdcNamespaceLoader.LoadDelayed(AList: TStrings;
+  const AnAlwaysOverwrite, ADontRemove: Boolean);
+begin
+  if FNexus = nil then
+    FNexus := TgdcNamespaceLoaderNexus.Create(nil);
+  FNexus.LoadNamespace(AList, AnAlwaysOverwrite, ADontRemove);
+end;
+
+{ TgdcNamespaceLoaderNexus }
+
+destructor TgdcNamespaceLoaderNexus.Destroy;
+begin
+  FList.Free;
+  inherited;
+end;
+
+procedure TgdcNamespaceLoaderNexus.LoadNamespace(AList: TStrings;
+  const AnAlwaysOverwrite, ADontRemove: Boolean);
+begin
+  if FLoading then
+    raise EgdcNamespaceLoader.Create('Namespace is loading.');
+  if FList = nil then
+    FList := TStringList.Create;
+  FList.Assign(AList);
+  FAlwaysOverwrite := AnAlwaysOverwrite;
+  FDontRemove := ADontRemove;
+  PostMessage(Handle, WM_LOAD_NAMESPACE, 0, 0);
+end;
+
+procedure TgdcNamespaceLoaderNexus.WMLoadNamespace(var Msg: TMessage);
+begin
+  Assert(FList <> nil);
+
+  FLoading := True;
+  try
+    with TgdcNamespaceLoader.Create do
+    try
+      AlwaysOverwrite := FAlwaysOverwrite;
+      DontRemove := FDontRemove;
+      Load(FList);
+    finally
+      Free;
+    end;
+
+    FreeAndNil(FList);
+  finally
+    FLoading := False;
+  end;
+end;
+
+initialization
+  FNexus := nil;
+
+finalization
+  FreeAndNil(FNexus);
 end.
