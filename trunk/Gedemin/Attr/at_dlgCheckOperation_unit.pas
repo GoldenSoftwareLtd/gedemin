@@ -14,8 +14,8 @@ type
     btnCancel: TButton;
     gbLoad: TGroupBox;
     lLoadRecords: TLabel;
-    cbAlwaysOverwrite: TCheckBox;
-    cbDontRemove: TCheckBox;
+    chbxAlwaysOverwrite: TCheckBox;
+    chbxDontRemove: TCheckBox;
     mLoadList: TMemo;
     Label1: TLabel;
     gbSave: TGroupBox;

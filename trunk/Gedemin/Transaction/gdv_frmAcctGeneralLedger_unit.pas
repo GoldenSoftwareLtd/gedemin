@@ -212,7 +212,9 @@ begin
     if (iblConfiguratior.CurrentKey > '') and (cbAccounts.Text > '') then
       SetAccountIDs(cbAccounts, FAccountIDs, cbShowCorrSubAccount.Checked, False)
     else begin
-      if (gdcAcctChart.FieldByName('accounttype').AsString[1] in ['A', 'S']) or chkBuildGroup.Checked then
+      if (gdcAcctChart.FieldByName('accounttype').AsString = 'A')
+        or (gdcAcctChart.FieldByName('accounttype').AsString = 'S')
+        or chkBuildGroup.Checked then
       begin
         SQL := TIBSQL.Create(nil);
         try
@@ -523,7 +525,8 @@ begin
       ibsql.ParamByName('id').AsInteger := gdvObject.Accounts[0];
       ibsql.ExecQuery;
       if not ibsql.Eof
-        and (ibsql.FieldByName('accounttype').AsString[1] in ['A', 'S'])  then
+        and ((ibsql.FieldByName('accounttype').AsString = 'A')
+          or (ibsql.FieldByName('accounttype').AsString = 'S')) then
       begin
         if ibsql.FieldByName('analyticalfield').AsInteger > 0 then
           AnalizeField := ibsql.FieldByName('fieldname').AsString

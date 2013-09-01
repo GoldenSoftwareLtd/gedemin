@@ -192,8 +192,23 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
     Expands = <>
     ExpandsActive = False
     ExpandsSeparate = False
-    Conditions = <>
-    ConditionsActive = False
+    Conditions = <
+      item
+        ConditionName = 'DIR'
+        FieldName = 'FileNamespaceName'
+        Font.Charset = RUSSIAN_CHARSET
+        Font.Color = clWindowText
+        Font.Height = -11
+        Font.Name = 'Tahoma'
+        Font.Style = [fsBold]
+        Color = clWhite
+        Expression1 = '\'
+        ConditionKind = ckContains
+        DisplayOptions = [doFont]
+        EvaluateFormula = False
+        UserCondition = True
+      end>
+    ConditionsActive = True
     CheckBox.DisplayField = 'Operation'
     CheckBox.Visible = False
     CheckBox.FirstColumn = False
@@ -305,162 +320,6 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
     Caption = 'База данных      <<----->>      Файлы на диске'
     Color = clWindow
     TabOrder = 4
-  end
-  object cds: TClientDataSet
-    Active = True
-    Aggregates = <>
-    FieldDefs = <
-      item
-        Name = 'Namespacekey'
-        DataType = ftInteger
-      end
-      item
-        Name = 'NamespaceName'
-        DataType = ftString
-        Size = 255
-      end
-      item
-        Name = 'NamespaceVersion'
-        DataType = ftString
-        Size = 20
-      end
-      item
-        Name = 'NamespaceTimeStamp'
-        DataType = ftDateTime
-      end
-      item
-        Name = 'Operation'
-        DataType = ftString
-        Size = 2
-      end
-      item
-        Name = 'FileName'
-        DataType = ftString
-        Size = 255
-      end
-      item
-        Name = 'FileNamespaceName'
-        DataType = ftString
-        Size = 255
-      end
-      item
-        Name = 'FileVersion'
-        DataType = ftString
-        Size = 20
-      end
-      item
-        Name = 'FileTimeStamp'
-        DataType = ftDateTime
-      end
-      item
-        Name = 'FileSize'
-        DataType = ftInteger
-      end
-      item
-        Name = 'FileRUID'
-        DataType = ftString
-        Size = 20
-      end
-      item
-        Name = 'FileInternal'
-        DataType = ftInteger
-      end
-      item
-        Name = 'NamespaceInternal'
-        DataType = ftInteger
-      end
-      item
-        Name = 'HiddenRow'
-        Attributes = [faHiddenCol]
-        DataType = ftInteger
-      end>
-    IndexDefs = <
-      item
-        Name = 'DEFAULT_ORDER'
-      end
-      item
-        Name = 'CHANGEINDEX'
-      end>
-    Params = <>
-    StoreDefs = True
-    Left = 552
-    Top = 296
-    Data = {
-      AD0100009619E0BD01000000180000000E000000000003000000AD010C4E616D
-      6573706163656B657904000100000000000D4E616D6573706163654E616D6502
-      0049000000010005574944544802000200FF00104E616D657370616365566572
-      73696F6E0100490000000100055749445448020002001400124E616D65737061
-      636554696D655374616D700800080000000000094F7065726174696F6E010049
-      00000001000557494454480200020002000846696C654E616D65020049000000
-      010005574944544802000200FF001146696C654E616D6573706163654E616D65
-      020049000000010005574944544802000200FF000B46696C6556657273696F6E
-      01004900000001000557494454480200020014000D46696C6554696D65537461
-      6D7008000800000000000846696C6553697A6504000100000000000846696C65
-      5255494401004900000001000557494454480200020014000C46696C65496E74
-      65726E616C0400010000000000114E616D657370616365496E7465726E616C04
-      000100000000000948696464656E526F77040001000100000001000D44454641
-      554C545F4F524445520200820000000000}
-    object cdsNamespacekey: TIntegerField
-      FieldName = 'Namespacekey'
-      Visible = False
-    end
-    object cdsNamespaceName: TStringField
-      DisplayWidth = 72
-      FieldName = 'NamespaceName'
-      Size = 255
-    end
-    object cdsNamespaceVersion: TStringField
-      DisplayWidth = 12
-      FieldName = 'NamespaceVersion'
-    end
-    object cdsNamespaceTimeStamp: TDateTimeField
-      FieldName = 'NamespaceTimeStamp'
-    end
-    object cdsNamespaceInternal: TIntegerField
-      FieldName = 'NamespaceInternal'
-      Visible = False
-    end
-    object cdsOperation: TStringField
-      DisplayLabel = 'Op'
-      DisplayWidth = 2
-      FieldName = 'Operation'
-      Size = 2
-    end
-    object cdsFileName2: TStringField
-      DisplayWidth = 40
-      FieldName = 'FileName'
-      Visible = False
-      Size = 255
-    end
-    object cdsFileName: TStringField
-      DisplayWidth = 72
-      FieldName = 'FileNamespaceName'
-      Size = 255
-    end
-    object cdsFileVersion: TStringField
-      DisplayWidth = 12
-      FieldName = 'FileVersion'
-    end
-    object cdsFileTimeStamp: TDateTimeField
-      FieldName = 'FileTimeStamp'
-    end
-    object cdsFileSize: TIntegerField
-      FieldName = 'FileSize'
-    end
-    object cdsFileRUID: TStringField
-      FieldName = 'FileRUID'
-      Visible = False
-    end
-    object cdsFileInternal: TIntegerField
-      FieldName = 'FileInternal'
-      ProviderFlags = []
-      Visible = False
-    end
-    object cdsHiddenRow: TIntegerField
-      DefaultExpression = '0'
-      FieldName = 'HiddenRow'
-      Visible = False
-    end
   end
   object ds: TDataSource
     Left = 600

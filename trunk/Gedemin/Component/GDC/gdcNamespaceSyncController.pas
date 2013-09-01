@@ -26,6 +26,7 @@ type
     FFilterOperation: String;
     Fq: TIBSQL;
     FqUpdateOperation: TIBSQL;
+    FqDependentList: TIBSQL;
 
     procedure Init;
     procedure DoLog(const AMessage: String);
@@ -59,7 +60,8 @@ implementation
 
 uses
   SysUtils, Controls, jclFileUtils, gdcBaseInterface, gdcBase, gdcNamespace,
-  gd_GlobalParams_unit, yaml_parser, gd_common_functions, at_dlgCheckOperation_unit;
+  gdcNamespaceLoader, gd_GlobalParams_unit, yaml_parser, gd_common_functions,
+  at_dlgCheckOperation_unit;
 
 { TgdcNamespaceSyncController }
 
@@ -298,6 +300,7 @@ end;
 
 destructor TgdcNamespaceSyncController.Destroy;
 begin
+  FqDependentList.Free;
   FqUpdateOperation.Free;
   Fq.Free;
   FDataSet.Free;
@@ -487,6 +490,54 @@ begin
     'UPDATE at_namespace_sync SET operation = :op ' +
     'WHERE namespacekey IS NOT DISTINCT FROM :nk ' +
     '  AND filename IS NOT DISTINCT FROM :fn';
+
+  FqDependentList := TIBSQL.Create(nil);
+  FqDependentList.Transaction := FTr;
+  FqDependentList.SQL.Text :=
+    'WITH RECURSIVE '#13#10 +
+    '  ns_tree AS ( '#13#10 +
+    '    SELECT '#13#10 +
+    '      n.filename AS headname, '#13#10 +
+    '      CAST((n.xid || ''_'' || n.dbid || IIF(l.uses_xid IS NULL, '#13#10 +
+    '        '''', ''-'' || l.uses_xid || ''_'' || l.uses_dbid)) '#13#10 +
+    '        AS VARCHAR(1024)) AS path, '#13#10 +
+    '      l.filename, '#13#10 +
+    '      l.uses_xid, '#13#10 +
+    '      l.uses_dbid '#13#10 +
+    '    FROM '#13#10 +
+    '      at_namespace_file n '#13#10 +
+    '      LEFT JOIN at_namespace_file_link l '#13#10 +
+    '        ON n.filename = l.filename '#13#10 +
+    '         '#13#10 +
+    '    UNION ALL '#13#10 +
+    '     '#13#10 +
+    '    SELECT '#13#10 +
+    '      t.headname, '#13#10 +
+    '      (t.path || ''-'' || f.xid || ''_'' || f.dbid) '#13#10 +
+    '        AS path, '#13#10 +
+    '      l.filename, '#13#10 +
+    '      l.uses_xid, '#13#10 +
+    '      l.uses_dbid '#13#10 +
+    '    FROM '#13#10 +
+    '      ns_tree t '#13#10 +
+    '      JOIN at_namespace_file f '#13#10 +
+    '        ON t.uses_xid = f.xid AND t.uses_dbid = f.dbid '#13#10 +
+    '      JOIN at_namespace_file_link l '#13#10 +
+    '        ON l.filename = f.filename '#13#10 +
+    '    WHERE '#13#10 +
+    '      POSITION ((f.xid || ''_'' || f.dbid) '#13#10 +
+    '        IN t.path) = 0) '#13#10 +
+    'SELECT '#13#10 +
+    '  t.headname, COUNT(t.uses_xid) '#13#10 +
+    'FROM '#13#10 +
+    '  ns_tree t '#13#10 +
+    '  JOIN at_namespace_sync s ON t.headname = s.filename '#13#10 +
+    'WHERE '#13#10 +
+    '  s.operation IN (''< '', ''<<'') '#13#10 +
+    'GROUP BY '#13#10 +
+    '  1 '#13#10 +
+    'ORDER BY '#13#10 +
+    '  2';
 end;
 
 procedure TgdcNamespaceSyncController.Scan;
@@ -562,7 +613,13 @@ begin
     else
       FqUpdateOperation.ParamByName('fn').Clear;
 
-    FqUpdateOperation.ParamByName('op').AsString := AnOp;
+    if (AnOp = '<<') and FDataSet.FieldByName('namespacekey').IsNull then
+      FqUpdateOperation.ParamByName('op').AsString := '< '
+    else if (AnOp = '>>') and (FDataSet.FieldByName('fileversion').AsString = '') then
+      FqUpdateOperation.ParamByName('op').AsString := '> '
+    else
+      FqUpdateOperation.ParamByName('op').AsString := AnOp;
+      
     FqUpdateOperation.ExecQuery;
   end;
 end;
@@ -570,13 +627,14 @@ end;
 procedure TgdcNamespaceSyncController.Sync;
 var
   NS: TgdcNamespace;
+  SL: TStringList;
 begin
   with TdlgCheckOperation.Create(nil) do
   try
     Fq.Close;
 
     Fq.SQL.Text :=
-      'SELECT LIST(n.name, '', ''), COUNT(*) FROM at_namespace n ' +
+      'SELECT LIST(n.name, ASCII_CHAR(13) || ASCII_CHAR(10)), COUNT(*) FROM at_namespace n ' +
       '  JOIN at_namespace_sync s ON s.namespacekey = n.id ' +
       'WHERE s.operation IN (''> '', ''>>'')';
     Fq.ExecQuery;
@@ -585,8 +643,8 @@ begin
     Fq.Close;
 
     Fq.SQL.Text :=
-      'SELECT LIST(n.name, '', ''), COUNT(*) FROM at_namespace n ' +
-      '  JOIN at_namespace_sync s ON s.namespacekey = n.id ' +
+      'SELECT LIST(f.name, ASCII_CHAR(13) || ASCII_CHAR(10)), COUNT(*) FROM at_namespace_file f ' +
+      '  JOIN at_namespace_sync s ON s.filename = f.filename ' +
       'WHERE s.operation IN (''< '', ''<<'')';
     Fq.ExecQuery;
     mLoadList.Lines.Text := Fq.Fields[0].AsString;
@@ -622,6 +680,24 @@ begin
           Fq.Close;
         finally
           NS.Free;
+        end;
+      end;
+
+      if mLoadList.Lines.Text > '' then
+      begin
+        SL := TStringList.Create;
+        try
+          FqDependentList.ExecQuery;
+          while not FqDependentList.EOF do
+          begin
+            SL.Add(FqDependentList.Fields[0].AsString);
+            FqDependentList.Next;
+          end;
+          FqDependentList.Close;
+
+          TgdcNamespaceLoader.LoadDelayed(SL, chbxAlwaysOverwrite.Checked, chbxDontRemove.Checked);
+        finally
+          SL.Free;
         end;
       end;
     end;

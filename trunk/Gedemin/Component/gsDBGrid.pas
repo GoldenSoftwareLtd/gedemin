@@ -3059,6 +3059,7 @@ function TColumnExpands.IsMain(ACol: TColumn): Boolean;
 var
   I: Integer;
 begin
+  Assert(ACol <> nil);
   Result := False;
   for I := 0 to Count - 1 do
   begin

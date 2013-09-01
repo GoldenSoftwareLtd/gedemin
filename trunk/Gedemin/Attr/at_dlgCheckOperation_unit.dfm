@@ -52,7 +52,7 @@ object dlgCheckOperation: TdlgCheckOperation
           Height = 13
           Caption = 'Список файлов для загрузки:'
         end
-        object cbAlwaysOverwrite: TCheckBox
+        object chbxAlwaysOverwrite: TCheckBox
           Left = 11
           Top = 39
           Width = 161
@@ -60,7 +60,7 @@ object dlgCheckOperation: TdlgCheckOperation
           Caption = 'Всегда перезаписывать'
           TabOrder = 0
         end
-        object cbDontRemove: TCheckBox
+        object chbxDontRemove: TCheckBox
           Left = 11
           Top = 57
           Width = 422

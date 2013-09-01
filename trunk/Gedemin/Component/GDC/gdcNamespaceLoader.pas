@@ -141,6 +141,8 @@ var
   RefID: TID;
   R: TatRelation;
   RF: TatRelationField;
+  Flag: Boolean;
+  TempS: String;
 begin
   Assert(AField <> nil);
   Assert(N <> nil);
@@ -193,6 +195,25 @@ begin
     ftFloat: AField.AsFloat := N.AsFloat;
     ftBoolean: AField.AsBoolean := N.AsBoolean;
     ftLargeInt: (AField as TLargeIntField).AsLargeInt := N.AsInt64;
+    ftBlob, ftGraphic:
+      if (N is TyamlBinary) and (AField is TBlobField) then
+        TBlobField(AField).LoadFromStream(TyamlBinary(N).AsStream)
+      else begin
+        Flag := False;
+
+        if (AField.DataSet.ClassName = 'TgdcStorageValue') then
+        begin
+          TempS := N.AsString;
+          if TryObjectTextToBinary(TempS) then
+          begin
+            AField.AsString := TempS;
+            Flag := True;
+          end
+        end;
+
+        if not Flag then
+          AField.AsString := N.AsString;
+      end;
   else
     AField.AsString := N.AsString;
   end;
@@ -527,6 +548,7 @@ begin
         gdcBaseManager.DeleteRUIDByXID(ObjRUID.XID, ObjRUID.DBID, FTr);
         Obj.Insert;
         CopyRecord(Obj, Fields, nil);
+        Obj.CheckTheSame(True);
         Obj.Post;
       end else
       begin
