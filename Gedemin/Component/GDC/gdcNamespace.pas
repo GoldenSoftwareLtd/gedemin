@@ -6,7 +6,7 @@ interface
 uses
   SysUtils, gdcBase, gdcBaseInterface, Classes, gd_ClassList, JclStrHashMap,
   gd_createable_form, at_classes, IBSQL, db, yaml_writer, yaml_parser,
-  IBDatabase, gd_security, dbgrids, gd_KeyAssoc, contnrs, IB, gsNSObjects;
+  IBDatabase, gd_security, dbgrids, gd_KeyAssoc, contnrs, IB;
 
 type
   TnsLoadedStatus = (lsNone, lsUnModified, lsModified, lsInsert);
@@ -36,8 +36,6 @@ type
     class function LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
       UpdateList: TObjectList; RUIDList: TStringList; ATr: TIBTransaction;
       const AnAlwaysoverwrite: Boolean = False): TnsLoadedStatus;
-    class procedure ScanDirectory(ADataSet: TDataSet; ANSList: TgsNSList;
-      Log: TNSLog);
 
     class procedure AddObject(const ANamespaceKey: Integer;
       const AName: String; const AClass: String; const ASubType: String;
@@ -47,7 +45,6 @@ type
       const AnIncludeSiblings: TnsIncludeSiblings;
       ATr: TIBTransaction);
     class function LoadNSInfo(const Path: String; ATr: TIBTransaction): Integer;
-    class function CompareObj(ADataSet: TDataSet): Boolean;
     class procedure WriteChanges(ADataSet: TDataSet; AnObj: TgdcBase; ATr: TIBTransaction);
     class procedure UpdateCurrModified(const ANamespaceKey: Integer = -1);
     class procedure ParseReferenceString(const AStr: String; out ARUID: TRUID; out AName: String);
@@ -86,7 +83,7 @@ type
 implementation
 
 uses
-  Windows, Controls, ComCtrls, IBHeader, IBErrorCodes, Graphics, DBClient,
+  Windows, Controls, ComCtrls, IBHeader, IBErrorCodes, Graphics,
   gdc_dlgNamespacePos_unit, gdc_dlgNamespace_unit, gdc_frmNamespace_unit,
   at_sql_parser, jclStrings, gdcTree, yaml_common, gd_common_functions,
   prp_ScriptComparer_unit, gdc_dlgNamespaceObjectPos_unit, jclUnicode,
@@ -96,8 +93,6 @@ uses
   at_dlgCompareNSRecords_unit, gdcNamespaceLoader;
 
 type
-  TNSFound = (nsfNone, nsfByName, nsfByRUID);
-
   TgdcReferenceUpdate = class(TObject)
   public
     FieldName: String;
@@ -105,13 +100,6 @@ type
     ID: TID;
     RefRUID: String;
     SQL: String;
-  end;
-
-  TgdcHeadObjectUpdate = class(TObject)
-  public
-    NamespaceKey: Integer;
-    RUID: String;
-    RefRUID: String;
   end;
 
   TgdcAt_Object = class(TObject)
@@ -185,13 +173,6 @@ begin
   while (E > 0) and (V[E] <> Divider) do
     Dec(E);
   Result := Copy(V, 1, E) + IntToStr(StrToIntDef(Copy(V, E + 1, 255), 0) + 1);
-end;
-
-function CompareFolder(List: TStringList; Index1, Index2: Integer): Integer;
-begin
-  Result := AnsiCompareText(
-    (List.Objects[Index1] as TgsNSNode).GetDisplayFolder,
-    (List.Objects[Index2] as TgsNSNode).GetDisplayFolder);
 end;
 
 class function TgdcNamespace.GetDialogFormClassName(const ASubType: TgdcSubType): String;
@@ -1129,7 +1110,7 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
             Flag := True;
           end;
           if not Flag and (N is TyamlBinary) then
-          begin  
+          begin
             TBlobField(Field).LoadFromStream(TyamlBinary(N).AsStream);
           end;
         end;
@@ -1979,42 +1960,6 @@ begin
   Delete;
 end;
 
-class function TgdcNamespace.CompareObj(ADataSet: TDataSet): Boolean;
-var
-  FN, Str1, Str2: String;
-begin
-  Result := False;
-  ADataSet.DisableControls;
-  try
-    ADataSet.First;
-    while not ADataSet.Eof do
-    begin
-      FN := ADataSet.FieldByName('LR_FieldName').AsString;
-      Str1 := ADataSet.FieldByName('L_' + FN).AsString;
-      Str2 := ADataSet.FieldByName('R_' + FN).AsString;
-      if (Trim(Str1) <> '') then
-        Str1 := Trim(Str1);
-      if (Trim(Str2) <> '') then
-        Str2 := Trim(Str2);
-      if AnsiCompareStr(Str1, Str2) <> 0 then
-      begin
-        ADataSet.Edit;
-        try
-          ADataSet.FieldByName('LR_Equal').AsInteger := 0;
-          ADataSet.Post;
-          Result := True;
-        finally
-          if ADataSet.State in dsEditModes then
-            ADataSet.Cancel;
-        end;
-      end;
-      ADataSet.Next;
-    end;
-  finally
-    ADataSet.EnableControls;
-  end;
-end;
-
 procedure TgdcNamespace.CompareWithData(const AFileName: String);
 var
   ScriptComparer: Tprp_ScriptComparer;
@@ -2266,71 +2211,6 @@ begin
 
     if DidActivate and Transaction.InTransaction then
       Transaction.Commit;
-  end;
-end;
-
-class procedure TgdcNamespace.ScanDirectory(ADataSet: TDataSet;
-  ANSList: TgsNSList; Log: TNSLog);
-var
-  I: Integer;
-  CurrDir: String;
-  NSNode: TgsNSNode;
-  NL: TStringList;
-  NSTreeNode: TgsNSTreeNode;
-begin
-  Assert(ADataSet <> nil);
-  Assert(ANSList <> nil);
-
-  NL := TStringList.Create;
-  try
-    ANSList.CustomSort(CompareFolder);
-    CurrDir := '';
-
-    for I := ANSList.Count - 1 downto 0 do
-    begin
-      NSNode := ANSList.Objects[I] as TgsNSNode;
-
-      if NSNode.GetDisplayFolder <> CurrDir then
-      begin
-        CurrDir := NSNode.GetDisplayFolder;
-        ADataSet.Append;
-        ADataSet.FieldByName('filenamespacename').AsString := CurrDir;
-        ADataSet.Post;
-      end;
-
-      ADataSet.Append;
-
-      ADataSet.FieldByName('filename').AsString := NSNode.FileName;
-      ADataSet.FieldByName('filenamespacename').AsString := NSNode.Name;
-      ADataSet.FieldByName('fileversion').AsString := NSNode.Version;
-      if NSNode.FileTimestamp <> 0 then
-        ADataSet.FieldByName('filetimestamp').AsDateTime := NSNode.FileTimestamp;
-      ADataSet.FieldByName('filesize').AsInteger := NSNode.Filesize;
-      ADataSet.FieldByName('fileruid').AsString := NSNode.RUID;
-      ADataSet.FieldByName('fileinternal').AsInteger := Integer(NSNode.Internal);
-
-      ADataSet.FieldByName('namespacekey').AsInteger := NSNode.Namespacekey;
-      ADataSet.FieldByName('namespacename').AsString := NSNode.NamespaceName;
-      ADataSet.FieldByName('namespaceversion').AsString := NSNode.VersionInDB;
-      ADataSet.FieldByName('namespaceinternal').AsInteger := Integer(NSNode.NamespaceInternal);
-      if NSNode.NamespaceTimestamp <> 0 then
-        ADataSet.FieldByName('namespacetimestamp').AsDateTime := NSNode.NamespaceTimestamp;
-      ADataSet.FieldByName('operation').AsString := NSNode.GetOperation;
-      if ADataSet.FieldByName('operation').AsString = '!' then
-      begin
-        NSTreeNode := ANSList.NSTree.GetTreeNodeByRUID(NSNode.RUID);
-        if (NSTreeNode <> nil)
-          and (NSTreeNode.Parent <> nil)
-          and (NSTreeNode.Parent.YamlNode <> nil)
-        then
-          ADataSet.FieldByName('filenamespacename').AsString := NSNode.Name + ' (' + NSTreeNode.Parent.YamlNode.Name + ')';
-      end;
-      ADataSet.Post;
-    end;
-
-    ADataSet.First;
-  finally 
-    NL.Free;
   end;
 end;
 

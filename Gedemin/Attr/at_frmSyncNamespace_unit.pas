@@ -5,29 +5,18 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   dmImages_unit, gd_createable_form, TB2ExtItems, TB2Item, ActnList, Db,
-  Grids, DBGrids, gsDBGrid, TB2Dock, TB2Toolbar, ComCtrls, DBClient,
-  StdCtrls, ExtCtrls, Menus, dmDatabase_unit, IBCustomDataSet, gdcBase,
-  gdcNamespace, IBDatabase, gsNSObjects, gdcNamespaceSyncController;
+  Grids, DBGrids, gsDBGrid, TB2Dock, TB2Toolbar, ComCtrls, StdCtrls, ExtCtrls,
+  Menus, gdcBase, IBDatabase, gdcNamespaceSyncController;
 
 type
   TIterateProc = procedure (const AData: String) of object;
   
   Tat_frmSyncNamespace = class(TCreateableForm)
-    cds: TClientDataSet;
     ds: TDataSource;
     sb: TStatusBar;
     TBDock: TTBDock;
     TBToolbar: TTBToolbar;
     gr: TgsDBGrid;
-    cdsNamespacekey: TIntegerField;
-    cdsNamespaceName: TStringField;
-    cdsNamespaceVersion: TStringField;
-    cdsNamespaceTimeStamp: TDateTimeField;
-    cdsOperation: TStringField;
-    cdsFileName: TStringField;
-    cdsFileTimeStamp: TDateTimeField;
-    cdsFileVersion: TStringField;
-    cdsFileSize: TIntegerField;
     ActionList: TActionList;
     actChooseDir: TAction;
     TBItem1: TTBItem;
@@ -83,12 +72,9 @@ type
     tbiFLTNone: TTBItem;
     actFLTNone: TAction;
     actFLTOnlyInFile: TAction;
-    cdsFileRUID: TStringField;
-    cdsFileInternal: TIntegerField;
     cbPackets: TCheckBox;
     TBControlItem4: TTBControlItem;
     actFLTInternal: TAction;
-    cdsNamespaceInternal: TIntegerField;
     TBItem12: TTBItem;
     actFLTEqualOlder: TAction;
     actFLTEqualNewer: TAction;
@@ -101,7 +87,6 @@ type
     TBSeparatorItem8: TTBSeparatorItem;
     actSelectAll: TAction;
     actSelectAll1: TMenuItem;
-    cdsHiddenRow: TIntegerField;
     Panel1: TPanel;
     N8: TMenuItem;
     N9: TMenuItem;
@@ -134,7 +119,6 @@ type
     procedure actSelectAllUpdate(Sender: TObject);
 
   private
-    FNSList: TgsNSList;
     FgdcNamespaceSyncController: TgdcNamespaceSyncController;
 
     procedure ApplyFilter;
@@ -160,7 +144,7 @@ implementation
 
 uses
   FileCtrl, gd_GlobalParams_unit, gd_ExternalEditor, jclStrings,
-  at_dlgCheckOperation_unit, gdcNamespaceLoader;
+  gdcNamespaceLoader;
 
 procedure Tat_frmSyncNamespace.actChooseDirExecute(Sender: TObject);
 var
@@ -180,20 +164,11 @@ end;
 
 procedure Tat_frmSyncNamespace.actCompareExecute(Sender: TObject);
 begin
+  gr.SelectedRows.Clear;
+
   FgdcNamespaceSyncController.UpdateCurrModified := chbxUpdate.Checked;
   FgdcNamespaceSyncController.Directory := tbedPath.Text;
   FgdcNamespaceSyncController.Scan;
-
-  cds.DisableControls;
-  try
-    cds.EmptyDataSet;
-    FNSList.Clear;
-    FNSList.GetFilesForPath(tbedPath.Text);
-    TgdcNamespace.ScanDirectory(cds, FNSList, Log);
-    gr.SelectedRows.Clear;
-  finally
-    cds.EnableControls;
-  end;
 end;
 
 procedure Tat_frmSyncNamespace.LoadSettingsAfterCreate;
@@ -238,7 +213,8 @@ end;
 procedure Tat_frmSyncNamespace.actCompareWithDataUpdate(Sender: TObject);
 begin
   actCompareWithData.Enabled := (not FgdcNamespaceSyncController.DataSet.IsEmpty)
-    and FileExists(FgdcNamespaceSyncController.DataSet.FieldByName('filename').AsString);
+    and FileExists(FgdcNamespaceSyncController.DataSet.FieldByName('filename').AsString)
+    and (FgdcNamespaceSyncController.DataSet.FieldByName('namespacekey').AsInteger > 0);
 end;
 
 procedure Tat_frmSyncNamespace.actCompareWithDataExecute(Sender: TObject);
@@ -251,9 +227,6 @@ constructor Tat_frmSyncNamespace.Create(AnOwner: TComponent);
 begin
   inherited;
   ShowSpeedButton := True;
-  FNSList := TgsNSList.Create;
-  FNSList.Sorted := False;
-  FNSList.Log := Log;
   FgdcNamespaceSyncController := TgdcNamespaceSyncController.Create;
   FgdcNamespaceSyncController.OnLogMessage := Log;
 end;
@@ -261,7 +234,6 @@ end;
 destructor Tat_frmSyncNamespace.Destroy;
 begin
   FgdcNamespaceSyncController.Free;
-  FNSList.Free;
   inherited;
 end;
 
@@ -272,7 +244,7 @@ var
   Bm: String;
 begin
   gr.SelectedRows.Refresh;
-  if gr.SelectedRows.Count > 0 then
+  if gr.SelectedRows.Count > 1 then
   begin
     Bm := FgdcNamespaceSyncController.DataSet.Bookmark;
     FgdcNamespaceSyncController.DataSet.DisableControls;
@@ -296,7 +268,7 @@ end;
 
 procedure Tat_frmSyncNamespace.actSetForLoadingUpdate(Sender: TObject);
 begin
-  actSetForLoading.Enabled := not cds.IsEmpty;
+  actSetForLoading.Enabled := not FgdcNamespaceSyncController.DataSet.IsEmpty;
 end;
 
 procedure Tat_frmSyncNamespace.actSetForLoadingExecute(Sender: TObject);
@@ -313,7 +285,7 @@ end;
 
 procedure Tat_frmSyncNamespace.actSetForSavingUpdate(Sender: TObject);
 begin
-  actSetForSaving.Enabled := not cds.IsEmpty;
+  actSetForSaving.Enabled := not FgdcNamespaceSyncController.DataSet.IsEmpty;
 end;
 
 procedure Tat_frmSyncNamespace.actSetForSavingExecute(Sender: TObject);
