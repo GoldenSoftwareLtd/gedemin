@@ -3,59 +3,42 @@ unit at_dlgLoadNamespacePackages_unit;
 interface
 
 uses
-  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  ExtCtrls, StdCtrls, FileCtrl, ActnList, gdcNamespace, Db, DBClient,
-  ComCtrls, gsDBTreeView, CheckLst, IBSQL, gsTreeView, gd_createable_form,
-  gdcBase, gsNSObjects;
+  Windows, Messages, SysUtils, Classes, Controls, Forms, Dialogs,
+  StdCtrls, FileCtrl, ActnList, Db, gsDBTreeView, gd_createable_form,
+  gdcNamespaceSyncController, ComCtrls, ExtCtrls;
 
 type
   Tat_dlgLoadNamespacePackages = class(TCreateableForm)
     pnlTree: TPanel;
     ActionListLoad: TActionList;
     actSearch: TAction;
-    actInstallPackage: TAction;
-    gsTreeView: TgsTreeView;
     pnlTop: TPanel;
     lSearch: TLabel;
     Label1: TLabel;
     eSearchPath: TEdit;
     btnSearch: TButton;
     pnlBottom: TPanel;
-    mInfo: TMemo;
     lPackages: TLabel;
-    pnlBottomRight: TPanel;
-    btnInstallPackage: TButton;
-    btnClose: TButton;
-    cbAlwaysOverwrite: TCheckBox;
-    cbDontRemove: TCheckBox;
-    GroupBox1: TGroupBox;
-    lblLegendNotInstalled: TLabel;
-    lblLegendNewer: TLabel;
-    lblLegendEqual: TLabel;
-    lblLegendOlder: TLabel;
     btnSelectFolder: TButton;
     actSelectFolder: TAction;
+    dbtvFiles: TgsDBTreeView;
+    ds: TDataSource;
+    mInfo: TMemo;
+    Panel1: TPanel;
+    btnClose: TButton;
     procedure actSearchExecute(Sender: TObject);
-    procedure FormCreate(Sender: TObject);  
-    procedure gsTreeViewAdvancedCustomDrawItem(Sender: TCustomTreeView;
-      Node: TTreeNode; State: TCustomDrawState; Stage: TCustomDrawStage;
-      var PaintImages, DefaultDraw: Boolean);
-    procedure gsTreeViewClick(Sender: TObject);
     procedure actSelectFolderExecute(Sender: TObject);
-  private
-    FgdcNamespace: TgdcNamespace;
-    FOldWndProc: TWndMethod;
-    List: TgsNSList;
+    procedure FormCreate(Sender: TObject);
+    procedure actSearchUpdate(Sender: TObject);
 
-    procedure SelectAllChild(Node: TTreeNode; bSel: boolean);
-    procedure OverridingWndProc(var Message: TMessage);
+  private
+    FNSC: TgdcNamespaceSyncController;
+
     procedure Log(const AMessage: string);
+
   public
     constructor Create(AnOwner: TComponent); override;
     destructor Destroy; override;
-
-    procedure SaveSettings; override;
-    procedure LoadSettingsAfterCreate; override;
   end;
 
 var
@@ -65,26 +48,17 @@ implementation
 
 {$R *.DFM}
 
-uses
-  gd_GlobalParams_unit, gd_security, gdcBaseInterface, IBDatabase,  gd_KeyAssoc;
-
-const
-  TItemColor: array [TgsNSState] of TColor = (clBlack, clBlack, clRed, clGray, clBlack);
-  TItemFontStyles: array [TgsNSState] of TFontStyles = ([], [fsBold], [fsBold], [], []);
-  InvalidFile = clRed;
-
 constructor Tat_dlgLoadNamespacePackages.Create(AnOwner: TComponent);
 begin
   inherited;
-  FgdcNamespace := TgdcNamespace.Create(nil);
-  List := TgsNSList.Create;
-  List.Log := Log;
+  FNSC := TgdcNamespaceSyncController.Create;
+  FNSC.UpdateCurrModified := False;
+  FNSC.OnLogMessage := Log;
 end;
 
 destructor Tat_dlgLoadNamespacePackages.Destroy;
 begin
-  FgdcNamespace.Free;
-  List.Free;
+  FNSC.Free;
   inherited;
 end;
 
@@ -94,117 +68,20 @@ begin
 end;
 
 procedure Tat_dlgLoadNamespacePackages.actSearchExecute(Sender: TObject);
+var
+  OldCursor: TCursor;
 begin
   mInfo.Clear;
-  List.GetFilesForPath(eSearchPath.Text);
+  FNSC.Directory := eSearchPath.Text;
+  FNSC.Scan;
 
-  gsTreeView.Items.BeginUpdate;
+  OldCursor := Screen.Cursor;
   try
-    gsTreeView.Items.Clear;
-    List.FillTree(gsTreeView);
+    Screen.Cursor := crHourGlass;
+    FNSC.BuildTree;
   finally
-    gsTreeView.Items.EndUpdate;
+    Screen.Cursor := OldCursor;
   end;
-end;
-
-procedure Tat_dlgLoadNamespacePackages.FormCreate(Sender: TObject);
-begin
-  FOldWndProc := gsTreeView.WindowProc;
-  gsTreeView.WindowProc := OverridingWndProc;
-end;
-
-procedure Tat_dlgLoadNamespacePackages.SelectAllChild(Node: TTreeNode; bSel: boolean);
-begin
-  if (Node <> nil) then
-  begin
-    if bSel then
-    begin
-      if (TgsNSNode(Node.Data).Optional = False)
-        and (TgsNSNode(Node.Data).GetNSState in [nsNotInstalled, nsNewer, nsEqual])
-      then
-        Node.StateIndex := 1
-    end else
-      Node.StateIndex := 2;
-    SelectAllChild(Node.getFirstChild, bSel);
-    SelectAllChild(Node.Parent.getNextChild(Node), bSel);
-  end;
-end;
-
-procedure Tat_dlgLoadNamespacePackages.OverridingWndProc(var Message: TMessage);
-var
-  Node: TTreeNode;
-  Old: Boolean;
-begin
-  Old := True;
-  if Message.Msg = WM_LBUTTONDOWN then
-  begin
-    if htOnStateIcon in gsTreeView.GetHitTestInfoAt(TWMLButtonDown(Message).XPos, TWMLButtonDown(Message).YPos) then
-    begin
-      Node := gsTreeView.GetNodeAt(TWMLButtonDown(Message).XPos, TWMLButtonDown(Message).YPos);
-      if Node <> nil then
-      begin
-        case Node.StateIndex of
-          1:
-          begin
-            Node.StateIndex := 2;
-            SelectAllChild(Node.getFirstChild, False);
-          end;
-          2:
-          begin
-            Node.StateIndex := 1;
-            SelectAllChild(Node.getFirstChild, True);
-          end;
-        end; 
-      end;
-      Old := False;
-    end;
-  end;
-  if Old then FOldWndProc(Message);
-end;
-
-procedure Tat_dlgLoadNamespacePackages.LoadSettingsAfterCreate;
-begin
-  inherited;
-  eSearchPath.Text := gd_GlobalParams.NamespacePath;
-end;
-
-procedure Tat_dlgLoadNamespacePackages.SaveSettings;
-begin
-  gd_GlobalParams.NamespacePath := eSearchPath.Text;
-  inherited;
-end; 
-
-procedure Tat_dlgLoadNamespacePackages.gsTreeViewAdvancedCustomDrawItem(
-  Sender: TCustomTreeView; Node: TTreeNode; State: TCustomDrawState;
-  Stage: TCustomDrawStage; var PaintImages, DefaultDraw: Boolean);
-begin
-  if (Stage = cdPrePaint) and (Node <> nil) then
-  begin
-    if cdsSelected in State then
-      gsTreeView.Canvas.Font.Color := clWhite
-    else if not TgsNSNode(Node.Data).Valid then
-    begin
-      gsTreeView.Canvas.Font.Color := InvalidFile;
-      gsTreeView.Canvas.Font.Style := gsTreeView.Canvas.Font.Style + [fsStrikeOut];
-    end else
-    begin
-      gsTreeView.Canvas.Font.Color := TItemColor[TgsNSNode(Node.Data).GetNSState];
-      gsTreeView.Canvas.Font.Style := TItemFontStyles[TgsNSNode(Node.Data).GetNSState];
-    end;  
-    if not TgsNSNode(Node.Data).CheckDBVersion then
-      gsTreeView.Canvas.Font.Style := gsTreeView.Canvas.Font.Style + [fsStrikeOut];
-    DefaultDraw := True;
-  end;
-end;
-
-procedure Tat_dlgLoadNamespacePackages.gsTreeViewClick(Sender: TObject);
-var
-  Node: TTreeNode;
-begin
-  mInfo.Clear;
-  Node := gsTreeView.Selected;
-  if (Node <> nil) and (Node.Data <> nil) then
-    TgsNSNode(Node.Data).FillInfo(mInfo.Lines);
 end;
 
 procedure Tat_dlgLoadNamespacePackages.actSelectFolderExecute(
@@ -215,6 +92,18 @@ begin
   Path := eSearchPath.Text;
   if SelectDirectory(Path, [], 0) then
     eSearchPath.Text := Path;
+end;
+
+procedure Tat_dlgLoadNamespacePackages.FormCreate(Sender: TObject);
+begin
+  ds.DataSet := FNSC.dsFileTree;
+  eSearchPath.Text := FNSC.Directory;
+end;
+
+procedure Tat_dlgLoadNamespacePackages.actSearchUpdate(Sender: TObject);
+begin
+  actSearch.Enabled := DirectoryExists(eSearchPath.Text) or
+    FileExists(eSearchPath.Text);
 end;
 
 initialization

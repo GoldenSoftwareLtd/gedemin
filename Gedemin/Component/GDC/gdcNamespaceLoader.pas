@@ -548,7 +548,6 @@ begin
         gdcBaseManager.DeleteRUIDByXID(ObjRUID.XID, ObjRUID.DBID, FTr);
         Obj.Insert;
         CopyRecord(Obj, Fields, nil);
-        Obj.CheckTheSame(True);
         Obj.Post;
       end else
       begin

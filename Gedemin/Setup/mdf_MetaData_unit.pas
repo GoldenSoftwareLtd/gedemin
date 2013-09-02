@@ -98,11 +98,11 @@ procedure AlterTrigger(Trigger: TmdfTrigger; Db: TIBDataBase);
 function TriggerExist2(const ATriggerName: String; ATr: TIBTransaction): Boolean;
 procedure DropTrigger2(const ATriggerName: String; ATr: TIBTransaction);
 
-function ExceptionExist(Ex: TmdfException; Db: TIBDataBase): Boolean;
+function GeneratorExist2(const AGeneratorName: String; ATr: TIBTransaction): Boolean;
 
 procedure CreateException(Ex: TmdfException; Db: TIBDataBase);
 procedure CreateException2(const AnException, AMessage: String; ATr: TIBTransaction);
-
+function ExceptionExist(Ex: TmdfException; Db: TIBDataBase): Boolean;
 function ExceptionExist2(const AnExceptionName: String; ATr: TIBTransaction): Boolean;
 procedure DropException2(const AnExceptionName: String; ATr: TIBTransaction);
 
@@ -983,6 +983,24 @@ begin
       'SELECT rdb$exception_name FROM rdb$exceptions WHERE ' +
       ' rdb$exception_name = :name ';
     SQL.ParamByName('name').AsString := UpperCase(AnExceptionName);
+    SQL.ExecQuery;
+    Result := not SQL.EOF;
+  finally
+    SQl.Free;
+  end;
+end;
+
+function GeneratorExist2(const AGeneratorName: String; ATr: TIBTransaction): Boolean;
+var
+  SQL: TIBSQL;
+begin
+  SQL := TIBSQL.Create(nil);
+  try
+    SQL.Transaction := ATr;
+    SQL.SQL.Text :=
+      'SELECT rdb$generator_name FROM rdb$generators WHERE ' +
+      ' rdb$generator_name = :name ';
+    SQL.ParamByName('name').AsString := UpperCase(AGeneratorName);
     SQL.ExecQuery;
     Result := not SQL.EOF;
   finally

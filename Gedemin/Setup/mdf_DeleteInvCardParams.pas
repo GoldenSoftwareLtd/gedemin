@@ -1508,6 +1508,12 @@ begin
       q.ParamCheck := False;
       q.Transaction := Tr;
 
+      if not GeneratorExist2('AT_G_FILE_TREE', Tr) then
+      begin
+        q.SQL.Text := 'CREATE GENERATOR at_g_file_tree';
+        q.ExecQuery;
+      end;
+
       if not RelationExist2('AT_NAMESPACE_FILE', Tr) then
       begin
         q.SQL.Text :=
@@ -1525,9 +1531,9 @@ begin
           '  xid           dinteger, '#13#10 +
           '  dbid          dinteger, '#13#10 +
           ' '#13#10 +
-          '  CONSTRAINT at_pk_namespace_file PRIMARY KEY (filename) '#13#10 +
+          '  CONSTRAINT at_pk_namespace_file PRIMARY KEY (filename)'#13#10 +
           ') '#13#10 +
-          '  ON COMMIT DELETE ROWS';
+          '  ON COMMIT DELETE ROWS;';
         q.ExecQuery;
       end;
 
@@ -1581,6 +1587,12 @@ begin
       q.SQL.Text :=
         'UPDATE OR INSERT INTO fin_versioninfo ' +
         '  VALUES (183, ''0000.0001.0000.0214'', ''31.08.2013'', ''Added NS sync tables.'') ' +
+        '  MATCHING (id)';
+      q.ExecQuery;
+
+      q.SQL.Text :=
+        'UPDATE OR INSERT INTO fin_versioninfo ' +
+        '  VALUES (184, ''0000.0001.0000.0215'', ''02.09.2013'', ''Generator added.'') ' +
         '  MATCHING (id)';
       q.ExecQuery;
 

@@ -142,7 +142,8 @@ ON DELETE CASCADE ON UPDATE CASCADE;
 SET TERM ^ ;
 
 CREATE TRIGGER at_bi_setting_storage FOR at_setting_storage
-BEFORE INSERT POSITION 0
+  BEFORE INSERT
+  POSITION 0
 AS
 BEGIN
   IF (NEW.id IS NULL) THEN
@@ -424,6 +425,8 @@ END
 ^
 
 SET TERM ; ^
+
+CREATE GENERATOR at_g_file_tree;
 
 CREATE GLOBAL TEMPORARY TABLE at_namespace_file (
   filename      dtext255,

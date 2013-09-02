@@ -119,7 +119,7 @@ type
     procedure actSelectAllUpdate(Sender: TObject);
 
   private
-    FgdcNamespaceSyncController: TgdcNamespaceSyncController;
+    FNSC: TgdcNamespaceSyncController;
 
     procedure ApplyFilter;
     procedure IterateSelected(Proc: TIterateProc; const AData: String = '');
@@ -130,9 +130,6 @@ type
   public
     constructor Create(AnOwner: TComponent); override;
     destructor Destroy; override;
-
-    procedure SaveSettings; override;
-    procedure LoadSettingsAfterCreate; override;
   end;
 
 var
@@ -164,76 +161,66 @@ end;
 
 procedure Tat_frmSyncNamespace.actCompareExecute(Sender: TObject);
 begin
-  gr.SelectedRows.Clear;
-
-  FgdcNamespaceSyncController.UpdateCurrModified := chbxUpdate.Checked;
-  FgdcNamespaceSyncController.Directory := tbedPath.Text;
-  FgdcNamespaceSyncController.Scan;
-end;
-
-procedure Tat_frmSyncNamespace.LoadSettingsAfterCreate;
-begin
-  inherited;
-  tbedPath.Text := FgdcNamespaceSyncController.Directory;
-end;
-
-procedure Tat_frmSyncNamespace.SaveSettings;
-begin
-  inherited;
+  FNSC.UpdateCurrModified := chbxUpdate.Checked;
+  FNSC.Directory := tbedPath.Text;
+  FNSC.Scan;
+  ApplyFilter;
 end;
 
 procedure Tat_frmSyncNamespace.actEditNamespaceUpdate(Sender: TObject);
 begin
-  actEditNamespace.Enabled := (not FgdcNamespaceSyncController.DataSet.IsEmpty)
-    and (FgdcNamespaceSyncController.DataSet.FieldByName('namespacekey').AsInteger > 0);
+  actEditNamespace.Enabled := (not FNSC.DataSet.IsEmpty)
+    and (FNSC.DataSet.FieldByName('namespacekey').AsInteger > 0);
 end;
 
 procedure Tat_frmSyncNamespace.actEditNamespaceExecute(Sender: TObject);
 begin
-  FgdcNamespaceSyncController.EditNamespace;
+  FNSC.EditNamespace(FNSC.DataSet.FieldByName('namespacekey').AsInteger);
 end;
 
 procedure Tat_frmSyncNamespace.actEditFileUpdate(Sender: TObject);
 begin
-  actEditFile.Enabled := (not FgdcNamespaceSyncController.DataSet.IsEmpty)
-    and FileExists(FgdcNamespaceSyncController.DataSet.FieldByName('filename').AsString);
+  actEditFile.Enabled := (not FNSC.DataSet.IsEmpty)
+    and FileExists(FNSC.DataSet.FieldByName('filename').AsString);
 end;
 
 procedure Tat_frmSyncNamespace.actEditFileExecute(Sender: TObject);
 begin
   InvokeExternalEditor('yaml',
-    FgdcNamespaceSyncController.DataSet.FieldByName('filename').AsString);
+    FNSC.DataSet.FieldByName('filename').AsString);
 end;
 
 procedure Tat_frmSyncNamespace.FormCreate(Sender: TObject);
 begin
-  ds.DataSet := FgdcNamespaceSyncController.DataSet;
+  ds.DataSet := FNSC.DataSet;
+  tbedPath.Text := FNSC.Directory;
 end;
 
 procedure Tat_frmSyncNamespace.actCompareWithDataUpdate(Sender: TObject);
 begin
-  actCompareWithData.Enabled := (not FgdcNamespaceSyncController.DataSet.IsEmpty)
-    and FileExists(FgdcNamespaceSyncController.DataSet.FieldByName('filename').AsString)
-    and (FgdcNamespaceSyncController.DataSet.FieldByName('namespacekey').AsInteger > 0);
+  actCompareWithData.Enabled := (not FNSC.DataSet.IsEmpty)
+    and FileExists(FNSC.DataSet.FieldByName('filename').AsString)
+    and (FNSC.DataSet.FieldByName('namespacekey').AsInteger > 0);
 end;
 
 procedure Tat_frmSyncNamespace.actCompareWithDataExecute(Sender: TObject);
 begin
-  FgdcNamespaceSyncController.CompareWithData(
-    FgdcNamespaceSyncController.DataSet.FieldByName('filename').AsString);
+  FNSC.CompareWithData(
+    FNSC.DataSet.FieldByName('namespacekey').AsInteger,
+    FNSC.DataSet.FieldByName('filename').AsString);
 end;
 
 constructor Tat_frmSyncNamespace.Create(AnOwner: TComponent);
 begin
   inherited;
   ShowSpeedButton := True;
-  FgdcNamespaceSyncController := TgdcNamespaceSyncController.Create;
-  FgdcNamespaceSyncController.OnLogMessage := Log;
+  FNSC := TgdcNamespaceSyncController.Create;
+  FNSC.OnLogMessage := Log;
 end;
 
 destructor Tat_frmSyncNamespace.Destroy;
 begin
-  FgdcNamespaceSyncController.Free;
+  FNSC.Free;
   inherited;
 end;
 
@@ -246,58 +233,58 @@ begin
   gr.SelectedRows.Refresh;
   if gr.SelectedRows.Count > 1 then
   begin
-    Bm := FgdcNamespaceSyncController.DataSet.Bookmark;
-    FgdcNamespaceSyncController.DataSet.DisableControls;
+    Bm := FNSC.DataSet.Bookmark;
+    FNSC.DataSet.DisableControls;
     try
       for I := 0 to gr.SelectedRows.Count - 1 do
       begin
-        FgdcNamespaceSyncController.DataSet.Bookmark := gr.SelectedRows[I];
+        FNSC.DataSet.Bookmark := gr.SelectedRows[I];
         Proc(AData);
         UpdateWindow(mMessages.Handle);
       end;
-      if FgdcNamespaceSyncController.DataSet.BookmarkValid(Pointer(Bm)) then
-        FgdcNamespaceSyncController.DataSet.Bookmark := Bm;
+      if FNSC.DataSet.BookmarkValid(Pointer(Bm)) then
+        FNSC.DataSet.Bookmark := Bm;
     finally
-      FgdcNamespaceSyncController.DataSet.EnableControls;
+      FNSC.DataSet.EnableControls;
     end;
   end
-  else if not FgdcNamespaceSyncController.DataSet.IsEmpty then
+  else if not FNSC.DataSet.IsEmpty then
     Proc(AData);
   ApplyFilter;
 end;
 
 procedure Tat_frmSyncNamespace.actSetForLoadingUpdate(Sender: TObject);
 begin
-  actSetForLoading.Enabled := not FgdcNamespaceSyncController.DataSet.IsEmpty;
+  actSetForLoading.Enabled := not FNSC.DataSet.IsEmpty;
 end;
 
 procedure Tat_frmSyncNamespace.actSetForLoadingExecute(Sender: TObject);
 begin
   IterateSelected(SetOperation, '<<');
-  if (FgdcNamespaceSyncController.FilterText > '') and (not actFLTNewer.Checked) then
+  if (FNSC.FilterText > '') and (not actFLTNewer.Checked) then
     actFLTNewer.Execute;
 end;
 
 procedure Tat_frmSyncNamespace.SetOperation(const AData: String);
 begin
-  FgdcNamespaceSyncController.SetOperation(AData);
+  FNSC.SetOperation(AData);
 end;
 
 procedure Tat_frmSyncNamespace.actSetForSavingUpdate(Sender: TObject);
 begin
-  actSetForSaving.Enabled := not FgdcNamespaceSyncController.DataSet.IsEmpty;
+  actSetForSaving.Enabled := not FNSC.DataSet.IsEmpty;
 end;
 
 procedure Tat_frmSyncNamespace.actSetForSavingExecute(Sender: TObject);
 begin
   IterateSelected(SetOperation, '>>');
-  if (FgdcNamespaceSyncController.FilterText > '') and (not actFLTOlder.Checked) then
+  if (FNSC.FilterText > '') and (not actFLTOlder.Checked) then
     actFLTOlder.Execute;
 end;
 
 procedure Tat_frmSyncNamespace.actClearUpdate(Sender: TObject);
 begin
-  actClear.Enabled := not FgdcNamespaceSyncController.DataSet.IsEmpty;
+  actClear.Enabled := not FNSC.DataSet.IsEmpty;
 end;
 
 procedure Tat_frmSyncNamespace.actClearExecute(Sender: TObject);
@@ -307,24 +294,24 @@ end;
 
 procedure Tat_frmSyncNamespace.actSyncUpdate(Sender: TObject);
 begin
-  actSync.Enabled := not FgdcNamespaceSyncController.DataSet.IsEmpty;
+  actSync.Enabled := not FNSC.DataSet.IsEmpty;
 end;
 
 procedure Tat_frmSyncNamespace.actSyncExecute(Sender: TObject);
 begin
-  FgdcNamespaceSyncController.Sync;
+  FNSC.Sync;
 end;
 
 procedure Tat_frmSyncNamespace.actDeleteFileUpdate(Sender: TObject);
 begin
-  actDeleteFile.Enabled := (not FgdcNamespaceSyncController.DataSet.IsEmpty)
-    and (not FgdcNamespaceSyncController.DataSet.FieldByName('filetimestamp').IsNull);
+  actDeleteFile.Enabled := (not FNSC.DataSet.IsEmpty)
+    and (not FNSC.DataSet.FieldByName('filetimestamp').IsNull);
 end;
 
 procedure Tat_frmSyncNamespace.DeleteFile(const AData: String);
 begin
-  FgdcNamespaceSyncController.DeleteFile(
-    FgdcNamespaceSyncController.DataSet.FieldByName('filename').AsString);
+  FNSC.DeleteFile(
+    FNSC.DataSet.FieldByName('filename').AsString);
 end;
 
 procedure Tat_frmSyncNamespace.actDeleteFileExecute(Sender: TObject);
@@ -340,11 +327,11 @@ end;
 procedure Tat_frmSyncNamespace.ApplyFilter;
 begin
   gr.SelectedRows.Clear;
-  FgdcNamespaceSyncController.ApplyFilter;
-  if FgdcNamespaceSyncController.Filtered then
+  FNSC.ApplyFilter;
+  if FNSC.Filtered then
   begin
     sb.SimpleText := 'К данным применен фильтр.';
-    if FgdcNamespaceSyncController.FilterOnlyPackages then
+    if FNSC.FilterOnlyPackages then
       sb.SimpleText := sb.SimpleText + ' Отображаются только пакеты.';
   end else
     sb.SimpleText := '';
@@ -352,7 +339,7 @@ end;
 
 procedure Tat_frmSyncNamespace.edFilterChange(Sender: TObject);
 begin
-  FgdcNamespaceSyncController.FilterText := edFilter.Text;
+  FNSC.FilterText := edFilter.Text;
   ApplyFilter;
 end;
 
@@ -361,14 +348,14 @@ begin
   if (Sender as TAction).Checked  then
   begin
     (Sender as TAction).Checked := False;
-    FgdcNamespaceSyncController.FilterOperation :=
-      StringReplace(FgdcNamespaceSyncController.FilterOperation,
+    FNSC.FilterOperation :=
+      StringReplace(FNSC.FilterOperation,
         (Sender as TAction).Caption, '', [rfReplaceAll]);
   end else
   begin
     (Sender as TAction).Checked := True;
-    FgdcNamespaceSyncController.FilterOperation :=
-      FgdcNamespaceSyncController.FilterOperation +
+    FNSC.FilterOperation :=
+      FNSC.FilterOperation +
       (Sender as TAction).Caption;
   end;
   ApplyFilter;
@@ -376,12 +363,12 @@ end;
 
 procedure Tat_frmSyncNamespace.actFLTOnlyInDBUpdate(Sender: TObject);
 begin
-  (Sender as TAction).Enabled := not FgdcNamespaceSyncController.DataSet.IsEmpty;
+  (Sender as TAction).Enabled := not FNSC.DataSet.IsEmpty;
 end;
 
 procedure Tat_frmSyncNamespace.actFLTInternalExecute(Sender: TObject);
 begin
-  FgdcNamespaceSyncController.FilterOnlyPackages := cbPackets.Checked;
+  FNSC.FilterOnlyPackages := cbPackets.Checked;
   ApplyFilter;
 end;
 
@@ -392,42 +379,42 @@ var
 begin
   FirstSet := False;
   InGroup := False;
-  Bm := FgdcNamespaceSyncController.DataSet.Bookmark;
-  FgdcNamespaceSyncController.DataSet.DisableControls;
+  Bm := FNSC.DataSet.Bookmark;
+  FNSC.DataSet.DisableControls;
   try
     gr.SelectedRows.Clear;
-    FgdcNamespaceSyncController.DataSet.First;
-    while not FgdcNamespaceSyncController.DataSet.Eof do
+    FNSC.DataSet.First;
+    while not FNSC.DataSet.Eof do
     begin
-      if (not FgdcNamespaceSyncController.DataSet.FieldByName('namespacename').IsNull)
-        or (not FgdcNamespaceSyncController.DataSet.FieldByName('fileruid').IsNull) then
+      if (not FNSC.DataSet.FieldByName('namespacename').IsNull)
+        or (not FNSC.DataSet.FieldByName('fileruid').IsNull) then
       begin
         if not FirstSet then
         begin
           FirstSet := True;
-          FirstBm := FgdcNamespaceSyncController.DataSet.Bookmark;
+          FirstBm := FNSC.DataSet.Bookmark;
         end;
 
-        if FgdcNamespaceSyncController.DataSet.Bookmark = Bm then
+        if FNSC.DataSet.Bookmark = Bm then
           InGroup := True;
 
         gr.SelectedRows.CurrentRowSelected := True;
       end;
-      FgdcNamespaceSyncController.DataSet.Next;
+      FNSC.DataSet.Next;
     end;
 
     if (not InGroup) and FirstSet then
-      FgdcNamespaceSyncController.DataSet.Bookmark := FirstBm
+      FNSC.DataSet.Bookmark := FirstBm
     else
-      FgdcNamespaceSyncController.DataSet.Bookmark := Bm;
+      FNSC.DataSet.Bookmark := Bm;
   finally
-    FgdcNamespaceSyncController.DataSet.EnableControls;
+    FNSC.DataSet.EnableControls;
   end;
 end;
 
 procedure Tat_frmSyncNamespace.actSelectAllUpdate(Sender: TObject);
 begin
-  (Sender as TAction).Enabled := not FgdcNamespaceSyncController.DataSet.IsEmpty;
+  (Sender as TAction).Enabled := not FNSC.DataSet.IsEmpty;
 end;
 
 initialization

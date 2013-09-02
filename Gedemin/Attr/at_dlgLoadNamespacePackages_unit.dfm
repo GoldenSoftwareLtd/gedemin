@@ -1,8 +1,8 @@
 object at_dlgLoadNamespacePackages: Tat_dlgLoadNamespacePackages
-  Left = 373
-  Top = 131
-  Width = 670
-  Height = 584
+  Left = 551
+  Top = 244
+  Width = 671
+  Height = 501
   Caption = 'Зависимости файлов пространств имен'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -31,29 +31,34 @@ object at_dlgLoadNamespacePackages: Tat_dlgLoadNamespacePackages
   object pnlTree: TPanel
     Left = 0
     Top = 45
-    Width = 654
-    Height = 326
+    Width = 655
+    Height = 311
     Align = alClient
     BevelOuter = bvNone
     BorderWidth = 4
     TabOrder = 1
-    object gsTreeView: TgsTreeView
+    object dbtvFiles: TgsDBTreeView
       Left = 4
       Top = 4
-      Width = 646
-      Height = 318
+      Width = 647
+      Height = 303
+      DataSource = ds
+      KeyField = 'ID'
+      ParentField = 'PARENT'
+      DisplayField = 'NAME'
       Align = alClient
       Indent = 19
       TabOrder = 0
-      OnAdvancedCustomDrawItem = gsTreeViewAdvancedCustomDrawItem
-      OnClick = gsTreeViewClick
-      WithCheckBox = True
+      MainFolderHead = True
+      MainFolder = False
+      MainFolderCaption = 'Все'
+      WithCheckBox = False
     end
   end
   object pnlTop: TPanel
     Left = 0
     Top = 0
-    Width = 654
+    Width = 655
     Height = 45
     Align = alTop
     BevelOuter = bvNone
@@ -74,9 +79,9 @@ object at_dlgLoadNamespacePackages: Tat_dlgLoadNamespacePackages
     object lPackages: TLabel
       Left = 5
       Top = 32
-      Width = 102
+      Width = 202
       Height = 13
-      Caption = 'Пространства имен:'
+      Caption = 'Дерево зависимости пространств имен:'
     end
     object eSearchPath: TEdit
       Left = 48
@@ -86,7 +91,7 @@ object at_dlgLoadNamespacePackages: Tat_dlgLoadNamespacePackages
       TabOrder = 0
     end
     object btnSearch: TButton
-      Left = 438
+      Left = 427
       Top = 7
       Width = 73
       Height = 21
@@ -104,9 +109,9 @@ object at_dlgLoadNamespacePackages: Tat_dlgLoadNamespacePackages
   end
   object pnlBottom: TPanel
     Left = 0
-    Top = 371
-    Width = 654
-    Height = 175
+    Top = 356
+    Width = 655
+    Height = 107
     Align = alBottom
     BevelOuter = bvNone
     BorderWidth = 4
@@ -114,115 +119,32 @@ object at_dlgLoadNamespacePackages: Tat_dlgLoadNamespacePackages
     object mInfo: TMemo
       Left = 4
       Top = 4
-      Width = 415
-      Height = 167
+      Width = 647
+      Height = 70
       TabStop = False
-      Align = alClient
+      Align = alTop
       Color = clInfoBk
       ReadOnly = True
       ScrollBars = ssVertical
       TabOrder = 0
     end
-    object pnlBottomRight: TPanel
-      Left = 419
-      Top = 4
-      Width = 231
-      Height = 167
+    object Panel1: TPanel
+      Left = 466
+      Top = 74
+      Width = 185
+      Height = 29
       Align = alRight
       BevelOuter = bvNone
       TabOrder = 1
-      object btnInstallPackage: TButton
-        Left = 60
-        Top = 144
-        Width = 81
-        Height = 21
-        Caption = 'ОК'
-        ModalResult = 1
-        TabOrder = 3
-        Visible = False
-      end
       object btnClose: TButton
-        Left = 148
-        Top = 144
+        Left = 102
+        Top = 5
         Width = 81
         Height = 21
-        Cancel = True
         Caption = 'Закрыть'
         Default = True
-        ModalResult = 2
-        TabOrder = 4
-      end
-      object cbAlwaysOverwrite: TCheckBox
-        Left = 17
-        Top = 93
-        Width = 199
-        Height = 17
-        Caption = 'Всегда перезаписывать'
-        TabOrder = 1
-        Visible = False
-      end
-      object cbDontRemove: TCheckBox
-        Left = 17
-        Top = 109
-        Width = 159
-        Height = 17
-        Caption = 'Не удалять объекты'
-        TabOrder = 2
-        Visible = False
-      end
-      object GroupBox1: TGroupBox
-        Left = 7
-        Top = 0
-        Width = 224
-        Height = 89
-        Caption = ' Легенда '
+        ModalResult = 1
         TabOrder = 0
-        object lblLegendNotInstalled: TLabel
-          Left = 11
-          Top = 16
-          Width = 94
-          Height = 13
-          Caption = 'Не установлено'
-          Font.Charset = DEFAULT_CHARSET
-          Font.Color = clWindowText
-          Font.Height = -11
-          Font.Name = 'Tahoma'
-          Font.Style = [fsBold]
-          ParentFont = False
-        end
-        object lblLegendNewer: TLabel
-          Left = 11
-          Top = 32
-          Width = 127
-          Height = 13
-          Caption = 'В файле новая версия'
-          Font.Charset = DEFAULT_CHARSET
-          Font.Color = clRed
-          Font.Height = -11
-          Font.Name = 'Tahoma'
-          Font.Style = [fsBold]
-          ParentFont = False
-        end
-        object lblLegendEqual: TLabel
-          Left = 11
-          Top = 48
-          Width = 95
-          Height = 13
-          Caption = 'Версии совпадают'
-        end
-        object lblLegendOlder: TLabel
-          Left = 11
-          Top = 64
-          Width = 117
-          Height = 13
-          Caption = 'В файле старая версия'
-          Font.Charset = DEFAULT_CHARSET
-          Font.Color = clGray
-          Font.Height = -11
-          Font.Name = 'Tahoma'
-          Font.Style = []
-          ParentFont = False
-        end
       end
     end
   end
@@ -232,13 +154,15 @@ object at_dlgLoadNamespacePackages: Tat_dlgLoadNamespacePackages
     object actSearch: TAction
       Caption = 'Искать...'
       OnExecute = actSearchExecute
-    end
-    object actInstallPackage: TAction
-      Caption = 'Установить'
+      OnUpdate = actSearchUpdate
     end
     object actSelectFolder: TAction
       Caption = '...'
       OnExecute = actSelectFolderExecute
     end
+  end
+  object ds: TDataSource
+    Left = 152
+    Top = 245
   end
 end
