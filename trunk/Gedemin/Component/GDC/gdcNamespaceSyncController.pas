@@ -17,7 +17,7 @@ type
     FqFindDirectory: TIBSQL;
     FqInsertLink: TIBSQL;
     FqFillSync: TIBSQL;
-    FDataSet: TIBDataSet;
+    FDataSet, FdsFileTree: TIBDataSet;
     FDirectory: String;
     FUpdateCurrModified: Boolean;
     FOnLogMessage: TOnLogMessage;
@@ -33,6 +33,7 @@ type
     procedure AnalyzeFile(const AFileName: String);
     function GetDataSet: TDataSet;
     function GetFiltered: Boolean;
+    function GetdsFileTree: TDataSet;
 
   public
     constructor Create;
@@ -40,16 +41,18 @@ type
 
     procedure Scan;
     procedure ApplyFilter;
+    procedure BuildTree;
     procedure DeleteFile(const AFileName: String);
     procedure SetOperation(const AnOp: String);
     procedure Sync;
-    procedure EditNamespace;
-    procedure CompareWithData(const AFileName: String);
+    procedure EditNamespace(const ANSK: Integer);
+    procedure CompareWithData(const ANSK: Integer; const AFileName: String);
 
     property Directory: String read FDirectory write FDirectory;
     property UpdateCurrModified: Boolean read FUpdateCurrModified write FUpdateCurrModified;
     property OnLogMessage: TOnLogMessage read FOnLogMessage write FOnLogMessage;
     property DataSet: TDataSet read GetDataSet;
+    property dsFileTree: TDataSet read GetdsFileTree;
     property FilterOnlyPackages: Boolean read FFilterOnlyPackages write FFilterOnlyPackages;
     property FilterText: String read FFilterText write FFilterText;
     property FilterOperation: String read FFilterOperation write FFilterOperation;
@@ -259,16 +262,19 @@ begin
   end;
 end;
 
-procedure TgdcNamespaceSyncController.CompareWithData(
+procedure TgdcNamespaceSyncController.BuildTree;
+begin
+  FdsFileTree.Close;
+  FdsFileTree.Open;
+end;
+
+procedure TgdcNamespaceSyncController.CompareWithData(const ANSK: Integer;
   const AFileName: String);
 begin
-  Assert(not FDataSet.IsEmpty);
-  Assert(FDataSet.FieldByName('namespacekey').AsInteger > 0);
-
   with TgdcNamespace.Create(nil) do
   try
     SubSet := 'ByID';
-    ID := FDataSet.FieldByName('namespacekey').AsInteger;
+    ID := ANSK;
     Open;
     if not EOF then
       CompareWithData(AFileName);
@@ -282,6 +288,7 @@ begin
   FUpdateCurrModified := True;
   FDirectory := gd_GlobalParams.NamespacePath;
   FDataSet := TIBDataSet.Create(nil);
+  FdsFileTree := TIBDataSet.Create(nil);
 end;
 
 procedure TgdcNamespaceSyncController.DeleteFile(const AFileName: String);
@@ -303,6 +310,7 @@ begin
   FqDependentList.Free;
   FqUpdateOperation.Free;
   Fq.Free;
+  FdsFileTree.Free;
   FDataSet.Free;
   FqFillSync.Free;
   FqFindDirectory.Free;
@@ -319,15 +327,12 @@ begin
     FOnLogMessage(AMessage);
 end;
 
-procedure TgdcNamespaceSyncController.EditNamespace;
+procedure TgdcNamespaceSyncController.EditNamespace(const ANSK: Integer);
 begin
-  Assert(not FDataSet.IsEmpty);
-  Assert(FDataSet.FieldByName('namespacekey').AsInteger > 0);
-
   with TgdcNamespace.Create(nil) do
   try
     SubSet := 'ByID';
-    ID := FDataSet.FieldByName('namespacekey').AsInteger;
+    ID := ANSK;
     Open;
     if not EOF then
       EditDialog;
@@ -339,6 +344,11 @@ end;
 function TgdcNamespaceSyncController.GetDataSet: TDataSet;
 begin
   Result := FDataSet as TDataSet;
+end;
+
+function TgdcNamespaceSyncController.GetdsFileTree: TDataSet;
+begin
+  Result := FdsFileTree;
 end;
 
 function TgdcNamespaceSyncController.GetFiltered: Boolean;
@@ -481,6 +491,48 @@ begin
   FDataSet.ReadTransaction := FTr;
   FDataSet.Transaction := FTr;
 
+  FdsFileTree.ReadTransaction := FTr;
+  FdsFileTree.Transaction := FTr;
+  FdsFileTree.SelectSQL.Text :=
+    'WITH RECURSIVE '#13#10 +
+    '  file_tree AS ( '#13#10 +
+    '    SELECT '#13#10 +
+    '      GEN_ID(at_g_file_tree, 1) AS id, '#13#10 +
+    '      CAST(NULL AS INTEGER) AS Parent, '#13#10 +
+    '      0 AS depth, '#13#10 +
+    '      f.filename AS name, '#13#10 +
+    '      f.filename, '#13#10 +
+    '      f.xid, '#13#10 +
+    '      f.dbid '#13#10 +
+    '    FROM '#13#10 +
+    '      at_namespace_file f '#13#10 +
+    '    WHERE '#13#10 +
+    '      f.version > '''' '#13#10 +
+    '     '#13#10 +
+    '    UNION ALL '#13#10 +
+    '     '#13#10 +
+    '    SELECT '#13#10 +
+    '      GEN_ID(at_g_file_tree, 1) AS id, '#13#10 +
+    '      t.id AS Parent, '#13#10 +
+    '      (t.depth + 1) AS depth, '#13#10 +
+    '      f.name, '#13#10 +
+    '      f.filename, '#13#10 +
+    '      f.xid, '#13#10 +
+    '      f.dbid '#13#10 +
+    '    FROM '#13#10 +
+    '      file_tree t '#13#10 +
+    '      JOIN at_namespace_file_link l '#13#10 +
+    '        ON l.filename = t.filename '#13#10 +
+    '      JOIN at_namespace_file f '#13#10 +
+    '        ON l.uses_xid = f.xid AND l.uses_dbid = f.dbid '#13#10 +
+    '    WHERE '#13#10 +
+    '      t.depth < 8 '#13#10 +
+    '  ) '#13#10 +
+    'SELECT '#13#10 +
+    '  * '#13#10 +
+    'FROM '#13#10 +
+    '  file_tree';
+
   Fq := TIBSQL.Create(nil);
   Fq.Transaction := FTr;
 
@@ -575,8 +627,6 @@ begin
 
   DoLog('Определение статуса...');
   FqFillSync.ExecQuery;
-
-  ApplyFilter;
 
   gd_GlobalParams.NamespacePath := FDirectory;
   DoLog('Выполнено сравнение с каталогом ' + FDirectory);

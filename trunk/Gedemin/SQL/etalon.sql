@@ -1385,6 +1385,12 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (182, '0000.0001.0000.0213', '22.08.2013', 'Issue 3218.');
 
+INSERT INTO fin_versioninfo
+  VALUES (183, '0000.0001.0000.0214', '31.08.2013', 'Added NS sync tables.');
+
+INSERT INTO fin_versioninfo
+  VALUES (184, '0000.0001.0000.0215', '02.09.2013', 'Generator added.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
@@ -16206,7 +16212,8 @@ ON DELETE CASCADE ON UPDATE CASCADE;
 SET TERM ^ ;
 
 CREATE TRIGGER at_bi_setting_storage FOR at_setting_storage
-BEFORE INSERT POSITION 0
+  BEFORE INSERT
+  POSITION 0
 AS
 BEGIN
   IF (NEW.id IS NULL) THEN
@@ -16489,9 +16496,63 @@ END
 
 SET TERM ; ^
 
+CREATE GENERATOR at_g_file_tree;
+
+CREATE GLOBAL TEMPORARY TABLE at_namespace_file (
+  filename      dtext255,
+  filetimestamp TIMESTAMP,
+  filesize      dinteger,
+  name          dtext255 NOT NULL UNIQUE,
+  caption       dtext255,
+  version       dtext20,
+  dbversion     dtext20,
+  optional      dboolean_notnull DEFAULT 0,
+  internal      dboolean_notnull DEFAULT 1,
+  comment       dblobtext80_1251,
+  xid           dinteger,
+  dbid          dinteger,
+
+  CONSTRAINT at_pk_namespace_file PRIMARY KEY (filename)
+)
+  ON COMMIT DELETE ROWS;
+
+CREATE GLOBAL TEMPORARY TABLE at_namespace_file_link (
+  filename      dtext255 NOT NULL,
+  uses_xid      dintkey,
+  uses_dbid     dintkey,
+  uses_name     dtext255 NOT NULL,
+
+  CONSTRAINT at_pk_namespace_file_link
+    PRIMARY KEY (filename, uses_xid, uses_dbid),
+  CONSTRAINT at_fk_namespace_file_link_fn
+    FOREIGN KEY (filename) REFERENCES at_namespace_file (filename)
+      ON UPDATE CASCADE
+      ON DELETE CASCADE
+)
+  ON COMMIT DELETE ROWS;
+
+CREATE GLOBAL TEMPORARY TABLE at_namespace_sync (
+  namespacekey  dforeignkey,
+  filename      dtext255,
+  operation     CHAR(2) DEFAULT '  ' NOT NULL,
+
+  CONSTRAINT at_fk_namespace_sync_nsk
+    FOREIGN KEY (namespacekey) REFERENCES at_namespace (id),
+  CONSTRAINT at_fk_namespace_sync_fn
+    FOREIGN KEY (filename) REFERENCES at_namespace_file (filename)
+      ON UPDATE CASCADE
+      ON DELETE CASCADE,
+  CONSTRAINT at_chk_namespace_sync_op
+    CHECK (operation IN ('  ', '< ', '> ', '>>', '<<', '==', '=>', '<=', '! ', '? '))
+)
+  ON COMMIT DELETE ROWS;
+
 GRANT ALL     ON at_namespace             TO administrator;
 GRANT ALL     ON at_object                TO administrator;
 GRANT ALL     ON at_namespace_link        TO administrator;
+GRANT ALL     ON at_namespace_file        TO administrator;
+GRANT ALL     ON at_namespace_file_link   TO administrator;
+GRANT ALL     ON at_namespace_sync        TO administrator;
 GRANT EXECUTE ON PROCEDURE at_p_findnsrec TO administrator;
 GRANT EXECUTE ON PROCEDURE at_p_del_duplicates TO administrator;
 

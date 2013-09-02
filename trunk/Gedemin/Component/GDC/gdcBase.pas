@@ -14178,7 +14178,6 @@ begin
     begin       
       AddText('Объект найден по уникальному ключу ' + ClassName + ' ' +
         RUIDToStr(GetRUID) + ' "' + FieldByName(GetListField(SubType)).AsString + '"', clBlack);
-     // AddText('Объект "' + FieldByName(GetListField(SubType)).AsString + '" найден по уникальному ключу', clBlue);
       if (sLoadFromStream in BaseState) and NeedDeleteTheSame(SubType) then
       begin
         DeleteTheSame(q.Fields[0].AsInteger, FieldByName(GetListField(SubType)).AsString);
@@ -14267,7 +14266,6 @@ begin
               end;
               AddText('Обновлен объект ' + ClassName + ' ' + RUIDToStr(GetRUID) + ' "' +
                 FieldByName(GetListField(SubType)).AsString + '"', clBlack);
-            //  AddText('Объект "' + FieldByName(GetListField(SubType)).AsString + '" обновлен данными из потока!', clBlack);
             except
               Cancel;
             end;
