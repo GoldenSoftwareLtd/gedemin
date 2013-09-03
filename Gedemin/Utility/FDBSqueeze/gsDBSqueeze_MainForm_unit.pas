@@ -384,8 +384,6 @@ end;
 procedure TgsDBSqueeze_MainForm.RecLog(const ARec: String);
 var
   RecStr: String;
-  PStr: PChar;
-  LengthRecStr: integer;
 begin
   RecStr := FormatDateTime('h:nn:ss', Now) + ' -- ' + ARec;
   statbarMain.Panels[2].Text := ARec;
@@ -394,12 +392,9 @@ begin
   // запись в лог-файл
   if chkbSaveLogs.Checked then
   begin
-    LengthRecStr := Length(RecStr) + 2;
-    RecStr := RecStr + #13#10;                 ///////
-    PStr := StrAlloc(LengthRecStr + 1);
+    RecStr := RecStr + #13#10;
     FLogFileStream.Position := FLogFileStream.Size;
-    FLogFileStream.Write(PStr^, LengthRecStr);
-    StrDispose(PStr);
+    FLogFileStream.Write(RecStr[1], Length(RecStr)); ///
   end;
 end;
 
@@ -557,13 +552,10 @@ begin
 
       if chkbSaveLogs.Checked then
       begin
-        if FileExists(LogFileName) then
-        begin
-         FLogFileStream := TFileStream.Create(LogFileName, fmOpenReadWrite);
-        end
-        else begin
-          FLogFileStream := TFileStream.Create(LogFileName, fmCreate);
-        end;
+        if not FileExists(LogFileName) then
+          with TFileStream.Create(LogFileName, fmCreate) do Free;
+
+        FLogFileStream := TFileStream.Create(LogFileName, fmOpenWrite or fmShareDenyNone); 
       end;
 
       FSThread.SetOptions(
