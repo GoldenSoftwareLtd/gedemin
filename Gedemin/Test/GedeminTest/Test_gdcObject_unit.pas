@@ -170,6 +170,11 @@ begin
             if (Obj.GetListTable(Obj.SubType) > '')
               and ((not (Obj is TgdcDocument)) or (TgdcDocument(Obj).DocumentTypeKey > -1)) then
             begin
+              FQ.Close;
+              FQ.SQL.Text := TgdcBaseCrack(Obj).CheckTheSameStatement;
+              if FQ.SQL.Text > '' then
+                FQ.Prepare;
+                
               Obj.Open;
 
               if not Obj.InheritsFrom(TgdcInvBaseRemains)
@@ -189,22 +194,13 @@ begin
                   begin
                     DUnit_Process_Form_Flag := True;
                     try
-                        Obj.CreateDialog;
+                      Obj.CreateDialog;
                     finally
                       DUnit_Process_Form_Flag := False;
                     end;
                   end;
                 end;
-
-                {if (not Obj.EOF) and Obj.CanEdit then
-                begin
-                  Obj.Edit;
-                  Obj.Post;
-                end;}
               end;
-
-              {F := TgdcBaseCrack(Obj).CreateDialogForm;
-              F.Free;}
 
               F := Obj.CreateViewForm(nil, '', Obj.SubType);
               if F <> nil then

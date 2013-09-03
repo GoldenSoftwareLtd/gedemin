@@ -14322,8 +14322,7 @@ begin
   F := FieldByName(GetKeyField(SubType));
   if (not EOF) and (F.AsInteger < cstUserIDStart) and (not F.IsNull) then
     Result := Format('SELECT %0:s FROM %1:s WHERE %0:s=%2:s ',
-      [GetKeyField(SubType), GetListTable(SubType),
-       FieldByName(GetKeyField(SubType)).AsString])
+      [GetKeyField(SubType), GetListTable(SubType), F.AsString])
   else
     Result := '';
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASE', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}

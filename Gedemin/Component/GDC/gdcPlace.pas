@@ -82,13 +82,14 @@ begin
   {M}    end;
   {END MACRO}
 
-  if FieldByName(GetKeyField(SubType)).AsInteger < cstUserIDStart then
+  if State = dsInactive then
+    Result := 'SELECT id FROM gd_place WHERE UPPER(name) = UPPER(:name)'
+  else if ID < cstUserIDStart then
     Result := inherited CheckTheSameStatement
   else
-    Result := Format('SELECT id FROM gd_place ' +
-      ' WHERE UPPER(name) = ''%s'' ',
-      [StringReplace(
-        AnsiUpperCase(FieldByName('name').AsString), '''', '"', [rfReplaceAll])]);
+    Result := 'SELECT id FROM gd_place WHERE UPPER(name) = UPPER(''' +
+      StringReplace(FieldByName('name').AsString, '''', '''''', [rfReplaceAll]) +
+      ''')';
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCPLACE', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally
