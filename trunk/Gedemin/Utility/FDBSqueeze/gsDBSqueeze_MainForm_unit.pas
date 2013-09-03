@@ -171,6 +171,7 @@ type
     FContinueProcFunctionKey, FContinueProcState: Integer;
     FStartupTime : TDateTime;
     FConnected: Boolean;
+    FLogFileStream: TFileStream;
 
     procedure GetConnectedEvent(const AConnected: Boolean);
     procedure RecLog(const ARec: String);
@@ -228,6 +229,8 @@ end;
 destructor TgsDBSqueeze_MainForm.Destroy;
 begin
   FSThread.Free;
+  if Assigned(FLogFileStream) then
+    FLogFileStream.Free;
   inherited;
 end;
 
@@ -370,15 +373,30 @@ procedure TgsDBSqueeze_MainForm.UpdateProgress(
 begin
   if (AProgressInfo.Message > '') then
   begin
-    RecLog(AProgressInfo.Message)
+    RecLog(AProgressInfo.Message);
   end;
 end;
 
 procedure TgsDBSqueeze_MainForm.RecLog(const ARec: String);
+var
+  RecStr: String;
+  PStr: PChar;
+  LengthRecStr: integer;
 begin
-   mLog.Lines.Add(FormatDateTime('h:nn:ss', Now) + ' -- ' + ARec);
-   statbarMain.Panels[2].Text := ARec;
-   //запись в файл
+  RecStr := FormatDateTime('h:nn:ss', Now) + ' -- ' + ARec;
+  statbarMain.Panels[2].Text := ARec;
+  mLog.Lines.Add(RecStr);
+
+  // запись в лог-файл
+  if chkbSaveLogs.Checked then
+  begin
+    LengthRecStr := Length(RecStr) + 2;
+    RecStr := RecStr + #13#10;                 ///////
+    PStr := StrAlloc(LengthRecStr + 1);
+    FLogFileStream.Position := FLogFileStream.Size;
+    FLogFileStream.Write(PStr^, LengthRecStr);
+    StrDispose(PStr);
+  end;
 end;
 
 procedure TgsDBSqueeze_MainForm.actCompanyUpdate(Sender: TObject);
@@ -531,6 +549,17 @@ begin
           BackupFileName := Trim(edtBackup.Text) + 'DBS_Backup_' + FormatDateTime('yymmdd_hhmm', FStartupTime) + '.bk'
         else
           BackupFileName := Trim(edtBackup.Text) + '\DBS_Backup_' + FormatDateTime('yymmdd_hhmm', FStartupTime) + '.bk'
+      end;
+
+      if chkbSaveLogs.Checked then
+      begin
+        if FileExists(LogFileName) then
+        begin
+         FLogFileStream := TFileStream.Create(LogFileName, fmOpenReadWrite);
+        end
+        else begin
+          FLogFileStream := TFileStream.Create(LogFileName, fmCreate);
+        end;
       end;
 
       FSThread.SetOptions(
