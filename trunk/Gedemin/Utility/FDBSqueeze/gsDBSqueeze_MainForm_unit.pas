@@ -175,6 +175,7 @@ type
 
     procedure GetConnectedEvent(const AConnected: Boolean);
     procedure RecLog(const ARec: String);
+    procedure LogSQLEvent(const ALogSQL: String);
     procedure GetInfoTestConnectEvent(const AConnectSuccess: Boolean; const AConnectInfoList: TStringList);
     procedure UsedDBEvent(const AFunctionKey: Integer; const AState: Integer; const ACallTime: String; const AErrorMessage: String);
     procedure GetDBPropertiesEvent(const AProperties: TStringList);
@@ -209,7 +210,9 @@ begin
   pgcSettings.ActivePage := tsConnection;
 
   pnl1.Color := RGB(255,228,148);
+  mSqlLog.Clear;
   mLog.ReadOnly := True;
+  mSqlLog.ReadOnly := True;
   dtpClosingDate.Date := Date;
 
   FConnected := False;
@@ -217,6 +220,7 @@ begin
   FSThread := TgsDBSqueezeThread.Create(False);
   FSThread.ProgressWatch := Self;
   FSThread.OnGetConnected := GetConnectedEvent;
+  FSThread.OnLogSQL := LogSQLEvent;
   FSThread.OnGetInfoTestConnect := GetInfoTestConnectEvent;
   FSThread.OnUsedDB := UsedDBEvent;
   FSThread.OnGetDBProperties := GetDBPropertiesEvent;
@@ -751,6 +755,11 @@ begin
   else
     statbarMain.Panels[3].Text := '     Not Connected';
   FConnected := AConnected;
+end;
+
+procedure TgsDBSqueeze_MainForm.LogSQLEvent(const ALogSQL: String);
+begin
+  mSqlLog.Lines.Add(ALogSQL);
 end;
 
 {
