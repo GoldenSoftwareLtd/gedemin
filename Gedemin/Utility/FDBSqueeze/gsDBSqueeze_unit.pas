@@ -8,7 +8,12 @@ uses
 type
   TActivateFlag = (aiActivate, aiDeactivate);
 
+  TOnGetConnectedEvent = procedure(const AConnected: Boolean) of object;
   TOnLogEvent = procedure(const S: String) of object;
+  TOnLogSQLEvent = procedure(const S: String) of object;
+  TOnGetInfoTestConnectEvent = procedure(const AConnectSuccess: Boolean; const AConnectInfoList: TStringList) of object;
+  TOnUsedDBEvent = procedure(const AFunctionKey: Integer; const AState: Integer; const ACallTime: String; const AnErrorMessage: String) of object;
+  TOnGetDBPropertiesEvent = procedure(const AProperties: TStringList) of object;
   TOnSetItemsCbbEvent = procedure(const ACompanies: TStringList) of object;
   TOnGetDBSizeEvent = procedure(const ADBSize: String) of object;
   TOnGetStatistics = procedure(const AnGdDoc: String; const AnAcEntry: String; const AnInvMovement: String) of object;
@@ -17,53 +22,59 @@ type
 
   TgsDBSqueeze = class(TObject)
   private
+    FCreateBackup: Boolean;
+    FSaveLog: Boolean;
+    FLogFileName: String;
+    FBackupFileName: String;
+    FContinueReprocess: Boolean;
     FCompanyName: String;
     FDatabaseName: String;
-    FClosingDate: TDateTime;
-    FIBDatabase: TIBDatabase;
-    FOnProgressWatch: TProgressWatchEvent;
-    FOnSetItemsCbbEvent: TOnSetItemsCbbEvent;
-    FOnGetDBSizeEvent: TOnGetDBSizeEvent;
-    FOnGetStatistics: TOnGetStatistics;
     FPassword: String;
     FUserName: String;
-
-    FDBProperties: TStringList; //FDBPropertiesAssocList: TStringList;
-
+    FClosingDate: TDateTime;
     FAllOurCompaniesSaldo: Boolean;
     FOnlyCompanySaldo: Boolean;
 
+    FIBDatabase: TIBDatabase;
     FCurUserContactKey: Integer;
-    
-    FEntryAnalyticsStr: String; // список всех бухгалтерских аналитик  
+    FEntryAnalyticsStr: String; // список всех бухгалтерских аналитик
     FCardFeaturesStr: String;   // cписок полей-признаков складской карточки
 
+    FOnGetConnectedEvent: TOnGetConnectedEvent;
+    FOnProgressWatch: TProgressWatchEvent;
+    FOnGetInfoTestConnectEvent: TOnGetInfoTestConnectEvent;
+    FOnUsedDBEvent: TOnUsedDBEvent;
+    FOnGetDBPropertiesEvent: TOnGetDBPropertiesEvent;
+    FOnSetItemsCbbEvent: TOnSetItemsCbbEvent;
+    FOnGetDBSizeEvent: TOnGetDBSizeEvent;
+    FOnGetStatistics: TOnGetStatistics;
 
-    procedure LogSQL(const AnIBSQL: TIBSQL);
-
-    function GetNewID: Integer;
-    function GetConnected: Boolean;
+    procedure LogSQL(const AnIBSQL: TIBSQL; const AProcName: String; const ParamValuesStr: String = '');
 
     function CreateHIS(AnIndex: Integer): Integer;
     function DestroyHIS(AnIndex: Integer): Integer;
-
+    function GetConnected: Boolean;
+    function GetNewID: Integer;
+    
   public
     constructor Create;
     destructor Destroy; override;
 
-     procedure LogEvent(const AMsg: String);
+    procedure LogEvent(const AMsg: String);
 
     procedure CreateDBSStateJournal;
     procedure InsertDBSStateJournal(const AFunctionKey: Integer; const AState: Integer; const AErrorMsg: String = '');
+
     procedure SetFVariables;
 
+    // создание необходимых таблиц для программы
+    procedure CreateMetadata;
+    //сохранение первоначального состояния (PKs, FKs, UNIQs, состояния индексов и триггеров)
     procedure SaveMetadata;
-    
+
     procedure Connect(ANoGarbageCollect: Boolean; AOffForceWrite: Boolean);
     procedure Disconnect;
     procedure Reconnect(ANoGarbageCollect: Boolean; AOffForceWrite: Boolean);
-    procedure StartTestConnection;
-    procedure StopTestConnection;
 
     // подсчет бухгалтерского сальдо
     procedure CalculateAcSaldo;
@@ -75,50 +86,79 @@ type
     // формирование складских остатков
     procedure CreateInvSaldo;
 
+    // перепревязка складских карточек
     procedure PrepareRebindInvCards;
     procedure RebindInvCards;
 
     // удаление старого бух сальдо
     procedure DeleteOldAcEntryBalance;
 
+    // удаление документов вместе с каскадными цепочками на них
     procedure CreateHIS_IncludeInHIS;
     procedure DeleteDocuments_DeleteHIS;
 
+    // удаление PKs, FKs, UNIQs, отключение индексов и триггеров
     procedure PrepareDB;
+    // восстановление певоначального состояния (создание PKs, FKs, UNIQs, включение индексов и триггеров)
     procedure RestoreDB;
-    procedure SetItemsCbbEvent;
-    procedure GetDBSizeEvent;
-    procedure GetStatisticsEvent;
-    procedure GetServerVersionEvent;
-    procedure GetDBPropertiesEvent;
 
-    procedure CreateMetadata;
+    procedure BackupDatabase;
 
+    procedure UsedDBEvent; // БД уже ранее обрабатывалась этой программой, вывести диалог для решения продолжить обработку либо начать заново обрабатывать
+    procedure GetInfoTestConnectEvent; // получить версию сервера и количество подключенных юзеров
+    procedure SetItemsCbbEvent;      // заполнить список our companies для ComboBox
+    procedure GetDBSizeEvent;        // получить размер файла БД
+    procedure GetDBPropertiesEvent;  // получить информацию о БД
+    procedure GetStatisticsEvent;    // получить текущее кол-во записей в GD_DOCUMENT, AC_ENTRY, INV_MOVEMENT
+    procedure GetServerVersionEvent; // получить версию сервера Firebird
 
+    property ContinueReprocess: Boolean read FContinueReprocess
+      write FContinueReprocess;
+    property SaveLog: Boolean read FSaveLog
+      write FSaveLog;
+    property CreateBackup: Boolean read FCreateBackup
+      write FCreateBackup;
+    property LogFileName: String read FLogFileName
+      write FLogFileName;
+    property BackupFileName: String read FBackupFileName
+      write FBackupFileName;
     property Connected: Boolean read GetConnected;
-    property AllOurCompaniesSaldo: Boolean read FAllOurCompaniesSaldo write FAllOurCompaniesSaldo;
-    property OnlyCompanySaldo: Boolean read FOnlyCompanySaldo write FOnlyCompanySaldo;
-
-    property CompanyName: String read FCompanyName write FCompanyName;
-    property DatabaseName: String read FDatabaseName write FDatabaseName;
+    property AllOurCompaniesSaldo: Boolean read FAllOurCompaniesSaldo
+      write FAllOurCompaniesSaldo;
+    property OnlyCompanySaldo: Boolean read FOnlyCompanySaldo
+      write FOnlyCompanySaldo;
+    property CompanyName: String read FCompanyName
+      write FCompanyName;
+    property DatabaseName: String read FDatabaseName
+      write FDatabaseName;
     property ClosingDate: TDateTime read FClosingDate
       write FClosingDate;
+    property OnGetConnectedEvent: TOnGetConnectedEvent read FOnGetConnectedEvent
+      write FOnGetConnectedEvent;
     property OnProgressWatch: TProgressWatchEvent read FOnProgressWatch
       write FOnProgressWatch;
+    property OnUsedDBEvent: TOnUsedDBEvent read FOnUsedDBEvent
+      write FOnUsedDBEvent;
+    property OnGetInfoTestConnectEvent: TOnGetInfoTestConnectEvent read FOnGetInfoTestConnectEvent
+      write FOnGetInfoTestConnectEvent;
+    property OnGetDBPropertiesEvent: TOnGetDBPropertiesEvent read FOnGetDBPropertiesEvent
+      write FOnGetDBPropertiesEvent;
     property OnSetItemsCbbEvent: TOnSetItemsCbbEvent read FOnSetItemsCbbEvent
       write FOnSetItemsCbbEvent;
     property OnGetDBSizeEvent: TOnGetDBSizeEvent read FOnGetDBSizeEvent
       write FOnGetDBSizeEvent;
     property OnGetStatistics: TOnGetStatistics read FOnGetStatistics
       write FOnGetStatistics;
-    property Password: String read FPassword write FPassword;
-    property UserName: String read FUserName write FUserName;
+    property Password: String read FPassword
+      write FPassword;
+    property UserName: String read FUserName
+      write FUserName;
   end;
 
 implementation
 
 uses
-  mdf_MetaData_unit, gdcInvDocument_unit, contnrs, IBQuery;
+  mdf_MetaData_unit, gdcInvDocument_unit, contnrs, IBQuery, IBServices, Messages;
 
 { TgsDBSqueeze }
 
@@ -126,7 +166,6 @@ constructor TgsDBSqueeze.Create;
 begin
   inherited;
   FIBDatabase := TIBDatabase.Create(nil);
-  FDBProperties := TStringList.Create;
 end;
 
 destructor TgsDBSqueeze.Destroy;
@@ -134,15 +173,11 @@ begin
   if Connected then
     Disconnect;
   FIBDatabase.Free;
-  FDBProperties.Free;
-  
+
   inherited;
 end;
 
 procedure TgsDBSqueeze.Connect(ANoGarbageCollect: Boolean; AOffForceWrite: Boolean);
-var
-  Tr: TIBTransaction;
-  q: TIBSQL;
 begin
   FIBDatabase.DatabaseName := FDatabaseName;
   FIBDatabase.LoginPrompt := False;
@@ -156,29 +191,8 @@ begin
     FIBDatabase.Params.Append('force_write=0');
 
   FIBDatabase.Connected := True;
+  FOnGetConnectedEvent(True);
   LogEvent('Connecting to DB... OK');
-
-  Tr := TIBTransaction.Create(nil);
-  q := TIBSQL.Create(nil);
-  try
-    Tr.DefaultDatabase := FIBDatabase;
-    Tr.StartTransaction;
-
-    q.Transaction := Tr;
-    q.SQL.Text := 'SELECT * FROM mon$database';
-    q.ExecQuery;
-    LogEvent('MON$PAGE_SIZE = ' + q.FieldByName('mon$page_size').AsString);
-    LogEvent('MON$PAGE_BUFFERS = ' + q.FieldByName('mon$page_buffers').AsString);
-    LogEvent('MON$FORCED_WRITES = ' + q.FieldByName('mon$forced_writes').AsString);
-
-    q.Close;
-    q.SQL.Text := 'SELECT * FROM mon$attachments WHERE mon$attachment_id = CURRENT_CONNECTION';
-    q.ExecQuery;
-    LogEvent('MON$GARBAGE_COLLECTION = ' + q.FieldByName('mon$garbage_collection').AsString);
-  finally
-    q.Free;
-    Tr.Free;
-  end;
 end;
 
 procedure TgsDBSqueeze.Reconnect(ANoGarbageCollect: Boolean; AOffForceWrite: Boolean);
@@ -194,7 +208,90 @@ end;
 procedure TgsDBSqueeze.Disconnect;
 begin
   FIBDatabase.Connected := False;
+  FOnGetConnectedEvent(False);
   LogEvent('Disconnecting from DB... OK');
+end;
+
+procedure TgsDBSqueeze.BackupDatabase;
+var
+  DatabaseName: String;
+  FS: TFileStream;
+  BS: TIBBackupService;
+  LogList: TStringList;
+  NextLogLine: String;
+begin
+
+  Disconnect;
+
+  BS := TIBBackupService.Create(nil);
+  LogList := TStringList.Create;
+  try
+    if AnsiPos('localhost:', FDatabaseName) <> 0 then
+      DatabaseName := StringReplace(FDatabaseName, 'localhost:', '', [rfIgnoreCase])
+    else
+      DatabaseName := FDatabaseName;
+
+    if FileExists(FLogFileName) then
+    begin
+      FS:=TFileStream.Create(FLogFileName, fmOpenReadWrite);
+      FS.Seek(0, soFromEnd);                  ///FStream.Position := FStream.Size;
+    end
+    else begin
+      FS := TFileStream.Create(FLogFileName, fmCreate);
+    end;
+
+    
+    try
+      LogList.Clear;
+      BS.Protocol := Local;
+      BS.LoginPrompt := False;
+      BS.Params.Clear;
+      BS.Params.Add('user_name=' + FUserName);
+      BS.Params.Add('password=' + FPassword);
+      BS.DatabaseName := DatabaseName;
+      BS.BackupFile.Clear; ///
+      BS.BackupFile.Add(FBackupFileName);
+      BS.Options := [IgnoreChecksums, IgnoreLimbo, NoGarbageCollection];
+    
+      BS.Attach;///BackupService.Active := True;
+      
+      try
+        if BS.Active then
+        begin
+          try
+            BS.ServiceStart;
+            while (not BS.Eof) and (BS.IsServiceRunning) do
+            begin
+              NextLogLine := BS.GetNextLine;
+              if NextLogLine <> '' then
+              begin
+                LogEvent(NextLogLine);
+                LogList.Add(NextLogLine + #13#10); ////FS.WriteBuffer(Pointer(NextLogLine)^, Length(NextLogLine));
+              end;  
+            end;
+          except
+            on E: Exception do
+            begin
+              BS.Active := False;
+              raise Exception.Create(E.Message);
+            end;
+          end;
+        end;
+      finally
+        if BS.Active then
+          BS.Detach;        ///BackupService.Active := False;
+        if SaveLog then
+          LogList.SaveToStream(FS);
+      end;
+    finally
+      FS.Free;
+    end;
+
+    Connect(False, True);       
+  finally
+    LogList.Free;
+    FreeAndNil(BS);
+  end;
 end;
 
 procedure TgsDBSqueeze.SetFVariables;
@@ -219,6 +316,7 @@ begin
       'WHERE ' +
       '  gu.ibname = CURRENT_USER';
     q.ExecQuery;
+    LogSQL(q, 'SetFVariables');
 
     if q.EOF then
       raise EgsDBSqueeze.Create('Invalid GD_USER data');
@@ -235,54 +333,28 @@ begin
       '  rf.rdb$relation_name = ''AC_ACCOUNT'' ' +
       '  AND rf.rdb$field_name LIKE ''USR$%'' ';
     q.ExecQuery;
+    LogSQL(q, 'SetFVariables');
 
     FEntryAnalyticsStr := q.FieldByName('UsrFieldsList').AsString;
     q.Close;
 
     q.SQL.Text :=
-      'SELECT LIST( ' + 
+      'SELECT LIST( ' +
       ' TRIM(rf.rdb$field_name)) AS UsrFieldsList ' +
-      'FROM ' + 
+      'FROM ' +
       '  rdb$relation_fields rf ' +
-      'WHERE ' + 
+      'WHERE ' +
       '  rf.rdb$relation_name = ''INV_CARD'' ' +
       '  AND rf.rdb$field_name LIKE ''USR$%'' ';
     q.ExecQuery;
-
+    LogSQL(q, 'SetFVariables');
+    
     FCardFeaturesStr := q.FieldByName('UsrFieldsList').AsString;
     q.Close;
   finally
     q.Free;
     Tr.Free;
   end;
-end;
-
-procedure TgsDBSqueeze.StartTestConnection;
-begin
-  FIBDatabase.DatabaseName := FDatabaseName;
-  FIBDatabase.LoginPrompt := False;
-  FIBDatabase.Params.CommaText :=
-    'user_name=' + FUserName + ',' +
-    'password=' + FPassword + ',' +
-    'lc_ctype=win1251';
-  //try
-    FIBDatabase.Connected := True;
-  //except on E:Exception do
-  //  begin
-       ////НА ФОРМУ ('Connect test failed' + #13#10 + E.Message);
-  //  end;
-  //end;
-
-  if FIBDatabase.Connected then
-  begin
-    //GetServerVersionEvent;
-  end;
-end;
-
-procedure TgsDBSqueeze.StopTestConnection;
-
-begin
-  FIBDatabase.Connected := False;
 end;
 
 function TgsDBSqueeze.GetNewID: Integer; // return next unique id
@@ -306,6 +378,7 @@ begin
       'FROM ' +
       '  rdb$database ';
     q.ExecQuery;
+    LogSQL(q, 'GetNewID');
 
     Result := q.FieldByName('NewID').AsInteger;
   finally
@@ -337,24 +410,17 @@ begin
         '  CALL_TIME     TIMESTAMP, ' +
         '  ERROR_MESSAGE VARCHAR(32000))';
       q.ExecQuery;
-      LogEvent('Table DBS_FK_CONSTRAINTS has been created.');
+      LogSQL(q, 'CreateDBSStateJournal');
+      LogEvent('Table DBS_JOURNAL_STATE has been created.');
     end
     else begin
-      {q.SQL.Text:=
+      q.SQL.Text:=
         'SELECT COUNT(*) FROM DBS_JOURNAL_STATE';
       q.ExecQuery;
+      LogSQL(q, 'CreateDBSStateJournal');
       if q.RecordCount <> 0 then
-      begin
-        //IsUsedDB := True;
-        ///CREATE EVENT!
-        q.Close;
-        q.SQL.Text :=
-          'SELECT * FROM DBS_JOURNAL_STATE ORDER BY CALL_TIME DESC';
-        q.ExecQuery;  
-      //////TODO: сигнал на форму! продолжить или заново
-      /// отправим все данные последней записи      
-      end;                                         
-      q.Close;      }
+        UsedDBEvent;
+      q.Close;
     end;
 
     Tr.Commit;
@@ -371,9 +437,10 @@ procedure TgsDBSqueeze.InsertDBSStateJournal(
 var
   q: TIBSQL;
   Tr: TIBTransaction;
+  NowDT: TDateTime;
 begin
   Assert(Connected);
-
+  NowDT := Now;
   Tr := TIBTransaction.Create(nil);
   q := TIBSQL.Create(nil);
   try
@@ -386,13 +453,20 @@ begin
       'VALUES(:FunctionKey, :State, :Now, :ErrorMsg)';
     q.ParamByName('FunctionKey').AsInteger := AFunctionKey;
     q.ParamByName('State').AsInteger := AState;
-    q.ParamByName('Now').AsDateTime := Now;
+    q.ParamByName('Now').AsDateTime := NowDT;
     if AErrorMsg = '' then
       q.ParamByName('ErrorMsg').Clear
     else
       q.ParamByName('ErrorMsg').AsString := AErrorMsg;
 
     q.ExecQuery;
+
+    if AErrorMsg <> '' then
+      LogSQL(q, 'InsertDBSStateJournal',
+        Format('FunctionKey = %d, State = %d, Now = %s, ErrorMsg = %s', [AFunctionKey, AState, DateTimeToStr(NowDT), AErrorMsg]))
+    else
+      LogSQL(q, 'InsertDBSStateJournal',
+        Format('FunctionKey = %d, State = %d, Now = %s', [AFunctionKey, AState, DateTimeToStr(NowDT)]));
 
     Tr.Commit;
   finally
@@ -436,9 +510,9 @@ begin
         'SELECT LIST(companykey) AS OurCompaniesList ' +
         'FROM gd_ourcompany';
       q2.ExecQuery;
+      LogSQL(q2, 'CalculateAcSaldo');
 
       OurCompaniesListStr := q2.FieldByName('OurCompaniesList').AsString;
-      LogEvent('[test] OurCompaniesList: ' + OurCompaniesListStr);
       q2.Close;
 
       TmpList.Text := StringReplace(OurCompaniesListStr, ',', #13#10, [rfReplaceAll, rfIgnoreCase]);
@@ -455,6 +529,7 @@ begin
         'WHERE fullname = :CompanyName ';
       q2.ParamByName('CompanyName').AsString := FCompanyName;
       q2.ExecQuery;
+      LogSQL(q2, 'CalculateAcSaldo', Format('CompanyName = %s', [FCompanyName]));
 
       CompanyKey := q2.FieldByName('CompanyKey').AsInteger;
       q2.Close;
@@ -467,6 +542,8 @@ begin
       'WHERE ' +
       '  aac.fullname = ''00 Остатки'' ';
     q2.ExecQuery;
+    LogSQL(q2, 'CalculateAcSaldo');
+
     OstatkiAccountKey := q2.FieldByName('OstatkiAccountKey').AsInteger;
     q2.Close;
     //-------------------------------------------- вычисление сальдо для счета
@@ -493,6 +570,10 @@ begin
     q2.ExecQuery;
     LogEvent('[test] SELECT account end');
 
+    if FOnlyCompanySaldo then
+      LogSQL(q2, 'CalculateAcSaldo', Format('EntryDate = %s ', [DateTimeToStr(FClosingDate)]))
+    else
+      LogSQL(q2, 'CalculateAcSaldo', Format('EntryDate = %s, CompanyKey = ', [DateTimeToStr(FClosingDate), CompanyKey]));
 
     // считаем и сохраняем сальдо для каждого счета
     while (not q2.EOF) do 
@@ -677,6 +758,10 @@ begin
       LogEvent('[test] select SALDO_1 begin');
       q3.ExecQuery;
       LogEvent('[test] select SALDO_1 end');
+      if FOnlyCompanySaldo then
+        LogSQL(q3, 'CalculateAcSaldo', Format('AccountKey = %d, EntryDate = %s, CompanyKey = %d', [q2.FieldByName('id').AsInteger, DateTimeToStr(FClosingDate), CompanyKey]))
+      else
+        LogSQL(q3, 'CalculateAcSaldo', Format('AccountKey = %d, EntryDate = %s', [q2.FieldByName('id').AsInteger, DateTimeToStr(FClosingDate)]));
 
 
       // проводки по счету '00 Остатки'
@@ -835,7 +920,7 @@ begin
         '   OR (SUM(debitcurr) - SUM(creditcurr)) > 0.0000 ' +
         '   OR (SUM(debiteq)   - SUM(crediteq))   > 0.0000 ');
 
-      q3.ParamByName('AccountKey').AsInteger := OstatkiAccountKey ;
+      q3.ParamByName('AccountKey').AsInteger := OstatkiAccountKey;
       q3.ParamByName('EntryDate').AsDateTime := FClosingDate;
       if FOnlyCompanySaldo then
         q3.ParamByName('CompanyKey').AsInteger := CompanyKey;
@@ -843,7 +928,10 @@ begin
       LogEvent('[test] select SALDO_2 begin');
       q3.ExecQuery;
       LogEvent('[test] select SALDO_2 end');
-
+      if FOnlyCompanySaldo then
+        LogSQL(q3, 'CalculateAcSaldo', Format('AccountKey = %d, EntryDate = %s, CompanyKey = %d', [OstatkiAccountKey, DateTimeToStr(FClosingDate), CompanyKey]))
+      else
+        LogSQL(q3, 'CalculateAcSaldo', Format('AccountKey = %d, EntryDate = %s', [OstatkiAccountKey, DateTimeToStr(FClosingDate)]));
 
       AvailableAnalyticsList.Clear;
       q3.Close;
@@ -890,6 +978,7 @@ begin
         'WHERE ' + 
         '  rdb$generator_name = ''GD_G_ENTRY_BALANCE_DATE''';
       q.ExecQuery;
+      LogSQL(q, 'DeleteOldAcEntryBalance');
       if q.RecordCount <> 0 then
       begin
         q.Close;
@@ -898,7 +987,7 @@ begin
           '  (GEN_ID(gd_g_entry_balance_date, 0) - ' + IntToStr(IB_DATE_DELTA) + ') AS CalculatedBalanceDate ' +
           'FROM rdb$database ';
         q.ExecQuery;
-
+        LogSQL(q, 'DeleteOldAcEntryBalance');
         if q.FieldByName('CalculatedBalanceDate').AsInteger > 0 then
         begin
           CalculatedBalanceDate := q.FieldByName('CalculatedBalanceDate').AsInteger;
@@ -910,9 +999,11 @@ begin
             q.Close;
             q.SQL.Text := 'DELETE FROM ac_entry_balance';
             q.ExecQuery;
+            LogSQL(q, 'DeleteOldAcEntryBalance');
 
             q.SQL.Text := 'SET GENERATOR gd_g_entry_balance_date TO 0'; // ALTER SEQUENCE gd_g_entry_balance_date RESTART WITH
             q.ExecQuery;
+            LogSQL(q, 'DeleteOldAcEntryBalance');
           end;
         end;
         Tr.Commit;
@@ -949,6 +1040,7 @@ begin
       'WHERE ' +
       '  gd.name = ''Хозяйственная операция'' ';
     q.ExecQuery;
+    LogSQL(q, 'CreateAcEntries');
     AccDocTypeKey := q.FieldByName('AccDocTypeKey').AsInteger;
                                                                                 ///TODO: проверить на существование
 //    q.Close;                                                                    
@@ -999,6 +1091,7 @@ begin
     LogEvent('[test] INSERT INTO GD_DOCUMENT SELECT begin');
     q.ExecQuery;
     LogEvent('[test] INSERT INTO GD_DOCUMENT SELECT end');
+    LogSQL(q, 'CreateAcEntries',Format('AccDocTypeKey = %d, Number = %s, ClosingDate = %s, CurUserContactKey = %d', [AccDocTypeKey, 'б/н', DateTimeToStr(FClosingDate), FCurUserContactKey]));
 
     // перенос проводок
     q.SQL.Text :=
@@ -1022,6 +1115,7 @@ begin
     LogEvent('[test] INSERT INTO AC_RECORD SELECT begin');
     q.ExecQuery;
     LogEvent('[test] INSERT INTO AC_RECORD SELECT end');
+    LogSQL(q, 'CreateAcEntries', Format('ClosingDate = %s, ProizvolnyeTrRecordKey = %d, ProizvolnyeTransactionKey = %d', [DateTimeToStr(FClosingDate), ProizvolnyeTrRecordKey, ProizvolnyeTransactionKey]));
 
     // перенос проводок
     q.SQL.Text :=
@@ -1052,6 +1146,7 @@ begin
     LogEvent('[test] INSERT INTO AC_ENTRY SELECT begin');
     q.ExecQuery;
     LogEvent('[test] INSERT INTO AC_ENTRY SELECT end');
+    LogSQL(q, 'CreateAcEntries', Format('ClosingDate = %s, ProizvolnyeTransactionKey = %d', [DateTimeToStr(FClosingDate), ProizvolnyeTransactionKey]));
 
     Tr.Commit;
   finally
@@ -1134,10 +1229,9 @@ begin
     if FOnlyCompanySaldo then
       q.ParamByName('CompanyKey').AsInteger := CompanyKey;
     LogEvent('[test] SELECT...[begin]');
-    LogSQL(q);
     q.ExecQuery;
     LogEvent('[test] SELECT...[end]');                                          ///TODO: обработка долгая (20 мин - 2 Гб) GROUP BY 
-
+    LogSQL(q, 'CalculateInvSaldo');
     Tr.Commit;
   finally
     q.Free;
@@ -2283,7 +2377,7 @@ var
             q2.SQL.Add(') = 0');
             q4.Close;
           end;
-          LogSQL(q2);
+          //LogSQL(q2);
           q2.ExecQuery;
 
           Count := Count - q2.FieldByName('Kolvo').AsInteger;
@@ -2326,7 +2420,7 @@ var
 
                   q2.ParamByName('rln').AsString := CascadeProcTbls[0]; 
 
-                  LogSQL(q2);
+                  //LogSQL(q2);
 
                   q2.ExecQuery;
 
@@ -2388,8 +2482,8 @@ var
                 q2.SQL.Add(') ');
 
                 q2.ParamByName('rln').AsString := ProcTblsNamesList[0];
-                
-                LogSQL(q2);
+
+                //LogSQL(q2);
 
                 q2.ExecQuery;
 
@@ -3022,9 +3116,12 @@ begin
   end;
 end;
 
-procedure TgsDBSqueeze.LogSQL(const AnIBSQL: TIBSQL);           //TODO: доработать
+procedure TgsDBSqueeze.LogSQL(const AnIBSQL: TIBSQL; const AProcName: String; const ParamValuesStr: String = '');           //TODO: доработать
 begin
-  LogEvent('[test] ' + AnIBSQL.SQL.Text);
+  LogEvent('[SQL Log] Procedure: ' + AProcName);
+  LogEvent(AnIBSQL.SQL.Text);
+  if ParamValuesStr <> '' then
+    LogEvent('Parameters: ' + ParamValuesStr);
 end;
 
 procedure TgsDBSqueeze.CreateMetadata;
@@ -3433,7 +3530,40 @@ begin
   end;
 end;
 
-procedure TgsDBSqueeze.GetDBSizeEvent;                   ///TODO: доделать
+procedure TgsDBSqueeze.UsedDBEvent;
+var
+  q: TIBSQL;
+  Tr: TIBTransaction;
+begin
+  Assert(Connected);
+
+  Tr := TIBTransaction.Create(nil);
+  q := TIBSQL.Create(nil);
+  try
+    Tr.DefaultDatabase := FIBDatabase;
+    Tr.StartTransaction;
+    q.Transaction := Tr;
+
+    q.SQL.Text :=
+      'SELECT FIRST(1) * FROM DBS_JOURNAL_STATE ORDER BY CALL_TIME DESC';
+    q.ExecQuery;
+    LogEvent('Warning: It''s USED DB! ');
+    LogEvent('Latest operation: CALL_TIME=' + q.FieldByName('CALL_TIME').AsString +
+      ', Message FUNCTIONKEY=WM_USER+' + IntToStr(q.FieldByName('FUNCTIONKEY').AsInteger - WM_USER) +
+      ', SUCESSFULLY=' + q.FieldByName('STATE').AsString);
+
+    FOnUsedDBEvent(q.FieldByName('FUNCTIONKEY').AsInteger, q.FieldByName('STATE').AsInteger,
+      q.FieldByName('CALL_TIME').AsString, q.FieldByName('ERROR_MESSAGE').AsString);
+
+    q.Close;
+    Tr.Commit;
+  finally
+    q.Free;
+    Tr.Free;
+  end;
+end;
+
+procedure TgsDBSqueeze.GetDBSizeEvent;
 var
   fileSize: Int64;
 
@@ -3453,12 +3583,17 @@ var
       Result := IntToStr(i64Size) + ' Byte(s)';
   end;
 
-  function GetFileSize(DatabaseName :String): Int64;
+  function GetFileSize(ADatabaseName :String): Int64;                           //TODO: проверить в сети
   var
     Handle: tHandle;
     FindData: tWin32FindData;
+    DatabaseName: String;
   begin
-    Result := 0;
+    Result := -1;
+    if  AnsiPos('localhost:', ADatabaseName) <> 0 then
+      DatabaseName := StringReplace(ADatabaseName, 'localhost:', '', [rfIgnoreCase])
+    else
+      DatabaseName := ADatabaseName;
     Handle := FindFirstFile(PChar(DatabaseName), FindData);
     if Handle = INVALID_HANDLE_VALUE then
     begin
@@ -3474,6 +3609,21 @@ var
       end;
     end;
   end;
+{  var
+  SearchRecord : TSearchRec;
+  Name: String;
+  begin
+    Result := -1;
+    if  AnsiPos('localhost:', DatabaseName) <> 0 then
+     Name := StringReplace(DatabaseName, 'localhost:', '', [rfIgnoreCase]);
+    LogEvent(Name);
+    if FindFirst(Name, faAnyFile, SearchRecord) = 0 then
+      try
+        Result := (SearchRecord.FindData.nFileSizeHigh * Int64(MAXDWORD)) + SearchRecord.FindData.nFileSizeLow;
+      finally
+        FindClose(SR);
+      end;
+  end;    }
 
 begin
   fileSize := GetFileSize(FDatabaseName);
@@ -3484,11 +3634,9 @@ procedure TgsDBSqueeze.GetStatisticsEvent;
 var
   q1, q2, q3: TIBSQL;
   Tr: TIBTransaction;
-  DBProperties: TStringList;
 begin
   Assert(Connected);
 
-  DBProperties := TStringList.Create;
   Tr := TIBTransaction.Create(nil);
   q1 := TIBSQL.Create(nil);
   q2 := TIBSQL.Create(nil);
@@ -3531,9 +3679,11 @@ procedure TgsDBSqueeze.GetDBPropertiesEvent;
 var
   q: TIBSQL;
   Tr: TIBTransaction;
+  DBPropertiesList: TStringList;
 begin
   Assert(Connected);
 
+  DBPropertiesList := TStringList.Create;
   Tr := TIBTransaction.Create(nil);
   q := TIBSQL.Create(nil);
   try
@@ -3545,10 +3695,10 @@ begin
 
     q.SQL.Text :=
       'SELECT ' +
-      '  rdb$get_context(''SYSTEM'', ''ENGINE_VERSION'') AS ServerVer' +
+      '  rdb$get_context(''SYSTEM'', ''ENGINE_VERSION'') AS ServerVer ' +
       'FROM rdb$database';
     q.ExecQuery;
-    FDBProperties.Append('Server=' + q.FieldByName('ServerVer').AsString);
+    DBPropertiesList.Append('Server=' + q.FieldByName('ServerVer').AsString);
     q.Close;
 
     q.SQL.Text :=
@@ -3558,37 +3708,38 @@ begin
       '  MON$PAGE_SIZE       AS PageSize, ' +
       '  MON$PAGE_BUFFERS    AS PageBuffers, ' +
       '  MON$SQL_DIALECT     AS SQLDialect, ' +
-      '  MON$FORCED_WRITES   AS ForcedWrites' +
+      '  MON$FORCED_WRITES   AS ForcedWrites ' +
       'FROM MON$DATABASE';
     q.ExecQuery;
-    FDBProperties.Append('DBName=' + q.FieldByName('DBName').AsString);
-    FDBProperties.Append('ODS=' + q.FieldByName('ODS').AsString);
-    FDBProperties.Append('PageSize=' + q.FieldByName('PageSize').AsString);
-    FDBProperties.Append('PageBuffers=' + q.FieldByName('PageBuffers').AsString);
-    FDBProperties.Append('SQLDialect=' + q.FieldByName('SQLDialect').AsString);
-    FDBProperties.Append('ForcedWrites=' + q.FieldByName('ForcedWrites').AsString);
+    DBPropertiesList.Append('DBName=' + q.FieldByName('DBName').AsString);
+    DBPropertiesList.Append('ODS=' + q.FieldByName('ODS').AsString);
+    DBPropertiesList.Append('PageSize=' + q.FieldByName('PageSize').AsString);
+    DBPropertiesList.Append('PageBuffers=' + q.FieldByName('PageBuffers').AsString);
+    DBPropertiesList.Append('SQLDialect=' + q.FieldByName('SQLDialect').AsString);
+    DBPropertiesList.Append('ForcedWrites=' + q.FieldByName('ForcedWrites').AsString);
     q.Close;
 
     q.SQL.Text :=
       'SELECT ' +
-      '  MON$USER AS User, ' +
+      '  MON$USER AS U, ' +
       '  MON$REMOTE_PROTOCOL AS RemProtocol, ' +
       '  MON$REMOTE_ADDRESS AS RemAddress, ' +
-      '  MON$GARBAGE_COLLECTION AS GarbCollection, ' +
+      '  MON$GARBAGE_COLLECTION AS GarbCollection ' +
       'FROM MON$ATTACHMENTS ' +
       'WHERE  MON$ATTACHMENT_ID = CURRENT_CONNECTION ';
     q.ExecQuery;
-    FDBProperties.Append('User=' + q.FieldByName('User').AsString);
-    FDBProperties.Append('RemoteProtocol=' + q.FieldByName('RemProtocol').AsString);
-    FDBProperties.Append('RemoteAddress=' + q.FieldByName('RemAddress').AsString);
-    FDBProperties.Append('GarbageCollection=' + q.FieldByName('GarbCollection').AsString);
+    DBPropertiesList.Append('User=' + Trim(q.FieldByName('U').AsString));
+    DBPropertiesList.Append('RemoteProtocol=' + Trim(q.FieldByName('RemProtocol').AsString));
+    DBPropertiesList.Append('RemoteAddress=' + q.FieldByName('RemAddress').AsString);
+    DBPropertiesList.Append('GarbageCollection=' + q.FieldByName('GarbCollection').AsString);
     q.Close;
 
-    ///FOnGetDBProperties(FDBProperties);
+    FOnGetDBPropertiesEvent(DBPropertiesList);
 
     Tr.Commit;
     LogEvent('[test] ... OK');
   finally
+    DBPropertiesList.Free;
     q.Free;
     Tr.Free;
   end;
@@ -3619,5 +3770,44 @@ begin
     Tr.Free;
   end;
 end;
+
+procedure TgsDBSqueeze.GetInfoTestConnectEvent;
+var
+  q: TIBSQL;
+  Tr: TIBTransaction;
+  InfConnectList: TStringList;
+begin
+  Assert(Connected);
+
+  InfConnectList := TStringList.Create;
+  Tr := TIBTransaction.Create(nil);
+  q := TIBSQL.Create(nil);
+  try
+    Tr.DefaultDatabase := FIBDatabase;
+    Tr.StartTransaction;
+
+    q.Transaction := Tr;
+    q.SQL.Text :=
+      'SELECT rdb$get_context(''SYSTEM'', ''ENGINE_VERSION'') AS ServerVer ' +
+      'FROM rdb$database';
+    q.ExecQuery;
+    InfConnectList.Append('ServerVersion=' + q.FieldByName('ServerVer').AsString);
+    q.Close;
+
+    q.SQL.Text :=
+      'SELECT COUNT(*) as Kolvo FROM mon$attachments';
+    q.ExecQuery;
+    InfConnectList.Append('ActivConnectCount=' + q.FieldByName('Kolvo').AsString);
+    q.Close;
+
+    Tr.Commit;
+    FOnGetInfoTestConnectEvent(True, InfConnectList);
+  finally
+    q.Free;
+    Tr.Free;
+    InfConnectList.Free;
+  end;
+end;
+
 
 end.
