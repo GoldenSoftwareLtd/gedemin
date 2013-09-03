@@ -385,6 +385,7 @@ begin
         //if FConnected.Value = 0 then
         //begin
           FDBS.GetDBSizeEvent;
+          FBusy.Value := 1;
         //end;
         Result := True;
       end;
@@ -845,8 +846,11 @@ end;
 
 procedure TgsDBSqueezeThread.GetDBSize(const AMessageDBSizeStr: String);
 begin
+  if (not Busy) then                       ///////////////////
+  begin
   FMessageDBSizeStr := AMessageDBSizeStr;
   Synchronize(DoOnGetDBSizeSync);
+  end;
 end;
 
 procedure TgsDBSqueezeThread.DoGetStatistics;
