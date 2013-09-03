@@ -360,12 +360,14 @@ begin
   {M}    end;
   {END MACRO}
 
-  //Стандартные записи ищем по идентификатору
-  if FieldByName(GetKeyField(SubType)).AsInteger < cstUserIDStart then
+  if State = dsInactive then
+    Result := 'SELECT id FROM rp_reportgroup WHERE UPPER(usergroupname)=UPPER(:usergroupname)'
+  else if ID < cstUserIDStart then
     Result := inherited CheckTheSameStatement
   else
-    Result := Format('SELECT %s FROM %s WHERE UPPER(usergroupname)=''%s'' ',
-      [GetKeyField(SubType), GetListTable(SubType), AnsiUpperCase(FieldByName('usergroupname').AsString)]);
+    Result := 'SELECT id FROM rp_reportgroup WHERE UPPER(usergroupname)=UPPER(''' +
+      StringReplace(FieldByName('usergroupname').AsString, '''', '''''', [rfReplaceAll]) +
+      ''')';
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCREPORTGROUP', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally
@@ -1091,13 +1093,15 @@ begin
   {M}    end;
   {END MACRO}
 
-  //Стандартные записи ищем по идентификатору
-  if FieldByName(GetKeyField(SubType)).AsInteger < cstUserIDStart then
+  if State = dsInactive then
+    Result := 'SELECT id FROM rp_reportlist WHERE UPPER(name)=UPPER(:name) AND reportgroupkey=:reportgroupkey'
+  else if ID < cstUserIDStart then
     Result := inherited CheckTheSameStatement
   else
     Result := Format('SELECT id FROM rp_reportlist ' +
-      ' WHERE UPPER(name)=''%s'' AND reportgroupkey = %d',
-      [AnsiUpperCase(FieldByName('name').AsString), FieldByName('reportgroupkey').AsInteger]);
+      'WHERE UPPER(name)=UPPER(''%s'') AND reportgroupkey=%d',
+      [StringReplace(FieldByName('name').AsString, '''', '''''', [rfReplaceAll]),
+      FieldByName('reportgroupkey').AsInteger]);
       
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCREPORT', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally

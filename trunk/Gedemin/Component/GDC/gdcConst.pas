@@ -184,7 +184,7 @@ end;
 
 class function TgdcConst.GetListField(const ASubType: TgdcSubType): String;
 begin
-  Result := 'name';
+  Result := 'NAME';
 end;
 
 class function TgdcConst.GetViewFormClassName(
