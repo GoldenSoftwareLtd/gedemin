@@ -40,6 +40,7 @@ type
     FEntryAnalyticsStr: String; // список всех бухгалтерских аналитик
     FCardFeaturesStr: String;   // cписок полей-признаков складской карточки
 
+    FOnLogSQLEvent: TOnLogSQLEvent;
     FOnGetConnectedEvent: TOnGetConnectedEvent;
     FOnProgressWatch: TProgressWatchEvent;
     FOnGetInfoTestConnectEvent: TOnGetInfoTestConnectEvent;
@@ -48,8 +49,6 @@ type
     FOnSetItemsCbbEvent: TOnSetItemsCbbEvent;
     FOnGetDBSizeEvent: TOnGetDBSizeEvent;
     FOnGetStatistics: TOnGetStatistics;
-
-    procedure LogSQL(const AnIBSQL: TIBSQL; const AProcName: String; const ParamValuesStr: String = '');
 
     function CreateHIS(AnIndex: Integer): Integer;
     function DestroyHIS(AnIndex: Integer): Integer;
@@ -61,6 +60,7 @@ type
     destructor Destroy; override;
 
     procedure LogEvent(const AMsg: String);
+    procedure LogSQLEvent(const AnIBSQL: TIBSQL; const AProcName: String; const ParamValuesStr: String = '');
 
     procedure CreateDBSStateJournal;
     procedure InsertDBSStateJournal(const AFunctionKey: Integer; const AState: Integer; const AErrorMsg: String = '');
@@ -133,6 +133,8 @@ type
       write FDatabaseName;
     property ClosingDate: TDateTime read FClosingDate
       write FClosingDate;
+    property OnLogSQLEvent: TOnLogSQLEvent read FOnLogSQLEvent
+      write FOnLogSQLEvent;
     property OnGetConnectedEvent: TOnGetConnectedEvent read FOnGetConnectedEvent
       write FOnGetConnectedEvent;
     property OnProgressWatch: TProgressWatchEvent read FOnProgressWatch
@@ -316,7 +318,7 @@ begin
       'WHERE ' +
       '  gu.ibname = CURRENT_USER';
     q.ExecQuery;
-    LogSQL(q, 'SetFVariables');
+    LogSQLEvent(q, 'SetFVariables');
 
     if q.EOF then
       raise EgsDBSqueeze.Create('Invalid GD_USER data');
@@ -333,7 +335,7 @@ begin
       '  rf.rdb$relation_name = ''AC_ACCOUNT'' ' +
       '  AND rf.rdb$field_name LIKE ''USR$%'' ';
     q.ExecQuery;
-    LogSQL(q, 'SetFVariables');
+    LogSQLEvent(q, 'SetFVariables');
 
     FEntryAnalyticsStr := q.FieldByName('UsrFieldsList').AsString;
     q.Close;
@@ -347,7 +349,7 @@ begin
       '  rf.rdb$relation_name = ''INV_CARD'' ' +
       '  AND rf.rdb$field_name LIKE ''USR$%'' ';
     q.ExecQuery;
-    LogSQL(q, 'SetFVariables');
+    LogSQLEvent(q, 'SetFVariables');
     
     FCardFeaturesStr := q.FieldByName('UsrFieldsList').AsString;
     q.Close;
@@ -378,7 +380,7 @@ begin
       'FROM ' +
       '  rdb$database ';
     q.ExecQuery;
-    LogSQL(q, 'GetNewID');
+    LogSQLEvent(q, 'GetNewID');
 
     Result := q.FieldByName('NewID').AsInteger;
   finally
@@ -410,14 +412,14 @@ begin
         '  CALL_TIME     TIMESTAMP, ' +
         '  ERROR_MESSAGE VARCHAR(32000))';
       q.ExecQuery;
-      LogSQL(q, 'CreateDBSStateJournal');
+      LogSQLEvent(q, 'CreateDBSStateJournal');
       LogEvent('Table DBS_JOURNAL_STATE has been created.');
     end
     else begin
       q.SQL.Text:=
         'SELECT COUNT(*) FROM DBS_JOURNAL_STATE';
       q.ExecQuery;
-      LogSQL(q, 'CreateDBSStateJournal');
+      LogSQLEvent(q, 'CreateDBSStateJournal');
       if q.RecordCount <> 0 then
         UsedDBEvent;
       q.Close;
@@ -462,10 +464,10 @@ begin
     q.ExecQuery;
 
     if AErrorMsg <> '' then
-      LogSQL(q, 'InsertDBSStateJournal',
+      LogSQLEvent(q, 'InsertDBSStateJournal',
         Format('FunctionKey = %d, State = %d, Now = %s, ErrorMsg = %s', [AFunctionKey, AState, DateTimeToStr(NowDT), AErrorMsg]))
     else
-      LogSQL(q, 'InsertDBSStateJournal',
+      LogSQLEvent(q, 'InsertDBSStateJournal',
         Format('FunctionKey = %d, State = %d, Now = %s', [AFunctionKey, AState, DateTimeToStr(NowDT)]));
 
     Tr.Commit;
@@ -510,7 +512,7 @@ begin
         'SELECT LIST(companykey) AS OurCompaniesList ' +
         'FROM gd_ourcompany';
       q2.ExecQuery;
-      LogSQL(q2, 'CalculateAcSaldo');
+      LogSQLEvent(q2, 'CalculateAcSaldo');
 
       OurCompaniesListStr := q2.FieldByName('OurCompaniesList').AsString;
       q2.Close;
@@ -529,7 +531,7 @@ begin
         'WHERE fullname = :CompanyName ';
       q2.ParamByName('CompanyName').AsString := FCompanyName;
       q2.ExecQuery;
-      LogSQL(q2, 'CalculateAcSaldo', Format('CompanyName = %s', [FCompanyName]));
+      LogSQLEvent(q2, 'CalculateAcSaldo', Format('CompanyName = %s', [FCompanyName]));
 
       CompanyKey := q2.FieldByName('CompanyKey').AsInteger;
       q2.Close;
@@ -542,7 +544,7 @@ begin
       'WHERE ' +
       '  aac.fullname = ''00 ќстатки'' ';
     q2.ExecQuery;
-    LogSQL(q2, 'CalculateAcSaldo');
+    LogSQLEvent(q2, 'CalculateAcSaldo');
 
     OstatkiAccountKey := q2.FieldByName('OstatkiAccountKey').AsInteger;
     q2.Close;
@@ -571,9 +573,9 @@ begin
     LogEvent('[test] SELECT account end');
 
     if FOnlyCompanySaldo then
-      LogSQL(q2, 'CalculateAcSaldo', Format('EntryDate = %s ', [DateTimeToStr(FClosingDate)]))
+      LogSQLEvent(q2, 'CalculateAcSaldo', Format('EntryDate = %s ', [DateTimeToStr(FClosingDate)]))
     else
-      LogSQL(q2, 'CalculateAcSaldo', Format('EntryDate = %s, CompanyKey = ', [DateTimeToStr(FClosingDate), CompanyKey]));
+      LogSQLEvent(q2, 'CalculateAcSaldo', Format('EntryDate = %s, CompanyKey = ', [DateTimeToStr(FClosingDate), CompanyKey]));
 
     // считаем и сохран€ем сальдо дл€ каждого счета
     while (not q2.EOF) do 
@@ -759,9 +761,9 @@ begin
       q3.ExecQuery;
       LogEvent('[test] select SALDO_1 end');
       if FOnlyCompanySaldo then
-        LogSQL(q3, 'CalculateAcSaldo', Format('AccountKey = %d, EntryDate = %s, CompanyKey = %d', [q2.FieldByName('id').AsInteger, DateTimeToStr(FClosingDate), CompanyKey]))
+        LogSQLEvent(q3, 'CalculateAcSaldo', Format('AccountKey = %d, EntryDate = %s, CompanyKey = %d', [q2.FieldByName('id').AsInteger, DateTimeToStr(FClosingDate), CompanyKey]))
       else
-        LogSQL(q3, 'CalculateAcSaldo', Format('AccountKey = %d, EntryDate = %s', [q2.FieldByName('id').AsInteger, DateTimeToStr(FClosingDate)]));
+        LogSQLEvent(q3, 'CalculateAcSaldo', Format('AccountKey = %d, EntryDate = %s', [q2.FieldByName('id').AsInteger, DateTimeToStr(FClosingDate)]));
 
 
       // проводки по счету '00 ќстатки'
@@ -929,9 +931,9 @@ begin
       q3.ExecQuery;
       LogEvent('[test] select SALDO_2 end');
       if FOnlyCompanySaldo then
-        LogSQL(q3, 'CalculateAcSaldo', Format('AccountKey = %d, EntryDate = %s, CompanyKey = %d', [OstatkiAccountKey, DateTimeToStr(FClosingDate), CompanyKey]))
+        LogSQLEvent(q3, 'CalculateAcSaldo', Format('AccountKey = %d, EntryDate = %s, CompanyKey = %d', [OstatkiAccountKey, DateTimeToStr(FClosingDate), CompanyKey]))
       else
-        LogSQL(q3, 'CalculateAcSaldo', Format('AccountKey = %d, EntryDate = %s', [OstatkiAccountKey, DateTimeToStr(FClosingDate)]));
+        LogSQLEvent(q3, 'CalculateAcSaldo', Format('AccountKey = %d, EntryDate = %s', [OstatkiAccountKey, DateTimeToStr(FClosingDate)]));
 
       AvailableAnalyticsList.Clear;
       q3.Close;
@@ -978,7 +980,7 @@ begin
         'WHERE ' + 
         '  rdb$generator_name = ''GD_G_ENTRY_BALANCE_DATE''';
       q.ExecQuery;
-      LogSQL(q, 'DeleteOldAcEntryBalance');
+      LogSQLEvent(q, 'DeleteOldAcEntryBalance');
       if q.RecordCount <> 0 then
       begin
         q.Close;
@@ -987,7 +989,7 @@ begin
           '  (GEN_ID(gd_g_entry_balance_date, 0) - ' + IntToStr(IB_DATE_DELTA) + ') AS CalculatedBalanceDate ' +
           'FROM rdb$database ';
         q.ExecQuery;
-        LogSQL(q, 'DeleteOldAcEntryBalance');
+        LogSQLEvent(q, 'DeleteOldAcEntryBalance');
         if q.FieldByName('CalculatedBalanceDate').AsInteger > 0 then
         begin
           CalculatedBalanceDate := q.FieldByName('CalculatedBalanceDate').AsInteger;
@@ -999,11 +1001,11 @@ begin
             q.Close;
             q.SQL.Text := 'DELETE FROM ac_entry_balance';
             q.ExecQuery;
-            LogSQL(q, 'DeleteOldAcEntryBalance');
+            LogSQLEvent(q, 'DeleteOldAcEntryBalance');
 
             q.SQL.Text := 'SET GENERATOR gd_g_entry_balance_date TO 0'; // ALTER SEQUENCE gd_g_entry_balance_date RESTART WITH
             q.ExecQuery;
-            LogSQL(q, 'DeleteOldAcEntryBalance');
+            LogSQLEvent(q, 'DeleteOldAcEntryBalance');
           end;
         end;
         Tr.Commit;
@@ -1040,7 +1042,7 @@ begin
       'WHERE ' +
       '  gd.name = ''’оз€йственна€ операци€'' ';
     q.ExecQuery;
-    LogSQL(q, 'CreateAcEntries');
+    LogSQLEvent(q, 'CreateAcEntries');
     AccDocTypeKey := q.FieldByName('AccDocTypeKey').AsInteger;
                                                                                 ///TODO: проверить на существование
 //    q.Close;                                                                    
@@ -1091,7 +1093,7 @@ begin
     LogEvent('[test] INSERT INTO GD_DOCUMENT SELECT begin');
     q.ExecQuery;
     LogEvent('[test] INSERT INTO GD_DOCUMENT SELECT end');
-    LogSQL(q, 'CreateAcEntries',Format('AccDocTypeKey = %d, Number = %s, ClosingDate = %s, CurUserContactKey = %d', [AccDocTypeKey, 'б/н', DateTimeToStr(FClosingDate), FCurUserContactKey]));
+    LogSQLEvent(q, 'CreateAcEntries',Format('AccDocTypeKey = %d, Number = %s, ClosingDate = %s, CurUserContactKey = %d', [AccDocTypeKey, 'б/н', DateTimeToStr(FClosingDate), FCurUserContactKey]));
 
     // перенос проводок
     q.SQL.Text :=
@@ -1115,7 +1117,7 @@ begin
     LogEvent('[test] INSERT INTO AC_RECORD SELECT begin');
     q.ExecQuery;
     LogEvent('[test] INSERT INTO AC_RECORD SELECT end');
-    LogSQL(q, 'CreateAcEntries', Format('ClosingDate = %s, ProizvolnyeTrRecordKey = %d, ProizvolnyeTransactionKey = %d', [DateTimeToStr(FClosingDate), ProizvolnyeTrRecordKey, ProizvolnyeTransactionKey]));
+    LogSQLEvent(q, 'CreateAcEntries', Format('ClosingDate = %s, ProizvolnyeTrRecordKey = %d, ProizvolnyeTransactionKey = %d', [DateTimeToStr(FClosingDate), ProizvolnyeTrRecordKey, ProizvolnyeTransactionKey]));
 
     // перенос проводок
     q.SQL.Text :=
@@ -1146,7 +1148,7 @@ begin
     LogEvent('[test] INSERT INTO AC_ENTRY SELECT begin');
     q.ExecQuery;
     LogEvent('[test] INSERT INTO AC_ENTRY SELECT end');
-    LogSQL(q, 'CreateAcEntries', Format('ClosingDate = %s, ProizvolnyeTransactionKey = %d', [DateTimeToStr(FClosingDate), ProizvolnyeTransactionKey]));
+    LogSQLEvent(q, 'CreateAcEntries', Format('ClosingDate = %s, ProizvolnyeTransactionKey = %d', [DateTimeToStr(FClosingDate), ProizvolnyeTransactionKey]));
 
     Tr.Commit;
   finally
@@ -1231,7 +1233,7 @@ begin
     LogEvent('[test] SELECT...[begin]');
     q.ExecQuery;
     LogEvent('[test] SELECT...[end]');                                          ///TODO: обработка долга€ (20 мин - 2 √б) GROUP BY 
-    LogSQL(q, 'CalculateInvSaldo');
+    LogSQLEvent(q, 'CalculateInvSaldo');
     Tr.Commit;
   finally
     q.Free;
@@ -2377,7 +2379,7 @@ var
             q2.SQL.Add(') = 0');
             q4.Close;
           end;
-          //LogSQL(q2);
+          //LogSQLEvent(q2);
           q2.ExecQuery;
 
           Count := Count - q2.FieldByName('Kolvo').AsInteger;
@@ -2420,7 +2422,7 @@ var
 
                   q2.ParamByName('rln').AsString := CascadeProcTbls[0]; 
 
-                  //LogSQL(q2);
+                  //LogSQLEvent(q2);
 
                   q2.ExecQuery;
 
@@ -2483,7 +2485,7 @@ var
 
                 q2.ParamByName('rln').AsString := ProcTblsNamesList[0];
 
-                //LogSQL(q2);
+                //LogSQLEvent(q2);
 
                 q2.ExecQuery;
 
@@ -3116,12 +3118,13 @@ begin
   end;
 end;
 
-procedure TgsDBSqueeze.LogSQL(const AnIBSQL: TIBSQL; const AProcName: String; const ParamValuesStr: String = '');           //TODO: доработать
+procedure TgsDBSqueeze.LogSQLEvent(const AnIBSQL: TIBSQL; const AProcName: String; const ParamValuesStr: String = '');
 begin
-  LogEvent('[SQL Log] Procedure: ' + AProcName);
-  LogEvent(AnIBSQL.SQL.Text);
+  FOnLogSQLEvent('Procedure: ' + AProcName);
+  FOnLogSQLEvent(Trim(AnIBSQL.SQL.Text));
   if ParamValuesStr <> '' then
-    LogEvent('Parameters: ' + ParamValuesStr);
+    FOnLogSQLEvent('Parameters: ' + ParamValuesStr);
+  FOnLogSQLEvent('   ');
 end;
 
 procedure TgsDBSqueeze.CreateMetadata;

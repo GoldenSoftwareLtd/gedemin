@@ -40,7 +40,8 @@ const
   WM_DBS_DISCONNECT            = WM_USER + 31;
 
 type
-  TGetConnectedEvent = procedure (const MsgConnected: Boolean) of object;
+  TLogSQLEvent = procedure(const MsgLogSQL: String)of object;
+  TGetConnectedEvent = procedure(const MsgConnected: Boolean) of object;
   TGetInfoTestConnectEvent = procedure(const MsgConnectSuccess: Boolean; const MsgConnectInfoList: TStringList) of object;
   TUsedDBEvent =  procedure(const MsgFunctionKey: Integer; const MsgState: Integer; const MsgCallTime: String; const MsgErrorMessage: String) of object;
   TGetDBPropertiesEvent = procedure(const MsgPropertiesList: TStringList) of object;
@@ -66,6 +67,8 @@ type
     FConnected: TidThreadSafeInteger;  ///
     FState: TidThreadSafeInteger;
 
+    FMsgLogSQL: String;
+
     FMsgConnected: Boolean;
 
     FMsgConnectSuccess: Boolean;
@@ -82,6 +85,7 @@ type
     FMessageDBSizeStr: String;
     FMessageGdDocStr, FMessageAcEntryStr, FMessageInvMovementStr: String;
 
+    FOnLogSQL: TLogSQLEvent;
     FOnGetConnected: TGetConnectedEvent;
     FOnGetInfoTestConnect: TGetInfoTestConnectEvent;
     FOnUsedDB: TUsedDBEvent;
@@ -90,6 +94,7 @@ type
     FOnGetDBSize: TGetDBSizeEvent;
     FOnGetStatistics: TGetStatisticsEvent;
 
+    procedure DoOnLogSQLSync;
     procedure DoOnGetConnectedSync;
     procedure DoOnGetInfoTestConnectSync;
     procedure DoOnUsedDBSync;
@@ -98,6 +103,7 @@ type
     procedure DoOnGetDBSizeSync;
     procedure DoOnGetStatisticsSync;
 
+    procedure LogSQL(const AMsgLogSQL: String);
     procedure GetConnected(const AMsgConnected: Boolean);
     procedure GetInfoTestConnect(const AMsgConnectSuccess: Boolean; const AMsgConnectInfoList: TStringList);
     procedure UsedDB(const AMessageFunctionKey: Integer;const AMessageState: Integer;
@@ -145,6 +151,7 @@ type
     property State: Boolean read GetState;
     property Busy: Boolean read GetBusy;
 
+    property OnLogSQL: TLogSQLEvent read FOnLogSQL write FOnLogSQL;
     property OnGetConnected: TGetConnectedEvent read FOnGetConnected write FOnGetConnected;
     property OnGetInfoTestConnect: TGetInfoTestConnectEvent read FOnGetInfoTestConnect write FOnGetInfoTestConnect;
     property OnUsedDB: TUsedDBEvent read FOnUsedDB write FOnUsedDB;
@@ -162,6 +169,7 @@ constructor TgsDBSqueezeThread.Create(const CreateSuspended: Boolean);
 begin
   FDBS := TgsDBSqueeze.Create;
   FDBS.OnProgressWatch := DoOnProgressWatch;
+  FDBS.OnLogSQLEvent := LogSQL;
   FDBS.OnGetConnectedEvent := GetConnected;
   FDBS.OnUsedDBEvent := UsedDB;
   FDBS.OnGetInfoTestConnectEvent := GetInfoTestConnect;
@@ -241,10 +249,22 @@ begin
     /// TODO: exception proc
 end;
 
+procedure  TgsDBSqueezeThread.DoOnLogSQLSync;
+begin
+  if Assigned(FOnLogSQL) then
+    FOnLogSQL(FMsgLogSQL);
+end;
+
+procedure TgsDBSqueezeThread.LogSQL(const AMsgLogSQL: String);
+begin
+  FMsgLogSQL := AMsgLogSQL;
+  Synchronize(DoOnlogSQLSync);
+end;
+
 procedure  TgsDBSqueezeThread.DoOnGetConnectedSync;
 begin
-   if Assigned(FOnGetConnected) then
-     FOnGetConnected(FMsgConnected);
+  if Assigned(FOnGetConnected) then
+    FOnGetConnected(FMsgConnected);
 end;
 
 procedure  TgsDBSqueezeThread.GetConnected(const AMsgConnected: Boolean);

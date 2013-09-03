@@ -1,6 +1,6 @@
 object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
-  Left = 58
-  Top = 56
+  Left = 25
+  Top = 50
   BorderStyle = bsDialog
   ClientHeight = 536
   ClientWidth = 851
@@ -44,7 +44,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
       Top = 21
       Width = 1212
       Height = 497
-      ActivePage = tsSettings
+      ActivePage = tsLogs
       MultiLine = True
       TabOrder = 1
       TabPosition = tpLeft
