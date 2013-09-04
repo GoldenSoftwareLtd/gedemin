@@ -2672,12 +2672,14 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  //Стандартные записи ищем по идентификатору
-  if FieldByName(GetKeyField(SubType)).AsInteger < cstUserIDStart then
+
+  if State = dsInactive then
+    Result := 'SELECT id FROM gd_documenttype WHERE ruid = :ruid'
+  else if ID < cstUserIDStart then
     Result := inherited CheckTheSameStatement
   else
-    Result := Format('SELECT %s FROM %s WHERE UPPER(ruid)=''%s'' ',
-      [GetKeyField(SubType), GetListTable(SubType), AnsiUpperCase(FieldByName('ruid').AsString)]);
+    Result := 'SELECT id FROM gd_documenttype WHERE ruid=''' + FieldByName('ruid').AsString + ''' ';
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASEDOCUMENTTYPE', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then

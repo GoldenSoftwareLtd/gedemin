@@ -3827,11 +3827,13 @@ begin
   {M}    end;
   {END MACRO}
 
-  if FieldByName(GetKeyField(SubType)).AsInteger < cstUserIDStart then
+  if State = dsInactive then
+    Result := 'SELECT id FROM ac_quantity WHERE entrykey = :entrykey AND valuekey = :valuekey'
+  else if ID < cstUserIDStart then
     Result := inherited CheckTheSameStatement
   else
-    Result := Format('SELECT %s FROM %s WHERE entrykey = %s AND valuekey = %s',
-      [GetKeyField(SubType), GetListTable(SubType), FieldByName('entrykey').AsString, FieldByName('valuekey').AsString]);
+    Result := Format('SELECT id FROM ac_quantity WHERE entrykey = %d AND valuekey = %d',
+      [FieldByName('entrykey').AsInteger, FieldByName('valuekey').AsInteger]);
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCACCTQUANTITY', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally

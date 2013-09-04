@@ -918,12 +918,18 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  if FieldByName(GetKeyField(SubType)).AsInteger < cstUserIDStart then
+
+  if State = dsInactive then
+    Result := 'SELECT acc.id FROM gd_companyaccount acc ' +
+      ' WHERE acc.companykey = :companykey AND acc.bankkey = :bankkey AND acc.account = :account '
+  else if ID < cstUserIDStart then
     Result := inherited CheckTheSameStatement
   else
     Result := Format('SELECT acc.id FROM gd_companyaccount acc ' +
       ' WHERE acc.companykey = %d AND acc.bankkey = %d AND acc.account = ''%s'' ',
-      [FieldByName('companykey').AsInteger, FieldByName('bankkey').AsInteger, FieldByName('account').AsString]);
+      [FieldByName('companykey').AsInteger, FieldByName('bankkey').AsInteger,
+       StringReplace(FieldByName('account').AsString, '''', '''''', [rfReplaceAll])]);
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCACCOUNT', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -2971,14 +2977,28 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  //Стандартные записи ищем по идентификатору
-  if FieldByName(GetKeyField(SubType)).AsInteger < cstUserIDStart then
+
+  if State = dsInactive then
+    Result :=
+      'SELECT c.id FROM gd_contact c JOIN gd_company co ON co.contactkey = c.id ' +
+      '  LEFT JOIN gd_companycode cp ON cp.companykey = c.id ' +
+      'WHERE UPPER(c.name)=UPPER(:name) AND cp.taxid IS NOT DISTINCT FROM :taxid '
+  else if ID < cstUserIDStart then
     Result := inherited CheckTheSameStatement
-  else
-    Result := Format('SELECT c.id FROM gd_contact c ' +
-      ' LEFT JOIN gd_companycode cp ON cp.companykey = c.id ' +
-      ' WHERE UPPER(c.name)=''%s'' AND COALESCE(cp.taxid, '''') = ''%s'' ',
-      [AnsiUpperCase(FieldByName('name').AsString), FieldByName('taxid').AsString]);
+  else begin
+    if FieldByName('taxid').IsNull then
+      Result := Format(
+        'SELECT c.id FROM gd_contact c JOIN gd_company co ON co.contactkey = c.id ' +
+        'WHERE UPPER(c.name)=UPPER(''%s'') ',
+        [StringReplace(FieldByName('name').AsString, '''', '''''', [rfReplaceAll])])
+    else
+      Result := Format(
+        'SELECT c.id FROM gd_contact c JOIN gd_companycode cp ON cp.companykey = c.id ' +
+        'WHERE UPPER(c.name)=UPPER(''%s'') AND cp.taxid = ''%s'' ',
+        [StringReplace(FieldByName('name').AsString, '''', '''''', [rfReplaceAll]),
+         StringReplace(FieldByName('taxid').AsString, '''', '''''', [rfReplaceAll])]);
+  end;
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCCOMPANY', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -3487,19 +3507,19 @@ begin
   {M}    end;
   {END MACRO}
 
-  //Стандартные записи ищем по идентификатору
-  if FieldByName(GetKeyField(SubType)).AsInteger < cstUserIDStart then
+  if State = dsInactive then
+    Result := 'SELECT b.bankkey FROM gd_bank b WHERE b.bankcode = :bankcode ' +
+      '  AND b.bankbranch IS NOT DISTINCT FROM :bankbranch '
+  else if ID < cstUserIDStart then
     Result := inherited CheckTheSameStatement
   else
-  begin
     Result := Format(
       'SELECT b.bankkey FROM gd_bank b WHERE b.bankcode = ''%s'' ' +
       '  AND COALESCE(b.bankbranch, '''') = ''%s'' ',
       [
-        StringReplace(FieldByName('bankcode').AsString, '''', '"', [rfReplaceAll]),
-        StringReplace(FieldByName('bankbranch').AsString, '''', '"', [rfReplaceAll])
+        StringReplace(FieldByName('bankcode').AsString, '''', '''''', [rfReplaceAll]),
+        StringReplace(FieldByName('bankbranch').AsString, '''', '''''', [rfReplaceAll])
       ]);
-  end;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBANK', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally
@@ -3877,17 +3897,20 @@ begin
   {M}    end;
   {END MACRO}
 
-  //Стандартные записи ищем по идентификатору
-  if FieldByName(GetKeyField(SubType)).AsInteger < cstUserIDStart then
-    Result := Format('SELECT c.id FROM gd_contact c JOIN gd_ourcompany oc ON c.id = oc.companykey WHERE c.id = %d',
-      [FieldByName('id').AsInteger])
+  if State = dsInactive then
+    Result := 'SELECT c.id FROM gd_contact c ' +
+      ' LEFT JOIN gd_companycode cp ON cp.companykey = c.id ' +
+      ' JOIN gd_ourcompany oc ON oc.companykey = c.id ' +
+      ' WHERE UPPER(c.name)=UPPER(:name) AND cp.taxid IS NOT DISTINCT FROM taxid '
+  else if ID < cstUserIDStart then
+    Result := inherited CheckTheSameStatement
   else
     Result := Format('SELECT c.id FROM gd_contact c ' +
       ' LEFT JOIN gd_companycode cp ON cp.companykey = c.id ' +
       ' JOIN gd_ourcompany oc ON oc.companykey = c.id ' +
-      ' WHERE UPPER(c.name)=''%s'' AND cp.taxid = ''%s'' ',
-      [AnsiUpperCase(FieldByName('name').AsString),
-        FieldByName('taxid').AsString]);
+      ' WHERE UPPER(c.name)=UPPER(''%s'') AND COALESCE(cp.taxid, '''') = ''%s'' ',
+      [StringReplace(FieldByName('name').AsString, '''', '''''', [rfReplaceAll]),
+       StringReplace(FieldByName('taxid').AsString, '''', '''''', [rfReplaceAll])]);
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCOURCOMPANY', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally

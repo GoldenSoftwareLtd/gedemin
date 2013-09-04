@@ -283,12 +283,25 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-//Стандартные записи ищем по идентификатору
-  if FieldByName(GetKeyField(SubType)).AsInteger < cstUserIDStart then
+
+  if State = dsInactive then
+    Result :=
+      'SELECT id FROM gd_good ' +
+      'WHERE ' +
+      '  (:barcode IS NOT NULL AND :barcode = barcode) ' +
+      '  OR ' +
+      '  (:barcode IS NULL AND barcode IS NULL AND UPPER(name)=UPPER(:name))'
+  else if ID < cstUserIDStart then
     Result := inherited CheckTheSameStatement
+  else if FieldByName('barcode').IsNull then
+    Result := Format('SELECT id FROM gd_good WHERE UPPER(name)=UPPER(''%s'') ',
+      [StringReplace(FieldByName('name').AsString, '''', '''''', [rfReplaceAll])])
   else
-    Result := Format('SELECT %s FROM %s WHERE UPPER(name)=''%s'' ',
-      [GetKeyField(SubType), GetListTable(SubType), AnsiUpperCase(FieldByName('name').AsString)]);
+    Result := Format('SELECT id FROM gd_good WHERE UPPER(name)=UPPER(''%s'') ' +
+      'AND barcode=''%s'' ',
+      [StringReplace(FieldByName('name').AsString, '''', '''''', [rfReplaceAll]),
+       StringReplace(FieldByName('barcode').AsString, '''', '''''', [rfReplaceAll])]);
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCTAX', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then

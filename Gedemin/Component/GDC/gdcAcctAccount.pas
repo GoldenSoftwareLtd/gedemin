@@ -112,12 +112,14 @@ type
 implementation
 
 uses
-  gd_security,
+  DB, gd_security,
   gdc_dlgAcctAccount_unit,
   gdc_dlgAcctSubAccount_unit,
   gdc_dlgAcctChart_unit,
   gdc_dlgAcctFolder_unit,
-  gdc_frmAcctAccount_unit, gd_ClassList;
+  gdc_frmAcctAccount_unit,
+  gd_ClassList,
+  gd_directories_const;
 
 { TgdcAcctBase }
 
@@ -500,7 +502,20 @@ begin
   {M}    end;
   {END MACRO}
 
-  if EOF then
+  if State = dsInactive then
+    Result :=
+      'SELECT ' +
+      '  a.id ' +
+      'FROM ' +
+      '  ac_account aparent JOIN ac_account aroot ' +
+      '    ON aroot.lb < aparent.lb AND aroot.rb >= aparent.rb AND aroot.parent IS NULL ' +
+      '  JOIN ac_account a ' +
+      '    ON a.lb > aroot.lb AND a.rb <= aroot.rb ' +
+      'WHERE ' +
+      '  a.accounttype IN (''A'', ''S'') ' +
+      '  AND aparent.id = :parent' +
+      '  AND a.alias = :alias'
+  else if ID < cstUserIDStart then
     Result := inherited CheckTheSameStatement
   else begin
     if FieldByName('parent').IsNull then

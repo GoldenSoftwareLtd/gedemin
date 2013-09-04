@@ -173,13 +173,15 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  //Стандартные записи ищем по идентификатору
-  if FieldByName(GetKeyField(SubType)).AsInteger < cstUserIDStart then
+
+  if State = dsInactive then
+    Result := 'SELECT id FROM gd_curr WHERE UPPER(name) = UPPER(:name)'
+  else if ID < cstUserIDStart then
     Result := inherited CheckTheSameStatement
   else
-    Result := Format('SELECT %s FROM %s WHERE UPPER(name) = ''%s''',
-      [GetKeyField(SubType), GetListTable(SubType),
-       AnsiUpperCase(FieldByName('name').AsString)]);
+    Result := 'SELECT id FROM gd_curr WHERE UPPER(name) = UPPER(''' +
+       StringReplace(FieldByName('name').AsString, '''', '''''', [rfReplaceAll]) + ''' ';
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCCURR', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -396,16 +398,18 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  //Стандартные записи ищем по идентификатору
-  if FieldByName(GetKeyField(SubType)).AsInteger < cstUserIDStart then
+
+  if State = dsInactive then
+    Result := 'SELECT id FROM gd_currrate WHERE fromcurr = :fromcurr AND '+
+      ' tocurr = :tocurr AND fordate = :fordate '
+  else if ID < cstUserIDStart then
     Result := inherited CheckTheSameStatement
   else
-    Result := Format('SELECT %s FROM %s WHERE fromcurr = %s AND '+
-      ' tocurr = %s AND fordate = ''%s'' ' ,
-      [GetKeyField(SubType), GetListTable(SubType),
-       FieldByName('fromcurr').AsString,
-       FieldByName('tocurr').AsString,
-       FieldByName('fordate').AsString]);
+    Result := Format('SELECT id FROM gd_currrate WHERE fromcurr = %d AND '+
+      ' tocurr = %d AND fordate = ''%s'' ' ,
+      [FieldByName('fromcurr').AsInteger, FieldByName('tocurr').AsInteger,
+       FormatDateTime('dd.mm.yyyy', FieldByName('fordate').AsDateTime)]);
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCCURRRATE', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then

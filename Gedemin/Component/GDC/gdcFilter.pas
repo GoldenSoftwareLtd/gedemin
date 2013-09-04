@@ -43,7 +43,7 @@ procedure Register;
 implementation
 
 uses
-  gd_ClassList, gdc_flt_frmMain_unit, gd_directories_const;
+  DB, gd_ClassList, gdc_flt_frmMain_unit, gd_directories_const;
 
 procedure Register;
 begin
@@ -92,13 +92,16 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  //Стандартные записи ищем по идентификатору
-  if FieldByName(GetKeyField(SubType)).AsInteger < cstUserIDStart then
+
+  if State = dsInactive then
+    Result := 'SELECT id FROM flt_componentfilter WHERE UPPER(fullname)=UPPER(:fullname) AND crc=:crc'
+  else if ID < cstUserIDStart then
     Result := inherited CheckTheSameStatement
   else
-    Result := Format('SELECT %s FROM %s WHERE UPPER(fullname)=''%s'' AND crc = %s',
-      [GetKeyField(SubType), GetListTable(SubType), AnsiUpperCase(FieldByName('fullname').AsString),
-       AnsiUpperCase(FieldByName('crc').AsString)]);
+    Result := Format('SELECT id FROM flt_componentfilter WHERE UPPER(fullname)=UPPER(''%s'') AND crc=%d',
+      [StringReplace(FieldByName('fullname').AsString, '''', '''''', [rfReplaceAll]),
+       FieldByName('crc').AsInteger]);
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCCOMPONENTFILTER', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -164,18 +167,21 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  //Стандартные записи ищем по идентификатору
-  if FieldByName(GetKeyField(SubType)).AsInteger < cstUserIDStart then
+
+  if State = dsInactive then
+    Result := 'SELECT id FROM flt_savedfilter WHERE name=:name AND componentkey=:componentkey AND userkey IS NOT DISTINCT FROM :userkey'
+  else if ID < cstUserIDStart then
     Result := inherited CheckTheSameStatement
   else
     if FieldByName('userkey').IsNull then
-      Result := Format('SELECT %s FROM %s WHERE name=''%s'' AND componentkey = %s AND userkey IS NULL',
-        [GetKeyField(SubType), GetListTable(SubType), FieldByName('name').AsString,
-         FieldByName('componentkey').AsString])
+      Result := Format('SELECT id FROM flt_savedfilter WHERE name=''%s'' AND componentkey = %d AND userkey IS NULL',
+        [StringReplace(FieldByName('name').AsString, '''', '''''', [rfReplaceAll]),
+         FieldByName('componentkey').AsInteger])
     else
-      Result := Format('SELECT %s FROM %s WHERE name=''%s'' AND componentkey = %s AND userkey = %s',
-        [GetKeyField(SubType), GetListTable(SubType), FieldByName('name').AsString,
-         FieldByName('componentkey').AsString, FieldByName('userkey').AsString]);
+      Result := Format('SELECT id FROM flt_savedfilter WHERE name=''%s'' AND componentkey = %d AND userkey = %d',
+        [StringReplace(FieldByName('name').AsString, '''', '''''', [rfReplaceAll]),
+         FieldByName('componentkey').AsInteger, FieldByName('userkey').AsInteger]);
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCSAVEDFILTER', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then

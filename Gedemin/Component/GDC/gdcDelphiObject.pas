@@ -308,7 +308,6 @@ begin
   Result := inherited GetSubSetList + ssByUpperName + ';';
 end;
 
-
 function TgdcDelphiObject.CheckTheSameStatement: String;
 var
   {@UNFOLD MACRO INH_ORIG_PARAMS()}
@@ -316,7 +315,7 @@ var
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-  ParentIndex: String;
+  ParentIndex: Integer;
 begin
   {@UNFOLD MACRO INH_ORIG_CHECKTHESAMESTATEMENT('TGDCDELPHIOBJECT', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  try
@@ -348,27 +347,34 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  //Стандартные записи ищем по идентификатору
-  if FieldByName(GetKeyField(SubType)).AsInteger < cstUserIDStart then
+
+  if State = dsInactive then
+    Result :=
+      'SELECT o.id FROM evt_object o ' +
+      'WHERE ' +
+      ' (UPPER(o.objectname) = UPPER(:objectname)) AND ' +
+      ' (UPPER(o.classname) = UPPER(:classname)) AND ' +
+      ' (COALESCE(o.parentindex, 1) = COALESCE(:parentindex, 1)) AND ' +
+      ' (UPPER(o.subtype) = UPPER(:subtype)) '
+  else if ID < cstUserIDStart then
     Result := inherited CheckTheSameStatement
   else
   begin
     if FieldByName('parent').IsNull then
-      ParentIndex := '1'
+      ParentIndex := 1
     else
-      ParentIndex := FieldByName('parent').AsString;
+      ParentIndex := FieldByName('parent').AsInteger;
 
     Result := Format('SELECT o.id FROM evt_object o ' +
       ' WHERE ' +
-      ' (UPPER(o.objectname) = ''%s'')  AND ' +
-      ' (UPPER(o.classname) = ''%s'') AND ' +
-      ' (o.parentindex = %s) AND ' +
-      ' (UPPER(o.subtype) = ''%s'') ',
-      [AnsiUpperCase(FieldByName('objectname').AsString),
-       AnsiUpperCase(FieldByName('classname').AsString),
-       ParentIndex,
-       AnsiUpperCase(FieldByName('subtype').AsString)]);
+      ' (UPPER(o.objectname) = UPPER(''%s''))  AND ' +
+      ' (UPPER(o.classname) = UPPER(''%s'')) AND ' +
+      ' (o.parentindex = %d) AND ' +
+      ' (UPPER(o.subtype) = UPPER(''%s'')) ',
+      [FieldByName('objectname').AsString, FieldByName('classname').AsString,
+       ParentIndex, FieldByName('subtype').AsString]);
   end;
+  
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCDELPHIOBJECT', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
