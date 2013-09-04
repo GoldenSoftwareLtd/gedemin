@@ -43,7 +43,7 @@ type
 implementation
 
 uses
-  SysUtils, IBSQL, evt_Base, gdc_attr_frmEvent_unit,
+  DB, SysUtils, IBSQL, evt_Base, gdc_attr_frmEvent_unit,
   gd_ClassList, gd_directories_const, gdcFunction;
 
 procedure Register;
@@ -335,13 +335,17 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  //Стандартные записи ищем по идентификатору
-  if FieldByName(GetKeyField(SubType)).AsInteger < cstUserIDStart then
+
+  if State = dsInactive then
+    Result := 'SELECT id FROM evt_objectevent WHERE objectkey = :objectkey AND ' +
+      'eventname = :eventname'
+  else if ID < cstUserIDStart then
     Result := inherited CheckTheSameStatement
   else
     Result := Format('SELECT id FROM evt_objectevent WHERE objectkey = %d AND ' +
       'eventname = ''%s''',
       [FieldByName('objectkey').AsInteger, FieldByName('eventname').AsString]);
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCEVENT', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then

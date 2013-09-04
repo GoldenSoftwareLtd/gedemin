@@ -212,20 +212,15 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-{ TODO -oJulia : 
-«десь пара моментов:
-  во-первых на cmd нет уникального ключа
-  во-вторых у нас может быть несколько веток с одинаковым cmd
-  (например нам вздумалось вывести один и тот же документ в разных папках исследовател€).
-  ѕри сохранении их в настройку они сольютс€ в одну }
 
-  //—тандартные записи ищем по идентификатору
-  if FieldByName(GetKeyField(SubType)).AsInteger < cstUserIDStart then
+  if State = dsInactive then
+    Result := 'SELECT id FROM gd_command WHERE UPPER(cmd) = UPPER(:cmd)'
+  else if ID < cstUserIDStart then
     Result := inherited CheckTheSameStatement
   else
-    Result := Format('SELECT %s FROM %s WHERE UPPER(cmd) = ''%s''',
-      [GetKeyField(SubType), GetListTable(SubType),
-       StringReplace(AnsiUpperCase(FieldByName('cmd').AsString), '''', '"', [rfReplaceAll])]);
+    Result := 'SELECT id FROM gd_command WHERE UPPER(cmd) = UPPER(''' +
+      StringReplace(FieldByName('cmd').AsString, '''', '''''', [rfReplaceAll]) + ''' ';
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCEXPLORER', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then

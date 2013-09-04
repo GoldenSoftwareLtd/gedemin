@@ -152,9 +152,9 @@ implementation
 { TgdcConst }
 
 uses
-  IBSQL,                           gd_security,                  dmDataBase_unit,
-  gdc_dlgConst_unit,               gdc_dlgConstValue_unit,       gdc_dlgAdminConstValue_unit,
-  gdc_frmConst_unit,               gd_ClassList, gd_directories_const;
+  DB,                 IBSQL,                             gd_security,
+  gdc_dlgConst_unit,  gdc_dlgConstValue_unit,            gdc_dlgAdminConstValue_unit,
+  gdc_frmConst_unit,  gd_ClassList, gd_directories_const;
 
 procedure Register;
 begin
@@ -265,13 +265,13 @@ begin
   {M}    end;
   {END MACRO}
 
-  //Стандартные записи ищем по идентификатору
-  if FieldByName(GetKeyField(SubType)).AsInteger < cstUserIDStart then
+  if State = dsInactive then
+    Result := 'SELECT id FROM gd_const WHERE UPPER(name) = UPPER(:name)'
+  else if ID < cstUserIDStart then
     Result := inherited CheckTheSameStatement
   else
-    Result := Format('SELECT %s FROM %s WHERE UPPER(name) = ''%s''',
-      [GetKeyField(SubType), GetListTable(SubType),
-       AnsiUpperCase(FieldByName('name').AsString)]);
+    Result := 'SELECT id FROM gd_const WHERE UPPER(name) = ''' +
+      StringReplace(FieldByName('name').AsString, '''', '''''', [rfReplaceAll]) + ''' ';
        
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCCONST', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally

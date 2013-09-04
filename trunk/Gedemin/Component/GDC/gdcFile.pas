@@ -723,19 +723,21 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-//Стандартные записи ищем по идентификатору
-  if FieldByName(GetKeyField(SubType)).AsInteger < cstUserIDStart then
+
+  if State = dsInactive then
+    Result :=
+      'SELECT id FROM gd_file WHERE UPPER(name)=UPPER(:name) AND parent IS NOT DISTINCT FROM :parent'
+  else if ID < cstUserIDStart then
     Result := inherited CheckTheSameStatement
   else
   begin
     if FieldByName('parent').IsNull then
-      Result := Format('SELECT %s FROM %s WHERE UPPER(name)=''%s'' AND parent IS NULL',
-        [GetKeyField(SubType), GetListTable(SubType), AnsiUpperCase(FieldByName('name').AsString)])
-
+      Result := Format('SELECT id FROM gd_file WHERE UPPER(name)=UPPER(''%s'') AND parent IS NULL',
+        [StringReplace(FieldByName('name').AsString, '''', '''''', [rfReplaceAll])])
     else
-      Result := Format('SELECT %s FROM %s WHERE UPPER(name)=''%s'' AND parent = %s',
-        [GetKeyField(SubType), GetListTable(SubType), AnsiUpperCase(FieldByName('name').AsString),
-         FieldByName('parent').AsString]);
+      Result := Format('SELECT id FROM gd_file WHERE UPPER(name)=UPPER(''%s'') AND parent = %d',
+        [StringReplace(FieldByName('name').AsString, '''', '''''', [rfReplaceAll]),
+         FieldByName('parent').AsInteger]);
   end;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASEFILE', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
