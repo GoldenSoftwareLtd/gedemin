@@ -17,6 +17,7 @@ type
   TOnSetItemsCbbEvent = procedure(const ACompanies: TStringList) of object;
   TOnGetDBSizeEvent = procedure(const ADBSize: String) of object;
   TOnGetStatistics = procedure(const AnGdDoc: String; const AnAcEntry: String; const AnInvMovement: String) of object;
+  TOnGetProcStatistics = procedure(const AnGdDoc: String; const AnAcEntry: String; const AnInvMovement: String) of object;
 
   EgsDBSqueeze = class(Exception);
 
@@ -49,6 +50,9 @@ type
     FOnSetItemsCbbEvent: TOnSetItemsCbbEvent;
     FOnGetDBSizeEvent: TOnGetDBSizeEvent;
     FOnGetStatistics: TOnGetStatistics;
+    FOnGetProcStatistics: TOnGetProcStatistics;
+
+    procedure FuncTest(const AFuncName: String; const ATr: TIBTransaction);
 
     function CreateHIS(AnIndex: Integer): Integer;
     function DestroyHIS(AnIndex: Integer): Integer;
@@ -110,6 +114,7 @@ type
     procedure GetDBSizeEvent;        // получить размер файла БД
     procedure GetDBPropertiesEvent;  // получить информацию о БД
     procedure GetStatisticsEvent;    // получить текущее кол-во записей в GD_DOCUMENT, AC_ENTRY, INV_MOVEMENT
+    procedure GetProcStatisticsEvent;
     procedure GetServerVersionEvent; // получить версию сервера Firebird
 
     property ContinueReprocess: Boolean read FContinueReprocess
@@ -151,6 +156,8 @@ type
       write FOnGetDBSizeEvent;
     property OnGetStatistics: TOnGetStatistics read FOnGetStatistics
       write FOnGetStatistics;
+    property OnGetProcStatistics: TOnGetProcStatistics read FOnGetProcStatistics
+      write FOnGetProcStatistics;
     property Password: String read FPassword
       write FPassword;
     property UserName: String read FUserName
@@ -185,7 +192,7 @@ begin
   FIBDatabase.LoginPrompt := False;
   FIBDatabase.Params.CommaText :=
     'user_name=' + FUserName + ',' +
-    'password=' + FPassword + ',' +
+    'password=' + FPassword + ',' +   
     'lc_ctype=win1251';
   if ANoGarbageCollect then
     FIBDatabase.Params.Append('no_garbage_collect');
@@ -450,7 +457,7 @@ begin
     Tr.StartTransaction;
     q.Transaction := Tr;
 
-    q.SQL.Text :=
+    q.SQL.Text :=                                                                    //////////////
       'INSERT INTO DBS_JOURNAL_STATE ' +
       'VALUES(:FunctionKey, :State, :Now, :ErrorMsg)';
     q.ParamByName('FunctionKey').AsInteger := AFunctionKey;
@@ -2622,7 +2629,7 @@ begin
     q.Transaction := Tr;
 
     LogEvent('Including IDs In HugeIntSet... ');
-
+                                                                                 ///TODO: учесть компанию
     q.SQL.Text :=
       'SELECT COUNT(g_his_include(0, id)) as Kolvo FROM gd_document WHERE documentdate < :Date';
     q.ParamByName('Date').AsDateTime := FClosingDate;
@@ -3182,12 +3189,23 @@ begin
 end;
 
 procedure TgsDBSqueeze.ExecSqlLogEvent(const AnIBSQL: TIBSQL; const AProcName: String; const ParamValuesStr: String = '');
+const
+  Ms = 1 / (24 * 60 * 60 * 1000); // Значение одной миллисекунды в формате TDateTime
+var
+  StartDT: TDateTime;
+  Start, Stop: Extended;
+  Time : TDateTime;
+  TimeStr: String;
+  Hour, Min, Sec, Milli : Word;
 begin
+  TimeStr := '';
   FOnLogSQLEvent('Procedure: ' + AProcName);
   FOnLogSQLEvent(Trim(AnIBSQL.SQL.Text));
   if ParamValuesStr <> '' then
     FOnLogSQLEvent('Parameters: ' + ParamValuesStr);
 
+  StartDT := Now;
+  Start := GetTickCount;
   try
     AnIBSQL.ExecQuery;
   except
@@ -3200,13 +3218,83 @@ begin
       raise Exception.Create(E.Message);
     end;
   end;
+  Stop := GetTickCount;
+  FOnLogSQLEvent('Begin Time: ' + FormatDateTime('h:nn:ss:zzz', StartDT));
 
   if AnIBSQL.RowsAffected <> -1 then
     FOnLogSQLEvent('Rows Affected: ' + IntToStr(AnIBSQL.RowsAffected))
   else
     FOnLogSQLEvent('Records Count: ' + IntToStr(AnIBSQL.RecordCount));
+
+  Time := (Stop - Start) * Ms;
+  DecodeTime(Time, Hour, Min, Sec, Milli);
+  if Hour > 0 then
+  begin
+    TimeStr := TimeStr + IntToStr(Hour);
+    if Hour > 1 then
+      TimeStr := TimeStr + ' hours '
+    else
+      TimeStr := TimeStr + ' hour ';
+  end;
+  if Min > 0 then
+  begin
+    TimeStr := TimeStr + IntToStr(Min);
+    if Min > 1 then
+      TimeStr := TimeStr + ' minutes '
+    else
+      TimeStr := TimeStr + ' minute ';
+  end;
+  if Sec > 0 then
+  begin
+    TimeStr := TimeStr + IntToStr(Sec);
+    if Sec > 1 then
+      TimeStr := TimeStr + ' seconds '
+    else
+      TimeStr := TimeStr + ' second ';
+  end;
+  if Ms > 0 then
+    TimeStr := TimeStr + IntToStr(Milli) + ' ms ';
+
+  FOnLogSQLEvent('Execution Time: ' + TimeStr);
+  FOnLogSQLEvent('End Time: ' + FormatDateTime('h:nn:ss:zzz', (StartDT + Time)));
   FOnLogSQLEvent('   ');
 end;
+
+procedure TgsDBSqueeze.FuncTest(const AFuncName: String; const ATr: TIBTransaction);
+var
+  q: TIBSQL;
+begin
+  q := TIBSQL.Create(nil);
+  try
+    q.Transaction := ATr;
+
+    q.SQL.Text := 'SELECT ' + AFuncName;
+
+    if AnsiUpperCase(AFuncName) = 'G_HIS_CREATE' then
+      q.SQL.Add('(0, 0)')
+    else if (AnsiUpperCase(AFuncName) = 'G_HIS_INCLUDE') or
+      (AnsiUpperCase(AFuncName) = 'G_HIS_EXCLUDE') or
+      (AnsiUpperCase(AFuncName) = 'G_HIS_HAS') then
+       q.SQL.Add('(1, 0)')
+    else if (AnsiUpperCase(AFuncName) = 'G_HIS_DESTROY') then
+      q.SQL.Add('(0)');
+
+    q.SQL.Add(' FROM rdb$database');
+
+    try
+      ExecSqlLogEvent(q, 'FuncTest');
+    except
+      on E: Exception do
+      begin
+        ATr.Rollback;
+        raise EgsDBSqueeze.Create('Error: function ' + AFuncName + ' unknown in UDF library. ' + E.Message);
+      end;
+    end;
+  finally
+    q.Free;
+  end;
+end;
+
 
 procedure TgsDBSqueeze.CreateMetadata;
 var
@@ -3512,7 +3600,10 @@ var
   procedure CreateUDFs;
   begin
     if FunctionExist2('G_HIS_CREATE', Tr) then
-      LogEvent('Function g_his_create exists.')
+    begin
+      FuncTest('G_HIS_CREATE', Tr);
+      LogEvent('Function g_his_create exists.');
+    end
     else begin
       q.SQL.Text :=
         'DECLARE EXTERNAL FUNCTION G_HIS_CREATE ' +
@@ -3525,35 +3616,28 @@ var
       LogEvent('Function g_his_create has been declared.');
     end;
 
-    if FunctionExist2('G_HIS_DESTROY', Tr) then
-      LogEvent('Function g_his_destroy exists.')
+    if FunctionExist2('G_HIS_INCLUDE', Tr) then
+    begin
+      FuncTest('G_HIS_INCLUDE', Tr);
+      LogEvent('Function g_his_include exists.');
+    end
     else begin
       q.SQL.Text :=
-        'DECLARE EXTERNAL FUNCTION G_HIS_DESTROY ' +
-        '  INTEGER ' +
+        'DECLARE EXTERNAL FUNCTION G_HIS_INCLUDE ' +
+        ' INTEGER, ' +
+        ' INTEGER ' +
         'RETURNS INTEGER BY VALUE ' +
-        'ENTRY_POINT ''g_his_destroy'' MODULE_NAME ''gudf'' ';
+        'ENTRY_POINT ''g_his_include'' MODULE_NAME ''gudf'' ';
       //q.ExecQuery;
       ExecSqlLogEvent(q, 'CreateUDFs');
-      LogEvent('Function g_his_destroy has been declared.');
-    end;
-
-    if FunctionExist2('G_HIS_EXCLUDE', Tr) then
-      LogEvent('Function g_his_exclude exists.')
-    else begin
-      q.SQL.Text :=
-        'DECLARE EXTERNAL FUNCTION G_HIS_EXCLUDE ' +
-        '  INTEGER, ' +
-        '  INTEGER ' +
-        'RETURNS INTEGER BY VALUE ' +
-        'ENTRY_POINT ''g_his_exclude'' MODULE_NAME ''gudf'' ';
-      //q.ExecQuery;
-      ExecSqlLogEvent(q, 'CreateUDFs');
-      LogEvent('Function g_his_exclude has been declared.');
+      LogEvent('Function g_his_include has been declared.');
     end;
 
     if FunctionExist2('G_HIS_HAS', Tr) then
-      LogEvent('Function g_his_has exists.')
+    begin
+      FuncTest('G_HIS_HAS', Tr);
+      LogEvent('Function g_his_has exists.');
+    end
     else begin
       q.SQL.Text :=
         'DECLARE EXTERNAL FUNCTION G_HIS_HAS ' +
@@ -3566,18 +3650,37 @@ var
       LogEvent('Function g_his_has has been declared.');
     end;
 
-    if FunctionExist2('G_HIS_INCLUDE', Tr) then
-      LogEvent('Function g_his_include exists.')
+    if FunctionExist2('G_HIS_EXCLUDE', Tr) then
+    begin
+      FuncTest('G_HIS_EXCLUDE', Tr);
+      LogEvent('Function g_his_exclude exists.');
+    end
     else begin
       q.SQL.Text :=
-        'DECLARE EXTERNAL FUNCTION G_HIS_INCLUDE ' +
-        ' INTEGER, ' +
-        ' INTEGER ' +
+        'DECLARE EXTERNAL FUNCTION G_HIS_EXCLUDE ' +
+        '  INTEGER, ' +
+        '  INTEGER ' +
         'RETURNS INTEGER BY VALUE ' +
-        'ENTRY_POINT ''g_his_include'' MODULE_NAME ''gudf'' ';
+        'ENTRY_POINT ''g_his_exclude'' MODULE_NAME ''gudf'' ';
       //q.ExecQuery;
       ExecSqlLogEvent(q, 'CreateUDFs');
-      LogEvent('Function g_his_include has been declared.');
+      LogEvent('Function g_his_exclude has been declared.');
+    end;
+
+    if FunctionExist2('G_HIS_DESTROY', Tr) then
+    begin
+      FuncTest('G_HIS_DESTROY', Tr);
+      LogEvent('Function g_his_destroy exists.');
+    end
+    else begin
+      q.SQL.Text :=
+        'DECLARE EXTERNAL FUNCTION G_HIS_DESTROY ' +
+        '  INTEGER ' +
+        'RETURNS INTEGER BY VALUE ' +
+        'ENTRY_POINT ''g_his_destroy'' MODULE_NAME ''gudf'' ';
+      //q.ExecQuery;
+      ExecSqlLogEvent(q, 'CreateUDFs');
+      LogEvent('Function g_his_destroy has been declared.');
     end;
 
     {if FunctionExist2('bin_and', Tr) then
@@ -3599,8 +3702,7 @@ var
         'RETURNS INTEGER BY VALUE ' +
         'ENTRY_POINT ''IB_UDF_bin_or'' MODULE_NAME ''ib_udf'' ';
       q.ExecQuery;
-    end;  }    
-
+    end;  }
   end;
 
 begin
@@ -3649,19 +3751,22 @@ begin
     Tr.StartTransaction;
     q.Transaction := Tr;
 
-    q.SQL.Text :=
-      'SELECT FIRST(1) * FROM DBS_JOURNAL_STATE ORDER BY CALL_TIME DESC';
-    //q.ExecQuery;
-    ExecSqlLogEvent(q, 'UsedDBEvent');
-    LogEvent('Warning: It''s USED DB! ');
-    LogEvent('Latest operation: CALL_TIME=' + q.FieldByName('CALL_TIME').AsString +
-      ', Message FUNCTIONKEY=WM_USER+' + IntToStr(q.FieldByName('FUNCTIONKEY').AsInteger - WM_USER) +
-      ', SUCESSFULLY=' + q.FieldByName('STATE').AsString);
+    if RelationExist2('DBS_JOURNAL_STATE', Tr) then
+    begin
+      q.SQL.Text :=
+        'SELECT FIRST(1) * FROM DBS_JOURNAL_STATE ORDER BY CALL_TIME DESC';
+       //q.ExecQuery;
+      ExecSqlLogEvent(q, 'UsedDBEvent');
+      LogEvent('Warning: It''s USED DB! ');
+      LogEvent('Latest operation: CALL_TIME=' + q.FieldByName('CALL_TIME').AsString +
+        ', Message FUNCTIONKEY=WM_USER+' + IntToStr(q.FieldByName('FUNCTIONKEY').AsInteger - WM_USER) +
+        ', SUCESSFULLY=' + q.FieldByName('STATE').AsString);
 
-    FOnUsedDBEvent(q.FieldByName('FUNCTIONKEY').AsInteger, q.FieldByName('STATE').AsInteger,
-      q.FieldByName('CALL_TIME').AsString, q.FieldByName('ERROR_MESSAGE').AsString);
+      FOnUsedDBEvent(q.FieldByName('FUNCTIONKEY').AsInteger, q.FieldByName('STATE').AsInteger,
+        q.FieldByName('CALL_TIME').AsString, q.FieldByName('ERROR_MESSAGE').AsString);
 
-    q.Close;
+      q.Close;
+    end;
     Tr.Commit;
   finally
     q.Free;
@@ -3778,6 +3883,81 @@ begin
 
     Tr.Commit;
     LogEvent('[test] GetStatistics... OK');
+  finally
+    q1.Free;
+    q2.Free;
+    q3.Free;
+    Tr.Free;
+  end;
+end;
+
+procedure TgsDBSqueeze.GetProcStatisticsEvent;
+var
+  q1, q2, q3: TIBSQL;
+  Tr: TIBTransaction;
+begin
+  Assert(Connected);
+
+  Tr := TIBTransaction.Create(nil);
+  q1 := TIBSQL.Create(nil);
+  q2 := TIBSQL.Create(nil);
+  q3 := TIBSQL.Create(nil);
+  try
+    LogEvent('[test] GetProcStatistics...');
+    Tr.DefaultDatabase := FIBDatabase;
+    Tr.StartTransaction;
+
+    q1.Transaction := Tr;
+    q2.Transaction := Tr;
+    q3.Transaction := Tr;
+
+                                                                                //TODO: заменить
+    {
+      SELECT g_his_create(0, 0) FROM rdb$database
+
+      SELECT g_his_include(0, doc.id)
+      FROM gd_document doc
+      WHERE doc.documentdate < :ClosingDate
+
+      SELECT g_his_include(0, ae.id)
+      FROM AC_ENTRY ae
+      WHERE (g_his_has(0, ae.documentkey) = 1) OR (g_his_has(0, ae.masterdockey) = 1)
+
+      SELECT g_his_include(0, im.id)
+      FROM INV_MOVEMENT im
+      WHERE g_his_has(0, im.documentkey) = 1
+
+      SELECT g_his_destroy(0) FROM rdb$database
+    }
+
+                                                                                    ///учесть компанию
+    q1.SQL.Text :=
+      'SELECT COUNT(doc.id) AS Kolvo ' +
+      'FROM gd_document doc ' +
+      'WHERE doc.documentdate < :ClosingDate ';
+
+    q1.ParamByName('ClosingDate').AsDateTime := FClosingDate;
+    ExecSqlLogEvent(q1, 'GetProcStatisticsEvent');
+
+    q2.SQL.Text :=
+      'SELECT COUNT(ae.id) AS Kolvo ' +
+      'FROM AC_ENTRY ae ' +
+      'WHERE (ae.documentkey IN (SELECT doc.id FROM gd_document doc WHERE doc.documentdate < :ClosingDate)) OR ' +
+      '  (ae.masterdockey  IN (SELECT doc.id FROM gd_document doc WHERE doc.documentdate < :ClosingDate)) ';
+    q2.ParamByName('ClosingDate').AsDateTime := FClosingDate;
+    ExecSqlLogEvent(q2, 'GetProcStatisticsEvent');
+
+    q3.SQL.Text :=
+      'SELECT COUNT(im.id) AS Kolvo ' +
+      'FROM INV_MOVEMENT im ' +
+      'WHERE (im.documentkey IN (SELECT doc.id FROM gd_document doc WHERE doc.documentdate < :ClosingDate)) ';
+    q3.ParamByName('ClosingDate').AsDateTime := FClosingDate;
+    ExecSqlLogEvent(q3, 'GetProcStatisticsEvent');
+
+    FOnGetProcStatistics(q1.FieldByName('Kolvo').AsString, q2.FieldByName('Kolvo').AsString, q3.FieldByName('Kolvo').AsString);
+
+    Tr.Commit;
+    LogEvent('[test] GetProcStatistics... OK');
   finally
     q1.Free;
     q2.Free;

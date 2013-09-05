@@ -137,6 +137,14 @@ type
     pbMain: TProgressBar;
     btnStop: TButton;
     actDirectoryBrowse: TAction;
+    sttxt2: TStaticText;
+    sttxt3: TStaticText;
+    sttxt4: TStaticText;
+    sttxt5: TStaticText;
+    sttxtProcGdDoc: TStaticText;
+    sttxtProcAcEntry: TStaticText;
+    sttxtProcInvMovement: TStaticText;
+    actStop: TAction;
 
     procedure actTestConnectExecute(Sender: TObject);
     procedure actTestConnectUpdate(Sender: TObject);
@@ -165,6 +173,8 @@ type
     procedure btnBackupBrowseMouseDown(Sender: TObject;
       Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
     procedure actDirectoryBrowseUpdate(Sender: TObject);
+    procedure actStopExecute(Sender: TObject);
+    procedure actStopUpdate(Sender: TObject);
     
   private
     FSThread: TgsDBSqueezeThread;
@@ -174,6 +184,7 @@ type
     FLogFileStream: TFileStream;
 
     procedure GetConnectedEvent(const AConnected: Boolean);
+    procedure WriteToLogFile(const AStr: String);
     procedure RecLog(const ARec: String);
     procedure LogSQLEvent(const ALogSQL: String);
     procedure GetInfoTestConnectEvent(const AConnectSuccess: Boolean; const AConnectInfoList: TStringList);
@@ -182,6 +193,7 @@ type
     procedure SetItemsCbbEvent(const ACompanies: TStringList);
     procedure GetDBSizeEvent(const AnDBSize: String);
     procedure GetStatisticsEvent(const AGdDoc: String; const AnAcEntry: String; const AnInvMovement: String);
+    procedure GetProcStatisticsEvent(const AProcGdDoc: String; const AnProcAcEntry: String; const AnProcInvMovement: String);
     procedure UpdateProgress(const AProgressInfo: TgdProgressInfo);
 
   public
@@ -227,6 +239,7 @@ begin
   FSThread.OnSetItemsCbb := SetItemsCbbEvent;
   FSThread.OnGetDBSize := GetDBSizeEvent;
   FSThread.OnGetStatistics := GetStatisticsEvent;
+  FSThread.OnGetProcStatistics := GetProcStatisticsEvent;
   FContinueProcFunctionKey := 0;
 end;
 
@@ -349,6 +362,13 @@ begin
   end;
 end;
 
+procedure TgsDBSqueeze_MainForm.GetProcStatisticsEvent(const AProcGdDoc: String; const AnProcAcEntry: String; const AnProcInvMovement: String);
+begin
+  sttxtProcGdDoc.Caption := AProcGdDoc;
+  sttxtProcAcEntry.Caption := AnProcAcEntry;
+  sttxtProcInvMovement.Caption := AnProcInvMovement;
+end;
+
 procedure TgsDBSqueeze_MainForm.SetItemsCbbEvent(const ACompanies: TStringList);
 begin
   if rbCompany.Checked then
@@ -381,6 +401,18 @@ begin
   end;
 end;
 
+procedure TgsDBSqueeze_MainForm.WriteToLogFile(const AStr: String);
+var
+  RecStr: String;
+begin
+  if chkbSaveLogs.Checked then
+  begin
+    RecStr := AStr + #13#10;
+    FLogFileStream.Position := FLogFileStream.Size;
+    FLogFileStream.Write(RecStr[1], Length(RecStr));
+  end;
+end;
+
 procedure TgsDBSqueeze_MainForm.RecLog(const ARec: String);
 var
   RecStr: String;
@@ -389,13 +421,7 @@ begin
   statbarMain.Panels[2].Text := ARec;
   mLog.Lines.Add(RecStr);
 
-  // запись в лог-файл
-  if chkbSaveLogs.Checked then
-  begin
-    RecStr := RecStr + #13#10;
-    FLogFileStream.Position := FLogFileStream.Size;
-    FLogFileStream.Write(RecStr[1], Length(RecStr)); ///
-  end;
+  WriteToLogFile(RecStr);  // запись в лог-файл
 end;
 
 procedure TgsDBSqueeze_MainForm.actCompanyUpdate(Sender: TObject);
@@ -430,6 +456,7 @@ end;
 procedure TgsDBSqueeze_MainForm.actGetExecute(Sender: TObject);
 begin
   FSThread.DoGetStatistics;
+  FSThread.DoGetProcStatistics;
 end;
 
 procedure TgsDBSqueeze_MainForm.actGetUpdate(Sender: TObject);
@@ -499,8 +526,7 @@ begin
         edPassword.Text);
 
       FSThread.DoGetDBSize;
-      FSThread.Connect;               ///////////Review
-      FSThread.DoGetDBProperties;
+      FSThread.Connect;
     end;
   end;
   if pgcSettings.ActivePage = tsSqueezeSettings then
@@ -750,19 +776,28 @@ begin
 end;
 
 procedure TgsDBSqueeze_MainForm.LogSQLEvent(const ALogSQL: String);
+var
+  S: String;
 begin
-  mSqlLog.Lines.Add(ALogSQL);
+  S := StringReplace(ALogSQL, ' WHERE', #13#10 + ' WHERE' , [rfReplaceAll, rfIgnoreCase]);
+  S := StringReplace(S, ' FROM', #13#10 + ' FROM', [rfReplaceAll, rfIgnoreCase]);
+  S := StringReplace(S, ', ', ', ' + #13#10, [rfReplaceAll, rfIgnoreCase]);
+  S := StringReplace(S, ' AND', #13#10 + ' AND', [rfReplaceAll, rfIgnoreCase]);
+  S := StringReplace(S, ' OR', #13#10 + ' OR', [rfReplaceAll, rfIgnoreCase]);
+
+  mSqlLog.Lines.Add(S);
+  WriteToLogFile(S);
 end;
 
-{
-procedure TgsDBSqueeze_MainForm.Timer1Timer(Sender: TObject);
-  const Str: string = '1111111111111112222222222222222222222222222223333333333333333333333333344444444444445555555555555555555555 ';
+procedure TgsDBSqueeze_MainForm.actStopExecute(Sender: TObject);
 begin
-  statbarMain.Panels[2].Text := Str;
-  if Length(Str) > 52 then
-  begin
-    Str:= Copy( Str, 2, Length( Str )-1 ) + Str[1];
-  end;              
-end;       }
+  /// dialog
+  FSThread.StopProcessing;
+end;
+
+procedure TgsDBSqueeze_MainForm.actStopUpdate(Sender: TObject);
+begin
+  actStop.Enabled := not btnGo.Enabled;
+end;
 
 end.
