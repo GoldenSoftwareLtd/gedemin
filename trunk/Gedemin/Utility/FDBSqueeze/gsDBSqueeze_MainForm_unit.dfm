@@ -1,6 +1,6 @@
 object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
-  Left = 25
-  Top = 50
+  Left = 50
+  Top = 130
   BorderStyle = bsDialog
   ClientHeight = 536
   ClientWidth = 851
@@ -22,7 +22,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
     Height = 538
     TabOrder = 0
     object tbcPageController: TTabControl
-      Left = 198
+      Left = 206
       Top = 0
       Width = 457
       Height = 25
@@ -44,7 +44,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
       Top = 21
       Width = 1212
       Height = 497
-      ActivePage = tsLogs
+      ActivePage = tsStatistics
       MultiLine = True
       TabOrder = 1
       TabPosition = tpLeft
@@ -614,8 +614,6 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           Top = 26
           Width = 353
           Height = 456
-          Lines.Strings = (
-            '')
           ReadOnly = True
           ScrollBars = ssBoth
           TabOrder = 5
@@ -1148,6 +1146,88 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           BorderStyle = sbsSunken
           TabOrder = 39
         end
+        object sttxt2: TStaticText
+          Left = 287
+          Top = 368
+          Width = 284
+          Height = 17
+          AutoSize = False
+          Caption = 
+            '                 Number of processing records in a table        ' +
+            '         '
+          Color = clWhite
+          ParentColor = False
+          TabOrder = 40
+        end
+        object sttxt3: TStaticText
+          Left = 287
+          Top = 396
+          Width = 95
+          Height = 17
+          Alignment = taCenter
+          AutoSize = False
+          BorderStyle = sbsSingle
+          Caption = 'GD_DOCUMENT'
+          Color = clBtnFace
+          ParentColor = False
+          TabOrder = 41
+        end
+        object sttxt4: TStaticText
+          Left = 382
+          Top = 396
+          Width = 95
+          Height = 17
+          Alignment = taCenter
+          AutoSize = False
+          BorderStyle = sbsSingle
+          Caption = 'AC_ENTRY'
+          Color = clBtnFace
+          ParentColor = False
+          TabOrder = 42
+        end
+        object sttxt5: TStaticText
+          Left = 477
+          Top = 396
+          Width = 95
+          Height = 17
+          Alignment = taCenter
+          AutoSize = False
+          BorderStyle = sbsSingle
+          Caption = 'INV_MOVEMENT'
+          Color = clBtnFace
+          ParentColor = False
+          TabOrder = 43
+        end
+        object sttxtProcGdDoc: TStaticText
+          Left = 287
+          Top = 413
+          Width = 95
+          Height = 17
+          Alignment = taCenter
+          AutoSize = False
+          BorderStyle = sbsSunken
+          TabOrder = 44
+        end
+        object sttxtProcAcEntry: TStaticText
+          Left = 382
+          Top = 413
+          Width = 95
+          Height = 17
+          Alignment = taCenter
+          AutoSize = False
+          BorderStyle = sbsSunken
+          TabOrder = 45
+        end
+        object sttxtProcInvMovement: TStaticText
+          Left = 478
+          Top = 413
+          Width = 95
+          Height = 17
+          Alignment = taCenter
+          AutoSize = False
+          BorderStyle = sbsSunken
+          TabOrder = 46
+        end
       end
     end
     object statbarMain: TStatusBar
@@ -1191,9 +1271,9 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
     object btnStop: TButton
       Left = 16
       Top = 519
-      Width = 97
+      Width = 98
       Height = 17
-      Caption = 'STOP'
+      Action = actStop
       TabOrder = 3
       TabStop = False
     end
@@ -1256,6 +1336,11 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
       Caption = '...'
       OnExecute = actDirectoryBrowseExecute
       OnUpdate = actDirectoryBrowseUpdate
+    end
+    object actStop: TAction
+      Caption = 'STOP'
+      OnExecute = actStopExecute
+      OnUpdate = actStopUpdate
     end
   end
 end
