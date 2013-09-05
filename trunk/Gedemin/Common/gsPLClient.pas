@@ -38,10 +38,13 @@ type
     procedure SetTerm(AField: TIBXSQLVAR; ATerm: term_t);
     procedure Compound(const AFunctor: String; AGoal: term_t; ATermv: TTermv);
     function CreateTermRef: term_t;
-    function CreateTermRefs(const ASize: Integer): TTermv;
-    function Call(const APredicateName: String; AParams: TTermv): Boolean;
+    function CreateTermRefs(const ASize: Integer): TTermv; 
   public
-    function Initialise: Boolean;
+    destructor Destroy; override;
+     
+    function Call(const APredicateName: String; AParams: TTermv): Boolean; overload;
+    function Call(const AGoal: String): Boolean; overload;
+    function Initialise{(AnArgc: Integer; AnArgv)}: Boolean;
     procedure MakePredicates(ASQL: String; ATr: TIBTransaction;
       APredName: String; AFileName: String);
   end;
@@ -53,11 +56,12 @@ begin
   inherited Create;
 
   FQid := 0;
+  FEOF := False;
 end;
 
 function TgsPLQuery.GetEof: Boolean;
 begin
-  Result := not FEof or (FQid = 0);
+  Result := FEof or (FQid = 0);
 end;
 
 procedure TgsPLQuery.ExecQuery;
@@ -70,13 +74,27 @@ end;
 
 procedure TgsPLQuery.Close;
 begin
-  PL_cut_query(FQid);
+  try
+    PL_cut_query(FQid);
+  finally
+    FQid := 0;
+    FEof := False;
+  end;
 end;
 
 procedure TgsPLQuery.Next;  
 begin
-  if FQid > 0 then
+  if not FEof then
+  begin
     FEof := PL_next_solution(FQid) = 0;
+  end;  
+end;
+
+destructor TgsPLClient.Destroy;
+begin
+  PL_cleanup(0);
+
+  inherited;
 end;
 
 function TgsPLClient.CreateTermRef: term_t;
@@ -90,11 +108,33 @@ begin
   Result.Size := ASize;
 end;
 
+function TgsPLClient.Call(const AGoal: String): Boolean;
+var
+  t: TTermv;
+  Query: TgsPLQuery;
+begin
+  Result := False;
+  t := CreateTermRefs(1);
+  if PL_chars_to_term(PChar(AGoal), t.Term) = 1 then
+  begin
+    Query := TgsPLQuery.Create;
+    try
+      Query.Pred := 'call';
+      Query.Termv := t;
+      Query.ExecQuery;
+      Query.Next;
+      Result := not Query.Eof;
+    finally
+      Query.Free;
+    end;
+  end;
+end;
+
 function TgsPLClient.Call(const APredicateName: String; AParams: TTermv): Boolean;
 var
   Query: TgsPLQuery;
 begin
-  Assert(APredicateName > '');  
+  Assert(APredicateName > '');
 
   Query := TgsPLQuery.Create;
   try
