@@ -894,30 +894,6 @@ var
     end;
   end;
 
-  procedure CheckOperation(AData: String; ANSList: TgsNSList; AnID: Integer);
-  var
-    q: TIBSQL;
-    RUID: String;
-    Ind: Integer;
-    Node: TgsNSNode;
-  begin
-    q := TIBSQL.Create(nil);
-    try
-      q.Transaction := FTr;
-      q.SQL.Text := 'SELECT * FROM gd_ruid WHERE id = :id';
-      q.ParamByName('id').AsInteger := AnID;
-      q.ExecQuery;
-      Check(not q.Eof);
-      RUID := q.FieldByName('xid').AsString + '_' + q.FieldByName('dbid').AsString;
-      Ind := ANSList.IndexOf(RUID);
-      Check(Ind > - 1);
-      Node := ANSList.Objects[Ind] as TgsNSNode;
-      Check(Node.GetOperation = AData);
-    finally
-      q.Free;
-    end;
-  end;
-
   procedure SaveNS;
   var
     gdcNamespace: TgdcNamespace;
@@ -1004,7 +980,6 @@ var
   end;
 
 var 
-  NSLISt: TgsNSList; 
   gdcNamespace: TgdcNamespace;
   gdcConst: TgdcConst;
 begin
@@ -1021,95 +996,68 @@ begin
   SaveNS;
 
   TgdcNamespace.UpdateCurrModified;
-  NSList := TgsNSList.Create;
-  try 
-    NSList.GetFilesForPath(IncludeTrailingBackslash(TempPath) + 'yml\');
-    CheckOperation('==', NSList, ID);
-
-    gdcNamespace := TgdcNamespace.Create(nil);
-    try
-      gdcNamespace.ReadTransaction := FTr;
-      gdcNamespace.Transaction := FTr;
-      gdcNamespace.SubSet := 'ByID';
-      gdcNamespace.ID := ID2;
-      gdcNamespace.Open;
-      Check(not gdcNamespace.Eof);
-      gdcNamespace.Edit;
-      gdcNamespace.FieldByName('filetimestamp').AsDateTime := gdcNamespace.FieldByName('filetimestamp').AsDateTime - 1;
-      gdcNamespace.Post;
-      gdcNamespace.Close;
-      gdcNamespace.ID := ID3;
-      gdcNamespace.Open;
-      gdcNamespace.Edit;
-      gdcNamespace.FieldByName('version').AsString :=
-        IncVersion(gdcNamespace.FieldByName('version').AsString, '.');
-      gdcNamespace.Post;
-    finally
-      gdcNamespace.Free;
-    end;
-
-    FTr.Commit;
-    FTr.StartTransaction; 
-
-    NSList.Clear;
-    NSList.GetFilesForPath(IncludeTrailingBackslash(TempPath) + 'yml\');
-    
-    CheckOperation('?', NSList, ID2);
-    CheckOperation('=>', NSList, ID);
-    CheckOperation('>>', NSList, ID3);
-
-    SaveNS;
-
-    gdcConst := TgdcConst.Create(nil);
-    try
-      gdcConst.Transaction := FTr;
-      gdcConst.ReadTransaction := FTr;
-      gdcConst.SubSet := 'ByID';
-      gdcConst.ID := ConstID2;
-      gdcConst.Open;
-      gdcConst.Edit;
-      gdcConst.FieldByName('editiondate').AsDateTime := gdcConst.FieldByName('editiondate').AsDateTime + 1;
-      gdcConst.Post;
-    finally
-      gdcConst.Free;
-    end;
-
-    FTr.Commit;
-    FTr.StartTransaction;
-
-    TgdcNamespace.UpdateCurrModified;
-    NSList.Clear;
-    NSList.GetFilesForPath(IncludeTrailingBackslash(TempPath) + 'yml\');
-
-    CheckOperation('>>', NSList, ID2);
-    CheckOperation('=>', NSList, ID);
-    CheckOperation('==', NSList, ID3);
-
-    gdcNamespace := TgdcNamespace.Create(nil);
-    try
-      gdcNamespace.ReadTransaction := FTr;
-      gdcNamespace.Transaction := FTr;
-      gdcNamespace.SubSet := 'ByID';
-      gdcNamespace.ID := ID3;
-      gdcNamespace.Open;
-      Check(not gdcNamespace.Eof);
-      gdcNamespace.Edit;
-      gdcNamespace.FieldByName('version').AsString := '1.0.0.0';
-      gdcNamespace.Post;
-    finally
-      gdcNamespace.Free;
-    end;
-    FTr.Commit;
-    FTr.StartTransaction;
-
-    NSList.Clear;
-    NSList.GetFilesForPath(IncludeTrailingBackslash(TempPath) + 'yml\');
-    CheckOperation('<<', NSList, ID3);
-    CheckOperation('?', NSList, ID);
-    CheckOperation('>>', NSList, ID2);
+  gdcNamespace := TgdcNamespace.Create(nil);
+  try
+    gdcNamespace.ReadTransaction := FTr;
+    gdcNamespace.Transaction := FTr;
+    gdcNamespace.SubSet := 'ByID';
+    gdcNamespace.ID := ID2;
+    gdcNamespace.Open;
+    Check(not gdcNamespace.Eof);
+    gdcNamespace.Edit;
+    gdcNamespace.FieldByName('filetimestamp').AsDateTime := gdcNamespace.FieldByName('filetimestamp').AsDateTime - 1;
+    gdcNamespace.Post;
+    gdcNamespace.Close;
+    gdcNamespace.ID := ID3;
+    gdcNamespace.Open;
+    gdcNamespace.Edit;
+    gdcNamespace.FieldByName('version').AsString :=
+      IncVersion(gdcNamespace.FieldByName('version').AsString, '.');
+    gdcNamespace.Post;
   finally
-    NSList.Free;
+    gdcNamespace.Free;
   end;
+
+  FTr.Commit;
+  FTr.StartTransaction;
+
+  SaveNS;
+
+  gdcConst := TgdcConst.Create(nil);
+  try
+    gdcConst.Transaction := FTr;
+    gdcConst.ReadTransaction := FTr;
+    gdcConst.SubSet := 'ByID';
+    gdcConst.ID := ConstID2;
+    gdcConst.Open;
+    gdcConst.Edit;
+    gdcConst.FieldByName('editiondate').AsDateTime := gdcConst.FieldByName('editiondate').AsDateTime + 1;
+    gdcConst.Post;
+  finally
+    gdcConst.Free;
+  end;
+
+  FTr.Commit;
+  FTr.StartTransaction;
+
+  TgdcNamespace.UpdateCurrModified;
+
+  gdcNamespace := TgdcNamespace.Create(nil);
+  try
+    gdcNamespace.ReadTransaction := FTr;
+    gdcNamespace.Transaction := FTr;
+    gdcNamespace.SubSet := 'ByID';
+    gdcNamespace.ID := ID3;
+    gdcNamespace.Open;
+    Check(not gdcNamespace.Eof);
+    gdcNamespace.Edit;
+    gdcNamespace.FieldByName('version').AsString := '1.0.0.0';
+    gdcNamespace.Post;
+  finally
+    gdcNamespace.Free;
+  end;
+  FTr.Commit;
+  FTr.StartTransaction;
 
   DeleteNS;
 end;

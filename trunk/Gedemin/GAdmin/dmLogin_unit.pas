@@ -459,15 +459,15 @@ begin
 end;
 
 procedure TdmLogin.DoLoadNamespace;
-var
+{var
   I: Integer;
   NSList: TgsNSList;
   NSNode: TgsNSNode;
   SL: TStringList;
   gdcNamespace: TgdcNamespace;
-  Error: String;
+  Error: String;}
 begin
-  NSList := TgsNSList.Create;
+  {NSList := TgsNSList.Create;
   try
     NSNode := nil;
     NSList.GetFilesForPath(LoadSettingPath);
@@ -499,7 +499,7 @@ begin
         MB_OK or MB_ICONERROR or MB_TASKMODAL);
   finally
     NSList.Free;
-  end;
+  end;}
 end;
 
 procedure TdmLogin.LoadSettings;
