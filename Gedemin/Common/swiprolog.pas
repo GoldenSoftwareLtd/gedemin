@@ -1,6 +1,6 @@
 unit swiprolog;
 
-{$define vsersionswin}
+{$DEFINE vsersionswin}
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -11,15 +11,15 @@ unit swiprolog;
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-{$ifndef PLVERSION}
-{$define PLVERSION 50203}
-{$endif}
+{$IFNDEF PLVERSION}
+{$DEFINE PLVERSION 50203}
+{$ENDIF}
 
 
 
 interface
 
-{$ifdef win32} uses windows ; {$endif}
+{$IFDEF win32}uses windows; {$ENDIF}
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -28,17 +28,17 @@ interface
 type
   //PL_engine_t = ^PL_local_data; ???
   size_t = Cardinal;
-  atom_t = LongWord;      // Prolog atom
-  module_t = Pointer;     // Prolog module
-  predicate_t = Pointer;  // Prolog procedure
-  record_t = Pointer;     // Prolog recorded term
-  term_t = LongWord;      // opaque term handle
-  qid_t = LongWord;       // opaque query handle
-  fid_t = LongWord;       // opaque foreign context handle
-  functor_t = LongWord;   // Name/arity pair
-  atomic_t = LongWord;    // same a word
-  control_t = LongWord;   // non-deterministic control arg
-  foreign_t = LongWord;   // return type of foreign functions
+  atom_t = LongWord; // Prolog atom
+  module_t = Pointer; // Prolog module
+  predicate_t = Pointer; // Prolog procedure
+  record_t = Pointer; // Prolog recorded term
+  term_t = LongWord; // opaque term handle
+  qid_t = LongWord; // opaque query handle
+  fid_t = LongWord; // opaque foreign context handle
+  functor_t = LongWord; // Name/arity pair
+  atomic_t = LongWord; // same a word
+  control_t = LongWord; // non-deterministic control arg
+  foreign_t = LongWord; // return type of foreign functions
 // CPP:
   pl_function_t = Pointer; // can only pass function as void *
 // C:
@@ -46,11 +46,11 @@ type
 
   term_value_t = packed record
     case Integer of
-      0: (i: Integer);   // PL_INTEGER
-      1: (f: Double);    // PL_FLOAT
-      2: (s: PChar);     // PL_STRING
-      3: (a: atom_t);    // PL_ATOM
-      4: (t: record name: atom_t; arity: Integer; end)  // PL_TERM
+      0: (i: Integer); // PL_INTEGER
+      1: (f: Double); // PL_FLOAT
+      2: (s: PChar); // PL_STRING
+      3: (a: atom_t); // PL_ATOM
+      4: (t: record name: atom_t; arity: Integer; end) // PL_TERM
   end;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -58,30 +58,30 @@ type
 ////////////////////////////////////////////////////////////////////////////////
 const
   // PL_unify_term() arguments
-  PL_VARIABLE             = 1;  // nothing
-  PL_ATOM                 = 2;  // const char *
-  PL_INTEGER              = 3;  // int
-  PL_FLOAT	              = 4;  // double
-  PL_STRING	              = 5;  // const char *
-  PL_TERM		           = 6;
+  PL_VARIABLE = 1; // nothing
+  PL_ATOM = 2; // const char *
+  PL_INTEGER = 3; // int
+  PL_FLOAT = 4; // double
+  PL_STRING = 5; // const char *
+  PL_TERM = 6;
 
   // PL_unify_term ()
-  PL_FUNCTOR	           = 10; // functor_t, arg ...
-  PL_LIST		           = 11; // length, arg ...
-  PL_CHARS	              = 12; // const char *
-  PL_POINTER	           = 13; // void *
+  PL_FUNCTOR = 10; // functor_t, arg ...
+  PL_LIST = 11; // length, arg ...
+  PL_CHARS = 12; // const char *
+  PL_POINTER = 13; // void *
 
   // PlArg::PlArg = (text, type)
-  PL_CODE_LIST            = 14; // [ascii...]
-  PL_CHAR_LIST	           = 15; // [h,e,l,l,o]
-  PL_BOOL                 = 16; // PL_set_feature ()
-  PL_FUNCTOR_CHARS        = 17; // PL_unify_term ()
+  PL_CODE_LIST = 14; // [ascii...]
+  PL_CHAR_LIST = 15; // [h,e,l,l,o]
+  PL_BOOL = 16; // PL_set_feature ()
+  PL_FUNCTOR_CHARS = 17; // PL_unify_term ()
   _PL_PREDICATE_INDICATOR = 18; // predicate_t (Procedure)
-  PL_SHORT                = 19; // short
-  PL_INT                  = 20; // int
-  PL_LONG                 = 21; // long
-  PL_DOUBLE               = 22; // double
-  PL_NCHARS               = 23; // unsigned, const char *
+  PL_SHORT = 19; // short
+  PL_INT = 20; // int
+  PL_LONG = 21; // long
+  PL_DOUBLE = 22; // double
+  PL_NCHARS = 23; // unsigned, const char *
 
 ////////////////////////////////////////////////////////////////////////////////
 // DETERMINISTIC CALL/RETURN
@@ -101,8 +101,8 @@ const
 
 const
   PL_FIRST_CALL = 0;
-  PL_CUTTED     = 1;
-  PL_REDO       = 2;
+  PL_CUTTED = 1;
+  PL_REDO = 2;
 {
 #define PL_retry(n)		return _PL_retry(n)
 #define PL_retry_address(a)	return _PL_retry_address(a)
@@ -111,7 +111,7 @@ function _PL_retry_address(A: Pointer): foreign_t; cdecl; external 'libswipl.dll
 }
 
 
-{$ifdef WIN32}
+{$IFDEF WIN32}
 
 
 
@@ -128,26 +128,26 @@ function PL_foreign_context_address(c: control_t): Pointer; cdecl; external 'lib
 ////////////////////////////////////////////////////////////////////////////////
 type
   PL_extension = packed record
-    predicate_name: PChar;             // Name of the predicate
-    arity: SmallInt;                   // Arity of the predicate
-    function_: pl_function_t;          // Implementing functions
-    flags: SmallInt;                   // Or of PL_FA_...
+    predicate_name: PChar; // Name of the predicate
+    arity: SmallInt; // Arity of the predicate
+    function_: pl_function_t; // Implementing functions
+    flags: SmallInt; // Or of PL_FA_...
   end;
 
 const
-  PL_FA_NOTRACE          = $01;	// foreign cannot be traced
-  PL_FA_TRANSPARENT      = $02;	// foreign is module transparent
-  PL_FA_NONDETERMINISTIC = $04;	// foreign is non-deterministic
-  PL_FA_VARARGS          = $08;	// call using t0, ac, ctx
+  PL_FA_NOTRACE = $01; // foreign cannot be traced
+  PL_FA_TRANSPARENT = $02; // foreign is module transparent
+  PL_FA_NONDETERMINISTIC = $04; // foreign is non-deterministic
+  PL_FA_VARARGS = $08; // call using t0, ac, ctx
 
 
 //extern PL_extension PL_extensions[]; /* not Win32! */
 procedure PL_register_extensions(var e: PL_extension); cdecl; external 'libswipl.dll';
 procedure PL_load_extensions(var e: PL_extension); cdecl; external 'libswipl.dll';
 function PL_register_foreign(name: PChar;
-                             arity: Integer;
-                             func: pl_function_t;
-                             flags: Integer): Integer; cdecl; external 'libswipl.dll';
+  arity: Integer;
+  func: pl_function_t;
+  flags: Integer): Integer; cdecl; external 'libswipl.dll';
 
 
 
@@ -173,13 +173,13 @@ function PL_strip_module(in_: term_t; var m: module_t; out_: term_t): Integer; c
 // CALL-BACK
 ////////////////////////////////////////////////////////////////////////////////
 const
-  PL_Q_DEBUG           = $01; // (!) = TRUE for backward compatibility
-  PL_Q_NORMAL          = $02; // normal usage
-  PL_Q_NODEBUG	        = $04; // use this one
+  PL_Q_DEBUG = $01; // (!) = TRUE for backward compatibility
+  PL_Q_NORMAL = $02; // normal usage
+  PL_Q_NODEBUG = $04; // use this one
   PL_Q_CATCH_EXCEPTION = $08; // handle exceptions in C
-  PL_Q_PASS_EXCEPTION  = $10; // pass to parent environment
-  PL_Q_DETERMINISTIC   = $20; // (!) call was deterministic
-  MON_PL_Q = $04 + $20 ;
+  PL_Q_PASS_EXCEPTION = $10; // pass to parent environment
+  PL_Q_DETERMINISTIC = $20; // (!) call was deterministic
+  MON_PL_Q = $04 + $20;
 
 // Foreign context frames
 function PL_open_foreign_frame(): fid_t; cdecl; external 'libswipl.dll';
@@ -190,18 +190,18 @@ procedure PL_discard_foreign_frame(cid: fid_t); cdecl; external 'libswipl.dll';
 // Finding predicates
 function PL_pred(f: functor_t; m: module_t): predicate_t; cdecl; external 'libswipl.dll';
 function PL_predicate(name: PChar;
-                      arity: Integer;
-                      module: PChar): predicate_t; cdecl; external 'libswipl.dll';
+  arity: Integer;
+  module: PChar): predicate_t; cdecl; external 'libswipl.dll';
 function PL_predicate_info(pred: predicate_t;
-                           var name: atom_t;
-                           var arity: Integer;
-                           var module: module_t): Integer; cdecl; external 'libswipl.dll';
+  var name: atom_t;
+  var arity: Integer;
+  var module: module_t): Integer; cdecl; external 'libswipl.dll';
 
 // Call-back
 function PL_open_query(m: module_t;
-                       flags: Integer;
-                       pred: predicate_t;
-                       t0: term_t): qid_t; cdecl; external 'libswipl.dll';
+  flags: Integer;
+  pred: predicate_t;
+  t0: term_t): qid_t; cdecl; external 'libswipl.dll';
 function PL_next_solution(qid: qid_t): smallint; cdecl; external 'libswipl.dll';
 procedure PL_close_query(qid: qid_t); cdecl; external 'libswipl.dll';
 procedure PL_cut_query(qid: qid_t); cdecl; external 'libswipl.dll';
@@ -209,9 +209,9 @@ procedure PL_cut_query(qid: qid_t); cdecl; external 'libswipl.dll';
 // Simplified (but less flexible) call-back
 function PL_call(t: term_t; m: module_t): Integer; cdecl; external 'libswipl.dll';
 function PL_call_predicate(m: module_t;
-                           debug: Integer;
-                           pred: predicate_t;
-                           t0: term_t): Integer; cdecl; external 'libswipl.dll';
+  debug: Integer;
+  pred: predicate_t;
+  t0: term_t): Integer; cdecl; external 'libswipl.dll';
 
 // Handling exceptions
 function PL_exception(qid: qid_t): term_t; cdecl; external 'libswipl.dll';
@@ -235,10 +235,10 @@ function PL_new_atom(s: PChar): atom_t; cdecl; external 'libswipl.dll';
 function PL_new_atom_nchars(len: Cardinal; s: PChar): atom_t; cdecl; external 'libswipl.dll';
 function PL_atom_chars(a: atom_t): PChar; cdecl; external 'libswipl.dll';
 function PL_atom_nchars(a: atom_t; var len: Cardinal): PChar; cdecl; external 'libswipl.dll';
-{$ifndef O_DEBUG_ATOMGC}
+{$IFNDEF O_DEBUG_ATOMGC}
 procedure PL_register_atom(a: atom_t); cdecl; external 'libswipl.dll';
 procedure PL_unregister_atom(a: atom_t); cdecl; external 'libswipl.dll';
-{$endif}
+{$ENDIF}
 function PL_new_functor(f: atom_t; a: Integer): functor_t; cdecl; external 'libswipl.dll';
 function PL_functor_name(f: functor_t): atom_t; cdecl; external 'libswipl.dll';
 function PL_functor_arity(f: functor_t): Integer; cdecl; external 'libswipl.dll';
@@ -270,7 +270,7 @@ function PL_get_head(l, h: term_t): Integer; cdecl; external 'libswipl.dll';
 function PL_get_tail(l, t: term_t): Integer; cdecl; external 'libswipl.dll';
 function PL_get_nil(l: term_t): Integer; cdecl; external 'libswipl.dll';
 function PL_get_term_value(t: term_t; var v: term_value_t): Integer; cdecl; external 'libswipl.dll';
-function PL_quote(chr: Integer; data: PChar): PChar; cdecl; external 'libswipl.dll';
+function PL_quote(chr: Integer; data: PChar): PChar; cdecl; external 'libswipl.dll'; 
 
 // Verify types
 function PL_term_type(t: term_t): Integer; cdecl; external 'libswipl.dll';
@@ -303,6 +303,7 @@ procedure PL_put_functor(t: term_t; functor: functor_t); cdecl; external 'libswi
 procedure PL_put_list(l: term_t); cdecl; external 'libswipl.dll';
 procedure PL_put_nil(l: term_t); cdecl; external 'libswipl.dll';
 procedure PL_put_term(t1, t2: term_t); cdecl; external 'libswipl.dll';
+procedure PL_put_int64(t: term_t; i: int64); cdecl; external 'libswipl.dll';
 
 // construct a functor or list-cell
 // !!!!!! TODO
@@ -338,14 +339,14 @@ function PL_unify_arg(index: Integer; t, a: term_t): Integer; cdecl; external 'l
 ////////////////////////////////////////////////////////////////////////////////
 
 const
-  PL_FILE_ABSOLUTE     = $01;	// return absolute path
-  PL_FILE_OSPATH       = $02;	// return path in OS notation
-  PL_FILE_SEARCH       = $04;	// use file_search_path
-  PL_FILE_EXIST        = $08;	// demand file to exist
-  PL_FILE_READ         = $10;	// demand read-access
-  PL_FILE_WRITE        = $20;	// demand write-access
-  PL_FILE_EXECUTE      = $40;	// demand execute-access
-  PL_FILE_NOERRORS     = $80;	// do not raise exceptions
+  PL_FILE_ABSOLUTE = $01; // return absolute path
+  PL_FILE_OSPATH = $02; // return path in OS notation
+  PL_FILE_SEARCH = $04; // use file_search_path
+  PL_FILE_EXIST = $08; // demand file to exist
+  PL_FILE_READ = $10; // demand read-access
+  PL_FILE_WRITE = $20; // demand write-access
+  PL_FILE_EXECUTE = $40; // demand execute-access
+  PL_FILE_NOERRORS = $80; // do not raise exceptions
 
 function PL_get_file_name(n: term_t; var name: PChar; flags: Integer): Integer; cdecl; external 'libswipl.dll';
 procedure PL_changed_cwd(); cdecl; external 'libswipl.dll'; // foreign code changed CWD
@@ -421,24 +422,24 @@ procedure _PL_get_arg(index: Integer; t, a: term_t); cdecl; external 'libswipl.d
 // CHAR BUFFERS !!!! TODO
 ////////////////////////////////////////////////////////////////////////////////
 const
-  CVT_ATOM        = $0001;
-  CVT_STRING      = $0002;
-  CVT_LIST        = $0004;
-  CVT_INTEGER     = $0008;
-  CVT_FLOAT       = $0010;
-  CVT_VARIABLE    = $0020;
-  CVT_NUMBER      = CVT_INTEGER or CVT_FLOAT;
-  CVT_ATOMIC      = CVT_NUMBER or CVT_ATOM or CVT_STRING;
-  CVT_WRITE       = $0040; // as of version 3.2.10
-  CVT_ALL         = CVT_ATOMIC or CVT_LIST;
-  CVT_MASK        = $00ff;
+  CVT_ATOM = $0001;
+  CVT_STRING = $0002;
+  CVT_LIST = $0004;
+  CVT_INTEGER = $0008;
+  CVT_FLOAT = $0010;
+  CVT_VARIABLE = $0020;
+  CVT_NUMBER = CVT_INTEGER or CVT_FLOAT;
+  CVT_ATOMIC = CVT_NUMBER or CVT_ATOM or CVT_STRING;
+  CVT_WRITE = $0040; // as of version 3.2.10
+  CVT_ALL = CVT_ATOMIC or CVT_LIST;
+  CVT_MASK = $00FF;
 
   BUF_DISCARDABLE = $0000;
-  BUF_RING        = $0100;
-  BUF_MALLOC      = $0200;
+  BUF_RING = $0100;
+  BUF_MALLOC = $0200;
 
-  REP_UTF8        =$1000;
-  FL_FPC          =CVT_ALL or REP_UTF8;
+  REP_UTF8 = $1000;
+  FL_FPC = CVT_ALL or REP_UTF8;
 
 
 
@@ -447,7 +448,7 @@ const
 // STREAM SUPPORT !!!! TODO
 ////////////////////////////////////////////////////////////////////////////////
 {
-					/* Make IOSTREAM known to Prolog */
+     /* Make IOSTREAM known to Prolog */
 function PL_open_stream(t: term_t, var s: IOSTREAM): Integer; cdecl; external 'libswipl.dll'; /* compatibility */
 function PL_unify_stream(t: term_t, var s: IOSTREAM): Integer; cdecl; external 'libswipl.dll';
 function PL_get_stream_handle(t: term_t, IOSTREAM **s): Integer; cdecl; external 'libswipl.dll';
@@ -462,9 +463,9 @@ const
   PL_WRT_CHARESCAPES	$10 /* Output ISO escape sequences */
 
 function PL_write_term(var s: IOSTREAM,
-			      term: term_t,
-			      precedence: Integer ,
-			      flags: Integer): Integer;
+         term: term_t,
+         precedence: Integer ,
+         flags: Integer): Integer;
 const
   PL_NOTTY = 0;     // -tty in effect
   PL_RAWTTY = 1     // get_single_char/1
@@ -504,7 +505,7 @@ procedure PL_free(mem: Pointer); cdecl; external 'libswipl.dll';
 // HOOKS
 ////////////////////////////////////////////////////////////////////////////////
 const
-  PL_DISPATCH_INPUT   = 0; // There is input available
+  PL_DISPATCH_INPUT = 0; // There is input available
   PL_DISPATCH_TIMEOUT = 1; // Dispatch timeout
 
 type
@@ -539,16 +540,16 @@ function PL_handle_signals(): Integer; cdecl; external 'libswipl.dll';
 // PROLOG ACTION/QUERY
 ////////////////////////////////////////////////////////////////////////////////
 const
-  PL_ACTION_TRACE     = 1;	// switch to trace mode
-  PL_ACTION_DEBUG     = 2;	// switch to debug mode
-  PL_ACTION_BACKTRACE = 3;	// show a backtrace (stack dump)
-  PL_ACTION_BREAK     = 4;	// create a break environment
-  PL_ACTION_HALT      = 5;	// halt Prolog execution
-  PL_ACTION_ABORT     = 6;	// generate a Prolog abort
+  PL_ACTION_TRACE = 1; // switch to trace mode
+  PL_ACTION_DEBUG = 2; // switch to debug mode
+  PL_ACTION_BACKTRACE = 3; // show a backtrace (stack dump)
+  PL_ACTION_BREAK = 4; // create a break environment
+  PL_ACTION_HALT = 5; // halt Prolog execution
+  PL_ACTION_ABORT = 6; // generate a Prolog abort
                                 // 7: Obsolete PL_ACTION_SYMBOLFILE
-  PL_ACTION_WRITE     = 8;	// write via Prolog i/o buffer
-  PL_ACTION_FLUSH     = 9;	// Flush Prolog i/o buffer
-  PL_ACTION_GUIAPP    =10;	// Win32: set when this is a gui
+  PL_ACTION_WRITE = 8; // write via Prolog i/o buffer
+  PL_ACTION_FLUSH = 9; // Flush Prolog i/o buffer
+  PL_ACTION_GUIAPP = 10; // Win32: set when this is a gui
 
 //TODO!!!! function PL_action(action: Integer, ...): Integer; cdecl; external 'libswipl.dll';	// perform some action
 //procedure PL_on_halt(void (*)(Integer, void *), void *); cdecl; external 'libswipl.dll';
@@ -559,16 +560,16 @@ const
 // QUERY PROLOG
 ////////////////////////////////////////////////////////////////////////////////
 const
-  PL_QUERY_ARGC           = 1; // return main() argc
-  PL_QUERY_ARGV           = 2; // return main() argv
+  PL_QUERY_ARGC = 1; // return main() argc
+  PL_QUERY_ARGV = 2; // return main() argv
                           // 3: Obsolete PL_QUERY_SYMBOLFILE
                           // 4: Obsolete PL_QUERY_ORGSYMBOLFILE
-  PL_QUERY_GETC           = 5; // Read character from terminal
-  PL_QUERY_MAX_INTEGER    = 6; // largest integer
-  PL_QUERY_MIN_INTEGER    = 7; // smallest integer
+  PL_QUERY_GETC = 5; // Read character from terminal
+  PL_QUERY_MAX_INTEGER = 6; // largest integer
+  PL_QUERY_MIN_INTEGER = 7; // smallest integer
   PL_QUERY_MAX_TAGGED_INT = 8; // largest tagged integer
   PL_QUERY_MIN_TAGGED_INT = 9; // smallest tagged integer
-  PL_QUERY_VERSION        =10; // 207006 = 2.7.6
+  PL_QUERY_VERSION = 10; // 207006 = 2.7.6
 
 function PL_query(q: Integer): LongInt; cdecl; external 'libswipl.dll'; // get information from Prolog
 
@@ -588,12 +589,12 @@ type
 
   PL_thread_exit_func_t = procedure;
 
-function PL_thread_self(): Integer; cdecl; external 'libswipl.dll';	// Prolog thread id (-1 if none)
+function PL_thread_self(): Integer; cdecl; external 'libswipl.dll'; // Prolog thread id (-1 if none)
 function PL_thread_attach_engine(var attr: PL_thread_attr_t): Integer; cdecl; external 'libswipl.dll';
 function PL_thread_destroy_engine(): Integer; cdecl; external 'libswipl.dll';
 function PL_thread_at_exit(function_: PL_thread_exit_func_t;
-                           closure: Pointer;
-                           global: Integer): Integer; cdecl; external 'libswipl.dll';
+  closure: Pointer;
+  global: Integer): Integer; cdecl; external 'libswipl.dll';
 
 // Windows specific:
 function PL_w32thread_raise(dwTid: LongWord; sig: Integer): Integer; cdecl; external 'libswipl.dll';
@@ -623,8 +624,8 @@ function PL_destroy_engine(engine: PL_engine_t): Integer; cdecl; external 'libsw
 
 const
   PL_MSG_EXCEPTION_RAISED = -1;
-  PL_MSG_IGNORED          = 0;
-  PL_MSG_HANDLED          = 1;
+  PL_MSG_IGNORED = 0;
+  PL_MSG_HANDLED = 1;
 
   {
 function PL_win_message_proc(h: HWND;
@@ -664,7 +665,7 @@ typedef term_t term;
 typedef atomic_t atomic;
 
 #ifndef _PL_INCLUDE_H
-					/* renamed functions */
+     /* renamed functions */
 #define PL_is_var(t)		PL_is_variable(t)
 #define PL_is_int(t)		PL_is_integer(t)
 #define PL_is_term(t)		PL_is_compound(t)
@@ -672,8 +673,8 @@ typedef atomic_t atomic;
 #define PL_atom_value(a)	(char * )PL_atom_chars((atom_t)(a))
 #define PL_predicate(f, m)	PL_pred(f, m)
 
-					/* force undefined symbols */
-					/* if PL_OLD_INTERFACE isn't set */
+     /* force undefined symbols */
+     /* if PL_OLD_INTERFACE isn't set */
 #define PL_strip_module(t, m)	_PL_strip_module(t, m)
 #define PL_atomic(t)		_PL_atomic(t)
 #define PL_float_value(t)	_PL_float_value(t)
@@ -732,7 +733,7 @@ function _PL_strip_module(t: term_t; var m: module_t): term_t; cdecl; external '
   }
 
 
-{$else }  // LINUX
+{$ELSE } // LINUX
 
 
 
@@ -749,26 +750,26 @@ function PL_foreign_context_address(c: control_t): Pointer; cdecl; external 'lib
 ////////////////////////////////////////////////////////////////////////////////
 type
   PL_extension = packed record
-    predicate_name: PChar;             // Name of the predicate
-    arity: SmallInt;                   // Arity of the predicate
-    function_: pl_function_t;          // Implementing functions
-    flags: SmallInt;                   // Or of PL_FA_...
+    predicate_name: PChar; // Name of the predicate
+    arity: SmallInt; // Arity of the predicate
+    function_: pl_function_t; // Implementing functions
+    flags: SmallInt; // Or of PL_FA_...
   end;
 
 const
-  PL_FA_NOTRACE          = $01;	// foreign cannot be traced
-  PL_FA_TRANSPARENT      = $02;	// foreign is module transparent
-  PL_FA_NONDETERMINISTIC = $04;	// foreign is non-deterministic
-  PL_FA_VARARGS          = $08;	// call using t0, ac, ctx
+  PL_FA_NOTRACE = $01; // foreign cannot be traced
+  PL_FA_TRANSPARENT = $02; // foreign is module transparent
+  PL_FA_NONDETERMINISTIC = $04; // foreign is non-deterministic
+  PL_FA_VARARGS = $08; // call using t0, ac, ctx
 
 
 //extern PL_extension PL_extensions[]; /* not Win32! */
 procedure PL_register_extensions(var e: PL_extension); cdecl; external 'libpl.so';
 procedure PL_load_extensions(var e: PL_extension); cdecl; external 'libpl.so';
 function PL_register_foreign(name: PChar;
-                             arity: Integer;
-                             func: pl_function_t;
-                             flags: Integer): Integer; cdecl; external 'libpl.so';
+  arity: Integer;
+  func: pl_function_t;
+  flags: Integer): Integer; cdecl; external 'libpl.so';
 
 
 
@@ -794,12 +795,12 @@ function PL_strip_module(in_: term_t; var m: module_t; out_: term_t): Integer; c
 // CALL-BACK
 ////////////////////////////////////////////////////////////////////////////////
 const
-  PL_Q_DEBUG           = $01; // (!) = TRUE for backward compatibility
-  PL_Q_NORMAL          = $02; // normal usage
-  PL_Q_NODEBUG	        = $04; // use this one
+  PL_Q_DEBUG = $01; // (!) = TRUE for backward compatibility
+  PL_Q_NORMAL = $02; // normal usage
+  PL_Q_NODEBUG = $04; // use this one
   PL_Q_CATCH_EXCEPTION = $08; // handle exceptions in C
-  PL_Q_PASS_EXCEPTION  = $10; // pass to parent environment
-  PL_Q_DETERMINISTIC   = $20; // (!) call was deterministic
+  PL_Q_PASS_EXCEPTION = $10; // pass to parent environment
+  PL_Q_DETERMINISTIC = $20; // (!) call was deterministic
 
 // Foreign context frames
 function PL_open_foreign_frame(): fid_t; cdecl; external 'libpl.so';
@@ -810,18 +811,18 @@ procedure PL_discard_foreign_frame(cid: fid_t); cdecl; external 'libpl.so';
 // Finding predicates
 function PL_pred(f: functor_t; m: module_t): predicate_t; cdecl; external 'libpl.so';
 function PL_predicate(name: PChar;
-                      arity: Integer;
-                      module: PChar): predicate_t; cdecl; external 'libpl.so';
+  arity: Integer;
+  module: PChar): predicate_t; cdecl; external 'libpl.so';
 function PL_predicate_info(pred: predicate_t;
-                           var name: atom_t;
-                           var arity: Integer;
-                           var module: module_t): Integer; cdecl; external 'libpl.so';
+  var name: atom_t;
+  var arity: Integer;
+  var module: module_t): Integer; cdecl; external 'libpl.so';
 
 // Call-back
 function PL_open_query(m: module_t;
-                       flags: Integer;
-                       pred: predicate_t;
-                       t0: term_t): qid_t; cdecl; external 'libpl.so';
+  flags: Integer;
+  pred: predicate_t;
+  t0: term_t): qid_t; cdecl; external 'libpl.so';
 function PL_next_solution(qid: qid_t): Integer; cdecl; external 'libpl.so';
 procedure PL_close_query(qid: qid_t); cdecl; external 'libpl.so';
 procedure PL_cut_query(qid: qid_t); cdecl; external 'libpl.so';
@@ -829,9 +830,9 @@ procedure PL_cut_query(qid: qid_t); cdecl; external 'libpl.so';
 // Simplified (but less flexible) call-back
 function PL_call(t: term_t; m: module_t): Integer; cdecl; external 'libpl.so';
 function PL_call_predicate(m: module_t;
-                           debug: Integer;
-                           pred: predicate_t;
-                           t0: term_t): Integer; cdecl; external 'libpl.so';
+  debug: Integer;
+  pred: predicate_t;
+  t0: term_t): Integer; cdecl; external 'libpl.so';
 
 // Handling exceptions
 function PL_exception(qid: qid_t): term_t; cdecl; external 'libpl.so';
@@ -855,10 +856,10 @@ function PL_new_atom(s: PChar): atom_t; cdecl; external 'libpl.so';
 function PL_new_atom_nchars(len: Cardinal; s: PChar): atom_t; cdecl; external 'libpl.so';
 function PL_atom_chars(a: atom_t): PChar; cdecl; external 'libpl.so';
 function PL_atom_nchars(a: atom_t; var len: Cardinal): PChar; cdecl; external 'libpl.so';
-{$ifndef O_DEBUG_ATOMGC}
+{$IFNDEF O_DEBUG_ATOMGC}
 procedure PL_register_atom(a: atom_t); cdecl; external 'libpl.so';
 procedure PL_unregister_atom(a: atom_t); cdecl; external 'libpl.so';
-{$endif}
+{$ENDIF}
 function PL_new_functor(f: atom_t; a: Integer): functor_t; cdecl; external 'libpl.so';
 function PL_functor_name(f: functor_t): atom_t; cdecl; external 'libpl.so';
 function PL_functor_arity(f: functor_t): Integer; cdecl; external 'libpl.so';
@@ -877,7 +878,7 @@ function PL_get_atom_chars(t: term_t; var a: PChar): Integer; cdecl; external 'l
 
 function PL_get_string(t: term_t; var s: PChar; var len: Cardinal): Integer; cdecl; external 'libpl.so';
 function PL_get_chars(t: term_t; var s: PChar; flags: Cardinal): Integer; cdecl; external 'libpl.so';
-function PL_get_wchars(t: term_t;var len: Cardinal; var s: PChar; flags: Cardinal): Integer; cdecl; external 'libpl.so';
+function PL_get_wchars(t: term_t; var len: Cardinal; var s: PChar; flags: Cardinal): Integer; cdecl; external 'libpl.so';
 function PL_get_list_chars(l: term_t; var s: PChar; flags: Cardinal): Integer; cdecl; external 'libpl.so';
 function PL_get_atom_nchars(t: term_t; var length: Cardinal; var a: PChar): Integer; cdecl; external 'libpl.so';
 function PL_get_list_nchars(l: term_t; var length: Cardinal; var s: PChar; flags: Cardinal): Integer; cdecl; external 'libpl.so';
@@ -963,14 +964,14 @@ function PL_unify_arg(index: Integer; t, a: term_t): Integer; cdecl; external 'l
 ////////////////////////////////////////////////////////////////////////////////
 
 const
-  PL_FILE_ABSOLUTE     = $01;	// return absolute path
-  PL_FILE_OSPATH       = $02;	// return path in OS notation
-  PL_FILE_SEARCH       = $04;	// use file_search_path
-  PL_FILE_EXIST        = $08;	// demand file to exist
-  PL_FILE_READ         = $10;	// demand read-access
-  PL_FILE_WRITE        = $20;	// demand write-access
-  PL_FILE_EXECUTE      = $40;	// demand execute-access
-  PL_FILE_NOERRORS     = $80;	// do not raise exceptions
+  PL_FILE_ABSOLUTE = $01; // return absolute path
+  PL_FILE_OSPATH = $02; // return path in OS notation
+  PL_FILE_SEARCH = $04; // use file_search_path
+  PL_FILE_EXIST = $08; // demand file to exist
+  PL_FILE_READ = $10; // demand read-access
+  PL_FILE_WRITE = $20; // demand write-access
+  PL_FILE_EXECUTE = $40; // demand execute-access
+  PL_FILE_NOERRORS = $80; // do not raise exceptions
 
 function PL_get_file_name(n: term_t; var name: PChar; flags: Integer): Integer; cdecl; external 'libpl.so';
 procedure PL_changed_cwd(); cdecl; external 'libpl.so'; // foreign code changed CWD
@@ -1046,23 +1047,23 @@ procedure _PL_get_arg(index: Integer; t, a: term_t); cdecl; external 'libpl.so';
 // CHAR BUFFERS !!!! TODO
 ////////////////////////////////////////////////////////////////////////////////
 const
-  CVT_ATOM        = $0001;
-  CVT_STRING      = $0002;
-  CVT_LIST        = $0004;
-  CVT_INTEGER     = $0008;
-  CVT_FLOAT       = $0010;
-  CVT_VARIABLE    = $0020;
-  CVT_NUMBER      = CVT_INTEGER or CVT_FLOAT;
-  CVT_ATOMIC      = CVT_NUMBER or CVT_ATOM or CVT_STRING;
-  CVT_WRITE       = $0040; // as of version 3.2.10
-  CVT_ALL         = CVT_ATOMIC or CVT_LIST;
-  CVT_MASK        = $00ff;
+  CVT_ATOM = $0001;
+  CVT_STRING = $0002;
+  CVT_LIST = $0004;
+  CVT_INTEGER = $0008;
+  CVT_FLOAT = $0010;
+  CVT_VARIABLE = $0020;
+  CVT_NUMBER = CVT_INTEGER or CVT_FLOAT;
+  CVT_ATOMIC = CVT_NUMBER or CVT_ATOM or CVT_STRING;
+  CVT_WRITE = $0040; // as of version 3.2.10
+  CVT_ALL = CVT_ATOMIC or CVT_LIST;
+  CVT_MASK = $00FF;
 
   BUF_DISCARDABLE = $0000;
-  BUF_RING        = $0100;
-  BUF_MALLOC      = $0200;
-  REP_UTF8        = $1000;
-    FL_FPC          =CVT_ALL or REP_UTF8;
+  BUF_RING = $0100;
+  BUF_MALLOC = $0200;
+  REP_UTF8 = $1000;
+  FL_FPC = CVT_ALL or REP_UTF8;
 
 
 
@@ -1071,7 +1072,7 @@ const
 // STREAM SUPPORT !!!! TODO
 ////////////////////////////////////////////////////////////////////////////////
 {
-					/* Make IOSTREAM known to Prolog */
+     /* Make IOSTREAM known to Prolog */
 function PL_open_stream(t: term_t, var s: IOSTREAM): Integer; cdecl; external 'libpl.so'; /* compatibility */
 function PL_unify_stream(t: term_t, var s: IOSTREAM): Integer; cdecl; external 'libpl.so';
 function PL_get_stream_handle(t: term_t, IOSTREAM **s): Integer; cdecl; external 'libpl.so';
@@ -1086,9 +1087,9 @@ const
   PL_WRT_CHARESCAPES	$10 /* Output ISO escape sequences */
 
 function PL_write_term(var s: IOSTREAM,
-			      term: term_t,
-			      precedence: Integer ,
-			      flags: Integer): Integer;
+         term: term_t,
+         precedence: Integer ,
+         flags: Integer): Integer;
 const
   PL_NOTTY = 0;     // -tty in effect
   PL_RAWTTY = 1     // get_single_char/1
@@ -1128,7 +1129,7 @@ procedure PL_free(mem: Pointer); cdecl; external 'libpl.so';
 // HOOKS
 ////////////////////////////////////////////////////////////////////////////////
 const
-  PL_DISPATCH_INPUT   = 0; // There is input available
+  PL_DISPATCH_INPUT = 0; // There is input available
   PL_DISPATCH_TIMEOUT = 1; // Dispatch timeout
 
 type
@@ -1163,16 +1164,16 @@ function PL_handle_signals(): Integer; cdecl; external 'libpl.so';
 // PROLOG ACTION/QUERY
 ////////////////////////////////////////////////////////////////////////////////
 const
-  PL_ACTION_TRACE     = 1;	// switch to trace mode
-  PL_ACTION_DEBUG     = 2;	// switch to debug mode
-  PL_ACTION_BACKTRACE = 3;	// show a backtrace (stack dump)
-  PL_ACTION_BREAK     = 4;	// create a break environment
-  PL_ACTION_HALT      = 5;	// halt Prolog execution
-  PL_ACTION_ABORT     = 6;	// generate a Prolog abort
+  PL_ACTION_TRACE = 1; // switch to trace mode
+  PL_ACTION_DEBUG = 2; // switch to debug mode
+  PL_ACTION_BACKTRACE = 3; // show a backtrace (stack dump)
+  PL_ACTION_BREAK = 4; // create a break environment
+  PL_ACTION_HALT = 5; // halt Prolog execution
+  PL_ACTION_ABORT = 6; // generate a Prolog abort
                                 // 7: Obsolete PL_ACTION_SYMBOLFILE
-  PL_ACTION_WRITE     = 8;	// write via Prolog i/o buffer
-  PL_ACTION_FLUSH     = 9;	// Flush Prolog i/o buffer
-  PL_ACTION_GUIAPP    =10;	// Win32: set when this is a gui
+  PL_ACTION_WRITE = 8; // write via Prolog i/o buffer
+  PL_ACTION_FLUSH = 9; // Flush Prolog i/o buffer
+  PL_ACTION_GUIAPP = 10; // Win32: set when this is a gui
 
 //TODO!!!! function PL_action(action: Integer, ...): Integer; cdecl; external 'libpl.so';	// perform some action
 //procedure PL_on_halt(void (*)(Integer, void *), void *); cdecl; external 'libpl.so';
@@ -1183,16 +1184,16 @@ const
 // QUERY PROLOG
 ////////////////////////////////////////////////////////////////////////////////
 const
-  PL_QUERY_ARGC           = 1; // return main() argc
-  PL_QUERY_ARGV           = 2; // return main() argv
+  PL_QUERY_ARGC = 1; // return main() argc
+  PL_QUERY_ARGV = 2; // return main() argv
                           // 3: Obsolete PL_QUERY_SYMBOLFILE
                           // 4: Obsolete PL_QUERY_ORGSYMBOLFILE
-  PL_QUERY_GETC           = 5; // Read character from terminal
-  PL_QUERY_MAX_INTEGER    = 6; // largest integer
-  PL_QUERY_MIN_INTEGER    = 7; // smallest integer
+  PL_QUERY_GETC = 5; // Read character from terminal
+  PL_QUERY_MAX_INTEGER = 6; // largest integer
+  PL_QUERY_MIN_INTEGER = 7; // smallest integer
   PL_QUERY_MAX_TAGGED_INT = 8; // largest tagged integer
   PL_QUERY_MIN_TAGGED_INT = 9; // smallest tagged integer
-  PL_QUERY_VERSION        =10; // 207006 = 2.7.6
+  PL_QUERY_VERSION = 10; // 207006 = 2.7.6
 
 function PL_query(q: Integer): LongInt; cdecl; external 'libpl.so'; // get information from Prolog
 
@@ -1212,12 +1213,12 @@ type
 
   PL_thread_exit_func_t = procedure;
 
-function PL_thread_self(): Integer; cdecl; external 'libpl.so';	// Prolog thread id (-1 if none)
+function PL_thread_self(): Integer; cdecl; external 'libpl.so'; // Prolog thread id (-1 if none)
 function PL_thread_attach_engine(var attr: PL_thread_attr_t): Integer; cdecl; external 'libpl.so';
 function PL_thread_destroy_engine(): Integer; cdecl; external 'libpl.so';
 function PL_thread_at_exit(function_: PL_thread_exit_func_t;
-                           closure: Pointer;
-                           global: Integer): Integer; cdecl; external 'libpl.so';
+  closure: Pointer;
+  global: Integer): Integer; cdecl; external 'libpl.so';
 
 // Windows specific:
 function PL_w32thread_raise(dwTid: LongWord; sig: Integer): Integer; cdecl; external 'libpl.so';
@@ -1247,15 +1248,15 @@ function PL_destroy_engine(engine: PL_engine_t): Integer; cdecl; external 'libpl
 
 const
   PL_MSG_EXCEPTION_RAISED = -1;
-  PL_MSG_IGNORED          = 0;
-  PL_MSG_HANDLED          = 1;
+  PL_MSG_IGNORED = 0;
+  PL_MSG_HANDLED = 1;
 
-  {$ifdef win32}
+{$IFDEF win32}
 function PL_win_message_proc(h: HWND;
-                             message: Cardinal;
-                             wParam: Cardinal;
-                             lParam: LongInt): Integer; cdecl; external 'libpl.so';
-  {$endif}
+  message: Cardinal;
+  wParam: Cardinal;
+  lParam: LongInt): Integer; cdecl; external 'libpl.so';
+{$ENDIF}
 ////////////////////////////////////////////////////////////////////////////////
 // FAST XPCE SUPPORT
 ////////////////////////////////////////////////////////////////////////////////
@@ -1263,9 +1264,9 @@ type
   xpceref_t = packed record
     type_: Integer; // PL_INTEGER or PL_ATOM
     value: packed record
-    case Integer of
-      0: (i: LongWord); // integer reference value
-      1: (a: atom_t); // atom reference value
+      case Integer of
+        0: (i: LongWord); // integer reference value
+        1: (a: atom_t); // atom reference value
     end;
   end;
 
@@ -1288,7 +1289,7 @@ typedef term_t term;
 typedef atomic_t atomic;
 
 #ifndef _PL_INCLUDE_H
-					/* renamed functions */
+     /* renamed functions */
 #define PL_is_var(t)		PL_is_variable(t)
 #define PL_is_int(t)		PL_is_integer(t)
 #define PL_is_term(t)		PL_is_compound(t)
@@ -1296,8 +1297,8 @@ typedef atomic_t atomic;
 #define PL_atom_value(a)	(char * )PL_atom_chars((atom_t)(a))
 #define PL_predicate(f, m)	PL_pred(f, m)
 
-					/* force undefined symbols */
-					/* if PL_OLD_INTERFACE isn't set */
+     /* force undefined symbols */
+     /* if PL_OLD_INTERFACE isn't set */
 #define PL_strip_module(t, m)	_PL_strip_module(t, m)
 #define PL_atomic(t)		_PL_atomic(t)
 #define PL_float_value(t)	_PL_float_value(t)
@@ -1355,7 +1356,7 @@ function _PL_strip_module(t: term_t; var m: module_t): term_t; cdecl; external '
 //#endif /*PL_OLD_INTERFACE*/
   }
 
-{$endif }
+{$ENDIF }
 
 
 
@@ -1364,4 +1365,3 @@ function _PL_strip_module(t: term_t; var m: module_t): term_t; cdecl; external '
 implementation
 
 end.
-
