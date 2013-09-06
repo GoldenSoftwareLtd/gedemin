@@ -407,7 +407,6 @@ type
     procedure GetWhereClauseConditions(S: TStrings); override;
     function GetGroupClause: String; override;
     function GetRefreshSQLText: String; override;
-    function CheckTheSameStatement: String; override;
 
     procedure SetActive(Value: Boolean); override;
 
@@ -435,6 +434,7 @@ type
     class function IsAbstractClass: Boolean; override;
     class function GetDisplayName(const ASubType: TgdcSubType): String; override;
 
+    function CheckTheSameStatement: String; override;
     function GetRemainsName: String;
 
 // Набор свойств карточки необходимый для отображения остатков

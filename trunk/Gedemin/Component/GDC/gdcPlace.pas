@@ -16,13 +16,14 @@ type
   TgdcPlace = class(TgdcLBRBTree)
   protected
     function CreateDialogForm: TCreateableForm; override;
-    function CheckTheSameStatement: String; override;
 
   public
     class function GetDisplayName(const ASubType: TgdcSubType): String; override;
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
+
+    function CheckTheSameStatement: String; override;
   end;
 
 procedure Register;

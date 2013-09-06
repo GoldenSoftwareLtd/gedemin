@@ -42,7 +42,8 @@ type
     procedure SetAsInt64(const Value: Int64); virtual;
     function GetAsCurrency: Currency; virtual;
     procedure SetAsCurrency(const Value: Currency); virtual;
-    
+    function GetAsStream: TStream; virtual;
+
   public
     procedure Parse(Scanner: TyamlScanner); override;
 
@@ -55,6 +56,7 @@ type
     property IsNull: Boolean read GetIsNull;
     property AsInt64: Int64 read GetAsInt64 write SetAsInt64;
     property AsCurrency: Currency read GetAsCurrency write SetAsCurrency;
+    property AsStream: TStream read GetAsStream;
   end;
 
   TyamlNumeric = class(TyamlScalar);
@@ -194,13 +196,13 @@ type
     MS: TStream;
 
     procedure Base64ToBin(const AStr: AnsiString);
-    function GetAsStream: TStream;
+
+  protected  
+    function GetAsStream: TStream; override;
 
   public
     constructor CreateBinary(const AValue: AnsiString);
     destructor Destroy; override;
-
-    property AsStream: TStream read GetAsStream;
   end;
 
   TyamlKeyValue = class(TyamlNode)
@@ -536,6 +538,11 @@ end;
 procedure TyamlScalar.SetAsCurrency(const Value: Currency);
 begin
   AsFloat := Value;
+end;
+
+function TyamlScalar.GetAsStream: TStream;
+begin
+  raise EyamlException.Create('Data type is not supported.');
 end;
 
 { TyamlNode }
@@ -1112,6 +1119,7 @@ begin
   SS := TStringStream.Create(AStr);
   try
     MimeDecodeStream(SS, MS);
+    MS.Position := 0;
   finally
     SS.Free;
   end;

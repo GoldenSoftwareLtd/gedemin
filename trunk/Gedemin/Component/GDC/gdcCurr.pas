@@ -21,9 +21,6 @@ uses
 
 type
   TgdcCurr = class(TgdcBase)
-  protected
-    function CheckTheSameStatement: String; override;
-
   public
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
@@ -32,6 +29,8 @@ type
 
     class function GetNCUCurrKey: TID;
     class function GetEqCurrKey: TID;
+
+    function CheckTheSameStatement: String; override;
   end;
 
   TgdcCurrRate = class(TgdcBase)
@@ -44,8 +43,6 @@ type
 
     procedure GetWhereClauseConditions(S: TStrings);override;
 
-    function CheckTheSameStatement: String; override;
-
   public
     class function GetSubSetList: String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
@@ -53,6 +50,8 @@ type
 
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
+
+    function CheckTheSameStatement: String; override;
   end;
 
   // Возвращает курс валюты

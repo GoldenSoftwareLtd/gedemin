@@ -67,24 +67,20 @@ type
   protected
     function CreateDialogForm: TCreateableForm; override;
 
-    function CheckTheSameStatement: String; override;
-//    function GetGroupID: Integer; override;
   public
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
-
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
-
     class function GetDisplayName(const ASubType: TgdcSubType): String; override;
+
+    function CheckTheSameStatement: String; override;
   end;
 
   TgdcTaxActual = class(TgdcBase)
   private
     FReportGroupKey: Integer;
     FTrRecordKey: Integer;
-//    FpmActualReport: TPopupMenu;
 
-//    procedure CreateActualReportMenu;
   protected
     function CreateDialogForm: TCreateableForm; override;
 
@@ -95,11 +91,16 @@ type
     procedure DoAfterDelete; override;
     procedure DoBeforeDelete; override;
 
-    function CheckTheSameStatement: String; override;
     function GetGroupID: Integer; override;
     function GetNotCopyField: String; override;
+
   public
-{    procedure PopupActualReportMenu(const X, Y: Integer);}
+    class function GetListTable(const ASubType: TgdcSubType): String; override;
+    class function GetListField(const ASubType: TgdcSubType): String; override;
+
+    class function GetSubSetList: String; override;
+    class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
+
     procedure Post; override;
 
     function Copy(const AFields: String; AValues: Variant; const ACopyDetail: Boolean = False;
@@ -107,11 +108,7 @@ type
     function CopyObject(const ACopyDetailObjects: Boolean = False;
       const AShowEditDialog: Boolean = False): Boolean; override;
 
-    class function GetListTable(const ASubType: TgdcSubType): String; override;
-    class function GetListField(const ASubType: TgdcSubType): String; override;
-
-    class function GetSubSetList: String; override;
-    class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
+    function CheckTheSameStatement: String; override;
   end;
 
   TgdcTaxDesignDate = class(TgdcDocument)
@@ -423,147 +420,22 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-//Стандартные записи ищем по идентификатору
-  if FieldByName(GetKeyField(SubType)).AsInteger < cstUserIDStart then
+
+  if State = dsInactive then
+    Result := 'SELECT id FROM gd_taxactual WHERE taxnamekey = :taxnamekey AND actualdate = :actualdate '
+  else if ID < cstUserIDStart then
     Result := inherited CheckTheSameStatement
   else
-    Result := Format('SELECT %s FROM %s WHERE taxnamekey = %s AND actualdate = ''%s'' ',
-      [GetKeyField(SubType), GetListTable(SubType),
-        FieldByName('taxnamekey').AsString, FieldByName('actualdate').AsString]);
+    Result := Format('SELECT id FROM gd_taxactual WHERE taxnamekey = %d AND actualdate = ''%s'' ',
+      [FieldByName('taxnamekey').AsInteger, FormatDateTime('dd.mm.yyyy', FieldByName('actualdate').AsDateTime)]);
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCTAXACTUAL', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
   {M}      ClearMacrosStack2('TGDCTAXACTUAL', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT);
   {M}  end;
   {END MACRO}
-
 end;
-
-{procedure TgdcTaxActual.CreateActualReportMenu;
-var
-  MenuItem: TMenuItem;
-  DidActivate: Boolean;
-  ReportGroup: TscrReportGroup;
-  IndexName: Integer;
-
-  procedure FillMenu(const Parent: TObject);
-  var
-    I: Integer;
-    M: TMenuItem;
-    Index: Integer;
-    AddCount: Integer;
-  begin
-    Assert((Parent is TMenuItem) or (Parent is TPopUpMenu));
-
-    if (Parent is TMenuItem) then
-    begin
-      Index := (Parent as TMenuItem).Tag;
-      (Parent as TMenuItem).Clear;
-    end else
-      Index := 0;
-
-    AddCount := 0;
-    if (ReportGroup.Count > 0) and (Index < ReportGroup.Count) then
-    begin
-      for I := Index to ReportGroup.Count - 1 do
-      begin
-        if ReportGroup.GroupItems[Index].Id = ReportGroup.GroupItems[I].Parent then
-        begin
-          M := TMenuItem.Create(Self);
-          M.Tag := I;
-//          M.Name := 'G' + IntToStr(ReportGroup.GroupItems[I].Id);
-          M.Caption := ReportGroup.GroupItems[I].Name;
-          if (Parent is TMenuItem) then
-            (Parent as TMenuItem).Add(M)
-          else
-            (Parent as TPopUpMenu).Items.Add(M);
-          FillMenu(M);
-          Inc(AddCount);
-        end;
-      end;
-      for I := 0 to ReportGroup.GroupItems[Index].ReportList.Count - 1 do
-      begin
-        M := TMenuItem.Create(Self);
-        M.Tag := ReportGroup.GroupItems[Index].ReportList.Report[I].Id;
-//        M.Name := 'M' + IntToStr(ReportGroup.GroupItems[Index].ReportList.Report[I].Id);
-        M.Caption := ReportGroup.GroupItems[Index].ReportList.Report[I].Name;
-        M.OnClick := DoOnReportClick;
-        if (Parent is TMenuItem) then
-          (Parent as TMenuItem).Add(M)
-        else
-          (Parent as TPopUpMenu).Items.Add(M);
-        Inc(AddCount);
-      end;
-    end;
-    if AddCount = 0 then
-    begin
-      M := TMenuItem.Create(Self);
-//      M.Name := 'N' + IntToStr(IndexName);
-      Inc(IndexName);
-      M.Caption := 'Пусто';
-      M.Enabled := False;
-      if (Parent is TMenuItem) then
-        (Parent as TMenuItem).Add(M)
-      else
-        (Parent as TPopUpMenu).Items.Add(M);
-    end;
-  end;
-
-  procedure ReportNotFound;
-  begin
-    MenuItem := TMenuItem.Create(FpmActualReport);
-    MenuItem.Name := 'miNobody';
-    MenuItem.Caption := 'Отчеты отсутствуют';
-    MenuItem.Enabled := False;
-  end;
-
-begin
-  if FpmActualReport <> nil then
-  begin
-    FpmActualReport.Free;
-    FpmActualReport := nil;
-  end;
-
-  IndexName := 0;
-
-  if not Assigned(FpmActualReport) then
-    FpmActualReport := TPopupMenu.Create(Self);
-  FpmActualReport.AutoLineReduction := Menus.maAutomatic;
-
-  if FieldByName('reportgroupkey').IsNull then
-  begin
-    ReportNotFound;
-    Exit;
-  end;
-
-  DidActivate := False;
-  try
-    ReportGroup := TscrReportGroup.Create(UseScriptMethod);
-    try
-      ReportGroup.Transaction := ReadTransaction;
-      ReportGroup.Load(FieldByName('reportgroupkey').AsInteger);
-
-      if (ReportGroup.Count > 1) or ((ReportGroup.Count = 1) and (ReportGroup[0].ReportList.Count > 0)) then
-      begin
-        MenuItem := TMenuItem.Create(FpmActualReport);
-        MenuItem.Caption := '-';
-        FpmActualReport.Items.Add(MenuItem);
-
-        FillMenu(FpmActualReport);
-      end else
-        begin
-          ReportNotFound;
-        end;
-    finally
-      ReportGroup.Free;
-    end;
-
-  finally
-    if DidActivate then
-      DeactivateReadTransaction;
-  end;
-end;}
-
 
 function TgdcTaxActual.Copy(const AFields: String; AValues: Variant;
   const ACopyDetail, APost, AnAppend: Boolean): Boolean;
@@ -1690,12 +1562,15 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-//Стандартные записи ищем по идентификатору
-  if FieldByName(GetKeyField(SubType)).AsInteger < cstUserIDStart then
+
+  if State = dsInactive then
+    Result := 'SELECT id FROM gd_taxname WHERE UPPER(name)=UPPER(:name)'
+  else if ID < cstUserIDStart then
     Result := inherited CheckTheSameStatement
   else
-    Result := Format('SELECT %s FROM %s WHERE UPPER(name)=''%s'' ',
-      [GetKeyField(SubType), GetListTable(SubType), AnsiUpperCase(FieldByName('name').AsString)]);
+    Result := Format('SELECT id FROM gd_taxname WHERE UPPER(name)=UPPER(''%s'')',
+      [StringReplace(FieldByName('name').AsString, '''', '''''', [rfReplaceAll])]);
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCTAXNAME', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then

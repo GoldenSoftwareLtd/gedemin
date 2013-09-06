@@ -21,12 +21,12 @@ type
 
     function AcceptClipboard(CD: PgdcClipboardData): Boolean; override;
 
-    function CheckTheSameStatement: String; override;
   public
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetSubSetList: String; override;
 
+    function CheckTheSameStatement: String; override;
     procedure _SaveToStream(Stream: TStream; ObjectSet: TgdcObjectSet;
       PropertyList: TgdcPropertySets; BindedList: TgdcObjectSet;
       WithDetailList: TgdKeyArray;
@@ -51,10 +51,8 @@ type
     procedure GetWhereClauseConditions(S: TStrings); override;
     function GetOrderClause: String; override;
     procedure CustomDelete(Buff: Pointer); override;
-
-    function CheckTheSameStatement: String; override;
-
     procedure DoBeforePost; override;
+
   public
     constructor Create(AnOwner: TComponent); override;
 
@@ -63,6 +61,9 @@ type
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetSubSetList: String; override;
     class function GetDisplayName(const ASubType: TgdcSubType): String; override;
+
+    function CheckTheSameStatement: String; override;
+
     // проверяет существование в базе макрос с таким именем
     // возвращает Истину, если есть и Ложь в противном
     // случае
@@ -82,7 +83,6 @@ type
 
 const
   ssMacrosGroup = 'ByMacrosGroup';
-{  ssNULLMacrosGroup = 'ByNullMacrosGroup';}
 
 procedure Register;
 
@@ -91,8 +91,6 @@ implementation
 uses
   gd_ClassList, IBSQL, gd_SetDatabase, Sysutils, gdcConstants,
   gdcFunction, IBCustomDataSet, gdc_attr_frmMacros_unit, gd_directories_const;
-
-
 
 procedure Register;
 begin
@@ -177,7 +175,6 @@ begin
         Edit;
         FieldByName(fnParent).AsInteger := LocId;
         Post;
-//        Transaction.Commit;
       end;
     except
       Result := False; //Для исключения возможности зацикливания ветвей дерева
@@ -207,15 +204,6 @@ begin
   end;
 end;
 
-{procedure TgdcMacrosGroup._DoOnNewRecord;
-begin
-  inherited;
-
-  // required надо снимать в CreateFields!
-  FieldByName(fnLb).Required := False;
-  FieldByName(fnRb).Required := False;
-end;}
-
 function TgdcMacrosGroup.CheckTheSameStatement: String;
 var
   {@UNFOLD MACRO INH_ORIG_PARAMS()}
@@ -223,7 +211,7 @@ var
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-  ParentIndex: String;
+  ParentIndex: Integer;
 begin
   {@UNFOLD MACRO INH_ORIG_CHECKTHESAMESTATEMENT('TGDCMACROSGROUP', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  try
@@ -255,28 +243,39 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  //Стандартные записи ищем по идентификатору
-  if FieldByName(GetKeyField(SubType)).AsInteger < cstUserIDStart then
+
+  if State = dsInactive then
+    Result :=
+      'SELECT mg.id ' +
+      'FROM evt_macrosgroup mg ' +
+      '  LEFT JOIN evt_object o ON o.macrosgroupkey = mg.id ' +
+      'WHERE ' +
+      '  (UPPER(o.objectname) = UPPER(:objectname)) AND ' +
+      '  (UPPER(o.classname) = UPPER(:classname)) AND ' +
+      '  (o.parentindex = :parentindex) AND ' +
+      '  (UPPER(o.subtype) = UPPER(:subtype)) '
+  else if ID < cstUserIDStart then
     Result := inherited CheckTheSameStatement
   else
   begin
     if FieldByName('parent').IsNull then
-      ParentIndex := '1'
+      ParentIndex := 1
     else
-      ParentIndex := FieldByName('parent').AsString;
+      ParentIndex := FieldByName('parent').AsInteger;
 
     Result := Format('SELECT mg.id FROM evt_macrosgroup mg ' +
       ' LEFT JOIN evt_object o ON o.macrosgroupkey = mg.id ' +
       ' WHERE ' +
-      ' (UPPER(o.objectname) = ''%s'')  AND ' +
-      ' (UPPER(o.classname) = ''%s'') AND ' +
-      ' (o.parentindex = %s) AND ' +
-      ' (UPPER(o.subtype) = ''%s'') ',
-      [AnsiUpperCase(FieldByName('objectname').AsString),
-       AnsiUpperCase(FieldByName('classname').AsString),
+      ' (UPPER(o.objectname) = UPPER(''%s''))  AND ' +
+      ' (UPPER(o.classname) = UPPER(''%s'')) AND ' +
+      ' (o.parentindex = %d) AND ' +
+      ' (UPPER(o.subtype) = UPPER(''%s''))',
+      [StringReplace(FieldByName('objectname').AsString, '''', '''''', [rfReplaceAll]),
+       FieldByName('classname').AsString,
        ParentIndex,
-       AnsiUpperCase(FieldByName('subtype').AsString)]);
+       FieldByName('subtype').AsString]);
   end;
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCMACROSGROUP', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -343,11 +342,6 @@ begin
   {M}  end;
   {END MACRO}
 end;
-
-{class function TgdcMacrosGroup.GetKeyField(const ASubType: TgdcSubType): String;
-begin
-  Result := fnId;
-end;}
 
 class function TgdcMacrosGroup.GetListField(const ASubType: TgdcSubType): String;
 begin
@@ -704,14 +698,6 @@ begin
   {END MACRO}
 end;
 
-{function TgdcMacros.GetSelectClause: String;
-begin
-  if HasSubSet(ssWithSubGroup then
-    Result := ' SELECT z.* '
-  else
-    Result := 'SELECT z.* ';
-end;}
-
 class function TgdcMacros.GetSubSetList: String;
 begin
   Result := inherited GetSubSetList + ';' + ssWithSubGroup + ';' +
@@ -877,14 +863,14 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  //Стандартные записи ищем по идентификатору
-  if FieldByName(GetKeyField(SubType)).AsInteger < cstUserIDStart then
+
+  if State = dsInactive then
+    Result := 'SELECT m.id FROM evt_macroslist m WHERE m.functionkey = :functionkey'
+  else if ID < cstUserIDStart then
     Result := inherited CheckTheSameStatement
   else
-  begin
-    Result := Format('SELECT m.id FROM evt_macroslist m ' +
-      ' WHERE m.functionkey = %s ', [FieldByName('functionkey').AsString]);
-  end;
+    Result := 'SELECT m.id FROM evt_macroslist m WHERE m.functionkey = ' + FieldByName('functionkey').AsString;
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCMACROS', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then

@@ -16,6 +16,7 @@ type
     procedure InsertObject(var Id: Integer; const Parent: Variant;
       AName: string);
     procedure SetObjectType(const Value: TObjectType);
+
   protected
     // проверяет существование в базе макроса с таким именем
     // возвращает Истину, если есть и Ложь в противном
@@ -25,18 +26,20 @@ type
     procedure _DoOnNewRecord; override;
     procedure GetWhereClauseConditions(S: TStrings); override;
 
-    function CheckTheSameStatement: String; override;
 
   public
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetSubSetList: String; override;
-    function AddObject(AComponent: TComponent): Integer;
 
     class function AddClass(const gdcClass: TgdcFullClassName): Integer;
 
     class function NeedModifyFromStream(const SubType: String): Boolean; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
+
+    function CheckTheSameStatement: String; override;
+    function AddObject(AComponent: TComponent): Integer;
+
   published
     property ObjectType: TObjectType read FObjectType write SetObjectType;
   end;
@@ -370,9 +373,11 @@ begin
       ' (UPPER(o.objectname) = UPPER(''%s''))  AND ' +
       ' (UPPER(o.classname) = UPPER(''%s'')) AND ' +
       ' (o.parentindex = %d) AND ' +
-      ' (UPPER(o.subtype) = UPPER(''%s'')) ',
-      [FieldByName('objectname').AsString, FieldByName('classname').AsString,
-       ParentIndex, FieldByName('subtype').AsString]);
+      ' (UPPER(o.subtype) = UPPER(''%s''))',
+      [StringReplace(FieldByName('objectname').AsString, '''', '''''', [rfReplaceAll]),
+       FieldByName('classname').AsString,
+       ParentIndex,
+       FieldByName('subtype').AsString]);
   end;
   
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCDELPHIOBJECT', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}

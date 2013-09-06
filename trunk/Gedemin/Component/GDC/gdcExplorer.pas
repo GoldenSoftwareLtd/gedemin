@@ -58,8 +58,6 @@ type
   protected
     procedure GetWhereClauseConditions(S: TStrings); override;
 
-    function CheckTheSameStatement: String; override;
-
     procedure DoAfterPost; override;
     procedure DoAfterEdit; override;
     procedure DoAfterInsert; override;
@@ -71,13 +69,6 @@ type
     procedure InternalSetFieldData(Field: TField; Buffer: Pointer); override;
 
   public
-    procedure ShowProgram(const AlwaysCreateWindow: Boolean = False);
-    function CreateGdcInstance: TgdcBase;
-
-    procedure _SaveToStream(Stream: TStream; ObjectSet: TgdcObjectSet;
-      PropertyList: TgdcPropertySets; BindedList: TgdcObjectSet;
-      WithDetailList: TgdKeyArray; const SaveDetailObjects: Boolean = True); override;
-
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
 
@@ -86,6 +77,15 @@ type
 
     class function GetSubSetList: String; override;
     class function NeedModifyFromStream(const SubType: String): Boolean; override;
+
+    function CheckTheSameStatement: String; override;
+
+    procedure ShowProgram(const AlwaysCreateWindow: Boolean = False);
+    function CreateGdcInstance: TgdcBase;
+
+    procedure _SaveToStream(Stream: TStream; ObjectSet: TgdcObjectSet;
+      PropertyList: TgdcPropertySets; BindedList: TgdcObjectSet;
+      WithDetailList: TgdKeyArray; const SaveDetailObjects: Boolean = True); override;
 
     property gdcClass: CgdcBase read Get_gdcClass;
   end;

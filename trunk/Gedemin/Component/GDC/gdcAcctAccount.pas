@@ -86,13 +86,14 @@ type
     procedure GetWhereClauseConditions(S: TStrings); override;
     function GetAccountType: String; override;
     procedure DoBeforePost; override;
-    function CheckTheSameStatement: String; override;
 
   public
     class function GetDialogFormClassName(const ASubType: TgdcSubType): string; override;
     class function GetDisplayName(const ASubType: TgdcSubType): String; override;
     class function GetRestrictCondition(const ATableName,
       ASubType: String): String; override;
+      
+    function CheckTheSameStatement: String; override;
   end;
 
   TgdcAcctSubAccount = class(TgdcAcctAccount)

@@ -11,8 +11,6 @@ type
   TrplPrepareStep = (psBackup);
 
   TgdcRplDatabase = class(TgdcBase)
-  protected
-    function CheckTheSameStatement: String; override;
   public
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
@@ -84,56 +82,6 @@ class function TgdcRplDatabase.GetViewFormClassName(
   const ASubType: TgdcSubType): String;
 begin
   Result := 'Tgdc_frmRplDatabase';
-end;
-
-function TgdcRplDatabase.CheckTheSameStatement: String;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_CHECKTHESAMESTATEMENT('TGDCRPLDATABASE', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCRPLDATABASE', KEYCHECKTHESAMESTATEMENT);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCHECKTHESAMESTATEMENT]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCRPLDATABASE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCRPLDATABASE',
-  {M}          'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT, Params, LResult) then
-  {M}          begin
-  {M}            if (VarType(LResult) = varOleStr) or (VarType(LResult) = varString) then
-  {M}              Result := String(LResult)
-  {M}            else
-  {M}              begin
-  {M}                raise Exception.Create('Для метода ''' + 'CHECKTHESAMESTATEMENT' + ' ''' +
-  {M}                  ' класса ' + Self.ClassName + TgdcBase(Self).SubType + #10#13 +
-  {M}                  'Из макроса возвращен не строковый тип');
-  {M}              end;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCRPLDATABASE' then
-  {M}        begin
-  {M}          Result := Inherited CheckTheSameStatement;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  //Стандартные записи ищем по идентификатору
-  if FieldByName(GetKeyField(SubType)).AsInteger < cstUserIDStart then
-    Result := inherited CheckTheSameStatement
-  else
-    Result := inherited CheckTheSameStatement;
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCRPLDATABASE', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCRPLDATABASE', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT);
-  {M}  end;
-  {END MACRO}
 end;
 
 class function TgdcRplDatabase.GetDialogFormClassName(

@@ -71,7 +71,6 @@ type
     procedure DoBeforeEdit; override;
     procedure DoBeforeDelete; override;
 
-    function CheckTheSameStatement: String; override;
     function GetTreeInsertMode: TgdcTreeInsertMode; override;
 
   public
@@ -80,6 +79,7 @@ type
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function NeedModifyFromStream(const SubType: String): Boolean; override;
 
+    function CheckTheSameStatement: String; override;
     function GetCurrRecordClass: TgdcFullClass; override;
 
     function FindStorageItem(out SI: TgsStorageItem): Boolean; overload;
@@ -643,13 +643,55 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  //Стандартные записи ищем по идентификатору
-  if FieldByName(GetKeyField(SubType)).AsInteger < cstUserIDStart then
+
+  if State = dsInactive then
+    Result :=
+      'SELECT '#13#10 +
+      '  id '#13#10 +
+      'FROM '#13#10 +
+      '  gd_storage_data '#13#10 +
+      'WHERE '#13#10 +
+      '  ( '#13#10 +
+      '    parent = :Parent '#13#10 +
+      '    AND '#13#10 +
+      '    UPPER(name) = UPPER(:Name) '#13#10 +
+      '  ) '#13#10 +
+      '  OR '#13#10 +
+      '  ( '#13#10 +
+      '    parent IS NULL '#13#10 +
+      '    AND '#13#10 +
+      '    ( '#13#10 +
+      '      ( '#13#10 +
+      '        :data_type = ''U'' '#13#10 +
+      '        AND '#13#10 +
+      '        int_data = :UserKey '#13#10 +
+      '      ) '#13#10 +
+      '      OR '#13#10 +
+      '      ( '#13#10 +
+      '        :data_type = ''O'' '#13#10 +
+      '        AND '#13#10 +
+      '        int_data = :CompanyKey '#13#10 +
+      '      ) '#13#10 +
+      '      OR '#13#10 +
+      '      ( '#13#10 +
+      '        :data_type = ''T'' '#13#10 +
+      '        AND '#13#10 +
+      '        name = :Name '#13#10 +
+      '      ) '#13#10 +
+      '      OR '#13#10 +
+      '      ( '#13#10 +
+      '        :data_type = ''G'' '#13#10 +
+      '      ) '#13#10 +
+      '    ) '#13#10 +
+      '  )'
+  else if ID < cstUserIDStart then
     Result := inherited CheckTheSameStatement
   else begin
     if not FieldByName('parent').IsNull then
-      Result := Format('SELECT id FROM gd_storage_data WHERE UPPER(name)=''%0:s'' AND parent=%1:d',
-        [AnsiUpperCase(FieldByName('name').AsString), FieldByName('parent').AsInteger])
+      Result := Format(
+        'SELECT id FROM gd_storage_data WHERE UPPER(name)=UPPER(''%0:s'') AND parent=%1:d',
+        [StringReplace(FieldByName('name').AsString, '''', '''''', [rfReplaceAll]),
+         FieldByName('parent').AsInteger])
     else begin
       if FieldByName('data_type').AsString = cStorageUser then
         S := 'AND int_data=' + IntToStr(IBLogin.UserKey)
@@ -661,10 +703,12 @@ begin
         S := ''
       else
         raise EgdcException.Create('Invalid storage data type');
+
       Result := Format('SELECT id FROM gd_storage_data WHERE parent IS NULL AND data_type=''%0:s'' %1:s',
         [FieldByName('data_type').AsString, S])
     end;
   end;
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCSTORAGE', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then

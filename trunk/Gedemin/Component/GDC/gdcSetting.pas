@@ -116,8 +116,6 @@ type
     procedure DoBeforePost; override;
     procedure DoAfterOpen; override;
 
-    function CheckTheSameStatement: String; override;
-
     //Последний порядковый номер позиции для текущей настройки
     //Если несколько пользователей будут одновременно формировть настройку, возсожно дублирование
     function GetLastOrder: Integer;
@@ -130,6 +128,8 @@ type
     class function GetListField(const ASubType: TgdcSubType): String; override;
 
     class function GetSubSetList: String; override;
+
+    function CheckTheSameStatement: String; override;
 
     procedure ChooseNewItem;
 
@@ -2369,16 +2369,19 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-//Стандартные записи ищем по идентификатору
-  if FieldByName(GetKeyField(SubType)).AsInteger < cstUserIDStart then
+
+  if State = dsInactive then
+    Result := 'SELECT id FROM at_settingpos WHERE settingkey = :settingkey ' +
+      ' AND xid = :xid AND dbid = :dbid'
+  else if ID < cstUserIDStart then
     Result := inherited CheckTheSameStatement
   else
-    Result := Format('SELECT %s FROM %s WHERE settingkey = %s ' +
-      ' AND xid = %s AND dbid = %s',
-      [GetKeyField(SubType), GetListTable(SubType),
-       FieldByName('settingkey').AsString,
-       FieldByName('xid').AsString,
-       FieldByName('dbid').AsString]);
+    Result := Format('SELECT id FROM at_settingpos WHERE settingkey = %d ' +
+      ' AND xid = %d AND dbid = %d',
+      [FieldByName('settingkey').AsInteger,
+       FieldByName('xid').AsInteger,
+       FieldByName('dbid').AsInteger]);
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCSETTINGPOS', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then

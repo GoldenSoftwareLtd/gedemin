@@ -46,6 +46,7 @@ type
     FqFindAtObject: TIBSQL;
     FMetadataCounter: Integer;
     FRelName: String;
+    FqCheckTheSame: TIBSQL;
 
     procedure FlushStorages;
     procedure LoadAtObjectCache(const ANamespaceKey: Integer);
@@ -58,6 +59,9 @@ type
     function CacheObject(const AClassName: String; const ASubtype: String): TgdcBase;
     procedure UpdateUses(ASequence: TYAMLSequence; ANamespace: TgdcNamespace);
     procedure ProcessMetadata;
+    procedure LoadParam(AParam: TIBXSQLVAR; const AFieldName: String;
+      AMapping: TYAMLMapping; ATr: TIBTransaction);
+    function GetCandidateID(AnObj: TgdcBase; AFields: TYAMLMapping): TID;  
 
   protected
     procedure Load(AList: TStrings);
@@ -283,10 +287,14 @@ begin
   FqFindAtObject.SQL.Text :=
     'SELECT id FROM at_object WHERE namespacekey <> :nk ' +
     '  AND xid = :xid AND dbid = :dbid';
+
+  FqCheckTheSame := TIBSQL.Create(nil);
+  FqCheckTheSame.Transaction := FTr;
 end;
 
 destructor TgdcNamespaceLoader.Destroy;
 begin
+  FqCheckTheSame.Free;
   FqFindAtObject.Free;
   FqClearAtObject.Free;
   FDelayedUpdate.Free;
@@ -499,7 +507,7 @@ var
   ObjRUID, HeadObjectRUID: TRUID;
   ObjName: String;
   Fields: TYAMLMapping;
-  ObjID: TID;
+  ObjID, CandidateID, RUIDID: TID;
 begin
   Obj := CacheObject(AMapping.ReadString('Properties\Class'),
     AMapping.ReadString('Properties\SubType'));
@@ -538,53 +546,53 @@ begin
   begin
     Obj.Close;
 
-    if AtObjectRecord <> nil then
-    begin
-      Obj.ID := gdcBaseManager.GetIDByRUID(ObjRUID.XID, ObjRUID.DBID, FTr);
-      Obj.Open;
+    CandidateID := GetCandidateID(Obj, Fields);
+    RUIDID := gdcBaseManager.GetIDByRUID(ObjRUID.XID, ObjRUID.DBID, FTr);
 
+    if CandidateID > -1 then
+    begin
+      Obj.ID := CandidateID;
+      Obj.Open;
+      if Obj.EOF then
+        raise EgdcNamespaceLoader.Create('Invalid check the same statement.');
+      if CandidateID <> RUIDID then
+        gdcBaseManager.DeleteRUIDByXID(ObjRUID.XID, ObjRUID.DBID, FTr);
+      Obj.Edit;
+    end
+    else if RUIDID > -1 then
+    begin
+      Obj.ID := RUIDID;
+      Obj.Open;
       if Obj.EOF then
       begin
         gdcBaseManager.DeleteRUIDByXID(ObjRUID.XID, ObjRUID.DBID, FTr);
         Obj.Insert;
-        CopyRecord(Obj, Fields, nil);
-        Obj.Post;
       end else
-      begin
-        if (AtObjectRecord.Modified < AtObjectRecord.CurrModified)
-          and (not FAlwaysOverwrite)
-          and (not AMapping.ReadBoolean('Properties\AlwaysOverwrite', False)) then
-        begin
-          with TgdcNamespaceRecCmpController.Create do
-          try
-            if Compare(nil, Obj, AMapping) then
-            begin
-              Obj.Edit;
-              CopyRecord(Obj, Fields, OverwriteFields);
-              Obj.Post;
-            end;
-          finally
-            Free;
-          end;
-        end else
-        begin
-          Obj.Edit;
-          CopyRecord(Obj, Fields, nil);
-          Obj.Post;
-        end;
+        Obj.Edit;
+    end else
+      Obj.Insert;
+
+    if (Obj.State = dsEdit)
+      and (AtObjectRecord <> nil)
+      and (AtObjectRecord.Modified < AtObjectRecord.CurrModified)
+      and (not FAlwaysOverwrite)
+      and (not AMapping.ReadBoolean('Properties\AlwaysOverwrite', False)) then
+    begin
+      with TgdcNamespaceRecCmpController.Create do
+      try
+        if Compare(nil, Obj, AMapping) then
+          CopyRecord(Obj, Fields, OverwriteFields);
+      finally
+        Free;
       end;
     end else
-    begin
-      Obj.ID := -1;
-      Obj.Open;
-      Obj.Insert;
       CopyRecord(Obj, Fields, nil);
-      Obj.Post;
-    end;
 
-    OverwriteRUID(Obj.ID, ObjRUID.XID, ObjRUID.DBID);
-
+    Obj.Post;
     ObjID := Obj.ID;
+
+    OverwriteRUID(ObjID, ObjRUID.XID, ObjRUID.DBID);
+
     ObjName := Obj.ObjectName;
     if (Obj is TgdcRelationField) then
       FRelName := Obj.FieldByName('relationname').AsString;
@@ -728,11 +736,9 @@ var
   I, J, K, T: Integer;
   q: TIBSQL;
   R: TatRelation;
-  Mapping, CrossFields: TYAMLMapping;
+  Mapping: TYAMLMapping;
   Items: TYAMLSequence;
-  FieldName, RefName: String;
-  RefRUID: TRUID;
-  MS: TStream;
+  FieldName: String;
   Param: TIBXSQLVAR;
 begin
   for I := 0 to ASequence.Count - 1 do
@@ -768,7 +774,6 @@ begin
             if not (Items[K] is TYAMLMapping) then
               break;
 
-            CrossFields := Items[K] as TYAMLMapping;
             for T := 0 to R.RelationFields.Count - 1 do
             begin
               FieldName := R.RelationFields[T].FieldName;
@@ -776,54 +781,8 @@ begin
 
               if (R.PrimaryKey.ConstraintFields[0] = R.RelationFields[T]) then
                 Param.AsInteger := AnObjID
-              else begin
-                if (CrossFields.FindByName(FieldName) = nil) or CrossFields.ReadNull(FieldName) then
-                begin
-                  Param.Clear;
-                  continue;
-                end;
-
-                case Param.SQLType of
-                SQL_LONG, SQL_SHORT:
-                  if R.RelationFields[T].References <> nil then
-                  begin
-                    TgdcNamespace.ParseReferenceString(
-                      CrossFields.ReadString(FieldName), RefRUID, RefName);
-                    Param.AsInteger := gdcBaseManager.GetIDByRUID(RefRUID.XID,
-                      RefRUID.DBID, AnObj.Transaction);
-                  end else
-                  begin
-                    if Param.AsXSQLVAR.sqlscale = 0 then
-                      Param.AsInteger := CrossFields.ReadInteger(FieldName)
-                    else
-                      Param.AsCurrency := CrossFields.ReadCurrency(FieldName);
-                  end;
-                SQL_INT64:
-                  if Param.AsXSQLVAR.sqlscale = 0 then
-                    Param.AsInt64 := CrossFields.ReadInt64(FieldName)
-                  else
-                    Param.AsCurrency := CrossFields.ReadCurrency(FieldName);
-                SQL_FLOAT, SQL_D_FLOAT, SQL_DOUBLE:
-                  Param.AsFloat := CrossFields.ReadFloat(FieldName);
-                SQL_TYPE_DATE, SQL_TIMESTAMP, SQL_TYPE_TIME:
-                  Param.AsDateTime := CrossFields.ReadDateTime(FieldName);
-                SQL_BLOB:
-                  if Param.AsXSQLVar.sqlsubtype = 1 then
-                    Param.AsString := CrossFields.ReadString(FieldName)
-                  else begin
-                    MS := TMemoryStream.Create;
-                    try
-                      CrossFields.ReadStream(FieldName, MS);
-                      MS.Position := 0;
-                      Param.LoadFromStream(MS);
-                    finally
-                      MS.Free;
-                    end;
-                  end;
-                else
-                  Param.AsString := CrossFields.ReadString(FieldName);
-                end;
-              end;
+              else
+                LoadParam(Param, FieldName, Items[K] as TYAMLMapping, AnObj.Transaction);
             end;
             q.ExecQuery;
           end;
@@ -967,6 +926,73 @@ begin
   if FNexus = nil then
     FNexus := TgdcNamespaceLoaderNexus.Create(nil);
   FNexus.LoadNamespace(AList, AnAlwaysOverwrite, ADontRemove);
+end;
+
+procedure TgdcNamespaceLoader.LoadParam(AParam: TIBXSQLVAR; const AFieldName: String;
+  AMapping: TYAMLMapping; ATr: TIBTransaction);
+var
+  V: TYAMLScalar;
+  RefRUID, RefName: String;
+begin
+  if (not (AMapping.FindByName(AFieldName) is TYAMLScalar)) or AMapping.ReadNull(AFieldName) then
+  begin
+    AParam.Clear;
+    exit;
+  end;
+
+  V := AMapping.FindByName(AFieldName) as TYAMLScalar;
+
+  case AParam.SQLType of
+  SQL_LONG, SQL_SHORT:
+    if (V is TYAMLString) and ParseReferenceString(V.AsString, RefRUID, RefName) then
+      AParam.AsInteger := gdcBaseManager.GetIDByRUIDString(RefRUID, ATr)
+    else if AParam.AsXSQLVAR.sqlscale = 0 then
+      AParam.AsInteger := V.AsInteger
+    else
+      AParam.AsCurrency := V.AsCurrency;
+  SQL_INT64:
+    if AParam.AsXSQLVAR.sqlscale = 0 then
+      AParam.AsInt64 := V.AsInt64
+    else
+      AParam.AsCurrency := V.AsCurrency;
+  SQL_FLOAT, SQL_D_FLOAT, SQL_DOUBLE:
+    AParam.AsFloat := V.AsFloat;
+  SQL_TYPE_DATE, SQL_TIMESTAMP, SQL_TYPE_TIME:
+    AParam.AsDateTime := V.AsDateTime;
+  SQL_BLOB:
+    if AParam.AsXSQLVar.sqlsubtype = 1 then
+      AParam.AsString := V.AsString
+    else
+      AParam.LoadFromStream(V.AsStream);
+  else
+    AParam.AsString := V.AsString;
+  end;
+end;
+
+function TgdcNamespaceLoader.GetCandidateID(AnObj: TgdcBase; AFields: TYAMLMapping): TID;
+var
+  CheckStmt: String;
+  I: Integer;
+begin
+  Result := -1;
+  CheckStmt := AnObj.CheckTheSameStatement;
+
+  if CheckStmt > '' then
+  begin
+    FqCheckTheSame.SQL.Text := CheckStmt;
+    FqCheckTheSame.Prepare;
+
+    for I := 0 to FqCheckTheSame.Params.Count - 1 do
+      LoadParam(FqCheckTheSame.Params[I], FqCheckTheSame.Params[I].Name,
+        AFields, AnObj.Transaction);
+
+    FqCheckTheSame.ExecQuery;
+
+    if not FqCheckTheSame.EOF then
+      Result := FqCheckTheSame.Fields[0].AsInteger;
+
+    FqCheckTheSame.Close;
+  end;
 end;
 
 { TgdcNamespaceLoaderNexus }

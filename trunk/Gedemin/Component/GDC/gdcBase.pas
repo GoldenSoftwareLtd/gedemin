@@ -1099,11 +1099,6 @@ type
     // если необходим ПРЯМОЙ порядок сохранения и ИСТИНА, если обратный.
     function IsReverseOrder(const AFieldName: String): Boolean; virtual;
 
-    // Функция использует следующую функцию, которая должна
-    // вернуть сформированный запрос, который поможет отыскивать
-    // такую же запись.
-    function CheckTheSameStatement: String; virtual;
-
     //
     procedure InternalPrepare; override;
     procedure InternalUnPrepare; override;
@@ -1215,6 +1210,10 @@ type
 
     // инициализируем СКЛ после полного окончания конструирования
     procedure AfterConstruction; override;
+
+    // Функция возвращает запрос для поиска объекту
+    // по потенциальному ключу
+    function CheckTheSameStatement: String; virtual;
 
     // создали новую запись (Insert). пытаемся ее сохранить (Post).
     // возникает ошибка.
