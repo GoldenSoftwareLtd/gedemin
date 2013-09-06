@@ -50,9 +50,6 @@ type
   end;
 
   TgdcTax = class(TgdcBase)
-  protected
-    function CheckTheSameStatement: String; override;
-
   public
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
@@ -61,6 +58,8 @@ type
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
 
     class function GetDisplayName(const ASubType: TgdcSubType): String; override;
+
+    function CheckTheSameStatement: String; override;
   end;
 
   TgdcMetal = class(TgdcBase)

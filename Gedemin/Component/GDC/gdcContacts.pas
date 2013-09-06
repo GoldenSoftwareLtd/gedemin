@@ -80,10 +80,9 @@ type
     // добавлению, редактированию, удалению
     procedure DoAfterCustomProcess(Buff: Pointer; Process: TgsCustomProcess); override;
 
-    function CheckTheSameStatement: String; override;
-
   public
     constructor Create(AnOwner: TComponent); override;
+
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
@@ -93,6 +92,7 @@ type
     //
     class function GetSubSetList: String; override;
 
+    function CheckTheSameStatement: String; override;
     function GetDialogDefaultsFields: String; override;
 
     //ѕровер€ет счет на дублирование со счетом другой компании
@@ -201,15 +201,15 @@ type
 
     procedure GetWhereClauseConditions(S: TStrings); override;
 
-    function CheckTheSameStatement: String; override;
-
   public
     constructor Create(AnOwner: TComponent); override;
 
-    function GetCurrRecordClass: TgdcFullClass; override;
     class function GetRestrictCondition(const ATableName, ASubType: String): String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetSubSetList: String; override;
+
+    function CheckTheSameStatement: String; override;
+    function GetCurrRecordClass: TgdcFullClass; override;
   end;
 
   TgdcOurCompany = class(TgdcCompany)
@@ -224,7 +224,6 @@ type
     procedure CustomInsert(Buff: Pointer); override;
     procedure CustomModify(Buff: Pointer); override;
     function CreateDialogForm: TCreateableForm; override;
-    function CheckTheSameStatement: String; override;
     function DoAfterInitSQL(const AnSQLText: String): String; override;
 
   public
@@ -240,6 +239,7 @@ type
 
     class procedure SaveOurCompany(const ACompanyKey: Integer);
 
+    function CheckTheSameStatement: String; override;
     procedure _DoOnNewRecord; override;
 
     property OnlyOurCompany: Boolean read FOnlyOurCompany write FOnlyOurCompany;
@@ -295,12 +295,12 @@ type
 
     procedure _DoOnNewRecord; override;
 
-    function CheckTheSameStatement: String; override;
-
   public
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     //
     class procedure GetClassImage(const ASizeX, ASizeY: Integer; AGraphic: TGraphic); override;
+
+    function CheckTheSameStatement: String; override;
   end;
 
 procedure Register;

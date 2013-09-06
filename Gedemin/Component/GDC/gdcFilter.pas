@@ -8,34 +8,30 @@ uses
 
 type
   TgdcComponentFilter = class(TgdcBase)
-  protected
-    function CheckTheSameStatement: String; override;
-
   public
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
+
+    function CheckTheSameStatement: String; override;
   end;
 
   TgdcSavedFilter = class(TgdcBase)
   protected
     procedure GetWhereClauseConditions(S: TStrings); override;
 
-    function CheckTheSameStatement: String; override;
-
   public
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetSubSetList: String; override;
     class function GetNotStreamSavedField(const IsReplicationMode: Boolean = False): String; override;
-
+    class function NeedModifyFromStream(const SubType: String): Boolean; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
 
+    function CheckTheSameStatement: String; override;
     procedure _SaveToStream(Stream: TStream; ObjectSet: TgdcObjectSet;
       PropertyList: TgdcPropertySets; BindedList: TgdcObjectSet;
       WithDetailList: TgdKeyArray; const SaveDetailObjects: Boolean = True); override;
-
-    class function NeedModifyFromStream(const SubType: String): Boolean; override;
   end;
 
 procedure Register;

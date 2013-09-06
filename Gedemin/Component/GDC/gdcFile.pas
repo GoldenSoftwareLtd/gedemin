@@ -37,8 +37,6 @@ type
     procedure SyncByPath(const Path: String; const AnID: Integer;
       Action: TflAction = flAsk); virtual;
 
-    function CheckTheSameStatement: String; override;  
-
   public
     constructor Create(AnOwner: TComponent); override;
     destructor Destroy; override;
@@ -50,6 +48,7 @@ type
 
     class function GetDisplayName(const ASubType: TgdcSubType): String; override;
 
+    function CheckTheSameStatement: String; override;  
     function GetCurrRecordClass: TgdcFullClass; override;
 
     //Проверяет корректность полного имени файла (проверка на допустимые символы и на длину)

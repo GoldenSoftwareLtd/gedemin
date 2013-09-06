@@ -15,7 +15,6 @@ type
     procedure GetWhereClauseConditions(S: TStrings); override;
     function GetOrderClause: String; override;
     function AcceptClipboard(CD: PgdcClipboardData): Boolean; override;
-    function CheckTheSameStatement: String; override;
     procedure DoBeforePost; override;
 
   public
@@ -26,6 +25,7 @@ type
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDisplayName(const ASubType: TgdcSubType): String; override;
 
+    function CheckTheSameStatement: String; override;
     procedure _SaveToStream(Stream: TStream; ObjectSet: TgdcObjectSet;
       PropertyList: TgdcPropertySets; BindedList: TgdcObjectSet;
       WithDetailList: TgdKeyArray; const SaveDetailObjects: Boolean = True); override;
@@ -47,7 +47,6 @@ type
     procedure GetWhereClauseConditions(S: TStrings); override;
     function GetOrderClause: String; override;
 
-    function CheckTheSameStatement: String; override;
     procedure DoBeforePost; override;
 
     procedure CreateCommand;
@@ -60,6 +59,9 @@ type
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetSubSetList: String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
+
+    function CheckTheSameStatement: String; override;
+
     // проверяет существование в базе макрос с таким именем
     // возвращает Истину, если есть и Ложь в противном
     // случае

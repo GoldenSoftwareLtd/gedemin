@@ -15,7 +15,6 @@ type
     // Формирование запроса
     procedure DoBeforePost; override;
 
-    function CheckTheSameStatement: String; override;
   public
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetKeyField(const ASubType: TgdcSubType): String; override;
@@ -24,6 +23,8 @@ type
 
     class function GetDisplayName(const ASubType: TgdcSubType): String; override;
     class function NeedModifyFromStream(const SubType: String): Boolean; override;
+
+    function CheckTheSameStatement: String; override;
   end;
 
 procedure Register;
@@ -99,13 +100,15 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-//Стандартные записи ищем по идентификатору
-  if FieldByName(GetKeyField(SubType)).AsInteger < cstUserIDStart then
+
+  if State = dsInactive then
+    Result := 'SELECT id FROM rp_reporttemplate WHERE UPPER(name)=UPPER(:name)'
+  else if ID < cstUserIDStart then
     Result := inherited CheckTheSameStatement
   else
-    Result := Format('SELECT id FROM rp_reporttemplate ' +
-      ' WHERE UPPER(name)=''%s''',
-      [AnsiUpperCase(FieldByName('name').AsString)]);
+    Result := Format(
+      'SELECT id FROM rp_reporttemplate WHERE UPPER(name)=UPPER(''%s'')',
+      [StringReplace(FieldByName('name').AsString, '''', '''''', [rfReplaceAll])]);
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCTEMPLATE', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally

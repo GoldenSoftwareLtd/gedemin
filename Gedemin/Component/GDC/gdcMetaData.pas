@@ -97,7 +97,6 @@ type
 
     function GetIsUserDefined: Boolean; virtual;
     function GetIsSystemObject: Boolean; virtual;
-    function CheckTheSameStatement: String; override;
 
     procedure ShowSQLProcess(S: TSQLProcessList);
 
@@ -157,15 +156,12 @@ type
 
     procedure GetWhereClauseConditions(S: TStrings); override;
 
-    function CheckTheSameStatement: String; override;
     function GetIsUserDefined: Boolean; override;
 
     function GetCanDelete: Boolean; override;
 
   public
     constructor Create(AnOwner: TComponent); override;
-
-    function GetDomainText(const WithCharSet: Boolean = True; const OnlyDataType: Boolean = False): String;
 
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
@@ -175,6 +171,8 @@ type
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
 
+    function CheckTheSameStatement: String; override;
+    function GetDomainText(const WithCharSet: Boolean = True; const OnlyDataType: Boolean = False): String;
     procedure _SaveToStream(Stream: TStream; ObjectSet: TgdcObjectSet;
       PropertyList: TgdcPropertySets; BindedList: TgdcObjectSet;
       WithDetailList: TgdKeyArray;
@@ -197,7 +195,6 @@ type
     procedure CustomDelete(Buff: Pointer); override;
     procedure CustomModify(Buff: Pointer); override;
 
-    function CheckTheSameStatement: String; override;
     function GetIsUserDefined: Boolean; override;
 
     procedure _DoOnNewRecord; override;
@@ -223,6 +220,7 @@ type
     class function GetDisplayName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
 
+    function CheckTheSameStatement: String; override;
     function GetCurrRecordClass: TgdcFullClass; override;
 
     property TableType: TgdcTableType read GetTableType;
@@ -481,7 +479,6 @@ type
 
     procedure GetWhereClauseConditions(S: TStrings); override;
 
-    function CheckTheSameStatement: String; override;
     function GetIsUserDefined: Boolean; override;
 
     function GetCanDelete: Boolean; override;
@@ -491,20 +488,18 @@ type
     constructor Create(AnOwner: TComponent); override;
 
     class function GetSubSetList: String; override;
-
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetListFieldExtended(const ASubType: TgdcSubType): String; override;
     class function GetKeyField(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
-
-    property ChangeComputed: Boolean read FChangeComputed write FChangeComputed;
-
     class function GetDisplayName(const ASubType: TgdcSubType): String; override;
 
+    function CheckTheSameStatement: String; override;
     function GetCurrRecordClass: TgdcFullClass; override;
-
     function ReadObjectState(AFieldId, AClassName: String): Integer;
+
+    property ChangeComputed: Boolean read FChangeComputed write FChangeComputed;
   end;
 
 
@@ -560,8 +555,6 @@ type
     procedure _DoOnNewRecord; override;
     procedure DoBeforePost; override;
 
-    function CheckTheSameStatement: String; override;
-
     function GetCanEdit: Boolean; override;
     function GetCanDelete: Boolean; override;
 
@@ -570,7 +563,7 @@ type
 
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
-
+    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetKeyField(const ASubType: TgdcSubType): String; override;
@@ -579,14 +572,13 @@ type
     // Список полей, которые не надо сохранять в поток.
     class function GetNotStreamSavedField(const IsReplicationMode: Boolean = False): String; override;
 
+    function CheckTheSameStatement: String; override;
     function GetProcedureText: String;
 
     procedure PrepareToSaveToStream(BeforeSave: Boolean);
     procedure _SaveToStream(Stream: TStream; ObjectSet: TgdcObjectSet;
       PropertyList: TgdcPropertySets; BindedList: TgdcObjectSet;
       WithDetailList: TgdKeyArray; const SaveDetailObjects: Boolean = True); override;
-
-    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
   end;
 
   TgdcException = class(TgdcMetaBase)
@@ -605,8 +597,6 @@ type
 
     procedure DoBeforePost; override;
 
-    function CheckTheSameStatement: String; override;
-
     function GetCanDelete: Boolean; override;
 
   public
@@ -620,6 +610,8 @@ type
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
 
     class function GetDisplayName(const ASubType: TgdcSubType): String; override;
+
+    function CheckTheSameStatement: String; override;
   end;
 
   TgdcIndex = class(TgdcMetaBase)
@@ -652,8 +644,6 @@ type
 
     procedure GetWhereClauseConditions(S: TStrings); override;
 
-    function CheckTheSameStatement: String; override;
-
     procedure SaveToStreamDependencies(Stream: TStream;
       ObjectSet: TgdcObjectSet; ADependent_Name: String;
       PropertyList: TgdcPropertySets; BindedList: TgdcObjectSet;
@@ -676,16 +666,18 @@ type
     class function GetSubSetList: String; override;
     class function GetDisplayName(const ASubType: TgdcSubType): String; override;
 
+    function CheckTheSameStatement: String; override;
+
     procedure SyncIndices(const ARelationName: String; const NeedRefresh: Boolean = True);
     procedure SyncAllIndices(const NeedRefresh: Boolean = True);
-
-    property ChangeActive: Boolean read FChangeActive write FChangeActive;
 
     procedure _SaveToStream(Stream: TStream; ObjectSet: TgdcObjectSet;
       PropertyList: TgdcPropertySets; BindedList: TgdcObjectSet;
       WithDetailList: TgdKeyArray; const SaveDetailObjects: Boolean = True); override;
 
     function CheckIndexName: Boolean;
+
+    property ChangeActive: Boolean read FChangeActive write FChangeActive;
   end;
 
   TgdcTrigger = class(TgdcMetaBase)
@@ -712,8 +704,6 @@ type
 
     procedure GetWhereClauseConditions(S: TStrings); override;
 
-    function CheckTheSameStatement: String; override;
-
     function GetCanDelete: Boolean; override;
 
   public
@@ -725,10 +715,12 @@ type
 
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
-
+    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
     class function GetSubSetList: String; override;
     // Список полей, которые не надо сохранять в поток.
     class function GetNotStreamSavedField(const IsReplicationMode: Boolean = False): String; override;
+
+    function CheckTheSameStatement: String; override;
 
     procedure SyncTriggers(const ARelationName: String; const NeedRefresh: Boolean = True);
     procedure SyncAllTriggers(const NeedRefresh: Boolean = True);
@@ -738,8 +730,6 @@ type
     procedure _SaveToStream(Stream: TStream; ObjectSet: TgdcObjectSet;
       PropertyList: TgdcPropertySets; BindedList: TgdcObjectSet;
       WithDetailList: TgdKeyArray; const SaveDetailObjects: Boolean = True); override;
-
-    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
   end;
 
   TgdcCheckConstraint = class(TgdcMetaBase)
@@ -763,8 +753,6 @@ type
 
     procedure GetWhereClauseConditions(S: TStrings); override;
 
-    function CheckTheSameStatement: String; override;
-
     function GetCanDelete: Boolean; override;
     function GetCanEdit: Boolean; override;
 
@@ -781,6 +769,8 @@ type
     class function GetSubSetList: String; override;
 
     class function GetDisplayName(const ASubType: TgdcSubType): String; override;
+
+    function CheckTheSameStatement: String; override;
 
     procedure _SaveToStream(Stream: TStream; ObjectSet: TgdcObjectSet;
       PropertyList: TgdcPropertySets; BindedList: TgdcObjectSet;
@@ -811,7 +801,6 @@ type
 
     procedure GetWhereClauseConditions(S: TStrings); override;
 
-    function CheckTheSameStatement: String; override;
     function GetCanDelete: Boolean; override;
     function GetCanEdit: Boolean; override;
 
@@ -821,15 +810,14 @@ type
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetKeyField(const ASubType: TgdcSubType): String; override;
-
+    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
 
+    function CheckTheSameStatement: String; override;
     procedure _SaveToStream(Stream: TStream; ObjectSet: TgdcObjectSet;
       PropertyList: TgdcPropertySets; BindedList: TgdcObjectSet;
       WithDetailList: TgdKeyArray; const SaveDetailObjects: Boolean = True); override;
-
-    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
   end;
 
   EgdcIBError = class(Exception);
@@ -1622,7 +1610,7 @@ begin
   FSQL := TSQLProcessList.Create;
   try
     FSQL.Add(Format ('CREATE DOMAIN %s AS %s',
-      [ FieldByName('fieldname').AsString,
+      [FieldByName('fieldname').AsString,
       GetDomainText]));
     ShowSQLProcess(FSQL);
   finally
@@ -1668,12 +1656,15 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-//Стандартные записи ищем по идентификатору
-  if FieldByName(GetKeyField(SubType)).AsInteger < cstUserIDStart then
+
+  if State = dsInactive then
+    Result := 'SELECT id FROM at_fields WHERE UPPER(fieldname)=UPPER(:fieldname)'
+  else if ID < cstUserIDStart then
     Result := inherited CheckTheSameStatement
   else
-    Result := Format('SELECT %s FROM %s WHERE UPPER(fieldname)=''%s'' ',
-      [GetKeyField(SubType), GetListTable(SubType), AnsiUpperCase(FieldByName('fieldname').AsString)]);
+    Result := Format('SELECT id FROM at_fields WHERE UPPER(fieldname)=UPPER(''%s'') ',
+      [FieldByName('fieldname').AsString]);
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCFIELD', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -2306,12 +2297,15 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-//Стандартные записи ищем по идентификатору
-  if FieldByName(GetKeyField(SubType)).AsInteger < cstUserIDStart then
+
+  if State = dsInactive then
+    Result := 'SELECT id FROM at_relations WHERE UPPER(relationname)=UPPER(:relationname)'
+  else if ID < cstUserIDStart then
     Result := inherited CheckTheSameStatement
   else
-    Result := Format('SELECT %s FROM %s WHERE UPPER(relationname)=''%s'' ',
-      [GetKeyField(SubType), GetListTable(SubType), AnsiUpperCase(FieldByName('relationname').AsString)]);
+    Result := Format('SELECT id FROM at_relations WHERE UPPER(relationname)=UPPER(''%s'') ',
+      [FieldByName('relationname').AsString]);
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCRELATION', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -5441,14 +5435,19 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-//Стандартные записи ищем по идентификатору
-  if FieldByName(GetKeyField(SubType)).AsInteger < cstUserIDStart then
+
+  if State = dsInactive then
+    Result :=
+      'SELECT id FROM at_relation_fields ' +
+      'WHERE UPPER(relationname)=UPPER(:relationname) AND UPPER(fieldname) = UPPER(:fieldname)'
+  else if ID < cstUserIDStart then
     Result := inherited CheckTheSameStatement
   else
-    Result := Format('SELECT %s FROM %s WHERE UPPER(relationname)=''%s'' AND UPPER(fieldname) = ''%s'' ',
-      [GetKeyField(SubType), GetListTable(SubType),
-       AnsiUpperCase(FieldByName('relationname').AsString),
-       AnsiUpperCase(FieldByName('fieldname').AsString)]);
+    Result := Format(
+      'SELECT id FROM at_relation_fields ' +
+      'WHERE UPPER(relationname)=UPPER(''%s'') AND UPPER(fieldname) = UPPER(''%s'') ',
+      [FieldByName('relationname').AsString, FieldByName('fieldname').AsString]);
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCRELATIONFIELD', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -6162,13 +6161,15 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-//Стандартные записи ищем по идентификатору
-  if FieldByName(GetKeyField(SubType)).AsInteger < cstUserIDStart then
+
+  if State = dsInactive then
+    Result := 'SELECT id FROM at_procedures WHERE UPPER(procedurename) = UPPER(:procedurename)'
+  else if ID < cstUserIDStart then
     Result := inherited CheckTheSameStatement
   else
-    Result := Format('SELECT %s FROM %s WHERE UPPER(procedurename) = ''%s''',
-      [GetKeyField(SubType), GetListTable(SubType),
-       AnsiUpperCase(FieldByName('procedurename').AsString)]);
+    Result := Format('SELECT id FROM at_procedures WHERE UPPER(procedurename) = UPPER(''%s'')',
+      [FieldByName('procedurename').AsString]);
+       
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCSTOREDPROC', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -7116,52 +7117,6 @@ end;
 
 { TgdcMetaBase }
 
-function TgdcMetaBase.CheckTheSameStatement: String;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_CHECKTHESAMESTATEMENT('TGDCMETABASE', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCMETABASE', KEYCHECKTHESAMESTATEMENT);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCHECKTHESAMESTATEMENT]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCMETABASE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCMETABASE',
-  {M}          'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT, Params, LResult) then
-  {M}          begin
-  {M}            if (VarType(LResult) = varOleStr) or (VarType(LResult) = varString) then
-  {M}              Result := String(LResult)
-  {M}            else
-  {M}              begin
-  {M}                raise Exception.Create('Для метода ''' + 'CHECKTHESAMESTATEMENT' + ' ''' +
-  {M}                  ' класса ' + Self.ClassName + TgdcBase(Self).SubType + #10#13 +
-  {M}                  'Из макроса возвращен не строковый тип');
-  {M}              end;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCMETABASE' then
-  {M}        begin
-  {M}          Result := Inherited CheckTheSameStatement;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  Result := inherited CheckTheSameStatement;
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCMETABASE', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCMETABASE', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT);
-  {M}  end;
-  {END MACRO}
-end;
-
 class function TgdcMetaBase.CommitRequired: Boolean;
 begin
   Result := True;
@@ -7590,13 +7545,15 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-//Стандартные записи ищем по идентификатору
-  if FieldByName(GetKeyField(SubType)).AsInteger < cstUserIDStart then
+
+  if State = dsInactive then
+    Result := 'SELECT id FROM at_exceptions WHERE UPPER(exceptionname) = UPPER(:exceptionname)'
+  else if ID < cstUserIDStart then
     Result := inherited CheckTheSameStatement
   else
-    Result := Format('SELECT %s FROM %s WHERE UPPER(exceptionname) = ''%s''',
-      [GetKeyField(SubType), GetListTable(SubType),
-       AnsiUpperCase(FieldByName('exceptionname').AsString)]);
+    Result := Format('SELECT id FROM at_exceptions WHERE UPPER(exceptionname) = UPPER(''%s'')',
+      [FieldByName('exceptionname').AsString]);
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCEXCEPTION', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -8565,12 +8522,15 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-//Стандартные записи ищем по идентификатору
-  if FieldByName(GetKeyField(SubType)).AsInteger < cstUserIDStart then
+
+  if State = dsInactive then
+    Result := 'SELECT id FROM at_indices WHERE UPPER(indexname)=UPPER(:indexname)'
+  else if ID < cstUserIDStart then
     Result := inherited CheckTheSameStatement
   else
-    Result := Format('SELECT %s FROM %s WHERE UPPER(indexname)=''%s'' ',
-      [GetKeyField(SubType), GetListTable(SubType), AnsiUpperCase(FieldByName('indexname').AsString)]);
+    Result := Format('SELECT id FROM at_indices WHERE UPPER(indexname)=UPPER(''%s'')',
+      [FieldByName('indexname').AsString]);
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINDEX', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -9412,12 +9372,15 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-//Стандартные записи ищем по идентификатору
-  if FieldByName(GetKeyField(SubType)).AsInteger < cstUserIDStart then
+
+  if State = dsInactive then
+    Result := 'SELECT id FROM at_triggers WHERE UPPER(triggername)=UPPER(:triggername)'
+  else if ID < cstUserIDStart then
     Result := inherited CheckTheSameStatement
   else
-    Result := Format('SELECT %s FROM %s WHERE UPPER(triggername)=''%s'' ',
-      [GetKeyField(SubType), GetListTable(SubType), AnsiUpperCase(FieldByName('triggername').AsString)]);
+    Result := Format('SELECT id FROM at_triggers WHERE UPPER(triggername)=UPPER(''%s'')',
+      [FieldByName('triggername').AsString]);
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCTRIGGER', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -10483,12 +10446,15 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-//Стандартные записи ищем по идентификатору
-  if FieldByName(GetKeyField(SubType)).AsInteger < cstUserIDStart then
+
+  if State = dsInactive then
+    Result := 'SELECT id FROM at_generators WHERE UPPER(generatorname)=UPPER(:generatorname)'
+  else if ID < cstUserIDStart then
     Result := inherited CheckTheSameStatement
   else
-    Result := Format('SELECT %s FROM %s WHERE UPPER(generatorname)=''%s'' ',
-      [GetKeyField(SubType), GetListTable(SubType), AnsiUpperCase(FieldByName('generatorname').AsString)]);
+    Result := Format('SELECT id FROM at_generators WHERE UPPER(generatorname)=UPPER(''%s'')',
+      [FieldByName('generatorname').AsString]);
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCGENERATOR', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -10574,12 +10540,15 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-//Стандартные записи ищем по идентификатору
-  if FieldByName(GetKeyField(SubType)).AsInteger < cstUserIDStart then
+
+  if State = dsInactive then
+    Result := 'SELECT id FROM at_check_constraints WHERE UPPER(checkname)=UPPER(:checkname)'
+  else if ID < cstUserIDStart then
     Result := inherited CheckTheSameStatement
   else
-    Result := Format('SELECT %s FROM %s WHERE UPPER(checkname)=''%s'' ',
-      [GetKeyField(SubType), GetListTable(SubType), AnsiUpperCase(FieldByName('checkname').AsString)]);
+    Result := Format('SELECT id FROM at_check_constraints WHERE UPPER(checkname)=UPPER(''%s'')',
+      [FieldByName('checkname').AsString]);
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCCHECKCONSTRAINT', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then

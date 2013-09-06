@@ -19,23 +19,18 @@ type
     function GetFromClause(const ARefresh: Boolean = False): String; override;
     procedure GetWhereClauseConditions(S: TStrings); override;
 
-    function CheckTheSameStatement: String; override;
-
   public
-    function SaveEvent(const AnObjectNode: TTreeNode;
-     const AnEventNode: TTreeNode): Boolean;
-
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetKeyField(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetSubSetList: String; override;
-
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
-
     class function GetDisplayName(const ASubType: TgdcSubType): String; override;
-
     class function NeedModifyFromStream(const SubType: String): Boolean; override;
 
+    function CheckTheSameStatement: String; override;
+    function SaveEvent(const AnObjectNode: TTreeNode;
+     const AnEventNode: TTreeNode): Boolean;
   end;
 
   procedure Register;

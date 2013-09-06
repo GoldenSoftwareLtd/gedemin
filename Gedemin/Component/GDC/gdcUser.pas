@@ -62,11 +62,11 @@ type
     // для доступа к серверу базы данных
     class procedure CheckSysDBAPassword(var ASysDBAPassword: String);
 
-    function CheckTheSameStatement: String; override;
-
     function GetNotCopyField: String; override;
 
   public
+    function CheckTheSameStatement: String; override;
+
     //
     function HideFieldsList: String; override;
 
@@ -145,14 +145,12 @@ type
     // которые имела та группа.
     //procedure DeleteGroup;
 
-    //
-    //procedure CustomDelete(Buff: Pointer); override;
-
     procedure CustomInsert(Buff: Pointer); override;
-    function CheckTheSameStatement: String; override;
 
   public
     constructor Create(AnOwner: TComponent); override;
+
+    function CheckTheSameStatement: String; override;
 
     // добавить пользователя, заданного идентификатором в группу
     procedure AddUser(const AnID: Integer); overload;
@@ -999,12 +997,15 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  if FieldByName(GetKeyField(SubType)).AsInteger < cstUserIDStart then
+
+  if State = dsInactive then
+    Result := 'SELECT id FROM gd_user WHERE UPPER(name) = UPPER(:name)'
+  else if ID < cstUserIDStart then
     Result := inherited CheckTheSameStatement
   else
-    Result := Format('SELECT %s FROM %s WHERE UPPER(name) = ''%s''',
-      [GetKeyField(SubType), GetListTable(SubType),
-       AnsiUpperCase(FieldByName('name').AsString)]);
+    Result := Format('SELECT id FROM gd_user WHERE UPPER(name) = UPPER(''%s'')',
+      [StringReplace(FieldByName('name').AsString, '''', '''''', [rfReplaceAll])]);
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCUSER', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -1381,12 +1382,13 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  if FieldByName(GetKeyField(SubType)).AsInteger < cstUserIDStart then
-    Result := inherited CheckTheSameStatement
+
+  if State = dsInactive then
+    Result := 'SELECT id FROM gd_usergroup WHERE UPPER(name) = UPPER(:name)'
   else
-    Result := Format('SELECT %s FROM %s WHERE UPPER(name) = ''%s''',
-      [GetKeyField(SubType), GetListTable(SubType),
-       AnsiUpperCase(FieldByName('name').AsString)]);
+    Result := Format('SELECT id FROM gd_usergroup WHERE UPPER(name) = UPPER(''%s'')',
+      [StringReplace(FieldByName('name').AsString, '''', '''''', [rfReplaceAll])]);
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCUSERGROUP', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -1408,130 +1410,6 @@ begin
   inherited Create(AnOwner);
   CustomProcess := [cpDelete];
 end;
-
-(*
-procedure TgdcUserGroup.CustomDelete(Buff: Pointer);
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCUSERGROUP', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCUSERGROUP', KEYCUSTOMDELETE);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMDELETE]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCUSERGROUP') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCUSERGROUP',
-  {M}          'CUSTOMDELETE', KEYCUSTOMDELETE, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCUSERGROUP' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  DeleteGroup;
-  inherited;
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCUSERGROUP', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCUSERGROUP', 'CUSTOMDELETE', KEYCUSTOMDELETE);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcUserGroup.DeleteGroup;
-var
-  q, qu: TIBSQL;
-  Mask: Integer;
-  S: String;
-  DidActivate: Boolean;
-  OldCursor: TCursor;
-begin
-  if sView in BaseState then
-  try
-    if frmIBUserList = nil then
-      frmIBUserList := TfrmIBUserList.Create(nil);
-
-    if not frmIBUserList.CheckUsers then
-    begin
-      if MessageBox(ParentHandle,
-        PChar('Рекомендуется производить удаление группы только тогда,'#13#10 +
-        'когда к базе данных не подключены другие пользователи.'#13#10#13#10 +
-        'Удаление может занять продолжительное время. Продолжать?'),
-        'Внимание',
-        MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = IDNO then
-      begin
-        Abort;
-      end;
-    end;
-  finally
-    FreeAndNil(frmIBUserList);
-  end;
-
-  Mask := (not GetGroupMask(ID)) or 1;
-
-  OldCursor := Screen.Cursor;
-  Screen.Cursor := crSQLWait;
-
-  DidActivate := False;
-  q := TIBSQL.Create(Self);
-  qu := TIBSQL.Create(Self);
-  try
-    q.Transaction := ReadTransaction;
-    qu.Transaction := Transaction;
-
-    DidActivate := ActivateTransaction;
-
-    // получаем список всех таблиц в базе данных у которых
-    // присутствует хотябы один из дескрипторов безопасности
-    q.SQL.Text := 'SELECT * FROM gd_p_gettableswithdescriptors ';
-
-    q.ExecQuery;
-    while not q.EOF do
-    begin
-      S := 'UPDATE ' + q.FieldByName('relationname').AsTrimString + ' SET ';
-      if q.FieldByName('aview').AsInteger = 1 then
-        S := Format('%s AVIEW=BIN_AND(AVIEW, %d),', [S, Mask]);
-      if q.FieldByName('achag').AsInteger = 1 then
-        S := Format('%s ACHAG=BIN_AND(ACHAG, %d),', [S, Mask]);
-      if q.FieldByName('afull').AsInteger = 1 then
-        S := Format('%s AFULL=BIN_AND(AFULL, %d)', [S, Mask]);
-      if S[Length(S)] = ',' then SetLength(S, Length(S) - 1);
-      S := S + ' WHERE ';
-      if q.FieldByName('aview').AsInteger = 1 then
-        S := Format('%s BIN_AND(AVIEW, %d) <> 0 OR', [S, GetGroupMask(ID)]);
-      if q.FieldByName('achag').AsInteger = 1 then
-        S := Format('%s BIN_AND(ACHAG, %d) <> 0 OR', [S, GetGroupMask(ID)]);
-      if q.FieldByName('afull').AsInteger = 1 then
-        S := Format('%s BIN_AND(AFULL, %d) <> 0', [S, GetGroupMask(ID)]);
-      if S[Length(S)] <> '0' then SetLength(S, Length(S) - 2);
-
-      qu.SQL.Text := S;
-      qu.ExecQuery;
-
-      q.Next;
-    end;
-  finally
-    q.Free;
-    qu.Free;
-
-    if DidActivate then
-      Transaction.Commit;
-
-    Screen.Cursor := OldCursor;
-  end;
-end;
-*)
 
 procedure TgdcUserGroup.CustomInsert(Buff: Pointer);
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}

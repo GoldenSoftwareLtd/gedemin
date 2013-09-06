@@ -134,7 +134,6 @@ type
 
     function GetGroupID: Integer; override;
     function GetNotCopyField: String; override;
-    function CheckTheSameStatement: String; override;
 
     property Joins: TStringList read GetJoins write SetJoins;
 
@@ -145,6 +144,7 @@ type
 
     destructor Destroy; override;
 
+    function CheckTheSameStatement: String; override;
     function JoinListFieldByFieldName(const AFieldName, AAliasName, AJoinFieldName: String): String;
 
     procedure ReadOptions(Stream: TStream); virtual;

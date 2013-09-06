@@ -344,18 +344,17 @@ type
 
   TgdcAcctQuantity = class(TgdcBase)
   protected
-    function  CheckTheSameStatement: String; override;
-
     function  GetSelectClause: String; override;
     function  GetFromClause(const ARefresh: Boolean = False): String; override;
     procedure GetWhereClauseConditions(S: TStrings); override;
 
   public
-
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
 
     class function GetSubSetList: String; override;
+
+    function  CheckTheSameStatement: String; override;
   end;
 
 

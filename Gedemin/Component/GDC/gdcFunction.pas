@@ -22,12 +22,9 @@ type
     // Формирование запроса
     function GetSelectClause: String; override;
     function GetFromClause(const ARefresh: Boolean = False): String; override;
-    function GetOrderClause:String; override;
+    function GetOrderClause: String; override;
 
     procedure GetWhereClauseConditions(S: TStrings); override;
-
-    function CheckTheSameStatement: String; override;
-    function CreateDialogForm: TCreateableForm; override;
 
   public
     constructor Create(AnOwner: TComponent); override;
@@ -39,15 +36,18 @@ type
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetSubSetList: String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
+    class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
     class function IsAbstractClass: Boolean; override;
-
-    function GetUniqueName(PrefName, Name: string; modulecode: integer): string;
-    function CheckFunction(const Name: string; modulecode: integer): Boolean;
+    class function NeedModifyFromStream(const SubType: String): Boolean; override;
 
     // Список полей, которые не надо сохранять в поток.
     //  Наименования полей разделены запятой,
     //  пример: 'LB,RB,CREATORKEY,EDITORKEY'
     class function GetNotStreamSavedField(const IsReplicationMode: Boolean = False): String; override;
+
+    function CheckTheSameStatement: String; override;
+    function GetUniqueName(PrefName, Name: string; modulecode: integer): string;
+    function CheckFunction(const Name: string; modulecode: integer): Boolean;
 
     //Проверяет наличие ссылок на данную запись
     function RecordUsed: Integer;
@@ -57,8 +57,6 @@ type
     procedure _SaveToStream(Stream: TStream; ObjectSet: TgdcObjectSet;
       PropertyList: TgdcPropertySets; BindedList: TgdcObjectSet;
       WithDetailList: TgdKeyArray; const SaveDetailObjects: Boolean = True); override;
-
-    class function NeedModifyFromStream(const SubType: String): Boolean; override;
   end;
 
   procedure Register;
@@ -166,17 +164,11 @@ begin
     begin
       LocSQL := TIBSQL.Create(nil);
       try
-        LocSQL.Database := Database;
         LocSQL.Transaction := ReadTransaction;
-        LocSQL.SQL.Text := 'SELECT name, modulecode FROM GD_FUNCTION WHERE Upper(name) = '
-         + 'Upper(:name) AND modulecode = :modulecode';
-        LocSQL.Params[0].AsString := FieldByName('name').AsString;
-        LocSQL.Params[1].AsInteger := FieldByName('modulecode').AsInteger;
+        LocSQL.SQL.Text := CheckTheSameStatement;
         LocSQL.ExecQuery;
-        if LocSQL.RecordCount <> 0 then
+        if not LocSQL.EOF then
           raise Exception.Create('Название скрипт-функции должно быть уникальным.');
-
-        LocSQL.Close;
       finally
         LocSQL.Free;
       end;
@@ -281,49 +273,6 @@ begin
      '(UPPER(z.module) = ''' + scrEntryModuleName + ''') OR ' +
      '(UPPER(z.module) = ''' + scrConst + '''))');
 end;
-
-{procedure TgdcFunction.SetAddFunction;
-var
-  LocSQL: TIBSQL;
-  SL: TStrings;
-  I: Integer;
-  DidActivate: Boolean;
-begin
-  SL := TStringList.Create;
-  try
-    SL.Add(AnsiUpperCase(FieldByName('name').AsString));
-    ReadAddFunction(ID, SL, FieldByName('script').AsString,
-      FieldByName('modulecode').AsInteger, ReadTransaction);
-
-    DidActivate := False;
-    LocSQL := TIBSQL.Create(nil);
-    try
-      LocSQL.Database := Database;
-      LocSQL.Transaction := Transaction;
-      DidActivate := ActivateTransaction;
-      LocSQL.SQL.Text := 'DELETE FROM rp_additionalfunction WHERE mainfunctionkey = ' +
-       FieldByName('id').AsString;
-      LocSQL.ExecQuery;
-      LocSQL.Close;
-      LocSQL.SQL.Text := 'INSERT INTO rp_additionalfunction (mainfunctionkey, addfunctionkey) ' +
-       'VALUES(' + FieldByName('id').AsString + ', :id)';
-      LocSQL.Prepare;
-      for I := 1 to SL.Count - 1 do
-      begin
-        LocSQL.Close;
-        LocSQL.Params[0].AsInteger := Integer(SL.Objects[I]);
-        LocSQL.ExecQuery;
-      end;
-    finally
-      if DidActivate then
-        Transaction.Commit;
-      LocSQL.Free;
-    end;
-  finally
-    SL.Free;
-  end;
-end;
-}
 
 function TgdcFunction.GetUniqueName(PrefName, Name: string; modulecode: integer): string;
 var
@@ -462,59 +411,6 @@ begin
   end;
 end;
 
-function TgdcFunction.CreateDialogForm: TCreateableForm;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_FUNCCREATEDIALOGFORM('TGDCFUNCTION', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  try
-  {M}    Result := nil;
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCFUNCTION', KEYCREATEDIALOGFORM);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCREATEDIALOGFORM]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCFUNCTION') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCFUNCTION',
-  {M}          'CREATEDIALOGFORM', KEYCREATEDIALOGFORM, Params, LResult) then
-  {M}          begin
-  {M}            Result := nil;
-  {M}            if VarType(LResult) <> varDispatch then
-  {M}              raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен не объект.')
-  {M}            else
-  {M}              if IDispatch(LResult) = nil then
-  {M}                raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                  'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен пустой (null) объект.');
-  {M}            Result := GetInterfaceToObject(LResult) as TCreateableForm;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCFUNCTION' then
-  {M}        begin
-  {M}          Result := Inherited CreateDialogForm;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  Result := Tgdc_dlgFunction.CreateSubType(ParentForm, SubType);
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCFUNCTION', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCFUNCTION', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM);
-  {M}  end;
-  {END MACRO}
-end;
-
 class function TgdcFunction.GetViewFormClassName(const ASubType: TgdcSubType): String;
 begin
   Result := 'Tgdc_frmFunction';
@@ -611,13 +507,17 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  //Стандартные записи ищем по идентификатору
-  if FieldByName(GetKeyField(SubType)).AsInteger < cstUserIDStart then
+
+  if State = dsInactive then
+    Result := 'SELECT id FROM gd_function WHERE UPPER(name) = UPPER(:name) AND modulecode = :modulecode'
+  else if ID < cstUserIDStart then
     Result := inherited CheckTheSameStatement
   else
-    Result := Format('SELECT %s FROM %s WHERE UPPER(name)=''%s'' AND modulecode = %d',
-      [GetKeyField(SubType), GetListTable(SubType), AnsiUpperCase(FieldByName('name').AsString),
+    Result := Format(
+      'SELECT id FROM gd_function WHERE UPPER(name) = UPPER(''%s'') AND modulecode = %d',
+      [StringReplace(FieldByName('name').AsString, '''', '''''', [rfReplaceAll]),
        FieldByName('modulecode').AsInteger]);
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCFUNCTION', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -727,7 +627,6 @@ begin
   if ClassMethods = nil then
     raise Exception.Create(cCMErr);
 
-//  ClassMethods.gdcMethods.MethodByName;
   tmpObject := MethodControl.FindMethodClass(FullClassName);
   if tmpObject = nil then
     with TgdcDelphiObject.Create(nil) do
@@ -757,7 +656,6 @@ begin
       TCustomMethodClass(tmpObject));
     MethodItem :=  TCustomMethodClass(tmpObject).MethodList.Items[I];
   end;
-//    raise Exception.Create('Не найден объект описания метода.');
 
   while ClassMethods.gdcMethods.Count = 0 do
   begin
@@ -813,10 +711,15 @@ begin
   Result := False;
 end;
 
+class function TgdcFunction.GetDialogFormClassName(
+  const ASubType: TgdcSubType): String;
+begin
+  Result := 'Tgdc_dlgFunction';
+end;
+
 initialization
   RegisterGdcClass(TgdcFunction);
 
 finalization
   UnRegisterGdcClass(TgdcFunction);
-
 end.

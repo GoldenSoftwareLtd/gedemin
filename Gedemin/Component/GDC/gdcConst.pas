@@ -41,10 +41,9 @@ type
     class function _QGetValue(const AnID: Integer; const AName: String;
       ADate: TDateTime; AUserKey, ACompanyKey: Integer): Variant;
 
-  protected
+  public
     function CheckTheSameStatement: String; override;
 
-  public
     ///////////////////////////////////////////////////////
     // является ли текущая запись константой, привязанной
     // к пользователю?
@@ -271,7 +270,7 @@ begin
     Result := inherited CheckTheSameStatement
   else
     Result := 'SELECT id FROM gd_const WHERE UPPER(name) = ''' +
-      StringReplace(FieldByName('name').AsString, '''', '''''', [rfReplaceAll]) + ''' ';
+      StringReplace(FieldByName('name').AsString, '''', '''''', [rfReplaceAll]) + '''';
        
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCCONST', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally

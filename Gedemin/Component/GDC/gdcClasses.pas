@@ -172,13 +172,13 @@ type
     procedure _DoOnNewRecord; override;
     procedure DoAfterCustomProcess(Buff: Pointer; Process: TgsCustomProcess); override;
     procedure GetWhereClauseConditions(S: TStrings); override;
-    function CheckTheSameStatement: String; override;
     function GetNotCopyField: String; override;
     procedure DoBeforePost; override;
 
   public
     constructor Create(AnOwner: TComponent); override;
 
+    function CheckTheSameStatement: String; override;
     function UpdateReportGroup(MainBranchName: String; DocumentName: String;
       var GroupKey: Integer; const ShouldUpdateData: Boolean = False): Boolean;
 
@@ -2678,7 +2678,7 @@ begin
   else if ID < cstUserIDStart then
     Result := inherited CheckTheSameStatement
   else
-    Result := 'SELECT id FROM gd_documenttype WHERE ruid=''' + FieldByName('ruid').AsString + ''' ';
+    Result := 'SELECT id FROM gd_documenttype WHERE ruid = ''' + FieldByName('ruid').AsString + '''';
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASEDOCUMENTTYPE', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally
