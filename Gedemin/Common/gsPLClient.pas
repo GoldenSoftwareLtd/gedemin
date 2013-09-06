@@ -22,6 +22,7 @@ type
     function GetDataType(const Idx: LongWord): Integer;
   public
     constructor Create;
+    destructor Destroy; override;
 
     procedure ExecQuery;
     procedure Close;
@@ -38,8 +39,8 @@ type
     function GetArity(ASql: TIBSQL): Integer;
     procedure SetTerm(AField: TIBXSQLVAR; ATerm: term_t);
     procedure Compound(const AFunctor: String; AGoal: term_t; ATermv: TTermv);
-    function CreateTermRef: term_t;
-    function CreateTermRefs(const ASize: Integer): TTermv;
+    //function CreateTermRef: term_t;
+    //function CreateTermRefs(const ASize: Integer): TTermv;
     function CheckDataType(const AVariableType: Integer; const AField: TField): Boolean;
   public
     destructor Destroy; override;
@@ -49,7 +50,9 @@ type
     function Initialise{(AnArgc: Integer; AnArgv)}: Boolean;
     procedure MakePredicates(ASQL: String; ATr: TIBTransaction;
       APredName: String; AFileName: String);
-    procedure SetData(ADataSet: TClientDataSet; const APredicateName: String; ATermv: TTermV);
+    function CreateTermRef: term_t;
+    function CreateTermRefs(const ASize: Integer): TTermv;
+    procedure ExtractData(ADataSet: TClientDataSet; const APredicateName: String; ATermv: TTermV);
   end;
 
 implementation  
@@ -60,6 +63,13 @@ begin
 
   FQid := 0;
   FEOF := False;
+end;
+
+destructor TgsPLQuery.Destroy;
+begin
+  Close;
+
+  inherited;
 end;
 
 function TgsPLQuery.GetEof: Boolean;
@@ -127,7 +137,7 @@ begin
   end;
 end;
 
-procedure TgsPLClient.SetData(ADataSet: TClientDataSet; const APredicateName: String; ATermv: TTermV);
+procedure TgsPLClient.ExtractData(ADataSet: TClientDataSet; const APredicateName: String; ATermv: TTermV);
 var
   Query: TgsPLQuery;
   I: LongWord;
@@ -148,7 +158,7 @@ begin
       try
         for I := 0 to Query.Termv.Size - 1 do
         begin
-          if not CheckDataType(Query.VariableDataType[I], ADataSet.Fields[I]) then
+          if CheckDataType(Query.VariableDataType[I], ADataSet.Fields[I]) then
           begin
             case Query.VariableDataType[I] of
               PL_INTEGER, PL_SHORT, PL_INT, PL_LONG:
@@ -266,8 +276,7 @@ begin
       SQL_TYPE_DATE, SQL_INT64, SQL_Text, SQL_VARYING: Inc(Result);
     end; 
   end;
-end;
-
+end; 
 
 function TgsPLClient.Initialise: Boolean;
 var
