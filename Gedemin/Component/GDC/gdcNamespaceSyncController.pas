@@ -407,85 +407,117 @@ begin
   FqFillSync := TIBSQL.Create(nil);
   FqFillSync.Transaction := FTr;
   FqFillSync.SQL.Text :=
-    'EXECUTE BLOCK ' +
-    'AS ' +
-    'BEGIN ' +
-    '  INSERT INTO at_namespace_sync (namespacekey) ' +
-    '  SELECT id FROM at_namespace; ' +
-    ' ' +
-    '  MERGE INTO at_namespace_sync s ' +
-    '  USING ( ' +
-    '    SELECT f.filename, n.id, f.xid ' +
-    '    FROM at_namespace_file f ' +
-    '      LEFT JOIN gd_ruid r ' +
-    '        ON r.xid = f.xid AND r.dbid = f.dbid ' +
-    '      LEFT JOIN at_namespace n ' +
-    '        ON (r.id = n.id) OR (n.name = f.name) ' +
-    '    ) j ' +
-    '  ON (s.namespacekey = j.id) ' +
-    '  WHEN MATCHED THEN UPDATE SET filename = j.filename ' +
-    '  WHEN NOT MATCHED THEN INSERT (filename, operation) ' +
-    '    VALUES (j.filename, IIF(j.xid IS NULL, ''  '', ''< '')); ' +
-    ' ' +
-    '  UPDATE at_namespace_sync SET operation = ''> '' ' +
-    '  WHERE namespacekey IS NOT NULL ' +
-    '    AND filename IS NULL; ' +
-    ' ' +
-    '  UPDATE at_namespace_sync s SET s.operation = ''>>'' ' +
-    '  WHERE ' +
-    '    (EXISTS (SELECT * FROM at_object o ' +
-    '       WHERE o.namespacekey = s.namespacekey ' +
-    '         AND DATEDIFF(SECOND, o.modified, o.curr_modified) >= 1) ' +
-    '     OR ' +
-    '     (SELECT n.filetimestamp FROM at_namespace n ' +
-    '       WHERE n.id = s.namespacekey) > ' +
-    '     (SELECT f.filetimestamp FROM at_namespace_file  f ' +
-    '       WHERE f.filename = s.filename) ' +
-    '    ) ' +
-    '    AND (s.operation = ''  ''); ' +
-    ' ' +
-    '  UPDATE at_namespace_sync s SET s.operation = ' +
-    '    iif(s.operation = ''  '', ''<<'', ''? '') ' +
-    '  WHERE ' +
-    '    (SELECT f.filetimestamp FROM at_namespace_file f ' +
-    '      WHERE f.filename = s.filename) > ' +
-    '    (SELECT n.filetimestamp FROM at_namespace n ' +
-    '      WHERE n.id = s.namespacekey) ' +
-    '    AND (s.operation = ''  ''); ' +
-    ' ' +
-    '  UPDATE at_namespace_sync s SET s.operation = ''! '' ' +
-    '  WHERE ' +
-    '    EXISTS (' +
-    '      SELECT * FROM at_namespace_file_link l ' +
-    '        LEFT JOIN ' +
-    '       (SELECT r.xid, r.dbid FROM gd_ruid r JOIN at_namespace n ' +
-    '          ON n.id = r.id ' +
-    '        UNION ' +
-    '        SELECT f.xid, f.dbid FROM at_namespace_file f) j ' +
-    '        ON l.uses_xid = j.xid AND l.uses_dbid = j.dbid ' +
-    '      WHERE l.filename = s.filename AND j.xid IS NULL) ' +
-    '    AND (s.operation IN (''<<'', ''< '')); ' +
-    ' ' +
-    '  UPDATE at_namespace_sync s SET s.operation = ''=='' ' +
-    '  WHERE s.operation = ''  '' AND s.namespacekey IS NOT NULL ' +
-    '    AND s.filename IS NOT NULL; ' +
-    ' ' +
-    '  UPDATE at_namespace_sync s SET s.operation = ''<='' ' +
-    '  WHERE s.operation = ''=='' AND EXISTS (' +
-    '    SELECT * FROM at_namespace_sync y JOIN at_namespace_file f ' +
-    '      ON y.filename = f.filename ' +
-    '    JOIN at_namespace_file_link l ' +
-    '      ON l.uses_xid = f.xid AND l.uses_dbid = f.dbid ' +
-    '    WHERE l.filename = s.filename ' +
-    '      AND y.operation IN (''<<'', ''< '', ''<='')); ' +
-    ' ' +
-    '  UPDATE at_namespace_sync s SET s.operation = ''=>'' ' +
-    '  WHERE s.operation = ''=='' AND EXISTS (' +
-    '    SELECT * FROM at_namespace_sync y ' +
-    '    JOIN at_namespace_link l ' +
-    '      ON l.useskey = y.namespacekey ' +
-    '    WHERE l.namespacekey = s.namespacekey ' +
-    '      AND y.operation IN (''>>'', ''> '', ''=>'')); ' +
+    'EXECUTE BLOCK '#13#10 +
+    'AS '#13#10 +
+    '  DECLARE VARIABLE Cont INTEGER; '#13#10 +
+    'BEGIN '#13#10 +
+    '  INSERT INTO at_namespace_sync (namespacekey) '#13#10 +
+    '  SELECT id FROM at_namespace; '#13#10 +
+    ' '#13#10 +
+    '  MERGE INTO at_namespace_sync s '#13#10 +
+    '  USING ( '#13#10 +
+    '    SELECT f.filename, n.id, f.xid '#13#10 +
+    '    FROM at_namespace_file f '#13#10 +
+    '      LEFT JOIN gd_ruid r '#13#10 +
+    '        ON r.xid = f.xid AND r.dbid = f.dbid '#13#10 +
+    '      LEFT JOIN at_namespace n '#13#10 +
+    '        ON (r.id = n.id) OR (n.name = f.name) '#13#10 +
+    '    ) j '#13#10 +
+    '  ON (s.namespacekey = j.id) '#13#10 +
+    '  WHEN MATCHED THEN UPDATE SET filename = j.filename '#13#10 +
+    '  WHEN NOT MATCHED THEN INSERT (filename, operation) '#13#10 +
+    '    VALUES (j.filename, IIF(j.xid IS NULL, ''  '', ''< '')); '#13#10 +
+    ' '#13#10 +
+    '  UPDATE at_namespace_sync SET operation = ''> '' '#13#10 +
+    '  WHERE namespacekey IS NOT NULL '#13#10 +
+    '    AND filename IS NULL; '#13#10 +
+    ' '#13#10 +
+    '  UPDATE at_namespace_sync s SET s.operation = ''>>'' '#13#10 +
+    '  WHERE '#13#10 +
+    '    (EXISTS (SELECT * FROM at_object o '#13#10 +
+    '       WHERE o.namespacekey = s.namespacekey '#13#10 +
+    '         AND DATEDIFF(SECOND, o.modified, o.curr_modified) >= 1) '#13#10 +
+    '     OR '#13#10 +
+    '     (EXISTS (SELECT * FROM at_namespace_sync s '#13#10 +
+    '        JOIN at_namespace n ON n.id = s.namespacekey '#13#10 +
+    '        JOIN at_namespace_file f ON f.filename = s.filename '#13#10 +
+    '        WHERE n.filetimestamp > f.filetimestamp '#13#10 +
+    '      )'#13#10 +
+    '     ) '#13#10 +
+    '    ) '#13#10 +
+    '    AND (s.operation = ''  ''); '#13#10 +
+    ' '#13#10 +
+    '  UPDATE at_namespace_sync s SET s.operation = ''<<'' '#13#10 +
+    '  WHERE '#13#10 +
+    '   (EXISTS (SELECT * FROM at_namespace_sync s '#13#10 +
+    '      JOIN at_namespace n ON n.id = s.namespacekey '#13#10 +
+    '      JOIN at_namespace_file f ON f.filename = s.filename '#13#10 +
+    '      WHERE n.filetimestamp < f.filetimestamp) '#13#10 +
+    '    )'#13#10 +
+    '    AND (s.operation = ''  ''); '#13#10 +
+    ' '#13#10 +
+    '  UPDATE at_namespace_sync s SET s.operation = ''? '' '#13#10 +
+    '  WHERE '#13#10 +
+    '   (EXISTS (SELECT * FROM at_namespace_sync s '#13#10 +
+    '      JOIN at_namespace n ON n.id = s.namespacekey '#13#10 +
+    '      JOIN at_namespace_file f ON f.filename = s.filename '#13#10 +
+    '      WHERE n.filetimestamp < f.filetimestamp) '#13#10 +
+    '    )'#13#10 +
+    '    AND (s.operation = ''>>''); '#13#10 +
+    ' '#13#10 +
+    '  UPDATE at_namespace_sync s SET s.operation = ''? '' '#13#10 +
+    '  WHERE '#13#10 +
+    '   (EXISTS (SELECT * FROM at_namespace_sync s '#13#10 +
+    '      JOIN at_namespace n ON n.id = s.namespacekey '#13#10 +
+    '      JOIN at_namespace_file f ON f.filename = s.filename '#13#10 +
+    '      WHERE n.filetimestamp IS NULL) '#13#10 +
+    '    )'#13#10 +
+    '    AND (s.namespacekey IS NOT NULL) '#13#10 +
+    '    AND (s.operation = ''  ''); '#13#10 +
+    ' '#13#10 +
+    '  UPDATE at_namespace_sync s SET s.operation = ''! '' '#13#10 +
+    '  WHERE '#13#10 +
+    '    EXISTS ('#13#10 +
+    '      SELECT * FROM at_namespace_file_link l '#13#10 +
+    '        LEFT JOIN '#13#10 +
+    '       (SELECT r.xid, r.dbid FROM gd_ruid r JOIN at_namespace n '#13#10 +
+    '          ON n.id = r.id '#13#10 +
+    '        UNION '#13#10 +
+    '        SELECT f.xid, f.dbid FROM at_namespace_file f) j '#13#10 +
+    '        ON l.uses_xid = j.xid AND l.uses_dbid = j.dbid '#13#10 +
+    '      WHERE l.filename = s.filename AND j.xid IS NULL) '#13#10 +
+    '    AND (s.operation IN (''<<'', ''< '')); '#13#10 +
+    ' '#13#10 +
+    '  UPDATE at_namespace_sync s SET s.operation = ''=='' '#13#10 +
+    '  WHERE s.operation = ''  '' AND s.namespacekey IS NOT NULL '#13#10 +
+    '    AND s.filename IS NOT NULL; '#13#10 +
+    ' '#13#10 +
+    '  Cont = 1; '#13#10 +
+    '  WHILE (:Cont > 0) DO '#13#10 +
+    '  BEGIN'#13#10 +
+    '    UPDATE at_namespace_sync s SET s.operation = ''<='' '#13#10 +
+    '    WHERE s.operation = ''=='' AND EXISTS ('#13#10 +
+    '      SELECT * FROM at_namespace_sync y JOIN at_namespace_file f '#13#10 +
+    '        ON y.filename = f.filename '#13#10 +
+    '      JOIN at_namespace_file_link l '#13#10 +
+    '        ON l.uses_xid = f.xid AND l.uses_dbid = f.dbid '#13#10 +
+    '      WHERE l.filename = s.filename '#13#10 +
+    '        AND y.operation IN (''<<'', ''< '', ''<='')); '#13#10 +
+    '    Cont = ROW_COUNT; '#13#10 +
+    '  END'#13#10 +
+    ' '#13#10 +
+    '  Cont = 1; '#13#10 +
+    '  WHILE (:Cont > 0) DO '#13#10 +
+    '  BEGIN'#13#10 +
+    '    UPDATE at_namespace_sync s SET s.operation = ''=>'' '#13#10 +
+    '    WHERE s.operation = ''=='' AND EXISTS ('#13#10 +
+    '      SELECT * FROM at_namespace_sync y '#13#10 +
+    '      JOIN at_namespace_link l '#13#10 +
+    '        ON l.useskey = y.namespacekey '#13#10 +
+    '      WHERE l.namespacekey = s.namespacekey '#13#10 +
+    '        AND y.operation IN (''>>'', ''> '', ''=>'')); '#13#10 +
+    '    Cont = ROW_COUNT; '#13#10 +
+    '  END'#13#10 +
     'END';
 
   FDataSet.ReadTransaction := FTr;
@@ -707,8 +739,6 @@ begin
       begin
         NS := TgdcNamespace.Create(nil);
         try
-          NS.Transaction := FTr;
-          NS.ReadTransaction := FTr;
           NS.SubSet := 'ByID';
 
           Fq.SQL.Text :=

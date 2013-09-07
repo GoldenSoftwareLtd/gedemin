@@ -139,8 +139,8 @@ begin
       gdcNamespaceObject.Insert;
       gdcNamespaceObject.FieldByName('namespacekey').AsInteger := FCurrentNSID;
       gdcNamespaceObject.FieldByName('objectname').AsString := FgdcObject.ObjectName;
-      gdcNamespaceObject.FieldByName('objectclass').AsString := FgdcObject.ClassName;
-      gdcNamespaceObject.FieldByName('subtype').AsString := FgdcObject.SubType;
+      gdcNamespaceObject.FieldByName('objectclass').AsString := FgdcObject.GetCurrRecordClass.gdClass.ClassName;
+      gdcNamespaceObject.FieldByName('subtype').AsString := FgdcObject.GetCurrRecordClass.SubType;
       gdcNamespaceObject.FieldByName('xid').AsInteger := FgdcObject.GetRUID.XID;
       gdcNamespaceObject.FieldByName('dbid').AsInteger := FgdcObject.GetRUID.DBID;
       gdcNamespaceObject.FieldByName('objectpos').Clear;
