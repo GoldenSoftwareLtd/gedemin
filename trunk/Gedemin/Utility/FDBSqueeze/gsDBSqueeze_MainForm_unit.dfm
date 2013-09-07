@@ -1,6 +1,6 @@
 object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
-  Left = 50
-  Top = 130
+  Left = 253
+  Top = 108
   BorderStyle = bsDialog
   ClientHeight = 536
   ClientWidth = 851
@@ -24,7 +24,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
     object tbcPageController: TTabControl
       Left = 206
       Top = 0
-      Width = 457
+      Width = 441
       Height = 25
       Style = tsFlatButtons
       TabOrder = 0

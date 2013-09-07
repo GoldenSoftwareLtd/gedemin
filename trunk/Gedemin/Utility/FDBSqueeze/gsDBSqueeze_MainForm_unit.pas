@@ -182,6 +182,7 @@ type
     FStartupTime : TDateTime;
     FConnected: Boolean;
     FLogFileStream: TFileStream;
+    FDatabaseName: String;
 
     procedure GetConnectedEvent(const AConnected: Boolean);
     procedure WriteToLogFile(const AStr: String);
@@ -524,7 +525,8 @@ begin
         edtHost.Text + '/' + sePort.Text + ':' + edDatabaseName.Text,
         edUserName.Text,
         edPassword.Text);
-
+      FDatabaseName := edDatabaseName.Text;
+      
       FSThread.DoGetDBSize;
       FSThread.Connect;
     end;
@@ -561,19 +563,21 @@ begin
   begin
     if btnGo.Enabled then
     begin
+      if Pos('\', FDatabaseName) <> 0 then
+        Delete(FDatabaseName, 1, LastDelimiter('\', FDatabaseName));
       if edLogs.Enabled then
       begin
         if (Trim(edLogs.Text))[Length(Trim(edLogs.Text))] = '\' then
-          LogFileName := Trim(edLogs.Text) + 'DBS_Log_' + FormatDateTime('yymmdd_hhmm', FStartupTime) + '.log'
+          LogFileName := Trim(edLogs.Text) + 'DBS_Log_' + FDatabaseName + '_'+ FormatDateTime('yy-mm-dd_hh-mm', FStartupTime) + '.log'
         else
-          LogFileName := Trim(edLogs.Text) + '\DBS_Log_' + FormatDateTime('yymmdd_hhmm', FStartupTime) + '.log';
+          LogFileName := Trim(edLogs.Text) + '\DBS_Log_' + FDatabaseName + '_'+ FormatDateTime('yy-mm-dd_hh-mm', FStartupTime) + '.log';
       end;
       if edtBackup.Enabled then
       begin
         if (Trim(edtBackup.Text))[Length(Trim(edtBackup.Text))] = '\' then
-          BackupFileName := Trim(edtBackup.Text) + 'DBS_Backup_' + FormatDateTime('yymmdd_hhmm', FStartupTime) + '.bk'
+          BackupFileName := Trim(edtBackup.Text) + 'DBS_Backup_' + FDatabaseName + '_' + FormatDateTime('yymmdd_hhmm', FStartupTime) + '.bk'
         else
-          BackupFileName := Trim(edtBackup.Text) + '\DBS_Backup_' + FormatDateTime('yymmdd_hhmm', FStartupTime) + '.bk'
+          BackupFileName := Trim(edtBackup.Text) + '\DBS_Backup_' + FDatabaseName + '_' + FormatDateTime('yymmdd_hhmm', FStartupTime) + '.bk'
       end;
 
       if chkbSaveLogs.Checked then
@@ -660,6 +664,13 @@ end;
 procedure TgsDBSqueeze_MainForm.actGoExecute(Sender: TObject);
 begin
   btnGo.Enabled := False;
+  tbcPageController.TabIndex := 2;
+  pgcMain.ActivePage := tsLogs;
+  
+  WriteToLogFile('====================== Settings =======================');
+  WriteToLogFile(mReviewSettings.Text);
+  WriteToLogFile('=======================================================');
+  WriteToLogFile(mLog.Text);
 
   if (rbContinue.Checked) and (FContinueProcFunctionKey > 0) then
     FSThread.ContinueProcessing(FContinueProcFunctionKey, FContinueProcState)

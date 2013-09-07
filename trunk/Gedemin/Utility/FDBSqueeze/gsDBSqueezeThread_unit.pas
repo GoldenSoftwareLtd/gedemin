@@ -24,21 +24,22 @@ const
   WM_DBS_GETPROCSTATISTICS     = WM_USER + 15;
   WM_DBS_STARTPROCESSING       = WM_USER + 16;
   WM_DBS_STOPPROCESSING        = WM_USER + 17;
-  WM_DBS_SETFVARIABLLES        = WM_USER + 18;
-  WM_DBS_CREATEMETADATA        = WM_USER + 19;
-  WM_DBS_SAVEMETADATA          = WM_USER + 20;
-  WM_DBS_CALCULATEACSALDO      = WM_USER + 21;
-  WM_DBS_CALCULATEINVSALDO     = WM_USER + 22;
-  WM_DBS_CREATEHIS_INCLUDEHIS  = WM_USER + 23;
-  WM_DBS_PREPAREDB             = WM_USER + 24;
-  WM_DBS_DELETEOLDBALANCE      = WM_USER + 25;
-  WM_DBS_DELETEDOCHIS          = WM_USER + 26;
-  WM_DBS_CREATEACENTRIES       = WM_USER + 27;
-  WM_DBS_CREATEINVSALDO        = WM_USER + 28;
-  WM_DBS_REBINDINVCARDS        = WM_USER + 29;
-  WM_DBS_RESTOREDB             = WM_USER + 30;
-  WM_DBS_FINISHED              = WM_USER + 31;
-  WM_DBS_DISCONNECT            = WM_USER + 32;
+  WM_DBS_BACKUPDATABASE        = WM_USER + 18;
+  WM_DBS_SETFVARIABLLES        = WM_USER + 19;
+  WM_DBS_CREATEMETADATA        = WM_USER + 20;
+  WM_DBS_SAVEMETADATA          = WM_USER + 21;
+  WM_DBS_CALCULATEACSALDO      = WM_USER + 22;
+  WM_DBS_CALCULATEINVSALDO     = WM_USER + 23;
+  WM_DBS_CREATEHIS_INCLUDEHIS  = WM_USER + 24;
+  WM_DBS_PREPAREDB             = WM_USER + 25;
+  WM_DBS_DELETEOLDBALANCE      = WM_USER + 26;
+  WM_DBS_DELETEDOCHIS          = WM_USER + 27;
+  WM_DBS_CREATEACENTRIES       = WM_USER + 28;
+  WM_DBS_CREATEINVSALDO        = WM_USER + 29;
+  WM_DBS_REBINDINVCARDS        = WM_USER + 30;
+  WM_DBS_RESTOREDB             = WM_USER + 31;
+  WM_DBS_FINISHED              = WM_USER + 32;
+  WM_DBS_DISCONNECT            = WM_USER + 33;
 
 type
   TLogSQLEvent = procedure(const MsgLogSQL: String)of object;
@@ -531,18 +532,29 @@ begin
 
     WM_DBS_STARTPROCESSING:
       begin
-        if FDBS.CreateBackup then
-          FDBS.BackupDatabase;
-
         FDBS.InsertDBSStateJournal(Msg.Message, 1);
         FState.Value := 1;
-        PostThreadMessage(ThreadID, WM_DBS_SETFVARIABLLES, 0, 0);
+        if FDBS.CreateBackup then
+          PostThreadMessage(ThreadID, WM_DBS_SETFVARIABLLES, 0, 0)
+        else
+          PostThreadMessage(ThreadID, WM_DBS_SETFVARIABLLES, 0, 0);
+
         Result := True;
       end;
 
     WM_DBS_STOPPROCESSING:
       begin
         //
+      end;
+
+    WM_DBS_BACKUPDATABASE:
+      begin
+        FDBS.BackupDatabase;
+
+        FDBS.InsertDBSStateJournal(Msg.Message, 1);
+        FState.Value := 1;
+        PostThreadMessage(ThreadID, WM_DBS_SETFVARIABLLES, 0, 0);
+        Result := True;
       end;
 
     WM_DBS_SETFVARIABLLES:
@@ -669,7 +681,7 @@ begin
        // begin
           FBusy.Value := 1;
 
-          FDBS.DeleteOldAcEntryBalance;
+          FDBS.DeleteDocuments_DeleteHIS;
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
           FState.Value := 1;
 
@@ -705,7 +717,8 @@ begin
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
           FState.Value := 1;
 
-          PostThreadMessage(ThreadID, WM_DBS_REBINDINVCARDS, 0, 0);
+        ///  PostThreadMessage(ThreadID, WM_DBS_REBINDINVCARDS, 0, 0);
+          PostThreadMessage(ThreadID, WM_DBS_RESTOREDB, 0, 0);//////////////
        // end;
 
         Result := True;
@@ -717,13 +730,13 @@ begin
        // begin
           FBusy.Value := 1;
 
-          FDBS.PrepareRebindInvCards;
           FDBS.RebindInvCards;
 
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
           FState.Value := 1;
 
-          PostThreadMessage(ThreadID, WM_DBS_RESTOREDB, 0, 0);
+          ///PostThreadMessage(ThreadID, WM_DBS_RESTOREDB, 0, 0);
+          PostThreadMessage(ThreadID, WM_DBS_FINISHED, 0, 0);///////////////
        // end;
         Result := True;
       end;
@@ -739,7 +752,8 @@ begin
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
           FState.Value := 1;
 
-          PostThreadMessage(ThreadID, WM_DBS_FINISHED, 0, 0);
+       ///   PostThreadMessage(ThreadID, WM_DBS_FINISHED, 0, 0);
+          PostThreadMessage(ThreadID, WM_DBS_REBINDINVCARDS, 0, 0);///////////
        // end;
         Result := True;
       end;
