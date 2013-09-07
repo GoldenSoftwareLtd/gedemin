@@ -11018,8 +11018,7 @@ begin
   {M}    end;
   {END MACRO}
 
-  if FSetTable > '' then
-  else
+  if FSetTable = '' then
   begin
     SetInternalSQLParams(FQDelete, Buff);
     FQDelete.ExecQuery;

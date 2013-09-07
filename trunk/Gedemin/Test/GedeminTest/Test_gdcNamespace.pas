@@ -277,20 +277,20 @@ procedure Tgs_gdcNamespaceTest.TestCreateNamespace;
 var
   Obj: TgdcNamespace;
 begin
-  FNamespacename := 'Test_namespace';
+  FNamespaceName := 'Test_namespace';
 
   Obj := TgdcNamespace.Create(nil);
   try
     Obj.Open;
     Obj.Insert;
-    Obj.FieldByName('name').AsString := FNamespacename;
+    Obj.FieldByName('name').AsString := FNamespaceName;
     Obj.Post;
     FNamespacekey := Obj.ID;
   finally
     Obj.Free;
   end;
 
-  Check(FNamespacekey > 0);
+  Check(FNamespaceKey > 0);
 end;
 
 procedure Tgs_gdcNamespaceTest.TestAddObject;

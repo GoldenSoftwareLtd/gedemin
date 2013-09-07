@@ -558,7 +558,7 @@ var
   F: Double;
   Tag: AnsiString;
   B: Boolean;
-  I: Integer;
+  I, J, DotCount, SignCount, DigCount, SpaceCount, OtherCount: Integer;
   I64: Int64;
   C: Currency;
 begin
@@ -579,25 +579,77 @@ begin
             Scanner.Style)
         else if Scanner.Scalar = '~' then
           Result := TyamlNull.Create
-        else if Pos('_', Scanner.Scalar) > 0 then
-          Result := TyamlString.CreateString(Scanner.Scalar, Scanner.Quoting, Scanner.Style)
-        else if ConvertToInteger(Scanner.Scalar, I) then
-          Result := TyamlInteger.CreateInteger(I)
-        else if ConvertToDateTime(Scanner.Scalar, DT) then
-          Result := TyamlDateTime.CreateDateTime(DT)
-        else if ConvertToDate(Scanner.Scalar, DT) then
-          Result := TyamlDate.CreateDate(DT)
-        else if ConvertToInt64(Scanner.Scalar, I64) then
-          Result := TyamlInt64.CreateInt64(I64)
-        else if ConvertToCurrency(Scanner.Scalar, C) then
-          Result := TyamlCurrency.CreateCurrency(C)
-        else if ConvertToFloat(Scanner.Scalar, F) then
-          Result := TyamlFloat.CreateFloat(F)
-        else if ConvertToBoolean(Scanner.Scalar, B) then
-          Result := TyamlBoolean.CreateBoolean(B)
-        else
-          Result := TyamlString.CreateString(Scanner.Scalar, Scanner.Quoting,
-            Scanner.Style);
+        else begin
+          DotCount := 0;
+          SignCount := 0;
+          DigCount := 0;
+          SpaceCount := 0;
+          OtherCount := 0;
+
+          for J := 1 to Length(Scanner.Scalar) do
+            case Scanner.Scalar[J] of
+              '.': Inc(DotCount);
+              '-', '+': Inc(SignCount);
+              '0'..'9': Inc(DigCount);
+              #32, #9: Inc(SpaceCount);
+            else
+              Inc(OtherCount);
+            end;
+
+          if (DigCount > 0)
+            and (OtherCount = 0)
+            and (SignCount <= 1)
+            and (DotCount = 0)
+            and (SpaceCount = 0)
+            and ConvertToInteger(Scanner.Scalar, I) then
+            Result := TyamlInteger.CreateInteger(I)
+          else if (DigCount > 0)
+            and (OtherCount = 0)
+            and (SignCount <= 1)
+            and (DotCount = 0)
+            and (SpaceCount = 0)
+            and ConvertToInt64(Scanner.Scalar, I64) then
+            Result := TyamlInt64.CreateInt64(I64)
+          else if (DigCount > 0)
+            and (OtherCount = 0)
+            and (SignCount <= 1)
+            and (DotCount <= 1)
+            and (SpaceCount = 0)
+            and ConvertToCurrency(Scanner.Scalar, C) then
+            Result := TyamlCurrency.CreateCurrency(C)
+          else if (DigCount > 0)
+            and (OtherCount <= 1)
+            and (SignCount <= 2)
+            and (DotCount <= 1)
+            and (SpaceCount = 0)
+            and ConvertToFloat(Scanner.Scalar, F) then
+            Result := TyamlFloat.CreateFloat(F)
+          else if (DigCount = 0)
+            and (OtherCount <= 5)
+            and (OtherCount >= 4)
+            and (SignCount = 0)
+            and (DotCount = 0)
+            and (SpaceCount = 0)
+            and ConvertToBoolean(Scanner.Scalar, B) then
+            Result := TyamlBoolean.CreateBoolean(B)
+          else if (DigCount > 0)
+            and (OtherCount = 0)
+            and (SignCount = 2)
+            and (DotCount = 0)
+            and (SpaceCount = 0)
+            and ConvertToDate(Scanner.Scalar, DT) then
+            Result := TyamlDate.CreateDate(DT)
+          else if (DigCount > 0)
+            and (OtherCount > 0)
+            and (SignCount > 0)
+            and (DotCount >= 0)
+            and (SpaceCount = 0)
+            and ConvertToDateTime(Scanner.Scalar, DT) then
+            Result := TyamlDateTime.CreateDateTime(DT)
+          else
+            Result := TyamlString.CreateString(Scanner.Scalar, Scanner.Quoting,
+              Scanner.Style);
+        end;
       end
       else if ATag = '!!str' then
         Result := TyamlString.CreateString(Scanner.Scalar, Scanner.Quoting,
