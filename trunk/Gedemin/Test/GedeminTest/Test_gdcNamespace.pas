@@ -38,7 +38,7 @@ implementation
 
 uses
   gdcMetaData, Sysutils, Windows, gdcBaseInterface, gdcGood, IBSQL,
-  gdcContacts, yaml_writer, yaml_parser, yaml_common, gsNSObjects,
+  gdcContacts, yaml_writer, yaml_parser, yaml_common,
   gdcConst, contnrs, dbclient, DB, gdcPlace;
 
 const

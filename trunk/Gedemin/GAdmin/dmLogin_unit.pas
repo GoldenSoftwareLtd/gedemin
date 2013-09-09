@@ -71,7 +71,7 @@ uses
   gd_localization_stub,
   {$ENDIF}
 
-  IBSQL, gsNSObjects, gdcNamespace, gdcNamespaceLoader;
+  IBSQL, gdcNamespace, gdcNamespaceLoader;
 
 {$R *.DFM}
 

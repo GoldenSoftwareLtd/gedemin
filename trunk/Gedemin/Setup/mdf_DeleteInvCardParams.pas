@@ -1576,7 +1576,11 @@ begin
        q.ExecQuery;
       end;
 
-      DropConstraint2('AT_NAMESPACE_SYNC', 'AT_FK_NAMESPACE_SYNC_NSK', Tr);
+      if ConstraintExist2('AT_NAMESPACE_SYNC', 'AT_FK_NAMESPACE_SYNC_NSK', Tr) then
+      begin
+        Log('AT_FK_NAMESPACE_SYNC_NSK detected');
+        //DropConstraint2('AT_NAMESPACE_SYNC', 'AT_FK_NAMESPACE_SYNC_NSK', Tr);
+      end;
 
       q.SQL.Text := 'GRANT ALL ON at_namespace_file TO administrator';
       q.SQL.Text := 'GRANT ALL ON at_namespace_file_link TO administrator';
