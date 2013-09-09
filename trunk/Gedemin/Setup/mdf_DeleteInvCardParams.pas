@@ -1565,8 +1565,6 @@ begin
           '  filename      dtext255, '#13#10 +
           '  operation     CHAR(2) DEFAULT ''  '' NOT NULL, '#13#10 +
           ' '#13#10 +
-          '  CONSTRAINT at_fk_namespace_sync_nsk '#13#10 +
-          '    FOREIGN KEY (namespacekey) REFERENCES at_namespace (id), '#13#10 +
           '  CONSTRAINT at_fk_namespace_sync_fn '#13#10 +
           '    FOREIGN KEY (filename) REFERENCES at_namespace_file (filename) '#13#10 +
           '      ON UPDATE CASCADE '#13#10 +
@@ -1577,6 +1575,8 @@ begin
           '  ON COMMIT DELETE ROWS;';
        q.ExecQuery;
       end;
+
+      DropConstraint2('AT_NAMESPACE_SYNC', 'AT_FK_NAMESPACE_SYNC_NSK', Tr);
 
       q.SQL.Text := 'GRANT ALL ON at_namespace_file TO administrator';
       q.SQL.Text := 'GRANT ALL ON at_namespace_file_link TO administrator';
@@ -1593,6 +1593,12 @@ begin
       q.SQL.Text :=
         'UPDATE OR INSERT INTO fin_versioninfo ' +
         '  VALUES (184, ''0000.0001.0000.0215'', ''02.09.2013'', ''Generator added.'') ' +
+        '  MATCHING (id)';
+      q.ExecQuery;
+
+      q.SQL.Text :=
+        'UPDATE OR INSERT INTO fin_versioninfo ' +
+        '  VALUES (185, ''0000.0001.0000.0216'', ''08.09.2013'', ''Drop constraint AT_FK_NAMESPACE_SYNC_NSK.'') ' +
         '  MATCHING (id)';
       q.ExecQuery;
 
