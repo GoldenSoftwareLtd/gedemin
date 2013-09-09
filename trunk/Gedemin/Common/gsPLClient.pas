@@ -6,20 +6,28 @@ uses
   Windows, Classes, SysUtils, swiprolog, IBDatabase, IBSQL, IBHeader, dbclient, DB;
 
 type
-  TTermv = record
+  TgsTermv = class(TObject)
+  private
+    function GetValue(const Idx: LongWord): Variant;
+    function GetDataType(const Idx: LongWord): Integer;
+  public
     Term: term_t;
     Size: LongWord;
+
+    constructor CreateTerm(const ASize: Integer);
+
+    property Value[const Idx: LongWord]: Variant read GetValue;
+    property DataType[const Idx: LongWord]: Integer read GetDataType;
   end;
 
   TgsPLQuery = class(TObject)
   private
     FQid: qid_t;
     FEof: Boolean;
-    FTermv: TTermv;
+    FTermv: TgsTermv;
     FPred: String;
 
     function GetEof: Boolean;
-    function GetDataType(const Idx: LongWord): Integer;
   public
     constructor Create;
     destructor Destroy; override;
@@ -30,32 +38,78 @@ type
 
     property Eof: Boolean read GetEof;
     property Pred: String read FPred write FPred;
-    property Termv: TTermv read FTermv write FTermv;
-    property VariableDataType[const Idx: LongWord]: Integer read GetDataType;
+    property Termv: TgsTermv read FTermv write FTermv; 
   end;
 
   TgsPLClient = class(TObject)
   private
     function GetArity(ASql: TIBSQL): Integer;
     procedure SetTerm(AField: TIBXSQLVAR; ATerm: term_t);
-    procedure Compound(const AFunctor: String; AGoal: term_t; ATermv: TTermv);
-    //function CreateTermRef: term_t;
-    //function CreateTermRefs(const ASize: Integer): TTermv;
+    procedure Compound(const AFunctor: String; AGoal: term_t; ATermv: TgsTermv);
     function CheckDataType(const AVariableType: Integer; const AField: TField): Boolean;
   public
     destructor Destroy; override;
      
-    function Call(const APredicateName: String; AParams: TTermv): Boolean; overload;
+    function Call(const APredicateName: String; AParams: TgsTermv): Boolean; overload;
     function Call(const AGoal: String): Boolean; overload;
     function Initialise{(AnArgc: Integer; AnArgv)}: Boolean;
     procedure MakePredicates(ASQL: String; ATr: TIBTransaction;
       APredName: String; AFileName: String);
     function CreateTermRef: term_t;
-    function CreateTermRefs(const ASize: Integer): TTermv;
-    procedure ExtractData(ADataSet: TClientDataSet; const APredicateName: String; ATermv: TTermV);
+    procedure ExtractData(ADataSet: TClientDataSet; const APredicateName: String; ATermv: TgsTermv);
   end;
 
-implementation  
+  EgsPLClientException = class(Exception);
+
+implementation
+
+constructor TgsTermv.CreateTerm(const ASize: Integer);
+begin
+  inherited Create;
+
+  Term := PL_new_term_refs(ASize);
+  Size := ASize;
+end;
+
+function TgsTermv.GetValue(const Idx: LongWord): Variant;
+var
+  I: Integer;
+  S: PChar;
+  D: Double;
+begin
+  Result := Unassigned;
+
+  case GetDataType(Idx) of
+    PL_INTEGER, PL_SHORT, PL_INT, PL_LONG:
+      if PL_get_integer(Term + Idx, I) <> 0 then
+        Result := I
+      else
+        raise EgsPLClientException.Create('Invalid sync type prolog and delphi!');
+    PL_ATOM, PL_STRING, PL_CHARS:
+     if PL_get_atom_chars(Term + Idx, S) <> 0 then
+       Result := String(S)
+     else
+       raise EgsPLClientException.Create('Invalid sync type prolog and delphi!');
+    PL_FLOAT, PL_DOUBLE:
+      if PL_get_float(Term + Idx, D) <> 0 then
+        Result := D
+      else
+        raise EgsPLClientException.Create('Invalid sync type prolog and delphi!');
+    PL_BOOL:
+      if PL_get_bool(Term + Idx, I) <> 0 then
+        Result := I
+      else  
+        raise EgsPLClientException.Create('Invalid sync type prolog and delphi!');
+  end;
+end;
+
+function TgsTermv.GetDataType(const Idx: LongWord): Integer;
+begin
+  if Idx >= Size then
+    raise EgsPLClientException.Create('Invalid index!');
+
+  Result := PL_term_type(Term + Idx);
+end;
 
 constructor TgsPLQuery.Create;
 begin
@@ -104,14 +158,6 @@ begin
   end;  
 end;
 
-function TgsPLQuery.GetDataType(const Idx: LongWord): Integer;
-begin
-  if Idx >= FTermv.Size then
-    raise Exception.Create('Invalid index!');
-
-  Result := PL_term_type(FTermv.Term + Idx);
-end;
-
 destructor TgsPLClient.Destroy;
 begin
   PL_cleanup(0);
@@ -137,15 +183,14 @@ begin
   end;
 end;
 
-procedure TgsPLClient.ExtractData(ADataSet: TClientDataSet; const APredicateName: String; ATermv: TTermV);
+procedure TgsPLClient.ExtractData(ADataSet: TClientDataSet; const APredicateName: String; ATermv: TgsTermv);
 var
   Query: TgsPLQuery;
   I: LongWord;
-  Y: Integer;
-  S: PChar;
-  D: Double;
+  V: Variant;
 begin
   Assert(ADataSet <> nil);
+  Assert(ATermv <> nil);
 
   Query := TgsPLQuery.Create;
   try
@@ -158,40 +203,15 @@ begin
       try
         for I := 0 to Query.Termv.Size - 1 do
         begin
-          if CheckDataType(Query.VariableDataType[I], ADataSet.Fields[I]) then
+          if CheckDataType(Query.Termv.DataType[I], ADataSet.Fields[I]) then
           begin
-            case Query.VariableDataType[I] of
-              PL_INTEGER, PL_SHORT, PL_INT, PL_LONG:
-              begin
-                if PL_get_integer(Query.Termv.Term + I, Y) <> 0 then
-                  ADataSet.Fields[I].AsInteger := Y
-                else
-                  raise Exception.Create('Error output value!')
-              end;
-              PL_ATOM, PL_STRING, PL_CHARS:
-              begin
-               if PL_get_atom_chars(Query.Termv.Term + I, S) <> 0 then
-                 ADataSet.Fields[I].AsString := S
-               else
-                raise Exception.Create('Error output value!');
-              end;  
-              PL_FLOAT, PL_DOUBLE:
-              begin
-                if PL_get_float(Query.Termv.Term + I, D) <> 0 then
-                  ADataSet.Fields[I].AsFloat := D
-                else
-                  raise Exception.Create('Error output value!');
-              end;
-              PL_BOOL:
-              begin
-                if PL_get_bool(Query.Termv.Term + I, Y) <> 0 then
-                  ADataSet.Fields[I].AsInteger := Y
-                else
-                  raise Exception.Create('Error output value!');
-              end;
-            end;
+            V := Query.Termv.Value[I];
+            if VarType(V) <> 0 then
+              ADataSet.Fields[I].AsVariant := V
+            else
+              raise EgsPLClientException.Create('Invalid type!')
           end else
-            raise Exception.Create('Error sync data type!');
+            raise EgsPLClientException.Create('Error sync data type!');
         end;
         ADataSet.Post;
       finally
@@ -199,7 +219,7 @@ begin
           ADataSet.Cancel;
       end;
       Query.Next;
-    end;  
+    end;
   finally
     Query.Free;
   end;
@@ -208,36 +228,34 @@ end;
 function TgsPLClient.CreateTermRef: term_t;
 begin
   Result := PL_new_term_ref;
-end;
-
-function TgsPLClient.CreateTermRefs(const ASize: Integer): TTermv;
-begin
-  Result.Term := PL_new_term_refs(ASize);
-  Result.Size := ASize;
-end;
+end;   
 
 function TgsPLClient.Call(const AGoal: String): Boolean;
 var
-  t: TTermv;
+  t: TgsTermv;
   Query: TgsPLQuery;
 begin
   Result := False;
-  t := CreateTermRefs(1);
-  if PL_chars_to_term(PChar(AGoal), t.Term) <> 0 then
-  begin
-    Query := TgsPLQuery.Create;
-    try
-      Query.Pred := 'call';
-      Query.Termv := t;
-      Query.ExecQuery; 
-      Result := not Query.Eof;
-    finally
-      Query.Free;
+  t := TgsTermv.CreateTerm(1);
+  try
+    if PL_chars_to_term(PChar(AGoal), t.Term) <> 0 then
+    begin
+      Query := TgsPLQuery.Create;
+      try
+        Query.Pred := 'call';
+        Query.Termv := t;
+        Query.ExecQuery;
+        Result := not Query.Eof;
+      finally
+        Query.Free;
+      end;
     end;
+  finally
+    t.Free;
   end;
 end;
 
-function TgsPLClient.Call(const APredicateName: String; AParams: TTermv): Boolean;
+function TgsPLClient.Call(const APredicateName: String; AParams: TgsTermv): Boolean;
 var
   Query: TgsPLQuery;
 begin
@@ -254,7 +272,7 @@ begin
   end;
 end;
 
-procedure TgsPLClient.Compound(const AFunctor: String; AGoal: term_t; ATermv: TTermv);
+procedure TgsPLClient.Compound(const AFunctor: String; AGoal: term_t; ATermv: TgsTermv);
 begin
   Assert(AFunctor > '');  
 
@@ -294,7 +312,7 @@ procedure TgsPLClient.MakePredicates(ASQL: String; ATr: TIBTransaction;
   APredName: String; AFileName: String);
 var
   q: TIBSQL;
-  Refs, Term: TTermv;
+  Refs, Term: TgsTermv;
   I: LongWord;
   Arity: Integer;
 begin
@@ -309,16 +327,21 @@ begin
 
     Arity := GetArity(q);
     if Arity > 0 then
-    begin
-      Refs := CreateTermRefs(Arity);
-      Term := CreateTermRefs(1);
-      while not q.Eof do
-      begin
-        for I := 0 to q.Current.Count - 1 do
-          SetTerm(q.Fields[I], Refs.Term + I);
-        Compound(APredName, Term.Term, Refs);
-        Call('assert', Term);
-        q.Next;
+    begin 
+      Refs := TgsTermv.CreateTerm(Arity);
+      Term := TgsTermv.CreateTerm(1);
+      try
+        while not q.Eof do
+        begin
+          for I := 0 to q.Current.Count - 1 do
+            SetTerm(q.Fields[I], Refs.Term + I);
+          Compound(APredName, Term.Term, Refs);
+          Call('assert', Term);
+          q.Next;
+        end;
+      finally
+        Refs.Free;
+        Term.Free;
       end;
     end;    
   finally
