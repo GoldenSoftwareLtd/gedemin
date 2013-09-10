@@ -52,16 +52,17 @@ type
      
     function Call(const APredicateName: String; AParams: TgsTermv): Boolean; overload;
     function Call(const AGoal: String): Boolean; overload;
-    function Initialise{(AnArgc: Integer; AnArgv)}: Boolean;
+    function Initialise(const AParams: array of string): Boolean;
     procedure MakePredicates(ASQL: String; ATr: TIBTransaction;
       APredName: String; AFileName: String);
+   // procedure MakePredicates2()
     function CreateTermRef: term_t;
     procedure ExtractData(ADataSet: TClientDataSet; const APredicateName: String; ATermv: TgsTermv);
   end;
 
   EgsPLClientException = class(Exception);
 
-implementation
+implementation       
 
 constructor TgsTermv.CreateTerm(const ASize: Integer);
 begin
@@ -188,6 +189,7 @@ var
   Query: TgsPLQuery;
   I: LongWord;
   V: Variant;
+  DT: TDateTime;
 begin
   Assert(ADataSet <> nil);
   Assert(ATermv <> nil);
@@ -203,13 +205,21 @@ begin
       try
         for I := 0 to Query.Termv.Size - 1 do
         begin
-          if CheckDataType(Query.Termv.DataType[I], ADataSet.Fields[I]) then
+          V := Query.Termv.Value[I];
+          if CheckDataType(Query.Termv.DataType[I], ADataSet.Fields[I])
+            and (VarType(V) <> 0) then
           begin
-            V := Query.Termv.Value[I];
-            if VarType(V) <> 0 then
-              ADataSet.Fields[I].AsVariant := V
-            else
-              raise EgsPLClientException.Create('Invalid type!')
+            if ADataSet.Fields[I].DataType in [ftDate, ftTime, ftDateTime] then
+            begin
+              try
+                DT := VarToDateTime(V);
+                ADataSet.Fields[I].AsDateTime := DT;
+              except
+                on E:Exception do
+                  raise EgsPLClientException.Create('Invalid TDateTime format!');
+              end;
+            end else
+              ADataSet.Fields[I].AsVariant := V;
           end else
             raise EgsPLClientException.Create('Error sync data type!');
         end;
@@ -296,14 +306,18 @@ begin
   end;
 end; 
 
-function TgsPLClient.Initialise: Boolean;
+function TgsPLClient.Initialise(const AParams: array of string): Boolean;
 var
-  Params: array [0..1] of PChar;
+  argv: array of PChar;
+  I: Integer;
 begin
-  Params[0] := 'libswipl.dll';
-  Params[1] := nil;
+  Assert(High(AParams) > -1);
   
-  Result := PL_initialise(1, Params) <> 0;
+  Setlength(argv, High(AParams) + 2);
+  for I := 0 to High(AParams) do
+    argv[I] := PChar(AParams[I]);
+  argv[High(argv)] := nil; 
+  Result := PL_initialise(High(argv), argv) <> 0;
   if not Result then
     PL_halt(1);
 end;
