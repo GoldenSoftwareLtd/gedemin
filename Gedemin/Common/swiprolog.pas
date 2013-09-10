@@ -270,7 +270,8 @@ function PL_get_head(l, h: term_t): Integer; cdecl; external 'libswipl.dll';
 function PL_get_tail(l, t: term_t): Integer; cdecl; external 'libswipl.dll';
 function PL_get_nil(l: term_t): Integer; cdecl; external 'libswipl.dll';
 function PL_get_term_value(t: term_t; var v: term_value_t): Integer; cdecl; external 'libswipl.dll';
-function PL_quote(chr: Integer; data: PChar): PChar; cdecl; external 'libswipl.dll'; 
+function PL_quote(chr: Integer; data: PChar): PChar; cdecl; external 'libswipl.dll';
+function PL_get_int64(t: term_t; var I64: Int64): Integer; cdecl; external 'libswipl.dll';
 
 // Verify types
 function PL_term_type(t: term_t): Integer; cdecl; external 'libswipl.dll';

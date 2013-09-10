@@ -3,20 +3,22 @@ unit gsPLClient;
 interface
 
 uses
-  Windows, Classes, SysUtils, swiprolog, IBDatabase, IBSQL, IBHeader, dbclient, DB;
+  Windows, Classes, SysUtils, swiprolog, IBDatabase, IBSQL, IBHeader, dbclient, DB,
+  gdcBase;
 
 type
   TgsTermv = class(TObject)
   private
     function GetValue(const Idx: LongWord): Variant;
     function GetDataType(const Idx: LongWord): Integer;
+    procedure SetValue(const Idx: LongWord; AValue: Variant);
   public
     Term: term_t;
     Size: LongWord;
 
-    constructor CreateTerm(const ASize: Integer);
+    constructor CreateTerm(const ASize: Integer); 
 
-    property Value[const Idx: LongWord]: Variant read GetValue;
+    property Value[const Idx: LongWord]: Variant read GetValue write SetValue;
     property DataType[const Idx: LongWord]: Integer read GetDataType;
   end;
 
@@ -44,18 +46,23 @@ type
   TgsPLClient = class(TObject)
   private
     function GetArity(ASql: TIBSQL): Integer;
-    procedure SetTerm(AField: TIBXSQLVAR; ATerm: term_t);
+    procedure SetTermValue(AField: TIBXSQLVAR; ATerm: term_t); overload;
+    procedure SetTermValue(AField: TField; ATerm: term_t); overload;
     procedure Compound(const AFunctor: String; AGoal: term_t; ATermv: TgsTermv);
     function CheckDataType(const AVariableType: Integer; const AField: TField): Boolean;
+
   public
     destructor Destroy; override;
      
     function Call(const APredicateName: String; AParams: TgsTermv): Boolean; overload;
     function Call(const AGoal: String): Boolean; overload;
     function Initialise(const AParams: array of string): Boolean;
-    procedure MakePredicates(ASQL: String; ATr: TIBTransaction;
-      APredName: String; AFileName: String);
-   // procedure MakePredicates2()
+    procedure MakePredicates(const ASQL: String; ATr: TIBTransaction;
+      const APredName: String; const AFileName: String); overload;
+    procedure MakePredicates(ADataSet: TDataSet; const APredName: String; const AFileName: String); overload;
+    procedure MakePredicates2(const AClassName: String; const ASubType: String; const ASubSet: String;
+      AParams: Variant; AnExtraConditions: TStringList; ATr: TIBTransaction; const APredName: String;
+      const AFileName: String);
     function CreateTermRef: term_t;
     procedure ExtractData(ADataSet: TClientDataSet; const APredicateName: String; ATermv: TgsTermv);
   end;
@@ -72,25 +79,36 @@ begin
   Size := ASize;
 end;
 
+procedure TgsTermv.SetValue(const Idx: LongWord; AValue: Variant);
+begin
+//
+end;
+
 function TgsTermv.GetValue(const Idx: LongWord): Variant;
 var
   I: Integer;
+  I64: Int64;
   S: PChar;
   D: Double;
 begin
   Result := Unassigned;
 
   case GetDataType(Idx) of
-    PL_INTEGER, PL_SHORT, PL_INT, PL_LONG:
+    PL_INTEGER, PL_SHORT, PL_INT:
       if PL_get_integer(Term + Idx, I) <> 0 then
         Result := I
       else
         raise EgsPLClientException.Create('Invalid sync type prolog and delphi!');
+    PL_LONG:
+      if PL_get_int64(Term + Idx, I64) <> 0 then
+        Result := IntToStr(I64)
+      else
+        raise EgsPLClientException.Create('Invalid sync type prolog and delphi!');
     PL_ATOM, PL_STRING, PL_CHARS:
-     if PL_get_atom_chars(Term + Idx, S) <> 0 then
-       Result := String(S)
-     else
-       raise EgsPLClientException.Create('Invalid sync type prolog and delphi!');
+      if PL_get_atom_chars(Term + Idx, S) <> 0 then
+        Result := String(S)
+      else
+        raise EgsPLClientException.Create('Invalid sync type prolog and delphi!');
     PL_FLOAT, PL_DOUBLE:
       if PL_get_float(Term + Idx, D) <> 0 then
         Result := D
@@ -154,9 +172,7 @@ end;
 procedure TgsPLQuery.Next;
 begin
   if not FEof then
-  begin
-    FEof := PL_next_solution(FQid) = 0;
-  end;  
+    FEof := PL_next_solution(FQid) = 0; 
 end;
 
 destructor TgsPLClient.Destroy;
@@ -171,8 +187,9 @@ begin
   Assert(AField <> nil); 
 
   case AVariableType of
-    PL_INTEGER, PL_SHORT, PL_INT, PL_LONG:
-      Result := AField.DataType in [ftSmallint, ftInteger, ftWord, ftLargeint];
+    PL_INTEGER, PL_SHORT, PL_INT:
+      Result := AField.DataType in [ftSmallint, ftInteger, ftWord];
+    PL_LONG: Result := AField.DataType = ftLargeint;
     PL_ATOM, PL_STRING, PL_CHARS:
       Result := AField.DataType in [ftString, ftMemo, ftWideString, ftDate, ftTime, ftDateTime];
     PL_FLOAT, PL_DOUBLE:
@@ -322,8 +339,15 @@ begin
     PL_halt(1);
 end;
 
-procedure TgsPLClient.MakePredicates(ASQL: String; ATr: TIBTransaction;
-  APredName: String; AFileName: String);
+procedure TgsPLClient.MakePredicates(ADataSet: TDataSet; const APredName: String;
+  const AFileName: String);
+begin
+  Assert(ADataSet <> nil);
+
+end;
+
+procedure TgsPLClient.MakePredicates(const ASQL: String; ATr: TIBTransaction;
+  const APredName: String; const AFileName: String);
 var
   q: TIBSQL;
   Refs, Term: TgsTermv;
@@ -341,14 +365,14 @@ begin
 
     Arity := GetArity(q);
     if Arity > 0 then
-    begin 
+    begin
       Refs := TgsTermv.CreateTerm(Arity);
       Term := TgsTermv.CreateTerm(1);
       try
         while not q.Eof do
         begin
           for I := 0 to q.Current.Count - 1 do
-            SetTerm(q.Fields[I], Refs.Term + I);
+            SetTermValue(q.Fields[I], Refs.Term + I);
           Compound(APredName, Term.Term, Refs);
           Call('assert', Term);
           q.Next;
@@ -363,7 +387,55 @@ begin
   end;
 end;
 
-procedure TgsPLClient.SetTerm(AField: TIBXSQLVAR; ATerm: term_t);
+procedure TgsPLClient.MakePredicates2(const AClassName: String; const ASubType: String; const ASubSet: String;
+  AParams: Variant; AnExtraConditions: TStringList; ATr: TIBTransaction; const APredName: String;
+  const AFileName: String);
+var
+  C: TPersistentClass;
+  Obj: TgdcBase;
+  I, Arity: Integer;
+  Refs, Term: TgsTermv;
+begin
+  Assert(ATr <> nil);
+  Assert(ATr.InTransaction);
+  Assert(AClassName > '');
+  Assert(ASubSet > '');
+  Assert(APredName > '');
+  Assert(VarIsArray(AParams));
+  Assert(VarArrayDimCount(AParams) = 1);
+
+  C := GetClass(AClassName);
+
+  if (C = nil) or (not C.InheritsFrom(TgdcBase)) then
+    raise EgsPLClientException.Create('Invalid class name ' + AClassName);
+
+  Obj := CgdcBase(C).Create(nil);
+  try
+    Obj.SubType := ASubType;
+    Obj.ReadTransaction := ATr;
+    Obj.Transaction := ATr;
+    if AnExtraConditions <> nil then
+      Obj.ExtraConditions := AnExtraConditions;
+    Obj.SubSet := ASubSet;
+    Obj.Prepare;
+
+    for I := VarArrayLowBound(AParams,  1) to VarArrayHighBound(AParams,  1) do
+    begin
+      Obj.Params[0].AsVariant := AParams[I];
+      Obj.Open;
+      while not Obj.Eof do
+      begin
+
+        Obj.Next;
+      end;
+      Obj.Close;
+    end;
+  finally
+    Obj.Free;
+  end;
+end;
+
+procedure TgsPLClient.SetTermValue(AField: TIBXSQLVAR; ATerm: term_t);
 begin
   Assert(AField <> nil);
 
@@ -386,6 +458,23 @@ begin
       PL_put_atom_chars(ATerm, PChar(FormatDateTime('yyyy-mm-dd hh:nn:ss', AField.AsDateTime)));
     SQL_TEXT, SQL_VARYING:
       PL_put_atom_chars(ATerm, PChar(AField.AsTrimString));
+  end;
+end;
+
+procedure TgsPLClient.SetTermValue(AField: TField; ATerm: term_t);
+begin
+  Assert(AField <> nil);
+
+  case AField.DataType of
+    ftSmallint, ftInteger, ftWord, ftBoolean:
+      PL_put_integer(ATerm, AField.AsInteger);
+    ftLargeint: PL_put_int64(ATerm, TLargeintField(AField).AsLargeInt);
+    ftFloat: PL_put_float(ATerm, AField.AsFloat);
+    ftCurrency: PL_put_float(ATerm, AField.AsCurrency);
+    ftString, ftMemo: PL_put_atom_chars(ATerm, PChar(AField.AsString));
+    ftDate: PL_put_atom_chars(ATerm, PChar(FormatDateTime('yyyy-mm-dd', AField.AsDateTime))); 
+    ftDateTime, ftTime: PL_put_atom_chars(ATerm,
+      PChar(FormatDateTime('yyyy-mm-dd hh:nn:ss', AField.AsDateTime))); 
   end;
 end;
 
