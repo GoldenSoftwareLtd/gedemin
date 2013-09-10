@@ -587,6 +587,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (185, '0000.0001.0000.0216', '08.09.2013', 'Drop constraint AT_FK_NAMESPACE_SYNC_NSK.');
 
+INSERT INTO fin_versioninfo
+  VALUES (186, '0000.0001.0000.0217', '10.09.2013', 'Drop constraint AT_FK_NAMESPACE_SYNC_NSK. Attempt #2.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id

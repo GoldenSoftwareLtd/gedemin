@@ -4,7 +4,7 @@ unit gdcNamespaceLoader;
 interface
 
 uses
-  Classes, Windows, Messages, Controls, SysUtils, DB, IBDatabase, IBSQL,
+  Classes, Windows, Messages, Forms, SysUtils, DB, IBDatabase, IBSQL,
   yaml_parser, gdcBaseInterface, gdcBase, gdcNamespace, JclStrHashMap;
 
 const
@@ -13,7 +13,7 @@ const
 type
   EgdcNamespaceLoader = class(Exception);
 
-  TgdcNamespaceLoaderNexus = class(TWinControl)
+  TgdcNamespaceLoaderNexus = class(TForm)
   private
     FList: TStringList;
     FAlwaysOverwrite: Boolean;
@@ -924,7 +924,7 @@ class procedure TgdcNamespaceLoader.LoadDelayed(AList: TStrings;
   const AnAlwaysOverwrite, ADontRemove: Boolean);
 begin
   if FNexus = nil then
-    FNexus := TgdcNamespaceLoaderNexus.Create(nil);
+    FNexus := TgdcNamespaceLoaderNexus.CreateNew(nil);
   FNexus.LoadNamespace(AList, AnAlwaysOverwrite, ADontRemove);
 end;
 

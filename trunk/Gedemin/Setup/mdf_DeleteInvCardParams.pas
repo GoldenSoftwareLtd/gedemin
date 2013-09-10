@@ -1578,8 +1578,17 @@ begin
 
       if ConstraintExist2('AT_NAMESPACE_SYNC', 'AT_FK_NAMESPACE_SYNC_NSK', Tr) then
       begin
-        Log('AT_FK_NAMESPACE_SYNC_NSK detected');
-        //DropConstraint2('AT_NAMESPACE_SYNC', 'AT_FK_NAMESPACE_SYNC_NSK', Tr);
+        q.Close;
+
+        q.SQL.Text := 'SELECT * FROM at_namespace';
+        q.ExecQuery;
+        q.Close;
+
+        q.SQL.Text := 'SELECT * FROM at_namespace_sync';
+        q.ExecQuery;
+        q.Close;
+
+        DropConstraint2('AT_NAMESPACE_SYNC', 'AT_FK_NAMESPACE_SYNC_NSK', Tr);
       end;
 
       q.SQL.Text := 'GRANT ALL ON at_namespace_file TO administrator';
@@ -1603,6 +1612,12 @@ begin
       q.SQL.Text :=
         'UPDATE OR INSERT INTO fin_versioninfo ' +
         '  VALUES (185, ''0000.0001.0000.0216'', ''08.09.2013'', ''Drop constraint AT_FK_NAMESPACE_SYNC_NSK.'') ' +
+        '  MATCHING (id)';
+      q.ExecQuery;
+
+      q.SQL.Text :=
+        'UPDATE OR INSERT INTO fin_versioninfo ' +
+        '  VALUES (186, ''0000.0001.0000.0217'', ''10.09.2013'', ''Drop constraint AT_FK_NAMESPACE_SYNC_NSK. Attempt #2.'') ' +
         '  MATCHING (id)';
       q.ExecQuery;
 

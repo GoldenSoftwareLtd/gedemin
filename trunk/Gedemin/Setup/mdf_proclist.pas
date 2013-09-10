@@ -355,7 +355,7 @@ const
     (ModifyProc: AddGdObjectDependencies; ModifyVersion: '0000.0001.0000.0210'; NeedDBShutdown: True),
     (ModifyProc: Issue1041; ModifyVersion: '0000.0001.0000.0211'; NeedDBShutdown: False),
     (ModifyProc: Issue3218; ModifyVersion: '0000.0001.0000.0212'; NeedDBShutdown: False),
-    (ModifyProc: AddNSSyncTables; ModifyVersion: '0000.0001.0000.0215'; NeedDBShutdown: True)
+    (ModifyProc: AddNSSyncTables; ModifyVersion: '0000.0001.0000.0216'; NeedDBShutdown: True)
   );
 
 implementation
