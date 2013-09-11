@@ -57,6 +57,7 @@ type
     procedure FuncTest(const AFuncName: String; const ATr: TIBTransaction);
 
     function CreateHIS(AnIndex: Integer): Integer;
+    function GetCountHIS(AnIndex: Integer): Integer;
     function DestroyHIS(AnIndex: Integer): Integer;
     function GetConnected: Boolean;
     // возвращает сгенерированный новый уникальный идентификатор
@@ -2198,6 +2199,36 @@ begin
   end;
 end;
 
+function TgsDBSqueeze.GetCountHIS(AnIndex: Integer): Integer;
+var
+  Tr: TIBTransaction;
+  q: TIBSQL;
+begin
+  Assert(Connected);
+  Result := -1;
+
+  Tr := TIBTransaction.Create(nil);
+  q := TIBSQL.Create(nil);
+  try
+    Tr.DefaultDatabase := FIBDatabase;
+    Tr.StartTransaction;
+    q.Transaction := Tr;
+
+    q.SQL.Text := Format(
+      'SELECT g_his_count(%d) FROM rdb$database', [AnIndex]);
+    ExecSqlLogEvent(q, 'GetCountHIS');
+
+    Result :=  q.Fields[0].AsInteger;
+    q.Close;
+
+    Tr.Commit;
+  finally
+    q.Free;
+    Tr.Free;  
+  end;
+end;
+
+
 function TgsDBSqueeze.DestroyHIS(AnIndex: Integer): Integer;
 var
   Tr: TIBTransaction;
@@ -2206,12 +2237,12 @@ begin
   Assert(Connected);
   Result := 0;
 
-  Tr := TIBTransaction.Create(nil);	
+  Tr := TIBTransaction.Create(nil);
   q := TIBSQL.Create(nil);
   try
     Tr.DefaultDatabase := FIBDatabase;
     Tr.StartTransaction;
-    q.Transaction := Tr; 
+    q.Transaction := Tr;
 
     q.SQL.Text := Format(
       'SELECT g_his_destroy(%d) FROM rdb$database', [AnIndex]);
@@ -2227,7 +2258,7 @@ begin
     else begin
       LogEvent(Format('Попытка разрушения HIS[%d] завершилась неудачей!', [AnIndex]));
                                                                                 ///TODO: exception
-    end;         
+    end;
   finally
     q.Free;
     Tr.Free;  
@@ -2328,7 +2359,7 @@ var
 
             ExecSqlLogEvent(q3, 'IncludeCascadingSequences');
 
-            Count := Count + q3.FieldByName('RealKolvo').AsInteger;
+            ///Count := Count + q3.FieldByName('RealKolvo').AsInteger;
 
             if q3.FieldByName('Kolvo').AsInteger <> 0 then
             begin
@@ -2354,8 +2385,8 @@ var
                           '  g_his_has(1, ' + q.FieldByName('list_fields').AsString + ') = 1 ' +
                           '  AND ' + q.FieldByName('pk_fields').AsString + ' > 147000000 ';          ///
                         ExecSqlLogEvent(q3, 'IncludeCascadingSequences');
-                      
-                        Count := Count + q3.FieldByName('RealKolvo').AsInteger;
+
+                        ///Count := Count + q3.FieldByName('RealKolvo').AsInteger;
                       until q3.FieldByName('RealKolvo').AsInteger = 0;     
 
                       GoToFirst := True;
@@ -2430,7 +2461,7 @@ var
         Tr2.Commit;
         Tr2.StartTransaction;
 
-        LogEvent('[test] COUNT ref real incuded: ' + IntToStr(Count));
+        LogEvent('COUNT with CASCADE ref: ' + IntToStr(GetCountHIS(1)));
 
         //------------------ исключение из HIS PK, на которые есть restrict/noAction
 
@@ -2474,7 +2505,7 @@ var
               '  g_his_has(2, ' + q.FieldByName('fk_field').AsString + ') = 1 ';
             //q2.ExecQuery;
             ExecSqlLogEvent(q2, 'IncludeCascadingSequences');
-            Count := Count - q2.FieldByName('Kolvo').AsInteger;
+            ///Count := Count - q2.FieldByName('Kolvo').AsInteger;
             q2.Close;
             q.Next;
           end;
@@ -2532,7 +2563,7 @@ var
             //q2.ExecQuery;
             ExecSqlLogEvent(q2, 'IncludeCascadingSequences');
 
-            Count := Count - q2.FieldByName('Kolvo').AsInteger;
+            ///Count := Count - q2.FieldByName('Kolvo').AsInteger;
 
             if q2.FieldByName('Kolvo').AsInteger > 0 then // есть смысл исключать по цепи
             begin
@@ -2589,7 +2620,7 @@ var
 
                       //q4.ExecQuery;
                       ExecSqlLogEvent(q4, 'IncludeCascadingSequences');
-                      Count := Count - q4.FieldByName('Kolvo').AsInteger;
+                      ///Count := Count - q4.FieldByName('Kolvo').AsInteger;
                       q4.Close;
 
                       if CascadeProcTbls.IndexOf(q2.FieldByName('ref_relation_name').AsString) = -1 then
@@ -2648,7 +2679,7 @@ var
                       'WHERE ' +
                       '  g_his_has(2, ' + q2.FieldByName('list_fields').AsString + ') = 1 ';
                     ExecSqlLogEvent(q4, 'IncludeCascadingSequences');
-                    Count := Count - q4.FieldByName('Kolvo').AsInteger;
+                    ///Count := Count - q4.FieldByName('Kolvo').AsInteger;
                     q4.Close;
 
                     q2.Next;
@@ -2680,7 +2711,7 @@ var
           TblsNamesList.Delete(0);
         end;
 
-        LogEvent('[test] COUNT HIS after exclude: ' + IntToStr(Count));
+        LogEvent('[test] COUNT HIS after exclude: ' + IntToStr(GetCountHIS(1)));
         Tr.Commit;
 
         DestroyHIS(2);
@@ -2694,7 +2725,7 @@ var
       end;
 
       LogEvent('Including cascading sequences in HIS... OK');
-      Result := Count;
+      ///Result := Count;
     finally
       CascadeProcTbls.Free;
       ProcTblsNamesList.Free;
@@ -2725,16 +2756,26 @@ begin
     LogEvent('Including PKs In HugeIntSet... ');
                                                                                  ///TODO: учесть компанию
     q.SQL.Text :=
-      'SELECT COUNT(g_his_include(1, id)) as Kolvo FROM gd_document WHERE documentdate < :Date';
+      'SELECT SUM(g_his_include(1, id)) AS Kolvo FROM gd_document WHERE documentdate < :Date';
     q.ParamByName('Date').AsDateTime := FClosingDate;
     ExecSqlLogEvent(q, 'CreateHIS_IncludeInHIS', 'Date=' + DateTimeToStr(FClosingDate));
 
-    Count := q.FieldByName('Kolvo').AsInteger;
+    LogEvent(Format('COUNT in HIS without cascade: %d', [q.FieldByName('Kolvo').AsInteger]));
     q.Close;
 
-    LogEvent(Format('COUNT in HIS without cascade: %d', [Count]));
     IncludeCascadingSequences('GD_DOCUMENT');
-    LogEvent(Format('COUNT in HIS with CASCADE: %d', [Count]));
+
+    LogEvent(Format('COUNT in HIS with CASCADE: %d', [GetCountHIS(1)]));
+
+
+    q.SQL.Text :=
+      'SELECT COUNT(id) AS Kolvo FROM gd_document WHERE (documentdate < :Date) AND g_his_has(1, id) = 1';
+    q.ParamByName('Date').AsDateTime := FClosingDate;
+    ExecSqlLogEvent(q, 'CreateHIS_IncludeInHIS', 'Date=' + DateTimeToStr(FClosingDate));
+
+    LogEvent(Format('COUNT DOCS in HIS: %d', [q.FieldByName('Kolvo').AsInteger]));
+    q.Close;
+
 
     Tr.Commit;
     LogEvent('Including PKs In HugeIntSet... OK');
@@ -2761,17 +2802,34 @@ begin
 
     LogEvent('Deleting from DB... ');
                                                                                 ///TODO: проверить можно ли в HIS добавить id < 147000000
-    q.SQL.Text :=
+{    q.SQL.Text :=
       'SELECT ' +
-      ''' DELETE FROM '' || relation_name || ' +
-      ''' WHERE  (g_his_has(1, '' || list_fields  || '') = 1) ' +    /////(relation_name NOT LIKE ''''DBS_%'''') ' +  '     AND
-      '     AND ('' || list_fields || '' > 147000000) '' ' +
-      'FROM ' + 
+      ' '' DELETE FROM '' || relation_name || ' +
+      ' '' WHERE (g_his_has(1, '' || list_fields  || '') = 1) ' +    /////(relation_name NOT LIKE ''''DBS_%'''') ' +  '     AND
+      '      AND ('' || list_fields || '' > 147000000) '' ' +
+      'FROM ' +
       '  DBS_SUITABLE_TABLES ';
-    ExecSqlLogEvent(q, 'DeleteDocuments_DeleteHIS');
+    ExecSqlLogEvent(q, 'DeleteDocuments_DeleteHIS');   }
 
-    Tr.Commit;
-    Tr.StartTransaction;
+    q.SQL.Text :=
+      'EXECUTE BLOCK ' +
+      '  RETURNS(S VARCHAR(16384)) ' +
+      'AS ' +
+      'BEGIN ' +
+      '  FOR ' +
+      '    SELECT ' +
+      '    '' DELETE FROM '' || relation_name || ' +
+      '    '' WHERE (g_his_has(1, '' || list_fields  || '') = 1) ' +    /////(relation_name NOT LIKE ''''DBS_%'''') ' +  '     AND
+      '      AND ('' || list_fields || '' > 147000000) '' ' +
+      '    FROM ' +
+      '      DBS_SUITABLE_TABLES ' +
+      '    INTO :S ' +
+      '  DO BEGIN ' +
+      '    SUSPEND; ' +
+      '    EXECUTE STATEMENT :S WITH AUTONOMOUS TRANSACTION;' +
+      '  END ' +
+      'END';
+    ExecSqlLogEvent(q, 'DeleteDocuments_DeleteHIS');
 
     DestroyHIS(1);
     DestroyHIS(0);
@@ -3418,7 +3476,8 @@ begin
       q.SQL.Add('(0, 0)')
     else if (AnsiUpperCase(Trim(AFuncName)) = 'G_HIS_INCLUDE') or
       (AnsiUpperCase(Trim(AFuncName)) = 'G_HIS_EXCLUDE') or
-      (AnsiUpperCase(Trim(AFuncName)) = 'G_HIS_HAS') then
+      (AnsiUpperCase(Trim(AFuncName)) = 'G_HIS_HAS') or
+      (AnsiUpperCase(Trim(AFuncName)) = 'G_HIS_COUNT')  then
        q.SQL.Add('(1, 0)')
     else if (AnsiUpperCase(Trim(AFuncName)) = 'G_HIS_DESTROY') then
       q.SQL.Add('(0)');
@@ -3747,6 +3806,21 @@ var
           'ENTRY_POINT ''g_his_has'' MODULE_NAME ''gudf'' ';
         ExecSqlLogEvent(q, 'CreateUDFs');
         LogEvent('Function g_his_has has been declared.');
+      end;
+
+      if FunctionExist2('G_HIS_COUNT', Tr) then
+      begin
+        FuncTest('G_HIS_COUNT', Tr);
+        LogEvent('Function g_his_count exists.');
+      end
+      else begin
+        q.SQL.Text :=
+          'DECLARE EXTERNAL FUNCTION G_HIS_COUNT ' +
+          ' INTEGER ' +
+          'RETURNS INTEGER BY VALUE ' +
+          'ENTRY_POINT ''g_his_count'' MODULE_NAME ''gudf'' ';
+        ExecSqlLogEvent(q, 'CreateUDFs');
+        LogEvent('Function g_his_count has been declared.');
       end;
 
       if FunctionExist2('G_HIS_EXCLUDE', Tr) then
