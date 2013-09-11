@@ -16,6 +16,8 @@ type
     FData: PgsHugeByteArr;
     FSize: Integer;
 
+    FCount: Integer;       /// количество элементов во множестве
+
   public
     constructor Create;
     destructor Destroy; override;
@@ -24,6 +26,8 @@ type
     procedure Exclude(const AnItem: Integer);
     function Has(const AnItem: Integer): Boolean;
     procedure Clear;
+
+    property Count: Integer read FCount;
   end;
 
   TgsIntArr = array[0..0] of Integer;
@@ -58,6 +62,7 @@ begin
   inherited Create;
   FSize := High(Integer) div 8;
   FData := AllocMem(FSize);
+  FCount := 0;
 end;
 
 procedure TgsHugeIntSet.Include(const AnItem: Integer);
@@ -68,6 +73,7 @@ begin
     raise EgsHugeIntSet.Create('Negative id is not supported');
   Idx := AnItem div 8;
   FData^[Idx] := FData^[Idx] or BitMaskArr[AnItem mod 8];
+  Inc(FCount);                                                                  ///
 end;
 
 procedure TgsHugeIntSet.Exclude(const AnItem: Integer);
@@ -78,6 +84,7 @@ begin
     raise EgsHugeIntSet.Create('Negative id is not supported');
   Idx := AnItem div 8;
   FData^[Idx] := FData^[Idx] and (not BitMaskArr[AnItem mod 8]);
+  Dec(FCount);                                                                  ///
 end;
 
 function TgsHugeIntSet.Has(const AnItem: Integer): Boolean;
