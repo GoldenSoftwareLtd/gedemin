@@ -707,6 +707,21 @@ begin
       qList.Next;
     end;
 
+    q.SQL.Text :=
+      'DELETE FROM at_object ' +
+      'WHERE id IN ( ' +
+      '  SELECT o.id FROM at_object o ' +
+      '    LEFT JOIN gd_ruid r ON r.xid = o.xid AND r.dbid = o.dbid ' +
+      '  WHERE r.xid IS NULL';
+    if ANamespaceKey > -1 then
+    begin
+      q.SQL.Text := q.SQL.Text +
+        ' AND o.namespacekey = :nk)';
+      q.ParamByName('nk').AsInteger := ANamespaceKey;
+    end else
+      q.SQL.Text := q.SQL.Text + ')';
+    q.ExecQuery;
+
     Tr.Commit;
   finally
     q.Free;

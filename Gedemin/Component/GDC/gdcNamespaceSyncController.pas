@@ -27,6 +27,7 @@ type
     Fq: TIBSQL;
     FqUpdateOperation: TIBSQL;
     FqDependentList: TIBSQL;
+    FqUsesList: TIBSQL;
 
     procedure Init;
     procedure DoLog(const AMessage: String);
@@ -307,6 +308,7 @@ end;
 
 destructor TgdcNamespaceSyncController.Destroy;
 begin
+  FqUsesList.Free;
   FqDependentList.Free;
   FqUpdateOperation.Free;
   Fq.Free;
@@ -622,6 +624,51 @@ begin
     '  1 '#13#10 +
     'ORDER BY '#13#10 +
     '  2';
+
+  FqUsesList := TIBSQL.Create(nil);
+  FqUsesList.Transaction := FTr;
+  FqUsesList.SQL.Text :=
+    'WITH RECURSIVE '#13#10 +
+    '  ns_tree AS ( '#13#10 +
+    '    SELECT '#13#10 +
+    '      f.filename, '#13#10 +
+    '      CAST((f.xid || ''_'' || f.dbid) AS VARCHAR(1024)) AS path, '#13#10 +
+    '      l2.uses_xid, '#13#10 +
+    '      l2.uses_dbid '#13#10 +
+    '    FROM '#13#10 +
+    '      at_namespace_file f '#13#10 +
+    '      JOIN at_namespace_file_link l '#13#10 +
+    '        ON l.uses_xid = f.xid AND l.uses_dbid = f.dbid '#13#10 +
+    '      LEFT JOIN at_namespace_file_link l2 '#13#10 +
+    '        ON l2.filename = f.filename '#13#10 +
+    '    WHERE '#13#10 +
+    '      l.filename = :filename '#13#10 +
+    '         '#13#10 +
+    '    UNION ALL '#13#10 +
+    '     '#13#10 +
+    '    SELECT '#13#10 +
+    '      f.filename, '#13#10 +
+    '      (t.path || ''-'' || f.xid || ''_'' || f.dbid) '#13#10 +
+    '        AS path, '#13#10 +
+    '      l.uses_xid, '#13#10 +
+    '      l.uses_dbid '#13#10 +
+    '    FROM '#13#10 +
+    '      ns_tree t '#13#10 +
+    '      JOIN at_namespace_file f '#13#10 +
+    '        ON t.uses_xid = f.xid AND t.uses_dbid = f.dbid '#13#10 +
+    '      JOIN at_namespace_file_link l '#13#10 +
+    '        ON l.filename = f.filename '#13#10 +
+    '    WHERE '#13#10 +
+    '      POSITION ((f.xid || ''_'' || f.dbid) '#13#10 +
+    '        IN t.path) = 0) '#13#10 +
+    'SELECT '#13#10 +
+    '  t.filename, s.namespacekey '#13#10 +
+    'FROM '#13#10 +
+    '  ns_tree t '#13#10 +
+    '  JOIN at_namespace_sync s ON t.filename = s.filename '#13#10 +
+    'WHERE '#13#10 +
+    '  t.filename <> :filename AND ' +
+    '  s.operation IN (''  '', ''? '') ';
 end;
 
 procedure TgdcNamespaceSyncController.Scan;
@@ -701,8 +748,27 @@ begin
       FqUpdateOperation.ParamByName('op').AsString := '> '
     else
       FqUpdateOperation.ParamByName('op').AsString := AnOp;
-      
+
     FqUpdateOperation.ExecQuery;
+
+    if AnOp = '<<' then
+    begin
+      FqUsesList.ParamByName('filename').AsString := FDataSet.FieldByName('filename').AsString;
+      FqUsesList.ExecQuery;
+      while not FqUsesList.EOF do
+      begin
+        if FqUsesList.FieldByName('namespacekey').IsNull then
+          FqUpdateOperation.ParamByName('op').AsString := '< '
+        else
+          FqUpdateOperation.ParamByName('op').AsString := '<<';
+        FqUpdateOperation.ParamByName('nk').Clear;
+        FqUpdateOperation.ParamByName('fn').AsString := FqUsesList.FieldByName('filename').AsString;
+        FqUpdateOperation.ExecQuery;
+        
+        FqUsesList.Next;
+      end;
+      FqUsesList.Close;
+    end;
   end;
 end;
 

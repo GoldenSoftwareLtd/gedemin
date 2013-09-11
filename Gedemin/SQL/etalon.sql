@@ -9,7 +9,7 @@ DEFAULT CHARACTER SET WIN1251;
 /****************************************************/
 /**                                                **/
 /**   Gedemin project                              **/
-/**   Copyright (c) 1999-2012 by                   **/
+/**   Copyright (c) 1999-2013 by                   **/
 /**   Golden Software of Belarus, Ltd              **/
 /**                                                **/
 /****************************************************/
@@ -1390,6 +1390,12 @@ INSERT INTO fin_versioninfo
 
 INSERT INTO fin_versioninfo
   VALUES (184, '0000.0001.0000.0215', '02.09.2013', 'Generator added.');
+
+INSERT INTO fin_versioninfo
+  VALUES (185, '0000.0001.0000.0216', '08.09.2013', 'Drop constraint AT_FK_NAMESPACE_SYNC_NSK.');
+
+INSERT INTO fin_versioninfo
+  VALUES (186, '0000.0001.0000.0217', '10.09.2013', 'Drop constraint AT_FK_NAMESPACE_SYNC_NSK. Attempt #2.');
 
 COMMIT;
 

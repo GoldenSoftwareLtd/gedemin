@@ -412,7 +412,6 @@ begin
 
         if Mapping.FindByName('Objects') is TYAMLSequence then
         begin
-          FgdcNamespaceObject.Open;
           Objects := Mapping.FindByName('Objects') as TYAMLSequence;
 
           for J := 0 to Objects.Count - 1 do
@@ -438,6 +437,9 @@ begin
 
         if Mapping.FindByName('Uses') is TYAMLSequence then
           UpdateUses(Mapping.FindByName('Uses') as TYAMLSequence, FgdcNamespace);
+
+        if FgdcNamespaceObject.Active then
+          FgdcNamespaceObject.Close;
 
         FTr.Commit;
 
@@ -570,7 +572,10 @@ begin
       end else
         Obj.Edit;
     end else
+    begin
+      Obj.Open;
       Obj.Insert;
+    end;
 
     if (Obj.State = dsEdit)
       and (AtObjectRecord <> nil)
@@ -602,6 +607,8 @@ begin
       CopySetAttributes(Obj, ObjID, AMapping.FindByName('Set') as TYAMLSequence);
   end;
 
+  if not FgdcNamespaceObject.Active then
+    FgdcNamespaceObject.Open;
   FgdcNamespaceObject.Insert;
   FgdcNamespaceObject.FieldByName('namespacekey').AsInteger := FgdcNamespace.ID;
   FgdcNamespaceObject.FieldByName('objectname').AsString := ObjName;
@@ -904,7 +911,8 @@ begin
       end;
   finally
     gdcBaseManager.Database.Connected := True;
-    gdcBaseManager.ReadTransaction.StartTransaction;
+    if not gdcBaseManager.ReadTransaction.InTransaction then
+      gdcBaseManager.ReadTransaction.StartTransaction;
     FTr.StartTransaction;
   end;
 
