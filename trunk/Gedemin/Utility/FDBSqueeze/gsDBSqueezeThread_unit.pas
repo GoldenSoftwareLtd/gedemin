@@ -787,7 +787,7 @@ begin
        // if FConnected.Value = 1 then
       //  begin
           FDBS.Disconnect;
-      //    FConnected.Value := 0;
+          FConnected.Value := 0;
 
           FState.Value := 1;
        // end;
