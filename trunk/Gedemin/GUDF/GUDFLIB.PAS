@@ -1238,6 +1238,15 @@ function g_his_count(var AnIndex: Integer): Integer;
   cdecl; export;
 begin
   Result := 0;
+  csHugeIntSet.Enter;
+  try
+    if (AnIndex >= 0) and (AnIndex < HugeIntSetMaxCount)
+      and (arrHugeIntSet[AnIndex] <> nil) then
+      Result := arrHugeIntSet[AnIndex].Count;
+  finally
+    csHugeIntSet.Leave;
+  end;
+
 end;
 
 function g_his_destroy(var AnIndex: Integer): Integer;
