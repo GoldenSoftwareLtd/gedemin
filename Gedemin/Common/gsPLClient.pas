@@ -440,7 +440,6 @@ begin
       end;
       Compound(APredName, Term.Term[0], Refs);
       Call('assert', Term);
-      Inc(Idx);
       ADataSet.Next;
     end;
   finally
