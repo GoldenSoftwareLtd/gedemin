@@ -558,7 +558,7 @@ var
   F: Double;
   Tag: AnsiString;
   B: Boolean;
-  I, J, DotCount, SignCount, DigCount, SpaceCount, OtherCount: Integer;
+  I, J, Len, DotCount, SignCount, ECount, DigCount, SpaceCount, OtherCount: Integer;
   I64: Int64;
   C: Currency;
 begin
@@ -580,24 +580,28 @@ begin
         else if Scanner.Scalar = '~' then
           Result := TyamlNull.Create
         else begin
+          Len := Length(Scanner.Scalar);
           DotCount := 0;
           SignCount := 0;
           DigCount := 0;
           SpaceCount := 0;
           OtherCount := 0;
+          ECount := 0;
 
-          for J := 1 to Length(Scanner.Scalar) do
+          for J := 1 to Len do
             case Scanner.Scalar[J] of
               '.': Inc(DotCount);
               '-', '+': Inc(SignCount);
               '0'..'9': Inc(DigCount);
               #32, #9: Inc(SpaceCount);
+              'e', 'E': Inc(ECount);
             else
               Inc(OtherCount);
             end;
 
           if (DigCount > 0)
             and (OtherCount = 0)
+            and (ECount = 0)
             and (SignCount <= 1)
             and (DotCount = 0)
             and (SpaceCount = 0)
@@ -605,6 +609,7 @@ begin
             Result := TyamlInteger.CreateInteger(I)
           else if (DigCount > 0)
             and (OtherCount = 0)
+            and (ECount = 0)
             and (SignCount <= 1)
             and (DotCount = 0)
             and (SpaceCount = 0)
@@ -612,21 +617,23 @@ begin
             Result := TyamlInt64.CreateInt64(I64)
           else if (DigCount > 0)
             and (OtherCount = 0)
+            and (ECount = 0)
             and (SignCount <= 1)
             and (DotCount <= 1)
             and (SpaceCount = 0)
             and ConvertToCurrency(Scanner.Scalar, C) then
             Result := TyamlCurrency.CreateCurrency(C)
           else if (DigCount > 0)
-            and (OtherCount <= 1)
+            and (OtherCount = 0)
+            and (ECount <= 1)
             and (SignCount <= 2)
             and (DotCount <= 1)
             and (SpaceCount = 0)
             and ConvertToFloat(Scanner.Scalar, F) then
             Result := TyamlFloat.CreateFloat(F)
           else if (DigCount = 0)
-            and (OtherCount <= 5)
-            and (OtherCount >= 4)
+            and (Len <= 5)
+            and (Len >= 4)
             and (SignCount = 0)
             and (DotCount = 0)
             and (SpaceCount = 0)
@@ -634,6 +641,7 @@ begin
             Result := TyamlBoolean.CreateBoolean(B)
           else if (DigCount > 0)
             and (OtherCount = 0)
+            and (ECount = 0)
             and (SignCount = 2)
             and (DotCount = 0)
             and (SpaceCount = 0)
@@ -641,6 +649,7 @@ begin
             Result := TyamlDate.CreateDate(DT)
           else if (DigCount > 0)
             and (OtherCount > 0)
+            and (ECount = 0)
             and (SignCount > 0)
             and (DotCount >= 0)
             and (SpaceCount = 0)

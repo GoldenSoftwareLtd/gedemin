@@ -179,7 +179,7 @@ begin
     Result := inherited CheckTheSameStatement
   else
     Result := 'SELECT id FROM gd_curr WHERE UPPER(name) = UPPER(''' +
-       StringReplace(FieldByName('name').AsString, '''', '''''', [rfReplaceAll]) + ''' ';
+       StringReplace(FieldByName('name').AsString, '''', '''''', [rfReplaceAll]) + ''') ';
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCCURR', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally

@@ -219,7 +219,7 @@ begin
     Result := inherited CheckTheSameStatement
   else
     Result := 'SELECT id FROM gd_command WHERE UPPER(cmd) = UPPER(''' +
-      StringReplace(FieldByName('cmd').AsString, '''', '''''', [rfReplaceAll]) + ''' ';
+      StringReplace(FieldByName('cmd').AsString, '''', '''''', [rfReplaceAll]) + ''') ';
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCEXPLORER', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally

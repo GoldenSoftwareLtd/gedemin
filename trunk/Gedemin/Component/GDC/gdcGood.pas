@@ -131,11 +131,6 @@ type
 
   public
     constructor Create(AnOwner: TComponent); override;
-             { TODO : Сделать функция с параметром код товара }
-    function GetTaxRate(const TaxKey: Integer; const ForDate: TDateTime): Currency;
-    function GetTaxRateOnName(const TaxName: String; const ForDate: TDateTime): Currency;
-    function GetTaxRateByID(const aID: Integer; const TaxKey: Integer; const ForDate: TDateTime): Currency;
-    function GetTaxRateOnNameByID(const aID: Integer; const TaxName: String; const ForDate: TDateTime): Currency;
 
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
@@ -143,11 +138,15 @@ type
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetSubSetList: String; override;
     class function GetChildrenClass(CL: TClassList): Boolean; override;
-
-    property GroupKey: Integer read FGroupKey write FGroupKey;
-
     class function GetDisplayName(const ASubType: TgdcSubType): String; override;
 
+    function GetTaxRate(const TaxKey: Integer; const ForDate: TDateTime): Currency;
+    function GetTaxRateOnName(const TaxName: String; const ForDate: TDateTime): Currency;
+    function GetTaxRateByID(const aID: Integer; const TaxKey: Integer; const ForDate: TDateTime): Currency;
+    function GetTaxRateOnNameByID(const aID: Integer; const TaxName: String; const ForDate: TDateTime): Currency;
+    function CheckTheSameStatement: String; override;
+
+    property GroupKey: Integer read FGroupKey write FGroupKey;
   end;
 
   TgdcSelectedGood = class(TgdcGood)
@@ -284,22 +283,12 @@ begin
   {END MACRO}
 
   if State = dsInactive then
-    Result :=
-      'SELECT id FROM gd_good ' +
-      'WHERE ' +
-      '  (:barcode IS NOT NULL AND :barcode = barcode) ' +
-      '  OR ' +
-      '  (:barcode IS NULL AND barcode IS NULL AND UPPER(name)=UPPER(:name))'
+    Result := 'SELECT id FROM gd_tax WHERE UPPER(name)=UPPER(:name)'
   else if ID < cstUserIDStart then
     Result := inherited CheckTheSameStatement
-  else if FieldByName('barcode').IsNull then
-    Result := Format('SELECT id FROM gd_good WHERE UPPER(name)=UPPER(''%s'') ',
-      [StringReplace(FieldByName('name').AsString, '''', '''''', [rfReplaceAll])])
   else
-    Result := Format('SELECT id FROM gd_good WHERE UPPER(name)=UPPER(''%s'') ' +
-      'AND barcode=''%s'' ',
-      [StringReplace(FieldByName('name').AsString, '''', '''''', [rfReplaceAll]),
-       StringReplace(FieldByName('barcode').AsString, '''', '''''', [rfReplaceAll])]);
+    Result := Format('SELECT id FROM gd_tax WHERE UPPER(name)=UPPER(''%s'') ',
+      [StringReplace(FieldByName('name').AsString, '''', '''''', [rfReplaceAll])]);
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCTAX', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally
@@ -307,7 +296,6 @@ begin
   {M}      ClearMacrosStack2('TGDCTAX', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT);
   {M}  end;
   {END MACRO}
-
 end;
 
 class function TgdcTax.GetDialogFormClassName(
@@ -879,6 +867,70 @@ begin
   begin
     CL.Remove(TgdcSelectedGood);
   end;
+end;
+
+function TgdcGood.CheckTheSameStatement: String;
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+begin
+  {@UNFOLD MACRO INH_ORIG_CHECKTHESAMESTATEMENT('TGDCGOOD', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCGOOD', KEYCHECKTHESAMESTATEMENT);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCHECKTHESAMESTATEMENT]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCGOOD') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCGOOD',
+  {M}          'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT, Params, LResult) then
+  {M}          begin
+  {M}            if (VarType(LResult) = varOleStr) or (VarType(LResult) = varString) then
+  {M}              Result := String(LResult)
+  {M}            else
+  {M}              begin
+  {M}                raise Exception.Create('Для метода ''' + 'CHECKTHESAMESTATEMENT' + ' ''' +
+  {M}                  ' класса ' + Self.ClassName + TgdcBase(Self).SubType + #10#13 +
+  {M}                  'Из макроса возвращен не строковый тип');
+  {M}              end;
+  {M}            exit;
+  {M}          end;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCGOOD' then
+  {M}        begin
+  {M}          Result := Inherited CheckTheSameStatement;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  if State = dsInactive then
+    Result :=
+      'SELECT id FROM gd_good ' +
+      'WHERE ' +
+      '  (COALESCE(:barcode, '''') > '''' AND :barcode = barcode) ' +
+      '  OR ' +
+      '  (COALESCE(:barcode, '''') = COALESCE(barcode, '''') AND UPPER(name)=UPPER(:name))'
+  else if ID < cstUserIDStart then
+    Result := inherited CheckTheSameStatement
+  else if FieldByName('barcode').IsNull then
+    Result := Format('SELECT id FROM gd_good WHERE UPPER(name)=UPPER(''%s'') AND barcode IS NULL',
+      [StringReplace(FieldByName('name').AsString, '''', '''''', [rfReplaceAll])])
+  else
+    Result := Format('SELECT id FROM gd_good WHERE UPPER(name)=UPPER(''%s'') ' +
+      'AND barcode=''%s'' ',
+      [StringReplace(FieldByName('name').AsString, '''', '''''', [rfReplaceAll]),
+       StringReplace(FieldByName('barcode').AsString, '''', '''''', [rfReplaceAll])]);
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCGOOD', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCGOOD', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT);
+  {M}  end;
+  {END MACRO}
 end;
 
 { TgdcSelectedGood }
