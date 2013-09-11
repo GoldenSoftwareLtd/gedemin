@@ -11,14 +11,19 @@ type
   private
     function GetValue(const Idx: LongWord): Variant;
     function GetDataType(const Idx: LongWord): Integer;
-    procedure SetValue(const Idx: LongWord; AValue: Variant);
+    function GetTerm(const Idx: LongWord): term_t;  
   public
     Term: term_t;
     Size: LongWord;
+    constructor CreateTerm(const ASize: Integer);
+    procedure SetInteger(const Idx: LongWord; const AValue: Integer);
+    procedure SetString(const Idx: LongWord; const AValue: String);
+    procedure SetFloat(const Idx: LongWord; const AValue: Double);
+    procedure SetDateTime(const Idx: LongWord; const AValue: TDateTime);
+    procedure SetDate(const Idx: LongWord; const AValue: TDateTime);
+    procedure SetInt64(const Idx: LongWord; const AValue: Int64);
 
-    constructor CreateTerm(const ASize: Integer); 
-
-    property Value[const Idx: LongWord]: Variant read GetValue write SetValue;
+    property Value[const Idx: LongWord]: Variant read GetValue;
     property DataType[const Idx: LongWord]: Integer read GetDataType;
   end;
 
@@ -45,9 +50,8 @@ type
 
   TgsPLClient = class(TObject)
   private
-    function GetArity(ASql: TIBSQL): Integer;
-    procedure SetTermValue(AField: TIBXSQLVAR; ATerm: term_t); overload;
-    procedure SetTermValue(AField: TField; ATerm: term_t); overload;
+    function GetArity(ASql: TIBSQL): Integer; overload;
+    function GetArity(AnObj: TgdcBase): Integer; overload;
     procedure Compound(const AFunctor: String; AGoal: term_t; ATermv: TgsTermv);
     function CheckDataType(const AVariableType: Integer; const AField: TField): Boolean;
 
@@ -79,10 +83,43 @@ begin
   Size := ASize;
 end;
 
-procedure TgsTermv.SetValue(const Idx: LongWord; AValue: Variant);
+function TgsTermv.GetTerm(const Idx: LongWord): term_t;
 begin
-//
+  if Idx >= Size then
+    raise EgsPLClientException.Create('Invalid index!');
+
+  Result := Term + Idx;
 end;
+
+procedure TgsTermv.SetInteger(const Idx: LongWord; const AValue: Integer);
+begin
+  PL_put_integer(GetTerm(Idx), AValue);
+end;
+
+procedure TgsTermv.SetString(const Idx: LongWord; const AValue: String);
+begin
+  PL_put_atom_chars(GetTerm(Idx), PChar(AValue));
+end;
+
+procedure TgsTermv.SetFloat(const Idx: LongWord; const AValue: Double);
+begin
+  PL_put_float(GetTerm(Idx), AValue);
+end;
+
+procedure TgsTermv.SetDateTime(const Idx: LongWord; const AValue: TDateTime);
+begin
+  PL_put_atom_chars(GetTerm(Idx), PChar(FormatDateTime('yyyy-mm-dd hh:nn:ss', AValue)));
+end;
+
+procedure TgsTermv.SetDate(const Idx: LongWord; const AValue: TDateTime);
+begin
+  PL_put_atom_chars(GetTerm(Idx), PChar(FormatDateTime('yyyy-mm-dd', AValue)));
+end;
+
+procedure TgsTermv.SetInt64(const Idx: LongWord; const AValue: Int64);
+begin
+  PL_put_int64(GetTerm(Idx), AValue);
+end;      
 
 function TgsTermv.GetValue(const Idx: LongWord): Variant;
 var
@@ -321,7 +358,24 @@ begin
       SQL_TYPE_DATE, SQL_INT64, SQL_Text, SQL_VARYING: Inc(Result);
     end; 
   end;
-end; 
+end;
+
+function TgsPLClient.GetArity(AnObj: TgdcBase): Integer;
+var
+  I: Integer;
+begin
+  Assert(AnObj <> nil);
+  Result := 0;
+
+  for I := 0 to AnObj.Fields.Count - 1 do
+  begin
+    case AnObj.Fields[I].DataType of
+      ftString, ftSmallint, ftInteger, ftWord,
+      ftBoolean, ftFloat, ftCurrency, ftDate, ftTime, ftDateTime,
+      ftMemo, ftLargeint: Inc(Result); 
+    end;
+  end;
+end;
 
 function TgsPLClient.Initialise(const AParams: array of string): Boolean;
 var
@@ -372,7 +426,28 @@ begin
         while not q.Eof do
         begin
           for I := 0 to q.Current.Count - 1 do
-            SetTermValue(q.Fields[I], Refs.Term + I);
+          begin
+            case q.Fields[I].SQLType of
+              SQL_LONG, SQL_SHORT:
+                if q.Fields[I].AsXSQLVAR.sqlscale = 0 then
+                  Refs.SetInteger(I, q.Fields[I].AsInteger)
+                else
+                  Refs.SetFloat(I, q.Fields[I].AsCurrency);
+              SQL_FLOAT, SQL_D_FLOAT, SQL_DOUBLE:
+                Refs.SetFloat(I, q.Fields[I].AsFloat);
+              SQL_INT64:
+                if q.Fields[I].AsXSQLVAR.sqlscale = 0 then
+                  Refs.SetInt64(I, q.Fields[I].AsInt64)
+                else
+                  Refs.SetFloat(I, q.Fields[I].AsCurrency);
+              SQL_TYPE_DATE:
+                Refs.SetDate(I, q.Fields[I].AsDate);
+              SQL_TIMESTAMP, SQL_TYPE_TIME:
+                Refs.SetDateTime(I, q.Fields[I].AsDateTime);
+              SQL_TEXT, SQL_VARYING:
+                Refs.SetString(I, q.Fields[I].AsTrimString);
+            end;
+          end; 
           Compound(APredName, Term.Term, Refs);
           Call('assert', Term);
           q.Next;
@@ -393,7 +468,7 @@ procedure TgsPLClient.MakePredicates2(const AClassName: String; const ASubType: 
 var
   C: TPersistentClass;
   Obj: TgdcBase;
-  I, Arity: Integer;
+  I, Arity, K: Integer;
   Refs, Term: TgsTermv;
 begin
   Assert(ATr <> nil);
@@ -410,6 +485,8 @@ begin
     raise EgsPLClientException.Create('Invalid class name ' + AClassName);
 
   Obj := CgdcBase(C).Create(nil);
+
+  Term := TgsTermv.CreateTerm(1);
   try
     Obj.SubType := ASubType;
     Obj.ReadTransaction := ATr;
@@ -418,64 +495,41 @@ begin
       Obj.ExtraConditions := AnExtraConditions;
     Obj.SubSet := ASubSet;
     Obj.Prepare;
-
-    for I := VarArrayLowBound(AParams,  1) to VarArrayHighBound(AParams,  1) do
-    begin
-      Obj.Params[0].AsVariant := AParams[I];
-      Obj.Open;
-      while not Obj.Eof do
+    Arity := GetArity(Obj);
+    Refs := TgsTermv.CreateTerm(Arity);
+    try
+      for I := VarArrayLowBound(AParams,  1) to VarArrayHighBound(AParams,  1) do
       begin
+        Obj.Params[0].AsVariant := AParams[I];
+        Obj.Open;
 
-        Obj.Next;
+        while not Obj.Eof do
+        begin
+          for K := 0 to Obj.Fields.Count - 1 do
+          begin
+            case Obj.Fields[I].DataType of
+              ftSmallint, ftInteger, ftWord, ftBoolean:
+                Refs.SetInteger(K, Obj.Fields[I].AsInteger);
+              ftLargeint: Refs.SetInt64(K, TLargeintField(Obj.Fields[I]).AsLargeInt);
+              ftFloat: Refs.SetFloat(K, Obj.Fields[I].AsFloat);
+              ftCurrency: Refs.SetFloat(K, Obj.Fields[I].AsCurrency);
+              ftString, ftMemo: Refs.SetString(K, Obj.Fields[I].AsString);
+              ftDate: Refs.SetDate(K, Obj.Fields[I].AsDateTime);
+              ftDateTime, ftTime: Refs.SetDateTime(K, Obj.Fields[I].AsDateTime);
+            end;
+          end;
+          Compound(APredName, Term.Term, Refs);
+          Call('assert', Term);
+          Obj.Next;
+        end;
+        Obj.Close;
       end;
-      Obj.Close;
+    finally
+      Refs.Free;
     end;
   finally
-    Obj.Free;
+    Obj.Free;    
+    Term.Free;
   end;
 end;
-
-procedure TgsPLClient.SetTermValue(AField: TIBXSQLVAR; ATerm: term_t);
-begin
-  Assert(AField <> nil);
-
-  case AField.SQLType of
-    SQL_LONG, SQL_SHORT:
-      if AField.AsXSQLVAR.sqlscale = 0 then
-        PL_put_integer(ATerm, AField.AsInteger)
-      else
-        PL_put_float(ATerm, AField.AsCurrency);
-    SQL_FLOAT, SQL_D_FLOAT, SQL_DOUBLE:
-      PL_put_float(ATerm, AField.AsFloat);
-    SQL_INT64:
-      if AField.AsXSQLVAR.sqlscale = 0 then
-        PL_put_int64(ATerm, AField.AsInt64)
-      else
-        PL_put_float(ATerm, AField.AsCurrency);
-    SQL_TYPE_DATE:
-      PL_put_atom_chars(ATerm, PChar(FormatDateTime('yyyy-mm-dd', AField.AsDate)));
-    SQL_TIMESTAMP, SQL_TYPE_TIME:
-      PL_put_atom_chars(ATerm, PChar(FormatDateTime('yyyy-mm-dd hh:nn:ss', AField.AsDateTime)));
-    SQL_TEXT, SQL_VARYING:
-      PL_put_atom_chars(ATerm, PChar(AField.AsTrimString));
-  end;
-end;
-
-procedure TgsPLClient.SetTermValue(AField: TField; ATerm: term_t);
-begin
-  Assert(AField <> nil);
-
-  case AField.DataType of
-    ftSmallint, ftInteger, ftWord, ftBoolean:
-      PL_put_integer(ATerm, AField.AsInteger);
-    ftLargeint: PL_put_int64(ATerm, TLargeintField(AField).AsLargeInt);
-    ftFloat: PL_put_float(ATerm, AField.AsFloat);
-    ftCurrency: PL_put_float(ATerm, AField.AsCurrency);
-    ftString, ftMemo: PL_put_atom_chars(ATerm, PChar(AField.AsString));
-    ftDate: PL_put_atom_chars(ATerm, PChar(FormatDateTime('yyyy-mm-dd', AField.AsDateTime))); 
-    ftDateTime, ftTime: PL_put_atom_chars(ATerm,
-      PChar(FormatDateTime('yyyy-mm-dd hh:nn:ss', AField.AsDateTime))); 
-  end;
-end;
-
 end.
