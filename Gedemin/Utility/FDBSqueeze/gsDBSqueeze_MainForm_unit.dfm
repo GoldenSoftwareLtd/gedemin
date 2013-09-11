@@ -1,6 +1,6 @@
 object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
-  Left = 253
-  Top = 108
+  Left = 422
+  Top = 122
   BorderStyle = bsDialog
   ClientHeight = 536
   ClientWidth = 851
@@ -56,7 +56,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           Top = 54
           Width = 634
           Height = 369
-          ActivePage = tsOptions
+          ActivePage = tsSqueezeSettings
           TabOrder = 0
           object tsConnection: TTabSheet
             Caption = 'Database Connection'
@@ -681,32 +681,33 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         ImageIndex = 3
         object btnGetStatistics: TButton
           Left = 222
-          Top = 304
+          Top = 318
           Width = 78
           Height = 25
           Action = actGet
           Caption = 'Get'
+          Enabled = False
           Font.Charset = RUSSIAN_CHARSET
           Font.Color = clWindowText
           Font.Height = -11
           Font.Name = 'Tahoma'
           Font.Style = []
           ParentFont = False
-          TabOrder = 37
+          TabOrder = 41
           TabStop = False
         end
         object sttxt21: TStaticText
           Left = 118
-          Top = 64
+          Top = 41
           Width = 273
-          Height = 17
+          Height = 25
           Alignment = taCenter
           AutoSize = False
           Caption = 'DB File Size'
           Color = clHighlightText
           Font.Charset = RUSSIAN_CHARSET
           Font.Color = clWindowText
-          Font.Height = -11
+          Font.Height = -17
           Font.Name = 'Tahoma'
           Font.Style = []
           ParentColor = False
@@ -715,7 +716,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         end
         object txt10: TStaticText
           Left = 222
-          Top = 192
+          Top = 177
           Width = 79
           Height = 17
           Alignment = taCenter
@@ -726,7 +727,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         end
         object sttxt11: TStaticText
           Left = 310
-          Top = 192
+          Top = 177
           Width = 79
           Height = 17
           Alignment = taCenter
@@ -737,7 +738,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         end
         object txt3: TStaticText
           Left = 118
-          Top = 220
+          Top = 205
           Width = 100
           Height = 18
           Alignment = taCenter
@@ -750,7 +751,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         end
         object txt5: TStaticText
           Left = 118
-          Top = 275
+          Top = 260
           Width = 100
           Height = 17
           Alignment = taCenter
@@ -763,7 +764,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         end
         object txt4: TStaticText
           Left = 118
-          Top = 248
+          Top = 233
           Width = 100
           Height = 17
           Alignment = taCenter
@@ -776,7 +777,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         end
         object sttxtGdDoc: TStaticText
           Left = 222
-          Top = 220
+          Top = 205
           Width = 79
           Height = 17
           Alignment = taCenter
@@ -786,7 +787,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         end
         object sttxtGdDocAfter: TStaticText
           Left = 310
-          Top = 220
+          Top = 205
           Width = 79
           Height = 17
           Alignment = taCenter
@@ -796,7 +797,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         end
         object sttxtAcEntry: TStaticText
           Left = 222
-          Top = 248
+          Top = 233
           Width = 79
           Height = 17
           Alignment = taCenter
@@ -806,7 +807,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         end
         object sttxtAcEntryAfter: TStaticText
           Left = 310
-          Top = 248
+          Top = 233
           Width = 79
           Height = 17
           Alignment = taCenter
@@ -816,7 +817,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         end
         object sttxtInvMovement: TStaticText
           Left = 222
-          Top = 276
+          Top = 261
           Width = 79
           Height = 17
           Alignment = taCenter
@@ -826,7 +827,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         end
         object sttxtInvMovementAfter: TStaticText
           Left = 310
-          Top = 276
+          Top = 261
           Width = 79
           Height = 17
           Alignment = taCenter
@@ -836,18 +837,24 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         end
         object txt2: TStaticText
           Left = 117
-          Top = 160
+          Top = 137
           Width = 273
-          Height = 17
+          Height = 25
           AutoSize = False
-          Caption = '                 Number of records in a table                 '
+          Caption = '        Number of records in a table                 '
           Color = clWhite
+          Font.Charset = RUSSIAN_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -17
+          Font.Name = 'Tahoma'
+          Font.Style = []
           ParentColor = False
-          TabOrder = 13
+          ParentFont = False
+          TabOrder = 12
         end
         object sttxt28: TStaticText
           Left = 118
-          Top = 88
+          Top = 73
           Width = 185
           Height = 17
           Alignment = taCenter
@@ -858,7 +865,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         end
         object sttxt29: TStaticText
           Left = 118
-          Top = 112
+          Top = 97
           Width = 185
           Height = 17
           Alignment = taCenter
@@ -869,17 +876,18 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         end
         object btnUpdateStatistics: TBitBtn
           Left = 311
-          Top = 304
+          Top = 318
           Width = 78
           Height = 25
           Action = actGet
           Caption = 'Update'
-          TabOrder = 38
+          Enabled = False
+          TabOrder = 42
           TabStop = False
         end
         object sttxtDBSizeBefore: TStaticText
           Left = 311
-          Top = 88
+          Top = 73
           Width = 79
           Height = 17
           Alignment = taCenter
@@ -889,7 +897,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         end
         object sttxtDBSizeAfter: TStaticText
           Left = 311
-          Top = 112
+          Top = 97
           Width = 79
           Height = 17
           Alignment = taCenter
@@ -900,16 +908,16 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         end
         object sttxt30: TStaticText
           Left = 470
-          Top = 64
+          Top = 41
           Width = 275
-          Height = 17
+          Height = 25
           Alignment = taCenter
           AutoSize = False
           Caption = 'DB Properties'
           Color = clHighlightText
           Font.Charset = RUSSIAN_CHARSET
           Font.Color = clWindowText
-          Font.Height = -11
+          Font.Height = -17
           Font.Name = 'Tahoma'
           Font.Style = []
           ParentColor = False
@@ -918,7 +926,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         end
         object StaticText6: TStaticText
           Left = 470
-          Top = 87
+          Top = 72
           Width = 100
           Height = 18
           Alignment = taCenter
@@ -931,7 +939,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         end
         object StaticText5: TStaticText
           Left = 470
-          Top = 111
+          Top = 96
           Width = 100
           Height = 18
           Alignment = taCenter
@@ -944,7 +952,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         end
         object StaticText7: TStaticText
           Left = 470
-          Top = 183
+          Top = 168
           Width = 100
           Height = 18
           Alignment = taCenter
@@ -957,7 +965,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         end
         object StaticText8: TStaticText
           Left = 471
-          Top = 207
+          Top = 192
           Width = 100
           Height = 18
           Alignment = taCenter
@@ -970,7 +978,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         end
         object StaticText9: TStaticText
           Left = 471
-          Top = 231
+          Top = 216
           Width = 100
           Height = 18
           Alignment = taCenter
@@ -983,7 +991,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         end
         object StaticText10: TStaticText
           Left = 471
-          Top = 255
+          Top = 240
           Width = 100
           Height = 18
           Alignment = taCenter
@@ -996,7 +1004,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         end
         object StaticText11: TStaticText
           Left = 471
-          Top = 279
+          Top = 264
           Width = 100
           Height = 18
           Alignment = taCenter
@@ -1009,7 +1017,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         end
         object StaticText12: TStaticText
           Left = 471
-          Top = 303
+          Top = 288
           Width = 100
           Height = 18
           Alignment = taCenter
@@ -1018,11 +1026,11 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           Caption = 'Garbage Collection'
           Color = clBtnFace
           ParentColor = False
-          TabOrder = 36
+          TabOrder = 39
         end
         object sttxtODSVer: TStaticText
           Left = 579
-          Top = 160
+          Top = 145
           Width = 166
           Height = 17
           Alignment = taCenter
@@ -1032,7 +1040,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         end
         object sttxtServerVer: TStaticText
           Left = 579
-          Top = 136
+          Top = 121
           Width = 166
           Height = 17
           Alignment = taCenter
@@ -1042,7 +1050,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         end
         object sttxt32: TStaticText
           Left = 470
-          Top = 135
+          Top = 120
           Width = 100
           Height = 18
           Alignment = taCenter
@@ -1055,7 +1063,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         end
         object sttxt34: TStaticText
           Left = 470
-          Top = 159
+          Top = 144
           Width = 100
           Height = 18
           Alignment = taCenter
@@ -1064,11 +1072,11 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           Caption = 'ODS Version'
           Color = clBtnFace
           ParentColor = False
-          TabOrder = 12
+          TabOrder = 13
         end
         object sttxtUser: TStaticText
           Left = 579
-          Top = 88
+          Top = 73
           Width = 166
           Height = 17
           Alignment = taCenter
@@ -1078,7 +1086,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         end
         object sttxtDialect: TStaticText
           Left = 579
-          Top = 112
+          Top = 97
           Width = 166
           Height = 17
           Alignment = taCenter
@@ -1088,7 +1096,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         end
         object sttxtRemoteProtocol: TStaticText
           Left = 579
-          Top = 184
+          Top = 169
           Width = 166
           Height = 17
           Alignment = taCenter
@@ -1098,7 +1106,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         end
         object sttxtRemoteAddr: TStaticText
           Left = 579
-          Top = 208
+          Top = 193
           Width = 166
           Height = 17
           Alignment = taCenter
@@ -1108,7 +1116,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         end
         object sttxtPageSize: TStaticText
           Left = 579
-          Top = 232
+          Top = 217
           Width = 166
           Height = 17
           Alignment = taCenter
@@ -1118,7 +1126,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         end
         object sttxtPageBuffers: TStaticText
           Left = 579
-          Top = 256
+          Top = 241
           Width = 166
           Height = 17
           Alignment = taCenter
@@ -1128,7 +1136,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         end
         object sttxtForcedWrites: TStaticText
           Left = 579
-          Top = 280
+          Top = 265
           Width = 166
           Height = 17
           Alignment = taCenter
@@ -1138,30 +1146,34 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         end
         object sttxtGarbageCollection: TStaticText
           Left = 579
-          Top = 304
+          Top = 289
           Width = 166
           Height = 17
           Alignment = taCenter
           AutoSize = False
           BorderStyle = sbsSunken
-          TabOrder = 39
-        end
-        object sttxt2: TStaticText
-          Left = 287
-          Top = 368
-          Width = 284
-          Height = 17
-          AutoSize = False
-          Caption = 
-            '                 Number of processing records in a table        ' +
-            '         '
-          Color = clWhite
-          ParentColor = False
           TabOrder = 40
         end
+        object sttxt2: TStaticText
+          Left = 247
+          Top = 371
+          Width = 378
+          Height = 24
+          AutoSize = False
+          Caption = '        Number of processing records in a table                 '
+          Color = clWhite
+          Font.Charset = RUSSIAN_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -17
+          Font.Name = 'Tahoma'
+          Font.Style = []
+          ParentColor = False
+          ParentFont = False
+          TabOrder = 43
+        end
         object sttxt3: TStaticText
-          Left = 287
-          Top = 396
+          Left = 247
+          Top = 407
           Width = 95
           Height = 17
           Alignment = taCenter
@@ -1170,11 +1182,11 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           Caption = 'GD_DOCUMENT'
           Color = clBtnFace
           ParentColor = False
-          TabOrder = 41
+          TabOrder = 44
         end
         object sttxt4: TStaticText
-          Left = 382
-          Top = 396
+          Left = 342
+          Top = 407
           Width = 95
           Height = 17
           Alignment = taCenter
@@ -1183,11 +1195,11 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           Caption = 'AC_ENTRY'
           Color = clBtnFace
           ParentColor = False
-          TabOrder = 42
+          TabOrder = 45
         end
         object sttxt5: TStaticText
-          Left = 477
-          Top = 396
+          Left = 437
+          Top = 407
           Width = 95
           Height = 17
           Alignment = taCenter
@@ -1196,37 +1208,93 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           Caption = 'INV_MOVEMENT'
           Color = clBtnFace
           ParentColor = False
-          TabOrder = 43
+          TabOrder = 46
         end
         object sttxtProcGdDoc: TStaticText
-          Left = 287
-          Top = 413
+          Left = 247
+          Top = 424
           Width = 95
           Height = 17
           Alignment = taCenter
           AutoSize = False
           BorderStyle = sbsSunken
-          TabOrder = 44
+          TabOrder = 48
         end
         object sttxtProcAcEntry: TStaticText
-          Left = 382
-          Top = 413
+          Left = 342
+          Top = 424
           Width = 95
           Height = 17
           Alignment = taCenter
           AutoSize = False
           BorderStyle = sbsSunken
-          TabOrder = 45
+          TabOrder = 49
         end
         object sttxtProcInvMovement: TStaticText
-          Left = 478
-          Top = 413
+          Left = 438
+          Top = 424
           Width = 95
           Height = 17
           Alignment = taCenter
           AutoSize = False
           BorderStyle = sbsSunken
-          TabOrder = 46
+          TabOrder = 50
+        end
+        object sttxt6: TStaticText
+          Left = 532
+          Top = 407
+          Width = 95
+          Height = 17
+          Alignment = taCenter
+          AutoSize = False
+          BorderStyle = sbsSingle
+          Caption = 'INV_CARD'
+          Color = clBtnFace
+          ParentColor = False
+          TabOrder = 47
+        end
+        object sttxtProcInvCard: TStaticText
+          Left = 533
+          Top = 424
+          Width = 95
+          Height = 17
+          Alignment = taCenter
+          AutoSize = False
+          BorderStyle = sbsSunken
+          TabOrder = 51
+        end
+        object txt6: TStaticText
+          Left = 118
+          Top = 288
+          Width = 100
+          Height = 17
+          Alignment = taCenter
+          AutoSize = False
+          BorderStyle = sbsSingle
+          Caption = 'INV_CARD'
+          Color = clBtnFace
+          ParentColor = False
+          TabOrder = 36
+        end
+        object sttxtInvCard: TStaticText
+          Left = 222
+          Top = 288
+          Width = 79
+          Height = 17
+          Alignment = taCenter
+          AutoSize = False
+          BorderStyle = sbsSunken
+          TabOrder = 37
+        end
+        object sttxtInvCardAfter: TStaticText
+          Left = 310
+          Top = 288
+          Width = 79
+          Height = 17
+          Alignment = taCenter
+          AutoSize = False
+          BorderStyle = sbsSunken
+          TabOrder = 38
         end
       end
     end
@@ -1308,7 +1376,6 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
     object actGet: TAction
       Caption = 'actGet'
       OnExecute = actGetExecute
-      OnUpdate = actGetUpdate
     end
     object actUpdate: TAction
       Caption = 'actUpdate'
