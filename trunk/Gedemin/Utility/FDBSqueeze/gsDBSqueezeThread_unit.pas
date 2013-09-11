@@ -24,22 +24,24 @@ const
   WM_DBS_GETPROCSTATISTICS     = WM_USER + 15;
   WM_DBS_STARTPROCESSING       = WM_USER + 16;
   WM_DBS_STOPPROCESSING        = WM_USER + 17;
-  WM_DBS_BACKUPDATABASE        = WM_USER + 18;
-  WM_DBS_SETFVARIABLLES        = WM_USER + 19;
-  WM_DBS_CREATEMETADATA        = WM_USER + 20;
-  WM_DBS_SAVEMETADATA          = WM_USER + 21;
-  WM_DBS_CALCULATEACSALDO      = WM_USER + 22;
-  WM_DBS_CALCULATEINVSALDO     = WM_USER + 23;
-  WM_DBS_CREATEHIS_INCLUDEHIS  = WM_USER + 24;
-  WM_DBS_PREPAREDB             = WM_USER + 25;
-  WM_DBS_DELETEOLDBALANCE      = WM_USER + 26;
-  WM_DBS_DELETEDOCHIS          = WM_USER + 27;
-  WM_DBS_CREATEACENTRIES       = WM_USER + 28;
-  WM_DBS_CREATEINVSALDO        = WM_USER + 29;
-  WM_DBS_REBINDINVCARDS        = WM_USER + 30;
-  WM_DBS_RESTOREDB             = WM_USER + 31;
-  WM_DBS_FINISHED              = WM_USER + 32;
-  WM_DBS_DISCONNECT            = WM_USER + 33;
+  WM_DBS_RECONNECT             = WM_USER + 18;
+  WM_DBS_BACKUPDATABASE        = WM_USER + 19;
+  WM_DBS_SETFVARIABLLES        = WM_USER + 20;
+  WM_DBS_CREATEMETADATA        = WM_USER + 21;
+  WM_DBS_SAVEMETADATA          = WM_USER + 22;
+  WM_DBS_CALCULATEACSALDO      = WM_USER + 23;
+  WM_DBS_CALCULATEINVSALDO     = WM_USER + 24;
+  WM_DBS_PREPAREREBINDINVCARDS = WM_USER + 25;
+  WM_DBS_CREATEHIS_INCLUDEHIS  = WM_USER + 26;
+  WM_DBS_PREPAREDB             = WM_USER + 27;
+  WM_DBS_DELETEOLDBALANCE      = WM_USER + 28;
+  WM_DBS_DELETEDOCHIS          = WM_USER + 29;
+  WM_DBS_CREATEACENTRIES       = WM_USER + 30;
+  WM_DBS_CREATEINVSALDO        = WM_USER + 31;
+  WM_DBS_RESTOREDB             = WM_USER + 32;
+  WM_DBS_REBINDINVCARDS        = WM_USER + 33;
+  WM_DBS_FINISHED              = WM_USER + 34;
+  WM_DBS_DISCONNECT            = WM_USER + 35;
 
 type
   TLogSQLEvent = procedure(const MsgLogSQL: String)of object;
@@ -49,8 +51,8 @@ type
   TGetDBPropertiesEvent = procedure(const MsgPropertiesList: TStringList) of object;
   TCbbEvent = procedure (const MsgStrList: TStringList) of object;
   TGetDBSizeEvent = procedure (const MsgStr: String) of object;
-  TGetStatisticsEvent = procedure (const MsgGdDocStr: String; const MsgAcEntryStr: String; const MsgInvMovementStr: String) of object;
-  TGetProcStatisticsEvent = procedure (const MsgProcGdDocStr: String; const MsgProcAcEntryStr: String; const MsgProcInvMovementStr: String) of object;
+  TGetStatisticsEvent = procedure (const MsgGdDocStr: String; const MsgAcEntryStr: String; const MsgInvMovementStr: String; const MsgInvCardStr: String) of object;
+  TGetProcStatisticsEvent = procedure (const MsgProcGdDocStr: String; const MsgProcAcEntryStr: String; const MsgProcInvMovementStr: String; const MsgProcInvCardStr: String) of object;
 
   TgsDBSqueezeThread = class(TgdMessagedThread)
   private
@@ -86,8 +88,8 @@ type
     FMessagePropertiesList: TStringList;
     FMessageStrList: TStringList;
     FMessageDBSizeStr: String;
-    FMessageGdDocStr, FMessageAcEntryStr, FMessageInvMovementStr: String;
-    FMessageProcGdDocStr, FMessageProcAcEntryStr, FMessageProcInvMovementStr: String;
+    FMessageGdDocStr, FMessageAcEntryStr, FMessageInvMovementStr, FMessageInvCardStr: String;
+    FMessageProcGdDocStr, FMessageProcAcEntryStr, FMessageProcInvMovementStr, FMessageProcInvCardStr: String;
 
     FOnLogSQL: TLogSQLEvent;
     FOnGetConnected: TGetConnectedEvent;
@@ -117,8 +119,8 @@ type
     procedure GetDBProperties(const AMessageProperties: TStringList);
     procedure SetItemsCbb(const AMessageStrList: TStringList);
     procedure GetDBSize(const AMessageDBSizeStr: String);
-    procedure GetStatistics(const AMessageGdDocStr: String; const AMessageAcEntryStr: String; const AMessageInvMovementStr: String);
-    procedure GetProcStatistics(const AMessageProcGdDocStr: String; const AMessageProcAcEntryStr: String; const AMessageProcInvMovementStr: String);
+    procedure GetStatistics(const AMessageGdDocStr: String; const AMessageAcEntryStr: String; const AMessageInvMovementStr: String; const AMessageInvCardStr: String);
+    procedure GetProcStatistics(const AMessageProcGdDocStr: String; const AMessageProcAcEntryStr: String; const AMessageProcInvMovementStr: String; const AMessageProcInvCardStr: String);
 
     function GetBusy: Boolean;
     function GetState: Boolean;
@@ -196,7 +198,7 @@ begin
   FBusy := TIdThreadSafeInteger.Create;
   FState := TIdThreadSafeInteger.Create;
   FConnected := TIdThreadSafeInteger.Create;
-  FMsgConnectInfoList := TStringList.Create;      ///
+  FMsgConnectInfoList := TStringList.Create;     
   FMessageStrList := TStringList.Create;
   FMessagePropertiesList := TStringList.Create;
 
@@ -323,13 +325,13 @@ end;
 procedure TgsDBSqueezeThread.DoOnGetStatisticsSync;
 begin
   if Assigned(FOnGetStatistics) then
-    FOnGetStatistics(FMessageGdDocStr, FMessageAcEntryStr, FMessageInvMovementStr);
+    FOnGetStatistics(FMessageGdDocStr, FMessageAcEntryStr, FMessageInvMovementStr, FMessageInvCardStr);
 end;
 
 procedure TgsDBSqueezeThread.DoOnGetProcStatisticsSync;
 begin
   if Assigned(FOnGetProcStatistics) then
-    FOnGetProcStatistics(FMessageProcGdDocStr, FMessageProcAcEntryStr, FMessageProcInvMovementStr);
+    FOnGetProcStatistics(FMessageProcGdDocStr, FMessageProcAcEntryStr, FMessageProcInvMovementStr, FMessageProcInvCardStr);
 end;
 
 function TgsDBSqueezeThread.GetBusy: Boolean;
@@ -623,8 +625,25 @@ begin
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
           FState.Value := 1;
 
-          PostThreadMessage(ThreadID, WM_DBS_CREATEHIS_INCLUDEHIS, 0, 0);
+          PostThreadMessage(ThreadID, WM_DBS_PREPAREREBINDINVCARDS, 0, 0);
         //end;
+        Result := True;
+      end;
+
+    WM_DBS_PREPAREREBINDINVCARDS:
+      begin
+       // if FConnected.Value = 1 then
+       // begin
+          FBusy.Value := 1;
+
+          FDBS.PrepareRebindInvCards;
+
+          FDBS.InsertDBSStateJournal(Msg.Message, 1);
+          FState.Value := 1;
+
+          PostThreadMessage(ThreadID, WM_DBS_CREATEHIS_INCLUDEHIS, 0, 0);
+
+       // end;
         Result := True;
       end;
 
@@ -675,7 +694,7 @@ begin
         Result := True;
       end;
 
-    WM_DBS_DELETEDOCHIS:
+      WM_DBS_DELETEDOCHIS:
       begin
        // if FConnected.Value = 1 then
        // begin
@@ -691,7 +710,7 @@ begin
         Result := True;
       end;
 
-    WM_DBS_CREATEACENTRIES:
+      WM_DBS_CREATEACENTRIES:
       begin
        // if FConnected.Value = 1 then
        // begin
@@ -717,10 +736,26 @@ begin
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
           FState.Value := 1;
 
-        ///  PostThreadMessage(ThreadID, WM_DBS_REBINDINVCARDS, 0, 0);
-          PostThreadMessage(ThreadID, WM_DBS_RESTOREDB, 0, 0);//////////////
+          PostThreadMessage(ThreadID, WM_DBS_RESTOREDB, 0, 0);
        // end;
 
+        Result := True;
+      end;
+
+    WM_DBS_RESTOREDB:
+      begin
+       // if FConnected.Value = 1 then
+       // begin
+
+          FDBS.RestoreDB;
+          FDBS.Reconnect(False, True);
+
+          FDBS.InsertDBSStateJournal(Msg.Message, 1);
+          FState.Value := 1;
+
+          PostThreadMessage(ThreadID, WM_DBS_REBINDINVCARDS, 0, 0);
+
+       // end;
         Result := True;
       end;
 
@@ -735,25 +770,8 @@ begin
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
           FState.Value := 1;
 
-          ///PostThreadMessage(ThreadID, WM_DBS_RESTOREDB, 0, 0);
-          PostThreadMessage(ThreadID, WM_DBS_FINISHED, 0, 0);///////////////
-       // end;
-        Result := True;
-      end;
+          PostThreadMessage(ThreadID, WM_DBS_FINISHED, 0, 0);
 
-    WM_DBS_RESTOREDB:
-      begin
-       // if FConnected.Value = 1 then
-       // begin
-          //FDBS.Reconnect(False, True);   // garbage collect ON
-
-          FDBS.RestoreDB;
-
-          FDBS.InsertDBSStateJournal(Msg.Message, 1);
-          FState.Value := 1;
-
-       ///   PostThreadMessage(ThreadID, WM_DBS_FINISHED, 0, 0);
-          PostThreadMessage(ThreadID, WM_DBS_REBINDINVCARDS, 0, 0);///////////
        // end;
         Result := True;
       end;
@@ -781,7 +799,7 @@ begin
  except
   on E: Exception do
   begin
-    FDBS.LogEvent('[error]' + E.Message);  /// в лог ошибок
+    FDBS.LogEvent('[error]' + E.Message); 
     FState.Value := 0;
     //Event на форму
   end;
@@ -846,7 +864,6 @@ begin
   PostMsg(WM_DBS_SETOPTIONS);
 end;
 
-
 procedure TgsDBSqueezeThread.DoGetInfoTestConnect;
 begin
   PostMsg(WM_DBS_GETINFOTESTCONNECT);
@@ -906,11 +923,16 @@ begin
   PostMsg(WM_DBS_GETSTATISTICS);
 end;
 
-procedure TgsDBSqueezeThread.GetStatistics(const AMessageGdDocStr: String; const AMessageAcEntryStr: String; const AMessageInvMovementStr: String);
+procedure TgsDBSqueezeThread.GetStatistics(
+  const AMessageGdDocStr: String;
+  const AMessageAcEntryStr: String;
+  const AMessageInvMovementStr: String;
+  const AMessageInvCardStr: String);
 begin
   FMessageGdDocStr := AMessageGdDocStr;
   FMessageAcEntryStr := AMessageAcEntryStr;
   FMessageInvMovementStr := AMessageInvMovementStr;
+  FMessageInvCardStr := AMessageInvCardStr;
   Synchronize(DoOnGetStatisticsSync);
 end;
 
@@ -919,11 +941,16 @@ begin
   PostMsg(WM_DBS_GETPROCSTATISTICS);
 end;
 
-procedure TgsDBSqueezeThread.GetProcStatistics(const AMessageProcGdDocStr: String; const AMessageProcAcEntryStr: String; const AMessageProcInvMovementStr: String);
+procedure TgsDBSqueezeThread.GetProcStatistics(
+  const AMessageProcGdDocStr: String;
+  const AMessageProcAcEntryStr: String;
+  const AMessageProcInvMovementStr: String;
+  const AMessageProcInvCardStr: String);
 begin
   FMessageProcGdDocStr := AMessageProcGdDocStr;
   FMessageProcAcEntryStr := AMessageProcAcEntryStr;
   FMessageProcInvMovementStr := AMessageProcInvMovementStr;
+  FMessageProcInvCardStr := AMessageProcInvCardStr;
   Synchronize(DoOnGetProcStatisticsSync);
 end;
 

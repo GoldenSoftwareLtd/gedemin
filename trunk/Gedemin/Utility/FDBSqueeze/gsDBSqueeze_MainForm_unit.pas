@@ -145,6 +145,11 @@ type
     sttxtProcAcEntry: TStaticText;
     sttxtProcInvMovement: TStaticText;
     actStop: TAction;
+    sttxt6: TStaticText;
+    sttxtProcInvCard: TStaticText;
+    txt6: TStaticText;
+    sttxtInvCard: TStaticText;
+    sttxtInvCardAfter: TStaticText;
 
     procedure actTestConnectExecute(Sender: TObject);
     procedure actTestConnectUpdate(Sender: TObject);
@@ -157,7 +162,6 @@ type
     procedure actCompanyExecute(Sender: TObject);
     procedure actDatabaseBrowseExecute(Sender: TObject);
     procedure actGetExecute(Sender: TObject);
-    procedure actGetUpdate(Sender: TObject);
     procedure tbcPageControllerChange(Sender: TObject);
     procedure tbcPageControllerChanging(Sender: TObject; var AllowChange: Boolean);
     procedure actRadioLocationExecute(Sender: TObject);
@@ -181,6 +185,7 @@ type
     FContinueProcFunctionKey, FContinueProcState: Integer;
     FStartupTime : TDateTime;
     FConnected: Boolean;
+    FSaveLogs: Boolean;
     FLogFileStream: TFileStream;
     FDatabaseName: String;
 
@@ -193,8 +198,8 @@ type
     procedure GetDBPropertiesEvent(const AProperties: TStringList);
     procedure SetItemsCbbEvent(const ACompanies: TStringList);
     procedure GetDBSizeEvent(const AnDBSize: String);
-    procedure GetStatisticsEvent(const AGdDoc: String; const AnAcEntry: String; const AnInvMovement: String);
-    procedure GetProcStatisticsEvent(const AProcGdDoc: String; const AnProcAcEntry: String; const AnProcInvMovement: String);
+    procedure GetStatisticsEvent(const AGdDoc: String; const AnAcEntry: String; const AnInvMovement: String; const AnInvCard: String);
+    procedure GetProcStatisticsEvent(const AProcGdDoc: String; const AnProcAcEntry: String; const AnProcInvMovement: String; const AnProcInvCard: String);
     procedure UpdateProgress(const AProgressInfo: TgdProgressInfo);
 
   public
@@ -269,7 +274,11 @@ begin
   sttxtActivUserCount.Visible := False;
   lblServerVersion.Visible := False;
   lblActivConnectCount.Visible := False;
+
   FSThread.Disconnect;
+
+  btnGetStatistics.Enabled := False;
+  btnUpdateStatistics.Enabled := False;
 
   FSThread.DoGetDBSize;
 end;
@@ -347,27 +356,52 @@ begin
    sttxtDBSizeAfter.Caption := AnDBSize;
 end;
 
-procedure TgsDBSqueeze_MainForm.GetStatisticsEvent(const AGdDoc: String; const AnAcEntry: String; const AnInvMovement: String);
+procedure TgsDBSqueeze_MainForm.GetStatisticsEvent(
+  const AGdDoc: String;
+  const AnAcEntry: String;
+  const AnInvMovement: String;
+  const AnInvCard: String);
 begin
+  WriteToLogFile('================= Number of recods in a table =================');
   if (Trim(sttxtGdDoc.Caption) = '') and (Trim(sttxtAcEntry.Caption) = '') and (Trim(sttxtInvMovement.Caption) = '') then
   begin
     sttxtGdDoc.Caption := AGdDoc;
     sttxtAcEntry.Caption := AnAcEntry;
     sttxtInvMovement.Caption := AnInvMovement;
+    sttxtInvCard.Caption := AnInvCard;
+    WriteToLogFile('Original: ');
   end
   else
   begin
     sttxtGdDocAfter.Caption := AGdDoc;
     sttxtAcEntryAfter.Caption := AnAcEntry;
     sttxtInvMovementAfter.Caption := AnInvMovement;
+    sttxtInvCardAfter.Caption := AnInvCard;
+    WriteToLogFile('Now: ');
   end;
+  WriteToLogFile('GD_DOCUMENT: ' + AGdDoc);
+  WriteToLogFile('AC_ENTRY: ' + AnAcEntry);
+  WriteToLogFile('INV_MOVEMENT: ' + AnInvMovement);
+  WriteToLogFile('INV_CARD: ' + AnInvCard);
+  WriteToLogFile('===============================================================');
 end;
 
-procedure TgsDBSqueeze_MainForm.GetProcStatisticsEvent(const AProcGdDoc: String; const AnProcAcEntry: String; const AnProcInvMovement: String);
+procedure TgsDBSqueeze_MainForm.GetProcStatisticsEvent(
+  const AProcGdDoc: String;
+  const AnProcAcEntry: String;
+  const AnProcInvMovement: String;
+  const AnProcInvCard: String);
 begin
+  WriteToLogFile('=========== Number of processing records in a table ===========');
   sttxtProcGdDoc.Caption := AProcGdDoc;
   sttxtProcAcEntry.Caption := AnProcAcEntry;
   sttxtProcInvMovement.Caption := AnProcInvMovement;
+  sttxtProcInvCard.Caption := AnProcInvCard;
+  WriteToLogFile('GD_DOCUMENT: ' + AProcGdDoc);
+  WriteToLogFile('AC_ENTRY: ' + AnProcAcEntry);
+  WriteToLogFile('INV_MOVEMENT: ' + AnProcInvMovement);
+  WriteToLogFile('INV_CARD: ' + AnProcInvCard);
+  WriteToLogFile('===============================================================');
 end;
 
 procedure TgsDBSqueeze_MainForm.SetItemsCbbEvent(const ACompanies: TStringList);
@@ -406,7 +440,7 @@ procedure TgsDBSqueeze_MainForm.WriteToLogFile(const AStr: String);
 var
   RecStr: String;
 begin
-  if chkbSaveLogs.Checked then
+  if FSaveLogs then
   begin
     RecStr := AStr + #13#10;
     FLogFileStream.Position := FLogFileStream.Size;
@@ -460,11 +494,6 @@ begin
   FSThread.DoGetProcStatistics;
 end;
 
-procedure TgsDBSqueeze_MainForm.actGetUpdate(Sender: TObject);
-begin
-      //
-end;
-  
 procedure TgsDBSqueeze_MainForm.tbcPageControllerChange(Sender: TObject);
 begin
     //
@@ -557,6 +586,9 @@ begin
       FSThread.SetSaldoParams(
         rbAllOurCompanies.Checked,
         rbCompany.Checked);
+
+      btnGetStatistics.Enabled := FConnected;
+      btnUpdateStatistics.Enabled := FConnected;
     end;
   end;
   if pgcSettings.ActivePage = tsOptions then
@@ -567,6 +599,7 @@ begin
         Delete(FDatabaseName, 1, LastDelimiter('\', FDatabaseName));
       if edLogs.Enabled then
       begin
+        FSaveLogs := True;
         if (Trim(edLogs.Text))[Length(Trim(edLogs.Text))] = '\' then
           LogFileName := Trim(edLogs.Text) + 'DBS_Log_' + FDatabaseName + '_'+ FormatDateTime('yy-mm-dd_hh-mm', FStartupTime) + '.log'
         else
