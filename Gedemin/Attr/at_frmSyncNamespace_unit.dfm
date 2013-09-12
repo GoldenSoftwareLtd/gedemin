@@ -34,7 +34,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
     Left = 0
     Top = 0
     Width = 1115
-    Height = 26
+    Height = 49
     object TBToolbar: TTBToolbar
       Left = 0
       Top = 0
@@ -76,6 +76,9 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
         Action = actCompareWithData
       end
       object TBSeparatorItem1: TTBSeparatorItem
+      end
+      object TBItem3: TTBItem
+        Action = actSelectAll
       end
       object TBItem9: TTBItem
         Action = actSetForLoading
@@ -123,6 +126,12 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       object TBItem14: TTBItem
         Action = actFLTInUses
       end
+      object TBItem7: TTBItem
+        Action = actFLTSave
+      end
+      object TBItem15: TTBItem
+        Action = actFLTLoad
+      end
       object TBSeparatorItem6: TTBSeparatorItem
       end
       object TBControlItem3: TTBControlItem
@@ -134,7 +143,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
         Control = cbPackets
       end
       object lSearch: TLabel
-        Left = 474
+        Left = 497
         Top = 4
         Width = 45
         Height = 13
@@ -148,7 +157,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
         TabOrder = 0
       end
       object edFilter: TEdit
-        Left = 749
+        Left = 910
         Top = 0
         Width = 140
         Height = 21
@@ -156,8 +165,8 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
         OnChange = edFilterChange
       end
       object cbPackets: TCheckBox
-        Left = 895
-        Top = 2
+        Left = 0
+        Top = 28
         Width = 66
         Height = 17
         Action = actFLTInternal
@@ -178,9 +187,9 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
   end
   object gr: TgsDBGrid
     Left = 0
-    Top = 49
+    Top = 72
     Width = 1115
-    Height = 346
+    Height = 323
     Align = alClient
     BorderStyle = bsNone
     DataSource = ds
@@ -313,7 +322,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
   end
   object Panel1: TPanel
     Left = 0
-    Top = 26
+    Top = 49
     Width = 1115
     Height = 23
     Align = alTop
@@ -466,9 +475,19 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
     object actSelectAll: TAction
       Caption = 'Выделить все'
       Hint = 'Выделить все записи'
+      ImageIndex = 29
       ShortCut = 16449
       OnExecute = actSelectAllExecute
       OnUpdate = actSelectAllUpdate
+    end
+    object actFLTSave: TAction
+      Caption = 'Сохранение'
+      OnExecute = actFLTSaveExecute
+    end
+    object actFLTLoad: TAction
+      Caption = 'Загрузка'
+      Hint = 'Все файлы, помеченные для загрузки'
+      OnExecute = actFLTLoadExecute
     end
   end
   object pmSync: TPopupMenu

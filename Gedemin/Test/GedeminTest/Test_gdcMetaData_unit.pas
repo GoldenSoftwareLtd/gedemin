@@ -157,8 +157,8 @@ uses
   Classes, Windows, DB, IB, gd_security, at_frmSQLProcess,
   IBSQL, gdcBaseInterface, gd_KeyAssoc, SysUtils, at_classes,
   gdcLBRBTreeMetaData, jclStrings, gdcJournal, gdcSetting,
-  gdcTableMetaData, gsStreamHelper, gdcAttrUserDefined, at_log;
-
+  gdcTableMetaData, gsStreamHelper, gdcAttrUserDefined, at_log,
+  gd_directories_const;
 
 const
   DomainName = 'DTEXT60';  
@@ -191,7 +191,7 @@ procedure TgdcMetaDataTest.TestGD_RUID;
 begin
   FQ.SQL.Text := 'INSERT INTO gd_ruid (id, xid, dbid, modified) VALUES (:id, :xid, :dbid, CURRENT_TIMESTAMP)';
 
-  FQ.ParamByName('id').AsInteger := 147000000;
+  FQ.ParamByName('id').AsInteger := cstUserIDStart;
   FQ.ParamByName('xid').AsInteger := 555000000;
   FQ.ParamByName('dbid').AsInteger := 28;
   FQ.ExecQuery;

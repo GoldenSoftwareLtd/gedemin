@@ -2349,7 +2349,7 @@ var
                  q.FieldByName('relation_name').AsString + ' ' +
               'WHERE ' +
               '  g_his_has(1, ' + q.FieldByName('list_fields').AsString + ') = 1 ' +
-              '  AND ' + q.FieldByName('pk_fields').AsString + ' > 147000000 ';
+              '  AND ' + q.FieldByName('pk_fields').AsString + ' >= 147000000 ';
              if FIgnoreTbls.IndexOf(                                                   ////////
               UpperCase(Trim(q.FieldByName('relation_name').AsString)) + '=' +
               UpperCase(Trim(q.FieldByName('list_fields').AsString))
@@ -2383,7 +2383,7 @@ var
                              q.FieldByName('relation_name').AsString + ' ' +
                           'WHERE ' +
                           '  g_his_has(1, ' + q.FieldByName('list_fields').AsString + ') = 1 ' +
-                          '  AND ' + q.FieldByName('pk_fields').AsString + ' > 147000000 ';          ///
+                          '  AND ' + q.FieldByName('pk_fields').AsString + ' >= 147000000 ';          ///
                         ExecSqlLogEvent(q3, 'IncludeCascadingSequences');
 
                         ///Count := Count + q3.FieldByName('RealKolvo').AsInteger;
@@ -2806,7 +2806,7 @@ begin
       'SELECT ' +
       ' '' DELETE FROM '' || relation_name || ' +
       ' '' WHERE (g_his_has(1, '' || list_fields  || '') = 1) ' +    /////(relation_name NOT LIKE ''''DBS_%'''') ' +  '     AND
-      '      AND ('' || list_fields || '' > 147000000) '' ' +
+      '      AND ('' || list_fields || '' >= 147000000) '' ' +
       'FROM ' +
       '  DBS_SUITABLE_TABLES ';
     ExecSqlLogEvent(q, 'DeleteDocuments_DeleteHIS');   }
@@ -2820,7 +2820,7 @@ begin
       '    SELECT ' +
       '    '' DELETE FROM '' || relation_name || ' +
       '    '' WHERE (g_his_has(1, '' || list_fields  || '') = 1) ' +    /////(relation_name NOT LIKE ''''DBS_%'''') ' +  '     AND
-      '      AND ('' || list_fields || '' > 147000000) '' ' +
+      '      AND ('' || list_fields || '' >= 147000000) '' ' +
       '    FROM ' +
       '      DBS_SUITABLE_TABLES ' +
       '    INTO :S ' +

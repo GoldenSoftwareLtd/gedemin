@@ -27,6 +27,7 @@ type
   end;
 
   TID = -1..MAXINT;
+  PID = ^TID;
 
   TRUID = record
     XID: TID;

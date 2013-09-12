@@ -1226,7 +1226,7 @@ begin
     if (AnIndex >= 0) and (AnIndex < HugeIntSetMaxCount)
       and (arrHugeIntSet[AnIndex] <> nil) then
     begin
-      if arrHugeIntSet[AnIndex].Has(AnElement) then   //if (AnElement < 147000000) or arrHugeIntSet[AnIndex].Has(AnElement) then
+      if arrHugeIntSet[AnIndex].Has(AnElement) then  
         Result := 1;
     end;
   finally
