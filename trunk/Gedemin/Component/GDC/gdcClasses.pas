@@ -441,9 +441,6 @@ uses
 
   gdcInvDocumentCache_unit,
   gd_resourcestring,
-{$IFDEF GEDEMIN_LOCK}
-  gd_registration,
-{$ENDIF}
 
   jclStrings
   {must be placed after Windows unit!}
@@ -927,13 +924,6 @@ begin
 end;
 
 procedure TgdcDocument.DoBeforeInsert;
-{$IFDEF GEDEMIN_LOCK}
-(*
-var
-  gdcObj: TgdcBase;
-  F: Boolean;
-*)  
-{$ENDIF}
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
   {M}VAR
   {M}  Params, LResult: Variant;

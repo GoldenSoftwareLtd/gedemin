@@ -91,6 +91,11 @@ type
     N8: TMenuItem;
     N9: TMenuItem;
     N11: TMenuItem;
+    TBItem3: TTBItem;
+    actFLTSave: TAction;
+    TBItem7: TTBItem;
+    actFLTLoad: TAction;
+    TBItem15: TTBItem;
     procedure actChooseDirExecute(Sender: TObject);
     procedure actCompareUpdate(Sender: TObject);
     procedure actCompareExecute(Sender: TObject);
@@ -117,6 +122,8 @@ type
     procedure actFLTInternalExecute(Sender: TObject);
     procedure actSelectAllExecute(Sender: TObject);
     procedure actSelectAllUpdate(Sender: TObject);
+    procedure actFLTSaveExecute(Sender: TObject);
+    procedure actFLTLoadExecute(Sender: TObject);
 
   private
     FNSC: TgdcNamespaceSyncController;
@@ -148,10 +155,7 @@ var
   Dir: String;
 begin
   if SelectDirectory('Корневая папка с файлами пространств имен:', '', Dir) then
-  begin
     tbedPath.Text := Dir;
-    actCompare.Execute;
-  end;
 end;
 
 procedure Tat_frmSyncNamespace.actCompareUpdate(Sender: TObject);
@@ -415,6 +419,26 @@ end;
 procedure Tat_frmSyncNamespace.actSelectAllUpdate(Sender: TObject);
 begin
   (Sender as TAction).Enabled := not FNSC.DataSet.IsEmpty;
+end;
+
+procedure Tat_frmSyncNamespace.actFLTSaveExecute(Sender: TObject);
+begin
+  if not actFLTOnlyInDB.Checked then
+    actFLTOnlyInDB.Execute;
+  if not actFLTOlder.Checked then
+    actFLTOlder.Execute;
+  if not actFLTEqualOlder.Checked then
+    actFLTEqualOlder.Execute;
+end;
+
+procedure Tat_frmSyncNamespace.actFLTLoadExecute(Sender: TObject);
+begin
+  if not actFLTOnlyInFile.Checked then
+    actFLTOnlyInFile.Execute;
+  if not actFLTNewer.Checked then
+    actFLTNewer.Execute;
+  if not actFLTEqualNewer.Checked then
+    actFLTEqualNewer.Execute;
 end;
 
 initialization

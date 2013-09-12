@@ -3772,8 +3772,8 @@ begin
 
         FieldByName('fieldsourcekey').AsInteger := gdcBaseManager.GetNextID;
         ibsql.SQL.Text := Format(
-          ' INSERT INTO at_fields (id, fieldname, lname) VALUES (%s, ''%s'', ''%s'') ',
-          [FieldByName('fieldsourcekey').AsString,
+          ' INSERT INTO at_fields (id, fieldname, lname) VALUES (%d, ''%s'', ''%s'') ',
+          [FieldByName('fieldsourcekey').AsInteger,
            FieldByName('fieldsource').AsString, FieldByName('fieldsource').AsString]);
         ibsql.ExecQuery;
       end;
@@ -4080,9 +4080,6 @@ begin
   begin
     inherited;
 
-{    R := atDatabase.Relations.ByID(FieldByName('relationkey').AsInteger);
-    if Assigned(R) then
-      R.RelationFields.RefreshData(Database, Transaction);}
     R := atDatabase.Relations.ByID(FieldByName('relationkey').AsInteger);
     if Assigned(R) then
     begin
@@ -5275,8 +5272,8 @@ begin
         ibsql.SQL.Text := 'SELECT id FROM at_fields WHERE fieldname = :fieldname';
         ibsql.ParamByName('fieldname').AsString := FieldByName('fieldsource').AsString;
         ibsql.ExecQuery;
-        if ibsql.RecordCount > 0 then
-          FieldByName('fieldsourcekey').AsString := ibsql.FieldByName('id').AsString;
+        if not ibsql.EOF then
+          FieldByName('fieldsourcekey').AsInteger := ibsql.FieldByName('id').AsInteger;
       end;
 
       //—читывание настроек из домена
