@@ -54,21 +54,20 @@ type
   private
     function GetArity(ASql: TIBSQL): Integer; overload;
     function GetArity(ADataSet: TDataSet; const AFieldList: String): Integer; overload;
-    procedure Compound(const AFunctor: String; AGoal: term_t; ATermv: TgsTermv);
     function CheckDataType(const AVariableType: Integer; const AField: TField): Boolean;
-
   public
     destructor Destroy; override;
      
     function Call(const APredicateName: String; AParams: TgsTermv): Boolean; overload;
     function Call(const AGoal: String): Boolean; overload;
-    function Initialise(const AParams: array of string): Boolean;
-    procedure MakePredicates(const ASQL: String; ATr: TIBTransaction;
-      const APredName: String; const AFileName: String); overload;
-    procedure MakePredicates(ADataSet: TDataSet; const AFieldList: String; const APredName: String; const AFileName: String); overload;
-    procedure MakePredicates(const AClassName: String; const ASubType: String; const ASubSet: String;
+    procedure Compound(const AFunctor: String; AGoal: term_t; ATermv: TgsTermv);
+    function Initialise(const AParams: Variant): Boolean;
+    procedure MakePredicatesOfSQLSelect(const ASQL: String; ATr: TIBTransaction;
+      const APredicateName: String; const AFileName: String);
+    procedure MakePredicatesOfDataSet(ADataSet: TDataSet; const AFieldList: String; const APredicateName: String; const AFileName: String);
+    procedure MakePredicatesOfObject(const AClassName: String; const ASubType: String; const ASubSet: String;
       AParams: Variant; AnExtraConditions: TStringList; const AFieldList: String; ATr: TIBTransaction;
-      const APredName: String; const AFileName: String); overload;
+      const APredicateName: String; const AFileName: String);
     function CreateTermRef: term_t;
     procedure ExtractData(ADataSet: TClientDataSet; const APredicateName: String; ATermv: TgsTermv);
   end;
@@ -386,30 +385,33 @@ begin
   end;
 end;
 
-function TgsPLClient.Initialise(const AParams: array of string): Boolean;
+function TgsPLClient.Initialise(const AParams: Variant): Boolean;
 var
   argv: array of PChar;
   I: Integer;
 begin
-  Assert(High(AParams) > -1);
-  
-  Setlength(argv, High(AParams) + 2);
-  for I := 0 to High(AParams) do
-    argv[I] := PChar(AParams[I]);
+  Assert(VarIsArray(AParams));
+  Assert(VarArrayDimCount(AParams) = 1);
+
+  SetLength(argv, VarArrayHighBound(AParams, 1) + 2);
+
+  for I:= VarArrayLowBound(AParams, 1) to VarArrayHighBound(AParams, 1) do
+    argv[I] := PChar(VarToStr(AParams[I]));
+
   argv[High(argv)] := nil; 
   Result := PL_initialise(High(argv), argv) <> 0;
   if not Result then
     PL_halt(1);
 end;
 
-procedure TgsPLClient.MakePredicates(ADataSet: TDataSet; const AFieldList: String; const APredName: String;
-  const AFileName: String);
+procedure TgsPLClient.MakePredicatesOfDataSet(ADataSet: TDataSet; const AFieldList: String;
+  const APredicateName: String; const AFileName: String);
 var
   I, Arity, Idx: Integer;
   Refs, Term: TgsTermv;
 begin
   Assert(ADataSet <> nil);
-  Assert(APredName > '');
+  Assert(APredicateName > '');
 
 
   Arity := GetArity(ADataSet, AFieldList);
@@ -438,7 +440,7 @@ begin
           Inc(Idx);
         end;
       end;
-      Compound(APredName, Term.Term[0], Refs);
+      Compound(APredicateName, Term.Term[0], Refs);
       Call('assert', Term);
       ADataSet.Next;
     end;
@@ -448,8 +450,8 @@ begin
   end;
 end;
 
-procedure TgsPLClient.MakePredicates(const ASQL: String; ATr: TIBTransaction;
-  const APredName: String; const AFileName: String);
+procedure TgsPLClient.MakePredicatesOfSQLSelect(const ASQL: String; ATr: TIBTransaction;
+  const APredicateName: String; const AFileName: String);
 var
   q: TIBSQL;
   Refs, Term: TgsTermv;
@@ -495,8 +497,8 @@ begin
               SQL_TEXT, SQL_VARYING:
                 Refs.SetString(I, q.Fields[I].AsTrimString);
             end;
-          end; 
-          Compound(APredName, Term.Term[0], Refs);
+          end;
+          Compound(APredicateName, Term.Term[0], Refs);
           Call('assert', Term);
           q.Next;
         end;
@@ -510,9 +512,9 @@ begin
   end;
 end;
 
-procedure TgsPLClient.MakePredicates(const AClassName: String; const ASubType: String; const ASubSet: String;
+procedure TgsPLClient.MakePredicatesOfObject(const AClassName: String; const ASubType: String; const ASubSet: String;
   AParams: Variant; AnExtraConditions: TStringList; const AFieldList: String; ATr: TIBTransaction;
-  const APredName: String; const AFileName: String);
+  const APredicateName: String; const AFileName: String);
 var
   C: TPersistentClass;
   Obj: TgdcBase;
@@ -522,7 +524,7 @@ begin
   Assert(ATr.InTransaction);
   Assert(AClassName > '');
   Assert(ASubSet > '');
-  Assert(APredName > '');
+  Assert(APredicateName > '');
   Assert(VarIsArray(AParams));
   Assert(VarArrayDimCount(AParams) = 1);
 
@@ -546,7 +548,7 @@ begin
       Obj.Params[0].AsVariant := AParams[I];
       Obj.Open;
       if not Obj.Eof then
-        MakePredicates(Obj, AFieldList, APredName, AFileName);
+        MakePredicatesOfDataSet(Obj, AFieldList, APredicateName, AFileName);
       Obj.Close;
     end;
   finally

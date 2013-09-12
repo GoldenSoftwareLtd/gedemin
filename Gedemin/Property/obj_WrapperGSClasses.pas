@@ -50,7 +50,7 @@ uses
   {$ENDIF}
   , gdcStreamSaver, gdvAcctBase, gdvAcctAccCard, gdvAcctAccReview, gdvAcctLedger,
   gdvAcctGeneralLedger, gdvAcctCirculationList, gdv_frmAcctBaseForm_unit,
-  prm_ParamFunctions_unit, gd_main_form, gsFTPClient, gsTRPOS_TLVClient
+  prm_ParamFunctions_unit, gd_main_form, gsFTPClient, gsTRPOS_TLVClient, gsPLClient
   {$IFDEF WITH_INDY}
   , gd_WebServerControl_unit
   {$ENDIF}
@@ -3937,6 +3937,45 @@ type
     procedure Set_CardDataEnc(const Value: WideString); safecall;  
   end;
 
+  TwrpTermv = class(TwrpObject, IgsTermv)
+  private
+    function GetTermv: TgsTermv;
+  protected
+    procedure SetInteger(AnIndex: LongWord; AValue: Integer); safecall;
+    procedure SetString(AnIndex: LongWord; const AValue: WideString); safecall;
+    procedure SetDateTime(AnIndex: LongWord; AValue: TDateTime); safecall;
+    procedure SetInt64(AnIndex: LongWord; AValue: Int64); safecall;
+    procedure SetDate(AnIndex: LongWord; AValue: TDateTime); safecall;
+    procedure SetFloat(AnIndex: LongWord; AValue: Double); safecall;
+    function  Get_Value(Idx: LongWord): OleVariant; safecall;
+    function  Get_DataType(Idx: LongWord): Integer; safecall;
+    function  Get_Term(Idx: LongWord): LongWord; safecall;
+    function  Get_Size: LongWord; safecall;
+  public
+    class function CreateObject(const DelphiClass: TClass; const Params: OleVariant): TObject; override;  
+  end;
+
+
+  TwrpPLClient = class(TwrpObject, IgsPLClient)
+  private
+    function GetPLClient: TgsPLClient;
+  protected
+    procedure MakePredicatesOfObject(const AClassName: WideString; const ASubType: WideString; 
+      const ASubSet: WideString; AParams: OleVariant;
+      const AnExtraConditions: IgsStringList; const AFieldList: WideString;
+      const ATr: IgsIBTransaction; const APredicateName: WideString;
+      const AFileName: WideString); safecall;
+    procedure MakePredicatesOfDataSet(const ADataSet: IgsIBDataSet; const AFieldList: WideString;
+      const APredicateName: WideString; const AFileName: WideString); safecall;
+    procedure MakePredicatesOfSQLSelect(const ASQL: WideString; const ATr: IgsIBTransaction; 
+      const APredicateName: WideString; const AFileName: WideString); safecall;
+    function Call(const APredicateName: WideString; const AParams: IgsTermv): WordBool; safecall;
+    function Call2(const AGoal: WideString): WordBool; safecall;
+    function Initialise(AParams: OleVariant): WordBool; safecall;
+    procedure ExtractData(const ADataSet: IgsClientDataSet; const APredicateName: WideString;
+      const ATermv: IgsTermv); safecall;
+  end;
+
 implementation
 
 uses
@@ -3963,6 +4002,7 @@ type
   TCrackGdc_dlgG = class(Tgdc_dlgG);
   TCrackGdc_frmG = class(Tgdc_frmG);
   TCrackgsComboBoxAttrSet = class(TgsComboBoxAttrSet);
+
 
 { TwrpCustomDBGrid }
 
@@ -18915,6 +18955,123 @@ begin
   GetTRPOSParamData.CardDataEnc := Value;
 end;
 
+function TwrpTermv.GetTermv: TgsTermv;
+begin
+  Result := GetObject as TgsTermv;
+end;
+
+procedure TwrpTermv.SetInteger(AnIndex: LongWord; AValue: Integer);
+begin
+  GetTermv.SetInteger(AnIndex, AValue);
+end;
+
+procedure TwrpTermv.SetString(AnIndex: LongWord; const AValue: WideString);
+begin
+  GetTermv.SetString(AnIndex, AValue);
+end;
+
+procedure TwrpTermv.SetDateTime(AnIndex: LongWord; AValue: TDateTime);
+begin
+  GetTermv.SetDateTime(AnIndex, AValue);
+end;
+
+procedure TwrpTermv.SetInt64(AnIndex: LongWord; AValue: Int64);
+begin
+  GetTermv.SetInt64(AnIndex, AValue);
+end;
+
+procedure TwrpTermv.SetDate(AnIndex: LongWord; AValue: TDateTime);
+begin
+  GetTermv.SetDate(AnIndex, AValue);
+end;
+
+procedure TwrpTermv.SetFloat(AnIndex: LongWord; AValue: Double);
+begin
+  GetTermv.SetFloat(AnIndex, AValue);
+end;
+
+function TwrpTermv.Get_Value(Idx: LongWord): OleVariant;
+begin
+  Result := GetTermv.Value[Idx];
+end;
+
+function TwrpTermv.Get_DataType(Idx: LongWord): Integer;
+begin
+  Result := GetTermv.DataType[Idx];
+end;
+
+function TwrpTermv.Get_Term(Idx: LongWord): LongWord;
+begin
+  Result := GetTermv.Term[Idx];
+end;
+
+function TwrpTermv.Get_Size: LongWord;
+begin
+  Result := GetTermv.Size;
+end;
+
+class function TwrpTermv.CreateObject(const DelphiClass: TClass; const Params: OleVariant): TObject;
+begin
+  Assert(DelphiClass.InheritsFrom(TgsTermv), 'Invalide Delphi class');
+  if VarType(Params) in [varSmallint, varInteger] then
+    Result := TgsTermv.CreateTerm(LongWord(Params))
+  else
+    raise Exception.Create('Invalid input param!');
+end;
+
+function TwrpPLClient.GetPLClient: TgsPLClient;
+begin
+  Result := GetObject as TgsPLClient;
+end;
+
+procedure TwrpPLClient.MakePredicatesOfObject(const AClassName: WideString; const ASubType: WideString;
+  const ASubSet: WideString; AParams: OleVariant;
+  const AnExtraConditions: IgsStringList; const AFieldList: WideString;
+  const ATr: IgsIBTransaction; const APredicateName: WideString;
+  const AFileName: WideString);
+begin
+  GetPLClient.MakePredicatesOfObject(AClassName, ASubType, ASubSet, AParams,
+    InterfaceToObject(AnExtraConditions) as TStringList,
+    AFieldList, InterfaceToObject(ATr) as TIBTransaction,
+    APredicateName, AFileName);
+end;
+
+procedure TwrpPLClient.MakePredicatesOfDataSet(const ADataSet: IgsIBDataSet; const AFieldList: WideString;
+  const APredicateName: WideString; const AFileName: WideString);
+begin
+  GetPLClient.MakePredicatesOfDataSet(InterfaceToObject(ADataSet) as TDataSet, AFieldList,
+    APredicateName, AFileName);
+end;
+
+procedure TwrpPLClient.MakePredicatesOfSQLSelect(const ASQL: WideString; const ATr: IgsIBTransaction;
+  const APredicateName: WideString; const AFileName: WideString);
+begin
+  GetPLClient.MakePredicatesOfSQLSelect(ASQL, InterfaceToObject(ATr) as TIBTransaction,
+    APredicateName, AFileName);
+end;
+
+function TwrpPLClient.Call(const APredicateName: WideString; const AParams: IgsTermv): WordBool;
+begin
+  Result := GetPLClient.Call(APredicateName, InterfaceToObject(AParams) as TgsTermv);
+end;
+
+function TwrpPLClient.Call2(const AGoal: WideString): WordBool;
+begin
+  Result := GetPLClient.Call(AGoal);
+end;
+
+function TwrpPLClient.Initialise(AParams: OleVariant): WordBool;
+begin
+  Result := GetPLClient.Initialise(AParams);
+end;
+
+procedure TwrpPLClient.ExtractData(const ADataSet: IgsClientDataSet; const APredicateName: WideString;
+  const ATermv: IgsTermv);
+begin
+  GetPLClient.ExtractData(InterfaceToObject(ADataSet) as TClientDataSet, APredicateName,
+    InterfaceToObject(ATermv) as TgsTermv);
+end;
+
 function TwrpGsComScaner.Get_PacketSize: Integer;
 begin
   Result := GetGsComScaner.PacketSize;
@@ -19187,5 +19344,6 @@ initialization
   RegisterGdcOLEClass(TgsTRPOSClient, TwrpTRPOSClient, ComServer.TypeLib, IID_IgsTRPOSClient);
   RegisterGdcOLEClass(TgsTRPOSOutPutData, TwrpTRPOSOutPutData, ComServer.TypeLib, IID_IgsTRPOSOutPutData);
   RegisterGdcOLEClass(TgsTRPOSParamData, TwrpTRPOSParamData, ComServer.TypeLib, IID_IgsTRPOSParamData);
-
+  RegisterGdcOLEClass(TgsPLClient, TwrpPLClient, ComServer.TypeLib, IID_IgsPLClient);
+  RegisterGdcOLEClass(TgsTermv, TwrpTermv, ComServer.TypeLib, IID_IgsTermv);
 end.
