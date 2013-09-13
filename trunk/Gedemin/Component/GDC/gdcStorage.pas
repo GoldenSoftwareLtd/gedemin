@@ -68,6 +68,7 @@ type
   protected
     procedure _DoOnNewRecord; override;
     procedure DoAfterPost; override;
+    procedure DoBeforeInsert; override;
     procedure DoBeforeEdit; override;
     procedure DoBeforeDelete; override;
 
@@ -499,7 +500,10 @@ begin
   {END MACRO}
 
   if FDataTransfer then
+  begin
+    FieldByName('name').ReadOnly := False;
     exit;
+  end;
 
   inherited;
 
@@ -587,6 +591,8 @@ begin
     LockStorage(False);
   end;
 
+  FieldByName('name').ReadOnly := False;
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCSTORAGE', 'DOAFTERPOST', KEYDOAFTERPOST)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -664,13 +670,13 @@ begin
       '      ( '#13#10 +
       '        :data_type = ''U'' '#13#10 +
       '        AND '#13#10 +
-      '        int_data = :UserKey '#13#10 +
+      '        int_data = :int_data '#13#10 +
       '      ) '#13#10 +
       '      OR '#13#10 +
       '      ( '#13#10 +
       '        :data_type = ''O'' '#13#10 +
       '        AND '#13#10 +
-      '        int_data = :CompanyKey '#13#10 +
+      '        int_data = :int_data '#13#10 +
       '      ) '#13#10 +
       '      OR '#13#10 +
       '      ( '#13#10 +
@@ -771,6 +777,44 @@ class function TgdcStorage.NeedModifyFromStream(
 begin
   // По умолчанию выставляем флаг "Перезаписывать из потока"
   Result := True;
+end;
+
+procedure TgdcStorage.DoBeforeInsert;
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+begin
+  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCSTORAGE', 'DOBEFOREINSERT', KEYDOBEFOREINSERT)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCSTORAGE', KEYDOBEFOREINSERT);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOBEFOREINSERT]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCSTORAGE') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCSTORAGE',
+  {M}          'DOBEFOREINSERT', KEYDOBEFOREINSERT, Params, LResult) then exit;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCSTORAGE' then
+  {M}        begin
+  {M}          Inherited;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  FieldByName('name').ReadOnly := False;
+  inherited;
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCSTORAGE', 'DOBEFOREINSERT', KEYDOBEFOREINSERT)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCSTORAGE', 'DOBEFOREINSERT', KEYDOBEFOREINSERT);
+  {M}  end;
+  {END MACRO}
 end;
 
 initialization

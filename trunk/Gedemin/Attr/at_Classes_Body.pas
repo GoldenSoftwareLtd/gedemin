@@ -2704,7 +2704,7 @@ begin
   begin
     IBLogin.AddEvent('Синхронизация и считывание структуры базы данных',
       'Kernel');
-  end;    
+  end;
 
   Clear;
 
@@ -2716,7 +2716,6 @@ begin
   DidActivate := False;
   ibsql := TIBSQL.Create(nil);
   try
-    ibsql.Database := FDatabase;
     ibsql.Transaction := FTransaction;
 
     if not FTransaction.InTransaction then

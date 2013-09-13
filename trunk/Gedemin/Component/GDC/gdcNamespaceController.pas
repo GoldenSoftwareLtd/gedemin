@@ -84,7 +84,9 @@ begin
     '  LEFT JOIN at_namespace n '#13#10 +
     '    ON n.id = o.namespacekey '#13#10 +
     'WHERE '#13#10 +
-    '  od.sessionid = :sid ';
+    '  od.sessionid = :sid '#13#10 +
+    'ORDER BY '#13#10 +
+    '  od.reflevel DESC';
 end;
 
 destructor TgdcNamespaceController.Destroy;

@@ -96,9 +96,6 @@ begin
       if not FieldExist(F, IBDB) then
         AddField(F, IBDB);
 
-      {q.SQL.Text := 'UPDATE GD_RUID SET DBID=17 WHERE XID < 147000000 AND DBID <> 17 ';
-      q.ExecQuery;}
-
       try
         q.SQL.Text := 'INSERT INTO fin_versioninfo ' +
           'VALUES (74, ''0000.0001.0000.0102'', ''04.05.2006'', ''Field bankbranch added to table bn_bankstatementline '') ';
