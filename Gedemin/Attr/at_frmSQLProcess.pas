@@ -67,7 +67,7 @@ function TranslateText(const T: String): String;
 
 procedure AddText(const T: String; const C: TColor = clBlack);
 procedure AddMistake(const T: String; const C: TColor = clRed);
-procedure AddWarning(const T: String; const C: TColor);
+procedure AddWarning(const T: String; const C: TColor = clBlack);
 
 implementation
 
@@ -274,7 +274,7 @@ begin
   frmSQLProcess.AddRecord(T, atltError);
 end;
 
-procedure AddWarning(const T: String; const C: TColor);
+procedure AddWarning(const T: String; const C: TColor = clBlack);
 begin
   if Windows.GetCurrentThreadId <> System.MainThreadID then
     exit;

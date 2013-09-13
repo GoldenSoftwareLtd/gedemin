@@ -3827,7 +3827,7 @@ begin
       S := CreateAccCirculationList(True);
       if S <> '' then
         FQuery.Add(S);
-      // Пересоздать триггер синхронизации ее данных и данных AC_ENTRY, удалить поле из AC_ENTRY_BALANCE  
+      // Пересоздать триггер синхронизации ее данных и данных AC_ENTRY, удалить поле из AC_ENTRY_BALANCE
       AlterAcEntryBalanceAndRecreateTrigger(FQuery, True);
       NeedMultiConnection := True;
     end;
@@ -4840,6 +4840,8 @@ begin
           gdcField.SubSet := 'ByFieldName';
           gdcField.ParamByName('fieldname').AsString := Trim(FieldByName('fieldsource').AsString);
           gdcField.Open;
+          {if gdcField.EOF then
+            AddWarning('Unknown domain ' + FieldByName('fieldsource').AsString);}
           // Добавим поле в ac_entry_balance
           AcEntryBalanceStr := Format('ALTER TABLE ac_entry_balance ADD %s %s',
             [FieldByName('fieldname').AsString, gdcField.GetDomainText(False, True)]);

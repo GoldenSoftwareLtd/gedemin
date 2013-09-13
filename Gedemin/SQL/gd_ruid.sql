@@ -15,14 +15,14 @@ CREATE TABLE gd_ruid
 );
 
 ALTER TABLE gd_ruid ADD CONSTRAINT gd_chk_ruid_etalon
-  CHECK((xid >= 147000000) OR ((dbid = 17) AND (id = xid)));
+  CHECK(
+    (id >= 147000000 AND xid >= 147000000)
+    OR
+    (id < 147000000 AND dbid = 17 AND id = xid)
+  );
 
 ALTER TABLE gd_ruid ADD CONSTRAINT gd_uniq_ruid
   UNIQUE (xid, dbid);
-
-/*
-CREATE UNIQUE INDEX gd_x_ruid_xid ON gd_ruid(xid, dbid);
-*/
 
 COMMIT;
 

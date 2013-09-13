@@ -351,7 +351,6 @@ var
   St: String;
 begin
   St := S;
-//  OemToChar(PChar(St), PChar(St));
   OemToChar(@St[1], @St[1]);
   Result := St;                
 end;

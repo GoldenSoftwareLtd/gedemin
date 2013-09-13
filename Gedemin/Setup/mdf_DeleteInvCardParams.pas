@@ -1596,6 +1596,21 @@ begin
       q.SQL.Text := 'GRANT ALL ON at_namespace_sync TO administrator';
       q.ExecQuery;
 
+      if ConstraintExist2('GD_RUID', 'GD_CHK_RUID_ETALON', Tr) then
+      begin
+        q.SQL.Text := 'ALTER TABLE gd_ruid DROP CONSTRAINT gd_chk_ruid_etalon';
+        q.ExecQuery;
+      end;
+
+      q.SQL.Text :=
+        'ALTER TABLE gd_ruid ADD CONSTRAINT gd_chk_ruid_etalon ' +
+        '  CHECK( ' +
+        '    (id >= 147000000 AND xid >= 147000000) ' +
+        '    OR ' +
+        '    (id < 147000000 AND dbid = 17 AND id = xid) ' +
+        '  )';
+      q.ExecQuery;
+
       q.Close;
       q.SQL.Text :=
         'UPDATE OR INSERT INTO fin_versioninfo ' +
@@ -1618,6 +1633,12 @@ begin
       q.SQL.Text :=
         'UPDATE OR INSERT INTO fin_versioninfo ' +
         '  VALUES (186, ''0000.0001.0000.0217'', ''10.09.2013'', ''Drop constraint AT_FK_NAMESPACE_SYNC_NSK. Attempt #2.'') ' +
+        '  MATCHING (id)';
+      q.ExecQuery;
+
+      q.SQL.Text :=
+        'UPDATE OR INSERT INTO fin_versioninfo ' +
+        '  VALUES (187, ''0000.0001.0000.0218'', ''12.09.2013'', ''Modified check constraint on GD_RUID.'') ' +
         '  MATCHING (id)';
       q.ExecQuery;
 

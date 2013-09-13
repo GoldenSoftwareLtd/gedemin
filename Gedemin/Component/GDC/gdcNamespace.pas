@@ -385,6 +385,9 @@ begin
     begin
       F := AgdcObject.Fields[I];
 
+      if F.FieldKind <> fkData then
+        continue;
+
       if StrIPos(';' + F.FieldName + ';', PassFieldName) > 0 then
         continue;
 
@@ -707,16 +710,17 @@ begin
       qList.Next;
     end;
 
-    q.SQL.Text :=
-      'DELETE FROM at_object ' +
-      'WHERE id IN ( ' +
+    q.SQL.Text := 'DELETE FROM at_object WHERE xid >= 147000000 ';
+    if ANamespaceKey > -1 then
+      q.SQL.Text := q.SQL.Text + 'AND namespacekey = :nk ';
+    q.SQL.Text := q.SQL.Text +
+      'AND id IN ( ' +
       '  SELECT o.id FROM at_object o ' +
       '    LEFT JOIN gd_ruid r ON r.xid = o.xid AND r.dbid = o.dbid ' +
-      '  WHERE r.xid IS NULL';
+      '  WHERE r.xid IS NULL AND o.xid >= 147000000 ';
     if ANamespaceKey > -1 then
     begin
-      q.SQL.Text := q.SQL.Text +
-        ' AND o.namespacekey = :nk)';
+      q.SQL.Text := q.SQL.Text + 'AND o.namespacekey = :nk)';
       q.ParamByName('nk').AsInteger := ANamespaceKey;
     end else
       q.SQL.Text := q.SQL.Text + ')';

@@ -5829,24 +5829,21 @@ class function TgdcBase.GetDisplayName(const ASubType: TgdcSubType): String;
 var
   R: TatRelation;
 begin
-  Result := '';
+  Result := GetListTable(ASubType);
 
   if Assigned(atDatabase) then
   begin
-    R := atDatabase.Relations.ByRelationName(GetListTable(ASubType));
+    R := atDatabase.Relations.ByRelationName(Result);
     if R <> nil then
     begin
-      if AnsiCompareText(R.LShortName, GetListTable(ASubType)) = 0 then
+      if AnsiCompareText(R.LShortName, Result) <> 0 then
+        Result := R.LShortName
+      else if AnsiCompareText(R.LName, Result) <> 0 then
         Result := R.LName
       else
-        Result := R.LShortName;
+        Result := ClassName + ASubType + ' - ' + Result;
     end;
   end;
-
-  //!!!
-  if Result = '' then
-    Result := ClassName + ASubType;
-  //!!!
 end;
 
 function TgdcBase.GetGroupClause: String;
@@ -11214,16 +11211,16 @@ function TgdcBase.GetObjectName: String;
 begin
   if Active then
   begin
-    Result := Trim(FieldByName(GetListField(SubType)).AsString);
     if AnsiCompareText(GetListField(SubType), GetKeyField(SubType)) = 0 then
-      Result := GetDisplayName(SubType) + ', ИД: ' + Result;
+      Result := GetDisplayName(SubType) + ', ИД: ' + IntToStr(ID)
+    else
+      Result := Trim(FieldByName(GetListField(SubType)).AsString);
   end else
     Result := FObjectName;
 end;
 
 procedure TgdcBase.SetObjectName(const Value: String);
 begin
-  { TODO : а пустое имя может быть?? }
   if Value = '' then
   begin
     Close;
@@ -14317,12 +14314,17 @@ begin
   {M}    end;
   {END MACRO}
 
-  F := FieldByName(GetKeyField(SubType));
-  if (not EOF) and (F.AsInteger < cstUserIDStart) and (not F.IsNull) then
-    Result := Format('SELECT %0:s FROM %1:s WHERE %0:s=%2:d ',
-      [GetKeyField(SubType), GetListTable(SubType), F.AsInteger])
-  else
-    Result := '';
+  if State = dsInactive then
+    Result := Format('SELECT %0:s FROM %1:s WHERE %0:s=:%0:s ',
+      [GetKeyField(SubType), GetListTable(SubType)])
+  else begin
+    F := FieldByName(GetKeyField(SubType));
+    if (not EOF) and (F.AsInteger < cstUserIDStart) and (not F.IsNull) then
+      Result := Format('SELECT %0:s FROM %1:s WHERE %0:s=%2:d ',
+        [GetKeyField(SubType), GetListTable(SubType), F.AsInteger])
+    else
+      Result := '';
+  end;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASE', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally
