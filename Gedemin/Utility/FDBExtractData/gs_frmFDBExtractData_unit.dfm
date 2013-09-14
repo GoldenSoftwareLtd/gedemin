@@ -1,9 +1,10 @@
 object gs_frmFDBExtractData: Tgs_frmFDBExtractData
-  Left = 299
-  Top = 139
-  Width = 307
-  Height = 232
+  Left = 520
+  Top = 342
+  BorderStyle = bsDialog
   Caption = 'ExtractData'
+  ClientHeight = 282
+  ClientWidth = 592
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -11,13 +12,14 @@ object gs_frmFDBExtractData: Tgs_frmFDBExtractData
   Font.Name = 'MS Sans Serif'
   Font.Style = []
   OldCreateOrder = False
+  Position = poScreenCenter
   PixelsPerInch = 96
   TextHeight = 13
   object Panel: TPanel
     Left = 0
     Top = 0
-    Width = 291
-    Height = 194
+    Width = 592
+    Height = 282
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 0
@@ -102,6 +104,31 @@ object gs_frmFDBExtractData: Tgs_frmFDBExtractData
       Height = 21
       Action = actExtract
       TabOrder = 4
+    end
+    object mIgnoreFields: TMemo
+      Left = 320
+      Top = 8
+      Width = 185
+      Height = 249
+      Lines.Strings = (
+        'CREATORKEY'
+        'EDITORKEY'
+        'ACHAG'
+        'AVIEW'
+        'AFULL'
+        'LB'
+        'RB'
+        'RESERVED'
+        'ENTEREDPARAMS'
+        'BREAKPOINTS'
+        'EDITORSTATE'
+        'TESTRESULT'
+        'RDB$PROCEDURE_BLR'
+        'RDB$TRIGGER_BLR'
+        'RDB$VIEW_BLR'
+        'LASTEXTIME'
+        'EDITIONDATE')
+      TabOrder = 5
     end
   end
   object ActionList: TActionList

@@ -2,13 +2,13 @@ inherited gdc_frmSetting: Tgdc_frmSetting
   Left = 402
   Top = 192
   Width = 815
-  Height = 495
+  Height = 722
   HelpContext = 22
   Caption = 'Настройки'
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 438
+    Top = 665
     Width = 799
   end
   inherited TBDockTop: TTBDock
@@ -130,29 +130,31 @@ inherited gdc_frmSetting: Tgdc_frmSetting
     end
   end
   inherited TBDockLeft: TTBDock
-    Height = 378
+    Height = 605
   end
   inherited TBDockRight: TTBDock
     Left = 790
-    Height = 378
+    Height = 605
   end
   inherited TBDockBottom: TTBDock
-    Top = 429
+    Top = 656
     Width = 799
   end
   inherited pnlWorkArea: TPanel
     Width = 781
+    Height = 605
     inherited sMasterDetail: TSplitter
       Width = 781
     end
     inherited spChoose: TSplitter
+      Top = 500
       Width = 781
     end
     object spltStorrage: TSplitter [2]
       Left = 523
       Top = 173
       Width = 3
-      Height = 100
+      Height = 327
       Cursor = crHSplit
       Align = alRight
       Visible = False
@@ -164,6 +166,7 @@ inherited gdc_frmSetting: Tgdc_frmSetting
       end
     end
     inherited pnChoose: TPanel
+      Top = 506
       Width = 781
       inherited pnButtonChoose: TPanel
         Left = 676
@@ -177,6 +180,7 @@ inherited gdc_frmSetting: Tgdc_frmSetting
     end
     inherited pnlDetail: TPanel
       Width = 523
+      Height = 327
       inherited TBDockDetail: TTBDock
         Width = 523
         inherited tbDetailToolbar: TTBToolbar
@@ -206,15 +210,25 @@ inherited gdc_frmSetting: Tgdc_frmSetting
           end
         end
       end
+      inherited pnlSearchDetail: TPanel
+        Height = 301
+        inherited sbSearchDetail: TScrollBox
+          Height = 263
+        end
+        inherited pnlSearchDetailButton: TPanel
+          Top = 263
+        end
+      end
       inherited ibgrDetail: TgsIBGrid
         Width = 363
+        Height = 301
       end
     end
     object pnlStorage: TPanel
       Left = 526
       Top = 173
       Width = 255
-      Height = 100
+      Height = 327
       Align = alRight
       BevelOuter = bvNone
       TabOrder = 3
@@ -260,7 +274,7 @@ inherited gdc_frmSetting: Tgdc_frmSetting
         Left = 0
         Top = 26
         Width = 160
-        Height = 74
+        Height = 301
         Align = alLeft
         BevelOuter = bvNone
         Color = 14741233
@@ -270,7 +284,7 @@ inherited gdc_frmSetting: Tgdc_frmSetting
           Left = 0
           Top = 0
           Width = 160
-          Height = 44
+          Height = 271
           HorzScrollBar.Style = ssFlat
           HorzScrollBar.Visible = False
           VertScrollBar.Style = ssFlat
@@ -280,7 +294,7 @@ inherited gdc_frmSetting: Tgdc_frmSetting
         end
         object pnlSearchStorageButton: TPanel
           Left = 0
-          Top = 44
+          Top = 271
           Width = 160
           Height = 30
           Align = alBottom
@@ -311,7 +325,7 @@ inherited gdc_frmSetting: Tgdc_frmSetting
         Left = 160
         Top = 26
         Width = 95
-        Height = 74
+        Height = 301
         HelpContext = 3
         Align = alClient
         BorderStyle = bsNone

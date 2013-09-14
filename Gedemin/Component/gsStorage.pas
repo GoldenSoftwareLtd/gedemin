@@ -564,11 +564,6 @@ type
   end;
 
   TgsDesktopStorage = class(TgsStorage)
-  {protected
-    function UpdateName(const Tr: TIBTransaction = nil): String; override;
-
-  public
-    constructor Create; override;}
   end;
 
   TgsGlobalStorage = class(TgsIBStorage);
