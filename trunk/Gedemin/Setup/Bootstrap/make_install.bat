@@ -99,7 +99,7 @@ echo **  %~dp6\setup.exe
 echo **                                             **
 echo *************************************************
 
-copy ..\..\images\splash\%3 "%install_source_path%\gedemin.jpg" /Y
+rem copy ..\..\images\splash\%3 "%install_source_path%\gedemin.jpg" /Y
 if exist "%~dp6setup.exe" del "%~dp6setup.exe"
 "%inno_setup_path%\iscc.exe" "%setup_path%\%4.iss" "/o%~dp6" /fsetup /q
 if not exist "%~dp6setup.exe" goto Error

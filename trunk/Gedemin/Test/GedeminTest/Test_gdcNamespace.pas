@@ -162,8 +162,8 @@ begin
       NS.FieldByName('name').AsString := 'Namespace 1';
       NS.Post;
 
-      NS.AddObject(NS.ID, 'Folder 1', 'TgdcFolder', '', FRUID.XID,  FRUID.DBID, 0,
-        ovAlwaysOverwrite, rmDontRemove, isInclude, Tr);
+//      NS.AddObject(NS.ID, 'Folder 1', 'TgdcFolder', '', FRUID.XID,  FRUID.DBID, 0,
+//        ovAlwaysOverwrite, rmDontRemove, isInclude, Tr);
 
       FName := TempPath + '\ns.yml';
       SysUtils.DeleteFile(FName);
@@ -320,7 +320,7 @@ begin
     Check(not FTable.EOF);
 
     RUID := FTable.GetRuid;
-    TgdcNamespace.AddObject(FNamespacekey,
+{    TgdcNamespace.AddObject(FNamespacekey,
       FTable.FieldByName(FTable.GetListField(FTable.SubType)).AsString,
       FTable.ClassName,
       FTable.Subtype,
@@ -328,7 +328,7 @@ begin
       RUID.DBID,
       0,
       ovAlwaysOverwrite, rmDontRemove, isDontInclude,
-      FTr);
+      FTr); }
   finally
     FTable.Free;      
   end;
@@ -380,7 +380,7 @@ begin
     FTable.Open;
     Check(not FTable.EOF);
 
-    TgdcNamespace.AddObject(FNamespacekey,
+{    TgdcNamespace.AddObject(FNamespacekey,
       FTable.FieldByName(FTable.GetListField(FTable.SubType)).AsString,
       FTable.ClassName,
       FTable.Subtype,
@@ -388,7 +388,7 @@ begin
       FTable.GetRuid.DBID,
       0,
       ovOverwriteIfNewer, rmDontRemove, isDontInclude,
-      FTr);
+      FTr); }
 
     FTable.Close;
     FTable.ParamByName(FTable.GetListField(FTable.SubType)).AsString := FTableName2;
@@ -396,7 +396,7 @@ begin
     Check(not FTable.EOF);
 
     LShortName := FTable.FieldByName('lshortname').AsString;
-    TgdcNamespace.AddObject(FNamespacekey,
+{    TgdcNamespace.AddObject(FNamespacekey,
       FTable.FieldByName(FTable.GetListField(FTable.SubType)).AsString,
       FTable.ClassName,
       FTable.Subtype,
@@ -404,7 +404,7 @@ begin
       FTable.GetRuid.DBID,
       0,
       ovAlwaysOverwrite, rmDontRemove, isDontInclude,
-      FTr);
+      FTr); }
   finally
     FTable.Free;
   end;
@@ -566,7 +566,7 @@ begin
     Good.Id := ID;
     Good.Open;
     Check(not Good.Eof);
-    TgdcNamespace.AddObject(FNamespacekey,
+{    TgdcNamespace.AddObject(FNamespacekey,
       Good.FieldByName(Good.GetListField(Good.SubType)).AsString,
       Good.ClassName,
       Good.Subtype,
@@ -574,7 +574,7 @@ begin
       Good.GetRuid.DBID,
       0,
       ovAlwaysOverwrite, rmDontRemove, isDontInclude,
-      FTr);
+      FTr); }
   finally
     Good.Free;
   end;

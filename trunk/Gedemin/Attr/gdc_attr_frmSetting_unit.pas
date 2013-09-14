@@ -209,7 +209,8 @@ implementation
 uses
   gd_ClassList, gdcBaseInterface, at_frmUserForm_unit, gd_directories_const,
   gsStorage, Storages, gdcStorage, frm_SettingView_unit, gd_security,
-  gd_common_functions, jclSelected, IBDatabase, gdc_attr_dlgSetToTxt_unit
+  gd_common_functions, jclSelected, IBDatabase, gdc_attr_dlgSetToTxt_unit,
+  gdcMetaData
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -1520,7 +1521,7 @@ procedure Tgdc_frmSetting.OnObjectLoad2_NS(Sender: TatSettingWalker;
   const AClassName, ASubType: String; ADataSet: TDataSet;
   APrSet: TgdcPropertySet; const ASR: TgsStreamRecord);
 var
-  T: String;
+  T, ObjName: String;
   C: TPersistentClass;
 begin
   ADataSet.First;
@@ -1532,42 +1533,34 @@ begin
     begin
       SCount.Add(T);
 
-      gdcNamespaceObject.Insert;
-      gdcNamespaceObject.FieldByName('namespacekey').AsInteger := gdcNamespace.ID;
-
       C := GetClass(AClassName);
+
       if C.InheritsFrom(TgdcBase) and (CgdcBase(C).GetListField(ASubType) > '')
         and (ADataSet.FieldByName(CgdcBase(C).GetListField(ASubType)).AsString > '') then
       begin
-        gdcNamespaceObject.FieldByName('objectname').AsString := ADataSet.FieldByName(CgdcBase(C).GetListField(ASubType)).AsString;
+        ObjName := ADataSet.FieldByName(CgdcBase(C).GetListField(ASubType)).AsString;
       end else if (ADataSet.FindField('name') <> nil) and (ADataSet.FieldByName('name').AsString > '') then
-        gdcNamespaceObject.FieldByName('objectname').AsString := ADataSet.FieldByName('name').AsString
+        ObjName := ADataSet.FieldByName('name').AsString
       else if (ADataSet.FindField('usr$name') <> nil) and (ADataSet.FieldByName('usr$name').AsString > '') then
-        gdcNamespaceObject.FieldByName('objectname').AsString := ADataSet.FieldByName('usr$name').AsString
+        ObjName := ADataSet.FieldByName('usr$name').AsString
       else
-        gdcNamespaceObject.FieldByName('objectname').AsString :=
-          ADataSet.FieldByName('_xid').AsString + '_' + ADataSet.FieldByName('_dbid').AsString;
-      gdcNamespaceObject.FieldByName('objectclass').AsString := AClassName;
-      gdcNamespaceObject.FieldByName('subtype').AsString := ASubType;
-      gdcNamespaceObject.FieldByName('xid').AsInteger := ADataSet.FieldByName('_xid').AsInteger;
-      gdcNamespaceObject.FieldByName('dbid').AsInteger := ADataSet.FieldByName('_dbid').AsInteger;
-      gdcNamespaceObject.Post;
+        ObjName := ADataSet.FieldByName('_xid').AsString + '_' + ADataSet.FieldByName('_dbid').AsString;
+
+      if (not C.InheritsFrom(TgdcMetaBase)) or (Pos('RDB$', ObjName) <> 1) then
+      begin
+        gdcNamespaceObject.Insert;
+        gdcNamespaceObject.FieldByName('namespacekey').AsInteger := gdcNamespace.ID;
+        gdcNamespaceObject.FieldByName('objectname').AsString := ObjName;
+        gdcNamespaceObject.FieldByName('objectclass').AsString := AClassName;
+        gdcNamespaceObject.FieldByName('subtype').AsString := ASubType;
+        gdcNamespaceObject.FieldByName('xid').AsInteger := ADataSet.FieldByName('_xid').AsInteger;
+        gdcNamespaceObject.FieldByName('dbid').AsInteger := ADataSet.FieldByName('_dbid').AsInteger;
+        gdcNamespaceObject.Post;
+      end;
     end;
 
     ADataSet.Next;
   end;
-
-  (*
-    if Added then
-    begin
-      if APrSet.Count > 0 then
-        SList.Add(#13#10'Свойства'#13#10);
-      for I := 0 to APrSet.Count - 1 do
-        SList.Add(Format({'%2d: }'%20s', [{I, }APrSet.Name[I]]) + ':  ' + VarToStr(APrSet.Value[APrSet.Name[I]]));
-      SList.Add('');
-    end else
-      SList.Delete(SList.Count - 1);
-  *)
 end;
 
 procedure Tgdc_frmSetting.OnObjectLoad2New_NS(Sender: TatSettingWalker;

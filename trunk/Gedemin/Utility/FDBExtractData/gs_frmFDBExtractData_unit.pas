@@ -24,6 +24,7 @@ type
     btnExtract: TButton;
     actSelectOutPutFile: TAction;
     actExtract: TAction;
+    mIgnoreFields: TMemo;
     procedure actSeletDBExecute(Sender: TObject);
     procedure actSelectOutPutFileExecute(Sender: TObject);
     procedure actExtractExecute(Sender: TObject);
@@ -80,12 +81,11 @@ var
 begin
   FDBExtractData := TgsDBExtractData.Create;
   try
-    FDBExtractData.DatabaseName := Trim(eDatabase.Text);
-    FDBExtractData.UserName := Trim(eUser.Text);
-    FDBExtractData.Password := Trim(ePassword.Text);
+    FDBExtractData.DatabaseName := eDatabase.Text;
+    FDBExtractData.UserName := eUser.Text;
+    FDBExtractData.Password := ePassword.Text;
     FDBExtractData.Connect;
-    if FDBExtractData.Connected then
-      FDBExtractData.ExtractData(Trim(eSave.Text));
+    FDBExtractData.ExtractData(eSave.Text, mIgnoreFields.Lines);
   finally
     FDBExtractData.Free;
   end;

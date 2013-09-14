@@ -61,7 +61,7 @@ begin
   FibdsLink.ReadTransaction := FIBTransaction;
   FibdsLink.Transaction := FIBTransaction;
   FibdsLink.SelectSQL.Text :=
-    'SELECT '#13#10 +
+    'SELECT DISTINCT '#13#10 +
     '  od.refobjectid as id, '#13#10 +
     '  r.xid as xid, '#13#10 +
     '  r.dbid as dbid, '#13#10 +
@@ -194,39 +194,42 @@ begin
           begin
             if FibdsLink.FieldByName('namespacekey').IsNull then
             begin
-              gdcNamespaceObject.Insert;
-              gdcNamespaceObject.FieldByName('namespacekey').AsInteger := FCurrentNSID;
-              gdcNamespaceObject.FieldByName('objectname').AsString := FibdsLink.FieldByName('name').AsString;
-              gdcNamespaceObject.FieldByName('objectclass').AsString := FibdsLink.FieldByName('class').AsString;
-              gdcNamespaceObject.FieldByName('subtype').AsString := FibdsLink.FieldByName('subtype').AsString;
-              gdcNamespaceObject.FieldByName('xid').AsInteger := FibdsLink.FieldByName('xid').AsInteger;
-              gdcNamespaceObject.FieldByName('dbid').AsInteger := FibdsLink.FieldByName('dbid').AsInteger;
-              gdcNamespaceObject.FieldByName('objectpos').AsInteger := HeadObjectPos;
-              if FAlwaysOverwrite then
-                gdcNamespaceObject.FieldByName('alwaysoverwrite').AsInteger := 1
-              else
-                gdcNamespaceObject.FieldByName('alwaysoverwrite').AsInteger := 0;
-              if FDontRemove then
-                gdcNamespaceObject.FieldByName('dontremove').AsInteger := 1
-              else
-                gdcNamespaceObject.FieldByName('dontremove').AsInteger := 0;
-              if FIncludeSiblings then
-                gdcNamespaceObject.FieldByName('includesiblings').AsInteger := 1
-              else
-                gdcNamespaceObject.FieldByName('includesiblings').AsInteger := 0;
-              gdcNamespaceObject.FieldByName('headobjectkey').AsInteger := HeadObjectKey;
-              if FibdsLink.FieldByName('editiondate').IsNull then
+              if Pos('RDB$', FibdsLink.FieldByName('name').AsString) <> 1 then
               begin
-                gdcNamespaceObject.FieldByName('modified').AsDateTime := Now;
-                gdcNamespaceObject.FieldByName('curr_modified').AsDateTime := Now;
-              end else
-              begin
-                gdcNamespaceObject.FieldByName('modified').AsDateTime :=
-                  FibdsLink.FieldByName('editiondate').AsDateTime;
-                gdcNamespaceObject.FieldByName('curr_modified').AsDateTime :=
-                  FibdsLink.FieldByName('editiondate').AsDateTime;
-              end;
-              gdcNamespaceObject.Post;
+                gdcNamespaceObject.Insert;
+                gdcNamespaceObject.FieldByName('namespacekey').AsInteger := FCurrentNSID;
+                gdcNamespaceObject.FieldByName('objectname').AsString := FibdsLink.FieldByName('name').AsString;
+                gdcNamespaceObject.FieldByName('objectclass').AsString := FibdsLink.FieldByName('class').AsString;
+                gdcNamespaceObject.FieldByName('subtype').AsString := FibdsLink.FieldByName('subtype').AsString;
+                gdcNamespaceObject.FieldByName('xid').AsInteger := FibdsLink.FieldByName('xid').AsInteger;
+                gdcNamespaceObject.FieldByName('dbid').AsInteger := FibdsLink.FieldByName('dbid').AsInteger;
+                gdcNamespaceObject.FieldByName('objectpos').AsInteger := HeadObjectPos;
+                if FAlwaysOverwrite then
+                  gdcNamespaceObject.FieldByName('alwaysoverwrite').AsInteger := 1
+                else
+                  gdcNamespaceObject.FieldByName('alwaysoverwrite').AsInteger := 0;
+                if FDontRemove then
+                  gdcNamespaceObject.FieldByName('dontremove').AsInteger := 1
+                else
+                  gdcNamespaceObject.FieldByName('dontremove').AsInteger := 0;
+                if FIncludeSiblings then
+                  gdcNamespaceObject.FieldByName('includesiblings').AsInteger := 1
+                else
+                  gdcNamespaceObject.FieldByName('includesiblings').AsInteger := 0;
+                gdcNamespaceObject.FieldByName('headobjectkey').AsInteger := HeadObjectKey;
+                if FibdsLink.FieldByName('editiondate').IsNull then
+                begin
+                  gdcNamespaceObject.FieldByName('modified').AsDateTime := Now;
+                  gdcNamespaceObject.FieldByName('curr_modified').AsDateTime := Now;
+                end else
+                begin
+                  gdcNamespaceObject.FieldByName('modified').AsDateTime :=
+                    FibdsLink.FieldByName('editiondate').AsDateTime;
+                  gdcNamespaceObject.FieldByName('curr_modified').AsDateTime :=
+                    FibdsLink.FieldByName('editiondate').AsDateTime;
+                end;
+                gdcNamespaceObject.Post;
+              end;  
             end
             else if FibdsLink.FieldByName('namespacekey').AsInteger <> FCurrentNSID then
             begin

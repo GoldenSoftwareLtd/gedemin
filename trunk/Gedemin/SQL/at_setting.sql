@@ -466,8 +466,6 @@ CREATE GLOBAL TEMPORARY TABLE at_namespace_sync (
   filename      dtext255,
   operation     CHAR(2) DEFAULT '  ' NOT NULL,
 
-  CONSTRAINT at_fk_namespace_sync_nsk
-    FOREIGN KEY (namespacekey) REFERENCES at_namespace (id),
   CONSTRAINT at_fk_namespace_sync_fn
     FOREIGN KEY (filename) REFERENCES at_namespace_file (filename)
       ON UPDATE CASCADE

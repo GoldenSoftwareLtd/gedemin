@@ -1397,6 +1397,12 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (186, '0000.0001.0000.0217', '10.09.2013', 'Drop constraint AT_FK_NAMESPACE_SYNC_NSK. Attempt #2.');
 
+INSERT INTO fin_versioninfo
+  VALUES (187, '0000.0001.0000.0218', '12.09.2013', 'Modified check constraint on GD_RUID.');
+
+INSERT INTO fin_versioninfo
+  VALUES (188, '0000.0001.0000.0219', '14.09.2013', 'Second attempt to drop constraint AT_FK_NAMESPACE_SYNC_NSK.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
@@ -3373,14 +3379,14 @@ CREATE TABLE gd_ruid
 );
 
 ALTER TABLE gd_ruid ADD CONSTRAINT gd_chk_ruid_etalon
-  CHECK((xid >= 147000000) OR ((dbid = 17) AND (id = xid)));
+  CHECK(
+    (id >= 147000000 AND xid >= 147000000)
+    OR
+    (id < 147000000 AND dbid = 17 AND id = xid)
+  );
 
 ALTER TABLE gd_ruid ADD CONSTRAINT gd_uniq_ruid
   UNIQUE (xid, dbid);
-
-/*
-CREATE UNIQUE INDEX gd_x_ruid_xid ON gd_ruid(xid, dbid);
-*/
 
 COMMIT;
 
@@ -16542,8 +16548,6 @@ CREATE GLOBAL TEMPORARY TABLE at_namespace_sync (
   filename      dtext255,
   operation     CHAR(2) DEFAULT '  ' NOT NULL,
 
-  CONSTRAINT at_fk_namespace_sync_nsk
-    FOREIGN KEY (namespacekey) REFERENCES at_namespace (id),
   CONSTRAINT at_fk_namespace_sync_fn
     FOREIGN KEY (filename) REFERENCES at_namespace_file (filename)
       ON UPDATE CASCADE

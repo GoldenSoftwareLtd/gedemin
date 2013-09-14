@@ -1642,6 +1642,13 @@ begin
         '  MATCHING (id)';
       q.ExecQuery;
 
+
+      q.SQL.Text :=
+        'UPDATE OR INSERT INTO fin_versioninfo ' +
+        '  VALUES (188, ''0000.0001.0000.0219'', ''14.09.2013'', ''Second attempt to drop constraint AT_FK_NAMESPACE_SYNC_NSK.'') ' +
+        '  MATCHING (id)';
+      q.ExecQuery;
+
       Tr.Commit;
     except
       on E: Exception do

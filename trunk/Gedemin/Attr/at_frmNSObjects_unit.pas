@@ -272,7 +272,7 @@ begin
             '  '''' AS SubType,'#13#10 +
             '  ruid.xid,'#13#10 +
             '  ruid.dbid,'#13#10 +
-            '  r.' + CgdcBase(C).GetListField('') + ','#13#10 +
+            '  r.' + CgdcBase(C).GetListField('') + ' AS ObjectName,'#13#10 +
             '  r.editiondate,'#13#10 +
             '  list(n.id || ''='' || n.name) AS ns_list'#13#10 +
             'FROM'#13#10 +
@@ -295,7 +295,7 @@ begin
             '  '''' AS SubType,'#13#10 +
             '  ruid.xid,'#13#10 +
             '  ruid.dbid,'#13#10 +
-            '  r.' + CgdcBase(C).GetListField('') + ','#13#10 +
+            '  r.' + CgdcBase(C).GetListField('') + ' AS ObjectName,'#13#10 +
             '  r.editiondate,'#13#10 +
             '  '''' AS ns_list'#13#10 +
             'FROM'#13#10 +

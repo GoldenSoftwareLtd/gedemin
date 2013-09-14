@@ -5222,44 +5222,19 @@ begin
   {END MACRO}
 
   inherited;
+
   //Поле defsource у нас BLOB, редактируется обычно в мемо.
   //Чтобы не попали лишние символы типа #13#10
   FieldByName('defsource').AsString := Trim(FieldByName('defsource').AsString);
 
   //мы не знаем id cross таблицы(для старых настроек)
   if  (sLoadFromStream in BaseState) and (FieldByName('crosstable').AsString > '') then
-  begin
-    FieldByName('crosstablekey').AsString := ''; 
-  end;
+    FieldByName('crosstablekey').AsString := '';
 
-  if (not (sMultiple in BaseState)) and (not (sLoadFromStream in BaseState)) then
+  if not (sMultiple in BaseState) then
   begin
     ibsql := CreateReadIBSQL;
     try
-      if (FieldByName('relationname').AsString > '') and
-        (FieldByName('relationkey').IsNull) then
-      begin
-        {По имени таблицы найдем ключ таблицы}
-        ibsql.Close;
-        ibsql.SQL.Text := 'SELECT * FROM at_relations WHERE relationname = :RN';
-        ibsql.ParamByName('RN').AsString := AnsiUpperCase(Trim(FieldByName('relationname').AsString));
-        ibsql.ExecQuery;
-        if ibsql.RecordCount > 0 then
-          FieldByName('relationkey').AsInteger := ibsql.FieldByName('id').AsInteger;
-      end;
-
-      if (Trim(FieldByName('relationname').AsString) = '') and
-        (FieldByName('relationkey').AsInteger > 0) then
-      begin
-        {По ключу таблицы подставим имя таблицы}
-        ibsql.Close;
-        ibsql.SQL.Text := 'SELECT * FROM at_relations WHERE id = :id';
-        ibsql.ParamByName('id').AsInteger := FieldByName('relationkey').AsInteger;
-        ibsql.ExecQuery;
-        if ibsql.RecordCount > 0 then
-          FieldByName('relationname').AsString := ibsql.FieldByName('relationname').AsString;
-      end;
-
       if not FieldByName('computed_value').IsNull then
       begin
         FieldByName('refrelationname').Clear;
@@ -5269,7 +5244,6 @@ begin
       if FieldByName('fieldsourcekey').IsNull and
         (FieldByName('fieldsource').AsString > '') then
       begin
-        {По названию домена подставим ключ домена}
         ibsql.Close;
         ibsql.SQL.Text := 'SELECT id FROM at_fields WHERE fieldname = :fieldname';
         ibsql.ParamByName('fieldname').AsString := FieldByName('fieldsource').AsString;
@@ -5278,112 +5252,130 @@ begin
           FieldByName('fieldsourcekey').AsInteger := ibsql.FieldByName('id').AsInteger;
       end;
 
-      //Считывание настроек из домена
-      if FieldByName('fieldsourcekey').IsNull then
-      begin
-        if FieldByName('visible').IsNull then
-          FieldByName('visible').AsInteger := 1;
-
-        if FieldByName('alignment').IsNull then
-          FieldByName('alignment').AsString := 'L';
-
-        if FieldByName('colwidth').AsInteger = 0 then
-          FieldByName('colwidth').AsInteger := 20;
-
-        if FieldByName('readonly').IsNull then
-          FieldByName('readonly').AsInteger := 0;
-      end else
-      begin
-        Field := TgdcField.Create(nil);
-        try
-          Field.SubSet := 'ByID';
-          Field.ID := StrToInt(FieldByName('fieldsourcekey').AsString);
-          Field.Open;
-          if Field.RecordCount > 0 then
-          begin
-            FieldByName('refrelationname').AsString := Field.FieldByName('reftable').AsString;
-            FieldByName('refcrossrelation').AsString := Field.FieldByName('settable').AsString;
-            FieldByName('setlistfield').AsString := Field.FieldByName('setlistfield').AsString;
-            FieldByName('stringlength').AsString := Field.FieldByName('fcharlength').AsString;
-            if Field.FieldByName('flag').AsInteger > 0 then
-              FieldByName('nullflag').AsInteger := Field.FieldByName('flag').AsInteger;
-
-            if FieldByName('visible').IsNull then
-            begin
-              FieldByName('visible').AsInteger := Field.FieldByName('visible').AsInteger;
-            end;
-
-            if FieldByName('format').AsString = '' then
-              FieldByName('format').AsString :=
-                Field.FieldByName('format').AsString;
-
-            if FieldByName('alignment').IsNull then
-            begin
-              if Field.FieldByName('alignment').IsNull then
-               FieldByName('alignment').AsString := 'L'
-              else
-                FieldByName('alignment').AsString :=
-                  Field.FieldByName('alignment').AsString;
-            end;
-
-            if FieldByName('colwidth').AsInteger = 0 then
-            begin
-              if Field.FieldByName('colwidth').AsInteger > 0 then
-                FieldByName('colwidth').AsInteger :=
-                  Field.FieldByName('colwidth').AsInteger
-              else
-                FieldByName('colwidth').AsInteger := 20;
-            end;
-
-            if FieldByName('readonly').IsNull then
-              FieldByName('readonly').AsInteger :=
-                Field.FieldByName('readonly').AsInteger;
-
-             if FieldByName('gdclassname').AsString = '' then
-               FieldByName('gdclassname').AsString :=
-                 Field.FieldByName('gdclassname').AsString;
-
-             if FieldByName('gdsubtype').AsString = '' then
-               FieldByName('gdsubtype').AsString :=
-                 Field.FieldByName('gdsubtype').AsString;
-          end;
-        finally
-          Field.Free;
-        end;
-      end;
-
-      {Установка связей с кросс-таблицами}
-      if (State = dsEdit) and (FieldByName('crosstable').AsString > '')
-        and (FieldByName('crosstablekey').IsNull)
-      then
+      if (FieldByName('relationname').AsString > '') and
+        FieldByName('relationkey').IsNull then
       begin
         ibsql.Close;
-        ibsql.SQL.Text := 'SELECT id FROM at_relations WHERE relationname = :relationname';
-        ibsql.ParamByName('relationname').AsString := FieldByName('crosstable').AsString;
+        ibsql.SQL.Text := 'SELECT * FROM at_relations WHERE relationname = :RN';
+        ibsql.ParamByName('RN').AsString := AnsiUpperCase(Trim(FieldByName('relationname').AsString));
         ibsql.ExecQuery;
-        if ibsql.RecordCount > 0 then
-          FieldByName('crosstablekey').AsString := ibsql.FieldByName('id').AsString;
+        if not ibsql.EOF then
+          FieldByName('relationkey').AsInteger := ibsql.FieldByName('id').AsInteger;
       end;
 
-      if (FieldByName('refcrossrelation').AsString <> '') and (State = dsInsert) then
+      if (Trim(FieldByName('relationname').AsString) = '') and
+        (FieldByName('relationkey').AsInteger > -1) then
       begin
-        FieldByName('crosstable').AsString :=
-          NextCrossRelationName;
-
-        FieldByName('crossfieldkey').AsString :=
-          FieldByName('setlistfieldkey').AsString;
-
-        FieldByName('crossfield').AsString :=
-          FieldByName('setlistfield').AsString;
+        ibsql.Close;
+        ibsql.SQL.Text := 'SELECT * FROM at_relations WHERE id = :id';
+        ibsql.ParamByName('id').AsInteger := FieldByName('relationkey').AsInteger;
+        ibsql.ExecQuery;
+        if not ibsql.EOF then
+          FieldByName('relationname').AsString := ibsql.FieldByName('relationname').AsString;
       end;
 
-      if FieldByName('lname').AsString = '' then
-        FieldByName('lname').AsString := FieldByName('fieldname').AsString;
+      if  not (sLoadFromStream in BaseState) then
+      begin
+        //Считывание настроек из домена
+        if FieldByName('fieldsourcekey').IsNull then
+        begin
+          if FieldByName('visible').IsNull then
+            FieldByName('visible').AsInteger := 1;
 
-      if FieldByName('lshortname').AsString = '' then
-        FieldByName('lshortname').AsString := System.Copy(FieldByName('lname').AsString, 1,
-          FieldByName('lshortname').Size);
+          if FieldByName('alignment').IsNull then
+            FieldByName('alignment').AsString := 'L';
 
+          if FieldByName('colwidth').AsInteger = 0 then
+            FieldByName('colwidth').AsInteger := 20;
+
+          if FieldByName('readonly').IsNull then
+            FieldByName('readonly').AsInteger := 0;
+        end else
+        begin
+          Field := TgdcField.Create(nil);
+          try
+            Field.SubSet := 'ByID';
+            Field.ID := FieldByName('fieldsourcekey').AsInteger;
+            Field.Open;
+            if not Field.EOF then
+            begin
+              FieldByName('refrelationname').AsString := Field.FieldByName('reftable').AsString;
+              FieldByName('refcrossrelation').AsString := Field.FieldByName('settable').AsString;
+              FieldByName('setlistfield').AsString := Field.FieldByName('setlistfield').AsString;
+              FieldByName('stringlength').AsString := Field.FieldByName('fcharlength').AsString;
+              if Field.FieldByName('flag').AsInteger > 0 then
+                FieldByName('nullflag').AsInteger := Field.FieldByName('flag').AsInteger;
+
+              if FieldByName('visible').IsNull then
+              begin
+                FieldByName('visible').AsInteger := Field.FieldByName('visible').AsInteger;
+              end;
+
+              if FieldByName('format').AsString = '' then
+                FieldByName('format').AsString :=
+                  Field.FieldByName('format').AsString;
+
+              if FieldByName('alignment').IsNull then
+              begin
+                if Field.FieldByName('alignment').IsNull then
+                 FieldByName('alignment').AsString := 'L'
+                else
+                  FieldByName('alignment').AsString :=
+                    Field.FieldByName('alignment').AsString;
+              end;
+
+              if FieldByName('colwidth').AsInteger = 0 then
+              begin
+                if Field.FieldByName('colwidth').AsInteger > 0 then
+                  FieldByName('colwidth').AsInteger :=
+                    Field.FieldByName('colwidth').AsInteger
+                else
+                  FieldByName('colwidth').AsInteger := 20;
+              end;
+
+              if FieldByName('readonly').IsNull then
+                FieldByName('readonly').AsInteger :=
+                  Field.FieldByName('readonly').AsInteger;
+
+               if FieldByName('gdclassname').AsString = '' then
+                 FieldByName('gdclassname').AsString :=
+                   Field.FieldByName('gdclassname').AsString;
+
+               if FieldByName('gdsubtype').AsString = '' then
+                 FieldByName('gdsubtype').AsString :=
+                   Field.FieldByName('gdsubtype').AsString;
+            end;
+          finally
+            Field.Free;
+          end;
+        end;
+
+        {Установка связей с кросс-таблицами}
+        if (State = dsEdit) and (FieldByName('crosstable').AsString > '')
+          and FieldByName('crosstablekey').IsNull then
+        begin
+          ibsql.Close;
+          ibsql.SQL.Text := 'SELECT id FROM at_relations WHERE relationname = :relationname';
+          ibsql.ParamByName('relationname').AsString := FieldByName('crosstable').AsString;
+          ibsql.ExecQuery;
+          if not ibsql.EOF then
+            FieldByName('crosstablekey').AsString := ibsql.FieldByName('id').AsString;
+        end;
+
+        if (FieldByName('refcrossrelation').AsString > '') and (State = dsInsert) then
+        begin
+          FieldByName('crosstable').AsString := NextCrossRelationName;
+          FieldByName('crossfieldkey').AsString := FieldByName('setlistfieldkey').AsString;
+          FieldByName('crossfield').AsString := FieldByName('setlistfield').AsString;
+        end;
+
+        if FieldByName('lname').AsString = '' then
+          FieldByName('lname').AsString := FieldByName('fieldname').AsString;
+
+        if FieldByName('lshortname').AsString = '' then
+          FieldByName('lshortname').AsString := System.Copy(FieldByName('lname').AsString, 1,
+            FieldByName('lshortname').Size);
+      end;
     finally
       ibsql.Free;
     end;
