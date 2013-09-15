@@ -39,7 +39,7 @@ implementation
 
 uses
   SysUtils, Windows, Classes, jclMath, Registry, inst_const,
-  gd_security, gd_CmdLineParams_unit
+  gd_security, gd_CmdLineParams_unit, gd_GlobalParams_unit
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -196,6 +196,9 @@ var
   C: LongWord;
 begin
   CheckRegistration := True;
+
+  if Pos('POSITIVE_', AnsiUpperCase(gd_GlobalParams.UpdateToken)) = 0 then
+    exit;
 
   if not GetRegNum(C) then
   begin

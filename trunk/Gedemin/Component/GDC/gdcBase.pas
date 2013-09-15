@@ -17949,7 +17949,7 @@ procedure TgdcBase.GetDependencies(ATr: TIBTransaction; const ASessionID: Intege
 
   procedure _ProcessObject(AnObject: TgdcBase; const ALevel: Integer;
     AProcessed: TgdKeyArray; AHash: TStringHashMap; AnObjects: TObjectList;
-    AqInsert: TIBSQL; var ACount: Integer);
+    AqInsert: TIBSQL; var ACount: Integer; const AnIgnoreFields: String);
   var
     I, RefCount: Integer;
     RelationName, FieldName: String;
@@ -17966,15 +17966,21 @@ procedure TgdcBase.GetDependencies(ATr: TIBTransaction; const ASessionID: Intege
 
     Assert(not AnObject.EOF);
 
-    AProcessed.Add(AnObject.ID);
+    if AProcessed.IndexOf(AnObject.ID) = -1 then
+      AProcessed.Add(AnObject.ID)
+    else
+      exit;
 
     R := nil;
     RefCount := 0;
 
     for I := 0 to AnObject.FieldCount - 1 do
     begin
-      if (AnObject.Fields[I].DataType <> ftInteger) or (AProcessed.IndexOf(AnObject.Fields[I].AsInteger) <> -1) then
+      if AnObject.Fields[I].DataType <> ftInteger then
         continue;
+
+      if AProcessed.IndexOf(AnObject.Fields[I].AsInteger) <> -1 then
+        continue;  
 
       ParseFieldOrigin(AnObject.Fields[I].Origin, RelationName, FieldName);
 
@@ -18090,7 +18096,8 @@ procedure TgdcBase.GetDependencies(ATr: TIBTransaction; const ASessionID: Intege
       ArrObjects[I].Open;
 
       if not ArrObjects[I].EOF then
-        _ProcessObject(ArrObjects[I], ALevel + 1, AProcessed, AHash, AnObjects, AqInsert, ACount);
+        _ProcessObject(ArrObjects[I], ALevel + 1, AProcessed, AHash,
+        AnObjects, AqInsert, ACount, AnIgnoreFields);
 
       ArrObjects[I].Close;
     end;
@@ -18144,7 +18151,8 @@ procedure TgdcBase.GetDependencies(ATr: TIBTransaction; const ASessionID: Intege
             Inc(ACount);
           end;
 
-          _ProcessObject(Obj, ALevel + 1, AProcessed, AHash, AnObjects, AqInsert, ACount);
+          _ProcessObject(Obj, ALevel + 1, AProcessed, AHash,
+            AnObjects, AqInsert, ACount, AnIgnoreFields);
         end;
 
         Obj.Next;
@@ -18184,7 +18192,8 @@ begin
     q.ParamByName('masterid').AsInteger := Self.ID;
 
     Count := 0;
-    _ProcessObject(Self, 0, Processed, Hash, Objects, q, Count);
+    _ProcessObject(Self, 0, Processed, Hash, Objects, q, Count,
+      AnIgnoreFields + ';LB;RB;AVIEW;ACHAG;AFULL;RESERVED;');
   finally
     q.Free;
     Processed.Free;
