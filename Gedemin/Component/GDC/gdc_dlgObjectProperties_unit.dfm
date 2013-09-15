@@ -1,14 +1,14 @@
 inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
-  Left = 359
-  Top = 174
+  Left = 447
+  Top = 150
   Caption = 'Свойства объекта'
-  ClientHeight = 426
-  ClientWidth = 399
+  ClientHeight = 468
+  ClientWidth = 451
   PixelsPerInch = 96
   TextHeight = 13
   inherited btnAccess: TButton
     Left = 102
-    Top = 396
+    Top = 438
     Width = 15
     Enabled = False
     TabOrder = 4
@@ -16,7 +16,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
   end
   inherited btnNew: TButton
     Left = 118
-    Top = 396
+    Top = 438
     Width = 15
     Enabled = False
     TabOrder = 5
@@ -24,48 +24,48 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
   end
   inherited btnHelp: TButton
     Left = 4
-    Top = 402
+    Top = 444
     TabOrder = 3
   end
   inherited btnOK: TButton
-    Left = 253
-    Top = 402
+    Left = 305
+    Top = 444
     TabOrder = 1
   end
   inherited btnCancel: TButton
-    Left = 327
-    Top = 402
+    Left = 379
+    Top = 444
     TabOrder = 2
   end
   object pcMain: TPageControl [5]
     Left = 4
     Top = 4
-    Width = 391
-    Height = 393
+    Width = 443
+    Height = 436
     ActivePage = tsGeneral
     TabOrder = 0
     OnChange = tsAccessShow
     object tsGeneral: TTabSheet
       Caption = 'Общие'
       object btnClassMethods: TButton
-        Left = 2
-        Top = 343
+        Left = 55
+        Top = 385
         Width = 119
         Height = 19
         Action = actGoToMethods
         TabOrder = 0
       end
       object btnSubTypeMethods: TButton
-        Left = 260
-        Top = 343
+        Left = 313
+        Top = 385
         Width = 119
         Height = 19
         Action = actGoToMethodsSubtype
         TabOrder = 2
       end
       object btnParentMethods: TButton
-        Left = 131
-        Top = 343
+        Left = 184
+        Top = 385
         Width = 119
         Height = 19
         Action = actGoToMethodsParent
@@ -74,8 +74,8 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
       object mProp: TMemo
         Left = 2
         Top = 2
-        Width = 378
-        Height = 336
+        Width = 431
+        Height = 378
         Color = clBtnFace
         Font.Charset = RUSSIAN_CHARSET
         Font.Color = clWindowText
@@ -102,20 +102,20 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
       object Label2: TLabel
         Left = 240
         Top = 11
-        Width = 46
+        Width = 138
         Height = 13
-        Caption = 'к данной'
+        Caption = 'к данной записи обладают'
       end
       object Label3: TLabel
         Left = 8
         Top = 28
-        Width = 213
+        Width = 121
         Height = 13
-        Caption = 'записи обладают группы пользователей:'
+        Caption = 'группы пользователей:'
       end
       object Label6: TLabel
         Left = 8
-        Top = 268
+        Top = 320
         Width = 288
         Height = 13
         Caption = 'Для добавления, выберите группу и нажмите Добавить'
@@ -137,8 +137,8 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
       object ibgrUserGroup: TgsIBGrid
         Left = 8
         Top = 43
-        Width = 361
-        Height = 166
+        Width = 419
+        Height = 227
         DataSource = dsUserGroup
         Options = [dgColumnResize, dgTabs, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit]
         TabOrder = 1
@@ -177,7 +177,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
       end
       object ibcbUserGroup: TgsIBLookupComboBox
         Left = 8
-        Top = 284
+        Top = 336
         Width = 361
         Height = 21
         HelpContext = 1
@@ -195,20 +195,21 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
       end
       object memoExclude: TMemo
         Left = 8
-        Top = 211
-        Width = 361
-        Height = 27
+        Top = 275
+        Width = 417
+        Height = 17
         BorderStyle = bsNone
         Color = clBtnFace
         Lines.Strings = (
-          'Для исключения группы, выберите ее в списке и нажмите '
-          'кнопку Исключить')
+          
+            'Для исключения группы, выберите ее в списке и нажмите кнопку Иск' +
+            'лючить.')
         ReadOnly = True
         TabOrder = 2
       end
       object btnExclude: TButton
         Left = 8
-        Top = 243
+        Top = 295
         Width = 75
         Height = 21
         Action = actExclude
@@ -216,7 +217,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
       end
       object btnInclude: TButton
         Left = 8
-        Top = 310
+        Top = 362
         Width = 75
         Height = 21
         Action = actInclude
@@ -224,7 +225,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
       end
       object btnIncludeAll: TButton
         Left = 89
-        Top = 310
+        Top = 362
         Width = 88
         Height = 21
         Action = actIncludeAll
@@ -232,7 +233,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
       end
       object btnExcludeAll: TButton
         Left = 89
-        Top = 243
+        Top = 295
         Width = 88
         Height = 21
         Action = actExcludeAll
@@ -240,7 +241,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
       end
       object chbxUpdateChildren: TCheckBox
         Left = 8
-        Top = 335
+        Top = 387
         Width = 321
         Height = 17
         Caption = 'Распространить права доступа на дочерние объекты'
@@ -258,36 +259,36 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
         Caption = 'Считано записей:'
       end
       object lblRecordCount: TLabel
-        Left = 104
+        Left = 97
         Top = 4
         Width = 60
         Height = 13
         Caption = 'lblClassLabel'
       end
       object Label26: TLabel
-        Left = 3
-        Top = 23
+        Left = 196
+        Top = 4
         Width = 80
         Height = 13
         Caption = 'Размер буфера:'
       end
       object lblCacheSize: TLabel
-        Left = 104
-        Top = 23
+        Left = 280
+        Top = 4
         Width = 62
         Height = 13
         Caption = 'lblClassName'
       end
       object lblParams: TLabel
         Left = 118
-        Top = 334
+        Top = 386
         Width = 61
         Height = 13
         Caption = 'Параметры:'
       end
       object Button6: TButton
         Left = 3
-        Top = 329
+        Top = 381
         Width = 89
         Height = 21
         Action = actShowSQL
@@ -295,7 +296,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
       end
       object cbParams: TComboBox
         Left = 184
-        Top = 331
+        Top = 383
         Width = 189
         Height = 19
         Style = csDropDownList
@@ -304,15 +305,15 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
         Font.Height = -9
         Font.Name = 'Tahoma'
         Font.Style = []
-        ItemHeight = 0
+        ItemHeight = 11
         ParentFont = False
         TabOrder = 2
       end
       object sbFields: TScrollBox
         Left = 3
-        Top = 41
-        Width = 370
-        Height = 282
+        Top = 22
+        Width = 429
+        Height = 353
         Font.Charset = RUSSIAN_CHARSET
         Font.Color = clWindowText
         Font.Height = -9
@@ -328,8 +329,8 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
       object sbFields2: TScrollBox
         Left = 3
         Top = 3
-        Width = 370
-        Height = 346
+        Width = 429
+        Height = 401
         Font.Charset = RUSSIAN_CHARSET
         Font.Color = clWindowText
         Font.Height = -9
@@ -352,7 +353,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
       object tbLinks: TTBToolbar
         Left = 0
         Top = 0
-        Width = 383
+        Width = 435
         Height = 22
         Align = alTop
         Caption = 'tbLinks'
@@ -394,10 +395,39 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
       object ibgrLinks: TgsIBGrid
         Left = 0
         Top = 22
-        Width = 383
-        Height = 343
+        Width = 435
+        Height = 386
         Align = alClient
         DataSource = dsLinks
+        Options = [dgTitles, dgColumnResize, dgColLines, dgTabs, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit]
+        ReadOnly = True
+        TabOrder = 0
+        InternalMenuKind = imkWithSeparator
+        Expands = <>
+        ExpandsActive = False
+        ExpandsSeparate = False
+        TitlesExpanding = False
+        Conditions = <>
+        ConditionsActive = False
+        CheckBox.Visible = False
+        CheckBox.FirstColumn = False
+        MinColWidth = 40
+        ColumnEditors = <>
+        Aliases = <>
+        ShowFooter = True
+        ShowTotals = False
+      end
+    end
+    object tsDependencies: TTabSheet
+      Caption = 'Зависимости'
+      ImageIndex = 6
+      object gsibgrDependencies: TgsIBGrid
+        Left = 0
+        Top = 0
+        Width = 435
+        Height = 408
+        Align = alClient
+        DataSource = dsDependencies
         Options = [dgTitles, dgColumnResize, dgColLines, dgTabs, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit]
         ReadOnly = True
         TabOrder = 0
@@ -421,10 +451,10 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
       Caption = 'YAML'
       ImageIndex = 5
       object mYAMLFile: TSynEdit
-        Left = 0
-        Top = 1
-        Width = 383
-        Height = 364
+        Left = 3
+        Top = 3
+        Width = 429
+        Height = 402
         Cursor = crIBeam
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clWindowText
@@ -880,5 +910,29 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
       'бвгдежзийклмнопрстуфхцчшщъыьэюя'
     Left = 224
     Top = 100
+  end
+  object ibdsDependencies: TIBDataSet
+    Transaction = ibtrCommon
+    SelectSQL.Strings = (
+      'SELECT DISTINCT '
+      '  refobjectid,'
+      '  refobjectname,'
+      '  refrelationname,'
+      '  refclassname,'
+      '  refsubtype '
+      'FROM '
+      '  gd_object_dependencies'
+      'WHERE'
+      '  sessionid = 1976'
+      'ORDER BY'
+      '  reflevel')
+    ReadTransaction = ibtrCommon
+    Left = 72
+    Top = 220
+  end
+  object dsDependencies: TDataSource
+    DataSet = ibdsDependencies
+    Left = 112
+    Top = 220
   end
 end

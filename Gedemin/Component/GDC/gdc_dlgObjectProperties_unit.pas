@@ -70,6 +70,10 @@ type
     tsYAML: TTabSheet;
     mYAMLFile: TSynEdit;
     SynGeneralSyn: TSynGeneralSyn;
+    tsDependencies: TTabSheet;
+    ibdsDependencies: TIBDataSet;
+    dsDependencies: TDataSource;
+    gsibgrDependencies: TgsIBGrid;
     procedure cbAccessClassChange(Sender: TObject);
     procedure actExcludeUpdate(Sender: TObject);
     procedure actExcludeExecute(Sender: TObject);
@@ -304,6 +308,17 @@ begin
       finally
         SS.Free;
       end;
+    end;
+  end
+  else if pcMain.ActivePage = tsDependencies then
+  begin
+    if Assigned(gdcObject) and (not ibdsDependencies.Active) then
+    begin
+      if not ibtrCommon.InTransaction then
+        ibtrCommon.StartTransaction;
+      gdcObject.GetDependencies(ibtrCommon, 1976, True);
+      ibdsDependencies.Close;
+      ibdsDependencies.Open;
     end;
   end;
 end;

@@ -55,9 +55,9 @@ object gs_frmFDBExtractData: Tgs_frmFDBExtractData
     object Label1: TLabel
       Left = 8
       Top = 104
-      Width = 97
+      Width = 100
       Height = 13
-      Caption = 'Сохранить в файл: '
+      Caption = 'Сохранить в папку: '
     end
     object sbSelectOutPutFile: TSpeedButton
       Left = 258
@@ -72,6 +72,7 @@ object gs_frmFDBExtractData: Tgs_frmFDBExtractData
       Width = 193
       Height = 21
       TabOrder = 0
+      Text = 'c:\temp\etalon.fdb'
     end
     object eUser: TEdit
       Left = 64
@@ -96,6 +97,7 @@ object gs_frmFDBExtractData: Tgs_frmFDBExtractData
       Width = 250
       Height = 21
       TabOrder = 3
+      Text = 'c:\temp\etalon'
     end
     object btnExtract: TButton
       Left = 168

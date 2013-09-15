@@ -121,15 +121,18 @@ var
 begin
   Assert(Connected);
 
-  FN := TFileStream.Create(AFileName, fmCreate);
-  try
-    for J := 0 to FRelations.Count - 1 do
-    begin
+  for J := 0 to FRelations.Count - 1 do
+  begin
+    FN := TFileStream.Create(IncludeTrailingBackslash(AFileName) + FRelations[J] + '.dat', fmCreate);
+    try
       Fq.SQL.Text := GetSelectSQL(FRelations[J]);
+      WriteString(FN, Fq.SQL.Text);
+
       Fq.ExecQuery;
       while not Fq.EOF do
       begin
-        WriteString(FN, Fq.SQL.Text);
+        WriteString(FN, '===========================================');
+
         for I := 0 to Fq.Current.Count - 1 do
         begin
           V := Fq.Current[I];
@@ -164,9 +167,9 @@ begin
         Fq.Next;
       end;
       Fq.Close;
+    finally
+      FN.Free;
     end;
-  finally
-    FN.Free;
   end;
 end;
 
@@ -191,7 +194,8 @@ end;
 procedure TgsDBExtractData.LoadRelations;
 const
   PassTable =
-    ';AT_SETTING;AT_SETTINGPOS;AT_SETTING_STORAGE;AT_NAMESPACE;AT_OBJECT;AT_NAMESPACELINK;GD_RUID;';
+    ';AT_SETTING;AT_SETTINGPOS;AT_SETTING_STORAGE;AT_NAMESPACE;AT_OBJECT' +
+    ';AT_NAMESPACELINK;GD_RUID;GD_JOURNAL;';
 begin
   Assert(Connected);
 
@@ -248,6 +252,10 @@ begin
 
   if ARelationName = 'GD_STORAGE_DATA' then
     Result := 'SELECT * FROM GD_STORAGE_DATA ORDER BY parent, name'
+  else if ARelationName = 'AT_INDICES' then
+    Result := 'SELECT * FROM AT_INDICES ORDER BY relationname, fieldslist'
+  else if ARelationName = 'AT_TRIGGERS' then
+    Result := 'SELECT * FROM AT_TRIGGERS WHERE NOT triggername LIKE ''CHECK_%'' ORDER BY relationname, triggername'
   else begin
     Result := 'SELECT * FROM ' + ARelationName + ' ORDER BY ';
 

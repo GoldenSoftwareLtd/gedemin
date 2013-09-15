@@ -874,8 +874,6 @@ SET TERM ; ^
 
 COMMIT;
 
-
-
 CREATE TABLE at_indices(
   id                  dintkey,                /* идентификатор */
   indexname           dindexname              /* наименование индекса */

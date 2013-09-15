@@ -46,10 +46,6 @@ procedure Tgdc_dlgTR.FormActivate(Sender: TObject);
 begin
   inherited;
 
-{ TODO :
-с использованием методов Активэйт могут быть проблемы
-так как колина компонента их постоянно вызывает }
-
   if (ibtrCommon.SQLObjectCount > 0) and (not ibtrCommon.InTransaction) then
     ibtrCommon.StartTransaction;
 end;
@@ -99,5 +95,4 @@ initialization
 
 finalization
   UnRegisterFrmClass(Tgdc_dlgTR);
-
 end.
