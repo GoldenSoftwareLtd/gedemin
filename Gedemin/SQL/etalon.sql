@@ -1400,6 +1400,12 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (187, '0000.0001.0000.0218', '12.09.2013', 'Modified check constraint on GD_RUID.');
 
+INSERT INTO fin_versioninfo
+  VALUES (188, '0000.0001.0000.0219', '14.09.2013', 'Second attempt to drop constraint AT_FK_NAMESPACE_SYNC_NSK.');
+
+INSERT INTO fin_versioninfo
+  VALUES (189, '0000.0001.0000.0220', '16.09.2013', 'Change PK on gd_object_dependencies.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
@@ -4325,8 +4331,6 @@ SET TERM ; ^
 
 COMMIT;
 
-
-
 CREATE TABLE at_indices(
   id                  dintkey,                /* идентификатор */
   indexname           dindexname              /* наименование индекса */
@@ -5004,7 +5008,8 @@ CREATE GLOBAL TEMPORARY TABLE gd_object_dependencies (
   refsubtype        dname,
   refeditiondate    TIMESTAMP,
 
-  PRIMARY KEY (sessionid, masterid, reflevel, relationname, fieldname)
+  CONSTRAINT gd_pk_object_dependencies PRIMARY KEY
+    (sessionid, masterid, reflevel, relationname, fieldname, refobjectid)
 )
   ON COMMIT DELETE ROWS;
 
@@ -16545,8 +16550,6 @@ CREATE GLOBAL TEMPORARY TABLE at_namespace_sync (
   filename      dtext255,
   operation     CHAR(2) DEFAULT '  ' NOT NULL,
 
-  CONSTRAINT at_fk_namespace_sync_nsk
-    FOREIGN KEY (namespacekey) REFERENCES at_namespace (id),
   CONSTRAINT at_fk_namespace_sync_fn
     FOREIGN KEY (filename) REFERENCES at_namespace_file (filename)
       ON UPDATE CASCADE

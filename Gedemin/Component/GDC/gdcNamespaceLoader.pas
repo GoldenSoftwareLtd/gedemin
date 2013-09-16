@@ -65,15 +65,13 @@ type
       AMapping: TYAMLMapping; ATr: TIBTransaction);
     function GetCandidateID(AnObj: TgdcBase; AFields: TYAMLMapping): TID;
 
-  protected
-    procedure Load(AList: TStrings);
-
   public
     constructor Create;
     destructor Destroy; override;
 
     class procedure LoadDelayed(AList: TStrings; const AnAlwaysOverwrite: Boolean;
       const ADontRemove: Boolean);
+    procedure Load(AList: TStrings);
 
     property AlwaysOverwrite: Boolean read FAlwaysOverwrite write FAlwaysOverwrite;
     property DontRemove: Boolean read FDontRemove write FDontRemove;
@@ -491,6 +489,8 @@ begin
 
     AddText('«акончена загрузка пространства имен ' + NSName);
   end;
+
+  atDatabase.ForceLoadFromDatabase;
 end;
 
 procedure TgdcNamespaceLoader.LoadAtObjectCache(const ANamespaceKey: Integer);

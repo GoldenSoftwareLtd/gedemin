@@ -18180,14 +18180,20 @@ begin
   try
     q.Transaction := ATr;
     q.SQL.Text :=
-      'INSERT INTO gd_object_dependencies ( ' +
+      'DELETE FROM gd_object_dependencies WHERE sessionid = :sessionid';
+    q.ParamByName('sessionid').AsInteger := ASessionID;
+    q.ExecQuery;
+
+    q.SQL.Text :=
+      'UPDATE OR INSERT INTO gd_object_dependencies ( ' +
       '  sessionid, masterid, reflevel, relationname, fieldname, crossrelation, ' +
       '  refobjectid, refobjectname, refrelationname, refclassname, refsubtype, ' +
       '  refeditiondate) ' +
       'VALUES ' +
       '  (:sessionid, :masterid, :reflevel, :relationname, :fieldname, :crossrelation, ' +
       '  :refobjectid, :refobjectname, :refrelationname, :refclassname, :refsubtype, ' +
-      '  :refeditiondate)';
+      '  :refeditiondate) ' +
+      'MATCHING (sessionid, masterid, reflevel, relationname, fieldname, refobjectid)';
     q.ParamByName('sessionid').AsInteger := ASessionID;
     q.ParamByName('masterid').AsInteger := Self.ID;
 

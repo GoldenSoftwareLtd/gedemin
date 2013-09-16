@@ -148,7 +148,7 @@ begin
             K := FRUIDs.IndexOf(V.AsInteger);
             if K = -1 then
             begin
-              if V.Name <> 'ID' then
+              if (V.Name <> 'ID') and (V.Name <> 'PARENT') and (Copy(V.Name, Length(V.Name) - 3 + 1, 3) <> 'KEY') then
                 WriteString(FN, V.Name + ': ' + V.AsString);
             end else
               WriteString(FN, V.Name + ': ' + FRUIDs.ValuesByIndex[K]);
@@ -156,7 +156,7 @@ begin
           else if V.SQLType = SQL_BLOB then
           begin
             if V.AsXSQLVAR.sqlsubtype = 1 then
-              WriteString(FN, V.Name + ':'#13#10 + V.AsString)
+              WriteString(FN, V.Name + ':'#13#10 + TrimRight(V.AsString))
             else begin
               WriteString(FN, V.Name + ':');
               WriteBinary(FN, V.AsString);
@@ -195,7 +195,7 @@ procedure TgsDBExtractData.LoadRelations;
 const
   PassTable =
     ';AT_SETTING;AT_SETTINGPOS;AT_SETTING_STORAGE;AT_NAMESPACE;AT_OBJECT' +
-    ';AT_NAMESPACELINK;GD_RUID;GD_JOURNAL;';
+    ';AT_NAMESPACE_LINK;GD_RUID;GD_JOURNAL;';
 begin
   Assert(Connected);
 
@@ -251,11 +251,61 @@ begin
   Assert(Connected);
 
   if ARelationName = 'GD_STORAGE_DATA' then
-    Result := 'SELECT * FROM GD_STORAGE_DATA ORDER BY parent, name'
+    Result :=
+      'SELECT d.DATA_TYPE, d.STR_DATA, d.INT_DATA, d.DATETIME_DATA, ' +
+      '  d.CURR_DATA, d.BLOB_DATA, d.EDITIONDATE, d.EDITORKEY, t.path ' +
+      'FROM gd_storage_data d JOIN ' +
+      '(WITH RECURSIVE '#13#10 +
+      'group_tree AS ( '#13#10 +
+      'SELECT '#13#10 +
+      'CAST('''' AS VARCHAR(1024)) as path, '#13#10 +
+      '-1 as id, '#13#10 +
+      '-1 as parent, '#13#10 +
+      'CAST('''' AS dname) as name '#13#10 +
+      'FROM '#13#10 +
+      'rdb$database '#13#10 +
+      '  '#13#10 +
+      'UNION ALL '#13#10 +
+      '  '#13#10 +
+      'SELECT '#13#10 +
+      'IIF(gt.path > '''', gt.path || ''.'', '''') || g2.name, '#13#10 +
+      'g2.id, '#13#10 +
+      'g2.parent, '#13#10 +
+      'g2.name '#13#10 +
+      'FROM '#13#10 +
+      'gd_storage_data g2 JOIN group_tree gt '#13#10 +
+      'ON COALESCE(g2.parent, -1) = gt.id '#13#10 +
+      ') '#13#10 +
+      'SELECT '#13#10 +
+      '* '#13#10 +
+      'FROM '#13#10 +
+      'group_tree '#13#10 +
+      'WHERE '#13#10 +
+      'path > '''') t ON t.id = d.id ORDER BY t.path'
   else if ARelationName = 'AT_INDICES' then
     Result := 'SELECT * FROM AT_INDICES ORDER BY relationname, fieldslist'
+  else if ARelationName = 'GD_COMMAND' then
+    Result := 'SELECT * FROM GD_COMMAND ORDER BY classname, subtype, cmd, name'
   else if ARelationName = 'AT_TRIGGERS' then
     Result := 'SELECT * FROM AT_TRIGGERS WHERE NOT triggername LIKE ''CHECK_%'' ORDER BY relationname, triggername'
+  else if ARelationName = 'GD_CURRRATE' then
+    Result := 'SELECT * FROM GD_CURRRATE ORDER BY fromcurr, tocurr, fordate'
+  else if ARelationName = 'FLT_COMPONENTFILTER' then
+    Result := 'SELECT * FROM FLT_COMPONENTFILTER ORDER BY fullname'
+  else if ARelationName = 'EVT_OBJECT' then
+    Result :=
+      'SELECT t.path, e.DESCRIPTION, e.OBJECTTYPE, e.MACROSGROUPKEY, e.REPORTGROUPKEY, '#13#10 +
+      '  e.CLASSNAME, e.OBJECTNAME, e.SUBTYPE, e.EDITIONDATE, e.EDITORKEY '#13#10 +
+      'FROM evt_object e JOIN ('#13#10 +
+      '  select ee.id, CAST(list(e2.name, ''-'') AS VARCHAR(256)) as path '#13#10 +
+      '  from evt_object ee join evt_object e2 '#13#10 +
+      '    on e2.lb <= ee.lb and e2.rb >= ee.rb '#13#10 +
+      '  group by ee.id) t ON t.id = e.id '#13#10 +
+      'ORDER BY t.path'
+  else if ARelationName = 'GD_PLACE' then
+    Result := 'SELECT * FROM GD_PLACE ORDER BY lb'
+  else if ARelationName = 'AT_RELATION_FIELDS' then
+    Result := 'SELECT * FROM AT_RELATION_FIELDS ORDER BY relationname, fieldname'
   else begin
     Result := 'SELECT * FROM ' + ARelationName + ' ORDER BY ';
 

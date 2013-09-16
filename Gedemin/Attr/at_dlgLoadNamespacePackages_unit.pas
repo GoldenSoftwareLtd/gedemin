@@ -74,7 +74,7 @@ var
 begin
   mInfo.Clear;
   FNSC.Directory := eSearchPath.Text;
-  FNSC.Scan;
+  FNSC.Scan(True, True);
 
   OldCursor := Screen.Cursor;
   try

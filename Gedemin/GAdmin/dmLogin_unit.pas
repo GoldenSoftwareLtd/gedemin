@@ -72,7 +72,7 @@ uses
   gd_localization_stub,
   {$ENDIF}
 
-  IBSQL, at_frmSQLProcess;
+  DB, IBSQL, at_frmSQLProcess;
 
 {$R *.DFM}
 
@@ -408,6 +408,9 @@ var
   gdcSetting: TgdcSetting;
   isFound: Boolean;
 begin
+  Assert(atDatabase <> nil);
+
+  isFound := False;
   gdcSetting := TgdcSetting.Create(nil);
   gdcSetting.Subset := 'ByID';
   AllGSFList := TGSFList.Create;
@@ -417,7 +420,6 @@ begin
     AllGSFList.GetFilesForPath({ExtractFilePath(}LoadSettingPath{)});
     AllGSFList.LoadPackageInfo;
 
-    isFound := False;
     for i := 0 to AllGSFList.Count-1 do
       if ( AnsiCompareText((AllGSFList.Objects[i] as TGSFHeader).FilePath, ExtractFilePath(LoadSettingFileName)) = 0 ) and
          ( AnsiCompareText((AllGSFList.Objects[i] as TGSFHeader).FileName, ExtractFileName(LoadSettingFileName)) = 0 ) then
@@ -431,6 +433,7 @@ begin
       begin
         AllGSFList.InstallPackage(i, True);
         AllGSFList.ActivatePackages;
+
         LoadSettingFileName := ''; // иначе после переподключения снова начнет устанавливать
       end else
       with (AllGSFList.Objects[i] as TGSFHeader) do
@@ -464,7 +467,13 @@ begin
     NSC.OnLogMessage := Log;
     NSC.UpdateCurrModified := False;
     NSC.Directory := LoadSettingPath;
-    NSC.Scan;
+    NSC.Scan(False, False);
+    NSC.ApplyFilter;
+    if NSC.DataSet.Locate('filename', LoadSettingFileName, [loCaseInsensitive]) then
+    begin
+      NSC.SetOperation('<<');
+      NSC.SyncSilent;
+    end;
   finally
     NSC.Free;
   end;

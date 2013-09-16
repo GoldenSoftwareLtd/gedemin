@@ -129,7 +129,8 @@ object gs_frmFDBExtractData: Tgs_frmFDBExtractData
         'RDB$TRIGGER_BLR'
         'RDB$VIEW_BLR'
         'LASTEXTIME'
-        'EDITIONDATE')
+        'EDITIONDATE'
+        'READCOUNT')
       TabOrder = 5
     end
   end

@@ -51,6 +51,8 @@ type
   public
     constructor Create;
 
+    function CouldShowSplash: Boolean;
+
     property UnMethodMacro: Boolean read FUnMethodMacro;
     property UnEventMacro: Boolean read FUnEventMacro;
     property ServerName: String read FServerName;
@@ -172,6 +174,13 @@ begin
   end;
 
   Result := False;
+end;
+
+function Tgd_CmdLineParams.CouldShowSplash: Boolean;
+begin
+  Result := (not NoSplash) and (not Embedding) and (not QuietMode)
+    and (LoadSettingPath = '')
+    and (RestoreBKFile = ''); 
 end;
 
 constructor Tgd_CmdLineParams.Create;

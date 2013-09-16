@@ -1611,6 +1611,26 @@ begin
         '  )';
       q.ExecQuery;
 
+      if not ConstraintExist2('GD_OBJECT_DEPENDENCIES', 'GD_PK_OBJECT_DEPENDENCIES', Tr) then
+      begin
+        q.Close;
+        q.SQL.Text :=
+          'SELECT rdb$constraint_name ' +
+          'FROM rdb$relation_constraints ' +
+          'WHERE rdb$relation_name = ''GD_OBJECT_DEPENDENCIES'' ' +
+          '  AND rdb$constraint_type=''PRIMARY KEY'' ';
+        q.ExecQuery;
+
+        if not q.EOF then
+          DropConstraint2('GD_OBJECT_DEPENDENCIES', q.Fields[0].AsTrimString, Tr);
+
+        q.Close;  
+        q.SQL.Text := 'ALTER TABLE gd_object_dependencies ADD CONSTRAINT ' +
+          'gd_pk_object_dependencies PRIMARY KEY ' +
+          '(sessionid, masterid, reflevel, relationname, fieldname, refobjectid)';
+        q.ExecQuery;
+      end;
+
       q.Close;
       q.SQL.Text :=
         'UPDATE OR INSERT INTO fin_versioninfo ' +
@@ -1642,10 +1662,15 @@ begin
         '  MATCHING (id)';
       q.ExecQuery;
 
-
       q.SQL.Text :=
         'UPDATE OR INSERT INTO fin_versioninfo ' +
         '  VALUES (188, ''0000.0001.0000.0219'', ''14.09.2013'', ''Second attempt to drop constraint AT_FK_NAMESPACE_SYNC_NSK.'') ' +
+        '  MATCHING (id)';
+      q.ExecQuery;
+
+      q.SQL.Text :=
+        'UPDATE OR INSERT INTO fin_versioninfo ' +
+        '  VALUES (189, ''0000.0001.0000.0220'', ''16.09.2013'', ''Change PK on gd_object_dependencies.'') ' +
         '  MATCHING (id)';
       q.ExecQuery;
 
