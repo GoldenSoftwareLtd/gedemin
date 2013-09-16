@@ -167,7 +167,7 @@ procedure Tat_frmSyncNamespace.actCompareExecute(Sender: TObject);
 begin
   FNSC.UpdateCurrModified := chbxUpdate.Checked;
   FNSC.Directory := tbedPath.Text;
-  FNSC.Scan;
+  FNSC.Scan(True, True);
   ApplyFilter;
 end;
 

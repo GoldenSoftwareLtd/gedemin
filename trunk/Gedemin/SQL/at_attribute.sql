@@ -1551,7 +1551,8 @@ CREATE GLOBAL TEMPORARY TABLE gd_object_dependencies (
   refsubtype        dname,
   refeditiondate    TIMESTAMP,
 
-  PRIMARY KEY (sessionid, masterid, reflevel, relationname, fieldname)
+  CONSTRAINT gd_pk_object_dependencies PRIMARY KEY
+    (sessionid, masterid, reflevel, relationname, fieldname, refobjectid)
 )
   ON COMMIT DELETE ROWS;
 

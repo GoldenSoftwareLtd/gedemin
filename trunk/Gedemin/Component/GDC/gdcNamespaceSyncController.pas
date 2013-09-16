@@ -41,12 +41,13 @@ type
     constructor Create;
     destructor Destroy; override;
 
-    procedure Scan;
+    procedure Scan(const ACalculateStatus: Boolean; const ASaveDir: Boolean);
     procedure ApplyFilter;
     procedure BuildTree;
     procedure DeleteFile(const AFileName: String);
     procedure SetOperation(const AnOp: String);
     procedure Sync;
+    procedure SyncSilent;
     procedure EditNamespace(const ANSK: Integer);
     procedure CompareWithData(const ANSK: Integer; const AFileName: String);
 
@@ -673,7 +674,8 @@ begin
     '  s.operation IN (''  '', ''? '') ';
 end;
 
-procedure TgdcNamespaceSyncController.Scan;
+procedure TgdcNamespaceSyncController.Scan(const ACalculateStatus: Boolean;
+  const ASaveDir: Boolean);
 var
   SL: TStringList;
   I: Integer;
@@ -706,10 +708,40 @@ begin
     SL.Free;
   end;
 
-  DoLog(lmtInfo, 'Определение статуса...');
-  FqFillSync.ExecQuery;
+  if ACalculateStatus then
+  begin
+    DoLog(lmtInfo, 'Определение статуса...');
+    FqFillSync.ExecQuery;
+  end else
+  begin
+    Fq.Close;
+    Fq.SQL.Text :=
+      'EXECUTE BLOCK '#13#10 +
+      'AS '#13#10 +
+      'BEGIN '#13#10 +
+      '  INSERT INTO at_namespace_sync (namespacekey) '#13#10 +
+      '  SELECT id FROM at_namespace; '#13#10 +
+      ' '#13#10 +
+      '  MERGE INTO at_namespace_sync s '#13#10 +
+      '  USING ( '#13#10 +
+      '    SELECT f.filename, n.id, f.xid '#13#10 +
+      '    FROM at_namespace_file f '#13#10 +
+      '      LEFT JOIN gd_ruid r '#13#10 +
+      '        ON r.xid = f.xid AND r.dbid = f.dbid '#13#10 +
+      '      LEFT JOIN at_namespace n '#13#10 +
+      '        ON (r.id = n.id) OR (n.name = f.name) '#13#10 +
+      '    ) j '#13#10 +
+      '  ON (s.namespacekey = j.id) '#13#10 +
+      '  WHEN MATCHED THEN UPDATE SET filename = j.filename '#13#10 +
+      '  WHEN NOT MATCHED THEN INSERT (filename, operation) '#13#10 +
+      '    VALUES (j.filename, ''  ''); '#13#10 +
+      'END';
+    Fq.ExecQuery;
+  end;
 
-  gd_GlobalParams.NamespacePath := FDirectory;
+  if ASaveDir then
+    gd_GlobalParams.NamespacePath := FDirectory;
+    
   DoLog(lmtInfo, 'Выполнено сравнение с каталогом ' + FDirectory);
 end;
 
@@ -821,10 +853,8 @@ begin
             NS.ID := Fq.FieldByName('id').AsInteger;
             NS.Open;
             if (not NS.EOF) and NS.SaveNamespaceToFile(Fq.FieldByName('filename').AsString, chbxIncVersion.Checked) then
-            begin
-              DoLog(lmtInfo, 'Пространство имен ' + NS.ObjectName + ' записано в файл:');
-              DoLog(lmtInfo, Fq.FieldByName('filename').AsString);
-            end;
+              DoLog(lmtInfo, 'Пространство имен ' + NS.ObjectName + ' записано в файл:' +
+                Fq.FieldByName('filename').AsString);
             Fq.Next;
           end;
 
@@ -854,6 +884,31 @@ begin
     end;
   finally
     Free;
+  end;
+end;
+
+procedure TgdcNamespaceSyncController.SyncSilent;
+var
+  SL: TStringList;
+begin
+  SL := TStringList.Create;
+  try
+    FqDependentList.ExecQuery;
+    while not FqDependentList.EOF do
+    begin
+      SL.Add(FqDependentList.Fields[0].AsString);
+      FqDependentList.Next;
+    end;
+    FqDependentList.Close;
+
+    with TgdcNamespaceLoader.Create do
+    try
+      Load(SL);
+    finally
+      Free;
+    end;
+  finally
+    SL.Free;
   end;
 end;
 

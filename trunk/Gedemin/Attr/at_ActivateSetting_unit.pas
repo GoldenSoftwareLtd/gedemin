@@ -17,7 +17,7 @@ type
     FSettingKeys: String;
 
     procedure WMActivateSetting(var Msg: TMessage); message WM_ActivateSetting;
-    procedure WMDeActivateSetting(var Msg: TMessage); message WM_DeActivateSetting;    
+    procedure WMDeActivateSetting(var Msg: TMessage); message WM_DeActivateSetting;
 
   public
     constructor Create(AnOwner: TComponent); override;
@@ -31,7 +31,7 @@ var
 implementation
 
 uses
-  gdcSetting;
+  IB, IBDatabase, at_classes, gdcSetting, gdcBaseInterface;
 
 {$R *.DFM}
 
@@ -47,14 +47,36 @@ begin
 end;
 
 procedure TActivateSetting.WMActivateSetting(var Msg: TMessage);
+var
+  Tr: TIBTransaction;
 begin
+  Assert(gdcBaseManager <> nil);
   _ActivateSetting(FSettingKeys, false, Boolean(Msg.LParam), Msg.WParamLo, Msg.WParamHi);
+  Tr := TIBTransaction.Create(nil);
+  try
+    Tr.DefaultDatabase := gdcBaseManager.Database;
+    atDatabase.SyncIndicesAndTriggers(Tr);
+    atDatabase.ForceLoadFromDatabase;
+  finally
+    Tr.Free;
+  end;
   Close;
 end;
 
 procedure TActivateSetting.WMDeActivateSetting(var Msg: TMessage);
+var
+  Tr: TIBTransaction;
 begin
+  Assert(gdcBaseManager <> nil);
   _DeActivateSetting(FSettingKeys, Boolean(Msg.LParam));
+  Tr := TIBTransaction.Create(nil);
+  try
+    Tr.DefaultDatabase := gdcBaseManager.Database;
+    atDatabase.SyncIndicesAndTriggers(Tr);
+    atDatabase.ForceLoadFromDatabase;
+  finally
+    Tr.Free;
+  end;
   Close;
 end;
 

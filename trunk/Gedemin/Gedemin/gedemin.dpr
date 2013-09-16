@@ -700,7 +700,7 @@ begin
           {$IFDEF SPLASH}
           Application.ShowMainForm := False;
           Application.CreateForm(TfrmSplashHidden, frmSplashHidden);
-          if (not gd_CmdLineParams.NoSplash) and (not GridStripeProh) then
+          if gd_CmdLineParams.CouldShowSplash and (not GridStripeProh) then
             try
               Application.CreateForm(TfrmSplash, frmSplash);
             except

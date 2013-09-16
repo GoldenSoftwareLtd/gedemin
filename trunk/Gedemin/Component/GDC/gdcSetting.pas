@@ -3751,7 +3751,6 @@ begin
   end;
 
   gdcSetts.Open;
-//  if gdcSetts.FieldByName('disabled').AsInteger = 1 then
     gdcSetts.ActivateSetting(KeyArr, nil, True, YesToAll);
 
   gdcSetts.Close;

@@ -1863,27 +1863,25 @@ end;
 
 procedure TfrmGedeminMain.actRegistrationExecute(Sender: TObject);
 begin
-{$IFNDEF WITH_INDY}
-  {$IFDEF GEDEMIN_LOCK}
-    with Tgd_dlgReg.Create(Self) do
-    try
-      ShowModal;
-    finally
-      Free;
-    end;
-  {$ENDIF}
+{$IFDEF GEDEMIN_LOCK}
+  with Tgd_dlgReg.Create(Self) do
+  try
+    ShowModal;
+  finally
+    Free;
+  end;
 {$ENDIF}
 end;
 
 procedure TfrmGedeminMain.actRegistrationUpdate(Sender: TObject);
 begin
-  {$IFDEF WITH_INDY}
-  actRegistration.Visible := False;
-  {$ELSE}
+  {$IFDEF GEDEMIN_LOCK}
   if (IBLogin <> nil) and IBLogin.LoggedIn then
   begin
     actRegistration.Enabled := IBLogin.IsUserAdmin;
   end;
+  {$ELSE}
+  actRegistration.Visible := False;
   {$ENDIF}
 end;
 
