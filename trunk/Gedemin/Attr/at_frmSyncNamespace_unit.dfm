@@ -1,11 +1,11 @@
 object at_frmSyncNamespace: Tat_frmSyncNamespace
-  Left = 323
-  Top = 367
+  Left = 309
+  Top = 293
   Width = 1131
   Height = 518
   Caption = 'Синхронизация пространств имен'
   Color = clBtnFace
-  Font.Charset = DEFAULT_CHARSET
+  Font.Charset = RUSSIAN_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
   Font.Name = 'Tahoma'
@@ -16,11 +16,13 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
   TextHeight = 13
   object splMessages: TSplitter
     Left = 0
-    Top = 395
+    Top = 370
     Width = 1115
-    Height = 3
+    Height = 2
     Cursor = crVSplit
     Align = alBottom
+    Color = clBtnShadow
+    ParentColor = False
   end
   object sb: TStatusBar
     Left = 0
@@ -34,7 +36,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
     Left = 0
     Top = 0
     Width = 1115
-    Height = 49
+    Height = 26
     object TBToolbar: TTBToolbar
       Left = 0
       Top = 0
@@ -157,7 +159,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
         TabOrder = 0
       end
       object edFilter: TEdit
-        Left = 910
+        Left = 818
         Top = 0
         Width = 140
         Height = 21
@@ -165,8 +167,8 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
         OnChange = edFilterChange
       end
       object cbPackets: TCheckBox
-        Left = 0
-        Top = 28
+        Left = 964
+        Top = 2
         Width = 66
         Height = 17
         Action = actFLTInternal
@@ -187,16 +189,16 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
   end
   object gr: TgsDBGrid
     Left = 0
-    Top = 72
+    Top = 49
     Width = 1115
-    Height = 323
+    Height = 321
     Align = alClient
     BorderStyle = bsNone
     DataSource = ds
     Options = [dgTitles, dgColumnResize, dgColLines, dgRowLines, dgTabs, dgRowSelect, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit, dgMultiSelect]
     PopupMenu = pmSync
     ReadOnly = True
-    TabOrder = 2
+    TabOrder = 1
     InternalMenuKind = imkWithSeparator
     Expands = <>
     ExpandsActive = False
@@ -311,24 +313,26 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
         Visible = False
       end>
   end
-  object mMessages: TMemo
+  object pnlHeader: TPanel
     Left = 0
-    Top = 398
-    Width = 1115
-    Height = 63
-    Align = alBottom
-    ScrollBars = ssVertical
-    TabOrder = 3
-  end
-  object Panel1: TPanel
-    Left = 0
-    Top = 49
+    Top = 26
     Width = 1115
     Height = 23
     Align = alTop
     Caption = 'База данных      <<----->>      Файлы на диске'
     Color = clWindow
     TabOrder = 4
+  end
+  object mMessages: TRichEdit
+    Left = 0
+    Top = 372
+    Width = 1115
+    Height = 89
+    Align = alBottom
+    BorderStyle = bsNone
+    ReadOnly = True
+    ScrollBars = ssVertical
+    TabOrder = 2
   end
   object ds: TDataSource
     Left = 600
@@ -482,11 +486,14 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
     end
     object actFLTSave: TAction
       Caption = 'Сохранение'
+      Hint = 'Все файлы, помеченные для сохранения'
+      ImageIndex = 25
       OnExecute = actFLTSaveExecute
     end
     object actFLTLoad: TAction
       Caption = 'Загрузка'
       Hint = 'Все файлы, помеченные для загрузки'
+      ImageIndex = 27
       OnExecute = actFLTLoadExecute
     end
   end

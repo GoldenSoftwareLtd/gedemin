@@ -6,7 +6,7 @@ uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   gd_security_body, syn_ManagerInterface_body_unit, gdcBase, gsDesktopManager,
   IBDatabase, flt_ScriptInterface_body, prm_ParamFunctions_unit, FileCtrl,
-  gd_resourcestring;
+  gd_resourcestring, gdcNamespaceSyncController;
 
 type
   TLoginType = (ltQuery, ltSilent, ltSingle, ltMulti, ltSingleSilent, ltMultiSilent);
@@ -35,10 +35,11 @@ type
 
     procedure DoLoadSetting;
     procedure DoLoadNamespace;
+    procedure Log(const AMessageType: TLogMessageType; const AMessage: String);
 
   public
     constructor CreateAndConnect(AOwner: TComponent; const ALoginType: TLoginType;
-      const AUser: String = ''; const APassword: String = ''; const ADBPath: string = '');
+      const AUser: String = ''; const APassword: String = ''; const ADBPath: String = '');
 
     procedure LoadSettings;
   end;
@@ -71,7 +72,7 @@ uses
   gd_localization_stub,
   {$ENDIF}
 
-  IBSQL, gdcNamespace, gdcNamespaceLoader;
+  IBSQL, at_frmSQLProcess;
 
 {$R *.DFM}
 
@@ -155,11 +156,8 @@ begin
     {$ENDIF}
   end;
 
-  {$IFNDEF DEPARTMENT}
-  // Запуск настроек
   if not FSystemConnect then
     LoadSettings;
-  {$ENDIF}
 
   if dm_i_ClientReport <> nil then
   begin
@@ -317,7 +315,6 @@ begin
       if UserStorage.ValueExists(LocFilterFolderName + IntToStr(AnFirstKey), IntToStr(AnSecondKey), False) then
       begin
         UserStorage.ReadStream(LocFilterFolderName + IntToStr(AnFirstKey), IntToStr(AnSecondKey), MS, False);
-        //MS.Position := 0;
         VS := TVarStream.Create(MS);
         try
           VS.Read(TempVar);
@@ -459,47 +456,18 @@ begin
 end;
 
 procedure TdmLogin.DoLoadNamespace;
-{var
-  I: Integer;
-  NSList: TgsNSList;
-  NSNode: TgsNSNode;
-  SL: TStringList;
-  gdcNamespace: TgdcNamespace;
-  Error: String;}
+var
+  NSC: TgdcNamespaceSyncController;
 begin
-  {NSList := TgsNSList.Create;
+  NSC := TgdcNamespaceSyncController.Create;
   try
-    NSNode := nil;
-    NSList.GetFilesForPath(LoadSettingPath);
-    for I := 0 to NSList.Count - 1 do
-      if (AnsiCompareText((NSList.Objects[I] as TgsNSNode).FileName, LoadSettingFileName) = 0) then
-      begin
-        NSNode := NSList.Objects[I] as TgsNSNode;
-        break;
-      end;
-    if NSNode <> nil then
-    begin
-      SL := TStringList.Create;
-      gdcNamespace := TgdcNamespace.Create(nil);
-      try
-        if NSList.NSTree.CheckNSCorrect(NSNode.RUID, Error) then
-        begin
-          NSList.NSTree.SetNSFileName(NSNode.RUID, SL);
-          TgdcNamespaceLoader.LoadDelayed(SL, False, False);
-        end else
-          MessageBox(0, PChar(Error), 'Gedemin', MB_OK or MB_ICONERROR or MB_TASKMODAL);
-      finally
-        SL.Free;
-        gdcNamespace.Free;
-      end;
-    end else
-      MessageBox(0,
-        PChar('Пространство имен "' + LoadSettingFileName + '" не найдено!'),
-        'Gedemin',
-        MB_OK or MB_ICONERROR or MB_TASKMODAL);
+    NSC.OnLogMessage := Log;
+    NSC.UpdateCurrModified := False;
+    NSC.Directory := LoadSettingPath;
+    NSC.Scan;
   finally
-    NSList.Free;
-  end;}
+    NSC.Free;
+  end;
 end;
 
 procedure TdmLogin.LoadSettings;
@@ -521,9 +489,20 @@ begin
   end;
 end;
 
+procedure TdmLogin.Log(const AMessageType: TLogMessageType;
+  const AMessage: String);
+begin
+  case AMessageType of
+    lmtInfo: AddText(AMessage);
+    lmtWarning: AddWarning(AMessage);
+    lmtError: AddMistake(AMessage);
+  end;
+end;
+
 initialization
   UserParamExists := gd_CmdLineParams.UserName > '';
   PasswordParamExists := gd_CmdLineParams.UserPassword > '';
   LoadSettingPath := gd_CmdLineParams.LoadSettingPath;
   LoadSettingFileName := gd_CmdLineParams.LoadSettingFileName;
 end.
+

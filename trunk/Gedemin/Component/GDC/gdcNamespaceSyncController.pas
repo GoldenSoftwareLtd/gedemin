@@ -7,7 +7,8 @@ uses
   Classes, DB, IBDatabase, IBSQL, IBCustomDataSet;
 
 type
-  TOnLogMessage = procedure(const AMessage: String) of object;
+  TLogMessageType = (lmtInfo, lmtWarning, lmtError);
+  TOnLogMessage = procedure(const AMessageType: TLogMessageType; const AMessage: String) of object;
 
   TgdcNamespaceSyncController = class(TObject)
   private
@@ -30,7 +31,7 @@ type
     FqUsesList: TIBSQL;
 
     procedure Init;
-    procedure DoLog(const AMessage: String);
+    procedure DoLog(const AMessageType: TLogMessageType; const AMessage: String);
     procedure AnalyzeFile(const AFileName: String);
     function GetDataSet: TDataSet;
     function GetFiltered: Boolean;
@@ -120,7 +121,7 @@ begin
 
       if not FqFindFile.EOF then
       begin
-        DoLog(
+        DoLog(lmtWarning,
           'Пространство имен: "' + M.ReadString('Properties\Name') + '" содержится в файлах:' + #13#10 +
           '1: ' + FqFindFile.FieldByName('filename').AsString + #13#10 +
           '2: ' + AFileName + #13#10 +
@@ -147,7 +148,7 @@ begin
           for I := 0 to S.Count - 1 do
           begin
             if not (S.Items[I] is TyamlString) then
-              DoLog('Ошибка в секции USES файла ' + AFileName)
+              DoLog(lmtError, 'Ошибка в секции USES файла ' + AFileName)
             else begin
               TgdcNamespace.ParseReferenceString((S.Items[I] as TyamlString).AsString, UsesRUID, UsesName);
 
@@ -159,10 +160,10 @@ begin
             end;
           end;
         end;
-        DoLog(AFileName);
+        DoLog(lmtInfo, AFileName);
       end;
     end else
-      DoLog('Неверный формат файла ' + AFileName);
+      DoLog(lmtError, 'Неверный формат файла ' + AFileName);
   finally
     Parser.Free;
   end;
@@ -296,7 +297,7 @@ procedure TgdcNamespaceSyncController.DeleteFile(const AFileName: String);
 begin
   if SysUtils.DeleteFile(AFileName) then
   begin
-    DoLog('Файл ' + AFileName + ' был удален.');
+    DoLog(lmtInfo, 'Файл ' + AFileName + ' был удален.');
 
     Fq.Close;
     Fq.SQL.Text :=
@@ -323,10 +324,11 @@ begin
   inherited;
 end;
 
-procedure TgdcNamespaceSyncController.DoLog(const AMessage: String);
+procedure TgdcNamespaceSyncController.DoLog(const AMessageType: TLogMessageType;
+  const AMessage: String);
 begin
   if Assigned(FOnLogMessage) then
-    FOnLogMessage(AMessage);
+    FOnLogMessage(AMessageType, AMessage);
 end;
 
 procedure TgdcNamespaceSyncController.EditNamespace(const ANSK: Integer);
@@ -680,7 +682,7 @@ begin
 
   if FUpdateCurrModified then
   begin
-    DoLog('Обновление даты изменения объекта...');
+    DoLog(lmtInfo, 'Обновление даты изменения объекта...');
     TgdcNamespace.UpdateCurrModified;
   end;
 
@@ -695,8 +697,8 @@ begin
       except
         on E: Exception do
         begin
-          DoLog('Ошибка в процессе обработки файла ' + SL[I]);
-          DoLog(E.Message);
+          DoLog(lmtError, 'Ошибка в процессе обработки файла ' + SL[I]);
+          DoLog(lmtError, E.Message);
         end;
       end;
     end;
@@ -704,11 +706,11 @@ begin
     SL.Free;
   end;
 
-  DoLog('Определение статуса...');
+  DoLog(lmtInfo, 'Определение статуса...');
   FqFillSync.ExecQuery;
 
   gd_GlobalParams.NamespacePath := FDirectory;
-  DoLog('Выполнено сравнение с каталогом ' + FDirectory);
+  DoLog(lmtInfo, 'Выполнено сравнение с каталогом ' + FDirectory);
 end;
 
 procedure TgdcNamespaceSyncController.SetOperation(const AnOp: String);
@@ -819,7 +821,10 @@ begin
             NS.ID := Fq.FieldByName('id').AsInteger;
             NS.Open;
             if (not NS.EOF) and NS.SaveNamespaceToFile(Fq.FieldByName('filename').AsString, chbxIncVersion.Checked) then
-              DoLog('Пространство имен ' + NS.ObjectName + ' записано в файл.');
+            begin
+              DoLog(lmtInfo, 'Пространство имен ' + NS.ObjectName + ' записано в файл:');
+              DoLog(lmtInfo, Fq.FieldByName('filename').AsString);
+            end;
             Fq.Next;
           end;
 

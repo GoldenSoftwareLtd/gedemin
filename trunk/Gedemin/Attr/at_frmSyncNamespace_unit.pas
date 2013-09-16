@@ -21,8 +21,7 @@ type
     actChooseDir: TAction;
     TBItem1: TTBItem;
     actCompare: TAction;
-    TBItem2: TTBItem;   
-    mMessages: TMemo;
+    TBItem2: TTBItem;
     splMessages: TSplitter;
     pmSync: TPopupMenu;
     actEditNamespace: TAction;
@@ -87,7 +86,7 @@ type
     TBSeparatorItem8: TTBSeparatorItem;
     actSelectAll: TAction;
     actSelectAll1: TMenuItem;
-    Panel1: TPanel;
+    pnlHeader: TPanel;
     N8: TMenuItem;
     N9: TMenuItem;
     N11: TMenuItem;
@@ -96,6 +95,7 @@ type
     TBItem7: TTBItem;
     actFLTLoad: TAction;
     TBItem15: TTBItem;
+    mMessages: TRichEdit;
     procedure actChooseDirExecute(Sender: TObject);
     procedure actCompareUpdate(Sender: TObject);
     procedure actCompareExecute(Sender: TObject);
@@ -132,7 +132,7 @@ type
     procedure IterateSelected(Proc: TIterateProc; const AData: String = '');
     procedure SetOperation(const AData: String);
     procedure DeleteFile(const AData: String);
-    procedure Log(const S: String);
+    procedure Log(const AMessageType: TLogMessageType; const S: String);
 
   public
     constructor Create(AnOwner: TComponent); override;
@@ -323,9 +323,19 @@ begin
   IterateSelected(DeleteFile);
 end;
 
-procedure Tat_frmSyncNamespace.Log(const S: String);
+procedure Tat_frmSyncNamespace.Log(const AMessageType: TLogMessageType; const S: String);
+var
+  OldColor: TColor;
 begin
-  mMessages.Lines.Add(FormatDateTime('hh:nn:ss ', Now) + S);
+  OldColor := mMessages.SelAttributes.Color;
+  mMessages.SelStart := mMessages.GetTextLen;
+  case AMessageType of
+    lmtInfo: mMessages.SelAttributes.Color := clBlack;
+    lmtWarning: mMessages.SelAttributes.Color := clMaroon;
+    lmtError: mMessages.SelAttributes.Color := clRed;
+  end;
+  mMessages.SelText := FormatDateTime('hh:nn:ss ', Now) + S + #13#10;
+  mMessages.SelAttributes.Color := OldColor;
 end;
 
 procedure Tat_frmSyncNamespace.ApplyFilter;
