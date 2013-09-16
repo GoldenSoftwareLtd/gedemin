@@ -248,10 +248,12 @@ var
   I: LongWord;
   V: Variant;
   DT: TDateTime;
+  fid: fid_t;
 begin
   Assert(ADataSet <> nil);
   Assert(ATermv <> nil);
 
+  fid := PL_open_foreign_frame;
   Query := TgsPLQuery.Create;
   try
     Query.Pred := APredicateName;
@@ -290,6 +292,7 @@ begin
     end;
   finally
     Query.Free;
+    PL_close_foreign_frame(fid);
   end;
 end;
 
@@ -302,8 +305,10 @@ function TgsPLClient.Call(const AGoal: String): Boolean;
 var
   t: TgsTermv;
   Query: TgsPLQuery;
+  fid: fid_t;
 begin
   Result := False;
+  fid := PL_open_foreign_frame;
   t := TgsTermv.CreateTerm(1);
   try
     if PL_chars_to_term(PChar(AGoal), t.Term[0]) <> 0 then
@@ -320,15 +325,18 @@ begin
     end;
   finally
     t.Free;
+    PL_close_foreign_frame(fid);
   end;
 end;
 
 function TgsPLClient.Call(const APredicateName: String; AParams: TgsTermv): Boolean;
 var
   Query: TgsPLQuery;
+  fid: fid_t;
 begin
   Assert(APredicateName > '');
 
+  fid := PL_open_foreign_frame;
   Query := TgsPLQuery.Create;
   try
     Query.Pred := APredicateName;
@@ -337,6 +345,7 @@ begin
     Result := not Query.Eof;
   finally
     Query.Free;
+    PL_close_foreign_frame(fid);
   end;
 end;
 
@@ -398,10 +407,10 @@ begin
   for I:= VarArrayLowBound(AParams, 1) to VarArrayHighBound(AParams, 1) do
     argv[I] := PChar(VarToStr(AParams[I]));
 
-  argv[High(argv)] := nil; 
+  argv[High(argv)] := nil;
   Result := PL_initialise(High(argv), argv) <> 0;
   if not Result then
-    PL_halt(1);
+    PL_halt(1); 
 end;
 
 procedure TgsPLClient.MakePredicatesOfDataSet(ADataSet: TDataSet; const AFieldList: String;
