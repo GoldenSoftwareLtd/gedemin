@@ -432,12 +432,12 @@ uses
 
 {$IFDEF WITH_INDY}
   gd_WebServerControl_unit,
-{$ELSE}
-  {$IFDEF GEDEMIN_LOCK}
-    gd_dlgReg_unit,
-    gd_registration,
-    IBDatabaseInfo,
-  {$ENDIF}
+{$ENDIF}
+
+{$IFDEF GEDEMIN_LOCK}
+  gd_dlgReg_unit,
+  gd_registration,
+  IBDatabaseInfo,
 {$ENDIF}
 
   gdcGood,

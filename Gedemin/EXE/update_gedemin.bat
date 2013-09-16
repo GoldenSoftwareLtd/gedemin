@@ -129,6 +129,7 @@ if exist ..\exe\gedemin.exe goto exit
 "%delphi_path%\dcc32.exe" %compiler_switch% gedemin.dpr
 
 if not exist ..\exe\gedemin.exe eventcreate /t error /id 1 /l application /so gedemin /d "gedemin.exe compilation error"
+if not exist ..\exe\gedemin.exe pause
 
 echo *************************************************
 echo **                                             **
