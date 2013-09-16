@@ -34,7 +34,7 @@ type
   private
     FNSC: TgdcNamespaceSyncController;
 
-    procedure Log(const AMessage: string);
+    procedure Log(const AMessageType: TLogMessageType; const AMessage: String);
 
   public
     constructor Create(AnOwner: TComponent); override;
@@ -62,7 +62,8 @@ begin
   inherited;
 end;
 
-procedure Tat_dlgLoadNamespacePackages.Log(const AMessage: string);
+procedure Tat_dlgLoadNamespacePackages.Log(const AMessageType: TLogMessageType;
+  const AMessage: string);
 begin
   mInfo.Lines.Add(AMessage);
 end;
