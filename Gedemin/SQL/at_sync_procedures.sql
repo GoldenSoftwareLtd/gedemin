@@ -11,7 +11,7 @@
 */
 SET TERM ^ ;
 
-CREATE PROCEDURE AT_P_SYNC 
+CREATE OR ALTER PROCEDURE AT_P_SYNC 
 AS
   DECLARE VARIABLE ID INTEGER;
   DECLARE VARIABLE ID1 INTEGER;
@@ -41,11 +41,20 @@ BEGIN
    END 
   
  /* дададз_м новы€ дамены */ 
+   MERGE INTO at_fields trgt
+     USING rdb$fields src
+     ON trgt.fieldname = src.rdb$field_name
+     WHEN NOT MATCHED THEN
+       INSERT (fieldname, lname, description)
+       VALUES (TRIM(src.rdb$field_name), TRIM(src.rdb$field_name), TRIM(src.rdb$field_name)); 
+
+   /* 
    INSERT INTO AT_FIELDS (fieldname, lname, description)
    SELECT trim(rdb$field_name), trim(rdb$field_name),
      trim(rdb$field_name)
    FROM rdb$fields LEFT JOIN at_fields ON rdb$field_name = fieldname
      WHERE fieldname IS NULL;
+   */ 
   
  /* дл€ _снуючых палЄҐ аднав_м _нфармацыю аб тыпе */ 
    FOR 

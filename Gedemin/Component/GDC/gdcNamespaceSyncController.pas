@@ -853,7 +853,7 @@ begin
             NS.ID := Fq.FieldByName('id').AsInteger;
             NS.Open;
             if (not NS.EOF) and NS.SaveNamespaceToFile(Fq.FieldByName('filename').AsString, chbxIncVersion.Checked) then
-              DoLog(lmtInfo, 'Пространство имен ' + NS.ObjectName + ' записано в файл:' +
+              DoLog(lmtInfo, 'Пространство имен ' + NS.ObjectName + ' записано в файл: ' +
                 Fq.FieldByName('filename').AsString);
             Fq.Next;
           end;

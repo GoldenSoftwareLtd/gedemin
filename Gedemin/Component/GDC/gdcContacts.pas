@@ -190,7 +190,6 @@ type
     procedure CustomInsert(Buff: Pointer); override;
     procedure CustomModify(Buff: Pointer); override;
 
-    function CreateDialogForm: TCreateableForm; override;
     function GetNotCopyField: String; override;
     function IsReverseOrder(const AFieldName: String): Boolean; override;
     procedure CreateFields; override;
@@ -206,6 +205,7 @@ type
 
     class function GetRestrictCondition(const ATableName, ASubType: String): String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
+    class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetSubSetList: String; override;
 
     function CheckTheSameStatement: String; override;
@@ -223,7 +223,6 @@ type
     procedure CustomDelete(Buff: Pointer); override;
     procedure CustomInsert(Buff: Pointer); override;
     procedure CustomModify(Buff: Pointer); override;
-    function CreateDialogForm: TCreateableForm; override;
     function DoAfterInitSQL(const AnSQLText: String): String; override;
 
   public
@@ -231,6 +230,7 @@ type
 
     class function GetRestrictCondition(const ATableName, ASubType: String): String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
+    class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
     class function ContactType: Integer; override;
     class function GetDisplayName(const ASubType: TgdcSubType): String; override;
 
@@ -265,7 +265,6 @@ type
 
   TgdcEmployee = class(TgdcContact)
   protected
-    function CreateDialogForm: TCreateableForm; override;
     function GetFromClause(const ARefresh: Boolean = False): String; override;
     function GetSelectClause: String; override;
     function GetOrderClause: String; override;
@@ -276,6 +275,7 @@ type
   public
     class function GetDisplayName(const ASubType: TgdcSubType): String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
+    class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
     //Если не указана рабочая компания, но указано подразделение,
     //то устанавливает раб компанию по подразделению
     //Объект должнен находится в состоянии редактирования или вставки
@@ -290,13 +290,13 @@ type
     procedure CustomInsert(Buff: Pointer); override;
     procedure CustomModify(Buff: Pointer); override;
 
-    function CreateDialogForm: TCreateableForm; override;
     function GetNotCopyField: String; override;
 
     procedure _DoOnNewRecord; override;
 
   public
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
+    class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
     //
     class procedure GetClassImage(const ASizeX, ASizeY: Integer; AGraphic: TGraphic); override;
 
@@ -348,7 +348,6 @@ uses
    ;
 
 const
-  { TODO : а как же TgdcEmployee?...... }
   ContactTypes: array[-1..6] of CgdcBaseContact = (
     TgdcBaseContact,
     TgdcFolder,
@@ -2375,58 +2374,6 @@ begin
   {END MACRO}
 end;
 
-function TgdcCompany.CreateDialogForm: TCreateableForm;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_FUNCCREATEDIALOGFORM('TGDCCOMPANY', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  try
-  {M}    Result := nil;
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCCOMPANY', KEYCREATEDIALOGFORM);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCREATEDIALOGFORM]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCCOMPANY') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCCOMPANY',
-  {M}          'CREATEDIALOGFORM', KEYCREATEDIALOGFORM, Params, LResult) then
-  {M}          begin
-  {M}            Result := nil;
-  {M}            if VarType(LResult) <> varDispatch then
-  {M}              raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен не объект.')
-  {M}            else
-  {M}              if IDispatch(LResult) = nil then
-  {M}                raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                  'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен пустой (null) объект.');
-  {M}            Result := GetInterfaceToObject(LResult) as TCreateableForm;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCCOMPANY' then
-  {M}        begin
-  {M}          Result := Inherited CreateDialogForm;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  Result := Tgdc_dlgCompany.CreateSubType(ParentForm, SubType);
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCCOMPANY', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCCOMPANY', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM);
-  {M}  end;
-  {END MACRO}
-end;
-
 procedure TgdcCompany._DoOnNewRecord;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
   {M}VAR
@@ -2536,58 +2483,6 @@ begin
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
   {M}      ClearMacrosStack2('TGDCOURCOMPANY', 'GETFROMCLAUSE', KEYGETFROMCLAUSE);
-  {M}  end;
-  {END MACRO}
-end;
-
-function TgdcOurCompany.CreateDialogForm: TCreateableForm;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_FUNCCREATEDIALOGFORM('TGDCOURCOMPANY', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  try
-  {M}    Result := nil;
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCOURCOMPANY', KEYCREATEDIALOGFORM);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCREATEDIALOGFORM]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCOURCOMPANY') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCOURCOMPANY',
-  {M}          'CREATEDIALOGFORM', KEYCREATEDIALOGFORM, Params, LResult) then
-  {M}          begin
-  {M}            Result := nil;
-  {M}            if VarType(LResult) <> varDispatch then
-  {M}              raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен не объект.')
-  {M}            else
-  {M}              if IDispatch(LResult) = nil then
-  {M}                raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                  'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен пустой (null) объект.');
-  {M}            Result := GetInterfaceToObject(LResult) as TCreateableForm;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCOURCOMPANY' then
-  {M}        begin
-  {M}          Result := Inherited CreateDialogForm;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  Result := Tgdc_dlgOurCompany.CreateSubType(ParentForm, SubType);
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCOURCOMPANY', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCOURCOMPANY', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM);
   {M}  end;
   {END MACRO}
 end;
@@ -3098,6 +2993,12 @@ begin
   Result := inherited GetSubSetList + 'WithAccount;';
 end;
 
+class function TgdcCompany.GetDialogFormClassName(
+  const ASubType: TgdcSubType): String;
+begin
+  Result := 'Tgdc_dlgCompany';
+end;
+
 { TgdcBank }
 
 procedure TgdcBank.CustomInsert(Buff: Pointer);
@@ -3373,58 +3274,6 @@ begin
   {END MACRO}
 end;
 
-function TgdcBank.CreateDialogForm: TCreateableForm;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_FUNCCREATEDIALOGFORM('TGDCBANK', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  try
-  {M}    Result := nil;
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCBANK', KEYCREATEDIALOGFORM);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCREATEDIALOGFORM]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCBANK') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCBANK',
-  {M}          'CREATEDIALOGFORM', KEYCREATEDIALOGFORM, Params, LResult) then
-  {M}          begin
-  {M}            Result := nil;
-  {M}            if VarType(LResult) <> varDispatch then
-  {M}              raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен не объект.')
-  {M}            else
-  {M}              if IDispatch(LResult) = nil then
-  {M}                raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                  'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен пустой (null) объект.');
-  {M}            Result := GetInterfaceToObject(LResult) as TCreateableForm;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCBANK' then
-  {M}        begin
-  {M}          Result := Inherited CreateDialogForm;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  Result := Tgdc_dlgBank.CreateSubType(ParentForm, SubType);
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBANK', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCBANK', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM);
-  {M}  end;
-  {END MACRO}
-end;
-
 procedure TgdcBank._DoOnNewRecord;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
   {M}VAR
@@ -3553,62 +3402,6 @@ begin
     dmImages.il16x16.GetBitmap(165, Graphics.TBitmap(AGraphic))
   else
     inherited;
-end;
-
-{ TgdcEmployee }
-
-function TgdcEmployee.CreateDialogForm: TCreateableForm;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_FUNCCREATEDIALOGFORM('TGDCEMPLOYEE', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  try
-  {M}    Result := nil;
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCEMPLOYEE', KEYCREATEDIALOGFORM);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCREATEDIALOGFORM]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCEMPLOYEE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCEMPLOYEE',
-  {M}          'CREATEDIALOGFORM', KEYCREATEDIALOGFORM, Params, LResult) then
-  {M}          begin
-  {M}            Result := nil;
-  {M}            if VarType(LResult) <> varDispatch then
-  {M}              raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен не объект.')
-  {M}            else
-  {M}              if IDispatch(LResult) = nil then
-  {M}                raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                  'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен пустой (null) объект.');
-  {M}            Result := GetInterfaceToObject(LResult) as TCreateableForm;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCEMPLOYEE' then
-  {M}        begin
-  {M}          Result := Inherited CreateDialogForm;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  Result := Tgdc_dlgEmployee.CreateSubType(ParentForm, SubType);
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCEMPLOYEE', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCEMPLOYEE', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM);
-  {M}  end;
-  {END MACRO}
 end;
 
 class function TgdcOurCompany.GetDisplayName(
@@ -3993,6 +3786,24 @@ begin
   {M}      ClearMacrosStack2('TGDCOURCOMPANY', 'CUSTOMMODIFY', KEYCUSTOMMODIFY);
   {M}  end;
   {END MACRO}
+end;
+
+class function TgdcOurCompany.GetDialogFormClassName(
+  const ASubType: TgdcSubType): String;
+begin
+  Result := 'Tgdc_dlgOurCompany';
+end;
+
+class function TgdcEmployee.GetDialogFormClassName(
+  const ASubType: TgdcSubType): String;
+begin
+  Result := 'Tgdc_dlgEmployee';
+end;
+
+class function TgdcBank.GetDialogFormClassName(
+  const ASubType: TgdcSubType): String;
+begin
+  Result := 'Tgdc_dlgBank';
 end;
 
 initialization

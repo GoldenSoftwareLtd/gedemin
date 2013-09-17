@@ -577,6 +577,9 @@ begin
   begin
     Obj.Close;
 
+    if (Obj is TgdcTableField) and (AMapping.ReadString('Fields\COMPUTED_VALUE') > '') then
+      ProcessMetadata;
+
     if (FPrevPosted <> nil) and (not Obj.InheritsFrom(FPrevPosted)) then
     begin
       if FPrevPosted.InheritsFrom(TgdcField) or FPrevPosted.InheritsFrom(TgdcRelation) then
@@ -584,6 +587,9 @@ begin
     end;
 
     RUIDID := gdcBaseManager.GetIDByRUIDString(ObjRUIDString, FTr);
+
+    Obj.StreamXID := ObjRUID.XID;
+    Obj.StreamDBID := ObjRUID.DBID;
 
     if (RUIDID > -1) and (RUIDID < cstUserIDStart) then
     begin

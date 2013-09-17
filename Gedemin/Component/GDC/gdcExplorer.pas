@@ -44,6 +44,7 @@ const
 
   //Допустимые символы в сабтайпе
   cst_sbt_Symbols = ['A'..'Z', '0'..'9', '_', '$'];
+
 type
   TgdcExplorer = class(TgdcTree)
   private

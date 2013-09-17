@@ -453,6 +453,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
     object actFLTInternal: TAction
       Caption = 'Только пакеты'
       OnExecute = actFLTInternalExecute
+      OnUpdate = actFLTOnlyInDBUpdate
     end
     object actFLTEqualOlder: TAction
       Caption = '=>'
@@ -489,12 +490,14 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       Hint = 'Все файлы, помеченные для сохранения'
       ImageIndex = 25
       OnExecute = actFLTSaveExecute
+      OnUpdate = actFLTOnlyInDBUpdate
     end
     object actFLTLoad: TAction
       Caption = 'Загрузка'
       Hint = 'Все файлы, помеченные для загрузки'
       ImageIndex = 27
       OnExecute = actFLTLoadExecute
+      OnUpdate = actFLTOnlyInDBUpdate
     end
   end
   object pmSync: TPopupMenu
