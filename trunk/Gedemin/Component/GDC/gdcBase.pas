@@ -779,6 +779,8 @@ type
     function GetSetAttributes(Index: Integer): TgdcSetAttribute;
     function GetSetAttributesCount: Integer;
     procedure CheckSetAttributes;
+    procedure SetStreamDBID(const Value: TID);
+    procedure SetStreamXID(const Value: TID);
 
   protected
     FgdcDataLink: TgdcDataLink;
@@ -1808,8 +1810,8 @@ type
     //
     property PostCount: Integer read FPostCount;
 
-    property StreamXID: TID read FStreamXID write FStreamXID;
-    property StreamDBID: TID read FStreamDBID write FStreamDBID;
+    property StreamXID: TID read FStreamXID write SetStreamXID;
+    property StreamDBID: TID read FStreamDBID write SetStreamDBID;
     property StreamSilentProcessing: Boolean read FStreamSilentProcessing write FStreamSilentProcessing;
     property StreamProcessingAnswer: Word read FStreamProcessingAnswer write FStreamProcessingAnswer;
     // При копировании записи сюда заносится ключ оригинальной записи
@@ -17551,10 +17553,12 @@ function TgdcBase.GetRuidFromStream: TRUID;
 begin
   if sLoadFromStream in BaseState then
   begin
+    if (FStreamXID = -1) or (FStreamDBID = -1) then
+      raise EgdcException.CreateObj('Не указан RUID для объекта, загружаемого из потока.', Self);
     Result.XID := FStreamXID;
     Result.DBID := FStreamDBID;
   end else
-    raise EgdcIBError.Create('Объект должен находиться в состоянии загрузки из потока!');
+    raise EgdcException.CreateObj('Объект должен находиться в состоянии загрузки из потока.', Self);
 end;
 
 function TgdcBase.GetSecCondition: String;
@@ -18206,6 +18210,20 @@ begin
     Hash.Free;
     Objects.Free;
   end;
+end;
+
+procedure TgdcBase.SetStreamDBID(const Value: TID);
+begin
+  if not (sLoadFromStream in BaseState) then
+    raise EgdcException.CreateObj('Объект должен находиться в состоянии загрузки из потока.', Self);
+  FStreamDBID := Value;
+end;
+
+procedure TgdcBase.SetStreamXID(const Value: TID);
+begin
+  if not (sLoadFromStream in BaseState) then
+    raise EgdcException.CreateObj('Объект должен находиться в состоянии загрузки из потока.', Self);
+  FStreamXID := Value;
 end;
 
 initialization

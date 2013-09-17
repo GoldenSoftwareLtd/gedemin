@@ -33,7 +33,6 @@ type
       const ADontRemove: Boolean; const AnIncludeSiblings: Boolean;
       AnObjCache: TStringHashMap);
 
-    class procedure WriteChanges(ADataSet: TDataSet; AnObj: TgdcBase; ATr: TIBTransaction);
     class procedure UpdateCurrModified(const ANamespaceKey: Integer = -1);
     class procedure ParseReferenceString(const AStr: String; out ARUID: TRUID; out AName: String);
 
@@ -379,6 +378,19 @@ begin
       if StrIPos(';' + F.FieldName + ';', PassFieldName) > 0 then
         continue;
 
+      if AgdcObject is TgdcMetaBase then
+      begin
+        if Pos('RDB$', AgdcObject.ObjectName) = 1 then
+          continue;
+
+        if (F.FieldName = 'FIELDSOURCE') and (Pos('RDB$', F.AsString) = 1) then
+          continue;
+
+        if (F.FieldName = 'FIELDSOURCEKEY') and (AgdcObject.FindField('FIELDSOURCE') <> nil)
+          and (Pos('RDB$', AgdcObject.FieldByName('FIELDSOURCE').AsString) = 1) then
+            continue;
+      end;
+
       if (F.Origin > '') and not F.IsNull then
       begin
         ParseFieldOrigin(F.Origin, RelationName, FieldName);
@@ -585,54 +597,6 @@ begin
   finally
     q.Free;
     Tr.Free;
-  end;
-end;
-
-class procedure TgdcNamespace.WriteChanges(ADataSet: TDataSet; AnObj: TgdcBase; ATr: TIBTransaction);
-var
-  I, TempID: Integer;
-begin
-  Assert(ADataSet <> nil);
-  Assert(AnObj <> nil);
-  Assert(ATr <> nil);
-  Assert(ATr.InTransaction);
-
-  ADataSet.DisableControls;
-  try
-    ADataSet.First;
-    AnObj.Edit;
-    try
-      for I := 0 to AnObj.Fields.Count - 1 do
-      begin
-        if ADataSet.Locate('LR_FieldName',  AnObj.Fields[I].FieldName, [])
-          and (ADataSet.FieldByName('LR_NewValue').AsInteger = 1) then
-        begin
-          if ADataSet.FieldByName('R_' + AnObj.Fields[I].FieldName).IsNull then
-          begin
-            AnObj.Fields[I].Clear;
-            continue;
-          end;
-
-          if (ADataSet.FieldByName('LR_Ref').AsInteger = 1) then
-          begin
-            TempID := gdcBaseManager.GetIDByRUIDString(ADataSet.FieldByName('R_' + AnObj.Fields[I].FieldName).AsString, ATr);
-            if TempID > 0 then
-              AnObj.Fields[I].AsInteger := TempID
-            else
-              AddWarning('При обновлении данных, объект (RUID = ' +
-                ADataSet.FieldByName('R_' + AnObj.Fields[I].FieldName).AsString +
-                ') в базе не найден!', clRed);
-          end else
-            AnObj.Fields[I].Value := ADataSet.FieldByName('R_' + AnObj.Fields[I].FieldName).Value;
-        end;
-      end;
-      AnObj.Post
-    finally
-      if AnObj.State in dsEditModes then
-        AnObj.Cancel;
-    end;
-  finally
-    ADataSet.EnableControls;
   end;
 end;
 

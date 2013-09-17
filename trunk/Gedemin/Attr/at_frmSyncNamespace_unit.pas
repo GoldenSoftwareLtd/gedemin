@@ -377,7 +377,8 @@ end;
 
 procedure Tat_frmSyncNamespace.actFLTOnlyInDBUpdate(Sender: TObject);
 begin
-  (Sender as TAction).Enabled := not FNSC.DataSet.IsEmpty;
+  (Sender as TAction).Enabled := FNSC.DataSet.Active;
+  edFilter.Enabled := FNSC.DataSet.Active;
 end;
 
 procedure Tat_frmSyncNamespace.actFLTInternalExecute(Sender: TObject);

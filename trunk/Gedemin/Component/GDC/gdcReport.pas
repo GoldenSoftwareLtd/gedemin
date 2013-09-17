@@ -1298,19 +1298,25 @@ end;
 procedure TgdcReport.DeleteCommand;
 var
   gdcExplorer: TgdcExplorer;
+  S: String;
 begin
-  gdcExplorer := TgdcExplorer.Create(nil);
-  try
-    gdcExplorer.Transaction := Transaction;
-    gdcExplorer.ReadTransaction := ReadTransaction;
-    gdcExplorer.SubSet := 'All';
-    gdcExplorer.ExtraConditions.Add('z.cmd = ''' + RUIDToStr(GetRUID) + ''' ');
-    gdcExplorer.Open;
+  S := RUIDToStr(GetRUID);
 
-    if not gdcExplorer.Eof then
-      gdcExplorer.Delete;
-  finally
-    gdcExplorer.Free;
+  if S > '' then
+  begin
+    gdcExplorer := TgdcExplorer.Create(nil);
+    try
+      gdcExplorer.Transaction := Transaction;
+      gdcExplorer.ReadTransaction := ReadTransaction;
+      gdcExplorer.SubSet := 'All';
+      gdcExplorer.ExtraConditions.Add('z.cmd = ''' + S + ''' ');
+      gdcExplorer.Open;
+
+      if not gdcExplorer.Eof then
+        gdcExplorer.Delete;
+    finally
+      gdcExplorer.Free;
+    end;
   end;
 end;
 

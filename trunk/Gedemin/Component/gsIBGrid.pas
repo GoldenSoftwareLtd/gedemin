@@ -1,8 +1,7 @@
 
 {++
 
-
-  Copyright (c) 2000-2010 by Golden Software of Belarus
+  Copyright (c) 2000-2013 by Golden Software of Belarus
 
   Module
 
@@ -2322,6 +2321,8 @@ var
   R: TatRelation;
   RF: TatRelationField;
 begin
+  Assert(atDatabase <> nil);
+
   if Assigned(DataLink.DataSet) then
   begin
     if not (DataLink.DataSet is TIBCustomDataSet) then
@@ -2376,33 +2377,9 @@ begin
 end;
 
 function TgsCustomIBGrid.FindFieldOrigin(const FieldName: String): TatRelationField;
-{var
-  I: Integer;
-  F: TFieldData;
-  R: TatRelation;}
 begin
-  {if Assigned(atDatabase) then
-  begin}
-    if not FOrigins.Find(FieldName, Result) then
-      Result := nil;
-
-    {for I := 0 to FOrigins.Count - 1 do
-      if AnsiCompareText((FOrigins[I] as TFieldData).FAlias, FieldName) = 0 then
-      begin
-        F := FOrigins[I] as TFieldData;
-
-        R := atDatabase.Relations.ByRelationName(F.FRelationName);
-
-        if Assigned(R) then
-          Result := R.RelationFields.ByFieldName(F.FFieldName)
-        else
-          Result := nil;
-
-        Exit;
-      end;
-  end;
-
-  Result := nil;}
+  if not FOrigins.Find(FieldName, Result) then
+    Result := nil;
 end;
 
 function TgsCustomIBGrid.CreateColumns: TDBGridColumns;
@@ -2655,7 +2632,7 @@ begin
 
   Columns.BeginUpdate;
   try
-    if not IBLogin.IsIBUserAdmin then
+    if (IBLogin <> nil) and (not IBLogin.IsIBUserAdmin) then
     begin
       for I := Columns.Count - 1 downto 0 do
       begin
@@ -2872,6 +2849,7 @@ end;
 
 function TgsIBColumn.IsRelationFieldValid: Boolean;
 begin
+  Assert(atDatabase <> nil);
   Result := (RelationField <> nil) and
     (atDatabase.Relations.Count > 0);
 end;
@@ -5162,6 +5140,8 @@ procedure TLookup.SetLookupTable(const Value: String);
 var
   R: TatRelation;
 begin
+  Assert(atDatabase <> nil);
+
   if Trim(Value) <> FLookupTable then
   begin
     FLookupTable := Trim(Value);

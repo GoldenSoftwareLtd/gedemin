@@ -3601,36 +3601,22 @@ begin
       DidActivate := ActivateTransaction;
       ibsql.Transaction := Transaction;
 
-      if FieldByName('computed_value').IsNull and (FieldByName('refrelationname').AsString <> '') then
+      if FieldByName('computed_value').IsNull and (FieldByName('refrelationname').AsString > '') then
       begin
         FQuery.Add(CreateFieldSQL);
         FQuery.Add(CreateFieldConstraintSQL);
 
         NeedMultiConnection := True;
-
-      end
-      else
+      end else
       begin
         if FieldByName('computed_value').IsNull and
            (FieldByName('refcrossrelation').AsString <> '') then
         begin
 
           FQuery.Add(CreateFieldSQL);
-        {если мы загружаем поле из потока, то кросс-таблица уже создана,
-         посему создаем только необходимые форейн-кеи и
-         удаляем поле, которое было времмено создано при создании кросс-таблицы}
-          {if not (sLoadFromStream in BaseState)) then
-          begin  }
-            FQuery.Add(CreateCrossRelationSQL);
-            FQuery.Add(CreateCrossRelationTriggerSQL);
-            FQuery.Add(CreateCrossRelationGrantSQL);
-          {end else
-          begin
-            FQuery.Add(CreateCrossRelationPrimarySQL);
-            FQuery.Add(CreateCrossRelationForeign1SQL);
-            FQuery.Add(CreateCrossRelationForeign2SQL);
-            FQuery.Add(CreateDropCrossSimulateField);
-          end;  }
+          FQuery.Add(CreateCrossRelationSQL);
+          FQuery.Add(CreateCrossRelationTriggerSQL);
+          FQuery.Add(CreateCrossRelationGrantSQL);
 
           NeedMultiConnection := True;
         end
@@ -3643,14 +3629,12 @@ begin
       AlterAcEntryBalanceAndRecreateTrigger(FQuery);
 
       S := CreateAccCirculationList;
-      if S <> '' then
+      if S > '' then
         FQuery.Add(S);
 
       //Установка значения по умолчанию
-      if (FieldByName('nullflag').AsInteger = 1) and
-        (FieldByName('computed_value').IsNull) or
-        (not FieldByName('defsource').IsNull)
-      then
+      if (FieldByName('nullflag').AsInteger = 1) and FieldByName('computed_value').IsNull
+        or (not FieldByName('defsource').IsNull) then
       begin
         FFieldType := GetFieldType(FieldByName('fieldsourcekey').AsInteger);
         if (FFieldType in [blr_Text, blr_varying,
@@ -3722,7 +3706,7 @@ begin
         end;
       end;
 
-      if (FieldByName('crosstable').AsString <> '') {and not (sLoadFromStream in BaseState)} then
+      if FieldByName('crosstable').AsString > '' then
       begin
         atDatabase.NotifyMultiConnectionTransaction;
         CrossTableKey := gdcBaseManager.GetNextID;
@@ -4017,10 +4001,8 @@ begin
 //Т.к. для вычисляемого поля создается системный домен,
 // мы не всегда можем сразу добавить это поле в нашу таблицу
 
-  if ((FieldByName('computed_value').IsNull) or
-    (not atDatabase.InMultiConnection)) and
-    (not FieldByName('fieldsourcekey').IsNull)
-  then
+  if (FieldByName('computed_value').IsNull or (not atDatabase.InMultiConnection))
+    and (not FieldByName('fieldsourcekey').IsNull) then
   begin
     inherited;
 
@@ -4036,7 +4018,9 @@ begin
     end;
   end else
     atDatabase.NotifyMultiConnectionTransaction;
+
   Clear_atSQLSetupCache;
+  
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCRELATIONFIELD', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
