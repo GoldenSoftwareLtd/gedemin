@@ -482,6 +482,7 @@ begin
 
     if FNeedRelogin then
     begin
+      AddText('Переподключение к базе данных...');
       atDatabase.SyncIndicesAndTriggers(FTr);
       IBLogin.Relogin;
       FNeedRelogin := False;
@@ -973,6 +974,8 @@ begin
     q.Free;
   end;
 
+  AddText('Коммит транзакции');
+
   FTr.Commit;
   gdcBaseManager.ReadTransaction.Commit;
   gdcBaseManager.Database.Connected := False;
@@ -1053,23 +1056,32 @@ var
   I: Integer;
 begin
   Result := -1;
-  CheckStmt := AnObj.CheckTheSameStatement;
 
-  if CheckStmt > '' then
-  begin
-    FqCheckTheSame.SQL.Text := CheckStmt;
-    FqCheckTheSame.Prepare;
+  try
+    CheckStmt := AnObj.CheckTheSameStatement;
 
-    for I := 0 to FqCheckTheSame.Params.Count - 1 do
-      LoadParam(FqCheckTheSame.Params[I], FqCheckTheSame.Params[I].Name,
-        AFields, AnObj.Transaction);
+    if CheckStmt > '' then
+    begin
+      FqCheckTheSame.SQL.Text := CheckStmt;
+      FqCheckTheSame.Prepare;
 
-    FqCheckTheSame.ExecQuery;
+      for I := 0 to FqCheckTheSame.Params.Count - 1 do
+        LoadParam(FqCheckTheSame.Params[I], FqCheckTheSame.Params[I].Name,
+          AFields, AnObj.Transaction);
 
-    if not FqCheckTheSame.EOF then
-      Result := FqCheckTheSame.Fields[0].AsInteger;
+      FqCheckTheSame.ExecQuery;
 
-    FqCheckTheSame.Close;
+      if not FqCheckTheSame.EOF then
+        Result := FqCheckTheSame.Fields[0].AsInteger;
+
+      FqCheckTheSame.Close;
+    end;
+  except
+    on E: Exception do
+    begin
+      AddWarning('Ошибка в процессе поиска по потенциальному ключу: '#13#10 +
+        E.Message);
+    end;
   end;
 end;
 

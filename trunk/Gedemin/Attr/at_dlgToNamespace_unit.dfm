@@ -1,6 +1,6 @@
 object dlgToNamespace: TdlgToNamespace
-  Left = 445
-  Top = 223
+  Left = 691
+  Top = 359
   Width = 737
   Height = 542
   Caption = 'Добавление объекта в пространство имен'
@@ -12,6 +12,8 @@ object dlgToNamespace: TdlgToNamespace
   Font.Style = []
   OldCreateOrder = False
   Position = poScreenCenter
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
   PixelsPerInch = 96
   TextHeight = 13
   object pnlGrid: TPanel
@@ -179,7 +181,7 @@ object dlgToNamespace: TdlgToNamespace
       Height = 21
       HelpContext = 1
       Database = dmDatabase.ibdbGAdmin
-      Transaction = at_frmNSObjects.ibtr
+      Transaction = Tr
       ListTable = 'at_namespace'
       ListField = 'name'
       KeyField = 'ID'
@@ -238,5 +240,11 @@ object dlgToNamespace: TdlgToNamespace
       OnExecute = actClearExecute
       OnUpdate = actClearUpdate
     end
+  end
+  object Tr: TIBTransaction
+    Active = False
+    AutoStopAction = saNone
+    Left = 184
+    Top = 216
   end
 end

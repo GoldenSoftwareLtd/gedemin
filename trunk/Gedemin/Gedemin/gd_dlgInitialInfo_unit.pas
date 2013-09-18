@@ -395,14 +395,12 @@ end;
 
 procedure Tgd_dlgInitialInfo.edNameDblClick(Sender: TObject);
 begin
-  {$IFDEF DUNIT_TEST}
   edName.Text := '1';
   edUser.Text := '1';
   edLogin.Text := '1';
   edPassword.Text := '1';
   edPassword2.Text := '1';
   actOk.Execute;
-  {$ENDIF}
 end;
 
 end.

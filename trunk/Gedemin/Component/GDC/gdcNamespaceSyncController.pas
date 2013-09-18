@@ -587,42 +587,33 @@ begin
     '  ns_tree AS ( '#13#10 +
     '    SELECT '#13#10 +
     '      n.filename AS headname, '#13#10 +
-    '      CAST((n.xid || ''_'' || n.dbid || IIF(l.uses_xid IS NULL, '#13#10 +
-    '        '''', ''-'' || l.uses_xid || ''_'' || l.uses_dbid)) '#13#10 +
-    '        AS VARCHAR(1024)) AS path, '#13#10 +
-    '      l.filename, '#13#10 +
-    '      l.uses_xid, '#13#10 +
-    '      l.uses_dbid '#13#10 +
+    '      0 AS usescount, '#13#10 +
+    '      CAST((n.xid || ''_'' || n.dbid) AS VARCHAR(1024)) AS path, '#13#10 +
+    '      n.filename '#13#10 +
     '    FROM '#13#10 +
     '      at_namespace_file n '#13#10 +
-    '      LEFT JOIN at_namespace_file_link l '#13#10 +
-    '        ON n.filename = l.filename '#13#10 +
-    '         '#13#10 +
+    ' '#13#10 +
     '    UNION ALL '#13#10 +
-    '     '#13#10 +
+    ' '#13#10 +
     '    SELECT '#13#10 +
     '      t.headname, '#13#10 +
-    '      (t.path || ''-'' || f.xid || ''_'' || f.dbid) '#13#10 +
-    '        AS path, '#13#10 +
-    '      l.filename, '#13#10 +
-    '      l.uses_xid, '#13#10 +
-    '      l.uses_dbid '#13#10 +
+    '      (t.usescount + 1) AS usescount, '#13#10 +
+    '      (t.path || ''-'' || n.xid || ''_'' || n.dbid) AS path, '#13#10 +
+    '      n.filename '#13#10 +
     '    FROM '#13#10 +
     '      ns_tree t '#13#10 +
-    '      JOIN at_namespace_file f '#13#10 +
-    '        ON t.uses_xid = f.xid AND t.uses_dbid = f.dbid '#13#10 +
     '      JOIN at_namespace_file_link l '#13#10 +
-    '        ON l.filename = f.filename '#13#10 +
+    '        ON l.filename = t.filename '#13#10 +
+    '      JOIN at_namespace_file n '#13#10 +
+    '        ON l.uses_xid = n.xid and l.uses_dbid = n.dbid '#13#10 +
     '    WHERE '#13#10 +
-    '      POSITION ((f.xid || ''_'' || f.dbid) '#13#10 +
-    '        IN t.path) = 0) '#13#10 +
+    '      POSITION ((n.xid || ''_'' || n.dbid) IN t.path) = 0 '#13#10 +
+    '    ) '#13#10 +
     'SELECT '#13#10 +
-    '  t.headname, COUNT(t.uses_xid) '#13#10 +
+    '  t.headname, sum(t.usescount) '#13#10 +
     'FROM '#13#10 +
-    '  ns_tree t '#13#10 +
-    '  JOIN at_namespace_sync s ON t.headname = s.filename '#13#10 +
-    'WHERE '#13#10 +
-    '  s.operation IN (''< '', ''<<'') '#13#10 +
+    '  ns_tree t JOIN at_namespace_sync s ON s.filename = t.headname '#13#10 +
+    '    AND s.operation IN (''<<'', ''< '')'#13#10 +
     'GROUP BY '#13#10 +
     '  1 '#13#10 +
     'ORDER BY '#13#10 +
@@ -824,6 +815,17 @@ begin
     lSaveRecords.Caption := 'Выбрано для сохранения в файлы: ' + Fq.Fields[1].AsString;
     Fq.Close;
 
+    mLoadList.Lines.Clear;
+    FqDependentList.ExecQuery;
+    while not FqDependentList.EOF do
+    begin
+      mLoadList.Lines.Add(FqDependentList.Fields[0].AsString);
+      FqDependentList.Next;
+    end;
+    lLoadRecords.Caption := 'Выбрано для загрузки из файлов: ' + IntToStr(FqDependentList.RecordCount);
+    FqDependentList.Close;
+
+    {
     Fq.SQL.Text :=
       'SELECT LIST(f.name, ASCII_CHAR(13) || ASCII_CHAR(10)), COUNT(*) FROM at_namespace_file f ' +
       '  JOIN at_namespace_sync s ON s.filename = f.filename ' +
@@ -832,6 +834,7 @@ begin
     mLoadList.Lines.Text := Fq.Fields[0].AsString;
     lLoadRecords.Caption := 'Выбрано для загрузки из файлов: ' + Fq.Fields[1].AsString;
     Fq.Close;
+    }
 
     if ShowModal = mrOk then
     begin

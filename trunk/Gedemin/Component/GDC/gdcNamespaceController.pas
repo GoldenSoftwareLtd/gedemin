@@ -122,16 +122,33 @@ begin
     else if (FPrevNSID > -1) and (FCurrentNSID > -1)
       and (FPrevNSID <> FCurrentNSID) then
     begin
-      gdcNamespaceObject.SubSet := 'ByObject';
-      gdcNamespaceObject.ParamByName('namespacekey').AsInteger := FPrevNSID;
-      gdcNamespaceObject.ParamByName('xid').AsInteger := FgdcObject.GetRUID.XID;
-      gdcNamespaceObject.ParamByName('dbid').AsInteger := FgdcObject.GetRUID.DBID;
-      gdcNamespaceObject.Open;
-      if not gdcNamespaceObject.EOF then
-      begin
-        gdcNamespaceObject.Edit;
-        gdcNamespaceObject.FieldByName('namespacekey').AsInteger := FCurrentNSID;
-        gdcNamespaceObject.Post;
+      q := TIBSQL.Create(nil);
+      try
+        q.Transaction := FIBTransaction;
+        q.SQL.Text :=
+          'SELECT o.id FROM at_object o ' +
+          'WHERE o.namespacekey = :nk and o.xid = :xid and o.dbid = :dbid';
+        q.ParamByName('nk').AsInteger := FCurrentNSID;
+        q.ParamByName('xid').AsInteger := FgdcObject.GetRUID.XID;
+        q.ParamByName('dbid').AsInteger := FgdcObject.GetRUID.DBID;
+        q.ExecQuery;
+
+        if q.EOF then
+        begin
+          gdcNamespaceObject.SubSet := 'ByObject';
+          gdcNamespaceObject.ParamByName('namespacekey').AsInteger := FPrevNSID;
+          gdcNamespaceObject.ParamByName('xid').AsInteger := FgdcObject.GetRUID.XID;
+          gdcNamespaceObject.ParamByName('dbid').AsInteger := FgdcObject.GetRUID.DBID;
+          gdcNamespaceObject.Open;
+          if not gdcNamespaceObject.EOF then
+          begin
+            gdcNamespaceObject.Edit;
+            gdcNamespaceObject.FieldByName('namespacekey').AsInteger := FCurrentNSID;
+            gdcNamespaceObject.Post;
+          end;
+        end;
+      finally
+        q.Free;
       end;
     end
     else if (FPrevNSID = -1) and (FCurrentNSID > -1) then
