@@ -4640,9 +4640,10 @@ begin
           IntToStr(50 * MaxInvCardTrigger) + ' пользовательских полей в inv_card!');
 
       ibsqlR.Close;
-      ibsqlR.SQL.Text := 'SELECT * FROM at_relation_fields WHERE relationname = ''INV_CARD''';
+      ibsqlR.SQL.Text :=
+        'SELECT * FROM at_relation_fields WHERE relationname = ''INV_CARD'' ORDER BY fieldname';
       ibsqlR.ExecQuery;
-      if ibsqlR.RecordCount > 0 then
+      if not ibsqlR.EOF then
       begin
         for I := 1 to MaxInvCardTrigger do
         begin
@@ -5689,7 +5690,10 @@ begin
       gdcField.SubSet := 'ByFieldName';
       ibsqlR.Transaction := Transaction;
       DidActivate := ActivateTransaction;
-      ibsqlR.SQL.Text := 'SELECT * FROM at_relation_fields f WHERE relationname = ''AC_ENTRY'' AND fieldname LIKE ''USR$%''';
+      ibsqlR.SQL.Text :=
+        'SELECT * FROM at_relation_fields f ' +
+        'WHERE relationname = ''AC_ENTRY'' AND fieldname LIKE ''USR$%'' ' +
+        'ORDER BY fieldname';
       ibsqlR.ExecQuery;
       Result :=
         'ALTER PROCEDURE AC_ACCOUNTEXSALDO '#13#10 +

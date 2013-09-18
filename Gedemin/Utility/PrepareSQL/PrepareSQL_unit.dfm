@@ -36,4 +36,13 @@ object Form1: TForm1
     TabOrder = 1
     OnClick = Button1Click
   end
+  object Button2: TButton
+    Left = 752
+    Top = 40
+    Width = 75
+    Height = 25
+    Caption = 'Revert'
+    TabOrder = 2
+    OnClick = Button2Click
+  end
 end

@@ -96,6 +96,7 @@ type
     actFLTLoad: TAction;
     TBItem15: TTBItem;
     mMessages: TRichEdit;
+    TBSeparatorItem2: TTBSeparatorItem;
     procedure actChooseDirExecute(Sender: TObject);
     procedure actCompareUpdate(Sender: TObject);
     procedure actCompareExecute(Sender: TObject);
@@ -124,6 +125,8 @@ type
     procedure actSelectAllUpdate(Sender: TObject);
     procedure actFLTSaveExecute(Sender: TObject);
     procedure actFLTLoadExecute(Sender: TObject);
+    procedure actFLTSaveUpdate(Sender: TObject);
+    procedure actFLTLoadUpdate(Sender: TObject);
 
   private
     FNSC: TgdcNamespaceSyncController;
@@ -450,6 +453,20 @@ begin
     actFLTNewer.Execute;
   if not actFLTEqualNewer.Checked then
     actFLTEqualNewer.Execute;
+end;
+
+procedure Tat_frmSyncNamespace.actFLTSaveUpdate(Sender: TObject);
+begin
+  (Sender as TAction).Enabled := FNSC.DataSet.Active;
+  (Sender as TAction).Checked := actFLTOnlyInDB.Checked
+    and actFLTOlder.Checked and actFLTEqualOlder.Checked;
+end;
+
+procedure Tat_frmSyncNamespace.actFLTLoadUpdate(Sender: TObject);
+begin
+  (Sender as TAction).Enabled := FNSC.DataSet.Active;
+  (Sender as TAction).Checked := actFLTOnlyInFile.Checked
+    and actFLTNewer.Checked and actFLTEqualNewer.Checked;
 end;
 
 initialization

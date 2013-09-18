@@ -363,7 +363,10 @@ begin
     try
       ibsqlR.Transaction := Tr;
       Tr.StartTransaction;
-      ibsqlR.SQL.Text := 'SELECT * FROM at_relation_fields WHERE relationname = ''AC_ENTRY'' AND fieldname LIKE ''USR$%''';
+      ibsqlR.SQL.Text :=
+        'SELECT * FROM at_relation_fields ' +
+        'WHERE relationname = ''AC_ENTRY'' AND fieldname LIKE ''USR$%'' ' +
+        'ORDER BY fieldname';
       ibsqlR.ExecQuery;
       Result :=
         '  (DATEEND DATE, '#13#10 +

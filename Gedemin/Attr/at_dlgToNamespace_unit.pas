@@ -30,10 +30,13 @@ type
     btnOk: TButton;
     btnCancel: TButton;
     chbxIncludeLinked: TCheckBox;
+    Tr: TIBTransaction;
     procedure actOKExecute(Sender: TObject);
     procedure actClearExecute(Sender: TObject);
     procedure actClearUpdate(Sender: TObject);
     procedure actOKUpdate(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
 
   private
     FgdcNamespaceController: TgdcNamespaceController;
@@ -62,6 +65,7 @@ begin
   chbxIncludeLinked.Checked := FgdcNamespaceController.IncludeLinked;
   edObjectName.Text := FgdcNamespaceController.ObjectName;
   dsLink.DataSet := FgdcNamespaceController.ibdsLink;
+  lkupNS.CurrentKeyInt := FgdcNamespaceController.PrevNSID;
 end;
 
 procedure TdlgToNamespace.actOKExecute(Sender: TObject);
@@ -100,6 +104,19 @@ constructor TdlgToNamespace.Create(AnOwner: TComponent);
 begin
   inherited;
   FgdcNamespaceController := TgdcNamespaceController.Create;
+end;
+
+procedure TdlgToNamespace.FormCreate(Sender: TObject);
+begin
+  Assert(gdcBaseManager <> nil);
+  Tr.DefaultDatabase := gdcBaseManager.Database;
+  Tr.StartTransaction;
+end;
+
+procedure TdlgToNamespace.FormDestroy(Sender: TObject);
+begin
+  if Tr.InTransaction then
+    Tr.Commit;
 end;
 
 end.

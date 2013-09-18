@@ -128,6 +128,8 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       object TBItem14: TTBItem
         Action = actFLTInUses
       end
+      object TBSeparatorItem2: TTBSeparatorItem
+      end
       object TBItem7: TTBItem
         Action = actFLTSave
       end
@@ -159,7 +161,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
         TabOrder = 0
       end
       object edFilter: TEdit
-        Left = 818
+        Left = 850
         Top = 0
         Width = 140
         Height = 21
@@ -167,7 +169,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
         OnChange = edFilterChange
       end
       object cbPackets: TCheckBox
-        Left = 964
+        Left = 996
         Top = 2
         Width = 66
         Height = 17
@@ -420,15 +422,23 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       OnExecute = actFLTOnlyInDBExecute
       OnUpdate = actFLTOnlyInDBUpdate
     end
-    object actFLTEqual: TAction
-      Caption = '=='
-      Hint = 'Пространство имен в БД соответствует записанному на диске'
-      OnExecute = actFLTOnlyInDBExecute
-      OnUpdate = actFLTOnlyInDBUpdate
-    end
     object actFLTOlder: TAction
       Caption = '>>'
       Hint = 'В БД новее, чем на диске'
+      OnExecute = actFLTOnlyInDBExecute
+      OnUpdate = actFLTOnlyInDBUpdate
+    end
+    object actFLTEqualOlder: TAction
+      Caption = '=>'
+      Hint = 
+        'Хотя бы одно из ПИ, от которых зависит данное ПИ, новее, чем зап' +
+        'исанное на диске'
+      OnExecute = actFLTOnlyInDBExecute
+      OnUpdate = actFLTOnlyInDBUpdate
+    end
+    object actFLTEqual: TAction
+      Caption = '=='
+      Hint = 'Пространство имен в БД соответствует записанному на диске'
       OnExecute = actFLTOnlyInDBExecute
       OnUpdate = actFLTOnlyInDBUpdate
     end
@@ -455,14 +465,6 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       OnExecute = actFLTInternalExecute
       OnUpdate = actFLTOnlyInDBUpdate
     end
-    object actFLTEqualOlder: TAction
-      Caption = '=>'
-      Hint = 
-        'Хотя бы одно из ПИ, от которых зависит данное ПИ, новее, чем зап' +
-        'исанное на диске'
-      OnExecute = actFLTOnlyInDBExecute
-      OnUpdate = actFLTOnlyInDBUpdate
-    end
     object actFLTEqualNewer: TAction
       Caption = '<='
       Hint = 
@@ -486,18 +488,16 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       OnUpdate = actSelectAllUpdate
     end
     object actFLTSave: TAction
-      Caption = 'Сохранение'
+      Caption = '>>>'
       Hint = 'Все файлы, помеченные для сохранения'
-      ImageIndex = 25
       OnExecute = actFLTSaveExecute
-      OnUpdate = actFLTOnlyInDBUpdate
+      OnUpdate = actFLTSaveUpdate
     end
     object actFLTLoad: TAction
-      Caption = 'Загрузка'
+      Caption = '<<<'
       Hint = 'Все файлы, помеченные для загрузки'
-      ImageIndex = 27
       OnExecute = actFLTLoadExecute
-      OnUpdate = actFLTOnlyInDBUpdate
+      OnUpdate = actFLTLoadUpdate
     end
   end
   object pmSync: TPopupMenu
