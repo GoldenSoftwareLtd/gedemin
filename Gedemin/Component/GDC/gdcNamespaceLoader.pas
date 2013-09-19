@@ -1107,17 +1107,19 @@ begin
 end;
 
 procedure TgdcNamespaceLoaderNexus.WMLoadNamespace(var Msg: TMessage);
+var
+  L: TgdcNamespaceLoader;
 begin
   Assert(FList <> nil);
 
   FLoading := True;
   try
-    with TgdcNamespaceLoader.Create do
+    L := TgdcNamespaceLoader.Create;
     try
-      AlwaysOverwrite := FAlwaysOverwrite;
-      DontRemove := FDontRemove;
+      L.AlwaysOverwrite := FAlwaysOverwrite;
+      L.DontRemove := FDontRemove;
       try
-        Load(FList);
+        L.Load(FList);
       except
         on E: Exception do
         begin
@@ -1126,7 +1128,7 @@ begin
         end;
       end;
     finally
-      Free;
+      L.Free;
     end;
 
     FreeAndNil(FList);

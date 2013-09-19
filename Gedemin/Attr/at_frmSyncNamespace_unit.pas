@@ -437,22 +437,38 @@ end;
 
 procedure Tat_frmSyncNamespace.actFLTSaveExecute(Sender: TObject);
 begin
-  if not actFLTOnlyInDB.Checked then
+  if actFLTSave.Checked then
+  begin
     actFLTOnlyInDB.Execute;
-  if not actFLTOlder.Checked then
     actFLTOlder.Execute;
-  if not actFLTEqualOlder.Checked then
     actFLTEqualOlder.Execute;
+  end else
+  begin
+    if not actFLTOnlyInDB.Checked then
+      actFLTOnlyInDB.Execute;
+    if not actFLTOlder.Checked then
+      actFLTOlder.Execute;
+    if not actFLTEqualOlder.Checked then
+      actFLTEqualOlder.Execute;
+  end;
 end;
 
 procedure Tat_frmSyncNamespace.actFLTLoadExecute(Sender: TObject);
 begin
-  if not actFLTOnlyInFile.Checked then
+  if actFLTLoad.Checked then
+  begin
     actFLTOnlyInFile.Execute;
-  if not actFLTNewer.Checked then
     actFLTNewer.Execute;
-  if not actFLTEqualNewer.Checked then
     actFLTEqualNewer.Execute;
+  end else
+  begin
+    if not actFLTOnlyInFile.Checked then
+      actFLTOnlyInFile.Execute;
+    if not actFLTNewer.Checked then
+      actFLTNewer.Execute;
+    if not actFLTEqualNewer.Checked then
+      actFLTEqualNewer.Execute;
+  end;
 end;
 
 procedure Tat_frmSyncNamespace.actFLTSaveUpdate(Sender: TObject);
