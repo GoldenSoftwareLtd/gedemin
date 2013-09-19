@@ -3,8 +3,8 @@ unit gsPLClient;
 interface
 
 uses
-  Windows, Classes, SysUtils, swiprolog, IBDatabase, IBSQL, IBHeader, dbclient, DB,
-  gdcBase;
+  Windows, Classes, SysUtils, IBDatabase, IBSQL, IBHeader, dbclient, DB,
+  gdcBase, PLHeader, PLIntf;
 
 type
   TgsTermv = class(TObject)
@@ -77,7 +77,7 @@ type
 implementation
 
 uses
-  jclStrings;      
+  jclStrings, gd_GlobalParams_unit;
 
 constructor TgsTermv.CreateTerm(const ASize: Integer);
 begin
@@ -220,6 +220,7 @@ destructor TgsPLClient.Destroy;
 begin
   PL_cleanup(0);
 
+
   inherited;
 end;
 
@@ -247,13 +248,11 @@ var
   Query: TgsPLQuery;
   I: LongWord;
   V: Variant;
-  DT: TDateTime;
-  fid: fid_t;
+  DT: TDateTime; 
 begin
   Assert(ADataSet <> nil);
   Assert(ATermv <> nil);
 
-  fid := PL_open_foreign_frame;
   Query := TgsPLQuery.Create;
   try
     Query.Pred := APredicateName;
@@ -292,7 +291,6 @@ begin
     end;
   finally
     Query.Free;
-    PL_close_foreign_frame(fid);
   end;
 end;
 
@@ -305,10 +303,8 @@ function TgsPLClient.Call(const AGoal: String): Boolean;
 var
   t: TgsTermv;
   Query: TgsPLQuery;
-  fid: fid_t;
 begin
   Result := False;
-  fid := PL_open_foreign_frame;
   t := TgsTermv.CreateTerm(1);
   try
     if PL_chars_to_term(PChar(AGoal), t.Term[0]) <> 0 then
@@ -325,18 +321,15 @@ begin
     end;
   finally
     t.Free;
-    PL_close_foreign_frame(fid);
   end;
 end;
 
 function TgsPLClient.Call(const APredicateName: String; AParams: TgsTermv): Boolean;
 var
   Query: TgsPLQuery;
-  fid: fid_t;
 begin
   Assert(APredicateName > '');
 
-  fid := PL_open_foreign_frame;
   Query := TgsPLQuery.Create;
   try
     Query.Pred := APredicateName;
@@ -344,8 +337,7 @@ begin
     Query.OpenQuery; 
     Result := not Query.Eof;
   finally
-    Query.Free;
-    PL_close_foreign_frame(fid);
+    Query.Free;    
   end;
 end;
 
@@ -397,20 +389,23 @@ end;
 function TgsPLClient.Initialise(const AParams: Variant): Boolean;
 var
   argv: array of PChar;
-  I: Integer;
+  I, argc: Integer;
 begin
   Assert(VarIsArray(AParams));
-  Assert(VarArrayDimCount(AParams) = 1);
+  Assert(VarArrayDimCount(AParams) = 1);    
 
-  SetLength(argv, VarArrayHighBound(AParams, 1) + 2);
-
+  argc := VarArrayHighBound(AParams, 1) + 1;
+  SetLength(argv, argc + 1);
   for I:= VarArrayLowBound(AParams, 1) to VarArrayHighBound(AParams, 1) do
     argv[I] := PChar(VarToStr(AParams[I]));
-
-  argv[High(argv)] := nil;
-  Result := PL_initialise(High(argv), argv) <> 0;
-  if not Result then
-    PL_halt(1); 
+  argv[argc] := nil;
+  if PL_is_initialised(argc, argv) = 0 then
+  begin
+    Result := PL_initialise(argc, argv) <> 0;
+    if not Result then
+      PL_halt(1);
+  end else
+    Result := False;
 end;
 
 procedure TgsPLClient.MakePredicatesOfDataSet(ADataSet: TDataSet; const AFieldList: String;
@@ -565,4 +560,13 @@ begin
   end;
 end;
 
+initialization
+  if not TryPLLoad then
+  begin
+    MessageBox(0,
+      'Клиентская часть Prolog не установлена. Повторите установку.',
+      'Внимание',
+      MB_OK or MB_ICONHAND or MB_TASKMODAL or MB_TOPMOST);
+    exit;
+  end;
 end.
