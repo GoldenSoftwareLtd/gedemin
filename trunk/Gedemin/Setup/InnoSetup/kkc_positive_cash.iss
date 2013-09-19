@@ -19,9 +19,14 @@
 
 #include "CommonLocal.iss"
 
+[Setup]
+AlwaysRestart=yes
+
 [Icons]
 Name: "{group}\{#GedSafeAppName} Касса"; Filename: "{app}\gedemin.exe"; Parameters: "/sn ""{app}\Database\{#DBFileOnlyName}.fdb"" /user Кассир /password 1"; WorkingDir: "{app}"
 Name: "{commondesktop}\{#GedSafeAppName} Касса"; Filename: "{app}\gedemin.exe"; Parameters: "/sn ""{app}\Database\{#DBFileOnlyName}.fdb"" /user Кассир /password 1"; WorkingDir: "{app}"; Tasks: desktopicon
 Name: "{userappdata}\Microsoft\Internet Explorer\Quick Launch\{#GedSafeAppName} Касса"; Filename: "{app}\gedemin.exe"; Parameters: "/sn ""{app}\Database\{#DBFileOnlyName}.fdb"" /user Кассир /password 1"; WorkingDir: "{app}"; Tasks: quicklaunchicon
 Name: "{group}\Документация"; Filename: "http://gsbelarus.com/gs/content/downloads/doc/cashfrontguide.pdf"; IconFileName: "{app}\gedemin.exe"
 
+[Registry]
+Root: HKCU; Subkey: "Control Panel\Desktop"; ValueType: dword; ValueName: "ForegroundLockTimeout"; ValueData: "0"
