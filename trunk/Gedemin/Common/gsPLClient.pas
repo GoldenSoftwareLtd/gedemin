@@ -52,16 +52,19 @@ type
 
   TgsPLClient = class(TObject)
   private
+    FInitArgv: array of PChar;
+    
     function GetArity(ASql: TIBSQL): Integer; overload;
     function GetArity(ADataSet: TDataSet; const AFieldList: String): Integer; overload;
     function CheckDataType(const AVariableType: Integer; const AField: TField): Boolean;
-  public
+  public 
     destructor Destroy; override;
      
     function Call(const APredicateName: String; AParams: TgsTermv): Boolean; overload;
     function Call(const AGoal: String): Boolean; overload;
     procedure Compound(const AFunctor: String; AGoal: term_t; ATermv: TgsTermv);
     function Initialise(const AParams: Variant): Boolean;
+    function IsInitialised: Boolean;
     procedure MakePredicatesOfSQLSelect(const ASQL: String; ATr: TIBTransaction;
       const APredicateName: String; const AFileName: String);
     procedure MakePredicatesOfDataSet(ADataSet: TDataSet; const AFieldList: String; const APredicateName: String; const AFileName: String);
@@ -214,13 +217,13 @@ procedure TgsPLQuery.NextSolution;
 begin
   if not FEof then
     FEof := PL_next_solution(FQid) = 0; 
-end;
+end; 
 
 destructor TgsPLClient.Destroy;
 begin
-  PL_cleanup(0);
-
-
+  if IsInitialised then
+    PL_cleanup(0);
+    
   inherited;
 end;
 
@@ -386,22 +389,36 @@ begin
   end;
 end;
 
+function TgsPLClient.IsInitialised: Boolean;
+var
+  argc: Integer;
+begin
+  argc := High(FInitArgv);
+  Result := (argc > -1) and TryPLLoad;
+
+  if Result then
+    Result := PL_is_initialised(argc, FInitArgv) <> 0; 
+end;
+
 function TgsPLClient.Initialise(const AParams: Variant): Boolean;
 var
-  argv: array of PChar;
   I, argc: Integer;
 begin
   Assert(VarIsArray(AParams));
-  Assert(VarArrayDimCount(AParams) = 1);    
+  Assert(VarArrayDimCount(AParams) = 1);
+  
+  if not TryPLLoad then
+    raise EgsPLClientException.Create('Клиентская часть Prolog не установлена!');
 
   argc := VarArrayHighBound(AParams, 1) + 1;
-  SetLength(argv, argc + 1);
+  SetLength(FInitArgv, argc + 1);
   for I:= VarArrayLowBound(AParams, 1) to VarArrayHighBound(AParams, 1) do
-    argv[I] := PChar(VarToStr(AParams[I]));
-  argv[argc] := nil;
-  if PL_is_initialised(argc, argv) = 0 then
+    FInitArgv[I] := PChar(VarToStr(AParams[I]));
+  FInitArgv[argc] := nil;
+
+  if not IsInitialised then
   begin
-    Result := PL_initialise(argc, argv) <> 0;
+    Result := PL_initialise(argc, FInitArgv) <> 0;
     if not Result then
       PL_halt(1);
   end else
@@ -558,15 +575,6 @@ begin
   finally
     Obj.Free;
   end;
-end;
+end;   
 
-initialization
-  if not TryPLLoad then
-  begin
-    MessageBox(0,
-      'Клиентская часть Prolog не установлена. Повторите установку.',
-      'Внимание',
-      MB_OK or MB_ICONHAND or MB_TASKMODAL or MB_TOPMOST);
-    exit;
-  end;
 end.
