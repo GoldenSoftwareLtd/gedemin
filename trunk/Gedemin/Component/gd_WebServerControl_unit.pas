@@ -27,7 +27,7 @@ interface
 
 uses
   Classes, Contnrs, SyncObjs, evt_i_Base, gd_FileList_unit, IBDatabase,
-  IdHTTPServer, IdCustomHTTPServer, IdTCPServer, idThreadSafe;
+  IdHTTPServer, IdCustomHTTPServer, IdTCPServer, idThreadSafe, JclStrHashMap;
 
 type
   TgdWebServerControl = class(TComponent)
@@ -42,6 +42,7 @@ type
     FLastToken: String;
     FInProcess: TidThreadSafeInteger;
     FUserSessions: TObjectList;
+    FCS: TCriticalSection;
 
     function GetVarInterface(const AnValue: Variant): OleVariant;
     function GetVarParam(const AnValue: Variant): OleVariant;
@@ -135,6 +136,7 @@ begin
   FFileList := TObjectList.Create(True);
   FInProcess := TidThreadSafeInteger.Create;
   FUserSessions := TObjectList.Create(True);
+  FCS := TCriticalSection.Create;
 end;
 
 destructor TgdWebServerControl.Destroy;
@@ -145,6 +147,7 @@ begin
   FreeAndNil(FFileList);
   FreeAndNil(FInProcess);
   FreeAndNil(FUserSessions);
+  FCS.Free;
 end;
 
 procedure TgdWebServerControl.RegisterOnGetEvent(const AComponent: TComponent;
@@ -248,12 +251,14 @@ procedure TgdWebServerControl.ServerOnCommandGet(AThread: TIdPeerThread;
   ARequestInfo: TIdHTTPRequestInfo; AResponseInfo: TIdHTTPResponseInfo);
 begin
   FInProcess.Value := 1;
+  FCS.Enter;
   try
     FRequestInfo := ARequestInfo;
     FResponseInfo := AResponseInfo;
     AThread.Synchronize(ServerOnCommandGetSync);
   finally
     FInProcess.Value := 0;
+    FCS.Leave;
   end;
 end;
 
@@ -266,7 +271,6 @@ var
   LParams, LResult: Variant;
   Processed: Boolean;
   I: Integer;
-  //SL: TStringList;
 begin
   Assert(FHTTPGetHandlerList <> nil);
 
@@ -297,17 +301,20 @@ begin
           if Assigned(HandlerFunction) then
           begin
             Log(FRequestInfo.RemoteIP, 'TOKN', ['token'], [FRequestInfo.Params.Values[PARAM_TOKEN]]);
-            
+
             // ‘ормирование списка параметров
             //  1 - компонент к которому прив€зан обработчик
             //  2 - параметры GET запроса
             //  3 - HTTP код ответа (byref)
             //  4 - текст ответа (byref)
+            //  5 - данные POST запроса
+
             LParams := VarArrayOf([
               GetGdcOLEObject(Handler.Component) as IgsComponent,
               GetGdcOLEObject(FRequestInfo.Params) as IgsStrings,
               GetVarInterface(FResponseInfo.ResponseNo),
-              GetVarInterface(FResponseInfo.ContentText)]);
+              GetVarInterface(FResponseInfo.ContentText),
+              FRequestInfo.FormParams]);
 
             ScriptFactory.ExecuteFunction(HandlerFunction, LParams, LResult);
             FResponseInfo.ResponseNo := Integer(GetVarParam(LParams[2]));
