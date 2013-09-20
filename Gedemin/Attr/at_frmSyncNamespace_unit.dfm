@@ -1,6 +1,6 @@
 object at_frmSyncNamespace: Tat_frmSyncNamespace
-  Left = 309
-  Top = 293
+  Left = 363
+  Top = 466
   Width = 1131
   Height = 518
   Caption = 'Синхронизация пространств имен'
@@ -463,7 +463,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
     object actFLTInternal: TAction
       Caption = 'Только пакеты'
       OnExecute = actFLTInternalExecute
-      OnUpdate = actFLTOnlyInDBUpdate
+      OnUpdate = actFLTInternalUpdate
     end
     object actFLTEqualNewer: TAction
       Caption = '<='
