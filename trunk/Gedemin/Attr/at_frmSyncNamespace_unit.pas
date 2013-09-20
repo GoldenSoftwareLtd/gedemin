@@ -127,6 +127,7 @@ type
     procedure actFLTLoadExecute(Sender: TObject);
     procedure actFLTSaveUpdate(Sender: TObject);
     procedure actFLTLoadUpdate(Sender: TObject);
+    procedure actFLTInternalUpdate(Sender: TObject);
 
   private
     FNSC: TgdcNamespaceSyncController;
@@ -364,13 +365,11 @@ procedure Tat_frmSyncNamespace.actFLTOnlyInDBExecute(Sender: TObject);
 begin
   if (Sender as TAction).Checked  then
   begin
-    (Sender as TAction).Checked := False;
     FNSC.FilterOperation :=
       StringReplace(FNSC.FilterOperation,
         (Sender as TAction).Caption, '', [rfReplaceAll]);
   end else
   begin
-    (Sender as TAction).Checked := True;
     FNSC.FilterOperation :=
       FNSC.FilterOperation +
       (Sender as TAction).Caption;
@@ -380,8 +379,8 @@ end;
 
 procedure Tat_frmSyncNamespace.actFLTOnlyInDBUpdate(Sender: TObject);
 begin
+  (Sender as TAction).Checked := Pos((Sender as TAction).Caption, FNSC.FilterOperation) > 0;
   (Sender as TAction).Enabled := FNSC.DataSet.Active;
-  edFilter.Enabled := FNSC.DataSet.Active;
 end;
 
 procedure Tat_frmSyncNamespace.actFLTInternalExecute(Sender: TObject);
@@ -483,6 +482,12 @@ begin
   (Sender as TAction).Enabled := FNSC.DataSet.Active;
   (Sender as TAction).Checked := actFLTOnlyInFile.Checked
     and actFLTNewer.Checked and actFLTEqualNewer.Checked;
+end;
+
+procedure Tat_frmSyncNamespace.actFLTInternalUpdate(Sender: TObject);
+begin
+  (Sender as TAction).Enabled := FNSC.DataSet.Active;
+  edFilter.Enabled := FNSC.DataSet.Active;
 end;
 
 initialization

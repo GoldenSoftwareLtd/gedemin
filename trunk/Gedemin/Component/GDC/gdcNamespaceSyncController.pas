@@ -592,6 +592,8 @@ begin
     '      n.filename '#13#10 +
     '    FROM '#13#10 +
     '      at_namespace_file n '#13#10 +
+    '        JOIN at_namespace_sync s ON s.filename = n.filename '#13#10 +
+    '          AND s.operation IN (''<<'', ''< '')'#13#10 +
     ' '#13#10 +
     '    UNION ALL '#13#10 +
     ' '#13#10 +
@@ -606,14 +608,15 @@ begin
     '        ON l.filename = t.filename '#13#10 +
     '      JOIN at_namespace_file n '#13#10 +
     '        ON l.uses_xid = n.xid and l.uses_dbid = n.dbid '#13#10 +
+    '      JOIN at_namespace_sync s ON s.filename = n.filename '#13#10 +
+    '        AND s.operation IN (''<<'', ''< '')'#13#10 +
     '    WHERE '#13#10 +
     '      POSITION ((n.xid || ''_'' || n.dbid) IN t.path) = 0 '#13#10 +
     '    ) '#13#10 +
     'SELECT '#13#10 +
     '  t.headname, sum(t.usescount) '#13#10 +
     'FROM '#13#10 +
-    '  ns_tree t JOIN at_namespace_sync s ON s.filename = t.headname '#13#10 +
-    '    AND s.operation IN (''<<'', ''< '')'#13#10 +
+    '  ns_tree t '#13#10 +
     'GROUP BY '#13#10 +
     '  1 '#13#10 +
     'ORDER BY '#13#10 +
