@@ -82,6 +82,22 @@ implementation
 uses
   jclStrings, gd_GlobalParams_unit;
 
+procedure RaisePrologError(AnException: term_t);
+var
+  a: term_t;
+  name: atom_t;
+  arity: Integer;
+begin
+  if AnException <> 0 then
+  begin
+    a := PL_new_term_ref;
+    if (PL_get_arg(1, AnException, a) <> 0) and
+      (PL_get_name_arity(a, name, arity) <> 0)
+    then
+      raise EgsPLClientException.Create(PL_atom_chars(name));
+  end;
+end;
+
 constructor TgsTermv.CreateTerm(const ASize: Integer);
 begin
   inherited Create;
@@ -214,9 +230,18 @@ begin
 end;
 
 procedure TgsPLQuery.NextSolution;
+var
+  ex: term_t; 
 begin
   if not FEof then
-    FEof := PL_next_solution(FQid) = 0; 
+  begin
+    FEof := PL_next_solution(FQid) = 0;
+    if FEof then
+    begin
+      ex := PL_exception(FQid);
+      if ex <> 0 then RaisePrologError(ex);
+    end; 
+  end;  
 end; 
 
 destructor TgsPLClient.Destroy;

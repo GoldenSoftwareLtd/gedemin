@@ -122,6 +122,9 @@ type
   TPL_term_type = function(t: term_t): Integer; cdecl;
   TPL_predicate = function(name: PChar; arity: Integer; module: PChar): predicate_t; cdecl;
   TPL_chars_to_term = function(chars: PChar; term: term_t): Integer; cdecl;
+  TPL_exception = function(qid: qid_t): term_t; cdecl;
+  TPL_raise_exception = function(exception: term_t): Integer; cdecl;
+  TPL_throw = function(exception: term_t): Integer; cdecl;
   
 implementation
 

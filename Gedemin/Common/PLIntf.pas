@@ -75,6 +75,9 @@ var
   PL_term_type: TPL_term_type;
   PL_predicate: TPL_predicate;
   PL_chars_to_term: TPL_chars_to_term;
+  PL_exception: TPL_exception;
+  PL_raise_exception: TPL_raise_exception;
+  PL_throw: TPL_throw;
 
 function LoadPLDependentLibraries: Boolean;
 procedure FreePLDependentLibraries;
@@ -189,6 +192,9 @@ begin
     PL_term_type := GetProcAddr('PL_term_type');
     PL_predicate := GetProcAddr('PL_predicate');
     PL_chars_to_term := GetProcAddr('PL_chars_to_term');
+    PL_exception := GetProcAddr('PL_exception');
+    PL_raise_exception := GetProcAddr('PL_raise_exception');
+    PL_throw := GetProcAddr('PL_throw');
   end;
 end;
 
