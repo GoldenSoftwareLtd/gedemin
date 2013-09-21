@@ -1,6 +1,6 @@
 object frmSQLEditorSyn: TfrmSQLEditorSyn
-  Left = 296
-  Top = 267
+  Left = 420
+  Top = 272
   Width = 963
   Height = 556
   HelpContext = 121
@@ -971,24 +971,63 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
           Left = 0
           Top = 0
           Width = 923
-          Height = 18
+          Height = 54
           Align = alTop
           Alignment = taLeftJustify
           BevelOuter = bvNone
           TabOrder = 0
           object Label15: TLabel
-            Left = 1
-            Top = 1
-            Width = 123
+            Left = 81
+            Top = 32
+            Width = 277
             Height = 13
-            Caption = 'Параметры транзакции:'
+            Caption = 'указанные ниже параметры к выбранной транзакции:'
+          end
+          object Label14: TLabel
+            Left = 5
+            Top = 8
+            Width = 110
+            Height = 13
+            Caption = 'Выбрана транзакция:'
+          end
+          object Label16: TLabel
+            Left = 489
+            Top = 7
+            Width = 349
+            Height = 13
+            Caption = 'Смена транзакции может привести к нестабильной работе системы!'
+            Font.Charset = DEFAULT_CHARSET
+            Font.Color = clRed
+            Font.Height = -11
+            Font.Name = 'Tahoma'
+            Font.Style = []
+            ParentFont = False
+          end
+          object cbTransactions: TComboBox
+            Left = 120
+            Top = 4
+            Width = 361
+            Height = 21
+            Style = csDropDownList
+            DropDownCount = 24
+            ItemHeight = 13
+            TabOrder = 0
+            OnChange = cbTransactionsChange
+          end
+          object btnSetTransactionParams: TButton
+            Left = 1
+            Top = 29
+            Width = 75
+            Height = 21
+            Action = actSetTransactionParams
+            TabOrder = 1
           end
         end
         object chlbTransactionParams: TCheckListBox
           Left = 0
-          Top = 18
+          Top = 54
           Width = 923
-          Height = 406
+          Height = 370
           Align = alClient
           ItemHeight = 13
           Sorted = True
@@ -1687,7 +1726,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
       TabOrder = 1
     end
   end
-  object ibtrEditor: TIBTransaction
+  object _ibtrEditor: TIBTransaction
     Active = False
     DefaultAction = TACommit
     Params.Strings = (
@@ -1936,9 +1975,24 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
       OnExecute = actClassesShowViewFormExecute
       OnUpdate = actClassesShowSelectSQLUpdate
     end
+    object actConvertToPas: TAction
+      Caption = 'SQL -> PASCAL'
+      OnExecute = actConvertToPasExecute
+      OnUpdate = actConvertToPasUpdate
+    end
+    object actConvertToSQL: TAction
+      Caption = 'PASCAL -> SQL'
+      OnExecute = actConvertToSQLExecute
+      OnUpdate = actConvertToSQLUpdate
+    end
+    object actSetTransactionParams: TAction
+      Caption = 'Применить'
+      OnExecute = actSetTransactionParamsExecute
+      OnUpdate = actSetTransactionParamsUpdate
+    end
   end
   object ibsqlPlan: TIBSQL
-    Transaction = ibtrEditor
+    Transaction = _ibtrEditor
     Left = 498
     Top = 83
   end
@@ -2686,6 +2740,15 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
     object act1: TMenuItem
       Action = actExecute
     end
+    object N1: TMenuItem
+      Caption = '-'
+    end
+    object PASCAL1: TMenuItem
+      Action = actConvertToPas
+    end
+    object actConvertToSQL1: TMenuItem
+      Action = actConvertToSQL
+    end
   end
   object OpenDialog: TOpenDialog
     Filter = 'SQL файлы|*.sql|Все файлы|*.*'
@@ -2699,9 +2762,9 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
     Top = 240
   end
   object ibqryWork: TIBDataSet
-    Transaction = ibtrEditor
+    Transaction = _ibtrEditor
     BeforeClose = ibqryWorkBeforeClose
-    ReadTransaction = ibtrEditor
+    ReadTransaction = _ibtrEditor
     Left = 528
     Top = 82
   end

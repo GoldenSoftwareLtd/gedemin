@@ -115,6 +115,10 @@ begin
   Assert(AMapping <> nil);
   Assert(AnObj.State in [dsEdit, dsInsert]);
 
+  AddText('Обрабатывается: ' +
+    RUIDToStr(AnObj.GetRUID) + ', ' +
+    AnObj.GetListTable(AnObj.SubType));
+
   if AnOverwriteFields = nil then
     for I := 0 to AnObj.FieldCount - 1 do
     begin
@@ -237,6 +241,7 @@ begin
   FLoadedNSList.Duplicates := dupError;
 
   FTr := TIBTransaction.Create(nil);
+  FTr.Name := 'NSLoaderTr';
   FTr.DefaultDatabase := gdcBaseManager.Database;
   FTr.Params.CommaText := 'read_committed,rec_version,nowait';
 
@@ -868,7 +873,16 @@ begin
               else
                 LoadParam(Param, FieldName, Items[K] as TYAMLMapping, AnObj.Transaction);
             end;
-            q.ExecQuery;
+
+            try
+              q.ExecQuery;
+            except
+              on E: Exception do
+              begin
+                AddMistake('Ошибка при добавлении элемента множества: ' + E.Message + #13#10 +
+                  q.SQL.Text);
+              end;
+            end;
           end;
         finally
           q.Free;
@@ -1026,8 +1040,11 @@ begin
   case AParam.SQLType of
   SQL_LONG, SQL_SHORT:
     if (V is TYAMLString) and ParseReferenceString(V.AsString, RefRUID, RefName) then
-      AParam.AsInteger := gdcBaseManager.GetIDByRUIDString(RefRUID, ATr)
-    else if AParam.AsXSQLVAR.sqlscale = 0 then
+    begin
+      AParam.AsInteger := gdcBaseManager.GetIDByRUIDString(RefRUID, ATr);
+      if AParam.AsInteger = -1 then
+        AddMistake('Объект не найден: ' + V.AsString);
+    end else if AParam.AsXSQLVAR.sqlscale = 0 then
       AParam.AsInteger := V.AsInteger
     else
       AParam.AsCurrency := V.AsCurrency;

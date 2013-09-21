@@ -42,7 +42,7 @@ type
     actRollback: TAction;
     actFind: TAction;
     actExport: TAction;
-    ibtrEditor: TIBTransaction;
+    _ibtrEditor: TIBTransaction;
     ibsqlPlan: TIBSQL;
     dsResult: TDataSource;
     IBDatabaseInfo: TIBDatabaseInfo;
@@ -236,6 +236,16 @@ type
     actClassesShowViewForm: TAction;
     TBItem33: TTBItem;
     lblClassesCount: TLabel;
+    cbTransactions: TComboBox;
+    actConvertToPas: TAction;
+    N1: TMenuItem;
+    PASCAL1: TMenuItem;
+    actConvertToSQL: TAction;
+    actConvertToSQL1: TMenuItem;
+    btnSetTransactionParams: TButton;
+    actSetTransactionParams: TAction;
+    Label14: TLabel;
+    Label16: TLabel;
     procedure actPrepareExecute(Sender: TObject);
     procedure actExecuteExecute(Sender: TObject);
     procedure actCommitExecute(Sender: TObject);
@@ -305,6 +315,14 @@ type
     procedure actClassesShowSelectSQLUpdate(Sender: TObject);
     procedure actClassesShowSelectSQLExecute(Sender: TObject);
     procedure actClassesShowViewFormExecute(Sender: TObject);
+    procedure actConvertToPasExecute(Sender: TObject);
+    procedure actConvertToPasUpdate(Sender: TObject);
+    procedure actConvertToSQLUpdate(Sender: TObject);
+    procedure actConvertToSQLExecute(Sender: TObject);
+    procedure actSetTransactionParamsExecute(Sender: TObject);
+    procedure actSetTransactionParamsUpdate(Sender: TObject);
+    procedure cbTransactionsChange(Sender: TObject);
+
   private
     FOldDelete, FOldInsert, FOldUpdate, FOldIndRead, FOldSeqRead: TStrings;
     FOldRead, FOldWrite, FOldFetches: Integer;
@@ -330,6 +348,7 @@ type
     procedure UpdateHistory;
     procedure LoadHistory;
     procedure DrawChart;
+    procedure FillTransactionsList;
     {$IFDEF GEDEMIN}
     function CreateBusinessObject(out Obj: TgdcBase): Boolean;
     function CreateCurrClassBusinessObject(out Obj: TgdcBase): Boolean;
@@ -344,6 +363,7 @@ type
     function GetTransactionParams: String;
     function ConcatErrorMessage(const M: String): String;
     procedure FillClassesList;
+    function ibtrEditor: TIBTransaction;
 
   public
     FDatabase: TIBDatabase;
@@ -416,9 +436,9 @@ begin
     seQuery.Text := AnSQL;
   end;
     
-  ibsqlPlan.Database := FDatabase;
-  ibqryWork.Database := FDatabase;
-  ibtrEditor.DefaultDatabase := FDatabase;
+  //ibsqlPlan.Database := FDatabase;
+  //ibqryWork.Database := FDatabase;
+  _ibtrEditor.DefaultDatabase := FDatabase;
   IBDatabaseInfo.Database := FDatabase;
   tsResult.TabVisible := False;
 
@@ -528,6 +548,8 @@ function TfrmSQLEditorSyn.CreateTableList: Boolean;
 var
   ibsqlTable: TIBSQL;
 begin
+  Assert(gdcBaseManager <> nil);
+
   ibsqlTable := TIBSQL.Create(Self);
   try
     {$IFDEF GEDEMIN}
@@ -796,7 +818,7 @@ begin
 
         FPrepareTime := Now - StartTime;
 
-        if ibqryWork.SQLType = SQLDDL then
+        if (ibqryWork.SQLType = SQLDDL) and (ibtrEditor = _ibtrEditor) then
           actCommit.Execute;
 
         tvResult.DataSource := nil;
@@ -826,7 +848,7 @@ begin
           tsResult.TabVisible := False;
         end;
 
-        if ibqryWork.SQLType = SQLDDL then
+        if (ibqryWork.SQLType = SQLDDL) and (ibtrEditor = _ibtrEditor) then
           actCommit.Execute;
 
         StartTime := Now;
@@ -942,15 +964,9 @@ var
   I: Integer;
 begin
   {$IFDEF GEDEMIN}
+  Assert(gdcBaseManager <> nil);
   iblkupTable.Transaction := gdcBaseManager.ReadTransaction;
   {$ENDIF}
-
-  chlbTransactionParams.Items.Clear;
-  for I := Low(TPBConstantNames) to High(TPBConstantNames) do
-  begin
-    chlbTransactionParams.Checked[chlbTransactionParams.Items.Add(TPBConstantNames[I])] :=
-      ibtrEditor.Params.IndexOf(TPBConstantNames[I]) <> -1;
-  end;
 
   actNew.ShortCut := ShortCut(Ord('N'), [ssCtrl, ssShift]);
   FOldDelete := TStringList.Create;
@@ -1082,8 +1098,8 @@ begin
   if Assigned(gdcBaseManager) then
   begin
     FDatabase := gdcBaseManager.Database;
-    ibsqlPlan.Database := FDatabase;
-    ibqryWork.Database := FDatabase;
+    //ibsqlPlan.Database := FDatabase;
+    //ibqryWork.Database := FDatabase;
     ibtrEditor.DefaultDatabase := FDatabase;
     IBDatabaseInfo.Database := FDatabase;
   end;
@@ -1153,6 +1169,8 @@ var
 {$ENDIF}
 begin
 {$IFDEF GEDEMIN}
+  Assert(gdcBaseManager <> nil);
+
   if (UserStorage <> nil) and (IBLogin <> nil) then
   begin
     Path := Name;
@@ -1553,6 +1571,14 @@ begin
   end;
 end;
 
+function TfrmSQLEditorSyn.ibtrEditor: TIBTransaction;
+begin
+  if ibqryWork.Transaction <> nil then
+    Result := ibqryWork.Transaction
+  else
+    Result := _ibtrEditor;
+end;
+
 procedure TfrmSQLEditorSyn.FillClassesList;
 {$IFDEF GEDEMIN}
 var
@@ -1679,44 +1705,8 @@ end;
 
 procedure TfrmSQLEditorSyn.pcMainChanging(Sender: TObject;
   var AllowChange: Boolean);
-var
-  Tr: TIBTransaction;
 begin
-  if (pcMain.ActivePage = tsTransaction)
-    and (ibtrEditor <> nil)
-    and (ibtrEditor.Params.CommaText <> GetTransactionParams) then
-  begin
-    Tr := TIBTransaction.Create(nil);
-    try
-      {$IFDEF GEDEMIN}
-      Tr.DefaultDatabase := gdcBaseManager.Database;
-      Tr.Params.CommaText := GetTransactionParams;
-      try
-        Tr.StartTransaction;
-        Tr.Commit;
-
-        if ibtrEditor.InTransaction then
-          ibtrEditor.Commit;
-        ibtrEditor.Params.CommaText := GetTransactionParams;
-        ibtrEditor.StartTransaction;
-        tsResult.TabVisible := False;
-        AllowChange := True;
-      except
-        on E: Exception do
-        begin
-          MessageBox(Handle,
-            PChar('Задан неверный параметр транзакции.'#13#10#13#10 + E.Message),
-            'Внимание',
-            MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
-          AllowChange := False;
-        end;
-      end;
-      {$ENDIF}
-    finally
-      Tr.Free;
-    end;
-  end
-  else if (pcMain.ActivePage = tsMonitor)
+  if (pcMain.ActivePage = tsMonitor)
     and (ibdsMonitor <> nil) then
   begin
     ibdsMonitor.Close;
@@ -1734,6 +1724,8 @@ end;
 procedure TfrmSQLEditorSyn.actParseExecute(Sender: TObject);
 begin
   {$IFDEF GEDEMIN}
+  Assert(gdcBaseManager <> nil);
+
   with TatSQLSetup.Create(nil) do
   try
     seQuery.Text := PrepareSQL(gdcBaseManager.ProcessSQL(seQuery.Text));
@@ -1759,6 +1751,8 @@ var
 {$ENDIF}
 begin
   {$IFDEF GEDEMIN}
+  Assert(gdcBaseManager <> nil);
+  
     {$IFDEF FR4}
       {$IFDEF TeeChartPro}
         with ChReads.SeriesList.Items[0] do
@@ -1822,6 +1816,55 @@ begin
       end;
     end;
   {$ENDIF}
+end;
+
+procedure TfrmSQLEditorSyn.FillTransactionsList;
+
+  function GetTrKey(ATr: TIBTRansaction): String;
+  var
+    S, SOwn: String;
+    C: TComponent;
+  begin
+    if ATr.InTransaction then
+      S := 'Активна: '
+    else
+      S := 'Не активна: ';
+
+    if ATr.Owner is TComponent then
+    begin
+      C := ATr.Owner as TComponent;
+      if C.Name > '' then
+        SOwn := ' (' + C.Name + ', ' + C.ClassName + ')'
+      else
+        SOwn := ' (' + C.ClassName + ')';
+    end else
+      SOwn := '';
+
+    Result := S + ATr.Name + SOwn;
+  end;
+
+var
+  I: Integer;
+begin
+  cbTransactions.Items.Clear;
+
+  if ibtrEditor.DefaultDatabase <> nil then
+  begin
+    for I := 0 to ibtrEditor.DefaultDatabase.TransactionCount - 1 do
+    begin
+      cbTransactions.Items.AddObject(GetTrKey(ibtrEditor.DefaultDatabase.Transactions[I]),
+        ibtrEditor.DefaultDatabase.Transactions[I]);
+    end;
+  end;
+
+  cbTransactions.ItemIndex := cbTransactions.Items.IndexOf(GetTrKey(ibtrEditor));
+
+  chlbTransactionParams.Items.Clear;
+  for I := Low(TPBConstantNames) to High(TPBConstantNames) do
+  begin
+    chlbTransactionParams.Checked[chlbTransactionParams.Items.Add(TPBConstantNames[I])] :=
+      ibtrEditor.Params.IndexOf(TPBConstantNames[I]) <> -1;
+  end;
 end;
 
 procedure TfrmSQLEditorSyn.SynCompletionProposalExecute(
@@ -1892,6 +1935,7 @@ begin
   q := TIBSQL.Create(nil);
   try
     {$IFDEF GEDEMIN}
+    Assert(gdcBaseManager <> nil);
     Tr.DefaultDatabase := gdcBaseManager.Database;
     Tr.StartTransaction;
     q.Transaction := Tr;
@@ -1930,6 +1974,8 @@ begin
     AddSQLHistory(False)
   else if pcMain.ActivePage = tsClasses then
     FillClassesList
+  else if pcMain.ActivePage = tsTransaction then
+    FillTransactionsList
   else if (pcMain.ActivePage = tsResult) and (not tsResult.TabVisible) then
     pcMain.ActivePage := tsQuery;
 end;
@@ -1961,6 +2007,7 @@ begin
     q := TIBSQL.Create(nil);
     try
       {$IFDEF GEDEMIN}
+      Assert(gdcBaseManager <> nil);
       Tr.DefaultDatabase := gdcBaseManager.Database;
       Tr.StartTransaction;
       q.Transaction := Tr;
@@ -2292,6 +2339,116 @@ begin
   Result := Obj <> nil;
 end;
 {$ENDIF}
+
+procedure TfrmSQLEditorSyn.actConvertToPasExecute(Sender: TObject);
+var
+  I: Integer;
+begin
+  seQuery.Text := Trim(StringReplace(seQuery.Text, '''', '''''', [rfReplaceAll]));
+  for I := 0 to seQuery.Lines.Count - 1 do
+    seQuery.Lines[I] := '''' + seQuery.Lines[I];
+  for I := 0 to seQuery.Lines.Count - 2 do
+    seQuery.Lines[I] := seQuery.Lines[I] + ' ''#13#10 +';
+  seQuery.Text := TrimRight(seQuery.Text) + ''';';
+end;
+
+procedure TfrmSQLEditorSyn.actConvertToPasUpdate(Sender: TObject);
+begin
+  actConvertToPas.Enabled := pcMain.ActivePage = tsQuery;
+end;
+
+procedure TfrmSQLEditorSyn.actConvertToSQLUpdate(Sender: TObject);
+begin
+  actConvertToSQL.Enabled := pcMain.ActivePage = tsQuery;
+end;
+
+procedure TfrmSQLEditorSyn.actConvertToSQLExecute(Sender: TObject);
+var
+  I: Integer;
+  S: String;
+begin
+  for I := 0 to seQuery.Lines.Count - 1 do
+  begin
+    S := TrimRight(seQuery.Lines[I]);
+
+    if Copy(S, Length(S), 1) = ';' then
+      SetLength(S, Length(S) - 1);
+
+    S := Trim(StringReplace(S, '#13#10', '', [rfReplaceAll]));
+    if (S > '') and (S[1] = '''') then
+      Delete(S, 1, 1);
+    if (S > '') and (S[Length(S)] = '+') then
+      SetLength(S, Length(S) - 1);
+    S := TrimRight(StringReplace(S, '''''', '''', [rfReplaceAll]));
+
+    if Copy(S, Length(S), 1) = '''' then
+      SetLength(S, Length(S) - 1);
+
+    seQuery.Lines[I] := TrimRight(S);
+  end;
+end;
+
+procedure TfrmSQLEditorSyn.actSetTransactionParamsExecute(Sender: TObject);
+var
+  Tr: TIBTransaction;
+begin
+  Assert(gdcBaseManager <> nil);
+
+  Tr := TIBTransaction.Create(nil);
+  try
+    {$IFDEF GEDEMIN}
+    Tr.DefaultDatabase := gdcBaseManager.Database;
+    Tr.Params.CommaText := GetTransactionParams;
+    try
+      Tr.StartTransaction;
+      Tr.Commit;
+
+      if ibtrEditor.InTransaction then
+        ibtrEditor.Commit;
+      ibtrEditor.Params.CommaText := GetTransactionParams;
+      ibtrEditor.StartTransaction;
+      tsResult.TabVisible := False;
+    except
+      on E: Exception do
+      begin
+        MessageBox(Handle,
+          PChar('Задан неверный параметр транзакции.'#13#10#13#10 + E.Message),
+          'Внимание',
+          MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+      end;
+    end;
+    {$ENDIF}
+  finally
+    Tr.Free;
+  end;
+end;
+
+procedure TfrmSQLEditorSyn.actSetTransactionParamsUpdate(Sender: TObject);
+begin
+  actSetTransactionParams.Enabled := pcMain.ActivePage = tsTransaction;
+end;
+
+procedure TfrmSQLEditorSyn.cbTransactionsChange(Sender: TObject);
+var
+  Tr: TIBTransaction;
+begin
+  Tr := cbTransactions.Items.Objects[cbTransactions.ItemIndex] as TIBTransaction;
+
+  if Tr = ibtrEditor then
+    exit;
+
+  if (ibtrEditor = _ibtrEditor) and ibtrEditor.InTransaction then
+    ibtrEditor.Commit;
+
+  ibsqlPlan.Close;
+  ibsqlPlan.Transaction := Tr;
+
+  ibqryWork.Close;
+  ibqryWork.Transaction := Tr;
+  ibqryWork.ReadTransaction := Tr;
+
+  tsResult.TabVisible := False;
+end;
 
 initialization
   RegisterClass(TfrmSQLEditorSyn);

@@ -375,6 +375,7 @@ begin
   end;
 
   FTr := TIBTransaction.Create(nil);
+  FTr.Name := 'NSSyncTr';
   FTr.DefaultDatabase := gdcBaseManager.Database;
   FTr.Params.CommaText := 'read_committed,rec_version,nowait';
   FTr.StartTransaction;
@@ -658,7 +659,7 @@ begin
     '    WHERE '#13#10 +
     '      POSITION ((f.xid || ''_'' || f.dbid) '#13#10 +
     '        IN t.path) = 0) '#13#10 +
-    'SELECT '#13#10 +
+    'SELECT DISTINCT '#13#10 +
     '  t.filename, s.namespacekey '#13#10 +
     'FROM '#13#10 +
     '  ns_tree t '#13#10 +
@@ -786,10 +787,14 @@ begin
       while not FqUsesList.EOF do
       begin
         if FqUsesList.FieldByName('namespacekey').IsNull then
-          FqUpdateOperation.ParamByName('op').AsString := '< '
-        else
+        begin
+          FqUpdateOperation.ParamByName('op').AsString := '< ';
+          FqUpdateOperation.ParamByName('nk').Clear;
+        end else
+        begin
           FqUpdateOperation.ParamByName('op').AsString := '<<';
-        FqUpdateOperation.ParamByName('nk').Clear;
+          FqUpdateOperation.ParamByName('nk').AsInteger := FqUsesList.FieldByName('namespacekey').AsInteger;
+        end;
         FqUpdateOperation.ParamByName('fn').AsString := FqUsesList.FieldByName('filename').AsString;
         FqUpdateOperation.ExecQuery;
         
@@ -818,17 +823,6 @@ begin
     lSaveRecords.Caption := 'Выбрано для сохранения в файлы: ' + Fq.Fields[1].AsString;
     Fq.Close;
 
-    mLoadList.Lines.Clear;
-    FqDependentList.ExecQuery;
-    while not FqDependentList.EOF do
-    begin
-      mLoadList.Lines.Add(FqDependentList.Fields[0].AsString);
-      FqDependentList.Next;
-    end;
-    lLoadRecords.Caption := 'Выбрано для загрузки из файлов: ' + IntToStr(FqDependentList.RecordCount);
-    FqDependentList.Close;
-
-    {
     Fq.SQL.Text :=
       'SELECT LIST(f.name, ASCII_CHAR(13) || ASCII_CHAR(10)), COUNT(*) FROM at_namespace_file f ' +
       '  JOIN at_namespace_sync s ON s.filename = f.filename ' +
@@ -837,7 +831,6 @@ begin
     mLoadList.Lines.Text := Fq.Fields[0].AsString;
     lLoadRecords.Caption := 'Выбрано для загрузки из файлов: ' + Fq.Fields[1].AsString;
     Fq.Close;
-    }
 
     if ShowModal = mrOk then
     begin
@@ -874,6 +867,7 @@ begin
       begin
         SL := TStringList.Create;
         try
+          DoLog(lmtInfo, 'Определение порядка зависимости пространств имен...');
           FqDependentList.ExecQuery;
           while not FqDependentList.EOF do
           begin
