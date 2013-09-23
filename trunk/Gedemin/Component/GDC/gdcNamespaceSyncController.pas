@@ -369,7 +369,8 @@ begin
 
   if FTr <> nil then
   begin
-    FTr.Commit;
+    if FTr.InTransaction then
+      FTr.Commit;
     FTr.StartTransaction;
     exit;
   end;

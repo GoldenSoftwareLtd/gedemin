@@ -1631,6 +1631,24 @@ begin
         q.ExecQuery;
       end;
 
+      if not IndexExist2('AT_X_NAMESPACE_FILE_RUID', Tr) then
+      begin
+        q.Close;
+        q.SQL.Text :=
+          'CREATE INDEX at_x_namespace_file_ruid ON at_namespace_file ' +
+          '  (xid, dbid)';
+        q.ExecQuery;
+      end;
+
+      if not IndexExist2('AT_X_NAMESPACE_FILE_LINK_UR', Tr) then
+      begin
+        q.Close;
+        q.SQL.Text :=
+          'CREATE INDEX at_x_namespace_file_link_ur ON at_namespace_file_link ' +
+          '  (uses_xid, uses_dbid)';
+        q.ExecQuery;
+      end;
+
       q.Close;
       q.SQL.Text :=
         'UPDATE OR INSERT INTO fin_versioninfo ' +
@@ -1671,6 +1689,12 @@ begin
       q.SQL.Text :=
         'UPDATE OR INSERT INTO fin_versioninfo ' +
         '  VALUES (189, ''0000.0001.0000.0220'', ''16.09.2013'', ''Change PK on gd_object_dependencies.'') ' +
+        '  MATCHING (id)';
+      q.ExecQuery;
+
+      q.SQL.Text :=
+        'UPDATE OR INSERT INTO fin_versioninfo ' +
+        '  VALUES (190, ''0000.0001.0000.0221'', ''23.09.2013'', ''Added missed indices to at_namespace tables.'') ' +
         '  MATCHING (id)';
       q.ExecQuery;
 
