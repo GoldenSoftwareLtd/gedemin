@@ -446,6 +446,9 @@ CREATE GLOBAL TEMPORARY TABLE at_namespace_file (
 )
   ON COMMIT DELETE ROWS;
 
+CREATE INDEX at_x_namespace_file_ruid ON at_namespace_file
+  (xid, dbid);
+
 CREATE GLOBAL TEMPORARY TABLE at_namespace_file_link (
   filename      dtext255 NOT NULL,
   uses_xid      dintkey,
@@ -460,6 +463,9 @@ CREATE GLOBAL TEMPORARY TABLE at_namespace_file_link (
       ON DELETE CASCADE
 )
   ON COMMIT DELETE ROWS;
+
+CREATE INDEX at_x_namespace_file_link_ur ON at_namespace_file_link
+  (uses_xid, uses_dbid);
 
 CREATE GLOBAL TEMPORARY TABLE at_namespace_sync (
   namespacekey  dforeignkey,

@@ -599,6 +599,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (189, '0000.0001.0000.0220', '16.09.2013', 'Change PK on gd_object_dependencies.');
 
+INSERT INTO fin_versioninfo
+  VALUES (190, '0000.0001.0000.0221', '23.09.2013', 'Added missed indices to at_namespace tables.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id

@@ -1406,6 +1406,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (189, '0000.0001.0000.0220', '16.09.2013', 'Change PK on gd_object_dependencies.');
 
+INSERT INTO fin_versioninfo
+  VALUES (190, '0000.0001.0000.0221', '23.09.2013', 'Added missed indices to at_namespace tables.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
@@ -16539,6 +16542,9 @@ CREATE GLOBAL TEMPORARY TABLE at_namespace_file (
 )
   ON COMMIT DELETE ROWS;
 
+CREATE INDEX at_x_namespace_file_ruid ON at_namespace_file
+  (xid, dbid);
+
 CREATE GLOBAL TEMPORARY TABLE at_namespace_file_link (
   filename      dtext255 NOT NULL,
   uses_xid      dintkey,
@@ -16553,6 +16559,9 @@ CREATE GLOBAL TEMPORARY TABLE at_namespace_file_link (
       ON DELETE CASCADE
 )
   ON COMMIT DELETE ROWS;
+
+CREATE INDEX at_x_namespace_file_link_ur ON at_namespace_file_link
+  (uses_xid, uses_dbid);
 
 CREATE GLOBAL TEMPORARY TABLE at_namespace_sync (
   namespacekey  dforeignkey,
