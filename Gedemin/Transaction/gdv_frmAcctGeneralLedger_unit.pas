@@ -210,31 +210,37 @@ begin
 
     FAccountIDs.Clear;
     if (iblConfiguratior.CurrentKey > '') and (cbAccounts.Text > '') then
-      SetAccountIDs(cbAccounts, FAccountIDs, cbShowCorrSubAccount.Checked, False)
-    else begin
-      if (gdcAcctChart.FieldByName('accounttype').AsString = 'A')
-        or (gdcAcctChart.FieldByName('accounttype').AsString = 'S')
-        or chkBuildGroup.Checked then
+    begin
+      SetAccountIDs(cbAccounts, FAccountIDs, cbShowCorrSubAccount.Checked, False);
+      if FAccountIDs.Count > 1 then
       begin
         SQL := TIBSQL.Create(nil);
         try
           SQL.Transaction := gdcBaseManager.ReadTransaction;
-          SQL.SQL.Text :=
-            ' SELECT a2.id FROM ac_account a1 LEFT JOIN ac_account a2 ON ' +
-            ' a2.lb >= a1.lb and a2.rb <= a1.rb and a2.ACCOUNTTYPE in (''A'', ''S'') ' +
-            ' WHERE a1.id = :id ';
-          SQL.ParamByName('id').AsInteger := gdcAcctChart.FieldByName('id').AsInteger;
+          SQL.SQL.Text := Format(
+            ' SELECT a.id, a.parent, a.accounttype FROM ac_account a WHERE a.id in(%s) and ' +
+            ' a.accounttype in (''A'', ''S'') ORDER BY a.accounttype',
+            [IDList(FAccountIDs)]);
           SQL.ExecQuery;
-          while not SQL.EOF do
+          if not SQL.Eof then
           begin
-            if FAccountIDs.IndexOf(Pointer(SQL.FieldByName(fnId).AsInteger)) = -1 then
-              FAccountIDs.Add(Pointer(SQL.FieldByName(fnId).AsInteger));
-            SQL.Next;
-          end;
+            FAccountIDs.Clear;
+            if SQL.FieldByName('accounttype').AsString = 'A' then
+              FAccountIDs.Add(Pointer(SQL.FieldByName('id').AsInteger))
+            else
+              FAccountIDs.Add(Pointer(SQL.FieldByName('parent').AsInteger));
+          end; 
         finally
           SQL.Free;
-        end;
+        end;  
       end;
+    end else
+    begin
+      if (gdcAcctChart.FieldByName('accounttype').AsString = 'A')
+        or (gdcAcctChart.FieldByName('accounttype').AsString = 'S')
+        or chkBuildGroup.Checked
+      then
+        FAccountIDs.Add(Pointer(gdcAcctChart.FieldByName('id').AsInteger)); 
     end;
 
     //Обновляем количественные показатели
