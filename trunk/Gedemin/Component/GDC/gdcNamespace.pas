@@ -33,7 +33,7 @@ type
       const ADontRemove: Boolean; const AnIncludeSiblings: Boolean;
       AnObjCache: TStringHashMap);
 
-    class procedure UpdateCurrModified(const ANamespaceKey: Integer = -1);
+    class procedure UpdateCurrModified(ATr: TIBTRansaction; const ANamespaceKey: Integer = -1);
     class procedure ParseReferenceString(const AStr: String; out ARUID: TRUID; out AName: String);
 
     function MakePos: Boolean;
@@ -600,7 +600,8 @@ begin
   end;
 end;
 
-class procedure TgdcNamespace.UpdateCurrModified(const ANamespaceKey: Integer = -1);
+class procedure TgdcNamespace.UpdateCurrModified(ATr: TIBTRansaction;
+  const ANamespaceKey: Integer = -1);
 var
   Tr: TIBTransaction;
   qList, q: TIBSQL;
@@ -609,12 +610,20 @@ var
 begin
   Assert(gdcBaseManager <> nil);
 
-  Tr := TIBTransaction.Create(nil);
+
+  if ATr = nil then
+    Tr := TIBTransaction.Create(nil)
+  else
+    Tr := ATr;
+
   qList := TIBSQL.Create(nil);
   q := TIBSQL.Create(nil);
   try
-    Tr.DefaultDatabase := gdcBaseManager.Database;
-    Tr.StartTransaction;
+    if ATr = nil then
+    begin
+      Tr.DefaultDatabase := gdcBaseManager.Database;
+      Tr.StartTransaction;
+    end;
 
     q.Transaction := Tr;
 
@@ -677,12 +686,16 @@ begin
     end else
       q.SQL.Text := q.SQL.Text + ')';
     q.ExecQuery;
-
-    Tr.Commit;
   finally
     q.Free;
     qList.Free;
-    Tr.Free;
+
+    if ATr = nil then
+    begin
+      if Tr.InTransaction then
+        Tr.Commit;
+      Tr.Free;
+    end;
   end;
 end;
 

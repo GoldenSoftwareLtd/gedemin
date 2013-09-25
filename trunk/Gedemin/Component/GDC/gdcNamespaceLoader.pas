@@ -398,9 +398,9 @@ begin
           FgdcNamespace.Open;
           FgdcNamespace.Edit;
           if FqFindNS.FieldByName('ByName').AsInteger <> 0 then
-            AddText('Пространство имен ' + NSName + ' найдено по наименованию')
+            AddText('Найдено по наименованию: ' + NSName)
           else
-            AddText('Пространство имен ' + NSName + ' найдено по РУИД');
+            AddText('Найдено по РУИД: ' + NSName);
         end;
 
         FgdcNamespace.FieldByName('name').AsString := Mapping.ReadString('Properties\Name', 255);
@@ -421,7 +421,7 @@ begin
 
         OverwriteRUID(NSID, NSRUID.XID, NSRUID.DBID);
 
-        TgdcNamespace.UpdateCurrModified(NSID);
+        TgdcNamespace.UpdateCurrModified(FTr, NSID);
         LoadAtObjectCache(NSID);
 
         FqClearAtObject.ParamByName('nk').AsInteger := NSID;
@@ -468,7 +468,7 @@ begin
 
     if FDelayedUpdate.Count > 0 then
     begin
-      AddText('Отложенное обновление записей...');
+      AddText('Отложенное обновление записей:');
       FTr.StartTransaction;
       try
         for K := 0 to FDelayedUpdate.Count - 1 do
@@ -493,7 +493,7 @@ begin
       FNeedRelogin := False;
     end;
 
-    AddText('Закончена загрузка пространства имен ' + NSName);
+    AddText('Закончена загрузка: ' + NSName);
   end;
 
   atDatabase.ForceLoadFromDatabase;
@@ -622,8 +622,8 @@ begin
         if (CandidateID <> RUIDID) and (RUIDID > -1) then
           gdcBaseManager.DeleteRUIDByXID(ObjRUID.XID, ObjRUID.DBID, FTr);
         Obj.Edit;
-        AddText('Объект ' + Obj.ObjectName + ' (' + Obj.GetDisplayName(Obj.SubType) +
-          ') найден по потенциальному ключу.');
+        AddText('Объект найден по потенциальному ключу: ' + Obj.ObjectName +
+          ' (' + Obj.GetDisplayName(Obj.SubType) + ')');
       end
       else if RUIDID > -1 then
       begin
@@ -774,7 +774,7 @@ begin
       Obj.Open;
       if not Obj.EOF then
       begin
-        AddText('Удаляется объект ' + Obj.ObjectName);
+        AddText('Удаляется объект: ' + Obj.ObjectName);
         Obj.Delete;
         if Obj is TgdcMetaBase then
           Inc(FMetadataCounter);
@@ -988,7 +988,7 @@ begin
     q.Free;
   end;
 
-  AddText('Коммит транзакции');
+  AddText('Коммит транзакции...');
 
   FTr.Commit;
   gdcBaseManager.ReadTransaction.Commit;
