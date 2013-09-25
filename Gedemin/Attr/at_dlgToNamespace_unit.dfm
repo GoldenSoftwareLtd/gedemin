@@ -243,6 +243,10 @@ object dlgToNamespace: TdlgToNamespace
   end
   object Tr: TIBTransaction
     Active = False
+    Params.Strings = (
+      'read_committed'
+      'rec_version'
+      'nowait')
     AutoStopAction = saNone
     Left = 184
     Top = 216

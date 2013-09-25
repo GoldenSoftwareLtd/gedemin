@@ -273,16 +273,94 @@ end;
 
 procedure TgdcNamespaceSyncController.CompareWithData(const ANSK: Integer;
   const AFileName: String);
+var
+  NS: TgdcNamespace;
+  Tr: TIBTransaction;
+  Parser: TYAMLParser;
+  Mapping: TYAMLMapping;
+  Objects: TYAMLSequence;
+  J: Integer;
 begin
-  with TgdcNamespace.Create(nil) do
+  Assert(gdcBasemanager <> nil);
+
+  Tr := TIBTransaction.Create(nil);
+  NS := TgdcNamespace.Create(nil);
   try
-    SubSet := 'ByID';
-    ID := ANSK;
-    Open;
-    if not EOF then
-      CompareWithData(AFileName);
+    Tr.DefaultDatabase := gdcBaseManager.Database;
+    Tr.StartTransaction;
+
+    NS.Transaction := Tr;
+    NS.ReadTransaction := Tr;
+    NS.BaseState := NS.BaseState + [sLoadFromStream];
+    NS.SubSet := 'ByID';
+    NS.ID := ANSK;
+    NS.Open;
+
+    if NS.EOF then
+    begin
+      Parser := TYAMLParser.Create;
+      try
+        Parser.Parse(AFileName);
+
+        if (Parser.YAMLStream.Count = 0)
+          or ((Parser.YAMLStream[0] as TyamlDocument).Count = 0)
+          or (not ((Parser.YAMLStream[0] as TyamlDocument)[0] is TyamlMapping)) then
+        begin
+          raise Exception.Create('Invalid YAML stream.');
+        end;
+
+        Mapping := (Parser.YAMLStream[0] as TyamlDocument)[0] as TyamlMapping;
+
+        if Mapping.ReadString('StructureVersion') <> '1.0' then
+          raise Exception.Create('Unsupported YAML stream version.');
+
+        NS.StreamXID := StrToRUID(Mapping.ReadString('Properties\RUID')).XID;
+        NS.StreamDBID := StrToRUID(Mapping.ReadString('Properties\RUID')).DBID;
+
+        NS.Insert;
+        NS.FieldByName('name').AsString := Mapping.ReadString('Properties\Name', 255);
+        NS.FieldByName('caption').AsString := Mapping.ReadString('Properties\Caption', 255);
+        NS.FieldByName('version').AsString := Mapping.ReadString('Properties\Version', 20);
+        NS.FieldByName('dbversion').AsString := Mapping.ReadString('Properties\DBversion', 20);
+        NS.FieldByName('optional').AsInteger := Mapping.ReadInteger('Properties\Optional', 0);
+        NS.FieldByName('internal').AsInteger := Mapping.ReadInteger('Properties\Internal', 1);
+        NS.FieldByName('comment').AsString := Mapping.ReadString('Properties\Comment');
+        NS.FieldByName('filetimestamp').AsDateTime := gd_common_functions.GetFileLastWrite(AFileName);
+        if NS.FieldByName('filetimestamp').AsDateTime > Now then
+          NS.FieldByName('filetimestamp').AsDateTime := Now;
+        NS.FieldByName('filename').AsString := System.Copy(AFileName, 1, 255);
+        NS.Post;
+
+        TgdcNamespace.UpdateCurrModified(Tr, NS.ID);
+
+        if Mapping.FindByName('Objects') is TYAMLSequence then
+        begin
+          Objects := Mapping.FindByName('Objects') as TYAMLSequence;
+
+          for J := 0 to Objects.Count - 1 do
+          begin
+            if not (Objects[J] is TYAMLMapping) then
+              raise Exception.Create('Invalid YAML stream.');
+            //LoadObject(Objects[J] as TYAMLMapping, NSID, NSTimeStamp);
+          end;
+        end;
+
+        if Mapping.FindByName('Uses') is TYAMLSequence then
+          {UpdateUses(Mapping.FindByName('Uses') as TYAMLSequence, NSID)};
+      finally
+        Parser.Free;
+      end;
+    end;
+
+    NS.CompareWithData(AFileName);
+
+    NS.Close;
   finally
-    Free;
+    NS.Free;
+
+    if Tr.InTransaction then
+      Tr.Rollback;
+    Tr.Free;
   end;
 end;
 
@@ -298,7 +376,7 @@ procedure TgdcNamespaceSyncController.DeleteFile(const AFileName: String);
 begin
   if SysUtils.DeleteFile(AFileName) then
   begin
-    DoLog(lmtInfo, 'Файл ' + AFileName + ' был удален.');
+    DoLog(lmtInfo, 'Удален файл ' + AFileName);
 
     Fq.Close;
     Fq.SQL.Text :=
@@ -681,7 +759,7 @@ begin
   if FUpdateCurrModified then
   begin
     DoLog(lmtInfo, 'Обновление даты изменения объекта...');
-    TgdcNamespace.UpdateCurrModified;
+    TgdcNamespace.UpdateCurrModified(nil);
   end;
 
   SL := TStringList.Create;
@@ -853,7 +931,7 @@ begin
             NS.ID := Fq.FieldByName('id').AsInteger;
             NS.Open;
             if (not NS.EOF) and NS.SaveNamespaceToFile(Fq.FieldByName('filename').AsString, chbxIncVersion.Checked) then
-              DoLog(lmtInfo, 'Пространство имен ' + NS.ObjectName + ' записано в файл: ' +
+              DoLog(lmtInfo, 'Пространство имен "' + NS.ObjectName + '" записано в файл: ' +
                 Fq.FieldByName('filename').AsString);
             Fq.Next;
           end;
@@ -861,18 +939,19 @@ begin
           Fq.Close;
         finally
           NS.Free;
-        end;
+        end;                               
       end;
 
       if mLoadList.Lines.Text > '' then
       begin
         SL := TStringList.Create;
         try
-          DoLog(lmtInfo, 'Определение порядка зависимости пространств имен...');
+          DoLog(lmtInfo, 'Определен порядок загрузки:');
           FqDependentList.ExecQuery;
           while not FqDependentList.EOF do
           begin
             SL.Add(FqDependentList.Fields[0].AsString);
+            DoLog(lmtInfo, IntToStr(SL.Count) + ': ' + FqDependentList.Fields[0].AsString);
             FqDependentList.Next;
           end;
           FqDependentList.Close;

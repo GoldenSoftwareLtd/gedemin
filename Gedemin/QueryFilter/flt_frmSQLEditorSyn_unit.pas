@@ -548,11 +548,10 @@ function TfrmSQLEditorSyn.CreateTableList: Boolean;
 var
   ibsqlTable: TIBSQL;
 begin
-  Assert(gdcBaseManager <> nil);
-
   ibsqlTable := TIBSQL.Create(Self);
   try
     {$IFDEF GEDEMIN}
+    Assert(gdcBaseManager <> nil);
     ibsqlTable.Transaction := gdcBaseManager.ReadTransaction;
     {$ENDIF}
     ibsqlTable.SQL.Text :=
@@ -960,8 +959,10 @@ begin
 end;
 
 procedure TfrmSQLEditorSyn.FormCreate(Sender: TObject);
+{$IFDEF GEDEMIN}
 var
   I: Integer;
+{$ENDIF}
 begin
   {$IFDEF GEDEMIN}
   Assert(gdcBaseManager <> nil);
@@ -2392,11 +2393,10 @@ procedure TfrmSQLEditorSyn.actSetTransactionParamsExecute(Sender: TObject);
 var
   Tr: TIBTransaction;
 begin
-  Assert(gdcBaseManager <> nil);
-
   Tr := TIBTransaction.Create(nil);
   try
     {$IFDEF GEDEMIN}
+    Assert(gdcBaseManager <> nil);
     Tr.DefaultDatabase := gdcBaseManager.Database;
     Tr.Params.CommaText := GetTransactionParams;
     try

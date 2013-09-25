@@ -207,8 +207,7 @@ end;
 procedure Tat_frmSyncNamespace.actCompareWithDataUpdate(Sender: TObject);
 begin
   actCompareWithData.Enabled := (not FNSC.DataSet.IsEmpty)
-    and FileExists(FNSC.DataSet.FieldByName('filename').AsString)
-    and (FNSC.DataSet.FieldByName('namespacekey').AsInteger > 0);
+    and FileExists(FNSC.DataSet.FieldByName('filename').AsString);
 end;
 
 procedure Tat_frmSyncNamespace.actCompareWithDataExecute(Sender: TObject);
