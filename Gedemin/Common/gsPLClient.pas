@@ -53,11 +53,14 @@ type
   TgsPLClient = class(TObject)
   private
     FInitArgv: array of PChar;
+    FDebug: Boolean;
     
     function GetArity(ASql: TIBSQL): Integer; overload;
     function GetArity(ADataSet: TDataSet; const AFieldList: String): Integer; overload;
     function CheckDataType(const AVariableType: Integer; const AField: TField): Boolean;
-  public 
+    function GetTempPath: String;
+    function TermToString(ATerm: term_t): String;
+  public
     destructor Destroy; override;
      
     function Call(const APredicateName: String; AParams: TgsTermv): Boolean; overload;
@@ -73,6 +76,8 @@ type
       const APredicateName: String; const AFileName: String);
     function CreateTermRef: term_t;
     procedure ExtractData(ADataSet: TClientDataSet; const APredicateName: String; ATermv: TgsTermv);
+
+    property Debug: Boolean read FDebug write FDebug;
   end;
 
   EgsPLClientException = class(Exception);
@@ -90,9 +95,9 @@ var
 begin
   if AnException <> 0 then
   begin
-    a := PL_new_term_ref;
-    if (PL_get_arg(1, AnException, a) <> 0) and
-      (PL_get_name_arity(a, name, arity) <> 0)
+    a := PL_new_term_refs(2);
+    if (PL_get_arg(1, AnException, a) <> 0)
+      and (PL_get_name_arity(a, name, arity) <> 0)
     then
       raise EgsPLClientException.Create(PL_atom_chars(name));
   end;
@@ -121,7 +126,7 @@ end;
 
 procedure TgsTermv.SetString(const Idx: LongWord; const AValue: String);
 begin
-  PL_put_atom_chars(GetTerm(Idx), PChar(AValue));
+  PL_put_string_chars(GetTerm(Idx), PChar(AValue));
 end;
 
 procedure TgsTermv.SetFloat(const Idx: LongWord; const AValue: Double);
@@ -150,6 +155,7 @@ var
   I64: Int64;
   S: PChar;
   D: Double;
+  len: Cardinal;
 begin
   Result := Unassigned;
 
@@ -164,11 +170,18 @@ begin
         Result := IntToStr(I64)
       else
         raise EgsPLClientException.Create('Invalid sync type prolog and delphi!');
-    PL_ATOM, PL_STRING, PL_CHARS:
+    PL_ATOM, PL_CHARS:
       if PL_get_atom_chars(GetTerm(Idx), S) <> 0 then
         Result := String(S)
       else
         raise EgsPLClientException.Create('Invalid sync type prolog and delphi!');
+    PL_STRING:
+    begin
+      if PL_get_string(GetTerm(Idx), S, len) <> 0 then
+        Result := String(S)
+      else
+        raise EgsPLClientException.Create('Invalid sync type prolog and delphi!');
+    end;
     PL_FLOAT, PL_DOUBLE:
       if PL_get_float(GetTerm(Idx), D) <> 0 then
         Result := D
@@ -376,6 +389,46 @@ begin
   PL_cons_functor_v(AGoal, PL_new_functor(PL_new_atom(PChar(AFunctor)), ATermv.size), ATermv.Term[0]);
 end;
 
+function TgsPLClient.TermToString(ATerm: term_t): String;
+var
+  a: term_t;
+  name: atom_t;
+  arity, I: Integer;
+  S: PChar; 
+  len: Cardinal;
+begin
+  Result := '';
+  case PL_term_type(ATerm) of
+    PL_ATOM, PL_INTEGER, PL_FLOAT:
+    begin
+      PL_get_chars(ATerm, S, CVT_ALL);
+      Result := S;
+    end;
+    PL_STRING:
+    begin
+      PL_get_string(ATerm, S, len);
+      Result := StrSingleQuote(S);  
+    end;
+    PL_TERM:
+    begin
+      if PL_get_name_arity(ATerm, name, arity) <> 0 then
+      begin
+        Result := Result + PL_atom_chars(name) + '(';
+
+        for I := 1 to arity do
+        begin
+          a := PL_new_term_ref;
+          PL_get_arg(I, ATerm, a);
+          Result := Result + TermToString(a) + ',';
+        end;
+
+        SetLength(Result, Length(Result) - 1);
+        Result := Result + ')';
+      end;
+    end;
+  end; 
+end;
+
 function TgsPLClient.GetArity(ASql: TIBSQL): Integer;
 var
   I: Integer;
@@ -391,6 +444,14 @@ begin
       SQL_TYPE_DATE, SQL_INT64, SQL_Text, SQL_VARYING: Inc(Result);
     end; 
   end;
+end;
+
+function TgsPLClient.GetTempPath: String;
+var
+  Buff: array[0..1024] of Char;
+begin
+  Windows.GetTempPath(SizeOf(Buff), Buff);
+  Result := ExcludeTrailingBackslash(Buff);
 end;
 
 function TgsPLClient.GetArity(ADataSet: TDataSet; const AFieldList: String): Integer;
@@ -502,7 +563,7 @@ var
   q: TIBSQL;
   Refs, Term: TgsTermv;
   I: LongWord;
-  Arity: Integer;
+  Arity: Integer; 
 begin
   Assert(ATr <> nil);
   Assert(ATr.InTransaction);
