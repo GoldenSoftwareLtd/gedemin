@@ -32,6 +32,25 @@ const
   PL_Q_DETERMINISTIC      = $20; // (!) call was deterministic
   MON_PL_Q                = $04 + $20;
 
+  CVT_ATOM                = $0001;
+  CVT_STRING              = $0002;
+  CVT_LIST                = $0004;
+  CVT_INTEGER             = $0008;
+  CVT_FLOAT               = $0010;
+  CVT_VARIABLE            = $0020;
+  CVT_NUMBER              = CVT_INTEGER or CVT_FLOAT;
+  CVT_ATOMIC              = CVT_NUMBER or CVT_ATOM or CVT_STRING;
+  CVT_WRITE               = $0040; // as of version 3.2.10
+  CVT_ALL                 = CVT_ATOMIC or CVT_LIST;
+  CVT_MASK                = $00FF;
+
+  BUF_DISCARDABLE         = $0000;
+  BUF_RING                = $0100;
+  BUF_MALLOC              = $0200;
+
+  REP_UTF8                = $1000;
+  FL_FPC                  = CVT_ALL or REP_UTF8;
+
   Libgmp10_dll = 'libgmp-10.dll';
   Libswipl_dll = 'libswipl.dll';
   PthreadGC2_dll = 'pthreadGC2.dll';   
