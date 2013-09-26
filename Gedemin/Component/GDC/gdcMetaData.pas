@@ -4515,12 +4515,15 @@ begin
   NeedSingleUser := True;
 
   if Pos(UserPrefix, AnsiUpperCase(FieldByName('relationname').AsString)) = 1 then
-    TableNameWithoutPrefix := System.copy(FieldByName('relationname').AsString, Length(UserPrefix) + 1,
+    TableNameWithoutPrefix := System.Copy(FieldByName('relationname').AsString, Length(UserPrefix) + 1,
       Length(FieldByName('relationname').AsString))
   else
     TableNameWithoutPrefix := FieldByName('relationname').AsString;
-  NextConstraintName := gdcBaseManager.AdjustMetaName(Format(UserPrefix + 'fk%s%s',
-    [TableNameWithoutPrefix, GetUniqueID(Database, ReadTransaction)]));
+
+  //NextConstraintName := gdcBaseManager.AdjustMetaName(Format(UserPrefix + 'fk%s%s',
+  //  [TableNameWithoutPrefix, GetUniqueID(Database, ReadTransaction)]));
+  NextConstraintName := gdcBaseManager.AdjustMetaName(Format(UserPrefix + 'FK_%s_%s',
+    [TableNameWithoutPrefix, FieldByName('fieldname').AsString]));
 
   Result := Format
   (

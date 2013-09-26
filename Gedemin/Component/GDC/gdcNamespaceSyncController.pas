@@ -281,7 +281,7 @@ var
   Objects: TYAMLSequence;
   J: Integer;
 begin
-  Assert(gdcBasemanager <> nil);
+  Assert(gdcBaseManager <> nil);
 
   Tr := TIBTransaction.Create(nil);
   NS := TgdcNamespace.Create(nil);
