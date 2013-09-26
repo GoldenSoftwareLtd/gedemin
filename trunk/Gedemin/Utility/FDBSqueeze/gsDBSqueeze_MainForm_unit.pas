@@ -820,17 +820,9 @@ begin
 end;
 
 procedure TgsDBSqueeze_MainForm.LogSQLEvent(const ALogSQL: String);
-var
-  S: String;
 begin
-  S := StringReplace(ALogSQL, ' WHERE', #13#10 + ' WHERE' , [rfReplaceAll, rfIgnoreCase]);
-  S := StringReplace(S, ' FROM', #13#10 + ' FROM', [rfReplaceAll, rfIgnoreCase]);
-  S := StringReplace(S, ', ', ', ' + #13#10, [rfReplaceAll, rfIgnoreCase]);
-  S := StringReplace(S, ' AND', #13#10 + ' AND', [rfReplaceAll, rfIgnoreCase]);
-  S := StringReplace(S, ' OR', #13#10 + ' OR', [rfReplaceAll, rfIgnoreCase]);
-
-  mSqlLog.Lines.Add(S);
-  WriteToLogFile(S);
+  mSqlLog.Lines.Add(ALogSQL);
+  WriteToLogFile(ALogSQL);
 end;
 
 procedure TgsDBSqueeze_MainForm.actStopExecute(Sender: TObject);
