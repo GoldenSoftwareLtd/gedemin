@@ -106,10 +106,12 @@ var
 procedure TgdcNamespaceLoader.CopyRecord(AnObj: TgdcBase;
   AMapping: TYAMLMapping; AnOverwriteFields: TStrings);
 var
-  I: Integer;
+  I, Idx: Integer;
   N: TYAMLNode;
   F: TField;
   S: String;
+  SL: TStringList;
+  KV: TyamlKeyValue;
 begin
   Assert(AnObj <> nil);
   Assert(AMapping <> nil);
@@ -120,20 +122,44 @@ begin
     AnObj.GetListTable(AnObj.SubType));
 
   if AnOverwriteFields = nil then
-    for I := 0 to AnObj.FieldCount - 1 do
-    begin
-      F := AnObj.Fields[I];
-      N := AMapping.FindByName(F.FieldName);
-      if N is TyamlScalar then
-        CopyField(F, N as TyamlScalar);
-    end
-  else
+  begin
+    SL := TStringList.Create;
+    try
+      for I := 0 to AMapping.Count - 1 do
+      begin
+        KV := AMapping.Items[I] as TyamlKeyValue;
+        if KV.Value is TyamlScalar then
+          SL.AddObject(KV.Key, KV.Value);
+      end;
+
+      SL.Sorted := True;
+      
+      for I := 0 to AnObj.FieldCount - 1 do
+      begin
+        F := AnObj.Fields[I];
+        Idx := SL.IndexOf(F.FieldName);
+        if Idx > -1 then
+        begin
+          CopyField(F, SL.Objects[Idx] as TyamlScalar);
+          SL.Delete(Idx);
+        end else if (Pos('USR$', F.FieldName) = 1) and (not F.ReadOnly) and (not F.Calculated) then
+          AddWarning('Отсутствует в файле: ' + F.FieldName);
+      end;
+
+      for I := 0 to SL.Count - 1 do
+        AddWarning('Отсутствует в базе: ' + SL[I]);
+    finally
+      SL.Free;
+    end;
+  end else
     for I := 0 to AnOverwriteFields.Count - 1 do
     begin
-      F := AnObj.FindField(AnOverwriteFields[I]);
+      F := AnObj.FieldByName(AnOverwriteFields[I]);
       N := AMapping.FindByName(F.FieldName);
       if N is TyamlScalar then
-        CopyField(F, N as TyamlScalar);
+        CopyField(F, N as TyamlScalar)
+      else if (Pos('USR$', F.FieldName) = 1) and (not F.ReadOnly) and (not F.Calculated) then
+        AddWarning('Отсутствует в файле: ' + F.FieldName);
     end;
 
   S := AnObj.ObjectName + ' (' + AnObj.GetDisplayName(AnObj.SubType) + ')';
