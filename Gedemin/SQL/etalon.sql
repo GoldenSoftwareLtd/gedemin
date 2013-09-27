@@ -8066,6 +8066,24 @@ BEGIN
       INTO :FID
     DO
       EXCEPTION gd_e_storage_data 'Duplicate name. ID=' || :FID;
+
+    IF (NEW.data_type = 'F') THEN
+    BEGIN
+      FOR
+        SELECT id FROM gd_storage_data WHERE id = NEW.parent
+          AND data_type IN ('S', 'I', 'C', 'L', 'D', 'B')
+        INTO :FID
+      DO
+        EXCEPTION gd_e_storage_data 'Invalid parent. ID=' || :FID;
+    END ELSE
+    BEGIN
+      FOR
+        SELECT id FROM gd_storage_data WHERE id = NEW.parent
+          AND data_type <> 'F'
+        INTO :FID
+      DO
+        EXCEPTION gd_e_storage_data 'Invalid parent. ID=' || :FID;
+    END
   END
 END
 ^

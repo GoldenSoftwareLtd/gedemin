@@ -340,25 +340,18 @@ type
 
   TgdcTableToTable = class(TgdcTable)
   private
-    FIDDomain: String;
-
     function CreateSimpleTable: String;
-    function CreateNewDomain: String;
     function CreateForeignKey: String;
 
   protected
-    procedure DropTable; override;
     procedure CreateRelationSQL(Scripts: TSQLProcessList); override;
-    procedure CustomInsert(Buff: Pointer); override;
-
-    procedure _DoOnNewRecord; override;
 
     function GetReferenceName: String;
 
   public
     class function GetDisplayName(const ASubType: TgdcSubType): String; override;
 
-    property ReferenceName: String read GetReferenceName;// write SetReferenceName;
+    property ReferenceName: String read GetReferenceName;
   end;
 
   TgdcTreeTable = class(TgdcTable)
@@ -432,9 +425,6 @@ type
   private
     FCrossRelationID: String;
     FChangeComputed: Boolean;
-
-    function GetKeyName(IsPrimary: Boolean; ARelationName: String;
-      UniqueID: String): String;
 
     function NextCrossRelationName: String;
 
@@ -4290,7 +4280,7 @@ end;
 
 function TgdcRelationField.CreateCrossRelationSQL: String;
 var
-  S1, S2, N1, N2, N3: String;
+  S1, S2: String;
 begin
   NeedSingleUser := True;
 
@@ -4305,10 +4295,6 @@ begin
 
   if S1 = S2 then
     S2 := S2 + '_r';
-
-  N1 := GetKeyName(True, FieldByName('crosstable').AsString, GetUniqueID(Database, ReadTransaction));
-  N2 := GetKeyName(False, FieldByName('crosstable').AsString, GetUniqueID(Database, ReadTransaction));
-  N3 := GetKeyName(False, FieldByName('crosstable').AsString, GetUniqueID(Database, ReadTransaction));
 
   Result := Format
   (
@@ -4325,9 +4311,9 @@ begin
       FieldByName('refcrossrelation').AsString,
       GetKeyFieldName(FieldByName('relationname').AsString),
       GetKeyFieldName(FieldByName('refcrossrelation').AsString),
-      N1,
-      N2,
-      N3
+      gdcBaseManager.AdjustMetaName(FieldByName('crosstable').AsString + '_PK'),
+      gdcBaseManager.AdjustMetaName(FieldByName('crosstable').AsString + '_FK_1'),
+      gdcBaseManager.AdjustMetaName(FieldByName('crosstable').AsString + '_FK_2')
     ]
   );
 
@@ -5593,88 +5579,6 @@ begin
     FieldByName('nullflag').AsInteger := 0;
 end;
 
-{function TgdcRelationField.CreateCrossRelationForeign1SQL: String;
-var
-  S1: String;
-  FName: String;
-begin
-  NeedSingleUser := True;
-  S1 := FieldByName('relationname').AsString;
-  if AnsiPos(UserPrefix, S1) <> 1 then
-    S1 := UserPrefix + S1;
-
-  FName := GetKeyName(False, FieldByName('crosstable').AsString, GetUniqueID(Database, ReadTransaction));
-
-  Result := Format('ALTER TABLE %0:s ADD CONSTRAINT %1:s FOREIGN KEY (%2:s) ' +
-    'REFERENCES %3:s (%4:s) ON DELETE CASCADE ON UPDATE CASCADE',
-    [FieldByName('crosstable').AsString, FName,
-     gdcBaseManager.AdjustMetaName(S1 + 'KEY'),
-     FieldByName('relationname').AsString,
-     GetKeyFieldName(FieldByName('relationname').AsString),
-     UserPrefix]);
-end; 
-
-function TgdcRelationField.CreateCrossRelationForeign2SQL: String;
-var
-  S2, S1: String;
-  FName: String;
-begin
-  NeedSingleUser := True;
-  S1 := FieldByName('relationname').AsString;
-  S2 := FieldByName('refcrossrelation').AsString;
-
-  if AnsiPos('USR$', S1) <> 1 then
-    S1 := 'USR$' + S1;
-
-  if AnsiPos('USR$', S2) <> 1 then
-    S2 := 'USR$' + S2;
-
-  if S1 = S2 then
-    S2 := S2 + '_r';
-
-  FName := GetKeyName(False, FieldByName('crosstable').AsString, GetUniqueID(Database, ReadTransaction));
-  Result := Format('ALTER TABLE %0:s ADD CONSTRAINT %1:s FOREIGN KEY (%2:s) ' +
-    'REFERENCES %3:s (%4:s) /*ON DELETE CASCADE*/ ON UPDATE CASCADE',
-    [FieldByName('crosstable').AsString, FName,
-     gdcBaseManager.AdjustMetaName(S2 + 'KEY'),
-     FieldByName('refcrossrelation').AsString,
-     GetKeyFieldName(FieldByName('refcrossrelation').AsString),
-     UserPrefix]);
-end;
-
-function TgdcRelationField.CreateCrossRelationPrimarySQL: String;
-var
-  S1,  S2: String;
-  PName: String;
-begin
-  NeedSingleUser := True;
-  S1 := FieldByName('relationname').AsString;
-  S2 := FieldByName('refcrossrelation').AsString;
-
-  if AnsiPos('USR$', S1) <> 1 then
-    S1 := 'USR$' + S1;
-
-  if AnsiPos('USR$', S2) <> 1 then
-    S2 := 'USR$' + S2;
-
-  if S1 = S2 then
-    S2 := S2 + '_r';
-
-  PName := GetKeyName(True, FieldByName('crosstable').AsString, GetUniqueID(Database, ReadTransaction));
-  Result := Format('ALTER TABLE %0:s ADD CONSTRAINT %1:s PRIMARY KEY (%2:s, %3:s) ',
-    [FieldByName('crosstable').AsString, PName,
-     gdcBaseManager.AdjustMetaName(S1 + 'KEY'),
-     gdcBaseManager.AdjustMetaName(S2 + 'KEY')]);
-end;
-
-function TgdcRelationField.CreateDropCrossSimulateField: String;
-begin
-  NeedSingleUser := True;
-  Result := Format('ALTER TABLE %0:s DROP %1:s ',
-    [FieldByName('crosstable').AsString,
-     GetSimulateFieldNameByRel(FieldByName('crosstable').AsString)]);
-end; }
-
 function TgdcRelationField.CreateAccCirculationList(const IsDrop: Boolean = False): String;
 var
   ibsqlR: TIBSQL;
@@ -5791,18 +5695,6 @@ begin
         Transaction.Commit;
     end;
   end;
-end;
-
-function TgdcRelationField.GetKeyName(IsPrimary: Boolean;
-  ARelationName: String; UniqueID: String): String;
-var
-  S: String;
-begin
-  if IsPrimary then
-    S := 'PK_' + ARelationName + '_' + UniqueID
-  else
-    S := 'FK_' + ARelationName + '_' + UniqueID;
-  Result := gdcBaseManager.AdjustMetaName(S);
 end;
 
 function TgdcRelationField.GetCanEdit: Boolean;
@@ -9398,77 +9290,8 @@ end;
 
 { TgdcTableToTable }
 
-procedure TgdcTableToTable.CustomInsert(Buff: Pointer);
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCTABLETOTABLE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCTABLETOTABLE', KEYCUSTOMINSERT);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMINSERT]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCTABLETOTABLE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCTABLETOTABLE',
-  {M}          'CUSTOMINSERT', KEYCUSTOMINSERT, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCTABLETOTABLE' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  inherited;
-  //синхронизируем информацию о новом домене
-  if FIDDomain = '' then Exit;
-  Assert(atDatabase <> nil);
-  CustomExecQuery(Format('INSERT INTO at_fields (' +
-    ' fieldname, ' +
-    ' lname, ' +
-    ' description, ' +
-    ' reftable, ' +
-    ' reflistfield, ' +
-    ' reftablekey, ' +
-    ' reflistfieldkey) ' +
-    ' VALUES ('+
-    ' ''%0:s'', ''%0:s'', ''Ссылка на таблицу %1:s'',' +
-    ' ''%1:s'', ''%2:s'', %3:d, %4:d )',
-    [FIDDomain, GetReferenceName,
-     atDatabase.Relations.ByRelationName(GetReferenceName).ListField.FieldName,
-     atDatabase.Relations.ByRelationName(GetReferenceName).ID,
-     atDatabase.Relations.ByRelationName(GetReferenceName).ListField.ID
-    ]), Buff);
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCTABLETOTABLE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCTABLETOTABLE', 'CUSTOMINSERT', KEYCUSTOMINSERT);
-  {M}  end;
-  {END MACRO}
-end;
-
-function TgdcTableToTable.CreateNewDomain: String;
-begin
-//Домен на primary key таблицы
-  if FIDDomain = '' then
-    FIDDomain := FieldByName('relationname').AsString + 'PK_' + GetUniqueID(Database, ReadTransaction);
-
-  if AnsiPos(UserPrefix, AnsiUpperCase(FIDDomain)) <> 1 then
-    FIDDomain := UserPrefix + FIDDomain;
-  Result := Format('CREATE DOMAIN %s AS INTEGER NOT NULL',
-    [FIDDomain]);
-
-end;
-
 procedure TgdcTableToTable.CreateRelationSQL(Scripts: TSQLProcessList);
 begin
-  Scripts.Add(CreateNewDomain);
   Scripts.Add(CreateSimpleTable);
   Scripts.Add(CreateForeignKey); 
   Scripts.Add(CreateGrantSQL);
@@ -9478,8 +9301,11 @@ function TgdcTableToTable.CreateSimpleTable: String;
 begin
   Result := Format
   (
-    'CREATE TABLE %0:s (id %1:s, PRIMARY KEY (id))',
-    [FieldByName('relationname').AsString, FIDDomain]
+    'CREATE TABLE %s (id dintkey, CONSTRAINT %s PRIMARY KEY (id))',
+    [
+      FieldByName('relationname').AsString,
+      gdcBaseManager.AdjustMetaName(FieldByName('relationname').AsString + '_PK')
+    ]
   );
 end;
 
@@ -9490,96 +9316,17 @@ begin
 end;
 
 function TgdcTableToTable.CreateForeignKey: String;
-var
-  NextConstraintName: String;
-  TableNameWithoutPrefix: String;
 begin
-  NeedSingleUser := True;
-  if Pos(UserPrefix, AnsiUpperCase(FieldByName('relationname').AsString)) = 1 then
-    TableNameWithoutPrefix := System.copy(FieldByName('relationname').AsString, Length(UserPrefix) + 1,
-      Length(FieldByName('relationname').AsString))
-  else
-    TableNameWithoutPrefix := FieldByName('relationname').AsString;
-  NextConstraintName := gdcBaseManager.AdjustMetaName(Format(UserPrefix + 'fk%s%s',
-    [TableNameWithoutPrefix, GetUniqueID(Database, ReadTransaction)]));
-
-
  Result := Format
   (
     ' ALTER TABLE %s ADD CONSTRAINT %s FOREIGN KEY (id) REFERENCES %s (%s) ON UPDATE CASCADE ON DELETE CASCADE',
     [
       FieldByName('relationname').AsString,
-      NextConstraintName,
+      gdcBaseManager.AdjustMetaName(FieldByName('relationname').AsString + '_FK'),
       GetReferenceName,
       GetKeyFieldName(GetReferenceName)
     ]
   );
-end;
-
-procedure TgdcTableToTable._DoOnNewRecord;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCTABLETOTABLE', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCTABLETOTABLE', KEY_DOONNEWRECORD);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEY_DOONNEWRECORD]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCTABLETOTABLE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCTABLETOTABLE',
-  {M}          '_DOONNEWRECORD', KEY_DOONNEWRECORD, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCTABLETOTABLE' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  inherited;
-  FIDDomain := '';
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCTABLETOTABLE', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCTABLETOTABLE', '_DOONNEWRECORD', KEY_DOONNEWRECORD);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcTableToTable.DropTable;
-var
-  FSQL: TSQLProcessList;
-  KeyField: TatRelationField;
-  KeyDomain: TatField;
-begin
-  Assert(atDatabase <> nil);
-
-  FSQL := TSQLProcessList.Create;
-  try
-    KeyField := atDatabase.FindRelationField(FieldByName('relationname').AsString,
-      GetKeyField(SubType));
-
-    if KeyField = nil then
-      raise EgdcIBError.Create('При удалении таблицы произошла ошибка. Требуется переподключение');
-
-    KeyDomain := KeyField.Field;
-    if (KeyDomain = nil) or (KeyDomain.RefTable = nil) then
-       raise EgdcIBError.Create('При удалении таблицы произошла ошибка. Требуется переподключение');
-
-    inherited;
-
-    FSQL.Add('DROP DOMAIN ' + KeyDomain.FieldName);
-
-    ShowSQLProcess(FSQL);
-  finally
-    FSQL.Free;
-  end;
 end;
 
 function TgdcTableToTable.GetReferenceName: String;
@@ -9589,6 +9336,7 @@ begin
   q := CreateReadIBSQL;
   try
     q.Close;
+
     if FieldByName('referencekey').AsInteger > 0 then
     begin
       q.SQL.Text := 'SELECT relationname FROM at_relations WHERE id = :id';
@@ -9596,13 +9344,13 @@ begin
       q.ExecQuery;
     end;
 
-    if q.RecordCount = 0 then
+    if q.EOF then
     begin
-      FieldByName('referencekey').FocusControl;
-      raise EgdcIBError.Create('Вы не указали таблицу-ссылку!');
+      if sDialog in BaseState then
+        FieldByName('referencekey').FocusControl;
+      raise EgdcIBError.Create('Не указана таблица!');
     end else
-      Result :=  q.FieldByName('relationname').AsString;
-      
+      Result := q.FieldByName('relationname').AsString;
   finally
     q.Free;
   end;

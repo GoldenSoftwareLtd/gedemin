@@ -375,12 +375,16 @@ begin
   Assert(AList <> nil);
   Assert(IBLogin <> nil);
 
+  AddText('Порядок загрузки:');
+  for I := 0 to AList.Count - 1 do
+    AddText(IntToStr(I) + ': ' + AList[I]);
+
   for I := 0 to AList.Count - 1 do
   begin
     if FLoadedNSList.IndexOf(AList[I]) > -1 then
       continue;
 
-    FPrevPosted := nil;  
+    FPrevPosted := nil;
     FNeedRelogin := False;
     FMetadataCounter := 0;
     FlushStorages;

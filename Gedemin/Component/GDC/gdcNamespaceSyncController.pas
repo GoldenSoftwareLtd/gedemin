@@ -523,10 +523,11 @@ begin
     '       WHERE o.namespacekey = s.namespacekey '#13#10 +
     '         AND DATEDIFF(SECOND, o.modified, o.curr_modified) >= 1) '#13#10 +
     '     OR '#13#10 +
-    '     (EXISTS (SELECT * FROM at_namespace_sync s '#13#10 +
-    '        JOIN at_namespace n ON n.id = s.namespacekey '#13#10 +
-    '        JOIN at_namespace_file f ON f.filename = s.filename '#13#10 +
+    '     (EXISTS (SELECT * FROM at_namespace_sync s2 '#13#10 +
+    '        JOIN at_namespace n ON n.id = s2.namespacekey '#13#10 +
+    '        JOIN at_namespace_file f ON f.filename = s2.filename '#13#10 +
     '        WHERE n.filetimestamp > f.filetimestamp '#13#10 +
+    '          AND s2.namespacekey = s.namespacekey AND s2.filename = s.filename'#13#10 +
     '      )'#13#10 +
     '     ) '#13#10 +
     '    ) '#13#10 +
@@ -720,9 +721,9 @@ begin
     '        ON l2.filename = f.filename '#13#10 +
     '    WHERE '#13#10 +
     '      l.filename = :filename '#13#10 +
-    '         '#13#10 +
+    ' '#13#10 +
     '    UNION ALL '#13#10 +
-    '     '#13#10 +
+    ' '#13#10 +
     '    SELECT '#13#10 +
     '      f.filename, '#13#10 +
     '      (t.path || ''-'' || f.xid || ''_'' || f.dbid) '#13#10 +
@@ -738,14 +739,30 @@ begin
     '    WHERE '#13#10 +
     '      POSITION ((f.xid || ''_'' || f.dbid) '#13#10 +
     '        IN t.path) = 0) '#13#10 +
-    'SELECT DISTINCT '#13#10 +
+    ' '#13#10 +
+    'SELECT '#13#10 +
     '  t.filename, s.namespacekey '#13#10 +
     'FROM '#13#10 +
     '  ns_tree t '#13#10 +
     '  JOIN at_namespace_sync s ON t.filename = s.filename '#13#10 +
     'WHERE '#13#10 +
-    '  t.filename <> :filename AND ' +
-    '  s.operation IN (''  '', ''? '') ';
+    '  s.operation IN (''  '', ''? '') '#13#10 +
+    ' '#13#10 +
+    'UNION '#13#10 +
+    ' '#13#10 +
+    'SELECT '#13#10 +
+    '  f.filename, s.namespacekey '#13#10 +
+    'FROM '#13#10 +
+    '  ns_tree t '#13#10 +
+    '  JOIN at_namespace_file f '#13#10 +
+    '    ON f.xid = t.uses_xid AND f.dbid = t.uses_dbid '#13#10 +
+    '  LEFT JOIN at_namespace_file_link l '#13#10 +
+    '    ON l.filename = f.filename '#13#10 +
+    '  JOIN at_namespace_sync s ON f.filename = s.filename '#13#10 +
+    'WHERE '#13#10 +
+    '  l.filename IS NULL '#13#10 +
+    '  AND '#13#10 +
+    '  s.operation IN (''  '', ''? '')';
 end;
 
 procedure TgdcNamespaceSyncController.Scan(const ACalculateStatus: Boolean;
@@ -902,14 +919,24 @@ begin
     lSaveRecords.Caption := 'Выбрано для сохранения в файлы: ' + Fq.Fields[1].AsString;
     Fq.Close;
 
-    Fq.SQL.Text :=
+    mLoadList.Lines.Clear;
+    FqDependentList.ExecQuery;
+    while not FqDependentList.EOF do
+    begin
+      mLoadList.Lines.Add(ExtractFileName(FqDependentList.Fields[0].AsString));
+      FqDependentList.Next;
+    end;
+    lLoadRecords.Caption := 'Выбрано для загрузки из файлов: ' + IntToStr(FqDependentList.RecordCount);
+    FqDependentList.Close;
+
+    {Fq.SQL.Text :=
       'SELECT LIST(f.name, ASCII_CHAR(13) || ASCII_CHAR(10)), COUNT(*) FROM at_namespace_file f ' +
       '  JOIN at_namespace_sync s ON s.filename = f.filename ' +
       'WHERE s.operation IN (''< '', ''<<'')';
     Fq.ExecQuery;
     mLoadList.Lines.Text := Fq.Fields[0].AsString;
     lLoadRecords.Caption := 'Выбрано для загрузки из файлов: ' + Fq.Fields[1].AsString;
-    Fq.Close;
+    Fq.Close;}
 
     if ShowModal = mrOk then
     begin

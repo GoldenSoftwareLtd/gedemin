@@ -11,19 +11,20 @@ uses
 
 type
   Tgdc_attr_dlgStoredProc = class(Tgdc_dlgGMetaData)
-    pcStoredProc: TPageControl;
-    tsNameSP: TTabSheet;
-    tsBodySP: TTabSheet;
-    Label1: TLabel;
-    Label2: TLabel;
-    dbedProcedureName: TDBEdit;
-    dbmDescription: TDBMemo;
     SynSQLSyn: TSynSQLSyn;
     IBTransaction: TIBTransaction;
     actSearch: TAction;
     actReplace: TAction;
     actSearchNext: TAction;
     actPrepare: TAction;
+    Panel1: TPanel;
+    pcStoredProc: TPageControl;
+    tsNameSP: TTabSheet;
+    Label1: TLabel;
+    Label2: TLabel;
+    dbedProcedureName: TDBEdit;
+    dbmDescription: TDBMemo;
+    tsBodySP: TTabSheet;
     tbdText: TTBDock;
     tbtText: TTBToolbar;
     tbiSearch: TTBItem;
