@@ -78,6 +78,8 @@ var
   PL_exception: TPL_exception;
   PL_raise_exception: TPL_raise_exception;
   PL_throw: TPL_throw;
+  PL_pred: TPL_pred;
+  PL_predicate_info: TPL_predicate_info;
 
 function LoadPLDependentLibraries: Boolean;
 procedure FreePLDependentLibraries;
@@ -195,6 +197,9 @@ begin
     PL_exception := GetProcAddr('PL_exception');
     PL_raise_exception := GetProcAddr('PL_raise_exception');
     PL_throw := GetProcAddr('PL_throw');
+    PL_pred := GetProcAddr('PL_pred');
+    PL_predicate := GetProcAddr('PL_predicate');
+    PL_predicate_info := GetProcAddr('PL_predicate_info');
   end;
 end;
 
