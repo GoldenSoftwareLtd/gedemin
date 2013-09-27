@@ -601,9 +601,9 @@ begin
       begin
         FSaveLogs := True;
         if (Trim(edLogs.Text))[Length(Trim(edLogs.Text))] = '\' then
-          LogFileName := Trim(edLogs.Text) + 'DBS_Log_' + FDatabaseName + '_'+ FormatDateTime('yy-mm-dd_hh-mm', FStartupTime) + '.log'
+          LogFileName := Trim(edLogs.Text) + 'DBS_' + FDatabaseName + '_'+ FormatDateTime('yy-mm-dd_hh-mm', FStartupTime) + '.log'
         else
-          LogFileName := Trim(edLogs.Text) + '\DBS_Log_' + FDatabaseName + '_'+ FormatDateTime('yy-mm-dd_hh-mm', FStartupTime) + '.log';
+          LogFileName := Trim(edLogs.Text) + '\DBS_' + FDatabaseName + '_'+ FormatDateTime('yy-mm-dd_hh-mm', FStartupTime) + '.log';
       end;
       if edtBackup.Enabled then
       begin

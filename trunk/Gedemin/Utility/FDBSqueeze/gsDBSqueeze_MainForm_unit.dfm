@@ -1,6 +1,6 @@
 object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
-  Left = 187
-  Top = 161
+  Left = 181
+  Top = 140
   BorderStyle = bsDialog
   ClientHeight = 536
   ClientWidth = 851
@@ -738,7 +738,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         end
         object txt3: TStaticText
           Left = 110
-          Top = 208
+          Top = 204
           Width = 100
           Height = 18
           Alignment = taCenter
@@ -747,11 +747,11 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           Caption = 'GD_DOCUMENT'
           Color = clBtnFace
           ParentColor = False
-          TabOrder = 23
+          TabOrder = 21
         end
         object txt5: TStaticText
-          Left = 107
-          Top = 257
+          Left = 110
+          Top = 261
           Width = 100
           Height = 17
           Alignment = taCenter
@@ -783,7 +783,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           Alignment = taCenter
           AutoSize = False
           BorderStyle = sbsSunken
-          TabOrder = 21
+          TabOrder = 22
         end
         object sttxtGdDocAfter: TStaticText
           Left = 310
@@ -793,7 +793,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           Alignment = taCenter
           AutoSize = False
           BorderStyle = sbsSunken
-          TabOrder = 22
+          TabOrder = 23
         end
         object sttxtAcEntry: TStaticText
           Left = 222
@@ -1265,7 +1265,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         end
         object txt6: TStaticText
           Left = 110
-          Top = 288
+          Top = 287
           Width = 100
           Height = 17
           Alignment = taCenter
