@@ -302,8 +302,18 @@ begin
       '    on e2.lb <= ee.lb and e2.rb >= ee.rb '#13#10 +
       '  group by ee.id) t ON t.id = e.id '#13#10 +
       'ORDER BY t.path'
+  else if ARelationName = 'AC_TRANSACTION' then
+    Result := 'SELECT * FROM AC_TRANSACTION ORDER BY name, id'
+  else if ARelationName = 'AC_TRRECORD' then
+    Result := 'SELECT * FROM AC_TRRECORD ORDER BY description, id'
+  else if ARelationName = 'GD_CONSTVALUE' then
+    Result := 'SELECT * FROM GD_CONSTVALUE ORDER BY constdate, constvalue'
   else if ARelationName = 'GD_PLACE' then
     Result := 'SELECT * FROM GD_PLACE ORDER BY lb'
+  else if ARelationName = 'GD_GOODGROUP' then
+    Result := 'SELECT * FROM GD_GOODGROUP ORDER BY lb'
+  else if ARelationName = 'GD_FUNCTION' then
+    Result := 'SELECT * FROM GD_FUNCTION ORDER BY module, SUBSTRING(script FROM 1 FOR 255)'
   else if ARelationName = 'AT_RELATION_FIELDS' then
     Result := 'SELECT * FROM AT_RELATION_FIELDS ORDER BY relationname, fieldname'
   else begin

@@ -351,6 +351,9 @@ begin
   Assert(AgdcObject <> nil);
   Assert(not AgdcObject.EOF);
 
+  if AgdcObject is TgdcStoredProc then
+    (AgdcObject as TgdcStoredProc).PrepareToSaveToStream(True);
+
   AWriter.WriteKey('Properties');
   AWriter.IncIndent;
   AWriter.WriteTextValue('Class', AgdcObject.ClassName, qDoubleQuoted);
@@ -532,6 +535,9 @@ begin
     WriteSet(AgdcObject, AWriter);
   finally
     AWriter.DecIndent;
+
+    if AgdcObject is TgdcStoredProc then
+      (AgdcObject as TgdcStoredProc).PrepareToSaveToStream(False);
   end;
 end;
 
