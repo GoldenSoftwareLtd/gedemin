@@ -11,19 +11,25 @@ type
   private
     FTerm: term_t;
     FSize: LongWord;
-    function GetValue(const Idx: LongWord): Variant;
     function GetDataType(const Idx: LongWord): Integer;
-    function GetTerm(const Idx: LongWord): term_t;  
+    function GetTerm(const Idx: LongWord): term_t;   
   public
     constructor CreateTerm(const ASize: Integer);
-    procedure SetInteger(const Idx: LongWord; const AValue: Integer);
-    procedure SetString(const Idx: LongWord; const AValue: String);
-    procedure SetFloat(const Idx: LongWord; const AValue: Double);
-    procedure SetDateTime(const Idx: LongWord; const AValue: TDateTime);
-    procedure SetDate(const Idx: LongWord; const AValue: TDateTime);
-    procedure SetInt64(const Idx: LongWord; const AValue: Int64);
+    procedure PutInteger(const Idx: LongWord; const AValue: Integer);
+    procedure PutString(const Idx: LongWord; const AValue: String);
+    procedure PutFloat(const Idx: LongWord; const AValue: Double);
+    procedure PutDateTime(const Idx: LongWord; const AValue: TDateTime);
+    procedure PutDate(const Idx: LongWord; const AValue: TDateTime);
+    procedure PutInt64(const Idx: LongWord; const AValue: Int64);
 
-    property Value[const Idx: LongWord]: Variant read GetValue;
+    function ReadInteger(const Idx: LongWord): Integer;
+    function ReadString(const Idx: LongWord): String;
+    function ReadFloat(const Idx: LongWord): Double;
+    function ReadDateTime(const Idx: LongWord): TDateTime;
+    function ReadDate(const Idx: LongWord): TDateTime;
+    function ReadInt64(const Idx: LongWord): Int64;
+    function ToString(const Idx: LongWord): String;
+
     property DataType[const Idx: LongWord]: Integer read GetDataType;
     property Term[const Idx: LongWord]: term_t read GetTerm; 
     property Size: LongWord read FSize;
@@ -34,7 +40,7 @@ type
     FQid: qid_t;
     FEof: Boolean;
     FTermv: TgsTermv;
-    FPred: String;
+    FPred: String;                    
 
     function GetEof: Boolean;
   public
@@ -57,9 +63,7 @@ type
     
     function GetArity(ASql: TIBSQL): Integer; overload;
     function GetArity(ADataSet: TDataSet; const AFieldList: String): Integer; overload;
-    function CheckDataType(const AVariableType: Integer; const AField: TField): Boolean;
-    function GetTempPath: String;
-    function TermToString(ATerm: term_t): String;
+    function GetTempPath: String;  
   public
     destructor Destroy; override;
      
@@ -75,32 +79,49 @@ type
       AParams: Variant; AnExtraConditions: TStringList; const AFieldList: String; ATr: TIBTransaction;
       const APredicateName: String; const AFileName: String);
     function CreateTermRef: term_t;
-    procedure ExtractData(ADataSet: TClientDataSet; const APredicateName: String; ATermv: TgsTermv);
+    procedure ExtractData(ADataSet: TClientDataSet; const APredicateName: String; const AnArity: Integer);
 
     property Debug: Boolean read FDebug write FDebug;
   end;
 
-  EgsPLClientException = class(Exception);
+  EgsPLClientException = class(Exception)
+  public
+    constructor CreateTypeError(const AnExpected: String; const AnActual: term_t);
+    constructor CreatePLError(AnException: term_t);
+  end;
+
+  function TermToString(ATerm: term_t): String;
 
 implementation
 
 uses
   jclStrings, gd_GlobalParams_unit;
 
-procedure RaisePrologError(AnException: term_t);
+constructor EgsPLClientException.CreateTypeError(const AnExpected: String; const AnActual: term_t);
+begin
+  Message := 'error(type_error(' + AnExpected + ',' + TermToString(AnActual) + '))';
+end;
+
+constructor EgsPLClientException.CreatePLError(AnException: term_t);
 var
   a: term_t;
   name: atom_t;
   arity: Integer;
 begin
-  if AnException <> 0 then
-  begin
-    a := PL_new_term_refs(2);
-    if (PL_get_arg(1, AnException, a) <> 0)
-      and (PL_get_name_arity(a, name, arity) <> 0)
-    then
-      raise EgsPLClientException.Create(PL_atom_chars(name));
-  end;
+  a := PL_new_term_ref;
+  if (PL_get_arg(1, AnException, a) <> 0)
+    and (PL_get_name_arity(a, name, arity) <> 0)
+  then
+    Message := PL_atom_chars(name); 
+end;
+
+procedure RaisePrologError;
+var
+  ex: term_t;  
+begin
+  ex := PL_exception(0);
+  if ex <> 0 then
+    raise EgsPLClientException.CreatePLError(ex);
 end;
 
 constructor TgsTermv.CreateTerm(const ASize: Integer);
@@ -119,81 +140,95 @@ begin
   Result := FTerm + Idx;
 end;
 
-procedure TgsTermv.SetInteger(const Idx: LongWord; const AValue: Integer);
+function TgsTermv.ToString(const Idx: LongWord): String;
+begin
+  Result := TermToString(GetTerm(Idx));
+end; 
+
+procedure TgsTermv.PutInteger(const Idx: LongWord; const AValue: Integer);
 begin
   PL_put_integer(GetTerm(Idx), AValue);
 end;
 
-procedure TgsTermv.SetString(const Idx: LongWord; const AValue: String);
+procedure TgsTermv.PutString(const Idx: LongWord; const AValue: String);
 begin
   PL_put_string_chars(GetTerm(Idx), PChar(AValue));
 end;
 
-procedure TgsTermv.SetFloat(const Idx: LongWord; const AValue: Double);
+procedure TgsTermv.PutFloat(const Idx: LongWord; const AValue: Double);
 begin
   PL_put_float(GetTerm(Idx), AValue);
 end;
 
-procedure TgsTermv.SetDateTime(const Idx: LongWord; const AValue: TDateTime);
+procedure TgsTermv.PutDateTime(const Idx: LongWord; const AValue: TDateTime);
 begin
   PL_put_atom_chars(GetTerm(Idx), PChar(FormatDateTime('yyyy-mm-dd hh:nn:ss', AValue)));
 end;
 
-procedure TgsTermv.SetDate(const Idx: LongWord; const AValue: TDateTime);
+procedure TgsTermv.PutDate(const Idx: LongWord; const AValue: TDateTime);
 begin
   PL_put_atom_chars(GetTerm(Idx), PChar(FormatDateTime('yyyy-mm-dd', AValue)));
 end;
 
-procedure TgsTermv.SetInt64(const Idx: LongWord; const AValue: Int64);
+procedure TgsTermv.PutInt64(const Idx: LongWord; const AValue: Int64);
 begin
   PL_put_int64(GetTerm(Idx), AValue);
-end;      
+end;
 
-function TgsTermv.GetValue(const Idx: LongWord): Variant;
-var
-  I: Integer;
-  I64: Int64;
-  S: PChar;
-  D: Double;
-  len: Cardinal;
+function TgsTermv.ReadInteger(const Idx: LongWord): Integer;
 begin
-  Result := Unassigned;
+  if PL_get_integer(GetTerm(Idx), Result) = 0 then
+    raise EgsPLClientException.CreateTypeError('integer', GetTerm(Idx));
+end;
 
+function TgsTermv.ReadString(const Idx: LongWord): String;
+var
+  len: Cardinal;
+  S: PChar;
+begin
   case GetDataType(Idx) of
-    PL_INTEGER, PL_SHORT, PL_INT:
-      if PL_get_integer(GetTerm(Idx), I) <> 0 then
-        Result := I
-      else
-        raise EgsPLClientException.Create('Invalid sync type prolog and delphi!');
-    PL_LONG:
-      if PL_get_int64(GetTerm(Idx), I64) <> 0 then
-        Result := IntToStr(I64)
-      else
-        raise EgsPLClientException.Create('Invalid sync type prolog and delphi!');
-    PL_ATOM, PL_CHARS:
+    PL_ATOM:
       if PL_get_atom_chars(GetTerm(Idx), S) <> 0 then
-        Result := String(S)
+        Result := S
       else
-        raise EgsPLClientException.Create('Invalid sync type prolog and delphi!');
+        raise EgsPLClientException.CreateTypeError('atom', GetTerm(Idx));
     PL_STRING:
-    begin
       if PL_get_string(GetTerm(Idx), S, len) <> 0 then
-        Result := String(S)
-      else
-        raise EgsPLClientException.Create('Invalid sync type prolog and delphi!');
-    end;
-    PL_FLOAT, PL_DOUBLE:
-      if PL_get_float(GetTerm(Idx), D) <> 0 then
-        Result := D
-      else
-        raise EgsPLClientException.Create('Invalid sync type prolog and delphi!');
-    PL_BOOL:
-      if PL_get_bool(GetTerm(Idx), I) <> 0 then
-        Result := I
+        Result := S
       else  
-        raise EgsPLClientException.Create('Invalid sync type prolog and delphi!');
+        raise EgsPLClientException.CreateTypeError('string', GetTerm(Idx));
   end;
 end;
+
+function TgsTermv.ReadFloat(const Idx: LongWord): Double;
+begin
+  if PL_get_float(GetTerm(Idx), Result) = 0 then
+    raise EgsPLClientException.CreateTypeError('float', GetTerm(Idx));
+end;
+
+function TgsTermv.ReadDateTime(const Idx: LongWord): TDateTime;
+var
+  S: String;
+begin
+  S := ReadString(Idx);
+  try
+    Result := VarToDateTime(S);
+  except
+    on E:Exception do
+      raise EgsPLClientException.CreateTypeError('datetime', GetTerm(Idx));
+  end;
+end;
+
+function TgsTermv.ReadDate(const Idx: LongWord): TDateTime;
+begin
+  Result := ReadDateTime(Idx);
+end;
+
+function TgsTermv.ReadInt64(const Idx: LongWord): Int64;
+begin
+  if PL_get_int64(GetTerm(Idx), Result) = 0 then
+    raise EgsPLClientException.CreateTypeError('int64', GetTerm(Idx));
+end; 
 
 function TgsTermv.GetDataType(const Idx: LongWord): Integer;
 begin
@@ -229,6 +264,9 @@ var
 begin
   p := PL_predicate(PChar(FPred), FTermv.Size, 'user');
   FQid := PL_open_query(nil, PL_Q_CATCH_EXCEPTION, p, FTermv.Term[0]);
+
+  if FQid = 0 then RaisePrologError;
+
   NextSolution;
 end;
 
@@ -252,7 +290,8 @@ begin
     if FEof then
     begin
       ex := PL_exception(FQid);
-      if ex <> 0 then RaisePrologError(ex);
+      if ex <> 0 then
+        raise EgsPLClientException.CreatePLError(ex);
     end; 
   end;  
 end; 
@@ -263,65 +302,41 @@ begin
     PL_cleanup(0);
     
   inherited;
-end;
+end;  
 
-function TgsPLClient.CheckDataType(const AVariableType: Integer; const AField: TField): Boolean;
-begin
-  Assert(AField <> nil); 
-
-  case AVariableType of
-    PL_INTEGER, PL_SHORT, PL_INT:
-      Result := AField.DataType in [ftSmallint, ftInteger, ftWord];
-    PL_LONG: Result := AField.DataType = ftLargeint;
-    PL_ATOM, PL_STRING, PL_CHARS:
-      Result := AField.DataType in [ftString, ftMemo, ftWideString, ftDate, ftTime, ftDateTime];
-    PL_FLOAT, PL_DOUBLE:
-      Result := AField.DataType in [ftFloat, ftCurrency, ftBCD];
-    PL_BOOL:
-      Result := AField.DataType in [ftBoolean];
-  else
-    Result := False;
-  end;
-end;
-
-procedure TgsPLClient.ExtractData(ADataSet: TClientDataSet; const APredicateName: String; ATermv: TgsTermv);
+procedure TgsPLClient.ExtractData(ADataSet: TClientDataSet; const APredicateName: String; const AnArity: Integer);
 var
   Query: TgsPLQuery;
   I: LongWord;
-  V: Variant;
-  DT: TDateTime; 
+  Termv: TgsTermv;
+  F: TField;
 begin
   Assert(ADataSet <> nil);
-  Assert(ATermv <> nil);
+  Assert(AnArity > 0);
 
+  Termv := TgsTermv.CreateTerm(AnArity);
   Query := TgsPLQuery.Create;
   try
     Query.Pred := APredicateName;
-    Query.Termv := ATermv;
+    Query.Termv := Termv;
     Query.OpenQuery;
     while not Query.Eof do
     begin
       ADataSet.Insert;
       try
-        for I := 0 to Query.Termv.Size - 1 do
+        for I := 0 to ADataSet.Fields.Count - 1 do
         begin
-          V := Query.Termv.Value[I];
-          if CheckDataType(Query.Termv.DataType[I], ADataSet.Fields[I])
-            and (VarType(V) <> 0) then
-          begin
-            if ADataSet.Fields[I].DataType in [ftDate, ftTime, ftDateTime] then
-            begin
-              try
-                DT := VarToDateTime(V);
-                ADataSet.Fields[I].AsDateTime := DT;
-              except
-                on E:Exception do
-                  raise EgsPLClientException.Create('Invalid TDateTime format!');
-              end;
-            end else
-              ADataSet.Fields[I].AsVariant := V;
-          end else
-            raise EgsPLClientException.Create('Error sync data type!');
+          F := ADataSet.Fields[I];
+          case F.DataType of
+            ftSmallint, ftInteger, ftBoolean: F.AsInteger := Query.Termv.ReadInteger(I);
+            ftCurrency, ftBCD: F.AsCurrency := Query.Termv.ReadFloat(I);
+            ftFloat: F.AsFloat := Query.Termv.ReadFloat(I);
+            ftLargeInt: (F as TLargeIntField).AsLargeInt := Query.Termv.ReadInt64(I);
+            ftTime, ftDateTime: F.AsDateTime := Query.Termv.ReadDateTime(I);
+            ftDate: F.AsDateTime := Query.Termv.ReadDate(I);
+          else
+            F.AsString := Query.Termv.ToString(I);
+          end;
         end;
         ADataSet.Post;
       finally
@@ -332,6 +347,7 @@ begin
     end;
   finally
     Query.Free;
+    Termv.Free;
   end;
 end;
 
@@ -384,12 +400,16 @@ end;
 
 procedure TgsPLClient.Compound(const AFunctor: String; AGoal: term_t; ATermv: TgsTermv);
 begin
-  Assert(AFunctor > '');  
+  Assert(AFunctor > '');
 
-  PL_cons_functor_v(AGoal, PL_new_functor(PL_new_atom(PChar(AFunctor)), ATermv.size), ATermv.Term[0]);
+  if PL_cons_functor_v(AGoal,
+    PL_new_functor(PL_new_atom(PChar(AFunctor)), ATermv.size),
+    ATermv.Term[0]) = 0
+  then
+    RaisePrologError;
 end;
 
-function TgsPLClient.TermToString(ATerm: term_t): String;
+function TermToString(ATerm: term_t): String;
 var
   a: term_t;
   name: atom_t;
@@ -399,6 +419,11 @@ var
 begin
   Result := '';
   case PL_term_type(ATerm) of
+   PL_VARIABLE:
+   begin
+     PL_get_chars(ATerm, S, CVT_VARIABLE);
+     Result := S;
+   end;
     PL_ATOM, PL_INTEGER, PL_FLOAT:
     begin
       PL_get_chars(ATerm, S, CVT_ALL);
@@ -426,7 +451,9 @@ begin
         Result := Result + ')';
       end;
     end;
-  end; 
+    else
+      raise Exception.Create('No variable!');
+  end;
 end;
 
 function TgsPLClient.GetArity(ASql: TIBSQL): Integer;
@@ -536,13 +563,13 @@ begin
         begin
           case ADataSet.Fields[I].DataType of
             ftSmallint, ftInteger, ftWord, ftBoolean:
-              Refs.SetInteger(Idx, ADataSet.Fields[I].AsInteger);
-            ftLargeint: Refs.SetInt64(Idx, TLargeintField(ADataSet.Fields[I]).AsLargeInt);
-            ftFloat: Refs.SetFloat(Idx, ADataSet.Fields[I].AsFloat);
-            ftCurrency: Refs.SetFloat(Idx, ADataSet.Fields[I].AsCurrency);
-            ftString, ftMemo: Refs.SetString(Idx, ADataSet.Fields[I].AsString);
-            ftDate: Refs.SetDate(Idx, ADataSet.Fields[I].AsDateTime);
-            ftDateTime, ftTime: Refs.SetDateTime(Idx, ADataSet.Fields[I].AsDateTime);
+              Refs.PutInteger(Idx, ADataSet.Fields[I].AsInteger);
+            ftLargeint: Refs.PutInt64(Idx, TLargeintField(ADataSet.Fields[I]).AsLargeInt);
+            ftFloat: Refs.PutFloat(Idx, ADataSet.Fields[I].AsFloat);
+            ftCurrency: Refs.PutFloat(Idx, ADataSet.Fields[I].AsCurrency);
+            ftString, ftMemo: Refs.PutString(Idx, ADataSet.Fields[I].AsString);
+            ftDate: Refs.PutDate(Idx, ADataSet.Fields[I].AsDateTime);
+            ftDateTime, ftTime: Refs.PutDateTime(Idx, ADataSet.Fields[I].AsDateTime);
           end;
           Inc(Idx);
         end;
@@ -587,22 +614,22 @@ begin
             case q.Fields[I].SQLType of
               SQL_LONG, SQL_SHORT:
                 if q.Fields[I].AsXSQLVAR.sqlscale = 0 then
-                  Refs.SetInteger(I, q.Fields[I].AsInteger)
+                  Refs.PutInteger(I, q.Fields[I].AsInteger)
                 else
-                  Refs.SetFloat(I, q.Fields[I].AsCurrency);
+                  Refs.PutFloat(I, q.Fields[I].AsCurrency);
               SQL_FLOAT, SQL_D_FLOAT, SQL_DOUBLE:
-                Refs.SetFloat(I, q.Fields[I].AsFloat);
+                Refs.PutFloat(I, q.Fields[I].AsFloat);
               SQL_INT64:
                 if q.Fields[I].AsXSQLVAR.sqlscale = 0 then
-                  Refs.SetInt64(I, q.Fields[I].AsInt64)
+                  Refs.PutInt64(I, q.Fields[I].AsInt64)
                 else
-                  Refs.SetFloat(I, q.Fields[I].AsCurrency);
+                  Refs.PutFloat(I, q.Fields[I].AsCurrency);
               SQL_TYPE_DATE:
-                Refs.SetDate(I, q.Fields[I].AsDate);
+                Refs.PutDate(I, q.Fields[I].AsDate);
               SQL_TIMESTAMP, SQL_TYPE_TIME:
-                Refs.SetDateTime(I, q.Fields[I].AsDateTime);
+                Refs.PutDateTime(I, q.Fields[I].AsDateTime);
               SQL_TEXT, SQL_VARYING:
-                Refs.SetString(I, q.Fields[I].AsTrimString);
+                Refs.PutString(I, q.Fields[I].AsTrimString);
             end;
           end;
           Compound(APredicateName, Term.Term[0], Refs);

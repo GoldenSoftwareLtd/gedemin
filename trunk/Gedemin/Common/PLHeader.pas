@@ -9,20 +9,6 @@ const
   PL_FLOAT                = 4; // double
   PL_STRING               = 5; // const char *
   PL_TERM                 = 6;
-  PL_FUNCTOR              = 10; // functor_t, arg ...
-  PL_LIST                 = 11; // length, arg ...
-  PL_CHARS                = 12; // const char *
-  PL_POINTER              = 13; // void *
-  PL_CODE_LIST            = 14; // [ascii...]
-  PL_CHAR_LIST            = 15; // [h,e,l,l,o]
-  PL_BOOL                 = 16; // PL_set_feature ()
-  PL_FUNCTOR_CHARS        = 17; // PL_unify_term ()
-  _PL_PREDICATE_INDICATOR = 18; // predicate_t (Procedure)
-  PL_SHORT                = 19; // short
-  PL_INT                  = 20; // int
-  PL_LONG                 = 21; // long
-  PL_DOUBLE               = 22; // double
-  PL_NCHARS               = 23; // unsigned, const char *
 
   PL_Q_DEBUG              = $01; // (!) = TRUE for backward compatibility
   PL_Q_NORMAL             = $02; // normal usage
@@ -69,7 +55,6 @@ type
   control_t = LongWord; // non-deterministic control arg
   foreign_t = LongWord; // return type of foreign functions
   pl_function_t = Pointer; // can only pass function as void *
-
 
   TPL_initialise = function(argc: Integer; argv: array of PChar): Integer; cdecl;
   TPL_is_initialised = function(var argc: Integer; var argv: array of PChar): Integer; cdecl;
@@ -119,7 +104,7 @@ type
   TPL_get_nil = function(l: term_t): Integer; stdcall;  
   TPL_quote = function(chr: Integer; data: PChar): PChar; cdecl;
   TPL_get_int64 = function(t: term_t; var I64: Int64): Integer; cdecl;
-  TPL_cons_functor_v = procedure(h: term_t; fd: functor_t; a0: term_t); cdecl;
+  TPL_cons_functor_v = function(h: term_t; fd: functor_t; a0: term_t): Integer; cdecl;
   TPL_put_variable = procedure (t: term_t); cdecl;
   TPL_put_atom = procedure(t: term_t; a: atom_t); cdecl;
   TPL_put_atom_chars = procedure(t: term_t; chars: PChar); cdecl;
@@ -144,6 +129,10 @@ type
   TPL_exception = function(qid: qid_t): term_t; cdecl;
   TPL_raise_exception = function(exception: term_t): Integer; cdecl;
   TPL_throw = function(exception: term_t): Integer; cdecl;
+
+  TPL_pred = function(f: functor_t; m: module_t): predicate_t; cdecl;    
+  TPL_predicate_info = function(pred: predicate_t; var name: atom_t; var arity: Integer;
+    var module: module_t): Integer; cdecl;
   
 implementation
 
