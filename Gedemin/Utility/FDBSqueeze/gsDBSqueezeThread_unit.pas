@@ -694,7 +694,7 @@ begin
         Result := True;
       end;
 
-      WM_DBS_DELETEDOCHIS:
+    WM_DBS_DELETEDOCHIS:
       begin
        // if FConnected.Value = 1 then
        // begin
@@ -710,7 +710,7 @@ begin
         Result := True;
       end;
 
-      WM_DBS_CREATEACENTRIES:
+    WM_DBS_CREATEACENTRIES:
       begin
        // if FConnected.Value = 1 then
        // begin
