@@ -616,7 +616,6 @@ var
 begin
   Assert(gdcBaseManager <> nil);
 
-
   if ATr = nil then
     Tr := TIBTransaction.Create(nil)
   else
