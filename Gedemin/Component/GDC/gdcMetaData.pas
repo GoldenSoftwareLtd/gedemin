@@ -340,18 +340,25 @@ type
 
   TgdcTableToTable = class(TgdcTable)
   private
+    FIDDomain: String;
+
     function CreateSimpleTable: String;
+    function CreateNewDomain: String;
     function CreateForeignKey: String;
 
   protected
+    procedure DropTable; override;
     procedure CreateRelationSQL(Scripts: TSQLProcessList); override;
+    procedure CustomInsert(Buff: Pointer); override;
+
+    procedure _DoOnNewRecord; override;
 
     function GetReferenceName: String;
 
   public
     class function GetDisplayName(const ASubType: TgdcSubType): String; override;
 
-    property ReferenceName: String read GetReferenceName;
+    property ReferenceName: String read GetReferenceName;// write SetReferenceName;
   end;
 
   TgdcTreeTable = class(TgdcTable)
@@ -9290,8 +9297,80 @@ end;
 
 { TgdcTableToTable }
 
+procedure TgdcTableToTable.CustomInsert(Buff: Pointer);
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+begin
+  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCTABLETOTABLE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCTABLETOTABLE', KEYCUSTOMINSERT);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMINSERT]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCTABLETOTABLE') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCTABLETOTABLE',
+  {M}          'CUSTOMINSERT', KEYCUSTOMINSERT, Params, LResult) then
+  {M}          exit;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCTABLETOTABLE' then
+  {M}        begin
+  {M}          Inherited;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  Assert(atDatabase <> nil);
+
+  inherited;
+
+  //синхронизируем информацию о новом домене
+  if (FIDDomain > '') and (atDatabase.Relations.ByRelationName(GetReferenceName) <> nil) then
+  begin
+    CustomExecQuery(Format('INSERT INTO at_fields (' +
+      ' fieldname, ' +
+      ' lname, ' +
+      ' description, ' +
+      ' reftable, ' +
+      ' reflistfield, ' +
+      ' reftablekey, ' +
+      ' reflistfieldkey) ' +
+      ' VALUES ('+
+      ' ''%0:s'', ''%0:s'', ''Ссылка на таблицу %1:s'',' +
+      ' ''%1:s'', ''%2:s'', %3:d, %4:d )',
+      [FIDDomain, GetReferenceName,
+       atDatabase.Relations.ByRelationName(GetReferenceName).ListField.FieldName,
+       atDatabase.Relations.ByRelationName(GetReferenceName).ID,
+       atDatabase.Relations.ByRelationName(GetReferenceName).ListField.ID
+      ]), Buff);
+  end;
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCTABLETOTABLE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCTABLETOTABLE', 'CUSTOMINSERT', KEYCUSTOMINSERT);
+  {M}  end;
+  {END MACRO}
+end;
+
+function TgdcTableToTable.CreateNewDomain: String;
+begin
+  if FIDDomain = '' then
+    FIDDomain := gdcBaseManager.AdjustMetaName(
+      FieldByName('relationname').AsString + '_DPK');
+
+  Result := Format('CREATE DOMAIN %s AS INTEGER NOT NULL',
+    [FIDDomain]);
+end;
+
 procedure TgdcTableToTable.CreateRelationSQL(Scripts: TSQLProcessList);
 begin
+  Scripts.Add(CreateNewDomain);
   Scripts.Add(CreateSimpleTable);
   Scripts.Add(CreateForeignKey); 
   Scripts.Add(CreateGrantSQL);
@@ -9301,9 +9380,10 @@ function TgdcTableToTable.CreateSimpleTable: String;
 begin
   Result := Format
   (
-    'CREATE TABLE %s (id dintkey, CONSTRAINT %s PRIMARY KEY (id))',
+    'CREATE TABLE %s (id %s, CONSTRAINT %s PRIMARY KEY (id))',
     [
       FieldByName('relationname').AsString,
+      FIDDomain,
       gdcBaseManager.AdjustMetaName(FieldByName('relationname').AsString + '_PK')
     ]
   );
@@ -9319,7 +9399,7 @@ function TgdcTableToTable.CreateForeignKey: String;
 begin
  Result := Format
   (
-    ' ALTER TABLE %s ADD CONSTRAINT %s FOREIGN KEY (id) REFERENCES %s (%s) ON UPDATE CASCADE ON DELETE CASCADE',
+    'ALTER TABLE %s ADD CONSTRAINT %s FOREIGN KEY (id) REFERENCES %s (%s) ON UPDATE CASCADE ON DELETE CASCADE',
     [
       FieldByName('relationname').AsString,
       gdcBaseManager.AdjustMetaName(FieldByName('relationname').AsString + '_FK'),
@@ -9329,6 +9409,74 @@ begin
   );
 end;
 
+procedure TgdcTableToTable._DoOnNewRecord;
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+begin
+  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCTABLETOTABLE', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCTABLETOTABLE', KEY_DOONNEWRECORD);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEY_DOONNEWRECORD]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCTABLETOTABLE') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCTABLETOTABLE',
+  {M}          '_DOONNEWRECORD', KEY_DOONNEWRECORD, Params, LResult) then exit;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCTABLETOTABLE' then
+  {M}        begin
+  {M}          Inherited;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  inherited;
+  FIDDomain := '';
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCTABLETOTABLE', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCTABLETOTABLE', '_DOONNEWRECORD', KEY_DOONNEWRECORD);
+  {M}  end;
+  {END MACRO}
+end;
+
+procedure TgdcTableToTable.DropTable;
+var
+  FSQL: TSQLProcessList;
+  KeyField: TatRelationField;
+  KeyDomain: TatField;
+begin
+  Assert(atDatabase <> nil);
+
+  FSQL := TSQLProcessList.Create;
+  try
+    KeyField := atDatabase.FindRelationField(FieldByName('relationname').AsString,
+      GetKeyField(SubType));
+
+    if KeyField = nil then
+      raise EgdcIBError.Create('При удалении таблицы произошла ошибка. Требуется переподключение');
+
+    KeyDomain := KeyField.Field;
+    if (KeyDomain = nil) or (KeyDomain.RefTable = nil) then
+       raise EgdcIBError.Create('При удалении таблицы произошла ошибка. Требуется переподключение');
+
+    inherited;
+
+    FSQL.Add('DROP DOMAIN ' + KeyDomain.FieldName);
+
+    ShowSQLProcess(FSQL);
+  finally
+    FSQL.Free;
+  end;
+end;
+
 function TgdcTableToTable.GetReferenceName: String;
 var
   q: TIBSQL;
@@ -9336,7 +9484,6 @@ begin
   q := CreateReadIBSQL;
   try
     q.Close;
-
     if FieldByName('referencekey').AsInteger > 0 then
     begin
       q.SQL.Text := 'SELECT relationname FROM at_relations WHERE id = :id';
@@ -9348,9 +9495,9 @@ begin
     begin
       if sDialog in BaseState then
         FieldByName('referencekey').FocusControl;
-      raise EgdcIBError.Create('Не указана таблица!');
+      raise EgdcIBError.Create('Не указана таблица-ссылка!');
     end else
-      Result := q.FieldByName('relationname').AsString;
+      Result :=  q.FieldByName('relationname').AsString;
   finally
     q.Free;
   end;
@@ -10840,4 +10987,5 @@ finalization
   UnRegisterGdcClass(TgdcCheckConstraint);
 
 end.
+
 
