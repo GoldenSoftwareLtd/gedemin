@@ -995,7 +995,7 @@ begin
 
   SaveNS;
 
-  TgdcNamespace.UpdateCurrModified;
+  TgdcNamespace.UpdateCurrModified(nil);
   gdcNamespace := TgdcNamespace.Create(nil);
   try
     gdcNamespace.ReadTransaction := FTr;
@@ -1040,7 +1040,7 @@ begin
   FTr.Commit;
   FTr.StartTransaction;
 
-  TgdcNamespace.UpdateCurrModified;
+  TgdcNamespace.UpdateCurrModified(nil);
 
   gdcNamespace := TgdcNamespace.Create(nil);
   try

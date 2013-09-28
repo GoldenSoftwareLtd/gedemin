@@ -833,7 +833,7 @@ begin
   if ASaveDir then
     gd_GlobalParams.NamespacePath := FDirectory;
     
-  DoLog(lmtInfo, 'Выполнено сравнение с каталогом ' + FDirectory);
+  DoLog(lmtInfo, 'Выполнено сравнение с каталогом: ' + FDirectory);
 end;
 
 procedure TgdcNamespaceSyncController.SetOperation(const AnOp: String);
