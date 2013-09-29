@@ -10935,7 +10935,6 @@ end;
 initialization
   RegisterGdcClass(TgdcMetaBase);
   RegisterGdcClass(TgdcField);
-  //RegisterGdcClass(TgdcFieldInfo);
   RegisterGdcClass(TgdcRelation);
   RegisterGdcClass(TgdcBaseTable);
   RegisterGdcClass(TgdcTable);
@@ -10965,7 +10964,6 @@ initialization
 finalization
   UnRegisterGdcClass(TgdcMetaBase);
   UnRegisterGdcClass(TgdcField);
-  //UnRegisterGdcClass(TgdcFieldInfo);
   UnRegisterGdcClass(TgdcRelation);
   UnRegisterGdcClass(TgdcTable);
   UnRegisterGdcClass(TgdcBaseTable);
@@ -10985,7 +10983,6 @@ finalization
   UnRegisterGdcClass(TgdcTrigger);
   UnRegisterGdcClass(TgdcGenerator);
   UnRegisterGdcClass(TgdcCheckConstraint);
-
 end.
 
 

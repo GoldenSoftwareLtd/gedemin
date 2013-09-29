@@ -304,6 +304,8 @@ begin
       'ORDER BY t.path'
   else if ARelationName = 'AC_TRANSACTION' then
     Result := 'SELECT * FROM AC_TRANSACTION ORDER BY name, id'
+  else if ARelationName = 'AC_ACCOUNT' then
+    Result := 'SELECT * FROM AC_ACCOUNT ORDER BY name'
   else if ARelationName = 'AC_TRRECORD' then
     Result := 'SELECT * FROM AC_TRRECORD ORDER BY description, id'
   else if ARelationName = 'GD_CONSTVALUE' then

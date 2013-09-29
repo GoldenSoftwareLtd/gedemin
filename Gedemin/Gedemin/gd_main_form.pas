@@ -378,7 +378,6 @@ uses
   at_frmSQLProcess,
   at_dlgLoadPackages_unit,
 
-  flt_dlgShowFilter_unit,
   gd_resourcestring,
 
   gd_frmWindowsList_unit,
@@ -900,15 +899,6 @@ begin
   GetTempPath(sizeof(TempPath), TempPath);
   while FindFirst(StrPas(TempPath) + rpTempPrefix + '*.tmp', faArchive, SearchR) = 0 do
     if not DeleteFile(StrPas(TempPath) + SearchR.Name) then Break;
-
-  // считываем режим отображения наименования полей в выпадающих
-  // списках, в фильтрах
-  if Assigned(UserStorage) then
-  begin
-    fltFieldNameMode := TFieldNameMode(
-      UserStorage.ReadInteger('Filter', 'FieldNameMode',
-        Integer(fnmDuplex), False));
-  end;
 
   {$IFNDEF DEBUG}
   if Assigned(GlobalStorage) and
@@ -1962,10 +1952,6 @@ begin
 
   if ExitCode = 0 then
   try
-    // сохраняем режим отображения наименований полей в фильтрах
-    if Assigned(UserStorage) then
-      UserStorage.WriteInteger('Filter', 'FieldNameMode', Integer(fltFieldNameMode));
-
     if Assigned(IBLogin) then
     begin
       if IBLogin.Loggedin then

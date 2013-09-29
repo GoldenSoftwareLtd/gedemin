@@ -14,6 +14,8 @@ const
   FDefaultDisplayName = 'NAME';
 
 type
+  TFieldNameMode = (fnmDuplex, fnmOriginal, fnmLocalize);
+
   TdlgShowFilter = class(TForm)
     ActionList: TActionList;
     actAddLine: TAction;
@@ -83,6 +85,7 @@ type
     procedure actShowConditionSQLExecute(Sender: TObject);
     procedure FormActivate(Sender: TObject);
     procedure btnAccessClick(Sender: TObject);
+
   private
     { Private declarations }
     FIsIndexField: Boolean;             // Индексированные поля
@@ -115,6 +118,11 @@ type
     FIsNewFilter: Boolean;              // Создан ли новый фильтр
     FSQLText: String;                   // Текст запроса начального
     FGroupByFields: TStringList;
+    FFieldNameMode: TFieldNameMode;
+    FFieldNameModeSet: Boolean;
+
+    function GetFieldNameMode: TFieldNameMode;
+    procedure SetFieldNameMode(const AValue: TFieldNameMode);
 
     function CheckMainFields: Boolean;  // Проверка корректности заполнения полей
     // Изменить поля по которым идет сортировка
@@ -170,7 +178,9 @@ type
     procedure ClearSortList;
     procedure ClearIndexList;
     function CheckFieldName(AnFieldName: String): String;
-    
+
+    property FieldNameMode: TFieldNameMode read GetFieldNameMode write SetFieldNameMode;
+
   public
     // Эти параметры должны быть присвоены до начала вызова функций
     Database: TIBDatabase;
@@ -195,17 +205,16 @@ type
     function DeleteFilter(const FilterKey: Integer): Boolean;
   end;
 
-type
-  TFieldNameMode = (fnmDuplex, fnmOriginal, fnmLocalize);
-
 var
   dlgShowFilter: TdlgShowFilter;
-  fltFieldNameMode: TFieldNameMode;
 
 implementation
 
 uses
-  flt_frFilterLine_unit, flt_frOrderLine_unit, flt_sql_parser, 
+  flt_frFilterLine_unit, flt_frOrderLine_unit, flt_sql_parser,
+  {$IFDEF GEDEMIN}
+  Storages,
+  {$ENDIF}
   {$IFDEF SYNEDIT}
   flt_frmSQLEditorSyn_unit,
   {$ELSE}
@@ -501,8 +510,6 @@ var
   end;
 
 begin
-//  ibqryTableName.Open;
-
   // Определяем FOREIGN KEY
   ibsqlForeignField.Close;
   ibsqlForeignField.Params[0].AsString := AnTableName;
@@ -688,21 +695,6 @@ begin
 end;
 {$ENDIF}
 
-(*procedure TdlgShowFilter.FindTable(const ATableName: String; var ADisplayName: String; var AIsReference: Boolean);
-begin
-  if ibqryTableName.Locate('tablename', ATableName, []) then
-  begin
-    // Присваиваем наименование поля для отображения
-    ADisplayName := Trim(ibqryTableName.FieldByName('displayfield').AsString);
-    // Присваиваем флаг справочника
-    AIsReference := ibqryTableName.FieldByName('isreference').AsInteger = 1;
-  end else
-  begin
-    ADisplayName := 'name';
-    AIsReference := False;
-  end;
-end;*)
-
 procedure TdlgShowFilter.FindTable(const ATableName, AFieldName: String;
  var ADisplayName: String; var AIsReference: Boolean; const AnSecondTable: String);
 var
@@ -797,12 +789,10 @@ var
 
   function GetFieldName(const AnLocalName, AnOriginalName: String): String;
   begin
-    case fltFieldNameMode of
+    case FieldNameMode of
       fnmOriginal: Result := AnOriginalName;
       fnmLocalize: Result := AnLocalName;
       fnmDuplex: Result := AnLocalName + ' (' + AnOriginalName + ')';
-    else
-      Assert(False, 'Filter Field Name Mode not suported.');
     end;
   end;
 begin
@@ -822,17 +812,6 @@ begin
     // Определяем список таблиц
     AnLocalTable := GetFieldName(AnLocalTable, AnTableName);
 
-    {ibqryTableName.Open;
-    if ibqryTableName.Locate('tablename', AnTableName, []) then
-      AnLocalTable := Trim(ibqryTableName.FieldByName('name').AsString)
-    else
-      AnLocalTable := AnTableName;}
-
-    // Определяем аттрибуты
-{    ibqryAttrRef.Close;
-    ibqryAttrRef.Params[0].AsString := AnTableName;
-    ibqryAttrRef.Open;}
-
     OnlySimpleFields := False;
     // Определяем PRIMARY KEY
     ibsqlPrimaryField.Close;
@@ -844,19 +823,11 @@ begin
       ibsqlPrimaryField.Next;
       if not ibsqlPrimaryField.Eof then
       begin
-      //{gs}  MessageBox(Self.Handle, PChar(Format('У таблицы %s больше, чем один PRIMARY KEY.', [AnTableName])), 'Внимание',
-      //   MB_OK or MB_ICONINFORMATION);
-         OnlySimpleFields := True;
-        //Result := False;
-        //Exit;
+        OnlySimpleFields := True;
       end;
     end else
     begin
-      //{gs}MessageBox(Self.Handle, PChar(Format('У таблицы %s отсутствует PRIMARY KEY.', [AnTableName])), 'Внимание',
-      // MB_OK or MB_ICONINFORMATION);
        OnlySimpleFields := True;
-      //Result := False;
-      //Exit;
     end;
 
     OrderTreeNode := FSortList.Items.AddObject(nil, AnLocalTable, nil);
@@ -905,26 +876,14 @@ begin
           // Заполняем поля FOREIGN KEY
           TfltFieldData(TepmFieldTreeNode.Data).FieldName := CheckFieldName(ibsqlForeignField.FieldByName('sourcefield').AsString);
           TfltFieldData(TepmFieldTreeNode.Data).IsTree := ibsqlForeignField.FieldByName('istree').AsInteger = 1;
-          {if Pos(FUserFieldPrefix, TfltFieldData(TepmFieldTreeNode.Data).FieldName) = 0 then
-          begin}
-            TfltFieldData(TepmFieldTreeNode.Data).FieldType := GD_DT_REF_SET_ELEMENT;
-            TfltFieldData(TepmFieldTreeNode.Data).RefTable := Trim(ibsqlForeignField.FieldByName('targettable').AsString);
-            TfltFieldData(TepmFieldTreeNode.Data).RefField := Trim(ibsqlForeignField.FieldByName('targetfield').AsString);
-            FindTable(AnTableName,
-             TfltFieldData(TepmFieldTreeNode.Data).FieldName, S,
-             TfltFieldData(TepmFieldTreeNode.Data).IsReference,
-             TfltFieldData(TepmFieldTreeNode.Data).RefTable);
-            TfltFieldData(TepmFieldTreeNode.Data).DisplayName := S;
-          {end
-          begin
-            if ibqryAttrRef.Locate('fieldname', TfltFieldData(TepmFieldTreeNode.Data).FieldName, []) then
-            begin
-              TfltFieldData(TepmFieldTreeNode.Data).FieldType := GD_DT_ATTR_SET_ELEMENT;
-              TfltFieldData(TepmFieldTreeNode.Data).AttrKey := ibqryAttrRef.FieldByName('attrkey').AsInteger;
-              TfltFieldData(TepmFieldTreeNode.Data).AttrRefKey := ibqryAttrRef.FieldByName('id').AsInteger;
-              TfltFieldData(TepmFieldTreeNode.Data).IsReference := ibqryAttrRef.FieldByName('direct').AsInteger <> 0;
-            end;
-          end;}
+          TfltFieldData(TepmFieldTreeNode.Data).FieldType := GD_DT_REF_SET_ELEMENT;
+          TfltFieldData(TepmFieldTreeNode.Data).RefTable := Trim(ibsqlForeignField.FieldByName('targettable').AsString);
+          TfltFieldData(TepmFieldTreeNode.Data).RefField := Trim(ibsqlForeignField.FieldByName('targetfield').AsString);
+          FindTable(AnTableName,
+           TfltFieldData(TepmFieldTreeNode.Data).FieldName, S,
+           TfltFieldData(TepmFieldTreeNode.Data).IsReference,
+           TfltFieldData(TepmFieldTreeNode.Data).RefTable);
+          TfltFieldData(TepmFieldTreeNode.Data).DisplayName := S;
           FillMainFields(TfltFieldData(TepmFieldTreeNode.Data));
 
           if atDatabase <> nil then
@@ -1158,29 +1117,6 @@ begin
 
       ibsqlSortFields.Next;
     end;
-
-    // Заполняем список связей множество атрибутов
-    {ibqryAttrRef.First;
-    while not ibqryAttrRef.Eof do
-    begin
-      if (ibqryAttrRef.FieldByName('attrtype').AsString = FReferenceLabel) and
-       (ibqryAttrRef.FieldByName('setelement').AsInteger = 0) then
-      begin
-        TepmFieldTreeNode := FFieldList.Items.AddChild(TableTreeNode, '7_' + Trim(ibqryAttrRef.FieldByName('label').AsString));
-        TepmFieldTreeNode.ImageIndex := 7;
-        TepmFieldTreeNode.Data := TfltFieldData.Create;
-        FFilterBloksList.Add(TepmTreeNode.Data);
-        TfltFieldData(TepmFieldTreeNode.Data).FieldName := CheckFieldName(AnPrimaryName);
-        TfltFieldData(TepmFieldTreeNode.Data).FieldType := GD_DT_ATTR_SET;
-        TfltFieldData(TepmFieldTreeNode.Data).AttrKey := ibqryAttrRef.FieldByName('attrkey').AsInteger;
-        TfltFieldData(TepmFieldTreeNode.Data).AttrRefKey := ibqryAttrRef.FieldByName('id').AsInteger;
-        TfltFieldData(TepmFieldTreeNode.Data).IsReference := ibqryAttrRef.FieldByName('direct').AsInteger <> 0;
-
-        FillMainFields(TfltFieldData(TepmFieldTreeNode.Data));
-      end;
-
-      ibqryAttrRef.Next;
-    end;}
   except
     //Result := False;
   end;
@@ -1242,12 +1178,10 @@ var
 
   function GetFieldName(const AnLocalName, AnOriginalName: String): String;
   begin
-    case fltFieldNameMode of
+    case FieldNameMode of
       fnmOriginal: Result := AnOriginalName;
       fnmLocalize: Result := AnLocalName;
       fnmDuplex: Result := AnLocalName + ' (' + AnOriginalName + ')';
-    else
-      Assert(False, 'Filter Field Name Mode not suported.');
     end;
   end;
 begin
@@ -1401,15 +1335,7 @@ begin
           end;
         end;
       end;
-    end; {else R = nil
-
-      это процедура! Мы пока не поддерживаем!
-
-      // Считывание полей процедуры
-      ibsqlSimpleField.Close;
-      ibsqlSimpleField.SQL.Text := cProcedureFieldSQL;
-      ibsqlSimpleField.Params[0].AsString := AnTableName;
-      ibsqlSimpleField.ExecQuery;}
+    end;
 
     if not OnlySimpleFields then
     begin
@@ -1934,10 +1860,9 @@ begin
     // Производим считывание полей для всех таблиц
     for I := 0 to AnTableList.Count - 1 do
     begin
-      //if not
       AnTableList.Objects[I] := OpenQuery(AnsiUpperCase(AnTableList.Names[I]), AnsiUpperCase(AnTableList.ValuesOfIndex[I]));// then
-      //  Exit;
     end;
+
     // Меняем наименование таблиц, если надо
     for I := 0 to AnTableList.Count - 1 do
     begin
@@ -1954,12 +1879,6 @@ begin
           FFilterBloksList.Add(TTreeNode(AnTableList.Objects[I]).Data);
         end;
         Caption := Caption + ' ' + TTreeNode(AnTableList.Objects[I]).Text;
-        // Выводит название полей вместе с название таблиц
-        {if AnTableList.Count > 1 then
-          for J := 0 to TfcTreeNode(AnTableList.Objects[I]).Count - 1 do
-            TfcTreeNode(AnTableList.Objects[I]).Item[J].Text :=
-             TfcTreeNode(AnTableList.Objects[I]).Item[J].Text + ' - ' +
-             TfcTreeNode(AnTableList.Objects[I]).Text;}
       end;
     end;
     // Устанавливаем указатель, что поля считанны
@@ -2615,9 +2534,9 @@ begin
         Break;
       end;
     case cbNameMode.ItemIndex of
-      0: fltFieldNameMode := fnmOriginal;
-      1: fltFieldNameMode := fnmLocalize;
-      2: fltFieldNameMode := fnmDuplex;
+      0: FieldNameMode := fnmOriginal;
+      1: FieldNameMode := fnmLocalize;
+      2: FieldNameMode := fnmDuplex;
     else
       Assert(False, 'Filter Field Name Mode not suported');
     end;
@@ -2629,7 +2548,35 @@ begin
   btnAccess.Enabled :=  not cbOnlyForMe.Checked;
 end;
 
-// Проверяем основные поля
+function TdlgShowFilter.GetFieldNameMode: TFieldNameMode;
+{$IFDEF GEDEMIN}
+var
+  I: Integer;
+{$ENDIF}
+begin
+  if not FFieldNameModeSet then
+  begin
+    FFieldNameMode := fnmDuplex;
+    {$IFDEF GEDEMIN}
+    I := UserStorage.ReadInteger('Filter', 'FieldNameMode', Integer(fnmDuplex), False);
+    if (I >= 0) and (I <= 2) then
+      FFieldNameMode := TFieldNameMode(I);
+    {$ENDIF}
+    FFieldNameModeSet := True;
+  end;
+
+  Result := FFieldNameMode;
+end;
+
+procedure TdlgShowFilter.SetFieldNameMode(const AValue: TFieldNameMode);
+begin
+  FFieldNameMode := AValue;
+  FFieldNameModeSet := True;
+  {$IFDEF GEDEMIN}
+  UserStorage.WriteInteger('Filter', 'FieldNameMode', Integer(FFieldNameMode));
+  {$ENDIF}
+end;
+
 function TdlgShowFilter.CheckMainFields: Boolean;
 var
   I: Integer;
@@ -2763,12 +2710,10 @@ end;
 
 procedure TdlgShowFilter.FormActivate(Sender: TObject);
 begin
-  case fltFieldNameMode of
+  case FieldNameMode of
     fnmOriginal: cbNameMode.ItemIndex := 0;
     fnmLocalize: cbNameMode.ItemIndex := 1;
     fnmDuplex: cbNameMode.ItemIndex := 2;
-  else
-    Assert(False, 'Filter Field Name Type not suported');
   end;
 end;
 
