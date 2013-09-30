@@ -21,6 +21,7 @@ type
     procedure PutDateTime(const Idx: LongWord; const AValue: TDateTime);
     procedure PutDate(const Idx: LongWord; const AValue: TDateTime);
     procedure PutInt64(const Idx: LongWord; const AValue: Int64);
+    procedure PutAtom(const Idx: LongWord; const AValue: String);
 
     function ReadInteger(const Idx: LongWord): Integer;
     function ReadString(const Idx: LongWord): String;
@@ -28,6 +29,7 @@ type
     function ReadDateTime(const Idx: LongWord): TDateTime;
     function ReadDate(const Idx: LongWord): TDateTime;
     function ReadInt64(const Idx: LongWord): Int64;
+    function ReadAtom(const Idx: LongWord): String;
     function ToString(const Idx: LongWord): String;
 
     property DataType[const Idx: LongWord]: Integer read GetDataType;
@@ -175,6 +177,11 @@ begin
   PL_put_int64(GetTerm(Idx), AValue);
 end;
 
+procedure TgsTermv.PutAtom(const Idx: LongWord; const AValue: String);
+begin
+  PL_put_atom_chars(GetTerm(Idx), PChar(AValue));
+end;
+
 function TgsTermv.ReadInteger(const Idx: LongWord): Integer;
 begin
   if PL_get_integer(GetTerm(Idx), Result) = 0 then
@@ -217,6 +224,11 @@ begin
     on E:Exception do
       raise EgsPLClientException.CreateTypeError('datetime', GetTerm(Idx));
   end;
+end;
+
+function TgsTermv.ReadAtom(const Idx: LongWord): String;
+begin
+  Result := ReadString(Idx); 
 end;
 
 function TgsTermv.ReadDate(const Idx: LongWord): TDateTime;
