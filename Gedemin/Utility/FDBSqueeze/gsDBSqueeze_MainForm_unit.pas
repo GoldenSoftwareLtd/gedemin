@@ -189,6 +189,7 @@ type
     FLogFileStream: TFileStream;
     FDatabaseName: String;
 
+    procedure ErrorEvent(const AErrorMsg: String);
     procedure GetConnectedEvent(const AConnected: Boolean);
     procedure WriteToLogFile(const AStr: String);
     procedure RecLog(const ARec: String);
@@ -219,6 +220,7 @@ var
   I: Integer;
 begin
   inherited;
+
   // скрытие ярлыков PageControl
   for I := 0 to pgcMain.PageCount - 1 do
     pgcMain.Pages[I].TabVisible := False;
@@ -237,6 +239,7 @@ begin
   FStartupTime := Now;
   FSThread := TgsDBSqueezeThread.Create(False);
   FSThread.ProgressWatch := Self;
+  FSThread.OnErrorEvent := ErrorEvent;
   FSThread.OnGetConnected := GetConnectedEvent;
   FSThread.OnLogSQL := LogSQLEvent;
   FSThread.OnGetInfoTestConnect := GetInfoTestConnectEvent;
@@ -254,6 +257,7 @@ begin
   FSThread.Free;
   if Assigned(FLogFileStream) then
     FLogFileStream.Free;
+
   inherited;
 end;
 
@@ -280,7 +284,7 @@ begin
   btnGetStatistics.Enabled := False;
   btnUpdateStatistics.Enabled := False;
 
-  FSThread.DoGetDBSize;
+  FSThread.DoGetDBSize;                                                         ////
 end;
 
 procedure TgsDBSqueeze_MainForm.GetInfoTestConnectEvent(const AConnectSuccess: Boolean; const AConnectInfoList: TStringList);
@@ -312,20 +316,25 @@ begin
      -1:  MsgStr := 'Вы хотите продолжить? Последняя операция ' + ACallTime + ' была прервана Вами до ее завершения';
    end;
 
-   if (AFunctionKey > WM_USER + 12) and (AFunctionKey < WM_USER + 28)  then
+   if (AFunctionKey > WM_USER + 12) and (AFunctionKey < WM_USER + 28)  then     ///TODO: проверить
    begin
      grpReprocessingType.Enabled := True;
      rbContinue.Enabled := True;
      rbStartOver.Enabled := True;
-     if MessageDlg(MsgStr, mtConfirmation, [mbOk, mbCancel], 0) = mrOk then
-     begin
-       rbContinue.Checked := True;
 
-       FContinueProcFunctionKey := AFunctionKey;
-       FContinueProcState := AState;
-     end
-     else
-      rbStartOver.Checked := True;
+     case Application.MessageBox(PChar(MsgStr), 'Предупреждение', MB_YESNO + MB_ICONQUESTION) of
+       IDYES:
+         begin
+           rbContinue.Checked := True;
+
+           FContinueProcFunctionKey := AFunctionKey;
+           FContinueProcState := AState;
+         end;
+       IDNO:
+         begin
+           rbStartOver.Checked := True;
+         end;
+     end;
    end
    else begin
      grpReprocessingType.Enabled := False;
@@ -371,8 +380,7 @@ begin
     sttxtInvCard.Caption := AnInvCard;
     WriteToLogFile('Original: ');
   end
-  else
-  begin
+  else begin
     sttxtGdDocAfter.Caption := AGdDoc;
     sttxtAcEntryAfter.Caption := AnAcEntry;
     sttxtInvMovementAfter.Caption := AnInvMovement;
@@ -402,6 +410,11 @@ begin
   WriteToLogFile('INV_MOVEMENT: ' + AnProcInvMovement);
   WriteToLogFile('INV_CARD: ' + AnProcInvCard);
   WriteToLogFile('===============================================================');
+end;
+
+procedure TgsDBSqueeze_MainForm.ErrorEvent(const AErrorMsg: String);
+begin
+  Application.MessageBox(PChar(AErrorMsg), 'Ошибка', MB_OK + MB_ICONSTOP + MB_TOPMOST);
 end;
 
 procedure TgsDBSqueeze_MainForm.SetItemsCbbEvent(const ACompanies: TStringList);
@@ -440,7 +453,7 @@ procedure TgsDBSqueeze_MainForm.WriteToLogFile(const AStr: String);
 var
   RecStr: String;
 begin
-  if FSaveLogs then
+  if (FSaveLogs) and Assigned(FLogFileStream) then
   begin
     RecStr := AStr + #13#10;
     FLogFileStream.Position := FLogFileStream.Size;
@@ -487,7 +500,6 @@ begin
   end;
 end;
 
-
 procedure TgsDBSqueeze_MainForm.actGetExecute(Sender: TObject);
 begin
   FSThread.DoGetStatistics;
@@ -496,7 +508,6 @@ end;
 
 procedure TgsDBSqueeze_MainForm.tbcPageControllerChange(Sender: TObject);
 begin
-    //
     pgcMain.ActivePageIndex := tbcPageController.TabIndex;
 end;
 
@@ -504,12 +515,10 @@ procedure TgsDBSqueeze_MainForm.tbcPageControllerChanging(Sender: TObject;
   var AllowChange: Boolean);
 begin
 //
-
 end;
 
 procedure TgsDBSqueeze_MainForm.actRadioLocationExecute(Sender: TObject);
 begin
-
   if rbLocale.Checked then
   begin
     gsDBSqueeze_MainForm.DefocusControl(rbLocale, False);
@@ -544,6 +553,8 @@ begin
   begin
     if not FConnected then
     begin
+      FSThread.DoGetDBSize;
+
       if (actDefaultPort.Enabled) and (chkDefaultPort.Checked) then
         FSThread.SetDBParams(
           edtHost.Text + ':' + edDatabaseName.Text,
@@ -555,8 +566,7 @@ begin
         edUserName.Text,
         edPassword.Text);
       FDatabaseName := edDatabaseName.Text;
-      
-      FSThread.DoGetDBSize;
+
       FSThread.Connect;
     end;
   end;
@@ -618,7 +628,7 @@ begin
         if not FileExists(LogFileName) then
           with TFileStream.Create(LogFileName, fmCreate) do Free;
 
-        FLogFileStream := TFileStream.Create(LogFileName, fmOpenWrite or fmShareDenyNone); 
+        FLogFileStream := TFileStream.Create(LogFileName, fmOpenWrite or fmShareDenyNone);
       end;
 
       FSThread.SetOptions(
@@ -682,7 +692,7 @@ begin
       and (edUserName.Text > '')
       and (edPassword.Text > '');
   end;
-  btnNext2.Enabled := (rbAllOurCompanies.Checked) or (rbCompany.Checked);
+  btnNext2.Enabled := ((rbAllOurCompanies.Checked) or (rbCompany.Checked)) and (FSThread.State);
 
   EnabledValue := True;
   if chkbSaveLogs.Checked then
@@ -722,7 +732,7 @@ begin
   sttxtStateTestConnect.Caption:= '';
   sttxtServer.Caption := '';
   sttxtActivUserCount.Caption := '';
-  //mLog.Lines.Add('Test Connect...');
+
   if (actDefaultPort.Enabled and chkDefaultPort.Checked) then
     FSThread.StartTestConnect(
       edtHost.Text + ':' + edDatabaseName.Text,
@@ -733,14 +743,9 @@ begin
       edtHost.Text + '/' + sePort.Text + ':' + edDatabaseName.Text,
       edUserName.Text,
       edPassword.Text);
-   //if    FSThread.State then
-    // сообщение об успехе
-    FSThread.DoGetInfoTestConnect;
-  //else
-    // сообщение о провале
 
+  FSThread.DoGetInfoTestConnect;
   FSThread.StopTestConnect;
-  //mLog.Lines.Add('Test Connect... OK');
 end;
 
 procedure TgsDBSqueeze_MainForm.actTestConnectUpdate(Sender: TObject);

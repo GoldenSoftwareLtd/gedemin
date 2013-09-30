@@ -44,6 +44,7 @@ const
   WM_DBS_DISCONNECT            = WM_USER + 35;
 
 type
+  TErrorEvent = procedure(const ErrorMsg: String) of object;
   TLogSQLEvent = procedure(const MsgLogSQL: String)of object;
   TGetConnectedEvent = procedure(const MsgConnected: Boolean) of object;
   TGetInfoTestConnectEvent = procedure(const MsgConnectSuccess: Boolean; const MsgConnectInfoList: TStringList) of object;
@@ -91,6 +92,7 @@ type
     FMessageGdDocStr, FMessageAcEntryStr, FMessageInvMovementStr, FMessageInvCardStr: String;
     FMessageProcGdDocStr, FMessageProcAcEntryStr, FMessageProcInvMovementStr, FMessageProcInvCardStr: String;
 
+    FOnErrorEvent: TErrorEvent;
     FOnLogSQL: TLogSQLEvent;
     FOnGetConnected: TGetConnectedEvent;
     FOnGetInfoTestConnect: TGetInfoTestConnectEvent;
@@ -161,6 +163,7 @@ type
     property State: Boolean read GetState;
     property Busy: Boolean read GetBusy;
 
+    property OnErrorEvent: TErrorEvent read FOnErrorEvent write FOnErrorEvent;
     property OnLogSQL: TLogSQLEvent read FOnLogSQL write FOnLogSQL;
     property OnGetConnected: TGetConnectedEvent read FOnGetConnected write FOnGetConnected;
     property OnGetInfoTestConnect: TGetInfoTestConnectEvent read FOnGetInfoTestConnect write FOnGetInfoTestConnect;
@@ -201,6 +204,7 @@ begin
   FMsgConnectInfoList := TStringList.Create;     
   FMessageStrList := TStringList.Create;
   FMessagePropertiesList := TStringList.Create;
+  FState.Value := 1;
 
   inherited Create(CreateSuspended);
 end;
@@ -357,22 +361,29 @@ begin
   case Msg.Message of
     WM_DBS_STARTTESTCONNECT:
       begin
+        FDBS.LogEvent('Testing connection...');
         FDBS.DatabaseName := FDatabaseName.Value;
         FDBS.UserName := FUserName.Value;
         FDBS.Password := FPassword.Value;
-        FDBS.Connect(False, True);        // garbage collect ON
-        
+        try
+          FDBS.Connect(False, True);        // garbage collect ON
+        except
+          on E: Exception do
+          begin
+            FDBS.LogEvent('[error]' + E.Message);
+          end;
+        end;
         FState.Value := 1;
         Result := True;
       end;
 
     WM_DBS_GETINFOTESTCONNECT:
       begin
-        if FState.Value = 1 then
-        begin
+        //if FState.Value = 1 then
+        //begin
           FDBS.GetInfoTestConnectEvent;
           FState.Value := 1;
-        end;
+        //end;
         Result := True;
       end;
 
@@ -383,7 +394,8 @@ begin
         FDBS.DatabaseName := '';
         FDBS.UserName := '';
         FDBS.Password := '';
-        
+
+        FDBS.LogEvent('Testing connection... OK');
         FState.Value := 1;
         Result := True;
       end;
@@ -405,12 +417,12 @@ begin
           FDBS.GetDBSizeEvent;
           FBusy.Value := 1;
         //end;
+        FState.Value := 1;
         Result := True;
       end;
 
     WM_DBS_CONNECT:
       begin
-        try
           FDBS.Connect(False, True);        // garbage collect ON
          // FConnected.Value := 1;
           FState.Value := 1;
@@ -419,15 +431,6 @@ begin
 
           PostThreadMessage(ThreadID, WM_DBS_CREATEDBSSTATEJOURNAL, 0, 0);
           Result := True;
-        except
-          on E: Exception do
-          begin
-            FDBS.LogEvent('[error]' + E.Message);
-
-            FState.Value := 0;
-            //Event на форму
-          end;
-        end;
       end;
 
     WM_DBS_CREATEDBSSTATEJOURNAL:
@@ -799,9 +802,11 @@ begin
  except
   on E: Exception do
   begin
-    FDBS.LogEvent('[error]' + E.Message); 
+    FDBS.LogEvent('[error]' + E.Message);
+    FOnErrorEvent(E.Message);
+    //сохранить ошибку в базу
+
     FState.Value := 0;
-    //Event на форму
   end;
  end;
 end;
