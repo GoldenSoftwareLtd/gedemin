@@ -11,7 +11,8 @@ type
   TTreeItemType = (tiMacrosFolder, tiMacros, tiReportFolder, tiReport,
     tiReportFunction, tiReportTemplate, tiVBClassFolder, tiVBClass, tiConstFolder,
     tiConst, tiGDCClassFolder, tiGDCClass, tiMethod, tiObjectFolder, tiForm, tiObject,
-    tiEvent, tiSFFolder, tiSF, tiGlobalObjectFolder, tiGlobalObject, tiUnknown);
+    tiEvent, tiSFFolder, tiSF, tiGlobalObjectFolder, tiGlobalObject, tiUnknown,
+    tiPrologFolder, tiProlog);
   sfTypes = (sfMacros, sfReport, sfEvent, sfMethod, sfUnknown);
 
 //значения ид папок
@@ -25,6 +26,7 @@ const
   idGlobalObjectFolder = -7;
   idMacrosRootFolder = - 8;
   idObjectReportRootFolder = -9;
+  idPrologFolder = -10;
 
 type
   TCustomTreeItem = class
@@ -233,6 +235,11 @@ type
   end;
 
   TGlobalObjectTreeFolder = class(TCustomTreeFolder)
+  public
+    constructor Create; override;
+  end;
+
+  TPrologTreeFolder = class(TCustomTreeFolder)
   public
     constructor Create; override;
   end;
@@ -633,6 +640,12 @@ end;
 constructor TFormTreeItem.Create;
 begin
   FItemType := tiForm;
+end;
+
+constructor TPrologTreeFolder.Create;
+begin
+  FItemType := tiPrologFolder;
+  FId := idPrologFolder;
 end;
 
 end.

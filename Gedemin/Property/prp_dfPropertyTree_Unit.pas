@@ -1,7 +1,7 @@
 unit prp_dfPropertyTree_Unit;
-
+                                                                                    
 interface
-
+                                                                       
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   ComCtrls, prp_TreeItems, ImgList, evt_Base, Db, dmImages_unit,
@@ -30,6 +30,7 @@ type
     FSFRootNode: TTreeNode;
     FConstRootNode: TTreeNode;
     FVBClassRootNode: TTreeNode;
+    FPrologRootNode: TTreeNode;
     //Индекс нода при сохранении в поток
     FNodeIndex: Integer;
     //Индексы основных нодов
@@ -43,6 +44,7 @@ type
     FConstRootNodeIndex: Integer;
     FVBClassRootNodeIndex: Integer;
     FSelectedIndex: Integer;
+    FPrologRootNodeIndex: Integer;
     FgdcReportRootNode: TTreeNode;
     procedure SetgdcReportRootNode(const Value: TTreeNode);
   protected
@@ -68,6 +70,7 @@ type
     property VBClassRootNode: TTreeNode read FVBClassRootNode write FVBClassRootNode;
     property ConstRootNode: TTreeNode read FConstRootNode write FConstRootNode;
     property GORootNode: TTreeNode read FGORootNode write FGORootNode;
+    property PrologRootNode: TTreeNode read FPrologRootNode write FPrologRootNode;
   end;
 
   TTreeTabSheet = class(TSuperTabSheet)
@@ -82,6 +85,8 @@ type
     procedure SetReportRootNode(const Value: TTreeNode);
     procedure SetSFRootNode(const Value: TTreeNode);
     procedure SetVBClassRootNode(const Value: TTreeNode);
+    procedure SetPrologRootNode(const Value: TTreeNode);
+    function GetPrologRootNode: TTreeNode;
     function GetClassesRootNode: TTreeNode;
     function GetConstRootNode: TTreeNode;
     function GetGORootNode: TTreeNode;
@@ -111,6 +116,7 @@ type
     property VBClassRootNode: TTreeNode read GetVBClassRootNode write SetVBClassRootNode;
     property ConstRootNode: TTreeNode read GetConstRootNode write SetConstRootNode;
     property GORootNode: TTreeNode read GetGORootNode write SetGORootNode;
+    property PrologRootNode: TTreeNode read GetPrologRootNode write SetPrologRootNode;
   end;
 
   TdfClipboard = class(TObject)
@@ -784,7 +790,7 @@ begin
   case TCustomTreeItem(Node.Data).ItemType of
     tiMacrosFolder, tiReportFolder, tiSFFolder, tiConstFolder,
     tiGlobalObjectFolder, tiObjectFolder, tiGDCClassFolder,
-    tiVBClassFolder:
+    tiVBClassFolder, tiPrologFolder:
     begin
       Node.SelectedIndex := 9;
       Node.ImageIndex := 8;
@@ -1434,7 +1440,7 @@ begin
     tiReport, tiConst, tiVBClass, tiSF, tiGlobalObject, tiMacrosFolder,
     tiReportFolder]) and (TCustomTreeItem(SelectedNode.Data).ID > 0)) or
     (TCustomTreeItem(SelectedNode.Data).ItemType in [tiSFFolder, tiVBClassFolder,
-    tiConstFolder, tiGlobalObjectFolder]) or
+    tiConstFolder, tiGlobalObjectFolder, tiPrologFolder]) or
     ((TCustomTreeItem(SelectedNode.Data).ItemType in [tiEvent, tiMethod]) and
      (TCustomTreeItem(SelectedNode.Data).ID = 0)));
 end;
@@ -2683,6 +2689,10 @@ begin
     TS.ClassesRootNode := TS.Tree.Items.AddChild(nil, 'Методы');
     TS.ClassesRootNode.Data := TgdcClassTreeFolder.Create;
     TS.ClassesRootNode.HasChildren := (gdcClassList.Count > 0) or (frmClassList.Count > 0);
+
+    TS.PrologRootNode := TS.Tree.Items.AddChild(nil, 'Пролог-скрипты');
+    TS.PrologRootNode.Data := TPrologTreeFolder.Create;
+    TS.PrologRootNode.HasChildren := False;
 
     TS.SFRootNode := AddSfRootNode(OBJ_APPLICATION, 'APPLICATION', TS.Tree);
     cbObjectList.Items.AddObject(TS.Caption, TObject(TApplication));
@@ -3978,6 +3988,7 @@ begin
       tiConst, tiConstFolder: HintStr := 'Добавить константы и переменные';
       tiGlobalObject, tiGlobalObjectFolder: HintStr := 'Добавить глобальный объект';
       tiSF, tiSFFolder: HintStr := 'Добавить скрипт-функцию';
+      tiProlog, tiPrologFolder: HintStr := 'Добавить пролог-скрипт';
     else
       HintStr := 'Добавить';  
     end;
@@ -4221,6 +4232,20 @@ begin
     Result := FTree.gdcReportRootNode;
 end;
 
+procedure TTreeTabSheet.SetPrologRootNode(const Value: TTreeNode);
+begin
+  if FTree <> nil then
+    FTree.FPrologRootNode := Value;
+end;
+
+function TTreeTabSheet.GetPrologRootNode: TTreeNode;
+begin
+  Result := nil;
+  if FTree <> nil then
+    Result := FTree.FPrologRootNode;
+end;
+
+
 { TprpTreeView }
 
 
@@ -4287,7 +4312,8 @@ begin
   FSFRootNodeIndex := -1;
   FConstRootNodeIndex := -1;
   FVBClassRootNodeIndex := -1;
-  FSelectedIndex := - 1;
+  FSelectedIndex := -1;
+  FPrologRootNodeIndex := -1;
 end;
 
 procedure TprpTreeView.ReadHasChildren(Stream: TStream);
@@ -4343,6 +4369,8 @@ begin
     gdcReportRootNode := Items[FgdcReportRootNodeIndex];
   if FClassesRootNodeIndex <> -1 then
     ClassesRootNode := Items[FClassesRootNodeIndex];
+  if FPrologRootNodeIndex <> -1 then
+    PrologRootNode := Items[FPrologRootNodeIndex]
 end;
 
 procedure TprpTreeView.SaveHasChildren(Stream: TStream);
@@ -4415,7 +4443,10 @@ begin
     FConstRootNodeIndex := Index
   else
   if FVBClassRootNode = N then
-    FVBClassRootNodeIndex := Index;
+    FVBClassRootNodeIndex := Index
+  else
+  if FPrologRootNode = N then
+    FPrologRootNodeIndex := Index;
 end;
 
 procedure TdfPropertyTree.InvalidateTree;
@@ -5297,6 +5328,9 @@ begin
     tiVBClass:
       if TreeItem.ItemType in [tiVBClass, tiVBClassFolder] then
         Result := True;
+    tiProlog:
+      if TreeItem.ItemType in [tiProlog, tiPrologFolder] then
+        Result := True;    
   end;
 end;
 
