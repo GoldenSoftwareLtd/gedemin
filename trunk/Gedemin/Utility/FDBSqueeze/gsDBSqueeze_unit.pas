@@ -209,9 +209,12 @@ end;
 
 procedure TgsDBSqueeze.Disconnect;
 begin
-  FIBDatabase.Connected := False;
+  if FIBDatabase.Connected then
+  begin
+    FIBDatabase.Connected := False;
+    LogEvent('Disconnecting from DB... OK');
+  end;
   FOnGetConnectedEvent(False);
-  LogEvent('Disconnecting from DB... OK');
 end;
 
 
@@ -2328,6 +2331,7 @@ var
     Kolvo, RealKolvo, RealKolvo2: Integer;
     IsDuplicate, DoNothing, GoToFirst, GoToLast, IsFirstIteration: Boolean;
     MainDuplicateTblName: String;
+    LineTblsNames: String;
     LineTblsList: TStringList;
     LinePosList: TStringList;
     LinePosInx: Integer;
@@ -3005,7 +3009,7 @@ var
     //----------------------------- обработка таблиц, у которых PK €вл€етс€ FK
         AllProc.Text := AllProcessedTblsNames.Text;
         LogEvent('[test] LineTblsList: ' + LineTblsList.Text);
-
+        LineTblsNames := '';
         for I:=0 to LineTblsList.Count-1 do
         begin
           q.SQL.Text :=                                                 ///TODO: вынести. Prepare
@@ -3054,9 +3058,10 @@ var
           Tr2.Commit;
           Tr2.StartTransaction;
           q.Close;
+
+          LineTblsNames := LineTblsNames + ',' + LineTblsList.Names[I];
         end;
        //------------------ добавление в HIS_3 всех цепочек cascade, создание списка обработанных таблиц AllProcessedTblsNames
-
        while LineTblsList.Count > 0 do
        begin
         LinePosInx := 0;
@@ -3439,7 +3444,7 @@ var
                 end;
               end;
           }
-              q2.SQL.Text :=
+              q2.SQL.Text :=    
                 'EXECUTE BLOCK ' +                                                                         #13#10 +
                 //'  RETURNS(S VARCHAR(16384)) ' +
                 'AS ' +                                                                                    #13#10 +
@@ -4112,6 +4117,21 @@ var
        end;
        LogEvent('[test] COUNT HIS after exclude: ' + IntToStr(GetCountHIS(1)));
 
+        Tr.Commit;
+        Tr2.Commit;
+        Tr.StartTransaction;
+        Tr2.StartTransaction;
+
+        LogEvent('[test] LineTblsNames=' + LineTblsNames);
+        TblsNamesList.CommaText := LineTblsNames;
+
+        for I:=0 to TblsNamesList.Count-1 do
+        begin
+          q2.SQL.Text :=
+            'DELETE FROM DBS_SUITABLE_TABLES WHERE RELATION_NAME = :RN';
+          q2.ParamByName('RN').AsString := TblsNamesList[I];
+          ExecSqlLogEvent(q2, 'IncludeCascadingSequences');
+        end;
         Tr.Commit;
         Tr2.Commit;
       except
@@ -6120,23 +6140,28 @@ begin
 
     q.SQL.Text :=
       'EXECUTE BLOCK ' +                                                #13#10 +
-      //'  RETURNS(S VARCHAR(16384)) ' +
       'AS ' +                                                           #13#10 +
       '  DECLARE VARIABLE S VARCHAR(16384); ' +                         #13#10 +
+      '  DECLARE VARIABLE PF VARCHAR(31); ' +                           #13#10 +
+      '  DECLARE VARIABLE RN VARCHAR(31); ' +                           #13#10 +
+      '  DECLARE VARIABLE Kolvo Integer; ' +                            #13#10 +
       'BEGIN ' +                                                        #13#10 +
       '  FOR ' +                                                        #13#10 +
-      '    SELECT ' +                                                   #13#10 +
-      '    '' DELETE FROM '' || relation_name || ' +                    #13#10 +
-      '    '' WHERE '' || pk_field || '' = '' || pk || ' +              #13#10 +
-      '    ''   AND ('' || pk || '' > 147000000) '' ' +                 #13#10 +
-      '    FROM ' +                                                     #13#10 +
-      '      DBS_TMP_PK_HASH ' +                                        #13#10 +
-      '    INTO :S ' +                                                  #13#10 +
+      '    SELECT DISTINCT  ' +                                         #13#10 +
+      '      relation_name,  ' +                                        #13#10 +
+      '      pk_field  ' +                                              #13#10 +
+      '    FROM dbs_tmp_pk_hash ' +                                     #13#10 +
+      '    INTO :RN, :PF ' +                                            #13#10 +
       '  DO BEGIN ' +                                                   #13#10 +
-      //'    SUSPEND; ' +
-      '    EXECUTE STATEMENT :S;' +                                     #13#10 +//WITH AUTONOMOUS TRANSACTION
-      '  END ' +                                                        #13#10 +
-      'END';
+      '    g_his_create(2, 0); ' +                                      #13#10 +
+      '    SELECT SUM(g_his_include(2, pk)) ' +                         #13#10 +
+      '    FROM dbs_tmp_pk_hash ' +                                     #13#10 +
+      '    WHERE relation_name = :RN AND pk_field = :PF ' +             #13#10 +
+      '    INTO :Kolvo; ' +                                             #13#10 +
+      '    EXECUTE STATEMENT ''DELETE FROM ''||:RN|| '' WHERE g_his_has(2, '' ||:PF|| '')=1 AND ''||:PF||''> 147000000''; ' + #13#10 +
+      '    g_his_destroy(2); ' +                                        #13#10+
+      '  END ' +                                                        #13#10+
+      'END ';
     ExecSqlLogEvent(q, 'DeleteDocuments_DeleteHIS');
 
  //   DestroyHIS(3);
@@ -6202,7 +6227,7 @@ var
       '    FROM rdb$indices ' +                                                 #13#10 +
       '    WHERE ((rdb$index_inactive = 0) OR (rdb$index_inactive IS NULL)) ' + #13#10 +
       '      AND ((RDB$SYSTEM_FLAG = 0) OR (RDB$SYSTEM_FLAG IS NULL)) ' +       #13#10 +
-      '      AND (rdb$index_name <> ''DBS_IX_DBS_TMP_PK_HASH'') ' +             #13#10 +
+      '      AND ((rdb$index_name NOT LIKE ''DBS_%'') AND (rdb$index_name NOT LIKE ''PK_DBS_%'')) ' + #13#10 +
       '      AND ((NOT rdb$index_name LIKE ''RDB$%'') ' +                       #13#10 +
       '        OR ((rdb$index_name LIKE ''RDB$PRIMARY%'') ' +                   #13#10 +
       '        OR (rdb$index_name LIKE ''RDB$FOREIGN%'')) ' +                   #13#10 +
@@ -6228,6 +6253,7 @@ var
       '  FOR ' +                                                        #13#10 +
       '    SELECT constraint_name, relation_name ' +                    #13#10 +
       '    FROM DBS_PK_UNIQUE_CONSTRAINTS ' +                           #13#10 +
+      '    WHERE relation_name NOT LIKE ''DBS_%'' ' +                   #13#10 +
       '    INTO :CN, :RN ' +                                            #13#10 +
       '  DO ' +                                                         #13#10 +
       '    EXECUTE STATEMENT ''ALTER TABLE '' || :RN || '' DROP CONSTRAINT '' || :CN; ' + #13#10 +
@@ -6564,6 +6590,7 @@ var
       '    SELECT ''ALTER TABLE '' || relation_name || '' ADD CONSTRAINT '' || ' +             #13#10 +
       '      constraint_name || '' '' || constraint_type ||'' ('' || list_fields || '') '' ' + #13#10 +
       '    FROM dbs_pk_unique_constraints ' +                                                  #13#10 +
+      '    WHERE relation_name NOT LIKE ''DBS_%'' ' +                   #13#10 +
       '    INTO :S ' +                                                  #13#10 +
       '  DO BEGIN ' +                                                   #13#10 +
       '    EXECUTE STATEMENT :S; '  +                                   #13#10 +  /// WITH AUTONOMOUS TRANSACTION
@@ -7304,7 +7331,7 @@ procedure TgsDBSqueeze.GetDBSizeEvent;                                          
   end;
 
   function GetFileSize(ADatabaseName: String): Int64;
-  var
+{  var
     Handle: tHandle;
     FindData: tWin32FindData;
     DatabaseName: String;    // ѕолное название файла, размер которого определ€ем
@@ -7317,7 +7344,7 @@ procedure TgsDBSqueeze.GetDBSizeEvent;                                          
     Handle := FindFirstFile(PChar(DatabaseName), FindData);
     if Handle = INVALID_HANDLE_VALUE then
     begin
-      //exeption;
+      raise EgsDBSqueeze.Create('Error: FindFirstFile returned Handle = INVALID_HANDLE_VALUE');
     end
     else begin
       Windows.FindClose(Handle);
@@ -7328,8 +7355,8 @@ procedure TgsDBSqueeze.GetDBSizeEvent;                                          
         Int64Rec(Result).Lo := FindData.nFileSizeLow;
       end;
     end;
-  end;
-   { var
+  end;  }
+  var
   SearchRecord : TSearchRec;
   DatabaseName: String;
   begin
@@ -7338,14 +7365,13 @@ procedure TgsDBSqueeze.GetDBSizeEvent;                                          
       DatabaseName := StringReplace(ADatabaseName, 'localhost:', '', [rfIgnoreCase])
     else
       DatabaseName := ADatabaseName;
-    LogEvent(DatabaseName);
     if FindFirst(DatabaseName, faAnyFile, SearchRecord) = 0 then
       try
         Result := (SearchRecord.FindData.nFileSizeHigh * Int64(MAXDWORD)) + SearchRecord.FindData.nFileSizeLow;
       finally
         FindClose(SearchRecord);
       end;
-  end;    }
+  end;   
 
 var
   FileSize: Int64;  // –азмер файла в байтах
@@ -7605,39 +7631,42 @@ var
   Tr: TIBTransaction;
   InfConnectList: TStringList;
 begin
-  Assert(Connected);
+  if Connected then
+  begin
+    InfConnectList := TStringList.Create;
+    Tr := TIBTransaction.Create(nil);
+    q := TIBSQL.Create(nil);
+    try
+      Tr.DefaultDatabase := FIBDatabase;
+      Tr.StartTransaction;
 
-  InfConnectList := TStringList.Create;
-  Tr := TIBTransaction.Create(nil);
-  q := TIBSQL.Create(nil);
-  try
-    Tr.DefaultDatabase := FIBDatabase;
-    Tr.StartTransaction;
+      q.Transaction := Tr;
+      q.SQL.Text :=
+        'SELECT ' +                                                         #13#10+
+        '  rdb$get_context(''SYSTEM'', ''ENGINE_VERSION'') AS ServerVer ' + #13#10+
+        'FROM ' +                                                           #13#10+
+        '  rdb$database';
+      ExecSqlLogEvent(q, 'GetInfoTestConnectEvent');
+      InfConnectList.Append('ServerVersion=' + q.FieldByName('ServerVer').AsString);
+      q.Close;
 
-    q.Transaction := Tr;
-    q.SQL.Text :=
-      'SELECT ' +                                                         #13#10+
-      '  rdb$get_context(''SYSTEM'', ''ENGINE_VERSION'') AS ServerVer ' + #13#10+
-      'FROM ' +                                                           #13#10+
-      '  rdb$database';
-    ExecSqlLogEvent(q, 'GetInfoTestConnectEvent');
-    InfConnectList.Append('ServerVersion=' + q.FieldByName('ServerVer').AsString);
-    q.Close;
+      q.SQL.Text :=
+        'SELECT COUNT(*) AS Kolvo ' +                     #13#10+
+        'FROM mon$attachments';
+      ExecSqlLogEvent(q, 'GetInfoTestConnectEvent');
+      InfConnectList.Append('ActivConnectCount=' + q.FieldByName('Kolvo').AsString);
+      q.Close;
 
-    q.SQL.Text :=
-      'SELECT COUNT(*) AS Kolvo ' +                     #13#10+
-      'FROM mon$attachments';
-    ExecSqlLogEvent(q, 'GetInfoTestConnectEvent');
-    InfConnectList.Append('ActivConnectCount=' + q.FieldByName('Kolvo').AsString);
-    q.Close;
-
-    Tr.Commit;
-    FOnGetInfoTestConnectEvent(True, InfConnectList);
-  finally
-    q.Free;
-    Tr.Free;
-    InfConnectList.Free;
-  end;
+      Tr.Commit;
+      FOnGetInfoTestConnectEvent(True, InfConnectList);
+    finally
+      q.Free;
+      Tr.Free;
+      InfConnectList.Free;
+    end;
+  end
+  else
+    FOnGetInfoTestConnectEvent(False, nil);
 end;
 
 
