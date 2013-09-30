@@ -22,6 +22,7 @@ type
     procedure PutDate(const Idx: LongWord; const AValue: TDateTime);
     procedure PutInt64(const Idx: LongWord; const AValue: Int64);
     procedure PutAtom(const Idx: LongWord; const AValue: String);
+    procedure PutVariable(const Idx: LongWord);
 
     function ReadInteger(const Idx: LongWord): Integer;
     function ReadString(const Idx: LongWord): String;
@@ -42,7 +43,8 @@ type
     FQid: qid_t;
     FEof: Boolean;
     FTermv: TgsTermv;
-    FPred: String;                    
+    FPred: String;
+    FDeleteDataAfterClose: Boolean;
 
     function GetEof: Boolean;
   public
@@ -55,7 +57,8 @@ type
 
     property Eof: Boolean read GetEof;
     property Pred: String read FPred write FPred;
-    property Termv: TgsTermv read FTermv write FTermv; 
+    property Termv: TgsTermv read FTermv write FTermv;
+    property DeleteDataAfterClose: Boolean read FDeleteDataAfterClose write FDeleteDataAfterClose;
   end;
 
   TgsPLClient = class(TObject)
@@ -71,7 +74,7 @@ type
      
     function Call(const APredicateName: String; AParams: TgsTermv): Boolean; overload;
     function Call(const AGoal: String): Boolean; overload;
-    procedure Compound(const AFunctor: String; AGoal: term_t; ATermv: TgsTermv);
+    procedure Compound(AGoal: term_t; const AFunctor: String; ATermv: TgsTermv);
     function Initialise(const AParams: Variant): Boolean;
     function IsInitialised: Boolean;
     procedure MakePredicatesOfSQLSelect(const ASQL: String; ATr: TIBTransaction;
@@ -80,7 +83,6 @@ type
     procedure MakePredicatesOfObject(const AClassName: String; const ASubType: String; const ASubSet: String;
       AParams: Variant; AnExtraConditions: TStringList; const AFieldList: String; ATr: TIBTransaction;
       const APredicateName: String; const AFileName: String);
-    function CreateTermRef: term_t;
     procedure ExtractData(ADataSet: TClientDataSet; const APredicateName: String; const AnArity: Integer);
 
     property Debug: Boolean read FDebug write FDebug;
@@ -182,6 +184,11 @@ begin
   PL_put_atom_chars(GetTerm(Idx), PChar(AValue));
 end;
 
+procedure TgsTermv.PutVariable(const Idx: LongWord);
+begin
+  PL_put_variable(GetTerm(Idx));
+end;
+
 function TgsTermv.ReadInteger(const Idx: LongWord): Integer;
 begin
   if PL_get_integer(GetTerm(Idx), Result) = 0 then
@@ -256,6 +263,7 @@ begin
 
   FQid := 0;
   FEOF := False;
+  FDeleteDataAfterClose := False;
 end;
 
 destructor TgsPLQuery.Destroy;
@@ -285,7 +293,10 @@ end;
 procedure TgsPLQuery.Close;
 begin
   try
-    PL_cut_query(FQid);
+    if FDeleteDataAfterClose then
+      PL_close_query(FQid)
+    else
+      PL_cut_query(FQid);
   finally
     FQid := 0;
     FEof := False;
@@ -331,6 +342,7 @@ begin
   try
     Query.Pred := APredicateName;
     Query.Termv := Termv;
+    Query.DeleteDataAfterClose := True;
     Query.OpenQuery;
     while not Query.Eof do
     begin
@@ -361,12 +373,7 @@ begin
     Query.Free;
     Termv.Free;
   end;
-end;
-
-function TgsPLClient.CreateTermRef: term_t;
-begin
-  Result := PL_new_term_ref;
-end;   
+end;     
 
 function TgsPLClient.Call(const AGoal: String): Boolean;
 var
@@ -410,7 +417,7 @@ begin
   end;
 end;
 
-procedure TgsPLClient.Compound(const AFunctor: String; AGoal: term_t; ATermv: TgsTermv);
+procedure TgsPLClient.Compound(AGoal: term_t; const AFunctor: String; ATermv: TgsTermv);
 begin
   Assert(AFunctor > '');
 
@@ -586,7 +593,7 @@ begin
           Inc(Idx);
         end;
       end;
-      Compound(APredicateName, Term.Term[0], Refs);
+      Compound(Term.Term[0], APredicateName, Refs);
       Call('assert', Term);
       ADataSet.Next;
     end;
@@ -644,7 +651,7 @@ begin
                 Refs.PutString(I, q.Fields[I].AsTrimString);
             end;
           end;
-          Compound(APredicateName, Term.Term[0], Refs);
+          Compound(Term.Term[0], APredicateName, Refs);
           Call('assert', Term);
           q.Next;
         end;
