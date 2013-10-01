@@ -3937,9 +3937,9 @@ type
     procedure Set_CardDataEnc(const Value: WideString); safecall;  
   end;
 
-  TwrpTermv = class(TwrpObject, IgsTermv)
+  TwrpPLTermv = class(TwrpObject, IgsPLTermv)
   private
-    function GetTermv: TgsTermv;
+    function GetPLTermv: TgsPLTermv;
   public
     procedure PutInteger(Idx: LongWord; AValue: Integer); safecall;
     procedure PutString(Idx: LongWord; const AValue: WideString); safecall;
@@ -3966,7 +3966,7 @@ type
   private
     function GetPLClient: TgsPLClient;
   public
-    function Call(const APredicateName: WideString; const AParams: IgsTermv): WordBool; safecall;
+    function Call(const APredicateName: WideString; const AParams: IgsPLTermv): WordBool; safecall;
     function Call2(const AGoal: WideString): WordBool; safecall;
     function Initialise(AParams: OleVariant): WordBool; safecall;
     function IsInitialised: WordBool; safecall;
@@ -3980,7 +3980,7 @@ type
       const ASubSet: WideString; AParams: OleVariant; const AnExtraConditions: IgsStringList;
       const AFieldList: WideString; const ATr: IgsIBTransaction;
       const APredicateName: WideString; const AFileName: WideString); safecall;
-    procedure Compound(AGoal: LongWord; const AFunctor: WideString; const ATermv: IgsTermv); safecall;
+    procedure Compound(AGoal: LongWord; const AFunctor: WideString; const ATermv: IgsPLTermv); safecall;
   end; 
 
 implementation
@@ -18988,104 +18988,104 @@ begin
   Result := GetGdcOLEObject(GetGdv_frmAcctBaseForm.gdvObject) as IgsGdvAcctBase;
 end;
 
-function TwrpTermv.GetTermv: TgsTermv;
+function TwrpPLTermv.GetPLTermv: TgsPLTermv;
 begin
-  Result := GetObject as TgsTermv;
+  Result := GetObject as TgsPLTermv;
 end;
 
-procedure TwrpTermv.PutInteger(Idx: LongWord; AValue: Integer);
+procedure TwrpPLTermv.PutInteger(Idx: LongWord; AValue: Integer);
 begin
-  GetTermv.PutInteger(Idx, AValue);
+  GetPLTermv.PutInteger(Idx, AValue);
 end;
 
-procedure TwrpTermv.PutString(Idx: LongWord; const AValue: WideString);
+procedure TwrpPLTermv.PutString(Idx: LongWord; const AValue: WideString);
 begin
-  GetTermv.PutString(Idx, AValue);
+  GetPLTermv.PutString(Idx, AValue);
 end;
 
-procedure TwrpTermv.PutFloat(Idx: LongWord; AValue: Double);
+procedure TwrpPLTermv.PutFloat(Idx: LongWord; AValue: Double);
 begin
-  GetTermv.PutFloat(Idx, AValue);
+  GetPLTermv.PutFloat(Idx, AValue);
 end;
 
-procedure TwrpTermv.PutDateTime(Idx: LongWord; AValue: TDateTime);
+procedure TwrpPLTermv.PutDateTime(Idx: LongWord; AValue: TDateTime);
 begin
-  GetTermv.PutDateTime(Idx, AValue);
+  GetPLTermv.PutDateTime(Idx, AValue);
 end;
 
-procedure TwrpTermv.PutDate(Idx: LongWord; AValue: TDateTime);
+procedure TwrpPLTermv.PutDate(Idx: LongWord; AValue: TDateTime);
 begin
-  GetTermv.PutDate(Idx, AValue);
+  GetPLTermv.PutDate(Idx, AValue);
 end;
 
-procedure TwrpTermv.PutInt64(Idx: LongWord; AValue: Int64);
+procedure TwrpPLTermv.PutInt64(Idx: LongWord; AValue: Int64);
 begin
-  GetTermv.PutInt64(Idx, AValue);
+  GetPLTermv.PutInt64(Idx, AValue);
 end;
 
-procedure TwrpTermv.PutAtom(Idx: LongWord; const AValue: WideString);
+procedure TwrpPLTermv.PutAtom(Idx: LongWord; const AValue: WideString);
 begin
-  GetTermv.PutAtom(Idx, AValue);
+  GetPLTermv.PutAtom(Idx, AValue);
 end;
 
-procedure TwrpTermv.PutVariable(Idx: LongWord);
+procedure TwrpPLTermv.PutVariable(Idx: LongWord);
 begin
-  GetTermv.PutVariable(Idx);
+  GetPLTermv.PutVariable(Idx);
 end;
 
-function TwrpTermv.ReadInteger(Idx: LongWord): Integer;
+function TwrpPLTermv.ReadInteger(Idx: LongWord): Integer;
 begin
-  Result := GetTermv.ReadInteger(Idx);
+  Result := GetPLTermv.ReadInteger(Idx);
 end;
 
-function TwrpTermv.ReadString(Idx: LongWord): WideString;
+function TwrpPLTermv.ReadString(Idx: LongWord): WideString;
 begin
-  Result := GetTermv.ReadString(Idx);
+  Result := GetPLTermv.ReadString(Idx);
 end;
 
-function TwrpTermv.ReadFloat(Idx: LongWord): Double;
+function TwrpPLTermv.ReadFloat(Idx: LongWord): Double;
 begin
-  Result := GetTermv.ReadFloat(Idx);
+  Result := GetPLTermv.ReadFloat(Idx);
 end;
 
-function TwrpTermv.ReadDateTime(Idx: LongWord): TDateTime;
+function TwrpPLTermv.ReadDateTime(Idx: LongWord): TDateTime;
 begin
-  Result := GetTermv.ReadDateTime(Idx);
+  Result := GetPLTermv.ReadDateTime(Idx);
 end;
 
-function TwrpTermv.ReadDate(Idx: LongWord): TDateTime;
+function TwrpPLTermv.ReadDate(Idx: LongWord): TDateTime;
 begin
-  Result := GetTermv.ReadDate(Idx);
+  Result := GetPLTermv.ReadDate(Idx);
 end;
 
-function TwrpTermv.ReadInt64(Idx: LongWord): Int64;
+function TwrpPLTermv.ReadInt64(Idx: LongWord): Int64;
 begin
-  Result := GetTermv.ReadInt64(Idx);
+  Result := GetPLTermv.ReadInt64(Idx);
 end;
 
-function TwrpTermv.ReadAtom(Idx: LongWord): WideString;
+function TwrpPLTermv.ReadAtom(Idx: LongWord): WideString;
 begin
-  Result := GetTermv.ReadAtom(Idx);
+  Result := GetPLTermv.ReadAtom(Idx);
 end;
 
-function TwrpTermv.ToString(Idx: LongWord): WideString;
+function TwrpPLTermv.ToString(Idx: LongWord): WideString;
 begin
-  Result := GetTermv.ToString(Idx);
+  Result := GetPLTermv.ToString(Idx);
 end;
 
-function TwrpTermv.Get_DataType(Idx: LongWord): Integer;
+function TwrpPLTermv.Get_DataType(Idx: LongWord): Integer;
 begin
-  Result := GetTermv.DataType[Idx];
+  Result := GetPLTermv.DataType[Idx];
 end;
 
-function TwrpTermv.Get_Term(Idx: LongWord): LongWord;
+function TwrpPLTermv.Get_Term(Idx: LongWord): LongWord;
 begin
-  Result := GetTermv.Term[Idx];
+  Result := GetPLTermv.Term[Idx];
 end;
 
-function TwrpTermv.Get_Size: LongWord;
+function TwrpPLTermv.Get_Size: LongWord;
 begin
-  Result := GetTermv.Size;
+  Result := GetPLTermv.Size;
 end;
 
 function TwrpPLClient.GetPLClient: TgsPLClient;
@@ -19093,14 +19093,14 @@ begin
   Result := GetObject as TgsPLClient;
 end;
 
-function TwrpPLClient.Call(const APredicateName: WideString; const AParams: IgsTermv): WordBool;
+function TwrpPLClient.Call(const APredicateName: WideString; const AParams: IgsPLTermv): WordBool;
 begin
-  Result := GetPLClient.Call(APredicateName, InterfaceToObject(AParams) as TgsTermv);
+  Result := GetPLClient.Call(APredicateName, InterfaceToObject(AParams) as TgsPLTermv);
 end;
 
 function TwrpPLClient.Call2(const AGoal: WideString): WordBool;
 begin
-  Result := GetPLClient.Call(AGoal);
+  Result := GetPLClient.Call2(AGoal);
 end;
 
 function TwrpPLClient.Initialise(AParams: OleVariant): WordBool;
@@ -19141,9 +19141,9 @@ begin
     APredicateName, AFileName);
 end;
 
-procedure TwrpPLClient.Compound(AGoal: LongWord; const AFunctor: WideString; const ATermv: IgsTermv);
+procedure TwrpPLClient.Compound(AGoal: LongWord; const AFunctor: WideString; const ATermv: IgsPLTermv);
 begin
-  GetPLClient.Compound(AGoal, AFunctor, InterfaceToObject(ATermv) as TgsTermv);
+  GetPLClient.Compound(AGoal, AFunctor, InterfaceToObject(ATermv) as TgsPLTermv);
 end;
 
 initialization
@@ -19391,7 +19391,7 @@ initialization
   RegisterGdcOLEClass(TgsTRPOSClient, TwrpTRPOSClient, ComServer.TypeLib, IID_IgsTRPOSClient);
   RegisterGdcOLEClass(TgsTRPOSOutPutData, TwrpTRPOSOutPutData, ComServer.TypeLib, IID_IgsTRPOSOutPutData);
   RegisterGdcOLEClass(TgsTRPOSParamData, TwrpTRPOSParamData, ComServer.TypeLib, IID_IgsTRPOSParamData);
-  RegisterGdcOLEClass(TgsTermv, TwrpTermv, ComServer.TypeLib, IID_IgsTermv);
+  RegisterGdcOLEClass(TgsPLTermv, TwrpPLTermv, ComServer.TypeLib, IID_IgsPLTermv);
   RegisterGdcOLEClass(TgsPLClient, TwrpPLClient, ComServer.TypeLib, IID_IgsPLClient);
 
 end.

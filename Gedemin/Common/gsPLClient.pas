@@ -7,7 +7,7 @@ uses
   gdcBase, PLHeader, PLIntf;
 
 type
-  TgsTermv = class(TObject)
+  TgsPLTermv = class(TObject)
   private
     FTerm: term_t;
     FSize: LongWord;
@@ -42,7 +42,7 @@ type
   private
     FQid: qid_t;
     FEof: Boolean;
-    FTermv: TgsTermv;
+    FTermv: TgsPLTermv;
     FPred: String;
     FDeleteDataAfterClose: Boolean;
 
@@ -57,7 +57,7 @@ type
 
     property Eof: Boolean read GetEof;
     property Pred: String read FPred write FPred;
-    property Termv: TgsTermv read FTermv write FTermv;
+    property Termv: TgsPLTermv read FTermv write FTermv;
     property DeleteDataAfterClose: Boolean read FDeleteDataAfterClose write FDeleteDataAfterClose;
   end;
 
@@ -72,9 +72,9 @@ type
   public
     destructor Destroy; override;
      
-    function Call(const APredicateName: String; AParams: TgsTermv): Boolean; overload;
-    function Call(const AGoal: String): Boolean; overload;
-    procedure Compound(AGoal: term_t; const AFunctor: String; ATermv: TgsTermv);
+    function Call(const APredicateName: String; AParams: TgsPLTermv): Boolean;
+    function Call2(const AGoal: String): Boolean;
+    procedure Compound(AGoal: term_t; const AFunctor: String; ATermv: TgsPLTermv);
     function Initialise(const AParams: Variant): Boolean;
     function IsInitialised: Boolean;
     procedure MakePredicatesOfSQLSelect(const ASQL: String; ATr: TIBTransaction;
@@ -128,7 +128,7 @@ begin
     raise EgsPLClientException.CreatePLError(ex);
 end;
 
-constructor TgsTermv.CreateTerm(const ASize: Integer);
+constructor TgsPLTermv.CreateTerm(const ASize: Integer);
 begin
   inherited Create;
 
@@ -136,7 +136,7 @@ begin
   FSize := ASize;
 end;
 
-function TgsTermv.GetTerm(const Idx: LongWord): term_t;
+function TgsPLTermv.GetTerm(const Idx: LongWord): term_t;
 begin
   if Idx >= Size then
     raise EgsPLClientException.Create('Invalid index!');
@@ -144,58 +144,58 @@ begin
   Result := FTerm + Idx;
 end;
 
-function TgsTermv.ToString(const Idx: LongWord): String;
+function TgsPLTermv.ToString(const Idx: LongWord): String;
 begin
   Result := TermToString(GetTerm(Idx));
 end; 
 
-procedure TgsTermv.PutInteger(const Idx: LongWord; const AValue: Integer);
+procedure TgsPLTermv.PutInteger(const Idx: LongWord; const AValue: Integer);
 begin
   PL_put_integer(GetTerm(Idx), AValue);
 end;
 
-procedure TgsTermv.PutString(const Idx: LongWord; const AValue: String);
+procedure TgsPLTermv.PutString(const Idx: LongWord; const AValue: String);
 begin
   PL_put_string_chars(GetTerm(Idx), PChar(AValue));
 end;
 
-procedure TgsTermv.PutFloat(const Idx: LongWord; const AValue: Double);
+procedure TgsPLTermv.PutFloat(const Idx: LongWord; const AValue: Double);
 begin
   PL_put_float(GetTerm(Idx), AValue);
 end;
 
-procedure TgsTermv.PutDateTime(const Idx: LongWord; const AValue: TDateTime);
+procedure TgsPLTermv.PutDateTime(const Idx: LongWord; const AValue: TDateTime);
 begin
   PL_put_atom_chars(GetTerm(Idx), PChar(FormatDateTime('yyyy-mm-dd hh:nn:ss', AValue)));
 end;
 
-procedure TgsTermv.PutDate(const Idx: LongWord; const AValue: TDateTime);
+procedure TgsPLTermv.PutDate(const Idx: LongWord; const AValue: TDateTime);
 begin
   PL_put_atom_chars(GetTerm(Idx), PChar(FormatDateTime('yyyy-mm-dd', AValue)));
 end;
 
-procedure TgsTermv.PutInt64(const Idx: LongWord; const AValue: Int64);
+procedure TgsPLTermv.PutInt64(const Idx: LongWord; const AValue: Int64);
 begin
   PL_put_int64(GetTerm(Idx), AValue);
 end;
 
-procedure TgsTermv.PutAtom(const Idx: LongWord; const AValue: String);
+procedure TgsPLTermv.PutAtom(const Idx: LongWord; const AValue: String);
 begin
   PL_put_atom_chars(GetTerm(Idx), PChar(AValue));
 end;
 
-procedure TgsTermv.PutVariable(const Idx: LongWord);
+procedure TgsPLTermv.PutVariable(const Idx: LongWord);
 begin
   PL_put_variable(GetTerm(Idx));
 end;
 
-function TgsTermv.ReadInteger(const Idx: LongWord): Integer;
+function TgsPLTermv.ReadInteger(const Idx: LongWord): Integer;
 begin
   if PL_get_integer(GetTerm(Idx), Result) = 0 then
     raise EgsPLClientException.CreateTypeError('integer', GetTerm(Idx));
 end;
 
-function TgsTermv.ReadString(const Idx: LongWord): String;
+function TgsPLTermv.ReadString(const Idx: LongWord): String;
 var
   len: Cardinal;
   S: PChar;
@@ -214,13 +214,13 @@ begin
   end;
 end;
 
-function TgsTermv.ReadFloat(const Idx: LongWord): Double;
+function TgsPLTermv.ReadFloat(const Idx: LongWord): Double;
 begin
   if PL_get_float(GetTerm(Idx), Result) = 0 then
     raise EgsPLClientException.CreateTypeError('float', GetTerm(Idx));
 end;
 
-function TgsTermv.ReadDateTime(const Idx: LongWord): TDateTime;
+function TgsPLTermv.ReadDateTime(const Idx: LongWord): TDateTime;
 var
   S: String;
 begin
@@ -233,23 +233,23 @@ begin
   end;
 end;
 
-function TgsTermv.ReadAtom(const Idx: LongWord): String;
+function TgsPLTermv.ReadAtom(const Idx: LongWord): String;
 begin
   Result := ReadString(Idx); 
 end;
 
-function TgsTermv.ReadDate(const Idx: LongWord): TDateTime;
+function TgsPLTermv.ReadDate(const Idx: LongWord): TDateTime;
 begin
   Result := ReadDateTime(Idx);
 end;
 
-function TgsTermv.ReadInt64(const Idx: LongWord): Int64;
+function TgsPLTermv.ReadInt64(const Idx: LongWord): Int64;
 begin
   if PL_get_int64(GetTerm(Idx), Result) = 0 then
     raise EgsPLClientException.CreateTypeError('int64', GetTerm(Idx));
 end; 
 
-function TgsTermv.GetDataType(const Idx: LongWord): Integer;
+function TgsPLTermv.GetDataType(const Idx: LongWord): Integer;
 begin
   if Idx >= Size then
     raise EgsPLClientException.Create('Invalid index!');
@@ -331,13 +331,13 @@ procedure TgsPLClient.ExtractData(ADataSet: TClientDataSet; const APredicateName
 var
   Query: TgsPLQuery;
   I: LongWord;
-  Termv: TgsTermv;
+  Termv: TgsPLTermv;
   F: TField;
 begin
   Assert(ADataSet <> nil);
   Assert(AnArity > 0);
 
-  Termv := TgsTermv.CreateTerm(AnArity);
+  Termv := TgsPLTermv.CreateTerm(AnArity);
   Query := TgsPLQuery.Create;
   try
     Query.Pred := APredicateName;
@@ -375,13 +375,13 @@ begin
   end;
 end;     
 
-function TgsPLClient.Call(const AGoal: String): Boolean;
+function TgsPLClient.Call2(const AGoal: String): Boolean;
 var
-  t: TgsTermv;
+  t: TgsPLTermv;
   Query: TgsPLQuery;
 begin
   Result := False;
-  t := TgsTermv.CreateTerm(1);
+  t := TgsPLTermv.CreateTerm(1);
   try
     if PL_chars_to_term(PChar(AGoal), t.Term[0]) <> 0 then
     begin
@@ -400,7 +400,7 @@ begin
   end;
 end;
 
-function TgsPLClient.Call(const APredicateName: String; AParams: TgsTermv): Boolean;
+function TgsPLClient.Call(const APredicateName: String; AParams: TgsPLTermv): Boolean;
 var
   Query: TgsPLQuery;
 begin
@@ -417,7 +417,7 @@ begin
   end;
 end;
 
-procedure TgsPLClient.Compound(AGoal: term_t; const AFunctor: String; ATermv: TgsTermv);
+procedure TgsPLClient.Compound(AGoal: term_t; const AFunctor: String; ATermv: TgsPLTermv);
 begin
   Assert(AFunctor > '');
 
@@ -561,15 +561,15 @@ procedure TgsPLClient.MakePredicatesOfDataSet(ADataSet: TDataSet; const AFieldLi
   const APredicateName: String; const AFileName: String);
 var
   I, Arity, Idx: Integer;
-  Refs, Term: TgsTermv;
+  Refs, Term: TgsPLTermv;
 begin
   Assert(ADataSet <> nil);
   Assert(APredicateName > '');
 
 
   Arity := GetArity(ADataSet, AFieldList);
-  Refs := TgsTermv.CreateTerm(Arity);
-  Term := TgsTermv.CreateTerm(1);
+  Refs := TgsPLTermv.CreateTerm(Arity);
+  Term := TgsPLTermv.CreateTerm(1);
   try
     ADataSet.First;
     while not ADataSet.Eof do
@@ -607,7 +607,7 @@ procedure TgsPLClient.MakePredicatesOfSQLSelect(const ASQL: String; ATr: TIBTran
   const APredicateName: String; const AFileName: String);
 var
   q: TIBSQL;
-  Refs, Term: TgsTermv;
+  Refs, Term: TgsPLTermv;
   I: LongWord;
   Arity: Integer; 
 begin
@@ -623,8 +623,8 @@ begin
     Arity := GetArity(q);
     if Arity > 0 then
     begin
-      Refs := TgsTermv.CreateTerm(Arity);
-      Term := TgsTermv.CreateTerm(1);
+      Refs := TgsPLTermv.CreateTerm(Arity);
+      Term := TgsPLTermv.CreateTerm(1);
       try
         while not q.Eof do
         begin
