@@ -3940,7 +3940,7 @@ type
   TwrpPLTermv = class(TwrpObject, IgsPLTermv)
   private
     function GetPLTermv: TgsPLTermv;
-  public
+  protected
     procedure PutInteger(Idx: LongWord; AValue: Integer); safecall;
     procedure PutString(Idx: LongWord; const AValue: WideString); safecall;
     procedure PutFloat(Idx: LongWord; AValue: Double); safecall;
@@ -3960,12 +3960,14 @@ type
     function  Get_DataType(Idx: LongWord): Integer; safecall;
     function  Get_Term(Idx: LongWord): LongWord; safecall;
     function  Get_Size: LongWord; safecall;
+  public
+    class function CreateObject(const DelphiClass: TClass; const Params: OleVariant): TObject; override;
   end;
 
   TwrpPLClient = class(TwrpObject, IgsPLClient)
   private
     function GetPLClient: TgsPLClient;
-  public
+  protected
     function Call(const APredicateName: WideString; const AParams: IgsPLTermv): WordBool; safecall;
     function Call2(const AGoal: WideString): WordBool; safecall;
     function Initialise(AParams: OleVariant): WordBool; safecall;
@@ -19086,6 +19088,15 @@ end;
 function TwrpPLTermv.Get_Size: LongWord;
 begin
   Result := GetPLTermv.Size;
+end;
+
+class function TwrpPLTermv.CreateObject(const DelphiClass: TClass; const Params: OleVariant): TObject;
+begin
+  Assert(DelphiClass.InheritsFrom(TgsPLTermv), 'Invalide Delphi class');
+  if VarType(Params) in [varSmallint, varInteger] then
+    Result := TgsPLTermv.CreateTermv(LongWord(Params))
+  else
+    raise Exception.Create('Invalid input param!');
 end;
 
 function TwrpPLClient.GetPLClient: TgsPLClient;
