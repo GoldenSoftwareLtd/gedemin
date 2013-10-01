@@ -14,7 +14,7 @@ type
     function GetDataType(const Idx: LongWord): Integer;
     function GetTerm(const Idx: LongWord): term_t;   
   public
-    constructor CreateTerm(const ASize: Integer);
+    constructor CreateTermv(const ASize: Integer);
     procedure PutInteger(const Idx: LongWord; const AValue: Integer);
     procedure PutString(const Idx: LongWord; const AValue: String);
     procedure PutFloat(const Idx: LongWord; const AValue: Double);
@@ -128,7 +128,7 @@ begin
     raise EgsPLClientException.CreatePLError(ex);
 end;
 
-constructor TgsPLTermv.CreateTerm(const ASize: Integer);
+constructor TgsPLTermv.CreateTermv(const ASize: Integer);
 begin
   inherited Create;
 
@@ -337,7 +337,7 @@ begin
   Assert(ADataSet <> nil);
   Assert(AnArity > 0);
 
-  Termv := TgsPLTermv.CreateTerm(AnArity);
+  Termv := TgsPLTermv.CreateTermv(AnArity);
   Query := TgsPLQuery.Create;
   try
     Query.Pred := APredicateName;
@@ -381,7 +381,7 @@ var
   Query: TgsPLQuery;
 begin
   Result := False;
-  t := TgsPLTermv.CreateTerm(1);
+  t := TgsPLTermv.CreateTermv(1);
   try
     if PL_chars_to_term(PChar(AGoal), t.Term[0]) <> 0 then
     begin
@@ -568,8 +568,8 @@ begin
 
 
   Arity := GetArity(ADataSet, AFieldList);
-  Refs := TgsPLTermv.CreateTerm(Arity);
-  Term := TgsPLTermv.CreateTerm(1);
+  Refs := TgsPLTermv.CreateTermv(Arity);
+  Term := TgsPLTermv.CreateTermv(1);
   try
     ADataSet.First;
     while not ADataSet.Eof do
@@ -623,8 +623,8 @@ begin
     Arity := GetArity(q);
     if Arity > 0 then
     begin
-      Refs := TgsPLTermv.CreateTerm(Arity);
-      Term := TgsPLTermv.CreateTerm(1);
+      Refs := TgsPLTermv.CreateTermv(Arity);
+      Term := TgsPLTermv.CreateTermv(1);
       try
         while not q.Eof do
         begin
