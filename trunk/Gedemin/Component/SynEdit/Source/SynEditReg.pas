@@ -102,7 +102,8 @@ uses
   SynHighlighterXML,
   SynHighlighterMsg,
   SynHighlighterIDL,
-  SynHighlighterUnreal;
+  SynHighlighterUnreal,
+  SynHighlighterProlog;
 
 procedure Register;
 
@@ -125,6 +126,8 @@ begin
     
 // SynEdit highlighters
   RegisterComponents(SYNS_HighlightersPage, [
+	//logic
+	TSynPrologSyn,
     //classic
     TSynCppSyn, TSynFortranSyn, TSynGeneralSyn, TSynJavaSyn, TSynM3Syn,
     TSynPasSyn, TSynVBSyn,
