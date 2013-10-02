@@ -6507,6 +6507,7 @@ end;
 procedure TgdcStoredProc.SaveStoredProc(const isNew: Boolean);
 var
   FSQL: TSQLProcessList;
+  S: String;
 begin
   FSQL := TSQLProcessList.Create;
   try
@@ -6535,6 +6536,13 @@ begin
     if isNew then
       FSQL.Add(Format('GRANT EXECUTE ON PROCEDURE %s TO administrator',
         [FieldByName('procedurename').AsString]));
+
+    S := 'COMMENT ON PROCEDURE ' + FieldByName('procedurename').AsString + ' IS ';
+    if FieldByName('rdb$description').IsNull then
+      FSQL.Add(S + 'NULL')
+    else
+      FSQL.Add(S + '''' + StringReplace(
+        FieldByName('rdb$description').AsString, '''', '''''', [rfReplaceAll]) + '''');
 
     ShowSQLProcess(FSQL);
   finally

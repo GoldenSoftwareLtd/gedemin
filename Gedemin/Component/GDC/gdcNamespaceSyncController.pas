@@ -275,19 +275,31 @@ procedure TgdcNamespaceSyncController.CompareWithData(const ANSK: Integer;
   const AFileName: String);
 var
   NS: TgdcNamespace;
+  NSO: TgdcNamespaceObject;
   Tr: TIBTransaction;
   Parser: TYAMLParser;
-  Mapping: TYAMLMapping;
-  Objects: TYAMLSequence;
-  J: Integer;
+  Mapping, MObject: TYAMLMapping;
+  Objects, UsesNS: TYAMLSequence;
+  J, NSID, NSOID: Integer;
+  Obj: TgdcBase;
+  C: TPersistentClass;
+  HSL: TStringList;
+  q: TIBSQL;
+  R: TRUID;
+  SRUID, SName: String;
 begin
   Assert(gdcBaseManager <> nil);
 
   Tr := TIBTransaction.Create(nil);
   NS := TgdcNamespace.Create(nil);
+  NSO := TgdcNamespaceObject.Create(nil);
+  HSL := TStringList.Create;
+  q := TIBSQL.Create(nil);
   try
     Tr.DefaultDatabase := gdcBaseManager.Database;
     Tr.StartTransaction;
+
+    q.Transaction := Tr;
 
     NS.Transaction := Tr;
     NS.ReadTransaction := Tr;
@@ -337,16 +349,109 @@ begin
         begin
           Objects := Mapping.FindByName('Objects') as TYAMLSequence;
 
+          NSO.Transaction := Tr;
+          NSO.ReadTransaction := Tr;
+          NSO.BaseState := NS.BaseState + [sLoadFromStream];
+          NSO.SubSet := 'All';
+          NSO.Open;
+
           for J := 0 to Objects.Count - 1 do
           begin
             if not (Objects[J] is TYAMLMapping) then
               raise Exception.Create('Invalid YAML stream.');
-            //LoadObject(Objects[J] as TYAMLMapping, NSID, NSTimeStamp);
+
+            MObject := Objects[J] as TYAMLMapping;
+
+            C := GetClass(MObject.ReadString('Properties\ClassName'));
+
+            if (C = nil) or (not C.InheritsFrom(TgdcBase)) then
+              continue;
+
+            Obj := CgdcBase(C).Create(nil);
+            try
+              Obj.SubType := MObject.ReadString('Properties\SubType');
+              Obj.SubSet := 'ByID';
+              Obj.ID := gdcBaseManager.GetIDByRUIDString(MObject.ReadString('Properties\RUID'), Tr);
+              Obj.Open;
+
+              if not Obj.EOF then
+              begin
+                NSO.Insert;
+                NSO.FieldByName('namespacekey').AsInteger := NS.ID;
+                NSO.FieldByName('objectname').AsString := Obj.ObjectName;
+                NSO.FieldByName('objectclass').AsString := Obj.ClassName;
+                NSO.FieldByName('subtype').AsString := Obj.SubType;
+                NSO.FieldByName('xid').AsInteger := Obj.GetRUID.XID;
+                NSO.FieldByName('dbid').AsInteger := Obj.GetRUID.DBID;
+                NSO.FieldByName('alwaysoverwrite').AsInteger :=
+                  MObject.ReadInteger('Properties\AlwaysOverwrite');
+                NSO.FieldByName('dontremove').AsInteger :=
+                  MObject.ReadInteger('Properties\DontRemove');
+                NSO.FieldByName('includesiblings').AsInteger :=
+                  MObject.ReadInteger('Properties\IncludeSiblings');
+                if Obj.FindField('editiondate') <> nil then
+                begin
+                  NSO.FieldByName('modified').AsDateTime := Obj.FieldByName('editiondate').AsDateTime;
+                  NSO.FieldByName('curr_modified').AsDateTime := Obj.FieldByName('editiondate').AsDateTime;
+                end;
+                NSO.Post;
+
+                if MObject.ReadString('Properties\HeadObject') > '' then
+                  HSL.Add(IntToStr(NSO.ID) + '=' + MObject.ReadString('Properties\HeadObject'));
+              end;
+            finally
+              Obj.Free;
+            end;
+          end;
+
+          for J := 0 to HSL.Count - 1 do
+          begin
+            R := StrToRUID(HSL.Values[HSL.Names[J]]);
+
+            q.SQL.Text := 'SELECT id FROM at_object WHERE namespacekey = :nsk ' +
+              ' AND xid = :xid AND dbid = :dbid';
+            q.ParamByName('nsk').AsInteger := NS.ID;
+            q.ParamByName('xid').AsInteger := R.XID;
+            q.ParamByName('dbid').AsInteger := R.DBID;
+            q.ExecQuery;
+
+            if not q.EOF then
+            begin
+              NSOID := q.Fields[0].AsInteger;
+              q.Close;
+              q.SQL.Text :=
+                'UPDATE at_object SET headobjectkey = :ho ' +
+                'WHERE id = :id';
+              q.ParamByName('ho').AsInteger := NSOID;
+              q.ParamByName('id').AsString := HSL.Names[J];
+              q.ExecQuery;  
+            end;
           end;
         end;
 
         if Mapping.FindByName('Uses') is TYAMLSequence then
-          {UpdateUses(Mapping.FindByName('Uses') as TYAMLSequence, NSID)};
+        begin
+          UsesNS := Mapping.FindByName('Uses') as TYAMLSequence;
+          q.SQL.Text :=
+            'INSERT INTO at_namespace_link (namespacekey, useskey) ' +
+            'VALUES (:nsk, :uk)';
+
+          for J := 0 to UsesNS.Count - 1 do
+          begin
+            if not (UsesNS[J] is TYAMLString) then
+              continue;
+
+            ParseReferenceString(TYAMLString(UsesNS[J]).AsString, SRUID, SName);
+
+            NSID := gdcBaseManager.GetIDByRUIDString(SRUID, Tr);
+            if NSID = -1 then
+              continue;
+
+            q.ParamByName('nsk').AsInteger := NS.ID;
+            q.ParamByName('uk').AsInteger := NSID;
+            q.ExecQuery;
+          end;
+        end;
       finally
         Parser.Free;
       end;
@@ -356,6 +461,9 @@ begin
 
     NS.Close;
   finally
+    q.Free;
+    HSL.Free;
+    NSO.Free;
     NS.Free;
 
     if Tr.InTransaction then
