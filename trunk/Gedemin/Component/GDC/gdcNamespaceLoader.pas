@@ -857,30 +857,33 @@ var
   R: TatRelation;
   Mapping: TYAMLMapping;
   Items: TYAMLSequence;
-  FieldName: String;
+  FieldName, KF, SId: String;
   Param: TIBXSQLVAR;
+  SetItemAdded: Boolean;
 begin
-  for I := 0 to ASequence.Count - 1 do
-  begin
-    if not (ASequence[I] is TYAMLMapping) then
-      break;
+  SetItemAdded := False;
+  q := TIBSQL.Create(nil);
+  try
+    q.Transaction := AnObj.Transaction;
 
-    Mapping := ASequence[I] as TYAMLMapping;
-
-    for J := 0 to AnObj.SetAttributesCount - 1 do
+    for I := 0 to ASequence.Count - 1 do
     begin
-      if AnsiCompareText(Mapping.ReadString('Table'),
-        AnObj.SetAttributes[J].CrossRelationName) <> 0 then
-        continue;
+      if not (ASequence[I] is TYAMLMapping) then
+        break;
 
-      R := atDatabase.Relations.ByRelationName(AnObj.SetAttributes[J].CrossRelationName);
-      if (R <> nil) and (R.PrimaryKey <> nil)
-        and (Mapping.FindByName('Items') is TYAMLSequence) then
+      Mapping := ASequence[I] as TYAMLMapping;
+
+      for J := 0 to AnObj.SetAttributesCount - 1 do
       begin
-        Items := Mapping.FindbyName('Items') as TYAMLSequence;
-        q := TIBSQL.Create(nil);
-        try
-          q.Transaction := AnObj.Transaction;
+        if AnsiCompareText(Mapping.ReadString('Table'),
+          AnObj.SetAttributes[J].CrossRelationName) <> 0 then
+          continue;
+
+        R := atDatabase.Relations.ByRelationName(AnObj.SetAttributes[J].CrossRelationName);
+        if (R <> nil) and (R.PrimaryKey <> nil)
+          and (Mapping.FindByName('Items') is TYAMLSequence) then
+        begin
+          Items := Mapping.FindbyName('Items') as TYAMLSequence;
 
           q.SQL.Text := 'DELETE FROM ' + R.RelationName +
             ' WHERE ' + R.PrimaryKey.ConstraintFields[0].FieldName +
@@ -906,6 +909,7 @@ begin
 
             try
               q.ExecQuery;
+              SetItemAdded := True;
             except
               on E: Exception do
               begin
@@ -914,13 +918,26 @@ begin
               end;
             end;
           end;
-        finally
-          q.Free;
         end;
-      end;
 
-      break;
+        break;
+      end;
     end;
+
+    if SetItemAdded then
+    begin
+      // холостой апдейт, чтобы отработали триггеры заполнения
+      // текстового представления полей-множест
+      KF := AnObj.GetKeyField(AnObj.SubType);
+      SId := IntToStr(AnObj.ID);
+      q.SQL.Text :=
+        'UPDATE ' + AnObj.GetListTable(AnObj.SubType) +
+        '  SET ' + KF + ' = ' + SId +
+        '  WHERE ' + KF + ' = ' + SId;
+      q.ExecQuery;
+    end;
+  finally
+    q.Free;
   end;
 end;
 

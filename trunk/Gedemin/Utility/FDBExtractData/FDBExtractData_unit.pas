@@ -283,7 +283,7 @@ begin
       'WHERE '#13#10 +
       'path > '''') t ON t.id = d.id ORDER BY t.path'
   else if ARelationName = 'AT_INDICES' then
-    Result := 'SELECT * FROM AT_INDICES ORDER BY relationname, fieldslist'
+    Result := 'SELECT * FROM AT_INDICES WHERE NOT indexname LIKE ''RDB$%'' ORDER BY relationname, fieldslist'
   else if ARelationName = 'GD_COMMAND' then
     Result := 'SELECT * FROM GD_COMMAND ORDER BY classname, subtype, cmd, name'
   else if ARelationName = 'AT_TRIGGERS' then
@@ -302,14 +302,22 @@ begin
       '    on e2.lb <= ee.lb and e2.rb >= ee.rb '#13#10 +
       '  group by ee.id) t ON t.id = e.id '#13#10 +
       'ORDER BY t.path'
+  else if ARelationName = 'EVT_OBJECTEVENT' then
+    Result := 'SELECT a.* FROM EVT_OBJECTEVENT a LEFT JOIN gd_ruid r ON r.id = a.id ORDER BY r.xid, r.dbid'
+  else if ARelationName = 'EVT_MACROSGROUP' then
+    Result := 'SELECT a.* FROM EVT_MACROSGROUP a LEFT JOIN gd_ruid r ON r.id = a.id ORDER BY r.xid, r.dbid'
   else if ARelationName = 'AC_TRANSACTION' then
-    Result := 'SELECT * FROM AC_TRANSACTION ORDER BY name, id'
+    Result := 'SELECT a.* FROM AC_TRANSACTION a LEFT JOIN gd_ruid r ON r.id = a.id ORDER BY r.xid, r.dbid'
+  else if ARelationName = 'AC_AUTOTRRECORD' then
+    Result := 'SELECT a.* FROM AC_AUTOTRRECORD a LEFT JOIN gd_ruid r ON r.id = a.id ORDER BY r.xid, r.dbid'
   else if ARelationName = 'AC_ACCOUNT' then
     Result := 'SELECT * FROM AC_ACCOUNT ORDER BY name'
   else if ARelationName = 'AC_TRRECORD' then
     Result := 'SELECT * FROM AC_TRRECORD ORDER BY description, id'
   else if ARelationName = 'GD_CONSTVALUE' then
     Result := 'SELECT * FROM GD_CONSTVALUE ORDER BY constdate, constvalue'
+  else if ARelationName = 'GD_PEOPLE' then
+    Result := 'SELECT * FROM GD_PEOPLE ORDER BY surname'
   else if ARelationName = 'GD_PLACE' then
     Result := 'SELECT * FROM GD_PLACE ORDER BY lb'
   else if ARelationName = 'GD_GOODGROUP' then
