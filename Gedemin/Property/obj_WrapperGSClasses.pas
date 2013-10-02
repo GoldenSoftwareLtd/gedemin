@@ -3949,6 +3949,7 @@ type
     procedure PutInt64(Idx: LongWord; AValue: Int64); safecall;
     procedure PutAtom(Idx: LongWord; const AValue: WideString); safecall;
     procedure PutVariable(Idx: LongWord); safecall;
+    procedure Reset; safecall;
     function  ReadInteger(Idx: LongWord): Integer; safecall;
     function  ReadString(Idx: LongWord): WideString; safecall;
     function  ReadFloat(Idx: LongWord): Double; safecall;
@@ -19075,6 +19076,11 @@ begin
   Result := GetPLTermv.ToString(Idx);
 end;
 
+procedure TwrpPLTermv.Reset;
+begin
+  GetPLTermv.Reset;
+end;
+
 function TwrpPLTermv.Get_DataType(Idx: LongWord): Integer;
 begin
   Result := GetPLTermv.DataType[Idx];
@@ -19116,7 +19122,10 @@ end;
 
 function TwrpPLClient.Initialise(const AParams: WideString): WordBool;
 begin
-  Result := GetPLClient.Initialise(AParams);
+  if AParams > '' then
+    Result := GetPLClient.Initialise(AParams)
+  else
+    Result := GetPLClient.Initialise;
 end;
 
 function TwrpPLClient.IsInitialised: WordBool;

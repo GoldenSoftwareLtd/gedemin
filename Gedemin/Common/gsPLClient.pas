@@ -32,6 +32,7 @@ type
     function ReadInt64(const Idx: LongWord): Int64;
     function ReadAtom(const Idx: LongWord): String;
     function ToString(const Idx: LongWord): String;
+    procedure Reset;
 
     property DataType[const Idx: LongWord]: Integer read GetDataType;
     property Term[const Idx: LongWord]: term_t read GetTerm; 
@@ -147,7 +148,15 @@ end;
 function TgsPLTermv.ToString(const Idx: LongWord): String;
 begin
   Result := TermToString(GetTerm(Idx));
-end; 
+end;
+
+procedure TgsPLTermv.Reset;
+var
+  I: Integer;
+begin
+  for I := 0 to FSize - 1 do
+    PutVariable(GetTerm(I));
+end;
 
 procedure TgsPLTermv.PutInteger(const Idx: LongWord; const AValue: Integer);
 begin
@@ -546,13 +555,13 @@ function TgsPLClient.Initialise(const AParams: String = InitParams): Boolean;
   end;
 
 var
-  P: Integer;
+  P: Integer; 
 begin
   Assert(AParams > '');
 
   if not TryPLLoad then
-    raise EgsPLClientException.Create('Клиентская часть Prolog не установлена!');
-
+    raise EgsPLClientException.Create('Клиентская часть Prolog не установлена!'); 
+      
   P := 1;
   while P <= Length(AParams) do
   begin
