@@ -3970,10 +3970,10 @@ type
   protected
     function Call(const APredicateName: WideString; const AParams: IgsPLTermv): WordBool; safecall;
     function Call2(const AGoal: WideString): WordBool; safecall;
-    function Initialise(AParams: OleVariant): WordBool; safecall;
+    function Initialise(const AParams: WideString): WordBool; safecall;
     function IsInitialised: WordBool; safecall;
     procedure ExtractData(const ADataSet: IgsClientDataSet; const APredicateName: WideString;
-      AnArity: Integer); safecall;
+      const ATermv: IgsPLTermv); safecall;
     procedure MakePredicatesOfSQLSelect(const ASQL: WideString; const ATr: IgsIBTransaction;
       const APredicateName: WideString; const AFileName: WideString); safecall;
     procedure MakePredicatesOfDataSet(const ADataSet: IgsDataSet; const AFieldList: WideString;
@@ -19114,7 +19114,7 @@ begin
   Result := GetPLClient.Call2(AGoal);
 end;
 
-function TwrpPLClient.Initialise(AParams: OleVariant): WordBool;
+function TwrpPLClient.Initialise(const AParams: WideString): WordBool;
 begin
   Result := GetPLClient.Initialise(AParams);
 end;
@@ -19125,9 +19125,9 @@ begin
 end;
 
 procedure TwrpPLClient.ExtractData(const ADataSet: IgsClientDataSet;
-  const APredicateName: WideString; AnArity: Integer);
+  const APredicateName: WideString; const ATermv: IgsPLTermv);
 begin
-  GetPLCLient.ExtractData(InterfaceToObject(ADataSet) as TClientDataSet, APredicateName, AnArity);
+  GetPLCLient.ExtractData(InterfaceToObject(ADataSet) as TClientDataSet, APredicateName, InterfaceToObject(ATermv) as TgsPLTermv);
 end;
 
 procedure TwrpPLClient.MakePredicatesOfSQLSelect(const ASQL: WideString; const ATr: IgsIBTransaction;

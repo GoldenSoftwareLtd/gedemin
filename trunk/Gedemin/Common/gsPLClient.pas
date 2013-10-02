@@ -75,7 +75,7 @@ type
     function Call(const APredicateName: String; AParams: TgsPLTermv): Boolean;
     function Call2(const AGoal: String): Boolean;
     procedure Compound(AGoal: term_t; const AFunctor: String; ATermv: TgsPLTermv);
-    function Initialise(const AParams: Variant): Boolean;
+    function Initialise(const AParams: String = InitParams): Boolean;
     function IsInitialised: Boolean;
     procedure MakePredicatesOfSQLSelect(const ASQL: String; ATr: TIBTransaction;
       const APredicateName: String; const AFileName: String);
@@ -83,7 +83,7 @@ type
     procedure MakePredicatesOfObject(const AClassName: String; const ASubType: String; const ASubSet: String;
       AParams: Variant; AnExtraConditions: TStringList; const AFieldList: String; ATr: TIBTransaction;
       const APredicateName: String; const AFileName: String);
-    procedure ExtractData(ADataSet: TClientDataSet; const APredicateName: String; const AnArity: Integer);
+    procedure ExtractData(ADataSet: TClientDataSet; const APredicateName: String; ATermv: TgsPLTermv);
 
     property Debug: Boolean read FDebug write FDebug;
   end;
@@ -327,21 +327,19 @@ begin
   inherited;
 end;  
 
-procedure TgsPLClient.ExtractData(ADataSet: TClientDataSet; const APredicateName: String; const AnArity: Integer);
+procedure TgsPLClient.ExtractData(ADataSet: TClientDataSet; const APredicateName: String; ATermv: TgsPLTermv);
 var
   Query: TgsPLQuery;
   I: LongWord;
-  Termv: TgsPLTermv;
   F: TField;
 begin
   Assert(ADataSet <> nil);
-  Assert(AnArity > 0);
+  Assert(ATermv <> nil);  
 
-  Termv := TgsPLTermv.CreateTermv(AnArity);
   Query := TgsPLQuery.Create;
   try
     Query.Pred := APredicateName;
-    Query.Termv := Termv;
+    Query.Termv := ATermv;
     Query.DeleteDataAfterClose := True;
     Query.OpenQuery;
     while not Query.Eof do
@@ -370,8 +368,7 @@ begin
       Query.NextSolution;
     end;
   finally
-    Query.Free;
-    Termv.Free;
+    Query.Free; 
   end;
 end;     
 
@@ -532,25 +529,43 @@ begin
     Result := PL_is_initialised(argc, FInitArgv) <> 0; 
 end;
 
-function TgsPLClient.Initialise(const AParams: Variant): Boolean;
+function TgsPLClient.Initialise(const AParams: String = InitParams): Boolean;
+
+  function GetNextElement(const S: String; var L: Integer): String;
+  var
+    F: Integer;
+  begin
+    F := L;
+
+    while (F <= Length(S)) and (S[F] <> ',') do
+      Inc(F);
+      
+    Result := Trim(Copy(S, L, F - L));
+    Inc(F);
+    L := F;
+  end;
+
 var
-  I, argc: Integer;
+  P: Integer;
 begin
-  Assert(VarIsArray(AParams));
-  Assert(VarArrayDimCount(AParams) = 1);
-  
+  Assert(AParams > '');
+
   if not TryPLLoad then
     raise EgsPLClientException.Create('Клиентская часть Prolog не установлена!');
 
-  argc := VarArrayHighBound(AParams, 1) + 1;
-  SetLength(FInitArgv, argc + 1);
-  for I:= VarArrayLowBound(AParams, 1) to VarArrayHighBound(AParams, 1) do
-    FInitArgv[I] := PChar(VarToStr(AParams[I]));
-  FInitArgv[argc] := nil;
+  P := 1;
+  while P <= Length(AParams) do
+  begin
+    SetLength(FInitArgv, High(FInitArgv) + 2);
+    FInitArgv[High(FInitArgv)] := PChar(GetNextElement(AParams, P));
+  end;
+
+  Setlength(FInitArgv, High(FInitArgv) + 2);
+  FInitArgv[High(FInitArgv)] := nil;
 
   if not IsInitialised then
   begin
-    Result := PL_initialise(argc, FInitArgv) <> 0;
+    Result := PL_initialise(High(FInitArgv), FInitArgv) <> 0;
     if not Result then
       PL_halt(1);
   end else

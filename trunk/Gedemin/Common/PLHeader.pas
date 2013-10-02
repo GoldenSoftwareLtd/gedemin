@@ -40,6 +40,7 @@ const
   Libgmp10_dll = 'libgmp-10.dll';
   Libswipl_dll = 'libswipl.dll';
   PthreadGC2_dll = 'pthreadGC2.dll';   
+  InitParams = 'libswipl.dll,-x,gd_pl_state';
 
 type
   size_t = Cardinal;
