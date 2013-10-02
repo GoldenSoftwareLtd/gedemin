@@ -155,7 +155,7 @@ var
   I: Integer;
 begin
   for I := 0 to FSize - 1 do
-    PutVariable(GetTerm(I));
+    PutVariable(I);
 end;
 
 procedure TgsPLTermv.PutInteger(const Idx: LongWord; const AValue: Integer);
