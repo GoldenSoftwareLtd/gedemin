@@ -4,7 +4,7 @@ unit gdcNamespaceLoader;
 interface
 
 uses
-  Classes, Windows, Messages, Forms, SysUtils, DB, IBDatabase, IBSQL,
+  Classes, Windows, Messages, Forms, SysUtils, ContNrs, DB, IBDatabase, IBSQL,
   yaml_parser, gdcBaseInterface, gdcBase, gdcNamespace, JclStrHashMap;
 
 const
@@ -48,6 +48,7 @@ type
     FNeedRelogin: Boolean;
     FPrevPosted: CgdcBase;
     FqCheckTheSame: TIBSQL;
+    FRemoveList: TObjectList;
 
     procedure FlushStorages;
     procedure LoadAtObjectCache(const ANamespaceKey: Integer);
@@ -64,6 +65,8 @@ type
     procedure LoadParam(AParam: TIBXSQLVAR; const AFieldName: String;
       AMapping: TYAMLMapping; ATr: TIBTransaction);
     function GetCandidateID(AnObj: TgdcBase; AFields: TYAMLMapping): TID;
+    procedure RemoveObjects;
+    procedure ReloginDatabase;
 
   public
     constructor Create;
@@ -96,6 +99,13 @@ type
     DontRemove: Boolean;
     HeadObjectKey: Integer;
     Loaded: Boolean;
+  end;
+
+  TAtRemoveRecord = class(TObject)
+  public
+    RUID: TRUID;
+    ObjectClass: CgdcBase;
+    ObjectSubType: String;
   end;
 
 var
@@ -323,15 +333,17 @@ begin
   FqFindAtObject := TIBSQL.Create(nil);
   FqFindAtObject.Transaction := FTr;
   FqFindAtObject.SQL.Text :=
-    'SELECT id FROM at_object WHERE namespacekey <> :nk ' +
-    '  AND xid = :xid AND dbid = :dbid';
+    'SELECT id FROM at_object WHERE xid = :xid AND dbid = :dbid';
 
   FqCheckTheSame := TIBSQL.Create(nil);
   FqCheckTheSame.Transaction := FTr;
+
+  FRemoveList := TObjectList.Create(True);
 end;
 
 destructor TgdcNamespaceLoader.Destroy;
 begin
+  FRemoveList.Free;
   FqCheckTheSame.Free;
   FqFindAtObject.Free;
   FqClearAtObject.Free;
@@ -375,9 +387,14 @@ begin
   Assert(AList <> nil);
   Assert(IBLogin <> nil);
 
-  AddText('Порядок загрузки:');
-  for I := 0 to AList.Count - 1 do
-    AddText(IntToStr(I) + ': ' + AList[I]);
+  FRemoveList.Clear;
+
+  if AList.Count > 1 then
+  begin
+    AddText('Порядок загрузки:');
+    for I := 0 to AList.Count - 1 do
+      AddText(IntToStr(I) + ': ' + AList[I]);
+  end;
 
   for I := 0 to AList.Count - 1 do
   begin
@@ -516,14 +533,19 @@ begin
     end;
 
     if FNeedRelogin then
-    begin
-      AddText('Переподключение к базе данных...');
-      atDatabase.SyncIndicesAndTriggers(FTr);
-      IBLogin.Relogin;
-      FNeedRelogin := False;
-    end;
+      ReloginDatabase;
 
     AddText('Закончена загрузка: ' + NSName);
+  end;
+
+  if FRemoveList.Count > 0 then
+  begin
+    FTr.StartTransaction;
+    try
+      RemoveObjects;
+    finally
+      FTr.Commit;
+    end;
   end;
 
   atDatabase.ForceLoadFromDatabase;
@@ -578,9 +600,10 @@ var
   ObjName, ObjRUIDString: String;
   Fields: TYAMLMapping;
   ObjID, CandidateID, RUIDID: TID;
-  ObjPosted: Boolean;
+  ObjPosted, ObjPreserved: Boolean;
 begin
   ObjPosted := False;
+  ObjPreserved := False;
   Obj := CacheObject(AMapping.ReadString('Properties\Class'),
     AMapping.ReadString('Properties\SubType'));
   ObjRUIDString := AMapping.ReadString('Properties\RUID');
@@ -681,7 +704,11 @@ begin
       with TgdcNamespaceRecCmpController.Create do
       try
         if Compare(nil, Obj, AMapping) then
-          CopyRecord(Obj, Fields, OverwriteFields);
+          CopyRecord(Obj, Fields, OverwriteFields)
+        else begin
+          AddText('Объект сохранен в исходном состоянии: ' + Obj.ObjectName);
+          ObjPreserved := True;
+        end;
       finally
         Free;
       end;
@@ -725,15 +752,22 @@ begin
     FgdcNamespaceObject.FieldByName('includesiblings').AsInteger := 1
   else
     FgdcNamespaceObject.FieldByName('includesiblings').AsInteger := 0;
-  if tiEditionDate in Obj.GetTableInfos(Obj.SubType) then
+  if ObjPreserved and (AtObjectRecord <> nil) then
   begin
-    FgdcNamespaceObject.FieldByName('modified').AsDateTime := Fields.ReadDateTime('EDITIONDATE');
-    FgdcNamespaceObject.FieldByName('curr_modified').AsDateTime := Fields.ReadDateTime('EDITIONDATE');
+    FgdcNamespaceObject.FieldByName('modified').AsDateTime := AtObjectRecord.Modified;
+    FgdcNamespaceObject.FieldByName('curr_modified').AsDateTime := AtObjectRecord.CurrModified;
   end else
   begin
-    FgdcNamespaceObject.FieldByName('modified').AsDateTime := SysUtils.Now;
-    FgdcNamespaceObject.FieldByName('curr_modified').AsDateTime :=
-      FgdcNamespaceObject.FieldByName('modified').AsDateTime;
+    if tiEditionDate in Obj.GetTableInfos(Obj.SubType) then
+    begin
+      FgdcNamespaceObject.FieldByName('modified').AsDateTime := Fields.ReadDateTime('EDITIONDATE');
+      FgdcNamespaceObject.FieldByName('curr_modified').AsDateTime := Fields.ReadDateTime('EDITIONDATE');
+    end else
+    begin
+      FgdcNamespaceObject.FieldByName('modified').AsDateTime := SysUtils.Now;
+      FgdcNamespaceObject.FieldByName('curr_modified').AsDateTime :=
+        FgdcNamespaceObject.FieldByName('modified').AsDateTime;
+    end;
   end;
   FgdcNamespaceObject.Post;
 
@@ -781,39 +815,18 @@ function TgdcNamespaceLoader.Iterate_RemoveGDCObjects(AUserData: PUserData;
   const AStr: string; var APtr: PData): Boolean;
 var
   AR: TatObjectRecord;
-  ObjRUID: TRUID;
-  Obj: TgdcBase;
+  RR: TatRemoveRecord;
 begin
   AR := TatObjectRecord(APtr);
 
-  if not AR.Loaded then
+  if (not AR.Loaded) and (not AR.DontRemove) then
   begin
-    ObjRUID := StrToRUID(AStr);
-
-    FqFindAtObject.Close;
-    FqFindAtObject.ParamByName('nk').AsInteger := PID(AUserData)^;
-    FqFindAtObject.ParamByName('xid').AsInteger := ObjRUID.XID;
-    FqFindAtObject.ParamByName('dbid').AsInteger := ObjRUID.DBID;
-    FqFindAtObject.ExecQuery;
-
-    if FqFindAtObject.EOF and (not AR.DontRemove) then
-    begin
-      Obj := CacheObject(AR.ObjectClass.ClassName, AR.ObjectSubType);
-      Obj.Close;
-      Obj.ID := gdcBaseManager.GetIDByRUIDString(AStr);
-      Obj.Open;
-      if not Obj.EOF then
-      begin
-        AddText('Удаляется объект: ' + Obj.ObjectName);
-        Obj.Delete;
-        if Obj is TgdcMetaBase then
-          Inc(FMetadataCounter);
-      end;
-      Obj.Close;
-    end;
-
-    FqFindAtObject.Close;
-  end;  
+    RR := TatRemoveRecord.Create;
+    RR.RUID := StrToRUID(AStr);
+    RR.ObjectClass := AR.ObjectClass;
+    RR.ObjectSubType := AR.ObjectSubType;
+    FRemoveList.Add(RR);
+  end;
 
   Result := True;
 end;
@@ -857,7 +870,7 @@ var
   R: TatRelation;
   Mapping: TYAMLMapping;
   Items: TYAMLSequence;
-  FieldName, KF, SId: String;
+  FieldName, KF: String;
   Param: TIBXSQLVAR;
   SetItemAdded: Boolean;
 begin
@@ -929,11 +942,11 @@ begin
       // холостой апдейт, чтобы отработали триггеры заполнения
       // текстового представления полей-множест
       KF := AnObj.GetKeyField(AnObj.SubType);
-      SId := IntToStr(AnObj.ID);
       q.SQL.Text :=
         'UPDATE ' + AnObj.GetListTable(AnObj.SubType) +
-        '  SET ' + KF + ' = ' + SId +
-        '  WHERE ' + KF + ' = ' + SId;
+        '  SET ' + KF + ' = :id' +
+        '  WHERE ' + KF + ' = :id';
+      q.ParamByName('id').AsInteger := AnObjID;
       q.ExecQuery;
     end;
   finally
@@ -1147,6 +1160,66 @@ begin
         E.Message);
     end;
   end;
+end;
+
+procedure TgdcNamespaceLoader.RemoveObjects;
+var
+  I: Integer;
+  RR: TatRemoveRecord;
+  Obj: TgdcBase;
+  ObjectName: String;
+begin
+  for I := FRemoveList.Count - 1 downto 0 do
+  begin
+    RR := FRemoveList[I] as TatRemoveRecord;
+
+    FqFindAtObject.ParamByName('xid').AsInteger := RR.RUID.XID;
+    FqFindAtObject.ParamByName('dbid').AsInteger := RR.RUID.DBID;
+    FqFindAtObject.ExecQuery;
+
+    if FqFindAtObject.EOF then
+    begin
+      Obj := CacheObject(RR.ObjectClass.ClassName, RR.ObjectSubType);
+      Obj.Close;
+      Obj.ID := gdcBaseManager.GetIDByRUID(RR.RUID.XID, RR.RUID.DBID);
+      Obj.Open;
+      if not Obj.EOF then
+      begin
+        try
+          ObjectName := Obj.ObjectName + ' (' + Obj.GetDisplayName(Obj.SubType) + ')';
+          Obj.Delete;
+          AddText('Удален объект: ' + ObjectName);
+        except
+          on E: Exception do
+          begin
+            AddWarning('Объект не может быть удален: ' + ObjectName);
+            AddWarning(E.Message);
+          end;
+        end;
+        if Obj is TgdcMetaBase then
+          Inc(FMetadataCounter);
+      end;
+      Obj.Close;
+    end;
+
+    FqFindAtObject.Close;
+  end;
+
+  FRemoveList.Clear;
+
+  if FMetadataCounter > 0 then
+    ProcessMetadata;
+
+  if FNeedRelogin then
+    ReloginDatabase;  
+end;
+
+procedure TgdcNamespaceLoader.ReloginDatabase;
+begin
+  AddText('Переподключение к базе данных...');
+  atDatabase.SyncIndicesAndTriggers(FTr);
+  IBLogin.Relogin;
+  FNeedRelogin := False;
 end;
 
 { TgdcNamespaceLoaderNexus }

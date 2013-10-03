@@ -53,7 +53,7 @@ procedure Register;
 implementation
 
 uses
-  IBSQL;
+  IBSQL, gdcBaseInterface;
 
 procedure TboCurrency.LoadData;
 var

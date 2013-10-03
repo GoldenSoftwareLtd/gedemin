@@ -323,7 +323,7 @@ begin
   else if ARelationName = 'GD_GOODGROUP' then
     Result := 'SELECT * FROM GD_GOODGROUP ORDER BY lb'
   else if ARelationName = 'GD_FUNCTION' then
-    Result := 'SELECT * FROM GD_FUNCTION ORDER BY module, SUBSTRING(script FROM 1 FOR 255)'
+    Result := 'SELECT f.* FROM GD_FUNCTION f ORDER BY f.module, f.script'
   else if ARelationName = 'AT_RELATION_FIELDS' then
     Result := 'SELECT * FROM AT_RELATION_FIELDS ORDER BY relationname, fieldname'
   else begin

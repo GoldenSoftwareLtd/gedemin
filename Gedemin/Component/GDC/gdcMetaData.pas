@@ -267,8 +267,6 @@ type
     constructor Create(AnOwner: TComponent); override;
     destructor Destroy; override;
 
-    function GetCurrRecordClass: TgdcFullClass; override;
-
     procedure MakePredefinedRelationFields; virtual;
 
     class function GetDisplayName(const ASubType: TgdcSubType): String; override;
@@ -2139,15 +2137,42 @@ begin
 end;
 
 function TgdcRelation.GetCurrRecordClass: TgdcFullClass;
+var
+  S: String;
 begin
-  Result := inherited GetCurrRecordClass;
-  if RecordCount > 0 then
-  begin
+  if EOF then
+    Result := inherited GetCurrRecordClass
+  else begin
     if FieldByName('relationtype').AsString = 'T' then
-      Result.gdClass := CgdcBase(TgdcTable)
+    begin
+      S := '';
+      case GetTableTypeByName(FieldByName('relationname').AsString) of
+        ttTableToTable: S := 'TgdcTableToTable';
+        ttSimpleTable: S := 'TgdcSimpleTable';
+        ttTree: S := 'TgdcTreeTable';
+        ttIntervalTree: S := 'TgdcLBRBTreeTable';
+        ttCustomTable: S := 'TgdcCustomTable';
+        ttDocument: S := 'TgdcDocumentTable';
+        ttDocumentLine: S := 'TgdcDocumentLineTable';
+        ttInvSimple: S := 'TgdcInvSimpleDocumentLineTable';
+        ttInvFeature: S := 'TgdcInvFeatureDocumentLineTable';
+        ttInvInvent: S := 'TgdcInvInventDocumentLineTable';
+        ttInvTransfrom: S := 'TgdcInvTransformDocumentLineTable';
+        ttUnknow: S := 'TgdcUnknownTable';
+        ttPrimeTable: S := 'TgdcPrimeTable';
+      end;
+      if (S > '') and (GetClass(S) <> nil) then
+        Result.gdClass := CgdcBase(GetClass(S))
+      else
+        Result.gdClass := CgdcBase(TgdcTable);
+      Result.SubType := '';
+    end
     else if FieldByName('relationtype').AsString = 'V' then
+    begin
       Result.gdClass := CgdcBase(TgdcView);
-    Result.SubType := '';  
+      Result.SubType := '';
+    end else
+      Result := inherited GetCurrRecordClass;
   end;
 end;
 
@@ -2192,9 +2217,7 @@ begin
     'GRANT ALL ON %s TO administrator',
     [FieldByName('relationname').AsString]
   );
-
 end;
-
 
 procedure TgdcRelation.CustomInsert(Buff: Pointer);
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
@@ -2915,34 +2938,6 @@ begin
   finally
     ibsql.Free;
     FSQL.Free;
-  end;
-end;
-
-function TGDCBASETABLE.GetCurrRecordClass: TgdcFullClass;
-var
-  S: String;
-begin
-  Result := inherited GetCurrRecordClass;
-  if RecordCount > 0 then
-  begin
-    S := Self.ClassName;
-    case TableType of
-      ttTableToTable: S := 'TgdcTableToTable';
-      ttSimpleTable: S := 'TgdcSimpleTable';
-      ttTree: S := 'TgdcTreeTable';
-      ttIntervalTree: S := 'TgdcLBRBTreeTable';
-      ttCustomTable: S := 'TgdcCustomTable';
-      ttDocument: S := 'TgdcDocumentTable';
-      ttDocumentLine: S := 'TgdcDocumentLineTable';
-      ttInvSimple: S := 'TgdcInvSimpleDocumentLineTable';
-      ttInvFeature: S := 'TgdcInvFeatureDocumentLineTable';
-      ttInvInvent: S := 'TgdcInvInventDocumentLineTable';
-      ttInvTransfrom: S := 'TgdcInvTransformDocumentLineTable';
-      ttUnknow: S := 'TgdcUnknownTable';
-      ttPrimeTable: S := 'TgdcPrimeTable';
-    end;
-    if (S > '') and (GetClass(S) <> nil) then
-      Result.gdClass := CgdcBase(GetClass(S));
   end;
 end;
 

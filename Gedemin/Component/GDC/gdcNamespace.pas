@@ -572,7 +572,11 @@ begin
         while not q.EOF do
         begin
           LI := lv.Items.Add;    
-          LI.Caption := q.FieldByName('objectname').AsString;
+          LI.Caption := q.FieldByName('objectname').AsString +
+            ' (' +
+            q.FieldByName('objectclass').AsString +
+            q.FieldByName('subtype').AsString +
+            ')';
           LI.SubItems.Add(q.FieldByName('id').AsString);
           LI.SubItems.Add(q.FieldByName('objectpos').AsString);
           q.Next;
