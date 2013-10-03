@@ -22,7 +22,7 @@ type
     procedure PutDate(const Idx: LongWord; const AValue: TDateTime);
     procedure PutInt64(const Idx: LongWord; const AValue: Int64);
     procedure PutAtom(const Idx: LongWord; const AValue: String);
-    procedure PutVariable(const Idx: LongWord);
+    procedure PutVariable(const Idx: LongWord);  
 
     function ReadInteger(const Idx: LongWord): Integer;
     function ReadString(const Idx: LongWord): String;
@@ -100,7 +100,7 @@ type
 implementation
 
 uses
-  jclStrings, gd_GlobalParams_unit;
+  jclStrings, gd_GlobalParams_unit, Forms;
 
 constructor EgsPLClientException.CreateTypeError(const AnExpected: String; const AnActual: term_t);
 begin
@@ -540,6 +540,24 @@ end;
 
 function TgsPLClient.Initialise(const AParams: String = InitParams): Boolean;
 
+  procedure CheckInitParams(Params: array of PChar);
+  var
+    I: Integer;
+    TempS: String;
+  begin
+    for I := 0 to High(FInitArgv) do
+    begin
+      if FInitArgv[I] = '-x' then
+      begin
+        TempS := ExtractFilePath(Application.EXEName) + 'swipl\' + FInitArgv[I + 1];
+        if not FileExists(TempS) then
+          raise EgsPLClientException.Create('Состояние ' + FInitArgv[I + 1] + ' не найдено!');
+        FInitArgv[I + 1] := PChar(StringReplace(TempS, '\', '/', [rfReplaceAll]));
+        break;
+      end;
+    end;
+  end;
+
   function GetNextElement(const S: String; var L: Integer): String;
   var
     F: Integer;
@@ -557,7 +575,7 @@ function TgsPLClient.Initialise(const AParams: String = InitParams): Boolean;
 var
   P: Integer; 
 begin
-  Assert(AParams > '');
+  Assert(AParams > '');   
 
   if not TryPLLoad then
     raise EgsPLClientException.Create('Клиентская часть Prolog не установлена!'); 
@@ -571,6 +589,7 @@ begin
 
   Setlength(FInitArgv, High(FInitArgv) + 2);
   FInitArgv[High(FInitArgv)] := nil;
+  CheckInitParams(FInitArgv);
 
   if not IsInitialised then
   begin
