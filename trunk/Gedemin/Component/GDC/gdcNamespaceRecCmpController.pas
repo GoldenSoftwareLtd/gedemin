@@ -30,7 +30,7 @@ type
 implementation
 
 uses
-  Forms, Controls, at_dlgCompareNSRecords_unit;
+  Forms, Controls, gdcBaseInterface, at_dlgCompareNSRecords_unit;
 
 { TgdcNamespaceRecCmpController }
 
@@ -67,6 +67,9 @@ begin
   try
     FgdcNamespaceRecCmpController := Self;
     FillGrid(sgMain, not chbxShowOnlyDiff.Checked);
+    lblClassName.Caption := AnObj.GetDisplayName(AnObj.SubType);
+    lblName.Caption := AnObj.ObjectName;
+    lblID.Caption := RUIDToStr(AnObj.GetRUID); 
     Result := ShowModal = mrOk;
   finally
     Free;

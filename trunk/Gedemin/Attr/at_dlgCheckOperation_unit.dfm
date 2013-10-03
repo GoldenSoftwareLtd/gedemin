@@ -1,6 +1,6 @@
 object dlgCheckOperation: TdlgCheckOperation
-  Left = 500
-  Top = 224
+  Left = 623
+  Top = 178
   BorderStyle = bsDialog
   Caption = 'Синхронизация пространств имен'
   ClientHeight = 512

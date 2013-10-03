@@ -147,9 +147,9 @@ object dlgCompareNSRecords: TdlgCompareNSRecords
       object lObjID: TLabel
         Left = 8
         Top = 43
-        Width = 19
+        Width = 32
         Height = 13
-        Caption = 'ÈÄ:'
+        Caption = 'ÐÓÈÄ:'
       end
       object lblID: TLabel
         Left = 93

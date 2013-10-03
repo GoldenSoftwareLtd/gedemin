@@ -10690,6 +10690,9 @@ begin
             Fields[I].DisplayLabel := F.LName + ' (' + F.Relation.LName + ')';
         end else
           FFieldList.Add(F.LName, I);
+
+        if F.CrossRelation <> nil then
+          Fields[I].ReadOnly := True;
       end;
       // для полей, которые не входят в запросы на обновление данных
       // и если для объекта не предусмотрена специальная обработка
@@ -18133,8 +18136,22 @@ procedure TgdcBase.GetDependencies(ATr: TIBTransaction; const ASessionID: Intege
       begin
         if AProcessed.IndexOf(Obj.ID) = -1 then
         begin
-          if (AnIncludeSystemObjects or (Obj.ID >= cstUserIDStart))
-            and (ACount < LimitCount) then
+          if
+            (
+              AnIncludeSystemObjects
+              or
+              (Obj.ID >= cstUserIDStart)
+              or
+              (
+                (Obj is TgdcMetaBase)
+                and
+                TgdcMetaBase(Obj).IsUserDefined
+              )
+            )
+            and
+            (
+              ACount < LimitCount
+            ) then
           begin
             AqInsert.ParamByName('reflevel').AsInteger := ALevel;
             AqInsert.ParamByName('relationname').AsString := AnObject.SetAttributes[I].CrossRelationName;

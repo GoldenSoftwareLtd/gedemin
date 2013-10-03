@@ -235,7 +235,6 @@ type
     function GetIsUserDefined: Boolean; override;
     function GetSQLType: Smallint; override;
     function GetReferenceListField: TatRelationField; override;
-    //function GetIsSecurityDescriptor: Boolean; override;
     function GetVisible: Boolean; override;
     procedure SetFieldName(const AFieldName: String); override;
 
@@ -250,7 +249,8 @@ type
 
     procedure RefreshData; overload; override;
     procedure RefreshData(aDatabase: TIBDatabase; aTransaction: TIBTransaction); overload; override;
-    procedure RefreshData(SQLRecord: TIBXSQLDA; aDatabase: TIBDatabase; aTransaction: TIBTransaction); overload; override;
+    procedure RefreshData(SQLRecord: TIBXSQLDA; aDatabase: TIBDatabase;
+      aTransaction: TIBTransaction); overload; override;
 
     procedure RecordAcquired; override;
 
@@ -311,7 +311,8 @@ type
 
     procedure RefreshData; overload; override;
     procedure RefreshData(ibsql: TIBSQL); overload; override;
-    procedure RefreshData(aDatabase: TIBDatabase; aTransaction: TIBTransaction); overload; override;
+    procedure RefreshData(aDatabase: TIBDatabase;
+      aTransaction: TIBTransaction); overload; override;
   end;
 
   TatBodyForeignKeys = class(TatForeignKeys)
@@ -468,7 +469,6 @@ procedure GetTableName(DS: TDataSet; const FieldName: String; out AliasName, Tab
 function UpdateIBName(const IBName: String): String;
 
 function RelationTypeToChar(const ARelationType: TatRelationType): String;
-//function StringToRelationType(const Name: String): TatRelationType;
 
 implementation
 
@@ -509,42 +509,6 @@ begin
     end;
   end;
 end;
-
-(*
-procedure LocalizeDataSet(DS: TDataSet);
-var
-  I: Integer;
-  R: TatRelation;
-  F: TatRelationField;
-  FN, TN: String;
-begin
-  Assert(Assigned(DS));
-  Assert(atDatabase.Loaded);
-
-  for I := 0 to DS.FieldCount - 1 do
-  begin
-    GetTableName(DS, DS.Fields[I].FieldName, FN, TN);
-
-    R := atDatabase.Relations.ByRelationName(TN);
-    if R <> nil then
-      F := R.RelationFields.ByFieldName(FN)
-    else
-      F := nil;
-      {F := atDatabase.Relations.ByRelationName('GEDEMINGLOBALNAMESPACE').RelationFields.ByFieldName(FN);}
-
-    if F <> nil then
-    begin
-      DS.Fields[I].DisplayLabel := F.LName;
-      DS.Fields[I].Visible := F.Visible;
-      DS.Fields[I].DisplayWidth := F.ColWidth;
-      if (DS.Fields[I] is TNumericField) then
-        (DS.Fields[I] as TNumericField).DisplayFormat := F.FormatString;
-      if (DS.Fields[I] is TDateTimeField) then
-        (DS.Fields[I] as TDateTimeField).DisplayFormat := F.FormatString;
-    end;
-  end;
-end;
-*)
 
 // Доводит длину имени до 31 символа
 function UpdateIBName(const IBName: String): String;

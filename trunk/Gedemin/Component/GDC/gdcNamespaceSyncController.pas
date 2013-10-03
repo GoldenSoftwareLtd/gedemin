@@ -343,8 +343,6 @@ begin
         NS.FieldByName('filename').AsString := System.Copy(AFileName, 1, 255);
         NS.Post;
 
-        TgdcNamespace.UpdateCurrModified(Tr, NS.ID);
-
         if Mapping.FindByName('Objects') is TYAMLSequence then
         begin
           Objects := Mapping.FindByName('Objects') as TYAMLSequence;
@@ -362,7 +360,7 @@ begin
 
             MObject := Objects[J] as TYAMLMapping;
 
-            C := GetClass(MObject.ReadString('Properties\ClassName'));
+            C := GetClass(MObject.ReadString('Properties\Class'));
 
             if (C = nil) or (not C.InheritsFrom(TgdcBase)) then
               continue;
@@ -424,7 +422,7 @@ begin
                 'WHERE id = :id';
               q.ParamByName('ho').AsInteger := NSOID;
               q.ParamByName('id').AsString := HSL.Names[J];
-              q.ExecQuery;  
+              q.ExecQuery;
             end;
           end;
         end;
@@ -455,6 +453,8 @@ begin
       finally
         Parser.Free;
       end;
+
+      TgdcNamespace.UpdateCurrModified(Tr, NS.ID);
     end;
 
     NS.CompareWithData(AFileName);
@@ -643,28 +643,34 @@ begin
     ' '#13#10 +
     '  UPDATE at_namespace_sync s SET s.operation = ''<<'' '#13#10 +
     '  WHERE '#13#10 +
-    '   (EXISTS (SELECT * FROM at_namespace_sync s '#13#10 +
-    '      JOIN at_namespace n ON n.id = s.namespacekey '#13#10 +
-    '      JOIN at_namespace_file f ON f.filename = s.filename '#13#10 +
-    '      WHERE n.filetimestamp < f.filetimestamp) '#13#10 +
+    '   (EXISTS (SELECT * FROM at_namespace_sync s2 '#13#10 +
+    '      JOIN at_namespace n ON n.id = s2.namespacekey '#13#10 +
+    '      JOIN at_namespace_file f ON f.filename = s2.filename '#13#10 +
+    '      WHERE n.filetimestamp < f.filetimestamp '#13#10 +
+    '        AND s2.namespacekey = s.namespacekey AND s2.filename = s.filename'#13#10 +
+    '      )'#13#10 +
     '    )'#13#10 +
     '    AND (s.operation = ''  ''); '#13#10 +
     ' '#13#10 +
     '  UPDATE at_namespace_sync s SET s.operation = ''? '' '#13#10 +
     '  WHERE '#13#10 +
-    '   (EXISTS (SELECT * FROM at_namespace_sync s '#13#10 +
-    '      JOIN at_namespace n ON n.id = s.namespacekey '#13#10 +
-    '      JOIN at_namespace_file f ON f.filename = s.filename '#13#10 +
-    '      WHERE n.filetimestamp < f.filetimestamp) '#13#10 +
+    '   (EXISTS (SELECT * FROM at_namespace_sync s2 '#13#10 +
+    '      JOIN at_namespace n ON n.id = s2.namespacekey '#13#10 +
+    '      JOIN at_namespace_file f ON f.filename = s2.filename '#13#10 +
+    '      WHERE n.filetimestamp < f.filetimestamp '#13#10 +
+    '        AND s2.namespacekey = s.namespacekey AND s2.filename = s.filename'#13#10 +
+    '      )'#13#10 +
     '    )'#13#10 +
     '    AND (s.operation = ''>>''); '#13#10 +
     ' '#13#10 +
     '  UPDATE at_namespace_sync s SET s.operation = ''? '' '#13#10 +
     '  WHERE '#13#10 +
-    '   (EXISTS (SELECT * FROM at_namespace_sync s '#13#10 +
-    '      JOIN at_namespace n ON n.id = s.namespacekey '#13#10 +
-    '      JOIN at_namespace_file f ON f.filename = s.filename '#13#10 +
-    '      WHERE n.filetimestamp IS NULL) '#13#10 +
+    '   (EXISTS (SELECT * FROM at_namespace_sync s2 '#13#10 +
+    '      JOIN at_namespace n ON n.id = s2.namespacekey '#13#10 +
+    '      JOIN at_namespace_file f ON f.filename = s2.filename '#13#10 +
+    '      WHERE n.filetimestamp IS NULL '#13#10 +
+    '        AND s2.namespacekey = s.namespacekey AND s2.filename = s.filename'#13#10 +
+    '      )'#13#10 +
     '    )'#13#10 +
     '    AND (s.namespacekey IS NOT NULL) '#13#10 +
     '    AND (s.operation = ''  ''); '#13#10 +
@@ -1081,12 +1087,10 @@ begin
       begin
         SL := TStringList.Create;
         try
-          DoLog(lmtInfo, 'Определен порядок загрузки:');
           FqDependentList.ExecQuery;
           while not FqDependentList.EOF do
           begin
             SL.Add(FqDependentList.Fields[0].AsString);
-            DoLog(lmtInfo, IntToStr(SL.Count) + ': ' + FqDependentList.Fields[0].AsString);
             FqDependentList.Next;
           end;
           FqDependentList.Close;
