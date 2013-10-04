@@ -578,7 +578,7 @@ begin
   else
     TempS := GetDefaultPLInitString;
   TempS := StringReplace(TempS, '],[', '!@', [rfReplaceAll]);
-  TempS := Copy(TempS, 2, Length(TempS) - 1);
+  TempS := Copy(TempS, 2, Length(TempS) - 2);
 
   SL := TStringList.Create;
   try
