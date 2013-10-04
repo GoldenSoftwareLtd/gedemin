@@ -19122,10 +19122,7 @@ end;
 
 function TwrpPLClient.Initialise(const AParams: WideString): WordBool;
 begin
-  if AParams > '' then
-    Result := GetPLClient.Initialise(AParams)
-  else
-    Result := GetPLClient.Initialise;
+  Result := GetPLClient.Initialise(AParams);
 end;
 
 function TwrpPLClient.IsInitialised: WordBool;
