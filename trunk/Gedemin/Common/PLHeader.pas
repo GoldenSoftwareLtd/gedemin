@@ -40,7 +40,7 @@ const
   Libgmp10_dll = 'libgmp-10.dll';
   Libswipl_dll = 'libswipl.dll';
   PthreadGC2_dll = 'pthreadGC2.dll';
-  InitParams = 'libswipl.dll,-x,gd_pl_state.dat';
+  PrologPath = 'swipl';  
 
 type
   size_t = Cardinal;
@@ -133,8 +133,8 @@ type
 
   TPL_pred = function(f: functor_t; m: module_t): predicate_t; cdecl;    
   TPL_predicate_info = function(pred: predicate_t; var name: atom_t; var arity: Integer;
-    var module: module_t): Integer; cdecl;
-  
-implementation
+    var module: module_t): Integer; cdecl;    
+
+implementation    
 
 end.
