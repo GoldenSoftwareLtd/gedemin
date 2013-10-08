@@ -31,7 +31,7 @@ uses
   SynEditHighlighter, SynHighlighterVBScript, Menus, prp_frmRuntimeScript,
   prp_dfMessages_unit, prp_frmClassesInspector_unit,  prp_dfPropertyTree_Unit,
   prp_dfBreakPoints_unit, Db, IBCustomDataSet, gdcBase, gdcTaxFunction,
-  rp_BaseReport_unit, gd_security, prp_dlgCodeTemplates_unit;
+  rp_BaseReport_unit, gd_security, prp_dlgCodeTemplates_unit, prp_PrologSFFrame_unit;
 
 type
   TfrmGedeminProperty = class(Tprp_frm)
@@ -653,6 +653,12 @@ begin
           if FindFrame(TSFFrame) then
             Exit;
           TI.EditorFrame := TSFFrame.Create(Self);
+        end;
+        tiPrologSF:
+        begin
+          if FindFrame(TPrologSFFrame) then
+            Exit;
+          TI.EditorFrame := TPrologSFFrame.Create(Self);
         end;
       end;
       TBaseFrame(TI.EditorFrame).Visible := AShow;

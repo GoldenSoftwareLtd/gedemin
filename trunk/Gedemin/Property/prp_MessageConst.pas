@@ -170,6 +170,7 @@ const
   NEW_CONST = 'Const';
   NEW_GLOBALOBJECT = 'GlobalObject';
   NEW_VBCLASS     = 'TVBClass';
+  NEW_PROLOG = 'PrologScript';
   MAIN_FUNCTION = 'Основная функция';
   PARAM_FUNCTION = 'Функция параметров';
   EVENT_FUNCTION = 'Функция события';

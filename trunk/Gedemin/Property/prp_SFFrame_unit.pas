@@ -27,7 +27,7 @@ type
   public
     { Public declarations }
     procedure Setup(const FunctionName: String = ''); override;
-    function Delete: Boolean;override;
+    function Delete: Boolean; override;
 
     // Вставляет объект
     procedure PasteObject; override;
