@@ -1,7 +1,7 @@
 unit prp_dfPropertyTree_Unit;
-                                                                                    
+
 interface
-                                                                       
+
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   ComCtrls, prp_TreeItems, ImgList, evt_Base, Db, dmImages_unit,
@@ -252,6 +252,7 @@ type
     function FindEvent(Id: Integer): TTreeNode;
     function FindReportFunction(Id: Integer): TTreeNode;
     function FindReport(Id: Integer): TTreeNode;
+    function FindPrologSF(Id: Integer): TTreeNode;
 
     function FindVBClass(Id: Integer): TTreeNode;
     function FindConst(Id: Integer): TTreeNode;
@@ -354,9 +355,13 @@ type
     function GetSFWhereClause(const AnID: Integer): String;
     function AddSfRootNode(Id: Integer; OwnerName: string; TV: TTReeView): TTreeNode;
     procedure LoadSf(Node: TTreeNode);
+    procedure LoadPrologSF(Node: TTreeNode);
     function GetSFType(Module: string): sfTypes;
     function AddSFNode(Parent: TTreeNode; id: Integer; Name: string): TTreeNode;
-    procedure CheckLoadSf(Tn: TTreeNode);
+    procedure CheckLoadSf(TN: TTreeNode);
+    procedure CheckLoadPrologSF(TN: TTreeNode);
+    function AddPSFNode(Parent: TTreeNode; id: Integer; Name: string): TTreeNode;
+
     //Возвращает индекс закладки объекта
     function IndexOfByObjId(Id: Integer): Integer;
     //
@@ -392,6 +397,7 @@ type
     function  AddVBClassItem: TCustomTreeItem;
     procedure AddConstItem;
     function  AddSFItem: TCustomTreeItem;
+    function AddPSFItem: TCustomTreeItem;
     procedure AddGOItem;
     function  AddMacrosItem: TCustomTreeItem;
     procedure AddMacrosFolder;
@@ -612,7 +618,7 @@ begin
     end;
 
     if  TI.ItemType in [tiEvent, tiMethod,
-      tiVBClass, tiConst, tiGlobalObject, tiMacros, tiReport, tiSf] then
+      tiVBClass, tiConst, tiGlobalObject, tiMacros, tiReport, tiSf, tiPrologSF] then
       TfrmGedeminProperty(DockForm).ShowFrame(TI);
 
 {    if TCustomTreeItem(TTreeView(Sender).Selected.Data).EditorFrame <> nil then
@@ -669,7 +675,7 @@ begin
             I := NameList.Add(TCustomTreeItem(TN.Data).Name);
             NameList.Objects[I] := TN;
             TN := TN.Parent;
-            if not Assigned(Tn) then Break;
+            if not Assigned(TN) then Break;
           end;
 
           if NameList.Count > 0 then
@@ -790,7 +796,7 @@ begin
   case TCustomTreeItem(Node.Data).ItemType of
     tiMacrosFolder, tiReportFolder, tiSFFolder, tiConstFolder,
     tiGlobalObjectFolder, tiObjectFolder, tiGDCClassFolder,
-    tiVBClassFolder, tiPrologFolder:
+    tiVBClassFolder, tiPrologSFFolder:
     begin
       Node.SelectedIndex := 9;
       Node.ImageIndex := 8;
@@ -844,6 +850,11 @@ begin
     begin
       Node.SelectedIndex := 42;
       Node.ImageIndex := 42;
+    end;
+    tiPrologSF:
+    begin
+      Node.SelectedIndex := 24;
+      Node.ImageIndex := 24;
     end;
   end;
 end;
@@ -955,7 +966,7 @@ begin
   SQL := TIBSQL.Create(nil);
   try
     SQL.Transaction := gdcDelphiObject.ReadTransaction;
-    SQL.SQL.Text := 'SELECT ' + fnName + ', ' + fnId + ', ' +  fnModuleCode + ' FROM gd_function WHERE UPPER(module) = :module ' +
+    SQL.SQL.Text := 'SELECT name, id, modulecode FROM gd_function WHERE UPPER(module) = :module ' +
       'and modulecode = :modulecode';
     SQL.Params[0].AsString := scrVBClasses;
     SQL.Params[1].AsInteger := OwnerId;
@@ -987,7 +998,7 @@ begin
   SQL := TIBSQL.Create(nil);
   try
     SQL.Transaction := gdcDelphiObject.ReadTransaction;
-    SQL.SQL.Text := 'SELECT ' + fnName + ', ' + fnId + ', ' +  fnModuleCode + ' FROM gd_function WHERE UPPER(module) = :module';
+    SQL.SQL.Text := 'SELECT name, id, modulecode FROM gd_function WHERE UPPER(module) = :module';
     SQL.Params[0].AsString := scrConst;
     SQL.ExecQuery;
     while not SQL.Eof do
@@ -1022,6 +1033,7 @@ begin
       tiMacrosFolder, tiMacros: AddMacrosItem;
       tiReportFolder, tiReport: AddReportItem;
       tiSF, tiSFFolder: AddSFItem;
+      tiPrologSF, tiPrologSFFolder: AddPSFItem;
       tiEvent, tiMethod: tvClassesDblClick(nil);
     end;
   end;
@@ -1164,7 +1176,7 @@ begin
     Assigned(SelectedNode) and
     (TCustomTreeItem(SelectedNode.Data).ItemType in [tiMacros,
     tiReport, tiConst, tiVBClass, tiSF, tiGlobalObject, tiMacrosFolder,
-    tiReportFolder, tiEvent, tiMethod]) and (TCustomTreeItem(SelectedNode.Data).ID > 0) and
+    tiReportFolder, tiEvent, tiMethod, tiPrologSF]) and (TCustomTreeItem(SelectedNode.Data).ID > 0) and
     (tCustomTreeItem(Activetree.Selected.Data).ID <> OBJ_GLOBALMACROS);
 end;
 
@@ -1177,7 +1189,7 @@ begin
   SQL := TIBSQL.Create(nil);
   try
     SQL.Transaction := gdcDelphiObject.ReadTransaction;
-    SQL.SQL.Text := 'SELECT ' + fnName + ', ' + fnId + ', ' +  fnModuleCode + ' FROM gd_function WHERE UPPER(module) = :module';
+    SQL.SQL.Text := 'SELECT name, id, modulecode FROM gd_function WHERE UPPER(module) = :module';
     SQL.Params[0].AsString := scrGlobalObject;
     SQL.ExecQuery;
     while not SQL.Eof do
@@ -1271,7 +1283,7 @@ var
   TN: TTreeNode;
 begin
   TN := Node;
-  while Assigned(Tn) do
+  while Assigned(TN) do
   begin
     TN.Expanded := True;
     TN := TN.Parent;
@@ -1437,10 +1449,10 @@ begin
   TAction(Sender).Enabled :=
     Assigned(SelectedNode) and
     (((TCustomTreeItem(SelectedNode.Data).ItemType in [tiMacros,
-    tiReport, tiConst, tiVBClass, tiSF, tiGlobalObject, tiMacrosFolder,
+    tiReport, tiConst, tiVBClass, tiSF, tiPrologSF, tiGlobalObject, tiMacrosFolder,
     tiReportFolder]) and (TCustomTreeItem(SelectedNode.Data).ID > 0)) or
     (TCustomTreeItem(SelectedNode.Data).ItemType in [tiSFFolder, tiVBClassFolder,
-    tiConstFolder, tiGlobalObjectFolder, tiPrologFolder]) or
+    tiConstFolder, tiGlobalObjectFolder, tiPrologSFFolder]) or
     ((TCustomTreeItem(SelectedNode.Data).ItemType in [tiEvent, tiMethod]) and
      (TCustomTreeItem(SelectedNode.Data).ID = 0)));
 end;
@@ -1655,6 +1667,8 @@ begin
 
     tiSfFolder:
       CheckLoadSf(Node);
+    tiPrologSFFolder:
+      CheckLoadPrologSF(Node);
   end;
 
   if Node.HasChildren and (Node.Count = 0) then
@@ -1706,6 +1720,82 @@ begin
   end;
 end;
 
+function TdfPropertyTree.FindPrologSF(Id: Integer): TTreeNode;
+var 
+  SQL: TIBSQL;
+  TS: TTreeTabSheet;
+  TN: TTreeNode;
+  ModuleCode: Integer;
+  PI: TPrologTreeItem;
+  N: TTreeNode;
+begin
+  Result := nil;
+  SQL := TIBSQL.Create(nil);
+  try  
+    SQL.Transaction := gdcDelphiObject.ReadTransaction;
+    SQL.SQL.Text := 'SELECT g.*, o.objectname As ObjectName FROM gd_function g, ' +
+      ' evt_object o WHERE o.id = g.modulecode and g.id = ' + IntToStr(Id);
+    SQL.ExecQuery;
+    if not SQL.Eof then
+    begin
+      ModuleCode := SQl.FieldByName(fnModuleCode).AsInteger;
+      TS := GetPageByObjID(ModuleCode);
+      if Assigned(TS) then
+      begin
+        TN := TS.PrologRootNode;
+        if Assigned(TN) then
+        begin
+          CheckLoadPrologSf(TN);
+          N := TN.GetFirstChild;
+          while (N <> nil) do
+          begin
+            if TPrologTreeItem(N.data).Id = id then
+            begin
+              Result := N;
+              Break;
+            end;
+            N := N.GetNextSibling;
+          end;
+          if not Assigned(Result) then
+            Result := AddPSFNode(TN, id, SQL.FieldByName(fnName).AsString);
+        end;
+      end;
+
+      if not Assigned(Result) then
+      begin
+        TS := GetPageByObjID(OBJ_APPLICATION);
+        if Assigned(TS) then
+        begin
+          TN := TS.PrologRootNode;
+          if Assigned(TN) then
+          begin
+            CheckLoadPrologSf(TN);
+            N := TN.GetFirstChild;
+            while (N <> nil) do
+            begin
+              if TSFTreeItem(N.data).Id = id then
+              begin
+                Result := N;
+                Break;
+              end;
+              N := N.GetNextSibling;
+            end;
+            if not Assigned(Result) then
+            begin
+              Result := AddPSFNode(TN, id, SQL.FieldByName(fnName).AsString);
+              PI := TPrologTreeItem(Result.Data);
+              PI.OwnerId := SQL.FieldByName(fnModuleCode).AsInteger;
+              PI.MainOwnerName := SQL.FieldByName('ObjectName').AsString;
+            end;
+          end;
+        end;
+      end;
+    end;
+  finally
+    SQL.Free;
+  end;
+end;
+
 function TdfPropertyTree.FindSF(ID: Integer): TTreeNode;
 var
   SQL: TIBSQL;
@@ -1720,7 +1810,7 @@ begin
     if not SQL.Eof then
     begin
       //Если с.ф. найдена в базе то ищем с.ф. в дереве
-      Result := FindSf(Id, SQL.Fields[0].AsString);
+      Result := FindSf(Id, SQL.FieldByName('module').AsString);
     end else
       //т.к. с.ф. не найденав базе то генерим сообщение
       FunctionNotFound(ID);
@@ -1762,7 +1852,9 @@ begin
   if Module = scrConst then
     Result := FindConst(ID)
   else if Module = scrGlobalObject then
-    Result := FindGO(ID);
+    Result := FindGO(ID)
+  else if Module = scrPrologModuleName then
+    Result := FindPrologSF(ID);
 
   //Если функция не найдена то последняя надежда найти среди с.ф.
   if not Assigned(Result) then
@@ -1776,16 +1868,16 @@ begin
       SQL.ExecQuery;
       if not SQL.Eof then
       begin
-        ModuleCode := SQl.FieldByName(fnModuleCode).AsInteger;
+        ModuleCode := SQL.FieldByName(fnModuleCode).AsInteger;
         //Ищем падже объекта по ид объекта
         TS := GetPageByObjID(ModuleCode);
         if Assigned(TS) then
         begin
           //если нашли то получаем указатель на нод папки с.ф.
           TN := TS.SFRootNode;
-          if Assigned(Tn) then
+          if Assigned(TN) then
           begin
-            CheckLoadSf(Tn);
+            CheckLoadSf(TN);
             //если нашли то ищем нужный нод
             N := TN.GetFirstChild;
             while (N <> nil) do
@@ -1801,7 +1893,7 @@ begin
             if not Assigned(Result) then
             begin
               //Если не нашли то добавляем нод в дерево
-              Result := AddSFNode(Tn, id, SQL.FieldByName(fnName).AsString);
+              Result := AddSFNode(TN, id, SQL.FieldByName(fnName).AsString);
               SI := TSFTreeItem(Result.Data);
               SI.SFType := GetSFType(SQL.FieldByName(fnModule).AsString);
             end;
@@ -1817,9 +1909,9 @@ begin
           begin
             //Если нашли то получаем нод папки с.ф.
             TN := TS.SFRootNode;
-            if Assigned(Tn) then
+            if Assigned(TN) then
             begin
-              CheckLoadSf(Tn);
+              CheckLoadSf(TN);
               //Если нашли папку то ищим нужный нод
               N := TN.GetFirstChild;
               while (N <> nil) do
@@ -1860,10 +1952,10 @@ procedure TdfPropertyTree.OpenNode(TN: TTreeNode);
 begin
   if Assigned(TN) then
   begin
-    Tn.TreeView.Show;
+    TN.TreeView.Show;
     Expand(TN);
     TN.Selected := True;
-    tvClassesDblClick(Tn.TreeView);
+    tvClassesDblClick(TN.TreeView);
   end;
 end;
 
@@ -2692,7 +2784,10 @@ begin
 
     TS.PrologRootNode := TS.Tree.Items.AddChild(nil, 'Пролог-скрипты');
     TS.PrologRootNode.Data := TPrologTreeFolder.Create;
-    TS.PrologRootNode.HasChildren := False;
+    TPrologTreeFolder(TS.PrologRootNode.Data).Id := idAppReportRootFolder;
+    TPrologTreeFolder(TS.PrologRootNode.Data).OwnerId := OBJ_APPLICATION;
+    TPrologTreeFolder(TS.PrologRootNode.Data).MainOwnerName := 'APPLICATION';
+    TS.PrologRootNode.HasChildren := True;
 
     TS.SFRootNode := AddSfRootNode(OBJ_APPLICATION, 'APPLICATION', TS.Tree);
     cbObjectList.Items.AddObject(TS.Caption, TObject(TApplication));
@@ -3407,7 +3502,7 @@ begin
     SQL.SQL.Text :=
       'SELECT r.* FROM rp_reportlist r WHERE (r.mainformulakey = :id OR ' +
       '  r.paramformulakey = :id OR r.eventformulakey = :id )';
-    SQL.Params[0].ASInteger := ID;
+    SQL.ParamByName('id').ASInteger := ID;
     SQL.ExecQuery;
     Result := FindReport(SQL.FieldByName(fnId).AsInteger);
   finally
@@ -3433,7 +3528,7 @@ begin
   begin
     SQL := TIBSQL.Create(nil);
     try
-      SQL.Transaction := gdcDelphiObject.readTransaction;
+      SQL.Transaction := gdcDelphiObject.ReadTransaction;
       SQL.SQL.Text :=
         'SELECT g.id FROM gd_function g ' +
         ' JOIN evt_object o2 ON g.modulecode = o2.id ' +
@@ -3449,6 +3544,42 @@ begin
     Result.HasChildren := False;
 end;
 
+procedure TdfPropertyTree.LoadPrologSF(Node: TTreeNode);
+var
+  SQL: TIBSQL;
+  S: TSortType;
+begin
+  S := TTreeView(Node.TreeView).SortType;
+  TTreeView(Node.TreeView).SortType := stNone;
+  try
+    TCustomTreeFolder(Node.Data).ChildsCreated := True;
+    SQL := TIBSQL.Create(nil);
+    try
+      SQL.Transaction := gdcDelphiObject.ReadTransaction;
+      SQL.SQL.Text := 'SELECT g.* FROM ' +
+        '  gd_function g '#13#10 +
+        '  JOIN evt_object o2 on g.modulecode = o2.id '#13#10 +
+        '  JOIN evt_object o1 on o1.lb <= o2.lb AND '#13#10 +
+        '    o1.rb >= o2.rb AND o1.parent IS Null '#13#10 +
+        '  WHERE o2.id = :id AND g.module = :m';
+
+      SQL.ParamByName('id').AsInteger := TCustomTreeFolder(Node.Data).OwnerId;
+      SQL.ParamByName('m').AsString := scrPrologModuleName;
+      SQL.ExecQuery;
+      while not SQL.Eof do
+      begin
+        AddPSFNode(Node, SQL.FieldByname(fnId).AsInteger, SQL.FieldByName(fnName).AsString);
+        SQL.Next;
+      end; 
+    finally
+      Node.HasChildren := Node.Count > 0;
+      SQL.Free;
+    end;
+  finally
+    TTreeView(Node.TreeView).SortType := S;
+  end;
+end;
+
 procedure TdfPropertyTree.LoadSf(Node: TTreeNode);
 var
   SQL: TIBSQL;
@@ -3462,7 +3593,7 @@ begin
     TCustomTreeFolder(Node.Data).ChildsCreated := True;
     SQL := TIBSQL.Create(nil);
     try
-      SQL.Transaction := gdcDelphiObject.readTransaction;
+      SQL.Transaction := gdcDelphiObject.ReadTransaction;
       WhereClause := GetSFWhereClause(TCustomTreeFolder(Node.Data).OwnerId);
       if WhereClause <> '' then
       begin
@@ -3479,7 +3610,7 @@ begin
         begin
           TN := AddSFNode(Node, SQL.FieldByname(fnId).AsInteger, SQL.FieldByName(fnName).AsString);
           TSFTreeItem(TN.Data).SFType := GetSFType(SQL.FieldByName(fnModule).AsString);
-          SQl.Next;
+          SQL.Next;
         end;
       end;
     finally
@@ -3516,7 +3647,7 @@ begin
     Assigned(ActivePage.SFRootNode) then
   begin
     CheckLoadSf(ActivePage.SFRootNode);
-    Tn := AddSFNode(ActivePage.SFRootNode, 0,
+    TN := AddSFNode(ActivePage.SFRootNode, 0,
       {gdcFunction.GetUniqueName(}NEW_SCRIPTFUNCTION{, '', ActivePage.Tag)});
     VBI := TSFTreeItem(TN.Data);
     VBI.SFType := sfUnknown;
@@ -3533,10 +3664,55 @@ begin
   end;
 end;
 
-procedure TdfPropertyTree.CheckLoadSf(Tn: TTreeNode);
+procedure TdfPropertyTree.CheckLoadSf(TN: TTreeNode);
 begin
   if not TCustomTreeFolder(TN.Data).ChildsCreated then
-    LoadSf(Tn);
+    LoadSf(TN);
+end;
+
+procedure TdfPropertyTree.CheckLoadPrologSF(TN: TTreeNode);
+begin
+  if not TCustomTreeFolder(TN.Data).ChildsCreated then
+    LoadPrologSF(TN);
+end;
+
+function TdfPropertyTree.AddPSFNode(Parent: TTreeNode; id: Integer; Name: string): TTreeNode;
+var
+  PI: TPrologTreeItem;
+begin
+  Result := TTreeView(Parent.TreeView).Items.Addchild(Parent, Name);
+  PI := TPrologTreeItem.Create;
+  PI.Id := Id;
+  PI.Name := Name;
+  PI.OwnerId := TCustomTreeFolder(Parent.Data).OwnerId;
+  PI.Node := Result;
+  PI.MainOwnerName := TCustomTreeFolder(Parent.Data).MainOwnerName;
+  Result.Data := PI;
+end;
+
+function TdfPropertyTree.AddPSFItem: TCustomTreeItem;
+var
+  TN: TTreeNode;
+  VBI: TPrologTreeItem;
+begin
+  Result := nil;
+  if Assigned(ActivePage) and
+    Assigned(ActivePage.PrologRootNode) then
+  begin
+    TN := AddPSFNode(ActivePage.PrologRootNode, 0,
+      {gdcFunction.GetUniqueName(}NEW_PROLOG{, '', ActivePage.Tag)});
+    VBI := TPrologTreeItem(TN.Data);
+    TN.Selected := True;
+    tvClassesDblClick(ActiveTree);
+    try
+      TBaseFrame(VBI.EditorFrame).Post;
+      Result := VBI;
+    except
+      if VBI.EditorFrame <> nil then
+        VBI.EditorFrame.Free;
+      TN.Delete;
+    end;
+  end;  
 end;
 
 procedure TdfPropertyTree.CheckLoadReportFolder(Node: TTreeNode);
@@ -3605,7 +3781,7 @@ var
 begin
   Result := nil;
   TS := GetPageByObjID(OBJ_APPLICATION);
-  if Assigned(TS) and Assigned(Ts.GORootNode) then
+  if Assigned(TS) and Assigned(TS.GORootNode) then
   begin
     TN := TS.GORootNode.GetFirstChild;
     while (TN <> nil) do
@@ -3729,7 +3905,7 @@ begin
       Result := Result + ' (NOT (g.module IN ('''+ scrVBClasses +
         ''', ''' + scrMacrosModuleName +  ''', ''' + MainModuleName + ''',''' +
         ParamModuleName + ''',''' + EventModuleName + ''', ''' +scrEventModuleName +
-        ''', ''' + scrMethodModuleName + ''', ''' + scrEntryModuleName + ''')))'
+        ''', ''' + scrMethodModuleName + ''', ''' + scrEntryModuleName + ''', ''' + scrPrologModuleName + ''')))'
     end;
 
     if Result > '' then
@@ -3988,7 +4164,7 @@ begin
       tiConst, tiConstFolder: HintStr := 'Добавить константы и переменные';
       tiGlobalObject, tiGlobalObjectFolder: HintStr := 'Добавить глобальный объект';
       tiSF, tiSFFolder: HintStr := 'Добавить скрипт-функцию';
-      tiProlog, tiPrologFolder: HintStr := 'Добавить пролог-скрипт';
+      tiPrologSF, tiPrologSFFolder: HintStr := 'Добавить пролог-скрипт';
     else
       HintStr := 'Добавить';  
     end;
@@ -4709,7 +4885,7 @@ end;
 
 procedure TdfPropertyTree.RenameObject(C: TComponent; const AOldName: string);
 var
-  Tn: TTreeNode;
+  TN: TTreeNode;
 begin
   TN := CheckComponentNode(C, False, AOldName);
   if (TN <> nil) and (AOldName <> '') then begin
@@ -4723,7 +4899,7 @@ function TdfPropertyTree.CheckComponentNode(Component: TComponent;
 var
   F: TCreateableForm;
   TS: TTreeTabSheet;
-  Tn: TTreeNode;
+  TN: TTreeNode;
   SL: TStringList;
   C: TComponent;
   I: Integer;
@@ -5070,13 +5246,13 @@ end;
 
 procedure TdfPropertyTree.actAddToSettingExecute(Sender: TObject);
 var
-  Tn: TTreeNode;
+  TN: TTreeNode;
 begin
-  Tn := SelectedNode;
-  if Tn <> nil then
+  TN := SelectedNode;
+  if TN <> nil then
   begin
     if TCustomTreeItem(TN.Data).ItemType in [tiMacros, tiReport, tiVBClass, tiConst,
-      tiMethod, tiEvent, tiSF, tiGlobalObject] then
+      tiMethod, tiEvent, tiSF, tiGlobalObject, tiPrologSF] then
     begin
       if Assigned(TCustomTreeItem(TN.Data).EditorFrame) then
         TBaseFrame(TCustomTreeItem(TN.Data).EditorFrame).AddTosetting
@@ -5095,12 +5271,12 @@ end;
 
 procedure TdfPropertyTree.actAddToSettingUpdate(Sender: TObject);
 var
-  Tn: TTreeNode;
+  TN: TTreeNode;
 begin
-  Tn := SelectedNode;
+  TN := SelectedNode;
   TAction(Sender).Enabled := (TN <> nil) and (TCustomTreeItem(TN.Data).ItemType
     in [tiMacros, tiReport, tiVBClass, tiConst, tiMethod, tiEvent, tiSF,
-    tiGlobalObject]) and (TCustomTreeItem(TN.Data).Id > 0);
+    tiGlobalObject, tiPrologSF]) and (TCustomTreeItem(TN.Data).Id > 0);
 end;
 
 procedure TdfPropertyTree.actRenameItemUpdate(Sender: TObject);
@@ -5305,7 +5481,7 @@ begin
   TAction(Sender).Enabled :=
     Assigned(SelectedNode) and
     ((TCustomTreeItem(SelectedNode.Data).ItemType in [tiMacros,
-    tiReport, tiConst, tiVBClass, tiSF, tiGlobalObject, tiEvent, tiMethod]) and
+    tiReport, tiConst, tiVBClass, tiSF, tiGlobalObject, tiEvent, tiMethod, tiPrologSF]) and
     (TCustomTreeItem(SelectedNode.Data).ID > 0));
 end;
 
@@ -5328,8 +5504,8 @@ begin
     tiVBClass:
       if TreeItem.ItemType in [tiVBClass, tiVBClassFolder] then
         Result := True;
-    tiProlog:
-      if TreeItem.ItemType in [tiProlog, tiPrologFolder] then
+    tiPrologSF:
+      if TreeItem.ItemType in [tiPrologSF, tiPrologSFFolder] then
         Result := True;    
   end;
 end;

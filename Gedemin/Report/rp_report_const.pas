@@ -33,6 +33,7 @@ const
   scrConst = 'CONST';
   scrGlobalObject = 'GLOBALOBJECT';
   scrEntryModuleName = 'ENTRY';         //Модуль для проводок
+  scrPrologModuleName = 'PROLOG';
 
   ReportObjectName = 'BaseQuery';       // Наименование объекта для программирования
   DefaultLanguage = 'VBScript';         // Язык для программирования скриптов по умолчанию

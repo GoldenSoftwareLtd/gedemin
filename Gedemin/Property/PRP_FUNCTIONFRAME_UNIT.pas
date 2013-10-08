@@ -587,7 +587,8 @@ begin
   T := gsFunctionSynEdit.TopLine;
 
   {для начала будем выдавать просто сообщение, в дальнейшем не давать сохранить}
-  if (gdcFunction.FieldByName(fnModule).AsString <> scrConst) then
+  if (gdcFunction.FieldByName(fnModule).AsString <> scrConst) and
+    (gdcFunction.FieldByName(fnModule).AsString <> scrPrologModuleName) then
   begin
     if System.Pos('OPTION EXPLICIT', AnsiUpperCase(gsFunctionSynEdit.Lines.Text)) > 0 then
     begin
@@ -1066,7 +1067,8 @@ begin
   E := TCodeExplorerParser.Create(nil);
   try
    if (gdcFunction.FieldByName(fnModule).AsString <> scrVBClasses) and
-     (gdcFunction.FieldByName(fnModule).AsString <> scrConst) then
+     (gdcFunction.FieldByName(fnModule).AsString <> scrConst) and
+     (gdcFunction.FieldByName(fnModule).AsString <> scrPrologModuleName) then
    begin
      if gdcFunction.FieldByName(fnModule).AsString = scrGlobalObject then
        AnFunctionName := AnFunctionName + '_Initialize';
