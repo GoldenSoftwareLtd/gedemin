@@ -3984,7 +3984,8 @@ type
       const AFieldList: WideString; const ATr: IgsIBTransaction;
       const APredicateName: WideString; const AFileName: WideString); safecall;
     procedure Compound(AGoal: LongWord; const AFunctor: WideString; const ATermv: IgsPLTermv); safecall;
-  end; 
+    function ExecuteScript(AScriptID: Integer): WordBool; safecall;
+  end;
 
 implementation
 
@@ -19161,6 +19162,11 @@ end;
 procedure TwrpPLClient.Compound(AGoal: LongWord; const AFunctor: WideString; const ATermv: IgsPLTermv);
 begin
   GetPLClient.Compound(AGoal, AFunctor, InterfaceToObject(ATermv) as TgsPLTermv);
+end;
+
+function TwrpPLClient.ExecuteScript(AScriptID: Integer): WordBool;
+begin
+  Result := GetPLClient.ExecuteScript(AScriptID);
 end;
 
 initialization
