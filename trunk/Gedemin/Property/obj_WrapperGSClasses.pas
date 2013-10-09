@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2002-2013 by Golden Software of Belarus
+  Copyright (c) 2002-2013 by Golden Software of Belarus                           
 
   Module
 
@@ -3984,7 +3984,22 @@ type
       const AFieldList: WideString; const ATr: IgsIBTransaction;
       const APredicateName: WideString; const AFileName: WideString); safecall;
     procedure Compound(AGoal: LongWord; const AFunctor: WideString; const ATermv: IgsPLTermv); safecall;
-    function ExecuteScript(AScriptID: Integer): WordBool; safecall;
+    function LoadScript(AScriptID: Integer): WordBool; safecall;
+  end;
+
+  TwrpPLQuery = class(TwrpObject, IgsPLQuery)
+  private
+    function GetPLQuery: TgsPLQuery;
+  procedure NextSolution; safecall;
+    procedure OpenQuery; safecall;
+    procedure Close; safecall;
+    function Get_PredicateName: WideString; safecall;
+    procedure Set_PredicateName(const Value: WideString); safecall;
+    function Get_Eof: WordBool; safecall;
+    function Get_Termv: IgsPLTermv; safecall;
+    procedure Set_Termv(const Value: IgsPLTermv); safecall;
+    function Get_DeleteDataAfterClose: WordBool; safecall;
+    procedure Set_DeleteDataAfterClose(Value: WordBool); safecall;
   end;
 
 implementation
@@ -19164,9 +19179,64 @@ begin
   GetPLClient.Compound(AGoal, AFunctor, InterfaceToObject(ATermv) as TgsPLTermv);
 end;
 
-function TwrpPLClient.ExecuteScript(AScriptID: Integer): WordBool;
+function TwrpPLClient.LoadScript(AScriptID: Integer): WordBool;
 begin
-  Result := GetPLClient.ExecuteScript(AScriptID);
+  Result := GetPLClient.LoadScript(AScriptID);
+end;  
+
+function TwrpPLQuery.GetPLQuery: TgsPLQuery;
+begin
+  Result := GetObject as TgsPLQuery;
+end;
+
+procedure TwrpPLQuery.NextSolution;
+begin
+  GetPLQuery.NextSolution;
+end;
+
+procedure TwrpPLQuery.OpenQuery;
+begin
+  GetPLQuery.OpenQuery;
+end;
+
+procedure TwrpPLQuery.Close;
+begin
+  GetPLQuery.Close;
+end;
+
+function TwrpPLQuery.Get_PredicateName: WideString;
+begin
+  Result := GetPLQuery.PredicateName;
+end;
+
+procedure TwrpPLQuery.Set_PredicateName(const Value: WideString);
+begin
+  GetPLQuery.PredicateName := Value;
+end;
+
+function TwrpPLQuery.Get_Eof: WordBool;
+begin
+  Result := GetPLQuery.Eof;
+end;
+
+function TwrpPLQuery.Get_Termv: IgsPLTermv;
+begin
+  Result := GetGdcOLEObject(GetPLQuery.Termv) as IgsPLTermv;
+end;
+
+procedure TwrpPLQuery.Set_Termv(const Value: IgsPLTermv);
+begin
+  GetPLQuery.Termv := InterfaceToObject(Value) as TgsPLTermv;
+end;
+
+function TwrpPLQuery.Get_DeleteDataAfterClose: WordBool;
+begin
+  Result := GetPLQuery.DeleteDataAfterClose;
+end;
+
+procedure TwrpPLQuery.Set_DeleteDataAfterClose(Value: WordBool);
+begin
+  GetPLQuery.DeleteDataAfterClose := Value;
 end;
 
 initialization
@@ -19416,5 +19486,6 @@ initialization
   RegisterGdcOLEClass(TgsTRPOSParamData, TwrpTRPOSParamData, ComServer.TypeLib, IID_IgsTRPOSParamData);
   RegisterGdcOLEClass(TgsPLTermv, TwrpPLTermv, ComServer.TypeLib, IID_IgsPLTermv);
   RegisterGdcOLEClass(TgsPLClient, TwrpPLClient, ComServer.TypeLib, IID_IgsPLClient);
+  RegisterGdcOLEClass(TgsPLQuery, TwrpPLQuery, ComServer.TypeLib, IID_IgsPLQuery);
 
 end.

@@ -44,7 +44,7 @@ type
     FQid: qid_t;
     FEof: Boolean;
     FTermv: TgsPLTermv;
-    FPred: String;
+    FPredicateName: String;
     FDeleteDataAfterClose: Boolean;
 
     function GetEof: Boolean;
@@ -57,7 +57,7 @@ type
     procedure NextSolution;
 
     property Eof: Boolean read GetEof;
-    property Pred: String read FPred write FPred;
+    property PredicateName: String read FPredicateName write FPredicateName;
     property Termv: TgsPLTermv read FTermv write FTermv;
     property DeleteDataAfterClose: Boolean read FDeleteDataAfterClose write FDeleteDataAfterClose;
   end;
@@ -86,7 +86,7 @@ type
       AParams: Variant; AnExtraConditions: TStringList; const AFieldList: String; ATr: TIBTransaction;
       const APredicateName: String; const AFileName: String);
     procedure ExtractData(ADataSet: TClientDataSet; const APredicateName: String; ATermv: TgsPLTermv);
-    function ExecuteScript(AScriptID: Integer): Boolean;
+    function LoadScript(AScriptID: Integer): Boolean;
 
     property Debug: Boolean read FDebug write FDebug;
   end;
@@ -294,7 +294,7 @@ procedure TgsPLQuery.OpenQuery;
 var
   p: predicate_t;
 begin
-  p := PL_predicate(PChar(FPred), FTermv.Size, 'user');
+  p := PL_predicate(PChar(FPredicateName), FTermv.Size, 'user');
   FQid := PL_open_query(nil, PL_Q_CATCH_EXCEPTION, p, FTermv.Term[0]);
 
   if FQid = 0 then RaisePrologError;
@@ -350,7 +350,7 @@ begin
 
   Query := TgsPLQuery.Create;
   try
-    Query.Pred := APredicateName;
+    Query.PredicateName := APredicateName;
     Query.Termv := ATermv;
     Query.DeleteDataAfterClose := True;
     Query.OpenQuery;
@@ -384,7 +384,7 @@ begin
   end;
 end;
 
-function TgsPLClient.ExecuteScript(AScriptID: Integer): Boolean;
+function TgsPLClient.LoadScript(AScriptID: Integer): Boolean;
 
   function GetScriptIDByName(const Name: String): Integer;
   var
@@ -411,7 +411,7 @@ function TgsPLClient.ExecuteScript(AScriptID: Integer): Boolean;
     end;
   end;
 
-  procedure RunUsesScript(const S: String);
+  procedure LoadUsesScript(const S: String);
   const
     IncludePrefix = '%#INCLUDE ';
     LengthInc = Length(IncludePrefix);
@@ -435,7 +435,7 @@ function TgsPLClient.ExecuteScript(AScriptID: Integer): Boolean;
       ID := GetScriptIDByName(SN);
 
       if ID > -1 then
-        ExecuteScript(ID)
+        LoadScript(ID)
       else
         raise EgsPLClientException.Create('Скрипт ''' + SN + ''' не найден в базе!');
 
@@ -458,7 +458,7 @@ begin
 
     if not q.Eof then
     begin 
-      RunUsesScript(q.FieldByName('script').AsString);
+      LoadUsesScript(q.FieldByName('script').AsString);
 
       Termv.PutString(0, q.FieldByName('name').AsString);
       Termv.PutString(1, q.FieldByName('script').AsString);
@@ -482,7 +482,7 @@ begin
     begin
       Query := TgsPLQuery.Create;
       try
-        Query.Pred := 'call';
+        Query.PredicateName := 'call';
         Query.Termv := t;
         Query.OpenQuery;
         Result := not Query.Eof;
@@ -503,7 +503,7 @@ begin
 
   Query := TgsPLQuery.Create;
   try
-    Query.Pred := APredicateName;
+    Query.PredicateName := APredicateName;
     Query.Termv := AParams;
     Query.OpenQuery; 
     Result := not Query.Eof;
