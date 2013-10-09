@@ -4000,6 +4000,8 @@ type
     procedure Set_Termv(const Value: IgsPLTermv); safecall;
     function Get_DeleteDataAfterClose: WordBool; safecall;
     procedure Set_DeleteDataAfterClose(Value: WordBool); safecall;
+  public
+    class function CreateObject(const DelphiClass: TClass; const Params: OleVariant): TObject; override;
   end;
 
 implementation
@@ -18569,7 +18571,8 @@ begin
   Result := GetFTPClient.DeleteDir(DirName);
 end;
 
-class function TwrpFTPClient.CreateObject(const DelphiClass: TClass; const Params: OleVariant): TObject;
+class function TwrpFTPClient.CreateObject(const DelphiClass: TClass;
+  const Params: OleVariant): TObject;
 begin
   Assert(DelphiClass.InheritsFrom(TgsFTPClient), 'Invalide Delphi class');
   Result := TgsFTPClient.Create;
@@ -18765,7 +18768,8 @@ begin
   GetTRPOSClient.ReadTimeOut := Value;
 end;
 
-class function TwrpTRPOSClient.CreateObject(const DelphiClass: TClass; const Params: OleVariant): TObject;
+class function TwrpTRPOSClient.CreateObject(const DelphiClass: TClass;
+  const Params: OleVariant): TObject;
 begin
   Assert(DelphiClass.InheritsFrom(TgsTRPOSClient), 'Invalide Delphi class');
   Result := TgsTRPOSClient.Create;
@@ -19112,7 +19116,8 @@ begin
   Result := GetPLTermv.Size;
 end;
 
-class function TwrpPLTermv.CreateObject(const DelphiClass: TClass; const Params: OleVariant): TObject;
+class function TwrpPLTermv.CreateObject(const DelphiClass: TClass;
+  const Params: OleVariant): TObject;
 begin
   Assert(DelphiClass.InheritsFrom(TgsPLTermv), 'Invalide Delphi class');
   if VarType(Params) in [varSmallint, varInteger] then
@@ -19237,6 +19242,13 @@ end;
 procedure TwrpPLQuery.Set_DeleteDataAfterClose(Value: WordBool);
 begin
   GetPLQuery.DeleteDataAfterClose := Value;
+end;
+
+class function TwrpPLQuery.CreateObject(const DelphiClass: TClass;
+  const Params: OleVariant): TObject;
+begin
+  Assert(DelphiClass.InheritsFrom(TgsPLQuery), 'Invalide Delphi class');
+  Result := TgsPLQuery.Create;
 end;
 
 initialization
