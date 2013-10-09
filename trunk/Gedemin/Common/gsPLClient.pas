@@ -70,7 +70,7 @@ type
     function GetArity(ASql: TIBSQL): Integer; overload;
     function GetArity(ADataSet: TDataSet; const AFieldList: String): Integer; overload;
     function GetTempPath: String;
-    function GetDefaultPLInitString: String;  
+    function GetDefaultPLInitString: String;
   public
     destructor Destroy; override;
      
@@ -86,6 +86,7 @@ type
       AParams: Variant; AnExtraConditions: TStringList; const AFieldList: String; ATr: TIBTransaction;
       const APredicateName: String; const AFileName: String);
     procedure ExtractData(ADataSet: TClientDataSet; const APredicateName: String; ATermv: TgsPLTermv);
+    function ExecuteScript(AScriptID: Integer): Boolean;
 
     property Debug: Boolean read FDebug write FDebug;
   end;
@@ -101,7 +102,7 @@ type
 implementation
 
 uses
-  jclStrings, gd_GlobalParams_unit, Forms;
+  jclStrings, gd_GlobalParams_unit, Forms, gdcBaseInterface, rp_report_const;
 
 constructor EgsPLClientException.CreateTypeError(const AnExpected: String; const AnActual: term_t);
 begin
@@ -381,7 +382,93 @@ begin
   finally
     Query.Free; 
   end;
-end;     
+end;
+
+function TgsPLClient.ExecuteScript(AScriptID: Integer): Boolean;
+
+  function GetScriptIDByName(const Name: String): Integer;
+  var
+    q: TIBSQL;
+  begin
+    Result := -1;
+
+    if Name > '' then
+    begin
+      q := TIBSQL.Create(nil);
+      try
+        q.Transaction := gdcBaseManager.ReadTransaction;
+        q.SQL.Text := 'SELECT * FROM gd_function ' +
+          'WHERE UPPER(name) = UPPER(:name) AND module = :module';
+        q.ParamByName('name').AsString := Name;
+        q.ParamByName('module').AsString := scrPrologModuleName;
+        q.ExecQuery;
+
+        if not q.Eof then
+          Result := q.FieldByName('id').AsInteger;
+      finally
+        q.Free;
+      end;
+    end;
+  end;
+
+  procedure RunUsesScript(const S: String);
+  const
+    IncludePrefix = '%#INCLUDE ';
+    LengthInc = Length(IncludePrefix);
+    LimitChar = [' ', ',', ';', #13, #10];
+  var
+    I, ID, P: Integer;
+    SN: String;
+  begin
+    P := StrSearch(IncludePrefix, S, 1);
+    while P > 0 do
+    begin
+      P := P + LengthInc;
+      while (P <= Length(S)) and (S[P] in LimitChar) do
+        Inc(P);
+
+      I := P;
+      while (P <= Length(S)) and not (S[P] in LimitChar) do
+        Inc(P);
+
+      SN := Copy(S, I, P - I);
+      ID := GetScriptIDByName(SN);
+
+      if ID > -1 then
+        ExecuteScript(ID)
+      else
+        raise EgsPLClientException.Create('Скрипт ''' + SN + ''' не найден в базе!');
+
+      P := StrSearch(IncludePrefix, S, P);
+    end;
+  end;
+
+var
+  q: TIBSQL;
+  Termv: TgsPLTermv;
+begin
+  Result := False;
+  q := TIBSQL.Create(nil);
+  Termv := TgsPLTermv.CreateTermv(2);
+  try
+    q.Transaction := gdcBaseManager.ReadTransaction;
+    q.SQL.Text := 'SELECT * FROM gd_function WHERE id = :id';
+    q.ParamByName('id').AsInteger := AScriptID;
+    q.ExecQuery;
+
+    if not q.Eof then
+    begin 
+      RunUsesScript(q.FieldByName('script').AsString);
+
+      Termv.PutString(0, q.FieldByName('name').AsString);
+      Termv.PutString(1, q.FieldByName('script').AsString);
+      Result := Call('load_atom', Termv);
+    end;
+  finally
+    q.Free;
+    TermV.Free;    
+  end;
+end;
 
 function TgsPLClient.Call2(const AGoal: String): Boolean;
 var

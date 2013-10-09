@@ -73,7 +73,7 @@ end;
 
 function TPrologSFFrame.GetCanPrepare: Boolean;
 begin
-  Result := True;
+  Result := False;
 end;
 
 function TPrologSFFrame.Delete: Boolean;
