@@ -2417,6 +2417,7 @@ begin
              LocConditionList.Conditions[I].FieldData.TableName;
             LocParamList.Params[LocParamList.Count - 1].LinkDisplayField :=
              LocConditionList.Conditions[I].FieldData.FieldName;
+            LocParamList.Params[LocParamList.Count - 1].SortOrder := 1;
             if (LocConditionList.Conditions[I].Value2 = GD_FC2_ACTUATES_ALIAS)
              or (LocConditionList.Conditions[I].Value2 = GD_FC2_NOT_ACTUATES_ALIAS) then
               LocParamList.Params[LocParamList.Count - 1].ParamType := prmEnumSet
@@ -2435,6 +2436,7 @@ begin
             LocParamList.Params[LocParamList.Count - 1].LinkConditionFunction :=
              GetCondition(LocConditionList.Conditions[I].FieldData.TableName,
              LocConditionList.Conditions[I].FieldData.FieldName);
+            LocParamList.Params[LocParamList.Count - 1].SortOrder := 1;
             if (LocConditionList.Conditions[I].Value2 = GD_FC2_ACTUATES_ALIAS)
              or (LocConditionList.Conditions[I].Value2 = GD_FC2_NOT_ACTUATES_ALIAS)
              or (LocConditionList.Conditions[I].Value2 = GD_FC2_INCLUDE_ALIAS) then
@@ -2453,6 +2455,7 @@ begin
             LocParamList.Params[LocParamList.Count - 1].LinkConditionFunction :=
              GetCondition(LocConditionList.Conditions[I].FieldData.TableName,
              LocConditionList.Conditions[I].FieldData.FieldName);
+            LocParamList.Params[LocParamList.Count - 1].SortOrder := 1;
             if (LocConditionList.Conditions[I].Value2 = GD_FC2_ACTUATES_ALIAS)
              or (LocConditionList.Conditions[I].Value2 = GD_FC2_NOT_ACTUATES_ALIAS)
              or (LocConditionList.Conditions[I].Value2 = GD_FC2_INCLUDE_ALIAS) then
