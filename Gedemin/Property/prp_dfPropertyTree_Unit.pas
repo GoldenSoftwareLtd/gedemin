@@ -356,6 +356,7 @@ type
     function AddSfRootNode(Id: Integer; OwnerName: string; TV: TTReeView): TTreeNode;
     procedure LoadSf(Node: TTreeNode);
     procedure LoadPrologSF(Node: TTreeNode);
+    function AddPrologSFRootNode(Id: Integer; OwnerName: string; TV: TTReeView): TTreeNode;
     function GetSFType(Module: string): sfTypes;
     function AddSFNode(Parent: TTreeNode; id: Integer; Name: string): TTreeNode;
     procedure CheckLoadSf(TN: TTreeNode);
@@ -2782,12 +2783,14 @@ begin
     TS.ClassesRootNode.Data := TgdcClassTreeFolder.Create;
     TS.ClassesRootNode.HasChildren := (gdcClassList.Count > 0) or (frmClassList.Count > 0);
 
-    TS.PrologRootNode := TS.Tree.Items.AddChild(nil, 'Пролог-скрипты');
+   {TS.PrologRootNode := TS.Tree.Items.AddChild(nil, 'Пролог-скрипты');
     TS.PrologRootNode.Data := TPrologTreeFolder.Create;
     TPrologTreeFolder(TS.PrologRootNode.Data).Id := idAppReportRootFolder;
     TPrologTreeFolder(TS.PrologRootNode.Data).OwnerId := OBJ_APPLICATION;
     TPrologTreeFolder(TS.PrologRootNode.Data).MainOwnerName := 'APPLICATION';
-    TS.PrologRootNode.HasChildren := True;
+
+    TS.PrologRootNode.HasChildren := True;  }
+    TS.PrologRootNode := AddPrologSFRootNode(OBJ_APPLICATION, 'APPLICATION', TS.Tree);
 
     TS.SFRootNode := AddSfRootNode(OBJ_APPLICATION, 'APPLICATION', TS.Tree);
     cbObjectList.Items.AddObject(TS.Caption, TObject(TApplication));
@@ -3580,6 +3583,37 @@ begin
   end;
 end;
 
+function TdfPropertyTree.AddPrologSFRootNode(Id: Integer; OwnerName: string; TV: TTReeView): TTreeNode;
+var
+  PSFI: TPrologTreeFolder;
+  SQL: TIBSQL;
+begin
+  Result := TV.Items.AddChild(nil, 'Пролог-скрипты');
+  PSFI := TPrologTreeFolder.Create;
+  PSFI.ID := idPrologSFFolder;
+  PSFI.OwnerID := ID;
+  PSFI.MainOwnerName := OwnerName;
+  Result.Data := PSFI;
+  PSFI.Node := Result;
+
+  SQL := TIBSQL.Create(nil);
+  try
+    SQL.Transaction := gdcDelphiObject.ReadTransaction;
+    SQL.SQL.Text :=
+      'SELECT g.id FROM gd_function g ' +
+      ' JOIN evt_object o2 ON g.modulecode = o2.id ' +
+      ' JOIN evt_object o1 ON o1.lb >= o2.lb AND o1.rb <= o2.rb ' +
+      'WHERE o2.id = :id AND module = :module';
+
+    SQL.ParamByName('id').AsInteger := Id;
+    SQL.ParamByName('module').AsString := scrPrologModuleName;
+    SQL.ExecQuery;
+    Result.HasChildren := not SQL.Eof;
+  finally
+    SQL.Free;
+  end;  
+end;
+
 procedure TdfPropertyTree.LoadSf(Node: TTreeNode);
 var
   SQL: TIBSQL;
@@ -3759,7 +3793,7 @@ var
 begin
   Result := nil;
   TS := GetPageByObjID(OBJ_APPLICATION);
-  if Assigned(TS) and Assigned(Ts.ConstRootNode) then
+  if Assigned(TS) and Assigned(TS.ConstRootNode) then
   begin
     TN := TS.ConstRootNode.GetFirstChild;
     while (TN <> nil) do

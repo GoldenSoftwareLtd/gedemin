@@ -8290,7 +8290,7 @@ begin
                       else
                         TempS := FormatDateTime('yyyy.mm.dd', Field.AsDateTime)
                     end else
-                      TempS := Copy(DT, 1, 40);
+                      TempS := Copy(DT, 1, 80);
 
                     FilteredCache.Add(TempS);
 
