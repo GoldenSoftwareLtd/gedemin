@@ -1022,17 +1022,17 @@ const
 var
   ClausesList: TStringHashMap;{TStringList}
 
-function AdjustMetaName(const S: String): String;
+function AdjustMetaName(const S: AnsiString): AnsiString;
 var
-  Tmp, S1: String;
+  Tmp, S1: AnsiString;
 begin
   S1 := AnsiUpperCase(S);
 
   if Length(S1) < 32 then
     Result := S1
   else begin
-    Tmp := IntToStr(Crc32_P(@S1[1], Length(S1), 0));
-    Result := Copy(S1, 1, 31 - Length(Tmp)) + Tmp;
+    Tmp := IntToHex(Crc32_P(@S1[1], Length(S1), 0), 0);
+    Result := Copy(S1, 1, 31 - Length(Tmp) - 1) + '_' + Tmp;
   end;
 end;
 
