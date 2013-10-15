@@ -9,12 +9,75 @@ uses
 type
    Test_SWIProlog = class(TgsDBTestCase)
    published
-     procedure TestSWIProlog;
+     procedure TestPLClient;
+     procedure TestPLTermv;
    end;
 
 implementation
 
-procedure Test_SWIProlog.TestSWIProlog;
+procedure Test_SWIProlog.TestPLTermv;
+var
+  PLClient: TgsPLClient;
+  PLTermv: TgsPLTermv;
+  DT: TDateTime;
+  D: Double;
+  I: Integer;
+begin
+  PLClient := TgsPLClient.Create;
+  try
+    Check(PLClient.Initialise, 'Not Initialise Prolog!');
+
+    PLTermv := TgsPLTermv.CreateTermv(8);
+    try
+      Check(PLTermv.Size = 8);
+
+      PLTermv.PutInteger(0, MaxInt);
+      Check(PLTermv.DataType[0] = PL_INTEGER);
+      Check(PLTermv.ReadInteger(0) = MaxInt);
+
+      PLTermv.PutString(1, 'Test');
+      Check(PLTermv.DataType[1] = PL_STRING);
+      Check(PLTermv.ReadString(1) = 'Test');
+
+      D := 3.14;
+      PLTermv.PutFloat(2, D);
+      Check(PLTermv.DataType[2] = PL_FLOAT); 
+      Check(PLTermv.ReadFloat(2) = D);
+
+      DT := Now;
+      PLTermv.PutDateTime(3, DT);
+      Check(PLTermv.DataType[3] = PL_ATOM);
+      Check(FormatDateTime('yyyy-mm-dd hh:nn:ss', PLTermv.ReadDateTime(3)) = FormatDateTime('yyyy-mm-dd hh:nn:ss', DT));
+
+      PLTermv.PutDate(4, DT);
+      Check(PLTermv.DataType[4] = PL_ATOM);
+      Check(FormatDateTime('yyyy-mm-dd', PLTermv.ReadDateTime(4)) = FormatDateTime('yyyy-mm-dd', DT));
+
+      PLTermv.PutInt64(5, High(Int64));
+      Check(PLTermv.DataType[5] = PL_INTEGER);
+      Check(PLTermv.ReadInt64(5) = High(Int64));
+
+      PLTermv.PutAtom(6, 'Test');
+      Check(PLTermv.DataType[6] = PL_ATOM);
+      Check(PLTermv.ReadAtom(6) = 'Test');
+
+      PLTermv.PutVariable(7);
+      Check(PLTermv.DataType[7] = PL_VARIABLE);
+
+      PLTermv.Reset;
+      for I := 0 to PLTermv.Size - 1 do
+        Check(PLTermv.DataType[I] = PL_VARIABLE);
+
+    finally
+      PLTermv.Free;
+    end;
+  finally
+    PLClient.Free;
+  end;
+
+end;
+
+procedure Test_SWIProlog.TestPLClient;
 const
   SQL_contact = 'SELECT id, placekey, name FROM gd_contact';
   SQL_place = 'SELECT id, name FROM gd_place';
@@ -44,9 +107,9 @@ begin
     cds := TClientDataSet.Create(nil);
     try
       cds.FieldDefs.Add('City', ftString, 60, True);
-      CDS.FieldDefs.Add('Name', ftString, 60, True);
-      CDS.CreateDataSet;
-      CDS.Open;
+      cds.FieldDefs.Add('Name', ftString, 60, True);
+      cds.CreateDataSet;
+      cds.Open;
 
 
       PLTermv.PutString(0, 'pred');
@@ -84,7 +147,7 @@ begin
           end;
 
           V := VarArrayCreate([0, SL.Count - 1], varInteger);
-          for I := 0 to Sl.Count - 1 do
+          for I := 0 to SL.Count - 1 do
             V[I] := StrToInt(SL.Names[I]);
 
 
