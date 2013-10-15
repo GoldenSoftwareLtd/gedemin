@@ -27,7 +27,11 @@ const
 var
   PLClient: TgsPLClient;
   cds: TClientDataSet;
-  PLTermv: TgsPLTermv; 
+  PLTermv: TgsPLTermv;
+  V: Variant;
+  SL: TStringList;
+  I, Idx: Integer;
+  PLQuery: TgsPLQuery;
 begin 
   PLClient := TgsPLClient.Create;
   try
@@ -64,8 +68,55 @@ begin
       FQ.ExecQuery;
       Check(not FQ.Eof);
       Check(FQ.FieldByName('count').AsInteger = cds.RecordCount, 'Error number of records!');
-
       FQ.Close;
+
+      FQ.SQL.Text := 'SELECT id, name FROM gd_curr WHERE id < 147000000';
+      FQ.ExecQuery;
+
+      if not FQ.Eof then
+      begin
+        SL := TStringList.Create;
+        try
+          while not FQ.Eof do
+          begin
+            SL.Add(FQ.FieldByName('id').AsString + '=' + FQ.FieldByName('name').AsString);
+            FQ.Next;
+          end;
+
+          V := VarArrayCreate([0, SL.Count - 1], varInteger);
+          for I := 0 to Sl.Count - 1 do
+            V[I] := StrToInt(SL.Names[I]);
+
+
+          PLClient.MakePredicatesOfObject('TgdcCurr', '', 'ByID', V, nil, 'ID,Name', FTr,
+            'gd_curr', 'gd_curr');
+
+          PLTermv.Reset;
+          PLQuery := TgsPLQuery.Create;
+          try
+            PLQuery.PredicateName := 'gd_curr';
+            PLQuery.Termv := PLTermv;
+            PLQuery.DeleteDataAfterClose := True;
+            PLQuery.OpenQuery;
+            Check(not PLQuery.Eof, 'Error recordcount ''gd_curr''!');
+
+            while not PLQuery.Eof do
+            begin
+              Idx := SL.IndexOf(IntToStr(PLQuery.Termv.ReadInteger(0)) + '=' + PLQuery.Termv.ReadString(1));
+              Check(Idx > -1);
+              SL.Delete(Idx);
+              PLQuery.NextSolution;
+            end;
+
+            Check(SL.Count = 0);
+            FQ.Close;
+          finally
+            PLQuery.Free;
+          end; 
+        finally
+          SL.Free;
+        end;
+      end;
     finally
       PLTermv.Free;
       cds.Free;
