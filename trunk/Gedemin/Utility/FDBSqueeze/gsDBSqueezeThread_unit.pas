@@ -298,7 +298,7 @@ end;
 procedure TgsDBSqueezeThread.GetInfoTestConnect(const AMsgConnectSuccess: Boolean; const AMsgConnectInfoList: TStringList);
 begin
   FMsgConnectSuccess := AMsgConnectSuccess;
-  FMsgConnectInfoList := AMsgConnectInfoList;
+  FMsgConnectInfoList.Text := AMsgConnectInfoList.Text;
   Synchronize(DoOnGetInfoTestConnectSync);
 end;
 
@@ -393,7 +393,7 @@ begin
           FDBS.Disconnect;
         FDBS.DatabaseName := '';
         FDBS.UserName := '';
-        FDBS.Password := '';
+        FDBS.Password := '';                     
 
         FDBS.LogEvent('Testing connection... OK');
         FState.Value := 1;
@@ -549,7 +549,20 @@ begin
 
     WM_DBS_STOPPROCESSING:
       begin
-        //
+        // if FConnected.Value = 1 then
+       // begin
+          FBusy.Value := 1;
+
+        // если завершается выполнение программы, а не прерывание
+          FDBS.ClearDBSTables;
+
+          FDBS.InsertDBSStateJournal(Msg.Message, 1);
+          FState.Value := 1;
+
+          PostThreadMessage(ThreadID, WM_DBS_FINISHED, 0, 0);
+
+       // end;
+        Result := True;
       end;
 
     WM_DBS_BACKUPDATABASE:
@@ -773,7 +786,7 @@ begin
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
           FState.Value := 1;
 
-          PostThreadMessage(ThreadID, WM_DBS_FINISHED, 0, 0);
+          PostThreadMessage(ThreadID, WM_DBS_STOPPROCESSING, 0, 0);
 
        // end;
         Result := True;
@@ -881,7 +894,7 @@ end;
 
 procedure TgsDBSqueezeThread.SetItemsCbb(const AMessageStrList: TStringList);
 begin
-  FMessageStrList := AMessageStrList;
+  FMessageStrList.Text := AMessageStrList.Text;
   Synchronize(DoOnSetItemsCbbSync);
 end;
 
@@ -904,7 +917,7 @@ procedure TgsDBSqueezeThread.GetDBProperties(const AMessageProperties: TStringLi
 begin
   //if (not Busy) then                       ///////////////////
  // begin
-    FMessagePropertiesList := AMessageProperties;
+    FMessagePropertiesList.Text := AMessageProperties.Text;
     Synchronize(DoOnGetDBPropertiesSync);
   //end
 end;
