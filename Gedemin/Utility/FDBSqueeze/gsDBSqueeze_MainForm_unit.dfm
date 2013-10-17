@@ -1,8 +1,8 @@
 object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
-  Left = 12
-  Top = 161
+  Left = 194
+  Top = 162
   BorderStyle = bsDialog
-  ClientHeight = 536
+  ClientHeight = 535
   ClientWidth = 851
   Color = clBtnFace
   Font.Charset = RUSSIAN_CHARSET
@@ -21,8 +21,14 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
     Width = 893
     Height = 538
     TabOrder = 0
+    object shp10: TShape
+      Left = 56
+      Top = 24
+      Width = 65
+      Height = 65
+    end
     object tbcPageController: TTabControl
-      Left = 206
+      Left = 228
       Top = 0
       Width = 441
       Height = 25
@@ -56,7 +62,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           Top = 54
           Width = 634
           Height = 369
-          ActivePage = tsSqueezeSettings
+          ActivePage = tsReviewSettings
           TabOrder = 0
           object tsConnection: TTabSheet
             Caption = 'Database Connection'
@@ -84,18 +90,28 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Caption = 'Activ Connects:'
               Visible = False
             end
+            object shp9: TShape
+              Left = 19
+              Top = 9
+              Width = 604
+              Height = 36
+              Brush.Style = bsClear
+              Pen.Color = 10768896
+              Pen.Width = 3
+            end
             object btnNext1: TButton
-              Left = 584
-              Top = 301
+              Left = 587
+              Top = 302
               Width = 25
               Height = 25
               Action = actNextPage
+              Anchors = [akLeft, akTop, akRight]
               Caption = '>'
               TabOrder = 8
             end
             object grpDatabase: TGroupBox
               Left = 64
-              Top = 48
+              Top = 56
               Width = 377
               Height = 153
               Caption = ' Database Location  '
@@ -195,7 +211,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             end
             object grpAuthorization: TGroupBox
               Left = 64
-              Top = 212
+              Top = 217
               Width = 377
               Height = 77
               Caption = ' Authorization '
@@ -234,16 +250,15 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             end
             object sttxt1: TStaticText
               Left = 22
-              Top = 1
-              Width = 603
+              Top = 7
+              Width = 601
               Height = 35
               AutoSize = False
               BiDiMode = bdLeftToRight
-              BorderStyle = sbsSingle
               Caption = '  Database Connection'
-              Color = clInactiveCaption
+              Color = 15370833
               Font.Charset = RUSSIAN_CHARSET
-              Font.Color = clWindowText
+              Font.Color = clWindow
               Font.Height = -24
               Font.Name = 'Tahoma'
               Font.Style = []
@@ -253,8 +268,8 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               TabOrder = 0
             end
             object btntTestConnection: TButton
-              Left = 456
-              Top = 301
+              Left = 458
+              Top = 302
               Width = 121
               Height = 25
               Action = actTestConnect
@@ -283,8 +298,8 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Visible = False
             end
             object btnDisconnect: TButton
-              Left = 456
-              Top = 267
+              Left = 458
+              Top = 272
               Width = 153
               Height = 21
               Action = actDisconnect
@@ -308,21 +323,30 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             ImageIndex = 1
             object lbl5: TLabel
               Left = 148
-              Top = 73
+              Top = 85
               Width = 183
               Height = 13
               Caption = 'Удалить записи из gd_document до:'
             end
             object lbl6: TLabel
               Left = 149
-              Top = 120
+              Top = 132
               Width = 183
               Height = 13
               Caption = 'Рассчитать и сохранить сальдо по: '
             end
+            object shp11: TShape
+              Left = 19
+              Top = 9
+              Width = 604
+              Height = 36
+              Brush.Style = bsClear
+              Pen.Color = 10768896
+              Pen.Width = 3
+            end
             object dtpClosingDate: TDateTimePicker
               Left = 356
-              Top = 70
+              Top = 82
               Width = 86
               Height = 21
               Hint = 'рассчитать сальдо и удалить документы'
@@ -338,7 +362,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             end
             object rbAllOurCompanies: TRadioButton
               Left = 165
-              Top = 153
+              Top = 165
               Width = 225
               Height = 17
               Caption = 'всем рабочим организациям'
@@ -346,7 +370,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             end
             object rbCompany: TRadioButton
               Left = 166
-              Top = 185
+              Top = 197
               Width = 225
               Height = 17
               Action = actCompany
@@ -355,7 +379,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             end
             object cbbCompany: TComboBox
               Left = 200
-              Top = 209
+              Top = 221
               Width = 241
               Height = 21
               Enabled = False
@@ -364,7 +388,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             end
             object btnNext2: TButton
               Left = 587
-              Top = 297
+              Top = 302
               Width = 25
               Height = 25
               Action = actNextPage
@@ -373,7 +397,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             end
             object btnBack1: TButton
               Left = 561
-              Top = 297
+              Top = 302
               Width = 25
               Height = 25
               Action = actBackPage
@@ -382,16 +406,15 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             end
             object sttxt16: TStaticText
               Left = 22
-              Top = 1
-              Width = 603
+              Top = 7
+              Width = 601
               Height = 35
               AutoSize = False
               BiDiMode = bdLeftToRight
-              BorderStyle = sbsSingle
               Caption = '  Squeeze Settings'
-              Color = clInactiveCaption
+              Color = 15370833
               Font.Charset = RUSSIAN_CHARSET
-              Font.Color = clWindowText
+              Font.Color = clWindow
               Font.Height = -24
               Font.Name = 'Tahoma'
               Font.Style = []
@@ -406,7 +429,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             ImageIndex = 2
             object lblLogDir: TLabel
               Left = 176
-              Top = 80
+              Top = 92
               Width = 73
               Height = 13
               Caption = 'Logs Directory:'
@@ -414,15 +437,24 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             end
             object lblBackup: TLabel
               Left = 176
-              Top = 144
+              Top = 156
               Width = 85
               Height = 13
               Caption = 'Backup Directory:'
               Enabled = False
             end
+            object shp12: TShape
+              Left = 19
+              Top = 9
+              Width = 604
+              Height = 36
+              Brush.Style = bsClear
+              Pen.Color = 10768896
+              Pen.Width = 3
+            end
             object btnNext3: TButton
               Left = 580
-              Top = 298
+              Top = 302
               Width = 25
               Height = 25
               Action = actNextPage
@@ -431,7 +463,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             end
             object btnBack2: TButton
               Left = 554
-              Top = 298
+              Top = 302
               Width = 25
               Height = 25
               Action = actBackPage
@@ -439,17 +471,16 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               TabOrder = 8
             end
             object sttxt17: TStaticText
-              Left = 1
-              Top = 1
-              Width = 625
+              Left = 22
+              Top = 7
+              Width = 601
               Height = 35
               AutoSize = False
               BiDiMode = bdLeftToRight
-              BorderStyle = sbsSingle
               Caption = '  Options'
-              Color = clInactiveCaption
+              Color = 15370833
               Font.Charset = RUSSIAN_CHARSET
-              Font.Color = clWindowText
+              Font.Color = clWindow
               Font.Height = -24
               Font.Name = 'Tahoma'
               Font.Style = []
@@ -460,7 +491,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             end
             object chkbSaveLogs: TCheckBox
               Left = 152
-              Top = 56
+              Top = 68
               Width = 113
               Height = 17
               Caption = 'Save Logs to File'
@@ -468,7 +499,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             end
             object chkBackup: TCheckBox
               Left = 152
-              Top = 120
+              Top = 132
               Width = 177
               Height = 17
               Caption = 'Backing Up the Database'
@@ -477,7 +508,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             end
             object edLogs: TEdit
               Left = 266
-              Top = 77
+              Top = 89
               Width = 253
               Height = 21
               Enabled = False
@@ -485,7 +516,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             end
             object btnLogDirBrowse: TButton
               Left = 523
-              Top = 76
+              Top = 88
               Width = 20
               Height = 21
               Action = actDirectoryBrowse
@@ -496,7 +527,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             end
             object edtBackup: TEdit
               Left = 266
-              Top = 141
+              Top = 153
               Width = 253
               Height = 21
               Enabled = False
@@ -504,7 +535,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             end
             object btnBackupBrowse: TButton
               Left = 523
-              Top = 140
+              Top = 152
               Width = 20
               Height = 21
               Action = actDirectoryBrowse
@@ -514,7 +545,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             end
             object grpReprocessingType: TGroupBox
               Left = 152
-              Top = 200
+              Top = 212
               Width = 289
               Height = 57
               Caption = ' Reprocessing Type '
@@ -543,18 +574,26 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           object tsReviewSettings: TTabSheet
             Caption = 'ReviewSettings'
             ImageIndex = 3
+            object shp13: TShape
+              Left = 19
+              Top = 9
+              Width = 604
+              Height = 36
+              Brush.Style = bsClear
+              Pen.Color = 10768896
+              Pen.Width = 3
+            end
             object sttxt18: TStaticText
               Left = 22
-              Top = 1
-              Width = 676
+              Top = 7
+              Width = 601
               Height = 35
               AutoSize = False
               BiDiMode = bdLeftToRight
-              BorderStyle = sbsSingle
               Caption = '  Review Settings'
-              Color = clInactiveCaption
+              Color = 15370833
               Font.Charset = RUSSIAN_CHARSET
-              Font.Color = clWindowText
+              Font.Color = clWindow
               Font.Height = -24
               Font.Name = 'Tahoma'
               Font.Style = []
@@ -565,7 +604,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             end
             object btnGo: TBitBtn
               Left = 544
-              Top = 297
+              Top = 302
               Width = 57
               Height = 25
               Action = actGo
@@ -574,7 +613,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             end
             object btnBack3: TBitBtn
               Left = 512
-              Top = 297
+              Top = 302
               Width = 25
               Height = 25
               Action = actBackPage
@@ -583,9 +622,9 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             end
             object mReviewSettings: TMemo
               Left = 120
-              Top = 56
+              Top = 74
               Width = 377
-              Height = 209
+              Height = 194
               ParentColor = True
               ReadOnly = True
               ScrollBars = ssVertical
@@ -645,11 +684,10 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           Height = 24
           Alignment = taCenter
           AutoSize = False
-          BorderStyle = sbsSingle
           Caption = 'General Log'
-          Color = clInactiveCaption
+          Color = 5592556
           Font.Charset = RUSSIAN_CHARSET
-          Font.Color = clWindowText
+          Font.Color = clWindow
           Font.Height = -16
           Font.Name = 'Tahoma'
           Font.Style = []
@@ -664,11 +702,10 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           Height = 24
           Alignment = taCenter
           AutoSize = False
-          BorderStyle = sbsSingle
           Caption = 'SQL Log'
-          Color = clInactiveCaption
+          Color = 5592556
           Font.Charset = RUSSIAN_CHARSET
-          Font.Color = clWindowText
+          Font.Color = clWhite
           Font.Height = -16
           Font.Name = 'Tahoma'
           Font.Style = []
@@ -679,34 +716,73 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
       end
       object tsStatistics: TTabSheet
         ImageIndex = 3
-        object btnGetStatistics: TButton
-          Left = 222
-          Top = 318
-          Width = 78
-          Height = 25
-          Action = actGet
-          Caption = 'Get'
-          Enabled = False
-          Font.Charset = RUSSIAN_CHARSET
-          Font.Color = clWindowText
-          Font.Height = -11
-          Font.Name = 'Tahoma'
-          Font.Style = []
-          ParentFont = False
-          TabOrder = 41
-          TabStop = False
+        object shp3: TShape
+          Left = 87
+          Top = 36
+          Width = 309
+          Height = 28
+          Pen.Color = 671448
+          Pen.Mode = pmMask
+          Pen.Style = psInsideFrame
+          Pen.Width = 3
         end
-        object sttxt21: TStaticText
-          Left = 118
-          Top = 41
-          Width = 273
+        object shp4: TShape
+          Left = 488
+          Top = 63
+          Width = 228
+          Height = 267
+          Brush.Style = bsClear
+          Pen.Color = clBtnShadow
+          Pen.Width = 3
+        end
+        object shp2: TShape
+          Left = 487
+          Top = 37
+          Width = 230
+          Height = 27
+          Pen.Color = 671448
+          Pen.Mode = pmMask
+          Pen.Style = psInsideFrame
+          Pen.Width = 3
+        end
+        object shp5: TShape
+          Left = 488
+          Top = 376
+          Width = 228
+          Height = 75
+          Brush.Style = bsClear
+          Pen.Color = clBtnShadow
+          Pen.Width = 3
+        end
+        object shp1: TShape
+          Left = 487
+          Top = 349
+          Width = 230
+          Height = 28
+          Pen.Color = 671448
+          Pen.Mode = pmMask
+          Pen.Style = psInsideFrame
+          Pen.Width = 3
+        end
+        object shp6: TShape
+          Left = 88
+          Top = 63
+          Width = 307
+          Height = 352
+          Brush.Style = bsClear
+          Pen.Color = clBtnShadow
+          Pen.Width = 3
+        end
+        object txt2: TStaticText
+          Left = 86
+          Top = 35
+          Width = 306
           Height = 25
-          Alignment = taCenter
           AutoSize = False
-          Caption = 'DB File Size'
-          Color = clHighlightText
+          Caption = '        Number of records in a table                 '
+          Color = 2058236
           Font.Charset = RUSSIAN_CHARSET
-          Font.Color = clWindowText
+          Font.Color = clWhite
           Font.Height = -17
           Font.Name = 'Tahoma'
           Font.Style = []
@@ -714,209 +790,336 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           ParentFont = False
           TabOrder = 0
         end
-        object txt10: TStaticText
-          Left = 222
-          Top = 177
-          Width = 79
-          Height = 17
-          Alignment = taCenter
-          AutoSize = False
-          BorderStyle = sbsSingle
-          Caption = 'ORIGINAL'
-          TabOrder = 17
-        end
-        object sttxt11: TStaticText
-          Left = 310
-          Top = 177
-          Width = 79
-          Height = 17
-          Alignment = taCenter
-          AutoSize = False
-          BorderStyle = sbsSingle
-          Caption = 'NOW'
-          TabOrder = 18
-        end
-        object txt3: TStaticText
-          Left = 110
-          Top = 204
-          Width = 100
-          Height = 18
-          Alignment = taCenter
-          AutoSize = False
-          BorderStyle = sbsSingle
-          Caption = 'GD_DOCUMENT'
-          Color = clBtnFace
-          ParentColor = False
-          TabOrder = 21
-        end
-        object txt5: TStaticText
-          Left = 110
-          Top = 261
-          Width = 100
-          Height = 17
-          Alignment = taCenter
-          AutoSize = False
-          BorderStyle = sbsSingle
-          Caption = 'INV_MOVEMENT'
-          Color = clBtnFace
-          ParentColor = False
-          TabOrder = 31
-        end
-        object txt4: TStaticText
-          Left = 110
-          Top = 233
-          Width = 100
-          Height = 17
-          Alignment = taCenter
-          AutoSize = False
-          BorderStyle = sbsSingle
-          Caption = 'AC_ENTRY'
-          Color = clBtnFace
-          ParentColor = False
-          TabOrder = 26
-        end
-        object sttxtGdDoc: TStaticText
-          Left = 222
-          Top = 205
-          Width = 79
-          Height = 17
-          Alignment = taCenter
-          AutoSize = False
-          BorderStyle = sbsSunken
-          TabOrder = 22
-        end
-        object sttxtGdDocAfter: TStaticText
-          Left = 310
-          Top = 205
-          Width = 79
-          Height = 17
-          Alignment = taCenter
-          AutoSize = False
-          BorderStyle = sbsSunken
-          TabOrder = 23
-        end
-        object sttxtAcEntry: TStaticText
-          Left = 222
-          Top = 233
-          Width = 79
-          Height = 17
-          Alignment = taCenter
-          AutoSize = False
-          BorderStyle = sbsSunken
-          TabOrder = 27
-        end
-        object sttxtAcEntryAfter: TStaticText
-          Left = 310
-          Top = 233
-          Width = 79
-          Height = 17
-          Alignment = taCenter
-          AutoSize = False
-          BorderStyle = sbsSunken
-          TabOrder = 28
-        end
-        object sttxtInvMovement: TStaticText
-          Left = 222
-          Top = 261
-          Width = 79
-          Height = 17
-          Alignment = taCenter
-          AutoSize = False
-          BorderStyle = sbsSunken
-          TabOrder = 32
-        end
-        object sttxtInvMovementAfter: TStaticText
-          Left = 310
-          Top = 261
-          Width = 79
-          Height = 17
-          Alignment = taCenter
-          AutoSize = False
-          BorderStyle = sbsSunken
-          TabOrder = 33
-        end
-        object txt2: TStaticText
-          Left = 117
-          Top = 137
-          Width = 273
-          Height = 25
-          AutoSize = False
-          Caption = '        Number of records in a table                 '
-          Color = clWhite
-          Font.Charset = RUSSIAN_CHARSET
-          Font.Color = clWindowText
-          Font.Height = -17
-          Font.Name = 'Tahoma'
-          Font.Style = []
-          ParentColor = False
-          ParentFont = False
-          TabOrder = 12
-        end
-        object sttxt28: TStaticText
-          Left = 118
-          Top = 73
-          Width = 185
-          Height = 17
-          Alignment = taCenter
-          AutoSize = False
-          BorderStyle = sbsSingle
-          Caption = 'Size Before Processing'
+        object pnl2: TPanel
+          Left = 488
+          Top = 63
+          Width = 226
+          Height = 265
+          Alignment = taLeftJustify
+          BevelOuter = bvSpace
           TabOrder = 3
-        end
-        object sttxt29: TStaticText
-          Left = 118
-          Top = 97
-          Width = 185
-          Height = 17
-          Alignment = taCenter
-          AutoSize = False
-          Caption = 'Size After Processing'
-          Enabled = False
-          TabOrder = 7
-        end
-        object btnUpdateStatistics: TBitBtn
-          Left = 311
-          Top = 318
-          Width = 78
-          Height = 25
-          Action = actGet
-          Caption = 'Update'
-          Enabled = False
-          TabOrder = 42
-          TabStop = False
-        end
-        object sttxtDBSizeBefore: TStaticText
-          Left = 311
-          Top = 73
-          Width = 79
-          Height = 17
-          Alignment = taCenter
-          AutoSize = False
-          BorderStyle = sbsSunken
-          TabOrder = 4
-        end
-        object sttxtDBSizeAfter: TStaticText
-          Left = 311
-          Top = 97
-          Width = 79
-          Height = 17
-          Alignment = taCenter
-          AutoSize = False
-          BorderStyle = sbsSunken
-          Enabled = False
-          TabOrder = 8
+          object StaticText6: TStaticText
+            Left = 10
+            Top = 15
+            Width = 100
+            Height = 18
+            Alignment = taCenter
+            AutoSize = False
+            BorderStyle = sbsSunken
+            Caption = 'User'
+            Color = 2058236
+            Font.Charset = RUSSIAN_CHARSET
+            Font.Color = clWindow
+            Font.Height = -11
+            Font.Name = 'Tahoma'
+            Font.Style = []
+            ParentColor = False
+            ParentFont = False
+            TabOrder = 0
+          end
+          object sttxtUser: TStaticText
+            Left = 120
+            Top = 16
+            Width = 97
+            Height = 17
+            Alignment = taCenter
+            AutoSize = False
+            BorderStyle = sbsSunken
+            Color = clHighlightText
+            ParentColor = False
+            TabOrder = 1
+          end
+          object sttxtDialect: TStaticText
+            Left = 120
+            Top = 40
+            Width = 97
+            Height = 17
+            Alignment = taCenter
+            AutoSize = False
+            BorderStyle = sbsSunken
+            Color = clHighlightText
+            ParentColor = False
+            TabOrder = 3
+          end
+          object StaticText5: TStaticText
+            Left = 10
+            Top = 39
+            Width = 100
+            Height = 18
+            Alignment = taCenter
+            AutoSize = False
+            BorderStyle = sbsSunken
+            Caption = 'SQL Dialect'
+            Color = 2058236
+            Font.Charset = RUSSIAN_CHARSET
+            Font.Color = clWindow
+            Font.Height = -11
+            Font.Name = 'Tahoma'
+            Font.Style = []
+            ParentColor = False
+            ParentFont = False
+            TabOrder = 2
+          end
+          object sttxt32: TStaticText
+            Left = 10
+            Top = 63
+            Width = 100
+            Height = 18
+            Alignment = taCenter
+            AutoSize = False
+            BorderStyle = sbsSunken
+            Caption = 'Server Version'
+            Color = 2058236
+            Font.Charset = RUSSIAN_CHARSET
+            Font.Color = clWindow
+            Font.Height = -11
+            Font.Name = 'Tahoma'
+            Font.Style = []
+            ParentColor = False
+            ParentFont = False
+            TabOrder = 4
+          end
+          object sttxtServerVer: TStaticText
+            Left = 120
+            Top = 64
+            Width = 97
+            Height = 17
+            Alignment = taCenter
+            AutoSize = False
+            BorderStyle = sbsSunken
+            Color = clHighlightText
+            ParentColor = False
+            TabOrder = 5
+          end
+          object sttxt34: TStaticText
+            Left = 10
+            Top = 87
+            Width = 100
+            Height = 18
+            Alignment = taCenter
+            AutoSize = False
+            BorderStyle = sbsSunken
+            Caption = 'ODS Version'
+            Color = 2058236
+            Font.Charset = RUSSIAN_CHARSET
+            Font.Color = clWindow
+            Font.Height = -11
+            Font.Name = 'Tahoma'
+            Font.Style = []
+            ParentColor = False
+            ParentFont = False
+            TabOrder = 6
+          end
+          object sttxtODSVer: TStaticText
+            Left = 120
+            Top = 88
+            Width = 97
+            Height = 17
+            Alignment = taCenter
+            AutoSize = False
+            BorderStyle = sbsSunken
+            Color = clHighlightText
+            ParentColor = False
+            TabOrder = 7
+          end
+          object sttxtRemoteProtocol: TStaticText
+            Left = 120
+            Top = 112
+            Width = 97
+            Height = 17
+            Alignment = taCenter
+            AutoSize = False
+            BorderStyle = sbsSunken
+            Color = clHighlightText
+            ParentColor = False
+            TabOrder = 9
+          end
+          object StaticText7: TStaticText
+            Left = 10
+            Top = 111
+            Width = 100
+            Height = 18
+            Alignment = taCenter
+            AutoSize = False
+            BorderStyle = sbsSunken
+            Caption = 'Remote Protocol'
+            Color = 2058236
+            Font.Charset = RUSSIAN_CHARSET
+            Font.Color = clWindow
+            Font.Height = -11
+            Font.Name = 'Tahoma'
+            Font.Style = []
+            ParentColor = False
+            ParentFont = False
+            TabOrder = 8
+          end
+          object StaticText8: TStaticText
+            Left = 10
+            Top = 135
+            Width = 100
+            Height = 18
+            Alignment = taCenter
+            AutoSize = False
+            BorderStyle = sbsSunken
+            Caption = 'Remote Address'
+            Color = 2058236
+            Font.Charset = RUSSIAN_CHARSET
+            Font.Color = clWindow
+            Font.Height = -11
+            Font.Name = 'Tahoma'
+            Font.Style = []
+            ParentColor = False
+            ParentFont = False
+            TabOrder = 10
+          end
+          object sttxtRemoteAddr: TStaticText
+            Left = 120
+            Top = 136
+            Width = 97
+            Height = 17
+            Alignment = taCenter
+            AutoSize = False
+            BorderStyle = sbsSunken
+            Color = clHighlightText
+            ParentColor = False
+            TabOrder = 11
+          end
+          object sttxtPageSize: TStaticText
+            Left = 120
+            Top = 160
+            Width = 97
+            Height = 17
+            Alignment = taCenter
+            AutoSize = False
+            BorderStyle = sbsSunken
+            Color = clHighlightText
+            ParentColor = False
+            TabOrder = 13
+          end
+          object StaticText9: TStaticText
+            Left = 10
+            Top = 159
+            Width = 100
+            Height = 18
+            Alignment = taCenter
+            AutoSize = False
+            BorderStyle = sbsSunken
+            Caption = 'Page Size'
+            Color = 2058236
+            Font.Charset = RUSSIAN_CHARSET
+            Font.Color = clWindow
+            Font.Height = -11
+            Font.Name = 'Tahoma'
+            Font.Style = []
+            ParentColor = False
+            ParentFont = False
+            TabOrder = 12
+          end
+          object StaticText10: TStaticText
+            Left = 10
+            Top = 183
+            Width = 100
+            Height = 18
+            Alignment = taCenter
+            AutoSize = False
+            BorderStyle = sbsSunken
+            Caption = 'Page Buffers'
+            Color = 2058236
+            Font.Charset = RUSSIAN_CHARSET
+            Font.Color = clWindow
+            Font.Height = -11
+            Font.Name = 'Tahoma'
+            Font.Style = []
+            ParentColor = False
+            ParentFont = False
+            TabOrder = 14
+          end
+          object sttxtPageBuffers: TStaticText
+            Left = 120
+            Top = 184
+            Width = 97
+            Height = 17
+            Alignment = taCenter
+            AutoSize = False
+            BorderStyle = sbsSunken
+            Color = clHighlightText
+            ParentColor = False
+            TabOrder = 15
+          end
+          object sttxtForcedWrites: TStaticText
+            Left = 120
+            Top = 208
+            Width = 97
+            Height = 17
+            Alignment = taCenter
+            AutoSize = False
+            BorderStyle = sbsSunken
+            Color = clHighlightText
+            ParentColor = False
+            TabOrder = 17
+          end
+          object StaticText11: TStaticText
+            Left = 10
+            Top = 207
+            Width = 100
+            Height = 18
+            Alignment = taCenter
+            AutoSize = False
+            BorderStyle = sbsSunken
+            Caption = 'Forced Writes'
+            Color = 2058236
+            Font.Charset = RUSSIAN_CHARSET
+            Font.Color = clWindow
+            Font.Height = -11
+            Font.Name = 'Tahoma'
+            Font.Style = []
+            ParentColor = False
+            ParentFont = False
+            TabOrder = 16
+          end
+          object StaticText12: TStaticText
+            Left = 10
+            Top = 230
+            Width = 100
+            Height = 18
+            Alignment = taCenter
+            AutoSize = False
+            BorderStyle = sbsSunken
+            Caption = 'Garbage Collection'
+            Color = 2058236
+            Font.Charset = RUSSIAN_CHARSET
+            Font.Color = clWindow
+            Font.Height = -11
+            Font.Name = 'Tahoma'
+            Font.Style = []
+            ParentColor = False
+            ParentFont = False
+            TabOrder = 18
+          end
+          object sttxtGarbageCollection: TStaticText
+            Left = 120
+            Top = 231
+            Width = 97
+            Height = 17
+            Alignment = taCenter
+            AutoSize = False
+            BorderStyle = sbsSunken
+            Color = clHighlightText
+            ParentColor = False
+            TabOrder = 19
+          end
         end
         object sttxt30: TStaticText
-          Left = 470
-          Top = 41
-          Width = 275
+          Left = 486
+          Top = 35
+          Width = 227
           Height = 25
           Alignment = taCenter
           AutoSize = False
           Caption = 'DB Properties'
-          Color = clHighlightText
+          Color = 2058236
           Font.Charset = RUSSIAN_CHARSET
-          Font.Color = clWindowText
+          Font.Color = clWhite
           Font.Height = -17
           Font.Name = 'Tahoma'
           Font.Style = []
@@ -924,377 +1127,542 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           ParentFont = False
           TabOrder = 1
         end
-        object StaticText6: TStaticText
-          Left = 470
-          Top = 72
-          Width = 100
-          Height = 18
-          Alignment = taCenter
-          AutoSize = False
-          BorderStyle = sbsSingle
-          Caption = 'User'
-          Color = clBtnFace
-          ParentColor = False
-          TabOrder = 2
-        end
-        object StaticText5: TStaticText
-          Left = 470
-          Top = 96
-          Width = 100
-          Height = 18
-          Alignment = taCenter
-          AutoSize = False
-          BorderStyle = sbsSingle
-          Caption = 'SQL Dialect'
-          Color = clBtnFace
-          ParentColor = False
-          TabOrder = 6
-        end
-        object StaticText7: TStaticText
-          Left = 470
-          Top = 168
-          Width = 100
-          Height = 18
-          Alignment = taCenter
-          AutoSize = False
-          BorderStyle = sbsSingle
-          Caption = 'Remote Protocol'
-          Color = clBtnFace
-          ParentColor = False
-          TabOrder = 15
-        end
-        object StaticText8: TStaticText
-          Left = 471
-          Top = 192
-          Width = 100
-          Height = 18
-          Alignment = taCenter
-          AutoSize = False
-          BorderStyle = sbsSingle
-          Caption = 'Remote Address'
-          Color = clBtnFace
-          ParentColor = False
-          TabOrder = 19
-        end
-        object StaticText9: TStaticText
-          Left = 471
-          Top = 216
-          Width = 100
-          Height = 18
-          Alignment = taCenter
-          AutoSize = False
-          BorderStyle = sbsSingle
-          Caption = 'Page Size'
-          Color = clBtnFace
-          ParentColor = False
-          TabOrder = 24
-        end
-        object StaticText10: TStaticText
-          Left = 471
-          Top = 240
-          Width = 100
-          Height = 18
-          Alignment = taCenter
-          AutoSize = False
-          BorderStyle = sbsSingle
-          Caption = 'Page Buffers'
-          Color = clBtnFace
-          ParentColor = False
-          TabOrder = 29
-        end
-        object StaticText11: TStaticText
-          Left = 471
-          Top = 264
-          Width = 100
-          Height = 18
-          Alignment = taCenter
-          AutoSize = False
-          BorderStyle = sbsSingle
-          Caption = 'Forced Writes'
-          Color = clBtnFace
-          ParentColor = False
-          TabOrder = 34
-        end
-        object StaticText12: TStaticText
-          Left = 471
-          Top = 288
-          Width = 100
-          Height = 18
-          Alignment = taCenter
-          AutoSize = False
-          BorderStyle = sbsSingle
-          Caption = 'Garbage Collection'
-          Color = clBtnFace
-          ParentColor = False
-          TabOrder = 39
-        end
-        object sttxtODSVer: TStaticText
-          Left = 579
-          Top = 145
-          Width = 166
-          Height = 17
-          Alignment = taCenter
-          AutoSize = False
-          BorderStyle = sbsSunken
-          TabOrder = 14
-        end
-        object sttxtServerVer: TStaticText
-          Left = 579
-          Top = 121
-          Width = 166
-          Height = 17
-          Alignment = taCenter
-          AutoSize = False
-          BorderStyle = sbsSunken
-          TabOrder = 11
-        end
-        object sttxt32: TStaticText
-          Left = 470
-          Top = 120
-          Width = 100
-          Height = 18
-          Alignment = taCenter
-          AutoSize = False
-          BorderStyle = sbsSingle
-          Caption = 'Server Version'
-          Color = clBtnFace
-          ParentColor = False
-          TabOrder = 10
-        end
-        object sttxt34: TStaticText
-          Left = 470
-          Top = 144
-          Width = 100
-          Height = 18
-          Alignment = taCenter
-          AutoSize = False
-          BorderStyle = sbsSingle
-          Caption = 'ODS Version'
-          Color = clBtnFace
-          ParentColor = False
-          TabOrder = 13
-        end
-        object sttxtUser: TStaticText
-          Left = 579
-          Top = 73
-          Width = 166
-          Height = 17
-          Alignment = taCenter
-          AutoSize = False
-          BorderStyle = sbsSunken
+        object pnl3: TPanel
+          Left = 488
+          Top = 376
+          Width = 226
+          Height = 73
           TabOrder = 5
+          object sttxt28: TStaticText
+            Left = 12
+            Top = 14
+            Width = 100
+            Height = 18
+            Alignment = taCenter
+            AutoSize = False
+            BorderStyle = sbsSunken
+            Caption = 'Before Processing'
+            Color = 2058236
+            Font.Charset = RUSSIAN_CHARSET
+            Font.Color = clHighlightText
+            Font.Height = -11
+            Font.Name = 'Tahoma'
+            Font.Style = []
+            ParentColor = False
+            ParentFont = False
+            TabOrder = 0
+          end
+          object sttxt29: TStaticText
+            Left = 12
+            Top = 39
+            Width = 99
+            Height = 17
+            Alignment = taCenter
+            AutoSize = False
+            BorderStyle = sbsSunken
+            Caption = 'After Processing'
+            Color = 2058236
+            Font.Charset = RUSSIAN_CHARSET
+            Font.Color = clHighlightText
+            Font.Height = -11
+            Font.Name = 'Tahoma'
+            Font.Style = []
+            ParentColor = False
+            ParentFont = False
+            TabOrder = 2
+          end
+          object sttxtDBSizeBefore: TStaticText
+            Left = 120
+            Top = 15
+            Width = 97
+            Height = 17
+            Alignment = taCenter
+            AutoSize = False
+            BorderStyle = sbsSunken
+            Color = clHighlightText
+            ParentColor = False
+            TabOrder = 1
+          end
+          object sttxtDBSizeAfter: TStaticText
+            Left = 120
+            Top = 39
+            Width = 97
+            Height = 17
+            Alignment = taCenter
+            AutoSize = False
+            BorderStyle = sbsSunken
+            Color = clHighlightText
+            Enabled = False
+            ParentColor = False
+            TabOrder = 3
+          end
         end
-        object sttxtDialect: TStaticText
-          Left = 579
-          Top = 97
-          Width = 166
-          Height = 17
+        object sttxt21: TStaticText
+          Left = 486
+          Top = 348
+          Width = 227
+          Height = 25
           Alignment = taCenter
           AutoSize = False
-          BorderStyle = sbsSunken
-          TabOrder = 9
-        end
-        object sttxtRemoteProtocol: TStaticText
-          Left = 579
-          Top = 169
-          Width = 166
-          Height = 17
-          Alignment = taCenter
-          AutoSize = False
-          BorderStyle = sbsSunken
-          TabOrder = 16
-        end
-        object sttxtRemoteAddr: TStaticText
-          Left = 579
-          Top = 193
-          Width = 166
-          Height = 17
-          Alignment = taCenter
-          AutoSize = False
-          BorderStyle = sbsSunken
-          TabOrder = 20
-        end
-        object sttxtPageSize: TStaticText
-          Left = 579
-          Top = 217
-          Width = 166
-          Height = 17
-          Alignment = taCenter
-          AutoSize = False
-          BorderStyle = sbsSunken
-          TabOrder = 25
-        end
-        object sttxtPageBuffers: TStaticText
-          Left = 579
-          Top = 241
-          Width = 166
-          Height = 17
-          Alignment = taCenter
-          AutoSize = False
-          BorderStyle = sbsSunken
-          TabOrder = 30
-        end
-        object sttxtForcedWrites: TStaticText
-          Left = 579
-          Top = 265
-          Width = 166
-          Height = 17
-          Alignment = taCenter
-          AutoSize = False
-          BorderStyle = sbsSunken
-          TabOrder = 35
-        end
-        object sttxtGarbageCollection: TStaticText
-          Left = 579
-          Top = 289
-          Width = 166
-          Height = 17
-          Alignment = taCenter
-          AutoSize = False
-          BorderStyle = sbsSunken
-          TabOrder = 40
-        end
-        object sttxt2: TStaticText
-          Left = 247
-          Top = 371
-          Width = 378
-          Height = 24
-          AutoSize = False
-          Caption = '        Number of processing records in a table                 '
-          Color = clWhite
+          Caption = 'DB File Size'
+          Color = 2058236
           Font.Charset = RUSSIAN_CHARSET
-          Font.Color = clWindowText
+          Font.Color = clWhite
           Font.Height = -17
           Font.Name = 'Tahoma'
           Font.Style = []
           ParentColor = False
           ParentFont = False
-          TabOrder = 43
+          TabOrder = 4
         end
-        object sttxt3: TStaticText
-          Left = 247
-          Top = 407
-          Width = 95
-          Height = 17
-          Alignment = taCenter
-          AutoSize = False
-          BorderStyle = sbsSingle
-          Caption = 'GD_DOCUMENT'
-          Color = clBtnFace
-          ParentColor = False
-          TabOrder = 44
-        end
-        object sttxt4: TStaticText
-          Left = 342
-          Top = 407
-          Width = 95
-          Height = 17
-          Alignment = taCenter
-          AutoSize = False
-          BorderStyle = sbsSingle
-          Caption = 'AC_ENTRY'
-          Color = clBtnFace
-          ParentColor = False
-          TabOrder = 45
-        end
-        object sttxt5: TStaticText
-          Left = 437
-          Top = 407
-          Width = 95
-          Height = 17
-          Alignment = taCenter
-          AutoSize = False
-          BorderStyle = sbsSingle
-          Caption = 'INV_MOVEMENT'
-          Color = clBtnFace
-          ParentColor = False
-          TabOrder = 46
-        end
-        object sttxtProcGdDoc: TStaticText
-          Left = 247
-          Top = 424
-          Width = 95
-          Height = 17
-          Alignment = taCenter
-          AutoSize = False
-          BorderStyle = sbsSunken
-          TabOrder = 48
-        end
-        object sttxtProcAcEntry: TStaticText
-          Left = 342
-          Top = 424
-          Width = 95
-          Height = 17
-          Alignment = taCenter
-          AutoSize = False
-          BorderStyle = sbsSunken
-          TabOrder = 49
-        end
-        object sttxtProcInvMovement: TStaticText
-          Left = 438
-          Top = 424
-          Width = 95
-          Height = 17
-          Alignment = taCenter
-          AutoSize = False
-          BorderStyle = sbsSunken
-          TabOrder = 50
-        end
-        object sttxt6: TStaticText
-          Left = 532
-          Top = 407
-          Width = 95
-          Height = 17
-          Alignment = taCenter
-          AutoSize = False
-          BorderStyle = sbsSingle
-          Caption = 'INV_CARD'
-          Color = clBtnFace
-          ParentColor = False
-          TabOrder = 47
-        end
-        object sttxtProcInvCard: TStaticText
-          Left = 533
-          Top = 424
-          Width = 95
-          Height = 17
-          Alignment = taCenter
-          AutoSize = False
-          BorderStyle = sbsSunken
-          TabOrder = 51
-        end
-        object txt6: TStaticText
-          Left = 110
-          Top = 287
-          Width = 100
-          Height = 17
-          Alignment = taCenter
-          AutoSize = False
-          BorderStyle = sbsSingle
-          Caption = 'INV_CARD'
-          Color = clBtnFace
-          ParentColor = False
-          TabOrder = 36
-        end
-        object sttxtInvCard: TStaticText
-          Left = 222
-          Top = 288
-          Width = 79
-          Height = 17
-          Alignment = taCenter
-          AutoSize = False
-          BorderStyle = sbsSunken
-          TabOrder = 37
-        end
-        object sttxtInvCardAfter: TStaticText
-          Left = 310
-          Top = 288
-          Width = 79
-          Height = 17
-          Alignment = taCenter
-          AutoSize = False
-          BorderStyle = sbsSunken
-          TabOrder = 38
+        object pnl4: TPanel
+          Left = 88
+          Top = 63
+          Width = 305
+          Height = 350
+          TabOrder = 2
+          object shp7: TShape
+            Left = 124
+            Top = 329
+            Width = 83
+            Height = 2
+            Brush.Color = clBtnShadow
+            Pen.Color = clGrayText
+          end
+          object shp8: TShape
+            Left = 213
+            Top = 329
+            Width = 82
+            Height = 2
+            Brush.Color = clBtnShadow
+            Pen.Color = clGrayText
+          end
+          object txt10: TStaticText
+            Left = 123
+            Top = 14
+            Width = 79
+            Height = 17
+            Alignment = taCenter
+            AutoSize = False
+            BorderStyle = sbsSunken
+            Caption = 'ORIGINAL'
+            Color = 2058236
+            Font.Charset = RUSSIAN_CHARSET
+            Font.Color = clWindow
+            Font.Height = -11
+            Font.Name = 'Tahoma'
+            Font.Style = []
+            ParentColor = False
+            ParentFont = False
+            TabOrder = 0
+          end
+          object sttxt11: TStaticText
+            Left = 211
+            Top = 14
+            Width = 79
+            Height = 17
+            Alignment = taCenter
+            AutoSize = False
+            BorderStyle = sbsSunken
+            Caption = 'NOW'
+            Color = 2058236
+            Font.Charset = RUSSIAN_CHARSET
+            Font.Color = clWindow
+            Font.Height = -11
+            Font.Name = 'Tahoma'
+            Font.Style = []
+            ParentColor = False
+            ParentFont = False
+            TabOrder = 1
+          end
+          object sttxtGdDocAfter: TStaticText
+            Left = 211
+            Top = 42
+            Width = 79
+            Height = 17
+            Alignment = taCenter
+            AutoSize = False
+            BorderStyle = sbsSunken
+            Color = clHighlightText
+            ParentColor = False
+            TabOrder = 4
+          end
+          object sttxtGdDoc: TStaticText
+            Left = 123
+            Top = 42
+            Width = 79
+            Height = 17
+            Alignment = taCenter
+            AutoSize = False
+            BorderStyle = sbsSunken
+            Color = clHighlightText
+            ParentColor = False
+            TabOrder = 3
+          end
+          object txt3: TStaticText
+            Left = 11
+            Top = 41
+            Width = 100
+            Height = 18
+            Alignment = taCenter
+            AutoSize = False
+            BorderStyle = sbsSunken
+            Caption = 'GD_DOCUMENT'
+            Color = 671448
+            Font.Charset = RUSSIAN_CHARSET
+            Font.Color = clWindow
+            Font.Height = -11
+            Font.Name = 'Tahoma'
+            Font.Style = []
+            ParentColor = False
+            ParentFont = False
+            TabOrder = 2
+          end
+          object txt4: TStaticText
+            Left = 11
+            Top = 70
+            Width = 100
+            Height = 17
+            Alignment = taCenter
+            AutoSize = False
+            BorderStyle = sbsSunken
+            Caption = 'AC_ENTRY'
+            Color = 671448
+            Font.Charset = RUSSIAN_CHARSET
+            Font.Color = clWindow
+            Font.Height = -11
+            Font.Name = 'Tahoma'
+            Font.Style = []
+            ParentColor = False
+            ParentFont = False
+            TabOrder = 5
+          end
+          object sttxtAcEntry: TStaticText
+            Left = 123
+            Top = 70
+            Width = 79
+            Height = 17
+            Alignment = taCenter
+            AutoSize = False
+            BorderStyle = sbsSunken
+            Color = clHighlightText
+            ParentColor = False
+            TabOrder = 6
+          end
+          object sttxtAcEntryAfter: TStaticText
+            Left = 211
+            Top = 70
+            Width = 79
+            Height = 17
+            Alignment = taCenter
+            AutoSize = False
+            BorderStyle = sbsSunken
+            Color = clHighlightText
+            ParentColor = False
+            TabOrder = 7
+          end
+          object txt5: TStaticText
+            Left = 11
+            Top = 98
+            Width = 100
+            Height = 17
+            Alignment = taCenter
+            AutoSize = False
+            BorderStyle = sbsSunken
+            Caption = 'INV_MOVEMENT'
+            Color = 671448
+            Font.Charset = RUSSIAN_CHARSET
+            Font.Color = clWindow
+            Font.Height = -11
+            Font.Name = 'Tahoma'
+            Font.Style = []
+            ParentColor = False
+            ParentFont = False
+            TabOrder = 8
+          end
+          object sttxtInvMovement: TStaticText
+            Left = 123
+            Top = 98
+            Width = 79
+            Height = 17
+            Alignment = taCenter
+            AutoSize = False
+            BorderStyle = sbsSunken
+            Color = clHighlightText
+            ParentColor = False
+            TabOrder = 9
+          end
+          object sttxtInvMovementAfter: TStaticText
+            Left = 211
+            Top = 98
+            Width = 79
+            Height = 17
+            Alignment = taCenter
+            AutoSize = False
+            BorderStyle = sbsSunken
+            Color = clHighlightText
+            ParentColor = False
+            TabOrder = 10
+          end
+          object txt6: TStaticText
+            Left = 11
+            Top = 124
+            Width = 100
+            Height = 17
+            Alignment = taCenter
+            AutoSize = False
+            BorderStyle = sbsSunken
+            Caption = 'INV_CARD'
+            Color = 671448
+            Font.Charset = RUSSIAN_CHARSET
+            Font.Color = clWindow
+            Font.Height = -11
+            Font.Name = 'Tahoma'
+            Font.Style = []
+            ParentColor = False
+            ParentFont = False
+            TabOrder = 11
+          end
+          object sttxtInvCard: TStaticText
+            Left = 123
+            Top = 125
+            Width = 79
+            Height = 17
+            Alignment = taCenter
+            AutoSize = False
+            BorderStyle = sbsSunken
+            Color = clHighlightText
+            ParentColor = False
+            TabOrder = 12
+          end
+          object sttxtInvCardAfter: TStaticText
+            Left = 211
+            Top = 125
+            Width = 79
+            Height = 17
+            Alignment = taCenter
+            AutoSize = False
+            BorderStyle = sbsSunken
+            Color = clHighlightText
+            ParentColor = False
+            TabOrder = 13
+          end
+          object sttxt2: TStaticText
+            Left = -1
+            Top = 159
+            Width = 305
+            Height = 24
+            Alignment = taCenter
+            AutoSize = False
+            Caption = 'Number of processing records'
+            Color = 2058236
+            Font.Charset = RUSSIAN_CHARSET
+            Font.Color = clWhite
+            Font.Height = -17
+            Font.Name = 'Tahoma'
+            Font.Style = []
+            ParentColor = False
+            ParentFont = False
+            TabOrder = 14
+          end
+          object sttxt3: TStaticText
+            Left = 11
+            Top = 195
+            Width = 100
+            Height = 17
+            Alignment = taCenter
+            AutoSize = False
+            BorderStyle = sbsSunken
+            Caption = 'GD_DOCUMENT'
+            Color = 671448
+            Font.Charset = RUSSIAN_CHARSET
+            Font.Color = clWindow
+            Font.Height = -11
+            Font.Name = 'Tahoma'
+            Font.Style = []
+            ParentColor = False
+            ParentFont = False
+            TabOrder = 15
+          end
+          object sttxt4: TStaticText
+            Left = 11
+            Top = 219
+            Width = 100
+            Height = 17
+            Alignment = taCenter
+            AutoSize = False
+            BorderStyle = sbsSunken
+            Caption = 'AC_ENTRY'
+            Color = 671448
+            Font.Charset = RUSSIAN_CHARSET
+            Font.Color = clWindow
+            Font.Height = -11
+            Font.Name = 'Tahoma'
+            Font.Style = []
+            ParentColor = False
+            ParentFont = False
+            TabOrder = 18
+          end
+          object sttxt5: TStaticText
+            Left = 11
+            Top = 244
+            Width = 100
+            Height = 17
+            Alignment = taCenter
+            AutoSize = False
+            BorderStyle = sbsSunken
+            Caption = 'INV_MOVEMENT'
+            Color = 671448
+            Font.Charset = RUSSIAN_CHARSET
+            Font.Color = clWindow
+            Font.Height = -11
+            Font.Name = 'Tahoma'
+            Font.Style = []
+            ParentColor = False
+            ParentFont = False
+            TabOrder = 21
+          end
+          object sttxt6: TStaticText
+            Left = 11
+            Top = 268
+            Width = 100
+            Height = 17
+            Alignment = taCenter
+            AutoSize = False
+            BorderStyle = sbsSunken
+            Caption = 'INV_CARD'
+            Color = 671448
+            Font.Charset = RUSSIAN_CHARSET
+            Font.Color = clWindow
+            Font.Height = -11
+            Font.Name = 'Tahoma'
+            Font.Style = []
+            ParentColor = False
+            ParentFont = False
+            TabOrder = 24
+          end
+          object sttxtProcGdDoc: TStaticText
+            Left = 124
+            Top = 196
+            Width = 82
+            Height = 17
+            Alignment = taCenter
+            AutoSize = False
+            BorderStyle = sbsSunken
+            Color = clHighlightText
+            ParentColor = False
+            TabOrder = 16
+          end
+          object sttxtProcAcEntry: TStaticText
+            Left = 123
+            Top = 220
+            Width = 83
+            Height = 17
+            Alignment = taCenter
+            AutoSize = False
+            BorderStyle = sbsSunken
+            Color = clHighlightText
+            ParentColor = False
+            TabOrder = 19
+          end
+          object sttxtProcInvMovement: TStaticText
+            Left = 123
+            Top = 244
+            Width = 83
+            Height = 17
+            Alignment = taCenter
+            AutoSize = False
+            BorderStyle = sbsSunken
+            Color = clHighlightText
+            ParentColor = False
+            TabOrder = 22
+          end
+          object sttxtProcInvCard: TStaticText
+            Left = 122
+            Top = 268
+            Width = 84
+            Height = 17
+            Alignment = taCenter
+            AutoSize = False
+            BorderStyle = sbsSunken
+            Color = clHighlightText
+            ParentColor = False
+            TabOrder = 25
+          end
+          object txt1: TStaticText
+            Left = 212
+            Top = 196
+            Width = 82
+            Height = 17
+            Alignment = taCenter
+            AutoSize = False
+            BorderStyle = sbsSunken
+            Color = clHighlightText
+            ParentColor = False
+            TabOrder = 17
+          end
+          object StaticText1: TStaticText
+            Left = 212
+            Top = 220
+            Width = 82
+            Height = 17
+            Alignment = taCenter
+            AutoSize = False
+            BorderStyle = sbsSunken
+            Color = clHighlightText
+            ParentColor = False
+            TabOrder = 20
+          end
+          object StaticText2: TStaticText
+            Left = 212
+            Top = 244
+            Width = 82
+            Height = 17
+            Alignment = taCenter
+            AutoSize = False
+            BorderStyle = sbsSunken
+            Color = clHighlightText
+            ParentColor = False
+            TabOrder = 23
+          end
+          object txt7: TStaticText
+            Left = 212
+            Top = 268
+            Width = 82
+            Height = 17
+            Alignment = taCenter
+            AutoSize = False
+            BorderStyle = sbsSunken
+            Color = clHighlightText
+            ParentColor = False
+            TabOrder = 26
+          end
+          object btnGetStatistics: TButton
+            Left = 124
+            Top = 305
+            Width = 83
+            Height = 25
+            Action = actGet
+            Caption = 'Get'
+            Font.Charset = RUSSIAN_CHARSET
+            Font.Color = clWindowText
+            Font.Height = -11
+            Font.Name = 'Tahoma'
+            Font.Style = []
+            ParentFont = False
+            TabOrder = 27
+            TabStop = False
+          end
+          object btnUpdateStatistics: TBitBtn
+            Left = 213
+            Top = 305
+            Width = 82
+            Height = 25
+            Action = actGet
+            Caption = 'Update'
+            TabOrder = 28
+            TabStop = False
+          end
         end
       end
     end
