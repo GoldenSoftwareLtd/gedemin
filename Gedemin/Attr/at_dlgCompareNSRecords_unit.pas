@@ -61,27 +61,28 @@ uses
 
 procedure TdlgCompareNSRecords.sgMainMouseDown(Sender: TObject;
   Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+var
+  Idx: Integer;
+  FN: String;
 begin
+  if FgdcNamespaceRecCmpController = nil then
+    exit;
+
   if (ssDouble in Shift) then
   begin
-    {
-    if Records.Locate('LR_FieldName', sgMain.Cells[0, sgMain.Row], []) then
+    FN := sgMain.Cells[0, sgMain.Row];
+    Idx := FgdcNamespaceRecCmpController.OverwriteFields.IndexOf(FN);
+
+    if (sgMain.Col = 1) and (Idx > -1) then
     begin
-      if sgMain.Col = 1 then
-      begin
-        Records.Edit;
-        Records.FieldByName('LR_NewValue').AsInteger := 0;
-        Records.Post;
-      end else
-        if sgMain.Col = 2 then
-        begin
-          Records.Edit;
-          Records.FieldByName('LR_NewValue').AsInteger := 1;
-          Records.Post;
-        end;
+      FgdcNamespaceRecCmpController.OverwriteFields.Delete(Idx);
       sgMain.Refresh;
-    end;
-    }
+    end
+    else if (sgMain.Col = 2) and (Idx = -1) then
+    begin
+      FgdcNamespaceRecCmpController.OverwriteFields.Add(FN);
+      sgMain.Refresh;
+    end
   end;
 end;
 
@@ -93,6 +94,7 @@ begin
 
   sgMain.Canvas.Brush.Color := clWindow;
   sgMain.Canvas.Font.Color := clWindowText;
+  sgMain.Canvas.Font.Style := [];
 
   if (gdSelected in State) or (gdFocused in State) then
   begin

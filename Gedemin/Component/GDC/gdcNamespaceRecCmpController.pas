@@ -30,16 +30,16 @@ type
 implementation
 
 uses
-  Forms, Controls, gdcBaseInterface, at_dlgCompareNSRecords_unit;
+  Forms, Controls, DB, gdcBaseInterface, gdcNamespace, at_dlgCompareNSRecords_unit;
 
 { TgdcNamespaceRecCmpController }
 
 function TgdcNamespaceRecCmpController.Compare(AnOwner: TComponent; AnObj: TgdcBase;
   AMapping: TYAMLMapping): Boolean;
-const
-  IgnoreFields = ';ID;EDITIONDATE;CREATIONDATE;CREATORKEY;EDITORKEY;ACHAG;AVIEW;AFULL;LB;RB;RESERVED;';
 var
   I: Integer;
+  FN, RUIDString, ObjName: String;
+  S: TYAMLScalar;
 begin
   Assert(AnObj <> nil);
   Assert(AMapping <> nil);
@@ -52,16 +52,39 @@ begin
   FDisplayFields.Clear;
 
   for I := 0 to FObj.FieldCount - 1 do
-    if FObj.Fields[I].CanModify and (not FObj.Fields[I].Calculated)
-      and (Pos('RDB$', FObj.Fields[I].FieldName) <> 1)
-      and (Pos(';' + FObj.Fields[I].FieldName + ';', IgnoreFields) = 0)
-      and (FMapping.FindByName('Fields\' + FObj.Fields[I].FieldName) <> nil) then
-    begin
-      FDisplayFields.Add(FObj.Fields[I].FieldName);
+  begin
+    FN := FObj.Fields[I].FieldName;
 
-      if FMapping.ReadString('Fields\' + FObj.Fields[I].FieldName) <> FObj.Fields[I].AsString then
-        FInequalFields.Add(FObj.Fields[I].FieldName);
+    if FObj.Fields[I].CanModify
+      and (not FObj.Fields[I].Calculated)
+      and (not TgdcNamespace.SkipField(FN))
+      and (FMapping.FindByName('Fields\' + FN) is TYAMLScalar) then
+    begin
+      FDisplayFields.Add(FN);
+
+      S := FMapping.FindByName('Fields\' + FN) as TYAMLScalar;
+
+      if FObj.Fields[I].IsNull and (not S.IsNull) then
+        FInequalFields.Add(FN)
+      else if (not FObj.Fields[I].IsNull) and S.IsNull then
+        FInequalFields.Add(FN)
+      else if (FObj.Fields[I] is TIntegerField)
+        and ParseReferenceString(S.AsString, RUIDString, ObjName) then
+      begin
+        if gdcBaseManager.GetIDByRUIDString(RUIDString) <> FObj.Fields[I].AsInteger then
+          FInequalFields.Add(FN);
+      end
+      else if (FObj.Fields[I] is TBLOBField) then
+      begin
+        if S.AsString <> FObj.Fields[I].AsString then
+          FInequalFields.Add(FN);
+      end else
+      begin
+        if S.AsVariant <> FObj.Fields[I].Value then
+          FInequalFields.Add(FN);
+      end;
     end;
+  end;
 
   with TdlgCompareNSRecords.Create(AnOwner) do
   try
@@ -69,7 +92,7 @@ begin
     FillGrid(sgMain, not chbxShowOnlyDiff.Checked);
     lblClassName.Caption := AnObj.GetDisplayName(AnObj.SubType);
     lblName.Caption := AnObj.ObjectName;
-    lblID.Caption := RUIDToStr(AnObj.GetRUID); 
+    lblID.Caption := RUIDToStr(AnObj.GetRUID);
     Result := ShowModal = mrOk;
   finally
     Free;
@@ -103,29 +126,39 @@ procedure TgdcNamespaceRecCmpController.FillGrid(AGrid: TStringGrid;
   const AShowEqual: Boolean);
 var
   I: Integer;
+  SL: TStringList;
+  RUIDString, ObjName: String;
 begin
   Assert(FObj <> nil);
   Assert(FMapping <> nil);
 
   if AShowEqual then
-  begin
-    AGrid.RowCount := FDisplayFields.Count + 1;
+    SL := FDisplayFields
+  else
+    SL := FInequalFields;
 
-    for I := 0 to FDisplayFields.Count - 1 do
-    begin
-      AGrid.Cells[0, I + 1] := FDisplayFields[I];
-      AGrid.Cells[1, I + 1] := FObj.FieldByName(FDisplayFields[I]).AsString;
-      AGrid.Cells[2, I + 1] := FMapping.ReadString('Fields\' + FDisplayFields[I]);
-    end;
-  end else
-  begin
-    AGrid.RowCount := FInequalFields.Count + 1;
+  AGrid.RowCount := SL.Count + 1;
 
-    for I := 0 to FInequalFields.Count - 1 do
+  for I := 0 to SL.Count - 1 do
+  begin
+    AGrid.Cells[0, I + 1] := SL[I];
+
+    if (FObj.FieldByName(SL[I]) is TIntegerField)
+      and ParseReferenceString(FMapping.ReadString('Fields\' + SL[I]), RUIDString, ObjName) then
     begin
-      AGrid.Cells[0, I + 1] := FInequalFields[I];
-      AGrid.Cells[1, I + 1] := FObj.FieldByName(FInequalFields[I]).AsString;
-      AGrid.Cells[2, I + 1] := FMapping.ReadString('Fields\' + FInequalFields[I]);
+      AGrid.Cells[1, I + 1] := gdcBaseManager.GetRUIDStringByID(FObj.FieldByName(SL[I]).AsInteger);
+      AGrid.Cells[2, I + 1] := RUIDString;
+    end else
+    begin
+      if FObj.FieldByName(SL[I]).IsNull then
+        AGrid.Cells[1, I + 1] := '<NULL>'
+      else
+        AGrid.Cells[1, I + 1] := FObj.FieldByName(SL[I]).Value;
+
+      if FMapping.ReadNull('Fields\' + SL[I]) then
+        AGrid.Cells[2, I + 1] := '<NULL>'
+      else
+        AGrid.Cells[2, I + 1] := FMapping.ReadValue('Fields\' + SL[I], '');
     end;
   end;
 

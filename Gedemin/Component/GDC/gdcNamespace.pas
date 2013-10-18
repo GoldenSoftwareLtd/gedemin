@@ -28,6 +28,7 @@ type
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
 
+    class function SkipField(const AFieldName: String): Boolean;
     class procedure WriteObject(AgdcObject: TgdcBase; AWriter: TyamlWriter;
       const AHeadObject: String; const AnAlwaysOverwrite: Boolean;
       const ADontRemove: Boolean; const AnIncludeSiblings: Boolean;
@@ -187,15 +188,6 @@ class procedure TgdcNamespace.WriteObject(AgdcObject: TgdcBase; AWriter: TyamlWr
   const ADontRemove: Boolean; const AnIncludeSiblings: Boolean;
   AnObjCache: TStringHashMap);
 
-const
-  PassFieldName  =
-    ';ID;CREATORKEY;EDITORKEY;ACHAG;AVIEW;AFULL;LB;RB;RESERVED' +
-    ';BREAKPOINTS;EDITORSTATE;TESTRESULT;LASTEXTIME;PARENTINDEX' +
-    ';RDB$TRIGGER_BLR;RDB$PROCEDURE_BLR;RDB$VIEW_BLR;RDB$SECURITY_CLASS' +
-    ';RDB$PROCEDURE_NAME;RDB$PROCEDURE_ID;RDB$PROCEDURE_INPUTS;RDB$PROCEDURE_OUTPUTS' +
-    ';RDB$PROCEDURE_OUTPUTS;RDB$PROCEDURE_SOURCE;RDB$OWNER_NAME;RDB$RUNTIME' +
-    ';RDB$SYSTEM_FLAG;';
-
   procedure WriteSet(AnObj: TgdcBase; AWriter: TyamlWriter);
   var
     I, J: Integer;
@@ -272,7 +264,7 @@ const
                       continue;
                     if R.RelationFields[J] = R.PrimaryKey.ConstraintFields[1] then
                       continue;
-                    if Pos(';' + R.RelationFields[J].FieldName + ';', PassFieldName) > 0 then
+                    if SkipField(R.RelationFields[J].FieldName) then
                       continue;
                     F := q.FieldByName(R.RelationFields[J].FieldName);
                     if F.IsNull then
@@ -381,7 +373,7 @@ begin
       if F.FieldKind <> fkData then
         continue;
 
-      if StrIPos(';' + F.FieldName + ';', PassFieldName) > 0 then
+      if SkipField(F.FieldName) then
         continue;
 
       if AgdcObject is TgdcMetaBase then
@@ -1378,6 +1370,20 @@ begin
   finally
     Obj.Free;
   end;
+end;
+
+class function TgdcNamespace.SkipField(const AFieldName: String): Boolean;
+const
+  PassFieldName  =
+    ';ID;CREATORKEY;EDITORKEY;ACHAG;AVIEW;AFULL;LB;RB;RESERVED' +
+    ';BREAKPOINTS;EDITORSTATE;TESTRESULT;LASTEXTIME;PARENTINDEX' +
+    ';RDB$TRIGGER_BLR;RDB$PROCEDURE_BLR;RDB$VIEW_BLR;RDB$SECURITY_CLASS' +
+    ';RDB$PROCEDURE_NAME;RDB$PROCEDURE_ID;RDB$PROCEDURE_INPUTS;RDB$PROCEDURE_OUTPUTS' +
+    ';RDB$PROCEDURE_OUTPUTS;RDB$PROCEDURE_SOURCE;RDB$OWNER_NAME;RDB$RUNTIME' +
+    ';RDB$SYSTEM_FLAG;';
+begin
+  Result := (StrIPos(AFieldName, PassFieldName) > 0) and
+    (StrIPos(';' + AFieldName + ';', PassFieldName) > 0);
 end;
 
 initialization
