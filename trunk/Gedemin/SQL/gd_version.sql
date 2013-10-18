@@ -602,6 +602,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (190, '0000.0001.0000.0221', '23.09.2013', 'Added missed indices to at_namespace tables.');
 
+INSERT INTO fin_versioninfo
+  VALUES (191, '0000.0001.0000.0222', '18.10.2013', 'Delete cbAnalytic from Acc_BuildAcctCard.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
