@@ -69,7 +69,7 @@ type
     
     function GetArity(ASql: TIBSQL): Integer; overload;
     function GetArity(ADataSet: TDataSet; const AFieldList: String): Integer; overload;
-    function GetTempPath: String;
+    //function GetTempPath: String;
     function GetDefaultPLInitString: String;
   public
     destructor Destroy; override;
@@ -587,13 +587,13 @@ begin
   end;
 end;
 
-function TgsPLClient.GetTempPath: String;
+{function TgsPLClient.GetTempPath: String;
 var
   Buff: array[0..1024] of Char;
 begin
   Windows.GetTempPath(SizeOf(Buff), Buff);
   Result := ExcludeTrailingBackslash(Buff);
-end;
+end;}
 
 function TgsPLClient.GetArity(ADataSet: TDataSet; const AFieldList: String): Integer;
 var

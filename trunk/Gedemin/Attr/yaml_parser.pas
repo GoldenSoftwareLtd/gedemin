@@ -43,9 +43,11 @@ type
     function GetAsCurrency: Currency; virtual;
     procedure SetAsCurrency(const Value: Currency); virtual;
     function GetAsStream: TStream; virtual;
+    function GetAsVariant: Variant; virtual;
 
   public
     procedure Parse(Scanner: TyamlScanner); override;
+    function Compare(ANode: TyamlScalar): Integer; virtual;
 
     property AsString: AnsiString read GetAsString write SetAsString;
     property AsInteger: Integer read GetAsInteger write SetAsInteger;
@@ -57,9 +59,16 @@ type
     property AsInt64: Int64 read GetAsInt64 write SetAsInt64;
     property AsCurrency: Currency read GetAsCurrency write SetAsCurrency;
     property AsStream: TStream read GetAsStream;
+    property AsVariant: Variant read GetAsVariant;
   end;
 
-  TyamlNumeric = class(TyamlScalar);
+  TyamlNumeric = class(TyamlScalar)
+  protected
+    function GetAsVariant: Variant; override;
+
+  public
+    function Compare(ANode: TyamlScalar): Integer; override;
+  end;
 
   TyamlString = class(TyamlScalar)
   private
@@ -96,6 +105,7 @@ type
     procedure SetAsInteger(const Value: Integer); override;
     function GetAsString: AnsiString; override;
     procedure SetAsString(const Value: AnsiString); override;
+    function GetAsVariant: Variant; override;
 
   public
     constructor CreateInteger(const AValue: Integer); overload;
@@ -124,10 +134,12 @@ type
   protected
     function GetAsDateTime: TDateTime; override;
     procedure SetAsDateTime(const Value: TDateTime); override;
+    function GetAsVariant: Variant; override;
 
   public
     constructor CreateDateTime(const AValue: TDateTime); overload;
     constructor CreateDateTime(const AValue: AnsiString); overload;
+    function Compare(ANode: TyamlScalar): Integer; override;
   end;
 
   TyamlDate = class(TyamlScalar)
@@ -137,9 +149,11 @@ type
   protected
     function GetAsDate: TDateTime; override;
     procedure SetAsDate(const Value: TDateTime); override;
+    function GetAsVariant: Variant; override;
 
   public
     constructor CreateDate(const AValue: TDateTime);
+    function Compare(ANode: TyamlScalar): Integer; override;
   end;
 
   TyamlCurrency = class(TyamlNumeric)
@@ -149,6 +163,7 @@ type
   protected
     function GetAsCurrency: Currency; override;
     procedure SetAsCurrency(const AValue: Currency); override;
+    function GetAsVariant: Variant; override;
 
   public
     constructor CreateCurrency(const AValue: Currency); overload;
@@ -179,16 +194,21 @@ type
     procedure SetAsInteger(const Value: Integer); override;
     function GetAsString: AnsiString; override;
     procedure SetAsString(const Value: AnsiString); override;
+    function GetAsVariant: Variant; override;
 
   public
     constructor CreateBoolean(const AValue: Boolean); overload;
     constructor CreateBoolean(const AValue: AnsiString); overload;
+    function Compare(ANode: TyamlScalar): Integer; override;
   end;
 
   TyamlNull = class(TyamlScalar)
   protected
     function GetAsString: AnsiString; override;
     function GetIsNull: Boolean; override;
+
+  public
+    function Compare(ANode: TyamlScalar): Integer; override;
   end;
 
   TyamlBinary = class(TyamlScalar)
@@ -199,6 +219,7 @@ type
 
   protected  
     function GetAsStream: TStream; override;
+    function GetAsString: AnsiString; override;
 
   public
     constructor CreateBinary(const AValue: AnsiString);
@@ -268,6 +289,7 @@ type
     function ReadBoolean(const AName: AnsiString; const DefValue: Boolean = False): Boolean;
     function ReadNull(const AName: AnsiString): Boolean;
     procedure ReadStream(const AName: AnsiString; S: TStream);
+    function ReadValue(const AName: AnsiString; const DefValue: Variant): Variant;
     function TestString(const AName: AnsiString; const AString: AnsiString): Boolean;
   end;
 
@@ -543,6 +565,20 @@ end;
 function TyamlScalar.GetAsStream: TStream;
 begin
   raise EyamlException.Create('Data type is not supported.');
+end;
+
+function TyamlScalar.Compare(ANode: TyamlScalar): Integer;
+begin
+  Assert(ANode <> nil);
+  Result := AnsiCompareText(Self.AsString, ANode.AsString);
+end;
+
+function TyamlScalar.GetAsVariant: Variant;
+begin
+  if IsNull then
+    Result := Null
+  else
+    Result := GetAsString;  
 end;
 
 { TyamlNode }
@@ -903,6 +939,11 @@ begin
   Result := IntToStr(FValue);
 end;
 
+function TyamlInteger.GetAsVariant: Variant;
+begin
+  Result := GetAsInteger;
+end;
+
 procedure TyamlInteger.SetAsInteger(const Value: Integer);
 begin
   FValue := Value;
@@ -1030,6 +1071,20 @@ begin
   FValue := AValue;
 end;
 
+function TyamlDateTime.Compare(ANode: TyamlScalar): Integer;
+begin
+  if ANode is TyamlDateTime then
+  begin
+    if Self.AsDateTime < ANode.AsDateTime then
+      Result := -1
+    else if Self.AsDateTime > ANode.AsDateTime then
+      Result := 1
+    else
+      Result := 0;
+  end else
+    Result := inherited Compare(ANode);
+end;
+
 constructor TyamlDateTime.CreateDateTime(const AValue: AnsiString);
 begin
   inherited Create;
@@ -1047,7 +1102,26 @@ begin
   FValue := Value;
 end;
 
+function TyamlDateTime.GetAsVariant: Variant;
+begin
+  Result := GetAsDateTime;
+end;
+
 { TyamlDate }
+
+function TyamlDate.Compare(ANode: TyamlScalar): Integer;
+begin
+  if ANode is TyamlDate then
+  begin
+    if Self.AsDateTime < ANode.AsDateTime then
+      Result := -1
+    else if Self.AsDateTime > ANode.AsDateTime then
+      Result := 1
+    else
+      Result := 0;
+  end else
+    Result := inherited Compare(ANode);
+end;
 
 constructor TyamlDate.CreateDate(const AValue: TDateTime);
 begin
@@ -1058,6 +1132,11 @@ end;
 function TyamlDate.GetAsDate: TDateTime;
 begin
   Result := FValue;
+end;
+
+function TyamlDate.GetAsVariant: Variant;
+begin
+  Result := GetAsDate;
 end;
 
 procedure TyamlDate.SetAsDate(const Value: TDateTime);
@@ -1096,6 +1175,18 @@ constructor TyamlBoolean.CreateBoolean(const AValue: Boolean);
 begin
   inherited Create;
   FValue := AValue;
+end;
+
+function TyamlBoolean.Compare(ANode: TyamlScalar): Integer;
+begin
+  if ANode is TyamlBoolean then
+  begin
+    if Self.AsBoolean = ANode.AsBoolean then
+      Result := 0
+    else
+      Result := -1;
+  end else
+    Result := inherited Compare(ANode);
 end;
 
 constructor TyamlBoolean.CreateBoolean(const AValue: AnsiString);
@@ -1141,7 +1232,22 @@ begin
   FValue := Value = 'True';
 end;
 
+function TyamlBoolean.GetAsVariant: Variant;
+begin
+  Result := GetAsBoolean;
+end;
+
 { TyamlNull }
+
+function TyamlNull.Compare(ANode: TyamlScalar): Integer;
+begin
+  Assert(ANode is TyamlScalar);
+
+  if ANode.IsNull then
+    Result := 0
+  else
+    Result := -1;  
+end;
 
 function TyamlNull.GetAsString: AnsiString;
 begin
@@ -1181,6 +1287,19 @@ begin
   try
     MimeDecodeStream(SS, MS);
     MS.Position := 0;
+  finally
+    SS.Free;
+  end;
+end;
+
+function TyamlBinary.GetAsString: AnsiString;
+var
+  SS: TStringStream;
+begin
+  SS := TStringStream.Create('');
+  try
+    SS.CopyFrom(MS, 0);
+    Result := SS.DataString;
   finally
     SS.Free;
   end;
@@ -1326,6 +1445,18 @@ begin
     Result := DefValue;
 end;
 
+function TyamlMapping.ReadValue(const AName: AnsiString;
+  const DefValue: Variant): Variant;
+var
+  N: TyamlNode;
+begin
+  N := FindByName(AName);
+  if (N is TyamlScalar) and (not TyamlScalar(N).IsNull) then
+    Result := TyamlScalar(N).AsVariant
+  else
+    Result := DefValue;
+end;
+
 { TyamlCurrency }
 
 constructor TyamlCurrency.CreateCurrency(const AValue: Currency);
@@ -1346,9 +1477,35 @@ begin
   Result := FValue;
 end;
 
+function TyamlCurrency.GetAsVariant: Variant;
+begin
+  Result := GetAsCurrency;
+end;
+
 procedure TyamlCurrency.SetAsCurrency(const AValue: Currency);
 begin
   FValue := AValue;
+end;
+
+{ TyamlNumeric }
+
+function TyamlNumeric.Compare(ANode: TyamlScalar): Integer;
+begin
+  if ANode is TyamlNumeric then
+  begin
+    if Self.AsFloat < ANode.AsFloat then
+      Result := -1
+    else if Self.AsFloat > ANode.AsFloat then
+      Result := 1
+    else
+      Result := 0;
+  end else
+    Result := inherited Compare(ANode);
+end;
+
+function TyamlNumeric.GetAsVariant: Variant;
+begin
+  Result := GetAsFloat;
 end;
 
 end.
