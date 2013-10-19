@@ -25,25 +25,25 @@ type
     lblID: TLabel;
     lblName: TLabel;
     lblClassName: TLabel;
-    pnlRight: TPanel;
-    chbxShowOnlyDiff: TCheckBox;
-    actClose: TAction;
-    rbSave: TRadioButton;
-    rbCancel: TRadioButton;
+    actSave: TAction;
     pnlRightBottom: TPanel;
     btnOK: TButton;
-    btnView: TButton;
     actView: TAction;
+    Button1: TButton;
+    actSkip: TAction;
+    chbxShowOnlyDiff: TCheckBox;
     procedure sgMainMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
     procedure sgMainDrawCell(Sender: TObject; ACol, ARow: Integer;
       Rect: TRect; State: TGridDrawState);
     procedure actShowOnlyDiffExecute(Sender: TObject);
     procedure pnlGridResize(Sender: TObject);
-    procedure actCloseExecute(Sender: TObject);
+    procedure actSaveExecute(Sender: TObject);
     procedure actViewExecute(Sender: TObject);
     procedure actViewUpdate(Sender: TObject);
     procedure actShowOnlyDiffUpdate(Sender: TObject);
+    procedure actSkipExecute(Sender: TObject);
+    procedure actSaveUpdate(Sender: TObject);
 
   public
     FgdcNamespaceRecCmpController: TgdcNamespaceRecCmpController;
@@ -69,6 +69,8 @@ begin
     exit;
 
   if (ssDouble in Shift) then
+    actView.Execute
+  else if (ssLeft in Shift) then
   begin
     FN := sgMain.Cells[0, sgMain.Row];
     Idx := FgdcNamespaceRecCmpController.OverwriteFields.IndexOf(FN);
@@ -88,6 +90,8 @@ end;
 
 procedure TdlgCompareNSRecords.sgMainDrawCell(Sender: TObject; ACol,
   ARow: Integer; Rect: TRect; State: TGridDrawState);
+var
+  FN: String;
 begin
   if FgdcNamespaceRecCmpController = nil then
     exit;
@@ -112,8 +116,16 @@ begin
 
   if (ARow > 0) and (ACol > 0) then
   begin
-    if ((ACol = 1) and (FgdcNamespaceRecCmpController.OverwriteFields.IndexOf(sgMain.Cells[0, ARow]) = -1))
-      or ((ACol = 2) and (FgdcNamespaceRecCmpController.OverwriteFields.IndexOf(sgMain.Cells[0, ARow]) > -1)) then
+    FN := sgMain.Cells[0, ARow];
+
+    if
+      (
+        (ACol = 1) and (not FgdcNamespaceRecCmpController.OverwriteField(FN))
+      )
+      or
+      (
+        (ACol = 2) and FgdcNamespaceRecCmpController.OverwriteField(FN)
+      ) then
     begin
       sgMain.Canvas.Font.Style := [fsBold];
       sgMain.Canvas.Font.Color := clWindowText;
@@ -139,12 +151,9 @@ begin
   sgMain.ColWidths[0] := Trunc(sgMain.Width - sgMain.ColWidths[1] * 2 - GetSystemMetrics(SM_CYHSCROLL) * 1.5);
 end;
 
-procedure TdlgCompareNSRecords.actCloseExecute(Sender: TObject);
+procedure TdlgCompareNSRecords.actSaveExecute(Sender: TObject);
 begin
-  if rbSave.Checked then
-    ModalResult := mrOk
-  else
-    ModalResult := mrCancel;
+  ModalResult := mrOk;
 end;
 
 procedure TdlgCompareNSRecords.actViewExecute(Sender: TObject);
@@ -170,6 +179,16 @@ end;
 procedure TdlgCompareNSRecords.actShowOnlyDiffUpdate(Sender: TObject);
 begin
   actShowOnlyDiff.Enabled := FgdcNamespaceRecCmpController <> nil;
+end;
+
+procedure TdlgCompareNSRecords.actSkipExecute(Sender: TObject);
+begin
+  ModalResult := mrCancel;
+end;
+
+procedure TdlgCompareNSRecords.actSaveUpdate(Sender: TObject);
+begin
+  actSave.Enabled := FgdcNamespaceRecCmpController.OverwriteFields.Count > 0;
 end;
 
 end.

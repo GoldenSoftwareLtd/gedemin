@@ -307,6 +307,8 @@ begin
       StartNewLine;
       WriteString(BreakLine(TempS, P));
     end;
+    if (P > 1) and (TempS[P - 1] in EOL) then
+      StartNewLine;
     DecIndent;
   end;
 end;

@@ -30,54 +30,54 @@ object dlgCompareNSRecords: TdlgCompareNSRecords
     end
     object pnlBottom: TPanel
       Left = 0
-      Top = 416
+      Top = 425
       Width = 632
-      Height = 40
+      Height = 31
       Align = alBottom
       BevelOuter = bvNone
       TabOrder = 1
-      object rbSave: TRadioButton
-        Left = 11
-        Top = 1
-        Width = 233
-        Height = 17
-        Caption = 'записать изменения в базу данных'
-        Checked = True
-        TabOrder = 0
-        TabStop = True
-      end
-      object rbCancel: TRadioButton
-        Left = 11
-        Top = 19
-        Width = 361
-        Height = 17
-        Caption = 'сохранить объект в базе данных в исходном состоянии'
-        TabOrder = 1
-      end
       object pnlRightBottom: TPanel
-        Left = 447
+        Left = 216
         Top = 0
-        Width = 185
-        Height = 40
+        Width = 416
+        Height = 31
         Align = alRight
         BevelOuter = bvNone
-        TabOrder = 2
+        TabOrder = 1
         object btnOK: TButton
-          Left = 105
-          Top = 7
-          Width = 75
+          Left = 78
+          Top = 3
+          Width = 164
           Height = 21
-          Action = actClose
+          Action = actSave
           Default = True
           TabOrder = 0
         end
+        object Button1: TButton
+          Left = 247
+          Top = 3
+          Width = 164
+          Height = 21
+          Action = actSkip
+          Cancel = True
+          Default = True
+          TabOrder = 1
+        end
+      end
+      object chbxShowOnlyDiff: TCheckBox
+        Left = 4
+        Top = 4
+        Width = 169
+        Height = 17
+        Action = actShowOnlyDiff
+        TabOrder = 0
       end
     end
     object pnlGrid: TPanel
       Left = 0
       Top = 91
       Width = 632
-      Height = 325
+      Height = 334
       Align = alClient
       BevelOuter = bvNone
       BorderWidth = 4
@@ -87,7 +87,7 @@ object dlgCompareNSRecords: TdlgCompareNSRecords
         Left = 4
         Top = 4
         Width = 624
-        Height = 317
+        Height = 326
         Align = alClient
         ColCount = 3
         DefaultRowHeight = 18
@@ -122,12 +122,13 @@ object dlgCompareNSRecords: TdlgCompareNSRecords
       object lTitle: TLabel
         Left = 8
         Top = 64
-        Width = 369
+        Width = 617
         Height = 27
         AutoSize = False
         Caption = 
-          'Двойным щелчком мыши выделите в таблице значения, которые будут ' +
-          'записаны в базу данных.'
+          'Выделенные жирным шрифтом значения будут записаны в базу данных.' +
+          ' Используйте двойной щелчек мыши для просмотра и одинарный -- дл' +
+          'я выделения.'
         WordWrap = True
       end
       object lObjClass: TLabel
@@ -172,31 +173,6 @@ object dlgCompareNSRecords: TdlgCompareNSRecords
         Height = 13
         Caption = 'lblClassName'
       end
-      object pnlRight: TPanel
-        Left = 448
-        Top = 0
-        Width = 184
-        Height = 91
-        Align = alRight
-        BevelOuter = bvNone
-        TabOrder = 0
-        object chbxShowOnlyDiff: TCheckBox
-          Left = 6
-          Top = 7
-          Width = 169
-          Height = 17
-          Action = actShowOnlyDiff
-          TabOrder = 0
-        end
-        object btnView: TButton
-          Left = 104
-          Top = 68
-          Width = 75
-          Height = 21
-          Action = actView
-          TabOrder = 1
-        end
-      end
     end
   end
   object actList: TActionList
@@ -207,15 +183,20 @@ object dlgCompareNSRecords: TdlgCompareNSRecords
       OnExecute = ActShowOnlyDiffExecute
       OnUpdate = actShowOnlyDiffUpdate
     end
-    object actClose: TAction
-      Caption = 'Закрыть'
-      OnExecute = actCloseExecute
+    object actSave: TAction
+      Caption = 'Записать изменения'
+      OnExecute = actSaveExecute
+      OnUpdate = actSaveUpdate
     end
     object actView: TAction
       Caption = 'Просмотр...'
       ShortCut = 114
       OnExecute = actViewExecute
       OnUpdate = actViewUpdate
+    end
+    object actSkip: TAction
+      Caption = 'Сохранить исходную запись'
+      OnExecute = actSkipExecute
     end
   end
 end
