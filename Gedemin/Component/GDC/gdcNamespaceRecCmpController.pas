@@ -21,6 +21,7 @@ type
 
     function Compare(AnOwner: TComponent; AnObj: TgdcBase; AMapping: TYAMLMapping): Boolean;
     procedure FillGrid(AGrid: TStringGrid; const AShowEqual: Boolean);
+    function OverwriteField(const AFieldName: String): Boolean;
 
     property InequalFields: TStringList read FInequalFields;
     property OverwriteFields: TStringList read FOverwriteFields;
@@ -165,6 +166,12 @@ begin
   AGrid.Cells[0, 0] := 'Èìÿ ïîëÿ';
   AGrid.Cells[1, 0] := 'Â áàçå äàííûõ';
   AGrid.Cells[2, 0] := 'Â ôàéëå';
+end;
+
+function TgdcNamespaceRecCmpController.OverwriteField(
+  const AFieldName: String): Boolean;
+begin
+  Result := FOverwriteFields.IndexOf(AFieldName) > -1;
 end;
 
 end.

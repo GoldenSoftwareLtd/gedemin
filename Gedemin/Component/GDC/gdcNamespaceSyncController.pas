@@ -303,7 +303,6 @@ begin
 
     NS.Transaction := Tr;
     NS.ReadTransaction := Tr;
-    NS.BaseState := NS.BaseState + [sLoadFromStream];
     NS.SubSet := 'ByID';
     NS.ID := ANSK;
     NS.Open;
@@ -326,6 +325,7 @@ begin
         if Mapping.ReadString('StructureVersion') <> '1.0' then
           raise Exception.Create('Unsupported YAML stream version.');
 
+        NS.BaseState := NS.BaseState + [sLoadFromStream];
         NS.StreamXID := StrToRUID(Mapping.ReadString('Properties\RUID')).XID;
         NS.StreamDBID := StrToRUID(Mapping.ReadString('Properties\RUID')).DBID;
 

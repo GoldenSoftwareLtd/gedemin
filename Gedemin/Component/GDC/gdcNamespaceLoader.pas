@@ -629,10 +629,10 @@ begin
     or (AtObjectRecord = nil)
     or ((tiEditionDate in Obj.GetTableInfos(Obj.SubType))
          and
-        (Fields.ReadDateTime('EDITIONDATE', 0) > AtObjectRecord.Modified))
+        (Fields.ReadDateTime('EDITIONDATE', 0) > AtObjectRecord.CurrModified))
     or ((not (tiEditionDate in Obj.GetTableInfos(Obj.SubType)))
          and
-        (AFileTimeStamp > AtObjectRecord.Modified)) then
+        (AFileTimeStamp > AtObjectRecord.CurrModified)) then
   begin
     Obj.Close;
 
