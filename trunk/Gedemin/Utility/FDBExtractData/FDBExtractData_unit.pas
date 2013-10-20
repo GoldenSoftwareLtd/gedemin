@@ -322,6 +322,18 @@ begin
     Result := 'SELECT * FROM GD_PLACE ORDER BY lb'
   else if ARelationName = 'GD_GOODGROUP' then
     Result := 'SELECT * FROM GD_GOODGROUP ORDER BY lb'
+  else if ARelationName = 'RP_ADDITIONALFUNCTION' then
+    Result := 'SELECT m.name, a.name FROM RP_ADDITIONALFUNCTION r ' +
+    ' LEFT JOIN gd_function m ON m.id = r.mainfunctionkey ' +
+    ' LEFT JOIN gd_function a ON a.id = r.addfunctionkey ' +
+    ' ORDER BY m.name, a.name '
+  else if ARelationName = 'USR$CROSS179_256548741' then
+    Result :=
+      'SELECT t.usr$name, g.usr$name'#13#10 +
+      'FROM USR$CROSS179_256548741 c'#13#10 +
+      '  join usr$wg_feetype t on c.usr$wg_feetypekey = t.id'#13#10 +
+      '  join usr$wg_feegroup g on c.usr$wg_feegroupkey = g.id'#13#10 +
+      'ORDER BY 1, 2'
   else if ARelationName = 'GD_FUNCTION' then
     Result := 'SELECT f.* FROM GD_FUNCTION f ORDER BY f.module, f.script'
   else if ARelationName = 'AT_RELATION_FIELDS' then

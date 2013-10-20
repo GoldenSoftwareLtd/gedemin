@@ -2374,10 +2374,6 @@ end;
 function GetBaseClassForRelationByID(const ARelationName: String; const AnID: Integer;
   ibtr: TIBTransaction): TgdcFullClass;
 var
-  I: Integer;
-  C: CgdcBase;
-  R: TatRelation;
-  L: TObjectList;
   Obj: TgdcBase;
   DidActivate: Boolean;
 begin
@@ -2389,92 +2385,30 @@ begin
   if not Assigned(gdcClassList) then
     raise Exception.Create(cgdClassListIsNotAssigned);
 
-  {Initialize the return values}
-  Result.gdClass := nil;
-  Result.SubType := '';
+  Result := GetBaseClassForRelation(ARelationName);
 
-  if StrIPos(UserPrefix, ARelationName) = 1 then
+  if Result.gdClass <> nil then
   begin
-    R := atDatabase.Relations.ByRelationName(ARelationName);
-    {ѕровер€ем, €вл€етс€ ли первичный ключ простым, €вл€етс€ ли он ссылкой.
-     ≈сли да, то провер€ем, €вл€етс€ ли он ссылкой на таблицу}
-    if Assigned(R.PrimaryKey) and
-      (R.PrimaryKey.ConstraintFields.Count = 1) and
-      ((not Assigned(R.PrimaryKey.ConstraintFields[0].References)) or
-       Assigned(R.PrimaryKey.ConstraintFields[0].References) and
-       (AnsiCompareText(R.PrimaryKey.ConstraintFields[0].FieldName, 'ID') = 0)) then
-    begin
-      Result.gdClass := CgdcBase(GetClass('TgdcAttrUserDefined'));
-      Result.SubType := ARelationName;
-    end;
-  end else
-  begin
-    with gdcClassList do
-    begin
-      for I := 0 to Count - 1 do
-      begin
-        if Items[I].InheritsFrom(TgdcBase) then
-        begin
-          C := CgdcBase(Items[I]);
-
-          if (AnsiCompareText(C.GetListTable(''), ARelationName) = 0) then
-          begin
-            if (Result.gdClass = nil) or Result.gdClass.InheritsFrom(C) then
-              Result.gdClass := C;
-          end;
-        end;
-      end;
-    end;
-  end;
-  if Result.gdClass = nil then
-  begin
-    R := atDatabase.Relations.ByRelationName(ARelationName);
-    if (R <> nil)
-      and Assigned(R.PrimaryKey)
-      and (R.PrimaryKey.ConstraintFields.Count = 1) then
-    begin
-      L := TObjectList.Create(False);
-      try
-        atDatabase.ForeignKeys.ConstraintsByRelation(ARelationName, L);
-        for I := 0 to L.Count - 1 do
-          with (L[I] as TatForeignKey) do
-          begin
-            if IsSimpleKey
-              and (ConstraintField = R.PrimaryKey.ConstraintFields[0]) then
-            begin
-              Result := GetBaseClassForRelationByID(ReferencesRelation.RelationName, AnID, ibtr);
-              if Result.gdClass <> nil then
-                break;
-            end;
-          end;
-      finally
-        L.Free;
-      end;
-    end;
-  end else
-  begin
-    Obj := Result.gdClass.CreateWithID(nil, ibtr.DefaultDatabase, ibtr, AnID, Result.SubType);
+    DidActivate := not ibtr.InTransaction;
+    if DidActivate then
+      ibtr.StartTransaction;
     try
-      DidActivate := not ibtr.InTransaction;
-      if DidActivate then
-        ibtr.StartTransaction;
+      Obj := Result.gdClass.CreateWithID(nil, ibtr.DefaultDatabase, ibtr, AnID, Result.SubType);
       try
         Obj.ReadTransaction := ibtr;
         Obj.Open;
-        if Obj.RecordCount = 0 then
+        if Obj.EOF then
         begin
           Result.gdClass := nil;
           Result.SubType := '';
         end else
-        begin
           Result := Obj.GetCurrRecordClass;
-        end;
       finally
-        if DidActivate and ibtr.InTransaction then
-          ibtr.Rollback;
+        Obj.Free;
       end;
     finally
-      Obj.Free;
+      if DidActivate and ibtr.InTransaction then
+        ibtr.Rollback;
     end;
   end;
 end;
@@ -2489,7 +2423,6 @@ var
   S: String;
   Ind, P: Integer;
   BaseClassName, BaseSubType: String;
-  DidActivate: Boolean;
   ClName: String;
   F: TatRelationField;
 begin
@@ -2531,19 +2464,16 @@ begin
         Result.SubType := '';
 
         ibsql := TIBSQL.Create(nil);
-        DidActivate := not gdcBaseManager.ReadTransaction.InTransaction;
         try
-          if DidActivate then
-            gdcBaseManager.ReadTransaction.StartTransaction;
-
           ibsql.Transaction := gdcBaseManager.ReadTransaction;
-          ibsql.SQL.Text := ' SELECT dt.ruid, dt.classname, dt1.classname as folderclassname, ' +
-          ' dt.headerrelkey  ' +
-          ' FROM gd_documenttype dt LEFT JOIN gd_documenttype dt1 ON dt.lb >= dt1.lb AND ' +
-          ' dt.rb <= dt1.rb WHERE (dt.headerrelkey = :id or dt.linerelkey = :id) ' ;
+          ibsql.SQL.Text :=
+            ' SELECT dt.ruid, dt.classname, dt1.classname as folderclassname, ' +
+            ' dt.headerrelkey  ' +
+            ' FROM gd_documenttype dt LEFT JOIN gd_documenttype dt1 ON dt.lb >= dt1.lb AND ' +
+            ' dt.rb <= dt1.rb WHERE (dt.headerrelkey = :id or dt.linerelkey = :id) ' ;
           ibsql.ParamByName('id').AsInteger := atDatabase.Relations.ByRelationName(ARelationName).ID;
           ibsql.ExecQuery;
-          if ibsql.RecordCount > 0 then
+          if not ibsql.EOF then
           begin
             if Trim(ibsql.FieldByName('classname').AsString) = '' then
               ClName := ibsql.FieldByname('folderclassname').AsString
@@ -2580,12 +2510,9 @@ begin
 
               Result.SubType := ibsql.FieldByName('ruid').AsString;
               Result.gdClass := CgdcBase(GetClass(S));
-
-          end;
+           end;
         finally
           ibsql.Free;
-          if DidActivate and gdcBaseManager.ReadTransaction.InTransaction then
-            gdcBaseManager.ReadTransaction.Commit;
         end;
       end else
       begin
@@ -2601,7 +2528,7 @@ begin
               Result.gdClass := CgdcBase(GetClass('TgdcAttrUserDefinedTree'))
             else
               Result.gdClass := CgdcBase(GetClass('TgdcAttrUserDefined'));
-          end;    
+          end;
           Result.SubType := ARelationName;
         end else
         begin
@@ -2664,7 +2591,6 @@ begin
         Result.SubType + ')'), Pointer(Result.gdClass));
     end;
   end;
-
 end;
 
 function GetDescendants(AnAncestor: CgdcBase; AClassList: TClassList;
