@@ -1,6 +1,6 @@
 object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
-  Left = 194
-  Top = 162
+  Left = 1589
+  Top = 217
   BorderStyle = bsDialog
   ClientHeight = 535
   ClientWidth = 851
@@ -50,7 +50,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
       Top = 21
       Width = 1212
       Height = 497
-      ActivePage = tsSettings
+      ActivePage = tsStatistics
       MultiLine = True
       TabOrder = 1
       TabPosition = tpLeft
@@ -62,7 +62,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           Top = 54
           Width = 634
           Height = 369
-          ActivePage = tsReviewSettings
+          ActivePage = tsOptions
           TabOrder = 0
           object tsConnection: TTabSheet
             Caption = 'Database Connection'
