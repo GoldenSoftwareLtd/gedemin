@@ -244,7 +244,7 @@ var
 begin
   Check;
 
-  if Value = 'NULL' then
+  if UpperCase(Value) = 'NULL' then
   begin
     chkNull.Checked:= True;
     Exit;
