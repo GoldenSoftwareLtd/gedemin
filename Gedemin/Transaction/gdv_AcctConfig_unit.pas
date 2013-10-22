@@ -254,7 +254,7 @@ begin
         Str.Free;
       end;
     end else
-      raise Exception.Create(Format('Ненайдена конфигурация с ид: %d', [id]))
+      raise Exception.Create(Format('Не найдена конфигурация с ИД: %d', [id]))
   finally
     SQl.Free;
   end;
