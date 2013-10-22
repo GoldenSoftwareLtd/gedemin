@@ -9144,8 +9144,8 @@ begin
   if Length(S1) < 32 then
     Result := S1
   else begin
-    Tmp := IntToHex(Crc32_P(@S1[1], Length(S1), 0), 0);
-    Result := Copy(S1, 1, 31 - Length(Tmp) - 1) + '_' + Tmp;
+    Tmp := IntToStr(Crc32_P(@S1[1], Length(S1), 0));
+    Result := Copy(S1, 1, 31 - Length(Tmp)) + Tmp;
   end;
 end;
 

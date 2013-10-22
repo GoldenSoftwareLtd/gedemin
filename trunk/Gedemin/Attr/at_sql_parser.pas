@@ -3,11 +3,11 @@
   Copyright (c) 2001-2013 by Golden Software of Belarus
 
   Module
-                                                           
+
     at_sql_parser.pas
 
   Abstract
-                                                    
+
     Delphi non-visual component - part of Gedemin project.
     Prepares sql objects - parse the sql-statements.
 
@@ -27,6 +27,7 @@
     1.2    Julie    15.04.2002  Was added function "extract"
            Julie    02.05.2002  Was added error handling
 --}
+
 unit at_sql_parser;
 
 interface
@@ -1020,19 +1021,19 @@ const
     'CURRENT_CONNECTION,CURRENT_TRANSACTION,';
 
 var
-  ClausesList: TStringHashMap;{TStringList}
+  ClausesList: TStringHashMap;
 
-function AdjustMetaName(const S: AnsiString): AnsiString;
+function AdjustMetaName(const S: String): String;
 var
-  Tmp, S1: AnsiString;
+  Tmp, S1: String;
 begin
   S1 := AnsiUpperCase(S);
 
   if Length(S1) < 32 then
     Result := S1
   else begin
-    Tmp := IntToHex(Crc32_P(@S1[1], Length(S1), 0), 0);
-    Result := Copy(S1, 1, 31 - Length(Tmp) - 1) + '_' + Tmp;
+    Tmp := IntToStr(Crc32_P(@S1[1], Length(S1), 0));
+    Result := Copy(S1, 1, 31 - Length(Tmp)) + Tmp;
   end;
 end;
 

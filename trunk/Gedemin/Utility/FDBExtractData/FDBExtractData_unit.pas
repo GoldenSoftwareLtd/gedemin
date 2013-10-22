@@ -285,7 +285,7 @@ begin
   else if ARelationName = 'AT_INDICES' then
     Result := 'SELECT * FROM AT_INDICES WHERE NOT indexname LIKE ''RDB$%'' ORDER BY relationname, fieldslist'
   else if ARelationName = 'GD_COMMAND' then
-    Result := 'SELECT * FROM GD_COMMAND ORDER BY classname, subtype, cmd, name'
+    Result := 'SELECT parent, name, cmd, cmdtype, hotkey, imgindex, ordr, classname, subtype, disabled FROM GD_COMMAND ORDER BY classname, subtype, name, cmdtype'
   else if ARelationName = 'AT_TRIGGERS' then
     Result := 'SELECT * FROM AT_TRIGGERS WHERE NOT triggername LIKE ''CHECK_%'' ORDER BY relationname, triggername'
   else if ARelationName = 'GD_CURRRATE' then
@@ -294,14 +294,20 @@ begin
     Result := 'SELECT * FROM FLT_COMPONENTFILTER ORDER BY fullname'
   else if ARelationName = 'EVT_OBJECT' then
     Result :=
-      'SELECT t.path, e.DESCRIPTION, e.OBJECTTYPE, e.MACROSGROUPKEY, e.REPORTGROUPKEY, '#13#10 +
+      'SELECT COALESCE(e8.name, '''') || COALESCE(e7.name, '''') || COALESCE(e6.name, '''') || '#13#10 +
+      '  COALESCE(e5.name, '''') || COALESCE(e4.name, '''') || COALESCE(e3.name, '''') ||  '#13#10 +
+      '  COALESCE(e2.name, '''') || COALESCE(e.name, ''''), '#13#10 +
+      '  e.DESCRIPTION, e.OBJECTTYPE, e.MACROSGROUPKEY, e.REPORTGROUPKEY, '#13#10 +
       '  e.CLASSNAME, e.OBJECTNAME, e.SUBTYPE, e.EDITIONDATE, e.EDITORKEY '#13#10 +
-      'FROM evt_object e JOIN ('#13#10 +
-      '  select ee.id, CAST(list(e2.name, ''-'') AS VARCHAR(256)) as path '#13#10 +
-      '  from evt_object ee join evt_object e2 '#13#10 +
-      '    on e2.lb <= ee.lb and e2.rb >= ee.rb '#13#10 +
-      '  group by ee.id) t ON t.id = e.id '#13#10 +
-      'ORDER BY t.path'
+      'FROM evt_object e '#13#10 +
+      '  LEFT JOIN evt_object e2 ON e2.id = e.parent '#13#10 +
+      '  LEFT JOIN evt_object e3 ON e3.id = e2.parent '#13#10 +
+      '  LEFT JOIN evt_object e4 ON e4.id = e3.parent '#13#10 +
+      '  LEFT JOIN evt_object e5 ON e5.id = e4.parent '#13#10 +
+      '  LEFT JOIN evt_object e6 ON e6.id = e5.parent '#13#10 +
+      '  LEFT JOIN evt_object e7 ON e7.id = e6.parent '#13#10 +
+      '  LEFT JOIN evt_object e8 ON e8.id = e7.parent '#13#10 +
+      'ORDER BY 1'
   else if ARelationName = 'EVT_OBJECTEVENT' then
     Result := 'SELECT a.* FROM EVT_OBJECTEVENT a LEFT JOIN gd_ruid r ON r.id = a.id ORDER BY r.xid, r.dbid'
   else if ARelationName = 'EVT_MACROSGROUP' then
@@ -321,7 +327,7 @@ begin
   else if ARelationName = 'GD_PLACE' then
     Result := 'SELECT * FROM GD_PLACE ORDER BY lb'
   else if ARelationName = 'GD_GOODGROUP' then
-    Result := 'SELECT * FROM GD_GOODGROUP ORDER BY lb'
+    Result := 'SELECT * FROM GD_GOODGROUP ORDER BY name, lb'
   else if ARelationName = 'RP_ADDITIONALFUNCTION' then
     Result := 'SELECT m.name, a.name FROM RP_ADDITIONALFUNCTION r ' +
     ' LEFT JOIN gd_function m ON m.id = r.mainfunctionkey ' +
@@ -335,7 +341,7 @@ begin
       '  join usr$wg_feegroup g on c.usr$wg_feegroupkey = g.id'#13#10 +
       'ORDER BY 1, 2'
   else if ARelationName = 'GD_FUNCTION' then
-    Result := 'SELECT f.* FROM GD_FUNCTION f ORDER BY f.module, f.script'
+    Result := 'SELECT f.* FROM GD_FUNCTION f ORDER BY f.name, HASH(f.script)'
   else if ARelationName = 'AT_RELATION_FIELDS' then
     Result := 'SELECT * FROM AT_RELATION_FIELDS ORDER BY relationname, fieldname'
   else begin
