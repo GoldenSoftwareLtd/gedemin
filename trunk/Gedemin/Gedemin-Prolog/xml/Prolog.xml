@@ -1,0 +1,573 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SETTING>
+  <SETTING_HEADER
+    name="Prolog"
+    version="6"
+    modifydate="11.10.2013 15:47:58"
+    xid="151158428"
+    dbid="5956463"
+    description="Prolog"
+    ending="0"
+    settingsruid=""
+    minexeversion=""
+    mindbversion="">
+    <SETTING_POS_LIST>
+      <SETTING_POS
+        category="Функция"
+        objectname="pl_Const"
+        mastercategory=""
+        mastername=""
+        objectorder="1"
+        withdetail="1"
+        needmodify="1"
+        autoadded="0"
+        objectclass="TgdcFunction"
+        subtype=""
+        xid="151158415"
+        dbid="5956463"
+        _xid="151162226"
+        _dbid="5956463"/>
+      <SETTING_POS
+        category="Функция"
+        objectname="pl_GetScriptIDByName"
+        mastercategory=""
+        mastername=""
+        objectorder="2"
+        withdetail="1"
+        needmodify="1"
+        autoadded="0"
+        objectclass="TgdcFunction"
+        subtype=""
+        xid="151158419"
+        dbid="5956463"
+        _xid="151162227"
+        _dbid="5956463"/>
+      <SETTING_POS
+        category="Макрос"
+        objectname="Gedemin-Prolog blog 2013-08-29"
+        mastercategory=""
+        mastername=""
+        objectorder="4"
+        withdetail="1"
+        needmodify="1"
+        autoadded="0"
+        objectclass="TgdcMacros"
+        subtype=""
+        xid="151157712"
+        dbid="5956463"
+        _xid="151162231"
+        _dbid="5956463"/>
+      <SETTING_POS
+        category="Функция"
+        objectname="blog_2013_08_29"
+        mastercategory=""
+        mastername=""
+        objectorder="5"
+        withdetail="1"
+        needmodify="1"
+        autoadded="0"
+        objectclass="TgdcFunction"
+        subtype=""
+        xid="151158402"
+        dbid="5956463"
+        _xid="151162249"
+        _dbid="5956463"/>
+    </SETTING_POS_LIST>
+  </SETTING_HEADER>
+  <SETTING_DATA>
+    <STREAM>
+      <HEADER>
+        <VERSION>3</VERSION>
+        <DBID>5956463</DBID>
+        <LOADING_ORDER>
+          <ITEM
+            index="0"
+            objectkey="1"
+            recordid="1010001_17"/>
+          <ITEM
+            index="1"
+            objectkey="2"
+            recordid="1020001_17"/>
+          <ITEM
+            index="2"
+            objectkey="0"
+            recordid="151158415_5956463"/>
+          <ITEM
+            index="3"
+            objectkey="0"
+            recordid="151158419_5956463"/>
+          <ITEM
+            index="4"
+            objectkey="0"
+            recordid="151157714_5956463"/>
+          <ITEM
+            index="5"
+            objectkey="4"
+            recordid="151157712_5956463"/>
+          <ITEM
+            index="6"
+            objectkey="0"
+            recordid="151158402_5956463"/>
+        </LOADING_ORDER>
+      </HEADER>
+      <DATA>
+        <DATASET
+          objectkey="0"
+          classname="TgdcFunction"
+          subtype=""
+          settable="">
+          <METADATA>
+            <FIELD name="OBJECTNAME" type="ftString" size="64"/>
+            <FIELD name="ID" type="ftInteger"/>
+            <FIELD name="MODULE" type="ftString" size="40"/>
+            <FIELD name="LANGUAGE" type="ftString" size="10"/>
+            <FIELD name="NAME" type="ftString" size="80"/>
+            <FIELD name="COMMENT" type="ftString" size="180"/>
+            <FIELD name="SCRIPT" type="ftMemo"/>
+            <FIELD name="DISPLAYSCRIPT" type="ftMemo"/>
+            <FIELD name="MODIFYDATE" type="ftDateTime"/>
+            <FIELD name="TESTRESULT" type="ftBlob"/>
+            <FIELD name="OWNERNAME" type="ftString" size="40"/>
+            <FIELD name="FUNCTIONTYPE" type="ftString" size="1"/>
+            <FIELD name="EVENT" type="ftString" size="40"/>
+            <FIELD name="LOCALNAME" type="ftString" size="40"/>
+            <FIELD name="PUBLICFUNCTION" type="ftSmallint"/>
+            <FIELD name="SHORTCUT" type="ftString" size="10"/>
+            <FIELD name="GROUPNAME" type="ftString" size="20"/>
+            <FIELD name="MODULECODE" type="ftInteger"/>
+            <FIELD name="ENTEREDPARAMS" type="ftBlob"/>
+            <FIELD name="RESERVED" type="ftInteger"/>
+            <FIELD name="INHERITEDRULE" type="ftSmallint"/>
+            <FIELD name="BREAKPOINTS" type="ftBlob"/>
+            <FIELD name="USEDEBUGINFO" type="ftSmallint"/>
+            <FIELD name="EDITORSTATE" type="ftBlob"/>
+            <FIELD name="EDITIONDATE" type="ftDateTime"/>
+            <FIELD name="EDITORKEY" type="ftInteger"/>
+            <FIELD name="_XID" type="ftInteger" required="1"/>
+            <FIELD name="_DBID" type="ftInteger" required="1"/>
+            <FIELD name="_MODIFIED" type="ftDateTime" required="1"/>
+            <FIELD name="_INSERTFROMSTREAM" type="ftBoolean"/>
+            <FIELD name="_MODIFYFROMSTREAM" type="ftBoolean"/>
+            <FIELD name="_SETTABLE" type="ftString" size="60"/>
+          </METADATA>
+          <ROWDATA>
+            <ROW>
+              <OBJECTNAME>APPLICATION</OBJECTNAME>
+              <ID><R>151158415_5956463</R></ID>
+              <MODULE>CONST</MODULE>
+              <LANGUAGE>VBScript</LANGUAGE>
+              <NAME>pl_Const</NAME>
+              <SCRIPT>
+                <![CDATA[
+                <L>Option Explicit</L>
+                <L>'Константы и переменные Prolog</L>
+                <L></L>
+                <L>Public Const scrPrologModuleName = "PROLOG"</L>
+                <L></L>
+                <L>'TERM-TYPE CONSTANTS</L>
+                <L>Public Const PL_VARIABLE = 1</L>
+                <L>Public Const PL_ATOM = 2</L>
+                <L>Public Const PL_INTEGER = 3</L>
+                <L>Public Const PL_FLOAT = 4</L>
+                <L>Public Const PL_STRING = 5</L>
+                <L>Public Const PL_TERM = 6</L>
+                <L>'</L>
+                ]]>
+              </SCRIPT>
+              <PUBLICFUNCTION>1</PUBLICFUNCTION>
+              <MODULECODE><R>1010001_17</R></MODULECODE>
+              <INHERITEDRULE>0</INHERITEDRULE>
+              <USEDEBUGINFO>0</USEDEBUGINFO>
+              <EDITIONDATE>11.10.2013 11:23:43</EDITIONDATE>
+              <_XID>151158415</_XID>
+              <_DBID>5956463</_DBID>
+              <_MODIFIED>11.10.2013 11:23:43</_MODIFIED>
+              <_INSERTFROMSTREAM>True</_INSERTFROMSTREAM>
+              <_MODIFYFROMSTREAM>True</_MODIFYFROMSTREAM>
+            </ROW>
+            <ROW>
+              <OBJECTNAME>APPLICATION</OBJECTNAME>
+              <ID><R>151158419_5956463</R></ID>
+              <MODULE>UNKNOWN</MODULE>
+              <LANGUAGE>VBScript</LANGUAGE>
+              <NAME>pl_GetScriptIDByName</NAME>
+              <SCRIPT>
+                <![CDATA[
+                <L>Option Explicit</L>
+                <L></L>
+                <L>'uses pl_Const</L>
+                <L>Function pl_GetScriptIDByName(Name)</L>
+                <L>  Dim Creator, ibsql</L>
+                <L></L>
+                <L>  pl_GetScriptIDByName = 0</L>
+                <L></L>
+                <L>  Set Creator = New TCreator</L>
+                <L>  Set ibsql = Creator.GetObject(nil, "TIBSQL", "")</L>
+                <L></L>
+                <L>  ibsql.Transaction = gdcBaseManager.ReadTransaction</L>
+                <L>  ibsql.SQL.TEXT = _</L>
+                <L>      "SELECT * FROM gd_function" & _</L>
+                <L>      " WHERE UPPER(name) = UPPER(:name) AND module = :module"</L>
+                <L>  ibsql.ParamByName("name").AsString = Name</L>
+                <L>  ibsql.ParamByName("module").AsString = scrPrologModuleName</L>
+                <L>  ibsql.ExecQuery</L>
+                <L></L>
+                <L>  If Not ibsql.EOF Then</L>
+                <L>     pl_GetScriptIDByName = ibsql.FieldByName("id").AsInteger</L>
+                <L>  End If</L>
+                <L>End Function</L>
+                ]]>
+              </SCRIPT>
+              <PUBLICFUNCTION>1</PUBLICFUNCTION>
+              <MODULECODE><R>1010001_17</R></MODULECODE>
+              <ENTEREDPARAMS>
+                <![CDATA[
+                <L>U0xQUlBSU1QEAAAATkFNRQQAAABOQU1FAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEZOU1RGTFBS</L>
+                ]]>
+              </ENTEREDPARAMS>
+              <INHERITEDRULE>0</INHERITEDRULE>
+              <USEDEBUGINFO>0</USEDEBUGINFO>
+              <EDITIONDATE>11.10.2013 15:45:28</EDITIONDATE>
+              <_XID>151158419</_XID>
+              <_DBID>5956463</_DBID>
+              <_MODIFIED>11.10.2013 15:45:28</_MODIFIED>
+              <_INSERTFROMSTREAM>True</_INSERTFROMSTREAM>
+              <_MODIFYFROMSTREAM>True</_MODIFYFROMSTREAM>
+            </ROW>
+            <ROW>
+              <OBJECTNAME>APPLICATION</OBJECTNAME>
+              <ID><R>151157714_5956463</R></ID>
+              <MODULE>MACROS</MODULE>
+              <LANGUAGE>VBScript</LANGUAGE>
+              <NAME>Gedemin_Prolog_blog_2013_08_29</NAME>
+              <SCRIPT>
+                <![CDATA[
+                <L>Option Explicit</L>
+                <L>'#include pl_GetScriptIDByName</L>
+                <L>Sub Gedemin_Prolog_blog_2013_08_29()</L>
+                <L>'subject close to the</L>
+                <L>'http://gedemin.blogspot.com/2013/08/embedded-swi-prolog.html</L>
+                <L>  Dim Creator, PL, Termv, Query, Ret</L>
+                <L>  Dim SQL_contact, SQL_place</L>
+                <L>  'Dim Pred</L>
+                <L>  Dim City, CDS, I</L>
+                <L>  </L>
+                <L>  SQL_contact = _</L>
+                <L>      "SELECT ID, PlaceKey, Name FROM gd_contact"</L>
+                <L>  SQL_place = _</L>
+                <L>      "SELECT ID, Name FROM gd_place"</L>
+                <L>  'Pred = _</L>
+                <L>  '    "bycity(City, Name) :- " + _</L>
+                <L>  '    "  gd_place(CityID, City), " + _</L>
+                <L>  '    "  gd_contact(_, CityID, Name). "</L>
+                <L>      </L>
+                <L>  Set Creator = New TCreator</L>
+                <L></L>
+                <L>  Set PL = Creator.GetObject(nil, "TgsPLClient", "")</L>
+                <L>  Ret = PL.Initialise("")</L>
+                <L>  If Not Ret Then Exit Sub</L>
+                <L>  </L>
+                <L>  Call PL.MakePredicatesOfSQLSelect( _</L>
+                <L>       SQL_contact, _</L>
+                <L>       gdcBaseManager.ReadTransaction, _</L>
+                <L>       "gd_contact", "contact")</L>
+                <L></L>
+                <L>  Call PL.MakePredicatesOfSQLSelect( _</L>
+                <L>       SQL_place, _</L>
+                <L>       gdcBaseManager.ReadTransaction, _</L>
+                <L>       "gd_place", "place")</L>
+                <L></L>
+                <L>  Set Termv = Creator.GetObject(2, "TgsPLTermv", "")</L>
+                <L>  'Termv.PutString 0, "pred"</L>
+                <L>  'Termv.PutString 1, Pred</L>
+                <L>  'Ret = PL.Call("load_atom", Termv)</L>
+                <L>  Ret = PL.LoadScript(pl_GetScriptIDByName("blog_2013_08_29"))</L>
+                <L>  If Not Ret Then Exit Sub</L>
+                <L></L>
+                <L>  City = InputBox("Введите город", "Место", "Минск")</L>
+                <L>  Termv.Reset</L>
+                <L>  Termv.PutString 0, City</L>
+                <L>  Ret = PL.Call("bycity", Termv)</L>
+                <L>  If Not Ret Then Exit Sub</L>
+                <L></L>
+                <L>  Ret = Termv.ReadString(1)</L>
+                <L>  MsgBox Ret, , "Call: Первый контакт"</L>
+                <L>  </L>
+                <L>  Set CDS = Creator.GetObject(nil, "TClientDataset", "")</L>
+                <L>  CDS.FieldDefs.Add "City", ftString, 60, True</L>
+                <L>  CDS.FieldDefs.Add "Name", ftString, 60, True</L>
+                <L>  CDS.CreateDataSet</L>
+                <L>  CDS.Open</L>
+                <L></L>
+                <L>  Termv.Reset</L>
+                <L>  Termv.PutString 0, City</L>
+                <L>  PL.ExtractData CDS, "bycity", Termv</L>
+                <L>  If CDS.RecordCount = 0 Then Exit Sub</L>
+                <L>  </L>
+                <L>  Ret = "" : I = 0</L>
+                <L>  CDS.First</L>
+                <L>  Do Until CDS.Eof Or I = 10</L>
+                <L>     Ret = Ret + CDS.FieldByName("Name").AsString + VBCrLf</L>
+                <L>     I = I + 1</L>
+                <L>     CDS.Next</L>
+                <L>  Loop</L>
+                <L>  MsgBox Ret, , "MakePredicatesOfSQLSelect: Первые 10 контактов"</L>
+                <L></L>
+                <L>  I = 0</L>
+                <L>  CDS.First</L>
+                <L>  Do Until CDS.Eof Or I = 5</L>
+                <L>     CDS.Delete</L>
+                <L>     I = I + 1</L>
+                <L>  Loop</L>
+                <L></L>
+                <L>  Call PL.MakePredicatesOfDataSet( _</L>
+                <L>       CDS, _</L>
+                <L>       "City,Name", _</L>
+                <L>       "gd_bycity", "bycity")</L>
+                <L></L>
+                <L>  Ret = PL.Call2("dynamic(gd_bycity/2)")</L>
+                <L>  Termv.Reset</L>
+                <L>  Ret = PL.Call("gd_bycity", Termv)</L>
+                <L>  </L>
+                <L>  If Ret Then</L>
+                <L>    Ret = Termv.ReadString(1) + " (" + Termv.ReadString(0) + ")"</L>
+                <L>  Else</L>
+                <L>    Ret = "Было найдено меньше 6 контактов"</L>
+                <L>  End If</L>
+                <L>  MsgBox Ret, , "MakePredicatesOfDataSet: Контакт 6"</L>
+                <L></L>
+                <L>  Call PL.MakePredicatesOfObject( _</L>
+                <L>       "TgdcCurr", "", "ByID", Array(200010, 200020), nil, _</L>
+                <L>       "ID,Name", _</L>
+                <L>       gdcBaseManager.ReadTransaction, _</L>
+                <L>       "gd_curr", "curr")</L>
+                <L></L>
+                <L>  Termv.Reset</L>
+                <L>  Termv.PutInteger 0, 200020</L>
+                <L>  Ret = PL.Call("gd_curr", Termv)</L>
+                <L>  If Not Ret Then Exit Sub</L>
+                <L>  </L>
+                <L>  Ret = CStr(Termv.ReadInteger(0)) + ": " + Termv.ReadString(1)</L>
+                <L>  MsgBox Ret, , "MakePredicatesOfObject: Валюта"</L>
+                <L>  </L>
+                <L>  Set Query = Creator.GetObject(nil, "TgsPLQuery", "")</L>
+                <L>  Query.PredicateName = "current_foreign_library"</L>
+                <L>  Termv.Reset</L>
+                <L>  Query.Termv = Termv</L>
+                <L>  Query.OpenQuery</L>
+                <L>  </L>
+                <L>  Ret = ""</L>
+                <L>  Do Until Query.EOF</L>
+                <L>     Ret = Ret + Query.Termv.ToString(0) + VBCrLf</L>
+                <L>     Query.NextSolution</L>
+                <L>  Loop</L>
+                <L>  MsgBox Ret, , "Query: current_foreign_library"</L>
+                <L>End Sub</L>
+                ]]>
+              </SCRIPT>
+              <PUBLICFUNCTION>1</PUBLICFUNCTION>
+              <MODULECODE><R>1010001_17</R></MODULECODE>
+              <INHERITEDRULE>0</INHERITEDRULE>
+              <USEDEBUGINFO>0</USEDEBUGINFO>
+              <EDITIONDATE>11.10.2013 15:46:54</EDITIONDATE>
+              <_XID>151157714</_XID>
+              <_DBID>5956463</_DBID>
+              <_MODIFIED>11.10.2013 15:46:54</_MODIFIED>
+              <_INSERTFROMSTREAM>True</_INSERTFROMSTREAM>
+              <_MODIFYFROMSTREAM>True</_MODIFYFROMSTREAM>
+            </ROW>
+            <ROW>
+              <OBJECTNAME>APPLICATION</OBJECTNAME>
+              <ID><R>151158402_5956463</R></ID>
+              <MODULE>PROLOG</MODULE>
+              <LANGUAGE>VBScript</LANGUAGE>
+              <NAME>blog_2013_08_29</NAME>
+              <SCRIPT>
+                <![CDATA[
+                <L>bycity(City, Name) :-</L>
+                <L>    gd_place(CityID, City),</L>
+                <L>    gd_contact(_, CityID, Name).</L>
+                ]]>
+              </SCRIPT>
+              <PUBLICFUNCTION>1</PUBLICFUNCTION>
+              <MODULECODE><R>1010001_17</R></MODULECODE>
+              <INHERITEDRULE>0</INHERITEDRULE>
+              <USEDEBUGINFO>0</USEDEBUGINFO>
+              <EDITIONDATE>08.10.2013 18:12:01</EDITIONDATE>
+              <_XID>151158402</_XID>
+              <_DBID>5956463</_DBID>
+              <_MODIFIED>08.10.2013 18:12:01</_MODIFIED>
+              <_INSERTFROMSTREAM>True</_INSERTFROMSTREAM>
+              <_MODIFYFROMSTREAM>True</_MODIFYFROMSTREAM>
+            </ROW>
+          </ROWDATA>
+        </DATASET>
+        <DATASET
+          objectkey="1"
+          classname="TgdcDelphiObject"
+          subtype=""
+          settable="">
+          <METADATA>
+            <FIELD name="ID" type="ftInteger"/>
+            <FIELD name="NAME" type="ftString" size="64"/>
+            <FIELD name="DESCRIPTION" type="ftString" size="180"/>
+            <FIELD name="PARENT" type="ftInteger"/>
+            <FIELD name="LB" type="ftInteger"/>
+            <FIELD name="RB" type="ftInteger"/>
+            <FIELD name="OBJECTTYPE" type="ftSmallint"/>
+            <FIELD name="RESERVED" type="ftInteger"/>
+            <FIELD name="MACROSGROUPKEY" type="ftInteger"/>
+            <FIELD name="PARENTINDEX" type="ftInteger"/>
+            <FIELD name="REPORTGROUPKEY" type="ftInteger"/>
+            <FIELD name="CLASSNAME" type="ftString" size="64"/>
+            <FIELD name="OBJECTNAME" type="ftString" size="64"/>
+            <FIELD name="SUBTYPE" type="ftString" size="31"/>
+            <FIELD name="EDITIONDATE" type="ftDateTime"/>
+            <FIELD name="EDITORKEY" type="ftInteger"/>
+            <FIELD name="_XID" type="ftInteger" required="1"/>
+            <FIELD name="_DBID" type="ftInteger" required="1"/>
+            <FIELD name="_MODIFIED" type="ftDateTime" required="1"/>
+            <FIELD name="_INSERTFROMSTREAM" type="ftBoolean"/>
+            <FIELD name="_MODIFYFROMSTREAM" type="ftBoolean"/>
+            <FIELD name="_SETTABLE" type="ftString" size="60"/>
+          </METADATA>
+          <ROWDATA>
+            <ROW>
+              <ID><R>1010001_17</R></ID>
+              <NAME>APPLICATION</NAME>
+              <OBJECTTYPE>0</OBJECTTYPE>
+              <MACROSGROUPKEY><R>1020001_17</R></MACROSGROUPKEY>
+              <PARENTINDEX>1</PARENTINDEX>
+              <CLASSNAME></CLASSNAME>
+              <OBJECTNAME>APPLICATION</OBJECTNAME>
+              <SUBTYPE></SUBTYPE>
+              <EDITIONDATE>28.07.2009 13:29:25</EDITIONDATE>
+              <_XID>1010001</_XID>
+              <_DBID>17</_DBID>
+              <_MODIFIED>28.07.2009 13:29:25</_MODIFIED>
+              <_INSERTFROMSTREAM>True</_INSERTFROMSTREAM>
+              <_MODIFYFROMSTREAM>True</_MODIFYFROMSTREAM>
+            </ROW>
+          </ROWDATA>
+        </DATASET>
+        <DATASET
+          objectkey="2"
+          classname="TgdcMacrosGroup"
+          subtype=""
+          settable="">
+          <METADATA>
+            <FIELD name="HASCHILDREN" type="ftInteger"/>
+            <FIELD name="OBJECTNAME" type="ftString" size="64"/>
+            <FIELD name="OBJECTPARENT" type="ftInteger"/>
+            <FIELD name="CLASSNAME" type="ftString" size="64"/>
+            <FIELD name="SUBTYPE" type="ftString" size="31"/>
+            <FIELD name="ID" type="ftInteger"/>
+            <FIELD name="PARENT" type="ftInteger"/>
+            <FIELD name="LB" type="ftInteger"/>
+            <FIELD name="RB" type="ftInteger"/>
+            <FIELD name="NAME" type="ftString" size="60"/>
+            <FIELD name="ISGLOBAL" type="ftSmallint"/>
+            <FIELD name="DESCRIPTION" type="ftMemo"/>
+            <FIELD name="EDITIONDATE" type="ftDateTime"/>
+            <FIELD name="EDITORKEY" type="ftInteger"/>
+            <FIELD name="RESERVED" type="ftBlob"/>
+            <FIELD name="_XID" type="ftInteger" required="1"/>
+            <FIELD name="_DBID" type="ftInteger" required="1"/>
+            <FIELD name="_MODIFIED" type="ftDateTime" required="1"/>
+            <FIELD name="_INSERTFROMSTREAM" type="ftBoolean"/>
+            <FIELD name="_MODIFYFROMSTREAM" type="ftBoolean"/>
+            <FIELD name="_SETTABLE" type="ftString" size="60"/>
+          </METADATA>
+          <ROWDATA>
+            <ROW>
+              <HASCHILDREN>1</HASCHILDREN>
+              <OBJECTNAME>APPLICATION</OBJECTNAME>
+              <CLASSNAME></CLASSNAME>
+              <SUBTYPE></SUBTYPE>
+              <ID><R>1020001_17</R></ID>
+              <NAME>Глобальные макросы</NAME>
+              <ISGLOBAL>1</ISGLOBAL>
+              <EDITIONDATE>24.05.2007 18:44:01</EDITIONDATE>
+              <_XID>1020001</_XID>
+              <_DBID>17</_DBID>
+              <_MODIFIED>24.05.2007 18:44:01</_MODIFIED>
+              <_INSERTFROMSTREAM>True</_INSERTFROMSTREAM>
+              <_MODIFYFROMSTREAM>True</_MODIFYFROMSTREAM>
+            </ROW>
+          </ROWDATA>
+        </DATASET>
+        <DATASET
+          objectkey="3"
+          classname="TgdcFunction"
+          subtype=""
+          settable="RP_ADDITIONALFUNCTION">
+          <METADATA>
+            <FIELD name="S_MAINFUNCTIONKEY" originalname="S$MAINFUNCTIONKEY" type="ftInteger"/>
+            <FIELD name="S_ADDFUNCTIONKEY" originalname="S$ADDFUNCTIONKEY" type="ftInteger"/>
+            <FIELD name="S_RESERVED" originalname="S$RESERVED" type="ftInteger"/>
+            <FIELD name="_INSERTFROMSTREAM" type="ftBoolean"/>
+            <FIELD name="_MODIFYFROMSTREAM" type="ftBoolean"/>
+            <FIELD name="_SETTABLE" type="ftString" size="60"/>
+          </METADATA>
+          <ROWDATA>
+            <ROW>
+              <S_MAINFUNCTIONKEY>151162259</S_MAINFUNCTIONKEY>
+              <S_ADDFUNCTIONKEY>151162258</S_ADDFUNCTIONKEY>
+              <_INSERTFROMSTREAM>True</_INSERTFROMSTREAM>
+              <_MODIFYFROMSTREAM>True</_MODIFYFROMSTREAM>
+              <_SETTABLE>RP_ADDITIONALFUNCTION</_SETTABLE>
+            </ROW>
+          </ROWDATA>
+        </DATASET>
+        <DATASET
+          objectkey="4"
+          classname="TgdcMacros"
+          subtype=""
+          settable="">
+          <METADATA>
+            <FIELD name="OBJECTNAME" type="ftString" size="64"/>
+            <FIELD name="ID" type="ftInteger"/>
+            <FIELD name="MACROSGROUPKEY" type="ftInteger"/>
+            <FIELD name="FUNCTIONKEY" type="ftInteger"/>
+            <FIELD name="NAME" type="ftString" size="60"/>
+            <FIELD name="SERVERKEY" type="ftInteger"/>
+            <FIELD name="ISLOCALEXECUTE" type="ftSmallint"/>
+            <FIELD name="ISREBUILD" type="ftSmallint"/>
+            <FIELD name="EXECUTEDATE" type="ftString" size="254"/>
+            <FIELD name="SHORTCUT" type="ftInteger"/>
+            <FIELD name="EDITIONDATE" type="ftDateTime"/>
+            <FIELD name="EDITORKEY" type="ftInteger"/>
+            <FIELD name="DISPLAYINMENU" type="ftSmallint"/>
+            <FIELD name="RUNONLOGIN" type="ftSmallint"/>
+            <FIELD name="_XID" type="ftInteger" required="1"/>
+            <FIELD name="_DBID" type="ftInteger" required="1"/>
+            <FIELD name="_MODIFIED" type="ftDateTime" required="1"/>
+            <FIELD name="_INSERTFROMSTREAM" type="ftBoolean"/>
+            <FIELD name="_MODIFYFROMSTREAM" type="ftBoolean"/>
+            <FIELD name="_SETTABLE" type="ftString" size="60"/>
+          </METADATA>
+          <ROWDATA>
+            <ROW>
+              <OBJECTNAME>APPLICATION</OBJECTNAME>
+              <ID><R>151157712_5956463</R></ID>
+              <MACROSGROUPKEY><R>1020001_17</R></MACROSGROUPKEY>
+              <FUNCTIONKEY><R>151157714_5956463</R></FUNCTIONKEY>
+              <NAME>Gedemin-Prolog blog 2013-08-29</NAME>
+              <ISLOCALEXECUTE>0</ISLOCALEXECUTE>
+              <ISREBUILD>0</ISREBUILD>
+              <SHORTCUT>0</SHORTCUT>
+              <EDITIONDATE>11.10.2013 15:46:54</EDITIONDATE>
+              <DISPLAYINMENU>1</DISPLAYINMENU>
+              <RUNONLOGIN>0</RUNONLOGIN>
+              <_XID>151157712</_XID>
+              <_DBID>5956463</_DBID>
+              <_MODIFIED>11.10.2013 15:46:54</_MODIFIED>
+              <_INSERTFROMSTREAM>True</_INSERTFROMSTREAM>
+              <_MODIFYFROMSTREAM>True</_MODIFYFROMSTREAM>
+            </ROW>
+          </ROWDATA>
+        </DATASET>
+      </DATA>
+    </STREAM>
+  </SETTING_DATA>
+</SETTING>
