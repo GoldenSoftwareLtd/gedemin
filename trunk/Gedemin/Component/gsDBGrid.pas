@@ -9448,6 +9448,8 @@ begin
                   FOnGetTotal(Self, TheField.FullName, bInAggregates, S);
                   if S > '' then
                   begin
+                    DefRowHeight := GetDefaultRowHeight;
+                    
                     Canvas.Font := Self.TableFont;
                     Canvas.Font.Color := clCaptionText;
                     W := Canvas.TextWidth(S) + 4;
@@ -9457,8 +9459,6 @@ begin
 
                     if Canvas.TextWidth(S) > (R.Right - R.Left - 4) then
                       S := '########';
-
-                    DefRowHeight := GetDefaultTitleRowHeight;
 
                     if FExpandsActive and Assigned(Columns[I].Field) then
                     begin
@@ -9587,6 +9587,8 @@ begin
                     begin
                       if AnsiCompareText(Aggregates[J].Expression, TheField.FieldName) = 0 then
                       begin
+                        DefRowHeight := GetDefaultRowHeight;
+
                         Canvas.Font := Self.TableFont;
                         Canvas.Font.Color := clCaptionText;
 
@@ -9600,10 +9602,7 @@ begin
                           Columns[I].Width := W;
 
                         if Canvas.TextWidth(V) > (R.Right - R.Left - 4) then
-                          V := '########';
-
-
-                        DefRowHeight := GetDefaultTitleRowHeight;
+                          V := '########'; 
 
                         if FExpandsActive and Assigned(DrawColumn.Field) then
                         begin
