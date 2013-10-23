@@ -9397,7 +9397,7 @@ begin
       begin
         OldAggregates := S;
 
-        Canvas.Brush.Color := clActiveCaption;
+        Canvas.Brush.Color := FSelectedColor;
         Canvas.Brush.Style := bsSolid;
         Canvas.FillRect(Rect(ClientRect.Left, R.Top, R.Left, R.Bottom));
 
@@ -9450,8 +9450,7 @@ begin
                   begin
                     DefRowHeight := GetDefaultRowHeight;
                     
-                    Canvas.Font := Self.TableFont;
-                    Canvas.Font.Color := clCaptionText;
+                    Canvas.Font := FSelectedFont;
                     W := Canvas.TextWidth(S) + 4;
                     (Columns[I] as TgsColumn).TotalWidth := W;
                     if FIsResize and (Columns[I].Width < W) then
@@ -9588,9 +9587,7 @@ begin
                       if AnsiCompareText(Aggregates[J].Expression, TheField.FieldName) = 0 then
                       begin
                         DefRowHeight := GetDefaultRowHeight;
-
-                        Canvas.Font := Self.TableFont;
-                        Canvas.Font.Color := clCaptionText;
+                        Canvas.Font := FSelectedFont;
 
                         if (Columns[I] as TgsColumn).DisplayFormat > '' then
                           V := FormatFloat((Columns[I] as TgsColumn).DisplayFormat, Aggregates[J].Value)
@@ -9717,8 +9714,7 @@ begin
                 end
                 else if (Columns[I] as TgsColumn).TotalType = ttSum then
                 begin
-                  Canvas.Font := Self.TableFont;
-                  Canvas.Font.Color := clCaptionText;
+                  Canvas.Font := FSelectedFont;
 
                   WriteText
                   (
@@ -9765,10 +9761,9 @@ begin
       Canvas.FillRect(
         Rect(DrawInfo.Horz.GridBoundary, R.Top, ClientRect.Right, R.Bottom));
 
-      Canvas.Brush.Color := clActiveCaption;
+      Canvas.Brush.Color := FSelectedColor;
       Canvas.Pen.Color := clCaptionText;
-      Canvas.Font := Self.TableFont;
-      Canvas.Font.Color := clCaptionText;
+      Canvas.Font := FSelectedFont;
       Canvas.FillRect(R);
 
       if SelectedRows.Count > 0 then

@@ -266,7 +266,7 @@ begin
     DSMacros.FieldDefs.Add('NAME', ftString, 60, false);
     DSMacros.FieldDefs.Add('FUNCTIONNAME', ftString, 80, false);
     DSMacros.FieldDefs.Add('EDITIONDATE1', ftDateTime, 0, false);
-    DSMacros.FieldDefs.Add('EDITIONDATE2' ftDateTime, 0, false);
+    DSMacros.FieldDefs.Add('EDITIONDATE2', ftDateTime, 0, false);
     DSMacros.FieldDefs.Add('MODULE', ftString, 15, false);
     DSMacros.FieldDefs.Add('ID', ftInteger, 0, false);
     DSMacros.FieldDefs.Add('EXTID', ftInteger, 0, false);
@@ -281,7 +281,7 @@ begin
     DSMetaData.FieldDefs.Add('NAME', ftString, 60, false);
     DSMetaData.FieldDefs.Add('FUNCTIONNAME', ftString, 80, false);
     DSMetaData.FieldDefs.Add('EDITIONDATE1', ftDateTime, 0, false);
-    DSMetaData.FieldDefs.Add('EDITIONDATE2' ftDateTime, 0, false);
+    DSMetaData.FieldDefs.Add('EDITIONDATE2', ftDateTime, 0, false);
     DSMetaData.FieldDefs.Add('ID', ftInteger, 0, false);
     DSMetaData.FieldDefs.Add('EXTID', ftInteger, 0, false);
     DSMetaData.FieldDefs.Add('RESULT', ftInteger, 0, false);
@@ -1251,7 +1251,7 @@ begin
           DSMacros.FieldDefs.Add('NAME', ftString, 60, false);
           DSMacros.FieldDefs.Add('FUNCTIONNAME', ftString, 80, false);
           DSMacros.FieldDefs.Add('EDITIONDATE1', ftDateTime, 0, false);
-          DSMacros.FieldDefs.Add('EDITIONDATE2' ftDateTime, 0, false);
+          DSMacros.FieldDefs.Add('EDITIONDATE2', ftDateTime, 0, false);
           DSMacros.FieldDefs.Add('SCRIPT', ftBlob, 0, false);
           DSMacros.FieldDefs.Add('MODULE', ftString, 15, false);
           DSMacros.FieldDefs.Add('ID', ftInteger, 0, false);
