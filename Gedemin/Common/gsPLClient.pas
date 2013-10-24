@@ -66,7 +66,6 @@ type
   private
     FInitArgv: array of PChar;
     FDebug: Boolean;
-    FDebugFileList: TStringList;
     function GetArity(ASql: TIBSQL): Integer; overload;
     function GetArity(ADataSet: TDataSet; const AFieldList: String): Integer; overload;
     function GetFileName(const AFileName: String): String;
@@ -74,8 +73,13 @@ type
 
     procedure WriteTermv(ATerm: TgsPLTermv; AStream: TStream);
     procedure WriteScript(const AText: String; AStream: TStream);
-    
+
     function GetConsultString(const AFileName: String): String;
+    procedure InternalMakePredicatesOfDataSet(ADataSet: TDataSet; const AFieldList: String;
+      const APredicateName: String; const AFileName: String; const AStream: TStream = nil);
+    procedure InternalMakePredicatesOfObject(const AClassName: String; const ASubType: String; const ASubSet: String;
+      AParams: Variant; AnExtraConditions: TStringList; const AFieldList: String; ATr: TIBTransaction;
+      const APredicateName: String; const AFileName: String; const AStream: TStream = nil);
   public  
     destructor Destroy; override; 
 
@@ -771,16 +775,15 @@ begin
   Result := StringReplace(Result, '\', '/', [rfReplaceAll]);
 end;
 
-procedure TgsPLClient.MakePredicatesOfDataSet(ADataSet: TDataSet; const AFieldList: String;
-  const APredicateName: String; const AFileName: String);
+procedure TgsPLClient.InternalMakePredicatesOfDataSet(ADataSet: TDataSet; const AFieldList: String;
+  const APredicateName: String; const AFileName: String; const AStream: TStream = nil);
 var
   I, Arity, Idx: Integer;
   Refs, Term: TgsPLTermv;
 begin
   Assert(ADataSet <> nil);
   Assert(APredicateName > '');
-
-
+  
   Arity := GetArity(ADataSet, AFieldList);
   Refs := TgsPLTermv.CreateTermv(Arity);
   Term := TgsPLTermv.CreateTermv(1);
@@ -808,13 +811,31 @@ begin
         end;
       end;
       Compound(Term.Term[0], APredicateName, Refs);
-      Call('assert', Term);
+      if Call('assert', Term) then
+        WriteTermv(Term, AStream);
       ADataSet.Next;
     end;
   finally
     Refs.Free;
     Term.Free;
   end;
+end;
+
+procedure TgsPLClient.MakePredicatesOfDataSet(ADataSet: TDataSet; const AFieldList: String;
+  const APredicateName: String; const AFileName: String);
+var
+  FS: TFileStream;
+begin
+  if FDebug then
+  begin
+    FS := TFileStream.Create(GetFileName(AFileName), fmCreate);
+    try
+      InternalMakePredicatesOfDataSet(ADataSet, AFieldList, APredicateName, AFileName, FS);
+    finally
+      FS.Free;
+    end;
+  end else
+    InternalMakePredicatesOfDataSet(ADataSet, AFieldList, APredicateName, AFileName, nil); 
 end;
 
 procedure TgsPLClient.MakePredicatesOfSQLSelect(const ASQL: String; ATr: TIBTransaction;
@@ -832,7 +853,7 @@ begin
   if FDebug then
     FS := TFileStream.Create(GetFileName(AFileName), fmCreate)
   else
-    FS := nil;  
+    FS := nil;
   q := TIBSQL.Create(nil);
   try
     q.Transaction := ATr;
@@ -887,13 +908,13 @@ begin
   end;
 end;
 
-procedure TgsPLClient.MakePredicatesOfObject(const AClassName: String; const ASubType: String; const ASubSet: String;
+procedure TgsPLClient.InternalMakePredicatesOfObject(const AClassName: String; const ASubType: String; const ASubSet: String;
   AParams: Variant; AnExtraConditions: TStringList; const AFieldList: String; ATr: TIBTransaction;
-  const APredicateName: String; const AFileName: String);
+  const APredicateName: String; const AFileName: String; const AStream: TStream = nil);
 var
   C: TPersistentClass;
   Obj: TgdcBase;
-  I: Integer; 
+  I: Integer;
 begin
   Assert(ATr <> nil);
   Assert(ATr.InTransaction);
@@ -923,7 +944,7 @@ begin
       Obj.Params[0].AsVariant := AParams[I];
       Obj.Open;
       if not Obj.Eof then
-        MakePredicatesOfDataSet(Obj, AFieldList, APredicateName, AFileName);
+        InternalMakePredicatesOfDataSet(Obj, AFieldList, APredicateName, AFileName, AStream);
       Obj.Close;
     end;
   finally
@@ -931,6 +952,25 @@ begin
   end;
 end;
 
+procedure TgsPLClient.MakePredicatesOfObject(const AClassName: String; const ASubType: String; const ASubSet: String;
+  AParams: Variant; AnExtraConditions: TStringList; const AFieldList: String; ATr: TIBTransaction;
+  const APredicateName: String; const AFileName: String);
+var
+  FS: TFileStream;
+begin
+  if FDebug then
+  begin
+    FS := TFileStream.Create(GetFileName(AFileName), fmCreate);
+    try
+      InternalMakePredicatesOfObject(AClassName, ASubType, ASubSet, AParams,
+        AnExtraConditions, AFieldList, ATr, APredicateName, AFileName, FS);
+    finally
+      FS.Free;
+    end;
+  end else
+    InternalMakePredicatesOfObject(AClassName, ASubType, ASubSet, AParams,
+      AnExtraConditions, AFieldList, ATr, APredicateName, AFileName, nil);
+end; 
 
 function TgsPLClient.GetDefaultPLInitString: String;
 var
