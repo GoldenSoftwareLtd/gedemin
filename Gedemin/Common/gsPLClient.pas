@@ -771,7 +771,7 @@ end;
 
 function TgsPLClient.GetConsultString(const AFileName: String): String;
 begin
-  Result := 'consult(''' + GetFileName(AFileName) + ''').';
+  Result := ':- consult(''' + GetFileName(AFileName) + ''').';
   Result := StringReplace(Result, '\', '/', [rfReplaceAll]);
 end;
 
