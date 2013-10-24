@@ -71,9 +71,10 @@ var
 begin
   if AnItem < 0 then
     raise EgsHugeIntSet.Create('Negative id is not supported');
+  if not Has(AnItem) then
+    Inc(FCount);                                                                
   Idx := AnItem div 8;
   FData^[Idx] := FData^[Idx] or BitMaskArr[AnItem mod 8];
-  Inc(FCount);                                                                  ///
 end;
 
 procedure TgsHugeIntSet.Exclude(const AnItem: Integer);
@@ -82,9 +83,10 @@ var
 begin
   if AnItem < 0 then
     raise EgsHugeIntSet.Create('Negative id is not supported');
+  if Has(AnItem) then
+    Dec(FCount);   
   Idx := AnItem div 8;
   FData^[Idx] := FData^[Idx] and (not BitMaskArr[AnItem mod 8]);
-  Dec(FCount);                                                                  ///
 end;
 
 function TgsHugeIntSet.Has(const AnItem: Integer): Boolean;
