@@ -40,7 +40,8 @@ const
   Libgmp10_dll = 'libgmp-10.dll';
   Libswipl_dll = 'libswipl.dll';
   PthreadGC2_dll = 'pthreadGC2.dll';
-  PrologPath = 'swipl';  
+  PrologPath = 'swipl';
+  PrologTempPath = 'swipl\temp';
 
 type
   size_t = Cardinal;

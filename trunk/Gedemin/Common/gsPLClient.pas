@@ -66,14 +66,19 @@ type
   private
     FInitArgv: array of PChar;
     FDebug: Boolean;
-    
+    FDebugFileList: TStringList;
     function GetArity(ASql: TIBSQL): Integer; overload;
     function GetArity(ADataSet: TDataSet; const AFieldList: String): Integer; overload;
-    //function GetTempPath: String;
+    function GetFileName(const AFileName: String): String;
     function GetDefaultPLInitString: String;
-  public
-    destructor Destroy; override;
-     
+
+    procedure WriteTermv(ATerm: TgsPLTermv; AStream: TStream);
+    procedure WriteScript(const AText: String; AStream: TStream);
+    
+    function GetConsultString(const AFileName: String): String;
+  public  
+    destructor Destroy; override; 
+
     function Call(const APredicateName: String; AParams: TgsPLTermv): Boolean;
     function Call2(const AGoal: String): Boolean;
     procedure Compound(AGoal: term_t; const AFunctor: String; ATermv: TgsPLTermv);
@@ -102,7 +107,8 @@ type
 implementation
 
 uses
-  jclStrings, gd_GlobalParams_unit, Forms, gdcBaseInterface, rp_report_const;
+  jclStrings, gd_GlobalParams_unit, Forms, gdcBaseInterface, rp_report_const,
+  FileCtrl;
 
 constructor EgsPLClientException.CreateTypeError(const AnExpected: String; const AnActual: term_t);
 begin
@@ -335,7 +341,7 @@ destructor TgsPLClient.Destroy;
 begin
   if IsInitialised then
     PL_cleanup(0);
-    
+
   inherited;
 end;  
 
@@ -446,6 +452,7 @@ function TgsPLClient.LoadScript(AScriptID: Integer): Boolean;
 var
   q: TIBSQL;
   Termv: TgsPLTermv;
+  FS: TFileStream;
 begin
   Result := False;
   q := TIBSQL.Create(nil);
@@ -463,6 +470,16 @@ begin
       Termv.PutString(0, q.FieldByName('name').AsString);
       Termv.PutString(1, q.FieldByName('script').AsString);
       Result := Call('load_atom', Termv);
+
+      if Result and FDebug then
+      begin
+        FS := TFileStream.Create(GetFileName(q.FieldByName('name').AsString), fmCreate);
+        try
+          WriteScript(q.FieldByName('script').AsString, FS);
+        finally
+          FS.Free;
+        end;
+      end;
     end;
   finally
     q.Free;
@@ -540,7 +557,7 @@ begin
    end;
     PL_ATOM, PL_INTEGER, PL_FLOAT:
     begin
-      PL_get_chars(ATerm, S, CVT_ALL);
+      PL_get_chars(ATerm, S, CVT_ALL); 
       Result := S;
     end;
     PL_STRING:
@@ -583,17 +600,20 @@ begin
       SQL_DOUBLE, SQL_FLOAT, SQL_LONG, SQL_SHORT,
       SQL_TIMESTAMP, SQL_D_FLOAT, SQL_TYPE_TIME,
       SQL_TYPE_DATE, SQL_INT64, SQL_Text, SQL_VARYING: Inc(Result);
-    end; 
+    end;
   end;
 end;
 
-{function TgsPLClient.GetTempPath: String;
+function TgsPLClient.GetFileName(const AFileName: String): String;
 var
-  Buff: array[0..1024] of Char;
+  TempS: String;
 begin
-  Windows.GetTempPath(SizeOf(Buff), Buff);
-  Result := ExcludeTrailingBackslash(Buff);
-end;}
+  TempS := ExtractFilePath(Application.EXEName) + PrologTempPath;
+  if not DirectoryExists(TempS) then
+    if not CreateDir(TempS) then
+      raise EgsPLClientException.Create('Не удается создать директорию ''' + TempS + '''');
+  Result := TempS + '\' + AFileName + '.pl';
+end; 
 
 function TgsPLClient.GetArity(ADataSet: TDataSet; const AFieldList: String): Integer;
 var
@@ -689,6 +709,68 @@ begin
   end;
 end;
 
+procedure TgsPLClient.WriteTermv(ATerm: TgsPLTermv; AStream: TStream);
+var
+  TempS: String;
+begin
+  if AStream <> nil then
+  begin
+    TempS := TermToString(ATerm.Term[0]) + '.'#13#10;
+    AStream.WriteBuffer(TempS[1], Length(TempS));
+  end;
+end;
+
+procedure TgsPLClient.WriteScript(const AText: String; AStream: TStream);
+
+  function Prepare(const S: String): String;
+  const
+    IncludePrefix = '%#INCLUDE ';
+    LengthInc = Length(IncludePrefix);
+    LimitChar = [' ', ',', ';', #13, #10];
+  var
+    P: Integer;
+    SN, OldStr, NewStr: String;
+    StartCopy, I: Integer;
+  begin
+    Result := S;
+    P := StrSearch(IncludePrefix, Result, 1);
+    while P > 0 do
+    begin
+      StartCopy := P;
+
+      P := P + LengthInc;
+      while (P <= Length(Result)) and (Result[P] in LimitChar) do
+        Inc(P);
+
+      I := P;
+      while (P <= Length(Result)) and not (Result[P] in LimitChar) do
+        Inc(P);
+
+      SN := Copy(S, I, P - I);
+      OldStr := Copy(Result, StartCopy, P - StartCopy);
+      NewStr := GetConsultString(SN);
+      Result := StringReplace(Result, OldStr, NewStr, []);
+      
+      P := StrSearch(IncludePrefix, Result, P);
+    end;
+  end;
+
+var
+  TempS: String;
+begin
+  if AStream <> nil then
+  begin
+    TempS := Prepare(AText);
+    AStream.WriteBuffer(TempS[1], Length(TempS));
+  end;
+end;
+
+function TgsPLClient.GetConsultString(const AFileName: String): String;
+begin
+  Result := 'consult(''' + GetFileName(AFileName) + ''').';
+  Result := StringReplace(Result, '\', '/', [rfReplaceAll]);
+end;
+
 procedure TgsPLClient.MakePredicatesOfDataSet(ADataSet: TDataSet; const AFieldList: String;
   const APredicateName: String; const AFileName: String);
 var
@@ -741,11 +823,16 @@ var
   q: TIBSQL;
   Refs, Term: TgsPLTermv;
   I: LongWord;
-  Arity: Integer; 
+  Arity: Integer;
+  FS: TFileStream;
 begin
   Assert(ATr <> nil);
   Assert(ATr.InTransaction);
 
+  if FDebug then
+    FS := TFileStream.Create(GetFileName(AFileName), fmCreate)
+  else
+    FS := nil;  
   q := TIBSQL.Create(nil);
   try
     q.Transaction := ATr;
@@ -784,16 +871,19 @@ begin
             end;
           end;
           Compound(Term.Term[0], APredicateName, Refs);
-          Call('assert', Term);
+          if Call('assert', Term) then
+            WriteTermv(Term, FS);
           q.Next;
         end;
       finally
         Refs.Free;
         Term.Free;
       end;
-    end;    
+    end;
   finally
     q.Free;
+    if FS <> nil then
+      FS.Free;
   end;
 end;
 

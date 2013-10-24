@@ -3985,6 +3985,8 @@ type
       const APredicateName: WideString; const AFileName: WideString); safecall;
     procedure Compound(AGoal: LongWord; const AFunctor: WideString; const ATermv: IgsPLTermv); safecall;
     function LoadScript(AScriptID: Integer): WordBool; safecall;
+    function Get_Debug: WordBool; safecall;
+    procedure Set_Debug(Value: WordBool); safecall;
   end;
 
   TwrpPLQuery = class(TwrpObject, IgsPLQuery)
@@ -19187,7 +19189,17 @@ end;
 function TwrpPLClient.LoadScript(AScriptID: Integer): WordBool;
 begin
   Result := GetPLClient.LoadScript(AScriptID);
-end;  
+end;
+
+function TwrpPLClient.Get_Debug: WordBool;
+begin
+  Result := GetPLClient.Debug;
+end;
+
+procedure TwrpPLClient.Set_Debug(Value: WordBool);
+begin
+  GetPLClient.Debug := Value;
+end;
 
 function TwrpPLQuery.GetPLQuery: TgsPLQuery;
 begin
