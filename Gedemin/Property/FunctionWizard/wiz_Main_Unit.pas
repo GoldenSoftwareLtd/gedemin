@@ -41,7 +41,7 @@ type
     procedure ShowForm; override;
     procedure GotoCursor(Y: Integer); override;
     procedure FormInvalidate; override;
-  end;
+  end; 
 
   TCustomNewFunctionCreater = class
   private
@@ -348,6 +348,7 @@ type
     function GetScript: string;
     function GetMainFunctionName: string;
     function GetParams: TwizParamList;
+    function GetScrollBoxWidth: Integer;
     procedure SetFunctionRUID(const Value: string);
     procedure _OnBlockSelect(Sender: TObject);
     procedure _OnBlockUnSelect(Sender: TObject);
@@ -413,7 +414,7 @@ begin
   finally
     S.Free;
   end;
-  if FSelectedBlock <> nil then _OnBlockSelect(FselectedBlock);
+  if FSelectedBlock <> nil then _OnBlockSelect(FselectedBlock); 
 end;
 
 procedure TdlgFunctionWisard.LoadFromStream(Stream: TStream);
@@ -434,7 +435,7 @@ begin
     TVisualBlock.LoadFromStream(Stream, Self, ScrollBox1);
   end;
 
-  actGenerate.Execute;
+  actGenerate.Execute; 
 end;
 
 procedure TdlgFunctionWisard.SaveToStream(Stream: TStream);
@@ -613,6 +614,32 @@ begin
   Result := seScript.Lines.Text;
 end;
 
+function TdlgFunctionWisard.GetScrollBoxWidth: Integer;
+var
+  VB: TVisualBlock;
+  I: Integer;
+begin
+  Result := 0;
+  
+  if ScrollBox1.ControlCount > 0 then
+  begin
+    if ScrollBox1.Controls[0] is TVisualBlock then
+    begin
+      VB := ScrollBox1.Controls[0] as TVisualBlock;
+      for I := 0 to VB.ControlCount - 1 do
+      begin
+        if VB.Controls[I] is TVisualBlock
+          and ((VB.Controls[I] as TVisualBlock).Width > Result)
+        then
+          Result := (VB.Controls[I] as TVisualBlock).Width +
+            (VB.Controls[I] as TVisualBlock).Left + GetSystemMetrics(SM_CXVSCROLL);
+      end;
+    end;
+  end;
+
+  if Result < Panel5.ClientWidth then
+    Result := Panel5.ClientWidth;
+end;
 
 function TdlgFunctionWisard.GetMainFunctionName: string;
 begin
@@ -627,14 +654,12 @@ begin
     MainFunction.BlockName := Value;
 end;
 
-
 function TdlgFunctionWisard.GetParams: TwizParamList;
 begin
   Result := nil;
   if MainFunction <> nil then
     Result := TFunctionBlock(MainFunction).FunctionParams;
-end;
-
+end;  
 
 procedure TdlgFunctionWisard.SetFunctionRUID(const Value: string);
 begin
@@ -941,11 +966,13 @@ begin
 end;
 
 procedure TdlgFunctionWisard.CreateNewFunction(
-  FunctionCreater: TCustomNewFunctionCreater);
+  FunctionCreater: TCustomNewFunctionCreater);   
 begin
   FunctionCreater.CreateFunction(ScrollBox1);
   FunctionCreater.InitComponentPallete(Self);
   Modified := False;
+
+  Panel5.Width := GetScrollBoxWidth;
 end;
 
 procedure TNewEntryFunctionCreater.SetTransactionRUID(const Value: string);
@@ -1398,7 +1425,7 @@ end;
 constructor TdlgFunctionWisard.Create(AnOwner: TComponent);
 begin
   inherited;
-  FSearchReplaceHelper := TgsSearchReplaceHelper.Create(seScript);
+  FSearchReplaceHelper := TgsSearchReplaceHelper.Create(seScript);   
 end;
 
 destructor TdlgFunctionWisard.Destroy;
@@ -1517,7 +1544,7 @@ end;
 procedure TdlgFunctionWisard.actCaseElseUpdate(Sender: TObject);
 begin
   TAction(Sender).Checked := NeedCreate = TCaseElseBlock;
-end;
+end;  
 
 initialization
   ClipboardFormat := RegisterClipboardFormat(ClipboardFormatName);
