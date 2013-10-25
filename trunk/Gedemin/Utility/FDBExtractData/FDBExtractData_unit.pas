@@ -225,24 +225,28 @@ var
   B, C: PAnsiChar;
   Size: Integer;
 begin
-  L := Length(AData);
-  Size := L * 3 + ((L div HexInRow) + 1) * (2 + 4) + 32;
-  GetMem(B, Size);
-  try
-    C := B;
-    C[0] := #0;
-    for I := 1 to L do
-    begin
-      if I mod HexInRow = 1 then
-        C := StrCat(C, '    ') + StrLen(C);
-      C := StrCat(C, PChar(AnsiCharToHex(AData[I]) + ' ')) + StrLen(C);
-      if I mod HexInRow = 0 then
-        C := StrCat(C, #13#10) + StrLen(C);
+  if TryObjectBinaryToText(AData) then
+    WriteString(AStream, AData)
+  else begin
+    L := Length(AData);
+    Size := L * 3 + ((L div HexInRow) + 1) * (2 + 4) + 32;
+    GetMem(B, Size);
+    try
+      C := B;
+      C[0] := #0;
+      for I := 1 to L do
+      begin
+        if I mod HexInRow = 1 then
+          C := StrCat(C, '    ') + StrLen(C);
+        C := StrCat(C, PChar(AnsiCharToHex(AData[I]) + ' ')) + StrLen(C);
+        if I mod HexInRow = 0 then
+          C := StrCat(C, #13#10) + StrLen(C);
+      end;
+      StrCat(C, #13#10);
+      WriteString(AStream, B);
+    finally
+      FreeMem(B, Size);
     end;
-    StrCat(C, #13#10);
-    WriteString(AStream, B);
-  finally
-    FreeMem(B, Size);
   end;
 end;
 
