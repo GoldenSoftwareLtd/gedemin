@@ -1,8 +1,7 @@
 
 {++
 
-
-  Copyright (c) 2001 by Golden Software of Belarus
+  Copyright (c) 2001-2013 by Golden Software of Belarus
 
   Module
 
@@ -46,10 +45,7 @@ type
   TgdcInvPriceList = class;
   TgdcInvPriceListLine = class;
   TgdcInvPriceListType = class;
-
-
   TgdcInvBasePriceListClass = class of TgdcInvBasePriceList;
-
 
   TgdcInvBasePriceList = class(TgdcDocument)
   private
@@ -82,6 +78,7 @@ type
     constructor Create(AnOwner: TComponent); override;
 
     class function GetSubTypeList(SubTypeList: TStrings): Boolean; override;
+    class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
 
     function DocumentTypeKey: Integer; override;
     //Функция возвращает ключ валюты по ключу цены обоснования
@@ -89,15 +86,13 @@ type
 
     property HeaderFields: TgdcInvPriceFields read FHeaderFields;
     property LineFields: TgdcInvPriceFields read FLineFields;
-
-    class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
-
   end;
 
 
   TgdcInvPriceList = class(TgdcInvBasePriceList)
   private
     FIsPrePosted: Boolean;
+
   protected
     function GetSelectClause: String; override;
     function GetFromClause(const ARefresh: Boolean = False): String; override;
@@ -106,8 +101,6 @@ type
     procedure CustomModify(Buff: Pointer); override;
 
     procedure _DoOnNewRecord; override;
-
-    function CreateDialogForm: TCreateableForm; override;
     procedure DoAfterCancel; override;
     procedure DoAfterDelete; override;
     procedure DoAfterOpen; override;
@@ -116,9 +109,10 @@ type
 
   public
     constructor Create(AnOwner: TComponent); override;
-    class function GetDocumentClassPart: TgdcDocumentClassPart; override;
 
+    class function GetDocumentClassPart: TgdcDocumentClassPart; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
+    class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
 
     procedure PrePostDocumentData;
   end;
@@ -138,14 +132,14 @@ type
 
     procedure _DoOnNewRecord; override;
     function GetMasterObject: TgdcDocument; override;
-    function CreateDialogForm: TCreateableForm; override;
 
   public
     constructor Create(AnOwner: TComponent); override;
 
-    procedure UpdateGoodNames;
-
     class function GetDocumentClassPart: TgdcDocumentClassPart; override;
+    class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
+
+    procedure UpdateGoodNames;
   end;
 
 
@@ -153,12 +147,11 @@ type
   protected
     procedure CreateFields; override;
 
-    function CreateDialogForm: TCreateableForm; override;
-
   public
     constructor Create(AnOwner: TComponent); override;
 
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
+    class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
 
     class function InvDocumentTypeBranchKey: Integer;
     class function GetHeaderDocumentClass: CgdcBase; override;
@@ -346,57 +339,11 @@ end;
 
 class function TgdcInvBasePriceList.GetSubTypeList(
   SubTypeList: TStrings): Boolean;
-{var
-  ibsql: TIBSQL;
-  ibtr: TIBTransaction;}
 begin
   Assert(Assigned(gdcInvDocumentCache));
 
   Result := gdcInvDocumentCache.GetSubTypeList(INV_DOC_PRICELISTBRANCH,
     SubTypeList);
-
-  {
-  if not Assigned(gdcBaseManager) then
-  begin
-    Result := False;
-    exit;
-  end;
-
-  ibsql := TIBSQL.Create(nil);
-  ibtr := TIBTransaction.Create(nil);
-  try
-    ibtr.DefaultDatabase := gdcBaseManager.Database;
-    ibsql.Database := gdcBaseManager.Database;
-    ibsql.Transaction := ibtr;
-
-    ibtr.StartTransaction;
-
-    ibsql.SQL.Text :=
-      Format('SELECT name, ruid FROM gd_documenttype WHERE parent = %d',
-        [INV_DOC_PRICELISTBRANCH]);
-
-    ibsql.ExecQuery;
-
-    SubTypeList.Clear;
-
-    while not ibsql.EOF do
-    begin
-      SubTypeList.Add(
-        ibsql.FieldByName('name').AsString + '=' +
-        ibsql.FieldByName('ruid').AsString);
-
-      ibsql.Next;
-    end;
-
-    ibsql.Close;
-    ibtr.Commit;
-  finally
-    ibtr.Free;
-    ibsql.Free;
-  end;
-
-  Result := SubTypeList.Count > 0;
-  }
 end;
 
 class function TgdcInvBasePriceList.GetViewFormClassName(
@@ -541,58 +488,6 @@ begin
 end;
 
 { TgdcInvPriceList }
-
-function TgdcInvPriceList.CreateDialogForm: TCreateableForm;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_FUNCCREATEDIALOGFORM('TGDCINVPRICELIST', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  try
-  {M}    Result := nil;
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCINVPRICELIST', KEYCREATEDIALOGFORM);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCREATEDIALOGFORM]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCINVPRICELIST') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCINVPRICELIST',
-  {M}          'CREATEDIALOGFORM', KEYCREATEDIALOGFORM, Params, LResult) then
-  {M}          begin
-  {M}            Result := nil;
-  {M}            if VarType(LResult) <> varDispatch then
-  {M}              raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен не объект.')
-  {M}            else
-  {M}              if IDispatch(LResult) = nil then
-  {M}                raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                  'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен пустой (null) объект.');
-  {M}            Result := GetInterfaceToObject(LResult) as TCreateableForm;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCINVPRICELIST' then
-  {M}        begin
-  {M}          Result := Inherited CreateDialogForm;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  Result := TdlgInvPriceList.CreateSubType(ParentForm, SubType);
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVPRICELIST', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCINVPRICELIST', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM);
-  {M}  end;
-  {END MACRO}
-end;
 
 procedure TgdcInvPriceList.CustomInsert(Buff: Pointer);
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
@@ -1035,6 +930,12 @@ begin
   Result := TgdcInvPriceListLine.CreateSubType(Owner, SubType);
 end;
 
+class function TgdcInvPriceList.GetDialogFormClassName(
+  const ASubType: TgdcSubType): String;
+begin
+  Result := 'TdlgInvPriceList';
+end;
+
 { TgdcInvPriceListLine }
 
 constructor TgdcInvPriceListLine.Create(AnOwner: TComponent);
@@ -1365,7 +1266,6 @@ begin
       end;
   end;
 
-
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVPRICELISTLINE', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -1407,56 +1307,10 @@ begin
   Result := TgdcInvPriceList.CreateSubType(Owner, SubType);
 end;
 
-function TgdcInvPriceListLine.CreateDialogForm: TCreateableForm;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
+class function TgdcInvPriceListLine.GetDialogFormClassName(
+  const ASubType: TgdcSubType): String;
 begin
-  {@UNFOLD MACRO INH_ORIG_FUNCCREATEDIALOGFORM('TGDCINVPRICELISTLINE', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  try
-  {M}    Result := nil;
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCINVPRICELISTLINE', KEYCREATEDIALOGFORM);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCREATEDIALOGFORM]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCINVPRICELISTLINE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCINVPRICELISTLINE',
-  {M}          'CREATEDIALOGFORM', KEYCREATEDIALOGFORM, Params, LResult) then
-  {M}          begin
-  {M}            Result := nil;
-  {M}            if VarType(LResult) <> varDispatch then
-  {M}              raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен не объект.')
-  {M}            else
-  {M}              if IDispatch(LResult) = nil then
-  {M}                raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                  'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен пустой (null) объект.');
-  {M}            Result := GetInterfaceToObject(LResult) as TCreateableForm;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCINVPRICELISTLINE' then
-  {M}        begin
-  {M}          Result := Inherited CreateDialogForm;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  Result := TdlgInvPriceLine.CreateSubType(ParentForm, SubType);
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVDOCUMENTLINE', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCINVPRICELISTLINE', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM);
-  {M}  end;
-  {END MACRO}
+  Result := 'TdlgInvPriceLine';
 end;
 
 { TgdcInvPriceListType }
@@ -1464,60 +1318,7 @@ end;
 constructor TgdcInvPriceListType.Create(AnOwner: TComponent);
 begin
   inherited;
-
   CustomProcess := [cpInsert, cpModify];
-end;
-
-function TgdcInvPriceListType.CreateDialogForm: TCreateableForm;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_FUNCCREATEDIALOGFORM('TGDCINVPRICELISTTYPE', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  try
-  {M}    Result := nil;
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCINVPRICELISTTYPE', KEYCREATEDIALOGFORM);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCREATEDIALOGFORM]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCINVPRICELISTTYPE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCINVPRICELISTTYPE',
-  {M}          'CREATEDIALOGFORM', KEYCREATEDIALOGFORM, Params, LResult) then
-  {M}          begin
-  {M}            Result := nil;
-  {M}            if VarType(LResult) <> varDispatch then
-  {M}              raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен не объект.')
-  {M}            else
-  {M}              if IDispatch(LResult) = nil then
-  {M}                raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                  'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен пустой (null) объект.');
-  {M}            Result := GetInterfaceToObject(LResult) as TCreateableForm;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCINVPRICELISTTYPE' then
-  {M}        begin
-  {M}          Result := Inherited CreateDialogForm;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  Result := TdlgSetupInvPriceList.Create(ParentForm);
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVPRICELISTTYPE', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCINVPRICELISTTYPE', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM);
-  {M}  end;
-  {END MACRO}
 end;
 
 procedure TgdcInvPriceListType.CreateFields;
@@ -1559,6 +1360,12 @@ begin
   {END MACRO}
 end;
 
+class function TgdcInvPriceListType.GetDialogFormClassName(
+  const ASubType: TgdcSubType): String;
+begin
+  Result := 'TdlgSetupInvPriceList';
+end;
+
 class function TgdcInvPriceListType.GetHeaderDocumentClass: CgdcBase;
 begin
   Result := TgdcInvPriceList;
@@ -1584,6 +1391,5 @@ finalization
   UnRegisterGdcClass(TgdcInvPriceListType);
   UnRegisterGdcClass(TgdcInvPriceList);
   UnRegisterGdcClass(TgdcInvPriceListLine);
-
 end.
 
