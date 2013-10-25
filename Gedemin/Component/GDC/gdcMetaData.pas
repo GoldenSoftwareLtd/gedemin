@@ -86,6 +86,7 @@ type
     procedure Clear;
   end;
 
+  CgdcMetaBase = class of TgdcMetaBase;
   TgdcMetaBase = class(TgdcBase)
   private
     FPostedID: Integer;
@@ -96,7 +97,9 @@ type
     NeedSingleUser: Boolean;
 
     function GetIsUserDefined: Boolean; virtual;
-    function GetIsSystemObject: Boolean; virtual;
+    function GetIsFirebirdObject: Boolean; virtual;
+    function GetIsDerivedObject: Boolean; virtual;
+    function GetFirebirdObjectName: String; virtual;
 
     procedure ShowSQLProcess(S: TSQLProcessList);
 
@@ -126,12 +129,13 @@ type
     class function NeedModifyFromStream(const SubType: String): Boolean; override;
 
     function GetDialogDefaultsFields: String; override;
-
     function GetAutoObjectsNames(SL: TStrings): Boolean; virtual;
 
     property IsUserDefined: Boolean read GetIsUserDefined;
-    property IsSystemObject: Boolean read GetIsSystemObject;
+    property IsFirebirdObject: Boolean read GetIsFirebirdObject;
+    property IsDerivedObject: Boolean read GetIsDerivedObject;
     property RelationName: String read GetRelationName;
+    property FirebirdObjectName: String read GetFirebirdObjectName;
   end;
 
   TgdcRelationField = class;
@@ -153,12 +157,8 @@ type
 
     procedure CustomDelete(Buff: Pointer); override;
     procedure CustomInsert(Buff: Pointer); override;
-
     procedure GetWhereClauseConditions(S: TStrings); override;
-
-    function GetIsUserDefined: Boolean; override;
-
-    function GetCanDelete: Boolean; override;
+    function GetFirebirdObjectName: String; override;
 
   public
     constructor Create(AnOwner: TComponent); override;
@@ -195,7 +195,7 @@ type
     procedure CustomDelete(Buff: Pointer); override;
     procedure CustomModify(Buff: Pointer); override;
 
-    function GetIsUserDefined: Boolean; override;
+    function GetIsDerivedObject: Boolean; override;
 
     procedure _DoOnNewRecord; override;
     procedure DoBeforePost; override;
@@ -204,8 +204,7 @@ type
     function GetTableType: TgdcTableType; virtual; abstract;
 
     procedure GetWhereClauseConditions(S: TStrings); override;
-
-    function GetCanDelete: Boolean; override;
+    function GetFirebirdObjectName: String; override;
 
   public
     constructor Create(AnOwner: TComponent); override;
@@ -474,10 +473,8 @@ type
 
     procedure GetWhereClauseConditions(S: TStrings); override;
 
-    function GetIsUserDefined: Boolean; override;
-
-    function GetCanDelete: Boolean; override;
     function GetCanEdit: Boolean; override;
+    function GetFirebirdObjectName: String; override;
 
   public
     constructor Create(AnOwner: TComponent); override;
@@ -496,7 +493,6 @@ type
 
     property ChangeComputed: Boolean read FChangeComputed write FChangeComputed;
   end;
-
 
   TgdcTableField = class(TgdcRelationField)
   private
@@ -532,6 +528,7 @@ type
   TgdcStoredProc = class(TgdcMetaBase)
   private
     IsSaveToStream: Boolean;
+
     procedure SaveStoredProc(const isNew: Boolean);
     procedure DropStoredProc;
 
@@ -549,9 +546,7 @@ type
 
     procedure _DoOnNewRecord; override;
     procedure DoBeforePost; override;
-
-    function GetCanEdit: Boolean; override;
-    function GetCanDelete: Boolean; override;
+    function GetFirebirdObjectName: String; override;
 
   public
     constructor Create(AnOwner: TComponent); override;
@@ -591,8 +586,7 @@ type
     procedure CustomModify(Buff: Pointer); override;
 
     procedure DoBeforePost; override;
-
-    function GetCanDelete: Boolean; override;
+    function GetFirebirdObjectName: String; override;
 
   public
     constructor Create(AnOwner: TComponent); override;
@@ -644,8 +638,8 @@ type
       PropertyList: TgdcPropertySets; BindedList: TgdcObjectSet;
       WithDetailList: TgdKeyArray; const SaveDetailObjects: Boolean = True); override;
 
-    function GetCanDelete: Boolean; override;
-    function GetIsSystemObject: Boolean; override;
+    function GetIsFirebirdObject: Boolean; override;
+    function GetFirebirdObjectName: String; override;
 
   public
     constructor Create(AnOwner: TComponent); override;
@@ -698,8 +692,7 @@ type
     procedure _DoOnNewRecord; override;
 
     procedure GetWhereClauseConditions(S: TStrings); override;
-
-    function GetCanDelete: Boolean; override;
+    function GetFirebirdObjectName: String; override;
 
   public
     constructor Create(AnOwner: TComponent); override;
@@ -734,6 +727,7 @@ type
     procedure MetaDataCreate;
     procedure MetaDataAlter;
     procedure Drop;
+
   protected
     function GetFromClause(const ARefresh: Boolean = False): String; override;
     function GetSelectClause: String; override;
@@ -747,9 +741,7 @@ type
     procedure DoBeforePost; override;
 
     procedure GetWhereClauseConditions(S: TStrings); override;
-
-    function GetCanDelete: Boolean; override;
-    function GetCanEdit: Boolean; override;
+    function GetFirebirdObjectName: String; override;
 
   public
     constructor Create(AnOwner: TComponent); override;
@@ -795,9 +787,7 @@ type
     procedure DoBeforePost; override;
 
     procedure GetWhereClauseConditions(S: TStrings); override;
-
-    function GetCanDelete: Boolean; override;
-    function GetCanEdit: Boolean; override;
+    function GetFirebirdObjectName: String; override;
 
   public
     constructor Create(AnOwner: TComponent); override;
@@ -1042,9 +1032,11 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  DelFieldName := FieldByName('fieldname').AsString;
-  if AnsiPos(UserPrefix, AnsiUpperCase(FieldByName('fieldname').AsString)) = 0 then
+
+  if not IsUserDefined then
     raise EgdcIBError.Create('Вы не можете удалить предустановленный домен!');
+
+  DelFieldName := FieldByName('fieldname').AsString;
   Drop;
 
   if Assigned(atDatabase) then
@@ -1052,9 +1044,12 @@ begin
 
   inherited;
 
-  if Assigned(atDatabase) and Assigned(atDatabase.Fields.ByFieldName(DelFieldName)) and
-    not (atDatabase.InMultiConnection) then
+  if Assigned(atDatabase)
+    and Assigned(atDatabase.Fields.ByFieldName(DelFieldName))
+    and (not atDatabase.InMultiConnection) then
+  begin
     atDatabase.Fields.Delete(atDatabase.Fields.IndexOf(atDatabase.Fields.ByFieldName(DelFieldName)));
+  end;  
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCFIELD', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
   {M}  finally
@@ -1092,7 +1087,7 @@ begin
   {M}    end;
   {END MACRO}
 
-  if AnsiPos(UserPrefix, AnsiUpperCase(Trim(FieldByName('fieldname').AsString))) = 1 then
+  if IsUserDefined then
     MetaDataCreate;
 
   inherited;
@@ -1668,215 +1663,10 @@ begin
   {END MACRO}
 end;
 
-function TgdcField.GetIsUserDefined: Boolean;
-begin
-  Result := StrIPos(USERPREFIX, FieldByName('fieldname').AsString) = 1;
-end;
-
 class function TgdcField.GetSubSetList: String;
 begin
   Result := inherited GetSubSetList + 'ByFieldName;';
 end;
-
-(*
-function TgdcFieldInfo.CreateDialogForm: TCreateableForm;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_FUNCCREATEDIALOGFORM('TGDCFIELDINFO', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  try
-  {M}    Result := nil;
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCFIELDINFO', KEYCREATEDIALOGFORM);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCREATEDIALOGFORM]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCFIELDINFO') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCFIELDINFO',
-  {M}          'CREATEDIALOGFORM', KEYCREATEDIALOGFORM, Params, LResult) then
-  {M}          begin
-  {M}            Result := nil;
-  {M}            if VarType(LResult) <> varDispatch then
-  {M}              raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен не объект.')
-  {M}            else
-  {M}              if IDispatch(LResult) = nil then
-  {M}                raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                  'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен пустой (null) объект.');
-  {M}            Result := GetInterfaceToObject(LResult) as TCreateableForm;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCFIELDINFO' then
-  {M}        begin
-  {M}          Result := Inherited CreateDialogForm;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  Result := nil;
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCFIELDINFO', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCFIELDINFO', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM);
-  {M}  end;
-  {END MACRO}
-end;
-
-function TgdcFieldInfo.GetFromClause(const ARefresh: Boolean = False): String;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_GETFROMCLAUSE('TGDCFIELDINFO', 'GETFROMCLAUSE', KEYGETFROMCLAUSE)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCFIELDINFO', KEYGETFROMCLAUSE);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYGETFROMCLAUSE]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCFIELDINFO') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), ARefresh]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCFIELDINFO',
-  {M}          'GETFROMCLAUSE', KEYGETFROMCLAUSE, Params, LResult) then
-  {M}          begin
-  {M}            if (VarType(LResult) = varOleStr) or (VarType(LResult) = varString) then
-  {M}              Result := String(LResult)
-  {M}            else
-  {M}              begin
-  {M}                raise Exception.Create('Для метода ''' + 'GETFROMCLAUSE' + ' ''' +
-  {M}                  ' класса ' + Self.ClassName + TgdcBase(Self).SubType + #10#13 +
-  {M}                  'Из макроса возвращен не строковый тип');
-  {M}              end;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCFIELDINFO' then
-  {M}        begin
-  {M}          Result := Inherited GetFromClause(ARefresh);
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  Result :=
-    'FROM ' +
-    '  rdb$fields z ' +
-
-    '    LEFT JOIN ' +
-    '      rdb$character_sets cs ' +
-    '    ON ' +
-    '      z.rdb$character_set_id = cs.rdb$character_set_id ' +
-
-    '    LEFT JOIN ' +
-    '      rdb$collations cl ' +
-    '    ON ' +
-    '      z.rdb$collation_id = cl.rdb$collation_id ' +
-    '        AND ' +
-    '      z.rdb$character_set_id = cl.rdb$character_set_id ';
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCFIELDINFO', 'GETFROMCLAUSE', KEYGETFROMCLAUSE)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCFIELDINFO', 'GETFROMCLAUSE', KEYGETFROMCLAUSE);
-  {M}  end;
-  {END MACRO}
-end;
-
-class function TgdcFieldInfo.GetKeyField(const ASubType: TgdcSubType): String;
-begin
-  Result := 'name';
-end;
-
-class function TgdcFieldInfo.GetListField(const ASubType: TgdcSubType): String;
-begin
-  Result := 'name';
-end;
-
-class function TgdcFieldInfo.GetListTable(const ASubType: TgdcSubType): String;
-begin
-  Result := 'rdb$fields';
-end;
-
-function TgdcFieldInfo.GetSelectClause: String;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_GETSELECTCLAUSE('TGDCFIELDINFO', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCFIELDINFO', KEYGETSELECTCLAUSE);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYGETSELECTCLAUSE]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCFIELDINFO') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCFIELDINFO',
-  {M}          'GETSELECTCLAUSE', KEYGETSELECTCLAUSE, Params, LResult) then
-  {M}          begin
-  {M}            if (VarType(LResult) = varOleStr) or (VarType(LResult) = varString) then
-  {M}              Result := String(LResult)
-  {M}            else
-  {M}              begin
-  {M}                raise Exception.Create('Для метода ''' + 'GETSELECTCLAUSE' + ' ''' +
-  {M}                  ' класса ' + Self.ClassName + TgdcBase(Self).SubType + #10#13 +
-  {M}                  'Из макроса возвращен не строковый тип');
-  {M}              end;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCFIELDINFO' then
-  {M}        begin
-  {M}          Result := Inherited GetSelectClause;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  Result :=
-    'SELECT ' +
-    '  z.rdb$field_name as name, ' +
-    '  z.rdb$field_type as ffieldtype, ' +
-    '  z.rdb$field_sub_type as fsubtype, ' +
-    '  z.rdb$field_precision as fprecision, ' +
-    '  z.rdb$field_scale as fscale, ' +
-    '  z.rdb$field_length as flength, ' +
-    '  z.rdb$character_length as fcharlength, ' +
-    '  z.rdb$segment_length as seglength, ' +
-    '  z.rdb$null_flag as nullflag, ' +
-
-    '  z.rdb$validation_source AS checksource, ' +
-    '  z.rdb$default_source as defsource, ' +
-
-    '  cs.rdb$character_set_name AS charset, ' +
-    '  cl.rdb$collation_name AS collation ';
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCFIELDINFO', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCFIELDINFO', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcFieldInfo.GetWhereClauseConditions(S: TStrings);
-begin
-  inherited;
-  if HasSubSet('OnlyAttribute') then
-    S.Add('z.rdb$field_name LIKE ''USR$%''');
-  if HasSubSet('ByFieldName') then
-    S.Add('z.rdb$field_name = :FieldName ');
-end;
-*)
 
 class function TgdcField.GetViewFormClassName(
   const ASubType: TgdcSubType): String;
@@ -2066,12 +1856,14 @@ procedure TgdcField._SaveToStream(Stream: TStream;
   PropertyList: TgdcPropertySets; BindedList: TgdcObjectSet;
   WithDetailList: TgdKeyArray; const SaveDetailObjects: Boolean = True);
 begin
-  SaveToStreamDependencies(Stream, ObjectSet,
-    FieldByName('fieldname').AsString, PropertyList, BindedList, WithDetailList, SaveDetailObjects);
+  if IsFirebirdObject or IsDerivedObject then
+    exit;
 
-  //Системные домены не сохраняем!
-  if AnsiPos('RDB$', AnsiUpperCase(FieldByName('fieldname').AsString)) <> 1 then
-    inherited;
+  SaveToStreamDependencies(Stream, ObjectSet,
+    FieldByName('fieldname').AsString, PropertyList, BindedList, WithDetailList,
+    SaveDetailObjects);
+
+  inherited;
 end;
 
 class function TgdcField.GetDisplayName(const ASubType: TgdcSubType): String;
@@ -2079,16 +1871,15 @@ begin
   Result := 'Домен';
 end;
 
-function TgdcField.GetCanDelete: Boolean;
-begin
-  Result := inherited GetCanDelete and Active and
-    (AnsiPos(UserPrefix, AnsiUpperCase(FieldByName('fieldname').AsString)) = 1);
-end;
-
 class function TgdcField.GetDialogFormClassName(
   const ASubType: TgdcSubType): String;
 begin
   Result := 'Tgdc_dlgField';
+end;
+
+function TgdcField.GetFirebirdObjectName: String;
+begin
+  Result := FieldByName('fieldname').AsString;
 end;
 
 { TgdcRelation }
@@ -2247,7 +2038,7 @@ begin
   {M}    end;
   {END MACRO}
 
-  if AnsiPos(UserPrefix, AnsiUpperCase(FieldByName('relationname').AsString)) = 1 then
+  if IsUserDefined then
     MetaDataCreate;
 
   inherited;
@@ -2332,11 +2123,6 @@ begin
   {M}      ClearMacrosStack2('TGDCRELATION', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT);
   {M}  end;
   {END MACRO}
-end;
-
-function TgdcRelation.GetIsUserDefined: Boolean;
-begin
-  Result := StrIPos(UserPrefix, FieldByName('relationname').AsString) = 1;
 end;
 
 procedure TgdcRelation.CustomModify(Buff: Pointer);
@@ -2517,12 +2303,6 @@ begin
   inherited;
 end;
 
-function TgdcRelation.GetCanDelete: Boolean;
-begin
-  Result := inherited GetCanDelete and Active and
-    (AnsiPos(UserPrefix, AnsiUpperCase(FieldByName('relationname').AsString)) = 1);
-end;
-
 procedure TgdcRelation.CustomDelete(Buff: Pointer);
 var
   {@UNFOLD MACRO INH_ORIG_PARAMS()}
@@ -2606,13 +2386,12 @@ begin
       //  Если префикс таблицы пользователя не установлен -
       //  устанавлияем его самостоятельно
 
-      if (AnsiPos(UserPrefix, AnsiUpperCase(FieldByName('relationname').AsString)) <> 1)
-      then
+      if (StrIPos(UserPrefix, FieldByName('relationname').AsString) <> 1) then
         FieldByName('relationname').AsString := UserPrefix + FieldByName('relationname').AsString;
 
       if (TableType <> ttUnknow) then
       begin
-        if (AnsiPos('USR$CROSS', AnsiUpperCase(AsString)) = 1) then
+        if StrIPos('USR$CROSS', AsString) = 1 then
           raise Exception.Create('Название пользовательской таблицы/представления не может начинаться с USR$CROSS!');
 
         if (AsString[Length(FieldByName('relationname').AsString)] in ['0'..'9', '_']) then
@@ -2684,6 +2463,16 @@ class function TgdcRelation.GetDialogFormClassName(
   const ASubType: TgdcSubType): String;
 begin
   Result := '';
+end;
+
+function TgdcRelation.GetIsDerivedObject: Boolean;
+begin
+  Result := StrIPos('USR$CROSS', FieldByName('relationname').AsString) = 1;
+end;
+
+function TgdcRelation.GetFirebirdObjectName: String;
+begin
+  Result := FieldByName('relationname').AsString;
 end;
 
 { TgdcTable }
@@ -2770,10 +2559,11 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  DelRelName := FieldByName('relationname').AsString;
-  if AnsiPos(UserPrefix, AnsiUpperCase(FieldByName('relationname').AsString)) = 0 then
+
+  if not IsUserDefined then
     raise EgdcIBError.Create('Вы не можете удалить предустановленную таблицу');
 
+  DelRelName := FieldByName('relationname').AsString;
   DidActivate := False;
   try
     DidActivate := ActivateTransaction;
@@ -2978,10 +2768,8 @@ procedure TGDCBASETABLE.MakePredefinedRelationFields;
 begin
   TestRelationName;
 
-  if (sLoadFromStream in BaseState) and
-    (AnsiPos(UserPrefix, AnsiUpperCase(FieldByName('relationname').AsString)) <> 1)
-  then
-    Exit;
+  if (sLoadFromStream in BaseState) and (not IsUserDefined) then
+    exit;
 
 //Только для пользовательских таблиц!!!!!
   if (AnsiPos(UserPrefix, AnsiUpperCase(FieldByName('relationname').AsString)) <> 1)
@@ -3152,18 +2940,22 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  DelRelName := FieldByName('relationname').AsString;
-  if AnsiPos(UserPrefix, AnsiUpperCase(FieldByName('relationname').AsString)) = 0
-  then
+
+  if not IsUserDefined then
     raise EgdcIBError.Create('Вы не можете удалить предустановленное представление');
 
+  DelRelName := FieldByName('relationname').AsString;
   DropView(nil);
   CustomExecQuery(' DELETE FROM at_relations WHERE id = :OLD_ID ', Buff);
   Clear_atSQLSetupCache;
 
-  if Assigned(atDatabase) and Assigned(atDatabase.Relations.ByRelationName(DelRelName)) and
-    not (atDatabase.InMultiConnection) then
+  if Assigned(atDatabase)
+    and Assigned(atDatabase.Relations.ByRelationName(DelRelName))
+    and (not atDatabase.InMultiConnection) then
+  begin
     atDatabase.Relations.Remove(atDatabase.Relations.ByRelationName(DelRelName));
+  end;
+    
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCVIEW', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -3400,8 +3192,7 @@ var
 begin
   Assert(State = dsEdit, 'Объект должен находиться в состоянии редактирования!');
   Assert(atDatabase <> nil, 'Не загружена база атрибутов!');
-  Assert(AnsiPos(UserPrefix, FieldByName('relationname').AsString) = 1,
-    'Вы не можете пересоздать стандартное представление!');
+  Assert(IsUserDefined, 'Вы не можете пересоздать стандартное представление!');
 
   ViewCreateList := TStringList.Create;
   FSQL := TSQLProcessList.Create;
@@ -3485,9 +3276,7 @@ begin
   {M}    end;
   {END MACRO}
 
-  if (sLoadFromStream in BaseState) and
-    (AnsiPos(UserPrefix, FieldByName('relationname').AsString) = 1)
-  then
+  if (sLoadFromStream in BaseState) and IsUserDefined then
     ReCreateView;
 
   inherited;
@@ -3925,10 +3714,11 @@ begin
   {M}    end;
   {END MACRO}
 
+  if not IsUserDefined then
+    raise EgdcIBError.Create('Вы не можете удалить предустановленное поле!');
+
   DelFieldName := FieldByName('fieldname').AsString;
   DelFieldRelName := FieldByName('relationname').AsString;
-  if Pos(UserPrefix, AnsiUpperCase(FieldByName('fieldname').AsString)) = 0 then
-    raise EgdcIBError.Create('Вы не можете удалить предустановленное поле!');
 
   DropField;
 
@@ -3940,12 +3730,15 @@ begin
 
   Clear_atSQLSetupCache;
 
-  if Assigned(atDatabase) and Assigned(atDatabase.FindRelationField(DelFieldRelName, DelFieldName))and
-    not (atDatabase.InMultiConnection)
-  then
+  if Assigned(atDatabase)
+    and Assigned(atDatabase.FindRelationField(DelFieldRelName, DelFieldName))
+    and (not atDatabase.InMultiConnection) then
+  begin
     atDatabase.Relations.ByRelationName(DelFieldRelName).RelationFields.Delete(
       atDatabase.Relations.ByRelationName(DelFieldRelName).RelationFields.IndexOf(
         atDatabase.FindRelationField(DelFieldRelName, DelFieldName)));
+  end;
+        
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCRELATIONFIELD', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -3985,9 +3778,7 @@ begin
   {M}    end;
   {END MACRO}
 
-  if (Pos(UserPrefix, AnsiUpperCase(FieldByName('fieldname').AsString)) = 1) and
-     (FieldByName('relationtype').AsString = 'T')
-  then
+  if IsUserDefined and (FieldByName('relationtype').AsString = 'T') then
     AddField;
 
 //Т.к. для вычисляемого поля создается системный домен,
@@ -4052,6 +3843,7 @@ begin
   {M}    end;
   {END MACRO}
   UpdateField;
+
   if (not FieldByName('fieldsourcekey').IsNull) then
   begin
     inherited;
@@ -4066,12 +3858,10 @@ begin
       F.RefreshData(Database, Transaction);
       R.RefreshConstraints(Database, Transaction);
     end;
-  end else
-
-  if (Pos(UserPrefix, AnsiUpperCase(FieldByName('fieldname').AsString)) = 1) and
-    (FieldByName('relationtype').AsString = 'T')
-  then
+  end
+  else if IsUserDefined and (FieldByName('relationtype').AsString = 'T') then
     atDatabase.NotifyMultiConnectionTransaction;
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCRELATIONFIELD', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -4972,8 +4762,7 @@ begin
 
   FCrossRelationID := GetUniqueID(Database, ReadTransaction) + '_' +
     IntToStr(IBLogin.DBID);
-  Result := AnsiUpperCase(Format('usr$cross%s',
-    [FCrossRelationID]));
+  Result := 'USR$CROSS' + FCrossRelationID;
 end;
 
 function GetKeyFieldName(const ARelationName: String): String;
@@ -5423,11 +5212,6 @@ begin
   {END MACRO}
 end;
 
-function TgdcRelationField.GetIsUserDefined: Boolean;
-begin
-  Result := StrIPos(USERPREFIX, FieldByName('fieldname').AsString) = 1;
-end;
-
 procedure TgdcRelationField.DoBeforeEdit;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
   {M}VAR
@@ -5568,12 +5352,6 @@ begin
   end;
 end;
 
-function TgdcRelationField.GetCanDelete: Boolean;
-begin
-  Result := inherited GetCanDelete and Active and
-    (AnsiPos(UserPrefix, AnsiUpperCase(FieldByName('fieldname').AsString)) = 1);
-end;
-
 procedure TgdcRelationField.DoAfterEdit;
 begin
   inherited;
@@ -5711,6 +5489,11 @@ class function TgdcRelationField.GetDialogFormClassName(
   const ASubType: TgdcSubType): String;
 begin
   Result := 'Tgdc_dlgRelationField';
+end;
+
+function TgdcRelationField.GetFirebirdObjectName: String;
+begin
+  Result := FieldByName('fieldname').AsString;
 end;
 
 { TgdcTableField }
@@ -6088,11 +5871,13 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  if AnsiPos(UserPrefix, AnsiUpperCase(FieldByName('procedurename').AsString)) = 0 then
+
+  if not IsUserDefined then
     raise EgdcIBError.Create('Вы не можете удалить предустановленную процедуру!');
 
   DropStoredProc;
   inherited;
+  
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCSTOREDPROC', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -6260,18 +6045,6 @@ begin
   Result := Format('CREATE OR ALTER PROCEDURE %0:s ' + GetParamsText + ' AS'#13#10'%1:s',
     [FieldByName('procedurename').AsString,
      FieldByName('rdb$procedure_source').AsString]);
-end;
-
-function TgdcStoredProc.GetCanDelete: Boolean;
-begin
-  Result := inherited GetCanDelete and Active and
-    (AnsiPos(UserPrefix, AnsiUpperCase(FieldByName('procedurename').AsString)) = 1);
-end;
-
-function TgdcStoredProc.GetCanEdit: Boolean;
-begin
-  Result := inherited GetCanEdit and Active and
-    (AnsiPos(UserPrefix, AnsiUpperCase(FieldByName('procedurename').AsString)) = 1);
 end;
 
 class function TgdcStoredProc.GetDisplayName(const ASubType: TgdcSubType): String;
@@ -6602,10 +6375,11 @@ procedure TgdcStoredProc._SaveToStream(Stream: TStream;
   WithDetailList: TgdKeyArray; const SaveDetailObjects: Boolean = True);
 begin
   Assert(State = dsBrowse);
-  if AnsiPos(UserPrefix, AnsiUpperCase(FieldByName('procedurename').AsString)) =  1
-  then
+
+  if IsUserDefined then
     SaveToStreamDependencies(Stream, ObjectSet,
       FieldByName('procedurename').AsString, PropertyList, BindedList, WithDetailList, SaveDetailObjects);
+
   IsSaveToStream := True;
   try
     Edit;
@@ -6615,7 +6389,6 @@ begin
   finally
     IsSaveToStream := False;
   end;
-
 end;
 
 class function TgdcStoredProc.GetNotStreamSavedField(const IsReplicationMode: Boolean): String;
@@ -6631,6 +6404,11 @@ class function TgdcStoredProc.GetDialogFormClassName(
   const ASubType: TgdcSubType): String;
 begin
   Result := 'Tgdc_attr_dlgStoredProc';
+end;
+
+function TgdcStoredProc.GetFirebirdObjectName: String;
+begin
+  Result := FieldByName('procedurename').AsString;
 end;
 
 { TgdcSimpleTable }
@@ -7117,13 +6895,13 @@ end;
 function TgdcMetaBase.GetCanDelete: Boolean;
 begin
   Assert(IBLogin <> nil);
-  Result := inherited GetCanDelete and IBLogin.IsIBUserAdmin;
+  Result := (inherited GetCanDelete) and IBLogin.IsIBUserAdmin and IsUserDefined;
 end;
 
 function TgdcMetaBase.GetCanEdit: Boolean;
 begin
   Assert(IBLogin <> nil);
-  Result := inherited GetCanEdit and IBLogin.IsIBUserAdmin;
+  Result := (inherited GetCanEdit) and IBLogin.IsIBUserAdmin;
 end;
 
 function TgdcMetaBase.GetDialogDefaultsFields: String;
@@ -7174,23 +6952,38 @@ begin
   {END MACRO}
 end;
 
-function TgdcMetaBase.GetIsSystemObject: Boolean;
+function TgdcMetaBase.GetFirebirdObjectName: String;
+begin
+  Result := '';
+end;
+
+function TgdcMetaBase.GetIsDerivedObject: Boolean;
+begin
+  Result := False;
+end;
+
+function TgdcMetaBase.GetIsFirebirdObject: Boolean;
 var
   F: TField;
 begin
   F := FindField('RDB$SYSTEM_FLAG');
-  Result := (F is TIntegerField) and (F.AsInteger = 1);
+  Result := ((F is TIntegerField) and (F.AsInteger = 1))
+    or (StrIPos('RDB$', FirebirdObjectName) = 1);
 end;
 
 function TgdcMetaBase.GetIsUserDefined: Boolean;
 begin
-  Result := (not IsSystemObject) and (StrIPos(UserPrefix, ObjectName) = 1);
+  Result := (not IsFirebirdObject)
+    and (StrIPos(UserPrefix, FirebirdObjectName) = 1);
 end;
 
 function TgdcMetaBase.GetRelationName: String;
+var
+  F: TField;
 begin
-  if Active and (FindField('relationname') <> nil) then
-    Result := FieldByName('relationname').AsString
+  F := FindField('relationname');
+  if Active and (F <> nil) then
+    Result := F.AsString
   else
     Result := '';
 end;
@@ -7218,22 +7011,25 @@ procedure TgdcMetaBase.SaveToStreamDependencies(Stream: TStream;
 var
   ibsql: TIBSQL;
   ibsqlID: TIBSQL;
-  AnObject: TgdcBase;
+  AnObject: TgdcMetaBase;
   C: TgdcFullClass;
-  Cl: CgdcBase;
+  Cl: CgdcMetaBase;
 begin
   C := GetCurrRecordClass;
-  if (Assigned(ObjectSet)) and (ObjectSet.Find(ID) > -1)
-    or ((Self.ClassType <> C.gdClass) or (Self.SubType <> C.SubType))
-  then
-    Exit;
+
+  if (Assigned(ObjectSet) and (ObjectSet.Find(ID) > -1))
+    or (Self.ClassType <> C.gdClass)
+    or (Self.SubType <> C.SubType) then
+  begin
+    exit;
+  end;
 
   ibsql := CreateReadIBSQL;
   ibsqlID := CreateReadIBSQL;
   try
-    ibsql.SQL.Text := Format('SELECT * FROM rdb$dependencies WHERE  '+
-      ' rdb$dependent_name = ''%s'' ',
-      [ADependent_Name]);
+    ibsql.SQL.Text :=
+      'SELECT * FROM rdb$dependencies WHERE rdb$dependent_name = :dn';
+    ibsql.ParamByName('dn').AsString := ADependent_Name;
     ibsql.ExecQuery;
     while not ibsql.Eof do
     begin
@@ -7243,57 +7039,61 @@ begin
         begin
           if ibsql.FieldByName('rdb$field_name').IsNull then
           begin
-            ibsqlID.SQL.Text := Format('SELECT %s FROM %s WHERE %s = ''%s''',
-              ['id', 'at_relations', 'relationname',
-              ibsql.FieldByName('rdb$depended_on_name').AsString]);
-
+            ibsqlID.SQL.Text :=
+              'SELECT id FROM at_relations WHERE relationname = :rn';
+            ibsqlID.ParamByName('rn').AsString := ibsql.FieldByName('rdb$depended_on_name').AsTrimString;
             Cl := TgdcRelation;
           end else
           begin
-            ibsqlID.SQL.Text := Format('SELECT id FROM at_relation_fields '+
-              ' WHERE fieldname = ''%s'' AND relationname = ''%s''',
-              [ibsql.FieldByName('rdb$field_name').AsString,
-               ibsql.FieldByName('rdb$depended_on_name').AsString]);
-
+            ibsqlID.SQL.Text :=
+              'SELECT id FROM at_relation_fields WHERE fieldname = :fn AND relationname = :rn';
+            ibsqlID.ParamByName('fn').AsString := ibsql.FieldByName('rdb$field_name').AsTrimString;
+            ibsqlID.ParamByName('rn').AsString := ibsql.FieldByName('rdb$depended_on_name').AsTrimString;
             Cl := TgdcRelationField;
           end;
         end;
         5:
         begin
-          ibsqlID.SQL.Text := Format('SELECT %s FROM %s WHERE %s = ''%s''',
-          ['id', 'at_procedures', 'procedurename',
-            ibsql.FieldByName('rdb$depended_on_name').AsString]);
+          ibsqlID.SQL.Text :=
+            'SELECT id FROM at_procedures WHERE procedurename = :pn';
+          ibsqlID.ParamByName('pn').AsString := ibsql.FieldByName('rdb$depended_on_name').AsTrimString;
           Cl := TgdcStoredProc;
         end;
         7:
         begin
-          ibsqlID.SQL.Text := Format('SELECT %s FROM %s WHERE %s = ''%s''',
-          ['id', 'at_exceptions', 'exceptionname',
-            ibsql.FieldByName('rdb$depended_on_name').AsString]);
+          ibsqlID.SQL.Text :=
+            'SELECT id FROM at_exceptions WHERE exceptionname = :en';
+          ibsqlID.ParamByName('en').AsString := ibsql.FieldByName('rdb$depended_on_name').AsTrimString;
           Cl := TgdcException;
         end
-        else
-        begin
-          ibsqlID.SQL.Text := '';
-          Cl := nil;
-        end;
+      else
+        Cl := nil;
+        ibsqlID.SQL.Text := '';
       end;
+
       if ibsqlID.SQL.Text > '' then
       begin
         ibsqlID.ExecQuery;
-        if ibsql.RecordCount > 0 then
+        if not ibsqlID.EOF then
         begin
           AnObject := Cl.CreateSubType(nil, '', 'ByID');
           try
             AnObject.ID := ibsqlID.Fields[0].AsInteger;
             AnObject.Open;
-            if (AnObject.ID <> ID) and (AnObject.RecordCount > 0) then
+            if (not AnObject.EOF)
+              and (AnObject.ID <> ID)
+              and (not AnObject.IsFirebirdObject)
+              and (not AnObject.IsDerivedObject) then
+            begin
               AnObject._SaveToStream(Stream, ObjectSet, PropertyList, BindedList, WithDetailList, SaveDetailObjects);
+            end;
           finally
             AnObject.Free;
           end;
         end;
+        ibsqlID.Close;
       end;
+
       ibsql.Next;
     end;
   finally
@@ -7479,11 +7279,13 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  if AnsiPos(UserPrefix, AnsiUpperCase(FieldByName('exceptionname').AsString)) = 0 then
+
+  if not IsUserDefined then
     raise EgdcIBError.Create('Вы не можете удалить предустановленное исключение');
 
   Drop;
   inherited;
+  
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCEXCEPTION', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -7520,8 +7322,9 @@ begin
   {M}    end;
   {END MACRO}
 
-  if AnsiPos(UserPrefix, AnsiUpperCase(FieldByName('exceptionname').AsString)) = 1 then
+  if IsUserDefined then
     MetaDataCreate;
+    
   inherited;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCEXCEPTION', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
@@ -7652,12 +7455,6 @@ begin
   end;
 end;
 
-function TgdcException.GetCanDelete: Boolean;
-begin
-  Result := inherited GetCanDelete and Active and
-    (AnsiPos(UserPrefix, AnsiUpperCase(FieldByName('exceptionname').AsString)) = 1);
-end;
-
 class function TgdcException.GetDialogFormClassName(
   const ASubType: TgdcSubType): String;
 begin
@@ -7667,6 +7464,11 @@ end;
 class function TgdcException.GetDisplayName(const ASubType: TgdcSubType): String;
 begin
   Result := 'Исключение';
+end;
+
+function TgdcException.GetFirebirdObjectName: String;
+begin
+  Result := FieldByName('exceptionname').AsString;
 end;
 
 function TgdcException.GetFromClause(const ARefresh: Boolean = False): String;
@@ -7856,10 +7658,13 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  if AnsiPos(UserPrefix, AnsiUpperCase(FieldByName('indexname').AsString)) = 0 then
+
+  if not IsUserDefined then
     raise EgdcIBError.Create('Вы не можете удалить предустановленный индекс!');
+
   Drop;
   inherited;
+  
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINDEX', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -7896,8 +7701,9 @@ begin
   {M}    end;
   {END MACRO}
 
-  if AnsiPos(UserPrefix, AnsiUpperCase(FieldByName('indexname').AsString)) = 1 then
+  if IsUserDefined then
     MetaDataCreate;
+    
   inherited;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINDEX', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
@@ -8339,8 +8145,7 @@ procedure TgdcIndex._SaveToStream(Stream: TStream;
 var
   ibsql: TIBSQL;
 begin
-  //В поток сохраняем только индексы-атрибуты
-  if AnsiPos(UserPrefix, AnsiUpperCase(FieldByName('indexname').AsString)) = 1 then
+  if IsUserDefined then
   begin
     ibsql := CreateReadIBSQL;
     try
@@ -8350,7 +8155,7 @@ begin
         ' AND rdb$constraint_name = :indexname';
       ibsql.ParamByName('indexname').AsString := FieldByName('indexname').AsString;
       ibsql.ExecQuery;
-      if ibsql.RecordCount = 0 then
+      if ibsql.EOF then
       begin
         SaveToStreamDependencies(Stream, ObjectSet,
           FieldByName('indexname').AsString, PropertyList, BindedList, WithDetailList, SaveDetailObjects);
@@ -8474,12 +8279,6 @@ begin
     ibsql.Free;
     ibsqlID.Free;
   end;
-end;
-
-function TgdcIndex.GetCanDelete: Boolean;
-begin
-  Result := inherited GetCanDelete and Active and
-    (AnsiPos(UserPrefix, AnsiUpperCase(FieldByName('indexname').AsString)) = 1);
 end;
 
 destructor TgdcIndex.Destroy;
@@ -8632,15 +8431,21 @@ begin
   {END MACRO}
 end;
 
-function TgdcIndex.GetIsSystemObject: Boolean;
+function TgdcIndex.GetIsFirebirdObject: Boolean;
 begin
-  Result := (inherited GetIsSystemObject) or (FieldByName('RDB$FOREIGN_KEY').AsString > '');
+  Result := (inherited GetIsFirebirdObject)
+    or (FieldByName('RDB$FOREIGN_KEY').AsString > '');
 end;
 
 class function TgdcIndex.GetDialogFormClassName(
   const ASubType: TgdcSubType): String;
 begin
   Result := 'Tgdc_dlgIndices';
+end;
+
+function TgdcIndex.GetFirebirdObjectName: String;
+begin
+  Result := FieldByName('indexname').AsString;
 end;
 
 { TgdcTrigger }
@@ -8678,11 +8483,12 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  if AnsiPos(UserPrefix, AnsiUpperCase(FieldByName('triggername').AsString)) = 0 then
-    raise EgdcIBError.Create('Вы не можете удалить предустановленный триггер!');
 
+  if not IsUserDefined then
+    raise EgdcIBError.Create('Вы не можете удалить предустановленный триггер!');
   Drop;
   inherited;
+  
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCTRIGGER', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -8718,7 +8524,7 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  if AnsiPos(UserPrefix, AnsiUpperCase(FieldByName('triggername').AsString)) = 1 then
+  if IsUserDefined then
     MetaDataAlter;
   inherited;
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCTRIGGER', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
@@ -9211,7 +9017,7 @@ begin
     if (AnsiCompareText(Format('USR$%d_BU_INV_CARD', [I]), Trim(FieldByName('triggername').AsString)) = 0) then
       Exit;
   //В поток сохраняем только триггеры-атрибуты
-  if AnsiPos(UserPrefix, AnsiUpperCase(FieldByName('triggername').AsString)) = 1 then
+  if IsUserDefined then
   begin
     SaveToStreamDependencies(Stream, ObjectSet,
       FieldByName('triggername').AsString, PropertyList, BindedList, WithDetailList, SaveDetailObjects);
@@ -9278,12 +9084,6 @@ begin
   Result := 'Триггер';
 end;
 
-function TgdcTrigger.GetCanDelete: Boolean;
-begin
-  Result := inherited GetCanDelete and Active and
-    (AnsiPos(UserPrefix, AnsiUpperCase(FieldByName('triggername').AsString)) = 1);
-end;
-
 class function TgdcTrigger.GetNotStreamSavedField(const IsReplicationMode: Boolean): String;
 begin
   Result := inherited GetNotStreamSavedField(IsReplicationMode);
@@ -9296,6 +9096,11 @@ class function TgdcTrigger.GetDialogFormClassName(
   const ASubType: TgdcSubType): String;
 begin
   Result := 'Tgdc_dlgTrigger';
+end;
+
+function TgdcTrigger.GetFirebirdObjectName: String;
+begin
+  Result := FieldByName('triggername').AsString;
 end;
 
 { TgdcTableToTable }
@@ -9741,7 +9546,7 @@ begin
   inherited;
   {Сделано для кросс-таблиц. Если это пользовательская таблица и у нее есть
    праймари кей, то сохраним в поток поля, входящие в праймари кей}
-  if AnsiPos(UserPrefix, FieldByName('relationname').Asstring) = 1 then
+  if IsUserDefined then
   begin
     atRelation := atDatabase.Relations.ByRelationName(FieldByName('relationname').Asstring);
 
@@ -9921,7 +9726,7 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  if AnsiPos(UserPrefix, AnsiUpperCase(FieldByName('generatorname').AsString)) = 0 then
+  if not IsUserDefined then
     raise EgdcIBError.Create('Вы не можете удалить стандартный генератор!');
 
   Drop;
@@ -9961,7 +9766,7 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  if AnsiPos(UserPrefix, AnsiUpperCase(FieldByName('generatorname').AsString)) = 1 then
+  if IsUserDefined then
     MetaDataCreate;
   inherited;
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCGENERATOR', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
@@ -10281,7 +10086,7 @@ procedure TgdcGenerator._SaveToStream(Stream: TStream;
   WithDetailList: TgdKeyArray; const SaveDetailObjects: Boolean = True);
 begin
   //В поток сохраняем только генераторы-атрибуты
-  if AnsiPos(UserPrefix, AnsiUpperCase(FieldByName('generatorname').AsString)) = 1 then
+  if IsUserDefined then
   begin
     SaveToStreamDependencies(Stream, ObjectSet,
       FieldByName('generatorname').AsString, PropertyList, BindedList, WithDetailList, SaveDetailObjects);
@@ -10348,22 +10153,15 @@ begin
   Result := 'Генератор';
 end;
 
-function TgdcGenerator.GetCanDelete: Boolean;
-begin
-  Result := inherited GetCanDelete and Active and
-    (AnsiPos(UserPrefix, AnsiUpperCase(FieldByName('generatorname').AsString)) = 1);
-end;
-
-function TgdcGenerator.GetCanEdit: Boolean;
-begin
-  Result := inherited GetCanEdit and Active and
-    (AnsiPos(UserPrefix, AnsiUpperCase(FieldByName('generatorname').AsString)) = 1);
-end;
-
 class function TgdcGenerator.GetDialogFormClassName(
   const ASubType: TgdcSubType): String;
 begin
   Result := 'Tgdc_dlgGenerator';
+end;
+
+function TgdcGenerator.GetFirebirdObjectName: String;
+begin
+  Result := FieldByName('generatorname').AsString;
 end;
 
 { TgdcCheckConstraint }
@@ -10375,10 +10173,10 @@ procedure TgdcCheckConstraint._SaveToStream(Stream: TStream;
 begin
   inherited;
   //В поток сохраняем только чеки-атрибуты
-  if AnsiPos(UserPrefix, AnsiUpperCase(FieldByName('checkname').AsString)) = 1 then
+  if IsUserDefined then
   begin
     SaveToStreamDependencies(Stream, ObjectSet,
-      FieldByName('checkname').AsString, PropertyList, BindedList, WithDetailList, SaveDetailObjects);
+      FirebirdObjectName, PropertyList, BindedList, WithDetailList, SaveDetailObjects);
     inherited;
   end;
 end;
@@ -10470,11 +10268,14 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  if AnsiPos(UserPrefix, AnsiUpperCase(FieldByName('checkname').AsString)) = 0 then
+
+  if not IsUserDefined then
     raise EgdcIBError.Create('Вы не можете удалить стандартное ограничение!');
 
   Drop;
+
   inherited;
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCCHECKCONSTRAINT', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -10510,7 +10311,7 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  if AnsiPos(UserPrefix, AnsiUpperCase(FieldByName('checkname').AsString)) = 1 then
+  if IsUserDefined then
     MetaDataCreate;
   inherited;
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCCHECKCONSTRAINT', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
@@ -10848,18 +10649,6 @@ begin
   end;
 end;
 
-function TgdcCheckConstraint.GetCanDelete: Boolean;
-begin
-  Result := inherited GetCanDelete and Active and
-    (AnsiPos(UserPrefix, AnsiUpperCase(FieldByName('checkname').AsString)) = 1);
-end;
-
-function TgdcCheckConstraint.GetCanEdit: Boolean;
-begin
-  Result := inherited GetCanEdit and Active and
-    (AnsiPos(UserPrefix, AnsiUpperCase(FieldByName('checkname').AsString)) = 1);
-end;
-
 function TgdcCheckConstraint.CheckName: Boolean;
 var
   ibsql: TIBSQL;
@@ -10872,10 +10661,8 @@ begin
     ibsql.ParamByName('checkname').AsString := FieldByName('checkname').AsString;
     ibsql.ExecQuery;
 
-    if ibsql.RecordCount > 0 then
-    begin
+    if not ibsql.EOF then
       Result := False;
-    end else
   finally
     ibsql.Free;
   end;
@@ -10933,6 +10720,11 @@ class function TgdcBaseTable.GetDialogFormClassName(
   const ASubType: TgdcSubType): String;
 begin
   Result := 'Tgdc_dlgRelation';
+end;
+
+function TgdcCheckConstraint.GetFirebirdObjectName: String;
+begin
+  Result := FieldByName('checkname').AsString;
 end;
 
 initialization
