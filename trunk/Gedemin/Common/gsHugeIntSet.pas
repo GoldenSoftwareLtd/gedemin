@@ -120,6 +120,7 @@ end;
 procedure TgsHugeIntSet.Clear;
 begin
   FillChar(FData^, FSize, #00);
+  FCount := 0;
 end;
 
 end.
