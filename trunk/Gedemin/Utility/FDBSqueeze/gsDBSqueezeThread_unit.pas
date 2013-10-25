@@ -40,8 +40,10 @@ const
   WM_DBS_CREATEINVSALDO        = WM_USER + 31;
   WM_DBS_RESTOREDB             = WM_USER + 32;
   WM_DBS_REBINDINVCARDS        = WM_USER + 33;
-  WM_DBS_FINISHED              = WM_USER + 34;
-  WM_DBS_DISCONNECT            = WM_USER + 35;
+  WM_DBS_CLEARDBSTABLES        = WM_USER + 34;
+  WM_DBS_FINISH                = WM_USER + 35;
+  WM_DBS_FINISHED              = WM_USER + 36;
+  WM_DBS_DISCONNECT            = WM_USER + 37;
 
 type
   TErrorEvent = procedure(const ErrorMsg: String) of object;
@@ -57,6 +59,7 @@ type
 
   TgsDBSqueezeThread = class(TgdMessagedThread)
   private
+    FFinish: Boolean;
     FBusy: TidThreadSafeInteger;
     FLogFileName: TidThreadSafeString;
     FBackupFileName: TidThreadSafeString;
@@ -205,7 +208,8 @@ begin
   FMessageStrList := TStringList.Create;
   FMessagePropertiesList := TStringList.Create;
   FState.Value := 1;
-
+  FFinish := False;
+  
   inherited Create(CreateSuspended);
 end;
 
@@ -230,6 +234,7 @@ end;
 procedure TgsDBSqueezeThread.Connect;
 begin
   //if not Connected then
+    DoGetDBSize;
     PostMsg(WM_DBS_CONNECT);
 end;
 
@@ -291,14 +296,17 @@ end;
 
 procedure TgsDBSqueezeThread.DoOnGetInfoTestConnectSync;
 begin
-  if Assigned(FOnGetInfoTestConnect) then
-    FOnGetInfoTestConnect(FMsgConnectSuccess, FMsgConnectInfoList);
+  if Assigned(FOnGetInfoTestConnect) and Assigned(FMsgConnectInfoList) then
+    FOnGetInfoTestConnect(FMsgConnectSuccess, FMsgConnectInfoList)
+  else
+    FOnGetInfoTestConnect(FMsgConnectSuccess, nil);
 end;
 
 procedure TgsDBSqueezeThread.GetInfoTestConnect(const AMsgConnectSuccess: Boolean; const AMsgConnectInfoList: TStringList);
 begin
   FMsgConnectSuccess := AMsgConnectSuccess;
-  FMsgConnectInfoList.Text := AMsgConnectInfoList.Text;
+  if AMsgConnectInfoList <> nil then
+    FMsgConnectInfoList.Text := AMsgConnectInfoList.Text;
   Synchronize(DoOnGetInfoTestConnectSync);
 end;
 
@@ -370,7 +378,10 @@ begin
         except
           on E: Exception do
           begin
-            FDBS.LogEvent('[error]' + E.Message);
+            FDBS.LogEvent('Testing connecting as having failed: ' + #13#10 + E.Message);
+            FOnErrorEvent('Testing connecting as having failed: ' + #13#10 + E.Message);
+            GetInfoTestConnect(False, nil);
+            FDBS.LogEvent('Testing connection... OK');
           end;
         end;
         FState.Value := 1;
@@ -418,19 +429,27 @@ begin
           FBusy.Value := 1;
         //end;
         FState.Value := 1;
+
+        if FFinish then
+          PostThreadMessage(ThreadID, WM_DBS_CONNECT, 0, 0);
+
         Result := True;
       end;
 
     WM_DBS_CONNECT:
       begin
-          FDBS.Connect(False, True);        // garbage collect ON
-         // FConnected.Value := 1;
-          FState.Value := 1;
+        FDBS.Connect(False, True);        // garbage collect ON
+       // FConnected.Value := 1;
+        FState.Value := 1;
 
-     //     FBusy.Value := 1;
+   //     FBusy.Value := 1;
 
-          PostThreadMessage(ThreadID, WM_DBS_CREATEDBSSTATEJOURNAL, 0, 0);
-          Result := True;
+        if not FFinish then
+          PostThreadMessage(ThreadID, WM_DBS_CREATEDBSSTATEJOURNAL, 0, 0)
+        else
+          PostThreadMessage(ThreadID, WM_DBS_FINISHED, 0, 0);
+
+        Result := True;
       end;
 
     WM_DBS_CREATEDBSSTATEJOURNAL:
@@ -441,6 +460,7 @@ begin
 
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
           FState.Value := 1;
+
           PostThreadMessage(ThreadID, WM_DBS_GETDBPROPERTIES, 0, 0);
         //end;
         Result := True;
@@ -553,8 +573,7 @@ begin
        // begin
           FBusy.Value := 1;
 
-        // если завершается выполнение программы, а не прерывание
-          FDBS.ClearDBSTables;
+
 
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
           FState.Value := 1;
@@ -786,14 +805,34 @@ begin
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
           FState.Value := 1;
 
-          PostThreadMessage(ThreadID, WM_DBS_STOPPROCESSING, 0, 0);
-
+          PostThreadMessage(ThreadID, WM_DBS_CLEARDBSTABLES, 0, 0);
        // end;
+        Result := True;
+      end;
+
+    WM_DBS_CLEARDBSTABLES:
+      begin
+        FBusy.Value := 1;
+
+        FDBS.ClearDBSTables;
+
+        FDBS.InsertDBSStateJournal(Msg.Message, 1);
+        FState.Value := 1;
+
+        PostThreadMessage(ThreadID, WM_DBS_FINISH, 0, 0);
+        Result := True;
+      end;
+
+    WM_DBS_FINISH:
+      begin
+        FFinish:= True;
+        PostThreadMessage(ThreadID, WM_DBS_DISCONNECT, 0, 0);
         Result := True;
       end;
 
     WM_DBS_FINISHED:
       begin
+        FFinish:= False;
         FBusy.Value := 0;
         Result := True;
       end;
@@ -806,6 +845,8 @@ begin
           FConnected.Value := 0;
 
           FState.Value := 1;
+
+          PostThreadMessage(ThreadID, WM_DBS_GETDBSIZE, 0, 0);
        // end;
         Result := True;
       end;
@@ -922,6 +963,7 @@ begin
   //end
 end;
 
+
 procedure TgsDBSqueezeThread.DoGetDBSize;
 begin
     PostMsg(WM_DBS_GETDBSIZE);
@@ -929,11 +971,11 @@ end;
 
 procedure TgsDBSqueezeThread.GetDBSize(const AMessageDBSizeStr: String);
 begin
-  if (not Busy) then                       ///////////////////
-  begin
+  //if (not Busy) then                       ///////////////////
+  //begin
     FMessageDBSizeStr := AMessageDBSizeStr;
     Synchronize(DoOnGetDBSizeSync);
-  end;
+  //end;
 end;
 
 procedure TgsDBSqueezeThread.DoGetStatistics;

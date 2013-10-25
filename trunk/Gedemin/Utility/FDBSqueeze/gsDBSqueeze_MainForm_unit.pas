@@ -5,7 +5,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs, FileCtrl, 
   ActnList, StdCtrls, gsDBSqueezeThread_unit, gd_ProgressNotifier_unit,
-  ComCtrls, DBCtrls, Buttons, ExtCtrls, Spin;
+  ComCtrls, DBCtrls, Buttons, ExtCtrls, Spin, Grids, GsHugeIntSet;
 
 type
   TgsDBSqueeze_MainForm = class(TForm, IgdProgressWatch)
@@ -77,7 +77,6 @@ type
     btnGo: TBitBtn;
     btnBack3: TBitBtn;
     sttxtStateTestConnect: TStaticText;
-    sttxtServer: TStaticText;
     chkbSaveLogs: TCheckBox;
     lblLogDir: TLabel;
     chkBackup: TCheckBox;
@@ -92,9 +91,6 @@ type
     rbStartOver: TRadioButton;
     rbContinue: TRadioButton;
     sttxtActivUserCount: TStaticText;
-    lblTestConnectState: TLabel;
-    lblServerVersion: TLabel;
-    lblActivConnectCount: TLabel;
     statbarMain: TStatusBar;
     pbMain: TProgressBar;
     btnStop: TButton;
@@ -156,10 +152,10 @@ type
     sttxtProcAcEntry: TStaticText;
     sttxtProcInvMovement: TStaticText;
     sttxtProcInvCard: TStaticText;
-    txt1: TStaticText;
-    StaticText1: TStaticText;
-    StaticText2: TStaticText;
-    txt7: TStaticText;
+    sttxtAfterProcGdDoc: TStaticText;
+    sttxtAfterProcAcEntry: TStaticText;
+    sttxtAfterProcInvMovement: TStaticText;
+    sttxtAfterProcInvCard: TStaticText;
     shp6: TShape;
     btnGetStatistics: TButton;
     btnUpdateStatistics: TBitBtn;
@@ -170,6 +166,22 @@ type
     shp11: TShape;
     shp12: TShape;
     shp13: TShape;
+    sttxtServerName: TStaticText;
+    sttxtTestServer: TStaticText;
+    sttxtActivConnects: TStaticText;
+    sttxtTestConnectState: TStaticText;
+    tsSettings2: TTabSheet;
+    btn1: TButton;
+    btn2: TButton;
+    txt1: TStaticText;
+    shp14: TShape;
+    pgcDocTypesSettings: TPageControl;
+    tsIgnoreDocTypes: TTabSheet;
+    tsProcDocTypes: TTabSheet;
+    strngrdIgnoreDocTypes: TStringGrid;
+    mIgnoreDocTypes: TMemo;
+    strngrdProcDocTypes: TStringGrid;
+    mProcDocTypes: TMemo;
 
     procedure actTestConnectExecute(Sender: TObject);
     procedure actTestConnectUpdate(Sender: TObject);
@@ -199,6 +211,9 @@ type
     procedure actDirectoryBrowseUpdate(Sender: TObject);
     procedure actStopExecute(Sender: TObject);
     procedure actStopUpdate(Sender: TObject);
+    procedure strngrdIgnoreDocTypesDrawCell(Sender: TObject; ACol,
+      ARow: Integer; Rect: TRect; State: TGridDrawState);
+    procedure strngrdIgnoreDocTypesDblClick(Sender: TObject);
 
   private
     FSThread: TgsDBSqueezeThread;
@@ -208,6 +223,10 @@ type
     FSaveLogs: Boolean;
     FLogFileStream: TFileStream;
     FDatabaseName: String;
+
+    FStrGridClickRowSelect: Integer;
+    FStrGridClickRowUnSelect: Integer;
+    FStrGridClickRowSelectHIS: TgsHugeIntSet;
 
     procedure ErrorEvent(const AErrorMsg: String);
     procedure GetConnectedEvent(const AConnected: Boolean);
@@ -270,6 +289,11 @@ begin
   FSThread.OnGetStatistics := GetStatisticsEvent;
   FSThread.OnGetProcStatistics := GetProcStatisticsEvent;
   FContinueProcFunctionKey := 0;
+
+  FStrGridClickRowSelect := -1;
+  FStrGridClickRowUnSelect := -1;
+
+  FStrGridClickRowSelectHIS := TgsHugeIntSet.Create;
 end;
 
 destructor TgsDBSqueeze_MainForm.Destroy;
@@ -277,7 +301,7 @@ begin
   FSThread.Free;
   if Assigned(FLogFileStream) then
     FLogFileStream.Free;
-
+  FStrGridClickRowSelectHIS.Free;
   inherited;
 end;
 
@@ -288,38 +312,44 @@ end;
 
 procedure TgsDBSqueeze_MainForm.actDisconnectExecute(Sender: TObject);
 begin
-  cbbCompany.Clear;
-  lblTestConnectState.Enabled := False;
-  sttxtStateTestConnect.Enabled := False;
-  sttxtStateTestConnect.Caption := '';
-  sttxtServer.Caption := '';
-  sttxtActivUserCount.Caption := '';
-  sttxtServer.Visible := False;
-  sttxtActivUserCount.Visible := False;
-  lblServerVersion.Visible := False;
-  lblActivConnectCount.Visible := False;
-
   FSThread.Disconnect;
+
+  sttxtStateTestConnect.Caption := 'unknown';
+  sttxtServerName.Caption := '';
+  sttxtActivUserCount.Caption := '';
+  sttxtServerName.Visible := False;
+  sttxtTestServer.Visible := False;
+  sttxtActivUserCount.Visible := False;
+  sttxtActivConnects.Visible := False;
+
+  cbbCompany.Clear;
+
+  dtpClosingDate.Date := Date;
+  rbAllOurCompanies.Checked := True;
+  grpReprocessingType.Enabled := False;
+  mReviewSettings.Clear;
+
+  FConnected := False;
+  FStartupTime := Now;
 
   btnGetStatistics.Enabled := False;
   btnUpdateStatistics.Enabled := False;
 
-  FSThread.DoGetDBSize;                                                         ////
+  mSqlLog.Clear;
+  mLog.Clear;
 end;
 
 procedure TgsDBSqueeze_MainForm.GetInfoTestConnectEvent(const AConnectSuccess: Boolean; const AConnectInfoList: TStringList);
 begin
-  lblTestConnectState.Enabled := True;
-  sttxtStateTestConnect.Enabled := True;
   if AConnectSuccess then
   begin
     sttxtStateTestConnect.Caption := 'SUCCESS';
-    sttxtServer.Caption := sttxtServer.Caption + AConnectInfoList.Values['ServerVersion'];
+    sttxtServerName.Caption := sttxtServerName.Caption + AConnectInfoList.Values['ServerName'] + ' ' + AConnectInfoList.Values['ServerVersion'];
     sttxtActivUserCount.Caption := sttxtActivUserCount.Caption + AConnectInfoList.Values['ActivConnectCount'];
-    sttxtServer.Visible := True;
+    sttxtServerName.Visible := True;
+    sttxtTestServer.Visible := True;
     sttxtActivUserCount.Visible := True;
-    lblServerVersion.Visible := True;
-    lblActivConnectCount.Visible := True;
+    sttxtActivConnects.Visible := True;
   end
   else begin
     sttxtStateTestConnect.Caption := 'FAIL';
@@ -381,8 +411,10 @@ procedure TgsDBSqueeze_MainForm.GetDBSizeEvent(const AnDBSize: String);
 begin
   if Trim(sttxtDBSizeBefore.Caption) = '' then
     sttxtDBSizeBefore.Caption := AnDBSize
-  else
-   sttxtDBSizeAfter.Caption := AnDBSize;
+  else begin
+    sttxtDBSizeAfter.Enabled := True;
+    sttxtDBSizeAfter.Caption := AnDBSize;
+  end;
 end;
 
 procedure TgsDBSqueeze_MainForm.GetStatisticsEvent(
@@ -421,10 +453,21 @@ procedure TgsDBSqueeze_MainForm.GetProcStatisticsEvent(
   const AnProcInvCard: String);
 begin
   WriteToLogFile('=========== Number of processing records in a table ===========');
-  sttxtProcGdDoc.Caption := AProcGdDoc;
-  sttxtProcAcEntry.Caption := AnProcAcEntry;
-  sttxtProcInvMovement.Caption := AnProcInvMovement;
-  sttxtProcInvCard.Caption := AnProcInvCard;
+  if (Trim(sttxtProcGdDoc.Caption) = '') and (Trim(sttxtProcAcEntry.Caption) = '') and (Trim(sttxtProcInvMovement.Caption) = '') then
+  begin
+    sttxtProcGdDoc.Caption := AProcGdDoc;
+    sttxtProcAcEntry.Caption := AnProcAcEntry;
+    sttxtProcInvMovement.Caption := AnProcInvMovement;
+    sttxtProcInvCard.Caption := AnProcInvCard;
+    WriteToLogFile('Original: ');
+  end
+  else begin
+    sttxtAfterProcGdDoc.Caption := AProcGdDoc;
+    sttxtAfterProcAcEntry.Caption := AnProcAcEntry;
+    sttxtAfterProcInvMovement.Caption := AnProcInvMovement;
+    sttxtAfterProcInvCard.Caption := AnProcInvCard;
+    WriteToLogFile('Now: ');
+  end;
   WriteToLogFile('GD_DOCUMENT: ' + AProcGdDoc);
   WriteToLogFile('AC_ENTRY: ' + AnProcAcEntry);
   WriteToLogFile('INV_MOVEMENT: ' + AnProcInvMovement);
@@ -573,8 +616,29 @@ begin
   begin
     if not FConnected then
     begin
-      FSThread.DoGetDBSize;
-
+      sttxtGdDoc.Caption := '';
+      sttxtGdDocAfter.Caption := '';
+      sttxtAcEntry.Caption := '';
+      sttxtAcEntryAfter.Caption := '';
+      sttxtInvMovement.Caption := '';
+      sttxtInvMovementAfter.Caption := '';
+      sttxtInvMovement.Caption := '';
+      sttxtInvMovementAfter.Caption := '';
+      sttxtInvCard.Caption := '';
+      sttxtInvCardAfter.Caption := '';
+      sttxtUser.Caption := '';
+      sttxtDialect.Caption := '';
+      sttxtServerVer.Caption := '';
+      sttxtODSVer.Caption := '';
+      sttxtRemoteProtocol.Caption := '';
+      sttxtRemoteAddr.Caption := '';
+      sttxtPageSize.Caption := '';
+      sttxtPageBuffers.Caption := '';
+      sttxtForcedWrites.Caption := '';
+      sttxtGarbageCollection.Caption := '';
+      sttxtDBSizeBefore.Caption := '';
+      sttxtDBSizeAfter.Caption := '';
+      
       if (actDefaultPort.Enabled) and (chkDefaultPort.Checked) then
         FSThread.SetDBParams(
           edtHost.Text + ':' + edDatabaseName.Text,
@@ -609,7 +673,7 @@ begin
       end;
 
       if rbCompany.Checked then
-        FSThread.SetCompanyName(cbbCompany.Text);
+        FSThread.SetCompanyName(Trim(Copy(cbbCompany.Text, 1, Pos('|', cbbCompany.Text)-1)));
 
       FSThread.SetClosingDate(dtpClosingDate.Date);
 
@@ -750,8 +814,12 @@ end;
 
 procedure TgsDBSqueeze_MainForm.actTestConnectExecute(Sender: TObject);
 begin
-  sttxtStateTestConnect.Caption:= '';
-  sttxtServer.Caption := '';
+  sttxtTestServer.Visible := False;
+  sttxtServerName.Visible := False;
+  sttxtActivConnects.Visible := False;
+  sttxtActivUserCount.Visible := False;
+  sttxtStateTestConnect.Caption:= 'unknown';
+  sttxtServerName.Caption := '';
   sttxtActivUserCount.Caption := '';
 
   if (actDefaultPort.Enabled and chkDefaultPort.Checked) then
@@ -860,6 +928,45 @@ end;
 procedure TgsDBSqueeze_MainForm.actStopUpdate(Sender: TObject);
 begin
   actStop.Enabled := not btnGo.Enabled;
+end;
+
+procedure TgsDBSqueeze_MainForm.strngrdIgnoreDocTypesDrawCell(Sender: TObject;
+  ACol, ARow: Integer; Rect: TRect; State: TGridDrawState);
+var
+  AGrid : TStringGrid;
+begin
+   AGrid:=TStringGrid(Sender);
+
+   if not FStrGridClickRowSelectHIS.Has(ARow) then
+     AGrid.Canvas.Brush.Color := clWhite
+   else
+     AGrid.Canvas.Brush.Color := clRed;
+
+   if (gdSelected in State) then
+   begin
+     if not FStrGridClickRowSelectHIS.Has(ARow) then
+     begin
+       AGrid.Canvas.Brush.Color := clWhite;
+     end
+     else
+       AGrid.Canvas.Brush.Color := $00595EFF;
+   end;
+    AGrid.Canvas.FillRect(Rect);  //paint the backgorund red
+    AGrid.Canvas.TextOut(Rect.Left + 2, Rect.Top + 2, AGrid.Cells[ACol, ARow]);
+end;
+
+procedure TgsDBSqueeze_MainForm.strngrdIgnoreDocTypesDblClick(
+  Sender: TObject);
+begin
+  if Sender = strngrdIgnoreDocTypes then
+  begin
+    if not FStrGridClickRowSelectHIS.Has((Sender as TStringGrid).Row) then
+      FStrGridClickRowSelectHIS.Include((Sender as TStringGrid).Row)
+    else begin
+      FStrGridClickRowSelectHIS.Exclude((Sender as TStringGrid).Row);
+    end;
+    (Sender as TStringGrid).Repaint;
+  end;
 end;
 
 end.

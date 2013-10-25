@@ -126,7 +126,7 @@ type
 
     procedure GetDBPropertiesEvent;   // получить информацию о БД
     procedure GetDBSizeEvent;         // получить размер файла БД
-    procedure GetInfoTestConnectEvent;// получить версию сервера и количество подключенных юзеров
+    procedure GetInfoTestConnectEvent;// получить версию сервера и количество подключенных юзеров (учитывая нас)
     procedure GetProcStatisticsEvent; // получить кол-во записей для обработки в GD_DOCUMENT, AC_ENTRY, INV_MOVEMENT
     procedure GetStatisticsEvent;     // получить текущее кол-во записей в GD_DOCUMENT, AC_ENTRY, INV_MOVEMENT
     procedure SetItemsCbbEvent;       // заполнить список our companies для ComboBox
@@ -165,7 +165,7 @@ type
 implementation
 
 uses
-  mdf_MetaData_unit, gdcInvDocument_unit, contnrs, IBQuery, IBServices, Messages;
+  mdf_MetaData_unit, gdcInvDocument_unit, contnrs, IBQuery, IBServices, Messages, IBDatabaseInfo;
 
 { TgsDBSqueeze }
 
@@ -1028,7 +1028,8 @@ begin
     // очистка GD_RUID от записей, содержащих значения PK удаляемых записей
     q.Close;
     q.SQL.Text :=
-      'DELETE FROM gd_ruid WHERE g_his_has(1, xid) = 1';
+      'DELETE FROM gd_ruid r ' +
+      'WHERE g_his_has(1, r.xid) = 1 ';
     ExecSqlLogEvent(q, 'DeleteOldAcEntryBalance');
 
     Tr.Commit;
@@ -2368,7 +2369,7 @@ var
 
   begin
     LogEvent('Including cascading sequences in HIS...');
-    Assert(ATableName <> '');
+    Assert(Trim(ATableName) <> '');
 
     FkFieldsList := TStringList.Create;
     FkFieldsList2 := TStringList.Create;
@@ -3354,12 +3355,8 @@ var
 
           TblsNamesList.Delete(0);
         end;
+        ///////////////////////
 
-//////
- 
-        
-
-//////
         LogEvent('[test] COUNT HIS (AFTER EXCLUDE: ' + IntToStr(GetCountHIS(1)));
 
         Tr.Commit;
@@ -3367,13 +3364,9 @@ var
 
         DestroyHIS(2);
 
-
-
-
         ///////////////////////
-
-
         FCascadeTbls.Text := AllProcessedTblsNames.Text;
+        LogEvent('[AAA test] AllProc до Line: ' + AllProcessedTblsNames.Text);
     //----------------------------- обработка таблиц, у которых PK является FK 
         AllProc.Text := AllProcessedTblsNames.Text;
         LogEvent('[test] LineTblsList: ' + LineTblsList.Text);
@@ -3443,12 +3436,14 @@ var
         LinePosInx := 0;
         LinePosList.Text := StringReplace(LineTblsList.Values[LineTblsList.Names[0]], ';', #13#10, [rfReplaceAll, rfIgnoreCase]);
 
-        AllProc.CommaText := StringReplace(
-          AllProc.CommaText,
-          LinePosList[LinePosInx],
-          LinePosList[LinePosInx] + ',' + LineTblsList.Names[0],
-          [rfIgnoreCase]
-        );
+        if AllProc.IndexOf(LineTblsList.Names[0]) = -1 then            //// продумать
+          AllProc.CommaText := StringReplace(
+            AllProc.CommaText,
+            LinePosList[LinePosInx],
+            LinePosList[LinePosInx] + ',' + LineTblsList.Names[0],
+            [rfIgnoreCase]
+        ) else
+          LogEvent('[AAA test] предотвратили повтор AllProc: LineTblsList.Names[0]=' + LineTblsList.Names[0]);
 
         CascadeProcTbls.Clear;
         ProcTblsNamesList.Clear;
@@ -3695,20 +3690,25 @@ var
                 AllProcessedTblsNames.Append(UpperCase(q.FieldByName('relation_name').AsString));
                 TblsNamesList.Append(UpperCase(q.FieldByName('relation_name').AsString));
 
-                if (not (LinePosInx > LinePosList.Count-1)) and (AllProc.IndexOf(LinePosList[LinePosInx]) <> -1) then
+                if AllProc.IndexOf(UpperCase(q.FieldByName('relation_name').AsString)) = -1 then ///test продумать
                 begin
-                  AllProc.CommaText := StringReplace(
-                    AllProc.CommaText,
-                    LinePosList[LinePosInx],
-                    LinePosList[LinePosInx] + ',' + UpperCase(q.FieldByName('relation_name').AsString),
-                    [rfIgnoreCase]
-                  );
+                  if (not (LinePosInx > LinePosList.Count-1)) and (AllProc.IndexOf(LinePosList[LinePosInx]) <> -1) then
+                  begin
+                    AllProc.CommaText := StringReplace(
+                      AllProc.CommaText,
+                      LinePosList[LinePosInx],
+                      LinePosList[LinePosInx] + ',' + UpperCase(q.FieldByName('relation_name').AsString),
+                      [rfIgnoreCase]
+                    );
 
+                  end
+                  else begin
+                      ///AllProc.Insert(LinePosInx, UpperCase(q.FieldByName('relation_name').AsString));
+                    AllProc.Append(UpperCase(q.FieldByName('relation_name').AsString));
+                  end;
                 end
-                else begin
-                    ///AllProc.Insert(LinePosInx, UpperCase(q.FieldByName('relation_name').AsString));
-                  AllProc.Append(UpperCase(q.FieldByName('relation_name').AsString));
-                end;
+                else
+                  LogEvent('[AAA test] предотвратили повтор AllProc: relation_name=' + UpperCase(q.FieldByName('relation_name').AsString));
               end
               else begin// закончили переобработку Ситуации 3. круг 2
                 DoNothing := False;
@@ -4512,9 +4512,6 @@ var
         Tr2.StartTransaction;
 
         DestroyHIS(2);
-
-
-
         ///////////////
          //------------------ исключение из HIS_3 PK, на которые ссылаются PK<147000000
 
@@ -5235,6 +5232,32 @@ var
        end;
        LogEvent('[test] COUNT HIS after exclude: ' + IntToStr(GetCountHIS(1)));
 
+       LogEvent('[TEST] AllProc: ' + AllProc.Text);
+       if AllProc.IndexOf('GD_RUID') = -1 then
+         AllProc.Append('GD_RUID');
+       if AllProc.IndexOf('AC_ENTRY_BALANCE') = -1 then
+         AllProc.Append('AC_ENTRY_BALANCE');
+       if AllProc.IndexOf('AC_RECORD') = -1 then
+         AllProc.Append('AC_RECORD');
+       if AllProc.IndexOf('AC_ENTRY') = -1 then
+         AllProc.Append('AC_ENTRY');
+       if AllProc.IndexOf('INV_CARD') = -1 then
+         AllProc.Append('INV_CARD');
+       if AllProc.IndexOf('INV_MOVEMENT') = -1 then
+         AllProc.Append('INV_MOVEMENT');
+
+       //// INSERT во временную таблицу список ВСЕХ обработанных таблиц AllProc;
+       q2.SQL.Text :=
+         'INSERT INTO DBS_TMP_PROCESSED_TABLES (RELATION_NAME) VALUES (:RN)';
+       q2.Prepare;
+
+       while AllProc.Count <> 0 do
+       begin
+         q2.ParamByName('RN').AsString := AllProc[0];
+         ExecSqlLogEvent(q2, 'IncludeCascadingSequences', 'RN=' + AllProc[0]);
+         AllProc.Delete(0);
+       end;
+       
         Tr.Commit;
         Tr2.Commit;
 
@@ -5378,7 +5401,7 @@ begin
       '    FROM dbs_tmp_pk_hash ' +                                     #13#10 +
       '    WHERE pk_field = :PF AND relation_name = :RN ' +             #13#10 +
       '    INTO :KOLVO; ' +                                             #13#10 +
-      '    EXECUTE STATEMENT ''DELETE FROM ''||:RN|| '' WHERE g_his_has(2, '' ||:PF|| '')=1 AND ''||:PF||''> 147000000''; ' + #13#10 +
+      '    EXECUTE STATEMENT ''DELETE FROM ''||:RN|| '' WHERE g_his_has(2, '' ||:PF|| '')=1 ''; ' + #13#10 +
       '    g_his_destroy(2); ' +                                        #13#10 +
       '  END ' +                                                        #13#10 +
       'END ';
@@ -5389,7 +5412,6 @@ begin
     DestroyHIS(0);
 
     Tr.Commit;
-
     LogEvent('Deleting from DB... OK');
   finally
     q.Free;
@@ -5417,11 +5439,12 @@ var
       '  DECLARE VARIABLE TN CHAR(31); ' +                                          #13#10 +
       'BEGIN ' +                                                                    #13#10 +
       '  FOR ' +                                                                    #13#10 +
-      '    SELECT rdb$trigger_name ' +                                              #13#10 +
-      '    FROM rdb$triggers ' +                                                    #13#10 +
-      '    WHERE ((rdb$trigger_inactive = 0) OR (rdb$trigger_inactive IS NULL)) ' + #13#10 +
-      '      AND ((RDB$SYSTEM_FLAG = 0) OR (RDB$SYSTEM_FLAG IS NULL)) ' +           #13#10 +
-      //'      AND RDB$TRIGGER_NAME NOT IN (SELECT RDB$TRIGGER_NAME FROM RDB$CHECK_CONSTRAINTS) ' + 
+      '    SELECT t.rdb$trigger_name ' +                                              #13#10 +
+      '    FROM rdb$triggers t ' +                                                    #13#10 +
+      '      JOIN DBS_TMP_PROCESSED_TABLES p ON p.relation_name = t.RDB$RELATION_NAME ' +  #13#10 +                                                   ////test
+      '    WHERE ((t.rdb$trigger_inactive = 0) OR (t.rdb$trigger_inactive IS NULL)) ' + #13#10 +
+      '      AND ((t.RDB$SYSTEM_FLAG = 0) OR (t.RDB$SYSTEM_FLAG IS NULL)) ' +           #13#10 +
+      //'      AND RDB$TRIGGER_NAME NOT IN (SELECT RDB$TRIGGER_NAME FROM RDB$CHECK_CONSTRAINTS) ' +
       '    INTO :TN ' +                                                             #13#10 +
       '  DO ' +                                                                     #13#10 +
       '  BEGIN ' +                                                                  #13#10 +
@@ -5444,15 +5467,16 @@ var
       '  DECLARE VARIABLE N CHAR(31); ' +                                       #13#10 +
       'BEGIN ' +                                                                #13#10 +
       '  FOR ' +                                                                #13#10 +
-      '    SELECT rdb$index_name ' +                                            #13#10 +
-      '    FROM rdb$indices ' +                                                 #13#10 +
-      '    WHERE ((rdb$index_inactive = 0) OR (rdb$index_inactive IS NULL)) ' + #13#10 +
-      '      AND ((RDB$SYSTEM_FLAG = 0) OR (RDB$SYSTEM_FLAG IS NULL)) ' +       #13#10 +
+      '    SELECT i.rdb$index_name ' +                                            #13#10 +
+      '    FROM rdb$indices i ' +                                                 #13#10 +
+      '      JOIN DBS_TMP_PROCESSED_TABLES p ON p.relation_name = i.RDB$RELATION_NAME ' +  #13#10 +  
+      '    WHERE ((i.rdb$index_inactive = 0) OR (i.rdb$index_inactive IS NULL)) ' + #13#10 +
+      '      AND ((i.RDB$SYSTEM_FLAG = 0) OR (i.RDB$SYSTEM_FLAG IS NULL)) ' +       #13#10 +
      /// '      AND ((rdb$index_name NOT LIKE ''DBS_%'') AND (rdb$index_name NOT LIKE ''PK_DBS_%'')) ' + #13#10 +        ///test
-      '      AND rdb$relation_name NOT LIKE ''DBS_%'' ' + 
-      '      AND ((NOT rdb$index_name LIKE ''RDB$%'') ' +                       #13#10 +
-      '        OR ((rdb$index_name LIKE ''RDB$PRIMARY%'') ' +                   #13#10 +
-      '        OR (rdb$index_name LIKE ''RDB$FOREIGN%'')) ' +                   #13#10 +
+      '      AND i.rdb$relation_name NOT LIKE ''DBS_%'' ' +
+      '      AND ((NOT i.rdb$index_name LIKE ''RDB$%'') ' +                       #13#10 +
+      '        OR ((i.rdb$index_name LIKE ''RDB$PRIMARY%'') ' +                   #13#10 +
+      '        OR (i.rdb$index_name LIKE ''RDB$FOREIGN%'')) ' +                   #13#10 +
       '      ) ' +                                                              #13#10 +
       '    INTO :N ' +                                                          #13#10 +
       '  DO ' +                                                                 #13#10 +
@@ -5473,9 +5497,10 @@ var
       '  DECLARE VARIABLE RN CHAR(31); ' +                              #13#10 +
       'BEGIN ' +                                                        #13#10 +
       '  FOR ' +                                                        #13#10 +
-      '    SELECT constraint_name, relation_name ' +                    #13#10 +
-      '    FROM DBS_PK_UNIQUE_CONSTRAINTS ' +                           #13#10 +
-      '    WHERE relation_name NOT LIKE ''DBS_%'' ' +                   #13#10 +
+      '    SELECT pc.constraint_name, pc.relation_name ' +                    #13#10 +
+      '    FROM DBS_PK_UNIQUE_CONSTRAINTS pc ' +                           #13#10 +
+      '      JOIN DBS_TMP_PROCESSED_TABLES p ON p.relation_name = pc.RELATION_NAME ' +  #13#10 +
+      '    WHERE pc.relation_name NOT LIKE ''DBS_%'' ' +                   #13#10 +
       '    INTO :CN, :RN ' +                                            #13#10 +
       '  DO ' +                                                         #13#10 +
       '    EXECUTE STATEMENT ''ALTER TABLE '' || :RN || '' DROP CONSTRAINT '' || :CN; ' + #13#10 +
@@ -5495,9 +5520,10 @@ var
       '  DECLARE VARIABLE RN CHAR(31); ' +                              #13#10 +
       'BEGIN ' +                                                        #13#10 +
       '  FOR ' +                                                        #13#10 +
-      '    SELECT constraint_name, relation_name ' +                    #13#10 +
-      '    FROM DBS_FK_CONSTRAINTS ' +                                  #13#10 +
-      '    WHERE constraint_name NOT LIKE ''DBS_%'' ' +                 #13#10 +
+      '    SELECT c.constraint_name, c.relation_name ' +                    #13#10 +
+      '    FROM DBS_FK_CONSTRAINTS c ' +                                  #13#10 +
+      ///'      JOIN DBS_TMP_PROCESSED_TABLES p ON p.relation_name = c.RELATION_NAME ' +  #13#10 +
+      '    WHERE c.constraint_name NOT LIKE ''DBS_%'' ' +                 #13#10 +
       '    INTO :CN, :RN ' +                                            #13#10 +
       '  DO ' +                                                         #13#10 +
       '    EXECUTE STATEMENT ''ALTER TABLE '' || :RN || '' DROP CONSTRAINT '' || :CN; ' + #13#10 +
@@ -5875,6 +5901,7 @@ var
       '  FOR ' +                                                                             #13#10 +
       '    SELECT t.rdb$trigger_name ' +                                                     #13#10 +
       '    FROM rdb$triggers t ' +                                                           #13#10 +
+      '      JOIN DBS_TMP_PROCESSED_TABLES p ON p.relation_name = t.RDB$RELATION_NAME ' +  #13#10 +
       '      LEFT JOIN dbs_inactive_triggers it ON it.trigger_name = t.rdb$trigger_name ' +  #13#10 +
       '    WHERE ((t.rdb$trigger_inactive <> 0) OR (t.rdb$trigger_inactive IS NOT NULL)) ' + #13#10 +
       '      AND ((t.rdb$system_flag = 0) OR (t.rdb$system_flag IS NULL)) ' +                #13#10 +
@@ -5901,6 +5928,7 @@ var
       '  FOR ' +                                                                          #13#10 +
       '    SELECT i.rdb$index_name ' +                                                    #13#10 +
       '    FROM rdb$indices i ' +                                                         #13#10 +
+      '      JOIN DBS_TMP_PROCESSED_TABLES p ON p.relation_name = i.RDB$RELATION_NAME ' +  #13#10 +
       '      LEFT JOIN dbs_inactive_indices ii ON ii.index_name = i.rdb$index_name ' +    #13#10 +
       '    WHERE ((i.rdb$index_inactive <> 0) AND (i.rdb$index_inactive IS NOT NULL)) ' + #13#10 +
       '      AND ((i.rdb$system_flag = 0) OR (i.rdb$system_flag IS NULL)) ' +             #13#10 +
@@ -5925,10 +5953,11 @@ var
       '  DECLARE VARIABLE S VARCHAR(16384); ' +                                                #13#10 +
       'BEGIN ' +                                                                               #13#10 +
       '  FOR ' +                                                                               #13#10 +
-      '    SELECT ''ALTER TABLE '' || relation_name || '' ADD CONSTRAINT '' || ' +             #13#10 +
-      '      constraint_name || '' '' || constraint_type ||'' ('' || list_fields || '') '' ' + #13#10 +
-      '    FROM dbs_pk_unique_constraints ' +                                                  #13#10 +
-      '    WHERE relation_name NOT LIKE ''DBS_%'' ' +                   #13#10 +
+      '    SELECT ''ALTER TABLE '' || c.relation_name || '' ADD CONSTRAINT '' || ' +             #13#10 +
+      '      c.constraint_name || '' '' || c.constraint_type ||'' ('' || c.list_fields || '') '' ' + #13#10 +
+      '    FROM dbs_pk_unique_constraints c ' +                                                  #13#10 +
+      '      JOIN DBS_TMP_PROCESSED_TABLES p ON p.relation_name = c.RELATION_NAME ' +  #13#10 +
+      '    WHERE c.relation_name NOT LIKE ''DBS_%'' ' +                   #13#10 +
       '    INTO :S ' +                                                  #13#10 +
       '  DO BEGIN ' +                                                   #13#10 +
       '    EXECUTE STATEMENT :S; '  +                                   #13#10 +  /// WITH AUTONOMOUS TRANSACTION
@@ -5958,6 +5987,7 @@ var
       '      IIF(c.update_rule = ''RESTRICT'', '''', '' ON UPDATE '' || c.update_rule) || ' +       #13#10 +
       '      IIF(c.delete_rule = ''RESTRICT'', '''', '' ON DELETE '' || c.delete_rule) ' +          #13#10 +
       '    FROM dbs_fk_constraints c ' +                                                            #13#10 +
+     /// '      JOIN DBS_TMP_PROCESSED_TABLES p ON p.relation_name = c.RELATION_NAME ' +  #13#10 +
       '    WHERE c.constraint_name NOT LIKE ''DBS_%'' ' +                                           #13#10 +
       '      AND NOT EXISTS( ' +                                                                    #13#10 +
       '        SELECT tmp.constraint_name ' +                                                       #13#10 +
@@ -5994,6 +6024,11 @@ begin
       RestorePkUniqueConstraints;
       RestoreFKConstraints;
       RestoreTriggers;///
+
+      q.SQL.Text :=
+        'ALTER TABLE DBS_TMP_PK_HASH DROP CONSTRAINT PK_DBS_TMP_PK_HASH';
+      ExecSqlLogEvent(q, 'DeleteDocuments_DeleteHIS');
+      Tr.Commit;
     except
       on E: Exception do
       begin
@@ -6027,7 +6062,7 @@ begin
     q.Transaction := Tr;
     q.SQL.Text :=
       'SELECT ' +                                       #13#10 +
-      '  TRIM(gc.fullname) AS CompName ' +              #13#10 +
+      '  TRIM(gc.fullname || '' | '' || go.companykey) AS CompName ' +              #13#10 +
       'FROM gd_ourcompany go ' +                        #13#10 +
       '  JOIN gd_company gc ' +                         #13#10 +
       '    ON go.companykey = gc.contactkey ';
@@ -6172,6 +6207,24 @@ var
   q: TIBSQL;
   q2: TIBSQL;
   Tr: TIBTransaction;
+
+  procedure CreateDBSTmpProcessedTbls;
+  begin
+    if RelationExist2('DBS_TMP_PROCESSED_TABLES', Tr) then
+    begin
+      q.SQL.Text := 'DELETE FROM dbs_tmp_processed_tables';
+      ExecSqlLogEvent(q, 'CreateDBSTmpProcessedTbls');
+      LogEvent('Table DBS_TMP_PROCESSED_TABLES exists.');
+    end else
+    begin
+      q.SQL.Text :=
+        'CREATE TABLE DBS_TMP_PROCESSED_TABLES ( ' +    #13#10 +
+        '  RELATION_NAME VARCHAR(31), ' +               #13#10 +
+        '  constraint PK_DBS_TMP_PROCESSED_TABLES primary key (RELATION_NAME))';
+      ExecSqlLogEvent(q, 'CreateDBSTmpProcessedTbls');
+      LogEvent('Table DBS_TMP_PROCESSED_TABLES has been created.');
+    end;
+  end;
 
   procedure CreateDBSTmpRebindInvCards;
   begin
@@ -6589,6 +6642,7 @@ begin
     q.Transaction := Tr;
     q2.Transaction := Tr;
 
+    CreateDBSTmpProcessedTbls;
     CreateDBSTmpPkHash;
     CreateDBSTmpAcSaldo;
     CreateDBSTmpInvSaldo;
@@ -6898,110 +6952,260 @@ end;
 
 procedure TgsDBSqueeze.GetDBPropertiesEvent;
 var
+  DBInfo: TIBDatabaseInfo;
+  ODSMajor, ODSMinor: Integer;
   q: TIBSQL;
   Tr: TIBTransaction;
   DBPropertiesList: TStringList; // Association list
 begin
   Assert(Connected);
 
+  DBInfo := TIBDatabaseInfo.Create(nil);
+  DBInfo.Database := FIBDatabase;
   DBPropertiesList := TStringList.Create;
   Tr := TIBTransaction.Create(nil);
   q := TIBSQL.Create(nil);
   try
+    ODSMajor := DBInfo.ODSMajorVersion;
+    ODSMinor := DBInfo.ODSMinorVersion;
+
+    try
+      case ODSMajor of
+        8:
+          begin
+            if ODSMinor = 0 then
+              DBPropertiesList.Append('Server=IB 4.0/4.1')
+            else if ODSMinor = 2 then
+              DBPropertiesList.Append('Server=IB 4.2')
+            else
+              raise EgsDBSqueeze.Create('Wrong ODS-version');
+          end;
+        9:
+          begin
+            if ODSMinor = 0 then
+              DBPropertiesList.Append('Server=IB 5.0/5.1')
+            else if ODSMinor = 1 then
+              DBPropertiesList.Append('Server=IB 5.5/5.6')
+            else
+              raise EgsDBSqueeze.Create('Wrong ODS-version');
+          end;
+        10:
+          begin
+            if ODSMinor = 0 then
+            begin
+              DBPropertiesList.Append('Server=FB 1.0/Yaffil');
+            end
+            else if ODSMinor = 1 then
+            begin
+              DBPropertiesList.Append('ServerVersion=FB 1.5');
+            end
+            else
+              raise EgsDBSqueeze.Create('Wrong ODS-version');
+          end;
+        11:
+          begin
+            case ODSMinor of
+              0: DBPropertiesList.Append('Server=FB 2.0');
+              1: DBPropertiesList.Append('Server=FB 2.1');
+              2: DBPropertiesList.Append('Server=FB 2.5');
+            else
+              raise EgsDBSqueeze.Create('Wrong ODS-version');
+            end;
+          end;
+        12:
+          begin
+            if ODSMinor = 0 then
+              DBPropertiesList.Append('Server=IB 2007')
+            else
+              raise EgsDBSqueeze.Create('Wrong ODS-version');
+          end;
+        13:
+          begin
+            if ODSMinor = 1 then
+              DBPropertiesList.Append('Server=IB 2009')
+            else
+              raise EgsDBSqueeze.Create('Wrong ODS-version');
+          end;
+        15:
+          begin
+            if ODSMinor = 0 then
+              DBPropertiesList.Append('Server=IB XE/XE3')
+            else
+              raise EgsDBSqueeze.Create('Wrong ODS-version');
+          end;
+      else
+        raise EgsDBSqueeze.Create('Wrong ODS-version');
+      end;
+    except
+      on E: EgsDBSqueeze do
+      raise EgsDBSqueeze.Create(E.Message+ ': ' + IntToStr(ODSMajor) + '.' +  IntToStr(ODSMinor));
+    end;
+
     Tr.DefaultDatabase := FIBDatabase;
     Tr.StartTransaction;
-
     q.Transaction := Tr;
 
-    q.SQL.Text :=
-      'SELECT ' +                                                         #13#10 +
-      '  rdb$get_context(''SYSTEM'', ''ENGINE_VERSION'') AS ServerVer ' + #13#10 +
-      'FROM rdb$database';
-    ExecSqlLogEvent(q, 'GetDBPropertiesEvent');
-    DBPropertiesList.Append('Server=' + q.FieldByName('ServerVer').AsString);
-    q.Close;
+    DBPropertiesList.Append('DBName=' + DBInfo.DBFileName);
+    DBPropertiesList.Append('ODS=' + IntToStr(ODSMajor) + '.' + IntToStr(ODSMinor));
+    DBPropertiesList.Append('PageSize=' + IntToStr(DBInfo.PageSize));
+    DBPropertiesList.Append('SQLDialect=' + IntToStr(DBInfo.DBSQLDialect));
+    DBPropertiesList.Append('ForcedWrites=' + IntToStr(DBInfo.ForcedWrites));
 
-    q.SQL.Text :=
-      'SELECT ' +                                        #13#10 +
-      '  mon$database_name   AS DBName, ' +              #13#10 +
-      '  mon$ods_major||''.''||mon$ods_minor AS ODS, ' + #13#10 +
-      '  mon$page_size       AS PageSize, ' +            #13#10 +
-      '  mon$page_buffers    AS PageBuffers, ' +         #13#10 +
-      '  mon$sql_dialect     AS SQLDialect, ' +          #13#10 +
-      '  mon$forced_writes   AS ForcedWrites ' +         #13#10 +
-      'FROM mon$database';
-    ExecSqlLogEvent(q, 'GetDBPropertiesEvent');
-    DBPropertiesList.Append('DBName=' + q.FieldByName('DBName').AsString);
-    DBPropertiesList.Append('ODS=' + q.FieldByName('ODS').AsString);
-    DBPropertiesList.Append('PageSize=' + q.FieldByName('PageSize').AsString);
-    DBPropertiesList.Append('PageBuffers=' + q.FieldByName('PageBuffers').AsString);
-    DBPropertiesList.Append('SQLDialect=' + q.FieldByName('SQLDialect').AsString);
-    DBPropertiesList.Append('ForcedWrites=' + q.FieldByName('ForcedWrites').AsString);
-    q.Close;
+    if RelationExist2('MON$DATABASE', Tr) then
+    begin
+      q.SQL.Text :=
+        'SELECT ' +                                        #13#10 +
+        '  mon$database_name   AS DBName, ' +              #13#10 +
+        '  mon$ods_major||''.''||mon$ods_minor AS ODS, ' + #13#10 +
+        '  mon$page_size       AS PageSize, ' +            #13#10 +
+        '  mon$page_buffers    AS PageBuffers, ' +         #13#10 +
+        '  mon$sql_dialect     AS SQLDialect, ' +          #13#10 +
+        '  mon$forced_writes   AS ForcedWrites ' +         #13#10 +
+        'FROM mon$database';
+      ExecSqlLogEvent(q, 'GetDBPropertiesEvent');
 
-    q.SQL.Text :=
-      'SELECT ' +                                        #13#10 +
-      '  mon$user               AS U, ' +                #13#10 +
-      '  mon$remote_protocol    AS RemProtocol, ' +      #13#10 +
-      '  mon$remote_address     AS RemAddress, ' +       #13#10 +
-      '  mon$garbage_collectioN AS GarbCollection ' +    #13#10 +
-      'FROM mon$attachments ' +                          #13#10 +
-      'WHERE mon$attachment_id = CURRENT_CONNECTION ';
-    ExecSqlLogEvent(q, 'GetDBPropertiesEvent');
-    DBPropertiesList.Append('User=' + Trim(q.FieldByName('U').AsString));
-    DBPropertiesList.Append('RemoteProtocol=' + Trim(q.FieldByName('RemProtocol').AsString));
-    DBPropertiesList.Append('RemoteAddress=' + q.FieldByName('RemAddress').AsString);
-    DBPropertiesList.Append('GarbageCollection=' + q.FieldByName('GarbCollection').AsString);
-    q.Close;
+      DBPropertiesList.Append('PageBuffers=' + q.FieldByName('PageBuffers').AsString);
+      q.Close;
+    end
+    else begin
+      DBPropertiesList.Append('PageBuffers=' + '-');
+    end;
 
+    if RelationExist2('MON$ATTACHMENTS', Tr) then
+    begin
+      q.SQL.Text :=
+        'SELECT ' +                                        #13#10 +
+        '  mon$user               AS U, ' +                #13#10 +
+        '  mon$remote_protocol    AS RemProtocol, ' +      #13#10 +
+        '  mon$remote_address     AS RemAddress, ' +       #13#10 +
+        '  mon$garbage_collection AS GarbCollection ' +    #13#10 +
+        'FROM mon$attachments ' +                          #13#10 +
+        'WHERE mon$attachment_id = CURRENT_CONNECTION ';
+      ExecSqlLogEvent(q, 'GetDBPropertiesEvent');
+      DBPropertiesList.Append('User=' + Trim(q.FieldByName('U').AsString));
+      DBPropertiesList.Append('RemoteProtocol=' + Trim(q.FieldByName('RemProtocol').AsString));
+      DBPropertiesList.Append('RemoteAddress=' + q.FieldByName('RemAddress').AsString);
+      DBPropertiesList.Append('GarbageCollection=' + q.FieldByName('GarbCollection').AsString);
+      q.Close;
+    end
+    else begin
+      DBPropertiesList.Append('User=' + '-');
+      DBPropertiesList.Append('RemoteProtocol=' + '-');
+      DBPropertiesList.Append('RemoteAddress=' + '-');
+      DBPropertiesList.Append('GarbageCollection=' + '-');
+    end;
     FOnGetDBPropertiesEvent(DBPropertiesList);
 
     Tr.Commit;
   finally
+    FreeAndNil(DBInfo);
     DBPropertiesList.Free;
     q.Free;
     Tr.Free;
   end;
 end;
 
-procedure TgsDBSqueeze.GetInfoTestConnectEvent;
+procedure TgsDBSqueeze.GetInfoTestConnectEvent;                        //TODO: определиться с минимальной версией (2.1)
 var
-  q: TIBSQL;
-  Tr: TIBTransaction;
   InfConnectList: TStringList;
+  DBInfo: TIBDatabaseInfo;
+  ODSMajor, ODSMinor: Integer;
 begin
   if Connected then
   begin
+    DBInfo := TIBDatabaseInfo.Create(nil);
+    DBInfo.Database := FIBDatabase;
     InfConnectList := TStringList.Create;
-    Tr := TIBTransaction.Create(nil);
-    q := TIBSQL.Create(nil);
     try
-      Tr.DefaultDatabase := FIBDatabase;
-      Tr.StartTransaction;
+      ODSMajor := DBInfo.ODSMajorVersion;
+      ODSMinor := DBInfo.ODSMinorVersion;
 
-      q.Transaction := Tr;
-      q.SQL.Text :=
-        'SELECT ' +                                                         #13#10+
-        '  rdb$get_context(''SYSTEM'', ''ENGINE_VERSION'') AS ServerVer ' + #13#10+
-        'FROM ' +                                                           #13#10+
-        '  rdb$database';
-      ExecSqlLogEvent(q, 'GetInfoTestConnectEvent');
-      InfConnectList.Append('ServerVersion=' + q.FieldByName('ServerVer').AsString);
-      q.Close;
+      InfConnectList.Append('ActivConnectCount=' + IntToStr((DBInfo.UserNames).Count));
 
-      q.SQL.Text :=
-        'SELECT COUNT(*) AS Kolvo ' +                     #13#10+
-        'FROM mon$attachments';
-      ExecSqlLogEvent(q, 'GetInfoTestConnectEvent');
-      InfConnectList.Append('ActivConnectCount=' + q.FieldByName('Kolvo').AsString);
-      q.Close;
+      try
+        case ODSMajor of
+          8:
+            begin
+              InfConnectList.Append('ServerName=InterBase');
+              if ODSMinor = 0 then
+                InfConnectList.Append('ServerVersion=4.0/4.1')
+              else if ODSMinor = 2 then
+                InfConnectList.Append('ServerVersion=4.2')
+              else
+                raise EgsDBSqueeze.Create('Wrong ODS-version');
+            end;
+          9:
+            begin
+              InfConnectList.Append('ServerName=InterBase');
+              if ODSMinor = 0 then
+                InfConnectList.Append('ServerVersion=5.0/5.1')
+              else if ODSMinor = 1 then
+                InfConnectList.Append('ServerVersion=5.5/5.6')
+              else
+                raise EgsDBSqueeze.Create('Wrong ODS-version');
+            end;
+          10:
+            begin
+              if ODSMinor = 0 then
+              begin
+                InfConnectList.Append('ServerName=Firebird/Yaffil');
+                InfConnectList.Append('ServerVersion=1.0');
+              end
+              else if ODSMinor = 1 then
+              begin
+                InfConnectList.Append('ServerName=Firebird');
+                InfConnectList.Append('ServerVersion=1.5');
+              end
+              else
+                raise EgsDBSqueeze.Create('Wrong ODS-version');
+            end;
+          11:
+            begin
+              InfConnectList.Append('ServerName=Firebird');
+              case ODSMinor of
+                0: InfConnectList.Append('ServerVersion=2.0');
+                1: InfConnectList.Append('ServerVersion=2.1');
+                2: InfConnectList.Append('ServerVersion=2.5');
+              else
+                raise EgsDBSqueeze.Create('Wrong ODS-version');
+              end;
+            end;
+          12:
+            begin
+              InfConnectList.Append('ServerName=InterBase');
+              if ODSMinor = 0 then
+                InfConnectList.Append('ServerVersion=2007')
+              else
+                raise EgsDBSqueeze.Create('Wrong ODS-version');
+            end;
+          13:
+            begin
+              InfConnectList.Append('ServerName=InterBase');
+              if ODSMinor = 1 then
+                InfConnectList.Append('ServerVersion=2009')
+              else
+                raise EgsDBSqueeze.Create('Wrong ODS-version');
+            end;
+          15:
+            begin
+              InfConnectList.Append('ServerName=InterBase');
+              if ODSMinor = 0 then
+                InfConnectList.Append('ServerVersion=XE/XE3')
+              else
+                raise EgsDBSqueeze.Create('Wrong ODS-version');
+            end;
+        else
+          raise EgsDBSqueeze.Create('Wrong ODS-version');
+        end;
+      except
+        on E: EgsDBSqueeze do
+        raise EgsDBSqueeze.Create(E.Message+ ': ' + IntToStr(ODSMajor) + '.' +  IntToStr(ODSMinor));
+      end;
 
-      Tr.Commit;
       FOnGetInfoTestConnectEvent(True, InfConnectList);
     finally
-      q.Free;
-      Tr.Free;
       InfConnectList.Free;
+      FreeAndNil(DBInfo);
     end;
   end
   else
@@ -7018,10 +7222,14 @@ begin
   Tr := TIBTransaction.Create(nil);
   q := TIBSQL.Create(nil);
   try
-{    Tr.DefaultDatabase := FIBDatabase;
+    Tr.DefaultDatabase := FIBDatabase;
     Tr.StartTransaction;
-
     q.Transaction := Tr;
+
+    q.SQL.Text :=
+      'DELETE FROM DBS_TMP_PK_HASH';
+    ExecSqlLogEvent(q, 'ClearDBSTables');
+
     q.SQL.Text :=
       'DELETE FROM DBS_FK_CONSTRAINTS';
     ExecSqlLogEvent(q, 'ClearDBSTables');
@@ -7059,14 +7267,10 @@ begin
     ExecSqlLogEvent(q, 'ClearDBSTables');
 
     q.SQL.Text :=
-      'DELETE FROM DBS_TMP_PK_HASH';
-    ExecSqlLogEvent(q, 'ClearDBSTables');
-
-    q.SQL.Text :=
       'DELETE FROM DBS_TMP_REBIND_INV_CARDS';
     ExecSqlLogEvent(q, 'ClearDBSTables');
 
-    Tr.Commit; }
+    Tr.Commit;
   finally
     q.Free;
     Tr.Free;
