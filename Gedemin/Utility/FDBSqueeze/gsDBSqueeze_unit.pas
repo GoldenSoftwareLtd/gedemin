@@ -5441,7 +5441,7 @@ var
       '  FOR ' +                                                                    #13#10 +
       '    SELECT t.rdb$trigger_name ' +                                              #13#10 +
       '    FROM rdb$triggers t ' +                                                    #13#10 +
-      '      JOIN DBS_TMP_PROCESSED_TABLES p ON p.relation_name = t.RDB$RELATION_NAME ' +  #13#10 +                                                   ////test
+     /// '      JOIN DBS_TMP_PROCESSED_TABLES p ON p.relation_name = t.RDB$RELATION_NAME ' +  #13#10 +                                                   ////test
       '    WHERE ((t.rdb$trigger_inactive = 0) OR (t.rdb$trigger_inactive IS NULL)) ' + #13#10 +
       '      AND ((t.RDB$SYSTEM_FLAG = 0) OR (t.RDB$SYSTEM_FLAG IS NULL)) ' +           #13#10 +
       //'      AND RDB$TRIGGER_NAME NOT IN (SELECT RDB$TRIGGER_NAME FROM RDB$CHECK_CONSTRAINTS) ' +
@@ -5469,7 +5469,7 @@ var
       '  FOR ' +                                                                #13#10 +
       '    SELECT i.rdb$index_name ' +                                            #13#10 +
       '    FROM rdb$indices i ' +                                                 #13#10 +
-      '      JOIN DBS_TMP_PROCESSED_TABLES p ON p.relation_name = i.RDB$RELATION_NAME ' +  #13#10 +  
+    ///  '      JOIN DBS_TMP_PROCESSED_TABLES p ON p.relation_name = i.RDB$RELATION_NAME ' +  #13#10 +
       '    WHERE ((i.rdb$index_inactive = 0) OR (i.rdb$index_inactive IS NULL)) ' + #13#10 +
       '      AND ((i.RDB$SYSTEM_FLAG = 0) OR (i.RDB$SYSTEM_FLAG IS NULL)) ' +       #13#10 +
      /// '      AND ((rdb$index_name NOT LIKE ''DBS_%'') AND (rdb$index_name NOT LIKE ''PK_DBS_%'')) ' + #13#10 +        ///test
@@ -5499,10 +5499,10 @@ var
       '  FOR ' +                                                        #13#10 +
       '    SELECT pc.constraint_name, pc.relation_name ' +                    #13#10 +
       '    FROM DBS_PK_UNIQUE_CONSTRAINTS pc ' +                           #13#10 +
-      '      JOIN DBS_TMP_PROCESSED_TABLES p ON p.relation_name = pc.RELATION_NAME ' +  #13#10 +
+   ///   '      JOIN DBS_TMP_PROCESSED_TABLES p ON p.relation_name = pc.RELATION_NAME ' +  #13#10 +
       '    WHERE pc.relation_name NOT LIKE ''DBS_%'' ' +                   #13#10 +
       '    INTO :CN, :RN ' +                                            #13#10 +
-      '  DO ' +                                                         #13#10 +
+      '  DO ' +                                                        #13#10 +
       '    EXECUTE STATEMENT ''ALTER TABLE '' || :RN || '' DROP CONSTRAINT '' || :CN; ' + #13#10 +
       'END';
     ExecSqlLogEvent(q, 'PreparePkUniqueConstraints');
@@ -5901,9 +5901,9 @@ var
       '  FOR ' +                                                                             #13#10 +
       '    SELECT t.rdb$trigger_name ' +                                                     #13#10 +
       '    FROM rdb$triggers t ' +                                                           #13#10 +
-      '      JOIN DBS_TMP_PROCESSED_TABLES p ON p.relation_name = t.RDB$RELATION_NAME ' +  #13#10 +
+  ///    '      JOIN DBS_TMP_PROCESSED_TABLES p ON p.relation_name = t.RDB$RELATION_NAME ' +  #13#10 +
       '      LEFT JOIN dbs_inactive_triggers it ON it.trigger_name = t.rdb$trigger_name ' +  #13#10 +
-      '    WHERE ((t.rdb$trigger_inactive <> 0) OR (t.rdb$trigger_inactive IS NOT NULL)) ' + #13#10 +
+      '    WHERE ((t.rdb$trigger_inactive <> 0) AND (t.rdb$trigger_inactive IS NOT NULL)) ' + #13#10 +
       '      AND ((t.rdb$system_flag = 0) OR (t.rdb$system_flag IS NULL)) ' +                #13#10 +
       '      AND it.trigger_name IS NULL ' +                                                 #13#10 +
       '    INTO :TN ' +                                                                      #13#10 +
@@ -5928,7 +5928,7 @@ var
       '  FOR ' +                                                                          #13#10 +
       '    SELECT i.rdb$index_name ' +                                                    #13#10 +
       '    FROM rdb$indices i ' +                                                         #13#10 +
-      '      JOIN DBS_TMP_PROCESSED_TABLES p ON p.relation_name = i.RDB$RELATION_NAME ' +  #13#10 +
+ ///     '      JOIN DBS_TMP_PROCESSED_TABLES p ON p.relation_name = i.RDB$RELATION_NAME ' +  #13#10 +
       '      LEFT JOIN dbs_inactive_indices ii ON ii.index_name = i.rdb$index_name ' +    #13#10 +
       '    WHERE ((i.rdb$index_inactive <> 0) AND (i.rdb$index_inactive IS NOT NULL)) ' + #13#10 +
       '      AND ((i.rdb$system_flag = 0) OR (i.rdb$system_flag IS NULL)) ' +             #13#10 +
@@ -5956,11 +5956,19 @@ var
       '    SELECT ''ALTER TABLE '' || c.relation_name || '' ADD CONSTRAINT '' || ' +             #13#10 +
       '      c.constraint_name || '' '' || c.constraint_type ||'' ('' || c.list_fields || '') '' ' + #13#10 +
       '    FROM dbs_pk_unique_constraints c ' +                                                  #13#10 +
-      '      JOIN DBS_TMP_PROCESSED_TABLES p ON p.relation_name = c.RELATION_NAME ' +  #13#10 +
+  ///    '      JOIN DBS_TMP_PROCESSED_TABLES p ON p.relation_name = c.RELATION_NAME ' +  #13#10 +
       '    WHERE c.relation_name NOT LIKE ''DBS_%'' ' +                   #13#10 +
       '    INTO :S ' +                                                  #13#10 +
       '  DO BEGIN ' +                                                   #13#10 +
-      '    EXECUTE STATEMENT :S; '  +                                   #13#10 +  /// WITH AUTONOMOUS TRANSACTION
+      '    EXECUTE STATEMENT :S; ' +                                    #13#10 +  /// WITH AUTONOMOUS TRANSACTION
+      '    when any DO ' +                                              #13#10 +
+      '    BEGIN ' +                                                    #13#10 +
+      '      IF (sqlcode <> 0) THEN ' +                                 #13#10 +
+      '        S = S || '' An SQL error occurred!''; ' +                #13#10 +
+      '      ELSE ' +                                                   #13#10 +
+      '        S = S || '' Something bad happened!''; ' +               #13#10 +
+      '      SUSPEND; --exception ex_custom S; ' +                      #13#10 +
+      '    END ' +                                                      #13#10 +
       '  END ' +                                                        #13#10 +
       'END';
     ExecSqlLogEvent(q, 'RestorePkUniqueConstraints'); 
@@ -5970,6 +5978,7 @@ var
 
     LogEvent('PKs&UNIQs restored.');
   end;
+
 
   procedure RestoreFKConstraints;
   begin
@@ -5996,8 +6005,15 @@ var
       '      )' +                                                       #13#10 +
       '    INTO :S ' +                                                  #13#10 +
       '  DO BEGIN ' +                                                   #13#10 +
-      '    SUSPEND; ' +                                                 #13#10 +
       '    EXECUTE STATEMENT :S; ' +                                    #13#10 +  /// WITH AUTONOMOUS TRANSACTION
+      '    when any DO ' +                                              #13#10 +
+      '    BEGIN ' +                                                    #13#10 +
+      '      IF (sqlcode <> 0) THEN ' +                                 #13#10 +
+      '        S = S || '' An SQL error occurred!''; ' +                #13#10 +
+      '      ELSE ' +                                                   #13#10 +
+      '        S = S || '' Something bad happened!''; ' +               #13#10 +
+      '      SUSPEND; --exception ex_custom S; ' +                      #13#10 +
+      '    END ' +                                                      #13#10 +
       '  END ' +                                                        #13#10 +
       'END';
     ExecSqlLogEvent(q, 'RestoreFKConstraints');
@@ -6027,7 +6043,7 @@ begin
 
       q.SQL.Text :=
         'ALTER TABLE DBS_TMP_PK_HASH DROP CONSTRAINT PK_DBS_TMP_PK_HASH';
-      ExecSqlLogEvent(q, 'DeleteDocuments_DeleteHIS');
+      ExecSqlLogEvent(q, 'DeleteDocuments_DeleteHIS'); 
       Tr.Commit;
     except
       on E: Exception do
@@ -7230,7 +7246,7 @@ begin
       'DELETE FROM DBS_TMP_PK_HASH';
     ExecSqlLogEvent(q, 'ClearDBSTables');
 
-    q.SQL.Text :=
+{    q.SQL.Text :=
       'DELETE FROM DBS_FK_CONSTRAINTS';
     ExecSqlLogEvent(q, 'ClearDBSTables');
 
@@ -7269,7 +7285,7 @@ begin
     q.SQL.Text :=
       'DELETE FROM DBS_TMP_REBIND_INV_CARDS';
     ExecSqlLogEvent(q, 'ClearDBSTables');
-
+}
     Tr.Commit;
   finally
     q.Free;
