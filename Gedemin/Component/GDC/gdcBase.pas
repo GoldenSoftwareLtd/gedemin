@@ -8111,17 +8111,20 @@ const
                 F.AsInteger,
                 C.SubType);
             try
-              //Установим флаг нового объекта в то состояние, которое имеет Self
-              //только если значение флага Self.ModifyFromStream отличается от значения устанавливаемого по умолчанию
-              // (из класс-функции)
-              if Self.ModifyFromStream <> Self.NeedModifyFromStream(Self.SubType) then
+              if (not (Obj is TgdcMetaBase)) or (not TgdcMetaBase(Obj).IsDerivedObject) then
               begin
-                Obj.ModifyFromStream := Self.ModifyFromStream;
-              end;
-              Obj.StreamSilentProcessing := Self.StreamSilentProcessing;
-              Obj.StreamProcessingAnswer := Self.StreamProcessingAnswer;
-              Obj.FReadUserFromStream := Self.FReadUserFromStream;
-              Obj._SaveToStream(Stream, ObjectSet, PropertyList, BindedList, WithDetailList, False);
+                //Установим флаг нового объекта в то состояние, которое имеет Self
+                //только если значение флага Self.ModifyFromStream отличается от значения устанавливаемого по умолчанию
+                // (из класс-функции)
+                if Self.ModifyFromStream <> Self.NeedModifyFromStream(Self.SubType) then
+                begin
+                  Obj.ModifyFromStream := Self.ModifyFromStream;
+                end;
+                Obj.StreamSilentProcessing := Self.StreamSilentProcessing;
+                Obj.StreamProcessingAnswer := Self.StreamProcessingAnswer;
+                Obj.FReadUserFromStream := Self.FReadUserFromStream;
+                Obj._SaveToStream(Stream, ObjectSet, PropertyList, BindedList, WithDetailList, False);
+              end;  
             finally
               Obj.Free;
             end;
@@ -8767,7 +8770,7 @@ begin
                   begin
                     //Создаем его экземпляр с одной записью
                     Obj := C.gdClass.CreateSubType(nil, C.SubType, 'ByID');
-                    try         
+                    try
                       Obj.Transaction := Transaction;
                       while not ibsql.Eof do
                       begin
@@ -8804,7 +8807,7 @@ begin
                                ibsql.Next;
                                Continue;
                              end;
-                           end;  
+                           end;
                         end;
 
                         if (Self is TgdcSimpleTable) or (Self is TgdcTreeTable)
@@ -8823,8 +8826,38 @@ begin
                           end;
                         end;
 
-                        if Obj.RecordCount > 0 then
-                          Obj._SaveToStream(Stream, ObjectSet, PropertyList, BindedList, WithDetailList, SaveDetailObjects);
+                        if (Self is TgdcSimpleTable)
+                          or (Self is TgdcTreeTable)
+                          or (Self is TgdcLBRBTreeTable)
+                          or (Self is TgdcPrimeTable)
+                          or (Self is TgdcTableToTable) then
+                        begin
+                          if Obj is TgdcRelationField then
+                          begin
+                            if (AnsiCompareText(Trim(Obj.FieldByName('fieldname').AsString), 'ID') = 0)
+                              or (AnsiCompareText(Trim(Obj.FieldByName('fieldname').AsString), 'PARENT') = 0)
+                              or (AnsiCompareText(Trim(Obj.FieldByName('fieldname').AsString), 'LB') = 0)
+                              or (AnsiCompareText(Trim(Obj.FieldByName('fieldname').AsString), 'RB') = 0)
+                              or (AnsiCompareText(Trim(Obj.FieldByName('fieldname').AsString), 'EDITIONDATE') = 0)
+                              or (AnsiCompareText(Trim(Obj.FieldByName('fieldname').AsString), 'EDITORKEY') = 0)
+                              or (AnsiCompareText(Trim(Obj.FieldByName('fieldname').AsString), 'DISABLED') = 0)
+                              or (AnsiCompareText(Trim(Obj.FieldByName('fieldname').AsString), 'RESERVED') = 0) then
+                            begin
+                              ibsql.Next;
+                              Continue;
+                            end;
+                          end;
+                        end;
+
+                        if not Obj.EOF then
+                        begin
+                          if (not (Obj is TgdcMetaBase)) or (not TgdcMetaBase(Obj).IsDerivedObject) then
+                          begin
+                            Obj._SaveToStream(Stream, ObjectSet, PropertyList, BindedList,
+                              WithDetailList,
+                              SaveDetailObjects);
+                          end;    
+                        end;
                         ibsql.Next;
                       end;
                     finally

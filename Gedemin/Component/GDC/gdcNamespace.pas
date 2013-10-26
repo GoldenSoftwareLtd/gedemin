@@ -1127,6 +1127,8 @@ begin
     W.WriteTextValue('Version', FieldByName('version').AsString, qDoubleQuoted);
     W.WriteBooleanValue('Optional', FieldByName('optional').AsInteger);
     W.WriteBooleanValue('Internal', FieldByName('internal').AsInteger);
+    if FieldByName('settingruid').AsString > '' then
+      W.WriteStringValue('SettingRUID', FieldByName('settingruid').AsString);
     if FieldByName('dbversion').AsString > '' then
       W.WriteStringValue('DBVersion', FieldByName('dbversion').AsString);
     if FieldByName('comment').AsString > '' then
