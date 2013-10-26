@@ -1,6 +1,6 @@
 object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
-  Left = 509
-  Top = 116
+  Left = 220
+  Top = 161
   BorderStyle = bsDialog
   ClientHeight = 536
   ClientWidth = 851
@@ -516,7 +516,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Top = 64
               Width = 513
               Height = 265
-              ActivePage = tsIgnoreDocTypes
+              ActivePage = tsProcDocTypes
               Style = tsButtons
               TabHeight = 24
               TabOrder = 1
@@ -527,7 +527,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
                   Left = 8
                   Top = 6
                   Width = 481
-                  Height = 153
+                  Height = 107
                   ColCount = 2
                   DefaultColWidth = 390
                   DefaultRowHeight = 20
@@ -542,13 +542,15 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
                 end
                 object mIgnoreDocTypes: TMemo
                   Left = 8
-                  Top = 170
+                  Top = 120
                   Width = 481
-                  Height = 35
+                  Height = 73
+                  Color = clBtnFace
                   Lines.Strings = (
                     
                       '0123456789012345678901234567890123456789012345678901234567890123' +
                       '4567890')
+                  ReadOnly = True
                   ScrollBars = ssVertical
                   TabOrder = 1
                 end
@@ -560,7 +562,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
                   Left = 8
                   Top = 6
                   Width = 481
-                  Height = 153
+                  Height = 108
                   ColCount = 2
                   DefaultColWidth = 390
                   DefaultRowHeight = 20
@@ -570,18 +572,20 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
                   Options = [goFixedHorzLine, goVertLine, goHorzLine, goRangeSelect, goRowSelect]
                   ScrollBars = ssVertical
                   TabOrder = 0
-                  OnDblClick = strngrdIgnoreDocTypesDblClick
-                  OnDrawCell = strngrdIgnoreDocTypesDrawCell
+                  OnDblClick = strngrdProcDocTypesDblClick
+                  OnDrawCell = strngrdProcDocTypesDrawCell
                 end
                 object mProcDocTypes: TMemo
                   Left = 8
-                  Top = 170
+                  Top = 120
                   Width = 481
-                  Height = 35
+                  Height = 69
+                  Color = clBtnFace
                   Lines.Strings = (
                     
                       '0123456789012345678901234567890123456789012345678901234567890123' +
                       '4567890')
+                  ReadOnly = True
                   ScrollBars = ssVertical
                   TabOrder = 1
                 end

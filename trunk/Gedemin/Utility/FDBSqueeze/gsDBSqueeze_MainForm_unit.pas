@@ -214,6 +214,9 @@ type
     procedure strngrdIgnoreDocTypesDrawCell(Sender: TObject; ACol,
       ARow: Integer; Rect: TRect; State: TGridDrawState);
     procedure strngrdIgnoreDocTypesDblClick(Sender: TObject);
+    procedure strngrdProcDocTypesDblClick(Sender: TObject);
+    procedure strngrdProcDocTypesDrawCell(Sender: TObject; ACol,
+      ARow: Integer; Rect: TRect; State: TGridDrawState);
 
   private
     FSThread: TgsDBSqueezeThread;
@@ -224,9 +227,8 @@ type
     FLogFileStream: TFileStream;
     FDatabaseName: String;
 
-    FStrGridClickRowSelect: Integer;
-    FStrGridClickRowUnSelect: Integer;
-    FStrGridClickRowSelectHIS: TgsHugeIntSet;
+    FProcRowsSelectHIS: TgsHugeIntSet;
+    FIgnoreRowsSelectHIS: TgsHugeIntSet;
 
     procedure ErrorEvent(const AErrorMsg: String);
     procedure GetConnectedEvent(const AConnected: Boolean);
@@ -290,10 +292,8 @@ begin
   FSThread.OnGetProcStatistics := GetProcStatisticsEvent;
   FContinueProcFunctionKey := 0;
 
-  FStrGridClickRowSelect := -1;
-  FStrGridClickRowUnSelect := -1;
-
-  FStrGridClickRowSelectHIS := TgsHugeIntSet.Create;
+  FProcRowsSelectHIS := TgsHugeIntSet.Create;
+  FIgnoreRowsSelectHIS := TgsHugeIntSet.Create;
 end;
 
 destructor TgsDBSqueeze_MainForm.Destroy;
@@ -301,7 +301,8 @@ begin
   FSThread.Free;
   if Assigned(FLogFileStream) then
     FLogFileStream.Free;
-  FStrGridClickRowSelectHIS.Free;
+  FProcRowsSelectHIS.Free;
+  FIgnoreRowsSelectHIS.Free;
   inherited;
 end;
 
@@ -937,14 +938,14 @@ var
 begin
    AGrid:=TStringGrid(Sender);
 
-   if not FStrGridClickRowSelectHIS.Has(ARow) then
+   if not FIgnoreRowsSelectHIS.Has(ARow) then
      AGrid.Canvas.Brush.Color := clWhite
    else
      AGrid.Canvas.Brush.Color := clRed;
 
    if (gdSelected in State) then
    begin
-     if not FStrGridClickRowSelectHIS.Has(ARow) then
+     if not FIgnoreRowsSelectHIS.Has(ARow) then
      begin
        AGrid.Canvas.Brush.Color := clWhite;
      end
@@ -960,13 +961,53 @@ procedure TgsDBSqueeze_MainForm.strngrdIgnoreDocTypesDblClick(
 begin
   if Sender = strngrdIgnoreDocTypes then
   begin
-    if not FStrGridClickRowSelectHIS.Has((Sender as TStringGrid).Row) then
-      FStrGridClickRowSelectHIS.Include((Sender as TStringGrid).Row)
+    if not FIgnoreRowsSelectHIS.Has((Sender as TStringGrid).Row) then
+      FIgnoreRowsSelectHIS.Include((Sender as TStringGrid).Row)
     else begin
-      FStrGridClickRowSelectHIS.Exclude((Sender as TStringGrid).Row);
+      FIgnoreRowsSelectHIS.Exclude((Sender as TStringGrid).Row);
     end;
     (Sender as TStringGrid).Repaint;
   end;
+end;
+
+procedure TgsDBSqueeze_MainForm.strngrdProcDocTypesDblClick(
+  Sender: TObject);
+begin
+  if Sender = strngrdProcDocTypes then
+  begin
+    if not FProcRowsSelectHIS.Has((Sender as TStringGrid).Row) then
+      FProcRowsSelectHIS.Include((Sender as TStringGrid).Row)
+    else begin
+      FProcRowsSelectHIS.Exclude((Sender as TStringGrid).Row);
+    end;
+    (Sender as TStringGrid).Repaint;
+  end;
+end;
+
+procedure TgsDBSqueeze_MainForm.strngrdProcDocTypesDrawCell(
+  Sender: TObject; ACol, ARow: Integer; Rect: TRect;
+  State: TGridDrawState);
+var
+  AGrid : TStringGrid;
+begin
+   AGrid:=TStringGrid(Sender);
+
+   if not FProcRowsSelectHIS.Has(ARow) then
+     AGrid.Canvas.Brush.Color := clWhite
+   else
+     AGrid.Canvas.Brush.Color := clRed;
+
+   if (gdSelected in State) then
+   begin
+     if not FProcRowsSelectHIS.Has(ARow) then
+     begin
+       AGrid.Canvas.Brush.Color := clWhite;
+     end
+     else
+       AGrid.Canvas.Brush.Color := $00595EFF;
+   end;
+    AGrid.Canvas.FillRect(Rect);  //paint the backgorund red
+    AGrid.Canvas.TextOut(Rect.Left + 2, Rect.Top + 2, AGrid.Cells[ACol, ARow]);
 end;
 
 end.
