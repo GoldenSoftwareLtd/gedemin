@@ -693,6 +693,7 @@ type
 
     procedure GetWhereClauseConditions(S: TStrings); override;
     function GetFirebirdObjectName: String; override;
+    function GetIsDerivedObject: Boolean; override;
 
   public
     constructor Create(AnOwner: TComponent); override;
@@ -7111,16 +7112,6 @@ var
 begin
   Assert(Assigned(atDatabase));
 
-  if NeedSingleUser then
-    with TfrmIBUserList.Create(nil) do
-    try
-      if not CheckUsers then
-        raise EgdcIBError.Create('К базе подключены другие пользователи! ' +
-          ' Процесс создания метаданных остановлен!');
-    finally
-      Free;
-    end;
-
   DidActivate := False;
   ibsql := TIBSQL.Create(nil);
   try
@@ -7132,13 +7123,9 @@ begin
       begin
         TransactionKey := GetNextID;
 
-        ibsql.Close;
         ibsql.SQL.Text :=
           'INSERT INTO at_transaction (trkey, numorder, script, successfull) ' +
           'VALUES (:trkey, :numorder, :script, :successfull)';
-
-        ibsql.ParamCheck := True;
-        ibsql.Prepare;
 
         //  Осуществляем сохранение всех скриптов, которые должны быть
         //  запущены после переподключения
@@ -7146,47 +7133,59 @@ begin
         begin
           if Trim(S[I]) > '' then
           begin
-            AddText('Сохранение SQL-скрипта...', clGreen);
-            AddText({TranslateText(}S[I]{)} + #13#10, clBlack);
+            AddText(S[I]);
 
             ibsql.ParamByName('trkey').AsInteger := TransactionKey;
             ibsql.ParamByName('numorder').AsInteger := i + 1;
             ibsql.ParamByName('script').AsString := S[I];
             ibsql.ParamByName('successfull').AsInteger := S.Successful[I];
-            ibsql.ParamCheck := True;
             ibsql.ExecQuery;
             ibsql.Close;
           end;
         end;
 
+        if S.Count > 0 then
+          AddText('Для отложенного выполнения сохранено команд: ' + IntToStr(S.Count));
       end else
-
-      for i := 0 to S.Count - 1 do
       begin
-        if Trim(S[I]) > '' then
+        if NeedSingleUser then
         begin
-          AddText({TranslateText(}S[I]{)});
-          Transaction.ExecSQLImmediate(S[I]);
+          with TfrmIBUserList.Create(nil) do
+          try
+            if not CheckUsers then
+              raise EgdcIBError.Create(
+                'К базе данных подключены другие пользователи!'#13#10 +
+                'Процесс создания метаданных остановлен!');
+          finally
+            Free;
+          end;
+        end;  
+
+        for i := 0 to S.Count - 1 do
+        begin
+          if Trim(S[I]) > '' then
+          begin
+            AddText(S[I]);
+            Transaction.ExecSQLImmediate(S[I]);
+          end;
         end;
       end;
-
     except
       on E: Exception do
       begin
         if DidActivate and Transaction.InTransaction then
           Transaction.Rollback;
-        AddMistake(E.Message, clRed);
+        AddMistake(E.Message);
         raise;
       end;
     end;
 
-    if atDatabase.InMultiConnection then
-      AddText('Для выполнения операции необходимо переподключение к ' +
-        'базе данных!');
+    if atDatabase.InMultiConnection and (not (sLoadFromStream in BaseState)) then
+      AddText('Для выполнения операции необходимо переподключение к базе данных!');
   finally
-   if DidActivate then
-      Transaction.Commit;
     ibsql.Free;
+    if DidActivate and Transaction.InTransaction then
+       Transaction.Commit;
   end;
 end;
 
@@ -9101,6 +9100,11 @@ end;
 function TgdcTrigger.GetFirebirdObjectName: String;
 begin
   Result := FieldByName('triggername').AsString;
+end;
+
+function TgdcTrigger.GetIsDerivedObject: Boolean;
+begin
+  Result := StrIPos('USR$BI_USR$CROSS', FirebirdObjectName) = 1;
 end;
 
 { TgdcTableToTable }

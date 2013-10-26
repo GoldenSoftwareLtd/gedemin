@@ -28,7 +28,7 @@ type
 
     //Проверяет настройку на удаленные из нее объекты
     procedure CheckSetting;
-
+                                                    
     //Загружает в список id главных настроек
     procedure LoadMainSettingsID(KA: TgdKeyArray);
     procedure AddMainSettings(FKeys: TStrings; const MainID: Integer = 0);

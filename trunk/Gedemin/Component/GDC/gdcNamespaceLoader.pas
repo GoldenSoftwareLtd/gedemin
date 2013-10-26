@@ -456,6 +456,7 @@ begin
         FgdcNamespace.FieldByName('dbversion').AsString := Mapping.ReadString('Properties\DBversion', 20);
         FgdcNamespace.FieldByName('optional').AsInteger := Mapping.ReadInteger('Properties\Optional', 0);
         FgdcNamespace.FieldByName('internal').AsInteger := Mapping.ReadInteger('Properties\Internal', 1);
+        FgdcNamespace.FieldByName('settingruid').AsString := Mapping.ReadString('Properties\SettingRUID', 21);
         FgdcNamespace.FieldByName('comment').AsString := Mapping.ReadString('Properties\Comment');
         FgdcNamespace.FieldByName('filetimestamp').AsDateTime := gd_common_functions.GetFileLastWrite(AList[I]);
         if FgdcNamespace.FieldByName('filetimestamp').AsDateTime > Now then
@@ -600,10 +601,11 @@ var
   ObjName, ObjRUIDString: String;
   Fields: TYAMLMapping;
   ObjID, CandidateID, RUIDID: TID;
-  ObjPosted, ObjPreserved: Boolean;
+  ObjPosted, ObjPreserved, CrossTableCreated: Boolean;
 begin
   ObjPosted := False;
   ObjPreserved := False;
+  CrossTableCreated := False;
   Obj := CacheObject(AMapping.ReadString('Properties\Class'),
     AMapping.ReadString('Properties\SubType'));
   ObjRUIDString := AMapping.ReadString('Properties\RUID');
@@ -725,6 +727,10 @@ begin
     ObjName := Obj.ObjectName;
     if ObjName = '' then
       ObjName := Obj.GetDisplayName(Obj.SubType);
+
+    if (Obj is TgdcRelationField) and (Obj.FieldByName('crosstable').AsString > '') then
+      CrossTableCreated := True;
+
     Obj.Close;
 
     if AMapping.FindByName('Set') is TYAMLSequence then
@@ -786,7 +792,9 @@ begin
 
   if ObjPosted then
   begin
-    if Obj is TgdcMetaBase then
+    if CrossTableCreated then
+      ProcessMetadata
+    else if Obj is TgdcMetaBase then
       Inc(FMetadataCounter)
     else if FMetadataCounter > 0 then
       ProcessMetadata;
