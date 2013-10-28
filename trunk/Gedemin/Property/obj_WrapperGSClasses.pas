@@ -3975,14 +3975,14 @@ type
     function IsInitialised: WordBool; safecall;
     procedure ExtractData(const ADataSet: IgsClientDataSet; const APredicateName: WideString;
       const ATermv: IgsPLTermv); safecall;
-    procedure MakePredicatesOfSQLSelect(const ASQL: WideString; const ATr: IgsIBTransaction;
-      const APredicateName: WideString; const AFileName: WideString); safecall;
-    procedure MakePredicatesOfDataSet(const ADataSet: IgsDataSet; const AFieldList: WideString;
-      const APredicateName: WideString; const AFileName: WideString); safecall;
-    procedure MakePredicatesOfObject(const AClassName: WideString; const SubType: WideString;
+    function MakePredicatesOfSQLSelect(const ASQL: WideString; const ATr: IgsIBTransaction;
+      const APredicateName: WideString; const AFileName: WideString): Integer; safecall;
+    function MakePredicatesOfDataSet(const ADataSet: IgsDataSet; const AFieldList: WideString;
+      const APredicateName: WideString; const AFileName: WideString): Integer; safecall;
+    function MakePredicatesOfObject(const AClassName: WideString; const SubType: WideString;
       const ASubSet: WideString; AParams: OleVariant; const AnExtraConditions: IgsStringList;
       const AFieldList: WideString; const ATr: IgsIBTransaction;
-      const APredicateName: WideString; const AFileName: WideString); safecall;
+      const APredicateName: WideString; const AFileName: WideString): Integer; safecall;
     procedure Compound(AGoal: LongWord; const AFunctor: WideString; const ATermv: IgsPLTermv); safecall;
     function LoadScript(AScriptID: Integer): WordBool; safecall;
     function Get_Debug: WordBool; safecall;
@@ -19161,24 +19161,24 @@ begin
   GetPLCLient.ExtractData(InterfaceToObject(ADataSet) as TClientDataSet, APredicateName, InterfaceToObject(ATermv) as TgsPLTermv);
 end;
 
-procedure TwrpPLClient.MakePredicatesOfSQLSelect(const ASQL: WideString; const ATr: IgsIBTransaction;
-  const APredicateName: WideString; const AFileName: WideString);
+function TwrpPLClient.MakePredicatesOfSQLSelect(const ASQL: WideString; const ATr: IgsIBTransaction;
+  const APredicateName: WideString; const AFileName: WideString): Integer;
 begin
-  GetPLClient.MakePredicatesOfSQLSelect(ASQL, InterfaceToObject(ATr) as TIBTRansaction, APredicateName, AFileName);
+  Result := GetPLClient.MakePredicatesOfSQLSelect(ASQL, InterfaceToObject(ATr) as TIBTRansaction, APredicateName, AFileName);
 end;
 
-procedure TwrpPLClient.MakePredicatesOfDataSet(const ADataSet: IgsDataSet; const AFieldList: WideString;
-  const APredicateName: WideString; const AFileName: WideString);
+function TwrpPLClient.MakePredicatesOfDataSet(const ADataSet: IgsDataSet; const AFieldList: WideString;
+  const APredicateName: WideString; const AFileName: WideString): Integer;
 begin
-  GetPLClient.MakePredicatesOfDataSet(InterfaceToObject(ADataSet) as TDataSet, AFieldList, APredicateName, AFileName);
+  Result := GetPLClient.MakePredicatesOfDataSet(InterfaceToObject(ADataSet) as TDataSet, AFieldList, APredicateName, AFileName);
 end;
 
-procedure TwrpPLClient.MakePredicatesOfObject(const AClassName: WideString; const SubType: WideString;
+function TwrpPLClient.MakePredicatesOfObject(const AClassName: WideString; const SubType: WideString;
   const ASubSet: WideString; AParams: OleVariant; const AnExtraConditions: IgsStringList;
   const AFieldList: WideString; const ATr: IgsIBTransaction;
-  const APredicateName: WideString; const AFileName: WideString);
+  const APredicateName: WideString; const AFileName: WideString): Integer;
 begin
-  GetPLClient.MakePredicatesOfObject(AClassName, SubType, ASubSet, AParams,
+  Result := GetPLClient.MakePredicatesOfObject(AClassName, SubType, ASubSet, AParams,
     InterfaceToObject(AnExtraConditions) as TStringList, AFieldList, InterfaceToObject(ATr) as TIBTransaction,
     APredicateName, AFileName);
 end;
