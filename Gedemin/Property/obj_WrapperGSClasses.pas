@@ -3992,7 +3992,8 @@ type
   TwrpPLQuery = class(TwrpObject, IgsPLQuery)
   private
     function GetPLQuery: TgsPLQuery;
-  procedure NextSolution; safecall;
+  protected  
+    procedure NextSolution; safecall;
     procedure OpenQuery; safecall;
     procedure Close; safecall;
     function Get_PredicateName: WideString; safecall;
@@ -4000,8 +4001,7 @@ type
     function Get_Eof: WordBool; safecall;
     function Get_Termv: IgsPLTermv; safecall;
     procedure Set_Termv(const Value: IgsPLTermv); safecall;
-    function Get_DeleteDataAfterClose: WordBool; safecall;
-    procedure Set_DeleteDataAfterClose(Value: WordBool); safecall;
+    procedure Cut; safecall;
   public
     class function CreateObject(const DelphiClass: TClass; const Params: OleVariant): TObject; override;
   end;
@@ -15896,12 +15896,14 @@ end;
 
 function TwrpAtDatabase.Get_InMultiConnection: WordBool;
 begin
+  Result := False;
   if Assigned(atDatabase) then
     Result := atDatabase.InMultiConnection;
 end;
 
 function TwrpAtDatabase.Get_Loaded: WordBool;
 begin
+  Result := False;
   if Assigned(atDatabase) then
     Result := atDatabase.Loaded;
 end;
@@ -19221,6 +19223,11 @@ begin
   GetPLQuery.Close;
 end;
 
+procedure TwrpPLQuery.Cut;
+begin
+  GetPLQuery.Cut;
+end;
+
 function TwrpPLQuery.Get_PredicateName: WideString;
 begin
   Result := GetPLQuery.PredicateName;
@@ -19244,16 +19251,6 @@ end;
 procedure TwrpPLQuery.Set_Termv(const Value: IgsPLTermv);
 begin
   GetPLQuery.Termv := InterfaceToObject(Value) as TgsPLTermv;
-end;
-
-function TwrpPLQuery.Get_DeleteDataAfterClose: WordBool;
-begin
-  Result := GetPLQuery.DeleteDataAfterClose;
-end;
-
-procedure TwrpPLQuery.Set_DeleteDataAfterClose(Value: WordBool);
-begin
-  GetPLQuery.DeleteDataAfterClose := Value;
 end;
 
 class function TwrpPLQuery.CreateObject(const DelphiClass: TClass;
