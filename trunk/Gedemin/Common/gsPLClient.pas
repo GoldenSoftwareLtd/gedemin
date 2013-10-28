@@ -74,11 +74,11 @@ type
     procedure WriteScript(const AText: String; AStream: TStream);
 
     function GetConsultString(const AFileName: String): String;
-    procedure InternalMakePredicatesOfDataSet(ADataSet: TDataSet; const AFieldList: String;
-      const APredicateName: String; const AFileName: String; const AStream: TStream = nil);
-    procedure InternalMakePredicatesOfObject(const AClassName: String; const ASubType: String; const ASubSet: String;
+    function InternalMakePredicatesOfDataSet(ADataSet: TDataSet; const AFieldList: String;
+      const APredicateName: String; const AFileName: String; const AStream: TStream = nil): Integer;
+    function InternalMakePredicatesOfObject(const AClassName: String; const ASubType: String; const ASubSet: String;
       AParams: Variant; AnExtraConditions: TStringList; const AFieldList: String; ATr: TIBTransaction;
-      const APredicateName: String; const AFileName: String; const AStream: TStream = nil);
+      const APredicateName: String; const AFileName: String; const AStream: TStream = nil): Integer;
   public  
     destructor Destroy; override; 
 
@@ -87,13 +87,15 @@ type
     procedure Compound(AGoal: term_t; const AFunctor: String; ATermv: TgsPLTermv);
     function Initialise(const AParams: String = ''): Boolean;
     function IsInitialised: Boolean;
-    procedure MakePredicatesOfSQLSelect(const ASQL: String; ATr: TIBTransaction;
-      const APredicateName: String; const AFileName: String);
-    procedure MakePredicatesOfDataSet(ADataSet: TDataSet; const AFieldList: String; const APredicateName: String; const AFileName: String);
-    procedure MakePredicatesOfObject(const AClassName: String; const ASubType: String; const ASubSet: String;
+    function MakePredicatesOfSQLSelect(const ASQL: String; ATr: TIBTransaction;
+      const APredicateName: String; const AFileName: String): Integer;
+    function MakePredicatesOfDataSet(ADataSet: TDataSet; const AFieldList: String;
+      const APredicateName: String; const AFileName: String): Integer;
+    function MakePredicatesOfObject(const AClassName: String; const ASubType: String; const ASubSet: String;
       AParams: Variant; AnExtraConditions: TStringList; const AFieldList: String; ATr: TIBTransaction;
-      const APredicateName: String; const AFileName: String);
+      const APredicateName: String; const AFileName: String): Integer;
     procedure ExtractData(ADataSet: TClientDataSet; const APredicateName: String; ATermv: TgsPLTermv);
+    //procedure SavePredicates(const APredicateName: String; ATermv: TgsPLTermv; const AFileName: String);
     function LoadScript(AScriptID: Integer): Boolean;
 
     property Debug: Boolean read FDebug write FDebug;
@@ -353,7 +355,12 @@ begin
     PL_cleanup(0);
 
   inherited;
-end;  
+end;
+
+{procedure TgsPLClient.SavePredicates(const APredicateName: String; ATermv: TgsPLTermv; const AFileName: String);
+begin
+//
+end;  }
 
 procedure TgsPLClient.ExtractData(ADataSet: TClientDataSet; const APredicateName: String; ATermv: TgsPLTermv);
 var
@@ -362,7 +369,7 @@ var
   F: TField;
 begin
   Assert(ADataSet <> nil);
-  Assert(ATermv <> nil);  
+  Assert(ATermv <> nil);
 
   Query := TgsPLQuery.Create;
   try
@@ -781,12 +788,13 @@ begin
   Result := StringReplace(Result, '\', '/', [rfReplaceAll]);
 end;
 
-procedure TgsPLClient.InternalMakePredicatesOfDataSet(ADataSet: TDataSet; const AFieldList: String;
-  const APredicateName: String; const AFileName: String; const AStream: TStream = nil);
+function TgsPLClient.InternalMakePredicatesOfDataSet(ADataSet: TDataSet; const AFieldList: String;
+  const APredicateName: String; const AFileName: String; const AStream: TStream = nil): Integer;
 var
   I, Arity, Idx: Integer;
   Refs, Term: TgsPLTermv;
 begin
+  Result := 0;
   Assert(ADataSet <> nil);
   Assert(APredicateName > '');
   
@@ -817,9 +825,11 @@ begin
         end;
       end;
       Compound(Term.Term[0], APredicateName, Refs);
-      if Call('assert', Term) then
-        WriteTermv(Term, AStream)
-      else
+      if Call('pl_assert', Term) then
+      begin
+        WriteTermv(Term, AStream);
+        Inc(Result);
+      end else
         raise EgsPLClientException.Create('В процессе добавления данных ''' +
           Term.ToString(0) + ''' возникла ошибка!');
       ADataSet.Next;
@@ -830,8 +840,8 @@ begin
   end;
 end;
 
-procedure TgsPLClient.MakePredicatesOfDataSet(ADataSet: TDataSet; const AFieldList: String;
-  const APredicateName: String; const AFileName: String);
+function TgsPLClient.MakePredicatesOfDataSet(ADataSet: TDataSet; const AFieldList: String;
+  const APredicateName: String; const AFileName: String): Integer;
 var
   FS: TFileStream;
 begin
@@ -839,16 +849,16 @@ begin
   begin
     FS := TFileStream.Create(GetFileName(AFileName), fmCreate);
     try
-      InternalMakePredicatesOfDataSet(ADataSet, AFieldList, APredicateName, AFileName, FS);
+      Result := InternalMakePredicatesOfDataSet(ADataSet, AFieldList, APredicateName, AFileName, FS);
     finally
       FS.Free;
     end;
   end else
-    InternalMakePredicatesOfDataSet(ADataSet, AFieldList, APredicateName, AFileName, nil); 
+    Result := InternalMakePredicatesOfDataSet(ADataSet, AFieldList, APredicateName, AFileName, nil); 
 end;
 
-procedure TgsPLClient.MakePredicatesOfSQLSelect(const ASQL: String; ATr: TIBTransaction;
-  const APredicateName: String; const AFileName: String);
+function TgsPLClient.MakePredicatesOfSQLSelect(const ASQL: String; ATr: TIBTransaction;
+  const APredicateName: String; const AFileName: String): Integer;
 var
   q: TIBSQL;
   Refs, Term: TgsPLTermv;
@@ -856,8 +866,11 @@ var
   Arity: Integer;
   FS: TFileStream;
 begin
+  Result := 0;
+  
   Assert(ATr <> nil);
   Assert(ATr.InTransaction);
+
 
   if FDebug then
     FS := TFileStream.Create(GetFileName(AFileName), fmCreate)
@@ -901,8 +914,11 @@ begin
             end;
           end;
           Compound(Term.Term[0], APredicateName, Refs);
-          if Call('assert', Term) then
-            WriteTermv(Term, FS)
+          if Call('pl_assert', Term) then
+          begin
+            WriteTermv(Term, FS);
+            Inc(Result);
+          end
           else
             raise EgsPLClientException.Create('В процессе добавления данных ''' +
               Term.ToString(0) + ''' возникла ошибка!');
@@ -920,14 +936,17 @@ begin
   end;
 end;
 
-procedure TgsPLClient.InternalMakePredicatesOfObject(const AClassName: String; const ASubType: String; const ASubSet: String;
+function TgsPLClient.InternalMakePredicatesOfObject(const AClassName: String; const ASubType: String; const ASubSet: String;
   AParams: Variant; AnExtraConditions: TStringList; const AFieldList: String; ATr: TIBTransaction;
-  const APredicateName: String; const AFileName: String; const AStream: TStream = nil);
+  const APredicateName: String; const AFileName: String; const AStream: TStream = nil): Integer;
 var
   C: TPersistentClass;
   Obj: TgdcBase;
   I: Integer;
+  R: Integer;
 begin
+  Result := 0;
+
   Assert(ATr <> nil);
   Assert(ATr.InTransaction);
   Assert(AClassName > '');
@@ -956,7 +975,10 @@ begin
       Obj.Params[0].AsVariant := AParams[I];
       Obj.Open;
       if not Obj.Eof then
-        InternalMakePredicatesOfDataSet(Obj, AFieldList, APredicateName, AFileName, AStream);
+      begin
+        R := InternalMakePredicatesOfDataSet(Obj, AFieldList, APredicateName, AFileName, AStream);
+        Inc(Result, R);
+      end;
       Obj.Close;
     end;
   finally
@@ -964,9 +986,9 @@ begin
   end;
 end;
 
-procedure TgsPLClient.MakePredicatesOfObject(const AClassName: String; const ASubType: String; const ASubSet: String;
+function TgsPLClient.MakePredicatesOfObject(const AClassName: String; const ASubType: String; const ASubSet: String;
   AParams: Variant; AnExtraConditions: TStringList; const AFieldList: String; ATr: TIBTransaction;
-  const APredicateName: String; const AFileName: String);
+  const APredicateName: String; const AFileName: String): Integer;
 var
   FS: TFileStream;
 begin
@@ -974,13 +996,13 @@ begin
   begin
     FS := TFileStream.Create(GetFileName(AFileName), fmCreate);
     try
-      InternalMakePredicatesOfObject(AClassName, ASubType, ASubSet, AParams,
+      Result := InternalMakePredicatesOfObject(AClassName, ASubType, ASubSet, AParams,
         AnExtraConditions, AFieldList, ATr, APredicateName, AFileName, FS);
     finally
       FS.Free;
     end;
   end else
-    InternalMakePredicatesOfObject(AClassName, ASubType, ASubSet, AParams,
+    Result := InternalMakePredicatesOfObject(AClassName, ASubType, ASubSet, AParams,
       AnExtraConditions, AFieldList, ATr, APredicateName, AFileName, nil);
 end; 
 
