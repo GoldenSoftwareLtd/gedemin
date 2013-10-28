@@ -170,7 +170,7 @@ begin
             Check(SL.Count = 0);
             FQ.Close;
             
-            PLQuery.Cut;
+            PLQuery.Close;
           finally
             PLQuery.Free;
           end; 

@@ -289,7 +289,7 @@ end;
 destructor TgsPLQuery.Destroy;
 begin
   if FQid <> 0 then
-    Close;
+    Cut;
 
   inherited;
 end;
@@ -394,7 +394,7 @@ begin
       end;
       Query.NextSolution;
     end;
-    Query.Cut;
+    Query.Close;
   finally
     Query.Free; 
   end;
