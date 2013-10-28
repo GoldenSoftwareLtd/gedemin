@@ -94,13 +94,29 @@ var
   SL: TStringList;
   I, Idx: Integer;
   PLQuery: TgsPLQuery;
+  PredCount: Integer;
 begin 
   PLClient := TgsPLClient.Create;
   try
     Check(PLClient.Initialise, 'Not Initialise Prolog!');
     Check(PLClient.Call2('true'));
-    PLClient.MakePredicatesOfSQLSelect(SQL_contact, FTr, 'gd_contact', 'gd_contact');
-    PLClient.MakePredicatesOfSQLSelect(SQL_place, FTr, 'gd_place', 'gd_place');
+    FQ.Close;
+    FQ.SQL.Text := 'SELECT count(id) FROM gd_contact';
+    FQ.ExecQuery;
+    Check(not FQ.Eof);
+
+    PredCount := PLClient.MakePredicatesOfSQLSelect(SQL_contact, FTr, 'gd_contact', 'gd_contact');
+    Check(PredCount = FQ.FieldByName('count').AsInteger, 'Error predicate count!');
+
+    FQ.Close;
+    FQ.SQL.Text := 'SELECT count(id) FROM gd_place';
+    FQ.ExecQuery;
+    Check(not FQ.Eof);
+
+    PredCount := PLClient.MakePredicatesOfSQLSelect(SQL_place, FTr, 'gd_place', 'gd_place');
+    Check(PredCount = FQ.FieldByName('count').AsInteger, 'Error predicate count!');
+
+    FQ.Close;
 
     PLTermv := TgsPLTermv.CreateTermv(2);
     cds := TClientDataSet.Create(nil);
