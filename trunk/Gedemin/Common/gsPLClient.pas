@@ -45,7 +45,6 @@ type
     FEof: Boolean;
     FTermv: TgsPLTermv;
     FPredicateName: String;
-    FDeleteDataAfterClose: Boolean;
 
     function GetEof: Boolean;
   public
@@ -54,12 +53,12 @@ type
 
     procedure OpenQuery;
     procedure Close;
+    procedure Cut;
     procedure NextSolution;
 
     property Eof: Boolean read GetEof;
     property PredicateName: String read FPredicateName write FPredicateName;
-    property Termv: TgsPLTermv read FTermv write FTermv;
-    property DeleteDataAfterClose: Boolean read FDeleteDataAfterClose write FDeleteDataAfterClose;
+    property Termv: TgsPLTermv read FTermv write FTermv; 
   end;
 
   TgsPLClient = class(TObject)
@@ -284,13 +283,13 @@ begin
   inherited Create;
 
   FQid := 0;
-  FEOF := False;
-  FDeleteDataAfterClose := False;
+  FEOF := False; 
 end;
 
 destructor TgsPLQuery.Destroy;
 begin
-  Close;
+  if FQid <> 0 then
+    Close;
 
   inherited;
 end;
@@ -315,10 +314,17 @@ end;
 procedure TgsPLQuery.Close;
 begin
   try
-    if FDeleteDataAfterClose then
-      PL_close_query(FQid)
-    else
-      PL_cut_query(FQid);
+    PL_close_query(FQid);
+  finally
+    FQid := 0;
+    FEof := False;
+  end;
+end;
+
+procedure TgsPLQuery.Cut;
+begin
+  try
+    PL_cut_query(FQid);
   finally
     FQid := 0;
     FEof := False;
@@ -361,8 +367,7 @@ begin
   Query := TgsPLQuery.Create;
   try
     Query.PredicateName := APredicateName;
-    Query.Termv := ATermv;
-    Query.DeleteDataAfterClose := True;
+    Query.Termv := ATermv;  
     Query.OpenQuery;
     while not Query.Eof do
     begin
@@ -389,6 +394,7 @@ begin
       end;
       Query.NextSolution;
     end;
+    Query.Cut;
   finally
     Query.Free; 
   end;
@@ -753,9 +759,9 @@ procedure TgsPLClient.WriteScript(const AText: String; AStream: TStream);
       SN := Copy(S, I, P - I);
       OldStr := Copy(Result, StartCopy, P - StartCopy);
       NewStr := GetConsultString(SN);
-      Result := StringReplace(Result, OldStr, NewStr, []);
+      Result := StringReplace(Result, OldStr, NewStr, [rfReplaceAll]);
       
-      P := StrSearch(IncludePrefix, Result, P);
+      P := StrSearch(IncludePrefix, Result, 1);
     end;
   end;
 
@@ -812,7 +818,10 @@ begin
       end;
       Compound(Term.Term[0], APredicateName, Refs);
       if Call('assert', Term) then
-        WriteTermv(Term, AStream);
+        WriteTermv(Term, AStream)
+      else
+        raise EgsPLClientException.Create('В процессе добавления данных ''' +
+          Term.ToString(0) + ''' возникла ошибка!');
       ADataSet.Next;
     end;
   finally
@@ -893,7 +902,10 @@ begin
           end;
           Compound(Term.Term[0], APredicateName, Refs);
           if Call('assert', Term) then
-            WriteTermv(Term, FS);
+            WriteTermv(Term, FS)
+          else
+            raise EgsPLClientException.Create('В процессе добавления данных ''' +
+              Term.ToString(0) + ''' возникла ошибка!');
           q.Next;
         end;
       finally

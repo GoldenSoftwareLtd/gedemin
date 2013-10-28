@@ -8698,7 +8698,7 @@ end;
 
 function TwrpList.Add(const AObject: IgsObject): Integer;
 begin
-  GetList.Add(Pointer(InterfaceToObject(AObject)));
+  Result := GetList.Add(Pointer(InterfaceToObject(AObject)));
 end;
 
 procedure TwrpList.Clear;
@@ -9013,7 +9013,7 @@ end;
 
 function TwrpContainedAction.Execute: WordBool;
 begin
-  GetContainedAction.Execute;
+  Result := GetContainedAction.Execute;
 end;
 
 function TwrpContainedAction.Get_ActionList: IgsCustomActionList;

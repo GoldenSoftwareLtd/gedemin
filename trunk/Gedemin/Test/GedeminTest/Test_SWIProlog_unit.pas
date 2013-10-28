@@ -10,7 +10,7 @@ type
    Test_SWIProlog = class(TgsDBTestCase)
    published
      procedure TestPLClient;
-     procedure TestPLTermv;
+     procedure TestPLTermv; 
    end;
 
 implementation
@@ -74,8 +74,7 @@ begin
   finally
     PLClient.Free;
   end;
-
-end;
+end;  
 
 procedure Test_SWIProlog.TestPLClient;
 const
@@ -109,8 +108,7 @@ begin
       cds.FieldDefs.Add('City', ftString, 60, True);
       cds.FieldDefs.Add('Name', ftString, 60, True);
       cds.CreateDataSet;
-      cds.Open;
-
+      cds.Open; 
 
       PLTermv.PutString(0, 'pred');
       PLTermv.PutString(1, Pred);
@@ -159,7 +157,6 @@ begin
           try
             PLQuery.PredicateName := 'gd_curr';
             PLQuery.Termv := PLTermv;
-            PLQuery.DeleteDataAfterClose := True;
             PLQuery.OpenQuery;
             Check(not PLQuery.Eof, 'Error recordcount ''gd_curr''!');
 
@@ -170,9 +167,10 @@ begin
               SL.Delete(Idx);
               PLQuery.NextSolution;
             end;
-
             Check(SL.Count = 0);
             FQ.Close;
+            
+            PLQuery.Cut;
           finally
             PLQuery.Free;
           end; 
