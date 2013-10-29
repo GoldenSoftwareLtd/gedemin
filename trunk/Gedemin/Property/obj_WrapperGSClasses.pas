@@ -3987,6 +3987,8 @@ type
     function LoadScript(AScriptID: Integer): WordBool; safecall;
     function Get_Debug: WordBool; safecall;
     procedure Set_Debug(Value: WordBool); safecall;
+    procedure SavePredicatesToFile(const APredicateName: WideString; const ATermv: IgsPLTermv; 
+      const AFileName: WideString); safecall;
   end;
 
   TwrpPLQuery = class(TwrpObject, IgsPLQuery)
@@ -19182,6 +19184,11 @@ begin
     InterfaceToObject(AnExtraConditions) as TStringList, AFieldList, InterfaceToObject(ATr) as TIBTransaction,
     APredicateName, AFileName);
 end;
+
+procedure TwrpPLClient.SavePredicatesToFile(const APredicateName: WideString; const ATermv: IgsPLTermv;
+  const AFileName: WideString);
+begin
+end;  
 
 procedure TwrpPLClient.Compound(AGoal: LongWord; const AFunctor: WideString; const ATermv: IgsPLTermv);
 begin
