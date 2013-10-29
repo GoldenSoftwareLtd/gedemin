@@ -72,6 +72,7 @@ type
 
     procedure WriteTermv(ATerm: TgsPLTermv; AStream: TStream);
     procedure WriteScript(const AText: String; AStream: TStream);
+    procedure WritePredicate(const APredicateName: String; ATermv: TgsPLTermv; AStream: TStream);
 
     function GetConsultString(const AFileName: String): String;
     function InternalMakePredicatesOfDataSet(ADataSet: TDataSet; const AFieldList: String;
@@ -95,7 +96,7 @@ type
       AParams: Variant; AnExtraConditions: TStringList; const AFieldList: String; ATr: TIBTransaction;
       const APredicateName: String; const AFileName: String): Integer;
     procedure ExtractData(ADataSet: TClientDataSet; const APredicateName: String; ATermv: TgsPLTermv);
-    //procedure SavePredicates(const APredicateName: String; ATermv: TgsPLTermv; const AFileName: String);
+    procedure SavePredicatesToFile(const APredicateName: String; ATermv: TgsPLTermv; const AFileName: String);
     function LoadScript(AScriptID: Integer): Boolean;
 
     property Debug: Boolean read FDebug write FDebug;
@@ -357,10 +358,29 @@ begin
   inherited;
 end;
 
-{procedure TgsPLClient.SavePredicates(const APredicateName: String; ATermv: TgsPLTermv; const AFileName: String);
+procedure TgsPLClient.SavePredicatesToFile(const APredicateName: String; ATermv: TgsPLTermv; const AFileName: String);
+var
+  Query: TgsPLQuery;
+  FS: TFileStream;
 begin
-//
-end;  }
+  Assert(ATermv <> nil);
+
+  FS := TFileStream.Create(GetFileName(AFileName), fmCreate);
+  Query := TgsPLQuery.Create;
+  try
+    Query.PredicateName := APredicateName;
+    Query.Termv := ATermv;
+    Query.OpenQuery;
+    while not Query.Eof do
+    begin
+      WritePredicate(APredicateName, Query.Termv, FS);
+      Query.NextSolution;
+    end;
+  finally
+    Query.Free;
+    FS.Free;
+  end;
+end;
 
 procedure TgsPLClient.ExtractData(ADataSet: TClientDataSet; const APredicateName: String; ATermv: TgsPLTermv);
 var
@@ -374,7 +394,7 @@ begin
   Query := TgsPLQuery.Create;
   try
     Query.PredicateName := APredicateName;
-    Query.Termv := ATermv;  
+    Query.Termv := ATermv;
     Query.OpenQuery;
     while not Query.Eof do
     begin
@@ -780,6 +800,27 @@ begin
     TempS := Prepare(AText);
     AStream.WriteBuffer(TempS[1], Length(TempS));
   end;
+end;
+
+procedure TgsPLClient.WritePredicate(const APredicateName: String; ATermv: TgsPLTermv; AStream: TStream);
+
+  function GetString(Termv: TgsPLTermv): String;
+  var
+    I: Integer;
+  begin
+    Result := '';
+    for I := 0 to Termv.Size - 1 do
+      Result := Result + Termv.ToString(I) + ',';
+
+    if Result > '' then
+      Setlength(Result, Length(Result) - 1);
+  end;
+  
+var
+  TempS: String;
+begin
+  TempS := APredicateName + '(' + GetString(ATermv) + ').'#13#10;
+  AStream.WriteBuffer(TempS[1], Length(TempS));
 end;
 
 function TgsPLClient.GetConsultString(const AFileName: String): String;
