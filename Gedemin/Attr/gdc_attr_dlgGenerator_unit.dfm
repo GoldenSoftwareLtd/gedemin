@@ -2,8 +2,8 @@ inherited gdc_dlgGenerator: Tgdc_dlgGenerator
   Left = 401
   Top = 242
   Caption = 'Генератор'
-  ClientHeight = 109
-  ClientWidth = 437
+  ClientHeight = 96
+  ClientWidth = 385
   PixelsPerInch = 96
   TextHeight = 13
   object lblGeneratorName: TLabel [0]
@@ -15,44 +15,49 @@ inherited gdc_dlgGenerator: Tgdc_dlgGenerator
   end
   object lblGeneratorValue: TLabel [1]
     Left = 10
-    Top = 42
-    Width = 48
+    Top = 38
+    Width = 52
     Height = 13
-    Caption = 'Значение'
+    Caption = 'Значение:'
   end
   inherited btnAccess: TButton
-    Top = 77
+    Top = 65
+    TabOrder = 4
   end
   inherited btnNew: TButton
-    Top = 77
+    Top = 65
+    TabOrder = 5
   end
   inherited btnHelp: TButton
-    Top = 77
+    Top = 65
+    TabOrder = 6
   end
   inherited btnOK: TButton
-    Left = 289
-    Top = 77
+    Left = 235
+    Top = 65
+    TabOrder = 2
   end
   inherited btnCancel: TButton
-    Left = 361
-    Top = 77
+    Left = 307
+    Top = 65
+    TabOrder = 3
   end
   object dbeGeneratorName: TDBEdit [7]
-    Left = 105
+    Left = 94
     Top = 8
-    Width = 201
+    Width = 163
     Height = 21
     DataField = 'GENERATORNAME'
     DataSource = dsgdcBase
-    TabOrder = 5
+    TabOrder = 0
   end
   object edGeneratorValue: TEdit [8]
-    Left = 105
-    Top = 38
-    Width = 121
+    Left = 94
+    Top = 34
+    Width = 163
     Height = 21
     Enabled = False
-    TabOrder = 6
+    TabOrder = 1
     Text = 'edGeneratorValue'
   end
   inherited alBase: TActionList

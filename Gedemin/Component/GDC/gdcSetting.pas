@@ -2011,17 +2011,20 @@ begin
       while not ibsql.Eof do
       begin
         ibsqlID.Close;
-        ibsqlID.SQL.Text := 'SELECT id FROM at_relations WHERE relationname = :rn';
+        ibsqlID.SQL.Text := 'SELECT id, relationtype FROM at_relations WHERE relationname = :rn';
         ibsqlID.ParamByName('rn').AsString := ibsql.FieldByName('rdb$relation_name').AsString;
 
         ibsqlID.ExecQuery;
-        if ibsqlID.RecordCount > 0 then
+        if not ibsqlID.EOF then
         begin
-          gdcObject := CgdcBase(TgdcRelation).CreateSubType(nil, '', 'ByID');
+          if ibsqlID.FieldByName('relationtype').AsString = 'V' then
+            gdcObject := TgdcView.CreateSubType(nil, '', 'ByID')
+          else
+            gdcObject := CgdcBase(TgdcBaseTable).CreateSubType(nil, '', 'ByID');
           try
-            gdcObject.ID := ibsqlID.Fields[0].AsInteger;
+            gdcObject.ID := ibsqlID.FieldByName('id').AsInteger;
             gdcObject.Open;
-            if (gdcObject.ID <> ID) and (gdcObject.RecordCount > 0) then
+            if (gdcObject.ID <> ID) and (not gdcObject.EOF) then
               AddPos(gdcObject, WithDetail);
           finally
             gdcObject.Free;
@@ -2112,27 +2115,27 @@ begin
           else
             FieldByName('withdetail').AsInteger := 0;
 
-          if AnsiCompareText(AnObject.GetCurrRecordClass.gdClass.ClassName, 'TgdcLBRBTreeTable') = 0 then
-            GetLBRBTreeDependentNames(AnObject.FieldByName('relationname').AsString, Transaction, LBRBTree)
-          else
-            InitLBRBTreeDependentNames(LBRBTree);
-
-          if (AnsiCompareText(AnObject.GetCurrRecordClass.gdClass.ClassName, 'TgdcPrimeTable') = 0)
-            or (AnsiCompareText(AnObject.GetCurrRecordClass.gdClass.ClassName, 'TgdcTableToTable') = 0) then
-            GetBaseTableTriggersName(AnObject.FieldByName('relationname').AsString, Transaction, BaseTableTriggersName, True)
-          else
-            if (AnsiCompareText(AnObject.GetCurrRecordClass.gdClass.ClassName, 'TgdcSimpleTable') = 0)
-              or (AnsiCompareText(AnObject.GetCurrRecordClass.gdClass.ClassName, 'TgdcTreeTable') = 0) then
-              GetBaseTableTriggersName(AnObject.FieldByName('relationname').AsString, Transaction, BaseTableTriggersName)
-            else
-              InitBaseTableTriggersName(BaseTableTriggersName);
-              
           Post;
         except
           Cancel;
           raise;
         end;
       end;
+
+      if AnsiCompareText(AnObject.GetCurrRecordClass.gdClass.ClassName, 'TgdcLBRBTreeTable') = 0 then
+        GetLBRBTreeDependentNames(AnObject.FieldByName('relationname').AsString, Transaction, LBRBTree)
+      else
+        InitLBRBTreeDependentNames(LBRBTree);
+
+      if (AnsiCompareText(AnObject.GetCurrRecordClass.gdClass.ClassName, 'TgdcPrimeTable') = 0)
+        or (AnsiCompareText(AnObject.GetCurrRecordClass.gdClass.ClassName, 'TgdcTableToTable') = 0) then
+        GetBaseTableTriggersName(AnObject.FieldByName('relationname').AsString, Transaction, BaseTableTriggersName, True)
+      else
+        if (AnsiCompareText(AnObject.GetCurrRecordClass.gdClass.ClassName, 'TgdcSimpleTable') = 0)
+          or (AnsiCompareText(AnObject.GetCurrRecordClass.gdClass.ClassName, 'TgdcTreeTable') = 0) then
+          GetBaseTableTriggersName(AnObject.FieldByName('relationname').AsString, Transaction, BaseTableTriggersName)
+        else
+          InitBaseTableTriggersName(BaseTableTriggersName);
 
       if DidActivate and Transaction.InTransaction then
         Transaction.Commit;
@@ -2226,9 +2229,9 @@ begin
                   begin
                     Obj.ID := ibsql.Fields[0].AsInteger;
                     Obj.Open;
-                    if (Obj.RecordCount > 0) and (Obj is TgdcMetaBase) and
-                      (TgdcMetaBase(Obj).IsUserDefined)
-                    then begin
+                    if (not Obj.EOF) and (Obj is TgdcMetaBase) and
+                      (TgdcMetaBase(Obj).IsUserDefined) and (not TgdcMetaBase(Obj).IsDerivedObject) then
+                    begin
                       //Мы будем сохранять в настройке только пользовательские мета-данные
                       if Obj is TgdcIndex then
                       begin

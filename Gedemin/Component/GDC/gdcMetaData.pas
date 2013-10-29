@@ -3008,53 +3008,62 @@ procedure TgdcView.AddRelationField;
 var
   ibsql: TIBSQL;
   gdcViewField: TgdcRelationField;
-  i: Integer;
-  DidActivate: Boolean;
+  I: Integer;
+  DidActivate, ObjCreated: Boolean;
 begin
   gdcViewField := nil;
-  for i:= 0 to DetailLinksCount - 1 do
-    if (DetailLinks[i] is TgdcRelationField) then
+  ObjCreated := False;
+  DidActivate := False;
+
+  for I := 0 to DetailLinksCount - 1 do
+    if (DetailLinks[I] is TgdcRelationField) then
     begin
-      gdcViewField := DetailLinks[i] as TgdcRelationField;
+      gdcViewField := DetailLinks[I] as TgdcRelationField;
       Break;
     end;
 
-  if Assigned(gdcViewField) then
-  begin
-    DidActivate := False;
-    ibsql := TIBSQL.Create(nil);
-    try
-      ibsql.Transaction := Transaction;
+  ibsql := TIBSQL.Create(nil);
+  try
+    DidActivate := ActivateTransaction;
 
-      DidActivate := ActivateTransaction;
-
-      ibsql.SQL.Text := 'SELECT * FROM rdb$relation_fields WHERE rdb$relation_name = :relname';
-      ibsql.ParamByName('relname').AsString := FieldByName('relationname').AsString;
-      ibsql.ExecQuery;
-      while not ibsql.EOF do
-      begin
-        gdcViewField.Insert;
-        try
-          gdcViewField.FieldByName('relationkey').AsInteger := FieldByName('id').AsInteger;
-          gdcViewField.FieldByName('relationname').AsString := Trim(FieldByName('relationname').AsString);
-          gdcViewField.FieldByName('fieldname').AsString := Trim(ibsql.FieldByName('rdb$field_name').AsString);
-          gdcViewField.FieldByName('fieldsource').AsString := Trim(ibsql.FieldByName('rdb$field_source').AsString);
-          gdcViewField.FieldByName('lname').AsString := gdcViewField.FieldByName('fieldname').AsString;
-          gdcViewField.FieldByName('lshortname').AsString := gdcViewField.FieldByName('fieldname').AsString;
-          gdcViewField.Post;
-        except
-          gdcViewField.Cancel;
-          raise;
-        end;
-        ibsql.Next;
-      end;
-      ibsql.Close;
-    finally
-      if DidActivate then
-        Transaction.Commit;
-
-      ibsql.Free;
+    if not Assigned(gdcViewField) then
+    begin
+      ObjCreated := True;
+      gdcViewField := TgdcViewField.Create(nil);
+      gdcViewField.Transaction := Self.Transaction;
+      gdcViewField.ReadTransaction := Self.ReadTransaction;
+      gdcViewField.Open;
     end;
+
+    ibsql.Transaction := Transaction;
+    ibsql.SQL.Text :=
+      'SELECT * FROM rdb$relation_fields WHERE rdb$relation_name = :relname';
+    ibsql.ParamByName('relname').AsString := FieldByName('relationname').AsString;
+    ibsql.ExecQuery;
+
+    while not ibsql.EOF do
+    begin
+      gdcViewField.Insert;
+      try
+        gdcViewField.FieldByName('relationkey').AsInteger := ID;
+        gdcViewField.FieldByName('relationname').AsString := ibsql.FieldByName('rdb$relation_name').AsTrimString;
+        gdcViewField.FieldByName('fieldname').AsString := ibsql.FieldByName('rdb$field_name').AsTrimString;
+        gdcViewField.FieldByName('fieldsource').AsString := ibsql.FieldByName('rdb$field_source').AsTrimString;
+        gdcViewField.FieldByName('lname').AsString := ibsql.FieldByName('rdb$field_name').AsTrimString;
+        gdcViewField.FieldByName('lshortname').AsString := ibsql.FieldByName('rdb$field_name').AsTrimString;
+        gdcViewField.Post;
+      except
+        gdcViewField.Cancel;
+        raise;
+      end;
+      ibsql.Next;
+    end;
+  finally
+    ibsql.Free;
+    if ObjCreated then
+      gdcViewField.Free;
+    if DidActivate and Transaction.InTransaction then
+      Transaction.Commit;
   end;
 end;
 
@@ -3232,10 +3241,12 @@ var
   I: Integer;
 begin
   NeedSingleUser := True;
-  ExecSingleQuery(Format('DELETE FROM at_relation_fields WHERE relationkey = %s',
-    [FieldByName(GetKeyField(SubType)).AsString]));
+
+  ExecSingleQuery(
+    Format('DELETE FROM at_relation_fields WHERE relationkey = %d', [ID]));
 
   gdcViewField := nil;
+
   for I := 0 to DetailLinksCount - 1 do
     if (DetailLinks[i] is TgdcRelationField) then
     begin
@@ -3245,7 +3256,6 @@ begin
 
   if Assigned(gdcViewField) then
     gdcViewField.CloseOpen;
-
 end;
 
 
@@ -5015,7 +5025,24 @@ begin
         ibsql.ParamByName('fieldname').AsString := FieldByName('fieldsource').AsString;
         ibsql.ExecQuery;
         if not ibsql.EOF then
-          FieldByName('fieldsourcekey').AsInteger := ibsql.FieldByName('id').AsInteger;
+          FieldByName('fieldsourcekey').AsInteger := ibsql.FieldByName('id').AsInteger
+        else if StrIPos('RDB$', FieldByName('fieldsource').AsString) = 1 then
+        begin
+          Field := TgdcField.Create(nil);
+          try
+            Field.Transaction := Transaction;
+            Field.ReadTransaction := ReadTransaction;
+            Field.Open;
+            Field.Insert;
+            Field.FieldByName('fieldname').AsString := FieldByName('fieldsource').AsString;
+            Field.FieldByName('lname').AsString := FieldByName('fieldsource').AsString;
+            Field.FieldByName('description').AsString := FieldByName('fieldsource').AsString;
+            Field.Post;
+            FieldByName('fieldsourcekey').AsInteger := Field.ID;
+          finally
+            Field.Free;
+          end;
+        end;
       end;
 
       if (FieldByName('relationname').AsString > '') and
@@ -5060,6 +5087,8 @@ begin
         begin
           Field := TgdcField.Create(nil);
           try
+            Field.Transaction := Transaction;
+            Field.ReadTransaction := ReadTransaction;
             Field.SubSet := 'ByID';
             Field.ID := FieldByName('fieldsourcekey').AsInteger;
             Field.Open;
@@ -7127,6 +7156,9 @@ begin
           'INSERT INTO at_transaction (trkey, numorder, script, successfull) ' +
           'VALUES (:trkey, :numorder, :script, :successfull)';
 
+        if S.Count > 0 then
+          AddText('Сохранение команд для отложенного выполнения:');
+
         //  Осуществляем сохранение всех скриптов, которые должны быть
         //  запущены после переподключения
         for i := 0 to S.Count - 1 do
@@ -7145,7 +7177,7 @@ begin
         end;
 
         if S.Count > 0 then
-          AddText('Для отложенного выполнения сохранено команд: ' + IntToStr(S.Count));
+          AddText('Окончено сохранение команд для отложенного выполнения.');
       end else
       begin
         if NeedSingleUser then
@@ -7161,7 +7193,7 @@ begin
           end;
         end;  
 
-        for i := 0 to S.Count - 1 do
+        for I := 0 to S.Count - 1 do
         begin
           if Trim(S[I]) > '' then
           begin

@@ -53,6 +53,8 @@ procedure Tgdc_attr_dlgView.actCreateViewExecute(Sender: TObject);
 var
   ibsql: TIBSQL;
 begin
+  Assert(gdcObject.State in dsEditModes);
+
   ibsql := TIBSQL.Create(nil);
   try
     ibsql.Transaction := gdcObject.Transaction;
@@ -63,7 +65,9 @@ begin
 
     if gdcObject.State = dsEdit then
       (gdcObject as TgdcView).ReCreateView;
+      
     gdcObject.Post;
+    gdcObject.Edit;
 
     //Специально стоит 0, а не Handle текущего окна.
     //На экране может оказаться активной форма вывода информации
@@ -111,8 +115,6 @@ begin
       then
         smViewBody.Text := Format(
          'CREATE VIEW %s '#13#10 +
-         ' (  '#13#10 +
-         ' )  '#13#10 +
          'AS '#13#10 +
          '  SELECT '#13#10 +
          '  FROM '#13#10, [gdcObject.FieldByName('relationname').AsString])
@@ -135,7 +137,7 @@ begin
             ' WHERE rdb$relation_name = :rn ORDER BY rdb$field_position ';
           ibsql.ParamByName('rn').AsString := gdcObject.FieldByName('relationname').AsString;
           ibsql.ExecQuery;
-          if ibsql.RecordCount > 0 then
+          if not ibsql.EOF then
           begin
             while not ibsql.EOF do
             begin
@@ -161,10 +163,8 @@ begin
 
         smViewBody.Text := smViewBody.Text + S + #13#10 + ') '#13#10 + 'AS ' +
            gdcObject.FieldByName('view_source').AsString;
-
       end;
     end;
-
   end;
 end;
 
