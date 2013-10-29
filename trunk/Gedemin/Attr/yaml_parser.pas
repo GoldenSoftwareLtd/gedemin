@@ -7,13 +7,15 @@ uses
   Classes, ContNrs, yaml_common, yaml_scanner;
 
 type
-  TyamlNode = class(TObject)
+  CyamlNode = class of TyamlNode;
+  TyamlNode = class(TPersistent)
   private
     FIndent: Integer;
     FTag: AnsiString;
 
   protected
     function ExtractNode(Scanner: TyamlScanner; const ATag: AnsiString = ''): TyamlNode;
+    procedure AssignTo(Dest: TPersistent); override;
 
   public
     constructor Create; virtual;
@@ -87,6 +89,7 @@ type
     procedure SetAsCurrency(const Value: Currency); override;
     procedure SetAsFloat(const Value: Double); override;
     procedure SetAsInt64(const Value: Int64); override;
+    procedure AssignTo(Dest: TPersistent); override;
 
   public
     constructor CreateString(const AValue: AnsiString; const AQuoting: TyamlScalarQuoting;
@@ -106,6 +109,7 @@ type
     function GetAsString: AnsiString; override;
     procedure SetAsString(const Value: AnsiString); override;
     function GetAsVariant: Variant; override;
+    procedure AssignTo(Dest: TPersistent); override;
 
   public
     constructor CreateInteger(const AValue: Integer); overload;
@@ -121,6 +125,7 @@ type
     procedure SetAsInt64(const Value: Int64); override;
     function GetAsBoolean: Boolean; override;
     procedure SetAsBoolean(const Value: Boolean); override;
+    procedure AssignTo(Dest: TPersistent); override;
 
   public
     constructor CreateInt64(const AValue: Int64); overload;
@@ -135,6 +140,7 @@ type
     function GetAsDateTime: TDateTime; override;
     procedure SetAsDateTime(const Value: TDateTime); override;
     function GetAsVariant: Variant; override;
+    procedure AssignTo(Dest: TPersistent); override;
 
   public
     constructor CreateDateTime(const AValue: TDateTime); overload;
@@ -150,6 +156,7 @@ type
     function GetAsDate: TDateTime; override;
     procedure SetAsDate(const Value: TDateTime); override;
     function GetAsVariant: Variant; override;
+    procedure AssignTo(Dest: TPersistent); override;
 
   public
     constructor CreateDate(const AValue: TDateTime);
@@ -164,6 +171,7 @@ type
     function GetAsCurrency: Currency; override;
     procedure SetAsCurrency(const AValue: Currency); override;
     function GetAsVariant: Variant; override;
+    procedure AssignTo(Dest: TPersistent); override;
 
   public
     constructor CreateCurrency(const AValue: Currency); overload;
@@ -177,6 +185,7 @@ type
   protected
     function GetAsFloat: Double; override;
     procedure SetAsFloat(const Value: Double); override;
+    procedure AssignTo(Dest: TPersistent); override;
 
   public
     constructor CreateFloat(const AValue: Double); overload;
@@ -195,6 +204,7 @@ type
     function GetAsString: AnsiString; override;
     procedure SetAsString(const Value: AnsiString); override;
     function GetAsVariant: Variant; override;
+    procedure AssignTo(Dest: TPersistent); override;
 
   public
     constructor CreateBoolean(const AValue: Boolean); overload;
@@ -217,11 +227,13 @@ type
 
     procedure Base64ToBin(const AStr: AnsiString);
 
-  protected  
+  protected
     function GetAsStream: TStream; override;
     function GetAsString: AnsiString; override;
+    procedure AssignTo(Dest: TPersistent); override;
 
   public
+    constructor Create; override;
     constructor CreateBinary(const AValue: AnsiString);
     destructor Destroy; override;
   end;
@@ -232,6 +244,9 @@ type
     FValue: TyamlNode;
 
     procedure SetValue(const Value: TyamlNode);
+
+  protected
+    procedure AssignTo(Dest: TPersistent); override;
 
   public
     destructor Destroy; override;
@@ -248,6 +263,9 @@ type
 
     function GetItems(Index: Integer): TyamlNode;
     function GetCount: Integer;
+
+  protected
+    procedure AssignTo(Dest: TPersistent); override;
 
   public
     constructor Create; override;
@@ -583,6 +601,13 @@ end;
 
 { TyamlNode }
 
+procedure TyamlNode.AssignTo(Dest: TPersistent);
+begin
+  Assert(Dest is TyamlNode);
+  TyamlNode(Dest).FIndent := FIndent;
+  TyamlNode(Dest).FTag := FTag;
+end;
+
 constructor TyamlNode.Create;
 begin
   FIndent := 0;
@@ -746,6 +771,22 @@ function TyamlContainer.Add(Node: TyamlNode): TyamlNode;
 begin
   FList.Add(Node);
   Result := Node;
+end;
+
+procedure TyamlContainer.AssignTo(Dest: TPersistent);
+var
+  I: Integer;
+  Obj: TyamlNode;
+begin
+  Assert(Dest is TyamlContainer);
+  inherited;
+  TyamlContainer(Dest).FList.Clear;
+  for I := 0 to FList.Count - 1 do
+  begin
+    Obj := CyamlNode(FList[I].ClassType).Create;
+    Obj.Assign(FList[I] as TyamlNode);
+    TyamlContainer(Dest).FList.Add(Obj);
+  end;
 end;
 
 constructor TyamlContainer.Create;
@@ -922,6 +963,13 @@ begin
   FValue := AValue;
 end;
 
+procedure TyamlInteger.AssignTo(Dest: TPersistent);
+begin
+  Assert(Dest is TyamlInteger);
+  inherited;
+  TyamlInteger(Dest).FValue := FValue;
+end;
+
 constructor TyamlInteger.CreateInteger(const AValue: AnsiString);
 begin
   inherited Create;
@@ -992,7 +1040,23 @@ begin
     FValue := 0;
 end;
 
+procedure TyamlInt64.AssignTo(Dest: TPersistent);
+begin
+  Assert(Dest is TyamlInt64);
+  inherited;
+  TyamlInt64(Dest).FValue := FValue;
+end;
+
 { TyamlString }
+
+procedure TyamlString.AssignTo(Dest: TPersistent);
+begin
+  Assert(Dest is TyamlString);
+  inherited;
+  TyamlString(Dest).FValue := FValue;
+  TyamlString(Dest).FQuoting := FQuoting;
+  TyamlString(Dest).FStyle := FStyle;
+end;
 
 constructor TyamlString.CreateString(const AValue: AnsiString;
   const AQuoting: TyamlScalarQuoting; const AStyle: TyamlScalarStyle);
@@ -1107,7 +1171,21 @@ begin
   Result := GetAsDateTime;
 end;
 
+procedure TyamlDateTime.AssignTo(Dest: TPersistent);
+begin
+  Assert(Dest is TyamlDateTime);
+  inherited;
+  TyamlDateTime(Dest).FValue := FValue;
+end;
+
 { TyamlDate }
+
+procedure TyamlDate.AssignTo(Dest: TPersistent);
+begin
+  Assert(Dest is TyamlDate);
+  inherited;
+  TyamlDate(Dest).FValue := FValue;
+end;
 
 function TyamlDate.Compare(ANode: TyamlScalar): Integer;
 begin
@@ -1150,6 +1228,13 @@ constructor TyamlFloat.CreateFloat(const AValue: Double);
 begin
   inherited Create;
   FValue := AValue;
+end;
+
+procedure TyamlFloat.AssignTo(Dest: TPersistent);
+begin
+  Assert(Dest is TyamlFloat);
+  inherited;
+  TyamlFloat(Dest).FValue := FValue;
 end;
 
 constructor TyamlFloat.CreateFloat(const AValue: AnsiString);
@@ -1237,6 +1322,13 @@ begin
   Result := GetAsBoolean;
 end;
 
+procedure TyamlBoolean.AssignTo(Dest: TPersistent);
+begin
+  Assert(Dest is TyamlBoolean);
+  inherited;
+  TyamlBoolean(Dest).FValue := FValue;
+end;
+
 { TyamlNull }
 
 function TyamlNull.Compare(ANode: TyamlScalar): Integer;
@@ -1263,8 +1355,7 @@ end;
 
 constructor TyamlBinary.CreateBinary(const AValue: AnsiString);
 begin
-  inherited Create;
-  MS := TMemoryStream.Create;
+  Create;
   Base64ToBin(AValue);
 end;
 
@@ -1305,6 +1396,19 @@ begin
   end;
 end;
 
+constructor TyamlBinary.Create;
+begin
+  inherited Create;
+  MS := TMemoryStream.Create;
+end;
+
+procedure TyamlBinary.AssignTo(Dest: TPersistent);
+begin
+  Assert(Dest is TyamlBinary);
+  inherited;
+  TyamlBinary(Dest).MS.CopyFrom(MS, 0);
+end;
+
 { TyamlKeyValue }
 
 destructor TyamlKeyValue.Destroy;
@@ -1335,6 +1439,19 @@ begin
     FValue := ExtractNode(Scanner);
   if FValue = nil then
     raise EyamlSyntaxError.Create('Invalid mapping value!');
+end;
+
+procedure TyamlKeyValue.AssignTo(Dest: TPersistent);
+begin
+  Assert(Dest is TyamlKeyValue);
+  inherited;
+  TyamlKeyValue(Dest).FKey := FKey;
+  if FValue = nil then
+    TyamlKeyValue(Dest).FValue := nil
+  else begin
+    TyamlKeyValue(Dest).FValue := CyamlNode(FValue.ClassType).Create;
+    TyamlKeyValue(Dest).FValue.Assign(FValue);
+  end;
 end;
 
 { TyamlDocument }
@@ -1463,6 +1580,13 @@ constructor TyamlCurrency.CreateCurrency(const AValue: Currency);
 begin
   inherited Create;
   FValue := AValue;
+end;
+
+procedure TyamlCurrency.AssignTo(Dest: TPersistent);
+begin
+  Assert(Dest is TyamlCurrency);
+  inherited;
+  TyamlCurrency(Dest).FValue := FValue;
 end;
 
 constructor TyamlCurrency.CreateCurrency(const AValue: AnsiString);

@@ -49,12 +49,13 @@ type
     FPrevPosted: CgdcBase;
     FqCheckTheSame: TIBSQL;
     FRemoveList: TObjectList;
+    FSecondPassList: TObjectList;
 
     procedure FlushStorages;
     procedure LoadAtObjectCache(const ANamespaceKey: Integer);
     procedure LoadObject(AMapping: TYAMLMapping; const ANamespaceKey: TID;
-      const AFileTimeStamp: TDateTime);
-    procedure CopyRecord(AnObj: TgdcBase; AMapping: TYAMLMapping; AnOverwriteFields: TStrings);
+      const AFileTimeStamp: TDateTime; const ASecondPass: Boolean);
+    function CopyRecord(AnObj: TgdcBase; AMapping: TYAMLMapping; AnOverwriteFields: TStrings): Boolean;
     procedure CopyField(AField: TField; N: TyamlScalar);
     procedure CopySetAttributes(AnObj: TgdcBase; const AnObjID: TID; ASequence: TYAMLSequence);
     procedure OverwriteRUID(const AnID, AXID, ADBID: TID);
@@ -67,6 +68,7 @@ type
     function GetCandidateID(AnObj: TgdcBase; AFields: TYAMLMapping): TID;
     procedure RemoveObjects;
     procedure ReloginDatabase;
+    procedure DelayedUpdate;
 
   public
     constructor Create;
@@ -113,8 +115,8 @@ var
 
 { TgdcNamespaceLoader }
 
-procedure TgdcNamespaceLoader.CopyRecord(AnObj: TgdcBase;
-  AMapping: TYAMLMapping; AnOverwriteFields: TStrings);
+function TgdcNamespaceLoader.CopyRecord(AnObj: TgdcBase;
+  AMapping: TYAMLMapping; AnOverwriteFields: TStrings): Boolean;
 var
   I, Idx: Integer;
   N: TYAMLNode;
@@ -126,6 +128,8 @@ begin
   Assert(AnObj <> nil);
   Assert(AMapping <> nil);
   Assert(AnObj.State in [dsEdit, dsInsert]);
+
+  Result := False;
 
   AddText('Обрабатывается: ' +
     RUIDToStr(AnObj.GetRUID) + ', ' +
@@ -157,7 +161,13 @@ begin
       end;
 
       for I := 0 to SL.Count - 1 do
-        AddWarning('Отсутствует в базе: ' + SL[I]);
+      begin
+        if not (SL.Objects[I] as TyamlScalar).IsNull then
+        begin
+          AddWarning('Отсутствует в базе: ' + SL[I]);
+          Result := True;
+        end;  
+      end;
     finally
       SL.Free;
     end;
@@ -339,10 +349,12 @@ begin
   FqCheckTheSame.Transaction := FTr;
 
   FRemoveList := TObjectList.Create(True);
+  FSecondPassList := TObjectList.Create(True);
 end;
 
 destructor TgdcNamespaceLoader.Destroy;
 begin
+  FSecondPassList.Free;
   FRemoveList.Free;
   FqCheckTheSame.Free;
   FqFindAtObject.Free;
@@ -483,7 +495,7 @@ begin
           begin
             if not (Objects[J] is TYAMLMapping) then
               raise EgdcNamespaceLoader.Create('Invalid YAML stream.');
-            LoadObject(Objects[J] as TYAMLMapping, NSID, NSTimeStamp);
+            LoadObject(Objects[J] as TYAMLMapping, NSID, NSTimeStamp, False);
           end;
 
           FAtObjectRecordCache.IterateMethod(@NSID, Iterate_RemoveGDCObjects);
@@ -514,29 +526,33 @@ begin
       Parser.Free;
     end;
 
-    if FDelayedUpdate.Count > 0 then
-    begin
-      AddText('Отложенное обновление записей:');
-      FTr.StartTransaction;
-      try
-        for K := 0 to FDelayedUpdate.Count - 1 do
-          try
-            AddText(FDelayedUpdate[K]);
-            FTr.ExecSQLImmediate(FDelayedUpdate[K]);
-          except
-            on E: Exception do
-              AddMistake(E.Message);
-          end;
-        FDelayedUpdate.Clear;
-      finally
-        FTr.Commit;
-      end;
-    end;
+    DelayedUpdate;
 
     if FNeedRelogin then
       ReloginDatabase;
 
     AddText('Закончена загрузка: ' + NSName);
+  end;
+
+  if FSecondPassList.Count > 0 then
+  begin
+    AddText('Повторная загрузка объектов:');
+
+    FgdcObjectCache.Iterate(nil, Iterate_FreeObjects);
+    FgdcObjectCache.Clear;
+
+    FTr.StartTransaction;
+    try
+      for K := 0 to FSecondPassList.Count - 1 do
+        LoadObject(FSecondPassList[K] as TYAMLMapping, -1, 0, True);
+      FTr.Commit;
+      DelayedUpdate;
+    finally
+      FSecondPassList.Clear;
+      if FTr.InTransaction then
+        FTr.Rollback;
+    end;
+    AddText('Окончена повторная загрузка объектов.');
   end;
 
   if FRemoveList.Count > 0 then
@@ -550,6 +566,12 @@ begin
   end;
 
   atDatabase.ForceLoadFromDatabase;
+
+  Assert(FAtObjectRecordCache.Count = 0);
+  Assert(FRemoveList.Count = 0);
+  Assert(FSecondPassList.Count = 0);
+  Assert(FDelayedUpdate.Count = 0);
+  Assert(not FNeedRelogin);
 end;
 
 procedure TgdcNamespaceLoader.LoadAtObjectCache(const ANamespaceKey: Integer);
@@ -593,7 +615,8 @@ begin
 end;
 
 procedure TgdcNamespaceLoader.LoadObject(AMapping: TYAMLMapping;
-  const ANamespaceKey: TID; const AFileTimeStamp: TDateTime);
+  const ANamespaceKey: TID; const AFileTimeStamp: TDateTime;
+  const ASecondPass: Boolean);
 var
   Obj: TgdcBase;
   AtObjectRecord: TatObjectRecord;
@@ -602,16 +625,19 @@ var
   Fields: TYAMLMapping;
   ObjID, CandidateID, RUIDID: TID;
   ObjPosted, ObjPreserved, CrossTableCreated: Boolean;
+  NeedSecondPass: Boolean;
+  TempMapping: TyamlMapping;
 begin
   ObjPosted := False;
   ObjPreserved := False;
   CrossTableCreated := False;
+  NeedSecondPass := False;
   Obj := CacheObject(AMapping.ReadString('Properties\Class'),
     AMapping.ReadString('Properties\SubType'));
   ObjRUIDString := AMapping.ReadString('Properties\RUID');
   ObjRUID := StrToRUID(ObjRUIDString);
 
-  if FAtObjectRecordCache.Find(ObjRUIDString, AtObjectRecord) then
+  if (not ASecondPass) and FAtObjectRecordCache.Find(ObjRUIDString, AtObjectRecord) then
   begin
     AtObjectRecord.Loaded := True;
     ObjName := AtObjectRecord.ObjectName;
@@ -627,6 +653,7 @@ begin
   Fields := AMapping.FindByName('Fields') as TYAMLMapping;
 
   if FAlwaysOverwrite
+    or ASecondPass
     or AMapping.ReadBoolean('Properties\AlwaysOverwrite', False)
     or (AtObjectRecord = nil)
     or ((tiEditionDate in Obj.GetTableInfos(Obj.SubType))
@@ -701,12 +728,13 @@ begin
       and (AtObjectRecord <> nil)
       and (AtObjectRecord.Modified < AtObjectRecord.CurrModified)
       and (not FAlwaysOverwrite)
+      and (not ASecondPass)
       and (not AMapping.ReadBoolean('Properties\AlwaysOverwrite', False)) then
     begin
       with TgdcNamespaceRecCmpController.Create do
       try
         if Compare(nil, Obj, AMapping) then
-          CopyRecord(Obj, Fields, OverwriteFields)
+          NeedSecondPass := CopyRecord(Obj, Fields, OverwriteFields)
         else begin
           AddText('Объект сохранен в исходном состоянии: ' + Obj.ObjectName);
           ObjPreserved := True;
@@ -715,7 +743,7 @@ begin
         Free;
       end;
     end else
-      CopyRecord(Obj, Fields, nil);
+      NeedSecondPass := CopyRecord(Obj, Fields, nil);
 
     Obj.Post;
     ObjPosted := True;
@@ -735,47 +763,65 @@ begin
 
     if AMapping.FindByName('Set') is TYAMLSequence then
       CopySetAttributes(Obj, ObjID, AMapping.FindByName('Set') as TYAMLSequence);
-  end;
 
-  if not FgdcNamespaceObject.Active then
-    FgdcNamespaceObject.Open;
-  FgdcNamespaceObject.Insert;
-  FgdcNamespaceObject.FieldByName('namespacekey').AsInteger := ANamespaceKey;
-  FgdcNamespaceObject.FieldByName('objectname').AsString := ObjName;
-  FgdcNamespaceObject.FieldByName('objectclass').AsString := AMapping.ReadString('Properties\Class');
-  FgdcNamespaceObject.FieldByName('subtype').AsString := AMapping.ReadString('Properties\Subtype');
-  FgdcNamespaceObject.FieldByName('xid').AsInteger := ObjRUID.XID;
-  FgdcNamespaceObject.FieldByName('dbid').AsInteger := ObjRUID.DBID;
-  if AMapping.ReadBoolean('Properties\AlwaysOverwrite', False) then
-    FgdcNamespaceObject.FieldByName('alwaysoverwrite').AsInteger := 1
-  else
-    FgdcNamespaceObject.FieldByName('alwaysoverwrite').AsInteger := 0;
-  if AMapping.ReadBoolean('Properties\DontRemove', False) then
-    FgdcNamespaceObject.FieldByName('dontremove').AsInteger := 1
-  else
-    FgdcNamespaceObject.FieldByName('dontremove').AsInteger := 0;
-  if AMapping.ReadBoolean('Properties\IncludeSiblings', False) then
-    FgdcNamespaceObject.FieldByName('includesiblings').AsInteger := 1
-  else
-    FgdcNamespaceObject.FieldByName('includesiblings').AsInteger := 0;
-  if ObjPreserved and (AtObjectRecord <> nil) then
-  begin
-    FgdcNamespaceObject.FieldByName('modified').AsDateTime := AtObjectRecord.Modified;
-    FgdcNamespaceObject.FieldByName('curr_modified').AsDateTime := AtObjectRecord.CurrModified;
-  end else
-  begin
-    if tiEditionDate in Obj.GetTableInfos(Obj.SubType) then
+    if NeedSecondPass then
     begin
-      FgdcNamespaceObject.FieldByName('modified').AsDateTime := Fields.ReadDateTime('EDITIONDATE');
-      FgdcNamespaceObject.FieldByName('curr_modified').AsDateTime := Fields.ReadDateTime('EDITIONDATE');
-    end else
-    begin
-      FgdcNamespaceObject.FieldByName('modified').AsDateTime := SysUtils.Now;
-      FgdcNamespaceObject.FieldByName('curr_modified').AsDateTime :=
-        FgdcNamespaceObject.FieldByName('modified').AsDateTime;
+      if ASecondPass then
+        AddWarning('Поле(я) отсутствует(ют) в БД после повторной загрузки!')
+      else begin
+        if Obj is TgdcMetaBase then
+          AddMistake('Метаданные не могут быть загружены повторно!')
+        else begin
+          TempMapping := TyamlMapping.Create;
+          TempMapping.Assign(AMapping);
+          FSecondPassList.Add(TempMapping);
+        end;
+      end;
     end;
   end;
-  FgdcNamespaceObject.Post;
+
+  if not ASecondPass then
+  begin
+    if not FgdcNamespaceObject.Active then
+      FgdcNamespaceObject.Open;
+    FgdcNamespaceObject.Insert;
+    FgdcNamespaceObject.FieldByName('namespacekey').AsInteger := ANamespaceKey;
+    FgdcNamespaceObject.FieldByName('objectname').AsString := ObjName;
+    FgdcNamespaceObject.FieldByName('objectclass').AsString := AMapping.ReadString('Properties\Class');
+    FgdcNamespaceObject.FieldByName('subtype').AsString := AMapping.ReadString('Properties\Subtype');
+    FgdcNamespaceObject.FieldByName('xid').AsInteger := ObjRUID.XID;
+    FgdcNamespaceObject.FieldByName('dbid').AsInteger := ObjRUID.DBID;
+    if AMapping.ReadBoolean('Properties\AlwaysOverwrite', False) then
+      FgdcNamespaceObject.FieldByName('alwaysoverwrite').AsInteger := 1
+    else
+      FgdcNamespaceObject.FieldByName('alwaysoverwrite').AsInteger := 0;
+    if AMapping.ReadBoolean('Properties\DontRemove', False) then
+      FgdcNamespaceObject.FieldByName('dontremove').AsInteger := 1
+    else
+      FgdcNamespaceObject.FieldByName('dontremove').AsInteger := 0;
+    if AMapping.ReadBoolean('Properties\IncludeSiblings', False) then
+      FgdcNamespaceObject.FieldByName('includesiblings').AsInteger := 1
+    else
+      FgdcNamespaceObject.FieldByName('includesiblings').AsInteger := 0;
+    if ObjPreserved and (AtObjectRecord <> nil) then
+    begin
+      FgdcNamespaceObject.FieldByName('modified').AsDateTime := AtObjectRecord.Modified;
+      FgdcNamespaceObject.FieldByName('curr_modified').AsDateTime := AtObjectRecord.CurrModified;
+    end else
+    begin
+      if tiEditionDate in Obj.GetTableInfos(Obj.SubType) then
+      begin
+        FgdcNamespaceObject.FieldByName('modified').AsDateTime := Fields.ReadDateTime('EDITIONDATE');
+        FgdcNamespaceObject.FieldByName('curr_modified').AsDateTime := Fields.ReadDateTime('EDITIONDATE');
+      end else
+      begin
+        FgdcNamespaceObject.FieldByName('modified').AsDateTime := SysUtils.Now;
+        FgdcNamespaceObject.FieldByName('curr_modified').AsDateTime :=
+          FgdcNamespaceObject.FieldByName('modified').AsDateTime;
+      end;
+    end;
+    FgdcNamespaceObject.Post;
+  end;
 
   HeadObjectRUID := StrToRUID(AMapping.ReadString('Properties\HeadObject', 21, ''));
   if HeadObjectRUID.XID > -1 then
@@ -1228,6 +1274,32 @@ begin
   atDatabase.SyncIndicesAndTriggers(FTr);
   IBLogin.Relogin;
   FNeedRelogin := False;
+end;
+
+procedure TgdcNamespaceLoader.DelayedUpdate;
+var
+  K: Integer;
+begin
+  Assert(not FTr.InTransaction);
+
+  if FDelayedUpdate.Count > 0 then
+  begin
+    AddText('Отложенное обновление записей:');
+    FTr.StartTransaction;
+    try
+      for K := 0 to FDelayedUpdate.Count - 1 do
+        try
+          AddText(FDelayedUpdate[K]);
+          FTr.ExecSQLImmediate(FDelayedUpdate[K]);
+        except
+          on E: Exception do
+            AddMistake(E.Message);
+        end;
+      FDelayedUpdate.Clear;
+    finally
+      FTr.Commit;
+    end;
+  end;
 end;
 
 { TgdcNamespaceLoaderNexus }
