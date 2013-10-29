@@ -1,8 +1,7 @@
 
 {++
 
-
-  Copyright (c) 2001 by Golden Software of Belarus
+  Copyright (c) 2001-2013 by Golden Software of Belarus
 
   Module
 
@@ -23,6 +22,7 @@
     2.0    23.01.2002    michael   Переделки, добавление триггеров.
     3.0    17.05.2002    Julia     Добавление индексов, изменение триггеров
     4.0    03.10.2007    Alexander Добавление чеков
+
 --}
 
 unit gdc_dlgRelation_unit;
@@ -1288,7 +1288,7 @@ begin
 
   else
   begin
-   // Если редактирование таблицы пользователя и есть поле - идентификатор -
+    // Если редактирование таблицы пользователя и есть поле - идентификатор -
     // разрешаем добавление в проводник
     R := atDatabase.Relations.ByRelationName(
       gdcObject.FieldByName('relationname').AsString);
@@ -1362,7 +1362,6 @@ begin
   {M}end;
   {END MACRO}
 end;
-
 
 procedure Tgdc_dlgRelation.tvTriggersDblClick(Sender: TObject);
 begin

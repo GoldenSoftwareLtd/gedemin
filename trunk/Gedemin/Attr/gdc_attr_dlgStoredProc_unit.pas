@@ -17,7 +17,7 @@ type
     actReplace: TAction;
     actSearchNext: TAction;
     actPrepare: TAction;
-    Panel1: TPanel;
+    pnlBack: TPanel;
     pcStoredProc: TPageControl;
     tsNameSP: TTabSheet;
     Label1: TLabel;

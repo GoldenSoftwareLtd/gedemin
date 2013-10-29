@@ -1,8 +1,8 @@
 inherited gdc_attr_dlgStoredProc: Tgdc_attr_dlgStoredProc
-  Left = 576
-  Top = 266
+  Left = 521
+  Top = 253
   Width = 611
-  Height = 484
+  Height = 478
   HelpContext = 78
   BorderStyle = bsSizeable
   Caption = 'Редактирование хранимой процедуры'
@@ -10,45 +10,46 @@ inherited gdc_attr_dlgStoredProc: Tgdc_attr_dlgStoredProc
   TextHeight = 13
   inherited btnAccess: TButton
     Left = 4
-    Top = 419
+    Top = 413
     Height = 22
     Anchors = [akLeft, akBottom]
     TabOrder = 3
   end
   inherited btnNew: TButton
     Left = 76
-    Top = 419
+    Top = 413
     Height = 22
     Anchors = [akLeft, akBottom]
     TabOrder = 4
   end
   inherited btnHelp: TButton
     Left = 148
-    Top = 419
+    Top = 413
     Height = 22
     Anchors = [akLeft, akBottom]
     TabOrder = 5
   end
   inherited btnOK: TButton
     Left = 449
-    Top = 419
+    Top = 413
     Height = 22
     Anchors = [akRight, akBottom]
     TabOrder = 1
   end
   inherited btnCancel: TButton
     Left = 522
-    Top = 419
+    Top = 413
     Height = 22
     Anchors = [akRight, akBottom]
     TabOrder = 2
   end
-  object Panel1: TPanel [5]
+  object pnlBack: TPanel [5]
     Left = 0
     Top = 0
     Width = 595
-    Height = 418
+    Height = 412
     Align = alTop
+    Anchors = [akLeft, akTop, akRight, akBottom]
     BevelOuter = bvNone
     BorderWidth = 4
     TabOrder = 0
@@ -56,7 +57,7 @@ inherited gdc_attr_dlgStoredProc: Tgdc_attr_dlgStoredProc
       Left = 4
       Top = 4
       Width = 587
-      Height = 410
+      Height = 404
       ActivePage = tsNameSP
       Align = alClient
       TabOrder = 0
@@ -66,14 +67,14 @@ inherited gdc_attr_dlgStoredProc: Tgdc_attr_dlgStoredProc
         Caption = 'Наименование'
         object Label1: TLabel
           Left = 8
-          Top = 12
+          Top = 11
           Width = 137
           Height = 13
           Caption = 'Наименование процедуры:'
         end
         object Label2: TLabel
           Left = 8
-          Top = 41
+          Top = 34
           Width = 113
           Height = 13
           Caption = 'Описание процедуры:'
@@ -94,9 +95,9 @@ inherited gdc_attr_dlgStoredProc: Tgdc_attr_dlgStoredProc
         end
         object dbmDescription: TDBMemo
           Left = 153
-          Top = 39
+          Top = 34
           Width = 401
-          Height = 89
+          Height = 130
           DataField = 'RDB$DESCRIPTION'
           DataSource = dsgdcBase
           TabOrder = 1
@@ -137,7 +138,7 @@ inherited gdc_attr_dlgStoredProc: Tgdc_attr_dlgStoredProc
           Left = 0
           Top = 26
           Width = 579
-          Height = 356
+          Height = 350
           Cursor = crIBeam
           Align = alClient
           Font.Charset = DEFAULT_CHARSET

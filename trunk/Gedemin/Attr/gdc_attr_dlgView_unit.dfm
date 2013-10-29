@@ -30,6 +30,7 @@ inherited gdc_attr_dlgView: Tgdc_attr_dlgView
   inherited pcRelation: TPageControl
     Width = 511
     Height = 382
+    ActivePage = tsView
     TabOrder = 0
     OnChange = pcRelationChange
     inherited tsCommon: TTabSheet
