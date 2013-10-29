@@ -9450,7 +9450,7 @@ begin
                   begin
                     DefRowHeight := GetDefaultRowHeight;
                     
-                    Canvas.Font := FSelectedFont;
+                    Canvas.Font := FSelectedFont;  
                     W := Canvas.TextWidth(S) + 4;
                     (Columns[I] as TgsColumn).TotalWidth := W;
                     if FIsResize and (Columns[I].Width < W) then
@@ -9589,8 +9589,10 @@ begin
                         DefRowHeight := GetDefaultRowHeight;
                         Canvas.Font := FSelectedFont;
 
-                        if (Columns[I] as TgsColumn).DisplayFormat > '' then
-                          V := FormatFloat((Columns[I] as TgsColumn).DisplayFormat, Aggregates[J].Value)
+                        if (TheField is TNumericField)
+                          and ((TheField as TNumericField).DisplayFormat > '')
+                        then
+                          V := FormatFloat((TheField as TNumericField).DisplayFormat, Aggregates[J].Value)
                         else
                           V := Aggregates[J].Value;
                         W := Canvas.TextWidth(V) + 4;
@@ -9652,12 +9654,20 @@ begin
                               if ceoAddField in CurrExpand.Options then
                               begin
                                 F := DataLink.DataSet.FindField(CurrExpand.FieldName);
+
                                 V := '';
                                 if F <> nil then
                                 begin
                                   A := Aggregates.Find(CurrExpand.FieldName);
                                   if A <> nil then
-                                    V := A.Value;
+                                  begin
+                                    if F is TNumericField
+                                      and ((F as TNumericField).DisplayFormat > '')
+                                    then
+                                      V := FormatFloat((F as TNumericField).DisplayFormat, A.Value)
+                                    else
+                                      V := A.Value;
+                                  end;
                                   CurrAlignment := F.Alignment;
                                 end else
                                   CurrAlignment := DrawColumn.Alignment;
