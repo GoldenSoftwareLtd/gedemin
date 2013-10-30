@@ -140,6 +140,9 @@ begin
           if AnIgnoreFields.IndexOf(V.Name) > -1 then
             continue;
 
+          if (FRelations[J] = 'GD_FUNCTION') and ((V.Name = 'ID') or (V.Name = 'MODULECODE')) then
+            continue;
+
           if V.IsNull then
             WriteString(FN, V.Name + ': NULL')
           else if (V.SQLType = SQL_LONG) and (V.AsXSQLVAR.SQLScale = 0)
@@ -174,18 +177,29 @@ begin
 end;
 
 procedure TgsDBExtractData.LoadRUIDs;
+var
+  CC: Integer;
 begin
   Assert(Connected);
 
   FRUIDs.Clear;
 
   Fq.Close;
+  Fq.SQL.Text := 'SELECT companykey FROM gd_ourcompany';
+  Fq.ExecQuery;
+
+  CC := Fq.Fields[0].AsInteger;
+
+  Fq.Close;
   Fq.SQL.Text := 'SELECT id, xid || ''_'' || dbid FROM gd_ruid';
   Fq.ExecQuery;
   while not Fq.EOF do
   begin
-    FRUIDs.ValuesByIndex[FRUIDs.Add(Fq.Fields[0].AsInteger)] :=
-      Fq.Fields[1].AsString;
+    if Fq.Fields[0].AsInteger = CC then
+      FRUIDs.ValuesByIndex[FRUIDs.Add(CC)] := 'OURC'
+    else
+      FRUIDs.ValuesByIndex[FRUIDs.Add(Fq.Fields[0].AsInteger)] :=
+        Fq.Fields[1].AsString;
     Fq.Next;
   end;
   Fq.Close;
@@ -332,6 +346,14 @@ begin
     Result := 'SELECT * FROM GD_PLACE ORDER BY lb'
   else if ARelationName = 'GD_GOODGROUP' then
     Result := 'SELECT * FROM GD_GOODGROUP ORDER BY name, lb'
+  else if ARelationName = 'GD_CONTACT' then
+    Result := 'SELECT * FROM GD_CONTACT ORDER BY name'
+  else if ARelationName = 'USR$ACC_TAXPOSITION' then
+    Result := 'SELECT * FROM USR$ACC_TAXPOSITION ORDER BY usr$name, parent'
+  else if ARelationName = 'USR$ACC_TAXPOSDATE' then
+    Result := 'SELECT d.* FROM USR$ACC_TAXPOSDATE d JOIN USR$ACC_TAXPOSITION p ON p.id = d.usr$taxpositionkey ORDER BY p.usr$name, d.usr$date'
+  else if ARelationName = 'GD_TAXACTUAL' then
+    Result := 'SELECT t.* FROM GD_TAXACTUAL t JOIN GD_TAXNAME n ON n.id = t.taxnamekey ORDER BY n.name, t.actualdate'
   else if ARelationName = 'RP_ADDITIONALFUNCTION' then
     Result := 'SELECT m.name, a.name FROM RP_ADDITIONALFUNCTION r ' +
     ' LEFT JOIN gd_function m ON m.id = r.mainfunctionkey ' +

@@ -1726,33 +1726,47 @@ procedure TfrmGedeminMain.actCloseAllExecute(Sender: TObject);
 var
   I: Integer;
   Form: TObject;
+  Asked: Boolean;
 begin
-  if MessageBox(Handle, 'Закрыть все формы просмотра?', 'Внимание', MB_YESNO or MB_ICONQUESTION) = IDYES then
+  Asked := False;
+  for I := tbForms.Items.Count - 1 downto 0 do
   begin
-    for I := tbForms.Items.Count - 1 downto 0 do
-      if tbForms.Items[I] is TTBItem then
-        try
-          try
-            Form := TForm(tbForms.Items[I].Tag);
-            if gdc_frmExplorer <> Form then
-            begin
-              if Form is TForm then
-              begin
-                if Form is TfrmGedeminProperty then
-                begin
-                  if (Form as TfrmGedeminProperty).Restored then
-                    (Form as TForm).Free;
-                end
-                else
-                  (Form as TForm).Free;
-              end;
-            end;
-          except
-            tbForms.Items.Delete(I);
-          end;
-        except
+    if tbForms.Items[I] is TTBItem then
+    try
+      try
+        Form := TForm(tbForms.Items[I].Tag);
+
+        if gdc_frmExplorer = Form then
+          continue;
+
+        if not Asked then
+        begin
+          if MessageBox(Handle,
+            'Закрыть все формы просмотра?',
+            'Внимание',
+            MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = IDYES then
+          begin
+            Asked := True;
+          end else
+            break;
         end;
-  end;
+
+        if Form is TForm then
+        begin
+          if Form is TfrmGedeminProperty then
+          begin
+            if (Form as TfrmGedeminProperty).Restored then
+              (Form as TForm).Free;
+          end
+          else
+            (Form as TForm).Free;
+        end;
+      except
+        tbForms.Items.Delete(I);
+      end;
+    except
+    end;
+  end;  
 end;
 
 procedure TfrmGedeminMain.actWorkingCompaniesExecute(Sender: TObject);
