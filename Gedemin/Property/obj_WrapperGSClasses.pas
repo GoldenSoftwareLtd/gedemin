@@ -3950,17 +3950,18 @@ type
     procedure PutAtom(Idx: LongWord; const AValue: WideString); safecall;
     procedure PutVariable(Idx: LongWord); safecall;
     procedure Reset; safecall;
-    function  ReadInteger(Idx: LongWord): Integer; safecall;
-    function  ReadString(Idx: LongWord): WideString; safecall;
-    function  ReadFloat(Idx: LongWord): Double; safecall;
-    function  ReadDateTime(Idx: LongWord): TDateTime; safecall;
-    function  ReadDate(Idx: LongWord): TDateTime; safecall;
-    function  ReadInt64(Idx: LongWord): Int64; safecall;
-    function  ReadAtom(Idx: LongWord): WideString; safecall;
-    function  ToString(Idx: LongWord): WideString; safecall;
-    function  Get_DataType(Idx: LongWord): Integer; safecall;
-    function  Get_Term(Idx: LongWord): LongWord; safecall;
-    function  Get_Size: LongWord; safecall;
+    function ReadInteger(Idx: LongWord): Integer; safecall;
+    function ReadString(Idx: LongWord): WideString; safecall;
+    function ReadFloat(Idx: LongWord): Double; safecall;
+    function ReadDateTime(Idx: LongWord): TDateTime; safecall;
+    function ReadDate(Idx: LongWord): TDateTime; safecall;
+    function ReadInt64(Idx: LongWord): Int64; safecall;
+    function ReadAtom(Idx: LongWord): WideString; safecall;
+    function ToString(Idx: LongWord): WideString; safecall;
+    function Get_DataType(Idx: LongWord): Integer; safecall;
+    function Get_Term(Idx: LongWord): LongWord; safecall;
+    function Get_Size: LongWord; safecall;
+    function ToTrimQuotesString(Idx: LongWord): WideString; safecall;
   public
     class function CreateObject(const DelphiClass: TClass; const Params: OleVariant): TObject; override;
   end;
@@ -19100,6 +19101,11 @@ end;
 function TwrpPLTermv.ToString(Idx: LongWord): WideString;
 begin
   Result := GetPLTermv.ToString(Idx);
+end;
+
+function TwrpPLTermv.ToTrimQuotesString(Idx: LongWord): WideString;
+begin
+  Result := GetPLTermv.ToTrimQuotesString(Idx);
 end;
 
 procedure TwrpPLTermv.Reset;
