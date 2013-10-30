@@ -32,6 +32,7 @@ type
     function ReadInt64(const Idx: LongWord): Int64;
     function ReadAtom(const Idx: LongWord): String;
     function ToString(const Idx: LongWord): String;
+    function ToTrimQuotesString(const Idx: LongWord): String;
     procedure Reset;
 
     property DataType[const Idx: LongWord]: Integer read GetDataType;
@@ -163,6 +164,11 @@ end;
 function TgsPLTermv.ToString(const Idx: LongWord): String;
 begin
   Result := TermToString(GetTerm(Idx));
+end;
+
+function TgsPLTermv.ToTrimQuotesString(const Idx: LongWord): String;
+begin
+  Result := StrTrimQuotes(ToString(Idx))
 end;
 
 procedure TgsPLTermv.Reset;
@@ -411,7 +417,7 @@ begin
             ftTime, ftDateTime: F.AsDateTime := Query.Termv.ReadDateTime(I);
             ftDate: F.AsDateTime := Query.Termv.ReadDate(I);
           else
-            F.AsString := Query.Termv.ToString(I);
+            F.AsString := Query.Termv.ToTrimQuotesString(I);
           end;
         end;
         ADataSet.Post;
@@ -579,54 +585,15 @@ end;
 
 function TermToString(ATerm: term_t): String;
 var
-  a: term_t;
-  name: atom_t;
-  arity, I: Integer;
-  S: PChar; 
-  len: Cardinal;
+  S: PChar;
 begin
   Result := '';
-  case PL_term_type(ATerm) of
-    PL_VARIABLE:
-    begin
-      PL_get_chars(ATerm, S, CVT_VARIABLE);
-      Result := S;
-    end;
-    PL_ATOM:
-    begin
-      PL_get_chars(ATerm, S, CVT_ATOM);
-      Result := S;
-    end; 
-    PL_INTEGER, PL_FLOAT:
-    begin
-      PL_get_chars(ATerm, S, CVT_ALL);
-      Result := S;
-    end;
-    PL_STRING:
-    begin
-      PL_get_string(ATerm, S, len);
-      Result := StrSingleQuote(S);  
-    end;
-    PL_TERM:
-    begin
-      if PL_get_name_arity(ATerm, name, arity) <> 0 then
-      begin
-        Result := Result + PL_atom_chars(name) + '(';
 
-        for I := 1 to arity do
-        begin
-          a := PL_new_term_ref;
-          PL_get_arg(I, ATerm, a);
-          Result := Result + TermToString(a) + ',';
-        end;
-
-        SetLength(Result, Length(Result) - 1);
-        Result := Result + ')';
-      end;
-    end;
-    else
-      raise Exception.Create('No variable!');
-  end;
+  Assert(ATerm  > 0);   
+  if PL_get_chars(ATerm, S, CVT_WRITEQ) <> 0 then
+    Result := S
+  else
+    raise EgsPLClientException.Create('Error convert term to string!');   
 end;
 
 function TgsPLClient.GetArity(ASql: TIBSQL): Integer;

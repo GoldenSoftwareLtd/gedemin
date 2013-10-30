@@ -29,6 +29,7 @@ const
   CVT_WRITE               = $0040; // as of version 3.2.10
   CVT_ALL                 = CVT_ATOMIC or CVT_LIST;
   CVT_MASK                = $00FF;
+  CVT_WRITEQ              = $00C0;
 
   BUF_DISCARDABLE         = $0000;
   BUF_RING                = $0100;
