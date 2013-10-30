@@ -587,14 +587,19 @@ var
 begin
   Result := '';
   case PL_term_type(ATerm) of
-   PL_VARIABLE:
-   begin
-     PL_get_chars(ATerm, S, CVT_VARIABLE);
-     Result := S;
-   end;
-    PL_ATOM, PL_INTEGER, PL_FLOAT:
+    PL_VARIABLE:
     begin
-      PL_get_chars(ATerm, S, CVT_ALL); 
+      PL_get_chars(ATerm, S, CVT_VARIABLE);
+      Result := S;
+    end;
+    PL_ATOM:
+    begin
+      PL_get_chars(ATerm, S, CVT_ATOM);
+      Result := S;
+    end; 
+    PL_INTEGER, PL_FLOAT:
+    begin
+      PL_get_chars(ATerm, S, CVT_ALL);
       Result := S;
     end;
     PL_STRING:
