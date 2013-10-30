@@ -19188,6 +19188,7 @@ end;
 procedure TwrpPLClient.SavePredicatesToFile(const APredicateName: WideString; const ATermv: IgsPLTermv;
   const AFileName: WideString);
 begin
+  GetPLClient.SavePredicatesToFile(APredicateName, InterfaceToObject(ATermv) as TgsPLTermv, AFileName);
 end;  
 
 procedure TwrpPLClient.Compound(AGoal: LongWord; const AFunctor: WideString; const ATermv: IgsPLTermv);
