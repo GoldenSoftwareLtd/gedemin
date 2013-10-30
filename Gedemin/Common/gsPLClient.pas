@@ -74,7 +74,7 @@ type
     procedure WriteScript(const AText: String; AStream: TStream);
     procedure WritePredicate(const APredicateName: String; ATermv: TgsPLTermv; AStream: TStream);
 
-    function GetConsultString(const AFileName: String): String;
+    //function GetConsultString(const AFileName: String): String;
     function InternalMakePredicatesOfDataSet(ADataSet: TDataSet; const AFieldList: String;
       const APredicateName: String; const AFileName: String; const AStream: TStream = nil): Integer;
     function InternalMakePredicatesOfObject(const AClassName: String; const ASubType: String; const ASubSet: String;
@@ -758,46 +758,12 @@ begin
 end;
 
 procedure TgsPLClient.WriteScript(const AText: String; AStream: TStream);
-
-  function Prepare(const S: String): String;
-  const
-    IncludePrefix = '%#INCLUDE ';
-    LengthInc = Length(IncludePrefix);
-    LimitChar = [' ', ',', ';', #13, #10];
-  var
-    P: Integer;
-    SN, OldStr, NewStr: String;
-    StartCopy, I: Integer;
-  begin
-    Result := S;
-    P := StrSearch(IncludePrefix, Result, 1);
-    while P > 0 do
-    begin
-      StartCopy := P;
-
-      P := P + LengthInc;
-      while (P <= Length(Result)) and (Result[P] in LimitChar) do
-        Inc(P);
-
-      I := P;
-      while (P <= Length(Result)) and not (Result[P] in LimitChar) do
-        Inc(P);
-
-      SN := Copy(S, I, P - I);
-      OldStr := Copy(Result, StartCopy, P - StartCopy);
-      NewStr := GetConsultString(SN);
-      Result := StringReplace(Result, OldStr, NewStr, [rfReplaceAll]);
-      
-      P := StrSearch(IncludePrefix, Result, 1);
-    end;
-  end;
-
 var
   TempS: String;
 begin
   if AStream <> nil then
   begin
-    TempS := Prepare(AText);
+    TempS := AText;
     AStream.WriteBuffer(TempS[1], Length(TempS));
   end;
 end;
@@ -823,11 +789,11 @@ begin
   AStream.WriteBuffer(TempS[1], Length(TempS));
 end;
 
-function TgsPLClient.GetConsultString(const AFileName: String): String;
+{function TgsPLClient.GetConsultString(const AFileName: String): String;
 begin
   Result := ':- consult(''' + GetFileName(AFileName) + ''').';
   Result := StringReplace(Result, '\', '/', [rfReplaceAll]);
-end;
+end; }
 
 function TgsPLClient.InternalMakePredicatesOfDataSet(ADataSet: TDataSet; const AFieldList: String;
   const APredicateName: String; const AFileName: String; const AStream: TStream = nil): Integer;
