@@ -3845,8 +3845,8 @@ type
     function  Get_ReadTimeOut: Integer; safecall;
     procedure Set_ReadTimeOut(Value: Integer); safecall;
     function  Get_Connected: WordBool; safecall;
-    procedure TestHost(ATrNumber: LongWord; ACashNumber: LongWord); safecall;
-    procedure TestPinPad(ATrNumber: LongWord; ACashNumber: LongWord); safecall;
+    procedure TestHost(ACashNumber: LongWord); safecall;
+    procedure TestPinPad(ACashNumber: LongWord); safecall;
     procedure Connect; safecall;
     procedure Disconnect; safecall;
     procedure ReadData(const AParams: IgsTRPOSOutPutData); safecall;
@@ -3871,16 +3871,16 @@ type
       const AParam: IgsTRPOSParamData); safecall;
     procedure Ping(ATrNumber: LongWord; ACashNumber: LongWord; const AParam: IgsTRPOSParamData); safecall;
     procedure ReadCard(ATrNumber: LongWord; ACashNumber: LongWord; const AParam: IgsTRPOSParamData); safecall;
-    procedure ReconciliationResults(ATrNumber: LongWord; ACashNumber: LongWord); safecall;
-    procedure Duplicate(ATrNumber: LongWord; ACashNumber: LongWord); safecall;
-    procedure JRNClean(ATrNumber: LongWord; ACashNumber: LongWord); safecall;
-    procedure RVRClean(ATrNumber: LongWord; ACashNumber: LongWord); safecall;
-    procedure FullClean(ATrNumber: LongWord; ACashNumber: LongWord); safecall;
-    procedure MenuPrintReport(ATrNumber: LongWord; ACashNumber: LongWord); safecall;
-    procedure DSortByDate(ATrNumber: LongWord; ACashNumber: LongWord); safecall;
-    procedure DSortByIssuer(ATrNumber: LongWord; ACashNumber: LongWord); safecall;
-    procedure SSortByDate(ATrNumber: LongWord; ACashNumber: LongWord); safecall;
-    procedure RePrint(ATrNumber: LongWord; ACashNumber: LongWord); safecall;
+    procedure ReconciliationResults(ACashNumber: LongWord); safecall;
+    procedure Duplicate(ACashNumber: LongWord); safecall;
+    procedure JRNClean(ACashNumber: LongWord); safecall;
+    procedure RVRClean(ACashNumber: LongWord); safecall;
+    procedure FullClean(ACashNumber: LongWord); safecall;
+    procedure MenuPrintReport(ACashNumber: LongWord); safecall;
+    procedure DSortByDate(ACashNumber: LongWord); safecall;
+    procedure DSortByIssuer(ACashNumber: LongWord); safecall;
+    procedure SSortByDate(ACashNumber: LongWord); safecall;
+    procedure RePrint(ACashNumber: LongWord); safecall;
   public
     class function CreateObject(const DelphiClass: TClass; const Params: OleVariant): TObject; override;
   end;
@@ -18610,14 +18610,14 @@ begin
   GetTRPOSClient.Port := Value;
 end;
 
-procedure TwrpTRPOSClient.TestHost(ATrNumber: LongWord; ACashNumber: LongWord);
+procedure TwrpTRPOSClient.TestHost(ACashNumber: LongWord);
 begin
-  GetTRPOSClient.TestHost(ATrNumber, ACashNumber);
+  GetTRPOSClient.TestHost(ACashNumber);
 end;
 
-procedure TwrpTRPOSClient.TestPinPad(ATrNumber: LongWord; ACashNumber: LongWord);
+procedure TwrpTRPOSClient.TestPinPad(ACashNumber: LongWord);
 begin
-  GetTRPOSClient.TestPinPad(ATrNumber, ACashNumber);
+  GetTRPOSClient.TestPinPad(ACashNumber);
 end;
 
 procedure TwrpTRPOSClient.Connect;
@@ -18715,54 +18715,54 @@ begin
   GetTRPOSClient.ReadCard(ATrNumber, ACashNumber, InterfaceToObject(AParam) as TgsTRPOSParamData);
 end;
 
-procedure TwrpTRPOSClient.ReconciliationResults(ATrNumber: LongWord; ACashNumber: LongWord);
+procedure TwrpTRPOSClient.ReconciliationResults(ACashNumber: LongWord);
 begin
-  GetTRPOSClient.ReconciliationResults(ATrNumber, ACashNumber);
+  GetTRPOSClient.ReconciliationResults(ACashNumber);
 end;
 
-procedure TwrpTRPOSClient.Duplicate(ATrNumber: LongWord; ACashNumber: LongWord);
+procedure TwrpTRPOSClient.Duplicate(ACashNumber: LongWord);
 begin
-  GetTRPOSClient.Duplicate(ATrNumber, ACashNumber);
+  GetTRPOSClient.Duplicate(ACashNumber);
 end;
 
-procedure TwrpTRPOSClient.JRNClean(ATrNumber: LongWord; ACashNumber: LongWord);
+procedure TwrpTRPOSClient.JRNClean(ACashNumber: LongWord);
 begin
-  GetTRPOSClient.JRNClean(ATrNumber, ACashNumber);
+  GetTRPOSClient.JRNClean(ACashNumber);
 end;
 
-procedure TwrpTRPOSClient.RVRClean(ATrNumber: LongWord; ACashNumber: LongWord);
+procedure TwrpTRPOSClient.RVRClean(ACashNumber: LongWord);
 begin
-  GetTRPOSClient.RVRClean(ATrNumber, ACashNumber);
+  GetTRPOSClient.RVRClean(ACashNumber);
 end;
 
-procedure TwrpTRPOSClient.FullClean(ATrNumber: LongWord; ACashNumber: LongWord);
+procedure TwrpTRPOSClient.FullClean(ACashNumber: LongWord);
 begin
-  GetTRPOSClient.FullClean(ATrNumber, ACashNumber);
+  GetTRPOSClient.FullClean(ACashNumber);
 end;
 
-procedure TwrpTRPOSClient.MenuPrintReport(ATrNumber: LongWord; ACashNumber: LongWord);
+procedure TwrpTRPOSClient.MenuPrintReport(ACashNumber: LongWord);
 begin
-  GetTRPOSClient.MenuPrintReport(ATrNumber, ACashNumber);
+  GetTRPOSClient.MenuPrintReport(ACashNumber);
 end;
 
-procedure TwrpTRPOSClient.DSortByDate(ATrNumber: LongWord; ACashNumber: LongWord);
+procedure TwrpTRPOSClient.DSortByDate(ACashNumber: LongWord);
 begin
-  GetTRPOSClient.DSortByDate(ATrNumber, ACashNumber);
+  GetTRPOSClient.DSortByDate(ACashNumber);
 end;
 
-procedure TwrpTRPOSClient.DSortByIssuer(ATrNumber: LongWord; ACashNumber: LongWord);
+procedure TwrpTRPOSClient.DSortByIssuer(ACashNumber: LongWord);
 begin
-  GetTRPOSClient.DSortByIssuer(ATrNumber, ACashNumber);
+  GetTRPOSClient.DSortByIssuer(ACashNumber);
 end;
 
-procedure TwrpTRPOSClient.SSortByDate(ATrNumber: LongWord; ACashNumber: LongWord);
+procedure TwrpTRPOSClient.SSortByDate(ACashNumber: LongWord);
 begin
-  GetTRPOSClient.SSortByDate(ATrNumber, ACashNumber);
+  GetTRPOSClient.SSortByDate(ACashNumber);
 end;
 
-procedure TwrpTRPOSClient.RePrint(ATrNumber: LongWord; ACashNumber: LongWord);
+procedure TwrpTRPOSClient.RePrint(ACashNumber: LongWord);
 begin
-  GetTRPOSClient.RePrint(ATrNumber, ACashNumber);
+  GetTRPOSClient.RePrint(ACashNumber);
 end;
 
 function TwrpTRPOSClient.Get_ReadTimeOut: Integer;
