@@ -90,12 +90,12 @@ type
     function Initialise(const AParams: String = ''): Boolean;
     function IsInitialised: Boolean;
     function MakePredicatesOfSQLSelect(const ASQL: String; ATr: TIBTransaction;
-      const APredicateName: String; const AFileName: String): Integer;
+      const APredicateName: String; const AFileName: String; const AnAppend: Boolean = False): Integer;
     function MakePredicatesOfDataSet(ADataSet: TDataSet; const AFieldList: String;
-      const APredicateName: String; const AFileName: String): Integer;
+      const APredicateName: String; const AFileName: String; const AnAppend: Boolean = False): Integer;
     function MakePredicatesOfObject(const AClassName: String; const ASubType: String; const ASubSet: String;
       AParams: Variant; AnExtraConditions: TStringList; const AFieldList: String; ATr: TIBTransaction;
-      const APredicateName: String; const AFileName: String): Integer;
+      const APredicateName: String; const AFileName: String; const AnAppend: Boolean = False): Integer;
     procedure ExtractData(ADataSet: TClientDataSet; const APredicateName: String; ATermv: TgsPLTermv);
     procedure SavePredicatesToFile(const APredicateName: String; ATermv: TgsPLTermv; const AFileName: String);
     function LoadScript(AScriptID: Integer): Boolean;
@@ -648,7 +648,7 @@ end;
 function TgsPLClient.IsInitialised: Boolean;
 var
   argc: Integer;
-begin
+begin                
   argc := High(FInitArgv);
   Result := (argc > -1) and TryPLLoad;
 
@@ -820,13 +820,20 @@ begin
 end;
 
 function TgsPLClient.MakePredicatesOfDataSet(ADataSet: TDataSet; const AFieldList: String;
-  const APredicateName: String; const AFileName: String): Integer;
+  const APredicateName: String; const AFileName: String; const AnAppend: Boolean = False): Integer;
 var
   FS: TFileStream;
+  FN: String;
 begin
   if FDebug then
   begin
-    FS := TFileStream.Create(GetFileName(AFileName), fmCreate);
+    FN := GetFileName(AFileName);
+    if AnAppend and FileExists(FN) then
+    begin
+      FS := TFileStream.Create(FN, fmOpenReadWrite);
+      FS.Seek(0, soFromEnd);
+    end else
+      FS := TFileStream.Create(FN, fmCreate);
     try
       Result := InternalMakePredicatesOfDataSet(ADataSet, AFieldList, APredicateName, AFileName, FS);
     finally
@@ -837,23 +844,30 @@ begin
 end;
 
 function TgsPLClient.MakePredicatesOfSQLSelect(const ASQL: String; ATr: TIBTransaction;
-  const APredicateName: String; const AFileName: String): Integer;
+  const APredicateName: String; const AFileName: String; const AnAppend: Boolean = False): Integer;
 var
   q: TIBSQL;
   Refs, Term: TgsPLTermv;
   I: LongWord;
   Arity: Integer;
   FS: TFileStream;
+  FN: String;
 begin
   Result := 0;
   
   Assert(ATr <> nil);
-  Assert(ATr.InTransaction);
-
+  Assert(ATr.InTransaction);  
 
   if FDebug then
-    FS := TFileStream.Create(GetFileName(AFileName), fmCreate)
-  else
+  begin
+    FN := GetFileName(AFileName);
+    if AnAppend and FileExists(FN) then
+    begin
+      FS := TFileStream.Create(FN, fmOpenReadWrite);
+      FS.Seek(0, soFromEnd);
+    end else
+      FS := TFileStream.Create(FN, fmCreate);
+  end else
     FS := nil;
   q := TIBSQL.Create(nil);
   try
@@ -967,13 +981,20 @@ end;
 
 function TgsPLClient.MakePredicatesOfObject(const AClassName: String; const ASubType: String; const ASubSet: String;
   AParams: Variant; AnExtraConditions: TStringList; const AFieldList: String; ATr: TIBTransaction;
-  const APredicateName: String; const AFileName: String): Integer;
+  const APredicateName: String; const AFileName: String; const AnAppend: Boolean = False): Integer;
 var
   FS: TFileStream;
+  FN: String;
 begin
   if FDebug then
   begin
-    FS := TFileStream.Create(GetFileName(AFileName), fmCreate);
+    FN := GetFileName(AFileName);
+    if AnAppend and FileExists(FN) then
+    begin
+      FS := TFileStream.Create(FN, fmOpenReadWrite);
+      FS.Seek(0, soFromEnd);
+    end else
+      FS := TFileStream.Create(FN, fmCreate);
     try
       Result := InternalMakePredicatesOfObject(AClassName, ASubType, ASubSet, AParams,
         AnExtraConditions, AFieldList, ATr, APredicateName, AFileName, FS);
