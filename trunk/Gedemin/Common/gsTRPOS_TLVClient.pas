@@ -127,18 +127,18 @@ type
       const AParam: TgsTRPOSParamData = nil);
     procedure ReadCard(ATrNumber: Cardinal; ACashNumber: Cardinal;
       const AParam: TgsTRPOSParamData = nil);
-    procedure ReconciliationResults(ACashNumber: Cardinal);
+    procedure ReconciliationResults(ATrNumber: Cardinal; ACashNumber: Cardinal);
     procedure TestPinPad(ACashNumber: Cardinal);
     procedure TestHost(ACashNumber: Cardinal);
-    procedure Duplicate(ACashNumber: Cardinal);
-    procedure JRNClean(ACashNumber: Cardinal);
-    procedure RVRClean(ACashNumber: Cardinal);
-    procedure FullClean(ACashNumber: Cardinal);
+    procedure Duplicate(ATrNumber: Cardinal; ACashNumber: Cardinal);
+    procedure JRNClean(ATrNumber: Cardinal; ACashNumber: Cardinal);
+    procedure RVRClean(ATrNumber: Cardinal; ACashNumber: Cardinal);
+    procedure FullClean(ATrNumber: Cardinal; ACashNumber: Cardinal);
     procedure MenuPrintReport(ACashNumber: Cardinal);
-    procedure DSortByDate(ACashNumber: Cardinal);
-    procedure DSortByIssuer(ACashNumber: Cardinal);
-    procedure SSortByDate(ACashNumber: Cardinal);
-    procedure RePrint(ACashNumber: Cardinal);
+    procedure DSortByDate(ATrNumber: Cardinal; ACashNumber: Cardinal);
+    procedure DSortByIssuer(ATrNumber: Cardinal; ACashNumber: Cardinal);
+    procedure SSortByDate(ATrNumber: Cardinal; ACashNumber: Cardinal);
+    procedure RePrint(ATrNumber: Cardinal; ACashNumber: Cardinal);
 
     property Host: String read FHost write SetHost;
     property Port: Integer read FPort write SetPort;
@@ -240,11 +240,12 @@ begin
   inherited;
 end;
 
-procedure TgsTRPOSClient.ReconciliationResults(ACashNumber: Cardinal);
+procedure TgsTRPOSClient.ReconciliationResults(ATrNumber: Cardinal; ACashNumber: Cardinal);
 begin
   WriteBuffer(GetMessageID(OM_SRVOperation) +
     GetECRnumber(ACashNumber) +
-    GetSubFunction(SRV_RevResult));
+    GetSubFunction(SRV_RevResult) +
+    GetERN(ATrNumber));
 end;
 
 procedure TgsTRPOSClient.TestPinPad(ACashNumber: Cardinal);
@@ -261,32 +262,36 @@ begin
     GetSubFunction(SRV_TestHost));
 end;
 
-procedure TgsTRPOSClient.Duplicate(ACashNumber: Cardinal);
+procedure TgsTRPOSClient.Duplicate(ATrNumber: Cardinal; ACashNumber: Cardinal);
 begin
   WriteBuffer(GetMessageID(OM_SRVOperation) +
     GetECRnumber(ACashNumber) +
-    GetSubFunction(SRV_Duplicate));
+    GetSubFunction(SRV_Duplicate) +
+    GetERN(ATrNumber));
 end;
 
-procedure TgsTRPOSClient.JRNClean(ACashNumber: Cardinal);
+procedure TgsTRPOSClient.JRNClean(ATrNumber: Cardinal; ACashNumber: Cardinal);
 begin
   WriteBuffer(GetMessageID(OM_SRVOperation) +
     GetECRnumber(ACashNumber) +
-    GetSubFunction(SRV_JRNClean));
+    GetSubFunction(SRV_JRNClean) +
+    GetERN(ATrNumber));
 end;
 
-procedure TgsTRPOSClient.FullClean(ACashNumber: Cardinal);
+procedure TgsTRPOSClient.FullClean(ATrNumber: Cardinal; ACashNumber: Cardinal);
 begin
   WriteBuffer(GetMessageID(OM_SRVOperation) +
     GetECRnumber(ACashNumber) +
-    GetSubFunction(SRV_FullClean));
+    GetSubFunction(SRV_FullClean) +
+    GetERN(ATrNumber));
 end;
 
-procedure TgsTRPOSClient.RVRClean(ACashNumber: Cardinal);
+procedure TgsTRPOSClient.RVRClean(ATrNumber: Cardinal; ACashNumber: Cardinal);
 begin
   WriteBuffer(GetMessageID(OM_SRVOperation) +
     GetECRnumber(ACashNumber) +
-    GetSubFunction(SRV_RVRClean));
+    GetSubFunction(SRV_RVRClean) +
+    GetERN(ATrNumber));
 end;
 
 procedure TgsTRPOSClient.MenuPrintReport(ACashNumber: Cardinal);
@@ -296,32 +301,36 @@ begin
     GetSubFunction(SRV_MenuPrintReport));
 end;
 
-procedure TgsTRPOSClient.DSortByDate(ACashNumber: Cardinal);
+procedure TgsTRPOSClient.DSortByDate(ATrNumber: Cardinal; ACashNumber: Cardinal);
 begin
   WriteBuffer(GetMessageID(OM_SRVOperation) +
     GetECRnumber(ACashNumber) +
-    GetSubFunction(SRV_DSortByDate));
+    GetSubFunction(SRV_DSortByDate) +
+    GetERN(ATrNumber));
 end;
 
-procedure TgsTRPOSClient.DSortByIssuer(ACashNumber: Cardinal);
+procedure TgsTRPOSClient.DSortByIssuer(ATrNumber: Cardinal; ACashNumber: Cardinal);
 begin
   WriteBuffer(GetMessageID(OM_SRVOperation) +
     GetECRnumber(ACashNumber) +
-    GetSubFunction(SRV_DSortByIssuer));
+    GetSubFunction(SRV_DSortByIssuer) +
+    GetERN(ATrNumber));
 end;
 
-procedure TgsTRPOSClient.SSortByDate(ACashNumber: Cardinal);
+procedure TgsTRPOSClient.SSortByDate(ATrNumber: Cardinal; ACashNumber: Cardinal);
 begin
   WriteBuffer(GetMessageID(OM_SRVOperation) +
     GetECRnumber(ACashNumber) +
-    GetSubFunction(SRV_SSortByDate));
+    GetSubFunction(SRV_SSortByDate) +
+    GetERN(ATrNumber));
 end;
 
-procedure TgsTRPOSClient.RePrint(ACashNumber: Cardinal);
+procedure TgsTRPOSClient.RePrint(ATrNumber: Cardinal; ACashNumber: Cardinal);
 begin
   WriteBuffer(GetMessageID(OM_SRVOperation) +
     GetECRnumber(ACashNumber) +
-    GetSubFunction(SRV_SSortByDate));
+    GetSubFunction(SRV_SSortByDate) +
+    GetERN(ATrNumber));
 end;
 
 function TgsTRPOSClient.GetTrack1Data(const AData: String): String;

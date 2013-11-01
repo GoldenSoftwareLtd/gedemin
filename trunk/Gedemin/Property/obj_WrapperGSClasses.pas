@@ -3871,16 +3871,16 @@ type
       const AParam: IgsTRPOSParamData); safecall;
     procedure Ping(ATrNumber: LongWord; ACashNumber: LongWord; const AParam: IgsTRPOSParamData); safecall;
     procedure ReadCard(ATrNumber: LongWord; ACashNumber: LongWord; const AParam: IgsTRPOSParamData); safecall;
-    procedure ReconciliationResults(ACashNumber: LongWord); safecall;
-    procedure Duplicate(ACashNumber: LongWord); safecall;
-    procedure JRNClean(ACashNumber: LongWord); safecall;
-    procedure RVRClean(ACashNumber: LongWord); safecall;
-    procedure FullClean(ACashNumber: LongWord); safecall;
+    procedure ReconciliationResults(ATrNumber: LongWord; ACashNumber: LongWord); safecall;
+    procedure Duplicate(ATrNumber: LongWord; ACashNumber: LongWord); safecall;
+    procedure JRNClean(ATrNumber: LongWord; ACashNumber: LongWord); safecall;
+    procedure RVRClean(ATrNumber: LongWord; ACashNumber: LongWord); safecall;
+    procedure FullClean(ATrNumber: LongWord; ACashNumber: LongWord); safecall;
     procedure MenuPrintReport(ACashNumber: LongWord); safecall;
-    procedure DSortByDate(ACashNumber: LongWord); safecall;
-    procedure DSortByIssuer(ACashNumber: LongWord); safecall;
-    procedure SSortByDate(ACashNumber: LongWord); safecall;
-    procedure RePrint(ACashNumber: LongWord); safecall;
+    procedure DSortByDate(ATrNumber: LongWord; ACashNumber: LongWord); safecall;
+    procedure DSortByIssuer(ATrNumber: LongWord; ACashNumber: LongWord); safecall;
+    procedure SSortByDate(ATrNumber: LongWord; ACashNumber: LongWord); safecall;
+    procedure RePrint(ATrNumber: LongWord; ACashNumber: LongWord); safecall;
   public
     class function CreateObject(const DelphiClass: TClass; const Params: OleVariant): TObject; override;
   end;
@@ -3950,18 +3950,18 @@ type
     procedure PutAtom(Idx: LongWord; const AValue: WideString); safecall;
     procedure PutVariable(Idx: LongWord); safecall;
     procedure Reset; safecall;
-    function ReadInteger(Idx: LongWord): Integer; safecall;
-    function ReadString(Idx: LongWord): WideString; safecall;
-    function ReadFloat(Idx: LongWord): Double; safecall;
-    function ReadDateTime(Idx: LongWord): TDateTime; safecall;
-    function ReadDate(Idx: LongWord): TDateTime; safecall;
-    function ReadInt64(Idx: LongWord): Int64; safecall;
-    function ReadAtom(Idx: LongWord): WideString; safecall;
-    function ToString(Idx: LongWord): WideString; safecall;
-    function Get_DataType(Idx: LongWord): Integer; safecall;
-    function Get_Term(Idx: LongWord): LongWord; safecall;
-    function Get_Size: LongWord; safecall;
-    function ToTrimQuotesString(Idx: LongWord): WideString; safecall;
+    function  ReadInteger(Idx: LongWord): Integer; safecall;
+    function  ReadString(Idx: LongWord): WideString; safecall;
+    function  ReadFloat(Idx: LongWord): Double; safecall;
+    function  ReadDateTime(Idx: LongWord): TDateTime; safecall;
+    function  ReadDate(Idx: LongWord): TDateTime; safecall;
+    function  ReadInt64(Idx: LongWord): Int64; safecall;
+    function  ReadAtom(Idx: LongWord): WideString; safecall;
+    function  ToString(Idx: LongWord): WideString; safecall;
+    function  ToTrimQuotesString(Idx: LongWord): WideString; safecall;
+    function  Get_DataType(Idx: LongWord): Integer; safecall;
+    function  Get_Term(Idx: LongWord): LongWord; safecall;
+    function  Get_Size: LongWord; safecall;
   public
     class function CreateObject(const DelphiClass: TClass; const Params: OleVariant): TObject; override;
   end;
@@ -3977,13 +3977,13 @@ type
     procedure ExtractData(const ADataSet: IgsClientDataSet; const APredicateName: WideString;
       const ATermv: IgsPLTermv); safecall;
     function MakePredicatesOfSQLSelect(const ASQL: WideString; const ATr: IgsIBTransaction;
-      const APredicateName: WideString; const AFileName: WideString): Integer; safecall;
+      const APredicateName: WideString; const AFileName: WideString; AnAppend: WordBool): Integer; safecall;
     function MakePredicatesOfDataSet(const ADataSet: IgsDataSet; const AFieldList: WideString;
-      const APredicateName: WideString; const AFileName: WideString): Integer; safecall;
+      const APredicateName: WideString; const AFileName: WideString; AnAppend: WordBool): Integer; safecall;
     function MakePredicatesOfObject(const AClassName: WideString; const SubType: WideString;
       const ASubSet: WideString; AParams: OleVariant; const AnExtraConditions: IgsStringList;
       const AFieldList: WideString; const ATr: IgsIBTransaction;
-      const APredicateName: WideString; const AFileName: WideString): Integer; safecall;
+      const APredicateName: WideString; const AFileName: WideString; AnAppend: WordBool): Integer; safecall;
     procedure Compound(AGoal: LongWord; const AFunctor: WideString; const ATermv: IgsPLTermv); safecall;
     function LoadScript(AScriptID: Integer): WordBool; safecall;
     function Get_Debug: WordBool; safecall;
@@ -18715,29 +18715,29 @@ begin
   GetTRPOSClient.ReadCard(ATrNumber, ACashNumber, InterfaceToObject(AParam) as TgsTRPOSParamData);
 end;
 
-procedure TwrpTRPOSClient.ReconciliationResults(ACashNumber: LongWord);
+procedure TwrpTRPOSClient.ReconciliationResults(ATrNumber: LongWord; ACashNumber: LongWord);
 begin
-  GetTRPOSClient.ReconciliationResults(ACashNumber);
+  GetTRPOSClient.ReconciliationResults(ATrNumber, ACashNumber);
 end;
 
-procedure TwrpTRPOSClient.Duplicate(ACashNumber: LongWord);
+procedure TwrpTRPOSClient.Duplicate(ATrNumber: LongWord; ACashNumber: LongWord);
 begin
-  GetTRPOSClient.Duplicate(ACashNumber);
+  GetTRPOSClient.Duplicate(ATrNumber, ACashNumber);
 end;
 
-procedure TwrpTRPOSClient.JRNClean(ACashNumber: LongWord);
+procedure TwrpTRPOSClient.JRNClean(ATrNumber: LongWord; ACashNumber: LongWord);
 begin
-  GetTRPOSClient.JRNClean(ACashNumber);
+  GetTRPOSClient.JRNClean(ATrNumber, ACashNumber);
 end;
 
-procedure TwrpTRPOSClient.RVRClean(ACashNumber: LongWord);
+procedure TwrpTRPOSClient.RVRClean(ATrNumber: LongWord; ACashNumber: LongWord);
 begin
-  GetTRPOSClient.RVRClean(ACashNumber);
+  GetTRPOSClient.RVRClean(ATrNumber, ACashNumber);
 end;
 
-procedure TwrpTRPOSClient.FullClean(ACashNumber: LongWord);
+procedure TwrpTRPOSClient.FullClean(ATrNumber: LongWord; ACashNumber: LongWord);
 begin
-  GetTRPOSClient.FullClean(ACashNumber);
+  GetTRPOSClient.FullClean(ATrNumber, ACashNumber);
 end;
 
 procedure TwrpTRPOSClient.MenuPrintReport(ACashNumber: LongWord);
@@ -18745,24 +18745,24 @@ begin
   GetTRPOSClient.MenuPrintReport(ACashNumber);
 end;
 
-procedure TwrpTRPOSClient.DSortByDate(ACashNumber: LongWord);
+procedure TwrpTRPOSClient.DSortByDate(ATrNumber: LongWord; ACashNumber: LongWord);
 begin
-  GetTRPOSClient.DSortByDate(ACashNumber);
+  GetTRPOSClient.DSortByDate(ATrNumber, ACashNumber);
 end;
 
-procedure TwrpTRPOSClient.DSortByIssuer(ACashNumber: LongWord);
+procedure TwrpTRPOSClient.DSortByIssuer(ATrNumber: LongWord; ACashNumber: LongWord);
 begin
-  GetTRPOSClient.DSortByIssuer(ACashNumber);
+  GetTRPOSClient.DSortByIssuer(ATrNumber, ACashNumber);
 end;
 
-procedure TwrpTRPOSClient.SSortByDate(ACashNumber: LongWord);
+procedure TwrpTRPOSClient.SSortByDate(ATrNumber: LongWord; ACashNumber: LongWord);
 begin
-  GetTRPOSClient.SSortByDate(ACashNumber);
+  GetTRPOSClient.SSortByDate(ATrNumber, ACashNumber);
 end;
 
-procedure TwrpTRPOSClient.RePrint(ACashNumber: LongWord);
+procedure TwrpTRPOSClient.RePrint(ATrNumber: LongWord; ACashNumber: LongWord);
 begin
-  GetTRPOSClient.RePrint(ACashNumber);
+  GetTRPOSClient.RePrint(ATrNumber, ACashNumber);
 end;
 
 function TwrpTRPOSClient.Get_ReadTimeOut: Integer;
@@ -19170,25 +19170,27 @@ begin
 end;
 
 function TwrpPLClient.MakePredicatesOfSQLSelect(const ASQL: WideString; const ATr: IgsIBTransaction;
-  const APredicateName: WideString; const AFileName: WideString): Integer;
+  const APredicateName: WideString; const AFileName: WideString; AnAppend: WordBool): Integer;
 begin
-  Result := GetPLClient.MakePredicatesOfSQLSelect(ASQL, InterfaceToObject(ATr) as TIBTRansaction, APredicateName, AFileName);
+  Result := GetPLClient.MakePredicatesOfSQLSelect(ASQL, InterfaceToObject(ATr) as TIBTRansaction, APredicateName,
+    AFileName, AnAppend);
 end;
 
 function TwrpPLClient.MakePredicatesOfDataSet(const ADataSet: IgsDataSet; const AFieldList: WideString;
-  const APredicateName: WideString; const AFileName: WideString): Integer;
+  const APredicateName: WideString; const AFileName: WideString; AnAppend: WordBool): Integer;
 begin
-  Result := GetPLClient.MakePredicatesOfDataSet(InterfaceToObject(ADataSet) as TDataSet, AFieldList, APredicateName, AFileName);
+  Result := GetPLClient.MakePredicatesOfDataSet(InterfaceToObject(ADataSet) as TDataSet, AFieldList, APredicateName,
+    AFileName, AnAppend);
 end;
 
 function TwrpPLClient.MakePredicatesOfObject(const AClassName: WideString; const SubType: WideString;
   const ASubSet: WideString; AParams: OleVariant; const AnExtraConditions: IgsStringList;
   const AFieldList: WideString; const ATr: IgsIBTransaction;
-  const APredicateName: WideString; const AFileName: WideString): Integer;
+  const APredicateName: WideString; const AFileName: WideString; AnAppend: WordBool): Integer;
 begin
   Result := GetPLClient.MakePredicatesOfObject(AClassName, SubType, ASubSet, AParams,
     InterfaceToObject(AnExtraConditions) as TStringList, AFieldList, InterfaceToObject(ATr) as TIBTransaction,
-    APredicateName, AFileName);
+    APredicateName, AFileName, AnAppend);
 end;
 
 procedure TwrpPLClient.SavePredicatesToFile(const APredicateName: WideString; const ATermv: IgsPLTermv;
