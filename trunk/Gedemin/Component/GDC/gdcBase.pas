@@ -11174,7 +11174,7 @@ begin
   if Active then
   begin
     if AnsiCompareText(GetListField(SubType), GetKeyField(SubType)) = 0 then
-      Result := GetDisplayName(SubType) + ', ÈÄ: ' + IntToStr(ID)
+      Result := GetDisplayName(SubType) + ', ÐÓÈÄ: ' + RUIDToStr(GetRUID)
     else
       Result := Trim(FieldByName(GetListField(SubType)).AsString);
   end else
