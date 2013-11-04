@@ -152,6 +152,12 @@ begin
           if (FRelations[J] = 'GD_FUNCTION') and ((V.Name = 'ID') or (V.Name = 'MODULECODE')) then
             continue;
 
+          if ((FRelations[J] = 'AT_FIELDS') or (FRelations[J] = 'AT_RELATION_FIELDS')) and (V.Name = 'ID') then
+            continue;
+
+          if (FRelations[J] = 'GD_CONTACT') and ((V.Name = 'USR$MN_EXTRACATEGORYKEY') or (V.Name = 'USR$FA_OKEDKEY')) then
+            continue;
+
           if V.IsNull then
             WriteString(FN, V.Name + ': NULL')
           else if (V.SQLType = SQL_LONG) and (V.AsXSQLVAR.SQLScale = 0)
@@ -312,7 +318,8 @@ begin
   else if ARelationName = 'AT_INDICES' then
     Result := 'SELECT * FROM AT_INDICES WHERE NOT indexname LIKE ''RDB$%'' ORDER BY relationname, fieldslist'
   else if ARelationName = 'GD_COMMAND' then
-    Result := 'SELECT parent, name, cmd, cmdtype, hotkey, imgindex, ordr, classname, subtype, disabled FROM GD_COMMAND ORDER BY classname, subtype, name, cmdtype'
+    Result := 'SELECT parent, name, cmd, cmdtype, hotkey, imgindex, ordr, classname, subtype, disabled ' +
+      ' FROM GD_COMMAND ORDER BY name, cmdtype, classname, subtype'
   else if ARelationName = 'AT_TRIGGERS' then
     Result := 'SELECT * FROM AT_TRIGGERS WHERE NOT triggername LIKE ''CHECK_%'' ORDER BY relationname, triggername'
   else if ARelationName = 'GD_CURRRATE' then
@@ -351,12 +358,22 @@ begin
     Result := 'SELECT * FROM GD_CONSTVALUE ORDER BY constdate, constvalue'
   else if ARelationName = 'GD_PEOPLE' then
     Result := 'SELECT * FROM GD_PEOPLE ORDER BY surname'
+  else if ARelationName = 'FLT_SAVEDFILTER' then
+    Result := 'SELECT f.name, c.fullname, f.userkey, f.description, f.data, f.disabled ' +
+    '  FROM FLT_SAVEDFILTER f LEFT JOIN flt_componentfilter c ON c.id = f.componentkey ORDER BY c.fullname'
   else if ARelationName = 'GD_PLACE' then
     Result := 'SELECT * FROM GD_PLACE ORDER BY lb'
   else if ARelationName = 'GD_GOODGROUP' then
     Result := 'SELECT * FROM GD_GOODGROUP ORDER BY name, lb'
   else if ARelationName = 'GD_CONTACT' then
     Result := 'SELECT * FROM GD_CONTACT ORDER BY name'
+  else if ARelationName = 'GD_COMPANY' then
+    Result := 'SELECT * FROM GD_COMPANY ORDER BY fullname'
+  else if ARelationName = 'INV_BALANCEOPTION' then
+    Result := 'SELECT name, viewfields, sumfields, goodviewfields, goodsumfields, branchkey, ruid ' +
+     ' FROM INV_BALANCEOPTION ORDER BY name'
+  else if ARelationName = 'GD_COMPANYCODE' then
+    Result := 'SELECT co.* FROM GD_COMPANYCODE co JOIN gd_company c ON c.contactkey = co.companykey ORDER BY c.fullname'
   else if ARelationName = 'USR$ACC_TAXPOSITION' then
     Result := 'SELECT * FROM USR$ACC_TAXPOSITION ORDER BY usr$name, parent'
   else if ARelationName = 'USR$ACC_TAXPOSDATE' then
@@ -384,7 +401,9 @@ begin
       '  join usr$wg_feegroup g on c.usr$wg_feegroupkey = g.id'#13#10 +
       'ORDER BY 1, 2'
   else if ARelationName = 'GD_FUNCTION' then
-    Result := 'SELECT f.* FROM GD_FUNCTION f ORDER BY f.name, HASH(f.script)'
+    Result := 'SELECT f.* FROM GD_FUNCTION f ORDER BY f.name, HASH(f.script), f.modifydate, f.usedebuginfo'
+  else if ARelationName = 'AT_FIELDS' then
+    Result := 'SELECT * FROM AT_FIELDS WHERE NOT fieldname LIKE ''RDB$%'' ORDER BY fieldname'
   else if ARelationName = 'AT_RELATION_FIELDS' then
     Result := 'SELECT * FROM AT_RELATION_FIELDS ORDER BY relationname, fieldname'
   else begin

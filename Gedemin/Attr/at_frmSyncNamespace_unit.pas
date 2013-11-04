@@ -268,13 +268,21 @@ end;
 procedure Tat_frmSyncNamespace.actSetForLoadingExecute(Sender: TObject);
 begin
   IterateSelected(SetOperation, '<<');
-  if (FNSC.FilterText > '') and (not actFLTNewer.Checked) then
-    actFLTNewer.Execute;
+  if (FNSC.FilterOperation > '') and (not actFLTLoad.Checked) then
+    actFLTLoad.Execute;
 end;
 
 procedure Tat_frmSyncNamespace.SetOperation(const AData: String);
+var
+  OldCursor: TCursor;
 begin
-  FNSC.SetOperation(AData);
+  OldCursor := Screen.Cursor;
+  try
+    Screen.Cursor := crHourGlass;
+    FNSC.SetOperation(AData);
+  finally
+    Screen.Cursor := OldCursor;
+  end;
 end;
 
 procedure Tat_frmSyncNamespace.actSetForSavingUpdate(Sender: TObject);
@@ -305,8 +313,16 @@ begin
 end;
 
 procedure Tat_frmSyncNamespace.actSyncExecute(Sender: TObject);
+var
+  OldCursor: TCursor;
 begin
-  FNSC.Sync;
+  OldCursor := Screen.Cursor;
+  try
+    Screen.Cursor := crHourGlass;
+    FNSC.Sync;
+  finally
+    Screen.Cursor := OldCursor;
+  end;
 end;
 
 procedure Tat_frmSyncNamespace.actDeleteFileUpdate(Sender: TObject);

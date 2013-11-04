@@ -65,7 +65,7 @@ type
 implementation
 
 uses
-  SysUtils, Forms, Controls, jclFileUtils, gdcBaseInterface, gdcBase,
+  SysUtils, Controls, jclFileUtils, gdcBaseInterface, gdcBase,
   gdcNamespace, gdcNamespaceLoader, gd_GlobalParams_unit, yaml_parser,
   gd_common_functions, at_dlgCheckOperation_unit;
 
@@ -1019,7 +1019,6 @@ procedure TgdcNamespaceSyncController.Sync;
 var
   NS: TgdcNamespace;
   SL: TStringList;
-  OldCursor: TCursor;
 begin
   with TdlgCheckOperation.Create(nil) do
   try
@@ -1036,21 +1035,15 @@ begin
 
     actSaveObjects.Checked := mSaveList.Lines.Count > 0;
 
-    OldCursor := Screen.Cursor;
-    try
-      Screen.Cursor := crHourGlass;
-      mLoadList.Lines.Clear;
-      FqDependentList.ExecQuery;
-      while not FqDependentList.EOF do
-      begin
-        mLoadList.Lines.Add(ExtractFileName(FqDependentList.Fields[0].AsString));
-        FqDependentList.Next;
-      end;
-      lLoadRecords.Caption := 'Выбрано для загрузки из файлов: ' + IntToStr(FqDependentList.RecordCount);
-      FqDependentList.Close;
-    finally
-      Screen.Cursor := OldCursor;
+    mLoadList.Lines.Clear;
+    FqDependentList.ExecQuery;
+    while not FqDependentList.EOF do
+    begin
+      mLoadList.Lines.Add(ExtractFileName(FqDependentList.Fields[0].AsString));
+      FqDependentList.Next;
     end;
+    lLoadRecords.Caption := 'Выбрано для загрузки из файлов: ' + IntToStr(FqDependentList.RecordCount);
+    FqDependentList.Close;
 
     actLoadObjects.Checked := mLoadList.Lines.Count > 0;
 
