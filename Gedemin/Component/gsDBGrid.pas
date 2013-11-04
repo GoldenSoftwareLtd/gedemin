@@ -9260,7 +9260,7 @@ begin
             Accept := False;
             break;
           end;
-        end else if (Copy(Field.DisplayText{AsString}, 1, 40) <> FilteredValue) then
+        end else if (Copy(Field.DisplayText{AsString}, 1, 80) <> FilteredValue) then
         begin
           Accept := False;
           break;
