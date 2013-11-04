@@ -65,9 +65,9 @@ type
 implementation
 
 uses
-  SysUtils, Controls, jclFileUtils, gdcBaseInterface, gdcBase, gdcNamespace,
-  gdcNamespaceLoader, gd_GlobalParams_unit, yaml_parser, gd_common_functions,
-  at_dlgCheckOperation_unit;
+  SysUtils, Forms, Controls, jclFileUtils, gdcBaseInterface, gdcBase,
+  gdcNamespace, gdcNamespaceLoader, gd_GlobalParams_unit, yaml_parser,
+  gd_common_functions, at_dlgCheckOperation_unit;
 
 { TgdcNamespaceSyncController }
 
@@ -1019,6 +1019,7 @@ procedure TgdcNamespaceSyncController.Sync;
 var
   NS: TgdcNamespace;
   SL: TStringList;
+  OldCursor: TCursor;
 begin
   with TdlgCheckOperation.Create(nil) do
   try
@@ -1033,28 +1034,29 @@ begin
     lSaveRecords.Caption := 'Выбрано для сохранения в файлы: ' + Fq.Fields[1].AsString;
     Fq.Close;
 
-    mLoadList.Lines.Clear;
-    FqDependentList.ExecQuery;
-    while not FqDependentList.EOF do
-    begin
-      mLoadList.Lines.Add(ExtractFileName(FqDependentList.Fields[0].AsString));
-      FqDependentList.Next;
-    end;
-    lLoadRecords.Caption := 'Выбрано для загрузки из файлов: ' + IntToStr(FqDependentList.RecordCount);
-    FqDependentList.Close;
+    actSaveObjects.Checked := mSaveList.Lines.Count > 0;
 
-    {Fq.SQL.Text :=
-      'SELECT LIST(f.name, ASCII_CHAR(13) || ASCII_CHAR(10)), COUNT(*) FROM at_namespace_file f ' +
-      '  JOIN at_namespace_sync s ON s.filename = f.filename ' +
-      'WHERE s.operation IN (''< '', ''<<'')';
-    Fq.ExecQuery;
-    mLoadList.Lines.Text := Fq.Fields[0].AsString;
-    lLoadRecords.Caption := 'Выбрано для загрузки из файлов: ' + Fq.Fields[1].AsString;
-    Fq.Close;}
+    OldCursor := Screen.Cursor;
+    try
+      Screen.Cursor := crHourGlass;
+      mLoadList.Lines.Clear;
+      FqDependentList.ExecQuery;
+      while not FqDependentList.EOF do
+      begin
+        mLoadList.Lines.Add(ExtractFileName(FqDependentList.Fields[0].AsString));
+        FqDependentList.Next;
+      end;
+      lLoadRecords.Caption := 'Выбрано для загрузки из файлов: ' + IntToStr(FqDependentList.RecordCount);
+      FqDependentList.Close;
+    finally
+      Screen.Cursor := OldCursor;
+    end;
+
+    actLoadObjects.Checked := mLoadList.Lines.Count > 0;
 
     if ShowModal = mrOk then
     begin
-      if mSaveList.Lines.Text > '' then
+      if actSaveObjects.Checked then
       begin
         NS := TgdcNamespace.Create(nil);
         try
@@ -1083,7 +1085,7 @@ begin
         end;                               
       end;
 
-      if mLoadList.Lines.Text > '' then
+      if actLoadObjects.Checked then
       begin
         SL := TStringList.Create;
         try
