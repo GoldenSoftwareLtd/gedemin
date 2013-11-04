@@ -36,8 +36,7 @@ object dlgCheckOperation: TdlgCheckOperation
         Top = 8
         Width = 708
         Height = 233
-        Caption = ' Загрузка объектов в БД '
-        TabOrder = 0
+        TabOrder = 1
         object lLoadRecords: TLabel
           Left = 11
           Top = 21
@@ -78,6 +77,23 @@ object dlgCheckOperation: TdlgCheckOperation
           TabOrder = 2
         end
       end
+      object pnlLoadObjects: TPanel
+        Left = 19
+        Top = 7
+        Width = 203
+        Height = 17
+        BevelOuter = bvNone
+        TabOrder = 0
+        object chbxLoadObjects: TCheckBox
+          Left = 4
+          Top = 0
+          Width = 199
+          Height = 17
+          Action = actLoadObjects
+          State = cbChecked
+          TabOrder = 0
+        end
+      end
     end
     object btnOK: TButton
       Left = 562
@@ -102,8 +118,7 @@ object dlgCheckOperation: TdlgCheckOperation
       Top = 245
       Width = 708
       Height = 233
-      Caption = ' Сохранение объектов на диске '
-      TabOrder = 3
+      TabOrder = 4
       object Label3: TLabel
         Left = 12
         Top = 65
@@ -138,6 +153,23 @@ object dlgCheckOperation: TdlgCheckOperation
         TabOrder = 0
       end
     end
+    object pnlSaveObjects: TPanel
+      Left = 18
+      Top = 244
+      Width = 177
+      Height = 17
+      BevelOuter = bvNone
+      TabOrder = 3
+      object chbxSaveObjects: TCheckBox
+        Left = 4
+        Top = 0
+        Width = 173
+        Height = 17
+        Action = actSaveObjects
+        State = cbChecked
+        TabOrder = 0
+      end
+    end
   end
   object ActionList: TActionList
     Left = 467
@@ -146,6 +178,18 @@ object dlgCheckOperation: TdlgCheckOperation
       Caption = 'Ok'
       OnExecute = actOkExecute
       OnUpdate = actOkUpdate
+    end
+    object actLoadObjects: TAction
+      Caption = 'Загрузить объекты в базу данных'
+      Checked = True
+      OnExecute = actLoadObjectsExecute
+      OnUpdate = actLoadObjectsUpdate
+    end
+    object actSaveObjects: TAction
+      Caption = 'Сохранить объекты на диске'
+      Checked = True
+      OnExecute = actSaveObjectsExecute
+      OnUpdate = actSaveObjectsUpdate
     end
   end
 end

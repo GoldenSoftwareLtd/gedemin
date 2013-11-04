@@ -25,8 +25,18 @@ type
     chbxIncVersion: TCheckBox;
     ActionList: TActionList;
     actOk: TAction;
+    actLoadObjects: TAction;
+    pnlLoadObjects: TPanel;
+    chbxLoadObjects: TCheckBox;
+    pnlSaveObjects: TPanel;
+    chbxSaveObjects: TCheckBox;
+    actSaveObjects: TAction;
     procedure actOkExecute(Sender: TObject);
     procedure actOkUpdate(Sender: TObject);
+    procedure actLoadObjectsExecute(Sender: TObject);
+    procedure actSaveObjectsExecute(Sender: TObject);
+    procedure actLoadObjectsUpdate(Sender: TObject);
+    procedure actSaveObjectsUpdate(Sender: TObject);
   private
     { Private declarations }
   public
@@ -48,6 +58,26 @@ end;
 procedure TdlgCheckOperation.actOkUpdate(Sender: TObject);
 begin
   actOk.Enabled := (mLoadList.Lines.Count > 0) or (mSaveList.Lines.Count > 0);
+end;
+
+procedure TdlgCheckOperation.actLoadObjectsExecute(Sender: TObject);
+begin
+  actLoadObjects.Checked := not actLoadObjects.Checked;
+end;
+
+procedure TdlgCheckOperation.actSaveObjectsExecute(Sender: TObject);
+begin
+  actSaveObjects.Checked := not actSaveObjects.Checked;
+end;
+
+procedure TdlgCheckOperation.actLoadObjectsUpdate(Sender: TObject);
+begin
+  gbLoad.Visible := actLoadObjects.Checked;
+end;
+
+procedure TdlgCheckOperation.actSaveObjectsUpdate(Sender: TObject);
+begin
+  gbSave.Visible := actSaveObjects.Checked;
 end;
 
 end.

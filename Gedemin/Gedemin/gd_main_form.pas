@@ -6,11 +6,10 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   ExtCtrls, ToolWin, ComCtrls, IBDatabase, dmDatabase_unit, gd_security,
-  IBSQL, ActnList, Menus, gsDesktopManager,  StdCtrls,
-  dmImages_unit, gd_security_OperationConst, gdNotifierThread_unit,
-  AppEvnts, Db, IBCustomDataSet, IBServices, gdHelp_Body,
-  gd_createable_form, TB2Item, TB2Dock, TB2Toolbar,
-  gsIBLookupComboBox, TB2ExtItems;
+  IBSQL, ActnList, Menus, gsDesktopManager, StdCtrls, dmImages_unit,
+  gd_security_OperationConst, gdNotifierThread_unit, AppEvnts, Db,
+  IBCustomDataSet, IBServices, gdHelp_Body, gd_createable_form, TB2Item,
+  TB2Dock, TB2Toolbar, gsIBLookupComboBox, TB2ExtItems;
 
 const
   WM_GD_RELOGIN          = WM_USER + 25488;
@@ -508,7 +507,7 @@ uses
   IBSQLCache,
   tmp_ScanTemplate_unit,
   gd_KeyAssoc,
-  mtd_i_Base,
+  //mtd_i_Base,
   dm_i_ClientReport_unit,
   gdcBaseInterface, dmLogin_unit,
   gd_dlgAutoBackup_unit,
@@ -1383,9 +1382,6 @@ var
   Msg: String;
   {$IFDEF DUNIT_TEST}I: Integer;{$ENDIF}
 begin
-  { TODO :
-а после подключения к другой базе уже не будет
-формактивэйт вызываться }
   if FFirstTime then
   begin
     if Assigned(UserStorage) then
@@ -1396,14 +1392,15 @@ begin
         LoadKeyboardLayout(@S[1], KLF_ACTIVATE);
       end;
 
-      if UserStorage.ReadBoolean('Options\Confirmations', 'Other', True) then
+      if (not gd_CmdLineParams.QuietMode)
+        and UserStorage.ReadBoolean('Options\Confirmations', 'Other', True) then
       begin
-        if UnEventMacro then
+        if gd_CmdLineParams.UnEventMacro then
           Msg := 'событий'
         else
           Msg := '';
 
-        if UnMethodMacro then
+        if gd_CmdLineParams.UnMethodMacro then
         begin
           if Msg > '' then
             Msg := Msg + ' и ';
@@ -1648,11 +1645,6 @@ procedure TfrmGedeminMain.Notification(AComponent: TComponent;
   Operation: TOperation);
 begin
   inherited;
-
-  {if Operation = opRemove then
-  begin
-    RemoveComponentFromList(AComponent);
-  end;}
 end;
 
 procedure TfrmGedeminMain.actSQLEditorExecute(Sender: TObject);

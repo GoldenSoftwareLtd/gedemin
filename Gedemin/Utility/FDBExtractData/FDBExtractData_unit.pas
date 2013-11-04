@@ -118,6 +118,7 @@ var
   FN: TFileStream;
   I, J, K: Integer;
   V: TIBXSQLVAR;
+  S: String;
 begin
   Assert(Connected);
 
@@ -131,7 +132,15 @@ begin
       Fq.ExecQuery;
       while not Fq.EOF do
       begin
-        WriteString(FN, '===========================================');
+        if FRelations[J] = 'GD_STORAGE_DATA' then
+        begin
+          FN.Free;
+          S := Fq.FieldByName('path').AsString;
+          S := StringReplace(S, '<', '', [rfReplaceAll]);
+          S := StringReplace(S, '>', '', [rfReplaceAll]);
+          FN := TFileStream.Create(IncludeTrailingBackslash(AFileName) + S + '.sto', fmCreate);
+        end else
+          WriteString(FN, '===========================================');
 
         for I := 0 to Fq.Current.Count - 1 do
         begin
@@ -354,6 +363,14 @@ begin
     Result := 'SELECT d.* FROM USR$ACC_TAXPOSDATE d JOIN USR$ACC_TAXPOSITION p ON p.id = d.usr$taxpositionkey ORDER BY p.usr$name, d.usr$date'
   else if ARelationName = 'GD_TAXACTUAL' then
     Result := 'SELECT t.* FROM GD_TAXACTUAL t JOIN GD_TAXNAME n ON n.id = t.taxnamekey ORDER BY n.name, t.actualdate'
+  else if ARelationName = 'USR$ACC_TAXPOSVALUE' then
+    Result := 'SELECT t.usr$debitkey, t.usr$creditkey, t.usr$taxpositionkey, t.usr$taxposdatekey, t.USR$ISINCREASE, ' +
+      't.USR$DEBITANALYTICS, t.USR$CREDITANALYTICS, t.USR$TYPEPOSITION, t.USR$CURRKEY, ' +
+      't.USR$INEQ, t.USR$VALUEKEY, t.USR$FIXEDVALUE, t.USR$COMMENT ' +
+      'FROM USR$ACC_TAXPOSVALUE t JOIN USR$ACC_TAXPOSDATE d ON d.id = t.USR$TAXPOSDATEKEY ' +
+      'JOIN ac_account da ON da.id = t.usr$debitkey ' +
+      'JOIN ac_account ca ON ca.id = t.usr$creditkey ' +
+      'ORDER BY da.alias, ca.alias, d.usr$date'
   else if ARelationName = 'RP_ADDITIONALFUNCTION' then
     Result := 'SELECT m.name, a.name FROM RP_ADDITIONALFUNCTION r ' +
     ' LEFT JOIN gd_function m ON m.id = r.mainfunctionkey ' +
