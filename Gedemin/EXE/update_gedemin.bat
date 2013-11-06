@@ -270,6 +270,9 @@ if exist %arc_name% del %arc_name%
 %arc_command% microsoft.vc80.crt.manifest msvcp80.dll msvcr80.dll
 %arc_command% gedemin_upd.exe
 %arc_command% udf\gudf.dll intl\fbintl.conf intl\fbintl.dll
+%arc_command% swipl\lib\memfile.dll swipl\lib\readutil.dll
+%arc_command% swipl\gd_pl_state.dat 
+%arc_command% swipl\libgmp-10.dll swipl\libswipl.dll swipl\pthreadGC2.dll
 
 echo *************************************************
 echo **                                             **

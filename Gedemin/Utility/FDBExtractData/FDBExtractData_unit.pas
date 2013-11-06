@@ -180,7 +180,12 @@ begin
               WriteBinary(FN, V.AsString);
             end
           end else
-            WriteString(FN, V.Name + ': ' + V.AsString);
+          begin
+            if Pos('RDB$', V.AsString) = 1 then
+              WriteString(FN, V.Name + ': ')
+            else
+              WriteString(FN, V.Name + ': ' + V.AsString);
+          end;
         end;
         Fq.Next;
       end;
@@ -316,7 +321,7 @@ begin
       'WHERE '#13#10 +
       'path > '''') t ON t.id = d.id ORDER BY t.path'
   else if ARelationName = 'AT_INDICES' then
-    Result := 'SELECT * FROM AT_INDICES WHERE NOT indexname LIKE ''RDB$%'' ORDER BY relationname, fieldslist'
+    Result := 'SELECT * FROM AT_INDICES WHERE NOT indexname LIKE ''RDB$%'' ORDER BY relationname, fieldslist, indexname'
   else if ARelationName = 'GD_COMMAND' then
     Result := 'SELECT parent, name, cmd, cmdtype, hotkey, imgindex, ordr, classname, subtype, disabled ' +
       ' FROM GD_COMMAND ORDER BY name, cmdtype, classname, subtype'
@@ -351,7 +356,7 @@ begin
   else if ARelationName = 'AC_AUTOTRRECORD' then
     Result := 'SELECT a.* FROM AC_AUTOTRRECORD a LEFT JOIN gd_ruid r ON r.id = a.id ORDER BY r.xid, r.dbid'
   else if ARelationName = 'AC_ACCOUNT' then
-    Result := 'SELECT * FROM AC_ACCOUNT ORDER BY name'
+    Result := 'SELECT * FROM AC_ACCOUNT ORDER BY alias, name'
   else if ARelationName = 'AC_TRRECORD' then
     Result := 'SELECT * FROM AC_TRRECORD ORDER BY description, id'
   else if ARelationName = 'GD_CONSTVALUE' then

@@ -5,7 +5,7 @@ interface
 
 uses
   Classes, Windows, Messages, Forms, SysUtils, ContNrs, DB, IBDatabase, IBSQL,
-  yaml_parser, gdcBaseInterface, gdcBase, gdcNamespace, JclStrHashMap;
+  yaml_parser, gdcBaseInterface, gdcBase, gdcNamespace, JclStrHashMap, gd_KeyAssoc;
 
 const
   WM_LOAD_NAMESPACE = WM_USER + 1001;
@@ -50,6 +50,7 @@ type
     FqCheckTheSame: TIBSQL;
     FRemoveList: TObjectList;
     FSecondPassList: TObjectList;
+    FOurCompanies: TgdKeyArray;
 
     procedure FlushStorages;
     procedure LoadAtObjectCache(const ANamespaceKey: Integer);
@@ -69,6 +70,7 @@ type
     procedure RemoveObjects;
     procedure ReloginDatabase;
     procedure DelayedUpdate;
+    procedure LoadOurCompanies;
 
   public
     constructor Create;
@@ -87,7 +89,7 @@ implementation
 uses
   IBHeader, Storages, gd_security, at_classes, at_frmSQLProcess,
   at_sql_metadata, gd_common_functions, gdcNamespaceRecCmpController,
-  gdcMetadata, gd_directories_const, mtd_i_Base, evt_i_Base;
+  gdcMetadata, gdcFunction, gd_directories_const, mtd_i_Base, evt_i_Base;
 
 type
   TAtObjectRecord = class(TObject)
@@ -229,6 +231,17 @@ begin
       begin
         TgdcNamespace.ParseReferenceString(N.AsString, RefRUID, RefName);
         RefID := gdcBaseManager.GetIDByRUID(RefRUID.XID, RefRUID.DBID, FTr);
+
+        if RF.References.RelationName = 'GD_OURCOMPANY' then
+        begin
+          if FOurCompanies.IndexOf(RefID) = -1 then
+          begin
+            RefID := IBLogin.CompanyKey;
+            AddWarning('Вместо рабочей организации РУИД=' + RUIDToStr(RefRUID) +
+              ' подставлена текущая организация.');
+          end;
+        end;
+
         if RefID = -1 then
         begin
           AField.Clear;
@@ -351,10 +364,13 @@ begin
 
   FRemoveList := TObjectList.Create(True);
   FSecondPassList := TObjectList.Create(True);
+
+  FOurCompanies := TgdKeyArray.Create;
 end;
 
 destructor TgdcNamespaceLoader.Destroy;
 begin
+  FOurCompanies.Free;
   FSecondPassList.Free;
   FRemoveList.Free;
   FqCheckTheSame.Free;
@@ -396,12 +412,12 @@ var
   NSTimeStamp: TDateTime;
   NSRUID: TRUID;
   NSName: String;
-  SavedUnEventMacro, SavedUnMethodMacro: Boolean;
 begin
   Assert(AList <> nil);
   Assert(IBLogin <> nil);
 
   FRemoveList.Clear;
+  LoadOurCompanies;
 
   if AList.Count > 1 then
   begin
@@ -410,174 +426,169 @@ begin
       AddText(IntToStr(I) + ': ' + AList[I]);
   end;
 
-  SavedUnEventMacro := UnEventMacro;
-  SavedUnMethodMacro := UnMethodMacro;
-  try
-    UnEventMacro := True;
-    UnMethodMacro := True;
+  for I := 0 to AList.Count - 1 do
+  begin
+    if FLoadedNSList.IndexOf(AList[I]) > -1 then
+      continue;
 
-    for I := 0 to AList.Count - 1 do
-    begin
-      if FLoadedNSList.IndexOf(AList[I]) > -1 then
-        continue;
+    FPrevPosted := nil;
+    FNeedRelogin := False;
+    FMetadataCounter := 0;
+    FlushStorages;
 
-      FPrevPosted := nil;
-      FNeedRelogin := False;
-      FMetadataCounter := 0;
-      FlushStorages;
+    AddText('Файл: ' + AList[I]);
 
-      AddText('Файл: ' + AList[I]);
+    Parser := TYAMLParser.Create;
+    try
+      Parser.Parse(AList[I]);
 
-      Parser := TYAMLParser.Create;
-      try
-        Parser.Parse(AList[I]);
-
-        if (Parser.YAMLStream.Count = 0)
-          or ((Parser.YAMLStream[0] as TyamlDocument).Count = 0)
-          or (not ((Parser.YAMLStream[0] as TyamlDocument)[0] is TyamlMapping)) then
-        begin
-          raise EgdcNamespaceLoader.Create('Invalid YAML stream.');
-        end;
-
-        Mapping := (Parser.YAMLStream[0] as TyamlDocument)[0] as TyamlMapping;
-
-        if Mapping.ReadString('StructureVersion') <> '1.0' then
-          raise EgdcNamespaceLoader.Create('Unsupported YAML stream version.');
-
-        NSRUID := StrToRUID(Mapping.ReadString('Properties\RUID'));
-        NSName := Mapping.ReadString('Properties\Name');
-
-        FTr.StartTransaction;
-        try
-          FqFindNS.ParamByName('xid').AsInteger := NSRUID.XID;
-          FqFindNS.ParamByName('dbid').AsInteger := NSRUID.DBID;
-          FqFindNS.ParamByName('name').AsString := AnsiUpperCase(NSName);
-          FqFindNS.ExecQuery;
-
-          if FqFindNS.EOF then
-          begin
-            FgdcNamespace.Open;
-            FgdcNamespace.Insert;
-            AddText('Создано новое пространство имен: ' + NSName);
-          end else
-          begin
-            FgdcNamespace.ID := FqFindNS.FieldByName('id').AsInteger;
-            FgdcNamespace.Open;
-            FgdcNamespace.Edit;
-            if FqFindNS.FieldByName('ByName').AsInteger <> 0 then
-              AddText('Найдено по наименованию: ' + NSName)
-            else
-              AddText('Найдено по РУИД: ' + NSName);
-          end;
-
-          FgdcNamespace.FieldByName('name').AsString := Mapping.ReadString('Properties\Name', 255);
-          FgdcNamespace.FieldByName('caption').AsString := Mapping.ReadString('Properties\Caption', 255);
-          FgdcNamespace.FieldByName('version').AsString := Mapping.ReadString('Properties\Version', 20);
-          FgdcNamespace.FieldByName('dbversion').AsString := Mapping.ReadString('Properties\DBversion', 20);
-          FgdcNamespace.FieldByName('optional').AsInteger := Mapping.ReadInteger('Properties\Optional', 0);
-          FgdcNamespace.FieldByName('internal').AsInteger := Mapping.ReadInteger('Properties\Internal', 1);
-          FgdcNamespace.FieldByName('settingruid').AsString := Mapping.ReadString('Properties\SettingRUID', 21);
-          FgdcNamespace.FieldByName('comment').AsString := Mapping.ReadString('Properties\Comment');
-          FgdcNamespace.FieldByName('filetimestamp').AsDateTime := gd_common_functions.GetFileLastWrite(AList[I]);
-          if FgdcNamespace.FieldByName('filetimestamp').AsDateTime > Now then
-            FgdcNamespace.FieldByName('filetimestamp').AsDateTime := Now;
-          FgdcNamespace.FieldByName('filename').AsString := System.Copy(AList[I], 1, 255);
-          FgdcNamespace.Post;
-
-          NSID := FgdcNamespace.ID;
-          NSTimeStamp := FgdcNamespace.FieldByName('filetimestamp').AsDateTime;
-
-          OverwriteRUID(NSID, NSRUID.XID, NSRUID.DBID);
-
-          TgdcNamespace.UpdateCurrModified(FTr, NSID);
-          LoadAtObjectCache(NSID);
-
-          FqClearAtObject.ParamByName('nk').AsInteger := NSID;
-          FqClearAtObject.ExecQuery;
-
-          if Mapping.FindByName('Objects') is TYAMLSequence then
-          begin
-            Objects := Mapping.FindByName('Objects') as TYAMLSequence;
-
-            for J := 0 to Objects.Count - 1 do
-            begin
-              if not (Objects[J] is TYAMLMapping) then
-                raise EgdcNamespaceLoader.Create('Invalid YAML stream.');
-              LoadObject(Objects[J] as TYAMLMapping, NSID, NSTimeStamp, False);
-            end;
-
-            FAtObjectRecordCache.IterateMethod(@NSID, Iterate_RemoveGDCObjects);
-
-            if FMetadataCounter > 0 then
-              ProcessMetadata;
-          end;
-
-          if Mapping.FindByName('Uses') is TYAMLSequence then
-            UpdateUses(Mapping.FindByName('Uses') as TYAMLSequence, NSID);
-
-          if FgdcNamespaceObject.Active then
-            FgdcNamespaceObject.Close;
-
-          if FgdcNamespace.Active then
-            FgdcNamespace.Close;
-
-          FTr.Commit;
-
-          FLoadedNSList.Add(AList[I]);
-        finally
-          if FTr.InTransaction then
-            FTr.Rollback;
-          FAtObjectRecordCache.Iterate(nil, Iterate_FreeObjects);
-          FAtObjectRecordCache.Clear;
-        end;
-      finally
-        Parser.Free;
+      if (Parser.YAMLStream.Count = 0)
+        or ((Parser.YAMLStream[0] as TyamlDocument).Count = 0)
+        or (not ((Parser.YAMLStream[0] as TyamlDocument)[0] is TyamlMapping)) then
+      begin
+        raise EgdcNamespaceLoader.Create('Invalid YAML stream.');
       end;
 
-      DelayedUpdate;
+      Mapping := (Parser.YAMLStream[0] as TyamlDocument)[0] as TyamlMapping;
 
-      if FNeedRelogin then
-        ReloginDatabase;
+      if Mapping.ReadString('StructureVersion') <> '1.0' then
+        raise EgdcNamespaceLoader.Create('Unsupported YAML stream version.');
 
-      AddText('Закончена загрузка: ' + NSName);
-    end;
-
-    if FSecondPassList.Count > 0 then
-    begin
-      AddText('Повторная загрузка объектов:');
-
-      FgdcObjectCache.Iterate(nil, Iterate_FreeObjects);
-      FgdcObjectCache.Clear;
+      NSRUID := StrToRUID(Mapping.ReadString('Properties\RUID'));
+      NSName := Mapping.ReadString('Properties\Name');
 
       FTr.StartTransaction;
       try
-        for K := 0 to FSecondPassList.Count - 1 do
-          LoadObject(FSecondPassList[K] as TYAMLMapping, -1, 0, True);
+        FqFindNS.ParamByName('xid').AsInteger := NSRUID.XID;
+        FqFindNS.ParamByName('dbid').AsInteger := NSRUID.DBID;
+        FqFindNS.ParamByName('name').AsString := AnsiUpperCase(NSName);
+        FqFindNS.ExecQuery;
+
+        if FqFindNS.EOF then
+        begin
+          FgdcNamespace.Open;
+          FgdcNamespace.Insert;
+          AddText('Создано новое пространство имен: ' + NSName);
+        end else
+        begin
+          FgdcNamespace.ID := FqFindNS.FieldByName('id').AsInteger;
+          FgdcNamespace.Open;
+          FgdcNamespace.Edit;
+          if FqFindNS.FieldByName('ByName').AsInteger <> 0 then
+            AddText('Найдено по наименованию: ' + NSName)
+          else
+            AddText('Найдено по РУИД: ' + NSName);
+        end;
+
+        FgdcNamespace.FieldByName('name').AsString := Mapping.ReadString('Properties\Name', 255);
+        FgdcNamespace.FieldByName('caption').AsString := Mapping.ReadString('Properties\Caption', 255);
+        FgdcNamespace.FieldByName('version').AsString := Mapping.ReadString('Properties\Version', 20);
+        FgdcNamespace.FieldByName('dbversion').AsString := Mapping.ReadString('Properties\DBversion', 20);
+        FgdcNamespace.FieldByName('optional').AsInteger := Mapping.ReadInteger('Properties\Optional', 0);
+        FgdcNamespace.FieldByName('internal').AsInteger := Mapping.ReadInteger('Properties\Internal', 1);
+        FgdcNamespace.FieldByName('settingruid').AsString := Mapping.ReadString('Properties\SettingRUID', 21);
+        FgdcNamespace.FieldByName('comment').AsString := Mapping.ReadString('Properties\Comment');
+        FgdcNamespace.FieldByName('filetimestamp').AsDateTime := gd_common_functions.GetFileLastWrite(AList[I]);
+        if FgdcNamespace.FieldByName('filetimestamp').AsDateTime > Now then
+          FgdcNamespace.FieldByName('filetimestamp').AsDateTime := Now;
+        FgdcNamespace.FieldByName('filename').AsString := System.Copy(AList[I], 1, 255);
+        FgdcNamespace.Post;
+
+        NSID := FgdcNamespace.ID;
+        NSTimeStamp := FgdcNamespace.FieldByName('filetimestamp').AsDateTime;
+
+        OverwriteRUID(NSID, NSRUID.XID, NSRUID.DBID);
+
+        TgdcNamespace.UpdateCurrModified(FTr, NSID);
+        LoadAtObjectCache(NSID);
+
+        FqClearAtObject.ParamByName('nk').AsInteger := NSID;
+        FqClearAtObject.ExecQuery;
+
+        if Mapping.FindByName('Objects') is TYAMLSequence then
+        begin
+          Objects := Mapping.FindByName('Objects') as TYAMLSequence;
+
+          for J := 0 to Objects.Count - 1 do
+          begin
+            if not (Objects[J] is TYAMLMapping) then
+              raise EgdcNamespaceLoader.Create('Invalid YAML stream.');
+            LoadObject(Objects[J] as TYAMLMapping, NSID, NSTimeStamp, False);
+          end;
+
+          FAtObjectRecordCache.IterateMethod(@NSID, Iterate_RemoveGDCObjects);
+
+          if FMetadataCounter > 0 then
+            ProcessMetadata;
+        end;
+
+        if Mapping.FindByName('Uses') is TYAMLSequence then
+          UpdateUses(Mapping.FindByName('Uses') as TYAMLSequence, NSID);
+
+        if FgdcNamespaceObject.Active then
+          FgdcNamespaceObject.Close;
+
+        if FgdcNamespace.Active then
+          FgdcNamespace.Close;
+
         FTr.Commit;
-        DelayedUpdate;
+
+        FLoadedNSList.Add(AList[I]);
       finally
-        FSecondPassList.Clear;
         if FTr.InTransaction then
           FTr.Rollback;
+        FAtObjectRecordCache.Iterate(nil, Iterate_FreeObjects);
+        FAtObjectRecordCache.Clear;
       end;
-      AddText('Окончена повторная загрузка объектов.');
+    finally
+      Parser.Free;
     end;
 
-    if FRemoveList.Count > 0 then
-    begin
-      FTr.StartTransaction;
-      try
-        RemoveObjects;
-      finally
-        FTr.Commit;
-      end;
-    end;
+    DelayedUpdate;
 
-    atDatabase.ForceLoadFromDatabase;
-  finally
-    UnEventMacro := SavedUnEventMacro;
-    UnMethodMacro := SavedUnMethodMacro;
+    if FNeedRelogin then
+      ReloginDatabase;
+
+    AddText('Закончена загрузка: ' + NSName);
   end;
+
+  if FSecondPassList.Count > 0 then
+  begin
+    AddText('Повторная загрузка объектов:');
+
+    FgdcObjectCache.Iterate(nil, Iterate_FreeObjects);
+    FgdcObjectCache.Clear;
+
+    FTr.StartTransaction;
+    try
+      for K := 0 to FSecondPassList.Count - 1 do
+        LoadObject(FSecondPassList[K] as TYAMLMapping, -1, 0, True);
+      if FMetadataCounter > 0 then
+        ProcessMetadata;
+      FTr.Commit;
+      DelayedUpdate;
+    finally
+      FSecondPassList.Clear;
+      if FTr.InTransaction then
+        FTr.Rollback;
+    end;
+    AddText('Окончена повторная загрузка объектов.');
+  end;
+
+  if FRemoveList.Count > 0 then
+  begin
+    FTr.StartTransaction;
+    try
+      RemoveObjects;
+      if FMetadataCounter > 0 then
+        ProcessMetadata;
+    finally
+      FTr.Commit;
+    end;
+  end;
+
+  if FNeedRelogin then
+    ReloginDatabase;
 
   Assert(FAtObjectRecordCache.Count = 0);
   Assert(FRemoveList.Count = 0);
@@ -850,12 +861,16 @@ begin
 
   if ObjPosted then
   begin
+    if Obj is TgdcFunction then
+      FNeedRelogin := True;
+
     if CrossTableCreated then
       ProcessMetadata
     else if Obj is TgdcMetaBase then
       Inc(FMetadataCounter)
     else if FMetadataCounter > 0 then
       ProcessMetadata;
+      
     FPrevPosted := CgdcBase(Obj.ClassType);
   end;
 end;
@@ -1254,6 +1269,8 @@ begin
         try
           ObjectName := Obj.ObjectName + ' (' + Obj.GetDisplayName(Obj.SubType) + ')';
           Obj.Delete;
+          if Obj is TgdcFunction then
+            FNeedRelogin := True;
           AddText('Удален объект: ' + ObjectName);
         except
           on E: Exception do
@@ -1272,12 +1289,6 @@ begin
   end;
 
   FRemoveList.Clear;
-
-  if FMetadataCounter > 0 then
-    ProcessMetadata;
-
-  if FNeedRelogin then
-    ReloginDatabase;  
 end;
 
 procedure TgdcNamespaceLoader.ReloginDatabase;
@@ -1311,6 +1322,26 @@ begin
     finally
       FTr.Commit;
     end;
+  end;
+end;
+
+procedure TgdcNamespaceLoader.LoadOurCompanies;
+var
+  q: TIBSQL;
+begin
+  FOurCompanies.Clear;
+  q := TIBSQL.Create(nil);
+  try
+    q.Transaction := gdcBaseManager.ReadTransaction;
+    q.SQL.Text := 'SELECT companykey FROM gd_ourcompany';
+    q.ExecQuery;
+    while not q.EOF do
+    begin
+      FOurCompanies.Add(q.Fields[0].AsInteger);
+      q.Next;
+    end;
+  finally
+    q.Free;
   end;
 end;
 

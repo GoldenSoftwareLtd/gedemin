@@ -82,8 +82,15 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       object TBItem3: TTBItem
         Action = actSelectAll
       end
-      object TBItem9: TTBItem
-        Action = actSetForLoading
+      object TBSubmenuItem1: TTBSubmenuItem
+        ImageIndex = 239
+        Options = [tboDropdownArrow]
+        object TBItem9: TTBItem
+          Action = actSetForLoading
+        end
+        object TBItem16: TTBItem
+          Action = actSetForLoadingOne
+        end
       end
       object TBItem8: TTBItem
         Action = actSetForSaving
@@ -147,7 +154,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
         Control = cbPackets
       end
       object lSearch: TLabel
-        Left = 497
+        Left = 505
         Top = 4
         Width = 45
         Height = 13
@@ -161,7 +168,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
         TabOrder = 0
       end
       object edFilter: TEdit
-        Left = 850
+        Left = 858
         Top = 0
         Width = 140
         Height = 21
@@ -169,7 +176,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
         OnChange = edFilterChange
       end
       object cbPackets: TCheckBox
-        Left = 996
+        Left = 1004
         Top = 2
         Width = 66
         Height = 17
@@ -381,7 +388,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
     end
     object actSetForLoading: TAction
       Caption = '<< Пометить для загрузки'
-      Hint = 'Пометить для загрузки'
+      Hint = 'Пометить для загрузки ПИ с учетом списка зависимости'
       ImageIndex = 239
       OnExecute = actSetForLoadingExecute
       OnUpdate = actSetForLoadingUpdate
@@ -498,6 +505,13 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       Hint = 'Все файлы, помеченные для загрузки'
       OnExecute = actFLTLoadExecute
       OnUpdate = actFLTLoadUpdate
+    end
+    object actSetForLoadingOne: TAction
+      Caption = '<< Пометить для загрузки текущее ПИ'
+      Hint = 'Пометить для загрузки только текущее ПИ'
+      ImageIndex = 239
+      OnExecute = actSetForLoadingOneExecute
+      OnUpdate = actSetForLoadingOneUpdate
     end
   end
   object pmSync: TPopupMenu

@@ -2682,43 +2682,6 @@ begin
     end;
     ibsql.Close;
 
-    {
-    ibsql.Close;
-    ibsql.SQL.Text :=
-      'SELECT * FROM rdb$relation_constraints ' +
-      'WHERE rdb$relation_name = :relname ' +
-      '  AND rdb$constraint_type = ''FOREIGN KEY'' ';
-    ibsql.ParamByName('relname').AsString := FieldByName('relationname').AsString;
-    ibsql.ExecQuery;
-
-    while not ibsql.EOF do
-    begin
-      FSQL.Add(Format('ALTER TABLE %s DROP CONSTRAINT %s ',
-        [FieldByName('relationname').AsString,
-        ibsql.FieldByName('rdb$constraint_name').AsString]), False);
-      ibsql.Next;
-    end;
-
-    if ibsql.RecordCount > 0 then
-      atDatabase.NotifyMultiConnectionTransaction;
-
-    ibsql.Close;
-    ibsql.SQL.Text :=
-      'SELECT * FROM rdb$relation_constraints ' +
-      'WHERE rdb$relation_name = :relname ' +
-      '  AND rdb$constraint_type = ''PRIMARY KEY'' ';
-    ibsql.ParamByName('relname').AsString := FieldByName('relationname').AsString;
-    ibsql.ExecQuery;
-
-    while not ibsql.EOF do
-    begin
-      FSQL.Add(Format('ALTER TABLE %s DROP CONSTRAINT %s ',
-        [FieldByName('relationname').AsString,
-        ibsql.FieldByName('rdb$constraint_name').AsString]), False);
-      ibsql.Next;
-    end;
-    }
-
     DropCrossTable;
 
     FSQL.Add('DROP TABLE ' + FieldByName('relationname').AsString);
@@ -3306,11 +3269,8 @@ var
   S: TStringList;
 begin
   if AnsiPos('CREATE VIEW', AnsiUpperCase(Source)) > 0 then
-  begin
-    Result := Source;
-  end
-  else
-  begin
+    Result := Source
+  else begin
     S := TStringList.Create;
     try
       GetFieldsName(Source, S);
@@ -4300,6 +4260,7 @@ function TgdcRelationField.CreateFieldConstraintSQL: String;
 var
   NextConstraintName: String;
   TableNameWithoutPrefix: String;
+  DeleteRule: String;
 begin
   NeedSingleUser := True;
 
@@ -4309,8 +4270,6 @@ begin
   else
     TableNameWithoutPrefix := FieldByName('relationname').AsString;
 
-  //NextConstraintName := gdcBaseManager.AdjustMetaName(Format(UserPrefix + 'fk%s%s',
-  //  [TableNameWithoutPrefix, GetUniqueID(Database, ReadTransaction)]));
   NextConstraintName := gdcBaseManager.AdjustMetaName(Format(UserPrefix + 'FK_%s_%s',
     [TableNameWithoutPrefix, FieldByName('fieldname').AsString]));
 
@@ -4325,8 +4284,11 @@ begin
       GetKeyFieldName(FieldByName('RefRelationName').AsString)
     ]
   );
-  if (not FieldByName('deleterule').IsNull) and (FieldByName('deleterule').AsString <> 'RESTRICT') then
-    Result := Result + Format(' ON DELETE %s', [FieldByName('deleterule').AsString]);
+
+  DeleteRule := UpperCase(Trim(FieldByName('deleterule').AsString));
+
+  if (DeleteRule = 'CASCADE') or (DeleteRule = 'SET DEFAULT') or (DeleteRule = 'SET NULL') then
+    Result := Result + ' ON DELETE ' + DeleteRule;
 end;
 
 function TgdcRelationField.CreateFieldSQL: String;
@@ -6387,15 +6349,20 @@ begin
 end;
 
 procedure TgdcStoredProc.PrepareToSaveToStream(BeforeSave: Boolean);
+var
+  S: String;
 begin
   if BeforeSave then
   begin
     IsSaveToStream := True;
-    Edit;
-    FieldByName('proceduresource').AsString := GetProcedureText;
-    Post;
-  end
-  else
+    S := GetProcedureText;
+    if FieldByName('proceduresource').AsString <> S then
+    begin
+      Edit;
+      FieldByName('proceduresource').AsString := S;
+      Post;
+    end;
+  end else
     IsSaveToStream := False;
 end;
 
@@ -6403,6 +6370,8 @@ procedure TgdcStoredProc._SaveToStream(Stream: TStream;
   ObjectSet: TgdcObjectSet;
   PropertyList: TgdcPropertySets; BindedList: TgdcObjectSet;
   WithDetailList: TgdKeyArray; const SaveDetailObjects: Boolean = True);
+var
+  S: String;
 begin
   Assert(State = dsBrowse);
 
@@ -6412,9 +6381,13 @@ begin
 
   IsSaveToStream := True;
   try
-    Edit;
-    FieldByName('proceduresource').AsString := GetProcedureText;
-    Post;
+    S := GetProcedureText;
+    if FieldByName('proceduresource').AsString <> S then
+    begin
+      Edit;
+      FieldByName('proceduresource').AsString := S;
+      Post;
+    end;  
     inherited;
   finally
     IsSaveToStream := False;
@@ -6770,7 +6743,7 @@ begin
       FSQL.Add('DROP PROCEDURE ' + Names.ChldCtName, False);
     if Names.ExceptName > '' then
       FSQL.Add('DROP EXCEPTION ' + Names.ExceptName, False);
-                              
+
     DropCrossTable;
 
     FSQL.Add('DROP TABLE ' + FieldByName('relationname').AsString);

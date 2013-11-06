@@ -483,7 +483,6 @@ uses
   gd_i_ScriptFactory,
   ActiveX,
   rp_ReportMainForm_unit,
-  {Создание новых форм}
   dlg_NewForm_Wzrd_unit,
   dlg_EditNewForm_unit,
 
@@ -852,7 +851,6 @@ procedure TfrmGedeminMain.DoBeforeChangeCompany;
 begin
   //
   //  Сворачиваем рабочий стол
-
   cbDesktop.Items.Clear;
   cbDesktop.Enabled := False;
 
@@ -1299,27 +1297,23 @@ end;
 procedure TfrmGedeminMain.TBItem4Click(Sender: TObject);
 begin
   {$IFDEF PROTECT}
-
-  if (IBLogin.CompanyKey = 146866007) or 
+  if (IBLogin.CompanyKey = 146866007) or
     (IBLogin.CompanyKey = 153408611) or
     (IBLogin.CompanyKey = 153583337) then
   begin
-
     with Tpr_dlgLicence.Create(Self) do
     try
       ShowModal;
     finally
       Free;
     end;
-
-  end;  
+  end;
   {$ENDIF}
 end;
 
 procedure TfrmGedeminMain._DoOnCreateForm(Sender: TObject);
 begin
-  if (Sender is TForm) and (Sender <> Self)
-    {and (not (fsModal in TForm(Sender).FormState))} then
+  if (Sender is TForm) and (Sender <> Self) then
   begin
     if GetFormToggleItemIndex(Sender as TForm) = -1 then
       AddFormToggleItem(Sender as TForm);
@@ -1333,7 +1327,6 @@ begin
   for I := tbForms.Items.Count - 1 downto 0 do
     if TForm(Sender) = TForm(tbForms.Items[I].Tag) then
       tbForms.Items[I].Free;
-      //tbForms.Items.Delete(I);
 end;
 
 destructor TfrmGedeminMain.Destroy;
@@ -2315,7 +2308,6 @@ end;
 procedure TfrmGedeminMain.actReconnectUpdate(Sender: TObject);
 begin
   actReconnect.Enabled := Assigned(IBLogin)
-    {and IBLogin.IsUserAdmin}
     and IBLogin.LoggedIn
     and ((not Assigned(Screen.ActiveForm)) or ([fsModal] * Screen.ActiveForm.FormState = []))
     and (not ((FormAssigned(gd_frmBackup) and gd_frmBackup.ServiceActive) or

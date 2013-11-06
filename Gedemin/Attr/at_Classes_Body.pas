@@ -931,15 +931,15 @@ var
 begin
   Result := RelationFields.ByFieldName(FListField);
 
+  // По умолчанию name
   if Result = nil then
-     // По умолчанию name
-     Result := RelationFields.ByFieldName('name')
+     Result := RelationFields.ByFieldName('NAME')
   else
     Exit;
 
   //Для пользовательских таблиц поле usr$name
   if Result = nil then
-    Result := RelationFields.ByFieldName('usr$name');
+    Result := RelationFields.ByFieldName('USR$NAME');
 
   if Result = nil then
   begin
@@ -998,11 +998,21 @@ begin
     end;
 
     if Result = nil then
-      Result := RelationFields.ByFieldName('id');
+      Result := RelationFields.ByFieldName('ID');
 
-    // Если нет, то первое поле
-    if (Result = nil) and (RelationFields.Count > 0) then
-      Result := RelationFields[0];
+    // Если нет, то первое попавшееся поле, кроме системных
+    I := 0;
+    while (Result = nil) and (I < RelationFields.Count) do
+    begin
+      if (RelationFields[I].FieldName <> 'AVIEW')
+        and (RelationFields[I].FieldName <> 'ACHAG')
+        and (RelationFields[I].FieldName <> 'AFULL')
+        and (RelationFields[I].FieldName <> 'DISABLED') then
+      begin
+        Result := RelationFields[I];
+      end else
+        Inc(I);
+    end;
   end;
 
   if Result = nil then

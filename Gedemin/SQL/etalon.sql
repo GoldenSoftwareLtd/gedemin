@@ -7955,8 +7955,6 @@ CREATE DOMAIN dstorage_data_type AS CHAR(1) NOT NULL
 
 CREATE TABLE gd_storage_data (
   id             dintkey,
-  /*lb             dlb,*/
-  /*rb             drb,*/
   parent         dparent,
   name           dtext120 NOT NULL,
   data_type      dstorage_data_type,
