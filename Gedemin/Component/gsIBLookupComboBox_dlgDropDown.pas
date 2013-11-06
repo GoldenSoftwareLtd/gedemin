@@ -36,6 +36,8 @@ type
     actSelectDoc: TAction;
     sbAcctAccCard: TSpeedButton;
     actAcctAccCard: TAction;
+    sbFullCollapse: TSpeedButton;
+    actFullCollapse: TAction;
     procedure FormShow(Sender: TObject);
     procedure FormHide(Sender: TObject);
     procedure FormMouseDown(Sender: TObject; Button: TMouseButton;
@@ -66,6 +68,8 @@ type
     procedure actSelectDocUpdate(Sender: TObject);
     procedure actSelectDocExecute(Sender: TObject);
     procedure actAcctAccCardExecute(Sender: TObject);
+    procedure actFullCollapseExecute(Sender: TObject);
+    procedure actFullCollapseUpdate(Sender: TObject);
 
   private
     FMouseFlag: Boolean;
@@ -155,7 +159,9 @@ begin
   Result := sbShrink.Width + sbGrow.Width;
   if Assigned(FIBLookup) then
   begin
-    if FIsDocument then
+    if tv.Visible then
+      Inc(Result, sbFullCollapse.Left + sbFullCollapse.Width)
+    else if FIsDocument then
       Inc(Result, sbAcctAccCard.Left + sbAcctAccCard.Width)
     else if FIBLookup.gdClassName > '' then
       Inc(Result, sbSelectObj.Left + sbSelectObj.Width);
@@ -390,6 +396,21 @@ procedure TdlgDropDown.actAcctAccCardExecute(Sender: TObject);
 begin
   FLastMessage := WM_GD_OPENACCTACCCARD;
   ModalResult := mrCancel;
+end;
+
+procedure TdlgDropDown.actFullCollapseExecute(Sender: TObject);
+begin
+  tv.Items.BeginUpdate;
+  try
+    tv.FullCollapse;
+  finally
+    tv.Items.EndUpdate;
+  end;
+end;
+
+procedure TdlgDropDown.actFullCollapseUpdate(Sender: TObject);
+begin
+  TAction(Sender).Enabled := Assigned(FIBLookup) and tv.Visible;
 end;
 
 end.
