@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2001 by Golden Software of Belarus
+  Copyright (c) 2001-13 by Golden Software of Belarus
 
   Module
 
@@ -1176,7 +1176,6 @@ end;
 
 var
   RegKey: HKEY;
-  //hMidas: Integer;
 
 procedure TgsFunctionLibrary.UpdateCache(const AnID: Integer);
 var
@@ -1232,7 +1231,6 @@ initialization
     exit;
   end;
 
-{ TODO : Ничего лучшего, чем проверить ветку в реестре я не нашел. DAlex }
   if RegOpenKey(HKEY_CLASSES_ROOT,
     PChar('CLSID\' + GUIDToString(CLASS_ScriptControl)), RegKey) <> ERROR_SUCCESS then
   begin

@@ -138,8 +138,7 @@ end;
 
 initialization
   RegisterFrmClass(Tgdc_frmFunction);
-  //RegisterClass(Tgdc_frmFunction);
+
 finalization
   UnRegisterFrmClass(Tgdc_frmFunction);
-
 end.

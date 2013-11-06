@@ -45,7 +45,7 @@ type
     procedure ApplyFilter;
     procedure BuildTree;
     procedure DeleteFile(const AFileName: String);
-    procedure SetOperation(const AnOp: String);
+    procedure SetOperation(const AnOp: String; const AScanUsesList: Boolean = True);
     procedure Sync;
     procedure SyncSilent;
     procedure EditNamespace(const ANSK: Integer);
@@ -950,7 +950,7 @@ begin
   DoLog(lmtInfo, 'Выполнено сравнение с каталогом: ' + FDirectory);
 end;
 
-procedure TgdcNamespaceSyncController.SetOperation(const AnOp: String);
+procedure TgdcNamespaceSyncController.SetOperation(const AnOp: String; const AScanUsesList: Boolean = True);
 begin
   Assert(not FDataSet.EOF);
 
@@ -990,7 +990,7 @@ begin
 
     FqUpdateOperation.ExecQuery;
 
-    if AnOp = '<<' then
+    if (AnOp = '<<') and AScanUsesList then
     begin
       FqUsesList.ParamByName('filename').AsString := FDataSet.FieldByName('filename').AsString;
       FqUsesList.ExecQuery;

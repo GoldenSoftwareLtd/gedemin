@@ -600,8 +600,8 @@ object frmGedeminMain: TfrmGedeminMain
     end
     object actLoadPackage: TAction
       Category = 'Actions'
-      Caption = 'Установить пакеты'
-      Hint = 'Установить пакеты'
+      Caption = 'Синхронизация ПИ...'
+      Hint = 'Синхронизация пространств имен с дисковыми файлами'
       ImageIndex = 80
       OnExecute = actLoadPackageExecute
       OnUpdate = actLoadPackageUpdate

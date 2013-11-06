@@ -66,6 +66,7 @@ Name: "belarusian"; MessagesFile: "compiler:Languages\Belarusian.isl"
 Name: "databasefile"; Description: "Установить файл базы данных"; GroupDescription: "База данных:"; Flags:
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags:
 Name: "quicklaunchicon"; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
+Name: "swipl"; Description: "Установить встроенный SWI-Prolog"; GroupDescription: "SWI-Prolog:"; Flags:
 
 #ifdef Cash
   Name: "ppserver"; Description: "Установить драйвер платежного терминала"; GroupDescription: "Торговое оборудование:"; Flags:
@@ -94,6 +95,13 @@ Source: "midas.sxs.manifest"; DestDir: "{app}"; Flags: ignoreversion
 Source: "Help\fr24rus.chm"; DestDir: "{app}\Help"; Flags: ignoreversion
 Source: "Help\vbs55.chm"; DestDir: "{app}\Help"; Flags: ignoreversion
 Source: "Database\{#DBFileOnlyName}.bk"; DestDir: "{app}\Database"; Flags: deleteafterinstall; Tasks: databasefile
+
+Source: "SWIPl\Lib\memfile.dll"; DestDir: "{app}\SWIPl\Lib"; Flags: ignoreversion; Tasks: swipl
+Source: "SWIPl\Lib\readutil.dll"; DestDir: "{app}\SWIPl\Lib"; Flags: ignoreversion; Tasks: swipl
+Source: "SWIPl\gd_pl_state.dat"; DestDir: "{app}\SWIPl"; Flags: ignoreversion; Tasks: swipl
+Source: "SWIPl\libgmp-10.dll"; DestDir: "{app}\SWIPl"; Flags: ignoreversion; Tasks: swipl
+Source: "SWIPl\libswipl.dll"; DestDir: "{app}\SWIPl"; Flags: ignoreversion; Tasks: swipl
+Source: "SWIPl\pthreadGC2.dll"; DestDir: "{app}\SWIPl"; Flags: ignoreversion; Tasks: swipl
 
 #ifdef Cash
   Source: "USBPD.dll"; DestDir: "{app}"; Flags: ignoreversion; Tasks: usbpd

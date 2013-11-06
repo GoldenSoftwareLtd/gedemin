@@ -97,6 +97,9 @@ type
     TBItem15: TTBItem;
     mMessages: TRichEdit;
     TBSeparatorItem2: TTBSeparatorItem;
+    TBSubmenuItem1: TTBSubmenuItem;
+    actSetForLoadingOne: TAction;
+    TBItem16: TTBItem;
     procedure actChooseDirExecute(Sender: TObject);
     procedure actCompareUpdate(Sender: TObject);
     procedure actCompareExecute(Sender: TObject);
@@ -128,6 +131,8 @@ type
     procedure actFLTSaveUpdate(Sender: TObject);
     procedure actFLTLoadUpdate(Sender: TObject);
     procedure actFLTInternalUpdate(Sender: TObject);
+    procedure actSetForLoadingOneUpdate(Sender: TObject);
+    procedure actSetForLoadingOneExecute(Sender: TObject);
 
   private
     FNSC: TgdcNamespaceSyncController;
@@ -168,11 +173,19 @@ begin
 end;
 
 procedure Tat_frmSyncNamespace.actCompareExecute(Sender: TObject);
+var
+  OldCursor: TCursor;
 begin
-  FNSC.UpdateCurrModified := chbxUpdate.Checked;
-  FNSC.Directory := tbedPath.Text;
-  FNSC.Scan(True, True);
-  ApplyFilter;
+  OldCursor := Screen.Cursor;
+  try
+    Screen.Cursor := crHourGlass;
+    FNSC.UpdateCurrModified := chbxUpdate.Checked;
+    FNSC.Directory := tbedPath.Text;
+    FNSC.Scan(True, True);
+    ApplyFilter;
+  finally
+    Screen.Cursor := OldCursor;
+  end;
 end;
 
 procedure Tat_frmSyncNamespace.actEditNamespaceUpdate(Sender: TObject);
@@ -503,6 +516,19 @@ procedure Tat_frmSyncNamespace.actFLTInternalUpdate(Sender: TObject);
 begin
   (Sender as TAction).Enabled := FNSC.DataSet.Active;
   edFilter.Enabled := FNSC.DataSet.Active;
+end;
+
+procedure Tat_frmSyncNamespace.actSetForLoadingOneUpdate(Sender: TObject);
+begin
+  actSetForLoadingOne.Enabled := not FNSC.DataSet.IsEmpty;
+end;
+
+procedure Tat_frmSyncNamespace.actSetForLoadingOneExecute(Sender: TObject);
+begin
+  FNSC.SetOperation('<<', False);
+  ApplyFilter;
+  if (FNSC.FilterOperation > '') and (not actFLTLoad.Checked) then
+    actFLTLoad.Execute;
 end;
 
 initialization

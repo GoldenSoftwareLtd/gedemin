@@ -1622,7 +1622,6 @@ end;
 
 procedure TgdScriptFactory.ResetVBClasses(const ModuleCode: Integer);
 var
-//  LA: TObject;
   i: Integer;
 begin
   Reset;
