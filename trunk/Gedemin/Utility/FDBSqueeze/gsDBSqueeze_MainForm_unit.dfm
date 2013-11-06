@@ -1,5 +1,5 @@
 object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
-  Left = 220
+  Left = 195
   Top = 161
   BorderStyle = bsDialog
   ClientHeight = 536
@@ -50,7 +50,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
       Top = 21
       Width = 1212
       Height = 497
-      ActivePage = tsSettings
+      ActivePage = tsProcess
       MultiLine = True
       TabOrder = 1
       TabPosition = tpLeft
@@ -546,10 +546,6 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
                   Width = 481
                   Height = 73
                   Color = clBtnFace
-                  Lines.Strings = (
-                    
-                      '0123456789012345678901234567890123456789012345678901234567890123' +
-                      '4567890')
                   ReadOnly = True
                   ScrollBars = ssVertical
                   TabOrder = 1
@@ -581,10 +577,6 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
                   Width = 481
                   Height = 69
                   Color = clBtnFace
-                  Lines.Strings = (
-                    
-                      '0123456789012345678901234567890123456789012345678901234567890123' +
-                      '4567890')
                   ReadOnly = True
                   ScrollBars = ssVertical
                   TabOrder = 1
@@ -804,6 +796,22 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
       object tsProcess: TTabSheet
         Caption = 'tsProcess'
         ImageIndex = 1
+        object btnTMPstart: TButton
+          Left = 128
+          Top = 120
+          Width = 75
+          Height = 25
+          Caption = 'btnTMPstart'
+          TabOrder = 0
+        end
+        object btnTMPstop: TButton
+          Left = 232
+          Top = 120
+          Width = 75
+          Height = 25
+          Caption = 'btnTMPstop'
+          TabOrder = 1
+        end
       end
       object tsLogs: TTabSheet
         Caption = 'tsLogs'
