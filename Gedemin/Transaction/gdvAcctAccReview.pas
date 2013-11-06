@@ -367,7 +367,9 @@ begin
           '     %0:s.valuekey = %1:s'#13#10 +
           '  LEFT JOIN gd_value %2:s ON %2:s.id = %0:s.valuekey',
           [QuantityAlias, FAcctValues.Names[K], ValueAlias]);
-      AccWhereQuantity := AccWhereQuantity + QuantityAlias + '.quantity <> 0 OR ';
+      if AccWhereQuantity > '' then
+        AccWhereQuantity := AccWhereQuantity + ' OR ';
+      AccWhereQuantity := AccWhereQuantity + QuantityAlias + '.quantity <> 0 ';
     end;  
   end;
 
@@ -538,13 +540,8 @@ begin
           '') +
       '      WHERE '#13#10 +
         AccWhere + #13#10 + CompanyS + ' AND '#13#10 +
-      '        (' + AccWhereQuantity + ' e.debitncu <> 0 '#13#10 +
-      '          OR e.creditncu <> 0 '#13#10 +
-      '          OR e.debitcurr <> 0 '#13#10 +
-      '          OR e.creditcurr <> 0 '#13#10 +
-      '          OR e.debiteq <> 0 '#13#10 +
-      '          OR e.crediteq <> 0) '#13#10 +
-      '        AND e.entrydate >= :begindate '#13#10 +
+        IIF(Trim(AccWhereQuantity) > '', '        (' + AccWhereQuantity + ') AND '#13#10, '') +
+      '        e.entrydate >= :begindate '#13#10 +
       '        AND e.entrydate <= :enddate '#13#10 +
         IIF(EntryCondition <> '', ' AND '#13#10 + EntryCondition, '') +
         IIF(FCurrSumInfo.Show and (FCurrkey > 0), ' AND e.currkey = ' + IntToStr(FCurrkey) + #13#10, '') +
@@ -600,7 +597,7 @@ begin
       '  LEFT JOIN ac_account a ON a.id = e.accountkey '#13#10 +
       ValueJoin + #13#10 + {AFrom + ACorrFrom +} #13#10 +
       ' where '#13#10 + AccWhere + #13#10 + CompanyS + ' AND '#13#10 +
-      '  (' + AccWhereQuantity + ' e.debitncu <> 0 OR e.creditncu <> 0 OR e.debitcurr <> 0 OR e.creditcurr <> 0 OR e.debiteq <> 0 OR e.crediteq <> 0) AND'#13#10 +
+      IIF(Trim(AccWhereQuantity) > '', '  (' + AccWhereQuantity + ') AND '#13#10, '') + 
       '  e.entrydate >= :begindate AND e.entrydate <= :enddate '#13#10 +
       IIF(EntryCondition <> '', ' AND '#13#10 + EntryCondition + #13#10, '') +
       InternalMovementClause,
