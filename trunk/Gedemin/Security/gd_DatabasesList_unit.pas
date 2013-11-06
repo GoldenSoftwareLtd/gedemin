@@ -260,6 +260,7 @@ end;
 procedure Tgd_DatabaseItem.SetName(const Value: String);
 var
   V: String;
+  DI: Tgd_DatabaseItem;
 begin
   V := Trim(Value);
 
@@ -268,7 +269,8 @@ begin
 
   if V <> FName then
   begin
-    if (Collection as Tgd_DatabasesList).FindByName(V) <> nil then
+    DI := (Collection as Tgd_DatabasesList).FindByName(V);
+    if (DI <> nil) and (DI <> Self) then
       raise Egd_DatabasesList.Create('Duplicate name');
     FName := V;
   end;  
