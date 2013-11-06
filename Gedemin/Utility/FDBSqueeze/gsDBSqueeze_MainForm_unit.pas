@@ -182,6 +182,8 @@ type
     mIgnoreDocTypes: TMemo;
     strngrdProcDocTypes: TStringGrid;
     mProcDocTypes: TMemo;
+    btnTMPstart: TButton;
+    btnTMPstop: TButton;
 
     procedure actTestConnectExecute(Sender: TObject);
     procedure actTestConnectUpdate(Sender: TObject);

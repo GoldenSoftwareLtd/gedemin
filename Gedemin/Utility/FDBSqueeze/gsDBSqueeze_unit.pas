@@ -1171,6 +1171,7 @@ begin
   LogEvent('Create entry balance... OK');
 end;
 
+
 procedure TgsDBSqueeze.CalculateInvSaldo;
 var
   q: TIBSQL;
@@ -2623,6 +2624,8 @@ var
                 end;
                 LogEvent('[test] AFTER Copy=' + LineTblsList.Values[LineTblsList.Names[I]]);
                 }
+
+                ///TODO: ERROR list out of bounds
                 LineTblsList.Values[LineTblsList.Names[I]] := LineTblsList.Values[LineTblsList.Names[I]] + AllProcessedTblsNames[AllProcessedTblsNames.Count-1] + ';';
               end;
               Inc(I);
@@ -2760,51 +2763,69 @@ var
             FkFieldsList.Clear;
             Kolvo := 0;
 
-            FkFieldsList.Text := StringReplace(q.FieldByName('list_fields').AsString, ',', #13#10, [rfReplaceAll, rfIgnoreCase]);
+             ////////////
+            q2.Close; 
+            q2.SQL.Text :=
+              'SELECT ' +                                                                   #13#10 +
+              '  TRIM(fc.list_fields) AS fk_fields ' +                                      #13#10 +
+              'FROM dbs_fk_constraints fc ' +                                               #13#10 +
+              '  JOIN dbs_suitable_tables pc ' +                                            #13#10 +
+              '    ON pc.relation_name = fc.relation_name ' +                               #13#10 +
+              'WHERE fc.delete_rule = ''CASCADE'' ' +                                       #13#10 +//((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) ' +
+              '  AND fc.relation_name = :rln ' +                                            #13#10 +
+              '  AND fc.list_fields = pc.list_fields ' +                                    #13#10 +
+              '  AND fc.list_fields NOT LIKE ''%,%'' ';
+            q2.ParamByName('rln').AsString := UpperCase(q.FieldByName('relation_name').AsString);
+            ExecSqlLogEvent(q2, 'IncludeCascadingSequences');
 
-            if FkFieldsList.Count > 1 then
-              LogEvent('[test] FkFieldsList: ' + FkFieldsList.Text);
-
-            for I:=0 to FkFieldsList.Count-1 do
+            if q2.RecordCount = 0 then // Eсли PK не является FK
             begin
-              q2.Close;
+              FkFieldsList.Text := StringReplace(q.FieldByName('list_fields').AsString, ',', #13#10, [rfReplaceAll, rfIgnoreCase]);
 
-              q2.SQL.Text :=
-                'SELECT ' +                                                          #13#10 +
-                '  SUM(g_his_include(2, ' + Trim(FkFieldsList[I]) + ')) AS Kolvo ' + #13#10 +
-                'FROM ' +                                                            #13#10 +
-                   q.FieldByName('relation_name').AsString + ' ' +                   #13#10 +
-                'WHERE ' +                                                           #13#10 +
-                '  g_his_exclude(1, ' + Trim(FkFieldsList[I]) + ') = 1 ';
+              for I:=0 to FkFieldsList.Count-1 do
+              begin
+                q2.Close;
 
-              // если таблица с rectrict/noAction содержит предположительно удаляемый cascade
-              if AllProcessedTblsNames.IndexOf(UpperCase(q.FieldByName('relation_name').AsString)) <> -1 then
-              begin  //извлекаем FK restrict HIS вместе с цепью, если ВСЕ каскады отсутствуют в HIS
-                q4.SQL.Text :=  // получим все FK cascade поля в таблице
-                  'SELECT ' +
-                  '  TRIM(fc.list_fields) AS fk_field ' +                                       #13#10 +
-                  'FROM dbs_fk_constraints fc ' +                                               #13#10 +
-                  'WHERE fc.delete_rule = ''CASCADE'' ' +                                       #13#10 +//((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) ' + 
-                  '  AND fc.relation_name = :rln ' +                                            #13#10 +
-                  '  AND fc.list_fields NOT LIKE ''%,%'' ';
-                q4.ParamByName('rln').AsString := UpperCase(q.FieldByName('relation_name').AsString);
-                ExecSqlLogEvent(q4, 'IncludeCascadingSequences');
+                q2.SQL.Text :=
+                  'SELECT ' +                                                          #13#10 +
+                  '  SUM(g_his_include(2, ' + Trim(FkFieldsList[I]) + ')) AS Kolvo ' + #13#10 +
+                  'FROM ' +                                                            #13#10 +
+                     q.FieldByName('relation_name').AsString + ' ' +                   #13#10 +
+                  'WHERE ' +                                                           #13#10 +
+                  '  g_his_exclude(1, ' + Trim(FkFieldsList[I]) + ') = 1 ';
 
-                q2.SQL.Add(' ' +                                                     #13#10 +
-                  ' AND (0 ');
-                while not q4.EOF do
-                begin
-                  q2.SQL.Add(
-                    ' + g_his_has(1, ' + q4.FieldByName('fk_field').AsString + ') ');
-                  q4.Next;
+                // если таблица с rectrict/noAction содержит предположительно удаляемый cascade
+                if AllProcessedTblsNames.IndexOf(UpperCase(q.FieldByName('relation_name').AsString)) <> -1 then
+                begin  //извлекаем FK restrict HIS вместе с цепью, если ВСЕ каскады отсутствуют в HIS
+                  q4.SQL.Text :=  // получим все FK cascade поля в таблице
+                    'SELECT ' +
+                    '  TRIM(fc.list_fields) AS fk_field ' +                                       #13#10 +
+                    'FROM dbs_fk_constraints fc ' +                                               #13#10 +
+                    'WHERE fc.delete_rule = ''CASCADE'' ' +                                       #13#10 +//((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) ' +
+                    '  AND fc.relation_name = :rln ' +                                            #13#10 +
+                    '  AND fc.list_fields NOT LIKE ''%,%'' ';
+                  q4.ParamByName('rln').AsString := UpperCase(q.FieldByName('relation_name').AsString);
+                  ExecSqlLogEvent(q4, 'IncludeCascadingSequences');
+
+                  q2.SQL.Add(' ' +                                                     #13#10 +
+                    ' AND (0 ');
+                  while not q4.EOF do
+                  begin
+                    q2.SQL.Add(
+                      ' + g_his_has(1, ' + q4.FieldByName('fk_field').AsString + ') ');
+                    q4.Next;
+                  end;
+                  q2.SQL.Add(') = 0');
+                  q4.Close;
+
+                  /////if есть в Proc И ReProc т.е. обработан рестрикт уже то надо переобработать его    ///
+                  ///save in ReProc
                 end;
-                q2.SQL.Add(') = 0');
-                q4.Close;
-              end;
-              ExecSqlLogEvent(q2, 'IncludeCascadingSequences');
+                ExecSqlLogEvent(q2, 'IncludeCascadingSequences');
 
-              Kolvo := Kolvo + q2.FieldByName('Kolvo').AsInteger;
-              ///Count := Count - q2.FieldByName('Kolvo').AsInteger;
+                Kolvo := Kolvo + q2.FieldByName('Kolvo').AsInteger;
+                ///Count := Count - q2.FieldByName('Kolvo').AsInteger;
+              end;
             end;
 
             if Kolvo > 0 then // есть смысл исключать по цепи
@@ -3011,7 +3032,7 @@ var
 
 
         ////////////////////////
-        //------------------ исключение из HIS PK, на которые ссылаются PK<147000000
+        //------------------ исключение из HIS PK, на которые ссылаются PK<147000000 
 
         CreateHIS(2);
 
@@ -3057,7 +3078,7 @@ var
           q.Open;
 
           // если FK есть в HIS_2, то исключим PK из HIS (исключение цепи, что выше)
-         while not q.EOF do
+          while not q.EOF do
           begin
             FkFieldsList.Clear;
             FkFieldsList.Text := StringReplace(q.FieldByName('fk_field').AsString, ',', #13#10, [rfReplaceAll, rfIgnoreCase]);
@@ -3367,7 +3388,7 @@ var
         ///////////////////////
         FCascadeTbls.Text := AllProcessedTblsNames.Text;
         LogEvent('[AAA test] AllProc до Line: ' + AllProcessedTblsNames.Text);
-    //----------------------------- обработка таблиц, у которых PK является FK 
+    //----------------------------- обработка таблиц, у которых PK является FK
         AllProc.Text := AllProcessedTblsNames.Text;
         LogEvent('[test] LineTblsList: ' + LineTblsList.Text);
         LineTblsNames := '';
@@ -3385,7 +3406,7 @@ var
             '    ON pc.relation_name = fc.relation_name ' +                               #13#10 +
             'WHERE fc.delete_rule = ''CASCADE'' ' +                                       #13#10 +//((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) ' + #13#10 +
             '  AND fc.relation_name = :rln ' +                                            #13#10 +
-            '  AND fc.list_fields NOT LIKE ''%,%'' ';                                      
+            '  AND fc.list_fields NOT LIKE ''%,%'' ';
           q.ParamByName('rln').AsString := LineTblsList.Names[I];
           q.Open;
 
@@ -3441,8 +3462,8 @@ var
             AllProc.CommaText,
             LinePosList[LinePosInx],
             LinePosList[LinePosInx] + ',' + LineTblsList.Names[0],
-            [rfIgnoreCase]
-        ) else
+            [rfIgnoreCase])
+        else
           LogEvent('[AAA test] предотвратили повтор AllProc: LineTblsList.Names[0]=' + LineTblsList.Names[0]);
 
         CascadeProcTbls.Clear;
@@ -5816,10 +5837,10 @@ begin
       'GROUP BY ' +                                                     #13#10 +
       '  1, 2, 3, 4, 5';
     ExecSqlLogEvent(q, 'SaveMetadata');
-                                                                                ////test. надо ли вообще
 
-    // для ссылочной целостности AcSaldo
-   q.SQL.Text :=
+
+    // для ссылочной целостности AcSaldo                                         ////а надо ли вообще
+    q.SQL.Text :=
       'INSERT INTO DBS_FK_CONSTRAINTS ( ' +
       '  relation_name, ' +
       '  ref_relation_name, ' +
@@ -5877,7 +5898,63 @@ begin
       '  ''DBS_INV_FK_MOVEMENT_CK'', ' +
       '  ''CONTACTKEY'', ''ID'', ''RESTRICT'', ''RESTRICT'')';
     ExecSqlLogEvent(q, 'SaveMetadata');
-    
+
+
+    Tr.Commit;
+    Tr.StartTransaction;
+
+    // для ссылочной целостности таблиц, которые не обрабатываются каскадом FKs
+    q.SQL.Text :=
+      'INSERT INTO DBS_FK_CONSTRAINTS ( ' +                                     #13#10 +
+      '  relation_name, ' +                                                     #13#10 +
+      '  ref_relation_name, ' +                                                 #13#10 +
+      '  constraint_name, ' +                                                   #13#10 +
+      '  list_fields, list_ref_fields, update_rule, delete_rule) ' +            #13#10 +
+      'SELECT ' +                                                               #13#10 +
+      '  fc.relation_name, ' +                                                  #13#10 +
+      '  fc.ref_relation_name, ' +                                              #13#10 +
+      '  (''DBS_'' || fc.constraint_name) AS constraint_name, ' +                 #13#10 +
+      '  fc.list_fields, fc.list_ref_fields, ''RESTRICT'', ''RESTRICT'' ' +     #13#10 +
+      'FROM ' +                                                                 #13#10 +
+      '  DBS_FK_CONSTRAINTS fc ' +                                              #13#10 +
+      '  JOIN( ' +                                                              #13#10 +
+      '    SELECT ' +                                                           #13#10 +
+      '      c.RDB$RELATION_NAME, ' +                                           #13#10 +
+      '      COUNT(i.RDB$FIELD_NAME) AS Kolvo, ' +                              #13#10 +
+      '      SUM(f.rdb$field_type) AS Summa, ' +                                #13#10 +
+      '      i.RDB$INDEX_NAME ' +                                               #13#10 +//для группировки
+      '    FROM ' +                                                             #13#10 +
+      '      RDB$RELATION_CONSTRAINTS c ' +                                     #13#10 +
+      '      JOIN RDB$INDEX_SEGMENTS i ON i.RDB$INDEX_NAME = c.RDB$INDEX_NAME ' + #13#10 +
+      '      JOIN rdb$relation_fields rf ON rf.rdb$relation_name = c.RDB$RELATION_NAME AND rf.rdb$field_name = i.RDB$FIELD_NAME ' + #13#10 +
+      '        JOIN rdb$fields f ON f.rdb$field_name = rf.rdb$field_source ' +  #13#10 +
+      '    WHERE ' +                                                            #13#10 +
+      '      (c.rdb$constraint_type = ''PRIMARY KEY'' OR c.rdb$constraint_type = ''UNIQUE'') ' + #13#10 +
+      '      AND c.rdb$constraint_name NOT LIKE ''RDB$%'' ---< обдумать ' +     #13#10 +
+      '    GROUP BY ' +                                                         #13#10 +
+      '      i.RDB$INDEX_NAME, c.RDB$RELATION_NAME ' +                          #13#10 +
+      '    HAVING ' +                                                           #13#10 +
+      '      (COUNT(i.RDB$FIELD_NAME) > 1) ' +                                  #13#10 +
+      '      OR ((COUNT(i.RDB$FIELD_NAME) = 1) AND (SUM(f.rdb$field_type) <> 8)) ' + #13#10 +
+      '  )pc ON pc.RDB$RELATION_NAME = fc.relation_name ' +                     #13#10 +
+      'WHERE ' +                                                                #13#10 +
+      '  fc.delete_rule = ''CASCADE'' ' +                                       #13#10 +
+      ' ' +                                                                     #13#10 +
+      'UNION ' +                                                                #13#10 +
+      ' ' +                                                                     #13#10 +
+      'SELECT ' +                                                               #13#10 +
+      '  fc.relation_name, ' +                                                  #13#10 +
+      '  fc.ref_relation_name, ' +                                              #13#10 +
+      '  (''DBS_'' || fc.constraint_name) AS constraint_name, ' +                 #13#10 +
+      '  fc.list_fields, fc.list_ref_fields, ''RESTRICT'', ''RESTRICT'' ' +     #13#10 +
+      'FROM ' +                                                                 #13#10 +
+      '  DBS_FK_CONSTRAINTS  fc ' +                                             #13#10 +
+      '  LEFT JOIN DBS_PK_UNIQUE_CONSTRAINTS pc ON pc.relation_name = fc.relation_name ' + #13#10 +
+      'WHERE ' +                                                                #13#10 +
+      '  pc.relation_name IS NULL ' +                                           #13#10 +
+      '  AND fc.delete_rule = ''CASCADE'' ';
+    ExecSqlLogEvent(q, 'SaveMetadata');
+
     Tr.Commit;
     LogEvent('Metadata saved.');
   finally   
@@ -6418,7 +6495,7 @@ var
     else begin
       q.SQL.Text :=
         'CREATE TABLE DBS_PK_UNIQUE_CONSTRAINTS ( ' +   #13#10 +
-	'  CONSTRAINT_NAME   CHAR(31), ' +              #13#10 +
+	'  CONSTRAINT_NAME   CHAR(35), ' +              #13#10 +
 	'  RELATION_NAME     CHAR(31), ' +              #13#10 +
 	'  CONSTRAINT_TYPE   CHAR(11), ' +              #13#10 +
 	'  LIST_FIELDS       VARCHAR(310), ' +          #13#10 +
@@ -6460,7 +6537,7 @@ var
     else begin
       q.SQL.Text :=
         'CREATE TABLE DBS_FK_CONSTRAINTS ( ' +          #13#10 +
-        '  CONSTRAINT_NAME   CHAR(31), ' +              #13#10 +
+        '  CONSTRAINT_NAME   CHAR(35), ' +              #13#10 +
         '  RELATION_NAME     CHAR(31), ' +              #13#10 +
         '  LIST_FIELDS       VARCHAR(8192), ' +         #13#10 +
         '  REF_RELATION_NAME CHAR(31), ' +              #13#10 +
@@ -6484,7 +6561,7 @@ var
     else begin
       q.SQL.Text :=
         'CREATE TABLE DBS_TMP_FK_CONSTRAINTS ( ' +      #13#10 +
-        '  CONSTRAINT_NAME   CHAR(31), ' +              #13#10 +
+        '  CONSTRAINT_NAME   CHAR(35), ' +              #13#10 +
         '  RELATION_NAME     CHAR(31), ' +              #13#10 +
         '  LIST_FIELDS       VARCHAR(8192), ' +         #13#10 +
         '  REF_RELATION_NAME CHAR(31), ' +              #13#10 +
