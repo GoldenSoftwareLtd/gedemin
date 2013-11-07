@@ -305,6 +305,42 @@ const
     '    Type   : Directory'#13#10 +
     '    Name   : HELP'#13#10 +
     '  - '#13#10 +
+    '    Type   : Directory'#13#10 +
+    '    Name   : SWIPl'#13#10 +
+    '  - '#13#10 +
+    '    Type   : Directory'#13#10 +
+    '    Name   : SWIPl\Lib'#13#10 +
+    '  - '#13#10 +
+    '    Type   : File'#13#10 +
+    '    Name   : gd_pl_state.dat'#13#10 +
+    '    Path   : SWIPl'#13#10 +
+    '    Flags  : OverwriteIfNewer DontBackup'#13#10 +
+    '  - '#13#10 +
+    '    Type   : File'#13#10 +
+    '    Name   : libgmp-10.dll'#13#10 +
+    '    Path   : SWIPl'#13#10 +
+    '    Flags  : OverwriteIfNewer DontBackup'#13#10 +
+    '  - '#13#10 +
+    '    Type   : File'#13#10 +
+    '    Name   : libswipl.dll'#13#10 +
+    '    Path   : SWIPl'#13#10 +
+    '    Flags  : OverwriteIfNewer DontBackup'#13#10 +
+    '  - '#13#10 +
+    '    Type   : File'#13#10 +
+    '    Name   : pthreadGC2.dll'#13#10 +
+    '    Path   : SWIPl'#13#10 +
+    '    Flags  : OverwriteIfNewer DontBackup'#13#10 +
+    '  - '#13#10 +
+    '    Type   : File'#13#10 +
+    '    Name   : memfile.dll'#13#10 +
+    '    Path   : SWIPl\Lib'#13#10 +
+    '    Flags  : OverwriteIfNewer DontBackup'#13#10 +
+    '  - '#13#10 +
+    '    Type   : File'#13#10 +
+    '    Name   : readutil.dll'#13#10 +
+    '    Path   : SWIPl\Lib'#13#10 +
+    '    Flags  : OverwriteIfNewer DontBackup'#13#10 +
+    '  - '#13#10 +
     '    Type   : File'#13#10 +
     '    Name   : gudf.dll'#13#10 +
     '    Path   : UDF'#13#10 +

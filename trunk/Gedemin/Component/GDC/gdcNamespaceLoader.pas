@@ -124,7 +124,6 @@ var
   I, Idx: Integer;
   N: TYAMLNode;
   F: TField;
-  S: String;
   SL: TStringList;
   KV: TyamlKeyValue;
 begin
@@ -184,13 +183,6 @@ begin
       else if (Pos('USR$', F.FieldName) = 1) and (not F.ReadOnly) and (not F.Calculated) then
         AddWarning('Отсутствует в файле: ' + F.FieldName);
     end;
-
-  S := AnObj.ObjectName + ' (' + AnObj.GetDisplayName(AnObj.SubType) + ')';
-
-  if AnObj.State = dsInsert then
-    AddText('Создан объект: ' + S)
-  else
-    AddText('Изменен объект: ' + S);
 end;
 
 procedure TgdcNamespaceLoader.CopyField(AField: TField; N: TyamlScalar);
@@ -644,7 +636,7 @@ var
   Obj: TgdcBase;
   AtObjectRecord: TatObjectRecord;
   ObjRUID, HeadObjectRUID: TRUID;
-  ObjName, ObjRUIDString: String;
+  ObjName, ObjRUIDString, S: String;
   Fields: TYAMLMapping;
   ObjID, CandidateID, RUIDID: TID;
   ObjPosted, ObjPreserved, CrossTableCreated: Boolean;
@@ -768,7 +760,15 @@ begin
     end else
       NeedSecondPass := CopyRecord(Obj, Fields, nil);
 
+    if Obj.State = dsInsert then
+      S := 'Создан объект: '
+    else
+      S := 'Изменен объект: ';
+
+    S := S + Obj.ObjectName + ' (' + Obj.GetDisplayName(Obj.SubType) + ')';
+
     Obj.Post;
+    AddText(S);
     ObjPosted := True;
     ObjID := Obj.ID;
 

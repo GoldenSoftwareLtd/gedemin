@@ -9,7 +9,7 @@
 
   Abstract
 
-    A file list for gedemin updater.
+    Gedemin web server engine.
 
   Author
 

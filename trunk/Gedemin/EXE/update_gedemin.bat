@@ -322,6 +322,12 @@ for %%F in (microsoft.vc80.crt.manifest msvcp80.dll msvcr80.dll gedemin_upd.exe)
 xcopy udf\gudf.dll     \\basel\web\%target_dir%\udf\ /Y
 xcopy intl\fbintl.conf \\basel\web\%target_dir%\intl\ /Y
 xcopy intl\fbintl.dll  \\basel\web\%target_dir%\intl\ /Y
+xcopy swipl\gd_pl_state.dat  \\basel\web\%target_dir%\swipl\ /Y
+xcopy swipl\libgmp-10.dll  \\basel\web\%target_dir%\swipl\ /Y
+xcopy swipl\libswipl.dll  \\basel\web\%target_dir%\swipl\ /Y
+xcopy swipl\pthreadGC2.dll  \\basel\web\%target_dir%\swipl\ /Y
+xcopy swipl\lib\memfile.dll  \\basel\web\%target_dir%\swipl\lib\ /Y
+xcopy swipl\lib\readutil.dll  \\basel\web\%target_dir%\swipl\lib\ /Y
  
 :exit
 
