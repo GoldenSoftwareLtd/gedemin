@@ -5,7 +5,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   ActnList, StdCtrls, ComCtrls, TB2Dock, TB2Toolbar, ExtCtrls, TB2Item,
-  TB2ExtItems, gd_DatabasesList_unit;
+  TB2ExtItems, gd_DatabasesList_unit, SuperPageControl;
 
 type
   Tgd_DatabasesListView = class(TForm)
@@ -44,6 +44,10 @@ type
     TBSeparatorItem4: TTBSeparatorItem;
     TBControlItem3: TTBControlItem;
     lblIniFile: TLabel;
+    pc: TSuperPageControl;
+    tsAll: TSuperTabSheet;
+    Bevel1: TBevel;
+    SuperTabSheet1: TSuperTabSheet;
     procedure actOkExecute(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure actCreateExecute(Sender: TObject);
