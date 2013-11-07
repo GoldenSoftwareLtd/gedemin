@@ -534,26 +534,25 @@ end;
 
 function TgsPLClient.Call2(const AGoal: String): Boolean;
 var
-  t: TgsPLTermv;
+  Termv: TgsPLTermv;
   Query: TgsPLQuery;
 begin
-  Result := False;
-  t := TgsPLTermv.CreateTermv(1);
+  Assert(AGoal > '');
+   
+  Termv := TgsPLTermv.CreateTermv(1);
   try
-    if PL_chars_to_term(PChar(AGoal), t.Term[0]) <> 0 then
-    begin
-      Query := TgsPLQuery.Create;
-      try
-        Query.PredicateName := 'call';
-        Query.Termv := t;
-        Query.OpenQuery;
-        Result := not Query.Eof;
-      finally
-        Query.Free;
-      end;
-    end;
+    Termv.PutString(0, AGoal);
+    Query := TgsPLQuery.Create;
+    try
+      Query.PredicateName := 'pl_run';
+      Query.Termv := Termv;
+      Query.OpenQuery;
+      Result := not Query.Eof;
+    finally
+      Query.Free;
+    end; 
   finally
-    t.Free;
+    Termv.Free;
   end;
 end;
 
