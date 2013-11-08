@@ -47,6 +47,7 @@ type
 
   protected
     function ProcessMessage(var Msg: TMsg): Boolean; override;
+    function ProcessError(var AMsg: TMsg; var AnErrorMessage: String): Boolean; override;
     procedure LogErrorSync; override;
 
   public
@@ -278,13 +279,17 @@ begin
 end;
 
 procedure TgdWebClientThread.LogErrorSync;
+var
+  SMessage: String;
 begin
-  TgdcJournal.AddEvent(ErrorMessage, 'HTTPClient', -1, nil, True);
+  SMessage := ErrorMessage + #13#10 + 'Message ID: ' + IntToStr(ErrorMsg.Message);
+
+  TgdcJournal.AddEvent(SMessage, 'HTTPClient', -1, nil, True);
 
   if InUpdate then
   begin
     FPI.State := psError;
-    FPI.Message := ErrorMessage;
+    FPI.Message := SMessage;
     Synchronize(SyncProgressWatch);
   end;
 end;
@@ -393,6 +398,14 @@ begin
       'Обновление файлов',
       MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
   end;
+end;
+
+function TgdWebClientThread.ProcessError(var AMsg: TMsg;
+  var AnErrorMessage: String): Boolean;
+begin
+  if InUpdate and (AMsg.Message = WM_GD_PROCESS_UPDATE_COMMAND) then
+    PostThreadMessage(ThreadID, WM_GD_FINISH_UPDATE, 0, 0);
+  Result := True;  
 end;
 
 initialization

@@ -312,36 +312,6 @@ const
     '    Name   : SWIPl\Lib'#13#10 +
     '  - '#13#10 +
     '    Type   : File'#13#10 +
-    '    Name   : gd_pl_state.dat'#13#10 +
-    '    Path   : SWIPl'#13#10 +
-    '    Flags  : OverwriteIfNewer DontBackup'#13#10 +
-    '  - '#13#10 +
-    '    Type   : File'#13#10 +
-    '    Name   : libgmp-10.dll'#13#10 +
-    '    Path   : SWIPl'#13#10 +
-    '    Flags  : OverwriteIfNewer DontBackup'#13#10 +
-    '  - '#13#10 +
-    '    Type   : File'#13#10 +
-    '    Name   : libswipl.dll'#13#10 +
-    '    Path   : SWIPl'#13#10 +
-    '    Flags  : OverwriteIfNewer DontBackup'#13#10 +
-    '  - '#13#10 +
-    '    Type   : File'#13#10 +
-    '    Name   : pthreadGC2.dll'#13#10 +
-    '    Path   : SWIPl'#13#10 +
-    '    Flags  : OverwriteIfNewer DontBackup'#13#10 +
-    '  - '#13#10 +
-    '    Type   : File'#13#10 +
-    '    Name   : memfile.dll'#13#10 +
-    '    Path   : SWIPl\Lib'#13#10 +
-    '    Flags  : OverwriteIfNewer DontBackup'#13#10 +
-    '  - '#13#10 +
-    '    Type   : File'#13#10 +
-    '    Name   : readutil.dll'#13#10 +
-    '    Path   : SWIPl\Lib'#13#10 +
-    '    Flags  : OverwriteIfNewer DontBackup'#13#10 +
-    '  - '#13#10 +
-    '    Type   : File'#13#10 +
     '    Name   : gudf.dll'#13#10 +
     '    Path   : UDF'#13#10 +
     '    Flags  : OverwriteIfNewer'#13#10 +
@@ -417,6 +387,39 @@ const
     '    Type   : File'#13#10 +
     '    Name   : Microsoft.VC80.CRT.manifest'#13#10 +
     '    Flags  : OverwriteIfNewer DontBackup';
+
+{
+    '  - '#13#10 +
+    '    Type   : File'#13#10 +
+    '    Name   : gd_pl_state.dat'#13#10 +
+    '    Path   : SWIPl'#13#10 +
+    '    Flags  : OverwriteIfNewer DontBackup'#13#10 +
+    '  - '#13#10 +
+    '    Type   : File'#13#10 +
+    '    Name   : libgmp-10.dll'#13#10 +
+    '    Path   : SWIPl'#13#10 +
+    '    Flags  : OverwriteIfNewer DontBackup'#13#10 +
+    '  - '#13#10 +
+    '    Type   : File'#13#10 +
+    '    Name   : libswipl.dll'#13#10 +
+    '    Path   : SWIPl'#13#10 +
+    '    Flags  : OverwriteIfNewer DontBackup'#13#10 +
+    '  - '#13#10 +
+    '    Type   : File'#13#10 +
+    '    Name   : pthreadGC2.dll'#13#10 +
+    '    Path   : SWIPl'#13#10 +
+    '    Flags  : OverwriteIfNewer DontBackup'#13#10 +
+    '  - '#13#10 +
+    '    Type   : File'#13#10 +
+    '    Name   : memfile.dll'#13#10 +
+    '    Path   : SWIPl\Lib'#13#10 +
+    '    Flags  : OverwriteIfNewer DontBackup'#13#10 +
+    '  - '#13#10 +
+    '    Type   : File'#13#10 +
+    '    Name   : readutil.dll'#13#10 +
+    '    Path   : SWIPl\Lib'#13#10 +
+    '    Flags  : OverwriteIfNewer DontBackup'#13#10 +
+}
 
 {function CheckFileAccess(const FileName: string; const CheckedAccess: Cardinal): Cardinal;
 var
@@ -872,10 +875,10 @@ procedure TFLItem.UpdateFile(AHTTP: TidHTTP; const AnURL: String;
       MS.Free;
     end;
 
-    if Date <> 0 then
+    if Self.Date <> 0 then
     begin
-      DecodeDate(Date, S.wYear, S.wMonth, S.wDay);
-      DecodeTime(Date, S.wHour, S.wMinute, S.wSecond, S.wMilliseconds);
+      DecodeDate(Self.Date, S.wYear, S.wMonth, S.wDay);
+      DecodeTime(Self.Date, S.wHour, S.wMinute, S.wSecond, S.wMilliseconds);
       S.wMilliseconds := 0;
       f := FileOpen(ALocalName, fmOpenWrite or fmShareDenyNone);
       try
