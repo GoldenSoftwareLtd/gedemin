@@ -152,7 +152,8 @@ begin
   FQ2 := TIBSQL.Create(nil);
   FQ2.Transaction := FTr;
 
-  FQ.SQL.Text := 'SELECT * FROM at_settingpos';
+  FQ.SQL.Text :=
+    'SELECT FIRST 1 id FROM at_settingpos UNION SELECT FIRST 1 id FROM at_object';
   FQ.ExecQuery;
   FSettingsLoaded := not FQ.EOF;
   FQ.Close;

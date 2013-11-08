@@ -38,6 +38,7 @@ type
     function GetWebServerUpdatePath: String;
 
     function GetExternalEditor(const ALang: String): String;
+    function GetExternalDiff(const ALang: String): String;
 
     property LocalAppDataDir: String read FLocalAppDataDir;
     property NetworkDrive: Boolean read FNetworkDrive;
@@ -178,6 +179,11 @@ end;
 procedure Tgd_GlobalParams.SetNamespacePath(const Value: String);
 begin
   FIniFile.WriteString('NAMESPACE', 'Path', Value);
+end;
+
+function Tgd_GlobalParams.GetExternalDiff(const ALang: String): String;
+begin
+  Result := FIniFile.ReadString('EXTERNAL DIFF', ALang, '');
 end;
 
 initialization

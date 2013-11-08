@@ -1219,7 +1219,7 @@ begin
     CheckStmt := AnObj.CheckTheSameStatement;
 
     if CheckStmt > '' then
-    begin
+    try
       FqCheckTheSame.SQL.Text := CheckStmt;
       FqCheckTheSame.Prepare;
 
@@ -1230,8 +1230,14 @@ begin
       FqCheckTheSame.ExecQuery;
 
       if not FqCheckTheSame.EOF then
+      begin
         Result := FqCheckTheSame.Fields[0].AsInteger;
 
+        FqCheckTheSame.Next;
+        if not FqCheckTheSame.EOF then
+          Result := -1;
+      end;
+    finally  
       FqCheckTheSame.Close;
     end;
   except

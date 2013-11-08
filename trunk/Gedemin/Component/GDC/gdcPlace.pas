@@ -14,14 +14,12 @@ uses
 
 type
   TgdcPlace = class(TgdcLBRBTree)
-  protected
-    function CreateDialogForm: TCreateableForm; override;
-
   public
     class function GetDisplayName(const ASubType: TgdcSubType): String; override;
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
+    class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
 
     function CheckTheSameStatement: String; override;
   end;
@@ -84,13 +82,21 @@ begin
   {END MACRO}
 
   if State = dsInactive then
-    Result := 'SELECT id FROM gd_place WHERE UPPER(name) = UPPER(:name)'
+    Result :=
+      'SELECT id FROM gd_place ' +
+      'WHERE UPPER(name) = UPPER(:name) ' +
+      '  AND UPPER(placetype) = UPPER(:placetype)'
   else if ID < cstUserIDStart then
     Result := inherited CheckTheSameStatement
   else
-    Result := 'SELECT id FROM gd_place WHERE UPPER(name) = UPPER(''' +
-      StringReplace(FieldByName('name').AsString, '''', '''''', [rfReplaceAll]) +
-      ''')';
+    Result :=
+      'SELECT id FROM gd_place ' +
+      'WHERE UPPER(name) = UPPER(''' +
+        StringReplace(FieldByName('name').AsString, '''', '''''', [rfReplaceAll]) +
+        ''')' +
+      '  AND UPPER(placetype) = UPPER(''' +
+        StringReplace(FieldByName('placetype').AsString, '''', '''''', [rfReplaceAll]) +
+        ''')';
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCPLACE', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally
@@ -100,63 +106,15 @@ begin
   {END MACRO}
 end;
 
-function TgdcPlace.CreateDialogForm: TCreateableForm;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_FUNCCREATEDIALOGFORM('TGDCPLACE', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  try
-  {M}    Result := nil;
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCPLACE', KEYCREATEDIALOGFORM);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCREATEDIALOGFORM]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCPLACE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCPLACE',
-  {M}          'CREATEDIALOGFORM', KEYCREATEDIALOGFORM, Params, LResult) then
-  {M}          begin
-  {M}            Result := nil;
-  {M}            if VarType(LResult) <> varDispatch then
-  {M}              raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен не объект.')
-  {M}            else
-  {M}              if IDispatch(LResult) = nil then
-  {M}                raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                  'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен пустой (null) объект.');
-  {M}            Result := GetInterfaceToObject(LResult) as TCreateableForm;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCPLACE' then
-  {M}        begin
-  {M}          Result := Inherited CreateDialogForm;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  Result := Tgdc_dlgPlace.CreateSubType(ParentForm, SubType);
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCPLACE', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCPLACE', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM);
-  {M}  end;
-  {END MACRO}
-end;
-
 class function TgdcPlace.GetDisplayName(const ASubType: TgdcSubType): String;
 begin
   Result := 'Административно-территориальная единица';
+end;
+
+class function TgdcPlace.GetDialogFormClassName(
+  const ASubType: TgdcSubType): String;
+begin
+  Result := 'Tgdc_dlgPlace';
 end;
 
 class function TgdcPlace.GetListField(const ASubType: TgdcSubType): String;
