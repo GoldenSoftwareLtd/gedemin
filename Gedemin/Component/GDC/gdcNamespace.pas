@@ -78,7 +78,7 @@ uses
   at_frmSyncNamespace_unit, jclFileUtils, gd_directories_const,
   gd_FileList_unit, gdcClasses, at_sql_metadata, gdcConstants, at_frmSQLProcess,
   Storages, gdcMetadata, at_sql_setup, gsDesktopManager, at_Classes_body,
-  at_dlgCompareNSRecords_unit, gdcNamespaceLoader;
+  at_dlgCompareNSRecords_unit, gdcNamespaceLoader, gd_GlobalParams_unit;
 
 type
   TgdcReferenceUpdate = class(TObject)
@@ -1061,35 +1061,75 @@ var
   ScriptComparer: Tprp_ScriptComparer;
   FS: TFileStream;
   SS, SS1251, SSUTF8: TStringStream;
+  StartupInfo: TStartupInfo;
+  ProcessInfo: TProcessInformation;
+  FName, FTemp, CmdLine: String;
+  TempPath: array[0..1023] of Char;
+  TempFileName: array[0..1023] of Char;
 begin
-  SSUTF8 := TStringStream.Create('');
-  try
-    FS := TFileStream.Create(AFileName, fmOpenRead or fmShareDenyNone);
-    try
-      SSUTF8.CopyFrom(FS, 0);
-    finally
-      FS.Free;
+  FName := gd_GlobalParams.GetExternalDiff('TXT');
+
+  if FileExists(FName) then
+  begin
+    if (GetTempPath(SizeOf(TempPath), TempPath) = 0) or
+      (GetTempFileName(TempPath, 'gd', 0, TempFileName) = 0) then
+    begin
+      raise Exception.Create('Ошибка при определении имени временного файла. ' +
+        SysErrorMessage(GetLastError));
     end;
 
-    SS1251 := TStringStream.Create(WideStringToStringEx(
-      UTF8ToWideString(SSUTF8.DataString), WIN1251_CODEPAGE));
-  finally
-    SSUTF8.Free;
-  end;
+    FTemp := ChangeFileExt(TempFileName, '.yml');
 
-  SS := TStringStream.Create('');
-  ScriptComparer := Tprp_ScriptComparer.Create(nil);
-  try
-    SaveNamespaceToStream(SS, IDCANCEL);
+    SaveNamespaceToFile(FTemp, False);
+    try
+      CmdLine := FName + ' "' + FTemp + '"' + ' "' + AFileName + '"';
+      FillChar(StartupInfo, SizeOf(TStartupInfo), #0);
+      StartupInfo.cb := SizeOf(TStartupInfo);
+      if not CreateProcess(nil,
+        PChar(CmdLine),
+        nil, nil, False, NORMAL_PRIORITY_CLASS, nil, nil,
+        StartupInfo, ProcessInfo) then
+      begin
+        raise Exception.Create('Ошибка при запуске внешней утилиты сравнения файлов.'#13#10 +
+          'Командная строка: ' + CmdLine + #13#10 +
+          SysErrorMessage(GetLastError));
+      end;
 
-    ScriptComparer.Compare(SS.DataString, SS1251.DataString);
-    ScriptComparer.LeftCaption('Текущее состояние в базе данных:');
-    ScriptComparer.RightCaption(AFileName);
-    ScriptComparer.ShowModal;
-  finally
-    SS.Free;
-    SS1251.Free;
-    ScriptComparer.Free;
+      WaitForSingleObject(ProcessInfo.hProcess, INFINITE);
+    finally
+      SysUtils.DeleteFile(FTemp);
+    end;
+  end else
+  begin
+    SSUTF8 := TStringStream.Create('');
+    try
+      FS := TFileStream.Create(AFileName, fmOpenRead or fmShareDenyNone);
+      try
+        SSUTF8.CopyFrom(FS, 0);
+      finally
+        FS.Free;
+      end;
+
+      SS1251 := TStringStream.Create(WideStringToStringEx(
+        UTF8ToWideString(SSUTF8.DataString), WIN1251_CODEPAGE));
+    finally
+      SSUTF8.Free;
+    end;
+
+    SS := TStringStream.Create('');
+    ScriptComparer := Tprp_ScriptComparer.Create(nil);
+    try
+      SaveNamespaceToStream(SS, IDCANCEL);
+
+      ScriptComparer.Compare(SS.DataString, SS1251.DataString);
+      ScriptComparer.LeftCaption('Текущее состояние в базе данных:');
+      ScriptComparer.RightCaption(AFileName);
+      ScriptComparer.ShowModal;
+    finally
+      SS.Free;
+      SS1251.Free;
+      ScriptComparer.Free;
+    end;
   end;
 end;
 

@@ -97,9 +97,12 @@ type
     TBItem15: TTBItem;
     mMessages: TRichEdit;
     TBSeparatorItem2: TTBSeparatorItem;
-    TBSubmenuItem1: TTBSubmenuItem;
+    tbsiSetForLoading: TTBSubmenuItem;
     actSetForLoadingOne: TAction;
     TBItem16: TTBItem;
+    tbsiClear: TTBSubmenuItem;
+    actClearAll: TAction;
+    TBItem17: TTBItem;
     procedure actChooseDirExecute(Sender: TObject);
     procedure actCompareUpdate(Sender: TObject);
     procedure actCompareExecute(Sender: TObject);
@@ -133,6 +136,7 @@ type
     procedure actFLTInternalUpdate(Sender: TObject);
     procedure actSetForLoadingOneUpdate(Sender: TObject);
     procedure actSetForLoadingOneExecute(Sender: TObject);
+    procedure actClearAllExecute(Sender: TObject);
 
   private
     FNSC: TgdcNamespaceSyncController;
@@ -529,6 +533,12 @@ begin
   ApplyFilter;
   if (FNSC.FilterOperation > '') and (not actFLTLoad.Checked) then
     actFLTLoad.Execute;
+end;
+
+procedure Tat_frmSyncNamespace.actClearAllExecute(Sender: TObject);
+begin
+  FNSC.ClearAll;
+  ApplyFilter;
 end;
 
 initialization

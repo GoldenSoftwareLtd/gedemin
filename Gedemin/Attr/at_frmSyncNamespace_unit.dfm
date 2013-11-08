@@ -1,6 +1,6 @@
 object at_frmSyncNamespace: Tat_frmSyncNamespace
-  Left = 199
-  Top = 210
+  Left = 296
+  Top = 271
   Width = 1131
   Height = 518
   Caption = 'Синхронизация пространств имен'
@@ -82,7 +82,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       object TBItem3: TTBItem
         Action = actSelectAll
       end
-      object TBSubmenuItem1: TTBSubmenuItem
+      object tbsiSetForLoading: TTBSubmenuItem
         ImageIndex = 239
         Options = [tboDropdownArrow]
         object TBItem9: TTBItem
@@ -95,8 +95,15 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       object TBItem8: TTBItem
         Action = actSetForSaving
       end
-      object TBItem10: TTBItem
-        Action = actClear
+      object tbsiClear: TTBSubmenuItem
+        ImageIndex = 117
+        Options = [tboDropdownArrow]
+        object TBItem10: TTBItem
+          Action = actClear
+        end
+        object TBItem17: TTBItem
+          Action = actClearAll
+        end
       end
       object TBSeparatorItem3: TTBSeparatorItem
       end
@@ -154,7 +161,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
         Control = cbPackets
       end
       object lSearch: TLabel
-        Left = 505
+        Left = 513
         Top = 4
         Width = 45
         Height = 13
@@ -168,7 +175,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
         TabOrder = 0
       end
       object edFilter: TEdit
-        Left = 858
+        Left = 866
         Top = 0
         Width = 140
         Height = 21
@@ -176,7 +183,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
         OnChange = edFilterChange
       end
       object cbPackets: TCheckBox
-        Left = 1004
+        Left = 1012
         Top = 2
         Width = 66
         Height = 17
@@ -387,9 +394,8 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       OnUpdate = actCompareWithDataUpdate
     end
     object actSetForLoading: TAction
-      Caption = '<< Пометить для загрузки'
+      Caption = '<< Пометить для загрузки текущее ПИ и все зависимые'
       Hint = 'Пометить для загрузки ПИ с учетом списка зависимости'
-      ImageIndex = 239
       OnExecute = actSetForLoadingExecute
       OnUpdate = actSetForLoadingUpdate
     end
@@ -401,9 +407,8 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       OnUpdate = actSetForSavingUpdate
     end
     object actClear: TAction
-      Caption = 'Снять отметку'
+      Caption = 'Снять отметку с выделенных записей'
       Hint = 'Снять пометку'
-      ImageIndex = 117
       ShortCut = 8238
       OnExecute = actClearExecute
       OnUpdate = actClearUpdate
@@ -507,11 +512,15 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       OnUpdate = actFLTLoadUpdate
     end
     object actSetForLoadingOne: TAction
-      Caption = '<< Пометить для загрузки текущее ПИ'
+      Caption = '<< Пометить для загрузки только текущее ПИ'
       Hint = 'Пометить для загрузки только текущее ПИ'
-      ImageIndex = 239
       OnExecute = actSetForLoadingOneExecute
       OnUpdate = actSetForLoadingOneUpdate
+    end
+    object actClearAll: TAction
+      Caption = 'Снять отметку со всех записей'
+      Hint = 'Снять отметку со всех записей'
+      OnExecute = actClearAllExecute
     end
   end
   object pmSync: TPopupMenu
