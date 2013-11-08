@@ -17,6 +17,7 @@ type
 
   protected
     FErrorMessage: String;
+    FErrorMsg: TMsg;
     FProgressWatch: IgdProgressWatch;
     FPI: TgdProgressInfo;
 
@@ -27,6 +28,7 @@ type
     procedure Setup; virtual;
     procedure TearDown; virtual;
     function ProcessMessage(var Msg: TMsg): Boolean; virtual;
+    function ProcessError(var AMsg: TMsg; var AnErrorMessage: String): Boolean; virtual; 
     procedure LogErrorSync; virtual;
     procedure SetTimeout(const ATimeout: DWORD);
     procedure Lock;
@@ -38,6 +40,7 @@ type
     procedure DoOnProgressWatch(Sender: TObject; const AProgressInfo: TgdProgressInfo);
 
     property ErrorMessage: String read FErrorMessage write FErrorMessage;
+    property ErrorMsg: TMsg read FErrorMsg write FErrorMsg;
 
   public
     constructor Create(CreateSuspended: Boolean);
@@ -132,10 +135,11 @@ begin
 
             if FErrorMessage > '' then
             begin
-              FErrorMessage := FErrorMessage + #13#10 +
-                'Message ID: ' + IntToStr(Msg.Message);
-              Synchronize(LogErrorSync);
+              FErrorMsg := Msg;
+              if ProcessError(FErrorMsg, FErrorMessage) then
+                Synchronize(LogErrorSync);
               FErrorMessage := '';
+              FErrorMsg.Message := 0;
             end;
           end;
         end;
@@ -175,7 +179,8 @@ begin
     FProgressWatch.UpdateProgress(FPI);
   end else
     MessageBox(0,
-      PChar(FErrorMessage),
+      PChar(ErrorMessage + #13#10 + 'Message ID: ' +
+        IntToStr(ErrorMsg.Message)),
       'Error',
       MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
 end;
@@ -195,6 +200,12 @@ begin
     if FCreatedEvent.WaitFor(INFINITE) = wrSignaled then
       PostThreadMessage(ThreadID, AMsg, AWParam, ALParam);
   end;
+end;
+
+function TgdMessagedThread.ProcessError(var AMsg: TMsg;
+  var AnErrorMessage: String): Boolean;
+begin
+  Result := True;
 end;
 
 function TgdMessagedThread.ProcessMessage(var Msg: TMsg): Boolean;
