@@ -11,10 +11,13 @@ type
   private
     FTerm: term_t;
     FSize: LongWord;
+
     function GetDataType(const Idx: LongWord): Integer;
-    function GetTerm(const Idx: LongWord): term_t;   
+    function GetTerm(const Idx: LongWord): term_t;
+
   public
     constructor CreateTermv(const ASize: Integer);
+
     procedure PutInteger(const Idx: LongWord; const AValue: Integer);
     procedure PutString(const Idx: LongWord; const AValue: String);
     procedure PutFloat(const Idx: LongWord; const AValue: Double);
@@ -22,7 +25,7 @@ type
     procedure PutDate(const Idx: LongWord; const AValue: TDateTime);
     procedure PutInt64(const Idx: LongWord; const AValue: Int64);
     procedure PutAtom(const Idx: LongWord; const AValue: String);
-    procedure PutVariable(const Idx: LongWord);  
+    procedure PutVariable(const Idx: LongWord);
 
     function ReadInteger(const Idx: LongWord): Integer;
     function ReadString(const Idx: LongWord): String;
@@ -36,7 +39,7 @@ type
     procedure Reset;
 
     property DataType[const Idx: LongWord]: Integer read GetDataType;
-    property Term[const Idx: LongWord]: term_t read GetTerm; 
+    property Term[const Idx: LongWord]: term_t read GetTerm;
     property Size: LongWord read FSize;
   end;
 
@@ -48,6 +51,7 @@ type
     FPredicateName: String;
 
     function GetEof: Boolean;
+
   public
     constructor Create;
     destructor Destroy; override;
@@ -84,7 +88,7 @@ type
     function InternalMakePredicatesOfSQLSelect(const ASQL: String; ATr: TIBTransaction;
       const APredicateName: String; const AStream: TStream = nil): Integer;
   public
-    destructor Destroy; override; 
+    destructor Destroy; override;
 
     function Call(const APredicateName: String; AParams: TgsPLTermv): Boolean;
     function Call2(const AGoal: String): Boolean;
@@ -537,7 +541,7 @@ var
   Termv: TgsPLTermv;
   Query: TgsPLQuery;
 begin
-  Assert(AGoal > '');
+  Assert(AGoal > '');      // !!!!!!!!!!!!
    
   Termv := TgsPLTermv.CreateTermv(1);
   try
@@ -560,7 +564,7 @@ function TgsPLClient.Call(const APredicateName: String; AParams: TgsPLTermv): Bo
 var
   Query: TgsPLQuery;
 begin
-  Assert(APredicateName > '');
+  Assert(APredicateName > '');  // ??? это надо делать не Assert а Exception
 
   Query := TgsPLQuery.Create;
   try

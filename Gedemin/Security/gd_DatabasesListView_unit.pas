@@ -5,7 +5,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   ActnList, StdCtrls, ComCtrls, TB2Dock, TB2Toolbar, ExtCtrls, TB2Item,
-  TB2ExtItems, gd_DatabasesList_unit, SuperPageControl;
+  TB2ExtItems, gd_DatabasesList_unit;
 
 type
   Tgd_DatabasesListView = class(TForm)
@@ -44,10 +44,8 @@ type
     TBSeparatorItem4: TTBSeparatorItem;
     TBControlItem3: TTBControlItem;
     lblIniFile: TLabel;
-    pc: TSuperPageControl;
-    tsAll: TSuperTabSheet;
     Bevel1: TBevel;
-    SuperTabSheet1: TSuperTabSheet;
+    tc: TTabControl;
     procedure actOkExecute(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure actCreateExecute(Sender: TObject);
@@ -70,6 +68,7 @@ type
     procedure actCancelUpdate(Sender: TObject);
     procedure actBackupUpdate(Sender: TObject);
     procedure actRestoreUpdate(Sender: TObject);
+    procedure tcChange(Sender: TObject);
 
   private
     FChosen: Tgd_DatabaseItem;
@@ -124,8 +123,22 @@ begin
     begin
       DI := gd_DatabasesList.Items[I] as Tgd_DatabaseItem;
 
-      if (edFilter.Text = '') or (StrIPos(edFilter.Text,
-        DI.Name + DI.Server + DI.FileName) > 0) then
+      if
+        (
+          (edFilter.Text = '')
+          or
+          (StrIPos(edFilter.Text, DI.Name + DI.Server + DI.FileName) > 0)
+        )
+        and
+        (
+          (tc.TabIndex < 0)
+          or
+          (tc.Tabs[tc.TabIndex] = '<Все>')
+          or
+          ((DI.Server = '') and (tc.Tabs[tc.TabIndex] = '<Встроенный>'))
+          or
+          (DI.Server = tc.Tabs[tc.TabIndex])
+        ) then
       begin
         LI := AddListItem(DI);
         LI.Selected := ((PrevSelected > '') and (LI.Caption = PrevSelected)) or
@@ -153,7 +166,34 @@ begin
 end;
 
 procedure Tgd_DatabasesListView.FormCreate(Sender: TObject);
+var
+  SL: TStringList;
+  I, J: Integer;
+  DI: Tgd_DatabaseItem;
 begin
+  SL := TStringList.Create;
+  try
+    SL.Sorted := True;
+    SL.Duplicates := dupIgnore;
+
+    for I := 0 to gd_DatabasesList.Count - 1 do
+    begin
+      DI := gd_DatabasesList.Items[I] as Tgd_DatabaseItem;
+      SL.Add(DI.Server);
+    end;
+
+    tc.Tabs.Add('<Все>');
+
+    for J := 0 to SL.Count - 1 do
+    begin
+      if SL[J] = '' then
+        tc.Tabs.Add('<Встроенный>')
+      else
+        tc.Tabs.Add(SL[J]);
+    end;
+  finally
+    SL.Free;
+  end;
   SyncControls;
 end;
 
@@ -373,6 +413,11 @@ end;
 procedure Tgd_DatabasesListView.actRestoreUpdate(Sender: TObject);
 begin
   actRestore.Enabled := True;
+end;
+
+procedure Tgd_DatabasesListView.tcChange(Sender: TObject);
+begin
+  SyncControls;
 end;
 
 end.

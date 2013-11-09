@@ -80,30 +80,6 @@ uses
   Storages, gdcMetadata, at_sql_setup, gsDesktopManager, at_Classes_body,
   at_dlgCompareNSRecords_unit, gdcNamespaceLoader, gd_GlobalParams_unit;
 
-type
-  TgdcReferenceUpdate = class(TObject)
-  public
-    FieldName: String;
-    FullClass: TgdcFullClass;
-    ID: TID;
-    RefRUID: String;
-    SQL: String;
-  end;
-
-  TgdcAt_Object = class(TObject)
-  public
-    ID: Integer;
-    RUID: String;
-    ObjectName: String;
-    NamespaceKey: Integer; 
-    ObjectClass: String;
-    SubType: String;
-    Modified: TDateTime;
-    Curr_modified: TDateTime;
-    FileTimestamp: TDateTime;
-    HeadObjectKey: Integer;
-  end;
-
 procedure Register;
 begin
   RegisterComponents('gdcNamespace', [TgdcNamespace, TgdcNamespaceObject]);
@@ -1065,20 +1041,18 @@ var
   ProcessInfo: TProcessInformation;
   FName, FTemp, CmdLine: String;
   TempPath: array[0..1023] of Char;
-  TempFileName: array[0..1023] of Char;
 begin
   FName := gd_GlobalParams.GetExternalDiff('TXT');
 
   if FileExists(FName) then
   begin
-    if (GetTempPath(SizeOf(TempPath), TempPath) = 0) or
-      (GetTempFileName(TempPath, 'gd', 0, TempFileName) = 0) then
+    if GetTempPath(SizeOf(TempPath), TempPath) = 0 then
     begin
       raise Exception.Create('Ошибка при определении имени временного файла. ' +
         SysErrorMessage(GetLastError));
     end;
 
-    FTemp := ChangeFileExt(TempFileName, '.yml');
+    FTemp := ChangeFileExt(IncludeTrailingBackslash(TempPath) + ExtractFileName(AFileName), '.yml');
 
     SaveNamespaceToFile(FTemp, False);
     try

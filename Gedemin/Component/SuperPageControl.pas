@@ -137,7 +137,6 @@ type
     procedure ImageListChange(Sender: TObject);
     function GetActivePageIndex: Integer;
     function GetDockClientFromMousePos(MousePos: TPoint): TControl;
-//    procedure SetOnDrawTab(const Value: TDrawTabEvent);
     procedure SetOnPaint(const Value: TNotifyEvent);
     function GetPages(Index: Integer): TSuperTabSheet;
     function GetPageCount: Integer;
@@ -230,17 +229,17 @@ type
       GoForward, CheckTabVisible: Boolean): TSuperTabSheet;
     procedure SelectNextPage(GoForward: Boolean; CheckTabVisible: Boolean = True);
 
-    property ActivePageIndex: Integer read GetActivePageIndex
-      write SetActivePageIndex;
-    property PageCount: Integer read GetPageCount;
     function AddPage(TabSheet: TSuperTabSheet): Integer;
     function GetTabIndexFromXY(X, Y: Integer): Integer;
     procedure InvalidateTabs;
 
+    property ActivePageIndex: Integer read GetActivePageIndex
+      write SetActivePageIndex;
+    property PageCount: Integer read GetPageCount;
     property Pages[Index: Integer]: TSuperTabSheet read GetPages;
     property Canvas;
+
   published
-    { Published declarations }
     property BorderStyle: TBorderStyle read FBorderStyle write SetBorderStyle;
     property TabsVisible: Boolean read FTabsVisible write SetTabsVisible;
     property OnPaint: TNotifyEvent read FOnPaint write SetOnPaint;
@@ -1100,7 +1099,6 @@ begin
   begin
     Index := GetTabIndexFromXY(X, Y);
     if Index > - 1 then FTabIndex := Index;
-//ActivePageIndex := Index;
     Change;
   end;
 end;
