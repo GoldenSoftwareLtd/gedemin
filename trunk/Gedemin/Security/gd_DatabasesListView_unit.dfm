@@ -57,20 +57,20 @@ object gd_DatabasesListView: Tgd_DatabasesListView
     Width = 725
     Height = 508
     Align = alClient
-    BevelOuter = bvLowered
+    BevelOuter = bvNone
     TabOrder = 0
     object Bevel1: TBevel
-      Left = 1
-      Top = 23
-      Width = 723
+      Left = 0
+      Top = 0
+      Width = 725
       Height = 2
       Align = alTop
       Shape = bsTopLine
     end
     object lv: TListView
-      Left = 1
-      Top = 25
-      Width = 723
+      Left = 0
+      Top = 2
+      Width = 725
       Height = 482
       Align = alClient
       BorderStyle = bsNone
@@ -97,23 +97,15 @@ object gd_DatabasesListView: Tgd_DatabasesListView
       ViewStyle = vsReport
       OnDblClick = lvDblClick
     end
-    object pc: TSuperPageControl
-      Left = 1
-      Top = 1
-      Width = 723
-      Height = 22
-      BorderStyle = bsNone
-      TabsVisible = True
-      ActivePage = tsAll
-      Align = alTop
-      TabHeight = 23
+    object tc: TTabControl
+      Left = 0
+      Top = 484
+      Width = 725
+      Height = 24
+      Align = alBottom
       TabOrder = 1
-      object tsAll: TSuperTabSheet
-        Caption = 'Все'
-      end
-      object SuperTabSheet1: TSuperTabSheet
-        Caption = 'Последние'
-      end
+      TabPosition = tpBottom
+      OnChange = tcChange
     end
   end
   object TBDock: TTBDock

@@ -905,7 +905,8 @@ begin
   if IsDirectory then
   begin
     if Exists and (not LocalExists) then
-      ACmdList.Add('CD ' + FullName)
+      CreateDir(FullName)
+      //ACmdList.Add('CD ' + FullName)
     else if flRemove in Flags then
       ACmdList.Add('RD ' + FullName);
   end else

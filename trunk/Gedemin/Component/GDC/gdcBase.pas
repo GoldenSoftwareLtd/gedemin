@@ -9486,28 +9486,21 @@ begin
     DBID := -1;
   end else
   begin
-    if ID < cstUserIDStart then
+    RR := GetRUIDRecByID(ID, Tr);
+    if RR.XID = -1 then
     begin
       XID := ID;
-      DBID := cstEtalonDBID;
+
+      if ID < cstUserIDStart then
+        DBID := cstEtalonDBID
+      else begin
+        DBID := IBLogin.DBID;
+        InsertRUID(ID, XID, DBID, Now, IBLogin.ContactKey, Tr);
+      end;  
     end else
     begin
-      RR := GetRUIDRecByID(ID, Tr);
-      if RR.XID = -1 then
-      begin
-        XID := ID;
-
-        if ID < cstUserIDStart then
-          DBID := cstEtalonDBID
-        else
-          DBID := IBLogin.DBID;
-
-        InsertRUID(ID, XID, DBID, Now, IBLogin.ContactKey, Tr);
-      end else
-      begin
-        XID := RR.XID;
-        DBID := RR.DBID;
-      end;
+      XID := RR.XID;
+      DBID := RR.DBID;
     end;
   end;
 end;
