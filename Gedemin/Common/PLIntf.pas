@@ -10,6 +10,12 @@ var
   PL_is_initialised: TPL_is_initialised;
   PL_cleanup: TPL_cleanup;
   PL_halt: TPL_halt;
+  //latunov
+  PL_open_foreign_frame: TPL_open_foreign_frame;
+  PL_close_foreign_frame: TPL_close_foreign_frame;
+  PL_discard_foreign_frame: TPL_discard_foreign_frame;
+  PL_rewind_foreign_frame: TPL_rewind_foreign_frame;
+  //
   PL_open_query: TPL_open_query;
   PL_next_solution: TPL_next_solution;
   PL_close_query: TPL_close_query;
@@ -130,6 +136,12 @@ begin
     PL_is_initialised := GetProcAddr('PL_is_initialised');
     PL_cleanup := GetProcAddr('PL_cleanup');
     PL_halt := GetProcAddr('PL_halt');
+    //latunov
+    PL_open_foreign_frame := GetProcAddr('PL_open_foreign_frame');
+    PL_close_foreign_frame := GetProcAddr('PL_close_foreign_frame');
+    PL_discard_foreign_frame := GetProcAddr('PL_discard_foreign_frame');
+    PL_rewind_foreign_frame := GetProcAddr('PL_rewind_foreign_frame');
+    //
     PL_open_query := GetProcAddr('PL_open_query');
     PL_next_solution := GetProcAddr('PL_next_solution');
     PL_close_query := GetProcAddr('PL_close_query');
