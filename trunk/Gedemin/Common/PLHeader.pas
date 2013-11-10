@@ -63,6 +63,12 @@ type
   TPL_is_initialised = function(var argc: Integer; var argv: array of PChar): Integer; cdecl;
   TPL_cleanup = function(status: Integer): Integer; cdecl;
   TPL_halt = procedure(status: Integer); cdecl;
+  //latunov
+  TPL_open_foreign_frame = function: fid_t; cdecl;
+  TPL_close_foreign_frame = procedure(fid: fid_t); cdecl;
+  TPL_discard_foreign_frame = procedure(fid: fid_t); cdecl;
+  TPL_rewind_foreign_frame = procedure(fid: fid_t); cdecl;
+  //
   TPL_open_query = function(m: module_t; flags: Integer; pred: predicate_t; t0: term_t): qid_t; cdecl;
   TPL_next_solution = function(qid: qid_t): smallint; cdecl;
   TPL_close_query = procedure(qid: qid_t); cdecl;

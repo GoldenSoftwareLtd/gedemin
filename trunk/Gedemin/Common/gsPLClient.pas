@@ -540,9 +540,11 @@ function TgsPLClient.Call2(const AGoal: String): Boolean;
 var
   Termv: TgsPLTermv;
   Query: TgsPLQuery;
+  fid: fid_t;
 begin
   Assert(AGoal > '');      // !!!!!!!!!!!!
-   
+
+  fid := PL_open_foreign_frame();
   Termv := TgsPLTermv.CreateTermv(1);
   try
     Termv.PutString(0, AGoal);
@@ -554,9 +556,10 @@ begin
       Result := not Query.Eof;
     finally
       Query.Free;
-    end; 
+    end;
   finally
     Termv.Free;
+    PL_discard_foreign_frame(fid);
   end;
 end;
 
