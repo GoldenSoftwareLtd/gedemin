@@ -80,7 +80,7 @@ begin
     OD.DefaultExt := 'yml';
     OD.Options := [ofFileMustExist, ofEnableSizing];
     if OD.Execute then
-      (gdcObject as TgdcNamespace).CompareWithData(OD.FileName);
+      (gdcObject as TgdcNamespace).CompareWithData(OD.FileName, False);
   finally
     OD.Free;
   end;

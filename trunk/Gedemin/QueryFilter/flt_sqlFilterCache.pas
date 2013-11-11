@@ -8,7 +8,7 @@ uses
 
 function GetLastFilterKey(const AComponentKey: Integer): Integer;
 procedure SetLastFilterKey(const AComponentKey, AFilterKey: Integer);
-procedure SaveCacheToDatabase;
+procedure SaveCacheToDatabase(const AClear: Boolean = False);
 
 implementation
 
@@ -51,19 +51,16 @@ begin
   end;
 end;
 
-procedure SaveCacheToDatabase;
+procedure SaveCacheToDatabase(const AClear: Boolean = False);
 var
   q: TIBSQL;
   Tr: TIBTransaction;
   I: Integer;
 begin
-  if not Changed then
-    exit;
-
   Assert(Assigned(gdcBaseManager));
   Assert(gdcBaseManager.Database.Connected);
 
-  if sqlFilterCache_UserKey > -1 then
+  if Changed and (sqlFilterCache_UserKey > -1) then
   begin
     q := TIBSQL.Create(nil);
     Tr := TIBTransaction.Create(nil);
@@ -72,8 +69,8 @@ begin
       Tr.StartTransaction;
 
       q.Transaction := Tr;
-      q.SQL.Text := 'DELETE FROM flt_lastfilter ' +
-        'WHERE userkey = ' + IntToStr(sqlFilterCache_UserKey);
+      q.SQL.Text := 'DELETE FROM flt_lastfilter WHERE userkey = :UK';
+      q.ParamByName('UK').AsInteger := sqlFilterCache_UserKey;
       q.ExecQuery;
 
       q.SQL.Text :=
@@ -81,7 +78,7 @@ begin
         'VALUES (:UK, :CK, :LF) ';
       q.ParamByName('UK').AsInteger := sqlFilterCache_UserKey;
 
-      for I := 0 to Cache.Count - 1 do
+      for I := Cache.Count - 1 downto 0 do
       try
         if Cache.ValuesByIndex[I] > 0 then
         begin
@@ -93,6 +90,7 @@ begin
         // между загрузкой кэша и его сохранением
         // компонента или фильтр могли быть удалены
         // ничего страшного. проигнорируем исключение.
+        Cache.Delete(I);
       end;
 
       Tr.Commit;
@@ -101,6 +99,9 @@ begin
       Tr.Free;
     end;
   end;
+
+  if AClear then
+    Cache.Clear;
 end;
 
 procedure CheckIt;

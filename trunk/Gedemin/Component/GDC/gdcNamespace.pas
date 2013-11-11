@@ -32,6 +32,7 @@ type
     class procedure WriteObject(AgdcObject: TgdcBase; AWriter: TyamlWriter;
       const AHeadObject: String; const AnAlwaysOverwrite: Boolean;
       const ADontRemove: Boolean; const AnIncludeSiblings: Boolean;
+      const AModified: TDateTime; const ASubstituteEditionDate: Boolean;
       AnObjCache: TStringHashMap);
 
     class procedure UpdateCurrModified(ATr: TIBTRansaction; const ANamespaceKey: Integer = -1);
@@ -39,10 +40,12 @@ type
 
     function MakePos: Boolean;
     procedure LoadFromFile(const AFileName: String = ''); override;
-    procedure SaveNamespaceToStream(St: TStream; const AnAnswer: Integer = 0);
+    procedure SaveNamespaceToStream(St: TStream; const AnAnswer: Integer = 0;
+      const ASubstituteEditionDate: Boolean = False);
     function SaveNamespaceToFile(const AFileName: String = '';
-      const AnIncBuildVersion: Boolean = False): Boolean;
-    procedure CompareWithData(const AFileName: String);
+      const AnIncBuildVersion: Boolean = False;
+      const ASubstituteEditionDate: Boolean = False): Boolean;
+    procedure CompareWithData(const AFileName: String; const A3Way: Boolean);
     procedure DeleteNamespaceWithObjects;
   end;
 
@@ -162,6 +165,7 @@ end;
 class procedure TgdcNamespace.WriteObject(AgdcObject: TgdcBase; AWriter: TyamlWriter;
   const AHeadObject: String; const AnAlwaysOverwrite: Boolean;
   const ADontRemove: Boolean; const AnIncludeSiblings: Boolean;
+  const AModified: TDateTime; const ASubstituteEditionDate: Boolean;
   AnObjCache: TStringHashMap);
 
   procedure WriteSet(AnObj: TgdcBase; AWriter: TyamlWriter);
@@ -454,7 +458,13 @@ begin
       begin
         case F.DataType of
           ftDate: AWriter.WriteDate(F.AsDateTime);
-          ftDateTime, ftTime: AWriter.WriteTimeStamp(F.AsDateTime);
+          ftDateTime, ftTime:
+          begin
+            if ASubstituteEditionDate and (F.FieldName = 'EDITIONDATE') then
+              AWriter.WriteTimeStamp(AModified)
+            else
+              AWriter.WriteTimeStamp(F.AsDateTime);
+          end;
           ftMemo: AWriter.WriteText(F.AsString, qPlain, sLiteral);
           ftInteger, ftSmallint, ftWord: AWriter.WriteInteger(F.AsInteger);
           ftBoolean: AWriter.WriteBoolean(F.AsBoolean);
@@ -918,13 +928,17 @@ begin
 end;
 
 function TgdcNamespace.SaveNamespaceToFile(const AFileName: String = '';
-  const AnIncBuildVersion: Boolean = False): Boolean;
+  const AnIncBuildVersion: Boolean = False;
+  const ASubstituteEditionDate: Boolean = False): Boolean;
 var
   FN: String;
   FS: TFileStream;
   SS1251, SSUTF8: TStringStream;
-  DidActivate: Boolean;
+  Tr: TIBTransaction;
+  NS: TgdcNamespace;
 begin
+  Result := False;
+
   CheckBrowseMode;
 
   if AFileName > '' then
@@ -937,27 +951,39 @@ begin
     FN := QuerySaveFileName('', 'yml', 'Файлы YML|*.yml');
 
   if FN = '' then
-  begin
-    Result := False;
     exit;
+
+  if Transaction.InTransaction then
+    Tr := Transaction
+  else begin
+    Tr := TIBTransaction.Create(nil);
+    Tr.DefaultDatabase := Self.Database;
+    Tr.StartTransaction;
   end;
 
-  DidActivate := not Transaction.InTransaction;
-  if DidActivate then
-    Transaction.StartTransaction;
+  NS := TgdcNamespace.Create(nil);
   try
+    NS.Transaction := Tr;
+    NS.ReadTransaction := Tr;
+    NS.SubSet := 'ByID';
+    NS.ID := Self.ID;
+    NS.Open;
+
+    if NS.EOF then
+      raise Exception.Create('Can not open namespace object.');
+
     if AnIncBuildVersion then
     begin
-      Edit;
-      FieldByName('Version').AsString := IncVersion(FieldByName('Version').AsString, '.');
-      Post;
+      NS.Edit;
+      NS.FieldByName('Version').AsString := IncVersion(NS.FieldByName('Version').AsString, '.');
+      NS.Post;
     end;
 
     FS := TFileStream.Create(FN, fmCreate);
     try
       SS1251 := TStringStream.Create('');
       try
-        SaveNamespaceToStream(SS1251);
+        NS.SaveNamespaceToStream(SS1251, 0, ASubstituteEditionDate);
         SSUTF8 := TStringStream.Create(WideStringToUTF8(StringToWideStringEx(
           SS1251.DataString, WIN1251_CODEPAGE)));
         try
@@ -972,17 +998,25 @@ begin
       FS.Free;
     end;
 
-    Edit;
-    FieldByName('filename').AsString := FN;
-    FieldByName('filetimestamp').AsDateTime := gd_common_functions.GetFileLastWrite(FN);
-    Post;
+    NS.Edit;
+    NS.FieldByName('filename').AsString := FN;
+    NS.FieldByName('filetimestamp').AsDateTime := gd_common_functions.GetFileLastWrite(FN);
+    NS.Post;
 
-    if DidActivate and Transaction.InTransaction then
-      Transaction.Commit;
+    NS.Close;
+
+    if (Tr <> Transaction) and Tr.InTransaction then
+      Tr.Commit;
+
     Result := True;
   finally
-    if DidActivate and Transaction.InTransaction then
-      Transaction.Rollback;
+    NS.Free;
+    if Tr <> Transaction then
+    begin
+      if Tr.InTransaction then
+        Tr.Rollback;
+      Tr.Free;
+    end;
   end;
 end;
 
@@ -1032,19 +1066,53 @@ begin
   Delete;
 end;
 
-procedure TgdcNamespace.CompareWithData(const AFileName: String);
+procedure TgdcNamespace.CompareWithData(const AFileName: String; const A3Way: Boolean);
+
+  procedure SubstFileName(var ACmdLine: String; const AMeta: String; const AFileName: String);
+  begin
+    if AFileName > '' then
+    begin
+      if Pos(' ', AFileName) > 0 then
+        ACmdLine := StringReplace(ACmdLine, AMeta, '"' + AFileName + '"', [rfIgnoreCase, rfReplaceAll])
+      else
+        ACmdLine := StringReplace(ACmdLine, AMeta, AFileName, [rfIgnoreCase, rfReplaceAll])
+    end else
+      ACmdLine := StringReplace(ACmdLine, AMeta, '', [rfIgnoreCase, rfReplaceAll]);
+  end;
+
+  procedure CallExternal(const ACmdLine: String);
+  var
+    StartupInfo: TStartupInfo;
+    ProcessInfo: TProcessInformation;
+  begin
+    FillChar(StartupInfo, SizeOf(TStartupInfo), #0);
+    StartupInfo.cb := SizeOf(TStartupInfo);
+    if not CreateProcess(nil,
+      PChar(ACmdLine),
+      nil, nil, False, NORMAL_PRIORITY_CLASS, nil, nil,
+      StartupInfo, ProcessInfo) then
+    begin
+      raise Exception.Create('Ошибка при запуске внешней утилиты сравнения файлов.'#13#10 +
+        'Командная строка: ' + ACmdLine + #13#10 +
+        SysErrorMessage(GetLastError));
+    end;
+
+    WaitForSingleObject(ProcessInfo.hProcess, INFINITE);
+  end;
+
 var
   ScriptComparer: Tprp_ScriptComparer;
   FS: TFileStream;
   SS, SS1251, SSUTF8: TStringStream;
-  StartupInfo: TStartupInfo;
-  ProcessInfo: TProcessInformation;
-  FName, FTemp, CmdLine: String;
+  FTemp, FBase, CmdLine: String;
   TempPath: array[0..1023] of Char;
 begin
-  FName := gd_GlobalParams.GetExternalDiff('TXT');
+  if FieldByName('filedata').IsNull or (not A3Way) then
+    CmdLine := gd_GlobalParams.GetExternalDiff('DIFF2')
+  else
+    CmdLine := gd_GlobalParams.GetExternalDiff('DIFF3');
 
-  if FileExists(FName) then
+  if CmdLine > '' then
   begin
     if GetTempPath(SizeOf(TempPath), TempPath) = 0 then
     begin
@@ -1052,25 +1120,33 @@ begin
         SysErrorMessage(GetLastError));
     end;
 
-    FTemp := ChangeFileExt(IncludeTrailingBackslash(TempPath) + ExtractFileName(AFileName), '.yml');
+    FTemp := ChangeFileExt(IncludeTrailingBackslash(TempPath) + ExtractFileName(AFileName), '.mine.yml');
+    FBase := '';
 
-    SaveNamespaceToFile(FTemp, False);
-    try
-      CmdLine := FName + ' "' + FTemp + '"' + ' "' + AFileName + '"';
-      FillChar(StartupInfo, SizeOf(TStartupInfo), #0);
-      StartupInfo.cb := SizeOf(TStartupInfo);
-      if not CreateProcess(nil,
-        PChar(CmdLine),
-        nil, nil, False, NORMAL_PRIORITY_CLASS, nil, nil,
-        StartupInfo, ProcessInfo) then
+    if Pos('%%', CmdLine) > 0 then
+    begin
+      if A3Way and (StrIPos('%%ancestor_file', CmdLine) > 0) then
       begin
-        raise Exception.Create('Ошибка при запуске внешней утилиты сравнения файлов.'#13#10 +
-          'Командная строка: ' + CmdLine + #13#10 +
-          SysErrorMessage(GetLastError));
+        if not FieldByName('filedata').IsNull then
+        begin
+          FBase := ChangeFileExt(IncludeTrailingBackslash(TempPath) + ExtractFileName(AFileName), '.base.yml');
+          (FieldByName('filedata') as TBlobField).SaveToFile(FBase);
+        end;
       end;
 
-      WaitForSingleObject(ProcessInfo.hProcess, INFINITE);
+      SubstFileName(CmdLine, '%%ancestor_file', FBase);
+      SubstFileName(CmdLine, '%%my_file', FTemp);
+      SubstFileName(CmdLine, '%%their_file', AFileName);
+      SubstFileName(CmdLine, '%%merged_file', AFileName);
+    end else
+      CmdLine := CmdLine + ' "' + FTemp + '"' + ' "' + AFileName + '"';
+
+    SaveNamespaceToFile(FTemp, False, FBase > '');
+    try
+      CallExternal(CmdLine);
     finally
+      if FBase > '' then
+        SysUtils.DeleteFile(FBase);
       SysUtils.DeleteFile(FTemp);
     end;
   end else
@@ -1107,7 +1183,8 @@ begin
   end;
 end;
 
-procedure TgdcNamespace.SaveNamespaceToStream(St: TStream; const AnAnswer: Integer = 0);
+procedure TgdcNamespace.SaveNamespaceToStream(St: TStream;
+  const AnAnswer: Integer = 0; const ASubstituteEditionDate: Boolean = False);
 var
   Obj: TgdcNamespaceObject;
   W: TyamlWriter;
@@ -1250,10 +1327,13 @@ begin
                     Obj.FieldByName('alwaysoverwrite').AsInteger <> 0,
                     Obj.FieldByName('dontremove').AsInteger <> 0,
                     Obj.FieldByName('includesiblings').AsInteger <> 0,
+                    Obj.FieldByName('modified').AsDateTime,
+                    ASubstituteEditionDate,
                     ObjCache);
 
                   if (InstObj.FindField('editiondate') <> nil)
-                    and (not InstObj.FieldByName('editiondate').IsNull) then
+                    and (not InstObj.FieldByName('editiondate').IsNull)
+                    and (Obj.FieldByName('modified').AsDateTime <> InstObj.FieldByName('editiondate').AsDateTime) then
                   begin
                     Obj.Edit;
                     Obj.FieldByName('modified').AsDateTime := InstObj.FieldByName('editiondate').AsDateTime;

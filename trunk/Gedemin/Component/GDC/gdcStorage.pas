@@ -658,6 +658,8 @@ begin
       '  gd_storage_data '#13#10 +
       'WHERE '#13#10 +
       '  ( '#13#10 +
+      '    parent IS NOT NULL '#13#10 +
+      '    AND '#13#10 +
       '    parent = :Parent '#13#10 +
       '    AND '#13#10 +
       '    UPPER(name) = UPPER(:Name) '#13#10 +
@@ -665,6 +667,8 @@ begin
       '  OR '#13#10 +
       '  ( '#13#10 +
       '    parent IS NULL '#13#10 +
+      '    AND '#13#10 +
+      '    data_type = :data_type '#13#10 +
       '    AND '#13#10 +
       '    ( '#13#10 +
       '      ( '#13#10 +

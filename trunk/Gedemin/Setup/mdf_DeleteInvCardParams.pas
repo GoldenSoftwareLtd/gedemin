@@ -24,6 +24,7 @@ procedure AddGdObjectDependencies(IBDB: TIBDatabase; Log: TModifyLog);
 procedure Issue1041(IBDB: TIBDatabase; Log: TModifyLog);
 procedure Issue3218(IBDB: TIBDatabase; Log: TModifyLog);
 procedure AddNSSyncTables(IBDB: TIBDatabase; Log: TModifyLog);
+procedure ChangeAcLedgerAccounts(IBDB: TIBDatabase; Log: TModifyLog);
 
 implementation
 
@@ -1713,5 +1714,59 @@ begin
     Tr.Free;
   end;
 end;
+
+procedure ChangeAcLedgerAccounts(IBDB: TIBDatabase; Log: TModifyLog);
+var
+  q: TIBSQL;
+  Tr: TIBTransaction;
+begin
+  Tr := TIBTransaction.Create(nil);
+  q := TIBSQL.Create(nil);
+  try
+    Tr.DefaultDatabase := IBDB;
+    Tr.StartTransaction;
+
+    try
+      q.ParamCheck := False;
+      q.Transaction := Tr;
+
+      DropConstraint2('AC_LEDGER_ACCOUNTS', 'FK_AC_LEDGER_ACCOUNTS', Tr);
+
+      q.SQL.Text :=
+        'ALTER TABLE AC_LEDGER_ACCOUNTS ADD CONSTRAINT FK_AC_LEDGER_ACCOUNTS ' +
+        '  FOREIGN KEY (ACCOUNTKEY) REFERENCES AC_ACCOUNT (ID) ' +
+        '  ON UPDATE CASCADE ' +
+        '  ON DELETE CASCADE';
+      q.ExecQuery;
+
+      if not FieldExist2('AT_NAMESPACE', 'FILEDATA', Tr) then
+      begin
+        q.SQL.Text := 'ALTER TABLE AT_NAMESPACE ADD filedata dscript ';
+        q.ExecQuery;
+      end;
+
+      q.Close;
+      q.SQL.Text :=
+        'UPDATE OR INSERT INTO fin_versioninfo ' +
+        '  VALUES (192, ''0000.0001.0000.0223'', ''11.11.2013'', ''Change FK for AC_LEDGER_ACCOUNTS.'') ' +
+        '  MATCHING (id)';
+      q.ExecQuery;
+
+      Tr.Commit;
+    except
+      on E: Exception do
+      begin
+        Log('Произошла ошибка: ' + E.Message);
+        if Tr.InTransaction then
+          Tr.Rollback;
+        raise;
+      end;
+    end;
+  finally
+    q.Free;
+    Tr.Free;
+  end;
+end;
+
 
 end.

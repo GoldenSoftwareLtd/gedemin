@@ -484,6 +484,7 @@ begin
         if FgdcNamespace.FieldByName('filetimestamp').AsDateTime > Now then
           FgdcNamespace.FieldByName('filetimestamp').AsDateTime := Now;
         FgdcNamespace.FieldByName('filename').AsString := System.Copy(AList[I], 1, 255);
+        (FgdcNamespace.FieldByName('filedata') as TBlobField).LoadFromFile(AList[I]);
         FgdcNamespace.Post;
 
         NSID := FgdcNamespace.ID;

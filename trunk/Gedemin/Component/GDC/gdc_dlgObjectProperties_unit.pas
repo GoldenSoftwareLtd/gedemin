@@ -300,7 +300,8 @@ begin
       try
         W := TyamlWriter.Create(SS);
         try
-          TgdcNamespace.WriteObject(gdcObject, W, '', True, False, False, nil);
+          TgdcNamespace.WriteObject(gdcObject, W, '',
+            True, False, False, 0, False, nil);
         finally
           W.Free;
         end;
