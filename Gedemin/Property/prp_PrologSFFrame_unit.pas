@@ -12,6 +12,7 @@ uses
 
 type
   TPrologSFFrame = class(TFunctionFrame)
+    procedure actExternalEditorExecute(Sender: TObject);
   private
   protected
     function GetModule: string; override;
@@ -36,7 +37,7 @@ implementation
 {$R *.DFM}
 
 uses
-  rp_report_const, comctrls;
+  rp_report_const, comctrls, gd_ExternalEditor;
 
 constructor TPrologSFFrame.Create(AOwner: TComponent);
 begin
@@ -84,6 +85,11 @@ begin
   Result := inherited Delete;
   if Result then
     if Assigned(N) then N.Delete;
+end;
+
+procedure TPrologSFFrame.actExternalEditorExecute(Sender: TObject);
+begin
+  InvokeExternalEditor('pl', gsFunctionSynEdit.Lines);
 end;
 
 initialization
