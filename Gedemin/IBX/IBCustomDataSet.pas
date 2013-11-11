@@ -2528,7 +2528,7 @@ begin
     begin
       if (Assigned(FUpdateObject) and (FUpdateObject.RefreshSQL.Text <> '')) then
       begin
-        Qry := TIBSQL.Create(self);
+        Qry := TIBSQL.Create(nil);
         Qry.Database := Database;
         //!!!
         //Qry.Transaction := Transaction;
@@ -2539,7 +2539,7 @@ begin
       //!!!
       end else if {(State in dsEditModes) and} (ReadTransaction <> Transaction) and (Transaction.InTransaction) then
       begin
-        Qry := TIBSQL.Create(self);
+        Qry := TIBSQL.Create(nil);
         Qry.Database := Database;
         Qry.Transaction := Transaction;
         Qry.GoToFirstRecordOnExecute := False;
@@ -2548,23 +2548,25 @@ begin
       //!!!
       else
         Qry := FQRefresh;
-      SetInternalSQLParams(Qry, Buff);
 
-      //
-      for J := 0 to FQSelect.Params.Count - 1 do
-      begin
-        for K := 0 to Qry.Params.Count - 1 do
+      try
+        SetInternalSQLParams(Qry, Buff);
+
+        //
+        for J := 0 to FQSelect.Params.Count - 1 do
         begin
-          if AnsiCompareText(FQSelect.Params[J].Name, Qry.Params[K].Name) = 0 then
+          for K := 0 to Qry.Params.Count - 1 do
           begin
-            Qry.Params[K].Assign(FQSelect.Params[J]);
-            break;
+            if AnsiCompareText(FQSelect.Params[J].Name, Qry.Params[K].Name) = 0 then
+            begin
+              Qry.Params[K].Assign(FQSelect.Params[J]);
+              break;
+            end;
           end;
         end;
-      end;
 
-      Qry.ExecQuery;
-      try
+        Qry.ExecQuery;
+        
         if (Qry.SQLType = SQLExecProcedure) or
            (Qry.Next <> nil) then
         begin

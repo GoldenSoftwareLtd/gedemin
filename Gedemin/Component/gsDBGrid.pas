@@ -793,9 +793,6 @@ type
     procedure FullFillMenu(PopupColumn: TColumn; APopupMenu: TPopupMenu; Items: TList;
       const ColumnTitle: Boolean);
 
-    //procedure SetupActions(AToolBar: TToolBar);
-    //procedure RemoveActions(AToolBar: TToolBar);
-
     procedure DoShowMaster(Sender: TObject);
     {$IFDEF GEDEMIN}
     procedure DoApplyMaster(Sender: TObject);
@@ -840,10 +837,6 @@ type
       message WM_CHANGEDISPLAYFORMTS;
     procedure WMContextMenu(var Message: TWMContextMenu);
       message WM_CONTEXTMENU;
-{    procedure WMSetFocus(var Message: TMessage);
-      message WM_SETFOCUS;
-    procedure WMKillFocus(var Message: TMessage);
-      message WM_KillFOCUS;}
 
     {$IFDEF GEDEMIN}
     procedure WMHScroll(var Msg: TWMHScroll); message WM_HSCROLL;
@@ -881,6 +874,8 @@ type
     procedure SetShowFooter(const Value: Boolean);
     procedure SetGroupFieldName(const Value: String);
 
+    function SafeReadMemoField(M: TField): String;
+
   protected
     FFindValue: String;
     FFindColumn: TColumn;
@@ -915,7 +910,6 @@ type
 
     procedure RowHeightsChanged; override;
     procedure ColWidthsChanged; override;
-//    function CanEditShow: Boolean; override;
 
     procedure CalcSizingState(X, Y: Integer; var State: TGridState;
       var Index: Longint; var SizingPos, SizingOfs: Integer;
@@ -4717,9 +4711,8 @@ begin
               Value := '';
             end else
             begin
-              if (DrawColumn.Field is TMemoField) then
-                Value := StringReplace(DrawColumn.Field.AsString, #13#10, ' ',
-                  [rfReplaceAll])
+              if DrawColumn.Field is TMemoField then
+                Value := StringReplace(SafeReadMemoField(DrawColumn.Field), #13#10, ' ', [rfReplaceAll])
               else
               begin
                 Value := StringReplace(DrawColumn.Field.DisplayText, #13#10, ' ',
@@ -4933,7 +4926,7 @@ begin
                     and
                   (CurrExpand.LineCount > 1)
                 then
-                  Value := StringReplace(DrawColumn.Field.AsString, #13#10, ' ', [rfReplaceAll]);
+                  Value := StringReplace(SafeReadMemoField(DrawColumn.Field), #13#10, ' ', [rfReplaceAll]);
 
                 WriteText
                 ( Canvas,
@@ -4974,7 +4967,7 @@ begin
                   if TheField <> nil then
                   begin
                     if TheField is TMemoField then
-                      Value := TheField.AsString
+                      Value := SafeReadMemoField(TheField)
                     else if (TheField is TNumericField) and (TheField.AsFloat = 0)
                       {$IFDEF GEDEMIN}
                       and (UserStorage <> nil) and
@@ -5613,7 +5606,7 @@ begin
         DataLink.ActiveRecord := GridCoord.Y - Integer(dgTitles in Options);
 
         if Column.Field is TMemoField then
-          Value := Column.Field.AsString
+          Value := SafeReadMemoField(Column.Field)
         else
           Value := Column.Field.DisplayText;
 
@@ -10108,6 +10101,29 @@ begin
     FreeAndNil(FOddKeys);
     FreeAndNil(FEvenKeys);
     Invalidate;
+  end;
+end;
+
+function TgsCustomDBGrid.SafeReadMemoField(M: TField): String;
+var
+  SS: TStringStream;
+  BS: TStream;
+  SSize: Integer;
+begin
+  if M.IsNull then
+    Result := ''
+  else begin
+    SS := TStringStream.Create('');
+    BS := M.DataSet.CreateBlobStream(M, bmRead);
+    try
+      SSize := BS.Size;
+      if SSize > 4096 then SSize := 4096;
+      SS.CopyFrom(BS, SSize);
+      Result := SS.DataString;
+    finally
+      BS.Free;
+      SS.Free;
+    end;
   end;
 end;
 

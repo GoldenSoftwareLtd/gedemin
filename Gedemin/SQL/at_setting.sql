@@ -165,6 +165,7 @@ CREATE TABLE at_namespace (
   internal      dboolean_notnull DEFAULT 1,
   comment       dblobtext80_1251,
   settingruid   VARCHAR(21),
+  filedata      dscript,
 
   CONSTRAINT at_pk_namespace PRIMARY KEY (id)
 );

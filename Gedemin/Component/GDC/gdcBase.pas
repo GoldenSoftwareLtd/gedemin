@@ -3642,8 +3642,8 @@ var
           end;
       end;
     finally
-      FreeAndNil(OL);
-      FreeAndNil(SetLinkTableList);
+      OL.Free;
+      SetLinkTableList.Free;
     end;
 
     // Если ссылки присутствуют возвращаем True, иначе False
@@ -3656,96 +3656,59 @@ var
   // Копирование данных объектов-множеств
   procedure CopyRecordSetData(Source, Dest: TgdcBase);
   var
-    FKeyList: TObjectList;
     I, K: Integer;
-    qin, qout: TIBSQL;
+    qIn, qOut: TIBSQL;
     DidActivate: Boolean;
-    FieldsList: String;
   begin
-    qin := nil;
-    qout := nil;
-    DidActivate := False;
+    if Source.SetAttributesCount = 0 then
+      exit;
 
-    FKeyList := TObjectList.Create(False);
+    qIn := TIBSQL.Create(nil);
+    qIn.Transaction := Dest.Transaction;
+
+    qOut := TIBSQL.Create(nil);
+    qOut.Transaction := Dest.Transaction;
+
+    if not Dest.Transaction.InTransaction then
+    begin
+      Dest.Transaction.StartTransaction;
+      DidActivate := True;
+    end else
+      DidActivate := False;
+
     try
-      if IsHaveSetRecords(Source, FKeyList) then
+      for I := 0 to Source.SetAttributesCount - 1 do
       begin
-        for I := 0 to FKeyList.Count - 1 do
-          with FKeyList[I] as TatForeignKey do
+        qOut.SQL.Text := Source.SetAttributes[I].InsertSQL;
+
+        qIn.Close;
+        qIn.SQL.Text := Source.SetAttributes[I].SQL;
+        qIn.ParamByName('rf').AsInteger := Source.ID;
+        qIn.ExecQuery;
+        while not qIn.EOF do
         begin
-          if (qin = nil) then
+          for K := 0 to qIn.Current.Count - 1 do
           begin
-            qin := TIBSQL.Create(nil);
-            qin.Transaction := Dest.Transaction;
+            if CompareText(qIn.Fields[K].Name, Source.SetAttributes[I].ReferenceObjectNameFieldName) = 0 then
+              continue;
 
-            qout := TIBSQL.Create(nil);
-            qout.Transaction := Dest.Transaction;
-
-            if not Dest.Transaction.InTransaction then
-            begin
-              Dest.Transaction.StartTransaction;
-              DidActivate := True;
-            end;
-          end;
-
-          qin.SQL.Text := 'SELECT * FROM ' + Relation.RelationName +
-            ' WHERE ' + ConstraintField.FieldName + ' = ' +
-            IntToStr(Source.ID);
-          try
-            qin.ExecQuery;
-          except
-            on E: EIBError do
-            begin
-              if E.IBErrorCode = isc_no_priv then
-              begin
-                MessageBox(ParentHandle,
-                  PChar('Нет прав доступа на таблицу ' + Relation.RelationName + '. Выполните SQL команду GRANT.'),
-                  'Внимание',
-                  MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
-              end;
-              raise;
-            end
+            if CompareText(qIn.Fields[K].Name, Source.SetAttributes[I].ObjectLinkFieldName) = 0 then
+              qOut.ParamByName(qIn.Fields[K].Name).AsInteger := Dest.ID
             else
-              raise;
+              qOut.ParamByName(qIn.Fields[K].Name).Assign(qIn.Fields[K]);
           end;
-          while not qin.EOF do
-          begin
-            if qout.Handle = nil then
-            begin
-              FieldsList := '';
-              for K := 0 to qin.Current.Count - 1 do
-              begin
-                FieldsList := FieldsList + qin.Fields[K].Name + ',';
-              end;
-              SetLength(FieldsList, Length(FieldsList) - 1);
-              qout.SQL.Text := 'INSERT INTO ' + Relation.RelationName + ' (' +
-                FieldsList + ') VALUES (';
-              FieldsList := ':' + StringReplace(FieldsList, ',', ',:', [rfReplaceAll, rfIgnoreCase]);
-              qout.SQL.Text := qout.SQL.Text + FieldsList + ')';
-              qout.Prepare;
-              qout.ParamByName(ConstraintField.FieldName).AsInteger := Dest.ID;
-            end;
 
-            for K := 0 to qin.Current.Count - 1 do
-            begin
-              if qin.Fields[K].Name <> ConstraintField.FieldName then
-                qout.ParamByName(qin.Fields[K].Name).Assign(qin.Fields[K]);
-            end;
-
-            qout.ExecQuery;
-
-            qin.Next;
-          end;
-          qin.Close;
-          qout.FreeHandle;
+          qOut.ExecQuery;
+          qIn.Next;
         end;
       end;
-    finally
-      FreeAndNil(FKeyList);
-      qin.Free;
-      qout.Free;
       if DidActivate and Dest.Transaction.InTransaction then
         Dest.Transaction.Commit;
+    finally
+      qIn.Free;
+      qOut.Free;
+      if DidActivate and Dest.Transaction.InTransaction then
+        Dest.Transaction.Rollback;
     end;
   end;
 
@@ -3815,7 +3778,7 @@ begin
 
       // Если у объекта нет дополнительных записей 1-к-1 и записей множеств, то
       //  не будем делать Post записи, иначе сделаем и обработаем ошибки при Post
-      if (LinkTableList.Count > 0) or IsHaveSetRecords(Self) or ACopyDetailObjects then
+      if (LinkTableList.Count > 0) or (SetAttributesCount > 0) or ACopyDetailObjects then
         DoPostRecord := True
       else
         DoPostRecord := False;

@@ -103,6 +103,9 @@ type
     tbsiClear: TTBSubmenuItem;
     actClearAll: TAction;
     TBItem17: TTBItem;
+    tbsiCompare: TTBSubmenuItem;
+    actOnlyCompare: TAction;
+    TBItem18: TTBItem;
     procedure actChooseDirExecute(Sender: TObject);
     procedure actCompareUpdate(Sender: TObject);
     procedure actCompareExecute(Sender: TObject);
@@ -137,6 +140,8 @@ type
     procedure actSetForLoadingOneUpdate(Sender: TObject);
     procedure actSetForLoadingOneExecute(Sender: TObject);
     procedure actClearAllExecute(Sender: TObject);
+    procedure actOnlyCompareExecute(Sender: TObject);
+    procedure actOnlyCompareUpdate(Sender: TObject);
 
   private
     FNSC: TgdcNamespaceSyncController;
@@ -231,7 +236,8 @@ procedure Tat_frmSyncNamespace.actCompareWithDataExecute(Sender: TObject);
 begin
   FNSC.CompareWithData(
     FNSC.DataSet.FieldByName('namespacekey').AsInteger,
-    FNSC.DataSet.FieldByName('filename').AsString);
+    FNSC.DataSet.FieldByName('filename').AsString,
+    True);
 end;
 
 constructor Tat_frmSyncNamespace.Create(AnOwner: TComponent);
@@ -539,6 +545,20 @@ procedure Tat_frmSyncNamespace.actClearAllExecute(Sender: TObject);
 begin
   FNSC.ClearAll;
   ApplyFilter;
+end;
+
+procedure Tat_frmSyncNamespace.actOnlyCompareExecute(Sender: TObject);
+begin
+  FNSC.CompareWithData(
+    FNSC.DataSet.FieldByName('namespacekey').AsInteger,
+    FNSC.DataSet.FieldByName('filename').AsString,
+    False);
+end;
+
+procedure Tat_frmSyncNamespace.actOnlyCompareUpdate(Sender: TObject);
+begin
+  actOnlyCompare.Enabled := (not FNSC.DataSet.IsEmpty)
+    and FileExists(FNSC.DataSet.FieldByName('filename').AsString);
 end;
 
 initialization

@@ -2364,7 +2364,8 @@ var
   I: Integer;
   Tbl: TatRelation;
 begin
-  if (State = dsInsert) and not(sLoadFromStream in BaseState) then
+  if (State = dsInsert) and (not (sLoadFromStream in BaseState)) then
+  begin
     with FieldByName('relationname') do
     try
       //  Имя индекса должно содержать только
@@ -2406,11 +2407,11 @@ begin
         FieldByName('relationname').FocusControl;
         raise EgdcIBError.Create('Наименование таблицы/представления дублируется с уже существующим!')
       end;
-
     except
       FocusControl;
       raise;
     end;
+  end;  
 end;
 
 procedure TgdcRelation.CreateFields;

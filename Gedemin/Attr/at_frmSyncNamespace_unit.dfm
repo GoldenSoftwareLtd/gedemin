@@ -74,8 +74,15 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       object TBItem5: TTBItem
         Action = actEditFile
       end
-      object TBItem6: TTBItem
-        Action = actCompareWithData
+      object tbsiCompare: TTBSubmenuItem
+        ImageIndex = 203
+        Options = [tboDropdownArrow]
+        object TBItem6: TTBItem
+          Action = actCompareWithData
+        end
+        object TBItem18: TTBItem
+          Action = actOnlyCompare
+        end
       end
       object TBSeparatorItem1: TTBSeparatorItem
       end
@@ -161,7 +168,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
         Control = cbPackets
       end
       object lSearch: TLabel
-        Left = 513
+        Left = 521
         Top = 4
         Width = 45
         Height = 13
@@ -175,7 +182,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
         TabOrder = 0
       end
       object edFilter: TEdit
-        Left = 866
+        Left = 874
         Top = 0
         Width = 140
         Height = 21
@@ -183,7 +190,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
         OnChange = edFilterChange
       end
       object cbPackets: TCheckBox
-        Left = 1012
+        Left = 1020
         Top = 2
         Width = 66
         Height = 17
@@ -387,9 +394,8 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       OnUpdate = actEditFileUpdate
     end
     object actCompareWithData: TAction
-      Caption = '<-- Сравнить с файлом -->'
-      Hint = 'Сравнить с файлом'
-      ImageIndex = 203
+      Caption = '<-- Сравнить и объединить -->'
+      Hint = 'Сравнить с файлом и объединить изменения'
       OnExecute = actCompareWithDataExecute
       OnUpdate = actCompareWithDataUpdate
     end
@@ -521,6 +527,12 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       Caption = 'Снять отметку со всех записей'
       Hint = 'Снять отметку со всех записей'
       OnExecute = actClearAllExecute
+    end
+    object actOnlyCompare: TAction
+      Caption = '<-- Сравнить -->'
+      Hint = 'Сравнить с файлом'
+      OnExecute = actOnlyCompareExecute
+      OnUpdate = actOnlyCompareUpdate
     end
   end
   object pmSync: TPopupMenu

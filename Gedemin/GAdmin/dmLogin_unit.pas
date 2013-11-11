@@ -216,7 +216,7 @@ begin
 
   gdcBase.CacheDBID := -1;
 
-  flt_sqlFilterCache.SaveCacheToDatabase;
+  flt_sqlFilterCache.SaveCacheToDatabase(True);
 
   if Assigned(gdcBaseManager) then
     gdcBaseManager.ClearSecDescArr;

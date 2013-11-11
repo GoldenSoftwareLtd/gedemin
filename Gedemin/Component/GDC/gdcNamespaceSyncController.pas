@@ -50,7 +50,8 @@ type
     procedure Sync;
     procedure SyncSilent;
     procedure EditNamespace(const ANSK: Integer);
-    procedure CompareWithData(const ANSK: Integer; const AFileName: String);
+    procedure CompareWithData(const ANSK: Integer; const AFileName: String;
+      const A3Way: Boolean);
 
     property Directory: String read FDirectory write FDirectory;
     property UpdateCurrModified: Boolean read FUpdateCurrModified write FUpdateCurrModified;
@@ -289,7 +290,7 @@ begin
 end;
 
 procedure TgdcNamespaceSyncController.CompareWithData(const ANSK: Integer;
-  const AFileName: String);
+  const AFileName: String; const A3Way: Boolean);
 var
   NS: TgdcNamespace;
   NSO: TgdcNamespaceObject;
@@ -481,7 +482,7 @@ begin
       TgdcNamespace.UpdateCurrModified(Tr, NS.ID);
     end;
 
-    NS.CompareWithData(AFileName);
+    NS.CompareWithData(AFileName, A3Way);
 
     NS.Close;
   finally

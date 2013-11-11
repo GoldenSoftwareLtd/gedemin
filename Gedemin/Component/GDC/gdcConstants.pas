@@ -3,8 +3,7 @@ unit gdcConstants;
 interface
 
 const
-//Константы имён полей таблиц
-
+  //Константы имён полей таблиц
   fnId = 'id';
   fnName = 'name';
   fnClassName = 'classname';
@@ -27,7 +26,6 @@ const
   fnFunctionKey = 'functionkey';
   fnIsGlobal = 'isglobal';
   fnDisable = 'disable';
-//  fnObjectType = 'objecttype';
   fnIsLocalExecute = 'islocalexecute';
   fnFRQRefresh = 'frqrefresh';
   fnPreView = 'preview';
@@ -96,13 +94,12 @@ const
   fnCmd = 'cmd';
   fnCmdType = 'cmdtype';
   fnConfig = 'config';
-   
 
-
-//Константы сабсетов
+  // Константы сабсетов
   ssById = 'ByID';
   ssAll = 'All';
-//  ssByName = 'ByName';
+
+  // ssByName = 'ByName';
   ssByUpperName = 'ByUpperName';
   ssByParent = 'ByParent';
   ssTree = 'Tree';
