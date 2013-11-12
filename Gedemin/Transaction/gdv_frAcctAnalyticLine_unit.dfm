@@ -73,11 +73,4 @@ object frAcctAnalyticLine: TfrAcctAnalyticLine
     TabOrder = 0
     Visible = False
   end
-  object actList: TActionList
-    Left = 336
-    object actVisible: TAction
-      Caption = 'X'
-      OnUpdate = actVisibleUpdate
-    end
-  end
 end
