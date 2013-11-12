@@ -357,7 +357,7 @@ const
     (ModifyProc: Issue3218; ModifyVersion: '0000.0001.0000.0212'; NeedDBShutdown: False),
     (ModifyProc: AddNSSyncTables; ModifyVersion: '0000.0001.0000.0220'; NeedDBShutdown: True),
     (ModifyProc: DeletecbAnalyticFromAcc_BuildAcctCard; ModifyVersion: '0000.0001.0000.0221'; NeedDBShutdown: True),
-    (ModifyProc: ChangeAcLedgerAccounts; ModifyVersion: '0000.0001.0000.0222'; NeedDBShutdown: False)
+    (ModifyProc: ChangeAcLedgerAccounts; ModifyVersion: '0000.0001.0000.0223'; NeedDBShutdown: False)
   );
 
 implementation

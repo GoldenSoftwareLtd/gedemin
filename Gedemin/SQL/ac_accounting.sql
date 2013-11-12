@@ -4528,39 +4528,35 @@ CREATE EXCEPTION AC_E_TRCANTCONTAINAUTOTR 'Can`t move autotransaction into trans
 
 SET TERM ^;
 
-CREATE TRIGGER AC_TRANSACTION_BU0 FOR AC_TRANSACTION
+CREATE OR ALTER TRIGGER AC_TRANSACTION_BU0 FOR AC_TRANSACTION
   ACTIVE
   BEFORE UPDATE
   POSITION 0
 AS
-  DECLARE a SMALLINT;
+  DECLARE a SMALLINT = NULL;
 begin
-  if (not new.parent is null) then
-  begin
-    select
-      autotransaction
-    from
-      ac_transaction
-    where
-      id = new.parent
-    into :a;
+  IF ((NOT NEW.parent IS NULL)
+    AND (NEW.autotransaction IS DISTINCT FROM OLD.autotransaction)) THEN
+  BEGIN
+    SELECT autotransaction
+    FROM ac_transaction
+    WHERE id = new.parent
+    INTO :a;
 
-    if (a is null) then a = 0;
-    if (new.autotransaction is null) then new.autotransaction = 0;
-    if (new.autotransaction <> a) then
-    begin
-      if (a = 1) then
-      begin
+    a = COALESCE(:a, 0);
+    NEW.autotransaction = COALESCE(NEW.autotransaction, 0);
+
+    IF (NEW.autotransaction <> a) THEN
+    BEGIN
+      IF (a = 1) THEN
         EXCEPTION ac_e_autotrcantcontaintr;
-      end else
-      begin
+      ELSE
         EXCEPTION ac_e_trcantcontainautotr;
-      end
-    end
-  end
-end^
+    END
+  END
+END^
 
-CREATE TRIGGER AC_TRANSACTION_BI0 FOR AC_TRANSACTION
+CREATE OR ALTER TRIGGER AC_TRANSACTION_BI0 FOR AC_TRANSACTION
   ACTIVE
   BEFORE INSERT
   POSITION 0
@@ -4569,15 +4565,11 @@ AS
 begin
   if (not new.parent is null) then
   begin
-    select
-      autotransaction
-    from
-      ac_transaction
-    where
-      id = new.parent
+    select autotransaction
+    from ac_transaction
+    where id = new.parent
     into :a;
-    if (a is null) then a = 0;
-    new.autotransaction = a;
+    new.autotransaction = COALESCE(:a, 0);
   end
 end^
 

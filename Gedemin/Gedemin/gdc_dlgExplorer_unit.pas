@@ -479,8 +479,8 @@ begin
     if not CheckReport(iblkupReport.CurrentKeyInt) then
     begin
       MessageBox(Handle,
-        PChar('Отчет предназначен для вызова только из формы просмотра'#13#10 +
-        '(содержит входной параметр OwnerForm)'),
+        PChar('Отчет предназначен для вызова только из формы просмотра,'#13#10 +
+        'так как содержит входной параметр OwnerForm.'),
         'Внимание',
         MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
       Result := False;

@@ -89,7 +89,8 @@ implementation
 uses
   IBHeader, Storages, gd_security, at_classes, at_frmSQLProcess,
   at_sql_metadata, gd_common_functions, gdcNamespaceRecCmpController,
-  gdcMetadata, gdcFunction, gd_directories_const, mtd_i_Base, evt_i_Base;
+  gdcMetadata, gdcFunction, gd_directories_const, mtd_i_Base, evt_i_Base,
+  gd_CmdLineParams_unit;
 
 type
   TAtObjectRecord = class(TObject)
@@ -428,6 +429,7 @@ begin
     FMetadataCounter := 0;
     FlushStorages;
 
+    AddText('=====================================');
     AddText('Файл: ' + AList[I]);
 
     Parser := TYAMLParser.Create;
@@ -637,7 +639,7 @@ var
   Obj: TgdcBase;
   AtObjectRecord: TatObjectRecord;
   ObjRUID, HeadObjectRUID: TRUID;
-  ObjName, ObjRUIDString, S: String;
+  ObjName, ObjRUIDString, S, SWarn: String;
   Fields: TYAMLMapping;
   ObjID, CandidateID, RUIDID: TID;
   ObjPosted, ObjPreserved, CrossTableCreated: Boolean;
@@ -697,6 +699,27 @@ begin
 
     if (RUIDID > -1) and (RUIDID < cstUserIDStart) then
     begin
+      CandidateID := GetCandidateID(Obj, Fields);
+
+      if (CandidateID > -1) and (CandidateID <> RUIDID) then
+      begin
+        Obj.ID := CandidateID;
+        Obj.Open;
+        if Obj.EOF then
+          raise EgdcNamespaceLoader.Create('Internal error. CandidateID not found.');
+        SWarn :=
+          'При попытке загрузки стандартного объекта типа ' + Obj.GetDisplayName(Obj.SubType) + #13#10 +
+          'РУИД = ' + ObjRUIDString + ' в базе данных обнаружен объект с ИД = ' + IntToStr(CandidateID) + '.'#13#10#13#10 +
+          'Существующий объект необходимо отредактировать для устранения неоднозначности.';
+        if not gd_CmdLineParams.QuietMode then
+        begin
+          MessageBox(0, PChar(SWarn), 'Внимание', MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+          Obj.EditDialog;
+        end else
+          AddWarning(SWarn);
+        Obj.Close;
+      end;
+
       Obj.ID := RUIDID;
       Obj.Open;
       if Obj.EOF then

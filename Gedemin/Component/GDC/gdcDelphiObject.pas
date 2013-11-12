@@ -289,7 +289,7 @@ end;
 class function TgdcDelphiObject.GetListTable(
   const ASubType: TgdcSubType): String;
 begin
-  Result := 'evt_object';
+  Result := 'EVT_OBJECT';
 end;
 
 procedure TgdcDelphiObject.GetWhereClauseConditions(S: TStrings);
@@ -357,7 +357,7 @@ begin
       'WHERE ' +
       ' (UPPER(o.objectname) = UPPER(:objectname)) AND ' +
       ' (UPPER(o.classname) = UPPER(:classname)) AND ' +
-      ' (COALESCE(o.parentindex, 1) = COALESCE(:parentindex, 1)) AND ' +
+      ' (o.parent IS NOT DISTINCT FROM :parent) AND ' +
       ' (UPPER(o.subtype) = UPPER(:subtype)) '
   else if ID < cstUserIDStart then
     Result := inherited CheckTheSameStatement
@@ -379,7 +379,7 @@ begin
        ParentIndex,
        FieldByName('subtype').AsString]);
   end;
-  
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCDELPHIOBJECT', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then

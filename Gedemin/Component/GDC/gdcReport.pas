@@ -1179,7 +1179,7 @@ begin
       FieldByName('mainformulakey').AsInteger,
       Script);
 
-    if not VarIsEmpty(Script) then
+    if (not VarIsEmpty(Script)) and (not (sLoadFromStream in BaseState)) then
     begin
       LocParamList := TgsParamList.Create;
       try
@@ -1189,8 +1189,8 @@ begin
           if AnsiCompareText(LocParamList.Params[I].RealName, VB_OWNERFORM) = 0 then
           begin
             MessageBox(ParentHandle,
-              PChar('Отчет предназначен для вызова только из формы просмотра'#13#10 +
-              '(содержит входной параметр OwnerForm)'),
+              PChar('Отчет предназначен для вызова только из формы просмотра,'#13#10 +
+              'так как содержит входной параметр OwnerForm.'),
               'Внимание',
               MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
             FieldByName('folderkey').Clear;
@@ -1202,7 +1202,7 @@ begin
       end;
     end;
   end;
-  
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCREPORT', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
