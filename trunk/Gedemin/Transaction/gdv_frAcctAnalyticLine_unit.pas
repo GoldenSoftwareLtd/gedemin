@@ -17,10 +17,7 @@ type
     eAnalitic: TEdit;
     xdeDateTime: TxDateEdit;
     chkNull: TCheckBox;
-    actList: TActionList;
-    actVisible: TAction;
-    procedure chkNullClick(Sender: TObject);
-    procedure actVisibleUpdate(Sender: TObject);
+    procedure chkNullClick(Sender: TObject); 
 
   private
     FField: TatRelationField;
@@ -29,6 +26,8 @@ type
     FNeedSet: Boolean;
     FButtons, FLookUp: TObjectList;
     FKASet: TgdKeyArray;
+    FActionList: TActionList;
+    FactVisible: TAction;
 
     procedure BtnPress(Sender: TObject);
     procedure LookUpChange(Sender: TObject);
@@ -44,6 +43,7 @@ type
     procedure SetIsNull(const Value: Boolean);
     procedure SetNeedNull(const Value: Boolean);
     function GetDescription: String;
+    procedure OnVisibleUpdate(Sender: TObject);
 
   protected
     procedure AlignControls(AControl: TControl; var Rect: TRect); override;
@@ -88,7 +88,22 @@ begin
   Height := FrameHeight;
   FKASet := TgdKeyArray.Create;
   lAnaliticName.Enabled := False;
-  ParentFont := False;   
+  ParentFont := False;
+
+  if not (csDesigning in ComponentState) then
+  begin
+    FActionList := TActionList.Create(nil);
+    FActionList.Name := 'al' + Self.Name;
+
+    FactVisible := TAction.Create(FActionList);
+    FactVisible.ActionList := FActionList;
+    FactVisible.OnUpdate := OnVisibleUpdate;
+    FactVisible.Caption := 'X';
+  end else
+  begin
+    FActionList := nil;
+    FactVisible := nil;
+  end;
 end;
 
 destructor TfrAcctAnalyticLine.Destroy;
@@ -96,7 +111,15 @@ begin
   FLookUp.Free;
   FButtons.Free;
   FKASet.Free;
+  FActionList.Free;
+
   inherited;  
+end;
+
+procedure TfrAcctAnalyticLine.OnVisibleUpdate(Sender: TObject);
+begin
+  TAction(Sender).Enabled := (FButtons.Count > 1)
+    or ((FButtons.Count = 1) and (FLookUp.Count = 1) and ((FLookUp[0] as TgsIBLookupComboBox).CurrentKey <> ''));
 end;
 
 procedure TfrAcctAnalyticLine.AlignControls(AControl: TControl;
@@ -431,7 +454,7 @@ begin
     ParentFont := False;
     Caption := 'X';
     Font.Style := [fsBold];
-    Action := actVisible;
+    Action := FactVisible;
     Visible := True;
     Height := ButtonHeight;
     Left := Self.ClientWidth - ButtonWidth;
@@ -462,13 +485,7 @@ begin
   end;
 
   SetValue('');
-end;
-
-procedure TfrAcctAnalyticLine.actVisibleUpdate(Sender: TObject);
-begin
-  TAction(Sender).Enabled := (FButtons.Count > 1)
-    or ((FButtons.Count = 1) and (FLookUp.Count = 1) and ((FLookUp[0] as TgsIBLookupComboBox).CurrentKey <> ''));
-end;
+end; 
 
 function TfrAcctAnalyticLine.GetDescription: String;
 var
