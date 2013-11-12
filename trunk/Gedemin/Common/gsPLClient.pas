@@ -547,7 +547,7 @@ begin
   fid := PL_open_foreign_frame();
   Termv := TgsPLTermv.CreateTermv(1);
   try
-    Termv.PutString(0, AGoal);
+    Termv.PutAtom(0, AGoal);
     Query := TgsPLQuery.Create;
     try
       Query.PredicateName := 'pl_run';
