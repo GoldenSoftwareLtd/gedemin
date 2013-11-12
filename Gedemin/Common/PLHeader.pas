@@ -63,7 +63,7 @@ type
   TPL_is_initialised = function(var argc: Integer; var argv: array of PChar): Integer; cdecl;
   TPL_cleanup = function(status: Integer): Integer; cdecl;
   TPL_halt = procedure(status: Integer); cdecl;
-  //latunov
+  // Foreign context frames
   TPL_open_foreign_frame = function: fid_t; cdecl;
   TPL_close_foreign_frame = procedure(fid: fid_t); cdecl;
   TPL_discard_foreign_frame = procedure(fid: fid_t); cdecl;
@@ -74,8 +74,7 @@ type
   TPL_close_query = procedure(qid: qid_t); cdecl;
   TPL_cut_query = procedure(qid: qid_t); cdecl;
   TPL_call = function(t: term_t; m: module_t): Integer; cdecl;
-  TPL_call_predicate = function(m: module_t; debug: Integer; pred: predicate_t;
-    t0: term_t): Integer; cdecl;
+  TPL_call_predicate = function(m: module_t; debug: Integer; pred: predicate_t; t0: term_t): Integer; cdecl;
   TPL_new_term_refs = function(n: Integer): term_t; cdecl;
   TPL_new_term_ref = function: term_t; cdecl;
   TPL_copy_term_ref = function(from: term_t): term_t; cdecl;

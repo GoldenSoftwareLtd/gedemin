@@ -10,7 +10,7 @@ var
   PL_is_initialised: TPL_is_initialised;
   PL_cleanup: TPL_cleanup;
   PL_halt: TPL_halt;
-  //latunov
+  // Foreign context frames
   PL_open_foreign_frame: TPL_open_foreign_frame;
   PL_close_foreign_frame: TPL_close_foreign_frame;
   PL_discard_foreign_frame: TPL_discard_foreign_frame;
@@ -136,7 +136,7 @@ begin
     PL_is_initialised := GetProcAddr('PL_is_initialised');
     PL_cleanup := GetProcAddr('PL_cleanup');
     PL_halt := GetProcAddr('PL_halt');
-    //latunov
+    // Foreign context frames
     PL_open_foreign_frame := GetProcAddr('PL_open_foreign_frame');
     PL_close_foreign_frame := GetProcAddr('PL_close_foreign_frame');
     PL_discard_foreign_frame := GetProcAddr('PL_discard_foreign_frame');
