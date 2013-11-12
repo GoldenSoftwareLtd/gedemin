@@ -277,7 +277,7 @@ procedure TgdcNamespaceSyncController.ClearAll;
 var
   q: TIBSQL;
 begin
-  Assert(FTr.InTransaction);
+  Assert((FTr <> nil) and FTr.InTransaction);
   q := TIBSQL.Create(nil);
   try
     q.Transaction := FTr;

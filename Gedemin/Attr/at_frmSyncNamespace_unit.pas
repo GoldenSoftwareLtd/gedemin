@@ -142,6 +142,7 @@ type
     procedure actClearAllExecute(Sender: TObject);
     procedure actOnlyCompareExecute(Sender: TObject);
     procedure actOnlyCompareUpdate(Sender: TObject);
+    procedure actClearAllUpdate(Sender: TObject);
 
   private
     FNSC: TgdcNamespaceSyncController;
@@ -559,6 +560,11 @@ procedure Tat_frmSyncNamespace.actOnlyCompareUpdate(Sender: TObject);
 begin
   actOnlyCompare.Enabled := (not FNSC.DataSet.IsEmpty)
     and FileExists(FNSC.DataSet.FieldByName('filename').AsString);
+end;
+
+procedure Tat_frmSyncNamespace.actClearAllUpdate(Sender: TObject);
+begin
+  actClearAll.Enabled := not FNSC.DataSet.IsEmpty;
 end;
 
 initialization
