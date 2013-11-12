@@ -327,7 +327,7 @@ var
         if LTransaction.InTransaction then
           LTransaction.Commit;
 
-
+        {
         if not LTransaction.Active then
           LTransaction.StartTransaction;
         TriggerIBSQL.Close;
@@ -378,7 +378,6 @@ var
         end;
         if LTransaction.InTransaction then
           LTransaction.Commit;
-
 
         if not LTransaction.Active then
           LTransaction.StartTransaction;
@@ -533,6 +532,7 @@ var
         end;
         if LTransaction.InTransaction then
           LTransaction.Commit;
+        }  
       except
         on E: Exception do
         begin

@@ -885,6 +885,55 @@ begin
       q.SQL.Text := 'ALTER TRIGGER GD_BU_TAXTYPE INACTIVE';
       q.ExecQuery;
 
+      q.SQL.Text :=
+        'CREATE OR ALTER TRIGGER AC_TRANSACTION_BU0 FOR AC_TRANSACTION '#13#10 +
+        '  ACTIVE '#13#10 +
+        '  BEFORE UPDATE '#13#10 +
+        '  POSITION 0 '#13#10 +
+        'AS '#13#10 +
+        '  DECLARE a SMALLINT = NULL; '#13#10 +
+        'begin '#13#10 +
+        '  IF ((NOT NEW.parent IS NULL) '#13#10 +
+        '    AND (NEW.autotransaction IS DISTINCT FROM OLD.autotransaction)) THEN '#13#10 +
+        '  BEGIN '#13#10 +
+        '    SELECT autotransaction '#13#10 +
+        '    FROM ac_transaction '#13#10 +
+        '    WHERE id = new.parent '#13#10 +
+        '    INTO :a; '#13#10 +
+        ' '#13#10 +
+        '    a = COALESCE(:a, 0); '#13#10 +
+        '    NEW.autotransaction = COALESCE(NEW.autotransaction, 0); '#13#10 +
+        ' '#13#10 +
+        '    IF (NEW.autotransaction <> a) THEN '#13#10 +
+        '    BEGIN '#13#10 +
+        '      IF (a = 1) THEN '#13#10 +
+        '        EXCEPTION ac_e_autotrcantcontaintr; '#13#10 +
+        '      ELSE '#13#10 +
+        '        EXCEPTION ac_e_trcantcontainautotr; '#13#10 +
+        '    END '#13#10 +
+        '  END '#13#10 +
+        'END';
+      q.ExecQuery;
+
+      q.SQL.Text :=
+        'CREATE OR ALTER TRIGGER AC_TRANSACTION_BI0 FOR AC_TRANSACTION '#13#10 +
+        '  ACTIVE '#13#10 +
+        '  BEFORE INSERT '#13#10 +
+        '  POSITION 0 '#13#10 +
+        'AS '#13#10 +
+        '  DECLARE a SMALLINT; '#13#10 +
+        'begin '#13#10 +
+        '  if (not new.parent is null) then '#13#10 +
+        '  begin '#13#10 +
+        '    select autotransaction '#13#10 +
+        '    from ac_transaction '#13#10 +
+        '    where id = new.parent '#13#10 +
+        '    into :a; '#13#10 +
+        '    new.autotransaction = COALESCE(:a, 0); '#13#10 +
+        '  end '#13#10 +
+        'end';
+      q.ExecQuery;
+
       Tr.Commit;
       Tr.StartTransaction;
 
@@ -1745,10 +1794,136 @@ begin
         q.ExecQuery;
       end;
 
-      q.Close;
+      q.SQL.Text :=
+        'CREATE OR ALTER TRIGGER evt_bi_object1 FOR evt_object '#13#10 +
+        '  ACTIVE '#13#10 +
+        '  BEFORE INSERT OR UPDATE'#13#10 +
+        '  POSITION 1 '#13#10 +
+        'AS '#13#10 +
+        'BEGIN '#13#10 +
+        '  IF ((NOT NEW.name IS NULL) AND '#13#10 +
+        '     (NEW.objectname IS NULL) AND '#13#10 +
+        '     (NEW.classname IS NULL) AND '#13#10 +
+        '     (NEW.subtype IS NULL)) '#13#10 +
+        '  THEN '#13#10 +
+        '    EXCEPTION  EVT_E_INCORRECTVERSION; '#13#10 +
+        ' '#13#10 +
+        '  NEW.objectname = COALESCE(NEW.objectname, ''''); '#13#10 +
+        '  NEW.classname = COALESCE(NEW.classname, ''''); '#13#10 +
+        '  NEW.subtype = COALESCE(NEW.subtype, ''''); '#13#10 +
+        ' '#13#10 +
+        '  IF '#13#10 +
+        '    ( '#13#10 +
+        '    ((NEW.objectname = '''') AND (NEW.classname = '''')) OR '#13#10 +
+        '    ((NEW.subtype <> '''') AND ((NEW.objectname <> '''') OR '#13#10 +
+        '     (NEW.classname = ''''))) '#13#10 +
+        '    ) THEN '#13#10 +
+        '  BEGIN '#13#10 +
+        '    EXCEPTION EVT_E_RECORDINCORRECT; '#13#10 +
+        '  END '#13#10 +
+        'END';
+      q.ExecQuery;
+
+      q.SQL.Text :=
+        'CREATE OR ALTER TRIGGER evt_bi_object2 FOR evt_object '#13#10 +
+        '  ACTIVE '#13#10 +
+        '  BEFORE INSERT OR UPDATE '#13#10 +
+        '  POSITION 2 '#13#10 +
+        'AS '#13#10 +
+        'BEGIN '#13#10 +
+        '  /* Проверяет уникальность объекта или класса с подтипом*/ '#13#10 +
+        '  IF '#13#10 +
+        '    (EXISTS(SELECT * FROM evt_object '#13#10 +
+        '    WHERE '#13#10 +
+        '    (UPPER(objectname) = UPPER(NEW.objectname))  AND '#13#10 +
+        '    (UPPER(classname) = UPPER(NEW.classname)) AND '#13#10 +
+        '    (parent IS NOT DISTINCT FROM NEW.parent) AND '#13#10 +
+        '    (UPPER(subtype) = UPPER(NEW.subtype)) AND '#13#10 +
+        '    (id <> NEW.id))) '#13#10 +
+        '  THEN '#13#10 +
+        '  BEGIN '#13#10 +
+        '    EXCEPTION EVT_E_RECORDFOUND; '#13#10 +
+        '  END '#13#10 +
+        ' '#13#10 +
+        '  /* Заполняет поля name, objecttype для поддержки */ '#13#10 +
+        '  /* старой версии Гедемина */ '#13#10 +
+        '  IF (NEW.classname = '''') THEN '#13#10 +
+        '  BEGIN '#13#10 +
+        '    NEW.objecttype = 0; '#13#10 +
+        '    NEW.name = NEW.objectname; '#13#10 +
+        '  END ELSE '#13#10 +
+        '    BEGIN '#13#10 +
+        '      NEW.objecttype = 1; '#13#10 +
+        '      IF (NEW.subtype = '''') THEN '#13#10 +
+        '      BEGIN '#13#10 +
+        '        NEW.name = NEW.classname; '#13#10 +
+        '      END ELSE '#13#10 +
+        '        NEW.name = NEW.classname || NEW.subtype; '#13#10 +
+        '    END '#13#10 +
+        'END';
+      q.ExecQuery;
+
+      DropTrigger2('EVT_BU_OBJECT1', Tr);
+      DropTrigger2('EVT_BU_OBJECT2', Tr);
+
+      q.SQL.Text :=
+        'CREATE OR ALTER TRIGGER AC_TRANSACTION_BU0 FOR AC_TRANSACTION '#13#10 +
+        '  ACTIVE '#13#10 +
+        '  BEFORE UPDATE '#13#10 +
+        '  POSITION 0 '#13#10 +
+        'AS '#13#10 +
+        '  DECLARE a SMALLINT = NULL; '#13#10 +
+        'begin '#13#10 +
+        '  IF ((NOT NEW.parent IS NULL) '#13#10 +
+        '    AND (NEW.autotransaction IS DISTINCT FROM OLD.autotransaction)) THEN '#13#10 +
+        '  BEGIN '#13#10 +
+        '    SELECT autotransaction '#13#10 +
+        '    FROM ac_transaction '#13#10 +
+        '    WHERE id = new.parent '#13#10 +
+        '    INTO :a; '#13#10 +
+        ' '#13#10 +
+        '    a = COALESCE(:a, 0); '#13#10 +
+        '    NEW.autotransaction = COALESCE(NEW.autotransaction, 0); '#13#10 +
+        ' '#13#10 +
+        '    IF (NEW.autotransaction <> a) THEN '#13#10 +
+        '    BEGIN '#13#10 +
+        '      IF (a = 1) THEN '#13#10 +
+        '        EXCEPTION ac_e_autotrcantcontaintr; '#13#10 +
+        '      ELSE '#13#10 +
+        '        EXCEPTION ac_e_trcantcontainautotr; '#13#10 +
+        '    END '#13#10 +
+        '  END '#13#10 +
+        'END';
+      q.ExecQuery;
+
+      q.SQL.Text :=
+        'CREATE OR ALTER TRIGGER AC_TRANSACTION_BI0 FOR AC_TRANSACTION '#13#10 +
+        '  ACTIVE '#13#10 +
+        '  BEFORE INSERT '#13#10 +
+        '  POSITION 0 '#13#10 +
+        'AS '#13#10 +
+        '  DECLARE a SMALLINT; '#13#10 +
+        'begin '#13#10 +
+        '  if (not new.parent is null) then '#13#10 +
+        '  begin '#13#10 +
+        '    select autotransaction '#13#10 +
+        '    from ac_transaction '#13#10 +
+        '    where id = new.parent '#13#10 +
+        '    into :a; '#13#10 +
+        '    new.autotransaction = COALESCE(:a, 0); '#13#10 +
+        '  end '#13#10 +
+        'end';
+      q.ExecQuery;
+
       q.SQL.Text :=
         'UPDATE OR INSERT INTO fin_versioninfo ' +
         '  VALUES (192, ''0000.0001.0000.0223'', ''11.11.2013'', ''Change FK for AC_LEDGER_ACCOUNTS.'') ' +
+        '  MATCHING (id)';
+      q.ExecQuery;
+
+      q.SQL.Text :=
+        'UPDATE OR INSERT INTO fin_versioninfo ' +
+        '  VALUES (193, ''0000.0001.0000.0224'', ''12.11.2013'', ''Corrected triggers for EVT_OBJECT.'') ' +
         '  MATCHING (id)';
       q.ExecQuery;
 

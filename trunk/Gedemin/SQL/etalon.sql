@@ -1415,6 +1415,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (192, '0000.0001.0000.0223', '11.11.2013', 'Change FK for AC_LEDGER_ACCOUNTS.');
 
+INSERT INTO fin_versioninfo
+  VALUES (193, '0000.0001.0000.0224', '12.11.2013', 'Corrected triggers for EVT_OBJECT.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
@@ -13286,39 +13289,35 @@ CREATE EXCEPTION AC_E_TRCANTCONTAINAUTOTR 'Can`t move autotransaction into trans
 
 SET TERM ^;
 
-CREATE TRIGGER AC_TRANSACTION_BU0 FOR AC_TRANSACTION
+CREATE OR ALTER TRIGGER AC_TRANSACTION_BU0 FOR AC_TRANSACTION
   ACTIVE
   BEFORE UPDATE
   POSITION 0
 AS
-  DECLARE a SMALLINT;
+  DECLARE a SMALLINT = NULL;
 begin
-  if (not new.parent is null) then
-  begin
-    select
-      autotransaction
-    from
-      ac_transaction
-    where
-      id = new.parent
-    into :a;
+  IF ((NOT NEW.parent IS NULL)
+    AND (NEW.autotransaction IS DISTINCT FROM OLD.autotransaction)) THEN
+  BEGIN
+    SELECT autotransaction
+    FROM ac_transaction
+    WHERE id = new.parent
+    INTO :a;
 
-    if (a is null) then a = 0;
-    if (new.autotransaction is null) then new.autotransaction = 0;
-    if (new.autotransaction <> a) then
-    begin
-      if (a = 1) then
-      begin
+    a = COALESCE(:a, 0);
+    NEW.autotransaction = COALESCE(NEW.autotransaction, 0);
+
+    IF (NEW.autotransaction <> a) THEN
+    BEGIN
+      IF (a = 1) THEN
         EXCEPTION ac_e_autotrcantcontaintr;
-      end else
-      begin
+      ELSE
         EXCEPTION ac_e_trcantcontainautotr;
-      end
-    end
-  end
-end^
+    END
+  END
+END^
 
-CREATE TRIGGER AC_TRANSACTION_BI0 FOR AC_TRANSACTION
+CREATE OR ALTER TRIGGER AC_TRANSACTION_BI0 FOR AC_TRANSACTION
   ACTIVE
   BEFORE INSERT
   POSITION 0
@@ -13327,15 +13326,11 @@ AS
 begin
   if (not new.parent is null) then
   begin
-    select
-      autotransaction
-    from
-      ac_transaction
-    where
-      id = new.parent
+    select autotransaction
+    from ac_transaction
+    where id = new.parent
     into :a;
-    if (a is null) then a = 0;
-    new.autotransaction = a;
+    new.autotransaction = COALESCE(:a, 0);
   end
 end^
 
@@ -14451,52 +14446,36 @@ END
 
 CREATE OR ALTER TRIGGER evt_bi_object1 FOR evt_object
   ACTIVE
-  BEFORE INSERT
+  BEFORE INSERT OR UPDATE
   POSITION 1
 AS
 BEGIN
-  /* Если старая версия Гедемина, то возвращаем ошибку*/
-  IF ((NOT NEW.name is NULL) AND
-     (NEW.objectname is NULL) AND
-     (NEW.classname is NULL) AND
-     (NEW.subtype is NULL))
+  IF ((NOT NEW.name IS NULL) AND
+     (NEW.objectname IS NULL) AND
+     (NEW.classname IS NULL) AND
+     (NEW.subtype IS NULL))
   THEN
     EXCEPTION  EVT_E_INCORRECTVERSION;
 
-  /* Проверяет корректность вводимых данных */
+  NEW.objectname = COALESCE(NEW.objectname, '');
+  NEW.classname = COALESCE(NEW.classname, '');
+  NEW.subtype = COALESCE(NEW.subtype, '');
 
-  IF (NEW.objectname is NULL) THEN
-    NEW.objectname = '';
-  IF (NEW.classname is NULL) THEN
-    NEW.classname = '';
-  IF (NEW.subtype is NULL) THEN
-    NEW.subtype = '';
-
-  /* Проверяет корректность вводимых данных */
   IF
     (
-    ((NEW.objectname = '') and (NEW.classname = '')) or
-    ((NEW.subtype <> '') and ((NEW.objectname <> '') or
+    ((NEW.objectname = '') AND (NEW.classname = '')) OR
+    ((NEW.subtype <> '') AND ((NEW.objectname <> '') OR
      (NEW.classname = '')))
-    ) then
+    ) THEN
   BEGIN
     EXCEPTION EVT_E_RECORDINCORRECT;
-  END
-
-  IF (NEW.classname > '') THEN
-  BEGIN
-    IF (EXISTS (SELECT * FROM evt_object WHERE UPPER(classname)=UPPER(NEW.classname)
-      AND UPPER(subtype)=UPPER(NEW.subtype))) THEN
-    BEGIN
-      EXCEPTION EVT_E_RECORDINCORRECT;
-    END
   END
 END
 ^
 
 CREATE OR ALTER TRIGGER evt_bi_object2 FOR evt_object
   ACTIVE
-  BEFORE INSERT
+  BEFORE INSERT OR UPDATE
   POSITION 2
 AS
 BEGIN
@@ -14538,87 +14517,6 @@ CREATE OR ALTER TRIGGER evt_bu_object FOR evt_object
 AS
 BEGIN
   NEW.parentindex = COALESCE(NEW.parent, 1);
-END
-^
-
-CREATE OR ALTER TRIGGER evt_bu_object1 FOR evt_object
-ACTIVE BEFORE UPDATE POSITION 1
-AS
-BEGIN
-  /* Если старая версия Гедемина, то возвращаем ошибку*/
-  IF ((NOT NEW.name is NULL) AND
-     (NEW.objectname is NULL) AND
-     (NEW.classname is NULL) AND
-     (NEW.subtype is NULL))
-  THEN
-    EXCEPTION  EVT_E_INCORRECTVERSION;
-
-  /* Проверяет корректность вводимых данных */
-
-  IF (NEW.objectname is NULL) THEN
-    NEW.objectname = '';
-  IF (NEW.classname is NULL) THEN
-    NEW.classname = '';
-  IF (NEW.subtype is NULL) THEN
-    NEW.subtype = '';
-
-  /* Проверяет корректность вводимых данных */
-  IF
-    (
-    ((NEW.objectname = '') and (NEW.classname = '')) or
-    ((NEW.subtype <> '') and ((NEW.objectname <> '') or
-     (NEW.classname = '')))
-    ) then
-  BEGIN
-    EXCEPTION EVT_E_RECORDINCORRECT;
-  END
-
-  IF (NEW.classname > '') THEN
-  BEGIN
-    IF (EXISTS (SELECT * FROM evt_object WHERE UPPER(classname)=UPPER(NEW.classname)
-      AND UPPER(subtype)=UPPER(NEW.subtype) AND NEW.id <> id)) THEN
-    BEGIN
-      EXCEPTION EVT_E_RECORDINCORRECT;
-    END
-  END
-END
-^
-
-CREATE OR ALTER TRIGGER evt_bu_object2 FOR evt_object
-  ACTIVE
-  BEFORE UPDATE
-  POSITION 2
-AS
-BEGIN
-  /* Проверяет уникальность объекта или класса с подтипом*/
-  IF
-    (EXISTS(SELECT * FROM evt_object
-    WHERE
-    (UPPER(objectname) = UPPER(NEW.objectname))  AND
-    (UPPER(classname) = UPPER(NEW.classname)) AND
-    (parent IS NOT DISTINCT FROM NEW.parent) AND
-    (UPPER(subtype) = UPPER(NEW.subtype)) AND
-    (id <> NEW.id)))
-  THEN
-  BEGIN
-    EXCEPTION EVT_E_RECORDFOUND;
-  END
-
-  /* Заполняет поля name, objecttype для поддержки */
-  /* старой версии Гедемина */
-  IF (NEW.classname = '') THEN
-  BEGIN
-    NEW.objecttype = 0;
-    NEW.name = NEW.objectname;
-  END ELSE
-    BEGIN
-      NEW.objecttype = 1;
-      IF (NEW.subtype = '') THEN
-      BEGIN
-        NEW.name = NEW.classname;
-      END ELSE
-        NEW.name = NEW.classname || NEW.subtype;
-    END
 END
 ^
 

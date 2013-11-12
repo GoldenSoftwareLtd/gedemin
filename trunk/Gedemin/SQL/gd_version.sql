@@ -608,6 +608,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (192, '0000.0001.0000.0223', '11.11.2013', 'Change FK for AC_LEDGER_ACCOUNTS.');
 
+INSERT INTO fin_versioninfo
+  VALUES (193, '0000.0001.0000.0224', '12.11.2013', 'Corrected triggers for EVT_OBJECT.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
