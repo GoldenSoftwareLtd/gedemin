@@ -1,6 +1,6 @@
 object at_frmSyncNamespace: Tat_frmSyncNamespace
-  Left = 296
-  Top = 271
+  Left = 251
+  Top = 107
   Width = 1131
   Height = 518
   Caption = 'Синхронизация пространств имен'
@@ -527,6 +527,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       Caption = 'Снять отметку со всех записей'
       Hint = 'Снять отметку со всех записей'
       OnExecute = actClearAllExecute
+      OnUpdate = actClearAllUpdate
     end
     object actOnlyCompare: TAction
       Caption = '<-- Сравнить -->'
