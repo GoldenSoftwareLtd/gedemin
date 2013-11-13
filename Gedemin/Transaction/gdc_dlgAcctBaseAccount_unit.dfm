@@ -191,16 +191,23 @@ inherited gdc_dlgAcctBaseAccount: Tgdc_dlgAcctBaseAccount
       ImageIndex = 2
       object lblValues: TLabel
         Left = 6
-        Top = 165
+        Top = 182
         Width = 121
         Height = 13
         Caption = 'Ед.измерения по счету:'
+      end
+      object sbSelectedValues: TSpeedButton
+        Left = 301
+        Top = 176
+        Width = 122
+        Height = 21
+        Action = actSelectedValues
       end
       object pnlAnalytics: TPanel
         Left = 5
         Top = 5
         Width = 419
-        Height = 157
+        Height = 168
         BevelOuter = bvNone
         TabOrder = 0
         object pnlMainAnalytic: TPanel
@@ -232,7 +239,7 @@ inherited gdc_dlgAcctBaseAccount: Tgdc_dlgAcctBaseAccount
             ListField = 'LNAME'
             KeyField = 'ID'
             Condition = 'RELATIONNAME = '#39'AC_ACCOUNT'#39' AND FIELDNAME LIKE '#39'USR$%'#39
-            ItemHeight = 0
+            ItemHeight = 13
             ParentShowHint = False
             ShowHint = True
             TabOrder = 0
@@ -242,21 +249,28 @@ inherited gdc_dlgAcctBaseAccount: Tgdc_dlgAcctBaseAccount
           Left = 0
           Top = 23
           Width = 419
-          Height = 134
+          Height = 145
           Align = alClient
           BevelOuter = bvNone
           Caption = 'Panel1'
           TabOrder = 1
           object Label1: TLabel
             Left = 0
-            Top = 4
+            Top = 14
             Width = 59
             Height = 13
             Caption = 'Аналитики:'
           end
+          object sbSelectedAnalytics: TSpeedButton
+            Left = 296
+            Top = 6
+            Width = 122
+            Height = 21
+            Action = actSelectedAnalytics
+          end
           object atContainer: TatContainer
             Left = 0
-            Top = 19
+            Top = 30
             Width = 419
             Height = 115
             DataSource = dsgdcBase
@@ -269,7 +283,7 @@ inherited gdc_dlgAcctBaseAccount: Tgdc_dlgAcctBaseAccount
       end
       object sbValues: TScrollBox
         Left = 5
-        Top = 182
+        Top = 198
         Width = 419
         Height = 122
         TabOrder = 1
@@ -286,6 +300,16 @@ inherited gdc_dlgAcctBaseAccount: Tgdc_dlgAcctBaseAccount
   inherited alBase: TActionList
     Left = 375
     Top = 10
+    object actSelectedAnalytics: TAction
+      Caption = 'Только отмеченные'
+      OnExecute = actSelectedAnalyticsExecute
+      OnUpdate = actSelectedAnalyticsUpdate
+    end
+    object actSelectedValues: TAction
+      Caption = 'Только отмеченные'
+      OnExecute = actSelectedValuesExecute
+      OnUpdate = actSelectedValuesUpdate
+    end
   end
   inherited dsgdcBase: TDataSource
     Left = 345
