@@ -7,7 +7,7 @@ uses
   StdCtrls, Mask, DBCtrls, ExtCtrls, Db, IBCustomDataSet, Grids, DBGrids,
   gsDBGrid, gsIBGrid, dmDatabase_unit, ActnList, at_sql_setup, IBDatabase,
   gsIBLookupComboBox, IBSQL, gdc_dlgG_unit, at_Container, gdc_dlgTRPC_unit,
-  Menus, gd_KeyAssoc, ComCtrls;
+  Menus, gd_KeyAssoc, ComCtrls, Buttons;
 
 type
   Tgdc_dlgAcctBaseAccount = class(Tgdc_dlgTRPC)
@@ -35,9 +35,18 @@ type
     DBMemo1: TDBMemo;
     Label3: TLabel;
     dbcbDisabled: TDBCheckBox;
+    actSelectedAnalytics: TAction;
+    sbSelectedAnalytics: TSpeedButton;
+    sbSelectedValues: TSpeedButton;
+    actSelectedValues: TAction;
     procedure actNewUpdate(Sender: TObject);
     procedure atContainerAdjustControl(Sender: TObject; Control: TControl);
     procedure atcMainAdjustControl(Sender: TObject; Control: TControl);
+    procedure actSelectedAnalyticsExecute(Sender: TObject);
+    procedure actSelectedAnalyticsUpdate(Sender: TObject);
+    procedure actSelectedValuesExecute(Sender: TObject);
+    procedure actSelectedValuesUpdate(Sender: TObject);
+
   private
     //Список ключей ед.измерения текущего счета с чек-боксом
     FValuesArray: TgdKeyObjectAssoc;
@@ -69,6 +78,10 @@ implementation
 uses
   gd_ClassList;
 
+const 
+  All = 'Все';
+  OnlySelected = 'Только отмеченные';
+
 type
   TValueCheckBox = class(TCheckBox);
 
@@ -90,6 +103,12 @@ begin
   inherited;
   FValuesArray := TgdKeyObjectAssoc.Create;
   atContainer.Sorted := True;
+
+  if not (csDesigning in ComponentState) then
+  begin
+    actSelectedAnalytics.Caption := OnlySelected;
+    actSelectedValues.Caption := OnlySelected;
+  end;
 end;
 
 destructor Tgdc_dlgAcctBaseAccount.Destroy;
@@ -366,6 +385,83 @@ begin
   for i:= 0 to atContainer.ComponentCount - 1 do
     if atContainer.Components[i] is TLabel then
       (atContainer.Components[i] as TLabel).Visible := False;
+end;
+
+procedure Tgdc_dlgAcctBaseAccount.actSelectedAnalyticsExecute(Sender: TObject);
+var
+  I: Integer;
+begin  
+  if TAction(Sender).Caption = OnlySelected then
+  begin
+    for I := 0 to atContainer.ControlCount - 1 do
+    begin
+      if (atContainer.Controls[i] is TDBCheckBox)
+        and not (atContainer.Controls[i] as TDBCheckBox).Checked
+      then
+        (atContainer.Controls[i] as TDBCheckBox).Visible := False;
+    end;
+
+    TAction(Sender).Caption := All;
+  end else
+  if TAction(Sender).Caption = All then
+  begin
+    for I := 0 to atContainer.ControlCount - 1 do
+    begin
+      if (atContainer.Controls[i] is TDBCheckBox) then
+        (atContainer.Controls[i] as TDBCheckBox).Visible := True;
+    end;
+        
+    TAction(Sender).Caption := OnlySelected;
+  end;
+end;
+
+procedure Tgdc_dlgAcctBaseAccount.actSelectedAnalyticsUpdate(Sender: TObject);
+begin
+  if (TAction(Sender).Caption <> All)
+    and (TAction(Sender).Caption <> OnlySelected) then
+  begin
+    TAction(Sender).Caption := All;
+    TAction(Sender).Execute;
+  end;
+end;
+
+procedure Tgdc_dlgAcctBaseAccount.actSelectedValuesExecute(
+  Sender: TObject);
+var
+  I: Integer;
+begin
+  if TAction(Sender).Caption = OnlySelected then
+  begin
+    for I := 0 to sbValues.ComponentCount - 1 do
+    begin
+      if (sbValues.Components[I] is TValueCheckBox)
+        and (not TValueCheckBox(sbValues.Components[I]).Checked)
+      then
+        TValueCheckBox(sbValues.Components[I]).Visible := False;
+    end;
+
+    TAction(Sender).Caption := All;
+  end else
+  if TAction(Sender).Caption = All then
+  begin
+    for I := 0 to sbValues.ComponentCount - 1 do
+    begin
+      if (sbValues.Components[I] is TValueCheckBox) then
+        TValueCheckBox(sbValues.Components[I]).Visible := True;
+    end;
+
+    TAction(Sender).Caption := OnlySelected;
+  end;
+end;
+
+procedure Tgdc_dlgAcctBaseAccount.actSelectedValuesUpdate(Sender: TObject);
+begin
+  if (TAction(Sender).Caption <> All)
+    and (TAction(Sender).Caption <> OnlySelected) then
+  begin
+    TAction(Sender).Caption := All;
+    TAction(Sender).Execute;
+  end;
 end;
 
 initialization
