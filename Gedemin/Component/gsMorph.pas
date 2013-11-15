@@ -39,6 +39,7 @@ const
   { Имя }
   nmNar = 0;               { Имя нарицательное }
   nmOwn = 1;               { Имя собственное   }
+  nmNum = 2;               { Имя числительное  }
 
 function GetCase(TheWord: String; Gender, TheCase, Name: Word): String;
 function FIOCase(LastName, FirstName, MiddleName: String; Sex, TheCase: Word): String;
@@ -57,9 +58,11 @@ function GetNumericWordForm(const ANum: Integer; const AStrForm1, AStrForm2, ASt
 implementation
 
 uses
-  Sysutils;
+  Sysutils, jclStrings;
 
-type TNMSet = array[csNominative..csPreposizionale] of String[3];
+type
+  TNMSet = array[csNominative..csPreposizionale] of String[3];
+  TNHSet = array[csNominative..csPreposizionale] of String[9];
 const
   NMA: TNMSet = ('ий', 'ия', 'ию', 'ия', 'ием', 'ии');
   NMB: TNMSet = ('ай', 'ая', 'аю', 'ая', 'аем', 'ае');
@@ -92,7 +95,58 @@ const
     'п', 'р', 'с', 'т', 'ф', 'х', 'ч', 'ц', 'ш', 'щ', 'ь', 'ъ'];
   n_sogl: set of Char = ['л', 'м', 'к', 'т', 'х', 'ц', 'п', 'x', 'с', 'р', 'ж', 'г', 'н', 'ш'];
 
+  IsNumeral = ';два;три;четыре;пять;шесть;семь;восемь;девять;десять;одиннадцать' +
+    ';двенадцать;тринадцать;четырнадцать;пятнадцать;шестнадцать;семнадцать;восемнадцать' +
+    ';девятнадцать;двадцат ь;тридцать;сорок;пятьдесят;шестьдесят;семьдесят;восемьдесят' +
+    ';девяносто;сто;двести;тристо;четыресто;пятьсот;шестьсот;семьсот;восемьсот;девятьсот';
+
+  NA: TNMSet = ('ь', 'и', 'и', 'ь', 'ью', 'и');
+  NB: TNHSet = ('десят', 'десяти', 'десяти', 'десят', 'десятью', 'десяти');
+  NC: TNHSet = ('сот', 'сот', 'стам', 'сот', 'стами', 'стах');
+  ND: TNHSet = ('сорок', 'сорока', 'сорока', 'сорок', 'сорока', 'сорока');
+  NE: TNHSet = ('девяносто', 'девяноста', 'девяноста', 'девяносто', 'девяноста', 'девяноста');
+  NF: TNHSet = ('сто', 'ста', 'ста', 'сто', 'ста', 'ста');
+  NG: TNHSet = ('два', 'двух', 'двум', 'два', 'двумя', 'двух');
+  NH: TNHSet = ('три', 'трех', 'трем', 'три', 'тремя', 'трех');
+  NI: TNHSet = ('четыре', 'четырех', 'четырем', 'четыре', 'четырьмя', 'четырех');
+  NJ: TNHSet = ('восемь', 'восьми', 'восьми', 'восемь', 'восьмью', 'восьми');
+
+
+
 {Мужские и женские имена на -о не склоняются}
+
+function Numeral(TheWord: String; TheCase: Word): String;   
+begin
+  Result := TheWord;
+
+  if TheWord = 'сто' then
+    Result := NF[TheCase]
+  else if TheWord = 'сорок' then
+    Result := ND[TheCase]
+  else if TheWord = 'девяносто' then
+    Result := NE[TheCase]
+  else if TheWord = 'восемь' then
+    Result := NJ[TheCase]
+  else if TheWord = 'два' then
+    Result := NG[TheCase]
+  else if TheWord = 'три' then
+    Result := NH[TheCase]
+  else if TheWord = 'четыре' then
+    Result := NI[TheCase]
+  else if TheWord[Length(TheWord)] = 'ь' then
+  begin
+    Delete(Result, Length(Result), 1);
+    Result := Result + NA[TheCase];
+  end else
+  if StrIPos('десят', TheWord) > 1 then
+  begin
+    Result := Numeral(Copy(TheWord, 1, Length(TheWord) - 5), TheCase) + NB[TheCase];
+  end else
+  if StrIPos('сот', TheWord) > 0 then
+  begin
+    Result := Numeral(Copy(TheWord, 1, Length(TheWord) - 3), TheCase) + NC[TheCase];
+  end;
+end;
 
 function NormaLizeWord(const TheWord: String): String;
 begin
@@ -680,8 +734,11 @@ begin
     end;
     Result := TrimRight(Text);
   end else
+  if Pos(';' + StartText + ';', IsNumeral) > 0 then
+    Result := Numeral(StartText, TheCase)
+  else
     Result := NameCase(StartText, TheCase);
-end;
+end; 
 
 function GetNumericWordForm(const ANum: Integer; const AStrForm1, AStrForm2, AStrForm5: String): String;
 var
