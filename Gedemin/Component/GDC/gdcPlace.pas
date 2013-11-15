@@ -83,12 +83,14 @@ begin
 
   if State = dsInactive then
     Result :=
-      'SELECT id FROM gd_place ' +
-      'WHERE UPPER(name) = UPPER(:name) ' +
-      '  AND UPPER(placetype) = UPPER(:placetype)'
+      'SELECT p.id FROM gd_place p ' +
+      'WHERE UPPER(p.name) = UPPER(:name) ' +
+      '  AND UPPER(p.placetype) = UPPER(:placetype) ' +
+      '  AND p.parent IS NOT DISTINCT FROM :parent '
   else if ID < cstUserIDStart then
     Result := inherited CheckTheSameStatement
   else
+  begin
     Result :=
       'SELECT id FROM gd_place ' +
       'WHERE UPPER(name) = UPPER(''' +
@@ -97,6 +99,11 @@ begin
       '  AND UPPER(placetype) = UPPER(''' +
         StringReplace(FieldByName('placetype').AsString, '''', '''''', [rfReplaceAll]) +
         ''')';
+    if FieldByName('parent').IsNull then
+      Result := Result + ' AND parent IS NULL'
+    else
+      Result := Result + ' AND parent = ' + FieldByName('parent').AsString;
+  end;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCPLACE', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally

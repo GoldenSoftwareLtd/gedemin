@@ -467,7 +467,7 @@ begin
     NSC.OnLogMessage := Log;
     NSC.UpdateCurrModified := False;
     NSC.Directory := LoadSettingPath;
-    NSC.Scan(False, False);
+    NSC.Scan(False, False, False);
     NSC.ApplyFilter;
     if NSC.DataSet.Locate('filename', LoadSettingFileName, [loCaseInsensitive]) then
     begin

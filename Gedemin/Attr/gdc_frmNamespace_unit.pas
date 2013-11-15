@@ -67,7 +67,7 @@ end;
 
 procedure Tgdc_frmNamespace.actSaveToFileExecute(Sender: TObject);
 begin
-  (gdcObject as TgdcNamespace).SaveNamespaceToFile;
+  (gdcObject as TgdcNamespace).SaveNamespaceToFile('', True);
 end;
 
 procedure Tgdc_frmNamespace.actCompareWithDataExecute(Sender: TObject);

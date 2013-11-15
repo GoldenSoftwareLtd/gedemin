@@ -41,7 +41,7 @@ type
     constructor Create;
     destructor Destroy; override;
 
-    procedure Scan(const ACalculateStatus: Boolean; const ASaveDir: Boolean);
+    procedure Scan(const ACalculateStatus: Boolean; const AClearUnexisted: Boolean; const ASaveDir: Boolean);
     procedure ApplyFilter;
     procedure BuildTree;
     procedure DeleteFile(const AFileName: String);
@@ -659,7 +659,10 @@ begin
     '     (EXISTS (SELECT * FROM at_namespace_sync s2 '#13#10 +
     '        JOIN at_namespace n ON n.id = s2.namespacekey '#13#10 +
     '        JOIN at_namespace_file f ON f.filename = s2.filename '#13#10 +
-    '        WHERE n.filetimestamp > f.filetimestamp '#13#10 +
+    '        WHERE '#13#10 +
+//    '          n.filetimestamp > f.filetimestamp '#13#10 +
+    '          TRUNC(RIGHT(n.version, POSITION(''.'', REVERSE(n.version)) - 1)) > '#13#10 +
+    '            TRUNC(RIGHT(f.version, POSITION(''.'', REVERSE(f.version)) - 1)) '#13#10 +
     '          AND s2.namespacekey = s.namespacekey AND s2.filename = s.filename'#13#10 +
     '      )'#13#10 +
     '     ) '#13#10 +
@@ -671,7 +674,10 @@ begin
     '   (EXISTS (SELECT * FROM at_namespace_sync s2 '#13#10 +
     '      JOIN at_namespace n ON n.id = s2.namespacekey '#13#10 +
     '      JOIN at_namespace_file f ON f.filename = s2.filename '#13#10 +
-    '      WHERE n.filetimestamp < f.filetimestamp '#13#10 +
+    '      WHERE  '#13#10 +
+//    '        n.filetimestamp < f.filetimestamp '#13#10 +
+    '          TRUNC(RIGHT(n.version, POSITION(''.'', REVERSE(n.version)) - 1)) < '#13#10 +
+    '            TRUNC(RIGHT(f.version, POSITION(''.'', REVERSE(f.version)) - 1)) '#13#10 +
     '        AND s2.namespacekey = s.namespacekey AND s2.filename = s.filename'#13#10 +
     '      )'#13#10 +
     '    )'#13#10 +
@@ -682,7 +688,10 @@ begin
     '   (EXISTS (SELECT * FROM at_namespace_sync s2 '#13#10 +
     '      JOIN at_namespace n ON n.id = s2.namespacekey '#13#10 +
     '      JOIN at_namespace_file f ON f.filename = s2.filename '#13#10 +
-    '      WHERE n.filetimestamp < f.filetimestamp '#13#10 +
+    '      WHERE '#13#10 +
+//    '        n.filetimestamp < f.filetimestamp '#13#10 +
+    '        TRUNC(RIGHT(n.version, POSITION(''.'', REVERSE(n.version)) - 1)) < '#13#10 +
+    '          TRUNC(RIGHT(f.version, POSITION(''.'', REVERSE(f.version)) - 1)) '#13#10 +
     '        AND s2.namespacekey = s.namespacekey AND s2.filename = s.filename'#13#10 +
     '      )'#13#10 +
     '    )'#13#10 +
@@ -905,7 +914,7 @@ begin
 end;
 
 procedure TgdcNamespaceSyncController.Scan(const ACalculateStatus: Boolean;
-  const ASaveDir: Boolean);
+  const AClearUnexisted: Boolean; const ASaveDir: Boolean);
 var
   SL: TStringList;
   I: Integer;
@@ -942,6 +951,15 @@ begin
   begin
     DoLog(lmtInfo, 'Определение статуса...');
     FqFillSync.ExecQuery;
+
+    if AClearUnexisted then
+    begin
+      Fq.Close;
+      Fq.SQL.Text :=
+        'UPDATE at_namespace_sync SET operation = ''  '' ' +
+        'WHERE operation IN (''> '', ''< '') ';
+      Fq.ExecQuery;  
+    end;
   end else
   begin
     Fq.Close;
