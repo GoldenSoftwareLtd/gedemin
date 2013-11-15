@@ -2,7 +2,7 @@
 {++
 
 
-  Copyright (c) 2001-2011 by Golden Software of Belarus
+  Copyright (c) 2001-2013 by Golden Software of Belarus
 
   Module
 
@@ -64,13 +64,11 @@ type
 
 type
   TgdcTaxName = class(TgdcBase)
-  protected
-    function CreateDialogForm: TCreateableForm; override;
-
   public
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
+    class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDisplayName(const ASubType: TgdcSubType): String; override;
 
     function CheckTheSameStatement: String; override;
@@ -82,8 +80,6 @@ type
     FTrRecordKey: Integer;
 
   protected
-    function CreateDialogForm: TCreateableForm; override;
-
     function  GetSelectClause: String; override;
     function  GetFromClause(const ARefresh: Boolean = False): String; override;
     procedure GetWhereClauseConditions(S: TStrings); override;
@@ -99,7 +95,7 @@ type
     class function GetListField(const ASubType: TgdcSubType): String; override;
 
     class function GetSubSetList: String; override;
-    class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
+    class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
 
     procedure Post; override;
 
@@ -155,22 +151,17 @@ type
     property CorrectResult: OleVariant read GetCorrectResult;
   end;
 
-{  procedure ConvertTFIntoScript(const FuncName: String; var Script: String;
-    var ArrayEstabl: TArrayEstabl; out ContainIncFunc: Boolean);}
   procedure Register;
 
 var
   gsFunction: IDispatch;
-  //gsSetTaxFunction: IgsSetTaxDate;
 
 implementation
 
 uses
-  gd_ClassList, sysutils, {gdc_frmTaxFunction_unit, gdc_dlgTaxFunction_unit,}
-  gdc_dlgTaxActual_unit, Forms, gdcReport, gdcConstants, Db, IBSQL,
-  scrReportGroup, Windows, gd_security_operationconst, gdc_dlgTaxName_unit,
-  gdcCustomFunction, gd_directories_const, gdcAutoTransaction,
-  gdcAcctTransaction;
+  gd_ClassList, SysUtils, gdc_dlgTaxActual_unit, Forms, gdcReport, gdcConstants,
+  Db, IBSQL, scrReportGroup, Windows, gd_security_operationconst, gdc_dlgTaxName_unit,
+  gdcCustomFunction, gd_directories_const, gdcAutoTransaction, gdcAcctTransaction;
 
 const
   txNameChars =
@@ -200,186 +191,6 @@ begin
   RegisterComponents('gdc', [TgdcTaxResult]);
   RegisterComponents('gdc', [TgdcTaxName]);
 end;
-
-(*procedure ConvertTFIntoScript(const FuncName: String; var Script: String;
-  var ArrayEstabl: TArrayEstabl; out ContainIncFunc: Boolean);
-var
-  IncludingStr: String;
-
-const
-  tfBFD     = '[';
-  tfEFD     = ']';
-  tfSpace   = ' ';
-  tfColon   = ':';
-  tfStrDecl = '"';
-  tfPoint   = '.';
-  tfComma   = ',';
-
-  procedure ConvertProcess(var Script: String);
-  var
-    CI: Integer;
-    CBCount, CSDCount: Integer;
-    CtxFunc: TtxFuncDecl;
-    CTypeStr: String;
-    CBNamePos: Integer;
-    CTmpStr: String;
-    CPrevLength: Integer;
-    CtxFuncParam: String;
-    CCommaFound: Boolean;
-  begin
-    CCommaFound := False;
-    CI := 1;
-//    ArrayEstabl[CI - 1] := 1;
-    CBCount := 0;
-    CSDCount := 0;
-    CBNamePos := 0;
-    while CI <= Length(Script) do
-    begin
-      case Script[CI] of
-        tfColon:
-          if CSDCount mod 2 = 0 then
-            raise Exception.Create('Ошибка синтаксиса.'#13#10 +
-              'Использование символа ":" запрещено.');
-        tfComma:
-        begin
-          if CCommaFound and (CSDCount mod 2 = 0) then
-            raise Exception.Create('Ошибка синтаксиса (две запятые подряд).'#13#10 +
-              'Возможно, пропущен параметр.');
-          CCommaFound := True;
-        end;
-        tfBFD:
-        begin
-          if CBCount = 0 then
-          begin
-            CtxFunc.Name := '';
-            CtxFunc.FuncType := txUnknown;
-            CtxFunc.BPos := CI;
-            CtxFunc.EPos := -1;
-            CBNamePos := -1;
-          end;
-          Inc(CBCount);
-        end;
-        tfStrDecl: Inc(CSDCount);
-        tfEFD:
-        begin
-          Dec(CBCount);
-          if (CBCount = 0) and ((CSDCount mod 2) = 0) then
-          begin
-            CSDCount := 0;
-            CtxFunc.EPos := CI;
-//            ArrayEstabl[CI - 1] := CtxFunc.BPos + 1;
-            CI := CtxFunc.BPos + 1;
-//            CI := ArrayEstabl[CI -1];
-            while CI <= CtxFunc.EPos do
-            begin
-              case Script[CI] of
-                tfSpace: ;
-                tfPoint:
-                begin
-                  if not (CtxFunc.FuncType = txUnknown) then
-                    raise Exception.Create('Ошибка синтаксиса (две точки подряд).');
-
-                  CTypeStr := AnsiUpperCase(Trim(copy(Script, CtxFunc.BPos + 1,
-                    CI - CtxFunc.BPos - 1)));
-                  if CTypeStr = tfVBF then
-                  begin
-                    CtxFunc.FuncType := txVB;
-                  end else
-                  if CTypeStr = tfSFF then
-                  begin
-                    CtxFunc.FuncType := txSF
-                  end else
-                  if CTypeStr = tfCFF then
-                  begin
-                    CtxFunc.FuncType := txCF
-                  end else
-                  if CTypeStr = tfGSF then
-                  begin
-                    CtxFunc.FuncType := txGS
-                  end else
-                    raise Exception.Create('Тип функции не определен.');
-                end
-                else
-                  begin
-                    if (not (CtxFunc.FuncType = txUnknown)) then
-                    begin
-                      if CBNamePos = -1 then
-                      begin
-                        if Pos(Script[CI], txNameChars) > 0  then
-                          CBNamePos := CI
-                        else
-                          raise Exception.Create('Ошибка синтаксиса.');
-                      end else
-                        if Pos(Script[CI], txNameChars) = 0  then
-                        begin
-                          CPrevLength := Length(Script);
-
-                          CtxFunc.Name := Copy(Script, CBNamePos, CI - CBNamePos);
-                          if Length(CtxFunc.Name) > 0 then
-                          begin
-                            CtxFuncParam := Copy(Script, CI, CtxFunc.EPos - CI);
-                            ConvertProcess(CtxFuncParam);
-                            CTmpStr := CtxFunc.Name + CtxFuncParam +
-                              Copy(Script, CtxFunc.EPos + 1, Length(Script));
-
-                            case CtxFunc.FuncType of
-                              txVB:
-                                Script := Copy(Script, 1, CtxFunc.BPos - 1) + CTmpStr;
-                              txSF:
-                              begin
-                                ContainIncFunc := True;
-                                IncludingStr := IncludingStr +
-                                  '''#include ' + CtxFunc.Name + ' :';
-//                                IncludingStr := IncludingStr +
-//                                  '''#include ' + CtxFunc.Name + #13#10;
-                                Script := Copy(Script, 1, CtxFunc.BPos - 1) + CTmpStr;
-                              end;
-                              txCF:
-                                Script := Copy(Script, 1, CtxFunc.BPos - 1) +
-                                  'GS.GetValue("' + CtxFunc.Name + '")' +
-                                  Copy(CTmpStr, 1 + Length(CtxFunc.Name), Length(CTmpStr));
-                              txGS:
-                                Script := Copy(Script, 1, CtxFunc.BPos - 1) +
-                                  'GS.' + CTmpStr;
-                              else
-                                raise Exception.Create('Тип функции не определен.');
-                            end;
-
-//                            ArrayEstabl[CI - 1] := CtxFunc.EPos - (CPrevLength - Length(Script));
-//                            CI := ArrayEstabl[CI - 1];//CtxFunc.EPos - (CPrevLength - Length(Script));
-                            CI := CtxFunc.EPos - (CPrevLength - Length(Script));
-                            Break;
-                          end else
-                            raise Exception.Create('Ошибка в имени функции.');
-                        end;
-                    end;
-                  end;
-              end;
-
-              Inc(CI);
-//              ArrayEstabl[CI - 1] := CI;
-            end;
-          end;
-        end;
-      end;
-      if (Script[CI] <> tfSpace) and (Script[CI] <> tfComma)  then
-        CCommaFound := False;
-      Inc(CI);
-    end;
-    if (CSDCount mod 2) <> 0 then
-      raise Exception.Create('Ошибка синтаксиса.'#13#10 +
-        'Обнаружена незаконченная строка.');
-  end;
-
-begin
-  IncludingStr := '';
-  ContainIncFunc := False;
-  Script := StringReplace(Script, ''#13#10, ' ', [rfReplaceAll, rfIgnoreCase]);
-  ConvertProcess(Script);
-  Script := 'function ' + FuncName + ' :' +
-    '  ' + FuncName + ' = ' + Script + ' :' +
-    'end function: ' + IncludingStr;
-end;*)
 
 { TgdcTaxActual }
 
@@ -510,60 +321,6 @@ begin
   end;
 end;
 
-
-function TgdcTaxActual.CreateDialogForm: TCreateableForm;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_FUNCCREATEDIALOGFORM('TGDCTAXACTUAL', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  try
-  {M}    Result := nil;
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCTAXACTUAL', KEYCREATEDIALOGFORM);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCREATEDIALOGFORM]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCTAXACTUAL') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCTAXACTUAL',
-  {M}          'CREATEDIALOGFORM', KEYCREATEDIALOGFORM, Params, LResult) then
-  {M}          begin
-  {M}            Result := nil;
-  {M}            if VarType(LResult) <> varDispatch then
-  {M}              raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен не объект.')
-  {M}            else
-  {M}              if IDispatch(LResult) = nil then
-  {M}                raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                  'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен пустой (null) объект.');
-  {M}            Result := GetInterfaceToObject(LResult) as TCreateableForm;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCTAXACTUAL' then
-  {M}        begin
-  {M}          Result := Inherited CreateDialogForm;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-//  Result := Tgdc_dlgTaxActual.CreateSubType(Application, '');
-  Result := Tgdc_dlgTaxActual.Create(ParentForm);
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCTAXACTUAL', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCTAXACTUAL', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM);
-  {M}  end;
-  {END MACRO}
-end;
-
 procedure TgdcTaxActual.DoAfterDelete;
 var
   {@UNFOLD MACRO INH_ORIG_PARAMS()}
@@ -681,6 +438,12 @@ begin
   {M}      ClearMacrosStack2('TGDCTAXACTUAL', 'DOBEFOREDELETE', KEYDOBEFOREDELETE);
   {M}  end;
   {END MACRO}
+end;
+
+class function TgdcTaxActual.GetDialogFormClassName(
+  const ASubType: TgdcSubType): String;
+begin
+  Result := 'Tgdc_dlgTaxActual';
 end;
 
 function TgdcTaxActual.GetFromClause(const ARefresh: Boolean): String;
@@ -850,13 +613,6 @@ begin
   Result := inherited GetSubSetList + 'ByTax;';
 end;
 
-class function TgdcTaxActual.GetViewFormClassName(
-  const ASubType: TgdcSubType): String;
-begin
-  Result := inherited GetViewFormClassName(ASubType);
-//  Result := 'Tgdc_frmTaxActual';
-end;
-
 procedure TgdcTaxActual.GetWhereClauseConditions(S: TStrings);
 begin
   inherited;
@@ -865,30 +621,16 @@ begin
     S.Add('taxnamekey = :taxnamekey');
 end;
 
-{procedure TgdcTaxActual.PopupActualReportMenu(const X, Y: Integer);
-var
-  Pt: TPoint;
-begin
-  CreateActualReportMenu;
-
-  if (X = -1) and (Y = -1) then
-    GetCursorPos(Pt)
-  else
-    Pt := Point(X, Y);
-
-  FpmActualReport.Popup(Pt.X, Pt.Y);
-end;}
-
 procedure TgdcTaxActual.Post;
 var
   FolderName: String;
-  RepGrID: Integer;
   ParentFolder: Integer;
   D: TgdcBase;
+  RG: TgdcReportGroup;
 begin
   FolderName := Format(txReportFolder,
     [Self.FieldByName(fntaxname).AsString, Self.FieldByName(fnactualdate).AsString]);
- 
+
   D := TgdcTaxName.Create(nil);
   try
     D.ReadTransaction := Self.ReadTransaction;
@@ -898,33 +640,36 @@ begin
     D.Free;
   end;
 
-  with TgdcReportGroup.Create(nil) do
+  RG := TgdcReportGroup.Create(nil);
   try
-    ReadTransaction := Self.ReadTransaction;
-    Transaction := Self.Transaction;
+    RG.ReadTransaction := Self.ReadTransaction;
+    RG.Transaction := Self.Transaction;
 
     if Self.FieldByName(fnREPORTGROUPKEY).IsNull then
     begin
-      Open;
-      Insert;
-      FieldByName(fnname).AsString := FolderName;
-      FieldByName(fnparent).AsInteger := ParentFolder;
-      Post;
+      RG.Open;
+      RG.Insert;
+      RG.FieldByName(fnname).AsString := FolderName;
+      RG.FieldByName(fnparent).AsInteger := ParentFolder;
+      RG.Post;
 
-      RepGrID :=  FieldByName(fnid).AsInteger;
-      Self.FieldByName(fnreportgroupkey).AsInteger := RepGrId;
+      Self.FieldByName(fnreportgroupkey).AsInteger := RG.ID;
     end else
     begin
-      SubSet := 'ByID';
-      ParamByName(fnid).AsInteger := Self.FieldByName(fnReportGroupKey).AsInteger;
-      Open;
-      Edit;
-      FieldByName(fnname).AsString := FolderName;
-      FieldByName(fnparent).AsInteger := ParentFolder;
-      Post;
+      RG.SubSet := 'ByID';
+      RG.ID := Self.FieldByName(fnReportGroupKey).AsInteger;
+      RG.Open;
+      if (RG.FieldByName(fnname).AsString <> FolderName) or
+        (RG.FieldByName(fnparent).AsInteger <> ParentFolder) then
+      begin
+        RG.Edit;
+        RG.FieldByName(fnname).AsString := FolderName;
+        RG.FieldByName(fnparent).AsInteger := ParentFolder;
+        RG.Post;
+      end;
     end;
   finally
-    Free;
+    RG.Free;
   end;
 
   inherited;
@@ -1104,12 +849,9 @@ begin
   {M}    end;
   {END MACRO}
   Result := inherited GetFromClause(ARefresh) +
-//    '   LEFT JOIN gd_taxdesigndate td ON td.documentkey = z.id ' +
     '   LEFT JOIN gd_taxresult tr ON tr.documentkey = z.id ' +
     '   LEFT JOIN gd_taxdesigndate td ON td.documentkey = tr.taxdesigndatekey ' +
-//    '   LEFT JOIN gd_taxdesigndate td ON td.documentkey = tr.taxdesigndatekey ' +
     '   LEFT JOIN gd_taxactual ta ON ta.id = td.taxactualkey ' +
-//    '   LEFT JOIN gd_taxfunction tf ON tf.id = tr.taxfunctionkey ' +
     '   LEFT JOIN gd_taxtype tp ON tp.id = ta.typekey ' +
     '   LEFT JOIN gd_taxname t ON t.id = ta.taxnamekey ';
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCTAXRESULT', 'GETFROMCLAUSE', KEYGETFROMCLAUSE)}
@@ -1473,7 +1215,7 @@ end;
 procedure TgdcTaxDesignDate.GetWhereClauseConditions(S: TStrings);
 begin
   inherited;
-//  S.Add('parent IS NULL');
+
   if HasSubSet(stByTax) then
     S.Add('t.id = :taxnamekey');
 
@@ -1577,59 +1319,12 @@ begin
   {M}      ClearMacrosStack2('TGDCTAXNAME', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT);
   {M}  end;
   {END MACRO}
-
 end;
 
-function TgdcTaxName.CreateDialogForm: TCreateableForm;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
+class function TgdcTaxName.GetDialogFormClassName(
+  const ASubType: TgdcSubType): String;
 begin
-  {@UNFOLD MACRO INH_ORIG_FUNCCREATEDIALOGFORM('TGDCTAXNAME', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  try
-  {M}    Result := nil;
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCTAXNAME', KEYCREATEDIALOGFORM);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCREATEDIALOGFORM]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCTAXNAME') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCTAXNAME',
-  {M}          'CREATEDIALOGFORM', KEYCREATEDIALOGFORM, Params, LResult) then
-  {M}          begin
-  {M}            Result := nil;
-  {M}            if VarType(LResult) <> varDispatch then
-  {M}              raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен не объект.')
-  {M}            else
-  {M}              if IDispatch(LResult) = nil then
-  {M}                raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                  'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен пустой (null) объект.');
-  {M}            Result := GetInterfaceToObject(LResult) as TCreateableForm;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCTAXNAME' then
-  {M}        begin
-  {M}          Result := Inherited CreateDialogForm;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  Result := Tgdc_dlgTaxName.CreateSubType(ParentForm, SubType);
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCTAXNAME', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCTAXNAME', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM);
-  {M}  end;
-  {END MACRO}
+  Result := 'Tgdc_dlgTaxName';
 end;
 
 class function TgdcTaxName.GetDisplayName(
@@ -1667,5 +1362,4 @@ finalization
   UnRegisterGdcClass(TgdcTaxResult);
   UnRegisterGdcClass(TgdcTaxDesignDate);
   UnRegisterGdcClass(TgdcTaxName);
-
 end.

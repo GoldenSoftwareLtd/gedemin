@@ -320,18 +320,21 @@ end;
 
 procedure TyamlWriter.WriteBuffer(const ABuffer: AnsiString);
 var
-  L: Integer;
+  L, C: Integer;
 begin
-  L := Length(ABuffer);
+  C := Length(ABuffer);
 
-  if L > 0 then
+  while C > 0 do
   begin
-    if L > DefBufferSize then
-      raise EyamlException.Create('Data too long');
+    if C > DefBufferSize then
+      L := DefBufferSize
+    else
+      L := C;
     if FPosition + L > DefBufferSize then
       Flush;
     Move(ABuffer[1], FBuffer[FPosition], L);
     Inc(FPosition, L);
+    Dec(C, L);
   end;
 end;
 

@@ -191,7 +191,7 @@ begin
     Screen.Cursor := crHourGlass;
     FNSC.UpdateCurrModified := chbxUpdate.Checked;
     FNSC.Directory := tbedPath.Text;
-    FNSC.Scan(True, True);
+    FNSC.Scan(True, True, True);
     ApplyFilter;
   finally
     Screen.Cursor := OldCursor;

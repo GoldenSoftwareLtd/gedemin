@@ -145,9 +145,11 @@ object dlgCheckOperation: TdlgCheckOperation
       object chbxIncVersion: TCheckBox
         Left = 11
         Top = 42
-        Width = 169
+        Width = 606
         Height = 17
-        Caption = 'Увеличить номер версии'
+        Caption = 
+          'Увеличить номер билда (используется при сравнении ПИ из базы дан' +
+          'ных с файлом в окне синхронизации)'
         Checked = True
         State = cbChecked
         TabOrder = 0
