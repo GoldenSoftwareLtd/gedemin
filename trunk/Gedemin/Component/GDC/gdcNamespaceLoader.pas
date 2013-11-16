@@ -726,7 +726,7 @@ begin
       begin
         Obj.Insert;
         Obj.ID := RUIDID;
-        AddWarning('Стандартный объект ' + Obj.GetDisplayName(Obj.SubType) +
+        AddText('Стандартный объект ' + Obj.GetDisplayName(Obj.SubType) +
           ' ИД = ' + IntToStr(RUIDID) + '. Отсутствует в БД. Будет добавлен.');
       end else
         Obj.Edit;

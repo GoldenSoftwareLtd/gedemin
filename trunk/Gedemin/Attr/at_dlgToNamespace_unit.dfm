@@ -217,8 +217,6 @@ object dlgToNamespace: TdlgToNamespace
       Width = 330
       Height = 17
       Caption = 'Включить связанные объекты'
-      Checked = True
-      State = cbChecked
       TabOrder = 6
     end
   end

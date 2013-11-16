@@ -207,7 +207,8 @@ begin
   try
     try
       FHTTP.Get(TidURI.URLEncode(gdWebServerURL + '/get_files_list?' +
-        'update_token=' + FUpdateToken),
+        'update_token=' + FUpdateToken +
+        '&exe_ver=' + FExeVer),
         ResponseData);
       if ResponseData.Size > 0 then
         ResponseData.Position := 0;
