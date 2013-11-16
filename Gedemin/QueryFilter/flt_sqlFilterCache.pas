@@ -27,6 +27,7 @@ begin
   Assert(Assigned(IBLogin));
   Assert(Assigned(gdcBaseManager));
   Assert(gdcBaseManager.Database.Connected);
+  Assert(Cache <> nil);
 
   Cache.Clear;
   sqlFilterCache_UserKey := IBLogin.UserKey;
@@ -59,6 +60,9 @@ var
 begin
   Assert(Assigned(gdcBaseManager));
   Assert(gdcBaseManager.Database.Connected);
+
+  if Cache = nil then
+    exit;
 
   if Changed and (sqlFilterCache_UserKey > -1) then
   begin
