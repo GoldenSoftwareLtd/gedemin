@@ -1414,7 +1414,8 @@ begin
         on E: Exception do
         begin
           AddMistake(E.Message);
-          raise;
+          if not gd_CmdLineParams.QuietMode then
+            raise;
         end;
       end;
     finally
