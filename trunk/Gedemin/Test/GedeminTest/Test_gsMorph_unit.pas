@@ -4,13 +4,14 @@ unit Test_gsMorph_unit;
 interface
 
 uses
-  Classes, TestFrameWork, gsMorph;
+  Classes, TestFrameWork, gsMorph, windows;
 
 type
   TgsMorphTest = class(TTestCase)
   published
     procedure TestBasicBehavior;
     procedure TestNumericWordBehavior;
+    procedure TestNumeral;
   end;
 
 implementation
@@ -27,12 +28,21 @@ implementation
 *)
 
 const
-  WordCount = 3;
+  WordCount        = 3;
+  NumeralWordCount = 4;
   CaseTest: array[1..WordCount, csNominative..csPreposizionale] of String = (
     ('',         '',         '',         '',         '',         ''),
     ('человек',  'человека', 'человеку', 'человека', 'человеком','человеке'),
     ('моторист-рулевой',  'моториста-рулевого', 'мотористу-рулевому', 'моториста-рулевого', 'мотористом-рулевым', 'мотористе-рулевом')
   );
+
+  CaseNumeralTest: array[1..NumeralWordCount, csNominative..csPreposizionale] of String = (
+    ('три', 'трех', 'трем', 'три', 'тремя', 'трех'),
+    ('триста шестьдесят', 'трехсот шестидесяти', 'тремстам шестидесяти', 'триста шестьдесят', 'тремястами шестьюдесятью', 'трехстах шестидесяти'),
+    ('сорок восемь', 'сорока восьми', 'сорока восьми', 'сорок восемь', 'сорока восьмью', 'сорока восьми'),
+    ('десять', 'десяти', 'десяти', 'десять', 'десятью', 'десяти')
+  );
+
 
 procedure TgsMorphTest.TestBasicBehavior;
 var
@@ -69,6 +79,21 @@ begin
       'Ошибка при склонении слова "' + StringArray[I, 0] + '" по числу 2');
     Check(GetNumericWordForm(5, StringArray[I, 0], StringArray[I, 1], StringArray[I, 2]) = StringArray[I, 2],
       'Ошибка при склонении слова "' + StringArray[I, 0] + '" по числу 5');
+  end;
+end;
+
+procedure TgsMorphTest.TestNumeral;
+var
+  I, J: Integer;
+begin
+  for I := 1 to WordCount do
+  begin
+    for J := csNominative to csPreposizionale do
+    begin
+      OutputDebugString(PChar(ComplexCase(CaseNumeralTest[I, csNominative], J) + '=' + CaseNumeralTest[I, J]));
+      Check(ComplexCase(CaseNumeralTest[I, csNominative], J) = CaseNumeralTest[I, J],
+        'Ошибка при склонении слова "' + CaseNumeralTest[I, csNominative] + '"');
+    end;
   end;
 end;
 

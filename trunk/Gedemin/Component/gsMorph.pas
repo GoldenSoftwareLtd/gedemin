@@ -97,8 +97,8 @@ const
 
   IsNumeral = ';два;три;четыре;пять;шесть;семь;восемь;девять;десять;одиннадцать' +
     ';двенадцать;тринадцать;четырнадцать;пятнадцать;шестнадцать;семнадцать;восемнадцать' +
-    ';девятнадцать;двадцат ь;тридцать;сорок;пятьдесят;шестьдесят;семьдесят;восемьдесят' +
-    ';девяносто;сто;двести;тристо;четыресто;пятьсот;шестьсот;семьсот;восемьсот;девятьсот';
+    ';девятнадцать;двадцать;тридцать;сорок;пятьдесят;шестьдесят;семьдесят;восемьдесят' +
+    ';девяносто;сто;двести;триста;четыреста;пятьсот;шестьсот;семьсот;восемьсот;девятьсот';
 
   NA: TNMSet = ('ь', 'и', 'и', 'ь', 'ью', 'и');
   NB: TNHSet = ('десят', 'десяти', 'десяти', 'десят', 'десятью', 'десяти');
@@ -115,9 +115,12 @@ const
 
 {Мужские и женские имена на -о не склоняются}
 
-function Numeral(TheWord: String; TheCase: Word): String;   
+function Numeral(const TheWord: String; TheCase: Word): String;
 begin
   Result := TheWord;
+  
+  if TheCase in [csAccusative, csNominative] then
+    exit;  
 
   if TheWord = 'сто' then
     Result := NF[TheCase]
@@ -142,7 +145,9 @@ begin
   begin
     Result := Numeral(Copy(TheWord, 1, Length(TheWord) - 5), TheCase) + NB[TheCase];
   end else
-  if StrIPos('сот', TheWord) > 0 then
+  if (StrIPos('сот', TheWord) > 0)
+    or (StrIPos('сти', TheWord) > 0)
+    or (StrIPos('ста', TheWord) > 0) then
   begin
     Result := Numeral(Copy(TheWord, 1, Length(TheWord) - 3), TheCase) + NC[TheCase];
   end;
