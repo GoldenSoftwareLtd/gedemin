@@ -692,8 +692,10 @@ begin
       if PartText > '' then
         str1 := PartText[Length(PartText)]
       else
-        str1 := #0;  
-      if (str2 = 'а€') or (str2 = '€€') then
+        str1 := #0;
+      if Pos(';' + PartText + ';', IsNumeral) > 0 then
+        Text := Text + Numeral(PartText, TheCase) + ' '
+      else if (str2 = 'а€') or (str2 = '€€') then
         Text := Text + SetCase(PartText, TheCase, gdFeminine, nmOwn) + ' '
       else if (str2 = 'ый') or (str2 = 'ий') then
         Text := Text + SetCase(PartText, TheCase, gdMasculine, nmOwn) + ' '
