@@ -90,7 +90,6 @@ begin
   begin
     for J := csNominative to csPreposizionale do
     begin
-      OutputDebugString(PChar(ComplexCase(CaseNumeralTest[I, csNominative], J) + '=' + CaseNumeralTest[I, J]));
       Check(ComplexCase(CaseNumeralTest[I, csNominative], J) = CaseNumeralTest[I, J],
         'Ошибка при склонении слова "' + CaseNumeralTest[I, csNominative] + '"');
     end;
