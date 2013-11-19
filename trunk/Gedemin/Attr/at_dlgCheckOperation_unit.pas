@@ -31,6 +31,7 @@ type
     pnlSaveObjects: TPanel;
     chbxSaveObjects: TCheckBox;
     actSaveObjects: TAction;
+    chbxTerminate: TCheckBox;
     procedure actOkExecute(Sender: TObject);
     procedure actOkUpdate(Sender: TObject);
     procedure actLoadObjectsExecute(Sender: TObject);

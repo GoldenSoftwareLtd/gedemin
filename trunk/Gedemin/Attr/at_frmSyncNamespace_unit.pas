@@ -106,6 +106,8 @@ type
     tbsiCompare: TTBSubmenuItem;
     actOnlyCompare: TAction;
     TBItem18: TTBItem;
+    TBControlItem6: TTBControlItem;
+    chbxExisted: TCheckBox;
     procedure actChooseDirExecute(Sender: TObject);
     procedure actCompareUpdate(Sender: TObject);
     procedure actCompareExecute(Sender: TObject);
@@ -191,7 +193,7 @@ begin
     Screen.Cursor := crHourGlass;
     FNSC.UpdateCurrModified := chbxUpdate.Checked;
     FNSC.Directory := tbedPath.Text;
-    FNSC.Scan(True, True, True);
+    FNSC.Scan(True, chbxExisted.Checked, True);
     ApplyFilter;
   finally
     Screen.Cursor := OldCursor;

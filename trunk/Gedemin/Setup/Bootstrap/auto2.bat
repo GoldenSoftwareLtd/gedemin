@@ -64,7 +64,7 @@ echo **                                             **
 echo *************************************************
 
 cd ..\gedemin\exe
-call update_gedemin.bat /no_ftp /p
+call update_gedemin.bat /no_ftp /d
 cd ..\setup\bootstrap
 
 if not errorlevel 0 goto Error
@@ -92,9 +92,9 @@ echo **  Делаем инстоляции                          **
 echo **                                             **
 echo *************************************************
 
+call make_install.bat "%setting_source_path%\Общие\Комплексная автоматизация.yml"                           business  complex.jpg businesslocal compl_setup.rar    "%install_target_path%\Комплексная автоматизация\setup.exe" %send_ftp%
 call make_install.bat "%setting_source_path%\Общие\Общие данные.yml"                                        devel     complex.jpg devellocal    devel_setup.rar    "%install_target_path%\Разработчик\setup.exe"         %send_ftp%
 call make_install.bat "%setting_source_path%\Банк\Банк и касса.yml"                                         plat      doc.jpg     platlocal     plat_setup.rar     "%install_target_path%\Платежные документы\setup.exe" %send_ftp% 
-call make_install.bat "%setting_source_path%\Общие\Комплексная автоматизация.yml"                           business  complex.jpg businesslocal compl_setup.rar    "%install_target_path%\Комплексная автоматизация\setup.exe" %send_ftp%
 goto exit
 call make_install.bat "%setting_source_path%\ККС\ККС общее.gsf"                                             cash      complex.jpg kkc_positive_cash    cash_setup.rar      "%install_target_path%\Касса\setup.exe" %send_ftp%
 call make_install.bat "%setting_source_path%\Меню\2013 Menu. front\2013 - Menu. Front.gsf"                  menufront complex.jpg kkc_positive_check   menufront_setup.rar "%install_target_path%\Меню\setup_front.exe" %send_ftp%

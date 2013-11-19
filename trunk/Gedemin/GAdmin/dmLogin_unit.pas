@@ -31,8 +31,6 @@ type
       const AFormName: string = ''; const AFilterName: string = '');
 
   private
-    FSystemConnect: Boolean;
-
     procedure DoLoadSetting;
     procedure DoLoadNamespace;
     procedure Log(const AMessageType: TLogMessageType; const AMessage: String);
@@ -72,7 +70,7 @@ uses
   gd_localization_stub,
   {$ENDIF}
 
-  DB, IBSQL, at_frmSQLProcess;
+  DB, IBSQL, at_frmSQLProcess, gdcNamespaceLoader;
 
 {$R *.DFM}
 
@@ -156,8 +154,7 @@ begin
     {$ENDIF}
   end;
 
-  if not FSystemConnect then
-    LoadSettings;
+  LoadSettings;
 
   if dm_i_ClientReport <> nil then
   begin
@@ -239,7 +236,6 @@ begin
   LocalizationInitParams;
   {$ENDIF}
 
-  FSystemConnect := False;
   ICp := nil;
   ICn := nil;
   // Здесь проверка потому, что подключение может уже произойти,
@@ -443,13 +439,13 @@ begin
         if avNotApprEXEVersion in ApprVersion then
           MessageBox(0, 'Пакет не подходит по версии исполняемого модуля!', 'Gedemin', MB_OK or MB_ICONERROR or MB_TASKMODAL) else
         if avNotApprDBVersion in ApprVersion then
-          MessageBox(0, 'Пакет не подходит по версии базы данных!', 'Gedemin', MB_OK or MB_ICONERROR or MB_TASKMODAL) else
+          MessageBox(0, 'Пакет не подходит к текущей версии базы данных!', 'Gedemin', MB_OK or MB_ICONERROR or MB_TASKMODAL) else
       end
     end
     else begin
       MessageBox(0,
-        PChar('Пакет "' + LoadSettingFileName + '" не найден!'),
-        'Гедымин',
+        PChar('Пакет "' + LoadSettingFileName + '" не найден в папке ' + LoadSettingPath),
+        'Ошибка',
         MB_OK or MB_ICONERROR or MB_TASKMODAL);
     end;
   finally
@@ -472,8 +468,9 @@ begin
     if NSC.DataSet.Locate('filename', LoadSettingFileName, [loCaseInsensitive]) then
     begin
       NSC.SetOperation('<<');
-      NSC.SyncSilent;
-    end;
+      NSC.SyncSilent(True);
+    end else
+      AddMistake('Не найден файл пространства имен: ' + LoadSettingFileName);
   finally
     NSC.Free;
   end;
@@ -490,11 +487,14 @@ begin
     else if not DirectoryExists(LoadSettingPath) then
       MessageBox(0, PChar('Путь ' + LoadSettingPath + ' не найден!'), 'Gedemin', MB_OK or MB_ICONERROR or MB_TASKMODAL)
     else if UpperCase(ExtractFileExt(LoadSettingFileName)) = '.YML' then
-      DoLoadNamespace
-    else
+    begin
+      if not TgdcNamespaceLoader.LoadingDelayed then
+        DoLoadNamespace;
+    end else
+    begin
       DoLoadSetting;
-
-    Application.Terminate;
+      Application.Terminate;
+    end;  
   end;
 end;
 

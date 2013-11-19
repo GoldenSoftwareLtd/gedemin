@@ -74,6 +74,14 @@ object dlgCheckOperation: TdlgCheckOperation
           Height = 123
           ReadOnly = True
           ScrollBars = ssVertical
+          TabOrder = 3
+        end
+        object chbxTerminate: TCheckBox
+          Left = 376
+          Top = 39
+          Width = 273
+          Height = 17
+          Caption = 'Закрыть программу по завершении загрузки'
           TabOrder = 2
         end
       end

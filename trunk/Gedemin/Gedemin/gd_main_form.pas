@@ -1142,7 +1142,7 @@ begin
     TgdcJournal.AddEvent('', 'Log off');
   end;
 
-  if gd_CmdLineParams.ClearDBID then
+  if gd_CmdLineParams.ClearDBID and (not IBLogin.Relogining) then
     gdcBaseManager.ExecSingleQuery('SET GENERATOR gd_g_dbid TO 0');
 end;
 
