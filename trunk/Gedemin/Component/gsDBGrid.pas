@@ -5711,7 +5711,6 @@ begin
               or
             not FExpandsActive
           then begin
-            Canvas.Font := SizedColumn.Font;
             MaxWidth := 0;
 
             OldActive := DataLink.ActiveRecord;
@@ -5720,6 +5719,23 @@ begin
               begin
                 // Получаем необходиму запись
                 DataLink.ActiveRecord := I;
+
+                Canvas.Font := SizedColumn.Font;
+                if FConditionsActive and Assigned(SizedColumn.Field) then
+                begin
+                  for K := 0 to FConditions.Count - 1 do
+                  begin
+                    if FConditions[K].ConditionState in [csUnPrepared, csError] then Continue;
+
+                    if FConditions[K].Suits(SizedColumn.Field) then
+                    begin
+                      try
+                        FConditions[K].CheckAndApply;
+                      except
+                      end;
+                    end;
+                  end;
+                end;
 
                 if SizedColumn.Field <> nil then
                   CurrWidth := Canvas.TextWidth(SizedColumn.Field.DisplayText) + 4
@@ -5794,7 +5810,7 @@ var
   TheField: TField;
   CurrWidth, MaxWidth: Integer;
   OldActive: Integer;
-  I, K: Integer;
+  I, K, J: Integer;
 begin
   SizedColumn := nil;
   
@@ -5822,7 +5838,6 @@ begin
             or
           not FExpandsActive
         then begin
-          Canvas.Font := SizedColumn.Font;
           MaxWidth := 0;
 
           OldActive := DataLink.ActiveRecord;
@@ -5831,6 +5846,23 @@ begin
             begin
               // Получаем необходиму запись
               DataLink.ActiveRecord := I;
+              
+              Canvas.Font := SizedColumn.Font;
+              if FConditionsActive and Assigned(SizedColumn.Field) then
+              begin
+                for J := 0 to FConditions.Count - 1 do
+                begin
+                  if FConditions[J].ConditionState in [csUnPrepared, csError] then Continue;
+
+                  if FConditions[J].Suits(SizedColumn.Field) then
+                  begin
+                    try
+                      FConditions[J].CheckAndApply;
+                    except
+                    end;
+                  end;
+                end;
+              end;
 
               CurrWidth := Canvas.TextWidth(SizedColumn.Field.DisplayText) + 4;
 
