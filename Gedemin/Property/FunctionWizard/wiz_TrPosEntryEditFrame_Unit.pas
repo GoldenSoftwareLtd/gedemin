@@ -45,6 +45,7 @@ type
     procedure pmAccountPopup(Sender: TObject);
     procedure rbDebitClick(Sender: TObject);
     procedure rbCreditClick(Sender: TObject);
+    procedure beAccountKeyPress(Sender: TObject; var Key: Char);
   private
     { Private declarations }
     FDocumentHead: TDocumentInfo;
@@ -457,6 +458,14 @@ end;
 procedure TfrTrPosEntryEditFrame.ClickExpression(Sender: TObject);
 begin
   FActiveEdit.Text :=  FBlock.EditExpression(FActiveEdit.Text, FBlock);
+end;
+
+procedure TfrTrPosEntryEditFrame.beAccountKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+  if Key in [#13, #38, #40] then
+    Key := #0;
+  inherited; 
 end;
 
 end.

@@ -110,6 +110,7 @@ inherited frTrPosEntryEditFrame: TfrTrPosEntryEditFrame
         TabOrder = 2
         OnChange = beAccountChange
         OnExit = beAccountExit
+        OnKeyPress = beAccountKeyPress
       end
       object rbDebit: TRadioButton
         Left = 95
