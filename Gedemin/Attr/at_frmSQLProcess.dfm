@@ -14,9 +14,7 @@ object frmSQLProcess: TfrmSQLProcess
   Font.Style = []
   OldCreateOrder = True
   Position = poScreenCenter
-  OnActivate = FormActivate
   OnClose = FormClose
-  OnShow = FormShow
   PixelsPerInch = 96
   TextHeight = 13
   object pnlTop: TPanel

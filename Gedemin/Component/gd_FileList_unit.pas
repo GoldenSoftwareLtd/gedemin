@@ -47,6 +47,7 @@ type
     FName: String;
     FPath: String;
     FIsDirectory: Boolean;
+    FReqVer: String;
 
     FDate: TDateTime;
     FVersion: String;
@@ -66,8 +67,6 @@ type
     class procedure InternalScan(const AFullName: String; const IsDirectory: Boolean;
       out AnExists: Boolean; out ADate: TDateTime; out ASize: Int64; out AVersion: String);
 
-    //function GetXML: String;
-    //procedure ParseXML(ANode: OleVariant);
     procedure GetYAML(W: TyamlWriter);
     procedure ParseYAML(ANode: TyamlNode);
     procedure UpdateFile(AHTTP: TidHTTP; const AnURL: String; ACmdList: TStringList;
@@ -79,9 +78,6 @@ type
 
     class function Flags2Str(const Flags: TFLFlags): String;
     class function Str2Flags(const S: String): TFLFlags;
-    {class function Boolean2Str(const B: Boolean): String;
-    class function Str2Boolean(const S: String): Boolean;
-    class function Str2DateTime(const S: String): TDateTime;}
     class function CompareVersionStrings(const V1, V2: String;
       const CompareFirst: Integer = 4): Integer;
 
@@ -91,6 +87,7 @@ type
     property Name: String read FName;
     property IsDirectory: Boolean read FIsDirectory;
     property Path: String read FPath;
+    property ReqVer: String read FReqVer;
     property FullName: String read GetFullName;
     property RelativeName: String read GetRelativeName;
     property ParentFolder: String read GetParentFolder;
@@ -128,8 +125,6 @@ type
     function UpdateFile(AHTTP: TidHTTP; const AnURL: String; ACmdList: TStringList;
       const AMandatoryUpdate: Boolean = False): Boolean;
     procedure BuildEtalonFileSet;
-    //function GetXML: String;
-    //procedure ParseXML(const AnXML: String);
     procedure GetYAML(AStream: TStream);
     procedure ParseYAML(AStream: TStream);
     function FindItem(ARelativeName: String): TFLItem;
@@ -148,150 +143,6 @@ uses
   JclWin32, zlib, idURI, gd_common_functions;
 
 const
-  {FileListSchemaXML =
-    '<?xml version="1.0" encoding="utf-8"?>'#13#10 +
-    '<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"'#13#10 +
-    '  targetNamespace="http://gsbelarus.com/gedemin_files" xmlns="http://gsbelarus.com/gedemin_files"'#13#10 +
-    '  elementFormDefault="qualified">'#13#10 +
-    '  <xs:element name="GEDEMIN_FILES">'#13#10 +
-    '    <xs:complexType>'#13#10 +
-    '      <xs:sequence>'#13#10 +
-    '        <xs:element name="DIRECTORY" minOccurs="0" maxOccurs="unbounded">'#13#10 +
-    '          <xs:complexType>'#13#10 +
-    '            <xs:sequence>'#13#10 +
-    '              <xs:element name="NAME" minOccurs="1" maxOccurs="1">'#13#10 +
-    '                <xs:simpleType>'#13#10 +
-    '                  <xs:restriction base="xs:string">'#13#10 +
-    '                    <xs:minLength value="1"/>'#13#10 +
-    '                    <xs:maxLength value="255"/>'#13#10 +
-    '                  </xs:restriction>'#13#10 +
-    '                </xs:simpleType>'#13#10 +
-    '              </xs:element>'#13#10 +
-    '              <xs:element name="PATH" minOccurs="0" maxOccurs="1">'#13#10 +
-    '                <xs:simpleType>'#13#10 +
-    '                  <xs:restriction base="xs:string">'#13#10 +
-    '                    <xs:minLength value="0"/>'#13#10 +
-    '                    <xs:maxLength value="255"/>'#13#10 +
-    '                  </xs:restriction>'#13#10 +
-    '                </xs:simpleType>'#13#10 +
-    '              </xs:element>'#13#10 +
-    '              <xs:element name="EXISTS" type="xs:boolean" minOccurs="0" maxOccurs="1"/>'#13#10 +
-    '              <xs:element name="FLAGS" type="xs:string" minOccurs="0" maxOccurs="1"/>'#13#10 +
-    '            </xs:sequence>'#13#10 +
-    '          </xs:complexType>'#13#10 +
-    '        </xs:element>'#13#10 +
-    '        <xs:element name="FILE" minOccurs="0" maxOccurs="unbounded">'#13#10 +
-    '          <xs:complexType>'#13#10 +
-    '            <xs:sequence>'#13#10 +
-    '              <xs:element name="NAME" minOccurs="1" maxOccurs="1">'#13#10 +
-    '                <xs:simpleType>'#13#10 +
-    '                  <xs:restriction base="xs:string">'#13#10 +
-    '                    <xs:minLength value="1"/>'#13#10 +
-    '                    <xs:maxLength value="255"/>'#13#10 +
-    '                  </xs:restriction>'#13#10 +
-    '                </xs:simpleType>'#13#10 +
-    '              </xs:element>'#13#10 +
-    '              <xs:element name="PATH" minOccurs="0" maxOccurs="1">'#13#10 +
-    '                <xs:simpleType>'#13#10 +
-    '                  <xs:restriction base="xs:string">'#13#10 +
-    '                    <xs:minLength value="0"/>'#13#10 +
-    '                    <xs:maxLength value="255"/>'#13#10 +
-    '                  </xs:restriction>'#13#10 +
-    '                </xs:simpleType>'#13#10 +
-    '              </xs:element>'#13#10 +
-    '              <xs:element name="EXISTS" type="xs:boolean" minOccurs="0" maxOccurs="1"/>'#13#10 +
-    '              <xs:element name="FLAGS" type="xs:string" minOccurs="0" maxOccurs="1"/>'#13#10 +
-    '              <xs:element name="SIZE" type="xs:positiveInteger" minOccurs="0" maxOccurs="1"/>'#13#10 +
-    '              <xs:element name="DATE" type="xs:dateTime" minOccurs="0" maxOccurs="1"/>'#13#10 +
-    '              <xs:element name="VERSION" minOccurs="0" maxOccurs="1">'#13#10 +
-    '                <xs:simpleType>'#13#10 +
-    '                  <xs:restriction base="xs:string">'#13#10 +
-    '                    <xs:pattern value="([0-9]+\.?)+"/>'#13#10 +
-    '                  </xs:restriction>'#13#10 +
-    '                </xs:simpleType>'#13#10 +
-    '              </xs:element>'#13#10 +
-    '            </xs:sequence>'#13#10 +
-    '          </xs:complexType>'#13#10 +
-    '        </xs:element>'#13#10 +
-    '      </xs:sequence>'#13#10 +
-    '      <xs:attribute name="VERSION" type="xs:decimal"/>'#13#10 +
-    '    </xs:complexType>'#13#10 +
-    '  </xs:element>'#13#10 +
-    '</xs:schema>';
-
-  GedeminDirectoryLayoutXML =
-    '<?xml version="1.0" encoding="windows-1251"?>'#13#10 +
-    '<GS:GEDEMIN_FILES VERSION="1.0" xmlns:GS="http://gsbelarus.com/gedemin_files">'#13#10 +
-    '  <GS:DIRECTORY>'#13#10 +
-    '    <GS:NAME>INTL</GS:NAME>'#13#10 +
-    '  </GS:DIRECTORY>'#13#10 +
-    '  <GS:DIRECTORY>'#13#10 +
-    '    <GS:NAME>UDF</GS:NAME>'#13#10 +
-    '  </GS:DIRECTORY>'#13#10 +
-    '  <GS:DIRECTORY>'#13#10 +
-    '    <GS:NAME>HELP</GS:NAME>'#13#10 +
-    '  </GS:DIRECTORY>'#13#10 +
-    '  <GS:FILE>'#13#10 +
-    '    <GS:NAME>gudf.dll</GS:NAME>'#13#10 +
-    '    <GS:PATH>UDF</GS:PATH>'#13#10 +
-    '  </GS:FILE>'#13#10 +
-    '  <GS:FILE>'#13#10 +
-    '    <GS:NAME>fbintl.conf</GS:NAME>'#13#10 +
-    '    <GS:PATH>INTL</GS:PATH>'#13#10 +
-    '  </GS:FILE>'#13#10 +
-    '  <GS:FILE>'#13#10 +
-    '    <GS:NAME>fbintl.dll</GS:NAME>'#13#10 +
-    '    <GS:PATH>INTL</GS:PATH>'#13#10 +
-    '  </GS:FILE>'#13#10 +
-    '  <GS:FILE>'#13#10 +
-    '    <GS:NAME>fr24rus.chm</GS:NAME>'#13#10 +
-    '    <GS:PATH>HELP</GS:PATH>'#13#10 +
-    '  </GS:FILE>'#13#10 +
-    '  <GS:FILE>'#13#10 +
-    '    <GS:NAME>vbs55.chm</GS:NAME>'#13#10 +
-    '    <GS:PATH>HELP</GS:PATH>'#13#10 +
-    '  </GS:FILE>'#13#10 +
-    '  <GS:FILE>'#13#10 +
-    '    <GS:NAME>gedemin.exe</GS:NAME>'#13#10 +
-    '  </GS:FILE>'#13#10 +
-    '  <GS:FILE>'#13#10 +
-    '    <GS:NAME>gedemin_upd.exe</GS:NAME>'#13#10 +
-    '  </GS:FILE>'#13#10 +
-    '  <GS:FILE>'#13#10 +
-    '    <GS:NAME>fbembed.dll</GS:NAME>'#13#10 +
-    '  </GS:FILE>'#13#10 +
-    '  <GS:FILE>'#13#10 +
-    '    <GS:NAME>firebird.msg</GS:NAME>'#13#10 +
-    '  </GS:FILE>'#13#10 +
-    '  <GS:FILE>'#13#10 +
-    '    <GS:NAME>ib_util.dll</GS:NAME>'#13#10 +
-    '  </GS:FILE>'#13#10 +
-    '  <GS:FILE>'#13#10 +
-    '    <GS:NAME>icudt30.dll</GS:NAME>'#13#10 +
-    '  </GS:FILE>'#13#10 +
-    '  <GS:FILE>'#13#10 +
-    '    <GS:NAME>icuin30.dll</GS:NAME>'#13#10 +
-    '  </GS:FILE>'#13#10 +
-    '  <GS:FILE>'#13#10 +
-    '    <GS:NAME>icuuc30.dll</GS:NAME>'#13#10 +
-    '  </GS:FILE>'#13#10 +
-    '  <GS:FILE>'#13#10 +
-    '    <GS:NAME>midas.dll</GS:NAME>'#13#10 +
-    '  </GS:FILE>'#13#10 +
-    '  <GS:FILE>'#13#10 +
-    '    <GS:NAME>midas.sxs.manifest</GS:NAME>'#13#10 +
-    '  </GS:FILE>'#13#10 +
-    '  <GS:FILE>'#13#10 +
-    '    <GS:NAME>msvcp80.dll</GS:NAME>'#13#10 +
-    '  </GS:FILE>'#13#10 +
-    '  <GS:FILE>'#13#10 +
-    '    <GS:NAME>msvcr80.dll</GS:NAME>'#13#10 +
-    '  </GS:FILE>'#13#10 +
-    '  <GS:FILE>'#13#10 +
-    '    <GS:NAME>Microsoft.VC80.CRT.manifest</GS:NAME>'#13#10 +
-    '  </GS:FILE>'#13#10 +
-    '</GS:GEDEMIN_FILES>';}
-
   GedeminDirectoryLayoutYAML =
     'Version: 1'#13#10 +
     'Items: '#13#10 +
@@ -310,6 +161,42 @@ const
     '  - '#13#10 +
     '    Type   : Directory'#13#10 +
     '    Name   : SWIPl\Lib'#13#10 +
+{    '  - '#13#10 +
+    '    Type   : File'#13#10 +
+    '    Name   : gd_pl_state.dat'#13#10 +
+    '    Path   : SWIPl'#13#10 +
+    '    Flags  : OverwriteIfNewer DontBackup'#13#10 +
+    '    ReqVer : 2.5.20'#13#10 +
+    '  - '#13#10 +
+    '    Type   : File'#13#10 +
+    '    Name   : libgmp-10.dll'#13#10 +
+    '    Path   : SWIPl'#13#10 +
+    '    Flags  : OverwriteIfNewer DontBackup'#13#10 +
+    '    ReqVer : 2.5.20'#13#10 +
+    '  - '#13#10 +
+    '    Type   : File'#13#10 +
+    '    Name   : libswipl.dll'#13#10 +
+    '    Path   : SWIPl'#13#10 +
+    '    Flags  : OverwriteIfNewer DontBackup'#13#10 +
+    '    ReqVer : 2.5.20'#13#10 +
+    '  - '#13#10 +
+    '    Type   : File'#13#10 +
+    '    Name   : pthreadGC2.dll'#13#10 +
+    '    Path   : SWIPl'#13#10 +
+    '    Flags  : OverwriteIfNewer DontBackup'#13#10 +
+    '    ReqVer : 2.5.20'#13#10 +
+    '  - '#13#10 +
+    '    Type   : File'#13#10 +
+    '    Name   : memfile.dll'#13#10 +
+    '    Path   : SWIPl\Lib'#13#10 +
+    '    Flags  : OverwriteIfNewer DontBackup'#13#10 +
+    '    ReqVer : 2.5.20'#13#10 +
+    '  - '#13#10 +
+    '    Type   : File'#13#10 +
+    '    Name   : readutil.dll'#13#10 +
+    '    Path   : SWIPl\Lib'#13#10 +
+    '    Flags  : OverwriteIfNewer DontBackup'#13#10 +
+    '    ReqVer : 2.5.20'#13#10 +  }
     '  - '#13#10 +
     '    Type   : File'#13#10 +
     '    Name   : gudf.dll'#13#10 +
@@ -387,94 +274,6 @@ const
     '    Type   : File'#13#10 +
     '    Name   : Microsoft.VC80.CRT.manifest'#13#10 +
     '    Flags  : OverwriteIfNewer DontBackup';
-
-{
-    '  - '#13#10 +
-    '    Type   : File'#13#10 +
-    '    Name   : gd_pl_state.dat'#13#10 +
-    '    Path   : SWIPl'#13#10 +
-    '    Flags  : OverwriteIfNewer DontBackup'#13#10 +
-    '  - '#13#10 +
-    '    Type   : File'#13#10 +
-    '    Name   : libgmp-10.dll'#13#10 +
-    '    Path   : SWIPl'#13#10 +
-    '    Flags  : OverwriteIfNewer DontBackup'#13#10 +
-    '  - '#13#10 +
-    '    Type   : File'#13#10 +
-    '    Name   : libswipl.dll'#13#10 +
-    '    Path   : SWIPl'#13#10 +
-    '    Flags  : OverwriteIfNewer DontBackup'#13#10 +
-    '  - '#13#10 +
-    '    Type   : File'#13#10 +
-    '    Name   : pthreadGC2.dll'#13#10 +
-    '    Path   : SWIPl'#13#10 +
-    '    Flags  : OverwriteIfNewer DontBackup'#13#10 +
-    '  - '#13#10 +
-    '    Type   : File'#13#10 +
-    '    Name   : memfile.dll'#13#10 +
-    '    Path   : SWIPl\Lib'#13#10 +
-    '    Flags  : OverwriteIfNewer DontBackup'#13#10 +
-    '  - '#13#10 +
-    '    Type   : File'#13#10 +
-    '    Name   : readutil.dll'#13#10 +
-    '    Path   : SWIPl\Lib'#13#10 +
-    '    Flags  : OverwriteIfNewer DontBackup'#13#10 +
-}
-
-{function CheckFileAccess(const FileName: string; const CheckedAccess: Cardinal): Cardinal;
-var
-  Token: THandle;
-  Status: LongBool;
-  Access: Cardinal;
-  SecDescSize: Cardinal;
-  PrivSetSize: Cardinal;
-  PrivSet: PRIVILEGE_SET;
-  Mapping: GENERIC_MAPPING;
-  SecDesc: PSECURITY_DESCRIPTOR;
-begin
-  Result := 0;
-
-  if not GetFileSecurity(PChar(Filename),
-    OWNER_SECURITY_INFORMATION or GROUP_SECURITY_INFORMATION or DACL_SECURITY_INFORMATION,
-    nil, 0, SecDescSize) then
-  begin
-    exit;
-  end;
-
-  SecDesc := GetMemory(SecDescSize);
-  try
-    if GetFileSecurity(PChar(Filename),
-      OWNER_SECURITY_INFORMATION or GROUP_SECURITY_INFORMATION
-      or DACL_SECURITY_INFORMATION, SecDesc, SecDescSize, SecDescSize)
-      and ImpersonateSelf(SecurityImpersonation) then
-    begin
-      if OpenThreadToken(GetCurrentThread, TOKEN_QUERY, False, Token) and (Token <> 0) then
-      begin
-        Mapping.GenericRead := FILE_GENERIC_READ;
-        Mapping.GenericWrite := FILE_GENERIC_WRITE;
-        Mapping.GenericExecute := FILE_GENERIC_EXECUTE;
-        Mapping.GenericAll := FILE_ALL_ACCESS;
-
-        MapGenericMask(Access, Mapping);
-        PrivSetSize := SizeOf(PrivSet);
-        AccessCheck(SecDesc, Token, CheckedAccess, Mapping, PrivSet, PrivSetSize, Access, Status);
-        CloseHandle(Token);
-        if Status then
-          Result := Access;
-      end;
-    end;
-  finally
-    FreeMem(SecDesc, SecDescSize);
-  end;
-end;}
-
-{class function TFLItem.Boolean2Str(const B: Boolean): String;
-begin
-  if B then
-    Result := 'true'
-  else
-    Result := 'false';
-end;}
 
 class function TFLItem.CompareVersionStrings(const V1, V2: String;
   const CompareFirst: Integer = 4): Integer;
@@ -607,78 +406,6 @@ begin
   end;
 end;
 
-{function TFLItem.GetXML: String;
-const
-  Indent  = '  ';
-  Indent2 = Indent + Indent;
-begin
-  if IsDirectory then
-    Result := Indent + '<GS:DIRECTORY>' + #13#10
-  else
-    Result := Indent + '<GS:FILE>' + #13#10;
-
-  Result := Result +
-    Indent2 + '<GS:NAME>' + Name + '</GS:NAME>' + #13#10 +
-    Indent2 + '<GS:PATH>' + Path + '</GS:PATH>' + #13#10 +
-    Indent2 + '<GS:EXISTS>' + Boolean2Str(FExists) + '</GS:EXISTS>' + #13#10 +
-    Indent2 + '<GS:FLAGS>' + Flags2Str(Flags) + '</GS:FLAGS>' + #13#10;
-
-  if (not IsDirectory) and Exists then
-  begin
-    Result := Result + Indent2 +
-      '<GS:SIZE>' + IntToStr(FSize) + '</GS:SIZE>'#13#10;
-    if FDate > 0 then
-      Result := Result + Indent2 +
-        '<GS:DATE>' + FormatDateTime('yyyy-mm-dd"T"hh:nn:ss', FDate) + '</GS:DATE>'#13#10;
-    if FVersion > '' then
-      Result := Result + Indent2 +
-        '<GS:VERSION>' + FVersion + '</GS:VERSION>'#13#10;
-  end;
-
-  if IsDirectory then
-    Result := Result + Indent + '</GS:DIRECTORY>' + #13#10
-  else begin
-    Result := Result + Indent + '</GS:FILE>' + #13#10;
-  end;
-end;
-
-procedure TFLItem.ParseXML(ANode: OleVariant);
-var
-  N: OleVariant;
-begin
-  FIsDirectory := ANode.NodeName = 'GS:DIRECTORY';
-  N := ANode.FirstChild;
-  while not VarIsEmpty(N) do
-  try
-    if N.NodeName = 'GS:NAME' then
-      FName := N.NodeTypedValue
-    else if N.NodeName = 'GS:PATH' then
-      FPath := N.NodeTypedValue
-    else if N.NodeName = 'GS:FLAGS' then
-      FFlags := Str2Flags(N.NodeTypedValue)
-    else if N.NodeName = 'GS:EXISTS' then
-      FExists := Str2Boolean(N.NodeTypedValue)
-    else if N.NodeName = 'GS:DATE' then
-      FDate := Str2DateTime(N.NodeTypedValue)
-    else if N.NodeName = 'GS:SIZE' then
-      FSize := StrToInt(N.NodeTypedValue)
-    else if N.NodeName = 'GS:VERSION' then
-      FVersion := N.NodeTypedValue;
-    N := N.NextSibling;
-  except
-    on E: Exception do
-    begin
-      raise EFLError.Create(
-        'Item Name: ' + FName + #13#10 +
-        'Node Name: ' + N.NodeName + #13#10 +
-        'Error: ' + E.Message);
-    end;
-  end;
-
-  if FName = '' then
-    raise EFLError.Create('Name is not specified.');
-end;}
-
 class procedure TFLItem.InternalScan(const AFullName: String; const IsDirectory: Boolean;
   out AnExists: Boolean; out ADate: TDateTime; out ASize: Int64; out AVersion: String);
 begin
@@ -736,88 +463,10 @@ begin
   end;
 end;
 
-{function TFLCollection.GetXML: String;
-var
-  I: Integer;
-begin
-  Result :=
-    '<?xml version="1.0" encoding="utf-8"?>' + #13#10 +
-    '<GS:GEDEMIN_FILES VERSION="1.0" xmlns:GS="http://gsbelarus.com/gedemin_files">' + #13#10;
-
-  for I := 0 to Count - 1 do
-  begin
-    Result := Result + (Items[I] as TFLItem).GetXML;
-  end;
-
-  Result := Result + '</GS:GEDEMIN_FILES>' + #13#10;
-end;
-
-procedure TFLCollection.ParseXML(const AnXML: String);
-var
-  oXSD, objSchemas, LocalDoc, Root: OleVariant;
-  I: Integer;
-  FSOItem: TFLItem;
-  sNamespace: String;
-begin
-  Clear;
-
-  oXSD := CreateOLEObject(ProgID_MSXML_DOMDocument);
-  oXSD.Async := False;
-  if oXSD.LoadXML(FileListSchemaXML) then
-    sNamespace := oXSD.documentElement.getAttribute('targetNamespace')
-  else
-    raise EFLError.Create('Can not load XML schema.');
-
-  objSchemas := CreateOLEObject(ProgID_MSXML_XMLSchemaCache);
-  objSchemas.Add(sNamespace, oXSD);
-
-  LocalDoc := CreateOleObject(ProgID_MSXML_DOMDocument);
-  LocalDoc.Async := False;
-  LocalDoc.Schemas := objSchemas;
-  if LocalDoc.LoadXML(AnXML) then
-  begin
-    Root := LocalDoc.DocumentElement;
-    for I := 0 to Root.ChildNodes.Length - 1 do
-    begin
-      FSOItem := Add as TFLItem;
-      FSOItem.ParseXML(Root.ChildNodes.Item[I]);
-    end;
-  end else
-    raise EFLError.Create('Can not load XML.');
-end;}
-
 procedure TFLItem.Scan;
 begin
   InternalScan(FullName, IsDirectory, FExists, FDate, FSize, FVersion);
 end;
-
-{class function TFLItem.Str2Boolean(const S: String): Boolean;
-begin
-  if (S = 'true') or (S = '1') then
-    Result := True
-  else if (S = 'false') or (S = '0') then
-    Result := False
-  else
-    raise EFLError.Create('Invalid cast string as boolean.');
-end;
-
-class function TFLItem.Str2DateTime(const S: String): TDateTime;
-var
-  B, Y, M, D, H, N, Sec: Integer;
-begin
-  B := 1;
-  Y := ExtractInt(S, B, ['-']);
-  M := ExtractInt(S, B, ['-']);
-  D := ExtractInt(S, B, ['T']);
-  Result := EncodeDate(Y, M, D);
-  if B < Length(S) then
-  begin
-    H := ExtractInt(S, B, [':']);
-    N := ExtractInt(S, B, [':']);
-    Sec := ExtractInt(S, B, ['.']);
-    Result := Result + EncodeTime(H, N, Sec, 0);
-  end;
-end;}
 
 class function TFLItem.Str2Flags(const S: String): TFLFlags;
 var
@@ -1116,6 +765,13 @@ begin
     W.WriteString(Path);
   end;
 
+  if ReqVer > '' then
+  begin
+    W.StartNewLine;
+    W.WriteKey('ReqVer ');
+    W.WriteString(ReqVer);
+  end;
+
   W.StartNewLine;
   W.WriteKey('Exists ');
   W.WriteBoolean(FExists);
@@ -1200,6 +856,7 @@ begin
     FDate := ReadDateTime('Date');
     FSize := ReadInteger('Size');
     FVersion := ReadString('Version');
+    FReqVer := ReadString('ReqVer');
   end;
 
   if FName = '' then

@@ -36,8 +36,6 @@ type
     procedure lvInfoTip(Sender: TObject; Item: TListItem;
       var InfoTip: String);
     procedure actSaveToFileUpdate(Sender: TObject);
-    procedure FormShow(Sender: TObject);
-    procedure FormActivate(Sender: TObject);
     procedure actShowErrorsExecute(Sender: TObject);
     procedure actShowErrorsUpdate(Sender: TObject);
   private
@@ -355,8 +353,12 @@ begin
 end;
 
 destructor TfrmSQLProcess.Destroy;
+var
+  TempPath: array[0..1023] of Char;
 begin
   frmSQLProcess := nil;
+  if FSilent and (FLog.Count > 0) and (GetTempPath(SizeOf(TempPath), TempPath) > 0) then
+    FLog.SaveToFile(IncludeTrailingBackslash(TempPath) + 'gedemin.log');
   FLog.Free;
   inherited;
 end;
@@ -524,18 +526,6 @@ begin
   pb.Position := 0;
 end;
 
-procedure TfrmSQLProcess.FormShow(Sender: TObject);
-begin
-  {if lv.Items.Count <> FLog.Count then
-    lv.Items.Count := FLog.Count;}
-end;
-
-procedure TfrmSQLProcess.FormActivate(Sender: TObject);
-begin
-  {if lv.Items.Count <> FLog.Count then
-    lv.Items.Count := FLog.Count;}
-end;
-
 procedure TfrmSQLProcess.actShowErrorsExecute(Sender: TObject);
 begin
   actShowErrors.Checked := not actShowErrors.Checked;
@@ -553,7 +543,7 @@ begin
   // Перейдем на первую запись
   if lv.Items.Count > 0 then
     lv.Items[0].MakeVisible(False);
-  lv.Items.EndUpdate;  
+  lv.Items.EndUpdate;
 end;
 
 procedure TfrmSQLProcess.actShowErrorsUpdate(Sender: TObject);

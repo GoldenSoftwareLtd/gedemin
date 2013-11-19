@@ -36,7 +36,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
     Left = 0
     Top = 0
     Width = 1115
-    Height = 26
+    Height = 49
     object TBToolbar: TTBToolbar
       Left = 0
       Top = 0
@@ -65,6 +65,9 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       end
       object TBControlItem5: TTBControlItem
         Control = chbxUpdate
+      end
+      object TBControlItem6: TTBControlItem
+        Control = chbxExisted
       end
       object TBSeparatorItem4: TTBSeparatorItem
       end
@@ -168,7 +171,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
         Control = cbPackets
       end
       object lSearch: TLabel
-        Left = 521
+        Left = 555
         Top = 4
         Width = 45
         Height = 13
@@ -182,7 +185,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
         TabOrder = 0
       end
       object edFilter: TEdit
-        Left = 874
+        Left = 908
         Top = 0
         Width = 140
         Height = 21
@@ -190,8 +193,8 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
         OnChange = edFilterChange
       end
       object cbPackets: TCheckBox
-        Left = 1020
-        Top = 2
+        Left = 0
+        Top = 28
         Width = 66
         Height = 17
         Action = actFLTInternal
@@ -201,20 +204,34 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       object chbxUpdate: TCheckBox
         Left = 215
         Top = 2
-        Width = 74
+        Width = 54
         Height = 17
-        Caption = 'Обновить'
+        Hint = 'Перечитать из базы данных даты изменения объектов'
+        Alignment = taLeftJustify
+        Caption = 'Обнов:'
         Checked = True
         State = cbChecked
         TabOrder = 3
+      end
+      object chbxExisted: TCheckBox
+        Left = 269
+        Top = 2
+        Width = 54
+        Height = 17
+        Hint = 'Определять статус только для ПИ существующих в БД и в файле'
+        Alignment = taLeftJustify
+        Caption = '   Сущ:'
+        Checked = True
+        State = cbChecked
+        TabOrder = 4
       end
     end
   end
   object gr: TgsDBGrid
     Left = 0
-    Top = 49
+    Top = 72
     Width = 1115
-    Height = 321
+    Height = 298
     Align = alClient
     BorderStyle = bsNone
     DataSource = ds
@@ -338,7 +355,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
   end
   object pnlHeader: TPanel
     Left = 0
-    Top = 26
+    Top = 49
     Width = 1115
     Height = 23
     Align = alTop

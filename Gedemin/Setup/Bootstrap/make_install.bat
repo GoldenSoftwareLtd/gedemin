@@ -48,7 +48,7 @@ echo *************************************************
 @set winrar_path=C:\Program Files\WinRar
 @set setup_path=..\InnoSetup
 @set setting_path=%~d0\golden\gedemin-apps
-if %~x1==gsf set setting_path=%~d0\golden\setting
+if %~x1==.gsf set setting_path=%~d0\golden\setting
 
 @set server_name=localhost/3053
 

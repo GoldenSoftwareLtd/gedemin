@@ -166,6 +166,8 @@ inherited gdc_dlgNamespace: Tgdc_dlgNamespace
         Top = 224
         Width = 527
         Height = 97
+        DataField = 'COMMENT'
+        DataSource = dsgdcBase
         ScrollBars = ssVertical
         TabOrder = 8
       end

@@ -841,7 +841,7 @@ begin
     SL := TStringList.Create;
     try
       SL.Add(FN);
-      TgdcNamespaceLoader.LoadDelayed(SL, False, False);
+      TgdcNamespaceLoader.LoadDelayed(SL, False, False, False);
     finally
       SL.Free;
     end;

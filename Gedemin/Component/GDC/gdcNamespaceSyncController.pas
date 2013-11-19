@@ -48,7 +48,7 @@ type
     procedure SetOperation(const AnOp: String; const AScanUsesList: Boolean = True);
     procedure ClearAll;
     procedure Sync;
-    procedure SyncSilent;
+    procedure SyncSilent(const ATerminate: Boolean);
     procedure EditNamespace(const ANSK: Integer);
     procedure CompareWithData(const ANSK: Integer; const AFileName: String;
       const A3Way: Boolean);
@@ -69,7 +69,7 @@ implementation
 uses
   SysUtils, Controls, jclFileUtils, gdcBaseInterface, gdcBase,
   gdcNamespace, gdcNamespaceLoader, gd_GlobalParams_unit, yaml_parser,
-  gd_common_functions, at_dlgCheckOperation_unit;
+  gd_common_functions, at_dlgCheckOperation_unit, at_frmSQLProcess;
 
 { TgdcNamespaceSyncController }
 
@@ -1133,7 +1133,8 @@ begin
           end;
           FqDependentList.Close;
 
-          TgdcNamespaceLoader.LoadDelayed(SL, chbxAlwaysOverwrite.Checked, chbxDontRemove.Checked);
+          TgdcNamespaceLoader.LoadDelayed(SL, chbxAlwaysOverwrite.Checked,
+            chbxDontRemove.Checked, chbxTerminate.Checked);
         finally
           SL.Free;
         end;
@@ -1144,28 +1145,36 @@ begin
   end;
 end;
 
-procedure TgdcNamespaceSyncController.SyncSilent;
+procedure TgdcNamespaceSyncController.SyncSilent(const ATerminate: Boolean);
 var
   SL: TStringList;
 begin
-  SL := TStringList.Create;
   try
-    FqDependentList.ExecQuery;
-    while not FqDependentList.EOF do
-    begin
-      SL.Add(FqDependentList.Fields[0].AsString);
-      FqDependentList.Next;
-    end;
-    FqDependentList.Close;
-
-    with TgdcNamespaceLoader.Create do
+    SL := TStringList.Create;
     try
-      Load(SL);
+      FqDependentList.ExecQuery;
+      while not FqDependentList.EOF do
+      begin
+        SL.Add(FqDependentList.Fields[0].AsString);
+        FqDependentList.Next;
+      end;
+      FqDependentList.Close;
+
+      with TgdcNamespaceLoader.Create do
+      try
+        LoadDelayed(SL, True, False, ATerminate);
+      finally
+        Free;
+      end;
     finally
-      Free;
+      SL.Free;
     end;
-  finally
-    SL.Free;
+  except
+    on E: Exception do
+    begin
+      AddMistake(E.Message);
+      raise;
+    end;
   end;
 end;
 

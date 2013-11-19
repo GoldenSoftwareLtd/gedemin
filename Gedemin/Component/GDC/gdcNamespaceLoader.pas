@@ -18,6 +18,7 @@ type
     FList: TStringList;
     FAlwaysOverwrite: Boolean;
     FDontRemove: Boolean;
+    FTerminate: Boolean;
     FLoading: Boolean;
 
     procedure WMLoadNamespace(var Msg: TMessage);
@@ -27,7 +28,9 @@ type
     destructor Destroy; override;
 
     procedure LoadNamespace(AList: TStrings; const AnAlwaysOverwrite: Boolean;
-      const ADontRemove: Boolean);
+      const ADontRemove: Boolean; const ATerminate: Boolean);
+
+    property Loading: Boolean read FLoading;
   end;
 
   TgdcNamespaceLoader = class(TObject)
@@ -51,6 +54,7 @@ type
     FRemoveList: TObjectList;
     FSecondPassList: TObjectList;
     FOurCompanies: TgdKeyArray;
+    FLoading: Boolean;
 
     procedure FlushStorages;
     procedure LoadAtObjectCache(const ANamespaceKey: Integer);
@@ -77,11 +81,14 @@ type
     destructor Destroy; override;
 
     class procedure LoadDelayed(AList: TStrings; const AnAlwaysOverwrite: Boolean;
-      const ADontRemove: Boolean);
+      const ADontRemove: Boolean; const ATerminate: Boolean);
+    class function LoadingDelayed: Boolean;
+
     procedure Load(AList: TStrings);
 
     property AlwaysOverwrite: Boolean read FAlwaysOverwrite write FAlwaysOverwrite;
     property DontRemove: Boolean read FDontRemove write FDontRemove;
+    property Loading: Boolean read FLoading;
   end;
 
 implementation
@@ -406,9 +413,11 @@ var
   NSRUID: TRUID;
   NSName: String;
 begin
+  Assert(not FLoading);
   Assert(AList <> nil);
   Assert(IBLogin <> nil);
 
+  FLoading := True;
   FRemoveList.Clear;
   LoadOurCompanies;
 
@@ -584,6 +593,8 @@ begin
 
   if FNeedRelogin then
     ReloginDatabase;
+
+  FLoading := False;
 
   Assert(FAtObjectRecordCache.Count = 0);
   Assert(FRemoveList.Count = 0);
@@ -792,6 +803,8 @@ begin
     S := S + Obj.ObjectName + ' (' + Obj.GetDisplayName(Obj.SubType) + ')';
 
     Obj.Post;
+    if (Obj.GetRUID.XID <> ObjRUID.XID) or (Obj.GetRUID.DBID <> ObjRUID.DBID) then
+      AddMistake('Изменился РУИД объекта ' + RUIDToStr(ObjRUID) + ' -> ' + RUIDToStr(Obj.GetRUID));
     AddText(S);
     ObjPosted := True;
     ObjID := Obj.ID;
@@ -1181,11 +1194,11 @@ begin
 end;
 
 class procedure TgdcNamespaceLoader.LoadDelayed(AList: TStrings;
-  const AnAlwaysOverwrite, ADontRemove: Boolean);
+  const AnAlwaysOverwrite, ADontRemove, ATerminate: Boolean);
 begin
   if FNexus = nil then
     FNexus := TgdcNamespaceLoaderNexus.CreateNew(nil);
-  FNexus.LoadNamespace(AList, AnAlwaysOverwrite, ADontRemove);
+  FNexus.LoadNamespace(AList, AnAlwaysOverwrite, ADontRemove, ATerminate);
 end;
 
 procedure TgdcNamespaceLoader.LoadParam(AParam: TIBXSQLVAR; const AFieldName: String;
@@ -1294,23 +1307,26 @@ begin
       Obj.Close;
       Obj.ID := gdcBaseManager.GetIDByRUID(RR.RUID.XID, RR.RUID.DBID);
       Obj.Open;
-      if not Obj.EOF then
+      if (not Obj.EOF) and (Obj.ID >= cstUserIDStart) then
       begin
-        try
-          ObjectName := Obj.ObjectName + ' (' + Obj.GetDisplayName(Obj.SubType) + ')';
-          Obj.Delete;
-          if Obj is TgdcFunction then
-            FNeedRelogin := True;
-          AddText('Удален объект: ' + ObjectName);
-        except
-          on E: Exception do
-          begin
-            AddWarning('Объект не может быть удален: ' + ObjectName);
-            AddWarning(E.Message);
+        if (not (Obj is TgdcMetaBase)) or TgdcMetaBase(Obj).IsUserDefined then
+        begin
+          try
+            ObjectName := Obj.ObjectName + ' (' + Obj.GetDisplayName(Obj.SubType) + ')';
+            Obj.Delete;
+            if Obj is TgdcFunction then
+              FNeedRelogin := True;
+            AddText('Удален объект: ' + ObjectName);
+          except
+            on E: Exception do
+            begin
+              AddWarning('Объект не может быть удален: ' +
+                ObjectName + #13#10 + E.Message);
+            end;
           end;
+          if Obj is TgdcMetaBase then
+            Inc(FMetadataCounter);
         end;
-        if Obj is TgdcMetaBase then
-          Inc(FMetadataCounter);
       end;
       Obj.Close;
     end;
@@ -1375,6 +1391,11 @@ begin
   end;
 end;
 
+class function TgdcNamespaceLoader.LoadingDelayed: Boolean;
+begin
+  Result := (FNexus <> nil) and FNexus.Loading;
+end;
+
 { TgdcNamespaceLoaderNexus }
 
 destructor TgdcNamespaceLoaderNexus.Destroy;
@@ -1384,7 +1405,7 @@ begin
 end;
 
 procedure TgdcNamespaceLoaderNexus.LoadNamespace(AList: TStrings;
-  const AnAlwaysOverwrite, ADontRemove: Boolean);
+  const AnAlwaysOverwrite, ADontRemove, ATerminate: Boolean);
 begin
   if FLoading then
     raise EgdcNamespaceLoader.Create('Namespace is loading.');
@@ -1393,6 +1414,7 @@ begin
   FList.Assign(AList);
   FAlwaysOverwrite := AnAlwaysOverwrite;
   FDontRemove := ADontRemove;
+  FTerminate := ATerminate;
   PostMessage(Handle, WM_LOAD_NAMESPACE, 0, 0);
 end;
 
@@ -1400,6 +1422,7 @@ procedure TgdcNamespaceLoaderNexus.WMLoadNamespace(var Msg: TMessage);
 var
   L: TgdcNamespaceLoader;
 begin
+  Assert(not FLoading);
   Assert(FList <> nil);
 
   FLoading := True;
@@ -1426,6 +1449,9 @@ begin
   finally
     FLoading := False;
   end;
+
+  if FTerminate then
+    Application.Terminate;
 end;
 
 initialization
