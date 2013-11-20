@@ -320,10 +320,10 @@ end;
 
 procedure TyamlWriter.WriteBuffer(const ABuffer: AnsiString);
 var
-  L, C: Integer;
+  L, C, P: Integer;
 begin
+  P := 1;
   C := Length(ABuffer);
-
   while C > 0 do
   begin
     if C > DefBufferSize then
@@ -332,7 +332,8 @@ begin
       L := C;
     if FPosition + L > DefBufferSize then
       Flush;
-    Move(ABuffer[1], FBuffer[FPosition], L);
+    Move(ABuffer[P], FBuffer[FPosition], L);
+    Inc(P, L);
     Inc(FPosition, L);
     Dec(C, L);
   end;

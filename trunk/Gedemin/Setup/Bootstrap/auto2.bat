@@ -64,7 +64,7 @@ echo **                                             **
 echo *************************************************
 
 cd ..\gedemin\exe
-call update_gedemin.bat /no_ftp /d
+call update_gedemin.bat /no_ftp /p
 cd ..\setup\bootstrap
 
 if not errorlevel 0 goto Error
