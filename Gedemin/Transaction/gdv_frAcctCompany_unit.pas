@@ -47,6 +47,7 @@ begin
 
   Transaction.DefaultDataBase := gdcBaseManager.Database;
   iblCompany.CurrentKeyInt := IbLogin.CompanyKey;
+  cbAllCompanies.Checked := IbLogin.IsHolding;
 end;
 
 procedure TfrAcctCompany.ppMainResize(Sender: TObject);

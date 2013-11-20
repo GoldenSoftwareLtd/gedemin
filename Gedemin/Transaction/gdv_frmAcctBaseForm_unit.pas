@@ -818,10 +818,6 @@ begin
     begin
       frAcctCompany.CompanyKey := CompanyKey;
       frAcctCompany.AllHoldingCompanies := AllHoldingCompanies;
-    end else
-    begin
-      frAcctCompany.CompanyKey := IbLogin.CompanyKey;
-      frAcctCompany.AllHoldingCompanies := IbLogin.IsHolding;
     end;
   end;
 end;
@@ -856,7 +852,7 @@ begin
 
     ExtendedFields := cbExtendedFields.Checked;
 
-    CompanyKey := frAcctCompany.CompanyKey;
+    CompanyKey := -1;
     AllHoldingCompanies := frAcctCompany.AllHoldingCompanies;
   end;
 end;
@@ -1039,8 +1035,7 @@ begin
       and (FConfig.EQDecDigits = frAcctSum.EQDecDigits) and (FConfig.EQScale = frAcctsum.EQScale)
       and (FConfig.QuantityDecDigits = frAcctSum.QuantityDecDigits) and (FConfig.QuantityScale = frAcctsum.QuantityScale)
       and (FConfig.Quantity = frAcctQuantity.Selected) and (FConfig.Analytics = frAcctAnalytics.Values)
-      and (FConfig.ExtendedFields = cbExtendedFields.Checked) and (FConfig.CompanyKey = frAcctCompany.CompanyKey)
-      and (FConfig.AllHoldingCompanies = frAcctCompany.AllHoldingCompanies)
+      and (FConfig.ExtendedFields = cbExtendedFields.Checked);
   end else
     Result := False;
 end;
