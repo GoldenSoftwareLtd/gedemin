@@ -2099,6 +2099,7 @@ begin
           begin
             TDBEdit(E).DataSource := dsResult;
             TDBEdit(E).DataField := F.FieldName;
+            TDBEdit(E).PopupMenu := pmSaveFieldToFile;
             E.Height := 21;
           end else
           begin
@@ -2182,19 +2183,44 @@ end;
 procedure TfrmSQLEditorSyn.actSaveFieldToFileExecute(Sender: TObject);
 var
   SD: TSaveDialog;
+  F: TField;
+  FS: TFileStream;
+  SS: TStringStream;
 begin
-  if (pmSaveFieldToFile.PopupComponent is TDBMemo)
-    and ((pmSaveFieldToFile.PopupComponent as TDBMemo).Field is TBlobField) then
+  if (pmSaveFieldToFile.PopupComponent is TDBMemo) then
+    F := (pmSaveFieldToFile.PopupComponent as TDBMemo).Field
+  else if (pmSaveFieldToFile.PopupComponent is TDBEdit) then
+    F := (pmSaveFieldToFile.PopupComponent as TDBEdit).Field
+  else
+    F := nil;
+
+  if (F <> nil) and (not F.IsNull) then
   begin
     SD := TSaveDialog.Create(Self);
     try
       SD.Title := 'Сохранить значение поля в файл';
       SD.DefaultExt := 'dat';
       SD.Filter := 'Текстовые файлы (*.txt)|*.txt|Фйлы данных(*.dat)|*.dat|Все файлы (*.*)|*.*';
-      SD.FileName := (pmSaveFieldToFile.PopupComponent as TDBMemo).Field.Name + '.dat';
+      SD.FileName := F.Name + '.dat';
       SD.Options := [ofOverwritePrompt, ofHideReadOnly, ofPathMustExist, ofNoReadOnlyReturn, ofEnableSizing];
       if SD.Execute then
-        ((pmSaveFieldToFile.PopupComponent as TDBMemo).Field as TBlobField).SaveToFile(SD.FileName);
+      begin
+        if F is TBlobField then
+          (F as TBlobField).SaveToFile(SD.FileName)
+        else begin
+          FS := TFileStream.Create(SD.FileName, fmOpenWrite);
+          try
+            SS := TStringStream.Create(F.AsString);
+            try
+              FS.CopyFrom(SS, 0);
+            finally
+              SS.Free;
+            end;
+          finally
+            FS.Free;
+          end;
+        end;
+      end;
     finally
       SD.Free;
     end;
