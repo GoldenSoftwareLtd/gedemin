@@ -5768,14 +5768,7 @@ begin
 
               end;
             finally
-              DataLink.ActiveRecord := OldActive;
-
-              if FShowTotals and ((SizedColumn as TgsColumn).TotalWidth > -1) then
-              begin
-                CurrWidth := (SizedColumn as TgsColumn).TotalWidth;
-                if MaxWidth < CurrWidth then
-                  MaxWidth := CurrWidth;
-              end;
+              DataLink.ActiveRecord := OldActive;    
 
               Canvas.Font := SizedColumn.Title.Font;
               CaptionWidth := CountFullCaptionWidth(SizedColumn) + 4;
