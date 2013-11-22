@@ -24,6 +24,9 @@ type
     IBTransaction: TIBTransaction;
     procedure cmbTypeChange(Sender: TObject);
     procedure actOkUpdate(Sender: TObject);
+    procedure smTriggerBodySpecialLineColors(Sender: TObject;
+      Line: Integer; var Special: Boolean; var FG, BG: TColor);
+    procedure smTriggerBodyChange(Sender: TObject);
 
   private
     function GetItemIndex(const TypeTrigger :Integer): Integer;
@@ -31,6 +34,7 @@ type
 
   protected
     procedure BeforePost; override;
+    procedure InvalidateForm; override;
 
   public
     constructor Create(AnOwner: TComponent); override;
@@ -175,6 +179,7 @@ begin
   {END MACRO}
 
   Assert(not IBTransaction.Active);
+  ClearError;
 
   Result := False;
   ibsql := TIBSQL.Create(nil);
@@ -206,8 +211,11 @@ begin
         Result := True;
       except
         on E: Exception do
+        begin
+          ExtractErrorLine(E.Message);
           raise Exception.Create(Format('При сохранении триггера возникла следующая ошибка'#13#10 +
             ' %s', [E.Message]));
+        end;
       end;
     end
     else begin
@@ -236,6 +244,7 @@ begin
       except
         on E: Exception do
         begin
+          ExtractErrorLine(E.Message);
           raise Exception.Create(Format('При сохранении триггера возникла следующая ошибка'#13#10 +
             ' %s', [E.Message]));
         end;
@@ -356,6 +365,27 @@ procedure Tgdc_dlgTrigger.actOkUpdate(Sender: TObject);
 begin
   inherited;
   btnOK.Default := not smTriggerBody.Focused;
+end;
+
+procedure Tgdc_dlgTrigger.smTriggerBodySpecialLineColors(Sender: TObject;
+  Line: Integer; var Special: Boolean; var FG, BG: TColor);
+begin
+  if Line = FErrorLine then
+  begin
+    Special := True;
+    BG := clRed;
+    FG := clWhite;
+  end;
+end;
+
+procedure Tgdc_dlgTrigger.InvalidateForm;
+begin
+  smTriggerBody.Invalidate;
+end;  
+
+procedure Tgdc_dlgTrigger.smTriggerBodyChange(Sender: TObject);
+begin 
+  ClearError;
 end;
 
 initialization

@@ -45,10 +45,14 @@ type
     procedure actSearchNextExecute(Sender: TObject);
     procedure actReplaceExecute(Sender: TObject);
     procedure actPrepareExecute(Sender: TObject);
+    procedure smProcedureBodySpecialLineColors(Sender: TObject;
+      Line: Integer; var Special: Boolean; var FG, BG: TColor);
+    procedure smProcedureBodyChange(Sender: TObject);
   private
     FSearchReplaceHelper: TgsSearchReplaceHelper;
   protected
     procedure BeforePost; override;
+    procedure InvalidateForm; override;
   public
     constructor Create(AnOwner: TComponent); override;
     destructor Destroy; override;
@@ -138,7 +142,8 @@ begin
   {M}      end;
   {M}  end;
   {END MACRO}
-
+  
+  ClearError;
   if gdcObject.FieldByName('procedurename').AsString = '' then
     raise EgdcIBError.Create('Необходимо указать имя процедуры');
 
@@ -163,8 +168,11 @@ begin
         ibsql.CheckValidStatement;
       except
         on E: Exception do
+        begin
+          ExtractErrorLine(E.Message);
           raise EgdcIBError.Create(Format('При сохранении процедуры возникла следующая ошибка: %s',
             [E.Message]));
+        end;
       end;
     finally
       ibsql.Free;
@@ -388,6 +396,7 @@ var
   ibsqlTest: TIBSQL;
   TestTransaction: TIBTransaction;
 begin
+  ClearError;
   ibsqlTest := TIBSQL.Create(nil);
   TestTransaction := TIBTransaction.Create(nil);
   try
@@ -399,14 +408,10 @@ begin
       ibsqlTest.ParamCheck := False;
       try
         ibsqlTest.Prepare;
-      except
-        on E: EIBError do
-        begin
-          MessageBox(Self.Handle, PChar(E.Message), '',
-            MB_OK or MB_ICONWARNING or MB_TASKMODAL);
-        end;
+      except 
         on E: Exception do
         begin
+          ExtractErrorLine(E.Message);
           MessageBox(Self.Handle, PChar(E.Message), '',
             MB_OK or MB_ICONWARNING or MB_TASKMODAL);
         end;
@@ -418,6 +423,28 @@ begin
     FreeAndNil(TestTransaction);
     FreeAndNil(ibsqlTest);
   end;
+end;
+
+procedure Tgdc_attr_dlgStoredProc.InvalidateForm;
+begin
+  smProcedureBody.Invalidate;
+end;
+
+procedure Tgdc_attr_dlgStoredProc.smProcedureBodySpecialLineColors(
+  Sender: TObject; Line: Integer; var Special: Boolean; var FG,
+  BG: TColor);
+begin
+  if Line = FErrorLine then
+  begin
+    Special := True;
+    BG := clRed;
+    FG := clWhite;
+  end;  
+end;
+
+procedure Tgdc_attr_dlgStoredProc.smProcedureBodyChange(Sender: TObject);
+begin
+  ClearError;
 end;
 
 initialization
