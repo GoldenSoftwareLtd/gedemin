@@ -18,25 +18,20 @@ inherited dlgInvDocument: TdlgInvDocument
   end
   inherited btnAccess: TButton
     Top = 353
-    Anchors = [akLeft, akBottom]
   end
   inherited btnNew: TButton
     Top = 353
-    Anchors = [akLeft, akBottom]
   end
   inherited btnHelp: TButton
     Top = 353
-    Anchors = [akLeft, akBottom]
   end
   inherited btnOK: TButton
     Left = 398
     Top = 353
-    Anchors = [akRight, akBottom]
   end
   inherited btnCancel: TButton
     Left = 470
     Top = 353
-    Anchors = [akRight, akBottom]
   end
   object pnlMain: TPanel [6]
     Left = 0
