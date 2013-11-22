@@ -480,6 +480,8 @@ inherited gdc_attr_dlgStoredProc: Tgdc_attr_dlgStoredProc
               Command = ecMatchBracket
               ShortCut = 24642
             end>
+          OnChange = smProcedureBodyChange
+          OnSpecialLineColors = smProcedureBodySpecialLineColors
         end
       end
     end

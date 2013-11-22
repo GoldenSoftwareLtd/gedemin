@@ -475,6 +475,8 @@ inherited gdc_dlgTrigger: Tgdc_dlgTrigger
           Command = ecMatchBracket
           ShortCut = 24642
         end>
+      OnChange = smTriggerBodyChange
+      OnSpecialLineColors = smTriggerBodySpecialLineColors
     end
   end
   inherited alBase: TActionList
