@@ -1129,37 +1129,40 @@ begin
         end
         else
         begin
-          if F.References <> nil then
+          if CurrDocLine.IsChangeCardValue and CurrDocLine.IsAppendCardValue then
           begin
-            {Если у нас есть ссылка}
-            C := Grid.ColumnEditors.Add;
-            C.EditorStyle := cesLookup;
-            C.FieldName := CurrDocLine.Fields[I].FieldName;
-
-            {Установка лист-таблицы, класса, поля отображения}
-            if F.gdClassName > '' then
+            if F.References <> nil then
             begin
-              C.Lookup.SubType := F.gdSubType;
-              C.Lookup.gdClassName := F.gdClassName;
-            end else begin
-              if Assigned(F.Field.RefListField) then
-                C.Lookup.LookupListField := F.Field.RefListField.FieldName
-              else
-                C.Lookup.LookupListField := F.References.ListField.FieldName;
+              {Если у нас есть ссылка}
+              C := Grid.ColumnEditors.Add;
+              C.EditorStyle := cesLookup;
+              C.FieldName := CurrDocLine.Fields[I].FieldName;
 
-              C.Lookup.LookupKeyField := F.References.PrimaryKey.
-                ConstraintFields[0].FieldName;
-              C.Lookup.LookupTable := F.References.RelationName;
-            end;
+              {Установка лист-таблицы, класса, поля отображения}
+              if F.gdClassName > '' then
+              begin
+                C.Lookup.SubType := F.gdSubType;
+                C.Lookup.gdClassName := F.gdClassName;
+              end else begin
+                if Assigned(F.Field.RefListField) then
+                  C.Lookup.LookupListField := F.Field.RefListField.FieldName
+                else
+                  C.Lookup.LookupListField := F.References.ListField.FieldName;
 
-            {Поле, в котором будет отбражаться контрол}
-            C.DisplayField := gdcBaseManager.AdjustMetaName(CurrDocLine.JoinListFieldByFieldName(F.FieldName, 'CARD', C.Lookup.LookupListField));
+                C.Lookup.LookupKeyField := F.References.PrimaryKey.
+                  ConstraintFields[0].FieldName;
+                C.Lookup.LookupTable := F.References.RelationName;
+              end;
 
-            {Установка первоначального условия (из класса)}
-            if Assigned(F.Field) and (F.Field.RefCondition > '') then
-              C.Lookup.Condition := F.Field.RefCondition;
+              {Поле, в котором будет отбражаться контрол}
+              C.DisplayField := gdcBaseManager.AdjustMetaName(CurrDocLine.JoinListFieldByFieldName(F.FieldName, 'CARD', C.Lookup.LookupListField));
 
-            C.Lookup.Transaction := ibtrCommon;
+              {Установка первоначального условия (из класса)}
+              if Assigned(F.Field) and (F.Field.RefCondition > '') then
+                C.Lookup.Condition := F.Field.RefCondition;
+
+              C.Lookup.Transaction := ibtrCommon;
+            end
           end
         end;
       end
@@ -1521,13 +1524,21 @@ begin
   if not CurrDocLine.IsChangeCardValue  then
   begin
     for i:= 0 to Grid.Columns.Count - 1 do
+    begin
       if (Pos('FROM_', Grid.Columns[I].FieldName) = 1) then
         Grid.Columns[I].ReadOnly := True;
+      if (Pos('CARD_', Grid.Columns[I].FieldName) = 1) then
+        Grid.Columns[I].ReadOnly := True;
+    end
   end
   else
     for i:= 0 to Grid.Columns.Count - 1 do
+    begin
       if (Pos('FROM_', Grid.Columns[I].FieldName) = 1) then
         Grid.Columns[I].ReadOnly := False;
+      if (Pos('CARD_', Grid.Columns[I].FieldName) = 1) then
+        Grid.Columns[I].ReadOnly := True;
+    end;
 
   //
   // Осуществляем настройку ограничений
