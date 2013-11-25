@@ -1108,7 +1108,8 @@ begin
               SQL.ParamByName(fnConfig).LoadFromStream(Str);
               SQL.ExecQuery;
 
-              Transaction.Commit;
+              if DidActivate and Transaction.InTransaction then
+                Transaction.Commit;
               iblConfiguratior.CurrentKeyInt := Id;
               if FSaveGridSetting then
               begin
@@ -1116,7 +1117,8 @@ begin
                   actSaveGridSetting.Execute;
               end;
             except
-              Transaction.RollBack;
+              if DidActivate and Transaction.InTransaction then
+                Transaction.RollBack;
               raise;
             end;
           finally
@@ -1174,139 +1176,118 @@ end;
 
 procedure Tgdv_frmAcctBaseForm.actSaveGridSettingExecute(Sender: TObject);
 var
-  SQL: TIBSQL;
-  DidActivate: Boolean;
+  SQL: TIBSQL; 
   Str: TStream;
   Config: TBaseAcctConfig;
-  Transaction: TIBTransaction;
+  Tr: TIBTransaction;
 begin
-  Transaction := TIBTransaction.Create(nil);
+  Tr := TIBTransaction.Create(nil);
+  SQL := TIBSQL.Create(nil);
   try
-    Transaction.DefaultDatabase := gdcBaseManager.Database;
-    SQL := TIBSQL.Create(nil);
-    try
-      SQL.Transaction := Transaction;
-      DidActivate := not Transaction.InTransaction;
-      if DidActivate then
-        Transaction.StartTransaction;
+    Tr.DefaultDatabase := gdcBaseManager.Database;
+    Tr.StartTransaction;
+
+    SQL.Transaction := Tr;
+    SQL.SQL.text := 'SELECT * FROM ac_acct_config WHERE id = :id';
+    SQL.ParamByName(fnId).AsInteger := iblConfiguratior.CurrentKeyInt;
+    SQL.ExecQuery;
+
+    if SQL.RecordCount > 0 then
+    begin
+      Str := TMemoryStream.Create;
       try
-        SQL.SQL.text := 'SELECT * FROM ac_acct_config WHERE id = :id';
-        SQL.ParamByName(fnId).AsInteger := iblConfiguratior.CurrentKeyInt;
-        SQL.ExecQuery;
+        SQL.FieldByName(fnConfig).SaveToStream(Str);
 
-        if SQL.RecordCount > 0 then
-        begin
-          Str := TMemoryStream.Create;
-          try
-            SQL.FieldByName(fnConfig).SaveToStream(Str);
+        Str.Position := 0;
+        Config := LoadConfigFromStream(Str);
 
-            Str.Position := 0;
-            Config := LoadConfigFromStream(Str);
+        if Config = nil then
+          Exit;
 
-            if Config = nil then
-              Exit;
+        try
+          ibgrMain.SaveToStream(Config.GridSettings);
 
-            try
-              ibgrMain.SaveToStream(Config.GridSettings);
+          SQL.Close;
+          SQL.SQL.Text := 'UPDATE ac_acct_config SET config = :config WHERE id = :id';
 
-              SQL.Close;
-              SQL.SQL.Text := 'UPDATE ac_acct_config SET config = :config WHERE id = :id';
+          SQL.ParamByName(fnId).asInteger := iblConfiguratior.CurrentKeyInt;
+          Str.Size := 0;
+          SaveConfigToStream(Config, Str);
 
-              SQL.ParamByName(fnId).asInteger := iblConfiguratior.CurrentKeyInt;
-              Str.Size := 0;
-              SaveConfigToStream(Config, Str);
+          Str.Position := 0;
+          SQL.ParamByName(fnConfig).LoadFromStream(Str);
 
-              Str.Position := 0;
-              SQL.ParamByName(fnConfig).LoadFromStream(Str);
-
-              SQL.ExecQuery;
-            finally
-              Config.Free;
-            end;
-          finally
-            Str.Free;
-          end;
+          SQL.ExecQuery;
+        finally
+          Config.Free;
         end;
-        if DidActivate then
-          Transaction.Commit;
-      except
-        if DidActivate then
-          Transaction.Rollback;
+      finally
+        Str.Free;
       end;
-    finally
-      SQl.Free;
     end;
+    Tr.Commit;  
   finally
-    Transaction.Free;
+    Tr.Free;
+    SQl.Free;
   end;
 end;
 
 procedure Tgdv_frmAcctBaseForm.actClearGridSettingExecute(Sender: TObject);
 var
-  SQL: TIBSQL;
-  DidActivate: Boolean;
+  SQL: TIBSQL;  
   Str: TStream;
   Config: TBaseAcctConfig;
-  Transaction: TIBTransaction;
+  Tr: TIBTransaction;
 begin
-  Transaction := TIBTransaction.Create(nil);
+  Tr := TIBTransaction.Create(nil);
+  SQL := TIBSQL.Create(nil);
   try
-    Transaction.DefaultDatabase := gdcBaseManager.Database;
-    SQL := TIBSQL.Create(nil);
-    try
-      SQL.Transaction := Transaction;
-      DidActivate := not Transaction.InTransaction;
-      if DidActivate then
-        Transaction.StartTransaction;
+    Tr.DefaultDatabase := gdcBaseManager.Database;
+    Tr.StartTransaction;
+
+    SQL.Transaction := Tr;
+
+    SQL.SQL.text := 'SELECT * FROM ac_acct_config WHERE id = :id';
+    SQL.ParamByName(fnId).AsInteger := iblConfiguratior.CurrentKeyInt;
+    SQL.ExecQuery;
+
+    if SQL.RecordCount > 0 then
+    begin
+      Str := TMemoryStream.Create;
       try
-        SQL.SQL.text := 'SELECT * FROM ac_acct_config WHERE id = :id';
-        SQL.ParamByName(fnId).AsInteger := iblConfiguratior.CurrentKeyInt;
-        SQL.ExecQuery;
+        SQL.FieldByName(fnConfig).SaveToStream(Str);
 
-        if SQL.RecordCount > 0 then
-        begin
-          Str := TMemoryStream.Create;
-          try
-            SQL.FieldByName(fnConfig).SaveToStream(Str);
+        Str.Position := 0;
+        Config := LoadConfigFromStream(Str);
 
-            Str.Position := 0;
-            Config := LoadConfigFromStream(Str);
+        if Config = nil then
+          Exit;
 
-            if Config = nil then
-              Exit;
+        try
+          Config.GridSettings.Size := 0;
 
-            try
-              Config.GridSettings.Size := 0;
+          SQL.Close;
+          SQL.SQL.Text := 'UPDATE ac_acct_config SET config = :config WHERE id = :id';
 
-              SQL.Close;
-              SQL.SQL.Text := 'UPDATE ac_acct_config SET config = :config WHERE id = :id';
+          SQL.ParamByName(fnId).asInteger := iblConfiguratior.CurrentKeyInt;
+          Str.Size := 0;
+          SaveConfigToStream(Config, Str);
 
-              SQL.ParamByName(fnId).asInteger := iblConfiguratior.CurrentKeyInt;
-              Str.Size := 0;
-              SaveConfigToStream(Config, Str);
+          Str.Position := 0;
+          SQL.ParamByName(fnConfig).LoadFromStream(Str);
 
-              Str.Position := 0;
-              SQL.ParamByName(fnConfig).LoadFromStream(Str);
-
-              SQL.ExecQuery;
-            finally
-              Config.Free;
-            end;
-          finally
-            Str.Free;
-          end;
+          SQL.ExecQuery;
+        finally
+          Config.Free;
         end;
-        if DidActivate then
-          Transaction.Commit;
-      except
-        if DidActivate then
-          Transaction.Rollback;
+      finally
+        Str.Free;
       end;
-    finally
-      SQl.Free;
     end;
+    Tr.Commit;   
   finally
-    Transaction.Free;
+    Tr.Free;
+    SQl.Free;
   end;
 end;
 
