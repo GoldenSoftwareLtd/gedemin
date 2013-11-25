@@ -52,7 +52,8 @@ end;
 
 procedure TdlgConfigName.FormCreate(Sender: TObject);
 begin
-  Transaction.DefaultDatabase := dmDatabase.ibdbGAdmin
+  Transaction.DefaultDatabase := dmDatabase.ibdbGAdmin;
+  iblName.NewObjIfNotFound := False;
 end;
 
 procedure TdlgConfigName.actOkExecute(Sender: TObject);
@@ -63,6 +64,5 @@ end;
 procedure TdlgConfigName.actCancelExecute(Sender: TObject);
 begin
   ModalResult := mrCancel;
-end;
-
+end; 
 end.

@@ -1054,8 +1054,8 @@ var
   D: TdlgConfigName;
   Str: TStream;
   SQL: TIBSQL;
-  DidActivate: Boolean;
   Id: Integer;
+  Tr: TIBTransaction;
 begin
   D := TdlgConfigName.Create(nil);
   try
@@ -1070,58 +1070,54 @@ begin
         if Str.Size > 0 then
         begin
           Str.Position := 0;
-          SQL := TIBSQl.Create(nil);
+
+          Tr := TIBTransaction.Create(nil);
+          SQL := TIBSQL.Create(nil);
           try
-            SQL.Transaction := Transaction;
-            DidActivate := not Transaction.InTransaction;
-            if DidActivate then
-              Transaction.StartTransaction;
-            try
-              if D.iblName.CurrentKey <> '' then
-              begin
-                if Application.MessageBox(
-                  PChar(Format(MSG_CONFIGEXITS, [D.ConfigName])),
-                  PChar(MSG_WARNING),
-                  MB_YESNO or MB_TASKMODAL or MB_ICONQUESTION) <> IDYES then
-                begin
-                  Exit;
-                end;
+            Tr.DefaultDatabase := gdcBaseManager.Database;
+            Tr.StartTransaction;
 
-                SQL.SQL.Text := 'UPDATE ac_acct_config SET name = :name, config = :config WHERE id = :id';
-                SQL.ParamByName(fnId).AsInteger := D.iblName.CurrentKeyInt;
-                id := D.iblName.CurrentKeyInt;
-              end else
+            SQL.Transaction := Tr;
+            if D.iblName.CurrentKey <> '' then
+            begin
+              if Application.MessageBox(
+                PChar(Format(MSG_CONFIGEXITS, [D.ConfigName])),
+                PChar(MSG_WARNING),
+                MB_YESNO or MB_TASKMODAL or MB_ICONQUESTION) <> IDYES then
               begin
-                Id := gdcBaseManager.GetNextID;
-                
-                SQL.SQL.Text := 'INSERT INTO ac_acct_config (id, name, config, ' +
-                  'imageindex, folder, showinexplorer, classname) VALUES (:id, ' +
-                  ' :name, :config, :imageindex, :folder, :showinexplorer, :classname)';
-                SQL.ParamByName(fnImageIndex).AsInteger := iiGreenCircle;
-                SQL.ParamByName(fnFolder).AsInteger := AC_ACCOUNTANCY;
-                SQL.ParamByName(fnShowInExplorer).AsInteger := 0;
-                SQL.ParamByName(fnClassName).AsString := ConfigClassName;
-                SQL.ParamByName(fnId).AsInteger := Id;
+                Exit;
               end;
 
-              SQL.ParamByName(fnName).AsString := D.ConfigName;
-              SQL.ParamByName(fnConfig).LoadFromStream(Str);
-              SQL.ExecQuery;
+              SQL.SQL.Text := 'UPDATE ac_acct_config SET name = :name, config = :config WHERE id = :id';
+              SQL.ParamByName(fnId).AsInteger := D.iblName.CurrentKeyInt;
+              id := D.iblName.CurrentKeyInt;
+            end else
+            begin
+              Id := gdcBaseManager.GetNextID;
 
-              if DidActivate and Transaction.InTransaction then
-                Transaction.Commit;
-              iblConfiguratior.CurrentKeyInt := Id;
-              if FSaveGridSetting then
-              begin
-                if MessageDlg('Сохранить настройки таблицы?', mtConfirmation, [mbYes, mbNo], 0) = mrYes then
-                  actSaveGridSetting.Execute;
-              end;
-            except
-              if DidActivate and Transaction.InTransaction then
-                Transaction.RollBack;
-              raise;
+              SQL.SQL.Text := 'INSERT INTO ac_acct_config (id, name, config, ' +
+                'imageindex, folder, showinexplorer, classname) VALUES (:id, ' +
+                ' :name, :config, :imageindex, :folder, :showinexplorer, :classname)';
+              SQL.ParamByName(fnImageIndex).AsInteger := iiGreenCircle;
+              SQL.ParamByName(fnFolder).AsInteger := AC_ACCOUNTANCY;
+              SQL.ParamByName(fnShowInExplorer).AsInteger := 0;
+              SQL.ParamByName(fnClassName).AsString := ConfigClassName;
+              SQL.ParamByName(fnId).AsInteger := Id;
+            end;
+
+            SQL.ParamByName(fnName).AsString := D.ConfigName;
+            SQL.ParamByName(fnConfig).LoadFromStream(Str);
+            SQL.ExecQuery;
+
+            Tr.Commit;
+            iblConfiguratior.CurrentKeyInt := Id;
+            if FSaveGridSetting then
+            begin
+              if MessageDlg('Сохранить настройки таблицы?', mtConfirmation, [mbYes, mbNo], 0) = mrYes then
+                actSaveGridSetting.Execute;
             end;
           finally
+            Tr.Free;
             SQL.Free;
           end;
         end;
