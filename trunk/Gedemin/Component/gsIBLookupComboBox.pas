@@ -67,6 +67,7 @@ type
     FFields: String;                // список полей расширенного отображения
     FCountAddField: Integer;        // количество дополнительных полей
     FShowDisabled: Boolean;         // отображать ли записи c DISABLED = 1
+    FNewObjIfNotFound: Boolean;     // создавать объект если не найден
 
     FDataField: String;             // поле, куда подставлять выбранный ключ
     FDataLink: TgsIBLCBDataLink;    // куда записывать данные
@@ -149,6 +150,7 @@ type
     function GetIsTree: Boolean;
     function GetRestrCondition: String;
     function StripSpaces(const S: String): String;
+    function GetDefaultSearchType: TSearchType;
 
     function GetTableAlias(const ATableName: String): String;
     procedure SetDisplayText(const AText: String; const AParent: Integer = 0);
@@ -222,6 +224,7 @@ type
 
     property IsTree: Boolean read GetIsTree;
     property ShowDisabled: Boolean read FShowDisabled write FShowDisabled;
+    property NewObjIfNotFound: Boolean read FNewObjIfNotFound write FNewObjIfNotFound;
 
   published
     property Database: TIBDatabase read GetDatabase write SetDatabase;
@@ -411,6 +414,7 @@ begin
   FIBBase := TIBBase.Create(Self);
   FCountAddField := 0;
   FShowDisabled := False;
+  FNewObjIfNotFound := True;
   Fibsql := TIBSQL.Create(nil);
   FDataLink := TgsIBLCBDataLink.Create(Self);
   //FDontSync := False;
@@ -900,7 +904,7 @@ begin
     if ValidObject then
       ShowDropDownDialog
     else
-      DoLookup;
+      DoLookup(GetDefaultSearchType, FNewObjIfNotFound);
   end;    
 end;
 
@@ -3167,7 +3171,12 @@ begin
   FSortOrder := Value;
   if (not (csLoading in ComponentState)) and (FSortOrder <> soNone) then
     FSortField := '';
-end; 
+end;
+
+function TgsIBLookupComboBox.GetDefaultSearchType: TSearchType;
+begin
+  Result := stLike;
+end;
 
 { TgsIBLCBDataLink }
 
