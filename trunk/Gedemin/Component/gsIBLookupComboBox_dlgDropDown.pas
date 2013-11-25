@@ -373,7 +373,10 @@ procedure TdlgDropDown.gsDBGridMouseMove(Sender: TObject;
   Shift: TShiftState; X, Y: Integer);
 begin
   if ssLeft in Shift then
-    ModalResult:= mrOk;
+  begin
+    if FMouseFlag then
+      ModalResult := mrOk;
+  end;
 end;
 
 procedure TdlgDropDown.actSelectObjExecute(Sender: TObject);

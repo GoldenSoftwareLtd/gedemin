@@ -81,7 +81,6 @@ type
     FgdClass: CgdcBase;
 
     FdlgDropDown: TdlgDropDown;     // выпадающий дата-сет
-    //FWasDropDownDialog: Boolean;
     FDropDownDialogWidth: Integer;
     FSubType: String;
     FOnCreateNewObject, FOnAfterCreateDialog: TOnCreateNewObject;
@@ -150,7 +149,6 @@ type
     function GetIsTree: Boolean;
     function GetRestrCondition: String;
     function StripSpaces(const S: String): String;
-    function GetDefaultSearchType: TSearchType;
 
     function GetTableAlias(const ATableName: String): String;
     procedure SetDisplayText(const AText: String; const AParent: Integer = 0);
@@ -904,7 +902,7 @@ begin
     if ValidObject then
       ShowDropDownDialog
     else
-      DoLookup(GetDefaultSearchType, FNewObjIfNotFound);
+      DoLookup(stLike, FNewObjIfNotFound);
   end;    
 end;
 
@@ -1916,98 +1914,126 @@ begin
 end;
 
 procedure TgsIBLookupComboBox.AssignDropDownDialogSize;
+
+  function RectHeight(const R: TRect): Integer;
+  begin
+    Result := R.Bottom - R.Top;
+  end;
+
+  function RectWidth(const R: TRect): Integer;
+  begin
+    Result := R.Right - R.Left;
+  end;
+
+  procedure MoveRect(var R: TRect; const DX, DY: Integer);
+  begin
+    Inc(R.Left, DX);
+    Inc(R.Right, DX);
+    Inc(R.Top, DY);
+    Inc(R.Bottom, DY);
+  end;
+
+const
+  TV_FIRST          = $1100;
+  TVM_GETITEMHEIGHT = TV_FIRST + 28;
+
+  ToolbarHeight     = 16;
+  WindowFrame       = 2;
+
 var
-  Hg, NewHg, Rc, I, W, HeightTemp: Integer;
+  RC, I, MaxTextW: Integer;
   DC: HDC;
   OldF: THandle;
   P: TSize;
-  TempS: String;
-  RDesk: TRect;
+  TempS: AnsiString;
+  RDesk, RLookup, RDropDown: TRect;
 begin
-  if Assigned(Parent) and (Parent is TControl) then
-  begin
-    FdlgDropDown.Left := (Parent as TControl).ClientToScreen(Point(Left, Top + Height)).X;
-    FdlgDropDown.Top := (Parent as TControl).ClientToScreen(Point(Left, Top + Height)).Y;
+  SystemParametersInfo(SPI_GETWORKAREA, 0, @RDesk, 0);
+
+  RLookup.TopLeft := ClientToScreen(Point(0, 0));
+  RLookup.BottomRight := ClientToScreen(Point(Width, Height));
+
+  MaxTextW := 0;
+  DC := GetDC(0);
+  OldF := SelectObject(DC, Font.Handle);
+  try
+    I := 0;
+    FdlgDropDown.dsList.DataSet.First;
+    while (I < DropDownCount) and (not FdlgDropDown.dsList.DataSet.EOF) do
+    begin
+      TempS := FdlgDropDown.dsList.DataSet.Fields[0].AsString;
+      if TempS > '' then
+      begin
+        GetTextExtentPoint(DC, @TempS[1], Length(TempS), P);
+        if P.cx > MaxTextW then MaxTextW := P.cx;
+      end;
+      Inc(I);
+      FdlgDropDown.dsList.DataSet.Next;
+    end;
+    FdlgDropDown.dsList.DataSet.First;
+  finally
+    SelectObject(DC, OldF);
+    ReleaseDC(0, DC);
   end;
+
+  RDropDown.Left := RLookup.Left;
+  RDropDown.Top := RLookup.Bottom;
+
   if FDropDownDialogWidth = -1 then
   begin
-    FdlgDropDown.Width := Width - 1;
+    RDropDown.Right := RLookup.Right;
+
     if FdlgDropDown.tv.Visible then
+      MaxTextW := FdlgDropDown.tv.MaxWidth;
+
+    if (RectWidth(RDropDown) - SCROLL_WIDTH - WindowFrame < MaxTextW)
+      and (MaxTextW < MAX_WIDTH_FOR_AUTO_SET) then
     begin
-      W := FdlgDropDown.tv.MaxWidth;
-    end else
-    begin
-      W := 0;
-      DC := GetDC(0);
-      OldF := SelectObject(DC, FdlgDropDown.gsDBGrid.TableFont.Handle);
-      try
-        I := 0;
-        FdlgDropDown.dsList.DataSet.First;
-        while (I < DropDownCount) and (not FdlgDropDown.dsList.DataSet.EOF) do
-        begin
-          TempS := FdlgDropDown.dsList.DataSet.Fields[0].AsString;
-          GetTextExtentPoint(DC, @TempS[1], Length(TempS), P);
-          if P.cx > W then
-            W := P.cx;
-          Inc(I);
-          FdlgDropDown.dsList.DataSet.Next;
-        end;
-        FdlgDropDown.dsList.DataSet.First;
-      finally
-        SelectObject(DC, OldF);
-        ReleaseDC(0, DC);
-      end;
+      RDropDown.Right := RDropDown.Left + MaxTextW + SCROLL_WIDTH + WindowFrame;
     end;
-    if (FdlgDropDown.Width - SCROLL_WIDTH < W)
-      and (W < MAX_WIDTH_FOR_AUTO_SET) then
-    begin
-      FdlgDropDown.Width := W + SCROLL_WIDTH;
-    end;
-  end;
+  end else
+    RDropDown.Right := RDropDown.Left + FDropDownDialogWidth;
+
   if FdlgDropDown.dsList.DataSet.RecordCount < DropDownCount then
     Rc := FdlgDropDown.dsList.DataSet.RecordCount
   else
     Rc := DropDownCount;
-  { TODO : а если дерево, высота считается не правильно! }
-  Hg := Rc * GridRowHeight * (FCountAddField + 1) + 16;
-  NewHg := Abs(Font.Height) * (Rc * (FCountAddField + 1) + 2);
-  if Hg < NewHg then
-    Hg := NewHg;
 
-  SystemParametersInfo(SPI_GETWORKAREA, 0, @RDesk, 0);
-  FdlgDropDown.Height := Hg;
-  HeightTemp := FdlgDropDown.Height + FdlgDropDown.Top;
+  if FdlgDropDown.tv.Visible then
+    RDropDown.Bottom := RDropDown.Top +
+      SendMessage(FdlgDropDown.tv.Handle, TVM_GETITEMHEIGHT, 0, 0) * Rc +
+      ToolbarHeight + WindowFrame
+  else
+    RDropDown.Bottom := RDropDown.Top +
+      Rc * FdlgDropDown.gsDBGrid.GetDefaultRowHeight * (FCountAddField + 1) +
+      ToolbarHeight + WindowFrame;
 
-  if FdlgDropDown.Height + FdlgDropDown.Top > RDesk.Bottom then
-  // Проверим сначала, где больше места
+  if RDropDown.Bottom > RDesk.Bottom then
   begin
-    if (RDesk.Bottom - FdlgDropDown.Top) >= FdlgDropDown.Top then
-      FdlgDropDown.Height := FdlgDropDown.Height - HeightTemp + RDesk.Bottom
+    if (RLookup.Top - RectHeight(RDropDown)) >= RDesk.Top then
+      MoveRect(RDropDown, 0,  - RectHeight(RLookup) - RectHeight(RDropDown))
     else begin
-      FdlgDropDown.Top := (Parent as TControl).ClientToScreen(Point(Left,
-        Self.Top - FdlgDropDown.Height)).Y;
-      if FdlgDropDown.Top < 0 then
-      begin
-        FdlgDropDown.Height := FdlgDropDown.Height + FdlgDropDown.Top - RDesk.Top;
-        FdlgDropDown.Top := RDesk.Top + 1;
+      if RectHeight(RDropDown) <= RectHeight(RDesk) then
+        MoveRect(RDropDown, 0, RDesk.Top - RDropDown.Top)
+      else begin
+        RDropDown.Top := RDesk.Top;
+        RDropDown.Bottom := RDesk.Bottom;
       end;
     end;
   end;
 
-  if FdlgDropDown.Width + FdlgDropDown.Left > RDesk.Right then
+  if RDropDown.Right > RDesk.Right then
   begin
-    //Проверим, где больше места
-    if (RDesk.Right - FdlgDropDown.Left) >= FdlgDropDown.Left then
-      FdlgDropDown.Width := RDesk.Right - FdlgDropDown.Left
+    if RectWidth(RDropDown) <= RectWidth(RDesk) then
+      MoveRect(RDropDown, RDesk.Right - RDropDown.Right, 0)
     else begin
-      FdlgDropDown.Left := RDesk.Right - FdlgDropDown.Width;
-      if FdlgDropDown.Left < 0 then
-      begin
-        FdlgDropDown.Width := FdlgDropDown.Width  + FdlgDropDown.Left - RDesk.Left;
-        FdlgDropDown.Left := RDesk.Left + 1;
-      end;
+      RDropDown.Left := RDesk.Left;
+      RDropDown.Right := RDesk.Right;
     end;
   end;
+
+  FdlgDropDown.SetBounds(RDropDown.Left, RDropDown.Top,
+    RectWidth(RDropDown), RectHeight(RDropDown));
 end;
 
 procedure TgsIBLookupComboBox.AssignDropDownDialogExpands;
@@ -3171,11 +3197,6 @@ begin
   FSortOrder := Value;
   if (not (csLoading in ComponentState)) and (FSortOrder <> soNone) then
     FSortField := '';
-end;
-
-function TgsIBLookupComboBox.GetDefaultSearchType: TSearchType;
-begin
-  Result := stLike;
 end;
 
 { TgsIBLCBDataLink }
