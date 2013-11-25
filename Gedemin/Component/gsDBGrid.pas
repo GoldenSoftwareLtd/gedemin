@@ -824,8 +824,6 @@ type
 
     procedure GetExpandsList(Field: TField; List: TList);
     function FindMainExpand(List: TList): TColumnExpand;
-    function GetDefaultRowHeight: Integer;
-    function GetDefaultTitleRowHeight: Integer;
 
     procedure CMParentFontChanged(var Message: TMessage);
       message CM_PARENTFONTCHANGED;
@@ -1063,8 +1061,8 @@ type
     procedure Write(Writer: TWriter); virtual;
     procedure AddCheck;
 
-//    procedure LoadFromStream(Stream: TStream);
-//    procedure SaveToStream(Stream: TStream);
+    function GetDefaultRowHeight: Integer;
+    function GetDefaultTitleRowHeight: Integer;
 
     function GridCoordFromMouse: TGridCoord;
     function ColumnByField(Field: TField): TColumn;
@@ -1081,10 +1079,6 @@ type
 
     // Наименование формы
     property FormName: String read FFormName;
-
-    //
-    {property Aggregate: TgsAggregate read FAggregate;
-    property OnAggregateChanged: TNotifyEvent read GetOnAggregateChanged write SetOnAggregateChanged;}
 
     //
     {$IFDEF GEDEMIN}
@@ -7692,10 +7686,6 @@ begin
 
   Result := nil;
 end;
-
-{
-  Определяет размер заглавий
-}
 
 function TgsCustomDBGrid.GetDefaultRowHeight: Integer;
 begin
