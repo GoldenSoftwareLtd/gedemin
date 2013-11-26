@@ -8,10 +8,12 @@ uses
   SynCompletionProposal, gdcTree, gdcDelphiObject, Db, IBCustomDataSet,
   gdcBase, gdcCustomFunction, gdcFunction, StdActns, ActnList, Menus,
   StdCtrls, ExtCtrls, SynEdit, SynDBEdit, gsFunctionSyncEdit, Mask,
-  DBCtrls, prpDBComboBox, TB2Item, TB2Dock, TB2Toolbar, SuperPageControl;
+  DBCtrls, prpDBComboBox, TB2Item, TB2Dock, TB2Toolbar, SuperPageControl,
+  SynEditHighlighter, SynHighlighterProlog;
 
 type
   TPrologSFFrame = class(TFunctionFrame)
+    SynPrologSyn: TSynPrologSyn;
     procedure actExternalEditorExecute(Sender: TObject);
   private
   protected
@@ -20,6 +22,7 @@ type
     function GetCanPrepare: Boolean; override;
     function GetInfoHint: String; override;
     function GetSaveMsg: string; override;
+    procedure SetHighlighter; override;
   public
     constructor Create(AOwner: TComponent); override;
     function Delete: Boolean; override;
@@ -90,6 +93,18 @@ end;
 procedure TPrologSFFrame.actExternalEditorExecute(Sender: TObject);
 begin
   InvokeExternalEditor('pl', gsFunctionSynEdit.Lines);
+end;
+
+procedure TPrologSFFrame.SetHighlighter;
+var
+  F: TCustomForm;
+begin
+  F := GetParentForm(Self);
+  if F <> nil then
+  begin
+    gsFunctionSynEdit.Highlighter := SynPrologSyn;
+    UpdateSelectedColor;
+  end; 
 end;
 
 initialization

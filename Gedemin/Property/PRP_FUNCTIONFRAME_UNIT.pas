@@ -318,6 +318,7 @@ type
     procedure SetParent(AParent: TWinControl); override;
     procedure SetBaseScriptText(const NewFunctionName: String); virtual;
     function  NewNameUpdate: Boolean; override;
+    procedure SetHighlighter; virtual;
 //    procedure UpdateEdidor;
 
 //Заполянет списки зависимостей
@@ -1522,11 +1523,17 @@ begin
   end;
 end;
 
-procedure TFunctionFrame.SetParent(AParent: TWinControl);
+procedure TFunctionFrame.SetParent(AParent: TWinControl);  
+begin
+  inherited;
+
+  SetHighlighter;
+end;
+
+procedure TFunctionFrame.SetHighlighter;
 var
   F: TCustomForm;
 begin
-  inherited;
   F := GetParentForm(Self);
   if F <> nil then
   begin
@@ -1573,15 +1580,15 @@ end;
 
 procedure TFunctionFrame.UpdateSelectedColor;
 var
-  SynVBScriptSyn: TSynVBScriptSyn;
+  SynHighlighter: TSynCustomHighlighter;
 begin
-  SynVBScriptSyn := TSynVBScriptSyn(gsFunctionSynEdit.Highlighter);
-  if SynVBScriptSyn <> nil then
+  SynHighlighter := gsFunctionSynEdit.Highlighter;
+  if (SynHighlighter <> nil) and (SynHighlighter is TSynVBScriptSyn) then
   begin
     gsFunctionSynEdit.SelectedColor.Foreground :=
-      SynVBScriptSyn.MarkBlockAttri.Foreground;
+      TSynVBScriptSyn(SynHighlighter).MarkBlockAttri.Foreground;
     gsFunctionSynEdit.SelectedColor.Background :=
-      SynVBScriptSyn.MarkBlockAttri.Background;
+      TSynVBScriptSyn(SynHighlighter).MarkBlockAttri.Background;
   end else
   begin
     gsFunctionSynEdit.SelectedColor.Foreground := clHighlightText;
