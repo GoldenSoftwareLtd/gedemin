@@ -85,7 +85,6 @@ type
 
     function FindStorageItem(out SI: TgsStorageItem): Boolean; overload;
     function FindStorageItem(const AnID: Integer; out SI: TgsStorageItem): Boolean; overload;
-    function GetPath(const AnIncludeSelf: Boolean = True): String; override;
   end;
 
   TgdcStorageFolder = class(TgdcStorage)
@@ -406,16 +405,6 @@ begin
   {M}      ClearMacrosStack2('TGDCSTORAGE', '_DOONNEWRECORD', KEY_DOONNEWRECORD);
   {M}  end;
   {END MACRO}
-end;
-
-function TgdcStorage.GetPath(const AnIncludeSelf: Boolean = True): String;
-var
-  SI: TgsStorageItem;
-begin
-  if FindStorageItem(SI) then
-    Result := SI.Path
-  else
-    Result := inherited GetPath(AnIncludeSelf);
 end;
 
 procedure TgdcStorage.DoBeforeEdit;

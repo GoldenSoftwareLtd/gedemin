@@ -1,84 +1,7 @@
-/*Используемые диапазоны*/
-
-/* GD_SUBSYSTEM */
-/*1 .. 50000 */
-
-/* СПРАВОЧНИКИ*/
-/*GD_REF*/
-/* 50001 .. 100000*/
-
-/* ОПЕРАЦИИ */
-/* 100001 .. 150000 */
-/* ПОЛЬЗОВАТЕЛИ */
-/* GD_USER */
-/* 150001.. 200000*/
-       
-/*Валюты*/
-/* GD_CURR */
-/* 200001 .. 250000 */
-
-/*Атрибуты*/
-/* 250001 .. 300000 */
-	
-/*GD_CARDACCOUNT*/
-/* 300001 .. 350000  */
-
-/* GD_TAXTYPE */
-/*350001..360000*/
-
-/* gd_trtype */
-/* 400001 .. 450000*/
-
-/* msg_box  */
-/* 450001 .. 500000 */
-
-/* Параметры для платежного поручения "безналичный расход" */
-/* gd_trtypevariable */
-/* 500001 .. 550000*/
-
-/*bn_paymentspec*/
-/*600001 650001 */
-
-/* gd_contact */
-/* 650001 .. 700000*/
-
-/* Меню */
-/* gd_command*/
-/* 700001 .. 800000 */
-
-/* gd_documenttype */
-/* 800001 .. 850000 */
-
-/* flt_funcgroup  */
-/* 850001..850099 */
-
-/* globalstorage */
-/* 880000        */
-
-/* flt_function */
-/* 900001..950001 */
-
-
-/*1000001 .. 1010000*/
-
-/* evt_object */
-/* 1010001-1050000 */
-
-/* gd_compacctype */
-/* 1799900-1799999 */
-
-/* gd_place */
-/* 1800000-1900000 */
-
-/*  gd_value */
-/*2000001 .. 3000000*/
-
-/*3100000 .. 3200000*/
-
 
 /*
 
-  Copyright (c) 2000-2012 by Golden Software of Belarus
+  Copyright (c) 2000-2013 by Golden Software of Belarus
 
   Script
 
@@ -86,7 +9,7 @@
 
   Abstract
 
-    An Interbase script with Constants for GEDEMIN  system.
+    An Interbase script with Constants for GEDEMIN system.
 
   Author
 
@@ -96,30 +19,14 @@
 
     Initial  18.05.00  NK    Initial version
 
-  Status 
-    
+  Status
+
     Draft
 
 */
 
-/* ПОДСИСТЕМЫ */
-
-/* GD_SUBSYSTEM */
-/*99 .. 50000 */
-/* INSERT INTO gd_subsystem(id, name, disabled, description, reserved) VALUES (,,,,,)*/
-
-INSERT INTO gd_subsystem(id, name, description, reserved)
-  VALUES (1000, 'Администрирование', 'Администрирование системы', NULL);
-
-/* 49000 - Система Deparatment dp_contacts.sql*/
-
-COMMIT;
-
-/* ГРУППЫ */
-
-/* GD_USERGROUP */
-
-/* INSERT INTO gd_usergroup (id, name, description) VALUES (,,); */
+-- gd_usergroup
+-- 1..32
 
 INSERT INTO gd_usergroup (id, name, description)
   VALUES (1, 'Администраторы', 'Системные администраторы');
@@ -134,36 +41,16 @@ INSERT INTO gd_usergroup (id, name, description)
 INSERT INTO gd_usergroup (id, name, description)
   VALUES (6, 'Гости', 'Гости системы');
 
-COMMIT;
 
-/* Единицы измерения */
+-- gd_subsystem
+-- 99..50000
 
-INSERT INTO GD_VALUE (ID, NAME, DESCRIPTION, ISPACK) VALUES (3000001, 'шт.', 'Штука', 0);
-INSERT INTO GD_VALUE (ID, NAME, DESCRIPTION, ISPACK) VALUES (3000002, 'кг', 'Килограмм', 0);
-INSERT INTO GD_VALUE (ID, NAME, DESCRIPTION, ISPACK) VALUES (3000003, 'кв.м.', 'Квадратный метр', 0);
-INSERT INTO GD_VALUE (ID, NAME, DESCRIPTION, ISPACK) VALUES (3000004, 'куб.м.', 'Кубический метр', 0);
-INSERT INTO GD_VALUE (ID, NAME, DESCRIPTION, ISPACK) VALUES (3000005, 'т', 'Тонна', 0);
-INSERT INTO GD_VALUE (ID, NAME, DESCRIPTION, ISPACK) VALUES (3000006, 'л', 'Литр', 0);
-INSERT INTO GD_VALUE (ID, NAME, DESCRIPTION, ISPACK) VALUES (3000007, 'пачка', 'Пачка', 0);
-INSERT INTO GD_VALUE (ID, NAME, DESCRIPTION, ISPACK) VALUES (3000008, 'мешок', 'Мешок', 1);
-INSERT INTO GD_VALUE (ID, NAME, DESCRIPTION, ISPACK) VALUES (3000009, 'уп.', 'Упаковка', 1);
-INSERT INTO GD_VALUE (ID, NAME, DESCRIPTION, ISPACK) VALUES (3000010, 'комп.', 'Комплект', 0);
-INSERT INTO GD_VALUE (ID, NAME, DESCRIPTION, ISPACK) VALUES (3000011, 'туб', 'Туба', 0);
-INSERT INTO GD_VALUE (ID, NAME, DESCRIPTION, ISPACK) VALUES (3000012, 'ящик', 'Ящик', 1);
-
-COMMIT;
+INSERT INTO gd_subsystem(id, name, description, reserved)
+  VALUES (1000, 'Администрирование', 'Администрирование системы', NULL);
 
 
-/* ПОЛЬЗОВАТЕЛИ */
-
-/* GD_USER */
-/* 150001.. 200000*/
-/*INSERT INTO gd_user(id, name, passw, ingroup, fullname, description, ibname,
-                      ibpassword, externalkey, disabled, lockedout, mustchange,
-                      cantchangepassw, passwneverexp, expdate, workstart,
-                      workend, icon, reserved)
-       VALUES (,,,,,,,,,,,,,,,,,,);
-*/
+-- GD_USER
+-- 150001..200000
 
 INSERT INTO gd_contact(id, contacttype, name)
     VALUES(650001, 0, 'Контакты');
@@ -178,41 +65,9 @@ INSERT INTO gd_user (id, name, passw, ingroup, fullname, description, ibname,
 VALUES (150001, 'Administrator', 'Administrator', -1, 'Администратор', 'Администратор системы',
           'SYSDBA', 'masterkey', NULL, 0, 0, 0, 1, NULL, NULL, NULL, NULL, NULL, 650002);
 
-COMMIT;
 
-
-/*****************************************************************************/
-/*    Типы счетов фирм                                                       */
-/*****************************************************************************/
-
-
-/* gd_compacctype */
-/* 1799900-1799999 */
-
-INSERT INTO gd_compacctype (id, name)
-   VALUES(1799900, 'Расчетный счет');
-INSERT INTO gd_compacctype (id, name)
-   VALUES(1799910, 'Ссудный счет');
-INSERT INTO gd_compacctype (id, name)
-   VALUES(1799920, 'Депозитный счет');
-INSERT INTO gd_compacctype (id, name)
-   VALUES(1799930, 'Бюджетный счет');
-INSERT INTO gd_compacctype (id, name)
-   VALUES(1799940, 'Кассовый счет');
-INSERT INTO gd_compacctype (id, name)
-   VALUES(1799950, 'Транзитный счет');
-INSERT INTO gd_compacctype (id, name)
-   VALUES(1799960, 'Корреспондентский счет');
-INSERT INTO gd_compacctype (id, name)
-   VALUES(1799970, 'Чековая книжка');
-
-COMMIT;
-
-
-/*Валюты*/
-/* 200001 .. 250000 */
-
-
+-- gd_curr
+-- 200001..250000
 
 INSERT INTO gd_curr
   (id, disabled, isNCU, code, name, shortname, sign, place, decdigits,
@@ -238,54 +93,9 @@ INSERT INTO gd_curr
   VALUES (200050, 0, 0, 'RUB', 'Российский рубль', 'RUB', 'р.',
      1, 2, 'копейка', 'к.', 1, NULL, NULL, 'российских рублей', 'российских рубля', 'копеек', 'копейки');
 
-COMMIT;
 
-INSERT INTO GD_CONTACT
-  (ID,PARENT,CONTACTTYPE,NAME)
-  VALUES
-  (650010,650001,3,'<Ввести наименование организации>');
-
-INSERT INTO GD_COMPANY
-  (CONTACTKEY,FULLNAME)
-  VALUES
-  (650010,'<Ввести наименование организации>');
-
-INSERT INTO GD_OURCOMPANY
-  (COMPANYKEY)
-  VALUES
-  (650010);
-
-INSERT INTO GD_CONTACT
-  (ID,PARENT,CONTACTTYPE,NAME)
-  VALUES
-  (650015,650001,5,'<Ввести наименование банка>');
-
-INSERT INTO GD_COMPANY
-  (CONTACTKEY,FULLNAME)
-  VALUES
-  (650015,'<Ввести наименование банка>');
-
-INSERT INTO GD_BANK
-  (BANKKEY,BANKCODE)
-  VALUES
-  (650015,'<Ввести код банка>');
-
-INSERT INTO GD_COMPANYACCOUNT
-  (ID, COMPANYKEY, BANKKEY, ACCOUNT, ACCOUNTTYPEKEY, CURRKEY)
-  VALUES
-  (650100, 650010, 650015, '<Ввести счет>', 1799900, 200010);
-
-UPDATE GD_COMPANY
-  SET COMPANYACCOUNTKEY = 650100
-  WHERE CONTACTKEY = 650010;
-
-/* ОПЕРАЦИИ */
-/* 100001 .. 150000 */
-
-COMMIT;
-
-/*AC_ACCOUNT*/
-/* 300001 .. 350000  */
+-- ac_account
+-- 300001..399999
 
 INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (300001, NULL, 'План счетов', 'План счетов', 'A', 'C', 0, 0, -1, -1, -1);
 INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (399000, 300001, 'Балансовые счета', 'Балансовые счета', 'A', 'F', 0, 0, -1, -1, -1);
@@ -510,94 +320,52 @@ INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCUR
 INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (393009, 300002, 'Обеспечение обязательств и платежей выданные', '009', 'A', 'A', 0, 1, -1, -1, -1);
 
 
-COMMIT;
+-- msg_box
+-- 450001..500000
 
-/* gd_documenttype */
-/* 800001 .. 850000 */
-
-INSERT INTO gd_documenttype(id, ruid, name, description, documenttype)
-  VALUES (800001, '800001_17', 'Выписка и картотека', 'Выписка и картотека', 'B');
-
-INSERT INTO gd_documenttype(id, ruid, parent, name, description)
-  VALUES (800300, '800300_17', 800001, 'Банковская выписка', 'Банковская выписка');
-
-INSERT INTO gd_documenttype(id, ruid, parent, name, description)
-  VALUES (800350, '800350_17', 800001, 'Банковская картотека', 'Банковская картотека');
-
-/* Складские документы */
-
-INSERT INTO gd_documenttype(id, ruid, name, description, documenttype, classname)
-  VALUES (804000, '804000_17', 'Складские документы',
-    'Документы по приему, перемещению и передаче ТМЦ и услуг', 'B', 'TgdcInvDocumentType');
-
-INSERT INTO gd_documenttype(id, ruid, name, description, documenttype, classname)
-  VALUES (805000, '805000_17', 'Прайс-листы', 'Список прайс-листов', 'B', 'TgdcInvPriceListType');
-
-/* Бухгалтерские документы */
-
-INSERT INTO gd_documenttype(id,
-    ruid,
-    name,
-    description,
-    documenttype,
-    classname)
-  VALUES (806000,
-    '806000_17',
-    'Бухгалтерские документы',
-    'Документы для бухгалтерии',
-    'B',
-    'TgdcDocumentType');
-
-INSERT INTO gd_documenttype(id, ruid, parent, name, description, documenttype, classname)
-  VALUES (806001, '806001_17', 806000,
-    'Хозяйственная операция', 'Документы для отражения произвольных хозяйственных операций', 'D', 'TgdcInvDocumentType');
-
-/* Отчеты бухгалтерии */
-
-INSERT INTO gd_documenttype(id, parent, ruid, name, description, documenttype)
-  VALUES (807005, 806000, '807005_17', 'Отчеты бухгалтерии', 'Документы для расчета налогов отчетов бухгалтерии', 'D');
-
-/* Типовые проводки */
-
-INSERT INTO ac_transaction(id, name) VALUES (807001, 'Произвольные проводки');
-
-INSERT INTO ac_trrecord(id, transactionkey, documenttypekey, description) VALUES (807100, 807001, 806001, 'Произвольная проводка');
-
-/*849000 - 850000 Зарезервировано для проекта DEPARTMENT */
-
-/* gd_trtype */
-/* 400001 .. 450000*/
-
-/* 459001 .. 450000 Зарезервиновано для проекта DEPARTMENT */
-
-/*
-INSERT INTO gd_goodgroup (name) VALUES ('<Ввести наименование группы>');
-*/
+INSERT INTO msg_box (id, parent, name) VALUES (450010, NULL, 'inbox');
+INSERT INTO msg_box (id, parent, name) VALUES (450020, NULL, 'outbox');
+INSERT INTO msg_box (id, parent, name) VALUES (450025, NULL, 'sent');
+INSERT INTO msg_box (id, parent, name) VALUES (450030, NULL, 'draft');
+INSERT INTO msg_box (id, parent, name) VALUES (450040, NULL, 'trash');
 
 
-COMMIT;
+-- gd_contact
+-- 650001..700000
 
-/* gd_contact */
-/* 650001 .. 700000*/
+INSERT INTO GD_CONTACT
+  (ID,PARENT,CONTACTTYPE,NAME)
+  VALUES
+  (650010,650001,3,'<Ввести наименование организации>');
 
-COMMIT;
+INSERT INTO GD_COMPANY
+  (CONTACTKEY,FULLNAME)
+  VALUES
+  (650010,'<Ввести наименование организации>');
 
-/*
- *
- * Меню
- *
- *
- */
-/* gd_command*/
-/* 700001 .. 800000 */
+INSERT INTO GD_OURCOMPANY
+  (COMPANYKEY)
+  VALUES
+  (650010);
+
+INSERT INTO GD_CONTACT
+  (ID,PARENT,CONTACTTYPE,NAME)
+  VALUES
+  (650015,650001,5,'<Ввести наименование банка>');
+
+INSERT INTO GD_COMPANY
+  (CONTACTKEY,FULLNAME)
+  VALUES
+  (650015,'<Ввести наименование банка>');
+
+INSERT INTO GD_BANK
+  (BANKKEY,BANKCODE)
+  VALUES
+  (650015,'<Ввести код банка>');
 
 
-/*
- *
- * Исследователь
- *
- *
- */
+-- gd_command
+-- 700001..800000
 
   INSERT INTO gd_command (id, parent, name, cmd, hotkey, imgindex, aview)
     VALUES (
@@ -1045,7 +813,6 @@ COMMIT;
         NULL,
         0
       );
-  /* 739500 - 74000 Справочники DEPARTMENT */
 
   INSERT INTO gd_command (id, parent, name, cmd, hotkey, imgindex)
     VALUES (
@@ -1128,7 +895,7 @@ COMMIT;
           256,
           1
         );
-		
+
 
         /*
     INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
@@ -1422,25 +1189,115 @@ INSERT INTO gd_command
 VALUES
   (741115,740400,'Индексы','gdcIndex',0,NULL,206,NULL,'TgdcIndex',NULL,1,1,1,0,NULL);
 
-/* 799000 - 800000 Department */
 
-COMMIT;
+-- gd_documenttype
+-- 800001..850000
 
-/* msg_box  */
-/* 450001 .. 500000 */
-INSERT INTO msg_box (id, parent, name) VALUES (450010, NULL, 'inbox');
-INSERT INTO msg_box (id, parent, name) VALUES (450020, NULL, 'outbox');
-INSERT INTO msg_box (id, parent, name) VALUES (450025, NULL, 'sent');
-INSERT INTO msg_box (id, parent, name) VALUES (450030, NULL, 'draft');
-INSERT INTO msg_box (id, parent, name) VALUES (450040, NULL, 'trash');
+INSERT INTO gd_documenttype(id, ruid, name, description, documenttype)
+  VALUES (800001, '800001_17', 'Выписка и картотека', 'Выписка и картотека', 'B');
+
+INSERT INTO gd_documenttype(id, ruid, parent, name, description)
+  VALUES (800300, '800300_17', 800001, 'Банковская выписка', 'Банковская выписка');
+
+INSERT INTO gd_documenttype(id, ruid, parent, name, description)
+  VALUES (800350, '800350_17', 800001, 'Банковская картотека', 'Банковская картотека');
+
+/* Складские документы */
+
+INSERT INTO gd_documenttype(id, ruid, name, description, documenttype, classname)
+  VALUES (804000, '804000_17', 'Складские документы',
+    'Документы по приему, перемещению и передаче ТМЦ и услуг', 'B', 'TgdcInvDocumentType');
+
+INSERT INTO gd_documenttype(id, ruid, name, description, documenttype, classname)
+  VALUES (805000, '805000_17', 'Прайс-листы', 'Список прайс-листов', 'B', 'TgdcInvPriceListType');
+
+/* Бухгалтерские документы */
+
+INSERT INTO gd_documenttype(id,
+    ruid,
+    name,
+    description,
+    documenttype,
+    classname)
+  VALUES (806000,
+    '806000_17',
+    'Бухгалтерские документы',
+    'Документы для бухгалтерии',
+    'B',
+    'TgdcDocumentType');
+
+INSERT INTO gd_documenttype(id, ruid, parent, name, description, documenttype, classname)
+  VALUES (806001, '806001_17', 806000,
+    'Хозяйственная операция', 'Документы для отражения произвольных хозяйственных операций', 'D', 'TgdcInvDocumentType');
+
+/* Отчеты бухгалтерии */
+
+INSERT INTO gd_documenttype(id, parent, ruid, name, description, documenttype)
+  VALUES (807005, 806000, '807005_17', 'Отчеты бухгалтерии', 'Документы для расчета налогов отчетов бухгалтерии', 'D');
+
+/* Типовые проводки */
+
+INSERT INTO ac_transaction(id, name) VALUES (807001, 'Произвольные проводки');
+
+INSERT INTO ac_trrecord(id, transactionkey, documenttypekey, description) VALUES (807100, 807001, 806001, 'Произвольная проводка');
 
 
-/*
- Константы для печати через отчета 2000000 - 3000000
-*/
+-- gd_storage_data
+-- 990000..999999
+
+INSERT INTO gd_storage_data (id, name, data_type, editiondate, editorkey)
+  VALUES (990000, 'GLOBAL', 'G', '01.01.2000', 650002);
+INSERT INTO gd_storage_data (id, name, data_type, int_data, editiondate, editorkey)
+  VALUES (990010, 'USER - Administrator', 'U', 150001, '01.01.2000', 650002);
+INSERT INTO gd_storage_data (id, name, data_type, int_data, editiondate, editorkey)
+  VALUES (990020, 'COMPANY - <Ввести наименование организации>', 'O', 650010, '01.01.2000', 650002);
 
 
-/* Банковские выпиские  */
+-- evt_macrosgroup
+
+/***********************************************************/
+/*     Корень глобальных макросов                          */
+/***********************************************************/
+
+INSERT INTO EVT_MACROSGROUP (ID, LB, RB, NAME, ISGLOBAL)
+  VALUES (1020001, 1, 2, 'Глобальные макросы', 1);
+
+INSERT INTO EVT_OBJECT (ID, NAME, LB, RB, AFULL, ACHAG, AVIEW, OBJECTTYPE, MACROSGROUPKEY, OBJECTNAME)
+  VALUES (1010001, 'APPLICATION', 1, 2, -1, -1, -1, 0, 1020001, 'APPLICATION');
+
+
+-- gd_compacctype
+-- 1799900..1799999
+
+INSERT INTO gd_compacctype (id, name)
+   VALUES(1799900, 'Расчетный счет');
+INSERT INTO gd_compacctype (id, name)
+   VALUES(1799910, 'Ссудный счет');
+INSERT INTO gd_compacctype (id, name)
+   VALUES(1799920, 'Депозитный счет');
+INSERT INTO gd_compacctype (id, name)
+   VALUES(1799930, 'Бюджетный счет');
+INSERT INTO gd_compacctype (id, name)
+   VALUES(1799940, 'Кассовый счет');
+INSERT INTO gd_compacctype (id, name)
+   VALUES(1799950, 'Транзитный счет');
+INSERT INTO gd_compacctype (id, name)
+   VALUES(1799960, 'Корреспондентский счет');
+INSERT INTO gd_compacctype (id, name)
+   VALUES(1799970, 'Чековая книжка');
+
+INSERT INTO GD_COMPANYACCOUNT
+  (ID, COMPANYKEY, BANKKEY, ACCOUNT, ACCOUNTTYPEKEY, CURRKEY)
+  VALUES
+  (650100, 650010, 650015, '<Ввести счет>', 1799900, 200010);
+
+UPDATE GD_COMPANY
+  SET COMPANYACCOUNTKEY = 650100
+  WHERE CONTACTKEY = 650010;
+
+
+-- rp_reportgroup
+-- 2000000..3000000
 
 INSERT INTO rp_reportgroup (id, name, usergroupname)
   VALUES (2000100, 'Банковская выписка', '2000100');
@@ -1455,8 +1312,8 @@ INSERT INTO rp_reportgroup (id, parent, name, usergroupname)
 INSERT INTO rp_reportgroup (id, parent, name, usergroupname)
   VALUES (2000520, 2000500, 'Товары', '2000520');
 
-
 /* Банк                */
+
 INSERT INTO rp_reportgroup (id, name, usergroupname)
   VALUES (2000300, 'Банковские документы', '2000300');
 
@@ -1496,11 +1353,6 @@ INSERT INTO rp_reportgroup (id, parent, name, usergroupname)
 INSERT INTO rp_reportgroup (id, parent, name, usergroupname)
   VALUES (2000207, 2000300, 'Сводное платежное поручение', '2000207');
 
-  /*
-INSERT INTO rp_reportgroup (id, name, usergroupname)
-  VALUES (2000301, 'Платежная ведомость (скот)', '2000301');
-  */
-
 /* Бухгалтерия */
 
 INSERT INTO rp_reportgroup (id, name, usergroupname)
@@ -1518,54 +1370,21 @@ INSERT INTO rp_reportgroup (id, parent, name, usergroupname)
 INSERT INTO rp_reportgroup (id, parent, name, usergroupname)
   VALUES (2000604, 2000600, 'Типовые операции', '2000604');
 
-/* Скот */
 
-/*
-INSERT INTO rp_reportgroup (id, parent, name, usergroupname)
-  VALUES (2000700, NULL, 'Скот', '2000700');
+-- gd_value
 
-INSERT INTO rp_reportgroup (id, parent, name, usergroupname)
-  VALUES (2000710, 2000700, 'Отвес накладная', '2000710');
+INSERT INTO GD_VALUE (ID, NAME, DESCRIPTION, ISPACK) VALUES (3000001, 'шт.', 'Штука', 0);
+INSERT INTO GD_VALUE (ID, NAME, DESCRIPTION, ISPACK) VALUES (3000002, 'кг', 'Килограмм', 0);
+INSERT INTO GD_VALUE (ID, NAME, DESCRIPTION, ISPACK) VALUES (3000003, 'кв.м.', 'Квадратный метр', 0);
+INSERT INTO GD_VALUE (ID, NAME, DESCRIPTION, ISPACK) VALUES (3000004, 'куб.м.', 'Кубический метр', 0);
+INSERT INTO GD_VALUE (ID, NAME, DESCRIPTION, ISPACK) VALUES (3000005, 'т', 'Тонна', 0);
+INSERT INTO GD_VALUE (ID, NAME, DESCRIPTION, ISPACK) VALUES (3000006, 'л', 'Литр', 0);
+INSERT INTO GD_VALUE (ID, NAME, DESCRIPTION, ISPACK) VALUES (3000007, 'пачка', 'Пачка', 0);
+INSERT INTO GD_VALUE (ID, NAME, DESCRIPTION, ISPACK) VALUES (3000008, 'мешок', 'Мешок', 1);
+INSERT INTO GD_VALUE (ID, NAME, DESCRIPTION, ISPACK) VALUES (3000009, 'уп.', 'Упаковка', 1);
+INSERT INTO GD_VALUE (ID, NAME, DESCRIPTION, ISPACK) VALUES (3000010, 'комп.', 'Комплект', 0);
+INSERT INTO GD_VALUE (ID, NAME, DESCRIPTION, ISPACK) VALUES (3000011, 'туб', 'Туба', 0);
+INSERT INTO GD_VALUE (ID, NAME, DESCRIPTION, ISPACK) VALUES (3000012, 'ящик', 'Ящик', 1);
 
-INSERT INTO rp_reportgroup (id, parent, name, usergroupname)
-  VALUES (2000720, 2000700, 'Приемная квитанция', '2000720');
-*/
-
-/* Планаваньне */
-
-
-/*
-INSERT INTO rp_reportgroup (id, parent, name, usergroupname)
-  VALUES (2000400, NULL, 'Планирование', '2000400');
-*/
-
-
-/*DEPARTAMENT 1009900..1010000*/
-
-/*1009501..1010000 Зарезервировано для Department */
-
-/*****************************************************************************/
-/*    Операции и проводки определенные по умолчанию                          */
-/*****************************************************************************/
-
-/*
-
-INSERT INTO GD_LISTTRTYPE (ID, NAME, DESCRIPTION)
-   VALUES(1000, 'Остатки', 'Операция для ввода остатков');
-
-*/
-
-COMMIT;
-
-/***********************************************************/
-/*     Корень глобальных макросов                          */
-/***********************************************************/
-
-INSERT INTO EVT_MACROSGROUP (ID, LB, RB, NAME, ISGLOBAL)
-  VALUES (1020001, 1, 2, 'Глобальные макросы', 1);
-
-/*Поле name должно будет удалено*/
-INSERT INTO EVT_OBJECT (ID, NAME, LB, RB, AFULL, ACHAG, AVIEW, OBJECTTYPE, MACROSGROUPKEY, OBJECTNAME)
-  VALUES (1010001, 'APPLICATION', 1, 2, -1, -1, -1, 0, 1020001, 'APPLICATION');
 
 COMMIT;
