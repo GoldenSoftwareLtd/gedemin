@@ -1056,7 +1056,7 @@ begin
       'SELECT ' +                                       #13#10 +
       '  gd.id AS AccDocTypeKey ' +                     #13#10 +
       'FROM ' +                                         #13#10 +
-      '  GD_DOCUMENTTYPE gd ' +                         #13#10 +
+      '  gd_documenttype gd ' +                         #13#10 +
       'WHERE ' +                                        #13#10 +
       '  gd.name = ''Хозяйственная операция'' ';
     ExecSqlLogEvent(q, 'CreateAcEntries');
@@ -1166,7 +1166,6 @@ begin
   LogEvent('Create entry balance... OK');
 end;
 
-
 procedure TgsDBSqueeze.CalculateInvSaldo;
 var
   q: TIBSQL;
@@ -1219,7 +1218,7 @@ begin
         StringReplace(FCardFeaturesStr, 'USR$', 'ic.USR$', [rfReplaceAll, rfIgnoreCase]) + ' '); }
     q.SQL.Add(' ' +                                             #13#10 +
       'FROM inv_movement im ' +                                 #13#10 +
-      '  JOIN inv_card ic ON im.cardkey = ic.id ' +             #13#10 +
+      '  JOIN INV_CARD ic ON im.cardkey = ic.id ' +             #13#10 +
       'WHERE ' +                                                #13#10 +
       '  im.cardkey > 0 '); // первый столбец в индексе, чтобы его задействовать
     if FOnlyCompanySaldo then
@@ -1276,12 +1275,9 @@ begin
 
     try
       q.SQL.Text :=
-        'SELECT ' +                                     #13#10 +
-        '  gd.id AS InvDocTypeKey ' +                   #13#10 +
-        'FROM ' +                                       #13#10 +
-        '  GD_DOCUMENTTYPE gd ' +                       #13#10 +
-        'WHERE ' +                                      #13#10 +
-        '  gd.name = ''Произвольный тип'' ';
+        'SELECT gd.id AS InvDocTypeKey ' +              #13#10 +
+        'FROM GD_DOCUMENTTYPE gd ' +                    #13#10 +
+        'WHERE gd.name = ''Произвольный тип'' ';
       ExecSqlLogEvent(q, 'CreateInvSaldo');
 
       InvDocTypeKey := q.FieldByName('InvDocTypeKey').AsInteger;
@@ -1297,8 +1293,7 @@ begin
       begin
         q.Close;
         q2.SQL.Text :=
-          'SELECT ' +                                   #13#10 +
-          '  gc.id AS ParentId ' +                      #13#10 +
+          'SELECT gc.id AS ParentId ' +                 #13#10 +
           'FROM gd_contact gc ' +                       #13#10 +
           'WHERE gc.name = ''Организации'' ';
         ExecSqlLogEvent(q2, 'CreateInvSaldo');
@@ -1306,7 +1301,7 @@ begin
         PseudoClientKey := GetNewID;
 
         q.SQL.Text :=
-          'INSERT INTO gd_contact ( ' +                 #13#10 +
+          'INSERT INTO GD_CONTACT ( ' +                 #13#10 +
           '  id, ' +                                    #13#10 +
           '  parent, ' +                                #13#10 +
           '  name, ' +                                  #13#10 +
@@ -1336,7 +1331,7 @@ begin
 
       // create parent docs
       q.SQL.Text :=
-        'INSERT INTO gd_document (' +                   #13#10 +
+        'INSERT INTO GD_DOCUMENT (' +                   #13#10 +
         '  id, ' +                                      #13#10 +
         '  documenttypekey, ' +                         #13#10 +
         '  number, '  +                                 #13#10 +
@@ -1363,7 +1358,7 @@ begin
     // Create Position SaldoDoc
 
       q.SQL.Text :=
-        'INSERT INTO gd_document (' +                   #13#10 +
+        'INSERT INTO GD_DOCUMENT (' +                   #13#10 +
         '  id, ' +                                      #13#10 +
         '  parent, ' +                                  #13#10 +
         '  documenttypekey, ' +                         #13#10 +
@@ -1393,7 +1388,7 @@ begin
       // Создадим новую складскую карточку  
 
       q.SQL.Text :=                                     #13#10 +
-        'INSERT INTO inv_card (' +                      #13#10 +
+        'INSERT INTO INV_CARD (' +                      #13#10 +
         '  id, ' +                                      #13#10 +
         '  goodkey, ' +                                 #13#10 +
         '  documentkey, firstdocumentkey, ' +           #13#10 +
@@ -1450,7 +1445,7 @@ begin
       // Создадим дебетовую часть складского движения
 
       q.SQL.Text :=
-        'INSERT INTO inv_movement ( ' +                 #13#10 +
+        'INSERT INTO INV_MOVEMENT ( ' +                 #13#10 +
         '  id, goodkey, movementkey, ' +                #13#10 +
         '  movementdate, ' +                            #13#10 +
         '  documentkey, cardkey, ' +                    #13#10 +
@@ -1477,7 +1472,7 @@ begin
       // Создадим кредитовую часть складского движения
 
       q.SQL.Text :=                                     #13#10 +
-        'INSERT INTO inv_movement ( ' +                 #13#10 +
+        'INSERT INTO INV_MOVEMENT ( ' +                 #13#10 +
         '  id, goodkey, movementkey, ' +                #13#10 +
         '  movementdate, ' +                            #13#10 +
         '  documentkey, cardkey, ' +                    #13#10 +
@@ -1563,46 +1558,43 @@ begin
     CardFeaturesList.Text := StringReplace(FCardFeaturesStr, ',', #13#10, [rfReplaceAll, rfIgnoreCase]); 
 
     q3.SQL.Text :=
-      'SELECT ' +                                       #13#10 +
-      '  gd.id AS InvDocTypeKey ' +                     #13#10 +
-      'FROM ' +                                         #13#10 +
-      '  GD_DOCUMENTTYPE gd ' +                         #13#10 +
-      'WHERE ' +                                        #13#10 +
-      '  gd.name = ''Произвольный тип'' ';
+      'SELECT gd.id AS InvDocTypeKey ' +                        #13#10 +
+      'FROM gd_documenttype gd ' +                              #13#10 +
+      'WHERE gd.name = ''Произвольный тип'' ';
     ExecSqlLogEvent(q3, 'PrepareRebindInvCards');
 
     InvDocTypeKey := q3.FieldByName('InvDocTypeKey').AsInteger;
     q3.Close;
 
     qInsertTmpRebind.SQL.Text := 
-      'INSERT INTO DBS_TMP_REBIND_INV_CARDS ' +         #13#10 +
-      '  (CUR_CARDKEY, NEW_CARDKEY, CUR_FIRST_DOCKEY, FIRST_DOCKEY, FIRST_DATE, CUR_RELATION_NAME) ' + #13#10 +
+      'INSERT INTO DBS_TMP_REBIND_INV_CARDS ' +                 #13#10 +
+      '  (cur_cardkey, new_cardkey, cur_first_dockey, first_dockey, first_date, cur_relation_name) ' + #13#10 +
       'VALUES (:CurrentCardKey, :NewCardKey, :CurrentFirstDocKey, :FirstDocumentKey, :FirstDate, :CurrentRelationName) ';
     qInsertTmpRebind.Prepare;
 
     qInsertGdDoc.SQL.Text :=
-      'INSERT INTO gd_document ' +                      #13#10 +
+      'INSERT INTO GD_DOCUMENT ' +                              #13#10 +
       '  (id, parent, documenttypekey, number, documentdate, companykey, afull, achag, aview, ' + #13#10 +
-      'creatorkey, editorkey) ' +                       #13#10 +
-      'VALUES ' +                                       #13#10 +
+      'creatorkey, editorkey) ' +                               #13#10 +
+      'VALUES ' +                                               #13#10 +
       '  (:id, :parent, :documenttypekey, ''1'', :documentdate, :companykey, -1, -1, -1, ' + #13#10 + ///TODO: NUMBER doc
       ':userkey, :userkey) ';
     qInsertGdDoc.ParamByName('DOCUMENTDATE').AsDateTime := FClosingDate;
     qInsertGdDoc.Prepare;
 
     qInsertInvCard.SQL.Text :=
-      'INSERT INTO inv_card ' +                         #13#10 +
+      'INSERT INTO INV_CARD ' +                                 #13#10 +
       '  (id, goodkey, documentkey, firstdocumentkey, firstdate, companykey';
     // Поля-признаки
     if FCardFeaturesStr <> '' then
-      qInsertInvCard.SQL.Add(', ' +                     #13#10 +
+      qInsertInvCard.SQL.Add(', ' +                             #13#10 +
         FCardFeaturesStr);
-    qInsertInvCard.SQL.Add(' ' +                        #13#10 +
-      ') VALUES ' +                                     #13#10 +
+    qInsertInvCard.SQL.Add(' ' +                                #13#10 +
+      ') VALUES ' +                                             #13#10 +
       '  (:id, :goodkey, :documentkey, :documentkey, :firstdate, :companykey');
     // Поля-признаки
     if FCardFeaturesStr <> '' then
-      qInsertInvCard.SQL.Add(', ' +                     #13#10 +
+      qInsertInvCard.SQL.Add(', ' +                             #13#10 +
         StringReplace(FCardFeaturesStr, 'USR$', ':USR$', [rfReplaceAll, rfIgnoreCase]));
     qInsertInvCard.SQL.Add(
       ')');
@@ -1611,36 +1603,43 @@ begin
     qInsertInvCard.Prepare;
 
     qInsertInvMovement.SQL.Text :=
-      'INSERT INTO inv_movement ' +                     #13#10 +
+      'INSERT INTO INV_MOVEMENT ' +                             #13#10 +
       '  (id, goodkey, movementkey, movementdate, documentkey, contactkey, cardkey, debit, credit) ' + #13#10 +      ///id, goodkey test
-      'VALUES ' +                                       #13#10 +
+      'VALUES ' +                                               #13#10 +
       '  (:id, :goodkey, :movementkey, :movementdate, :documentkey, :contactkey, :cardkey, :debit, :credit) ';
     qInsertInvMovement.ParamByName('MOVEMENTDATE').AsDateTime := FClosingDate;                ///
     qInsertInvMovement.Prepare;
 
     // выбираем все карточки, которые находятся в движении во время закрытия
     q3.SQL.Text :=
-      'SELECT' +                                        #13#10 +
-      '  m1.contactkey AS FromConactKey, ' +             #13#10 +
-      '  m.contactkey AS ToContactKey, ' +               #13#10 +
-      '  linerel.relationname, ' +                       #13#10 +
-      '  c.id AS CardkeyNew, ' +                        #13#10 +
-      '  c1.id AS CardkeyOld,' +                        #13#10 +
-      '  c.goodkey,' +                                  #13#10 +
-      '  c.companykey, ' +                              #13#10 +
+      'SELECT' +                                                #13#10 +
+      '  m1.contactkey AS FromConactKey, ' +                    #13#10 +
+      '  m.contactkey AS ToContactKey, ' +                      #13#10 +
+      '  linerel.relationname, ' +                              #13#10 +
+      '  c.id AS CardkeyNew, ' +                                #13#10 +
+      '  c1.id AS CardkeyOld,' +                                #13#10 +
+      '  c.goodkey,' +                                          #13#10 +
+      '  c.companykey, ' +                                      #13#10 +
       '  c.firstdocumentkey';
     if FCardFeaturesStr <> '' then
       q3.SQL.Add(', ' +                                         #13#10 +
         StringReplace(FCardFeaturesStr, 'USR$', 'c.USR$', [rfReplaceAll, rfIgnoreCase]) + ' ');                                                                       /// c.
     q3.SQL.Add(' ' +                                            #13#10 +
       'FROM gd_document d ' +                                   #13#10 +
-      '  JOIN gd_documenttype t ON t.id = d.documenttypekey ' + #13#10 +
-      '  LEFT JOIN inv_movement m ON m.documentkey = d.id ' +   #13#10 +
-      '  LEFT JOIN inv_movement m1 ON m1.movementkey = m.movementkey AND m1.id <> m.id ' + #13#10 +
-      '  LEFT JOIN inv_card c ON c.id = m.cardkey ' +           #13#10 +
-      '  LEFT JOIN inv_card c1 ON c1.id = m1.cardkey ' +        #13#10 +
-      '  LEFT JOIN gd_document d_old ON ((d_old.id = c.documentkey) or (d_old.id = c1.documentkey)) ' + #13#10 +
-      '  LEFT JOIN at_relations linerel ON linerel.id = t.linerelkey ' + #13#10 +
+      '  JOIN GD_DOCUMENTTYPE t ' +                             #13#10 +
+      '    ON t.id = d.documenttypekey ' +                      #13#10 +
+      '  LEFT JOIN INV_MOVEMENT m ' +                           #13#10 +
+      '    ON m.documentkey = d.id ' +                          #13#10 +
+      '  LEFT JOIN INV_MOVEMENT m1 ' +                          #13#10 +
+      '    ON m1.movementkey = m.movementkey AND m1.id <> m.id ' + #13#10 +
+      '  LEFT JOIN INV_CARD c ' +                               #13#10 +
+      '    ON c.id = m.cardkey ' +                              #13#10 +
+      '  LEFT JOIN INV_CARD c1 ' +                              #13#10 +
+      '    ON c1.id = m1.cardkey ' +                            #13#10 +
+      '  LEFT JOIN GD_DOCUMENT d_old ' +                        #13#10 +
+      '    ON ((d_old.id = c.documentkey) OR (d_old.id = c1.documentkey)) ' + #13#10 +
+      '  LEFT JOIN AT_RELATIONS linerel ' +                     #13#10 +
+      '    ON linerel.id = t.linerelkey ' +                     #13#10 +
       'WHERE ' +                                                #13#10 +
       '  d.documentdate >= :ClosingDate ' +                     #13#10 +
       '  AND t.classname = ''TgdcInvDocumentType'' ' +          #13#10 + ///TODO: перепроверить мб Произвольный
@@ -1671,8 +1670,10 @@ begin
           '  c.firstdocumentkey, ' +                              #13#10 +
           '  c.firstdate ' +                                      #13#10 +
           'FROM gd_document d ' +                                 #13#10 +
-          '  LEFT JOIN inv_movement m ON m.documentkey = d.id ' + #13#10 +
-          '  LEFT JOIN inv_card c ON c.id = m.cardkey ' +         #13#10 +
+          '  LEFT JOIN INV_MOVEMENT m ' +                         #13#10 +
+          '    ON m.documentkey = d.id ' +                        #13#10 +
+          '  LEFT JOIN INV_CARD c ' +                             #13#10 +
+          '    ON c.id = m.cardkey ' +                            #13#10 +
           'WHERE ' +                                              #13#10 +
           '  d.documenttypekey = :DocTypeKey ' +                  #13#10 +
           '  AND d.documentdate = :ClosingDate ' +                #13#10 +
@@ -1722,8 +1723,10 @@ begin
             '  c.firstdocumentkey, ' +                                  #13#10 +
             '  c.firstdate ' +                                          #13#10 +
             'FROM gd_document d ' +                                     #13#10 +
-            '  LEFT JOIN inv_movement m ON m.documentkey = d.id ' +     #13#10 +
-            '  LEFT JOIN inv_card c ON c.id = m.cardkey ' +             #13#10 +
+            '  LEFT JOIN INV_MOVEMENT m ' +                             #13#10 +
+            '    ON m.documentkey = d.id ' +                            #13#10 +
+            '  LEFT JOIN INV_CARD c ' +                                 #13#10 +
+            '    ON c.id = m.cardkey ' +                                #13#10 +
             'WHERE ' +                                                  #13#10 +
             '  d.documenttypekey = :DocTypeKey ' +                      #13#10 +
             '  AND d.documentdate = :ClosingDate ' +                    #13#10 +
@@ -1830,8 +1833,10 @@ begin
           '  c.firstdocumentkey, ' +                                    #13#10 +
           '  c.firstdate ' +                                            #13#10 +
           'FROM gd_document d ' +                                       #13#10 +
-          '  LEFT JOIN inv_movement m ON m.documentkey = d.id ' +       #13#10 +
-          '  LEFT JOIN inv_card c ON c.id = m.cardkey ' +               #13#10 +
+          '  LEFT JOIN INV_MOVEMENT m ' +                               #13#10 +
+          '    ON m.documentkey = d.id ' +                              #13#10 +
+          '  LEFT JOIN INV_CARD c ' +                                   #13#10 +
+          '    ON c.id = m.cardkey ' +                                  #13#10 +
           'WHERE ' +                                                    #13#10 +
           '  d.documenttypekey = :DocTypeKey ' +                        #13#10 +
           '  AND d.documentdate = :ClosingDate ' +                      #13#10 +
@@ -1937,7 +1942,7 @@ begin
       '  r.cur_relation_name AS RelationName, ' +               #13#10 +
       '  s.list_fields       AS PkField, ' +                    #13#10 +
       '  rf.rdb$field_name   AS FkField ' +                     #13#10 +
-      'FROM DBS_TMP_REBIND_INV_CARDS r ' +                      #13#10 +
+      'FROM dbs_tmp_rebind_inv_cards r ' +                      #13#10 +
       '  JOIN DBS_SUITABLE_TABLES s ' +                         #13#10 +
       '    ON s.relation_name = r.cur_relation_name ' +         #13#10 +
       '  JOIN RDB$RELATION_FIELDS rf ' +                        #13#10 +
@@ -1958,10 +1963,10 @@ begin
         '  JOIN DBS_TMP_REBIND_INV_CARDS tmp ' +                #13#10 +
         '    ON tmp.cur_cardkey = line.%2:s ' +                 #13#10 +
         'WHERE ' +                                              #13#10 +
-        ' (SELECT doc.documentdate  ' +                         #13#10 +
-        '  FROM gd_document doc ' +                             #13#10 +
-        '  WHERE doc.id = line.documentkey ' +                  #13#10 +
-        ' ) >= :ClosingDate ',
+        '  (SELECT doc.documentdate  ' +                        #13#10 +
+        '   FROM gd_document doc ' +                            #13#10 +
+        '   WHERE doc.id = line.documentkey ' +                 #13#10 +
+        '  ) >= :ClosingDate ',
         [Trim(q3.FieldByName('PkField').AsString), Trim(q3.FieldByName('RelationName').AsString), Trim(q3.FieldByName('FkField').AsString)]);
 
       q4.ParamByName('ClosingDate').AsDateTime := FClosingDate;
@@ -1989,9 +1994,10 @@ begin
         '  constraint_name, ' +                                         #13#10 +
         '  list_fields, list_ref_fields, update_rule, delete_rule ' +   #13#10 +
         'FROM  ' +                                                      #13#10 +
-        '  DBS_FK_CONSTRAINTS  ' +                                      #13#10 +
+        '  dbs_fk_constraints  ' +                                      #13#10 +
         'WHERE  ' +                                                     #13#10 +
-        '  (RELATION_NAME = :RN) AND (LIST_FIELDS = :FN) ';
+        '  relation_name = :RN ' +                                      #13#10 +
+        '  AND list_fields = :FN ';
       q3.ParamByName('RN').AsString := Copy(FIgnoreTbls[I], 0, Pos('=', FIgnoreTbls[I]) - 1);
       q3.ParamByName('FN').AsString := Copy(FIgnoreTbls[I], Pos('=', FIgnoreTbls[I]) + 1, Length(FIgnoreTbls[I]));
 
@@ -2096,7 +2102,7 @@ begin
       '  FIRST_DATE        AS FirstDate, ' +            #13#10 +
       '  CUR_RELATION_NAME AS CurrentRelationName ' +   #13#10 +
       'FROM ' +                                         #13#10 +
-      '  DBS_TMP_REBIND_INV_CARDS ';
+      '  dbs_tmp_rebind_inv_cards ';
     ExecSqlLogEvent(q3, 'RebindInvCards');
 
     while not q3.EOF do
@@ -2325,7 +2331,7 @@ var
   var
     Tr, Tr2: TIBTransaction;
     q: TIBQuery;
-    q2, q3, q4: TIBSQL;
+    q2, q3, q4, q5: TIBSQL;
     FkFieldsList: TStringList;
     FkFieldsList2: TStringList;
     FkFieldsListLine: TStringList;
@@ -2388,6 +2394,7 @@ var
     q2 := TIBSQL.Create(nil);
     q3 := TIBSQL.Create(nil);
     q4 := TIBSQL.Create(nil);
+    q5 := TIBSQL.Create(nil);
 
     Tr := TIBTransaction.Create(nil);
     Tr2 := TIBTransaction.Create(nil);
@@ -2400,6 +2407,7 @@ var
       q2.Transaction := Tr;
       q4.Transaction := Tr;
       q3.Transaction := Tr2;
+      q5.Transaction := Tr2;
 
       TblsNamesList.Append(UpperCase(Trim(ATableName)));
       AllProcessedTblsNames.Append(UpperCase(Trim(ATableName)));
@@ -2882,21 +2890,19 @@ var
             '  TRIM(fc.list_fields) AS fk_fields ' +                                      #13#10 +
             'FROM dbs_fk_constraints fc ' +                                               #13#10 +
             '  JOIN dbs_suitable_tables pc ' +                                            #13#10 +
-            '    ON pc.relation_name = fc.relation_name' +                                #13#10 +
+            '    ON pc.relation_name = fc.relation_name AND pc.list_fields = fc.list_fields ' +  #13#10 +
             'WHERE fc.delete_rule = ''CASCADE'' ' +                                       #13#10 +//((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) ' +
             '  AND fc.relation_name = :rln ' +                                            #13#10 +
-            '  AND fc.list_fields = pc.list_fields ' +                                    #13#10 +
             '  AND fc.list_fields NOT LIKE ''%,%'' ';
           q.ParamByName('rln').AsString := TblsNamesList[0];
           q.Open;
 
-          if q.RecordCount = 0 then 
+          if q.RecordCount = 0 then
             IsLine := False
           else // pk=fk
             IsLine := True;
           q.Close;
 
-          q.Close;
           q.SQL.Text :=
             'SELECT ' +                                                                       #13#10 +
             '  LIST(TRIM(fc.list_fields)||''=''||TRIM(fc.ref_relation_name)) AS fk_field, ' + #13#10 +
@@ -3221,7 +3227,7 @@ var
 
                 while not q4.EOF do
                 begin
-                  if FkFieldsList.IndexOfName(q4.FieldByName('fk_field').AsString) = -1 then
+                  if q4.FieldByName('fk_field').AsString <> Trim(FkFieldsList.Names[I]) then //FkFieldsList.IndexOfName(q4.FieldByName('fk_field').AsString) = -1 then
                   begin
                     if FkFieldsListLine.IndexOf(q4.FieldByName('fk_field').AsString) = -1 then
                     begin
@@ -3270,11 +3276,11 @@ var
                   '  END ' +                                                                                #13#10 +
                   'END');
 
-                q4.SQL.Text := TmpStr;
-                ExecSqlLogEvent(q4, 'IncludeCascadingSequences');
+                q5.SQL.Text := TmpStr;
+                ExecSqlLogEvent(q5, 'IncludeCascadingSequences');
 
-                Kolvo := Kolvo + q4.FieldByName('Kolvo').AsInteger;
-                q4.Close;
+                Kolvo := Kolvo + q5.FieldByName('Kolvo').AsInteger;
+                q5.Close;
                 TmpStr := '';
 
                 ExecSqlLogEvent(q3, 'IncludeCascadingSequences');
@@ -3857,6 +3863,7 @@ var
       q2.Free;
       q3.Free;
       q4.Free;
+      q5.Free;
       Tr.Free;
       Tr2.Free;
     end;
@@ -3877,7 +3884,9 @@ begin
     LogEvent('Including PKs In HugeIntSet... ');
 
     q.SQL.Text :=                                                               ///TODO: учесть компанию
-      'SELECT SUM(g_his_include(1, id)) AS Kolvo FROM gd_document WHERE documentdate < :Date';
+      'SELECT SUM(g_his_include(1, id)) AS Kolvo ' +                    #13#10 +
+      'FROM gd_document ' +                                             #13#10 +
+      'WHERE documentdate < :Date';
     q.ParamByName('Date').AsDateTime := FClosingDate;
     ExecSqlLogEvent(q, 'CreateHIS_IncludeInHIS', 'Date=' + DateTimeToStr(FClosingDate));
     LogEvent(Format('COUNT in HIS(1) without cascade: %d', [q.FieldByName('Kolvo').AsInteger]));
@@ -3886,8 +3895,10 @@ begin
     begin
       q.Close;
       CreateHIS(3);
-      q.SQL.Text :=                                                               ///TODO: учесть компанию
-        'SELECT SUM(g_his_include(3, id)) AS Kolvo FROM gd_document WHERE documentdate >= :Date';
+      q.SQL.Text :=                                                             ///TODO: учесть компанию
+        'SELECT SUM(g_his_include(3, id)) AS Kolvo ' +                  #13#10 +
+        'FROM gd_document ' +                                           #13#10 +
+        'WHERE documentdate >= :Date';
       q.ParamByName('Date').AsDateTime := FClosingDate;
       ExecSqlLogEvent(q, 'CreateHIS_IncludeInHIS', 'Date=' + DateTimeToStr(FClosingDate));
 
@@ -3898,12 +3909,13 @@ begin
     q.Close;
 
     LogEvent(Format('COUNT in HIS(1) with CASCADE: %d', [GetCountHIS(1)]));
-
     q.SQL.Text :=
-      'SELECT COUNT(id) AS Kolvo FROM gd_document WHERE (documentdate < :Date) AND g_his_has(1, id) = 1';
+      'SELECT COUNT(id) AS Kolvo ' +                                    #13#10 +
+      'FROM gd_document ' +                                             #13#10 +
+      'WHERE (documentdate < :Date) ' +                                 #13#10 +
+      '  AND g_his_has(1, id) = 1';
     q.ParamByName('Date').AsDateTime := FClosingDate;
     ExecSqlLogEvent(q, 'CreateHIS_IncludeInHIS', 'Date=' + DateTimeToStr(FClosingDate));
-
     LogEvent(Format('COUNT DOCS in HIS: %d', [q.FieldByName('Kolvo').AsInteger]));
     q.Close;
 
@@ -4013,23 +4025,23 @@ var
   procedure PrepareTriggers;
   begin
     q.SQL.Text :=
-      'EXECUTE BLOCK ' +                                                            #13#10 +
-      'AS ' +                                                                       #13#10 +
-      '  DECLARE VARIABLE TN CHAR(31); ' +                                          #13#10 +
-      'BEGIN ' +                                                                    #13#10 +
-      '  FOR ' +                                                                    #13#10 +
-      '    SELECT t.rdb$trigger_name ' +                                              #13#10 +
-      '    FROM rdb$triggers t ' +                                                    #13#10 +
+      'EXECUTE BLOCK ' +                                                                #13#10 +
+      'AS ' +                                                                           #13#10 +
+      '  DECLARE VARIABLE TN CHAR(31); ' +                                              #13#10 +
+      'BEGIN ' +                                                                        #13#10 +
+      '  FOR ' +                                                                        #13#10 +
+      '    SELECT t.rdb$trigger_name ' +                                                #13#10 +
+      '    FROM rdb$triggers t ' +                                                      #13#10 +
      /// '      JOIN DBS_TMP_PROCESSED_TABLES p ON p.relation_name = t.RDB$RELATION_NAME ' +  #13#10 +                                                   ////test
       '    WHERE ((t.rdb$trigger_inactive = 0) OR (t.rdb$trigger_inactive IS NULL)) ' + #13#10 +
       '      AND ((t.RDB$SYSTEM_FLAG = 0) OR (t.RDB$SYSTEM_FLAG IS NULL)) ' +           #13#10 +
       //'      AND RDB$TRIGGER_NAME NOT IN (SELECT RDB$TRIGGER_NAME FROM RDB$CHECK_CONSTRAINTS) ' +
-      '    INTO :TN ' +                                                             #13#10 +
-      '  DO ' +                                                                     #13#10 +
-      '  BEGIN ' +                                                                  #13#10 +
-      '    IN AUTONOMOUS TRANSACTION DO ' +                                         #13#10 +
-      '      EXECUTE STATEMENT ''ALTER TRIGGER '' || :TN || '' INACTIVE ''; ' +     #13#10 +
-      '  END ' +                                                                    #13#10 +
+      '    INTO :TN ' +                                                                 #13#10 +
+      '  DO ' +                                                                         #13#10 +
+      '  BEGIN ' +                                                                      #13#10 +
+      '    IN AUTONOMOUS TRANSACTION DO ' +                                             #13#10 +
+      '      EXECUTE STATEMENT ''ALTER TRIGGER '' || :TN || '' INACTIVE ''; ' +         #13#10 +
+      '  END ' +                                                                        #13#10 +
       'END';
     ExecSqlLogEvent(q, 'PrepareTriggers');
     Tr.Commit;
@@ -4046,7 +4058,7 @@ var
       '  DECLARE VARIABLE N CHAR(31); ' +                                       #13#10 +
       'BEGIN ' +                                                                #13#10 +
       '  FOR ' +                                                                #13#10 +
-      '    SELECT i.rdb$index_name ' +                                            #13#10 +
+{     '    SELECT i.rdb$index_name ' +                                            #13#10 +
       '    FROM rdb$indices i ' +                                                 #13#10 +
     ///  '      JOIN DBS_TMP_PROCESSED_TABLES p ON p.relation_name = i.RDB$RELATION_NAME ' +  #13#10 +
       '    WHERE ((i.rdb$index_inactive = 0) OR (i.rdb$index_inactive IS NULL)) ' + #13#10 +
@@ -4056,7 +4068,90 @@ var
       '      AND ((NOT i.rdb$index_name LIKE ''RDB$%'') ' +                       #13#10 +
       '        OR ((i.rdb$index_name LIKE ''RDB$PRIMARY%'') ' +                   #13#10 +
       '        OR (i.rdb$index_name LIKE ''RDB$FOREIGN%'')) ' +                   #13#10 +
-      '      ) ' +                                                              #13#10 +
+      '      ) ' +                                                              #13#10 +     }
+
+      //////////////////////
+      '    SELECT ii.rdb$index_name ' + #13#10 +
+      '    FROM rdb$indices ii ' + #13#10 +
+      '    WHERE ((ii.rdb$index_inactive = 0) OR (ii.rdb$index_inactive IS NULL)) ' + #13#10 +
+      '      AND ((ii.RDB$SYSTEM_FLAG = 0) OR (ii.RDB$SYSTEM_FLAG IS NULL)) ' + #13#10 +
+      '      AND ii.rdb$relation_name NOT LIKE ''DBS_%'' ' + #13#10 +
+      '      AND ((NOT ii.rdb$index_name LIKE ''RDB$%'') ' + #13#10 +
+      '        OR ((ii.rdb$index_name LIKE ''RDB$PRIMARY%'') ' + #13#10 +
+      '        OR (ii.rdb$index_name LIKE ''RDB$FOREIGN%'')) ' + #13#10 +
+      '      ) ' + #13#10 +
+      '      AND NOT EXISTS ( ' + #13#10 +
+      '        SELECT * ' + #13#10 +
+      '        FROM RDB$RELATION_CONSTRAINTS c ' + #13#10 +
+      '          JOIN ( ' + #13#10 +
+      '          	SELECT  ' + #13#10 +
+      '          	  inx.RDB$INDEX_NAME,                   ' + #13#10 +
+      '              LIST(TRIM(inx.RDB$FIELD_NAME)) as List_Fields    ' + #13#10 +
+      '            FROM  ' + #13#10 +
+      '              RDB$INDEX_SEGMENTS inx                       ' + #13#10 +
+      '            GROUP BY  ' + #13#10 +
+      '              inx.RDB$INDEX_NAME                      ' + #13#10 +
+      '          ) i ON c.RDB$INDEX_NAME = i.RDB$INDEX_NAME  ' + #13#10 +
+      '        WHERE ' + #13#10 +
+      '          c.RDB$INDEX_NAME = ii.rdb$index_name ' + #13#10 +
+      '          AND EXISTS( ' + #13#10 +
+      '              SELECT * ' + #13#10 +
+      '              FROM   RDB$RELATION_CONSTRAINTS cc  ' + #13#10 +
+      '                JOIN RDB$REF_CONSTRAINTS refcc  ' + #13#10 +
+      '                  ON cc.RDB$CONSTRAINT_NAME = refcc.RDB$CONSTRAINT_NAME  ' + #13#10 +
+      '                JOIN RDB$RELATION_CONSTRAINTS cc2  ' + #13#10 +
+      '                  ON refcc.RDB$CONST_NAME_UQ = cc2.RDB$CONSTRAINT_NAME ' + #13#10 +
+      '                JOIN rdb$index_segments isegc  ' + #13#10 +
+      '                  ON isegc.rdb$index_name = cc.rdb$index_name  ' + #13#10 +
+      '                JOIN rdb$index_segments ref_isegc  ' + #13#10 +
+      '                  ON ref_isegc.rdb$index_name = cc2.rdb$index_name  ' + #13#10 +
+      '              WHERE ' + #13#10 +
+      '                cc2.RDB$RELATION_NAME = c.RDB$RELATION_NAME ' + #13#10 +
+      '                AND cc.rdb$constraint_type = ''FOREIGN KEY'' ' + #13#10 +
+      '                AND refcc.rdb$delete_rule IN(''SET NULL'', ''SET DEFAULT'')   ' + #13#10 +
+      '                AND cc.rdb$constraint_name NOT LIKE ''RDB$%'' ' + #13#10 +
+      '          ) ' + #13#10 +
+      //'	      AND (c.rdb$constraint_type = ''PRIMARY KEY'' OR c.rdb$constraint_type = ''UNIQUE'')  ' + #13#10 +
+      //'	      AND c.rdb$constraint_name NOT LIKE ''RDB$%''    ' + #13#10 +
+
+      '        UNION ' + #13#10 +
+
+      '        SELECT * ' + #13#10 +
+      '        FROM RDB$RELATION_CONSTRAINTS c                     ' + #13#10 +
+      '          JOIN ( ' + #13#10 +
+      '          	SELECT  ' + #13#10 +
+      '          	  inx.RDB$INDEX_NAME,                   ' + #13#10 +
+      '              LIST(TRIM(inx.RDB$FIELD_NAME)) as List_Fields    ' + #13#10 +
+      '            FROM  ' + #13#10 +
+      '              RDB$INDEX_SEGMENTS inx                       ' + #13#10 +
+      '            GROUP BY  ' + #13#10 +
+      '              inx.RDB$INDEX_NAME                      ' + #13#10 +
+      '          ) i ON c.RDB$INDEX_NAME = i.RDB$INDEX_NAME  ' + #13#10 +
+      '        WHERE ' + #13#10 +
+      '          c.RDB$INDEX_NAME = ii.rdb$index_name ' + #13#10 +
+      '          AND EXISTS( ' + #13#10 +
+      '            SELECT * ' + #13#10 +
+      '            FROM  ' + #13#10 +
+      '              RDB$RELATION_CONSTRAINTS cc  ' + #13#10 +
+      '              JOIN RDB$REF_CONSTRAINTS refcc  ' + #13#10 +
+      '                ON cc.RDB$CONSTRAINT_NAME = refcc.RDB$CONSTRAINT_NAME  ' + #13#10 +
+      '              JOIN RDB$RELATION_CONSTRAINTS cc2  ' + #13#10 +
+      '                ON refcc.RDB$CONST_NAME_UQ = cc2.RDB$CONSTRAINT_NAME ' + #13#10 +
+      '              JOIN rdb$index_segments isegc  ' + #13#10 +
+      '                ON isegc.rdb$index_name = cc.rdb$index_name  ' + #13#10 +
+      '              JOIN rdb$index_segments ref_isegc  ' + #13#10 +
+      '                ON ref_isegc.rdb$index_name = cc2.rdb$index_name  ' + #13#10 +
+      '            WHERE ' + #13#10 +
+      '              cc2.RDB$RELATION_NAME = c.RDB$RELATION_NAME ' + #13#10 +
+      '              AND cc.rdb$constraint_type = ''FOREIGN KEY'' ' + #13#10 +
+      '              AND refcc.rdb$delete_rule IN(''SET NULL'', ''SET DEFAULT'')   ' + #13#10 +
+      '              AND cc.rdb$constraint_name NOT LIKE ''RDB$%'' ' + #13#10 +
+      '          ) ' + #13#10 +
+      //'          AND (c.rdb$constraint_type = ''PRIMARY KEY'' OR c.rdb$constraint_type = ''UNIQUE'')  ' + #13#10 +
+      //'          AND c.rdb$constraint_name NOT LIKE ''RDB$%'' ' + #13#10 +
+      '      ) ' + #13#10 +
+
+
       '    INTO :N ' +                                                          #13#10 +
       '  DO ' +                                                                 #13#10 +
       '    EXECUTE STATEMENT ''ALTER INDEX '' || :N || '' INACTIVE ''; ' +      #13#10 +
@@ -4067,21 +4162,56 @@ var
     LogEvent('Indices deactivated.');
   end;
 
+
   procedure PreparePkUniqueConstraints;
   begin
     q.SQL.Text :=
-      'EXECUTE BLOCK ' +                                                #13#10 +
-      'AS ' +                                                           #13#10 +
-      '  DECLARE VARIABLE CN CHAR(31); ' +                              #13#10 +
-      '  DECLARE VARIABLE RN CHAR(31); ' +                              #13#10 +
-      'BEGIN ' +                                                        #13#10 +
-      '  FOR ' +                                                        #13#10 +
-      '    SELECT pc.constraint_name, pc.relation_name ' +                    #13#10 +
-      '    FROM DBS_PK_UNIQUE_CONSTRAINTS pc ' +                           #13#10 +
+      'EXECUTE BLOCK ' +                                                        #13#10 +
+      'AS ' +                                                                   #13#10 +
+      '  DECLARE VARIABLE CN CHAR(31); ' +                                      #13#10 +
+      '  DECLARE VARIABLE RN CHAR(31); ' +                                      #13#10 +
+      'BEGIN ' +                                                                #13#10 +
+      '  FOR ' +                                                                #13#10 +
+      '    SELECT ' +                                                           #13#10 +
+      '      pc.constraint_name, ' +                                            #13#10 +
+      '      pc.relation_name ' +                                               #13#10 +
+      '    FROM ' +                                                             #13#10 +
+      '      dbs_pk_unique_constraints pc ' +                                   #13#10 +
    ///   '      JOIN DBS_TMP_PROCESSED_TABLES p ON p.relation_name = pc.RELATION_NAME ' +  #13#10 +
-      '    WHERE pc.relation_name NOT LIKE ''DBS_%'' ' +                   #13#10 +
-      '    INTO :CN, :RN ' +                                            #13#10 +
-      '  DO ' +                                                        #13#10 +
+      '    WHERE ' +
+      '      pc.relation_name NOT LIKE ''DBS_%'' ' +                            #13#10 +
+////////////////////
+{           '  AND NOT EXISTS( ' +                                              #13#10 +
+      '       SELECT * ' +                                                      #13#10 +
+      '       FROM rdb$relation_constraints cc  ' +                             #13#10 +
+      '         JOIN RDB$REF_CONSTRAINTS refcc  ' +                             #13#10 +
+      '           ON cc.rdb$constraint_name = refcc.rdb$constraint_name  ' +    #13#10 +
+      '         JOIN RDB$RELATION_CONSTRAINTS cc2  ' +                          #13#10 +
+      '           ON refcc.rdb$const_name_uq = cc2.rdb$constraint_name ' +      #13#10 +
+      '         JOIN RDB$INDEX_SEGMENTS isegc  ' +                              #13#10 +
+      '           ON isegc.rdb$index_name = cc.rdb$index_name  ' +              #13#10 +
+      '         JOIN RDB$INDEX_SEGMENTS ref_isegc  ' +                          #13#10 +
+      '           ON ref_isegc.rdb$index_name = cc2.rdb$index_name  ' +         #13#10 +
+      '       WHERE ' +                                                         #13#10 +
+      '         cc2.rdb$relation_name = pc.relation_name ' +                    #13#10 +
+      '         AND cc.rdb$constraint_type = ''FOREIGN KEY'' ' +                #13#10 +
+      '         AND refcc.rdb$delete_rule IN(''SET NULL'', ''SET DEFAULT'') ' + #13#10 +
+      '         AND cc.rdb$constraint_name NOT LIKE ''RDB$%'' ' +               #13#10 +
+      '   ) ' +                                                                 #13#10 +         }
+///////////////////
+
+      ////////////////////
+      '      AND NOT EXISTS( ' +                                                #13#10 +
+      '        SELECT * ' + 							#13#10 +
+      '        FROM dbs_fk_constraints cc ' +					#13#10 +
+      '        WHERE ' +							#13#10 +
+      '          cc.ref_relation_name = pc.relation_name ' +			#13#10 +
+      '          AND cc.delete_rule IN(''SET NULL'', ''SET DEFAULT'') ' +       #13#10 +
+      '          AND cc.constraint_name NOT LIKE ''RDB$%'' ' +               	#13#10 +
+      '      ) ' +                                                              #13#10 +
+      ///////////////////
+      '    INTO :CN, :RN ' +                                                              #13#10 +
+      '  DO ' +                                                                           #13#10 +
       '    EXECUTE STATEMENT ''ALTER TABLE '' || :RN || '' DROP CONSTRAINT '' || :CN; ' + #13#10 +
       'END';
     ExecSqlLogEvent(q, 'PreparePkUniqueConstraints');
@@ -4099,12 +4229,19 @@ var
       '  DECLARE VARIABLE RN CHAR(31); ' +                              #13#10 +
       'BEGIN ' +                                                        #13#10 +
       '  FOR ' +                                                        #13#10 +
-      '    SELECT c.constraint_name, c.relation_name ' +                    #13#10 +
-      '    FROM DBS_FK_CONSTRAINTS c ' +                                  #13#10 +
-      ///'      JOIN DBS_TMP_PROCESSED_TABLES p ON p.relation_name = c.RELATION_NAME ' +  #13#10 +
-      '    WHERE c.constraint_name NOT LIKE ''DBS_%'' ' +                 #13#10 +
+      '    SELECT ' +                                                   #13#10 +
+      '      c.constraint_name, ' +                                     #13#10 +
+      '      c.relation_name ' +                                        #13#10 +
+      '    FROM ' +                                                     #13#10 +
+      '      dbs_fk_constraints c ' +                                   #13#10 +
+      ///'      JOIN DBS_TMP_PROCESSED_TABLES p ON p.relation_name = c.relation_name ' +  #13#10 +
+      '    WHERE ' +                                                    #13#10 +
+      '      c.constraint_name NOT LIKE ''DBS_%'' ' +                   #13#10 +
+      //////////////
+      '      AND c.delete_rule NOT IN(''SET NULL'', ''SET DEFAULT'') ' +#13#10 +
+      //////
       '    INTO :CN, :RN ' +                                            #13#10 +
-      '  DO ' +                                                         #13#10 +
+      '  DO ' +                                                                           #13#10 +
       '    EXECUTE STATEMENT ''ALTER TABLE '' || :RN || '' DROP CONSTRAINT '' || :CN; ' + #13#10 +
       'END';
     ExecSqlLogEvent(q, 'PrepareFKConstraints');
@@ -4135,15 +4272,15 @@ var
       if FInactivBlockTriggers = '' then
       begin
         q.SQL.Text :=
-          'SELECT ' +
-          '  rdb$trigger_name AS TN ' +
-          'FROM ' +
-          '  rdb$triggers ' +
-          'WHERE ' +
-          '  rdb$system_flag = 0 ' +
+          'SELECT ' +                                                   #13#10 +
+          '  rdb$trigger_name AS TN ' +                                 #13#10 +
+          'FROM ' +                                                     #13#10 +
+          '  rdb$triggers ' +                                           #13#10 +
+          'WHERE ' +                                                    #13#10 +
+          '  rdb$system_flag = 0 ' +                                    #13#10 +
          // '  AND rdb$relation_name = ''AC_ENTRY'' ' +
-          '  AND rdb$trigger_name LIKE ''%BLOCK%'' ' +
-          '  AND rdb$trigger_inactive <> 0 ';                                     ///=1
+          '  AND rdb$trigger_name LIKE ''%BLOCK%'' ' +                 #13#10 +
+          '  AND rdb$trigger_inactive <> 0 ';                                   ///=1
         ExecSqlLogEvent(q, 'SetBlockTriggerActive');
         while not q.EOF do
         begin
@@ -4159,14 +4296,14 @@ var
       FInactivBlockTriggers := FInactivBlockTriggers + ' ';
 
       q.SQL.Text :=
-        'SELECT ' +
-        '  rdb$trigger_name AS TN ' +
-        'FROM ' +
-        '  rdb$triggers ' +
-        'WHERE ' +
-        '  rdb$system_flag = 0 ' +
+        'SELECT ' +                                                     #13#10 +
+        '  rdb$trigger_name AS TN ' +                                   #13#10 +
+        'FROM ' +                                                       #13#10 +
+        '  rdb$triggers ' +                                             #13#10 +
+        'WHERE ' +                                                      #13#10 +
+        '  rdb$system_flag = 0 ' +                                      #13#10 +
         //'  AND rdb$relation_name = ''AC_ENTRY'' ' +
-        '  AND rdb$trigger_name LIKE ''%BLOCK%'' ' +
+        '  AND rdb$trigger_name LIKE ''%BLOCK%'' ' +                    #13#10 +
         '  AND rdb$trigger_inactive = :IsInactiv ';
       if Trim(FInactivBlockTriggers) <> '' then
       begin
@@ -4198,23 +4335,26 @@ var
       Tr.Commit;
       Tr.StartTransaction;
 
-      q.SQL.Text :=                                                                ///
-        'EXECUTE BLOCK ' +
-        'AS ' +
-        '  DECLARE VARIABLE TN CHAR(31); ' +
-        'BEGIN ' +
-        '  FOR ' +
-        '    SELECT rdb$trigger_name ' +
-        '    FROM rdb$triggers ' +
-        '    WHERE rdb$trigger_inactive = 0 ' +
-        '     AND RDB$SYSTEM_FLAG = 0 ' +
+      q.SQL.Text :=                                                             ///
+        'EXECUTE BLOCK ' +                                                      #13#10 +
+        'AS ' +                                                                 #13#10 +
+        '  DECLARE VARIABLE TN CHAR(31); ' +                                    #13#10 +
+        'BEGIN ' +                                                              #13#10 +
+        '  FOR ' +                                                              #13#10 +
+        '    SELECT ' +                                                         #13#10 +
+        '      rdb$trigger_name ' +                                             #13#10 +
+        '    FROM ' +                                                           #13#10 +
+        '      rdb$triggers ' +                                                 #13#10 +
+        '    WHERE ' +                                                          #13#10 +
+        '      rdb$trigger_inactive = 0 ' +                                     #13#10 +
+        '     AND rdb$system_flag = 0 ' +                                       #13#10 +
        // '     AND rdb$relation_name = ''AC_ENTRY'' ' +
-        '     AND rdb$trigger_name NOT LIKE ''%ISSIMPLE%'' ' + 
-        '    INTO :TN ' +
-        '  DO ' +
-        '  BEGIN ' +
-        '      EXECUTE STATEMENT ''ALTER TRIGGER '' || :TN || '' INACTIVE ''; ' +
-        '  END ' +
+        '     AND rdb$trigger_name NOT LIKE ''%ISSIMPLE%'' ' +                  #13#10 +
+        '    INTO :TN ' +                                                       #13#10 +
+        '  DO ' +                                                               #13#10 +
+        '  BEGIN ' +                                                            #13#10 +
+        '    EXECUTE STATEMENT ''ALTER TRIGGER '' || :TN || '' INACTIVE ''; ' + #13#10 +
+        '  END ' +                                                              #13#10 +
         'END';
       ExecSqlLogEvent(q, 'SetBlockTriggerActive');
 
@@ -4243,8 +4383,8 @@ begin
       if FOnlyCompanySaldo then
       begin
         q.SQL.Text :=
-          'SELECT contactkey AS CompanyKey ' +
-          'FROM GD_COMPANY ' +
+          'SELECT contactkey AS CompanyKey ' +                          #13#10 +
+          'FROM gd_company ' +                                          #13#10 +
           'WHERE fullname = :CompanyName ';
         q.ParamByName('CompanyName').AsString := FCompanyName;
         ExecSqlLogEvent(q, 'DeleteOldAcEntryBalance', Format('CompanyName = %s', [FCompanyName]));
@@ -4255,8 +4395,8 @@ begin
 
       LogEvent('[test] DELETE FROM AC_RECORD...');                               ///test
       q.SQL.Text :=
-        'DELETE FROM AC_RECORD ' +
-        'WHERE ' +
+        'DELETE FROM AC_RECORD ' +                                      #13#10 +
+        'WHERE ' +                                                      #13#10 +
         '  recorddate < :ClosingDate ';
       if FOnlyCompanySaldo then
         q.SQL.Add(' ' +
@@ -4276,7 +4416,7 @@ begin
       PrepareFKConstraints;
       PreparePkUniqueConstraints;
       PrepareTriggers;
-      PrepareIndices;
+///      PrepareIndices;       //test
 
       Tr.Commit;
       LogEvent('DB preparation... OK');
@@ -4310,25 +4450,25 @@ begin
 
     // inactive triggers
     q.SQL.Text :=
-      'INSERT INTO DBS_INACTIVE_TRIGGERS (TRIGGER_NAME) ' +                         #13#10 +
-      'SELECT RDB$TRIGGER_NAME ' +                                                  #13#10 +
-      'FROM RDB$TRIGGERS ' +                                                        #13#10 +
-      'WHERE (RDB$TRIGGER_INACTIVE <> 0) AND (RDB$TRIGGER_INACTIVE IS NOT NULL) ' + #13#10 +
-      '  AND ((RDB$SYSTEM_FLAG = 0) OR (RDB$SYSTEM_FLAG IS NULL)) ';
+      'INSERT INTO DBS_INACTIVE_TRIGGERS (trigger_name) ' +                             #13#10 +
+      'SELECT rdb$trigger_name ' +                                                      #13#10 +
+      'FROM rdb$triggers ' +                                                            #13#10 +
+      'WHERE (rdb$trigger_inactive <> 0) AND (rdb$trigger_inactive IS NOT NULL) ' +     #13#10 +
+      '  AND ((rdb$system_flag = 0) OR (rdb$system_flag IS NULL)) ';
     ExecSqlLogEvent(q, 'SaveMetadata');
 
     // inactive indices
     q.SQL.Text :=
-      'INSERT INTO DBS_INACTIVE_INDICES (INDEX_NAME) ' +                        #13#10 +
-      'SELECT RDB$INDEX_NAME ' +                                                #13#10 +
-      'FROM RDB$INDICES ' +                                                     #13#10 +
-      'WHERE (RDB$INDEX_INACTIVE <> 0) AND (RDB$INDEX_INACTIVE IS NOT NULL) ' + #13#10 +
-      '  AND ((RDB$SYSTEM_FLAG = 0) OR (RDB$SYSTEM_FLAG IS NULL))';
+      'INSERT INTO DBS_INACTIVE_INDICES (index_name) ' +                                #13#10 +
+      'SELECT rdb$index_name ' +                                                        #13#10 +
+      'FROM rdb$indices ' +                                                             #13#10 +
+      'WHERE (rdb$index_inactive <> 0) AND (rdb$index_inactive IS NOT NULL) ' +         #13#10 +
+      '  AND ((rdb$system_flag = 0) OR (rdb$system_flag IS NULL))';
     ExecSqlLogEvent(q, 'SaveMetadata');
 
     // PKs and Uniques constraints
     q.SQL.Text :=
-      'INSERT INTO DBS_PK_UNIQUE_CONSTRAINTS ( ' +                      #13#10 +
+   {   'INSERT INTO DBS_PK_UNIQUE_CONSTRAINTS ( ' +                     #13#10 +
       '  RELATION_NAME, ' +                                             #13#10 +
       '  CONSTRAINT_NAME, ' +                                           #13#10 +
       '  CONSTRAINT_TYPE, ' +                                           #13#10 +
@@ -4347,6 +4487,45 @@ begin
       '  ) i ON c.RDB$INDEX_NAME = i.RDB$INDEX_NAME ' +                 #13#10 +
       'WHERE ' +                                                        #13#10 +
       '  (c.rdb$constraint_type = ''PRIMARY KEY'' OR c.rdb$constraint_type = ''UNIQUE'') ' + #13#10 +
+      '   AND c.rdb$constraint_name NOT LIKE ''RDB$%'' '; }
+
+    ///////////
+      'INSERT INTO DBS_PK_UNIQUE_CONSTRAINTS ( ' +                              #13#10 +
+      '  relation_name, ' +                                                     #13#10 +
+      '  constraint_name, ' +                                                   #13#10 +
+      '  constraint_type, ' +                                                   #13#10 +
+      '  list_fields ) ' +                                                      #13#10 +
+      'SELECT ' +                                                               #13#10 +
+      '   c.rdb$relation_name, ' +                                              #13#10 +
+      '   c.rdb$constraint_name, ' +                                            #13#10 +
+      '   c.rdb$constraint_type, ' +                                            #13#10 +
+      '   i.List_Fields ' +                                                     #13#10 +
+      ' FROM ' +                                                                #13#10 +
+      '   rdb$relation_constraints c ' +                                        #13#10 +
+      '   JOIN (SELECT inx.rdb$index_name, ' +                                  #13#10 +
+      '     LIST(TRIM(inx.rdb$field_name)) AS List_Fields ' +                   #13#10 +
+      '     FROM rdb$index_segments inx ' +                                     #13#10 +
+      '     GROUP BY inx.rdb$index_name ' +                                     #13#10 +
+      '   ) i ON c.rdb$index_name = i.rdb$index_name ' +                        #13#10 +
+      ' WHERE ' +                                                               #13#10 +
+{     '   NOT EXISTS( ' +                                                       #13#10 +
+      '       SELECT * ' +                                                      #13#10 +
+      '       FROM rdb$relation_constraints cc  ' +                             #13#10 +
+      '         JOIN RDB$REF_CONSTRAINTS refcc  ' +                             #13#10 +
+      '           ON cc.rdb$constraint_name = refcc.rdb$constraint_name  ' +    #13#10 +
+      '         JOIN RDB$RELATION_CONSTRAINTS cc2  ' +                          #13#10 +
+      '           ON refcc.rdb$const_name_uq = cc2.rdb$constraint_name ' +      #13#10 +
+      '         JOIN RDB$INDEX_SEGMENTS isegc  ' +                              #13#10 +
+      '           ON isegc.rdb$index_name = cc.rdb$index_name  ' +              #13#10 +
+      '         JOIN RDB$INDEX_SEGMENTS ref_isegc  ' +                          #13#10 +
+      '           ON ref_isegc.rdb$index_name = cc2.rdb$index_name  ' +         #13#10 +
+      '       WHERE ' +                                                         #13#10 +
+      '         cc2.rdb$relation_name = c.rdb$relation_name ' +                 #13#10 +
+      '         AND cc.rdb$constraint_type = ''FOREIGN KEY'' ' +                #13#10 +
+      '         AND refcc.rdb$delete_rule IN(''SET NULL'', ''SET DEFAULT'') ' + #13#10 +
+      '         AND cc.rdb$constraint_name NOT LIKE ''RDB$%'' ' +               #13#10 +
+      '   ) ' +                                                                                    #13#10 +   }
+      '   (c.rdb$constraint_type = ''PRIMARY KEY'' OR c.rdb$constraint_type = ''UNIQUE'')  ' + #13#10 +
       '   AND c.rdb$constraint_name NOT LIKE ''RDB$%'' ';
     ExecSqlLogEvent(q, 'SaveMetadata');
 
@@ -4355,108 +4534,52 @@ begin
       'INSERT INTO DBS_SUITABLE_TABLES ' +                                      #13#10 +
       'SELECT ' +                                                               #13#10 +
       '  pk.relation_name AS RN, ' +                                            #13#10 +
-      '  pk.list_fields AS FN ' +                                               #13#10 +
-      'FROM DBS_PK_UNIQUE_CONSTRAINTS pk ' +                                    #13#10 +
-      '  JOIN rdb$relation_fields rf ' +                                        #13#10 +
+      '  pk.list_fields   AS FN ' +                                             #13#10 +
+      'FROM ' +                                                                 #13#10 +
+      '  dbs_pk_unique_constraints pk ' +                                       #13#10 +
+      '  JOIN RDB$RELATION_FIELDS rf ' +                                        #13#10 +
       '    ON rf.rdb$relation_name = pk.relation_name ' +                       #13#10 +
       '      AND rf.rdb$field_name = pk.list_fields ' +                         #13#10 +
-      '    JOIN rdb$fields f ON f.rdb$field_name = rf.rdb$field_source ' +      #13#10 +
-      'WHERE constraint_type = ''PRIMARY KEY'' ' +                              #13#10 +
+      '    JOIN RDB$FIELDS f ' +                                                #13#10 +
+      '      ON f.rdb$field_name = rf.rdb$field_source ' +                      #13#10 +
+      'WHERE ' +                                                                #13#10 +
+      '  constraint_type = ''PRIMARY KEY'' ' +                                  #13#10 +
       '  AND list_fields NOT LIKE ''%,%'' ' +                                   #13#10 +
       '  AND f.rdb$field_type = 8 ';
     ExecSqlLogEvent(q, 'SaveMetadata');
 
     // FK constraints
     q.SQL.Text :=
-      'INSERT INTO DBS_FK_CONSTRAINTS ( ' +                             #13#10 +
-      '  CONSTRAINT_NAME, RELATION_NAME, REF_RELATION_NAME, ' +         #13#10 +
-      '  UPDATE_RULE, DELETE_RULE, LIST_FIELDS, LIST_REF_FIELDS) ' +    #13#10 +
-      'SELECT ' +                                                       #13#10 +
-      '  c.RDB$CONSTRAINT_NAME AS Constraint_Name, ' +                  #13#10 +
-      '  c.RDB$RELATION_NAME AS Relation_Name, ' +                      #13#10 +
-      '  c2.RDB$RELATION_NAME AS Ref_Relation_Name, ' +                 #13#10 +
-      '  refc.RDB$UPDATE_RULE AS Update_Rule, ' +                       #13#10 +
-      '  refc.RDB$DELETE_RULE AS Delete_Rule, ' +                       #13#10 +
-      '  LIST(iseg.rdb$field_name) AS Fields, ' +                       #13#10 +
-      '  LIST(ref_iseg.rdb$field_name) AS Ref_Fields ' +                #13#10 +
-      'FROM ' +                                                         #13#10 +
-      '  RDB$RELATION_CONSTRAINTS c ' +                                 #13#10 +
-      '  JOIN RDB$REF_CONSTRAINTS refc ' +                              #13#10 +
-      '    ON c.RDB$CONSTRAINT_NAME = refc.RDB$CONSTRAINT_NAME ' +      #13#10 +
-      '  JOIN RDB$RELATION_CONSTRAINTS c2 ' +                           #13#10 +
-      '    ON refc.RDB$CONST_NAME_UQ = c2.RDB$CONSTRAINT_NAME ' +       #13#10 +
-      '  JOIN rdb$index_segments iseg ' +                               #13#10 +
-      '    ON iseg.rdb$index_name = c.rdb$index_name ' +                #13#10 +
-      '  JOIN rdb$index_segments ref_iseg ' +                           #13#10 +
-      '    ON ref_iseg.rdb$index_name = c2.rdb$index_name ' +           #13#10 +
-      'WHERE ' +                                                        #13#10 +
-      '  c.rdb$constraint_type = ''FOREIGN KEY''  ' +                   #13#10 +
-      '  AND c.rdb$constraint_name NOT LIKE ''RDB$%'' ' +               #13#10 +
-      'GROUP BY ' +                                                     #13#10 +
+      'INSERT INTO DBS_FK_CONSTRAINTS ( ' +                                     #13#10 +
+      '  constraint_name, relation_name, ref_relation_name, ' +                 #13#10 +
+      '  update_rule, delete_rule, list_fields, list_ref_fields) ' +            #13#10 +
+      'SELECT ' +                                                               #13#10 +
+      '  c.rdb$constraint_name         AS Constraint_Name, ' +                  #13#10 +
+      '  c.rdb$relation_name           AS Relation_Name, ' +                    #13#10 +
+      '  c2.rdb$relation_name          AS Ref_Relation_Name, ' +                #13#10 +
+      '  refc.rdb$update_rule          AS Update_Rule, ' +                      #13#10 +
+      '  refc.rdb$delete_rule          AS Delete_Rule, ' +                      #13#10 +
+      '  LIST(iseg.rdb$field_name)     AS Fields, ' +                           #13#10 +
+      '  LIST(ref_iseg.rdb$field_name) AS Ref_Fields ' +                        #13#10 +
+      'FROM ' +                                                                 #13#10 +
+      '  rdb$relation_constraints c ' +                                         #13#10 +
+      '  JOIN RDB$REF_CONSTRAINTS refc ' +                                      #13#10 +
+      '    ON c.rdb$constraint_name = refc.rdb$constraint_name ' +              #13#10 +
+      '  JOIN RDB$RELATION_CONSTRAINTS c2 ' +                                   #13#10 +
+      '    ON refc.rdb$const_name_uq = c2.rdb$constraint_name ' +               #13#10 +
+      '  JOIN RDB$INDEX_SEGMENTS iseg ' +                                       #13#10 +
+      '    ON iseg.rdb$index_name = c.rdb$index_name ' +                        #13#10 +
+      '  JOIN RDB$INDEX_SEGMENTS ref_iseg ' +                                   #13#10 +
+      '    ON ref_iseg.rdb$index_name = c2.rdb$index_name ' +                   #13#10 +
+      'WHERE ' +                                                                #13#10 +
+      '  c.rdb$constraint_type = ''FOREIGN KEY''  ' +                           #13#10 +
+      /////////////////
+      //'  AND refc.rdb$delete_rule NOT IN(''SET NULL'', ''SET DEFAULT'') ' +     #13#10 +
+      /////////
+      '  AND c.rdb$constraint_name NOT LIKE ''RDB$%'' ' +                       #13#10 +
+      'GROUP BY ' +                                                             #13#10 +
       '  1, 2, 3, 4, 5';
     ExecSqlLogEvent(q, 'SaveMetadata');
-
-
-    // для ссылочной целостности AcSaldo                                         ////а надо ли вообще
-    q.SQL.Text :=
-      'INSERT INTO DBS_FK_CONSTRAINTS ( ' +
-      '  relation_name, ' +
-      '  ref_relation_name, ' +
-      '  constraint_name, ' +
-      '  list_fields, list_ref_fields, update_rule, delete_rule) ' +
-      'SELECT ' +
-      '  ''DBS_TMP_AC_SALDO'', ' +
-      '  ref_relation_name, ' +
-      '  ''DBS_'' || constraint_name, ' +
-      '  list_fields, list_ref_fields, ''RESTRICT'', ''RESTRICT'' ' +
-      'FROM  ' +
-      '  DBS_FK_CONSTRAINTS  ' +
-      'WHERE  ' +
-      '  (RELATION_NAME = ''AC_ENTRY'') ' +
-      '  AND (LIST_FIELDS NOT IN(''TRANSACTIONKEY'', ''RECORDKEY'', ''DOCUMENTKEY'', ''MASTERDOCKEY''))';
-    ExecSqlLogEvent(q, 'SaveMetadata');   
-
-    // для ссылочной целостности InvSaldo
-
-    q.SQL.Text :=
-      'INSERT INTO DBS_FK_CONSTRAINTS ( ' +
-      '  relation_name, ' +
-      '  ref_relation_name, ' +
-      '  constraint_name, ' +
-      '  list_fields, list_ref_fields, update_rule, delete_rule) ' +
-      'VALUES ( ' +
-      '  ''DBS_TMP_INV_SALDO'', ' +
-      '  ''GD_GOOD'', ' +
-      '  ''DBS_INV_FK_CARD_GOODKEY'', ' +
-      '  ''GOODKEY'', ''ID'', ''RESTRICT'', ''RESTRICT'')';
-    ExecSqlLogEvent(q, 'SaveMetadata');
-
-    q.SQL.Text :=    
-      'INSERT INTO DBS_FK_CONSTRAINTS ( ' +
-      '  relation_name, ' +
-      '  ref_relation_name, ' +
-      '  constraint_name, ' +
-      '  list_fields, list_ref_fields, update_rule, delete_rule) ' +
-      'VALUES ( ' + 
-      '  ''DBS_TMP_INV_SALDO'', ' +
-      '  ''GD_OURCOMPANY'', ' +
-      '  ''DBS_INV_FK_CARD_COMPANYKEY'', ' +
-      '  ''COMPANYKEY'', ''COMPANYKEY'', ''RESTRICT'', ''RESTRICT'')';
-    ExecSqlLogEvent(q, 'SaveMetadata');
-
-    q.SQL.Text :=
-      'INSERT INTO DBS_FK_CONSTRAINTS ( ' +
-      '  relation_name, ' +
-      '  ref_relation_name, ' +
-      '  constraint_name, ' +
-      '  list_fields, list_ref_fields, update_rule, delete_rule) ' +
-      'VALUES ( ' +
-      '  ''DBS_TMP_INV_SALDO'', ' +
-      '  ''GD_CONTACT'', ' +
-      '  ''DBS_INV_FK_MOVEMENT_CK'', ' +
-      '  ''CONTACTKEY'', ''ID'', ''RESTRICT'', ''RESTRICT'')';
-    ExecSqlLogEvent(q, 'SaveMetadata');
-
 
     Tr.Commit;
     Tr.StartTransaction;
@@ -4471,79 +4594,87 @@ begin
       '  ref_relation_name, ' +                                                 #13#10 +
       '  update_rule, delete_rule, list_fields, list_ref_fields) ' +            #13#10 +
       'SELECT ' +                                                               #13#10 +
-      '  fc.RDB$CONSTRAINT_NAME AS Constraint_Name, ' +                         #13#10 +
-      '  fc.RDB$RELATION_NAME AS Relation_Name, ' +                             #13#10 +
-      '  fc2.RDB$RELATION_NAME AS Ref_Relation_Name, ' +                        #13#10 +
-      '  refc.RDB$UPDATE_RULE AS Update_Rule, ' +                               #13#10 +
-      '  refc.RDB$DELETE_RULE AS Delete_Rule, ' +                               #13#10 +
-      '  LIST(iseg.rdb$field_name) AS Fields, ' +                               #13#10 +
+      '  fc.rdb$constraint_name        AS Constraint_Name, ' +                  #13#10 +
+      '  fc.rdb$relation_name          AS Relation_Name, ' +                    #13#10 +
+      '  fc2.rdb$relation_name         AS Ref_Relation_Name, ' +                #13#10 +
+      '  refc.rdb$update_rule          AS Update_Rule, ' +                      #13#10 +
+      '  refc.rdb$delete_rule          AS Delete_Rule, ' +                      #13#10 +
+      '  LIST(iseg.rdb$field_name)     AS Fields, ' +                           #13#10 +
       '  LIST(ref_iseg.rdb$field_name) AS Ref_Fields ' +                        #13#10 +
       'FROM ' +                                                                 #13#10 +
-      '  RDB$RELATION_CONSTRAINTS fc ' +                                        #13#10 +
+      '  rdb$relation_constraints fc ' +                                        #13#10 +
       '  JOIN RDB$REF_CONSTRAINTS refc ' +                                      #13#10 +
-      '    ON fc.RDB$CONSTRAINT_NAME = refc.RDB$CONSTRAINT_NAME ' +             #13#10 +
+      '    ON fc.rdb$constraint_name = refc.rdb$constraint_name ' +             #13#10 +
       '  JOIN RDB$RELATION_CONSTRAINTS fc2 ' +                                  #13#10 +
-      '    ON refc.RDB$CONST_NAME_UQ = fc2.RDB$CONSTRAINT_NAME ' +              #13#10 +
-      '  JOIN rdb$index_segments iseg ' +                                       #13#10 +
+      '    ON refc.rdb$const_name_uq = fc2.rdb$constraint_name ' +              #13#10 +
+      '  JOIN RDB$INDEX_SEGMENTS iseg ' +                                       #13#10 +
       '    ON iseg.rdb$index_name = fc.rdb$index_name ' +                       #13#10 +
-      '  JOIN rdb$index_segments ref_iseg ' +                                   #13#10 +
+      '  JOIN RDB$INDEX_SEGMENTS ref_iseg ' +                                   #13#10 +
       '    ON ref_iseg.rdb$index_name = fc2.rdb$index_name ' +                  #13#10 +
       '  JOIN( ' +                                                              #13#10 +
       '    SELECT ' +                                                           #13#10 +
-      '      c.RDB$RELATION_NAME, ' +                                           #13#10 +
-      '      COUNT(i.RDB$FIELD_NAME) AS Kolvo, ' +                              #13#10 +
-      '      SUM(f.rdb$field_type) AS Summa, ' +                                #13#10 +
-      '      i.RDB$INDEX_NAME ' +                                               #13#10 +//для группировки
+      '      c.rdb$relation_name, ' +                                           #13#10 +
+      '      COUNT(i.rdb$field_name)   AS Kolvo, ' +                            #13#10 +
+      '      SUM(f.rdb$field_type)     AS Summa, ' +                            #13#10 +
+      '      i.rdb$index_name ' +                                               #13#10 + // для группировки
       '    FROM ' +                                                             #13#10 +
-      '      RDB$RELATION_CONSTRAINTS c ' +                                     #13#10 +
-      '      JOIN RDB$INDEX_SEGMENTS i ON i.RDB$INDEX_NAME = c.RDB$INDEX_NAME ' + #13#10 +
-      '      JOIN rdb$relation_fields rf ON rf.rdb$relation_name = c.RDB$RELATION_NAME AND rf.rdb$field_name = i.RDB$FIELD_NAME ' + #13#10 +
-      '        JOIN rdb$fields f ON f.rdb$field_name = rf.rdb$field_source ' +  #13#10 +
-      '    WHERE ' +                                                            #13#10 +
+      '      rdb$relation_constraints c ' +                                     #13#10 +
+      '      JOIN RDB$INDEX_SEGMENTS i ' +                                      #13#10 +
+      '        ON i.rdb$index_name = c.rdb$index_name ' +                       #13#10 +
+      '      JOIN RDB$RELATION_FIELDS rf ' +                                    #13#10 +
+      '        ON rf.rdb$relation_name = c.rdb$relation_name ' +                #13#10 +
+      '          AND rf.rdb$field_name = i.rdb$field_name ' +                   #13#10 +
+      '        JOIN RDB$FIELDS f ' +                                            #13#10 +
+      '          ON f.rdb$field_name = rf.rdb$field_source ' +                  #13#10 +
+      '    WHERE ' +                                                                             #13#10 +
       '      (c.rdb$constraint_type = ''PRIMARY KEY'' OR c.rdb$constraint_type = ''UNIQUE'') ' + #13#10 +
-      '      AND c.rdb$constraint_name NOT LIKE ''RDB$%'' ---< обдумать ' +     #13#10 +
-      '    GROUP BY ' +                                                         #13#10 +
-      '      i.RDB$INDEX_NAME, c.RDB$RELATION_NAME ' +                          #13#10 +
-      '    HAVING ' +                                                           #13#10 +
-      '      (COUNT(i.RDB$FIELD_NAME) > 1) ' +                                  #13#10 +
-      '      OR ((COUNT(i.RDB$FIELD_NAME) = 1) AND (SUM(f.rdb$field_type) <> 8)) ' + #13#10 +
-      '  )pc ON pc.RDB$RELATION_NAME = fc.RDB$RELATION_NAME ' +                      #13#10 +
+      '      AND c.rdb$constraint_name NOT LIKE ''RDB$%'' ' +                                    #13#10 + ///TODO: обдумать
+      '    GROUP BY ' +                                                                          #13#10 +
+      '      i.rdb$index_name, c.rdb$relation_name ' +                                           #13#10 +
+      '    HAVING ' +                                                                            #13#10 +
+      '      (COUNT(i.rdb$field_name) > 1) ' +                                                   #13#10 +
+      '      OR ((COUNT(i.rdb$field_name) = 1) AND (SUM(f.rdb$field_type) <> 8)) ' +             #13#10 +
+      '  )pc ON pc.rdb$relation_name = fc.rdb$relation_name ' +                                  #13#10 +
       'WHERE ' +                                                                #13#10 +
       '  fc.rdb$constraint_type = ''FOREIGN KEY''  ' +                          #13#10 +
       '  AND fc.rdb$constraint_name NOT LIKE ''RDB$%'' ' +                      #13#10 +
-      '  AND refc.RDB$DELETE_RULE = ''CASCADE'' ' +                                 #13#10 +
+      '  AND refc.rdb$delete_rule = ''CASCADE'' ' +                             #13#10 +
       'GROUP BY ' +                                                             #13#10 +
       '  1, 2, 3, 4, 5 ' +                                                      #13#10 +
       ' ' +                                                                     #13#10 +
       'UNION ' +                                                                #13#10 +
       ' ' +                                                                     #13#10 +
       'SELECT ' +                                                               #13#10 +
-      '  fc.RDB$CONSTRAINT_NAME AS Constraint_Name, ' +                         #13#10 +
-      '  fc.RDB$RELATION_NAME AS Relation_Name, ' +                             #13#10 +
-      '  fc2.RDB$RELATION_NAME AS Ref_Relation_Name, ' +                        #13#10 +
-      '  refc.RDB$UPDATE_RULE AS Update_Rule, ' +                               #13#10 +
-      '  refc.RDB$DELETE_RULE AS Delete_Rule, ' +                               #13#10 +
-      '  LIST(iseg.rdb$field_name) AS Fields, ' +                               #13#10 +
+      '  fc.rdb$constraint_name        AS Constraint_Name, ' +                  #13#10 +
+      '  fc.rdb$relation_name          AS Relation_Name, ' +                    #13#10 +
+      '  fc2.rdb$relation_name         AS Ref_Relation_Name, ' +                #13#10 +
+      '  refc.rdb$update_rule          AS Update_Rule, ' +                      #13#10 +
+      '  refc.rdb$delete_rule          AS Delete_Rule, ' +                      #13#10 +
+      '  LIST(iseg.rdb$field_name)     AS Fields, ' +                           #13#10 +
       '  LIST(ref_iseg.rdb$field_name) AS Ref_Fields ' +                        #13#10 +
       'FROM ' +                                                                 #13#10 +
-      '  RDB$RELATION_CONSTRAINTS fc ' +                                        #13#10 +
+      '  rdb$relation_constraints fc ' +                                        #13#10 +
       '  JOIN RDB$REF_CONSTRAINTS refc ' +                                      #13#10 +
-      '    ON fc.RDB$CONSTRAINT_NAME = refc.RDB$CONSTRAINT_NAME ' +             #13#10 +
+      '    ON fc.rdb$constraint_name = refc.rdb$constraint_name ' +             #13#10 +
       '  JOIN RDB$RELATION_CONSTRAINTS fc2 ' +                                  #13#10 +
-      '    ON refc.RDB$CONST_NAME_UQ = fc2.RDB$CONSTRAINT_NAME ' +              #13#10 +
-      '  JOIN rdb$index_segments iseg ' +                                       #13#10 +
+      '    ON refc.rdb$const_name_uq = fc2.rdb$constraint_name ' +              #13#10 +
+      '  JOIN RDB$INDEX_SEGMENTS iseg ' +                                       #13#10 +
       '    ON iseg.rdb$index_name = fc.rdb$index_name ' +                       #13#10 +
-      '  JOIN rdb$index_segments ref_iseg ' +                                   #13#10 +
+      '  JOIN RDB$INDEX_SEGMENTS ref_iseg ' +                                   #13#10 +
       '    ON ref_iseg.rdb$index_name = fc2.rdb$index_name ' +                  #13#10 +
-      '  LEFT JOIN DBS_PK_UNIQUE_CONSTRAINTS pc ON pc.relation_name = fc.RDB$RELATION_NAME ' + #13#10 +
+      '  LEFT JOIN DBS_PK_UNIQUE_CONSTRAINTS pc ' +                             #13#10 +
+      '    ON pc.relation_name = fc.rdb$relation_name ' +                       #13#10 +
       'WHERE ' +                                                                #13#10 +
       '  fc.rdb$constraint_type = ''FOREIGN KEY''  ' +                          #13#10 +
       '  AND fc.rdb$constraint_name NOT LIKE ''RDB$%'' ' +                      #13#10 +
       '  AND pc.relation_name IS NULL ' +                                       #13#10 +
-      '  AND refc.RDB$DELETE_RULE = ''CASCADE'' ' +                             #13#10 +
+      '  AND refc.rdb$delete_rule = ''CASCADE'' ' +                             #13#10 +
       'GROUP BY ' +                                                             #13#10 +
       '  1, 2, 3, 4, 5';
     ExecSqlLogEvent(q, 'SaveMetadata');
+
+    Tr.Commit;
+    Tr.StartTransaction;
 
     q.SQL.Text :=
       'INSERT INTO DBS_FK_CONSTRAINTS ( ' +                                     #13#10 +
@@ -4554,30 +4685,34 @@ begin
       'SELECT ' +                                                               #13#10 +
       '  fc.relation_name, ' +                                                  #13#10 +
       '  fc.ref_relation_name, ' +                                              #13#10 +
-      '  (''DBS_'' || fc.constraint_name) AS constraint_name, ' +                 #13#10 +
+      '  (''DBS_'' || fc.constraint_name) AS constraint_name, ' +               #13#10 +
       '  fc.list_fields, fc.list_ref_fields, ''RESTRICT'', ''RESTRICT'' ' +     #13#10 +
       'FROM ' +                                                                 #13#10 +
-      '  DBS_FK_CONSTRAINTS fc ' +                                              #13#10 +
+      '  dbs_fk_constraints fc ' +                                              #13#10 +
       '  JOIN( ' +                                                              #13#10 +
       '    SELECT ' +                                                           #13#10 +
-      '      c.RDB$RELATION_NAME, ' +                                           #13#10 +
-      '      COUNT(i.RDB$FIELD_NAME) AS Kolvo, ' +                              #13#10 +
+      '      c.rdb$relation_name, ' +                                           #13#10 +
+      '      COUNT(i.rdb$field_name) AS Kolvo, ' +                              #13#10 +
       '      SUM(f.rdb$field_type) AS Summa, ' +                                #13#10 +
-      '      i.RDB$INDEX_NAME ' +                                               #13#10 +//для группировки
+      '      i.rdb$index_name ' +                                               #13#10 +//для группировки
       '    FROM ' +                                                             #13#10 +
-      '      RDB$RELATION_CONSTRAINTS c ' +                                     #13#10 +
-      '      JOIN RDB$INDEX_SEGMENTS i ON i.RDB$INDEX_NAME = c.RDB$INDEX_NAME ' + #13#10 +
-      '      JOIN rdb$relation_fields rf ON rf.rdb$relation_name = c.RDB$RELATION_NAME AND rf.rdb$field_name = i.RDB$FIELD_NAME ' + #13#10 +
-      '        JOIN rdb$fields f ON f.rdb$field_name = rf.rdb$field_source ' +  #13#10 +
-      '    WHERE ' +                                                            #13#10 +
+      '      rdb$relation_constraints c ' +                                     #13#10 +
+      '      JOIN RDB$INDEX_SEGMENTS i ' +                                      #13#10 +
+      '        ON i.rdb$index_name = c.rdb$index_name ' +                       #13#10 +
+      '      JOIN RDB$RELATION_FIELDS rf ' +                                    #13#10 +
+      '        ON rf.rdb$relation_name = c.rdb$relation_name ' +                #13#10 +
+      '          AND rf.rdb$field_name = i.rdb$field_name ' +                   #13#10 +
+      '        JOIN RDB$FIELDS f ' +                                            #13#10 +
+      '          ON f.rdb$field_name = rf.rdb$field_source ' +                  #13#10 +
+      '    WHERE ' +                                                                             #13#10 +
       '      (c.rdb$constraint_type = ''PRIMARY KEY'' OR c.rdb$constraint_type = ''UNIQUE'') ' + #13#10 +
-      '      AND c.rdb$constraint_name NOT LIKE ''RDB$%'' ---< обдумать ' +     #13#10 +
+      '      AND c.rdb$constraint_name NOT LIKE ''RDB$%'' ' +                                    #13#10 +
       '    GROUP BY ' +                                                         #13#10 +
       '      i.RDB$INDEX_NAME, c.RDB$RELATION_NAME ' +                          #13#10 +
       '    HAVING ' +                                                           #13#10 +
       '      (COUNT(i.RDB$FIELD_NAME) > 1) ' +                                  #13#10 +
       '      OR ((COUNT(i.RDB$FIELD_NAME) = 1) AND (SUM(f.rdb$field_type) <> 8)) ' + #13#10 +
-      '  )pc ON pc.RDB$RELATION_NAME = fc.relation_name ' +                     #13#10 +
+      '  )pc ON pc.rdb$relation_name = fc.relation_name ' +                     #13#10 +
       'WHERE ' +                                                                #13#10 +
       '  fc.delete_rule = ''CASCADE'' ' +                                       #13#10 +
       ' ' +                                                                     #13#10 +
@@ -4586,19 +4721,80 @@ begin
       'SELECT ' +                                                               #13#10 +
       '  fc.relation_name, ' +                                                  #13#10 +
       '  fc.ref_relation_name, ' +                                              #13#10 +
-      '  (''DBS_'' || fc.constraint_name) AS constraint_name, ' +                 #13#10 +
+      '  (''DBS_'' || fc.constraint_name) AS constraint_name, ' +               #13#10 +
       '  fc.list_fields, fc.list_ref_fields, ''RESTRICT'', ''RESTRICT'' ' +     #13#10 +
       'FROM ' +                                                                 #13#10 +
-      '  DBS_FK_CONSTRAINTS  fc ' +                                             #13#10 +
-      '  LEFT JOIN DBS_PK_UNIQUE_CONSTRAINTS pc ON pc.relation_name = fc.relation_name ' + #13#10 +
+      '  dbs_fk_constraints  fc ' +                                             #13#10 +
+      '  LEFT JOIN DBS_PK_UNIQUE_CONSTRAINTS pc ' +                             #13#10 +
+      '    ON pc.relation_name = fc.relation_name ' +                           #13#10 +
       'WHERE ' +                                                                #13#10 +
       '  pc.relation_name IS NULL ' +                                           #13#10 +
       '  AND fc.delete_rule = ''CASCADE'' ';
     ExecSqlLogEvent(q, 'SaveMetadata');
 
+    // для ссылочной целостности AcSaldo                                        ///TODO: а надо ли вообще
+    q.SQL.Text :=
+      'INSERT INTO DBS_FK_CONSTRAINTS ( ' +                                     #13#10 +
+      '  relation_name, ' +                                                     #13#10 +
+      '  ref_relation_name, ' +                                                 #13#10 +
+      '  constraint_name, ' +                                                   #13#10 +
+      '  list_fields, list_ref_fields, update_rule, delete_rule) ' +            #13#10 +
+      'SELECT ' +                                                               #13#10 +
+      '  ''DBS_TMP_AC_SALDO'', ' +                                              #13#10 +
+      '  ref_relation_name, ' +                                                 #13#10 +
+      '  (''DBS_1'' || constraint_name), ' +                                    #13#10 +
+      '  list_fields, list_ref_fields, ''RESTRICT'', ''RESTRICT'' ' +           #13#10 +
+      'FROM  ' +                                                                #13#10 +
+      '  dbs_fk_constraints  ' +                                                #13#10 +
+      'WHERE  ' +                                                               #13#10 +
+      '  relation_name = ''AC_ENTRY'' ' +                                       #13#10 +
+      '  AND list_fields NOT IN(''TRANSACTIONKEY'', ''RECORDKEY'', ''DOCUMENTKEY'', ''MASTERDOCKEY'')';
+    ExecSqlLogEvent(q, 'SaveMetadata');
+
+    // для ссылочной целостности InvSaldo
+
+    q.SQL.Text :=
+      'INSERT INTO DBS_FK_CONSTRAINTS ( ' +
+      '  relation_name, ' +
+      '  ref_relation_name, ' +
+      '  constraint_name, ' +
+      '  list_fields, list_ref_fields, update_rule, delete_rule) ' +
+      'VALUES ( ' +
+      '  ''DBS_TMP_INV_SALDO'', ' +
+      '  ''GD_GOOD'', ' +
+      '  ''DBS_1INV_FK_CARD_GOODKEY'', ' +
+      '  ''GOODKEY'', ''ID'', ''RESTRICT'', ''RESTRICT'')';
+    ExecSqlLogEvent(q, 'SaveMetadata');
+
+    q.SQL.Text :=
+      'INSERT INTO DBS_FK_CONSTRAINTS ( ' +
+      '  relation_name, ' +
+      '  ref_relation_name, ' +
+      '  constraint_name, ' +
+      '  list_fields, list_ref_fields, update_rule, delete_rule) ' +
+      'VALUES ( ' +
+      '  ''DBS_TMP_INV_SALDO'', ' +
+      '  ''GD_OURCOMPANY'', ' +
+      '  ''DBS_1INV_FK_CARD_COMPANYKEY'', ' +
+      '  ''COMPANYKEY'', ''COMPANYKEY'', ''RESTRICT'', ''RESTRICT'')';
+    ExecSqlLogEvent(q, 'SaveMetadata');
+
+    q.SQL.Text :=
+      'INSERT INTO DBS_FK_CONSTRAINTS ( ' +
+      '  relation_name, ' +
+      '  ref_relation_name, ' +
+      '  constraint_name, ' +
+      '  list_fields, list_ref_fields, update_rule, delete_rule) ' +
+      'VALUES ( ' +
+      '  ''DBS_TMP_INV_SALDO'', ' +
+      '  ''GD_CONTACT'', ' +
+      '  ''DBS_1INV_FK_MOVEMENT_CK'', ' +
+      '  ''CONTACTKEY'', ''ID'', ''RESTRICT'', ''RESTRICT'')';
+    ExecSqlLogEvent(q, 'SaveMetadata');
+
     Tr.Commit;
     LogEvent('Metadata saved.');
-  finally   
+  finally
     q.Free;
     Tr.Free;
   end;
@@ -4612,21 +4808,25 @@ var
   procedure RestoreTriggers;
   begin
     q.SQL.Text :=
-      'EXECUTE BLOCK ' +                                                                     #13#10 +
-      'AS ' +                                                                                #13#10 +
-      '  DECLARE VARIABLE TN CHAR(31); ' +                                                   #13#10 +
-      'BEGIN ' +                                                                             #13#10 +
-      '  FOR ' +                                                                             #13#10 +
-      '    SELECT t.rdb$trigger_name ' +                                                     #13#10 +
-      '    FROM rdb$triggers t ' +                                                           #13#10 +
+      'EXECUTE BLOCK ' +                                                                  #13#10 +
+      'AS ' +                                                                             #13#10 +
+      '  DECLARE VARIABLE TN CHAR(31); ' +                                                #13#10 +
+      'BEGIN ' +                                                                          #13#10 +
+      '  FOR ' +                                                                          #13#10 +
+      '    SELECT ' +                                                                     #13#10 +
+      '      t.rdb$trigger_name ' +                                                       #13#10 +
+      '    FROM ' +                                                                       #13#10 +
+      '      rdb$triggers t ' +                                                           #13#10 +
   ///    '      JOIN DBS_TMP_PROCESSED_TABLES p ON p.relation_name = t.RDB$RELATION_NAME ' +  #13#10 +
-      '      LEFT JOIN dbs_inactive_triggers it ON it.trigger_name = t.rdb$trigger_name ' +  #13#10 +
-      '    WHERE ((t.rdb$trigger_inactive <> 0) AND (t.rdb$trigger_inactive IS NOT NULL)) ' + #13#10 +
-      '      AND ((t.rdb$system_flag = 0) OR (t.rdb$system_flag IS NULL)) ' +                #13#10 +
-      '      AND it.trigger_name IS NULL ' +                                                 #13#10 +
-      '    INTO :TN ' +                                                                      #13#10 +
-      '  DO ' +                                                                              #13#10 +
-      '    EXECUTE STATEMENT ''ALTER TRIGGER '' || :TN || '' ACTIVE ''; ' +                  #13#10 +
+      '      LEFT JOIN DBS_INACTIVE_TRIGGERS it ' +                                       #13#10 +
+      '        ON it.trigger_name = t.rdb$trigger_name ' +                                #13#10 +
+      '    WHERE ' +                                                                      #13#10 +
+      '      ((t.rdb$trigger_inactive <> 0) AND (t.rdb$trigger_inactive IS NOT NULL)) ' + #13#10 +
+      '      AND ((t.rdb$system_flag = 0) OR (t.rdb$system_flag IS NULL)) ' +             #13#10 +
+      '      AND it.trigger_name IS NULL ' +                                              #13#10 +
+      '    INTO :TN ' +                                                                   #13#10 +
+      '  DO ' +                                                                           #13#10 +
+      '    EXECUTE STATEMENT ''ALTER TRIGGER '' || :TN || '' ACTIVE ''; ' +               #13#10 +
       'END';
     ExecSqlLogEvent(q, 'RestoreTriggers');
 
@@ -4644,10 +4844,13 @@ var
       '  DECLARE VARIABLE N CHAR(31); ' +                                                 #13#10 +
       'BEGIN ' +                                                                          #13#10 +
       '  FOR ' +                                                                          #13#10 +
-      '    SELECT i.rdb$index_name ' +                                                    #13#10 +
-      '    FROM rdb$indices i ' +                                                         #13#10 +
+      '    SELECT ' +                                                                     #13#10 +
+      '      i.rdb$index_name ' +                                                         #13#10 +
+      '    FROM ' +                                                                       #13#10 +
+      '      rdb$indices i ' +                                                            #13#10 +
  ///     '      JOIN DBS_TMP_PROCESSED_TABLES p ON p.relation_name = i.RDB$RELATION_NAME ' +  #13#10 +
-      '      LEFT JOIN dbs_inactive_indices ii ON ii.index_name = i.rdb$index_name ' +    #13#10 +
+      '      LEFT JOIN DBS_INACTIVE_INDICES ii ' +                                        #13#10 +
+      '        ON ii.index_name = i.rdb$index_name ' +                                    #13#10 +
       '    WHERE ((i.rdb$index_inactive <> 0) AND (i.rdb$index_inactive IS NOT NULL)) ' + #13#10 +
       '      AND ((i.rdb$system_flag = 0) OR (i.rdb$system_flag IS NULL)) ' +             #13#10 +
       '      AND ii.index_name IS NULL ' +                                                #13#10 +
@@ -4666,7 +4869,7 @@ var
   procedure RestorePkUniqueConstraints;
   begin
     q.SQL.Text :=
-      'EXECUTE BLOCK ' +                                                                       #13#10 +
+{      'EXECUTE BLOCK ' +                                                                       #13#10 +
       'AS ' +                                                                                  #13#10 +
       '  DECLARE VARIABLE S VARCHAR(16384); ' +                                                #13#10 +
       'BEGIN ' +                                                                               #13#10 +
@@ -4688,8 +4891,47 @@ var
       '      SUSPEND; --exception ex_custom S; ' +                      #13#10 +
       '    END ' +                                                      #13#10 +
       '  END ' +                                                        #13#10 +
+      'END';        }
+
+
+      'EXECUTE BLOCK ' +                                                                             #13#10 +
+      'AS ' +                                                                                        #13#10 +
+      '  DECLARE VARIABLE S VARCHAR(16384); ' +                                                      #13#10 +
+      'BEGIN ' +                                                                                     #13#10 +
+      '  FOR ' +                                                                                     #13#10 +
+      '    SELECT ' +                                                                                #13#10 +
+      '      ''ALTER TABLE '' || c.relation_name || ' +                                              #13#10 +
+      '      '' ADD CONSTRAINT '' || c.constraint_name || '' '' || ' +                               #13#10 +
+      '      c.constraint_type || '' ('' || ' +                                                      #13#10 +
+      '      c.list_fields || '') '' ' +                                                             #13#10 +
+      '    FROM dbs_pk_unique_constraints c ' +                                                      #13#10 +
+  /// '      JOIN DBS_TMP_PROCESSED_TABLES p ON p.relation_name = c.RELATION_NAME ' +                #13#10 +
+      '    WHERE ' +                                                                                 #13#10 +
+      '      c.relation_name NOT LIKE ''DBS_%'' ' +                   			             #13#10 +
+      ////////////////////
+      '      AND NOT EXISTS( ' +                                                        	     #13#10 +
+      '        SELECT * ' + 									     #13#10 +
+      '        FROM dbs_fk_constraints cc ' +							     #13#10 +
+      '        WHERE ' +									     #13#10 +
+      '          cc.ref_relation_name = c.relation_name ' +					     #13#10 +
+      '          AND cc.delete_rule IN(''SET NULL'', ''SET DEFAULT'') ' +                            #13#10 +
+      '          AND cc.constraint_name NOT LIKE ''RDB$%'' ' +               			     #13#10 +
+      '      ) ' +                                                                                   #13#10 +
+      ///////////////////
+      '    INTO :S ' +                                                  			     #13#10 +
+      '  DO BEGIN ' +                                                   			     #13#10 +
+      '    EXECUTE STATEMENT :S; ' +                                    			     #13#10 +  /// WITH AUTONOMOUS TRANSACTION
+      '    when any DO ' +                                              			     #13#10 +
+      '    BEGIN ' +                                                    			     #13#10 +
+      '      IF (sqlcode <> 0) THEN ' +                                 			     #13#10 +
+      '        S = S || '' An SQL error occurred!''; ' +                			     #13#10 +
+      '      ELSE ' +                                                   			     #13#10 +
+      '        S = S || '' Something bad happened!''; ' +               			     #13#10 +
+      '      SUSPEND; --exception ex_custom S; ' +                      			     #13#10 +
+      '    END ' +                                                      			     #13#10 +
+      '  END ' +                                                        			     #13#10 +
       'END';
-    ExecSqlLogEvent(q, 'RestorePkUniqueConstraints'); 
+    ExecSqlLogEvent(q, 'RestorePkUniqueConstraints');
 
     Tr.Commit;
     Tr.StartTransaction;
@@ -4713,26 +4955,31 @@ var
       '         REFERENCES '' || c.ref_relation_name || ''('' || c.list_ref_fields || '') '' || ' + #13#10 +
       '      IIF(c.update_rule = ''RESTRICT'', '''', '' ON UPDATE '' || c.update_rule) || ' +       #13#10 +
       '      IIF(c.delete_rule = ''RESTRICT'', '''', '' ON DELETE '' || c.delete_rule) ' +          #13#10 +
-      '    FROM dbs_fk_constraints c ' +                                                            #13#10 +
+      '    FROM ' +                                                                                 #13#10 +
+      '      dbs_fk_constraints c ' +                                                               #13#10 +
      /// '      JOIN DBS_TMP_PROCESSED_TABLES p ON p.relation_name = c.RELATION_NAME ' +  #13#10 +
-      '    WHERE c.constraint_name NOT LIKE ''DBS_%'' ' +                                           #13#10 +
+      '    WHERE ' +                                                                                #13#10 +
+      '      c.constraint_name NOT LIKE ''DBS_%'' ' +                                               #13#10 +
+      ////////////////////
+      '      AND c.delete_rule NOT IN(''SET NULL'', ''SET DEFAULT'') ' +                            #13#10 +
+      ///////////////////
       '      AND NOT EXISTS( ' +                                                                    #13#10 +
       '        SELECT tmp.constraint_name ' +                                                       #13#10 +
-      '        FROM DBS_TMP_FK_CONSTRAINTS tmp ' +                                                  #13#10 +
+      '        FROM dbs_tmp_fk_constraints tmp ' +                                                  #13#10 +
       '        WHERE tmp.constraint_name = c.constraint_name ' +                                    #13#10 +
-      '      )' +                                                       #13#10 +
-      '    INTO :S ' +                                                  #13#10 +
-      '  DO BEGIN ' +                                                   #13#10 +
-      '    EXECUTE STATEMENT :S; ' +                                    #13#10 +  /// WITH AUTONOMOUS TRANSACTION
-      '    when any DO ' +                                              #13#10 +
-      '    BEGIN ' +                                                    #13#10 +
-      '      IF (sqlcode <> 0) THEN ' +                                 #13#10 +
-      '        S = S || '' An SQL error occurred!''; ' +                #13#10 +
-      '      ELSE ' +                                                   #13#10 +
-      '        S = S || '' Something bad happened!''; ' +               #13#10 +
-      '      SUSPEND; --exception ex_custom S; ' +                      #13#10 +
-      '    END ' +                                                      #13#10 +
-      '  END ' +                                                        #13#10 +
+      '      )' +                                                                                   #13#10 +
+      '    INTO :S ' +                                                                              #13#10 +
+      '  DO BEGIN ' +                                                                               #13#10 +
+      '    EXECUTE STATEMENT :S; ' +                                                                #13#10 +  /// WITH AUTONOMOUS TRANSACTION
+      '    when any DO ' +                                                                          #13#10 +
+      '    BEGIN ' +                                                                                #13#10 +
+      '      IF (sqlcode <> 0) THEN ' +                                                             #13#10 +
+      '        S = S || '' An SQL error occurred!''; ' +                                            #13#10 +
+      '      ELSE ' +                                                                               #13#10 +
+      '        S = S || '' Something bad happened!''; ' +                                           #13#10 +
+      '      SUSPEND; --exception ex_custom S; ' +                                                  #13#10 +
+      '    END ' +                                                                                  #13#10 +
+      '  END ' +                                                                                    #13#10 +
       'END';
     ExecSqlLogEvent(q, 'RestoreFKConstraints');
 
@@ -4754,7 +5001,7 @@ begin
 
     q.Transaction := Tr;
     try
-      RestoreIndices;
+///      RestoreIndices;        //test
       RestorePkUniqueConstraints;
       RestoreFKConstraints;
       RestoreTriggers;///
@@ -4795,10 +5042,10 @@ begin
 
     q.Transaction := Tr;
     q.SQL.Text :=
-      'SELECT ' +                                       #13#10 +
-      '  TRIM(gc.fullname || '' | '' || go.companykey) AS CompName ' +              #13#10 +
-      'FROM gd_ourcompany go ' +                        #13#10 +
-      '  JOIN gd_company gc ' +                         #13#10 +
+      'SELECT ' +                                                       #13#10 +
+      '  TRIM(gc.fullname || '' | '' || go.companykey) AS CompName ' +  #13#10 +
+      'FROM gd_ourcompany go ' +                                        #13#10 +
+      '  JOIN GD_COMPANY gc ' +                                         #13#10 +
       '    ON go.companykey = gc.contactkey ';
     ExecSqlLogEvent(q, 'SetItemsCbbEvent');
     while not q.EOF do
@@ -4949,8 +5196,8 @@ var
       q.SQL.Text := 'DELETE FROM dbs_tmp_processed_tables';
       ExecSqlLogEvent(q, 'CreateDBSTmpProcessedTbls');
       LogEvent('Table DBS_TMP_PROCESSED_TABLES exists.');
-    end else
-    begin
+    end
+    else begin
       q.SQL.Text :=
         'CREATE TABLE DBS_TMP_PROCESSED_TABLES ( ' +    #13#10 +
         '  RELATION_NAME VARCHAR(31), ' +               #13#10 +
@@ -4967,8 +5214,8 @@ var
       q.SQL.Text := 'DELETE FROM dbs_tmp_rebind_inv_cards';
       ExecSqlLogEvent(q, 'CreateDBSTmpRebindInvCards');
       LogEvent('Table DBS_TMP_REBIND_INV_CARDS exists.');
-    end else
-    begin
+    end
+    else begin
       q.SQL.Text :=
         'CREATE TABLE DBS_TMP_REBIND_INV_CARDS ( ' +    #13#10 +
         '  CUR_CARDKEY       INTEGER, ' +               #13#10 +
@@ -5178,7 +5425,7 @@ var
     else begin
       q.SQL.Text :=
         'CREATE TABLE DBS_FK_CONSTRAINTS ( ' +          #13#10 +
-        '  CONSTRAINT_NAME   CHAR(35), ' +              #13#10 +
+        '  CONSTRAINT_NAME   CHAR(40), ' +              #13#10 +
         '  RELATION_NAME     CHAR(31), ' +              #13#10 +
         '  LIST_FIELDS       VARCHAR(8192), ' +         #13#10 +
         '  REF_RELATION_NAME CHAR(31), ' +              #13#10 +
@@ -5202,7 +5449,7 @@ var
     else begin
       q.SQL.Text :=
         'CREATE TABLE DBS_TMP_FK_CONSTRAINTS ( ' +      #13#10 +
-        '  CONSTRAINT_NAME   CHAR(35), ' +              #13#10 +
+        '  CONSTRAINT_NAME   CHAR(40), ' +              #13#10 +
         '  RELATION_NAME     CHAR(31), ' +              #13#10 +
         '  LIST_FIELDS       VARCHAR(8192), ' +         #13#10 +
         '  REF_RELATION_NAME CHAR(31), ' +              #13#10 +
@@ -5225,8 +5472,8 @@ var
     end
     else begin
       q.SQL.Text :=
-        'CREATE TABLE DBS_TMP2_FK_CONSTRAINTS ( ' +      #13#10 +
-        '  CONSTRAINT_NAME   CHAR(35), ' +              #13#10 +
+        'CREATE TABLE DBS_TMP2_FK_CONSTRAINTS ( ' +     #13#10 +
+        '  CONSTRAINT_NAME   CHAR(40), ' +              #13#10 +
         '  RELATION_NAME     CHAR(31), ' +              #13#10 +
         '  LIST_FIELDS       VARCHAR(8192), ' +         #13#10 +
         '  REF_RELATION_NAME CHAR(31), ' +              #13#10 +
@@ -5270,7 +5517,7 @@ var
     end
     else begin
       q.SQL.Text :=
-        'CREATE TABLE DBS_TMP_HIS_2 ( ' +             #13#10 +
+        'CREATE TABLE DBS_TMP_HIS_2 ( ' +               #13#10 +
         '  PK            INTEGER  not null,  ' +        #13#10 +
         '  RELATION_NAME CHAR(31) not null, ' +         #13#10 +
         '  PK_HASH       BIGINT, ' +                    #13#10 +
@@ -5469,13 +5716,18 @@ begin
         'FROM dbs_journal_state ' +                     #13#10 +
         'ORDER BY call_time DESC';
       ExecSqlLogEvent(q, 'UsedDBEvent');
+
       LogEvent('Warning: It''s USED DB! ');
       LogEvent('Latest operation: CALL_TIME=' + q.FieldByName('CALL_TIME').AsString +
         ', Message FUNCTIONKEY=WM_USER+' + IntToStr(q.FieldByName('FUNCTIONKEY').AsInteger - WM_USER) +
         ', SUCCESSFULLY=' + q.FieldByName('STATE').AsString);
 
-      FOnUsedDBEvent(q.FieldByName('FUNCTIONKEY').AsInteger, q.FieldByName('STATE').AsInteger,
-        q.FieldByName('CALL_TIME').AsString, q.FieldByName('ERROR_MESSAGE').AsString);
+      FOnUsedDBEvent(
+        q.FieldByName('FUNCTIONKEY').AsInteger,
+        q.FieldByName('STATE').AsInteger,
+        q.FieldByName('CALL_TIME').AsString,
+        q.FieldByName('ERROR_MESSAGE').AsString
+      );
 
       q.Close;
     end;
@@ -5486,7 +5738,7 @@ begin
   end;
 end;
 
-procedure TgsDBSqueeze.GetDBSizeEvent;                                          ///TODO: переделать. не работает на файлах > 4Гб
+procedure TgsDBSqueeze.GetDBSizeEvent;                                          
 
   function BytesToStr(const i64Size: Int64): String;
   const
@@ -5597,7 +5849,8 @@ begin
       q1.FieldByName('Kolvo').AsString,
       q2.FieldByName('Kolvo').AsString,
       q3.FieldByName('Kolvo').AsString,
-      q4.FieldByName('Kolvo').AsString);
+      q4.FieldByName('Kolvo').AsString
+    );
 
     Tr.Commit;
     LogEvent('Getting statistics... OK');
@@ -5614,7 +5867,6 @@ procedure TgsDBSqueeze.GetProcStatisticsEvent;                                  
 var
   q1, q2, q3, q4: TIBSQL;
   Tr: TIBTransaction;
-
   CompanyKey: Integer;
 begin
   Assert(Connected);
@@ -5690,11 +5942,12 @@ begin
 
     q3.SQL.Text :=
       'SELECT COUNT(im.id) AS Kolvo ' +                 #13#10 +
-      'FROM inv_movement im ' +                         #13#10 +
-      '  JOIN inv_card ic ON im.cardkey = ic.id ' +     #13#10 +
+      'FROM ' +                                         #13#10 +
+      '  inv_movement im ' +                            #13#10 +
+      '  JOIN INV_CARD ic ON im.cardkey = ic.id ' +     #13#10 +
       'WHERE ' +                                        #13#10 +
       '  im.movementdate < :ClosingDate ' +             #13#10 +
-      '  AND im.disabled = 0 ';                       
+      '  AND im.disabled = 0 ';
     if FOnlyCompanySaldo then
     begin
       q3.SQL.Add(' ' +                                  #13#10 +
@@ -5705,12 +5958,14 @@ begin
     ExecSqlLogEvent(q3, 'GetProcStatisticsEvent');
 
     q4.SQL.Text :=
-      'SELECT COUNT(ic.id) AS Kolvo ' +                 #13#10 +
-      'FROM inv_card ic ' +                             #13#10 +
-      'WHERE ic.documentkey IN (' +                     #13#10 +
-      '  SELECT doc.id ' +                              #13#10 +
-      '  FROM gd_document doc ' +                       #13#10 +
-      '  WHERE doc.documentdate < :ClosingDate) ';
+      'SELECT COUNT(ic.id) AS Kolvo ' +                  #13#10 +
+      'FROM inv_card ic ' +                              #13#10 +
+      'WHERE ' +                                         #13#10 +
+      '  ic.documentkey IN (' +                          #13#10 +
+      '    SELECT doc.id ' +                             #13#10 +
+      '    FROM gd_document doc ' +                      #13#10 +
+      '    WHERE doc.documentdate < :ClosingDate ' +
+      '  ) ';
     q4.ParamByName('ClosingDate').AsDateTime := FClosingDate;
     ExecSqlLogEvent(q4, 'GetProcStatisticsEvent');
 
@@ -5718,7 +5973,8 @@ begin
       q1.FieldByName('Kolvo').AsString,
       q2.FieldByName('Kolvo').AsString,
       q3.FieldByName('Kolvo').AsString,
-      q4.FieldByName('Kolvo').AsString);
+      q4.FieldByName('Kolvo').AsString
+    );
 
     Tr.Commit;
     LogEvent('Getting processing statistics... OK');
@@ -5835,14 +6091,14 @@ begin
     if RelationExist2('MON$DATABASE', Tr) then
     begin
       q.SQL.Text :=
-        'SELECT ' +                                        #13#10 +
-        '  mon$database_name   AS DBName, ' +              #13#10 +
-        '  mon$ods_major||''.''||mon$ods_minor AS ODS, ' + #13#10 +
-        '  mon$page_size       AS PageSize, ' +            #13#10 +
-        '  mon$page_buffers    AS PageBuffers, ' +         #13#10 +
-        '  mon$sql_dialect     AS SQLDialect, ' +          #13#10 +
-        '  mon$forced_writes   AS ForcedWrites ' +         #13#10 +
-        'FROM mon$database';
+        'SELECT ' +                                             #13#10 +
+        '  mon$database_name   AS DBName, ' +                   #13#10 +
+        '  mon$ods_major||''.''||mon$ods_minor AS ODS, ' +      #13#10 +
+        '  mon$page_size       AS PageSize, ' +                 #13#10 +
+        '  mon$page_buffers    AS PageBuffers, ' +              #13#10 +
+        '  mon$sql_dialect     AS SQLDialect, ' +               #13#10 +
+        '  mon$forced_writes   AS ForcedWrites ' +              #13#10 +
+        'FROM mon$database ';
       ExecSqlLogEvent(q, 'GetDBPropertiesEvent');
 
       DBPropertiesList.Append('PageBuffers=' + q.FieldByName('PageBuffers').AsString);
@@ -5855,12 +6111,12 @@ begin
     if RelationExist2('MON$ATTACHMENTS', Tr) then
     begin
       q.SQL.Text :=
-        'SELECT ' +                                        #13#10 +
-        '  mon$user               AS U, ' +                #13#10 +
-        '  mon$remote_protocol    AS RemProtocol, ' +      #13#10 +
-        '  mon$remote_address     AS RemAddress, ' +       #13#10 +
-        '  mon$garbage_collection AS GarbCollection ' +    #13#10 +
-        'FROM mon$attachments ' +                          #13#10 +
+        'SELECT ' +                                             #13#10 +
+        '  mon$user               AS U, ' +                     #13#10 +
+        '  mon$remote_protocol    AS RemProtocol, ' +           #13#10 +
+        '  mon$remote_address     AS RemAddress, ' +            #13#10 +
+        '  mon$garbage_collection AS GarbCollection ' +         #13#10 +
+        'FROM mon$attachments ' +                               #13#10 +
         'WHERE mon$attachment_id = CURRENT_CONNECTION ';
       ExecSqlLogEvent(q, 'GetDBPropertiesEvent');
       DBPropertiesList.Append('User=' + Trim(q.FieldByName('U').AsString));
@@ -5886,7 +6142,7 @@ begin
   end;
 end;
 
-procedure TgsDBSqueeze.GetInfoTestConnectEvent;                        //TODO: определиться с минимальной версией (2.1)
+procedure TgsDBSqueeze.GetInfoTestConnectEvent;                                 ///TODO: определиться с минимальной версией (2.1)
 var
   InfConnectList: TStringList;
   DBInfo: TIBDatabaseInfo;
@@ -6011,7 +6267,11 @@ begin
       'DELETE FROM DBS_TMP_PK_HASH';
     ExecSqlLogEvent(q, 'ClearDBSTables');
 
-{    q.SQL.Text :=
+    q.SQL.Text :=
+      'DELETE FROM DBS_TMP_HIS_2';
+    ExecSqlLogEvent(q, 'ClearDBSTables');
+
+    q.SQL.Text :=
       'DELETE FROM DBS_FK_CONSTRAINTS';
     ExecSqlLogEvent(q, 'ClearDBSTables');
 
@@ -6022,10 +6282,6 @@ begin
     q.SQL.Text :=
       'DELETE FROM DBS_INACTIVE_TRIGGERS';
     ExecSqlLogEvent(q, 'ClearDBSTables');
-
-   // q.SQL.Text :=
-   //   'DELETE FROM DBS_JOURNAL_STATE';
-   // ExecSqlLogEvent(q, 'ClearDBSTables');
 
     q.SQL.Text :=
       'DELETE FROM DBS_PK_UNIQUE_CONSTRAINTS';
@@ -6040,7 +6296,7 @@ begin
     ExecSqlLogEvent(q, 'ClearDBSTables');
 
     q.SQL.Text :=
-      'DELETE FROM DBS_TMP_FK_CONSTRAINTS';
+      'DELETE FROM DBS_TMP2_FK_CONSTRAINTS';
     ExecSqlLogEvent(q, 'ClearDBSTables');
 
     q.SQL.Text :=
@@ -6050,7 +6306,7 @@ begin
     q.SQL.Text :=
       'DELETE FROM DBS_TMP_REBIND_INV_CARDS';
     ExecSqlLogEvent(q, 'ClearDBSTables');
-}
+
     Tr.Commit;
   finally
     q.Free;
