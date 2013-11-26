@@ -52,6 +52,7 @@ type
     procedure EditNamespace(const ANSK: Integer);
     procedure CompareWithData(const ANSK: Integer; const AFileName: String;
       const A3Way: Boolean);
+    procedure ShowChanged;
 
     property Directory: String read FDirectory write FDirectory;
     property UpdateCurrModified: Boolean read FUpdateCurrModified write FUpdateCurrModified;
@@ -69,7 +70,8 @@ implementation
 uses
   SysUtils, Controls, jclFileUtils, gdcBaseInterface, gdcBase,
   gdcNamespace, gdcNamespaceLoader, gd_GlobalParams_unit, yaml_parser,
-  gd_common_functions, at_dlgCheckOperation_unit, at_frmSQLProcess;
+  gd_common_functions, at_dlgCheckOperation_unit, at_frmSQLProcess,
+  flt_frmSQLEditorSyn_unit;
 
 { TgdcNamespaceSyncController }
 
@@ -1055,6 +1057,23 @@ begin
       end;
       FqUsesList.Close;
     end;
+  end;
+end;
+
+procedure TgdcNamespaceSyncController.ShowChanged;
+begin
+  Assert(not FDataSet.EOF);
+  Assert(not FDataSet.FieldByName('namespacekey').IsNull);
+
+  with TfrmSQLEditorSyn.Create(nil) do
+  try
+    ShowSQL(
+      'SELECT o.* FROM at_object o '#13#10 +
+      'WHERE o.namespacekey = ' + FDataSet.FieldByName('namespacekey').AsString + #13#10 +
+      '  AND o.modified <> o.curr_modified'#13#10 +
+      'ORDER BY o.objectpos ASC');
+  finally
+    Free;
   end;
 end;
 

@@ -1,6 +1,6 @@
 object at_frmSyncNamespace: Tat_frmSyncNamespace
-  Left = 251
-  Top = 107
+  Left = 429
+  Top = 270
   Width = 1131
   Height = 518
   Caption = 'Синхронизация пространств имен'
@@ -85,6 +85,11 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
         end
         object TBItem18: TTBItem
           Action = actOnlyCompare
+        end
+        object TBSeparatorItem9: TTBSeparatorItem
+        end
+        object TBItem19: TTBItem
+          Action = actShowChanged
         end
       end
       object TBSeparatorItem1: TTBSeparatorItem
@@ -552,6 +557,13 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       OnExecute = actOnlyCompareExecute
       OnUpdate = actOnlyCompareUpdate
     end
+    object actShowChanged: TAction
+      Caption = 'Показать измененные объекты...'
+      Hint = 'Показать измененные объекты'
+      ImageIndex = 225
+      OnExecute = actShowChangedExecute
+      OnUpdate = actShowChangedUpdate
+    end
   end
   object pmSync: TPopupMenu
     Images = dmImages.il16x16
@@ -571,6 +583,12 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
     end
     object N2: TMenuItem
       Action = actCompareWithData
+    end
+    object N12: TMenuItem
+      Action = actOnlyCompare
+    end
+    object N13: TMenuItem
+      Action = actShowChanged
     end
     object N3: TMenuItem
       Caption = '-'

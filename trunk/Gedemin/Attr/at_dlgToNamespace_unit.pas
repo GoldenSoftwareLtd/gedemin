@@ -75,8 +75,10 @@ begin
   FgdcNamespaceController.IncludeSiblings := chbxIncludeSiblings.Checked;
   FgdcNamespaceController.IncludeLinked := chbxIncludeLinked.Checked;
   FgdcNamespaceController.CurrentNSID := lkupNS.CurrentKeyInt;
-  FgdcNamespaceController.Include;
-  ModalResult := mrOk;
+  if FgdcNamespaceController.Include then
+    ModalResult := mrOk
+  else
+    ModalResult := mrCancel;
 end;
 
 procedure TdlgToNamespace.actClearExecute(Sender: TObject);
@@ -86,12 +88,14 @@ end;
 
 procedure TdlgToNamespace.actClearUpdate(Sender: TObject);
 begin
-  (Sender as TAction).Enabled := lkupNS.CurrentKey > '';
+  (Sender as TAction).Enabled := FgdcNamespaceController.Enabled
+    and (lkupNS.CurrentKey > '');
 end;
 
 procedure TdlgToNamespace.actOKUpdate(Sender: TObject);
 begin
-  actOk.Enabled := lkupNS.CurrentKeyInt <> FgdcNamespaceController.PrevNSID;
+  actOk.Enabled := FgdcNamespaceController.Enabled
+    and (lkupNS.CurrentKeyInt <> FgdcNamespaceController.PrevNSID);
 end;
 
 destructor TdlgToNamespace.Destroy;

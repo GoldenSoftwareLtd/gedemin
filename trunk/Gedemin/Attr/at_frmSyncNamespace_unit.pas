@@ -108,6 +108,11 @@ type
     TBItem18: TTBItem;
     TBControlItem6: TTBControlItem;
     chbxExisted: TCheckBox;
+    N12: TMenuItem;
+    actShowChanged: TAction;
+    TBSeparatorItem9: TTBSeparatorItem;
+    TBItem19: TTBItem;
+    N13: TMenuItem;
     procedure actChooseDirExecute(Sender: TObject);
     procedure actCompareUpdate(Sender: TObject);
     procedure actCompareExecute(Sender: TObject);
@@ -145,6 +150,8 @@ type
     procedure actOnlyCompareExecute(Sender: TObject);
     procedure actOnlyCompareUpdate(Sender: TObject);
     procedure actClearAllUpdate(Sender: TObject);
+    procedure actShowChangedExecute(Sender: TObject);
+    procedure actShowChangedUpdate(Sender: TObject);
 
   private
     FNSC: TgdcNamespaceSyncController;
@@ -567,6 +574,17 @@ end;
 procedure Tat_frmSyncNamespace.actClearAllUpdate(Sender: TObject);
 begin
   actClearAll.Enabled := not FNSC.DataSet.IsEmpty;
+end;
+
+procedure Tat_frmSyncNamespace.actShowChangedExecute(Sender: TObject);
+begin
+  FNSC.ShowChanged;
+end;
+
+procedure Tat_frmSyncNamespace.actShowChangedUpdate(Sender: TObject);
+begin
+  actShowChanged.Enabled := (not FNSC.DataSet.IsEmpty)
+    and (not FNSC.DataSet.FieldByName('namespacekey').IsNull);
 end;
 
 initialization
