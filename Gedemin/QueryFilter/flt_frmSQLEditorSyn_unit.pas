@@ -403,7 +403,7 @@ uses
 const
   cQueryHistory = 'QueryHistory';
 
-function ReadStringFromStream(Stream: TStream): String;
+function ReadStringFromStream(Stream: TStream): AnsiString;
 var
   L: Integer;
 begin

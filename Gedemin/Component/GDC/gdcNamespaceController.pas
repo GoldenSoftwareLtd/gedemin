@@ -23,13 +23,14 @@ type
     procedure DeleteFromNamespace;
     procedure MoveBetweenNamespaces;
     procedure AddToNamespace;
+    function GetEnabled: Boolean;
 
   public
     constructor Create;
     destructor Destroy; override;
 
     procedure Setup(AnObject: TgdcBase; ABL: TBookmarkList);
-    procedure Include;
+    function Include: Boolean;
 
     property ObjectName: String read FObjectName;
     property AlwaysOverwrite: Boolean read FAlwaysOverwrite write FAlwaysOverwrite;
@@ -39,12 +40,13 @@ type
     property PrevNSID: Integer read FPrevNSID write FPrevNSID;
     property CurrentNSID: Integer read FCurrentNSID write FCurrentNSID;
     property ibdsLink: TIBDataSet read FibdsLink;
+    property Enabled: Boolean read GetEnabled;
   end;
 
 implementation
 
 uses
-  SysUtils, IBSQL, gdcBaseInterface, gdcNamespace;
+  Windows, SysUtils, IBSQL, gdcBaseInterface, gdcNamespace;
 
 type
   TIterateProc = procedure of object;
@@ -121,23 +123,15 @@ begin
     '  r.xid as xid, '#13#10 +
     '  r.dbid as dbid, '#13#10 +
     '  od.reflevel, '#13#10 +
-    '  (od.refclassname || od.refsubtype || '' - '' || od.refobjectname || '#13#10 +
-    '    iif(n.id IS NULL, '''', '' ('' || n.name || '')'')) as displayname, '#13#10 +
+    '  (od.refclassname || od.refsubtype || '' - '' || od.refobjectname) as displayname, '#13#10 +
     '  od.refclassname as class, '#13#10 +
     '  od.refsubtype as subtype, '#13#10 +
     '  od.refobjectname as name, '#13#10 +
-    '  n.name as namespace, '#13#10 +
-    '  n.id as namespacekey, '#13#10 +
-    '  o.headobjectkey as headobject, '#13#10 +
     '  od.refeditiondate as editiondate '#13#10 +
     'FROM '#13#10 +
     '  gd_object_dependencies od '#13#10 +
     '  LEFT JOIN gd_p_getruid(od.refobjectid) r '#13#10 +
     '    ON 1=1 '#13#10 +
-    '  LEFT JOIN at_object o '#13#10 +
-    '    ON o.xid = r.xid AND o.dbid = r.dbid '#13#10 +
-    '  LEFT JOIN at_namespace n '#13#10 +
-    '    ON n.id = o.namespacekey '#13#10 +
     'WHERE '#13#10 +
     '  od.sessionid = :sid '#13#10 +
     'ORDER BY '#13#10 +
@@ -171,7 +165,12 @@ begin
   inherited;
 end;
 
-procedure TgdcNamespaceController.Include;
+function TgdcNamespaceController.GetEnabled: Boolean;
+begin
+  Result := FIBTransaction.InTransaction and FibdsLink.Active;
+end;
+
+function TgdcNamespaceController.Include: Boolean;
 
   procedure IterateBL(AnIterateProc: TIterateProc);
   var
@@ -198,8 +197,8 @@ procedure TgdcNamespaceController.Include;
 
 var
   gdcNamespaceObject: TgdcNamespaceObject;
-  HeadObjectKey, HeadObjectPos: Integer;
-  q: TIBSQL;
+  HeadObjectKey, HeadObjectPos, NSKey: Integer;
+  q, qNSList, qFind: TIBSQL;
 begin
   Assert(FIBTransaction.InTransaction);
 
@@ -214,6 +213,8 @@ begin
     if FIncludeLinked then
     begin
       q := TIBSQL.Create(nil);
+      qNSList := TIBSQL.Create(nil);
+      qFind := TIBSQL.Create(nil);
       gdcNamespaceObject := TgdcNamespaceObject.Create(nil);
       try
         gdcNamespaceObject.ReadTransaction := FIBTransaction;
@@ -242,54 +243,126 @@ begin
           '  MATCHING (namespacekey, useskey) ';
         q.ParamByName('nsk').AsInteger := FCurrentNSID;
 
+        qNSList.Transaction := FIBTransaction;
+        qNSList.SQL.Text :=
+          'SELECT LIST(n.name, ''^''), LIST(n.id, ''^'') FROM at_namespace n ' +
+          '  JOIN at_object o ON o.namespacekey = n.id ' +
+          'WHERE o.xid = :xid AND o.dbid = :dbid ' +
+          '  AND o.namespacekey <> :CurrNS';
+        qNSList.ParamByName('CurrNS').AsInteger := FCurrentNSID;
+
+        qFind.Transaction := FIBTransaction;
+        qFind.SQL.Text :=
+          'SELECT id FROM at_object WHERE namespacekey = :CurrNS ' +
+          '  AND xid = :xid AND dbid = :dbid';
+        qFind.ParamByName('CurrNS').AsInteger := FCurrentNSID;
+
         FibdsLink.Close;
         FibdsLink.Open;
 
         FibdsLink.Last;
         while not FibdsLink.BOF do
         begin
-          if FibdsLink.FieldByName('namespacekey').IsNull then
+          NSKey := -1;
+
+          if (not FibdsLink.FieldByName('xid').IsNull)
+            and (not FibdsLink.FieldByName('dbid').IsNull) then
+          begin
+            qNSList.Close;
+            qNSList.ParamByName('xid').AsInteger := FibdsLink.FieldByName('xid').AsInteger;
+            qNSList.ParamByName('dbid').AsInteger := FibdsLink.FieldByName('dbid').AsInteger;
+            qNSList.ExecQuery;
+
+            if (not qNSList.EOF) and (qNSList.Fields[0].AsString > '') then
+            begin
+              NSKey := StrToIntDef(qNSList.Fields[1].AsString, -1);
+
+              if NSKey = -1 then
+              begin
+                if MessageBox(0,
+                  PChar('Объект "' + FibdsLink.FieldByName('class').AsString +
+                  FibdsLink.FieldByName('subtype').AsString + ' - ' +
+                  FibdsLink.FieldByName('name').AsString + '"'#13#10 +
+                  'входит в пространства имен:'#13#10#13#10 +
+                  StringReplace(qNSList.Fields[0].AsString, '^', #13#10, [rfReplaceAll]) + #13#10#13#10 +
+                  'Добавить ПИ в список зависимости?'),
+                  'Внимание',
+                  MB_OKCANCEL or MB_ICONQUESTION or MB_TASKMODAL) = IDOK then
+                begin
+                  repeat
+                    NSKey := TgdcNamespace.SelectObject(
+                      'Выберите ПИ из предложенного списка:', 'Внимание', 0,
+                      'id IN (SELECT o.namespacekey FROM at_object o WHERE o.xid = ' +
+                      FibdsLink.FieldByName('xid').AsString +
+                      ' AND o.dbid = ' +
+                      FibdsLink.FieldByName('dbid').AsString +
+                      ' AND o.namespacekey <> ' + IntToStr(FCurrentNSID) +
+                      ')');
+                   until NSKey <> -1;
+                end else
+                begin
+                  MessageBox(0,
+                    'Процесс добавления объекта прерван пользователем.',
+                    'Внимание',
+                    MB_OK or MB_TASKMODAL or MB_ICONEXCLAMATION);
+                  FIBTransaction.Rollback;
+                  Result := False;
+                  exit;
+                end;
+              end;  
+            end;
+          end;
+
+          if NSKey = -1 then
           begin
             if Pos('RDB$', FibdsLink.FieldByName('name').AsString) <> 1 then
             begin
-              gdcNamespaceObject.Insert;
-              gdcNamespaceObject.FieldByName('namespacekey').AsInteger := FCurrentNSID;
-              gdcNamespaceObject.FieldByName('objectname').AsString := FibdsLink.FieldByName('name').AsString;
-              gdcNamespaceObject.FieldByName('objectclass').AsString := FibdsLink.FieldByName('class').AsString;
-              gdcNamespaceObject.FieldByName('subtype').AsString := FibdsLink.FieldByName('subtype').AsString;
-              gdcNamespaceObject.FieldByName('xid').AsInteger := FibdsLink.FieldByName('xid').AsInteger;
-              gdcNamespaceObject.FieldByName('dbid').AsInteger := FibdsLink.FieldByName('dbid').AsInteger;
-              gdcNamespaceObject.FieldByName('objectpos').AsInteger := HeadObjectPos;
-              if FAlwaysOverwrite then
-                gdcNamespaceObject.FieldByName('alwaysoverwrite').AsInteger := 1
-              else
-                gdcNamespaceObject.FieldByName('alwaysoverwrite').AsInteger := 0;
-              if FDontRemove then
-                gdcNamespaceObject.FieldByName('dontremove').AsInteger := 1
-              else
-                gdcNamespaceObject.FieldByName('dontremove').AsInteger := 0;
-              if FIncludeSiblings then
-                gdcNamespaceObject.FieldByName('includesiblings').AsInteger := 1
-              else
-                gdcNamespaceObject.FieldByName('includesiblings').AsInteger := 0;
-              gdcNamespaceObject.FieldByName('headobjectkey').AsInteger := HeadObjectKey;
-              if FibdsLink.FieldByName('editiondate').IsNull then
+              qFind.Close;
+              qFind.ParamByName('xid').AsInteger := FibdsLink.FieldByName('xid').AsInteger;
+              qFind.ParamByName('dbid').AsInteger := FibdsLink.FieldByName('dbid').AsInteger;
+              qFind.ExecQuery;
+
+              if qFind.EOF then
               begin
-                gdcNamespaceObject.FieldByName('modified').AsDateTime := Now;
-                gdcNamespaceObject.FieldByName('curr_modified').AsDateTime := Now;
-              end else
-              begin
-                gdcNamespaceObject.FieldByName('modified').AsDateTime :=
-                  FibdsLink.FieldByName('editiondate').AsDateTime;
-                gdcNamespaceObject.FieldByName('curr_modified').AsDateTime :=
-                  FibdsLink.FieldByName('editiondate').AsDateTime;
+                gdcNamespaceObject.Insert;
+                gdcNamespaceObject.FieldByName('namespacekey').AsInteger := FCurrentNSID;
+                gdcNamespaceObject.FieldByName('objectname').AsString := FibdsLink.FieldByName('name').AsString;
+                gdcNamespaceObject.FieldByName('objectclass').AsString := FibdsLink.FieldByName('class').AsString;
+                gdcNamespaceObject.FieldByName('subtype').AsString := FibdsLink.FieldByName('subtype').AsString;
+                gdcNamespaceObject.FieldByName('xid').AsInteger := FibdsLink.FieldByName('xid').AsInteger;
+                gdcNamespaceObject.FieldByName('dbid').AsInteger := FibdsLink.FieldByName('dbid').AsInteger;
+                gdcNamespaceObject.FieldByName('objectpos').AsInteger := HeadObjectPos;
+                if FAlwaysOverwrite then
+                  gdcNamespaceObject.FieldByName('alwaysoverwrite').AsInteger := 1
+                else
+                  gdcNamespaceObject.FieldByName('alwaysoverwrite').AsInteger := 0;
+                if FDontRemove then
+                  gdcNamespaceObject.FieldByName('dontremove').AsInteger := 1
+                else
+                  gdcNamespaceObject.FieldByName('dontremove').AsInteger := 0;
+                if FIncludeSiblings then
+                  gdcNamespaceObject.FieldByName('includesiblings').AsInteger := 1
+                else
+                  gdcNamespaceObject.FieldByName('includesiblings').AsInteger := 0;
+                gdcNamespaceObject.FieldByName('headobjectkey').AsInteger := HeadObjectKey;
+                if FibdsLink.FieldByName('editiondate').IsNull then
+                begin
+                  gdcNamespaceObject.FieldByName('modified').AsDateTime := Now;
+                  gdcNamespaceObject.FieldByName('curr_modified').AsDateTime := Now;
+                end else
+                begin
+                  gdcNamespaceObject.FieldByName('modified').AsDateTime :=
+                    FibdsLink.FieldByName('editiondate').AsDateTime;
+                  gdcNamespaceObject.FieldByName('curr_modified').AsDateTime :=
+                    FibdsLink.FieldByName('editiondate').AsDateTime;
+                end;
+                gdcNamespaceObject.Post;
               end;
-              gdcNamespaceObject.Post;
             end;
           end
-          else if FibdsLink.FieldByName('namespacekey').AsInteger <> FCurrentNSID then
+          else if NSKey <> FCurrentNSID then
           begin
-            q.ParamByName('uk').AsInteger := FibdsLink.FieldByName('namespacekey').AsInteger;
+            q.ParamByName('uk').AsInteger := NSKey;
             q.ExecQuery;
           end;
 
@@ -297,12 +370,15 @@ begin
         end;
       finally
         q.Free;
+        qNSList.Free;
+        qFind.Free;
         gdcNamespaceObject.Free;
       end;
     end;
   end;
 
   FIBTransaction.Commit;
+  Result := True;
 end;
 
 procedure TgdcNamespaceController.MoveBetweenNamespaces;
@@ -414,11 +490,8 @@ begin
   FibdsLink.FieldByName('class').Visible := False;
   FibdsLink.FieldByName('subtype').Visible := False;
   FibdsLink.FieldByName('name').Visible := False;
-  FibdsLink.FieldByName('namespacekey').Visible := False;
-  FibdsLink.FieldByName('namespace').Visible := False;
-  FibdsLink.FieldByName('headobject').Visible := False;
   FibdsLink.FieldByName('editiondate').Visible := False;
-  FibdsLink.FieldByName('displayname').DisplayLabel := 'Класс - Имя объекта (Пространство имен)';
+  FibdsLink.FieldByName('displayname').DisplayLabel := 'Класс - Имя объекта';
 
   FObjectName := FgdcObject.ObjectName + ' ('
     + FgdcObject.GetDisplayName(FgdcObject.SubType) + ')';
