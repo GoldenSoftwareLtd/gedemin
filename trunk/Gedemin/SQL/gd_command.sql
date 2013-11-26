@@ -290,7 +290,7 @@ CREATE EXCEPTION gd_e_storage_data '';
 
 SET TERM ^ ;
 
-CREATE TRIGGER gd_biu_storage_data FOR gd_storage_data
+CREATE OR ALTER TRIGGER gd_biu_storage_data FOR gd_storage_data
   BEFORE INSERT OR UPDATE
   POSITION 0
 AS

@@ -363,7 +363,8 @@ begin
   {END MACRO}
 
   if State = dsInactive then
-    Result := 'SELECT id FROM rp_reportgroup WHERE UPPER(usergroupname)=UPPER(:usergroupname)'
+    Result := 'SELECT id FROM rp_reportgroup WHERE UPPER(SUBSTRING(usergroupname FROM 1 FOR 60))=' +
+      'UPPER(SUBSTRING(:usergroupname FROM 1 FOR 60))'
   else if ID < cstUserIDStart then
     Result := inherited CheckTheSameStatement
   else

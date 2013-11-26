@@ -25,6 +25,7 @@ procedure Issue1041(IBDB: TIBDatabase; Log: TModifyLog);
 procedure Issue3218(IBDB: TIBDatabase; Log: TModifyLog);
 procedure AddNSSyncTables(IBDB: TIBDatabase; Log: TModifyLog);
 procedure ChangeAcLedgerAccounts(IBDB: TIBDatabase; Log: TModifyLog);
+procedure RUIDsForGdStorageData(IBDB: TIBDatabase; Log: TModifyLog);
 
 implementation
 
@@ -1943,5 +1944,130 @@ begin
   end;
 end;
 
+procedure RUIDsForGdStorageData(IBDB: TIBDatabase; Log: TModifyLog);
+
+  procedure ChangeID(AQ: TIBSQL; const ASearch: String; const AnInsert: String;
+    const ANewID: String; const AName: String);
+  var
+    XID, DBID, ID: String;
+  begin
+    AQ.Close;
+    AQ.SQL.Text := ASearch;
+    AQ.ExecQuery;
+
+    if AQ.EOF then
+    begin
+      Log('Не найден элемент хранилища ' + AName);
+      AQ.Close;
+      AQ.SQL.Text := AnInsert;
+      AQ.ExecQuery;
+      ID := ANewID;
+    end else
+      ID := AQ.Fields[0].AsString;
+
+    AQ.Close;
+    AQ.SQL.Text := 'SELECT xid, dbid FROM gd_ruid WHERE id = ' + ID;
+    AQ.ExecQuery;
+
+    if not AQ.EOF then
+    begin
+      XID := AQ.Fields[0].AsString;
+      DBID := AQ.Fields[1].AsString;
+    end else
+    begin
+      XID := '';
+      DBID := '';
+    end;
+
+    AQ.Close;
+    AQ.SQL.Text := 'UPDATE gd_storage_data SET id = ' + ANewID + ', ' +
+      'name = ''' + AName + ''', ' +
+      'editiondate = ''01.01.2000'', editorkey = 650002 ' +
+      'WHERE id = ' + ID;
+    AQ.ExecQuery;
+
+    if XID > '' then
+    begin
+      AQ.Close;
+      AQ.SQL.Text := 'UPDATE at_object SET xid = ' + ANewID + ', dbid = 17 ' +
+        'WHERE xid = ' + XID + ' AND dbid = ' + DBID;
+      AQ.ExecQuery;
+
+      AQ.Close;
+      AQ.SQL.Text := 'UPDATE at_settingpos SET xid = ' + ANewID + ', dbid = 17 ' +
+        'WHERE xid = ' + XID + ' AND dbid = ' + DBID;
+      AQ.ExecQuery;
+
+      AQ.Close;
+      AQ.SQL.Text := 'DELETE FROM gd_ruid ' +
+        'WHERE xid = ' + XID + ' AND dbid = ' + DBID;
+      AQ.ExecQuery;
+    end;
+  end;
+
+var
+  q: TIBSQL;
+  Tr: TIBTransaction;
+begin
+  Tr := TIBTransaction.Create(nil);
+  q := TIBSQL.Create(nil);
+  try
+    Tr.DefaultDatabase := IBDB;
+    Tr.StartTransaction;
+
+    try
+      q.Transaction := Tr;
+
+      q.SQL.Text := 'ALTER TRIGGER gd_biu_storage_data INACTIVE';
+      q.ExecQuery;
+
+      ChangeID(q,
+        'SELECT id FROM gd_storage_data WHERE data_type = ''G'' AND parent IS NULL',
+        'INSERT INTO gd_storage_data (id, name, data_type, editiondate, editorkey) ' +
+          'VALUES (990000, ''GLOBAL'', ''G'', ''01.01.2000'', 650002) ',
+        '990000', 'GLOBAL');
+
+      ChangeID(q,
+        'SELECT id FROM gd_storage_data WHERE data_type = ''U'' AND int_data = 150001',
+        'INSERT INTO gd_storage_data (id, name, data_type, int_data, editiondate, editorkey) ' +
+          'VALUES (990010, ''USER - Administrator'', ''U'', 150001, ''01.01.2000'', 650002) ',
+        '990010', 'USER - Administrator');
+
+      ChangeID(q,
+        'SELECT id FROM gd_storage_data WHERE data_type = ''O'' AND int_data = 650010',
+        'INSERT INTO gd_storage_data (id, name, data_type, int_data, editiondate, editorkey) ' +
+          'VALUES (990020, ''COMPANY - <Ввести наименование организации>'', ''O'', 650010, ''01.01.2000'', 650002) ',
+        '990020', 'COMPANY - <Ввести наименование организации>');
+
+      q.Close;  
+      q.SQL.Text := 'ALTER TRIGGER gd_biu_storage_data ACTIVE';
+      q.ExecQuery;
+
+      q.Close;
+      q.SQL.Text := 'DELETE FROM at_object WHERE xid=990000 OR xid=990010 OR xid=990020';
+      q.ExecQuery;
+
+      q.Close;
+      q.SQL.Text :=
+        'UPDATE OR INSERT INTO fin_versioninfo ' +
+        '  VALUES (194, ''0000.0001.0000.0225'', ''26.11.2013'', ''RUIDs for gd_storage_data objects.'') ' +
+        '  MATCHING (id)';
+      q.ExecQuery;
+
+      Tr.Commit;
+    except
+      on E: Exception do
+      begin
+        Log('Произошла ошибка: ' + E.Message);
+        if Tr.InTransaction then
+          Tr.Rollback;
+        raise;
+      end;
+    end;
+  finally
+    q.Free;
+    Tr.Free;
+  end;
+end;
 
 end.
