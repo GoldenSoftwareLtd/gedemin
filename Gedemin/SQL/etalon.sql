@@ -1421,6 +1421,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (194, '0000.0001.0000.0225', '26.11.2013', 'RUIDs for gd_storage_data objects.');
 
+INSERT INTO fin_versioninfo
+  VALUES (195, '0000.0001.0000.0226', '27.11.2013', 'Add Triggers command into the Explorer tree.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
@@ -20993,6 +20996,10 @@ INSERT INTO gd_command
 VALUES
   (741115,740400,'Индексы','gdcIndex',0,NULL,206,NULL,'TgdcIndex',NULL,1,1,1,0,NULL);
 
+INSERT INTO gd_command
+  (ID,PARENT,NAME,CMD,CMDTYPE,HOTKEY,IMGINDEX,ORDR,CLASSNAME,SUBTYPE,AVIEW,ACHAG,AFULL,DISABLED,RESERVED)
+VALUES
+  (741117,740400,'Триггеры','gdcTrigger',0,NULL,253,NULL,'TgdcTrigger',NULL,1,1,1,0,NULL);
 
 -- gd_documenttype
 -- 800001..850000

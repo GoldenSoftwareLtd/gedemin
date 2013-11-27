@@ -40,6 +40,7 @@ type
     FLoadedNSList: TStringList;
     FTr: TIBTransaction;
     FqFindNS, FqOverwriteNSRUID: TIBSQL;
+    FqFindRUID, FqUpdateAtObject, FqUpdateAtSettingPos: TIBSQL;
     FqLoadAtObject, FqClearAtObject: TIBSQL;
     FgdcNamespace: TgdcNamespace;
     FgdcNamespaceObject: TgdcNamespaceObject;
@@ -327,6 +328,21 @@ begin
     'VALUES (:id, :xid, :dbid, :editorkey, CURRENT_TIMESTAMP(0)) ' +
     'MATCHING (id)';
 
+  FqFindRUID := TIBSQL.Create(nil);
+  FqFindRUID.Transaction := FTr;
+  FqFindRUID.SQL.Text :=
+    'SELECT xid, dbid FROM gd_ruid WHERE id = :id';
+
+  FqUpdateAtObject := TIBSQL.Create(nil);
+  FqUpdateAtObject.Transaction := FTr;
+  FqUpdateAtObject.SQL.Text :=
+    'UPDATE at_object SET xid = :xid, dbid = :dbid WHERE xid = :old_xid AND dbid = :old_dbid';
+
+  FqUpdateAtSettingPos := TIBSQL.Create(nil);
+  FqUpdateAtSettingPos.Transaction := FTr;
+  FqUpdateAtSettingPos.SQL.Text :=
+    'UPDATE at_settingpos SET xid = :xid, dbid = :dbid WHERE xid = :old_xid AND dbid = :old_dbid';
+
   FqLoadAtObject := TIBSQL.Create(nil);
   FqLoadAtObject.Transaction := FTr;
   FqLoadAtObject.SQL.Text :=
@@ -338,6 +354,7 @@ begin
   FgdcNamespace.SubSet := 'ByID';
   FgdcNamespace.ReadTransaction := FTr;
   FgdcNamespace.Transaction := FTr;
+  FgdcNamespace.BaseState := FgdcNamespace.BaseState + [sLoadFromStream];
 
   FgdcNamespaceObject := TgdcNamespaceObject.Create(nil);
   FgdcNamespaceObject.SubSet := 'All';
@@ -386,6 +403,9 @@ begin
   FgdcNamespaceObject.Free;
   FqFindNS.Free;
   FqOverwriteNSRUID.Free;
+  FqFindRUID.Free;
+  FqUpdateAtObject.Free;
+  FqUpdateAtSettingPos.Free;
   FqLoadAtObject.Free;
   FTr.Free;
   inherited;
@@ -467,6 +487,9 @@ begin
         FqFindNS.ParamByName('name').AsString := AnsiUpperCase(NSName);
         FqFindNS.ExecQuery;
 
+        FgdcNamespace.StreamXID := NSRUID.XID;
+        FgdcNamespace.StreamDBID := NSRUID.DBID;
+
         if FqFindNS.EOF then
         begin
           FgdcNamespace.Open;
@@ -478,9 +501,9 @@ begin
           FgdcNamespace.Open;
           FgdcNamespace.Edit;
           if FqFindNS.FieldByName('ByName').AsInteger <> 0 then
-            AddText('Найдено по наименованию: ' + NSName)
+            AddText('Пространство имен найдено по наименованию: ' + NSName)
           else
-            AddText('Найдено по РУИД: ' + NSName);
+            AddText('Пространство имен найдено по РУИД: ' + NSName);
         end;
 
         FgdcNamespace.FieldByName('name').AsString := Mapping.ReadString('Properties\Name', 255);
@@ -708,10 +731,10 @@ begin
     Obj.StreamXID := ObjRUID.XID;
     Obj.StreamDBID := ObjRUID.DBID;
 
+    CandidateID := GetCandidateID(Obj, Fields);
+
     if (RUIDID > -1) and (RUIDID < cstUserIDStart) then
     begin
-      CandidateID := GetCandidateID(Obj, Fields);
-
       if (CandidateID > -1) and (CandidateID <> RUIDID) then
       begin
         Obj.ID := CandidateID;
@@ -743,16 +766,12 @@ begin
         Obj.Edit;
     end else
     begin
-      CandidateID := GetCandidateID(Obj, Fields);
-
       if CandidateID > -1 then
       begin
         Obj.ID := CandidateID;
         Obj.Open;
         if Obj.EOF then
           raise EgdcNamespaceLoader.Create('Invalid check the same statement.');
-        if (CandidateID <> RUIDID) and (RUIDID > -1) then
-          gdcBaseManager.DeleteRUIDByXID(ObjRUID.XID, ObjRUID.DBID, FTr);
         Obj.Edit;
         AddText('Объект найден по потенциальному ключу: ' + Obj.ObjectName +
           ' (' + Obj.GetDisplayName(Obj.SubType) + ')');
@@ -913,6 +932,8 @@ begin
 end;
 
 procedure TgdcNamespaceLoader.OverwriteRUID(const AnID, AXID, ADBID: TID);
+var
+  AtObjectRecord: TAtObjectRecord;
 begin
   Assert(
     ((AnID >= cstUserIDStart) and (AXID >= cstUserIDSTart))
@@ -920,13 +941,49 @@ begin
     ((AnID < cstUserIDStart) and (ADBID = cstEtalonDBID) and (AnID = AXID))
   );
 
-  FqOverwriteNSRUID.ParamByName('id').AsInteger := AnID;
-  FqOverwriteNSRUID.ParamByName('xid').AsInteger := AXID;
-  FqOverwriteNSRUID.ParamByName('dbid').AsInteger := ADBID;
-  FqOverwriteNSRUID.ParamByName('editorkey').AsInteger := IBLogin.ContactKey;
-  FqOverwriteNSRUID.ExecQuery;
+  FqFindRUID.ParamByName('id').AsInteger := AnID;
+  FqFindRUID.ExecQuery;
+  try
+    if FqFindRUID.EOF or (FqFindRUID.FieldByName('xid').AsInteger <> AXID)
+      or (FqFindRUID.FieldByName('dbid').AsInteger <> ADBID) then
+    begin
+      FqOverwriteNSRUID.ParamByName('id').AsInteger := AnID;
+      FqOverwriteNSRUID.ParamByName('xid').AsInteger := AXID;
+      FqOverwriteNSRUID.ParamByName('dbid').AsInteger := ADBID;
+      FqOverwriteNSRUID.ParamByName('editorkey').AsInteger := IBLogin.ContactKey;
+      FqOverwriteNSRUID.ExecQuery;
 
-  gdcBaseManager.RemoveRUIDFromCache(AXID, ADBID);
+      if not FqFindRUID.EOF then
+      begin
+        FqUpdateAtObject.ParamByName('old_xid').AsInteger := FqFindRUID.FieldByName('xid').AsInteger;
+        FqUpdateAtObject.ParamByName('old_dbid').AsInteger := FqFindRUID.FieldByName('dbid').AsInteger;
+        FqUpdateAtObject.ParamByName('xid').AsInteger := AXID;
+        FqUpdateAtObject.ParamByName('dbid').AsInteger := ADBID;
+        FqUpdateAtObject.ExecQuery;
+
+        FqUpdateAtSettingPos.ParamByName('old_xid').AsInteger := FqFindRUID.FieldByName('xid').AsInteger;
+        FqUpdateAtSettingPos.ParamByName('old_dbid').AsInteger := FqFindRUID.FieldByName('dbid').AsInteger;
+        FqUpdateAtSettingPos.ParamByName('xid').AsInteger := AXID;
+        FqUpdateAtSettingPos.ParamByName('dbid').AsInteger := ADBID;
+        FqUpdateAtSettingPos.ExecQuery;
+
+        AddWarning('Изменился РУИД объекта ' +
+          RUIDToStr(FqFindRUID.FieldByName('xid').AsInteger, FqFindRUID.FieldByName('dbid').AsInteger) +
+          ' -> ' +
+          RUIDToStr(AXID, ADBID));
+
+        if FAtObjectRecordCache.Find(RUIDToStr(FqFindRUID.FieldByName('xid').AsInteger,
+          FqFindRUID.FieldByName('dbid').AsInteger), AtObjectRecord) then
+        begin
+          AtObjectRecord.Loaded := True;
+        end;
+
+        gdcBaseManager.RemoveRUIDFromCache(AXID, ADBID);
+      end;
+    end;
+  finally
+    FqFindRUID.Close;
+  end;
 end;
 
 function TgdcNamespaceLoader.Iterate_RemoveGDCObjects(AUserData: PUserData;
