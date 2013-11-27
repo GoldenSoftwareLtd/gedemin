@@ -387,14 +387,15 @@ begin
   end
   else if Field.References.RelationName = 'GD_GOOD' then begin
     gdcGood := TgdcGood.Create(nil);
-    if IDs <> '' then begin
-      sTmp:= IDs + ',';
-      while Pos(',', sTmp) > 0 do begin
-        gdcGood.SelectedID.Add(StrToInt(Copy(sTmp, 1, Pos(',', sTmp) - 1)));
-        System.Delete(sTmp, 1, Pos(',', sTmp) + 1);
-      end;
-    end;
     try
+      if IDs <> '' then begin
+        sTmp:= IDs + ',';
+        while Pos(',', sTmp) > 0 do begin
+          gdcGood.SelectedID.Add(StrToInt(Copy(sTmp, 1, Pos(',', sTmp) - 1)));
+          System.Delete(sTmp, 1, Pos(',', sTmp) + 1);
+        end;
+      end;
+
       if gdcGood.ChooseItems(V, 'gdcGood') then begin
         sTmp:= '';
         for I := 0 to VarArrayHighBound(V, 1) do begin
@@ -417,9 +418,8 @@ begin
       frm.Caption:= Field.LName + ': выбор значений';
       frm.CreateList(IDs);
       frm.ShowModal;
-      if frm.ModalResult = mrOk then begin
+      if frm.ModalResult = mrOk then
         IDs:= frm.ChoosenIDs;
-      end;
     finally
       frm.Free;
     end;

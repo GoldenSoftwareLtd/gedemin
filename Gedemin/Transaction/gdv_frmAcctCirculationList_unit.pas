@@ -526,7 +526,7 @@ begin
     try
       gdvObject.First;
 
-      q := TIBSQL.Create(self);
+      q := TIBSQL.Create(nil);
       sl := TStringList.Create;
       try
         q.Transaction := gdcBaseManager.ReadTransaction;

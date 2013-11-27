@@ -128,7 +128,7 @@ implementation
 procedure Tdlg_ChooseSet.FormCreate(Sender: TObject);
 begin
   ibdsMain.Transaction:= gdcBaseManager.ReadTransaction;
-  cdsChoose.CreateDataSet;
+  cdsChoose.CreateDataSet; 
 end;
 
 procedure Tdlg_ChooseSet.actChooseOkExecute(Sender: TObject);
@@ -255,6 +255,8 @@ begin
         ShowMessage(E.Message);
     end;
   end;
+
+  tbiCompanyFilter.Click;
 end;
 
 procedure Tdlg_ChooseSet.ibgrMainClickedCheck(Sender: TObject;
@@ -350,10 +352,13 @@ var
 begin
   iRec:= ibdsMain.RecNo;
   ibdsMain.DisableControls;
-  dbtvMain.AddCheck(integer(dbtvMain.Selected.Data));
-  SelectAllChild(dbtvMain.Selected.GetFirstChild, True);
-  ibdsMain.RecNo:= iRec;
-  ibdsMain.EnableControls;
+  try
+    dbtvMain.AddCheck(integer(dbtvMain.Selected.Data));
+    SelectAllChild(dbtvMain.Selected.GetFirstChild, True);
+    ibdsMain.RecNo:= iRec;
+  finally
+    ibdsMain.EnableControls;
+  end;
 end;
 
 procedure Tdlg_ChooseSet.actUnSelectAllExecute(Sender: TObject);
@@ -362,10 +367,13 @@ var
 begin
   iRec:= ibdsMain.RecNo;
   ibdsMain.DisableControls;
-  dbtvMain.AddCheck(integer(dbtvMain.Selected.Data));
-  SelectAllChild(dbtvMain.Selected.GetFirstChild, False);
-  ibdsMain.RecNo:= iRec;
-  ibdsMain.EnableControls;
+  try
+    dbtvMain.AddCheck(integer(dbtvMain.Selected.Data));
+    SelectAllChild(dbtvMain.Selected.GetFirstChild, False);
+    ibdsMain.RecNo:= iRec;
+  finally
+    ibdsMain.EnableControls;
+  end;
 end;
 
 procedure Tdlg_ChooseSet.actSelectAllUpdate(Sender: TObject);
@@ -383,13 +391,17 @@ begin
   try
     iRec:= ibdsMain.RecNo;
     ibdsMain.DisableControls;
-    ibdsMain.First;
-    while not ibdsMain.Eof do begin
-      ibgrMain.AddCheck;
-      ibdsMain.Next;
-    end;
-    ibdsMain.RecNo:= iRec;
-    ibdsMain.EnableControls;
+    try
+      ibdsMain.First;
+      while not ibdsMain.Eof do
+      begin
+        ibgrMain.AddCheck;
+        ibdsMain.Next;
+      end;
+      ibdsMain.RecNo:= iRec;
+    finally
+      ibdsMain.EnableControls;
+    end;  
   finally
     Screen.Cursor := C;
   end;
@@ -420,12 +432,13 @@ var
   ibsql: TIBSQL;
 begin
   ibsql:= TIBSQL.Create(nil);
-  ibsql.Transaction:= gdcBaseManager.ReadTransaction;
-  ibsql.SQL.Text:=
-    'SELECT Min(lb) lb, Max(rb) rb ' +
-    'FROM gd_contact ' +
-    'WHERE id IN (' + IBLogin.HoldingList + ')';
   try
+    ibsql.Transaction:= gdcBaseManager.ReadTransaction;
+    ibsql.SQL.Text:=
+      'SELECT Min(lb) lb, Max(rb) rb ' +
+      'FROM gd_contact ' +
+      'WHERE id IN (' + IBLogin.HoldingList + ')';
+
     ibsql.ExecQuery;
     FLB:= ibsql.FieldByName('lb').AsInteger;
     FRB:= ibsql.FieldByName('rb').AsInteger;
