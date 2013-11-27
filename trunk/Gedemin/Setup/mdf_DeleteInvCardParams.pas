@@ -1965,6 +1965,9 @@ procedure RUIDsForGdStorageData(IBDB: TIBDatabase; Log: TModifyLog);
     end else
       ID := AQ.Fields[0].AsString;
 
+    if ID = ANewID then
+      exit;  
+
     AQ.Close;
     AQ.SQL.Text := 'SELECT xid, dbid FROM gd_ruid WHERE id = ' + ID;
     AQ.ExecQuery;
@@ -2051,6 +2054,22 @@ begin
       q.SQL.Text :=
         'UPDATE OR INSERT INTO fin_versioninfo ' +
         '  VALUES (194, ''0000.0001.0000.0225'', ''26.11.2013'', ''RUIDs for gd_storage_data objects.'') ' +
+        '  MATCHING (id)';
+      q.ExecQuery;
+
+      q.Close;
+      q.SQL.Text :=
+        'UPDATE OR INSERT INTO gd_command '#13#10 +
+        '  (ID,PARENT,NAME,CMD,CMDTYPE,HOTKEY,IMGINDEX,ORDR,CLASSNAME,SUBTYPE,AVIEW,ACHAG,AFULL,DISABLED,RESERVED) '#13#10 +
+        'VALUES '#13#10 +
+        '  (741117,740400,''Триггеры'',''gdcTrigger'',0,NULL,253,NULL,''TgdcTrigger'',NULL,1,1,1,0,NULL)'#13#10 +
+        'MATCHING (id)';
+      q.ExecQuery;
+
+      q.Close;
+      q.SQL.Text :=
+        'UPDATE OR INSERT INTO fin_versioninfo ' +
+        '  VALUES (195, ''0000.0001.0000.0226'', ''27.11.2013'', ''Add Triggers command into the Explorer tree.'') ' +
         '  MATCHING (id)';
       q.ExecQuery;
 
