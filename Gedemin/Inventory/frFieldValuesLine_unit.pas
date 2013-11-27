@@ -370,8 +370,8 @@ var
   F: TdlgSelectDocument;
   gdcGood: TgdcGood;
   V: OleVariant;
-  I: Integer;
-  sTmp: string;
+  I, J: Integer;
+  SL: TStringList;
 begin
   if Field.References.RelationName = 'GD_DOCUMENT' then begin
     F := TdlgSelectDocument.Create(nil);
@@ -388,22 +388,28 @@ begin
   else if Field.References.RelationName = 'GD_GOOD' then begin
     gdcGood := TgdcGood.Create(nil);
     try
-      if IDs <> '' then begin
-        sTmp:= IDs + ',';
-        while Pos(',', sTmp) > 0 do begin
-          gdcGood.SelectedID.Add(StrToInt(Copy(sTmp, 1, Pos(',', sTmp) - 1)));
-          System.Delete(sTmp, 1, Pos(',', sTmp) + 1);
+      if IDs > '' then 
+      begin
+        SL := TStringList.Create;
+        try
+          SL.CommaText := IDs;
+          for J := 0 to SL.Count - 1 do
+            gdcGood.SelectedID.Add(StrToIntDef(SL[J], -1));
+        finally
+          SL.Free;
         end;
       end;
 
-      if gdcGood.ChooseItems(V, 'gdcGood') then begin
-        sTmp:= '';
-        for I := 0 to VarArrayHighBound(V, 1) do begin
-          if sTmp <> '' then
-            sTmp:= sTmp + ', ';
-          sTmp:= sTmp + IntToStr(V[I]);
+      if gdcGood.ChooseItems(V, 'gdcGood') then 
+      begin
+        SL := TStringList.Create;
+        try
+          for I := 0 to VarArrayHighBound(V, 1) do 
+            SL.Add(IntToStr(V[I]));
+          IDs := SL.CommaText;
+        finally
+          SL.Free;
         end;
-        IDs:= sTmp;
       end;
     finally
       gdcGood.Free;

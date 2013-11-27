@@ -1,6 +1,7 @@
 inherited gdc_frmTrigger: Tgdc_frmTrigger
-  Left = 122
-  Top = 67
+  Left = 341
+  Top = 115
+  Height = 495
   HelpContext = 87
   Caption = 'Триггеры'
   PixelsPerInch = 96

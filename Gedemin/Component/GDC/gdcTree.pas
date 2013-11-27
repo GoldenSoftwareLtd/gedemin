@@ -890,7 +890,7 @@ begin
       '  Path = '''';'#13#10 +
       '  WHILE (:ID IS DISTINCT FROM NULL) DO'#13#10 +
       '  BEGIN'#13#10 +
-      '    SELECT ' + GetListField(SubType) + ' || ''\'' || :Path, parent'#13#10 +
+      '    SELECT REPLACE(' + GetListField(SubType) + ', ''\'', ''/'') || ''\'' || :Path, parent'#13#10 +
       '    FROM ' + GetListTable(SubType) + #13#10 +
       '    WHERE id = :ID'#13#10 +
       '    INTO :Path, :NewID;'#13#10 +

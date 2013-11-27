@@ -471,11 +471,14 @@ begin
     Add(AddSpaces('RUID:') + RUIDToStr(gdcObject.GetRUID));
     Add(AddSpaces('Наименование:') + gdcObject.ObjectName);
     if gdcObject is TgdcTree then
-      Add(AddSpaces('Родитель:') + IntToStr((gdcObject as TgdcTree).Parent));
-    if gdcObject is TgdcLBRBTree then
     begin
-      Add(AddSpaces('Левая граница:') + IntToStr((gdcObject as TgdcLBRBTree).LB));
-      Add(AddSpaces('Правая граница:') + IntToStr((gdcObject as TgdcLBRBTree).RB));
+      Add(AddSpaces('Путь:') + (gdcObject as TgdcTree).GetPath);
+      Add(AddSpaces('Родитель:') + IntToStr((gdcObject as TgdcTree).Parent));
+      if gdcObject is TgdcLBRBTree then
+      begin
+        Add(AddSpaces('Левая граница:') + IntToStr((gdcObject as TgdcLBRBTree).LB));
+        Add(AddSpaces('Правая граница:') + IntToStr((gdcObject as TgdcLBRBTree).RB));
+      end;
     end;
     if tiCreationDate in gdcObject.gdcTableInfos then
       Add(AddSpaces('Когда создан:') + gdcObject.FieldByName('creationdate').AsString);

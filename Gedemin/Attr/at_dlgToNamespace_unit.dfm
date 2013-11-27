@@ -214,9 +214,11 @@ object dlgToNamespace: TdlgToNamespace
     object chbxIncludeLinked: TCheckBox
       Left = 8
       Top = 95
-      Width = 330
+      Width = 665
       Height = 17
-      Caption = 'Включить связанные объекты'
+      Caption = 
+        'Включить связанные объекты (для объектов из других ПИ будут доба' +
+        'влены ссылки)'
       TabOrder = 6
     end
   end

@@ -358,7 +358,7 @@ const
     (ModifyProc: AddNSSyncTables; ModifyVersion: '0000.0001.0000.0220'; NeedDBShutdown: True),
     (ModifyProc: DeletecbAnalyticFromAcc_BuildAcctCard; ModifyVersion: '0000.0001.0000.0221'; NeedDBShutdown: True),
     (ModifyProc: ChangeAcLedgerAccounts; ModifyVersion: '0000.0001.0000.0223'; NeedDBShutdown: False),
-    (ModifyProc: RUIDsForGdStorageData; ModifyVersion: '0000.0001.0000.0224'; NeedDBShutdown: True)
+    (ModifyProc: RUIDsForGdStorageData; ModifyVersion: '0000.0001.0000.0225'; NeedDBShutdown: True)
   );
 
 implementation
