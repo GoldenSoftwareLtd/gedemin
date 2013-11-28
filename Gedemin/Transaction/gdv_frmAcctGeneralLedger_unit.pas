@@ -238,9 +238,11 @@ begin
     begin
       if (gdcAcctChart.FieldByName('accounttype').AsString = 'A')
         or (gdcAcctChart.FieldByName('accounttype').AsString = 'S')
-        or chkBuildGroup.Checked
-      then
-        FAccountIDs.Add(Pointer(gdcAcctChart.FieldByName('id').AsInteger)); 
+        or chkBuildGroup.Checked then
+      begin
+        FAccountIDs.Add(Pointer(gdcAcctChart.FieldByName('id').AsInteger));
+        cbAccounts.Text := gdcAcctChart.FieldByName('alias').AsString;
+      end;
     end;
 
     //Обновляем количественные показатели
