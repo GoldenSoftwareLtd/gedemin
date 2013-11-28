@@ -12,7 +12,7 @@ inherited dfPropertyTree: TdfPropertyTree
   object TBDock1: TTBDock [0]
     Left = 0
     Top = 18
-    Width = 216
+    Width = 208
     Height = 52
     object tbtMain: TTBToolbar
       Left = 0
@@ -97,7 +97,7 @@ inherited dfPropertyTree: TdfPropertyTree
     end
   end
   inherited pCaption: TPanel
-    Width = 216
+    Width = 208
   end
   inherited alMain: TActionList
     Left = 8

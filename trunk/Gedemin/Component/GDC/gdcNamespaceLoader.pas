@@ -766,7 +766,7 @@ begin
         Obj.Edit;
     end else
     begin
-      if CandidateID > -1 then
+      if (CandidateID > -1) and (CandidateID <> RUIDID) then
       begin
         Obj.ID := CandidateID;
         Obj.Open;

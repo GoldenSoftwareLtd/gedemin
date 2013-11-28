@@ -37,7 +37,6 @@ type
 
   public
      procedure MakePredefinedRelationFields; override;
-
   end;
 
   TgdcDocumentLineTable = class(TgdcBaseDocumentLineTable)
@@ -109,17 +108,15 @@ end;
 
 function TgdcBaseDocumentTable.CreateDocumentTable: String;
 begin
-
   Result := Format(
     'CREATE TABLE %s '#13#10 +
     '( '#13#10 +
     '  documentkey               dintkey, '#13#10 +
     '  reserved                  dinteger, '#13#10 +
 
-    '  primary key (documentkey) '#13#10 +
+    '  PRIMARY KEY (documentkey) '#13#10 +
     ')',
     [FieldByName('relationname').AsString]);
-
 end;
 
 procedure TgdcBaseDocumentTable.CreateRelationSQL(Scripts: TSQLProcessList);
@@ -168,7 +165,7 @@ begin
   inherited CreateRelationSQL(Scripts);
 
   NeedSingleUser := True;
-  Scripts.Add(Format(' ALTER TABLE %s ADD masterkey DMASTERKEY ',
+  Scripts.Add(Format('ALTER TABLE %s ADD masterkey DMASTERKEY ',
     [FieldByName('relationname').AsString]));
 
   S := gdcBaseManager.AdjustMetaName(Format('USR$FK%0:s_MK',
@@ -226,105 +223,102 @@ begin
   Scripts.Add(Format('ALTER TABLE %s ADD disabled DDISABLED ',
     [FieldByName('relationname').AsString]));
 
-  if (not (sLoadFromStream in BaseState)) then
-  begin
-    Scripts.Add(Format(
-        'CREATE TRIGGER %1:s FOR %0:s ACTIVE '#13#10 +
-        'BEFORE INSERT POSITION 0 '#13#10 +
-        'AS '#13#10 +
-        '  DECLARE VARIABLE delayed INTEGER; '#13#10 +
-        '  DECLARE VARIABLE debit NUMERIC(15, 4); '#13#10 +
-        '  DECLARE VARIABLE credit NUMERIC(15, 4); '#13#10 +
-        '  DECLARE VARIABLE fc INTEGER; '#13#10 +
-        '  DECLARE VARIABLE tc INTEGER; '#13#10 +
-        'BEGIN '#13#10 +
-        '  /* Trigger body */ '#13#10 +
-        '  /* Disabled = 1 - позиция не формрует движение, она отклчена программой */ '#13#10 +
-        '  IF (NEW.disabled = 0) THEN'#13#10 +
-        '  BEGIN'#13#10 +
-        '  /* Delayed = 1 - формруется отложенная накладная (движение не формируется по желанию пользователя) */ '#13#10 +
-        '    delayed = 0;'#13#10 +
-        '    SELECT delayed FROM gd_document WHERE id = NEW.masterkey'#13#10 +
-        '    INTO :delayed;'#13#10 +
-        '    IF ((:delayed = 0) OR (:delayed IS NULL)) THEN'#13#10 +
-        '    BEGIN'#13#10 +
-        '      /* Проверяем соответствие количества по документу с движением */ '#13#10 +
-        '      SELECT SUM(debit), SUM(credit) FROM inv_movement'#13#10 +
-        '      WHERE documentkey = NEW.documentkey'#13#10 +
-        '      INTO :debit, :credit;'#13#10 +
-        '      IF (debit IS NULL) THEN '#13#10 +
-        '        debit = 0; '#13#10 +
-        '      IF (credit IS NULL) THEN '#13#10 +
-        '        credit = 0; '#13#10 +
-        '      IF ((:debit <> NEW.quantity) OR (:credit <> NEW.quantity)) THEN'#13#10 +
-        '        EXCEPTION INV_E_INVALIDMOVEMENT;'#13#10 +
-        '      fc = NULL;'#13#10 +
-        '      SELECT MAX(cardkey) FROM inv_movement'#13#10 +
-        '        WHERE (documentkey = NEW.documentkey) AND (credit > 0)'#13#10 +
-        '      INTO :fc;'#13#10 +
-        '      IF (:fc > 0) THEN'#13#10 +
-        '        NEW.fromcardkey = :fc;'#13#10 +
-        '    END'#13#10 +
-        '  END'#13#10 +
-        'END ',
-        [FieldByName('relationname').AsString,
-         gdcBaseManager.AdjustMetaName('USR$BI_' + FieldByName('relationname').AsString)]
-        ));
-
-    Scripts.Add(Format(
-        'CREATE TRIGGER %1:s FOR %0:s ACTIVE '#13#10 +
-        'BEFORE UPDATE POSITION 0 '#13#10 +
-        'AS '#13#10 +
-        '  DECLARE VARIABLE delayed INTEGER; '#13#10 +
-        '  DECLARE VARIABLE debit NUMERIC(15, 4); '#13#10 +
-        '  DECLARE VARIABLE credit NUMERIC(15, 4); '#13#10 +
-        '  DECLARE VARIABLE fc INTEGER; '#13#10 +
-        '  DECLARE VARIABLE tc INTEGER; '#13#10 +
-        'BEGIN '#13#10 +
-        '  /* Trigger body */ '#13#10 +
-        '  /* Disabled = 1 - позиция не формрует движение, она отклчена программой */ '#13#10 +
-        '  IF (NEW.disabled = 0) THEN'#13#10 +
-        '  BEGIN'#13#10 +
-        '  /* Delayed = 1 - формруется отложенная накладная (движение не формируется по желанию пользователя) */ '#13#10 +
-        '    delayed = 0;'#13#10 +
-        '    SELECT delayed FROM gd_document WHERE id = NEW.masterkey'#13#10 +
-        '    INTO :delayed;'#13#10 +
-        '    IF ((:delayed = 0) OR (:delayed IS NULL)) THEN'#13#10 +
-        '    BEGIN'#13#10 +
-        '      /* Проверяем соответствие количества по документу с движением */ '#13#10 +
-        '      SELECT SUM(debit), SUM(credit) FROM inv_movement'#13#10 +
-        '      WHERE documentkey = NEW.documentkey'#13#10 +
-        '      INTO :debit, :credit;'#13#10 +
-        '      IF (debit IS NULL) THEN '#13#10 +
-        '        debit = 0; '#13#10 +
-        '      IF (credit IS NULL) THEN '#13#10 +
-        '        credit = 0; '#13#10 +
-        '      IF ((:debit <> NEW.quantity) OR (:credit <> NEW.quantity)) THEN'#13#10 +
-        '        EXCEPTION INV_E_INVALIDMOVEMENT;'#13#10 +
-        '      fc = NULL;'#13#10 +
-        '      SELECT MAX(cardkey) FROM inv_movement'#13#10 +
-        '        WHERE (documentkey = NEW.documentkey) AND (credit > 0)'#13#10 +
-        '      INTO :fc;'#13#10 +
-        '      IF (:fc > 0) THEN'#13#10 +
-        '        NEW.fromcardkey = :fc;'#13#10 +
-        '    END'#13#10 +
-        '  END'#13#10 +
-        'END ',
-        [FieldByName('relationname').AsString,
-         gdcBaseManager.AdjustMetaName('USR$BU_' + FieldByName('relationname').AsString)]
-        ));
-
-    Scripts.Add(
-      Format(
-      'CREATE TRIGGER %1:s FOR %0:S '#13#10 +
-      'BEFORE DELETE '#13#10 +
-      'POSITION 0 '#13#10 +
+  Scripts.Add(Format(
+      'CREATE OR ALTER TRIGGER %1:s FOR %0:s ACTIVE '#13#10 +
+      'BEFORE INSERT POSITION 0 '#13#10 +
       'AS '#13#10 +
+      '  DECLARE VARIABLE delayed INTEGER; '#13#10 +
+      '  DECLARE VARIABLE debit NUMERIC(15, 4); '#13#10 +
+      '  DECLARE VARIABLE credit NUMERIC(15, 4); '#13#10 +
+      '  DECLARE VARIABLE fc INTEGER; '#13#10 +
+      '  DECLARE VARIABLE tc INTEGER; '#13#10 +
       'BEGIN '#13#10 +
-      '  DELETE FROM inv_movement WHERE documentkey = OLD.documentkey; '#13#10 +
-      'END ', [FieldByName('relationname').AsString,
-        gdcBaseManager.AdjustMetaName('USR$BD_' + FieldByName('relationname').AsString)]));
-  end;
+      '  /* Trigger body */ '#13#10 +
+      '  /* Disabled = 1 - позиция не формрует движение, она отклчена программой */ '#13#10 +
+      '  IF (NEW.disabled = 0) THEN'#13#10 +
+      '  BEGIN'#13#10 +
+      '  /* Delayed = 1 - формруется отложенная накладная (движение не формируется по желанию пользователя) */ '#13#10 +
+      '    delayed = 0;'#13#10 +
+      '    SELECT delayed FROM gd_document WHERE id = NEW.masterkey'#13#10 +
+      '    INTO :delayed;'#13#10 +
+      '    IF ((:delayed = 0) OR (:delayed IS NULL)) THEN'#13#10 +
+      '    BEGIN'#13#10 +
+      '      /* Проверяем соответствие количества по документу с движением */ '#13#10 +
+      '      SELECT SUM(debit), SUM(credit) FROM inv_movement'#13#10 +
+      '      WHERE documentkey = NEW.documentkey'#13#10 +
+      '      INTO :debit, :credit;'#13#10 +
+      '      IF (debit IS NULL) THEN '#13#10 +
+      '        debit = 0; '#13#10 +
+      '      IF (credit IS NULL) THEN '#13#10 +
+      '        credit = 0; '#13#10 +
+      '      IF ((:debit <> NEW.quantity) OR (:credit <> NEW.quantity)) THEN'#13#10 +
+      '        EXCEPTION INV_E_INVALIDMOVEMENT;'#13#10 +
+      '      fc = NULL;'#13#10 +
+      '      SELECT MAX(cardkey) FROM inv_movement'#13#10 +
+      '        WHERE (documentkey = NEW.documentkey) AND (credit > 0)'#13#10 +
+      '      INTO :fc;'#13#10 +
+      '      IF (:fc > 0) THEN'#13#10 +
+      '        NEW.fromcardkey = :fc;'#13#10 +
+      '    END'#13#10 +
+      '  END'#13#10 +
+      'END ',
+      [FieldByName('relationname').AsString,
+       gdcBaseManager.AdjustMetaName('USR$BI_' + FieldByName('relationname').AsString)]
+      ));
+
+  Scripts.Add(Format(
+      'CREATE OR ALTER TRIGGER %1:s FOR %0:s ACTIVE '#13#10 +
+      'BEFORE UPDATE POSITION 0 '#13#10 +
+      'AS '#13#10 +
+      '  DECLARE VARIABLE delayed INTEGER; '#13#10 +
+      '  DECLARE VARIABLE debit NUMERIC(15, 4); '#13#10 +
+      '  DECLARE VARIABLE credit NUMERIC(15, 4); '#13#10 +
+      '  DECLARE VARIABLE fc INTEGER; '#13#10 +
+      '  DECLARE VARIABLE tc INTEGER; '#13#10 +
+      'BEGIN '#13#10 +
+      '  /* Trigger body */ '#13#10 +
+      '  /* Disabled = 1 - позиция не формрует движение, она отклчена программой */ '#13#10 +
+      '  IF (NEW.disabled = 0) THEN'#13#10 +
+      '  BEGIN'#13#10 +
+      '  /* Delayed = 1 - формруется отложенная накладная (движение не формируется по желанию пользователя) */ '#13#10 +
+      '    delayed = 0;'#13#10 +
+      '    SELECT delayed FROM gd_document WHERE id = NEW.masterkey'#13#10 +
+      '    INTO :delayed;'#13#10 +
+      '    IF ((:delayed = 0) OR (:delayed IS NULL)) THEN'#13#10 +
+      '    BEGIN'#13#10 +
+      '      /* Проверяем соответствие количества по документу с движением */ '#13#10 +
+      '      SELECT SUM(debit), SUM(credit) FROM inv_movement'#13#10 +
+      '      WHERE documentkey = NEW.documentkey'#13#10 +
+      '      INTO :debit, :credit;'#13#10 +
+      '      IF (debit IS NULL) THEN '#13#10 +
+      '        debit = 0; '#13#10 +
+      '      IF (credit IS NULL) THEN '#13#10 +
+      '        credit = 0; '#13#10 +
+      '      IF ((:debit <> NEW.quantity) OR (:credit <> NEW.quantity)) THEN'#13#10 +
+      '        EXCEPTION INV_E_INVALIDMOVEMENT;'#13#10 +
+      '      fc = NULL;'#13#10 +
+      '      SELECT MAX(cardkey) FROM inv_movement'#13#10 +
+      '        WHERE (documentkey = NEW.documentkey) AND (credit > 0)'#13#10 +
+      '      INTO :fc;'#13#10 +
+      '      IF (:fc > 0) THEN'#13#10 +
+      '        NEW.fromcardkey = :fc;'#13#10 +
+      '    END'#13#10 +
+      '  END'#13#10 +
+      'END ',
+      [FieldByName('relationname').AsString,
+       gdcBaseManager.AdjustMetaName('USR$BU_' + FieldByName('relationname').AsString)]
+      ));
+
+  Scripts.Add(
+    Format(
+    'CREATE OR ALTER TRIGGER %1:s FOR %0:S '#13#10 +
+    'BEFORE DELETE '#13#10 +
+    'POSITION 0 '#13#10 +
+    'AS '#13#10 +
+    'BEGIN '#13#10 +
+    '  DELETE FROM inv_movement WHERE documentkey = OLD.documentkey; '#13#10 +
+    'END ', [FieldByName('relationname').AsString,
+      gdcBaseManager.AdjustMetaName('USR$BD_' + FieldByName('relationname').AsString)]));
 
   NeedSingleUser := True;
 
@@ -393,117 +387,114 @@ begin
   Scripts.Add(Format('ALTER TABLE %0:s ADD CONSTRAINT %1:S FOREIGN KEY (tocardkey) ' +
     ' REFERENCES inv_card (id) ON UPDATE CASCADE ', [FieldByName('relationname').AsString, S]));
 
-  if (not (sLoadFromStream in BaseState)) then
-  begin
-    Scripts.Add(Format(
-        'CREATE TRIGGER %1:s FOR %0:s ACTIVE '#13#10 +
-        'BEFORE INSERT POSITION 0 '#13#10 +
-        'AS '#13#10 +
-        '  DECLARE VARIABLE delayed INTEGER; '#13#10 +
-        '  DECLARE VARIABLE debit NUMERIC(15, 4); '#13#10 +
-        '  DECLARE VARIABLE credit NUMERIC(15, 4); '#13#10 +
-        '  DECLARE VARIABLE fc INTEGER; '#13#10 +
-        '  DECLARE VARIABLE tc INTEGER; '#13#10 +
-        'BEGIN '#13#10 +
-        '  /* Trigger body */ '#13#10 +
-        '  /* Disabled = 1 - позиция не формрует движение, она отклчена программой */ '#13#10 +
-        '  IF (NEW.disabled = 0) THEN'#13#10 +
-        '  BEGIN'#13#10 +
-        '  /* Delayed = 1 - формруется отложенная накладная (движение не формируется по желанию пользователя) */ '#13#10 +
-        '    delayed = 0;'#13#10 +
-        '    SELECT delayed FROM gd_document WHERE id = NEW.masterkey'#13#10 +
-        '    INTO :delayed;'#13#10 +
-        '    IF ((:delayed = 0) OR (:delayed IS NULL)) THEN'#13#10 +
-        '    BEGIN'#13#10 +
-        '      /* Проверяем соответствие количества по документу с движением */ '#13#10 +
-        '      SELECT SUM(debit), SUM(credit) FROM inv_movement'#13#10 +
-        '      WHERE documentkey = NEW.documentkey'#13#10 +
-        '      INTO :debit, :credit;'#13#10 +
-        '      IF (debit IS NULL) THEN '#13#10 +
-        '        debit = 0; '#13#10 +
-        '      IF (credit IS NULL) THEN '#13#10 +
-        '        credit = 0; '#13#10 +
-        '      IF ((:debit <> NEW.quantity) OR (:credit <> NEW.quantity)) THEN'#13#10 +
-        '        EXCEPTION INV_E_INVALIDMOVEMENT;'#13#10 +
-        '      fc = NULL;'#13#10 +
-        '      SELECT MAX(cardkey) FROM inv_movement'#13#10 +
-        '        WHERE (documentkey = NEW.documentkey) AND (credit > 0)'#13#10 +
-        '      INTO :fc;'#13#10 +
-        '      IF (:fc > 0) THEN'#13#10 +
-        '        NEW.fromcardkey = :fc;'#13#10 +
-        '      tc = NULL;'#13#10 +
-        '      SELECT MAX(cardkey) FROM inv_movement'#13#10 +
-        '        WHERE (documentkey = NEW.documentkey) AND (debit > 0)'#13#10 +
-        '      INTO :tc;'#13#10 +
-        '      IF (:tc > 0) THEN'#13#10 +
-        '        NEW.tocardkey = :tc;'#13#10 +
-        '    END'#13#10 +
-        '  END'#13#10 +
-        'END ',
-        [FieldByName('relationname').AsString,
-         gdcBaseManager.AdjustMetaName('USR$BI_' + FieldByName('relationname').AsString)]
-        ));
-
-    Scripts.Add(Format(
-        'CREATE TRIGGER %1:s FOR %0:s ACTIVE '#13#10 +
-        'BEFORE UPDATE POSITION 0 '#13#10 +
-        'AS '#13#10 +
-        '  DECLARE VARIABLE delayed INTEGER; '#13#10 +
-        '  DECLARE VARIABLE debit NUMERIC(15, 4); '#13#10 +
-        '  DECLARE VARIABLE credit NUMERIC(15, 4); '#13#10 +
-        '  DECLARE VARIABLE fc INTEGER; '#13#10 +
-        '  DECLARE VARIABLE tc INTEGER; '#13#10 +
-        'BEGIN '#13#10 +
-        '  /* Trigger body */ '#13#10 +
-        '  /* Disabled = 1 - позиция не формрует движение, она отклчена программой */ '#13#10 +
-        '  IF (NEW.disabled = 0) THEN'#13#10 +
-        '  BEGIN'#13#10 +
-        '  /* Delayed = 1 - формруется отложенная накладная (движение не формируется по желанию пользователя) */ '#13#10 +
-        '    delayed = 0;'#13#10 +
-        '    SELECT delayed FROM gd_document WHERE id = NEW.masterkey'#13#10 +
-        '    INTO :delayed;'#13#10 +
-        '    IF ((:delayed = 0) OR (:delayed IS NULL)) THEN'#13#10 +
-        '    BEGIN'#13#10 +
-        '      /* Проверяем соответствие количества по документу с движением */ '#13#10 +
-        '      SELECT SUM(debit), SUM(credit) FROM inv_movement'#13#10 +
-        '      WHERE documentkey = NEW.documentkey'#13#10 +
-        '      INTO :debit, :credit;'#13#10 +
-        '      IF (debit IS NULL) THEN '#13#10 +
-        '        debit = 0; '#13#10 +
-        '      IF (credit IS NULL) THEN '#13#10 +
-        '        credit = 0; '#13#10 +
-        '      IF ((:debit <> NEW.quantity) OR (:credit <> NEW.quantity)) THEN'#13#10 +
-        '        EXCEPTION INV_E_INVALIDMOVEMENT;'#13#10 +
-        '      fc = NULL;'#13#10 +
-        '      SELECT MAX(cardkey) FROM inv_movement'#13#10 +
-        '        WHERE (documentkey = NEW.documentkey) AND (credit > 0)'#13#10 +
-        '      INTO :fc;'#13#10 +
-        '      IF (:fc > 0) THEN'#13#10 +
-        '        NEW.fromcardkey = :fc;'#13#10 +
-        '      tc = NULL;'#13#10 +
-        '      SELECT MAX(cardkey) FROM inv_movement'#13#10 +
-        '        WHERE (documentkey = NEW.documentkey) AND (debit > 0)'#13#10 +
-        '      INTO :tc;'#13#10 +
-        '      IF (:tc > 0) THEN'#13#10 +
-        '        NEW.tocardkey = :tc;'#13#10 +
-        '    END'#13#10 +
-        '  END'#13#10 +
-        'END ',
-        [FieldByName('relationname').AsString,
-         gdcBaseManager.AdjustMetaName('USR$BU_' + FieldByName('relationname').AsString)]
-        ));
-
-    Scripts.Add(
-      Format(
-      'CREATE TRIGGER %1:s FOR %0:S '#13#10 +
-      'BEFORE DELETE '#13#10 +
-      'POSITION 0 '#13#10 +
+  Scripts.Add(Format(
+      'CREATE OR ALTER TRIGGER %1:s FOR %0:s ACTIVE '#13#10 +
+      'BEFORE INSERT POSITION 0 '#13#10 +
       'AS '#13#10 +
+      '  DECLARE VARIABLE delayed INTEGER; '#13#10 +
+      '  DECLARE VARIABLE debit NUMERIC(15, 4); '#13#10 +
+      '  DECLARE VARIABLE credit NUMERIC(15, 4); '#13#10 +
+      '  DECLARE VARIABLE fc INTEGER; '#13#10 +
+      '  DECLARE VARIABLE tc INTEGER; '#13#10 +
       'BEGIN '#13#10 +
-      '  DELETE FROM inv_movement WHERE documentkey = OLD.documentkey; '#13#10 +
-      'END ', [FieldByName('relationname').AsString,
-        gdcBaseManager.AdjustMetaName('USR$BD_' + FieldByName('relationname').AsString)]));
-  end;
+      '  /* Trigger body */ '#13#10 +
+      '  /* Disabled = 1 - позиция не формрует движение, она отклчена программой */ '#13#10 +
+      '  IF (NEW.disabled = 0) THEN'#13#10 +
+      '  BEGIN'#13#10 +
+      '  /* Delayed = 1 - формруется отложенная накладная (движение не формируется по желанию пользователя) */ '#13#10 +
+      '    delayed = 0;'#13#10 +
+      '    SELECT delayed FROM gd_document WHERE id = NEW.masterkey'#13#10 +
+      '    INTO :delayed;'#13#10 +
+      '    IF ((:delayed = 0) OR (:delayed IS NULL)) THEN'#13#10 +
+      '    BEGIN'#13#10 +
+      '      /* Проверяем соответствие количества по документу с движением */ '#13#10 +
+      '      SELECT SUM(debit), SUM(credit) FROM inv_movement'#13#10 +
+      '      WHERE documentkey = NEW.documentkey'#13#10 +
+      '      INTO :debit, :credit;'#13#10 +
+      '      IF (debit IS NULL) THEN '#13#10 +
+      '        debit = 0; '#13#10 +
+      '      IF (credit IS NULL) THEN '#13#10 +
+      '        credit = 0; '#13#10 +
+      '      IF ((:debit <> NEW.quantity) OR (:credit <> NEW.quantity)) THEN'#13#10 +
+      '        EXCEPTION INV_E_INVALIDMOVEMENT;'#13#10 +
+      '      fc = NULL;'#13#10 +
+      '      SELECT MAX(cardkey) FROM inv_movement'#13#10 +
+      '        WHERE (documentkey = NEW.documentkey) AND (credit > 0)'#13#10 +
+      '      INTO :fc;'#13#10 +
+      '      IF (:fc > 0) THEN'#13#10 +
+      '        NEW.fromcardkey = :fc;'#13#10 +
+      '      tc = NULL;'#13#10 +
+      '      SELECT MAX(cardkey) FROM inv_movement'#13#10 +
+      '        WHERE (documentkey = NEW.documentkey) AND (debit > 0)'#13#10 +
+      '      INTO :tc;'#13#10 +
+      '      IF (:tc > 0) THEN'#13#10 +
+      '        NEW.tocardkey = :tc;'#13#10 +
+      '    END'#13#10 +
+      '  END'#13#10 +
+      'END ',
+      [FieldByName('relationname').AsString,
+       gdcBaseManager.AdjustMetaName('USR$BI_' + FieldByName('relationname').AsString)]
+      ));
+
+  Scripts.Add(Format(
+      'CREATE OR ALTER TRIGGER %1:s FOR %0:s ACTIVE '#13#10 +
+      'BEFORE UPDATE POSITION 0 '#13#10 +
+      'AS '#13#10 +
+      '  DECLARE VARIABLE delayed INTEGER; '#13#10 +
+      '  DECLARE VARIABLE debit NUMERIC(15, 4); '#13#10 +
+      '  DECLARE VARIABLE credit NUMERIC(15, 4); '#13#10 +
+      '  DECLARE VARIABLE fc INTEGER; '#13#10 +
+      '  DECLARE VARIABLE tc INTEGER; '#13#10 +
+      'BEGIN '#13#10 +
+      '  /* Trigger body */ '#13#10 +
+      '  /* Disabled = 1 - позиция не формрует движение, она отклчена программой */ '#13#10 +
+      '  IF (NEW.disabled = 0) THEN'#13#10 +
+      '  BEGIN'#13#10 +
+      '  /* Delayed = 1 - формруется отложенная накладная (движение не формируется по желанию пользователя) */ '#13#10 +
+      '    delayed = 0;'#13#10 +
+      '    SELECT delayed FROM gd_document WHERE id = NEW.masterkey'#13#10 +
+      '    INTO :delayed;'#13#10 +
+      '    IF ((:delayed = 0) OR (:delayed IS NULL)) THEN'#13#10 +
+      '    BEGIN'#13#10 +
+      '      /* Проверяем соответствие количества по документу с движением */ '#13#10 +
+      '      SELECT SUM(debit), SUM(credit) FROM inv_movement'#13#10 +
+      '      WHERE documentkey = NEW.documentkey'#13#10 +
+      '      INTO :debit, :credit;'#13#10 +
+      '      IF (debit IS NULL) THEN '#13#10 +
+      '        debit = 0; '#13#10 +
+      '      IF (credit IS NULL) THEN '#13#10 +
+      '        credit = 0; '#13#10 +
+      '      IF ((:debit <> NEW.quantity) OR (:credit <> NEW.quantity)) THEN'#13#10 +
+      '        EXCEPTION INV_E_INVALIDMOVEMENT;'#13#10 +
+      '      fc = NULL;'#13#10 +
+      '      SELECT MAX(cardkey) FROM inv_movement'#13#10 +
+      '        WHERE (documentkey = NEW.documentkey) AND (credit > 0)'#13#10 +
+      '      INTO :fc;'#13#10 +
+      '      IF (:fc > 0) THEN'#13#10 +
+      '        NEW.fromcardkey = :fc;'#13#10 +
+      '      tc = NULL;'#13#10 +
+      '      SELECT MAX(cardkey) FROM inv_movement'#13#10 +
+      '        WHERE (documentkey = NEW.documentkey) AND (debit > 0)'#13#10 +
+      '      INTO :tc;'#13#10 +
+      '      IF (:tc > 0) THEN'#13#10 +
+      '        NEW.tocardkey = :tc;'#13#10 +
+      '    END'#13#10 +
+      '  END'#13#10 +
+      'END ',
+      [FieldByName('relationname').AsString,
+       gdcBaseManager.AdjustMetaName('USR$BU_' + FieldByName('relationname').AsString)]
+      ));
+
+  Scripts.Add(
+    Format(
+    'CREATE OR ALTER TRIGGER %1:s FOR %0:S '#13#10 +
+    'BEFORE DELETE '#13#10 +
+    'POSITION 0 '#13#10 +
+    'AS '#13#10 +
+    'BEGIN '#13#10 +
+    '  DELETE FROM inv_movement WHERE documentkey = OLD.documentkey; '#13#10 +
+    'END ', [FieldByName('relationname').AsString,
+      gdcBaseManager.AdjustMetaName('USR$BD_' + FieldByName('relationname').AsString)]));
 end;
 
 procedure TgdcInvFeatureDocumentLineTable.MakePredefinedRelationFields;
@@ -561,121 +552,118 @@ begin
   Scripts.Add(Format('ALTER TABLE %0:s ADD CONSTRAINT %1:S FOREIGN KEY (fromcardkey) ' +
     ' REFERENCES inv_card (id) ON UPDATE CASCADE ', [FieldByName('relationname').AsString, S]));
 
-  if (not (sLoadFromStream in BaseState)) then
-  begin
-    Scripts.Add(Format(
-        'CREATE TRIGGER %1:s FOR %0:s ACTIVE '#13#10 +
-        'BEFORE INSERT POSITION 0 '#13#10 +
-        'AS '#13#10 +
-        '  DECLARE VARIABLE delayed INTEGER; '#13#10 +
-        '  DECLARE VARIABLE debit NUMERIC(15, 4); '#13#10 +
-        '  DECLARE VARIABLE credit NUMERIC(15, 4); '#13#10 +
-        '  DECLARE VARIABLE fc INTEGER; '#13#10 +
-        '  DECLARE VARIABLE tc INTEGER; '#13#10 +
-        'BEGIN '#13#10 +
-        '  /* Trigger body */ '#13#10 +
-        '  /* Disabled = 1 - позиция не формрует движение, она отклчена программой */ '#13#10 +
-        '  IF (NEW.disabled = 0) THEN'#13#10 +
-        '  BEGIN'#13#10 +
-        '  /* Delayed = 1 - формруется отложенная накладная (движение не формируется по желанию пользователя) */ '#13#10 +
-        '    delayed = 0;'#13#10 +
-        '    SELECT delayed FROM gd_document WHERE id = NEW.masterkey'#13#10 +
-        '    INTO :delayed;'#13#10 +
-        '    IF ((:delayed = 0) OR (:delayed IS NULL)) THEN'#13#10 +
-        '    BEGIN'#13#10 +
-        '      /* Проверяем соответствие количества по документу с движением */ '#13#10 +
-        '      SELECT SUM(debit), SUM(credit) FROM inv_movement'#13#10 +
-        '      WHERE documentkey = NEW.documentkey'#13#10 +
-        '      INTO :debit, :credit;'#13#10 +
-        '      IF (debit IS NULL) THEN '#13#10 +
-        '        debit = 0; '#13#10 +
-        '      IF (credit IS NULL) THEN '#13#10 +
-        '        credit = 0; '#13#10 +
-        '      IF ( '#13#10 +
-        '          ((NEW.fromquantity > NEW.toquantity) AND '#13#10 +
-        '            (:credit <> NEW.fromquantity - NEW.toquantity)) OR '#13#10 +
-        '          ((NEW.fromquantity < NEW.toquantity) AND '#13#10 +
-        '            (:debit <> NEW.toquantity - NEW.fromquantity)) OR '#13#10 +
-        '          ((NEW.fromquantity = NEW.toquantity) AND '#13#10 +
-        '            (:debit + :credit <> 0)) '#13#10 +
-        '         ) '#13#10 +
-        '      THEN '#13#10 +
-        '        EXCEPTION INV_E_INVALIDMOVEMENT;'#13#10 +
-        '      fc = NULL;'#13#10 +
-        '      SELECT MAX(cardkey) FROM inv_movement'#13#10 +
-        '        WHERE (documentkey = NEW.documentkey) AND (credit > 0)'#13#10 +
-        '      INTO :fc;'#13#10 +
-        '      IF (:fc > 0) THEN'#13#10 +
-        '        NEW.fromcardkey = :fc;'#13#10 +
-        '    END'#13#10 +
-        '  END'#13#10 +
-        'END ',
-        [FieldByName('relationname').AsString,
-         gdcBaseManager.AdjustMetaName('USR$BI_' + FieldByName('relationname').AsString)]
-        ));
-
-    Scripts.Add(Format(
-        'CREATE TRIGGER %1:s FOR %0:s ACTIVE '#13#10 +
-        'BEFORE UPDATE POSITION 0 '#13#10 +
-        'AS '#13#10 +
-        '  DECLARE VARIABLE delayed INTEGER; '#13#10 +
-        '  DECLARE VARIABLE debit NUMERIC(15, 4); '#13#10 +
-        '  DECLARE VARIABLE credit NUMERIC(15, 4); '#13#10 +
-        '  DECLARE VARIABLE fc INTEGER; '#13#10 +
-        '  DECLARE VARIABLE tc INTEGER; '#13#10 +
-        'BEGIN '#13#10 +
-        '  /* Trigger body */ '#13#10 +
-        '  /* Disabled = 1 - позиция не формрует движение, она отклчена программой */ '#13#10 +
-        '  IF (NEW.disabled = 0) THEN'#13#10 +
-        '  BEGIN'#13#10 +
-        '  /* Delayed = 1 - формруется отложенная накладная (движение не формируется по желанию пользователя) */ '#13#10 +
-        '    delayed = 0;'#13#10 +
-        '    SELECT delayed FROM gd_document WHERE id = NEW.masterkey'#13#10 +
-        '    INTO :delayed;'#13#10 +
-        '    IF ((:delayed = 0) OR (:delayed IS NULL)) THEN'#13#10 +
-        '    BEGIN'#13#10 +
-        '      /* Проверяем соответствие количества по документу с движением */ '#13#10 +
-        '      SELECT SUM(debit), SUM(credit) FROM inv_movement'#13#10 +
-        '      WHERE documentkey = NEW.documentkey'#13#10 +
-        '      INTO :debit, :credit;'#13#10 +
-        '      IF (debit IS NULL) THEN '#13#10 +
-        '        debit = 0; '#13#10 +
-        '      IF (credit IS NULL) THEN '#13#10 +
-        '        credit = 0; '#13#10 +
-        '      IF ( '#13#10 +
-        '          ((NEW.fromquantity > NEW.toquantity) AND '#13#10 +
-        '            (:credit <> NEW.fromquantity - NEW.toquantity)) OR '#13#10 +
-        '          ((NEW.fromquantity < NEW.toquantity) AND '#13#10 +
-        '            (:debit <> NEW.toquantity - NEW.fromquantity)) OR '#13#10 +
-        '          ((NEW.fromquantity = NEW.toquantity) AND '#13#10 +
-        '            (:debit + :credit <> 0)) '#13#10 +
-        '         ) '#13#10 +
-        '      THEN '#13#10 +
-        '        EXCEPTION INV_E_INVALIDMOVEMENT;'#13#10 +
-        '      fc = NULL;'#13#10 +
-        '      SELECT MAX(cardkey) FROM inv_movement'#13#10 +
-        '        WHERE (documentkey = NEW.documentkey) AND (credit > 0)'#13#10 +
-        '      INTO :fc;'#13#10 +
-        '      IF (:fc > 0) THEN'#13#10 +
-        '        NEW.fromcardkey = :fc;'#13#10 +
-        '    END'#13#10 +
-        '  END'#13#10 +
-        'END ',
-        [FieldByName('relationname').AsString,
-         gdcBaseManager.AdjustMetaName('USR$BU_' + FieldByName('relationname').AsString)]
-        ));
-
-    Scripts.Add(
-      Format(
-      'CREATE TRIGGER %1:s FOR %0:S '#13#10 +
-      'BEFORE DELETE '#13#10 +
-      'POSITION 0 '#13#10 +
+  Scripts.Add(Format(
+      'CREATE OR ALTER TRIGGER %1:s FOR %0:s ACTIVE '#13#10 +
+      'BEFORE INSERT POSITION 0 '#13#10 +
       'AS '#13#10 +
+      '  DECLARE VARIABLE delayed INTEGER; '#13#10 +
+      '  DECLARE VARIABLE debit NUMERIC(15, 4); '#13#10 +
+      '  DECLARE VARIABLE credit NUMERIC(15, 4); '#13#10 +
+      '  DECLARE VARIABLE fc INTEGER; '#13#10 +
+      '  DECLARE VARIABLE tc INTEGER; '#13#10 +
       'BEGIN '#13#10 +
-      '  DELETE FROM inv_movement WHERE documentkey = OLD.documentkey; '#13#10 +
-      'END ', [FieldByName('relationname').AsString,
-        gdcBaseManager.AdjustMetaName('USR$BD_' + FieldByName('relationname').AsString)]));
-  end;
+      '  /* Trigger body */ '#13#10 +
+      '  /* Disabled = 1 - позиция не формрует движение, она отклчена программой */ '#13#10 +
+      '  IF (NEW.disabled = 0) THEN'#13#10 +
+      '  BEGIN'#13#10 +
+      '  /* Delayed = 1 - формруется отложенная накладная (движение не формируется по желанию пользователя) */ '#13#10 +
+      '    delayed = 0;'#13#10 +
+      '    SELECT delayed FROM gd_document WHERE id = NEW.masterkey'#13#10 +
+      '    INTO :delayed;'#13#10 +
+      '    IF ((:delayed = 0) OR (:delayed IS NULL)) THEN'#13#10 +
+      '    BEGIN'#13#10 +
+      '      /* Проверяем соответствие количества по документу с движением */ '#13#10 +
+      '      SELECT SUM(debit), SUM(credit) FROM inv_movement'#13#10 +
+      '      WHERE documentkey = NEW.documentkey'#13#10 +
+      '      INTO :debit, :credit;'#13#10 +
+      '      IF (debit IS NULL) THEN '#13#10 +
+      '        debit = 0; '#13#10 +
+      '      IF (credit IS NULL) THEN '#13#10 +
+      '        credit = 0; '#13#10 +
+      '      IF ( '#13#10 +
+      '          ((NEW.fromquantity > NEW.toquantity) AND '#13#10 +
+      '            (:credit <> NEW.fromquantity - NEW.toquantity)) OR '#13#10 +
+      '          ((NEW.fromquantity < NEW.toquantity) AND '#13#10 +
+      '            (:debit <> NEW.toquantity - NEW.fromquantity)) OR '#13#10 +
+      '          ((NEW.fromquantity = NEW.toquantity) AND '#13#10 +
+      '            (:debit + :credit <> 0)) '#13#10 +
+      '         ) '#13#10 +
+      '      THEN '#13#10 +
+      '        EXCEPTION INV_E_INVALIDMOVEMENT;'#13#10 +
+      '      fc = NULL;'#13#10 +
+      '      SELECT MAX(cardkey) FROM inv_movement'#13#10 +
+      '        WHERE (documentkey = NEW.documentkey) AND (credit > 0)'#13#10 +
+      '      INTO :fc;'#13#10 +
+      '      IF (:fc > 0) THEN'#13#10 +
+      '        NEW.fromcardkey = :fc;'#13#10 +
+      '    END'#13#10 +
+      '  END'#13#10 +
+      'END ',
+      [FieldByName('relationname').AsString,
+       gdcBaseManager.AdjustMetaName('USR$BI_' + FieldByName('relationname').AsString)]
+      ));
+
+  Scripts.Add(Format(
+      'CREATE OR ALTER TRIGGER %1:s FOR %0:s ACTIVE '#13#10 +
+      'BEFORE UPDATE POSITION 0 '#13#10 +
+      'AS '#13#10 +
+      '  DECLARE VARIABLE delayed INTEGER; '#13#10 +
+      '  DECLARE VARIABLE debit NUMERIC(15, 4); '#13#10 +
+      '  DECLARE VARIABLE credit NUMERIC(15, 4); '#13#10 +
+      '  DECLARE VARIABLE fc INTEGER; '#13#10 +
+      '  DECLARE VARIABLE tc INTEGER; '#13#10 +
+      'BEGIN '#13#10 +
+      '  /* Trigger body */ '#13#10 +
+      '  /* Disabled = 1 - позиция не формрует движение, она отклчена программой */ '#13#10 +
+      '  IF (NEW.disabled = 0) THEN'#13#10 +
+      '  BEGIN'#13#10 +
+      '  /* Delayed = 1 - формруется отложенная накладная (движение не формируется по желанию пользователя) */ '#13#10 +
+      '    delayed = 0;'#13#10 +
+      '    SELECT delayed FROM gd_document WHERE id = NEW.masterkey'#13#10 +
+      '    INTO :delayed;'#13#10 +
+      '    IF ((:delayed = 0) OR (:delayed IS NULL)) THEN'#13#10 +
+      '    BEGIN'#13#10 +
+      '      /* Проверяем соответствие количества по документу с движением */ '#13#10 +
+      '      SELECT SUM(debit), SUM(credit) FROM inv_movement'#13#10 +
+      '      WHERE documentkey = NEW.documentkey'#13#10 +
+      '      INTO :debit, :credit;'#13#10 +
+      '      IF (debit IS NULL) THEN '#13#10 +
+      '        debit = 0; '#13#10 +
+      '      IF (credit IS NULL) THEN '#13#10 +
+      '        credit = 0; '#13#10 +
+      '      IF ( '#13#10 +
+      '          ((NEW.fromquantity > NEW.toquantity) AND '#13#10 +
+      '            (:credit <> NEW.fromquantity - NEW.toquantity)) OR '#13#10 +
+      '          ((NEW.fromquantity < NEW.toquantity) AND '#13#10 +
+      '            (:debit <> NEW.toquantity - NEW.fromquantity)) OR '#13#10 +
+      '          ((NEW.fromquantity = NEW.toquantity) AND '#13#10 +
+      '            (:debit + :credit <> 0)) '#13#10 +
+      '         ) '#13#10 +
+      '      THEN '#13#10 +
+      '        EXCEPTION INV_E_INVALIDMOVEMENT;'#13#10 +
+      '      fc = NULL;'#13#10 +
+      '      SELECT MAX(cardkey) FROM inv_movement'#13#10 +
+      '        WHERE (documentkey = NEW.documentkey) AND (credit > 0)'#13#10 +
+      '      INTO :fc;'#13#10 +
+      '      IF (:fc > 0) THEN'#13#10 +
+      '        NEW.fromcardkey = :fc;'#13#10 +
+      '    END'#13#10 +
+      '  END'#13#10 +
+      'END ',
+      [FieldByName('relationname').AsString,
+       gdcBaseManager.AdjustMetaName('USR$BU_' + FieldByName('relationname').AsString)]
+      ));
+
+  Scripts.Add(
+    Format(
+    'CREATE OR ALTER TRIGGER %1:s FOR %0:S '#13#10 +
+    'BEFORE DELETE '#13#10 +
+    'POSITION 0 '#13#10 +
+    'AS '#13#10 +
+    'BEGIN '#13#10 +
+    '  DELETE FROM inv_movement WHERE documentkey = OLD.documentkey; '#13#10 +
+    'END ', [FieldByName('relationname').AsString,
+      gdcBaseManager.AdjustMetaName('USR$BD_' + FieldByName('relationname').AsString)]));
 end;
 
 procedure TgdcInvInventDocumentLineTable.MakePredefinedRelationFields;
@@ -732,132 +720,128 @@ begin
   Scripts.Add(Format('ALTER TABLE %0:s ADD CONSTRAINT %1:S FOREIGN KEY (fromcardkey) ' +
     ' REFERENCES inv_card (id) ON UPDATE CASCADE ', [FieldByName('relationname').AsString, S]));
 
-  if (not (sLoadFromStream in BaseState)) then
-  begin
-    Scripts.Add(Format(
-        'CREATE TRIGGER %1:s FOR %0:s ACTIVE '#13#10 +
-        'BEFORE INSERT POSITION 0 '#13#10 +
-        'AS '#13#10 +
-        '  DECLARE VARIABLE delayed INTEGER; '#13#10 +
-        '  DECLARE VARIABLE debit NUMERIC(15, 4); '#13#10 +
-        '  DECLARE VARIABLE credit NUMERIC(15, 4); '#13#10 +
-        '  DECLARE VARIABLE fc INTEGER; '#13#10 +
-        '  DECLARE VARIABLE tc INTEGER; '#13#10 +
-        'BEGIN '#13#10 +
-        '  /* Trigger body */ '#13#10 +
-        '  /* Disabled = 1 - позиция не формрует движение, она отклчена программой */ '#13#10 +
-        '  IF (NEW.disabled = 0) THEN'#13#10 +
-        '  BEGIN'#13#10 +
-        '    IF (((NEW.inquantity <> 0) OR (NEW.outquantity <> 0)) '#13#10 +
-        '      AND (NEW.inquantity = NEW.outquantity))'#13#10 +
-        '    THEN'#13#10 +
-        '      EXCEPTION INV_E_INVALIDMOVEMENT;'#13#10 +
-        '  /* Delayed = 1 - формруется отложенная накладная (движение не формируется по желанию пользователя) */ '#13#10 +
-        '    delayed = 0;'#13#10 +
-        '    SELECT delayed FROM gd_document WHERE id = NEW.masterkey'#13#10 +
-        '    INTO :delayed;'#13#10 +
-        '    IF ((:delayed = 0) OR (:delayed IS NULL)) THEN'#13#10 +
-        '    BEGIN'#13#10 +
-        '      /* Проверяем соответствие количества по документу с движением */ '#13#10 +
-        '      SELECT SUM(debit), SUM(credit) FROM inv_movement'#13#10 +
-        '      WHERE documentkey = NEW.documentkey'#13#10 +
-        '      INTO :debit, :credit;'#13#10 +
-        '      IF (debit IS NULL) THEN '#13#10 +
-        '        debit = 0; '#13#10 +
-        '      IF (credit IS NULL) THEN '#13#10 +
-        '        credit = 0; '#13#10 +
-        '      IF ('#13#10 +
-        '          ((:credit <> NEW.outquantity) AND (NEW.inquantity = 0)) OR'#13#10 +
-        '          ((:debit <> NEW.inquantity) AND (NEW.outquantity = 0))'#13#10 +
-        '         )'#13#10 +
-        '      THEN'#13#10 +
-        '        EXCEPTION INV_E_INVALIDMOVEMENT;'#13#10 +
-        '      fc = NULL;'#13#10 +
-        '      IF ((NEW.inquantity IS NOT NULL) AND (NEW.inquantity > 0)) THEN '#13#10 +
-        '        SELECT MAX(cardkey) FROM inv_movement'#13#10 +
-        '          WHERE (documentkey = NEW.documentkey) AND (debit > 0)'#13#10 +
-        '        INTO :fc;'#13#10 +
-        '      ELSE '#13#10 +
-        '        SELECT MAX(cardkey) FROM inv_movement'#13#10 +
-        '          WHERE (documentkey = NEW.documentkey) AND (credit > 0)'#13#10 +
-        '        INTO :fc;'#13#10 +
-        '      IF (:fc > 0) THEN'#13#10 +
-        '        NEW.fromcardkey = :fc;'#13#10 +
-        '    END'#13#10 +
-        '  END'#13#10 +
-        'END ',
-        [FieldByName('relationname').AsString,
-         gdcBaseManager.AdjustMetaName('USR$BI_' + FieldByName('relationname').AsString)]
-        ));
-
-    Scripts.Add(Format(
-        'CREATE TRIGGER %1:s FOR %0:s ACTIVE '#13#10 +
-        'BEFORE UPDATE POSITION 0 '#13#10 +
-        'AS '#13#10 +
-        '  DECLARE VARIABLE delayed INTEGER; '#13#10 +
-        '  DECLARE VARIABLE debit NUMERIC(15, 4); '#13#10 +
-        '  DECLARE VARIABLE credit NUMERIC(15, 4); '#13#10 +
-        '  DECLARE VARIABLE fc INTEGER; '#13#10 +
-        '  DECLARE VARIABLE tc INTEGER; '#13#10 +
-        'BEGIN '#13#10 +
-        '  /* Trigger body */ '#13#10 +
-        '  /* Disabled = 1 - позиция не формрует движение, она отклчена программой */ '#13#10 +
-        '  IF (NEW.disabled = 0) THEN'#13#10 +
-        '  BEGIN'#13#10 +
-        '  /* Delayed = 1 - формруется отложенная накладная (движение не формируется по желанию пользователя) */ '#13#10 +
-        '    IF (((NEW.inquantity <> 0) OR (NEW.outquantity <> 0)) '#13#10 +
-        '      AND (NEW.inquantity = NEW.outquantity))'#13#10 +
-        '    THEN'#13#10 +
-        '      EXCEPTION INV_E_INVALIDMOVEMENT;'#13#10 +
-        '    delayed = 0;'#13#10 +
-        '    SELECT delayed FROM gd_document WHERE id = NEW.masterkey'#13#10 +
-        '    INTO :delayed;'#13#10 +
-        '    IF ((:delayed = 0) OR (:delayed IS NULL)) THEN'#13#10 +
-        '    BEGIN'#13#10 +
-        '      /* Проверяем соответствие количества по документу с движением */ '#13#10 +
-        '      SELECT SUM(debit), SUM(credit) FROM inv_movement'#13#10 +
-        '      WHERE documentkey = NEW.documentkey'#13#10 +
-        '      INTO :debit, :credit;'#13#10 +
-        '      IF (debit IS NULL) THEN '#13#10 +
-        '        debit = 0; '#13#10 +
-        '      IF (credit IS NULL) THEN '#13#10 +
-        '        credit = 0; '#13#10 +
-        '      IF ('#13#10 +
-        '          ((:credit <> NEW.outquantity) AND (NEW.inquantity = 0)) OR'#13#10 +
-        '          ((:debit <> NEW.inquantity) AND (NEW.outquantity = 0))'#13#10 +
-        '         )'#13#10 +
-        '      THEN'#13#10 +
-        '        EXCEPTION INV_E_INVALIDMOVEMENT;'#13#10 +
-        '      fc = NULL;'#13#10 +
-        '      IF ((NEW.inquantity IS NOT NULL) AND (NEW.inquantity > 0)) THEN '#13#10 +
-        '        SELECT MAX(cardkey) FROM inv_movement'#13#10 +
-        '          WHERE (documentkey = NEW.documentkey) AND (debit > 0)'#13#10 +
-        '        INTO :fc;'#13#10 +
-        '      ELSE '#13#10 +
-        '        SELECT MAX(cardkey) FROM inv_movement'#13#10 +
-        '          WHERE (documentkey = NEW.documentkey) AND (credit > 0)'#13#10 +
-        '        INTO :fc;'#13#10 +
-        '      IF (:fc > 0) THEN'#13#10 +
-        '        NEW.fromcardkey = :fc;'#13#10 +
-        '    END'#13#10 +
-        '  END'#13#10 +
-        'END ',
-        [FieldByName('relationname').AsString,
-         gdcBaseManager.AdjustMetaName('USR$BU_' + FieldByName('relationname').AsString)]
-        ));
-
-    Scripts.Add(
-      Format(
-      'CREATE TRIGGER %1:s FOR %0:S '#13#10 +
-      'BEFORE DELETE '#13#10 +
-      'POSITION 0 '#13#10 +
+  Scripts.Add(Format(
+      'CREATE OR ALTER TRIGGER %1:s FOR %0:s ACTIVE '#13#10 +
+      'BEFORE INSERT POSITION 0 '#13#10 +
       'AS '#13#10 +
+      '  DECLARE VARIABLE delayed INTEGER; '#13#10 +
+      '  DECLARE VARIABLE debit NUMERIC(15, 4); '#13#10 +
+      '  DECLARE VARIABLE credit NUMERIC(15, 4); '#13#10 +
+      '  DECLARE VARIABLE fc INTEGER; '#13#10 +
+      '  DECLARE VARIABLE tc INTEGER; '#13#10 +
       'BEGIN '#13#10 +
-      '  DELETE FROM inv_movement WHERE documentkey = OLD.documentkey; '#13#10 +
-      'END ', [FieldByName('relationname').AsString,
-        gdcBaseManager.AdjustMetaName('USR$BD_' + FieldByName('relationname').AsString)]));
-  end;
+      '  /* Trigger body */ '#13#10 +
+      '  /* Disabled = 1 - позиция не формрует движение, она отклчена программой */ '#13#10 +
+      '  IF (NEW.disabled = 0) THEN'#13#10 +
+      '  BEGIN'#13#10 +
+      '    IF (((NEW.inquantity <> 0) OR (NEW.outquantity <> 0)) '#13#10 +
+      '      AND (NEW.inquantity = NEW.outquantity))'#13#10 +
+      '    THEN'#13#10 +
+      '      EXCEPTION INV_E_INVALIDMOVEMENT;'#13#10 +
+      '  /* Delayed = 1 - формруется отложенная накладная (движение не формируется по желанию пользователя) */ '#13#10 +
+      '    delayed = 0;'#13#10 +
+      '    SELECT delayed FROM gd_document WHERE id = NEW.masterkey'#13#10 +
+      '    INTO :delayed;'#13#10 +
+      '    IF ((:delayed = 0) OR (:delayed IS NULL)) THEN'#13#10 +
+      '    BEGIN'#13#10 +
+      '      /* Проверяем соответствие количества по документу с движением */ '#13#10 +
+      '      SELECT SUM(debit), SUM(credit) FROM inv_movement'#13#10 +
+      '      WHERE documentkey = NEW.documentkey'#13#10 +
+      '      INTO :debit, :credit;'#13#10 +
+      '      IF (debit IS NULL) THEN '#13#10 +
+      '        debit = 0; '#13#10 +
+      '      IF (credit IS NULL) THEN '#13#10 +
+      '        credit = 0; '#13#10 +
+      '      IF ('#13#10 +
+      '          ((:credit <> NEW.outquantity) AND (NEW.inquantity = 0)) OR'#13#10 +
+      '          ((:debit <> NEW.inquantity) AND (NEW.outquantity = 0))'#13#10 +
+      '         )'#13#10 +
+      '      THEN'#13#10 +
+      '        EXCEPTION INV_E_INVALIDMOVEMENT;'#13#10 +
+      '      fc = NULL;'#13#10 +
+      '      IF ((NEW.inquantity IS NOT NULL) AND (NEW.inquantity > 0)) THEN '#13#10 +
+      '        SELECT MAX(cardkey) FROM inv_movement'#13#10 +
+      '          WHERE (documentkey = NEW.documentkey) AND (debit > 0)'#13#10 +
+      '        INTO :fc;'#13#10 +
+      '      ELSE '#13#10 +
+      '        SELECT MAX(cardkey) FROM inv_movement'#13#10 +
+      '          WHERE (documentkey = NEW.documentkey) AND (credit > 0)'#13#10 +
+      '        INTO :fc;'#13#10 +
+      '      IF (:fc > 0) THEN'#13#10 +
+      '        NEW.fromcardkey = :fc;'#13#10 +
+      '    END'#13#10 +
+      '  END'#13#10 +
+      'END ',
+      [FieldByName('relationname').AsString,
+       gdcBaseManager.AdjustMetaName('USR$BI_' + FieldByName('relationname').AsString)]
+      ));
 
+  Scripts.Add(Format(
+      'CREATE OR ALTER TRIGGER %1:s FOR %0:s ACTIVE '#13#10 +
+      'BEFORE UPDATE POSITION 0 '#13#10 +
+      'AS '#13#10 +
+      '  DECLARE VARIABLE delayed INTEGER; '#13#10 +
+      '  DECLARE VARIABLE debit NUMERIC(15, 4); '#13#10 +
+      '  DECLARE VARIABLE credit NUMERIC(15, 4); '#13#10 +
+      '  DECLARE VARIABLE fc INTEGER; '#13#10 +
+      '  DECLARE VARIABLE tc INTEGER; '#13#10 +
+      'BEGIN '#13#10 +
+      '  /* Trigger body */ '#13#10 +
+      '  /* Disabled = 1 - позиция не формрует движение, она отклчена программой */ '#13#10 +
+      '  IF (NEW.disabled = 0) THEN'#13#10 +
+      '  BEGIN'#13#10 +
+      '  /* Delayed = 1 - формруется отложенная накладная (движение не формируется по желанию пользователя) */ '#13#10 +
+      '    IF (((NEW.inquantity <> 0) OR (NEW.outquantity <> 0)) '#13#10 +
+      '      AND (NEW.inquantity = NEW.outquantity))'#13#10 +
+      '    THEN'#13#10 +
+      '      EXCEPTION INV_E_INVALIDMOVEMENT;'#13#10 +
+      '    delayed = 0;'#13#10 +
+      '    SELECT delayed FROM gd_document WHERE id = NEW.masterkey'#13#10 +
+      '    INTO :delayed;'#13#10 +
+      '    IF ((:delayed = 0) OR (:delayed IS NULL)) THEN'#13#10 +
+      '    BEGIN'#13#10 +
+      '      /* Проверяем соответствие количества по документу с движением */ '#13#10 +
+      '      SELECT SUM(debit), SUM(credit) FROM inv_movement'#13#10 +
+      '      WHERE documentkey = NEW.documentkey'#13#10 +
+      '      INTO :debit, :credit;'#13#10 +
+      '      IF (debit IS NULL) THEN '#13#10 +
+      '        debit = 0; '#13#10 +
+      '      IF (credit IS NULL) THEN '#13#10 +
+      '        credit = 0; '#13#10 +
+      '      IF ('#13#10 +
+      '          ((:credit <> NEW.outquantity) AND (NEW.inquantity = 0)) OR'#13#10 +
+      '          ((:debit <> NEW.inquantity) AND (NEW.outquantity = 0))'#13#10 +
+      '         )'#13#10 +
+      '      THEN'#13#10 +
+      '        EXCEPTION INV_E_INVALIDMOVEMENT;'#13#10 +
+      '      fc = NULL;'#13#10 +
+      '      IF ((NEW.inquantity IS NOT NULL) AND (NEW.inquantity > 0)) THEN '#13#10 +
+      '        SELECT MAX(cardkey) FROM inv_movement'#13#10 +
+      '          WHERE (documentkey = NEW.documentkey) AND (debit > 0)'#13#10 +
+      '        INTO :fc;'#13#10 +
+      '      ELSE '#13#10 +
+      '        SELECT MAX(cardkey) FROM inv_movement'#13#10 +
+      '          WHERE (documentkey = NEW.documentkey) AND (credit > 0)'#13#10 +
+      '        INTO :fc;'#13#10 +
+      '      IF (:fc > 0) THEN'#13#10 +
+      '        NEW.fromcardkey = :fc;'#13#10 +
+      '    END'#13#10 +
+      '  END'#13#10 +
+      'END ',
+      [FieldByName('relationname').AsString,
+       gdcBaseManager.AdjustMetaName('USR$BU_' + FieldByName('relationname').AsString)]
+      ));
+
+  Scripts.Add(
+    Format(
+    'CREATE OR ALTER TRIGGER %1:s FOR %0:S '#13#10 +
+    'BEFORE DELETE '#13#10 +
+    'POSITION 0 '#13#10 +
+    'AS '#13#10 +
+    'BEGIN '#13#10 +
+    '  DELETE FROM inv_movement WHERE documentkey = OLD.documentkey; '#13#10 +
+    'END ', [FieldByName('relationname').AsString,
+      gdcBaseManager.AdjustMetaName('USR$BD_' + FieldByName('relationname').AsString)]));
 end;
 
 procedure TgdcInvTransformDocumentLineTable.MakePredefinedRelationFields;
@@ -885,8 +869,6 @@ begin
     NewField('DISABLED',
       'Отключено', 'DDISABLED', 'Отключено', 'Отключено',
       'L', '16', '1', '1');
-
-
   end;
 end;
 

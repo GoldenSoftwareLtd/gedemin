@@ -724,8 +724,6 @@ type
 
     function GetDetailLinks(Index: Integer): TgdcBase;
     function GetDetailLinksCount: Integer;
-    function GetObjectName: String;
-    procedure SetObjectName(const Value: String);
     function GetCreationDate: TDateTime;
     function GetCreatorKey: TID;
     function GetCreatorName: String;
@@ -793,7 +791,7 @@ type
     FIgnoreDataSet: TObjectList;
 
 // Флаг указывает что MasterSource устанавливается для внутренних целей
-// и никаких действий производить не надо.    
+// и никаких действий производить не надо.
     FIsInternalMasterSource: Boolean;
 
     // Используется для передачи в отчеты текущей формы
@@ -807,6 +805,9 @@ type
     //
     procedure CopyEventHandlers(Dest, Source: TgdcBase);
     procedure ResetEventHandlers(Obj: TgdcBase);
+
+    function GetObjectName: String; virtual;
+    procedure SetObjectName(const Value: String);
 
     // Методы для перегрузки методов макросами
     // Метод вызывается по Inherited в макросе

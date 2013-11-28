@@ -2518,20 +2518,7 @@ var
 //  Index: Integer;
   C: TClass;
   S: TStrings;
-//  SubType: String;
   FullName: TgdcFullClassName;
-
-{  function GetSubType(ClassName, FullName: string): string;
-  var
-    L: Integer;
-    I: Integer;
-  begin
-    L := Length(ClassName);
-    Result := Copy(FullName, L + 1, Length(FullName) - L);
-    for I := 1 to Length(Result) do
-      if Result[I] = '_' then Result[I] := '$';
-  end;}
-
 begin
   Result := nil;
   S := TStringList.Create;

@@ -149,6 +149,7 @@ type
     procedure Drop;
 
   protected
+    function GetObjectName: String; override;
     function GetSelectClause: String; override;
     function GetFromClause(const ARefresh: Boolean = False): String; override;
 
@@ -185,10 +186,9 @@ type
   protected
     FTableType: TgdcTableType;
 
+    function GetObjectName: String; override;
     function CreateGrantSQL: String;
-
     procedure CreateRelationSQL(Scripts: TSQLProcessList); virtual; abstract;
-
     procedure MetaDataCreate;
 
     procedure CustomInsert(Buff: Pointer); override;
@@ -457,6 +457,8 @@ type
     procedure UpdateField;
 
   protected
+    function GetObjectName: String; override;
+
     function GetSelectClause: String; override;
     function GetFromClause(const ARefresh: Boolean = False): String; override;
     function GetOrderClause: String; override;
@@ -1883,6 +1885,15 @@ begin
   Result := FieldByName('fieldname').AsString;
 end;
 
+function TgdcField.GetObjectName: String;
+begin
+  if Active then
+    Result := FieldByName('lname').AsString + ', ' +
+      FieldByName('fieldname').AsString
+  else
+    Result := inherited GetObjectName;    
+end;
+
 { TgdcRelation }
 
 constructor TgdcRelation.Create(AnOwner: TComponent);
@@ -2475,6 +2486,15 @@ end;
 function TgdcRelation.GetFirebirdObjectName: String;
 begin
   Result := FieldByName('relationname').AsString;
+end;
+
+function TgdcRelation.GetObjectName: String;
+begin
+  if Active then
+    Result := FieldByName('lname').AsString + ', ' +
+      FieldByName('relationname').AsString
+  else
+    Result := inherited GetObjectName;    
 end;
 
 { TgdcTable }
@@ -5489,6 +5509,16 @@ begin
   Result := FieldByName('fieldname').AsString;
 end;
 
+function TgdcRelationField.GetObjectName: String;
+begin
+  if Active then
+    Result := FieldByName('lname').AsString + ', ' +
+      FieldByName('relationname').AsString + '.' +
+      FieldByName('fieldname').AsString
+  else
+    Result := inherited GetObjectName;
+end;
+
 { TgdcTableField }
 
 constructor TgdcTableField.Create(AnOwner: TComponent);
@@ -6552,9 +6582,7 @@ begin
       'Кто модифицировал', 'DINTKEY', 'Кто модифицировал', 'Кто модифицировал',
       'L', '20', '1', '0');
   end;
-
 end;
-
 
 procedure TgdcTreeTable._DoOnNewRecord;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
