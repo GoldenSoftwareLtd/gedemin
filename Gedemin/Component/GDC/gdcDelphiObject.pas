@@ -295,10 +295,10 @@ end;
 procedure TgdcDelphiObject.GetWhereClauseConditions(S: TStrings);
 begin
   if HasSubSet(ssByUpperName) then
-//    S.Add('UPPER(z.name) = UPPER(:name)')
-    S.Add('((UPPER(z.objectname) = UPPER(:objectname)) or (:objectname is NULL AND objectname = '''')) AND'#13#10 +
-      '((UPPER(z.classname) = UPPER(:classname)) or (:classname is NULL AND classname = '''')) AND'#13#10 +
-      '((UPPER(z.subtype) = UPPER(:subtype)) or (:subtype is NULL AND subtype = ''''))')
+    S.Add(
+      '(UPPER(z.objectname) = UPPER(COALESCE(:objectname, ''''))) AND'#13#10 +
+      '(UPPER(z.classname)  = UPPER(COALESCE(:classname, ''''))) AND'#13#10 +
+      '(UPPER(z.subtype) = UPPER(COALESCE(:subtype, '''')))')
   else
     if HasSubSet('ByParent') then
       S.Add(' z.Parent = :Parent ')
@@ -449,7 +449,6 @@ var
     Result := -1;
     if ReadSQL.Open then
       ReadSQL.Close;
-//    ReadSQL.Open;
     ReadSQL.ParamByName('classname').AsString := ClFullName.gdClassName;
     ReadSQL.ParamByName('subtype').AsString := ClFullName.SubType;
     ReadSQL.ExecQuery;
@@ -512,8 +511,6 @@ begin
       for K := Length(FClArray) - 1 downto 0 do
         begin
           TmpFullName := FClArray[K];
-  //        if (AnsiCompareStr(TmpFullName.gdClassName, TgdcBase.ClassName) = 0) or
-  //          (AnsiCompareStr(TmpFullName.gdClassName, TgdcCreateableForm.ClassName) = 0) then
           I := InsertClass(I, TmpFullName);
         end;
       finally
@@ -540,5 +537,4 @@ initialization
 
 finalization
   UnRegisterGDCClass(TgdcDelphiObject);
-
 end.

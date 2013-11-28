@@ -673,7 +673,6 @@ begin
       I := cbClasses.Items.IndexOf(TmpClass.ClassName);
       if I > -1 then
       begin
-//        TTreeNode(cbClasses.Items.Objects[I]).Selected := True;
         Break;
       end;
       TmpClass := TmpClass.ClassParent;
