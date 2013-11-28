@@ -294,8 +294,8 @@ type
     procedure RoundOpenProc;
     procedure SemiColonProc;
     procedure SlashProc;
+    procedure NumberProc;
     procedure SpaceProc;
-    procedure SepcialString;
     procedure SquareCloseProc;
     procedure SquareOpenProc;
     procedure StarProc;
@@ -1769,12 +1769,12 @@ begin
       ')': fProcTable[I] := RoundCloseProc;
       ';': fProcTable[I] := SemiColonProc;
       '/': fProcTable[I] := SlashProc;
+      '0'..'9': fProcTable[I] := NumberProc;      
       #1..#9, #11, #12, #14..#32: fProcTable[I] := SpaceProc;
       ']': fProcTable[I] := SquareCloseProc;
       '[': fProcTable[I] := SquareOpenProc;
       '*': fProcTable[I] := StarProc;
       #34: fProcTable[I] := StringProc;
-      '$': fProcTable[I] := SepcialString;
       '~': fProcTable[I] := TildeProc;
       else fProcTable[I] := UnknownProc;
     end;
@@ -1789,7 +1789,7 @@ begin
   AddAttribute(fCommentAttri);
   
   fDirectiveAttri := TSynHighLighterAttributes.Create(SYNS_AttrDirective);
-  fDirectiveAttri.Foreground := $00C05000;
+  fDirectiveAttri.Foreground := clNavy;
   AddAttribute(fDirectiveAttri);
   
   fIdentifierAttri := TSynHighLighterAttributes.Create(SYNS_AttrIdentifier);
@@ -1797,7 +1797,7 @@ begin
   AddAttribute(fIdentifierAttri);
   
   fKeyAttri := TSynHighLighterAttributes.Create(SYNS_AttrReservedWord);
-  fKeyAttri.Foreground := clBlue;
+  fKeyAttri.Foreground := clNavy;
   AddAttribute(fKeyAttri);
   
   fNumberAttri := TSynHighLighterAttributes.Create(SYNS_AttrNumber);
@@ -1808,11 +1808,11 @@ begin
   AddAttribute(fSpaceAttri);
   
   fStringAttri := TSynHighLighterAttributes.Create(SYNS_AttrString);
-  fStringAttri.Foreground := clMaroon;
+  fStringAttri.Foreground := clTeal;
   AddAttribute(fStringAttri);
-  
+
   fSymbolAttri := TSynHighLighterAttributes.Create(SYNS_AttrSymbol);
-  fSymbolAttri.Foreground := clNavy;
+  fSymbolAttri.Foreground := clMaroon;
   AddAttribute(fSymbolAttri);
   
   SetAttributesOnChange(DefHighlightChange);
@@ -1928,7 +1928,7 @@ end;
 procedure TSynPrologSyn.InfoProc;
 begin
   Inc(Run);
-  fTokenId := tkSymbol;
+  fTokenId := tkKey;
 end;
 
 procedure TSynPrologSyn.LFProc;
@@ -1951,8 +1951,10 @@ end;
 
 procedure TSynPrologSyn.ModSymbolProc;
 begin
-  Inc(Run);
   fTokenId := tkComment;
+  repeat
+    inc(Run);
+  until fLine[Run] in [#0, #10, #13];
 end;
 
 procedure TSynPrologSyn.NullProc;
@@ -1963,7 +1965,7 @@ end;
 procedure TSynPrologSyn.OrSymbolProc;
 begin
   Inc(Run);
-  fTokenId := tkSymbol;
+  fTokenId := tkKey;
 end;
 
 procedure TSynPrologSyn.PlusProc;
@@ -2066,6 +2068,13 @@ begin
   end;
 end;
 
+procedure TSynPrologSyn.NumberProc;
+begin
+  inc(Run);
+  fTokenID := tkNumber;
+  while FLine[Run] in ['0'..'9', '.', 'e', 'E'] do inc(Run);
+end;
+
 procedure TSynPrologSyn.SpaceProc;
 begin
   Inc(Run);
@@ -2095,28 +2104,12 @@ end;
 procedure TSynPrologSyn.StringProc;
 begin
   fTokenID := tkString;
-  if (FLine[Run + 1] = #34) and (FLine[Run + 2] = #34) then
-    Inc(Run, 2);
   repeat
     case FLine[Run] of
       #0, #10, #13: Break;
-      #92:
-        if FLine[Run + 1] = #10 then Inc(Run);
     end;
     inc(Run);
   until FLine[Run] = #34;
-  if FLine[Run] <> #0 then Inc(Run);
-end;
-
-procedure TSynPrologSyn.SepcialString;
-begin
-  fTokenID := tkString;
-  repeat
-    case FLine[Run] of
-      #0, #10, #13: Break;
-    end;
-    Inc(Run);
-  until FLine[Run] = '$';
   if FLine[Run] <> #0 then Inc(Run);
 end;
 
