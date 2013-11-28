@@ -1372,8 +1372,11 @@ begin
   FInChoose := True;
 
   //Список для выбранных ид в том порядке, в котором их выбрали
-  FChosenIDInOrder := TStringList.Create;
-  FChosenIDInOrder.Duplicates := dupIgnore;
+  if FChosenIDInOrder = nil then
+  begin
+    FChosenIDInOrder := TStringList.Create;
+    FChosenIDInOrder.Duplicates := dupIgnore;
+  end;
 
   S := ' (режим выбора)';
   if Copy(Caption, Length(Caption) - Length(S) + 1, Length(S)) <> S then

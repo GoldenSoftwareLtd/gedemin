@@ -737,7 +737,7 @@ procedure TFunctionFrame.GotoLineNumber;
 var
   frm: TdlgInputLineNumber;
 begin
-  frm:= TdlgInputLineNumber.Create(self);
+  frm:= TdlgInputLineNumber.Create(nil);
   try
     frm.LineNumber:= gsFunctionSynEdit.CaretY;
     if frm.ShowModal = mrOk then begin
@@ -745,7 +745,7 @@ begin
       gsFunctionSynEdit.Show;
     end;
   finally
-    FreeAndNil(frm);
+    frm.Free;
   end;
 end;
 
@@ -1886,7 +1886,7 @@ begin
 
   if gdcFunction.ID <= 0 then Exit;
 
-  ibsql := TIBSQL.Create(Self);
+  ibsql := TIBSQL.Create(nil);
   try
     ibsql.Transaction := gdcBaseManager.ReadTransaction;
     if Flag in [sdDependent, sdAll] then
