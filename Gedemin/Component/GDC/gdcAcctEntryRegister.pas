@@ -303,7 +303,7 @@ type
     procedure OnAfterLineEdit(DataSet: TDataSet);
     procedure OnAfterLineInsert(DataSet: TDataSet);
 
-    function GetCurrNCUKey: Integer;
+    function GetCurrNCUKey: Integer; 
   protected
     procedure CreateFields; override;
     procedure DoAfterScroll; override;
@@ -2210,6 +2210,7 @@ begin
       gdcAcctComplexRecord.ReadTransaction := ReadTransaction;
       gdcAcctComplexRecord.SubSet := 'ByID';
       gdcAcctComplexRecord.ID := FieldByName('recordkey').AsInteger;
+      gdcAcctComplexRecord.TransactionKey := FieldByName('transactionkey').AsInteger;
       gdcAcctComplexRecord.Open;
       Result := gdcAcctComplexRecord.EditDialog(ADlgClassName);
       if Result then
@@ -3961,7 +3962,7 @@ begin
     S.Add('entrykey = :entrykey');
 end;
 
-{ TgdcAcctComplexRecord }
+{ TgdcAcctComplexRecord }   
 
 function TgdcAcctComplexRecord.AppendLine: TgdcAcctEntryLine;
 begin
@@ -4725,7 +4726,7 @@ begin
   if TransactionKey <> -1 then
     FieldByName('transactionkey').AsInteger := TransactionKey
   else
-    FieldByName('transactionkey').AsInteger := DefaultTransactionKey;
+    FieldByName('transactionkey').AsInteger := DefaultTransactionKey;  
 
   FieldByName('trrecordkey').AsInteger := DefaultEntryKey;
   FieldByName('companykey').AsInteger := IBLogin.CompanyKey;
