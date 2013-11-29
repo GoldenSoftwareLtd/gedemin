@@ -617,6 +617,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (195, '0000.0001.0000.0226', '27.11.2013', 'Add Triggers command into the Explorer tree.');
 
+INSERT INTO fin_versioninfo
+  VALUES (196, '0000.0001.0000.0227', '29.11.2013', 'Field changed added to at_namespace.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id

@@ -1001,6 +1001,7 @@ begin
     NS.Edit;
     NS.FieldByName('filename').AsString := FN;
     NS.FieldByName('filetimestamp').AsDateTime := gd_common_functions.GetFileLastWrite(FN);
+    NS.FieldByName('changed').AsInteger := 0;
     NS.Post;
 
     NS.Close;

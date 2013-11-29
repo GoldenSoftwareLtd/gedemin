@@ -26,11 +26,102 @@ procedure Issue3218(IBDB: TIBDatabase; Log: TModifyLog);
 procedure AddNSSyncTables(IBDB: TIBDatabase; Log: TModifyLog);
 procedure ChangeAcLedgerAccounts(IBDB: TIBDatabase; Log: TModifyLog);
 procedure RUIDsForGdStorageData(IBDB: TIBDatabase; Log: TModifyLog);
+procedure AddAtNamespaceChanged(IBDB: TIBDatabase; Log: TModifyLog);
 
 implementation
 
 uses
   Windows, mdf_metadata_unit;
+
+procedure AddAtNamespaceChanged(IBDB: TIBDatabase; Log: TModifyLog);
+var
+  q: TIBSQL;
+  Tr: TIBTransaction;
+begin
+  Tr := TIBTransaction.Create(nil);
+  q := TIBSQL.Create(nil);
+  try
+    Tr.DefaultDatabase := IBDB;
+    Tr.StartTransaction;
+
+    try
+      q.Transaction := Tr;
+
+      if not FieldExist2('at_namespace', 'changed', Tr) then
+      begin
+        q.SQL.Text := 'ALTER TABLE at_namespace ADD changed dboolean_notnull DEFAULT 1';
+        q.ExecQuery;
+
+        Tr.Commit;
+        Tr.StartTransaction;
+
+        q.SQL.Text := 'UPDATE at_namespace SET changed = 0';
+        q.ExecQuery;
+      end;
+
+      q.SQL.Text :=
+        'CREATE OR ALTER TRIGGER at_aiud_object FOR at_object '#13#10 +
+        '  ACTIVE '#13#10 +
+        '  AFTER INSERT OR UPDATE OR DELETE '#13#10 +
+        '  POSITION 20000 '#13#10 +
+        'AS '#13#10 +
+        'BEGIN '#13#10 +
+        '  IF (INSERTING OR UPDATING) THEN '#13#10 +
+        '    UPDATE at_namespace n SET n.changed = 1 WHERE n.changed = 0 '#13#10 +
+        '      AND n.id = NEW.namespacekey; '#13#10 +
+        ' '#13#10 +
+        '  IF (UPDATING OR DELETING) THEN '#13#10 +
+        '    UPDATE at_namespace n SET n.changed = 1 WHERE n.changed = 0 '#13#10 +
+        '      AND n.id = OLD.namespacekey; '#13#10 +
+        'END';
+      q.ExecQuery;
+
+      q.SQL.Text :=
+        'CREATE OR ALTER TRIGGER at_aiud_namespace_link FOR at_namespace_link '#13#10 +
+        '  ACTIVE '#13#10 +
+        '  AFTER INSERT OR UPDATE OR DELETE '#13#10 +
+        '  POSITION 20000 '#13#10 +
+        'AS '#13#10 +
+        'BEGIN '#13#10 +
+        '  IF (INSERTING) THEN '#13#10 +
+        '    UPDATE at_namespace n SET n.changed = 1 WHERE n.changed = 0 '#13#10 +
+        '      AND n.id = NEW.namespacekey; '#13#10 +
+        ' '#13#10 +
+        '  IF (UPDATING) THEN '#13#10 +
+        '  BEGIN '#13#10 +
+        '    IF (NEW.namespacekey <> OLD.namespacekey OR NEW.useskey <> OLD.useskey) THEN '#13#10 +
+        '      UPDATE at_namespace n SET n.changed = 1 WHERE n.changed = 0 '#13#10 +
+        '        AND (n.id = NEW.namespacekey OR n.id = OLD.namespacekey); '#13#10 +
+        '  END '#13#10 +
+        ' '#13#10 +
+        '  IF (DELETING) THEN '#13#10 +
+        '    UPDATE at_namespace n SET n.changed = 1 WHERE n.changed = 0 '#13#10 +
+        '      AND n.id = OLD.namespacekey; '#13#10 +
+        'END';
+      q.ExecQuery;
+
+      q.Close;
+      q.SQL.Text :=
+        'UPDATE OR INSERT INTO fin_versioninfo ' +
+        '  VALUES (196, ''0000.0001.0000.0227'', ''29.11.2013'', ''Field changed added to at_namespace.'') ' +
+        '  MATCHING (id)';
+      q.ExecQuery;
+
+      Tr.Commit;
+    except
+      on E: Exception do
+      begin
+        Log('Произошла ошибка: ' + E.Message);
+        if Tr.InTransaction then
+          Tr.Rollback;
+        raise;
+      end;
+    end;
+  finally
+    q.Free;
+    Tr.Free;
+  end;
+end;
 
 procedure DeleteCardParamsItem(IBDB: TIBDatabase; Log: TModifyLog);
 var

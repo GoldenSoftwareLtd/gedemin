@@ -654,9 +654,9 @@ begin
     ' '#13#10 +
     '  UPDATE at_namespace_sync s SET s.operation = ''>>'' '#13#10 +
     '  WHERE '#13#10 +
-    '    (EXISTS (SELECT * FROM at_object o '#13#10 +
-    '       WHERE o.namespacekey = s.namespacekey '#13#10 +
-    '         AND DATEDIFF(SECOND, o.modified, o.curr_modified) >= 1) '#13#10 +
+    '    (EXISTS (SELECT * FROM at_namespace n '#13#10 +
+    '       WHERE n.id = s.namespacekey '#13#10 +
+    '         AND n.changed <> 0) '#13#10 +
     '     OR '#13#10 +
     '     (EXISTS (SELECT * FROM at_namespace_sync s2 '#13#10 +
     '        JOIN at_namespace n ON n.id = s2.namespacekey '#13#10 +

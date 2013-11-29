@@ -735,7 +735,6 @@ begin
 
     if V is TgsStreamValue then
     begin
-      { TODO : Плохо, что имена папок прописаны непосредственно в тексте программы, а не сделаны константами! }
       if Assigned(F.Parent) and ((F.Parent.Name = 'DFM') or (F.Parent.Name = 'NewForm')) then
       begin
         StIn := TStringStream.Create(V.AsString);
@@ -868,7 +867,7 @@ begin
         'Корректные значения:'#13#10 +
         '  .stt (загрузка данных хранилища в текстовом виде)' +
         '  .std (загрузка данных хранилища в двоичном виде)' +
-        'Данные не были сохранены.',
+        'Данные не были загружены.',
         'Ошибка',
         MB_OK or MB_ICONEXCLAMATION);
 
@@ -976,14 +975,11 @@ end;
 procedure Tst_frmMain.LoadSettings;
 begin
   inherited;
-  //TBRegLoadPositions(Self, HKEY_CURRENT_USER, ClientRootRegistrySubKey + 'TB\' + Name);
 end;
 
 procedure Tst_frmMain.SaveSettings;
 begin
   inherited;
-
-  //TBRegSavePositions(Self, HKEY_CURRENT_USER, ClientRootRegistrySubKey + 'TB\' + Name);
 
   if Assigned(UserStorage) then
   begin
@@ -1164,9 +1160,14 @@ begin
   try
     q.Transaction := gdcBaseManager.ReadTransaction;
     q.SQL.Text :=
+      'SELECT r.id FROM gd_ruid r JOIN at_object p ON ' +
+      '  p.xid = r.id AND p.dbid = r.dbid ' +
+      'WHERE p.objectclass IN (''TgdcStorageFolder'', ''TgdcStorageValue'') ';
+      { 
       'SELECT r.id FROM gd_ruid r JOIN at_settingpos p ON ' +
       '  p.xid = r.id AND p.dbid = r.dbid ' +
       'WHERE p.category = ''GD_STORAGE_DATA'' ';
+      }
     q.ExecQuery;
 
     while not q.EOF do
@@ -1230,7 +1231,7 @@ begin
       Sender.Canvas.Font.Style := lv.Font.Style;
   end;
 
-  if InSett = nil then
+  if InSett = nil then                  
     exit;
 
   if tv.Selected = nil then

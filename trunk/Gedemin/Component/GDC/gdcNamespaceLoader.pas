@@ -431,12 +431,14 @@ var
   NSID: TID;
   NSTimeStamp: TDateTime;
   NSRUID: TRUID;
-  NSName: String;
+  NSName, NSList: String;
+  q: TIBSQL;
 begin
   Assert(not FLoading);
   Assert(AList <> nil);
   Assert(IBLogin <> nil);
 
+  NSList := '';
   FLoading := True;
   FRemoveList.Clear;
   LoadOurCompanies;
@@ -522,6 +524,7 @@ begin
         FgdcNamespace.Post;
 
         NSID := FgdcNamespace.ID;
+        NSList := NSList + IntToStr(NSID) + ',';
         NSTimeStamp := FgdcNamespace.FieldByName('filetimestamp').AsDateTime;
 
         OverwriteRUID(NSID, NSRUID.XID, NSRUID.DBID);
@@ -616,6 +619,21 @@ begin
 
   if FNeedRelogin then
     ReloginDatabase;
+
+  q := TIBSQL.Create(nil);
+  FTr.StartTransaction;
+  try
+    q.Transaction := FTr;
+    if NSList > '' then
+    begin
+      q.SQL.Text := 'UPDATE at_namespace SET changed = 0 WHERE id IN (' +
+        System.Copy(NSList, 1, Length(NSList) - 1) + ')';
+      q.ExecQuery;
+    end;
+  finally
+    q.Free;
+    FTr.Commit;
+  end;
 
   FLoading := False;
 
@@ -1329,9 +1347,12 @@ begin
 
         FqCheckTheSame.Next;
         if not FqCheckTheSame.EOF then
+        begin
+          AddMistake('«апрос вернул многострочный набор данных:'#13#10 + CheckStmt); 
           Result := -1;
+        end;
       end;
-    finally  
+    finally
       FqCheckTheSame.Close;
     end;
   except
