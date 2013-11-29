@@ -277,7 +277,7 @@ begin
     SetAccountIDs(cbAccounts, FAccountIDs, cbShowCorrSubAccount.Checked, False);
   if Assigned(FAccountIDs) and (FAccountIDs.Count > 0) then begin
     Delete(s, 1, 2);
-    q:= TIBSQL.Create(self);
+    q:= TIBSQL.Create(nil);
     try
       q.Transaction:= gdcBaseManager.ReadTransaction;
       q.SQL.Text:= 'SELECT lb, rb FROM ac_account WHERE id IN ' +
