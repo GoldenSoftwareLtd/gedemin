@@ -1424,6 +1424,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (195, '0000.0001.0000.0226', '27.11.2013', 'Add Triggers command into the Explorer tree.');
 
+INSERT INTO fin_versioninfo
+  VALUES (196, '0000.0001.0000.0227', '29.11.2013', 'Field changed added to at_namespace.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
@@ -16204,6 +16207,7 @@ CREATE TABLE at_namespace (
   comment       dblobtext80_1251,
   settingruid   VARCHAR(21),
   filedata      dscript,
+  changed       dboolean_notnull DEFAULT 1,
 
   CONSTRAINT at_pk_namespace PRIMARY KEY (id)
 );
@@ -16371,6 +16375,22 @@ BEGIN
 END
 ^
 
+CREATE OR ALTER TRIGGER at_aiud_object FOR at_object
+  ACTIVE
+  AFTER INSERT OR UPDATE OR DELETE
+  POSITION 20000
+AS
+BEGIN
+  IF (INSERTING OR UPDATING) THEN
+    UPDATE at_namespace n SET n.changed = 1 WHERE n.changed = 0
+      AND n.id = NEW.namespacekey;
+
+  IF (UPDATING OR DELETING) THEN
+    UPDATE at_namespace n SET n.changed = 1 WHERE n.changed = 0
+      AND n.id = OLD.namespacekey;
+END
+^
+
 SET TERM ; ^
 
 CREATE TABLE at_namespace_link (
@@ -16390,6 +16410,29 @@ CREATE TABLE at_namespace_link (
 );
 
 SET TERM ^ ;
+
+CREATE OR ALTER TRIGGER at_aiud_namespace_link FOR at_namespace_link
+  ACTIVE
+  AFTER INSERT OR UPDATE OR DELETE
+  POSITION 20000
+AS
+BEGIN
+  IF (INSERTING) THEN
+    UPDATE at_namespace n SET n.changed = 1 WHERE n.changed = 0
+      AND n.id = NEW.namespacekey;
+
+  IF (UPDATING) THEN
+  BEGIN
+    IF (NEW.namespacekey <> OLD.namespacekey OR NEW.useskey <> OLD.useskey) THEN
+      UPDATE at_namespace n SET n.changed = 1 WHERE n.changed = 0
+        AND (n.id = NEW.namespacekey OR n.id = OLD.namespacekey);
+  END
+
+  IF (DELETING) THEN
+    UPDATE at_namespace n SET n.changed = 1 WHERE n.changed = 0
+      AND n.id = OLD.namespacekey;
+END
+^
 
 CREATE OR ALTER PROCEDURE at_p_findnsrec (InPath VARCHAR(32000),
   InFirstID INTEGER, InID INTEGER)

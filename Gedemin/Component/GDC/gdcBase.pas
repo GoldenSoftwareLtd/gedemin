@@ -14234,8 +14234,7 @@ begin
   {END MACRO}
 
   if State = dsInactive then
-    Result := Format('SELECT %0:s FROM %1:s WHERE %0:s=:%0:s ',
-      [GetKeyField(SubType), GetListTable(SubType)])
+    Result := ''
   else begin
     F := FieldByName(GetKeyField(SubType));
     if (not EOF) and (F.AsInteger < cstUserIDStart) and (not F.IsNull) then
