@@ -225,7 +225,6 @@ SET TERM ; ^
 
 COMMIT;
 
-
 CREATE TABLE inv_balanceoption(
   id                      DINTKEY,
   name                    DNAME,

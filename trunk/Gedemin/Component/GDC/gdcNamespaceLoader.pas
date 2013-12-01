@@ -41,6 +41,8 @@ type
     FTr: TIBTransaction;
     FqFindNS, FqOverwriteNSRUID: TIBSQL;
     FqFindRUID, FqUpdateAtObject, FqUpdateAtSettingPos: TIBSQL;
+    FqUpdateGdFunction, FqUpdateGdDocumentType: TIBSQL;
+    FqUpdateInvBalanceOption: TIBSQL;
     FqLoadAtObject, FqClearAtObject: TIBSQL;
     FgdcNamespace: TgdcNamespace;
     FgdcNamespaceObject: TgdcNamespaceObject;
@@ -376,6 +378,26 @@ begin
   FqFindAtObject.SQL.Text :=
     'SELECT id FROM at_object WHERE xid = :xid AND dbid = :dbid';
 
+  FqUpdateGdFunction := TIBSQL.Create(nil);
+  FqUpdateGdFunction.Transaction := FTr;
+  FqUpdateGdFunction.SQL.Text :=
+    'UPDATE gd_function SET script = REPLACE(script, :old, :new), ' +
+    '  editiondate = CURRENT_TIMESTAMP(0) ' +
+    'WHERE POSITION(:old IN script) > 0';
+
+  FqUpdateGdDocumentType := TIBSQL.Create(nil);
+  FqUpdateGdDocumentType.Transaction := FTr;
+  FqUpdateGdDocumentType.SQL.Text :=
+    'UPDATE gd_documenttype SET ruid = :new, ' +
+    '  editiondate = CURRENT_TIMESTAMP(0) ' +
+    'WHERE ruid = :old';
+
+  FqUpdateInvBalanceOption := TIBSQL.Create(nil);
+  FqUpdateInvBalanceOption.Transaction := FTr;
+  FqUpdateInvBalanceOption.SQL.Text :=
+    'UPDATE inv_balanceoption SET ruid = :new ' +
+    '  WHERE ruid = :old';
+
   FqCheckTheSame := TIBSQL.Create(nil);
   FqCheckTheSame.Transaction := FTr;
 
@@ -407,6 +429,9 @@ begin
   FqUpdateAtObject.Free;
   FqUpdateAtSettingPos.Free;
   FqLoadAtObject.Free;
+  FqUpdateGdFunction.Free;
+  FqUpdateGdDocumentType.Free;
+  FqUpdateInvBalanceOption.Free;
   FTr.Free;
   inherited;
 end;
@@ -944,7 +969,7 @@ begin
       Inc(FMetadataCounter)
     else if FMetadataCounter > 0 then
       ProcessMetadata;
-      
+
     FPrevPosted := CgdcBase(Obj.ClassType);
   end;
 end;
@@ -952,6 +977,8 @@ end;
 procedure TgdcNamespaceLoader.OverwriteRUID(const AnID, AXID, ADBID: TID);
 var
   AtObjectRecord: TAtObjectRecord;
+  OldRUIDString, NewRUIDString: String;
+  OldRUIDParam, NewRUIDParam: String;
 begin
   Assert(
     ((AnID >= cstUserIDStart) and (AXID >= cstUserIDSTart))
@@ -973,6 +1000,34 @@ begin
 
       if not FqFindRUID.EOF then
       begin
+        OldRUIDString := RUIDToStr(FqFindRUID.FieldByName('xid').AsInteger,
+          FqFindRUID.FieldByName('dbid').AsInteger);
+        NewRUIDString := RUIDToStr(AXID, ADBID);
+
+        OldRUIDParam := FqFindRUID.FieldByName('xid').AsString + ', ' +
+          FqFindRUID.FieldByName('dbid').AsString;
+        NewRUIDParam := IntToStr(AXID) + ', ' + IntToStr(ADBID);
+
+        FqUpdateGdFunction.ParamByName('old').AsString := OldRUIDString;
+        FqUpdateGdFunction.ParamByName('new').AsString := NewRUIDString;
+        FqUpdateGdFunction.ExecQuery;
+
+        FqUpdateGdFunction.ParamByName('old').AsString := OldRUIDParam;
+        FqUpdateGdFunction.ParamByName('new').AsString := NewRUIDParam;
+        FqUpdateGdFunction.ExecQuery;
+
+        FqUpdateGdFunction.ParamByName('old').AsString := StringReplace(OldRUIDParam, ' ', '', []);
+        FqUpdateGdFunction.ParamByName('new').AsString := StringReplace(NewRUIDParam, ' ', '', []);
+        FqUpdateGdFunction.ExecQuery;
+
+        FqUpdateGdDocumentType.ParamByName('old').AsString := OldRUIDString;
+        FqUpdateGdDocumentType.ParamByName('new').AsString := NewRUIDString;
+        FqUpdateGdDocumentType.ExecQuery;
+
+        FqUpdateInvBalanceOption.ParamByName('old').AsString := OldRUIDString;
+        FqUpdateInvBalanceOption.ParamByName('new').AsString := NewRUIDString;
+        FqUpdateInvBalanceOption.ExecQuery;
+
         FqUpdateAtObject.ParamByName('old_xid').AsInteger := FqFindRUID.FieldByName('xid').AsInteger;
         FqUpdateAtObject.ParamByName('old_dbid').AsInteger := FqFindRUID.FieldByName('dbid').AsInteger;
         FqUpdateAtObject.ParamByName('xid').AsInteger := AXID;
