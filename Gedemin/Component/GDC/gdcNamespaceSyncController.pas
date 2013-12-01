@@ -896,7 +896,7 @@ begin
     '  ns_tree t '#13#10 +
     '  JOIN at_namespace_sync s ON t.filename = s.filename '#13#10 +
     'WHERE '#13#10 +
-    '  s.operation IN (''  '', ''? '') '#13#10 +
+    '  s.operation <> ''! '' '#13#10 +
     ' '#13#10 +
     'UNION '#13#10 +
     ' '#13#10 +
@@ -912,7 +912,7 @@ begin
     'WHERE '#13#10 +
     '  l.filename IS NULL '#13#10 +
     '  AND '#13#10 +
-    '  s.operation IN (''  '', ''? '')';
+    '  s.operation <> ''! '' ';
 end;
 
 procedure TgdcNamespaceSyncController.Scan(const ACalculateStatus: Boolean;
