@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2000-2012 by Golden Software of Belarus
+  Copyright (c) 2000-2013 by Golden Software of Belarus
                                                                
   Module
 
@@ -215,11 +215,11 @@ begin
   {END MACRO}
 
   if State = dsInactive then
-    Result := 'SELECT id FROM gd_command WHERE UPPER(cmd) = UPPER(:cmd)'
+    Result := 'SELECT FIRST 1 id FROM gd_command WHERE UPPER(cmd) = UPPER(:cmd)'
   else if ID < cstUserIDStart then
     Result := inherited CheckTheSameStatement
   else
-    Result := 'SELECT id FROM gd_command WHERE UPPER(cmd) = UPPER(''' +
+    Result := 'SELECT FIRST 1 id FROM gd_command WHERE UPPER(cmd) = UPPER(''' +
       StringReplace(FieldByName('cmd').AsString, '''', '''''', [rfReplaceAll]) + ''') ';
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCEXPLORER', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}

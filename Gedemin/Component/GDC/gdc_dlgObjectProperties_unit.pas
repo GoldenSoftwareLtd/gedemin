@@ -74,6 +74,13 @@ type
     ibdsDependencies: TIBDataSet;
     dsDependencies: TDataSource;
     gsibgrDependencies: TgsIBGrid;
+    tsNamespace: TTabSheet;
+    tbNS: TTBToolbar;
+    ibgrNS: TgsIBGrid;
+    ibdsNS: TIBDataSet;
+    dsNS: TDataSource;
+    actDeleteFromNamespace: TAction;
+    TBItem2: TTBItem;
     procedure cbAccessClassChange(Sender: TObject);
     procedure actExcludeUpdate(Sender: TObject);
     procedure actExcludeExecute(Sender: TObject);
@@ -95,6 +102,8 @@ type
     procedure actGoToMethodsUpdate(Sender: TObject);
     procedure actGoToMethodsSubtypeUpdate(Sender: TObject);
     procedure actGoToMethodsParentUpdate(Sender: TObject);
+    procedure actDeleteFromNamespaceUpdate(Sender: TObject);
+    procedure actDeleteFromNamespaceExecute(Sender: TObject);
 
   private
     function GetCurrentSecField(const ATI: TgdcTableInfos = []): TField;
@@ -320,6 +329,22 @@ begin
       gdcObject.GetDependencies(ibtrCommon, 1976, True);
       ibdsDependencies.Close;
       ibdsDependencies.Open;
+    end;
+  end
+  else if pcMain.ActivePage = tsNamespace then
+  begin
+    if Assigned(gdcObject) then
+    begin
+      if ibdsNS.Active then
+      begin
+        ibdsNS.Close;
+        dsNS.DataSet := nil;
+      end;
+      ibdsNS.ParamByName('id').AsInteger := gdcObject.ID;
+      ibdsNS.Open;
+      ibdsNS.FieldByName('ObjectID').Visible := False;
+      ibdsNS.FieldByName('NSID').Visible := False;
+      dsNS.DataSet := ibdsNS;
     end;
   end;
 end;
@@ -1030,6 +1055,18 @@ procedure Tgdc_dlgObjectProperties.actGoToMethodsParentUpdate(
 begin
   TAction(Sender).Enabled:= (gdcObject <> nil) and (EventControl <> nil)
     and IBLogin.IsIBUserAdmin;
+end;
+
+procedure Tgdc_dlgObjectProperties.actDeleteFromNamespaceUpdate(
+  Sender: TObject);
+begin
+  actDeleteFromNamespace.Enabled := ibdsNS.Active and (not ibdsNS.EOF);
+end;
+
+procedure Tgdc_dlgObjectProperties.actDeleteFromNamespaceExecute(
+  Sender: TObject);
+begin
+  ibdsNS.Delete;
 end;
 
 initialization
