@@ -3289,7 +3289,7 @@ var
   i: Integer;
   S: TStringList;
 begin
-  if AnsiPos('CREATE VIEW', AnsiUpperCase(Source)) > 0 then
+  if (StrIPos('CREATE OR ALTER VIEW', Source) > 0) or (StrIPos('CREATE VIEW', Source) > 0) then
     Result := Source
   else begin
     S := TStringList.Create;
@@ -3297,7 +3297,7 @@ begin
       GetFieldsName(Source, S);
       if S.Count = 0 then
         raise EgdcIBError.Create('Ошибка при создании представления: количество полей равно нулю!');
-      Result := Format('CREATE VIEW %s ('#13#10, [FieldByName('relationname').AsString]);
+      Result := Format('CREATE OR ALTER VIEW %s ('#13#10, [FieldByName('relationname').AsString]);
       for i := 0 to S.Count - 2 do
         Result := Result + S[i] + ', ' + #13#10;
       Result := Result + S[S.Count - 1] +  #13#10 + ' )'#13#10 + ' AS ' + Source;
@@ -3308,32 +3308,11 @@ begin
 end;
 
 function TgdcView.GetAlterViewTextBySource(const Source: String): String;
-var
-  i: Integer;
-  S: TStringList;
 begin
-  if AnsiPos('ALTER VIEW', AnsiUpperCase(Source)) > 0 then
-  begin
-    Result := Source;
-  end
-  else if AnsiPos('CREATE VIEW', AnsiUpperCase(Source)) > 0 then
-  begin
-    Result := StringReplace(Source, 'CREATE VIEW', 'ALTER VIEW', [rfIgnoreCase]);
-  end else
-  begin
-    S := TStringList.Create;
-    try
-      GetFieldsName(Source, S);
-      if S.Count = 0 then
-        raise EgdcIBError.Create('Ошибка при создании представления: количество полей равно нулю!');
-      Result := Format('ALTER VIEW %s ('#13#10, [FieldByName('relationname').AsString]);
-      for i := 0 to S.Count - 2 do
-        Result := Result + S[i] + ', ' + #13#10;
-      Result := Result + S[S.Count - 1] +  #13#10 + ' )'#13#10 + ' AS ' + Source;
-    finally
-      S.Free;
-    end;
-  end;
+  if (StrIPos('CREATE OR ALTER VIEW', Source) > 0) or (StrIPos('ALTER VIEW', Source) > 0) then
+    Result := Source
+  else
+    Result := GetViewTextBySource(Source);
 end;
 
 class function TgdcView.GetDialogFormClassName(

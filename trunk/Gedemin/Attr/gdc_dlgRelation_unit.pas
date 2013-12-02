@@ -144,7 +144,6 @@ type
     procedure actDeleteTriggerUpdate(Sender: TObject);
     procedure gdcTriggerAfterInsert(DataSet: TDataSet);
     procedure actNewTriggerUpdate(Sender: TObject);
-    procedure actOkUpdate(Sender: TObject);
     procedure actSetShortCatExecute(Sender: TObject);
     procedure tvTriggersDblClick(Sender: TObject);
     procedure tvTriggersCustomDrawItem(Sender: TCustomTreeView;
@@ -1015,6 +1014,7 @@ var
   {END MACRO}
   i: Integer;
   IBExtract: TIBExtract;
+  ET: TExtractObjectTypes;
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGRELATION', 'SETUPDIALOG', KEYSETUPDIALOG)}
   {M}  try
@@ -1084,7 +1084,6 @@ begin
   if not gdcTableField.Active then
     gdcTableField.Open;
 
-
   gdcIndex.Close;
   gdcIndex.ReadTransaction := gdcObject.Transaction;
   gdcIndex.Transaction := gdcObject.Transaction;
@@ -1098,11 +1097,13 @@ begin
   gdcCheckConstraint.Transaction := gdcObject.Transaction;
   gdcCheckConstraint.Open;
 
-  IBExtract := TIBExtract.Create(Self);
+  IBExtract := TIBExtract.Create(nil);
   try
     IBExtract.Database := gdcObject.Transaction.DefaultDatabase;
     IBExtract.Transaction := gdcObject.Transaction;
-    IBExtract.ExtractObject(eoTable, gdcObject.FieldByName('relationname').AsString,
+    if gdcObject is TgdcView then ET := eoView
+      else ET := eoTable;
+    IBExtract.ExtractObject(ET, gdcObject.FieldByName('relationname').AsString,
       [etDomain, etTable, etTrigger, etForeign, etIndex, etGrant, etCheck]);
     smScriptText.Text := IBExtract.Items.Text;
   finally
@@ -1115,13 +1116,6 @@ begin
   {M}    ClearMacrosStack('TGDC_DLGRELATION', 'SETUPDIALOG', KEYSETUPDIALOG);
   {M}end;
   {END MACRO}
-end;
-
-procedure Tgdc_dlgRelation.actOkUpdate(Sender: TObject);
-begin
-  {actOk.Enabled := Assigned(gdcTableField) and (gdcTableField.RecordCount > 0);
-  if actOk.Enabled then}
-    inherited;
 end;
 
 procedure Tgdc_dlgRelation.SetShortCat(AnObject: TgdcBase);

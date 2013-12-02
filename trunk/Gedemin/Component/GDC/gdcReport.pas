@@ -455,12 +455,14 @@ begin
     SQL.Free;
   end;
 
+  {
   if FindField('aview') <> nil then
     FieldByName('aview').AsInteger := -1;
   if FindField('achag') <> nil then
     FieldByName('achag').AsInteger := -1;
   if FindField('afull') <> nil then
     FieldByName('afull').AsInteger := -1;
+  }  
 
   inherited DoBeforePost;
 
@@ -534,11 +536,6 @@ begin
   {M}  end;
   {END MACRO}
 end;
-
-{class function TgdcReportGroup.GetKeyField(const ASubType: TgdcSubType): String;
-begin
-  Result := fnId;
-end;}
 
 class function TgdcReportGroup.GetListField(const ASubType: TgdcSubType): String;
 begin

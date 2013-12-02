@@ -1,45 +1,46 @@
 inherited gdc_dlgRelation: Tgdc_dlgRelation
   Left = 375
   Top = 190
-  Width = 526
-  Height = 444
+  Width = 620
+  Height = 544
   HelpContext = 84
   BorderStyle = bsSizeable
+  BorderWidth = 4
   Caption = 'Редактирование таблицы'
   OnClose = FormClose
   PixelsPerInch = 96
   TextHeight = 13
   inherited btnAccess: TButton
-    Left = 3
-    Top = 389
+    Left = 0
+    Top = 475
     Anchors = [akLeft, akBottom]
   end
   inherited btnNew: TButton
-    Left = 79
-    Top = 389
+    Left = 76
+    Top = 475
     Anchors = [akLeft, akBottom]
     Enabled = False
   end
   inherited btnHelp: TButton
-    Left = 155
-    Top = 389
+    Left = 152
+    Top = 475
     Anchors = [akLeft, akBottom]
   end
   inherited btnOK: TButton
-    Left = 364
-    Top = 389
+    Left = 452
+    Top = 475
     Anchors = [akRight, akBottom]
   end
   inherited btnCancel: TButton
-    Left = 440
-    Top = 389
+    Left = 528
+    Top = 475
     Anchors = [akRight, akBottom]
   end
   object pcRelation: TPageControl [5]
     Left = 0
     Top = 0
-    Width = 510
-    Height = 381
+    Width = 596
+    Height = 469
     ActivePage = tsCommon
     Align = alTop
     Anchors = [akLeft, akTop, akRight, akBottom]
@@ -104,8 +105,8 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
         Height = 31
         AutoSize = False
         Caption = 
-          'Поля для расширенного отображения  (на английском через запятую)' +
-          ':'
+          'Поля для расширенного отображения  (на английском, через запятую' +
+          '):'
         WordWrap = True
       end
       object Label5: TLabel
@@ -244,13 +245,14 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
       end
     end
     object tsFields: TTabSheet
+      BorderWidth = 2
       Caption = 'Поля'
       ImageIndex = 1
       object ibgrRelationFields: TgsIBGrid
         Left = 0
         Top = 26
-        Width = 502
-        Height = 327
+        Width = 584
+        Height = 411
         HelpContext = 3
         Align = alClient
         DataSource = dsRelationFields
@@ -276,7 +278,7 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
       object TBDock1: TTBDock
         Left = 0
         Top = 0
-        Width = 502
+        Width = 584
         Height = 26
         object tbFields: TTBToolbar
           Left = 0
@@ -286,6 +288,8 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
           DockMode = dmCannotFloatOrChangeDocks
           FullSize = True
           Images = dmImages.il16x16
+          ParentShowHint = False
+          ShowHint = True
           TabOrder = 0
           object TBItem3: TTBItem
             Action = actNewField
@@ -303,20 +307,21 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
       end
     end
     object tsTrigger: TTabSheet
+      BorderWidth = 2
       Caption = 'Триггеры'
       ImageIndex = 2
       object Panel1: TPanel
         Left = 0
         Top = 0
-        Width = 502
-        Height = 353
+        Width = 584
+        Height = 437
         Align = alClient
         BevelOuter = bvNone
         TabOrder = 0
         object Splitter1: TSplitter
           Left = 0
           Top = 113
-          Width = 502
+          Width = 584
           Height = 4
           Cursor = crVSplit
           Align = alTop
@@ -324,7 +329,7 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
         object Panel2: TPanel
           Left = 0
           Top = 0
-          Width = 502
+          Width = 584
           Height = 113
           Align = alTop
           BevelOuter = bvNone
@@ -332,7 +337,7 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
           object tvTriggers: TTreeView
             Left = 0
             Top = 0
-            Width = 502
+            Width = 584
             Height = 113
             Align = alClient
             Images = dmImages.ilToolBarSmall
@@ -356,16 +361,16 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
         object Panel3: TPanel
           Left = 0
           Top = 117
-          Width = 502
-          Height = 236
+          Width = 584
+          Height = 320
           Align = alClient
           BevelOuter = bvNone
           TabOrder = 1
           object smTriggerBody: TSynMemo
             Left = 0
             Top = 26
-            Width = 502
-            Height = 210
+            Width = 584
+            Height = 294
             Cursor = crIBeam
             Align = alClient
             Font.Charset = DEFAULT_CHARSET
@@ -714,7 +719,7 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
           object TBDock2: TTBDock
             Left = 0
             Top = 0
-            Width = 502
+            Width = 584
             Height = 26
             object tbTriggers: TTBToolbar
               Left = 0
@@ -747,13 +752,14 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
       end
     end
     object tsIndices: TTabSheet
+      BorderWidth = 2
       Caption = 'Индексы'
       ImageIndex = 3
       object ibgrIndices: TgsIBGrid
         Left = 0
         Top = 26
-        Width = 502
-        Height = 327
+        Width = 584
+        Height = 411
         HelpContext = 3
         Align = alClient
         DataSource = dsIndices
@@ -780,7 +786,7 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
       object TBDock3: TTBDock
         Left = 0
         Top = 0
-        Width = 502
+        Width = 584
         Height = 26
         object tbIndices: TTBToolbar
           Left = 0
@@ -809,13 +815,14 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
       end
     end
     object tsConstraints: TTabSheet
+      BorderWidth = 2
       Caption = 'Ограничения'
       ImageIndex = 4
       object ibgrConstraints: TgsIBGrid
         Left = 0
         Top = 26
-        Width = 502
-        Height = 327
+        Width = 584
+        Height = 411
         Align = alClient
         DataSource = dsConstraints
         Options = [dgTitles, dgColumnResize, dgColLines, dgRowLines, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit]
@@ -840,7 +847,7 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
       object TBDock4: TTBDock
         Left = 0
         Top = 0
-        Width = 502
+        Width = 584
         Height = 26
         object tbChecks: TTBToolbar
           Left = 0
@@ -869,13 +876,14 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
       end
     end
     object tsScript: TTabSheet
+      BorderWidth = 2
       Caption = 'Скрипт'
       ImageIndex = 5
       object smScriptText: TSynMemo
         Left = 0
         Top = 0
-        Width = 502
-        Height = 353
+        Width = 584
+        Height = 437
         Cursor = crIBeam
         Align = alClient
         Font.Charset = DEFAULT_CHARSET

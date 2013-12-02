@@ -5407,7 +5407,6 @@ begin
               '-', '', [rfReplaceAll]), 1, 30);
           try
             Transaction.SetSavePoint(FSavepoint);
-            //ExecSingleQuery('SAVEPOINT ' + FSavepoint);
           except
             UseSavepoints := False;
             FSavepoint := '';

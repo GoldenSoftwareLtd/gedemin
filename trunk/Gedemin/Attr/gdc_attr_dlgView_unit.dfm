@@ -1,36 +1,34 @@
 inherited gdc_attr_dlgView: Tgdc_attr_dlgView
-  Left = 518
-  Top = 127
-  Width = 527
-  Height = 448
+  Left = 628
+  Top = 305
   HelpContext = 80
   Caption = 'Редактирование представления'
   PixelsPerInch = 96
   TextHeight = 13
   inherited btnAccess: TButton
-    Top = 386
+    Top = 474
     TabOrder = 3
   end
   inherited btnNew: TButton
-    Top = 386
+    Top = 474
     TabOrder = 4
   end
   inherited btnHelp: TButton
-    Top = 386
+    Top = 474
     TabOrder = 5
   end
   inherited btnOK: TButton
-    Top = 386
+    Left = 453
+    Top = 474
     TabOrder = 1
   end
   inherited btnCancel: TButton
-    Top = 386
+    Left = 527
+    Top = 474
     TabOrder = 2
   end
   inherited pcRelation: TPageControl
-    Width = 511
-    Height = 382
-    ActivePage = tsView
+    Height = 470
     TabOrder = 0
     OnChange = pcRelationChange
     inherited tsCommon: TTabSheet
@@ -40,8 +38,8 @@ inherited gdc_attr_dlgView: Tgdc_attr_dlgView
         Caption = 'Название представления (на английском языке):'
       end
       inherited lblLName: TLabel
-        Width = 215
-        Caption = 'Локализованное название представления'
+        Width = 219
+        Caption = 'Локализованное название представления:'
       end
       inherited lblLShortName: TLabel
         Width = 178
@@ -51,15 +49,46 @@ inherited gdc_attr_dlgView: Tgdc_attr_dlgView
         Width = 134
         Caption = 'Описание представления:'
       end
+      inherited dbedRelationName: TDBEdit
+        Left = 264
+      end
+      inherited dbedLRelationName: TDBEdit
+        Left = 264
+      end
+      inherited dbeShortRelationName: TDBEdit
+        Left = 264
+      end
+      inherited dbeRelationDescription: TDBMemo
+        Left = 264
+      end
+      inherited ibcmbReference: TgsIBLookupComboBox
+        Left = 264
+      end
+      inherited iblcExplorerBranch: TgsIBLookupComboBox
+        Left = 264
+      end
+      inherited dbeExtendedFields: TDBEdit
+        Left = 264
+      end
+      inherited dbeListField: TDBEdit
+        Left = 264
+      end
+      inherited lClass: TEdit
+        Left = 264
+      end
+      inherited lSubType: TEdit
+        Left = 264
+      end
     end
     object tsView: TTabSheet [1]
+      BorderWidth = 2
       Caption = 'Текст представления'
       ImageIndex = 3
       object smViewBody: TSynMemo
         Left = 0
         Top = 0
-        Width = 503
-        Height = 324
+        Width = 584
+        Height = 408
         Cursor = crIBeam
         Align = alTop
         Anchors = [akLeft, akTop, akRight, akBottom]
@@ -400,8 +429,8 @@ inherited gdc_attr_dlgView: Tgdc_attr_dlgView
           end>
       end
       object btnCreateView: TButton
-        Left = 425
-        Top = 330
+        Left = 506
+        Top = 414
         Width = 75
         Height = 21
         Action = actCreateView
@@ -411,35 +440,16 @@ inherited gdc_attr_dlgView: Tgdc_attr_dlgView
     end
     inherited tsFields: TTabSheet
       inherited ibgrRelationFields: TgsIBGrid
-        Width = 503
-        Height = 328
-      end
-      inherited TBDock1: TTBDock
-        Width = 503
+        Height = 412
       end
     end
     inherited tsTrigger: TTabSheet
       inherited Panel1: TPanel
-        Width = 503
-        Height = 354
-        inherited Splitter1: TSplitter
-          Width = 503
-        end
-        inherited Panel2: TPanel
-          Width = 503
-          inherited tvTriggers: TTreeView
-            Width = 503
-          end
-        end
+        Height = 438
         inherited Panel3: TPanel
-          Width = 503
-          Height = 237
+          Height = 321
           inherited smTriggerBody: TSynMemo
-            Width = 503
-            Height = 211
-          end
-          inherited TBDock2: TTBDock
-            Width = 503
+            Height = 295
           end
         end
       end
@@ -449,17 +459,12 @@ inherited gdc_attr_dlgView: Tgdc_attr_dlgView
     end
     inherited tsConstraints: TTabSheet
       inherited ibgrConstraints: TgsIBGrid
-        Width = 503
-        Height = 328
-      end
-      inherited TBDock4: TTBDock
-        Width = 503
+        Height = 412
       end
     end
     inherited tsScript: TTabSheet
       inherited smScriptText: TSynMemo
-        Width = 503
-        Height = 354
+        Height = 438
       end
     end
   end

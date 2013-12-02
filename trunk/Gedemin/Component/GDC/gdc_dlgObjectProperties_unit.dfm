@@ -305,7 +305,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
         Font.Height = -9
         Font.Name = 'Tahoma'
         Font.Style = []
-        ItemHeight = 0
+        ItemHeight = 11
         ParentFont = False
         TabOrder = 2
       end
@@ -805,6 +805,50 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
         ReadOnly = True
       end
     end
+    object tsNamespace: TTabSheet
+      Caption = 'ПИ'
+      ImageIndex = 7
+      object tbNS: TTBToolbar
+        Left = 0
+        Top = 0
+        Width = 435
+        Height = 22
+        Align = alTop
+        Caption = 'tbNS'
+        DockMode = dmCannotFloatOrChangeDocks
+        ParentShowHint = False
+        ShowHint = True
+        TabOrder = 0
+        object TBItem2: TTBItem
+          Action = actDeleteFromNamespace
+          ImageIndex = 261
+          Images = dmImages.il16x16
+        end
+      end
+      object ibgrNS: TgsIBGrid
+        Left = 0
+        Top = 22
+        Width = 435
+        Height = 386
+        Align = alClient
+        DataSource = dsNS
+        Options = [dgColumnResize, dgColLines, dgTabs, dgRowSelect, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit]
+        ReadOnly = True
+        TabOrder = 1
+        InternalMenuKind = imkWithSeparator
+        Expands = <>
+        ExpandsActive = False
+        ExpandsSeparate = False
+        TitlesExpanding = False
+        Conditions = <>
+        ConditionsActive = False
+        CheckBox.Visible = False
+        CheckBox.FirstColumn = False
+        MinColWidth = 40
+        ColumnEditors = <>
+        Aliases = <>
+      end
+    end
   end
   inherited alBase: TActionList
     Left = 310
@@ -858,6 +902,12 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
       Hint = 'Перейти на методы класса'
       OnExecute = actGoToMethodsParentExecute
       OnUpdate = actGoToMethodsParentUpdate
+    end
+    object actDeleteFromNamespace: TAction
+      Caption = 'Удалить из пространства имен'
+      Hint = 'Удалить из пространства имен'
+      OnExecute = actDeleteFromNamespaceExecute
+      OnUpdate = actDeleteFromNamespaceUpdate
     end
   end
   inherited dsgdcBase: TDataSource
@@ -934,5 +984,29 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
     DataSet = ibdsDependencies
     Left = 112
     Top = 220
+  end
+  object ibdsNS: TIBDataSet
+    Transaction = ibtrCommon
+    DeleteSQL.Strings = (
+      'DELETE FROM at_object WHERE id = :ObjectID')
+    SelectSQL.Strings = (
+      'SELECT'
+      '  n.name, o.id AS ObjectID, n.id AS NSID'
+      'FROM'
+      '  at_object o'
+      '    JOIN at_namespace n ON n.id = o.namespacekey'
+      '    JOIN gd_ruid r ON r.xid = o.xid AND r.dbid = o.dbid'
+      'WHERE'
+      '  r.id = :id'
+      'ORDER BY'
+      '  n.name')
+    ReadTransaction = ibtrCommon
+    Left = 72
+    Top = 268
+  end
+  object dsNS: TDataSource
+    DataSet = ibdsNS
+    Left = 112
+    Top = 268
   end
 end

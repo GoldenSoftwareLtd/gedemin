@@ -134,6 +134,7 @@ type
 
     function GetGroupID: Integer; override;
     function GetNotCopyField: String; override;
+    procedure DoBeforePost; override;
 
     property Joins: TStringList read GetJoins write SetJoins;
 
@@ -1143,6 +1144,46 @@ begin
   Result := Self.ClassNameIs('TgdcInvBaseDocument');
 end;
 
+procedure TgdcInvBaseDocument.DoBeforePost;
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+begin
+  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCINVBASEDOCUMENT', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCINVBASEDOCUMENT', KEYDOBEFOREPOST);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOBEFOREPOST]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCINVBASEDOCUMENT') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCINVBASEDOCUMENT',
+  {M}          'DOBEFOREPOST', KEYDOBEFOREPOST, Params, LResult) then exit;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCINVBASEDOCUMENT' then
+  {M}        begin
+  {M}          Inherited;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  if sMultiple in BaseState then
+    raise EgdcInvDocument.Create('Множественное редактирование складских документов не допускается.');
+
+  inherited;
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVBASEDOCUMENT', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCINVBASEDOCUMENT', 'DOBEFOREPOST', KEYDOBEFOREPOST);
+  {M}  end;
+  {END MACRO}
+end;
+
 { TgdcInvDocument }
 
 constructor TgdcInvDocument.Create(AnOwner: TComponent);
@@ -1629,7 +1670,6 @@ var
       finally
         if FLSavePoint <> '' then
           Transaction.ReleaseSavePoint(FLSavePoint);
-          //ExecSingleQuery('RELEASE SAVEPOINT ' + FLSavePoint);
         if Transaction.InTransaction and DidActivate then
           Transaction.Commit;
       end;
@@ -2354,7 +2394,6 @@ procedure TgdcInvDocumentLine.DoBeforePost;
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-  //Times: LongWord;
 begin
   {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCINVDOCUMENTLINE', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
   {M}  try
@@ -2391,15 +2430,10 @@ begin
     abort;
   end;
 
-
   inherited;
 
   if not (sMultiple in BaseState) then
   begin
-
-
-//    UpdateGoodNames;
-
     if
       ((irsRemainsRef in FSources) and
       (not (irsGoodRef in FSources) or (sLoadFromStream in BaseState))  and

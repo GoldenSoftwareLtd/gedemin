@@ -790,8 +790,12 @@ begin
           'Существующий объект необходимо отредактировать для устранения неоднозначности.';
         if not gd_CmdLineParams.QuietMode then
         begin
-          MessageBox(0, PChar(SWarn), 'Внимание', MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
-          Obj.EditDialog;
+          if MessageBox(0, PChar(SWarn), 'Внимание', MB_OKCANCEL or MB_ICONEXCLAMATION or MB_TASKMODAL) = IDOK then
+            Obj.EditDialog
+          else begin
+            AddMistake('Процесс прерван пользователем');
+            Abort;
+          end;
         end else
           AddWarning(SWarn);
         Obj.Close;
