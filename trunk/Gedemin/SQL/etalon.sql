@@ -15010,7 +15010,6 @@ SET TERM ; ^
 
 COMMIT;
 
-
 CREATE TABLE inv_balanceoption(
   id                      DINTKEY,
   name                    DNAME,
@@ -19923,7 +19922,7 @@ INSERT INTO gd_curr
   (id, disabled, isNCU, code, name, shortname, sign, place, decdigits,
      fullcentname, shortcentname, centbase, icon, reserved, name_0, name_1, centname_0, centname_1)
   VALUES (200010, 0, 1, 'BYR', 'Белорусский рубль', 'BYR', 'Br',
-     1, 0, 'копейка', 'коп.', 1, NULL, NULL, 'белорусских рублей', 'белорусских рубля', 'копеек', 'копейки');
+     1, 0, '', '', 1, NULL, NULL, 'белорусских рублей', 'белорусских рубля', '', '');
 
 INSERT INTO gd_curr
   (id, disabled, isNCU, isEq, code, name, shortname, sign, place, decdigits,
@@ -19935,7 +19934,7 @@ INSERT INTO gd_curr
   (id, disabled, isNCU, code, name, shortname, sign, place, decdigits,
      fullcentname, shortcentname, centbase, icon, reserved, name_0, name_1, centname_0, centname_1)
   VALUES (200040, 0, 0, 'EUR', 'Евро', 'EUR', 'EUR',
-     1, 2, 'цент', 'ц.', 1, NULL, NULL, 'евро', 'евро', 'центов', 'цента');
+     1, 2, 'евроцент', 'ц.', 1, NULL, NULL, 'евро', 'евро', 'евроцентов', 'евроцента');
 
 INSERT INTO gd_curr
   (id, disabled, isNCU, code, name, shortname, sign, place, decdigits,
@@ -21056,6 +21055,9 @@ INSERT INTO gd_documenttype(id, ruid, parent, name, description)
 INSERT INTO gd_documenttype(id, ruid, parent, name, description)
   VALUES (800350, '800350_17', 800001, 'Банковская картотека', 'Банковская картотека');
 
+INSERT INTO gd_documenttype(id, ruid, name, description, documenttype, classname, editiondate)
+  VALUES (801000, '801000_17', 'Документ пользователя', 'Документ пользователя', 'B', 'TgdcUserDocumentType', '01.01.2000');
+
 /* Складские документы */
 
 INSERT INTO gd_documenttype(id, ruid, name, description, documenttype, classname)
@@ -21091,9 +21093,12 @@ INSERT INTO gd_documenttype(id, parent, ruid, name, description, documenttype)
 
 /* Типовые проводки */
 
-INSERT INTO ac_transaction(id, name) VALUES (807001, 'Произвольные проводки');
+INSERT INTO ac_transaction(id, name, editiondate) VALUES (807001, 'Произвольные проводки', '01.01.2000');
+INSERT INTO ac_transaction(id, name, editiondate) VALUES (807002, 'Налоги', '01.01.2000');
 
-INSERT INTO ac_trrecord(id, transactionkey, documenttypekey, description) VALUES (807100, 807001, 806001, 'Произвольная проводка');
+
+INSERT INTO ac_trrecord(id, transactionkey, documenttypekey, description)
+  VALUES (807100, 807001, 806001, 'Произвольная проводка');
 
 
 -- gd_storage_data
@@ -21165,6 +21170,9 @@ INSERT INTO rp_reportgroup (id, parent, name, usergroupname)
   VALUES (2000510, 2000500, 'Клиенты', '2000510');
 INSERT INTO rp_reportgroup (id, parent, name, usergroupname)
   VALUES (2000520, 2000500, 'Товары', '2000520');
+
+INSERT INTO rp_reportgroup (id, parent, name, usergroupname, editiondate)
+  VALUES (1020002, NULL, 'Бухгалтерский отчет', 'TGDCTAXNAME', '01.01.2000');
 
 /* Банк                */
 

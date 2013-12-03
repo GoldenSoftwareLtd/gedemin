@@ -935,6 +935,7 @@ VALUES (<value_list>)
     FHaving: TsqlHaving;
     FSubSelect: Boolean;
     FWith: TsqlWith;
+    FComments: String;
 
     FNeeded, FDone: TClauses;
 
@@ -1772,7 +1773,7 @@ end;
 
 procedure TsqlField.BuildStatement(out sql: String);
 var
-  subsql: string;
+  subsql: String;
   I: Integer;
 begin
   sql := '';
@@ -5899,6 +5900,8 @@ end;
 
 procedure TsqlFull.ParseStatement;
 begin
+  Self.FComments := '';
+
   if (FParser.FToken.TokenType = ttSymbolClause) and
     (FParser.FToken.SymbolClause = scBracketOpen) then
   begin
@@ -6006,14 +6009,18 @@ begin
 
       ttWord, ttSymbolClause:
       begin
-        if (FParser.FToken.TokenType = ttSymbolClause) and
-          (FParser.FToken.SymbolClause = scBracketClose) and
-          FSubSelect then
-        begin
-          ReadNext;
-        end;
+        if (Token.TextKind = tkText) and IsComment(Token.Text) then
+          Self.FComments := Self.FComments + Token.Text + #13#10
+        else begin
+          if (FParser.FToken.TokenType = ttSymbolClause) and
+            (FParser.FToken.SymbolClause = scBracketClose) and
+            FSubSelect then
+          begin
+            ReadNext;
+          end;
 
-        Break;
+          Break;
+        end;
       end;
     end;
 
@@ -6036,6 +6043,8 @@ begin
     sql := '('
   else
     sql := '';
+
+  sql := sql + FComments;  
 
   if Assigned(FWith) then
   begin
