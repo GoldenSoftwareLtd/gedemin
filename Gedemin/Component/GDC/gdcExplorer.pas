@@ -215,11 +215,15 @@ begin
   {END MACRO}
 
   if State = dsInactive then
-    Result := 'SELECT FIRST 1 id FROM gd_command WHERE UPPER(cmd) = UPPER(:cmd)'
+    Result :=
+      'SELECT FIRST 1 id FROM gd_command ' +
+      'WHERE COALESCE(cmd, '''') > '''' AND UPPER(cmd) = UPPER(:cmd)'
   else if ID < cstUserIDStart then
     Result := inherited CheckTheSameStatement
   else
-    Result := 'SELECT FIRST 1 id FROM gd_command WHERE UPPER(cmd) = UPPER(''' +
+    Result :=
+      'SELECT FIRST 1 id FROM gd_command ' +
+      'WHERE COALESCE(cmd, '''') > '''' AND UPPER(cmd) = UPPER(''' +
       StringReplace(FieldByName('cmd').AsString, '''', '''''', [rfReplaceAll]) + ''') ';
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCEXPLORER', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}

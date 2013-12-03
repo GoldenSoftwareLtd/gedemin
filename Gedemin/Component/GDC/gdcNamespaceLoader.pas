@@ -42,6 +42,7 @@ type
     FqFindNS, FqOverwriteNSRUID: TIBSQL;
     FqFindRUID, FqUpdateAtObject, FqUpdateAtSettingPos: TIBSQL;
     FqUpdateGdFunction, FqUpdateGdDocumentType: TIBSQL;
+    FqUpdateGdCommand: TIBSQL;
     FqUpdateInvBalanceOption: TIBSQL;
     FqLoadAtObject, FqClearAtObject: TIBSQL;
     FgdcNamespace: TgdcNamespace;
@@ -385,6 +386,13 @@ begin
     '  editiondate = CURRENT_TIMESTAMP(0) ' +
     'WHERE POSITION(:old IN script) > 0';
 
+  FqUpdateGdCommand := TIBSQL.Create(nil);
+  FqUpdateGdCommand.Transaction := FTr;
+  FqUpdateGdCommand.SQL.Text :=
+    'UPDATE gd_command SET cmd = :new, ' +
+    '  editiondate = CURRENT_TIMESTAMP(0) ' +
+    'WHERE cmd = :old';
+
   FqUpdateGdDocumentType := TIBSQL.Create(nil);
   FqUpdateGdDocumentType.Transaction := FTr;
   FqUpdateGdDocumentType.SQL.Text :=
@@ -430,6 +438,7 @@ begin
   FqUpdateAtSettingPos.Free;
   FqLoadAtObject.Free;
   FqUpdateGdFunction.Free;
+  FqUpdateGdCommand.Free;
   FqUpdateGdDocumentType.Free;
   FqUpdateInvBalanceOption.Free;
   FTr.Free;
@@ -1011,6 +1020,10 @@ begin
         OldRUIDParam := FqFindRUID.FieldByName('xid').AsString + ', ' +
           FqFindRUID.FieldByName('dbid').AsString;
         NewRUIDParam := IntToStr(AXID) + ', ' + IntToStr(ADBID);
+
+        FqUpdateGdCommand.ParamByName('old').AsString := OldRUIDString;
+        FqUpdateGdCommand.ParamByName('new').AsString := NewRUIDString;
+        FqUpdateGdCommand.ExecQuery;
 
         FqUpdateGdFunction.ParamByName('old').AsString := OldRUIDString;
         FqUpdateGdFunction.ParamByName('new').AsString := NewRUIDString;
