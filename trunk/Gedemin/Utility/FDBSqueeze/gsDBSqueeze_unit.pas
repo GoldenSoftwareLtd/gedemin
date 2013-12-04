@@ -3,7 +3,7 @@ unit gsDBSqueeze_unit;
 interface
 
 uses
-  Windows, SysUtils, IB, IBDatabase, IBSQL, Classes, gd_ProgressNotifier_unit;
+  Windows, SysUtils, IB, IBDatabase, IBSQL, IBQuery, Classes, gd_ProgressNotifier_unit;
 
 type
   TActivateFlag = (aiActivate, aiDeactivate);
@@ -75,7 +75,8 @@ type
     // записать в лог
     procedure LogEvent(const AMsg: String);
     // ExecQuery  и запись в лог
-    procedure ExecSqlLogEvent(const AnIBSQL: TIBSQL; const AProcName: String; const AParamValuesStr: String = '');
+    procedure ExecSqlLogEvent(const AnIBSQL: TIBSQL; const AProcName: String; const AParamValuesStr: String = ''); Overload;
+    procedure ExecSqlLogEvent(const AnIBQuery: TIBQuery; const AProcName: String; const AParamValuesStr: String = ''); Overload;
 
     // создание бэкап-файла БД (доступно только при локальном размещении БД)
     procedure BackupDatabase;
@@ -88,7 +89,7 @@ type
 
     // создание необходимых таблиц для программы
     procedure CreateMetadata;
-    //сохранение первоначального состояния (PKs, FKs, UNIQs, состояния индексов и триггеров)
+    // сохранение первоначального состояния (PKs, FKs, UNIQs, состояния индексов и триггеров)
     procedure SaveMetadata;
 
     // подсчет бухгалтерского сальдо
@@ -160,7 +161,7 @@ type
 implementation
 
 uses
-  mdf_MetaData_unit, gdcInvDocument_unit, contnrs, IBQuery, IBServices, Messages, IBDatabaseInfo;
+  mdf_MetaData_unit, gdcInvDocument_unit, contnrs, IBServices, Messages, IBDatabaseInfo;
 
 { TgsDBSqueeze }
 
@@ -2339,7 +2340,6 @@ var
     TblsNamesList: TStringList;  // Process Queue
     AllProcessedTblsNames: TStringList;
     ReProc: TStringList;
-    EndReProcTbl: String;
     GoReprocess: Boolean;
     AllProc: TStringList;
     ProcTblsNamesList: TStringList;
@@ -2420,20 +2420,7 @@ var
       GoToLast := False;
 
       LogEvent('[test] FIgnoreTbls: ' + FIgnoreTbls.Text);
-
       try
-        ///test 0
-        q3.SQL.Text :=
-        'SELECT COUNT(a.pk) AS A, COUNT(b.pk) AS B, COUNT(c.pk) AS C, COUNT(d.pk) AS D, g_his_has(1, 156383501) AS HIS1_98,  g_his_has(1, 156383500) AS HIS1_97' + #13#10 +
-        'FROM dbs_tmp_pk_hash a,dbs_tmp_his_2 b,dbs_tmp_pk_hash c,dbs_tmp_his_2 d ' + #13#10 +
-        'WHERE a.relation_name = ''USR$BMS_APPL'' AND a.pk=156383501 ' + #13#10 +
-        '  AND b.relation_name = ''USR$BMS_APPL'' AND b.pk=156383500 ' + #13#10 +
-        '  AND c.relation_name = ''GD_DOCUMENT'' AND c.pk=156383501 ' + #13#10 +
-        '  AND d.relation_name = ''GD_DOCUMENT'' AND d.pk=156383500 ';
-        ExecSqlLogEvent(q3, 'IncludeCascadingSequences');
-        LogEvent('[_test 0] a=' + q3.FieldByName('A').AsString + ', b=' + q3.FieldByName('B').AsString + ', c=' + q3.FieldByName('C').AsString + ', d=' + q3.FieldByName('D').AsString + ', 98 in HIS: ' + q3.FieldByName('HIS1_98').AsString +', 97 in HIS: ' + q3.FieldByName('HIS1_97').AsString);
-        q3.Close;
-
         //------------------ добавление в HIS всех цепочек cascade, создание списка обработанных таблиц AllProcessedTblsNames
         while TblsNamesList.Count <> 0 do
         begin
@@ -2443,32 +2430,32 @@ var
             '  TRIM(fc.relation_name)     AS relation_name, ' +         #13#10 +
             '  LIST(fc.list_fields)       AS list_fields, ' +           #13#10 +
             '  TRIM(fc.ref_relation_name) AS ref_relation_name, ' +     #13#10 +
-            '  TRIM(fc.LIST_REF_FIELDS)   AS LIST_REF_FIELDS, ' +       #13#10 +
+            '  TRIM(fc.list_ref_fields)   AS list_ref_fields, ' +       #13#10 +
             '  TRIM(st.list_fields)       AS pk_fields ' +              #13#10 +
             'FROM dbs_fk_constraints fc ' +                             #13#10 +
-            '  JOIN dbs_suitable_tables st ' +                          #13#10 +
+            '  JOIN DBS_SUITABLE_TABLES st ' +                          #13#10 +
             '    ON st.relation_name = fc.relation_name ' +             #13#10 +
-            '  LEFT JOIN dbs_tmp2_fk_constraints fc2 ' +                #13#10 +
+            '  LEFT JOIN DBS_TMP2_FK_CONSTRAINTS fc2 ' +                #13#10 +
             '    ON fc2.constraint_name = fc.constraint_name ' +        #13#10 +
             'WHERE ' +                                                  #13#10 +
             '  fc2.constraint_name IS NULL ' +                          #13#10 +
-            '  AND fc.ref_relation_name = :rln ' +                          #13#10 +
+            '  AND fc.ref_relation_name = :rln ' +                      #13#10 +
             '  AND fc.delete_rule = ''CASCADE'' ' +                     #13#10 +//((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) '
             '  AND fc.list_fields NOT LIKE ''%,%'' ' +                  #13#10 +
-            'GROUP BY fc.relation_name, fc.ref_relation_name, fc.LIST_REF_FIELDS, st.list_fields ';
-
+            'GROUP BY fc.relation_name, fc.ref_relation_name, fc.list_ref_fields, st.list_fields ';
           q.ParamByName('rln').AsString := TblsNamesList[0];
-          q.Open;
+          ExecSqlLogEvent(q, 'IncludeCascadingSequences', 'rln=' + TblsNamesList[0]);
 
           q2.Close;
           q2.SQL.Text :=
-            'SELECT ' +                                                                   #13#10 +
-            '  TRIM(fc.list_fields) AS fk_fields ' +                                      #13#10 +
-            'FROM dbs_fk_constraints fc ' +                                               #13#10 +
-            '  JOIN dbs_suitable_tables pc ' +                                            #13#10 +
-            '    ON pc.relation_name = fc.relation_name AND pc.list_fields = fc.list_fields ' + #13#10 +
-            'WHERE fc.delete_rule = ''CASCADE'' ' +                                       #13#10 +//((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) ' +
-            '  AND fc.relation_name = :rln ' +                                            #13#10 +
+            'SELECT ' +                                                 #13#10 +
+            '  TRIM(fc.list_fields) AS fk_fields ' +                    #13#10 +
+            'FROM dbs_fk_constraints fc ' +                             #13#10 +
+            '  JOIN DBS_SUITABLE_TABLES pc ' +                          #13#10 +
+            '    ON pc.relation_name = fc.relation_name ' +             #13#10 +
+            '      AND pc.list_fields = fc.list_fields ' +              #13#10 +
+            'WHERE fc.delete_rule = ''CASCADE'' ' +                     #13#10 +//((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) ' +
+            '  AND fc.relation_name = :rln ' +                          #13#10 +
             '  AND fc.list_fields NOT LIKE ''%,%'' ';
           q2.ParamByName('rln').AsString := TblsNamesList[0];
           ExecSqlLogEvent(q2, 'IncludeCascadingSequences');
@@ -2489,13 +2476,14 @@ var
             FkFieldsList.Text := StringReplace(q.FieldByName('list_fields').AsString, ',', #13#10, [rfReplaceAll, rfIgnoreCase]);
             q2.Close;
             q2.SQL.Text :=
-              'SELECT ' +                                                                   #13#10 +
-              '  TRIM(fc.list_fields) AS fk_fields ' +                                      #13#10 +
-              'FROM dbs_fk_constraints fc ' +                                               #13#10 +
-              '  JOIN dbs_suitable_tables pc ' +                                            #13#10 +
-              '    ON pc.relation_name = fc.relation_name AND fc.list_fields = pc.list_fields ' + #13#10 +
-              'WHERE fc.delete_rule = ''CASCADE'' ' +                                       #13#10 +//((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) ' +
-              '  AND fc.relation_name = :rln ' +                                            #13#10 +
+              'SELECT ' +                                               #13#10 +
+              '  TRIM(fc.list_fields) AS fk_fields ' +                  #13#10 +
+              'FROM dbs_fk_constraints fc ' +                           #13#10 +
+              '  JOIN DBS_SUITABLE_TABLES pc ' +                        #13#10 +
+              '    ON pc.relation_name = fc.relation_name ' +           #13#10 +
+              '      AND fc.list_fields = pc.list_fields ' +            #13#10 +
+              'WHERE fc.delete_rule = ''CASCADE'' ' +                   #13#10 +//((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) ' +
+              '  AND fc.relation_name = :rln ' +                        #13#10 +
               '  AND fc.list_fields NOT LIKE ''%,%'' ';
             q2.ParamByName('rln').AsString := q.FieldByName('relation_name').AsString;
             ExecSqlLogEvent(q2, 'IncludeCascadingSequences');
@@ -2508,27 +2496,27 @@ var
                   'SELECT ' +                                                                                          #13#10 +
                   '  SUM(IIF(g_his_has(1, r.' + q.FieldByName('pk_fields').AsString + ') = 0, 1, 0)) AS RealKolvo, ' + #13#10 +
                   '  COUNT(g_his_include(1, r.' + q.FieldByName('pk_fields').AsString + '))          AS Kolvo ' +      #13#10 +
-                  'FROM ' +                                                       #13#10 +
-                     q.FieldByName('relation_name').AsString + ' r ' +            #13#10 +
+                  'FROM ' +                                                                                            #13#10 +
+                     q.FieldByName('relation_name').AsString + ' r ' +                        #13#10 +
                   'WHERE ';
                 if not IsLine then
-                  q3.SQL.Add(' ' +                                                #13#10 +
+                  q3.SQL.Add(' ' +                                                            #13#10 +
                     'g_his_has(1, r.' + Trim(FkFieldsList[I]) + ') = 1')
                 else
-                  q3.SQL.Add(' ' +                                                #13#10 +
-                    'EXISTS( ' +                                                  #13#10 +
-                    '  SELECT * FROM dbs_tmp_pk_hash h ' +                        #13#10 +
-                    '  WHERE h.pk = r.' +  Trim(FkFieldsList[I]) +                #13#10 +
-                    '  AND h.relation_name = ''' + TblsNamesList[0] + ''' ' +     #13#10 +/// '        AND h.relation_name = ''' + UpperCase(q.FieldByName('relation_name').AsString) + ''' ' + #13#10 +
+                  q3.SQL.Add(' ' +                                                            #13#10 +
+                    'EXISTS( ' +                                                              #13#10 +
+                    '  SELECT * FROM DBS_TMP_PK_HASH h ' +                                    #13#10 +
+                    '  WHERE h.pk = r.' +  Trim(FkFieldsList[I]) +                            #13#10 +
+                    '  AND h.relation_name = ''' + TblsNamesList[0] + ''' ' +                 #13#10 +
                     ') ');
 
-                q3.SQL.Add(' ' +                                                 #13#10 +
+                q3.SQL.Add(' ' +                                                              #13#10 +
                   '  AND r.' + q.FieldByName('pk_fields').AsString + ' > 147000000 ');
                 if FIgnoreTbls.IndexOf(                                                    ////
                   UpperCase(q.FieldByName('relation_name').AsString) + '=' +
                   UpperCase(Trim(FkFieldsList[I]))
                 ) <> -1 then
-                  q3.SQL.Add(' ' +                                                #13#10 +
+                  q3.SQL.Add(' ' +                                                            #13#10 +
                     'AND g_his_has(0, r.' + q.FieldByName('pk_fields').AsString +') = 0');
 
                 ExecSqlLogEvent(q3, 'IncludeCascadingSequences');
@@ -2550,82 +2538,79 @@ var
                 q3.Close;
                 ///////////////////
                 q3.SQL.Text :=
-                  '  SELECT ' +                                                          #13#10 +
-                  '    COUNT(r.' + q.FieldByName('pk_fields').AsString + ') AS Kolvo ' + #13#10 +
-                  '  FROM ' +                                                            #13#10 +
-                       q.FieldByName('relation_name').AsString + ' r ' +                 #13#10 +
+                  '  SELECT ' +                                                               #13#10 +
+                  '    COUNT(r.' + q.FieldByName('pk_fields').AsString + ') AS Kolvo ' +      #13#10 +
+                  '  FROM ' +                                                                 #13#10 +
+                       q.FieldByName('relation_name').AsString + ' r ' +                      #13#10 +
                   '  WHERE ';
                 if not IsLine then
-                  q3.SQL.Add(' ' +                                                #13#10 +
+                  q3.SQL.Add(' ' +                                                            #13#10 +
                     'g_his_has(1, r.' + Trim(FkFieldsList[I]) + ') = 1')
                 else
-                  q3.SQL.Add(' ' +                                                #13#10 +
-                    'EXISTS( ' +                                                  #13#10 +
-                    '  SELECT * FROM dbs_tmp_pk_hash h ' +                        #13#10 +
-                    '  WHERE h.pk = r.' +  Trim(FkFieldsList[I]) +                #13#10 +
-                    '  AND h.relation_name = ''' + TblsNamesList[0] + ''' ' +     #13#10 +/// '        AND h.relation_name = ''' + UpperCase(q.FieldByName('relation_name').AsString) + ''' ' + #13#10 +
+                  q3.SQL.Add(' ' +                                                            #13#10 +
+                    'EXISTS( ' +                                                              #13#10 +
+                    '  SELECT * FROM DBS_TMP_PK_HASH h ' +                                    #13#10 +
+                    '  WHERE h.pk = r.' +  Trim(FkFieldsList[I]) +                            #13#10 +
+                    '  AND h.relation_name = ''' + TblsNamesList[0] + ''' ' +                 #13#10 +
                     ') ');
 
-                q3.SQL.Add(' ' +                                                 #13#10 +                                                           #13#10 +
+                q3.SQL.Add(' ' +                                                              #13#10 +  
                   '    AND r.' + q.FieldByName('pk_fields').AsString + ' > 147000000 ');
                 if FIgnoreTbls.IndexOf(                                                    ////
                   UpperCase(q.FieldByName('relation_name').AsString) + '=' +
                   UpperCase(Trim(FkFieldsList[I]))
                 ) <> -1 then
-                  q3.SQL.Add(' ' +                                                     #13#10 +
+                  q3.SQL.Add(' ' +                                                            #13#10 +
                     'AND (g_his_has(0, r.' + q.FieldByName('pk_fields').AsString +') = 0) ');
 
                 ExecSqlLogEvent(q3, 'IncludeCascadingSequences');
-
                 /////////////////////
+                
                 Kolvo := Kolvo + q3.FieldByName('Kolvo').AsInteger;
                 q3.Close;
 
                 if Kolvo <> 0 then
                 begin
                   q3.SQL.Text :=
-                    'INSERT INTO DBS_TMP_PK_HASH ' +                                       #13#10 +
-                    'SELECT ' +                                                            #13#10 +
-                    '  r.' + q.FieldByName('pk_fields').AsString + ', ' +                  #13#10 +
-                    '  ''' + UpperCase(Trim(q.FieldByName('relation_name').AsString)) + ''', ' + #13#10 +
+                    'INSERT INTO DBS_TMP_PK_HASH ' +                                          #13#10 +
+                    'SELECT ' +                                                               #13#10 +
+                    '  r.' + q.FieldByName('pk_fields').AsString + ', ' +                     #13#10 +
+                    '  ''' + UpperCase(Trim(q.FieldByName('relation_name').AsString)) + ''', ' +                                                             #13#10 +
                     '  HASH(' + 'r.' + q.FieldByName('pk_fields').AsString  + ' || ' + '''' + UpperCase(q.FieldByName('relation_name').AsString) + '''), ' + #13#10 +
-                    '  ''' + Trim(q.FieldByName('pk_fields').AsString) + ''' ' +                 #13#10 +
-                    'FROM ' +                                                              #13#10 +
-                       q.FieldByName('relation_name').AsString + ' r ' +                   #13#10 +
+                    '  ''' + Trim(q.FieldByName('pk_fields').AsString) + ''' ' +                                                                             #13#10 +
+                    'FROM ' +                                                                 #13#10 +
+                       q.FieldByName('relation_name').AsString + ' r ' +                      #13#10 +
                     'WHERE ';
                   if not IsLine then
-                    q3.SQL.Add(' ' +                                                #13#10 +
+                    q3.SQL.Add(' ' +                                                          #13#10 +
                       'g_his_has(1, r.' + Trim(FkFieldsList[I]) + ') = 1')
                   else
-                    q3.SQL.Add(' ' +                                                #13#10 +
-                      'EXISTS( ' +                                                  #13#10 +
-                      '  SELECT * FROM dbs_tmp_pk_hash h ' +                        #13#10 +
-                      '  WHERE h.pk = r.' +  Trim(FkFieldsList[I]) +                #13#10 +
-                      '  AND h.relation_name = ''' + TblsNamesList[0] + ''' ' +     #13#10 +/// '        AND h.relation_name = ''' + UpperCase(q.FieldByName('relation_name').AsString) + ''' ' + #13#10 +
+                    q3.SQL.Add(' ' +                                                          #13#10 +
+                      'EXISTS( ' +                                                            #13#10 +
+                      '  SELECT * FROM DBS_TMP_PK_HASH h ' +                                  #13#10 +
+                      '  WHERE h.pk = r.' +  Trim(FkFieldsList[I]) +                          #13#10 +
+                      '  AND h.relation_name = ''' + TblsNamesList[0] + ''' ' +               #13#10 +
                       ') ');
 
-                    q3.SQL.Add(' ' +                                                 #13#10 +
-                    '  AND NOT EXISTS( ' +                                                 #13#10 +
-                    '    SELECT * FROM DBS_TMP_PK_HASH h ' +                               #13#10 +
-                    '    WHERE h.pk = r.' + q.FieldByName('pk_fields').AsString +          #13#10 +
+                    q3.SQL.Add(' ' +                                                          #13#10 +
+                    '  AND NOT EXISTS( ' +                                                    #13#10 +
+                    '    SELECT * FROM DBS_TMP_PK_HASH h ' +                                  #13#10 +
+                    '    WHERE h.pk = r.' + q.FieldByName('pk_fields').AsString +                                         #13#10 +
                     '      AND h.relation_name = ''' + UpperCase(Trim(q.FieldByName('relation_name').AsString)) + ''' ' + #13#10 +
-                    '  ) ' +                                                               #13#10 +
+                    '  ) ' +                                                                                              #13#10 +
                     '  AND r.' + q.FieldByName('pk_fields').AsString + ' > 147000000 ');
                   if FIgnoreTbls.IndexOf(                                                    ////
                     UpperCase(q.FieldByName('relation_name').AsString) + '=' +
                     UpperCase(Trim(FkFieldsList[I]))
                   ) <> -1 then
-                    q3.SQL.Add(' ' +                                                       #13#10 +
+                    q3.SQL.Add(' ' +                                                          #13#10 +
                       'AND (g_his_has(0, r.' + q.FieldByName('pk_fields').AsString +') = 0) ');
 
                   ExecSqlLogEvent(q3, 'IncludeCascadingSequences');
 
-                  ///ttt
-
                   RealKolvo := RealKolvo + q3.RowsAffected;
                   if q3.RowsAffected > 0 then
                     LogEvent('[test] RowsAffected insert: ' + IntToStr(q3.RowsAffected));
-                  ///Count := Count + q3.FieldByName('RealKolvo').AsInteger;
                 end;
               end;
             //***
@@ -2657,7 +2642,7 @@ var
                               'SELECT ' +                                                                              #13#10 +
                               '  SUM(g_his_include(1, r.' + q.FieldByName('pk_fields').AsString + ')) AS RealKolvo ' + #13#10 +
                               'FROM ' +                                                                                #13#10 +
-                                 q.FieldByName('relation_name').AsString + ' r ' +                                     #13#10 +
+                                 q.FieldByName('relation_name').AsString + ' r ' +            #13#10 +
                               'WHERE ';
 
                             if not IsLine then
@@ -2666,9 +2651,9 @@ var
                             else
                               q3.SQL.Add(' ' +                                                #13#10 +
                                 'EXISTS( ' +                                                  #13#10 +
-                                '  SELECT * FROM dbs_tmp_pk_hash h ' +                        #13#10 +
+                                '  SELECT * FROM DBS_TMP_PK_HASH h ' +                        #13#10 +
                                 '  WHERE h.pk = r.' +  Trim(FkFieldsList[I]) +                #13#10 +
-                                '  AND h.relation_name = ''' + TblsNamesList[0] + ''' ' +     #13#10 +/// '        AND h.relation_name = ''' + UpperCase(q.FieldByName('relation_name').AsString) + ''' ' + #13#10 +
+                                '  AND h.relation_name = ''' + TblsNamesList[0] + ''' ' +     #13#10 +
                                 ') ');
 
                             q3.SQL.Add(' ' +                                                  #13#10 +
@@ -2696,29 +2681,29 @@ var
                               'INSERT INTO DBS_TMP_PK_HASH ' +                                       #13#10 +
                               'SELECT ' +                                                            #13#10 +
                               '  r.' + q.FieldByName('pk_fields').AsString + ', ' +                  #13#10 +
-                              '  ''' + UpperCase(q.FieldByName('relation_name').AsString) + ''', ' + #13#10 +
-                              '  HASH(' + 'r.' + q.FieldByName('pk_fields').AsString  + ' || ' + '''' + UpperCase(q.FieldByName('relation_name').AsString) + '''), ' +  #13#10 +
-                              '  ''' + q.FieldByName('pk_fields').AsString + ''' ' +                 #13#10 +
+                              '  ''' + UpperCase(q.FieldByName('relation_name').AsString) + ''', ' +                                                                   #13#10 +
+                              '  HASH(' + 'r.' + q.FieldByName('pk_fields').AsString  + ' || ' + '''' + UpperCase(q.FieldByName('relation_name').AsString) + '''), ' + #13#10 +
+                              '  ''' + q.FieldByName('pk_fields').AsString + ''' ' +                                                                                   #13#10 +
                               'FROM ' +                                                              #13#10 +
                                  q.FieldByName('relation_name').AsString + ' r ' +                   #13#10 +
                               'WHERE ';
                             if not IsLine then
-                              q3.SQL.Add(' ' +                                                #13#10 +
+                              q3.SQL.Add(' ' +                                                       #13#10 +
                                 'g_his_has(1, r.' + Trim(FkFieldsList[I]) + ') = 1')
                             else
-                              q3.SQL.Add(' ' +                                                #13#10 +
-                                'EXISTS( ' +                                                  #13#10 +
-                                '  SELECT * FROM dbs_tmp_pk_hash h ' +                        #13#10 +
-                                '  WHERE h.pk = r.' +  Trim(FkFieldsList[I]) +                #13#10 +
-                                '  AND h.relation_name = ''' + TblsNamesList[0] + ''' ' +     #13#10 +/// '        AND h.relation_name = ''' + UpperCase(q.FieldByName('relation_name').AsString) + ''' ' + #13#10 +
+                              q3.SQL.Add(' ' +                                                       #13#10 +
+                                'EXISTS( ' +                                                         #13#10 +
+                                '  SELECT * FROM DBS_TMP_PK_HASH h ' +                               #13#10 +
+                                '  WHERE h.pk = r.' +  Trim(FkFieldsList[I]) +                       #13#10 +
+                                '  AND h.relation_name = ''' + TblsNamesList[0] + ''' ' +            #13#10 +
                                 ') ');
 
-                            q3.SQL.Add(' ' +                                                 #13#10 +
+                            q3.SQL.Add(' ' +                                                         #13#10 +
                               '  AND NOT EXISTS( ' +                                                 #13#10 +
                               '    SELECT * FROM DBS_TMP_PK_HASH h ' +                               #13#10 +
-                              '    WHERE h.pk = r.' + q.FieldByName('pk_fields').AsString +          #13#10 +
+                              '    WHERE h.pk = r.' + q.FieldByName('pk_fields').AsString +                                   #13#10 +
                               '      AND h.relation_name = ''' + UpperCase(q.FieldByName('relation_name').AsString) + ''' ' + #13#10 +
-                              '  ) ' +                                                               #13#10 +
+                              '  ) ' +                                                                                        #13#10 +
                               '  AND r.' + q.FieldByName('pk_fields').AsString + ' > 147000000 ');
                             if FIgnoreTbls.IndexOf(                                                    ////
                               UpperCase(q.FieldByName('relation_name').AsString) + '=' +
@@ -2729,10 +2714,7 @@ var
 
                             ExecSqlLogEvent(q3, 'IncludeCascadingSequences');
 
-                            ///ttt
-
                             RealKolvo2 := RealKolvo2 + q3.RowsAffected;
-                            ///Count := Count + q3.FieldByName('RealKolvo').AsInteger;
                           end;
                         until RealKolvo2 = 0;
                       end;
@@ -2799,46 +2781,7 @@ var
             end;
           end;
           q.Close;
-
-        {**
-          if IsAppended or (q.RecordCount=0) then
-          begin
-            I:=0;
-            while I < LineTblsList.Count do
-            begin
-              if AnsiPos(TblsNamesList[0], LineTblsList.Values[LineTblsList.Names[I]]) <> 0  then     /// если таблица та кот ищем ссылки сохранена как индекс
-              begin
-                if AnsiPos(AllProcessedTblsNames[AllProcessedTblsNames.Count-1], LineTblsList.Values[LineTblsList.Names[I]]) <> 0  then
-                begin
-                  //удалим, чтобы не было дубликатов
-                  TmpStr := LineTblsList.Values[LineTblsList.Names[I]];
-                    Delete(
-                      TmpStr,
-                      AnsiPos(AllProcessedTblsNames[AllProcessedTblsNames.Count-1], TmpStr),
-                      Length(AllProcessedTblsNames[AllProcessedTblsNames.Count-1] + ';'));
-
-                  LineTblsList.Values[LineTblsList.Names[I]] := TmpStr;
-                end;
-                // запомним место- имя
-                //if q.RecordCount = 1 then
-                //  LineTblsList.Values[LineTblsList.Names[I]] := LineTblsList.Values[LineTblsList.Names[I]] + ';' + UpperCase(q.FieldByName('relation_name').AsString)
-                //else begin
-                //  LineTblsList.Values[LineTblsList.Names[I]] := Copy(
-                //      LineTblsList.Values[LineTblsList.Names[I]],
-                //      0,
-                //      PosR2L(';', LineTblsList.Values[LineTblsList.Names[I]])
-                //    ) + UpperCase(q.FieldByName('relation_name').AsString);
-                //end;
-                //LogEvent('[test] AFTER Copy=' + LineTblsList.Values[LineTblsList.Names[I]]);
-                //
-
-                ///TODO: ERROR list out of bounds
-                LineTblsList.Values[LineTblsList.Names[I]] := LineTblsList.Values[LineTblsList.Names[I]] + AllProcessedTblsNames[AllProcessedTblsNames.Count-1] + ';';
-              end;
-              Inc(I);
-            end;
-          end;
-        **}
+          
           if GoToLast then
             GoToLast := False
           else
@@ -2849,26 +2792,9 @@ var
         Tr2.Commit;
         Tr2.StartTransaction;
 
-        LogEvent('[test] LineTblsList: ' + LineTblsList.Text);
         LogEvent('COUNT with CASCADE ref (BEFORE EXCLUDE): ' + IntToStr(GetCountHIS(1)));
-
-        ///test 1
-        q3.SQL.Text :=
-          'SELECT LIST(a.pk) AS A,  g_his_has(1, 155457405) AS HIS_1, g_his_has(2, 155457405) AS HIS_2, g_his_has(3, 155457405) AS HIS_3 ' + #13#10 +
-          'FROM dbs_tmp_pk_hash a ' + 								#13#10 +
-          'WHERE a.relation_name = ''INV_PRICE'' AND a.pk=155457405 ';
-        ExecSqlLogEvent(q3, 'IncludeCascadingSequences');
-        LogEvent('[_test 1] dbs_1=' + q3.FieldByName('A').AsString + ', his_1=' + q3.FieldByName('HIS_1').AsString + ', his_2=' + q3.FieldByName('HIS_2').AsString + ', his_3=' + q3.FieldByName('HIS_3').AsString);
-        q3.Close;
-        q3.SQL.Text :=
-          'SELECT LIST(b.pk) AS B ' + 	#13#10 +
-          'FROM dbs_tmp_his_2 b ' +	#13#10 +
-          'WHERE b.relation_name = ''INV_PRICE'' AND b.pk=155457405 ';
-        ExecSqlLogEvent(q3, 'IncludeCascadingSequences');
-        LogEvent('dbs_2=' + q3.FieldByName('B').AsString);
-        q3.Close;
+        
         //------------------ исключение из HIS PK, на которые есть restrict/noAction И исключение PK, на которые ссылаются (PK<147000000 или нах в HIS_3 - документы которые должны остаться)
-        EndReProcTbl := '';
         GoReprocess := False;
         LogEvent('[test] AllProcessedTblsNames: ' + AllProcessedTblsNames.CommaText);
         CreateHIS(2);
@@ -2877,7 +2803,9 @@ var
         while TblsNamesList.Count > 0 do
         begin
           ProcTblsNamesList.Append(TblsNamesList[0]);
-          LogEvent(ProcTblsNamesList.Text);
+          
+          LogEvent('[test] TblsNamesList[0]: ' + TblsNamesList[0]);
+          LogEvent('[test] ProcTblsNamesList: ' + ProcTblsNamesList.Text);
           IndexEnd := -1;
           IsLine := False;
           GoReprocess := False;
@@ -2889,13 +2817,14 @@ var
             'SELECT ' +                                                                   #13#10 +
             '  TRIM(fc.list_fields) AS fk_fields ' +                                      #13#10 +
             'FROM dbs_fk_constraints fc ' +                                               #13#10 +
-            '  JOIN dbs_suitable_tables pc ' +                                            #13#10 +
-            '    ON pc.relation_name = fc.relation_name AND pc.list_fields = fc.list_fields ' +  #13#10 +
+            '  JOIN DBS_SUITABLE_TABLES pc ' +                                            #13#10 +
+            '    ON pc.relation_name = fc.relation_name ' +                               #13#10 +
+            '      AND pc.list_fields = fc.list_fields ' +                                #13#10 +
             'WHERE fc.delete_rule = ''CASCADE'' ' +                                       #13#10 +//((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) ' +
             '  AND fc.relation_name = :rln ' +                                            #13#10 +
             '  AND fc.list_fields NOT LIKE ''%,%'' ';
           q.ParamByName('rln').AsString := TblsNamesList[0];
-          q.Open;
+          ExecSqlLogEvent(q, 'IncludeCascadingSequences', 'rln=' + TblsNamesList[0]);
 
           if q.RecordCount = 0 then
             IsLine := False
@@ -2906,36 +2835,37 @@ var
           q.SQL.Text :=
             'SELECT ' +                                                                       #13#10 +
             '  LIST(TRIM(fc.list_fields)||''=''||TRIM(fc.ref_relation_name)) AS fk_field, ' + #13#10 +
-            '  TRIM(fc.relation_name) AS relation_name ' +                                #13#10 +
-            'FROM dbs_fk_constraints fc ' +                                               #13#10 +
-            '  JOIN dbs_suitable_tables pc ' +                                            #13#10 +
-            '    ON pc.relation_name = fc.relation_name ' +                               #13#10 +
-            'WHERE fc.delete_rule = ''CASCADE'' ' +                                       #13#10 +//((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) ' + #13#10 +
-            '  AND fc.relation_name = :rln ' +                                            #13#10 +
-            '  AND fc.list_fields NOT LIKE ''%,%'' ' +                                    #13#10 +
+            '  TRIM(fc.relation_name) AS relation_name ' +                                    #13#10 +
+            'FROM dbs_fk_constraints fc ' +                                                   #13#10 +
+            '  JOIN DBS_SUITABLE_TABLES pc ' +                                                #13#10 +
+            '    ON pc.relation_name = fc.relation_name ' +                                   #13#10 +
+            'WHERE fc.delete_rule = ''CASCADE'' ' +                                           #13#10 +//((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE''))
+            '  AND fc.relation_name = :rln ' +                                                #13#10 +
+            '  AND fc.list_fields NOT LIKE ''%,%'' ' +                                        #13#10 +
             'GROUP BY fc.relation_name ';
           q.ParamByName('rln').AsString := TblsNamesList[0];
-          q.Open;
+          ExecSqlLogEvent(q, 'IncludeCascadingSequences', 'rln=' + TblsNamesList[0]);
           FkFieldsList2.Text := StringReplace(q.FieldByName('fk_field').AsString, ',', #13#10, [rfReplaceAll, rfIgnoreCase]);
           q.Close;
 
           q.SQL.Text :=
             'SELECT ' +                                                                       #13#10 +
             '  LIST(TRIM(fc.list_fields)||''=''||TRIM(fc.ref_relation_name)) AS fk_field, ' + #13#10 +
-            '  TRIM(fc.relation_name) AS relation_name ' +                                 #13#10 +
-            'FROM dbs_fk_constraints fc ' +                                                #13#10 +
-            '  JOIN dbs_suitable_tables pc ' +                                             #13#10 +
-            '    ON pc.relation_name = fc.relation_name ' +                                #13#10 +
-            '  JOIN dbs_suitable_tables pc2 ' +                                            #13#10 +
-            '    ON pc2.relation_name = fc.ref_relation_name ' +                           #13#10 +
-            '    JOIN dbs_fk_constraints fc2 ON fc2.relation_name = pc2.relation_name ' +  #13#10 +
-            '      AND fc2.list_fields = pc2.list_fields ' +                               #13#10 +
-            'WHERE fc.delete_rule = ''CASCADE'' ' +                                        #13#10 +//((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) ' + #13#10 +
-            '  AND fc.relation_name = :rln ' +                                             #13#10 +
-            '  AND fc.list_fields NOT LIKE ''%,%'' ' +                                     #13#10 +
+            '  TRIM(fc.relation_name) AS relation_name ' +                                    #13#10 +
+            'FROM dbs_fk_constraints fc ' +                                                   #13#10 +
+            '  JOIN DBS_SUITABLE_TABLES pc ' +                                                #13#10 +
+            '    ON pc.relation_name = fc.relation_name ' +                                   #13#10 +
+            '  JOIN DBS_SUITABLE_TABLES pc2 ' +                                               #13#10 +
+            '    ON pc2.relation_name = fc.ref_relation_name ' +                              #13#10 +
+            '    JOIN DBS_FK_CONSTRAINTS fc2 ' +                                              #13#10 +
+            '      ON fc2.relation_name = pc2.relation_name ' +                               #13#10 +
+            '        AND fc2.list_fields = pc2.list_fields ' +                                #13#10 +
+            'WHERE fc.delete_rule = ''CASCADE'' ' +                                           #13#10 +//((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) ' + #13#10 +
+            '  AND fc.relation_name = :rln ' +                                                #13#10 +
+            '  AND fc.list_fields NOT LIKE ''%,%'' ' +                                        #13#10 +
             'GROUP BY fc.relation_name ';
           q.ParamByName('rln').AsString := TblsNamesList[0];
-          q.Open;
+          ExecSqlLogEvent(q, 'IncludeCascadingSequences', 'rln=' + TblsNamesList[0]);
           
           if q.RecordCount <> 0 then
             FkFieldsListLine.Text := StringReplace(q.FieldByName('fk_field').AsString, ',', #13#10, [rfReplaceAll, rfIgnoreCase]);
@@ -2943,19 +2873,19 @@ var
 
           // получим все FK cascade поля в таблице
           q.SQL.Text :=                                                 ///TODO: вынести. Prepare
-            'SELECT ' +
+            'SELECT ' +                                                                   #13#10 +
             '  LIST(fc.list_fields) AS fk_field, ' +                                      #13#10 +
             '  TRIM(pc.list_fields) AS pk_field, ' +                                      #13#10 +
             '  fc.relation_name, fc.ref_relation_name, fc.list_ref_fields ' +             #13#10 +///для группировки
             'FROM dbs_fk_constraints fc ' +                                               #13#10 +
-            '  JOIN dbs_suitable_tables pc ' +                                            #13#10 +
+            '  JOIN DBS_SUITABLE_TABLES pc ' +                                            #13#10 +
             '    ON pc.relation_name = fc.relation_name ' +                               #13#10 +
-            'WHERE fc.delete_rule = ''CASCADE'' ' +                                       #13#10 +//((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) ' +
+            'WHERE fc.delete_rule = ''CASCADE'' ' +                                       #13#10 +//((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE''))
             '  AND fc.relation_name = :rln ' +                                            #13#10 +
             '  AND fc.list_fields NOT LIKE ''%,%'' ' +                                    #13#10 +
             'GROUP BY pc.list_fields, fc.relation_name, fc.ref_relation_name, fc.list_ref_fields ';
           q.ParamByName('rln').AsString := TblsNamesList[0];
-          q.Open;
+          ExecSqlLogEvent(q, 'IncludeCascadingSequences', 'rln=' + TblsNamesList[0]);
 
           // если FK есть в HIS_2, то исключим PK из HIS (исключение цепи, что выше)
           while not q.EOF do
@@ -2970,43 +2900,43 @@ var
             begin
               if not IsLine then
                 q3.SQL.Text :=
-                  'SELECT ' +                                                                        #13#10 +
-                  '  SUM(' +                                                                         #13#10 +
-                  '    IIF(g_his_exclude(1, rln.' + q.FieldByName('pk_field').AsString + ') = 1, ' + #13#10 +
-                  '      g_his_include(2, rln.' + q.FieldByName('pk_field').AsString + '), 0)' +     #13#10 +
-                  '  ) AS Kolvo ' +                                                                  #13#10 +
-                  'FROM ' +                                                                          #13#10 +
-                     TblsNamesList[0] + ' rln ' +                                                    #13#10 +
+                  'SELECT ' +                                                                               #13#10 +
+                  '  SUM(' +                                                                                #13#10 +
+                  '    IIF(g_his_exclude(1, rln.' + q.FieldByName('pk_field').AsString + ') = 1, ' +        #13#10 +
+                  '      g_his_include(2, rln.' + q.FieldByName('pk_field').AsString + '), 0)' +            #13#10 +
+                  '  ) AS Kolvo ' +                                                                         #13#10 +
+                  'FROM ' +                                                                                 #13#10 +
+                     TblsNamesList[0] + ' rln ' +                                                           #13#10 +
                   'WHERE ' 
               else 
                 q3.SQL.Text :=
-                  'EXECUTE BLOCK ' +                                                                         #13#10 +
+                  'EXECUTE BLOCK ' +                                                                        #13#10 +
                   //'  RETURNS(S VARCHAR(16384)) ' +
-                  'AS ' +                                                                                    #13#10 +
-                  '  DECLARE VARIABLE S VARCHAR(16384); ' +                                                  #13#10 +
-                  '  DECLARE VARIABLE S2 VARCHAR(16384); ' +                                                 #13#10 +
-                  '  DECLARE VARIABLE ID INTEGER; ' +                                                        #13#10 +
-                  'BEGIN ' +                                                                                 #13#10 +
-                  '  S = ''DELETE FROM dbs_tmp_pk_hash h WHERE h.pk = :PK AND h.relation_name = :RN ''; '  + #13#10 +
+                  'AS ' +                                                                                   #13#10 +
+                  '  DECLARE VARIABLE S VARCHAR(16384); ' +                                                 #13#10 +
+                  '  DECLARE VARIABLE S2 VARCHAR(16384); ' +                                                #13#10 +
+                  '  DECLARE VARIABLE ID INTEGER; ' +                                                       #13#10 +
+                  'BEGIN ' +                                                                                #13#10 +
+                  '  S = ''DELETE FROM dbs_tmp_pk_hash h WHERE h.pk = :PK AND h.relation_name = :RN ''; ' +                          #13#10 +
                   '  S2 = ''update or INSERT INTO DBS_TMP_HIS_2 (pk, relation_name, pk_field) VALUES(:PK_, :RN_, :PK_FIELD_) ''; ' + #13#10 +
-                  '  FOR ' +                                                                                 #13#10 +
-                  '    SELECT ' +                                                                            #13#10 +
-                  '      rln.' + q.FieldByName('pk_field').AsString +                                        #13#10 +
-                  '    FROM ' +                                                                              #13#10 +
-                         TblsNamesList[0] + ' rln ' +                                                        #13#10 +
+                  '  FOR ' +                                                                                                         #13#10 +
+                  '    SELECT ' +                                                                           #13#10 +
+                  '      rln.' + q.FieldByName('pk_field').AsString +                                       #13#10 +
+                  '    FROM ' +                                                                             #13#10 +
+                         TblsNamesList[0] + ' rln ' +                                                       #13#10 +
                   '    WHERE ';
 
 
               if FkFieldsListLine.IndexOfName(Trim(FkFieldsList[I])) = -1 then
-                q3.SQL.Add(' ' +                                                            #13#10 +
+                q3.SQL.Add(' ' +                                                                            #13#10 +
                   '(g_his_has(2, rln.' + Trim(FkFieldsList[I]) + ') = 1) ')
               else 
-                q3.SQL.Add(' ' +                                                            #13#10 +
-                  '   EXISTS( ' +                                                                        #13#10 +
-                  '     SELECT * ' +                                                                     #13#10 +
-                  '     FROM DBS_TMP_HIS_2 h ' +                                                         #13#10 +
-                  '     WHERE h.pk = rln.' + Trim(FkFieldsList[I]) +                                    #13#10 +
-                  '       AND h.relation_name = ''' + Trim(q.FieldByName('ref_relation_name').AsString) + '''' + #13#10 +///'       AND TRIM(h.relation_name) = ''' +   TblsNamesList[0] + '''' +                    #13#10 +
+                q3.SQL.Add(' ' +                                                                            #13#10 +
+                  '   EXISTS( ' +                                                                           #13#10 +
+                  '     SELECT * ' +                                                                        #13#10 +
+                  '     FROM DBS_TMP_HIS_2 h ' +                                                            #13#10 +
+                  '     WHERE h.pk = rln.' + Trim(FkFieldsList[I]) +                                             #13#10 +
+                  '       AND h.relation_name = ''' + Trim(q.FieldByName('ref_relation_name').AsString) + '''' + #13#10 +///'       AND TRIM(h.relation_name) = ''' +   TblsNamesList[0] + '''' 
                   '    ) ');
 
 
@@ -3017,50 +2947,49 @@ var
                 begin
                   Inc(Counter);
                   if Counter <> 1 then
-                    q3.SQL.Add(' ' +                                                           #13#10 +
+                    q3.SQL.Add(' ' +                                                                        #13#10 +
                       '   AND ')
                   else
-                    q3.SQL.Add(' ' +                                                           #13#10 +
+                    q3.SQL.Add(' ' +                                                                        #13#10 +
                       ' AND(');
 
                   if (FkFieldsListLine.IndexOfName(Trim(FkFieldsList2.Names[J])) = -1) then
-                    q3.SQL.Add(' ' +                                                             #13#10 +
+                    q3.SQL.Add(' ' +                                                                        #13#10 +
                       '    ((g_his_has(1, rln.' + Trim(FkFieldsList2.Names[J]) + ')=0) OR (g_his_has(2, rln.' + Trim(FkFieldsList2.Names[J]) + ')=1)) ')
                   else
                     q3.SQL.Add(' ' +
-                      '  ((NOT EXISTS( ' +                                                                 #13#10 +
-                      '     SELECT * ' +                                                                   #13#10 +
-                      '     FROM DBS_TMP_PK_HASH h ' +                                                     #13#10 +
-                      '     WHERE h.pk = rln.' + Trim(FkFieldsList2.Names[J]) +                            #13#10 +
-                      '       AND TRIM(h.relation_name) = ''' + UpperCase(FkFieldsList2.Values[FkFieldsList2.Names[J]]) + '''' + #13#10 +///'       AND TRIM(h.relation_name) = ''' +   TblsNamesList[0] + '''' +                    #13#10 +
-                      '    )) OR (EXISTS( ' +                                                              #13#10 +
-                      '     SELECT * ' +                                                                   #13#10 +
-                      '     FROM DBS_TMP_HIS_2 h ' +                                                       #13#10 +
-                      '     WHERE h.pk = rln.' + Trim(FkFieldsList2.Names[J]) +                            #13#10 +
-                      '       AND TRIM(h.relation_name) = ''' + UpperCase(FkFieldsList2.Values[FkFieldsList2.Names[J]]) + '''' + #13#10 +///'       AND TRIM(h.relation_name) = ''' +   TblsNamesList[0] + '''' +                    #13#10 +
+                      '  ((NOT EXISTS( ' +                                                                  #13#10 +
+                      '     SELECT * ' +                                                                    #13#10 +
+                      '     FROM DBS_TMP_PK_HASH h ' +                                                      #13#10 +
+                      '     WHERE h.pk = rln.' + Trim(FkFieldsList2.Names[J]) +                                                  #13#10 +
+                      '       AND TRIM(h.relation_name) = ''' + UpperCase(FkFieldsList2.Values[FkFieldsList2.Names[J]]) + '''' + #13#10 +
+                      '    )) OR (EXISTS( ' +                                                               #13#10 +
+                      '     SELECT * ' +                                                                    #13#10 +
+                      '     FROM DBS_TMP_HIS_2 h ' +                                                        #13#10 +
+                      '     WHERE h.pk = rln.' + Trim(FkFieldsList2.Names[J]) +                                                  #13#10 +
+                      '       AND TRIM(h.relation_name) = ''' + UpperCase(FkFieldsList2.Values[FkFieldsList2.Names[J]]) + '''' + #13#10 +
                       '   ))) ');
                 end;
               end;
 
               if Counter <> 0 then
               begin
-                q3.SQL.Add(' ' +                                                #13#10 +
+                q3.SQL.Add(' ' +                                                                            #13#10 +
                   '    )');
 
                 Counter := 0;
               end;
 
               if IsLine then
-                q3.SQL.Add(' ' +                                                                             #13#10 +
-                  '  INTO :ID ' +                                                                            #13#10 +
-                  '  DO BEGIN ' +                                                                            #13#10 +
-                  '    EXECUTE STATEMENT (:S) (PK := :ID, RN := ''' + TblsNamesList[0] + '''); ' +           #13#10 +
-                  '    EXECUTE STATEMENT (:S2) (PK_ := :ID, RN_ := ''' + TblsNamesList[0] + ''', PK_FIELD_ := ''' + q.FieldByName('pk_field').AsString + '''); ' +   #13#10 + 
-                  '  END ' +                                                                                 #13#10 +
+                q3.SQL.Add(' ' +                                                                            #13#10 +
+                  '  INTO :ID ' +                                                                           #13#10 +
+                  '  DO BEGIN ' +                                                                           #13#10 +
+                  '    EXECUTE STATEMENT (:S) (PK := :ID, RN := ''' + TblsNamesList[0] + '''); ' +                                                                 #13#10 +
+                  '    EXECUTE STATEMENT (:S2) (PK_ := :ID, RN_ := ''' + TblsNamesList[0] + ''', PK_FIELD_ := ''' + q.FieldByName('pk_field').AsString + '''); ' + #13#10 + 
+                  '  END ' +                                                                                                                                       #13#10 +
                   'END');
 
               ExecSqlLogEvent(q3, 'IncludeCascadingSequences');
-              ///Count := Count - q2.FieldByName('Kolvo').AsInteger;
               q3.Close;
             end;
   
@@ -3068,65 +2997,47 @@ var
           end;
           q.Close;
 
-          if (TblsNamesList[0] = 'INV_PRICE') then//(TblsNamesList[0] = 'GD_DOCUMENT') or (TblsNamesList[0] = 'INV_PRICE') then
-          begin
-            LogEvent(TblsNamesList[0]);
-                    ///test 2
-            q3.SQL.Text :=
-              'SELECT LIST(a.pk) AS A,  g_his_has(1, 155457405) AS HIS_1, g_his_has(2, 155457405) AS HIS_2, g_his_has(3, 155457405) AS HIS_3 ' + #13#10 +
-              'FROM dbs_tmp_pk_hash a ' + 								#13#10 +
-              'WHERE a.relation_name = ''INV_PRICE'' AND a.pk=155457405 ';
-            ExecSqlLogEvent(q3, 'IncludeCascadingSequences');
-            LogEvent('[_test 2] dbs_1=' + q3.FieldByName('A').AsString + ', his_1=' + q3.FieldByName('HIS_1').AsString + ', his_2=' + q3.FieldByName('HIS_2').AsString + ', his_3=' + q3.FieldByName('HIS_3').AsString);
-            q3.Close;
-            q3.SQL.Text :=
-              'SELECT LIST(b.pk) AS B ' + 	#13#10 +
-              'FROM dbs_tmp_his_2 b ' +	#13#10 +
-              'WHERE b.relation_name = ''INV_PRICE'' AND b.pk=155457405 ';
-            ExecSqlLogEvent(q3, 'IncludeCascadingSequences');
-            LogEvent('dbs_2=' + q3.FieldByName('B').AsString);
-            q3.Close;
-          end;
 
           // ищем RESTRICT/NO ACTION на таблицу  И cascade с PK<147000000
           q.SQL.Text :=
-            'SELECT ' +
-            '  LIST(TRIM(fc.constraint_name), ''_'') AS  constraint_name, ' +
-            '  TRIM(fc.relation_name) AS relation_name, ' +             #13#10 +
-            '  ''DBS__TMP'' AS pk_fields, ' + //заглушка
-            '  LIST(TRIM(fc.list_fields)||''=''||TRIM(fc.ref_relation_name)) AS fk_field, ' +  #13#10 +
-            '  fc.ref_relation_name ' +                                 #13#10 + /// для группировки
-            'FROM dbs_fk_constraints fc ' +                             #13#10 +
-            'WHERE fc.delete_rule IN (''RESTRICT'', ''NO ACTION'') ' +  #13#10 +
-            '  AND fc.ref_relation_name = :rln ' +                      #13#10 +
-            '  AND fc.list_fields NOT LIKE ''%,%'' ' +                  #13#10 +
-            'GROUP BY fc.relation_name, fc.ref_relation_name, fc.LIST_REF_FIELDS ' +
-
-            'UNION ' +
-
-            'SELECT ' +
-            '  ''DBS__'' || LIST(TRIM(fc.constraint_name), ''_'') AS  constraint_name, ' +
-            '  TRIM(fc.relation_name) AS relation_name, ' +             #13#10 +
-            '  TRIM(pc.list_fields)   AS pk_fields, ' +                 #13#10 +
-            '  LIST(TRIM(fc.list_fields)||''=''||TRIM(fc.ref_relation_name)) AS fk_field, ' +  #13#10 +
-            '  fc.ref_relation_name ' +                                 #13#10 +
-            'FROM dbs_fk_constraints fc ' +                             #13#10 +
-            '  JOIN DBS_SUITABLE_TABLES pc ' +                          #13#10 +
-            '    ON pc.relation_name = fc.relation_name ' +             #13#10 +
-            'WHERE fc.delete_rule = ''CASCADE'' ' +                     #13#10 +
-            '  AND fc.ref_relation_name = :rln ' +                      #13#10 +
-            '  AND fc.list_fields NOT LIKE ''%,%'' ' +                  #13#10 +
-            'GROUP BY fc.relation_name, fc.ref_relation_name, fc.LIST_REF_FIELDS, pc.list_fields ';
+            'SELECT ' +                                                                     #13#10 +
+            '  LIST(TRIM(fc.constraint_name), ''_'') AS constraint_name, ' +                #13#10 +
+            '  TRIM(fc.relation_name)                AS relation_name, ' +                  #13#10 +
+            '  ''DBS__TMP''                          AS pk_fields, ' +                      #13#10 + //заглушка                                       
+            '  LIST(TRIM(fc.list_fields)||''=''||TRIM(fc.list_ref_fields)) AS fk_field, ' + #13#10 +
+            '  fc.ref_relation_name ' +                                                     #13#10 + /// для группировки
+            'FROM dbs_fk_constraints fc ' +                                                 #13#10 +
+            'WHERE fc.delete_rule IN (''RESTRICT'', ''NO ACTION'') ' +                      #13#10 +
+            '  AND fc.ref_relation_name = :rln ' +                                          #13#10 +
+            '  AND fc.list_fields NOT LIKE ''%,%'' ' +                                      #13#10 +
+            'GROUP BY fc.relation_name, fc.ref_relation_name, fc.list_ref_fields ' +        #13#10 +
+            ' ' +                                                                           #13#10 +
+            'UNION ' +                                                                      #13#10 +
+            ' ' +                                                                           #13#10 +
+            'SELECT ' +                                                                     #13#10 +
+            '  ''DBS__'' || LIST(TRIM(fc.constraint_name), ''_'') AS constraint_name, ' +   #13#10 +
+            '  TRIM(fc.relation_name)                AS relation_name, ' +                  #13#10 +
+            '  TRIM(pc.list_fields)                  AS pk_fields, ' +                      #13#10 +
+            '  LIST(TRIM(fc.list_fields)||''=''||TRIM(fc.list_ref_fields)) AS fk_field, ' + #13#10 +
+            '  fc.ref_relation_name ' +                                                     #13#10 +
+            'FROM dbs_fk_constraints fc ' +                                                 #13#10 +
+            '  JOIN DBS_SUITABLE_TABLES pc ' +                                              #13#10 +
+            '    ON pc.relation_name = fc.relation_name ' +                                 #13#10 +
+            'WHERE fc.delete_rule = ''CASCADE'' ' +                                         #13#10 +
+            '  AND fc.ref_relation_name = :rln ' +                                          #13#10 +
+            '  AND fc.list_fields NOT LIKE ''%,%'' ' +                                      #13#10 +
+            'GROUP BY fc.relation_name, fc.ref_relation_name, fc.list_ref_fields, pc.list_fields ';
           q.ParamByName('rln').AsString := TblsNamesList[0];
-          q.Open;
+          ExecSqlLogEvent(q, 'IncludeCascadingSequences', 'rln=' + TblsNamesList[0]);
 
           while not q.EOF do
           begin
+            IndexEnd := -1; ////////////t
             FkFieldsList.Clear;
             Kolvo := 0;
 
             FkFieldsList.Text := StringReplace(q.FieldByName('fk_field').AsString, ',', #13#10, [rfReplaceAll, rfIgnoreCase]);
-            
+
             for I:=0 to FkFieldsList.Count-1 do
             begin
               TmpStr := '';
@@ -3143,39 +3054,39 @@ var
                   'WHERE 0=0 '
               else begin
                 TmpStr :=                                                          //для Kolvo
-                  '    SELECT ' +                                                    #13#10 +
-                  '      COUNT(rln.' + Trim(FkFieldsList.Names[I]) + ') AS Kolvo ' + #13#10 +
-                  '    FROM ' +                                                      #13#10 +
-                         q.FieldByName('relation_name').AsString + ' rln ' +         #13#10 +
-                  '    WHERE ' +                                                     #13#10 +
-                  '      EXISTS(' +                                                  #13#10 +
-                  '        SELECT * ' +                                              #13#10 +
-                  '        FROM dbs_tmp_pk_hash h ' +                                #13#10 +
-                  '        WHERE h.pk = rln.' + Trim(FkFieldsList.Names[I]) +        #13#10 +
-                  '          AND h.relation_name = ''' + TblsNamesList[0] + '''' +   #13#10 +///'          AND h.relation_name = ''' + UpperCase(q.FieldByName('relation_name').AsString) + '''' + #13#10 +
+                  '    SELECT ' +                                                             #13#10 +
+                  '      COUNT(rln.' + Trim(FkFieldsList.Names[I]) + ') AS Kolvo ' +          #13#10 +
+                  '    FROM ' +                                                               #13#10 +
+                         q.FieldByName('relation_name').AsString + ' rln ' +                  #13#10 +
+                  '    WHERE ' +                                                              #13#10 +
+                  '      EXISTS(' +                                                           #13#10 +
+                  '        SELECT * ' +                                                       #13#10 +
+                  '        FROM DBS_TMP_PK_HASH h ' +                                         #13#10 +
+                  '        WHERE h.pk = rln.' + Trim(FkFieldsList.Names[I]) +                 #13#10 +
+                  '          AND h.relation_name = ''' + TblsNamesList[0] + '''' +            #13#10 +
                   '      ) ';
 
                 q3.SQL.Text :=
-                  'EXECUTE BLOCK ' +                                            #13#10 +
+                  'EXECUTE BLOCK ' +                                                          #13#10 +
                   //'  RETURNS(S VARCHAR(16384)) ' +
-                  'AS ' +                                                       #13#10 +
-                  '  DECLARE VARIABLE S VARCHAR(16384); ' +                     #13#10 +
-                  '  DECLARE VARIABLE S2 VARCHAR(16384); ' +                    #13#10 +
-                  '  DECLARE VARIABLE FK INTEGER; ' +                           #13#10 +
-                  'BEGIN ' +                                                                                #13#10 +
-                  '  S = ''DELETE FROM dbs_tmp_pk_hash h WHERE h.pk = :PK AND h.relation_name = :RN ''; ' + #13#10 +
+                  'AS ' +                                                                     #13#10 +
+                  '  DECLARE VARIABLE S VARCHAR(16384); ' +                                   #13#10 +
+                  '  DECLARE VARIABLE S2 VARCHAR(16384); ' +                                  #13#10 +
+                  '  DECLARE VARIABLE FK INTEGER; ' +                                         #13#10 +
+                  'BEGIN ' +                                                                                                          #13#10 +
+                  '  S = ''DELETE FROM dbs_tmp_pk_hash h WHERE h.pk = :PK AND h.relation_name = :RN ''; ' +                           #13#10 +
                   '  S2 = '' update or INSERT INTO DBS_TMP_HIS_2 (pk, relation_name, pk_field) VALUES(:PK_, :RN_, :PK_FIELD_) ''; ' + #13#10 +
-                  '  FOR ' +                                                                                #13#10 +
-                  '    SELECT ' +                                               #13#10 +
-                  '      rln.' + Trim(FkFieldsList.Names[I]) +                  #13#10 +
-                  '    FROM ' +                                                 #13#10 +
-                         q.FieldByName('relation_name').AsString + ' rln ' +    #13#10 +
-                  '    WHERE ' +                                                #13#10 +
-                  '      EXISTS(' +                                             #13#10 +
-                  '        SELECT * ' +                                         #13#10 +
-                  '        FROM dbs_tmp_pk_hash h ' +                           #13#10 +
-                  '        WHERE h.pk = rln.' + Trim(FkFieldsList.Names[I]) +   #13#10 +
-                  '          AND h.relation_name = ''' + TblsNamesList[0] + '''' + #13#10 +///'          AND h.relation_name = ''' + UpperCase(q.FieldByName('relation_name').AsString) + '''' + #13#10 +
+                  '  FOR ' +                                                                                                          #13#10 +
+                  '    SELECT ' +                                                             #13#10 +
+                  '      rln.' + Trim(FkFieldsList.Names[I]) +                                #13#10 +
+                  '    FROM ' +                                                               #13#10 +
+                         q.FieldByName('relation_name').AsString + ' rln ' +                  #13#10 +
+                  '    WHERE ' +                                                              #13#10 +
+                  '      EXISTS(' +                                                           #13#10 +
+                  '        SELECT * ' +                                                       #13#10 +
+                  '        FROM DBS_TMP_PK_HASH h ' +                                         #13#10 +
+                  '        WHERE h.pk = rln.' + Trim(FkFieldsList.Names[I]) +                 #13#10 +
+                  '          AND h.relation_name = ''' + TblsNamesList[0] + '''' +            #13#10 +
                   '      ) ';
               end;
 
@@ -3189,23 +3100,24 @@ var
               end;
 
               // если таблица с rectrict/noAction содержит предположительно удаляемый cascade
-              if AllProcessedTblsNames.IndexOf(UpperCase(q.FieldByName('relation_name').AsString)) <> -1 then
+              if AllProcessedTblsNames.IndexOf(UpperCase(q.FieldByName('relation_name').AsString)) <> -1 then 
               begin  //извлекаем FK restrict HIS вместе с цепью, если ВСЕ каскады отсутствуют в HIS
                 FkFieldsListLine.Clear;
                 q4.SQL.Text :=
-                  'SELECT ' +                                                                   #13#10 +
-                  '  LIST(TRIM(fc.list_fields)) AS fk_field, ' + #13#10 +
-                  '  TRIM(fc.relation_name) AS relation_name ' +                                #13#10 +
-                  'FROM dbs_fk_constraints fc ' +                                               #13#10 +
-                  '  JOIN dbs_suitable_tables pc ' +                                            #13#10 +
-                  '    ON pc.relation_name = fc.relation_name ' +                               #13#10 +
-                  '  JOIN dbs_suitable_tables pc2 ' +                                           #13#10 +
-                  '    ON pc2.relation_name = fc.ref_relation_name ' +                           #13#10 +
-                  '    JOIN dbs_fk_constraints fc2 ON fc2.relation_name = pc2.relation_name ' + #13#10 +
-                  '      AND fc2.list_fields = pc2.list_fields ' + #13#10 +
-                  'WHERE fc.delete_rule = ''CASCADE'' ' +                                       #13#10 +//((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) ' + #13#10 +
-                  '  AND fc.relation_name = :rln ' +                                            #13#10 +
-                  '  AND fc.list_fields NOT LIKE ''%,%'' ' +                                    #13#10 +
+                  'SELECT ' +                                                                 #13#10 +
+                  '  LIST(TRIM(fc.list_fields)) AS fk_field, ' +                              #13#10 +
+                  '  TRIM(fc.relation_name)     AS relation_name ' +                          #13#10 +
+                  'FROM dbs_fk_constraints fc ' +                                             #13#10 +
+                  '  JOIN DBS_SUITABLE_TABLES pc ' +                                          #13#10 +
+                  '    ON pc.relation_name = fc.relation_name ' +                             #13#10 +
+                  '  JOIN DBS_SUITABLE_TABLES pc2 ' +                                         #13#10 +
+                  '    ON pc2.relation_name = fc.ref_relation_name ' +                        #13#10 +
+                  '    JOIN DBS_FK_CONSTRAINTS fc2 ' +                                        #13#10 +
+                  '      ON fc2.relation_name = pc2.relation_name ' +                         #13#10 +
+                  '        AND fc2.list_fields = pc2.list_fields ' +                          #13#10 +
+                  'WHERE fc.delete_rule = ''CASCADE'' ' +                                     #13#10 +//((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE''))
+                  '  AND fc.relation_name = :rln ' +                                          #13#10 +
+                  '  AND fc.list_fields NOT LIKE ''%,%'' ' +                                  #13#10 +
                   'GROUP BY fc.relation_name ';
                 q4.ParamByName('rln').AsString := UpperCase(q.FieldByName('relation_name').AsString);
                 ExecSqlLogEvent(q4, 'IncludeCascadingSequences');
@@ -3215,12 +3127,12 @@ var
 
                 q4.Close;
                 q4.SQL.Text :=  // получим все FK cascade поля в таблице
-                  'SELECT ' +
-                  '  TRIM(fc.list_fields) AS fk_field, ' +                                       #13#10 +
-                  '  TRIM(fc.ref_relation_name) AS ref_relation_name ' +
-                  'FROM dbs_fk_constraints fc ' +                                               #13#10 +
-                  'WHERE fc.delete_rule = ''CASCADE'' ' +                                       #13#10 +//((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) ' +
-                  '  AND fc.relation_name = :rln ' +                                            #13#10 +
+                  'SELECT ' +                                                                 #13#10 +
+                  '  TRIM(fc.list_fields)       AS fk_field, ' +                              #13#10 +
+                  '  TRIM(fc.ref_relation_name) AS ref_relation_name ' +                      #13#10 +
+                  'FROM dbs_fk_constraints fc ' +                                             #13#10 +
+                  'WHERE fc.delete_rule = ''CASCADE'' ' +                                     #13#10 +//((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE''))
+                  '  AND fc.relation_name = :rln ' +                                          #13#10 +
                   '  AND fc.list_fields NOT LIKE ''%,%'' ';
                 q4.ParamByName('rln').AsString := UpperCase(q.FieldByName('relation_name').AsString);
                 ExecSqlLogEvent(q4, 'IncludeCascadingSequences');
@@ -3237,19 +3149,19 @@ var
                     end
                     else begin
                       q3.SQL.Add(' ' +
-                        'AND (' +                                                                       #13#10 +
-                        '  NOT EXISTS(' +                                                               #13#10 +
-                        '    SELECT * ' +                                                               #13#10 +
-                        '    FROM dbs_tmp_pk_hash h ' +                                                 #13#10 +
-                        '    WHERE h.pk = rln.' + q4.FieldByName('fk_field').AsString +                 #13#10 +
+                        'AND (' +                                                                                           #13#10 +
+                        '  NOT EXISTS(' +                                                                                   #13#10 +
+                        '    SELECT * ' +                                                                                   #13#10 +
+                        '    FROM DBS_TMP_PK_HASH h ' +                                                                     #13#10 +
+                        '    WHERE h.pk = rln.' + q4.FieldByName('fk_field').AsString +                                     #13#10 +
                         '      AND h.relation_name = ''' + UpperCase(q4.FieldByName('ref_relation_name').AsString) + '''' + #13#10 +///'            AND h.relation_name = ''' + UpperCase(q.FieldByName('relation_name').AsString) + '''' + #13#10 +
                         '  )) ');
                       TmpStr := TmpStr + ' ' +
-                        'AND (' +                                                                       #13#10 +
-                        '  NOT EXISTS(' +                                                               #13#10 +
-                        '    SELECT * ' +                                                               #13#10 +
-                        '    FROM dbs_tmp_pk_hash h ' +                                                 #13#10 +
-                        '    WHERE h.pk = rln.' + q4.FieldByName('fk_field').AsString +                 #13#10 +
+                        'AND (' +                                                                                           #13#10 +
+                        '  NOT EXISTS(' +                                                                                   #13#10 +
+                        '    SELECT * ' +                                                                                   #13#10 +
+                        '    FROM DBS_TMP_PK_HASH h ' +                                                                     #13#10 +
+                        '    WHERE h.pk = rln.' + q4.FieldByName('fk_field').AsString +                                     #13#10 +
                         '      AND h.relation_name = ''' + UpperCase(q4.FieldByName('ref_relation_name').AsString) + '''' + #13#10 +///'            AND h.relation_name = ''' + UpperCase(q.FieldByName('relation_name').AsString) + '''' + #13#10 +
                         '  )) ';
                     end;
@@ -3269,11 +3181,11 @@ var
               end
               else begin
                 q3.SQL.Add(
-                  '  INTO :FK ' +                                                                           #13#10 +
-                  '  DO BEGIN ' +                                                                           #13#10 +
+                  '  INTO :FK ' +                                                                  #13#10 +
+                  '  DO BEGIN ' +                                                                  #13#10 +
                   '    EXECUTE STATEMENT (:S) (PK := :FK, RN := ''' + TblsNamesList[0] + '''); ' + #13#10 +///'    EXECUTE STATEMENT (:S) (PK := :FK, RN := ''' + UpperCase(q.FieldByName('relation_name').AsString) + '''); ' + #13#10 +
                   '    EXECUTE STATEMENT (:S2) (PK_ := :FK, RN_ := ''' + TblsNamesList[0] + ''', PK_FIELD_ := ''' + Trim(FkFieldsList.Values[FkFieldsList.Names[I]]) + '''); ' +   #13#10 +                                                          #13#10 +
-                  '  END ' +                                                                                #13#10 +
+                  '  END ' +                                                                       #13#10 +
                   'END');
 
                 q5.SQL.Text := TmpStr;
@@ -3286,41 +3198,24 @@ var
                 ExecSqlLogEvent(q3, 'IncludeCascadingSequences');
               end;
               q3.Close;
-              if (UpperCase(q.FieldByName('relation_name').AsString)='USR$BMS_APPL') then
-              begin
-                LogEvent('test');
-                q3.SQL.Text := //активные рестрикты
-                  'SELECT  ' +
-                  '  COUNT(rln.DOCUMENTKEY) AS Kolvo ' +
-                {  '  g_his_has(1, rln.DOCUMENTKEY) AS HasDoc_0, ' +
-                  '  rln.USR$CONTRACTKEY, ' +
-                  '  g_his_has(1, rln.USR$CONTRACTKEY) AS HasContract ' + }
-                  'FROM ' +
-                  '  USR$BMS_APPL rln  ' +
-                  'WHERE ' +
-                  '   g_his_has(1, rln.DOCUMENTKEY) = 0  AND g_his_has(1, rln.USR$CONTRACTKEY) = 1   ';
-                ExecSqlLogEvent(q3, 'IncludeCascadingSequences');
-                {while not q3.EOF do
-                begin
-                  LogEvent('[Test] activ restricts: ' + #13#10 + ' DOCUMENTKEY=' + q3.FieldByName('DOCUMENTKEY').AsString + #13#10 +
-                  'HasDoc_0=' + q3.FieldByName('HasDoc_0').AsString + #13#10 +
-                  ' USR$CONTRACTKEY=' + q3.FieldByName('USR$CONTRACTKEY').AsString + #13#10 +
-                  'HasContract=' + q3.FieldByName('HasContract').AsString + #13#10);
-                end; }
-                LogEvent('[Test] Kolvo activ restricts ' + q3.FieldByName('Kolvo').AsString);
-                q3.Close;
-              end;
             end;
+            
 
             if Kolvo > 0 then // есть смысл исключать по цепи
             begin
               q2.Close;
+
+              ///test3.2
+              LogEvent('[__test3.2] Kolvo>0. ProcTblsNamesList = ' + ProcTblsNamesList.CommaText);
+
               IndexEnd := 0;
               IsFirstIteration := True;
               // исключение цепи из HIS   (исключение цепи, что ниже)
               while ProcTblsNamesList.Count > 0 do
               begin
-                if IsFirstIteration then  //движемся от конца к началу 
+                FkFieldsListLine.Clear;
+
+                if IsFirstIteration then  //движемся от конца к началу
                 begin
                   CascadeProcTbls.Add(ProcTblsNamesList[ProcTblsNamesList.Count-1]);   //список элементов цепи каскадной
                   IndexEnd := AllProcessedTblsNames.IndexOf(CascadeProcTbls[0]);
@@ -3333,8 +3228,9 @@ var
                       'SELECT ' +                                                                   #13#10 +
                       '  TRIM(fc.list_fields) AS fk_fields ' +                                      #13#10 +
                       'FROM dbs_fk_constraints fc ' +                                               #13#10 +
-                      '  JOIN dbs_suitable_tables pc ' +                                            #13#10 +
-                      '    ON pc.relation_name = fc.relation_name AND pc.list_fields = fc.list_fields ' + #13#10 +
+                      '  JOIN DBS_SUITABLE_TABLES pc ' +                                            #13#10 +
+                      '    ON pc.relation_name = fc.relation_name ' +                               #13#10 +
+                      '      AND pc.list_fields = fc.list_fields ' +                                #13#10 +
                       'WHERE fc.delete_rule = ''CASCADE'' ' +                                       #13#10 +//((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) ' +
                       '  AND fc.relation_name = :rln ' +                                            #13#10 +
                       '  AND fc.list_fields NOT LIKE ''%,%'' ';
@@ -3347,21 +3243,22 @@ var
                       IsLine := True;
                     q2.Close;
 
-                    FkFieldsList2.Clear;
+                    FkFieldsListLine.Clear;
                     q2.SQL.Text :=
                       'SELECT ' +                                                                   #13#10 +
-                      '  LIST(TRIM(fc.list_fields)) AS list_fields, ' + #13#10 +
-                      '  fc.relation_name ' +
+                      '  LIST(TRIM(fc.list_fields)) AS list_fields, ' +                             #13#10 +
+                      '  fc.relation_name ' +                                                       #13#10 +
                       'FROM dbs_fk_constraints fc ' +                                               #13#10 +
-                      '  JOIN dbs_suitable_tables pc ' +                                            #13#10 +
+                      '  JOIN DBS_SUITABLE_TABLES pc ' +                                            #13#10 +
                       '    ON pc.relation_name = fc.relation_name ' +                               #13#10 +
-                      '  JOIN dbs_suitable_tables pc2 ' +                                           #13#10 +
-                      '    ON pc2.relation_name = fc.ref_relation_name ' +                           #13#10 +
-                      '    JOIN dbs_fk_constraints fc2 ON fc2.relation_name = pc2.relation_name ' + #13#10 +
-                      '      AND fc2.list_fields = pc2.list_fields ' + #13#10 +
+                      '  JOIN DBS_SUITABLE_TABLES pc2 ' +                                           #13#10 +
+                      '    ON pc2.relation_name = fc.ref_relation_name ' +                          #13#10 +
+                      '    JOIN DBS_FK_CONSTRAINTS fc2 ' +                                          #13#10 +
+                      '      ON fc2.relation_name = pc2.relation_name ' +                           #13#10 +
+                      '        AND fc2.list_fields = pc2.list_fields ' +                            #13#10 +
                       /////////////////////
                       //'WHERE fc.delete_rule IN (''CASCADE'', ''RESTRICT'', ''NO ACTION'') ' +
-                       'WHERE fc.delete_rule =  ''CASCADE'' ' +
+                       'WHERE fc.delete_rule =  ''CASCADE'' ' +                                     #13#10 +
                       '  AND fc.relation_name = :rln ' +                                            #13#10 +
                       '  AND fc.list_fields NOT LIKE ''%,%'' ' +                                    #13#10 +
                       '  AND fc.ref_relation_name IN (';
@@ -3377,7 +3274,7 @@ var
                     q2.ParamByName('rln').AsString := CascadeProcTbls[0];
                     ExecSqlLogEvent(q2, 'IncludeCascadingSequences', 'rln=' + CascadeProcTbls[0]);
                     
-                    FkFieldsList2.Text := StringReplace(q2.FieldByName('list_fields').AsString, ',', #13#10, [rfReplaceAll, rfIgnoreCase]);
+                    FkFieldsListLine.Text := StringReplace(q2.FieldByName('list_fields').AsString, ',', #13#10, [rfReplaceAll, rfIgnoreCase]); 
                     q2.Close;
 
 
@@ -3386,13 +3283,13 @@ var
                       '  LIST(TRIM(fc.list_fields)) AS list_fields, ' +                             #13#10 +
                       '  TRIM(fc.ref_relation_name) AS ref_relation_name, ' +                       #13#10 +
                       '  TRIM(pc.list_fields)       AS pk_fields, ' +                               #13#10 +
-                      '  fc.LIST_REF_FIELDS ' +                                                     #13#10 +  ///для группировки
+                      '  TRIM(fc.list_ref_fields)   AS list_ref_fields ' +                          #13#10 +  ///для группировки
                       'FROM dbs_fk_constraints fc ' +                                               #13#10 +
                       '  JOIN DBS_SUITABLE_TABLES pc ' +                                            #13#10 +
                       '    ON pc.relation_name = fc.relation_name ' +                               #13#10 +
                       /////////////////////
-                      //'WHERE fc.delete_rule IN (''CASCADE'', ''RESTRICT'', ''NO ACTION'') ' +                                       #13#10 +//((fc.update_rule = ''CASCADE'') OR ()) ' +
-                       'WHERE fc.delete_rule =  ''CASCADE'' ' +
+                      //'WHERE fc.delete_rule IN (''CASCADE'', ''RESTRICT'', ''NO ACTION'') ' +  #13#10 +//((fc.update_rule = ''CASCADE'') OR ()) ' +
+                       'WHERE fc.delete_rule =  ''CASCADE'' ' +                                     #13#10 +
                       '  AND fc.relation_name = :rln ' +                                            #13#10 +
                       '  AND fc.ref_relation_name IN (';
 
@@ -3415,15 +3312,15 @@ var
 
                       for I:=0 to FkFieldsList.Count-1 do
                       begin
-                        if FkFieldsList2.IndexOf(Trim(FkFieldsList[I])) = -1 then
+                        if FkFieldsListLine.IndexOf(Trim(FkFieldsList[I])) = -1 then
                         begin
                           q3.SQL.Text :=
-                            'SELECT ' +                                                       #13#10 +
-                            '  SUM( ' +                                                       #13#10 +
+                            'SELECT ' +                                                           #13#10 +
+                            '  SUM( ' +                                                           #13#10 +
                             '    IIF(g_his_exclude(1, rln.' + Trim(FkFieldsList[I]) + ') = 1, ' + #13#10 +
                             '      g_his_include(2, rln.' + Trim(FkFieldsList[I]) + '), 0) ' +    #13#10 +
-                            '  ) AS Kolvo ' +                                                 #13#10 +
-                            'FROM ' +                                                         #13#10 +
+                            '  ) AS Kolvo ' +                                                     #13#10 +
+                            'FROM ' +                                                             #13#10 +
                                CascadeProcTbls[0] + ' rln ' +                                     #13#10 +
                             'WHERE ';
 
@@ -3432,10 +3329,10 @@ var
                               'g_his_has(2, rln.' + q2.FieldByName('pk_fields').AsString + ') = 1 ')
                           else
                             q3.SQL.Add(' ' +
-                              'EXISTS( ' +                                                                                              #13#10 +
-                              '     SELECT * ' +                                                                                        #13#10 +
-                              '     FROM DBS_TMP_HIS_2 h ' +                                                                            #13#10 +
-                              '     WHERE h.pk = rln.' + q2.FieldByName('pk_fields').AsString +                                                 #13#10 +
+                              'EXISTS( ' +                                                          #13#10 +
+                              '     SELECT * ' +                                                    #13#10 +
+                              '     FROM DBS_TMP_HIS_2 h ' +                                        #13#10 +
+                              '     WHERE h.pk = rln.' + q2.FieldByName('pk_fields').AsString +     #13#10 +
                               '       AND TRIM(h.relation_name) = ''' + CascadeProcTbls[0] + '''' + #13#10 +///'       AND TRIM(h.relation_name) = ''' +   TblsNamesList[0] + '''' +                    #13#10 +
                               '   )');
 
@@ -3451,9 +3348,9 @@ var
                             '  DECLARE VARIABLE S2 VARCHAR(16384); ' +                                                #13#10 +
                             '  DECLARE VARIABLE FK INTEGER; ' +                                                       #13#10 +
                             'BEGIN ' +                                                                                #13#10 +
-                            '  S = ''DELETE FROM dbs_tmp_pk_hash h WHERE h.pk = :PK AND h.relation_name = :RN ''; ' + #13#10 +
+                            '  S = ''DELETE FROM dbs_tmp_pk_hash h WHERE h.pk = :PK AND h.relation_name = :RN ''; ' +                          #13#10 +
                             '  S2 = ''update or INSERT INTO DBS_TMP_HIS_2 (pk, relation_name, pk_field) VALUES(:PK_, :RN_, :PK_FIELD_) ''; ' + #13#10 +
-                            '  FOR ' +                                                                                #13#10 +
+                            '  FOR ' +                                                                                                         #13#10 +
                             '    SELECT ' +                                                                           #13#10 +
                             '      rln.' + Trim(FkFieldsList[I]) +                                                    #13#10 +
                             '    FROM ' +                                                                             #13#10 +
@@ -3464,24 +3361,24 @@ var
                               '    g_his_has(2, rln.' + q2.FieldByName('pk_fields').AsString + ') = 1 ')
                           else
                             q3.SQL.Add(' ' +
-                              'EXISTS( ' +                                                                                              #13#10 +
-                              '     SELECT * ' +                                                                                        #13#10 +
-                              '     FROM DBS_TMP_HIS_2 h ' +                                                                            #13#10 +
-                              '     WHERE h.pk = rln.' + q2.FieldByName('pk_fields').AsString +                                                 #13#10 +
-                              '       AND TRIM(h.relation_name) = ''' + CascadeProcTbls[0] + '''' + #13#10 +///'       AND TRIM(h.relation_name) = ''' +   TblsNamesList[0] + '''' +                    #13#10 +
+                              'EXISTS( ' +                                                                            #13#10 +
+                              '     SELECT * ' +                                                                      #13#10 +
+                              '     FROM DBS_TMP_HIS_2 h ' +                                                          #13#10 +
+                              '     WHERE h.pk = rln.' + q2.FieldByName('pk_fields').AsString +                       #13#10 +
+                              '       AND TRIM(h.relation_name) = ''' + CascadeProcTbls[0] + '''' +                   #13#10 +///'       AND TRIM(h.relation_name) = ''' +   TblsNamesList[0] + '''' +                    #13#10 +
                               '   )');
 
                           q3.SQL.Add(' ' +
                             '      AND EXISTS( ' +                                                                    #13#10 +
                             '        SELECT * ' +                                                                     #13#10 +
-                            '        FROM dbs_tmp_pk_hash h ' +                                                       #13#10 +
-                            '        WHERE h.pk = rln.' + Trim(FkFieldsList[I]) +                                     #13#10 +
-                            '          AND h.relation_name = ''' + UpperCase(q2.FieldByName('ref_relation_name').AsString) + '''' + #13#10 +///'          AND h.relation_name = ''' + CascadeProcTbls[0] + '''' +                        #13#10 +
-                            '      ) ' +                                                                              #13#10 +
-                            '  INTO :FK ' +                                                                           #13#10 +
-                            '  DO BEGIN ' +                                                                           #13#10 +
-                            '    EXECUTE STATEMENT (:S) (PK := :FK, RN := ''' + UpperCase(q2.FieldByName('ref_relation_name').AsString) + '''); ' +        #13#10 +///'    EXECUTE STATEMENT (:S) (PK := :FK, RN := ''' + CascadeProcTbls[0] + '''); ' +        #13#10 +
-                            '    EXECUTE STATEMENT (:S2) (PK_ := :FK, RN_ := ''' + UpperCase(q2.FieldByName('ref_relation_name').AsString)  + ''', PK_FIELD_ := ''' + UpperCase(q2.FieldByName('LIST_REF_FIELDS').AsString) + '''); ' +   #13#10 +
+                            '        FROM DBS_TMP_PK_HASH h ' +                                                       #13#10 +
+                            '        WHERE h.pk = rln.' + Trim(FkFieldsList[I]) +                                                                   #13#10 +
+                            '          AND h.relation_name = ''' + UpperCase(q2.FieldByName('ref_relation_name').AsString) + '''' +                 #13#10 +///'          AND h.relation_name = ''' + CascadeProcTbls[0] + '''' +                        #13#10 +
+                            '      ) ' +                                                                                                            #13#10 +
+                            '  INTO :FK ' +                                                                                                         #13#10 +
+                            '  DO BEGIN ' +                                                                                                         #13#10 +
+                            '    EXECUTE STATEMENT (:S) (PK := :FK, RN := ''' + UpperCase(q2.FieldByName('ref_relation_name').AsString) + '''); ' + #13#10 +///'    EXECUTE STATEMENT (:S) (PK := :FK, RN := ''' + CascadeProcTbls[0] + '''); ' +        #13#10 +
+                            '    EXECUTE STATEMENT (:S2) (PK_ := :FK, RN_ := ''' + UpperCase(q2.FieldByName('ref_relation_name').AsString)  + ''', PK_FIELD_ := ''' + UpperCase(q2.FieldByName('LIST_REF_FIELDS').AsString) + '''); ' +                                      #13#10 +
                             '  END ' +                                                                                #13#10 +
                             'END');
   
@@ -3505,27 +3402,34 @@ var
                     end;
                     CascadeProcTbls.Delete(0);
                   end;
-                  {if (ProcTblsNamesList[0] = 'GD_DOCUMENT') or (ProcTblsNamesList[0] = 'USR$BMS_APPL') then
-                  begin
-                    LogEvent(ProcTblsNamesList[0]);
-                            ///test 4
-                    q4.SQL.Text :=
-                      'SELECT COUNT(a.pk) AS A, COUNT(b.pk) AS B, COUNT(c.pk) AS C, COUNT(d.pk) AS D ' + #13#10 +
-                      'FROM dbs_tmp_pk_hash a,dbs_tmp_his_2 b,dbs_tmp_pk_hash c,dbs_tmp_his_2 d ' + #13#10 +
-                      'WHERE a.relation_name = ''USR$BMS_APPL'' AND a.pk=160090798 ' + #13#10 +
-                      '  AND b.relation_name = ''USR$BMS_APPL'' AND b.pk=160090798 ' + #13#10 +
-                      '  AND c.relation_name = ''GD_DOCUMENT'' AND c.pk=160090797 ' + #13#10 +
-                      '  AND d.relation_name = ''GD_DOCUMENT'' AND d.pk=160090797 ';
-                    q4.ExecQuery;
-                    LogEvent('[_test 4] a=' + q4.FieldByName('A').AsString + ', b=' + q4.FieldByName('B').AsString + ', c=' + q4.FieldByName('C').AsString + ', d=' + q4.FieldByName('D').AsString);
-                    q4.Close;
-                  end; }
                 end
                 else begin   // движемся от начала к концу ProcTblsNamesList
                   q2.Close;
+                  IsLine := False;
+
                   q2.SQL.Text :=
                     'SELECT ' +                                                                   #13#10 +
-                    '  LIST(fc.list_fields||''=''||TRIM(fc.ref_relation_name)) AS fk_field, ' +//'  LIST(fc.list_fields) AS fk_field, ' +                                      #13#10 +
+                    '  TRIM(fc.list_fields) AS fk_fields ' +                                      #13#10 +
+                    'FROM dbs_fk_constraints fc ' +                                               #13#10 +
+                    '  JOIN DBS_SUITABLE_TABLES pc ' +                                            #13#10 +
+                    '    ON pc.relation_name = fc.relation_name ' +                               #13#10 +
+                    '      AND pc.list_fields = fc.list_fields ' +                                #13#10 +
+                    'WHERE fc.delete_rule = ''CASCADE'' ' +                                       #13#10 +//((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) ' +
+                    '  AND fc.relation_name = :rln ' +                                            #13#10 +
+                    '  AND fc.list_fields NOT LIKE ''%,%'' ';
+                  q2.ParamByName('rln').AsString := ProcTblsNamesList[0];
+                  ExecSqlLogEvent(q2, 'IncludeCascadingSequences', 'rln=' + ProcTblsNamesList[0]);
+
+                  if q2.RecordCount = 0 then
+                    IsLine := False
+                  else // pk=fk
+                    IsLine := True;
+                  q2.Close;
+
+
+                  q2.SQL.Text :=
+                    'SELECT ' +                                                                   #13#10 +
+                    '  LIST(TRIM(fc.list_fields)||''=''||TRIM(fc.ref_relation_name)) AS fk_field, ' +//'  LIST(fc.list_fields) AS fk_field, ' +                                      #13#10 +
                     '  TRIM(fc.relation_name) AS relation_name ' +                                #13#10 +
                     'FROM dbs_fk_constraints fc ' +                                               #13#10 +
                     '  JOIN dbs_suitable_tables pc ' +                                            #13#10 +
@@ -3541,20 +3445,27 @@ var
                   FkFieldsList2.Text := StringReplace(q2.FieldByName('fk_field').AsString, ',', #13#10, [rfReplaceAll, rfIgnoreCase]);
                   q2.Close;
 
-                  q2.SQL.Text :=                                                        /////////////////
-                    'SELECT ' +                                                 #13#10 +
-                    '  LIST(TRIM(fc.list_fields)) AS list_fields, ' +           #13#10 + 
-                    '  TRIM(fc.ref_relation_name) AS ref_relation_name, ' +     #13#10 +
-                    '  TRIM(st.list_fields) AS pk_field, ' +                   #13#10 +
-                    '  fc.list_ref_fields ' +                                   #13#10 +///для группировки
-                    'FROM dbs_fk_constraints fc ' +                             #13#10 +
-                    '  JOIN dbs_suitable_tables st ' +                          #13#10 +
-                    '    ON st.relation_name = fc.relation_name ' +             #13#10 +
+
+                  FkFieldsListLine.Clear;
+                  q2.SQL.Text :=
+                    'SELECT ' +                                                                   #13#10 +
+                    '  LIST(TRIM(fc.list_fields)) AS list_fields, ' +                             #13#10 +   
+                    '  fc.relation_name ' +                                                       #13#10 +
+                    'FROM dbs_fk_constraints fc ' +                                               #13#10 +
+                    '  JOIN DBS_SUITABLE_TABLES pc ' +                                            #13#10 +
+                    '    ON pc.relation_name = fc.relation_name ' +                               #13#10 +
+                    '  JOIN DBS_SUITABLE_TABLES pc2 ' +                                           #13#10 +
+                    '    ON pc2.relation_name = fc.ref_relation_name ' +                          #13#10 +
+                    '    JOIN DBS_FK_CONSTRAINTS fc2 ' +                                          #13#10 +
+                    '      ON fc2.relation_name = pc2.relation_name ' +                           #13#10 +
+                    '        AND fc2.list_fields = pc2.list_fields ' +                            #13#10 +
                     /////////////////////
                     //'WHERE fc.delete_rule IN (''CASCADE'', ''RESTRICT'', ''NO ACTION'') ' +
-                    'WHERE fc.delete_rule =  ''CASCADE'' ' +
+                     'WHERE fc.delete_rule =  ''CASCADE'' ' +                                     #13#10 +
                     '  AND fc.relation_name = :rln ' +                                            #13#10 +
+                    '  AND fc.list_fields NOT LIKE ''%,%'' ' +                                    #13#10 +
                     '  AND fc.ref_relation_name IN (';
+
                   for I:=0 to IndexEnd do
                   begin
                     q2.SQL.Add(' ''' + AllProcessedTblsNames[I] + '''');
@@ -3562,6 +3473,35 @@ var
                       q2.SQL.Add(',');
                   end;
                   q2.SQL.Add(') ' +                                                               #13#10 +
+                      'GROUP BY fc.relation_name ');
+                  q2.ParamByName('rln').AsString := ProcTblsNamesList[0];
+                  ExecSqlLogEvent(q2, 'IncludeCascadingSequences', 'rln=' + ProcTblsNamesList[0]);
+                  
+                  FkFieldsListLine.Text := StringReplace(q2.FieldByName('list_fields').AsString, ',', #13#10, [rfReplaceAll, rfIgnoreCase]); 
+                  q2.Close;
+
+
+                  q2.SQL.Text :=                                                        /////////////////
+                    'SELECT ' +                                                 #13#10 +
+                    '  LIST(TRIM(fc.list_fields)) AS list_fields, ' +           #13#10 + 
+                    '  TRIM(fc.ref_relation_name) AS ref_relation_name, ' +     #13#10 +
+                    '  TRIM(st.list_fields)       AS pk_field, ' +              #13#10 +
+                    '  TRIM(fc.list_ref_fields)   AS list_ref_fields ' +        #13#10 +///для группировки
+                    'FROM dbs_fk_constraints fc ' +                             #13#10 +
+                    '  JOIN DBS_SUITABLE_TABLES st ' +                          #13#10 +
+                    '    ON st.relation_name = fc.relation_name ' +             #13#10 +
+                    /////////////////////
+                    //'WHERE fc.delete_rule IN (''CASCADE'', ''RESTRICT'', ''NO ACTION'') ' +
+                    'WHERE fc.delete_rule =  ''CASCADE'' ' +
+                    '  AND fc.relation_name = :rln ' +                          #13#10 +
+                    '  AND fc.ref_relation_name IN (';
+                  for I:=0 to IndexEnd do
+                  begin
+                    q2.SQL.Add(' ''' + AllProcessedTblsNames[I] + '''');
+                    if I <> IndexEnd then
+                      q2.SQL.Add(',');
+                  end;
+                  q2.SQL.Add(') ' +                                             #13#10 +
                     'GROUP BY fc.ref_relation_name, st.list_fields, fc.LIST_REF_FIELDS');
 
                   q2.ParamByName('rln').AsString := ProcTblsNamesList[0];
@@ -3569,7 +3509,6 @@ var
 
                   while not q2.EOF do
                   begin
-
                     FkFieldsList.Clear;
                     FkFieldsList.Text := StringReplace(q2.FieldByName('list_fields').AsString, ',', #13#10, [rfReplaceAll, rfIgnoreCase]);
 
@@ -3577,7 +3516,7 @@ var
                     begin
                       q3.Close;
 
-                      if not IsLine then
+                      if not IsLine then 
                         q3.SQL.Text :=
                           'SELECT ' +                                                                         #13#10 +
                           '  SUM(' +                                                                          #13#10 +
@@ -3589,32 +3528,32 @@ var
                           'WHERE '
                       else
                         q3.SQL.Text :=
-                          'EXECUTE BLOCK ' +                                                                         #13#10 +
+                          'EXECUTE BLOCK ' +                                                                  #13#10 +
                           //'  RETURNS(S VARCHAR(16384)) ' +
-                          'AS ' +                                                                                    #13#10 +
-                          '  DECLARE VARIABLE S VARCHAR(16384); ' +                                                  #13#10 +
-                          '  DECLARE VARIABLE S2 VARCHAR(16384); ' +                                                  #13#10 +
-                          '  DECLARE VARIABLE ID INTEGER; ' +                                                        #13#10 +
-                          'BEGIN ' +                                                                                 #13#10 +
-                          '  S = ''DELETE FROM dbs_tmp_pk_hash h WHERE h.pk = :PK AND h.relation_name = :RN ''; '  + #13#10 +
+                          'AS ' +                                                                             #13#10 +
+                          '  DECLARE VARIABLE S VARCHAR(16384); ' +                                           #13#10 +
+                          '  DECLARE VARIABLE S2 VARCHAR(16384); ' +                                          #13#10 +
+                          '  DECLARE VARIABLE ID INTEGER; ' +                                                 #13#10 +
+                          'BEGIN ' +                                                                          #13#10 +
+                          '  S = ''DELETE FROM dbs_tmp_pk_hash h WHERE h.pk = :PK AND h.relation_name = :RN ''; '  +                         #13#10 +
                           '  S2 = ''update or INSERT INTO DBS_TMP_HIS_2 (pk, relation_name, pk_field) VALUES(:PK_, :RN_, :PK_FIELD_) ''; ' + #13#10 +
-                          '  FOR ' +                                                                                 #13#10 +
-                          '    SELECT ' +                                                                            #13#10 +
-                          '      rln.' + q2.FieldByName('pk_field').AsString +                                        #13#10 +
-                          '    FROM ' +                                                                              #13#10 +
-                                 ProcTblsNamesList[0] + ' rln ' +                                                        #13#10 +
+                          '  FOR ' +                                                                                                         #13#10 +
+                          '    SELECT ' +                                                                      #13#10 +
+                          '      rln.' + q2.FieldByName('pk_field').AsString +                                 #13#10 +
+                          '    FROM ' +                                                                        #13#10 +
+                                 ProcTblsNamesList[0] + ' rln ' +                                              #13#10 +
                           '    WHERE ';
 
 
-                      if FkFieldsListLine.IndexOfName(Trim(FkFieldsList[I])) = -1 then
-                        q3.SQL.Add(' ' +                                                            #13#10 +
+                      if FkFieldsListLine.IndexOfName(Trim(FkFieldsList[I])) = -1 then 
+                        q3.SQL.Add(' ' +                                                                       #13#10 +
                           '(g_his_has(2, rln.' + Trim(FkFieldsList[I]) + ') = 1) ')
                       else
-                        q3.SQL.Add(' ' +                                                            #13#10 +
-                          '   EXISTS( ' +                                                                        #13#10 +
-                          '     SELECT * ' +                                                                     #13#10 +
-                          '     FROM DBS_TMP_HIS_2 h ' +                                                         #13#10 +
-                          '     WHERE h.pk = rln.' + Trim(FkFieldsList[I]) +                                    #13#10 +
+                        q3.SQL.Add(' ' +                                                                       #13#10 +
+                          '   EXISTS( ' +                                                                      #13#10 +
+                          '     SELECT * ' +                                                                   #13#10 +
+                          '     FROM DBS_TMP_HIS_2 h ' +                                                       #13#10 +
+                          '     WHERE h.pk = rln.' + Trim(FkFieldsList[I]) +                                              #13#10 +
                           '       AND h.relation_name = ''' + Trim(q2.FieldByName('ref_relation_name').AsString) + '''' + #13#10 +///'       AND TRIM(h.relation_name) = ''' +   TblsNamesList[0] + '''' +                    #13#10 +
                           '    ) ');
 
@@ -3625,46 +3564,46 @@ var
                         begin
                           Inc(Counter);
                           if Counter <> 1 then
-                            q3.SQL.Add(' ' +                                                           #13#10 +
+                            q3.SQL.Add(' ' +                                                                   #13#10 +
                               '   AND ')
                           else
-                            q3.SQL.Add(' ' +                                                           #13#10 +
+                            q3.SQL.Add(' ' +                                                                   #13#10 +
                               ' AND(');
 
                           if FkFieldsListLine.IndexOfName(Trim(FkFieldsList2.Names[J])) = -1 then
-                            q3.SQL.Add(' ' +                                                             #13#10 +
+                            q3.SQL.Add(' ' +                                                                   #13#10 +
                               '    ((g_his_has(1, rln.' + Trim(FkFieldsList2.Names[J]) + ')=0) OR (g_his_has(2, rln.' + Trim(FkFieldsList2.Names[J]) + ')=1)) ')
                           else
                             q3.SQL.Add(' ' +
-                              '  ((NOT EXISTS( ' +                                                                 #13#10 +
-                              '     SELECT * ' +                                                                     #13#10 +
-                              '     FROM DBS_TMP_PK_HASH h ' +                                                       #13#10 +
-                              '     WHERE h.pk = rln.' + Trim(FkFieldsList2.Names[J]) +                                    #13#10 +
-                              '       AND TRIM(h.relation_name) = ''' + UpperCase(FkFieldsList2.Values[FkFieldsList2.Names[J]]) + '''' + #13#10 +///'       AND TRIM(h.relation_name) = ''' +   TblsNamesList[0] + '''' +                    #13#10 +
-                              '    )) OR (EXISTS( ' +                                                                 #13#10 +
-                              '     SELECT * ' +                                                                     #13#10 +
-                              '     FROM DBS_TMP_HIS_2 h ' +                                                       #13#10 +
-                              '     WHERE h.pk = rln.' + Trim(FkFieldsList2.Names[J]) +                                    #13#10 +
-                              '       AND TRIM(h.relation_name) = ''' + UpperCase(FkFieldsList2.Values[FkFieldsList2.Names[J]]) + '''' + #13#10 +///'       AND TRIM(h.relation_name) = ''' +   TblsNamesList[0] + '''' +                    #13#10 +
+                              '  ((NOT EXISTS( ' +                                                             #13#10 +
+                              '     SELECT * ' +                                                               #13#10 +
+                              '     FROM DBS_TMP_PK_HASH h ' +                                                 #13#10 +
+                              '     WHERE h.pk = rln.' + Trim(FkFieldsList2.Names[J]) +                                            #13#10 +
+                              '       AND h.relation_name = ''' + UpperCase(FkFieldsList2.Values[FkFieldsList2.Names[J]]) + '''' + #13#10 +///'       AND TRIM(h.relation_name) = ''' +   TblsNamesList[0] + '''' +                    #13#10 +
+                              '    )) OR (EXISTS( ' +                                                          #13#10 +
+                              '     SELECT * ' +                                                               #13#10 +
+                              '     FROM DBS_TMP_HIS_2 h ' +                                                   #13#10 +
+                              '     WHERE h.pk = rln.' + Trim(FkFieldsList2.Names[J]) +                                            #13#10 +
+                              '       AND h.relation_name = ''' + UpperCase(FkFieldsList2.Values[FkFieldsList2.Names[J]]) + '''' + #13#10 +///'       AND TRIM(h.relation_name) = ''' +   TblsNamesList[0] + '''' +                    #13#10 +
                               '   ))) ');
                         end;
                       end;
 
                       if Counter <> 0 then
                       begin
-                        q3.SQL.Add(' ' +                                                               #13#10 +
+                        q3.SQL.Add(' ' +                                                                        #13#10 +
                           '    )');
 
                         Counter := 0;
                       end;
 
                       if IsLine then
-                        q3.SQL.Add(' ' +                                                                             #13#10 +
-                          '  INTO :ID ' +                                                                            #13#10 +
-                          '  DO BEGIN ' +                                                                            #13#10 +
-                          '    EXECUTE STATEMENT (:S) (PK := :ID, RN := ''' + ProcTblsNamesList[0] + '''); ' +       #13#10 +
+                        q3.SQL.Add(' ' +                                                                        #13#10 +
+                          '  INTO :ID ' +                                                                       #13#10 +
+                          '  DO BEGIN ' +                                                                       #13#10 +
+                          '    EXECUTE STATEMENT (:S) (PK := :ID, RN := ''' + ProcTblsNamesList[0] + '''); ' +  #13#10 +
                           '    EXECUTE STATEMENT (:S2) (PK_ := :ID, RN_ := ''' + ProcTblsNamesList[0] + ''', PK_FIELD_ := ''' + q2.FieldByName('pk_field').AsString + '''); ' +   #13#10 +
-                          '  END ' +                                                                                 #13#10 +
+                          '  END ' +                                                                            #13#10 +
                           'END');
 
                       ExecSqlLogEvent(q3, 'IncludeCascadingSequences');
@@ -3674,75 +3613,40 @@ var
                   end;
                   q2.Close;
 
-                  if ProcTblsNamesList[0] = 'INV_PRICE' then//(ProcTblsNamesList[0] = 'GD_DOCUMENT') or (ProcTblsNamesList[0] = 'INV_PRICE') then
-                  begin
-                    LogEvent(ProcTblsNamesList[0]);
-                    ///test 3
-                    q3.SQL.Text :=
-                      'SELECT LIST(a.pk) AS A,  g_his_has(1, 155457405) AS HIS_1, g_his_has(2, 155457405) AS HIS_2, g_his_has(3, 155457405) AS HIS_3 ' + #13#10 +
-                      'FROM dbs_tmp_pk_hash a ' + 								#13#10 +
-                      'WHERE a.relation_name = ''INV_PRICE'' AND a.pk=155457405 ';
-                    ExecSqlLogEvent(q3, 'IncludeCascadingSequences');
-                    LogEvent('[_test 3] dbs_1=' + q3.FieldByName('A').AsString + ', his_1=' + q3.FieldByName('HIS_1').AsString + ', his_2=' + q3.FieldByName('HIS_2').AsString + ', his_3=' + q3.FieldByName('HIS_3').AsString);
-                    q3.Close;
-                    q3.SQL.Text :=
-                      'SELECT LIST(b.pk) AS B ' + 	#13#10 +
-                      'FROM dbs_tmp_his_2 b ' +	#13#10 +
-                      'WHERE b.relation_name = ''INV_PRICE'' AND b.pk=155457405 ';
-                    ExecSqlLogEvent(q3, 'IncludeCascadingSequences');
-                    LogEvent('dbs_2=' + q3.FieldByName('B').AsString);
-                    q3.Close;
-                  end;
-
                   ProcTblsNamesList.Delete(0);
                 end;
 
                 IsFirstIteration := False;  // значит обработали каскад от таблицы на которую есть рестрикт. т.е. прошли первый круг
               end;
-            
+
               if ReProc.Count <> 0 then
               begin
                 GoReprocess := True; 
               end;
             end;
-            
+
             if AllProcessedTblsNames.IndexOf(UpperCase(q.FieldByName('relation_name').AsString)) <> -1 then
             begin
-              if ReProc.IndexOf(TblsNamesList[0] + '=' + UpperCase(q.FieldByName('relation_name').AsString)) = -1 then
+              {{{if ReProc.IndexOf(TblsNamesList[0] + '=' + UpperCase(q.FieldByName('relation_name').AsString)) = -1 then
                 ReProc.CommaText := TblsNamesList[0] + '=' + UpperCase(q.FieldByName('relation_name').AsString) + ',' + ReProc.CommaText
               else begin
                 ReProc.Delete(ReProc.IndexOf(TblsNamesList[0] + '=' + UpperCase(q.FieldByName('relation_name').AsString)));
                 ReProc.CommaText := TblsNamesList[0] + '=' + UpperCase(q.FieldByName('relation_name').AsString) + ',' + ReProc.CommaText;
-              end;
+              end;}
+              if ReProc.IndexOfName(UpperCase(q.FieldByName('relation_name').AsString)) <> -1 then
+                ReProc.Delete(ReProc.IndexOfName(UpperCase(q.FieldByName('relation_name').AsString))); // .....................
+              ReProc.Append(UpperCase(q.FieldByName('relation_name').AsString) + '=' + TblsNamesList[0]); 
             end;  
-            /////
 
+            if IndexEnd <> -1 then   //если нашли подходящий рестрикт т.е. ProcTblsNamesList пуст
+            begin
+              ProcTblsNamesList.Clear;                                           ///
+              for I:=0 to IndexEnd do                                            ///
+              begin                                                              ///
+                ProcTblsNamesList.Append(AllProcessedTblsNames[I]);              ///
+              end;                                                               ///
+            end;
 
-              if (UpperCase(q.FieldByName('relation_name').AsString)='USR$BMS_APPL') then
-              begin
-                LogEvent('test');
-                q3.SQL.Text := //активные рестрикты
-                   'SELECT  ' +
-                  '  COUNT(rln.DOCUMENTKEY) AS Kolvo ' +
-                {  '  g_his_has(1, rln.DOCUMENTKEY) AS HasDoc_0, ' +
-                  '  rln.USR$CONTRACTKEY, ' +
-                  '  g_his_has(1, rln.USR$CONTRACTKEY) AS HasContract ' + }
-                  'FROM ' +
-                  '  USR$BMS_APPL rln  ' +
-                  'WHERE ' +
-                  '   g_his_has(1, rln.DOCUMENTKEY) = 0  AND  g_his_has(1, rln.USR$CONTRACTKEY) = 1  ';
-                ExecSqlLogEvent(q3, 'IncludeCascadingSequences');
-                {while not q3.EOF do
-                begin
-                  LogEvent('[Test] activ restricts: ' + #13#10 + ' DOCUMENTKEY=' + q3.FieldByName('DOCUMENTKEY').AsString + #13#10 +
-                  'HasDoc_0=' + q3.FieldByName('HasDoc_0').AsString + #13#10 +
-                  ' USR$CONTRACTKEY=' + q3.FieldByName('USR$CONTRACTKEY').AsString + #13#10 +
-                  'HasContract=' + q3.FieldByName('HasContract').AsString + #13#10);
-                end; }
-                LogEvent('[Test] Kolvo activ restricts AFTER exclude: ' + q3.FieldByName('Kolvo').AsString);
-                q3.Close;
-              end;
-          
             q.Next;
           end;
           q.Close;
@@ -3750,42 +3654,28 @@ var
           Tr2.Commit;
           Tr2.StartTransaction;
 
-          if IndexEnd <> -1 then   //если нашли подходящий рестрикт т.е. ProcTblsNamesList пуст
+          if GoReprocess then
           begin
-            ProcTblsNamesList.Clear;                                           ///
-            for I:=0 to IndexEnd do                                            ///
-            begin                                                              ///
-              ProcTblsNamesList.Append(AllProcessedTblsNames[I]);              ///
-            end;                                                               ///
-          end;
-
-          if GoReprocess then 
-          begin
+            LogEvent('[TEST] GoReprocess! TblsNamesList[0] = ' + TblsNamesList[0]);
+            ///////////////!
             TblsNamesList.CommaText := AllProcessedTblsNames.CommaText;
             ProcTblsNamesList.Clear;
             ReProc.Clear;
+
+            //////////////////////////////////////////test
+            q3.SQL.Text :=
+              'DELETE FROM DBS_TMP_HIS_2';
+            ExecSqlLogEvent(q3, 'IncludeCascadingSequences');
+            Tr.Commit;
+            Tr2.Commit;
+            Tr.StartTransaction;
+            Tr2.StartTransaction;
+            DestroyHIS(2);
+            CreateHIS(2);
           end
           else
             TblsNamesList.Delete(0);
         end;
-
-        LogEvent('[test] COUNT HIS (AFTER EXCLUDE: ' + IntToStr(GetCountHIS(1)));
-
-        ///test 4
-          q3.SQL.Text :=
-            'SELECT LIST(a.pk) AS A,  g_his_has(1, 155457405) AS HIS_1, g_his_has(2, 155457405) AS HIS_2, g_his_has(3, 155457405) AS HIS_3 ' + #13#10 +
-            'FROM dbs_tmp_pk_hash a ' + 								#13#10 +
-            'WHERE a.relation_name = ''INV_PRICE'' AND a.pk=155457405 ';
-          ExecSqlLogEvent(q3, 'IncludeCascadingSequences');
-          LogEvent('[_test 4] dbs_1=' + q3.FieldByName('A').AsString + ', his_1=' + q3.FieldByName('HIS_1').AsString + ', his_2=' + q3.FieldByName('HIS_2').AsString + ', his_3=' + q3.FieldByName('HIS_3').AsString);
-          q3.Close;
-          q3.SQL.Text :=
-            'SELECT LIST(b.pk) AS B ' + 	#13#10 +
-            'FROM dbs_tmp_his_2 b ' +	#13#10 +
-            'WHERE b.relation_name = ''INV_PRICE'' AND b.pk=155457405 ';
-          ExecSqlLogEvent(q3, 'IncludeCascadingSequences');
-          LogEvent('dbs_2=' + q3.FieldByName('B').AsString);
-          q3.Close;
 
         Tr.Commit;
         Tr2.Commit;
@@ -5088,7 +4978,7 @@ var
 begin
   TimeStr := '';
   FOnLogSQLEvent('Procedure: ' + AProcName);
-  FOnLogSQLEvent(Trim(AnIBSQL.SQL.Text));
+  FOnLogSQLEvent(AnIBSQL.SQL.Text);
   if AParamValuesStr <> '' then
     FOnLogSQLEvent('Parameters: ' + AParamValuesStr);
 
@@ -5101,7 +4991,7 @@ begin
     on E: Exception do
     begin
       LogEvent('ERROR in procedure: ' + AProcName);
-      LogEvent('ERROR SQL: ' + Trim(AnIBSQL.SQL.Text));
+      LogEvent('ERROR SQL: ' + AnIBSQL.SQL.Text);
       if AParamValuesStr <> '' then
         LogEvent('Parameters: ' + AParamValuesStr);
       raise EgsDBSqueeze.Create(E.Message);
@@ -5113,6 +5003,78 @@ begin
     FOnLogSQLEvent('Rows Affected: ' + IntToStr(AnIBSQL.RowsAffected))
   else
     FOnLogSQLEvent('Records Count: ' + IntToStr(AnIBSQL.RecordCount));
+
+  Time := (Stop - Start) * Ms;
+  DecodeTime(Time, Hour, Min, Sec, Milli);
+  if Hour > 0 then
+  begin
+    TimeStr := TimeStr + IntToStr(Hour);
+    if Hour > 1 then
+      TimeStr := TimeStr + ' hours '
+    else
+      TimeStr := TimeStr + ' hour ';
+  end;
+  if Min > 0 then
+  begin
+    TimeStr := TimeStr + IntToStr(Min);
+    if Min > 1 then
+      TimeStr := TimeStr + ' minutes '
+    else
+      TimeStr := TimeStr + ' minute ';
+  end;
+  if Sec > 0 then
+  begin
+    TimeStr := TimeStr + IntToStr(Sec);
+    if Sec > 1 then
+      TimeStr := TimeStr + ' seconds '
+    else
+      TimeStr := TimeStr + ' second ';
+  end;
+  if Ms > 0 then
+    TimeStr := TimeStr + IntToStr(Milli) + ' ms ';
+
+  FOnLogSQLEvent('Execution Time: ' + TimeStr);
+  FOnLogSQLEvent('End Time: ' + FormatDateTime('h:nn:ss:zzz', (StartDT + Time)));  ///TODO: еще не выполнился в к этому моменту
+  FOnLogSQLEvent('   ');
+end;
+
+procedure TgsDBSqueeze.ExecSqlLogEvent(const AnIBQuery: TIBQuery; const AProcName: String; const AParamValuesStr: String = '');
+const
+  Ms = 1 / (24 * 60 * 60 * 1000); // Значение 1 миллисекунды в формате TDateTime
+var
+  StartDT: TDateTime;
+  Start, Stop: Extended;
+  Time : TDateTime;
+  TimeStr: String;
+  Hour, Min, Sec, Milli: Word;
+begin
+  TimeStr := '';
+  FOnLogSQLEvent('Procedure: ' + AProcName);
+  FOnLogSQLEvent(AnIBQuery.SQL.Text);
+  if AParamValuesStr <> '' then
+    FOnLogSQLEvent('Parameters: ' + AParamValuesStr);
+
+  StartDT := Now;
+  FOnLogSQLEvent('Begin Time: ' + FormatDateTime('h:nn:ss:zzz', StartDT));
+  Start := GetTickCount;
+  try
+    AnIBQuery.Open;
+  except
+    on E: Exception do
+    begin
+      LogEvent('ERROR in procedure: ' + AProcName);
+      LogEvent('ERROR SQL: ' + AnIBQuery.SQL.Text);
+      if AParamValuesStr <> '' then
+        LogEvent('Parameters: ' + AParamValuesStr);
+      raise EgsDBSqueeze.Create(E.Message);
+    end;
+  end;
+  Stop := GetTickCount;
+
+  if AnIBQuery.RowsAffected <> -1 then
+    FOnLogSQLEvent('Rows Affected: ' + IntToStr(AnIBQuery.RowsAffected))
+  else
+    FOnLogSQLEvent('Records Count: ' + IntToStr(AnIBQuery.RecordCount));
 
   Time := (Stop - Start) * Ms;
   DecodeTime(Time, Hour, Min, Sec, Milli);
