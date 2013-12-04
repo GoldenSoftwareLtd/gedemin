@@ -1537,7 +1537,7 @@ begin
       if (Pos('FROM_', Grid.Columns[I].FieldName) = 1) then
         Grid.Columns[I].ReadOnly := False;
       if (Pos('CARD_', Grid.Columns[I].FieldName) = 1) then
-        Grid.Columns[I].ReadOnly := True;
+        Grid.Columns[I].ReadOnly := False;
     end;
 
   //
