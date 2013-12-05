@@ -1,10 +1,9 @@
 object gdc_dlgNamespaceObjectPos: Tgdc_dlgNamespaceObjectPos
-  Left = 656
-  Top = 249
-  BorderStyle = bsDialog
+  Left = 630
+  Top = 204
+  Width = 529
+  Height = 634
   Caption = 'Изменение позиции объектов'
-  ClientHeight = 438
-  ClientWidth = 366
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -15,55 +14,85 @@ object gdc_dlgNamespaceObjectPos: Tgdc_dlgNamespaceObjectPos
   Position = poScreenCenter
   PixelsPerInch = 96
   TextHeight = 13
-  object lv: TListView
-    Left = 8
-    Top = 8
-    Width = 345
-    Height = 393
-    Columns = <
-      item
-        AutoSize = True
-      end>
-    HideSelection = False
-    ReadOnly = True
-    RowSelect = True
-    ShowColumnHeaders = False
-    TabOrder = 0
-    ViewStyle = vsReport
-  end
-  object btnOk: TButton
-    Left = 200
-    Top = 408
-    Width = 75
-    Height = 21
-    Action = actOK
-    Default = True
+  object pnlButtons: TPanel
+    Left = 0
+    Top = 567
+    Width = 513
+    Height = 29
+    Align = alBottom
+    BevelOuter = bvNone
     TabOrder = 1
+    object btnUp: TButton
+      Left = 3
+      Top = 2
+      Width = 75
+      Height = 21
+      Action = actUp
+      TabOrder = 1
+    end
+    object btnDown: TButton
+      Left = 83
+      Top = 2
+      Width = 75
+      Height = 21
+      Action = actDown
+      TabOrder = 2
+    end
+    object Panel3: TPanel
+      Left = 351
+      Top = 0
+      Width = 162
+      Height = 29
+      Align = alRight
+      BevelOuter = bvNone
+      TabOrder = 0
+      object btnOk: TButton
+        Left = 1
+        Top = 2
+        Width = 75
+        Height = 21
+        Action = actOK
+        Default = True
+        TabOrder = 0
+      end
+      object btnCancel: TButton
+        Left = 82
+        Top = 2
+        Width = 75
+        Height = 21
+        Action = actCancel
+        Cancel = True
+        TabOrder = 1
+      end
+    end
   end
-  object btnCancel: TButton
-    Left = 280
-    Top = 408
-    Width = 75
-    Height = 21
-    Action = actCancel
-    Cancel = True
-    TabOrder = 2
-  end
-  object btnUp: TButton
-    Left = 8
-    Top = 408
-    Width = 75
-    Height = 21
-    Action = actUp
-    TabOrder = 3
-  end
-  object btnDown: TButton
-    Left = 88
-    Top = 408
-    Width = 75
-    Height = 21
-    Action = actDown
-    TabOrder = 4
+  object Panel2: TPanel
+    Left = 0
+    Top = 0
+    Width = 513
+    Height = 567
+    Align = alClient
+    BevelOuter = bvNone
+    BorderWidth = 4
+    TabOrder = 0
+    object lv: TListView
+      Left = 4
+      Top = 4
+      Width = 505
+      Height = 559
+      Align = alClient
+      Columns = <
+        item
+          AutoSize = True
+        end>
+      HideSelection = False
+      MultiSelect = True
+      ReadOnly = True
+      RowSelect = True
+      ShowColumnHeaders = False
+      TabOrder = 0
+      ViewStyle = vsReport
+    end
   end
   object ActionList: TActionList
     Left = 176

@@ -342,7 +342,7 @@ type
     procedure ShowStatistic;
     procedure SaveLastStat;
     function CreateTableList: Boolean;
-    procedure AddLogRecord(const StrLog: String);
+    procedure AddLogRecord(const StrLog: String; const ATimeStamp: Boolean = False);
     function InputParam: Boolean;
     procedure UpdateSyncs;
     procedure UpdateHistory;
@@ -538,9 +538,12 @@ begin
   end;
 end;
 
-procedure TfrmSQLEditorSyn.AddLogRecord(const StrLog: String);
+procedure TfrmSQLEditorSyn.AddLogRecord(const StrLog: String;
+  const ATimeStamp: Boolean = False);
 begin
   mmLog.Lines.Add('');
+  if ATimeStamp then
+    mmLog.Lines.Add('/*------' + DateTimeToStr(Now) + '------*/');
   mmLog.Lines.Add(StrLog);
 end;
 
@@ -714,8 +717,7 @@ begin
   ibsqlPlan.Close;
   ibsqlPlan.SQL.Text := seQuery.Text;
   try
-    AddLogRecord('/*------' + DateTimeToStr(Now) + '------*/');
-    AddLogRecord(seQuery.Text);
+    AddLogRecord(seQuery.Text, True);
     try
       try
         ibsqlPlan.ParamCheck := True;
@@ -938,7 +940,10 @@ end;
 procedure TfrmSQLEditorSyn.actCommitExecute(Sender: TObject);
 begin
   if ibtrEditor.InTransaction then
+  begin
     ibtrEditor.Commit;
+    AddLogRecord('Коммит транзакции', True);
+  end;
   if pcMain.ActivePage = tsResult then
     pcMain.ActivePage := tsQuery;
   tsResult.TabVisible := False;
@@ -947,7 +952,10 @@ end;
 procedure TfrmSQLEditorSyn.actRollbackExecute(Sender: TObject);
 begin
   if ibtrEditor.InTransaction then
+  begin
     ibtrEditor.Rollback;
+    AddLogRecord('Откат транзакции', True);
+  end;
   if pcMain.ActivePage = tsResult then
     pcMain.ActivePage := tsQuery;
   tsResult.TabVisible := False;
