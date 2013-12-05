@@ -960,6 +960,12 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
           Width = 923
           Height = 424
           Align = alClient
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -11
+          Font.Name = 'Courier New'
+          Font.Style = []
+          ParentFont = False
           ScrollBars = ssVertical
           TabOrder = 0
         end
@@ -1010,7 +1016,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
             Height = 21
             Style = csDropDownList
             DropDownCount = 24
-            ItemHeight = 0
+            ItemHeight = 13
             TabOrder = 0
             OnChange = cbTransactionsChange
           end

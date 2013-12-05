@@ -4,20 +4,23 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  ActnList, StdCtrls, ComCtrls;
+  ActnList, StdCtrls, ComCtrls, ExtCtrls;
 
 type
   Tgdc_dlgNamespaceObjectPos = class(TForm)
-    lv: TListView;
     ActionList: TActionList;
-    btnOk: TButton;
     actOK: TAction;
-    btnCancel: TButton;
     actCancel: TAction;
-    btnUp: TButton;
     actUp: TAction;
-    btnDown: TButton;
     actDown: TAction;
+    pnlButtons: TPanel;
+    btnUp: TButton;
+    btnDown: TButton;
+    Panel2: TPanel;
+    lv: TListView;
+    Panel3: TPanel;
+    btnOk: TButton;
+    btnCancel: TButton;
     procedure actOKExecute(Sender: TObject);
     procedure actCancelExecute(Sender: TObject);
     procedure actUpUpdate(Sender: TObject);
@@ -56,15 +59,20 @@ end;
 
 procedure Tgdc_dlgNamespaceObjectPos.actUpExecute(Sender: TObject);
 var
-  LI: TListItem;
+  LI, Sel: TListItem;
 begin
   lv.Items.BeginUpdate;
   try
-    LI := lv.Items.Insert(lv.Selected.Index - 1);
-    LI.Caption := lv.Selected.Caption;
-    LI.SubItems.Assign(lv.Selected.SubItems);
-    lv.Selected.Free;
-    LI.Selected := True;
+    Sel := lv.Selected;
+    while Sel <> nil do
+    begin
+      LI := lv.Items.Insert(Sel.Index - 1);
+      LI.Caption := Sel.Caption;
+      LI.SubItems.Assign(Sel.SubItems);
+      Sel.Free;
+      LI.Selected := True;
+      Sel := lv.GetNextItem(LI, sdBelow, [isSelected]);
+    end;
   finally
     lv.Items.EndUpdate;
   end;
@@ -72,15 +80,24 @@ end;
 
 procedure Tgdc_dlgNamespaceObjectPos.actDownExecute(Sender: TObject);
 var
-  LI: TListItem;
+  LI, Sel: TListItem;
 begin
   lv.Items.BeginUpdate;
   try
-    LI := lv.Items.Insert(lv.Selected.Index + 2);
-    LI.Caption := lv.Selected.Caption;
-    LI.SubItems.Assign(lv.Selected.SubItems);
-    lv.Selected.Free;
-    LI.Selected := True;
+    Sel := lv.Selected;
+
+    while (Sel <> nil) and (lv.GetNextItem(Sel, sdBelow, [isSelected]) <> nil) do
+      Sel := lv.GetNextItem(Sel, sdBelow, [isSelected]);
+
+    while Sel <> nil do
+    begin
+      LI := lv.Items.Insert(Sel.Index + 2);
+      LI.Caption := Sel.Caption;
+      LI.SubItems.Assign(Sel.SubItems);
+      Sel.Free;
+      LI.Selected := True;
+      Sel := lv.GetNextItem(LI, sdAbove, [isSelected]);
+    end;
   finally
     lv.Items.EndUpdate;
   end;
