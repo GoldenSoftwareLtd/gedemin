@@ -1016,7 +1016,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
             Height = 21
             Style = csDropDownList
             DropDownCount = 24
-            ItemHeight = 13
+            ItemHeight = 0
             TabOrder = 0
             OnChange = cbTransactionsChange
           end
@@ -1675,7 +1675,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
           ListField = 'relationname'
           KeyField = 'id'
           SortOrder = soAsc
-          gdClassName = 'TgdcTable'
+          gdClassName = 'TgdcRelation'
           StrictOnExit = False
           ItemHeight = 13
           TabOrder = 0

@@ -77,9 +77,9 @@ object gdc_dlgNamespaceObjectPos: Tgdc_dlgNamespaceObjectPos
     TabOrder = 0
     object lv: TListView
       Left = 4
-      Top = 4
+      Top = 31
       Width = 505
-      Height = 559
+      Height = 532
       Align = alClient
       Columns = <
         item
@@ -90,8 +90,41 @@ object gdc_dlgNamespaceObjectPos: Tgdc_dlgNamespaceObjectPos
       ReadOnly = True
       RowSelect = True
       ShowColumnHeaders = False
-      TabOrder = 0
+      TabOrder = 1
       ViewStyle = vsReport
+    end
+    object pnlFind: TPanel
+      Left = 4
+      Top = 4
+      Width = 505
+      Height = 27
+      Align = alTop
+      BevelOuter = bvNone
+      TabOrder = 0
+      object Label1: TLabel
+        Left = 2
+        Top = 5
+        Width = 35
+        Height = 13
+        Caption = 'Поиск:'
+      end
+      object edFind: TEdit
+        Left = 43
+        Top = 2
+        Width = 198
+        Height = 21
+        TabOrder = 0
+        Text = 'edFind'
+      end
+      object btnFind: TButton
+        Left = 240
+        Top = 1
+        Width = 75
+        Height = 21
+        Action = actFind
+        Caption = 'Поиск (F3)'
+        TabOrder = 1
+      end
     end
   end
   object ActionList: TActionList
@@ -114,6 +147,12 @@ object gdc_dlgNamespaceObjectPos: Tgdc_dlgNamespaceObjectPos
       Caption = 'Вниз'
       OnExecute = actDownExecute
       OnUpdate = actDownUpdate
+    end
+    object actFind: TAction
+      Caption = 'Поиск'
+      ShortCut = 114
+      OnExecute = actFindExecute
+      OnUpdate = actFindUpdate
     end
   end
 end

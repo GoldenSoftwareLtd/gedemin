@@ -562,7 +562,9 @@ begin
             ' (' +
             q.FieldByName('objectclass').AsString +
             q.FieldByName('subtype').AsString +
-            ')';
+            ') ' +
+            q.FieldByName('xid').AsString + '_' +
+            q.FieldByName('dbid').AsString;
           LI.SubItems.Add(q.FieldByName('id').AsString);
           LI.SubItems.Add(q.FieldByName('objectpos').AsString);
           q.Next;

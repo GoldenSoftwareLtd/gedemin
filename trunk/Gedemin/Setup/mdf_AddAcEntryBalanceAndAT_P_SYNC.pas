@@ -990,7 +990,7 @@ begin
     ((IBDB.ServerMajorVersion = 2) and (IBDB.ServerMinorVersion < 5)) then
   begin
     raise EgsWrongServerVersion.Create('Firebird 2.5');
-  end;  
+  end;
 
   FTransaction := TIBTransaction.Create(nil);
   try
@@ -1070,24 +1070,14 @@ begin
         end;
 
         // генератор GD_G_ENTRY_BALANCE_DATE
-        FIBSQL.Close;
-        FIBSQL.SQL.Text :=
-          'SELECT rdb$generator_name FROM rdb$generators WHERE rdb$generator_name = ''GD_G_ENTRY_BALANCE_DATE'' ';
-        FIBSQL.ExecQuery;
-        if FIBSQL.RecordCount = 0 then
+        if not GeneratorExist2('GD_G_ENTRY_BALANCE_DATE', FTransaction) then
         begin
-          FIBSQL.Close;
-          FIBSQL.SQL.Text := cCreateGenerator;
-          FIBSQL.ExecQuery;
-          Log('Создание триггера GD_G_ENTRY_BALANCE_DATE прошло успешно');
+          CreateGenerator2('GD_G_ENTRY_BALANCE_DATE', FTransaction);
+          Log('Создание генератора GD_G_ENTRY_BALANCE_DATE прошло успешно');
         end;
 
         // таблица AC_ENTRY_BALANCE
-        FIBSQL.Close;
-        FIBSQL.SQL.Text :=
-          'SELECT rdb$relation_name FROM rdb$relations WHERE rdb$relation_name = ''AC_ENTRY_BALANCE'' ';
-        FIBSQL.ExecQuery;
-        if FIBSQL.RecordCount = 0 then
+        if not RelationExist2('AC_ENTRY_BALANCE', FTransaction)  then
         begin
           FIBSQL.Close;
           FIBSQL.SQL.Text := AcEntryBalanceStr;
@@ -1102,15 +1092,9 @@ begin
           FIBSQL.SQL.Text := cBalanceForeignKey;
           FIBSQL.ExecQuery;
 
-          FIBSQL.Close;
-          FIBSQL.SQL.Text := cBalanceAutoincrementTrigger;
-          FIBSQL.ExecQuery;
-
-          FIBSQL.Close;
-          FIBSQL.SQL.Text := cBalanceGrant;
-          FIBSQL.ExecQuery;
-        end
-        else
+          FTransaction.Commit;
+          FTransaction.StartTransaction;
+        end else
         begin
           // Если таблица уже есть, проверим все ли поля из AC_ENTRY есть в AC_ENTRY_BALANCE
           ibsqlFields := TIBSQL.Create(nil);
@@ -1157,6 +1141,14 @@ begin
             ibsqlFields.Free;
           end;
         end;
+
+        FIBSQL.Close;
+        FIBSQL.SQL.Text := cBalanceAutoincrementTrigger;
+        FIBSQL.ExecQuery;
+
+        FIBSQL.Close;
+        FIBSQL.SQL.Text := cBalanceGrant;
+        FIBSQL.ExecQuery;
 
         // Индекс на ac_entry_balance.accountkey
         FIBSQL.Close;
