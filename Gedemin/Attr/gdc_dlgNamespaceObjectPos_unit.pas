@@ -21,12 +21,22 @@ type
     Panel3: TPanel;
     btnOk: TButton;
     btnCancel: TButton;
+    pnlFind: TPanel;
+    Label1: TLabel;
+    edFind: TEdit;
+    btnFind: TButton;
+    actFind: TAction;
     procedure actOKExecute(Sender: TObject);
     procedure actCancelExecute(Sender: TObject);
     procedure actUpUpdate(Sender: TObject);
     procedure actDownUpdate(Sender: TObject);
     procedure actUpExecute(Sender: TObject);
     procedure actDownExecute(Sender: TObject);
+    procedure actFindExecute(Sender: TObject);
+    procedure actFindUpdate(Sender: TObject);
+
+  private
+    PrevSel: TListItem;
   end;
 
 var
@@ -35,6 +45,9 @@ var
 implementation
 
 {$R *.DFM}
+
+uses
+  jclStrings;
 
 procedure Tgdc_dlgNamespaceObjectPos.actOKExecute(Sender: TObject);
 begin
@@ -101,6 +114,37 @@ begin
   finally
     lv.Items.EndUpdate;
   end;
+end;
+
+procedure Tgdc_dlgNamespaceObjectPos.actFindExecute(Sender: TObject);
+var
+  Sel: TListItem;
+begin
+  if lv.Selected <> nil then
+    Sel := lv.Selected
+  else if lv.Items.Count > 0 then
+    Sel := lv.Items[0]
+  else
+    Sel := nil;
+
+  while Sel <> nil do
+  begin
+    if StrIPos(edFind.Text, Sel.Caption) > 0 then
+    begin
+      if Sel <> PrevSel then
+      begin
+        PrevSel := Sel;
+        Sel.Selected := True;
+        break;
+      end;
+    end;
+    Sel := lv.GetNextItem(Sel, sdBelow, [isNone, isFocused, isSelected, isActivating]);
+  end;
+end;
+
+procedure Tgdc_dlgNamespaceObjectPos.actFindUpdate(Sender: TObject);
+begin
+  actFind.Enabled := (edFind.Text > '') and (lv.Items.Count > 0);
 end;
 
 end.

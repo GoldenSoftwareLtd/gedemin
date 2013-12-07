@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2001-2012 by Golden Software of Belarus
+  Copyright (c) 2001-2013 by Golden Software of Belarus
 
   Module
 
@@ -20,9 +20,7 @@
 
     1.0    Denis    31.12.2001    Initial version.
 
-
 --}
-
 
 unit at_sql_setup;
 
@@ -39,12 +37,9 @@ const
   cstSetAlias  = 'GD$ST'; //Алиас для таблиц множеств
 
 type
-  TsqlSetupState = (ssPrepared, ssUnprepared);
-
-type
   TatSQLSetup = class;
   TatIgnoryType = (itFull, itReferences, itFields);
-
+  TsqlSetupState = (ssPrepared, ssUnprepared);
 
   TatIgnore = class(TCollectionItem)
   private
@@ -91,7 +86,6 @@ type
 
   end;
 
-
   TatSQLLink = class
   private
     FOwner: TatSQLSetup;
@@ -113,9 +107,7 @@ type
   public
     constructor Create(AnOwner: TatSQLSetup; AComponent: TComponent);
     destructor Destroy; override;
-
   end;
-
 
   TatSQLSetup = class(TComponent)
   private
@@ -298,7 +290,6 @@ begin
         Free;
       end;
     end;
-
 end;
 
 procedure GetTableAlias(Text: String; FList: TStrings);
@@ -339,8 +330,6 @@ begin
             else if (Statements[I] as TsqlFull).Select.Fields[J] is TsqlExpr then
               FieldAlias := ((Statements[I] as TsqlFull).Select.Fields[J] as TsqlExpr).ExprAsName;
 
-//            TableAlias := ((Statements[I] as TsqlFull).Select.Fields[J] as TsqlField).FieldAlias;
-
             if FieldAlias > '' then
               FList.Add(FieldAlias + '=' + TableAlias);
           end;
@@ -349,7 +338,6 @@ begin
         Free;
       end;
     end;
-
 end;
 
 { TatSQLLink }
@@ -599,12 +587,6 @@ begin
 
           if ReassignParams then
           begin
-            {for I := 0 to TIBDataSet(FLink).Params.Count - 1 do
-            begin
-              for K := 0 to Para.Count - 1 do
-                if AnsiCompareText(Para.Names[K], TIBDataSet(FLink).Params[I].Name) = 0 then
-                  TIBDataSet(FLink).Params[I].AsString := Para.Values[Para.Names[K]];
-            end;                                                                     }
             for K := 0 to Para.Count - 1 do
               TIBDataSet(FLink).ParamByName(Para.Names[K]).AsString := Para.Values[Para.Names[K]];
           end;

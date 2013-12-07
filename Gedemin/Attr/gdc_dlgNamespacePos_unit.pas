@@ -77,7 +77,7 @@ begin
 
   if pgcMain.ActivePage = tsNS then
   begin
-    if (gdcObject <> nil) and (not gdcObject.EOF) then
+    if gdcObject <> nil then
     begin
       ibdsNS.Close;
       ibdsNS.ParamByName('xid').AsInteger := gdcObject.FieldByName('xid').AsInteger;

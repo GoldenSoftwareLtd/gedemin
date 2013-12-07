@@ -99,6 +99,7 @@ function TriggerExist2(const ATriggerName: String; ATr: TIBTransaction): Boolean
 procedure DropTrigger2(const ATriggerName: String; ATr: TIBTransaction);
 
 function GeneratorExist2(const AGeneratorName: String; ATr: TIBTransaction): Boolean;
+procedure CreateGenerator2(const AGeneratorName: String; ATr: TIBTransaction);
 
 procedure CreateException(Ex: TmdfException; Db: TIBDataBase);
 procedure CreateException2(const AnException, AMessage: String; ATr: TIBTransaction);
@@ -1005,6 +1006,23 @@ begin
     Result := not SQL.EOF;
   finally
     SQl.Free;
+  end;
+end;
+
+procedure CreateGenerator2(const AGeneratorName: String; ATr: TIBTransaction);
+var
+  SQL: TIBSQL;
+begin
+  if not GeneratorExist2(AGeneratorName, ATr) then
+  begin
+    SQL := TIBSQL.Create(nil);
+    try
+      SQL.Transaction := ATr;
+      SQL.SQL.Text := 'CREATE GENERATOR ' + AGeneratorName;
+      SQL.ExecQuery;
+    finally
+      SQl.Free;
+    end;
   end;
 end;
 
