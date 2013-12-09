@@ -148,28 +148,35 @@ procedure Tat_frmDuplicates.actDelDuplicatesExecute(Sender: TObject);
 var
   q: TIBSQL;
 begin
-  q := TIBSQL.Create(nil);
-  try
-    q.Transaction := ibtr;
-    q.SQL.Text :=
-      'EXECUTE BLOCK'#13#10 +
-      'AS'#13#10 +
-      '  DECLARE VARIABLE id INTEGER;'#13#10 +
-      'BEGIN'#13#10 +
-      '  FOR SELECT id FROM at_namespace INTO :id'#13#10 +
-      '  DO EXECUTE PROCEDURE at_p_del_duplicates(:id, :id, '''');'#13#10 +
-      'END';
-    q.ExecQuery;
-  finally
-    q.Free;
-  end;
-
-  if ibtr.InTransaction then
+  if MessageBox(Handle,
+    PChar('Перед автоматическим удалением дубликатов создайте архивную копию БД!'#13#10#13#10 +
+    'Продолжить?'),
+    'Внимание',
+    MB_OKCANCEL or MB_ICONEXCLAMATION or MB_TASKMODAL) = IDOK then
   begin
-    ibds.Close;
-    ibtr.Commit;
-    ibtr.StartTransaction;
-    ibds.Open;
+    q := TIBSQL.Create(nil);
+    try
+      q.Transaction := ibtr;
+      q.SQL.Text :=
+        'EXECUTE BLOCK'#13#10 +
+        'AS'#13#10 +
+        '  DECLARE VARIABLE id INTEGER;'#13#10 +
+        'BEGIN'#13#10 +
+        '  FOR SELECT id FROM at_namespace INTO :id'#13#10 +
+        '  DO EXECUTE PROCEDURE at_p_del_duplicates(:id, :id, '''');'#13#10 +
+        'END';
+      q.ExecQuery;
+    finally
+      q.Free;
+    end;
+
+    if ibtr.InTransaction then
+    begin
+      ibds.Close;
+      ibtr.Commit;
+      ibtr.StartTransaction;
+      ibds.Open;
+    end;
   end;  
 end;
 
