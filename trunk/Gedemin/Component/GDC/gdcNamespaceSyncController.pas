@@ -819,7 +819,7 @@ begin
     '    SELECT '#13#10 +
     '      n.filename AS headname, '#13#10 +
     '      0 AS usescount, '#13#10 +
-    '      CAST((n.xid || ''_'' || n.dbid) AS VARCHAR(1024)) AS path, '#13#10 +
+    '      -- CAST((n.xid || ''_'' || n.dbid) AS VARCHAR(1024)) AS path, '#13#10 +
     '      n.filename '#13#10 +
     '    FROM '#13#10 +
     '      at_namespace_file n '#13#10 +
@@ -831,7 +831,7 @@ begin
     '    SELECT '#13#10 +
     '      t.headname, '#13#10 +
     '      (t.usescount + 1) AS usescount, '#13#10 +
-    '      (t.path || ''-'' || n.xid || ''_'' || n.dbid) AS path, '#13#10 +
+    '      -- (t.path || ''-'' || n.xid || ''_'' || n.dbid) AS path, '#13#10 +
     '      n.filename '#13#10 +
     '    FROM '#13#10 +
     '      ns_tree t '#13#10 +
@@ -842,7 +842,8 @@ begin
     '      JOIN at_namespace_sync s ON s.filename = n.filename '#13#10 +
     '        AND s.operation IN (''<<'', ''< '')'#13#10 +
     '    WHERE '#13#10 +
-    '      POSITION ((n.xid || ''_'' || n.dbid) IN t.path) = 0 '#13#10 +
+    '      -- POSITION ((n.xid || ''_'' || n.dbid) IN t.path) = 0 '#13#10 +
+    '      t.usescount < 40 '#13#10 +
     '    ) '#13#10 +
     'SELECT '#13#10 +
     '  t.headname, sum(t.usescount) '#13#10 +
@@ -860,7 +861,8 @@ begin
     '  ns_tree AS ( '#13#10 +
     '    SELECT '#13#10 +
     '      f.filename, '#13#10 +
-    '      CAST((f.xid || ''_'' || f.dbid) AS VARCHAR(1024)) AS path, '#13#10 +
+    '      0 AS usescount, '#13#10 +
+    '      -- CAST((f.xid || ''_'' || f.dbid) AS VARCHAR(1024)) AS path, '#13#10 +
     '      l2.uses_xid, '#13#10 +
     '      l2.uses_dbid '#13#10 +
     '    FROM '#13#10 +
@@ -876,8 +878,8 @@ begin
     ' '#13#10 +
     '    SELECT '#13#10 +
     '      f.filename, '#13#10 +
-    '      (t.path || ''-'' || f.xid || ''_'' || f.dbid) '#13#10 +
-    '        AS path, '#13#10 +
+    '      (t.usescount + 1) AS usescount,'#13#10 +
+    '      -- (t.path || ''-'' || f.xid || ''_'' || f.dbid) AS path,'#13#10 +
     '      l.uses_xid, '#13#10 +
     '      l.uses_dbid '#13#10 +
     '    FROM '#13#10 +
@@ -887,8 +889,8 @@ begin
     '      JOIN at_namespace_file_link l '#13#10 +
     '        ON l.filename = f.filename '#13#10 +
     '    WHERE '#13#10 +
-    '      POSITION ((f.xid || ''_'' || f.dbid) '#13#10 +
-    '        IN t.path) = 0) '#13#10 +
+    '      -- POSITION ((f.xid || ''_'' || f.dbid) IN t.path) = 0)'#13#10 +
+    '      t.usescount < 40)'#13#10 +
     ' '#13#10 +
     'SELECT '#13#10 +
     '  t.filename, s.namespacekey '#13#10 +
