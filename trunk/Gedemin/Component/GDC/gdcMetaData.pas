@@ -489,6 +489,8 @@ type
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDisplayName(const ASubType: TgdcSubType): String; override;
 
+    class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
+
     function CheckTheSameStatement: String; override;
     function GetCurrRecordClass: TgdcFullClass; override;
     function ReadObjectState(AFieldId, AClassName: String): Integer;
@@ -827,7 +829,7 @@ const
 implementation
 
 uses
-  gdc_frmField_unit, gdc_frmRelation_unit, gdc_frmTable_unit,
+  gdc_frmField_unit, gdc_frmRelation_unit, gdc_frmTable_unit, gdc_attr_frmRelationField_unit,
   gdc_dlgField_unit, gdc_dlgRelation_unit, gdc_dlgRelationField_unit,
   at_frmSQLProcess, at_frmIBUserList, gd_security, gdc_attr_dlgView_unit,
   gdc_attr_frmStoredProc_unit, gdc_attr_dlgStoredProc_unit,
@@ -5496,6 +5498,12 @@ begin
       FieldByName('fieldname').AsString
   else
     Result := inherited GetObjectName;
+end;
+
+class function TgdcRelationField.GetViewFormClassName(
+  const ASubType: TgdcSubType): String;
+begin
+  Result := 'Tgdc_attr_frmRelationField';
 end;
 
 { TgdcTableField }

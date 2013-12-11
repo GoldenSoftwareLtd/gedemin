@@ -23,35 +23,28 @@ type
     dbedAlias: TDBEdit;
     dbedName: TDBEdit;
     TabSheet1: TTabSheet;
-    pnlAnalytics: TPanel;
-    pnlMainAnalytic: TPanel;
-    lbRelation: TLabel;
-    gsibRelationFields: TgsIBLookupComboBox;
-    Panel1: TPanel;
-    Label1: TLabel;
-    atContainer: TatContainer;
-    lblValues: TLabel;
-    sbValues: TScrollBox;
-    DBMemo1: TDBMemo;
-    Label3: TLabel;
     dbcbDisabled: TDBCheckBox;
     actSelectedAnalytics: TAction;
-    sbSelectedAnalytics: TSpeedButton;
-    sbSelectedValues: TSpeedButton;
     actSelectedValues: TAction;
+    DBMemo1: TDBMemo;
+    lbRelation: TLabel;
+    gsibRelationFields: TgsIBLookupComboBox;
+    bbAnalyze: TBitBtn;
+    actAnalyze: TAction;
+    actValues: TAction;
+    sbAnalyze: TScrollBox;
+    sbValues: TScrollBox;
+    bbValues: TBitBtn;
     procedure actNewUpdate(Sender: TObject);
-    procedure atContainerAdjustControl(Sender: TObject; Control: TControl);
-    procedure atcMainAdjustControl(Sender: TObject; Control: TControl);
-    procedure actSelectedAnalyticsExecute(Sender: TObject);
-    procedure actSelectedAnalyticsUpdate(Sender: TObject);
-    procedure actSelectedValuesExecute(Sender: TObject);
-    procedure actSelectedValuesUpdate(Sender: TObject);
+    procedure actAnalyzeExecute(Sender: TObject);
+    procedure actValuesExecute(Sender: TObject);
 
   private
     //Список ключей ед.измерения текущего счета с чек-боксом
     FValuesArray: TgdKeyObjectAssoc;
 
     procedure SetupValues;
+    procedure SetupAnalyze;
     procedure HideLabels;
 
   protected
@@ -76,7 +69,7 @@ implementation
 
 
 uses
-  gd_ClassList;
+  gd_ClassList, at_classes, gdcMetaData, gdcGood;
 
 const 
   All = 'Все';
@@ -91,18 +84,17 @@ begin
 
   lbRelation.Visible := gdcObject.FieldByName('activity').AsString = 'B';
   gsibRelationFields.Visible := lbRelation.Visible;
-
+{
   if lbRelation.Visible then
     pnlMainAnalytic.Height := gsibRelationFields.Height + 6
   else
-    pnlMainAnalytic.Height := 0;
+    pnlMainAnalytic.Height := 0; }
 end;
 
 constructor Tgdc_dlgAcctBaseAccount.Create(AnOwner: TComponent);
 begin
   inherited;
   FValuesArray := TgdKeyObjectAssoc.Create;
-  atContainer.Sorted := True;
 
   if not (csDesigning in ComponentState) then
   begin
@@ -223,11 +215,17 @@ begin
     ibsql.Transaction.StartTransaction;
     try
       ibsql.SQL.Text :=
+        'DELETE FROM ac_accvalue WHERE accountkey = :accountkey ';
+      ibsql.ParamByName('accountkey').AsInteger := gdcObject.ID;
+      ibsql.ExecQuery;
+
+      ibsql.Close;
+
+      ibsql.SQL.Text :=
         'INSERT INTO ac_accvalue (id, accountkey, valuekey) VALUES (:id, :accountkey, :valuekey)';
       for I := 0 to sbValues.ComponentCount - 1 do
         if (sbValues.Components[I] is TValueCheckBox) and
-          (TValueCheckBox(sbValues.Components[I]).Checked and
-           (FValuesArray.IndexOf(sbValues.Components[I].Tag) = -1))
+          (TValueCheckBox(sbValues.Components[I]).Checked )
         then
         begin
           ibsql.ParamByName('id').AsInteger := gdcObject.GetNextID;
@@ -236,20 +234,7 @@ begin
           ibsql.ExecQuery;
           ibsql.Close;
         end;
-      ibsql.SQL.Text :=
-        'DELETE FROM ac_accvalue WHERE accountkey = :accountkey AND valuekey = :valuekey';
-      for I := 0 to sbValues.ComponentCount - 1 do
-        if (sbValues.Components[I] is TValueCheckBox) and
-          ((not TValueCheckBox(sbValues.Components[I]).Checked) and
-           (FValuesArray.IndexOf(sbValues.Components[I].Tag) > -1))
-        then
-        begin
-          ibsql.ParamByName('accountkey').AsInteger := gdcObject.ID;
-          ibsql.ParamByName('valuekey').AsInteger := sbValues.Components[I].Tag;
-          ibsql.ExecQuery;
-          ibsql.Close;
-        end;
-
+        
     finally
       ibsql.Transaction.Commit;
     end;
@@ -295,6 +280,7 @@ begin
   inherited;
   HideLabels;
   SetupValues;
+  SetupAnalyze;
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGACCTBASEACCOUNT', 'SETUPRECORD', KEYSETUPRECORD)}
   {M}finally
   {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
@@ -327,7 +313,7 @@ begin
 
     ibsql.Close;
 
-    ibsql.SQL.Text := 'SELECT * FROM gd_value ORDER BY name ASC';
+    ibsql.SQL.Text := 'SELECT v.name, v.id FROM ac_accvalue a JOIN gd_value v ON a.valuekey = v.id WHERE a.accountkey = ' + IntToStr(gdcObject.ID) + ' ORDER BY name ASC';
     ibsql.ExecQuery;
     if ibsql.Eof then
       Exit;
@@ -355,112 +341,163 @@ begin
   end;
 end;
 
-procedure Tgdc_dlgAcctBaseAccount.atContainerAdjustControl(Sender: TObject;
-  Control: TControl);
-var
-  LabelC: TComponent;
-begin
-  inherited;
-  if not (Control is TDBCheckBox) then
-  begin
-    Control.Visible := False;
-    LabelC := FindComponent(Control.Name + '_label');
-    if Assigned(LabelC) then
-      (LabelC as TLabel).Visible := False;
-  end; 
-end;
 
-procedure Tgdc_dlgAcctBaseAccount.atcMainAdjustControl(Sender: TObject;
-  Control: TControl);
-begin
-  inherited;
-  if Control is TDBCheckBox then
-    Control.Visible := False;
-end;
 
 procedure Tgdc_dlgAcctBaseAccount.HideLabels;
+begin
+end;
+
+procedure Tgdc_dlgAcctBaseAccount.SetupAnalyze;
 var
+  CB: TDBCheckBox;
+  CurrTop: Integer;
   i: Integer;
 begin
-  for i:= 0 to atContainer.ComponentCount - 1 do
-    if atContainer.Components[i] is TLabel then
-      (atContainer.Components[i] as TLabel).Visible := False;
+
+  while sbAnalyze.ComponentCount > 0 do
+    sbAnalyze.Components[0].Free;
+
+  CurrTop := 5;
+  for i := 0 to atDatabase.Relations.ByRelationName('AC_ACCOUNT').RelationFields.Count - 1 do
+  begin
+
+    if atDatabase.Relations.ByRelationName('AC_ACCOUNT').RelationFields[i].IsUserDefined and
+       (atDatabase.Relations.ByRelationName('AC_ACCOUNT').RelationFields[i].Field.FieldName = 'DBOOLEAN') then
+    begin
+      if gdcObject.FieldByName(atDatabase.Relations.ByRelationName('AC_ACCOUNT').RelationFields[i].FieldName).AsInteger = 1 then
+      begin
+        CB := TDBCheckBox.Create(sbAnalyze);
+        CB.Left := 5;
+        CB.Top := CurrTop;
+        CB.DataSource := dsgdcBase;
+        CB.DataField := atDatabase.Relations.ByRelationName('AC_ACCOUNT').RelationFields[i].FieldName;
+        CB.ValueChecked := '1';
+        CB.Width := sbAnalyze.Width - 10;
+        CB.ValueUnChecked := '0';
+        CB.Caption := atDatabase.Relations.ByRelationName('AC_ACCOUNT').RelationFields[i].LName;
+        sbAnalyze.InsertControl(CB);
+        CurrTop := CurrTop + CB.Height + 2;
+      end;
+    end;
+
+  end;
+
 end;
 
-procedure Tgdc_dlgAcctBaseAccount.actSelectedAnalyticsExecute(Sender: TObject);
+procedure Tgdc_dlgAcctBaseAccount.actAnalyzeExecute(Sender: TObject);
 var
-  I: Integer;
-begin  
-  if TAction(Sender).Caption = OnlySelected then
-  begin
-    for I := 0 to atContainer.ControlCount - 1 do
-    begin
-      if (atContainer.Controls[i] is TDBCheckBox)
-        and not (atContainer.Controls[i] as TDBCheckBox).Checked
-      then
-        (atContainer.Controls[i] as TDBCheckBox).Visible := False;
-    end;
-
-    TAction(Sender).Caption := All;
-  end else
-  if TAction(Sender).Caption = All then
-  begin
-    for I := 0 to atContainer.ControlCount - 1 do
-    begin
-      if (atContainer.Controls[i] is TDBCheckBox) then
-        (atContainer.Controls[i] as TDBCheckBox).Visible := True;
-    end;
-        
-    TAction(Sender).Caption := OnlySelected;
-  end;
-end;
-
-procedure Tgdc_dlgAcctBaseAccount.actSelectedAnalyticsUpdate(Sender: TObject);
+  gdcRelationFields: TgdcRelationField;
+  i: Integer;
+  A: OleVariant;
 begin
-  if (TAction(Sender).Caption <> All)
-    and (TAction(Sender).Caption <> OnlySelected) then
-  begin
-    TAction(Sender).Caption := All;
-    TAction(Sender).Execute;
+  inherited;
+  gdcRelationFields := TgdcRelationField.Create(Self);
+  try
+    gdcRelationFields.Open;
+
+    for i := 0 to atDatabase.Relations.ByRelationName('AC_ACCOUNT').RelationFields.Count - 1 do
+      if atDatabase.Relations.ByRelationName('AC_ACCOUNT').RelationFields[i].IsUserDefined and
+        (atDatabase.Relations.ByRelationName('AC_ACCOUNT').RelationFields[i].Field.FieldName = 'DBOOLEAN') and
+        (gdcObject.FieldByName(atDatabase.Relations.ByRelationName('AC_ACCOUNT').RelationFields[i].FieldName).AsInteger = 1) then
+        gdcRelationFields.SelectedID.Add(atDatabase.Relations.ByRelationName('AC_ACCOUNT').RelationFields[i].ID);
+
+    if gdcRelationFields.ChooseItems(A, '', '', 'z.relationname = ''AC_ACCOUNT'' and z.fieldname like ''USR$%'' and z.fieldsource = ''DBOOLEAN''') then
+    begin
+
+      if not (gdcObject.State in [dsEdit, dsInsert]) then
+        gdcObject.Edit;
+
+      for i := 0 to atDatabase.Relations.ByRelationName('AC_ACCOUNT').RelationFields.Count - 1 do
+        if atDatabase.Relations.ByRelationName('AC_ACCOUNT').RelationFields[i].IsUserDefined and
+          (atDatabase.Relations.ByRelationName('AC_ACCOUNT').RelationFields[i].Field.FieldName = 'DBOOLEAN') then
+          gdcObject.FieldByName(atDatabase.Relations.ByRelationName('AC_ACCOUNT').RelationFields[i].FieldName).AsInteger := 0;
+
+      gdcRelationFields.Close;
+      gdcRelationFields.SubSet := 'OnlySelected';
+      gdcRelationFields.Open;
+      gdcRelationFields.First;
+
+      while not gdcRelationFields.EOF do
+      begin
+        gdcObject.FieldByName(gdcRelationFields.FieldByName('FieldName').AsString).AsInteger := 1;
+        gdcRelationFields.Next;
+      end;
+
+      SetupAnalyze;
+
+    end;
+
+  finally
+    gdcRelationFields.Free;
   end;
 end;
 
-procedure Tgdc_dlgAcctBaseAccount.actSelectedValuesExecute(
-  Sender: TObject);
+procedure Tgdc_dlgAcctBaseAccount.actValuesExecute(Sender: TObject);
 var
-  I: Integer;
+  ibsql: TIBSQL;
+  gdcValue: TgdcValue;
+  A: OleVariant;
+  CB: TCheckBox;
+  CurrTop: Integer;
+
 begin
-  if TAction(Sender).Caption = OnlySelected then
-  begin
-    for I := 0 to sbValues.ComponentCount - 1 do
-    begin
-      if (sbValues.Components[I] is TValueCheckBox)
-        and (not TValueCheckBox(sbValues.Components[I]).Checked)
-      then
-        TValueCheckBox(sbValues.Components[I]).Visible := False;
+  inherited;
+  gdcValue := TgdcValue.Create(Self);
+  try
+    gdcValue.Open;
+
+    ibsql := TIBSQL.Create(nil);
+    try
+      ibsql.Transaction := gdcObject.ReadTransaction;
+      ibsql.SQL.Text :=
+        'SELECT * FROM ac_accvalue WHERE accountkey = ' + IntToStr(gdcObject.ID);
+      ibsql.ExecQuery;
+      while not ibsql.Eof do
+      begin
+        gdcValue.SelectedID.Add(ibsql.FieldByName('valuekey').AsInteger);
+        ibsql.Next;
+      end;
+    finally
+      ibsql.Free;
     end;
 
-    TAction(Sender).Caption := All;
-  end else
-  if TAction(Sender).Caption = All then
-  begin
-    for I := 0 to sbValues.ComponentCount - 1 do
+    if gdcValue.ChooseItems(A) then
     begin
-      if (sbValues.Components[I] is TValueCheckBox) then
-        TValueCheckBox(sbValues.Components[I]).Visible := True;
+
+      if not (gdcObject.State in [dsEdit, dsInsert]) then
+        gdcObject.Edit;
+
+      gdcObject.FieldByName('id').AsInteger := gdcObject.FieldByName('id').AsInteger;   
+
+      FValuesArray.Clear;
+      while sbValues.ComponentCount > 0 do
+        sbValues.Components[0].Free;
+
+
+      gdcValue.Close;
+      gdcValue.SubSet := 'OnlySelected';
+      gdcValue.Open;
+      gdcValue.First;
+
+      CurrTop := 5;
+      while not gdcValue.EOF do
+      begin
+        CB := TValueCheckBox.Create(sbValues);
+        CB.Left := 5;
+        CB.Top := CurrTop;
+        CB.Tag := gdcValue.FieldByName('id').AsInteger;
+        CB.Caption := gdcValue.FieldByName('name').AsString;
+        sbValues.InsertControl(CB);
+        CurrTop := CurrTop + CB.Height + 2;
+        FValuesArray.AddObject(gdcValue.FieldByName('id').AsInteger, CB);
+        CB.Checked := True;
+        gdcValue.Next;
+      end;
+
     end;
 
-    TAction(Sender).Caption := OnlySelected;
-  end;
-end;
-
-procedure Tgdc_dlgAcctBaseAccount.actSelectedValuesUpdate(Sender: TObject);
-begin
-  if (TAction(Sender).Caption <> All)
-    and (TAction(Sender).Caption <> OnlySelected) then
-  begin
-    TAction(Sender).Caption := All;
-    TAction(Sender).Execute;
+  finally
+    gdcValue.Free;
   end;
 end;
 

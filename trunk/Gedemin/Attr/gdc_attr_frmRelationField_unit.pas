@@ -26,6 +26,8 @@ implementation
 
 {$R *.DFM}
 
+uses gd_ClassList;
+
 procedure Tgdc_attr_frmRelationField.FormCreate(Sender: TObject);
 begin
   inherited;
@@ -37,5 +39,11 @@ begin
 //  inherited;
 
 end;
+
+initialization
+  RegisterFrmClass(Tgdc_attr_frmRelationField);
+
+finalization
+  UnRegisterFrmClass(Tgdc_attr_frmRelationField);
 
 end.

@@ -1,6 +1,6 @@
 inherited dlgBaseAcctConfig: TdlgBaseAcctConfig
-  Left = 981
-  Top = 188
+  Left = 663
+  Top = 185
   BorderWidth = 5
   Caption = 'Конфигурация'
   ClientHeight = 428
@@ -239,11 +239,11 @@ inherited dlgBaseAcctConfig: TdlgBaseAcctConfig
       Caption = 'Значения аналитик'
       ImageIndex = 1
       inline frAnalytics: TframeAnalyticValue
-        Width = 338
+        Width = 522
         Height = 394
         Align = alClient
         inherited sbAnaliseLines: TScrollBox
-          Width = 338
+          Width = 522
           Height = 394
           BorderStyle = bsSingle
         end
