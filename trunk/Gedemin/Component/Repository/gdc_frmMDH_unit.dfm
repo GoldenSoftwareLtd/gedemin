@@ -9,11 +9,11 @@ inherited gdc_frmMDH: Tgdc_frmMDH
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 427
-    Width = 716
+    Top = 438
+    Width = 724
   end
   inherited TBDockTop: TTBDock
-    Width = 716
+    Width = 724
     OnRequestDock = TBDockTopRequestDock
     inherited tbMainToolbar: TTBToolbar
       Caption = 'Панель инструментов (главная)'
@@ -74,36 +74,36 @@ inherited gdc_frmMDH: Tgdc_frmMDH
     end
   end
   inherited TBDockLeft: TTBDock
-    Height = 367
+    Height = 380
   end
   inherited TBDockRight: TTBDock
-    Left = 707
-    Height = 367
+    Left = 715
+    Height = 380
   end
   inherited TBDockBottom: TTBDock
-    Top = 418
-    Width = 716
+    Top = 429
+    Width = 724
   end
   inherited pnlWorkArea: TPanel
-    Width = 698
-    Height = 378
+    Width = 706
+    Height = 380
     TabOrder = 0
     object sMasterDetail: TSplitter [0]
       Left = 0
       Top = 167
-      Width = 698
+      Width = 706
       Height = 6
       Cursor = crVSplit
       Align = alTop
       MinSize = 20
     end
     inherited spChoose: TSplitter
-      Top = 273
-      Width = 698
+      Top = 275
+      Width = 706
       Height = 6
     end
     inherited pnlMain: TPanel
-      Width = 698
+      Width = 706
       Height = 167
       Align = alTop
       Constraints.MinHeight = 1
@@ -119,24 +119,24 @@ inherited gdc_frmMDH: Tgdc_frmMDH
       end
     end
     inherited pnChoose: TPanel
-      Top = 279
-      Width = 698
+      Top = 281
+      Width = 706
       TabOrder = 2
       inherited pnButtonChoose: TPanel
-        Left = 593
+        Left = 601
       end
       inherited ibgrChoose: TgsIBGrid
-        Width = 593
+        Width = 601
       end
       inherited pnlChooseCaption: TPanel
-        Width = 698
+        Width = 706
       end
     end
     object pnlDetail: TPanel
       Left = 0
       Top = 173
-      Width = 698
-      Height = 100
+      Width = 706
+      Height = 102
       Align = alClient
       BevelOuter = bvLowered
       Constraints.MinHeight = 100
@@ -145,7 +145,7 @@ inherited gdc_frmMDH: Tgdc_frmMDH
       object TBDockDetail: TTBDock
         Left = 1
         Top = 1
-        Width = 696
+        Width = 704
         Height = 26
         OnRequestDock = TBDockDetailRequestDock
         object tbDetailToolbar: TTBToolbar
@@ -224,7 +224,7 @@ inherited gdc_frmMDH: Tgdc_frmMDH
         Left = 1
         Top = 27
         Width = 160
-        Height = 72
+        Height = 74
         Align = alLeft
         BevelOuter = bvNone
         Color = 14741233
@@ -236,7 +236,7 @@ inherited gdc_frmMDH: Tgdc_frmMDH
           Left = 0
           Top = 0
           Width = 160
-          Height = 34
+          Height = 36
           HorzScrollBar.Style = ssFlat
           HorzScrollBar.Visible = False
           VertScrollBar.Style = ssFlat
@@ -246,7 +246,7 @@ inherited gdc_frmMDH: Tgdc_frmMDH
         end
         object pnlSearchDetailButton: TPanel
           Left = 0
-          Top = 34
+          Top = 36
           Width = 160
           Height = 38
           Align = alBottom

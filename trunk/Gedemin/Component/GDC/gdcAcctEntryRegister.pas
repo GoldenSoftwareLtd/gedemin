@@ -1857,6 +1857,11 @@ begin
     gdcAcctComplexRecord.SubSet := 'ByID';
     gdcAcctComplexRecord.ID := FieldByName('recordkey').AsInteger;
     gdcAcctComplexRecord.Open;
+    if Active and not FieldByName('transactionkey').IsNull then
+      gdcAcctComplexRecord.TransactionKey := FieldByName('transactionkey').AsInteger
+    else
+      if Assigned(MasterSource) and Assigned(MasterSource.DataSet) then
+        gdcAcctComplexRecord.TransactionKey := MasterSource.DataSet.FieldByName('id').AsInteger;
     Result := gdcAcctComplexRecord.CopyDialog;
     if Result then
     begin

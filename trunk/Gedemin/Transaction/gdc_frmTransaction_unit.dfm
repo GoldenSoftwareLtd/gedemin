@@ -1,6 +1,6 @@
 inherited gdc_frmTransaction: Tgdc_frmTransaction
-  Left = 311
-  Top = 383
+  Left = 379
+  Top = 143
   Width = 783
   Height = 540
   HelpContext = 158
@@ -9,82 +9,82 @@ inherited gdc_frmTransaction: Tgdc_frmTransaction
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 483
-    Width = 767
+    Top = 494
+    Width = 775
   end
   inherited TBDockTop: TTBDock
-    Width = 767
+    Width = 775
   end
   inherited TBDockLeft: TTBDock
-    Height = 423
+    Height = 436
   end
   inherited TBDockRight: TTBDock
-    Left = 758
-    Height = 423
+    Left = 766
+    Height = 436
   end
   inherited TBDockBottom: TTBDock
-    Top = 474
-    Width = 767
+    Top = 485
+    Width = 775
   end
   inherited pnlWorkArea: TPanel
-    Width = 749
-    Height = 423
+    Width = 757
+    Height = 436
     inherited sMasterDetail: TSplitter
-      Height = 318
+      Height = 331
     end
     inherited spChoose: TSplitter
-      Top = 318
-      Width = 749
+      Top = 331
+      Width = 757
     end
     inherited pnlMain: TPanel
-      Height = 318
+      Height = 331
       inherited pnlSearchMain: TPanel
-        Height = 318
+        Height = 331
         inherited sbSearchMain: TScrollBox
-          Height = 280
+          Height = 293
         end
         inherited pnlSearchMainButton: TPanel
-          Top = 280
+          Top = 293
         end
       end
       inherited tvGroup: TgsDBTreeView
-        Height = 318
+        Height = 331
       end
     end
     inherited pnChoose: TPanel
-      Top = 324
-      Width = 749
+      Top = 337
+      Width = 757
       inherited pnButtonChoose: TPanel
-        Left = 644
+        Left = 652
       end
       inherited ibgrChoose: TgsIBGrid
-        Width = 644
+        Width = 652
       end
       inherited pnlChooseCaption: TPanel
-        Width = 749
+        Width = 757
       end
     end
     inherited pnlDetail: TPanel
-      Width = 577
-      Height = 318
+      Width = 585
+      Height = 331
       object splQuentity: TSplitter [0]
         Left = 0
-        Top = 224
-        Width = 577
+        Top = 237
+        Width = 585
         Height = 4
         Cursor = crVSplit
         Align = alBottom
       end
       object bvlSupport: TBevel [1]
         Left = 0
-        Top = 223
-        Width = 577
+        Top = 236
+        Width = 585
         Height = 1
         Align = alBottom
       end
       inherited TBDockDetail: TTBDock
-        Width = 577
-        Height = 51
+        Width = 585
+        Height = 49
         inherited tbDetailToolbar: TTBToolbar
           object TBItem1: TTBItem [0]
             Action = actBack
@@ -115,7 +115,7 @@ inherited gdc_frmTransaction: Tgdc_frmTransaction
           end
           object cbGroupByDocument: TCheckBox
             Left = 0
-            Top = 2
+            Top = 1
             Width = 169
             Height = 17
             Caption = 'Группировать по документу'
@@ -124,7 +124,7 @@ inherited gdc_frmTransaction: Tgdc_frmTransaction
           end
           object cbQuantity: TCheckBox
             Left = 169
-            Top = 2
+            Top = 1
             Width = 240
             Height = 17
             Caption = 'Показывать количественные показатели'
@@ -134,24 +134,24 @@ inherited gdc_frmTransaction: Tgdc_frmTransaction
         end
       end
       inherited pnlSearchDetail: TPanel
-        Top = 51
-        Height = 172
+        Top = 49
+        Height = 187
         inherited sbSearchDetail: TScrollBox
-          Height = 134
+          Height = 149
         end
         inherited pnlSearchDetailButton: TPanel
-          Top = 134
+          Top = 149
         end
       end
       inherited ibgrDetail: TgsIBGrid
-        Top = 51
-        Width = 417
-        Height = 172
+        Top = 49
+        Width = 425
+        Height = 187
       end
       object pnlQuantity: TPanel
         Left = 0
-        Top = 228
-        Width = 577
+        Top = 241
+        Width = 585
         Height = 90
         Align = alBottom
         BevelOuter = bvNone
@@ -159,7 +159,7 @@ inherited gdc_frmTransaction: Tgdc_frmTransaction
         object ibgrQuantity: TgsIBGrid
           Left = 0
           Top = 0
-          Width = 577
+          Width = 585
           Height = 90
           HelpContext = 3
           Align = alClient
