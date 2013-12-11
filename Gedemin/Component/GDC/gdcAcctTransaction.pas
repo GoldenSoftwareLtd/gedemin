@@ -227,7 +227,7 @@ end;
 
 function TgdcBaseAcctTransaction.AcceptClipboard(CD: PgdcClipboardData): Boolean;
 var
-  i, key: Integer;
+  i, key, documentkey: Integer;
   LocalObj: TgdcBase;
   V: OleVariant;
 begin
@@ -287,17 +287,25 @@ begin
       begin
 
         key := -1;
+        documentkey := -1;
         if CD.Obj.Locate('ID', CD.ObjectArr[I].ID, []) then
           key := CD.Obj.FieldByName('recordkey').AsInteger
         else begin
-          ExecSingleQueryResult('SELECT recordkey FROM ac_entry WHERE id = :id',
+          ExecSingleQueryResult('SELECT recordkey, documentkey FROM ac_entry WHERE id = :id',
             VarArrayOf([CD.ObjectArr[I].ID]), V);
           if VarType(V) <> VarEmpty then
+          begin
             key := Integer(V[0, 0]);
+            documentkey := Integer(V[1, 0]);
+          end
         end;
-        if Key > -1 then
+        if (Key > -1) and (DocumentKey > -1) then
+        begin
           ExecSingleQuery('UPDATE ac_record SET transactionkey = :TrKey WHERE ID = :ID',
             VarArrayOf([Self.ID, Key]));
+          ExecSingleQuery('UPDATE gd_document SET transactionkey = :TrKey WHERE ID = :ID',
+            VarArrayOf([Self.ID, documentkey]));
+        end;
       end;
       Result := True;
     end else

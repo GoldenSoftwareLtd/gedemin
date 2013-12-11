@@ -20,8 +20,8 @@ object dlgMaster: TdlgMaster
   object Panel1: TPanel
     Left = 0
     Top = 0
-    Width = 583
-    Height = 378
+    Width = 575
+    Height = 367
     Align = alClient
     BevelOuter = bvNone
     BorderWidth = 2
@@ -29,8 +29,8 @@ object dlgMaster: TdlgMaster
     object pcOptions: TPageControl
       Left = 2
       Top = 2
-      Width = 579
-      Height = 374
+      Width = 571
+      Height = 363
       ActivePage = tsTable
       Align = alClient
       TabHeight = 16
@@ -247,10 +247,10 @@ object dlgMaster: TdlgMaster
         Caption = 'Колонки'
         ImageIndex = 1
         object Panel4: TPanel
-          Left = 262
+          Left = 254
           Top = 0
           Width = 309
-          Height = 348
+          Height = 337
           Align = alRight
           BevelOuter = bvNone
           BorderWidth = 4
@@ -259,7 +259,7 @@ object dlgMaster: TdlgMaster
             Left = 4
             Top = 4
             Width = 301
-            Height = 340
+            Height = 329
             ActivePage = TabSheet1
             Align = alClient
             TabHeight = 23
@@ -573,8 +573,8 @@ object dlgMaster: TdlgMaster
         object Panel5: TPanel
           Left = 0
           Top = 0
-          Width = 262
-          Height = 348
+          Width = 254
+          Height = 337
           Align = alClient
           BevelOuter = bvNone
           BorderWidth = 6
@@ -609,8 +609,8 @@ object dlgMaster: TdlgMaster
           end
           object Panel7: TPanel
             Left = 6
-            Top = 255
-            Width = 250
+            Top = 244
+            Width = 242
             Height = 87
             Align = alBottom
             BevelOuter = bvNone
@@ -675,10 +675,10 @@ object dlgMaster: TdlgMaster
         Caption = 'Условия'
         ImageIndex = 2
         object Panel6: TPanel
-          Left = 258
+          Left = 250
           Top = 0
           Width = 313
-          Height = 348
+          Height = 337
           Align = alRight
           BevelOuter = bvNone
           BorderWidth = 4
@@ -687,7 +687,7 @@ object dlgMaster: TdlgMaster
             Left = 4
             Top = 4
             Width = 305
-            Height = 340
+            Height = 329
             ActivePage = TabSheet6
             Align = alClient
             Anchors = [akTop, akRight, akBottom]
@@ -905,8 +905,8 @@ object dlgMaster: TdlgMaster
         object Panel8: TPanel
           Left = 0
           Top = 0
-          Width = 258
-          Height = 348
+          Width = 250
+          Height = 337
           Align = alClient
           BevelOuter = bvNone
           TabOrder = 0
@@ -1515,14 +1515,14 @@ object dlgMaster: TdlgMaster
   end
   object Panel2: TPanel
     Left = 0
-    Top = 378
-    Width = 583
+    Top = 367
+    Width = 575
     Height = 37
     Align = alBottom
     BevelOuter = bvNone
     TabOrder = 1
     object Panel3: TPanel
-      Left = 319
+      Left = 311
       Top = 0
       Width = 264
       Height = 37
