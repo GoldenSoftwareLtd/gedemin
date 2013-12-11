@@ -8,7 +8,6 @@ inherited gdc_attr_frmRelationField: Tgdc_attr_frmRelationField
     DataSet = gdcTableField
   end
   object gdcTableField: TgdcTableField
-    CachedUpdates = False
     Left = 193
     Top = 177
   end

@@ -1,42 +1,42 @@
 inherited gdc_dlgAcctBaseAccount: Tgdc_dlgAcctBaseAccount
-  Left = 621
-  Top = 482
+  Left = 451
+  Top = 116
   BorderIcons = [biSystemMenu]
   BorderWidth = 5
   Caption = 'Счет'
-  ClientHeight = 388
-  ClientWidth = 443
+  ClientHeight = 465
+  ClientWidth = 494
   PixelsPerInch = 96
   TextHeight = 13
   inherited btnAccess: TButton
     Left = 1
-    Top = 364
+    Top = 441
     TabOrder = 1
   end
   inherited btnNew: TButton
     Left = 80
-    Top = 364
+    Top = 441
     TabOrder = 2
   end
   inherited btnHelp: TButton
     Left = 158
-    Top = 364
+    Top = 441
   end
   inherited btnOK: TButton
-    Left = 293
-    Top = 364
+    Left = 344
+    Top = 441
     TabOrder = 3
   end
   inherited btnCancel: TButton
-    Left = 373
-    Top = 364
+    Left = 424
+    Top = 441
     TabOrder = 4
   end
   inherited pgcMain: TPageControl
     Left = 1
     Top = 1
-    Width = 440
-    Height = 356
+    Width = 489
+    Height = 432
     inherited tbsMain: TTabSheet
       inherited dbtxtID: TDBText
         Left = 121
@@ -55,17 +55,17 @@ inherited gdc_dlgAcctBaseAccount: Tgdc_dlgAcctBaseAccount
         Height = 13
         Caption = 'Наименование счета:'
       end
-      object Label3: TLabel
+      object lbRelation: TLabel
         Left = 8
-        Top = 170
-        Width = 53
+        Top = 177
+        Width = 193
         Height = 13
-        Caption = 'Описание:'
+        Caption = 'Аналитика для развернутого сальдо:'
       end
       object pAccountInfo: TPanel
         Left = 7
         Top = 78
-        Width = 419
+        Width = 466
         Height = 91
         BevelOuter = bvNone
         TabOrder = 2
@@ -111,7 +111,7 @@ inherited gdc_dlgAcctBaseAccount: Tgdc_dlgAcctBaseAccount
         object dbrgTypeAccount: TDBRadioGroup
           Left = 212
           Top = 0
-          Width = 207
+          Width = 248
           Height = 66
           Caption = ' Тип счета '
           DataField = 'ACTIVITY'
@@ -129,7 +129,7 @@ inherited gdc_dlgAcctBaseAccount: Tgdc_dlgAcctBaseAccount
         object gsiblcGroupAccount: TgsIBLookupComboBox
           Left = 115
           Top = 70
-          Width = 304
+          Width = 347
           Height = 21
           HelpContext = 1
           Database = dmDatabase.ibdbGAdmin
@@ -158,142 +158,94 @@ inherited gdc_dlgAcctBaseAccount: Tgdc_dlgAcctBaseAccount
       object dbedName: TDBEdit
         Left = 120
         Top = 54
-        Width = 306
+        Width = 349
         Height = 21
         DataField = 'NAME'
         DataSource = dsgdcBase
         TabOrder = 1
       end
-      object DBMemo1: TDBMemo
-        Left = 7
-        Top = 186
-        Width = 418
-        Height = 121
-        DataField = 'description'
-        DataSource = dsgdcBase
-        TabOrder = 3
-      end
       object dbcbDisabled: TDBCheckBox
-        Left = 7
-        Top = 310
+        Left = 8
+        Top = 382
         Width = 138
         Height = 17
         Caption = 'Запись отключена'
         DataField = 'DISABLED'
         DataSource = dsgdcBase
-        TabOrder = 4
+        TabOrder = 3
         ValueChecked = '1'
         ValueUnchecked = '0'
       end
-    end
-    object TabSheet1: TTabSheet [1]
-      Caption = 'Аналитика'
-      ImageIndex = 2
-      object lblValues: TLabel
-        Left = 6
-        Top = 182
-        Width = 121
-        Height = 13
-        Caption = 'Ед.измерения по счету:'
-      end
-      object sbSelectedValues: TSpeedButton
-        Left = 301
-        Top = 176
-        Width = 122
+      object gsibRelationFields: TgsIBLookupComboBox
+        Left = 207
+        Top = 173
+        Width = 262
         Height = 21
-        Action = actSelectedValues
+        HelpContext = 1
+        Database = dmDatabase.ibdbGAdmin
+        Transaction = ibtrCommon
+        DataSource = dsgdcBase
+        DataField = 'analyticalfield'
+        ListTable = 'AT_RELATION_FIELDS'
+        ListField = 'LNAME'
+        KeyField = 'ID'
+        Condition = 'RELATIONNAME = '#39'AC_ACCOUNT'#39' AND FIELDNAME LIKE '#39'USR$%'#39
+        ItemHeight = 13
+        ParentShowHint = False
+        ShowHint = True
+        TabOrder = 4
       end
-      object pnlAnalytics: TPanel
-        Left = 5
-        Top = 5
-        Width = 419
-        Height = 168
-        BevelOuter = bvNone
-        TabOrder = 0
-        object pnlMainAnalytic: TPanel
-          Left = 0
-          Top = 0
-          Width = 419
-          Height = 23
-          Align = alTop
-          BevelOuter = bvNone
-          TabOrder = 0
-          object lbRelation: TLabel
-            Left = 0
-            Top = 6
-            Width = 103
-            Height = 13
-            Caption = 'Главная аналитика:'
-          end
-          object gsibRelationFields: TgsIBLookupComboBox
-            Left = 135
-            Top = 2
-            Width = 284
-            Height = 21
-            HelpContext = 1
-            Database = dmDatabase.ibdbGAdmin
-            Transaction = ibtrCommon
-            DataSource = dsgdcBase
-            DataField = 'analyticalfield'
-            ListTable = 'AT_RELATION_FIELDS'
-            ListField = 'LNAME'
-            KeyField = 'ID'
-            Condition = 'RELATIONNAME = '#39'AC_ACCOUNT'#39' AND FIELDNAME LIKE '#39'USR$%'#39
-            ItemHeight = 13
-            ParentShowHint = False
-            ShowHint = True
-            TabOrder = 0
-          end
-        end
-        object Panel1: TPanel
-          Left = 0
-          Top = 23
-          Width = 419
-          Height = 145
-          Align = alClient
-          BevelOuter = bvNone
-          Caption = 'Panel1'
-          TabOrder = 1
-          object Label1: TLabel
-            Left = 0
-            Top = 14
-            Width = 59
-            Height = 13
-            Caption = 'Аналитики:'
-          end
-          object sbSelectedAnalytics: TSpeedButton
-            Left = 296
-            Top = 6
-            Width = 122
-            Height = 21
-            Action = actSelectedAnalytics
-          end
-          object atContainer: TatContainer
-            Left = 0
-            Top = 30
-            Width = 419
-            Height = 115
-            DataSource = dsgdcBase
-            Align = alBottom
-            Anchors = [akLeft, akTop, akRight, akBottom]
-            TabOrder = 0
-            OnAdjustControl = atContainerAdjustControl
-          end
-        end
+      object bbAnalyze: TBitBtn
+        Left = 6
+        Top = 199
+        Width = 227
+        Height = 25
+        Action = actAnalyze
+        Caption = 'Аналитика'
+        TabOrder = 5
+      end
+      object sbAnalyze: TScrollBox
+        Left = 7
+        Top = 224
+        Width = 225
+        Height = 152
+        TabOrder = 6
       end
       object sbValues: TScrollBox
-        Left = 5
-        Top = 198
-        Width = 419
-        Height = 122
-        TabOrder = 1
+        Left = 239
+        Top = 224
+        Width = 225
+        Height = 152
+        TabOrder = 7
+      end
+      object bbValues: TBitBtn
+        Left = 239
+        Top = 200
+        Width = 227
+        Height = 25
+        Action = actValues
+        Caption = 'Ед.изм.'
+        TabOrder = 8
+      end
+    end
+    object TabSheet1: TTabSheet [1]
+      Caption = 'Описание'
+      ImageIndex = 2
+      object DBMemo1: TDBMemo
+        Left = 0
+        Top = 0
+        Width = 481
+        Height = 404
+        Align = alClient
+        DataField = 'description'
+        DataSource = dsgdcBase
+        TabOrder = 0
       end
     end
     inherited tbsAttr: TTabSheet
       inherited atcMain: TatContainer
-        Width = 432
-        Height = 328
-        OnAdjustControl = atcMainAdjustControl
+        Width = 481
+        Height = 404
       end
     end
   end
@@ -302,13 +254,17 @@ inherited gdc_dlgAcctBaseAccount: Tgdc_dlgAcctBaseAccount
     Top = 10
     object actSelectedAnalytics: TAction
       Caption = 'Только отмеченные'
-      OnExecute = actSelectedAnalyticsExecute
-      OnUpdate = actSelectedAnalyticsUpdate
     end
     object actSelectedValues: TAction
       Caption = 'Только отмеченные'
-      OnExecute = actSelectedValuesExecute
-      OnUpdate = actSelectedValuesUpdate
+    end
+    object actAnalyze: TAction
+      Caption = 'Аналитика'
+      OnExecute = actAnalyzeExecute
+    end
+    object actValues: TAction
+      Caption = 'Ед.изм.'
+      OnExecute = actValuesExecute
     end
   end
   inherited dsgdcBase: TDataSource
