@@ -231,6 +231,7 @@ begin
                            P.LinkTableName := F.References.RelationName;
                            P.LinkDisplayField := F.Field.RefListFieldName;
                            P.LinkPrimaryField := F.ReferencesField.FieldName;
+                           P.SortOrder := 1;
                            Params.Add(P);
                           end else
                           begin

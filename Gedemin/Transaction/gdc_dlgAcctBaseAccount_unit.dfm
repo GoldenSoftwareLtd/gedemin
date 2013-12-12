@@ -209,6 +209,7 @@ inherited gdc_dlgAcctBaseAccount: Tgdc_dlgAcctBaseAccount
         Top = 224
         Width = 225
         Height = 152
+        Enabled = False
         TabOrder = 6
       end
       object sbValues: TScrollBox
@@ -216,6 +217,7 @@ inherited gdc_dlgAcctBaseAccount: Tgdc_dlgAcctBaseAccount
         Top = 224
         Width = 225
         Height = 152
+        Enabled = False
         TabOrder = 7
       end
       object bbValues: TBitBtn
