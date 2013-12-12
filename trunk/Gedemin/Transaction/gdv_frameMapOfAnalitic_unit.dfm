@@ -1,7 +1,7 @@
 object frameMapOfAnaliticLine: TframeMapOfAnaliticLine
   Left = 0
   Top = 0
-  Width = 450
+  Width = 443
   Height = 44
   Align = alTop
   Constraints.MinWidth = 220
@@ -16,7 +16,7 @@ object frameMapOfAnaliticLine: TframeMapOfAnaliticLine
   object Bevel1: TBevel
     Left = 0
     Top = 41
-    Width = 450
+    Width = 443
     Height = 3
     Align = alBottom
     Shape = bsBottomLine
@@ -27,6 +27,7 @@ object frameMapOfAnaliticLine: TframeMapOfAnaliticLine
     Width = 167
     Height = 21
     HelpContext = 1
+    SortOrder = soAsc
     Anchors = [akLeft, akTop, akRight]
     ItemHeight = 13
     TabOrder = 0

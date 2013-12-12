@@ -375,6 +375,7 @@ begin
         CB.Width := sbAnalyze.Width - 10;
         CB.ValueUnChecked := '0';
         CB.Caption := atDatabase.Relations.ByRelationName('AC_ACCOUNT').RelationFields[i].LName;
+        CB.ReadOnly := True;
         sbAnalyze.InsertControl(CB);
         CurrTop := CurrTop + CB.Height + 2;
       end;
