@@ -6,7 +6,10 @@ interface
 type
   IgdHelp = interface
     procedure ShowHelp(const ATopic: String); overload;
-    procedure ShowHelp(const HelpContext: Integer);overload;
+    procedure ShowHelp(const HelpContext: Integer); overload;
+    procedure ShowHelp(const AFormClass, AFormSubType, AnObjClass, AnObjSubType: String); overload;
+    function GetHelpText(const AFormClass, AFormSubType, AnObjClass, AnObjSubType: String): String;
+    function ShowHelpText(const AFormClass, AFormSubType, AnObjClass, AnObjSubType: String): Boolean;
   end;
 
 var

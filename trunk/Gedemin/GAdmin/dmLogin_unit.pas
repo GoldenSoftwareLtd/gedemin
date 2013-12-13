@@ -213,10 +213,13 @@ begin
 
   gdcBase.CacheDBID := -1;
 
-  flt_sqlFilterCache.SaveCacheToDatabase(True);
-
   if Assigned(gdcBaseManager) then
+  begin
+    if (gdcBaseManager.Database <> nil) and gdcBaseManager.Database.Connected then
+      flt_sqlFilterCache.SaveCacheToDatabase(True);
+
     gdcBaseManager.ClearSecDescArr;
+  end;
 end;
 
 procedure TdmLogin.boLoginBeforeChangeCompany(Sender: TObject);

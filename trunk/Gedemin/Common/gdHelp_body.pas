@@ -4,7 +4,7 @@ unit gdHelp_Body;
 interface
 
 uses
-  gdHelp_Interface;
+  gdHelp_Interface, gdcBaseInterface;
 
 type
   TgdHelp = class(TInterfacedObject, IgdHelp)
@@ -12,17 +12,21 @@ type
     HelpDir: String;
 
     procedure CheckHelpDir;
+    function GetHelpFileID(const AFormClass, AFormSubType, AnObjClass, AnObjSubType: String): TID;
 
   public
     procedure ShowHelp(const ATopic: String); overload;
-    procedure ShowHelp(const HelpContext: Integer);overload;
+    procedure ShowHelp(const HelpContext: Integer); overload;
+    procedure ShowHelp(const AFormClass, AFormSubType, AnObjClass, AnObjSubType: String); overload;
+    function GetHelpText(const AFormClass, AFormSubType, AnObjClass, AnObjSubType: String): String;
+    function ShowHelpText(const AFormClass, AFormSubType, AnObjClass, AnObjSubType: String): Boolean;
   end;
 
 implementation
 
 uses
-  Windows, HtmlHlp, gd_directories_const, Registry, FileCtrl,
-  SysUtils, ShellAPI, Forms{, HelpContextsList_Unit};
+  Classes, Windows, HtmlHlp, gd_directories_const, Registry, FileCtrl,
+  SysUtils, ShellAPI, Forms, IBSQL, gdcFile;
 
 const
   FirstUserContext = 100000;
@@ -101,7 +105,6 @@ end;
 
 procedure TgdHelp.ShowHelp(const HelpContext: Integer);
 var
-//  I: Integer;
   HelpFile: string;
   Context: Integer;
 const
@@ -125,6 +128,123 @@ begin
               PChar(HelpDir + HelpFile),
               HH_HELP_CONTEXT,
               Context) ;
+end;
+
+function TgdHelp.GetHelpText(const AFormClass, AFormSubType, AnObjClass,
+  AnObjSubType: String): String;
+var
+  F: TgdcFile;
+  SS: TStringStream;
+  ID: TID;
+begin
+  Result := '';
+
+  ID := GetHelpFileID(AFormClass, AFormSubType, AnObjClass, AnObjSubType);
+
+  if ID > -1 then
+  begin
+    SS := TStringStream.Create('');
+    F := TgdcFile.Create(nil);
+    try
+      F.SubSet := 'ByID';
+      F.ID := ID;
+      F.Open;
+
+      if not F.EOF then
+      begin
+        F.SaveDataToStream(SS);
+        Result := SS.DataString;
+      end;
+    finally
+      SS.Free;
+      F.Free;
+    end;
+  end;
+end;
+
+procedure TgdHelp.ShowHelp(const AFormClass, AFormSubType, AnObjClass,
+  AnObjSubType: String);
+begin
+end;
+
+function TgdHelp.ShowHelpText(const AFormClass, AFormSubType, AnObjClass,
+  AnObjSubType: String): Boolean;
+var
+  F: TgdcFile;
+  ID: TID;
+begin
+  Result := False;
+
+  ID := GetHelpFileID(AFormClass, AFormSubType, AnObjClass, AnObjSubType);
+
+  if ID > -1 then
+  begin
+    F := TgdcFile.Create(nil);
+    try
+      F.SubSet := 'ByID';
+      F.ID := ID;
+      F.Open;
+
+      if not F.EOF then
+      begin
+        F.ViewFile(False, False);
+        Result := True;
+      end;
+    finally
+      F.Free;
+    end;
+  end;
+end;
+
+function TgdHelp.GetHelpFileID(const AFormClass, AFormSubType, AnObjClass,
+  AnObjSubType: String): TID;
+var
+  q: TIBSQL;
+begin
+  Result := -1;
+
+  if (gdcBaseManager = nil) or (gdcBaseManager.Database = nil)
+    or (not gdcBaseManager.Database.Connected) then
+  begin
+    exit;
+  end;
+
+  q := TIBSQL.Create(nil);
+  try
+    q.Transaction := gdcBaseManager.ReadTransaction;
+    q.SQL.Text :=
+      'SELECT 1, f.id ' +
+      'FROM gd_file fold JOIN gd_file f ' +
+      '  ON f.lb > fold.lb AND f.rb <= fold.rb ' +
+      'WHERE ' +
+      '  fold.id = 4000004 AND f.name STARTING WITH :f ' +
+      'UNION ALL ' +
+      'SELECT 2, f.id ' +
+      'FROM gd_file fold JOIN gd_file f ' +
+      '  ON f.lb > fold.lb AND f.rb <= fold.rb ' +
+      'WHERE ' +
+      '  fold.id = 4000004 AND f.name STARTING WITH :o ' +
+      'UNION ALL ' +
+      'SELECT 3, f.id ' +
+      'FROM gd_file fold JOIN gd_file f ' +
+      '  ON f.lb > fold.lb AND f.rb <= fold.rb ' +
+      'WHERE ' +
+      '  fold.id = 4000003 AND f.name STARTING WITH :f ' +
+      'UNION ALL ' +
+      'SELECT 4, f.id ' +
+      'FROM gd_file fold JOIN gd_file f ' +
+      '  ON f.lb > fold.lb AND f.rb <= fold.rb ' +
+      'WHERE ' +
+      '  fold.id = 4000003 AND f.name STARTING WITH :o ' +
+      'ORDER BY 1';
+    q.ParamByName('f').AsString := AFormClass + AFormSubType;
+    q.ParamByName('o').AsString := AnObjClass + AnObjSubType;
+    q.ExecQuery;
+    if not q.EOF then
+      Result := q.FieldByName('id').AsInteger;
+  finally
+    q.Free;
+  end;
 end;
 
 initialization

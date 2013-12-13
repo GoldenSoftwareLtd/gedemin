@@ -620,6 +620,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (196, '0000.0001.0000.0227', '29.11.2013', 'Field changed added to at_namespace.');
 
+INSERT INTO fin_versioninfo
+  VALUES (197, '0000.0001.0000.0228', '13.12.2013', 'Help folders added.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id

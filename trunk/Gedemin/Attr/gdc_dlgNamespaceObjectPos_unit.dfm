@@ -28,6 +28,8 @@ object gdc_dlgNamespaceObjectPos: Tgdc_dlgNamespaceObjectPos
       Width = 75
       Height = 21
       Action = actUp
+      ParentShowHint = False
+      ShowHint = True
       TabOrder = 1
     end
     object btnDown: TButton
@@ -36,6 +38,8 @@ object gdc_dlgNamespaceObjectPos: Tgdc_dlgNamespaceObjectPos
       Width = 75
       Height = 21
       Action = actDown
+      ParentShowHint = False
+      ShowHint = True
       TabOrder = 2
     end
     object Panel3: TPanel
@@ -140,11 +144,15 @@ object gdc_dlgNamespaceObjectPos: Tgdc_dlgNamespaceObjectPos
     end
     object actUp: TAction
       Caption = 'Вверх'
+      Hint = 'Переместить вверх'
+      ShortCut = 16469
       OnExecute = actUpExecute
       OnUpdate = actUpUpdate
     end
     object actDown: TAction
       Caption = 'Вниз'
+      Hint = 'Переместить вниз'
+      ShortCut = 16452
       OnExecute = actDownExecute
       OnUpdate = actDownUpdate
     end

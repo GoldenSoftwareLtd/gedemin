@@ -107,6 +107,49 @@ begin
         '  MATCHING (id)';
       q.ExecQuery;
 
+      q.Close;
+      q.SQL.Text :=
+        'UPDATE OR INSERT INTO gd_file '#13#10 +
+        '  (id, parent, filetype, name, creatorkey, creationdate, editorkey, editiondate) '#13#10 +
+        'VALUES '#13#10 +
+        '  (4000001, NULL, ''D'', ''_Справка'', 650002, ''01.01.2000'', 650002, ''01.01.2000'')'#13#10 +
+        'MATCHING (id)';
+      q.ExecQuery;
+
+      q.Close;
+      q.SQL.Text :=
+        'UPDATE OR INSERT INTO gd_file '#13#10 +
+        '  (id, parent, filetype, name, creatorkey, creationdate, editorkey, editiondate) '#13#10 +
+        'VALUES '#13#10 +
+        '  (4000002, 4000001, ''D'', ''_Классы'', 650002, ''01.01.2000'', 650002, ''01.01.2000'')'#13#10 +
+        'MATCHING (id)';
+      q.ExecQuery;
+
+      q.Close;
+      q.SQL.Text :=
+        'UPDATE OR INSERT INTO gd_file '#13#10 +
+        '  (id, parent, filetype, name, creatorkey, creationdate, editorkey, editiondate) '#13#10 +
+        'VALUES '#13#10 +
+        '  (4000003, 4000002, ''D'', ''_Система'', 650002, ''01.01.2000'', 650002, ''01.01.2000'')'#13#10 +
+        'MATCHING (id)';
+      q.ExecQuery;
+
+      q.Close;
+      q.SQL.Text :=
+        'UPDATE OR INSERT INTO gd_file '#13#10 +
+        '  (id, parent, filetype, name, creatorkey, creationdate, editorkey, editiondate) '#13#10 +
+        'VALUES '#13#10 +
+        '  (4000004, 4000002, ''D'', ''_Пользователь'', 650002, ''01.01.2000'', 650002, ''01.01.2000'')'#13#10 +
+        'MATCHING (id)';
+      q.ExecQuery;
+
+      q.Close;
+      q.SQL.Text :=
+        'UPDATE OR INSERT INTO fin_versioninfo ' +
+        '  VALUES (197, ''0000.0001.0000.0228'', ''13.12.2013'', ''Help folders added.'') ' +
+        '  MATCHING (id)';
+      q.ExecQuery;
+
       Tr.Commit;
     except
       on E: Exception do

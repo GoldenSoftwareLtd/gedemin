@@ -23,6 +23,7 @@ type
     procedure actCancelUpdate(Sender: TObject);
     procedure actDetailMacroExecute(Sender: TObject);
     procedure FormCreate(Sender: TObject);
+
   private
     FIsAutoCommit: Boolean;
 
