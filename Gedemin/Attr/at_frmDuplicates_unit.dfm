@@ -38,6 +38,16 @@ object at_frmDuplicates: Tat_frmDuplicates
       object TBItem2: TTBItem
         Action = actDelDuplicates
       end
+      object TBSeparatorItem1: TTBSeparatorItem
+      end
+      object TBItem4: TTBItem
+        Action = actCommit
+      end
+      object TBItem3: TTBItem
+        Action = actRollback
+      end
+      object TBSeparatorItem2: TTBSeparatorItem
+      end
     end
   end
   object sb: TStatusBar
@@ -48,7 +58,7 @@ object at_frmDuplicates: Tat_frmDuplicates
     Panels = <>
     SimplePanel = False
   end
-  object gsIBGrid1: TgsIBGrid
+  object ibgr: TgsIBGrid
     Left = 0
     Top = 26
     Width = 1126
@@ -56,7 +66,7 @@ object at_frmDuplicates: Tat_frmDuplicates
     Align = alClient
     BorderStyle = bsNone
     DataSource = ds
-    Options = [dgTitles, dgColumnResize, dgColLines, dgTabs, dgRowSelect, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit, dgMultiSelect]
+    Options = [dgTitles, dgColumnResize, dgColLines, dgTabs, dgRowSelect, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit]
     ReadOnly = True
     TabOrder = 2
     InternalMenuKind = imkWithSeparator
@@ -91,6 +101,20 @@ object at_frmDuplicates: Tat_frmDuplicates
       OnExecute = actDelDuplicatesExecute
       OnUpdate = actDelDuplicatesUpdate
     end
+    object actCommit: TAction
+      Caption = 'actCommit'
+      Hint = 'Подтвердить транзакцию'
+      ImageIndex = 214
+      OnExecute = actCommitExecute
+      OnUpdate = actCommitUpdate
+    end
+    object actRollback: TAction
+      Caption = 'actRollback'
+      Hint = 'Откатить транзакцию'
+      ImageIndex = 117
+      OnExecute = actRollbackExecute
+      OnUpdate = actRollbackUpdate
+    end
   end
   object ibtr: TIBTransaction
     Active = False
@@ -110,7 +134,8 @@ object at_frmDuplicates: Tat_frmDuplicates
       'SELECT'
       
         '  o.objectclass, o.subtype, o.objectname, o.xid, o.dbid, list(n.' +
-        'id || '#39'='#39' || n.name) as ns_list, count(*)'
+        'id || '#39'='#39' || '
+      '    REPLACE(n.name, '#39','#39', '#39' '#39')) as ns_list, count(*)'
       'FROM '
       '  at_object o JOIN at_namespace n ON n.id = o.namespacekey'
       'WHERE'

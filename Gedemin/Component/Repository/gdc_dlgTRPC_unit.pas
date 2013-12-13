@@ -29,6 +29,9 @@ type
     class procedure RegisterMethod;
 
   protected
+    FHTS: TTabSheet;
+    FHMemo: TMemo;
+    
     //Заменяет знак $ на его код
     function CorrectRelationName(ARelationName: String): String;
 
@@ -65,6 +68,8 @@ type
 
     function OnInvoker(const Name: WideString; AnParams: OleVariant): OleVariant; override;
 
+    procedure SetupHelpPage(APC: TPageControl);
+
   public
     procedure SetupDialog; override;
     procedure SetupRecord; override;
@@ -84,7 +89,7 @@ implementation
 
 uses
   ExtCtrls, gdcBase, gsIBGrid, at_classes, gsIBLookupComboBox,
-  gdc_framSetControl_unit, gd_ClassList, at_sql_parser;
+  gdc_framSetControl_unit, gd_ClassList, at_sql_parser, gdHelp_Interface;
 
 const
 //Префикс имени страницы, созданной для работы со множеством
@@ -108,24 +113,51 @@ end;
 procedure Tgdc_dlgTRPC.pgcMainChange(Sender: TObject);
 var
   I: Integer;
+  S: String;
+  FC: TgdcFullClass;
 begin
   if pgcMain.ActivePage <> nil then
-    for I := 0 to pgcMain.ActivePage.ControlCount - 1 do
-      if pgcMain.ActivePage.Controls[I] is Tgdc_framSetControl then
-        with pgcMain.ActivePage.Controls[I] as Tgdc_framSetControl do
-        begin
-          if (DS.DataSet <> nil) and (not DS.DataSet.Active) then
-          with DS.DataSet as TgdcBase do
-          begin
-            if not DS.DataSet.Active then
-            begin
-              DS.DataSet.Open;
-              SetupGrid;
-            end;
-          end;
+  begin
+    if pgcMain.ActivePage = FHTS then
+    begin
+      if (FHMemo = nil) and (gdcObject <> nil) then
+      begin
+        FC := gdcObject.GetCurrRecordClass;
+        S := gdHelp.GetHelpText(Self.ClassName, Self.SubType,
+          FC.gdClass.ClassName, FC.SubType);
 
-          break;
-        end;
+        if S = '' then
+          S := 'Для данного объекта нет справочной информации.';
+
+        FHMemo := TMemo.Create(Self);
+        FHMemo.Name := 'm_gd_Help';
+        FHMemo.Parent := FHTS;
+        FHMemo.Align := alClient;
+        FHMemo.ReadOnly := True;
+        FHMemo.Lines.Text := S;
+      end;
+    end else
+    begin
+      for I := 0 to pgcMain.ActivePage.ControlCount - 1 do
+      begin
+        if pgcMain.ActivePage.Controls[I] is Tgdc_framSetControl then
+          with pgcMain.ActivePage.Controls[I] as Tgdc_framSetControl do
+          begin
+            if (DS.DataSet <> nil) and (not DS.DataSet.Active) then
+            with DS.DataSet as TgdcBase do
+            begin
+              if not DS.DataSet.Active then
+              begin
+                DS.DataSet.Open;
+                SetupGrid;
+              end;
+            end;
+
+            break;
+          end;
+      end;
+    end;
+  end;
 end;
 
 procedure Tgdc_dlgTRPC.CreateTabSheet;
@@ -693,12 +725,24 @@ begin
     ShowTabSheet;
   end;
 
+  if FHTS = nil then
+    SetupHelpPage(pgcMain);
+
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGTRPC', 'SETUPRECORD', KEYSETUPRECORD)}
   {M}finally
   {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
   {M}    ClearMacrosStack('TGDC_DLGTRPC', 'SETUPRECORD', KEYSETUPRECORD);
   {M}end;
   {END MACRO}
+end;
+
+procedure Tgdc_dlgTRPC.SetupHelpPage(APC: TPageControl);
+begin
+  Assert(FHTS = nil);
+  FHTS := TTabSheet.Create(Self);
+  FHTS.Name := cstTabSheetPrefix + '_gd_Help';
+  FHTS.Caption := 'Справка';
+  FHTS.PageControl := APC;
 end;
 
 initialization

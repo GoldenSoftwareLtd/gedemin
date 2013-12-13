@@ -14,7 +14,7 @@ type
     tb: TTBToolbar;
     ActionList: TActionList;
     sb: TStatusBar;
-    gsIBGrid1: TgsIBGrid;
+    ibgr: TgsIBGrid;
     ibtr: TIBTransaction;
     ibds: TIBDataSet;
     ds: TDataSource;
@@ -22,16 +22,26 @@ type
     TBItem1: TTBItem;
     actDelDuplicates: TAction;
     TBItem2: TTBItem;
+    actCommit: TAction;
+    actRollback: TAction;
+    TBItem3: TTBItem;
+    TBItem4: TTBItem;
+    TBSeparatorItem1: TTBSeparatorItem;
+    TBSeparatorItem2: TTBSeparatorItem;
     procedure FormCreate(Sender: TObject);
     procedure actOpenObjectUpdate(Sender: TObject);
     procedure actOpenObjectExecute(Sender: TObject);
     procedure dsDataChange(Sender: TObject; Field: TField);
     procedure actDelDuplicatesUpdate(Sender: TObject);
     procedure actDelDuplicatesExecute(Sender: TObject);
+    procedure actCommitUpdate(Sender: TObject);
+    procedure actRollbackUpdate(Sender: TObject);
+    procedure actCommitExecute(Sender: TObject);
+    procedure actRollbackExecute(Sender: TObject);
 
   private
     procedure DoOnClick(Sender: TObject);
-    
+
   public
     constructor Create(AnOwner: TComponent); override;
   end;
@@ -108,7 +118,8 @@ begin
     begin
       TBI := TTBItem.Create(nil);
       TBI.Tag := StrToInt(SL.Names[I]);
-      TBI.Caption := SL.Values[SL.Names[I]];
+      TBI.Caption := 'x ' + SL.Values[SL.Names[I]];
+      TBI.Hint := 'Удалить объект из пространства имен ' + SL.Values[SL.Names[I]];
       TBI.OnClick := DoOnClick;
       tb.Items.Add(TBI);
     end;
@@ -119,17 +130,21 @@ end;
 
 procedure Tat_frmDuplicates.DoOnClick(Sender: TObject);
 var
-  Obj: TgdcNamespace;
+  q: TIBSQL;
 begin
-  Obj := TgdcNamespace.Create(nil);
+  Assert(ibtr.InTransaction);
+  q := TIBSQL.Create(nil);
   try
-    Obj.SubSet := 'ByID';
-    Obj.ID := (Sender as TComponent).Tag;
-    Obj.Open;
-    if not Obj.EOF then
-      Obj.EditDialog;
+    q.Transaction := ibtr;
+    q.SQL.Text :=
+      'DELETE FROM at_object WHERE namespacekey = :ns ' +
+      '  AND xid = :xid AND dbid = :dbid';
+    q.ParamByName('ns').AsInteger := (Sender as TComponent).Tag;
+    q.ParamByName('xid').AsInteger := ibds.FieldByName('xid').AsInteger;
+    q.ParamByName('dbid').AsInteger := ibds.FieldByName('dbid').AsInteger;
+    q.ExecQuery;
   finally
-    Obj.Free;
+    q.Free;
   end;
 end;
 
@@ -170,14 +185,37 @@ begin
       q.Free;
     end;
 
-    if ibtr.InTransaction then
-    begin
-      ibds.Close;
-      ibtr.Commit;
-      ibtr.StartTransaction;
-      ibds.Open;
-    end;
-  end;  
+    ibds.Close;
+    ibds.Open;
+  end;
+end;
+
+procedure Tat_frmDuplicates.actCommitUpdate(Sender: TObject);
+begin
+  actCommit.Enabled := ibtr.InTransaction;
+end;
+
+procedure Tat_frmDuplicates.actRollbackUpdate(Sender: TObject);
+begin
+  actRollback.Enabled := ibtr.InTransaction;
+end;
+
+procedure Tat_frmDuplicates.actCommitExecute(Sender: TObject);
+begin
+  if ibds.Active then
+    ibds.Close;
+  ibtr.Commit;
+  ibtr.StartTransaction;
+  ibds.Open;
+end;
+
+procedure Tat_frmDuplicates.actRollbackExecute(Sender: TObject);
+begin
+  if ibds.Active then
+    ibds.Close;
+  ibtr.Rollback;
+  ibtr.StartTransaction;
+  ibds.Open;
 end;
 
 end.

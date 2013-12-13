@@ -1399,5 +1399,26 @@ INSERT INTO GD_VALUE (ID, NAME, DESCRIPTION, ISPACK) VALUES (3000010, 'комп.', '
 INSERT INTO GD_VALUE (ID, NAME, DESCRIPTION, ISPACK) VALUES (3000011, 'туб', 'Туба', 0);
 INSERT INTO GD_VALUE (ID, NAME, DESCRIPTION, ISPACK) VALUES (3000012, 'ящик', 'Ящик', 1);
 
+-- gd_file
+
+INSERT INTO gd_file
+  (id, parent, filetype, name, creatorkey, creationdate, editorkey, editiondate)
+VALUES
+  (4000001, NULL, 'D', '_Справка', 650002, '01.01.2000', 650002, '01.01.2000');
+
+INSERT INTO gd_file
+  (id, parent, filetype, name, creatorkey, creationdate, editorkey, editiondate)
+VALUES
+  (4000002, 4000001, 'D', '_Классы', 650002, '01.01.2000', 650002, '01.01.2000');
+
+INSERT INTO gd_file
+  (id, parent, filetype, name, creatorkey, creationdate, editorkey, editiondate)
+VALUES
+  (4000003, 4000002, 'D', '_Система', 650002, '01.01.2000', 650002, '01.01.2000');
+
+INSERT INTO gd_file
+  (id, parent, filetype, name, creatorkey, creationdate, editorkey, editiondate)
+VALUES
+  (4000004, 4000002, 'D', '_Пользователь', 650002, '01.01.2000', 650002, '01.01.2000');
 
 COMMIT;

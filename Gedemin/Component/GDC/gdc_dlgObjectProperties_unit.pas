@@ -137,9 +137,9 @@ implementation
 
 {$R *.DFM}
 uses
-  gdcTree, Clipbrd, gd_ClassList, flt_frmSQLEditorSyn_unit,
-  ContNrs, at_classes, gdcMetaData, IBUtils, IBSQL, gdcClasses,
-  gdcNamespace, yaml_writer, jclStrings, at_sql_parser;
+  gdcTree, Clipbrd, gd_ClassList, flt_frmSQLEditorSyn_unit, ContNrs,
+  at_classes, gdcMetaData, IBUtils, IBSQL, gdcClasses, gdcNamespace,
+  yaml_writer, jclStrings, at_sql_parser, gdc_createable_form;
 
 { Tgdc_dlgObjectProperties }
 
@@ -482,6 +482,8 @@ begin
     begin
       Add(AddSpaces('Принадлежит форме:') + gdcObject.Owner.Name);
       Add(AddSpaces('Класс формы:') + gdcObject.Owner.ClassName);
+      if gdcObject.Owner is TgdcCreateableForm then
+        Add(AddSpaces('Подтип формы:') + (gdcObject.Owner as TgdcCreateableForm).SubType);
     end;
     if gdcObject.GetDlgForm is TCustomForm then
     begin

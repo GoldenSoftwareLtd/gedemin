@@ -100,7 +100,6 @@ type
     function CreateDialogForm: TCreateableForm; override;
 
     procedure _DoOnNewRecord; override;
-    procedure DoBeforePost; override;
 
     procedure GetWhereClauseConditions(S: TStrings); override;
 
@@ -159,7 +158,7 @@ implementation
 uses
   gd_ClassList, gdc_dlgFileFolder_unit, gdc_dlgFile_unit, gdc_frmFile_unit,
   Storages, ShellAPI, gd_directories_const, gdc_dlgPath_unit,
-  ZLib, jclMath, IBCustomDataSet, msg_attachment
+  ZLib, jclMath, IBCustomDataSet, msg_attachment, gd_GlobalParams_unit
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -1127,7 +1126,7 @@ var
   AppSt: array[0..1023] of Char;
   AnAnswer: Integer;
   WasBrowse: Boolean;
-  FileName: String;
+  S, FileName: String;
 begin
   Assert((State = dsInsert) or (RecordCount > 0));
 
@@ -1142,24 +1141,30 @@ begin
   StrPCopy(Directory, ExtractFilePath(FileName));
   StrPCopy(AppSt, '');
 
-  FindExecutable(PChar(FileName), Directory , AppSt);
+  S := gd_GlobalParams.GetExternalEditor(
+    System.Copy(ExtractFileExt(FileName), 2, 256));
 
-  if AppSt = '' then
+  if S = '' then
   begin
-    if MessageBox(ParentHandle,
-      'С файлами указанного типа не связано ни одного приложения.'#13#10 +
-      'Использовать блокнот (notepad.exe) для просмотра?',
-      'Внимание',
-      MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = IDNO then
-    begin
-      exit;
-    end else
-    begin
-      AppSt := 'notepad.exe';
-    end;
-  end;
+    FindExecutable(PChar(FileName), Directory , AppSt);
 
-  StrPCopy(AppSt, PChar('"' + String(AppSt) + '"'));
+    if AppSt = '' then
+    begin
+      if MessageBox(ParentHandle,
+        'С файлами указанного типа не связано ни одного приложения.'#13#10 +
+        'Использовать блокнот (notepad.exe) для просмотра?',
+        'Внимание',
+        MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = IDNO then
+      begin
+        exit;
+      end else
+      begin
+        AppSt := 'notepad.exe';
+      end;
+    end else
+      StrPCopy(AppSt, PChar('"' + String(AppSt) + '"'));
+  end else
+    StrPCopy(AppSt, S);
 
   FillChar(ProcessInfo, SizeOf(ProcessInfo), 0);
 
@@ -1527,49 +1532,6 @@ begin
   finally
     BS.Free;
   end;
-end;
-
-procedure TgdcFile.DoBeforePost;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCFILE', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCFILE', KEYDOBEFOREPOST);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOBEFOREPOST]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCFILE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCFILE',
-  {M}          'DOBEFOREPOST', KEYDOBEFOREPOST, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCFILE' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  inherited;
-
-  {if not (sMultiple in BaseState) then
-  begin}
-    if FieldByName('description').AsString = '' then
-      FieldByName('description').AsString := FieldByName('name').AsString;
-  {end;}
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCFILE', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCFILE', 'DOBEFOREPOST', KEYDOBEFOREPOST);
-  {M}  end;
-  {END MACRO}
 end;
 
 initialization

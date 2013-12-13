@@ -2100,16 +2100,22 @@ end;
 procedure Tgdc_dlgG.actHelpExecute(Sender: TObject);
 var
   HelpID: String;
+  FC: TgdcFullClass;
 begin
-  HelpID := gdcObject.GetDisplayName(gdcObject.SubType);
-  if gdcObject is TgdcDocument then
-    HelpID := HelpID + ' ' + TgdcDocument(gdcObject).DocumentName[False];
-  ShowHelp(HelpID + ' (диалог)');
+  FC := gdcObject.GetCurrRecordClass;
+  if not gdHelp.ShowHelpText(Self.ClassName, Self.SubType,
+    FC.gdClass.ClassName, FC.SubType) then
+  begin
+    HelpID := gdcObject.GetDisplayName(gdcObject.SubType);
+    if gdcObject is TgdcDocument then
+      HelpID := HelpID + ' ' + TgdcDocument(gdcObject).DocumentName[False];
+    ShowHelp(HelpID + ' (диалог)');
+  end;  
 end;
 
 procedure Tgdc_dlgG.actHelpUpdate(Sender: TObject);
 begin
-  actHelp.Enabled := gdcObject <> nil; //HelpContext <> 0;
+  actHelp.Enabled := gdcObject <> nil; 
 end;
 
 procedure Tgdc_dlgG.actCopySettingsFromUserUpdate(Sender: TObject);
