@@ -1,6 +1,6 @@
 inherited gdc_dlgAcctSubAccount: Tgdc_dlgAcctSubAccount
-  Left = 457
-  Top = 410
+  Left = 392
+  Top = 145
   Caption = 'Субсчет'
   PixelsPerInch = 96
   TextHeight = 13
@@ -18,15 +18,6 @@ inherited gdc_dlgAcctSubAccount: Tgdc_dlgAcctSubAccount
           Condition = 'ACCOUNTTYPE IN ('#39'A'#39', '#39'F'#39', '#39'S'#39')'
           gdClassName = 'TgdcAcctAccount'
           ViewType = vtTree
-        end
-      end
-    end
-    inherited TabSheet1: TTabSheet
-      inherited pnlAnalytics: TPanel
-        inherited pnlMainAnalytic: TPanel
-          inherited lbRelation: TLabel
-            Top = 7
-          end
         end
       end
     end

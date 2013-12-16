@@ -234,7 +234,7 @@ begin
           ibsql.ExecQuery;
           ibsql.Close;
         end;
-        
+
     finally
       ibsql.Transaction.Commit;
     end;
@@ -351,36 +351,40 @@ procedure Tgdc_dlgAcctBaseAccount.SetupAnalyze;
 var
   CB: TDBCheckBox;
   CurrTop: Integer;
-  i: Integer;
+  gdcRelationFields: TgdcRelationField;
 begin
 
   while sbAnalyze.ComponentCount > 0 do
     sbAnalyze.Components[0].Free;
 
   CurrTop := 5;
-  for i := 0 to atDatabase.Relations.ByRelationName('AC_ACCOUNT').RelationFields.Count - 1 do
-  begin
-
-    if atDatabase.Relations.ByRelationName('AC_ACCOUNT').RelationFields[i].IsUserDefined and
-       (atDatabase.Relations.ByRelationName('AC_ACCOUNT').RelationFields[i].Field.FieldName = 'DBOOLEAN') then
+  gdcRelationFields := TgdcRelationField.Create(Self);
+  try
+    gdcRelationFields.ExtraConditions.Text := ' z.fieldname like ''USR$%'' and z.relationname = ''AC_ACCOUNT''';
+    gdcRelationFields.Open;
+    gdcRelationFields.Sort(gdcRelationFields.FieldByName('lname'), true);
+    while not gdcRelationFields.EOF do
     begin
-      if gdcObject.FieldByName(atDatabase.Relations.ByRelationName('AC_ACCOUNT').RelationFields[i].FieldName).AsInteger = 1 then
+
+      if gdcObject.FieldByName(gdcRelationFields.FieldByName('fieldname').AsString).AsInteger = 1 then
       begin
         CB := TDBCheckBox.Create(sbAnalyze);
         CB.Left := 5;
         CB.Top := CurrTop;
         CB.DataSource := dsgdcBase;
-        CB.DataField := atDatabase.Relations.ByRelationName('AC_ACCOUNT').RelationFields[i].FieldName;
+        CB.DataField := gdcRelationFields.FieldByName('fieldname').AsString;
         CB.ValueChecked := '1';
         CB.Width := sbAnalyze.Width - 10;
         CB.ValueUnChecked := '0';
-        CB.Caption := atDatabase.Relations.ByRelationName('AC_ACCOUNT').RelationFields[i].LName;
+        CB.Caption := gdcRelationFields.FieldByName('lname').AsString;
         CB.ReadOnly := True;
         sbAnalyze.InsertControl(CB);
         CurrTop := CurrTop + CB.Height + 2;
       end;
+      gdcRelationFields.Next;
     end;
-
+  finally
+    gdcRelationFields.Free;
   end;
 
 end;
@@ -390,6 +394,9 @@ var
   gdcRelationFields: TgdcRelationField;
   i: Integer;
   A: OleVariant;
+  CB: TDBCheckBox;
+  CurrTop: Integer;
+
 begin
   inherited;
   gdcRelationFields := TgdcRelationField.Create(Self);
@@ -416,15 +423,33 @@ begin
       gdcRelationFields.Close;
       gdcRelationFields.SubSet := 'OnlySelected';
       gdcRelationFields.Open;
+      gdcRelationFields.Sort(gdcRelationFields.FieldByName('lname'), True);
       gdcRelationFields.First;
+
+      CurrTop := 5;
+      while sbAnalyze.ComponentCount > 0 do
+        sbAnalyze.Components[0].Free;
 
       while not gdcRelationFields.EOF do
       begin
         gdcObject.FieldByName(gdcRelationFields.FieldByName('FieldName').AsString).AsInteger := 1;
+        CB := TDBCheckBox.Create(sbAnalyze);
+        CB.Left := 5;
+        CB.Top := CurrTop;
+        CB.DataSource := dsgdcBase;
+        CB.DataField := gdcRelationFields.FieldByName('FieldName').AsString;
+        CB.ValueChecked := '1';
+        CB.Width := sbAnalyze.Width - 10;
+        CB.ValueUnChecked := '0';
+        CB.Caption := gdcRelationFields.FieldByName('LName').AsString;
+        CB.ReadOnly := True;
+        sbAnalyze.InsertControl(CB);
+        CurrTop := CurrTop + CB.Height + 2;
+
         gdcRelationFields.Next;
       end;
 
-      SetupAnalyze;
+//    SetupAnalyze;
 
     end;
 
@@ -435,11 +460,11 @@ end;
 
 procedure Tgdc_dlgAcctBaseAccount.actValuesExecute(Sender: TObject);
 var
-  ibsql: TIBSQL;
   gdcValue: TgdcValue;
   A: OleVariant;
   CB: TCheckBox;
-  CurrTop: Integer;
+  I, CurrTop: Integer;
+
 
 begin
   inherited;
@@ -447,7 +472,7 @@ begin
   try
     gdcValue.Open;
 
-    ibsql := TIBSQL.Create(nil);
+{    ibsql := TIBSQL.Create(nil);
     try
       ibsql.Transaction := gdcObject.ReadTransaction;
       ibsql.SQL.Text :=
@@ -460,7 +485,14 @@ begin
       end;
     finally
       ibsql.Free;
-    end;
+    end; }
+
+    for I := 0 to sbValues.ComponentCount - 1 do
+      if (sbValues.Components[I] is TValueCheckBox) and
+        (TValueCheckBox(sbValues.Components[I]).Checked )
+      then
+        gdcValue.SelectedID.Add(sbValues.Components[I].Tag);
+
 
     if gdcValue.ChooseItems(A) then
     begin
@@ -478,6 +510,7 @@ begin
       gdcValue.Close;
       gdcValue.SubSet := 'OnlySelected';
       gdcValue.Open;
+      gdcValue.Sort(gdcValue.FieldByName('name'), True);
       gdcValue.First;
 
       CurrTop := 5;
