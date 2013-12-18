@@ -423,7 +423,8 @@ begin
       gdcRelationFields.Close;
       gdcRelationFields.SubSet := 'OnlySelected';
       gdcRelationFields.Open;
-      gdcRelationFields.Sort(gdcRelationFields.FieldByName('lname'), True);
+      if not gdcRelationFields.EOF then
+        gdcRelationFields.Sort(gdcRelationFields.FieldByName('lname'), True);
       gdcRelationFields.First;
 
       CurrTop := 5;
@@ -510,7 +511,8 @@ begin
       gdcValue.Close;
       gdcValue.SubSet := 'OnlySelected';
       gdcValue.Open;
-      gdcValue.Sort(gdcValue.FieldByName('name'), True);
+      if not gdcValue.EOF then
+        gdcValue.Sort(gdcValue.FieldByName('name'), True);
       gdcValue.First;
 
       CurrTop := 5;

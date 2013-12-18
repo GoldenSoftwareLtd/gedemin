@@ -1,6 +1,6 @@
 object frmSplashHidden: TfrmSplashHidden
-  Left = 455
-  Top = 385
+  Left = 973
+  Top = 493
   Width = 337
   Height = 187
   Caption = 'frmSplashHidden'
