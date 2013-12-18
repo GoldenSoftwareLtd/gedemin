@@ -1,8 +1,7 @@
 
 {++
 
-
-  Copyright (c) 2001-2012 by Golden Software of Belarus
+  Copyright (c) 2001-2013 by Golden Software of Belarus
 
   Module
 
@@ -1964,6 +1963,7 @@ end;
 procedure TgdcAcctViewEntryRegister.DataTransfer(gdcAcctComplexRecord: TgdcAcctComplexRecord);
 var
   I, J: Integer;
+  V: Variant;
 begin
   FDataTransfer := True;
   try
@@ -1971,44 +1971,58 @@ begin
     begin
       if not gdcAcctComplexRecord.EntryLines[i].FieldByName('accountkey').IsNull then
       begin
-        Insert;
-        FieldByName('id').AsInteger := gdcAcctComplexRecord.EntryLines[i].FieldByName('id').AsInteger;
-        FieldByName('alias').AsString := gdcAcctComplexRecord.EntryLines[i].FieldByName('alias').AsString;
-        FieldByName('name').AsString := gdcAcctComplexRecord.EntryLines[i].FieldByName('name').AsString;
-        FieldByName('recordkey').AsInteger := gdcAcctComplexRecord.FieldByName('id').AsInteger;
-        FieldByName('accountkey').AsInteger := gdcAcctComplexRecord.EntryLines[i].FieldByName('accountkey').AsInteger;
-        FieldByName('accountpart').AsString := gdcAcctComplexRecord.EntryLines[i].FieldByName('accountpart').AsString;
-        FieldByName('debitncu').AsCurrency := gdcAcctComplexRecord.EntryLines[i].FieldByName('debitncu').AsCurrency;
-        FieldByName('debitcurr').AsCurrency := gdcAcctComplexRecord.EntryLines[i].FieldByName('debitcurr').AsCurrency;
-        FieldByName('debiteq').AsCurrency := 0;
-        FieldByName('creditncu').AsCurrency := gdcAcctComplexRecord.EntryLines[i].FieldByName('creditncu').AsCurrency;
-        FieldByName('creditcurr').AsCurrency := gdcAcctComplexRecord.EntryLines[i].FieldByName('creditcurr').AsCurrency;
-        FieldByName('currkey').AsInteger := gdcAcctComplexRecord.EntryLines[i].FieldByName('currkey').AsInteger;
-        FieldByName('trrecordkey').AsInteger := gdcAcctComplexRecord.FieldByName('trrecordkey').AsInteger;
-        FieldByName('transactionkey').AsInteger := gdcAcctComplexRecord.FieldByName('transactionkey').AsInteger;
-        FieldByName('recorddate').AsDateTime := gdcAcctComplexRecord.FieldByName('recorddate').AsDateTime;
-        FieldByName('documentkey').AsInteger := gdcAcctComplexRecord.FieldByName('documentkey').AsInteger;
-        FieldByName('masterdockey').AsInteger := gdcAcctComplexRecord.FieldByName('masterdockey').AsInteger;
-        FieldByName('companykey').AsInteger := gdcAcctComplexRecord.FieldByName('companykey').AsInteger;
-        FieldByName('afull').AsInteger := gdcAcctComplexRecord.FieldByName('afull').AsInteger;
-        FieldByName('achag').AsInteger := gdcAcctComplexRecord.FieldByName('achag').AsInteger;
-        FieldByName('aview').AsInteger := gdcAcctComplexRecord.FieldByName('aview').AsInteger;
-        FieldByName('disabled').AsInteger := gdcAcctComplexRecord.FieldByName('disabled').AsInteger;
-        FieldByName('reserved').AsInteger := gdcAcctComplexRecord.FieldByName('reserved').AsInteger;
-        FieldByName('rdebitncu').AsCurrency := gdcAcctComplexRecord.FieldByName('debitncu').AsCurrency;
-        FieldByName('rdebitcurr').AsCurrency := gdcAcctComplexRecord.FieldByName('debitcurr').AsCurrency;
-        FieldByName('rcreditncu').AsCurrency := gdcAcctComplexRecord.FieldByName('creditncu').AsCurrency;
-        FieldByName('rcreditcurr').AsCurrency := gdcAcctComplexRecord.FieldByName('creditcurr').AsCurrency;
-        FieldByName('number').AsString := gdcAcctComplexRecord.FieldByName('number').AsString;
-        FieldByName('documenttypekey').AsInteger := gdcAcctComplexRecord.FieldByName('documenttypekey').AsInteger;
-        FieldByName('documentdate').AsDateTime := gdcAcctComplexRecord.FieldByName('recorddate').AsDateTime;
-        for j:= 0 to gdcAcctComplexRecord.EntryLines[i].FieldCount - 1 do
-          if (Pos(UserPrefix, gdcAcctComplexRecord.EntryLines[i].Fields[j].FieldName) > 0) and
-             (FindField(gdcAcctComplexRecord.EntryLines[i].Fields[j].FieldName) <> nil)
-          then
-            FieldByName(gdcAcctComplexRecord.EntryLines[i].Fields[j].FieldName).AsVariant :=
-              gdcAcctComplexRecord.EntryLines[i].Fields[j].AsVariant;
-        Post;
+        V := VarArrayCreate([0, 2], varVariant);
+        V[0] := gdcAcctComplexRecord.EntryLines[i].FieldByName('id').AsInteger;
+        V[1] := gdcAcctComplexRecord.EntryLines[i].FieldByName('accountkey').AsInteger;
+        V[2] := gdcAcctComplexRecord.EntryLines[i].FieldByName('accountpart').AsString;
+
+        if Locate('id;accountkey;accountpart', V, []) then
+          Edit
+        else
+          Insert;
+          
+        try
+          FieldByName('id').AsInteger := gdcAcctComplexRecord.EntryLines[i].FieldByName('id').AsInteger;
+          FieldByName('alias').AsString := gdcAcctComplexRecord.EntryLines[i].FieldByName('alias').AsString;
+          FieldByName('name').AsString := gdcAcctComplexRecord.EntryLines[i].FieldByName('name').AsString;
+          FieldByName('recordkey').AsInteger := gdcAcctComplexRecord.FieldByName('id').AsInteger;
+          FieldByName('accountkey').AsInteger := gdcAcctComplexRecord.EntryLines[i].FieldByName('accountkey').AsInteger;
+          FieldByName('accountpart').AsString := gdcAcctComplexRecord.EntryLines[i].FieldByName('accountpart').AsString;
+          FieldByName('debitncu').AsCurrency := gdcAcctComplexRecord.EntryLines[i].FieldByName('debitncu').AsCurrency;
+          FieldByName('debitcurr').AsCurrency := gdcAcctComplexRecord.EntryLines[i].FieldByName('debitcurr').AsCurrency;
+          FieldByName('debiteq').AsCurrency := 0;
+          FieldByName('creditncu').AsCurrency := gdcAcctComplexRecord.EntryLines[i].FieldByName('creditncu').AsCurrency;
+          FieldByName('creditcurr').AsCurrency := gdcAcctComplexRecord.EntryLines[i].FieldByName('creditcurr').AsCurrency;
+          FieldByName('currkey').AsInteger := gdcAcctComplexRecord.EntryLines[i].FieldByName('currkey').AsInteger;
+          FieldByName('trrecordkey').AsInteger := gdcAcctComplexRecord.FieldByName('trrecordkey').AsInteger;
+          FieldByName('transactionkey').AsInteger := gdcAcctComplexRecord.FieldByName('transactionkey').AsInteger;
+          FieldByName('recorddate').AsDateTime := gdcAcctComplexRecord.FieldByName('recorddate').AsDateTime;
+          FieldByName('documentkey').AsInteger := gdcAcctComplexRecord.FieldByName('documentkey').AsInteger;
+          FieldByName('masterdockey').AsInteger := gdcAcctComplexRecord.FieldByName('masterdockey').AsInteger;
+          FieldByName('companykey').AsInteger := gdcAcctComplexRecord.FieldByName('companykey').AsInteger;
+          FieldByName('afull').AsInteger := gdcAcctComplexRecord.FieldByName('afull').AsInteger;
+          FieldByName('achag').AsInteger := gdcAcctComplexRecord.FieldByName('achag').AsInteger;
+          FieldByName('aview').AsInteger := gdcAcctComplexRecord.FieldByName('aview').AsInteger;
+          FieldByName('disabled').AsInteger := gdcAcctComplexRecord.FieldByName('disabled').AsInteger;
+          FieldByName('reserved').AsInteger := gdcAcctComplexRecord.FieldByName('reserved').AsInteger;
+          FieldByName('rdebitncu').AsCurrency := gdcAcctComplexRecord.FieldByName('debitncu').AsCurrency;
+          FieldByName('rdebitcurr').AsCurrency := gdcAcctComplexRecord.FieldByName('debitcurr').AsCurrency;
+          FieldByName('rcreditncu').AsCurrency := gdcAcctComplexRecord.FieldByName('creditncu').AsCurrency;
+          FieldByName('rcreditcurr').AsCurrency := gdcAcctComplexRecord.FieldByName('creditcurr').AsCurrency;
+          FieldByName('number').AsString := gdcAcctComplexRecord.FieldByName('number').AsString;
+          FieldByName('documenttypekey').AsInteger := gdcAcctComplexRecord.FieldByName('documenttypekey').AsInteger;
+          FieldByName('documentdate').AsDateTime := gdcAcctComplexRecord.FieldByName('recorddate').AsDateTime;
+          for j:= 0 to gdcAcctComplexRecord.EntryLines[i].FieldCount - 1 do
+            if (Pos(UserPrefix, gdcAcctComplexRecord.EntryLines[i].Fields[j].FieldName) > 0) and
+               (FindField(gdcAcctComplexRecord.EntryLines[i].Fields[j].FieldName) <> nil)
+            then
+              FieldByName(gdcAcctComplexRecord.EntryLines[i].Fields[j].FieldName).AsVariant :=
+                gdcAcctComplexRecord.EntryLines[i].Fields[j].AsVariant;
+          Post;
+        except
+          Cancel;
+          raise;
+        end;
       end;
     end;
   finally
@@ -2480,6 +2494,7 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
   if FEntryGroup = egAll then
     Result := inherited GetSelectClause + ', t.name as transactionname '
   else
@@ -2519,7 +2534,6 @@ begin
       ' SUM(r.creditncu) as creditncu, '  +
       ' SUM(r.creditcurr) as creditcurr, '  +
       ' SUM(r.crediteq) as crediteq ';
-
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCACCTVIEWENTRYREGISTER', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE)}
   {M}  finally
