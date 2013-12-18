@@ -2339,14 +2339,16 @@ var
     IsLine: Boolean;
     TblsNamesList: TStringList;  // Process Queue
     AllProcessedTblsNames: TStringList;
-    ReProc: TStringList;
-    GoReprocess: Boolean;
+    ReProc, ReProcAll: TStringList;
+    GoReprocess, ReprocStarted: Boolean;
+    EndReprocTbl: String;
     AllProc: TStringList;
     ProcTblsNamesList: TStringList;
     CascadeProcTbls: TStringList;
     I, J, IndexEnd, Inx, Counter, Kolvo, RealKolvo, RealKolvo2: Integer;
     IsAppended, IsDuplicate, DoNothing, GoToFirst, GoToLast, IsFirstIteration: Boolean;
     TmpStr: String;
+    TmpList: TStringList;
     MainDuplicateTblName: String;
     LineTblsNames: String;
     LineTblsList:  TStringList;
@@ -2385,10 +2387,12 @@ var
     AllProcessedTblsNames := TStringList.Create;
     ProcTblsNamesList := TStringList.Create;
     ReProc :=  TStringList.Create;
+    ReProcAll :=  TStringList.Create;
     CascadeProcTbls := TStringList.Create;
     LineTblsList := TStringList.Create;
     AllProc := TStringList.Create;
     LinePosList := TStringList.Create;
+    TmpList := TStringList.Create;
 
     q := TIBQuery.Create(nil);
     q2 := TIBSQL.Create(nil);
@@ -2791,19 +2795,21 @@ var
         Tr.StartTransaction;
         Tr2.Commit;
         Tr2.StartTransaction;
-
         LogEvent('COUNT with CASCADE ref (BEFORE EXCLUDE): ' + IntToStr(GetCountHIS(1)));
-        
+
         //------------------ исключение из HIS PK, на которые есть restrict/noAction И исключение PK, на которые ссылаются (PK<147000000 или нах в HIS_3 - документы которые должны остаться)
         GoReprocess := False;
+        ReprocStarted := False;
         LogEvent('[test] AllProcessedTblsNames: ' + AllProcessedTblsNames.CommaText);
         CreateHIS(2);
         TblsNamesList.CommaText := AllProcessedTblsNames.CommaText;
 
         while TblsNamesList.Count > 0 do
         begin
-          ProcTblsNamesList.Append(TblsNamesList[0]);
-          
+          ProcTblsNamesList.Clear;
+          for I:=0 to AllProcessedTblsNames.IndexOf(TblsNamesList[0]) do 
+            ProcTblsNamesList.Append(AllProcessedTblsNames[I]);
+              
           LogEvent('[test] TblsNamesList[0]: ' + TblsNamesList[0]);
           LogEvent('[test] ProcTblsNamesList: ' + ProcTblsNamesList.Text);
           IndexEnd := -1;
@@ -2831,7 +2837,7 @@ var
           else // pk=fk
             IsLine := True;
           q.Close;
-
+ 
           q.SQL.Text :=
             'SELECT ' +                                                                       #13#10 +
             '  LIST(TRIM(fc.list_fields)||''=''||TRIM(fc.ref_relation_name)) AS fk_field, ' + #13#10 +
@@ -3025,8 +3031,13 @@ var
             '    ON pc.relation_name = fc.relation_name ' +                                 #13#10 +
             'WHERE fc.delete_rule = ''CASCADE'' ' +                                         #13#10 +
             '  AND fc.ref_relation_name = :rln ' +                                          #13#10 +
-            '  AND fc.list_fields NOT LIKE ''%,%'' ' +                                      #13#10 +
-            'GROUP BY fc.relation_name, fc.ref_relation_name, fc.list_ref_fields, pc.list_fields ';
+            '  AND fc.list_fields NOT LIKE ''%,%'' ';
+          if ReprocStarted then
+            q.SQL.Add('  ' +
+              'AND fc.relation_name IN (''' + StringReplace(ReProc.Values[TblsNamesList[0]], '||', ''',''', [rfReplaceAll, rfIgnoreCase]) + ''') ');
+          q.SQL.Add( 
+            'GROUP BY fc.relation_name, fc.ref_relation_name, fc.list_ref_fields, pc.list_fields ');  
+
           q.ParamByName('rln').AsString := TblsNamesList[0];
           ExecSqlLogEvent(q, 'IncludeCascadingSequences', 'rln=' + TblsNamesList[0]);
 
@@ -3169,8 +3180,6 @@ var
                   q4.Next;
                 end;
                 q4.Close;
-
-                /////if есть в Proc И ReProc т.е. обработан рестрикт уже то надо переобработать его
               end;
 
               if not IsLine then
@@ -3619,23 +3628,21 @@ var
                 IsFirstIteration := False;  // значит обработали каскад от таблицы на которую есть рестрикт. т.е. прошли первый круг
               end;
 
-              if ReProc.Count <> 0 then
+              if ReProcAll.Count <> 0 then
               begin
                 GoReprocess := True; 
               end;
             end;
 
             if AllProcessedTblsNames.IndexOf(UpperCase(q.FieldByName('relation_name').AsString)) <> -1 then
-            begin
-              {{{if ReProc.IndexOf(TblsNamesList[0] + '=' + UpperCase(q.FieldByName('relation_name').AsString)) = -1 then
-                ReProc.CommaText := TblsNamesList[0] + '=' + UpperCase(q.FieldByName('relation_name').AsString) + ',' + ReProc.CommaText
-              else begin
-                ReProc.Delete(ReProc.IndexOf(TblsNamesList[0] + '=' + UpperCase(q.FieldByName('relation_name').AsString)));
-                ReProc.CommaText := TblsNamesList[0] + '=' + UpperCase(q.FieldByName('relation_name').AsString) + ',' + ReProc.CommaText;
-              end;}
-              if ReProc.IndexOfName(UpperCase(q.FieldByName('relation_name').AsString)) <> -1 then
-                ReProc.Delete(ReProc.IndexOfName(UpperCase(q.FieldByName('relation_name').AsString))); // .....................
-              ReProc.Append(UpperCase(q.FieldByName('relation_name').AsString) + '=' + TblsNamesList[0]); 
+            begin                                                // AllProcessedTblsNames уникален, поэтому не заботимся об уникальности ReProc
+              if ReProcAll.IndexOfName(TblsNamesList[0]) <> -1 then
+              begin
+                if AnsiPos(UpperCase(q.FieldByName('relation_name').AsString), ReProcAll.Values[TblsNamesList[0]]) = 0 then
+                  ReProcAll.Values[TblsNamesList[0]] := ReProcAll.Values[TblsNamesList[0]] + '||' + UpperCase(q.FieldByName('relation_name').AsString);
+              end
+              else  
+                ReProcAll.Append(TblsNamesList[0] + '=' + UpperCase(q.FieldByName('relation_name').AsString));
             end;  
 
             if IndexEnd <> -1 then   //если нашли подходящий рестрикт т.е. ProcTblsNamesList пуст
@@ -3649,32 +3656,267 @@ var
 
             q.Next;
           end;
+
+          
+          /////////////////////////////////         
           q.Close;
+          if (ReprocStarted) and (TblsNamesList.Count > 1) and ((AllProcessedTblsNames.IndexOf(TblsNamesList[1])) <> (AllProcessedTblsNames.IndexOf(TblsNamesList[0])+1) ) then // дообработать цепи выше пропущенные
+          begin 
+            for Inx:=(AllProcessedTblsNames.IndexOf(TblsNamesList[0])+1) to AllProcessedTblsNames.IndexOf(TblsNamesList[1]) - 1 do 
+            begin
+              FkFieldsList2.Clear;
+              FkFieldsListLine.Clear;
+              IsLine := False;
 
-          Tr2.Commit;
-          Tr2.StartTransaction;
+              q.SQL.Text :=
+                'SELECT ' +                                                                   #13#10 +
+                '  TRIM(fc.list_fields) AS fk_fields ' +                                      #13#10 +
+                'FROM dbs_fk_constraints fc ' +                                               #13#10 +
+                '  JOIN DBS_SUITABLE_TABLES pc ' +                                            #13#10 +
+                '    ON pc.relation_name = fc.relation_name ' +                               #13#10 +
+                '      AND pc.list_fields = fc.list_fields ' +                                #13#10 +
+                'WHERE fc.delete_rule = ''CASCADE'' ' +                                       #13#10 +//((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) ' +
+                '  AND fc.relation_name = :rln ' +                                            #13#10 +
+                '  AND fc.list_fields NOT LIKE ''%,%'' ';
+              q.ParamByName('rln').AsString := AllProcessedTblsNames[Inx];
+              ExecSqlLogEvent(q, 'IncludeCascadingSequences', 'rln=' + AllProcessedTblsNames[Inx]);
 
-          if GoReprocess then
+              if q.RecordCount = 0 then
+                IsLine := False
+              else // pk=fk
+                IsLine := True;
+
+              q.Close;
+              q.SQL.Text :=
+                'SELECT ' +                                                                       #13#10 +
+                '  LIST(TRIM(fc.list_fields)||''=''||TRIM(fc.ref_relation_name)) AS fk_field, ' + #13#10 +
+                '  TRIM(fc.relation_name) AS relation_name ' +                                    #13#10 +
+                'FROM dbs_fk_constraints fc ' +                                                   #13#10 +
+                '  JOIN DBS_SUITABLE_TABLES pc ' +                                                #13#10 +
+                '    ON pc.relation_name = fc.relation_name ' +                                   #13#10 +
+                'WHERE fc.delete_rule = ''CASCADE'' ' +                                           #13#10 +//((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE''))
+                '  AND fc.relation_name = :rln ' +                                                #13#10 +
+                '  AND fc.list_fields NOT LIKE ''%,%'' ' +                                        #13#10 +
+                'GROUP BY fc.relation_name ';
+              q.ParamByName('rln').AsString := AllProcessedTblsNames[Inx];
+              ExecSqlLogEvent(q, 'IncludeCascadingSequences', 'rln=' + AllProcessedTblsNames[Inx]);
+              FkFieldsList2.Text := StringReplace(q.FieldByName('fk_field').AsString, ',', #13#10, [rfReplaceAll, rfIgnoreCase]);
+              q.Close;
+
+              q.SQL.Text :=
+                'SELECT ' +                                                                       #13#10 +
+                '  LIST(TRIM(fc.list_fields)||''=''||TRIM(fc.ref_relation_name)) AS fk_field, ' + #13#10 +
+                '  TRIM(fc.relation_name) AS relation_name ' +                                    #13#10 +
+                'FROM dbs_fk_constraints fc ' +                                                   #13#10 +
+                '  JOIN DBS_SUITABLE_TABLES pc ' +                                                #13#10 +
+                '    ON pc.relation_name = fc.relation_name ' +                                   #13#10 +
+                '  JOIN DBS_SUITABLE_TABLES pc2 ' +                                               #13#10 +
+                '    ON pc2.relation_name = fc.ref_relation_name ' +                              #13#10 +
+                '    JOIN DBS_FK_CONSTRAINTS fc2 ' +                                              #13#10 +
+                '      ON fc2.relation_name = pc2.relation_name ' +                               #13#10 +
+                '        AND fc2.list_fields = pc2.list_fields ' +                                #13#10 +
+                'WHERE fc.delete_rule = ''CASCADE'' ' +                                           #13#10 +//((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE'')) ' + #13#10 +
+                '  AND fc.relation_name = :rln ' +                                                #13#10 +
+                '  AND fc.list_fields NOT LIKE ''%,%'' ' +                                        #13#10 +
+                'GROUP BY fc.relation_name ';
+              q.ParamByName('rln').AsString := AllProcessedTblsNames[Inx];
+              ExecSqlLogEvent(q, 'IncludeCascadingSequences', 'rln=' + AllProcessedTblsNames[Inx]);
+              
+              if q.RecordCount <> 0 then
+                FkFieldsListLine.Text := StringReplace(q.FieldByName('fk_field').AsString, ',', #13#10, [rfReplaceAll, rfIgnoreCase]);
+              q.Close;
+
+              // получим все FK cascade поля в таблице
+              q.SQL.Text :=                                                 ///TODO: вынести. Prepare
+                'SELECT ' +                                                                   #13#10 +
+                '  LIST(fc.list_fields) AS fk_field, ' +                                      #13#10 +
+                '  TRIM(pc.list_fields) AS pk_field, ' +                                      #13#10 +
+                '  fc.relation_name, fc.ref_relation_name, fc.list_ref_fields ' +             #13#10 +///для группировки
+                'FROM dbs_fk_constraints fc ' +                                               #13#10 +
+                '  JOIN DBS_SUITABLE_TABLES pc ' +                                            #13#10 +
+                '    ON pc.relation_name = fc.relation_name ' +                               #13#10 +
+                'WHERE fc.delete_rule = ''CASCADE'' ' +                                       #13#10 +//((fc.update_rule = ''CASCADE'') OR (fc.delete_rule = ''CASCADE''))
+                '  AND fc.relation_name = :rln ' +                                            #13#10 +
+                '  AND fc.list_fields NOT LIKE ''%,%'' ' +                                    #13#10 +
+                'GROUP BY pc.list_fields, fc.relation_name, fc.ref_relation_name, fc.list_ref_fields ';
+              q.ParamByName('rln').AsString := AllProcessedTblsNames[Inx];
+              ExecSqlLogEvent(q, 'IncludeCascadingSequences', 'rln=' + AllProcessedTblsNames[Inx]);
+
+              // если FK есть в HIS_2, то исключим PK из HIS (исключение цепи, что выше)
+              while not q.EOF do
+              begin
+                FkFieldsList.Clear;
+                FkFieldsList.Text := StringReplace(q.FieldByName('fk_field').AsString, ',', #13#10, [rfReplaceAll, rfIgnoreCase]);
+
+                if FkFieldsList.Count > 1 then
+                  LogEvent('[test] FkFieldsList: ' + FkFieldsList.Text);
+
+                for I:=0 to FkFieldsList.Count-1 do
+                begin
+                  if not IsLine then
+                    q3.SQL.Text :=
+                      'SELECT ' +                                                                               #13#10 +
+                      '  SUM(' +                                                                                #13#10 +
+                      '    IIF(g_his_exclude(1, rln.' + q.FieldByName('pk_field').AsString + ') = 1, ' +        #13#10 +
+                      '      g_his_include(2, rln.' + q.FieldByName('pk_field').AsString + '), 0)' +            #13#10 +
+                      '  ) AS Kolvo ' +                                                                         #13#10 +
+                      'FROM ' +                                                                                 #13#10 +
+                         AllProcessedTblsNames[Inx] + ' rln ' +                                                 #13#10 +
+                      'WHERE ' 
+                  else 
+                    q3.SQL.Text :=
+                      'EXECUTE BLOCK ' +                                                                        #13#10 +
+                      //'  RETURNS(S VARCHAR(16384)) ' +
+                      'AS ' +                                                                                   #13#10 +
+                      '  DECLARE VARIABLE S VARCHAR(16384); ' +                                                 #13#10 +
+                      '  DECLARE VARIABLE S2 VARCHAR(16384); ' +                                                #13#10 +
+                      '  DECLARE VARIABLE ID INTEGER; ' +                                                       #13#10 +
+                      'BEGIN ' +                                                                                #13#10 +
+                      '  S = ''DELETE FROM dbs_tmp_pk_hash h WHERE h.pk = :PK AND h.relation_name = :RN ''; ' +                          #13#10 +
+                      '  S2 = ''update or INSERT INTO DBS_TMP_HIS_2 (pk, relation_name, pk_field) VALUES(:PK_, :RN_, :PK_FIELD_) ''; ' + #13#10 +
+                      '  FOR ' +                                                                                                         #13#10 +
+                      '    SELECT ' +                                                                           #13#10 +
+                      '      rln.' + q.FieldByName('pk_field').AsString +                                       #13#10 +
+                      '    FROM ' +                                                                             #13#10 +
+                             AllProcessedTblsNames[Inx] + ' rln ' +                                             #13#10 +
+                      '    WHERE ';
+
+
+                  if FkFieldsListLine.IndexOfName(Trim(FkFieldsList[I])) = -1 then
+                    q3.SQL.Add(' ' +                                                                            #13#10 +
+                      '(g_his_has(2, rln.' + Trim(FkFieldsList[I]) + ') = 1) ')
+                  else 
+                    q3.SQL.Add(' ' +                                                                            #13#10 +
+                      '   EXISTS( ' +                                                                           #13#10 +
+                      '     SELECT * ' +                                                                        #13#10 +
+                      '     FROM DBS_TMP_HIS_2 h ' +                                                            #13#10 +
+                      '     WHERE h.pk = rln.' + Trim(FkFieldsList[I]) +                                             #13#10 +
+                      '       AND h.relation_name = ''' + Trim(q.FieldByName('ref_relation_name').AsString) + '''' + #13#10 +///'       AND TRIM(h.relation_name) = ''' +   TblsNamesList[0] + '''' 
+                      '    ) ');
+
+
+                  Counter := 0;
+                  for J:=0 to FkFieldsList2.Count-1 do
+                  begin
+                    if Trim(FkFieldsList2.Names[J]) <> Trim(FkFieldsList[I]) then
+                    begin
+                      Inc(Counter);
+                      if Counter <> 1 then
+                        q3.SQL.Add(' ' +                                                                        #13#10 +
+                          '   AND ')
+                      else
+                        q3.SQL.Add(' ' +                                                                        #13#10 +
+                          ' AND(');
+
+                      if (FkFieldsListLine.IndexOfName(Trim(FkFieldsList2.Names[J])) = -1) then
+                        q3.SQL.Add(' ' +                                                                        #13#10 +
+                          '    ((g_his_has(1, rln.' + Trim(FkFieldsList2.Names[J]) + ')=0) OR (g_his_has(2, rln.' + Trim(FkFieldsList2.Names[J]) + ')=1)) ')
+                      else
+                        q3.SQL.Add(' ' +
+                          '  ((NOT EXISTS( ' +                                                                  #13#10 +
+                          '     SELECT * ' +                                                                    #13#10 +
+                          '     FROM DBS_TMP_PK_HASH h ' +                                                      #13#10 +
+                          '     WHERE h.pk = rln.' + Trim(FkFieldsList2.Names[J]) +                                                  #13#10 +
+                          '       AND TRIM(h.relation_name) = ''' + UpperCase(FkFieldsList2.Values[FkFieldsList2.Names[J]]) + '''' + #13#10 +
+                          '    )) OR (EXISTS( ' +                                                               #13#10 +
+                          '     SELECT * ' +                                                                    #13#10 +
+                          '     FROM DBS_TMP_HIS_2 h ' +                                                        #13#10 +
+                          '     WHERE h.pk = rln.' + Trim(FkFieldsList2.Names[J]) +                                                  #13#10 +
+                          '       AND TRIM(h.relation_name) = ''' + UpperCase(FkFieldsList2.Values[FkFieldsList2.Names[J]]) + '''' + #13#10 +
+                          '   ))) ');
+                    end;
+                  end;
+
+                  if Counter <> 0 then
+                  begin
+                    q3.SQL.Add(' ' +                                                                            #13#10 +
+                      '    )');
+
+                    Counter := 0;
+                  end;
+
+                  if IsLine then
+                    q3.SQL.Add(' ' +                                                                            #13#10 +
+                      '  INTO :ID ' +                                                                           #13#10 +
+                      '  DO BEGIN ' +                                                                           #13#10 +
+                      '    EXECUTE STATEMENT (:S) (PK := :ID, RN := ''' + AllProcessedTblsNames[Inx]+ '''); ' +                                                                  #13#10 +
+                      '    EXECUTE STATEMENT (:S2) (PK_ := :ID, RN_ := ''' + AllProcessedTblsNames[Inx] + ''', PK_FIELD_ := ''' + q.FieldByName('pk_field').AsString + '''); ' + #13#10 + 
+                      '  END ' +                                                                                                                                                 #13#10 +
+                      'END');
+
+                  ExecSqlLogEvent(q3, 'IncludeCascadingSequences');
+                  q3.Close;
+                end;
+
+                q.Next;
+              end;
+              q.Close;
+            end;
+          end;
+          ////////////////////////////////
+
+          if (ReprocStarted) and (TblsNamesList[0] = EndReprocTbl) then
           begin
+            ReprocStarted := False;
+            EndReprocTbl := '';
+          end; 
+
+          if (GoReprocess) and (not ReprocStarted) then
+          begin 
             LogEvent('[TEST] GoReprocess! TblsNamesList[0] = ' + TblsNamesList[0]);
-            ///////////////!
-            TblsNamesList.CommaText := AllProcessedTblsNames.CommaText;
+            ///////////////!   
+{           TblsNamesList.CommaText := AllProcessedTblsNames.CommaText;
             ProcTblsNamesList.Clear;
+            ReProc.Clear;}
+            
             ReProc.Clear;
 
-            //////////////////////////////////////////test
-            q3.SQL.Text :=
+            for I:=0 to ReProcAll.Count-1  do
+            begin
+              TmpList.Text := StringReplace(ReProcAll.Values[ReProcAll.Names[I]], '||', #13#10, [rfReplaceAll, rfIgnoreCase]);
+              for J:=0 to TmpList.Count-1 do
+              begin
+                if ProcTblsNamesList.IndexOf(TmpList[J]) <> -1 then //...............проверить ProcTblsNamesList сохранился ли целым к этому моменту
+                begin
+                  if ReProc.IndexOfName(ReProcAll.Names[I]) <> -1 then
+                  begin
+                    if AnsiPos(TmpList[J], ReProc.Values[ReProcAll.Names[I]]) = 0 then
+                      ReProc.Values[ReProcAll.Names[I]] := ReProc.Values[ReProcAll.Names[I]] + '||' + TmpList[J];
+                  end
+                  else  
+                    ReProc.Append(ReProcAll.Names[I] + '=' + TmpList[J]);
+                end;  
+              end;  
+            end;
+ 
+            for J:=ReProc.Count-1 downto 0 do
+              TblsNamesList.CommaText := ReProc.Names[J] + ',' + TblsNamesList.CommaText;
+
+            if ReProc.Count <> 0 then
+            begin
+              ReprocStarted := True;
+              EndReprocTbl := ReProc.Names[ReProc.Count-1];            
+            end
+            else
+              GoReprocess := False;
+
+            ////////////////////////////////////////// test   
+            {q3.SQL.Text :=
               'DELETE FROM DBS_TMP_HIS_2';
-            ExecSqlLogEvent(q3, 'IncludeCascadingSequences');
+            ExecSqlLogEvent(q3, 'IncludeCascadingSequences');  
             Tr.Commit;
             Tr2.Commit;
             Tr.StartTransaction;
             Tr2.StartTransaction;
             DestroyHIS(2);
-            CreateHIS(2);
+            CreateHIS(2);} 
           end
           else
             TblsNamesList.Delete(0);
+
+          q.Close;
+          Tr2.Commit;
+          Tr2.StartTransaction;  
         end;
 
         Tr.Commit;
@@ -3683,7 +3925,6 @@ var
         Tr2.StartTransaction;
 
         DestroyHIS(2);
-
         ///////////////////////
         for I:=0 to LineTblsList.Count-1 do
         begin
@@ -3749,6 +3990,8 @@ var
       AllProc.Free;
       LinePosList.Free;
       ReProc.Free;
+      ReProcAll.Free;
+      TmpList.Free;
       q.Free;
       q2.Free;
       q3.Free;
@@ -4583,7 +4826,7 @@ begin
       '    SELECT ' +                                                           #13#10 +
       '      c.rdb$relation_name, ' +                                           #13#10 +
       '      COUNT(i.rdb$field_name) AS Kolvo, ' +                              #13#10 +
-      '      SUM(f.rdb$field_type) AS Summa, ' +                                #13#10 +
+      '      SUM(f.rdb$field_type)   AS Summa, ' +                              #13#10 +
       '      i.rdb$index_name ' +                                               #13#10 +//для группировки
       '    FROM ' +                                                             #13#10 +
       '      rdb$relation_constraints c ' +                                     #13#10 +
@@ -4597,12 +4840,12 @@ begin
       '    WHERE ' +                                                                             #13#10 +
       '      (c.rdb$constraint_type = ''PRIMARY KEY'' OR c.rdb$constraint_type = ''UNIQUE'') ' + #13#10 +
       '      AND c.rdb$constraint_name NOT LIKE ''RDB$%'' ' +                                    #13#10 +
-      '    GROUP BY ' +                                                         #13#10 +
-      '      i.RDB$INDEX_NAME, c.RDB$RELATION_NAME ' +                          #13#10 +
-      '    HAVING ' +                                                           #13#10 +
-      '      (COUNT(i.RDB$FIELD_NAME) > 1) ' +                                  #13#10 +
-      '      OR ((COUNT(i.RDB$FIELD_NAME) = 1) AND (SUM(f.rdb$field_type) <> 8)) ' + #13#10 +
-      '  )pc ON pc.rdb$relation_name = fc.relation_name ' +                     #13#10 +
+      '    GROUP BY ' +                                                                          #13#10 +
+      '      i.RDB$INDEX_NAME, c.RDB$RELATION_NAME ' +                                           #13#10 +
+      '    HAVING ' +                                                                            #13#10 +
+      '      (COUNT(i.RDB$FIELD_NAME) > 1) ' +                                                   #13#10 +
+      '      OR ((COUNT(i.RDB$FIELD_NAME) = 1) AND (SUM(f.rdb$field_type) <> 8)) ' +             #13#10 +
+      '  )pc ON pc.rdb$relation_name = fc.relation_name ' +                                      #13#10 +
       'WHERE ' +                                                                #13#10 +
       '  fc.delete_rule = ''CASCADE'' ' +                                       #13#10 +
       ' ' +                                                                     #13#10 +
