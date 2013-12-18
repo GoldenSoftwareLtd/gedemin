@@ -244,6 +244,7 @@ inherited gdc_dlgAcctBaseAccount: Tgdc_dlgAcctBaseAccount
       end
     end
     inherited tbsAttr: TTabSheet
+      TabVisible = False
       inherited atcMain: TatContainer
         Width = 481
         Height = 404
