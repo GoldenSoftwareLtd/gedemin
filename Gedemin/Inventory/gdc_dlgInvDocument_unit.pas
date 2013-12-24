@@ -752,7 +752,7 @@ begin
 
       then
       begin
-        if CurrDocLine.IsChangeCardValue and not CurrDocLine.IsAppendCardValue then
+        if (CurrDocLine.IsChangeCardValue and not CurrDocLine.IsAppendCardValue) then
         begin
           if F.References <> nil then
           begin
@@ -1129,7 +1129,7 @@ begin
         end
         else
         begin
-          if CurrDocLine.IsChangeCardValue and CurrDocLine.IsAppendCardValue then
+          if (CurrDocLine.IsChangeCardValue and CurrDocLine.IsAppendCardValue)  or ((Document.RelationType = irtTransformation) and (Grid.Name = ibgrdTop.Name)) then
           begin
             if F.References <> nil then
             begin
@@ -1230,7 +1230,10 @@ begin
               {Если это документ с изменением свойств, то нас интересует inv_card с алиасом tocard}
                 AliasName := 'TOCARD'
               else
-                AliasName := 'CARD';
+                if (CurrDocLine.RelationType = irtTransformation) and (Grid.Name <> ibgrdTop.Name) then
+                  AliasName := ''
+                else
+                  AliasName := 'CARD';
             end
             else
               if AnsiCompareText(R.RelationName, CurrDocLine.RelationLineName) = 0 then
