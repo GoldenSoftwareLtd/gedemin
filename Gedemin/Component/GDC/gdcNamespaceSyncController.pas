@@ -27,7 +27,6 @@ type
     FFilterOperation: String;
     Fq: TIBSQL;
     FqUpdateOperation: TIBSQL;
-    FqDependentList: TIBSQL;
     FqUsesList: TIBSQL;
 
     procedure Init;
@@ -36,6 +35,7 @@ type
     function GetDataSet: TDataSet;
     function GetFiltered: Boolean;
     function GetdsFileTree: TDataSet;
+    procedure GetDependentList(ASL: TStrings);
 
   public
     constructor Create;
@@ -524,7 +524,6 @@ end;
 destructor TgdcNamespaceSyncController.Destroy;
 begin
   FqUsesList.Free;
-  FqDependentList.Free;
   FqUpdateOperation.Free;
   Fq.Free;
   FdsFileTree.Free;
@@ -562,6 +561,72 @@ end;
 function TgdcNamespaceSyncController.GetDataSet: TDataSet;
 begin
   Result := FDataSet as TDataSet;
+end;
+
+procedure TgdcNamespaceSyncController.GetDependentList(ASL: TStrings);
+var
+  q: TIBSQL;
+  I, J: Integer;
+begin
+  Assert(ASL <> nil);
+  Assert(FTr.InTransaction);
+
+  ASL.Clear;
+  q := TIBSQL.Create(nil);
+  try
+    q.Transaction := FTr;
+    q.SQL.Text :=
+      'SELECT f.filename ' +
+      'FROM ' +
+      '  at_namespace_file f ' +
+      '  JOIN at_namespace_sync s ON s.filename = f.filename ' +
+      'WHERE ' +
+      '  s.operation IN (''< '', ''<<'') ' +
+      '  AND (NOT EXISTS (SELECT * FROM at_namespace_file_link l ' +
+      '  WHERE l.filename = f.filename))';
+    q.ExecQuery;
+    while not q.EOF do
+    begin
+      ASL.Add(q.Fields[0].AsString);
+      q.Next;
+    end;
+
+    q.Close;
+    q.SQL.Text :=
+      'SELECT l.filename ' +
+      'FROM ' +
+      '  at_namespace_file f ' +
+      '  JOIN at_namespace_file_link l ' +
+      '    ON l.uses_xid = f.xid AND l.uses_dbid = f.dbid ' +
+      '  JOIN at_namespace_sync s ' +
+      '    ON s.filename = l.filename ' +
+      'WHERE ' +
+      '  f.filename = :filename ' +
+      '  AND s.operation IN (''< '', ''<<'')';
+    I := 0;
+    while I < ASL.Count do
+    begin
+      q.ParamByName('filename').AsString := ASL[I];
+      q.ExecQuery;
+      while not q.EOF do
+      begin
+        J := ASL.IndexOf(q.Fields[0].AsString);
+        if J = -1 then
+          ASL.Add(q.Fields[0].AsString)
+        else if J < I then
+        begin
+          ASL.Insert(I + 1, ASL[J]);
+          ASL.Delete(J);
+          Dec(I);
+        end;
+        q.Next;
+      end;
+      q.Close;
+      Inc(I);
+    end;
+  finally
+    q.Free;
+  end;
 end;
 
 function TgdcNamespaceSyncController.GetdsFileTree: TDataSet;
@@ -809,8 +874,10 @@ begin
   FqUpdateOperation.SQL.Text :=
     'UPDATE at_namespace_sync SET operation = :op ' +
     'WHERE namespacekey IS NOT DISTINCT FROM :nk ' +
-    '  AND filename IS NOT DISTINCT FROM :fn';
+    '  AND filename IS NOT DISTINCT FROM :fn ' +
+    '  AND operation IS DISTINCT FROM :op';
 
+  {
   FqDependentList := TIBSQL.Create(nil);
   FqDependentList.Transaction := FTr;
   FqDependentList.SQL.Text :=
@@ -853,10 +920,20 @@ begin
     '  1 '#13#10 +
     'ORDER BY '#13#10 +
     '  2';
+  }
 
   FqUsesList := TIBSQL.Create(nil);
   FqUsesList.Transaction := FTr;
   FqUsesList.SQL.Text :=
+    'SELECT s.filename, s.namespacekey ' +
+    'FROM at_namespace_file f ' +
+    '  JOIN at_namespace_file_link l ' +
+    '    ON l.uses_xid = f.xid AND l.uses_dbid = f.dbid ' +
+    '  JOIN at_namespace_sync s ' +
+    '    ON s.filename = f.filename ' +
+    'WHERE ' +
+    '  l.filename = :filename ';
+  {
     'WITH RECURSIVE '#13#10 +
     '  ns_tree AS ( '#13#10 +
     '    SELECT '#13#10 +
@@ -915,6 +992,7 @@ begin
     '  l.filename IS NULL '#13#10 +
     '  AND '#13#10 +
     '  s.operation <> ''! '' ';
+  }
 end;
 
 procedure TgdcNamespaceSyncController.Scan(const ACalculateStatus: Boolean;
@@ -993,11 +1071,13 @@ begin
 
   if ASaveDir then
     gd_GlobalParams.NamespacePath := FDirectory;
-    
+
   DoLog(lmtInfo, 'Выполнено сравнение с каталогом: ' + FDirectory);
 end;
 
 procedure TgdcNamespaceSyncController.SetOperation(const AnOp: String; const AScanUsesList: Boolean = True);
+var
+  SL, SLDone: TStringList;
 begin
   Assert(not FDataSet.EOF);
 
@@ -1039,25 +1119,48 @@ begin
 
     if (AnOp = '<<') and AScanUsesList then
     begin
-      FqUsesList.ParamByName('filename').AsString := FDataSet.FieldByName('filename').AsString;
-      FqUsesList.ExecQuery;
-      while not FqUsesList.EOF do
-      begin
-        if FqUsesList.FieldByName('namespacekey').IsNull then
+      SL := TStringList.Create;
+      SLDone := TStringList.Create;
+      try
+        SLDone.Sorted := True;
+        SLDone.Duplicates := dupError;
+
+        SL.Add(FDataSet.FieldByName('filename').AsString);
+
+        while SL.Count > 0 do
         begin
-          FqUpdateOperation.ParamByName('op').AsString := '< ';
-          FqUpdateOperation.ParamByName('nk').Clear;
-        end else
-        begin
-          FqUpdateOperation.ParamByName('op').AsString := '<<';
-          FqUpdateOperation.ParamByName('nk').AsInteger := FqUsesList.FieldByName('namespacekey').AsInteger;
+          FqUsesList.ParamByName('filename').AsString := SL[0];
+          FqUsesList.ExecQuery;
+          while not FqUsesList.EOF do
+          begin
+            if FqUsesList.FieldByName('namespacekey').IsNull then
+            begin
+              FqUpdateOperation.ParamByName('op').AsString := '< ';
+              FqUpdateOperation.ParamByName('nk').Clear;
+            end else
+            begin
+              FqUpdateOperation.ParamByName('op').AsString := '<<';
+              FqUpdateOperation.ParamByName('nk').AsInteger := FqUsesList.FieldByName('namespacekey').AsInteger;
+            end;
+            FqUpdateOperation.ParamByName('fn').AsString := FqUsesList.FieldByName('filename').AsString;
+            FqUpdateOperation.ExecQuery;
+
+            if SLDone.IndexOf(FqUsesList.FieldByName('filename').AsString) = -1 then
+            begin
+              SLDone.Add(FqUsesList.FieldByName('filename').AsString);
+              if SL.IndexOf(FqUsesList.FieldByName('filename').AsString) = -1 then
+                SL.Add(FqUsesList.FieldByName('filename').AsString);
+            end;
+
+            FqUsesList.Next;
+          end;
+          FqUsesList.Close;
+          SL.Delete(0);
         end;
-        FqUpdateOperation.ParamByName('fn').AsString := FqUsesList.FieldByName('filename').AsString;
-        FqUpdateOperation.ExecQuery;
-        
-        FqUsesList.Next;
+      finally
+        SLDone.Free;
+        SL.Free;
       end;
-      FqUsesList.Close;
     end;
   end;
 end;
@@ -1099,15 +1202,8 @@ begin
 
     actSaveObjects.Checked := mSaveList.Lines.Count > 0;
 
-    mLoadList.Lines.Clear;
-    FqDependentList.ExecQuery;
-    while not FqDependentList.EOF do
-    begin
-      mLoadList.Lines.Add(ExtractFileName(FqDependentList.Fields[0].AsString));
-      FqDependentList.Next;
-    end;
-    lLoadRecords.Caption := 'Выбрано для загрузки из файлов: ' + IntToStr(FqDependentList.RecordCount);
-    FqDependentList.Close;
+    GetDependentList(mLoadList.Lines);
+    lLoadRecords.Caption := 'Выбрано для загрузки из файлов: ' + IntToStr(mLoadList.Lines.Count);
 
     actLoadObjects.Checked := mLoadList.Lines.Count > 0;
 
@@ -1146,14 +1242,7 @@ begin
       begin
         SL := TStringList.Create;
         try
-          FqDependentList.ExecQuery;
-          while not FqDependentList.EOF do
-          begin
-            SL.Add(FqDependentList.Fields[0].AsString);
-            FqDependentList.Next;
-          end;
-          FqDependentList.Close;
-
+          GetDependentList(SL);
           TgdcNamespaceLoader.LoadDelayed(SL, chbxAlwaysOverwrite.Checked,
             chbxDontRemove.Checked, chbxTerminate.Checked);
         finally
@@ -1173,14 +1262,7 @@ begin
   try
     SL := TStringList.Create;
     try
-      FqDependentList.ExecQuery;
-      while not FqDependentList.EOF do
-      begin
-        SL.Add(FqDependentList.Fields[0].AsString);
-        FqDependentList.Next;
-      end;
-      FqDependentList.Close;
-
+      GetDependentList(SL);
       with TgdcNamespaceLoader.Create do
       try
         LoadDelayed(SL, True, False, ATerminate);

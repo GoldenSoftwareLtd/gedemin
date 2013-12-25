@@ -14,7 +14,7 @@ implementation
 
 uses
   Classes, DB, IBSQL, IBBlob, SysUtils, mdf_MetaData_unit, gsStorage,
-  {gdcLBRBTreeMetaData,} gdcStorage_Types;
+  gdcStorage_Types;
 
 const
   cCreateDomain =
@@ -61,7 +61,7 @@ const
     'CREATE EXCEPTION gd_e_storage_data ''''';
 
   cCreateTrigger =
-    'CREATE TRIGGER gd_biu_storage_data FOR gd_storage_data'#13#10 +
+    'CREATE OR ALTER TRIGGER gd_biu_storage_data FOR gd_storage_data'#13#10 +
     '  BEFORE INSERT OR UPDATE'#13#10 +
     '  POSITION 0'#13#10 +
     'AS'#13#10 +
@@ -156,7 +156,7 @@ const
     'CREATE EXCEPTION gd_e_block_old_storage ''»зменение старых данных хранилища заблокировано'' ';
 
   cBlockTrigger =
-    'CREATE TRIGGER gd_biud_%s FOR gd_%s'#13#10 +
+    'CREATE OR ALTER TRIGGER gd_biud_%s FOR gd_%s'#13#10 +
     '  BEFORE INSERT OR UPDATE OR DELETE'#13#10 +
     '  POSITION 0'#13#10 +
     'AS'#13#10 +
@@ -196,7 +196,6 @@ var
         cStorageGlobal: S := TgsGlobalStorage.Create;
         cStorageUser: S := TgsUserStorage.Create;
         cStorageCompany: S := TgsCompanyStorage.Create;
-        {cStorageDesktop: S := TgsDesktopStorage.Create;}
       else
         raise Exception.Create('Invalid storage root');
       end;
@@ -254,12 +253,7 @@ var
     end;
   end;
 
-var
-  //SL: TStringList;
-  //I: Integer;
-  FNeedToCreateMeta: Boolean;
 begin
-  FNeedToCreateMeta := False;
   FTransaction := TIBTransaction.Create(nil);
   try
     FTransaction.DefaultDatabase := IBDB;
@@ -271,35 +265,25 @@ begin
         FIBSQL.Transaction := FTransaction;
         FIBSQL.ParamCheck := False;
 
-        FIBSQL.SQL.Text := 'SELECT * FROM rdb$fields WHERE rdb$field_name = ''DSTORAGE_DATA_TYPE'' ';
-        FIBSQL.ExecQuery;
-        if FIBSQL.EOF then
+        if not DomainExist2('DSTORAGE_DATA_TYPE', FTransaction) then
         begin
           FIBSQL.Close;
           FIBSQL.SQL.Text := cCreateDomain;
           FIBSQL.ExecQuery;
         end;
 
-        FIBSQL.Close;
-        FIBSQL.SQL.Text := 'SELECT * FROM rdb$exceptions WHERE rdb$exception_name = ''GD_E_STORAGE_DATA'' ';
-        FIBSQL.ExecQuery;
-        if FIBSQL.EOF then
+        if not ExceptionExist2('GD_E_STORAGE_DATA', FTransaction) then
         begin
           FIBSQL.Close;
           FIBSQL.SQL.Text := cCreateException;
           FIBSQL.ExecQuery;
         end;
 
-        FIBSQL.Close;
-        FIBSQL.SQL.Text := 'SELECT * FROM rdb$relations WHERE rdb$relation_name = ''GD_STORAGE_DATA'' ';
-        FIBSQL.ExecQuery;
-        if FIBSQL.EOF then
+        if not RelationExist2('GD_STORAGE_DATA', FTransaction) then
         begin
           FIBSQL.Close;
           FIBSQL.SQL.Text := cCreateTable;
           FIBSQL.ExecQuery;
-
-          FNeedToCreateMeta := True;
         end;
 
         FIBSQL.Close;
@@ -312,69 +296,39 @@ begin
           'SELECT s.userkey    AS AKey,   s.data,             u.name FROM gd_userstorage s JOIN gd_user u ON u.id = s.userkey', 'U');
         ConvertStorage(
           'SELECT s.companykey AS AKey,   s.data,             c.name FROM gd_companystorage s JOIN gd_contact c ON c.id = s.companykey', 'O');
-        {ConvertStorage(
-          'SELECT d.id         AS AKey, d.dtdata AS data, d.name || '' ('' || u.name || '')'' AS name FROM gd_desktop d JOIN gd_user u ON u.id = d.userkey', 'T');}
 
-        if FNeedToCreateMeta then
+        FIBSQL.Close;
+
+        FTransaction.Commit;
+        FTransaction.StartTransaction;
+
+        FIBSQL.Close;
+        FIBSQL.SQL.Text := cCreateTrigger;
+        FIBSQL.ExecQuery;
+
+        if not ExceptionExist2('GD_E_BLOCK_OLD_STORAGE', FTransaction) then
         begin
-          FIBSQL.Close;
-
-          FTransaction.Commit;
-          FTransaction.StartTransaction;
-
-          {SL := TStringList.Create;
-          try
-            CreateLBRBTreeMetaDataScript(SL, 'GD', 'STORAGE_DATA', 'GD_STORAGE_DATA');
-            for I := 0 to 2 do
-            begin
-              FIBSQL.Close;
-              FIBSQL.SQL.Text := SL[I];
-              FIBSQL.ExecQuery;
-            end;
-
-            FIBSQL.Close;
-
-            FTransaction.Commit;
-            FTransaction.StartTransaction;
-
-            FIBSQL.SQL.Text := 'EXECUTE PROCEDURE GD_P_RESTRUCT_STORAGE_DATA';
-            FIBSQL.ExecQuery;
-
-            for I := 3 to SL.Count - 1 do
-            begin
-              FIBSQL.Close;
-              FIBSQL.SQL.Text := SL[I];
-              FIBSQL.ExecQuery;
-            end;
-          finally
-            SL.Free;
-          end;}
-
-          FIBSQL.Close;
-          FIBSQL.SQL.Text := cCreateTrigger;
-          FIBSQL.ExecQuery;
-
           FIBSQL.Close;
           FIBSQL.SQL.Text := cBlockException;
           FIBSQL.ExecQuery;
+        end;  
 
-          FIBSQL.Close;
-          FIBSQL.SQL.Text := Format(cBlockTrigger, ['GLOBALSTORAGE', 'GLOBALSTORAGE',
-            '»зменение старых данных глобального хранилища заблокировано']);
-          FIBSQL.ExecQuery;
+        FIBSQL.Close;
+        FIBSQL.SQL.Text := Format(cBlockTrigger, ['GLOBALSTORAGE', 'GLOBALSTORAGE',
+          '»зменение старых данных глобального хранилища заблокировано']);
+        FIBSQL.ExecQuery;
 
-          FIBSQL.Close;
-          FIBSQL.SQL.Text := Format(cBlockTrigger, ['USERSTORAGE', 'USERSTORAGE',
-            '»зменение старых данных пользовательского хранилища заблокировано']);
-          FIBSQL.ExecQuery;
+        FIBSQL.Close;
+        FIBSQL.SQL.Text := Format(cBlockTrigger, ['USERSTORAGE', 'USERSTORAGE',
+          '»зменение старых данных пользовательского хранилища заблокировано']);
+        FIBSQL.ExecQuery;
 
-          // не будем блокировать хранилище компании, т.к. потом будут
-          // проблемы с исключением компании из списка раб. организаций
-          {FIBSQL.Close;
-          FIBSQL.SQL.Text := Format(cBlockTrigger, ['COMPANYSTORAGE', 'COMPANYSTORAGE',
-            '»зменение старых данных хранилища компании заблокировано']);
-          FIBSQL.ExecQuery;}
-        end;
+        // не будем блокировать хранилище компании, т.к. потом будут
+        // проблемы с исключением компании из списка раб. организаций
+        {FIBSQL.Close;
+        FIBSQL.SQL.Text := Format(cBlockTrigger, ['COMPANYSTORAGE', 'COMPANYSTORAGE',
+          '»зменение старых данных хранилища компании заблокировано']);
+        FIBSQL.ExecQuery;}
 
         FIBSQL.Close;
         FIBSQL.SQL.Text :=
