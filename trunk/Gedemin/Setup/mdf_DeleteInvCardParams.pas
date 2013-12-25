@@ -31,7 +31,7 @@ procedure AddAtNamespaceChanged(IBDB: TIBDatabase; Log: TModifyLog);
 implementation
 
 uses
-  Windows, mdf_metadata_unit;
+  Windows, mdf_metadata_unit, mdf_ConvertStorage;
 
 procedure AddAtNamespaceChanged(IBDB: TIBDatabase; Log: TModifyLog);
 var
@@ -2146,6 +2146,8 @@ var
   q: TIBSQL;
   Tr: TIBTransaction;
 begin
+  ConvertStorage(IBDB, Log);
+
   Tr := TIBTransaction.Create(nil);
   q := TIBSQL.Create(nil);
   try
@@ -2157,6 +2159,9 @@ begin
 
       q.SQL.Text := 'ALTER TRIGGER gd_biu_storage_data INACTIVE';
       q.ExecQuery;
+
+      Tr.Commit;
+      Tr.StartTransaction;
 
       ChangeID(q,
         'SELECT id FROM gd_storage_data WHERE data_type = ''G'' AND parent IS NULL',
