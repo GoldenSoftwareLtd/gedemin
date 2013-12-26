@@ -581,9 +581,7 @@ begin
       '  at_namespace_file f ' +
       '  JOIN at_namespace_sync s ON s.filename = f.filename ' +
       'WHERE ' +
-      '  s.operation IN (''< '', ''<<'') ' +
-      '  AND (NOT EXISTS (SELECT * FROM at_namespace_file_link l ' +
-      '  WHERE l.filename = f.filename))';
+      '  s.operation IN (''< '', ''<<'')';
     q.ExecQuery;
     while not q.EOF do
     begin
