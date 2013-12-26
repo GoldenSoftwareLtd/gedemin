@@ -2640,31 +2640,43 @@ var
             end;
           end;
   //==============
-          if IsAppended or (q.RecordCount=0) then //сохраним позицию для будущей вставки очередного звена Line
+        {  if IsAppended or (q.RecordCount=0) then //сохраним позицию для будущей вставки очередного звена Line
           begin
             
               for I:=0 to LineTblsList.Count-1 do
               begin
+                TmpStr := '';
                 if AnsiPos(TblsNamesList[0], LineTblsList.Values[LineTblsList.Names[I]]) <> 0  then     /// если таблица та кот ищем ссылки сохранена как индекс
                 begin
                   if AnsiPos(AllProcessedTblsNames[AllProcessedTblsNames.Count-1], LineTblsList.Values[LineTblsList.Names[I]]) <> 0  then
                   begin
                     //удалим, чтобы не было дубликатов
                     TmpStr := LineTblsList.Values[LineTblsList.Names[I]];
-                      Delete(
+                    Delete(
                         TmpStr,
                         AnsiPos(AllProcessedTblsNames[AllProcessedTblsNames.Count-1], TmpStr),
                         Length(AllProcessedTblsNames[AllProcessedTblsNames.Count-1] + ';'));
 
                     LineTblsList.Values[LineTblsList.Names[I]] := TmpStr;
                   end;
+                  // запомним место- имя
+                  //if q.RecordCount = 1 then
+                  //  LineTblsList.Values[LineTblsList.Names[I]] := LineTblsList.Values[LineTblsList.Names[I]] + ';' + UpperCase(q.FieldByName('relation_name').AsString)
+                  //else begin
+                  //  LineTblsList.Values[LineTblsList.Names[I]] := Copy(
+                  //      LineTblsList.Values[LineTblsList.Names[I]],
+                  //      0,
+                  //      PosR2L(';', LineTblsList.Values[LineTblsList.Names[I]])
+                  //    ) + UpperCase(q.FieldByName('relation_name').AsString);
+                  //end;
+                  //LogEvent('[test] AFTER Copy=' + LineTblsList.Values[LineTblsList.Names[I]]);
 
                   ///TODO: ERROR list out of bounds
                   LineTblsList.Values[LineTblsList.Names[I]] := LineTblsList.Values[LineTblsList.Names[I]] + AllProcessedTblsNames[AllProcessedTblsNames.Count-1] + ';';
                 end;
               end;
 
-          end;
+          end;   }
   //==============
           q.Close;
           if GoToLast then
@@ -2816,7 +2828,7 @@ var
             'SELECT ' +                                                                     #13#10 +
             '  LIST(TRIM(fc.constraint_name), ''_'') AS constraint_name, ' +                #13#10 +
             '  TRIM(fc.relation_name)                AS relation_name, ' +                  #13#10 +
-            '  ''DBS__TMP''                          AS pk_fields, ' +                      #13#10 + //заглушка
+            '  ''DBS__TMP''                          AS pk_fields, ' +                      #13#10 + /// заглушка
             '  LIST(TRIM(fc.list_fields)||''=''||TRIM(fc.list_ref_fields)) AS fk_field, ' + #13#10 +
             '  fc.ref_relation_name ' +                                                     #13#10 + /// для группировки
             'FROM dbs_fk_constraints fc ' +                                                 #13#10 +
@@ -2827,7 +2839,7 @@ var
             q.SQL.Add('  ' +
               'AND fc.relation_name IN (''' + StringReplace(ReProc.Values[TblsNamesList[0]], '||', ''',''', [rfReplaceAll, rfIgnoreCase]) + ''') ');
           q.SQL.Add('  ' +
-            'GROUP BY fc.relation_name, fc.ref_relation_name, fc.list_ref_fields ' +        #13#10 +
+            'GROUP BY fc.relation_name, fc.ref_relation_name, fc.list_ref_fields ' + #13#10 +
             ' ' +                                                                           #13#10 +
             'UNION ' +                                                                      #13#10 +
             ' ' +                                                                           #13#10 +
@@ -2908,9 +2920,36 @@ var
                 end;
               end
               else if LineTblsList.IndexOfName(UpperCase(q.FieldByName('relation_name').AsString)) <> -1 then
-                q3.SQL.Add(' ' +
-                  'AND g_his_has(1, rln.' + q4.FieldByName('pk_fields').AsString + ') = 0 ');
+              begin
+                q4.Close;
+                q4.SQL.Text :=
+                  'SELECT '+                                                          #13#10 +
+                  '  TRIM(pc.list_fields) AS pk_field ' +                             #13#10 +
+                  'FROM DBS_PK_UNIQUE_CONSTRAINTS pc ' +                              #13#10 +
+                  'WHERE ' +                                                          #13#10 +
+                  '  pc.relation_name = :rln ' +                                      #13#10 +
+                  '  AND pc.constraint_type = ''PRIMARY KEY'' ';
+                q4.ParamByName('rln').AsString := UpperCase(q.FieldByName('relation_name').AsString);
+                ExecSqlLogEvent(q4, 'IncludeCascadingSequences');
 
+                if not q4.EOF then
+                 q3.SQL.Add('  ' +
+                   'AND( ');
+
+                while not q4.EOF do
+                begin
+                  q3.SQL.Add(' ' +
+                    '(g_his_has(1, rln.' + q4.FieldByName('pk_field').AsString + ') = 0) ');
+                  q4.Next;
+                  if q4.EOF then
+                    q3.SQL.Add('  ' +
+                      ') ')
+                  else
+                    q3.SQL.Add('  ' +
+                      'OR ');
+                end;
+                q4.Close;
+              end;
               ExecSqlLogEvent(q3, 'IncludeCascadingSequences');
               Kolvo := Kolvo + q3.FieldByName('Kolvo').AsInteger;
               q3.Close;
@@ -3316,11 +3355,6 @@ var
 
       DestroyHIS(2);
       ///////////////////////
-      for I:=0 to LineTblsList.Count-1 do
-      begin
-        if AllProcessedTblsNames.IndexOf(LineTblsList.Names[I]) <> -1 then
-          AllProcessedTblsNames.Delete(AllProcessedTblsNames.IndexOf(LineTblsList.Names[I]));
-      end;
       FCascadeTbls.Text := AllProcessedTblsNames.Text;
       LogEvent('[AAA test] FCascadeTbls: ' + FCascadeTbls.Text);
       LogEvent('[AAA test] LineTblsList: ' + LineTblsList.Text);
@@ -3490,34 +3524,6 @@ begin
         'END';
       ExecSqlLogEvent(q, 'DeleteDocuments_DeleteHIS');
     end;
-
-    Tr.Commit;
-    Tr.StartTransaction;
-
-    q.SQL.Text :=
-      'EXECUTE BLOCK ' +                                                #13#10 +
-      'AS ' +                                                           #13#10 +
-      '  DECLARE VARIABLE PF VARCHAR(31); ' +                           #13#10 +
-      '  DECLARE VARIABLE RN VARCHAR(31); ' +                           #13#10 +
-      '  DECLARE VARIABLE KOLVO INTEGER; ' +                            #13#10 +
-      'BEGIN ' +                                                        #13#10 +
-      '  FOR ' +                                                        #13#10 +
-      '    SELECT DISTINCT  ' +                                         #13#10 +
-      '      relation_name,  ' +                                        #13#10 +
-      '      pk_field  ' +                                              #13#10 +
-      '    FROM dbs_tmp_pk_hash ' +                                     #13#10 +
-      '    INTO :RN, :PF ' +                                            #13#10 +
-      '  DO BEGIN ' +                                                   #13#10 +
-      '    g_his_create(2, 0); ' +                                      #13#10 +
-      '    SELECT SUM(g_his_include(2, pk)) ' +                         #13#10 +
-      '    FROM dbs_tmp_pk_hash ' +                                     #13#10 +
-      '    WHERE pk_field = :PF AND relation_name = :RN ' +             #13#10 +
-      '    INTO :KOLVO; ' +                                             #13#10 +
-      '    EXECUTE STATEMENT ''DELETE FROM ''||:RN|| '' WHERE g_his_has(2, '' ||:PF|| '')=1 ''; ' + #13#10 +
-      '    g_his_destroy(2); ' +                                        #13#10 +
-      '  END ' +                                                        #13#10 +
-      'END ';
-    ExecSqlLogEvent(q, 'DeleteDocuments_DeleteHIS');
 
     DestroyHIS(1);
     DestroyHIS(0);
