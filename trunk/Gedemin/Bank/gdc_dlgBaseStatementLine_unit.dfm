@@ -144,19 +144,16 @@ inherited gdc_dlgBaseStatementLine: Tgdc_dlgBaseStatementLine
   inherited btnAccess: TButton
     Left = 0
     Top = 314
-    Anchors = [akLeft, akBottom]
     TabOrder = 14
   end
   inherited btnNew: TButton
     Left = 71
     Top = 314
-    Anchors = [akLeft, akBottom]
     TabOrder = 13
   end
   inherited btnHelp: TButton
     Left = 142
     Top = 314
-    Anchors = [akLeft, akBottom]
     TabOrder = 12
   end
   object ibcmbCompany: TgsIBLookupComboBox [18]
@@ -236,13 +233,11 @@ inherited gdc_dlgBaseStatementLine: Tgdc_dlgBaseStatementLine
   inherited btnOK: TButton
     Left = 277
     Top = 314
-    Anchors = [akRight, akBottom]
     TabOrder = 10
   end
   inherited btnCancel: TButton
     Left = 349
     Top = 314
-    Anchors = [akRight, akBottom]
     TabOrder = 11
   end
   object edDoc: TEdit [27]
