@@ -1524,23 +1524,23 @@ begin
     end;
   end;
 
-  if not CurrDocLine.IsChangeCardValue  then
+  if CurrDocLine.IsChangeCardValue or ((Document.RelationType = irtTransformation) and (Grid.Name = ibgrdTop.Name)) then
   begin
     for i:= 0 to Grid.Columns.Count - 1 do
     begin
       if (Pos('FROM_', Grid.Columns[I].FieldName) = 1) then
-        Grid.Columns[I].ReadOnly := True;
+        Grid.Columns[I].ReadOnly := False;
       if (Pos('CARD_', Grid.Columns[I].FieldName) = 1) then
-        Grid.Columns[I].ReadOnly := True;
+        Grid.Columns[I].ReadOnly := False;
     end
   end
   else
     for i:= 0 to Grid.Columns.Count - 1 do
     begin
       if (Pos('FROM_', Grid.Columns[I].FieldName) = 1) then
-        Grid.Columns[I].ReadOnly := False;
+        Grid.Columns[I].ReadOnly := True;
       if (Pos('CARD_', Grid.Columns[I].FieldName) = 1) then
-        Grid.Columns[I].ReadOnly := False;
+        Grid.Columns[I].ReadOnly := True;
     end;
 
   //
