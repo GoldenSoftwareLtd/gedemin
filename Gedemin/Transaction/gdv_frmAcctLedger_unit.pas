@@ -1602,7 +1602,7 @@ begin
 
               for J := FTotals.Count - 2 downto I do
               begin
-                if (cbSumNull.Checked or (OldValues[J] > '')) and FTotals[J].Total then
+                if {(cbSumNull.Checked or (OldValues[J] > '')) and} FTotals[J].Total then
                 begin
                   gdvObject.Insert;
                   FTotals[J].ValueField.AsString := cTotal;
@@ -1633,7 +1633,7 @@ begin
         begin
           for J := FTotals.Count - 2 downto 0 do
           begin
-            if (cbSumNull.Checked or (OldValues[J] > '')) and FTotals[J].Total then
+            if {(cbSumNull.Checked or (OldValues[J] > '')) and} FTotals[J].Total then
             begin
               gdvObject.Append;
               FTotals[J].ValueField.AsString := cTotal;
