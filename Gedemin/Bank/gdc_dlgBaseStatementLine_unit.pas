@@ -182,7 +182,7 @@ procedure Tgdc_dlgBaseStatementLine.SetupRecord;
   {END MACRO}
   R: OleVariant;
   D: TDateTime;
-  A, C: String;
+  A, C, Company: String;
   Rate: Currency;
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGBASESTATEMENTLINE', 'SETUPRECORD', KEYSETUPRECORD)}
@@ -216,6 +216,7 @@ begin
   D := 0;
   A := '';
   C := '';
+  Company := '';
   Rate := 0;
 
   if (gdcObject.MasterSource <> nil)
@@ -225,15 +226,26 @@ begin
     D := gdcObject.MasterSource.DataSet.FieldByName('documentdate').AsDateTime;
     A := gdcObject.MasterSource.DataSet.FieldByName('account').AsString;
     C := gdcObject.MasterSource.DataSet.FieldByName('currname').AsString;
+    gdcBaseManager.ExecSingleQueryResult(
+      'SELECT com.name ' +
+      'FROM gd_contact com  ' +
+      'WHERE com.id = :DK ',
+      gdcObject.FieldByName('companykey').AsInteger,
+      R);
+
+    if not VarIsEmpty(R) then
+      Company := R[0, 0];
+
     Rate := gdcObject.MasterSource.DataSet.FieldByName('rate').AsCurrency;
   end else
   begin
     gdcBaseManager.ExecSingleQueryResult(
-      'SELECT d.documentdate, ac.account, c.name, bs.rate ' +
+      'SELECT d.documentdate, ac.account, c.name, bs.rate, com.name ' +
       'FROM gd_companyaccount ac ' +
       'JOIN bn_bankstatement bs ON bs.accountkey = ac.id ' +
       'JOIN gd_curr c ON c.id = ac.currkey ' +
       'JOIN gd_document d ON d.id = bs.documentkey ' +
+      'JOIN gd_contact com ON ac.companykey = com.id ' +
       'WHERE bs.documentkey = :DK ',
       gdcObject.FieldByName('bankstatementkey').AsInteger,
       R);
@@ -245,6 +257,7 @@ begin
       C := R[2, 0];
       if not VarIsNull(R[3, 0]) then
         Rate := R[3, 0];
+      Company := R[4, 0];  
     end;
   end;
 
@@ -254,7 +267,7 @@ begin
       [FormatDateTime('dd.mm.yy', D), A]);
 
     lbInfo2.Caption := Format('Организация: %s',
-      [IBLogin.CompanyName]);
+      [Company]);
 
     if C = '' then
       lbCurrency.Caption := 'Валюта: не указана.'
