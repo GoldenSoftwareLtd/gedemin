@@ -367,6 +367,9 @@ begin
   if IsInitialised then
     PL_cleanup(0);
 
+  FreePLLibrary;
+  FreePLDependentLibraries;
+
   inherited;
 end;
 
