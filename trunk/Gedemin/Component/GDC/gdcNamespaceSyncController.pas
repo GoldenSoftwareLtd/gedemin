@@ -569,6 +569,7 @@ var
   I, J: Integer;
 begin
   Assert(ASL <> nil);
+  Assert(FTr <> nil);
   Assert(FTr.InTransaction);
 
   ASL.Clear;
@@ -1077,6 +1078,7 @@ procedure TgdcNamespaceSyncController.SetOperation(const AnOp: String; const ASc
 var
   SL, SLDone: TStringList;
 begin
+  Assert(FDataSet <> nil);
   Assert(not FDataSet.EOF);
 
   if
@@ -1165,6 +1167,7 @@ end;
 
 procedure TgdcNamespaceSyncController.ShowChanged;
 begin
+  Assert(FDataSet <> nil);
   Assert(not FDataSet.EOF);
   Assert(not FDataSet.FieldByName('namespacekey').IsNull);
 
