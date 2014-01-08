@@ -1161,13 +1161,8 @@ begin
     q.Transaction := gdcBaseManager.ReadTransaction;
     q.SQL.Text :=
       'SELECT r.id FROM gd_ruid r JOIN at_object p ON ' +
-      '  p.xid = r.id AND p.dbid = r.dbid ' +
+      '  p.xid = r.xid AND p.dbid = r.dbid ' +
       'WHERE p.objectclass IN (''TgdcStorageFolder'', ''TgdcStorageValue'') ';
-      { 
-      'SELECT r.id FROM gd_ruid r JOIN at_settingpos p ON ' +
-      '  p.xid = r.id AND p.dbid = r.dbid ' +
-      'WHERE p.category = ''GD_STORAGE_DATA'' ';
-      }
     q.ExecQuery;
 
     while not q.EOF do

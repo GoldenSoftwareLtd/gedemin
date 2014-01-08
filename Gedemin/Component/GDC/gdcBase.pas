@@ -6542,7 +6542,8 @@ begin
             end;
           until CutOff = 0;
 
-          if Assigned(IBLogin)
+          if (ID >= cstUserIDStart)
+            and Assigned(IBLogin)
             and IBLogin.IsIBUserAdmin
             and Assigned(gdcBaseManager)
             and (not (sLoadFromStream in BaseState))

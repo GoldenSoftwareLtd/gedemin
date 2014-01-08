@@ -279,11 +279,15 @@ begin
             '  ' +  CgdcBase(C).GetListTable('') + ' r'#13#10 +
             '  JOIN gd_ruid ruid ON ruid.id = r.id'#13#10 +
             '  JOIN at_object o ON o.xid = ruid.xid AND o.dbid = ruid.dbid'#13#10 +
-            '  JOIN at_namespace n ON n.id = o.namespacekey'#13#10;
+            '  JOIN at_namespace n ON n.id = o.namespacekey'#13#10 +
+            'WHERE '#13#10 +
+            '  (NOT r.' + CgdcBase(C).GetListField('') + ' LIKE ''RDB$%'')'#13#10 +
+            '  AND (NOT r.' + CgdcBase(C).GetListField('') + ' LIKE ''MON$%'')'#13#10 +
+            '  AND (NOT r.' + CgdcBase(C).GetListField('') + ' LIKE ''USR$CROSS%'')'#13#10 +
+            '  AND (ruid.xid >= 147000000)'#13#10;
           if gsPeriodEdit.Text > '' then
             S := S +
-            'WHERE '#13#10 +
-            '  r.editiondate IS NULL OR r.editiondate BETWEEN :DB AND :DE'#13#10;
+            '  AND (r.editiondate IS NULL OR r.editiondate BETWEEN :DB AND :DE)'#13#10;
           S := S +
             'GROUP BY'#13#10 +
             '  1, 2, 3, 4, 5, 6';
@@ -303,7 +307,11 @@ begin
             '  JOIN gd_ruid ruid ON ruid.id = r.id'#13#10 +
             '  LEFT JOIN at_object o ON o.xid = ruid.xid AND o.dbid = ruid.dbid'#13#10 +
             'WHERE '#13#10 +
-            '  (o.id IS NULL)'#13#10;
+            '  (o.id IS NULL)'#13#10 +
+            '  AND (NOT r.' + CgdcBase(C).GetListField('') + ' LIKE ''RDB$%'')'#13#10 +
+            '  AND (NOT r.' + CgdcBase(C).GetListField('') + ' LIKE ''MON$%'')'#13#10 +
+            '  AND (NOT r.' + CgdcBase(C).GetListField('') + ' LIKE ''USR$CROSS%'')'#13#10 +
+            '  AND (ruid.xid >= 147000000)'#13#10;
           if gsPeriodEdit.Text > '' then
             S := S +
             '  AND (r.editiondate IS NULL OR r.editiondate BETWEEN :DB AND :DE)';
