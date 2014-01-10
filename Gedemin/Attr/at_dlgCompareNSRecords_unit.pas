@@ -27,11 +27,13 @@ type
     lblClassName: TLabel;
     actSave: TAction;
     pnlRightBottom: TPanel;
-    btnOK: TButton;
+    btnSave: TButton;
     actView: TAction;
-    Button1: TButton;
+    btnSkip: TButton;
     actSkip: TAction;
     chbxShowOnlyDiff: TCheckBox;
+    btnCancel: TButton;
+    actCancel: TAction;
     procedure sgMainMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
     procedure sgMainDrawCell(Sender: TObject; ACol, ARow: Integer;
@@ -44,6 +46,8 @@ type
     procedure actShowOnlyDiffUpdate(Sender: TObject);
     procedure actSkipExecute(Sender: TObject);
     procedure actSaveUpdate(Sender: TObject);
+    procedure actCancelExecute(Sender: TObject);
+    procedure actCancelUpdate(Sender: TObject);
 
   public
     FgdcNamespaceRecCmpController: TgdcNamespaceRecCmpController;
@@ -188,7 +192,19 @@ end;
 
 procedure TdlgCompareNSRecords.actSaveUpdate(Sender: TObject);
 begin
-  actSave.Enabled := FgdcNamespaceRecCmpController.OverwriteFields.Count > 0;
+  actSave.Enabled := (FgdcNamespaceRecCmpController <> nil)
+    and (FgdcNamespaceRecCmpController.OverwriteFields.Count > 0);
+end;
+
+procedure TdlgCompareNSRecords.actCancelExecute(Sender: TObject);
+begin
+  FgdcNamespaceRecCmpController.CancelLoad := True;
+  ModalResult := mrCancel;
+end;
+
+procedure TdlgCompareNSRecords.actCancelUpdate(Sender: TObject);
+begin
+  actCancel.Enabled := FgdcNamespaceRecCmpController <> nil;
 end;
 
 end.

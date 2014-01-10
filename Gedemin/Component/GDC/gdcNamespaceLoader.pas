@@ -863,6 +863,12 @@ begin
         else begin
           AddText('Объект сохранен в исходном состоянии: ' + Obj.ObjectName);
           ObjPreserved := True;
+
+          if CancelLoad then
+          begin
+            AddWarning('Процесс загрузки прерван пользователем.');
+            Abort;
+          end;
         end;
       finally
         Free;

@@ -1,7 +1,7 @@
 object dlgCompareNSRecords: TdlgCompareNSRecords
-  Left = 541
-  Top = 213
-  Width = 648
+  Left = 595
+  Top = 395
+  Width = 728
   Height = 494
   Caption = 'Конфликт изменения данных объекта'
   Color = clBtnFace
@@ -17,7 +17,7 @@ object dlgCompareNSRecords: TdlgCompareNSRecords
   object pnlWorkArea: TPanel
     Left = 0
     Top = 0
-    Width = 632
+    Width = 712
     Height = 456
     Align = alClient
     BevelOuter = bvNone
@@ -31,21 +31,21 @@ object dlgCompareNSRecords: TdlgCompareNSRecords
     object pnlBottom: TPanel
       Left = 0
       Top = 425
-      Width = 632
+      Width = 712
       Height = 31
       Align = alBottom
       BevelOuter = bvNone
       TabOrder = 1
       object pnlRightBottom: TPanel
-        Left = 216
+        Left = 188
         Top = 0
-        Width = 416
+        Width = 524
         Height = 31
         Align = alRight
         BevelOuter = bvNone
         TabOrder = 1
-        object btnOK: TButton
-          Left = 78
+        object btnSave: TButton
+          Left = 17
           Top = 3
           Width = 164
           Height = 21
@@ -53,15 +53,24 @@ object dlgCompareNSRecords: TdlgCompareNSRecords
           Default = True
           TabOrder = 0
         end
-        object Button1: TButton
-          Left = 247
+        object btnSkip: TButton
+          Left = 186
           Top = 3
           Width = 164
           Height = 21
           Action = actSkip
-          Cancel = True
           Default = True
           TabOrder = 1
+        end
+        object btnCancel: TButton
+          Left = 355
+          Top = 3
+          Width = 164
+          Height = 21
+          Action = actCancel
+          Cancel = True
+          Default = True
+          TabOrder = 2
         end
       end
       object chbxShowOnlyDiff: TCheckBox
@@ -76,7 +85,7 @@ object dlgCompareNSRecords: TdlgCompareNSRecords
     object pnlGrid: TPanel
       Left = 0
       Top = 91
-      Width = 632
+      Width = 712
       Height = 334
       Align = alClient
       BevelOuter = bvNone
@@ -86,7 +95,7 @@ object dlgCompareNSRecords: TdlgCompareNSRecords
       object sgMain: TStringGrid
         Left = 4
         Top = 4
-        Width = 624
+        Width = 704
         Height = 326
         Align = alClient
         ColCount = 3
@@ -114,7 +123,7 @@ object dlgCompareNSRecords: TdlgCompareNSRecords
     object pnlTop: TPanel
       Left = 0
       Top = 0
-      Width = 632
+      Width = 712
       Height = 91
       Align = alTop
       BevelOuter = bvNone
@@ -197,6 +206,11 @@ object dlgCompareNSRecords: TdlgCompareNSRecords
     object actSkip: TAction
       Caption = 'Сохранить исходную запись'
       OnExecute = actSkipExecute
+    end
+    object actCancel: TAction
+      Caption = 'Прервать загрузку'
+      OnExecute = actCancelExecute
+      OnUpdate = actCancelUpdate
     end
   end
 end

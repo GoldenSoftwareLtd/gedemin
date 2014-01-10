@@ -14,6 +14,7 @@ type
     FObj: TgdcBase;
     FMapping: TYAMLMapping;
     FDisplayFields: TStringList;
+    FCancelLoad: Boolean;
 
   public
     constructor Create;
@@ -26,6 +27,7 @@ type
     property InequalFields: TStringList read FInequalFields;
     property OverwriteFields: TStringList read FOverwriteFields;
     property DisplayFields: TStringList read FDisplayFields;
+    property CancelLoad: Boolean read FCancelLoad write FCancelLoad;
   end;
 
 implementation
@@ -86,6 +88,8 @@ begin
       end;
     end;
   end;
+
+  FCancelLoad := False;
 
   with TdlgCompareNSRecords.Create(AnOwner) do
   try
