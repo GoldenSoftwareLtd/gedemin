@@ -500,7 +500,10 @@ begin
     if gdcObject is TgdcTree then
     begin
       Add(AddSpaces('Путь:') + (gdcObject as TgdcTree).GetPath);
-      Add(AddSpaces('Родитель:') + IntToStr((gdcObject as TgdcTree).Parent));
+      if (gdcObject as TgdcTree).Parent = -1 then
+        Add(AddSpaces('Родитель:') + 'NULL') 
+      else
+        Add(AddSpaces('Родитель:') + IntToStr((gdcObject as TgdcTree).Parent));
       if gdcObject is TgdcLBRBTree then
       begin
         Add(AddSpaces('Левая граница:') + IntToStr((gdcObject as TgdcLBRBTree).LB));

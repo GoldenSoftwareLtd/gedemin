@@ -125,7 +125,7 @@ BEGIN
     OR (UPPER(OLD.name) IN ('ТАРА', 'СТЕКЛОПОСУДА', 'ДРАГМЕТАЛЛЫ'))) THEN
   BEGIN
     IF (NEW.name <> OLD.name OR NEW.parent IS DISTINCT FROM OLD.parent) THEN
-      EXCEPTION gd_e_cannotchange_goodgroup  'Нельзя изменить группу ' || NEW.Name;
+      EXCEPTION gd_e_cannotchange_goodgroup  'Нельзя изменять стандартную группу ' || NEW.Name;
   END
 END
 ^

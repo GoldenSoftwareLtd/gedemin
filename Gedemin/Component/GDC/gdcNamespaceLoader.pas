@@ -138,6 +138,7 @@ var
   F: TField;
   SL: TStringList;
   KV: TyamlKeyValue;
+  S, SName: String;
 begin
   Assert(AnObj <> nil);
   Assert(AMapping <> nil);
@@ -145,7 +146,19 @@ begin
 
   Result := False;
 
-  AddText('Обрабатывается: ' +
+  if AnObj.State = dsInsert then
+  begin
+    SName := AMapping.ReadString('name', 60, '');
+    if SName = '' then
+      SName := AMapping.ReadString('usr$name', 60, '');
+    if SName = '' then
+      S := 'Добавляется объект: '
+    else
+      S := 'Добавляется объект: ' + SName + ', ';
+  end else
+    S := 'Изменяется объект: ' + AnObj.ObjectName + ', ';
+
+  AddText(S +
     RUIDToStr(AnObj.GetRUID) + ', ' +
     AnObj.GetListTable(AnObj.SubType));
 
@@ -171,7 +184,7 @@ begin
           CopyField(F, SL.Objects[Idx] as TyamlScalar);
           SL.Delete(Idx);
         end else if (Pos('USR$', F.FieldName) = 1) and (not F.ReadOnly) and (not F.Calculated) then
-          AddWarning('Отсутствует в файле: ' + F.FieldName);
+          AddWarning('Отсутствует в файле: ' + F.Origin);
       end;
 
       for I := 0 to SL.Count - 1 do
@@ -193,7 +206,7 @@ begin
       if N is TyamlScalar then
         CopyField(F, N as TyamlScalar)
       else if (Pos('USR$', F.FieldName) = 1) and (not F.ReadOnly) and (not F.Calculated) then
-        AddWarning('Отсутствует в файле: ' + F.FieldName);
+        AddWarning('Отсутствует в файле: ' + F.Origin);
     end;
 end;
 
@@ -831,6 +844,13 @@ begin
         Obj.Edit;
         AddText('Объект найден по потенциальному ключу: ' + Obj.ObjectName +
           ' (' + Obj.GetDisplayName(Obj.SubType) + ')');
+        if RUIDID > -1 then
+        begin
+          gdcBaseManager.DeleteRUIDByID(RUIDID, FTr);
+          AddWarning('РУИД ' + ObjRUIDString + ' перенаправлен с ИД ' +
+            IntToStr(RUIDID) + ' на ИД ' +
+            IntToStr(CandidateID));
+        end;
       end
       else if RUIDID > -1 then
       begin
@@ -1400,7 +1420,7 @@ end;
 
 function TgdcNamespaceLoader.GetCandidateID(AnObj: TgdcBase; AFields: TYAMLMapping): TID;
 var
-  CheckStmt: String;
+  CheckStmt, S: String;
   I: Integer;
 begin
   Result := -1;
@@ -1426,7 +1446,17 @@ begin
         FqCheckTheSame.Next;
         if not FqCheckTheSame.EOF then
         begin
-          AddMistake('Запрос вернул многострочный набор данных:'#13#10 + CheckStmt); 
+          S := 'Поиск по потенциальному ключу.'#13#10 +
+            'Запрос вернул многострочный набор данных:'#13#10 + CheckStmt;
+          for I := 0 to FqCheckTheSame.Params.Count - 1 do
+          begin
+            S := S + #13#10 + FqCheckTheSame.Params[I].Name + ': ';
+            if FqCheckTheSame.Params[I].IsNull then
+              S := S + 'NULL'
+            else
+              S := S + FqCheckTheSame.Params[I].AsString;
+          end;
+          AddWarning(S);
           Result := -1;
         end;
       end;

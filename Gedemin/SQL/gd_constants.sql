@@ -1235,7 +1235,7 @@ INSERT INTO gd_documenttype(id,
 
 INSERT INTO gd_documenttype(id, ruid, parent, name, description, documenttype, classname)
   VALUES (806001, '806001_17', 806000,
-    '’оз€йственна€ операци€', 'ƒокументы дл€ отражени€ произвольных хоз€йственных операций', 'D', 'TgdcInvDocumentType');
+    '’оз€йственна€ операци€', 'ƒокументы дл€ отражени€ произвольных хоз€йственных операций', 'D', '');
 
 /* ќтчеты бухгалтерии */
 

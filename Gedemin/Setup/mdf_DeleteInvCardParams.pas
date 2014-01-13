@@ -27,6 +27,7 @@ procedure AddNSSyncTables(IBDB: TIBDatabase; Log: TModifyLog);
 procedure ChangeAcLedgerAccounts(IBDB: TIBDatabase; Log: TModifyLog);
 procedure RUIDsForGdStorageData(IBDB: TIBDatabase; Log: TModifyLog);
 procedure AddAtNamespaceChanged(IBDB: TIBDatabase; Log: TModifyLog);
+procedure CorrectDocumentType(IBDB: TIBDatabase; Log: TModifyLog);
 
 implementation
 
@@ -147,6 +148,105 @@ begin
       q.SQL.Text :=
         'UPDATE OR INSERT INTO fin_versioninfo ' +
         '  VALUES (197, ''0000.0001.0000.0228'', ''13.12.2013'', ''Help folders added.'') ' +
+        '  MATCHING (id)';
+      q.ExecQuery;
+
+      Tr.Commit;
+    except
+      on E: Exception do
+      begin
+        Log('Произошла ошибка: ' + E.Message);
+        if Tr.InTransaction then
+          Tr.Rollback;
+        raise;
+      end;
+    end;
+  finally
+    q.Free;
+    Tr.Free;
+  end;
+end;
+
+procedure CorrectDocumentType(IBDB: TIBDatabase; Log: TModifyLog);
+var
+  q: TIBSQL;
+  Tr: TIBTransaction;
+  RA: Integer;
+begin
+  Tr := TIBTransaction.Create(nil);
+  q := TIBSQL.Create(nil);
+  try
+    Tr.DefaultDatabase := IBDB;
+    Tr.StartTransaction;
+
+    try
+      q.Transaction := Tr;
+
+      q.SQL.Text := 'ALTER TRIGGER gd_au_documenttype INACTIVE';
+      q.ExecQuery;
+
+      q.SQL.Text := 'ALTER TRIGGER gd_au_goodgroup_protect INACTIVE';
+      q.ExecQuery;
+
+      Tr.Commit;
+      Tr.StartTransaction;
+
+      q.SQL.Text :=
+        'UPDATE gd_goodgroup ' +
+        'SET parent = COALESCE((SELECT id FROM gd_ruid WHERE xid=147005904 AND dbid=63934951), parent) ' +
+        'WHERE id = (SELECT id FROM gd_ruid WHERE xid=147006033 AND dbid=63934951)';
+      q.ExecQuery;
+
+      RA := 0;
+
+      q.SQL.Text := 'UPDATE gd_documenttype SET classname = '''', parent=806000 WHERE id=806001';
+      q.ExecQuery;
+
+      q.SQL.Text :=
+        'UPDATE gd_documenttype SET parent=804000 ' +
+        'WHERE lb > (SELECT lb FROM gd_documenttype WHERE id = 805000) ' +
+        '  AND rb <= (SELECT rb FROM gd_documenttype WHERE id = 805000) AND documenttype = ''D'' ' +
+        '  AND classname <> ''TgdcInvPriceListType'' ';
+      q.ExecQuery;
+      Inc(RA, q.RowsAffected);
+
+      q.SQL.Text :=
+        'UPDATE gd_documenttype SET parent=804000 ' +
+        'WHERE (lb < (SELECT lb FROM gd_documenttype WHERE id = 804000) ' +
+        '  OR lb > (SELECT rb FROM gd_documenttype WHERE id = 804000)) AND documenttype = ''D'' ' +
+        '  AND classname = ''TgdcInvDocumentType'' ';
+      q.ExecQuery;
+      Inc(RA, q.RowsAffected);
+
+      q.SQL.Text :=
+        'UPDATE gd_documenttype SET parent=801000 ' +
+        'WHERE lb > (SELECT lb FROM gd_documenttype WHERE id = 804000) ' +
+        '  AND rb <= (SELECT rb FROM gd_documenttype WHERE id = 804000) AND documenttype = ''D'' ' +
+        '  AND classname <> ''TgdcInvDocumentType'' ';
+      q.ExecQuery;
+      Inc(RA, q.RowsAffected);
+
+      if RA > 0 then
+        Log('Перемещено типов документов: ' + IntToStr(RA));
+
+      q.SQL.Text := 'ALTER TRIGGER gd_au_documenttype ACTIVE';
+      q.ExecQuery;
+
+      q.SQL.Text := 'ALTER TRIGGER gd_au_goodgroup_protect ACTIVE';
+      q.ExecQuery;
+
+      q.SQL.Text :=
+        'DELETE FROM evt_objectevent WHERE id = (SELECT id FROM gd_ruid WHERE xid = 147045713 AND dbid = 129678112)';
+      q.ExecQuery;
+
+      q.SQL.Text :=
+        'DELETE FROM gd_function WHERE id = (SELECT id FROM gd_ruid WHERE xid = 147045715 AND dbid = 129678112)';
+      q.ExecQuery;
+
+      q.Close;
+      q.SQL.Text :=
+        'UPDATE OR INSERT INTO fin_versioninfo ' +
+        '  VALUES (198, ''0000.0001.0000.0229'', ''12.01.2014'', ''Correct old gd_documenttype structure.'') ' +
         '  MATCHING (id)';
       q.ExecQuery;
 
