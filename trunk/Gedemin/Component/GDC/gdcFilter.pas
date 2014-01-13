@@ -90,13 +90,19 @@ begin
   {END MACRO}
 
   if State = dsInactive then
-    Result := 'SELECT id FROM flt_componentfilter WHERE UPPER(fullname)=UPPER(:fullname) AND crc=:crc'
+    Result :=
+      'SELECT id FROM flt_componentfilter ' +
+      'WHERE UPPER(fullname)=UPPER(:fullname) AND crc=:crc ' +
+      '  AND UPPER(formname)=UPPER(:formname)'
   else if ID < cstUserIDStart then
     Result := inherited CheckTheSameStatement
   else
-    Result := Format('SELECT id FROM flt_componentfilter WHERE UPPER(fullname)=UPPER(''%s'') AND crc=%d',
+    Result := Format(
+      'SELECT id FROM flt_componentfilter WHERE UPPER(fullname)=UPPER(''%s'') AND crc=%d ' +
+      '  AND UPPER(formname)=UPPER(''%s'')',
       [StringReplace(FieldByName('fullname').AsString, '''', '''''', [rfReplaceAll]),
-       FieldByName('crc').AsInteger]);
+       FieldByName('crc').AsInteger,
+       StringReplace(FieldByName('formname').AsString, '''', '''''', [rfReplaceAll])]);
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCCOMPONENTFILTER', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally

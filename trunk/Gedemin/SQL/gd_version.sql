@@ -623,6 +623,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (197, '0000.0001.0000.0228', '13.12.2013', 'Help folders added.');
 
+INSERT INTO fin_versioninfo
+  VALUES (198, '0000.0001.0000.0229', '12.01.2014', 'Correct old gd_documenttype structure.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
