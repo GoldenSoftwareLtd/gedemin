@@ -68,7 +68,7 @@ COMMIT;
 
 CREATE TABLE at_settingpos (
   id              dintkey,                   /* идентификатор */
-  settingkey      dmasterkey NOT NULL,       /* ссылка на настройку */
+  settingkey      dmasterkey,       /* ссылка на настройку */
   mastercategory  dtext20 collate PXW_CYRL,  /* категория местера */
   mastername      dtext60 collate PXW_CYRL,  /* наименование мастера */
   objectclass     dclassname NOT NULL        /* класс сохраняемого объекта */
@@ -121,8 +121,8 @@ COMMIT;
 
 CREATE TABLE at_setting_storage
 (
-  id           dintkey NOT NULL,         /* идентификатор */
-  settingkey   dmasterkey NOT NULL,     /* ссылка на настройку*/
+  id           dintkey,                 /* идентификатор */
+  settingkey   dmasterkey,              /* ссылка на настройку*/
   branchname   dblobtext80_1251,        /* наименование ветки стораджа */
   valuename    dtext255,                /* наименование параметра.
                                            Если пустое, значит сохранена вся ветка*/
