@@ -92,11 +92,6 @@
 
 unit gdcBase;
 
-{ TODO : из таблицы evt_object надо убрать дескрипторы безопасности! }
-{ TODO :
-проверить чтобы в объектах gdcDelphiObject, gdcFunction, gdcEvent
-не было дескрипторов безопасности. }
-
 interface
 
 uses

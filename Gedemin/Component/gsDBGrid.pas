@@ -504,8 +504,6 @@ type
     function IsColorStored: Boolean; virtual;
     function IsFontStored: Boolean; virtual;
 
-//    procedure SetCaption(const Value: string); override;
-
   public
     constructor Create(Column: TgsColumn);
     destructor Destroy; override;
@@ -515,11 +513,10 @@ type
     property Column: TgsColumn read GetColumn;
 
   published
-    property Alignment stored IsAlignmentStored;          
+    property Alignment stored IsAlignmentStored;
     property Caption stored IsCaptionStored;
     property Color stored IsColorStored;
     property Font stored IsFontStored;
-
   end;
 
   TgsTotalType = (ttNone, ttSum);
@@ -4431,7 +4428,7 @@ var
   OldActive: LongInt; // Сохраненный № пп в таблице
   HighLight: Boolean; // Флаг выделения записей таблицы
   Value: string;   // Значение, которое будет нарисовано
-  DrawColumn: TColumn; // Текущая таблица, в которой производится рисование
+  DrawColumn, TheColumn: TColumn; // Текущая таблица, в которой производится рисование
   ExpandsList: TList; // Список элементов расширенного отображения
   CurrExpand: TColumnExpand; // Текущий элемент расширенного отображения
   I: Integer; // Счетчик
@@ -4439,7 +4436,7 @@ var
   DefRowHeight: Integer; // Высота ячейки
   IsCheckBoxField: Boolean; // Поле отмечено
   TheField: TField; // Поле
-  CurrAlignment: TAlignment;
+  CurrAlignment, Al: TAlignment;
   OldMode: TPenMode;
   OldPenColor, OldBrushColor, OldTitleColor: TColor;
   OldPenStyle: TPenStyle;
@@ -4503,6 +4500,11 @@ begin
           for I := 0 to ExpandsList.Count - 1 do
           begin
             TheField := ExpandsList[I];
+            TheColumn := ColumnByField(TheField);
+            if (TheColumn <> nil) and (TheColumn.Title <> nil) then
+              Al := TheColumn.Title.Alignment
+            else
+              Al := TheField.Alignment;
 
             WriteText
             (
@@ -4521,7 +4523,7 @@ begin
                 ARect.Right,
                 ARect.Bottom
               ),
-              2, 2, GetFieldCaption(TheField), TheField.Alignment,
+              2, 2, GetFieldCaption(TheField), Al,
               UseRightToLeftAlignmentForField(TheField, TheField.Alignment),
               True
             );
