@@ -39,11 +39,8 @@ type
     FAlwaysOverwrite: Boolean;
     FLoadedNSList: TStringList;
     FTr: TIBTransaction;
-    FqFindNS, FqOverwriteNSRUID: TIBSQL;
-    FqFindRUID, FqUpdateAtObject, FqUpdateAtSettingPos: TIBSQL;
-    FqUpdateGdFunction, FqUpdateGdDocumentType: TIBSQL;
-    FqUpdateGdCommand: TIBSQL;
-    FqUpdateInvBalanceOption: TIBSQL;
+    FqFindNS, FqInsertNSRUID: TIBSQL;
+    FqFindRUID: TIBSQL;
     FqLoadAtObject, FqClearAtObject: TIBSQL;
     FgdcNamespace: TgdcNamespace;
     FgdcNamespaceObject: TgdcNamespaceObject;
@@ -337,27 +334,16 @@ begin
     '  UPPER(n.name) = :name ' +
     'ORDER BY 3 ASC';
 
-  FqOverwriteNSRUID := TIBSQL.Create(nil);
-  FqOverwriteNSRUID.Transaction := FTr;
-  FqOverwriteNSRUID.SQL.Text :=
-    'UPDATE OR INSERT INTO gd_ruid (id, xid, dbid, editorkey, modified) ' +
-    'VALUES (:id, :xid, :dbid, :editorkey, CURRENT_TIMESTAMP(0)) ' +
-    'MATCHING (id)';
+  FqInsertNSRUID := TIBSQL.Create(nil);
+  FqInsertNSRUID.Transaction := FTr;
+  FqInsertNSRUID.SQL.Text :=
+    'INSERT INTO gd_ruid (id, xid, dbid, editorkey, modified) ' +
+    'VALUES (:id, :xid, :dbid, :editorkey, CURRENT_TIMESTAMP(0))';
 
   FqFindRUID := TIBSQL.Create(nil);
   FqFindRUID.Transaction := FTr;
   FqFindRUID.SQL.Text :=
     'SELECT xid, dbid FROM gd_ruid WHERE id = :id';
-
-  FqUpdateAtObject := TIBSQL.Create(nil);
-  FqUpdateAtObject.Transaction := FTr;
-  FqUpdateAtObject.SQL.Text :=
-    'UPDATE at_object SET xid = :xid, dbid = :dbid WHERE xid = :old_xid AND dbid = :old_dbid';
-
-  FqUpdateAtSettingPos := TIBSQL.Create(nil);
-  FqUpdateAtSettingPos.Transaction := FTr;
-  FqUpdateAtSettingPos.SQL.Text :=
-    'UPDATE at_settingpos SET xid = :xid, dbid = :dbid WHERE xid = :old_xid AND dbid = :old_dbid';
 
   FqLoadAtObject := TIBSQL.Create(nil);
   FqLoadAtObject.Transaction := FTr;
@@ -392,33 +378,6 @@ begin
   FqFindAtObject.SQL.Text :=
     'SELECT id FROM at_object WHERE xid = :xid AND dbid = :dbid';
 
-  FqUpdateGdFunction := TIBSQL.Create(nil);
-  FqUpdateGdFunction.Transaction := FTr;
-  FqUpdateGdFunction.SQL.Text :=
-    'UPDATE gd_function SET script = REPLACE(script, :old, :new), ' +
-    '  editiondate = CURRENT_TIMESTAMP(0) ' +
-    'WHERE POSITION(:old IN script) > 0';
-
-  FqUpdateGdCommand := TIBSQL.Create(nil);
-  FqUpdateGdCommand.Transaction := FTr;
-  FqUpdateGdCommand.SQL.Text :=
-    'UPDATE gd_command SET cmd = :new, ' +
-    '  editiondate = CURRENT_TIMESTAMP(0) ' +
-    'WHERE cmd = :old';
-
-  FqUpdateGdDocumentType := TIBSQL.Create(nil);
-  FqUpdateGdDocumentType.Transaction := FTr;
-  FqUpdateGdDocumentType.SQL.Text :=
-    'UPDATE gd_documenttype SET ruid = :new, ' +
-    '  editiondate = CURRENT_TIMESTAMP(0) ' +
-    'WHERE ruid = :old';
-
-  FqUpdateInvBalanceOption := TIBSQL.Create(nil);
-  FqUpdateInvBalanceOption.Transaction := FTr;
-  FqUpdateInvBalanceOption.SQL.Text :=
-    'UPDATE inv_balanceoption SET ruid = :new ' +
-    '  WHERE ruid = :old';
-
   FqCheckTheSame := TIBSQL.Create(nil);
   FqCheckTheSame.Transaction := FTr;
 
@@ -445,15 +404,9 @@ begin
   FgdcNamespace.Free;
   FgdcNamespaceObject.Free;
   FqFindNS.Free;
-  FqOverwriteNSRUID.Free;
+  FqInsertNSRUID.Free;
   FqFindRUID.Free;
-  FqUpdateAtObject.Free;
-  FqUpdateAtSettingPos.Free;
   FqLoadAtObject.Free;
-  FqUpdateGdFunction.Free;
-  FqUpdateGdCommand.Free;
-  FqUpdateGdDocumentType.Free;
-  FqUpdateInvBalanceOption.Free;
   FTr.Free;
   inherited;
 end;
@@ -1016,8 +969,6 @@ end;
 procedure TgdcNamespaceLoader.OverwriteRUID(const AnID, AXID, ADBID: TID);
 var
   AtObjectRecord: TAtObjectRecord;
-  OldRUIDString, NewRUIDString: String;
-  OldRUIDParam, NewRUIDParam: String;
 begin
   Assert(
     ((AnID >= cstUserIDStart) and (AXID >= cstUserIDSTart))
@@ -1028,73 +979,29 @@ begin
   FqFindRUID.ParamByName('id').AsInteger := AnID;
   FqFindRUID.ExecQuery;
   try
-    if FqFindRUID.EOF or (FqFindRUID.FieldByName('xid').AsInteger <> AXID)
+    if FqFindRUID.EOF then
+    begin
+      FqInsertNSRUID.ParamByName('id').AsInteger := AnID;
+      FqInsertNSRUID.ParamByName('xid').AsInteger := AXID;
+      FqInsertNSRUID.ParamByName('dbid').AsInteger := ADBID;
+      FqInsertNSRUID.ParamByName('editorkey').AsInteger := IBLogin.ContactKey;
+      FqInsertNSRUID.ExecQuery;
+    end
+    else if (FqFindRUID.FieldByName('xid').AsInteger <> AXID)
       or (FqFindRUID.FieldByName('dbid').AsInteger <> ADBID) then
     begin
-      FqOverwriteNSRUID.ParamByName('id').AsInteger := AnID;
-      FqOverwriteNSRUID.ParamByName('xid').AsInteger := AXID;
-      FqOverwriteNSRUID.ParamByName('dbid').AsInteger := ADBID;
-      FqOverwriteNSRUID.ParamByName('editorkey').AsInteger := IBLogin.ContactKey;
-      FqOverwriteNSRUID.ExecQuery;
+      gdcBaseManager.ChangeRUID(FqFindRUID.FieldByName('xid').AsInteger,
+        FqFindRUID.FieldByName('dbid').AsInteger, AXID, ADBID, FTr);
 
-      if not FqFindRUID.EOF then
+      AddWarning('Изменился РУИД объекта ' +
+        RUIDToStr(FqFindRUID.FieldByName('xid').AsInteger, FqFindRUID.FieldByName('dbid').AsInteger) +
+        ' -> ' +
+        RUIDToStr(AXID, ADBID));
+        
+      if FAtObjectRecordCache.Find(RUIDToStr(FqFindRUID.FieldByName('xid').AsInteger,
+        FqFindRUID.FieldByName('dbid').AsInteger), AtObjectRecord) then
       begin
-        OldRUIDString := RUIDToStr(FqFindRUID.FieldByName('xid').AsInteger,
-          FqFindRUID.FieldByName('dbid').AsInteger);
-        NewRUIDString := RUIDToStr(AXID, ADBID);
-
-        OldRUIDParam := FqFindRUID.FieldByName('xid').AsString + ', ' +
-          FqFindRUID.FieldByName('dbid').AsString;
-        NewRUIDParam := IntToStr(AXID) + ', ' + IntToStr(ADBID);
-
-        FqUpdateGdCommand.ParamByName('old').AsString := OldRUIDString;
-        FqUpdateGdCommand.ParamByName('new').AsString := NewRUIDString;
-        FqUpdateGdCommand.ExecQuery;
-
-        FqUpdateGdFunction.ParamByName('old').AsString := OldRUIDString;
-        FqUpdateGdFunction.ParamByName('new').AsString := NewRUIDString;
-        FqUpdateGdFunction.ExecQuery;
-
-        FqUpdateGdFunction.ParamByName('old').AsString := OldRUIDParam;
-        FqUpdateGdFunction.ParamByName('new').AsString := NewRUIDParam;
-        FqUpdateGdFunction.ExecQuery;
-
-        FqUpdateGdFunction.ParamByName('old').AsString := StringReplace(OldRUIDParam, ' ', '', []);
-        FqUpdateGdFunction.ParamByName('new').AsString := StringReplace(NewRUIDParam, ' ', '', []);
-        FqUpdateGdFunction.ExecQuery;
-
-        FqUpdateGdDocumentType.ParamByName('old').AsString := OldRUIDString;
-        FqUpdateGdDocumentType.ParamByName('new').AsString := NewRUIDString;
-        FqUpdateGdDocumentType.ExecQuery;
-
-        FqUpdateInvBalanceOption.ParamByName('old').AsString := OldRUIDString;
-        FqUpdateInvBalanceOption.ParamByName('new').AsString := NewRUIDString;
-        FqUpdateInvBalanceOption.ExecQuery;
-
-        FqUpdateAtObject.ParamByName('old_xid').AsInteger := FqFindRUID.FieldByName('xid').AsInteger;
-        FqUpdateAtObject.ParamByName('old_dbid').AsInteger := FqFindRUID.FieldByName('dbid').AsInteger;
-        FqUpdateAtObject.ParamByName('xid').AsInteger := AXID;
-        FqUpdateAtObject.ParamByName('dbid').AsInteger := ADBID;
-        FqUpdateAtObject.ExecQuery;
-
-        FqUpdateAtSettingPos.ParamByName('old_xid').AsInteger := FqFindRUID.FieldByName('xid').AsInteger;
-        FqUpdateAtSettingPos.ParamByName('old_dbid').AsInteger := FqFindRUID.FieldByName('dbid').AsInteger;
-        FqUpdateAtSettingPos.ParamByName('xid').AsInteger := AXID;
-        FqUpdateAtSettingPos.ParamByName('dbid').AsInteger := ADBID;
-        FqUpdateAtSettingPos.ExecQuery;
-
-        AddWarning('Изменился РУИД объекта ' +
-          RUIDToStr(FqFindRUID.FieldByName('xid').AsInteger, FqFindRUID.FieldByName('dbid').AsInteger) +
-          ' -> ' +
-          RUIDToStr(AXID, ADBID));
-
-        if FAtObjectRecordCache.Find(RUIDToStr(FqFindRUID.FieldByName('xid').AsInteger,
-          FqFindRUID.FieldByName('dbid').AsInteger), AtObjectRecord) then
-        begin
-          AtObjectRecord.Loaded := True;
-        end;
-
-        gdcBaseManager.RemoveRUIDFromCache(AXID, ADBID);
+        AtObjectRecord.Loaded := True;
       end;
     end;
   finally

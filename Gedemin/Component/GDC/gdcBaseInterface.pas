@@ -100,6 +100,9 @@ type
       const AView, AChag, AFull: Integer);
 
     procedure IDCacheFlush;
+
+    procedure ChangeRUID(const AnOldXID, AnOldDBID, ANewXID, ANewDBID: TID;
+      ATr: TIBTransaction);
   end;
 
   IgdcBase = interface

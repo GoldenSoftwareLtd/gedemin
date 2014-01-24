@@ -1016,7 +1016,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
             Height = 21
             Style = csDropDownList
             DropDownCount = 24
-            ItemHeight = 0
+            ItemHeight = 13
             TabOrder = 0
             OnChange = cbTransactionsChange
           end
@@ -1640,6 +1640,11 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
           Action = actExport
           Images = dmImages.ImageList
         end
+        object TBSeparatorItem18: TTBSeparatorItem
+        end
+        object TBItem34: TTBItem
+          Action = actChangeRUID
+        end
         object TBSeparatorItem4: TTBSeparatorItem
         end
         object TBItem8: TTBItem
@@ -1658,14 +1663,14 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
           Action = actMakeSelect
         end
         object Label13: TLabel
-          Left = 393
+          Left = 422
           Top = 4
           Width = 51
           Height = 13
           Caption = 'Таблицы: '
         end
         object iblkupTable: TgsIBLookupComboBox
-          Left = 444
+          Left = 473
           Top = 0
           Width = 145
           Height = 21
@@ -1995,6 +2000,12 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
       Caption = 'Применить'
       OnExecute = actSetTransactionParamsExecute
       OnUpdate = actSetTransactionParamsUpdate
+    end
+    object actChangeRUID: TAction
+      Caption = 'Заменить РУИД...'
+      Hint = 'Заменить РУИД'
+      ImageIndex = 37
+      OnExecute = actChangeRUIDExecute
     end
   end
   object ibsqlPlan: TIBSQL
