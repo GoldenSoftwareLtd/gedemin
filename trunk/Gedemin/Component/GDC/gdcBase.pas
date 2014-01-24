@@ -465,6 +465,9 @@ type
     procedure ExecSingleQueryResult(const S: String; Param: Variant;
       out Res: OleVariant; const Transaction: TIBTransaction = nil); //overload;
 
+    procedure ChangeRUID(const AnOldXID, AnOldDBID, ANewXID, ANewDBID: TID;
+      ATr: TIBTRansaction);
+
     property ReadTransaction: TIBTransaction read GetReadTransaction;
 
   published
@@ -12585,6 +12588,108 @@ begin
     if CacheList.Has(S) then
       CacheList.Remove(S);
   end;    
+end;
+
+procedure TgdcBaseManager.ChangeRUID(const AnOldXID, AnOldDBID, ANewXID,
+  ANewDBID: TID; ATr: TIBTRansaction);
+var
+  OldRUIDString, NewRUIDString: String;
+  OldRUIDParam, NewRUIDParam: String;
+  SName: String;
+  q: TIBSQL;
+begin
+  Assert(ATr <> nil);
+  Assert(ATr.InTransaction);
+
+  OldRUIDString := RUIDToStr(AnOldXID, AnOldDBID);
+  NewRUIDString := RUIDToStr(ANewXID, ANewDBID);
+
+  OldRUIDParam := IntToStr(AnOldXID) + ', ' + IntToStr(AnOldDBID);
+  NewRUIDParam := IntToStr(ANewXID) + ', ' + IntToStr(ANewDBID);
+
+  SName := 'S' + OldRUIDString;
+  ATr.SetSavePoint(SName);
+  try
+    q := TIBSQL.Create(nil);
+    try
+      q.Transaction := ATr;
+
+      q.SQL.Text :=
+        'UPDATE gd_ruid SET xid = :new_xid, dbid = :new_dbid, ' +
+        '  modified = CURRENT_TIMESTAMP(0) ' +
+        'WHERE xid = :old_xid AND dbid = :old_dbid';
+      q.ParamByName('old_xid').AsInteger := AnOldXID;
+      q.ParamByName('old_dbid').AsInteger := AnOldDBID;
+      q.ParamByName('new_xid').AsInteger := ANewXID;
+      q.ParamByName('new_dbid').AsInteger := ANewDBID;
+      q.ExecQuery;
+
+      q.SQL.Text :=
+        'UPDATE gd_command SET cmd = :new, ' +
+        '  editiondate = CURRENT_TIMESTAMP(0) ' +
+        'WHERE cmd = :old';
+      q.ParamByName('old').AsString := OldRUIDString;
+      q.ParamByName('new').AsString := NewRUIDString;
+      q.ExecQuery;
+
+      q.SQL.Text :=
+        'UPDATE gd_function SET script = REPLACE(script, :old, :new), ' +
+        '  editiondate = CURRENT_TIMESTAMP(0) ' +
+        'WHERE POSITION(:old IN script) > 0';
+      q.ParamByName('old').AsString := OldRUIDString;
+      q.ParamByName('new').AsString := NewRUIDString;
+      q.ExecQuery;
+
+      q.ParamByName('old').AsString := OldRUIDParam;
+      q.ParamByName('new').AsString := NewRUIDParam;
+      q.ExecQuery;
+
+      q.ParamByName('old').AsString := StringReplace(OldRUIDParam, ' ', '', []);
+      q.ParamByName('new').AsString := StringReplace(NewRUIDParam, ' ', '', []);
+      q.ExecQuery;
+
+      q.SQL.Text :=
+        'UPDATE gd_documenttype SET ruid = :new, ' +
+        '  editiondate = CURRENT_TIMESTAMP(0) ' +
+        'WHERE ruid = :old';
+      q.ParamByName('old').AsString := OldRUIDString;
+      q.ParamByName('new').AsString := NewRUIDString;
+      q.ExecQuery;
+
+      q.SQL.Text :=
+        'UPDATE inv_balanceoption SET ruid = :new ' +
+        '  WHERE ruid = :old';
+      q.ParamByName('old').AsString := OldRUIDString;
+      q.ParamByName('new').AsString := NewRUIDString;
+      q.ExecQuery;
+
+      q.SQL.Text :=
+        'UPDATE at_object SET xid = :xid, dbid = :dbid WHERE xid = :old_xid AND dbid = :old_dbid';
+      q.ParamByName('old_xid').AsInteger := AnOLDXID;
+      q.ParamByName('old_dbid').AsInteger := AnOldDBID;
+      q.ParamByName('xid').AsInteger := ANewXID;
+      q.ParamByName('dbid').AsInteger := ANewDBID;
+      q.ExecQuery;
+
+      q.SQL.Text :=
+        'UPDATE at_settingpos SET xid = :xid, dbid = :dbid WHERE xid = :old_xid AND dbid = :old_dbid';
+      q.ParamByName('old_xid').AsInteger := AnOLDXID;
+      q.ParamByName('old_dbid').AsInteger := AnOldDBID;
+      q.ParamByName('xid').AsInteger := ANewXID;
+      q.ParamByName('dbid').AsInteger := ANewDBID;
+      q.ExecQuery;
+    finally
+      q.Free;
+    end;
+
+    ATr.ReleaseSavePoint(SName);
+  except
+    ATr.RollBackToSavePoint(SName);
+    raise;
+  end;
+
+  RemoveRUIDFromCache(AnOldXID, AnOldDBID);
+  RemoveRUIDFromCache(ANewXID, ANewDBID);
 end;
 
 { TgdcObjectSet }

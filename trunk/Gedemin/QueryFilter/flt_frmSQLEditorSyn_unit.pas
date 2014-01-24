@@ -246,6 +246,9 @@ type
     actSetTransactionParams: TAction;
     Label14: TLabel;
     Label16: TLabel;
+    actChangeRUID: TAction;
+    TBSeparatorItem18: TTBSeparatorItem;
+    TBItem34: TTBItem;
     procedure actPrepareExecute(Sender: TObject);
     procedure actExecuteExecute(Sender: TObject);
     procedure actCommitExecute(Sender: TObject);
@@ -322,6 +325,7 @@ type
     procedure actSetTransactionParamsExecute(Sender: TObject);
     procedure actSetTransactionParamsUpdate(Sender: TObject);
     procedure cbTransactionsChange(Sender: TObject);
+    procedure actChangeRUIDExecute(Sender: TObject);
 
   private
     FOldDelete, FOldInsert, FOldUpdate, FOldIndRead, FOldSeqRead: TStrings;
@@ -2482,6 +2486,39 @@ begin
   ibqryWork.ReadTransaction := Tr;
 
   tsResult.TabVisible := False;
+end;
+
+procedure TfrmSQLEditorSyn.actChangeRUIDExecute(Sender: TObject);
+var
+  S, sOldRUID, sNewRUID: String;
+  OldRUID, NewRUID: TRUID;
+begin
+  sOldRUID := '';
+  sNewRUID := '';
+
+  if InputQuery(
+    'Замена РУИД',
+    'Заменяемый РУИД в формате XID_DBID:',
+    sOldRUID) and
+    InputQuery(
+    'Замена РУИД',
+    'Заменяющий РУИД в формате XID_DBID:',
+    sNewRUID) then
+  begin
+    OldRUID := StrToRUID(sOldRUID);
+    NewRUID := StrToRUID(sNewRUID);
+
+    if not ibtrEditor.InTransaction then
+      ibtrEditor.StartTransaction;
+
+    gdcBaseManager.ChangeRUID(OldRUID.XID, OldRUID.DBID,
+      NewRUID.XID, NewRUID.DBID, ibtrEditor);
+
+    S := 'Произведена замена РУИД ' + sOldRUID + ' -> ' + sNewRUID;  
+
+    mmPlan.Lines.Text := S + #13#10 + 'Подтвердите транзакцию для сохранения изменений.';
+    AddLogRecord(S, True);
+  end;
 end;
 
 initialization
