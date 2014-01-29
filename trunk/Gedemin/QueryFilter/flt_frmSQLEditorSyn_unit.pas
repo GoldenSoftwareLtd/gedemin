@@ -2489,10 +2489,13 @@ begin
 end;
 
 procedure TfrmSQLEditorSyn.actChangeRUIDExecute(Sender: TObject);
+{$IFDEF GEDEMIN}
 var
   S, sOldRUID, sNewRUID: String;
   OldRUID, NewRUID: TRUID;
+{$ENDIF}
 begin
+{$IFDEF GEDEMIN}
   sOldRUID := '';
   sNewRUID := '';
 
@@ -2514,11 +2517,12 @@ begin
     gdcBaseManager.ChangeRUID(OldRUID.XID, OldRUID.DBID,
       NewRUID.XID, NewRUID.DBID, ibtrEditor);
 
-    S := 'Произведена замена РУИД ' + sOldRUID + ' -> ' + sNewRUID;  
+    S := 'Произведена замена РУИД ' + sOldRUID + ' -> ' + sNewRUID;
 
     mmPlan.Lines.Text := S + #13#10 + 'Подтвердите транзакцию для сохранения изменений.';
     AddLogRecord(S, True);
   end;
+{$ENDIF}  
 end;
 
 initialization
