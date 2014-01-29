@@ -1625,18 +1625,18 @@ begin
         '   eq_end_credit  NUMERIC(15, %5:d) '#13#10 +
         ' ) '#13#10 +
         ' AS '#13#10 +
-        ' DECLARE VARIABLE varncubegin NUMERIC(18, 6); '#13#10 +
-        ' DECLARE VARIABLE varcurrbegin NUMERIC(18, 6); '#13#10 +
-        ' DECLARE VARIABLE vareqbegin NUMERIC(18, 6); '#13#10 +
-        ' DECLARE VARIABLE varncudebit NUMERIC(18, 6); '#13#10 +
-        ' DECLARE VARIABLE varncucredit NUMERIC(18, 6); '#13#10 +
-        ' DECLARE VARIABLE varcurrdebit NUMERIC(18, 6); '#13#10 +
-        ' DECLARE VARIABLE varcurrcredit NUMERIC(18, 6); '#13#10 +
-        ' DECLARE VARIABLE vareqdebit NUMERIC(18, 6); '#13#10 +
-        ' DECLARE VARIABLE vareqcredit NUMERIC(18, 6); '#13#10 +
-        ' DECLARE VARIABLE varncuend NUMERIC(18, 6); '#13#10 +
-        ' DECLARE VARIABLE varcurrend NUMERIC(18, 6); '#13#10 +
-        ' DECLARE VARIABLE vareqend NUMERIC(18, 6); '#13#10 +
+        ' DECLARE VARIABLE varncubegin dcurrency; '#13#10 +
+        ' DECLARE VARIABLE varcurrbegin dcurrency; '#13#10 +
+        ' DECLARE VARIABLE vareqbegin dcurrency; '#13#10 +
+        ' DECLARE VARIABLE varncudebit dcurrency; '#13#10 +
+        ' DECLARE VARIABLE varncucredit dcurrency; '#13#10 +
+        ' DECLARE VARIABLE varcurrdebit dcurrency; '#13#10 +
+        ' DECLARE VARIABLE varcurrcredit dcurrency; '#13#10 +
+        ' DECLARE VARIABLE vareqdebit dcurrency; '#13#10 +
+        ' DECLARE VARIABLE vareqcredit dcurrency; '#13#10 +
+        ' DECLARE VARIABLE varncuend dcurrency; '#13#10 +
+        ' DECLARE VARIABLE varcurrend dcurrency; '#13#10 +
+        ' DECLARE VARIABLE vareqend dcurrency; '#13#10 +
         ' DECLARE VARIABLE wasmovement INTEGER; '#13#10 +
         ' DECLARE VARIABLE closedate DATE; '#13#10;
 

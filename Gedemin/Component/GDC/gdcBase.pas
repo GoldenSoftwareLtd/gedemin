@@ -9147,7 +9147,7 @@ end;
 function TgdcBaseManager.GetRUIDRecByXID(const XID, DBID: TID;
   Transaction: TIBTransaction): TRUIDRec;
 begin
-  if (XID < cstUserIDStart) and (DBID = 17) then
+  if (XID < cstUserIDStart) and (DBID = cstEtalonDBID) then
   begin
     Result.ID := XID;
     Result.XID := XID;
@@ -9296,7 +9296,6 @@ function TgdcBaseManager.GetIDByRUIDString(const RUID: TRUIDString;
   const Tr: TIBTransaction = nil): TID;
 var
   R: TRUID;
-  RR: TRUIDRec;
 begin
   if RUID = '' then
   begin
@@ -9316,19 +9315,13 @@ begin
   if not CacheList.Find(RUID, Result) then
   begin
     R := StrToRUID(RUID);
-    RR := GetRUIDRecByXID(R.XID, R.DBID, Tr);
-    if RR.ID = -1 then
-    begin
+    Result := GetRUIDRecByXID(R.XID, R.DBID, Tr).ID;
+    if Result > -1 then
+      CacheList.Add(RUID, Result)
+    else
       //Возможно РУИД еще не попал в таблицу
-      if (IBLogin.DBID = R.DBID) or (R.DBID = cstEtalonDBID) then
-        Result := R.XID
-      else
-        Result := -1;
-    end else
-    begin
-      Result := RR.ID;
-      CacheList.Add(RUID, Result);
-    end;
+      if IBLogin.DBID = R.DBID then
+        Result := R.XID;
   end;
 end;
 

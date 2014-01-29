@@ -44,6 +44,8 @@ set gudf_cfg=gudf.product.cfg
 set compiler_switch=-b
 set arc_name=gedemin.rar
 set gudf_arc_name=gudf.rar
+set etalon_arc_name=etalon.rar
+set full_etalon_name=k:\golden\gedemin\exe\etalon.fdb
 set target_dir=beta
 goto start_process
 
@@ -54,6 +56,8 @@ set gudf_cfg=gudf.debug.cfg
 set compiler_switch=-b -vt
 set arc_name=gedemin_debug.rar
 set gudf_arc_name=gudf_debug.rar
+set etalon_arc_name=etalon.rar
+set full_etalon_name=k:\golden\gedemin\exe\etalon.fdb
 set target_dir=debug
 
 :start_process
@@ -307,6 +311,31 @@ ftp -s:temp_ftp_commands.txt
 if not errorlevel 0 goto exit
 
 del %gudf_arc_name%
+del temp_ftp_commands.txt
+
+echo *************************************************
+echo **                                             **
+echo **  update_gedemin:                            **
+echo **  Upload etalon.rar                          **
+echo **                                             **
+echo *************************************************
+
+cd ..\sql
+call cr.bat localhost/3053 %full_etalon_name%
+cd ..\exe
+
+set arc_command="c:\program files\winrar\winrar.exe" a -ibck %etalon_arc_name%
+
+if exist %etalon_arc_name% del %etalon_arc_name% 
+%arc_command% %full_etalon_name%
+
+if exist temp_ftp_commands.txt del temp_ftp_commands.txt
+call BatchSubstitute.bat gedemin.rar %etalon_arc_name% ftp_commands.txt > temp_ftp_commands.txt
+ftp -s:temp_ftp_commands.txt
+if not errorlevel 0 goto exit
+
+del %etalon_arc_name%
+del %full_etalon_name%
 del temp_ftp_commands.txt
 
 echo *************************************************
