@@ -105,7 +105,10 @@ begin
   end;
 
   if AClear then
-    Cache.Clear;
+  begin
+    FreeAndNil(Cache);
+    sqlFilterCache_UserKey := -1;
+  end;
 end;
 
 procedure CheckIt;
@@ -177,5 +180,4 @@ initialization
 
 finalization
   FreeAndNil(Cache);
-
 end.

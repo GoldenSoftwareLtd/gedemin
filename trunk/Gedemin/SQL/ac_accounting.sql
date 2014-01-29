@@ -2466,15 +2466,15 @@ returns (
     crediteqend numeric(15,4),
     forceshow integer)
 as
-declare variable o numeric(18,4);
-declare variable saldobegin numeric(18,4);
-declare variable saldoend numeric(18,4);
-declare variable ocurr numeric(18,4);
-declare variable oeq numeric(18,4);
-declare variable saldobegincurr numeric(18,4);
-declare variable saldoendcurr numeric(18,4);
-declare variable saldobegineq numeric(18,4);
-declare variable saldoendeq numeric(18,4);
+declare variable o dcurrency;
+declare variable saldobegin dcurrency;
+declare variable saldoend dcurrency;
+declare variable ocurr dcurrency;
+declare variable oeq dcurrency;
+declare variable saldobegincurr dcurrency;
+declare variable saldoendcurr dcurrency;
+declare variable saldobegineq dcurrency;
+declare variable saldoendeq dcurrency;
 declare variable c integer;
 BEGIN 
   IF (:SQLHANDLE = 0) THEN 
@@ -2797,15 +2797,15 @@ returns (
     crediteqend numeric(15,4),
     forceshow integer)
 as
-declare variable o numeric(18,4);
-declare variable saldobegin numeric(18,4);
-declare variable saldoend numeric(18,4);
-declare variable ocurr numeric(18,4);
-declare variable saldobegincurr numeric(18,4);
-declare variable saldoendcurr numeric(18,4);
-declare variable oeq numeric(18,4);
-declare variable saldobegineq numeric(18,4);
-declare variable saldoendeq numeric(18,4);
+declare variable o dcurrency;
+declare variable saldobegin dcurrency;
+declare variable saldoend dcurrency;
+declare variable ocurr dcurrency;
+declare variable saldobegincurr dcurrency;
+declare variable saldoendcurr dcurrency;
+declare variable oeq dcurrency;
+declare variable saldobegineq dcurrency;
+declare variable saldoendeq dcurrency;
 declare variable c integer;
 BEGIN 
   IF (:SQLHANDLE = 0) THEN 
@@ -3755,33 +3755,33 @@ returns (
     creditcurrbegin numeric(15,4),
     debitcurrend numeric(15,4),
     creditcurrend numeric(15,4),
-    debiteqbegin numeric(18,4),
-    crediteqbegin numeric(18,4),
-    debiteqend numeric(18,4),
-    crediteqend numeric(18,4),
+    debiteqbegin dcurrency,
+    crediteqbegin dcurrency,
+    debiteqend dcurrency,
+    crediteqend dcurrency,
     forceshow integer)
 as
-declare variable o numeric(18,4);
-declare variable ocurr numeric(18,4);
-declare variable oeq numeric(18,4);
-declare variable saldobegindebit numeric(18,4);
-declare variable saldobegincredit numeric(18,4);
-declare variable saldoenddebit numeric(18,4);
-declare variable saldoendcredit numeric(18,4);
-declare variable saldobegindebitcurr numeric(18,4);
-declare variable saldobegincreditcurr numeric(18,4);
-declare variable saldoenddebitcurr numeric(18,4);
-declare variable saldoendcreditcurr numeric(18,4);
-declare variable saldobegindebiteq numeric(18,4);
-declare variable saldobegincrediteq numeric(18,4);
-declare variable saldoenddebiteq numeric(18,4);
-declare variable saldoendcrediteq numeric(18,4);
-declare variable sd numeric(18,4);
-declare variable sc numeric(18,4);
-declare variable sdc numeric(18,4);
-declare variable scc numeric(18,4);
-declare variable sdeq numeric(18,4);
-declare variable sceq numeric(18,4);
+declare variable o dcurrency;
+declare variable ocurr dcurrency;
+declare variable oeq dcurrency;
+declare variable saldobegindebit dcurrency;
+declare variable saldobegincredit dcurrency;
+declare variable saldoenddebit dcurrency;
+declare variable saldoendcredit dcurrency;
+declare variable saldobegindebitcurr dcurrency;
+declare variable saldobegincreditcurr dcurrency;
+declare variable saldoenddebitcurr dcurrency;
+declare variable saldoendcreditcurr dcurrency;
+declare variable saldobegindebiteq dcurrency;
+declare variable saldobegincrediteq dcurrency;
+declare variable saldoenddebiteq dcurrency;
+declare variable saldoendcrediteq dcurrency;
+declare variable sd dcurrency;
+declare variable sc dcurrency;
+declare variable sdc dcurrency;
+declare variable scc dcurrency;
+declare variable sdeq dcurrency;
+declare variable sceq dcurrency;
 declare variable c integer;
 declare variable accountkey integer;
 declare variable d date;
@@ -4072,9 +4072,9 @@ END^
 
 CREATE PROCEDURE AC_E_L_S (
     abeginentrydate date,
-    saldobegin numeric(18,4),
-    saldobegincurr numeric(18,4),
-    saldobegineq numeric(18,4),
+    saldobegin dcurrency,
+    saldobegincurr dcurrency,
+    saldobegineq dcurrency,
     sqlhandle integer,
     currkey integer)
 returns (
@@ -4093,12 +4093,12 @@ returns (
     crediteqend numeric(15,4),
     forceshow integer)
 as
-declare variable o numeric(18,4);
-declare variable saldoend numeric(18,4);
-declare variable ocurr numeric(18,4);
-declare variable oeq numeric(18,4);
-declare variable saldoendcurr numeric(18,4);
-declare variable saldoendeq numeric(18,4);
+declare variable o dcurrency;
+declare variable saldoend dcurrency;
+declare variable ocurr dcurrency;
+declare variable oeq dcurrency;
+declare variable saldoendcurr dcurrency;
+declare variable saldoendeq dcurrency;
 declare variable c integer;
 BEGIN 
   IF (saldobegin IS NULL) THEN 
@@ -4209,13 +4209,13 @@ BEGIN
  
     FORCESHOW = 1; 
     SUSPEND; 
-  END 
+  END
 END^
 
 CREATE PROCEDURE AC_E_L_S1 (
     abeginentrydate date,
-    saldobegin numeric(18,4),
-    saldobegincurr numeric(18,4),
+    saldobegin dcurrency,
+    saldobegincurr dcurrency,
     saldobegineq integer,
     sqlhandle integer,
     param integer,
@@ -4236,12 +4236,12 @@ returns (
     crediteqend numeric(15,4),
     forceshow integer)
 as
-declare variable o numeric(18,4);
-declare variable saldoend numeric(18,4);
-declare variable ocurr numeric(18,4);
-declare variable saldoendcurr numeric(18,4);
-declare variable oeq numeric(18,4);
-declare variable saldoendeq numeric(18,4);
+declare variable o dcurrency;
+declare variable saldoend dcurrency;
+declare variable ocurr dcurrency;
+declare variable saldoendcurr dcurrency;
+declare variable oeq dcurrency;
+declare variable saldoendeq dcurrency;
 declare variable c integer;
 BEGIN 
   IF (saldobegin IS NULL) THEN 

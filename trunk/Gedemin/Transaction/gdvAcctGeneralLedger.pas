@@ -280,24 +280,24 @@ begin
       '    EQ_END_CREDIT NUMERIC(15, %5:d), '#13#10 +
       '    SORTFIELD INTEGER) '#13#10 +
       'AS '#13#10 +
-      '  DECLARE VARIABLE saldobegindebit      NUMERIC(18, 6);'#13#10 +
-      '  DECLARE VARIABLE saldobegincredit     NUMERIC(18, 6);'#13#10 +
-      '  DECLARE VARIABLE saldoenddebit        NUMERIC(18, 6);'#13#10 +
-      '  DECLARE VARIABLE saldoendcredit       NUMERIC(18, 6);'#13#10 +
-      '  DECLARE VARIABLE saldobegindebitcurr  NUMERIC(18, 6);'#13#10 +
-      '  DECLARE VARIABLE saldobegincreditcurr NUMERIC(18, 6);'#13#10 +
-      '  DECLARE VARIABLE saldoenddebitcurr    NUMERIC(18, 6);'#13#10 +
-      '  DECLARE VARIABLE saldoendcreditcurr   NUMERIC(18, 6);'#13#10 +
-      '  DECLARE VARIABLE saldobegindebiteq    NUMERIC(18, 6);'#13#10 +
-      '  DECLARE VARIABLE saldobegincrediteq   NUMERIC(18, 6);'#13#10 +
-      '  DECLARE VARIABLE saldoenddebiteq      NUMERIC(18, 6);'#13#10 +
-      '  DECLARE VARIABLE saldoendcrediteq     NUMERIC(18, 6);'#13#10 +
-      '  DECLARE VARIABLE varncudebit          NUMERIC(18, 6);'#13#10 +
-      '  DECLARE VARIABLE varncucredit         NUMERIC(18, 6);'#13#10 +
-      '  DECLARE VARIABLE varcurrdebit         NUMERIC(18, 6);'#13#10 +
-      '  DECLARE VARIABLE varcurrcredit        NUMERIC(18, 6);'#13#10 +
-      '  DECLARE VARIABLE vareqdebit           NUMERIC(18, 6);'#13#10 +
-      '  DECLARE VARIABLE vareqcredit          NUMERIC(18, 6);'#13#10 +
+      '  DECLARE VARIABLE saldobegindebit      dcurrency;'#13#10 +
+      '  DECLARE VARIABLE saldobegincredit     dcurrency;'#13#10 +
+      '  DECLARE VARIABLE saldoenddebit        dcurrency;'#13#10 +
+      '  DECLARE VARIABLE saldoendcredit       dcurrency;'#13#10 +
+      '  DECLARE VARIABLE saldobegindebitcurr  dcurrency;'#13#10 +
+      '  DECLARE VARIABLE saldobegincreditcurr dcurrency;'#13#10 +
+      '  DECLARE VARIABLE saldoenddebitcurr    dcurrency;'#13#10 +
+      '  DECLARE VARIABLE saldoendcreditcurr   dcurrency;'#13#10 +
+      '  DECLARE VARIABLE saldobegindebiteq    dcurrency;'#13#10 +
+      '  DECLARE VARIABLE saldobegincrediteq   dcurrency;'#13#10 +
+      '  DECLARE VARIABLE saldoenddebiteq      dcurrency;'#13#10 +
+      '  DECLARE VARIABLE saldoendcrediteq     dcurrency;'#13#10 +
+      '  DECLARE VARIABLE varncudebit          dcurrency;'#13#10 +
+      '  DECLARE VARIABLE varncucredit         dcurrency;'#13#10 +
+      '  DECLARE VARIABLE varcurrdebit         dcurrency;'#13#10 +
+      '  DECLARE VARIABLE varcurrcredit        dcurrency;'#13#10 +
+      '  DECLARE VARIABLE vareqdebit           dcurrency;'#13#10 +
+      '  DECLARE VARIABLE vareqcredit          dcurrency;'#13#10 +
       '  DECLARE VARIABLE c                    INTEGER;'#13#10 +
       '  DECLARE VARIABLE accountkey           INTEGER;'#13#10 +
       '  DECLARE VARIABLE closedate            DATE;'#13#10;
@@ -305,12 +305,12 @@ begin
     begin
       DebitCreditSQL := DebitCreditSQL +
         '  DECLARE VARIABLE endmonthdate         DATE;'#13#10 +
-        '  DECLARE VARIABLE sd                   NUMERIC(18, 4);'#13#10 +
-        '  DECLARE VARIABLE sc                   NUMERIC(18, 4);'#13#10 +
-        '  DECLARE VARIABLE sdc                  NUMERIC(18, 4);'#13#10 +
-        '  DECLARE VARIABLE scc                  NUMERIC(18, 4);'#13#10 +
-        '  DECLARE VARIABLE sdeq                 NUMERIC(18, 4);'#13#10 +
-        '  DECLARE VARIABLE sceq                 NUMERIC(18, 4);'#13#10;
+        '  DECLARE VARIABLE sd                   dcurrency;'#13#10 +
+        '  DECLARE VARIABLE sc                   dcurrency;'#13#10 +
+        '  DECLARE VARIABLE sdc                  dcurrency;'#13#10 +
+        '  DECLARE VARIABLE scc                  dcurrency;'#13#10 +
+        '  DECLARE VARIABLE sdeq                 dcurrency;'#13#10 +
+        '  DECLARE VARIABLE sceq                 dcurrency;'#13#10;
     end;
     DebitCreditSQL := DebitCreditSQL +
       'BEGIN '#13#10 +

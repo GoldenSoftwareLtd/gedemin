@@ -182,6 +182,23 @@ begin
     try
       q.Transaction := Tr;
 
+      q.SQL.Text :=
+        'UPDATE rp_reportgroup r SET r.name = SUBSTRING(r.name FROM 1 FOR 50) || r.id ' +
+        'WHERE EXISTS (SELECT r2.* FROM rp_reportgroup r2 ' +
+        '  WHERE r2.id > r.id AND r2.parent IS NOT DISTINCT FROM r.parent ' +
+        '  AND UPPER(r2.name) = UPPER(r.name))';
+      q.ExecQuery;
+
+      q.SQL.Text :=
+        'UPDATE rdb$fields SET rdb$field_sub_type = 0 ' +
+        'WHERE rdb$field_name = ''DBMP'' AND rdb$field_sub_type <> 0';
+      q.ExecQuery;
+
+      q.SQL.Text :=
+        'UPDATE rdb$fields SET rdb$field_sub_type = 0 ' +
+        'WHERE rdb$field_name = ''DRTF'' AND rdb$field_sub_type <> 0';
+      q.ExecQuery;
+
       q.SQL.Text := 'ALTER TRIGGER gd_au_documenttype INACTIVE';
       q.ExecQuery;
 
@@ -193,7 +210,8 @@ begin
 
       q.SQL.Text :=
         'UPDATE gd_goodgroup ' +
-        'SET parent = COALESCE((SELECT id FROM gd_ruid WHERE xid=147005904 AND dbid=63934951), parent) ' +
+        'SET parent = COALESCE((SELECT g.id FROM gd_goodgroup g JOIN gd_ruid r ' +
+        '  ON r.id = g.id WHERE r.xid=147005904 AND r.dbid=63934951), parent) ' +
         'WHERE id = (SELECT id FROM gd_ruid WHERE xid=147006033 AND dbid=63934951)';
       q.ExecQuery;
 
