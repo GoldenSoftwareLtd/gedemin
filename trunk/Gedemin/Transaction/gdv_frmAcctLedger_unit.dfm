@@ -8,10 +8,10 @@ inherited gdv_frmAcctLedger: Tgdv_frmAcctLedger
   PixelsPerInch = 96
   TextHeight = 13
   inherited sLeft: TSplitter
-    Height = 500
+    Height = 489
   end
   inherited TBDock1: TTBDock
-    Width = 1042
+    Width = 1034
     inherited TBToolbar2: TTBToolbar
       DockPos = 154
     end
@@ -24,32 +24,32 @@ inherited gdv_frmAcctLedger: Tgdv_frmAcctLedger
     end
   end
   inherited Panel1: TPanel
-    Width = 772
-    Height = 500
+    Width = 764
+    Height = 489
     inherited ibgrMain: TgsIBGrid
-      Width = 772
-      Height = 500
+      Width = 764
+      Height = 489
     end
   end
   inherited TBDock2: TTBDock
-    Height = 500
+    Height = 489
   end
   inherited TBDock3: TTBDock
-    Left = 1033
-    Height = 500
+    Left = 1025
+    Height = 489
   end
   inherited TBDock4: TTBDock
-    Top = 530
-    Width = 1042
+    Top = 519
+    Width = 1034
   end
   inherited pLeft: TPanel
-    Height = 500
+    Height = 489
     inherited ScrollBox: TScrollBox
-      Height = 483
+      Height = 472
       VertScrollBar.Position = 241
       inherited Panel5: TPanel
         Top = -241
-        Width = 230
+        Width = 229
         Height = 115
         inherited bAccounts: TButton
           Left = 201
@@ -95,48 +95,48 @@ inherited gdv_frmAcctLedger: Tgdv_frmAcctLedger
       end
       inherited frAcctQuantity: TfrAcctQuantity
         Top = 89
-        Width = 230
+        Width = 229
         TabOrder = 4
         inherited ppMain: TgdvParamPanel
-          Width = 230
+          Width = 229
         end
       end
       inherited frAcctSum: TfrAcctSum
         Top = 130
-        Width = 230
+        Width = 229
         Height = 213
         TabOrder = 5
         inherited ppMain: TgdvParamPanel
-          Width = 230
+          Width = 229
           Height = 213
           inherited pnlEQ: TPanel
-            Width = 218
+            Width = 217
             inherited cbEQScale: TComboBox
               OnExit = nil
               OnKeyPress = nil
             end
           end
           inherited pnlQuantity: TPanel
-            Width = 218
+            Width = 217
           end
           inherited pnlTop: TPanel
-            Width = 218
+            Width = 217
           end
         end
       end
       inherited frAcctAnalytics: TfrAcctAnalytics
         Top = -126
-        Width = 230
+        Width = 229
         inherited ppAnalytics: TgdvParamPanel
-          Width = 230
+          Width = 229
         end
       end
       inherited frAcctCompany: TfrAcctCompany
         Top = 343
-        Width = 230
+        Width = 229
         TabOrder = 6
         inherited ppMain: TgdvParamPanel
-          Width = 230
+          Width = 229
           inherited cbAllCompanies: TCheckBox
             Width = 193
           end
@@ -147,7 +147,7 @@ inherited gdv_frmAcctLedger: Tgdv_frmAcctLedger
       end
       inherited ppAppear: TgdvParamPanel
         Top = 403
-        Width = 230
+        Width = 229
         Height = 80
         TabOrder = 7
         inherited cbExtendedFields: TCheckBox
@@ -189,25 +189,25 @@ inherited gdv_frmAcctLedger: Tgdv_frmAcctLedger
       end
       inline frAcctAnalyticsGroup: TfrAcctAnalyticsGroup
         Top = -85
-        Width = 230
+        Width = 229
         Align = alTop
         TabOrder = 2
         inherited ppMain: TgdvParamPanel
-          Width = 230
+          Width = 229
           inherited pClient: TPanel
-            Width = 218
+            Width = 217
             Color = 16316664
           end
         end
       end
       inline frAcctTreeAnalytic: Tgdv_frAcctTreeAnalytic
         Top = 51
-        Width = 230
+        Width = 229
         Height = 38
         Align = alTop
         TabOrder = 3
         inherited ppMain: TgdvParamPanel
-          Width = 230
+          Width = 229
           Height = 38
           Font.Color = 9529602
         end

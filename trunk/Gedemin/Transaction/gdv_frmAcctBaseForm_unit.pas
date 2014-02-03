@@ -116,7 +116,7 @@ type
     procedure actRunUpdate(Sender: TObject);
   private
     function GetIncSubAccounts: Boolean;
-    procedure SetIncSubAccounts(const Value: Boolean); 
+    procedure SetIncSubAccounts(const Value: Boolean);
   protected
     FFieldInfos: TgdvFieldInfos;
     FAccountIDs: TList;
@@ -157,7 +157,7 @@ type
     procedure SetParams; virtual;
     procedure PushForm;
     procedure Go_to(NewWindow: Boolean = false); virtual;
-    function CanGo_to: boolean; virtual;
+    function CanGo_to: Boolean; virtual;
     function CompareParams(WithDate: Boolean = True): boolean; virtual;
   public
     { Public declarations }
@@ -1013,9 +1013,13 @@ begin
 
 end;
 
-function Tgdv_frmAcctBaseForm.CanGo_to: boolean;
+function Tgdv_frmAcctBaseForm.CanGo_to: Boolean;
 begin
-  Result := Assigned(gdvObject) and gdvObject.Active and not gdvObject.IsEmpty;
+  Result := Assigned(gdvObject)
+    and gdvObject.Active
+    and (not gdvObject.IsEmpty)
+    and (gdvObject.FieldCount > 0)
+    and (not gdvObject.Fields[0].IsNull);
 end;
 
 function Tgdv_frmAcctBaseForm.CompareParams(WithDate: Boolean = True): boolean;
