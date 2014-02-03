@@ -88,10 +88,10 @@ type
     class function ConfigClassName: string; override;
     procedure SetParams; override;
     procedure Go_to(NewWindow: Boolean = false); override;
-    function CanGo_to: boolean; override;
+    function CanGo_to: Boolean; override;
     function CompareParams(WithDate: Boolean = True): boolean; override;
+
   public
-    { Public declarations }
     procedure LoadSettings; override;
     procedure SaveSettings; override;
   end;
@@ -375,11 +375,12 @@ begin
   end;
 end;
 
-function Tgdv_frmAcctAccCard.CanGo_to: boolean;
+function Tgdv_frmAcctAccCard.CanGo_to: Boolean;
 var
   F: TField;
 begin
-  Result := Assigned(gdvObject) and inherited CanGo_to;
+  Result := inherited CanGo_to;
+
   if Result then
   begin
     F := gdvObject.FindField('id');

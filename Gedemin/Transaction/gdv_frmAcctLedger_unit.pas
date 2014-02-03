@@ -1295,19 +1295,18 @@ const
 var
   i: integer;
 begin
-  if gdvObject.Active then
+  Result := inherited CanGo_To;
+
+  if Result then
   begin
-    Result:= True;
     for i := 0 to ibgrMain.Columns.Count - 1 do
       if Assigned(gdvObject.FindField(ibgrMain.Columns[i].FieldName))
          and (gdvObject.FieldByName(ibgrMain.Columns[i].FieldName).AsString = cTotal) then
       begin
-        Result:= False;
-        Exit;
+        Result := False;
+        break;
       end;
-  end
-  else
-    Result := False;    
+  end;
 end;
 
 function Tgdv_frmAcctLedger.CompareParams(WithDate: Boolean = True): Boolean;
