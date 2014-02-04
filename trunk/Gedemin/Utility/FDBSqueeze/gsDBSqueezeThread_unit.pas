@@ -15,35 +15,36 @@ const
   WM_DBS_CONNECT               = WM_USER + 6;
   WM_DBS_CREATEDBSSTATEJOURNAL = WM_USER + 7;
   WM_DBS_SETCBBITEMS           = WM_USER + 8;
-  WM_DBS_GETDBPROPERTIES       = WM_USER + 9;
-  WM_DBS_SETCLOSINGDATE        = WM_USER + 10;
-  WM_DBS_SETCOMPANYNAME        = WM_USER + 11;
-  WM_DBS_SETSALDOPARAMS        = WM_USER + 12;
-  WM_DBS_SETOPTIONS            = WM_USER + 13;
-  WM_DBS_GETSTATISTICS         = WM_USER + 14;
-  WM_DBS_GETPROCSTATISTICS     = WM_USER + 15;
-  WM_DBS_STARTPROCESSING       = WM_USER + 16;
-  WM_DBS_STOPPROCESSING        = WM_USER + 17;
-  WM_DBS_RECONNECT             = WM_USER + 18;
-  WM_DBS_BACKUPDATABASE        = WM_USER + 19;
-  WM_DBS_SETFVARIABLLES        = WM_USER + 20;
-  WM_DBS_CREATEMETADATA        = WM_USER + 21;
-  WM_DBS_SAVEMETADATA          = WM_USER + 22;
-  WM_DBS_CALCULATEACSALDO      = WM_USER + 23;
-  WM_DBS_CALCULATEINVSALDO     = WM_USER + 24;
-  WM_DBS_PREPAREREBINDINVCARDS = WM_USER + 25;
-  WM_DBS_CREATEHIS_INCLUDEHIS  = WM_USER + 26;
-  WM_DBS_PREPAREDB             = WM_USER + 27;
-  WM_DBS_DELETEOLDBALANCE      = WM_USER + 28;
-  WM_DBS_DELETEDOCHIS          = WM_USER + 29;
-  WM_DBS_CREATEACENTRIES       = WM_USER + 30;
-  WM_DBS_CREATEINVSALDO        = WM_USER + 31;
-  WM_DBS_RESTOREDB             = WM_USER + 32;
-  WM_DBS_REBINDINVCARDS        = WM_USER + 33;
-  WM_DBS_CLEARDBSTABLES        = WM_USER + 34;
-  WM_DBS_FINISH                = WM_USER + 35;
-  WM_DBS_FINISHED              = WM_USER + 36;
-  WM_DBS_DISCONNECT            = WM_USER + 37;
+  WM_DBS_SETDOCTYPESRINGS      = WM_USER + 9;
+  WM_DBS_GETDBPROPERTIES       = WM_USER + 10;
+  WM_DBS_SETCLOSINGDATE        = WM_USER + 11;
+  WM_DBS_SETCOMPANYNAME        = WM_USER + 12;
+  WM_DBS_SETSALDOPARAMS        = WM_USER + 13;
+  WM_DBS_SETOPTIONS            = WM_USER + 14;
+  WM_DBS_GETSTATISTICS         = WM_USER + 15;
+  WM_DBS_GETPROCSTATISTICS     = WM_USER + 16;
+  WM_DBS_STARTPROCESSING       = WM_USER + 17;
+  WM_DBS_STOPPROCESSING        = WM_USER + 18;
+  WM_DBS_RECONNECT             = WM_USER + 19;
+  WM_DBS_BACKUPDATABASE        = WM_USER + 20;
+  WM_DBS_SETFVARIABLLES        = WM_USER + 21;
+  WM_DBS_CREATEMETADATA        = WM_USER + 22;
+  WM_DBS_SAVEMETADATA          = WM_USER + 23;
+  WM_DBS_CALCULATEACSALDO      = WM_USER + 24;
+  WM_DBS_CALCULATEINVSALDO     = WM_USER + 25;
+  WM_DBS_PREPAREREBINDINVCARDS = WM_USER + 26;
+  WM_DBS_CREATEHIS_INCLUDEHIS  = WM_USER + 27;
+  WM_DBS_PREPAREDB             = WM_USER + 28;
+  WM_DBS_DELETEOLDBALANCE      = WM_USER + 29;
+  WM_DBS_DELETEDOCHIS          = WM_USER + 30;
+  WM_DBS_CREATEACENTRIES       = WM_USER + 31;
+  WM_DBS_CREATEINVSALDO        = WM_USER + 32;
+  WM_DBS_RESTOREDB             = WM_USER + 33;
+  WM_DBS_REBINDINVCARDS        = WM_USER + 34;
+  WM_DBS_CLEARDBSTABLES        = WM_USER + 35;
+  WM_DBS_FINISH                = WM_USER + 36;
+  WM_DBS_FINISHED              = WM_USER + 37;
+  WM_DBS_DISCONNECT            = WM_USER + 38;
 
 type
   TErrorEvent = procedure(const ErrorMsg: String) of object;
@@ -53,6 +54,7 @@ type
   TUsedDBEvent =  procedure(const MsgFunctionKey: Integer; const MsgState: Integer; const MsgCallTime: String; const MsgErrorMessage: String) of object;
   TGetDBPropertiesEvent = procedure(const MsgPropertiesList: TStringList) of object;
   TCbbEvent = procedure (const MsgStrList: TStringList) of object;
+  TSetDocTypeStringsEvent = procedure (const MsgDocTypeList: TStringList) of object;
   TGetDBSizeEvent = procedure (const MsgStr: String) of object;
   TGetStatisticsEvent = procedure (const MsgGdDocStr: String; const MsgAcEntryStr: String; const MsgInvMovementStr: String; const MsgInvCardStr: String) of object;
   TGetProcStatisticsEvent = procedure (const MsgProcGdDocStr: String; const MsgProcAcEntryStr: String; const MsgProcInvMovementStr: String; const MsgProcInvCardStr: String) of object;
@@ -91,6 +93,7 @@ type
     //FMessageConnected: Boolean;
     FMessagePropertiesList: TStringList;
     FMessageStrList: TStringList;
+    FMessageDocTypeList: TStringList;
     FMessageDBSizeStr: String;
     FMessageGdDocStr, FMessageAcEntryStr, FMessageInvMovementStr, FMessageInvCardStr: String;
     FMessageProcGdDocStr, FMessageProcAcEntryStr, FMessageProcInvMovementStr, FMessageProcInvCardStr: String;
@@ -102,6 +105,7 @@ type
     FOnUsedDB: TUsedDBEvent;
     FOnGetDBProperties: TGetDBPropertiesEvent;
     FOnSetItemsCbb: TCbbEvent;
+    FOnSetDocTypeStrings: TSetDocTypeStringsEvent;
     FOnGetDBSize: TGetDBSizeEvent;
     FOnGetStatistics: TGetStatisticsEvent;
     FOnGetProcStatistics: TGetProcStatisticsEvent;
@@ -112,6 +116,7 @@ type
     procedure DoOnUsedDBSync;
     procedure DoOnGetDBPropertiesSync;
     procedure DoOnSetItemsCbbSync;
+    procedure DoOnSetDocTypeStringsSync;
     procedure DoOnGetDBSizeSync;
     procedure DoOnGetStatisticsSync;
     procedure DoOnGetProcStatisticsSync;
@@ -123,6 +128,7 @@ type
       const AMessageCallTime: String; const AMessageErrorMessage: String);
     procedure GetDBProperties(const AMessageProperties: TStringList);
     procedure SetItemsCbb(const AMessageStrList: TStringList);
+    procedure SetDocTypeStrings(const AMessageDocTypeList: TStringList);
     procedure GetDBSize(const AMessageDBSizeStr: String);
     procedure GetStatistics(const AMessageGdDocStr: String; const AMessageAcEntryStr: String; const AMessageInvMovementStr: String; const AMessageInvCardStr: String);
     procedure GetProcStatistics(const AMessageProcGdDocStr: String; const AMessageProcAcEntryStr: String; const AMessageProcInvMovementStr: String; const AMessageProcInvCardStr: String);
@@ -148,6 +154,7 @@ type
     procedure DoGetInfoTestConnect;
     procedure DoGetDBProperties;
     procedure DoSetItemsCbb;
+    procedure DoSetDocTypeStrings;
     procedure DoGetDBSize;
     procedure DoGetStatistics;
     procedure DoGetProcStatistics;
@@ -173,6 +180,7 @@ type
     property OnUsedDB: TUsedDBEvent read FOnUsedDB write FOnUsedDB;
     property OnGetDBProperties: TGetDBPropertiesEvent read FOnGetDBProperties write FOnGetDBProperties;
     property OnSetItemsCbb: TCbbEvent read FOnSetItemsCbb write FOnSetItemsCbb;
+    property OnSetDocTypeStrings: TSetDocTypeStringsEvent read FOnSetDocTypeStrings write FOnSetDocTypeStrings;
     property OnGetDBSize: TGetDBSizeEvent read FOnGetDBSize write FOnGetDBSize;
     property OnGetStatistics: TGetStatisticsEvent read FOnGetStatistics write FOnGetStatistics;
     property OnGetProcStatistics: TGetProcStatisticsEvent read FOnGetProcStatistics write FOnGetProcStatistics;
@@ -192,6 +200,7 @@ begin
   FDBS.OnGetInfoTestConnectEvent := GetInfoTestConnect;
   FDBS.OnGetDBPropertiesEvent := GetDBProperties;
   FDBS.OnSetItemsCbbEvent := SetItemsCbb;
+  FDBS.OnSetDocTypeStringsEvent := SetDocTypeStrings;
   FDBS.OnGetDBSizeEvent := GetDBSize;
   FDBS.OnGetStatistics := GetStatistics;
   FDBS.OnGetProcStatistics := GetProcStatistics;
@@ -204,8 +213,9 @@ begin
   FBusy := TIdThreadSafeInteger.Create;
   FState := TIdThreadSafeInteger.Create;
   FConnected := TIdThreadSafeInteger.Create;
-  FMsgConnectInfoList := TStringList.Create;     
+  FMsgConnectInfoList := TStringList.Create;
   FMessageStrList := TStringList.Create;
+  FMessageDocTypeList := TStringList.Create;
   FMessagePropertiesList := TStringList.Create;
   FState.Value := 1;
   FFinish := False;
@@ -228,6 +238,7 @@ begin
   FConnected.Free;
   FMsgConnectInfoList.Free;
   FMessageStrList.Free;
+  FMessageDocTypeList.Free;
   FMessagePropertiesList.Free;
 end;
 
@@ -314,6 +325,12 @@ procedure TgsDBSqueezeThread.DoOnSetItemsCbbSync;
 begin
   if Assigned(FOnSetItemsCbb) then
     FOnSetItemsCbb(FMessageStrList);
+end;
+
+procedure TgsDBSqueezeThread.DoOnSetDocTypeStringsSync;
+begin
+  if Assigned(FOnSetDocTypeStrings) then
+    FOnSetDocTypeStrings(FMessageDocTypeList);
 end;
 
 procedure TgsDBSqueezeThread.DoOnUsedDBSync;
@@ -480,6 +497,20 @@ begin
         Result := True;
       end;
 
+    WM_DBS_SETDOCTYPESRINGS:
+      begin
+        //if FConnected.Value = 1 then
+       // begin
+          //FBusy.Value := 1;
+          FDBS.SetDocTypeStringsEvent;
+       // end;
+
+        //FDBS.InsertDBSStateJournal(Msg.Message, 1);
+        FState.Value := 1;
+
+        Result := True;
+      end;
+
     WM_DBS_GETDBPROPERTIES:
       begin
         //if FConnected.Value = 1 then
@@ -640,7 +671,7 @@ begin
        // if FConnected.Value = 1 then
        // begin
           FBusy.Value := 1;
-          FDBS.CalculateAcSaldo;
+          //////////FDBS.CalculateAcSaldo;
 
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
           FState.Value := 1;
@@ -655,7 +686,7 @@ begin
         //if FConnected.Value = 1 then
        // begin
           FBusy.Value := 1;
-          FDBS.CalculateInvSaldo;
+          //////////FDBS.CalculateInvSaldo;
 
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
           FState.Value := 1;
@@ -671,7 +702,7 @@ begin
        // begin
           FBusy.Value := 1;
 
-          FDBS.PrepareRebindInvCards;
+          //////////FDBS.PrepareRebindInvCards;
 
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
           FState.Value := 1;
@@ -751,7 +782,7 @@ begin
        // begin
           FBusy.Value := 1;
 
-          FDBS.CreateAcEntries;
+          //////////FDBS.CreateAcEntries;
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
           FState.Value := 1;
 
@@ -767,7 +798,7 @@ begin
        // begin
           FBusy.Value := 1;
 
-          FDBS.CreateInvSaldo;
+          //////////FDBS.CreateInvSaldo;
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
           FState.Value := 1;
 
@@ -800,7 +831,7 @@ begin
        // begin
           FBusy.Value := 1;
 
-          FDBS.RebindInvCards;
+          //////////FDBS.RebindInvCards;
 
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
           FState.Value := 1;
@@ -937,6 +968,17 @@ procedure TgsDBSqueezeThread.SetItemsCbb(const AMessageStrList: TStringList);
 begin
   FMessageStrList.Text := AMessageStrList.Text;
   Synchronize(DoOnSetItemsCbbSync);
+end;
+
+procedure TgsDBSqueezeThread.DoSetDocTypeStrings;
+begin
+  PostMsg(WM_DBS_SETDOCTYPESRINGS);
+end;
+
+procedure TgsDBSqueezeThread.SetDocTypeStrings(const AMessageDocTypeList: TStringList);
+begin
+  FMessageDoctypeList.Text := AMessageDocTypeList.Text;
+  Synchronize(DoOnSetDocTypeStringsSync);
 end;
 
 procedure TgsDBSqueezeThread.UsedDB(const AMessageFunctionKey: Integer; const AMessageState: Integer;

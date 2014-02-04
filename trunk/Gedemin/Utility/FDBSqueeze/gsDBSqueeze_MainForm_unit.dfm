@@ -1,8 +1,8 @@
 object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
-  Left = 141
-  Top = 161
+  Left = 1062
+  Top = 136
   BorderStyle = bsDialog
-  ClientHeight = 536
+  ClientHeight = 537
   ClientWidth = 851
   Color = clBtnFace
   Font.Charset = RUSSIAN_CHARSET
@@ -50,7 +50,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
       Top = 21
       Width = 1212
       Height = 497
-      ActivePage = tsProcess
+      ActivePage = tsSettings
       MultiLine = True
       TabOrder = 1
       TabPosition = tpLeft
@@ -172,7 +172,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
                 Width = 253
                 Height = 21
                 TabOrder = 6
-                Text = 'C:\_AKSAMIT2.fdb'
+                Text = 'D:\_AKSAMIT2.fdb'
               end
               object btnDatabaseBrowse: TButton
                 Left = 331
@@ -481,7 +481,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Height = 25
               Action = actBackPage
               Caption = '<'
-              TabOrder = 2
+              TabOrder = 4
             end
             object btn2: TButton
               Left = 587
@@ -490,7 +490,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Height = 25
               Action = actNextPage
               Caption = '>'
-              TabOrder = 3
+              TabOrder = 5
             end
             object txt1: TStaticText
               Left = 22
@@ -511,77 +511,46 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               ParentFont = False
               TabOrder = 0
             end
-            object pgcDocTypesSettings: TPageControl
-              Left = 40
-              Top = 64
-              Width = 513
-              Height = 265
-              ActivePage = tsProcDocTypes
+            object tbcDocTypes: TTabControl
+              Left = 47
+              Top = 58
+              Width = 506
+              Height = 28
               Style = tsButtons
-              TabHeight = 24
+              TabHeight = 25
               TabOrder = 1
-              TabWidth = 250
-              object tsIgnoreDocTypes: TTabSheet
-                Caption = 'Ignore Documents Types'
-                object strngrdIgnoreDocTypes: TStringGrid
-                  Left = 8
-                  Top = 6
-                  Width = 481
-                  Height = 107
-                  ColCount = 2
-                  DefaultColWidth = 390
-                  DefaultRowHeight = 20
-                  FixedCols = 0
-                  RowCount = 10
-                  FixedRows = 0
-                  Options = [goFixedHorzLine, goVertLine, goHorzLine, goRangeSelect, goRowSelect]
-                  ScrollBars = ssVertical
-                  TabOrder = 0
-                  OnDblClick = strngrdIgnoreDocTypesDblClick
-                  OnDrawCell = strngrdIgnoreDocTypesDrawCell
-                end
-                object mIgnoreDocTypes: TMemo
-                  Left = 8
-                  Top = 120
-                  Width = 481
-                  Height = 73
-                  Color = clBtnFace
-                  ReadOnly = True
-                  ScrollBars = ssVertical
-                  TabOrder = 1
-                end
-              end
-              object tsProcDocTypes: TTabSheet
-                Caption = 'Process Documents Types'
-                ImageIndex = 1
-                object strngrdProcDocTypes: TStringGrid
-                  Left = 8
-                  Top = 6
-                  Width = 481
-                  Height = 108
-                  ColCount = 2
-                  DefaultColWidth = 390
-                  DefaultRowHeight = 20
-                  FixedCols = 0
-                  RowCount = 10
-                  FixedRows = 0
-                  Options = [goFixedHorzLine, goVertLine, goHorzLine, goRangeSelect, goRowSelect]
-                  ScrollBars = ssVertical
-                  TabOrder = 0
-                  OnDblClick = strngrdProcDocTypesDblClick
-                  OnDrawCell = strngrdProcDocTypesDrawCell
-                end
-                object mProcDocTypes: TMemo
-                  Left = 8
-                  Top = 120
-                  Width = 481
-                  Height = 69
-                  Color = clBtnFace
-                  ReadOnly = True
-                  ScrollBars = ssVertical
-                  TabOrder = 1
-                end
-              end
+              Tabs.Strings = (
+                'Ignore Document Types'
+                'Process Document Types')
+              TabIndex = 0
+              TabWidth = 247
+            end
+            object strngrdIgnoreDocTypes: TStringGrid
+              Left = 48
+              Top = 96
+              Width = 498
+              Height = 150
+              ColCount = 2
+              DefaultColWidth = 390
+              DefaultRowHeight = 20
+              FixedCols = 0
+              RowCount = 10
+              FixedRows = 0
+              Options = [goFixedHorzLine, goVertLine, goHorzLine, goRangeSelect, goRowSelect]
+              ScrollBars = ssVertical
+              TabOrder = 2
+              OnDblClick = strngrdIgnoreDocTypesDblClick
+              OnDrawCell = strngrdIgnoreDocTypesDrawCell
+            end
+            object mIgnoreDocTypes: TMemo
+              Left = 48
+              Top = 249
+              Width = 498
+              Height = 54
+              Color = clBtnFace
+              ReadOnly = True
+              ScrollBars = ssVertical
+              TabOrder = 3
             end
           end
           object tsOptions: TTabSheet
@@ -613,7 +582,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Pen.Width = 3
             end
             object btnNext3: TButton
-              Left = 580
+              Left = 587
               Top = 302
               Width = 25
               Height = 25
@@ -622,7 +591,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               TabOrder = 9
             end
             object btnBack2: TButton
-              Left = 554
+              Left = 561
               Top = 302
               Width = 25
               Height = 25
@@ -763,7 +732,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               TabOrder = 0
             end
             object btnGo: TBitBtn
-              Left = 544
+              Left = 555
               Top = 302
               Width = 57
               Height = 25
@@ -772,7 +741,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               TabOrder = 3
             end
             object btnBack3: TBitBtn
-              Left = 512
+              Left = 529
               Top = 302
               Width = 25
               Height = 25
