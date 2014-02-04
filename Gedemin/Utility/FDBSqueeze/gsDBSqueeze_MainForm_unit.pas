@@ -5,7 +5,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs, FileCtrl, 
   ActnList, StdCtrls, gsDBSqueezeThread_unit, gd_ProgressNotifier_unit,
-  ComCtrls, DBCtrls, Buttons, ExtCtrls, Spin, Grids, GsHugeIntSet;
+  ComCtrls, DBCtrls, Buttons, ExtCtrls, Spin, Grids;
 
 type
   TgsDBSqueeze_MainForm = class(TForm, IgdProgressWatch)
@@ -175,15 +175,11 @@ type
     btn2: TButton;
     txt1: TStaticText;
     shp14: TShape;
-    pgcDocTypesSettings: TPageControl;
-    tsIgnoreDocTypes: TTabSheet;
-    tsProcDocTypes: TTabSheet;
-    strngrdIgnoreDocTypes: TStringGrid;
-    mIgnoreDocTypes: TMemo;
-    strngrdProcDocTypes: TStringGrid;
-    mProcDocTypes: TMemo;
     btnTMPstart: TButton;
     btnTMPstop: TButton;
+    tbcDocTypes: TTabControl;
+    strngrdIgnoreDocTypes: TStringGrid;
+    mIgnoreDocTypes: TMemo;
 
     procedure actTestConnectExecute(Sender: TObject);
     procedure actTestConnectUpdate(Sender: TObject);
@@ -216,9 +212,6 @@ type
     procedure strngrdIgnoreDocTypesDrawCell(Sender: TObject; ACol,
       ARow: Integer; Rect: TRect; State: TGridDrawState);
     procedure strngrdIgnoreDocTypesDblClick(Sender: TObject);
-    procedure strngrdProcDocTypesDblClick(Sender: TObject);
-    procedure strngrdProcDocTypesDrawCell(Sender: TObject; ACol,
-      ARow: Integer; Rect: TRect; State: TGridDrawState);
 
   private
     FSThread: TgsDBSqueezeThread;
@@ -229,8 +222,8 @@ type
     FLogFileStream: TFileStream;
     FDatabaseName: String;
 
-    FProcRowsSelectHIS: TgsHugeIntSet;
-    FIgnoreRowsSelectHIS: TgsHugeIntSet;
+    FProcRowsSelectBits: TBits;
+    FIgnoreRowsSelectBits: TBits;
 
     procedure ErrorEvent(const AErrorMsg: String);
     procedure GetConnectedEvent(const AConnected: Boolean);
@@ -240,12 +233,14 @@ type
     procedure GetInfoTestConnectEvent(const AConnectSuccess: Boolean; const AConnectInfoList: TStringList);
     procedure UsedDBEvent(const AFunctionKey: Integer; const AState: Integer; const ACallTime: String; const AErrorMessage: String);
     procedure GetDBPropertiesEvent(const AProperties: TStringList);
+    procedure SetDocTypeStringsEvent(const ADocTypes: TStringList);
     procedure SetItemsCbbEvent(const ACompanies: TStringList);
     procedure GetDBSizeEvent(const AnDBSize: String);
     procedure GetStatisticsEvent(const AGdDoc: String; const AnAcEntry: String; const AnInvMovement: String; const AnInvCard: String);
     procedure GetProcStatisticsEvent(const AProcGdDoc: String; const AnProcAcEntry: String; const AnProcInvMovement: String; const AnProcInvCard: String);
     procedure UpdateProgress(const AProgressInfo: TgdProgressInfo);
 
+    procedure UpdateDocTypesMemo;
   public
     constructor Create(AnOwner: TComponent); override;
     destructor Destroy; override;
@@ -289,13 +284,14 @@ begin
   FSThread.OnUsedDB := UsedDBEvent;
   FSThread.OnGetDBProperties := GetDBPropertiesEvent;
   FSThread.OnSetItemsCbb := SetItemsCbbEvent;
+  FSThread.OnSetDocTypeStrings := SetDocTypeStringsEvent;
   FSThread.OnGetDBSize := GetDBSizeEvent;
   FSThread.OnGetStatistics := GetStatisticsEvent;
   FSThread.OnGetProcStatistics := GetProcStatisticsEvent;
   FContinueProcFunctionKey := 0;
 
-  FProcRowsSelectHIS := TgsHugeIntSet.Create;
-  FIgnoreRowsSelectHIS := TgsHugeIntSet.Create;
+  FProcRowsSelectBits := TBits.Create;
+  FIgnoreRowsSelectBits := TBits.Create;
 end;
 
 destructor TgsDBSqueeze_MainForm.Destroy;
@@ -303,8 +299,8 @@ begin
   FSThread.Free;
   if Assigned(FLogFileStream) then
     FLogFileStream.Free;
-  FProcRowsSelectHIS.Free;
-  FIgnoreRowsSelectHIS.Free;
+  FProcRowsSelectBits.Free;
+  FIgnoreRowsSelectBits.Free;
   inherited;
 end;
 
@@ -489,7 +485,24 @@ begin
   begin
     cbbCompany.Clear;
     cbbCompany.Items.AddStrings(ACompanies);
-  end;  
+  end;
+end;
+
+procedure TgsDBSqueeze_MainForm.SetDocTypeStringsEvent(const ADocTypes: TStringList);
+var
+  I: Integer;
+begin
+  FIgnoreRowsSelectBits.Size := ADocTypes.Count;
+  FProcRowsSelectBits.Size := ADocTypes.Count;
+
+  strngrdIgnoreDocTypes.ColCount := 2;
+  strngrdIgnoreDocTypes.RowCount :=  ADocTypes.Count;
+
+  for I:=0 to ADocTypes.Count-1 do
+  begin
+    strngrdIgnoreDocTypes.Cells[0, I] := ADocTypes.Values[ADocTypes.Names[I]];  // имя типа дока
+    strngrdIgnoreDocTypes.Cells[1, I] := ADocTypes.Names[I];                    // id типа
+  end;
 end;
 
 procedure  TgsDBSqueeze_MainForm.GetDBPropertiesEvent(const AProperties: TStringList);
@@ -655,9 +668,11 @@ begin
       FDatabaseName := edDatabaseName.Text;
 
       FSThread.Connect;
+      if btnGo.Enabled then
+        FSThread.DoSetDocTypeStrings;
     end;
-  end;
-  if pgcSettings.ActivePage = tsSqueezeSettings then
+  end
+  else if pgcSettings.ActivePage = tsSqueezeSettings then
   begin
     if btnGo.Enabled then
     begin
@@ -687,8 +702,16 @@ begin
       btnGetStatistics.Enabled := FConnected;
       btnUpdateStatistics.Enabled := FConnected;
     end;
-  end;
-  if pgcSettings.ActivePage = tsOptions then
+  end
+  else if pgcSettings.ActivePage = tsSettings2 then
+  begin
+   if btnGo.Enabled then
+    begin
+      //if tbcDocTypes then
+
+    end;
+  end
+  else if pgcSettings.ActivePage = tsOptions then
   begin
     if btnGo.Enabled then
     begin
@@ -938,23 +961,23 @@ procedure TgsDBSqueeze_MainForm.strngrdIgnoreDocTypesDrawCell(Sender: TObject;
 var
   AGrid : TStringGrid;
 begin
-   AGrid:=TStringGrid(Sender);
+  AGrid:=TStringGrid(Sender);
 
-   if not FIgnoreRowsSelectHIS.Has(ARow) then
+   if not FIgnoreRowsSelectBits[ARow] then
      AGrid.Canvas.Brush.Color := clWhite
    else
-     AGrid.Canvas.Brush.Color := clRed;
+     AGrid.Canvas.Brush.Color := $0088AEFF;
 
    if (gdSelected in State) then
    begin
-     if not FIgnoreRowsSelectHIS.Has(ARow) then
+     if not FIgnoreRowsSelectBits[ARow] then
      begin
-       AGrid.Canvas.Brush.Color := clWhite;
+       AGrid.Canvas.Brush.Color := $0088AEFF;
      end
      else
-       AGrid.Canvas.Brush.Color := $00595EFF;
+       AGrid.Canvas.Brush.Color := $001F67FC;
    end;
-    AGrid.Canvas.FillRect(Rect);  //paint the backgorund red
+    AGrid.Canvas.FillRect(Rect);  //paint the backgorund color
     AGrid.Canvas.TextOut(Rect.Left + 2, Rect.Top + 2, AGrid.Cells[ACol, ARow]);
 end;
 
@@ -963,53 +986,36 @@ procedure TgsDBSqueeze_MainForm.strngrdIgnoreDocTypesDblClick(
 begin
   if Sender = strngrdIgnoreDocTypes then
   begin
-    if not FIgnoreRowsSelectHIS.Has((Sender as TStringGrid).Row) then
-      FIgnoreRowsSelectHIS.Include((Sender as TStringGrid).Row)
+    if not FIgnoreRowsSelectBits[(Sender as TStringGrid).Row] then
+      FIgnoreRowsSelectBits[(Sender as TStringGrid).Row] := True
     else begin
-      FIgnoreRowsSelectHIS.Exclude((Sender as TStringGrid).Row);
+      FIgnoreRowsSelectBits[(Sender as TStringGrid).Row] := False;
     end;
     (Sender as TStringGrid).Repaint;
+
+    UpdateDocTypesMemo;
   end;
 end;
 
-procedure TgsDBSqueeze_MainForm.strngrdProcDocTypesDblClick(
-  Sender: TObject);
-begin
-  if Sender = strngrdProcDocTypes then
-  begin
-    if not FProcRowsSelectHIS.Has((Sender as TStringGrid).Row) then
-      FProcRowsSelectHIS.Include((Sender as TStringGrid).Row)
-    else begin
-      FProcRowsSelectHIS.Exclude((Sender as TStringGrid).Row);
-    end;
-    (Sender as TStringGrid).Repaint;
-  end;
-end;
-
-procedure TgsDBSqueeze_MainForm.strngrdProcDocTypesDrawCell(
-  Sender: TObject; ACol, ARow: Integer; Rect: TRect;
-  State: TGridDrawState);
+procedure TgsDBSqueeze_MainForm.UpdateDocTypesMemo;
 var
-  AGrid : TStringGrid;
+  I: Integer;
+  Str: String;
+  Delimiter: String;
 begin
-   AGrid:=TStringGrid(Sender);
-
-   if not FProcRowsSelectHIS.Has(ARow) then
-     AGrid.Canvas.Brush.Color := clWhite
-   else
-     AGrid.Canvas.Brush.Color := clRed;
-
-   if (gdSelected in State) then
-   begin
-     if not FProcRowsSelectHIS.Has(ARow) then
-     begin
-       AGrid.Canvas.Brush.Color := clWhite;
-     end
-     else
-       AGrid.Canvas.Brush.Color := $00595EFF;
-   end;
-    AGrid.Canvas.FillRect(Rect);  //paint the backgorund red
-    AGrid.Canvas.TextOut(Rect.Left + 2, Rect.Top + 2, AGrid.Cells[ACol, ARow]);
+  for I:=0 to FIgnoreRowsSelectBits.Size-1 do
+  begin
+    if FIgnoreRowsSelectBits[I] then
+    begin
+      if Str <> '' then
+        Delimiter := ', '
+      else
+        Delimiter := '';
+      Str := Str + Delimiter + strngrdIgnoreDocTypes.Cells[0, I] + ' (' + strngrdIgnoreDocTypes.Cells[1, I] + ')';
+    end;
+  end;
+  mIgnoreDocTypes.Clear;
+  mIgnoreDocTypes.Text := Str;
 end;
 
 end.
