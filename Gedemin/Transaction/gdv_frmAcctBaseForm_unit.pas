@@ -852,7 +852,8 @@ begin
 
     ExtendedFields := cbExtendedFields.Checked;
 
-    CompanyKey := -1;
+    CompanyKey := frAcctCompany.CompanyKey;
+
     AllHoldingCompanies := frAcctCompany.AllHoldingCompanies;
   end;
 end;
