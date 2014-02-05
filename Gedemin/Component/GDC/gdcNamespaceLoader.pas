@@ -1327,7 +1327,7 @@ end;
 
 function TgdcNamespaceLoader.GetCandidateID(AnObj: TgdcBase; AFields: TYAMLMapping): TID;
 var
-  CheckStmt, S: String;
+  CheckStmt: String;
   I: Integer;
 begin
   Result := -1;
@@ -1350,20 +1350,23 @@ begin
       begin
         Result := FqCheckTheSame.Fields[0].AsInteger;
 
-        FqCheckTheSame.Next;
-        if not FqCheckTheSame.EOF then
+        for I := 0 to FqCheckTheSame.Params.Count - 1 do
         begin
-          S := 'Поиск по потенциальному ключу.'#13#10 +
+          CheckStmt := CheckStmt + #13#10 + FqCheckTheSame.Params[I].Name + ': ';
+          if FqCheckTheSame.Params[I].IsNull then
+            CheckStmt := CheckStmt + 'NULL'
+          else
+            CheckStmt := CheckStmt + FqCheckTheSame.Params[I].AsString;
+        end;
+
+        FqCheckTheSame.Next;
+        if FqCheckTheSame.EOF then
+          AddText('Поиск объекта по потенциальному ключу:'#13#10 + CheckStmt)
+        else begin
+          CheckStmt :=
+            'Поиск объекта по потенциальному ключу.'#13#10 +
             'Запрос вернул многострочный набор данных:'#13#10 + CheckStmt;
-          for I := 0 to FqCheckTheSame.Params.Count - 1 do
-          begin
-            S := S + #13#10 + FqCheckTheSame.Params[I].Name + ': ';
-            if FqCheckTheSame.Params[I].IsNull then
-              S := S + 'NULL'
-            else
-              S := S + FqCheckTheSame.Params[I].AsString;
-          end;
-          AddWarning(S);
+          AddWarning(CheckStmt);
           Result := -1;
         end;
       end;

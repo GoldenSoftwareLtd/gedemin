@@ -12657,7 +12657,33 @@ begin
       q.ExecQuery;
 
       q.SQL.Text :=
+        'DELETE FROM at_object o ' +
+        'WHERE ' +
+        '  o.xid = :xid AND o.dbid = :dbid ' +
+        '  AND (EXISTS (SELECT * FROM at_object o2 ' +
+        '    WHERE o2.namespacekey = o.namespacekey ' +
+        '      AND o2.xid = :old_xid AND o2.dbid = :old_dbid))';
+      q.ParamByName('old_xid').AsInteger := AnOLDXID;
+      q.ParamByName('old_dbid').AsInteger := AnOldDBID;
+      q.ParamByName('xid').AsInteger := ANewXID;
+      q.ParamByName('dbid').AsInteger := ANewDBID;
+      q.ExecQuery;
+
+      q.SQL.Text :=
         'UPDATE at_object SET xid = :xid, dbid = :dbid WHERE xid = :old_xid AND dbid = :old_dbid';
+      q.ParamByName('old_xid').AsInteger := AnOLDXID;
+      q.ParamByName('old_dbid').AsInteger := AnOldDBID;
+      q.ParamByName('xid').AsInteger := ANewXID;
+      q.ParamByName('dbid').AsInteger := ANewDBID;
+      q.ExecQuery;
+
+      q.SQL.Text :=
+        'DELETE FROM at_settingpos p ' +
+        'WHERE ' +
+        '  p.xid = :xid AND p.dbid = :dbid ' +
+        '  AND (EXISTS (SELECT * FROM at_settingpos p2 ' +
+        '    WHERE p2.settingkey = p.settingkey ' +
+        '      AND p2.xid = :old_xid AND p2.dbid = :old_dbid))';
       q.ParamByName('old_xid').AsInteger := AnOLDXID;
       q.ParamByName('old_dbid').AsInteger := AnOldDBID;
       q.ParamByName('xid').AsInteger := ANewXID;
