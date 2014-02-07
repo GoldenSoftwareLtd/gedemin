@@ -31,14 +31,14 @@ type
     Panel3: TPanel;
     Panel4: TPanel;
     TBDock1: TTBDock;
-    TBToolbar1: TTBToolbar;
+    tbDebit: TTBToolbar;
     TBItem3: TTBItem;
     TBItem2: TTBItem;
     sboxDebit: TgdvParamScrolBox;
     Panel6: TPanel;
     Panel7: TPanel;
     TBDock2: TTBDock;
-    TBToolbar2: TTBToolbar;
+    tbCredit: TTBToolbar;
     TBItem4: TTBItem;
     TBItem1: TTBItem;
     sboxCredit: TgdvParamScrolBox;
@@ -534,14 +534,21 @@ function Tgdc_acct_dlgEntry.DeleteEnable(Sb: TWinControl): Boolean;
 var
   I: Integer;
   B: Boolean;
+  F: TfrAcctEntrySimpleLine;
 begin
   B := False;
+
   for I := 0 to Sb.ControlCount - 1 do
   begin
     if Sb.Controls[I] is TfrAcctEntrySimpleLine then
     begin
-      B := TfrAcctEntrySimpleLine(Sb.Controls[I]).IsFocused and (TfrAcctEntrySimpleLine(Sb.Controls[I]).gdcObject.State = dsInsert);
-      if B then Break;
+      F := Sb.Controls[I] as TfrAcctEntrySimpleLine;
+      if F.IsFocused and ((F.gdcObject.State = dsInsert)
+        or ((F.Sum = 0) and (F.CurrSum = 0))) then
+      begin
+        B := True;
+        Break;
+      end;
     end;
   end;
 
