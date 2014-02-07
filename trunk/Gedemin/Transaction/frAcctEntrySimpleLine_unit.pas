@@ -72,6 +72,8 @@ type
     procedure SetgdcObject(const Value: TgdcBase);
     procedure CheckEditMode;
     function GetCRate: Currency;
+    function GetCurrSum: Currency;
+    function GetSum: Currency;
 
   public
     constructor Create(AOwner: TComponent); override;
@@ -90,6 +92,8 @@ type
     property BalanceOff: Boolean read FOffBalance write SetoffBalance;
     property gdcObject: TgdcBase read FgdcObject write SetgdcObject;
     property zRate: Currency read GetCRate;
+    property Sum: Currency read GetSum;
+    property CurrSum: Currency read GetCurrSum;
   end;
 
 implementation
@@ -608,7 +612,6 @@ begin
           FdataSet.FieldByName(cSum.DataField).AsCurrency := cCurrSum.Value * cRate.Value
         else
           FdataSet.FieldByName(cSum.DataField).AsCurrency := Round(cCurrSum.Value * cRate.Value + 1/10000);
-
       end;
     finally
       EnableControls;
@@ -678,6 +681,16 @@ end;
 function TfrAcctEntrySimpleLine.GetCRate: Currency;
 begin
   Result := cRate.Value;
+end;
+
+function TfrAcctEntrySimpleLine.GetCurrSum: Currency;
+begin
+  Result := cCurrSum.Value;
+end;
+
+function TfrAcctEntrySimpleLine.GetSum: Currency;
+begin
+  Result := cSum.Value;
 end;
 
 end.
