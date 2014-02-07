@@ -6221,11 +6221,19 @@ begin
     S.Add(lS + Format('set %s = Creator.GetObject(null, "TIBSQL", "")', [SQLName]));
     S.Add(lS + Format('%s.Transaction = %s', [SQLName, 'Transaction']));
 
-    S.Add(lS + Format('%s.SQL.Text = "DELETE FROM ac_record  r WHERE r.id in (" & _', [SQLName]));
-    S.Add(lS + '  "SELECT e.recordkey FROM ac_autoentry ae JOIN ac_entry e ON e.id = ae.entrykey " & _');
-    S.Add(lS + '  "  WHERE ae.trrecordkey = :trrecordkey AND " & _');
-    S.Add(lS + '  "  ae.begindate >= :begindate AND ae.enddate <= :enddate AND " & _');
-    S.Add(lS + '  " e.companykey IN (" & IbLogin.HoldingList & "))"');
+    S.Add(lS + Format('%s.SQL.Text = "execute block (begindate DATE = :begindate, enddate DATE = :enddate, trrecordkey INTEGER = :trrecordkey)" & vbCrLf & _', [SQLName]));
+    S.Add(lS + '  "as " & vbCrLf & _');
+    S.Add(lS + '  "  declare id integer;" & vbCrLf & _');
+    S.Add(lS + '  "begin" & vbCrLf & _');
+    S.Add(lS + '  "  for" & vbCrLf & _');
+    S.Add(lS + '  "    SELECT e.documentkey FROM ac_autoentry ae JOIN ac_entry e ON e.id = ae.entrykey" & vbCrLf & _');
+    S.Add(lS + '  "    WHERE ae.trrecordkey = :trrecordkey AND" & vbCrLf & _');
+    S.Add(lS + '  "     ae.begindate >= :begindate AND ae.enddate <= :enddate AND" & vbCrLf & _');
+    S.Add(lS + '  "      e.companykey IN (" & IbLogin.HoldingList & ")" & vbCrLf & _');
+    S.Add(lS + '  "    into :id" & vbCrLf & _');
+    S.Add(lS + '  "  do" & vbCrLf & _');
+    S.Add(lS + '  "   DELETE FROM gd_document  WHERE id = :id;" & vbCrLf & _');
+    S.Add(lS + '  "end" ');
     S.Add(lS + Format('%s.ParamByName("trrecordkey").AsInteger = TrRecordKey', [SQLName]));
     S.Add(lS + Format('%s.ParamByName("begindate").AsDateTime = %s', [SQLName, 'BeginDate']));
     S.Add(lS + Format('%s.ParamByName("enddate").AsDateTime = %s', [SQLName, 'EndDate']));
