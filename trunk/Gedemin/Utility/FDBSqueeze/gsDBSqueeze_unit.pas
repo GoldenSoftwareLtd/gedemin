@@ -2350,7 +2350,7 @@ var
     FkFieldsList2, FkFieldsList3: TStringList;
     FkFieldsListLine: TStringList;
     IsLine: Boolean;
-    TblsNamesList: TStringList;  // Process Queue
+    TblsNamesList: TStringList; // Process Queue
     AllProcessedTblsNames: TStringList;
     ExcFKTbls: TStringList;
     ReProc, ReProcAll: TStringList;
@@ -2360,7 +2360,7 @@ var
     ProcTblsNamesList: TStringList;
     CascadeProcTbls: TStringList;
     I, J, K, IndexEnd, Inx, Counter, Kolvo, RealKolvo, RealKolvo2, ExcKolvo: Integer;
-    IsAppended, IsDuplicate, DoNothing, GoToFirst, GoToLast, IsFirstIteration: Boolean;
+    IsAppended, IsDuplicate, DoNothing, GoToFirst, GoToLast, IsFirstIteration, Condition: Boolean;
     TmpStr: String;
     TmpList: TStringList;
     MainDuplicateTblName: String;
@@ -2369,6 +2369,17 @@ var
     LinePosList: TStringList;
     LinePosInx: Integer;
     Line1PosInx, Line2PosInx: Integer;
+
+    function equalsIgnoreOrder(AList1: TStringList; AList2: TStringList): Boolean;
+    begin
+      Result := False;
+
+      AList1.Sort;
+      AList2.Sort;
+
+      Result := (AList1.CommaText = AList2.CommaText);
+    end;
+
   begin
     LogEvent('Including cascading sequences in HIS...');
     Assert(Trim(ATableName) <> '');
@@ -2421,9 +2432,11 @@ var
         //1) список табл. составляющих единое целое с документом
 
         LineDocTbls.Append('GD_DOCUMENT=PARENT'); // позиции
+        LineDocTbls.Append('AC_ENTRY=DOCUMENTKEY||MASTERDOCKEY');
+        LineDocTbls.Append('AC_RECORD=DOCUMENTKEY||MASTERDOCKEY');
 
           // табл PK=FK             таблицы со связью 1-to-1 к GD_DOCUMENT 
-///TODO учесть табл со сложным pk + исключить кросс
+
         q.SQL.Text :=
           'SELECT ' +                                                                   #13#10 +
           '  TRIM(fc.relation_name)       AS relation_name, ' +                         #13#10 +
@@ -2511,44 +2524,52 @@ var
         q.Close;    }
 
         LineDocTbls.Append('INV_CARD=DOCUMENTKEY||FIRSTDOCUMENTKEY');
-        LineDocTbls.Append('AC_ENTRY=DOCUMENTKEY||MASTERDOCKEY');
-        LineDocTbls.Append('AC_RECORD=DOCUMENTKEY||MASTERDOCKEY');
-        LineDocTbls.Append('INV_MOVEMENT=DOCUMENTKEY');
 
 
         // cross-табл для множеств Line
         for J:=0 to LineDocTbls.Count-1 do
         begin
           q.SQL.Text :=
-           'SELECT ' +                                       #13#10 +
+           {'SELECT ' +                                       #13#10 +
            '  TRIM(rf.crosstable) AS cross_relation_name ' + #13#10 +
            'FROM AT_RELATION_FIELDS rf ' +                   #13#10 +
            'WHERE ' +                                        #13#10 +
            '  rf.relationname = :rln ' +                     #13#10 +
-           '  AND  rf.crosstable  IS NOT NULL ';
+           '  AND  rf.crosstable  IS NOT NULL ';}
+
+            'SELECT DISTINCT ' +
+            '  TRIM(rf.crosstable) AS cross_relation_name, ' +
+            '  TRIM(fc.list_fields) AS cross_main_field ' +
+            'FROM AT_RELATION_FIELDS rf ' +
+            '  JOIN dbs_fk_constraints fc ' +
+            '    ON fc.relation_name = rf.crosstable AND fc.ref_relation_name = rf.relationname ' +
+            'WHERE ' +
+            '  rf.relationname = :rln ' +
+            '  AND  rf.crosstable IS NOT NULL ';
           q.ParamByName('rln').AsString := LineDocTbls.Names[J];
-          ExecSqlLogEvent(q, 'IncludeCascadingSequences');
+          ExecSqlLogEvent(q, 'IncludeCascadingSequences', 'rln=' + LineDocTbls.Names[J]);
 
           while not q.EOF do
           begin
-            if CrossLineTbls.IndexOf(q.FieldByName('cross_relation_name').AsString) = -1 then
-              CrossLineTbls.Append(UpperCase(q.FieldByName('cross_relation_name').AsString));
+            if CrossLineTbls.IndexOfName(UpperCase(q.FieldByName('cross_relation_name').AsString)) = -1 then
+              CrossLineTbls.Append(UpperCase(q.FieldByName('cross_relation_name').AsString) + '=' + UpperCase(q.FieldByName('cross_main_field').AsString));
+
             q.Next;
           end;
           q.Close;
         end;
 
-        LogEvent('LineDocTbls: ' + LineDocTbls.Text);
         LogEvent('CrossLineTbls: ' + CrossLineTbls.Text);
-
-        //2) упорядочить чтобы избежать переобработок: Line2 ссылающийся на Line1 должен стоять ПЕРЕД Line1
-        TmpList.Text := LineDocTbls.Text;
+        LogEvent('LineDocTbls: ' + LineDocTbls.Text);
+        {
+        //2) упорядочить чтобы избежать некоторых переобработок: Line2 ссылающийся на Line1 должен стоять ПЕРЕД Line1
+        TmpList.CommaText := LineDocTbls.CommaText;
         for J:=0 to TmpList.Count-1 do
         begin
           Line2PosInx := LineDocTbls.IndexOfName(TmpList.Names[J]);
           Inx := Line2PosInx;
 
-           q2.SQL.Text :=
+          q2.SQL.Text :=
              'SELECT ' +                                                                     #13#10 +
              '  TRIM(fc.ref_relation_name) AS ref_relation_name ' +                          #13#10 +
              'FROM dbs_fk_constraints fc ' +                                                 #13#10 +
@@ -2556,8 +2577,8 @@ var
              '  fc.relation_name = :rln ' +                                                  #13#10 +
              '  AND fc.list_fields NOT LIKE ''%,%'' ';
           q2.ParamByName('rln').AsString := TmpList.Names[J];
-          q2.Open;
-          
+          ExecSqlLogEvent(q2, 'IncludeCascadingSequences', 'rln=' + TmpList.Names[J]);
+
           while not q2.EOF do
           begin
             if UpperCase(q2.FieldByName('ref_relation_name').AsString) <> 'GD_DOCUMENT' then
@@ -2581,6 +2602,10 @@ var
         end;
         TmpList.Clear;
         LogEvent('LineDocTbls после перестановки: ' + LineDocTbls.Text);
+        }
+
+        LineDocTbls.Append('INV_MOVEMENT=DOCUMENTKEY');
+
 
         //3) include HIS доки на которые есть ссылки (не от таблицы Line, не от crossLine)
         q2.SQL.Text :=                                                 ///TODO надо ли обрабатывать сложный FK?
@@ -2596,7 +2621,7 @@ var
           '  AND rf.relationname IS NULL ' +                    #13#10 +
           '  AND fc.list_fields NOT LIKE ''%,%'' ' +            #13#10 +
           'GROUP BY fc.relation_name ';
-        q2.Open;
+        ExecSqlLogEvent(q2, 'IncludeCascadingSequences');
         
         while not q2.EOF do
         begin
@@ -2617,20 +2642,20 @@ var
                 'WHERE ' + 
                 '  doc.parent IS NULL ';
               ExecSqlLogEvent(q3, 'IncludeCascadingSequences');
-              q3.Close;   
+              q3.Close;
             end;
           end;
 
           q2.Next;
         end;
-        q2.Close;
+        q2.Close;       
 
-
-        //4) если на LineDocTbls[i] (все) есть ссылки или она явл Line дока кот останется, то и запись Line должна остаться. Все оставшиеся Line должны затянуть за собой кросс-таблицы, если имеет поле-множество, и доки
+        LogEvent('4) loop LineDocTbls');
+        //4) если на LineDocTbls[i] есть ссылки или она явл Line дока кот останется, то и запись Line должна остаться. Все оставшиеся Line должны затянуть за собой кросс-таблицы, если имеет поле-множество, и доки
         J:=0;
         while J < LineDocTbls.Count-1 do
         begin
-          if not GoReprocess then
+          if not GoReprocess then                                            
             ProcTblsNamesList.Append(LineDocTbls.Names[J])
           else begin
             if (ReProcTbl <> '') then
@@ -2645,63 +2670,21 @@ var
             GoReprocess := False;
           end;
 
-          //---------обработка PKs Line
-
           RealKolvo := 0;
           ReProcTbl := '';
-
-          // PKs Line
-          q4.SQL.Text := 
-            'SELECT ' +                                   #13#10 +
-            '  TRIM(c.list_fields) AS pk_fields ' +       #13#10 +
-            'FROM DBS_PK_UNIQUE_CONSTRAINTS c ' +         #13#10 +
-            'WHERE ' +                                    #13#10 +
-            '  c.relation_name = :rln ' +                 #13#10 +
-            '  AND c.constraint_type = ''PRIMARY KEY'' ';
-          q4.ParamByName('rln').AsString := LineDocTbls.Names[J];
-          ExecSqlLogEvent(q4, 'IncludeCascadingSequences');
-          FkFieldsList3.Clear;
-          FkFieldsList3.Text := StringReplace(q4.FieldByName('pk_fields').AsString, ',', #13#10, [rfReplaceAll, rfIgnoreCase]); 
-          q4.Close;
           // line values
           FkFieldsList.Clear;
           FkFieldsList.Text := StringReplace(LineDocTbls.Values[LineDocTbls.Names[J]], '||', #13#10, [rfReplaceAll, rfIgnoreCase]);
 
-          // 3.1) include pk Line если главное поле в HIS
-          q3.SQL.Text :=
-            'SELECT ';
-          for I:=0 to FkFieldsList3.Count-1 do //pks
-          begin
-            q3.SQL.Add(' ' +
-              'SUM(' +                                             #13#10 +
-              '    g_his_include(1, rln.' +  FkFieldsList3[I] + ') ' + #13#10 +
-              ') AS Test ');
+          // 4.2) include linefield Line если на нее есть ссылка (не от таблицы Line и не от cross-таблиц Line)
 
-              if I < FkFieldsList3.Count-1 then
-                q3.SQL.Add(', ');
-          end;  
-          q3.SQL.Add(' ' + 
-            'FROM '  +                                             #13#10 +
-              LineDocTbls.Names[J] + ' rln ' +
-            'WHERE ((0=1) ');  
-          for I:=0 to FkFieldsList.Count-1 do //line values
-          begin
-            q3.SQL.Add(' ' +
-              'OR (g_his_has(1, rln.' +  FkFieldsList[I] + ') = 1) ');
-          end;
-          q3.SQL.Add(') ');
-          
-          ExecSqlLogEvent(q3, 'IncludeCascadingSequences');
-          q3.Close;
-      
-         // 3.2) include pk Line если на нее есть ссылка (не от таблицы Line и не от cross-таблиц Line)
-
-            // if таблица FK явл CROSS, то обрабатываем FK только если этот FK НЕ от ГЛАВНОГО поля cross-таблицы 
+            // if таблица FK явл CROSS, то обрабатываем FK только если этот FK НЕ от ГЛАВНОГО поля cross-таблицы
           q2.Close;
-          q2.SQL.Text :=                                                 ///TODO надо ли обрабатывать сложный FK?
+          q2.SQL.Text :=                                                 ///TODO сложный FK
             'SELECT ' +                                           #13#10 +
-            '  TRIM(fc.relation_name)       AS relation_name, ' + #13#10 +
-            '  LIST(TRIM(fc.list_fields))   AS fk_fields ' +      #13#10 +
+            '  TRIM(fc.relation_name)     AS relation_name, ' +   #13#10 +
+            '  LIST(TRIM(fc.list_fields)) AS fk_fields, ' +       #13#10 +
+            '  TRIM(fc.list_ref_fields)   AS list_ref_fields ' +  #13#10 +
             'FROM dbs_fk_constraints fc ' +                       #13#10 +
             '  LEFT JOIN AT_RELATION_FIELDS rf ' +                #13#10 +
             '    ON rf.relationname = fc.ref_relation_name ' +    #13#10 +
@@ -2710,36 +2693,61 @@ var
             '  fc.ref_relation_name = :rln ' +                    #13#10 +
             '  AND rf.relationname IS NULL ' +                    #13#10 +
             '  AND fc.list_fields NOT LIKE ''%,%'' ' +            #13#10 +
-            'GROUP BY fc.relation_name ';  
+            'GROUP BY fc.relation_name, fc.list_ref_fields ';
+
           q2.ParamByName('rln').AsString := LineDocTbls.Names[J];
-          q2.Open;
+          ExecSqlLogEvent(q2, 'IncludeCascadingSequences', 'rln=' + LineDocTbls.Names[J]);
 
           while not q2.EOF do
           begin
-            if (LineDocTbls.IndexOfName(UpperCase(q2.FieldByName('relation_name').AsString)) = -1) and 
-               (CrossLineTbls.IndexOfName(UpperCase(q2.FieldByName('relation_name').AsString))= -1) then 
+            if (LineDocTbls.IndexOfName(UpperCase(q2.FieldByName('relation_name').AsString)) = -1) and
+               (CrossLineTbls.IndexOfName(UpperCase(q2.FieldByName('relation_name').AsString)) = -1) then
             begin
               FkFieldsList2.Clear;
-              FkFieldsList2.Text := StringReplace(q2.FieldByName('fk_fields').AsString, ',', #13#10, [rfReplaceAll, rfIgnoreCase]); 
-              
+              FkFieldsList2.Text := StringReplace(q2.FieldByName('fk_fields').AsString, ',', #13#10, [rfReplaceAll, rfIgnoreCase]);
+
               if FkFieldsList2.Count > 0 then
               begin
                 q3.SQL.Text :=
                   'SELECT ';
-                for I:=0 to FkFieldsList2.Count-1 do
+                for K :=0 to FkFieldsList.Count-1 do
                 begin
-                  q3.SQL.Add(' ' +
-                    'SUM(' +                                                        #13#10 +
-                    '    g_his_include(1, rln.' +  FkFieldsList2[I] + ') ' +        #13#10 +
-                    ') ');
-                  if I < FkFieldsList2.Count-1 then
-                    q3.SQL.Add(', ');
+                  if K <> 0 then
+                      q3.SQL.Add(', ');
+
+                  for I:=0 to FkFieldsList2.Count-1 do
+                  begin
+                    if I <> 0 then
+                      q3.SQL.Add(', ');
+
+                    q3.SQL.Add('  ' +
+                      'SUM(g_his_include(1, line' + IntToStr(I) + '.' +  FkFieldsList[K] + ')) ' );
+                  end;
                 end;
-                q3.SQL.Add(' ' + 
-                  'FROM '  +                                                        #13#10 +
+                q3.SQL.Add(' ' +
+                  'FROM '  +                                                    #13#10 +
                      q2.FieldByName('relation_name').AsString + ' rln ');
 
+                for I:=0 to FkFieldsList2.Count-1 do
+                begin
+                  q3.SQL.Add('  ' +
+                    'JOIN ' +                                                     #13#10 +
+                       LineDocTbls.Names[J] + ' line' + IntToStr(I) + ' ' +       #13#10 +
+                    '    ON line' + IntToStr(I) + '.' + q2.FieldByName('list_ref_fields').AsString + ' = rln.' + FkFieldsList2[I]);
+                end;
+
                 ExecSqlLogEvent(q3, 'IncludeCascadingSequences');
+
+
+                for I:=0 to q3.Current.Count-1 do
+                begin
+                  if q3.Fields[I].AsInteger > 0 then
+                  begin
+                    RealKolvo := RealKolvo + q3.Fields[I].AsInteger; //кол-во добавленных доков
+
+                    LogEvent('-REPROCESS! из-за linefield LineTable: ' + LineDocTbls.Names[J]);
+                  end;
+                end;
                 q3.Close;
               end;
             end;
@@ -2747,100 +2755,198 @@ var
             q2.Next;
           end;
           q2.Close;
-    
-          //---------обработка FKs Line 
-          // 3.3) обработка записей Line которые в HIS
+
+          //---------обработка FKs Line
+          // 4.3) обработка записей Line которые в HIS
             // Все оставшиеся записи текущего Line должны затянуть за собой свои FK
 
               // все FK поля в Line
           q2.SQL.Text :=                                                 ///TODO: вынести. Prepare
              'SELECT ' +                                                                     #13#10 +
-             '    TRIM(fc.list_fields) AS fk_field, ' +                                      #13#10 +
-             '    TRIM(fc.ref_relation_name) AS ref_relation_name ' +                        #13#10 +
+             '  TRIM(fc.list_fields) AS fk_field, ' +                                      #13#10 +
+             '  TRIM(fc.ref_relation_name) AS ref_relation_name ' +                        #13#10 +
              'FROM dbs_fk_constraints fc ' +                                                 #13#10 +
              'WHERE  ' +                                                                     #13#10 +
              '  fc.relation_name = :rln ' +                                                  #13#10 +
              '  AND fc.list_fields NOT LIKE ''%,%'' ';
 
           q2.ParamByName('rln').AsString := LineDocTbls.Names[J];
-          q2.Open;
+          ExecSqlLogEvent(q2, 'IncludeCascadingSequences', 'rln=' + LineDocTbls.Names[J]);
 
           while not q2.EOF do
           begin
+            Condition := False;
+
             if LineDocTbls.IndexOfName(UpperCase(q2.FieldByName('ref_relation_name').AsString)) <> -1 then
             begin
-              q3.SQL.Text :=
-                'SELECT ' +                                                                  #13#10 +
-                '  SUM(g_his_include(1, rln.' +  q2.FieldByName('fk_field').AsString + ')) AS RealCount ' + #13#10 +
-                'FROM '  +                                                                   #13#10 +
-                   LineDocTbls.Names[J] + ' rln ' +                                          #13#10 +
-                'WHERE ' +                                                                   #13#10 +
-                '  (0=1) ';
-            
-              for I:=0 to FkFieldsList3.Count-1 do //pks line
+              K := FkFieldsList.IndexOf(UpperCase( q2.FieldByName('fk_field').AsString ));
+
+              if K = -1 then
               begin
-                q3.SQL.Add(' ' +
-                  ' OR (g_his_has(1, rln.' + FkFieldsList3[I] + ') = 1) ');
-              end;
-              ExecSqlLogEvent(q3, 'IncludeCascadingSequences');
-
-              if q3.FieldByName('RealCount').AsInteger > 0 then
-              begin
-                if q2.FieldByName('ref_relation_name').AsString = 'GD_DOCUMENT' then
+                q3.SQL.Text :=
+                  'SELECT ' +                                                                                 #13#10 +
+                  '  SUM(g_his_include(1, rln.' +  q2.FieldByName('fk_field').AsString + ')) AS RealCount ' + #13#10 +
+                  'FROM '  +                                                                                  #13#10 +
+                     LineDocTbls.Names[J] + ' rln ' +                                                         #13#10 +
+                  'WHERE ';
+                for I:=0 to FkFieldsList.Count-1 do
                 begin
-                  RealKolvo := RealKolvo + q3.FieldByName('RealCount').AsInteger; //кол-во добавленных доков
-
-                  LogEvent('-REPROCESS! LineTable: ' + LineDocTbls.Names[J] + ' FK: ' + q2.FieldByName('fk_field').AsString + ' -> GD_DOCUMENT ');
-                end
-                else if ProcTblsNamesList.IndexOf(UpperCase( q2.FieldByName('ref_relation_name').AsString )) <> -1 then // if ссылается на Line
-                begin
-                  // потом начнем переобработку (если не от дока начинаем) с этой таблицы
-                  if (ReProcTbl = '') or
-                    (LineDocTbls.IndexOfName(UpperCase( q2.FieldByName('ref_relation_name').AsString )) < LineDocTbls.IndexOfName(ReProcTbl)) then
-                    ReProcTbl := UpperCase( q2.FieldByName('ref_relation_name').AsString );
-
-                  LogEvent('-REPROCESS! LineTable: ' + LineDocTbls.Names[J] + ' FK: ' + q2.FieldByName('fk_field').AsString + ' -> ' + q2.FieldByName('ref_relation_name').AsString);
+                  if I <> 0 then
+                    q3.SQL.Add('  OR ');
+                  q3.SQL.Add('  ' +
+                    '(g_his_has(1, rln.' + FkFieldsList[I] + ') = 1) ');
                 end;
 
-                q2.First;
+                ExecSqlLogEvent(q3, 'IncludeCascadingSequences');
+                Condition := True;
+              end
+              else if FkFieldsList.Count > 1 then
+              begin
+                TmpList.Text := FkFieldsList.Text; /// TODO проверить чтоб порядок не изменился!
+                TmpList.Delete(K);
+
+                q3.SQL.Text :=
+                  'SELECT ' +                                                                                 #13#10 +
+                  '  SUM(g_his_include(1, rln.' +  q2.FieldByName('fk_field').AsString + ')) AS RealCount ' + #13#10 +
+                  'FROM '  +                                                                                  #13#10 +
+                     LineDocTbls.Names[J] + ' rln ' +                                                         #13#10 +
+                  'WHERE ';
+                for I:=0 to TmpList.Count-1 do
+                begin
+                  if I <> 0 then
+                    q3.SQL.Add('  OR ');
+                  q3.SQL.Add('  ' +
+                    '(g_his_has(1, rln.' + TmpList[I] + ') = 1) ');
+                end;
+
+                ExecSqlLogEvent(q3, 'IncludeCascadingSequences');
+                TmpList.Clear;
+                Condition := True;
+              end;
+
+              if Condition then
+              begin
+                if q3.FieldByName('RealCount').AsInteger > 0 then
+                begin
+                  if q2.FieldByName('ref_relation_name').AsString = 'GD_DOCUMENT' then
+                  begin
+                    RealKolvo := RealKolvo + q3.FieldByName('RealCount').AsInteger; //кол-во добавленных доков
+
+                    LogEvent('-REPROCESS! LineTable: ' + LineDocTbls.Names[J] + ' FK: ' + q2.FieldByName('fk_field').AsString + ' -> GD_DOCUMENT ');
+                  end
+                  else if ProcTblsNamesList.IndexOf(UpperCase( q2.FieldByName('ref_relation_name').AsString )) <> -1 then // if ссылается на Line
+                  begin
+                    // потом начнем переобработку (если не от дока начинаем) с этой таблицы
+                    if (ReProcTbl = '') or
+                      (LineDocTbls.IndexOfName(UpperCase( q2.FieldByName('ref_relation_name').AsString )) < LineDocTbls.IndexOfName(ReProcTbl)) then
+                      ReProcTbl := UpperCase( q2.FieldByName('ref_relation_name').AsString );
+
+                    LogEvent('-REPROCESS! LineTable: ' + LineDocTbls.Names[J] + ' FK: ' + q2.FieldByName('fk_field').AsString + ' -> ' + q2.FieldByName('ref_relation_name').AsString);
+                  end;
+
+                  q2.First;
+                end
+                else
+                  q2.Next;
+
+                q3.Close;
               end
               else
                 q2.Next;
-
-              q3.Close;
             end
             else
               q2.Next;
           end;
-          q2.Close;  
+          q2.Close;
 
-          //---------обработка полей-множеств Line
 
           // if Line содержит поля-множества, то обработаем их CROSS-таблицы, чтобы сохранить необходимые записи
-          q2.SQL.Text := 
+          q2.SQL.Text :=
             'SELECT DISTINCT ' +
             '  TRIM(rf.crosstable) AS cross_relation_name, ' +
-            '  TRIM(fc.list_fields) AS cross_main_field ' + 
+            '  TRIM(fc.list_fields) AS cross_main_field ' +
             'FROM AT_RELATION_FIELDS rf ' +
             '  JOIN dbs_fk_constraints fc ' +
             '    ON fc.relation_name = rf.crosstable AND fc.ref_relation_name = rf.relationname ' +
             'WHERE ' +
             '  rf.relationname = :rln ' +
             '  AND  rf.crosstable IS NOT NULL ';
+
           q2.ParamByName('rln').AsString := LineDocTbls.Names[J];
-          q2.Open;
-          
+          ExecSqlLogEvent(q2, 'IncludeCascadingSequences', 'rln=' + LineDocTbls.Names[J]);
+
+          //---обработка PKs  если табл имеет поля-множества
+
+          if not q2.EOF then                                               ////test
+          begin
+            // PKs Line     (PK=FK обработаны уже)
+            q4.SQL.Text :=
+              'SELECT ' +                                     #13#10 +
+              '  TRIM(c.list_fields) AS pk_fields ' +         #13#10 +
+              'FROM ' +                                       #13#10 +
+              '  DBS_PK_UNIQUE_CONSTRAINTS c ' +              #13#10 +
+              'WHERE ' +                                      #13#10 +
+              '  c.relation_name = :rln ' +                   #13#10 +
+              '  AND c.constraint_type = ''PRIMARY KEY'' ' +  #13#10 +
+              '  AND NOT EXISTS( ' +                          #13#10 +
+              '    SELECT * ' +                               #13#10 +
+              '    FROM dbs_fk_constraints fc ' +             #13#10 +
+              '    WHERE ' +                                  #13#10 +
+              '      fc.relation_name = c.relation_name ' +   #13#10 +
+              '      AND fc.list_fields = c.list_fields) ';
+
+            q4.ParamByName('rln').AsString := LineDocTbls.Names[J];
+            ExecSqlLogEvent(q4, 'IncludeCascadingSequences', 'rln=' + LineDocTbls.Names[J]);
+
+            if not q4.EOF then
+            begin
+              FkFieldsList3.Clear;
+              FkFieldsList3.Text := StringReplace(q4.FieldByName('pk_fields').AsString, ',', #13#10, [rfReplaceAll, rfIgnoreCase]);
+
+              // 4.1) include pk Line если главное поле в HIS
+
+              q3.SQL.Text :=
+                'SELECT ';
+              for I:=0 to FkFieldsList3.Count-1 do //pks
+              begin
+                q3.SQL.Add(' ' +
+                  ' SUM(g_his_include(1, rln.' +  FkFieldsList3[I] + ')) ');
+
+                if I < FkFieldsList3.Count-1 then
+                  q3.SQL.Add(', ');
+              end;
+              q3.SQL.Add(' ' +
+                'FROM '  +
+                   LineDocTbls.Names[J] + ' rln ' +            #13#10 +
+                'WHERE ');
+              for I:=0 to FkFieldsList.Count-1 do //line values
+              begin
+                if I <> 0 then
+                   q3.SQL.Add(' OR ');
+
+                q3.SQL.Add('  ' +
+                  '(g_his_has(1, rln.' +  FkFieldsList[I] + ') = 1) ');
+              end;
+
+              ExecSqlLogEvent(q3, 'IncludeCascadingSequences');
+              q3.Close;
+            end;
+            q4.Close;
+          end;
+
+          //---------обработка полей-множеств Line
+
           while not q2.EOF do
           begin
             // получим все не главные FK cascade поля в кросс-таблице
             q4.SQL.Text :=                                                 ///TODO: вынести. Prepare
-               'SELECT ' +                                                            #13#10 +
-               '  TRIM(fc.list_fields) AS list_field, ' +                             #13#10 +
-               '  TRIM(fc.ref_relation_name) AS ref_relation_name ' +                 #13#10 +
-               'FROM dbs_fk_constraints fc ' +                                        #13#10 +
-               'WHERE  ' +                                                            #13#10 +
-               '  fc.relation_name = :rln ' +                                         #13#10 +
-               '  AND fc.list_fields NOT IN (''' + q2.FieldByName('cross_main_field').AsString + ''') ' +  //// !=
+               'SELECT ' +                                                                          #13#10 +
+               '  TRIM(fc.list_fields) AS list_field, ' +                                           #13#10 +
+               '  TRIM(fc.ref_relation_name) AS ref_relation_name ' +                               #13#10 +
+               'FROM dbs_fk_constraints fc ' +                                                      #13#10 +
+               'WHERE  ' +                                                                          #13#10 +
+               '  fc.relation_name = :rln ' +                                                       #13#10 +
+               '  AND fc.list_fields <> ''' + q2.FieldByName('cross_main_field').AsString + ''' ' + #13#10 +
                '  AND fc.list_fields NOT LIKE ''%,%'' ';
             q4.ParamByName('rln').AsString := q2.FieldByName('cross_relation_name').AsString;               /////////////////////////
             ExecSqlLogEvent(q4, 'IncludeCascadingSequences');  
@@ -2848,30 +2954,32 @@ var
             while not q4.EOF do
             begin
               q3.SQL.Text :=
-                'SELECT ' +                                                                  #13#10 +
+                'SELECT ' +                                                                                  #13#10 +
                 ' SUM(g_his_include(1, rln.' +  q4.FieldByName('list_field').AsString + ')) AS RealCount ' + #13#10 +
-                'FROM '  +                                                                   #13#10 +
-                   q2.FieldByName('cross_relation_name').AsString + ' rln ' +                #13#10 +
-                'WHERE ' +                                                                   #13#10 +
+                'FROM '  +                                                                                   #13#10 +
+                   q2.FieldByName('cross_relation_name').AsString + ' rln ' +                                #13#10 +
+                'WHERE ' +                                                                                   #13#10 +
                 '  g_his_has(1, rln.' + q2.FieldByName('cross_main_field').AsString + ') = 1 ';
 
               ExecSqlLogEvent(q3, 'IncludeCascadingSequences');
-              
-              if q4.FieldByName('ref_relation_name').AsString = 'GD_DOCUMENT' then
+
+            
+              if q3.FieldByName('RealCount').AsInteger > 0 then
               begin
-                if q3.FieldByName('RealCount').AsInteger > 0 then
-                  LogEvent('-REPROCESS! CrossTable: ' + q2.FieldByName('cross_relation_name').AsString + ' FK: ' + q4.FieldByName('list_field').AsString + ' -> GD_DOCUMENT ');
-                RealKolvo := RealKolvo + q3.FieldByName('RealCount').AsInteger; //кол-во добавленных доков
-              end
-              else if ProcTblsNamesList.IndexOf(UpperCase( q4.FieldByName('ref_relation_name').AsString )) <> -1 then // if ссылается на Line: дополнительно считаем кол-во добавленных Line
-              begin
-                 // потом начнем переобработку (если не от дока начинаем) с этой таблицы 
-                if q3.FieldByName('RealCount').AsInteger > 0 then
+                if q4.FieldByName('ref_relation_name').AsString = 'GD_DOCUMENT' then
                 begin
-                  LogEvent('-REPROCESS! CrossTable: ' +q2.FieldByName('cross_relation_name').AsString + ' FK: ' + q4.FieldByName('list_field').AsString + ' -> ' + q4.FieldByName('ref_relation_name').AsString);
+                  RealKolvo := RealKolvo + q3.FieldByName('RealCount').AsInteger; //кол-во добавленных доков
+
+                  LogEvent('-REPROCESS! CrossTable: ' + q2.FieldByName('cross_relation_name').AsString + ' FK: ' + q4.FieldByName('list_field').AsString + ' -> GD_DOCUMENT ');
+                end
+                else if ProcTblsNamesList.IndexOf(UpperCase( q4.FieldByName('ref_relation_name').AsString )) <> -1 then // if ссылается на Line: дополнительно считаем кол-во добавленных Line
+                begin
+                  // потом начнем переобработку (если не от дока начинаем) с этой таблицы
                   if (ReProcTbl = '') or
-                     (LineDocTbls.IndexOfName(UpperCase( q4.FieldByName('ref_relation_name').AsString)) < LineDocTbls.IndexOfName(ReProcTbl)) then
+                    (LineDocTbls.IndexOfName(UpperCase( q4.FieldByName('ref_relation_name').AsString)) < LineDocTbls.IndexOfName(ReProcTbl)) then
                     ReProcTbl := UpperCase( q4.FieldByName('ref_relation_name').AsString );
+	
+                  LogEvent('-REPROCESS! CrossTable: ' + q2.FieldByName('cross_relation_name').AsString + ' FK: ' + q4.FieldByName('list_field').AsString + ' -> ' + q4.FieldByName('ref_relation_name').AsString);
                 end;
               end;
               q3.Close;
@@ -2884,9 +2992,12 @@ var
           end;
           q2.Close;
 
+
+
+
           LogEvent('==> ' + IntToStr(J));
 ////////////
-          //запуск переобработки
+          // запуск переобработки
           if (RealKolvo > 0) then // переобработка с самого начала
           begin
             GoReprocess := True;
@@ -2917,7 +3028,9 @@ var
           J:=J+1;
         end;
 
-        FCascadeTbls.Text := LineDocTbls.Text + #13#10 + CrossLineTbls.Text;
+        FCascadeTbls.Text := LineDocTbls.Text;
+        if CrossLineTbls.Count > 0 then
+          FCascadeTbls.CommaText := FCascadeTbls.CommaText + ',' + CrossLineTbls.CommaText;
         LogEvent('FCascadeTbls: ' + FCascadeTbls.Text);
         LogEvent('Including cascading sequences in HIS... OK');
 
@@ -2981,25 +3094,32 @@ begin
     
     //1) HIS_1 - новые доки - точно должны остаться 
     CreateHIS(1);
-    q.SQL.Text :=                                                               ///TODO: учесть компанию
+    q.SQL.Text :=                                                               ///TODO: учесть компанию и тип
       'SELECT SUM(g_his_include(1, id)) AS Kolvo ' +                    #13#10 +
       'FROM gd_document ' +                                             #13#10 +
       'WHERE ' +                                                        #13#10 +
-      '  documentdate >= :Date ' +                                       #13#10 +
+      '  documentdate >= :Date ' +                                      #13#10 +
       '  AND parent IS NULL ';
+
     q.ParamByName('Date').AsDateTime := FClosingDate;
     ExecSqlLogEvent(q, 'CreateHIS_IncludeInHIS', 'Date=' + DateTimeToStr(FClosingDate));
     LogEvent(Format('BEFORE COUNT in HIS(1) without cascade: %d', [q.FieldByName('Kolvo').AsInteger]));
-
-
-      q.Close;
-
-      
-      IncludeCascadingSequences('GD_DOCUMENT');
-
-
-    
     q.Close;
+
+
+    q.SQL.Text:= 'SELECT g_his_has(1, 147399807) AS IsHas FROM rdb$database ';
+    ExecSqlLogEvent(q, 'CreateHIS_IncludeInHIS');
+    LogEvent('[TEST] 147399807:' + q.FieldByName('IsHas').AsString);
+    q.Close;
+
+
+    IncludeCascadingSequences('GD_DOCUMENT');
+
+    q.SQL.Text:= 'SELECT g_his_has(1, 147399807) AS IsHas FROM rdb$database ';
+    ExecSqlLogEvent(q, 'CreateHIS_IncludeInHIS');
+    LogEvent('[TEST] 147399807:' + q.FieldByName('IsHas').AsString);
+    q.Close;
+
 
     LogEvent(Format('AFTER COUNT in HIS(1) with CASCADE: %d', [GetCountHIS(1)]));
     q.SQL.Text :=
@@ -3037,14 +3157,53 @@ begin
 
     q.Transaction := Tr;
 
+
+    q.SQL.Text:= 'SELECT g_his_has(1, 147399807) AS IsHas FROM rdb$database ';
+    ExecSqlLogEvent(q, 'CreateHIS_IncludeInHIS');
+    LogEvent('[TEST] 147399807:' + q.FieldByName('IsHas').AsString);
+    q.Close;
+
+
     LogEvent('Deleting from DB... ');
     LogEvent('FCascadeTbls: ' + FCascadeTbls.Text);
     LogEvent(Format('COUNT in HIS(1): %d', [GetCountHIS(1)]));
 
-    for I:=0 to FCascadeTbls.Count-1 do
+    q.SQL.Text :=
+      'DELETE FROM GD_DOCUMENT ' +
+      'WHERE ' +
+      '  parent IS NULL ' +
+      '  AND g_his_has(1, id)=0 ';
+    ExecSqlLogEvent(q, 'DeleteDocuments_DeleteHIS');
+
+    q.SQL.Text:= 'SELECT id AS IsHas FROM gd_document WHERE id = 147399807 ';
+    ExecSqlLogEvent(q, 'CreateHIS_IncludeInHIS');
+    LogEvent('[TEST] 147399807:' + q.FieldByName('IsHas').AsString);
+    q.Close;
+
+    q.SQL.Text :=
+      'DELETE FROM GD_DOCUMENT ' +
+      'WHERE ' +
+      '  parent IS NOT NULL ' +
+      '  AND g_his_has(1, id)=0 '; // id tmp for test   g_his_has(1, parent)=0  
+    ExecSqlLogEvent(q, 'DeleteDocuments_DeleteHIS');                                   /// TODO: затянулся id, а parent не попал!
+
+    q.SQL.Text:= 'SELECT id AS IsHas FROM gd_document WHERE id = 147399807 ';
+    ExecSqlLogEvent(q, 'CreateHIS_IncludeInHIS');
+    LogEvent('[TEST] 147399807:' + q.FieldByName('IsHas').AsString);
+    q.Close;
+
+    for I:=1 to FCascadeTbls.Count-1 do
     begin
-      q.SQL.Text :=
-        'EXECUTE BLOCK ' +                                                #13#10 +
+      if AnsiPos('||', FCascadeTbls.Values[FCascadeTbls.Names[I]]) = 0 then
+        q.SQL.Text :=
+          'DELETE FROM ' + FCascadeTbls.Names[I] + ' WHERE ' +
+          '  g_his_has(1,' + FCascadeTbls.Values[FCascadeTbls.Names[I]] + ')=0'
+      else
+        q.SQL.Text :=
+          'DELETE FROM ' + FCascadeTbls.Names[I] + ' WHERE ' +                       
+          '  g_his_has(1,' + StringReplace(FCascadeTbls.Values[FCascadeTbls.Names[I]], '||', ')=0 OR g_his_has(1,',[rfReplaceAll, rfIgnoreCase]) + ')=0 ';
+
+      {  'EXECUTE BLOCK ' +                                                #13#10 +
         'AS ' +                                                           #13#10 +
         '  DECLARE VARIABLE S VARCHAR(16384); ' +                         #13#10 +
         'BEGIN ' +                                                        #13#10 +
@@ -3062,7 +3221,8 @@ begin
         '  DO BEGIN ' +                                                   #13#10 +
         '    EXECUTE STATEMENT :S;' +                                     #13#10 +//WITH AUTONOMOUS TRANSACTION
         '  END ' +                                                        #13#10 +
-        'END';
+        'END'; }
+
       ExecSqlLogEvent(q, 'DeleteDocuments_DeleteHIS');
     end;
 

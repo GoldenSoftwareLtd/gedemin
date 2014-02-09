@@ -225,6 +225,8 @@ type
     FProcRowsSelectBits: TBits;
     FIgnoreRowsSelectBits: TBits;
 
+    //FDocTypeIDArr: TIntegerDynArray;
+
     procedure ErrorEvent(const AErrorMsg: String);
     procedure GetConnectedEvent(const AConnected: Boolean);
     procedure WriteToLogFile(const AStr: String);
@@ -708,7 +710,7 @@ begin
    if btnGo.Enabled then
     begin
       //if tbcDocTypes then
-
+      //  SetFDocTypeIDArr
     end;
   end
   else if pgcSettings.ActivePage = tsOptions then
