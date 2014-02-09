@@ -544,7 +544,6 @@ begin
         FDBS.AllOurCompaniesSaldo := FAllOurCompaniesSaldo;
         FDBS.OnlyCompanySaldo := FOnlyCompanySaldo;
 
-
         Result := True;
       end;
 
