@@ -1,3 +1,4 @@
+
 unit gdc_dlgTaxActual_unit;
 
 interface
@@ -48,6 +49,7 @@ type
     procedure Post; override;
     procedure SetTransactionKey;
     procedure SetTrRecordName;
+
   public
     constructor Create(AnOwner: TComponent); override;
   end;
@@ -58,8 +60,7 @@ var
 implementation
 
 uses
-  gd_ClassList, gdcBaseInterface{, wiz_FunctionBlock_unit};
-
+  gd_ClassList, gdcBaseInterface;
 
 {$R *.DFM}
 
@@ -86,8 +87,7 @@ begin
   inherited;
   FIBQuery := TIBQuery.Create(Self);
   FIBQuery.Transaction := gdcBaseManager.ReadTransaction;
-  FIBQuery.SQL.Text :=
-    'SELECT * FROM gd_taxtype';
+  FIBQuery.SQL.Text := 'SELECT * FROM gd_taxtype';
   FIBQuery.Open;
   dsType.DataSet := FIBQuery;
 end;
@@ -412,7 +412,7 @@ end;
 
 procedure Tgdc_dlgTaxActual.ibcbTaxChange(Sender: TObject);
 begin
-  if (ibcbTax.CurrentKey = '') and gdcTrRecord.Active then
+  if (ibcbTax.CurrentKey = '') and (gdcTrRecord.State in [dsEdit, dsInsert]) then
   begin
     gdcTrRecord.FieldByName(fntransactionkey).Clear
   end else
@@ -434,7 +434,7 @@ begin
       gdcTrRecord.FieldByName(fntransactionkey).AsVariant := SQL.FieldByName(fnTransactionKey).Value;
       gdcTrRecord.FieldByName(fnAccountKey).AsVariant := SQL.FieldByName(fnAccountKey).Value;
     finally
-       SQL.Free;
+      SQL.Free;
     end;
   end;
 end;

@@ -1,7 +1,6 @@
 
 {++
 
-
   Copyright (c) 2001-2013 by Golden Software of Belarus
 
   Module
@@ -56,11 +55,6 @@ type
     Calculated: Boolean;
   end;
   TArrayEstabl = array of Integer;
-
-  {IgsSetTaxDate = interface
-    procedure SetBPeriod(const ADate: TDate);
-    procedure SetEPeriod(const ADate: TDate);
-  end;}
 
 type
   TgdcTaxName = class(TgdcBase)

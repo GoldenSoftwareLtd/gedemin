@@ -25,13 +25,14 @@ type
   private
     //указывает, отображены ли уже страницы-множества
     FIsShowSetTabSheet: Boolean;
+    FHasTabSheet: Boolean;
 
     class procedure RegisterMethod;
 
   protected
     FHTS: TTabSheet;
     FHMemo: TMemo;
-    
+
     //Заменяет знак $ на его код
     function CorrectRelationName(ARelationName: String): String;
 
@@ -282,7 +283,7 @@ procedure Tgdc_dlgTRPC.pgcMainChanging(Sender: TObject;
   var AllowChange: Boolean);
 begin
   SaveAndShowTabSheet;
-  AllowChange := gdcObject.State <> dsInsert;
+  AllowChange := (not HasTabSheet) or (gdcObject.State <> dsInsert);
 end;
 
 procedure Tgdc_dlgTRPC.SaveAndShowTabSheet;
@@ -587,6 +588,7 @@ procedure Tgdc_dlgTRPC.SetupDialog;
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
+  I: Integer;
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGTRPC', 'SETUPDIALOG', KEYSETUPDIALOG)}
   {M}  try
@@ -608,7 +610,18 @@ begin
   {M}    end;
   {END MACRO}
 
+  FHasTabSheet := False;
   FIsShowSetTabSheet := False;
+
+  for I := 0 to gdcObject.SetAttributesCount - 1 do
+  begin
+    if NeedVisibleTabSheet(gdcObject.SetAttributes[I].CrossRelationName)
+      and (GetBaseClassForRelation(gdcObject.SetAttributes[I].ReferenceRelationName).gdClass <> nil) then
+    begin
+      FHasTabSheet := True;
+      break;
+    end;
+  end;
 
   if HasTabSheet then
     ActivateTransaction(gdcObject.Transaction);
@@ -627,7 +640,7 @@ end;
 
 function Tgdc_dlgTRPC.HasTabSheet: Boolean;
 begin
-  Result := (gdcObject <> nil) and (gdcObject.SetAttributesCount > 0);
+  Result := (gdcObject <> nil) and FHasTabSheet;
 end;
 
 procedure Tgdc_dlgTRPC.actNewExecute(Sender: TObject);

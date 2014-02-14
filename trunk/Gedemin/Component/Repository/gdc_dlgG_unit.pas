@@ -1770,6 +1770,12 @@ begin
         begin
           S := DisplayName;
           FocusControl;
+
+          {
+          Если эдит с обязательным полем расположен на другой
+          вкладке, то FocusControl его не покажет.
+          }
+
           if C2 <> ActiveControl then
           begin
             for J := 0 to Self.ComponentCount - 1 do
@@ -1777,9 +1783,13 @@ begin
               if (Self.Components[J] is TLabel)
                 and (TLabel(Self.Components[J]).FocusControl = ActiveControl) then
               begin
-                S := Trim((Self.Components[J] as TLabel).Caption);
-                if Copy(S, Length(S), 1) = ':' then
-                  SetLength(S, Length(S) - 1);
+                if (not (ActiveControl is TDBEdit))
+                  or (TDBEdit(ActiveControl).Text = '') then
+                begin
+                  S := Trim((Self.Components[J] as TLabel).Caption);
+                  if Copy(S, Length(S), 1) = ':' then
+                    SetLength(S, Length(S) - 1);
+                end;
                 break;
               end;
             end;
@@ -1788,7 +1798,7 @@ begin
           MessageBox(Handle,
             PChar(Format('Необходимо заполнить поле: %s!', [S])),
             'Ошибка',
-            MB_OK or MB_ICONERROR);
+            MB_OK or MB_ICONERROR or MB_TASKMODAL);
 
           Result := False;
           exit;

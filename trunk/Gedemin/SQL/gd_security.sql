@@ -110,7 +110,7 @@ END
 
 CREATE EXCEPTION gd_e_invaliduserupdate 'At least one user must be enabled'^
 
-CREATE TRIGGER gd_bu_user FOR gd_user
+CREATE OR ALTER TRIGGER gd_bu_user FOR gd_user
   BEFORE UPDATE
   POSITION 0
 AS
