@@ -30,12 +30,7 @@ begin
         ParamCheck := False;
 
         SQL.Text :=
-          'DROP TRIGGER ac_bi_record ';
-        ExecQuery;
-        Close;
-
-        SQL.Text :=
-          'CREATE TRIGGER ac_bi_record FOR ac_record ' +
+          'CREATE OR ALTER TRIGGER ac_bi_record FOR ac_record ' +
           '  BEFORE INSERT ' +
           '  POSITION 0 ' +
           'AS ' +
@@ -53,15 +48,8 @@ begin
         ExecQuery;
         Close;
 
-
-
         SQL.Text :=
-          'DROP TRIGGER ac_bu_record ';
-        ExecQuery;
-        Close;
-
-        SQL.Text :=
-          'CREATE TRIGGER ac_bu_record FOR ac_record ' +
+          'CREATE OR ALTER TRIGGER ac_bu_record FOR ac_record ' +
           '  BEFORE UPDATE ' +
           '  POSITION 0 ' +
           'AS ' +

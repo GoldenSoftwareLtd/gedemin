@@ -1,6 +1,6 @@
 object at_frmSyncNamespace: Tat_frmSyncNamespace
-  Left = 429
-  Top = 270
+  Left = 330
+  Top = 271
   Width = 1131
   Height = 518
   Caption = 'Синхронизация пространств имен'

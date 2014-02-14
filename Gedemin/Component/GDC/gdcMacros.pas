@@ -327,8 +327,11 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  Result := ' FROM evt_macrosgroup z  LEFT JOIN evt_object o ' +
-    ' ON o.macrosgroupkey = z.id ';
+
+  Result := inherited GetFromClause(ARefresh);
+
+  Result := Result +
+    ' LEFT JOIN evt_object o ON o.macrosgroupkey = z.id ';
 
   if (not ARefresh) and HasSubSet(ssTree) then
     Result := Result +

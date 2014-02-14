@@ -17995,15 +17995,13 @@ procedure TgdcBase.GetDependencies(ATr: TIBTransaction; const ASessionID: Intege
     R: TatRelation;
     F: TatRelationField;
     C, CCurr: TgdcFullClass;
-    Obj: TgdcBase;
+    Obj, TempObj: TgdcBase;
     ArrObjects: array[0..1024] of TgdcBase;
     ArrIDs: array[0..1024] of TID;
     Locked: Boolean;
   begin
     if ACount >= LimitCount then
       exit;
-
-    Assert(not AnObject.EOF);
 
     if AProcessed.IndexOf(AnObject.ID) = -1 then
       AProcessed.Add(AnObject.ID)
@@ -18168,18 +18166,41 @@ procedure TgdcBase.GetDependencies(ATr: TIBTransaction; const ASessionID: Intege
 
       while not Obj.Eof do
       begin
-        if AProcessed.IndexOf(Obj.ID) = -1 then
+        CCurr := Obj.GetCurrRecordClass;
+
+        if (CCurr.gdClass.ClassName <> Obj.ClassName) or (CCurr.SubType <> Obj.SubType) then
+        begin
+          TempObj := nil;
+          AHash.Find(CCurr.gdClass.ClassName + CCurr.SubType, TempObj);
+          Locked := (TempObj <> nil) and TempObj.Active;
+
+          if (TempObj = nil) or Locked then
+          begin
+            TempObj := CCurr.gdClass.Create(nil);
+            AnObjects.Add(TempObj);
+            if not Locked then
+              AHash.Add(CCurr.gdClass.ClassName + CCurr.SubType, TempObj);
+            TempObj.SubType := CCurr.SubType;
+            TempObj.SubSet := 'ByID';
+          end;
+
+          TempObj.ID := Obj.ID;
+          TempObj.Open;
+        end else
+          TempObj := Obj;
+
+        if AProcessed.IndexOf(TempObj.ID) = -1 then
         begin
           if
             (
               AnIncludeSystemObjects
               or
-              (Obj.ID >= cstUserIDStart)
+              (TempObj.ID >= cstUserIDStart)
               or
               (
-                (Obj is TgdcMetaBase)
+                (TempObj is TgdcMetaBase)
                 and
-                TgdcMetaBase(Obj).IsUserDefined
+                TgdcMetaBase(TempObj).IsUserDefined
               )
             )
             and
@@ -18191,21 +18212,24 @@ procedure TgdcBase.GetDependencies(ATr: TIBTransaction; const ASessionID: Intege
             AqInsert.ParamByName('relationname').AsString := AnObject.SetAttributes[I].CrossRelationName;
             AqInsert.ParamByName('fieldname').AsString := AnObject.SetAttributes[I].ReferenceLinkFieldName;
             AqInsert.ParamByName('crossrelation').AsInteger := 1;
-            AqInsert.ParamByName('refobjectid').AsInteger := Obj.ID;
-            AqInsert.ParamByName('refobjectname').AsString := System.Copy(Obj.ObjectName, 1, 60);
+            AqInsert.ParamByName('refobjectid').AsInteger := TempObj.ID;
+            AqInsert.ParamByName('refobjectname').AsString := System.Copy(TempObj.ObjectName, 1, 60);
             AqInsert.ParamByName('refrelationname').AsString := AnObject.SetAttributes[I].ReferenceRelationName;
-            AqInsert.ParamByName('refclassname').AsString := Obj.ClassName;
-            AqInsert.ParamByName('refsubtype').AsString := Obj.SubType;
-            if Obj.FindField('editiondate') <> nil then
-              AqInsert.ParamByName('refeditiondate').AsDateTime := Obj.FieldByName('editiondate').AsDateTime
+            AqInsert.ParamByName('refclassname').AsString := TempObj.ClassName;
+            AqInsert.ParamByName('refsubtype').AsString := TempObj.SubType;
+            if TempObj.FindField('editiondate') <> nil then
+              AqInsert.ParamByName('refeditiondate').AsDateTime := TempObj.FieldByName('editiondate').AsDateTime
             else
               AqInsert.ParamByName('refeditiondate').Clear;
             AqInsert.ExecQuery;
             Inc(ACount);
           end;
 
-          _ProcessObject(Obj, ALevel + 1, AProcessed, AHash,
+          _ProcessObject(TempObj, ALevel + 1, AProcessed, AHash,
             AnObjects, AqInsert, ACount, AnIgnoreFields);
+
+          if TempObj <> Obj then
+            TempObj.Close;  
         end;
 
         Obj.Next;
@@ -18221,10 +18245,19 @@ var
   Objects: TObjectList;
   q: TIBSQL;
   Count: Integer;
+  C: TgdcFullClass;
+  Obj: TgdcBase;
 begin
   Assert(atDatabase <> nil);
   Assert(ATr <> nil);
   Assert(ATr.InTransaction);
+  Assert(not EOF);
+
+  C := GetCurrRecordClass;
+  if (C.gdClass = Self.ClassType) and (C.SubType = Self.SubType) then
+    Obj := Self
+  else
+    Obj := C.gdClass.CreateSingularByID(nil, Database, Transaction, ID, C.SubType);
 
   Hash := TStringHashMap.Create(CaseSensitiveTraits, 1024);
   Processed := TgdKeyArray.Create;
@@ -18251,13 +18284,15 @@ begin
     q.ParamByName('masterid').AsInteger := Self.ID;
 
     Count := 0;
-    _ProcessObject(Self, 0, Processed, Hash, Objects, q, Count,
+    _ProcessObject(Obj, 0, Processed, Hash, Objects, q, Count,
       AnIgnoreFields + ';LB;RB;AVIEW;ACHAG;AFULL;RESERVED;');
   finally
     q.Free;
     Processed.Free;
     Hash.Free;
     Objects.Free;
+    if Obj <> Self then
+      Obj.Free;
   end;
 end;
 
