@@ -51,7 +51,7 @@ uses
   mdf_DeletecbAnalyticFromScript;
 
 const
-  cProcCount = 201;
+  cProcCount = 202;
 
 type
   TModifyProc = record
@@ -360,7 +360,8 @@ const
     (ModifyProc: ChangeAcLedgerAccounts; ModifyVersion: '0000.0001.0000.0223'; NeedDBShutdown: False),
     (ModifyProc: RUIDsForGdStorageData; ModifyVersion: '0000.0001.0000.0225'; NeedDBShutdown: True),
     (ModifyProc: AddAtNamespaceChanged; ModifyVersion: '0000.0001.0000.0227'; NeedDBShutdown: True),
-    (ModifyProc: CorrectDocumentType; ModifyVersion: '0000.0001.0000.0228'; NeedDBShutdown: False)
+    (ModifyProc: CorrectDocumentType; ModifyVersion: '0000.0001.0000.0228'; NeedDBShutdown: False),
+    (ModifyProc: CorrectEntryTriggers; ModifyVersion: '0000.0001.0000.0230'; NeedDBShutdown: True)
   );
 
 implementation
