@@ -3,22 +3,23 @@ unit gdcNamespaceController;
 interface
 
 uses
-  DB, IBDatabase, IBCustomDataSet, gdcBase, DBGrids;
+  DB, IBDatabase, IBCustomDataSet, gdcBase, DBGrids, gd_KeyAssoc;
 
 type
   TgdcNamespaceController = class(TObject)
   private
     FIBTransaction: TIBTransaction;
     FibdsLink: TIBDataSet;
-    FgdcObject: TgdcBase;
-    FBL: TBookmarkList;
     FPrevNSID: Integer;
+    FPrevNSName: String;
     FCurrentNSID: Integer;
     FAlwaysOverwrite: Boolean;
     FDontRemove: Boolean;
     FIncludeSiblings: Boolean;
     FIncludeLinked: Boolean;
-    FObjectName: String;
+    FObjects: TgdKeyArray;
+    FNamespaces: TgdKeyStringAssoc;
+    FgdcFullClass: TgdcFullClass;
 
     procedure DeleteFromNamespace;
     procedure MoveBetweenNamespaces;
@@ -31,8 +32,8 @@ type
 
     procedure Setup(AnObject: TgdcBase; ABL: TBookmarkList);
     function Include: Boolean;
+    function ShowDialog: Boolean;
 
-    property ObjectName: String read FObjectName;
     property AlwaysOverwrite: Boolean read FAlwaysOverwrite write FAlwaysOverwrite;
     property DontRemove: Boolean read FDontRemove write FDontRemove;
     property IncludeSiblings: Boolean read FIncludeSiblings write FIncludeSiblings;
@@ -46,7 +47,8 @@ type
 implementation
 
 uses
-  Windows, SysUtils, IBSQL, gdcBaseInterface, gdcNamespace;
+  Windows, StdCtrls, ExtCtrls, SysUtils, IBSQL, gdcBaseInterface, gdcNamespace,
+  at_dlgNamespaceOp_unit, at_dlgToNamespace_unit;
 
 type
   TIterateProc = procedure of object;
@@ -54,10 +56,10 @@ type
 { TgdcNamespaceController }
 
 procedure TgdcNamespaceController.AddToNamespace;
-var
-  gdcNamespaceObject: TgdcNamespaceObject;
+{var
+  gdcNamespaceObject: TgdcNamespaceObject;}
 begin
-  gdcNamespaceObject := TgdcNamespaceObject.Create(nil);
+{  gdcNamespaceObject := TgdcNamespaceObject.Create(nil);
   try
     gdcNamespaceObject.ReadTransaction := FIBTransaction;
     gdcNamespaceObject.Transaction := FIBTransaction;
@@ -98,7 +100,7 @@ begin
     gdcNamespaceObject.Post;
   finally
     gdcNamespaceObject.Free;
-  end;
+  end;}
 end;
 
 constructor TgdcNamespaceController.Create;
@@ -136,13 +138,16 @@ begin
     '  od.sessionid = :sid '#13#10 +
     'ORDER BY '#13#10 +
     '  od.reflevel DESC';
+
+  FObjects := TgdKeyArray.Create;
+  FNamespaces := TgdKeyStringAssoc.Create;
 end;
 
 procedure TgdcNamespaceController.DeleteFromNamespace;
-var
-  gdcNamespaceObject: TgdcNamespaceObject;
+{var
+  gdcNamespaceObject: TgdcNamespaceObject;}
 begin
-  gdcNamespaceObject := TgdcNamespaceObject.Create(nil);
+{  gdcNamespaceObject := TgdcNamespaceObject.Create(nil);
   try
     gdcNamespaceObject.ReadTransaction := FIBTransaction;
     gdcNamespaceObject.Transaction := FIBTransaction;
@@ -155,11 +160,13 @@ begin
       gdcNamespaceObject.Delete;
   finally
     gdcNamespaceObject.Free;
-  end;
+  end;}
 end;
 
 destructor TgdcNamespaceController.Destroy;
 begin
+  FObjects.Free;
+  FNamespaces.Free;
   FibdsLink.Free;
   FIBTransaction.Free;
   inherited;
@@ -172,6 +179,7 @@ end;
 
 function TgdcNamespaceController.Include: Boolean;
 
+  {
   procedure IterateBL(AnIterateProc: TIterateProc);
   var
     I: Integer;
@@ -199,9 +207,11 @@ var
   gdcNamespaceObject: TgdcNamespaceObject;
   HeadObjectKey, HeadObjectPos, NSKey: Integer;
   q, qNSList, qFind: TIBSQL;
+  }
 begin
   Assert(FIBTransaction.InTransaction);
 
+  {
   if (FPrevNSID > -1) and (FCurrentNSID = -1) then
     IterateBL(DeleteFromNamespace)
   else if (FPrevNSID > -1) and (FCurrentNSID > -1) and (FPrevNSID <> FCurrentNSID) then
@@ -378,15 +388,16 @@ begin
   end;
 
   FIBTransaction.Commit;
+  }
   Result := True;
 end;
 
 procedure TgdcNamespaceController.MoveBetweenNamespaces;
-var
+{var
   gdcNamespaceObject: TgdcNamespaceObject;
-  q: TIBSQL;
+  q: TIBSQL;}
 begin
-  q := TIBSQL.Create(nil);
+{  q := TIBSQL.Create(nil);
   gdcNamespaceObject := TgdcNamespaceObject.Create(nil);
   try
     q.Transaction := FIBTransaction;
@@ -417,87 +428,148 @@ begin
   finally
     q.Free;
     gdcNamespaceObject.Free;
-  end;
+  end;}
 end;
 
 procedure TgdcNamespaceController.Setup(AnObject: TgdcBase; ABL: TBookmarkList);
 var
   q: TIBSQL;
   I: Integer;
-  Bm: String;
-  FSessionID: Integer;
 begin
   Assert(AnObject <> nil);
   Assert(not AnObject.EOF);
-  Assert(FibdsLink.State = dsInactive);
 
-  FgdcObject := AnObject;
-  FBL := ABL;
+  FgdcFullClass.gdClass := CgdcBase(AnObject.ClassType);
+  FgdcFullClass.SubType := AnObject.SubType;
+  FObjects.Clear;
+  FNamespaces.Clear;
 
-  if FBL <> nil then
+  if ABL <> nil then
   begin
-    FBL.Refresh;
-    if FBL.Count = 0 then
-      FBL := nil;
+    ABL.Refresh;
+
+    for I := 0 to ABL.Count - 1 do
+      FObjects.Add(AnObject.GetIDForBookmark(ABL[I]));
   end;
+
+  FObjects.Add(AnObject.ID, True);
 
   q := TIBSQL.Create(nil);
   try
     q.Transaction := FIBTransaction;
+
     q.SQL.Text :=
-      'SELECT n.id, o.alwaysoverwrite, o.dontremove, o.includesiblings ' +
-      'FROM at_object o JOIN at_namespace n ON n.id = o.namespacekey ' +
-      'WHERE o.xid = :xid AND o.dbid = :dbid';
-    q.ParamByName('xid').AsInteger := FgdcObject.GetRuid.XID;
-    q.ParamByName('dbid').AsInteger := FgdcObject.GetRuid.DBID;
+      'SELECT n.id, n.name ' +
+      'FROM at_object o ' +
+      '  JOIN gd_ruid r ON r.xid = o.xid AND r.dbid = o.dbid ' +
+      '  JOIN at_namespace n ON n.id = o.namespacekey ' +
+      'WHERE r.id IN (' + FObjects.CommaText + ') ';
     q.ExecQuery;
 
-    if not q.EOF then
+    while not q.EOF do
     begin
-      FPrevNSID := q.FieldByName('id').AsInteger;
-      FAlwaysOverwrite := q.FieldByName('alwaysoverwrite').AsInteger <> 0;
-      FDontRemove := q.FieldByName('dontremove').AsInteger <> 0;
-      FIncludeSiblings := q.FieldByName('includesiblings').AsInteger <> 0;
+      FNamespaces.ValuesByIndex[FNamespaces.Add(q.FieldByName('id').AsInteger)] :=
+        q.FieldByName('name').AsString;
+      q.Next;
     end;
   finally
     q.Free;
   end;
+end;
 
-  FSessionID := AnObject.GetNextID;
+function TgdcNamespaceController.ShowDialog: Boolean;
 
-  if (FgdcObject.State in [dsEdit, dsInsert]) or (FBL = nil) or (FBL.Count = 0) then
-    FgdcObject.GetDependencies(FIBTransaction, FSessionID, False, ';EDITORKEY;CREATORKEY;')
-  else begin
-    FgdcObject.DisableControls;
+  {procedure FillLink;
+  var
+  begin
+    Assert(FibdsLink.State = dsInactive);
+
+
+    FibdsLink.FieldByName('id').Visible := False;
+    FibdsLink.FieldByName('reflevel').Visible := False;
+    FibdsLink.FieldByName('class').Visible := False;
+    FibdsLink.FieldByName('subtype').Visible := False;
+    FibdsLink.FieldByName('name').Visible := False;
+    FibdsLink.FieldByName('editiondate').Visible := False;
+    FibdsLink.FieldByName('displayname').DisplayLabel := 'Класс - Имя объекта';
+  end;}
+
+var
+  Obj: TgdcBase;
+  I: Integer;
+  Dlg: TdlgToNamespace;
+  FSessionID: Integer;
+begin
+  Assert(FgdcFullClass.gdClass <> nil);
+
+  Result := False;
+
+  if (FObjects.Count >= 1) and (FNamespaces.Count = 0) then
+  begin
+    Obj := FgdcFullClass.gdClass.Create(nil);
     try
-      Bm := FgdcObject.Bookmark;
-      for I := 0 to FBL.Count - 1 do
-      begin
-        FgdcObject.Bookmark := FBL[I];
-        FgdcObject.GetDependencies(FIBTransaction, FSessionID, False, ';EDITORKEY;CREATORKEY;');
+      Obj.Transaction := FIBTransaction;
+      Obj.SubType := FgdcFullClass.SubType;
+      Obj.SubSet := 'ByID';
+
+      Dlg := TdlgToNamespace.Create(nil);
+      try
+        Dlg.chbxAlwaysOverwrite.Checked := FAlwaysOverwrite;
+        Dlg.chbxDontRemove.Checked := FDontRemove;
+        Dlg.chbxIncludeSiblings.Checked := FIncludeSiblings;
+
+        for I := 0 to FObjects.Count - 1 do
+        begin
+          Obj.Close;
+          Obj.ID := FObjects[I];
+          Obj.Open;
+
+          if not Obj.EOF then
+          begin
+            Dlg.AddObject(Obj.ID, Obj.ObjectName);
+
+            FSessionID := gdcBaseManager.GetNextID;
+            Obj.GetDependencies(FIBTransaction, FSessionID, False, ';EDITORKEY;CREATORKEY;');
+
+            FibdsLink.Close;
+            FibdsLink.ParamByName('sid').AsInteger := FSessionID;
+            FibdsLink.Open;
+
+            while not FibdsLink.EOF do
+            begin
+              Dlg.AddLinkedObject(
+                FibdsLink.FieldByName('id').AsInteger, 
+                FibdsLink.FieldByName('displayname').AsString);
+              FibdsLink.Next;
+            end;
+          end;
+        end;
+
+        Dlg.ShowModal;
+      finally
+        Dlg.Free;
       end;
-      FgdcObject.Bookmark := Bm;
     finally
-      FgdcObject.EnableControls;
+      Obj.Free;
+    end;
+  end
+  else if (FObjects.Count > 1) and (FNamespaces.Count > 1) then
+  begin
+    MessageBox(0,
+      'Можно редактировать группу объектов только если они входят в одно ПИ и имеют одинаковые параметры.',
+      'Внимание',
+      MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+  end
+  else begin
+    begin
+      with Tat_dlgNamespaceOp.Create(nil) do
+      try
+        ShowModal;
+      finally
+        Free;
+      end;
     end;
   end;
-
-  FibdsLink.ParamByName('sid').AsInteger := FSessionID;
-  FibdsLink.Open;
-
-  FibdsLink.FieldByName('id').Visible := False;
-  FibdsLink.FieldByName('reflevel').Visible := False;
-  FibdsLink.FieldByName('class').Visible := False;
-  FibdsLink.FieldByName('subtype').Visible := False;
-  FibdsLink.FieldByName('name').Visible := False;
-  FibdsLink.FieldByName('editiondate').Visible := False;
-  FibdsLink.FieldByName('displayname').DisplayLabel := 'Класс - Имя объекта';
-
-  FObjectName := FgdcObject.ObjectName + ' ('
-    + FgdcObject.GetDisplayName(FgdcObject.SubType) + ')';
-  if (FBL <> nil) and (FBL.Count > 1) then
-    FObjectName := FObjectName + ' и еще ' +
-      IntToStr(FBL.Count - 1) + ' объект(а, ов)';
 end;
 
 end.
