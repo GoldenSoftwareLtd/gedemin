@@ -1567,7 +1567,7 @@ END
 
 CREATE EXCEPTION gd_e_invaliduserupdate 'At least one user must be enabled'^
 
-CREATE TRIGGER gd_bu_user FOR gd_user
+CREATE OR ALTER TRIGGER gd_bu_user FOR gd_user
   BEFORE UPDATE
   POSITION 0
 AS
@@ -9539,7 +9539,8 @@ BEGIN
   IF (NEW.debitncu IS DISTINCT FROM OLD.debitncu OR
     NEW.creditncu IS DISTINCT FROM OLD.creditncu) THEN
   BEGIN
-    NEW.incorrect = IIF(NEW.debitncu IS DISTINCT FROM NEW.creditncu, 1, 0);
+    NEW.incorrect = IIF((NEW.debitncu IS DISTINCT FROM NEW.creditncu)
+      OR (NEW.debitncu = 0 AND NEW.creditncu = 0), 1, 0);
   END ELSE
     NEW.incorrect = OLD.incorrect;
 
@@ -16114,7 +16115,7 @@ COMMIT;
 
 CREATE TABLE at_settingpos (
   id              dintkey,                   /* идентификатор */
-  settingkey      dmasterkey NOT NULL,       /* ссылка на настройку */
+  settingkey      dmasterkey,       /* ссылка на настройку */
   mastercategory  dtext20 collate PXW_CYRL,  /* категория местера */
   mastername      dtext60 collate PXW_CYRL,  /* наименование мастера */
   objectclass     dclassname NOT NULL        /* класс сохраняемого объекта */
@@ -16167,8 +16168,8 @@ COMMIT;
 
 CREATE TABLE at_setting_storage
 (
-  id           dintkey NOT NULL,         /* идентификатор */
-  settingkey   dmasterkey NOT NULL,     /* ссылка на настройку*/
+  id           dintkey,                 /* идентификатор */
+  settingkey   dmasterkey,              /* ссылка на настройку*/
   branchname   dblobtext80_1251,        /* наименование ветки стораджа */
   valuename    dtext255,                /* наименование параметра.
                                            Если пустое, значит сохранена вся ветка*/

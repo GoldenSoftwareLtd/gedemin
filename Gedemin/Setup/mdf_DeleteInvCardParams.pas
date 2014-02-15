@@ -28,6 +28,7 @@ procedure ChangeAcLedgerAccounts(IBDB: TIBDatabase; Log: TModifyLog);
 procedure RUIDsForGdStorageData(IBDB: TIBDatabase; Log: TModifyLog);
 procedure AddAtNamespaceChanged(IBDB: TIBDatabase; Log: TModifyLog);
 procedure CorrectDocumentType(IBDB: TIBDatabase; Log: TModifyLog);
+procedure CorrectEntryTriggers(IBDB: TIBDatabase; Log: TModifyLog);
 
 implementation
 
@@ -265,6 +266,488 @@ begin
       q.SQL.Text :=
         'UPDATE OR INSERT INTO fin_versioninfo ' +
         '  VALUES (198, ''0000.0001.0000.0229'', ''12.01.2014'', ''Correct old gd_documenttype structure.'') ' +
+        '  MATCHING (id)';
+      q.ExecQuery;
+
+      Tr.Commit;
+    except
+      on E: Exception do
+      begin
+        Log('Произошла ошибка: ' + E.Message);
+        if Tr.InTransaction then
+          Tr.Rollback;
+        raise;
+      end;
+    end;
+  finally
+    q.Free;
+    Tr.Free;
+  end;
+end;
+
+procedure CorrectEntryTriggers(IBDB: TIBDatabase; Log: TModifyLog);
+var
+  q: TIBSQL;
+  Tr: TIBTransaction;
+begin
+  Tr := TIBTransaction.Create(nil);
+  q := TIBSQL.Create(nil);
+  try
+    Tr.DefaultDatabase := IBDB;
+    Tr.StartTransaction;
+
+    try
+      q.Transaction := Tr;
+
+      q.SQL.Text :=
+        'CREATE OR ALTER EXCEPTION ac_e_invalidentry ''Invalid entry'' ';
+      q.ExecQuery;
+
+      q.SQL.Text :=
+        'CREATE OR ALTER TRIGGER ac_bi_record FOR ac_record '#13#10 +
+        '  BEFORE INSERT '#13#10 +
+        '  POSITION 31700 '#13#10 +
+        'AS '#13#10 +
+        '  DECLARE VARIABLE S VARCHAR(255); '#13#10 +
+        'BEGIN '#13#10 +
+        '  IF (NEW.ID IS NULL) THEN '#13#10 +
+        '    NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0); '#13#10 +
+        ' '#13#10 +
+        '  NEW.debitncu = 0; '#13#10 +
+        '  NEW.debitcurr = 0; '#13#10 +
+        '  NEW.creditncu = 0; '#13#10 +
+        '  NEW.creditcurr = 0; '#13#10 +
+        ' '#13#10 +
+        '  NEW.incorrect = 1; '#13#10 +
+        '  S = COALESCE(RDB$GET_CONTEXT(''USER_TRANSACTION'', ''AC_RECORD_INCORRECT''), ''''); '#13#10 +
+        '  IF (CHAR_LENGTH(:S) >= 240 OR :S = ''TM'') THEN '#13#10 +
+        '    RDB$SET_CONTEXT(''USER_TRANSACTION'', ''AC_RECORD_INCORRECT'', ''TM''); '#13#10 +
+        '  ELSE '#13#10 +
+        '    RDB$SET_CONTEXT(''USER_TRANSACTION'', ''AC_RECORD_INCORRECT'', :S || '','' || NEW.id); '#13#10 +
+        'END';
+      q.ExecQuery;
+
+      q.SQL.Text :=
+        'CREATE OR ALTER TRIGGER ac_bu_record FOR ac_record '#13#10 +
+        '  BEFORE UPDATE '#13#10 +
+        '  POSITION 31700 '#13#10 +
+        'AS '#13#10 +
+        '  DECLARE VARIABLE WasUnlock INTEGER; '#13#10 +
+        '  DECLARE VARIABLE S VARCHAR(255); '#13#10 +
+        'BEGIN '#13#10 +
+        '  IF (RDB$GET_CONTEXT(''USER_TRANSACTION'', ''AC_RECORD_UNLOCK'') IS NULL) THEN '#13#10 +
+        '  BEGIN '#13#10 +
+        '    NEW.debitncu = OLD.debitncu; '#13#10 +
+        '    NEW.creditncu = OLD.creditncu; '#13#10 +
+        '    NEW.debitcurr = OLD.debitcurr; '#13#10 +
+        '    NEW.creditcurr = OLD.creditcurr; '#13#10 +
+        '  END '#13#10 +
+        ' '#13#10 +
+        '  IF (NEW.debitncu IS DISTINCT FROM OLD.debitncu OR '#13#10 +
+        '    NEW.creditncu IS DISTINCT FROM OLD.creditncu) THEN '#13#10 +
+        '  BEGIN '#13#10 +
+        '    NEW.incorrect = IIF(NEW.debitncu IS DISTINCT FROM NEW.creditncu, 1, 0); '#13#10 +
+        '  END ELSE '#13#10 +
+        '    NEW.incorrect = OLD.incorrect; '#13#10 +
+        ' '#13#10 +
+        '  IF (NEW.incorrect = 1 AND OLD.incorrect = 0) THEN '#13#10 +
+        '  BEGIN '#13#10 +
+        '    S = COALESCE(RDB$GET_CONTEXT(''USER_TRANSACTION'', ''AC_RECORD_INCORRECT''), ''''); '#13#10 +
+        '    IF (CHAR_LENGTH(:S) >= 240 OR :S = ''TM'') THEN '#13#10 +
+        '      RDB$SET_CONTEXT(''USER_TRANSACTION'', ''AC_RECORD_INCORRECT'', ''TM''); '#13#10 +
+        '    ELSE '#13#10 +
+        '      RDB$SET_CONTEXT(''USER_TRANSACTION'', ''AC_RECORD_INCORRECT'', :S || '','' || NEW.id); '#13#10 +
+        '  END '#13#10 +
+        '  ELSE IF (NEW.incorrect = 0 AND OLD.incorrect = 1) THEN '#13#10 +
+        '  BEGIN '#13#10 +
+        '    S = COALESCE(RDB$GET_CONTEXT(''USER_TRANSACTION'', ''AC_RECORD_INCORRECT''), ''''); '#13#10 +
+        '    S = REPLACE(:S, '','' || NEW.id, ''''); '#13#10 +
+        '    IF (:S = '''') THEN '#13#10 +
+        '      S = NULL; '#13#10 +
+        '    RDB$SET_CONTEXT(''USER_TRANSACTION'', ''AC_RECORD_INCORRECT'', :S); '#13#10 +
+        '  END '#13#10 +
+        ' '#13#10 +
+        '  IF (NEW.recorddate <> OLD.recorddate '#13#10 +
+        '    OR NEW.transactionkey <> OLD.transactionkey '#13#10 +
+        '    OR NEW.documentkey <> OLD.documentkey '#13#10 +
+        '    OR NEW.masterdockey <> OLD.masterdockey '#13#10 +
+        '    OR NEW.companykey <> OLD.companykey) THEN '#13#10 +
+        '  BEGIN '#13#10 +
+        '    WasUnlock = RDB$GET_CONTEXT(''USER_TRANSACTION'', ''AC_ENTRY_UNLOCK''); '#13#10 +
+        '    IF (:WasUnlock IS NULL) THEN '#13#10 +
+        '      RDB$SET_CONTEXT(''USER_TRANSACTION'', ''AC_ENTRY_UNLOCK'', 1); '#13#10 +
+        '    UPDATE ac_entry e '#13#10 +
+        '    SET e.entrydate = NEW.recorddate, '#13#10 +
+        '      e.transactionkey = NEW.transactionkey, '#13#10 +
+        '      e.documentkey = NEW.documentkey, '#13#10 +
+        '      e.masterdockey = NEW.masterdockey, '#13#10 +
+        '      e.companykey = NEW.companykey '#13#10 +
+        '    WHERE '#13#10 +
+        '      e.recordkey = NEW.id; '#13#10 +
+        '    IF (:WasUnlock IS NULL) THEN '#13#10 +
+        '      RDB$SET_CONTEXT(''USER_TRANSACTION'', ''AC_ENTRY_UNLOCK'', NULL); '#13#10 +
+        '  END '#13#10 +
+        ' '#13#10 +
+        '  WHEN ANY DO '#13#10 +
+        '  BEGIN '#13#10 +
+        '    RDB$SET_CONTEXT(''USER_TRANSACTION'', ''AC_ENTRY_UNLOCK'', NULL); '#13#10 +
+        '    EXCEPTION; '#13#10 +
+        '  END '#13#10 +
+        'END';
+      q.ExecQuery;
+
+      q.SQL.Text :=
+        'CREATE OR ALTER TRIGGER ac_ad_record FOR ac_record '#13#10 +
+        '  AFTER DELETE '#13#10 +
+        '  POSITION 31700 '#13#10 +
+        'AS '#13#10 +
+        '  DECLARE VARIABLE S VARCHAR(255); '#13#10 +
+        'BEGIN '#13#10 +
+        '  IF (OLD.incorrect = 1) THEN '#13#10 +
+        '  BEGIN '#13#10 +
+        '    S = COALESCE(RDB$GET_CONTEXT(''USER_TRANSACTION'', ''AC_RECORD_INCORRECT''), ''''); '#13#10 +
+        '    S = REPLACE(:S, '','' || OLD.id, ''''); '#13#10 +
+        '    IF (:S = '''') THEN '#13#10 +
+        '      S = NULL; '#13#10 +
+        '    RDB$SET_CONTEXT(''USER_TRANSACTION'', ''AC_RECORD_INCORRECT'', :S); '#13#10 +
+        '  END '#13#10 +
+        'END';
+      q.ExecQuery;
+
+      q.SQL.Text :=
+        'CREATE OR ALTER TRIGGER ac_bi_entry FOR ac_entry '#13#10 +
+        '  BEFORE INSERT '#13#10 +
+        '  POSITION 31700 '#13#10 +
+        'AS '#13#10 +
+        '  DECLARE VARIABLE Cnt INTEGER = 0; '#13#10 +
+        '  DECLARE VARIABLE Cnt2 INTEGER = 0; '#13#10 +
+        '  DECLARE VARIABLE WasSetIsSimple INTEGER; '#13#10 +
+        'BEGIN '#13#10 +
+        '  IF (NEW.ID IS NULL) THEN '#13#10 +
+        '    NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0); '#13#10 +
+        ' '#13#10 +
+        '  IF (NEW.accountpart = ''C'') THEN '#13#10 +
+        '  BEGIN '#13#10 +
+        '    NEW.debitncu = 0; '#13#10 +
+        '    NEW.debitcurr = 0; '#13#10 +
+        '    NEW.debiteq = 0; '#13#10 +
+        '    NEW.creditncu = COALESCE(NEW.creditncu, 0); '#13#10 +
+        '    NEW.creditcurr = IIF(NEW.currkey IS NULL, 0, COALESCE(NEW.creditcurr, 0)); '#13#10 +
+        '    NEW.crediteq = COALESCE(NEW.crediteq, 0); '#13#10 +
+        '  END ELSE '#13#10 +
+        '  BEGIN '#13#10 +
+        '    NEW.creditncu = 0; '#13#10 +
+        '    NEW.creditcurr = 0; '#13#10 +
+        '    NEW.crediteq = 0; '#13#10 +
+        '    NEW.debitncu = COALESCE(NEW.debitncu, 0); '#13#10 +
+        '    NEW.debitcurr = IIF(NEW.currkey IS NULL, 0, COALESCE(NEW.debitcurr, 0)); '#13#10 +
+        '    NEW.debiteq = COALESCE(NEW.debiteq, 0); '#13#10 +
+        '  END '#13#10 +
+        ' '#13#10 +
+        '  SELECT recorddate, transactionkey, documentkey, masterdockey, companykey '#13#10 +
+        '  FROM ac_record '#13#10 +
+        '  WHERE id = NEW.recordkey '#13#10 +
+        '  INTO NEW.entrydate, NEW.transactionkey, NEW.documentkey, NEW.masterdockey, NEW.companykey; '#13#10 +
+        ' '#13#10 +
+        '  SELECT '#13#10 +
+        '    COALESCE(SUM(IIF(accountpart = NEW.accountpart, 1, 0)), 0), '#13#10 +
+        '    COALESCE(SUM(IIF(accountpart <> NEW.accountpart, 1, 0)), 0) '#13#10 +
+        '  FROM ac_entry '#13#10 +
+        '  WHERE recordkey = NEW.recordkey '#13#10 +
+        '  INTO :Cnt, :Cnt2; '#13#10 +
+        ' '#13#10 +
+        '  IF (:Cnt > 0 AND :Cnt2 > 1) THEN '#13#10 +
+        '    EXCEPTION ac_e_invalidentry; '#13#10 +
+        ' '#13#10 +
+        '  IF (:Cnt = 0) THEN '#13#10 +
+        '    NEW.issimple = 1; '#13#10 +
+        '  ELSE BEGIN '#13#10 +
+        '    NEW.issimple = 0; '#13#10 +
+        '    IF (:Cnt = 1) THEN '#13#10 +
+        '    BEGIN '#13#10 +
+        '      WasSetIsSimple = RDB$GET_CONTEXT(''USER_TRANSACTION'', ''AC_ENTRY_SET_ISSIMPLE''); '#13#10 +
+        '      IF (:WasSetIsSimple IS NULL) THEN '#13#10 +
+        '        RDB$SET_CONTEXT(''USER_TRANSACTION'', ''AC_ENTRY_SET_ISSIMPLE'', 1); '#13#10 +
+        '      UPDATE ac_entry SET issimple = 0 '#13#10 +
+        '      WHERE recordkey = NEW.recordkey AND accountpart = NEW.accountpart '#13#10 +
+        '        AND id <> NEW.id; '#13#10 +
+        '      IF (:WasSetIsSimple IS NULL) THEN '#13#10 +
+        '        RDB$SET_CONTEXT(''USER_TRANSACTION'', ''AC_ENTRY_SET_ISSIMPLE'', NULL); '#13#10 +
+        '    END '#13#10 +
+        '  END '#13#10 +
+        ' '#13#10 +
+        '  WHEN ANY DO '#13#10 +
+        '  BEGIN '#13#10 +
+        '    RDB$SET_CONTEXT(''USER_TRANSACTION'', ''AC_ENTRY_SET_ISSIMPLE'', NULL); '#13#10 +
+        '    EXCEPTION; '#13#10 +
+        '  END '#13#10 +
+        'END';
+      q.ExecQuery;
+
+      q.SQL.Text :=
+        'CREATE OR ALTER TRIGGER ac_ai_entry FOR ac_entry '#13#10 +
+        '  AFTER INSERT '#13#10 +
+        '  POSITION 31700 '#13#10 +
+        'AS '#13#10 +
+        '  DECLARE VARIABLE WasUnlock INTEGER; '#13#10 +
+        'BEGIN '#13#10 +
+        '  WasUnlock = RDB$GET_CONTEXT(''USER_TRANSACTION'', ''AC_RECORD_UNLOCK''); '#13#10 +
+        '  IF (:WasUnlock IS NULL) THEN '#13#10 +
+        '    RDB$SET_CONTEXT(''USER_TRANSACTION'', ''AC_RECORD_UNLOCK'', 1); '#13#10 +
+        '  UPDATE '#13#10 +
+        '    ac_record '#13#10 +
+        '  SET '#13#10 +
+        '    debitncu = debitncu + NEW.debitncu, '#13#10 +
+        '    creditncu = creditncu + NEW.creditncu, '#13#10 +
+        '    debitcurr = debitcurr + NEW.debitcurr, '#13#10 +
+        '    creditcurr = creditcurr + NEW.creditcurr '#13#10 +
+        '  WHERE '#13#10 +
+        '    id = NEW.recordkey; '#13#10 +
+        '  IF (:WasUnlock IS NULL) THEN '#13#10 +
+        '    RDB$SET_CONTEXT(''USER_TRANSACTION'', ''AC_RECORD_UNLOCK'', NULL); '#13#10 +
+        ' '#13#10 +
+        ' '#13#10 +
+        '  WHEN ANY DO '#13#10 +
+        ' '#13#10 +
+        '  BEGIN '#13#10 +
+        '    RDB$SET_CONTEXT(''USER_TRANSACTION'', ''AC_RECORD_UNLOCK'', NULL); '#13#10 +
+        '    EXCEPTION; '#13#10 +
+        '  END '#13#10 +
+        'END';
+      q.ExecQuery;
+
+      q.SQL.Text :=
+        'CREATE OR ALTER TRIGGER ac_bu_entry FOR ac_entry '#13#10 +
+        '  BEFORE UPDATE '#13#10 +
+        '  POSITION 31700 '#13#10 +
+        'AS '#13#10 +
+        'BEGIN '#13#10 +
+        '  IF (RDB$GET_CONTEXT(''USER_TRANSACTION'', ''AC_ENTRY_SET_ISSIMPLE'') IS NOT NULL) THEN '#13#10 +
+        '    EXIT; '#13#10 +
+        ' '#13#10 +
+        '  NEW.recordkey = OLD.recordkey; '#13#10 +
+        ' '#13#10 +
+        '  IF (RDB$GET_CONTEXT(''USER_TRANSACTION'', ''AC_ENTRY_UNLOCK'') IS NULL) THEN '#13#10 +
+        '  BEGIN '#13#10 +
+        '    NEW.entrydate = OLD.entrydate; '#13#10 +
+        '    NEW.transactionkey = OLD.transactionkey; '#13#10 +
+        '    NEW.documentkey = OLD.documentkey; '#13#10 +
+        '    NEW.masterdockey = OLD.masterdockey; '#13#10 +
+        '    NEW.companykey = OLD.companykey; '#13#10 +
+        '    NEW.issimple = OLD.issimple; '#13#10 +
+        '  END '#13#10 +
+        ' '#13#10 +
+        '  IF (NEW.currkey IS NULL) THEN '#13#10 +
+        '  BEGIN '#13#10 +
+        '    NEW.creditcurr = 0; '#13#10 +
+        '    NEW.debitcurr = 0; '#13#10 +
+        '  END '#13#10 +
+        ' '#13#10 +
+        '  IF (NEW.accountpart <> OLD.accountpart) THEN '#13#10 +
+        '  BEGIN '#13#10 +
+        '    IF (NEW.accountpart = ''C'') THEN '#13#10 +
+        '    BEGIN '#13#10 +
+        '      NEW.debitncu = 0; '#13#10 +
+        '      NEW.debitcurr = 0; '#13#10 +
+        '      NEW.debiteq = 0; '#13#10 +
+        '      NEW.creditncu = COALESCE(NEW.creditncu, 0); '#13#10 +
+        '      NEW.creditcurr = IIF(NEW.currkey IS NULL, 0, COALESCE(NEW.creditcurr, 0)); '#13#10 +
+        '      NEW.crediteq = COALESCE(NEW.crediteq, 0); '#13#10 +
+        '    END ELSE '#13#10 +
+        '    BEGIN '#13#10 +
+        '      NEW.creditncu = 0; '#13#10 +
+        '      NEW.creditcurr = 0; '#13#10 +
+        '      NEW.crediteq = 0; '#13#10 +
+        '      NEW.debitncu = COALESCE(NEW.debitncu, 0); '#13#10 +
+        '      NEW.debitcurr = IIF(NEW.currkey IS NULL, 0, COALESCE(NEW.debitcurr, 0)); '#13#10 +
+        '      NEW.debiteq = COALESCE(NEW.debiteq, 0); '#13#10 +
+        '    END '#13#10 +
+        '  END '#13#10 +
+        'END';
+      q.ExecQuery;
+
+      q.SQL.Text :=
+        'CREATE OR ALTER TRIGGER ac_au_entry FOR ac_entry '#13#10 +
+        '  AFTER UPDATE '#13#10 +
+        '  POSITION 31700 '#13#10 +
+        'AS '#13#10 +
+        '  DECLARE VARIABLE WasUnlock INTEGER; '#13#10 +
+        '  DECLARE VARIABLE WasSetIsSimple INTEGER; '#13#10 +
+        '  DECLARE VARIABLE Cnt INTEGER; '#13#10 +
+        '  DECLARE VARIABLE Cnt2 INTEGER; '#13#10 +
+        'BEGIN '#13#10 +
+        '  IF (RDB$GET_CONTEXT(''USER_TRANSACTION'', ''AC_ENTRY_SET_ISSIMPLE'') IS NOT NULL) THEN '#13#10 +
+        '    EXIT; '#13#10 +
+        ' '#13#10 +
+        '  IF ((OLD.debitncu <> NEW.debitncu) or (OLD.creditncu <> NEW.creditncu) or '#13#10 +
+        '      (OLD.debitcurr <> NEW.debitcurr) or (OLD.creditcurr <> NEW.creditcurr)) '#13#10 +
+        '  THEN BEGIN '#13#10 +
+        '    WasUnlock = RDB$GET_CONTEXT(''USER_TRANSACTION'', ''AC_RECORD_UNLOCK''); '#13#10 +
+        '    IF (:WasUnlock IS NULL) THEN '#13#10 +
+        '      RDB$SET_CONTEXT(''USER_TRANSACTION'', ''AC_RECORD_UNLOCK'', 1); '#13#10 +
+        '    UPDATE ac_record SET debitncu = debitncu - OLD.debitncu + NEW.debitncu, '#13#10 +
+        '      creditncu = creditncu - OLD.creditncu + NEW.creditncu, '#13#10 +
+        '      debitcurr = debitcurr - OLD.debitcurr + NEW.debitcurr, '#13#10 +
+        '      creditcurr = creditcurr - OLD.creditcurr + NEW.creditcurr '#13#10 +
+        '    WHERE '#13#10 +
+        '      id = OLD.recordkey; '#13#10 +
+        '    IF (:WasUnlock IS NULL) THEN '#13#10 +
+        '      RDB$SET_CONTEXT(''USER_TRANSACTION'', ''AC_RECORD_UNLOCK'', NULL); '#13#10 +
+        ' '#13#10 +
+        '  END '#13#10 +
+        ' '#13#10 +
+        '  IF (NEW.accountpart <> OLD.accountpart) THEN '#13#10 +
+        '  BEGIN '#13#10 +
+        '    SELECT '#13#10 +
+        '      COALESCE(SUM(IIF(accountpart = NEW.accountpart, 1, 0)), 0), '#13#10 +
+        '      COALESCE(SUM(IIF(accountpart = OLD.accountpart, 1, 0)), 0) '#13#10 +
+        '    FROM ac_entry '#13#10 +
+        '    WHERE recordkey = NEW.recordkey AND id <> NEW.id '#13#10 +
+        '    INTO :Cnt, :Cnt2; '#13#10 +
+        ' '#13#10 +
+        '    IF (:Cnt > 1 AND :Cnt2 > 1) THEN '#13#10 +
+        '      EXCEPTION ac_e_invalidentry; '#13#10 +
+        ' '#13#10 +
+        '    WasSetIsSimple = RDB$GET_CONTEXT(''USER_TRANSACTION'', ''AC_ENTRY_SET_ISSIMPLE''); '#13#10 +
+        '    IF (:WasSetIsSimple IS NULL) THEN '#13#10 +
+        '      RDB$SET_CONTEXT(''USER_TRANSACTION'', ''AC_ENTRY_SET_ISSIMPLE'', 1); '#13#10 +
+        '    UPDATE ac_entry SET '#13#10 +
+        '      issimple = IIF(accountpart = NEW.accountpart, '#13#10 +
+        '        IIF(:Cnt > 1, 0, 1), '#13#10 +
+        '        IIF(:Cnt2 > 1, 0, 1)) '#13#10 +
+        '    WHERE recordkey = NEW.recordkey; '#13#10 +
+        '    IF (:WasSetIsSimple IS NULL) THEN '#13#10 +
+        '      RDB$SET_CONTEXT(''USER_TRANSACTION'', ''AC_ENTRY_SET_ISSIMPLE'', NULL); '#13#10 +
+        '  END '#13#10 +
+        ' '#13#10 +
+        '  WHEN ANY DO '#13#10 +
+        '  BEGIN '#13#10 +
+        '    RDB$SET_CONTEXT(''USER_TRANSACTION'', ''AC_RECORD_UNLOCK'', NULL); '#13#10 +
+        '    RDB$SET_CONTEXT(''USER_TRANSACTION'', ''AC_ENTRY_SET_ISSIMPLE'', NULL); '#13#10 +
+        '    EXCEPTION; '#13#10 +
+        '  END '#13#10 +
+        'END';
+      q.ExecQuery;
+
+      q.SQL.Text :=
+        'CREATE OR ALTER TRIGGER ac_ad_entry FOR ac_entry '#13#10 +
+        '  AFTER DELETE '#13#10 +
+        '  POSITION 31700 '#13#10 +
+        'AS '#13#10 +
+        '  DECLARE VARIABLE Cnt INTEGER = 0; '#13#10 +
+        '  DECLARE VARIABLE WasSetIsSimple INTEGER; '#13#10 +
+        '  DECLARE VARIABLE WasUnlock INTEGER; '#13#10 +
+        'BEGIN '#13#10 +
+        '  IF (NOT EXISTS(SELECT id FROM ac_entry WHERE recordkey = OLD.recordkey)) THEN '#13#10 +
+        '    DELETE FROM ac_record WHERE id = OLD.recordkey; '#13#10 +
+        '  ELSE BEGIN '#13#10 +
+        '    WasUnlock = RDB$GET_CONTEXT(''USER_TRANSACTION'', ''AC_RECORD_UNLOCK''); '#13#10 +
+        '    IF (:WasUnlock IS NULL) THEN '#13#10 +
+        '      RDB$SET_CONTEXT(''USER_TRANSACTION'', ''AC_RECORD_UNLOCK'', 1); '#13#10 +
+        '    UPDATE ac_record SET '#13#10 +
+        '      debitncu = debitncu - OLD.debitncu, '#13#10 +
+        '      creditncu = creditncu - OLD.creditncu, '#13#10 +
+        '      debitcurr = debitcurr - OLD.debitcurr, '#13#10 +
+        '      creditcurr = creditcurr - OLD.creditcurr '#13#10 +
+        '    WHERE '#13#10 +
+        '      id = OLD.recordkey; '#13#10 +
+        '    IF (:WasUnlock IS NULL) THEN '#13#10 +
+        '      RDB$SET_CONTEXT(''USER_TRANSACTION'', ''AC_RECORD_UNLOCK'', NULL); '#13#10 +
+        ' '#13#10 +
+        '    IF (OLD.issimple = 0) THEN '#13#10 +
+        '    BEGIN '#13#10 +
+        '      SELECT COUNT(*) FROM ac_entry '#13#10 +
+        '      WHERE recordkey = OLD.recordkey AND accountpart = OLD.accountpart '#13#10 +
+        '      INTO :Cnt; '#13#10 +
+        ' '#13#10 +
+        '      IF (:Cnt = 1) THEN '#13#10 +
+        '      BEGIN '#13#10 +
+        '        WasSetIsSimple = RDB$GET_CONTEXT(''USER_TRANSACTION'', ''AC_ENTRY_SET_ISSIMPLE''); '#13#10 +
+        '        IF (:WasSetIsSimple IS NULL) THEN '#13#10 +
+        '          RDB$SET_CONTEXT(''USER_TRANSACTION'', ''AC_ENTRY_SET_ISSIMPLE'', 1); '#13#10 +
+        '        UPDATE ac_entry SET issimple = 1 '#13#10 +
+        '        WHERE recordkey = OLD.recordkey AND accountpart = OLD.accountpart; '#13#10 +
+        '        IF (:WasSetIsSimple IS NULL) THEN '#13#10 +
+        '          RDB$SET_CONTEXT(''USER_TRANSACTION'', ''AC_ENTRY_SET_ISSIMPLE'', NULL); '#13#10 +
+        '      END '#13#10 +
+        '    END '#13#10 +
+        '  END '#13#10 +
+        ' '#13#10 +
+        '  WHEN ANY DO '#13#10 +
+        '  BEGIN '#13#10 +
+        '    RDB$SET_CONTEXT(''USER_TRANSACTION'', ''AC_RECORD_UNLOCK'', NULL); '#13#10 +
+        '    RDB$SET_CONTEXT(''USER_TRANSACTION'', ''AC_ENTRY_SET_ISSIMPLE'', NULL); '#13#10 +
+        '    EXCEPTION; '#13#10 +
+        '  END '#13#10 +
+        'END';
+      q.ExecQuery;
+
+      q.SQL.Text :=
+        'CREATE OR ALTER TRIGGER ac_tc_record '#13#10 +
+        '  ACTIVE '#13#10 +
+        '  ON TRANSACTION COMMIT '#13#10 +
+        '  POSITION 9000 '#13#10 +
+        'AS '#13#10 +
+        '  DECLARE VARIABLE S VARCHAR(255); '#13#10 +
+        '  DECLARE VARIABLE ID INTEGER; '#13#10 +
+        '  DECLARE VARIABLE STM VARCHAR(512); '#13#10 +
+        'BEGIN '#13#10 +
+        '  S = RDB$GET_CONTEXT(''USER_TRANSACTION'', ''AC_RECORD_INCORRECT''); '#13#10 +
+        '  IF (:S IS NOT NULL) THEN '#13#10 +
+        '  BEGIN '#13#10 +
+        '    STM = '#13#10 +
+        '      ''SELECT r.id FROM ac_record r LEFT JOIN ac_entry e '' || '#13#10 +
+        '      ''  ON e.recordkey = r.id LEFT JOIN ac_account a ON a.id = e.accountkey '' || '#13#10 +
+        '      ''WHERE a.offbalance IS DISTINCT FROM 1 AND ''; '#13#10 +
+        ' '#13#10 +
+        '    IF (:S = ''TM'') THEN '#13#10 +
+        '      STM = :STM || '' r.incorrect = 1''; '#13#10 +
+        '    ELSE '#13#10 +
+        '      STM = :STM || '' r.id IN ('' || RIGHT(:S, CHAR_LENGTH(:S) - 1) || '')''; '#13#10 +
+        ' '#13#10 +
+        '    FOR EXECUTE STATEMENT (:STM) INTO :ID '#13#10 +
+        '    DO BEGIN '#13#10 +
+        '      EXCEPTION ac_e_invalidentry ''Попытка сохранить некорректную проводку с ИД: '' || :ID; '#13#10 +
+        '    END '#13#10 +
+        '  END '#13#10 +
+        'END';
+      q.ExecQuery;
+
+      DropTrigger2('AC_BI_ENTRY_ISSIMPLE', Tr);
+      DropTrigger2('AC_BI_ENTRY_ENTRYDATE', Tr);
+      DropTrigger2('AC_BI_ENTRY_RECORD', Tr);
+      DropTrigger2('AC_BU_ENTRY_ISSIMPLE', Tr);
+      DropTrigger2('AC_BU_ENTRY_RECORD', Tr);
+      DropTrigger2('AC_AD_ENTRY_DELETERECORD', Tr);
+      DropTrigger2('AC_AD_ENTRY_ISSIMPLE', Tr);
+
+      q.Close;
+      q.SQL.Text :=
+        'SELECT * FROM rdb$fields ' +
+        'WHERE rdb$field_name = ''DDOCUMENTDATE'' ' +
+        '  AND rdb$validation_source > '''' ';
+      q.ExecQuery;
+
+      if q.EOF then
+      begin
+        q.Close;
+        q.SQL.Text :=
+          'ALTER DOMAIN ddocumentdate ADD CHECK ' +
+          '  (VALUE BETWEEN ''27.01.1994'' AND ''27.01.2094'')';
+        q.ExecQuery;
+      end;  
+
+      q.Close;
+      q.SQL.Text :=
+        'UPDATE OR INSERT INTO fin_versioninfo ' +
+        '  VALUES (199, ''0000.0001.0000.0230'', ''10.02.2014'', ''New triggers for AC_ENTRY, AC_RECORD.'') ' +
+        '  MATCHING (id)';
+      q.ExecQuery;
+
+      q.Close;
+      q.SQL.Text :=
+        'UPDATE OR INSERT INTO fin_versioninfo ' +
+        '  VALUES (200, ''0000.0001.0000.0231'', ''11.02.2014'', ''Restrictions for document date.'') ' +
         '  MATCHING (id)';
       q.ExecQuery;
 

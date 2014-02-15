@@ -626,6 +626,12 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (198, '0000.0001.0000.0229', '12.01.2014', 'Correct old gd_documenttype structure.');
 
+INSERT INTO fin_versioninfo
+  VALUES (199, '0000.0001.0000.0230', '10.02.2014', 'New triggers for AC_ENTRY, AC_RECORD.');
+
+INSERT INTO fin_versioninfo
+  VALUES (200, '0000.0001.0000.0231', '11.02.2014', 'Restrictions for document date.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
