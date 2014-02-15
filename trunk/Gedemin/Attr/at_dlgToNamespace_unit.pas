@@ -6,16 +6,14 @@ uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   Db, DBClient, StdCtrls, IBDatabase, gsIBLookupComboBox, Grids, DBGrids,
   gsDBGrid, ActnList, gdcBaseInterface, gdcBase, DBCtrls, Buttons,
-  gd_createable_form, ExtCtrls, gdcNamespaceController;
+  gd_createable_form, ExtCtrls;
 
 type
   TdlgToNamespace = class(TCreateableForm)
     dsLink: TDataSource;
     ActionList: TActionList;
     actOK: TAction;
-    actClear: TAction;
     pnlGrid: TPanel;
-    dbgrListLink: TgsDBGrid;
     pnlTop: TPanel;
     chbxIncludeSiblings: TCheckBox;
     chbxDontRemove: TCheckBox;
@@ -24,28 +22,27 @@ type
     lMessage: TLabel;
     pnlButtons: TPanel;
     pnlRightBottom: TPanel;
-    Label2: TLabel;
-    edObjectName: TEdit;
-    btnClear: TButton;
     btnOk: TButton;
     btnCancel: TButton;
-    chbxIncludeLinked: TCheckBox;
     Tr: TIBTransaction;
+    sb: TScrollBox;
     procedure actOKExecute(Sender: TObject);
-    procedure actClearExecute(Sender: TObject);
-    procedure actClearUpdate(Sender: TObject);
     procedure actOKUpdate(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
 
   private
-    FgdcNamespaceController: TgdcNamespaceController;
+    FY: Integer;
+    Pnl, Pnl2: TPanel;
+    ChBx: TCheckBox;
+    Lbl: TLabel;
 
   public
     constructor Create(AnOwner: TComponent); override;
     destructor Destroy; override;
 
-    procedure SetupObject(AnObject: TgdcBase; ABL: TBookmarkList);
+    procedure AddObject(const AnObjID: Integer; const AnObjectName: String);
+    procedure AddLinkedObject(const AnObjID: Integer; const AnObjectName: String);
   end;
 
 var
@@ -55,59 +52,24 @@ implementation
 
 {$R *.DFM}
 
-procedure TdlgToNamespace.SetupObject(AnObject: TgdcBase; ABL: TBookmarkList);
-begin
-  FgdcNamespaceController.Setup(AnObject, ABL);
-
-  chbxAlwaysOverwrite.Checked := FgdcNamespaceController.AlwaysOverwrite;
-  chbxDontRemove.Checked := FgdcNamespaceController.DontRemove;
-  chbxIncludeSiblings.Checked := FgdcNamespaceController.IncludeSiblings;
-  chbxIncludeLinked.Checked := FgdcNamespaceController.IncludeLinked;
-  edObjectName.Text := FgdcNamespaceController.ObjectName;
-  dsLink.DataSet := FgdcNamespaceController.ibdsLink;
-  lkupNS.CurrentKeyInt := FgdcNamespaceController.PrevNSID;
-end;
-
 procedure TdlgToNamespace.actOKExecute(Sender: TObject);
 begin
-  FgdcNamespaceController.AlwaysOverwrite := chbxAlwaysOverwrite.Checked;
-  FgdcNamespaceController.DontRemove := chbxDontRemove.Checked;
-  FgdcNamespaceController.IncludeSiblings := chbxIncludeSiblings.Checked;
-  FgdcNamespaceController.IncludeLinked := chbxIncludeLinked.Checked;
-  FgdcNamespaceController.CurrentNSID := lkupNS.CurrentKeyInt;
-  if FgdcNamespaceController.Include then
-    ModalResult := mrOk
-  else
-    ModalResult := mrCancel;
-end;
-
-procedure TdlgToNamespace.actClearExecute(Sender: TObject);
-begin
-  lkupNS.CurrentKey := '';
-end;
-
-procedure TdlgToNamespace.actClearUpdate(Sender: TObject);
-begin
-  (Sender as TAction).Enabled := FgdcNamespaceController.Enabled
-    and (lkupNS.CurrentKey > '');
+  ModalResult := mrOk
 end;
 
 procedure TdlgToNamespace.actOKUpdate(Sender: TObject);
 begin
-  actOk.Enabled := FgdcNamespaceController.Enabled
-    and (lkupNS.CurrentKeyInt <> FgdcNamespaceController.PrevNSID);
+  actOk.Enabled := lkupNS.CurrentKeyInt > -1;
 end;
 
 destructor TdlgToNamespace.Destroy;
 begin
-  FgdcNamespaceController.Free;
   inherited;
 end;
 
 constructor TdlgToNamespace.Create(AnOwner: TComponent);
 begin
   inherited;
-  FgdcNamespaceController := TgdcNamespaceController.Create;
 end;
 
 procedure TdlgToNamespace.FormCreate(Sender: TObject);
@@ -121,6 +83,71 @@ procedure TdlgToNamespace.FormDestroy(Sender: TObject);
 begin
   if Tr.InTransaction then
     Tr.Commit;
+end;
+
+procedure TdlgToNamespace.AddObject(const AnObjID: Integer;
+  const AnObjectName: String);
+begin
+  Pnl := TPanel.Create(Self);
+  Pnl.Name := 'pnlObj' + IntToStr(AnObjID);
+  Pnl.Parent := SB;
+  Pnl.Top := FY;
+  Pnl.Left := 0;
+  Pnl.Width := SB.ClientWidth;
+  Pnl.Height := 21;
+  Pnl.Caption := '';
+
+  ChBx := TCheckBox.Create(Self);
+  ChBx.Name := 'chbxObj' + IntToStr(AnObjID);
+  ChBx.Parent := Pnl;
+  ChBx.Caption := '';
+  ChBx.Top := 2;
+  ChBx.Left := 2;
+  ChBx.Width := 16;
+
+  Lbl := TLabel.Create(Self);
+  Lbl.Name := 'lblObj' + IntToStr(AnObjID);
+  Lbl.Parent := Pnl;
+  Lbl.Left := 20;
+  Lbl.Top := 2;
+  Lbl.AutoSize := True;
+  Lbl.Caption := AnObjectName;
+
+  Inc(FY, Pnl.Height);
+end;
+
+procedure TdlgToNamespace.AddLinkedObject(const AnObjID: Integer;
+  const AnObjectName: String);
+begin
+  Assert(Pnl <> nil);
+
+  Pnl2 := TPanel.Create(Self);
+  Pnl2.Name := 'pnlLinkedObj' + IntToStr(AnObjID);
+  Pnl2.Parent := Pnl;
+  Pnl2.Top := Pnl.Height;
+  Pnl.Height := Pnl.Height + 21;
+  Pnl2.Left := 24;
+  Pnl2.Width := Pnl.Width - 24;
+  Pnl2.Height := 21;
+  Pnl2.Caption := '';
+
+  ChBx := TCheckBox.Create(Self);
+  ChBx.Name := 'chbxLinkedObj' + IntToStr(AnObjID);
+  ChBx.Parent := Pnl2;
+  ChBx.Caption := '';
+  ChBx.Top := 2;
+  ChBx.Left := 2;
+  ChBx.Width := 16;
+
+  Lbl := TLabel.Create(Self);
+  Lbl.Name := 'lblLinkedObj' + IntToStr(AnObjID);
+  Lbl.Parent := Pnl2;
+  Lbl.Left := 20;
+  Lbl.Top := 2;
+  Lbl.AutoSize := True;
+  Lbl.Caption := AnObjectName;
+
+  Inc(FY, Pnl2.Height);
 end;
 
 end.
