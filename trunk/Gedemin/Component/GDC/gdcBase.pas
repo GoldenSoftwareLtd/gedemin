@@ -300,6 +300,22 @@ type
     property HasAdditionalFields: Boolean read FHasAdditionalFields;
   end;
 
+  TgdcCompoundClass = class(TObject)
+  private
+    FgdClass: CgdcBase;
+    FSubType: TgdcSubType;
+    FLinkFieldName: String;
+
+  public
+    constructor Create(const AgdClass: CgdcBase;
+      const ASubType: TgdcSubType;
+      const ALinkFieldName: String);
+
+    property gdClass: CgdcBase read FgdClass;
+    property SubType: TgdcSubType read FSubType;
+    property LinkFieldName: String read FLinkFieldName;
+  end;
+
   //
   TgdcObjectSet = class
   private
@@ -778,6 +794,9 @@ type
     procedure SetStreamDBID(const Value: TID);
     procedure SetStreamXID(const Value: TID);
 
+    function GetCompoundClasses(Index: Integer): TgdcCompoundClass;
+    function GetCompoundClassesCount: Integer;
+
   protected
     FgdcDataLink: TgdcDataLink;
     FInternalTransaction: TIBTransaction;
@@ -796,6 +815,8 @@ type
     // присваивается в TgdcCreateableForm при активизации формы
     FCurrentForm: TObject;
     FGroupID: Integer; //Идентификатор группы отчетов
+
+    FCompoundClasses: TObjectList;
 
     // Вызов списка отчетов
     procedure DoOnReportListClick(Sender: TObject);
@@ -958,10 +979,6 @@ type
     // мус_м праверыць ц_ пасуе гэта нам, тады вернем _сц_на
     // кал_ не -- _лжа
     function AcceptClipboard(CD: PgdcClipboardData): Boolean; virtual;
-
-    //
-    function GetDetailClasses(Index: Integer): CgdcBase; virtual;
-    function GetDetailClassesCount: Integer; virtual;
 
     // копирует для заданной главной таблицы все ссылающиеся записи в детальных
     // таблицах. AnOldID -- идентификатор исходной главной записи
@@ -1172,6 +1189,9 @@ type
 
     //
     function GetSecCondition: String; virtual;
+
+    //
+    procedure CheckCompoundClasses; virtual;
 
   public
     FReadUserFromStream: Boolean;
@@ -1669,12 +1689,6 @@ type
     //
     property ObjectName: String read GetObjectName write SetObjectName;
 
-    // количество детальных таблиц (детальных классов)
-    // в связи мастер-детаил с данным классом
-    property DetailClassesCount: Integer read GetDetailClassesCount;
-    // список классов детальных классов
-    property DetailClasses[Index: Integer]: CgdcBase read GetDetailClasses;
-
     // Количество детальных объектов, связанных с данным через
     // master-detail
     property DetailLinksCount: Integer read GetDetailLinksCount;
@@ -1819,6 +1833,10 @@ type
     //
     property SetAttributesCount: Integer read GetSetAttributesCount;
     property SetAttributes[Index: Integer]: TgdcSetAttribute read GetSetAttributes;
+
+    //
+    property CompoundClassesCount: Integer read GetCompoundClassesCount;
+    property CompoundClasses[Index: Integer]: TgdcCompoundClass read GetCompoundClasses;
 
   published
     //У нас есть класс-функция, которая по умолчанию возвращает для класса
@@ -5087,6 +5105,7 @@ begin
   FObjects.Free;
 
   FSetAttributes.Free;
+  FCompoundClasses.Free;
 
   inherited Destroy;
 end;
@@ -5693,17 +5712,6 @@ function TgdcBase.GetDeleteSQLText: String;
 begin
   Result := Format('DELETE FROM %s WHERE %s=:OLD_%s ',
     [GetListTable(SubType), GetKeyField(SubType), GetKeyField(SubType)]);
-end;
-
-function TgdcBase.GetDetailClasses(Index: Integer): CgdcBase;
-begin
-  Assert((Index >= 0) and (Index < GetDetailClassesCount), 'Invalid index specified');
-  Result := nil;
-end;
-
-function TgdcBase.GetDetailClassesCount: Integer;
-begin
-  Result := 0;
 end;
 
 function TgdcBase.GetDetailField: String;
@@ -18308,6 +18316,71 @@ begin
   if not (sLoadFromStream in BaseState) then
     raise EgdcException.CreateObj('Объект должен находиться в состоянии загрузки из потока.', Self);
   FStreamXID := Value;
+end;
+
+{ TgdcCompoundClass }
+
+constructor TgdcCompoundClass.Create(const AgdClass: CgdcBase;
+  const ASubType: TgdcSubType; const ALinkFieldName: String);
+begin
+  FgdClass := AgdClass;
+  FSubType := ASubType;
+  FLinkFieldName := ALinkFieldName;
+end;
+
+function TgdcBase.GetCompoundClasses(Index: Integer): TgdcCompoundClass;
+begin
+  CheckCompoundClasses;
+  if FCompoundClasses <> nil then
+    Result := FCompoundClasses[Index] as TgdcCompoundClass
+  else
+    Result := nil;
+end;
+
+function TgdcBase.GetCompoundClassesCount: Integer;
+begin
+  CheckCompoundClasses;
+  if FCompoundClasses <> nil then
+    Result := FCompoundClasses.Count
+  else
+    Result := 0;
+end;
+
+procedure TgdcBase.CheckCompoundClasses;
+var
+  L: TObjectList;
+  I: Integer;
+  F: TatForeignKey;
+  FC: TgdcFullClass;
+begin
+  Assert(atDatabase <> nil);
+
+  if FCompoundClasses <> nil then
+    exit;
+
+  L := TObjectList.Create(False);
+  try
+    atDatabase.ForeignKeys.ConstraintsByReferencedRelation(
+      GetListTable(SubType), L, False, True, False);
+
+    for I := 0 to L.Count - 1 do
+    begin
+      F := L[I] as TatForeignKey;
+      if (F.ConstraintFields.Count = 1)
+        and (F.ConstraintFields[0].FieldName = 'MASTERKEY') then
+      begin
+        FC := GetBaseClassForRelation(F.Relation.RelationName);
+
+        if FCompoundClasses = nil then
+          FCompoundClasses := TObjectList.Create(True);
+        FCompoundClasses.Add(
+          TgdcCompoundClass.Create(FC.gdClass, FC.SubType,
+            F.ConstraintFields[0].FieldName));
+      end;
+    end;
+  finally
+    L.Free;
+  end;
 end;
 
 initialization
