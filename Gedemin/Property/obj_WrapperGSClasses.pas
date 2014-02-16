@@ -6402,7 +6402,7 @@ end;
 
 function TwrpGDCBase.Get_DetailClassesCount: Integer;
 begin
-  Result := GetGDCBase. DetailClassesCount;
+  Result := 0;
 end;
 
 function TwrpGDCBase.Get_DetailField: WideString;
@@ -6904,7 +6904,7 @@ end;
 
 function TwrpGDCBase.Get_DetailClasses(Index: Integer): WideString;
 begin
-  Result := GetGDCBase.DetailClasses[Index].ClassName;
+  Result := '';
 end;
 
 function TwrpGDCBase.Get_EventList: IgsStringList;

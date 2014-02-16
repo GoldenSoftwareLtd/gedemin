@@ -124,7 +124,7 @@ begin
     '  od.refobjectid as id, '#13#10 +
     '  r.xid as xid, '#13#10 +
     '  r.dbid as dbid, '#13#10 +
-    '  od.reflevel, '#13#10 +
+    //'   od.reflevel, '#13#10 +
     '  (od.refclassname || od.refsubtype || '' - '' || od.refobjectname) as displayname, '#13#10 +
     '  od.refclassname as class, '#13#10 +
     '  od.refsubtype as subtype, '#13#10 +
