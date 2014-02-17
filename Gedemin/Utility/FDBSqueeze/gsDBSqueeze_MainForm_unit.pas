@@ -220,6 +220,8 @@ type
     procedure strngrdIgnoreDocTypesDrawCell(Sender: TObject; ACol,
       ARow: Integer; Rect: TRect; State: TGridDrawState);
     procedure strngrdIgnoreDocTypesDblClick(Sender: TObject);
+    procedure cbbCompanyDrawItem(Control: TWinControl; Index: Integer;
+      Rect: TRect; State: TOwnerDrawState);
 
   private
     FSThread: TgsDBSqueezeThread;
@@ -287,6 +289,8 @@ begin
   sePort.Value := DEFAULT_PORT;
   edUserName.Text := DEFAULT_USER_NAME;
   edPassword.Text := DEFAULT_PASSWORD;
+
+  cbbCompany.Style := csOwnerDrawFixed;
 
   FConnected := False;
   FStartupTime := Now;
@@ -495,11 +499,14 @@ begin
 end;
 
 procedure TgsDBSqueeze_MainForm.SetItemsCbbEvent(const ACompanies: TStringList);
+var
+  I: Integer;
 begin
   if rbCompany.Checked then
   begin
     cbbCompany.Clear;
-    cbbCompany.Items.AddStrings(ACompanies);
+    for I:=0 to ACompanies.Count-1 do                                            //cbbCompany.Items.AddStrings(ACompanies);
+      cbbCompany.Items.Add(ACompanies.Names[I] + ';' + ACompanies.Values[ACompanies.Names[I]] + ';');
   end;
 end;
 
@@ -715,7 +722,7 @@ begin
       end;
 
       if rbCompany.Checked then
-        FSThread.SetCompanyKey(StrToInt(Trim(Copy(cbbCompany.Text, 1, Pos('=', cbbCompany.Text)-1))));
+        FSThread.SetCompanyKey(StrToInt(Trim(Copy(cbbCompany.Text, 1, Pos(';', cbbCompany.Text)-1))));
 
       FSThread.SetClosingDate(dtpClosingDate.Date);
 
@@ -1046,6 +1053,51 @@ begin
   end;
   mIgnoreDocTypes.Clear;
   mIgnoreDocTypes.Text := Str;
+end;
+
+procedure TgsDBSqueeze_MainForm.cbbCompanyDrawItem(Control: TWinControl;
+  Index: Integer; Rect: TRect; State: TOwnerDrawState);
+var
+  ArrWidth: array [0..2] of Integer;
+  ColumnText, CbbItemText: String;
+  SeparatePos: Integer;
+  rcColumn: TRect;
+begin
+  cbbCompany.Canvas.Brush.Style := bsSolid;
+  cbbCompany.Canvas.FillRect(Rect);
+
+  ArrWidth[0] := 0;
+  ArrWidth[1] := 65;  // Ширина первой колонки
+  ArrWidth[2] := 400;  // Ширина второй колонки
+
+  CbbItemText := cbbCompany.Items[Index]; // Значения для колонок должны быть разделены ';'
+
+  // Прорисовка первой колонки
+  rcColumn.Left   := Rect.Left + ArrWidth[0] + 2;
+  rcColumn.Right  := Rect.Left + ArrWidth[1] - 2;
+  rcColumn.Top    := Rect.Top;
+  rcColumn.Bottom := Rect.Bottom;
+  // Текст первой колонки
+  SeparatePos := Pos(';', CbbItemText);
+  ColumnText := Copy(CbbItemText, 1, SeparatePos - 1);
+  // Прорисовка текста
+  cbbCompany.Canvas.TextRect(rcColumn, rcColumn.Left, rcColumn.Top, ColumnText);
+  // Прорисовка разделительной линии между колонками
+  cbbCompany.Canvas.MoveTo(rcColumn.Right, rcColumn.Top);
+  cbbCompany.Canvas.LineTo(rcColumn.Right, rcColumn.Bottom);
+
+  // Прорисовка второй колонки
+  rcColumn.Left  := Rect.Left + ArrWidth[1] + 2;
+  rcColumn.Right := Rect.Left + ArrWidth[2] - 2;
+  // Текст второй колонки
+  CbbItemText := Copy(CbbItemText, SeparatePos + 1, Length(CbbItemText) - SeparatePos);
+  SeparatePos := Pos(';', CbbItemText);
+  ColumnText := Copy(CbbItemText, 1, SeparatePos - 1);
+  // Прорисовка текста
+  cbbCompany.Canvas.TextRect(rcColumn, rcColumn.Left, rcColumn.Top, ColumnText);
+  // Прорисовка разделительной линии между колонками
+  cbbCompany.Canvas.MoveTo(rcColumn.Right, rcColumn.Top);
+  cbbCompany.Canvas.LineTo(rcColumn.Right, rcColumn.Bottom);
 end;
 
 end.

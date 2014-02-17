@@ -91,8 +91,8 @@ type
     // записать в лог
     procedure LogEvent(const AMsg: String);
     // ExecQuery  и запись в лог
-    procedure ExecSqlLogEvent(const AnIBSQL: TIBSQL; const AProcName: String; const AParamValuesStr: String = ''); Overload;
-    procedure ExecSqlLogEvent(const AnIBQuery: TIBQuery; const AProcName: String; const AParamValuesStr: String = ''); Overload;
+    procedure ExecSqlLogEvent(const AnIBSQL: TIBSQL; const AProcName: String); Overload;
+    procedure ExecSqlLogEvent(const AnIBQuery: TIBQuery; const AProcName: String); Overload;
 
     // создание бэкап-файла Ѕƒ (доступно только при локальном размещении Ѕƒ)
     procedure BackupDatabase;
@@ -529,11 +529,9 @@ begin
       q.ParamByName('ErrorMsg').AsString := AErrorMsg;
 
     if AErrorMsg <> '' then
-      ExecSqlLogEvent(q, 'InsertDBSStateJournal',
-        Format('FunctionKey = %d, State = %d, Now = %s, ErrorMsg = %s', [AFunctionKey, AState, DateTimeToStr(NowDT), AErrorMsg]))
+      ExecSqlLogEvent(q, 'InsertDBSStateJournal')
     else
-      ExecSqlLogEvent(q, 'InsertDBSStateJournal',
-        Format('FunctionKey = %d, State = %d, Now = %s', [AFunctionKey, AState, DateTimeToStr(NowDT)]));
+      ExecSqlLogEvent(q, 'InsertDBSStateJournal');
 
     Tr.Commit;
   finally
@@ -619,9 +617,9 @@ begin
     if FOnlyCompanySaldo then
       q2.ParamByName('CompanyKey').AsInteger := FCompanyKey;
     if FOnlyCompanySaldo then
-      ExecSqlLogEvent(q2, 'CalculateAcSaldo', Format('EntryDate = %s ', [DateTimeToStr(FClosingDate)]))
+      ExecSqlLogEvent(q2, 'CalculateAcSaldo')
     else
-      ExecSqlLogEvent(q2, 'CalculateAcSaldo', Format('EntryDate = %s, CompanyKey = ', [DateTimeToStr(FClosingDate), FCompanyKey]));
+      ExecSqlLogEvent(q2, 'CalculateAcSaldo');
 
     // считаем и сохран€ем сальдо дл€ каждого счета
     while (not q2.EOF) do 
@@ -808,9 +806,9 @@ begin
       if FOnlyCompanySaldo then
         q3.ParamByName('CompanyKey').AsInteger := FCompanyKey;
       if FOnlyCompanySaldo then
-        ExecSqlLogEvent(q3, 'CalculateAcSaldo', Format('AccountKey = %d, EntryDate = %s, CompanyKey = %d', [q2.FieldByName('id').AsInteger, DateTimeToStr(FClosingDate), CompanyKey]))
+        ExecSqlLogEvent(q3, 'CalculateAcSaldo')
       else
-        ExecSqlLogEvent(q3, 'CalculateAcSaldo', Format('AccountKey = %d, EntryDate = %s', [q2.FieldByName('id').AsInteger, DateTimeToStr(FClosingDate)]));
+        ExecSqlLogEvent(q3, 'CalculateAcSaldo');
 
       // проводки по счету '00 ќстатки'
       q3.SQL.Text :=
@@ -979,9 +977,9 @@ begin
         q3.ParamByName('CompanyKey').AsInteger := FCompanyKey;
 
       if FOnlyCompanySaldo then
-        ExecSqlLogEvent(q3, 'CalculateAcSaldo', Format('AccountKey = %d, EntryDate = %s, CompanyKey = %d', [OstatkiAccountKey, DateTimeToStr(FClosingDate), FCompanyKey]))
+        ExecSqlLogEvent(q3, 'CalculateAcSaldo')
       else
-        ExecSqlLogEvent(q3, 'CalculateAcSaldo', Format('AccountKey = %d, EntryDate = %s', [OstatkiAccountKey, DateTimeToStr(FClosingDate)]));
+        ExecSqlLogEvent(q3, 'CalculateAcSaldo');
 
       AvailableAnalyticsList.Clear;
       q3.Close;
@@ -1146,8 +1144,8 @@ begin
     q.ParamByName('ClosingDate').AsDateTime := FClosingDate;
     q.ParamByName('CurUserContactKey').AsInteger := FCurUserContactKey;
 
-    ExecSqlLogEvent(q, 'CreateAcEntries',Format('AccDocTypeKey = %d, Number = %s, ClosingDate = %s, CurUserContactKey = %d', [AccDocTypeKey, 'б/н', DateTimeToStr(FClosingDate), FCurUserContactKey]));
-    
+    ExecSqlLogEvent(q, 'CreateAcEntries');
+
     // перенос проводок
     q.SQL.Text :=
       'INSERT INTO AC_RECORD ( ' +                              #13#10 +
@@ -1167,7 +1165,7 @@ begin
     q.ParamByName('ProizvolnyeTrRecordKey').AsInteger := ProizvolnyeTrRecordKey;
     q.ParamByName('ProizvolnyeTransactionKey').AsInteger := ProizvolnyeTransactionKey;
 
-    ExecSqlLogEvent(q, 'CreateAcEntries', Format('ClosingDate = %s, ProizvolnyeTrRecordKey = %d, ProizvolnyeTransactionKey = %d', [DateTimeToStr(FClosingDate), ProizvolnyeTrRecordKey, ProizvolnyeTransactionKey]));
+    ExecSqlLogEvent(q, 'CreateAcEntries');
 
     // перенос проводок
    q.SQL.Text :=
@@ -1195,7 +1193,7 @@ begin
     q.ParamByName('ClosingDate').AsDateTime := FClosingDate;
     q.ParamByName('ProizvolnyeTransactionKey').AsInteger := ProizvolnyeTransactionKey;
 
-    ExecSqlLogEvent(q, 'CreateAcEntries', Format('ClosingDate = %s, ProizvolnyeTransactionKey = %d', [DateTimeToStr(FClosingDate), ProizvolnyeTransactionKey]));
+    ExecSqlLogEvent(q, 'CreateAcEntries');
 
     Tr.Commit;
   finally
@@ -1265,10 +1263,10 @@ begin
     if FOnlyCompanySaldo then
     begin
       q.ParamByName('CompanyKey').AsInteger := FCompanyKey;
-      ExecSqlLogEvent(q, 'CalculateInvSaldo', 'RemainsDate=' + DateTimeToStr(FClosingDate) + ', CompanyKey=' + IntToStr(FCompanyKey));
+      ExecSqlLogEvent(q, 'CalculateInvSaldo');
     end
     else
-      ExecSqlLogEvent(q, 'CalculateInvSaldo', 'RemainsDate=' + DateTimeToStr(FClosingDate));
+      ExecSqlLogEvent(q, 'CalculateInvSaldo');
 
     Tr.Commit;
   finally
@@ -1345,7 +1343,7 @@ begin
         q.ParamByName('id').AsInteger := PseudoClientKey;
         q.ParamByName('parent').AsInteger := q2.FieldByName('ParentId').AsInteger;
 
-        ExecSqlLogEvent(q, 'CreateInvSaldo', 'id=' + IntToStr(PseudoClientKey) + ', parent=' + q2.FieldByName('ParentId').AsString);
+        ExecSqlLogEvent(q, 'CreateInvSaldo');
         q2.Close;
         Tr.Commit;
         Tr.StartTransaction;
@@ -1375,7 +1373,7 @@ begin
       q.ParamByName('ClosingDate').AsDateTime := FClosingDate;
       q.ParamByName('CurUserContactKey').AsInteger := FCurUserContactKey;
 
-      ExecSqlLogEvent(q, 'CreateInvSaldo', 'InvDocTypeKey=' + IntToStr(InvDocTypeKey) + ', ClosingDate=' + DateTimeToStr(FClosingDate) + ', CurUserContactKey=' + IntToStr(FCurUserContactKey));
+      ExecSqlLogEvent(q, 'CreateInvSaldo');
 
       Tr.Commit;
       Tr.StartTransaction;
@@ -1404,8 +1402,7 @@ begin
       q.ParamByName('ClosingDate').AsDateTime := FClosingDate;
       q.ParamByName('CurUserContactKey').AsInteger := FCurUserContactKey;
 
-      ExecSqlLogEvent(q, 'CreateInvSaldo', 'InvDocTypeKey=' + IntToStr(InvDocTypeKey) + ', ClosingDate=' + DateTimeToStr(FClosingDate) +
-        ', CurUserContactKey=' + IntToStr(FCurUserContactKey));
+      ExecSqlLogEvent(q, 'CreateInvSaldo');
 
       Tr.Commit;
       Tr.StartTransaction;
@@ -1463,7 +1460,7 @@ begin
         'FROM  DBS_TMP_INV_SALDO ');
 
       q.ParamByName('ClosingDate').AsDateTime := FClosingDate;
-      ExecSqlLogEvent(q, 'CreateInvSaldo', 'ClosingDate=' + DateTimeToStr(FClosingDate));
+      ExecSqlLogEvent(q, 'CreateInvSaldo');
 
       Tr.Commit;
       Tr.StartTransaction;
@@ -1490,7 +1487,7 @@ begin
       q.ParamByName('PseudoClientKey').AsInteger := PseudoClientKey;
       q.ParamByName('ClosingDate').AsDateTime := FClosingDate;
 
-      ExecSqlLogEvent(q, 'CreateInvSaldo', 'PseudoClientKey=' + IntToStr(PseudoClientKey) + ', ClosingDate=' + DateTimeToStr(FClosingDate));
+      ExecSqlLogEvent(q, 'CreateInvSaldo');
 
       Tr.Commit;
       Tr.StartTransaction;
@@ -1517,7 +1514,7 @@ begin
       q.ParamByName('ClosingDate').AsDateTime := FClosingDate;
       q.ParamByName('PseudoClientKey').AsInteger := PseudoClientKey;
 
-      ExecSqlLogEvent(q, 'CreateInvSaldo', 'ClosingDate=' + DateTimeToStr(FClosingDate) + ', PseudoClientKey=' + IntToStr(PseudoClientKey));
+      ExecSqlLogEvent(q, 'CreateInvSaldo');
 
       Tr.Commit;
 
@@ -1671,7 +1668,7 @@ begin
       '  AND t.documenttype = ''D'' ' +                         #13#10 +
       '  AND d_old.documentdate < :ClosingDate ');
     q3.ParamByName('ClosingDate').AsDateTime := FClosingDate;
-    ExecSqlLogEvent(q3, 'PrepareRebindInvCards', 'ClosingDate=' + DateTimeToStr(FClosingDate));
+    ExecSqlLogEvent(q3, 'PrepareRebindInvCards');
 
     FirstDocumentKey := -1;
     FirstDate := FClosingDate;                                 /// TODO: уточнить FirstDate
@@ -1729,8 +1726,7 @@ begin
             q4.ParamByName(Trim(CardFeaturesList[I])).AsVariant := q3.FieldByName(Trim(CardFeaturesList[I])).AsVariant;
         end;       
 
-        ExecSqlLogEvent(q4, 'PrepareRebindInvCards', 'DocTypeKey=' + IntToStr(InvDocTypeKey) + ', ClosingDate=' + DateTimeToStr(FClosingDate) +
-          ', GoodKey=' + q3.FieldByName('goodkey').AsString +  ', CONTACT1=' + IntToStr(CurrentFromContactkey) + ', CONTACT2=' + IntToStr(CurrentToContactkey));
+        ExecSqlLogEvent(q4, 'PrepareRebindInvCards');
 
         // если нашли подход€щую карточку, созданную документом остатков
         if q4.RecordCount > 0 then
@@ -1766,8 +1762,7 @@ begin
           q4.ParamByName('CONTACT1').AsInteger := CurrentFromContactkey;
           q4.ParamByName('CONTACT2').AsInteger := CurrentToContactkey;
           
-          ExecSqlLogEvent(q4, 'PrepareRebindInvCards', 'DocTypeKey=' + IntToStr(InvDocTypeKey) + ', ClosingDate=' + DateTimeToStr(FClosingDate) +
-            ', GoodKey=' + q3.FieldByName('goodkey').AsString + ', CONTACT1=' + IntToStr(CurrentFromContactkey) + ', CONTACT2=' + IntToStr(CurrentToContactkey));
+          ExecSqlLogEvent(q4, 'PrepareRebindInvCards');
 
           if q4.RecordCount > 0 then
           begin
@@ -1784,8 +1779,7 @@ begin
             qInsertGdDoc.ParamByName('COMPANYKEY').AsInteger := q3.FieldByName('COMPANYKEY').AsInteger;
             qInsertGdDoc.ParamByName('USERKEY').AsInteger := FCurUserContactKey;
             
-            ExecSqlLogEvent(qInsertGdDoc, 'PrepareRebindInvCards', 'ID=' + IntToStr(DocumentParentKey) + ', PARENT=NULL, DOCUMENTTYPEKEY=' + IntToStr(InvDocTypeKey) +
-              ', COMPANYKEY=' + q3.FieldByName('COMPANYKEY').AsString + ', USERKEY=' + IntToStr(FCurUserContactKey));
+            ExecSqlLogEvent(qInsertGdDoc, 'PrepareRebindInvCards');
 /////////////
             NewDocumentKey := GetNewID;
 
@@ -1795,8 +1789,7 @@ begin
             qInsertGdDoc.ParamByName('COMPANYKEY').AsInteger := q3.FieldByName('companykey').AsInteger;
             qInsertGdDoc.ParamByName('USERKEY').AsInteger := FCurUserContactKey;
             //qInsertGdDoc.ExecQuery;
-            ExecSqlLogEvent(qInsertGdDoc, 'PrepareRebindInvCards', 'ID=' + IntToStr(NewDocumentKey) + ', PARENT=' + IntToStr(DocumentParentKey) + ', DOCUMENTTYPEKEY=' + IntToStr(InvDocTypeKey) +
-              ', COMPANYKEY=' + q3.FieldByName('COMPANYKEY').AsString + ', USERKEY=' + IntToStr(FCurUserContactKey));
+            ExecSqlLogEvent(qInsertGdDoc, 'PrepareRebindInvCards');
 
             NewCardKey := GetNewID;
         
@@ -1815,8 +1808,7 @@ begin
                 qInsertInvCard.ParamByName('USR$INV_ADDLINEKEY').AsInteger := NewDocumentKey;
             end;
 
-            ExecSqlLogEvent(qInsertInvCard, 'PrepareRebindInvCards', 'ID=' + IntToStr(NewCardKey) + ', GOODKEY=' + q3.FieldByName('goodkey').AsString +
-                  ', DOCUMENTKEY=' + IntToStr(NewDocumentKey) + ', COMPANYKEY=' + q3.FieldByName('companykey').AsString + ' ...');
+            ExecSqlLogEvent(qInsertInvCard, 'PrepareRebindInvCards');
             
             NewMovementKey := GetNewID;
 
@@ -1830,8 +1822,7 @@ begin
             qInsertInvMovement.ParamByName('DEBIT').AsCurrency := 0;
             qInsertInvMovement.ParamByName('CREDIT').AsCurrency := 0;
         
-            ExecSqlLogEvent(qInsertInvMovement, 'PrepareRebindInvCards', 'ID=GetNewID(), GOODKEY=' + q3.FieldByName('goodkey').AsString + ', MOVEMENTKEY=' + IntToStr(NewMovementKey) +
-              ', DOCUMENTKEY=' + IntToStr(NewDocumentKey) + ', CONTACTKEY=' + IntToStr(CurrentFromContactkey) + ', CARDKEY=' + IntToStr(NewCardKey) + ', DEBIT=0, CREDIT=0');
+            ExecSqlLogEvent(qInsertInvMovement, 'PrepareRebindInvCards');
 
             // —оздадим кредитовую часть складского движени€
             qInsertInvMovement.ParamByName('ID').AsInteger := GetNewID;
@@ -1843,8 +1834,7 @@ begin
             qInsertInvMovement.ParamByName('DEBIT').AsCurrency := 0;
             qInsertInvMovement.ParamByName('CREDIT').AsCurrency := 0;
 
-            ExecSqlLogEvent(qInsertInvMovement, 'PrepareRebindInvCards', 'ID=GetNewID(), GOODKEY=' + q3.FieldByName('goodkey').AsString + ', MOVEMENTKEY=' + IntToStr(NewMovementKey) +
-              ', DOCUMENTKEY=' + IntToStr(NewDocumentKey) + ', CONTACTKEY=' + IntToStr(CurrentFromContactkey) + ', CARDKEY=' + IntToStr(NewCardKey) + ', DEBIT=0, CREDIT=0');
+            ExecSqlLogEvent(qInsertInvMovement, 'PrepareRebindInvCards');
 ////////////////////
           end;
         end;
@@ -1887,7 +1877,7 @@ begin
             q4.ParamByName(Trim(CardFeaturesList[I])).AsVariant := q3.FieldByName(Trim(CardFeaturesList[I])).AsVariant;
         end;   
 
-        ExecSqlLogEvent(q4, 'PrepareRebindInvCards', 'ClosingDate=' + DateTimeToStr(FClosingDate) + ', DocTypeKey=' + IntToStr(InvDocTypeKey) + ', GoodKey=' + q3.FieldByName('GOODKEY').AsString);
+        ExecSqlLogEvent(q4, 'PrepareRebindInvCards');
 
         if q4.RecordCount > 0 then
           NewCardKey := q4.FieldByName('CardKey').AsInteger
@@ -1904,8 +1894,7 @@ begin
       qInsertTmpRebind.ParamByName('FirstDate').AsDateTime := FirstDate; ////
       qInsertTmpRebind.ParamByName('CurrentRelationName').AsString := CurrentRelationName;
 
-      ExecSqlLogEvent(qInsertTmpRebind, 'PrepareRebindInvCards', 'CurrentCardKey=' + IntToStr(CurrentCardKey) + ', NewCardKey=' + IntToStr(NewCardKey) + ', CurrentFirstDocKey=' + IntToStr(CurrentFirstDocKey) +
-        ', FirstDocumentKey=' + IntToStr(FirstDocumentKey) + ', FirstDate=' + DateTimeToStr(FirstDocumentKey) + ', CurrentRelationName=' + CurrentRelationName);
+      ExecSqlLogEvent(qInsertTmpRebind, 'PrepareRebindInvCards');
 
       q3.Next;
     end;
@@ -1940,7 +1929,7 @@ begin
       '	   ORDER BY m.movementdate DESC ' +             #13#10 +
       '  ) >= :CloseDate ';
     q3.ParamByName('CloseDate').AsDateTime := FClosingDate;
-    ExecSqlLogEvent(q3, 'PrepareRebindInvCards', 'CloseDate=' + DateTimeToStr(FClosingDate));
+    ExecSqlLogEvent(q3, 'PrepareRebindInvCards');
 
     q3.Close;
     q3.SQL.Text :=
@@ -1953,7 +1942,7 @@ begin
       'WHERE ' +                                        #13#10 +
       '  m.movementdate >= :CloseDate ';
     q3.ParamByName('CloseDate').AsDateTime := FClosingDate;
-    ExecSqlLogEvent(q3, 'PrepareRebindInvCards', 'CloseDate=' + DateTimeToStr(FClosingDate));
+    ExecSqlLogEvent(q3, 'PrepareRebindInvCards');
 
     FIgnoreTbls.Add('INV_CARD=PARENT');
 
@@ -1995,7 +1984,7 @@ begin
         [Trim(q3.FieldByName('PkField').AsString), Trim(q3.FieldByName('RelationName').AsString), Trim(q3.FieldByName('FkField').AsString)]);
 
       q4.ParamByName('ClosingDate').AsDateTime := FClosingDate;
-      ExecSqlLogEvent(q4, 'PrepareRebindInvCards', 'ClosingDate=' + DateTimeToStr(FClosingDate));
+      ExecSqlLogEvent(q4, 'PrepareRebindInvCards');
       q4.Close;
 
       q3.Next;
@@ -2026,8 +2015,7 @@ begin
       q3.ParamByName('RN').AsString := Copy(FIgnoreTbls[I], 0, Pos('=', FIgnoreTbls[I]) - 1);
       q3.ParamByName('FN').AsString := Copy(FIgnoreTbls[I], Pos('=', FIgnoreTbls[I]) + 1, Length(FIgnoreTbls[I]));
 
-      ExecSqlLogEvent(q3, 'PrepareRebindInvCards', 'RN=' + Copy(FIgnoreTbls[I], 0, Pos('=', FIgnoreTbls[I]) - 1) +
-        ', FN=' + Copy(FIgnoreTbls[I], Pos('=', FIgnoreTbls[I]) + 1, Length(FIgnoreTbls[I])));
+      ExecSqlLogEvent(q3, 'PrepareRebindInvCards');
     end;
 
     Tr.Commit;
@@ -2137,8 +2125,8 @@ begin
         // обновление ссылок на родительскую карточку
         qUpdateCard.ParamByName('OldParent').AsInteger :=  q3.FieldByName('CurrentCardKey').AsInteger;
         qUpdateCard.ParamByName('NewParent').AsInteger := q3.FieldByName('NewCardKey').AsInteger;
-      
-        ExecSqlLogEvent(qUpdateCard, 'RebindInvCards', 'OldParent=' + q3.FieldByName('CurrentCardKey').AsString + ', NewParent=' + q3.FieldByName('NewCardKey').AsString);
+
+        ExecSqlLogEvent(qUpdateCard, 'RebindInvCards');
         qUpdateCard.Close;
 
         // обновление ссылок на документ прихода и дату прихода
@@ -2148,7 +2136,7 @@ begin
           qUpdateFirstDocKey.ParamByName('NewDockey').AsInteger := q3.FieldByName('FirstDocumentKey').AsInteger;
           ///qUpdateFirstDocKey.ParamByName('NewDate').AsDateTime := q3.FieldByName('FirstDate').AsDateTime;
       
-          ExecSqlLogEvent(qUpdateFirstDocKey, 'RebindInvCards', 'OldDockey=' + q3.FieldByName('CurrentFirstDocKey').AsString + ', NewDockey=' + q3.FieldByName('FirstDocumentKey').AsString); ///+', NewDate=' + q3.FieldByName('FirstDate').AsString);
+          ExecSqlLogEvent(qUpdateFirstDocKey, 'RebindInvCards'); ///+', NewDate=' + q3.FieldByName('FirstDate').AsString);
           qUpdateFirstDocKey.Close;
         end;
 
@@ -2156,7 +2144,7 @@ begin
         qUpdateInvMovement.ParamByName('OldCardkey').AsInteger := q3.FieldByName('CurrentCardKey').AsInteger;
         qUpdateInvMovement.ParamByName('NewCardkey').AsInteger := q3.FieldByName('NewCardKey').AsInteger;
         
-        ExecSqlLogEvent(qUpdateInvMovement, 'RebindInvCards', 'OldCardkey=' + q3.FieldByName('CurrentCardKey').AsString + ', NewCardkey=' + q3.FieldByName('NewCardKey').AsString);
+        ExecSqlLogEvent(qUpdateInvMovement, 'RebindInvCards');
         qUpdateInvMovement.Close;
 
         // обновление в дополнительнных таблицах складских документов ссылок на складские карточки
@@ -2173,7 +2161,7 @@ begin
           q4.ParamByName('RelationName').AsString := q3.FieldByName('CurrentRelationName').AsString;
           q4.ParamByName('FieldName').AsString := CardkeyFieldNames[I];
         
-          ExecSqlLogEvent(q4, 'RebindInvCards', 'RelationName=' + q3.FieldByName('CurrentRelationName').AsString + ', FieldName=' + CardkeyFieldNames[I]);
+          ExecSqlLogEvent(q4, 'RebindInvCards');
 
           if not q4.RecordCount > 0 then //если доп таблица содержит поле TOCARDKEY/FROMCARDKEY, то обновим их ссылки новыми карточками
           begin
@@ -2196,8 +2184,7 @@ begin
             q4.ParamByName('NewCardkey').AsInteger := q3.FieldByName('NewCardKey').AsInteger;
             q4.ParamByName('ClosingDate').AsDateTime := FClosingDate;
             
-            ExecSqlLogEvent(q4, 'RebindInvCards', 'OldCardkey=' + q3.FieldByName('CurrentCardKey').AsString + ', NewCardkey=' + q3.FieldByName('NewCardKey').AsString +
-              ', ClosingDate=' + DateTimeToStr(FClosingDate));
+            ExecSqlLogEvent(q4, 'RebindInvCards');
           end;
           q4.Close;
         end;
@@ -2452,7 +2439,6 @@ var
         q3.Transaction := Tr2;
         q5.Transaction := Tr2;
 
-
         LogEvent('[test] FIgnoreTbls: ' + FIgnoreTbls.Text);
 
       //include HIS_1 - об€заны остатьс€
@@ -2519,7 +2505,7 @@ var
             '  AND fc.list_fields NOT LIKE ''%,%'' ';
 
           q2.ParamByName('rln').AsString := TmpList.Names[J];
-          ExecSqlLogEvent(q2, 'IncludeCascadingSequences', 'rln=' + TmpList.Names[J]);
+          ExecSqlLogEvent(q2, 'IncludeCascadingSequences');
 
           while not q2.EOF do
           begin
@@ -2562,7 +2548,7 @@ var
             '  AND  rf.crosstable IS NOT NULL ';
 
           q.ParamByName('rln').AsString := LineDocTbls.Names[J];
-          ExecSqlLogEvent(q, 'IncludeCascadingSequences', 'rln=' + LineDocTbls.Names[J]);
+          ExecSqlLogEvent(q, 'IncludeCascadingSequences');
 
           if not q.EOF then
             TmpStr := LineDocTbls.Names[J] + '=';
@@ -2658,7 +2644,7 @@ var
             'GROUP BY fc.relation_name, fc.list_ref_fields ';
 
           q2.ParamByName('rln').AsString := LineDocTbls.Names[J];
-          ExecSqlLogEvent(q2, 'IncludeCascadingSequences', 'rln=' + LineDocTbls.Names[J]);
+          ExecSqlLogEvent(q2, 'IncludeCascadingSequences');
 
           while not q2.EOF do
           begin
@@ -2766,7 +2752,7 @@ var
             '  AND fc.list_fields NOT LIKE ''%,%'' ';
 
           q2.ParamByName('rln').AsString := LineDocTbls.Names[J];
-          ExecSqlLogEvent(q2, 'IncludeCascadingSequences', 'rln=' + LineDocTbls.Names[J]);
+          ExecSqlLogEvent(q2, 'IncludeCascadingSequences');
 
           FkFieldsListLine.Clear;
           FkFieldsList2.Clear;
@@ -2902,7 +2888,7 @@ var
               '      AND fc.list_fields = c.list_fields) ';
 
             q4.ParamByName('rln').AsString := LineDocTbls.Names[J];
-            ExecSqlLogEvent(q4, 'IncludeCascadingSequences', 'rln=' + LineDocTbls.Names[J]);
+            ExecSqlLogEvent(q4, 'IncludeCascadingSequences');
 
             if not q4.EOF then
             begin
@@ -3154,7 +3140,7 @@ begin
       '   AND parent IS NULL ';
 
     q.ParamByName('Date').AsDateTime := FClosingDate;
-    ExecSqlLogEvent(q, 'CreateHIS_IncludeInHIS', 'Date=' + DateTimeToStr(FClosingDate));
+    ExecSqlLogEvent(q, 'CreateHIS_IncludeInHIS');
     LogEvent(Format('BEFORE COUNT in HIS(1) without cascade: %d', [q.FieldByName('Kolvo').AsInteger]));
     q.Close;
 
@@ -3168,7 +3154,7 @@ begin
       '  FROM gd_document ' +                                #13#10 +
       ' WHERE g_his_has(1, id) = 1';
    // q.ParamByName('Date').AsDateTime := FClosingDate;
-    ExecSqlLogEvent(q, 'CreateHIS_IncludeInHIS', 'Date=' + DateTimeToStr(FClosingDate));
+    ExecSqlLogEvent(q, 'CreateHIS_IncludeInHIS');
     LogEvent(Format('COUNT DOCS in HIS: %d', [q.FieldByName('Kolvo').AsInteger]));
     q.Close;
 
@@ -3630,7 +3616,7 @@ begin
       //      'AND companykey IN(' + OurCompaniesListStr + ')');
 
       q.ParamByName('ClosingDate').AsDateTime := FClosingDate;
-      ExecSqlLogEvent(q, 'DeleteOldAcEntryBalance', 'ClosingDate=' + DateTimeToStr(FClosingDate));
+      ExecSqlLogEvent(q, 'DeleteOldAcEntryBalance');
       LogEvent('[test] DELETE FROM AC_RECORD... OK');
       Tr.Commit;
       Tr.StartTransaction;
@@ -4243,7 +4229,7 @@ begin
     q.Transaction := Tr;
     q.SQL.Text :=
       'SELECT ' +                                                       #13#10 +
-      '  TRIM(go.companykey || '' = '' || gc.fullname) AS CompName ' +  #13#10 +
+      '  TRIM(go.companykey || ''='' || gc.fullname) AS CompName ' +  #13#10 +
       'FROM gd_ourcompany go ' +                                        #13#10 +
       '  JOIN GD_COMPANY gc ' +                                         #13#10 +
       '    ON go.companykey = gc.contactkey ';
@@ -4315,21 +4301,35 @@ begin
   end;
 end;
 
-procedure TgsDBSqueeze.ExecSqlLogEvent(const AnIBSQL: TIBSQL; const AProcName: String; const AParamValuesStr: String = '');
+procedure TgsDBSqueeze.ExecSqlLogEvent(const AnIBSQL: TIBSQL; const AProcName: String);
 const
   Ms = 1 / (24 * 60 * 60 * 1000); // «начение 1 миллисекунды в формате TDateTime
 var
+  I: Integer;
+  ParamValuesStr: String;
   StartDT: TDateTime;
   Start, Stop: Extended;
   Time : TDateTime;
   TimeStr: String;
   Hour, Min, Sec, Milli: Word;
 begin
+  ParamValuesStr := '';
+  for I:=0 to AnIBSQL.Params.Count-1 do
+  begin
+    if I <> 0 then
+     ParamValuesStr := ParamValuesStr + ', ';
+
+    if AnIBSQL.Params.Vars[I].IsNull then
+      ParamValuesStr := ParamValuesStr + AnIBSQL.Params.Vars[I].Name + '=NULL'
+    else
+      ParamValuesStr := ParamValuesStr + AnIBSQL.Params.Vars[I].Name + '=' + AnIBSQL.Params.Vars[I].AsString;
+  end;
+
   TimeStr := '';
   FOnLogSQLEvent('Procedure: ' + AProcName);
   FOnLogSQLEvent(AnIBSQL.SQL.Text);
-  if AParamValuesStr <> '' then
-    FOnLogSQLEvent('Parameters: ' + AParamValuesStr);
+  if ParamValuesStr <> '' then
+    FOnLogSQLEvent('Parameters: ' + ParamValuesStr);
 
   StartDT := Now;
   FOnLogSQLEvent('Begin Time: ' + FormatDateTime('h:nn:ss:zzz', StartDT));
@@ -4341,8 +4341,8 @@ begin
     begin
       LogEvent('ERROR in procedure: ' + AProcName);
       LogEvent('ERROR SQL: ' + AnIBSQL.SQL.Text);
-      if AParamValuesStr <> '' then
-        LogEvent('Parameters: ' + AParamValuesStr);
+      if ParamValuesStr <> '' then
+        LogEvent('Parameters: ' + ParamValuesStr);
       raise EgsDBSqueeze.Create(E.Message);
     end;
   end;
@@ -4387,21 +4387,35 @@ begin
   FOnLogSQLEvent('   ');
 end;
 
-procedure TgsDBSqueeze.ExecSqlLogEvent(const AnIBQuery: TIBQuery; const AProcName: String; const AParamValuesStr: String = '');
+procedure TgsDBSqueeze.ExecSqlLogEvent(const AnIBQuery: TIBQuery; const AProcName: String);
 const
   Ms = 1 / (24 * 60 * 60 * 1000); // «начение 1 миллисекунды в формате TDateTime
 var
+  I: Integer;
+  ParamValuesStr: String;
   StartDT: TDateTime;
   Start, Stop: Extended;
   Time : TDateTime;
   TimeStr: String;
   Hour, Min, Sec, Milli: Word;
 begin
+  ParamValuesStr := '';
+  for I:=0 to AnIBQuery.Params.Count-1 do
+  begin
+    if I <> 0 then
+     ParamValuesStr := ParamValuesStr + ', ';
+
+    if AnIBQuery.Params[I].IsNull then
+      ParamValuesStr := ParamValuesStr + AnIBQuery.Params[I].Name + '=NULL'
+    else
+      ParamValuesStr := ParamValuesStr + AnIBQuery.Params[I].Name + '=' + AnIBQuery.Params[I].AsString;
+  end;
+
   TimeStr := '';
   FOnLogSQLEvent('Procedure: ' + AProcName);
   FOnLogSQLEvent(AnIBQuery.SQL.Text);
-  if AParamValuesStr <> '' then
-    FOnLogSQLEvent('Parameters: ' + AParamValuesStr);
+  if ParamValuesStr <> '' then
+    FOnLogSQLEvent('Parameters: ' + ParamValuesStr);
 
   StartDT := Now;
   FOnLogSQLEvent('Begin Time: ' + FormatDateTime('h:nn:ss:zzz', StartDT));
@@ -4413,8 +4427,8 @@ begin
     begin
       LogEvent('ERROR in procedure: ' + AProcName);
       LogEvent('ERROR SQL: ' + AnIBQuery.SQL.Text);
-      if AParamValuesStr <> '' then
-        LogEvent('Parameters: ' + AParamValuesStr);
+      if ParamValuesStr <> '' then
+        LogEvent('Parameters: ' + ParamValuesStr);
       raise EgsDBSqueeze.Create(E.Message);
     end;
   end;
