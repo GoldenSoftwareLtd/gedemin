@@ -7,7 +7,15 @@ uses
   ActnList, StdCtrls, gsDBSqueezeThread_unit, gd_ProgressNotifier_unit,
   ComCtrls, DBCtrls, Buttons, ExtCtrls, Spin, Grids;
 
+const
+  DEFAULT_HOST = 'localhost';
+  DEFAULT_PORT = 3050;
+  DEFAULT_USER_NAME = 'SYSDBA';
+  DEFAULT_PASSWORD = 'masterkey';
+  DEFAULT_CHARACTER_SET = 'WIN1251';
+
 type
+
   TgsDBSqueeze_MainForm = class(TForm, IgdProgressWatch)
 
     ActionList: TActionList;
@@ -274,6 +282,11 @@ begin
   mLog.ReadOnly := True;
   mSqlLog.ReadOnly := True;
   dtpClosingDate.Date := Date;
+
+  edtHost.Text := DEFAULT_HOST;
+  sePort.Value := DEFAULT_PORT;
+  edUserName.Text := DEFAULT_USER_NAME;
+  edPassword.Text := DEFAULT_PASSWORD;
 
   FConnected := False;
   FStartupTime := Now;
@@ -603,7 +616,7 @@ begin
   if rbLocale.Checked then
   begin
     gsDBSqueeze_MainForm.DefocusControl(rbLocale, False);
-    edtHost.Text := 'localhost'
+    edtHost.Text := DEFAULT_HOST
   end
   else begin
     gsDBSqueeze_MainForm.DefocusControl(rbRemote, False);
@@ -627,6 +640,7 @@ procedure TgsDBSqueeze_MainForm.actNextPageExecute(Sender: TObject);
 var
   LogFileName: String;
   BackupFileName: String;
+  RestoreDBName: String;
 begin
   LogFileName := '';
   BackupFileName := '';
@@ -656,18 +670,26 @@ begin
       sttxtGarbageCollection.Caption := '';
       sttxtDBSizeBefore.Caption := '';
       sttxtDBSizeAfter.Caption := '';
-      
+
+      FDatabaseName := edDatabaseName.Text;
+      if Pos('\', FDatabaseName) <> 0 then
+        Delete(FDatabaseName, 1, LastDelimiter('\', FDatabaseName));
+
       if (actDefaultPort.Enabled) and (chkDefaultPort.Checked) then
         FSThread.SetDBParams(
-          edtHost.Text + ':' + edDatabaseName.Text,
+          edDatabaseName.Text,
+          edtHost.Text,
           edUserName.Text,
-          edPassword.Text)
+          edPassword.Text,
+          DEFAULT_CHARACTER_SET)
       else if not chkDefaultPort.Checked then
         FSThread.SetDBParams(
-        edtHost.Text + '/' + sePort.Text + ':' + edDatabaseName.Text,
-        edUserName.Text,
-        edPassword.Text);
-      FDatabaseName := edDatabaseName.Text;
+          edDatabaseName.Text,
+          edtHost.Text,
+          edUserName.Text,
+          edPassword.Text,
+          DEFAULT_CHARACTER_SET,
+          sePort.Value);
 
       FSThread.Connect;
       if btnGo.Enabled then
@@ -693,7 +715,7 @@ begin
       end;
 
       if rbCompany.Checked then
-        FSThread.SetCompanyName(Trim(Copy(cbbCompany.Text, 1, Pos('|', cbbCompany.Text)-1)));
+        FSThread.SetCompanyKey(StrToInt(Trim(Copy(cbbCompany.Text, 1, Pos('=', cbbCompany.Text)-1))));
 
       FSThread.SetClosingDate(dtpClosingDate.Date);
 
@@ -723,16 +745,19 @@ begin
       begin
         FSaveLogs := True;
         if (Trim(edLogs.Text))[Length(Trim(edLogs.Text))] = '\' then
-          LogFileName := Trim(edLogs.Text) + 'DBS_' + FDatabaseName + '_'+ FormatDateTime('yy-mm-dd_hh-mm', FStartupTime) + '.log'
+          LogFileName := Trim(edLogs.Text) + 'DBS_' + FDatabaseName + '_'+ FormatDateTime('yymmdd_hh-mm', FStartupTime) + '.log'
         else
-          LogFileName := Trim(edLogs.Text) + '\DBS_' + FDatabaseName + '_'+ FormatDateTime('yy-mm-dd_hh-mm', FStartupTime) + '.log';
+          LogFileName := Trim(edLogs.Text) + '\DBS_' + FDatabaseName + '_'+ FormatDateTime('yymmdd_hh-mm', FStartupTime) + '.log';
       end;
       if edtBackup.Enabled then
       begin
         if (Trim(edtBackup.Text))[Length(Trim(edtBackup.Text))] = '\' then
-          BackupFileName := Trim(edtBackup.Text) + 'DBS_Backup_' + FDatabaseName + '_' + FormatDateTime('yymmdd_hhmm', FStartupTime) + '.bk'
+          BackupFileName := Trim(edtBackup.Text) + 'DBS_' + FDatabaseName + '_' + FormatDateTime('yymmdd_hhmm', FStartupTime) + '.fbk'
         else
-          BackupFileName := Trim(edtBackup.Text) + '\DBS_Backup_' + FDatabaseName + '_' + FormatDateTime('yymmdd_hhmm', FStartupTime) + '.bk'
+          BackupFileName := Trim(edtBackup.Text) + '\DBS_' + FDatabaseName + '_' + FormatDateTime('yymmdd_hhmm', FStartupTime) + '.fbk';
+
+        ///TODO на форме выбор сделать
+        RestoreDBName := Trim(edtBackup.Text) + '\DBS_RESTORE_' + FormatDateTime('yymmdd_hhmm', FStartupTime) + FDatabaseName;
       end;
 
       if chkbSaveLogs.Checked then
@@ -748,6 +773,7 @@ begin
         chkBackup.Checked,
         LogFileName,
         BackupFileName,
+        RestoreDBName,
         rbContinue.Checked);
 
       mReviewSettings.Clear;
@@ -850,19 +876,21 @@ begin
   sttxtServerName.Caption := '';
   sttxtActivUserCount.Caption := '';
 
-  if (actDefaultPort.Enabled and chkDefaultPort.Checked) then
+  if (actDefaultPort.Enabled) and (chkDefaultPort.Checked) then
     FSThread.StartTestConnect(
-      edtHost.Text + ':' + edDatabaseName.Text,
+      edDatabaseName.Text,
+      edtHost.Text,
       edUserName.Text,
-      edPassword.Text)
+      edPassword.Text,
+      DEFAULT_CHARACTER_SET)
   else if not chkDefaultPort.Checked then
     FSThread.StartTestConnect(
-      edtHost.Text + '/' + sePort.Text + ':' + edDatabaseName.Text,
+      edDatabaseName.Text,
+      edtHost.Text,
       edUserName.Text,
-      edPassword.Text);
-
-  FSThread.DoGetInfoTestConnect;
-  FSThread.StopTestConnect;
+      edPassword.Text,
+      DEFAULT_CHARACTER_SET,
+      sePort.Value);
 end;
 
 procedure TgsDBSqueeze_MainForm.actTestConnectUpdate(Sender: TObject);

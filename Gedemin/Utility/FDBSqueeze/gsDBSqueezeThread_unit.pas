@@ -18,7 +18,7 @@ const
   WM_DBS_SETDOCTYPESRINGS      = WM_USER + 9;
   WM_DBS_GETDBPROPERTIES       = WM_USER + 10;
   WM_DBS_SETCLOSINGDATE        = WM_USER + 11;
-  WM_DBS_SETCOMPANYNAME        = WM_USER + 12;
+  WM_DBS_SETCOMPANYKEY         = WM_USER + 12;
   WM_DBS_SETSALDOPARAMS        = WM_USER + 13;
   WM_DBS_SETOPTIONS            = WM_USER + 14;
   WM_DBS_GETSTATISTICS         = WM_USER + 15;
@@ -26,25 +26,26 @@ const
   WM_DBS_STARTPROCESSING       = WM_USER + 17;
   WM_DBS_STOPPROCESSING        = WM_USER + 18;
   WM_DBS_RECONNECT             = WM_USER + 19;
-  WM_DBS_BACKUPDATABASE        = WM_USER + 20;
-  WM_DBS_SETFVARIABLLES        = WM_USER + 21;
-  WM_DBS_CREATEMETADATA        = WM_USER + 22;
-  WM_DBS_SAVEMETADATA          = WM_USER + 23;
-  WM_DBS_CALCULATEACSALDO      = WM_USER + 24;
-  WM_DBS_CALCULATEINVSALDO     = WM_USER + 25;
-  WM_DBS_PREPAREREBINDINVCARDS = WM_USER + 26;
-  WM_DBS_CREATEHIS_INCLUDEHIS  = WM_USER + 27;
-  WM_DBS_PREPAREDB             = WM_USER + 28;
-  WM_DBS_DELETEOLDBALANCE      = WM_USER + 29;
-  WM_DBS_DELETEDOCHIS          = WM_USER + 30;
-  WM_DBS_CREATEACENTRIES       = WM_USER + 31;
-  WM_DBS_CREATEINVSALDO        = WM_USER + 32;
-  WM_DBS_RESTOREDB             = WM_USER + 33;
-  WM_DBS_REBINDINVCARDS        = WM_USER + 34;
-  WM_DBS_CLEARDBSTABLES        = WM_USER + 35;
-  WM_DBS_FINISH                = WM_USER + 36;
-  WM_DBS_FINISHED              = WM_USER + 37;
-  WM_DBS_DISCONNECT            = WM_USER + 38;
+  WM_DBS_SETFVARIABLLES        = WM_USER + 20;
+  WM_DBS_CREATEMETADATA        = WM_USER + 21;
+  WM_DBS_SAVEMETADATA          = WM_USER + 22;
+  WM_DBS_CALCULATEACSALDO      = WM_USER + 23;
+  WM_DBS_CALCULATEINVSALDO     = WM_USER + 24;
+  WM_DBS_PREPAREREBINDINVCARDS = WM_USER + 25;
+  WM_DBS_CREATEHIS_INCLUDEHIS  = WM_USER + 26;
+  WM_DBS_PREPAREDB             = WM_USER + 27;
+  WM_DBS_DELETEOLDBALANCE      = WM_USER + 28;
+  WM_DBS_DELETEDOCHIS          = WM_USER + 29;
+  WM_DBS_CREATEACENTRIES       = WM_USER + 30;
+  WM_DBS_CREATEINVSALDO        = WM_USER + 31;
+  WM_DBS_RESTOREDB             = WM_USER + 32;
+  WM_DBS_REBINDINVCARDS        = WM_USER + 33;
+  WM_DBS_CLEARDBSTABLES        = WM_USER + 34;
+  WM_DBS_BACKUPDATABASE        = WM_USER + 35;
+  WM_DBS_RESTOREBK             = WM_USER + 36;
+  WM_DBS_FINISH                = WM_USER + 37;
+  WM_DBS_FINISHED              = WM_USER + 38;
+  WM_DBS_DISCONNECT            = WM_USER + 39;
 
 type
   TErrorEvent = procedure(const ErrorMsg: String) of object;
@@ -65,10 +66,13 @@ type
     FBusy: TidThreadSafeInteger;
     FLogFileName: TidThreadSafeString;
     FBackupFileName: TidThreadSafeString;
+    FRestoreDBName: TidThreadSafeString;
     FSaveLog, FCreateBackup: Boolean;
     FContinueReprocess: Boolean;
-    FCompanyName: TidThreadSafeString;
-    FDatabaseName, FUserName, FPassword: TidThreadSafeString;
+    FCompanyKey: Integer;
+
+    FConnectInfo: TgsDBConnectInfo;
+
     FClosingDate: TDateTime;
     FAllOurCompaniesSaldo: Boolean;
     FOnlyCompanySaldo: Boolean;
@@ -144,7 +148,7 @@ type
 
     procedure Connect;
     procedure Disconnect;
-    procedure StartTestConnect(const ADatabaseName: String; const AUserName: String; const APassword: String);
+    procedure StartTestConnect(const ADatabaseName: String; const AHost: String; const AUserName: String; const APassword: String; const ACharacterSet: String; const APort: Integer = 0);
     procedure StopTestConnect;
 
     procedure StartProcessing;
@@ -162,13 +166,12 @@ type
     procedure ContinueProcessing(const AFunctionKey: Integer; const AState: Integer);
 
     procedure SetSaldoParams(const AAllOurCompanies: Boolean; const AOnlyCompany: Boolean);
-    procedure SetCompanyName(const ACompanyName: String);
-    procedure SetDBParams(const ADatabaseName: String; const AUserName: String; const APassword: String);
+    procedure SetCompanyKey(const ACompanyKey: Integer);
+    procedure SetDBParams(const ADatabaseName: String; const AHost: String; const AUserName: String; const APassword: String; const ACharacterSet: String; const APort: Integer = 0);
     procedure SetClosingDate(const AClosingDate: TDateTime);
-    procedure SetOptions(const ASaveLog, ACreateBackup: Boolean;
-      const ALogFileName: String; const ABackupFileName: String; AContinueReprocess: Boolean);
+    procedure SetOptions(const ASaveLog: Boolean; const ACreateBackup: Boolean; const ALogFileName: String; const ABackupFileName: String; const ARestoreDBName: String; const AContinueReprocess: Boolean);
     //function GetConnected: Boolean;
-    
+
     //property Connected: Boolean read GetConnected;
     property State: Boolean read GetState;
     property Busy: Boolean read GetBusy;
@@ -206,10 +209,7 @@ begin
   FDBS.OnGetProcStatistics := GetProcStatistics;
   FLogFileName := TIdThreadSafeString.Create;
   FBackupFileName := TIdThreadSafeString.Create;
-  FDatabaseName := TIdThreadSafeString.Create;
-  FUserName := TIdThreadSafeString.Create;
-  FPassword := TIdThreadSafeString.Create;
-  FCompanyName := TIdThreadSafeString.Create;
+  FRestoreDBName := TIdThreadSafeString.Create;
   FBusy := TIdThreadSafeInteger.Create;
   FState := TIdThreadSafeInteger.Create;
   FConnected := TIdThreadSafeInteger.Create;
@@ -229,10 +229,7 @@ begin
   FDBS.Free;
   FLogFileName.Free;
   FBackupFileName.Free;
-  FDatabaseName.Free;
-  FUserName.Free;
-  FPassword.Free;
-  FCompanyName.Free;
+  FRestoreDBName.Free;
   FBusy.Free;
   FState.Free;
   FConnected.Free;
@@ -387,9 +384,9 @@ begin
     WM_DBS_STARTTESTCONNECT:
       begin
         FDBS.LogEvent('Testing connection...');
-        FDBS.DatabaseName := FDatabaseName.Value;
-        FDBS.UserName := FUserName.Value;
-        FDBS.Password := FPassword.Value;
+
+        FDBS.ConnectInfo := FConnectInfo;
+
         try
           FDBS.Connect(False, True);        // garbage collect ON
         except
@@ -402,6 +399,8 @@ begin
           end;
         end;
         FState.Value := 1;
+
+        PostThreadMessage(ThreadID, WM_DBS_GETINFOTESTCONNECT, 0, 0);
         Result := True;
       end;
 
@@ -412,6 +411,7 @@ begin
           FDBS.GetInfoTestConnectEvent;
           FState.Value := 1;
         //end;
+        PostThreadMessage(ThreadID, WM_DBS_STOPTESTCONNECT, 0, 0);
         Result := True;
       end;
 
@@ -419,9 +419,7 @@ begin
       begin
         if FState.Value = 1 then
           FDBS.Disconnect;
-        FDBS.DatabaseName := '';
-        FDBS.UserName := '';
-        FDBS.Password := '';                     
+        ZeroMemory(@(FDBS.ConnectInfo),SizeOf(FDBS.ConnectInfo));
 
         FDBS.LogEvent('Testing connection... OK');
         FState.Value := 1;
@@ -430,9 +428,7 @@ begin
 
     WM_DBS_SETPARAMS:
       begin
-        FDBS.DatabaseName := FDatabaseName.Value;
-        FDBS.UserName := FUserName.Value;
-        FDBS.Password := FPassword.Value;
+        FDBS.ConnectInfo := FConnectInfo;
 
         FState.Value := 1;
         Result := True;
@@ -529,12 +525,12 @@ begin
         Result := True;
       end;
 
-    WM_DBS_SETCOMPANYNAME:
+    WM_DBS_SETCOMPANYKEY:
       begin
        // if FConnected.Value = 1 then
        // begin
          // FBusy.Value := 1;
-          FDBS.CompanyName := FCompanyName.Value;
+          FDBS.CompanyKey := FCompanyKey;
        // end;
         Result := True;
       end;
@@ -554,6 +550,7 @@ begin
         FDBS.CreateBackup := FCreateBackup;
         FDBS.LogFileName := FLogFileName.Value;
         FDBS.BackupFileName := FBackupFileName.Value;
+        FDBS.RestoreDBName := FRestoreDBName.Value;
         FDBS.ContinueReprocess := FContinueReprocess;
 
         Result := True;
@@ -603,24 +600,12 @@ begin
        // begin
           FBusy.Value := 1;
 
-
-
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
           FState.Value := 1;
 
           PostThreadMessage(ThreadID, WM_DBS_FINISHED, 0, 0);
 
        // end;
-        Result := True;
-      end;
-
-    WM_DBS_BACKUPDATABASE:
-      begin
-        FDBS.BackupDatabase;
-
-        FDBS.InsertDBSStateJournal(Msg.Message, 1);
-        FState.Value := 1;
-        PostThreadMessage(ThreadID, WM_DBS_SETFVARIABLLES, 0, 0);
         Result := True;
       end;
 
@@ -670,7 +655,7 @@ begin
        // if FConnected.Value = 1 then
        // begin
           FBusy.Value := 1;
-          //////////FDBS.CalculateAcSaldo;
+          FDBS.CalculateAcSaldo;
 
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
           FState.Value := 1;
@@ -685,7 +670,7 @@ begin
         //if FConnected.Value = 1 then
        // begin
           FBusy.Value := 1;
-          //////////FDBS.CalculateInvSaldo;
+          FDBS.CalculateInvSaldo;
 
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
           FState.Value := 1;
@@ -781,7 +766,7 @@ begin
        // begin
           FBusy.Value := 1;
 
-          //////////FDBS.CreateAcEntries;
+          FDBS.CreateAcEntries;
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
           FState.Value := 1;
 
@@ -797,7 +782,7 @@ begin
        // begin
           FBusy.Value := 1;
 
-          //////////FDBS.CreateInvSaldo;
+          FDBS.CreateInvSaldo;
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
           FState.Value := 1;
 
@@ -849,6 +834,30 @@ begin
         FDBS.InsertDBSStateJournal(Msg.Message, 1);
         FState.Value := 1;
 
+        PostThreadMessage(ThreadID, WM_DBS_BACKUPDATABASE, 0, 0);
+        Result := True;
+      end;
+
+    WM_DBS_BACKUPDATABASE:
+      begin
+        if FBackupFileName.Value <> '' then
+          FDBS.BackupDatabase;
+
+        FDBS.InsertDBSStateJournal(Msg.Message, 1);
+        FState.Value := 1;
+
+        PostThreadMessage(ThreadID, WM_DBS_RESTOREBK, 0, 0);
+        Result := True;
+      end;
+
+    WM_DBS_RESTOREBK:
+      begin
+        if FRestoreDBName.Value <> '' then
+          FDBS.RestoreDatabaseFromBackup;
+
+        FDBS.InsertDBSStateJournal(Msg.Message, 1);
+        FState.Value := 1;
+
         PostThreadMessage(ThreadID, WM_DBS_FINISH, 0, 0);
         Result := True;
       end;
@@ -857,6 +866,8 @@ begin
       begin
         FFinish:= True;
         PostThreadMessage(ThreadID, WM_DBS_DISCONNECT, 0, 0);
+        FDBS.LogEvent('FINISH!');
+
         Result := True;
       end;
 
@@ -895,37 +906,55 @@ begin
  end;
 end;
 
-procedure TgsDBSqueezeThread.StartTestConnect(const ADatabaseName: String; const AUserName: String; const APassword: String);
+procedure  TgsDBSqueezeThread.StartTestConnect(
+  const ADatabaseName: String;
+  const AHost: String;
+  const AUserName: String;
+  const APassword: String;
+  const ACharacterSet: String;
+  const APort: Integer = 0);
 begin
   //if not Connected then
   //begin
-    FDatabaseName.Value := ADatabaseName;
-    FUserName.Value := AUserName;
-    FPassword.Value := APassword;
+      FConnectInfo.DatabaseName := ADatabaseName;
+      FConnectInfo.Host := AHost;
+      FConnectInfo.UserName := AUserName;
+      FConnectInfo.Password := APassword;
+      FConnectInfo.CharacterSet := ACharacterSet;
+      FConnectInfo.Port := APort;
+
     PostMsg(WM_DBS_STARTTESTCONNECT);
   //end;
 end;
 
 procedure TgsDBSqueezeThread.StopTestConnect;
 begin
-  //FDatabaseName.Value := '';
-  //FUserName.Value := '';
-  //FPassword.Value := '';
+  ZeroMemory(@FConnectInfo, SizeOf(FDBS.ConnectInfo));
+
   PostMsg(WM_DBS_STOPTESTCONNECT);
 end;
 
-procedure TgsDBSqueezeThread.SetCompanyName(const ACompanyName: String);
+procedure TgsDBSqueezeThread.SetCompanyKey(const ACompanyKey: Integer);
 begin
-  FCompanyName.Value := ACompanyName;
-  PostMsg(WM_DBS_SETCOMPANYNAME);
+  FCompanyKey := ACompanyKey;
+  PostMsg(WM_DBS_SETCOMPANYKEY);
 end;
 
-procedure TgsDBSqueezeThread.SetDBParams(const ADatabaseName: String; const AUserName: String;
-      const APassword: String);
+procedure TgsDBSqueezeThread.SetDBParams(
+  const ADatabaseName: String;
+  const AHost: String;
+  const AUserName: String;
+  const APassword: String;
+  const ACharacterSet: String;
+  const APort: Integer = 0);
 begin
-  FDatabaseName.Value := ADatabaseName;
-  FUserName.Value := AUserName;
-  FPassword.Value := APassword;
+  FConnectInfo.DatabaseName := ADatabaseName;
+  FConnectInfo.Host := AHost;
+  FConnectInfo.UserName := AUserName;
+  FConnectInfo.Password := APassword;
+  FConnectInfo.CharacterSet := ACharacterSet;
+  FConnectInfo.Port := APort;
+
   PostMsg(WM_DBS_SETPARAMS);
 end;
 
@@ -942,13 +971,19 @@ begin
   PostMsg(WM_DBS_SETSALDOPARAMS);
 end;
 
-procedure TgsDBSqueezeThread.SetOptions(const ASaveLog, ACreateBackup: Boolean;
-  const ALogFileName: String; const ABackupFileName: String; AContinueReprocess: Boolean);
+procedure TgsDBSqueezeThread.SetOptions(
+  const ASaveLog: Boolean;
+  const ACreateBackup: Boolean;
+  const ALogFileName: String;
+  const ABackupFileName: String;
+  const ARestoreDBName: String;
+  const AContinueReprocess: Boolean);
 begin
   FSaveLog := ASaveLog;
   FCreateBackup:= ACreateBackup;
   FLogFileName.Value := ALogFileName;
   FBackupFileName.Value := ABackupFileName;
+  FRestoreDBName.Value := ARestoreDBName;
   FContinueReprocess := AContinueReprocess;
   PostMsg(WM_DBS_SETOPTIONS);
 end;
