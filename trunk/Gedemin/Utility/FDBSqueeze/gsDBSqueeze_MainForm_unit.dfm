@@ -1,6 +1,6 @@
 object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
-  Left = 449
-  Top = 160
+  Left = 350
+  Top = 159
   BorderStyle = bsDialog
   ClientHeight = 537
   ClientWidth = 851
@@ -62,7 +62,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           Top = 54
           Width = 634
           Height = 369
-          ActivePage = tsSettings2
+          ActivePage = tsSqueezeSettings
           TabOrder = 0
           object tsConnection: TTabSheet
             Caption = 'Database Connection'
@@ -140,7 +140,6 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
                 Height = 21
                 Enabled = False
                 TabOrder = 2
-                Text = 'localhost'
               end
               object chkDefaultPort: TCheckBox
                 Left = 220
@@ -212,7 +211,6 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
                 Width = 94
                 Height = 21
                 TabOrder = 0
-                Text = 'SYSDBA'
               end
               object edPassword: TEdit
                 Left = 244
@@ -221,7 +219,6 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
                 Height = 21
                 PasswordChar = '*'
                 TabOrder = 1
-                Text = 'masterkey'
               end
             end
             object sttxt1: TStaticText
