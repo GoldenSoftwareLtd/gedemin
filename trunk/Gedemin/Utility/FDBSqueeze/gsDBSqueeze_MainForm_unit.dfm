@@ -1,6 +1,6 @@
 object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
-  Left = 350
-  Top = 159
+  Left = 1782
+  Top = 125
   BorderStyle = bsDialog
   ClientHeight = 537
   ClientWidth = 851
@@ -413,13 +413,14 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               TabOrder = 3
             end
             object cbbCompany: TComboBox
-              Left = 200
+              Left = 184
               Top = 221
-              Width = 241
+              Width = 369
               Height = 21
               Enabled = False
               ItemHeight = 13
-              TabOrder = 4
+              TabOrder = 6
+              OnDrawItem = cbbCompanyDrawItem
             end
             object btnNext2: TButton
               Left = 587
@@ -428,7 +429,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Height = 25
               Action = actNextPage
               Caption = '>'
-              TabOrder = 6
+              TabOrder = 5
             end
             object btnBack1: TButton
               Left = 561
@@ -437,7 +438,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Height = 25
               Action = actBackPage
               Caption = '<'
-              TabOrder = 5
+              TabOrder = 4
             end
             object sttxt16: TStaticText
               Left = 22
