@@ -304,15 +304,17 @@ type
   private
     FgdClass: CgdcBase;
     FSubType: TgdcSubType;
-    FLinkFieldName: String;
+    FLinkRelationName, FLinkFieldName: String;
 
   public
     constructor Create(const AgdClass: CgdcBase;
       const ASubType: TgdcSubType;
+      const ALinkRelationName: String;
       const ALinkFieldName: String);
 
     property gdClass: CgdcBase read FgdClass;
     property SubType: TgdcSubType read FSubType;
+    property LinkRelationName: String read FLinkRelationName;
     property LinkFieldName: String read FLinkFieldName;
   end;
 
@@ -326,7 +328,7 @@ type
     FgdClassList: TStringList;
     FCount: Integer;
     FMin, FMax: TID;
-
+             
     function Get_gdClass: CgdcBase;
     function Get_gdClassName: String;
     function GetCount: Integer;
@@ -1192,6 +1194,7 @@ type
 
     //
     procedure CheckCompoundClasses; virtual;
+    function GetCompoundMasterTable: String; virtual;
 
   public
     FReadUserFromStream: Boolean;
@@ -18104,7 +18107,26 @@ procedure TgdcBase.GetDependencies(ATr: TIBTransaction; const ASessionID: Intege
         continue;
       end;
 
-      if AnIncludeSystemObjects or (Obj.ID >= cstUserIDStart) then
+      if
+        (
+          (Obj is TgdcMetaBase)
+          and
+          (
+            TgdcMetaBase(Obj).IsUserDefined
+            or
+            AnIncludeSystemObjects
+          )
+        )
+        or
+        (
+          (not (Obj is TgdcMetaBase))
+          and
+          (
+            (Obj.ID >= cstUserIDStart)
+            or
+            AnIncludeSystemObjects
+          )
+        ) then
       begin
         AqInsert.ParamByName('reflevel').AsInteger := ALevel;
         AqInsert.ParamByName('relationname').AsString := RelationName;
@@ -18135,16 +18157,27 @@ procedure TgdcBase.GetDependencies(ATr: TIBTransaction; const ASessionID: Intege
 
     for I := 0 to RefCount - 1 do
     begin
-      Assert(not ArrObjects[I].Active);
+      if not ArrObjects[I].Active then
+      begin
+        TempObj := ArrObjects[I];
+        TempObj.ID := ArrIDs[I];
+        TempObj.Open;
+      end else
+      begin
+        TempObj := ArrObjects[I].CreateSingularByID(nil, ArrIDs[I],
+          ArrObjects[I].SubType);
+      end;
 
-      ArrObjects[I].ID := ArrIDs[I];
-      ArrObjects[I].Open;
-
-      if not ArrObjects[I].EOF then
-        _ProcessObject(ArrObjects[I], ALevel + 1, AProcessed, AHash,
-        AnObjects, AqInsert, ACount, AnIgnoreFields);
-
-      ArrObjects[I].Close;
+      try
+        if not TempObj.EOF then
+          _ProcessObject(TempObj, ALevel + 1, AProcessed, AHash,
+          AnObjects, AqInsert, ACount, AnIgnoreFields);
+      finally
+        if TempObj = ArrObjects[I] then
+          ArrObjects[I].Close
+        else
+          TempObj.Free;
+      end;    
     end;
 
     for I := 0 to AnObject.SetAttributesCount - 1 do
@@ -18321,11 +18354,13 @@ end;
 { TgdcCompoundClass }
 
 constructor TgdcCompoundClass.Create(const AgdClass: CgdcBase;
-  const ASubType: TgdcSubType; const ALinkFieldName: String);
+  const ASubType: TgdcSubType; const ALinkRelationName: String;
+  const ALinkFieldName: String);
 begin
   FgdClass := AgdClass;
   FSubType := ASubType;
   FLinkFieldName := ALinkFieldName;
+  FLinkRelationName := ALinkRelationName;
 end;
 
 function TgdcBase.GetCompoundClasses(Index: Integer): TgdcCompoundClass;
@@ -18361,26 +18396,36 @@ begin
   L := TObjectList.Create(False);
   try
     atDatabase.ForeignKeys.ConstraintsByReferencedRelation(
-      GetListTable(SubType), L, False, True, False);
+      GetCompoundMasterTable, L, False, True, False);
 
     for I := 0 to L.Count - 1 do
     begin
       F := L[I] as TatForeignKey;
       if (F.ConstraintFields.Count = 1)
-        and (F.ConstraintFields[0].FieldName = 'MASTERKEY') then
+        and ((F.ConstraintFields[0].FieldName = 'MASTERKEY')
+          or (F.ConstraintFields[0].Field.FieldName = 'DMASTERKEY')) then
       begin
         FC := GetBaseClassForRelation(F.Relation.RelationName);
-
-        if FCompoundClasses = nil then
-          FCompoundClasses := TObjectList.Create(True);
-        FCompoundClasses.Add(
-          TgdcCompoundClass.Create(FC.gdClass, FC.SubType,
-            F.ConstraintFields[0].FieldName));
+        if (FC.gdClass <> nil) and (not FC.gdClass.IsAbstractClass)
+          and (F.ConstraintFields[0].Relation.RelationName <> 'AC_RECORD') then
+        begin
+          if FCompoundClasses = nil then
+            FCompoundClasses := TObjectList.Create(True);
+          FCompoundClasses.Add(
+            TgdcCompoundClass.Create(FC.gdClass, FC.SubType,
+              F.ConstraintFields[0].Relation.RelationName,
+              F.ConstraintFields[0].FieldName));
+        end;
       end;
     end;
   finally
     L.Free;
   end;
+end;
+
+function TgdcBase.GetCompoundMasterTable: String;
+begin
+  Result := GetListTable(SubType);
 end;
 
 initialization

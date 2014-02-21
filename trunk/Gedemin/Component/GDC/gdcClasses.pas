@@ -306,6 +306,8 @@ type
 
     function CreateDialogForm: TCreateableForm; override;
     function GetDetailObject: TgdcDocument; override;
+    function GetCompoundMasterTable: String; override;
+    procedure CheckCompoundClasses; override;
 
   public
     constructor Create(AnOwner: TComponent); override;
@@ -326,6 +328,7 @@ type
     procedure CustomDelete(Buff: Pointer); override;
 
     function GetMasterObject: TgdcDocument; override;
+    function GetCompoundMasterTable: String; override;
 
   public
     constructor Create(AnOwner: TComponent); override;
@@ -438,6 +441,7 @@ uses
   gdc_dlgUserDocumentLine_unit,
   gd_directories_const,
   IB, gdc_frmMDH_unit,
+  ContNrs,
 
   gdcInvDocumentCache_unit,
   gd_resourcestring,
@@ -4059,6 +4063,32 @@ begin
 
 end;
 
+function TgdcUserDocument.GetCompoundMasterTable: String;
+begin
+  Result := Relation;
+end;
+
+procedure TgdcUserDocument.CheckCompoundClasses;
+var
+  I: Integer;
+begin
+  inherited;
+
+  if FCompoundClasses = nil then
+    FCompoundClasses := TObjectList.Create(True);
+
+  for I := 0 to FCompoundClasses.Count - 1 do
+  begin
+    if (FCompoundClasses[I] as TgdcCompoundClass).SubType = SubType then
+      exit;
+  end;    
+
+  FCompoundClasses.Add(
+    TgdcCompoundClass.Create(TgdcUserDocumentLine, SubType,
+      RelationLine,
+      'MASTERKEY'));
+end;
+
 { TgdcUserDocumentLine }
 
 constructor TgdcUserDocumentLine.Create(AnOwner: TComponent);
@@ -4264,6 +4294,11 @@ begin
   {M}      ClearMacrosStack2('TGDCUSERDOCUMENTLINE', 'DOBEFOREINSERT', KEYDOBEFOREINSERT);
   {M}  end;
   {END MACRO}
+end;
+
+function TgdcUserDocumentLine.GetCompoundMasterTable: String;
+begin
+  Result := RelationLine;
 end;
 
 class function TgdcUserDocumentLine.GetDialogFormClassName(
