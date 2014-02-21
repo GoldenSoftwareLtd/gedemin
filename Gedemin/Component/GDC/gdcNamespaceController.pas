@@ -47,8 +47,9 @@ type
 implementation
 
 uses
-  Windows, StdCtrls, ExtCtrls, SysUtils, IBSQL, gdcBaseInterface, gdcNamespace,
-  at_dlgNamespaceOp_unit, at_dlgToNamespace_unit;
+  Classes, Windows, StdCtrls, ExtCtrls, SysUtils, IBSQL, gdcBaseInterface,
+  gdcNamespace, at_dlgNamespaceOp_unit, at_dlgToNamespace_unit, flt_sql_parser,
+  gdcMetaData;
 
 type
   TIterateProc = procedure of object;
@@ -125,7 +126,7 @@ begin
     '  r.xid as xid, '#13#10 +
     '  r.dbid as dbid, '#13#10 +
     //'   od.reflevel, '#13#10 +
-    '  (od.refclassname || od.refsubtype || '' - '' || od.refobjectname) as displayname, '#13#10 +
+    //'  (od.refobjectname || '' - '' || od.refclassname || od.refsubtype) as displayname, '#13#10 +
     '  od.refclassname as class, '#13#10 +
     '  od.refsubtype as subtype, '#13#10 +
     '  od.refobjectname as name, '#13#10 +
@@ -478,27 +479,13 @@ begin
 end;
 
 function TgdcNamespaceController.ShowDialog: Boolean;
-
-  {procedure FillLink;
-  var
-  begin
-    Assert(FibdsLink.State = dsInactive);
-
-
-    FibdsLink.FieldByName('id').Visible := False;
-    FibdsLink.FieldByName('reflevel').Visible := False;
-    FibdsLink.FieldByName('class').Visible := False;
-    FibdsLink.FieldByName('subtype').Visible := False;
-    FibdsLink.FieldByName('name').Visible := False;
-    FibdsLink.FieldByName('editiondate').Visible := False;
-    FibdsLink.FieldByName('displayname').DisplayLabel := 'Класс - Имя объекта';
-  end;}
-
 var
-  Obj: TgdcBase;
-  I: Integer;
+  Obj, CompoundObj: TgdcBase;
+  I, J: Integer;
   Dlg: TdlgToNamespace;
-  FSessionID: Integer;
+  FSessionID, FSessionID2: Integer;
+  TL: TStringList;
+  //IDs: TgdKeyArray;
 begin
   Assert(FgdcFullClass.gdClass <> nil);
 
@@ -512,6 +499,7 @@ begin
       Obj.SubType := FgdcFullClass.SubType;
       Obj.SubSet := 'ByID';
 
+      //IDs := TgdKeyArray.Create;
       Dlg := TdlgToNamespace.Create(nil);
       try
         Dlg.chbxAlwaysOverwrite.Checked := FAlwaysOverwrite;
@@ -520,13 +508,19 @@ begin
 
         for I := 0 to FObjects.Count - 1 do
         begin
+          {if IDs.IndexOf(FObjects[I]) > -1 then
+            continue
+          else
+            IDs.Add(FObjects[I]);}
+
           Obj.Close;
           Obj.ID := FObjects[I];
           Obj.Open;
 
           if not Obj.EOF then
           begin
-            Dlg.AddObject(Obj.ID, Obj.ObjectName);
+            Dlg.AddObject(Obj.ID, Obj.ObjectName, Obj.ClassName + Obj.SubType,
+              RUIDToStr(Obj.GetRUID), '', False, False);
 
             FSessionID := gdcBaseManager.GetNextID;
             Obj.GetDependencies(FIBTransaction, FSessionID, False, ';EDITORKEY;CREATORKEY;');
@@ -537,16 +531,94 @@ begin
 
             while not FibdsLink.EOF do
             begin
-              Dlg.AddLinkedObject(
-                FibdsLink.FieldByName('id').AsInteger, 
-                FibdsLink.FieldByName('displayname').AsString);
+              {if IDs.IndexOf(FibdsLink.FieldByName('id').AsInteger) = -1 then
+              begin
+                IDs.Add(FibdsLink.FieldByName('id').AsInteger);}
+                Dlg.AddObject(
+                  FibdsLink.FieldByName('id').AsInteger,
+                  FibdsLink.FieldByName('name').AsString,
+                  FibdsLink.FieldByName('class').AsString + FibdsLink.FieldByName('subtype').AsString,
+                  FibdsLink.FieldByName('xid').AsString + '_' + FibdsLink.FieldByName('dbid').AsString,
+                  '', True, False);
+              {end;}
               FibdsLink.Next;
+            end;
+
+            for J := 0 to Obj.CompoundClassesCount - 1 do
+            begin
+              CompoundObj := Obj.CompoundClasses[J].gdClass.Create(nil);
+              try
+                CompoundObj.Transaction := FIBTransaction;
+                CompoundObj.SubType := Obj.CompoundClasses[J].SubType;
+                CompoundObj.SubSet := 'All';
+                CompoundObj.Prepare;
+
+                TL := TStringList.Create;
+                try
+                  ExtractTablesList(CompoundObj.SelectSQL.Text, TL);
+                  if TL.IndexOfName(Obj.CompoundClasses[J].LinkRelationName) > -1 then
+                  begin
+                    CompoundObj.ExtraConditions.Add(
+                      TL.Values[Obj.CompoundClasses[J].LinkRelationName] +
+                      Obj.CompoundClasses[J].LinkFieldName +
+                      '=:LinkID');
+                    CompoundObj.ParamByName('LinkID').AsInteger := Obj.ID;
+                    CompoundObj.Open;
+                    while not CompoundObj.EOF do
+                    begin
+                      {if IDs.IndexOf(CompoundObj.ID) = -1 then
+                      begin
+                        IDs.Add(CompoundObj.ID);}
+                        if (not (CompoundObj is TgdcMetaBase))
+                          or ((not TgdcMetaBase(CompoundObj).IsDerivedObject)
+                            and (TgdcMetaBase(CompoundObj).IsUserDefined)) then
+                        begin
+                          Dlg.AddObject(CompoundObj.ID, CompoundObj.ObjectName,
+                            CompoundObj.ClassName + CompoundObj.SubType,
+                            RUIDToStr(CompoundObj.GetRUID), '', False, True);
+
+                          FSessionID2 := gdcBaseManager.GetNextID;
+                          CompoundObj.GetDependencies(FIBTransaction, FSessionID2, False, ';EDITORKEY;CREATORKEY;');
+
+                          FibdsLink.Close;
+                          FibdsLink.ParamByName('sid').AsInteger := FSessionID2;
+                          FibdsLink.Open;
+
+                          while not FibdsLink.EOF do
+                          begin
+                            {if IDs.IndexOf(FibdsLink.FieldByName('id').AsInteger) = -1 then
+                            begin
+                              IDs.Add(FibdsLink.FieldByName('id').AsInteger);}
+                              if FibdsLink.FieldByName('id').AsInteger <> Obj.ID then
+                              begin
+                                Dlg.AddObject(
+                                  FibdsLink.FieldByName('id').AsInteger,
+                                  FibdsLink.FieldByName('name').AsString,
+                                  FibdsLink.FieldByName('class').AsString + FibdsLink.FieldByName('subtype').AsString,
+                                  FibdsLink.FieldByName('xid').AsString + '_' + FibdsLink.FieldByName('dbid').AsString,
+                                  '', True, True);
+                              end;    
+                            {end;}
+                            FibdsLink.Next;
+                          end;
+                        end;
+                      {end;}
+                      CompoundObj.Next;
+                    end;
+                  end;
+                finally
+                  TL.Free;
+                end;
+              finally
+                CompoundObj.Free;
+              end;
             end;
           end;
         end;
 
         Dlg.ShowModal;
       finally
+        //IDs.Free;
         Dlg.Free;
       end;
     finally
