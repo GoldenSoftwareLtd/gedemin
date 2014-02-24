@@ -24,6 +24,7 @@ type
     function GetCanUpdate: Boolean;
     function GetNamespacePath: String;
     procedure SetNamespacePath(const Value: String);
+    function GetTerminalSession: Boolean;
 
   public
     constructor Create;
@@ -50,6 +51,7 @@ type
     property CanUpdate: Boolean read GetCanUpdate;
     property NeedRestartForUpdate: Boolean read FNeedRestartForUpdate write FNeedRestartForUpdate;
     property NamespacePath: String read GetNamespacePath write SetNamespacePath;
+    property TerminalSession: Boolean read GetTerminalSession;
   end;
 
 var
@@ -184,6 +186,13 @@ end;
 function Tgd_GlobalParams.GetExternalDiff(const ALang: String): String;
 begin
   Result := FIniFile.ReadString('EXTERNAL DIFF', ALang, '');
+end;
+
+function Tgd_GlobalParams.GetTerminalSession: Boolean;
+const
+  SM_REMOTESESSION = $1000;
+begin
+  Result := GetSystemMetrics(SM_REMOTESESSION) <> 0;
 end;
 
 initialization

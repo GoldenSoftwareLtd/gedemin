@@ -6,7 +6,7 @@ uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   Db, DBClient, StdCtrls, IBDatabase, gsIBLookupComboBox, Grids, DBGrids,
   gsDBGrid, ActnList, gdcBaseInterface, gdcBase, DBCtrls, Buttons,
-  gd_createable_form, ExtCtrls;
+  gd_createable_form, ExtCtrls, IBSQL;
 
 type
   TdlgToNamespace = class(TCreateableForm)
@@ -34,6 +34,7 @@ type
   private
     FY: Integer;
     Pnl: TPanel;
+    FNS: TIBSQL;
 
     procedure DoCheckClick(Sender: TObject);
 
@@ -69,12 +70,19 @@ end;
 
 destructor TdlgToNamespace.Destroy;
 begin
+  FNS.Free;
   inherited;
 end;
 
 constructor TdlgToNamespace.Create(AnOwner: TComponent);
 begin
   inherited;
+  FNS := TIBSQL.Create(nil);
+  FNS.Transaction := gdcBaseManager.ReadTransaction;
+  FNS.SQL.Text :=
+    'SELECT LIST(n.name, '', '') FROM at_namespace n ' +
+    '  JOIN at_object o ON o.namespacekey = n.id ' +
+    'WHERE o.xid = :xid AND o.dbid = :dbid';
 end;
 
 procedure TdlgToNamespace.FormCreate(Sender: TObject);
@@ -98,11 +106,20 @@ procedure TdlgToNamespace.AddObject(const AnObjID: Integer;
   const ALinked: Boolean;
   const ACompound: Boolean);
 var
-  Prefix: String;
+  Prefix, NS: String;
   ChBx: TCheckBox;
   Lbl: TLabel;
   Pnl2: TPanel;
 begin
+  FNS.ParamByName('xid').AsInteger := StrToRUID(ARUID).XID;
+  FNS.ParamByName('dbid').AsInteger := StrToRUID(ARUID).DBID;
+  FNS.ExecQuery;
+  if FNS.EOF then
+    NS := ''
+  else
+    NS := FNS.Fields[0].AsString;
+  FNS.Close;
+
   if ALinked then
   begin
     Assert(Pnl <> nil);
@@ -156,7 +173,7 @@ begin
     Lbl.Font.Color := clBlue
   else
     Lbl.Font.Color := clBlack;
-  Lbl.Caption := AnObjectName;
+  Lbl.Caption := Copy(AnObjectName, 1, 45);
 
   Lbl := TLabel.Create(Self);
   //Lbl.Name := 'lbl' + Prefix + 'Class' + IntToStr(AnObjID);
@@ -167,16 +184,16 @@ begin
   Lbl.Font.Color := clMaroon;
   Lbl.Caption := AClassName;
 
-  if ANamespace > '' then
+  if NS > '' then
   begin
     Lbl := TLabel.Create(Self);
     //Lbl.Name := 'lbl' + Prefix + 'NS' + IntToStr(AnObjID);
     Lbl.Parent := Pnl2;
-    Lbl.Left := 420;
+    Lbl.Left := 460;
     Lbl.Top := 2;
     Lbl.AutoSize := True;
     Lbl.Font.Color := clNavy;
-    Lbl.Caption := ANamespace;
+    Lbl.Caption := NS;
   end;
 
   if ALinked then

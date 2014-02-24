@@ -154,7 +154,9 @@ var
   CompName: array[0..MAX_COMPUTERNAME_LENGTH] of Char;
   CompNameSize: DWORD;
 begin
-  GetComputerName(CompName, CompNameSize);
+  CompNameSize := MAX_COMPUTERNAME_LENGTH + 1;
+  if not GetComputerName(CompName, CompNameSize) then
+    CompName[0] := #0;
   Result := CompName + Name + Server;
 end;
 
@@ -375,8 +377,17 @@ begin
 
   FIniFileName := ExtractFilePath(Application.EXEName) + 'databases.ini';
 
-  if (gd_GlobalParams.NetworkDrive or gd_GlobalParams.CDROMDrive)
-    and (gd_GlobalParams.LocalAppDataDir > '') then
+  if
+    (
+      gd_GlobalParams.NetworkDrive
+      or
+      gd_GlobalParams.CDROMDrive
+      or
+      gd_GlobalParams.TerminalSession)
+    and
+    (
+      gd_GlobalParams.LocalAppDataDir > ''
+    ) then
   begin
     LocalIniFileName := IncludeTrailingBackslash(gd_GlobalParams.LocalAppDataDir) +
       'databases.ini';

@@ -4,7 +4,7 @@ unit mdf_DeleteInvCardParams;
 interface
 
 uses
-  IBDatabase, gdModify, IBSQL, SysUtils;
+  Classes, IBDatabase, gdModify, IBSQL, SysUtils;
 
 procedure DeleteCardParamsItem(IBDB: TIBDatabase; Log: TModifyLog);
 procedure AddNSMetadata(IBDB: TIBDatabase; Log: TModifyLog);
@@ -29,6 +29,7 @@ procedure RUIDsForGdStorageData(IBDB: TIBDatabase; Log: TModifyLog);
 procedure AddAtNamespaceChanged(IBDB: TIBDatabase; Log: TModifyLog);
 procedure CorrectDocumentType(IBDB: TIBDatabase; Log: TModifyLog);
 procedure CorrectEntryTriggers(IBDB: TIBDatabase; Log: TModifyLog);
+procedure CorrectAutoEntryScript(IBDB: TIBDatabase; Log: TModifyLog);
 
 implementation
 
@@ -281,6 +282,197 @@ begin
     end;
   finally
     q.Free;
+    Tr.Free;
+  end;
+end;
+
+procedure CorrectAutoEntryScript(IBDB: TIBDatabase; Log: TModifyLog);
+const
+  S1 =
+    'SQL.SQL.Text = "DELETE FROM ac_record WHERE id IN(" + _'#13#10 +
+    '"SELECT e.recordkey FROM ac_autoentry ae JOIN ac_entry e ON e.id = ae..entrykey " + _'#13#10 +
+    '"  WHERE ae.trrecordkey = :trrecordkey AND " + _'#13#10 +
+    '"  ae.begindate = :begindate AND ae.enddate = :enddate) AND " + _'#13#10 +
+    '"companykey IN (" + IbLogin.HoldingList + ")"';
+
+  S1a =
+    'SQL.SQL.Text = "DELETE FROM ac_record WHERE id IN(" & _'#13#10 +
+    '  "SELECT e.recordkey FROM ac_autoentry ae JOIN ac_entry e ON e.id = ae.entrykey " & _'#13#10 +
+    '  "  WHERE ae.trrecordkey = :trrecordkey AND " & _'#13#10 +
+    '  "  ae.begindate = :begindate AND ae.enddate = :enddate) AND " & _'#13#10 +
+    '  "companykey IN (" & IbLogin.HoldingList & ")"';
+
+  S2 =
+    '  SQL.SQL.Text = "EXECUTE BLOCK (begindate DATE = :begindate, enddate DATE = :enddate, trrecordkey INTEGER = :trrecordkey)" & vbCrLf & _'#13#10 +
+    '    "AS " & vbCrLf & _'#13#10 +
+    '    "  DECLARE id INTEGER;" & vbCrLf & _'#13#10 +
+    '    "BEGIN" & vbCrLf & _'#13#10 +
+    '    "  FOR" & vbCrLf & _'#13#10 +
+    '    "    SELECT e.documentkey FROM ac_autoentry ae JOIN ac_entry e ON e.id = ae.entrykey" & vbCrLf & _'#13#10 +
+    '    "    WHERE ae.trrecordkey = :trrecordkey AND" & vbCrLf & _'#13#10 +
+    '    "     ae.begindate >= :begindate AND ae.enddate <= :enddate AND" & vbCrLf & _'#13#10 +
+    '    "      e.companykey IN (" & IbLogin.HoldingList & ")" & vbCrLf & _'#13#10 +
+    '    "    INTO :id" & vbCrLf & _'#13#10 +
+    '    "  DO" & vbCrLf & _'#13#10 +
+    '    "   DELETE FROM gd_document WHERE id = :id;" & vbCrLf & _'#13#10 +
+    '    "END"';
+
+  S3 =
+    'SQL.SQL.Text = "UPDATE ac_record SET delayed = 0 WHERE id IN(" + _'#13#10 +
+    '  "SELECT e.recordkey FROM ac_autoentry ae JOIN ac_entry e ON e.id = ae.entrykey " + _'#13#10 +
+    '  "  JOIN ac_record r ON r.id = e.recordkey WHERE ae.trrecordkey = :trrecordkey AND " + _'#13#10 +
+    '  "  ae.begindate = :begindate AND ae.enddate = :enddate AND r.delayed = 1) AND " + _'#13#10 +
+    '  "companykey IN (" + IbLogin.HoldingList + ")"';
+
+  S3a =
+    'SQL.SQL.Text = "UPDATE ac_record SET delayed = 0 WHERE id IN(" & _'#13#10 +
+    '  "SELECT e.recordkey FROM ac_autoentry ae JOIN ac_entry e ON e.id = ae.entrykey " & _'#13#10 +
+    '  "  JOIN ac_record r ON r.id = e.recordkey WHERE ae.trrecordkey = :trrecordkey AND " & _'#13#10 +
+    '  "  ae.begindate = :begindate AND ae.enddate = :enddate AND r.delayed = 1) AND " & _'#13#10 +
+    '  "companykey IN (" & IbLogin.HoldingList & ")"';
+
+  S4 =
+    '  SQL.SQL.Text = "EXECUTE BLOCK (trrecordkey INTEGER = :trrecordkey, begindate DATE = :begindate, enddate DATE = :enddate) " & _'#13#10 +
+    '    "AS " & _'#13#10 +
+    '    "  DECLARE id INTEGER; " & _'#13#10 +
+    '    "BEGIN " & _'#13#10 +
+    '    "  FOR " & _'#13#10 +
+    '    "    SELECT e.recordkey FROM ac_autoentry ae JOIN ac_entry e ON e.id = ae.entrykey " & _'#13#10 +
+    '    "      JOIN ac_record r ON r.id = e.recordkey WHERE ae.trrecordkey = :trrecordkey AND " & _'#13#10 +
+    '    "        ae.begindate = :begindate AND ae.enddate = :enddate AND r.delayed = 1 AND " & _'#13#10 +
+    '    "        r.companykey IN (" & IbLogin.HoldingList & ")" & _'#13#10 +
+    '    "    INTO :id " & _'#13#10 +
+    '    "  DO " & _'#13#10 +
+    '    "    UPDATE ac_record SET delayed = 0 WHERE id = :id; " & _'#13#10 +
+    '    "END "';
+
+  function ReplaceText(AFind, AReplace, AScript: TStringList): Boolean;
+  var
+    I, J: Integer;
+    F: Boolean;
+  begin
+    Result := False;
+
+    if (AFind.Count = 0) or (AReplace.Count = 0) or (AScript.Count = 0) then
+      exit;
+
+    I := 0;
+    while I < AScript.Count do
+    begin
+      F := True;
+
+      for J := 0 to AFind.Count - 1 do
+      begin
+        if ((I + J) >= AScript.Count)
+          or (UpperCase(Trim(AScript[I + J])) <> UpperCase(Trim(AFind[J]))) then
+        begin
+          F := False;
+          break;
+        end;
+      end;
+
+      if F then
+      begin
+        for J := 0 to AFind.Count - 1 do
+          AScript.Delete(I);
+        for J := 0 to AReplace.Count - 1 do
+        begin
+          AScript.Insert(I, AReplace[J]);
+          Inc(I);
+        end;
+        Result := True;
+      end else
+        Inc(I);
+    end;
+  end;
+
+var
+  q, q2: TIBSQL;
+  Tr: TIBTransaction;
+  SL, SL1, SL1a, SL2, SL3, SL3a, SL4: TStringList;
+  S: String;
+  A, B, C, D: Boolean;
+  Cnt: Integer;
+begin
+  SL := TStringList.Create;
+  SL1 := TStringList.Create;
+  SL1a := TStringList.Create;
+  SL2 := TStringList.Create;
+  SL3 := TStringList.Create;
+  SL3a := TStringList.Create;
+  SL4 := TStringList.Create;
+  Tr := TIBTransaction.Create(nil);
+  q := TIBSQL.Create(nil);
+  q2 := TIBSQL.Create(nil);
+  Cnt := 0;
+  try
+    Tr.DefaultDatabase := IBDB;
+    Tr.StartTransaction;
+
+    SL1.Text := S1;
+    SL1a.Text := S1a;
+    SL2.Text := S2;
+    SL3.Text := S3;
+    SL3a.Text := S3a;
+    SL4.Text := S4;
+
+    try
+      q.Transaction := Tr;
+      q2.Transaction := Tr;
+
+      q2.SQL.Text := 'UPDATE gd_function SET script = :s WHERE id = :id';
+
+      q.SQL.Text := 'SELECT * FROM gd_function';
+      q.ExecQuery;
+      while not q.EOF do
+      begin
+        SL.Text := q.FieldByName('script').AsString;
+        A := ReplaceText(SL1, SL2, SL);
+        B := ReplaceText(SL1a, SL2, SL);
+        C := ReplaceText(SL3, SL4, SL);
+        D := ReplaceText(SL3a, SL4, SL);
+
+        if A or B or C or D then
+        begin
+          q2.ParamByName('s').AsString := SL.Text;
+          q2.ParamByName('id').AsInteger := q.FieldByName('id').AsInteger;
+          q2.ExecQuery;
+          Inc(Cnt);
+        end;
+
+        q.Next;
+      end;
+
+      if Cnt > 0 then
+        Log('Исправлено скриптов формирования проводок: ' + IntToStr(Cnt));
+
+      q.Close;
+      q.SQL.Text :=
+        'UPDATE OR INSERT INTO fin_versioninfo ' +
+        '  VALUES (201, ''0000.0001.0000.0232'', ''24.02.2014'', ''Some entry queries have been corrected.'') ' +
+        '  MATCHING (id)';
+      q.ExecQuery;
+
+      Tr.Commit;
+    except
+      on E: Exception do
+      begin
+        Log('Произошла ошибка: ' + E.Message);
+        if Tr.InTransaction then
+          Tr.Rollback;
+        raise;
+      end;
+    end;
+  finally
+    SL.Free;
+    SL1.Free;
+    SL1a.Free;
+    SL2.Free;
+    SL3.Free;
+    SL3a.Free;
+    SL4.Free;
+    q.Free;
+    q2.Free;
     Tr.Free;
   end;
 end;
