@@ -9125,7 +9125,21 @@ end;
 
 function TgdcTrigger.GetIsDerivedObject: Boolean;
 begin
-  Result := StrIPos('USR$BI_USR$CROSS', FirebirdObjectName) = 1;
+  Result :=
+    (
+      FirebirdObjectName > ''
+    )
+    and
+    (
+      (StrIPos('USR$BI_USR$CROSS', FirebirdObjectName) = 1)
+      or
+      (GetTriggerName(FieldByName('relationname').AsString, 'BI', 5) = FirebirdObjectName)
+      or
+      (GetTriggerName(FieldByName('relationname').AsString, 'BU', 5) = FirebirdObjectName)
+      or
+      (gdcBaseManager.AdjustMetaName('usr$bi_' + FieldByName('relationname').AsString) =
+         FirebirdObjectName)
+    );
 end;
 
 { TgdcTableToTable }

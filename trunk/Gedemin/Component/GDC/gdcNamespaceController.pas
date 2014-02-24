@@ -485,7 +485,6 @@ var
   Dlg: TdlgToNamespace;
   FSessionID, FSessionID2: Integer;
   TL: TStringList;
-  //IDs: TgdKeyArray;
 begin
   Assert(FgdcFullClass.gdClass <> nil);
 
@@ -499,7 +498,6 @@ begin
       Obj.SubType := FgdcFullClass.SubType;
       Obj.SubSet := 'ByID';
 
-      //IDs := TgdKeyArray.Create;
       Dlg := TdlgToNamespace.Create(nil);
       try
         Dlg.chbxAlwaysOverwrite.Checked := FAlwaysOverwrite;
@@ -508,16 +506,16 @@ begin
 
         for I := 0 to FObjects.Count - 1 do
         begin
-          {if IDs.IndexOf(FObjects[I]) > -1 then
-            continue
-          else
-            IDs.Add(FObjects[I]);}
-
           Obj.Close;
           Obj.ID := FObjects[I];
           Obj.Open;
 
-          if not Obj.EOF then
+          if (not Obj.EOF) and
+            (
+              (not (Obj is TgdcMetaBase))
+              or
+              (not TgdcMetaBase(Obj).IsDerivedObject)
+            ) then
           begin
             Dlg.AddObject(Obj.ID, Obj.ObjectName, Obj.ClassName + Obj.SubType,
               RUIDToStr(Obj.GetRUID), '', False, False);
@@ -531,16 +529,12 @@ begin
 
             while not FibdsLink.EOF do
             begin
-              {if IDs.IndexOf(FibdsLink.FieldByName('id').AsInteger) = -1 then
-              begin
-                IDs.Add(FibdsLink.FieldByName('id').AsInteger);}
-                Dlg.AddObject(
-                  FibdsLink.FieldByName('id').AsInteger,
-                  FibdsLink.FieldByName('name').AsString,
-                  FibdsLink.FieldByName('class').AsString + FibdsLink.FieldByName('subtype').AsString,
-                  FibdsLink.FieldByName('xid').AsString + '_' + FibdsLink.FieldByName('dbid').AsString,
-                  '', True, False);
-              {end;}
+              Dlg.AddObject(
+                FibdsLink.FieldByName('id').AsInteger,
+                FibdsLink.FieldByName('name').AsString,
+                FibdsLink.FieldByName('class').AsString + FibdsLink.FieldByName('subtype').AsString,
+                FibdsLink.FieldByName('xid').AsString + '_' + FibdsLink.FieldByName('dbid').AsString,
+                '', True, False);
               FibdsLink.Next;
             end;
 
@@ -566,43 +560,35 @@ begin
                     CompoundObj.Open;
                     while not CompoundObj.EOF do
                     begin
-                      {if IDs.IndexOf(CompoundObj.ID) = -1 then
+                      if (not (CompoundObj is TgdcMetaBase))
+                        or ((not TgdcMetaBase(CompoundObj).IsDerivedObject)
+                          and (TgdcMetaBase(CompoundObj).IsUserDefined)) then
                       begin
-                        IDs.Add(CompoundObj.ID);}
-                        if (not (CompoundObj is TgdcMetaBase))
-                          or ((not TgdcMetaBase(CompoundObj).IsDerivedObject)
-                            and (TgdcMetaBase(CompoundObj).IsUserDefined)) then
+                        Dlg.AddObject(CompoundObj.ID, CompoundObj.ObjectName,
+                          CompoundObj.ClassName + CompoundObj.SubType,
+                          RUIDToStr(CompoundObj.GetRUID), '', False, True);
+
+                        FSessionID2 := gdcBaseManager.GetNextID;
+                        CompoundObj.GetDependencies(FIBTransaction, FSessionID2, False, ';EDITORKEY;CREATORKEY;');
+
+                        FibdsLink.Close;
+                        FibdsLink.ParamByName('sid').AsInteger := FSessionID2;
+                        FibdsLink.Open;
+
+                        while not FibdsLink.EOF do
                         begin
-                          Dlg.AddObject(CompoundObj.ID, CompoundObj.ObjectName,
-                            CompoundObj.ClassName + CompoundObj.SubType,
-                            RUIDToStr(CompoundObj.GetRUID), '', False, True);
-
-                          FSessionID2 := gdcBaseManager.GetNextID;
-                          CompoundObj.GetDependencies(FIBTransaction, FSessionID2, False, ';EDITORKEY;CREATORKEY;');
-
-                          FibdsLink.Close;
-                          FibdsLink.ParamByName('sid').AsInteger := FSessionID2;
-                          FibdsLink.Open;
-
-                          while not FibdsLink.EOF do
-                          begin
-                            {if IDs.IndexOf(FibdsLink.FieldByName('id').AsInteger) = -1 then
+                            if FibdsLink.FieldByName('id').AsInteger <> Obj.ID then
                             begin
-                              IDs.Add(FibdsLink.FieldByName('id').AsInteger);}
-                              if FibdsLink.FieldByName('id').AsInteger <> Obj.ID then
-                              begin
-                                Dlg.AddObject(
-                                  FibdsLink.FieldByName('id').AsInteger,
-                                  FibdsLink.FieldByName('name').AsString,
-                                  FibdsLink.FieldByName('class').AsString + FibdsLink.FieldByName('subtype').AsString,
-                                  FibdsLink.FieldByName('xid').AsString + '_' + FibdsLink.FieldByName('dbid').AsString,
-                                  '', True, True);
-                              end;    
-                            {end;}
-                            FibdsLink.Next;
-                          end;
+                              Dlg.AddObject(
+                                FibdsLink.FieldByName('id').AsInteger,
+                                FibdsLink.FieldByName('name').AsString,
+                                FibdsLink.FieldByName('class').AsString + FibdsLink.FieldByName('subtype').AsString,
+                                FibdsLink.FieldByName('xid').AsString + '_' + FibdsLink.FieldByName('dbid').AsString,
+                                '', True, True);
+                            end;
+                          FibdsLink.Next;
                         end;
-                      {end;}
+                      end;
                       CompoundObj.Next;
                     end;
                   end;
@@ -618,7 +604,6 @@ begin
 
         Dlg.ShowModal;
       finally
-        //IDs.Free;
         Dlg.Free;
       end;
     finally

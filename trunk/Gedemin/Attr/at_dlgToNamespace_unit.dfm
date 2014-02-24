@@ -19,15 +19,15 @@ object dlgToNamespace: TdlgToNamespace
   TextHeight = 13
   object pnlGrid: TPanel
     Left = 0
-    Top = 112
+    Top = 68
     Width = 721
-    Height = 392
+    Height = 437
     BevelOuter = bvNone
     BorderWidth = 8
     TabOrder = 1
     object pnlButtons: TPanel
       Left = 8
-      Top = 356
+      Top = 401
       Width = 705
       Height = 28
       Align = alBottom
@@ -66,7 +66,7 @@ object dlgToNamespace: TdlgToNamespace
       Left = 8
       Top = 8
       Width = 705
-      Height = 348
+      Height = 393
       Align = alClient
       TabOrder = 1
     end
@@ -75,7 +75,7 @@ object dlgToNamespace: TdlgToNamespace
     Left = 0
     Top = 0
     Width = 721
-    Height = 112
+    Height = 73
     Align = alTop
     BevelOuter = bvNone
     TabOrder = 0
