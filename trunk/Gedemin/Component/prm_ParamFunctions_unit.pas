@@ -468,7 +468,9 @@ begin
     AnStream.Write(FLinkFunctionLanguage[1], I);
 
   if FValuesList > '' then
-    S := FComment + ValuesListDelimiter + FValuesList;
+    S := FComment + ValuesListDelimiter + FValuesList
+  else
+    S := FComment;
 
   if FRequired then
     S := S + RequiredLabel;
