@@ -686,7 +686,7 @@ begin
        // begin
           FBusy.Value := 1;
 
-          //////////FDBS.PrepareRebindInvCards;
+          ///////FDBS.PrepareRebindInvCards;
 
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
           FState.Value := 1;
@@ -815,7 +815,7 @@ begin
        // begin
           FBusy.Value := 1;
 
-          //////////FDBS.RebindInvCards;
+          ///////FDBS.RebindInvCards;
 
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
           FState.Value := 1;
