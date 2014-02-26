@@ -13,9 +13,10 @@ const
   DEFAULT_USER_NAME = 'SYSDBA';
   DEFAULT_PASSWORD = 'masterkey';
   DEFAULT_CHARACTER_SET = 'WIN1251';
+  CHARSET_LIST_CH1 = 'NONE, CYRL, DOS437, DOS737, DOS775, DOS850, DOS852, DOS857, DOS858, DOS860, DOS861, DOS862, DOS863, DOS864, DOS865, DOS866, DOS869, ISO8859_1, ISO8859_13, ISO8859_2, ISO8859_3, ISO8859_4, ISO8859_5, ISO8859_6, ISO8859_7';
+  CHARSET_LIST_CH2 = 'ISO8859_8, ISO8859_9, KOI8R, KOI8U, NEXT, TIS620, WIN1250, WIN1251, WIN1252, WIN1253, WIN1254, WIN1255, WIN1256, WIN1257, WIN1258, ASCII, UNICODE_FSS, UTF8';
 
 type
-
   TgsDBSqueeze_MainForm = class(TForm, IgdProgressWatch)
 
     ActionList: TActionList;
@@ -188,6 +189,16 @@ type
     tbcDocTypes: TTabControl;
     strngrdIgnoreDocTypes: TStringGrid;
     mIgnoreDocTypes: TMemo;
+    cbbCharset: TComboBox;
+    StaticText1: TStaticText;
+    StaticText2: TStaticText;
+    StaticText3: TStaticText;
+    StaticText4: TStaticText;
+    Label1: TLabel;
+    Label2: TLabel;
+    Edit1: TEdit;
+    Button1: TButton;
+    CheckBox1: TCheckBox;
 
     procedure actTestConnectExecute(Sender: TObject);
     procedure actTestConnectUpdate(Sender: TObject);
@@ -268,49 +279,60 @@ implementation
 constructor TgsDBSqueeze_MainForm.Create(AnOwner: TComponent);
 var
   I: Integer;
+  CharsetList: TStringList;
 begin
   inherited;
 
-  // скрытие ярлыков PageControl
-  for I := 0 to pgcMain.PageCount - 1 do
-    pgcMain.Pages[I].TabVisible := False;
-  pgcMain.ActivePage := tsSettings;
-  for I := 0 to pgcSettings.PageCount - 1 do
-    pgcSettings.Pages[I].TabVisible := False;
-  pgcSettings.ActivePage := tsConnection;
+  CharsetList := TStringList.Create;
 
-  pnl1.Color := $00B7DEFF;
-  mSqlLog.Clear;
-  mLog.ReadOnly := True;
-  mSqlLog.ReadOnly := True;
-  dtpClosingDate.Date := Date;
+  try
+    // скрытие ярлыков PageControl
+    for I := 0 to pgcMain.PageCount - 1 do
+      pgcMain.Pages[I].TabVisible := False;
+    pgcMain.ActivePage := tsSettings;
+    for I := 0 to pgcSettings.PageCount - 1 do
+      pgcSettings.Pages[I].TabVisible := False;
+    pgcSettings.ActivePage := tsConnection;
 
-  edtHost.Text := DEFAULT_HOST;
-  sePort.Value := DEFAULT_PORT;
-  edUserName.Text := DEFAULT_USER_NAME;
-  edPassword.Text := DEFAULT_PASSWORD;
+    pnl1.Color := $00B7DEFF;
+    mSqlLog.Clear;
+    mLog.ReadOnly := True;
+    mSqlLog.ReadOnly := True;
+    dtpClosingDate.Date := Date;
 
-  cbbCompany.Style := csOwnerDrawFixed;
+    edtHost.Text := DEFAULT_HOST;
+    sePort.Value := DEFAULT_PORT;
+    edUserName.Text := DEFAULT_USER_NAME;
+    edPassword.Text := DEFAULT_PASSWORD;
 
-  FConnected := False;
-  FStartupTime := Now;
-  FSThread := TgsDBSqueezeThread.Create(False);
-  FSThread.ProgressWatch := Self;
-  FSThread.OnErrorEvent := ErrorEvent;
-  FSThread.OnGetConnected := GetConnectedEvent;
-  FSThread.OnLogSQL := LogSQLEvent;
-  FSThread.OnGetInfoTestConnect := GetInfoTestConnectEvent;
-  FSThread.OnUsedDB := UsedDBEvent;
-  FSThread.OnGetDBProperties := GetDBPropertiesEvent;
-  FSThread.OnSetItemsCbb := SetItemsCbbEvent;
-  FSThread.OnSetDocTypeStrings := SetDocTypeStringsEvent;
-  FSThread.OnGetDBSize := GetDBSizeEvent;
-  FSThread.OnGetStatistics := GetStatisticsEvent;
-  FSThread.OnGetProcStatistics := GetProcStatisticsEvent;
-  FContinueProcFunctionKey := 0;
+    CharsetList.CommaText := CHARSET_LIST_CH1 + ',' + CHARSET_LIST_CH2;
+    cbbCharset.Items.AddStrings(CharsetList);
+    cbbCharset.Text := DEFAULT_CHARACTER_SET;
 
-  FProcRowsSelectBits := TBits.Create;
-  FIgnoreRowsSelectBits := TBits.Create;
+    cbbCompany.Style := csOwnerDrawFixed;
+
+    FConnected := False;
+    FStartupTime := Now;
+    FSThread := TgsDBSqueezeThread.Create(False);
+    FSThread.ProgressWatch := Self;
+    FSThread.OnErrorEvent := ErrorEvent;
+    FSThread.OnGetConnected := GetConnectedEvent;
+    FSThread.OnLogSQL := LogSQLEvent;
+    FSThread.OnGetInfoTestConnect := GetInfoTestConnectEvent;
+    FSThread.OnUsedDB := UsedDBEvent;
+    FSThread.OnGetDBProperties := GetDBPropertiesEvent;
+    FSThread.OnSetItemsCbb := SetItemsCbbEvent;
+    FSThread.OnSetDocTypeStrings := SetDocTypeStringsEvent;
+    FSThread.OnGetDBSize := GetDBSizeEvent;
+    FSThread.OnGetStatistics := GetStatisticsEvent;
+    FSThread.OnGetProcStatistics := GetProcStatisticsEvent;
+    FContinueProcFunctionKey := 0;
+
+    FProcRowsSelectBits := TBits.Create;
+    FIgnoreRowsSelectBits := TBits.Create;
+  finally
+    CharsetList.Free;
+  end;
 end;
 
 destructor TgsDBSqueeze_MainForm.Destroy;
@@ -505,7 +527,7 @@ begin
   if rbCompany.Checked then
   begin
     cbbCompany.Clear;
-    for I:=0 to ACompanies.Count-1 do                                            //cbbCompany.Items.AddStrings(ACompanies);
+    for I:=0 to ACompanies.Count-1 do
       cbbCompany.Items.Add(ACompanies.Names[I] + ';' + ACompanies.Values[ACompanies.Names[I]] + ';');
   end;
 end;
@@ -688,14 +710,14 @@ begin
           edtHost.Text,
           edUserName.Text,
           edPassword.Text,
-          DEFAULT_CHARACTER_SET)
+          cbbCharset.Text)
       else if not chkDefaultPort.Checked then
         FSThread.SetDBParams(
           edDatabaseName.Text,
           edtHost.Text,
           edUserName.Text,
           edPassword.Text,
-          DEFAULT_CHARACTER_SET,
+          cbbCharset.Text,
           sePort.Value);
 
       FSThread.Connect;
@@ -889,14 +911,14 @@ begin
       edtHost.Text,
       edUserName.Text,
       edPassword.Text,
-      DEFAULT_CHARACTER_SET)
+      cbbCharset.Text)
   else if not chkDefaultPort.Checked then
     FSThread.StartTestConnect(
       edDatabaseName.Text,
       edtHost.Text,
       edUserName.Text,
       edPassword.Text,
-      DEFAULT_CHARACTER_SET,
+      cbbCharset.Text,
       sePort.Value);
 end;
 
@@ -1060,7 +1082,7 @@ procedure TgsDBSqueeze_MainForm.cbbCompanyDrawItem(Control: TWinControl;
 var
   ArrWidth: array [0..2] of Integer;
   ColumnText, CbbItemText: String;
-  SeparatePos: Integer;
+  SeparatorPos: Integer;
   rcColumn: TRect;
 begin
   cbbCompany.Canvas.Brush.Style := bsSolid;
@@ -1068,7 +1090,7 @@ begin
 
   ArrWidth[0] := 0;
   ArrWidth[1] := 65;  // Ширина первой колонки
-  ArrWidth[2] := 400;  // Ширина второй колонки
+  ArrWidth[2] := 400; // Ширина второй колонки
 
   CbbItemText := cbbCompany.Items[Index]; // Значения для колонок должны быть разделены ';'
 
@@ -1078,8 +1100,8 @@ begin
   rcColumn.Top    := Rect.Top;
   rcColumn.Bottom := Rect.Bottom;
   // Текст первой колонки
-  SeparatePos := Pos(';', CbbItemText);
-  ColumnText := Copy(CbbItemText, 1, SeparatePos - 1);
+  SeparatorPos := Pos(';', CbbItemText);
+  ColumnText := Copy(CbbItemText, 1, SeparatorPos - 1);
   // Прорисовка текста
   cbbCompany.Canvas.TextRect(rcColumn, rcColumn.Left, rcColumn.Top, ColumnText);
   // Прорисовка разделительной линии между колонками
@@ -1090,9 +1112,9 @@ begin
   rcColumn.Left  := Rect.Left + ArrWidth[1] + 2;
   rcColumn.Right := Rect.Left + ArrWidth[2] - 2;
   // Текст второй колонки
-  CbbItemText := Copy(CbbItemText, SeparatePos + 1, Length(CbbItemText) - SeparatePos);
-  SeparatePos := Pos(';', CbbItemText);
-  ColumnText := Copy(CbbItemText, 1, SeparatePos - 1);
+  CbbItemText := Copy(CbbItemText, SeparatorPos + 1, Length(CbbItemText) - SeparatorPos);
+  SeparatorPos := Pos(';', CbbItemText);
+  ColumnText := Copy(CbbItemText, 1, SeparatorPos - 1);
   // Прорисовка текста
   cbbCompany.Canvas.TextRect(rcColumn, rcColumn.Left, rcColumn.Top, ColumnText);
   // Прорисовка разделительной линии между колонками
