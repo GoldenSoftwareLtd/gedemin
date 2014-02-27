@@ -1,8 +1,12 @@
+
 {++
-  Copyright (c) 2002 by Golden Software of Belarus
+
+  Copyright (c) 2002-2014 by Golden Software of Belarus
 
   Module
+
     dlg_gsResizer_SetSize_unit
+
   Abstract
 
     Диалог выравнивания размеров для gsResizer
@@ -14,6 +18,7 @@
   Revisions history
 
     Initial  17-01-2002  Nick  Initial version.
+
 --}
 
 unit dlg_gsResizer_SetSize_unit;
@@ -47,12 +52,13 @@ type
     procedure actShrinkVertExecute(Sender: TObject);
     procedure actShrinkBothExecute(Sender: TObject);
     procedure actGrowHorizExecute(Sender: TObject);
+
   private
-    { Private declarations }
     FManager: IgsResizeManager;
+
     procedure SetControlSize(const ASizeType: TSizeChanger);
+
   public
-    { Public declarations }
     constructor Create(AnOwner: TComponent); override;
   end;
 
@@ -60,7 +66,10 @@ var
   dlg_gsResizer_SetSize: Tdlg_gsResizer_SetSize;
 
 implementation
-uses gsResizer;
+
+uses
+  gsResizer;
+
 {$R *.DFM}
 
 { Tdlg_gsResizer_SetSize }

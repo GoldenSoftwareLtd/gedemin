@@ -1101,52 +1101,52 @@ object dlg_gsResizer_AlignmentPalette: Tdlg_gsResizer_AlignmentPalette
     Left = 48
     Top = 65520
     object actAlignLeft: TAction
-      Hint = 'Выравнять по левому краю'
+      Hint = 'По левому краю'
       ImageIndex = 0
       OnExecute = actAlignLeftExecute
     end
     object actAlignRight: TAction
-      Hint = 'Выравнять по правому краю'
+      Hint = 'По правому краю'
       ImageIndex = 1
       OnExecute = actAlignRightExecute
     end
     object actAlignTop: TAction
-      Hint = 'Выравнять по верхнему краю'
+      Hint = 'По верхнему краю'
       ImageIndex = 2
       OnExecute = actAlignTopExecute
     end
     object actAlignBottom: TAction
-      Hint = 'Выравнять по нижнему краю'
+      Hint = 'По нижнему краю'
       ImageIndex = 3
       OnExecute = actAlignBottomExecute
     end
     object actAlignCenterVert: TAction
-      Hint = 'Выравнять по центру вертикально'
+      Hint = 'Центрировать вертикально'
       ImageIndex = 4
       OnExecute = actAlignCenterVertExecute
     end
     object actAlignCenterHoriz: TAction
-      Hint = 'Выравнять по центру горизонтально'
+      Hint = 'Центрировать горизонтально'
       ImageIndex = 5
       OnExecute = actAlignCenterHorizExecute
     end
     object actCenterFormHoriz: TAction
-      Hint = 'Выравнять по центру формы гризонтально'
+      Hint = 'Центрировать по ширине формы'
       ImageIndex = 6
       OnExecute = actCenterFormHorizExecute
     end
     object actCenterFormVert: TAction
-      Hint = 'Выравнять по центру формы вертикально'
+      Hint = 'Центрировать по высоте формы'
       ImageIndex = 7
       OnExecute = actCenterFormVertExecute
     end
     object actSpaceEqualHoriz: TAction
-      Hint = 'Выравнять растояние горизонтально'
+      Hint = 'Распределить горизонтально'
       ImageIndex = 8
       OnExecute = actSpaceEqualHorizExecute
     end
     object actSpaceEqualVert: TAction
-      Hint = 'Выравнять растояние вертикально'
+      Hint = 'Распределить вертикально'
       ImageIndex = 9
       OnExecute = actSpaceEqualVertExecute
     end

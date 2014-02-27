@@ -1,5 +1,7 @@
+
 {++
-  Copyright (c) 2002 by Golden Software of Belarus
+
+  Copyright (c) 2002-2014 by Golden Software of Belarus
 
   Module
 
@@ -16,6 +18,7 @@
   Revisions history
 
     Initial  17-01-2002  Nick  Initial version.
+
 --}
 
 unit dlg_gsResizer_AlignmentPalette_unit;
@@ -74,7 +77,10 @@ var
   dlg_gsResizer_AlignmentPalette: Tdlg_gsResizer_AlignmentPalette;
 
 implementation
-uses gsResizer;
+
+uses
+  gsResizer;
+
 {$R *.DFM}
 
 { Tdlg_gsResizer_AlignmentPalette }
@@ -154,5 +160,6 @@ procedure Tdlg_gsResizer_AlignmentPalette.actSpaceEqualVertExecute(
 begin
   SetAlignment(paSpaceEqualVert);
 end;
+
 end.
 

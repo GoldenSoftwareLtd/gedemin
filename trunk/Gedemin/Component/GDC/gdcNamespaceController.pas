@@ -16,7 +16,6 @@ type
     FAlwaysOverwrite: Boolean;
     FDontRemove: Boolean;
     FIncludeSiblings: Boolean;
-    FIncludeLinked: Boolean;
     FObjects: TgdKeyArray;
     FNamespaces: TgdKeyStringAssoc;
     FgdcFullClass: TgdcFullClass;
@@ -37,7 +36,6 @@ type
     property AlwaysOverwrite: Boolean read FAlwaysOverwrite write FAlwaysOverwrite;
     property DontRemove: Boolean read FDontRemove write FDontRemove;
     property IncludeSiblings: Boolean read FIncludeSiblings write FIncludeSiblings;
-    property IncludeLinked: Boolean read FIncludeLinked write FIncludeLinked;
     property PrevNSID: Integer read FPrevNSID write FPrevNSID;
     property CurrentNSID: Integer read FCurrentNSID write FCurrentNSID;
     property ibdsLink: TIBDataSet read FibdsLink;
@@ -110,7 +108,6 @@ begin
 
   FPrevNSID := -1;
   FCurrentNSID := -1;
-  FIncludeLinked := True;
 
   FIBTransaction := TIBTransaction.Create(nil);
   FIBTransaction.Params.CommaText := 'read_committed,rec_version,nowait';

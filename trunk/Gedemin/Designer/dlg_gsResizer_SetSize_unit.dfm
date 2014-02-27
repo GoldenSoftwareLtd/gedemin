@@ -1,6 +1,6 @@
 object dlg_gsResizer_SetSize: Tdlg_gsResizer_SetSize
-  Left = 357
-  Top = 166
+  Left = 360
+  Top = 223
   BorderIcons = [biSystemMenu]
   BorderStyle = bsToolWindow
   Caption = 'Размер'
@@ -773,32 +773,32 @@ object dlg_gsResizer_SetSize: Tdlg_gsResizer_SetSize
     Left = 40
     Top = 65520
     object actGrowHoriz: TAction
-      Hint = 'Увеличить рамер горизонтально'
+      Hint = 'Растянуть по ширине'
       ImageIndex = 0
       OnExecute = actGrowHorizExecute
     end
     object actGrowVert: TAction
-      Hint = 'Увеличить рамер вертикально'
+      Hint = 'Растянуть по высоте'
       ImageIndex = 1
       OnExecute = actGrowVertExecute
     end
     object actGrowBoth: TAction
-      Hint = 'Увеличить рамер'
+      Hint = 'Растянуть по ширине и высоте'
       ImageIndex = 2
       OnExecute = actGrowBothExecute
     end
     object actShrinkHoriz: TAction
-      Hint = 'Уменьшить размер горизонтально'
+      Hint = 'Сжать по ширине'
       ImageIndex = 3
       OnExecute = actShrinkHorizExecute
     end
     object actShrinkVert: TAction
-      Hint = 'Уменьшить размер вертикально'
+      Hint = 'Сжать по высоте'
       ImageIndex = 4
       OnExecute = actShrinkVertExecute
     end
     object actShrinkBoth: TAction
-      Hint = 'Уменьшить размер'
+      Hint = 'Сжать по ширине и высоте'
       ImageIndex = 5
       OnExecute = actShrinkBothExecute
     end
