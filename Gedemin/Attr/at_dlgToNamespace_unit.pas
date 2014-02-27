@@ -9,6 +9,15 @@ uses
   gd_createable_form, ExtCtrls, IBSQL;
 
 type
+  TNSRecord = record
+    ObjectName: String;
+    ClassName: String;
+    RUID: String;
+    Checked: Boolean;
+    Compound: Boolean;
+    Linked: Boolean;
+  end;
+
   TdlgToNamespace = class(TCreateableForm)
     dsLink: TDataSource;
     ActionList: TActionList;
@@ -35,8 +44,11 @@ type
     FY: Integer;
     Pnl: TPanel;
     FNS: TIBSQL;
+    FCurrent: Integer;
+    FCurrentLinked: Integer;
 
     procedure DoCheckClick(Sender: TObject);
+    function FillNSRecord(APnl: TPanel): TNSRecord;
 
   public
     constructor Create(AnOwner: TComponent); override;
@@ -49,6 +61,14 @@ type
       const ANamespace: String;
       const ALinked: Boolean;
       const ACompound: Boolean);
+
+    function EOF: Boolean;
+    function GetNSRecord: TNSRecord;
+    procedure Next;
+
+    function LinkedEOF: Boolean;
+    function GetLinkedNSRecord: TNSRecord;
+    procedure LinkedNext;
   end;
 
 var
@@ -83,6 +103,8 @@ begin
     'SELECT LIST(n.name, '', '') FROM at_namespace n ' +
     '  JOIN at_object o ON o.namespacekey = n.id ' +
     'WHERE o.xid = :xid AND o.dbid = :dbid';
+  FCurrent := 0;
+  FCurrentLinked := 3;
 end;
 
 procedure TdlgToNamespace.FormCreate(Sender: TObject);
@@ -106,7 +128,7 @@ procedure TdlgToNamespace.AddObject(const AnObjID: Integer;
   const ALinked: Boolean;
   const ACompound: Boolean);
 var
-  Prefix, NS: String;
+  NS: String;
   ChBx: TCheckBox;
   Lbl: TLabel;
   Pnl2: TPanel;
@@ -123,9 +145,7 @@ begin
   if ALinked then
   begin
     Assert(Pnl <> nil);
-    Prefix := 'LinkedObj';
     Pnl2 := TPanel.Create(Self);
-    //Pnl2.Name := 'pnl' + Prefix + IntToStr(AnObjID);
     Pnl2.Parent := Pnl;
     Pnl2.Top := Pnl.Height;
     Pnl.Height := Pnl.Height + 21;
@@ -135,11 +155,10 @@ begin
     Pnl2.Caption := '';
     Pnl2.ParentColor := False;
     Pnl2.Color := clWhite;
+    Pnl2.Tag := 1;
   end else
   begin
-    Prefix := 'Obj';
     Pnl := TPanel.Create(Self);
-    //Pnl.Name := 'pnl' + Prefix + IntToStr(AnObjID);
     Pnl.Parent := SB;
     Pnl.Top := FY;
     Pnl.Left := 0;
@@ -147,10 +166,13 @@ begin
     Pnl.Height := 21;
     Pnl.Caption := '';
     Pnl2 := Pnl;
+    if ACompound then
+      Pnl2.Tag := 2
+    else
+      Pnl2.Tag := 0;
   end;
 
   ChBx := TCheckBox.Create(Self);
-  //ChBx.Name := 'chbx' + Prefix + IntToStr(AnObjID);
   ChBx.Parent := Pnl2;
   ChBx.Caption := '';
   ChBx.Top := 2;
@@ -158,42 +180,37 @@ begin
   ChBx.Width := 16;
   ChBx.Checked := True;
   ChBx.Tag := AnObjID;
+  ChBx.Hint := ARUID;
   ChBx.OnClick := DoCheckClick;
 
   Lbl := TLabel.Create(Self);
-  //Lbl.Name := 'lbl' + Prefix + IntToStr(AnObjID);
   Lbl.Parent := Pnl2;
   Lbl.Left := 20;
   Lbl.Top := 2;
-  Lbl.Width := 280;
+  Lbl.Width := 300;
   Lbl.AutoSize := False;
-  Lbl.Hint := ARUID;
+  Lbl.Hint := AClassName;
   Lbl.ShowHint := True;
   if ACompound then
     Lbl.Font.Color := clBlue
   else
     Lbl.Font.Color := clBlack;
-  Lbl.Caption := Copy(AnObjectName, 1, 45);
+  Lbl.Caption := Copy(AnObjectName, 1, 47);
 
   Lbl := TLabel.Create(Self);
-  //Lbl.Name := 'lbl' + Prefix + 'Class' + IntToStr(AnObjID);
   Lbl.Parent := Pnl2;
-  Lbl.Left := 308;
+  Lbl.Left := 328;
   Lbl.Top := 2;
   Lbl.AutoSize := True;
-  Lbl.Font.Color := clMaroon;
-  Lbl.Caption := AClassName;
 
   if NS > '' then
   begin
-    Lbl := TLabel.Create(Self);
-    //Lbl.Name := 'lbl' + Prefix + 'NS' + IntToStr(AnObjID);
-    Lbl.Parent := Pnl2;
-    Lbl.Left := 460;
-    Lbl.Top := 2;
-    Lbl.AutoSize := True;
-    Lbl.Font.Color := clNavy;
+    Lbl.Font.Style := [fsItalic];
+    Lbl.Font.Color := clMaroon;
     Lbl.Caption := NS;
+  end else
+  begin
+    Lbl.Caption := AClassName;
   end;
 
   if ALinked then
@@ -227,6 +244,52 @@ begin
     (Sender as TCheckBox).Checked);
   SetChecks((Sender as TCheckBox).Tag, SB,
     (Sender as TCheckBox).Checked);
+end;
+
+function TdlgToNamespace.EOF: Boolean;
+begin
+  Result := FCurrent >= SB.ControlCount;
+end;
+
+function TdlgToNamespace.GetLinkedNSRecord: TNSRecord;
+begin
+  Result := FillNSRecord((SB.Controls[FCurrent] as TPanel).Controls[FCurrentLinked] as TPanel);
+end;
+
+function TdlgToNamespace.GetNSRecord: TNSRecord;
+begin
+  Result := FillNSRecord(SB.Controls[FCurrent] as TPanel);
+end;
+
+function TdlgToNamespace.LinkedEOF: Boolean;
+begin
+  Result := EOF or
+    (FCurrentLinked >= (SB.Controls[FCurrent] as TPanel).ControlCount);
+end;
+
+procedure TdlgToNamespace.LinkedNext;
+begin
+  if not LinkedEOF then
+    Inc(FCurrentLinked);
+end;
+
+procedure TdlgToNamespace.Next;
+begin
+  if not EOF then
+  begin
+    Inc(FCurrent);
+    FCurrentLinked := 3;
+  end;
+end;
+
+function TdlgToNamespace.FillNSRecord(APnl: TPanel): TNSRecord;
+begin
+  Result.Checked := (APnl.Controls[0] as TCheckBox).Checked;
+  Result.RUID := (APnl.Controls[0] as TCheckBox).Hint;
+  Result.ObjectName := (APnl.Controls[1] as TLabel).Caption;
+  Result.ClassName := (APnl.Controls[1] as TLabel).Hint;
+  Result.Compound := APnl.Tag = 2;
+  Result.Linked := APnl.Tag = 1;
 end;
 
 end.
