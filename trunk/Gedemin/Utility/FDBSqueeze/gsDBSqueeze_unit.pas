@@ -12,6 +12,9 @@ const
   PROIZVOLNYE_TRRECORD_KEY = 807100;     // AC_TRRECORD.id WHERE transactionkey = PROIZVOLNYE_TRANSACTION_KEY
   OSTATKY_ACCOUNT_KEY = 300003;          // AC_ACCOUNT.id WHERE fullname = 00 Остатки
   HOZOPERATION_DOCTYPE_KEY = 806001;     // gd_documenttype.id WHERE name = Хозяйственная операция
+  MAX_PROGRESS_STEP = 12500;
+  PROGRESS_STEP = MAX_PROGRESS_STEP div 100;
+  INCLUDE_HIS_PROGRESS_STEP = PROGRESS_STEP*16;
 type
   TActivateFlag = (aiActivate, aiDeactivate);
 
@@ -55,6 +58,7 @@ type
     FCompanyKey: Integer;
     FDocTypesList: TStringList; // типы документов выбранные пользователем
     FDoProcDocTypes: Boolean; // true - обрабатывать ТОЛЬКО документы с выбранными типами, false - обрабатывать все КРОМЕ документов с выбранными типами
+    FDoAccount00Saldo: Boolean;
 
     FContinueReprocess: Boolean;
     FCreateBackup: Boolean;
@@ -67,17 +71,22 @@ type
     FProizvolnyyDocTypeKey: Integer;   // ''Произвольный тип'' из gd_documenttype
     FPseudoClientKey: Integer;         // ''Псевдоклиент'' из gd_contact
 
+    FCurrentProgressStep: Integer;
+
     FInactivBlockTriggers: String;
     FIgnoreTbls: TStringList;
     FCascadeTbls: TStringList;
 
+    FIsFirstConnect: Boolean;
+    FIsProcTablesFinish: Boolean;
+
+    FOnProgressWatch: TProgressWatchEvent;
     FOnGetConnectedEvent: TOnGetConnectedEvent;
     FOnGetDBPropertiesEvent: TOnGetDBPropertiesEvent;
     FOnGetDBSizeEvent: TOnGetDBSizeEvent;
     FOnGetInfoTestConnectEvent: TOnGetInfoTestConnectEvent;
     FOnGetProcStatistics: TOnGetProcStatistics;
     FOnGetStatistics: TOnGetStatistics;
-    FOnProgressWatch: TProgressWatchEvent;
     FOnSetItemsCbbEvent: TOnSetItemsCbbEvent;
     FOnSetDocTypeStringsEvent: TOnSetDocTypeStringsEvent;
     FOnUsedDBEvent: TOnUsedDBEvent;
@@ -97,12 +106,19 @@ type
     constructor Create;
     destructor Destroy; override;
 
+    procedure ProgressWatchEvent(const AProgressInfo: TgdProgressInfo);
+    procedure ProgressMsgEvent(const AMsg: String; AStepIncrement: Integer = 1);
+    procedure ErrorEvent(const AMsg: String; const AProcessName: String = '');
+    procedure LogEvent(const AMsg: String);   // записать в лог
+
+    procedure SetSelectDocTypes(const ADocTypesList: TStringList);
+
     procedure Connect(ANoGarbageCollect: Boolean; AOffForceWrite: Boolean);
     procedure Disconnect;
     procedure Reconnect(ANoGarbageCollect: Boolean; AOffForceWrite: Boolean);
 
-    // записать в лог
-    procedure LogEvent(const AMsg: String);
+    
+    
     // ExecQuery  и запись в лог
     procedure ExecSqlLogEvent(const AnIBSQL: TIBSQL; const AProcName: String); Overload;
     procedure ExecSqlLogEvent(const AnIBQuery: TIBQuery; const AProcName: String); Overload;
@@ -152,6 +168,7 @@ type
     procedure RestoreDB;
 
     procedure ClearDBSTables;      ////ClearDBSMetadata
+    procedure DropDBSStateJournal;
 
     procedure GetDBPropertiesEvent;   // получить информацию о БД
     procedure GetDBSizeEvent;         // получить размер файла БД
@@ -169,21 +186,26 @@ type
     property ClosingDate: TDateTime        read FClosingDate          write FClosingDate;
     property CompanyKey: Integer           read FCompanyKey           write FCompanyKey;
     property Connected: Boolean            read GetConnected;
+    property DoAccount00Saldo: Boolean     read FDoAccount00Saldo     write FDoAccount00Saldo;
+    property DocTypesList: TStringList     read FDocTypesList         write SetSelectDocTypes;
+    property DoProcDocTypes: Boolean       read FDoProcDocTypes       write FDoProcDocTypes;
     property CreateBackup: Boolean         read FCreateBackup         write FCreateBackup;
     property LogFileName: String           read FLogFileName          write FLogFileName;
+    property OnProgressWatch: TProgressWatchEvent
+      read FOnProgressWatch            write FOnProgressWatch;
     property OnGetConnectedEvent: TOnGetConnectedEvent
       read FOnGetConnectedEvent        write FOnGetConnectedEvent;
     property OnGetDBPropertiesEvent: TOnGetDBPropertiesEvent
       read FOnGetDBPropertiesEvent     write FOnGetDBPropertiesEvent;
     property OnGetDBSizeEvent: TOnGetDBSizeEvent  read FOnGetDBSizeEvent write FOnGetDBSizeEvent;
-    property OnGetInfoTestConnectEvent: TOnGetInfoTestConnectEvent 
+    property OnGetInfoTestConnectEvent: TOnGetInfoTestConnectEvent
       read FOnGetInfoTestConnectEvent  write FOnGetInfoTestConnectEvent;
     property OnGetProcStatistics: TOnGetProcStatistics
       read FOnGetProcStatistics        write FOnGetProcStatistics;
     property OnGetStatistics: TOnGetStatistics    read FOnGetStatistics  write FOnGetStatistics;
     property OnLogSQLEvent: TOnLogSQLEvent        read FOnLogSQLEvent    write FOnLogSQLEvent;
     property OnlyCompanySaldo: Boolean            read FOnlyCompanySaldo write FOnlyCompanySaldo;
-    property OnProgressWatch: TProgressWatchEvent read FOnProgressWatch  write FOnProgressWatch;
+   
     property OnSetItemsCbbEvent: TOnSetItemsCbbEvent
       read FOnSetItemsCbbEvent         write FOnSetItemsCbbEvent;
     property OnSetDocTypeStringsEvent: TOnSetDocTypeStringsEvent
@@ -207,7 +229,8 @@ begin
   FIBDatabase := TIBDatabase.Create(nil);
   FIgnoreTbls := TStringList.Create;
   FCascadeTbls := TStringList.Create;
-  FDocTypesList := TStringList.Create;
+  FCurrentProgressStep := 0;
+  FIsFirstConnect := True;
 end;
 
 destructor TgsDBSqueeze.Destroy;
@@ -217,15 +240,31 @@ begin
   FIBDatabase.Free;
   FIgnoreTbls.Free;
   FCascadeTbls.Free;
-  FDocTypesList.Free;
+  if Assigned(FDocTypesList) then
+    FDocTypesList.Free;
 
   inherited;
+end;
+
+procedure TgsDBSqueeze.SetSelectDocTypes(const ADocTypesList: TStringList);
+begin
+  if not Assigned(FDocTypesList) then
+    FDocTypesList := TStringList.Create
+  else
+    FDocTypesList.Clear;
+  FDocTypesList.Text := ADocTypesList.Text;
 end;
 
 procedure TgsDBSqueeze.Connect(ANoGarbageCollect: Boolean; AOffForceWrite: Boolean);
 begin
   if not FIBDatabase.Connected then
   begin
+    if FIsFirstConnect then
+    begin
+      GetDBSizeEvent;
+      FIsFirstConnect := False;
+    end;
+
     if FConnectInfo.Port <> 0 then
       FIBDatabase.DatabaseName := FConnectInfo.Host + '/' + IntToStr(FConnectInfo.Port) + ':' + FConnectInfo.DatabaseName
     else
@@ -449,7 +488,7 @@ begin
     ExecSqlLogEvent(q, 'CreateInvSaldo');
 
     if q.EOF then
-      raise EgsDBSqueeze.Create('Invalid data');
+      raise EgsDBSqueeze.Create('Отсутствует запись GD_DOCUMENTTYPE.NAME = ''Произвольный тип''');
     FProizvolnyyDocTypeKey := q.FieldByName('InvDocTypeKey').AsInteger;
     q.Close;
   
@@ -627,6 +666,32 @@ begin
   end;
 end;
 
+procedure TgsDBSqueeze.DropDBSStateJournal;
+var
+  q: TIBSQL;
+  Tr: TIBTransaction;
+begin
+  Assert(Connected);
+  Tr := TIBTransaction.Create(nil);
+  q := TIBSQL.Create(nil);
+  try
+    Tr.DefaultDatabase := FIBDatabase;
+    Tr.StartTransaction;
+    q.Transaction := Tr;
+
+    q.SQL.Text :=
+      'DROP TABLE dbs_journal_state ';
+    ExecSqlLogEvent(q, 'InsertDBSStateJournal');
+
+    Tr.Commit;
+
+    FIsProcTablesFinish := True;
+  finally
+    q.Free;
+    Tr.Free;
+  end;
+end;
+
 procedure TgsDBSqueeze.CalculateAcSaldo; // подсчет бухгалтерского сальдо c сохранением в таблице DBS_TMP_AC_SALDO
 var
   Tr: TIBTransaction;
@@ -775,7 +840,6 @@ begin
       else if FAllOurCompaniesSaldo then
         q3.SQL.Add(' ' +                                        #13#10 +
           'AND companykey IN (' + FOurCompaniesListStr + ') ');
-
 
       q3.SQL.Add(' ' +                                          #13#10 +
         'GROUP BY ' +                                           #13#10 +
@@ -1025,7 +1089,7 @@ begin
       '  recordkey, ' +                                         #13#10 +
       '  :ProizvolnyeTransactionKey, ' +                        #13#10 +
       '  documentkey, masterdockey, companykey, accountkey, ' + #13#10 +
-      '  currkey, accountpart, ' + #13#10 +                     #13#10 +
+      '  currkey, accountpart, ' +                              #13#10 +
       '  creditncu, creditcurr, crediteq, ' +                   #13#10 +
       '  debitncu, debitcurr, debiteq ');
     if FEntryAnalyticsStr <> '' then
@@ -1039,58 +1103,81 @@ begin
     ExecSqlLogEvent(q, 'CreateAcEntries');
 
     // проводки по счету '00 Остатки': Дебетовые остатки счета вводятся по кредиту счета 00. Кредитовые остатки счета вводятся по дебету счета 00.
+    if FDoAccount00Saldo then
+    begin
 
-    q.SQL.Text :=
-      'INSERT INTO AC_ENTRY (' +                                #13#10 +
-      '  issimple, ' +                                          #13#10 +
-      '  id, ' +                                                #13#10 +
-      '  entrydate, ' +                                         #13#10 +
-      '  recordkey, ' +                                         #13#10 +
-      '  transactionkey, ' +                                    #13#10 +
-      '  documentkey, masterdockey, companykey, ' +             #13#10 +
-      '  accountkey, ' +                                        #13#10 +
-      '  currkey, accountpart, ' +                              #13#10 +
-      '  creditncu, ' +                                         #13#10 +
-      '  creditcurr, ' +                                        #13#10 +
-      '  crediteq, ' +                                          #13#10 +
-      '  debitncu, ' +                                          #13#10 +
-      '  debitcurr, ' +                                         #13#10 +
-      '  debiteq ';
-    if FEntryAnalyticsStr <> '' then
-      q.SQL.Add(',' +
-          FEntryAnalyticsStr);
-    q.SQL.Add(') ' +
-      'SELECT ' +                                               #13#10 +
-      '  1, ' +                                                 #13#10 +
-      '  GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0), ' +   #13#10 +
-      '  :ClosingDate, ' +                                      #13#10 +
-      '  recordkey, ' +                                         #13#10 +
-      '  :ProizvolnyeTransactionKey, ' +                        #13#10 +
-      '  documentkey, masterdockey, companykey, ' +             #13#10 +
-      '  :AccountKey, ' +                                       #13#10 +
-      '  currkey, accountpart, ' +                              #13#10 +
-      '  IIF(accountpart = ''C'', 0.0000, creditncu), ' +       #13#10 +
-      '  IIF(accountpart = ''C'', 0.0000, creditcurr), ' +      #13#10 +
-      '  IIF(accountpart = ''C'', 0.0000, crediteq), ' +        #13#10 +
-      '  IIF(accountpart = ''D'', 0.0000, debitncu), ' +        #13#10 +
-      '  IIF(accountpart = ''D'', 0.0000, debitcurr), ' +       #13#10 +
-      '  IIF(accountpart = ''D'', 0.0000, debiteq) ');
-    if FEntryAnalyticsStr <> '' then
+      {q.SQL.Text :=
+        'INSERT INTO AC_RECORD ( ' +                              #13#10 +
+        '  id, ' +                                                #13#10 +
+        '  recorddate, ' +                                        #13#10 +
+        '  trrecordkey, ' +                                       #13#10 +
+        '  transactionkey, ' +                                             #13#10 +
+        '  documentkey, masterdockey, afull, achag, aview, companykey) ' + #13#10 +
+        'SELECT ' +                                               #13#10 +  ///////////////////////////
+        '  GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0), ' +            #13#10 +
+        '  :ClosingDate, ' +                                      #13#10 +
+        '  :ProizvolnyeTrRecordKey, ' +                           #13#10 +
+        '  :ProizvolnyeTransactionKey, ' +                        #13#10 +
+        '  documentkey, masterdockey, -1, -1, -1, companykey ' +  #13#10 +
+        'FROM DBS_TMP_AC_SALDO ';
+      q.ParamByName('ClosingDate').AsDateTime := FClosingDate;
+      q.ParamByName('ProizvolnyeTrRecordKey').AsInteger := PROIZVOLNYE_TRRECORD_KEY;
+      q.ParamByName('ProizvolnyeTransactionKey').AsInteger := PROIZVOLNYE_TRANSACTION_KEY;
+
+      ExecSqlLogEvent(q, 'CreateAcEntries');
+
+      q.SQL.Text :=
+        'INSERT INTO AC_ENTRY (' +                                #13#10 +
+        '  issimple, ' +                                          #13#10 +
+        '  id, ' +                                                #13#10 +
+        '  entrydate, ' +                                         #13#10 +
+        '  recordkey, ' +                                         #13#10 +
+        '  transactionkey, ' +                                    #13#10 +
+        '  documentkey, masterdockey, companykey, ' +             #13#10 +
+        '  accountkey, ' +                                        #13#10 +
+        '  currkey, accountpart, ' +                              #13#10 +
+        '  creditncu, ' +                                         #13#10 +
+        '  creditcurr, ' +                                        #13#10 +
+        '  crediteq, ' +                                          #13#10 +
+        '  debitncu, ' +                                          #13#10 +
+        '  debitcurr, ' +                                         #13#10 +
+        '  debiteq ';
+      if FEntryAnalyticsStr <> '' then
         q.SQL.Add(',' +
-          FEntryAnalyticsStr);
-    q.SQL.Add(' ' +
-      'FROM DBS_TMP_AC_SALDO ');
+            FEntryAnalyticsStr);
+      q.SQL.Add(') ' +
+        'SELECT ' +                                               #13#10 +
+        '  1, ' +                                                 #13#10 +
+        '  GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0), ' +   #13#10 +
+        '  :ClosingDate, ' +                                      #13#10 +
+        '  recordkey, ' +                                         #13#10 +
+        '  :ProizvolnyeTransactionKey, ' +                        #13#10 +
+        '  documentkey, masterdockey, companykey, ' +             #13#10 +
+        '  :AccountKey, ' +                                       #13#10 +
+        '  currkey, accountpart, ' +                              #13#10 +
+        '  IIF(accountpart = ''C'', 0.0000, creditncu), ' +       #13#10 +
+        '  IIF(accountpart = ''C'', 0.0000, creditcurr), ' +      #13#10 +
+        '  IIF(accountpart = ''C'', 0.0000, crediteq), ' +        #13#10 +
+        '  IIF(accountpart = ''D'', 0.0000, debitncu), ' +        #13#10 +
+        '  IIF(accountpart = ''D'', 0.0000, debitcurr), ' +       #13#10 +
+        '  IIF(accountpart = ''D'', 0.0000, debiteq) ');
+      if FEntryAnalyticsStr <> '' then
+          q.SQL.Add(',' +
+            FEntryAnalyticsStr);
+      q.SQL.Add(' ' +
+        'FROM DBS_TMP_AC_SALDO ');
 
-    q.ParamByName('AccountKey').AsInteger := OSTATKY_ACCOUNT_KEY;
-    q.ParamByName('ClosingDate').AsDateTime := FClosingDate;
-    q.ParamByName('ProizvolnyeTransactionKey').AsInteger := PROIZVOLNYE_TRANSACTION_KEY;
+      q.ParamByName('AccountKey').AsInteger := OSTATKY_ACCOUNT_KEY;
+      q.ParamByName('ClosingDate').AsDateTime := FClosingDate;
+      q.ParamByName('ProizvolnyeTransactionKey').AsInteger := PROIZVOLNYE_TRANSACTION_KEY;
 
-    ExecSqlLogEvent(q, 'CreateAcEntries');
+      ExecSqlLogEvent(q, 'CreateAcEntries');   }
+    end;
 
     Tr.Commit;
   finally
     q.Free;
-    Tr.Free; 
+    Tr.Free;
   end;
   LogEvent('Create entry balance... OK');
 end;
@@ -1131,6 +1218,7 @@ begin
         StringReplace(FCardFeaturesStr, 'USR$', 'ic.USR$', [rfReplaceAll, rfIgnoreCase]) + ' '); }
     q.SQL.Add(' ' +                                             #13#10 +
       'FROM inv_movement im ' +                                 #13#10 +
+      '  JOIN GD_DOCUMENT doc ON im.documentkey = doc.id ' +    #13#10 +
       '  JOIN INV_CARD ic ON im.cardkey = ic.id ' +             #13#10 +
      //' JOIN gd_contact cont ON cont.id = im.contactkey ' +
      //'   JOIN gd_contact head_cont ON head_cont.lb <= cont.lb AND head_cont.rb >= cont.rb ', '') +
@@ -1147,6 +1235,16 @@ begin
     // else
     //   'AND head_cont.id IN (' + FOurCompaniesListStr + ') ', '') +
 
+    if Assigned(FDocTypesList) then
+    begin
+      if not FDoProcDocTypes then
+        q.SQL.Add(' ' +
+          '  AND doc.documenttypekey NOT IN(' + FDocTypesList.CommaText + ') ')
+      else
+        q.SQL.Add(' ' +
+          '  AND doc.documenttypekey IN(' + FDocTypesList.CommaText + ') ');
+    end;
+    
     q.SQL.Add(' ' +                                             #13#10 +
       '  AND im.movementdate < :RemainsDate ' +                 #13#10 +
       '  AND im.disabled = 0 ' +                                #13#10 +
@@ -1539,7 +1637,7 @@ begin
     qInsertTmpRebind.Transaction := Tr;
 
 
-    SetBlockTriggerActive(False);
+  //  SetBlockTriggerActive(False);
 
 
     CardFeaturesList.Text := StringReplace(FCardFeaturesStr, ',', #13#10, [rfReplaceAll, rfIgnoreCase]); 
@@ -2336,6 +2434,7 @@ procedure TgsDBSqueeze.CreateHIS_IncludeInHIS;
 var
   Tr: TIBTransaction;
   q: TIBSQL;
+  Kolvo: Integer;
 
   procedure IncludeCascadingSequences(const ATableName: String);
   const
@@ -2351,7 +2450,6 @@ var
     WaitReProc: Boolean;
     RefRelation: String;
     TmpStr: String;
-    FirstProc: Boolean;
     Step: Integer;
     ReprocIncrement: Integer;
     ReprocSituation: Boolean;
@@ -2575,7 +2673,7 @@ var
         LogEvent('LineSetTbls: ' + LineSetTbls.Text);
         LogEvent('CrossLineTbls: ' + CrossLineTbls.Text);
         LogEvent('LineDocTbls: ' + LineDocTbls.Text);
-                                                                                                     ////TODO все FK в один запрос
+                                                                                                     
         // 3) include HIS доки на которые есть ссылки (не от таблицы Line, не от crossLine)
         q2.SQL.Text :=
           'SELECT ' +                                             #13#10 +
@@ -2601,7 +2699,7 @@ var
             FkFieldsList2.Clear;
             FkFieldsList2.Text := StringReplace(q2.FieldByName('fk_fields').AsString, ',', #13#10, [rfReplaceAll, rfIgnoreCase]);
 
-            for I:=0 to FkFieldsList2.Count-1 do
+            for I:=0 to FkFieldsList2.Count-1 do                                                                 ////TODO все FK в один запрос
             begin
               q3.SQL.Text :=
                 'SELECT ' +
@@ -2619,7 +2717,7 @@ var
           q2.Next;
         end;
         q2.Close;
-
+        ProgressMsgEvent('', 100);
 
         // 4) include linefield Line если на нее есть ссылка (не от таблицы Line и не от cross-таблиц Line)
         for J:=0 to LineDocTbls.Count-1 do
@@ -2727,14 +2825,14 @@ var
           end;
           q2.Close;
         end;
-
-
+        ProgressMsgEvent('', 100);
+        
         // 5) Все оставшиеся Line должны затянуть за собой доки и кросс-таблицы, если имеет поле-множество
         ReprocCondition := False;
         ReprocSituation := False;
         Step := 0;
         ReprocIncrement := (LineDocTbls.Count) div STEP_COUNT;
-        FirstProc := True;
+        IsFirstIteration := True;
         J := 0;
         while J < LineDocTbls.Count do
         begin
@@ -2750,7 +2848,7 @@ var
 
           RealKolvo := 0;
           ReProcTbl := '';
-                    // line values
+          // line values
           FkFieldsList.Clear;
           FkFieldsList.Text := StringReplace(LineDocTbls.Values[LineDocTbls.Names[J]], '||', #13#10, [rfReplaceAll, rfIgnoreCase]);
 
@@ -2758,9 +2856,19 @@ var
           // 5.1) обработка записей Line которые в HIS
             // Все оставшиеся записи текущего Line должны затянуть за собой свои FK
 
-          // if PK<147000000 главные поля include HIS, чтобы далее затянуть FKs таких записей
           if IsFirstIteration then
           begin
+            if LineDocTbls.Names[J] = 'GD_DOCUMENT' then
+            begin
+              q3.SQL.Text :=
+                'SELECT SUM(g_his_include(1, id)) ' +           #13#10 +
+                '  FROM gd_document ' +                         #13#10 +
+                ' WHERE parent < 147000000';
+              ExecSqlLogEvent(q3, 'IncludeCascadingSequences');
+              q3.Close;
+            end;
+
+            // if PK<147000000 главные поля include HIS, чтобы далее затянуть FKs таких записей
             // PKs Line
             q4.SQL.Text :=
               'SELECT ' +                                     #13#10 +
@@ -2790,10 +2898,10 @@ var
                   q3.SQL.Add(', ');
 
                 q3.SQL.Add('  ' +
-                  'SUM(g_his_include(1, rln.' + FkFieldsList[I] + ') ');
+                  'SUM(g_his_include(1, rln.' + FkFieldsList[I] + ')) ');
               end;
               q3.SQL.Add(' ' +
-                'FROM ' + LineDocTbls.Names[J] + ' rln ' +
+                'FROM ' + LineDocTbls.Names[J] + ' rln ' +  #13#10 +
                 'WHERE ');
               for I:=0 to FkFieldsList2.Count-1 do //PKs
               begin
@@ -2813,7 +2921,7 @@ var
                   LogEvent('REPROCESS! LineTable: ' + LineDocTbls.Names[J] + ' FK: ' + FkFieldsList[I] + ' --> GD_DOCUMENT');
                 end;
               end;
-
+              q3.Close;
               FkFieldsList2.Clear;
             end;
             q4.Close;
@@ -2865,8 +2973,8 @@ var
           if FIgnoreTbls.IndexOfName(LineDocTbls.Names[J]) <> -1 then
           begin
             q2.SQL.Text := 
-              'SELECT TRIM(list_fields) AS pk_fields ' +                       #13#10 +
-              '  FROM DBS_SUITABLE_TABLES ' +                                  #13#10 +
+              'SELECT TRIM(list_fields) AS pk_fields ' +                        #13#10 +
+              '  FROM DBS_SUITABLE_TABLES ' +                                   #13#10 +
               ' WHERE relation_name = :rln ';
             q2.ParamByName('rln').AsString := LineDocTbls.Names[J];
             ExecSqlLogEvent(q2, 'IncludeCascadingSequences');
@@ -2943,7 +3051,7 @@ var
                     '(g_his_has(1, rln.' + TmpList[K] + ') = 1 ');
 
                   if IsFirstIteration then
-                    q3.SQL.Add(' OR rln.' + FkFieldsList[K] + ' < 147000000 ');
+                    q3.SQL.Add(' OR rln.' + TmpList[K] + ' < 147000000 ');
 
                   q3.SQL.Add('  ' +
                     ') ');
@@ -3213,7 +3321,7 @@ var
           if RealKolvo > 0 then // переобработаем в конце шага
             ReprocSituation := True;
           
-          if not FirstProc then
+          if not IsFirstIteration then
           begin
             if Step <> STEP_COUNT-1 then
             begin
@@ -3228,7 +3336,7 @@ var
           end
           else if J = LineDocTbls.Count-1 then
           begin
-            FirstProc := False;
+            IsFirstIteration := False;
             ReprocCondition := True;
           end;
 
@@ -3241,7 +3349,7 @@ var
             LogEvent('GO REPROCESS gd_doc!');
           end;
 ////////////
-
+          ProgressMsgEvent('');
           Inc(J);
         end;
 
@@ -3303,29 +3411,51 @@ begin
 
     q.Transaction := Tr;
 
-    LogEvent('[test] DELETE FROM AC_RECORD...');                               ///test
+    SetBlockTriggerActive(False);
+    LogEvent('[test] DELETE FROM AC_RECORD...');                                ///TODO: вынести
     q.SQL.Text :=
-      'DELETE FROM AC_RECORD ' +                                      #13#10 +
-      'WHERE ' +                                                      #13#10 +
-      '  recorddate < :ClosingDate ';
+      'DELETE FROM AC_RECORD ' +                          #13#10 +
+      ' WHERE recorddate < :ClosingDate ';
     if FOnlyCompanySaldo then
       q.SQL.Add(' ' +
         'AND companykey = ' + IntToStr(FCompanykey));
-    //  else if FAllOurCompaniesSaldo then
-    //    q2.SQL.Add(' ' +
-    //      'AND companykey IN(' + FOurCompaniesListStr + ')');
 
     q.ParamByName('ClosingDate').AsDateTime := FClosingDate;
-    ExecSqlLogEvent(q, 'DeleteOldAcEntryBalance');
+    ExecSqlLogEvent(q, 'CreateHIS_IncludeInHIS');
     LogEvent('[test] DELETE FROM AC_RECORD... OK');
     Tr.Commit;
     Tr.StartTransaction;
 
     LogEvent('Including PKs In HugeIntSet... ');
 
-    //1) HIS_1 - новые доки - точно должны остаться
     CreateHIS(1);
-    q.SQL.Text :=                                                               ///TODO: учесть тип
+
+    // доки с типами указанными пользователем должны остаться
+    if Assigned(FDocTypesList) then
+    begin
+      q.SQL.Text :=
+        'SELECT SUM(g_his_include(1, id)) AS Kolvo ' +     #13#10 +
+        '  FROM gd_document ' +                            #13#10 +
+        ' WHERE documentdate < :Date ' +                   #13#10 +
+        '   AND parent IS NULL ';
+        
+      if not FDoProcDocTypes then
+        q.SQL.Add(' ' +
+          '   AND documenttypekey IN(' + FDocTypesList.CommaText + ') ')
+      else
+        q.SQL.Add(' ' +
+          '   AND documenttypekey NOT IN(' + FDocTypesList.CommaText + ') ');
+
+      q.ParamByName('Date').AsDateTime := FClosingDate;
+      ExecSqlLogEvent(q, 'CreateHIS_IncludeInHIS');
+
+      Kolvo := q.FieldByName('Kolvo').AsInteger;
+      q.Close;
+    end;
+
+    //1) HIS_1 - новые доки - точно должны остаться
+    
+    q.SQL.Text :=
       'SELECT SUM(g_his_include(1, id)) AS Kolvo ' +         #13#10 +
       '  FROM gd_document ' +                                #13#10 +
       ' WHERE documentdate >= :Date ' +                      #13#10 +
@@ -3333,7 +3463,9 @@ begin
 
     q.ParamByName('Date').AsDateTime := FClosingDate;
     ExecSqlLogEvent(q, 'CreateHIS_IncludeInHIS');
-    LogEvent(Format('BEFORE COUNT in HIS(1) without cascade: %d', [q.FieldByName('Kolvo').AsInteger]));
+
+    Kolvo := Kolvo + q.FieldByName('Kolvo').AsInteger;
+    LogEvent(Format('BEFORE COUNT in HIS(1) without cascade: %d', [Kolvo]));
     q.Close;
 
 
@@ -3353,6 +3485,8 @@ begin
     Tr.Commit;
 
     LogEvent('Including PKs In HugeIntSet... OK');
+    if FCurrentProgressStep < 33*PROGRESS_STEP then
+      ProgressMsgEvent('', ((33*PROGRESS_STEP) - FCurrentProgressStep));
   finally
     q.Free;
     Tr.Free;
@@ -3421,7 +3555,7 @@ begin
     end;
 
     DestroyHIS(1);
-    DestroyHIS(0);
+    //DestroyHIS(0);
 
     Tr.Commit;
     LogEvent('Deleting from DB... OK');
@@ -4210,16 +4344,20 @@ begin
 
     q.Transaction := Tr;
     try
-      RestoreIndices;
-      RestorePkUniqueConstraints;
-      RestoreFKConstraints;
-      RestoreTriggers;       ///test
+      RestoreIndices;                 //4%
+      ProgressMsgEvent('', 4*PROGRESS_STEP);
+      RestorePkUniqueConstraints;     //8%
+      ProgressMsgEvent('', 8*PROGRESS_STEP);
+      RestoreFKConstraints;           //16%
+      ProgressMsgEvent('', 16*PROGRESS_STEP);
+      RestoreTriggers;                //2%
+      ProgressMsgEvent('', 2*PROGRESS_STEP);
 
       Tr.Commit;
     except
       on E: Exception do
       begin
-        Tr.Rollback;
+        //Tr.Rollback;
         raise;
       end;
     end;
@@ -4291,7 +4429,8 @@ begin
     q.SQL.Text :=
       'SELECT ' +                                                #13#10 +
       '  (TRIM(dt.id) || ''='' || TRIM(dt.name)) AS DocType ' +  #13#10 +
-      'FROM GD_DOCUMENTTYPE dt ';
+      'FROM GD_DOCUMENTTYPE dt ' +                               #13#10 +
+      'ORDER BY dt.name';
     ExecSqlLogEvent(q, 'SetDocTypeStringsEvent');
     while not q.EOF do
     begin
@@ -4306,18 +4445,6 @@ begin
     q.Free;
     Tr.Free;
     DocTypeList.Free;
-  end;
-end;
-
-procedure TgsDBSqueeze.LogEvent(const AMsg: String);
-var
-  PI: TgdProgressInfo;
-begin
-  if Assigned(FOnProgressWatch) then
-  begin
-    PI.State := psMessage;
-    PI.Message := AMsg;
-    FOnProgressWatch(Self, PI);
   end;
 end;
 
@@ -4858,31 +4985,7 @@ var
     end;
   end;
 
-  procedure CreateDBSTmp2FKConstraints;
-  begin
-    if RelationExist2('DBS_TMP2_FK_CONSTRAINTS', Tr) then
-    begin
-      q.SQL.Text := 'DELETE FROM dbs_tmp2_fk_constraints';
-      ExecSqlLogEvent(q, 'CreateDBSTmp2FKConstraints');
-      LogEvent('Table DBS_TMP2_FK_CONSTRAINTS exists.');
-    end
-    else begin
-      q.SQL.Text :=
-        'CREATE TABLE DBS_TMP2_FK_CONSTRAINTS ( ' +     #13#10 +
-        '  CONSTRAINT_NAME   CHAR(40), ' +              #13#10 +
-        '  RELATION_NAME     CHAR(31), ' +              #13#10 +
-        '  LIST_FIELDS       VARCHAR(8192), ' +         #13#10 +
-        '  REF_RELATION_NAME CHAR(31), ' +              #13#10 +
-        '  LIST_REF_FIELDS   VARCHAR(8192), ' +         #13#10 +
-        '  UPDATE_RULE       CHAR(11), ' +              #13#10 +
-        '  DELETE_RULE       CHAR(11), ' +              #13#10 +
-        '  constraint PK_DBS_TMP2_FK_CONSTRAINTS primary key (CONSTRAINT_NAME))';
-      ExecSqlLogEvent(q, 'CreateDBSTmp2FKConstraints');
-      LogEvent('Table DBS_TMP2_FK_CONSTRAINTS has been created.');
-    end;
-  end;
-
-  procedure CreateDBSTmpPkHash;
+ { procedure CreateDBSTmpPkHash;
   begin
     if RelationExist2('DBS_TMP_PK_HASH', Tr) then
     begin
@@ -4901,9 +5004,9 @@ var
       ExecSqlLogEvent(q, 'CreateDBSTmpPkHash');
       LogEvent('Table DBS_TMP_PK_HASH has been created.');
     end;
-  end;
+  end;}
 
-  procedure CreateDBSTmpHIS2;
+  {procedure CreateDBSTmpHIS2;
   begin
     if RelationExist2('DBS_TMP_HIS_2', Tr) then
     begin
@@ -4922,7 +5025,7 @@ var
       ExecSqlLogEvent(q, 'CreateDBSTmpHIS2');
       LogEvent('Table PK_DBS_TMP_HIS_2 has been created.');
     end;
-  end;
+  end; }
 
   procedure CreateUDFs;
   begin
@@ -5065,7 +5168,6 @@ begin
     q2.Transaction := Tr;
 
     CreateDBSTmpProcessedTbls;
-    CreateDBSTmpPkHash;
     CreateDBSTmpAcSaldo;
     CreateDBSTmpInvSaldo;
     CreateDBSTmpRebindInvCards;
@@ -5077,8 +5179,6 @@ begin
     CreateDBSFKConstraints;
 
     CreateDBSTmpFKConstraints;
-    CreateDBSTmp2FKConstraints;
-    CreateDBSTmpHIS2;
 
     CreateUDFs;
 
@@ -5188,17 +5288,24 @@ procedure TgsDBSqueeze.GetDBSizeEvent;
     else
       DatabaseName := ADatabaseName;
     if FindFirst(DatabaseName, faAnyFile, SearchRecord) = 0 then
+    begin
       try
         Result := (SearchRecord.FindData.nFileSizeHigh * Int64(MAXDWORD)) + SearchRecord.FindData.nFileSizeLow;
       finally
         FindClose(SearchRecord);
       end;
+    end;
   end;   
 
 var
   FileSize: Int64;  // Размер файла в байтах
 begin
-  FileSize := GetFileSize(FConnectInfo.DatabaseName);  //////TODO хост проверить
+  if not FIsProcTablesFinish then
+    FileSize := GetFileSize(FConnectInfo.DatabaseName)  //////TODO хост проверить
+  else if FRestoreDBName > '' then
+    FileSize := GetFileSize(FRestoreDBName)
+  else
+    FileSize := GetFileSize(FConnectInfo.DatabaseName);
 
   FOnGetDBSizeEvent(BytesToStr(FileSize));
 end;
@@ -5209,6 +5316,7 @@ var
   Tr: TIBTransaction;
 begin
   LogEvent('Getting statistics...');
+  ProgressMsgEvent('Получение статистики...');
   Assert(Connected);
 
   Tr := TIBTransaction.Create(nil);
@@ -5249,6 +5357,7 @@ begin
     );
 
     Tr.Commit;
+    ProgressMsgEvent('');
     LogEvent('Getting statistics... OK');
   finally
     q1.Free;
@@ -5259,7 +5368,7 @@ begin
   end;
 end;
 
-procedure TgsDBSqueeze.GetProcStatisticsEvent;                                  ///TODO: доделать
+procedure TgsDBSqueeze.GetProcStatisticsEvent;                                  
 var
   q1, q2, q3, q4: TIBSQL;
   Tr: TIBTransaction;
@@ -5360,6 +5469,7 @@ begin
 
     Tr.Commit;
     LogEvent('Getting processing statistics... OK');
+    ProgressMsgEvent(' ');
   finally
     q1.Free;
     q2.Free;
@@ -5652,56 +5762,95 @@ begin
     Tr.StartTransaction;
     q.Transaction := Tr;
 
-    q.SQL.Text :=
-      'DELETE FROM DBS_TMP_PK_HASH';
-    ExecSqlLogEvent(q, 'ClearDBSTables');
+    try
+      q.SQL.Text := 'DROP TABLE DBS_TMP_PROCESSED_TABLES';
+      ExecSqlLogEvent(q, 'ClearDBSTables');
 
-    q.SQL.Text :=
-      'DELETE FROM DBS_TMP_HIS_2';
-    ExecSqlLogEvent(q, 'ClearDBSTables');
+      q.SQL.Text := 'DROP TABLE DBS_TMP_REBIND_INV_CARDS';
+      ExecSqlLogEvent(q, 'ClearDBSTables');
 
-    q.SQL.Text :=
-      'DELETE FROM DBS_FK_CONSTRAINTS';
-    ExecSqlLogEvent(q, 'ClearDBSTables');
+      q.SQL.Text := 'DROP TABLE DBS_TMP_AC_SALDO';
+      ExecSqlLogEvent(q, 'ClearDBSTables');
 
-    q.SQL.Text :=
-      'DELETE FROM DBS_INACTIVE_INDICES';
-    ExecSqlLogEvent(q, 'ClearDBSTables');
+      q.SQL.Text := 'DROP TABLE DBS_TMP_INV_SALDO';
+      ExecSqlLogEvent(q, 'ClearDBSTables');
 
-    q.SQL.Text :=
-      'DELETE FROM DBS_INACTIVE_TRIGGERS';
-    ExecSqlLogEvent(q, 'ClearDBSTables');
+      q.SQL.Text := 'DROP TABLE DBS_INACTIVE_TRIGGERS';
+      ExecSqlLogEvent(q, 'ClearDBSTables');
 
-    q.SQL.Text :=
-      'DELETE FROM DBS_PK_UNIQUE_CONSTRAINTS';
-    ExecSqlLogEvent(q, 'ClearDBSTables');
+      q.SQL.Text := 'DROP TABLE DBS_INACTIVE_INDICES';
+      ExecSqlLogEvent(q, 'ClearDBSTables');
 
-    q.SQL.Text :=
-      'DELETE FROM DBS_SUITABLE_TABLES';
-    ExecSqlLogEvent(q, 'ClearDBSTables');
+      q.SQL.Text := 'DROP TABLE DBS_PK_UNIQUE_CONSTRAINTS';
+      ExecSqlLogEvent(q, 'ClearDBSTables');
 
-    q.SQL.Text :=
-      'DELETE FROM DBS_TMP_AC_SALDO';
-    ExecSqlLogEvent(q, 'ClearDBSTables');
+      q.SQL.Text := 'DROP TABLE DBS_SUITABLE_TABLES';
+      ExecSqlLogEvent(q, 'ClearDBSTables');
 
-    q.SQL.Text :=
-      'DELETE FROM DBS_TMP2_FK_CONSTRAINTS';
-    ExecSqlLogEvent(q, 'ClearDBSTables');
+      q.SQL.Text := 'DROP TABLE DBS_FK_CONSTRAINTS';
+      ExecSqlLogEvent(q, 'ClearDBSTables');
 
-    q.SQL.Text :=
-      'DELETE FROM DBS_TMP_INV_SALDO';
-    ExecSqlLogEvent(q, 'ClearDBSTables');
+      q.SQL.Text := 'DROP TABLE DBS_TMP_FK_CONSTRAINTS';
+      ExecSqlLogEvent(q, 'ClearDBSTables');
 
-    q.SQL.Text :=
-      'DELETE FROM DBS_TMP_REBIND_INV_CARDS';
-    ExecSqlLogEvent(q, 'ClearDBSTables');
+      Tr.Commit;
 
-    Tr.Commit;
+      DropDBSStateJournal;
+    except
+      on E: Exception do
+      begin
+        //Tr.Rollback;
+        ErrorEvent('Ошибка при удалении таблицы: ' + E.Message);
+      end;
+    end;
   finally
     q.Free;
     Tr.Free;
   end;
 end;
 
+procedure TgsDBSqueeze.ProgressWatchEvent(const AProgressInfo: TgdProgressInfo);
+begin
+  FOnProgressWatch(Self, AProgressInfo);
+end;
 
+procedure TgsDBSqueeze.LogEvent(const AMsg: String);
+var
+  PI: TgdProgressInfo;
+begin
+  if Assigned(FOnProgressWatch) then
+  begin
+    PI.State := psMessage;
+    PI.Message := AMsg;
+    ProgressWatchEvent(PI);
+  end;
+end;
+
+procedure TgsDBSqueeze.ProgressMsgEvent(const AMsg: String; AStepIncrement: Integer = 1);
+var
+  PI: TgdProgressInfo;
+begin
+  if Assigned(FOnProgressWatch) then
+  begin
+    FCurrentProgressStep :=  FCurrentProgressStep + AStepIncrement;
+
+    PI.State := psProgress;
+    PI.CurrentStep := FCurrentProgressStep;
+    PI.CurrentStepName := AMsg;
+    ProgressWatchEvent(PI);
+  end;
+end;
+
+procedure TgsDBSqueeze.ErrorEvent(const AMsg: String; const AProcessName: String = '');
+var
+  PI: TgdProgressInfo;
+begin
+  if Assigned(FOnProgressWatch) then
+  begin
+    PI.State := psError;
+    PI.ProcessName := AProcessName;
+    PI.Message := AMsg;
+    ProgressWatchEvent(PI);
+  end;
+end;
 end.
