@@ -420,19 +420,31 @@ begin
 end;
 
 procedure TgdcUser.DeleteIBUser;
+var
+  Tr: TIBTransaction;
 begin
   if Active and (not EOF) and (not IBLogin.IsEmbeddedServer) then
   begin
+    Tr := TIBTransaction.Create(nil);
     try
-      ExecSingleQuery('DROP USER ' + FieldByName('ibname').AsString);
-    except
-      on E: EIBError do
-      begin
-        // подавляем исключение, если пользователя
-        // с таким именем не существует
-        if E.IBErrorCode <> isc_gsec_err_rec_not_found then
-          raise;
+      Tr.DefaultDatabase := Database;
+      Tr.StartTransaction;
+      try
+        gdcBaseManager.ExecSingleQuery('DROP USER ' + FieldByName('ibname').AsString, Tr);
+        Tr.Commit;
+      except
+        on E: EIBError do
+        begin
+          // подавляем исключение, если пользователя
+          // с таким именем не существует
+          if E.IBErrorCode <> isc_gsec_err_rec_not_found then
+            raise;
+        end;
       end;
+    finally
+      if Tr.InTransaction then
+        Tr.Rollback;
+      Tr.Free;
     end;
   end;
 end;
