@@ -915,22 +915,6 @@ begin
 
       q.Close;
       q.SQL.Text :=
-        'SELECT * FROM rdb$fields ' +
-        'WHERE rdb$field_name = ''DDOCUMENTDATE'' ' +
-        '  AND rdb$validation_source > '''' ';
-      q.ExecQuery;
-
-      if q.EOF then
-      begin
-        q.Close;
-        q.SQL.Text :=
-          'ALTER DOMAIN ddocumentdate ADD CHECK ' +
-          '  (VALUE BETWEEN ''27.01.1994'' AND ''27.01.2094'')';
-        q.ExecQuery;
-      end;  
-
-      q.Close;
-      q.SQL.Text :=
         'UPDATE OR INSERT INTO fin_versioninfo ' +
         '  VALUES (199, ''0000.0001.0000.0230'', ''10.02.2014'', ''New triggers for AC_ENTRY, AC_RECORD.'') ' +
         '  MATCHING (id)';
