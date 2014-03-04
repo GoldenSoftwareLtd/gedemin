@@ -328,9 +328,10 @@ begin
               FResponseInfo.ContentType := 'text/plain; charset=Windows-1251';
 
             Processed := True;
+            Break;
           end;
         end
-        else if RequestToken > '' then
+        else if (RequestToken > '') AND (HandlerCounter = FHttpGetHandlerList.Count - 1) then
         begin
           FResponseInfo.ResponseNo := 200;
           FResponseInfo.ContentType := 'text/html;';
