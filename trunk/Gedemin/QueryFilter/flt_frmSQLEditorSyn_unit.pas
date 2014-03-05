@@ -249,6 +249,8 @@ type
     actChangeRUID: TAction;
     TBSeparatorItem18: TTBSeparatorItem;
     TBItem34: TTBItem;
+    actFilter: TAction;
+    tbiFilter: TTBItem;
     procedure actPrepareExecute(Sender: TObject);
     procedure actExecuteExecute(Sender: TObject);
     procedure actCommitExecute(Sender: TObject);
@@ -326,6 +328,8 @@ type
     procedure actSetTransactionParamsUpdate(Sender: TObject);
     procedure cbTransactionsChange(Sender: TObject);
     procedure actChangeRUIDExecute(Sender: TObject);
+    procedure actFilterUpdate(Sender: TObject);
+    procedure actFilterExecute(Sender: TObject);
 
   private
     FOldDelete, FOldInsert, FOldUpdate, FOldIndRead, FOldSeqRead: TStrings;
@@ -394,7 +398,7 @@ uses
   flt_dlgInputParam_unit, syn_ManagerInterface_unit, prp_MessageConst,
   IB, at_Classes, IBHeader, jclStrings, flt_SafeConversion_unit,
   {$IFDEF GEDEMIN}
-  gdcBaseInterface, flt_sql_parser, at_sql_setup,
+  gdcBaseInterface, flt_sql_parser, flt_sqlFilter, at_sql_setup,
   {$ENDIF}
   gd_directories_const, Clipbrd, gd_security, gd_ExternalEditor,
   gd_common_functions, gd_classlist
@@ -2523,6 +2527,29 @@ begin
     AddLogRecord(S, True);
   end;
 {$ENDIF}  
+end;
+
+procedure TfrmSQLEditorSyn.actFilterUpdate(Sender: TObject);
+begin
+  actFilter.Enabled := (pcMain.ActivePage = tsQuery)
+    and (Trim(seQuery.Text) > '');
+end;
+
+procedure TfrmSQLEditorSyn.actFilterExecute(Sender: TObject);
+begin
+  {$IFDEF GEDEMIN}
+  Assert(gdcBaseManager <> nil);
+
+  with TgsSQLFilter.Create(nil) do
+  try
+    Database := gdcBaseManager.Database;
+    SetQueryText(seQuery.Text);
+    if CreateSQL then
+      seQuery.Text := FilteredSQL.Text;
+  finally
+    Free;
+  end;
+  {$ENDIF}
 end;
 
 initialization

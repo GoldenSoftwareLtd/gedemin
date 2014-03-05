@@ -1613,6 +1613,9 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         object TBItem16: TTBItem
           Action = actParse
         end
+        object tbiFilter: TTBItem
+          Action = actFilter
+        end
         object TBSeparatorItem1: TTBSeparatorItem
         end
         object TBItem4: TTBItem
@@ -1663,14 +1666,14 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
           Action = actMakeSelect
         end
         object Label13: TLabel
-          Left = 422
+          Left = 445
           Top = 4
           Width = 51
           Height = 13
           Caption = 'Таблицы: '
         end
         object iblkupTable: TgsIBLookupComboBox
-          Left = 473
+          Left = 496
           Top = 0
           Width = 145
           Height = 21
@@ -2006,6 +2009,13 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
       Hint = 'Заменить РУИД'
       ImageIndex = 37
       OnExecute = actChangeRUIDExecute
+    end
+    object actFilter: TAction
+      Caption = 'actFilter'
+      Hint = 'Обработать запрос фильтром'
+      ImageIndex = 20
+      OnExecute = actFilterExecute
+      OnUpdate = actFilterUpdate
     end
   end
   object ibsqlPlan: TIBSQL
