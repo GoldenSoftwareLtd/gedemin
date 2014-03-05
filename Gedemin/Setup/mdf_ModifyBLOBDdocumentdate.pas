@@ -43,13 +43,20 @@ begin
         FIBSQL.Close;
         FIBSQL.SQL.Text :=
           'ALTER DOMAIN ddocumentdate ADD' + #13#10 +
-          '  CHECK (VALUE BETWEEN ''01.01.1990'' AND ''31.12.2099'')';
+          '  CHECK (VALUE BETWEEN ''01.01.1900'' AND ''31.12.2099'')';
         FIBSQL.ExecQuery;
 
         FIBSQL.Close;
         FIBSQL.SQL.Text :=
           'UPDATE OR INSERT INTO fin_versioninfo ' +
           '  VALUES (202, ''0000.0001.0000.0233'', ''03.03.2014'', ''Issue 3323'') ' +
+          '  MATCHING (id)';
+        FIBSQL.ExecQuery;
+
+        FIBSQL.Close;
+        FIBSQL.SQL.Text :=
+          'UPDATE OR INSERT INTO fin_versioninfo ' +
+          '  VALUES (203, ''0000.0001.0000.0234'', ''05.03.2014'', ''Issue 3323. Attempt #2.'') ' +
           '  MATCHING (id)';
         FIBSQL.ExecQuery;
       finally
