@@ -938,6 +938,7 @@ var
 begin
   if pnlSearchMain.Visible then
   begin
+    pnlSearchMainButton.Parent := pnlSearchMain;
     gdcObject.ExtraConditions.Text := FMainPreservedConditions;
 
     FreeAndNil(FFieldOrigin);
@@ -1122,6 +1123,15 @@ begin
 
     PN.Width := W;
   end;
+   if pnlSearchMainButton <> nil then
+     begin
+       pnlSearchMainButton.Parent := SB;
+       pnlSearchMainButton.Top := J * RowHeight + 8 + 4 + 20;
+       if Btn <> nil then
+         pnlSearchMainButton.Top := Btn.Top + 18 + 4
+       else
+         pnlSearchMainButton.Top := J * RowHeight + 8 + 4;
+     end;
 
   if Assigned(F) and F.CanFocus and (GetParentForm(F) = Self) then
     ActiveControl := F;
@@ -1960,6 +1970,7 @@ var
 begin
   if pnlSearchMain.Visible then
   begin
+    pnlSearchMainButton.Parent := pnlSearchMain;
     gdcObject.ExtraConditions.Text := FMainPreservedConditions;
     FreeAndNil(FFieldOrigin);
 
