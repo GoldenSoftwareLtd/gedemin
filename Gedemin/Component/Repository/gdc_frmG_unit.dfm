@@ -26,8 +26,8 @@ object gdc_frmG: Tgdc_frmG
   TextHeight = 13
   object sbMain: TStatusBar
     Left = 0
-    Top = 354
-    Width = 643
+    Top = 365
+    Width = 651
     Height = 19
     Font.Charset = RUSSIAN_CHARSET
     Font.Color = clWindowText
@@ -49,11 +49,11 @@ object gdc_frmG: Tgdc_frmG
   object TBDockTop: TTBDock
     Left = 0
     Top = 0
-    Width = 643
-    Height = 51
+    Width = 651
+    Height = 49
     object tbMainToolbar: TTBToolbar
       Left = 0
-      Top = 25
+      Top = 23
       Caption = 'Панель инструментов'
       CloseButton = False
       DockMode = dmCannotFloat
@@ -131,7 +131,7 @@ object gdc_frmG: Tgdc_frmG
     end
     object tbMainCustom: TTBToolbar
       Left = 512
-      Top = 25
+      Top = 23
       Caption = 'Дополнительная панель инструментов'
       CloseButton = False
       DockMode = dmCannotFloat
@@ -258,7 +258,7 @@ object gdc_frmG: Tgdc_frmG
     end
     object tbMainInvariant: TTBToolbar
       Left = 298
-      Top = 25
+      Top = 23
       Caption = 'Дополнительная панель инструментов'
       CloseButton = False
       DockMode = dmCannotFloat
@@ -285,7 +285,7 @@ object gdc_frmG: Tgdc_frmG
     end
     object tbChooseMain: TTBToolbar
       Left = 456
-      Top = 25
+      Top = 23
       Caption = 'Дополнительная панель инструментов'
       CloseButton = False
       DockMode = dmCannotFloat
@@ -311,37 +311,37 @@ object gdc_frmG: Tgdc_frmG
   end
   object TBDockLeft: TTBDock
     Left = 0
-    Top = 51
+    Top = 49
     Width = 9
-    Height = 294
+    Height = 307
     Position = dpLeft
   end
   object TBDockRight: TTBDock
-    Left = 634
-    Top = 51
+    Left = 642
+    Top = 49
     Width = 9
-    Height = 294
+    Height = 307
     Position = dpRight
   end
   object TBDockBottom: TTBDock
     Left = 0
-    Top = 345
-    Width = 643
+    Top = 356
+    Width = 651
     Height = 9
     Position = dpBottom
   end
   object pnlWorkArea: TPanel
     Left = 9
-    Top = 51
-    Width = 625
-    Height = 294
+    Top = 49
+    Width = 633
+    Height = 307
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 5
     object spChoose: TSplitter
       Left = 0
-      Top = 191
-      Width = 625
+      Top = 204
+      Width = 633
       Height = 4
       Cursor = crVSplit
       Align = alBottom
@@ -350,8 +350,8 @@ object gdc_frmG: Tgdc_frmG
     object pnlMain: TPanel
       Left = 0
       Top = 0
-      Width = 625
-      Height = 191
+      Width = 633
+      Height = 204
       Align = alClient
       BevelOuter = bvNone
       Constraints.MinHeight = 100
@@ -361,7 +361,7 @@ object gdc_frmG: Tgdc_frmG
         Left = 0
         Top = 0
         Width = 160
-        Height = 191
+        Height = 204
         Align = alLeft
         BevelOuter = bvNone
         Color = 14741233
@@ -373,7 +373,7 @@ object gdc_frmG: Tgdc_frmG
           Left = 0
           Top = 0
           Width = 160
-          Height = 191
+          Height = 166
           HorzScrollBar.Style = ssFlat
           HorzScrollBar.Visible = False
           VertScrollBar.Style = ssFlat
@@ -383,25 +383,26 @@ object gdc_frmG: Tgdc_frmG
         end
         object pnlSearchMainButton: TPanel
           Left = 0
-          Top = 152
+          Top = 166
           Width = 160
-          Height = 41
+          Height = 38
+          Align = alBottom
           BevelOuter = bvNone
           ParentColor = True
           TabOrder = 1
           object btnSearchMain: TButton
             Left = 12
             Top = 16
-            Width = 53
+            Width = 64
             Height = 18
             Action = actSearchMain
             Default = True
             TabOrder = 1
           end
           object btnSearchMainClose: TButton
-            Left = 75
+            Left = 83
             Top = 15
-            Width = 54
+            Width = 64
             Height = 19
             Action = actSearchMainClose
             TabOrder = 2
@@ -420,8 +421,8 @@ object gdc_frmG: Tgdc_frmG
     end
     object pnChoose: TPanel
       Left = 0
-      Top = 195
-      Width = 625
+      Top = 208
+      Width = 633
       Height = 99
       Align = alBottom
       BevelOuter = bvNone
@@ -429,7 +430,7 @@ object gdc_frmG: Tgdc_frmG
       TabOrder = 1
       Visible = False
       object pnButtonChoose: TPanel
-        Left = 520
+        Left = 528
         Top = 18
         Width = 105
         Height = 81
@@ -466,7 +467,7 @@ object gdc_frmG: Tgdc_frmG
       object ibgrChoose: TgsIBGrid
         Left = 0
         Top = 18
-        Width = 520
+        Width = 528
         Height = 81
         HelpContext = 3
         Align = alClient
@@ -492,7 +493,7 @@ object gdc_frmG: Tgdc_frmG
       object pnlChooseCaption: TPanel
         Left = 0
         Top = 0
-        Width = 625
+        Width = 633
         Height = 18
         Align = alTop
         Alignment = taLeftJustify
@@ -788,7 +789,7 @@ object gdc_frmG: Tgdc_frmG
     end
   end
   object pmMain: TPopupMenu
-    Left = 228
+    Left = 124
     Top = 204
     object nNew_OLD: TMenuItem
       Action = actNew
@@ -846,7 +847,7 @@ object gdc_frmG: Tgdc_frmG
     end
   end
   object dsMain: TDataSource
-    Left = 188
+    Left = 92
     Top = 204
   end
   object gdMacrosMenu: TgdMacrosMenu
