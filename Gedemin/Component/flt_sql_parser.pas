@@ -746,7 +746,7 @@ var
   WasQuote: Boolean;
 //  ArInt: array of Integer;
 begin
-//Скобки в ковычках трогать не будем
+//Скобки в кавычках трогать не будем
   Result := Source;
   WasQuote := False;
 //  SetLength(ArInt, Length(Source));
@@ -1223,19 +1223,22 @@ var
 begin
   // 1. Часть From
   // Раздвигаем скобки в тексте
-  TS := PrepareString(AnSQLText);
+  TS := PrepareString(Trim(AnSQLText));
   SelectSQL := '';
-  StartWith := nil;
   // Присваеваем текущую позицию
   Current := PChar(TS);
+
+  if StrLIComp('WITH', Current, 4) = 0 then
+    StartWith := Current
+  else
+    StartWith := nil;
+
   // Производим поиск части SELECT
   CurSection := stUnknown;
   repeat
     Start1 := Current;
     SQLToken := NextSQLToken(Current, Token, CurSection);
     //Finalize(Token);
-    if Token = 'WITH' then
-      StartWith := Start1;
     if SQLToken in SQLSections then CurSection := SQLToken;
   until SQLToken in [stEnd, stSelect];
   Start2 := Start1;
