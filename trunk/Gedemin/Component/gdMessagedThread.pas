@@ -4,7 +4,10 @@ unit gdMessagedThread;
 interface
 
 uses
-  Classes, Windows, SyncObjs, gd_ProgressNotifier_unit;
+  Classes, Windows, Messages, SyncObjs, gd_ProgressNotifier_unit;
+
+const
+  WM_GD_THREAD_USER = WM_USER + 1000;
 
 type
   TgdMessagedThread = class(TThread)
@@ -36,8 +39,10 @@ type
     procedure SyncProgressWatch;
     function GetProgressWatch: IgdProgressWatch;
     procedure SetProgressWatch(const Value: IgdProgressWatch);
-    procedure LogMessage(const AMessage: String);
+    procedure LogMessage(const AState: TgdProgressState;
+      const AMessage: String = '');
     procedure DoOnProgressWatch(Sender: TObject; const AProgressInfo: TgdProgressInfo);
+    procedure ExitThread;
 
     property ErrorMessage: String read FErrorMessage write FErrorMessage;
     property ErrorMsg: TMsg read FErrorMsg write FErrorMsg;
@@ -53,7 +58,7 @@ type
 implementation
 
 uses
-  SysUtils, Messages;
+  SysUtils;
 
 const
   WM_GD_EXIT_THREAD  =      WM_USER + 117;
@@ -100,6 +105,7 @@ var
 begin
   PeekMessage(Msg, 0, WM_USER, WM_USER, PM_NOREMOVE);
   FCreatedEvent.SetEvent;
+  LogMessage(psThreadStarted);
   Setup;
   try
     while (not Terminated) do
@@ -147,7 +153,16 @@ begin
     end;
   finally
     TearDown;
+    if Terminated then
+      LogMessage(psTerminating)
+    else
+      LogMessage(psThreadFinishing);
   end;
+end;
+
+procedure TgdMessagedThread.ExitThread;
+begin
+  PostMsg(WM_GD_EXIT_THREAD);
 end;
 
 function TgdMessagedThread.GetProgressWatch: IgdProgressWatch;
@@ -185,9 +200,10 @@ begin
       MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
 end;
 
-procedure TgdMessagedThread.LogMessage(const AMessage: String);
+procedure TgdMessagedThread.LogMessage(const AState: TgdProgressState;
+  const AMessage: String = '');
 begin
-  FPI.State := psMessage;
+  FPI.State := AState;
   FPI.Message := AMessage;
   Synchronize(SyncProgressWatch);
 end;
