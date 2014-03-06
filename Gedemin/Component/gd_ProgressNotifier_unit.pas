@@ -4,7 +4,15 @@ unit gd_ProgressNotifier_unit;
 interface
 
 type
-  TgdProgressState = (psInit, psProgress, psDone, psError, psMessage);
+  TgdProgressState = (
+    psThreadStarted,
+    psInit,
+    psProgress,
+    psDone,
+    psThreadFinishing,
+    psTerminating,
+    psError,
+    psMessage);
 
   TgdProgressInfo = record
     State: TgdProgressState;
