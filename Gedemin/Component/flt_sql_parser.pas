@@ -1215,7 +1215,7 @@ procedure ExtractAllSQL(const AnSQLText: String; var SelectSQL, FromSQL,
   WhereSQL, OtherSQL, OrderBySQL: String);
 var
   TS: String;
-  Start1, Start2, Current: PChar;
+  Start1, Start2, StartWith, Current: PChar;
   Token: String;
   SQLToken, CurSection: TSQLToken;
   SubSection: Integer;
@@ -1225,7 +1225,7 @@ begin
   // Раздвигаем скобки в тексте
   TS := PrepareString(AnSQLText);
   SelectSQL := '';
-
+  StartWith := nil;
   // Присваеваем текущую позицию
   Current := PChar(TS);
   // Производим поиск части SELECT
@@ -1234,6 +1234,8 @@ begin
     Start1 := Current;
     SQLToken := NextSQLToken(Current, Token, CurSection);
     //Finalize(Token);
+    if Token = 'WITH' then
+      StartWith := Start1;
     if SQLToken in SQLSections then CurSection := SQLToken;
   until SQLToken in [stEnd, stSelect];
   Start2 := Start1;
@@ -1281,7 +1283,10 @@ begin
     until ((CurSection = stFrom) and (SubSection < 1) and (BracketCount = 0)) or (SQLToken = stEnd);
     // Если FROM достигнут копируем секцию SELECT
     if SQLToken = stFrom then
-      SetString(SelectSQL, Start1, Start2 - Start1);
+      if StartWith <> nil then
+        SetString(SelectSQL, StartWith, Start2 - StartWith)
+      else
+        SetString(SelectSQL, Start1, Start2 - Start1);
   end;
 
   //2. Часть From
