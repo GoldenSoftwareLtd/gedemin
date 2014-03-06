@@ -97,27 +97,6 @@ implementation
 uses
   SysUtils, jclSelected, IBUtils;
 
-(*
-
-  Функцыя замяняе сімвалы пераводу стракі і вазврата карэткі
-  на прабелы.
-
-*)
-
-{
-function RemoveLFCR(const S: String): String;
-var
-  I: Integer;
-begin
-  Result := '';
-  for I := 1 to Length(S) do
-    if (S[I] <> #13) and (S[I] <> #10) then
-      Result := Result + S[I]
-    else
-      Result := Result + ' ';
-end;
-}
-
 type
   TSQLScope = (ssNone, ssSelect, ssFrom, ssWhere);
 
@@ -284,7 +263,6 @@ begin
         if IP.TokemType = ttIdentifier then
         begin
           TN := IP.Tokem;
-          //ASL.Add(AnsiUpperCase(TN + '=' + TN + '.'));
           TempS := MakeS(TN, TN);
           IP.GetNext;
           if IP.TokemType = ttSpace then
@@ -333,7 +311,6 @@ begin
               and (IP.LowerTokem <> 'where')
             then
             begin
-              //ASL.Strings[ASL.IndexOfName(TN)] := AnsiUpperCase(TN + '=' + IP.Tokem + '.');
               TempS := MakeS(TN, IP.Tokem);
               IP.GetNext;
               if IP.TokemType = ttSpace then
@@ -385,7 +362,6 @@ begin
 
                   TN := IP.Tokem;
                   TempS := MakeS(TN, TN);
-                  //ASL.Add(AnsiUpperCase(TN + '=' + TN + '.'));
 
                   IP.GetNext;
                   if IP.TokemType = ttSpace then
@@ -423,9 +399,6 @@ begin
 
                   if IP.LowerTokem <> 'on' then
                   begin
-                    { TODO : тут будет ошибка, если нам передадут сортированный список }
-                    //ASL.Delete(ASL.Count - 1);
-                    //ASL.Add(AnsiUpperCase(TN + '=' + IP.Tokem + '.'));
                     TempS := MakeS(TN, IP.Tokem);
 
                     IP.GetNext;
@@ -491,14 +464,6 @@ begin
 
     IP.Stream.Free;
     IP.Free;
-
-    {if not AFollowPeriod then
-      for I := 0 to ASL.Count - 1 do
-      begin
-        S := ASL[I];
-        SetLength(S, Length(S) - 1);
-        ASL[I] := S;
-      end;}
   end;
 end;
 
@@ -744,12 +709,10 @@ const
 var
   I: Integer;
   WasQuote: Boolean;
-//  ArInt: array of Integer;
 begin
-//Скобки в кавычках трогать не будем
+  //Скобки в кавычках трогать не будем
   Result := Source;
   WasQuote := False;
-//  SetLength(ArInt, Length(Source));
   I := 1;
   while I <= Length(Result) do
   begin
@@ -917,12 +880,6 @@ begin
           until (bssc = 0) or (SQLToken = stEnd)
         end;
 
-{    if SQLToken = stFieldName then
-      if Token = '(' then
-        Inc(BracketCount)
-      else
-        if Token = ')' then
-          Dec(BracketCount);}
     if (CurSection = stSelect) and (SQLToken = stSelect) then
       Inc(SubSection);
     if (SQLToken in SQLSections) and (SubSection = 0) and (BracketCount = 0) then
@@ -995,12 +952,6 @@ begin
           until (bssc = 0) or (SQLToken = stEnd)
         end;
 
-{    if SQLToken = stFieldName then
-      if Token = '(' then
-        Inc(BracketCount)
-      else
-        if Token = ')' then
-          Dec(BracketCount);}
     if (CurSection = stSelect) and (SQLToken = stSelect) then
       Inc(SubSection);
     if (SQLToken in SQLSections) and (SubSection = 0) and (BracketCount = 0) then
@@ -1188,12 +1139,6 @@ SELECT ... FROM ... WHERE ...(SELECT...FROM...ORDER BY) корректно обрабатываться
         if Token = ')' then
           Dec(BracketCount);
 
-{    if SQLToken = stFieldName then
-      if Token = '(' then
-        Inc(BracketCount)
-      else
-        if Token = ')' then
-          Dec(BracketCount);}
     if SQLToken in SQLSections then CurSection := SQLToken;
     if stSelect = SQLToken then Inc(SelectPart);
     if stFrom = SQLToken then Dec(SelectPart);
@@ -1223,22 +1168,19 @@ var
 begin
   // 1. Часть From
   // Раздвигаем скобки в тексте
-  TS := PrepareString(Trim(AnSQLText));
+  TS := PrepareString(AnSQLText);
   SelectSQL := '';
+  StartWith := nil;
   // Присваеваем текущую позицию
   Current := PChar(TS);
-
-  if StrLIComp('WITH', Current, 4) = 0 then
-    StartWith := Current
-  else
-    StartWith := nil;
-
   // Производим поиск части SELECT
   CurSection := stUnknown;
   repeat
     Start1 := Current;
     SQLToken := NextSQLToken(Current, Token, CurSection);
     //Finalize(Token);
+    if UpperCase(Token) = 'WITH' then
+      StartWith := Start1;
     if SQLToken in SQLSections then CurSection := SQLToken;
   until SQLToken in [stEnd, stSelect];
   Start2 := Start1;
