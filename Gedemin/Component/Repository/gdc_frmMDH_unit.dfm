@@ -2,14 +2,14 @@ inherited gdc_frmMDH: Tgdc_frmMDH
   Left = 427
   Top = 233
   Width = 732
-  Height = 484
+  Height = 495
   HelpContext = 115
   Caption = 'gdc_frmMDH'
   Font.Charset = DEFAULT_CHARSET
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 427
+    Top = 438
     Width = 716
   end
   inherited TBDockTop: TTBDock
@@ -74,14 +74,14 @@ inherited gdc_frmMDH: Tgdc_frmMDH
     end
   end
   inherited TBDockLeft: TTBDock
-    Height = 367
+    Height = 378
   end
   inherited TBDockRight: TTBDock
     Left = 707
-    Height = 367
+    Height = 378
   end
   inherited TBDockBottom: TTBDock
-    Top = 418
+    Top = 429
     Width = 716
   end
   inherited pnlWorkArea: TPanel
@@ -111,10 +111,7 @@ inherited gdc_frmMDH: Tgdc_frmMDH
       inherited pnlSearchMain: TPanel
         Height = 167
         inherited sbSearchMain: TScrollBox
-          Height = 129
-        end
-        inherited pnlSearchMainButton: TPanel
-          Top = 129
+          Height = 144
         end
       end
     end
@@ -234,9 +231,9 @@ inherited gdc_frmMDH: Tgdc_frmMDH
         OnExit = pnlSearchDetailExit
         object sbSearchDetail: TScrollBox
           Left = 0
-          Top = 0
+          Top = 23
           Width = 160
-          Height = 34
+          Height = 49
           HorzScrollBar.Style = ssFlat
           HorzScrollBar.Visible = False
           VertScrollBar.Style = ssFlat
@@ -246,16 +243,16 @@ inherited gdc_frmMDH: Tgdc_frmMDH
         end
         object pnlSearchDetailButton: TPanel
           Left = 0
-          Top = 34
+          Top = 0
           Width = 160
-          Height = 38
-          Align = alBottom
+          Height = 23
+          Align = alTop
           BevelOuter = bvNone
           ParentColor = True
           TabOrder = 1
           object btnSearchDetail: TButton
             Left = 12
-            Top = 15
+            Top = 4
             Width = 64
             Height = 19
             Action = actSearchDetail
@@ -264,7 +261,7 @@ inherited gdc_frmMDH: Tgdc_frmMDH
           end
           object btnSearchDetailClose: TButton
             Left = 83
-            Top = 15
+            Top = 4
             Width = 64
             Height = 19
             Action = actSearchdetailClose
