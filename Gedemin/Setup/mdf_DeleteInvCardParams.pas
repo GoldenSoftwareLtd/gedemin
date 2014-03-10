@@ -390,7 +390,6 @@ var
   q, q2: TIBSQL;
   Tr: TIBTransaction;
   SL, SL1, SL1a, SL2, SL3, SL3a, SL4: TStringList;
-  S: String;
   A, B, C, D: Boolean;
   Cnt: Integer;
 begin

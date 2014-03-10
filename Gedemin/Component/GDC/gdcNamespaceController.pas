@@ -3,13 +3,13 @@ unit gdcNamespaceController;
 interface
 
 uses
-  DB, IBDatabase, IBCustomDataSet, gdcBase, DBGrids, gd_KeyAssoc;
+  DB, ContNrs, IBDatabase, IBSQL, gdcBase, DBGrids, gd_KeyAssoc;
 
 type
   TgdcNamespaceController = class(TObject)
   private
     FIBTransaction: TIBTransaction;
-    FibdsLink: TIBDataSet;
+    FqLink, FqNSList: TIBSQL;
     FPrevNSID: Integer;
     FPrevNSName: String;
     FCurrentNSID: Integer;
@@ -22,8 +22,7 @@ type
 
     procedure DeleteFromNamespace;
     procedure MoveBetweenNamespaces;
-    procedure AddToNamespace;
-    function GetEnabled: Boolean;
+    procedure _AddToNamespace;
 
   public
     constructor Create;
@@ -38,23 +37,16 @@ type
     property IncludeSiblings: Boolean read FIncludeSiblings write FIncludeSiblings;
     property PrevNSID: Integer read FPrevNSID write FPrevNSID;
     property CurrentNSID: Integer read FCurrentNSID write FCurrentNSID;
-    property ibdsLink: TIBDataSet read FibdsLink;
-    property Enabled: Boolean read GetEnabled;
   end;
 
 implementation
 
 uses
-  Classes, Windows, StdCtrls, ExtCtrls, SysUtils, IBSQL, gdcBaseInterface,
+  Classes, Windows, Controls, StdCtrls, ExtCtrls, SysUtils, gdcBaseInterface,
   gdcNamespace, at_dlgNamespaceOp_unit, at_dlgToNamespace_unit, flt_sql_parser,
   gdcMetaData;
 
-type
-  TIterateProc = procedure of object;
-
-{ TgdcNamespaceController }
-
-procedure TgdcNamespaceController.AddToNamespace;
+procedure TgdcNamespaceController._AddToNamespace;
 {var
   gdcNamespaceObject: TgdcNamespaceObject;}
 begin
@@ -114,10 +106,9 @@ begin
   FIBTransaction.DefaultDatabase := gdcBaseManager.Database;
   FIBTransaction.StartTransaction;
 
-  FibdsLink := TIBDataSet.Create(nil);
-  FibdsLink.ReadTransaction := FIBTransaction;
-  FibdsLink.Transaction := FIBTransaction;
-  FibdsLink.SelectSQL.Text :=
+  FqLink := TIBSQL.Create(nil);
+  FqLink.Transaction := FIBTransaction;
+  FqLink.SQL.Text :=
     'SELECT DISTINCT '#13#10 +
     '  od.refobjectid as id, '#13#10 +
     '  r.xid as xid, '#13#10 +
@@ -136,6 +127,14 @@ begin
     '  od.sessionid = :sid '#13#10 +
     'ORDER BY '#13#10 +
     '  od.reflevel DESC';
+
+  FqNSList := TIBSQL.Create(nil);
+  FqNSList.Transaction := FIBTransaction;
+  FqNSList.SQL.Text :=
+    'SELECT LIST(n.name, ''^''), LIST(n.id, ''^'') FROM at_namespace n ' +
+    '  JOIN at_object o ON o.namespacekey = n.id ' +
+    'WHERE o.xid = :xid AND o.dbid = :dbid ' +
+    '  AND o.namespacekey <> :CurrNS';
 
   FObjects := TgdKeyArray.Create;
   FNamespaces := TgdKeyStringAssoc.Create;
@@ -165,42 +164,14 @@ destructor TgdcNamespaceController.Destroy;
 begin
   FObjects.Free;
   FNamespaces.Free;
-  FibdsLink.Free;
+  FqLink.Free;
+  FqNSList.Free;
   FIBTransaction.Free;
   inherited;
 end;
 
-function TgdcNamespaceController.GetEnabled: Boolean;
-begin
-  Result := FIBTransaction.InTransaction and FibdsLink.Active;
-end;
-
 function TgdcNamespaceController.Include: Boolean;
-
   {
-  procedure IterateBL(AnIterateProc: TIterateProc);
-  var
-    I: Integer;
-    Bm: String;
-  begin
-    if (FBL = nil) then
-      AnIterateProc
-    else begin
-      Bm := FgdcObject.Bookmark;
-      FgdcObject.DisableControls;
-      try
-        for I := 0 to FBL.Count - 1 do
-        begin
-          FgdcObject.Bookmark := FBL[I];
-          AnIterateProc;
-        end;
-      finally
-        FgdcObject.Bookmark := Bm;
-        FgdcObject.EnableControls;
-      end;
-    end;
-  end;
-
 var
   gdcNamespaceObject: TgdcNamespaceObject;
   HeadObjectKey, HeadObjectPos, NSKey: Integer;
@@ -514,25 +485,26 @@ begin
               (not TgdcMetaBase(Obj).IsDerivedObject)
             ) then
           begin
-            Dlg.AddObject(Obj.ID, Obj.ObjectName, Obj.ClassName + Obj.SubType,
-              RUIDToStr(Obj.GetRUID), '', False, False);
+            Dlg.AddObject(Obj.ID, Obj.ObjectName, Obj.ClassName, Obj.SubType,
+              Obj.GetRUID, '', False, False);
 
             FSessionID := gdcBaseManager.GetNextID;
             Obj.GetDependencies(FIBTransaction, FSessionID, False, ';EDITORKEY;CREATORKEY;');
 
-            FibdsLink.Close;
-            FibdsLink.ParamByName('sid').AsInteger := FSessionID;
-            FibdsLink.Open;
+            FqLink.Close;
+            FqLink.ParamByName('sid').AsInteger := FSessionID;
+            FqLink.ExecQuery;
 
-            while not FibdsLink.EOF do
+            while not FqLink.EOF do
             begin
               Dlg.AddObject(
-                FibdsLink.FieldByName('id').AsInteger,
-                FibdsLink.FieldByName('name').AsString,
-                FibdsLink.FieldByName('class').AsString + FibdsLink.FieldByName('subtype').AsString,
-                FibdsLink.FieldByName('xid').AsString + '_' + FibdsLink.FieldByName('dbid').AsString,
+                FqLink.FieldByName('id').AsInteger,
+                FqLink.FieldByName('name').AsString,
+                FqLink.FieldByName('class').AsString,
+                FqLink.FieldByName('subtype').AsString,
+                RUID(FqLink.FieldByName('xid').AsInteger, FqLink.FieldByName('dbid').AsInteger),
                 '', True, False);
-              FibdsLink.Next;
+              FqLink.Next;
             end;
 
             for J := 0 to Obj.CompoundClassesCount - 1 do
@@ -562,28 +534,29 @@ begin
                           and (TgdcMetaBase(CompoundObj).IsUserDefined)) then
                       begin
                         Dlg.AddObject(CompoundObj.ID, CompoundObj.ObjectName,
-                          CompoundObj.ClassName + CompoundObj.SubType,
-                          RUIDToStr(CompoundObj.GetRUID), '', False, True);
+                          CompoundObj.ClassName, CompoundObj.SubType,
+                          CompoundObj.GetRUID, '', False, True);
 
                         FSessionID2 := gdcBaseManager.GetNextID;
                         CompoundObj.GetDependencies(FIBTransaction, FSessionID2, False, ';EDITORKEY;CREATORKEY;');
 
-                        FibdsLink.Close;
-                        FibdsLink.ParamByName('sid').AsInteger := FSessionID2;
-                        FibdsLink.Open;
+                        FqLink.Close;
+                        FqLink.ParamByName('sid').AsInteger := FSessionID2;
+                        FqLink.ExecQuery;
 
-                        while not FibdsLink.EOF do
+                        while not FqLink.EOF do
                         begin
-                            if FibdsLink.FieldByName('id').AsInteger <> Obj.ID then
+                            if FqLink.FieldByName('id').AsInteger <> Obj.ID then
                             begin
                               Dlg.AddObject(
-                                FibdsLink.FieldByName('id').AsInteger,
-                                FibdsLink.FieldByName('name').AsString,
-                                FibdsLink.FieldByName('class').AsString + FibdsLink.FieldByName('subtype').AsString,
-                                FibdsLink.FieldByName('xid').AsString + '_' + FibdsLink.FieldByName('dbid').AsString,
+                                FqLink.FieldByName('id').AsInteger,
+                                FqLink.FieldByName('name').AsString,
+                                FqLink.FieldByName('class').AsString,
+                                FqLink.FieldByName('subtype').AsString,
+                                RUID(FqLink.FieldByName('xid').AsInteger, FqLink.FieldByName('dbid').AsInteger),
                                 '', True, True);
                             end;
-                          FibdsLink.Next;
+                          FqLink.Next;
                         end;
                       end;
                       CompoundObj.Next;
@@ -599,7 +572,16 @@ begin
           end;
         end;
 
-        Dlg.ShowModal;
+        if Dlg.ShowModal = mrOk then
+        begin
+          FAlwaysOverwrite := Dlg.chbxAlwaysOverwrite.Checked;
+          FDontRemove := Dlg.chbxDontRemove.Checked;
+          FIncludeSiblings := Dlg.chbxIncludeSiblings.Checked;
+
+          for I := 0 to Dlg.NSRecords.Count - 1 do
+          begin
+          end;
+        end;
       finally
         Dlg.Free;
       end;

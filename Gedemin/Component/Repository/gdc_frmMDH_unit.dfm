@@ -111,7 +111,7 @@ inherited gdc_frmMDH: Tgdc_frmMDH
       inherited pnlSearchMain: TPanel
         Height = 167
         inherited sbSearchMain: TScrollBox
-          Height = 144
+          Height = 140
         end
       end
     end
@@ -231,9 +231,9 @@ inherited gdc_frmMDH: Tgdc_frmMDH
         OnExit = pnlSearchDetailExit
         object sbSearchDetail: TScrollBox
           Left = 0
-          Top = 23
+          Top = 27
           Width = 160
-          Height = 49
+          Height = 45
           HorzScrollBar.Style = ssFlat
           HorzScrollBar.Visible = False
           VertScrollBar.Style = ssFlat
@@ -245,7 +245,7 @@ inherited gdc_frmMDH: Tgdc_frmMDH
           Left = 0
           Top = 0
           Width = 160
-          Height = 23
+          Height = 27
           Align = alTop
           BevelOuter = bvNone
           ParentColor = True
