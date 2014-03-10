@@ -166,6 +166,7 @@ type
     FSImages: TImageList;
     FOnFilterRecord: TFilterRecordEvent;
     FOnPostProcess: TNotifyEvent;
+    FOldOnAdvancedCustomDrawItem: TTVAdvancedCustomDrawItemEvent;
 
     procedure SetDataSource(Value: TDataSource);
     function GetDataSource: TDataSource;
@@ -193,6 +194,9 @@ type
     procedure SetCheckBoxEvent(const Value: TCheckBoxTVEvent);
     procedure SetDisplayField(const Value: String);
     function GetDisplayString(DS: TDataSet): String;
+    procedure AdvancedCustomDrawItem(Sender: TCustomTreeView; Node: TTreeNode;
+      State: TCustomDrawState; Stage: TCustomDrawStage; var PaintImages, DefaultDraw: Boolean);
+
     {procedure InternalOnCompare(Sender: TObject;
       Node1, Node2: TTreeNode; Data: Integer; var Compare: Integer);}
 
@@ -1480,6 +1484,9 @@ begin
       Items.EndUpdate;
     end;
   end;
+
+  FOldOnAdvancedCustomDrawItem := OnAdvancedCustomDrawItem;
+  OnAdvancedCustomDrawItem := AdvancedCustomDrawItem;
 end;
 
 { TTVState }
@@ -2185,6 +2192,26 @@ begin
   FreeAndNil(FActFind);
   FreeAndNil(FActFindNext);
   FreeAndNil(FActRefresh);
+end;
+
+procedure TgsCustomDBTreeView.AdvancedCustomDrawItem(
+  Sender: TCustomTreeView; Node: TTreeNode; State: TCustomDrawState;
+  Stage: TCustomDrawStage; var PaintImages, DefaultDraw: Boolean);
+begin
+  if Assigned(FOldOnAdvancedCustomDrawItem) then
+    FOldOnAdvancedCustomDrawItem(Sender, Node, State, Stage, PaintImages, DefaultDraw);
+
+  if DefaultDraw then
+  begin
+    if (cdsSelected in State) and (not (cdsFocused in State)) then
+    begin
+      if Stage = cdPrePaint then
+      begin
+        Canvas.Brush.Color := clActiveCaption;
+        Canvas.Font.Color := clCaptionText;
+      end;
+    end;
+  end;
 end;
 
 end.

@@ -3,19 +3,41 @@ unit at_dlgToNamespace_unit;
 interface
 
 uses
-  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  Db, DBClient, StdCtrls, IBDatabase, gsIBLookupComboBox, Grids, DBGrids,
-  gsDBGrid, ActnList, gdcBaseInterface, gdcBase, DBCtrls, Buttons,
+  Windows, Messages, ContNrs, SysUtils, Classes, Graphics, Controls, Forms,
+  Dialogs, Db, DBClient, StdCtrls, IBDatabase, gsIBLookupComboBox, Grids,
+  DBGrids, gsDBGrid, ActnList, gdcBaseInterface, gdcBase, DBCtrls, Buttons,
   gd_createable_form, ExtCtrls, IBSQL;
 
 type
-  TNSRecord = record
-    ObjectName: String;
-    ClassName: String;
-    RUID: String;
-    Checked: Boolean;
-    Compound: Boolean;
-    Linked: Boolean;
+  TNSRecord = class(TObject)
+  private
+    FID: TID;
+    FObjectName: String;
+    FObjectClass: String;
+    FSubType: String;
+    FRUID: TRUID;
+    FCompound: Boolean;
+    FChecked: Boolean;
+    FLinked: TObjectList;
+
+  public
+    constructor Create(
+      const AnID: TID;
+      const AnObjectName: String;
+      const AObjectClass: String;
+      const ASubType: String;
+      const ARUID: TRUID;
+      const ACompound: Boolean);
+    destructor Destroy; override;
+
+    property ID: TID read FID;
+    property ObjectName: String read FObjectName;
+    property ObjectClass: String read FObjectClass;
+    property SubType: String read FSubType;
+    property RUID: TRUID read FRUID;
+    property Compound: Boolean read FCompound;
+    property Checked: Boolean read FChecked write FChecked;
+    property Linked: TObjectList read FLinked;
   end;
 
   TdlgToNamespace = class(TCreateableForm)
@@ -41,14 +63,11 @@ type
     procedure FormDestroy(Sender: TObject);
 
   private
-    FY: Integer;
     Pnl: TPanel;
     FNS: TIBSQL;
-    FCurrent: Integer;
-    FCurrentLinked: Integer;
+    FNSRecords: TObjectList;
 
     procedure DoCheckClick(Sender: TObject);
-    function FillNSRecord(APnl: TPanel): TNSRecord;
 
   public
     constructor Create(AnOwner: TComponent); override;
@@ -57,18 +76,13 @@ type
     procedure AddObject(const AnObjID: Integer;
       const AnObjectName: String;
       const AClassName: String;
-      const ARUID: String;
+      const ASubType: String;
+      const ARUID: TRUID;
       const ANamespace: String;
       const ALinked: Boolean;
       const ACompound: Boolean);
 
-    function EOF: Boolean;
-    function GetNSRecord: TNSRecord;
-    procedure Next;
-
-    function LinkedEOF: Boolean;
-    function GetLinkedNSRecord: TNSRecord;
-    procedure LinkedNext;
+    property NSRecords: TObjectList read FNSRecords;
   end;
 
 var
@@ -77,6 +91,25 @@ var
 implementation
 
 {$R *.DFM}
+
+constructor TNSRecord.Create(const AnID: TID; const AnObjectName, AObjectClass,
+  ASubType: String; const ARUID: TRUID; const ACompound: Boolean);
+begin
+  FID := AnID;
+  FObjectName := AnObjectName;
+  FObjectClass := AObjectClass;
+  FSubType := ASubType;
+  FRUID := ARUID;
+  FCompound := ACompound;
+  FChecked := True;
+  FLinked := TObjectList.Create(True);
+end;
+
+destructor TNSRecord.Destroy;
+begin
+  FLinked.Free;
+  inherited;
+end;
 
 procedure TdlgToNamespace.actOKExecute(Sender: TObject);
 begin
@@ -90,6 +123,7 @@ end;
 
 destructor TdlgToNamespace.Destroy;
 begin
+  FNSRecords.Free;
   FNS.Free;
   inherited;
 end;
@@ -103,8 +137,7 @@ begin
     'SELECT LIST(n.name, '', '') FROM at_namespace n ' +
     '  JOIN at_object o ON o.namespacekey = n.id ' +
     'WHERE o.xid = :xid AND o.dbid = :dbid';
-  FCurrent := 0;
-  FCurrentLinked := 3;
+  FNSRecords := TObjectList.Create(True);
 end;
 
 procedure TdlgToNamespace.FormCreate(Sender: TObject);
@@ -123,7 +156,8 @@ end;
 procedure TdlgToNamespace.AddObject(const AnObjID: Integer;
   const AnObjectName: String;
   const AClassName: String;
-  const ARUID: String;
+  const ASubType: String;
+  const ARUID: TRUID;
   const ANamespace: String;
   const ALinked: Boolean;
   const ACompound: Boolean);
@@ -131,10 +165,14 @@ var
   NS: String;
   ChBx: TCheckBox;
   Lbl: TLabel;
-  Pnl2: TPanel;
+  CurrPnl: TPanel;
+  FY: Integer;
 begin
-  FNS.ParamByName('xid').AsInteger := StrToRUID(ARUID).XID;
-  FNS.ParamByName('dbid').AsInteger := StrToRUID(ARUID).DBID;
+  Assert((not ALinked) or (FNSRecords.Count > 0));
+  Assert((not ALinked) or (Pnl <> nil));
+
+  FNS.ParamByName('xid').AsInteger := ARUID.XID;
+  FNS.ParamByName('dbid').AsInteger := ARUID.DBID;
   FNS.ExecQuery;
   if FNS.EOF then
     NS := ''
@@ -144,47 +182,51 @@ begin
 
   if ALinked then
   begin
-    Assert(Pnl <> nil);
-    Pnl2 := TPanel.Create(Self);
-    Pnl2.Parent := Pnl;
-    Pnl2.Top := Pnl.Height;
-    Pnl.Height := Pnl.Height + 21;
-    Pnl2.Left := 24;
-    Pnl2.Width := Pnl.Width - 24;
-    Pnl2.Height := 21;
-    Pnl2.Caption := '';
-    Pnl2.ParentColor := False;
-    Pnl2.Color := clWhite;
-    Pnl2.Tag := 1;
+    CurrPnl := TPanel.Create(Self);
+    CurrPnl.Parent := Pnl;
+    CurrPnl.Top := Pnl.Height;
+    Pnl.Height := Pnl.Height + 21 + 1;
+    CurrPnl.Left := 24;
+    CurrPnl.Width := Pnl.Width - 24 - 1;
+    CurrPnl.Height := 21;
+    CurrPnl.Caption := '';
+    CurrPnl.BorderStyle := bsNone;
+    CurrPnl.BevelOuter := bvNone;
+    CurrPnl.BevelInner := bvNone;
+    (FNSRecords[FNSRecords.Count - 1] as TNSRecord).Linked.Add(TNSRecord.Create(AnObjID, AnObjectName, AClassName,
+      ASubType, ARUID, ACompound));
   end else
   begin
+    if Pnl <> nil then
+      FY := Pnl.Top + Pnl.Height + 1
+    else
+      FY := 1;
+
     Pnl := TPanel.Create(Self);
     Pnl.Parent := SB;
     Pnl.Top := FY;
     Pnl.Left := 0;
-    Pnl.Width := SB.Width - 21;
+    Pnl.Width := SB.Width - 20;
     Pnl.Height := 21;
     Pnl.Caption := '';
-    Pnl2 := Pnl;
-    if ACompound then
-      Pnl2.Tag := 2
-    else
-      Pnl2.Tag := 0;
+    CurrPnl := Pnl;
+    FNSRecords.Add(TNSRecord.Create(AnObjID, AnObjectName, AClassName,
+      ASubType, ARUID, ACompound));
   end;
 
   ChBx := TCheckBox.Create(Self);
-  ChBx.Parent := Pnl2;
+  ChBx.Parent := CurrPnl;
   ChBx.Caption := '';
   ChBx.Top := 2;
   ChBx.Left := 2;
   ChBx.Width := 16;
   ChBx.Checked := True;
   ChBx.Tag := AnObjID;
-  ChBx.Hint := ARUID;
+  ChBx.Hint := RUIDToStr(ARUID);
   ChBx.OnClick := DoCheckClick;
 
   Lbl := TLabel.Create(Self);
-  Lbl.Parent := Pnl2;
+  Lbl.Parent := CurrPnl;
   Lbl.Left := 20;
   Lbl.Top := 2;
   Lbl.Width := 300;
@@ -198,7 +240,7 @@ begin
   Lbl.Caption := Copy(AnObjectName, 1, 47);
 
   Lbl := TLabel.Create(Self);
-  Lbl.Parent := Pnl2;
+  Lbl.Parent := CurrPnl;
   Lbl.Left := 328;
   Lbl.Top := 2;
   Lbl.AutoSize := True;
@@ -210,16 +252,24 @@ begin
     Lbl.Caption := NS;
   end else
   begin
-    Lbl.Caption := AClassName;
+    Lbl.Caption := AClassName + ASubType;
   end;
-
-  if ALinked then
-    Inc(FY, Pnl2.Height)
-  else
-    Inc(FY, Pnl.Height);
 end;
 
 procedure TdlgToNamespace.DoCheckClick(Sender: TObject);
+
+  procedure SyncChecked(AnNSRecords: TObjectList; const AnObjID: TID;
+    const AChecked: Boolean);
+  var
+    I: Integer;
+  begin
+    for I := 0 to AnNSRecords.Count - 1 do
+    begin
+      if (AnNSRecords[I] as TNSRecord).ID = AnObjID then
+        (AnNSRecords[I] as TNSRecord).Checked := AChecked;
+      SyncChecked((AnNSRecords[I] as TNSRecord).Linked, AnObjID, AChecked);
+    end;
+  end;
 
   procedure SetChecks(const AnObjID: Integer; AParent: TWinControl;
     const AChecked: Boolean);
@@ -233,6 +283,7 @@ procedure TdlgToNamespace.DoCheckClick(Sender: TObject);
           or (AnObjID = -1) then
         begin
           (AParent.Controls[I] as TCheckBox).Checked := AChecked;
+          SyncChecked(FNSRecords, (AParent.Controls[I] as TCheckBox).Tag, AChecked);
         end;
       end
       else if AParent.Controls[I] is TWinControl then
@@ -240,56 +291,11 @@ procedure TdlgToNamespace.DoCheckClick(Sender: TObject);
   end;
 
 begin
+  SyncChecked(FNSRecords, (Sender as TCheckBox).Tag, (Sender as TCheckBox).Checked);
   SetChecks(-1, (Sender as TCheckBox).Parent,
     (Sender as TCheckBox).Checked);
   SetChecks((Sender as TCheckBox).Tag, SB,
     (Sender as TCheckBox).Checked);
-end;
-
-function TdlgToNamespace.EOF: Boolean;
-begin
-  Result := FCurrent >= SB.ControlCount;
-end;
-
-function TdlgToNamespace.GetLinkedNSRecord: TNSRecord;
-begin
-  Result := FillNSRecord((SB.Controls[FCurrent] as TPanel).Controls[FCurrentLinked] as TPanel);
-end;
-
-function TdlgToNamespace.GetNSRecord: TNSRecord;
-begin
-  Result := FillNSRecord(SB.Controls[FCurrent] as TPanel);
-end;
-
-function TdlgToNamespace.LinkedEOF: Boolean;
-begin
-  Result := EOF or
-    (FCurrentLinked >= (SB.Controls[FCurrent] as TPanel).ControlCount);
-end;
-
-procedure TdlgToNamespace.LinkedNext;
-begin
-  if not LinkedEOF then
-    Inc(FCurrentLinked);
-end;
-
-procedure TdlgToNamespace.Next;
-begin
-  if not EOF then
-  begin
-    Inc(FCurrent);
-    FCurrentLinked := 3;
-  end;
-end;
-
-function TdlgToNamespace.FillNSRecord(APnl: TPanel): TNSRecord;
-begin
-  Result.Checked := (APnl.Controls[0] as TCheckBox).Checked;
-  Result.RUID := (APnl.Controls[0] as TCheckBox).Hint;
-  Result.ObjectName := (APnl.Controls[1] as TLabel).Caption;
-  Result.ClassName := (APnl.Controls[1] as TLabel).Hint;
-  Result.Compound := APnl.Tag = 2;
-  Result.Linked := APnl.Tag = 1;
 end;
 
 end.

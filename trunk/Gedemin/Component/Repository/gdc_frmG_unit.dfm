@@ -371,9 +371,9 @@ object gdc_frmG: Tgdc_frmG
         OnExit = pnlSearchMainExit
         object sbSearchMain: TScrollBox
           Left = 0
-          Top = 23
+          Top = 27
           Width = 160
-          Height = 168
+          Height = 164
           HorzScrollBar.Style = ssFlat
           HorzScrollBar.Visible = False
           VertScrollBar.Style = ssFlat
@@ -385,7 +385,7 @@ object gdc_frmG: Tgdc_frmG
           Left = 0
           Top = 0
           Width = 160
-          Height = 23
+          Height = 27
           Align = alTop
           BevelOuter = bvNone
           ParentColor = True
