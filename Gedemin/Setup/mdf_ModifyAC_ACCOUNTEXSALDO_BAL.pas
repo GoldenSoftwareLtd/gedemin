@@ -17,7 +17,6 @@
     FTransaction: TIBTransaction;
     FIBSQL: TIBSQL;
   begin
-    Log('Начато изменение AC_ACCOUNTEXSALDO_BAL');
     FTransaction := TIBTransaction.Create(nil);
     try
       FTransaction.DefaultDatabase := IBDB;
@@ -49,9 +48,10 @@
             '   DECLARE VARIABLE TEMPVAR varchar(60); '#13#10 +
             '   DECLARE VARIABLE CLOSEDATE DATE; '#13#10 +
             '   DECLARE VARIABLE CK INTEGER; '#13#10 +
-            '   declare variable sqlstatement varchar(2048); '#13#10 +
-            '   declare variable sqlattstatement1 varchar(1024); '#13#10 +
-            '   declare variable sqlattstatement2 varchar(1024); '#13#10 +
+            '   DECLARE VARIABLE SQLStatement VARCHAR(2048); '#13#10 +
+            '   DECLARE VARIABLE HoldingList VARCHAR(1024) = ''''; '#13#10 +
+            '   DECLARE VARIABLE CurrCondition_E VARCHAR(1024) = ''''; '#13#10 +
+            '   DECLARE VARIABLE CurrCondition_Bal VARCHAR(1024) = ''''; '#13#10 +
             ' BEGIN '#13#10 +
             '   DEBITSALDO = 0; '#13#10 +
             '   CREDITSALDO = 0; '#13#10 +
@@ -61,29 +61,21 @@
             '   EQCREDITSALDO = 0; '#13#10 +
             '   CLOSEDATE = CAST((CAST(''17.11.1858'' AS DATE) + GEN_ID(gd_g_entry_balance_date, 0)) AS DATE); '#13#10 +
             ' '#13#10 +
-            '   IF (:ALLHOLDINGCOMPANIES = 1) THEN '#13#10 +
+            '   IF (:AllHoldingCompanies = 1) THEN '#13#10 +
             '   BEGIN '#13#10 +
-            '     sqlattstatement1 = '#13#10 +
-            '        '' OR bal.companykey IN ( '#13#10 +
-            '            SELECT '#13#10 +
-            '              h.companykey '#13#10 +
-            '            FROM '#13#10 +
-            '              gd_holding h '#13#10 +
-            '            WHERE '#13#10 +
-            '              h.holdingkey = '' || CAST(:companykey AS VARCHAR(20)) || '')''; '#13#10 +
-            '     sqlattstatement2 = '#13#10 +
-            '        '' OR e.companykey IN ( '#13#10 +
-            '            SELECT '#13#10 +
-            '              h.companykey '#13#10 +
-            '            FROM '#13#10 +
-            '              gd_holding h '#13#10 +
-            '            WHERE '#13#10 +
-            '              h.holdingkey = '' || CAST(:companykey AS VARCHAR(20)) || '')''; '#13#10 +
+            '     SELECT LIST(h.companykey, '','') '#13#10 +
+            '     FROM gd_holding h '#13#10 +
+            '     WHERE h.holdingkey = :companykey '#13#10 +
+            '     INTO :HoldingList; '#13#10 +
+            '     HoldingList = COALESCE(:HoldingList, ''''); '#13#10 +
             '   END '#13#10 +
-            '   ELSE '#13#10 +
+            ' '#13#10 +
+            '   HoldingList = :CompanyKey || IIF(:HoldingList = '''', '''', '','' || :HoldingList); '#13#10 +
+            ' '#13#10 +
+            '   IF (:CurrKey > 0) THEN '#13#10 +
             '   BEGIN '#13#10 +
-            '     sqlattstatement1 = ''''; '#13#10 +
-            '     sqlattstatement2 = ''''; '#13#10 +
+            '     CurrCondition_E =   '' AND (e.currkey   = '' || :currkey || '') ''; '#13#10 +
+            '     CurrCondition_Bal = '' AND (bal.currkey = '' || :currkey || '') ''; '#13#10 +
             '   END '#13#10 +
             ' '#13#10 +
             '   IF (:dateend >= :CLOSEDATE) THEN '#13#10 +
@@ -107,8 +99,8 @@
             '           ac_entry_balance bal '#13#10 +
             '         WHERE '#13#10 +
             '           bal.accountkey = '' || CAST(:accountkey AS VARCHAR(20)) || '' '#13#10 +
-            '             AND (bal.companykey = '' || CAST(:companykey AS VARCHAR(20)) || :sqlattstatement1 || '') '#13#10 +
-            '             AND ((0 = '' || CAST(:currkey AS VARCHAR(20)) || '') OR (bal.currkey = '' || CAST(:currkey AS VARCHAR(20)) || '')) '#13#10 +
+            '             AND (bal.companykey IN ('' || :HoldingList || ''))'' '#13#10 +
+            '            || :CurrCondition_Bal || '' '#13#10 +
             ' '#13#10 +
             '         UNION ALL '#13#10 +
             ' '#13#10 +
@@ -124,8 +116,8 @@
             '           e.accountkey = '' || CAST(:accountkey AS VARCHAR(20)) || '' '#13#10 +
             '           AND e.entrydate >= '''''' || CAST(:closedate AS VARCHAR(20)) || '''''' '#13#10 +
             '           AND e.entrydate < '''''' || CAST(:dateend AS VARCHAR(20)) || '''''' '#13#10 +
-            '           AND (e.companykey = '' || CAST(:companykey AS VARCHAR(20)) || :sqlattstatement2 || '') '#13#10 +
-            '           AND ((0 = '' || CAST(:currkey AS VARCHAR(20)) || '') OR (e.currkey = '' || CAST(:currkey AS VARCHAR(20)) || '')) '#13#10 +
+            '           AND (e.companykey IN ('' || :HoldingList || ''))'' '#13#10 +
+            '          || :CurrCondition_E || '' '#13#10 +
             ' '#13#10 +
             '       ) main '#13#10 +
             '       GROUP BY '#13#10 +
@@ -152,8 +144,8 @@
             '           ac_entry_balance bal '#13#10 +
             '         WHERE '#13#10 +
             '           bal.accountkey = '' || CAST(:accountkey AS VARCHAR(20)) || '' '#13#10 +
-            '             AND (bal.companykey = '' || CAST(:companykey AS VARCHAR(20)) || :sqlattstatement1 || '') '#13#10 +
-            '             AND ((0 = '' || CAST(:currkey AS VARCHAR(20)) || '') OR (bal.currkey = '' || CAST(:currkey AS VARCHAR(20)) || '')) '#13#10 +
+            '             AND (bal.companykey IN ('' || :HoldingList || ''))'' '#13#10 +
+            '            || :CurrCondition_Bal || '' '#13#10 +
             ' '#13#10 +
             '         UNION ALL '#13#10 +
             ' '#13#10 +
@@ -169,10 +161,9 @@
             '           e.accountkey = '' || CAST(:accountkey AS VARCHAR(20)) || '' '#13#10 +
             '           AND e.entrydate >= '''''' || CAST(:dateend AS VARCHAR(20)) || '''''' '#13#10 +
             '           AND e.entrydate < '''''' || CAST(:closedate AS VARCHAR(20)) || '''''' '#13#10 +
-            '           AND (e.companykey = '' || CAST(:companykey AS VARCHAR(20)) || :sqlattstatement2 || '') '#13#10 +
-            '           AND ((0 = '' || CAST(:currkey AS VARCHAR(20)) || '') OR (e.currkey = '' || CAST(:currkey AS VARCHAR(20)) || '')) '#13#10 +
-            ' '#13#10 +
-            '       ) main '#13#10 +
+            '           AND (e.companykey IN ('' || :HoldingList || ''))'' '#13#10 +
+            '           || :CurrCondition_E || '' '#13#10 +
+            '        ) main '#13#10 +
             '       GROUP BY '#13#10 +
             '         main.'' || FIELDNAME || '', main.companykey''; '#13#10 +
             '   END '#13#10 +
@@ -184,20 +175,17 @@
             '       :TEMPVAR, :SALDO, :SALDOCURR, :SALDOEQ, :CK '#13#10 +
             '   DO '#13#10 +
             '   BEGIN '#13#10 +
-            '     IF (SALDO IS NULL) THEN '#13#10 +
-            '       SALDO = 0; '#13#10 +
+            '     SALDO = COALESCE(:SALDO, 0); '#13#10 +
             '     IF (SALDO > 0) THEN '#13#10 +
             '       DEBITSALDO = DEBITSALDO + SALDO; '#13#10 +
             '     ELSE '#13#10 +
             '       CREDITSALDO = CREDITSALDO - SALDO; '#13#10 +
-            '     IF (SALDOCURR IS NULL) THEN '#13#10 +
-            '        SALDOCURR = 0; '#13#10 +
+            '     SALDOCURR = COALESCE(:SALDOCURR, 0); '#13#10 +
             '     IF (SALDOCURR > 0) THEN '#13#10 +
             '       CURRDEBITSALDO = CURRDEBITSALDO + SALDOCURR; '#13#10 +
             '     ELSE '#13#10 +
             '       CURRCREDITSALDO = CURRCREDITSALDO - SALDOCURR; '#13#10 +
-            '     IF (SALDOEQ IS NULL) THEN '#13#10 +
-            '        SALDOEQ = 0; '#13#10 +
+            '     SALDOEQ = COALESCE(:SALDOEQ, 0); '#13#10 +
             '     IF (SALDOEQ > 0) THEN '#13#10 +
             '       EQDEBITSALDO = EQDEBITSALDO + SALDOEQ; '#13#10 +
             '     ELSE '#13#10 +
@@ -213,14 +201,11 @@
             '  VALUES (204, ''0000.0001.0000.0235'', ''11.03.2014'', ''Issue 3301.'') ' +
             '  MATCHING (id)';
           FIBSQL.ExecQuery;
-          FIBSQL.Close;
-
-          FTransaction.Commit;
-          Log('Изменение AC_ACCOUNTEXSALDO_BAL успешно завершено');
-
         finally
           FIBSQL.Free;
         end;
+
+        FTransaction.Commit;
       except
         on E: Exception do
         begin

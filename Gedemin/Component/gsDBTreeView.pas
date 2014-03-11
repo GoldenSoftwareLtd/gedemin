@@ -301,7 +301,7 @@ type
     property DragMode;
     property Enabled;
     property Font;
-    property HideSelection;
+    property HideSelection default False;
     property HotTrack;
     property Images;
     property Indent;
@@ -666,6 +666,8 @@ begin
   FSImages := TImageList.Create(nil);
   FSImages.Width := 16;
   FSImages.Height := 16;
+
+  HideSelection := False;
 end;
 
 destructor TgsCustomDBTreeView.Destroy;
@@ -2207,7 +2209,7 @@ begin
     begin
       if Stage = cdPrePaint then
       begin
-        Canvas.Brush.Color := clActiveCaption;
+        Canvas.Brush.Color := clInActiveCaption;
         Canvas.Font.Color := clCaptionText;
       end;
     end;

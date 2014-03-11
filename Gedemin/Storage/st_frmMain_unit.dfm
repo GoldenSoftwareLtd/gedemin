@@ -312,6 +312,7 @@ object st_frmMain: Tst_frmMain
           item
             AutoSize = True
           end>
+        HideSelection = False
         ReadOnly = True
         RowSelect = True
         ShowColumnHeaders = False

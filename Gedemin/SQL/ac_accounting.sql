@@ -1309,9 +1309,10 @@ RETURNS (
    DECLARE VARIABLE TEMPVAR varchar(60); 
    DECLARE VARIABLE CLOSEDATE DATE; 
    DECLARE VARIABLE CK INTEGER; 
-   declare variable sqlstatement varchar(2048);
-   declare variable sqlattstatement1 varchar(1024);
-   declare variable sqlattstatement2 varchar(1024);
+   DECLARE VARIABLE SQLStatement VARCHAR(2048);
+   DECLARE VARIABLE HoldingList VARCHAR(1024) = '';
+   DECLARE VARIABLE CurrCondition_E VARCHAR(1024) = '';
+   DECLARE VARIABLE CurrCondition_Bal VARCHAR(1024) = '';
  BEGIN 
    DEBITSALDO = 0; 
    CREDITSALDO = 0; 
@@ -1321,29 +1322,21 @@ RETURNS (
    EQCREDITSALDO = 0; 
    CLOSEDATE = CAST((CAST('17.11.1858' AS DATE) + GEN_ID(gd_g_entry_balance_date, 0)) AS DATE); 
  
-   IF (:ALLHOLDINGCOMPANIES = 1) THEN
+   IF (:AllHoldingCompanies = 1) THEN
    BEGIN
-     sqlattstatement1 =
-        ' OR bal.companykey IN (
-            SELECT
-              h.companykey
-            FROM
-              gd_holding h
-            WHERE
-              h.holdingkey = ' || CAST(:companykey AS VARCHAR(20)) || ')';
-     sqlattstatement2 =
-        ' OR e.companykey IN (
-            SELECT
-              h.companykey
-            FROM
-              gd_holding h
-            WHERE
-              h.holdingkey = ' || CAST(:companykey AS VARCHAR(20)) || ')';
+     SELECT LIST(h.companykey, ',')
+     FROM gd_holding h
+     WHERE h.holdingkey = :companykey
+     INTO :HoldingList; 
+     HoldingList = COALESCE(:HoldingList, '');
    END
-   ELSE
+
+   HoldingList = :CompanyKey || IIF(:HoldingList = '', '', ',' || :HoldingList);
+
+   IF (:CurrKey > 0) THEN
    BEGIN
-     sqlattstatement1 = '';
-     sqlattstatement2 = '';
+     CurrCondition_E =   ' AND (e.currkey   = ' || :currkey || ') ';
+     CurrCondition_Bal = ' AND (bal.currkey = ' || :currkey || ') ';
    END
  
    IF (:dateend >= :CLOSEDATE) THEN 
@@ -1367,8 +1360,8 @@ RETURNS (
            ac_entry_balance bal 
          WHERE 
            bal.accountkey = ' || CAST(:accountkey AS VARCHAR(20)) || ' 
-             AND (bal.companykey = ' || CAST(:companykey AS VARCHAR(20)) || :sqlattstatement1 || ')
-             AND ((0 = ' || CAST(:currkey AS VARCHAR(20)) || ') OR (bal.currkey = ' || CAST(:currkey AS VARCHAR(20)) || '))
+             AND (bal.companykey IN (' || :HoldingList || '))' 
+            || :CurrCondition_Bal || '
  
          UNION ALL 
  
@@ -1384,8 +1377,8 @@ RETURNS (
            e.accountkey = ' || CAST(:accountkey AS VARCHAR(20)) || ' 
            AND e.entrydate >= ''' || CAST(:closedate AS VARCHAR(20)) || ''' 
            AND e.entrydate < ''' || CAST(:dateend AS VARCHAR(20)) || ''' 
-           AND (e.companykey = ' || CAST(:companykey AS VARCHAR(20)) || :sqlattstatement2 || ')
-           AND ((0 = ' || CAST(:currkey AS VARCHAR(20)) || ') OR (e.currkey = ' || CAST(:currkey AS VARCHAR(20)) || ')) 
+           AND (e.companykey IN (' || :HoldingList || '))'
+          || :CurrCondition_E || '
  
        ) main 
        GROUP BY 
@@ -1412,8 +1405,8 @@ RETURNS (
            ac_entry_balance bal 
          WHERE 
            bal.accountkey = ' || CAST(:accountkey AS VARCHAR(20)) || ' 
-             AND (bal.companykey = ' || CAST(:companykey AS VARCHAR(20)) || :sqlattstatement1 || ')
-             AND ((0 = ' || CAST(:currkey AS VARCHAR(20)) || ') OR (bal.currkey = ' || CAST(:currkey AS VARCHAR(20)) || '))
+             AND (bal.companykey IN (' || :HoldingList || '))'
+            || :CurrCondition_Bal || '
  
          UNION ALL 
  
@@ -1429,10 +1422,9 @@ RETURNS (
            e.accountkey = ' || CAST(:accountkey AS VARCHAR(20)) || ' 
            AND e.entrydate >= ''' || CAST(:dateend AS VARCHAR(20)) || ''' 
            AND e.entrydate < ''' || CAST(:closedate AS VARCHAR(20)) || ''' 
-           AND (e.companykey = ' || CAST(:companykey AS VARCHAR(20)) || :sqlattstatement2 || ')
-           AND ((0 = ' || CAST(:currkey AS VARCHAR(20)) || ') OR (e.currkey = ' || CAST(:currkey AS VARCHAR(20)) || ')) 
- 
-       ) main 
+           AND (e.companykey IN (' || :HoldingList || '))'
+           || :CurrCondition_E || '
+        ) main 
        GROUP BY 
          main.' || FIELDNAME || ', main.companykey'; 
    END 
@@ -1444,20 +1436,17 @@ RETURNS (
        :TEMPVAR, :SALDO, :SALDOCURR, :SALDOEQ, :CK 
    DO 
    BEGIN 
-     IF (SALDO IS NULL) THEN 
-       SALDO = 0; 
+     SALDO = COALESCE(:SALDO, 0); 
      IF (SALDO > 0) THEN 
        DEBITSALDO = DEBITSALDO + SALDO; 
      ELSE 
        CREDITSALDO = CREDITSALDO - SALDO; 
-     IF (SALDOCURR IS NULL) THEN 
-        SALDOCURR = 0; 
+     SALDOCURR = COALESCE(:SALDOCURR, 0); 
      IF (SALDOCURR > 0) THEN 
        CURRDEBITSALDO = CURRDEBITSALDO + SALDOCURR; 
      ELSE 
        CURRCREDITSALDO = CURRCREDITSALDO - SALDOCURR; 
-     IF (SALDOEQ IS NULL) THEN 
-        SALDOEQ = 0; 
+     SALDOEQ = COALESCE(:SALDOEQ, 0); 
      IF (SALDOEQ > 0) THEN 
        EQDEBITSALDO = EQDEBITSALDO + SALDOEQ; 
      ELSE 
