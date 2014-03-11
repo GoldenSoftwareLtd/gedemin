@@ -640,6 +640,9 @@ INSERT INTO fin_versioninfo
 
 INSERT INTO fin_versioninfo
   VALUES (203, '0000.0001.0000.0234', '05.03.2014', 'Issue 3323. Attempt #2.');
+  
+INSERT INTO fin_versioninfo
+  VALUES (204, '0000.0001.0000.0235', '11.03.2014', 'Issue 3301.');
 
 COMMIT;
 

@@ -10064,186 +10064,192 @@ END
 ^
 
 /* Вспомогательная процедура для создания оборотной ведомости с помощью расчитанного сальдо */
-
-CREATE OR ALTER PROCEDURE AC_ACCOUNTEXSALDO_BAL(
-  dateend DATE,
-  accountkey INTEGER,
-  fieldname VARCHAR(60),
-  companykey INTEGER,
-  allholdingcompanies INTEGER,
-  currkey INTEGER)
-RETURNS (
-  debitsaldo NUMERIC(15,4),
-  creditsaldo NUMERIC(15,4),
-  currdebitsaldo NUMERIC(15,4),
-  currcreditsaldo NUMERIC(15,4),
-  eqdebitsaldo NUMERIC(15,4),
-  eqcreditsaldo NUMERIC(15,4))
-AS
-DECLARE VARIABLE saldo NUMERIC(15, 4); 
-  DECLARE VARIABLE saldocurr NUMERIC(15, 4); 
-  DECLARE VARIABLE saldoeq NUMERIC(15, 4); 
-  DECLARE VARIABLE tempvar VARCHAR(60); 
-  DECLARE VARIABLE closedate DATE; 
-  DECLARE VARIABLE sqlstatement VARCHAR(2048); 
+CREATE OR ALTER PROCEDURE AC_ACCOUNTEXSALDO_BAL (
+    DATEEND DATE,
+    ACCOUNTKEY INTEGER,
+    FIELDNAME VARCHAR(60),
+    COMPANYKEY INTEGER,
+    ALLHOLDINGCOMPANIES INTEGER,
+    CURRKEY INTEGER)
+RETURNS ( 
+    DEBITSALDO NUMERIC(15, 4),
+    CREDITSALDO NUMERIC(15, 4),
+    CURRDEBITSALDO NUMERIC(15, 4),
+    CURRCREDITSALDO NUMERIC(15, 4),
+    EQDEBITSALDO NUMERIC(15, 4),
+    EQCREDITSALDO NUMERIC(15, 4))
+ AS
+           DECLARE VARIABLE SALDO NUMERIC(15, 4);
+   DECLARE VARIABLE SALDOCURR NUMERIC(15, 4);
+   DECLARE VARIABLE SALDOEQ NUMERIC(15, 4);
+   DECLARE VARIABLE TEMPVAR varchar(60);
+   DECLARE VARIABLE CLOSEDATE DATE;
+   DECLARE VARIABLE CK INTEGER;
+   declare variable sqlstatement varchar(2048);
  BEGIN
-  debitsaldo = 0;  
-  creditsaldo = 0;  
-  currdebitsaldo = 0;  
-  currcreditsaldo = 0;  
-  eqdebitsaldo = 0;  
-  eqcreditsaldo = 0;  
-  closedate = CAST((CAST('17.11.1858' AS DATE) + GEN_ID(gd_g_entry_balance_date, 0)) AS DATE); 
-  
-  IF (:dateend >= :closedate) THEN 
-  BEGIN 
-    sqlstatement = 
-      'SELECT 
-        main.' || fieldname || ', 
-        SUM(main.debitncu - main.creditncu), 
-        SUM(main.debitcurr - main.creditcurr), 
-        SUM(main.debiteq - main.crediteq) 
-      FROM 
-      ( 
-        SELECT 
-          bal.' || fieldname || ', 
-          bal.debitncu, bal.creditncu, 
-          bal.debitcurr, bal.creditcurr, 
-          bal.debiteq, bal.crediteq 
-        FROM 
-          ac_entry_balance bal 
-        WHERE 
-          bal.accountkey = ' || CAST(:accountkey AS VARCHAR(20)) || ' 
-           AND (bal.companykey = ' || CAST(:companykey AS VARCHAR(20)) || ' OR 
-            (' || CAST(:allholdingcompanies AS VARCHAR(20)) || ' = 1 
-            AND
-              bal.companykey IN ( 
-                SELECT 
-                  h.companykey 
-                FROM 
-                  gd_holding h 
-                WHERE 
-                  h.holdingkey = ' || CAST(:companykey AS VARCHAR(20)) || '))) 
-          AND ((0 = ' || CAST(:currkey AS VARCHAR(20)) || ') OR (bal.currkey = ' || CAST(:currkey AS VARCHAR(20)) || ')) 
-       
-        UNION ALL 
-       
-        SELECT 
-          e.' || fieldname || ', 
-          e.debitncu, e.creditncu, 
-          e.debitcurr, e.creditcurr,
-          e.debiteq, e.crediteq 
-        FROM 
-          ac_entry e 
-        WHERE 
-          e.accountkey = ' || CAST(:accountkey AS VARCHAR(20)) || '
-          AND e.entrydate >= ''' || CAST(:closedate AS VARCHAR(20)) || '''
-          AND e.entrydate < ''' || CAST(:dateend AS VARCHAR(20)) || ''' 
-          AND (e.companykey = ' || CAST(:companykey AS VARCHAR(20)) || ' OR 
-            (' || CAST(:allholdingcompanies AS VARCHAR(20)) || ' = 1 
-            AND 
-              e.companykey IN ( 
-                SELECT 
-                  h.companykey 
-                FROM 
-                  gd_holding h
-                WHERE 
-                  h.holdingkey = ' || CAST(:companykey AS VARCHAR(20)) || '))) 
-          AND ((0 = ' || CAST(:currkey AS VARCHAR(20)) || ') OR (e.currkey = ' || CAST(:currkey AS VARCHAR(20)) || ')) 
-       
-      ) main 
-      GROUP BY 
-        main.' || fieldname; 
-  END 
-  ELSE 
-  BEGIN 
-    sqlstatement = 
-      'SELECT 
-        main.' || fieldname || ', 
-        SUM(main.debitncu - main.creditncu), 
-        SUM(main.debitcurr - main.creditcurr), 
-        SUM(main.debiteq - main.crediteq) 
-      FROM 
-      ( 
-        SELECT 
-          bal.' || fieldname || ', 
-          bal.debitncu, bal.creditncu, 
-          bal.debitcurr, bal.creditcurr, 
-          bal.debiteq, bal.crediteq 
-        FROM 
-          ac_entry_balance bal 
-        WHERE 
-          bal.accountkey = ' || CAST(:accountkey AS VARCHAR(20)) || ' 
-           AND (bal.companykey = ' || CAST(:companykey AS VARCHAR(20)) || ' OR 
-            (' || CAST(:allholdingcompanies AS VARCHAR(20)) || ' = 1 
-            AND
-              bal.companykey IN ( 
-                SELECT 
-                  h.companykey 
-                FROM 
-                  gd_holding h 
-                WHERE 
-                  h.holdingkey = ' || CAST(:companykey AS VARCHAR(20)) || '))) 
-          AND ((0 = ' || CAST(:currkey AS VARCHAR(20)) || ') OR (bal.currkey = ' || CAST(:currkey AS VARCHAR(20)) || ')) 
-       
-        UNION ALL 
-       
-        SELECT 
-          e.' || fieldname || ', 
+   DEBITSALDO = 0;
+   CREDITSALDO = 0;
+   CURRDEBITSALDO = 0;
+   CURRCREDITSALDO = 0;
+   EQDEBITSALDO = 0;
+   EQCREDITSALDO = 0;
+   CLOSEDATE = CAST((CAST('17.11.1858' AS DATE) + GEN_ID(gd_g_entry_balance_date, 0)) AS DATE);
+
+   IF (:dateend >= :CLOSEDATE) THEN
+   BEGIN
+     sqlstatement =
+       'SELECT
+         main.' || FIELDNAME || ',
+         SUM(main.debitncu - main.creditncu),
+         SUM(main.debitcurr - main.creditcurr),
+         SUM(main.debiteq - main.crediteq),
+         main.companykey
+       FROM
+       (
+         SELECT
+           bal.' || FIELDNAME || ',
+           bal.debitncu, bal.creditncu,
+           bal.debitcurr, bal.creditcurr,
+           bal.debiteq, bal.crediteq,
+           bal.companykey
+         FROM
+           ac_entry_balance bal
+         WHERE
+           bal.accountkey = ' || CAST(:accountkey AS VARCHAR(20)) || '
+            AND (bal.companykey = ' || CAST(:companykey AS VARCHAR(20)) || ' OR
+             (' || CAST(:ALLHOLDINGCOMPANIES AS VARCHAR(20)) || ' = 1
+             AND
+               bal.companykey IN (
+                 SELECT
+                   h.companykey
+                 FROM
+                   gd_holding h
+                 WHERE
+                   h.holdingkey = ' || CAST(:companykey AS VARCHAR(20)) || ')))
+           AND ((0 = ' || CAST(:currkey AS VARCHAR(20)) || ') OR (bal.currkey = ' || CAST(:currkey AS VARCHAR(20)) || '))
+
+         UNION ALL
+
+         SELECT
+           e.' || FIELDNAME || ',
+           e.debitncu, e.creditncu,
+           e.debitcurr, e.creditcurr,
+           e.debiteq, e.crediteq,
+           e.companykey
+         FROM
+           ac_entry e
+         WHERE
+           e.accountkey = ' || CAST(:accountkey AS VARCHAR(20)) || '
+           AND e.entrydate >= ''' || CAST(:closedate AS VARCHAR(20)) || '''
+           AND e.entrydate < ''' || CAST(:dateend AS VARCHAR(20)) || '''
+           AND (e.companykey = ' || CAST(:companykey AS VARCHAR(20)) || ' OR
+             (' || CAST(:ALLHOLDINGCOMPANIES AS VARCHAR(20)) || ' = 1
+             AND
+               e.companykey IN (
+                 SELECT
+                   h.companykey
+                 FROM
+                   gd_holding h
+                 WHERE
+                   h.holdingkey = ' || CAST(:companykey AS VARCHAR(20)) || ')))
+           AND ((0 = ' || CAST(:currkey AS VARCHAR(20)) || ') OR (e.currkey = ' || CAST(:currkey AS VARCHAR(20)) || '))
+
+       ) main
+       GROUP BY
+         main.' || FIELDNAME || ', main.companykey';
+   END
+   ELSE
+   BEGIN
+     sqlstatement =
+       'SELECT
+         main.' || FIELDNAME || ',
+         SUM(main.debitncu - main.creditncu),
+         SUM(main.debitcurr - main.creditcurr),
+         SUM(main.debiteq - main.crediteq),
+         main.companykey
+       FROM
+       (
+         SELECT
+           bal.' || FIELDNAME || ',
+           bal.debitncu, bal.creditncu,
+           bal.debitcurr, bal.creditcurr,
+           bal.debiteq, bal.crediteq,
+           bal.companykey
+         FROM
+           ac_entry_balance bal
+         WHERE
+           bal.accountkey = ' || CAST(:accountkey AS VARCHAR(20)) || '
+            AND (bal.companykey = ' || CAST(:companykey AS VARCHAR(20)) || ' OR
+             (' || CAST(:ALLHOLDINGCOMPANIES AS VARCHAR(20)) || ' = 1
+             AND
+               bal.companykey IN (
+                 SELECT
+                   h.companykey
+                 FROM
+                   gd_holding h
+                 WHERE
+                   h.holdingkey = ' || CAST(:companykey AS VARCHAR(20)) || ')))
+           AND ((0 = ' || CAST(:currkey AS VARCHAR(20)) || ') OR (bal.currkey = ' || CAST(:currkey AS VARCHAR(20)) || '))
+
+         UNION ALL
+
+         SELECT
+           e.' || FIELDNAME || ',
           - e.debitncu, - e.creditncu,
           - e.debitcurr, - e.creditcurr,
-          - e.debiteq, - e.crediteq
-        FROM 
-          ac_entry e 
-        WHERE 
-          e.accountkey = ' || CAST(:accountkey AS VARCHAR(20)) || ' 
-          AND e.entrydate >= ''' || CAST(:dateend AS VARCHAR(20)) || '''
-          AND e.entrydate < ''' || CAST(:closedate AS VARCHAR(20)) || '''
-          AND (e.companykey = ' || CAST(:companykey AS VARCHAR(20)) || ' OR 
-            (' || CAST(:allholdingcompanies AS VARCHAR(20)) || ' = 1 
-            AND 
-              e.companykey IN ( 
-                SELECT 
-                  h.companykey 
-                FROM 
-                  gd_holding h
-                WHERE 
-                  h.holdingkey = ' || CAST(:companykey AS VARCHAR(20)) || '))) 
-          AND ((0 = ' || CAST(:currkey AS VARCHAR(20)) || ') OR (e.currkey = ' || CAST(:currkey AS VARCHAR(20)) || ')) 
-       
-      ) main 
-      GROUP BY 
-        main.' || fieldname; 
-  END 
-  
-  FOR 
-    EXECUTE STATEMENT 
-      sqlstatement 
-    INTO 
-      :tempvar, :saldo, :saldocurr, :saldoeq 
-  DO  
-  BEGIN  
-    IF (saldo IS NULL) THEN  
-      saldo = 0;  
-    IF (saldo > 0) THEN  
-      debitsaldo = debitsaldo + saldo;  
-    ELSE  
-      creditsaldo = creditsaldo - saldo;  
-    IF (saldocurr IS NULL) THEN 
-       saldocurr = 0; 
-    IF (saldocurr > 0) THEN 
-      currdebitsaldo = currdebitsaldo + saldocurr; 
-    ELSE 
-      currcreditsaldo = currcreditsaldo - saldocurr; 
-    IF (saldoeq IS NULL) THEN 
-       saldoeq = 0;
-    IF (saldoeq > 0) THEN 
-      eqdebitsaldo = eqdebitsaldo + saldoeq; 
-    ELSE 
-      eqcreditsaldo = eqcreditsaldo - saldoeq; 
-  END 
-  SUSPEND; 
-END
+          - e.debiteq, - e.crediteq,
+          e.companykey
+         FROM
+           ac_entry e
+         WHERE
+           e.accountkey = ' || CAST(:accountkey AS VARCHAR(20)) || '
+           AND e.entrydate >= ''' || CAST(:dateend AS VARCHAR(20)) || '''
+           AND e.entrydate < ''' || CAST(:closedate AS VARCHAR(20)) || '''
+           AND (e.companykey = ' || CAST(:companykey AS VARCHAR(20)) || ' OR
+             (' || CAST(:ALLHOLDINGCOMPANIES AS VARCHAR(20)) || ' = 1
+             AND
+               e.companykey IN (
+                 SELECT
+                   h.companykey
+                 FROM
+                   gd_holding h
+                 WHERE
+                   h.holdingkey = ' || CAST(:companykey AS VARCHAR(20)) || ')))
+           AND ((0 = ' || CAST(:currkey AS VARCHAR(20)) || ') OR (e.currkey = ' || CAST(:currkey AS VARCHAR(20)) || '))
+
+       ) main
+       GROUP BY
+         main.' || FIELDNAME || ', main.companykey';
+   END
+
+   FOR
+     EXECUTE STATEMENT
+       sqlstatement
+     INTO
+       :TEMPVAR, :SALDO, :SALDOCURR, :SALDOEQ, :CK
+   DO
+   BEGIN
+     IF (SALDO IS NULL) THEN
+       SALDO = 0;
+     IF (SALDO > 0) THEN
+       DEBITSALDO = DEBITSALDO + SALDO;
+     ELSE
+       CREDITSALDO = CREDITSALDO - SALDO;
+     IF (SALDOCURR IS NULL) THEN
+        SALDOCURR = 0;
+     IF (SALDOCURR > 0) THEN
+       CURRDEBITSALDO = CURRDEBITSALDO + SALDOCURR;
+     ELSE
+       CURRCREDITSALDO = CURRCREDITSALDO - SALDOCURR;
+     IF (SALDOEQ IS NULL) THEN
+        SALDOEQ = 0;
+     IF (SALDOEQ > 0) THEN
+       EQDEBITSALDO = EQDEBITSALDO + SALDOEQ;
+     ELSE
+       EQCREDITSALDO = EQCREDITSALDO - SALDOEQ;
+   END
+   SUSPEND;
+ END
 ^
 
 /* Процедура для создания оборотной ведомости */
