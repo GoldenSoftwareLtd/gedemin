@@ -437,6 +437,10 @@ type
     procedure LoadDataFromStream(S: TStream);
     procedure SaveDataToStream(S: TStream);
 
+    function Find(AList: TStringList; const ASearchString: String;
+      const ASearchOptions: TgstSearchOptions; const DateFrom:TDate = 0;
+      const DateTo: TDate = 0): Boolean; override;
+
     class function GetTypeId: Integer; override;
     class function GetTypeName: Char; override;
   end;
@@ -4137,6 +4141,46 @@ begin
       FLoaded := True;
     finally
       bs.Free;
+    end;
+  end;
+end;
+
+function TgsStreamValue.Find(AList: TStringList;
+  const ASearchString: String; const ASearchOptions: TgstSearchOptions;
+  const DateFrom, DateTo: TDate): Boolean;
+
+  procedure AddElement;
+  begin
+    if AList.IndexOF(Path) = -1 then
+      AList.AddObject(Path, Self);
+    Result := True;
+  end;
+
+var
+  StIn, StOut: TStringStream;
+  Sign: AnsiString;
+begin
+  Result := inherited Find(AList, ASearchString, ASearchOptions,
+    DateFrom, DateTo);
+
+  if (not Result) and (gstsoData in ASearchOptions)
+    and DateIntvlCheck(Modified, DateFrom, DateTo) then
+  begin
+    StIn := TStringStream.Create(AsString);
+    StOut := TStringStream.Create('');
+    try
+      Sign := '123';
+      StIn.Read(Sign[1], 3);
+      if Sign = 'TPF' then
+      begin
+        StIn.Position := 0;
+        ObjectBinaryToText(StIn, StOut);
+        if StrIPos(ASearchString, StOut.DataString) > 0 then
+          AddElement;
+      end;
+    finally
+      StIn.Free;
+      StOut.Free;
     end;
   end;
 end;

@@ -546,16 +546,16 @@ begin
 
                         while not FqLink.EOF do
                         begin
-                            if FqLink.FieldByName('id').AsInteger <> Obj.ID then
-                            begin
-                              Dlg.AddObject(
-                                FqLink.FieldByName('id').AsInteger,
-                                FqLink.FieldByName('name').AsString,
-                                FqLink.FieldByName('class').AsString,
-                                FqLink.FieldByName('subtype').AsString,
-                                RUID(FqLink.FieldByName('xid').AsInteger, FqLink.FieldByName('dbid').AsInteger),
-                                '', True, True);
-                            end;
+                          if FqLink.FieldByName('id').AsInteger <> Obj.ID then
+                          begin
+                            Dlg.AddObject(
+                              FqLink.FieldByName('id').AsInteger,
+                              FqLink.FieldByName('name').AsString,
+                              FqLink.FieldByName('class').AsString,
+                              FqLink.FieldByName('subtype').AsString,
+                              RUID(FqLink.FieldByName('xid').AsInteger, FqLink.FieldByName('dbid').AsInteger),
+                              '', True, True);
+                          end;
                           FqLink.Next;
                         end;
                       end;

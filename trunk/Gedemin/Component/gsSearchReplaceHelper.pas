@@ -11,6 +11,7 @@ type
     FFindDialog: TFindDialog;
     FReplaceDialog: TReplaceDialog;
     FSynEdit: TCustomSynEdit;
+
   protected
     procedure DoOnSearch(Sender: TObject);
     procedure DoOnReplace(Sender: TObject);
@@ -29,6 +30,9 @@ implementation
 
 uses
   Windows, Sysutils, prp_MessageConst;
+
+var
+  FSearchText: String;
 
 { TgsSearchReplaceHelper }
 
@@ -88,6 +92,8 @@ begin
     Include(SearchOptions, ssoWholeWord);
 
   DoSearchReplace(FFindDialog.FindText, '', SearchOptions);
+
+  FSearchText := FFindDialog.FindText;
 end;
 
 procedure TgsSearchReplaceHelper.DoOnReplace(Sender: TObject);
@@ -113,11 +119,15 @@ begin
     Include(SearchOptions, ssoSelectedOnly);
 
   DoSearchReplace(FReplaceDialog.FindText, FReplaceDialog.ReplaceText, SearchOptions);
+
+  FSearchText := FFindDialog.FindText;
 end;
 
 procedure TgsSearchReplaceHelper.Search;
 begin
-  if FSynEdit.SelAvail then
+  if FSearchText > '' then
+    FFindDialog.FindText := FSearchText
+  else if FSynEdit.SelAvail then
     FFindDialog.FindText := FSynEdit.SelText
   else
     FFindDialog.FindText := FSynEdit.WordAtCursor;
@@ -141,5 +151,6 @@ begin
   FReplaceDialog.Execute;
 end;
 
+initialization
+  FSearchText := '';
 end.
- 
