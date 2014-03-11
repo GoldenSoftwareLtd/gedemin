@@ -43,7 +43,7 @@
            '    EQDEBITSALDO NUMERIC(15, 4), ' + #13#10 +
            '    EQCREDITSALDO NUMERIC(15, 4)) ' + #13#10 +
            ' AS ' + #13#10 +
-           '           DECLARE VARIABLE SALDO NUMERIC(15, 4); ' + #13#10 +
+           '   DECLARE VARIABLE SALDO NUMERIC(15, 4); ' + #13#10 +
            '   DECLARE VARIABLE SALDOCURR NUMERIC(15, 4); ' + #13#10 +
            '   DECLARE VARIABLE SALDOEQ NUMERIC(15, 4); ' + #13#10 +
            '   DECLARE VARIABLE TEMPVAR varchar(60); ' + #13#10 +
@@ -81,7 +81,7 @@
            '         WHERE ' + #13#10 +
            '           bal.accountkey = '' || CAST(:accountkey AS VARCHAR(20)) || '' ' + #13#10 +
            '            AND (bal.companykey = '' || CAST(:companykey AS VARCHAR(20)) || '' OR ' + #13#10 +
-           '             ('' || CAST(:ALLHOLDINGCOMPANIES AS VARCHAR(20)) || '' = 1 ' + #13#10 +
+           '             ('' || :ALLHOLDINGCOMPANIES || '' = 1 ' + #13#10 +
            '             AND ' + #13#10 +
            '               bal.companykey IN ( ' + #13#10 +
            '                 SELECT ' + #13#10 +
@@ -104,10 +104,10 @@
            '           ac_entry e ' + #13#10 +
            '         WHERE ' + #13#10 +
            '           e.accountkey = '' || CAST(:accountkey AS VARCHAR(20)) || '' ' + #13#10 +
-           '           AND e.entrydate >= '''' || CAST(:closedate AS VARCHAR(20)) || '''' ' + #13#10 +
-           '           AND e.entrydate < '''' || CAST(:dateend AS VARCHAR(20)) || '''' ' + #13#10 +
+           '           AND e.entrydate >= '''''' || CAST(:closedate AS VARCHAR(20)) || '''''' ' + #13#10 +
+           '           AND e.entrydate < '''''' || CAST(:dateend AS VARCHAR(20)) || '''''' ' + #13#10 +
            '           AND (e.companykey = '' || CAST(:companykey AS VARCHAR(20)) || '' OR ' + #13#10 +
-           '             ('' || CAST(:ALLHOLDINGCOMPANIES AS VARCHAR(20)) || '' = 1 ' + #13#10 +
+           '             ('' || :ALLHOLDINGCOMPANIES || '' = 1 ' + #13#10 +
            '             AND ' + #13#10 +
            '               e.companykey IN ( ' + #13#10 +
            '                 SELECT ' + #13#10 +
@@ -144,7 +144,7 @@
            '         WHERE ' + #13#10 +
            '           bal.accountkey = '' || CAST(:accountkey AS VARCHAR(20)) || '' ' + #13#10 +
            '            AND (bal.companykey = '' || CAST(:companykey AS VARCHAR(20)) || '' OR ' + #13#10 +
-           '             ('' || CAST(:ALLHOLDINGCOMPANIES AS VARCHAR(20)) || '' = 1 ' + #13#10 +
+           '             ('' || :ALLHOLDINGCOMPANIES || '' = 1 ' + #13#10 +
            '             AND ' + #13#10 +
            '               bal.companykey IN ( ' + #13#10 +
            '                 SELECT ' + #13#10 +
@@ -167,10 +167,10 @@
            '           ac_entry e ' + #13#10 +
            '         WHERE ' + #13#10 +
            '           e.accountkey = '' || CAST(:accountkey AS VARCHAR(20)) || '' ' + #13#10 +
-           '           AND e.entrydate >= '''' || CAST(:dateend AS VARCHAR(20)) || '''' ' + #13#10 +
-           '           AND e.entrydate < '''' || CAST(:closedate AS VARCHAR(20)) || '''' ' + #13#10 +
+           '           AND e.entrydate >= '''''' || CAST(:dateend AS VARCHAR(20)) || '''''' ' + #13#10 +
+           '           AND e.entrydate < '''''' || CAST(:closedate AS VARCHAR(20)) || '''''' ' + #13#10 +
            '           AND (e.companykey = '' || CAST(:companykey AS VARCHAR(20)) || '' OR ' + #13#10 +
-           '             ('' || CAST(:ALLHOLDINGCOMPANIES AS VARCHAR(20)) || '' = 1 ' + #13#10 +
+           '             ('' || :ALLHOLDINGCOMPANIES || '' = 1 ' + #13#10 +
            '             AND ' + #13#10 +
            '               e.companykey IN ( ' + #13#10 +
            '                 SELECT ' + #13#10 +
