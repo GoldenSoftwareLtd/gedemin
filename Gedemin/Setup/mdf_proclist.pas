@@ -48,10 +48,10 @@ uses
   mdf_ConvertBNStatementCommentToBlob, mdf_AddFieldReportlistModalPreview,
   mdf_ChangeUSRCOEF, mdf_ChangeDuplicateAccount, mdf_MovementDocument,
   mdf_Delete_BITrigger_AtSettingPos, mdf_ReportCommand, mdf_DeleteInvCardParams,
-  mdf_DeletecbAnalyticFromScript, mdf_ModifyBLOBDdocumentdate;
+  mdf_DeletecbAnalyticFromScript, mdf_ModifyBLOBDdocumentdate, mdf_ModifyAC_ACCOUNTEXSALDO_BAL;
 
 const
-  cProcCount = 204;
+  cProcCount = 205;
 
 type
   TModifyProc = record
@@ -363,7 +363,8 @@ const
     (ModifyProc: CorrectDocumentType; ModifyVersion: '0000.0001.0000.0228'; NeedDBShutdown: False),
     (ModifyProc: CorrectEntryTriggers; ModifyVersion: '0000.0001.0000.0230'; NeedDBShutdown: True),
     (ModifyProc: CorrectAutoEntryScript; ModifyVersion: '0000.0001.0000.0231'; NeedDBShutdown: False),
-    (ModifyProc: ModifyBLOB; ModifyVersion: '0000.0001.0000.0233'; NeedDBShutdown: True)
+    (ModifyProc: ModifyBLOB; ModifyVersion: '0000.0001.0000.0233'; NeedDBShutdown: True),
+    (ModifyProc: ModifyAC_ACCOUNTEXSALDO_BAL; ModifyVersion: '0000.0001.0000.0234'; NeedDBShutdown: False)
   );
 
 implementation
