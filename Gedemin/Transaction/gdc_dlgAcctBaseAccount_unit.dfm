@@ -1,11 +1,11 @@
 inherited gdc_dlgAcctBaseAccount: Tgdc_dlgAcctBaseAccount
-  Left = 451
-  Top = 116
+  Left = 623
+  Top = 250
   BorderIcons = [biSystemMenu]
   BorderWidth = 5
   Caption = 'Счет'
   ClientHeight = 465
-  ClientWidth = 494
+  ClientWidth = 483
   PixelsPerInch = 96
   TextHeight = 13
   inherited btnAccess: TButton
@@ -14,28 +14,28 @@ inherited gdc_dlgAcctBaseAccount: Tgdc_dlgAcctBaseAccount
     TabOrder = 1
   end
   inherited btnNew: TButton
-    Left = 80
+    Left = 73
     Top = 441
     TabOrder = 2
   end
   inherited btnHelp: TButton
-    Left = 158
+    Left = 147
     Top = 441
   end
   inherited btnOK: TButton
-    Left = 344
+    Left = 339
     Top = 441
     TabOrder = 3
   end
   inherited btnCancel: TButton
-    Left = 424
+    Left = 413
     Top = 441
     TabOrder = 4
   end
   inherited pgcMain: TPageControl
     Left = 1
     Top = 1
-    Width = 489
+    Width = 480
     Height = 432
     inherited tbsMain: TTabSheet
       inherited dbtxtID: TDBText
@@ -43,14 +43,14 @@ inherited gdc_dlgAcctBaseAccount: Tgdc_dlgAcctBaseAccount
       end
       object lblAlias: TLabel
         Left = 8
-        Top = 33
+        Top = 56
         Width = 67
         Height = 13
         Caption = 'Номер счета:'
       end
       object lblName: TLabel
         Left = 8
-        Top = 58
+        Top = 81
         Width = 109
         Height = 13
         Caption = 'Наименование счета:'
@@ -62,24 +62,24 @@ inherited gdc_dlgAcctBaseAccount: Tgdc_dlgAcctBaseAccount
         Height = 13
         Caption = 'Аналитика для развернутого сальдо:'
       end
+      object Label2: TLabel
+        Left = 8
+        Top = 31
+        Width = 111
+        Height = 13
+        Caption = 'Раздел плана счетов:'
+      end
       object pAccountInfo: TPanel
         Left = 7
-        Top = 78
+        Top = 102
         Width = 466
-        Height = 91
+        Height = 66
         BevelOuter = bvNone
-        TabOrder = 2
-        object Label2: TLabel
-          Left = 1
-          Top = 74
-          Width = 40
-          Height = 13
-          Caption = 'Раздел:'
-        end
+        TabOrder = 3
         object GroupBox1: TGroupBox
           Left = 0
           Top = 0
-          Width = 207
+          Width = 225
           Height = 66
           Caption = ' Параметры счета '
           TabOrder = 0
@@ -109,9 +109,9 @@ inherited gdc_dlgAcctBaseAccount: Tgdc_dlgAcctBaseAccount
           end
         end
         object dbrgTypeAccount: TDBRadioGroup
-          Left = 212
+          Left = 232
           Top = 0
-          Width = 248
+          Width = 225
           Height = 66
           Caption = ' Тип счета '
           DataField = 'ACTIVITY'
@@ -126,43 +126,24 @@ inherited gdc_dlgAcctBaseAccount: Tgdc_dlgAcctBaseAccount
             'P'
             'B')
         end
-        object gsiblcGroupAccount: TgsIBLookupComboBox
-          Left = 115
-          Top = 70
-          Width = 347
-          Height = 21
-          HelpContext = 1
-          Database = dmDatabase.ibdbGAdmin
-          Transaction = ibtrCommon
-          DataSource = dsgdcBase
-          DataField = 'PARENT'
-          ListTable = 'AC_ACCOUNT'
-          ListField = 'ALIAS'
-          KeyField = 'ID'
-          gdClassName = 'TgdcAcctFolder'
-          ItemHeight = 13
-          ParentShowHint = False
-          ShowHint = True
-          TabOrder = 2
-        end
       end
       object dbedAlias: TDBEdit
         Left = 120
-        Top = 29
+        Top = 52
         Width = 122
         Height = 21
         DataField = 'ALIAS'
         DataSource = dsgdcBase
-        TabOrder = 0
+        TabOrder = 1
       end
       object dbedName: TDBEdit
         Left = 120
-        Top = 54
-        Width = 349
+        Top = 77
+        Width = 344
         Height = 21
         DataField = 'NAME'
         DataSource = dsgdcBase
-        TabOrder = 1
+        TabOrder = 2
       end
       object dbcbDisabled: TDBCheckBox
         Left = 8
@@ -172,12 +153,12 @@ inherited gdc_dlgAcctBaseAccount: Tgdc_dlgAcctBaseAccount
         Caption = 'Запись отключена'
         DataField = 'DISABLED'
         DataSource = dsgdcBase
-        TabOrder = 3
+        TabOrder = 9
         ValueChecked = '1'
         ValueUnchecked = '0'
       end
       object gsibRelationFields: TgsIBLookupComboBox
-        Left = 207
+        Left = 203
         Top = 173
         Width = 262
         Height = 21
@@ -196,9 +177,9 @@ inherited gdc_dlgAcctBaseAccount: Tgdc_dlgAcctBaseAccount
         TabOrder = 4
       end
       object bbAnalyze: TBitBtn
-        Left = 6
-        Top = 199
-        Width = 227
+        Left = 7
+        Top = 200
+        Width = 224
         Height = 25
         Action = actAnalyze
         Caption = 'Аналитика'
@@ -217,16 +198,35 @@ inherited gdc_dlgAcctBaseAccount: Tgdc_dlgAcctBaseAccount
         Width = 225
         Height = 152
         Enabled = False
-        TabOrder = 7
+        TabOrder = 8
       end
       object bbValues: TBitBtn
         Left = 239
         Top = 200
-        Width = 227
+        Width = 224
         Height = 25
         Action = actValues
         Caption = 'Ед.изм.'
-        TabOrder = 8
+        TabOrder = 7
+      end
+      object gsiblcGroupAccount: TgsIBLookupComboBox
+        Left = 120
+        Top = 27
+        Width = 346
+        Height = 21
+        HelpContext = 1
+        Database = dmDatabase.ibdbGAdmin
+        Transaction = ibtrCommon
+        DataSource = dsgdcBase
+        DataField = 'PARENT'
+        ListTable = 'AC_ACCOUNT'
+        ListField = 'ALIAS'
+        KeyField = 'ID'
+        gdClassName = 'TgdcAcctFolder'
+        ItemHeight = 13
+        ParentShowHint = False
+        ShowHint = True
+        TabOrder = 0
       end
     end
     object TabSheet1: TTabSheet [1]
@@ -235,7 +235,7 @@ inherited gdc_dlgAcctBaseAccount: Tgdc_dlgAcctBaseAccount
       object DBMemo1: TDBMemo
         Left = 0
         Top = 0
-        Width = 481
+        Width = 472
         Height = 404
         Align = alClient
         DataField = 'description'

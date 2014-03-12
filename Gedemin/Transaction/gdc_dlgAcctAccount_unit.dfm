@@ -14,15 +14,7 @@ inherited gdc_dlgAcctAccount: Tgdc_dlgAcctAccount
           Top = -1
           TabStop = True
         end
-        inherited gsiblcGroupAccount: TgsIBLookupComboBox
-          ListField = 'NAME'
-          SortOrder = soAsc
-          Condition = 'ac_account.ACCOUNTTYPE = '#39'F'#39
-        end
       end
-    end
-    inherited tbsAttr: TTabSheet
-      TabVisible = False
     end
   end
 end

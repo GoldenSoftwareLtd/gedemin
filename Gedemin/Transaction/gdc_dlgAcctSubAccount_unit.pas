@@ -10,6 +10,8 @@ uses
 
 type
   Tgdc_dlgAcctSubAccount = class(Tgdc_dlgAcctBaseAccount)
+    lblHint: TLabel;
+    procedure dbedAliasChange(Sender: TObject);
   private
   public
   end;
@@ -22,7 +24,12 @@ implementation
 {$R *.DFM}
 
 uses
-  gd_ClassList;
+  gd_ClassList, jclStrings;
+
+procedure Tgdc_dlgAcctSubAccount.dbedAliasChange(Sender: TObject);
+begin
+  lblHint.Visible := StrIPos(gsiblcGroupAccount.Text, dbedAlias.Text) <> 1;
+end;
 
 initialization
   RegisterFrmClass(Tgdc_dlgAcctSubAccount);

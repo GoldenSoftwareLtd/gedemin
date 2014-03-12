@@ -12,12 +12,10 @@ uses
 type
   Tgdc_dlgAcctBaseAccount = class(Tgdc_dlgTRPC)
     pAccountInfo: TPanel;
-    Label2: TLabel;
     GroupBox1: TGroupBox;
     dbcbCurrAccount: TDBCheckBox;
     dbcbOffBalance: TDBCheckBox;
     dbrgTypeAccount: TDBRadioGroup;
-    gsiblcGroupAccount: TgsIBLookupComboBox;
     lblAlias: TLabel;
     lblName: TLabel;
     dbedAlias: TDBEdit;
@@ -35,9 +33,11 @@ type
     sbAnalyze: TScrollBox;
     sbValues: TScrollBox;
     bbValues: TBitBtn;
-    procedure actNewUpdate(Sender: TObject);
+    Label2: TLabel;
+    gsiblcGroupAccount: TgsIBLookupComboBox;
     procedure actAnalyzeExecute(Sender: TObject);
     procedure actValuesExecute(Sender: TObject);
+    procedure actNewUpdate(Sender: TObject);
 
   private
     //Список ключей ед.измерения текущего счета с чек-боксом
@@ -54,7 +54,6 @@ type
   public
     constructor Create(AnOwner: TComponent); override;
     destructor  Destroy; override;
-
 
     procedure Post; override;
     procedure SetupRecord; override;
@@ -77,19 +76,6 @@ const
 
 type
   TValueCheckBox = class(TCheckBox);
-
-procedure Tgdc_dlgAcctBaseAccount.actNewUpdate(Sender: TObject);
-begin
-  inherited;
-
-  lbRelation.Visible := gdcObject.FieldByName('activity').AsString = 'B';
-  gsibRelationFields.Visible := lbRelation.Visible;
-{
-  if lbRelation.Visible then
-    pnlMainAnalytic.Height := gsibRelationFields.Height + 6
-  else
-    pnlMainAnalytic.Height := 0; }
-end;
 
 constructor Tgdc_dlgAcctBaseAccount.Create(AnOwner: TComponent);
 begin
@@ -281,6 +267,10 @@ begin
   HideLabels;
   SetupValues;
   SetupAnalyze;
+
+  lbRelation.Visible := gdcObject.FieldByName('activity').AsString = 'B';
+  gsibRelationFields.Visible := lbRelation.Visible;
+
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGACCTBASEACCOUNT', 'SETUPRECORD', KEYSETUPRECORD)}
   {M}finally
   {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
@@ -449,9 +439,6 @@ begin
 
         gdcRelationFields.Next;
       end;
-
-//    SetupAnalyze;
-
     end;
 
   finally
@@ -472,21 +459,6 @@ begin
   gdcValue := TgdcValue.Create(Self);
   try
     gdcValue.Open;
-
-{    ibsql := TIBSQL.Create(nil);
-    try
-      ibsql.Transaction := gdcObject.ReadTransaction;
-      ibsql.SQL.Text :=
-        'SELECT * FROM ac_accvalue WHERE accountkey = ' + IntToStr(gdcObject.ID);
-      ibsql.ExecQuery;
-      while not ibsql.Eof do
-      begin
-        gdcValue.SelectedID.Add(ibsql.FieldByName('valuekey').AsInteger);
-        ibsql.Next;
-      end;
-    finally
-      ibsql.Free;
-    end; }
 
     for I := 0 to sbValues.ComponentCount - 1 do
       if (sbValues.Components[I] is TValueCheckBox) and
@@ -537,10 +509,20 @@ begin
   end;
 end;
 
+procedure Tgdc_dlgAcctBaseAccount.actNewUpdate(Sender: TObject);
+begin
+  inherited;
+  
+  if (gdcObject <> nil) and (not gdcObject.EOF) then
+  begin
+    lbRelation.Visible := dbrgTypeAccount.Value = 'B';
+    gsibRelationFields.Visible := lbRelation.Visible;
+  end;
+end;
+
 initialization
   RegisterFrmClass(Tgdc_dlgAcctBaseAccount);
 
 finalization
   UnRegisterFrmClass(Tgdc_dlgAcctBaseAccount);
-
 end.
