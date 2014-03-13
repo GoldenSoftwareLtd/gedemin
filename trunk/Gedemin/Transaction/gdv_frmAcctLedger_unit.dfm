@@ -46,9 +46,7 @@ inherited gdv_frmAcctLedger: Tgdv_frmAcctLedger
     Height = 489
     inherited ScrollBox: TScrollBox
       Height = 472
-      VertScrollBar.Position = 241
       inherited Panel5: TPanel
-        Top = -241
         Width = 229
         Height = 115
         inherited bAccounts: TButton
@@ -94,7 +92,7 @@ inherited gdv_frmAcctLedger: Tgdv_frmAcctLedger
         end
       end
       inherited frAcctQuantity: TfrAcctQuantity
-        Top = 89
+        Top = 330
         Width = 229
         TabOrder = 4
         inherited ppMain: TgdvParamPanel
@@ -102,7 +100,7 @@ inherited gdv_frmAcctLedger: Tgdv_frmAcctLedger
         end
       end
       inherited frAcctSum: TfrAcctSum
-        Top = 130
+        Top = 371
         Width = 229
         Height = 213
         TabOrder = 5
@@ -125,14 +123,14 @@ inherited gdv_frmAcctLedger: Tgdv_frmAcctLedger
         end
       end
       inherited frAcctAnalytics: TfrAcctAnalytics
-        Top = -126
+        Top = 115
         Width = 229
         inherited ppAnalytics: TgdvParamPanel
           Width = 229
         end
       end
       inherited frAcctCompany: TfrAcctCompany
-        Top = 343
+        Top = 584
         Width = 229
         TabOrder = 6
         inherited ppMain: TgdvParamPanel
@@ -146,7 +144,7 @@ inherited gdv_frmAcctLedger: Tgdv_frmAcctLedger
         end
       end
       inherited ppAppear: TgdvParamPanel
-        Top = 403
+        Top = 644
         Width = 229
         Height = 80
         TabOrder = 7
@@ -188,7 +186,7 @@ inherited gdv_frmAcctLedger: Tgdv_frmAcctLedger
         end
       end
       inline frAcctAnalyticsGroup: TfrAcctAnalyticsGroup
-        Top = -85
+        Top = 156
         Width = 229
         Align = alTop
         TabOrder = 2
@@ -201,7 +199,7 @@ inherited gdv_frmAcctLedger: Tgdv_frmAcctLedger
         end
       end
       inline frAcctTreeAnalytic: Tgdv_frAcctTreeAnalytic
-        Top = 51
+        Top = 292
         Width = 229
         Height = 38
         Align = alTop
