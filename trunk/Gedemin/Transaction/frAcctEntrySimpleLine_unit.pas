@@ -291,6 +291,11 @@ begin
   ppMain.ClientHeight := Panel5.Height;
   Panel1.ClientHeight := ppMain.Height;
   ClientHeight := Panel1.Height;
+  cbAccount.Width := Panel5.Width - cbAccount.Left;
+  cSum.Width := Panel5.Width - cSum.Left;
+  cEQSum.Width := Panel5.Width - cEQSum.Left;
+  cRate.Width := Panel5.Width - cRate.Left;
+  cCurrSum.Width := Panel5.Width - cCurrSum.Left;
 end;
 
 procedure TfrAcctEntrySimpleLine.SetDataSet(const Value: TDataSet);
