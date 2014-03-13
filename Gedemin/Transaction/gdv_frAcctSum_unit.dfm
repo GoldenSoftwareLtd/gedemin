@@ -433,6 +433,7 @@ object frAcctSum: TfrAcctSum
         ParentShowHint = False
         ShowHint = True
         TabOrder = 6
+        OnChange = gsiblCurrKeyChange
       end
     end
   end

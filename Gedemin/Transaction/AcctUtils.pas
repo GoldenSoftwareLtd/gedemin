@@ -20,6 +20,10 @@ function IIF(Exp: Boolean; S1, S2: string): string;
 function GetSQLForDateParam(const AFieldName: String; const ADateParam: String): String;
 //Возвращает кол-во дес. знаков в сист. установках
 function LocateDecDigits: integer;
+//Возвращает кол-во дес. знаков для НДЕ
+function LocateNCUDecDigits: integer;
+//Возвращает кол-во дес. знаков для валюты
+function LocateCurrDecDigits(Code: string): integer;
 function DisplayFormat(DecDig: Integer): string;
 //заполняет список полей аналитик
 procedure GetAnalyticsFields(const List: TList);
@@ -108,6 +112,53 @@ begin
   //Получаем кол-во символов после запятой
   GetLocaleInfo(LOCALE_USER_DEFAULT, LOCALE_IDIGITS, @B, cCharCount);
   Result := StrToInt(PChar(@B));
+end;
+
+function LocateNCUDecDigits: integer;
+var
+  SQL: TIBSQL;
+begin
+  Result := 0;
+  SQL := TIBSQL.Create(nil);
+  try
+    SQL.Transaction := gdcBaseManager.ReadTransaction;
+    SQL.SQL.Text :=
+        'SELECT '#13#10 +
+        '  DECDIGITS '#13#10 +
+        'FROM '#13#10 +
+        '  GD_CURR '#13#10 +
+        'WHERE '#13#10 +
+        '  ISNCU = 1';
+    SQL.ExecQuery;
+    if not SQL.EOF then
+      Result := SQL.Fields[0].AsInteger;
+  finally
+    SQL.Free;
+  end;
+end;
+
+function LocateCurrDecDigits(Code: string): integer;
+var
+  SQL: TIBSQL;
+begin
+  Result := 0;
+  SQL := TIBSQL.Create(nil);
+  try
+    SQL.Transaction := gdcBaseManager.ReadTransaction;
+    SQL.SQL.Text :=
+        'SELECT '#13#10 +
+        '  DECDIGITS '#13#10 +
+        'FROM '#13#10 +
+        '  GD_CURR '#13#10 +
+        'WHERE '#13#10 +
+        '  CODE = :CODE';
+    SQL.ParamByName('CODE').AsString := Code;
+    SQL.ExecQuery;
+    if not SQL.EOF then
+      Result := SQL.Fields[0].AsInteger;
+  finally
+    SQL.Free;
+  end;
 end;
 
 function DisplayFormat(DecDig: Integer): string;

@@ -4,7 +4,8 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  gsIBLookupComboBox, StdCtrls, ExtCtrls, gdvParamPanel, gd_common_functions;
+  gsIBLookupComboBox, StdCtrls, ExtCtrls, gdvParamPanel, gd_common_functions,
+  AcctUtils;
 
 type
   TfrAcctSum = class(TFrame)
@@ -37,6 +38,7 @@ type
     procedure cbNcuScaleKeyPress(Sender: TObject; var Key: Char);
     procedure ppMainResize(Sender: TObject);
     procedure cbNcuScaleExit(Sender: TObject);
+    procedure gsiblCurrKeyChange(Sender: TObject);
   private
     function GetCurrDecDigits: Integer;
     function GetCurrkey: Integer;
@@ -343,6 +345,12 @@ begin
     else
       ppMain.Height:= 160;
   end;
+end;
+
+procedure TfrAcctSum.gsiblCurrKeyChange(Sender: TObject);
+begin
+  cbCurrdecDigits.Text :=
+    IntToStr(LocateCurrDecDigits((Sender as TgsIBLookupComboBox).Text));
 end;
 
 end.
