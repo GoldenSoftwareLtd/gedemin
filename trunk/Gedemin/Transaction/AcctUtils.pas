@@ -19,11 +19,13 @@ function IIF(Exp: Boolean; S1, S2: string): string;
 // Если передан неизвестный ADateParam, возвращается просто AFieldName
 function GetSQLForDateParam(const AFieldName: String; const ADateParam: String): String;
 //Возвращает кол-во дес. знаков в сист. установках
-function LocateDecDigits: integer;
-//Возвращает кол-во дес. знаков для НДЕ
-function LocateNCUDecDigits: integer;
-//Возвращает кол-во дес. знаков для валюты
-function LocateCurrDecDigits(Code: string): integer;
+function LocateDecDigits: Integer;
+
+function GetNCUKey: Integer;
+function GetNCUDecDigits: Integer;
+function GetCurrDecDigits(const ACurrCode: String): Integer;
+procedure ResetNCUCache;
+
 function DisplayFormat(DecDig: Integer): string;
 //заполняет список полей аналитик
 procedure GetAnalyticsFields(const List: TList);
@@ -78,7 +80,12 @@ uses
   , Graphics, Storages;
 
 const
- cMaxHistoryQuantity = 30;
+  cMaxHistoryQuantity = 30;
+
+var
+  FNCUKey: Integer;
+  FCurrCode: String;
+  FNCUDecDigits, FCurrDecDigits: Integer;
 
 function IIF(Exp: Boolean; S1, S2: string): string;
 begin
@@ -114,51 +121,76 @@ begin
   Result := StrToInt(PChar(@B));
 end;
 
-function LocateNCUDecDigits: integer;
+function GetNCUKey: Integer;
 var
-  SQL: TIBSQL;
+  q: TIBSQL;
 begin
-  Result := 0;
-  SQL := TIBSQL.Create(nil);
-  try
-    SQL.Transaction := gdcBaseManager.ReadTransaction;
-    SQL.SQL.Text :=
-        'SELECT '#13#10 +
-        '  DECDIGITS '#13#10 +
-        'FROM '#13#10 +
-        '  GD_CURR '#13#10 +
-        'WHERE '#13#10 +
-        '  ISNCU = 1';
-    SQL.ExecQuery;
-    if not SQL.EOF then
-      Result := SQL.Fields[0].AsInteger;
-  finally
-    SQL.Free;
+  if (FNCUKey = -1) and (gdcBaseManager <> nil) then
+  begin
+    q := TIBSQL.Create(nil);
+    try
+      q.Transaction := gdcBaseManager.ReadTransaction;
+      q.SQL.Text :=
+          'SELECT id, code, decdigits '#13#10 +
+          'FROM gd_curr '#13#10 +
+          'WHERE isncu <> 0';
+      q.ExecQuery;
+      if not q.EOF then
+      begin
+        FNCUKey := q.FieldByName('id').AsInteger;
+        FNCUDecDigits := q.FieldByName('decdigits').AsInteger;
+        FCurrCode := q.FieldByName('code').AsString;
+        FCurrDecDigits := q.FieldByName('decdigits').AsInteger;
+      end;
+    finally
+      q.Free;
+    end;
   end;
+  Result := FNCUKey;
 end;
 
-function LocateCurrDecDigits(Code: string): integer;
-var
-  SQL: TIBSQL;
+function GetNCUDecDigits: Integer;
 begin
-  Result := 0;
-  SQL := TIBSQL.Create(nil);
-  try
-    SQL.Transaction := gdcBaseManager.ReadTransaction;
-    SQL.SQL.Text :=
-        'SELECT '#13#10 +
-        '  DECDIGITS '#13#10 +
-        'FROM '#13#10 +
-        '  GD_CURR '#13#10 +
-        'WHERE '#13#10 +
-        '  CODE = :CODE';
-    SQL.ParamByName('CODE').AsString := Code;
-    SQL.ExecQuery;
-    if not SQL.EOF then
-      Result := SQL.Fields[0].AsInteger;
-  finally
-    SQL.Free;
+  if GetNCUKey > -1 then
+    Result := FNCUDecDigits
+  else
+    FCurrDecDigits := LocateDecDigits;
+end;
+
+function GetCurrDecDigits(const ACurrCode: String): Integer;
+var
+  q: TIBSQL;
+begin
+  Assert(gdcBaseManager <> nil);
+  if FCurrCode <> ACurrCode then
+  begin
+    q := TIBSQL.Create(nil);
+    try
+      q.Transaction := gdcBaseManager.ReadTransaction;
+      q.SQL.Text :=
+          'SELECT decdigits '#13#10 +
+          'FROM gd_curr '#13#10 +
+          'WHERE code = :code';
+      q.ParamByName('code').AsString := ACurrCode;
+      q.ExecQuery;
+      FCurrCode := ACurrCode;
+      if q.EOF then
+        FCurrDecDigits := LocateDecDigits
+      else
+        FCurrDecDigits := q.FieldByName('decdigits').AsInteger;
+    finally
+      q.Free;
+    end;
   end;
+  Result := FCurrDecDigits;
+end;
+
+procedure ResetNCUCache;
+begin
+  FNCUKey := -1;
+  FCurrCode := '';
+  FNCUDecDigits := 0;
+  FCurrDecDigits := 0;
 end;
 
 function DisplayFormat(DecDig: Integer): string;
@@ -759,4 +791,6 @@ begin
     end;
 end;
 
+initialization
+  ResetNCUCache;
 end.

@@ -1,6 +1,6 @@
 object gd_DatabasesListView: Tgd_DatabasesListView
-  Left = 677
-  Top = 354
+  Left = 515
+  Top = 282
   Width = 741
   Height = 606
   Caption = 'Список баз данных'

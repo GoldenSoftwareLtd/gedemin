@@ -1,6 +1,8 @@
+
 {++
+
    Project GDReference
-   Copyright © 2000- by Golden Software
+   Copyright © 2000-2014 by Golden Software of Belarus, Ltd
 
    Модуль
 
@@ -73,6 +75,9 @@ type
     dbeCentName_2: TDBEdit;
     Bevel6: TBevel;
     Memo1: TMemo;
+    procedure dbcbIsNCUClick(Sender: TObject);
+    procedure dbeCodeChange(Sender: TObject);
+    procedure dbeDecdigitsChange(Sender: TObject);
   end;
 
 var
@@ -82,7 +87,22 @@ implementation
 {$R *.DFM}
 
 uses
-  dmDataBase_unit, gd_ClassList;
+  AcctUtils, dmDataBase_unit, gd_ClassList;
+
+procedure Tgdc_dlgCurr.dbcbIsNCUClick(Sender: TObject);
+begin
+  ResetNCUCache;
+end;
+
+procedure Tgdc_dlgCurr.dbeCodeChange(Sender: TObject);
+begin
+  ResetNCUCache;
+end;
+
+procedure Tgdc_dlgCurr.dbeDecdigitsChange(Sender: TObject);
+begin
+  ResetNCUCache;
+end;
 
 initialization
   RegisterFrmClass(Tgdc_dlgCurr);

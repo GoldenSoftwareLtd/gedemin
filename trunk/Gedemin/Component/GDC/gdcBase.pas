@@ -2160,7 +2160,7 @@ uses
   gs_Exception,                 gd_directories_const,         Storages,
   at_sql_parser,                scrReportGroup,               at_frmSQLProcess,
   DBConsts,                     gd_common_functions,          ComObj,
-  gdc_frmMDH_unit
+  gdc_frmMDH_unit,              AcctUtils
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub, gd_localization
@@ -9529,13 +9529,10 @@ begin
 end;
 
 function TgdcBaseManager.ProcessSQL(const S: String): String;
-const
-  NCU: Integer = 0;
 var
   I, K, J: Integer;
   XID, DBID, ID: TID;
   Tmp: String;
-  R: OleVariant;
 begin
   Result := S;
   
@@ -9635,16 +9632,8 @@ begin
   repeat
     if I > 0 then
     begin
-      if NCU = 0 then
-      begin
-        gdcBaseManager.ExecSingleQueryResult('SELECT id FROM gd_curr WHERE isncu = 1',
-          0, R);
-        if not VarIsEmpty(R) then
-          NCU := R[0, 0];  
-      end;
-
       Delete(Result, I, Length('<NCU/>'));
-      Insert(IntToStr(NCU), Result, I);
+      Insert(IntToStr(GetNCUKey), Result, I);
     end;
     I := StrIPos('<NCU/>', Result);
   until I = 0;

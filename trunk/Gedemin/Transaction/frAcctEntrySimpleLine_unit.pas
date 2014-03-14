@@ -66,7 +66,7 @@ type
     procedure DoChange(Sender: TObject);
     procedure SetOffBalance(const Value: Boolean);
     procedure SetMultyCurr(const Value: Boolean);
-    function CurrRate(CurrKey: Integer): Currency;
+    function CurrRate(const CurrKey: Integer): Currency;
     function ControlEnabled: Boolean;
     procedure CalcCurrency(isCurrency: Boolean);
     procedure SetgdcObject(const Value: TgdcBase);
@@ -99,6 +99,9 @@ type
 implementation
 
 {$R *.DFM}
+
+uses
+  AcctUtils;
 
 const
   cMinHeight = 49; 
@@ -547,38 +550,30 @@ begin
   FMultyCurr := Value;
 end;
 
-function TfrAcctEntrySimpleLine.CurrRate(CurrKey: Integer): Currency;
+function TfrAcctEntrySimpleLine.CurrRate(const CurrKey: Integer): Currency;
 var
-  ibsql: TIBSQL;
-  NCUCurrKey: Integer;
+  q: TIBSQL;
 begin
+  Assert(not EOF);
+  Assert(gdcBaseManager <> nil);
   Result := 0;
-  ibsql := TIBSQL.Create(nil);
-  try
-    ibsql.Transaction := gdcBaseManager.ReadTransaction;
-    ibsql.SQL.Text := 'SELECT isncu FROM gd_curr where id = :id';
-    ibsql.ParamByName('id').AsInteger := CurrKey;
-    ibsql.ExecQuery;
-    if ibsql.FieldByName('isncu').AsInteger = 0 then
-    begin
-      ibsql.Close;
-      ibsql.SQL.Text := 'SELECT id FROM gd_curr where isncu = 1';
-      ibsql.ExecQuery;
-      NCUCurrKey := ibsql.FieldByName('id').AsInteger;
-      ibsql.Close;
-      ibsql.SQL.Text := 'SELECT coeff FROM gd_currrate WHERE fromcurr = :fc and ' +
+  if GetNCUKey <> CurrKey then
+  begin
+    q := TIBSQL.Create(nil);
+    try
+      q.Transaction := gdcBaseManager.ReadTransaction;
+      q.SQL.Text := 'SELECT coeff FROM gd_currrate WHERE fromcurr = :fc and ' +
         ' tocurr = :tc and fordate = (SELECT MAX(fordate) FROM gd_currrate WHERE fromcurr = :fc and ' +
         ' tocurr = :tc and fordate <= :de) ';
-      ibsql.ParamByName('fc').AsInteger := CurrKey;
-      ibsql.ParamByName('tc').AsInteger := NCUCurrKey;
-      ibsql.ParamByName('de').AsDateTime := gdcObject.FieldByName('recorddate').AsDateTime;
-      ibsql.ExecQuery;
-      if ibsql.RecordCount > 0 then
-        Result := ibsql.FieldByName('coeff').AsCurrency;
-      ibsql.Close
+      q.ParamByName('fc').AsInteger := CurrKey;
+      q.ParamByName('tc').AsInteger := GetNCUKey;
+      q.ParamByName('de').AsDateTime := gdcObject.FieldByName('recorddate').AsDateTime;
+      q.ExecQuery;
+      if not q.EOF then
+        Result := q.FieldByName('coeff').AsCurrency;
+    finally
+      q.Free;
     end;
-  finally
-    ibsql.Free;
   end;
 end;
 
