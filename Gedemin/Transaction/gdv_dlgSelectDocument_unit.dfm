@@ -234,6 +234,8 @@ object dlgSelectDocument: TdlgSelectDocument
           DockMode = dmCannotFloat
           FullSize = True
           Images = dmImages.il16x16
+          ParentShowHint = False
+          ShowHint = True
           TabOrder = 0
           object TBItem3: TTBItem
             Action = actNewDocument
@@ -344,6 +346,7 @@ object dlgSelectDocument: TdlgSelectDocument
       OnUpdate = actNewDocumentUpdate
     end
     object actRun: TAction
+      Hint = 'Установить ограничение'
       ImageIndex = 4
       OnExecute = actRunExecute
     end
