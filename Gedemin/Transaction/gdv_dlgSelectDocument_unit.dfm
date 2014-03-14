@@ -21,12 +21,12 @@ object dlgSelectDocument: TdlgSelectDocument
     Left = 216
     Top = 0
     Width = 4
-    Height = 418
+    Height = 415
     Cursor = crHSplit
   end
   object pnlBottom: TPanel
     Left = 0
-    Top = 418
+    Top = 415
     Width = 684
     Height = 30
     Align = alBottom
@@ -37,7 +37,7 @@ object dlgSelectDocument: TdlgSelectDocument
       Top = 6
       Width = 75
       Height = 21
-      Action = acthelp
+      Action = actHelp
       Anchors = []
       TabOrder = 0
     end
@@ -64,18 +64,18 @@ object dlgSelectDocument: TdlgSelectDocument
         Top = 7
         Width = 77
         Height = 21
-        Action = actcancel
+        Action = actCancel
         Anchors = []
         Cancel = True
         TabOrder = 1
       end
     end
   end
-  object Panel2: TPanel
+  object pnlDocType: TPanel
     Left = 0
     Top = 0
     Width = 216
-    Height = 418
+    Height = 415
     Align = alLeft
     BevelOuter = bvNone
     Ctl3D = True
@@ -86,14 +86,13 @@ object dlgSelectDocument: TdlgSelectDocument
       Left = 0
       Top = 0
       Width = 216
-      Height = 418
+      Height = 415
       DataSource = dsDocumentType
       KeyField = 'ID'
       ParentField = 'PARENT'
       DisplayField = 'NAME'
       Align = alClient
       Ctl3D = True
-      HideSelection = False
       Indent = 19
       ParentCtl3D = False
       ReadOnly = True
@@ -105,17 +104,17 @@ object dlgSelectDocument: TdlgSelectDocument
       WithCheckBox = False
     end
   end
-  object Panel3: TPanel
+  object pnlDoc: TPanel
     Left = 220
     Top = 0
     Width = 464
-    Height = 418
+    Height = 415
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 1
     object sLine: TSplitter
       Left = 0
-      Top = 247
+      Top = 244
       Width = 464
       Height = 4
       Cursor = crVSplit
@@ -123,7 +122,7 @@ object dlgSelectDocument: TdlgSelectDocument
     end
     object pLine: TPanel
       Left = 0
-      Top = 251
+      Top = 248
       Width = 464
       Height = 167
       Align = alBottom
@@ -181,11 +180,11 @@ object dlgSelectDocument: TdlgSelectDocument
         TabOrder = 1
       end
     end
-    object Panel5: TPanel
+    object pnlDocHead: TPanel
       Left = 0
       Top = 0
       Width = 464
-      Height = 247
+      Height = 244
       Align = alClient
       BevelOuter = bvNone
       FullRepaint = False
@@ -194,7 +193,7 @@ object dlgSelectDocument: TdlgSelectDocument
         Left = 0
         Top = 46
         Width = 464
-        Height = 201
+        Height = 198
         Align = alClient
         Ctl3D = True
         DataSource = dsDocument
@@ -251,7 +250,7 @@ object dlgSelectDocument: TdlgSelectDocument
           object TBSeparatorItem2: TTBSeparatorItem
           end
           object TBControlItem2: TTBControlItem
-            Control = Label1
+            Control = lblPeriod
           end
           object TBControlItem1: TTBControlItem
             Control = gsPeriod
@@ -259,7 +258,7 @@ object dlgSelectDocument: TdlgSelectDocument
           object TBItem4: TTBItem
             Action = actRun
           end
-          object Label1: TLabel
+          object lblPeriod: TLabel
             Left = 81
             Top = 4
             Width = 45
@@ -319,35 +318,40 @@ object dlgSelectDocument: TdlgSelectDocument
       Caption = 'Ok'
       OnExecute = actOkExecute
     end
-    object actcancel: TAction
+    object actCancel: TAction
       Caption = 'Отмена'
-      OnExecute = actcancelExecute
+      OnExecute = actCancelExecute
     end
-    object acthelp: TAction
+    object actHelp: TAction
       Caption = 'Справка'
       Visible = False
     end
     object actNewDocument: TAction
-      Caption = 'actNewDocument'
+      Caption = 'Создать документ'
+      Hint = 'Создать документ'
       ImageIndex = 0
       OnExecute = actNewDocumentExecute
       OnUpdate = actNewDocumentUpdate
     end
     object actEditDocument: TAction
-      Caption = 'actEditDocument'
+      Caption = 'Изменить документ'
+      Hint = 'Изменить документ'
       ImageIndex = 1
       OnExecute = actEditDocumentExecute
       OnUpdate = actNewDocumentUpdate
     end
     object actDeleteDocument: TAction
-      Caption = 'actDeleteDocument'
+      Caption = 'Удалить документ'
+      Hint = 'Удалить документ'
       ImageIndex = 2
       OnExecute = actDeleteDocumentExecute
       OnUpdate = actNewDocumentUpdate
     end
     object actRun: TAction
-      Hint = 'Установить ограничение'
+      Caption = 'Обновить данные'
+      Hint = 'Обновить данные (F5)'
       ImageIndex = 4
+      ShortCut = 116
       OnExecute = actRunExecute
     end
   end
