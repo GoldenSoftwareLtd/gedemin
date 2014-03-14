@@ -7,7 +7,7 @@ uses
   StdCtrls, ExtCtrls, Db, IBCustomDataSet, gdcBase, gdcTree, gdcClasses,
   Grids, DBGrids, gsDBGrid, gsIBGrid, ComCtrls, gsDBTreeView, ActnList,
   IBSQL, gdcBaseInterface, TB2Item, TB2Dock, TB2Toolbar, gdc_createable_form,
-  gsStorage, Storages, gd_classList;
+  gsStorage, Storages, gd_classList, gsPeriodEdit;
 
 type
   TdlgSelectDocument = class(TgdcCreateableForm)
@@ -44,6 +44,13 @@ type
     Panel1: TPanel;
     Button2: TButton;
     Button1: TButton;
+    TBControlItem2: TTBControlItem;
+    Label1: TLabel;
+    TBControlItem1: TTBControlItem;
+    gsPeriod: TgsPeriodEdit;
+    TBSeparatorItem2: TTBSeparatorItem;
+    actRun: TAction;
+    TBItem4: TTBItem;
     procedure actOkExecute(Sender: TObject);
     procedure actcancelExecute(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -58,6 +65,7 @@ type
     procedure actDeleteDocumentExecute(Sender: TObject);
     procedure FormShow(Sender: TObject);
     procedure gDocumentDblClick(Sender: TObject);
+    procedure actRunExecute(Sender: TObject);
   private
     FDocument: TgdcDocument;
     FDocumentLine: TgdcDocument;
@@ -131,6 +139,10 @@ begin
       FDocument.MasterField := 'ID';
       FDocument.DetailField := 'documenttype';
       FDocument.ExtraConditions.Add(' z.documenttypekey = :documenttype');
+      FDocument.ExtraConditions.Add('z.documentdate >= :datebegin and z.documentdate <= :dateend');
+      FDocument.ParamByName('datebegin').AsDateTime := gsPeriod.Date;
+      FDocument.ParamByName('dateend').AsDateTime := gsPeriod.EndDate;
+
       FDocument.Open;
       dsDocument.DataSet := FDocument;
       LoadGridSettings(FDocument, gDocument);
@@ -287,6 +299,8 @@ begin
     finally
       MS.Free;
     end;
+    UserStorage.WriteDateTime(BuildComponentPath(gsPeriod), 'DateBegin', gsPeriod.Date);
+    UserStorage.WriteDateTime(BuildComponentPath(gsPeriod), 'DateEnd', gsPeriod.EndDate);
   end;
 end;
 
@@ -307,7 +321,19 @@ begin
     finally
       MS.Free;
     end;
+    gsPeriod.AssignPeriod(UserStorage.ReadDateTime(BuildComponentPath(gsPeriod), 'DateBegin', Date),
+      UserStorage.ReadDateTime(BuildComponentPath(gsPeriod), 'DateEnd', Date));
   end;
+end;
+
+procedure TdlgSelectDocument.actRunExecute(Sender: TObject);
+begin
+
+  FDocument.Close;
+  FDocument.ParamByName('datebegin').AsDateTime := gsPeriod.Date;
+  FDocument.ParamByName('dateend').AsDateTime := gsPeriod.EndDate;
+  FDocument.Open;
+
 end;
 
 initialization
