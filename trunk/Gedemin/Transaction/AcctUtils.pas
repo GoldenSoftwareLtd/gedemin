@@ -154,7 +154,7 @@ begin
   if GetNCUKey > -1 then
     Result := FNCUDecDigits
   else
-    FCurrDecDigits := LocateDecDigits;
+    Result := LocateDecDigits;
 end;
 
 function GetCurrDecDigits(const ACurrCode: String): Integer;
