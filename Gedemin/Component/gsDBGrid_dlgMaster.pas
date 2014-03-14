@@ -926,13 +926,13 @@ type
   TGridFieldType = (ftOther, ftNumeric, ftDateTime);
 var
   CurrState: TCheckBoxState;
-  I: Integer;
+  I, J: Integer;
   OldVisible: Boolean;
 
   FirstFormat: String;
   FirstType: TGridFieldType;
   FirstState: TCheckBoxState;
-  F: TField;
+  F, F1, F2: TField;
 begin
   FPreparingForEditing := True;
   try
@@ -1036,6 +1036,31 @@ begin
     editColumnTitle.Enabled := lvColumns.SelCount = 1;
 
     actChooseColumnFormat.Enabled := editColumnFormat.Enabled and (lvColumns.SelCount = 1);
+
+    if lvColumns.SelCount > 1 then
+      begin
+        actChooseColumnFormat.Enabled := true;
+        I := 0;
+        Repeat
+          if lvColumns.Items[I].Selected then
+            begin
+              F1 := FDataLink.DataSet.FindField(TgsColumn(lvColumns.Items[I].Data).FieldName);
+              for j := I + 1 to lvColumns.Items.Count - 1 do
+                begin
+                  if lvColumns.Items[J].Selected then
+                  begin
+                    F2 := FDataLink.DataSet.FindField(TgsColumn(lvColumns.Items[J].Data).FieldName);
+                    if (F1.DataType <> F2.DataType) then
+                      begin
+                        actChooseColumnFormat.Enabled := false;
+                        Break;
+                      end;
+                  end;
+                end;
+            end;
+            Inc (I);
+        Until lvColumns.Items[I - 1].Selected;
+      end;
 
     cbColumnLineCount.Enabled := lvColumns.SelCount = 1;
     editColumnLineCount.Enabled := lvColumns.SelCount = 1;
