@@ -102,7 +102,7 @@ implementation
 {$R *.DFM}
 
 uses
-  gd_security;
+  AcctUtils, gd_security;
 
 procedure Tgd_dlgInitialInfo.actOkExecute(Sender: TObject);
 
@@ -303,6 +303,7 @@ begin
           q.SQL.Text := 'UPDATE gd_curr SET isncu = 1 WHERE id = :ID';
           q.ParamByName('ID').AsInteger := iblkupCurr.CurrentKeyInt;
           q.ExecQuery;
+          ResetNCUCache;
         end;
       end;
 

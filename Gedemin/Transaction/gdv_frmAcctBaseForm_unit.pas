@@ -639,8 +639,7 @@ begin
 
   // Настройки вывода сумм
   DefaultDecDigits := LocateDecDigits;
-//  frAcctSum.NcuDecDigits := DefaultDecDigits;
-  frAcctSum.NcuDecDigits := LocateNCUDecDigits;
+  frAcctSum.NcuDecDigits := GetNCUDecDigits;
   frAcctSum.CurrDecDigits := DefaultDecDigits;
   frAcctSum.EQDecDigits := DefaultDecDigits;
   frAcctSum.QuantityDecDigits := DefaultDecDigits;

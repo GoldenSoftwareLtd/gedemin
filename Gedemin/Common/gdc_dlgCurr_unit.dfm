@@ -218,6 +218,7 @@ inherited gdc_dlgCurr: Tgdc_dlgCurr
     DataSource = dsgdcBase
     ParentCtl3D = False
     TabOrder = 2
+    OnChange = dbeCodeChange
   end
   object dbeSign: TDBEdit [29]
     Left = 95
@@ -262,6 +263,7 @@ inherited gdc_dlgCurr: Tgdc_dlgCurr
     DataSource = dsgdcBase
     ParentCtl3D = False
     TabOrder = 8
+    OnChange = dbeDecdigitsChange
   end
   object dbeCentbase: TDBEdit [33]
     Left = 580
@@ -302,6 +304,7 @@ inherited gdc_dlgCurr: Tgdc_dlgCurr
     TabOrder = 14
     ValueChecked = '1'
     ValueUnchecked = '0'
+    OnClick = dbcbIsNCUClick
   end
   object dbcbDisabled: TDBCheckBox [36]
     Left = 465

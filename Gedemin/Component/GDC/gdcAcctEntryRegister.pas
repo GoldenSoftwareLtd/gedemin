@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2001-2013 by Golden Software of Belarus
+  Copyright (c) 2001-2014 by Golden Software of Belarus
 
   Module
 
@@ -130,8 +130,6 @@ type
     FCurrNCUKey: Integer;
     FEntrySQL, FRecordSQL, FEntryDocumentSQL: TIBSQL;
 
-    function GetCurrNCUKey: Integer;
-
   protected
     function GetFromClause(const ARefresh: Boolean = False): String; override;
 
@@ -235,7 +233,6 @@ type
     FCurrNCUKey: Integer;
     FAmountNCU, FAmountCurr: Currency;
 
-    function GetCurrNCUKey: Integer;
     procedure SetupEntryLine;
     procedure SetEntryModified;
 
@@ -302,7 +299,6 @@ type
     procedure OnAfterLineEdit(DataSet: TDataSet);
     procedure OnAfterLineInsert(DataSet: TDataSet);
 
-    function GetCurrNCUKey: Integer; 
   protected
     procedure CreateFields; override;
     procedure DoAfterScroll; override;
@@ -364,7 +360,7 @@ implementation
 uses
   gd_i_ScriptFactory, gdcOLEClassList, gd_ClassList, gdc_frmTransaction_unit,
   at_sql_setup, gdcAcctDocument, gdc_acct_dlgEntry_unit, gd_security, at_classes,
-  gd_directories_const, IBCustomDataSet
+  gd_directories_const, IBCustomDataSet, AcctUtils
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -1714,7 +1710,7 @@ begin
     end;
 
     if FieldByName(fnCurrKey).IsNull then
-      FieldByName(fnCurrKey).AsInteger := GetCurrNCUKey;
+      FieldByName(fnCurrKey).AsInteger := GetNCUKey;
    end;
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCACCTENTRYREGISTER', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
   {M}  finally
@@ -1722,25 +1718,6 @@ begin
   {M}      ClearMacrosStack2('TGDCACCTENTRYREGISTER', 'DOBEFOREPOST', KEYDOBEFOREPOST);
   {M}  end;
   {END MACRO}
-end;
-
-function TgdcAcctEntryRegister.GetCurrNCUKey: Integer;
-var
-  ibsql: TIBSQL;
-begin
-  if FCurrNCUKey = -1 then
-  begin
-    ibsql := TIBSQL.Create(nil);
-    try
-      ibsql.Transaction := ReadTransaction;
-      ibsql.SQL.Text := 'SELECT id FROM gd_curr WHERE isNCU = 1';
-      ibsql.ExecQuery;
-      FCurrNCUKey := ibsql.FieldByName('id').AsInteger;
-    finally
-      ibsql.Free;
-    end;
-  end;
-  Result := FCurrNCUKey;
 end;
 
 function TgdcAcctEntryRegister.GetFromClause(const ARefresh: Boolean = False): String;
@@ -2656,7 +2633,7 @@ begin
     FieldByName('number').AsString := ' ';
 
   if FieldByName('currkey').IsNull then
-    FieldByName('currkey').AsInteger := GetCurrNCUKey;
+    FieldByName('currkey').AsInteger := GetNCUKey;
 
   if FieldByName('documentkey').IsNull then
   begin
@@ -2762,10 +2739,13 @@ begin
         if not FieldByName('currkey').IsNull then
           DebitEntryLine.FieldByName('currkey').AsVariant := FieldByName('currkey').AsVariant
         else
-          DebitEntryLine.FieldByName('currkey').AsInteger := GetCurrNCUKey;
+          DebitEntryLine.FieldByName('currkey').AsInteger := GetNCUKey;
       end;
-      if (DebitEntryLine.FieldByName('debitcurr').AsCurrency = 0) and  (DebitEntryLine.FieldByName('currkey').AsInteger <> GetCurrNCUKey) then
+      if (DebitEntryLine.FieldByName('debitcurr').AsCurrency = 0)
+        and (DebitEntryLine.FieldByName('currkey').AsInteger <> GetNCUKey) then
+      begin
         DebitEntryLine.FieldByName('debitcurr').AsCurrency := FAmountCurr;
+      end;
       DebitEntryLine.Post;
     except
       DebitEntryLine.Cancel;
@@ -2787,9 +2767,9 @@ begin
         if not FieldByName('currkey').IsNull then
           CreditEntryLine.FieldByName('currkey').AsVariant := FieldByName('currkey').AsVariant
         else
-          CreditEntryLine.FieldByName('currkey').AsVariant := GetCurrNCUKey;
+          CreditEntryLine.FieldByName('currkey').AsVariant := GetNCUKey;
       end;
-      if (CreditEntryLine.FieldByName('creditcurr').AsCurrency = 0) and  (CreditEntryLine.FieldByName('currkey').AsInteger <> GetCurrNCUKey) then
+      if (CreditEntryLine.FieldByName('creditcurr').AsCurrency = 0) and  (CreditEntryLine.FieldByName('currkey').AsInteger <> GetNCUKey) then
         CreditEntryLine.FieldByName('creditcurr').AsCurrency := FAmountCurr;
       CreditEntryLine.Post;
     except
@@ -3093,26 +3073,6 @@ begin
   {M}      ClearMacrosStack2('TGDCACCTSIMPLERECORD', 'CREATEFIELDS', KEYCREATEFIELDS);
   {M}  end;
   {END MACRO}
-end;
-
-function TgdcAcctSimpleRecord.GetCurrNCUKey: Integer;
-var
-  ibsql: TIBSQL;
-begin
-  if FCurrNCUKey = -1 then
-  begin
-    ibsql := TIBSQL.Create(nil);
-    try
-      ibsql.Database := Database;
-      ibsql.Transaction := ReadTransaction;
-      ibsql.SQL.Text := 'SELECT id FROM gd_curr WHERE isNCU = 1';
-      ibsql.ExecQuery;
-      FCurrNCUKey := ibsql.FieldByName('id').AsInteger;
-    finally
-      ibsql.Free;
-    end;
-  end;
-  Result := FCurrNCUKey;
 end;
 
 procedure TgdcAcctSimpleRecord.SetupEntryLine;
@@ -4331,7 +4291,7 @@ begin
     FieldByName('number').AsString := ' ';
 
   if FieldByName('currkey').IsNull then
-    FieldByName('currkey').AsInteger := GetCurrNCUKey;
+    FieldByName('currkey').AsInteger := GetNCUKey;
 
   if FieldByName('TransactionKey').IsNull then
     FieldByName('TransactionKey').AsInteger := FTransactionKey;
@@ -4394,26 +4354,6 @@ begin
   {M}      ClearMacrosStack2('TGDCACCTCOMPLEXRECORD', 'DOBEFOREPOST', KEYDOBEFOREPOST);
   {M}  end;
   {END MACRO}
-end;
-
-function TgdcAcctComplexRecord.GetCurrNCUKey: Integer;
-var
-  ibsql: TIBSQL;
-begin
-  if FCurrNCUKey = -1 then
-  begin
-    ibsql := TIBSQL.Create(nil);
-    try
-      ibsql.Database := Database;
-      ibsql.Transaction := ReadTransaction;
-      ibsql.SQL.Text := 'SELECT id FROM gd_curr WHERE isNCU = 1';
-      ibsql.ExecQuery;
-      FCurrNCUKey := ibsql.FieldByName('id').AsInteger;
-    finally
-      ibsql.Free;
-    end;
-  end;
-  Result := FCurrNCUKey;
 end;
 
 function TgdcAcctComplexRecord.GetDialogDefaultsFields: String;
