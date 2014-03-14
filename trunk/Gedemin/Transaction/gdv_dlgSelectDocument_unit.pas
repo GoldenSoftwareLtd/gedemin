@@ -13,19 +13,19 @@ type
   TdlgSelectDocument = class(TgdcCreateableForm)
     pnlBottom: TPanel;
     Button3: TButton;
-    Panel2: TPanel;
+    pnlDocType: TPanel;
     Splitter1: TSplitter;
-    Panel3: TPanel;
+    pnlDoc: TPanel;
     tvDocumentType: TgsDBTreeView;
     gdcDocumentType: TgdcBaseDocumentType;
     dsDocumentType: TDataSource;
     dsDocument: TDataSource;
     ActionList: TActionList;
     actOk: TAction;
-    actcancel: TAction;
-    acthelp: TAction;
+    actCancel: TAction;
+    actHelp: TAction;
     pLine: TPanel;
-    Panel5: TPanel;
+    pnlDocHead: TPanel;
     sLine: TSplitter;
     gDocument: TgsIBGrid;
     gDocumentLine: TgsIBGrid;
@@ -45,14 +45,14 @@ type
     Button2: TButton;
     Button1: TButton;
     TBControlItem2: TTBControlItem;
-    Label1: TLabel;
+    lblPeriod: TLabel;
     TBControlItem1: TTBControlItem;
     gsPeriod: TgsPeriodEdit;
     TBSeparatorItem2: TTBSeparatorItem;
     actRun: TAction;
     TBItem4: TTBItem;
     procedure actOkExecute(Sender: TObject);
-    procedure actcancelExecute(Sender: TObject);
+    procedure actCancelExecute(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure gDocumentLineClickCheck(Sender: TObject; CheckID: String;
       var Checked: Boolean);
@@ -93,7 +93,7 @@ begin
   ModalResult := mrOk
 end;
 
-procedure TdlgSelectDocument.actcancelExecute(Sender: TObject);
+procedure TdlgSelectDocument.actCancelExecute(Sender: TObject);
 begin
   ModalResult := mrCancel;
 end;
