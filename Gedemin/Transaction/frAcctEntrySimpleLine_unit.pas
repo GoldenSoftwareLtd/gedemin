@@ -554,7 +554,8 @@ function TfrAcctEntrySimpleLine.CurrRate(const CurrKey: Integer): Currency;
 var
   q: TIBSQL;
 begin
-  Assert(not EOF);
+  Assert(gdcObject <> nil);
+  Assert(not gdcObject.EOF);
   Assert(gdcBaseManager <> nil);
   Result := 0;
   if GetNCUKey <> CurrKey then
