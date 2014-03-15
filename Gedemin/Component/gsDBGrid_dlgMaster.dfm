@@ -260,7 +260,7 @@ object dlgMaster: TdlgMaster
             Top = 4
             Width = 301
             Height = 329
-            ActivePage = TabSheet1
+            ActivePage = TabSheet5
             Align = alClient
             TabHeight = 23
             TabOrder = 0
@@ -582,8 +582,8 @@ object dlgMaster: TdlgMaster
           object lvColumns: TListView
             Left = 6
             Top = 6
-            Width = 250
-            Height = 249
+            Width = 242
+            Height = 238
             Align = alClient
             Columns = <
               item
@@ -631,7 +631,7 @@ object dlgMaster: TdlgMaster
             object GroupBox9: TGroupBox
               Left = 0
               Top = 19
-              Width = 250
+              Width = 242
               Height = 68
               Align = alBottom
               Caption = ' Расширенное отображение '
@@ -639,7 +639,7 @@ object dlgMaster: TdlgMaster
               object cbColumnExpanded: TCheckBox
                 Left = 11
                 Top = 13
-                Width = 218
+                Width = 210
                 Height = 17
                 Action = actColumnExpaneded
                 Alignment = taLeftJustify
@@ -650,7 +650,7 @@ object dlgMaster: TdlgMaster
               object cbColumnSeparateExp: TCheckBox
                 Left = 11
                 Top = 30
-                Width = 218
+                Width = 210
                 Height = 17
                 Action = actColumnSeparateExp
                 Alignment = taLeftJustify
@@ -660,7 +660,7 @@ object dlgMaster: TdlgMaster
               object cbColumnTitleExp: TCheckBox
                 Left = 11
                 Top = 47
-                Width = 218
+                Width = 210
                 Height = 17
                 Action = actColumnTitleExp
                 Alignment = taLeftJustify
@@ -742,7 +742,7 @@ object dlgMaster: TdlgMaster
                   Width = 190
                   Height = 21
                   Style = csDropDownList
-                  ItemHeight = 0
+                  ItemHeight = 13
                   TabOrder = 1
                   OnClick = editConditionColumnClick
                 end
@@ -782,7 +782,7 @@ object dlgMaster: TdlgMaster
                   Height = 21
                   Style = csDropDownList
                   DropDownCount = 12
-                  ItemHeight = 0
+                  ItemHeight = 13
                   TabOrder = 0
                   OnClick = editConditionKindClick
                 end
