@@ -2,7 +2,7 @@
 
 {++
 
-  Copyright (c) 2000 by Golden Software of Belarus
+  Copyright (c) 2000-2014 by Golden Software of Belarus
 
   Module
 
@@ -926,13 +926,14 @@ type
   TGridFieldType = (ftOther, ftNumeric, ftDateTime);
 var
   CurrState: TCheckBoxState;
-  I, J: Integer;
+  I: Integer;
   OldVisible: Boolean;
 
   FirstFormat: String;
   FirstType: TGridFieldType;
   FirstState: TCheckBoxState;
-  F, F1, F2: TField;
+  F: TField;
+  FT: TFieldType;
 begin
   FPreparingForEditing := True;
   try
@@ -1031,36 +1032,27 @@ begin
         rgColumnTitleAlign.ItemIndex := -1;
       end;
 
-
     // ≈сли выделено несколько записей - некоторые команды следует запретить
     editColumnTitle.Enabled := lvColumns.SelCount = 1;
 
-    actChooseColumnFormat.Enabled := editColumnFormat.Enabled and (lvColumns.SelCount = 1);
-
-    if lvColumns.SelCount > 1 then
+    actChooseColumnFormat.Enabled := editColumnFormat.Enabled;
+    if actChooseColumnFormat.Enabled and (lvColumns.SelCount > 1) then
+    begin
+      FT := ftUnknown;
+      for I := 0 to lvColumns.Items.Count - 1 do
       begin
-        actChooseColumnFormat.Enabled := true;
-        I := 0;
-        Repeat
-          if lvColumns.Items[I].Selected then
-            begin
-              F1 := FDataLink.DataSet.FindField(TgsColumn(lvColumns.Items[I].Data).FieldName);
-              for j := I + 1 to lvColumns.Items.Count - 1 do
-                begin
-                  if lvColumns.Items[J].Selected then
-                  begin
-                    F2 := FDataLink.DataSet.FindField(TgsColumn(lvColumns.Items[J].Data).FieldName);
-                    if (F1.DataType <> F2.DataType) then
-                      begin
-                        actChooseColumnFormat.Enabled := false;
-                        Break;
-                      end;
-                  end;
-                end;
-            end;
-            Inc (I);
-        Until lvColumns.Items[I - 1].Selected;
+        if lvColumns.Items[I].Selected then
+        begin
+          if FT = ftUnknown then
+            FT := TgsColumn(lvColumns.Items[I].Data).Field.DataType
+          else if FT <> TgsColumn(lvColumns.Items[I].Data).Field.DataType then
+          begin
+            actChooseColumnFormat.Enabled := False;
+            break;
+          end;
+        end;
       end;
+    end;
 
     cbColumnLineCount.Enabled := lvColumns.SelCount = 1;
     editColumnLineCount.Enabled := lvColumns.SelCount = 1;
@@ -2887,9 +2879,6 @@ begin
       for I := 0 to clbFields.Items.Count - 1 do
         if clbFields.State[I] = cbChecked then
           Fields := Fields + TField(clbFields.Items.Objects[I]).FieldName + ';';
-{      for I := 0 to FDataLink.DataSet.FieldCount - 1 do
-        if clbFields.State[I] = cbChecked then
-          Fields := Fields + FDataLink.DataSet.Fields[I].FieldName + ';';}
 
       CurrCondition.DisplayFields := Fields;
       UpdateConditionVisibleColumns;
