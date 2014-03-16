@@ -1,7 +1,7 @@
 object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
   Left = 0
   Top = 0
-  Width = 435
+  Width = 457
   Height = 234
   Align = alTop
   AutoSize = True
@@ -15,7 +15,7 @@ object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
   object Panel1: TPanel
     Left = 0
     Top = 0
-    Width = 435
+    Width = 457
     Height = 234
     Align = alTop
     AutoSize = True
@@ -27,7 +27,7 @@ object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
     object ppMain: TgdvParamPanel
       Left = 1
       Top = 1
-      Width = 433
+      Width = 455
       Height = 232
       Align = alTop
       AutoSize = True
@@ -50,7 +50,7 @@ object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
       object Panel5: TPanel
         Left = 4
         Top = 17
-        Width = 425
+        Width = 447
         Height = 140
         Align = alTop
         BevelOuter = bvNone
@@ -137,7 +137,7 @@ object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
         object cbAccount: TgsIBLookupComboBox
           Left = 56
           Top = 3
-          Width = 397
+          Width = 386
           Height = 21
           HelpContext = 1
           Database = dmDatabase.ibdbGAdmin
@@ -173,7 +173,7 @@ object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
         object cSum: TxDBCalculatorEdit
           Left = 56
           Top = 26
-          Width = 397
+          Width = 386
           Height = 21
           Anchors = [akLeft, akTop, akRight]
           Constraints.MinWidth = 193
@@ -226,7 +226,7 @@ object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
         object cRate: TxCalculatorEdit
           Left = 93
           Top = 95
-          Width = 360
+          Width = 348
           Height = 21
           Anchors = [akLeft, akTop, akRight]
           Constraints.MinWidth = 156
@@ -245,7 +245,7 @@ object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
         object cCurrSum: TxDBCalculatorEdit
           Left = 93
           Top = 118
-          Width = 360
+          Width = 348
           Height = 21
           Anchors = [akLeft, akTop, akRight]
           Constraints.MinWidth = 156
@@ -266,7 +266,7 @@ object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
         object cEQSum: TxDBCalculatorEdit
           Left = 122
           Top = 49
-          Width = 331
+          Width = 320
           Height = 21
           Anchors = [akLeft, akTop, akRight]
           AutoSize = False
@@ -305,10 +305,10 @@ object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
       inline frAcctAnalytics: TfrAcctAnalytics
         Left = 4
         Top = 157
-        Width = 425
+        Width = 447
         TabOrder = 1
         inherited ppAnalytics: TgdvParamPanel
-          Width = 425
+          Width = 447
           Color = 16053492
           Font.Name = 'Tahoma'
           ParentColor = False
@@ -320,11 +320,11 @@ object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
       inline frQuantity: TfrEntrySimpleLineQuantity
         Left = 4
         Top = 198
-        Width = 425
+        Width = 447
         Height = 33
         TabOrder = 2
         inherited ppMain: TgdvParamPanel
-          Width = 425
+          Width = 447
           Height = 33
           Color = 16053492
           Font.Color = 14705703
