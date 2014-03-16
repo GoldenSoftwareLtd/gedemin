@@ -162,6 +162,8 @@ type
       message WM_GD_SELECTDOCUMENT;
     procedure WMGDOpenAcctAccCard(var Msg: TMessage);
      message WM_GD_OPENACCtACCCARD;
+    function IsDocument: Boolean;
+
 
   protected
     procedure DropDown; override;
@@ -2102,7 +2104,7 @@ begin
   if not Assigned(FdlgDropDown) then
     FdlgDropDown := TdlgDropDown.Create(Self);
   FdlgDropDown.FIBLookup := Self;
-  FdlgDropDown.FIsDocument := (gdClass <> nil) and gdClass.InheritsFrom(TgdcDocument);
+  FdlgDropDown.FIsDocument := IsDocument;
   if (gdClass <> nil)
     and IsTree
     and ((Text = '') or ValidObject) then
@@ -2500,6 +2502,8 @@ begin
             '  F3     -- поиск '#13#10 +
             '  F4     -- изменение выбранного объекта '#13#10 +
             '  F5     -- текущий ключ '#13#10 +
+            '  Ctrl-A -- открыть карту счета '#13#10 +
+            '  Ctrl-D -- выбор документа '#13#10 +
             '  Ctrl-R -- объединение двух записей '#13#10 +
             '  F6     -- поиск по регул€рным выражени€м '#13#10 +
             '  F7     -- точный поиск '#13#10 +
@@ -2794,17 +2798,20 @@ begin
             Result := 1;
             Reduce;
             exit;
-          end;
-        end
-        {else if KeyDataToShiftState(KeyData) = [ssAlt] then
-        begin
-          if CharCode = VK_DOWN then
+          end
+          else if (CharCode = Ord('D')) and IsDocument then
           begin
-            DropDown;
+            PostMessage(Handle, WM_GD_SELECTDOCUMENT, 0, 0);
+            Result := 1;
+            exit;
+          end
+          else if (CharCode = Ord('A')) and IsDocument then
+          begin
+            PostMessage(Handle, WM_GD_OPENACCTACCCARD, 0, 0);
             Result := 1;
             exit;
           end;
-        end;}
+        end
       end;
     end;
   end;
@@ -3197,6 +3204,11 @@ begin
   FSortOrder := Value;
   if (not (csLoading in ComponentState)) and (FSortOrder <> soNone) then
     FSortField := '';
+end;
+
+function TgsIBLookupComboBox.IsDocument: Boolean;
+begin
+  Result := (gdClass <> nil) and gdClass.InheritsFrom(TgdcDocument);
 end;
 
 { TgsIBLCBDataLink }
