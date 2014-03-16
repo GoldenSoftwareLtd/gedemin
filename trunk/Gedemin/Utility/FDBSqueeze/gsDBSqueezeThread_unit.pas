@@ -51,6 +51,9 @@ const
   WM_DBS_FINISHED              = WM_USER + 39;
   WM_DBS_DISCONNECT            = WM_USER + 40;
 
+  WM_DBS_CREATE_INV_BALANCE    = WM_USER + 41;
+
+  WM_GD_EXIT_THREAD  =      WM_USER + 117;
 type
   TErrorEvent = procedure(const ErrorMsg: String) of object;
   TLogSQLEvent = procedure(const MsgLogSQL: String)of object;
@@ -63,12 +66,14 @@ type
   TGetDBSizeEvent = procedure (const MsgStr: String) of object;
   TGetStatisticsEvent = procedure (const MsgGdDocStr: String; const MsgAcEntryStr: String; const MsgInvMovementStr: String; const MsgInvCardStr: String) of object;
   TGetProcStatisticsEvent = procedure (const MsgProcGdDocStr: String; const MsgProcAcEntryStr: String; const MsgProcInvMovementStr: String; const MsgProcInvCardStr: String) of object;
-  TFinishEvent = procedure of object;
+  TFinishEvent = procedure (const MsgIsFinished: Boolean) of object;
 
   TgsDBSqueezeThread = class(TgdMessagedThread)
   private
+    FDoStopProcessing: Boolean;    ///////////////
     FFinish: Boolean;
     FBusy: TidThreadSafeInteger;
+    FIsFinishMsg: TidThreadSafeInteger;
     FLogFileName: TidThreadSafeString;
     FBackupFileName: TidThreadSafeString;
     FRestoreDBName: TidThreadSafeString;
@@ -135,6 +140,8 @@ type
     procedure DoOnGetStatisticsSync;
     procedure DoOnGetProcStatisticsSync;
 
+    procedure Finish(const AIsFinished: Boolean);
+
     procedure LogSQL(const AMsgLogSQL: String);
     procedure GetConnected(const AMsgConnected: Boolean);
     procedure GetInfoTestConnect(const AMsgConnectSuccess: Boolean; const AMsgConnectInfoList: TStringList);
@@ -173,7 +180,7 @@ type
     procedure DoGetStatistics;
     procedure DoGetProcStatistics;
 
-    procedure ContinueProcessing(const AFunctionKey: Integer; const AState: Integer);
+    //procedure ContinueProcessing(const AFunctionKey: Integer; const AState: Integer);
 
     procedure SetSaldoParams(const AAllOurCompanies: Boolean; const AOnlyCompany: Boolean; const AnAccount00: Boolean);
     procedure SetCompanyKey(const ACompanyKey: Integer);
@@ -222,6 +229,7 @@ begin
   FLogFileName := TIdThreadSafeString.Create;
   FBackupFileName := TIdThreadSafeString.Create;
   FRestoreDBName := TIdThreadSafeString.Create;
+  FIsFinishMsg := TIdThreadSafeInteger.Create;
   FBusy := TIdThreadSafeInteger.Create;
   FState := TIdThreadSafeInteger.Create;
   FConnected := TIdThreadSafeInteger.Create;
@@ -230,6 +238,8 @@ begin
   FMessageDocTypeList := TStringList.Create;
   FMessagePropertiesList := TStringList.Create;
   FState.Value := 1;
+  FBusy.Value := 0;
+  FIsFinishMsg.Value := 0;
   FFinish := False;
   
   inherited Create(CreateSuspended);
@@ -254,27 +264,23 @@ end;
 
 procedure TgsDBSqueezeThread.Connect;
 begin
-  //if not Connected then
-
-    PostMsg(WM_DBS_CONNECT);
+  PostMsg(WM_DBS_GETDBSIZE);//PostMsg(WM_DBS_CONNECT);
 end;
 
 procedure TgsDBSqueezeThread.Disconnect;
 begin
-  //if Connected and (not Busy) then         ///tmp
-    PostMsg(WM_DBS_DISCONNECT);
+  PostMsg(WM_DBS_DISCONNECT);
 end;
 
 procedure TgsDBSqueezeThread.StartProcessing;
 begin
-
   PostMsg(WM_DBS_STARTPROCESSING);
 end;
 
 procedure TgsDBSqueezeThread.StopProcessing;
 begin
-  if (not Busy) then
-    PostMsg(WM_DBS_STOPPROCESSING);
+  FDoStopProcessing := True;
+  PostMsg(WM_DBS_STOPPROCESSING);
 end;
 
 procedure  TgsDBSqueezeThread.DoOnGetConnectedSync;
@@ -323,10 +329,19 @@ begin
     FOnUsedDB(FMessageFunctionKey, FMessageState, FMessageCallTime,  FMessageErrorMessage);
 end;
 
+procedure TgsDBSqueezeThread.Finish(const AIsFinished: Boolean);
+begin
+  if AIsFinished then
+    FIsFinishMsg.Value := 1
+  else
+    FIsFinishMsg.Value := 0;
+  Synchronize(DoOnFinishSync);
+end;
+
 procedure TgsDBSqueezeThread.DoOnFinishSync;
 begin
   if Assigned(FOnFinish) then
-    FOnFinish;
+    FOnFinish(FFinish);//FOnFinish(FIsFinishMsg.Value);
 end;
 
 procedure TgsDBSqueezeThread.DoOnGetDBPropertiesSync;
@@ -345,12 +360,14 @@ procedure TgsDBSqueezeThread.DoOnGetStatisticsSync;
 begin
   if Assigned(FOnGetStatistics) then
     FOnGetStatistics(FMessageGdDocStr, FMessageAcEntryStr, FMessageInvMovementStr, FMessageInvCardStr);
+  FBusy.Value := 0;
 end;
 
 procedure TgsDBSqueezeThread.DoOnGetProcStatisticsSync;
 begin
   if Assigned(FOnGetProcStatistics) then
     FOnGetProcStatistics(FMessageProcGdDocStr, FMessageProcAcEntryStr, FMessageProcInvMovementStr, FMessageProcInvCardStr);
+  FBusy.Value := 0; 
 end;
 
 function TgsDBSqueezeThread.GetBusy: Boolean;
@@ -391,11 +408,9 @@ begin
 
     WM_DBS_GETINFOTESTCONNECT:
       begin
-        //if FState.Value = 1 then
-        //begin
-          FDBS.GetInfoTestConnectEvent;
-          FState.Value := 1;
-        //end;
+        FDBS.GetInfoTestConnectEvent;
+        FState.Value := 1;
+
         PostThreadMessage(ThreadID, WM_DBS_STOPTESTCONNECT, 0, 0);
         Result := True;
       end;
@@ -421,14 +436,10 @@ begin
 
     WM_DBS_GETDBSIZE:
       begin
-        //if FConnected.Value = 0 then
-        //begin
-          FDBS.GetDBSizeEvent;
-          FBusy.Value := 1;
-        //end;
+        FDBS.GetDBSizeEvent;
         FState.Value := 1;
 
-        if FFinish then
+        //if FFinish then
           PostThreadMessage(ThreadID, WM_DBS_CONNECT, 0, 0);
 
         Result := True;
@@ -437,42 +448,32 @@ begin
     WM_DBS_CONNECT:
       begin
         FDBS.Connect(False, True);        // garbage collect ON
-       // FConnected.Value := 1;
         FState.Value := 1;
 
-   //     FBusy.Value := 1;
-
-        if not FFinish then
-          PostThreadMessage(ThreadID, WM_DBS_CREATEDBSSTATEJOURNAL, 0, 0)
-        else
-          PostThreadMessage(ThreadID, WM_DBS_FINISHED, 0, 0);
+       {if not FFinish then    }
+          PostThreadMessage(ThreadID, WM_DBS_CREATEDBSSTATEJOURNAL, 0, 0);
+        {else
+          PostThreadMessage(ThreadID, WM_DBS_FINISHED, 0, 0);   }
 
         Result := True;
       end;
 
     WM_DBS_CREATEDBSSTATEJOURNAL:
       begin
-        //if FConnected.Value = 1 then
-        //begin
-          FDBS.CreateDBSStateJournal;
+        FDBS.CreateDBSStateJournal;
 
-          FDBS.InsertDBSStateJournal(Msg.Message, 1);
-          FState.Value := 1;
+        FDBS.InsertDBSStateJournal(Msg.Message, 1);
+        FState.Value := 1;
 
-          PostThreadMessage(ThreadID, WM_DBS_GETDBPROPERTIES, 0, 0);
-        //end;
+        PostThreadMessage(ThreadID, WM_DBS_GETDBPROPERTIES, 0, 0);
         Result := True;
       end;
 
     WM_DBS_SETCBBITEMS:
       begin
-        //if FConnected.Value = 1 then
-       // begin
-          //FBusy.Value := 1;
-          FDBS.SetItemsCbbEvent;
-       // end;
+        FDBS.SetItemsCbbEvent;;
 
-        FDBS.InsertDBSStateJournal(Msg.Message, 1);
+        //FDBS.InsertDBSStateJournal(Msg.Message, 1);
         FState.Value := 1;
 
         Result := True;
@@ -480,11 +481,7 @@ begin
 
     WM_DBS_SETDOCTYPESRINGS:
       begin
-        //if FConnected.Value = 1 then
-       // begin
-          //FBusy.Value := 1;
-          FDBS.SetDocTypeStringsEvent;
-       // end;
+        FDBS.SetDocTypeStringsEvent;
 
         //FDBS.InsertDBSStateJournal(Msg.Message, 1);
         FState.Value := 1;
@@ -494,13 +491,11 @@ begin
 
     WM_DBS_GETDBPROPERTIES:
       begin
-        //if FConnected.Value = 1 then
-        //begin
-          FDBS.GetDBPropertiesEvent;
+        FDBS.GetDBPropertiesEvent;
 
-          FDBS.InsertDBSStateJournal(Msg.Message, 1);
-          FState.Value := 1;
-        //end;
+        //FDBS.InsertDBSStateJournal(Msg.Message, 1);
+        FState.Value := 1;
+
         Result := True;
       end;
 
@@ -512,11 +507,7 @@ begin
 
     WM_DBS_SETCOMPANYKEY:
       begin
-       // if FConnected.Value = 1 then
-       // begin
-         // FBusy.Value := 1;
-          FDBS.CompanyKey := FCompanyKey;
-       // end;
+        FDBS.CompanyKey := FCompanyKey;
         Result := True;
       end;
 
@@ -539,7 +530,6 @@ begin
 
     WM_DBS_SETOPTIONS:
       begin
-       // FBusy.Value := 1;
         FDBS.SaveLog := FCreateBackup;
         FDBS.CreateBackup := FCreateBackup;
         FDBS.LogFileName := FLogFileName.Value;
@@ -552,26 +542,20 @@ begin
 
     WM_DBS_GETSTATISTICS:
       begin
-        //if FConnected.Value = 0 then
-        //begin
+        FBusy.Value := 1;
+        FDBS.GetStatisticsEvent;
 
-          FDBS.GetStatisticsEvent;
-        //end;
-
-        FDBS.InsertDBSStateJournal(Msg.Message, 1);
+        //FDBS.InsertDBSStateJournal(Msg.Message, 1);
         FState.Value := 1;
-
         Result := True;
       end;
 
     WM_DBS_GETPROCSTATISTICS:
       begin
-        //if FConnected.Value = 0 then
-        //begin
-          FDBS.GetProcStatisticsEvent;
-        //end;
+        FBusy.Value := 1;
+        FDBS.GetProcStatisticsEvent;
 
-        FDBS.InsertDBSStateJournal(Msg.Message, 1);
+        //FDBS.InsertDBSStateJournal(Msg.Message, 1);
         FState.Value := 1;
 
         Result := True;
@@ -579,45 +563,60 @@ begin
 
     WM_DBS_STARTPROCESSING:
       begin
-        FDBS.InsertDBSStateJournal(Msg.Message, 1);
-        FState.Value := 1;
-        PostThreadMessage(ThreadID, WM_DBS_SETFVARIABLLES, 0, 0);
-
+        if not FDoStopProcessing then
+        begin
+          FBusy.Value := 1;
+          FDBS.InsertDBSStateJournal(Msg.Message, 1);
+          FState.Value := 1;
+          PostThreadMessage(ThreadID, WM_DBS_SETFVARIABLLES, 0, 0);
+        end;
         Result := True;
       end;
 
     WM_DBS_STOPPROCESSING:
       begin
-        // if FConnected.Value = 1 then
-       // begin
-          FBusy.Value := 1;
+        FDBS.LogEvent('STOP');
+        FDBS.InsertDBSStateJournal(Msg.Message, 1);
+        FFinish:= False;
 
-          FDBS.InsertDBSStateJournal(Msg.Message, 1);
-          FState.Value := 1;
+        Finish(FFinish);     // форма начинает ждать завершения
 
-          PostThreadMessage(ThreadID, WM_DBS_FINISHED, 0, 0);
+        //MyEvent.ResetEvent;
+        //PostMessage(FWindowHandle, WM_MYMESSAGE, 0, 0);
+        //MyEvent.WaitFor(0);
 
-       // end;
+        FState.Value := 1;
+        PostThreadMessage(ThreadID, WM_DBS_FINISHED, 0, 0);
         Result := True;
       end;
 
+    WM_DBS_FINISHED:
+      begin
+        FBusy.Value := 0;
+
+        PostThreadMessage(ThreadID, WM_GD_EXIT_THREAD, 0, 0);
+        Result := True;
+      end;  
+
     WM_DBS_SETFVARIABLLES:
       begin
-          FDBS.ProgressMsgEvent('Инициализация...', 0);                         //1%
+        if not FDoStopProcessing then
+        begin
+          FDBS.ProgressMsgEvent('Инициализация...', 0);                                         //1%
           FDBS.SetFVariables;
 
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
           FState.Value := 1;
 
           PostThreadMessage(ThreadID, WM_DBS_CREATEMETADATA, 0, 0);
-          Result := True;
+        end;
+        Result := True;
       end;
 
     WM_DBS_CREATEMETADATA:
       begin
-       // if FConnected.Value = 1 then
-       // begin
-          FBusy.Value := 1;
+        if not FDoStopProcessing then
+        begin
           FDBS.ProgressMsgEvent('Создание таблиц для метаданных...', 1*PROGRESS_STEP);          // 1%
           FDBS.CreateMetadata;
 
@@ -625,15 +624,14 @@ begin
           FState.Value := 1;
 
           PostThreadMessage(ThreadID, WM_DBS_SAVEMETADATA, 0, 0);
-       // end;
+        end;
         Result := True;
       end;
 
     WM_DBS_SAVEMETADATA:
       begin
-       // if FConnected.Value = 1 then
-       // begin
-          FBusy.Value := 1;
+        if not FDoStopProcessing then
+        begin
           FDBS.ProgressMsgEvent('Получение метаданных... ', 1*PROGRESS_STEP);  //1%
           FDBS.SaveMetadata;
 
@@ -641,31 +639,44 @@ begin
           FState.Value := 1;
 
           PostThreadMessage(ThreadID, WM_DBS_CALCULATEACSALDO, 0, 0);
-       // end;
+        end;
         Result := True;
       end;
 
     WM_DBS_CALCULATEACSALDO:
       begin
-       // if FConnected.Value = 1 then
-       // begin
-          FBusy.Value := 1;
+        if not FDoStopProcessing then
+        begin
           FDBS.ProgressMsgEvent('Вычисление бухгалтерского сальдо...', 1*PROGRESS_STEP);         //7%
           FDBS.CalculateAcSaldo;
 
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
           FState.Value := 1;
 
+          PostThreadMessage(ThreadID, WM_DBS_CREATEHIS_INCLUDEHIS, 0, 0);
+        end;
+        Result := True;
+      end;
+
+    WM_DBS_CREATEHIS_INCLUDEHIS:
+      begin
+        if not FDoStopProcessing then
+        begin
+          FDBS.ProgressMsgEvent('Выявление записей, которые должны остаться...', 7*PROGRESS_STEP);// 16%
+          FDBS.CreateHIS_IncludeInHIS;
+
+          FDBS.InsertDBSStateJournal(Msg.Message, 1);
+          FState.Value := 1;
+
           PostThreadMessage(ThreadID, WM_DBS_CALCULATEINVSALDO, 0, 0);
-        //end;
+        end;
         Result := True;
       end;
 
     WM_DBS_CALCULATEINVSALDO:
       begin
-        //if FConnected.Value = 1 then
-       // begin
-          FBusy.Value := 1;
+        if not FDoStopProcessing then
+        begin
           FDBS.ProgressMsgEvent('Вычисление складского сальдо...', 7*PROGRESS_STEP);            // 7%
           FDBS.CalculateInvSaldo;
 
@@ -673,233 +684,222 @@ begin
           FState.Value := 1;
 
           PostThreadMessage(ThreadID, WM_DBS_PREPAREREBINDINVCARDS, 0, 0);
-        //end;
+        end;
         Result := True;
       end;
 
     WM_DBS_PREPAREREBINDINVCARDS:
       begin
-       // if FConnected.Value = 1 then
-       // begin
-          FBusy.Value := 1;
-
-          ///////FDBS.PrepareRebindInvCards;
-
-          FDBS.InsertDBSStateJournal(Msg.Message, 1);
-          FState.Value := 1;
-
-          PostThreadMessage(ThreadID, WM_DBS_CREATEHIS_INCLUDEHIS, 0, 0);
-
-       // end;
-        Result := True;
-      end;
-
-    WM_DBS_CREATEHIS_INCLUDEHIS:
-      begin
-       // if FConnected.Value = 1 then
-       // begin
-          FBusy.Value := 1;
-          FDBS.ProgressMsgEvent('Выявление записей, которые должны остаться...', 7*PROGRESS_STEP);// 16%
-          FDBS.CreateHIS_IncludeInHIS;
+        if not FDoStopProcessing then
+        begin
+          FDBS.PrepareRebindInvCards;
 
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
           FState.Value := 1;
 
           PostThreadMessage(ThreadID, WM_DBS_PREPAREDB, 0, 0);
-       // end;
+        end;
         Result := True;
       end;
 
     WM_DBS_PREPAREDB:
       begin
-       // if FConnected.Value = 1 then
-       // begin
-          FBusy.Value := 1;
+        if not FDoStopProcessing then
+        begin
           //FDBS.Reconnect(True, True);    // garbage collect OFF
-          FDBS.ProgressMsgEvent('Подготовка БД к удалению записей...', 0);         // 3%
+          FDBS.ProgressMsgEvent('Подготовка БД к удалению записей...', 0);                        // 3%
           FDBS.PrepareDB;
-                                                                               
+
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
           FState.Value := 1;
 
           PostThreadMessage(ThreadID, WM_DBS_DELETEOLDBALANCE, 0, 0);
-       // end;
+        end;
         Result := True;
       end;
 
     WM_DBS_DELETEOLDBALANCE:
       begin
-       // if FConnected.Value = 1 then
-       // begin
-          FBusy.Value := 1;
-          FDBS.ProgressMsgEvent('Очистка от неактуальных данных...', 3*PROGRESS_STEP);           //2%
-          FDBS.DeleteOldAcEntryBalance;                                         
+        if not FDoStopProcessing then
+        begin
+          FDBS.ProgressMsgEvent('Очистка от неактуальных данных...', 3*PROGRESS_STEP);            //2%
+          FDBS.DeleteOldAcEntryBalance;
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
           FState.Value := 1;
 
           PostThreadMessage(ThreadID, WM_DBS_DELETEDOCHIS, 0, 0);
-       // end;
-
+        end;
         Result := True;
       end;
 
     WM_DBS_DELETEDOCHIS:
       begin
-       // if FConnected.Value = 1 then
-       // begin
-          FBusy.Value := 1;
-          FDBS.ProgressMsgEvent('Удаление записей...', 2*PROGRESS_STEP);        //8%
-          FDBS.DeleteDocuments_DeleteHIS;                                       
+        if not FDoStopProcessing then
+        begin
+          FDBS.ProgressMsgEvent('Удаление записей...', 2*PROGRESS_STEP);                          //8%
+          FDBS.DeleteDocuments_DeleteHIS;
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
           FState.Value := 1;
 
           PostThreadMessage(ThreadID, WM_DBS_CREATEACENTRIES, 0, 0);
-       // end;
-
+        end;  
         Result := True;
       end;
 
     WM_DBS_CREATEACENTRIES:
       begin
-       // if FConnected.Value = 1 then
-       // begin
-          FBusy.Value := 1;
-          FDBS.ProgressMsgEvent('Сохранение бухгалтерского сальдо...', 8*PROGRESS_STEP);  //7%
-          FDBS.CreateAcEntries;                                                 
+        if not FDoStopProcessing then
+        begin
+          FDBS.ProgressMsgEvent('Сохранение бухгалтерского сальдо...', 8*PROGRESS_STEP);          //7%
+          FDBS.CreateAcEntries;
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
           FState.Value := 1;
 
           PostThreadMessage(ThreadID, WM_DBS_CREATEINVSALDO, 0, 0);
-       // end;
-
+        end;
         Result := True;
       end;
 
     WM_DBS_CREATEINVSALDO:
       begin
-       // if FConnected.Value = 1 then
-       // begin
-          FBusy.Value := 1;
-          FDBS.ProgressMsgEvent('Сохранение складского сальдо...', 7*PROGRESS_STEP);   //7%
-          FDBS.CreateInvSaldo;                                                  
+        if not FDoStopProcessing then
+        begin
+          FDBS.ProgressMsgEvent('Сохранение складского сальдо...', 7*PROGRESS_STEP);              //7%
+          FDBS.CreateInvSaldo;                                               ////////////////////////
 
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
           FState.Value := 1;
 
           PostThreadMessage(ThreadID, WM_DBS_RESTOREDB, 0, 0);
-       // end;
-
+        end;
         Result := True;
       end;
 
     WM_DBS_RESTOREDB:
       begin
-       // if FConnected.Value = 1 then
-       // begin
-          FDBS.ProgressMsgEvent('Восстановление БД...', 7*PROGRESS_STEP);       // 30%
+        if not FDoStopProcessing then
+        begin
+          FDBS.ProgressMsgEvent('Восстановление БД...', 7*PROGRESS_STEP);                         // 30%
           FDBS.RestoreDB;
-          FDBS.Reconnect(False, True);                                         
+          //FDBS.Reconnect(False, True);
+
+          FDBS.InsertDBSStateJournal(Msg.Message, 1);
+          FState.Value := 1;
+
+          PostThreadMessage(ThreadID, WM_DBS_CREATE_INV_BALANCE, 0, 0);
+        end;
+        Result := True;
+      end;
+
+    WM_DBS_CREATE_INV_BALANCE:
+      begin
+        if not FDoStopProcessing then
+        begin
+          FDBS.CreateInvBalance;
 
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
           FState.Value := 1;
 
           PostThreadMessage(ThreadID, WM_DBS_REBINDINVCARDS, 0, 0);
-       // end;
+        end;
         Result := True;
       end;
 
+
     WM_DBS_REBINDINVCARDS:
       begin
-       // if FConnected.Value = 1 then
-       // begin
-          FBusy.Value := 1;
+        if not FDoStopProcessing then
+        begin
 
-          ///////FDBS.RebindInvCards;
+          FDBS.RebindInvCards;
 
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
           FState.Value := 1;
 
           PostThreadMessage(ThreadID, WM_DBS_CLEARDBSTABLES, 0, 0);
-       // end;
+        end;
         Result := True;
       end;
 
     WM_DBS_CLEARDBSTABLES:
       begin
-        FBusy.Value := 1;
-        FDBS.ProgressMsgEvent('Удаление метаданных...', 0);      //1%
-        FDBS.ClearDBSTables;
+        if not FDoStopProcessing then
+        begin
+          FDBS.ProgressMsgEvent('Удаление метаданных...', 0);                                     //1%
+          FDBS.ClearDBSTables;
 
-        //FDBS.InsertDBSStateJournal(Msg.Message, 1);
-        FState.Value := 1;
+          //FDBS.InsertDBSStateJournal(Msg.Message, 1);
+          FState.Value := 1;
 
-        FDBS.ProgressMsgEvent('', 1*PROGRESS_STEP);
-        PostThreadMessage(ThreadID, WM_DBS_BACKUPDATABASE, 0, 0);
+          FDBS.ProgressMsgEvent('', 1*PROGRESS_STEP);
+          PostThreadMessage(ThreadID, WM_DBS_BACKUPDATABASE, 0, 0);
+        end;
         Result := True;
       end;
 
     WM_DBS_BACKUPDATABASE:
       begin
-        if FBackupFileName.Value <> '' then
+        if not FDoStopProcessing then
         begin
-          FDBS.ProgressMsgEvent('Создание backup-файла...', 0);                 //3%
-          FDBS.BackupDatabase;
-        end;
-        FState.Value := 1;
+          if FBackupFileName.Value <> '' then
+          begin
+            FDBS.ProgressMsgEvent('Создание backup-файла...', 0);                                 //3%
+            FDBS.BackupDatabase;
+          end;
+          FState.Value := 1;
 
-        FDBS.ProgressMsgEvent('', 3*PROGRESS_STEP);
-        PostThreadMessage(ThreadID, WM_DBS_RESTOREBK, 0, 0);
+          FDBS.ProgressMsgEvent('', 3*PROGRESS_STEP);
+          PostThreadMessage(ThreadID, WM_DBS_RESTOREBK, 0, 0);
+        end;
         Result := True;
       end;
 
     WM_DBS_RESTOREBK:
       begin
-        if FRestoreDBName.Value <> '' then
+        if not FDoStopProcessing then
         begin
-          FDBS.ProgressMsgEvent('Восcтановление БД из backup-файла...', 0);     //6%
-          FDBS.RestoreDatabaseFromBackup;
-        end;
-        FState.Value := 1;
+          if FRestoreDBName.Value <> '' then
+          begin
+            FDBS.ProgressMsgEvent('Восcтановление БД из backup-файла...', 0);                     //6%
+            FDBS.RestoreDatabaseFromBackup;
+          end;
+          FState.Value := 1;
 
-        FDBS.ProgressMsgEvent('', 6*PROGRESS_STEP);
-        PostThreadMessage(ThreadID, WM_DBS_FINISH, 0, 0);
+          FDBS.ProgressMsgEvent('', 6*PROGRESS_STEP);
+          PostThreadMessage(ThreadID, WM_DBS_FINISH, 0, 0);
+        end;
         Result := True;
       end;
 
     WM_DBS_FINISH:
       begin
-        FDBS.GetDBSizeEvent;
+        if not FDoStopProcessing then
+        begin
+          FDBS.GetDBSizeEvent;
 
-        FFinish:= True;
-        FDBS.ProgressMsgEvent('Обработка БД завершена.');
-        FDBS.LogEvent('FINISH!');
-        DoOnFinishSync;
+          FFinish:= True;
+          Finish(FFinish);
 
-        //PostThreadMessage(ThreadID, WM_DBS_DISCONNECT, 0, 0);
+          FDBS.ProgressMsgEvent('Обработка БД завершена.');
+          FDBS.LogEvent('FINISH!');
+          FBusy.Value := 0;
+        end;
         Result := True;
       end;
 
-    WM_DBS_FINISHED:
-      begin
-        FFinish:= False;
-        FBusy.Value := 0;
-        Result := True;
-      end;
 
     WM_DBS_DISCONNECT:
       begin
-       // if FConnected.Value = 1 then
-      //  begin
-          FDBS.Disconnect;
-          FConnected.Value := 0;
+        FDBS.Disconnect;
+        FConnected.Value := 0;
 
-          FState.Value := 1;
-       // end;
+        FState.Value := 1;
         Result := True;
       end;
   else
     Result := False;
   end;
+ //end;
  except
   on E: Exception do
   begin
@@ -920,17 +920,14 @@ procedure  TgsDBSqueezeThread.StartTestConnect(
   const ACharacterSet: String;
   const APort: Integer = 0);
 begin
-  //if not Connected then
-  //begin
-      FConnectInfo.DatabaseName := ADatabaseName;
-      FConnectInfo.Host := AHost;
-      FConnectInfo.UserName := AUserName;
-      FConnectInfo.Password := APassword;
-      FConnectInfo.CharacterSet := ACharacterSet;
-      FConnectInfo.Port := APort;
+  FConnectInfo.DatabaseName := ADatabaseName;
+  FConnectInfo.Host := AHost;
+  FConnectInfo.UserName := AUserName;
+  FConnectInfo.Password := APassword;
+  FConnectInfo.CharacterSet := ACharacterSet;
+  FConnectInfo.Port := APort;
 
-    PostMsg(WM_DBS_STARTTESTCONNECT);
-  //end;
+  PostMsg(WM_DBS_STARTTESTCONNECT);
 end;
 
 procedure TgsDBSqueezeThread.StopTestConnect;
@@ -1039,7 +1036,6 @@ begin
   Synchronize(DoOnUsedDBSync);
 end;
 
-
 procedure TgsDBSqueezeThread.DoGetDBProperties;
 begin
   PostMsg(WM_DBS_GETDBPROPERTIES);
@@ -1047,26 +1043,19 @@ end;
 
 procedure TgsDBSqueezeThread.GetDBProperties(const AMessageProperties: TStringList);
 begin
-  //if (not Busy) then                       ///////////////////
- // begin
-    FMessagePropertiesList.Text := AMessageProperties.Text;
-    Synchronize(DoOnGetDBPropertiesSync);
-  //end
+  FMessagePropertiesList.Text := AMessageProperties.Text;
+  Synchronize(DoOnGetDBPropertiesSync);
 end;
-
 
 procedure TgsDBSqueezeThread.DoGetDBSize;
 begin
-    PostMsg(WM_DBS_GETDBSIZE);
+  PostMsg(WM_DBS_GETDBSIZE);
 end;
 
 procedure TgsDBSqueezeThread.GetDBSize(const AMessageDBSizeStr: String);
 begin
-  //if (not Busy) then                       ///////////////////
-  //begin
-    FMessageDBSizeStr := AMessageDBSizeStr;
-    Synchronize(DoOnGetDBSizeSync);
-  //end;
+  FMessageDBSizeStr := AMessageDBSizeStr;
+  Synchronize(DoOnGetDBSizeSync);
 end;
 
 procedure TgsDBSqueezeThread.DoGetStatistics;
@@ -1105,20 +1094,6 @@ begin
   Synchronize(DoOnGetProcStatisticsSync);
 end;
 
-procedure TgsDBSqueezeThread.ContinueProcessing(const AFunctionKey: Integer; const AState: Integer);
-begin
-  if (not Busy) then//Connected and (not Busy) then
-  begin
-    FDBS.SetFVariables;                                         //////////
-    FDBS.InsertDBSStateJournal(WM_DBS_STARTPROCESSING, 1);
-    if (AState = -1) or (AState = 0) then
-      PostMsg(AFunctionKey)
-    else if (AState = 1) and ((AFunctionKey+1) < WM_DBS_FINISHED) then   ///////
-      PostMsg(AFunctionKey + 1);
-  end;
-    /// TODO: exception proc
-end;
-
 procedure  TgsDBSqueezeThread.DoOnLogSQLSync;
 begin
   if Assigned(FOnLogSQL) then
@@ -1131,4 +1106,17 @@ begin
   Synchronize(DoOnlogSQLSync);
 end;
 
+{procedure TgsDBSqueezeThread.ContinueProcessing(const AFunctionKey: Integer; const AState: Integer);
+begin
+  if (not Busy) then//Connected and (not Busy) then
+  begin
+    FDBS.SetFVariables;                                         //////////
+    FDBS.InsertDBSStateJournal(WM_DBS_STARTPROCESSING, 1);
+    if (AState = -1) or (AState = 0) then
+      PostMsg(AFunctionKey)
+    else if (AState = 1) and ((AFunctionKey+1) < WM_DBS_FINISHED) then   ///////
+      PostMsg(AFunctionKey + 1);
+  end;
+    /// TODO: exception proc
+end; }
 end.
