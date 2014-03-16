@@ -1,6 +1,6 @@
 object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
-  Left = 26
-  Top = 139
+  Left = 297
+  Top = 190
   BorderStyle = bsDialog
   ClientHeight = 537
   ClientWidth = 851
@@ -35,8 +35,56 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
       Width = 65
       Height = 65
     end
+    object shp15: TShape
+      Left = 124
+      Top = 329
+      Width = 83
+      Height = 2
+      Brush.Color = clBtnShadow
+      Pen.Color = clGrayText
+    end
+    object shp16: TShape
+      Left = 88
+      Top = 337
+      Width = 127
+      Height = 2
+      Brush.Color = clBtnShadow
+      Pen.Color = clGrayText
+    end
+    object shp17: TShape
+      Left = 48
+      Top = 337
+      Width = 167
+      Height = 2
+      Brush.Color = clBtnShadow
+      Pen.Color = clGrayText
+    end
+    object shp18: TShape
+      Left = 48
+      Top = 531
+      Width = 102
+      Height = 2
+      Brush.Color = clBtnShadow
+      Pen.Color = clGrayText
+    end
+    object shp19: TShape
+      Left = 24
+      Top = 457
+      Width = 225
+      Height = 71
+      Brush.Color = clBtnShadow
+      Pen.Color = clGrayText
+    end
+    object shp21: TShape
+      Left = 84
+      Top = 516
+      Width = 102
+      Height = 11
+      Brush.Color = clBtnShadow
+      Pen.Color = clGrayText
+    end
     object tbcPageController: TTabControl
-      Left = 228
+      Left = 219
       Top = 0
       Width = 441
       Height = 25
@@ -44,9 +92,9 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
       TabOrder = 0
       Tabs.Strings = (
         'Settings'
-        'Process'
         'Logs'
-        'Statistics')
+        'Statistics'
+        'About')
       TabIndex = 0
       TabStop = False
       TabWidth = 100
@@ -69,7 +117,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           Top = 54
           Width = 634
           Height = 369
-          ActivePage = tsSettings2
+          ActivePage = tsReviewSettings
           TabOrder = 0
           object tsConnection: TTabSheet
             Caption = 'Database Connection'
@@ -99,6 +147,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Top = 255
               Width = 112
               Height = 21
+              TabStop = False
               Style = csDropDownList
               DropDownCount = 5
               ItemHeight = 13
@@ -159,6 +208,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Anchors = [akLeft, akTop, akRight]
               Caption = '>'
               TabOrder = 15
+              TabStop = False
             end
             object grpDatabase: TGroupBox
               Left = 64
@@ -233,6 +283,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
                 Top = 69
                 Width = 63
                 Height = 22
+                TabStop = False
                 Enabled = False
                 MaxLength = 5
                 MaxValue = 65535
@@ -246,6 +297,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
                 Width = 253
                 Height = 21
                 TabOrder = 5
+                Text = 'D:\_AKSAMIT20140108.FDB'
               end
               object btnDatabaseBrowse: TButton
                 Left = 331
@@ -322,6 +374,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Action = actDisconnect
               Caption = 'Test Connect'
               TabOrder = 14
+              TabStop = False
             end
             object sttxtActivUserCount: TStaticText
               Left = 561
@@ -428,15 +481,15 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             Caption = 'Squeeze Settings'
             ImageIndex = 1
             object lbl5: TLabel
-              Left = 113
-              Top = 69
+              Left = 99
+              Top = 77
               Width = 183
               Height = 13
               Caption = 'Удалить записи из gd_document до:'
             end
             object lbl6: TLabel
-              Left = 114
-              Top = 109
+              Left = 100
+              Top = 113
               Width = 183
               Height = 13
               Caption = 'Рассчитать и сохранить сальдо по: '
@@ -451,8 +504,8 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Pen.Width = 3
             end
             object dtpClosingDate: TDateTimePicker
-              Left = 319
-              Top = 66
+              Left = 305
+              Top = 74
               Width = 86
               Height = 21
               Hint = 'рассчитать сальдо и удалить документы'
@@ -465,30 +518,32 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Kind = dtkDate
               ParseInput = False
               TabOrder = 1
+              TabStop = False
             end
             object rbAllOurCompanies: TRadioButton
-              Left = 170
-              Top = 142
-              Width = 225
+              Left = 156
+              Top = 140
+              Width = 173
               Height = 17
               Caption = 'всем рабочим организациям'
               TabOrder = 2
-              OnClick = rbAllOurCompaniesClick
+              OnClick = actDefocusExecute
             end
             object rbCompany: TRadioButton
-              Left = 171
-              Top = 174
-              Width = 225
+              Left = 157
+              Top = 172
+              Width = 164
               Height = 17
               Action = actCompany
               Caption = 'рабочей организации'
               TabOrder = 3
             end
             object cbbCompany: TComboBox
-              Left = 189
-              Top = 206
-              Width = 356
+              Left = 175
+              Top = 201
+              Width = 370
               Height = 21
+              TabStop = False
               DropDownCount = 10
               Enabled = False
               ItemHeight = 13
@@ -502,16 +557,18 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Height = 25
               Action = actNextPage
               Caption = '>'
-              TabOrder = 7
+              TabOrder = 8
+              TabStop = False
             end
             object btnBack1: TButton
               Left = 561
               Top = 318
               Width = 25
               Height = 25
-              Action = actBackPage
               Caption = '<'
-              TabOrder = 6
+              TabOrder = 7
+              TabStop = False
+              OnClick = actBackPageExecute
             end
             object sttxt16: TStaticText
               Left = 22
@@ -533,13 +590,28 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               TabOrder = 0
             end
             object chk00Account: TCheckBox
-              Left = 120
-              Top = 256
+              Left = 106
+              Top = 244
               Width = 321
               Height = 17
-              Caption = 'Отразить бухгалтерские остатки на счете "00 Остатки"'
+              TabStop = False
+              Caption = 'Отразить бухгалтерское сальдо на счете "00 Остатки"'
               Enabled = False
               TabOrder = 5
+              OnClick = actDefocusExecute
+            end
+            object chk1: TCheckBox
+              Left = 106
+              Top = 280
+              Width = 449
+              Height = 17
+              TabStop = False
+              Caption = 
+                'Перепривязать: inv_card.parent,  inv_card.firstdocumentkey, inv_' +
+                'movement.cardkey'
+              Enabled = False
+              TabOrder = 6
+              OnClick = actDefocusExecute
             end
           end
           object tsSettings2: TTabSheet
@@ -559,9 +631,10 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Top = 318
               Width = 25
               Height = 25
-              Action = actBackPage
               Caption = '<'
               TabOrder = 4
+              TabStop = False
+              OnClick = actBackPageExecute
             end
             object btn2: TButton
               Left = 587
@@ -571,6 +644,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Action = actNextPage
               Caption = '>'
               TabOrder = 5
+              TabStop = False
             end
             object txt1: TStaticText
               Left = 22
@@ -603,14 +677,16 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
                 'Не обрабатывать выбранные типы'
                 'Обрабатывать только выбранные')
               TabIndex = 0
+              TabStop = False
               TabWidth = 247
-              OnChange = tbcDocTypesChange
+              OnChange = actDefocusExecute
             end
             object strngrdIgnoreDocTypes: TStringGrid
               Left = 48
               Top = 96
               Width = 498
               Height = 150
+              TabStop = False
               ColCount = 2
               DefaultColWidth = 390
               DefaultRowHeight = 20
@@ -628,6 +704,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Top = 249
               Width = 498
               Height = 54
+              TabStop = False
               Color = clBtnFace
               ReadOnly = True
               ScrollBars = ssVertical
@@ -678,15 +755,17 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Action = actNextPage
               Caption = '>'
               TabOrder = 12
+              TabStop = False
             end
             object btnBack2: TButton
               Left = 561
               Top = 318
               Width = 25
               Height = 25
-              Action = actBackPage
               Caption = '<'
               TabOrder = 11
+              TabStop = False
+              OnClick = actBackPageExecute
             end
             object sttxt17: TStaticText
               Left = 22
@@ -712,19 +791,20 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Top = 68
               Width = 113
               Height = 17
+              TabStop = False
               Caption = 'Save Logs to File'
               TabOrder = 1
-              OnClick = chkbSaveLogsClick
+              OnClick = actDefocusExecute
             end
             object chkBackup: TCheckBox
               Left = 152
               Top = 132
               Width = 177
               Height = 17
+              TabStop = False
               Caption = 'Backing Up the Database'
               Enabled = False
               TabOrder = 4
-              OnClick = chkbSaveLogsClick
             end
             object edLogs: TEdit
               Left = 266
@@ -740,7 +820,6 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Width = 20
               Height = 21
               Action = actDirectoryBrowse
-              Enabled = False
               TabOrder = 3
               TabStop = False
               OnMouseDown = btnBackupBrowseMouseDown
@@ -759,7 +838,6 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Width = 20
               Height = 21
               Action = actDirectoryBrowse
-              Enabled = False
               TabOrder = 6
               TabStop = False
               OnMouseDown = btnBackupBrowseMouseDown
@@ -767,7 +845,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             object grpReprocessingType: TGroupBox
               Left = 152
               Top = 247
-              Width = 361
+              Width = 369
               Height = 57
               Caption = ' Reprocessing Type '
               Enabled = False
@@ -806,7 +884,6 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Width = 20
               Height = 21
               Action = actDirectoryBrowse
-              Enabled = False
               TabOrder = 9
               TabStop = False
               OnMouseDown = btnBackupBrowseMouseDown
@@ -816,10 +893,10 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Top = 188
               Width = 133
               Height = 17
+              TabStop = False
               Caption = 'Restore the Database'
               Enabled = False
               TabOrder = 7
-              OnClick = chkbSaveLogsClick
             end
           end
           object tsReviewSettings: TTabSheet
@@ -861,47 +938,29 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Action = actGo
               Caption = 'Go!'
               TabOrder = 3
+              TabStop = False
             end
             object btnBack3: TBitBtn
               Left = 529
               Top = 318
               Width = 25
               Height = 25
-              Action = actBackPage
               Caption = '<'
               TabOrder = 2
+              TabStop = False
+              OnClick = actBackPageExecute
             end
             object mReviewSettings: TMemo
               Left = 120
               Top = 74
               Width = 377
-              Height = 194
+              Height = 222
               ParentColor = True
               ReadOnly = True
               ScrollBars = ssVertical
               TabOrder = 1
             end
           end
-        end
-      end
-      object tsProcess: TTabSheet
-        Caption = 'tsProcess'
-        ImageIndex = 1
-        object btnTMPstart: TButton
-          Left = 128
-          Top = 120
-          Width = 75
-          Height = 25
-          Caption = 'btnTMPstart'
-          TabOrder = 0
-        end
-        object btnTMPstop: TButton
-          Left = 232
-          Top = 120
-          Width = 75
-          Height = 25
-          Caption = 'btnTMPstop'
-          TabOrder = 1
         end
       end
       object tsLogs: TTabSheet
@@ -934,6 +993,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           Caption = 'Clear'
           TabOrder = 1
           TabStop = False
+          OnMouseDown = btnClearGeneralLogMouseDown
         end
         object btnClearSqlLog: TButton
           Tag = 2
@@ -945,6 +1005,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           Caption = 'Clear'
           TabOrder = 3
           TabStop = False
+          OnMouseDown = btnClearGeneralLogMouseDown
         end
         object sttxt19: TStaticText
           Left = 22
@@ -984,6 +1045,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         end
       end
       object tsStatistics: TTabSheet
+        Caption = 'tsStatistics'
         ImageIndex = 3
         object shp3: TShape
           Left = 87
@@ -1936,6 +1998,10 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           end
         end
       end
+      object tsAbout: TTabSheet
+        Caption = 'tsAbout'
+        ImageIndex = 3
+      end
     end
     object statbarMain: TStatusBar
       Left = 1
@@ -1977,17 +2043,26 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
       Min = 0
       Max = 3000
       Smooth = True
-      TabOrder = 3
+      TabOrder = 4
     end
     object btnStop: TButton
-      Left = 13
-      Top = 519
-      Width = 101
-      Height = 17
-      Caption = 'STOP'
-      TabOrder = 4
+      Left = 12
+      Top = 518
+      Width = 102
+      Height = 19
+      Action = actStop
+      BiDiMode = bdLeftToRight
+      Font.Charset = RUSSIAN_CHARSET
+      Font.Color = clBlack
+      Font.Height = -11
+      Font.Name = 'Tahoma'
+      Font.Style = []
+      ParentBiDiMode = False
+      ParentFont = False
+      ParentShowHint = False
+      ShowHint = True
+      TabOrder = 3
       TabStop = False
-      OnClick = actStopExecute
     end
   end
   object ActionList: TActionList
@@ -2022,7 +2097,6 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
     object actDefaultPort: TAction
       Caption = 'actDefaultPort'
       OnExecute = actDefaultPortExecute
-      OnUpdate = actDefaultPortUpdate
     end
     object actNextPage: TAction
       Caption = 'actNextPage'
@@ -2032,7 +2106,6 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
     object actBackPage: TAction
       Caption = 'actBackPage'
       OnExecute = actBackPageExecute
-      OnUpdate = actBackPageUpdate
     end
     object actDirectoryBrowse: TAction
       Caption = '...'
@@ -2053,6 +2126,9 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
       Caption = 'actClearLog'
       OnExecute = actClearLogExecute
       OnUpdate = actClearLogUpdate
+    end
+    object actDefocus: TAction
+      OnExecute = actDefocusExecute
     end
   end
 end
