@@ -1036,7 +1036,8 @@ begin
     editColumnTitle.Enabled := lvColumns.SelCount = 1;
 
     actChooseColumnFormat.Enabled := editColumnFormat.Enabled;
-    if actChooseColumnFormat.Enabled and (lvColumns.SelCount > 1) then
+    if actChooseColumnFormat.Enabled and (lvColumns.SelCount > 1)
+      and cbColumnFormat.Checked then
     begin
       FT := ftUnknown;
       for I := 0 to lvColumns.Items.Count - 1 do
@@ -2899,7 +2900,7 @@ begin
   if not actChooseColumnFormat.Enabled then
   begin
     editColumnFormat.Text := '';
-    CurrColumn.DisplayFormat := editColumnFormat.Text;
+    editColumnFormatExit(editColumnFormat);
   end else
 
   if editColumnFormat.Enabled and (editColumnFormat.Text = '') then
