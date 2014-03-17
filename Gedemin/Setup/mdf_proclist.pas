@@ -364,7 +364,7 @@ const
     (ModifyProc: CorrectEntryTriggers; ModifyVersion: '0000.0001.0000.0230'; NeedDBShutdown: True),
     (ModifyProc: CorrectAutoEntryScript; ModifyVersion: '0000.0001.0000.0231'; NeedDBShutdown: False),
     (ModifyProc: ModifyBLOB; ModifyVersion: '0000.0001.0000.0233'; NeedDBShutdown: True),
-    (ModifyProc: ModifyAC_ACCOUNTEXSALDO_BAL; ModifyVersion: '0000.0001.0000.0235'; NeedDBShutdown: False)
+    (ModifyProc: ModifyAC_ACCOUNTEXSALDO_BAL; ModifyVersion: '0000.0001.0000.0236'; NeedDBShutdown: False)
   );
 
 implementation

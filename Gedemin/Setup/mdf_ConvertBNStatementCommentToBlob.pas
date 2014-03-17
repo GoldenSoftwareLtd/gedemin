@@ -604,6 +604,7 @@ const
     '  END '#13#10 +
     'END ';
 
+  {
   c_ac_tc_record =
     'CREATE OR ALTER TRIGGER ac_tc_record'#13#10 +
     '  ACTIVE'#13#10 +
@@ -633,6 +634,7 @@ const
     '    END'#13#10 +
     '  END'#13#10 +
     'END';
+  }  
 
 var
   FTransaction: TIBTransaction;
@@ -694,8 +696,10 @@ begin
       FIBSQL.SQL.Text := c_ac_ad_entry;
       FIBSQL.ExecQuery;
 
+      {
       FIBSQL.SQL.Text := c_ac_tc_record;
       FIBSQL.ExecQuery;
+      }
 
       //!!!
       FIBSQL.SQL.Text :=

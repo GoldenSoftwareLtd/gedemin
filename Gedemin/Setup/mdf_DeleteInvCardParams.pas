@@ -873,6 +873,7 @@ begin
         'END';
       q.ExecQuery;
 
+      {
       q.SQL.Text :=
         'CREATE OR ALTER TRIGGER ac_tc_record '#13#10 +
         '  ACTIVE '#13#10 +
@@ -903,6 +904,7 @@ begin
         '  END '#13#10 +
         'END';
       q.ExecQuery;
+      }
 
       DropTrigger2('AC_BI_ENTRY_ISSIMPLE', Tr);
       DropTrigger2('AC_BI_ENTRY_ENTRYDATE', Tr);
