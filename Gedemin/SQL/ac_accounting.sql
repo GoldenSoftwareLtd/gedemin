@@ -662,7 +662,7 @@ BEGIN
         -OLD.debitcurr, 
         -OLD.debiteq,
         -OLD.creditncu, 
-        -OLD.creditcurr, 
+        -OLD.creditcurr,
         -OLD.crediteq);
     END 
   END
@@ -845,12 +845,13 @@ BEGIN
     STM =
       'SELECT r.id FROM ac_record r LEFT JOIN ac_entry e ' ||
       '  ON e.recordkey = r.id LEFT JOIN ac_account a ON a.id = e.accountkey ' ||
-      'WHERE a.offbalance IS DISTINCT FROM 1 AND ';
+      'WHERE (a.offbalance IS DISTINCT FROM 1) AND ' ||
+      '  ((r.debitncu <> r.creditncu) OR (r.debitcurr <> r.creditcurr)) AND ';
 
     IF (:S = 'TM') THEN
-      STM = :STM || ' r.incorrect = 1';
+      STM = :STM || ' (r.incorrect = 1)';
     ELSE
-      STM = :STM || ' r.id IN (' || RIGHT(:S, CHAR_LENGTH(:S) - 1) || ')';
+      STM = :STM || ' (r.id IN (' || RIGHT(:S, CHAR_LENGTH(:S) - 1) || '))';
 
     FOR EXECUTE STATEMENT (:STM) INTO :ID
     DO BEGIN

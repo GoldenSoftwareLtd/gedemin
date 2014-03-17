@@ -227,6 +227,7 @@ begin
   begin
     if NSKey <> FCurrentNSID then
     begin
+      q := TIBSQL.Create(nil);
       try
         q.Transaction := FIBTransaction;
         q.SQL.Text :=
