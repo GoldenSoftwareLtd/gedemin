@@ -2353,8 +2353,6 @@ begin
     for I := 0 to lvColumns.Items.Count - 1 do
       if lvColumns.Items[I].Selected then
         TgsColumn(lvColumns.Items[I].Data).DisplayFormat := editColumnFormat.Text
-
-
 end;
 
 {
@@ -2903,8 +2901,8 @@ begin
     editColumnFormatExit(editColumnFormat);
   end else
 
-  if editColumnFormat.Enabled and (editColumnFormat.Text = '') then
-    actChooseColumnFormat.Execute;
+  {if editColumnFormat.Enabled and (editColumnFormat.Text = '') then
+    actChooseColumnFormat.Execute;}
 end;
 
 {

@@ -650,6 +650,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (206, '0000.0001.0000.0237', '17.03.2014', 'Issue 3330. #2.');
 
+INSERT INTO fin_versioninfo
+  VALUES (207, '0000.0001.0000.0238', '17.03.2014', 'Triggers for protection of system storage folders.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id

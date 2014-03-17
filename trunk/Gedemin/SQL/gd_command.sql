@@ -401,6 +401,73 @@ BEGIN
 END
 ^
 
+CREATE OR ALTER TRIGGER gd_au_storage_data FOR gd_storage_data
+  ACTIVE
+  AFTER UPDATE
+  POSITION 0
+AS
+BEGIN
+  IF (
+    (OLD.data_type = 'F')
+    AND
+    (
+      (OLD.name IS DISTINCT FROM NEW.name)
+      OR
+      (OLD.parent IS DISTINCT FROM NEW.parent)
+    )
+  ) THEN
+  BEGIN
+    IF (UPPER(OLD.name) IN ('DFM', 'NEWFORM', 'OPTIONS', 'SUBTYPES')) THEN
+    BEGIN
+      IF (EXISTS (SELECT * FROM gd_storage_data WHERE id = OLD.parent AND data_type = 'G')) THEN
+        EXCEPTION gd_e_storage_data 'Can not change system folder ' || OLD.name;
+    END
+
+    IF (
+      EXISTS (
+        SELECT *
+        FROM
+          gd_storage_data f
+          JOIN gd_storage_data p ON f.parent = p.id
+          JOIN gd_storage_data pp ON p.parent = pp.id
+        WHERE f.id = OLD.id AND UPPER(p.name) = 'DFM'
+          AND pp.data_type = 'G')
+    ) THEN
+      EXCEPTION gd_e_storage_data 'Can not change system folder ' || OLD.name;
+  END
+END
+^
+
+CREATE OR ALTER TRIGGER gd_bd_storage_data FOR gd_storage_data
+  ACTIVE
+  BEFORE DELETE
+  POSITION 0
+AS
+BEGIN
+  IF (UPPER(OLD.name) IN ('DFM', 'NEWFORM', 'OPTIONS', 'SUBTYPES')) THEN
+  BEGIN
+    IF (EXISTS (SELECT * FROM gd_storage_data WHERE id = OLD.parent AND data_type = 'G')) THEN
+      EXCEPTION gd_e_storage_data 'Can not delete system folder ' || OLD.name;
+  END
+
+  IF (OLD.data_type = 'F') THEN
+  BEGIN
+    IF (
+      EXISTS (
+        SELECT *
+        FROM
+          gd_storage_data f
+          JOIN gd_storage_data p ON f.parent = p.id
+          JOIN gd_storage_data pp ON p.parent = pp.id
+          JOIN gd_storage_data v ON v.parent = f.id
+        WHERE f.id = OLD.id AND UPPER(p.name) = 'DFM'
+          AND pp.data_type = 'G')
+    ) THEN
+      EXCEPTION gd_e_storage_data 'System folder is not empty ' || OLD.name;
+  END
+END
+^
+
 SET TERM ; ^
 
 COMMIT;
