@@ -205,24 +205,31 @@
             '  DECLARE VARIABLE S VARCHAR(255); '#13#10 +
             '  DECLARE VARIABLE ID INTEGER; '#13#10 +
             '  DECLARE VARIABLE STM VARCHAR(512); '#13#10 +
+            '  DECLARE VARIABLE DebitNCU dcurrency; '#13#10 +
+            '  DECLARE VARIABLE CreditNCU dcurrency; '#13#10 +
             'BEGIN '#13#10 +
             '  S = RDB$GET_CONTEXT(''USER_TRANSACTION'', ''AC_RECORD_INCORRECT''); '#13#10 +
             '  IF (:S IS NOT NULL) THEN '#13#10 +
             '  BEGIN '#13#10 +
             '    STM = '#13#10 +
-            '      ''SELECT r.id FROM ac_record r LEFT JOIN ac_entry e '' || '#13#10 +
+            '      ''SELECT r.id, r.debitncu, r.creditncu '' || '#13#10 +
+            '      ''FROM ac_record r LEFT JOIN ac_entry e '' || '#13#10 +
             '      ''  ON e.recordkey = r.id LEFT JOIN ac_account a ON a.id = e.accountkey '' || '#13#10 +
-            '      ''WHERE (a.offbalance IS DISTINCT FROM 1) AND '' || '#13#10 +
-            '      ''  ((r.debitncu <> r.creditncu) OR (r.debitcurr <> r.creditcurr)) AND ''; '#13#10 +
+            '      ''WHERE (a.offbalance IS DISTINCT FROM 1) AND ''; '#13#10 +
             ' '#13#10 +
             '    IF (:S = ''TM'') THEN '#13#10 +
             '      STM = :STM || '' (r.incorrect = 1)''; '#13#10 +
             '    ELSE '#13#10 +
             '      STM = :STM || '' (r.id IN ('' || RIGHT(:S, CHAR_LENGTH(:S) - 1) || ''))''; '#13#10 +
             ' '#13#10 +
-            '    FOR EXECUTE STATEMENT (:STM) INTO :ID '#13#10 +
+            '    FOR '#13#10 +
+            '      EXECUTE STATEMENT (:STM) '#13#10 +
+            '      INTO :ID, :DebitNCU, :CreditNCU '#13#10 +
             '    DO BEGIN '#13#10 +
-            '      EXCEPTION ac_e_invalidentry ''Попытка сохранить некорректную проводку с ИД: '' || :ID; '#13#10 +
+            '      IF (:DebitNCU <> :CreditNCU) THEN '#13#10 +
+            '        EXCEPTION ac_e_invalidentry ''Попытка сохранить некорректную проводку с ИД: '' || :ID; '#13#10 +
+            '      ELSE '#13#10 +
+            '        UPDATE ac_record SET incorrect = 0 WHERE id = :ID; '#13#10 +
             '    END '#13#10 +
             '  END '#13#10 +
             'END';
@@ -239,6 +246,13 @@
           FIBSQL.SQL.Text :=
             'UPDATE OR INSERT INTO fin_versioninfo ' +
             '  VALUES (205, ''0000.0001.0000.0236'', ''17.03.2014'', ''Issue 3330.'') ' +
+            '  MATCHING (id)';
+          FIBSQL.ExecQuery;
+
+          FIBSQL.Close;
+          FIBSQL.SQL.Text :=
+            'UPDATE OR INSERT INTO fin_versioninfo ' +
+            '  VALUES (206, ''0000.0001.0000.0237'', ''17.03.2014'', ''Issue 3330. #2.'') ' +
             '  MATCHING (id)';
           FIBSQL.ExecQuery;
         finally

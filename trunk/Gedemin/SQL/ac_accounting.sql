@@ -838,24 +838,31 @@ AS
   DECLARE VARIABLE S VARCHAR(255);
   DECLARE VARIABLE ID INTEGER;
   DECLARE VARIABLE STM VARCHAR(512);
+  DECLARE VARIABLE DebitNCU dcurrency;
+  DECLARE VARIABLE CreditNCU dcurrency;
 BEGIN
   S = RDB$GET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_INCORRECT');
   IF (:S IS NOT NULL) THEN
   BEGIN
     STM =
-      'SELECT r.id FROM ac_record r LEFT JOIN ac_entry e ' ||
+      'SELECT r.id, r.debitncu, r.creditncu ' ||
+      'FROM ac_record r LEFT JOIN ac_entry e ' ||
       '  ON e.recordkey = r.id LEFT JOIN ac_account a ON a.id = e.accountkey ' ||
-      'WHERE (a.offbalance IS DISTINCT FROM 1) AND ' ||
-      '  ((r.debitncu <> r.creditncu) OR (r.debitcurr <> r.creditcurr)) AND ';
+      'WHERE (a.offbalance IS DISTINCT FROM 1) AND ';
 
     IF (:S = 'TM') THEN
       STM = :STM || ' (r.incorrect = 1)';
     ELSE
       STM = :STM || ' (r.id IN (' || RIGHT(:S, CHAR_LENGTH(:S) - 1) || '))';
 
-    FOR EXECUTE STATEMENT (:STM) INTO :ID
+    FOR
+      EXECUTE STATEMENT (:STM)
+      INTO :ID, :DebitNCU, :CreditNCU
     DO BEGIN
-      EXCEPTION ac_e_invalidentry 'Попытка сохранить некорректную проводку с ИД: ' || :ID;
+      IF (:DebitNCU <> :CreditNCU) THEN
+        EXCEPTION ac_e_invalidentry 'Попытка сохранить некорректную проводку с ИД: ' || :ID;
+      ELSE
+        UPDATE ac_record SET incorrect = 0 WHERE id = :ID;
     END
   END
 END
