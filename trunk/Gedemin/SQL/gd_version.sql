@@ -644,6 +644,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (204, '0000.0001.0000.0235', '11.03.2014', 'Issue 3301.');
 
+INSERT INTO fin_versioninfo
+  VALUES (205, '0000.0001.0000.0236', '17.03.2014', 'Issue 3330.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
