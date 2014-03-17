@@ -237,6 +237,77 @@
 
           FIBSQL.Close;
           FIBSQL.SQL.Text :=
+            'CREATE OR ALTER TRIGGER gd_au_storage_data FOR gd_storage_data '#13#10 +
+            '  ACTIVE '#13#10 +
+            '  AFTER UPDATE '#13#10 +
+            '  POSITION 0 '#13#10 +
+            'AS '#13#10 +
+            'BEGIN '#13#10 +
+            '  IF ( '#13#10 +
+            '    (OLD.data_type = ''F'') '#13#10 +
+            '    AND '#13#10 +
+            '    ( '#13#10 +
+            '      (OLD.name IS DISTINCT FROM NEW.name) '#13#10 +
+            '      OR '#13#10 +
+            '      (OLD.parent IS DISTINCT FROM NEW.parent) '#13#10 +
+            '    ) '#13#10 +
+            '  ) THEN '#13#10 +
+            '  BEGIN '#13#10 +
+            '    IF (UPPER(OLD.name) IN (''DFM'', ''NEWFORM'', ''OPTIONS'', ''SUBTYPES'')) THEN '#13#10 +
+            '    BEGIN '#13#10 +
+            '      IF (EXISTS (SELECT * FROM gd_storage_data WHERE id = OLD.parent AND data_type = ''G'')) THEN '#13#10 +
+            '        EXCEPTION gd_e_storage_data ''Can not change system folder '' || OLD.name; '#13#10 +
+            '    END '#13#10 +
+            ' '#13#10 +
+            '    IF ( '#13#10 +
+            '      EXISTS ( '#13#10 +
+            '        SELECT * '#13#10 +
+            '        FROM '#13#10 +
+            '          gd_storage_data f '#13#10 +
+            '          JOIN gd_storage_data p ON f.parent = p.id '#13#10 +
+            '          JOIN gd_storage_data pp ON p.parent = pp.id '#13#10 +
+            '        WHERE f.id = OLD.id AND UPPER(p.name) = ''DFM'' '#13#10 +
+            '          AND pp.data_type = ''G'') '#13#10 +
+            '    ) THEN '#13#10 +
+            '      EXCEPTION gd_e_storage_data ''Can not change system folder '' || OLD.name; '#13#10 +
+            '  END '#13#10 +
+            'END ';
+          FIBSQL.ExecQuery;
+
+          FIBSQL.Close;
+          FIBSQL.SQL.Text :=
+            'CREATE OR ALTER TRIGGER gd_bd_storage_data FOR gd_storage_data '#13#10 +
+            '  ACTIVE '#13#10 +
+            '  BEFORE DELETE '#13#10 +
+            '  POSITION 0 '#13#10 +
+            'AS '#13#10 +
+            'BEGIN '#13#10 +
+            '  IF (UPPER(OLD.name) IN (''DFM'', ''NEWFORM'', ''OPTIONS'', ''SUBTYPES'')) THEN '#13#10 +
+            '  BEGIN '#13#10 +
+            '    IF (EXISTS (SELECT * FROM gd_storage_data WHERE id = OLD.parent AND data_type = ''G'')) THEN '#13#10 +
+            '      EXCEPTION gd_e_storage_data ''Can not delete system folder '' || OLD.name; '#13#10 +
+            '  END '#13#10 +
+            ' '#13#10 +
+            '  IF (OLD.data_type = ''F'') THEN '#13#10 +
+            '  BEGIN '#13#10 +
+            '    IF ( '#13#10 +
+            '      EXISTS ( '#13#10 +
+            '        SELECT * '#13#10 +
+            '        FROM '#13#10 +
+            '          gd_storage_data f '#13#10 +
+            '          JOIN gd_storage_data p ON f.parent = p.id '#13#10 +
+            '          JOIN gd_storage_data pp ON p.parent = pp.id '#13#10 +
+            '          JOIN gd_storage_data v ON v.parent = f.id '#13#10 +
+            '        WHERE f.id = OLD.id AND UPPER(p.name) = ''DFM'' '#13#10 +
+            '          AND pp.data_type = ''G'') '#13#10 +
+            '    ) THEN '#13#10 +
+            '      EXCEPTION gd_e_storage_data ''System folder is not empty '' || OLD.name; '#13#10 +
+            '  END '#13#10 +
+            'END';
+          FIBSQL.ExecQuery;
+
+          FIBSQL.Close;
+          FIBSQL.SQL.Text :=
             'UPDATE OR INSERT INTO fin_versioninfo ' +
             '  VALUES (204, ''0000.0001.0000.0235'', ''11.03.2014'', ''Issue 3301.'') ' +
             '  MATCHING (id)';
@@ -253,6 +324,13 @@
           FIBSQL.SQL.Text :=
             'UPDATE OR INSERT INTO fin_versioninfo ' +
             '  VALUES (206, ''0000.0001.0000.0237'', ''17.03.2014'', ''Issue 3330. #2.'') ' +
+            '  MATCHING (id)';
+          FIBSQL.ExecQuery;
+
+          FIBSQL.Close;
+          FIBSQL.SQL.Text :=
+            'UPDATE OR INSERT INTO fin_versioninfo ' +
+            '  VALUES (207, ''0000.0001.0000.0238'', ''17.03.2014'', ''Triggers for protection of system storage folders.'') ' +
             '  MATCHING (id)';
           FIBSQL.ExecQuery;
         finally
