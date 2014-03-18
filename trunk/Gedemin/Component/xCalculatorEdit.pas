@@ -775,6 +775,7 @@ end;
 }
 
 procedure TxCalculatorEdit.SetValue(AValue: Double);
+
 begin
   if Value <> AValue then
   begin
@@ -1480,17 +1481,25 @@ end;
 procedure TxCalculatorEdit.WndProc(var Message: TMessage);
 var
   B: PChar;
-  S: String;
+  S, S1: String;
+  k: integer;
   OldLParam: LongInt;
 begin
   case Message.Msg of
     WM_SETTEXT:
     begin
       OldLParam := Message.LParam;
-
+      
       if (Message.LParam <> 0) and (PChar(Message.LParam)^ <> #0) then
       begin
-        S := FormatFloat('#,##0.########', SafeStrToFloat(PChar(Message.LParam)));
+        S := FormatFloat('#,##0', SafeStrToFloat(PChar(Message.LParam)));
+        S1 := FloatToStr(SafeStrToFloat(PChar(Message.LParam)));
+        k:= Pos(DecimalSeparator, S1);
+        if k <> 0 then
+          begin
+            Delete(S1, 1, k -1);
+            S := S + S1
+          end;
         B := PChar(S);
         Message.LParam := LongInt(B);
       end;
