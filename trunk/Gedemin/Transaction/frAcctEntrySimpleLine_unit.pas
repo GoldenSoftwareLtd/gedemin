@@ -104,16 +104,14 @@ uses
   AcctUtils;
 
 const
-  cMinHeight = 49; 
-  cEQHeight = 23;
-  cMaxHeight = 117;
+  cMinHeight   = 49;
+  cEQHeight    = 23;
+  cMaxHeight   = 117;
 
 procedure TfrAcctEntrySimpleLine.cbAccountChange(Sender: TObject);
 begin
   if ControlEnabled then
-  begin
     DoChange(Sender);
-  end;  
 end;
 
 procedure TfrAcctEntrySimpleLine.SetAccountPart(const Value: string);
@@ -123,14 +121,14 @@ begin
     FAccountPart := Value;
     if FAccountPart = 'D' then
     begin
-      cSum.DataField := 'DEBITNCU';
+      cSum.DataField     := 'DEBITNCU';
       cCurrSum.DataField := 'DEBITCURR';
-      cEQSum.DataField := 'DEBITEQ';
+      cEQSum.DataField   := 'DEBITEQ';
     end else
     begin
-      cSum.DataField := 'CREDITNCU';
+      cSum.DataField     := 'CREDITNCU';
       cCurrSum.DataField := 'CREDITCURR';
-      cEQSum.DataField := 'CREDITEQ';
+      cEQSum.DataField   := 'CREDITEQ';
     end;
   end;
 end;
@@ -166,7 +164,8 @@ var
   SQL: TIBSQL;
   ComponentPath: String;
 const
-  HeightArray: array[False..True, False..True] of Integer = ((cMinHeight, cMinHeight + cEQHeight), (cMaxHeight, cMaxHeight + cEQHeight));
+  HeightArray: array[False..True, False..True] of Integer =
+    ((cMinHeight, cMinHeight + cEQHeight), (cMaxHeight, cMaxHeight + cEQHeight));
 begin
   if (FDataSet <> nil) and (FDataSet.Active) then
   begin
@@ -193,7 +192,8 @@ begin
       SQL := TIBSQL.Create(nil);
       try
         SQL.Transaction := gdcBaseManager.ReadTransaction;
-        SQL.SQL.Text := 'select multycurr, offbalance from ac_account where id = :id';
+        SQL.SQL.Text :=
+          'SELECT multycurr, offbalance FROM ac_account WHERE id = :id';
         SQL.ParamByName('id').AsInteger := cbAccount.CurrentKeyInt;
         SQL.ExecQuery;
 
@@ -222,7 +222,7 @@ begin
     cRate.Top:= cbCurrency.Top + cEQHeight;
     lSumCurr.Top:= lRate.Top + cEQHeight;
     cCurrSum.Top:= cRate.Top + cEQHeight;
-    lCurr.Enabled := FMultyCurr;                   
+    lCurr.Enabled := FMultyCurr;
     cbCurrency.Enabled := FMultyCurr;
     lRate.Enabled := FMultyCurr;
     cRate.Enabled := FMultyCurr;
@@ -284,9 +284,11 @@ end;
 
 constructor TfrAcctEntrySimpleLine.Create(AOwner: TComponent);
 begin
+  Assert(gdcBaseManager <> nil);
+
   inherited;
 
-  Transaction.DefaultDatabase := dmDatabase.ibdbGAdmin;
+  Transaction.DefaultDatabase := gdcBaseManager.Database;
 
   Panel5.Height := cMinHeight;
   frAcctAnalytics.Visible := False;
@@ -441,7 +443,9 @@ var
 begin
   if FDataSet <> nil then
   begin
-    if FDataSet.FieldByName('accountkey').AsInteger = 0 then Exit;
+    if FDataSet.FieldByName('accountkey').AsInteger = 0 then
+      exit;
+
     CheckEditMode;
     S := TStringList.Create;
     try
@@ -535,7 +539,14 @@ procedure TfrAcctEntrySimpleLine.cbCurrencyChange(Sender: TObject);
 begin
   if ControlEnabled then
   begin
-    cRate.Value := CurrRate(cbCurrency.CurrentKeyInt);
+    if cbCurrency.CurrentKeyInt > -1 then
+      cRate.Value := CurrRate(cbCurrency.CurrentKeyInt)
+    else begin
+      cRate.Text := '';
+      cCurrSum.Text := '';
+      CheckEditMode;
+      FDataSet.FieldByName(cCurrSum.DataField).AsCurrency := 0;
+    end;
     DoChange(Sender);
   end;  
 end;
@@ -554,11 +565,9 @@ function TfrAcctEntrySimpleLine.CurrRate(const CurrKey: Integer): Currency;
 var
   q: TIBSQL;
 begin
-  Assert(gdcObject <> nil);
-  Assert(not gdcObject.EOF);
-  Assert(gdcBaseManager <> nil);
   Result := 0;
-  if GetNCUKey <> CurrKey then
+  if (CurrKey > -1) and (GetNCUKey <> CurrKey) and (gdcObject <> nil)
+    and (not gdcObject.EOF) and (gdcBaseManager <> nil) then
   begin
     q := TIBSQL.Create(nil);
     try
@@ -600,7 +609,7 @@ begin
   begin
     DisableControls;
     try
-      if (cRate.value > 0) and not IsCurrency then
+      if (cRate.Value > 0) and not IsCurrency then
       begin
         CheckEditMode;
         FdataSet.FieldByName(cCurrSum.DataField).AsCurrency := cSum.Value / cRate.Value;

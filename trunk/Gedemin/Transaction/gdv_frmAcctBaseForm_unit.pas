@@ -1015,12 +1015,21 @@ begin
 end;
 
 function Tgdv_frmAcctBaseForm.CanGo_to: Boolean;
+var
+  I: Integer;
 begin
-  Result := Assigned(gdvObject)
-    and gdvObject.Active
-    and (not gdvObject.IsEmpty)
-    and (gdvObject.FieldCount > 0)
-    and (not gdvObject.Fields[0].IsNull);
+  Result := False;
+  if Assigned(gdvObject) and gdvObject.Active and (not gdvObject.IsEmpty) then
+  begin
+    for I := 0 to gdvObject.FieldCount - 1 do
+    begin
+      if not gdvObject.Fields[I].IsNull then
+      begin
+        Result := True;
+        break;
+      end;
+    end;
+  end;
 end;
 
 function Tgdv_frmAcctBaseForm.CompareParams(WithDate: Boolean = True): boolean;

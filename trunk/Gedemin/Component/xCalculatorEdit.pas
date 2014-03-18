@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 1996-98 by Golden Software of Belarus
+  Copyright (c) 1996-2014 by Golden Software of Belarus
 
   Module
 
@@ -779,10 +779,10 @@ procedure TxCalculatorEdit.SetValue(AValue: Double);
 begin
   if Value <> AValue then
   begin
-    if DecDigits = -1 then
+//    if DecDigits = -1 then
       Text := FloatToStr(AValue)
-    else
-      Text := FloatToStrF(AValue, ffFixed, 15, DecDigits);
+//    else
+//      Text := FloatToStrF(AValue, ffFixed, 15, DecDigits);
   end;    
 end;
 
@@ -901,6 +901,8 @@ procedure TxCalculatorEdit.KeyPress(var Key: Char);
     ExpressionAction := eaEqual;
   end;
 
+var
+  P: Integer;
 begin
   // Проверка на нажатие кнопи ввод: позволяем данное нажатие, елси скрыт калькулятор
   if not FCalculator.Visible and (Ord(Key) = VK_RETURN) then
@@ -1018,6 +1020,21 @@ begin
           else if Ord(Key) = VK_BACK then
             FCalculator.InvertByPos(Point(1, 4));
         end;
+
+      if DecDigits > -1 then
+      begin
+        if Key in ['0'..'9'] then
+        begin
+          P := Pos(DecimalSeparator, Text);
+          if (P > 0) and (SelStart >= P) and ((Length(Text) - P) >= DecDigits) then
+            Key := #0;
+        end
+        else if Key = DecimalSeparator then
+        begin
+          if (Length(Text) - SelStart) > DecDigits then
+            Key := #0;
+        end;
+      end;
 
       if (Ord(Key) = VK_BACK) and FCalculator.Visible then
       begin // Если нажата кнопка BACKSPACE
@@ -1151,8 +1168,20 @@ begin
   begin
     if FDataLink.Field.IsNull then
       Text := ''
-    else
-      Value := FDataLink.Field.AsFloat;
+    else begin
+      if (FDataLink.Field is TLargeIntField) then
+        Value := TLargeIntField(FDataLink.Field).AsLargeInt
+      else if (FDataLink.Field is TIntegerField) then
+        Value := FDataLink.Field.AsInteger
+      else if (FDataLink.Field is TCurrencyField) then
+        Value := FDataLink.Field.AsCurrency
+      else if (FDataLink.Field is TBCDField) then
+        Value := FDataLink.Field.AsCurrency
+      else if (FDataLink.Field is TFloatField) then
+        Value := FDataLink.Field.AsFloat
+      else
+        Text := FDataLink.Field.AsString;
+    end;
   end;
 end;
 
@@ -1178,22 +1207,20 @@ begin
       if not FDataLink.Field.IsNull then
         FDataLink.Field.Clear;
     end else
-      case FDataLink.Field.DataType of
-        ftInteger, ftSmallInt, ftWord:
-        begin
-        {Закоментировано. Все остальные контролы, работающие с данными БД,
-        обновляют поле в любом случае: отличается введенная информация от уже
-        существующего значения или нет}
-          FDataLink.Field.AsFloat := Trunc(Value);
-        end;
-        ftString:
-        begin
-          FDataLink.Field.AsString := Text;
-        end
-        else begin
-          FDataLink.Field.AsFloat := Value;
-        end;
-      end;
+    begin
+      if (FDataLink.Field is TLargeIntField) then
+        TLargeIntField(FDataLink.Field).AsLargeInt := Trunc(Value)
+      else if (FDataLink.Field is TIntegerField) then
+        FDataLink.Field.AsInteger := Trunc(Value)
+      else if (FDataLink.Field is TCurrencyField) then
+        FDataLink.Field.AsCurrency := Value
+      else if (FDataLink.Field is TBCDField) then
+        FDataLink.Field.AsCurrency := Value
+      else if (FDataLink.Field is TFloatField) then
+        FDataLink.Field.AsFloat := Value
+      else
+        FDataLink.Field.AsString := Text;
+    end;
   end;
 end;
 
@@ -1481,25 +1508,32 @@ end;
 procedure TxCalculatorEdit.WndProc(var Message: TMessage);
 var
   B: PChar;
-  S, S1: String;
-  k: integer;
+  S: String;
+  K: Integer;
   OldLParam: LongInt;
 begin
   case Message.Msg of
     WM_SETTEXT:
     begin
       OldLParam := Message.LParam;
-      
-      if (Message.LParam <> 0) and (PChar(Message.LParam)^ <> #0) then
+
+      if (Message.LParam <> 0) and (PChar(Message.LParam)^ <> #0)
+        and (ThousandSeparator <> #0) then
       begin
-        S := FormatFloat('#,##0', SafeStrToFloat(PChar(Message.LParam)));
-        S1 := FloatToStr(SafeStrToFloat(PChar(Message.LParam)));
-        k:= Pos(DecimalSeparator, S1);
-        if k <> 0 then
-          begin
-            Delete(S1, 1, k -1);
-            S := S + S1
-          end;
+        S := PChar(Message.LParam);
+
+        K := Pos(DecimalSeparator, S);
+        if K > 0 then
+          Dec(K, 3)
+        else
+          K := Length(S) - 2;
+
+        while K > 1 do
+        begin
+          Insert(ThousandSeparator, S, K);
+          Dec(K, 3);
+        end;
+
         B := PChar(S);
         Message.LParam := LongInt(B);
       end;
