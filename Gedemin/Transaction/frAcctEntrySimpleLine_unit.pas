@@ -537,7 +537,7 @@ end;
 
 procedure TfrAcctEntrySimpleLine.cbCurrencyChange(Sender: TObject);
 begin
-  if ControlEnabled then
+  if ControlEnabled and (FDataSet <> nil) and FDataSet.Active then
   begin
     if cbCurrency.CurrentKeyInt > -1 then
       cRate.Value := CurrRate(cbCurrency.CurrentKeyInt)
@@ -636,12 +636,10 @@ end;
 
 procedure TfrAcctEntrySimpleLine.CheckEditMode;
 begin
-  if FdataSet <> nil then
+  if FDataSet <> nil then
   begin
-    if not (FDataSet.State in [dsInsert, dsEdit]) then
-    begin
+    if FDataSet.State = dsBrowse then
       FDataSet.Edit;
-    end;
   end;
 end;
 
