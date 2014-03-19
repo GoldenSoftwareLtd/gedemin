@@ -108,6 +108,7 @@ procedure Tgdc_acct_dlgEntry.SetupRecord;
   {END MACRO}
   var
     I: Integer;
+    J: Integer;
     L: TfrAcctEntrySimpleLine;
     gdcAcctEntryLine: TgdcAcctEntryLine;
 begin
@@ -161,25 +162,36 @@ begin
   begin
     with gdcObject as TgdcAcctComplexRecord do
     begin
-      for I := 0 to EntryLines.Count - 1 do
-      begin
-        Inc(FNumerator);
-        L := TfrAcctEntrySimpleLine.Create(Self);
-        L.Name := Format('frAcctEntrySimpleLine_%d', [FNumerator]);
+      J := 0;
+      for I := sboxDebit.ControlCount - 1 downto 0 do
+        if sboxDebit.Controls[I] is TfrAcctEntrySimpleLine then
+          Inc(J);
+      for I := sboxCredit.ControlCount - 1 downto 0 do
+        if sboxCredit.Controls[I] is TfrAcctEntrySimpleLine then
+          Inc(J);
+      if  J = 0 then
+        begin
+          FNumerator := 0;
+          for I := 0 to EntryLines.Count - 1 do
+          begin
+            Inc(FNumerator);
+            L := TfrAcctEntrySimpleLine.Create(Self);
+            L.Name := Format('frAcctEntrySimpleLine_%d', [FNumerator]);
 
-        if EntryLines[I].FieldByName('accountpart').AsString = 'D' then
-        begin
-          L.Parent := sboxDebit
-        end else
-        begin
-          L.Parent := sboxCredit
+            if EntryLines[I].FieldByName('accountpart').AsString = 'D' then
+            begin
+              L.Parent := sboxDebit
+            end else
+            begin
+              L.Parent := sboxCredit
+            end;
+            L.gdcObject := gdcObject;
+            L.DataSet := EntryLines[I];
+
+            L.LoadAnalytic;
+            L.OnChange := OnLineChange;
+          end;
         end;
-        L.gdcObject := gdcObject;
-        L.DataSet := EntryLines[I];
-
-        L.LoadAnalytic;
-        L.OnChange := OnLineChange;
-      end;
     end;
   end;
 
