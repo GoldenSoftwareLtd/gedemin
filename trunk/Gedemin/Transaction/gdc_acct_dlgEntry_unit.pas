@@ -57,18 +57,22 @@ type
     procedure actDeleteCreditUpdate(Sender: TObject);
     procedure pgcMainChanging(Sender: TObject; var AllowChange: Boolean);
     procedure FormCreate(Sender: TObject);
+
   private
     FNumerator: Integer;
     ChangedControl: String;
+
     procedure SaveAnalytic(W: TWinControl);
 
     function DeleteEnable(Sb: TWinControl): Boolean;
     procedure OnLineChange(Sender: TObject);
     procedure SetCurrRate(W: TWinControl; CurrKey: Integer; Rate: Currency);
+
   protected
     function DlgModified: Boolean; override;
     function TestCorrect: Boolean; override;
     procedure Post; override;
+
   public
     procedure SetupRecord; override;
     procedure SetupDialog; override;
@@ -108,7 +112,6 @@ procedure Tgdc_acct_dlgEntry.SetupRecord;
   {END MACRO}
   var
     I: Integer;
-    J: Integer;
     L: TfrAcctEntrySimpleLine;
     gdcAcctEntryLine: TgdcAcctEntryLine;
 begin
@@ -132,17 +135,20 @@ begin
   {M}    end;
   {END MACRO}
 
+  for I := sboxDebit.ControlCount - 1 downto 0 do
+    if sboxDebit.Controls[I] is TfrAcctEntrySimpleLine then
+      sboxDebit.Controls[I].Free;
+
+  for I := sboxCredit.ControlCount - 1 downto 0 do
+    if sboxCredit.Controls[I] is TfrAcctEntrySimpleLine then
+      sboxCredit.Controls[I].Free;
+
+  FNumerator := 0;    
+
   inherited;
 
   if gdcObject.State = dsInsert then
   begin
-    for I := sboxDebit.ControlCount - 1 downto 0 do
-      if sboxDebit.Controls[I] is TfrAcctEntrySimpleLine then
-        sboxDebit.Controls[I].Free;
-    for I := sboxCredit.ControlCount - 1 downto 0 do
-      if sboxCredit.Controls[I] is TfrAcctEntrySimpleLine then
-        sboxCredit.Controls[I].Free;
-
     with gdcObject as TgdcAcctComplexRecord do
     begin
       if EntryLines.Count = 0 then
@@ -162,36 +168,23 @@ begin
   begin
     with gdcObject as TgdcAcctComplexRecord do
     begin
-      J := 0;
-      for I := sboxDebit.ControlCount - 1 downto 0 do
-        if sboxDebit.Controls[I] is TfrAcctEntrySimpleLine then
-          Inc(J);
-      for I := sboxCredit.ControlCount - 1 downto 0 do
-        if sboxCredit.Controls[I] is TfrAcctEntrySimpleLine then
-          Inc(J);
-      if  J = 0 then
-        begin
-          FNumerator := 0;
-          for I := 0 to EntryLines.Count - 1 do
-          begin
-            Inc(FNumerator);
-            L := TfrAcctEntrySimpleLine.Create(Self);
-            L.Name := Format('frAcctEntrySimpleLine_%d', [FNumerator]);
+      for I := 0 to EntryLines.Count - 1 do
+      begin
+        Inc(FNumerator);
+        L := TfrAcctEntrySimpleLine.Create(Self);
+        L.Name := Format('frAcctEntrySimpleLine_%d', [FNumerator]);
 
-            if EntryLines[I].FieldByName('accountpart').AsString = 'D' then
-            begin
-              L.Parent := sboxDebit
-            end else
-            begin
-              L.Parent := sboxCredit
-            end;
-            L.gdcObject := gdcObject;
-            L.DataSet := EntryLines[I];
+        if EntryLines[I].FieldByName('accountpart').AsString = 'D' then
+          L.Parent := sboxDebit
+        else
+          L.Parent := sboxCredit;
 
-            L.LoadAnalytic;
-            L.OnChange := OnLineChange;
-          end;
-        end;
+        L.gdcObject := gdcObject;
+        L.DataSet := EntryLines[I];
+
+        L.LoadAnalytic;
+        L.OnChange := OnLineChange;
+      end;
     end;
   end;
 

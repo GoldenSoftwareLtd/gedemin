@@ -2659,8 +2659,6 @@ end;
 // Events
 
 procedure TgdcBase.DoAfterDelete;
-  //q: TIBSQL;
-  //DidActivate: Boolean;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
   {M}VAR
   {M}  Params, LResult: Variant;
@@ -5094,7 +5092,7 @@ begin
   SLChanged.Free;
 
   if Assigned(InheritedMethodInvoker) then
-      InheritedMethodInvoker.UnRegisterMethodInvoker(Self);
+    InheritedMethodInvoker.UnRegisterMethodInvoker(Self);
 
   if FClassMethodAssoc <> nil then
   begin
@@ -5145,7 +5143,6 @@ var
         begin
           M := TMenuItem.Create(Self);
           M.Tag := I;
-//          M.Name := 'G' + IntToStr(ReportGroup.GroupItems[I].Id);
           M.Caption := ReportGroup.GroupItems[I].Name;
           if (Parent is TMenuItem) then
             (Parent as TMenuItem).Add(M)
@@ -5159,7 +5156,6 @@ var
       begin
         M := TMenuItem.Create(Self);
         M.Tag := ReportGroup.GroupItems[Index].ReportList.Report[I].Id;
-//        M.Name := 'M' + IntToStr(ReportGroup.GroupItems[Index].ReportList.Report[I].Id);
         M.Caption := ReportGroup.GroupItems[Index].ReportList.Report[I].Name;
         M.OnClick := DoOnReportClick;
         if (Parent is TMenuItem) then
@@ -16022,9 +16018,11 @@ end;
 
 function TgdcBase.GetMethodControl: IMethodControl;
 begin
-  if (not Assigned(MethodControl)) or UnMethodMacro or (not UseScriptMethod) then
-    Result := nil
-  else
+  if (not Assigned(MethodControl)) or UnMethodMacro or (not UseScriptMethod)
+    or (FClassMethodAssoc = nil) then
+  begin
+    Result := nil;
+  end else
     Result := MethodControl;
 end;
 
