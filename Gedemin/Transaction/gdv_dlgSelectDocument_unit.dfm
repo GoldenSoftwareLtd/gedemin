@@ -21,12 +21,12 @@ object dlgSelectDocument: TdlgSelectDocument
     Left = 216
     Top = 0
     Width = 4
-    Height = 415
+    Height = 418
     Cursor = crHSplit
   end
   object pnlBottom: TPanel
     Left = 0
-    Top = 415
+    Top = 418
     Width = 684
     Height = 30
     Align = alBottom
@@ -75,7 +75,7 @@ object dlgSelectDocument: TdlgSelectDocument
     Left = 0
     Top = 0
     Width = 216
-    Height = 415
+    Height = 418
     Align = alLeft
     BevelOuter = bvNone
     Ctl3D = True
@@ -86,7 +86,7 @@ object dlgSelectDocument: TdlgSelectDocument
       Left = 0
       Top = 0
       Width = 216
-      Height = 415
+      Height = 418
       DataSource = dsDocumentType
       KeyField = 'ID'
       ParentField = 'PARENT'
@@ -108,13 +108,13 @@ object dlgSelectDocument: TdlgSelectDocument
     Left = 220
     Top = 0
     Width = 464
-    Height = 415
+    Height = 418
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 1
     object sLine: TSplitter
       Left = 0
-      Top = 244
+      Top = 247
       Width = 464
       Height = 4
       Cursor = crVSplit
@@ -122,7 +122,7 @@ object dlgSelectDocument: TdlgSelectDocument
     end
     object pLine: TPanel
       Left = 0
-      Top = 248
+      Top = 251
       Width = 464
       Height = 167
       Align = alBottom
@@ -184,7 +184,7 @@ object dlgSelectDocument: TdlgSelectDocument
       Left = 0
       Top = 0
       Width = 464
-      Height = 244
+      Height = 247
       Align = alClient
       BevelOuter = bvNone
       FullRepaint = False
@@ -193,7 +193,7 @@ object dlgSelectDocument: TdlgSelectDocument
         Left = 0
         Top = 46
         Width = 464
-        Height = 198
+        Height = 201
         Align = alClient
         Ctl3D = True
         DataSource = dsDocument

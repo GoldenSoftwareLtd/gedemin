@@ -175,7 +175,12 @@ begin
         FDocument.Free;
 
       FDocument := TgdcDocument.Create(nil);
-      FDocument.ExtraConditions.Add(' z.id = -1');
+      FDocument.ExtraConditions.Add(' z.documenttypekey = ' + DataSet.FieldByName('id').AsString);
+      FDocument.ExtraConditions.Add('z.documentdate >= :datebegin and z.documentdate <= :dateend');
+      
+      FDocument.ParamByName('datebegin').AsDateTime := gsPeriod.Date;
+      FDocument.ParamByName('dateend').AsDateTime := gsPeriod.EndDate;
+
       FDocument.Open;
       dsDocument.DataSet := FDocument;
 
@@ -330,8 +335,10 @@ procedure TdlgSelectDocument.actRunExecute(Sender: TObject);
 begin
 
   FDocument.Close;
+
   FDocument.ParamByName('datebegin').AsDateTime := gsPeriod.Date;
   FDocument.ParamByName('dateend').AsDateTime := gsPeriod.EndDate;
+
   FDocument.Open;
 
 end;
