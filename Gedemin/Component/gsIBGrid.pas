@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2000-2013 by Golden Software of Belarus
+  Copyright (c) 2000-2014 by Golden Software of Belarus
 
   Module
 
@@ -58,6 +58,7 @@ const
   DefDropDownCount = 8;
   MESSAGE_SHIFT = WM_USER + $500;
   CM_DOREDUCE = MESSAGE_SHIFT + 1;
+  
 type
   EDuplicateEditor = Exception;
   TgsCustomIBGrid = class;
@@ -135,7 +136,6 @@ type
     procedure SetLookupListField(const Value: String);
     procedure SetLookupKeyField(const Value: String);
     procedure SetLookupTable(const Value: String);
-    procedure SetCheckUserRights(const Value: Boolean);
     procedure SetgdClassName(Value: String);
     procedure SetCondition(const Value: String);
     function GetDatabase: TIBDatabase;
@@ -168,7 +168,7 @@ type
     property LookupTable: String read FLookupTable write SetLookupTable;
     property Condition: String read FCondition write SetCondition;
     property GroupBY: String read FGroupBY write SetGroupBy;
-    property CheckUserRights: Boolean read FCheckUserRights write SetCheckUserRights
+    property CheckUserRights: Boolean read FCheckUserRights write FCheckUserRights
      default DefCheckUserRights;
     property SortOrder: TgsSortOrder read FSortOrder write FSortOrder
      default DefSortOrder;
@@ -263,7 +263,6 @@ type
 
     function CreateGDClassInstance(const AnID: Integer): TgdcBase;
     function GetFullCondtion: String;
-    procedure InternalSetCheckUserRights;
     procedure SetEditorStyle(const Value: TgsIBColumnEditorStyle);
     procedure DropDown(const Match: String = ''; const UseExisting: Boolean = False);
     procedure SetLookup(Value: TLookup);
@@ -2267,14 +2266,6 @@ begin
       Column.Visible := Column.Visible
         and Column.Field.Visible
         and T.ShowFieldInGrid(Column.Field);
-      {
-      if
-        (AnsiCompareText(Column.FieldName, 'AFULL') = 0) or
-        (AnsiCompareText(Column.FieldName, 'ACHAG') = 0) or
-        (AnsiCompareText(Column.FieldName, 'AVIEW') = 0)
-      then
-        Column.Visible := False;
-      }
     end;
   end;
 end;
@@ -3192,6 +3183,9 @@ var
   SL: TStringList;
   DistinctStr: String;
 begin
+  Assert(atDatabase <> nil);
+  Assert(IBLogin <> nil);
+
   Result := False;
   if (not FlookupPrepared) and (not PrepareLookup) then
     Exit;
@@ -3246,18 +3240,14 @@ begin
             SelectCondition := Format('%s OR (%s = ''%s'') ',
               [SelectCondition, FLookup.FieldWithAlias(Trim(SL[J])), Grid.InplaceEditor.Text])
           else
-            {if FListFieldIsBlob then
-
-            else}
-              SelectCondition := Format('%0:s OR (upper(SUBSTRING('''' || %1:s FROM 1 FOR CHAR_LENGTH('''' || %1:s))) LIKE ''%%''|| ''%2:s'' || ''%%'') ',
-                [SelectCondition, FLookup.FieldWithAlias(Trim(SL[J])), AnsiUpperCase(Grid.InplaceEditor.Text)])
+            SelectCondition := Format('%0:s OR (upper(SUBSTRING('''' || %1:s FROM 1 FOR CHAR_LENGTH('''' || %1:s))) LIKE ''%%''|| ''%2:s'' || ''%%'') ',
+              [SelectCondition, FLookup.FieldWithAlias(Trim(SL[J])), AnsiUpperCase(Grid.InplaceEditor.Text)])
       finally
         SL.Free;
       end;
     end;
     S := Format('%s (%s)', [S, SelectCondition])
   end else
- //   S := Format('SELECT %s %s FROM %s ', [FLookup.FieldWithAlias(FLookup.LookupListField), StrFields, FLookup.FLookupTable, FLookup.FieldWithAlias(FLookup.FLookupListField)]);
     S := Format('SELECT %4:s %0:s, %1:s %2:s FROM %3:s ',
       [FLookup.FieldWithAlias(FLookup.LookupListField), FLookup.FieldWithAlias(FLookup.LookupKeyField),
        StrFields, FLookup.LookupTable, DistinctStr]);
@@ -3269,13 +3259,16 @@ begin
       S := S + ' WHERE ' + FullCondition + ' ';
 
 
-  if FLookup.CheckUserRights and Assigned(IBLogin)
-    and (not IBLogin.IsUserAdmin) then
+  if FLookup.CheckUserRights and (not IBLogin.IsUserAdmin)
+    and (atDatabase.FindRelationField(FLookup.FLookupTable, 'AVIEW') <> nil) then
   begin
     if Pos('WHERE ', S) = 0 then
-      S := S + Format(' WHERE (BIN_AND(BIN_OR(%s.aview, 1), %d) <> 0) ', [FLookup.FLookupTable, IBLogin.InGroup])
+      S := S + ' WHERE '
     else
-      S := S + Format(' AND (BIN_AND(BIN_OR(%s.aview, 1), %d) <> 0) ', [FLookup.FLookupTable, IBLogin.InGroup]);
+      S := S + ' AND ';
+
+    S := S + Format('(BIN_AND(BIN_OR(%s.aview, 1), %d) <> 0) ',
+      [FLookup.FLookupTable, IBLogin.InGroup])
   end;
 
   if (FgdClass <> nil) and (AnsiCompareText(FLookup.FLookupTable, FgdClass.GetListTable(FLookup.SubType)) = 0)
@@ -3399,17 +3392,16 @@ begin
   end;
 end;
 
-
-
 procedure TgsIBColumnEditor.DropDown(const Match: String;
   const UseExisting: Boolean);
 var
   S, StrFields: String;
-//  W: TWinControl;
   I: Integer;
   DistinctStr: String;
 begin
-///////////!!!!!!!!!!!
+  Assert(atDatabase <> nil);
+  Assert(IBLogin <> nil);
+
   FLookuped := False;
   if (not FlookupPrepared) and (not PrepareLookup) then
     Exit;
@@ -3447,13 +3439,16 @@ begin
         S := S + ' AND (' + FullCondition + ') ';
 
 
-    if FLookup.CheckUserRights and Assigned(IBLogin)
-      and (not IBLogin.IsUserAdmin) then
+    if FLookup.CheckUserRights and (not IBLogin.IsUserAdmin)
+      and (atDatabase.FindRelationField(FLookup.FLookupTable, 'AVIEW') <> nil) then
     begin
       if Pos('WHERE ', S) = 0 then
-        S := S + Format(' WHERE (BIN_AND(BIN_OR(%s.aview, 1), %d) <> 0) ', [FLookup.FLookupTable, IBLogin.InGroup])
+        S := S + ' WHERE '
       else
-        S := S + Format(' AND (BIN_AND(BIN_OR(%s.aview, 1), %d) <> 0) ', [FLookup.FLookupTable, IBLogin.InGroup]);
+        S := S + ' AND ';
+
+      S := S + Format('(BIN_AND(BIN_OR(%s.aview, 1), %d) <> 0) ',
+        [FLookup.FLookupTable, IBLogin.InGroup])
     end;
 
     if (FgdClass <> nil) and (AnsiCompareText(FLookup.FLookupTable, FgdClass.GetListTable(FLookup.SubType)) = 0)
@@ -3590,19 +3585,6 @@ begin
   if not FSetPrepared then
     PrepareSet;
   Result := FSourceDataSource;
-end;
-
-procedure TgsIBColumnEditor.InternalSetCheckUserRights;
-begin
-(*
-  Каб правяраць права карыстальніка мы мусім быць упэўненыя што
-  адпаведная табліца мае адпаведнае поле.
-*)
-  if FLookup.CheckUserRights and (not (csDesigning in Grid.ComponentState))
-    and Assigned(atDatabase) and (FLookup.LookupTable > '') then
-  begin
-    FLookup.CheckUserRights := atDatabase.FindRelationField(FLookup.LookupTable, 'aview') <> nil;
-  end;
 end;
 
 procedure TgsIBColumnEditor.ObjectProperties(const Value: Integer);
@@ -5075,8 +5057,6 @@ begin
   end;
 end;
 
-
-
 { TLookup }
 
 procedure TLookup.Assign(Source: TPersistent);
@@ -5108,16 +5088,6 @@ begin
   FIBBase := TIBBase.Create(Self);
 end;
 
-
-procedure TLookup.SetCheckUserRights(const Value: Boolean);
-begin
-  if FCheckUserRights <> Value then
-  begin
-    FCheckUserRights := Value;
-  end;
-  FEditor.InternalSetCheckUserRights;
-end;
-
 procedure TLookup.SetLookupKeyField(const Value: String);
 begin
   if Trim(Value) <> FLookupKeyField then
@@ -5145,21 +5115,9 @@ begin
   if Trim(Value) <> FLookupTable then
   begin
     FLookupTable := Trim(Value);
-
-    //
-    // Если установлен флаг проверки прав пользователя,
-    // соответствующих полей в таблице нет - осуществляем
-    // отключение флага (fixed by Dennis Romanovsi)
-
-    R := atDatabase.Relations.ByRelationName(FLookupTable);
-    if Assigned(R) and R.HasSecurityDescriptors and FCheckUserRights then
-      FCheckUserRights := False;
-
-    FEditor.InternalSetCheckUserRights;
     FEditor.FLookupPrepared := False;
   end
 end;
-
 
 procedure TLookup.SetCondition(const Value: String);
 begin
