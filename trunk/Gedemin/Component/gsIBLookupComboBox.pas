@@ -477,20 +477,12 @@ var
     if FCheckUserRights and Assigned(IBLogin)
       and (not IBLogin.IsUserAdmin) then
     begin
-      Fibsql.SQL.Text := Fibsql.SQL.Text + Format(' AND (g_sec_test(%s.aview, %d) <> 0) ', [MainTable, IBLogin.InGroup]);
+      Fibsql.SQL.Text := Fibsql.SQL.Text +
+        Format(' AND (BIN_AND(BIN_OR(%s.aview, 1), %d) <> 0) ', [MainTable, IBLogin.InGroup]);
     end;
 
     if FullCondition > '' then
       Fibsql.SQL.Text := Fibsql.SQL.Text + ' AND (' + FullCondition + ') ';
-
-    {if (not FShowDisabled)
-      and (FgdClass <> nil) }{and (AnsiCompareText(FListTable, FgdClass.GetListTable(FSubType)) = 0)}
-      {and (tiDisabled in FgdClass.GetTableInfos(FSubType))
-      and (GetTableAlias(FgdClass.GetListTable(FSubType)) > '') then
-    begin
-      Fibsql.SQL.Text := Format('%s AND ((%1:s.disabled IS NULL) OR (%1:s.disabled = 0))',
-        [Fibsql.SQL.Text, GetTableAlias(FgdClass.GetListTable(FSubType))]);
-    end;}
 
     Fibsql.Prepare;
     Fibsql.ParamByName('V').AsString := Value;
@@ -1449,9 +1441,9 @@ begin
         and (not IBLogin.IsUserAdmin) then
       begin
         if Pos('WHERE ', S) = 0 then
-          S := S + Format(' WHERE (g_sec_test(%s.aview, %d) <> 0) ', [MainTable, IBLogin.InGroup])
+          S := S + Format(' WHERE (BIN_AND(BIN_OR(%s.aview, 1), %d) <> 0) ', [MainTable, IBLogin.InGroup])
         else
-          S := S + Format(' AND (g_sec_test(%s.aview, %d) <> 0) ', [MainTable, IBLogin.InGroup]);
+          S := S + Format(' AND (BIN_AND(BIN_OR(%s.aview, 1), %d) <> 0) ', [MainTable, IBLogin.InGroup]);
       end;
 
       if (not FShowDisabled)
