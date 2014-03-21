@@ -4157,8 +4157,7 @@ function TgsStreamValue.Find(AList: TStringList;
   end;
 
 var
-  StIn, StOut: TStringStream;
-  Sign: AnsiString;
+  S: AnsiString;
 begin
   Result := inherited Find(AList, ASearchString, ASearchOptions,
     DateFrom, DateTo);
@@ -4166,22 +4165,9 @@ begin
   if (not Result) and (gstsoData in ASearchOptions)
     and DateIntvlCheck(Modified, DateFrom, DateTo) then
   begin
-    StIn := TStringStream.Create(AsString);
-    StOut := TStringStream.Create('');
-    try
-      Sign := '123';
-      StIn.Read(Sign[1], 3);
-      if Sign = 'TPF' then
-      begin
-        StIn.Position := 0;
-        ObjectBinaryToText(StIn, StOut);
-        if StrIPos(ASearchString, StOut.DataString) > 0 then
-          AddElement;
-      end;
-    finally
-      StIn.Free;
-      StOut.Free;
-    end;
+    S := AsString;
+    if TryObjectBinaryToText(S) and (StrIPos(ASearchString, S) > 0) then
+      AddElement;
   end;
 end;
 

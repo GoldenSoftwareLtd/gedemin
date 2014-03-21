@@ -53,11 +53,11 @@ type
   TgsViewType = (vtByClass, vtTree, vtGrid);
 
 const
-  DefSortOrder = soNone;
+  DefSortOrder       = soNone;
   DefCheckUserRights = True;
-  DefDropDownCount = 8;
-  MESSAGE_SHIFT = WM_USER + $500;
-  CM_DOREDUCE = MESSAGE_SHIFT + 1;
+  DefDropDownCount   = 8;
+  MESSAGE_SHIFT      = WM_USER + $500;
+  CM_DOREDUCE        = MESSAGE_SHIFT + 1;
   
 type
   EDuplicateEditor = Exception;
@@ -161,6 +161,7 @@ type
     property IsTree: Boolean read FIsTree;
     property ParentField: string read FParentField;
     property MainTableName: String read GetMainTableName;
+    property MainTableAlias: String read GetMainTableAlias;
 
   published
     property LookupListField: String read FLookupListField write SetLookupListField;
@@ -611,8 +612,6 @@ type
     procedure GetValues(Proc: TGetStrProc); override;
   end;
 
-
-
 { TPopupListbox }
   TgsIBGridInplaceEdit = class;
 
@@ -836,7 +835,6 @@ type
     FDecDigits: Word; // Кол-во цифр после разделителя целой и дробной частей
 
     FButtonWidth: Integer;
-    //FPopupPanel: TPopupPanel;
     FDataList: TPopupLookup;
     FPickList: TPopupListbox;
     FPopupCalendar: TPopupCalendar;
@@ -877,10 +875,8 @@ type
     function OverButton(const P: TPoint): Boolean;
     function ButtonRect: TRect;
   protected
-//
     function IsValidChar(Key: Char): Boolean; virtual;
     procedure KeyPress(var Key: Char); override;
-//
     procedure BoundsChanged; override;
     procedure CloseUp(Accept: Boolean; const AHideEditor: boolean = True);
     procedure DoDropDownKeys(var Key: Word; Shift: TShiftState);
@@ -1416,8 +1412,6 @@ begin
       FPopupMemo.ReadOnly := not FCanEdit;
     end else if FActiveList = FPictureDialog then
       FPictureDialog.PictureField := (Column.Field As TBlobField)
-    {else if FActiveList = FPopupPanel then
-      FPopupPanel.Height := Integer(Column.DropDownRows + 1) * (Abs(FPopupPanel.Font.Height) + 4)}
     else
       CloseUp(False);
 
@@ -1576,11 +1570,7 @@ begin
                   if not ((Grid as TgsCustomIbGrid).Datasource.Dataset.State in [dsEdit, dsInsert]) then
                     (Grid as TgsCustomIbGrid).Datasource.Dataset.Edit;
                   (Grid as TgsCustomIbGrid).Datasource.Dataset.FieldByName(FCurrentEditor.FieldName).AsInteger := V;
-                  //Text := FCurrentEditor.Text;
                   (Grid as TgsCustomIbGrid).Datasource.Dataset.FieldByName(FCurrentEditor.DisplayField).AsString := FCurrentEditor.Text;
-                //  Modified := True;
-                 // TgsCustomIBGrid(Grid).SetEditText(TgsCustomIBGrid(Grid).Col, TgsCustomIBGrid(Grid).Row, Text);
-              //    (Grid as TgsCustomIbGrid).Datasource.Dataset.Refresh;
                   if FCurrentEditor.FLookupPrepared then
                     FCurrentEditor.FLookupDataSet.Close;
                   TgsCustomIBGrid(Grid).HideInplaceEdit;
@@ -1600,7 +1590,6 @@ begin
                     FCurrentEditor.FLookupDataSet.Close;
 
                   TgsCustomIBGrid(Grid).HideInplaceEdit;
-  //                (Grid as TgsCustomIbGrid).Datasource.Dataset.Refresh;
                 end
               end;
               VK_F5:
@@ -1608,21 +1597,6 @@ begin
                 MessageBox(Grid.Handle, PChar((Grid as TgsCustomIbGrid).Datasource.Dataset.FieldByName(FCurrentEditor.FieldName).AsString),
                  'Текущий ключ', MB_OK or MB_ICONINFORMATION);
               end;
-{              VK_F6:
-              begin
-                (Grid as TgsCustomIbGrid).DataSource.DataSet.FieldByName(FCurrentEditor.FieldName).AsVariant;
-                if FCurrentEditor.Reduce(V) then
-                begin
-                  if not ((Grid as TgsCustomIbGrid).Datasource.Dataset.State in [dsEdit, dsInsert]) then
-                  (Grid as TgsCustomIbGrid).Datasource.Dataset.Edit;
-
-                  (Grid as TgsCustomIbGrid).Datasource.Dataset.FieldByName(FCurrentEditor.FieldName).AsVariant := V;
-                  FCurrentEditor.RefreshDataSet;
-
-                  if FCurrentEditor.LookupDataSource.DataSet.Locate(FCurrentEditor.FLookup.LookupKeyField, V, []) then
-                    Text := FCurrentEditor.LookupDataSource.DataSet.FieldByName(FCurrentEditor.FLookup.LookupListField).AsString;
-                end;
-              end;   }
               VK_F7:
               begin
                 FCurrentEditor.DoLookup(True);
@@ -2036,7 +2010,6 @@ begin
       begin
         S := Text;
         KillMessage(Handle, WM_KillFocus);
-  //      Self.Visible;
         TgsCustomIBGrid(Grid).ShowEditor;
         SetFocus;
         Modified := False;
@@ -2113,7 +2086,6 @@ begin
     Values.Free;
   end;
 end;
-
 
 { Registration }
 
@@ -2656,7 +2628,6 @@ begin
 
             if R.ColWidth > 0 then
             begin
-              { TODO : стоит определять ширину символа шрифта а не умножать на 6 }
               C.Width := Round(R.ColWidth * 6.5);
             end;
 
@@ -2911,11 +2882,7 @@ begin
 
   if Title.Caption = '' then
     Title.Caption := '"' + Self.FieldName + '"';
-
-//  Self.Visible := Self.Visible and Self.Field.Visible;
 end;
-
-{ TgsIBGrid }
 
 { TFieldAlias }
 
@@ -3020,8 +2987,6 @@ begin
   inherited;
 end;
 
-{ TgsIBGrid }
-
 { TgsIBColumnEditor }
 
 procedure TgsIBColumnEditor.Assign(Source: TPersistent);
@@ -3042,7 +3007,6 @@ begin
   FEditorStyle := cesNone;
   FPickList := TStringList.Create;
   FPickList.Duplicates := dupIgnore;
-//  FPickList.Sorted := True;
   FValueList := TStringList.Create;
   FValueList.OnChange := ValueListOnChange;
   FRevertValueList := TStringList.Create;
@@ -3099,8 +3063,6 @@ begin
     C := T.QueryDescendant;
     if C.gdClass <> nil then
     begin
-      { TODO : не должны ли мы брать под тип из С? }
-
       Obj := C.gdClass.CreateSubType(Grid, FLookup.FSubType, 'ByID');
 
       Obj.Open;
@@ -3260,7 +3222,7 @@ begin
 
 
   if FLookup.CheckUserRights and (not IBLogin.IsUserAdmin)
-    and (atDatabase.FindRelationField(FLookup.FLookupTable, 'AVIEW') <> nil) then
+    and (atDatabase.FindRelationField(FLookup.MainTableName, 'AVIEW') <> nil) then
   begin
     if Pos('WHERE ', S) = 0 then
       S := S + ' WHERE '
@@ -3268,18 +3230,20 @@ begin
       S := S + ' AND ';
 
     S := S + Format('(BIN_AND(BIN_OR(%s.aview, 1), %d) <> 0) ',
-      [FLookup.FLookupTable, IBLogin.InGroup])
+      [FLookup.MainTableAlias, IBLogin.InGroup])
   end;
 
-  if (FgdClass <> nil) and (AnsiCompareText(FLookup.FLookupTable, FgdClass.GetListTable(FLookup.SubType)) = 0)
-    and (tiDisabled in FgdClass.GetTableInfos(FLookup.SubType)) then
+  //if (FgdClass <> nil) and (AnsiCompareText(FLookup.FLookupTable, FgdClass.GetListTable(FLookup.SubType)) = 0)
+  //  and (tiDisabled in FgdClass.GetTableInfos(FLookup.SubType)) then
+  if atDatabase.FindRelationField(FLookup.MainTableName, 'DISABLED') <> nil then
   begin
     if Pos('WHERE ', S) = 0 then
       S := S + ' WHERE '
     else
       S := S + ' AND ';
 
-    S := Format('%s ((%s.disabled IS NULL) OR (%s.disabled = 0))', [S, FLookup.FLookupTable, FLookup.FLookupTable]);
+    S := Format('%s ((%s.disabled IS NULL) OR (%s.disabled = 0))',
+      [S, FLookup.MainTableAlias, FLookup.MainTableAlias]);
   end;
 
   if FLookup.GroupBy > '' then
@@ -3440,7 +3404,7 @@ begin
 
 
     if FLookup.CheckUserRights and (not IBLogin.IsUserAdmin)
-      and (atDatabase.FindRelationField(FLookup.FLookupTable, 'AVIEW') <> nil) then
+      and (atDatabase.FindRelationField(FLookup.MainTableName, 'AVIEW') <> nil) then
     begin
       if Pos('WHERE ', S) = 0 then
         S := S + ' WHERE '
@@ -3448,20 +3412,21 @@ begin
         S := S + ' AND ';
 
       S := S + Format('(BIN_AND(BIN_OR(%s.aview, 1), %d) <> 0) ',
-        [FLookup.FLookupTable, IBLogin.InGroup])
+        [FLookup.MainTableAlias, IBLogin.InGroup])
     end;
 
-    if (FgdClass <> nil) and (AnsiCompareText(FLookup.FLookupTable, FgdClass.GetListTable(FLookup.SubType)) = 0)
-      and (tiDisabled in FgdClass.GetTableInfos(FLookup.SubType)) then
+    //if (FgdClass <> nil) and (AnsiCompareText(FLookup.FLookupTable, FgdClass.GetListTable(FLookup.SubType)) = 0)
+    //  and (tiDisabled in FgdClass.GetTableInfos(FLookup.SubType)) then
+    if atDatabase.FindRelationField(FLookup.MainTableName, 'DISABLED') <> nil then
     begin
       if Pos('WHERE ', S) = 0 then
         S := S + ' WHERE '
       else
         S := S + ' AND ';
 
-      S := Format('%s ((%s.disabled IS NULL) OR (%s.disabled = 0))', [S, FLookup.FLookupTable, FLookup.FLookupTable]);
+      S := Format('%s ((%s.disabled IS NULL) OR (%s.disabled = 0))',
+        [S, FLookup.MainTableAlias, FLookup.MainTableAlias]);
     end;
-
 
     if FLookup.GroupBY > '' then
       S := S + ' GROUP BY ' + FLookup.GroupBY;
@@ -3732,8 +3697,6 @@ begin
 end;
 
 function TgsIBColumnEditor.Reduce(var Value: Integer): boolean;
-{var
-  i: Integer;}
 begin
   Result := False;
   if (Value <> -1) then
@@ -5107,8 +5070,6 @@ begin
 end;
 
 procedure TLookup.SetLookupTable(const Value: String);
-var
-  R: TatRelation;
 begin
   Assert(atDatabase <> nil);
 
