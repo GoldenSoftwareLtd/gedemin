@@ -30,7 +30,7 @@ type
     destructor Destroy; override;
 
     procedure Setup(AnObject: TgdcBase; ABL: TBookmarkList);
-    function Include(ANSRecord: TNSRecord): Boolean;
+    //function Include(ANSRecord: TNSRecord): Boolean;
     function ShowDialog: Boolean;
 
     property AlwaysOverwrite: Boolean read FAlwaysOverwrite write FAlwaysOverwrite;
@@ -44,7 +44,7 @@ implementation
 
 uses
   Classes, Windows, Controls, StdCtrls, ExtCtrls, SysUtils, gdcBaseInterface,
-  gdcNamespace, at_dlgNamespaceOp_unit, flt_sql_parser, gdcMetaData;
+  gdcNamespace, at_dlgNamespaceOp_unit, flt_sql_parser, gdcMetaData, gsNSObjects;
 
 procedure TgdcNamespaceController._AddToNamespace;
 {var
@@ -167,6 +167,7 @@ begin
   inherited;
 end;
 
+{
 function TgdcNamespaceController.Include(ANSRecord: TNSRecord): Boolean;
 var
   gdcNamespaceObject: TgdcNamespaceObject;
@@ -285,6 +286,7 @@ begin
 
   Result := True;
 end;
+}
 
 procedure TgdcNamespaceController.MoveBetweenNamespaces;
 {var
@@ -510,6 +512,7 @@ begin
           FIncludeSiblings := Dlg.chbxIncludeSiblings.Checked;
           FCurrentNSID := Dlg.lkupNS.CurrentKeyInt;
 
+          {
           for I := 0 to Dlg.NSRecordCount - 1 do
           begin
             if Dlg.NSRecords[I].Checked then
@@ -522,6 +525,7 @@ begin
               end;
             end;
           end;
+          }
         end;
       finally
         Dlg.Free;
