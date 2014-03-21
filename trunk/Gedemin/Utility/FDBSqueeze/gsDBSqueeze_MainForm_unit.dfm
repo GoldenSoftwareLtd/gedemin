@@ -1,9 +1,9 @@
 object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
-  Left = 297
-  Top = 190
+  Left = 1060
+  Top = 120
   BorderStyle = bsDialog
-  ClientHeight = 537
-  ClientWidth = 851
+  ClientHeight = 536
+  ClientWidth = 852
   Color = clBtnFace
   Font.Charset = RUSSIAN_CHARSET
   Font.Color = clWindowText
@@ -117,7 +117,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           Top = 54
           Width = 634
           Height = 369
-          ActivePage = tsReviewSettings
+          ActivePage = tsOptions
           TabOrder = 0
           object tsConnection: TTabSheet
             Caption = 'Database Connection'
@@ -140,7 +140,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               BorderStyle = sbsSunken
               Color = clHighlightText
               ParentColor = False
-              TabOrder = 3
+              TabOrder = 4
             end
             object cbbCharset: TComboBox
               Left = 501
@@ -151,7 +151,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Style = csDropDownList
               DropDownCount = 5
               ItemHeight = 13
-              TabOrder = 12
+              TabOrder = 13
             end
             object StaticText2: TStaticText
               Left = 457
@@ -168,7 +168,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Font.Style = []
               ParentColor = False
               ParentFont = False
-              TabOrder = 11
+              TabOrder = 12
             end
             object sttxtStateTestConnect: TStaticText
               Left = 562
@@ -180,7 +180,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Caption = 'unknown'
               Color = clHighlightText
               ParentColor = False
-              TabOrder = 5
+              TabOrder = 6
             end
             object StaticText3: TStaticText
               Left = 458
@@ -197,7 +197,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Font.Style = []
               ParentColor = False
               ParentFont = False
-              TabOrder = 2
+              TabOrder = 3
             end
             object btnNext1: TButton
               Left = 587
@@ -207,7 +207,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Action = actNextPage
               Anchors = [akLeft, akTop, akRight]
               Caption = '>'
-              TabOrder = 15
+              TabOrder = 16
               TabStop = False
             end
             object grpDatabase: TGroupBox
@@ -216,7 +216,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Width = 377
               Height = 153
               Caption = ' Database Location  '
-              TabOrder = 1
+              TabOrder = 2
               object lbl4: TLabel
                 Left = 28
                 Top = 71
@@ -316,7 +316,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Width = 377
               Height = 78
               Caption = ' Authorization '
-              TabOrder = 10
+              TabOrder = 11
               object lbl2: TLabel
                 Left = 17
                 Top = 32
@@ -354,7 +354,6 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Height = 35
               AutoSize = False
               BiDiMode = bdLeftToRight
-              Caption = '  Database Connection'
               Color = 15370833
               Font.Charset = RUSSIAN_CHARSET
               Font.Color = clWindow
@@ -369,11 +368,11 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             object btntTestConnection: TButton
               Left = 456
               Top = 318
-              Width = 126
+              Width = 130
               Height = 25
               Action = actDisconnect
               Caption = 'Test Connect'
-              TabOrder = 14
+              TabOrder = 15
               TabStop = False
             end
             object sttxtActivUserCount: TStaticText
@@ -386,7 +385,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               BorderStyle = sbsSunken
               Color = clHighlightText
               ParentColor = False
-              TabOrder = 7
+              TabOrder = 8
               Visible = False
             end
             object sttxtServerName: TStaticText
@@ -399,7 +398,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               BorderStyle = sbsSunken
               Color = clHighlightText
               ParentColor = False
-              TabOrder = 9
+              TabOrder = 10
               Visible = False
             end
             object sttxtActivConnects: TStaticText
@@ -418,7 +417,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Font.Style = []
               ParentColor = False
               ParentFont = False
-              TabOrder = 6
+              TabOrder = 7
               Visible = False
             end
             object sttxtTestConnectState: TStaticText
@@ -437,7 +436,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Font.Style = []
               ParentColor = False
               ParentFont = False
-              TabOrder = 4
+              TabOrder = 5
             end
             object StaticText1: TStaticText
               Left = 458
@@ -455,7 +454,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Font.Style = []
               ParentColor = False
               ParentFont = False
-              TabOrder = 13
+              TabOrder = 14
             end
             object sttxtTestServer: TStaticText
               Left = 458
@@ -473,8 +472,27 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Font.Style = []
               ParentColor = False
               ParentFont = False
-              TabOrder = 8
+              TabOrder = 9
               Visible = False
+            end
+            object txt7: TStaticText
+              Left = 200
+              Top = 9
+              Width = 225
+              Height = 26
+              AutoSize = False
+              BiDiMode = bdLeftToRight
+              Caption = 'Database Connection'
+              Color = 15370833
+              Font.Charset = RUSSIAN_CHARSET
+              Font.Color = clWindow
+              Font.Height = -24
+              Font.Name = 'Tahoma'
+              Font.Style = []
+              ParentBiDiMode = False
+              ParentColor = False
+              ParentFont = False
+              TabOrder = 1
             end
           end
           object tsSqueezeSettings: TTabSheet
@@ -489,7 +507,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             end
             object lbl6: TLabel
               Left = 100
-              Top = 113
+              Top = 120
               Width = 183
               Height = 13
               Caption = 'Рассчитать и сохранить сальдо по: '
@@ -517,37 +535,37 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               DateMode = dmComboBox
               Kind = dtkDate
               ParseInput = False
-              TabOrder = 1
+              TabOrder = 2
               TabStop = False
             end
             object rbAllOurCompanies: TRadioButton
               Left = 156
-              Top = 140
+              Top = 147
               Width = 173
               Height = 17
               Caption = 'всем рабочим организациям'
-              TabOrder = 2
+              TabOrder = 3
               OnClick = actDefocusExecute
             end
             object rbCompany: TRadioButton
               Left = 157
-              Top = 172
+              Top = 179
               Width = 164
               Height = 17
               Action = actCompany
               Caption = 'рабочей организации'
-              TabOrder = 3
+              TabOrder = 4
             end
             object cbbCompany: TComboBox
               Left = 175
-              Top = 201
+              Top = 208
               Width = 370
               Height = 21
               TabStop = False
               DropDownCount = 10
               Enabled = False
               ItemHeight = 13
-              TabOrder = 4
+              TabOrder = 5
               OnDrawItem = cbbCompanyDrawItem
             end
             object btnNext2: TButton
@@ -557,7 +575,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Height = 25
               Action = actNextPage
               Caption = '>'
-              TabOrder = 8
+              TabOrder = 9
               TabStop = False
             end
             object btnBack1: TButton
@@ -566,18 +584,41 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Width = 25
               Height = 25
               Caption = '<'
-              TabOrder = 7
+              TabOrder = 8
               TabStop = False
               OnClick = actBackPageExecute
             end
-            object sttxt16: TStaticText
+            object chk00Account: TCheckBox
+              Left = 106
+              Top = 256
+              Width = 321
+              Height = 17
+              TabStop = False
+              Caption = 'Отразить бухгалтерское сальдо на счете "00 Остатки"'
+              TabOrder = 6
+              OnClick = actDefocusExecute
+            end
+            object chk1: TCheckBox
+              Left = 98
+              Top = 324
+              Width = 449
+              Height = 17
+              TabStop = False
+              Caption = 
+                'Перепривязать: inv_card.parent,  inv_card.firstdocumentkey, inv_' +
+                'movement.cardkey'
+              Enabled = False
+              TabOrder = 10
+              Visible = False
+              OnClick = actDefocusExecute
+            end
+            object StaticText14: TStaticText
               Left = 22
               Top = 7
               Width = 588
               Height = 35
               AutoSize = False
               BiDiMode = bdLeftToRight
-              Caption = '  Squeeze Settings'
               Color = 15370833
               Font.Charset = RUSSIAN_CHARSET
               Font.Color = clWindow
@@ -589,29 +630,34 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               ParentFont = False
               TabOrder = 0
             end
-            object chk00Account: TCheckBox
-              Left = 106
-              Top = 244
-              Width = 321
-              Height = 17
-              TabStop = False
-              Caption = 'Отразить бухгалтерское сальдо на счете "00 Остатки"'
-              Enabled = False
-              TabOrder = 5
-              OnClick = actDefocusExecute
+            object StaticText13: TStaticText
+              Left = 212
+              Top = 8
+              Width = 185
+              Height = 33
+              AutoSize = False
+              BiDiMode = bdLeftToRight
+              Caption = 'Squeeze Settings'
+              Color = 15370833
+              Font.Charset = RUSSIAN_CHARSET
+              Font.Color = clWindow
+              Font.Height = -24
+              Font.Name = 'Tahoma'
+              Font.Style = []
+              ParentBiDiMode = False
+              ParentColor = False
+              ParentFont = False
+              TabOrder = 1
             end
-            object chk1: TCheckBox
-              Left = 106
-              Top = 280
-              Width = 449
-              Height = 17
+            object btnLoadConfigFile: TButton
+              Left = 104
+              Top = 292
+              Width = 209
+              Height = 25
+              Caption = 'Загрузить конфигурацию из файла...'
+              TabOrder = 7
               TabStop = False
-              Caption = 
-                'Перепривязать: inv_card.parent,  inv_card.firstdocumentkey, inv_' +
-                'movement.cardkey'
-              Enabled = False
-              TabOrder = 6
-              OnClick = actDefocusExecute
+              OnClick = actConfigBrowseExecute
             end
           end
           object tsSettings2: TTabSheet
@@ -632,7 +678,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Width = 25
               Height = 25
               Caption = '<'
-              TabOrder = 4
+              TabOrder = 5
               TabStop = False
               OnClick = actBackPageExecute
             end
@@ -643,7 +689,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Height = 25
               Action = actNextPage
               Caption = '>'
-              TabOrder = 5
+              TabOrder = 6
               TabStop = False
             end
             object txt1: TStaticText
@@ -653,7 +699,6 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Height = 35
               AutoSize = False
               BiDiMode = bdLeftToRight
-              Caption = '  Squeeze Settings'
               Color = 15370833
               Font.Charset = RUSSIAN_CHARSET
               Font.Color = clWindow
@@ -672,7 +717,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Height = 28
               Style = tsButtons
               TabHeight = 25
-              TabOrder = 1
+              TabOrder = 2
               Tabs.Strings = (
                 'Не обрабатывать выбранные типы'
                 'Обрабатывать только выбранные')
@@ -695,7 +740,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               FixedRows = 0
               Options = [goFixedHorzLine, goVertLine, goHorzLine, goRangeSelect, goRowSelect]
               ScrollBars = ssVertical
-              TabOrder = 2
+              TabOrder = 3
               OnDblClick = strngrdIgnoreDocTypesDblClick
               OnDrawCell = strngrdIgnoreDocTypesDrawCell
             end
@@ -708,7 +753,26 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Color = clBtnFace
               ReadOnly = True
               ScrollBars = ssVertical
-              TabOrder = 3
+              TabOrder = 4
+            end
+            object txt9: TStaticText
+              Left = 212
+              Top = 8
+              Width = 185
+              Height = 33
+              AutoSize = False
+              BiDiMode = bdLeftToRight
+              Caption = 'Squeeze Settings'
+              Color = 15370833
+              Font.Charset = RUSSIAN_CHARSET
+              Font.Color = clWindow
+              Font.Height = -24
+              Font.Name = 'Tahoma'
+              Font.Style = []
+              ParentBiDiMode = False
+              ParentColor = False
+              ParentFont = False
+              TabOrder = 1
             end
           end
           object tsOptions: TTabSheet
@@ -716,7 +780,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             ImageIndex = 2
             object lblLogDir: TLabel
               Left = 176
-              Top = 92
+              Top = 88
               Width = 73
               Height = 13
               Caption = 'Logs Directory:'
@@ -724,7 +788,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             end
             object lblBackup: TLabel
               Left = 173
-              Top = 156
+              Top = 152
               Width = 85
               Height = 13
               Caption = 'Backup Directory:'
@@ -741,7 +805,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             end
             object lblRestore: TLabel
               Left = 190
-              Top = 212
+              Top = 208
               Width = 89
               Height = 13
               Caption = 'Restore Directory:'
@@ -754,7 +818,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Height = 25
               Action = actNextPage
               Caption = '>'
-              TabOrder = 12
+              TabOrder = 14
               TabStop = False
             end
             object btnBack2: TButton
@@ -763,7 +827,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Width = 25
               Height = 25
               Caption = '<'
-              TabOrder = 11
+              TabOrder = 13
               TabStop = False
               OnClick = actBackPageExecute
             end
@@ -774,7 +838,6 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Height = 35
               AutoSize = False
               BiDiMode = bdLeftToRight
-              Caption = '  Options'
               Color = 15370833
               Font.Charset = RUSSIAN_CHARSET
               Font.Color = clWindow
@@ -788,68 +851,68 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             end
             object chkbSaveLogs: TCheckBox
               Left = 152
-              Top = 68
+              Top = 64
               Width = 113
               Height = 17
               TabStop = False
               Caption = 'Save Logs to File'
-              TabOrder = 1
+              TabOrder = 2
               OnClick = actDefocusExecute
             end
             object chkBackup: TCheckBox
               Left = 152
-              Top = 132
+              Top = 128
               Width = 177
               Height = 17
               TabStop = False
               Caption = 'Backing Up the Database'
               Enabled = False
-              TabOrder = 4
+              TabOrder = 5
             end
             object edLogs: TEdit
               Left = 266
-              Top = 89
+              Top = 85
               Width = 253
               Height = 21
               Enabled = False
-              TabOrder = 2
+              TabOrder = 3
             end
             object btnLogDirBrowse: TButton
               Left = 523
-              Top = 89
+              Top = 85
               Width = 20
               Height = 21
               Action = actDirectoryBrowse
-              TabOrder = 3
+              TabOrder = 4
               TabStop = False
               OnMouseDown = btnBackupBrowseMouseDown
             end
             object edtBackup: TEdit
               Left = 266
-              Top = 153
+              Top = 149
               Width = 253
               Height = 21
               Enabled = False
-              TabOrder = 5
+              TabOrder = 6
             end
             object btnBackupBrowse: TButton
               Left = 523
-              Top = 153
+              Top = 149
               Width = 20
               Height = 21
               Action = actDirectoryBrowse
-              TabOrder = 6
+              TabOrder = 7
               TabStop = False
               OnMouseDown = btnBackupBrowseMouseDown
             end
             object grpReprocessingType: TGroupBox
               Left = 152
-              Top = 247
+              Top = 303
               Width = 369
               Height = 57
               Caption = ' Reprocessing Type '
               Enabled = False
-              TabOrder = 10
+              TabOrder = 12
               Visible = False
               object rbStartOver: TRadioButton
                 Left = 88
@@ -872,31 +935,60 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             end
             object edtRestore: TEdit
               Left = 285
-              Top = 209
+              Top = 205
               Width = 233
               Height = 21
               Enabled = False
-              TabOrder = 8
+              TabOrder = 9
             end
             object btnRestoreBrowse: TButton
               Left = 523
-              Top = 209
+              Top = 205
               Width = 20
               Height = 21
               Action = actDirectoryBrowse
-              TabOrder = 9
+              TabOrder = 10
               TabStop = False
               OnMouseDown = btnBackupBrowseMouseDown
             end
             object chkRestore: TCheckBox
               Left = 172
-              Top = 188
+              Top = 184
               Width = 133
               Height = 17
               TabStop = False
               Caption = 'Restore the Database'
               Enabled = False
-              TabOrder = 7
+              TabOrder = 8
+            end
+            object btnSaveConfigFile: TButton
+              Left = 152
+              Top = 265
+              Width = 201
+              Height = 25
+              Caption = 'Сохранить конфигурацию в файл...'
+              TabOrder = 11
+              TabStop = False
+              OnClick = actConfigBrowseExecute
+            end
+            object txt8: TStaticText
+              Left = 270
+              Top = 10
+              Width = 83
+              Height = 31
+              AutoSize = False
+              BiDiMode = bdLeftToRight
+              Caption = 'Options'
+              Color = 15370833
+              Font.Charset = RUSSIAN_CHARSET
+              Font.Color = clWindow
+              Font.Height = -24
+              Font.Name = 'Tahoma'
+              Font.Style = []
+              ParentBiDiMode = False
+              ParentColor = False
+              ParentFont = False
+              TabOrder = 1
             end
           end
           object tsReviewSettings: TTabSheet
@@ -918,7 +1010,6 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Height = 35
               AutoSize = False
               BiDiMode = bdLeftToRight
-              Caption = '  Review Settings'
               Color = 15370833
               Font.Charset = RUSSIAN_CHARSET
               Font.Color = clWindow
@@ -937,7 +1028,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Height = 25
               Action = actGo
               Caption = 'Go!'
-              TabOrder = 3
+              TabOrder = 4
               TabStop = False
             end
             object btnBack3: TBitBtn
@@ -946,7 +1037,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Width = 25
               Height = 25
               Caption = '<'
-              TabOrder = 2
+              TabOrder = 3
               TabStop = False
               OnClick = actBackPageExecute
             end
@@ -958,6 +1049,25 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               ParentColor = True
               ReadOnly = True
               ScrollBars = ssVertical
+              TabOrder = 2
+            end
+            object txt11: TStaticText
+              Left = 221
+              Top = 10
+              Width = 171
+              Height = 31
+              AutoSize = False
+              BiDiMode = bdLeftToRight
+              Caption = 'Review Settings'
+              Color = 15370833
+              Font.Charset = RUSSIAN_CHARSET
+              Font.Color = clWindow
+              Font.Height = -24
+              Font.Name = 'Tahoma'
+              Font.Style = []
+              ParentBiDiMode = False
+              ParentColor = False
+              ParentFont = False
               TabOrder = 1
             end
           end
@@ -2129,6 +2239,10 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
     end
     object actDefocus: TAction
       OnExecute = actDefocusExecute
+    end
+    object actConfigBrowse: TAction
+      Caption = 'actConfigBrowse'
+      OnExecute = actConfigBrowseExecute
     end
   end
 end
