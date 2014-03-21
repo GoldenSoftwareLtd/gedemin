@@ -185,7 +185,6 @@ var
 
 implementation
 
-
 {$R *.DFM}
 
 uses
@@ -193,7 +192,7 @@ uses
   st_dlgEditValue_unit,   dlgEditDFM_unit,   gdcStorage,
   at_AddToSetting,        gsDesktopManager,  gd_directories_const,
   gsStorage_CompPath,     IBSQL,             gdcBaseInterface,
-  gdcStorage_Types
+  gdcStorage_Types,       gd_common_functions
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -722,7 +721,6 @@ var
   F: TgsStorageFolder;
   V: TgsStorageValue;
   StIn, StOut: TStringStream;
-  Sign: String;
 begin
   F := CurrentStorage.OpenFolder(PString(tv.Selected.Data)^, False);
 
@@ -737,27 +735,8 @@ begin
     begin
       if Assigned(F.Parent) and ((F.Parent.Name = 'DFM') or (F.Parent.Name = 'NewForm')) then
       begin
-        StIn := TStringStream.Create(V.AsString);
-        StOut := TStringStream.Create('');
-        try
-          SetLength(Sign, 3);
-          StIn.Read(Sign[1], 3);
-          if Sign = 'TPF' then
-          begin
-            StIn.Position := 0;
-            ObjectBinaryToText(StIn, StOut);
-            S := StOut.DataString;
-          end else
-          begin
-            S := StIn.DataString;
-          end;
-
-        finally
-          StIn.Free;
-          StOut.Free;
-        end;
-
-        if EditDFM(F.Name, S) then
+        S := V.AsString;
+        if TryObjectBinaryToText(S) and EditDFM(F.Name, S) then
         begin
           StIn := TStringStream.Create(S);
           StOut := TStringStream.Create('');
