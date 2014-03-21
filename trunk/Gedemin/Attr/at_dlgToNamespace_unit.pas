@@ -9,45 +9,6 @@ uses
   gd_createable_form, ExtCtrls, IBSQL;
 
 type
-  TNSRecord = class(TObject)
-  private
-    FID: TID;
-    FObjectName: String;
-    FObjectClass: String;
-    FSubType: String;
-    FRUID: TRUID;
-    FEditionDate: TDateTime;
-    FHeadObjectKey: TID;
-    FChecked: Boolean;
-    FLinked: TObjectList;
-    function GetLinked(Index: Integer): TNSRecord;
-    function GetLinkedCount: Integer;
-
-  public
-    constructor Create(
-      const AnID: TID;
-      const AnObjectName: String;
-      const AObjectClass: String;
-      const ASubType: String;
-      const ARUID: TRUID;
-      const AEditionDate: TDateTime;
-      const AHeadObjectKey: TID);
-    destructor Destroy; override;
-
-    procedure AddLinked(ANSR: TNSRecord);
-
-    property ID: TID read FID;
-    property ObjectName: String read FObjectName;
-    property ObjectClass: String read FObjectClass;
-    property SubType: String read FSubType;
-    property RUID: TRUID read FRUID;
-    property EditionDate: TDateTime read FEditionDate;
-    property HeadObjectKey: TID read FHeadObjectKey;
-    property Checked: Boolean read FChecked write FChecked;
-    property LinkedCount: Integer read GetLinkedCount;
-    property Linked[Index: Integer]: TNSRecord read GetLinked;
-  end;
-
   TdlgToNamespace = class(TCreateableForm)
     dsLink: TDataSource;
     ActionList: TActionList;
@@ -76,8 +37,6 @@ type
     FNSRecords: TObjectList;
 
     procedure DoCheckClick(Sender: TObject);
-    function GetNSRecordCount: Integer;
-    function GetNSRecords(Index: Integer): TNSRecord;
 
   public
     constructor Create(AnOwner: TComponent); override;
@@ -92,9 +51,6 @@ type
       const AHeadObjectKey: TID;
       const ANamespace: String;
       const ALinked: Boolean);
-
-    property NSRecordCount: Integer read GetNSRecordCount;
-    property NSRecords[Index: Integer]: TNSRecord read GetNSRecords;
   end;
 
 var
@@ -103,37 +59,6 @@ var
 implementation
 
 {$R *.DFM}
-
-procedure TNSRecord.AddLinked(ANSR: TNSRecord);
-begin
-  FLinked.Add(ANSR);
-end;
-
-constructor TNSRecord.Create(
-  const AnID: TID;
-  const AnObjectName: String;
-  const AObjectClass: String;
-  const ASubType: String;
-  const ARUID: TRUID;
-  const AEditionDate: TDateTime;
-  const AHeadObjectKey: TID);
-begin
-  FID := AnID;
-  FObjectName := AnObjectName;
-  FObjectClass := AObjectClass;
-  FSubType := ASubType;
-  FRUID := ARUID;
-  FEditionDate := AEditionDate;
-  FHeadObjectKey := AHeadObjectKey;
-  FChecked := True;
-  FLinked := TObjectList.Create(True);
-end;
-
-destructor TNSRecord.Destroy;
-begin
-  FLinked.Free;
-  inherited;
-end;
 
 procedure TdlgToNamespace.actOKExecute(Sender: TObject);
 begin
@@ -193,6 +118,7 @@ var
   CurrPnl: TPanel;
   FY: Integer;
 begin
+  {
   Assert((not ALinked) or (FNSRecords.Count > 0));
   Assert((not ALinked) or (Pnl <> nil));
 
@@ -279,10 +205,12 @@ begin
   begin
     Lbl.Caption := AClassName + ASubType;
   end;
+  }
 end;
 
 procedure TdlgToNamespace.DoCheckClick(Sender: TObject);
 
+  {
   procedure SyncChecked(const AnObjID: TID; const AChecked: Boolean);
   var
     I, J: Integer;
@@ -317,33 +245,16 @@ procedure TdlgToNamespace.DoCheckClick(Sender: TObject);
       else if AParent.Controls[I] is TWinControl then
         SetChecks(AnObjID, AParent.Controls[I] as TWinControl, AChecked);
   end;
+  }
 
 begin
+  {
   SyncChecked((Sender as TCheckBox).Tag, (Sender as TCheckBox).Checked);
   SetChecks(-1, (Sender as TCheckBox).Parent,
     (Sender as TCheckBox).Checked);
   SetChecks((Sender as TCheckBox).Tag, SB,
     (Sender as TCheckBox).Checked);
-end;
-
-function TdlgToNamespace.GetNSRecordCount: Integer;
-begin
-  Result := FNSRecords.Count;
-end;
-
-function TdlgToNamespace.GetNSRecords(Index: Integer): TNSRecord;
-begin
-  Result := FNSRecords[Index] as TNSRecord;
-end;
-
-function TNSRecord.GetLinked(Index: Integer): TNSRecord;
-begin
-  Result := FLinked[Index] as TNSRecord;
-end;
-
-function TNSRecord.GetLinkedCount: Integer;
-begin
-  Result := FLinked.Count;
+  }  
 end;
 
 end.

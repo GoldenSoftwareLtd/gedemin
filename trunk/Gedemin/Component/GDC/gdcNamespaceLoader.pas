@@ -884,7 +884,8 @@ begin
         AddWarning('Поле(я) отсутствует(ют) в БД после повторной загрузки!')
       else begin
         if Obj is TgdcMetaBase then
-          AddMistake('Метаданные не могут быть загружены повторно!')
+          AddMistake('Объект метаданных ' + Obj.ObjectName +
+            '(' + Obj.ClassName + ') не может быть загружен повторно!')
         else begin
           TempMapping := TyamlMapping.Create;
           TempMapping.Assign(AMapping);
