@@ -85,6 +85,7 @@ type
     FIsProcDocTypes: Boolean;
 
     FConnectInfo: TgsDBConnectInfo;
+    FDBSize: Int64;
 
     FClosingDate: TDateTime;
     FAllOurCompaniesSaldo: Boolean;
@@ -150,7 +151,7 @@ type
     procedure GetDBProperties(const AMessageProperties: TStringList);
     procedure SetItemsCbb(const AMessageStrList: TStringList);
     procedure SetDocTypeStrings(const AMessageDocTypeList: TStringList);
-    procedure GetDBSize(const AMessageDBSizeStr: String);
+    procedure GetDBSize(const AMessageDBSizeStr: String; const ADBSize: Int64);
     procedure GetStatistics(const AMessageGdDocStr: String; const AMessageAcEntryStr: String; const AMessageInvMovementStr: String; const AMessageInvCardStr: String);
     procedure GetProcStatistics(const AMessageProcGdDocStr: String; const AMessageProcAcEntryStr: String; const AMessageProcInvMovementStr: String; const AMessageProcInvCardStr: String);
 
@@ -193,6 +194,7 @@ type
     //property Connected: Boolean read GetConnected;
     property State: Boolean read GetState;
     property Busy: Boolean read GetBusy;
+    property DBSize: Int64 read FDBSize;
 
     property OnFinishEvent: TFinishEvent read FOnFinish write FOnFinish;
     property OnLogSQL: TLogSQLEvent read FOnLogSQL write FOnLogSQL;
@@ -653,6 +655,21 @@ begin
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
           FState.Value := 1;
 
+          PostThreadMessage(ThreadID, WM_DBS_CALCULATEINVSALDO, 0, 0);
+        end;
+        Result := True;
+      end;
+
+      WM_DBS_CALCULATEINVSALDO:
+      begin
+        if not FDoStopProcessing then
+        begin
+          FDBS.ProgressMsgEvent('Вычисление складского сальдо...', 7*PROGRESS_STEP);            // 7%
+          FDBS.CalculateInvSaldo;
+
+          FDBS.InsertDBSStateJournal(Msg.Message, 1);
+          FState.Value := 1;
+
           PostThreadMessage(ThreadID, WM_DBS_CREATEHIS_INCLUDEHIS, 0, 0);
         end;
         Result := True;
@@ -664,21 +681,6 @@ begin
         begin
           FDBS.ProgressMsgEvent('Выявление записей, которые должны остаться...', 7*PROGRESS_STEP);// 16%
           FDBS.CreateHIS_IncludeInHIS;
-
-          FDBS.InsertDBSStateJournal(Msg.Message, 1);
-          FState.Value := 1;
-
-          PostThreadMessage(ThreadID, WM_DBS_CALCULATEINVSALDO, 0, 0);
-        end;
-        Result := True;
-      end;
-
-    WM_DBS_CALCULATEINVSALDO:
-      begin
-        if not FDoStopProcessing then
-        begin
-          FDBS.ProgressMsgEvent('Вычисление складского сальдо...', 7*PROGRESS_STEP);            // 7%
-          FDBS.CalculateInvSaldo;
 
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
           FState.Value := 1;
@@ -765,7 +767,7 @@ begin
         if not FDoStopProcessing then
         begin
           FDBS.ProgressMsgEvent('Сохранение складского сальдо...', 7*PROGRESS_STEP);              //7%
-          FDBS.CreateInvSaldo;                                               ////////////////////////
+          FDBS.CreateInvSaldo;                                                  ////////////////////////
 
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
           FState.Value := 1;
@@ -1052,8 +1054,9 @@ begin
   PostMsg(WM_DBS_GETDBSIZE);
 end;
 
-procedure TgsDBSqueezeThread.GetDBSize(const AMessageDBSizeStr: String);
+procedure TgsDBSqueezeThread.GetDBSize(const AMessageDBSizeStr: String; const ADBSize: Int64);
 begin
+  FDBSize := ADBSize;
   FMessageDBSizeStr := AMessageDBSizeStr;
   Synchronize(DoOnGetDBSizeSync);
 end;

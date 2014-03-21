@@ -5,7 +5,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs, FileCtrl, 
   ActnList, ComCtrls, Buttons, StdCtrls, Grids, Spin, ExtCtrls,
-  gsDBSqueezeThread_unit, gd_ProgressNotifier_unit,
+  gsDBSqueezeThread_unit, gsDBSqueezeIniOptions_unit, gd_ProgressNotifier_unit,
   DBCtrls, CommCtrl;
 
 const
@@ -132,7 +132,6 @@ type
     StaticText9: TStaticText;
     strngrdIgnoreDocTypes: TStringGrid;
     sttxt11: TStaticText;
-    sttxt16: TStaticText;
     sttxt17: TStaticText;
     sttxt18: TStaticText;
     sttxt19: TStaticText;
@@ -201,6 +200,15 @@ type
     txt4: TStaticText;
     txt5: TStaticText;
     txt6: TStaticText;
+    btnSaveConfigFile: TButton;
+    txt7: TStaticText;
+    txt9: TStaticText;
+    StaticText13: TStaticText;
+    StaticText14: TStaticText;
+    txt8: TStaticText;
+    txt11: TStaticText;
+    btnLoadConfigFile: TButton;
+    actConfigBrowse: TAction;
 
     procedure actBackPageExecute(Sender: TObject);
     procedure actClearLogExecute(Sender: TObject);
@@ -231,6 +239,7 @@ type
     procedure strngrdIgnoreDocTypesDblClick(Sender: TObject);
     procedure strngrdIgnoreDocTypesDrawCell(Sender: TObject; ACol,ARow: Integer; Rect: TRect; State: TGridDrawState);
     procedure tbcPageControllerChange(Sender: TObject);
+    procedure actConfigBrowseExecute(Sender: TObject);
 
   private
     FStartupTime: TDateTime;
@@ -252,6 +261,7 @@ type
     procedure UpdateDocTypesMemo;
     procedure UpdateProgress(const AProgressInfo: TgdProgressInfo);
     procedure WriteToLogFile(const AStr: String);
+    procedure CheckFreeDiskSpace(const APath: String; const AFileSize: Int64);
 
     procedure ErrorEvent(const AErrorMsg: String);
     procedure FinishEvent(const AIsFinished: Boolean);
@@ -709,6 +719,7 @@ var
   LogFileName: String;
   BackupFileName: String;
   RestoreDBName: String;
+  RequiredSize: Int64; // в байтах
 begin
   LogFileName := '';
   BackupFileName := '';
@@ -834,6 +845,18 @@ begin
         else
           RestoreDBName := Trim(edtRestore.Text) + '\DBS_RESTORE_' + FormatDateTime('yymmdd_hhmm', FStartupTime) + '_' + FDatabaseName;
       end;
+
+      if edtBackup.Enabled then
+        RequiredSize := FSThread.DBSize;
+      if edtRestore.Enabled then
+      begin
+        if (edtBackup.Enabled) and (ExtractFileDir(Trim(edtBackup.Text)) = ExtractFileDir(Trim(edtRestore.Text))) then
+          RequiredSize := RequiredSize + FSThread.DBSize
+        else
+          RequiredSize := FSThread.DBSize;
+      end;
+      CheckFreeDiskSpace(edtBackup.Text, RequiredSize);
+      CheckFreeDiskSpace(edtRestore.Text, RequiredSize);
 
       if chkbSaveLogs.Checked then
       begin
@@ -1345,6 +1368,111 @@ begin
      rbContinue.Enabled := False;
      rbStartOver.Enabled := False;
    end;   }
+end;
+//---------------------------------------------------------------------------
+procedure TgsDBSqueeze_MainForm.actConfigBrowseExecute(Sender: TObject);
+var
+  openDialog: TOpenDialog;
+  saveDialog: TSaveDialog;
+  I: Integer;
+
+  function PosR2L(const FindS, SrcS: String): Integer; // инндекс последнего вхождения
+
+    function InvertS(const S: String): string;
+    var
+      i, Len: Integer;
+    begin
+      Len := Length(S);
+      SetLength(Result, Len);
+      for i := 1 to Len do
+        Result[i] := S[Len - i + 1];
+    end;
+
+  var
+    ps: Integer;
+  begin
+    ps := Pos(InvertS(FindS), InvertS(SrcS));
+    if ps <> 0 then
+      Result := Length(SrcS) - Length(FindS) - ps + 2
+    else
+      Result := 0;
+  end;
+begin
+  if Sender = btnLoadConfigFile then
+  begin
+    gsDBSqueeze_MainForm.DefocusControl(btnLoadConfigFile, False);
+    openDialog := TOpenDialog.Create(Self);
+    try
+      openDialog.InitialDir := GetCurrentDir;
+      openDialog.Options := [ofFileMustExist];
+      openDialog.Filter := 'Configuration File (*.INI)|*.ini';
+      openDialog.FilterIndex := 1;
+
+      if openDialog.Execute then
+      begin
+        gsIniOptions.LoadFromFile(openDialog.FileName);
+        rbAllOurCompanies.Checked := False;
+
+        with strngrdIgnoreDocTypes do
+        for I:=0 to ColCount-1 do
+          Cols[I].Clear;
+        mIgnoreDocTypes.Clear;
+        tbcDocTypes.TabIndex := 0;
+        mReviewSettings.Clear;
+
+        rbCompany.Checked := gsIniOptions.DoCalculateOnlyCompanySaldo;
+        if gsIniOptions.DoCalculateOnlyCompanySaldo then
+          cbbCompany.ItemIndex := cbbCompany.Items.IndexOf(IntToStr(gsIniOptions.SelectedCompanyKey) + ';' + gsIniOptions.SelectedCompanyName + ';');
+        chk00Account.Checked := gsIniOptions.DoEnterOstatkyAccount;
+      end;
+    finally
+      openDialog.Free;
+    end;
+  end
+  else if Sender = btnSaveConfigFile then
+  begin
+    gsDBSqueeze_MainForm.DefocusControl(btnSaveConfigFile, False);
+    saveDialog := TSaveDialog.Create(self);
+    try
+      saveDialog.InitialDir := GetCurrentDir;
+      saveDialog.Options := [ofFileMustExist];
+      saveDialog.Filter := 'Configuration File (*.INI)|*.ini';
+      saveDialog.FilterIndex := 1;
+      saveDialog.DefaultExt := 'ini';
+      
+      if saveDialog.Execute then
+      begin
+        gsIniOptions.DoCalculateOnlyCompanySaldo := rbCompany.Checked;
+        if rbCompany.Checked then
+        begin
+          gsIniOptions.SelectedCompanyKey := StrToInt(Trim(Copy(Trim(cbbCompany.Text), 1, Pos(';', Trim(cbbCompany.Text))-1)));
+          gsIniOptions.SelectedCompanyName := Trim(Copy(cbbCompany.Text, Pos(';', cbbCompany.Text)+1, PosR2L(';', cbbCompany.Text)-1));  ///todo
+          ShowMessage(Trim(Copy(cbbCompany.Text, Pos(';', cbbCompany.Text)+1, (PosR2L(';', cbbCompany.Text)-3))));
+        end;
+        gsIniOptions.DoEnterOstatkyAccount := chk00Account.Checked;
+        gsIniOptions.SaveToFile(saveDialog.FileName);
+      end;
+    finally
+      saveDialog.Free;
+    end;
+  end;
+end;
+//---------------------------------------------------------------------------
+procedure TgsDBSqueeze_MainForm.CheckFreeDiskSpace(const APath: String; const AFileSize: Int64);
+var
+  CurDirectory: String;
+  FreeSpace: Int64;
+begin
+  CurDirectory := GetCurrentDir;
+  SetCurrentDir(ExtractFileDir(APath));
+  try
+    FreeSpace := DiskFree(0);
+    if FreeSpace < AFileSize then
+      Application.MessageBox(PChar('Недостаточно свободного места! Освободите ' + IntToStr((AFileSize - FreeSpace) div 1048576)),
+        PChar('Предупреждение'), MB_OK + MB_ICONWARNING + MB_TOPMOST);
+  finally
+    SetCurrentDir(CurDirectory);
+  end;
 end;
 //---------------------------------------------------------------------------
 
