@@ -1235,7 +1235,7 @@ begin
     if FieldByName('dbversion').AsString > '' then
       W.WriteStringValue('DBVersion', FieldByName('dbversion').AsString);
     if FieldByName('comment').AsString > '' then
-      W.WriteTextValue('Comment', FieldByName('comment').AsString);
+      W.WriteTextValue('Comment', FieldByName('comment').AsString, qDoubleQuoted);
     W.DecIndent;
     W.StartNewLine;
 

@@ -1,3 +1,4 @@
+
 {************************************************************************}
 {                                                                        }
 {       Borland Delphi Visual Component Library                          }
@@ -100,6 +101,7 @@ var
   isc_install_unset_option: Tisc_install_unset_option;
 
   fb_cancel_operation: Tfb_cancel_operation;
+  fb_shutdown: Tfb_shutdown;
 
 { Library Initialization }
 procedure LoadIBLibrary;
@@ -336,6 +338,9 @@ begin
       isc_encode_timestamp := isc_encode_timestamp_stub;
     end;
 
+    fb_cancel_operation := TryGetProcAddr('fb_cancel_operation');
+    fb_shutdown := TryGetProcAddr('fb_shutdown');
+
     IBXMLLibrary := LoadLibrary(PChar(IBXML_DLL));
     if (IBXMLLibrary > HINSTANCE_ERROR) then
     begin
@@ -350,8 +355,6 @@ begin
       isc_dsql_xml_fetch_all := isc_dsql_xml_fetch_all_stub;
       isc_dsql_xml_buffer_fetch := isc_dsql_xml_buffer_fetch_stub;
     end;
-
-    fb_cancel_operation := TryGetProcAddr('fb_cancel_operation');
   end;
 end;
 
@@ -359,6 +362,8 @@ procedure FreeIBLibrary;
 begin
   if IBLibrary > HINSTANCE_ERROR then
   begin
+    if Assigned(fb_shutdown) then
+      fb_shutdown(0, 0);
     FreeLibrary(IBLibrary);
     IBLibrary := 0;
   end;

@@ -433,6 +433,10 @@ begin
     Check((M[0] as TyamlKeyValue).Value is TyamlScalar);
     Check(((M[0] as TyamlKeyValue).Value as TyamlScalar).AsString = '123 456   '#13#10' 111');
     Check(((M[5] as TyamlKeyValue).Value as TyamlScalar).AsString = '   test  ');
+    M := (Parser.YAMLStream[10] as TYAMLDocument)[0] as TyamlMapping;
+    Check(M[0] is TyamlKeyValue);
+    Check((M[0] as TyamlKeyValue).Value is TyamlScalar);
+    Check(((M[0] as TyamlKeyValue).Value as TyamlScalar).AsString = 'text with colon:'#13#10' line2');
   finally
     Parser.Free;
     FS.Free;
