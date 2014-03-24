@@ -6,7 +6,7 @@ uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs, FileCtrl, 
   ActnList, ComCtrls, Buttons, StdCtrls, Grids, Spin, ExtCtrls,
   gsDBSqueezeThread_unit, gsDBSqueezeIniOptions_unit, gd_ProgressNotifier_unit,
-  DBCtrls, CommCtrl;
+  DBCtrls, CommCtrl, Db, ADODB;
 
 const
   DEFAULT_HOST = 'localhost';
@@ -25,6 +25,7 @@ type
     actBackPage: TAction;
     actClearLog: TAction;
     actCompany: TAction;
+    actConfigBrowse: TAction;
     actDatabaseBrowse: TAction;
     actDefaultPort: TAction;
     actDefocus: TAction;
@@ -47,11 +48,13 @@ type
     btnDatabaseBrowse: TButton;
     btnGetStatistics: TButton;
     btnGo: TBitBtn;
+    btnLoadConfigFile: TButton;
     btnLogDirBrowse: TButton;
     btnNext1: TButton;
     btnNext2: TButton;
     btnNext3: TButton;
     btnRestoreBrowse: TButton;
+    btnSaveConfigFile: TButton;
     btnStop: TButton;
     btntTestConnection: TButton;
     btnUpdateStatistics: TBitBtn;
@@ -121,6 +124,8 @@ type
     StaticText10: TStaticText;
     StaticText11: TStaticText;
     StaticText12: TStaticText;
+    StaticText13: TStaticText;
+    StaticText14: TStaticText;
     StaticText1: TStaticText;
     StaticText2: TStaticText;
     StaticText3: TStaticText;
@@ -194,27 +199,23 @@ type
     tsSqueezeSettings: TTabSheet;
     tsStatistics: TTabSheet;
     txt10: TStaticText;
+    txt11: TStaticText;
     txt1: TStaticText;
     txt2: TStaticText;
     txt3: TStaticText;
     txt4: TStaticText;
     txt5: TStaticText;
     txt6: TStaticText;
-    btnSaveConfigFile: TButton;
     txt7: TStaticText;
-    txt9: TStaticText;
-    StaticText13: TStaticText;
-    StaticText14: TStaticText;
     txt8: TStaticText;
-    txt11: TStaticText;
-    btnLoadConfigFile: TButton;
-    actConfigBrowse: TAction;
+    txt9: TStaticText;
 
     procedure actBackPageExecute(Sender: TObject);
     procedure actClearLogExecute(Sender: TObject);
     procedure actClearLogUpdate(Sender: TObject);
     procedure actCompanyExecute(Sender: TObject);
     procedure actCompanyUpdate(Sender: TObject);
+    procedure actConfigBrowseExecute(Sender: TObject);
     procedure actDatabaseBrowseExecute(Sender: TObject);
     procedure actDefaultPortExecute(Sender: TObject);
     procedure actDefocusExecute(Sender: TObject);
@@ -239,7 +240,6 @@ type
     procedure strngrdIgnoreDocTypesDblClick(Sender: TObject);
     procedure strngrdIgnoreDocTypesDrawCell(Sender: TObject; ACol,ARow: Integer; Rect: TRect; State: TGridDrawState);
     procedure tbcPageControllerChange(Sender: TObject);
-    procedure actConfigBrowseExecute(Sender: TObject);
 
   private
     FStartupTime: TDateTime;
@@ -469,8 +469,6 @@ begin
   begin
     GetConnectedEvent(False); //FSThread.Disconnect;                            ///TODO: после сообщения о дисконнекте разрушить
     ThreadDestroy;
-    //btnGo.Enabled := False;
-    //FConnected := False;
     mLog.Clear;
     mSqlLog.Clear;
   end
@@ -602,12 +600,12 @@ procedure TgsDBSqueeze_MainForm.SetItemsCbbEvent(const ACompanies: TStringList);
 var
   I: Integer;
 begin
-  if rbCompany.Checked then
-  begin
+  //if rbCompany.Checked then
+  //begin
     cbbCompany.Clear;
     for I:=0 to ACompanies.Count-1 do
       cbbCompany.Items.Add(ACompanies.Names[I] + ';' + ACompanies.Values[ACompanies.Names[I]] + ';');
-  end;
+  //end;
 end;
 //---------------------------------------------------------------------------
 procedure TgsDBSqueeze_MainForm.SetDocTypeStringsEvent(const ADocTypes: TStringList);
@@ -646,11 +644,20 @@ procedure TgsDBSqueeze_MainForm.actCompanyUpdate(Sender: TObject);
 begin
   cbbCompany.Enabled := (rbCompany.Checked) and (FConnected);
 end;
-
+//---------------------------------------------------------------------------
 procedure TgsDBSqueeze_MainForm.actCompanyExecute(Sender: TObject);
 begin
-  gsDBSqueeze_MainForm.DefocusControl(rbCompany, False);
-  FSThread.DoSetItemsCbb;
+  if Sender = rbCompany then
+  begin
+    gsDBSqueeze_MainForm.DefocusControl(rbCompany, False);
+    
+  end
+  else if Sender = rbAllOurCompanies then
+  begin
+    gsDBSqueeze_MainForm.DefocusControl(rbAllOurCompanies, False);
+  end;
+
+  ///FSThread.DoSetItemsCbb;
 end;
 //---------------------------------------------------------------------------
 procedure TgsDBSqueeze_MainForm.actDatabaseBrowseExecute(Sender: TObject);
@@ -835,7 +842,7 @@ begin
       begin
         if (Trim(edtBackup.Text))[Length(Trim(edtBackup.Text))] = '\' then
           BackupFileName := Trim(edtBackup.Text) + 'DBS_' + FDatabaseName + '_' + FormatDateTime('yymmdd_hhmm', FStartupTime) + '.fbk'
-        else
+        else                                                                     
           BackupFileName := Trim(edtBackup.Text) + '\DBS_' + FDatabaseName + '_' + FormatDateTime('yymmdd_hhmm', FStartupTime) + '.fbk';
       end;
       if edtRestore.Enabled then
@@ -846,17 +853,32 @@ begin
           RestoreDBName := Trim(edtRestore.Text) + '\DBS_RESTORE_' + FormatDateTime('yymmdd_hhmm', FStartupTime) + '_' + FDatabaseName;
       end;
 
+      RequiredSize := FSThread.DBSize div 2;
+      CheckFreeDiskSpace(ExtractFileDir(FDatabaseName), RequiredSize);
+
       if edtBackup.Enabled then
-        RequiredSize := FSThread.DBSize;
-      if edtRestore.Enabled then
       begin
-        if (edtBackup.Enabled) and (ExtractFileDir(Trim(edtBackup.Text)) = ExtractFileDir(Trim(edtRestore.Text))) then
+        if ExtractFileDir(FDatabaseName) = ExtractFileDir(Trim(edtBackup.Text) then
           RequiredSize := RequiredSize + FSThread.DBSize
         else
           RequiredSize := FSThread.DBSize;
+
+        CheckFreeDiskSpace(edtBackup.Text, RequiredSize);
       end;
-      CheckFreeDiskSpace(edtBackup.Text, RequiredSize);
-      CheckFreeDiskSpace(edtRestore.Text, RequiredSize);
+      if edtRestore.Enabled then
+      begin
+        if (edtBackup.Enabled) and
+           (ExtractFileDir(Trim(edtBackup.Text)) = ExtractFileDir(Trim(edtRestore.Text)) = ExtractFileDir(FDatabaseName)) then
+          RequiredSize := RequiredSize + FSThread.DBSize
+        else if ExtractFileDir(Trim(edtRestore.Text)) = (ExtractFileDir(Trim(edtBackup.Text)) then
+          RequiredSize := RequiredSize + FSThread.DBSize;
+        else if ExtractFileDir(Trim(edtRestore.Text)) = ExtractFileDir(FDatabaseName) then
+          RequiredSize := FSThread.DBSize +  FSThread.DBSize div 2
+        else
+          RequiredSize := FSThread.DBSize;
+
+        CheckFreeDiskSpace(edtRestore.Text, RequiredSize);
+      end;
 
       if chkbSaveLogs.Checked then
       begin
@@ -886,7 +908,7 @@ begin
       if rbAllOurCompanies.Checked then
         mReviewSettings.Lines.Add('Считать сальдо для компаний: ' + 'ВСЕХ')
       else
-        mReviewSettings.Lines.Add('Считать сальдо для компании: ' + cbbCompany.Text);
+        mReviewSettings.Lines.Add('Считать сальдо для компании: ' + Copy(cbbCompany.Text, Pos(';', cbbCompany.Text)+1, Length(cbbCompany.Text)-Pos(';', cbbCompany.Text)-1));
       if chk00Account.Checked then
         mReviewSettings.Lines.Add('Отразить бухгалтерские остатки на счете "00 Остатки": ДА')
       else
@@ -985,8 +1007,6 @@ end;
 procedure TgsDBSqueeze_MainForm.actGoUpdate(Sender: TObject);
 begin
   btnGo.Enabled := (not actStop.Enabled) and FConnected and (rbAllOurCompanies.Checked or rbCompany.Checked);
-  {btnGo.Enabled := FConnected  //actGo.Enabled := FConnected
-    and (rbAllOurCompanies.Checked or rbCompany.Checked); }
 end;
 //---------------------------------------------------------------------------
 procedure TgsDBSqueeze_MainForm.actBackPageExecute(Sender: TObject);
@@ -1372,88 +1392,86 @@ end;
 //---------------------------------------------------------------------------
 procedure TgsDBSqueeze_MainForm.actConfigBrowseExecute(Sender: TObject);
 var
-  openDialog: TOpenDialog;
-  saveDialog: TSaveDialog;
   I: Integer;
-
-  function PosR2L(const FindS, SrcS: String): Integer; // инндекс последнего вхождения
-
-    function InvertS(const S: String): string;
-    var
-      i, Len: Integer;
-    begin
-      Len := Length(S);
-      SetLength(Result, Len);
-      for i := 1 to Len do
-        Result[i] := S[Len - i + 1];
-    end;
-
-  var
-    ps: Integer;
-  begin
-    ps := Pos(InvertS(FindS), InvertS(SrcS));
-    if ps <> 0 then
-      Result := Length(SrcS) - Length(FindS) - ps + 2
-    else
-      Result := 0;
-  end;
+  OpenDlg: TOpenDialog;
+  SaveDlg: TSaveDialog;
+  SelectedDocTypes: TStringList;
 begin
   if Sender = btnLoadConfigFile then
   begin
     gsDBSqueeze_MainForm.DefocusControl(btnLoadConfigFile, False);
-    openDialog := TOpenDialog.Create(Self);
+    SelectedDocTypes := TStringList.Create;
+    OpenDlg := TOpenDialog.Create(Self);
     try
-      openDialog.InitialDir := GetCurrentDir;
-      openDialog.Options := [ofFileMustExist];
-      openDialog.Filter := 'Configuration File (*.INI)|*.ini';
-      openDialog.FilterIndex := 1;
+      OpenDlg.InitialDir := GetCurrentDir;
+      OpenDlg.Options := [ofFileMustExist];
+      OpenDlg.Filter := 'Configuration File (*.INI)|*.ini';
+      OpenDlg.FilterIndex := 1;
 
-      if openDialog.Execute then
+      if OpenDlg.Execute then
       begin
-        gsIniOptions.LoadFromFile(openDialog.FileName);
-        rbAllOurCompanies.Checked := False;
+        gsIniOptions.LoadFromFile(OpenDlg.FileName);
 
-        with strngrdIgnoreDocTypes do
-        for I:=0 to ColCount-1 do
-          Cols[I].Clear;
-        mIgnoreDocTypes.Clear;
+        rbAllOurCompanies.Checked := False;
+        rbCompany.Checked := False;
         tbcDocTypes.TabIndex := 0;
+        for I:=0 to FRowsSelectBits.Size-1 do
+          FRowsSelectBits[I] := False;
+
+        mIgnoreDocTypes.Clear;
+        chk00Account.Checked := False;
         mReviewSettings.Clear;
 
-        rbCompany.Checked := gsIniOptions.DoCalculateOnlyCompanySaldo;
         if gsIniOptions.DoCalculateOnlyCompanySaldo then
-          cbbCompany.ItemIndex := cbbCompany.Items.IndexOf(IntToStr(gsIniOptions.SelectedCompanyKey) + ';' + gsIniOptions.SelectedCompanyName + ';');
+        begin
+          rbCompany.Checked := True;
+          cbbCompany.ItemIndex := 1;
+          //cbbCompany.ItemIndex := cbbCompany.Items.IndexOf(IntToStr(gsIniOptions.SelectedCompanyKey) + ';' + gsIniOptions.SelectedCompanyName + ';');
+
+          ShowMessage(IntToStr(cbbCompany.Items.IndexOf(IntToStr(gsIniOptions.SelectedCompanyKey) + ';' + gsIniOptions.SelectedCompanyName + ';')));
+        end
+        else
+          rbAllOurCompanies.Checked := True;
         chk00Account.Checked := gsIniOptions.DoEnterOstatkyAccount;
+
+        SelectedDocTypes.CommaText := gsIniOptions.SelectedDocTypeKeys;
+        for I:=0 to strngrdIgnoreDocTypes.RowCount-1 do
+          FRowsSelectBits[I] := (SelectedDocTypes.IndexOf(Trim(strngrdIgnoreDocTypes.Cells[1, I])) <> -1);
+        strngrdIgnoreDocTypes.Repaint;
+        UpdateDocTypesMemo;
       end;
     finally
-      openDialog.Free;
+      OpenDlg.Free;
+      SelectedDocTypes.Free;
     end;
   end
   else if Sender = btnSaveConfigFile then
   begin
     gsDBSqueeze_MainForm.DefocusControl(btnSaveConfigFile, False);
-    saveDialog := TSaveDialog.Create(self);
+    SaveDlg := TSaveDialog.Create(self);
     try
-      saveDialog.InitialDir := GetCurrentDir;
-      saveDialog.Options := [ofFileMustExist];
-      saveDialog.Filter := 'Configuration File (*.INI)|*.ini';
-      saveDialog.FilterIndex := 1;
-      saveDialog.DefaultExt := 'ini';
-      
-      if saveDialog.Execute then
+      SaveDlg.InitialDir := GetCurrentDir;
+      SaveDlg.Options := [ofFileMustExist];
+      SaveDlg.Filter := 'Configuration File (*.INI)|*.ini';
+      SaveDlg.FilterIndex := 1;
+      SaveDlg.DefaultExt := 'ini';
+
+      if SaveDlg.Execute then
       begin
         gsIniOptions.DoCalculateOnlyCompanySaldo := rbCompany.Checked;
         if rbCompany.Checked then
         begin
           gsIniOptions.SelectedCompanyKey := StrToInt(Trim(Copy(Trim(cbbCompany.Text), 1, Pos(';', Trim(cbbCompany.Text))-1)));
-          gsIniOptions.SelectedCompanyName := Trim(Copy(cbbCompany.Text, Pos(';', cbbCompany.Text)+1, PosR2L(';', cbbCompany.Text)-1));  ///todo
-          ShowMessage(Trim(Copy(cbbCompany.Text, Pos(';', cbbCompany.Text)+1, (PosR2L(';', cbbCompany.Text)-3))));
+          gsIniOptions.SelectedCompanyName := Copy(cbbCompany.Text, Pos(';', cbbCompany.Text)+1, Length(cbbCompany.Text)-Pos(';', cbbCompany.Text)-1);
         end;
         gsIniOptions.DoEnterOstatkyAccount := chk00Account.Checked;
-        gsIniOptions.SaveToFile(saveDialog.FileName);
+        gsIniOptions.DoProcessDocTypes := (tbcDocTypes.TabIndex = 1);
+        gsIniOptions.SelectedDocTypeKeys := FDocTypesList.CommaText;
+
+        gsIniOptions.SaveToFile(SaveDlg.FileName);
       end;
     finally
-      saveDialog.Free;
+      SaveDlg.Free;
     end;
   end;
 end;
