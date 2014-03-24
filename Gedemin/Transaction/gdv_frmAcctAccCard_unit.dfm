@@ -1,6 +1,6 @@
 inherited gdv_frmAcctAccCard: Tgdv_frmAcctAccCard
-  Left = 115
-  Top = 142
+  Left = 371
+  Top = 124
   Width = 1042
   Height = 755
   HelpContext = 30

@@ -247,6 +247,12 @@ begin
                   Chr(StrToInt('$' + FReader.PeekChar(2) + FReader.PeekChar(3)));
                 FReader.Skip(4, False);
               end;
+
+              'n':
+              begin
+                FScalar := FScalar + #13#10;
+                FReader.Skip(2, False);
+              end;
             else
               raise EyamlSyntaxError.Create('Invalid escape sequence');
             end;

@@ -110,6 +110,9 @@ c: !!seq
   -
   -
 -  
+---
+test: "text with colon:\n
+  line2"
 ...
 
 

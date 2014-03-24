@@ -63,8 +63,8 @@ begin
     for I := 0 to MAXINT do
     begin
 
-      InputFileName := Format(TestDataPath + '\AtSQLSetup\input.%.3d.sql', [I]);
-      OutputFileName := Format(TestDataPath + '\AtSQLSetup\output.%.3d.sql', [I]);
+      InputFileName := Format(TestDataPath + '\SQLParser\input.%.3d', [I]);
+      OutputFileName := Format(TestDataPath + '\SQLParser\output.%.3d', [I]);
 
       if I = 0 then
       begin
@@ -139,6 +139,6 @@ begin
 end;
 
 initialization
-  RegisterTest('Internals', TSQLParserTest.Suite);
+  RegisterTest('DB', TSQLParserTest.Suite);
 end.
 

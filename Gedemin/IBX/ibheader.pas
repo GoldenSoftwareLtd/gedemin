@@ -741,6 +741,8 @@ Tisc_portable_integer = function (buffer                   : PChar;
 				 length                    : Short): ISC_INT64;
                                 stdcall;
 
+Tfb_shutdown = function(timeout: Cardinal; const reason: Integer): Integer; stdcall;
+
 (***************************************)
 (** Security Functions and structures **)
 (***************************************)
