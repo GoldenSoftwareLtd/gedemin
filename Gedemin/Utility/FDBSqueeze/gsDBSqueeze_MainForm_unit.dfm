@@ -1,6 +1,6 @@
 object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
-  Left = 1060
-  Top = 120
+  Left = 245
+  Top = 247
   BorderStyle = bsDialog
   ClientHeight = 536
   ClientWidth = 852
@@ -117,7 +117,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           Top = 54
           Width = 634
           Height = 369
-          ActivePage = tsOptions
+          ActivePage = tsSqueezeSettings
           TabOrder = 0
           object tsConnection: TTabSheet
             Caption = 'Database Connection'
@@ -543,9 +543,9 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Top = 147
               Width = 173
               Height = 17
+              Action = actCompany
               Caption = 'всем рабочим организациям'
               TabOrder = 3
-              OnClick = actDefocusExecute
             end
             object rbCompany: TRadioButton
               Left = 157

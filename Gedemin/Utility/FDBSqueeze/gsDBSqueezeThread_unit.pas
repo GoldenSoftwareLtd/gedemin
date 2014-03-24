@@ -53,7 +53,7 @@ const
 
   WM_DBS_CREATE_INV_BALANCE    = WM_USER + 41;
 
-  WM_GD_EXIT_THREAD  =      WM_USER + 117;
+  WM_GD_EXIT_THREAD            = WM_USER + 117;
 type
   TErrorEvent = procedure(const ErrorMsg: String) of object;
   TLogSQLEvent = procedure(const MsgLogSQL: String)of object;
@@ -467,14 +467,15 @@ begin
         FDBS.InsertDBSStateJournal(Msg.Message, 1);
         FState.Value := 1;
 
-        PostThreadMessage(ThreadID, WM_DBS_GETDBPROPERTIES, 0, 0);
+        PostThreadMessage(ThreadID, WM_DBS_SETCBBITEMS, 0, 0);
         Result := True;
       end;
 
     WM_DBS_SETCBBITEMS:
       begin
-        FDBS.SetItemsCbbEvent;;
+        FDBS.SetItemsCbbEvent;
 
+        PostThreadMessage(ThreadID, WM_DBS_GETDBPROPERTIES, 0, 0);
         //FDBS.InsertDBSStateJournal(Msg.Message, 1);
         FState.Value := 1;
 
@@ -537,7 +538,6 @@ begin
         FDBS.LogFileName := FLogFileName.Value;
         FDBS.BackupFileName := FBackupFileName.Value;
         FDBS.RestoreDBName := FRestoreDBName.Value;
-        FDBS.ContinueReprocess := FContinueReprocess;
 
         Result := True;
       end;
@@ -685,20 +685,6 @@ begin
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
           FState.Value := 1;
 
-          PostThreadMessage(ThreadID, WM_DBS_PREPAREREBINDINVCARDS, 0, 0);
-        end;
-        Result := True;
-      end;
-
-    WM_DBS_PREPAREREBINDINVCARDS:
-      begin
-        if not FDoStopProcessing then
-        begin
-          FDBS.PrepareRebindInvCards;
-
-          FDBS.InsertDBSStateJournal(Msg.Message, 1);
-          FState.Value := 1;
-
           PostThreadMessage(ThreadID, WM_DBS_PREPAREDB, 0, 0);
         end;
         Result := True;
@@ -767,7 +753,7 @@ begin
         if not FDoStopProcessing then
         begin
           FDBS.ProgressMsgEvent('Сохранение складского сальдо...', 7*PROGRESS_STEP);              //7%
-          FDBS.CreateInvSaldo;                                                  ////////////////////////
+          FDBS.CreateInvSaldo;                                                  
 
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
           FState.Value := 1;
@@ -802,22 +788,6 @@ begin
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
           FState.Value := 1;
 
-          PostThreadMessage(ThreadID, WM_DBS_REBINDINVCARDS, 0, 0);
-        end;
-        Result := True;
-      end;
-
-
-    WM_DBS_REBINDINVCARDS:
-      begin
-        if not FDoStopProcessing then
-        begin
-
-          FDBS.RebindInvCards;
-
-          FDBS.InsertDBSStateJournal(Msg.Message, 1);
-          FState.Value := 1;
-
           PostThreadMessage(ThreadID, WM_DBS_CLEARDBSTABLES, 0, 0);
         end;
         Result := True;
@@ -828,7 +798,7 @@ begin
         if not FDoStopProcessing then
         begin
           FDBS.ProgressMsgEvent('Удаление метаданных...', 0);                                     //1%
-          FDBS.ClearDBSTables;
+          FDBS.DeleteDBSTables;
 
           //FDBS.InsertDBSStateJournal(Msg.Message, 1);
           FState.Value := 1;
@@ -1108,18 +1078,4 @@ begin
   FMsgLogSQL := AMsgLogSQL;
   Synchronize(DoOnlogSQLSync);
 end;
-
-{procedure TgsDBSqueezeThread.ContinueProcessing(const AFunctionKey: Integer; const AState: Integer);
-begin
-  if (not Busy) then//Connected and (not Busy) then
-  begin
-    FDBS.SetFVariables;                                         //////////
-    FDBS.InsertDBSStateJournal(WM_DBS_STARTPROCESSING, 1);
-    if (AState = -1) or (AState = 0) then
-      PostMsg(AFunctionKey)
-    else if (AState = 1) and ((AFunctionKey+1) < WM_DBS_FINISHED) then   ///////
-      PostMsg(AFunctionKey + 1);
-  end;
-    /// TODO: exception proc
-end; }
 end.
