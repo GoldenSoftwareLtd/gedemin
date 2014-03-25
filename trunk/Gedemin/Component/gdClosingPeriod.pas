@@ -1959,6 +1959,7 @@ begin
   // На Псевдоклиента будет оформлятся расход товара при формировании остатков
   FPseudoClientKey := gdcBaseManager.GetIDByRUID(147004309, 31587988);            // TODO: заменить взятие ИД на выбор контакта в настройках
   // Выберем подходящие бухгалтерские аналитики
+  FEntryAvailableAnalytics.Clear;
   AcAccountRelation := atDatabase.Relations.ByRelationName('AC_ACCOUNT');
   if Assigned(AcAccountRelation) then
   begin
