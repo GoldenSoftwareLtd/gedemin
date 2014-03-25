@@ -180,7 +180,7 @@ end;
 procedure TfrmCalculateBalance.actCalculateExecute(Sender: TObject);
 begin
   if Assigned(atDatabase.Relations.ByRelationName('AC_ENTRY_BALANCE'))
-     and (xdeCurrentDate.Date > 0) then
+   {  and (xdeCurrentDate.Date > 0) } then
   begin
     // Установим параметры закрытия
     FClosingPeriodObject.CloseDate := xdeCurrentDate.Date;
