@@ -2200,8 +2200,8 @@ begin
         '  ABS(SUM(debitncu)  - SUM(creditncu)), ' +            #13#10 +
         '  ABS(SUM(debitcurr) - SUM(creditcurr)), ' +           #13#10 +
         '  ABS(SUM(debiteq)   - SUM(crediteq)), ' +             #13#10 +
-        '  CAST(0.0000 AS DECIMAL(15,4)) , ' +                                         #13#10 +
-        '  CAST(0.0000 AS DECIMAL(15,4)) , ' +                                         #13#10 +
+        '  CAST(0.0000 AS DECIMAL(15,4)) , ' +                  #13#10 +
+        '  CAST(0.0000 AS DECIMAL(15,4)) , ' +                  #13#10 +
         '  CAST(0.0000 AS DECIMAL(15,4)) ');
       for I := 0 to AvailableAnalyticsList.Count - 1 do
         q3.SQL.Add(', ' +
@@ -2382,32 +2382,34 @@ begin
     q2.SQL.Text :=
       'SELECT FIRST(1) s.companykey FROM DBS_TMP_INV_SALDO s';                  ///TODO: выбрать компанию для дока
     ExecSqlLogEvent(q2, 'CalculateInvSaldo');
+    if not q2.EOF then
+    begin
+      // SaldoDoc
+      q.SQL.Text :=
+        'INSERT INTO GD_DOCUMENT (' +                   #13#10 +
+        '  id, ' +                                      #13#10 +
+        '  documenttypekey, ' +                         #13#10 +
+        '  number, '  +                                 #13#10 +
+        '  documentdate, ' +                            #13#10 +
+        '  companykey, afull, achag, aview, ' +         #13#10 +
+        '  creatorkey, editorkey) ' +                   #13#10 +
+        'VALUES( '  +                                   #13#10 +
+        '  :id, ' +                                     #13#10 +
+        '  :documenttypekey, ' +                        #13#10 +
+        '  :number, ' +                                 #13#10 +
+        '  :documentdate, ' +                           #13#10 +
+        '  :companykey, -1, -1, -1, ' +                 #13#10 +
+        '  :UserKey, :UserKey) ';
 
-    // SaldoDoc
-    q.SQL.Text :=
-      'INSERT INTO GD_DOCUMENT (' +                   #13#10 +
-      '  id, ' +                                      #13#10 +
-      '  documenttypekey, ' +                         #13#10 +
-      '  number, '  +                                 #13#10 +
-      '  documentdate, ' +                            #13#10 +
-      '  companykey, afull, achag, aview, ' +         #13#10 +
-      '  creatorkey, editorkey) ' +                   #13#10 +
-      'VALUES( '  +                                   #13#10 +
-      '  :id, ' +                                     #13#10 +
-      '  :documenttypekey, ' +                        #13#10 +
-      '  :number, ' +                                 #13#10 +
-      '  :documentdate, ' +                           #13#10 +
-      '  :companykey, -1, -1, -1, ' +                 #13#10 +
-      '  :UserKey, :UserKey) ';
+      q.ParamByName('id').AsInteger := FInvSaldoDoc;
+      q.ParamByName('documenttypekey').AsInteger := FProizvolnyyDocTypeKey;
+      q.ParamByName('documentdate').AsDateTime := FClosingDate;
+      q.ParamByName('UserKey').AsInteger := FCurUserContactKey;
+      q.ParamByName('number').AsString := NEWINVDOCUMENT_NUMBER;
+      q.ParamByName('companykey').AsInteger := q2.FieldByName('companykey').AsInteger;
 
-    q.ParamByName('id').AsInteger := FInvSaldoDoc;
-    q.ParamByName('documenttypekey').AsInteger := FProizvolnyyDocTypeKey;
-    q.ParamByName('documentdate').AsDateTime := FClosingDate;
-    q.ParamByName('UserKey').AsInteger := FCurUserContactKey;
-    q.ParamByName('number').AsString := NEWINVDOCUMENT_NUMBER;
-    q.ParamByName('companykey').AsInteger := q2.FieldByName('companykey').AsInteger;
-
-    ExecSqlLogEvent(q, 'CreateInvSaldo');
+      ExecSqlLogEvent(q, 'CreateInvSaldo');
+    end;
     q2.Close;
     Tr.Commit;
 
@@ -4273,7 +4275,7 @@ begin
       'FROM DBS_TMP_AC_SALDO ';
     q2.ParamByName('AccDocTypeKey').AsInteger := HOZOPERATION_DOCTYPE_KEY;
     q2.ParamByName('Number').AsString := NEWDOCUMENT_NUMBER;
-    q2.ParamByName('ClosingDate').AsDateTime := FClosingDate;
+    q2.ParamByName('ClosingDate').AsDateTime := FClosingDate-1;
     q2.ParamByName('CurUserContactKey').AsInteger := FCurUserContactKey;
 
     ExecSqlLogEvent(q2, 'CreateAcEntries');
@@ -4293,7 +4295,7 @@ begin
       '  :ProizvolnyeTransactionKey, ' +                                 #13#10 +
       '  documentkey, masterdockey, -1, -1, -1, companykey ' +           #13#10 +
       'FROM DBS_TMP_AC_SALDO ';
-    qInsertAcRec.ParamByName('ClosingDate').AsDateTime := FClosingDate;
+    qInsertAcRec.ParamByName('ClosingDate').AsDateTime := FClosingDate-1;
     qInsertAcRec.ParamByName('ProizvolnyeTrRecordKey').AsInteger := PROIZVOLNYE_TRRECORD_KEY;
     qInsertAcRec.ParamByName('ProizvolnyeTransactionKey').AsInteger := PROIZVOLNYE_TRANSACTION_KEY;
 
@@ -4330,7 +4332,7 @@ begin
           FEntryAnalyticsStr);
     qInsertAcEntry.SQL.Add(' ' +
       'FROM DBS_TMP_AC_SALDO ');
-    qInsertAcEntry.ParamByName('ClosingDate').AsDateTime := FClosingDate;
+    qInsertAcEntry.ParamByName('ClosingDate').AsDateTime := FClosingDate-1;
     qInsertAcEntry.ParamByName('ProizvolnyeTransactionKey').AsInteger := PROIZVOLNYE_TRANSACTION_KEY;
 
     ExecSqlLogEvent(qInsertAcEntry, 'CreateAcEntries');
@@ -4352,7 +4354,7 @@ begin
         '  :ProizvolnyeTransactionKey, ' +                                          #13#10 +
         '  documentkey, masterdockey, -1, -1, -1, companykey ' +                    #13#10 +
         'FROM DBS_TMP_AC_SALDO ';
-      qInsertAcRec.ParamByName('ClosingDate').AsDateTime := FClosingDate;
+      qInsertAcRec.ParamByName('ClosingDate').AsDateTime := FClosingDate-1;
       qInsertAcRec.ParamByName('ProizvolnyeTrRecordKey').AsInteger := PROIZVOLNYE_TRRECORD_KEY;
       qInsertAcRec.ParamByName('ProizvolnyeTransactionKey').AsInteger := PROIZVOLNYE_TRANSACTION_KEY;
 
@@ -4394,7 +4396,7 @@ begin
         'FROM DBS_TMP_AC_SALDO ');
       
       qInsertAcEntry.ParamByName('OstatkyAccountKey').AsInteger := OSTATKY_ACCOUNT_KEY;
-      qInsertAcEntry.ParamByName('ClosingDate').AsDateTime := FClosingDate;
+      qInsertAcEntry.ParamByName('ClosingDate').AsDateTime := FClosingDate-1;
       qInsertAcEntry.ParamByName('ProizvolnyeTransactionKey').AsInteger := PROIZVOLNYE_TRANSACTION_KEY;
 
       ExecSqlLogEvent(qInsertAcEntry, 'CreateAcEntries');
@@ -4451,7 +4453,7 @@ begin
         'FROM  DBS_TMP_INV_SALDO ';
       q.ParamByName('SaldoDoc').AsInteger := FInvSaldoDoc;
       q.ParamByName('FPseudoClientKey').AsInteger := FPseudoClientKey;
-      q.ParamByName('ClosingDate').AsDateTime := FClosingDate;
+      q.ParamByName('ClosingDate').AsDateTime := FClosingDate-1;                //TODO: уточнить
       ExecSqlLogEvent(q, 'CreateInvSaldo');
 
       Tr.Commit;
@@ -4478,7 +4480,7 @@ begin
         '    contactkey) ' +                            #13#10 +
         'FROM  DBS_TMP_INV_SALDO ';
       q.ParamByName('SaldoDoc').AsInteger := FInvSaldoDoc;
-      q.ParamByName('ClosingDate').AsDateTime := FClosingDate;
+      q.ParamByName('ClosingDate').AsDateTime := FClosingDate-1;
       q.ParamByName('FPseudoClientKey').AsInteger := FPseudoClientKey;
       q.ParamByName('FPseudoClientKey').AsInteger := FPseudoClientKey;
 
