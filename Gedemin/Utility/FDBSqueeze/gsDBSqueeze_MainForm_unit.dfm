@@ -1,9 +1,9 @@
 object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
-  Left = 245
-  Top = 247
+  Left = 1387
+  Top = 38
   BorderStyle = bsDialog
   ClientHeight = 536
-  ClientWidth = 852
+  ClientWidth = 853
   Color = clBtnFace
   Font.Charset = RUSSIAN_CHARSET
   Font.Color = clWindowText
@@ -117,7 +117,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           Top = 54
           Width = 634
           Height = 369
-          ActivePage = tsSqueezeSettings
+          ActivePage = tsSettings2
           TabOrder = 0
           object tsConnection: TTabSheet
             Caption = 'Database Connection'
@@ -254,9 +254,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
                 Height = 17
                 Action = actRadioLocation
                 Caption = 'Locale'
-                Checked = True
                 TabOrder = 0
-                TabStop = True
               end
               object edtHost: TEdit
                 Left = 74
@@ -274,8 +272,6 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
                 TabStop = False
                 Action = actDefaultPort
                 Caption = 'default'
-                Checked = True
-                State = cbChecked
                 TabOrder = 4
               end
               object sePort: TSpinEdit
@@ -498,19 +494,20 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           object tsSqueezeSettings: TTabSheet
             Caption = 'Squeeze Settings'
             ImageIndex = 1
-            object lbl5: TLabel
-              Left = 99
-              Top = 77
-              Width = 183
-              Height = 13
-              Caption = 'Удалить записи из gd_document до:'
-            end
             object lbl6: TLabel
-              Left = 100
-              Top = 120
+              Left = 44
+              Top = 304
               Width = 183
               Height = 13
               Caption = 'Рассчитать и сохранить сальдо по: '
+              Visible = False
+            end
+            object lbl5: TLabel
+              Left = 99
+              Top = 69
+              Width = 228
+              Height = 13
+              Caption = 'Удалить записи из gd_document до (строго):'
             end
             object shp11: TShape
               Left = 19
@@ -521,9 +518,54 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Pen.Color = 10768896
               Pen.Width = 3
             end
+            object cbbCompany: TComboBox
+              Left = 135
+              Top = 320
+              Width = 370
+              Height = 21
+              TabStop = False
+              DropDownCount = 10
+              Enabled = False
+              ItemHeight = 13
+              TabOrder = 13
+              Visible = False
+              OnDrawItem = cbbCompanyDrawItem
+            end
+            object chk1: TCheckBox
+              Left = 98
+              Top = 324
+              Width = 449
+              Height = 17
+              TabStop = False
+              Caption = 
+                'Перепривязать: inv_card.parent,  inv_card.firstdocumentkey, inv_' +
+                'movement.cardkey'
+              Enabled = False
+              TabOrder = 14
+              Visible = False
+              OnClick = actDefocusExecute
+            end
+            object rbCompany: TRadioButton
+              Left = 397
+              Top = 299
+              Width = 164
+              Height = 17
+              Action = actCompany
+              TabOrder = 10
+              Visible = False
+            end
+            object rbAllOurCompanies: TRadioButton
+              Left = 212
+              Top = 299
+              Width = 173
+              Height = 17
+              Action = actCompany
+              TabOrder = 9
+              Visible = False
+            end
             object dtpClosingDate: TDateTimePicker
-              Left = 305
-              Top = 74
+              Left = 337
+              Top = 66
               Width = 86
               Height = 21
               Hint = 'рассчитать сальдо и удалить документы'
@@ -538,36 +580,6 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               TabOrder = 2
               TabStop = False
             end
-            object rbAllOurCompanies: TRadioButton
-              Left = 156
-              Top = 147
-              Width = 173
-              Height = 17
-              Action = actCompany
-              Caption = 'всем рабочим организациям'
-              TabOrder = 3
-            end
-            object rbCompany: TRadioButton
-              Left = 157
-              Top = 179
-              Width = 164
-              Height = 17
-              Action = actCompany
-              Caption = 'рабочей организации'
-              TabOrder = 4
-            end
-            object cbbCompany: TComboBox
-              Left = 175
-              Top = 208
-              Width = 370
-              Height = 21
-              TabStop = False
-              DropDownCount = 10
-              Enabled = False
-              ItemHeight = 13
-              TabOrder = 5
-              OnDrawItem = cbbCompanyDrawItem
-            end
             object btnNext2: TButton
               Left = 587
               Top = 318
@@ -575,7 +587,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Height = 25
               Action = actNextPage
               Caption = '>'
-              TabOrder = 9
+              TabOrder = 12
               TabStop = False
             end
             object btnBack1: TButton
@@ -584,32 +596,20 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Width = 25
               Height = 25
               Caption = '<'
-              TabOrder = 8
+              TabOrder = 11
               TabStop = False
               OnClick = actBackPageExecute
             end
             object chk00Account: TCheckBox
-              Left = 106
-              Top = 256
-              Width = 321
-              Height = 17
-              TabStop = False
-              Caption = 'Отразить бухгалтерское сальдо на счете "00 Остатки"'
-              TabOrder = 6
-              OnClick = actDefocusExecute
-            end
-            object chk1: TCheckBox
-              Left = 98
-              Top = 324
-              Width = 449
+              Left = 99
+              Top = 130
+              Width = 390
               Height = 17
               TabStop = False
               Caption = 
-                'Перепривязать: inv_card.parent,  inv_card.firstdocumentkey, inv_' +
-                'movement.cardkey'
-              Enabled = False
-              TabOrder = 10
-              Visible = False
+                'Дополнительно отразить бухгалтерское сальдо на счете "00 Остатки' +
+                '"'
+              TabOrder = 4
               OnClick = actDefocusExecute
             end
             object StaticText14: TStaticText
@@ -650,14 +650,61 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               TabOrder = 1
             end
             object btnLoadConfigFile: TButton
-              Left = 104
-              Top = 292
+              Left = 99
+              Top = 293
               Width = 209
               Height = 25
               Caption = 'Загрузить конфигурацию из файла...'
-              TabOrder = 7
+              TabOrder = 8
               TabStop = False
               OnClick = actConfigBrowseExecute
+            end
+            object chk2: TCheckBox
+              Left = 99
+              Top = 98
+              Width = 321
+              Height = 17
+              TabStop = False
+              Caption = 'Сохранить бухгалтерское и складское сальдо'
+              TabOrder = 3
+              OnClick = actDefocusExecute
+            end
+            object mIgnoreDocTypes: TMemo
+              Left = 99
+              Top = 224
+              Width = 445
+              Height = 52
+              TabStop = False
+              Color = clWhite
+              ReadOnly = True
+              ScrollBars = ssVertical
+              TabOrder = 7
+            end
+            object tbcDocTypes: TTabControl
+              Left = 97
+              Top = 196
+              Width = 457
+              Height = 28
+              Style = tsButtons
+              TabHeight = 25
+              TabOrder = 6
+              Tabs.Strings = (
+                'Не обрабатывать выбранные типы'
+                'Обрабатывать только выбранные')
+              TabIndex = 0
+              TabStop = False
+              TabWidth = 220
+              OnChange = actDefocusExecute
+            end
+            object btn3: TButton
+              Left = 99
+              Top = 163
+              Width = 209
+              Height = 25
+              Caption = 'Выбрать типы документов...'
+              TabOrder = 5
+              TabStop = False
+              OnClick = btn3Click
             end
           end
           object tsSettings2: TTabSheet
@@ -678,7 +725,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Width = 25
               Height = 25
               Caption = '<'
-              TabOrder = 5
+              TabOrder = 2
               TabStop = False
               OnClick = actBackPageExecute
             end
@@ -689,7 +736,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Height = 25
               Action = actNextPage
               Caption = '>'
-              TabOrder = 6
+              TabOrder = 3
               TabStop = False
             end
             object txt1: TStaticText
@@ -709,51 +756,6 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               ParentColor = False
               ParentFont = False
               TabOrder = 0
-            end
-            object tbcDocTypes: TTabControl
-              Left = 47
-              Top = 58
-              Width = 514
-              Height = 28
-              Style = tsButtons
-              TabHeight = 25
-              TabOrder = 2
-              Tabs.Strings = (
-                'Не обрабатывать выбранные типы'
-                'Обрабатывать только выбранные')
-              TabIndex = 0
-              TabStop = False
-              TabWidth = 247
-              OnChange = actDefocusExecute
-            end
-            object strngrdIgnoreDocTypes: TStringGrid
-              Left = 48
-              Top = 96
-              Width = 498
-              Height = 150
-              TabStop = False
-              ColCount = 2
-              DefaultColWidth = 390
-              DefaultRowHeight = 20
-              FixedCols = 0
-              RowCount = 10
-              FixedRows = 0
-              Options = [goFixedHorzLine, goVertLine, goHorzLine, goRangeSelect, goRowSelect]
-              ScrollBars = ssVertical
-              TabOrder = 3
-              OnDblClick = strngrdIgnoreDocTypesDblClick
-              OnDrawCell = strngrdIgnoreDocTypesDrawCell
-            end
-            object mIgnoreDocTypes: TMemo
-              Left = 48
-              Top = 249
-              Width = 498
-              Height = 54
-              TabStop = False
-              Color = clBtnFace
-              ReadOnly = True
-              ScrollBars = ssVertical
-              TabOrder = 4
             end
             object txt9: TStaticText
               Left = 212

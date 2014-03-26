@@ -5,7 +5,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs, FileCtrl, 
   ActnList, ComCtrls, Buttons, StdCtrls, Grids, Spin, ExtCtrls,
-  gsDBSqueezeThread_unit, gsDBSqueezeIniOptions_unit, gd_ProgressNotifier_unit,
+  gsDBSqueeze_DocTypesForm_unit,gsDBSqueezeThread_unit, gsDBSqueezeIniOptions_unit, gd_ProgressNotifier_unit,
   DBCtrls, CommCtrl, Db, ADODB;
 
 const
@@ -37,80 +37,21 @@ type
     actRadioLocation: TAction;
     actStop: TAction;
     actUpdate: TAction;
-    btn1: TButton;
-    btn2: TButton;
-    btnBack1: TButton;
-    btnBack2: TButton;
-    btnBack3: TBitBtn;
-    btnBackupBrowse: TButton;
     btnClearGeneralLog: TButton;
     btnClearSqlLog: TButton;
-    btnDatabaseBrowse: TButton;
     btnGetStatistics: TButton;
-    btnGo: TBitBtn;
-    btnLoadConfigFile: TButton;
-    btnLogDirBrowse: TButton;
-    btnNext1: TButton;
-    btnNext2: TButton;
-    btnNext3: TButton;
-    btnRestoreBrowse: TButton;
-    btnSaveConfigFile: TButton;
     btnStop: TButton;
-    btntTestConnection: TButton;
     btnUpdateStatistics: TBitBtn;
-    cbbCharset: TComboBox;
-    cbbCompany: TComboBox;
-    chk00Account: TCheckBox;
-    chk1: TCheckBox;
-    chkBackup: TCheckBox;
-    chkbSaveLogs: TCheckBox;
-    chkDefaultPort: TCheckBox;
-    chkRestore: TCheckBox;
-    dtpClosingDate: TDateTimePicker;
-    edDatabaseName: TEdit;
-    edLogs: TEdit;
-    edPassword: TEdit;
-    edtBackup: TEdit;
-    edtHost: TEdit;
-    edtRestore: TEdit;
-    edUserName: TEdit;
-    grpAuthorization: TGroupBox;
-    grpDatabase: TGroupBox;
-    grpReprocessingType: TGroupBox;
     Label1: TLabel;
-    lbl1: TLabel;
-    lbl2: TLabel;
-    lbl3: TLabel;
-    lbl4: TLabel;
-    lbl5: TLabel;
-    lbl6: TLabel;
-    lbl8: TLabel;
-    lblBackup: TLabel;
-    lblLogDir: TLabel;
-    lblRestore: TLabel;
-    mIgnoreDocTypes: TMemo;
     mLog: TMemo;
-    mReviewSettings: TMemo;
     mSqlLog: TMemo;
     pbMain: TProgressBar;
     pgcMain: TPageControl;
-    pgcSettings: TPageControl;
     pnl1: TPanel;
     pnl2: TPanel;
     pnl3: TPanel;
     pnl4: TPanel;
-    rbAllOurCompanies: TRadioButton;
-    rbCompany: TRadioButton;
-    rbContinue: TRadioButton;
-    rbLocale: TRadioButton;
-    rbRemote: TRadioButton;
-    rbStartOver: TRadioButton;
-    sePort: TSpinEdit;
     shp10: TShape;
-    shp11: TShape;
-    shp12: TShape;
-    shp13: TShape;
-    shp14: TShape;
     shp1: TShape;
     shp2: TShape;
     shp3: TShape;
@@ -119,28 +60,17 @@ type
     shp6: TShape;
     shp7: TShape;
     shp8: TShape;
-    shp9: TShape;
     statbarMain: TStatusBar;
     StaticText10: TStaticText;
     StaticText11: TStaticText;
     StaticText12: TStaticText;
-    StaticText13: TStaticText;
-    StaticText14: TStaticText;
-    StaticText1: TStaticText;
-    StaticText2: TStaticText;
-    StaticText3: TStaticText;
-    StaticText4: TStaticText;
     StaticText5: TStaticText;
     StaticText6: TStaticText;
     StaticText7: TStaticText;
     StaticText8: TStaticText;
     StaticText9: TStaticText;
-    strngrdIgnoreDocTypes: TStringGrid;
     sttxt11: TStaticText;
-    sttxt17: TStaticText;
-    sttxt18: TStaticText;
     sttxt19: TStaticText;
-    sttxt1: TStaticText;
     sttxt20: TStaticText;
     sttxt21: TStaticText;
     sttxt28: TStaticText;
@@ -155,8 +85,6 @@ type
     sttxt6: TStaticText;
     sttxtAcEntry: TStaticText;
     sttxtAcEntryAfter: TStaticText;
-    sttxtActivConnects: TStaticText;
-    sttxtActivUserCount: TStaticText;
     sttxtAfterProcAcEntry: TStaticText;
     sttxtAfterProcGdDoc: TStaticText;
     sttxtAfterProcInvCard: TStaticText;
@@ -181,34 +109,107 @@ type
     sttxtProcInvMovement: TStaticText;
     sttxtRemoteAddr: TStaticText;
     sttxtRemoteProtocol: TStaticText;
-    sttxtServerName: TStaticText;
     sttxtServerVer: TStaticText;
-    sttxtStateTestConnect: TStaticText;
-    sttxtTestConnectState: TStaticText;
-    sttxtTestServer: TStaticText;
     sttxtUser: TStaticText;
-    tbcDocTypes: TTabControl;
     tbcPageController: TTabControl;
     tsAbout: TTabSheet;
-    tsConnection: TTabSheet;
     tsLogs: TTabSheet;
-    tsOptions: TTabSheet;
-    tsReviewSettings: TTabSheet;
-    tsSettings2: TTabSheet;
     tsSettings: TTabSheet;
-    tsSqueezeSettings: TTabSheet;
     tsStatistics: TTabSheet;
     txt10: TStaticText;
-    txt11: TStaticText;
-    txt1: TStaticText;
     txt2: TStaticText;
     txt3: TStaticText;
     txt4: TStaticText;
     txt5: TStaticText;
     txt6: TStaticText;
+    pgcSettings: TPageControl;
+    tsConnection: TTabSheet;
+    shp9: TShape;
+    StaticText4: TStaticText;
+    cbbCharset: TComboBox;
+    StaticText2: TStaticText;
+    sttxtStateTestConnect: TStaticText;
+    StaticText3: TStaticText;
+    btnNext1: TButton;
+    grpDatabase: TGroupBox;
+    lbl4: TLabel;
+    lbl8: TLabel;
+    lbl1: TLabel;
+    rbRemote: TRadioButton;
+    rbLocale: TRadioButton;
+    edtHost: TEdit;
+    chkDefaultPort: TCheckBox;
+    sePort: TSpinEdit;
+    edDatabaseName: TEdit;
+    btnDatabaseBrowse: TButton;
+    grpAuthorization: TGroupBox;
+    lbl2: TLabel;
+    lbl3: TLabel;
+    edUserName: TEdit;
+    edPassword: TEdit;
+    sttxt1: TStaticText;
+    btntTestConnection: TButton;
+    sttxtActivUserCount: TStaticText;
+    sttxtServerName: TStaticText;
+    sttxtActivConnects: TStaticText;
+    sttxtTestConnectState: TStaticText;
+    StaticText1: TStaticText;
+    sttxtTestServer: TStaticText;
     txt7: TStaticText;
-    txt8: TStaticText;
+    tsSqueezeSettings: TTabSheet;
+    lbl5: TLabel;
+    lbl6: TLabel;
+    shp11: TShape;
+    dtpClosingDate: TDateTimePicker;
+    rbAllOurCompanies: TRadioButton;
+    rbCompany: TRadioButton;
+    cbbCompany: TComboBox;
+    btnNext2: TButton;
+    btnBack1: TButton;
+    chk00Account: TCheckBox;
+    chk1: TCheckBox;
+    StaticText14: TStaticText;
+    StaticText13: TStaticText;
+    btnLoadConfigFile: TButton;
+    tsSettings2: TTabSheet;
+    shp14: TShape;
+    btn1: TButton;
+    btn2: TButton;
+    txt1: TStaticText;
     txt9: TStaticText;
+    tsOptions: TTabSheet;
+    lblLogDir: TLabel;
+    lblBackup: TLabel;
+    shp12: TShape;
+    lblRestore: TLabel;
+    btnNext3: TButton;
+    btnBack2: TButton;
+    sttxt17: TStaticText;
+    chkbSaveLogs: TCheckBox;
+    chkBackup: TCheckBox;
+    edLogs: TEdit;
+    btnLogDirBrowse: TButton;
+    edtBackup: TEdit;
+    btnBackupBrowse: TButton;
+    grpReprocessingType: TGroupBox;
+    rbStartOver: TRadioButton;
+    rbContinue: TRadioButton;
+    edtRestore: TEdit;
+    btnRestoreBrowse: TButton;
+    chkRestore: TCheckBox;
+    btnSaveConfigFile: TButton;
+    txt8: TStaticText;
+    tsReviewSettings: TTabSheet;
+    shp13: TShape;
+    sttxt18: TStaticText;
+    btnGo: TBitBtn;
+    btnBack3: TBitBtn;
+    mReviewSettings: TMemo;
+    txt11: TStaticText;
+    chk2: TCheckBox;
+    mIgnoreDocTypes: TMemo;
+    tbcDocTypes: TTabControl;
+    btn3: TButton;
 
     procedure actBackPageExecute(Sender: TObject);
     procedure actClearLogExecute(Sender: TObject);
@@ -237,9 +238,8 @@ type
     procedure cbbCompanyDrawItem(Control: TWinControl; Index: Integer;Rect: TRect; State: TOwnerDrawState);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
     procedure statbarMainDrawPanel(StatusBar: TStatusBar;Panel: TStatusPanel; const Rect: TRect);
-    procedure strngrdIgnoreDocTypesDblClick(Sender: TObject);
-    procedure strngrdIgnoreDocTypesDrawCell(Sender: TObject; ACol,ARow: Integer; Rect: TRect; State: TGridDrawState);
     procedure tbcPageControllerChange(Sender: TObject);
+    procedure btn3Click(Sender: TObject);
 
   private
     FStartupTime: TDateTime;
@@ -251,14 +251,13 @@ type
     FWrited: Boolean;
     FIsProcessStop: Boolean;
 
-    FRowsSelectBits: TBits;
     FDocTypesList: TStringList;
     FDatabaseName: String;
 
     procedure ThreadDestroy;
     procedure RecLog(const ARec: String);
     procedure SetProgress(const ACurrentStepName: String; const ACurrentStep: Integer);
-    procedure UpdateDocTypesMemo;
+    procedure SetTextDocTypesMemo(Text: String);
     procedure UpdateProgress(const AProgressInfo: TgdProgressInfo);
     procedure WriteToLogFile(const AStr: String);
     procedure CheckFreeDiskSpace(const APath: String; const AFileSize: Int64);
@@ -296,7 +295,6 @@ begin
   inherited;
 
   CharsetList := TStringList.Create;
-  FRowsSelectBits := TBits.Create;
   FDocTypesList := TStringList.Create;
   try
     // скрытие ярлыков PageControl
@@ -330,6 +328,7 @@ begin
     cbbCharset.Items.AddStrings(CharsetList);
     cbbCharset.ItemIndex := cbbCharset.Items.IndexOf(DEFAULT_CHARACTER_SET);
 
+    rbAllOurCompanies.Checked := True;
     cbbCompany.Style := csOwnerDrawFixed;
     gsDBSqueeze_MainForm.DefocusControl(tbcDocTypes, False);
 
@@ -358,7 +357,6 @@ begin
   FSThread.Free;
   if Assigned(FLogFileStream) then
     FLogFileStream.Free;
-  FRowsSelectBits.Free;
   FDocTypesList.Free;
   inherited;
 end;
@@ -382,11 +380,10 @@ var
 begin
   FStartupTime := Now;
 
-  with strngrdIgnoreDocTypes do
-  for I:=0 to ColCount-1 do
-    Cols[I].Clear;
-
+  gsDBSqueeze_DocTypesForm.ClearData;
+  mIgnoreDocTypes.Clear;
   FDocTypesList.Clear;
+
   FSaveLogs := False;
 
   sttxtStateTestConnect.Caption := 'unknown';
@@ -403,7 +400,6 @@ begin
   rbAllOurCompanies.Checked := True;
   chk00Account.Checked := False;
   tbcDocTypes.TabIndex := 0;
-  mIgnoreDocTypes.Clear;
   chkbSaveLogs.Checked := False;
   chkBackup.Checked := False;
   chkRestore.Checked := False;
@@ -609,21 +605,8 @@ begin
 end;
 //---------------------------------------------------------------------------
 procedure TgsDBSqueeze_MainForm.SetDocTypeStringsEvent(const ADocTypes: TStringList);
-var
-  I: Integer;
 begin
-  FreeAndNil(FRowsSelectBits);
-  FRowsSelectBits := TBits.Create;
-
-  FRowsSelectBits.Size := ADocTypes.Count;
-  strngrdIgnoreDocTypes.ColCount := 2;
-  strngrdIgnoreDocTypes.RowCount :=  ADocTypes.Count;
-
-  for I:=0 to ADocTypes.Count-1 do
-  begin
-    strngrdIgnoreDocTypes.Cells[0, I] := ADocTypes.Values[ADocTypes.Names[I]];  // имя типа дока
-    strngrdIgnoreDocTypes.Cells[1, I] := ADocTypes.Names[I];                    // id типа
-  end;
+  gsDBSqueeze_DocTypesForm.SetDocTypes(ADocTypes);
 end;
 //---------------------------------------------------------------------------
 procedure  TgsDBSqueeze_MainForm.GetDBPropertiesEvent(const AProperties: TStringList);
@@ -814,11 +797,7 @@ begin
     if btnGo.Enabled then
     begin
       FDocTypesList.Clear;
-      for I:=0 to FRowsSelectBits.Size-1 do
-      begin
-        if FRowsSelectBits[I] then
-          FDocTypesList.Append(Trim(strngrdIgnoreDocTypes.Cells[1, I]));
-      end;
+      FDocTypesList := gsDBSqueeze_DocTypesForm.GetSelectedDocTypes;
 
       if FDocTypesList.Count <> 0 then
         FSThread.SetSelectDocTypes(FDocTypesList, (tbcDocTypes.TabIndex=1));
@@ -848,7 +827,7 @@ begin
       if edtRestore.Enabled then
       begin
         if (Trim(edtBackup.Text))[Length(Trim(edtBackup.Text))] = '\' then
-          RestoreDBName := Trim(edtRestore.Text) + '\DBS_RESTORE_' + FormatDateTime('yymmdd_hhmm', FStartupTime) + '_' + FDatabaseName
+          RestoreDBName := Trim(edtRestore.Text) + 'DBS_RESTORE_' + FormatDateTime('yymmdd_hhmm', FStartupTime) + '_' + FDatabaseName
         else
           RestoreDBName := Trim(edtRestore.Text) + '\DBS_RESTORE_' + FormatDateTime('yymmdd_hhmm', FStartupTime) + '_' + FDatabaseName;
       end;
@@ -858,7 +837,7 @@ begin
 
       if edtBackup.Enabled then
       begin
-        if ExtractFileDir(FDatabaseName) = ExtractFileDir(Trim(edtBackup.Text) then
+        if ExtractFileDir(FDatabaseName) = ExtractFileDir(Trim(edtBackup.Text)) then
           RequiredSize := RequiredSize + FSThread.DBSize
         else
           RequiredSize := FSThread.DBSize;
@@ -868,10 +847,10 @@ begin
       if edtRestore.Enabled then
       begin
         if (edtBackup.Enabled) and
-           (ExtractFileDir(Trim(edtBackup.Text)) = ExtractFileDir(Trim(edtRestore.Text)) = ExtractFileDir(FDatabaseName)) then
+           ((ExtractFileDir(Trim(edtBackup.Text))) = (ExtractFileDir(Trim(edtRestore.Text)))) and ((ExtractFileDir(Trim(edtBackup.Text))) = (ExtractFileDir(FDatabaseName))) then
           RequiredSize := RequiredSize + FSThread.DBSize
-        else if ExtractFileDir(Trim(edtRestore.Text)) = (ExtractFileDir(Trim(edtBackup.Text)) then
-          RequiredSize := RequiredSize + FSThread.DBSize;
+        else if ExtractFileDir(Trim(edtRestore.Text)) = ExtractFileDir(Trim(edtBackup.Text)) then
+          RequiredSize := RequiredSize + FSThread.DBSize
         else if ExtractFileDir(Trim(edtRestore.Text)) = ExtractFileDir(FDatabaseName) then
           RequiredSize := FSThread.DBSize +  FSThread.DBSize div 2
         else
@@ -1101,7 +1080,7 @@ begin
   gsDBSqueeze_MainForm.DefocusControl(btnStop, False);
   case Application.MessageBox(
     PChar('Прервать процесс обработки БД?' + #13#10 +
-      'Прерывание произойдет после завершения последней операции' + #13#10 +
+      'Прерывание произойдет после завершения последней операции.' + #13#10 +
       'Возобновить процесс будет невозможно.'),
     PChar('Подтверждение'),
     MB_OKCANCEL + MB_ICONQUESTION + MB_TOPMOST) of
@@ -1130,66 +1109,10 @@ begin
   end
 end;
 //---------------------------------------------------------------------------
-procedure TgsDBSqueeze_MainForm.strngrdIgnoreDocTypesDrawCell(Sender: TObject;
-  ACol, ARow: Integer; Rect: TRect; State: TGridDrawState);
-var
-  AGrid : TStringGrid;
+procedure TgsDBSqueeze_MainForm.SetTextDocTypesMemo(Text: String);
 begin
-  AGrid:=TStringGrid(Sender);
-
-   if not FRowsSelectBits[ARow] then
-     AGrid.Canvas.Brush.Color := clWhite
-   else
-     AGrid.Canvas.Brush.Color := $0088AEFF;
-
-   if (gdSelected in State) then
-   begin
-     if not FRowsSelectBits[ARow] then
-     begin
-       AGrid.Canvas.Brush.Color := $0088AEFF;
-     end
-     else
-       AGrid.Canvas.Brush.Color := $001F67FC;
-   end;
-    AGrid.Canvas.FillRect(Rect);  //paint the backgorund color
-    AGrid.Canvas.TextOut(Rect.Left + 2, Rect.Top + 2, AGrid.Cells[ACol, ARow]);
-end;
-//---------------------------------------------------------------------------
-procedure TgsDBSqueeze_MainForm.strngrdIgnoreDocTypesDblClick(
-  Sender: TObject);
-begin
-  if Sender = strngrdIgnoreDocTypes then
-  begin
-    if not FRowsSelectBits[(Sender as TStringGrid).Row] then
-      FRowsSelectBits[(Sender as TStringGrid).Row] := True
-    else begin
-      FRowsSelectBits[(Sender as TStringGrid).Row] := False;
-    end;
-    (Sender as TStringGrid).Repaint;
-
-    UpdateDocTypesMemo;
-  end;
-end;
-//---------------------------------------------------------------------------
-procedure TgsDBSqueeze_MainForm.UpdateDocTypesMemo;
-var
-  I: Integer;
-  Str: String;
-  Delimiter: String;
-begin
-  for I:=0 to FRowsSelectBits.Size-1 do
-  begin
-    if FRowsSelectBits[I] then
-    begin
-      if Str <> '' then
-        Delimiter := ', '
-      else
-        Delimiter := '';
-      Str := Str + Delimiter + strngrdIgnoreDocTypes.Cells[0, I] + ' (' + strngrdIgnoreDocTypes.Cells[1, I] + ')';
-    end;
-  end;
   mIgnoreDocTypes.Clear;
-  mIgnoreDocTypes.Text := Str;
+  mIgnoreDocTypes.Text := Text;
 end;
 //---------------------------------------------------------------------------
 procedure TgsDBSqueeze_MainForm.cbbCompanyDrawItem(Control: TWinControl;
@@ -1415,8 +1338,6 @@ begin
         rbAllOurCompanies.Checked := False;
         rbCompany.Checked := False;
         tbcDocTypes.TabIndex := 0;
-        for I:=0 to FRowsSelectBits.Size-1 do
-          FRowsSelectBits[I] := False;
 
         mIgnoreDocTypes.Clear;
         chk00Account.Checked := False;
@@ -1435,10 +1356,8 @@ begin
         chk00Account.Checked := gsIniOptions.DoEnterOstatkyAccount;
 
         SelectedDocTypes.CommaText := gsIniOptions.SelectedDocTypeKeys;
-        for I:=0 to strngrdIgnoreDocTypes.RowCount-1 do
-          FRowsSelectBits[I] := (SelectedDocTypes.IndexOf(Trim(strngrdIgnoreDocTypes.Cells[1, I])) <> -1);
-        strngrdIgnoreDocTypes.Repaint;
-        UpdateDocTypesMemo;
+        gsDBSqueeze_DocTypesForm.GridRepaint(SelectedDocTypes);
+        SetTextDocTypesMemo(gsDBSqueeze_DocTypesForm.GetDocTypeMemoText);
       end;
     finally
       OpenDlg.Free;
@@ -1496,5 +1415,15 @@ end;
 
 //initialization
 //  ReportMemoryLeaksOnShutdown := True;
+
+procedure TgsDBSqueeze_MainForm.btn3Click(Sender: TObject);
+begin
+  if gsDBSqueeze_DocTypesForm.ShowModal = mrOk then
+  begin
+    SetTextDocTypesMemo(gsDBSqueeze_DocTypesForm.GetDocTypeMemoText);
+    FDocTypesList.Clear;
+    FDocTypesList := gsDBSqueeze_DocTypesForm.GetSelectedDocTypes;
+  end;
+end;
 
 end.
