@@ -22,7 +22,7 @@ object gd_dlgOptions: Tgd_dlgOptions
     Top = 3
     Width = 565
     Height = 397
-    ActivePage = TabSheet1
+    ActivePage = tsAudit
     TabOrder = 0
     object TabSheet1: TTabSheet
       Caption = 'Общие'
@@ -395,6 +395,8 @@ object gd_dlgOptions: Tgd_dlgOptions
           Height = 14
           TabStop = False
           BorderStyle = bsNone
+          Lines.Strings = (
+            'Блокировка не распространяется на следующие группы пользователей')
           ParentColor = True
           ReadOnly = True
           TabOrder = 3
@@ -445,6 +447,8 @@ object gd_dlgOptions: Tgd_dlgOptions
           Height = 14
           TabStop = False
           BorderStyle = bsNone
+          Lines.Strings = (
+            'Блокировка не распространяется на следующие документы')
           ParentColor = True
           ReadOnly = True
           TabOrder = 6

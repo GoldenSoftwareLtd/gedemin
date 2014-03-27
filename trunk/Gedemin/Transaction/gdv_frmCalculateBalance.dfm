@@ -1,5 +1,5 @@
 object frmCalculateBalance: TfrmCalculateBalance
-  Left = 448
+  Left = 285
   Top = 209
   BorderStyle = bsDialog
   Caption = 'ѕереход на новый мес€ц'
