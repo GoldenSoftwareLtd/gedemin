@@ -1,7 +1,7 @@
 object dlgSelectDocument: TdlgSelectDocument
-  Left = 315
+  Left = 0
   Top = 173
-  Width = 710
+  Width = 709
   Height = 493
   BorderWidth = 5
   Caption = 'Выбор документа'
@@ -27,7 +27,7 @@ object dlgSelectDocument: TdlgSelectDocument
   object pnlBottom: TPanel
     Left = 0
     Top = 418
-    Width = 684
+    Width = 683
     Height = 30
     Align = alBottom
     BevelOuter = bvNone
@@ -42,7 +42,7 @@ object dlgSelectDocument: TdlgSelectDocument
       TabOrder = 0
     end
     object Panel1: TPanel
-      Left = 499
+      Left = 498
       Top = 0
       Width = 185
       Height = 30
@@ -107,7 +107,7 @@ object dlgSelectDocument: TdlgSelectDocument
   object pnlDoc: TPanel
     Left = 220
     Top = 0
-    Width = 464
+    Width = 463
     Height = 418
     Align = alClient
     BevelOuter = bvNone
@@ -115,7 +115,7 @@ object dlgSelectDocument: TdlgSelectDocument
     object sLine: TSplitter
       Left = 0
       Top = 247
-      Width = 464
+      Width = 463
       Height = 4
       Cursor = crVSplit
       Align = alBottom
@@ -123,7 +123,7 @@ object dlgSelectDocument: TdlgSelectDocument
     object pLine: TPanel
       Left = 0
       Top = 251
-      Width = 464
+      Width = 463
       Height = 167
       Align = alBottom
       BevelOuter = bvNone
@@ -132,7 +132,7 @@ object dlgSelectDocument: TdlgSelectDocument
       object gDocumentLine: TgsIBGrid
         Left = 0
         Top = 20
-        Width = 464
+        Width = 463
         Height = 147
         Align = alClient
         Ctl3D = True
@@ -162,7 +162,7 @@ object dlgSelectDocument: TdlgSelectDocument
       object Panel6: TPanel
         Left = 0
         Top = 0
-        Width = 464
+        Width = 463
         Height = 20
         Align = alTop
         Alignment = taLeftJustify
@@ -183,7 +183,7 @@ object dlgSelectDocument: TdlgSelectDocument
     object pnlDocHead: TPanel
       Left = 0
       Top = 0
-      Width = 464
+      Width = 463
       Height = 247
       Align = alClient
       BevelOuter = bvNone
@@ -192,7 +192,7 @@ object dlgSelectDocument: TdlgSelectDocument
       object gDocument: TgsIBGrid
         Left = 0
         Top = 46
-        Width = 464
+        Width = 463
         Height = 201
         Align = alClient
         Ctl3D = True
@@ -223,7 +223,7 @@ object dlgSelectDocument: TdlgSelectDocument
       object TBDock1: TTBDock
         Left = 0
         Top = 20
-        Width = 464
+        Width = 463
         Height = 26
         object TBToolbar1: TTBToolbar
           Left = 0
@@ -277,7 +277,7 @@ object dlgSelectDocument: TdlgSelectDocument
       object Panel4: TPanel
         Left = 0
         Top = 0
-        Width = 464
+        Width = 463
         Height = 20
         Align = alTop
         Alignment = taLeftJustify
