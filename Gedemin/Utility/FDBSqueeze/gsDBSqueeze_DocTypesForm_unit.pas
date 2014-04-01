@@ -4,9 +4,11 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  Grids, StdCtrls, ComCtrls;
+  Grids, StdCtrls, ComCtrls, Db, ADODB, DBTables, DBGrids, contnrs;
 
 type
+  EgsDBSqueeze = class(Exception);
+
   TgsDBSqueeze_DocTypesForm = class(TForm)
     strngrdIgnoreDocTypes: TStringGrid;
     mIgnoreDocTypes: TMemo;
@@ -20,18 +22,29 @@ type
       ARow: Integer; Rect: TRect; State: TGridDrawState);
     procedure btnOKClick(Sender: TObject);
     procedure btnCancelClick(Sender: TObject);
+    procedure tvDocTypesCustomDrawItem(Sender: TCustomTreeView;
+      Node: TTreeNode; State: TCustomDrawState; var DefaultDraw: Boolean);
+    procedure tvDocTypesClick(Sender: TObject);
   private
-    FRowsSelectBits: TBits;
-    FDocTypesList: TStringList;
+    FSelectedDocTypesList: TStringList;
+    FAllDocTypesList: TStringList;
+    FBitsList: TObjectList;
+    FCurBranchIndex: Integer;
+
+    FLoadDocTypes: TStringList;
+    FIsLoadConf: Boolean;
   public
     constructor Create(AnOwner: TComponent); override;
     destructor Destroy; override;
 
     procedure SetDocTypes(const ADocTypes: TStringList);
+
+    procedure SetSelectedDocTypes(const ASelectedTypesStr: String; const ASelectedRowsStr: String);
     procedure UpdateDocTypesMemo;
     procedure ClearData;
-    procedure GridRepaint(SelectedDocTypes: TStringList);
-    function GetSelectedDocTypes: TStringList;
+    function GetSelectedIdDocTypes: String;
+    function GetSelectedDocTypesStr: String;
+    function GetSelectedBranchRowsStr: String;
     function GetDocTypeMemoText: String;
   end;
 
@@ -49,34 +62,24 @@ var
 begin
   inherited;
 
-  FRowsSelectBits := TBits.Create;
-  FDocTypesList := TStringList.Create;
+  FCurBranchIndex := -1;
+  FBitsList :=  TObjectList.Create;
+  FSelectedDocTypesList := TStringList.Create;
+  FAllDocTypesList := TStringList.Create;
+  //FLoadDocTypes := TStringList.Create;
+
+  strngrdIgnoreDocTypes.ColCount := 2;
+  strngrdIgnoreDocTypes.RowCount := 0;
 end;
 //---------------------------------------------------------------------------
 destructor TgsDBSqueeze_DocTypesForm.Destroy;
 begin
-  FRowsSelectBits.Free;
-  FDocTypesList.Free;
-  
+  FSelectedDocTypesList.Free;
+  FAllDocTypesList.Free;
+  //FLoadDocTypes.Free;
+  FBitsList.Free;
+
   inherited;
-end;
-//---------------------------------------------------------------------------
-procedure TgsDBSqueeze_DocTypesForm.SetDocTypes(const ADocTypes: TStringList);
-var
-  I: Integer;
-begin
-  FreeAndNil(FRowsSelectBits);
-  FRowsSelectBits := TBits.Create;
-
-  FRowsSelectBits.Size := ADocTypes.Count;
-  strngrdIgnoreDocTypes.ColCount := 2;
-  strngrdIgnoreDocTypes.RowCount :=  ADocTypes.Count;
-
-  for I:=0 to ADocTypes.Count-1 do
-  begin
-    strngrdIgnoreDocTypes.Cells[0, I] := ADocTypes.Values[ADocTypes.Names[I]];  // имя типа дока
-    strngrdIgnoreDocTypes.Cells[1, I] := ADocTypes.Names[I];                    // id типа
-  end;
 end;
 //---------------------------------------------------------------------------
 procedure TgsDBSqueeze_DocTypesForm.UpdateDocTypesMemo;
@@ -85,116 +88,315 @@ var
   Str: String;
   Delimiter: String;
 begin
-  for I:=0 to FRowsSelectBits.Size-1 do
+  if FCurBranchIndex <> -1 then
   begin
-    if FRowsSelectBits[I] then
+    for I:=0 to FSelectedDocTypesList.Count-1 do
     begin
       if Str <> '' then
         Delimiter := ', '
       else
         Delimiter := '';
-      Str := Str + Delimiter + strngrdIgnoreDocTypes.Cells[0, I] + ' (' + strngrdIgnoreDocTypes.Cells[1, I] + ')';
+      Str := Str + Delimiter + FSelectedDocTypesList.Values[FSelectedDocTypesList.Names[I]]+ ' (' + FSelectedDocTypesList.Names[I] + ')';
     end;
-  end;
-  mIgnoreDocTypes.Clear;
-  mIgnoreDocTypes.Text := Str;
+    mIgnoreDocTypes.Clear;
+    mIgnoreDocTypes.Text := Str;
+  end
+  else
+    mIgnoreDocTypes.Clear;
 end;
 //---------------------------------------------------------------------------
-procedure TgsDBSqueeze_DocTypesForm.strngrdIgnoreDocTypesDblClick(
-  Sender: TObject);
+procedure TgsDBSqueeze_DocTypesForm.strngrdIgnoreDocTypesDblClick(Sender: TObject);
 begin
-  if Sender = strngrdIgnoreDocTypes then
+  if FCurBranchIndex <> -1 then
   begin
-    if not FRowsSelectBits[(Sender as TStringGrid).Row] then
-      FRowsSelectBits[(Sender as TStringGrid).Row] := True
-    else begin
-      FRowsSelectBits[(Sender as TStringGrid).Row] := False;
-    end;
-    (Sender as TStringGrid).Repaint;
+    if Sender = strngrdIgnoreDocTypes then
+    begin
+      if not TBits(FBitsList[FCurBranchIndex])[(Sender as TStringGrid).Row] then
+      begin
+        TBits(FBitsList[FCurBranchIndex])[(Sender as TStringGrid).Row] := True;
 
-    UpdateDocTypesMemo;
-  end;
+        if FSelectedDocTypesList.IndexOfName(Trim(strngrdIgnoreDocTypes.Cells[1, (Sender as TStringGrid).Row])) = -1 then
+          FSelectedDocTypesList.Append(Trim(strngrdIgnoreDocTypes.Cells[1, (Sender as TStringGrid).Row]) + '=' + Trim(strngrdIgnoreDocTypes.Cells[0, (Sender as TStringGrid).Row]));
+      end
+      else begin
+        TBits(FBitsList[FCurBranchIndex])[(Sender as TStringGrid).Row] := False;
+        if FSelectedDocTypesList.IndexOfName(Trim(strngrdIgnoreDocTypes.Cells[1, (Sender as TStringGrid).Row])) <> -1 then
+          FSelectedDocTypesList.Delete(FSelectedDocTypesList.IndexOfName(Trim(strngrdIgnoreDocTypes.Cells[1, (Sender as TStringGrid).Row])));
+      end;
+      (Sender as TStringGrid).Repaint;
+
+      UpdateDocTypesMemo;
+    end;
+  end;  
 end;
 //---------------------------------------------------------------------------
 procedure TgsDBSqueeze_DocTypesForm.strngrdIgnoreDocTypesDrawCell(
-  Sender: TObject; ACol, ARow: Integer; Rect: TRect;
+  Sender: TObject;
+  ACol, ARow: Integer;
+  Rect: TRect;
   State: TGridDrawState);
 var
   AGrid : TStringGrid;
 begin
-  AGrid:=TStringGrid(Sender);
+  if FCurBranchIndex <> -1 then
+  begin
+    AGrid:=TStringGrid(Sender);
 
-   if not FRowsSelectBits[ARow] then
-     AGrid.Canvas.Brush.Color := clWhite
-   else
-     AGrid.Canvas.Brush.Color := $0088AEFF;
-
-   if (gdSelected in State) then
-   begin
-     if not FRowsSelectBits[ARow] then
-     begin
-       AGrid.Canvas.Brush.Color := $0088AEFF;
-     end
+     if not TBits(FBitsList[FCurBranchIndex])[ARow] then
+       AGrid.Canvas.Brush.Color := clWhite
      else
-       AGrid.Canvas.Brush.Color := $001F67FC;
-   end;
-    AGrid.Canvas.FillRect(Rect);  //paint the backgorund color
-    AGrid.Canvas.TextOut(Rect.Left + 2, Rect.Top + 2, AGrid.Cells[ACol, ARow]);
-end;
+       AGrid.Canvas.Brush.Color := $0088AEFF;
 
+     if (gdSelected in State) then
+     begin
+       if not TBits(FBitsList[FCurBranchIndex])[ARow] then
+       begin
+         AGrid.Canvas.Brush.Color := $0088AEFF;
+       end
+       else
+         AGrid.Canvas.Brush.Color := $001F67FC;
+     end;
+      AGrid.Canvas.FillRect(Rect);
+      AGrid.Canvas.TextOut(Rect.Left + 2, Rect.Top + 2, AGrid.Cells[ACol, ARow]);
+  end;
+end;
+//---------------------------------------------------------------------------
+procedure TgsDBSqueeze_DocTypesForm.tvDocTypesCustomDrawItem(
+  Sender: TCustomTreeView; Node: TTreeNode; State: TCustomDrawState;
+  var DefaultDraw: Boolean);
+begin
+  if cdsSelected in State  then
+    Sender.Canvas.Brush.Color := $001F67FC;
+end;
+//---------------------------------------------------------------------------
+procedure TgsDBSqueeze_DocTypesForm.tvDocTypesClick(Sender: TObject);
+var
+  BranchDocTypes: TStringList;
+  I: Integer;
+begin
+  if tvDocTypes.Selected.AbsoluteIndex <> FCurBranchIndex then
+  begin
+    with strngrdIgnoreDocTypes do
+      for I:=0 to ColCount-1 do
+        Cols[I].Clear;
+    strngrdIgnoreDocTypes.RowCount := 0;
+    
+    FCurBranchIndex := tvDocTypes.Selected.AbsoluteIndex;
+
+    if FAllDocTypesList.Values[FAllDocTypesList.Names[FCurBranchIndex]] <> '0' then
+    begin
+      BranchDocTypes := TStringList.Create;
+      try
+        BranchDocTypes.Text := StringReplace(FAllDocTypesList[FCurBranchIndex], '||', #13#10, [rfReplaceAll, rfIgnoreCase]);
+        strngrdIgnoreDocTypes.RowCount :=  BranchDocTypes.Count;
+        for I:=0 to BranchDocTypes.Count-1 do
+        begin
+          strngrdIgnoreDocTypes.Cells[0, I] := BranchDocTypes.Values[BranchDocTypes.Names[I]];  // имя типа дока
+          strngrdIgnoreDocTypes.Cells[1, I] := BranchDocTypes.Names[I];                         // id типа
+        end;
+      finally
+        BranchDocTypes.Free;
+      end;
+    end;
+
+    strngrdIgnoreDocTypes.Repaint;
+  end;
+end;
+//---------------------------------------------------------------------------
+procedure TgsDBSqueeze_DocTypesForm.SetDocTypes(const ADocTypes: TStringList);
+var
+  I: Integer;
+  BranchDocTypes: TStringList;
+begin
+  FAllDocTypesList.Text :=  ADocTypes.Text;
+  FBitsList.Clear;
+
+  tvDocTypes.LoadFromFile('~docBranch.dat');
+  tvDocTypes.ReadOnly := True;
+  tvDocTypes.FullExpand;
+
+  with strngrdIgnoreDocTypes do
+    for I:=0 to ColCount-1 do
+      Cols[I].Clear;
+  strngrdIgnoreDocTypes.RowCount := 0;
+  FCurBranchIndex := 0;
+
+  if FAllDocTypesList.Values[FAllDocTypesList.Names[FCurBranchIndex]] <> '0' then
+  begin
+    BranchDocTypes := TStringList.Create;
+    try
+      BranchDocTypes.Text := StringReplace(FAllDocTypesList[FCurBranchIndex], '||', #13#10, [rfReplaceAll, rfIgnoreCase]);
+      strngrdIgnoreDocTypes.RowCount :=  BranchDocTypes.Count;
+      for I:=0 to BranchDocTypes.Count-1 do
+      begin
+        strngrdIgnoreDocTypes.Cells[0, I] := BranchDocTypes.Values[BranchDocTypes.Names[I]];  // имя типа дока
+        strngrdIgnoreDocTypes.Cells[1, I] := BranchDocTypes.Names[I];                         // id типа
+      end;
+
+      if ADocTypes.Count <> tvDocTypes.Items.Count then
+        raise EgsDBSqueeze.Create('Типы документов получены не для всех веток!');
+
+      for I:=0 to ADocTypes.Count-1 do
+      begin
+        BranchDocTypes.Clear;
+        BranchDocTypes.Text := StringReplace(ADocTypes[I], '||', #13#10, [rfReplaceAll, rfIgnoreCase]);
+        FBitsList.Add(TBits.Create);
+        TBits(FBitsList[I]).Size := BranchDocTypes.Count;
+      end;
+    finally
+      BranchDocTypes.Free;
+    end;
+  end;
+  strngrdIgnoreDocTypes.Repaint;
+end;
+//---------------------------------------------------------------------------
+function TgsDBSqueeze_DocTypesForm.GetSelectedIdDocTypes: String;
+var
+  SeledctedIdStr: String;
+  I: Integer;
+begin
+  for I:=0 to FSelectedDocTypesList.Count-1 do
+  begin
+    if SeledctedIdStr > '' then
+      SeledctedIdStr := SeledctedIdStr + ',' + FSelectedDocTypesList.Names[I]
+    else
+      SeledctedIdStr := FSelectedDocTypesList.Names[I];
+  end;
+  Result := SeledctedIdStr;
+end;
+//---------------------------------------------------------------------------
+function TgsDBSqueeze_DocTypesForm.GetSelectedDocTypesStr: String;
+var
+  Str: String;
+begin
+  Str := StringReplace(FSelectedDocTypesList.Text, #13#10, ',', [rfReplaceAll, rfIgnoreCase]);
+  Delete(Str, Length(Str), 1);
+  Result := Str
+end;
+//---------------------------------------------------------------------------
+function TgsDBSqueeze_DocTypesForm.GetSelectedBranchRowsStr: String;
+var
+  I, J: Integer;
+  Str: String;
+  SelectedBranchRows: TStringList;
+begin
+  SelectedBranchRows := TStringList.Create;
+  try
+    for I:=0 to FBitsList.Count-1 do
+    begin
+      if TBits(FBitsList[I]).Size > 0 then
+      begin
+        for J:=0 to TBits(FBitsList[I]).Size-1 do
+        begin
+          if TBits(FBitsList[I])[J] = true then
+          begin
+            if SelectedBranchRows.IndexOfName(IntToStr(I)) <> -1 then
+              SelectedBranchRows[SelectedBranchRows.IndexOfName(IntToStr(I))] := SelectedBranchRows[SelectedBranchRows.IndexOfName(IntToStr(I))] + '||' + IntToStr(J)
+            else
+              SelectedBranchRows.Append(IntToStr(I) + '=' + IntToStr(J));
+          end;
+        end;
+      end;  
+    end;
+
+    Str := StringReplace(SelectedBranchRows.Text, #13#10, ',', [rfReplaceAll, rfIgnoreCase]);
+    Delete(Str, Length(Str), 1);
+    Result := Str;
+  finally
+    SelectedBranchRows.Free;
+  end;
+end;
+//---------------------------------------------------------------------------
+function TgsDBSqueeze_DocTypesForm.GetDocTypeMemoText: String;
+begin
+  Result := mIgnoreDocTypes.Text;
+end;
+//---------------------------------------------------------------------------
+procedure TgsDBSqueeze_DocTypesForm.btnOKClick(Sender: TObject);
+begin
+  Self.ModalResult := mrOK;
+end;
+//---------------------------------------------------------------------------
+procedure TgsDBSqueeze_DocTypesForm.btnCancelClick(Sender: TObject);
+begin
+  Self.ModalResult := mrNone;
+  Self.Close;
+end;
+//---------------------------------------------------------------------------
+procedure TgsDBSqueeze_DocTypesForm.SetSelectedDocTypes(const ASelectedTypesStr: String; const ASelectedRowsStr: String);
+var
+  I, J: Integer;
+  Str: String;
+  SelectedBranch: TStringList;    // ветка=номерастрок
+  SelectedGridRows: TStringList;  // номера строк
+  BranchDocTypes: TStringList;
+begin
+  SelectedBranch := TStringList.Create;
+  SelectedGridRows := TStringList.Create;
+  BranchDocTypes := TStringList.Create;
+  try
+    ClearData;
+    FSelectedDocTypesList.Text := StringReplace(ASelectedTypesStr, ',', #13#10, [rfReplaceAll, rfIgnoreCase]);
+    mIgnoreDocTypes.Clear;
+    Str := '';
+    for I:=0 to FSelectedDocTypesList.Count-1 do
+    begin
+      if Str > '' then
+        Str := Str + ', ' + FSelectedDocTypesList.Values[FSelectedDocTypesList.Names[I]] + ' (' + FSelectedDocTypesList.Names[I] + ')'
+      else
+        Str := FSelectedDocTypesList.Values[FSelectedDocTypesList.Names[I]] + ' (' + FSelectedDocTypesList.Names[I] + ')';
+    end;
+    mIgnoreDocTypes.Text := Str;
+
+    SelectedBranch.Text := StringReplace(ASelectedRowsStr, ',', #13#10, [rfReplaceAll, rfIgnoreCase]);
+    for I:=0 to SelectedBranch.Count-1 do
+    begin
+      SelectedGridRows.Clear;
+      SelectedGridRows.Text := StringReplace(SelectedBranch.Values[SelectedBranch.Names[I]], '||', #13#10, [rfReplaceAll, rfIgnoreCase]);
+      for J:=0 to SelectedGridRows.Count-1 do
+        TBits(FBitsList[I])[StrToInt(Trim(SelectedGridRows[J]))] := True;
+    end;
+
+    FCurBranchIndex := 0;
+    if FAllDocTypesList.Values[FAllDocTypesList.Names[FCurBranchIndex]] <> '0' then
+    begin
+      BranchDocTypes.Text := StringReplace(FAllDocTypesList[FCurBranchIndex], '||', #13#10, [rfReplaceAll, rfIgnoreCase]);
+      strngrdIgnoreDocTypes.RowCount :=  BranchDocTypes.Count;
+      for I:=0 to BranchDocTypes.Count-1 do
+      begin
+        strngrdIgnoreDocTypes.Cells[0, I] := BranchDocTypes.Values[BranchDocTypes.Names[I]];  // имя типа дока
+        strngrdIgnoreDocTypes.Cells[1, I] := BranchDocTypes.Names[I];                         // id типа
+      end;
+    end;
+    strngrdIgnoreDocTypes.Repaint;
+  finally
+    SelectedBranch.Free;
+    SelectedGridRows.Free;
+    BranchDocTypes.Free;
+  end;                       
+end;
+//---------------------------------------------------------------------------
 procedure TgsDBSqueeze_DocTypesForm.ClearData;
 var
   I: Integer;
+  SizeBitsArr:  array of Integer;
 begin
   with strngrdIgnoreDocTypes do
   for I:=0 to ColCount-1 do
     Cols[I].Clear;
 
   mIgnoreDocTypes.Clear;
-  FDocTypesList.Clear;  
-end;
+  FSelectedDocTypesList.Clear;
 
-function TgsDBSqueeze_DocTypesForm.GetSelectedDocTypes: TStringList;
-var
-  I: Integer;
-begin
-  for I:=0 to FRowsSelectBits.Size-1 do
+  SetLength(SizeBitsArr, FBitsList.Count);
+  for I:=0 to FBitsList.Count-1 do
+    SizeBitsArr[I] := TBits(FBitsList[I]).Size;
+  FBitsList.Clear;
+  for I:=0 to Length(SizeBitsArr)-1 do
   begin
-    if FRowsSelectBits[I] then
-      FDocTypesList.Append(Trim(strngrdIgnoreDocTypes.Cells[1, I]));
+    FBitsList.Add(TBits.Create);
+    TBits(FBitsList[I]).Size := SizeBitsArr[I];
   end;
-
-  Result := FDocTypesList;
-end;
-
-function TgsDBSqueeze_DocTypesForm.GetDocTypeMemoText: String;
-begin
-  Result := mIgnoreDocTypes.Text;
-end;
-
-procedure  TgsDBSqueeze_DocTypesForm.GridRepaint(SelectedDocTypes: TStringList);
-var
-  I: Integer;
-begin
-  for I:=0 to FRowsSelectBits.Size-1 do
-    FRowsSelectBits[I] := False;
-
-  for I:=0 to strngrdIgnoreDocTypes.RowCount-1 do
-    FRowsSelectBits[I] := (SelectedDocTypes.IndexOf(Trim(strngrdIgnoreDocTypes.Cells[1, I])) <> -1);
-  strngrdIgnoreDocTypes.Repaint;
-
-  UpdateDocTypesMemo;
-end;
-
-procedure TgsDBSqueeze_DocTypesForm.btnOKClick(Sender: TObject);
-begin
-  Self.ModalResult := mrOK;
-end;
-
-procedure TgsDBSqueeze_DocTypesForm.btnCancelClick(Sender: TObject);
-begin
-  Self.ModalResult := mrNone;
-  Self.Close;
 end;
 
 end.
