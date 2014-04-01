@@ -52,6 +52,8 @@ type
     FRestoreDBName: String;
     FLogFileName: String;
 
+    FCalculateSaldo: Boolean;
+
     FAllOurCompaniesSaldo: Boolean;
     FCardFeaturesStr: String;   // cписок полей-признаков складской карточки
     FCascadeTbls: TStringList;
@@ -61,8 +63,8 @@ type
     FCurrentProgressStep: Integer;
     FCurUserContactKey: Integer;
     FDoAccount00Saldo: Boolean;
-    FDocTypesList: TStringList; // типы документов выбранные пользователем
-    FDoProcDocTypes: Boolean;   // true - обрабатывать ТОЛЬКО документы с выбранными типами, false - обрабатывать все КРОМЕ документов с выбранными типами
+    FDocTypesList: TStringList;        // типы документов выбранные пользователем
+    FDoProcDocTypes: Boolean;          // true - обрабатывать ТОЛЬКО документы с выбранными типами, false - обрабатывать все КРОМЕ документов с выбранными типами
     FEntryAnalyticsStr: String;        // список всех бухгалтерских аналитик
     FInactivBlockTriggers: String;
     FInvSaldoDoc: Integer;
@@ -72,6 +74,8 @@ type
     FProizvolnyyDocTypeKey: Integer;   // ''Произвольный тип'' из gd_documenttype
     FPseudoClientKey: Integer;         // ''Псевдоклиент'' из gd_contact
     FSaveLog: Boolean;
+
+    FDoStopProcessing: Boolean;        // флаг прерывания выполнения
 
     FOnProgressWatch: TProgressWatchEvent;
     FOnGetConnectedEvent: TOnGetConnectedEvent;
@@ -84,6 +88,8 @@ type
     FOnSetDocTypeStringsEvent: TOnSetDocTypeStringsEvent;
     FOnUsedDBEvent: TOnUsedDBEvent;
     FOnLogSQLEvent: TOnLogSQLEvent;
+
+    procedure SaveDocTypeBranch;
 
     procedure CreateUDFs;
     function CreateHIS(AnIndex: Integer): Integer;
@@ -201,6 +207,8 @@ type
       read FOnSetDocTypeStringsEvent   write FOnSetDocTypeStringsEvent;
     property OnUsedDBEvent: TOnUsedDBEvent read FOnUsedDBEvent     write FOnUsedDBEvent;
     property SaveLog: Boolean              read FSaveLog           write FSaveLog;
+    property DoStopProcessing: Boolean     read FDoStopProcessing  write FDoStopProcessing;
+    property CalculateSaldo: Boolean       read FCalculateSaldo    write FCalculateSaldo;
   end;
 
 implementation
@@ -481,7 +489,7 @@ var
       Tr.Free;
     end;
   end;
-//---------------------------------------------------------------------------
+//-----------------------------------------------------------
 procedure TgsDBSqueeze.BackupDatabase;
 var
   BS: TIBBackupService;
@@ -499,7 +507,19 @@ begin
     BS.Params.CommaText :=
       'user_name=' + FConnectInfo.UserName + ',' +
       'password=' + FConnectInfo.Password;
+
     BS.DatabaseName := FConnectInfo.DatabaseName;
+    if UpperCase(FConnectInfo.Host) <> UpperCase('localhost') then
+    begin
+      if FConnectInfo.Port <> 0 then
+        BS.ServerName := FConnectInfo.Host + '/' + IntToStr(FConnectInfo.Port)
+      else
+        BS.ServerName := FConnectInfo.Host;
+      BS.Protocol := TCP;
+    end;
+    //else if FConnectInfo.Port <> 0 then
+   //   BS.ServerName := 'localhost/' + IntToStr(FConnectInfo.Port);
+
     BS.BackupFile.Clear;
     BS.BackupFile.Add(FBackupFileName);
     BS.Options := [IgnoreChecksums, IgnoreLimbo, NoGarbageCollection];
@@ -560,6 +580,15 @@ begin
       'password=' + FConnectInfo.Password;
     RS.BackupFile.Add(FBackupFileName);
     RS.DatabaseName.Add(FRestoreDBName);
+    if UpperCase(FConnectInfo.Host) <> UpperCase('localhost') then
+    begin
+      if FConnectInfo.Port <> 0 then
+        RS.ServerName := FConnectInfo.Host + '/' + IntToStr(FConnectInfo.Port)
+      else
+        RS.ServerName := FConnectInfo.Host;
+      RS.Protocol := TCP;
+    end;
+
     RS.Options := [Replace];
     RS.PageSize := FDBPageSize;
     RS.PageBuffers := FDBPageBuffers;
@@ -727,31 +756,6 @@ procedure TgsDBSqueeze.GetDBSizeEvent;
   end;
 
   function GetFileSize(ADatabaseName: String): Int64;
-{  var
-    Handle: tHandle;
-    FindData: tWin32FindData;
-    DatabaseName: String;    // Полное название файла, размер которого определяем
-  begin
-    Result := -1;
-    if  AnsiPos('localhost:', ADatabaseName) <> 0 then
-      DatabaseName := StringReplace(ADatabaseName, 'localhost:', '', [rfIgnoreCase])
-    else
-      DatabaseName := ADatabaseName;
-    Handle := FindFirstFile(PChar(DatabaseName), FindData);
-    if Handle = INVALID_HANDLE_VALUE then
-    begin
-      raise EgsDBSqueeze.Create('Error: FindFirstFile returned Handle = INVALID_HANDLE_VALUE');
-    end
-    else begin
-      Windows.FindClose(Handle);
-      if (FindData.dwFileAttributes and FILE_ATTRIBUTE_DIRECTORY) <> 0 then
-        Result := 0  // Размер каталога всегда считаем равным 0
-      else begin
-        Int64Rec(Result).Hi := FindData.nFileSizeHigh;
-        Int64Rec(Result).Lo := FindData.nFileSizeLow;
-      end;
-    end;
-  end;  }
   var
   SearchRecord : TSearchRec;
   DatabaseName: String;
@@ -773,16 +777,27 @@ procedure TgsDBSqueeze.GetDBSizeEvent;
 
 var
   FileSize: Int64;  // Размер файла в байтах
+  FullFilePath: String;
 begin
   Assert(Assigned(FOnGetDBSizeEvent));
 
-  if not FIsProcTablesFinish then
-    FileSize := GetFileSize(FConnectInfo.DatabaseName)                          ///TODO: проверить для удаленной бд
-  else if FRestoreDBName > '' then
-    FileSize := GetFileSize(FRestoreDBName)
-  else
-    FileSize := GetFileSize(FConnectInfo.DatabaseName);
+  if UpperCase(TRIM(FConnectInfo.Host)) <> 'LOCALHOST' then
+  begin
+    FullFilePath := '\\' + FConnectInfo.Host + '\';
 
+    if FIsProcTablesFinish and (FRestoreDBName > '') then
+      FullFilePath := FullFilePath + StringReplace(FRestoreDBName, ':', '', [rfIgnoreCase])
+    else
+      FullFilePath := FullFilePath + StringReplace(FConnectInfo.DatabaseName, ':', '', [rfIgnoreCase]);
+  end
+  else begin
+    if FIsProcTablesFinish and (FRestoreDBName > '') then
+      FullFilePath := FRestoreDBName
+    else
+      FullFilePath := FConnectInfo.DatabaseName;
+  end;
+  
+  FileSize := GetFileSize(FullFilePath);
   FOnGetDBSizeEvent(BytesToStr(FileSize), FileSize);
 end;
 //---------------------------------------------------------------------------
@@ -979,40 +994,283 @@ end;
 procedure TgsDBSqueeze.SetDocTypeStringsEvent;
 var
   Tr: TIBTransaction;
-  q: TIBSQL;
-  DocTypeList: TStringList;  // Список типов документов
+  q, q2: TIBSQL;
+  DocTypeList: TStringList;   // Список типов документов
+  DocTypeBranch: TStringList; // Список ветви типов документов
+  Level: String;
+  I: Integer;
+
+  function GetChildListStr(AParent: Integer): String;
+  var
+    Tr: TIBTransaction;
+    q: TIBSQL;
+  begin
+    Tr := TIBTransaction.Create(nil);
+    q := TIBSQL.Create(nil);
+
+    try
+      Tr.DefaultDatabase := FIBDatabase;
+      Tr.StartTransaction;
+      q.Transaction := Tr;
+
+      q.SQL.Text :=
+        'SELECT LIST(id || ''='' || name) AS Childs ' +
+        'FROM ( ' +
+        '  SELECT id, name ' +
+        '  FROM gd_documenttype ' +
+        '  WHERE documenttype = ''B'' ' +
+        '    AND parent = :ParentID ' +
+        '  ORDER BY name) ';
+
+      q.ParamByName('ParentID').AsInteger := AParent;
+      ExecSqlLogEvent(q, 'SetDocTypeStringsEvent');
+
+      //LogEvent('Res: ' + q.FieldByName('Childs').AsString);
+      Result := q.FieldByName('Childs').AsString;
+
+      Tr.Commit;
+    finally
+      q.Free;
+      Tr.Free;
+    end;
+  end;
+
+  procedure AddBranchChildInList(AParent: Integer; ALevel: String);
+  var
+   I: Integer;
+   ChildsList: TStringList;
+  begin
+    ChildsList := TStringList.Create;
+    try
+      ChildsList.Text := StringReplace(GetChildListStr(AParent), ',', #13#10, [rfReplaceAll, rfIgnoreCase]);
+
+      //LogEvent('!' + ChildsList.CommaText);
+
+      if ChildsList.Count <> 0 then
+      begin
+        for I:=0 to ChildsList.Count-1 do
+        begin
+          try
+            DocTypeBranch.Add(ChildsList.Names[I] + '=' + ALevel + ChildsList.Values[ChildsList.Names[I]]);
+
+            AddBranchChildInList(StrToInt(ChildsList.Names[I]), ALevel + #9);
+          except
+            LogEvent(ChildsList.Names[I]);
+          end;
+        end;
+      end;
+    finally
+      FreeAndNil(ChildsList);
+    end;
+  end;
+
 begin
   Assert(FIBDatabase.Connected and Assigned(FOnSetDocTypeStringsEvent));
 
   DocTypeList := TStringList.Create;
-
+  DocTypeBranch := TStringList.Create;
+  
   Tr := TIBTransaction.Create(nil);
   q := TIBSQL.Create(nil);
-
+  q2 := TIBSQL.Create(nil);
   try
     Tr.DefaultDatabase := FIBDatabase;
     Tr.StartTransaction;
 
     q.Transaction := Tr;
+    q2.Transaction := Tr;
+
     q.SQL.Text :=
-      'SELECT ' +                                                #13#10 +
-      '  (TRIM(dt.id) || ''='' || TRIM(dt.name)) AS DocType ' +  #13#10 +
-      'FROM GD_DOCUMENTTYPE dt ' +                               #13#10 +
-      'ORDER BY dt.name';
+      'SELECT ' +                     #13#10 +
+      '  id, ' +                      #13#10 +
+      '  name ' +                     #13#10 +
+      'FROM gd_documenttype ' +       #13#10 +
+      'WHERE ' +                      #13#10 +
+      '  parent IS NULL ' +           #13#10 +
+      '  AND documenttype = ''B'' ' + #13#10 +
+      'ORDER BY name';
     ExecSqlLogEvent(q, 'SetDocTypeStringsEvent');
     while not q.EOF do
     begin
-      DocTypeList.Append(q.FieldByName('DocType').AsString);
+      DocTypeBranch.Add(q.FieldByName('id').AsString + '=' + q.FieldByName('name').AsString);
+      AddBranchChildInList(q.FieldByName('id').AsInteger, #9);
+
       q.Next;
     end;
-
-    FOnSetDocTypeStringsEvent(DocTypeList);
     q.Close;
+
+    for I:=0 to DocTypeBranch.Count-1 do
+    begin
+      q.SQL.Text :=
+        'SELECT ' +                                                             #13#10 +
+        '  LIST(TRIM(dt.id) || ''='' || TRIM(dt.name), ''||'') AS DocType ' +   #13#10 +
+        'FROM ( ' +                                                             #13#10 +
+        '  SELECT id, name ' +                                                  #13#10 +
+        '  FROM GD_DOCUMENTTYPE ' +                                             #13#10 +
+        '  WHERE documenttype = ''D'' ' +                                       #13#10 +
+        '    AND parent = :Branch ' +                                           #13#10 +
+        '  ORDER BY name ' +                                                    #13#10 +
+        ') dt ';
+      q.ParamByName('Branch').AsString := DocTypeBranch.Names[I];
+      ExecSqlLogEvent(q, 'SetDocTypeStringsEvent');
+
+      if (not q.EOF) and (q.FieldByName('DocType').AsString <> '') then
+      begin
+        DocTypeList.Append(q.FieldByName('DocType').AsString);
+      end
+      else begin
+        DocTypeList.Append(IntToStr(GetNewID)+'=0');
+      end;
+      q.Close;
+    end;
+
+    for I:=0 to DocTypeBranch.Count-1 do
+    begin
+      DocTypeBranch[I] := DocTypeBranch.Values[DocTypeBranch.Names[I]];
+    end;
+
+    q.SQL.Text :=
+      'SELECT ' +                                                               #13#10 +
+      '  LIST(TRIM(dt.id) || ''='' || TRIM(dt.name), ''||'') AS DocType ' +     #13#10 +
+      'FROM ( ' +                                                               #13#10 +
+      '  SELECT id, name ' +                                         #13#10 +
+      '  FROM GD_DOCUMENTTYPE ' +                                    #13#10 +
+      '  WHERE documenttype = ''D'' ' +                              #13#10 +
+      '    AND parent IS NULL ' +                                    #13#10 +
+      '  ORDER BY name ' +                                           #13#10 +
+      ') dt ';
+    ExecSqlLogEvent(q, 'SetDocTypeStringsEvent');
+    if not q.EOF then
+    begin
+      DocTypeList.Append(q.FieldByName('DocType').AsString);
+      DocTypeBranch.Add('Непривязанные к ветви');
+    end;
+    q.Close;
+
+    DocTypeBranch.SaveToFile('~docBranch.dat');
+    FOnSetDocTypeStringsEvent(DocTypeList);
+
+    Tr.Commit;
+  finally
+    q.Free;
+    q2.Free;
+    Tr.Free;
+    DocTypeList.Free;
+    DocTypeBranch.Free;
+  end;
+end;
+
+procedure TgsDBSqueeze.SaveDocTypeBranch;
+var
+  Tr: TIBTransaction;
+  q: TIBSQL;
+  DocTypeBranch: TStringList;
+  Level: String;
+
+  function GetChildListStr(AParent: Integer): String;
+  var
+    Tr: TIBTransaction;
+    q: TIBSQL;
+  begin
+    Tr := TIBTransaction.Create(nil);
+    q := TIBSQL.Create(nil);
+
+    try
+      Tr.DefaultDatabase := FIBDatabase;
+      Tr.StartTransaction;
+      q.Transaction := Tr;
+
+      q.SQL.Text :=
+        'SELECT LIST(id || ''='' || name) AS Childs ' +
+        'FROM ( ' +
+        '  SELECT id, name ' +
+        '  FROM gd_documenttype ' +
+        '  WHERE documenttype = ''B'' ' +
+        '    AND parent = :ParentID ' +
+        '  ORDER BY name) ';
+
+      q.ParamByName('ParentID').AsInteger := AParent;
+      ExecSqlLogEvent(q, 'SetDocTypeStringsEvent');
+
+      LogEvent('Res: ' + q.FieldByName('Childs').AsString);
+      Result := q.FieldByName('Childs').AsString;
+
+      Tr.Commit;
+    finally
+      q.Free;
+      Tr.Free;
+    end;
+  end;
+
+  procedure AddBranchChildInList(AParent: Integer; ALevel: String);
+  var
+   I: Integer;
+   ChildsList: TStringList;
+  begin
+    ChildsList := TStringList.Create;
+    try
+      ChildsList.Text := StringReplace(GetChildListStr(AParent), ',', #13#10, [rfReplaceAll, rfIgnoreCase]);
+
+      LogEvent('!' + ChildsList.CommaText);
+
+      if ChildsList.Count <> 0 then
+      begin
+        for I:=0 to ChildsList.Count-1 do
+        begin
+          try
+            DocTypeBranch.Add(ChildsList.Names[I] + '=' + ALevel + ChildsList.Values[ChildsList.Names[I]]);
+
+            AddBranchChildInList(StrToInt(ChildsList.Names[I]), ALevel + #9);
+          except
+            LogEvent(ChildsList.Names[I]);
+          end;
+        end;
+      end;
+    finally
+      FreeAndNil(ChildsList);
+    end;
+  end;
+
+begin
+  Assert(FIBDatabase.Connected);
+  Tr := TIBTransaction.Create(nil);
+  q := TIBSQL.Create(nil);
+
+  DocTypeBranch := TStringList.Create;
+  try
+    Tr.DefaultDatabase := FIBDatabase;
+    Tr.StartTransaction;
+
+    q.Transaction := Tr;
+
+    q.SQL.Text :=
+      'SELECT ' +
+      '  id, ' +
+      '  name ' +
+      'FROM gd_documenttype ' +
+      'WHERE ' +
+      '  parent IS NULL ' +
+      '  AND documenttype = ''B'' ' +
+      'ORDER BY name';
+    ExecSqlLogEvent(q, 'SetDocTypeStringsEvent');
+    while not q.EOF do
+    begin
+      DocTypeBranch.Add(q.FieldByName('id').AsString + '=' + q.FieldByName('name').AsString);
+      AddBranchChildInList(q.FieldByName('id').AsInteger, #9);
+
+      q.Next;
+    end;
+    q.Close;
+
+    DocTypeBranch.SaveToFile('~docBranch.dat');
+
+    LogEvent(DocTypeBranch.Text);
+
     Tr.Commit;
   finally
     q.Free;
     Tr.Free;
-    DocTypeList.Free;
+    DocTypeBranch.Free;
   end;
 end;
 //---------------------------------------------------------------------------
@@ -1205,26 +1463,31 @@ begin
 
     q2.SQL.Text :=
       'SELECT COUNT(id) AS Kolvo FROM ac_entry';
-    ExecSqlLogEvent(q2, 'GetStatisticsEvent');
+    if not FDoStopProcessing then
+      ExecSqlLogEvent(q2, 'GetStatisticsEvent');
 
     q3.SQL.Text :=
       'SELECT COUNT(id) AS Kolvo FROM inv_movement';
-    ExecSqlLogEvent(q3, 'GetStatisticsEvent');
+    if not FDoStopProcessing then
+      ExecSqlLogEvent(q3, 'GetStatisticsEvent');
 
     q4.SQL.Text :=
       'SELECT COUNT(id) AS Kolvo FROM inv_card';
-    ExecSqlLogEvent(q4, 'GetStatisticsEvent');
+    if not FDoStopProcessing then
+    begin
+      ExecSqlLogEvent(q4, 'GetStatisticsEvent');
 
-    FOnGetStatistics(
-      q1.FieldByName('Kolvo').AsString,
-      q2.FieldByName('Kolvo').AsString,
-      q3.FieldByName('Kolvo').AsString,
-      q4.FieldByName('Kolvo').AsString
-    );
+      FOnGetStatistics(
+        q1.FieldByName('Kolvo').AsString,
+        q2.FieldByName('Kolvo').AsString,
+        q3.FieldByName('Kolvo').AsString,
+        q4.FieldByName('Kolvo').AsString
+      );
 
-    Tr.Commit;
+      LogEvent('Getting statistics... OK');
+      Tr.Commit;
+    end;
     ProgressMsgEvent('');
-    LogEvent('Getting statistics... OK');
   finally
     q1.Free;
     q2.Free;
@@ -1277,7 +1540,8 @@ begin
       'WHERE ' +                                        #13#10 +
       '  g_his_has(0, ae.documentkey)= 1 ' +            #13#10 +
       '  OR g_his_has(0, ae.masterdockey)=1 ';
-    ExecSqlLogEvent(q2, 'GetProcStatisticsEvent');
+    if not FDoStopProcessing then
+      ExecSqlLogEvent(q2, 'GetProcStatisticsEvent');
 
   {  q2.SQL.Text :=
       'SELECT COUNT(ae.id) AS Kolvo ' +                 #13#10 +
@@ -1304,7 +1568,8 @@ begin
         'AND ic.companykey = :CompanyKey ');
       q3.ParamByName('Companykey').AsInteger := FCompanyKey;
     end;        }
-    ExecSqlLogEvent(q3, 'GetProcStatisticsEvent');
+    if not FDoStopProcessing then
+      ExecSqlLogEvent(q3, 'GetProcStatisticsEvent');
 
     q4.SQL.Text :=
       'SELECT COUNT(ic.id) AS Kolvo ' +                  #13#10 +
@@ -1312,7 +1577,9 @@ begin
       'WHERE ' +                                         #13#10 +
       '  g_his_has(0, ic.documentkey)=1 ' +              #13#10 +
       '  OR g_his_has(0, ic.firstdocumentkey)=1';
-    ExecSqlLogEvent(q4, 'GetProcStatisticsEvent');
+    if not FDoStopProcessing then
+    begin
+      ExecSqlLogEvent(q4, 'GetProcStatisticsEvent');
 
     FOnGetProcStatistics(
       q1.FieldByName('Kolvo').AsString,
@@ -1320,11 +1587,13 @@ begin
       q3.FieldByName('Kolvo').AsString,
       q4.FieldByName('Kolvo').AsString
     );
-
+     Tr.Commit;
+     LogEvent('Getting processing statistics... OK');
+    end;
     DestroyHIS(0);
 
-    Tr.Commit;
-    LogEvent('Getting processing statistics... OK');
+
+    
     ProgressMsgEvent(' ');
   finally
     q1.Free;
@@ -2024,7 +2293,10 @@ begin
     Tr.Commit;
     Tr.StartTransaction;
 
-    // для ссылочной целостности AcSaldo                                        
+   if FCalculateSaldo then
+   begin
+
+    // для ссылочной целостности AcSaldo
     q.SQL.Text :=
       'INSERT INTO DBS_FK_CONSTRAINTS ( ' +                                     #13#10 +
       '  relation_name, ' +                                                     #13#10 +
@@ -2056,7 +2328,7 @@ begin
       '  ''DBS_INV_FK_MOVEMENT_CARDK'', ' +
       '  ''CARDKEY'', ''ID'', ''RESTRICT'', ''RESTRICT'')';
     ExecSqlLogEvent(q, 'SaveMetadata');
-
+   end;
     Tr.Commit;
     LogEvent('Metadata saved.');
   finally
@@ -2127,7 +2399,7 @@ begin
     ExecSqlLogEvent(q2, 'CalculateAcSaldo');
 
     // считаем и сохраняем сальдо для каждого счета
-    while not q2.EOF do 
+    while (not q2.EOF) and (not FDoStopProcessing) do
     begin
       AvailableAnalyticsList.Text := StringReplace(FEntryAnalyticsStr, ',', #13#10, [rfReplaceAll, rfIgnoreCase]);
       // получаем cписок активных аналитик, по которым ведется учет для счета
@@ -2296,8 +2568,7 @@ begin
 
       q2.Next;
     end;
-    
-    // проводки по счету '00 Остатки' при переносе добавим
+
     Tr.Commit;
     q2.Close;
   finally
@@ -2378,10 +2649,13 @@ begin
     Tr.Commit;
     Tr.StartTransaction;
 
+    ProgressMsgEvent('', 3*PROGRESS_STEP);
+
     // перепривязка карточек, необходимых для сальдо, на сальдовый документ
     q2.SQL.Text :=
       'SELECT FIRST(1) s.companykey FROM DBS_TMP_INV_SALDO s';                  ///TODO: выбрать компанию для дока
     ExecSqlLogEvent(q2, 'CalculateInvSaldo');
+
     if not q2.EOF then
     begin
       // SaldoDoc
@@ -2416,6 +2690,7 @@ begin
     SetBlockTriggerActive(False);
 
     Tr.StartTransaction;
+    ProgressMsgEvent('', 2*PROGRESS_STEP);
 
     // oбновляем ссылку на документ прихода
     q.SQL.Text :=
@@ -2425,9 +2700,11 @@ begin
       ' WHERE EXISTS(SELECT * FROM DBS_TMP_INV_SALDO s WHERE s.cardkey = c.id) ';
 
     q.ParamByName('SaldoDocKey').AsInteger := FInvSaldoDoc;
-    ExecSqlLogEvent(q, 'CalculateInvSaldo');
+    if not FDoStopProcessing then
+      ExecSqlLogEvent(q, 'CalculateInvSaldo');
 
     Tr.Commit;
+    ProgressMsgEvent('', 2*PROGRESS_STEP);
   finally
     q.Free;
     q2.Free;
@@ -2799,7 +3076,7 @@ var
 
         ExecSqlLogEvent(q2, 'IncludeCascadingSequences');
 
-        while not q2.EOF do
+        while (not q2.EOF) and (not FDoStopProcessing) do
         begin
           if (LineDocTbls.IndexOfName(UpperCase(q2.FieldByName('relation_name').AsString)) = -1) and
              (CrossLineTbls.IndexOfName(UpperCase(q2.FieldByName('relation_name').AsString)) = -1) then
@@ -2855,7 +3132,7 @@ var
           q2.ParamByName('rln').AsString := LineDocTbls.Names[J];
           ExecSqlLogEvent(q2, 'IncludeCascadingSequences');
 
-          while not q2.EOF do
+          while not q2.EOF and (not FDoStopProcessing) do
           begin
             if (LineDocTbls.IndexOfName(UpperCase(q2.FieldByName('relation_name').AsString)) = -1) and
                (CrossLineTbls.IndexOfName(UpperCase(q2.FieldByName('relation_name').AsString)) = -1) then
@@ -2941,7 +3218,7 @@ var
         ReprocIncrement := (LineDocTbls.Count) div STEP_COUNT;
         IsFirstIteration := True;
         J := 0;
-        while J < LineDocTbls.Count do
+        while (J < LineDocTbls.Count) and (not FDoStopProcessing) do
         begin
           if GoReprocess then
           begin
@@ -3698,12 +3975,13 @@ begin
       q.SQL.Add(' ' +
         'AND companykey = ' + IntToStr(FCompanykey));
     q.ParamByName('ClosingDate').AsDateTime := FClosingDate;
-    ExecSqlLogEvent(q, 'CreateHIS_IncludeInHIS');
+    if not FDoStopProcessing then
+      ExecSqlLogEvent(q, 'CreateHIS_IncludeInHIS');
 
     LogEvent('DELETE FROM AC_RECORD... OK');
     Tr.Commit;
     Tr.StartTransaction;
-
+    ProgressMsgEvent('', 100);
     CreateHIS(1);
 
     // новые доки и с типами указанными пользователем должны остаться
@@ -3726,7 +4004,8 @@ begin
     end;
     q.SQL.Add(')');
     q.ParamByName('Date').AsDateTime := FClosingDate;
-    ExecSqlLogEvent(q, 'CreateHIS_IncludeInHIS');
+    if not FDoStopProcessing then
+      ExecSqlLogEvent(q, 'CreateHIS_IncludeInHIS');
     q.Close;
 
     LogEvent('DELETE FROM INV_MOVEMENT...');
@@ -3750,9 +4029,10 @@ begin
 
 
     CreateHIS(2); // inv_card.id на которые есть ссылки
+    ProgressMsgEvent('', 100);
 
-
-    IncludeCascadingSequences('GD_DOCUMENT');
+    if not FDoStopProcessing then
+      IncludeCascadingSequences('GD_DOCUMENT');
 
 
     LogEvent(Format('AFTER COUNT in HIS(1): %d', [GetCountHIS(1)]));
@@ -3840,6 +4120,7 @@ begin
     end;
 
     Tr.Commit;
+    ProgressMsgEvent('', 100);
     LogEvent('Including PKs In HugeIntSet... OK');
     if FCurrentProgressStep < 33*PROGRESS_STEP then
       ProgressMsgEvent('', ((33*PROGRESS_STEP) - FCurrentProgressStep));
@@ -4096,9 +4377,15 @@ begin
     q.Transaction := Tr;
     try
       PrepareFKConstraints;
-      PreparePkUniqueConstraints;
-      PrepareTriggers;
-      PrepareIndices;                                   
+      ProgressMsgEvent('', 1*PROGRESS_STEP);
+      if not FDoStopProcessing then
+        PreparePkUniqueConstraints;
+      ProgressMsgEvent('', 1*PROGRESS_STEP);
+      if not FDoStopProcessing then
+        PrepareTriggers;
+      if not FDoStopProcessing then
+        PrepareIndices;
+      ProgressMsgEvent('', 1*PROGRESS_STEP);                                
 
       Tr.Commit;
       LogEvent('DB preparation... OK');
@@ -4210,7 +4497,7 @@ begin
           ' WHERE (g_his_has(1,' + FCascadeTbls.Values[FCascadeTbls.Names[I]] + ')=0 ' + #13#10 +
           '   AND ' + FCascadeTbls.Values[FCascadeTbls.Names[I]] + ' >= 147000000) '
       else begin
-        if FCascadeTbls.Names[I] = 'INV_CARD' then           
+        if FCascadeTbls.Names[I] = 'INV_CARD' then
           q.SQL.Text :=
             'DELETE FROM inv_card ' +     #13#10 +
             'WHERE g_his_has(2, id)=0 ' + #13#10 +
@@ -4221,8 +4508,8 @@ begin
             ' WHERE (' +  StringReplace(FCascadeTbls.Values[FCascadeTbls.Names[I]], '||', ' >= 147000000) AND (',[rfReplaceAll, rfIgnoreCase]) + ' >= 147000000) ' + #13#10 +
             '   AND (g_his_has(1,' + StringReplace(FCascadeTbls.Values[FCascadeTbls.Names[I]], '||', ')=0 OR g_his_has(1,',[rfReplaceAll, rfIgnoreCase]) + ')=0 )';
       end;
-
-      ExecSqlLogEvent(q, 'DeleteDocuments_DeleteHIS');
+      if not FDoStopProcessing then
+        ExecSqlLogEvent(q, 'DeleteDocuments_DeleteHIS');
     end;
 
     Tr.Commit;
@@ -4279,6 +4566,7 @@ begin
     q2.ParamByName('CurUserContactKey').AsInteger := FCurUserContactKey;
 
     ExecSqlLogEvent(q2, 'CreateAcEntries');
+    ProgressMsgEvent('', 2*PROGRESS_STEP);
 
     // перенос проводок
     qInsertAcRec.SQL.Text :=
@@ -4298,8 +4586,9 @@ begin
     qInsertAcRec.ParamByName('ClosingDate').AsDateTime := FClosingDate-1;
     qInsertAcRec.ParamByName('ProizvolnyeTrRecordKey').AsInteger := PROIZVOLNYE_TRRECORD_KEY;
     qInsertAcRec.ParamByName('ProizvolnyeTransactionKey').AsInteger := PROIZVOLNYE_TRANSACTION_KEY;
-
-    ExecSqlLogEvent(qInsertAcRec, 'CreateAcEntries');
+    if not FDoStopProcessing then
+      ExecSqlLogEvent(qInsertAcRec, 'CreateAcEntries');
+    ProgressMsgEvent('', 2*PROGRESS_STEP);
 
     // перенос проводок
     qInsertAcEntry.SQL.Text :=
@@ -4334,8 +4623,8 @@ begin
       'FROM DBS_TMP_AC_SALDO ');
     qInsertAcEntry.ParamByName('ClosingDate').AsDateTime := FClosingDate-1;
     qInsertAcEntry.ParamByName('ProizvolnyeTransactionKey').AsInteger := PROIZVOLNYE_TRANSACTION_KEY;
-
-    ExecSqlLogEvent(qInsertAcEntry, 'CreateAcEntries');
+    if not FDoStopProcessing then
+      ExecSqlLogEvent(qInsertAcEntry, 'CreateAcEntries');
 
     // проводки по счету '00 Остатки': Дебетовые остатки счета вводятся по кредиту счета 00. Кредитовые остатки счета вводятся по дебету счета 00.
     if FDoAccount00Saldo then
@@ -4403,6 +4692,7 @@ begin
     end;     
 
     Tr.Commit;
+    ProgressMsgEvent('', 3*PROGRESS_STEP);
   finally
     q2.Free;
     qInsertAcRec.Free;
@@ -4458,6 +4748,7 @@ begin
 
       Tr.Commit;
       Tr.StartTransaction;
+      ProgressMsgEvent('', 3*PROGRESS_STEP);
       // Создадим кредитовую часть складского движения
 
       q.SQL.Text :=                                     #13#10 +
@@ -4483,10 +4774,11 @@ begin
       q.ParamByName('ClosingDate').AsDateTime := FClosingDate-1;
       q.ParamByName('FPseudoClientKey').AsInteger := FPseudoClientKey;
       q.ParamByName('FPseudoClientKey').AsInteger := FPseudoClientKey;
-
-      ExecSqlLogEvent(q, 'CreateInvSaldo');
+      if not FDoStopProcessing then
+        ExecSqlLogEvent(q, 'CreateInvSaldo');
 
       Tr.Commit;
+      ProgressMsgEvent('', 4*PROGRESS_STEP);
       LogEvent('Create inventory balance... OK');
     except
       on E: Exception do
@@ -4674,11 +4966,14 @@ begin
     try
       RestoreIndices;                 //4%
       ProgressMsgEvent('', 4*PROGRESS_STEP);
-      RestorePkUniqueConstraints;     //8%
+      if not FDoStopProcessing then
+        RestorePkUniqueConstraints;     //8%
       ProgressMsgEvent('', 8*PROGRESS_STEP);
-      RestoreFKConstraints;           //16%
-      ProgressMsgEvent('', 16*PROGRESS_STEP);
-      RestoreTriggers;                //2%
+      if not FDoStopProcessing then
+        RestoreFKConstraints;           //16%
+      ProgressMsgEvent('', 14*PROGRESS_STEP);
+      if not FDoStopProcessing then
+        RestoreTriggers;                //2%
       ProgressMsgEvent('', 2*PROGRESS_STEP);
 
       Tr.Commit;

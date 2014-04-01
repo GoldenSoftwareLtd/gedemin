@@ -9,23 +9,19 @@ const
   iniSection = 'SQUEEZE_SETTINGS';
 
   {Section: SQUEEZE_SETTINGS}
-  iniDoCalculateOnlyCompanySaldo = 'DoCalculateOnlyCompanySaldo';
-  iniSelectedCompanyName = 'SelectedCompanyName';
-  iniSelectedCompanyKey = 'SelectedCompanyKey';
   iniDoEnterOstatkyAccount = 'DoEnterOstatkyAccount';
   iniDoProcessDocTypes = 'DoProcessDocTypes';
   iniSelectedDocTypeKeys = 'SelectedDocTypeKeys';
+  iniSelectedBranchRows = 'SelectedBranchRows';
 
 type
   TgsIniOptions = class(TObject)
   private
     {Section: SQUEEZE_SETTINGS}
-    FDoCalculateOnlyCompanySaldo: Boolean;
-    FSelectedCompanyName: String;
-    FSelectedCompanyKey: Integer;
     FDoEnterOstatkyAccount: Boolean;
     FDoProcessDocTypes: Boolean;
     FSelectedDocTypeKeys: String;
+    FSelectedBranchRows: String;
   public
     procedure LoadSettings(Ini: TIniFile);
     procedure SaveSettings(Ini: TIniFile);
@@ -34,12 +30,10 @@ type
     procedure SaveToFile(const FileName: String);
 
     {Section: SQUEEZE_SETTINGS}
-    property DoCalculateOnlyCompanySaldo: Boolean read FDoCalculateOnlyCompanySaldo write FDoCalculateOnlyCompanySaldo;
-    property SelectedCompanyName: String          read FSelectedCompanyName         write FSelectedCompanyName;
-    property SelectedCompanyKey: Integer          read FSelectedCompanyKey          write FSelectedCompanyKey;
     property DoEnterOstatkyAccount: Boolean       read FDoEnterOstatkyAccount       write FDoEnterOstatkyAccount;
     property DoProcessDocTypes: Boolean           read FDoProcessDocTypes           write FDoProcessDocTypes;
     property SelectedDocTypeKeys: String          read FSelectedDocTypeKeys         write FSelectedDocTypeKeys;
+    property SelectedBranchRows: String           read FSelectedBranchRows          write FSelectedBranchRows;
   end;
 
 var
@@ -52,12 +46,10 @@ begin
   if Ini <> nil then
   begin
     {Section: SQUEEZE_SETTINGS}
-    FDoCalculateOnlyCompanySaldo := Ini.ReadBool(iniSection, iniDoCalculateOnlyCompanySaldo, False);
-    FSelectedCompanyName := Ini.ReadString(iniSection, iniSelectedCompanyName, '');
-    FSelectedCompanyKey := Ini.ReadInteger(iniSection, iniSelectedCompanyKey, 0);
     FDoEnterOstatkyAccount := Ini.ReadBool(iniSection, iniDoEnterOstatkyAccount, False);
     FDoProcessDocTypes := Ini.ReadBool(iniSection, iniDoProcessDocTypes, False);
     FSelectedDocTypeKeys := Ini.ReadString(iniSection, iniSelectedDocTypeKeys, '');
+    FSelectedBranchRows := Ini.ReadString(iniSection, iniSelectedBranchRows, '');
   end;
 end;
 
@@ -66,12 +58,10 @@ begin
   if Ini <> nil then
   begin
     {Section: SQUEEZE_SETTINGS}
-    Ini.WriteBool(iniSection, iniDoCalculateOnlyCompanySaldo, FDoCalculateOnlyCompanySaldo);
-    Ini.WriteString(iniSection, iniSelectedCompanyName, FSelectedCompanyName);
-    Ini.WriteInteger(iniSection, iniSelectedCompanyKey, FSelectedCompanyKey);
     Ini.WriteBool(iniSection, iniDoEnterOstatkyAccount, FDoEnterOstatkyAccount);
     Ini.WriteBool(iniSection, iniDoProcessDocTypes, FDoProcessDocTypes);
     Ini.WriteString(iniSection, iniSelectedDocTypeKeys, FSelectedDocTypeKeys);
+    Ini.WriteString(iniSection, iniSelectedBranchRows, FSelectedBranchRows);
   end;
 end;
 

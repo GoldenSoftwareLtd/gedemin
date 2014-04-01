@@ -91,6 +91,7 @@ type
     FAllOurCompaniesSaldo: Boolean;
     FOnlyCompanySaldo: Boolean;
     FAccount00: Boolean;
+    FCalculateSaldo: Boolean;
 
     FDBS: TgsDBSqueeze;
 
@@ -183,7 +184,7 @@ type
 
     //procedure ContinueProcessing(const AFunctionKey: Integer; const AState: Integer);
 
-    procedure SetSaldoParams(const AAllOurCompanies: Boolean; const AOnlyCompany: Boolean; const AnAccount00: Boolean);
+    procedure SetSaldoParams(const AAllOurCompanies: Boolean; const AOnlyCompany: Boolean; const AnAccount00: Boolean; const ACalculateSaldo: Boolean);
     procedure SetCompanyKey(const ACompanyKey: Integer);
     procedure SetSelectDocTypes(const ADocTypes: TStringList; const AnIsProcDocTypes: Boolean);
     procedure SetDBParams(const ADatabaseName: String; const AHost: String; const AUserName: String; const APassword: String; const ACharacterSet: String; const APort: Integer = 0);
@@ -282,6 +283,7 @@ end;
 procedure TgsDBSqueezeThread.StopProcessing;
 begin
   FDoStopProcessing := True;
+  FDBS.DoStopProcessing  := True;                                                /////////////////////  мб критикал секцию надо
   PostMsg(WM_DBS_STOPPROCESSING);
 end;
 
@@ -519,6 +521,7 @@ begin
         FDBS.AllOurCompaniesSaldo := FAllOurCompaniesSaldo;
         FDBS.OnlyCompanySaldo := FOnlyCompanySaldo;
         FDBS.DoAccount00Saldo := FAccount00;
+        FDBS.CalculateSaldo := FCalculateSaldo;
 
         Result := True;
       end;
@@ -548,7 +551,9 @@ begin
         FDBS.GetStatisticsEvent;
 
         //FDBS.InsertDBSStateJournal(Msg.Message, 1);
+        
         FState.Value := 1;
+        PostThreadMessage(ThreadID, WM_DBS_GETPROCSTATISTICS, 0, 0);
         Result := True;
       end;
 
@@ -604,7 +609,7 @@ begin
       begin
         if not FDoStopProcessing then
         begin
-          FDBS.ProgressMsgEvent('Инициализация...', 0);                                         //1%
+          FDBS.ProgressMsgEvent('Инициализация...', 0);                                         // 1%
           FDBS.SetFVariables;
 
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
@@ -634,7 +639,7 @@ begin
       begin
         if not FDoStopProcessing then
         begin
-          FDBS.ProgressMsgEvent('Получение метаданных... ', 1*PROGRESS_STEP);  //1%
+          FDBS.ProgressMsgEvent('Получение метаданных... ', 1*PROGRESS_STEP);                   // 1%
           FDBS.SaveMetadata;
 
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
@@ -649,10 +654,15 @@ begin
       begin
         if not FDoStopProcessing then
         begin
-          FDBS.ProgressMsgEvent('Вычисление бухгалтерского сальдо...', 1*PROGRESS_STEP);         //7%
-          FDBS.CalculateAcSaldo;
+          if FCalculateSaldo then
+          begin
+            FDBS.ProgressMsgEvent('Вычисление бухгалтерского сальдо...', 1*PROGRESS_STEP);        // 7%
+            FDBS.CalculateAcSaldo;
 
-          FDBS.InsertDBSStateJournal(Msg.Message, 1);
+            FDBS.InsertDBSStateJournal(Msg.Message, 1);
+          end
+          else
+            FDBS.ProgressMsgEvent(' ', 1*PROGRESS_STEP);
           FState.Value := 1;
 
           PostThreadMessage(ThreadID, WM_DBS_CALCULATEINVSALDO, 0, 0);
@@ -660,16 +670,21 @@ begin
         Result := True;
       end;
 
-      WM_DBS_CALCULATEINVSALDO:
+    WM_DBS_CALCULATEINVSALDO:
       begin
         if not FDoStopProcessing then
         begin
-          FDBS.ProgressMsgEvent('Вычисление складского сальдо...', 7*PROGRESS_STEP);            // 7%
-          FDBS.CalculateInvSaldo;
-
-          FDBS.InsertDBSStateJournal(Msg.Message, 1);
+          if FCalculateSaldo then
+          begin
+            FDBS.ProgressMsgEvent('Вычисление складского сальдо...', 7*PROGRESS_STEP);            // 7%
+            FDBS.CalculateInvSaldo;
+            FDBS.InsertDBSStateJournal(Msg.Message, 1);
+          end
+          else begin
+            FDBS.ProgressMsgEvent(' ', 14*PROGRESS_STEP);
+          end;
+          
           FState.Value := 1;
-
           PostThreadMessage(ThreadID, WM_DBS_CREATEHIS_INCLUDEHIS, 0, 0);
         end;
         Result := True;
@@ -679,7 +694,7 @@ begin
       begin
         if not FDoStopProcessing then
         begin
-          FDBS.ProgressMsgEvent('Выявление записей, которые должны остаться...', 7*PROGRESS_STEP);// 16%
+          FDBS.ProgressMsgEvent('Выявление записей, которые должны остаться...', 0);            // 16%
           FDBS.CreateHIS_IncludeInHIS;
 
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
@@ -710,7 +725,7 @@ begin
       begin
         if not FDoStopProcessing then
         begin
-          FDBS.ProgressMsgEvent('Очистка от неактуальных данных...', 3*PROGRESS_STEP);            //2%
+          FDBS.ProgressMsgEvent('Очистка от неактуальных данных...', 0);                          // 2%
           FDBS.DeleteOldAcEntryBalance;
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
           FState.Value := 1;
@@ -724,7 +739,7 @@ begin
       begin
         if not FDoStopProcessing then
         begin
-          FDBS.ProgressMsgEvent('Удаление записей...', 2*PROGRESS_STEP);                          //8%
+          FDBS.ProgressMsgEvent('Удаление записей...', 2*PROGRESS_STEP);                          // 8%
           FDBS.DeleteDocuments_DeleteHIS;
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
           FState.Value := 1;
@@ -738,9 +753,14 @@ begin
       begin
         if not FDoStopProcessing then
         begin
-          FDBS.ProgressMsgEvent('Сохранение бухгалтерского сальдо...', 8*PROGRESS_STEP);          //7%
-          FDBS.CreateAcEntries;
-          FDBS.InsertDBSStateJournal(Msg.Message, 1);
+          if FCalculateSaldo then
+          begin
+            FDBS.ProgressMsgEvent('Сохранение бухгалтерского сальдо...', 8*PROGRESS_STEP);          // 7%
+            FDBS.CreateAcEntries;
+            FDBS.InsertDBSStateJournal(Msg.Message, 1);
+          end
+          else
+            FDBS.ProgressMsgEvent(' ', 8*PROGRESS_STEP);
           FState.Value := 1;
 
           PostThreadMessage(ThreadID, WM_DBS_CREATEINVSALDO, 0, 0);
@@ -752,10 +772,15 @@ begin
       begin
         if not FDoStopProcessing then
         begin
-          FDBS.ProgressMsgEvent('Сохранение складского сальдо...', 7*PROGRESS_STEP);              //7%
-          FDBS.CreateInvSaldo;                                                  
+          if FCalculateSaldo then
+          begin
+            FDBS.ProgressMsgEvent('Сохранение складского сальдо...', 0);              // 7%
+            FDBS.CreateInvSaldo;
 
-          FDBS.InsertDBSStateJournal(Msg.Message, 1);
+            FDBS.InsertDBSStateJournal(Msg.Message, 1);
+          end
+          else
+            FDBS.ProgressMsgEvent(' ', 7*PROGRESS_STEP);
           FState.Value := 1;
 
           PostThreadMessage(ThreadID, WM_DBS_RESTOREDB, 0, 0);
@@ -767,7 +792,7 @@ begin
       begin
         if not FDoStopProcessing then
         begin
-          FDBS.ProgressMsgEvent('Восстановление БД...', 7*PROGRESS_STEP);                         // 30%
+          FDBS.ProgressMsgEvent('Восстановление БД...', 0);                                       // 28%
           FDBS.RestoreDB;
           //FDBS.Reconnect(False, True);
 
@@ -784,7 +809,7 @@ begin
         if not FDoStopProcessing then
         begin
           FDBS.CreateInvBalance;
-
+          FDBS.ProgressMsgEvent('Вычисление текущих складских остатков...', 0);                    // 2%
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
           FState.Value := 1;
 
@@ -797,7 +822,7 @@ begin
       begin
         if not FDoStopProcessing then
         begin
-          FDBS.ProgressMsgEvent('Удаление метаданных...', 0);                                     //1%
+          FDBS.ProgressMsgEvent('Удаление метаданных...', 2*PROGRESS_STEP);                        // 1%
           FDBS.DeleteDBSTables;
 
           //FDBS.InsertDBSStateJournal(Msg.Message, 1);
@@ -815,7 +840,7 @@ begin
         begin
           if FBackupFileName.Value <> '' then
           begin
-            FDBS.ProgressMsgEvent('Создание backup-файла...', 0);                                 //3%
+            FDBS.ProgressMsgEvent('Создание backup-файла...', 0);                                 // 3%
             FDBS.BackupDatabase;
           end;
           FState.Value := 1;
@@ -832,7 +857,7 @@ begin
         begin
           if FRestoreDBName.Value <> '' then
           begin
-            FDBS.ProgressMsgEvent('Восcтановление БД из backup-файла...', 0);                     //6%
+            FDBS.ProgressMsgEvent('Восcтановление БД из backup-файла...', 0);                     // 6%
             FDBS.RestoreDatabaseFromBackup;
           end;
           FState.Value := 1;
@@ -849,16 +874,16 @@ begin
         begin
           FDBS.GetDBSizeEvent;
 
+          FDBS.LogEvent('FINISH!');
+          FDBS.ProgressMsgEvent('Обработка БД завершена.');
+
           FFinish:= True;
           Finish(FFinish);
 
-          FDBS.ProgressMsgEvent('Обработка БД завершена.');
-          FDBS.LogEvent('FINISH!');
           FBusy.Value := 0;
         end;
         Result := True;
       end;
-
 
     WM_DBS_DISCONNECT:
       begin
@@ -875,7 +900,6 @@ begin
  except
   on E: Exception do
   begin
-    FDBS.LogEvent('[error]' + E.Message);
     FDBS.ErrorEvent(E.Message);
     //сохранить ошибку в базу
 
@@ -939,11 +963,12 @@ begin
   PostMsg(WM_DBS_SETCLOSINGDATE);
 end;
 
-procedure  TgsDBSqueezeThread.SetSaldoParams(const AAllOurCompanies: Boolean; const AOnlyCompany: Boolean; const AnAccount00: Boolean);
+procedure  TgsDBSqueezeThread.SetSaldoParams(const AAllOurCompanies: Boolean; const AOnlyCompany: Boolean; const AnAccount00: Boolean; const ACalculateSaldo: Boolean);
 begin
   FAllOurCompaniesSaldo := AAllOurCompanies;
   FOnlyCompanySaldo := AOnlyCompany;
   FAccount00 := AnAccount00;
+  FCalculateSaldo := ACalculateSaldo;
   PostMsg(WM_DBS_SETSALDOPARAMS);
 end;
 

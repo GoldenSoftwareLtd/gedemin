@@ -1,11 +1,11 @@
 object gsDBSqueeze_DocTypesForm: TgsDBSqueeze_DocTypesForm
-  Left = 1397
-  Top = 18
+  Left = 209
+  Top = 137
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsDialog
   Caption = 'Выбор типов документов'
-  ClientHeight = 615
-  ClientWidth = 861
+  ClientHeight = 608
+  ClientWidth = 790
   Color = 12050175
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -16,10 +16,10 @@ object gsDBSqueeze_DocTypesForm: TgsDBSqueeze_DocTypesForm
   PixelsPerInch = 96
   TextHeight = 13
   object strngrdIgnoreDocTypes: TStringGrid
-    Left = 352
-    Top = 34
+    Left = 281
+    Top = 26
     Width = 498
-    Height = 473
+    Height = 474
     TabStop = False
     ColCount = 2
     DefaultColWidth = 390
@@ -34,8 +34,8 @@ object gsDBSqueeze_DocTypesForm: TgsDBSqueeze_DocTypesForm
     OnDrawCell = strngrdIgnoreDocTypesDrawCell
   end
   object mIgnoreDocTypes: TMemo
-    Left = 352
-    Top = 517
+    Left = 281
+    Top = 509
     Width = 498
     Height = 53
     TabStop = False
@@ -45,16 +45,22 @@ object gsDBSqueeze_DocTypesForm: TgsDBSqueeze_DocTypesForm
     TabOrder = 4
   end
   object tvDocTypes: TTreeView
-    Left = 8
-    Top = 18
-    Width = 337
+    Left = 9
+    Top = 10
+    Width = 262
     Height = 553
+    HideSelection = False
+    HotTrack = True
     Indent = 19
+    ReadOnly = True
     TabOrder = 2
+    ToolTips = False
+    OnClick = tvDocTypesClick
+    OnCustomDrawItem = tvDocTypesCustomDrawItem
   end
   object txt5: TStaticText
-    Left = 352
-    Top = 17
+    Left = 281
+    Top = 9
     Width = 392
     Height = 17
     Alignment = taCenter
@@ -71,8 +77,8 @@ object gsDBSqueeze_DocTypesForm: TgsDBSqueeze_DocTypesForm
     TabOrder = 0
   end
   object txt1: TStaticText
-    Left = 745
-    Top = 17
+    Left = 674
+    Top = 9
     Width = 105
     Height = 17
     Alignment = taCenter
@@ -89,8 +95,8 @@ object gsDBSqueeze_DocTypesForm: TgsDBSqueeze_DocTypesForm
     TabOrder = 1
   end
   object btnOK: TButton
-    Left = 744
-    Top = 581
+    Left = 673
+    Top = 573
     Width = 107
     Height = 25
     Caption = 'Принять'
@@ -98,8 +104,8 @@ object gsDBSqueeze_DocTypesForm: TgsDBSqueeze_DocTypesForm
     OnClick = btnOKClick
   end
   object btnCancel: TButton
-    Left = 636
-    Top = 581
+    Left = 565
+    Top = 573
     Width = 107
     Height = 25
     Caption = 'Отмена'

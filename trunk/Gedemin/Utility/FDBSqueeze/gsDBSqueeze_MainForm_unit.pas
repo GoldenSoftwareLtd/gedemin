@@ -124,7 +124,6 @@ type
     txt6: TStaticText;
     pgcSettings: TPageControl;
     tsConnection: TTabSheet;
-    shp9: TShape;
     StaticText4: TStaticText;
     cbbCharset: TComboBox;
     StaticText2: TStaticText;
@@ -147,7 +146,6 @@ type
     lbl3: TLabel;
     edUserName: TEdit;
     edPassword: TEdit;
-    sttxt1: TStaticText;
     btntTestConnection: TButton;
     sttxtActivUserCount: TStaticText;
     sttxtServerName: TStaticText;
@@ -155,67 +153,59 @@ type
     sttxtTestConnectState: TStaticText;
     StaticText1: TStaticText;
     sttxtTestServer: TStaticText;
-    txt7: TStaticText;
     tsSqueezeSettings: TTabSheet;
     lbl5: TLabel;
-    lbl6: TLabel;
-    shp11: TShape;
     dtpClosingDate: TDateTimePicker;
-    rbAllOurCompanies: TRadioButton;
-    rbCompany: TRadioButton;
-    cbbCompany: TComboBox;
     btnNext2: TButton;
     btnBack1: TButton;
     chk00Account: TCheckBox;
-    chk1: TCheckBox;
-    StaticText14: TStaticText;
-    StaticText13: TStaticText;
     btnLoadConfigFile: TButton;
-    tsSettings2: TTabSheet;
-    shp14: TShape;
-    btn1: TButton;
-    btn2: TButton;
-    txt1: TStaticText;
-    txt9: TStaticText;
     tsOptions: TTabSheet;
     lblLogDir: TLabel;
     lblBackup: TLabel;
-    shp12: TShape;
     lblRestore: TLabel;
     btnNext3: TButton;
     btnBack2: TButton;
-    sttxt17: TStaticText;
     chkbSaveLogs: TCheckBox;
     chkBackup: TCheckBox;
     edLogs: TEdit;
     btnLogDirBrowse: TButton;
     edtBackup: TEdit;
     btnBackupBrowse: TButton;
-    grpReprocessingType: TGroupBox;
-    rbStartOver: TRadioButton;
-    rbContinue: TRadioButton;
     edtRestore: TEdit;
     btnRestoreBrowse: TButton;
     chkRestore: TCheckBox;
     btnSaveConfigFile: TButton;
     txt8: TStaticText;
     tsReviewSettings: TTabSheet;
-    shp13: TShape;
-    sttxt18: TStaticText;
     btnGo: TBitBtn;
     btnBack3: TBitBtn;
     mReviewSettings: TMemo;
     txt11: TStaticText;
-    chk2: TCheckBox;
+    chkCalculateSaldo: TCheckBox;
     mIgnoreDocTypes: TMemo;
     tbcDocTypes: TTabControl;
-    btn3: TButton;
+    btnSelectDocTypes: TButton;
+    shp9: TShape;
+    txt1: TStaticText;
+    txt7: TStaticText;
+    txt9: TStaticText;
+    txt12: TStaticText;
+    txt13: TStaticText;
+    shp14: TShape;
+    txt14: TStaticText;
+    txt15: TStaticText;
+    shp11: TShape;
+    txt16: TStaticText;
+    shp12: TShape;
+    shp13: TShape;
+    shp20: TShape;
+    shp22: TShape;
+    shp23: TShape;
 
     procedure actBackPageExecute(Sender: TObject);
     procedure actClearLogExecute(Sender: TObject);
     procedure actClearLogUpdate(Sender: TObject);
-    procedure actCompanyExecute(Sender: TObject);
-    procedure actCompanyUpdate(Sender: TObject);
     procedure actConfigBrowseExecute(Sender: TObject);
     procedure actDatabaseBrowseExecute(Sender: TObject);
     procedure actDefaultPortExecute(Sender: TObject);
@@ -235,22 +225,24 @@ type
     procedure actStopUpdate(Sender: TObject);
     procedure btnBackupBrowseMouseDown(Sender: TObject;Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
     procedure btnClearGeneralLogMouseDown(Sender: TObject;Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
-    procedure cbbCompanyDrawItem(Control: TWinControl; Index: Integer;Rect: TRect; State: TOwnerDrawState);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
     procedure statbarMainDrawPanel(StatusBar: TStatusBar;Panel: TStatusPanel; const Rect: TRect);
     procedure tbcPageControllerChange(Sender: TObject);
-    procedure btn3Click(Sender: TObject);
+    procedure btnSelectDocTypesClick(Sender: TObject);
 
   private
     FStartupTime: TDateTime;
     FSThread: TgsDBSqueezeThread;
     FLogFileStream: TFileStream;
 
+    FProcessing: Boolean;
+
     FConnected: Boolean;
     FSaveLogs: Boolean;
     FWrited: Boolean;
     FIsProcessStop: Boolean;
 
+    FWasSelectedDocTypes: Boolean;
     FDocTypesList: TStringList;
     FDatabaseName: String;
 
@@ -272,7 +264,6 @@ type
     procedure GetStatisticsEvent(const AGdDoc: String; const AnAcEntry: String; const AnInvMovement: String; const AnInvCard: String);
     procedure LogSQLEvent(const ALogSQL: String);
     procedure SetDocTypeStringsEvent(const ADocTypes: TStringList);
-    procedure SetItemsCbbEvent(const ACompanies: TStringList);
     procedure UsedDBEvent(const AFunctionKey: Integer; const AState: Integer; const ACallTime: String; const AErrorMessage: String);
 
   public
@@ -328,8 +319,7 @@ begin
     cbbCharset.Items.AddStrings(CharsetList);
     cbbCharset.ItemIndex := cbbCharset.Items.IndexOf(DEFAULT_CHARACTER_SET);
 
-    rbAllOurCompanies.Checked := True;
-    cbbCompany.Style := csOwnerDrawFixed;
+    
     gsDBSqueeze_MainForm.DefocusControl(tbcDocTypes, False);
 
     FConnected := False;
@@ -341,7 +331,6 @@ begin
     FSThread.OnGetInfoTestConnect := GetInfoTestConnectEvent;
     FSThread.OnUsedDB := UsedDBEvent;
     FSThread.OnGetDBProperties := GetDBPropertiesEvent;
-    FSThread.OnSetItemsCbb := SetItemsCbbEvent;
     FSThread.OnSetDocTypeStrings := SetDocTypeStringsEvent;
     FSThread.OnGetDBSize := GetDBSizeEvent;
     FSThread.OnGetStatistics := GetStatisticsEvent;
@@ -361,26 +350,14 @@ begin
   inherited;
 end;
 //---------------------------------------------------------------------------
-procedure TgsDBSqueeze_MainForm.actDisconnectUpdate(Sender: TObject);
-begin
-  if FConnected then
-  begin
-    actDisconnect.Caption := 'Disconnect';
-    actDisconnect.Enabled := not actStop.Enabled;
-  end
-  else begin
-    actDisconnect.Caption := 'Test Connect';
-    actDisconnect.Enabled := btnNext1.Enabled;
-  end;
-end;
-//---------------------------------------------------------------------------
 procedure TgsDBSqueeze_MainForm.ThreadDestroy;
 var
   I: Integer;
 begin
   FStartupTime := Now;
 
-  gsDBSqueeze_DocTypesForm.ClearData;
+  FWasSelectedDocTypes := False;
+  gsDBSqueeze_DocTypesForm.ClearData;                                              ///////////////////////////
   mIgnoreDocTypes.Clear;
   FDocTypesList.Clear;
 
@@ -396,8 +373,6 @@ begin
 
   cbbCharset.ItemIndex := cbbCharset.Items.IndexOf(DEFAULT_CHARACTER_SET);
   dtpClosingDate.Date := Date;
-  cbbCompany.Clear;
-  rbAllOurCompanies.Checked := True;
   chk00Account.Checked := False;
   tbcDocTypes.TabIndex := 0;
   chkbSaveLogs.Checked := False;
@@ -406,7 +381,6 @@ begin
   edLogs.Text := '';
   edtBackup.Text := '';
   edtRestore.Text := '';
-  grpReprocessingType.Enabled := False;
   mReviewSettings.Clear;
 
   sttxtDBSizeBefore.Caption := '';
@@ -448,7 +422,6 @@ begin
   FSThread.OnGetInfoTestConnect := GetInfoTestConnectEvent;
   FSThread.OnUsedDB := UsedDBEvent;
   FSThread.OnGetDBProperties := GetDBPropertiesEvent;
-  FSThread.OnSetItemsCbb := SetItemsCbbEvent;
   FSThread.OnSetDocTypeStrings := SetDocTypeStringsEvent;
   FSThread.OnGetDBSize := GetDBSizeEvent;
   FSThread.OnGetStatistics := GetStatisticsEvent;
@@ -461,6 +434,7 @@ end;
 procedure TgsDBSqueeze_MainForm.actDisconnectExecute(Sender: TObject);
 begin
   gsDBSqueeze_MainForm.DefocusControl(btntTestConnection, False);
+
   if actDisconnect.Caption = 'Disconnect' then
   begin
     GetConnectedEvent(False); //FSThread.Disconnect;                            ///TODO: после сообщения о дисконнекте разрушить
@@ -469,6 +443,8 @@ begin
     mSqlLog.Clear;
   end
   else begin// test connect
+    FProcessing := True;
+
     sttxtTestServer.Visible := False;
     sttxtServerName.Visible := False;
     sttxtActivConnects.Visible := False;
@@ -495,6 +471,19 @@ begin
   end;
 end;
 //---------------------------------------------------------------------------
+procedure TgsDBSqueeze_MainForm.actDisconnectUpdate(Sender: TObject);
+begin
+  if FConnected then
+  begin
+    actDisconnect.Caption := 'Disconnect';
+    actDisconnect.Enabled := not actStop.Enabled;
+  end
+  else begin
+    actDisconnect.Caption := 'Test Connect';
+    actDisconnect.Enabled := btnNext1.Enabled and (not FProcessing);
+  end;
+end;
+//---------------------------------------------------------------------------
 procedure TgsDBSqueeze_MainForm.GetInfoTestConnectEvent(const AConnectSuccess: Boolean; const AConnectInfoList: TStringList);
 begin
   if AConnectSuccess then
@@ -510,6 +499,7 @@ begin
   else begin
     sttxtStateTestConnect.Caption := 'FAIL';
   end;
+  FProcessing := False;
 end;
 //---------------------------------------------------------------------------
 procedure TgsDBSqueeze_MainForm.FormCloseQuery(Sender: TObject;                 ///TODO: доработать
@@ -590,18 +580,7 @@ begin
   WriteToLogFile('INV_MOVEMENT: ' + AnProcInvMovement);
   WriteToLogFile('INV_CARD: ' + AnProcInvCard);
   WriteToLogFile('===============================================================');
-end;
-//---------------------------------------------------------------------------
-procedure TgsDBSqueeze_MainForm.SetItemsCbbEvent(const ACompanies: TStringList);
-var
-  I: Integer;
-begin
-  //if rbCompany.Checked then
-  //begin
-    cbbCompany.Clear;
-    for I:=0 to ACompanies.Count-1 do
-      cbbCompany.Items.Add(ACompanies.Names[I] + ';' + ACompanies.Values[ACompanies.Names[I]] + ';');
-  //end;
+  FProcessing := False;
 end;
 //---------------------------------------------------------------------------
 procedure TgsDBSqueeze_MainForm.SetDocTypeStringsEvent(const ADocTypes: TStringList);
@@ -621,26 +600,6 @@ begin
   sttxtPageBuffers.Caption := AProperties.Values['PageBuffers'];
   sttxtForcedWrites.Caption := AProperties.Values['ForcedWrites'];
   sttxtGarbageCollection.Caption := AProperties.Values['GarbageCollection'];
-end;
-//---------------------------------------------------------------------------
-procedure TgsDBSqueeze_MainForm.actCompanyUpdate(Sender: TObject);
-begin
-  cbbCompany.Enabled := (rbCompany.Checked) and (FConnected);
-end;
-//---------------------------------------------------------------------------
-procedure TgsDBSqueeze_MainForm.actCompanyExecute(Sender: TObject);
-begin
-  if Sender = rbCompany then
-  begin
-    gsDBSqueeze_MainForm.DefocusControl(rbCompany, False);
-    
-  end
-  else if Sender = rbAllOurCompanies then
-  begin
-    gsDBSqueeze_MainForm.DefocusControl(rbAllOurCompanies, False);
-  end;
-
-  ///FSThread.DoSetItemsCbb;
 end;
 //---------------------------------------------------------------------------
 procedure TgsDBSqueeze_MainForm.actDatabaseBrowseExecute(Sender: TObject);
@@ -667,14 +626,14 @@ begin
   gsDBSqueeze_MainForm.DefocusControl(btnGetStatistics, False);
   gsDBSqueeze_MainForm.DefocusControl(btnUpdateStatistics, False);
   FSThread.DoGetStatistics;
-  FSThread.DoGetProcStatistics;
+  FProcessing := True;
 end;
 //---------------------------------------------------------------------------
 procedure TgsDBSqueeze_MainForm.actGetUpdate(Sender: TObject);
 begin
   //actGet.Enabled := FConnected;
-  btnGetStatistics.Enabled := FConnected;
-  btnUpdateStatistics.Enabled := FConnected;
+  btnGetStatistics.Enabled := FConnected and (not FProcessing);
+  btnUpdateStatistics.Enabled := FConnected and (not FProcessing);
 end;
 //---------------------------------------------------------------------------
 procedure TgsDBSqueeze_MainForm.tbcPageControllerChange(Sender: TObject);
@@ -767,40 +726,36 @@ begin
   begin
     if btnGo.Enabled then
     begin
-      if rbLocale.Checked then
-      begin
+      //if rbLocale.Checked then
+      //begin
         chkBackup.Enabled := True;
         lblBackup.Enabled := True;
         edtBackup.Enabled := True;
         btnBackupBrowse.Enabled := True;
-      end
+      {end
       else begin
         chkBackup.Enabled := False;
         lblBackup.Enabled := False;
         edtBackup.Enabled := False;
         btnBackupBrowse.Enabled := False;
-      end;
-
-      if rbCompany.Checked then
-        FSThread.SetCompanyKey(StrToInt(Trim(Copy(cbbCompany.Text, 1, Pos(';', cbbCompany.Text)-1))));
+      end;    }
 
       FSThread.SetClosingDate(dtpClosingDate.Date);
 
       FSThread.SetSaldoParams(
-        rbAllOurCompanies.Checked,
-        rbCompany.Checked,
-        chk00Account.Checked);
-    end;
-  end
-  else if pgcSettings.ActivePage = tsSettings2 then
-  begin
-    if btnGo.Enabled then
-    begin
-      FDocTypesList.Clear;
-      FDocTypesList := gsDBSqueeze_DocTypesForm.GetSelectedDocTypes;
+        True,
+        False,
+        chk00Account.Checked,
+        chkCalculateSaldo.Checked);
 
-      if FDocTypesList.Count <> 0 then
-        FSThread.SetSelectDocTypes(FDocTypesList, (tbcDocTypes.TabIndex=1));
+      if FWasSelectedDocTypes then
+      begin
+        FDocTypesList.Clear;
+        FDocTypesList.CommaText := gsDBSqueeze_DocTypesForm.GetSelectedIdDocTypes;
+        RecLog('form_FDocTypesList: ' + FDocTypesList.Text);
+        if FDocTypesList.Count > 0 then
+          FSThread.SetSelectDocTypes(FDocTypesList, (tbcDocTypes.TabIndex=1));
+      end;
     end;
   end
   else if pgcSettings.ActivePage = tsOptions then
@@ -873,7 +828,7 @@ begin
         LogFileName,
         BackupFileName,
         RestoreDBName,
-        rbContinue.Checked);
+        False);
 
       mReviewSettings.Clear;
       mReviewSettings.Lines.Add('Host: ' + edtHost.Text);
@@ -884,15 +839,8 @@ begin
       mReviewSettings.Lines.Add('Database: ' + edDatabaseName.Text);
       mReviewSettings.Lines.Add('Username: ' + edUserName.Text);
       mReviewSettings.Lines.Add('Удалить документы с DOCUMENTDATE < ' + DateToStr(dtpClosingDate.Date));
-      if rbAllOurCompanies.Checked then
-        mReviewSettings.Lines.Add('Считать сальдо для компаний: ' + 'ВСЕХ')
-      else
-        mReviewSettings.Lines.Add('Считать сальдо для компании: ' + Copy(cbbCompany.Text, Pos(';', cbbCompany.Text)+1, Length(cbbCompany.Text)-Pos(';', cbbCompany.Text)-1));
-      if chk00Account.Checked then
-        mReviewSettings.Lines.Add('Отразить бухгалтерские остатки на счете "00 Остатки": ДА')
-      else
-        mReviewSettings.Lines.Add('Отразить бухгалтерские остатки на счете "00 Остатки": НЕТ');
-      if FDocTypesList.Count <> 0 then
+  
+      if FDocTypesList.Count > 0 then
       begin
         if tbcDocTypes.TabIndex = 0 then
           mReviewSettings.Lines.Add('Не обрабатывать документы с  DOCUMENTTYPE: ')
@@ -922,22 +870,12 @@ begin
       end
       else
         mReviewSettings.Lines.Add('Restore БД из backup-файла: НЕТ');
-
-      if grpReprocessingType.Enabled then
-      begin
-        if rbStartOver.Checked then
-          mReviewSettings.Lines.Add('Reprocessing type: Start Over')
-        else
-          mReviewSettings.Lines.Add('Reprocessing type: Continue');
-      end;
     end;
   end;
 
   if pgcSettings.ActivePageIndex <> pgcSettings.PageCount-1 then
     pgcSettings.ActivePageIndex :=  pgcSettings.ActivePageIndex + 1;
 
-  gsDBSqueeze_MainForm.DefocusControl(rbAllOurCompanies, False);
-  gsDBSqueeze_MainForm.DefocusControl(rbCompany, False);
   gsDBSqueeze_MainForm.DefocusControl(edLogs, False);
 end;
 //---------------------------------------------------------------------------
@@ -954,15 +892,13 @@ begin
       and (Trim(edUserName.Text) > '')
       and (Trim(edPassword.Text) > '');
   end;
-  btnNext2.Enabled := ((rbAllOurCompanies.Checked) or (rbCompany.Checked and (cbbCompany.Text > ''))) and FConnected; //and (FSThread.State);
+  btnNext2.Enabled := FConnected; //and (FSThread.State);
 
   EnabledValue := True;
   if chkbSaveLogs.Checked then
     EnabledValue := Trim(edLogs.Text) > '';
   if chkBackup.Checked then
     EnabledValue := (EnabledValue) and (Trim(edtBackup.Text) > '');
-  if grpReprocessingType.Enabled then
-    EnabledValue := (EnabledValue) and ((rbStartOver.Checked) or (rbContinue.Checked));
   btnNext3.Enabled := EnabledValue;
 end;
 //---------------------------------------------------------------------------
@@ -985,7 +921,7 @@ end;
 //---------------------------------------------------------------------------
 procedure TgsDBSqueeze_MainForm.actGoUpdate(Sender: TObject);
 begin
-  btnGo.Enabled := (not actStop.Enabled) and FConnected and (rbAllOurCompanies.Checked or rbCompany.Checked);
+  btnGo.Enabled := (not actStop.Enabled) and FConnected;
 end;
 //---------------------------------------------------------------------------
 procedure TgsDBSqueeze_MainForm.actBackPageExecute(Sender: TObject);
@@ -995,8 +931,6 @@ begin
 
   pgcSettings.ActivePageIndex := pgcSettings.ActivePageIndex - 1;
   gsDBSqueeze_MainForm.DefocusControl(rbLocale, False);
-  gsDBSqueeze_MainForm.DefocusControl(rbAllOurCompanies, False);
-  gsDBSqueeze_MainForm.DefocusControl(rbCompany, False);
   gsDBSqueeze_MainForm.DefocusControl(edDatabaseName, False);
   gsDBSqueeze_MainForm.DefocusControl(edLogs, False);
 end;
@@ -1113,51 +1047,6 @@ procedure TgsDBSqueeze_MainForm.SetTextDocTypesMemo(Text: String);
 begin
   mIgnoreDocTypes.Clear;
   mIgnoreDocTypes.Text := Text;
-end;
-//---------------------------------------------------------------------------
-procedure TgsDBSqueeze_MainForm.cbbCompanyDrawItem(Control: TWinControl;
-  Index: Integer; Rect: TRect; State: TOwnerDrawState);
-var
-  ArrWidth: array [0..2] of Integer;
-  ColumnText, CbbItemText: String;
-  SeparatorPos: Integer;
-  rcColumn: TRect;
-begin
-  cbbCompany.Canvas.Brush.Style := bsSolid;
-  cbbCompany.Canvas.FillRect(Rect);
-
-  ArrWidth[0] := 0;
-  ArrWidth[1] := 65;  // Ширина первой колонки
-  ArrWidth[2] := 400; // Ширина второй колонки
-
-  CbbItemText := cbbCompany.Items[Index]; // Значения для колонок должны быть разделены ';'
-
-  // Прорисовка первой колонки
-  rcColumn.Left   := Rect.Left + ArrWidth[0] + 2;
-  rcColumn.Right  := Rect.Left + ArrWidth[1] - 2;
-  rcColumn.Top    := Rect.Top;
-  rcColumn.Bottom := Rect.Bottom;
-  // Текст первой колонки
-  SeparatorPos := Pos(';', CbbItemText);
-  ColumnText := Copy(CbbItemText, 1, SeparatorPos - 1);
-  // Прорисовка текста
-  cbbCompany.Canvas.TextRect(rcColumn, rcColumn.Left, rcColumn.Top, ColumnText);
-  // Прорисовка разделительной линии между колонками
-  cbbCompany.Canvas.MoveTo(rcColumn.Right, rcColumn.Top);
-  cbbCompany.Canvas.LineTo(rcColumn.Right, rcColumn.Bottom);
-
-  // Прорисовка второй колонки
-  rcColumn.Left  := Rect.Left + ArrWidth[1] + 2;
-  rcColumn.Right := Rect.Left + ArrWidth[2] - 2;
-  // Текст второй колонки
-  CbbItemText := Copy(CbbItemText, SeparatorPos + 1, Length(CbbItemText) - SeparatorPos);
-  SeparatorPos := Pos(';', CbbItemText);
-  ColumnText := Copy(CbbItemText, 1, SeparatorPos - 1);
-  // Прорисовка текста
-  cbbCompany.Canvas.TextRect(rcColumn, rcColumn.Left, rcColumn.Top, ColumnText);
-  // Прорисовка разделительной линии между колонками
-  cbbCompany.Canvas.MoveTo(rcColumn.Right, rcColumn.Top);
-  cbbCompany.Canvas.LineTo(rcColumn.Right, rcColumn.Bottom);
 end;
 //---------------------------------------------------------------------------
 procedure TgsDBSqueeze_MainForm.actClearLogExecute(Sender: TObject);
@@ -1318,12 +1207,11 @@ var
   I: Integer;
   OpenDlg: TOpenDialog;
   SaveDlg: TSaveDialog;
-  SelectedDocTypes: TStringList;
 begin
   if Sender = btnLoadConfigFile then
   begin
     gsDBSqueeze_MainForm.DefocusControl(btnLoadConfigFile, False);
-    SelectedDocTypes := TStringList.Create;
+
     OpenDlg := TOpenDialog.Create(Self);
     try
       OpenDlg.InitialDir := GetCurrentDir;
@@ -1335,33 +1223,19 @@ begin
       begin
         gsIniOptions.LoadFromFile(OpenDlg.FileName);
 
-        rbAllOurCompanies.Checked := False;
-        rbCompany.Checked := False;
         tbcDocTypes.TabIndex := 0;
-
-        mIgnoreDocTypes.Clear;
         chk00Account.Checked := False;
         mReviewSettings.Clear;
 
-        if gsIniOptions.DoCalculateOnlyCompanySaldo then
-        begin
-          rbCompany.Checked := True;
-          cbbCompany.ItemIndex := 1;
-          //cbbCompany.ItemIndex := cbbCompany.Items.IndexOf(IntToStr(gsIniOptions.SelectedCompanyKey) + ';' + gsIniOptions.SelectedCompanyName + ';');
+        chk00Account.Checked := False;
 
-          ShowMessage(IntToStr(cbbCompany.Items.IndexOf(IntToStr(gsIniOptions.SelectedCompanyKey) + ';' + gsIniOptions.SelectedCompanyName + ';')));
-        end
-        else
-          rbAllOurCompanies.Checked := True;
-        chk00Account.Checked := gsIniOptions.DoEnterOstatkyAccount;
-
-        SelectedDocTypes.CommaText := gsIniOptions.SelectedDocTypeKeys;
-        gsDBSqueeze_DocTypesForm.GridRepaint(SelectedDocTypes);
+        mIgnoreDocTypes.Clear;
+        gsDBSqueeze_DocTypesForm.SetSelectedDocTypes(gsIniOptions.SelectedDocTypeKeys, gsIniOptions.SelectedBranchRows);
         SetTextDocTypesMemo(gsDBSqueeze_DocTypesForm.GetDocTypeMemoText);
+        FWasSelectedDocTypes := (Trim(mIgnoreDocTypes.Text) > '');
       end;
     finally
       OpenDlg.Free;
-      SelectedDocTypes.Free;
     end;
   end
   else if Sender = btnSaveConfigFile then
@@ -1377,15 +1251,10 @@ begin
 
       if SaveDlg.Execute then
       begin
-        gsIniOptions.DoCalculateOnlyCompanySaldo := rbCompany.Checked;
-        if rbCompany.Checked then
-        begin
-          gsIniOptions.SelectedCompanyKey := StrToInt(Trim(Copy(Trim(cbbCompany.Text), 1, Pos(';', Trim(cbbCompany.Text))-1)));
-          gsIniOptions.SelectedCompanyName := Copy(cbbCompany.Text, Pos(';', cbbCompany.Text)+1, Length(cbbCompany.Text)-Pos(';', cbbCompany.Text)-1);
-        end;
         gsIniOptions.DoEnterOstatkyAccount := chk00Account.Checked;
         gsIniOptions.DoProcessDocTypes := (tbcDocTypes.TabIndex = 1);
-        gsIniOptions.SelectedDocTypeKeys := FDocTypesList.CommaText;
+        gsIniOptions.SelectedDocTypeKeys := gsDBSqueeze_DocTypesForm.GetSelectedDocTypesStr;
+        gsIniOptions.SelectedBranchRows := gsDBSqueeze_DocTypesForm.GetSelectedBranchRowsStr;
 
         gsIniOptions.SaveToFile(SaveDlg.FileName);
       end;
@@ -1412,18 +1281,21 @@ begin
   end;
 end;
 //---------------------------------------------------------------------------
+procedure TgsDBSqueeze_MainForm.btnSelectDocTypesClick(Sender: TObject);
+begin
+  if btnGo.Enabled then
+  begin
+    if gsDBSqueeze_DocTypesForm.ShowModal = mrOk then
+      SetTextDocTypesMemo(gsDBSqueeze_DocTypesForm.GetDocTypeMemoText);
+
+    FWasSelectedDocTypes := (mIgnoreDocTypes.Text > '');
+  end;
+end;
+
 
 //initialization
 //  ReportMemoryLeaksOnShutdown := True;
 
-procedure TgsDBSqueeze_MainForm.btn3Click(Sender: TObject);
-begin
-  if gsDBSqueeze_DocTypesForm.ShowModal = mrOk then
-  begin
-    SetTextDocTypesMemo(gsDBSqueeze_DocTypesForm.GetDocTypeMemoText);
-    FDocTypesList.Clear;
-    FDocTypesList := gsDBSqueeze_DocTypesForm.GetSelectedDocTypes;
-  end;
-end;
+
 
 end.
