@@ -266,17 +266,34 @@ end;
 
 procedure DropField2(const ARelName, AFieldName: String; ATr: TIBTransaction);
 var
-  SQL: TIBSQl;
+  SQL: TIBSQL;
 begin
   if FieldExist2(ARelName, AFieldName, ATr) then
   begin
     SQL := TIBSQL.Create(nil);
     try
       SQL.Transaction := ATr;
+
+      SQL.SQL.Text :=
+        'SELECT LIST(TRIM(rdb$dependent_name), '','') ' +
+        'FROM rdb$dependencies ' +
+        'WHERE rdb$depended_on_name = :rn AND ' +
+        '  rdb$field_name = :fn';
+      SQL.ParamByName('rn').AsString := UpperCase(ARelName);
+      SQL.ParamByName('fn').AsString := UpperCase(AFieldName);
+      SQL.ExecQuery;
+
+      if SQL.Fields[0].AsString > '' then
+        raise Exception.Create('Невозможно удалить поле ' +
+          ARelName + '.' + AFieldName + #13#10 +
+          'Зависимые объекты: ' + SQL.Fields[0].AsString)
+      else
+        SQL.Close;
+
       SQL.SQL.Text := 'ALTER TABLE ' + ARelName + ' DROP ' + AFieldName;
       SQL.ExecQuery;
     finally
-      SQl.Free;
+      SQL.Free;
     end;
   end;
 end;

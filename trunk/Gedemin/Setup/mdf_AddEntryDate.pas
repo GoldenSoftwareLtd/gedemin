@@ -10,38 +10,33 @@ procedure AddAccountEntryDate(IBDB: TIBDatabase; Log: TModifyLog);
 implementation
 
 uses
-  IBSQL, SysUtils;
+  IBSQL, SysUtils, mdf_metadata_unit;
 
 procedure AddAccountEntryDate(IBDB: TIBDatabase; Log: TModifyLog);
 var
   FTransaction: TIBTransaction;
   FIBSQL: TIBSQL;
 begin
-  Log('Добавление даты проводки в AC_ENTRY');
   FTransaction := TIBTransaction.Create(nil);
   try
     FTransaction.DefaultDatabase := IBDB;
     FTransaction.StartTransaction;
     try
-      FIBSQL := TIBSQL.Create(nil);
-      try
-        FIBSQL.Transaction := FTransaction;
+      if not FieldExist2('AC_ENTRY', 'ENTRYDATE', FTransaction) then
+      begin
+        FIBSQL := TIBSQL.Create(nil);
         try
-          FIBSQL.SQL.Text := 'SELECT entrydate FROM ac_entry';
-          FIBSQL.Prepare;
-        except
-          FIBSQL.Close;
+          FIBSQL.Transaction := FTransaction;
+
           FIBSQL.SQL.Text := 'ALTER TABLE ac_entry ADD entrydate DDATE';
-          try
-            FIBSQL.ExecQuery;
-          except
-          end;
-          FIBSQL.Close;
+          FIBSQL.ExecQuery;
+
           FTransaction.Commit;
           FTransaction.StartTransaction;
+
           FIBSQL.ParamCheck := False;
           FIBSQL.SQL.Text :=
-            'CREATE TRIGGER AC_BI_ENTRY_ENTRYDATE FOR AC_ENTRY '#13#10 +
+            'CREATE OR ALTER TRIGGER AC_BI_ENTRY_ENTRYDATE FOR AC_ENTRY '#13#10 +
             'ACTIVE BEFORE INSERT POSITION 1 '#13#10 +
             'AS '#13#10 +
             'BEGIN '#13#10 +
@@ -50,14 +45,10 @@ begin
             '  WHERE id = NEW.recordkey '#13#10 +
             '  INTO NEW.entrydate; '#13#10 +
             'END ';
-          try
-            FIBSQL.ExecQuery;
-          except
-          end;
-          FIBSQL.Close;
+          FIBSQL.ExecQuery;
 
           FIBSQL.SQL.Text :=
-            'ALTER TRIGGER AC_AU_ENTRY '#13#10 +
+            'CREATE OR ALTER TRIGGER AC_AU_ENTRY '#13#10 +
             'ACTIVE AFTER UPDATE POSITION 0 '#13#10 +
             'AS '#13#10 +
             'BEGIN '#13#10 +
@@ -77,7 +68,7 @@ begin
           FTransaction.StartTransaction;
 
           FIBSQL.SQL.Text :=
-            'ALTER TRIGGER AC_BU_RECORD '#13#10 +
+            'CREATE OR ALTER TRIGGER AC_BU_RECORD '#13#10 +
             'ACTIVE BEFORE UPDATE POSITION 0 '#13#10 +
             'AS '#13#10 +
             'BEGIN '#13#10 +
@@ -90,35 +81,32 @@ begin
             '  UPDATE ac_entry e SET e.entrydate = NEW.recorddate WHERE e.recordkey = NEW.id; '#13#10 +
             ' '#13#10 +
             'END ';
-          try
-            FIBSQL.ExecQuery;
-          except
-          end;
+          FIBSQL.ExecQuery;
 
           FTransaction.Commit;
           FTransaction.StartTransaction;
 
           FIBSQL.SQL.Text := 'UPDATE ac_record SET id = id';
           FIBSQL.ExecQuery;
-          FIBSQL.Close;
-          FTransaction.Commit;
-          Log('Добавление даты проводки в AC_ENTRY - успешно завершено ');
+        finally
+          FIBSQL.Free;
         end;
-      finally
-        FIBSQL.Free;
+
+        FTransaction.Commit;
+        Log('Добавление даты проводки в AC_ENTRY - успешно завершено');
       end;
     except
       on E: Exception do
       begin
-        FTransaction.Rollback;
         Log('Ошибка: ' + E.Message);
+        if FTransaction.InTransaction then
+          FTransaction.Rollback;
+        raise;  
       end;
     end;
   finally
     FTransaction.Free;
   end;
-
-
-end;  
+end;
 
 end.
