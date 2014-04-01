@@ -948,6 +948,8 @@ begin
           FieldByName('credit').AsCurrency := abs(ipQuantity);
         end;
         Post;
+        if ipQuantity = 0 then
+          Delete;
       end
       else
       begin
