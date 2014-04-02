@@ -401,6 +401,7 @@ end;
 
 function TgsDBSqueezeThread.ProcessMessage(var Msg: TMsg): Boolean;
 begin
+  Result := False;
  try
   case Msg.Message of
     WM_DBS_STARTTESTCONNECT:
