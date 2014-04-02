@@ -264,6 +264,7 @@ type
     procedure GetStatisticsEvent(const AGdDoc: String; const AnAcEntry: String; const AnInvMovement: String; const AnInvCard: String);
     procedure LogSQLEvent(const ALogSQL: String);
     procedure SetDocTypeStringsEvent(const ADocTypes: TStringList);
+    procedure SetDocTypeBranchEvent(const ABranchList: TStringList);
     procedure UsedDBEvent(const AFunctionKey: Integer; const AState: Integer; const ACallTime: String; const AErrorMessage: String);
 
   public
@@ -332,6 +333,7 @@ begin
     FSThread.OnUsedDB := UsedDBEvent;
     FSThread.OnGetDBProperties := GetDBPropertiesEvent;
     FSThread.OnSetDocTypeStrings := SetDocTypeStringsEvent;
+    FSThread.OnSetDocTypeBranch := SetDocTypeBranchEvent;
     FSThread.OnGetDBSize := GetDBSizeEvent;
     FSThread.OnGetStatistics := GetStatisticsEvent;
     FSThread.OnGetProcStatistics := GetProcStatisticsEvent;
@@ -588,6 +590,11 @@ begin
   gsDBSqueeze_DocTypesForm.SetDocTypes(ADocTypes);
 end;
 //---------------------------------------------------------------------------
+procedure TgsDBSqueeze_MainForm.SetDocTypeBranchEvent(const ABranchList: TStringList);
+begin
+  gsDBSqueeze_DocTypesForm.SetDocTypeBranch(ABranchList);
+end;
+//---------------------------------------------------------------------------
 procedure  TgsDBSqueeze_MainForm.GetDBPropertiesEvent(const AProperties: TStringList);
 begin
   sttxtUser.Caption := AProperties.Values['User'];
@@ -726,19 +733,10 @@ begin
   begin
     if btnGo.Enabled then
     begin
-      //if rbLocale.Checked then
-      //begin
         chkBackup.Enabled := True;
         lblBackup.Enabled := True;
         edtBackup.Enabled := True;
         btnBackupBrowse.Enabled := True;
-      {end
-      else begin
-        chkBackup.Enabled := False;
-        lblBackup.Enabled := False;
-        edtBackup.Enabled := False;
-        btnBackupBrowse.Enabled := False;
-      end;    }
 
       FSThread.SetClosingDate(dtpClosingDate.Date);
 
@@ -752,7 +750,6 @@ begin
       begin
         FDocTypesList.Clear;
         FDocTypesList.CommaText := gsDBSqueeze_DocTypesForm.GetSelectedIdDocTypes;
-        RecLog('form_FDocTypesList: ' + FDocTypesList.Text);
         if FDocTypesList.Count > 0 then
           FSThread.SetSelectDocTypes(FDocTypesList, (tbcDocTypes.TabIndex=1));
       end;
@@ -839,7 +836,12 @@ begin
       mReviewSettings.Lines.Add('Database: ' + edDatabaseName.Text);
       mReviewSettings.Lines.Add('Username: ' + edUserName.Text);
       mReviewSettings.Lines.Add('Удалить документы с DOCUMENTDATE < ' + DateToStr(dtpClosingDate.Date));
-  
+
+      if chkCalculateSaldo.Checked then
+        mReviewSettings.Lines.Add('Сохранить сальдо, вычисленное программой: ДА')
+      else
+        mReviewSettings.Lines.Add('Сохранить сальдо, вычисленное программой: НЕТ');
+
       if FDocTypesList.Count > 0 then
       begin
         if tbcDocTypes.TabIndex = 0 then
@@ -1227,9 +1229,14 @@ begin
         chk00Account.Checked := False;
         mReviewSettings.Clear;
 
-        chk00Account.Checked := False;
+        chkCalculateSaldo.Checked := gsIniOptions.DoCalculateSaldo;
+        if gsIniOptions.DoProcessDocTypes then
+          tbcDocTypes.TabIndex := 1
+        else
+          tbcDocTypes.TabIndex := 0;
 
         mIgnoreDocTypes.Clear;
+
         gsDBSqueeze_DocTypesForm.SetSelectedDocTypes(gsIniOptions.SelectedDocTypeKeys, gsIniOptions.SelectedBranchRows);
         SetTextDocTypesMemo(gsDBSqueeze_DocTypesForm.GetDocTypeMemoText);
         FWasSelectedDocTypes := (Trim(mIgnoreDocTypes.Text) > '');
@@ -1253,6 +1260,7 @@ begin
       begin
         gsIniOptions.DoEnterOstatkyAccount := chk00Account.Checked;
         gsIniOptions.DoProcessDocTypes := (tbcDocTypes.TabIndex = 1);
+        gsIniOptions.DoCalculateSaldo := chkCalculateSaldo.Checked;
         gsIniOptions.SelectedDocTypeKeys := gsDBSqueeze_DocTypesForm.GetSelectedDocTypesStr;
         gsIniOptions.SelectedBranchRows := gsDBSqueeze_DocTypesForm.GetSelectedBranchRowsStr;
 

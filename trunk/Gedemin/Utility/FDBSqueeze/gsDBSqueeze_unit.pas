@@ -27,6 +27,7 @@ type
   TOnLogSQLEvent = procedure(const S: String) of object;
   TOnSetItemsCbbEvent = procedure(const ACompanies: TStringList) of object;
   TOnSetDocTypeStringsEvent = procedure(const ADocTypeList: TStringList) of object;
+  TOnSetDocTypeBranchEvent = procedure(const ABranchList: TStringList) of object;
   TOnUsedDBEvent = procedure(const AFunctionKey: Integer; const AState: Integer; const ACallTime: String; const AnErrorMessage: String) of object;
   TOnGetConnectedEvent = procedure(const AConnected: Boolean) of object;
 
@@ -86,10 +87,9 @@ type
     FOnGetStatistics: TOnGetStatistics;
     FOnSetItemsCbbEvent: TOnSetItemsCbbEvent;
     FOnSetDocTypeStringsEvent: TOnSetDocTypeStringsEvent;
+    FOnSetDocTypeBranchEvent: TOnSetDocTypeBranchEvent;
     FOnUsedDBEvent: TOnUsedDBEvent;
     FOnLogSQLEvent: TOnLogSQLEvent;
-
-    procedure SaveDocTypeBranch;
 
     procedure CreateUDFs;
     function CreateHIS(AnIndex: Integer): Integer;
@@ -205,6 +205,8 @@ type
       read FOnSetItemsCbbEvent         write FOnSetItemsCbbEvent;
     property OnSetDocTypeStringsEvent: TOnSetDocTypeStringsEvent
       read FOnSetDocTypeStringsEvent   write FOnSetDocTypeStringsEvent;
+    property OnSetDocTypeBranchEvent: TOnSetDocTypeBranchEvent
+      read FOnSetDocTypeBranchEvent   write FOnSetDocTypeBranchEvent;
     property OnUsedDBEvent: TOnUsedDBEvent read FOnUsedDBEvent     write FOnUsedDBEvent;
     property SaveLog: Boolean              read FSaveLog           write FSaveLog;
     property DoStopProcessing: Boolean     read FDoStopProcessing  write FDoStopProcessing;
@@ -1025,7 +1027,6 @@ var
       q.ParamByName('ParentID').AsInteger := AParent;
       ExecSqlLogEvent(q, 'SetDocTypeStringsEvent');
 
-      //LogEvent('Res: ' + q.FieldByName('Childs').AsString);
       Result := q.FieldByName('Childs').AsString;
 
       Tr.Commit;
@@ -1043,8 +1044,6 @@ var
     ChildsList := TStringList.Create;
     try
       ChildsList.Text := StringReplace(GetChildListStr(AParent), ',', #13#10, [rfReplaceAll, rfIgnoreCase]);
-
-      //LogEvent('!' + ChildsList.CommaText);
 
       if ChildsList.Count <> 0 then
       begin
@@ -1147,7 +1146,7 @@ begin
     end;
     q.Close;
 
-    DocTypeBranch.SaveToFile('~docBranch.dat');
+    FOnSetDocTypeBranchEvent(DocTypeBranch);
     FOnSetDocTypeStringsEvent(DocTypeList);
 
     Tr.Commit;
@@ -1156,120 +1155,6 @@ begin
     q2.Free;
     Tr.Free;
     DocTypeList.Free;
-    DocTypeBranch.Free;
-  end;
-end;
-
-procedure TgsDBSqueeze.SaveDocTypeBranch;
-var
-  Tr: TIBTransaction;
-  q: TIBSQL;
-  DocTypeBranch: TStringList;
-  Level: String;
-
-  function GetChildListStr(AParent: Integer): String;
-  var
-    Tr: TIBTransaction;
-    q: TIBSQL;
-  begin
-    Tr := TIBTransaction.Create(nil);
-    q := TIBSQL.Create(nil);
-
-    try
-      Tr.DefaultDatabase := FIBDatabase;
-      Tr.StartTransaction;
-      q.Transaction := Tr;
-
-      q.SQL.Text :=
-        'SELECT LIST(id || ''='' || name) AS Childs ' +
-        'FROM ( ' +
-        '  SELECT id, name ' +
-        '  FROM gd_documenttype ' +
-        '  WHERE documenttype = ''B'' ' +
-        '    AND parent = :ParentID ' +
-        '  ORDER BY name) ';
-
-      q.ParamByName('ParentID').AsInteger := AParent;
-      ExecSqlLogEvent(q, 'SetDocTypeStringsEvent');
-
-      LogEvent('Res: ' + q.FieldByName('Childs').AsString);
-      Result := q.FieldByName('Childs').AsString;
-
-      Tr.Commit;
-    finally
-      q.Free;
-      Tr.Free;
-    end;
-  end;
-
-  procedure AddBranchChildInList(AParent: Integer; ALevel: String);
-  var
-   I: Integer;
-   ChildsList: TStringList;
-  begin
-    ChildsList := TStringList.Create;
-    try
-      ChildsList.Text := StringReplace(GetChildListStr(AParent), ',', #13#10, [rfReplaceAll, rfIgnoreCase]);
-
-      LogEvent('!' + ChildsList.CommaText);
-
-      if ChildsList.Count <> 0 then
-      begin
-        for I:=0 to ChildsList.Count-1 do
-        begin
-          try
-            DocTypeBranch.Add(ChildsList.Names[I] + '=' + ALevel + ChildsList.Values[ChildsList.Names[I]]);
-
-            AddBranchChildInList(StrToInt(ChildsList.Names[I]), ALevel + #9);
-          except
-            LogEvent(ChildsList.Names[I]);
-          end;
-        end;
-      end;
-    finally
-      FreeAndNil(ChildsList);
-    end;
-  end;
-
-begin
-  Assert(FIBDatabase.Connected);
-  Tr := TIBTransaction.Create(nil);
-  q := TIBSQL.Create(nil);
-
-  DocTypeBranch := TStringList.Create;
-  try
-    Tr.DefaultDatabase := FIBDatabase;
-    Tr.StartTransaction;
-
-    q.Transaction := Tr;
-
-    q.SQL.Text :=
-      'SELECT ' +
-      '  id, ' +
-      '  name ' +
-      'FROM gd_documenttype ' +
-      'WHERE ' +
-      '  parent IS NULL ' +
-      '  AND documenttype = ''B'' ' +
-      'ORDER BY name';
-    ExecSqlLogEvent(q, 'SetDocTypeStringsEvent');
-    while not q.EOF do
-    begin
-      DocTypeBranch.Add(q.FieldByName('id').AsString + '=' + q.FieldByName('name').AsString);
-      AddBranchChildInList(q.FieldByName('id').AsInteger, #9);
-
-      q.Next;
-    end;
-    q.Close;
-
-    DocTypeBranch.SaveToFile('~docBranch.dat');
-
-    LogEvent(DocTypeBranch.Text);
-
-    Tr.Commit;
-  finally
-    q.Free;
-    Tr.Free;
     DocTypeBranch.Free;
   end;
 end;
