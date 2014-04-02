@@ -1290,16 +1290,35 @@ begin
       if isCreateEntry then
       begin
 
-        DetailDoc := nil;
         for i:= 0 to DetailLinksCount - 1 do
           if UpperCase(DetailLinks[i].ClassName) = UpperCase(ClassName) +  'LINE' then
           begin
             DetailDoc := DetailLinks[i] as TgdcDocument;
-            Break;
+
+            if Assigned(DetailDoc) and DetailDoc.Active then
+            begin
+              if not (DetailDoc.State in [dsEdit, dsInsert]) then
+              begin
+                Bookmark := DetailDoc.Bookmark;
+                DetailDoc.DisableControls;
+                try
+                  DetailDoc.First;
+                  while not DetailDoc.EOF and (DetailDoc.FieldByName('parent').asInteger = FieldByName('id').AsInteger) do
+                  begin
+                    DetailDoc.MakeEntry;
+                    DetailDoc.Next;
+                  end;
+                finally
+                  DetailDoc.Bookmark := Bookmark;
+                  DetailDoc.EnableControls;
+                end;
+              end;
+            end;
           end;
 
         if (DetailLinksCount = 0) and HaveIsDetailObject then
         begin
+
           DetailDoc := GetDetailObject;
           dsMaster := TDataSource.Create(Self);
           dsMaster.DataSet := Self;
@@ -1307,28 +1326,17 @@ begin
           DetailDoc.MasterField := 'ID';
           DetailDoc.DetailField := 'Parent';
           DetailDoc.MasterSource := dsMaster;
-          DetailDoc.Open
+          DetailDoc.Open;
+
+          DetailDoc.First;
+          while not DetailDoc.EOF and (DetailDoc.FieldByName('parent').asInteger = FieldByName('id').AsInteger) do
+          begin
+            DetailDoc.MakeEntry;
+            DetailDoc.Next;
+          end;
+
         end;
 
-        if Assigned(DetailDoc) and DetailDoc.Active then
-        begin
-          if not (DetailDoc.State in [dsEdit, dsInsert]) then
-          begin
-            Bookmark := DetailDoc.Bookmark;
-            DetailDoc.DisableControls;
-            try
-              DetailDoc.First;
-              while not DetailDoc.EOF and (DetailDoc.FieldByName('parent').asInteger = FieldByName('id').AsInteger) do
-              begin
-                DetailDoc.MakeEntry;
-                DetailDoc.Next;
-              end;
-            finally
-              DetailDoc.Bookmark := Bookmark;
-              DetailDoc.EnableControls;
-            end;
-          end;
-        end;
       end;
     end;
   finally
