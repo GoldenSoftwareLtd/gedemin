@@ -1494,7 +1494,6 @@ var
   q: TIBSQL;
 begin
   Assert(Connected);
-  Result := 0;
 
   Tr := TIBTransaction.Create(nil);	
   q := TIBSQL.Create(nil);
@@ -1530,7 +1529,6 @@ var
   q: TIBSQL;
 begin
   Assert(Connected);
-  Result := -1;
 
   Tr := TIBTransaction.Create(nil);
   q := TIBSQL.Create(nil);
@@ -1559,7 +1557,6 @@ var
   q: TIBSQL;
 begin
   Assert(Connected);
-  Result := 0;
 
   Tr := TIBTransaction.Create(nil);
   q := TIBSQL.Create(nil);
@@ -1604,7 +1601,6 @@ var
   Tr: TIBTransaction;
 begin
   Assert(Connected);
-  Result := -1;
 
   Tr := TIBTransaction.Create(nil);
   q := TIBSQL.Create(nil);
@@ -3098,7 +3094,6 @@ var
         ProgressMsgEvent('', 100);                                              
         
         // 5) Все оставшиеся Line должны затянуть за собой доки и кросс-таблицы, если имеет поле-множество
-        ReprocCondition := False;
         ReprocSituation := False;
         Step := 0;
         ReprocIncrement := (LineDocTbls.Count) div STEP_COUNT;
@@ -3772,7 +3767,6 @@ var
     q: TIBSQL;
     Tr: TIBTransaction;
   begin
-    Result := False;
     q := TIBSQL.Create(nil);
     Tr := TIBTransaction.Create(nil);
     try
@@ -4872,7 +4866,6 @@ var
     q: TIBSQL;
     Tr: TIBTransaction;
   begin
-    Result := False;
     q := TIBSQL.Create(nil);
     Tr := TIBTransaction.Create(nil);
     try
