@@ -11,7 +11,7 @@ procedure _ModifyBlockTriggers(FTransaction: TIBTransaction);
 implementation
 
 uses
-  IBSQL, SysUtils;
+  IBSQL, SysUtils, mdf_metadata_unit;
 
 procedure _ModifyBlockTriggers(FTransaction: TIBTransaction);
 var
@@ -23,10 +23,10 @@ begin
     Transaction := FTransaction;
     ParamCheck := False;
 
-    try
+    if not GeneratorExist2('gd_g_block_group', FTransaction) then
+    begin
       SQL.Text := 'CREATE GENERATOR gd_g_block_group ';
       ExecQuery;
-    except
     end;
     
     SQL.Text :=
@@ -38,7 +38,6 @@ begin
       'END';
     ExecQuery;
 
-    Close;
     SQL.Text := 'GRANT EXECUTE ON PROCEDURE GD_P_EXCLUDE_BLOCK_DT TO ADMINISTRATOR';
     ExecQuery;
 
@@ -86,7 +85,6 @@ begin
       'END ';
     ExecQuery;
 
-    Close;
     SQL.Text :=
       'CREATE OR ALTER TRIGGER ac_bu_entry_block FOR ac_entry ' + #13#10 +
       '  INACTIVE ' + #13#10 +
@@ -132,7 +130,6 @@ begin
       'END ';
     ExecQuery;
 
-    Close;
     SQL.Text :=
       'CREATE OR ALTER TRIGGER ac_bd_entry_block FOR ac_entry ' + #13#10 +
       '  INACTIVE ' + #13#10 +
@@ -177,7 +174,6 @@ begin
       'END ';
     ExecQuery;
 
-    Close;
     SQL.Text :=
       'CREATE OR ALTER TRIGGER gd_bi_document_block FOR gd_document ' + #13#10 +
       '  INACTIVE ' + #13#10 +
@@ -213,7 +209,6 @@ begin
       'END ';
     ExecQuery;
 
-    Close;
     SQL.Text :=
       'CREATE OR ALTER TRIGGER gd_bu_document_block FOR gd_document ' + #13#10 +
       '  INACTIVE ' + #13#10 +
@@ -250,7 +245,6 @@ begin
       'END ';
     ExecQuery;
 
-    Close;
     SQL.Text :=
       'CREATE OR ALTER TRIGGER gd_bd_document_block FOR gd_document ' + #13#10 +
       '  INACTIVE ' + #13#10 +
@@ -286,7 +280,6 @@ begin
       'END ';
     ExecQuery;
 
-    Close;
     SQL.Text :=
       'CREATE OR ALTER TRIGGER inv_bi_card_block FOR inv_card ' + #13#10 +
       '  INACTIVE ' + #13#10 +
@@ -332,7 +325,6 @@ begin
       'END ';
     ExecQuery;
 
-    Close;
     SQL.Text :=
       'CREATE OR ALTER TRIGGER inv_bu_card_block FOR inv_card ' + #13#10 +
       '  INACTIVE ' + #13#10 +
@@ -378,7 +370,6 @@ begin
       'END ';
     ExecQuery;
 
-    Close;
     SQL.Text :=
       'CREATE OR ALTER TRIGGER inv_bd_card_block FOR inv_card ' + #13#10 +
       '  INACTIVE ' + #13#10 +
@@ -424,7 +415,6 @@ begin
       'END ';
     ExecQuery;
 
-    Close;
     SQL.Text :=
       'CREATE OR ALTER TRIGGER inv_bi_movement_block FOR inv_movement ' + #13#10 +
       '  INACTIVE ' + #13#10 +
@@ -466,7 +456,6 @@ begin
       'END ';
     ExecQuery;
 
-    Close;
     SQL.Text :=
       'CREATE OR ALTER TRIGGER inv_bu_movement_block FOR inv_movement ' + #13#10 +
       '  INACTIVE ' + #13#10 +
@@ -509,7 +498,6 @@ begin
       'END ';
     ExecQuery;
 
-    Close;
     SQL.Text :=
       'CREATE OR ALTER TRIGGER inv_bd_movement_block FOR inv_movement ' + #13#10 +
       '  INACTIVE ' + #13#10 +
@@ -550,7 +538,6 @@ begin
       '  END ' + #13#10 +
       'END ';
     ExecQuery;
-    Close;
   finally
     FIBSQL.Free;
   end;
@@ -580,51 +567,19 @@ begin
           '  MATCHING (id)';
         ExecQuery;
 
-        Close;
-        SQL.Text := 'SELECT rdb$trigger_name FROM rdb$triggers WHERE rdb$trigger_name = ''GD_COMMAND_BU'' ';
-        ExecQuery;
+        DropTrigger2('GD_COMMAND_BU', FTransaction);
+        DropTrigger2('GD_AU_COMMAND', FTransaction);
 
-        if not EOF then
-        begin
-          Close;
-          SQL.Text := 'DROP TRIGGER gd_command_bu ';
-          ExecQuery;
-        end;
-
-        Close;
-        SQL.Text := 'SELECT rdb$trigger_name FROM rdb$triggers WHERE rdb$trigger_name = ''GD_AU_COMMAND'' ';
-        ExecQuery;
-
-        if not EOF then
-        begin
-          Close;
-          SQL.Text := 'DROP TRIGGER gd_au_command ';
-          ExecQuery;
-        end;
-
-        Close;
         SQL.Text :=
-          'ALTER TRIGGER gd_bi_command ACTIVE BEFORE INSERT POSITION 0 '#13#10 +
+          'CREATE OR ALTER TRIGGER gd_bi_command ACTIVE BEFORE INSERT POSITION 0 '#13#10 +
           'AS BEGIN '#13#10 +
           '  IF (NEW.ID IS NULL) THEN '#13#10 +
           '    NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);'#13#10 +
           'END';
         ExecQuery;
 
-        Close;
-        SQL.Text := 'SELECT rdb$trigger_name FROM rdb$triggers WHERE rdb$trigger_name = ''GD_AIU_COMMAND'' ';
-        ExecQuery;
-
-        if not EOF then
-        begin
-          Close;
-          SQL.Text := 'DROP TRIGGER gd_aiu_command ';
-          ExecQuery;
-        end;
-
-        Close;
         SQL.Text :=
-          'CREATE TRIGGER gd_aiu_command FOR gd_command '#13#10 +
+          'CREATE OR ALTER TRIGGER gd_aiu_command FOR gd_command '#13#10 +
           '  AFTER INSERT OR UPDATE '#13#10 +
           '  POSITION 100 '#13#10 +
           'AS '#13#10 +
@@ -637,14 +592,11 @@ begin
           'END';
         ExecQuery;
 
-        Close;
         SQL.Text :=
           'UPDATE OR INSERT INTO fin_versioninfo ' +
           '  VALUES (90, ''0000.0001.0000.0118'', ''04.02.2007'', ''Some internal changes'') ' +
           '  MATCHING (id) ';
         ExecQuery;
-
-        Close;
       finally
         FIBSQL.Free;
       end;
@@ -652,7 +604,10 @@ begin
       FTransaction.Commit;
     except
       on E: Exception do
+      begin
         Log('Œ¯Ë·Í‡: ' + E.Message);
+        raise;
+      end;
     end;
   finally
     if FTransaction.InTransaction then

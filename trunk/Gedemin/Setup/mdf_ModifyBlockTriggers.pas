@@ -10,8 +10,7 @@ procedure ModifyBlockTriggers(IBDB: TIBDatabase; Log: TModifyLog);
 implementation
 
 uses
-  IBSQL, SysUtils;
-
+  IBSQL, SysUtils, mdf_metadata_unit;
 
 procedure ModifyBlockTriggers(IBDB: TIBDatabase; Log: TModifyLog);
 var
@@ -29,77 +28,21 @@ begin
         Transaction := FTransaction;
         ParamCheck := False;
 
-        try
+        if not GeneratorExist2('gd_g_block_group', FTransaction) then
+        begin
           SQL.Text := 'CREATE GENERATOR gd_g_block_group ';
           ExecQuery;
-        except
+          
+          SQL.Text := 'SET GENERATOR gd_g_block_group TO 0';
+          ExecQuery;
+
+          SQL.Text := 'SET GENERATOR gd_g_block TO 0';
+          ExecQuery;
         end;
 
-        Close;
-        SQL.Text := 'SET GENERATOR gd_g_block_group TO 0';
-        ExecQuery;
-
-        Close;
-        SQL.Text := 'SET GENERATOR gd_g_block TO 0';
-        ExecQuery;
-
-        Close;
-        SQL.Text :=
-         'CREATE OR ALTER TRIGGER AC_AD_ENTRY_DELETERECORD FOR AC_ENTRY ' +
-         '  ACTIVE AFTER DELETE POSITION 0 ' +
-         'AS ' +
-         'BEGIN ' +
-         '  DELETE FROM AC_RECORD WHERE ID = OLD.RECORDKEY; ' +
-         'END ';
-        ExecQuery;
-
-        Close;
-        SQL.Text :=
-          'CREATE OR ALTER TRIGGER AC_AD_ENTRY_ISSIMPLE FOR AC_ENTRY ' +
-          'ACTIVE AFTER DELETE POSITION 1 ' +
-          'AS ' +
-          'declare variable CountEntry integer; ' +
-          'begin ' +
-          '  CountEntry = 0; ' +
-          '  if (old.issimple = 0) then ' +
-          '  begin ' +
-          '    select ' +
-          '      count(e.id) ' +
-          '    from ' +
-          '      ac_entry e ' +
-          '    where ' +
-          '      e.recordkey = old.recordkey ' +
-          '      and ' +
-          '      e.accountpart = old.accountpart ' +
-          '      and ' +
-          '      e.id != old.id ' +
-          '    into :CountEntry; ' +
-          '    if ( CountEntry = 1) ' +
-          '    then ' +
-          '    begin ' +
-          '      update ' +
-          '        ac_entry e ' +
-          '      set ' +
-          '        e.issimple = 1 ' +
-          '      where ' +
-          '        e.recordkey = old.recordkey ' +
-          '        and ' +
-          '        e.accountpart = old.accountpart; ' +
-          '    end ' +
-          '  end ' +
-          'end ';
-        ExecQuery;
-
-        Close;
-        SQL.Text :=
-          'SELECT * FROM rdb$procedures WHERE rdb$procedure_name = ''INV_MAKEREST''';
-        ExecQuery;
-
-        if EOF then
+        if not ProcedureExist2('INV_MAKEREST', FTransaction) then
         begin
-          Close;
-          ParamCheck := False;
-          SQl.Text:=
+          SQL.Text:=
             'CREATE PROCEDURE inv_makerest                               '#13#10 +
             'AS                                                          '#13#10 +
             '  DECLARE VARIABLE CONTACTKEY INTEGER;                      '#13#10 +
@@ -119,107 +62,26 @@ begin
             '      VALUES (:contactkey, :cardkey, :balance);             '#13#10 +
             'END ';
           ExecQuery;
-          Close;
           Log('Добавление процедуры пересчета остатков');
-        end else
-          Close;
-
-        Close;
-        SQL.Text := 'SELECT * FROM rdb$triggers ' +
-          ' WHERE rdb$trigger_name = ''GD_BU_FUNCTION''';
-        ExecQuery;
-        if RecordCount = 0 then
-        begin
-          Close;
-          SQL.Text :=
-            'CREATE TRIGGER GD_BU_FUNCTION FOR GD_FUNCTION     '#13#10 +
-            'ACTIVE BEFORE UPDATE POSITION 0                   '#13#10 +
-            'AS                                                '#13#10 +
-            'begin                                             '#13#10 +
-            '  IF (NEW.modulecode IS NULL) then                '#13#10 +
-            '    IF (OLD.modulecode IS NULL) THEN              '#13#10 +
-            '      NEW.modulecode = 1010001;/*ID Application*/ '#13#10 +
-            '    ELSE                                          '#13#10 +
-            '      NEW.modulecode = OLD.modulecode;            '#13#10 +
-            '  IF (NEW.publicfunction IS NULL) then            '#13#10 +
-            '    IF (OLD.publicfunction IS NULL) THEN          '#13#10 +
-            '      NEW.publicfunction = 0;                     '#13#10 +
-            '    ELSE                                          '#13#10 +
-            '      NEW.publicfunction = OLD.publicfunction;    '#13#10 +
-            'end';
-          ExecQuery;
-          Close;
-          Log('GD_FUNCTION: Добавление триггера ''GD_BU_FUNCTION''');
-        end else
-          Close;
+        end;
 
         SQL.Text :=
-          'CREATE OR ALTER EXCEPTION AC_E_ENTRYBEFOREDOCUMENT ''Entry date before document date'' ';
+          'CREATE OR ALTER TRIGGER GD_BU_FUNCTION FOR GD_FUNCTION '#13#10 +
+          'ACTIVE BEFORE UPDATE POSITION 0                   '#13#10 +
+          'AS                                                '#13#10 +
+          'begin                                             '#13#10 +
+          '  IF (NEW.modulecode IS NULL) then                '#13#10 +
+          '    IF (OLD.modulecode IS NULL) THEN              '#13#10 +
+          '      NEW.modulecode = 1010001;/*ID Application*/ '#13#10 +
+          '    ELSE                                          '#13#10 +
+          '      NEW.modulecode = OLD.modulecode;            '#13#10 +
+          '  IF (NEW.publicfunction IS NULL) then            '#13#10 +
+          '    IF (OLD.publicfunction IS NULL) THEN          '#13#10 +
+          '      NEW.publicfunction = 0;                     '#13#10 +
+          '    ELSE                                          '#13#10 +
+          '      NEW.publicfunction = OLD.publicfunction;    '#13#10 +
+          'end';
         ExecQuery;
-
-        Close;
-        SQL.Text :=
-          'CREATE OR ALTER TRIGGER ac_bi_record FOR ac_record'#13#10 +
-          '  BEFORE INSERT'#13#10 +
-          '  POSITION 0'#13#10 +
-          'AS'#13#10 +
-          '  DECLARE VARIABLE D DATE;'#13#10 +
-          'BEGIN'#13#10 +
-          '  /* Если ключ не присвоен, присваиваем */'#13#10 +
-          '  IF (NEW.ID IS NULL) THEN'#13#10 +
-          '    NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);'#13#10 +
-          ''#13#10 +
-          '  NEW.debitncu = 0;'#13#10 +
-          '  NEW.debitcurr = 0;'#13#10 +
-          '  NEW.creditncu = 0;'#13#10 +
-          '  NEW.creditcurr = 0;'#13#10 +
-          '  NEW.incorrect = 0;'#13#10 +
-          ''#13#10 +
-          '  SELECT documentdate'#13#10 +
-          '  FROM gd_document'#13#10 +
-          '  WHERE id = NEW.documentkey'#13#10 +
-          '  INTO :D;'#13#10 +
-          ''#13#10 +
-          '  IF (:D > NEW.recorddate) THEN'#13#10 +
-          '  BEGIN'#13#10 +
-          '    EXCEPTION AC_E_ENTRYBEFOREDOCUMENT;'#13#10 +
-          '  END'#13#10 +
-          ''#13#10 +
-          'END';
-        ExecQuery;
-
-        Close;
-        SQL.Text :=
-          'CREATE OR ALTER TRIGGER ac_bu_record FOR ac_record '#13#10 +
-          '  BEFORE UPDATE '#13#10 +
-          '  POSITION 0 '#13#10 +
-          'AS '#13#10 +
-          '  DECLARE VARIABLE D DATE; '#13#10 +
-          'BEGIN '#13#10 +
-          '  /* Если ключ не присвоен, присваиваем */ '#13#10 +
-          ' '#13#10 +
-          '  IF ((NEW.debitncu <> NEW.creditncu) OR (NEW.debitcurr <> NEW.creditcurr)) THEN '#13#10 +
-          '    NEW.incorrect = 1; '#13#10 +
-          '  ELSE '#13#10 +
-          '    NEW.incorrect = 0; '#13#10 +
-          ' '#13#10 +
-          '  SELECT documentdate '#13#10 +
-          '  FROM gd_document '#13#10 +
-          '  WHERE id = NEW.documentkey '#13#10 +
-          '  INTO :D; '#13#10 +
-          ' '#13#10 +
-          '  IF (:D > NEW.recorddate) THEN '#13#10 +
-          '  BEGIN '#13#10 +
-          '    EXCEPTION AC_E_ENTRYBEFOREDOCUMENT; '#13#10 +
-          '  END '#13#10 +
-          ' '#13#10 +
-          '  UPDATE ac_entry e '#13#10 +
-          '    SET e.entrydate = NEW.recorddate '#13#10 +
-          '    WHERE e.recordkey = NEW.id; '#13#10 +
-          ' '#13#10 +
-          'END ';
-        ExecQuery;
-        Close;
 
         SQL.Text :=
           'ALTER PROCEDURE AT_P_SYNC_TRIGGERS ( '#13#10 +
@@ -289,7 +151,6 @@ begin
           ' '#13#10 +
           'END ';
         ExecQuery;
-        Close;
 
         SQL.Text :=
           'ALTER PROCEDURE AT_P_SYNC_TRIGGERS_ALL '#13#10 +
@@ -355,30 +216,28 @@ begin
           'END ';
         ExecQuery;
 
-        Close;
         SQL.Text :=
           'UPDATE OR INSERT INTO fin_versioninfo ' +
           '  VALUES (64, ''0000.0001.0000.0092'', ''01.03.2005'', ''Sync triggers procedures changed'') ' +
           '  MATCHING (id)';
         ExecQuery;
-
-        Close;
-        FTransaction.Commit;
       finally
         FIBSQL.Free;
       end;
+
+      FTransaction.Commit;
     except
       on E: Exception do
       begin
-        Log('Ошибка: ' + E.Message);
+        Log(E.Message);
+        if FTransaction.InTransaction then
+          FTransaction.Rollback;
+        raise;
       end;
     end;
   finally
-    if FTransaction.InTransaction then
-      FTransaction.Rollback;
     FTransaction.Free;
   end;
-
 end;
 
 end.

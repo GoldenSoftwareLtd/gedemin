@@ -14,7 +14,6 @@ implementation
 uses
   IBSQL, SysUtils, IBScript, classes;
 
-
 procedure AddEmployeeCmd(IBDB: TIBDatabase; Log: TModifyLog);
 var
   IBTr: TIBTransaction;
@@ -31,7 +30,7 @@ begin
 
     try
       q.SQL.Text :=
-        'INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex) ' +
+        'UPDATE OR INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex) ' +
         '  VALUES ( ' +
         '    730110, ' +
         '    730100, ' +
@@ -40,14 +39,12 @@ begin
         '    ''TgdcCompany'', ' +
         '    NULL, ' +
         '    0 ' +
-        '  ) ';
-      try
-        q.ExecQuery;
-      except
-      end;
+        '  ) ' +
+        'MATCHING (id)';
+      q.ExecQuery;
 
       q.SQL.Text :=
-        'INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex) ' +
+        'UPDATE OR INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex) ' +
         '  VALUES ( ' +
         '    730902, ' +
         '    730110, ' +
@@ -56,19 +53,15 @@ begin
         '    ''TgdcEmployee'', ' +
         '    NULL, ' +
         '    0 ' +
-        '  ) ';
-      try
-        q.ExecQuery;
-      except
-      end;
+        '  ) ' +
+        'MATCHING (id)';
+      q.ExecQuery;
 
       q.SQL.Text :=
-        'INSERT INTO fin_versioninfo ' +
-        'VALUES (75, ''0000.0001.0000.0103'', ''30.05.2006'', ''Employee branch added into Explorer''); ';
-      try
-        q.ExecQuery;
-      except
-      end;
+        'UPDATE OR INSERT INTO fin_versioninfo ' +
+        'VALUES (75, ''0000.0001.0000.0103'', ''30.05.2006'', ''Employee branch added into Explorer'') ' +
+        'MATCHING (id)';
+      q.ExecQuery;
 
       IBTr.Commit;
     finally

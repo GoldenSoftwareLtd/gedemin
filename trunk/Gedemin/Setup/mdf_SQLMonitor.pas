@@ -3,15 +3,14 @@ unit mdf_SQLMonitor;
 interface
 
 uses
-  IBDatabase, gdModify, Forms,
-  Windows, Controls;
+  IBDatabase, gdModify, Forms, Windows, Controls;
 
 procedure SQLMonitor(IBDB: TIBDatabase; Log: TModifyLog);
 
 implementation
 
 uses
-  IBSQL, SysUtils, IBScript, classes;
+  IBSQL, SysUtils, IBScript, classes, mdf_metadata_unit;
 
 procedure SQLMonitor(IBDB: TIBDatabase; Log: TModifyLog);
 var
@@ -31,50 +30,45 @@ begin
       q.SQL.Text := 'SELECT rdb$field_source FROM rdb$relation_fields ' +
         'WHERE rdb$relation_name = ''GD_GOODGROUP'' AND rdb$field_name = ''DESCRIPTION'' ';
       q.ExecQuery;
-      if q.EOF or (q.Fields[0].AsString <> 'DBLOBTEXT80_1251') then
+      if q.EOF or (q.Fields[0].AsTrimString <> 'DBLOBTEXT80_1251') then
       begin
         q.Close;
 
         q.SQL.Text := 'ALTER TABLE gd_goodgroup ADD temp_desc dblobtext80_1251 ';
-        try
-          q.ExecQuery;
-        except
-        end;
+        q.ExecQuery;
+
+        IBTr.Commit;
+        IBTr.StartTransaction;
 
         q.SQL.Text := 'UPDATE gd_goodgroup SET temp_desc = description ';
-        try
-          q.ExecQuery;
-        except
-        end;
+        q.ExecQuery;
 
         q.SQL.Text := 'ALTER TABLE gd_goodgroup DROP description ';
-        try
-          q.ExecQuery;
-        except
-        end;
+        q.ExecQuery;
+
+        IBTr.Commit;
+        IBTr.StartTransaction;
 
         q.SQL.Text := 'ALTER TABLE gd_goodgroup ADD description dblobtext80_1251 ';
-        try
-          q.ExecQuery;
-        except
-        end;
+        q.ExecQuery;
+
+        IBTr.Commit;
+        IBTr.StartTransaction;
 
         q.SQL.Text := 'UPDATE gd_goodgroup SET  description = temp_desc';
-        try
-          q.ExecQuery;
-        except
-        end;
+        q.ExecQuery;
 
         q.SQL.Text := 'ALTER TABLE gd_goodgroup DROP temp_desc ';
-        try
-          q.ExecQuery;
-        except
-        end;
+        q.ExecQuery;
+
+        IBTr.Commit;
+        IBTr.StartTransaction;
       end;
 
       q.Close;
-
-      try
+      
+      if not RelationExist2('GD_SQL_STATEMENT', IBTr) then
+      begin
         q.SQL.Text :=
           'CREATE TABLE gd_sql_statement '#13#10 +
           '( '#13#10 +
@@ -84,30 +78,27 @@ begin
           '  data             dblobtext80_1251 not null '#13#10 +
           ') ';
         q.ExecQuery;
-      except
-      end;
 
-      try
         q.SQL.Text := 'ALTER TABLE gd_sql_statement ADD CONSTRAINT gd_pk_sql_statement PRIMARY KEY (id) ';
         q.ExecQuery;
-      except
+
+        IBTr.Commit;
+        IBTr.StartTransaction;
       end;
 
-      try
-        q.SQL.Text :=
-          'CREATE TRIGGER gd_bi_sql_statement FOR gd_sql_statement '#13#10 +
-          '  BEFORE INSERT '#13#10 +
-          '  POSITION 0 '#13#10 +
-          'AS '#13#10 +
-          'BEGIN '#13#10 +
-          '  IF (NEW.ID IS NULL) THEN '#13#10 +
-          '    NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0); '#13#10 +
-          'END ';
-        q.ExecQuery;
-      except
-      end;
+      q.SQL.Text :=
+        'CREATE OR ALTER TRIGGER gd_bi_sql_statement FOR gd_sql_statement '#13#10 +
+        '  BEFORE INSERT '#13#10 +
+        '  POSITION 0 '#13#10 +
+        'AS '#13#10 +
+        'BEGIN '#13#10 +
+        '  IF (NEW.ID IS NULL) THEN '#13#10 +
+        '    NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0); '#13#10 +
+        'END ';
+      q.ExecQuery;
 
-      try
+      if not RelationExist2('GD_SQL_LOG', IBTr) then
+      begin
         q.SQL.Text :=
           'CREATE TABLE gd_sql_log '#13#10 +
           '( '#13#10 +
@@ -118,40 +109,30 @@ begin
           '  duration         INTEGER NOT NULL '#13#10 +
           '); ';
         q.ExecQuery;
-      except
-      end;
 
-      try
         q.SQL.Text :=
           'ALTER TABLE gd_sql_log ADD CONSTRAINT gd_fk_sql_log_scrc '#13#10 +
           '  FOREIGN KEY (statementcrc) REFERENCES gd_sql_statement (crc) '#13#10 +
           '  ON DELETE CASCADE '#13#10 +
           '  ON UPDATE CASCADE ';
         q.ExecQuery;
-      except
-      end;
 
-      try
         q.SQL.Text :=
           'ALTER TABLE gd_sql_log ADD CONSTRAINT gd_fk_sql_log_pcrc '#13#10 +
           '  FOREIGN KEY (paramscrc) REFERENCES gd_sql_statement (crc) '#13#10 +
           '  ON DELETE CASCADE '#13#10 +
           '  ON UPDATE CASCADE ';
         q.ExecQuery;
-      except
+
+        IBTr.Commit;
+        IBTr.StartTransaction;
       end;
 
-      try
-        q.SQL.Text := 'GRANT ALL ON GD_SQL_STATEMENT TO administrator ';
-        q.ExecQuery;
-      except
-      end;
+      q.SQL.Text := 'GRANT ALL ON GD_SQL_STATEMENT TO administrator ';
+      q.ExecQuery;
 
-      try
-        q.SQL.Text := 'GRANT ALL ON GD_SQL_LOG TO administrator ';
-        q.ExecQuery;
-      except
-      end;
+      q.SQL.Text := 'GRANT ALL ON GD_SQL_LOG TO administrator ';
+      q.ExecQuery;
 
       q.SQL.Text :=
         'ALTER PROCEDURE gd_p_sec_getgroupsforuser(UserKey INTEGER) '#13#10 +
@@ -291,19 +272,17 @@ begin
         'END ';
       q.ExecQuery;
 
-      try
-        q.SQL.Text := 'INSERT INTO fin_versioninfo ' +
-          'VALUES (71, ''0000.0001.0000.0099'', ''15.03.2006'', ''Tables for SQL monitor added'') ';
-        q.ExecQuery;
-      except
-      end;
+      q.SQL.Text :=
+        'UPDATE OR INSERT INTO fin_versioninfo ' +
+        'VALUES (71, ''0000.0001.0000.0099'', ''15.03.2006'', ''Tables for SQL monitor added'') ' +
+        'MATCHING (id)';
+      q.ExecQuery;
 
-      try
-        q.SQL.Text := 'INSERT INTO fin_versioninfo ' +
-          'VALUES (72, ''0000.0001.0000.0100'', ''17.03.2006'', ''Type of description field of goodgroup has been changed'') ';
-        q.ExecQuery;
-      except
-      end;
+      q.SQL.Text :=
+        'UPDATE OR INSERT INTO fin_versioninfo ' +
+        'VALUES (72, ''0000.0001.0000.0100'', ''17.03.2006'', ''Type of description field of goodgroup has been changed'') ' +
+        'MATCHING (id)';
+      q.ExecQuery;
     finally
       q.Free;
     end;
@@ -313,7 +292,5 @@ begin
     IBTr.Free;
   end;
 end;
-
-
 
 end.

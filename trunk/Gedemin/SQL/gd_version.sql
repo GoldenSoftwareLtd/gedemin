@@ -653,6 +653,12 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (207, '0000.0001.0000.0238', '17.03.2014', 'Triggers for protection of system storage folders.');
 
+INSERT INTO fin_versioninfo
+  VALUES (208, '0000.0001.0000.0239', '31.03.2014', 'Introducing AC_INCORRECT_RECORD GTT.');
+
+INSERT INTO fin_versioninfo
+  VALUES (209, '0000.0001.0000.0240', '31.03.2014', 'AC_TC_RECORD.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id

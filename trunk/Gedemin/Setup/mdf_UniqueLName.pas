@@ -83,9 +83,15 @@ begin
         q.ExecQuery;
       end;
 
-      if not ConstraintExist2('GD_COMPANY', 'GD_FK_COMPANY_CHIEFACCOUNTANTKEY', Tr) then
+      if ConstraintExist2('GD_COMPANY', 'GD_FK_COMPANY_CHIEFACCOUNTANTKE', Tr) then
       begin
-        q.SQL.Text := 'ALTER TABLE gd_company ADD CONSTRAINT gd_fk_company_chiefaccountantkey ' +
+        q.SQL.Text := 'ALTER TABLE gd_company DROP CONSTRAINT gd_fk_company_chiefaccountantke';
+        q.ExecQuery;
+      end;
+
+      if not ConstraintExist2('GD_COMPANY', 'GD_FK_COMPANY_CHIEFACCKEY', Tr) then
+      begin
+        q.SQL.Text := 'ALTER TABLE gd_company ADD CONSTRAINT gd_fk_company_chiefacckey ' +
           'FOREIGN KEY (chiefaccountantkey) REFERENCES gd_people(contactkey) ' +
           'ON UPDATE CASCADE ';
         q.ExecQuery;
