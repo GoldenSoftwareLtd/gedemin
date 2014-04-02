@@ -43,9 +43,12 @@ begin
   FQ2.SQL.Text := 'UPDATE gd_documenttype SET parent = :parent WHERE id = :id';
   FQ2.ParamByName('id').AsInteger := DocumentType1;
   FQ2.ParamByName('parent').AsInteger := 801000;
-  StartExpectingException(EIBInterBaseError);
-  FQ2.ExecQuery;
-  StopExpectingException('');
+  try
+    FQ2.ExecQuery;
+    Check(False);
+  except
+    on E: EIBInterBaseError do ;
+  end;
 
   DocumentType2 := gdcBaseManager.GetNextID;
   InsertDocumentType(FQ, DocumentType2, DocumentType1,  'Тип складского документа 2', gdcBaseManager.GetRUIDStringByID(DocumentType2));
@@ -70,9 +73,12 @@ begin
   FQ2.SQL.Text := 'UPDATE gd_documenttype SET parent = :parent WHERE id = :id';
   FQ2.ParamByName('id').AsInteger := DocumentType1;
   FQ2.ParamByName('parent').AsInteger := 801000;
-  StartExpectingException(EIBInterBaseError);
-  FQ2.ExecQuery;
-  StopExpectingException('');
+  try
+    FQ2.ExecQuery;
+    Check(False);
+  except
+    on E: EIBInterBaseError do ;
+  end;
 
   DocumentType2 := gdcBaseManager.GetNextID;
   InsertDocumentType(FQ,  DocumentType2, DocumentType1,  'Тип прай-лист 2', gdcBaseManager.GetRUIDStringByID(DocumentType2));
@@ -97,17 +103,23 @@ begin
   FQ2.SQL.Text := 'UPDATE gd_documenttype SET parent = :parent WHERE id = :id';
   FQ2.ParamByName('id').AsInteger := DocumentType1;
   FQ2.ParamByName('parent').AsInteger := InvDocType;
-  StartExpectingException(EIBInterBaseError);
-  FQ2.ExecQuery;
-  StopExpectingException('');
+  try
+    FQ2.ExecQuery;
+    Check(False);
+  except
+    on E: EIBInterBaseError do ;
+  end;
 
   FQ2.Close;
   FQ2.SQL.Text := 'UPDATE gd_documenttype SET parent = :parent WHERE id = :id';
   FQ2.ParamByName('id').AsInteger := DocumentType1;
   FQ2.ParamByName('parent').AsInteger := PriceListDocType;
-  StartExpectingException(EIBInterBaseError);
-  FQ2.ExecQuery;
-  StopExpectingException('');
+  try
+    FQ2.ExecQuery;
+    Check(False);
+  except
+    on E: EIBInterBaseError do ;
+  end;
 
   DocumentType2 := gdcBaseManager.GetNextID;
   InsertDocumentType(FQ, DocumentType2, 800001,  'Тип выписка и картотека 1', gdcBaseManager.GetRUIDStringByID(DocumentType2));
@@ -116,7 +128,7 @@ begin
   FQ2.SQL.Text := 'UPDATE gd_documenttype SET parent = :parent WHERE id = :id';
   FQ2.ParamByName('id').AsInteger := DocumentType2;
   FQ2.ParamByName('parent').AsInteger := DocumentType1;
-  FQ2.ExecQuery;      
+  FQ2.ExecQuery;
 
   FQ.Close;
   FQ.SQL.Text := 'SELECT * FROM gd_documenttype WHERE id = :id AND parent = :parent';

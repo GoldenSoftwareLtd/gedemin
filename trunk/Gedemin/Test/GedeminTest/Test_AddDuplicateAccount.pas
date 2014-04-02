@@ -74,25 +74,38 @@ begin
   FQ.ExecQuery;
   Check(not FQ.EOF);
 
-  StartExpectingException(EIBInterBaseError);
-  InsertAcAccount(FQ, gdcBaseManager.GetNextID, Account1, '—уб—чет2', '1.1', 'S');
-  StopExpectingException('');
+  try
+    InsertAcAccount(FQ, gdcBaseManager.GetNextID, Account1, '—уб—чет2', '1.1', 'S');
+    Check(False);
+  except
+    on E: EIBInterBaseError do ;
+  end;
 
-  StartExpectingException(EIBInterBaseError);
-  InsertAcAccount(FQ, gdcBaseManager.GetNextID, AccountF, '—уб—чет2', '1.2', 'S');
-  StopExpectingException('');
+  try
+    InsertAcAccount(FQ, gdcBaseManager.GetNextID, AccountF, '—уб—чет2', '1.2', 'S');
+    Check(False);
+  except
+    on E: EIBInterBaseError do ;
+  end;
 
-  StartExpectingException(EIBInterBaseError);
-  InsertAcAccount(FQ, gdcBaseManager.GetNextID, AccountF, '—чет2', '1', 'A');
-  StopExpectingException('');
+  try
+    InsertAcAccount(FQ, gdcBaseManager.GetNextID, AccountF, '—чет2', '1', 'A');
+    Check(False);
+  except
+    on E: EIBInterBaseError do ;
+  end;
 
   FQ2.Close;
   FQ2.SQL.Text := 'UPDATE ac_account SET parent = :parent WHERE id = :id';
   FQ2.ParamByName('id').AsInteger := SubAccount1;
   FQ2.ParamByName('parent').AsInteger := AccountF;
-  StartExpectingException(EIBInterBaseError);
-  FQ2.ExecQuery;
-  StopExpectingException('');
+
+  try
+    FQ2.ExecQuery;
+    Check(False);
+  except
+    on E: EIBInterBaseError do ;
+  end;
 end;
 
 initialization

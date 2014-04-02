@@ -37,33 +37,45 @@ begin
     Obj.Open;
 
     Check(not Obj.EOF);
-    StartExpectingException(EIBError);
-    Obj.Delete;
-    StopExpectingException;
+    try
+      Obj.Delete;
+      Check(False);
+    except
+      on E: EIBError do ;
+    end;
 
     Obj.Close;
     Obj.ParamByName('n').AsString := '—“≈ ÀŒœŒ—”ƒ¿';
     Obj.Open;
 
     Check(not Obj.EOF);
-    StartExpectingException(EIBError);
-    Obj.Delete;
-    StopExpectingException;
+    try
+      Obj.Delete;
+      Check(False);
+    except
+      on E: EIBError do ;
+    end;
 
-    StartExpectingException(EIBError);
-    Obj.Edit;
-    Obj.FieldByName('parent').Clear;
-    Obj.Post;
-    StopExpectingException;
+    try
+      Obj.Edit;
+      Obj.FieldByName('parent').Clear;
+      Obj.Post;
+      Check(False);
+    except
+      on E: EIBError do ;
+    end;
 
     Obj.Close;
     Obj.ParamByName('n').AsString := 'ƒ–¿√Ã≈“¿ÀÀ€';
     Obj.Open;
 
     Check(not Obj.EOF);
-    StartExpectingException(EIBError);
-    Obj.Delete;
-    StopExpectingException;
+    try
+      Obj.Delete;
+      Check(False);
+    except
+      on E: EIBError do ;
+    end;
   finally
     Obj.Free;
   end;

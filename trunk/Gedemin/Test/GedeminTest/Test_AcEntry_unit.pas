@@ -19,9 +19,6 @@ type
     // дебетовых сумм для кредлитов и наоборот
     procedure TestEqualOfDebitAndCreditSum(q: TIBSQL);
 
-    // проверяет наличие в базе проводок, помеченных как incorrect
-    procedure TestIncorrectRecords(q: TIBSQL);
-
     // проверяет соответствие полей в шапке и позиции
     // проводки
     procedure TestEntryConsistency(q: TIBSQL);
@@ -53,7 +50,6 @@ procedure Tgs_AcEntryTest.TestConsistentState(q: TIBSQL);
 begin
   TestIsSimpleField(q);
   TestEqualOfDebitAndCreditSum(q);
-  TestIncorrectRecords(q);
   TestEntryConsistency(q);
   TestUnlockFlags(q);
   TestEntryCount(q);
@@ -87,8 +83,7 @@ procedure Tgs_AcEntryTest.TestEqualOfDebitAndCreditSum(q: TIBSQL);
 begin
   q.Close;
   q.SQL.Text :=
-    'select * from ac_record where creditncu <> debitncu and creditncu <> 0 and debitncu <> 0 ' +
-    '  and incorrect=0 ';
+    'select * from ac_record where creditncu <> debitncu and creditncu <> 0 and debitncu <> 0 ';
   q.ExecQuery;
   Check(q.EOF, 'Проверка дебетовой и кредитовой части в шапке проводки');
 
@@ -116,14 +111,6 @@ begin
     'FROM ac_entry WHERE accountpart = ''D'' ';
   q.ExecQuery;
   Check(q.Fields[0].AsCurrency = 0, 'Ненулевые суммы по кредиту для дебетовых частей');
-end;
-
-procedure Tgs_AcEntryTest.TestIncorrectRecords(q: TIBSQL);
-begin
-  q.Close;
-  q.SQL.Text := 'SELECT * FROM ac_record WHERE incorrect <> 0';
-  q.ExecQuery;
-  Check(q.EOF, 'Записи в AC_RECORD с incorrect = 1');
 end;
 
 procedure Tgs_AcEntryTest.TestIsSimpleField(q: TIBSQL);
@@ -190,9 +177,9 @@ const
     q.SQL.Text :=
       'INSERT INTO ac_record (id, trrecordkey, transactionkey, recorddate, description, ' +
       '  documentkey, masterdockey, companykey, debitncu, debitcurr, creditncu, creditcurr, ' +
-      '  delayed, incorrect, afull, achag, aview, disabled, reserved) ' +
+      '  delayed, afull, achag, aview, disabled, reserved) ' +
       'VALUES (:id, 807100, 807001, CURRENT_DATE, NULL, :docid, :docid, :ck, NULL, NULL, NULL, NULL, ' +
-      '  0, 0, -1, -1, -1, 0, 0)';
+      '  0, -1, -1, -1, 0, 0)';
     q.ParamByName('id').AsInteger := AnID;
     q.ParamByName('docid').AsInteger := ADocID;
     q.ParamByName('ck').AsInteger := ACompanyKey;
@@ -258,9 +245,9 @@ const
   begin
     FQ.Close;
     FQ.SQL.Text :=
-      'SELECT RDB$GET_CONTEXT(''USER_TRANSACTION'', ''AC_RECORD_INCORRECT'') FROM rdb$database';
+      'SELECT COUNT(*) FROM ac_incorrect_record';
     FQ.ExecQuery;
-    Check(FQ.Fields[0].IsNull);
+    Check(FQ.Fields[0].AsInteger = 0);
 
     FQ.Close;
     FQ.SQL.Text := 'SELECT MAX(id) FROM ac_record';
@@ -281,13 +268,17 @@ const
 
     FQ.Close;
     FQ.SQL.Text :=
-      'SELECT RDB$GET_CONTEXT(''USER_TRANSACTION'', ''AC_RECORD_INCORRECT'') FROM rdb$database';
+      'SELECT COUNT(*) FROM ac_incorrect_record';
     FQ.ExecQuery;
-    Check(FQ.Fields[0].AsString > '');
+    Check(FQ.Fields[0].AsInteger > 0);
 
-    StartExpectingException(EIBInterBaseError);
-    FTr.Commit;
-    StopExpectingException('');
+    try
+      FTr.Commit;
+      Check(False, 'Должно было быть исключение.');
+    except
+      FTr.Rollback;
+    end;
+
     FTr.StartTransaction;
 
     FQ.Close;
@@ -298,11 +289,9 @@ const
 
     FQ.Close;
     FQ.SQL.Text :=
-      'SELECT RDB$GET_CONTEXT(''USER_TRANSACTION'', ''AC_RECORD_INCORRECT'') FROM rdb$database';
+      'SELECT COUNT(*) FROM ac_incorrect_record';
     FQ.ExecQuery;
-    Check(FQ.Fields[0].IsNull);
-
-    TestIncorrectRecords(FQ);
+    Check(FQ.Fields[0].AsInteger = 0);
   end;
 
 var
@@ -318,34 +307,27 @@ begin
 
   // у голой шапки проводки incorrect = 1
   RecID := InsertAcRecord(FQ, gdcBaseManager.GetNextID, DocID, IBLogin.CompanyKey);
-  FQ.SQL.Text := 'SELECT * FROM ac_record WHERE id = :id';
+  FQ.SQL.Text := 'SELECT * FROM ac_incorrect_record WHERE id = :id';
   FQ.ParamByName('id').AsInteger := RecID;
   FQ.ExecQuery;
-  Check(FQ.FieldByName('incorrect').AsInteger = 1);
+  Check(not FQ.EOF);
 
-  // поле incorrect нельзя изменить вручную
-  FQ2.SQL.Text := 'UPDATE ac_record SET incorrect = 0 WHERE id = :id';
-  FQ2.ParamByName('id').AsInteger := RecID;
-  FQ2.ExecQuery;
-  FQ.Close;
-  FQ.ParamByName('id').AsInteger := RecID;
-  FQ.ExecQuery;
-  Check(FQ.FieldByName('incorrect').AsInteger = 1);
-
-  // проверяем очистку переменной AC_RECORD_INCORRECT
+  // проверяем очистку AC_INCORRECT_RECORD
   // без закрытия транзакции
   FQ.Close;
   FQ.SQL.Text :=
-    'SELECT RDB$GET_CONTEXT(''USER_TRANSACTION'', ''AC_RECORD_INCORRECT'') FROM rdb$database';
+    'SELECT COUNT(*) FROM ac_incorrect_record';
   FQ.ExecQuery;
-  Check(FQ.Fields[0].AsString > '');
+  Check(FQ.Fields[0].AsInteger > 0);
   FQ2.Close;
   FQ2.SQL.Text := 'DELETE FROM ac_record WHERE id = :id';
   FQ2.ParamByName('id').AsInteger := RecID;
   FQ2.ExecQuery;
   FQ.Close;
   FQ.ExecQuery;
-  Check(FQ.Fields[0].IsNull);
+  Check(FQ.Fields[0].AsInteger = 0);
+
+  FTr.CommitRetaining;
 
   // проверим работу списка некорректных проводок, когда
   // их ИД умещаются в строку
@@ -382,10 +364,10 @@ begin
 
   // у шапки неполной проводки incorrect = 1
   FQ.Close;
-  FQ.SQL.Text := 'SELECT * FROM ac_record WHERE id = :id';
+  FQ.SQL.Text := 'SELECT * FROM ac_incorrect_record WHERE id = :id';
   FQ.ParamByName('id').AsInteger := RecID;
   FQ.ExecQuery;
-  Check(FQ.FieldByName('incorrect').AsInteger = 1);
+  Check(not FQ.EOF);
 
   FQ.Close;
   FQ.SQL.Text := 'SELECT issimple FROM ac_entry WHERE id = :id';
@@ -400,10 +382,10 @@ begin
 
   // теперь incorrect = 0
   FQ.Close;
-  FQ.SQL.Text := 'SELECT * FROM ac_record WHERE id = :id';
+  FQ.SQL.Text := 'SELECT * FROM ac_incorrect_record WHERE id = :id';
   FQ.ParamByName('id').AsInteger := RecID;
   FQ.ExecQuery;
-  Check(FQ.FieldByName('incorrect').AsInteger = 0);
+  Check(FQ.EOF);
 
   // issimple = 1
   FQ.Close;
@@ -425,10 +407,10 @@ begin
 
   // incorrect = 1
   FQ.Close;
-  FQ.SQL.Text := 'SELECT * FROM ac_record WHERE id = :id';
+  FQ.SQL.Text := 'SELECT * FROM ac_incorrect_record WHERE id = :id';
   FQ.ParamByName('id').AsInteger := RecID;
   FQ.ExecQuery;
-  Check(FQ.FieldByName('incorrect').AsInteger = 1);
+  Check(not FQ.EOF);
 
   // issimple
   FQ.Close;
@@ -455,10 +437,10 @@ begin
 
   // incorrect = 0
   FQ.Close;
-  FQ.SQL.Text := 'SELECT * FROM ac_record WHERE id = :id';
+  FQ.SQL.Text := 'SELECT * FROM ac_incorrect_record WHERE id = :id';
   FQ.ParamByName('id').AsInteger := RecID;
   FQ.ExecQuery;
-  Check(FQ.FieldByName('incorrect').AsInteger = 0);
+  Check(FQ.EOF);
 
   // issimple
   FQ.Close;

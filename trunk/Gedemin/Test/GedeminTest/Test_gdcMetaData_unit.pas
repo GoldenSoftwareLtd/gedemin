@@ -204,16 +204,22 @@ begin
   FQ.ParamByName('id').AsInteger := 0;
   FQ.ParamByName('xid').AsInteger := 0;
   FQ.ParamByName('dbid').AsInteger := 17;
-  StartExpectingException(EIBInterBaseError);
-  FQ.ExecQuery;
-  StopExpectingException('');
+  try
+    FQ.ExecQuery;
+    Check(False);
+  except
+    on E: EIBInterBaseError do ;
+  end;
 
   FQ.ParamByName('id').AsInteger := -1;
   FQ.ParamByName('xid').AsInteger := -1;
   FQ.ParamByName('dbid').AsInteger := 17;
-  StartExpectingException(EIBInterBaseError);
-  FQ.ExecQuery;
-  StopExpectingException('');
+  try
+    FQ.ExecQuery;
+    Check(False);
+  except
+    on E: EIBInterBaseError do ;
+  end;
 
   FQ.ParamByName('id').AsInteger := 146999999;
   FQ.ParamByName('xid').AsInteger := 146999999;
@@ -223,16 +229,22 @@ begin
   FQ.ParamByName('id').AsInteger := 146999999;
   FQ.ParamByName('xid').AsInteger := 146999999;
   FQ.ParamByName('dbid').AsInteger := 28;
-  StartExpectingException(EIBInterBaseError);
-  FQ.ExecQuery;
-  StopExpectingException('');
+  try
+    FQ.ExecQuery;
+    Check(False);
+  except
+    on E: EIBInterBaseError do ;
+  end;
 
   FQ.ParamByName('id').AsInteger := 146999999;
   FQ.ParamByName('xid').AsInteger := 147999999;
   FQ.ParamByName('dbid').AsInteger := 17;
-  StartExpectingException(EIBInterBaseError);
-  FQ.ExecQuery;
-  StopExpectingException('');
+  try
+    FQ.ExecQuery;
+    Check(False);
+  except
+    on E: EIBInterBaseError do ;
+  end;
 end;
 
 { TgdcStandartTableTest }

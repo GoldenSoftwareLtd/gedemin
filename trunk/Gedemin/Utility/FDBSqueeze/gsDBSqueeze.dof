@@ -2,7 +2,7 @@
 A=1
 B=0
 C=1
-D=1
+D=0
 E=0
 F=0
 G=1
@@ -13,7 +13,7 @@ K=0
 L=1
 M=0
 N=1
-O=0
+O=1
 P=1
 Q=0
 R=0
@@ -32,7 +32,7 @@ UnitAliases=WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=
 MapFile=0
 OutputObjs=0
 ConsoleApp=1
-DebugInfo=1
+DebugInfo=0
 RemoteSymbols=0
 MinStackSize=16384
 MaxStackSize=1048576
@@ -77,14 +77,7 @@ ProductName=
 ProductVersion=1.0.0.0
 Comments=
 [Excluded Packages]
-C:\Users\mk\Desktop\AlmDev\BusinessSkinForm v9.01\2005\bsftriald5_delphi\BSFD5.bpl=BusinessSkinForm VCL
-C:\svn_repository\gedemin\Gedemin\bpl\SynEdit_D5.bpl=SynEdit component suite
-C:\svn_repository\gedemin\Gedemin\bpl\tb2k_d5.bpl=Toolbar2000 Components (Jordan Russell)
-C:\svn_repository\gedemin\Gedemin\bpl\Fr5.bpl=FastReport 2.5 Components
-C:\svn_repository\gedemin\Gedemin\bpl\greference.bpl=(untitled)
-C:\svn_repository\gedemin\Gedemin\bpl\tb2kdsgn_d5.bpl=Toolbar2000 Design Package (Jordan Russell)
 $(DELPHI)\Bin\dclite50.bpl=Borland Integrated Translation Environment
-$(DELPHI)\Bin\DCLIB50.bpl=InterBase Data Access Components
 [HistoryLists\hlDebugSourcePath]
 Count=3
 Item0=..\..\jcl\Source;..\..\jcl\Source\windows;..\..\jcl\Source\vcl;..\..\jcl\Source\common;..\..\jcl\packages;..\..\ibx;..\..\..\comp5\xstorm;..\..\..\comp5;..\..\FastReport 4\Source;..\..\FastReport 4\FastScript;..\..\FastReport 4\Source\ExportPack;..\..\FastReport 4\Source\ADO;..\..\FastReport 4\FastQB;..\..\FastReport 4\Source\IBX;..\..\setup;..\..\imports;..\..\component;..\..\component\diff;..\..\component\textdiff;..\..\component\gdc;..\..\component\repository;..\..\Component\tb2k\Source;..\..\Component\SynEdit\Source;..\..\common;$(DELPHI)\Source\Vcl;$(DELPHI)\Source\Toolsapi;$(DELPHI)\Ocx\Servers;$(DELPHI)\lib;..\..\designer;..\..\property;..\..\transaction;..\..\property\functionwizard;..\..\document;..\..\gdcFile;..\..\FastReport\source;..\..\report;..\..\zlib;..\..\..\comp5\async4\source;..\..\const;..\..\inventory;..\..\wage;..\..\gadmin;..\..\security;..\..\addressbook;..\..\bugbase;..\..\greference;..\..\log;..\..\directorygood;..\..\messaging;..\..\queryfilter;..\..\classtree;..\..\attr;..\..\storage;..\..\bank;..\..\newtransaction;..\..\realization;..\..\gudf;..\..\protect;..\..\gedemin;..\..\images;..\..\tax;..\..\backup;$(DELPHI)\Imports;..\..\cattle;..\..\modem;..\..\planning;..\..\Department;..\..\component\repository\gd;..\..\1stclass\source;..\..\component\indy;..\..\test\dunit\src;..\..\test\GedeminTest;..\..\DCU;..\..\setup;..\..\designer
