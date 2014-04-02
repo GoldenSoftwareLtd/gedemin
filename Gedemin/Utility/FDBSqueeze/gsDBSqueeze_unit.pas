@@ -999,7 +999,6 @@ var
   q, q2: TIBSQL;
   DocTypeList: TStringList;   // Список типов документов
   DocTypeBranch: TStringList; // Список ветви типов документов
-  Level: String;
   I: Integer;
 
   function GetChildListStr(AParent: Integer): String;
@@ -1473,10 +1472,10 @@ begin
       q4.FieldByName('Kolvo').AsString
     );
      Tr.Commit;
-     LogEvent('Getting processing statistics... OK');
+
     end;
     DestroyHIS(0);
-
+    LogEvent('Getting processing statistics... OK');
 
     
     ProgressMsgEvent(' ');
@@ -2235,7 +2234,8 @@ var
 begin
   LogEvent('Calculating entry balance...');
   Assert(Connected);
-
+  TmpStr := '';
+  OnlyCompanyEntryDoc := 0;
   TmpList := TStringList.Create;
   AvailableAnalyticsList := TStringList.Create;
   OurCompany_EntryDocList := TStringList.Create;
@@ -2395,7 +2395,7 @@ begin
       // documentkey = masterkey
       if FOnlyCompanySaldo then
         TmpStr := ' ' +
-          IntToStr(OnlyCompanyEntryDoc) + ',' + IntToStr(OnlyCompanyEntryDoc) + ',';  
+          IntToStr(OnlyCompanyEntryDoc) + ',' + IntToStr(OnlyCompanyEntryDoc) + ',';
       
       q3.SQL.Add(' ' +
         TmpStr +                                                  #13#10 +
@@ -2764,7 +2764,7 @@ var
   begin
     LogEvent('Including cascading sequences in HIS...');
     Assert(Trim(ATableName) <> '');
-    try
+    
       LineDocTbls := TStringList.Create;
       CrossLineTbls := TStringList.Create;
       LineSetTbls := TStringList.Create;
@@ -2789,7 +2789,6 @@ var
 
       SelfFkFieldsListLine := TStringList.Create;
       SelfFkFieldsList2 := TStringList.Create;
-
       q := TIBSQL.Create(nil);
       q2 := TIBQuery.Create(nil);
       q3 := TIBSQL.Create(nil);
@@ -2798,6 +2797,8 @@ var
 
       Tr := TIBTransaction.Create(nil);
       Tr2 := TIBTransaction.Create(nil);
+    try
+      
       try
         Tr.DefaultDatabase := FIBDatabase;
         Tr.StartTransaction;
@@ -3735,29 +3736,19 @@ var
         end;
       end;
     finally
-      if Assigned(LineDocTbls) then
-        LineDocTbls.Free;
-      if Assigned(CrossLineTbls) then
-        CrossLineTbls.Free;
+      LineDocTbls.Free;
+      CrossLineTbls.Free;
       ReProcLineTbls.Free;
-      if Assigned(LineSetTbls) then
-        LineSetTbls.Free;
-      if Assigned(SelfFkFieldsListLine) then
-        SelfFkFieldsListLine.Free;
-      if Assigned(SelfFkFieldsList2) then
-        SelfFkFieldsList2.Free;
+      LineSetTbls.Free;
+      SelfFkFieldsListLine.Free;
+      SelfFkFieldsList2.Free;
       ExcFKTbls.Free;
-      if Assigned(FkFieldsList) then
-        FkFieldsList.Free;
-      if Assigned(FkFieldsList2) then
-        FkFieldsList2.Free;
-      if Assigned(FkFieldsList3) then
-        FkFieldsList3.Free;
-      if Assigned(FkFieldsListLine) then
-        FkFieldsListLine.Free;
+      FkFieldsList.Free;
+      FkFieldsList2.Free;
+      FkFieldsList3.Free;
+      FkFieldsListLine.Free;
       CascadeProcTbls.Free;
-      if Assigned(ProcTblsNamesList) then
-        ProcTblsNamesList.Free;
+      ProcTblsNamesList.Free;
       TblsNamesList.Free;
       AllProcessedTblsNames.Free;
       LineTblsList.Free;
@@ -3765,16 +3756,11 @@ var
       LinePosList.Free;
       ReProc.Free;
       ReProcAll.Free;
-      if Assigned(TmpList) then
-        TmpList.Free;
-      if Assigned(q) then
-        q.Free;
-      if Assigned(q2) then
-        q2.Free;
-      if Assigned(q3) then
+      TmpList.Free;
+      q.Free;
+      q2.Free;
       q3.Free;
-      if Assigned(q4) then
-        q4.Free;
+      q4.Free;
       q5.Free;
       Tr.Free;
       Tr2.Free;

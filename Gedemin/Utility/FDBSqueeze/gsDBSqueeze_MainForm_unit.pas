@@ -353,8 +353,6 @@ begin
 end;
 //---------------------------------------------------------------------------
 procedure TgsDBSqueeze_MainForm.ThreadDestroy;
-var
-  I: Integer;
 begin
   FStartupTime := Now;
 
@@ -1206,7 +1204,6 @@ end;
 //---------------------------------------------------------------------------
 procedure TgsDBSqueeze_MainForm.actConfigBrowseExecute(Sender: TObject);
 var
-  I: Integer;
   OpenDlg: TOpenDialog;
   SaveDlg: TSaveDialog;
 begin

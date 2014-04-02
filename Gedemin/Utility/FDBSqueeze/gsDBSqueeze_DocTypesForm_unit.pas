@@ -31,9 +31,6 @@ type
     FBitsList: TObjectList;
     FCurBranchIndex: Integer;
 
-    FLoadDocTypes: TStringList;
-    FIsLoadConf: Boolean;
-
     TmpList: TStringList;
   public
     constructor Create(AnOwner: TComponent); override;
@@ -62,9 +59,6 @@ implementation
 {$R *.DFM}
 
 constructor TgsDBSqueeze_DocTypesForm.Create(AnOwner: TComponent);
-var
-  I: Integer;
-  CharsetList: TStringList;
 begin
   inherited;
 
