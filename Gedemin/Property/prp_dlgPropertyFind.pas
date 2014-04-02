@@ -60,7 +60,7 @@ type
     btnCancel: TButton;
     Label1: TLabel;
     cbText: TComboBox;
-    GroupBox1: TGroupBox;
+    gbOptions: TGroupBox;
     rgDirection: TRadioGroup;
     rgScope: TRadioGroup;
     rgOrigin: TRadioGroup;
@@ -68,13 +68,13 @@ type
     cbWholeWord: TCheckBox;
     Label2: TLabel;
     cbTextDB: TComboBox;
-    GroupBox2: TGroupBox;
+    gbOptionsDB: TGroupBox;
     cbCaseSensitiveDB: TCheckBox;
     cbWholeWordDB: TCheckBox;
     ActionList1: TActionList;
     WindowClose: TWindowClose;
     cbByID_DB: TCheckBox;
-    gbWhere: TGroupBox;
+    gbScopeDB: TGroupBox;
     cbInTextDB: TCheckBox;
     cbInCaptionDB: TCheckBox;
     actChangePage: TAction;
@@ -109,15 +109,15 @@ type
     procedure cbDateClick(Sender: TObject);
     procedure actHelpExecute(Sender: TObject);
     procedure FormActivate(Sender: TObject);
+
   private
-    { Private declarations }
     FHistorySearch: TStrings;
     FSearchInDB: Boolean;
     procedure SetSearchInDB(const Value: Boolean);
     procedure SetCBEnable;
     procedure SetInNameEnable;
+
   public
-    { Public declarations }
     property SearchInDB: Boolean read FSearchInDB write SetSearchInDB;
   end;
 
@@ -184,12 +184,12 @@ var
   F: TgsStorageFolder;
   S: TMemoryStream;
 begin
-  if not Assigned(UserStorage) then
-    Exit;
+  Result := LoadDefault;
 
-  if not UserStorage.FolderExists(sPropertyGeneralPath) then
-    Result := LoadDefault
-  else
+  if not Assigned(UserStorage) then
+    exit;
+
+  if UserStorage.FolderExists(sPropertyGeneralPath) then
   begin
     try
       F := UserStorage.OpenFolder(sPropertyGeneralPath, True);
@@ -207,6 +207,18 @@ begin
             S.ReadBuffer(SearchInDb, SizeOf(SearchInDb));
           finally
             S.Free;
+          end;
+
+          if (SearchInDb.BeginDate < 0) or (SearchInDb.BeginDate > EncodeDate(3000, 01, 01)) then
+          begin
+            SearchInDb.Date := False;
+            SearchInDb.Begindate := Date;
+          end;
+
+          if (SearchInDb.EndDate < SearchInDb.BeginDate) or (SearchInDb.EndDate > EncodeDate(3000, 01, 01)) then
+          begin
+            SearchInDb.Date := False;
+            SearchInDb.EndDate := SearchInDb.BeginDate;
           end;
         end;
       finally
@@ -260,7 +272,6 @@ end;
 procedure TdlgPropertyFind.FormDestroy(Sender: TObject);
 begin
   dlgPropertyFind := nil;
-//  SearchOptions.SearchText := '';
   SearchOptions.SearchTextList := FHistorySearch.Text;
   SaveSearchOptions(SearchOptions);
   FHistorySearch.Free;
@@ -516,4 +527,6 @@ begin
   cbTextDB.ItemIndex := -1;
 end;
 
+initialization
+  SearchOptions := LoadDefault;
 end.

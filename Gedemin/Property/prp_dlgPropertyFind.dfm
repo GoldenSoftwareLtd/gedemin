@@ -1,6 +1,6 @@
 object dlgPropertyFind: TdlgPropertyFind
-  Left = 425
-  Top = 326
+  Left = 308
+  Top = 509
   HelpContext = 328
   BorderIcons = [biSystemMenu]
   BorderStyle = bsDialog
@@ -12,7 +12,7 @@ object dlgPropertyFind: TdlgPropertyFind
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
   Position = poScreenCenter
@@ -52,17 +52,17 @@ object dlgPropertyFind: TdlgPropertyFind
         Width = 252
         Height = 21
         Anchors = [akLeft, akTop, akRight]
-        ItemHeight = 0
+        ItemHeight = 13
         TabOrder = 0
         OnChange = cbTextChange
         OnDropDown = cbTextDropDown
       end
-      object GroupBox1: TGroupBox
+      object gbOptions: TGroupBox
         Left = 0
         Top = 32
-        Width = 177
+        Width = 164
         Height = 73
-        Caption = 'Опции'
+        Caption = ' Параметры '
         TabOrder = 1
         object cbCaseSensitive: TCheckBox
           Left = 8
@@ -82,9 +82,9 @@ object dlgPropertyFind: TdlgPropertyFind
         end
       end
       object rgDirection: TRadioGroup
-        Left = 192
+        Left = 174
         Top = 32
-        Width = 147
+        Width = 164
         Height = 73
         Anchors = [akLeft, akTop, akRight]
         Caption = 'Направление'
@@ -97,9 +97,9 @@ object dlgPropertyFind: TdlgPropertyFind
       object rgScope: TRadioGroup
         Left = 0
         Top = 112
-        Width = 177
+        Width = 164
         Height = 77
-        Caption = 'Пределы'
+        Caption = ' Область '
         ItemIndex = 0
         Items.Strings = (
           'Весь текст'
@@ -107,12 +107,12 @@ object dlgPropertyFind: TdlgPropertyFind
         TabOrder = 3
       end
       object rgOrigin: TRadioGroup
-        Left = 192
+        Left = 174
         Top = 112
-        Width = 147
-        Height = 78
+        Width = 164
+        Height = 77
         Anchors = [akLeft, akTop, akRight]
-        Caption = 'Начало'
+        Caption = ' Начало '
         ItemIndex = 1
         Items.Strings = (
           'От курсора'
@@ -136,23 +136,23 @@ object dlgPropertyFind: TdlgPropertyFind
         Layout = tlCenter
       end
       object Label3: TLabel
-        Left = 112
-        Top = 169
-        Width = 6
+        Left = 116
+        Top = 171
+        Width = 5
         Height = 13
         Caption = 'с'
       end
       object Label4: TLabel
-        Left = 218
-        Top = 169
+        Left = 222
+        Top = 171
         Width = 12
         Height = 13
         Caption = 'по'
       end
       object cbTextDB: TComboBox
         Left = 88
-        Top = 0
-        Width = 242
+        Top = 1
+        Width = 251
         Height = 21
         Anchors = [akLeft, akTop, akRight]
         ItemHeight = 13
@@ -160,11 +160,11 @@ object dlgPropertyFind: TdlgPropertyFind
         OnChange = cbTextChange
         OnDropDown = cbTextDropDown
       end
-      object GroupBox2: TGroupBox
+      object gbOptionsDB: TGroupBox
         Left = 0
-        Top = 75
-        Width = 169
-        Height = 86
+        Top = 79
+        Width = 171
+        Height = 82
         Caption = 'Опции'
         TabOrder = 3
         object cbCaseSensitiveDB: TCheckBox
@@ -193,12 +193,12 @@ object dlgPropertyFind: TdlgPropertyFind
         TabOrder = 1
         OnClick = cbByID_DBClick
       end
-      object gbWhere: TGroupBox
+      object gbScopeDB: TGroupBox
         Left = 176
         Top = 32
         Width = 163
         Height = 129
-        Caption = 'Где'
+        Caption = ' Область поиска '
         TabOrder = 4
         object cbInTextDB: TCheckBox
           Left = 8
@@ -223,9 +223,10 @@ object dlgPropertyFind: TdlgPropertyFind
         end
         object Panel2: TPanel
           Left = 7
-          Top = 52
-          Width = 150
+          Top = 51
+          Width = 149
           Height = 71
+          BevelInner = bvRaised
           BevelOuter = bvLowered
           TabOrder = 2
           object cbInMacroName: TCheckBox
@@ -274,8 +275,8 @@ object dlgPropertyFind: TdlgPropertyFind
       end
       object cbDate: TCheckBox
         Left = 0
-        Top = 168
-        Width = 113
+        Top = 170
+        Width = 108
         Height = 17
         Caption = 'Дата изменения:'
         TabOrder = 5
@@ -293,7 +294,7 @@ object dlgPropertyFind: TdlgPropertyFind
         Text = '07.03.2003'
       end
       object xdeEndDate: TxDateEdit
-        Left = 240
+        Left = 242
         Top = 168
         Width = 97
         Height = 21
@@ -314,7 +315,7 @@ object dlgPropertyFind: TdlgPropertyFind
     BevelOuter = bvNone
     TabOrder = 1
     object btnFind: TButton
-      Left = 194
+      Left = 203
       Top = 7
       Width = 75
       Height = 21
@@ -336,7 +337,7 @@ object dlgPropertyFind: TdlgPropertyFind
     end
     object Button1: TButton
       Left = 1
-      Top = 8
+      Top = 7
       Width = 75
       Height = 21
       Action = actHelp
@@ -344,8 +345,8 @@ object dlgPropertyFind: TdlgPropertyFind
     end
   end
   object ActionList1: TActionList
-    Left = 84
-    Top = 184
+    Left = 108
+    Top = 160
     object WindowClose: TWindowClose
       Category = 'Window'
       Caption = 'C&lose'

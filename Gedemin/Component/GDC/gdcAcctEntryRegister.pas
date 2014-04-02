@@ -1300,16 +1300,48 @@ begin
 end;
 
 procedure TgdcAcctBaseEntryRegister.DoBeforeDelete;
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
 begin
+  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCACCTBASEENTRYREGISTER', 'DOBEFOREDELETE', KEYDOBEFOREDELETE)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCACCTBASEENTRYREGISTER', KEYDOBEFOREDELETE);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOBEFOREDELETE]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCACCTBASEENTRYREGISTER') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCACCTBASEENTRYREGISTER',
+  {M}          'DOBEFOREDELETE', KEYDOBEFOREDELETE, Params, LResult) then exit;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCACCTBASEENTRYREGISTER' then
+  {M}        begin
+  {M}          Inherited;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
   if FieldByName('DOCUMENTTYPEKEY').AsInteger <> DefaultDocumentTypeKey then
   begin
-    MessageBox(ParentHandle, 'Нельзя удалять проводку, созданную по документу.', 'Внимание',
-            mb_Ok or mb_IconInformation);
-    abort;
-  end  
-  else
+    MessageBox(ParentHandle,
+      'Нельзя удалять проводку, созданную по документу.',
+      'Внимание',
+       MB_OK or MB_ICONHAND or MB_TASKMODAL);
+    Abort;
+  end else
     inherited;
 
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCACCTBASEENTRYREGISTER', 'DOBEFOREDELETE', KEYDOBEFOREDELETE)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCACCTBASEENTRYREGISTER', 'DOBEFOREDELETE', KEYDOBEFOREDELETE);
+  {M}  end;
+  {END MACRO}
 end;
 
 { TgdcAcctEntryRegister }
@@ -2974,7 +3006,6 @@ begin
             '   z.creditncu, ' +
             '   z.creditcurr, ' +
             '   z.delayed, ' +
-            '   z.incorrect, ' +
             '   z.afull, ' +
             '   z.achag, ' +
             '   z.aview, ' +
@@ -4607,7 +4638,6 @@ begin
             '   z.creditncu, ' +
             '   z.creditcurr, ' +
             '   z.delayed, ' +
-            '   z.incorrect, ' +
             '   z.afull, ' +
             '   z.achag, ' +
             '   z.aview, ' +
