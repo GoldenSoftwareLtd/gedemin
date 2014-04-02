@@ -63,6 +63,7 @@ type
   TGetDBPropertiesEvent = procedure(const MsgPropertiesList: TStringList) of object;
   TCbbEvent = procedure (const MsgStrList: TStringList) of object;
   TSetDocTypeStringsEvent = procedure (const MsgDocTypeList: TStringList) of object;
+  TSetDocTypeBranchEvent = procedure (const MsgBranchList: TStringList) of object;
   TGetDBSizeEvent = procedure (const MsgStr: String) of object;
   TGetStatisticsEvent = procedure (const MsgGdDocStr: String; const MsgAcEntryStr: String; const MsgInvMovementStr: String; const MsgInvCardStr: String) of object;
   TGetProcStatisticsEvent = procedure (const MsgProcGdDocStr: String; const MsgProcAcEntryStr: String; const MsgProcInvMovementStr: String; const MsgProcInvCardStr: String) of object;
@@ -114,6 +115,7 @@ type
     FMessagePropertiesList: TStringList;
     FMessageStrList: TStringList;
     FMessageDocTypeList: TStringList;
+    FMessageDocTypeBranchList: TStringList;
     FMessageDBSizeStr: String;
     FMessageGdDocStr, FMessageAcEntryStr, FMessageInvMovementStr, FMessageInvCardStr: String;
     FMessageProcGdDocStr, FMessageProcAcEntryStr, FMessageProcInvMovementStr, FMessageProcInvCardStr: String;
@@ -126,6 +128,7 @@ type
     FOnGetDBProperties: TGetDBPropertiesEvent;
     FOnSetItemsCbb: TCbbEvent;
     FOnSetDocTypeStrings: TSetDocTypeStringsEvent;
+    FOnSetDocTypeBranch: TSetDocTypeBranchEvent;
     FOnGetDBSize: TGetDBSizeEvent;
     FOnGetStatistics: TGetStatisticsEvent;
     FOnGetProcStatistics: TGetProcStatisticsEvent;
@@ -138,6 +141,7 @@ type
     procedure DoOnGetDBPropertiesSync;
     procedure DoOnSetItemsCbbSync;
     procedure DoOnSetDocTypeStringsSync;
+    procedure DoOnSetDocTypeBranchSync;
     procedure DoOnGetDBSizeSync;
     procedure DoOnGetStatisticsSync;
     procedure DoOnGetProcStatisticsSync;
@@ -152,6 +156,7 @@ type
     procedure GetDBProperties(const AMessageProperties: TStringList);
     procedure SetItemsCbb(const AMessageStrList: TStringList);
     procedure SetDocTypeStrings(const AMessageDocTypeList: TStringList);
+    procedure SetDocTypeBranch(const AMessageBranchList: TStringList);
     procedure GetDBSize(const AMessageDBSizeStr: String; const ADBSize: Int64);
     procedure GetStatistics(const AMessageGdDocStr: String; const AMessageAcEntryStr: String; const AMessageInvMovementStr: String; const AMessageInvCardStr: String);
     procedure GetProcStatistics(const AMessageProcGdDocStr: String; const AMessageProcAcEntryStr: String; const AMessageProcInvMovementStr: String; const AMessageProcInvCardStr: String);
@@ -205,6 +210,7 @@ type
     property OnGetDBProperties: TGetDBPropertiesEvent read FOnGetDBProperties write FOnGetDBProperties;
     property OnSetItemsCbb: TCbbEvent read FOnSetItemsCbb write FOnSetItemsCbb;
     property OnSetDocTypeStrings: TSetDocTypeStringsEvent read FOnSetDocTypeStrings write FOnSetDocTypeStrings;
+    property OnSetDocTypeBranch: TSetDocTypeBranchEvent read FOnSetDocTypeBranch write FOnSetDocTypeBranch;
     property OnGetDBSize: TGetDBSizeEvent read FOnGetDBSize write FOnGetDBSize;
     property OnGetStatistics: TGetStatisticsEvent read FOnGetStatistics write FOnGetStatistics;
     property OnGetProcStatistics: TGetProcStatisticsEvent read FOnGetProcStatistics write FOnGetProcStatistics;
@@ -225,6 +231,7 @@ begin
   FDBS.OnGetDBPropertiesEvent := GetDBProperties;
   FDBS.OnSetItemsCbbEvent := SetItemsCbb;
   FDBS.OnSetDocTypeStringsEvent := SetDocTypeStrings;
+  FDBS.OnSetDocTypeBranchEvent := SetDocTypeBranch;
   FDBS.OnGetDBSizeEvent := GetDBSize;
   FDBS.OnGetStatistics := GetStatistics;
   FDBS.OnGetProcStatistics := GetProcStatistics;
@@ -239,6 +246,7 @@ begin
   FMsgConnectInfoList := TStringList.Create;
   FMessageStrList := TStringList.Create;
   FMessageDocTypeList := TStringList.Create;
+  FMessageDocTypeBranchList := TStringList.Create;
   FMessagePropertiesList := TStringList.Create;
   FState.Value := 1;
   FBusy.Value := 0;
@@ -262,6 +270,7 @@ begin
   FMsgConnectInfoList.Free;
   FMessageStrList.Free;
   FMessageDocTypeList.Free;
+  FMessageDocTypeBranchList.Free;
   FMessagePropertiesList.Free;
 end;
 
@@ -325,6 +334,12 @@ procedure TgsDBSqueezeThread.DoOnSetDocTypeStringsSync;
 begin
   if Assigned(FOnSetDocTypeStrings) then
     FOnSetDocTypeStrings(FMessageDocTypeList);
+end;
+
+procedure TgsDBSqueezeThread.DoOnSetDocTypeBranchSync;
+begin
+  if Assigned(FOnSetDocTypeBranch) then
+    FOnSetDocTypeBranch(FMessageDocTypeBranchList);
 end;
 
 procedure TgsDBSqueezeThread.DoOnUsedDBSync;
@@ -1021,6 +1036,12 @@ procedure TgsDBSqueezeThread.SetDocTypeStrings(const AMessageDocTypeList: TStrin
 begin
   FMessageDoctypeList.Text := AMessageDocTypeList.Text;
   Synchronize(DoOnSetDocTypeStringsSync);
+end;
+
+procedure TgsDBSqueezeThread.SetDocTypeBranch(const AMessageBranchList: TStringList);
+begin
+  FMessageDocTypeBranchList.Text := AMessageBranchList.Text;
+  Synchronize(DoOnSetDocTypeBranchSync);
 end;
 
 procedure TgsDBSqueezeThread.UsedDB(const AMessageFunctionKey: Integer; const AMessageState: Integer;

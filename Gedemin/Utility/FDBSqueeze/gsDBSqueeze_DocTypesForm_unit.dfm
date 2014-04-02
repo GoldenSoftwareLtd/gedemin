@@ -1,6 +1,6 @@
 object gsDBSqueeze_DocTypesForm: TgsDBSqueeze_DocTypesForm
-  Left = 209
-  Top = 137
+  Left = 214
+  Top = 125
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsDialog
   Caption = 'Выбор типов документов'

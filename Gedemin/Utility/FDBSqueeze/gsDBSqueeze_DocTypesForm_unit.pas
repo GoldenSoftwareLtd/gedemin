@@ -33,10 +33,13 @@ type
 
     FLoadDocTypes: TStringList;
     FIsLoadConf: Boolean;
+
+    TmpList: TStringList;
   public
     constructor Create(AnOwner: TComponent); override;
     destructor Destroy; override;
 
+    procedure SetDocTypeBranch(const ABranchList: TStringList);
     procedure SetDocTypes(const ADocTypes: TStringList);
 
     procedure SetSelectedDocTypes(const ASelectedTypesStr: String; const ASelectedRowsStr: String);
@@ -47,6 +50,9 @@ type
     function GetSelectedBranchRowsStr: String;
     function GetDocTypeMemoText: String;
   end;
+
+
+
 
 var
   gsDBSqueeze_DocTypesForm: TgsDBSqueeze_DocTypesForm;
@@ -66,7 +72,7 @@ begin
   FBitsList :=  TObjectList.Create;
   FSelectedDocTypesList := TStringList.Create;
   FAllDocTypesList := TStringList.Create;
-  //FLoadDocTypes := TStringList.Create;
+  TmpList := TStringList.Create;
 
   strngrdIgnoreDocTypes.ColCount := 2;
   strngrdIgnoreDocTypes.RowCount := 0;
@@ -76,7 +82,7 @@ destructor TgsDBSqueeze_DocTypesForm.Destroy;
 begin
   FSelectedDocTypesList.Free;
   FAllDocTypesList.Free;
-  //FLoadDocTypes.Free;
+  TmpList.Free;
   FBitsList.Free;
 
   inherited;
@@ -203,6 +209,22 @@ begin
   end;
 end;
 //---------------------------------------------------------------------------
+procedure TgsDBSqueeze_DocTypesForm.SetDocTypeBranch(const ABranchList: TStringList);
+var
+  BranchListStream : TMemoryStream;
+begin
+  BranchListStream := TMemoryStream.Create;
+  try
+    ABranchList.SaveToStream(BranchListStream);
+    BranchListStream.Position:=0;
+    tvDocTypes.LoadFromStream(BranchListStream);
+    tvDocTypes.ReadOnly := True;
+    tvDocTypes.FullExpand;
+  finally
+    BranchListStream.Free;
+  end;
+end;
+//---------------------------------------------------------------------------
 procedure TgsDBSqueeze_DocTypesForm.SetDocTypes(const ADocTypes: TStringList);
 var
   I: Integer;
@@ -210,10 +232,6 @@ var
 begin
   FAllDocTypesList.Text :=  ADocTypes.Text;
   FBitsList.Clear;
-
-  tvDocTypes.LoadFromFile('~docBranch.dat');
-  tvDocTypes.ReadOnly := True;
-  tvDocTypes.FullExpand;
 
   with strngrdIgnoreDocTypes do
     for I:=0 to ColCount-1 do
@@ -349,12 +367,13 @@ begin
     mIgnoreDocTypes.Text := Str;
 
     SelectedBranch.Text := StringReplace(ASelectedRowsStr, ',', #13#10, [rfReplaceAll, rfIgnoreCase]);
+
     for I:=0 to SelectedBranch.Count-1 do
     begin
       SelectedGridRows.Clear;
       SelectedGridRows.Text := StringReplace(SelectedBranch.Values[SelectedBranch.Names[I]], '||', #13#10, [rfReplaceAll, rfIgnoreCase]);
       for J:=0 to SelectedGridRows.Count-1 do
-        TBits(FBitsList[I])[StrToInt(Trim(SelectedGridRows[J]))] := True;
+        TBits(FBitsList[StrToInt(Trim(SelectedBranch.Names[I]))])[StrToInt(Trim(SelectedGridRows[J]))] := True;
     end;
 
     FCurBranchIndex := 0;

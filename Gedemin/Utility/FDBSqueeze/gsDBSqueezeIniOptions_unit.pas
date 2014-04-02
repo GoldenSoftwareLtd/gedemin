@@ -11,6 +11,7 @@ const
   {Section: SQUEEZE_SETTINGS}
   iniDoEnterOstatkyAccount = 'DoEnterOstatkyAccount';
   iniDoProcessDocTypes = 'DoProcessDocTypes';
+  iniDoCalculateSaldo = 'DoCalculateSaldo';
   iniSelectedDocTypeKeys = 'SelectedDocTypeKeys';
   iniSelectedBranchRows = 'SelectedBranchRows';
 
@@ -20,6 +21,7 @@ type
     {Section: SQUEEZE_SETTINGS}
     FDoEnterOstatkyAccount: Boolean;
     FDoProcessDocTypes: Boolean;
+    FDoCalculateSaldo: Boolean;
     FSelectedDocTypeKeys: String;
     FSelectedBranchRows: String;
   public
@@ -31,6 +33,7 @@ type
 
     {Section: SQUEEZE_SETTINGS}
     property DoEnterOstatkyAccount: Boolean       read FDoEnterOstatkyAccount       write FDoEnterOstatkyAccount;
+    property DoCalculateSaldo: Boolean            read FDoCalculateSaldo            write FDoCalculateSaldo;
     property DoProcessDocTypes: Boolean           read FDoProcessDocTypes           write FDoProcessDocTypes;
     property SelectedDocTypeKeys: String          read FSelectedDocTypeKeys         write FSelectedDocTypeKeys;
     property SelectedBranchRows: String           read FSelectedBranchRows          write FSelectedBranchRows;
@@ -48,6 +51,7 @@ begin
     {Section: SQUEEZE_SETTINGS}
     FDoEnterOstatkyAccount := Ini.ReadBool(iniSection, iniDoEnterOstatkyAccount, False);
     FDoProcessDocTypes := Ini.ReadBool(iniSection, iniDoProcessDocTypes, False);
+    FDoCalculateSaldo := Ini.ReadBool(iniSection, iniDoCalculateSaldo, False);
     FSelectedDocTypeKeys := Ini.ReadString(iniSection, iniSelectedDocTypeKeys, '');
     FSelectedBranchRows := Ini.ReadString(iniSection, iniSelectedBranchRows, '');
   end;
@@ -60,6 +64,7 @@ begin
     {Section: SQUEEZE_SETTINGS}
     Ini.WriteBool(iniSection, iniDoEnterOstatkyAccount, FDoEnterOstatkyAccount);
     Ini.WriteBool(iniSection, iniDoProcessDocTypes, FDoProcessDocTypes);
+    Ini.WriteBool(iniSection, iniDoCalculateSaldo, FDoCalculateSaldo);
     Ini.WriteString(iniSection, iniSelectedDocTypeKeys, FSelectedDocTypeKeys);
     Ini.WriteString(iniSection, iniSelectedBranchRows, FSelectedBranchRows);
   end;
