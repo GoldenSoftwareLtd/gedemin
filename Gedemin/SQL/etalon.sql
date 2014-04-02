@@ -1452,6 +1452,18 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (204, '0000.0001.0000.0235', '11.03.2014', 'Issue 3301.');
 
+INSERT INTO fin_versioninfo
+  VALUES (205, '0000.0001.0000.0236', '17.03.2014', 'Issue 3330.');
+
+INSERT INTO fin_versioninfo
+  VALUES (206, '0000.0001.0000.0237', '17.03.2014', 'Issue 3330. #2.');
+
+INSERT INTO fin_versioninfo
+  VALUES (207, '0000.0001.0000.0238', '17.03.2014', 'Triggers for protection of system storage folders.');
+
+INSERT INTO fin_versioninfo
+  VALUES (208, '0000.0001.0000.0239', '31.03.2014', 'Introducing AC_INCORRECT_RECORD GTT.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
@@ -8129,6 +8141,73 @@ BEGIN
 END
 ^
 
+CREATE OR ALTER TRIGGER gd_au_storage_data FOR gd_storage_data
+  ACTIVE
+  AFTER UPDATE
+  POSITION 0
+AS
+BEGIN
+  IF (
+    (OLD.data_type = 'F')
+    AND
+    (
+      (OLD.name IS DISTINCT FROM NEW.name)
+      OR
+      (OLD.parent IS DISTINCT FROM NEW.parent)
+    )
+  ) THEN
+  BEGIN
+    IF (UPPER(OLD.name) IN ('DFM', 'NEWFORM', 'OPTIONS', 'SUBTYPES')) THEN
+    BEGIN
+      IF (EXISTS (SELECT * FROM gd_storage_data WHERE id = OLD.parent AND data_type = 'G')) THEN
+        EXCEPTION gd_e_storage_data 'Can not change system folder ' || OLD.name;
+    END
+
+    IF (
+      EXISTS (
+        SELECT *
+        FROM
+          gd_storage_data f
+          JOIN gd_storage_data p ON f.parent = p.id
+          JOIN gd_storage_data pp ON p.parent = pp.id
+        WHERE f.id = OLD.id AND UPPER(p.name) = 'DFM'
+          AND pp.data_type = 'G')
+    ) THEN
+      EXCEPTION gd_e_storage_data 'Can not change system folder ' || OLD.name;
+  END
+END
+^
+
+CREATE OR ALTER TRIGGER gd_bd_storage_data FOR gd_storage_data
+  ACTIVE
+  BEFORE DELETE
+  POSITION 0
+AS
+BEGIN
+  IF (UPPER(OLD.name) IN ('DFM', 'NEWFORM', 'OPTIONS', 'SUBTYPES')) THEN
+  BEGIN
+    IF (EXISTS (SELECT * FROM gd_storage_data WHERE id = OLD.parent AND data_type = 'G')) THEN
+      EXCEPTION gd_e_storage_data 'Can not delete system folder ' || OLD.name;
+  END
+
+  IF (OLD.data_type = 'F') THEN
+  BEGIN
+    IF (
+      EXISTS (
+        SELECT *
+        FROM
+          gd_storage_data f
+          JOIN gd_storage_data p ON f.parent = p.id
+          JOIN gd_storage_data pp ON p.parent = pp.id
+          JOIN gd_storage_data v ON v.parent = f.id
+        WHERE f.id = OLD.id AND UPPER(p.name) = 'DFM'
+          AND pp.data_type = 'G')
+    ) THEN
+      EXCEPTION gd_e_storage_data 'System folder is not empty ' || OLD.name;
+  END
+END
+^
+
 SET TERM ; ^
 
 COMMIT;
@@ -9141,7 +9220,7 @@ CREATE TABLE ac_record(
   creditcurr       dcurrency,           /* Сумма проводки по кредиту в вал */
 
   delayed          dboolean DEFAULT 0,  /* Отложенная проводка или нет */
-  incorrect        dboolean DEFAULT 0,  /* Не корректная проводка */
+  /*incorrect        dboolean DEFAULT 0,*/  /* Не корректная проводка */
 
   afull            dsecurity,           /* Дескрипторы безопасности */
   achag            dsecurity,
@@ -9281,7 +9360,7 @@ CREATE TABLE ac_entry_balance (
   debiteq                 dcurrency, 
   creditncu               dcurrency, 
   creditcurr              dcurrency, 
-  crediteq                dcurrency 
+  crediteq                dcurrency
 );
 
 COMMIT;
@@ -9307,7 +9386,7 @@ BEGIN
   IF (NEW.debitcurr IS NULL) THEN
     NEW.debitcurr = 0; 
   IF (NEW.debiteq IS NULL) THEN
-    NEW.debiteq = 0; 
+    NEW.debiteq = 0;
   IF (NEW.creditncu IS NULL) THEN 
     NEW.creditncu = 0; 
   IF (NEW.creditcurr IS NULL) THEN 
@@ -9457,7 +9536,7 @@ BEGIN
         -OLD.debitcurr, 
         -OLD.debiteq,
         -OLD.creditncu, 
-        -OLD.creditcurr, 
+        -OLD.creditcurr,
         -OLD.crediteq);
     END 
   END
@@ -9514,6 +9593,13 @@ END
 /*                                                   */
 /*****************************************************/
 
+CREATE GLOBAL TEMPORARY TABLE ac_incorrect_record (
+  id    dintkey,
+  CONSTRAINT ac_pk_incorrect_record PRIMARY KEY (id)
+)
+  ON COMMIT DELETE ROWS
+^
+
 CREATE EXCEPTION ac_e_invalidentry 'Invalid entry'
 ^
 
@@ -9521,7 +9607,6 @@ CREATE OR ALTER TRIGGER ac_bi_record FOR ac_record
   BEFORE INSERT
   POSITION 31700
 AS
-  DECLARE VARIABLE S VARCHAR(255);
 BEGIN
   IF (NEW.ID IS NULL) THEN
     NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
@@ -9531,12 +9616,7 @@ BEGIN
   NEW.creditncu = 0;
   NEW.creditcurr = 0;
 
-  NEW.incorrect = 1;
-  S = COALESCE(RDB$GET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_INCORRECT'), '');
-  IF (CHAR_LENGTH(:S) >= 240 OR :S = 'TM') THEN
-    RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_INCORRECT', 'TM');
-  ELSE
-    RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_INCORRECT', :S || ',' || NEW.id);
+  INSERT INTO ac_incorrect_record (id) VALUES (NEW.id);
 END
 ^
 
@@ -9545,7 +9625,6 @@ CREATE OR ALTER TRIGGER ac_bu_record FOR ac_record
   POSITION 31700
 AS
   DECLARE VARIABLE WasUnlock INTEGER;
-  DECLARE VARIABLE S VARCHAR(255);
 BEGIN
   IF (RDB$GET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_UNLOCK') IS NULL) THEN
   BEGIN
@@ -9558,25 +9637,11 @@ BEGIN
   IF (NEW.debitncu IS DISTINCT FROM OLD.debitncu OR
     NEW.creditncu IS DISTINCT FROM OLD.creditncu) THEN
   BEGIN
-    NEW.incorrect = IIF(NEW.debitncu IS DISTINCT FROM NEW.creditncu, 1, 0);
-  END ELSE
-    NEW.incorrect = OLD.incorrect;
-
-  IF (NEW.incorrect = 1 AND OLD.incorrect = 0) THEN
-  BEGIN
-    S = COALESCE(RDB$GET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_INCORRECT'), '');
-    IF (CHAR_LENGTH(:S) >= 240 OR :S = 'TM') THEN
-      RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_INCORRECT', 'TM');
+    IF (NEW.debitncu IS DISTINCT FROM NEW.creditncu) THEN
+      UPDATE OR INSERT INTO ac_incorrect_record (id) VALUES (NEW.id)
+        MATCHING (id);
     ELSE
-      RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_INCORRECT', :S || ',' || NEW.id);
-  END
-  ELSE IF (NEW.incorrect = 0 AND OLD.incorrect = 1) THEN
-  BEGIN
-    S = COALESCE(RDB$GET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_INCORRECT'), '');
-    S = REPLACE(:S, ',' || NEW.id, '');
-    IF (:S = '') THEN
-      S = NULL;
-    RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_INCORRECT', :S);
+      DELETE FROM ac_incorrect_record WHERE id = NEW.id;
   END
 
   IF (NEW.recorddate <> OLD.recorddate
@@ -9612,16 +9677,8 @@ CREATE OR ALTER TRIGGER ac_ad_record FOR ac_record
   AFTER DELETE
   POSITION 31700
 AS
-  DECLARE VARIABLE S VARCHAR(255);
 BEGIN
-  IF (OLD.incorrect = 1) THEN
-  BEGIN
-    S = COALESCE(RDB$GET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_INCORRECT'), '');
-    S = REPLACE(:S, ',' || OLD.id, '');
-    IF (:S = '') THEN
-      S = NULL;
-    RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_INCORRECT', :S);
-  END
+  DELETE FROM ac_incorrect_record WHERE id = OLD.id;
 END
 ^
 
@@ -9630,26 +9687,31 @@ CREATE OR ALTER TRIGGER ac_tc_record
   ON TRANSACTION COMMIT
   POSITION 9000
 AS
-  DECLARE VARIABLE S VARCHAR(255);
   DECLARE VARIABLE ID INTEGER;
   DECLARE VARIABLE STM VARCHAR(512);
+  DECLARE VARIABLE DNCU DCURRENCY;
+  DECLARE VARIABLE CNCU DCURRENCY;
+  DECLARE VARIABLE OFFBALANCE INTEGER;
+  DECLARE VARIABLE EID INTEGER;
 BEGIN
-  S = RDB$GET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_INCORRECT');
-  IF (:S IS NOT NULL) THEN
+  IF (EXISTS (SELECT * FROM ac_incorrect_record)) THEN
   BEGIN
     STM =
-      'SELECT r.id FROM ac_record r LEFT JOIN ac_entry e ' ||
-      '  ON e.recordkey = r.id LEFT JOIN ac_account a ON a.id = e.accountkey ' ||
-      'WHERE a.offbalance IS DISTINCT FROM 1 AND ';
+      'SELECT r.id, r.debitncu, r.creditncu, a.offbalance, e.id ' ||
+      'FROM ac_record r ' ||
+      '  JOIN ac_incorrect_record ir ON ir.id = r.id ' ||
+      '  LEFT JOIN ac_entry e ON e.recordkey = r.id ' ||
+      '  LEFT JOIN ac_account a ON a.id = e.accountkey ';
 
-    IF (:S = 'TM') THEN
-      STM = :STM || ' r.incorrect = 1';
-    ELSE
-      STM = :STM || ' r.id IN (' || RIGHT(:S, CHAR_LENGTH(:S) - 1) || ')';
-
-    FOR EXECUTE STATEMENT (:STM) INTO :ID
+    FOR
+      EXECUTE STATEMENT (:STM)
+      INTO :ID, :DNCU, :CNCU, :OFFBALANCE, :EID
     DO BEGIN
-      EXCEPTION ac_e_invalidentry 'Попытка сохранить некорректную проводку с ИД: ' || :ID;
+      IF ((:EID IS NULL)
+        OR ((:OFFBALANCE IS DISTINCT FROM 1) AND (:DNCU <> :CNCU))) THEN
+      BEGIN
+        EXCEPTION ac_e_invalidentry 'Попытка сохранить некорректную проводку с ИД: ' || :ID;
+      END
     END
   END
 END

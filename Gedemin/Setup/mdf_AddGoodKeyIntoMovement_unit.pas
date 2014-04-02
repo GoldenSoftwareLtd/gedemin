@@ -1,6 +1,5 @@
 unit mdf_AddGoodKeyIntoMovement_unit;
 
-
 interface
 
 uses
@@ -11,8 +10,7 @@ procedure AddGoodKeyIntoMovement(IBDB: TIBDatabase; Log: TModifyLog);
 implementation
 
 uses
-  IBSQL, SysUtils, Controls, Dialogs;
-
+  IBSQL, SysUtils, Controls, Dialogs, mdf_metadata_unit;
 
 procedure AddGoodKeyIntoMovement(IBDB: TIBDatabase; Log: TModifyLog);
 var
@@ -28,24 +26,20 @@ begin
       with FIBSQL do
       try
         Transaction := FTransaction;
-        SQL.Text :=
-         'SELECT * FROM rdb$relation_fields i WHERE UPPER(i.rdb$field_name) = ''GOODKEY'' AND UPPER(i.rdb$relation_name) = ''INV_MOVEMENT''';
-        ExecQuery;
-        if Eof then
+        if not FieldExist2('INV_MOVEMENT', 'GOODKEY', FTransaction) then
         begin
           Log('Добавление ссылки на товар в inv_movement и inv_balance');
           Log('Внимание! Данная процедура может выполняться достаточно долго. Не снимайте задачу!');
           Log('Добавление ссылки на товар в inv_movement');
-          Close;
+
           SQL.Text :=
-            ' ALTER TABLE inv_movement ADD goodkey dintkey ';
+            'ALTER TABLE inv_movement ADD goodkey dintkey';
           ExecQuery;
           Close;
 
           Log('Добавление ссылки на товар в inv_balance');
-          Close;
           SQL.Text :=
-            ' ALTER TABLE inv_balance ADD goodkey dintkey ';
+            'ALTER TABLE inv_balance ADD goodkey dintkey';
           ExecQuery;
           Close;
 
@@ -212,8 +206,10 @@ begin
         FTransaction.StartTransaction;
         try
           FIBSQL.Close;
-          FIBSQL.SQL.Text := 'INSERT INTO fin_versioninfo ' +
-            'VALUES (70, ''0000.0001.0000.0098'', ''10.01.2006'', ''Minor changes'') ';
+          FIBSQL.SQL.Text :=
+            'UPDATE OR INSERT INTO fin_versioninfo ' +
+            'VALUES (70, ''0000.0001.0000.0098'', ''10.01.2006'', ''Minor changes'') ' +
+            'MATCHING (id)';
           FIBSQL.ExecQuery;
         finally
           FTransaction.Commit;
@@ -222,7 +218,12 @@ begin
         FIBSQL.Free;
       end;
     except
+      on E: Exception do
+      begin
         Log('Ошибка при добавлении поля GOODKEY');
+        Log(E.Message);
+        raise;
+      end;
     end;
   finally
     FTransaction.Free;

@@ -74,49 +74,41 @@ begin
     end;
   end;
 
-
   Transaction := TIBTransaction.Create(nil);
   try
     Transaction.DefaultDataBAse := IBDB;
     Transaction.StartTransaction;
+
+    SQL := TIBSQL.Create(nil);
     try
-      SQL := TIBSQL.Create(nil);
-      try
-        SQl.Transaction := Transaction;
-        SQL.ParamCheck := False;
-        SQl.SQl.Text :=
-          'ALTER TRIGGER GD_AU_DOCUMENT '#13#10 +
-          '  AFTER UPDATE'#13#10 +
-          '  POSITION 0'#13#10 +
-          'AS'#13#10 +
-          'BEGIN'#13#10 +
-          '  IF (NEW.PARENT IS NULL) THEN'#13#10 +
-          '  BEGIN'#13#10 +
-          '    UPDATE gd_document SET documentdate = NEW.documentdate,'#13#10 +
-          '      number = NEW.number, companykey = NEW.companykey'#13#10 +
-          '    WHERE (parent = NEW.ID)'#13#10 +
-          '      AND ((documentdate <> NEW.documentdate)'#13#10 +
-          '        OR (number <> NEW.number) OR (companykey <> NEW.companykey));'#13#10 +
-          '  END ELSE'#13#10 +
-          '  BEGIN'#13#10 +
-          '    UPDATE gd_document SET editiondate = NEW.editiondate,'#13#10 +
-          '      editorkey = NEW.editorkey'#13#10 +
-          '    WHERE (ID = NEW.parent) AND (editiondate <> NEW.editiondate);'#13#10 +
-          '  END'#13#10 +
-          'END';
-        SQL.ExecQuery;
-      finally
-        SQl.Free;
-      end;
-      Transaction.Commit;
-      try
-        IBDB.Connected := False;
-      finally
-        IBDB.Connected := True;
-      end;
-    except
-      Transaction.RollBack;
+      SQL.Transaction := Transaction;
+      SQL.ParamCheck := False;
+      SQL.SQl.Text :=
+        'CREATE OR ALTER TRIGGER GD_AU_DOCUMENT '#13#10 +
+        '  AFTER UPDATE'#13#10 +
+        '  POSITION 0'#13#10 +
+        'AS'#13#10 +
+        'BEGIN'#13#10 +
+        '  IF (NEW.PARENT IS NULL) THEN'#13#10 +
+        '  BEGIN'#13#10 +
+        '    UPDATE gd_document SET documentdate = NEW.documentdate,'#13#10 +
+        '      number = NEW.number, companykey = NEW.companykey'#13#10 +
+        '    WHERE (parent = NEW.ID)'#13#10 +
+        '      AND ((documentdate <> NEW.documentdate)'#13#10 +
+        '        OR (number <> NEW.number) OR (companykey <> NEW.companykey));'#13#10 +
+        '  END ELSE'#13#10 +
+        '  BEGIN'#13#10 +
+        '    UPDATE gd_document SET editiondate = NEW.editiondate,'#13#10 +
+        '      editorkey = NEW.editorkey'#13#10 +
+        '    WHERE (ID = NEW.parent) AND (editiondate <> NEW.editiondate);'#13#10 +
+        '  END'#13#10 +
+        'END';
+      SQL.ExecQuery;
+    finally
+      SQL.Free;
     end;
+
+    Transaction.Commit;
   finally
     Transaction.Free;
   end;
@@ -125,36 +117,29 @@ begin
   try
     Transaction.DefaultDataBAse := IBDB;
     Transaction.StartTransaction;
+
+    SQL := TIBSQL.Create(nil);
     try
-      SQL := TIBSQL.Create(nil);
-      try
-        SQl.Transaction := Transaction;
-        SQL.ParamCheck := False;
-        SQl.SQl.Text :=
-          'CREATE TRIGGER GD_AD_DOCUMENT FOR GD_DOCUMENT'#13#10 +
-          '  AFTER DELETE'#13#10 +
-          '  POSITION 0'#13#10 +
-          'AS'#13#10 +
-          'BEGIN'#13#10 +
-          '  IF (NOT (OLD.PARENT IS NULL)) THEN'#13#10 +
-          '  BEGIN'#13#10 +
-          '    UPDATE gd_document SET editiondate = ''NOW'''#13#10 +
-          '    WHERE ID = OLD.parent;'#13#10 +
-          '  END'#13#10 +
-          'END';
-        SQL.ExecQuery;
-      finally
-        SQl.Free;
-      end;
-      Transaction.Commit;
-      try
-        IBDB.Connected := False;
-      finally
-        IBDB.Connected := True;
-      end;
-    except
-      Transaction.RollBack;
+      SQl.Transaction := Transaction;
+      SQL.ParamCheck := False;
+      SQl.SQl.Text :=
+        'CREATE OR ALTER TRIGGER GD_AD_DOCUMENT FOR GD_DOCUMENT'#13#10 +
+        '  AFTER DELETE'#13#10 +
+        '  POSITION 0'#13#10 +
+        'AS'#13#10 +
+        'BEGIN'#13#10 +
+        '  IF (NOT (OLD.PARENT IS NULL)) THEN'#13#10 +
+        '  BEGIN'#13#10 +
+        '    UPDATE gd_document SET editiondate = ''NOW'''#13#10 +
+        '    WHERE ID = OLD.parent;'#13#10 +
+        '  END'#13#10 +
+        'END';
+      SQL.ExecQuery;
+    finally
+      SQl.Free;
     end;
+
+    Transaction.Commit;
   finally
     Transaction.Free;
   end;
@@ -163,37 +148,30 @@ begin
   try
     Transaction.DefaultDataBAse := IBDB;
     Transaction.StartTransaction;
+
+    SQL := TIBSQL.Create(nil);
     try
-      SQL := TIBSQL.Create(nil);
-      try
-        SQl.Transaction := Transaction;
-        SQL.ParamCheck := False;
-        SQl.SQl.Text :=
-          'CREATE TRIGGER GD_AI_DOCUMENT FOR GD_DOCUMENT'#13#10 +
-          '  AFTER INSERT'#13#10 +
-          '  POSITION 0'#13#10 +
-          'AS'#13#10 +
-          'BEGIN'#13#10 +
-          '  IF (NOT (NEW.PARENT IS NULL)) THEN'#13#10 +
-          '  BEGIN'#13#10 +
-          '    UPDATE gd_document SET editiondate = NEW.editiondate,'#13#10 +
-          '      editorkey = NEW.editorkey'#13#10 +
-          '    WHERE (ID = NEW.parent) AND (editiondate <> NEW.editiondate);'#13#10 +
-          '  END'#13#10 +
-          'END';
-        SQL.ExecQuery;
-      finally
-        SQl.Free;
-      end;
-      Transaction.Commit;
-      try
-        IBDB.Connected := False;
-      finally
-        IBDB.Connected := True;
-      end;
-    except
-      Transaction.RollBack;
+      SQl.Transaction := Transaction;
+      SQL.ParamCheck := False;
+      SQl.SQl.Text :=
+        'CREATE OR ALTER TRIGGER GD_AI_DOCUMENT FOR GD_DOCUMENT'#13#10 +
+        '  AFTER INSERT'#13#10 +
+        '  POSITION 0'#13#10 +
+        'AS'#13#10 +
+        'BEGIN'#13#10 +
+        '  IF (NOT (NEW.PARENT IS NULL)) THEN'#13#10 +
+        '  BEGIN'#13#10 +
+        '    UPDATE gd_document SET editiondate = NEW.editiondate,'#13#10 +
+        '      editorkey = NEW.editorkey'#13#10 +
+        '    WHERE (ID = NEW.parent) AND (editiondate <> NEW.editiondate);'#13#10 +
+        '  END'#13#10 +
+        'END';
+      SQL.ExecQuery;
+    finally
+      SQl.Free;
     end;
+
+    Transaction.Commit;
   finally
     Transaction.Free;
   end;

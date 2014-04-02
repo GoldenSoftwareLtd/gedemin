@@ -10,7 +10,7 @@ procedure AddFieldSaveNullEntry(IBDB: TIBDatabase; Log: TModifyLog);
 implementation
 
 uses
-  IBSQL, SysUtils;
+  IBSQL, SysUtils, mdf_metadata_unit;
 
 procedure AddFieldSaveNullEntry(IBDB: TIBDatabase; Log: TModifyLog);
 var
@@ -29,44 +29,41 @@ begin
         Log('Корректировка метаданных проводок');
 
         FIBSQL.Transaction := FTransaction;
-        FIBSQL.SQL.Text := 'ALTER TABLE ac_trrecord ADD issavenull dboolean';
-        try
+
+        if not FieldExist2('ac_trrecord', 'issavenull', FTransaction) then
+        begin
+          FIBSQL.SQL.Text := 'ALTER TABLE ac_trrecord ADD issavenull dboolean';
           FIBSQL.ExecQuery;
-        except
         end;
 
-        FIBSQL.Close;
-        FIBSQL.SQL.Text := 'ALTER TABLE ac_trrecord ADD functionkey dforeignkey';
-        try
+        if not FieldExist2('ac_trrecord', 'functionkey', FTransaction) then
+        begin
+          FIBSQL.SQL.Text := 'ALTER TABLE ac_trrecord ADD functionkey dforeignkey';
           FIBSQL.ExecQuery;
-        except
         end;
 
-        FIBSQL.Close;
-        FIBSQL.SQL.Text :=
-          'ALTER TABLE ac_trrecord ADD CONSTRAINT ac_fk_trrecord_function ' +
-          '  FOREIGN KEY (functionkey) REFERENCES gd_function(id) ' +
-          '  ON UPDATE CASCADE;';
-        try
+        if not ConstraintExist2('ac_trrecord', 'ac_fk_trrecord_function', FTransaction) then
+        begin
+          FIBSQL.SQL.Text :=
+            'ALTER TABLE ac_trrecord ADD CONSTRAINT ac_fk_trrecord_function ' +
+            '  FOREIGN KEY (functionkey) REFERENCES gd_function(id) ' +
+            '  ON UPDATE CASCADE;';
           FIBSQL.ExecQuery;
-        except
         end;
 
-        FIBSQL.Close;
-        FIBSQL.SQL.Text := 'ALTER TABLE ac_trrecord ADD documenttypekey dintkey';
-        try
+        if not FieldExist2('ac_trrecord', 'documenttypekey', FTransaction) then
+        begin
+          FIBSQL.SQL.Text := 'ALTER TABLE ac_trrecord ADD documenttypekey dintkey';
           FIBSQL.ExecQuery;
-        except
         end;
 
-        FIBSQL.Close;
-        FIBSQL.SQL.Text :=
-          'ALTER TABLE ac_trrecord ADD CONSTRAINT ac_fk_trrecord_documenttype ' +
-          '  FOREIGN KEY (documenttypekey) REFERENCES gd_documenttype(id) ' +
-          '  ON UPDATE CASCADE;';
-        try
+        if not ConstraintExist2('ac_trrecord', 'ac_fk_trrecord_documenttype', FTransaction) then
+        begin
+          FIBSQL.SQL.Text :=
+            'ALTER TABLE ac_trrecord ADD CONSTRAINT ac_fk_trrecord_documenttype ' +
+            '  FOREIGN KEY (documenttypekey) REFERENCES gd_documenttype(id) ' +
+            '  ON UPDATE CASCADE;';
           FIBSQL.ExecQuery;
-        except
         end;
 
         FIBSQL.Close;
