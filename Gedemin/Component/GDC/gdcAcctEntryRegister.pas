@@ -98,6 +98,7 @@ type
     procedure DoAfterOpen; override;
     procedure DoAfterPost; override;
     procedure DoBeforePost; override;
+    procedure DoBeforeDelete; override;
 
     procedure CreateFields; override;
 
@@ -158,7 +159,7 @@ type
   TgdcAcctViewEntryRegister = class(TgdcAcctBaseEntryRegister)
   private
     FEntryGroup: TEntryGroup;
-    FEntrySelect: TEntrySelect; 
+    FEntrySelect: TEntrySelect;
     procedure SetEntryGroup(const Value: TEntryGroup);
     procedure SetEntrySelect(const AValue: TEntrySelect);
     procedure DataTransfer(gdcAcctComplexRecord: TgdcAcctComplexRecord);
@@ -1296,6 +1297,19 @@ end;
 class function TgdcAcctBaseEntryRegister.IsAbstractClass: Boolean;
 begin
   Result := Self.ClassNameIs('TgdcAcctBaseEntryRegister');
+end;
+
+procedure TgdcAcctBaseEntryRegister.DoBeforeDelete;
+begin
+  if FieldByName('DOCUMENTTYPEKEY').AsInteger <> DefaultDocumentTypeKey then
+  begin
+    MessageBox(ParentHandle, 'Нельзя удалять проводку, созданную по документу.', 'Внимание',
+            mb_Ok or mb_IconInformation);
+    abort;
+  end  
+  else
+    inherited;
+
 end;
 
 { TgdcAcctEntryRegister }
