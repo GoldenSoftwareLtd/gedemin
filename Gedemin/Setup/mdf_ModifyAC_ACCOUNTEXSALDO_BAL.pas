@@ -435,7 +435,17 @@ begin
         FTransaction.Commit;
         FTransaction.StartTransaction;
 
-        DropField2('AC_RECORD', 'INCORRECT', FTransaction);
+        if not FieldExist2('AC_RECORD', 'INCORRECT', FTransaction) then
+        begin
+          q.SQL.Text := 'ALTER TABLE ac_record ADD incorrect dboolean DEFAULT 0';
+          q.ExecQuery;
+
+          FTransaction.Commit;
+          FTransaction.StartTransaction;
+
+          q.SQL.Text := 'UPDATE ac_record SET incorrect = 0 WHERE incorrect IS NULL';
+          q.ExecQuery;
+        end;
 
         q.SQL.Text :=
           'UPDATE OR INSERT INTO fin_versioninfo ' +
@@ -447,6 +457,12 @@ begin
           'UPDATE OR INSERT INTO fin_versioninfo ' +
           '  VALUES (209, ''0000.0001.0000.0240'', ''31.03.2014'', ''AC_TC_RECORD.'') ' +
           '  MATCHING (id)';
+
+        q.SQL.Text :=
+          'UPDATE OR INSERT INTO fin_versioninfo ' +
+          '  VALUES (210, ''0000.0001.0000.0241'', ''03.04.2014'', ''Get back "incorrect" field for ac_record.'') ' +
+          '  MATCHING (id)';
+
         q.ExecQuery;
       finally
         q.Free;
