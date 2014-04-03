@@ -346,7 +346,7 @@ CREATE TABLE ac_record(
   creditcurr       dcurrency,           /* Сумма проводки по кредиту в вал */
 
   delayed          dboolean DEFAULT 0,  /* Отложенная проводка или нет */
-  /*incorrect        dboolean DEFAULT 0,*/  /* Не корректная проводка */
+  incorrect        dboolean DEFAULT 0,  /* Некорректная проводка */
 
   afull            dsecurity,           /* Дескрипторы безопасности */
   achag            dsecurity,
