@@ -1,8 +1,9 @@
 object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
-  Left = 232
-  Top = 231
+  Left = 380
+  Top = 163
+  BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsDialog
-  ClientHeight = 538
+  ClientHeight = 537
   ClientWidth = 853
   Color = clBtnFace
   Font.Charset = RUSSIAN_CHARSET
@@ -117,7 +118,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           Top = 54
           Width = 634
           Height = 369
-          ActivePage = tsSqueezeSettings
+          ActivePage = tsConnection
           TabOrder = 0
           object tsConnection: TTabSheet
             Caption = 'Database Connection'
@@ -132,7 +133,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             end
             object StaticText4: TStaticText
               Left = 562
-              Top = 90
+              Top = 87
               Width = 49
               Height = 20
               Alignment = taCenter
@@ -172,7 +173,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             end
             object sttxtStateTestConnect: TStaticText
               Left = 562
-              Top = 93
+              Top = 90
               Width = 49
               Height = 15
               Alignment = taCenter
@@ -184,7 +185,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             end
             object StaticText3: TStaticText
               Left = 458
-              Top = 90
+              Top = 87
               Width = 105
               Height = 20
               Alignment = taCenter
@@ -212,37 +213,37 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             end
             object grpDatabase: TGroupBox
               Left = 64
-              Top = 60
+              Top = 62
               Width = 377
-              Height = 153
+              Height = 151
               Caption = ' Database Location  '
               Color = 13822975
               ParentColor = False
               TabOrder = 2
               object lbl4: TLabel
                 Left = 28
-                Top = 71
+                Top = 69
                 Width = 26
                 Height = 13
                 Caption = 'Host:'
               end
               object lbl8: TLabel
                 Left = 188
-                Top = 72
+                Top = 70
                 Width = 24
                 Height = 13
                 Caption = 'Port:'
               end
               object lbl1: TLabel
                 Left = 18
-                Top = 112
+                Top = 110
                 Width = 50
                 Height = 13
                 Caption = 'Database:'
               end
               object rbRemote: TRadioButton
                 Left = 218
-                Top = 32
+                Top = 30
                 Width = 70
                 Height = 17
                 Action = actRadioLocation
@@ -251,7 +252,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               end
               object rbLocale: TRadioButton
                 Left = 76
-                Top = 32
+                Top = 30
                 Width = 77
                 Height = 17
                 Action = actRadioLocation
@@ -262,7 +263,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               end
               object edtHost: TEdit
                 Left = 74
-                Top = 68
+                Top = 66
                 Width = 93
                 Height = 21
                 Enabled = False
@@ -270,7 +271,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               end
               object chkDefaultPort: TCheckBox
                 Left = 220
-                Top = 71
+                Top = 69
                 Width = 55
                 Height = 17
                 TabStop = False
@@ -282,7 +283,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               end
               object sePort: TSpinEdit
                 Left = 288
-                Top = 69
+                Top = 67
                 Width = 63
                 Height = 22
                 TabStop = False
@@ -295,15 +296,15 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               end
               object edDatabaseName: TEdit
                 Left = 74
-                Top = 109
+                Top = 107
                 Width = 253
                 Height = 21
                 TabOrder = 5
-                Text = 'D:\_AKSAMIT20140108.FDB'
+                Text = 'D:\aksGDBASE_2014_04_02.FDB'
               end
               object btnDatabaseBrowse: TButton
                 Left = 331
-                Top = 109
+                Top = 107
                 Width = 20
                 Height = 21
                 Action = actDatabaseBrowse
@@ -363,7 +364,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             end
             object sttxtActivUserCount: TStaticText
               Left = 561
-              Top = 115
+              Top = 112
               Width = 49
               Height = 17
               Alignment = taCenter
@@ -376,7 +377,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             end
             object sttxtServerName: TStaticText
               Left = 458
-              Top = 155
+              Top = 152
               Width = 152
               Height = 17
               Alignment = taCenter
@@ -389,7 +390,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             end
             object sttxtActivConnects: TStaticText
               Left = 458
-              Top = 115
+              Top = 112
               Width = 104
               Height = 16
               Alignment = taCenter
@@ -408,7 +409,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             end
             object sttxtTestConnectState: TStaticText
               Left = 460
-              Top = 93
+              Top = 90
               Width = 100
               Height = 16
               Alignment = taCenter
@@ -444,7 +445,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             end
             object sttxtTestServer: TStaticText
               Left = 458
-              Top = 138
+              Top = 135
               Width = 152
               Height = 17
               Alignment = taCenter
@@ -780,6 +781,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Caption = 'Backing Up the Database'
               Enabled = False
               TabOrder = 5
+              OnClick = actDefocusExecute
             end
             object edLogs: TEdit
               Left = 266
@@ -844,6 +846,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Caption = 'Restore the Database'
               Enabled = False
               TabOrder = 8
+              OnClick = actDefocusExecute
             end
             object btnSaveConfigFile: TButton
               Left = 152
@@ -2099,7 +2102,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
       Left = 12
       Top = 518
       Width = 102
-      Height = 19
+      Height = 20
       Action = actStop
       BiDiMode = bdLeftToRight
       Font.Charset = RUSSIAN_CHARSET

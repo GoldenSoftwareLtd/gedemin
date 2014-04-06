@@ -2491,7 +2491,7 @@ begin
       '  im.contactkey AS ContactKey, ' +                       #13#10 +
       '  ic.goodkey, ' +                                        #13#10 +
       '  im.cardkey, ' +                                        #13#10 +
-      '  ic.companykey, ' +                                     #13#10 +
+      '  doc.companykey, ' +                                     #13#10 +
       '  SUM(im.debit - im.credit) AS Balance ';
     q.SQL.Add(' ' +
       'FROM inv_movement im ' +                                 #13#10 +
@@ -2520,7 +2520,7 @@ begin
       'GROUP BY ' +                                             #13#10 +
       '  im.contactkey, ' +                                     #13#10 +
       '  im.cardkey, ic.goodkey, ' +                            #13#10 +
-      '  ic.companykey ');
+      '  doc.companykey ');
 
     q.ParamByName('RemainsDate').AsDateTime := FClosingDate;
     if FOnlyCompanySaldo then
@@ -2533,6 +2533,7 @@ begin
     ProgressMsgEvent('', 3*PROGRESS_STEP);
 
     // переприв€зка карточек, необходимых дл€ сальдо, на сальдовый документ
+
     q2.SQL.Text :=
       'SELECT FIRST(1) s.companykey FROM DBS_TMP_INV_SALDO s';                  ///TODO: выбрать компанию дл€ дока
     ExecSqlLogEvent(q2, 'CalculateInvSaldo');
@@ -3814,6 +3815,8 @@ begin
     q.SQL.Text :=
       'DELETE FROM INV_BALANCE';
     ExecSqlLogEvent(q, 'CreateHIS_IncludeInHIS');
+    Tr.Commit;
+    Tr.StartTransaction;
 
     LogEvent('DELETE FROM INV_BALANCE... OK');
 
@@ -3842,30 +3845,33 @@ begin
     q.ParamByName('ClosingDate').AsDateTime := FClosingDate;
     if not FDoStopProcessing then
       ExecSqlLogEvent(q, 'CreateHIS_IncludeInHIS');
+    Tr.Commit;
+    Tr.StartTransaction;
 
     LogEvent('DELETE FROM AC_RECORD... OK');
     Tr.Commit;
     Tr.StartTransaction;
     ProgressMsgEvent('', 100);
+
     CreateHIS(1);
 
     // новые доки и с типами указанными пользователем должны остатьс€
     
     q.SQL.Text :=
-      'SELECT SUM(g_his_include(1, id)) AS Kolvo ' + #13#10 +
-      '  FROM gd_document ' +                        #13#10 +
-      ' WHERE parent IS NULL ' +                     #13#10 +
-      '   AND ((documentdate >= :Date) ';
+      'SELECT SUM(g_his_include(1, doc.id)) AS Kolvo ' + #13#10 +
+      'FROM gd_document doc ' +                        #13#10 +
+      'WHERE doc.parent IS NULL ' +                     #13#10 +
+      '  AND ((doc.documentdate >= :Date) ';
     if Assigned(FDocTypesList) then
     begin
       q.SQL.Add(' ' +
-        ' OR (documentdate < :Date ');
+        ' OR (doc.documentdate < :Date ');
       if not FDoProcDocTypes then
         q.SQL.Add(' ' +
-          '   AND documenttypekey IN(' + FDocTypesList.CommaText + ')) ')
+          '   AND doc.documenttypekey IN(' + FDocTypesList.CommaText + ')) ')
       else
         q.SQL.Add(' ' +
-          '   AND documenttypekey NOT IN(' + FDocTypesList.CommaText + ')) ');
+          '   AND doc.documenttypekey NOT IN(' + FDocTypesList.CommaText + ')) ');
     end;
     q.SQL.Add(')');
     q.ParamByName('Date').AsDateTime := FClosingDate;
@@ -3874,6 +3880,12 @@ begin
     q.Close;
 
     LogEvent('DELETE FROM INV_MOVEMENT...');
+
+    q.SQL.Text :=
+      'SELECT SUM(g_his_include(1, id)) FROM gd_document WHERE g_his_has(1, parent)=1 OR parent<147000000 ';
+    if not FDoStopProcessing then
+      ExecSqlLogEvent(q, 'CreateHIS_IncludeInHIS');
+    q.Close;
 
     q.SQL.Text :=                                    
       'DELETE FROM gd_ruid gr ' +                    #13#10 +
@@ -3889,12 +3901,14 @@ begin
       'DELETE FROM INV_MOVEMENT ' +                  #13#10 +
       ' WHERE g_his_has(1, documentkey)=0 ';
     ExecSqlLogEvent(q, 'CreateHIS_IncludeInHIS');
-    
+    Tr.Commit;
+    Tr.StartTransaction;
     LogEvent('DELETE FROM INV_MOVEMENT... OK');
 
 
     CreateHIS(2); // inv_card.id на которые есть ссылки
     ProgressMsgEvent('', 100);
+
 
     if not FDoStopProcessing then
       IncludeCascadingSequences('GD_DOCUMENT');
@@ -3984,6 +3998,16 @@ begin
       q.Close;
     end;
 
+    Tr.Commit;
+    Tr.StartTransaction;
+    q.SQL.Text :=                                                           //////////////////
+        'UPDATE gd_document doc ' +
+        '   SET doc.documentdate = :ClosingDate ' +
+        ' WHERE doc.id = :SaldoDocKey ';
+      q.ParamByName('ClosingDate').AsDateTime := FClosingDate-1;
+      q.ParamByName('SaldoDocKey').AsInteger := FInvSaldoDoc;
+    ExecSqlLogEvent(q, 'CreateHIS_IncludeInHIS');  
+    
     Tr.Commit;
     ProgressMsgEvent('', 100);
     LogEvent('Including PKs In HugeIntSet... OK');
@@ -4348,6 +4372,7 @@ begin
 
     q.Transaction := Tr;
 
+
     q.SQL.Text :=
       'DELETE FROM GD_DOCUMENT ' +        #13#10 +
       ' WHERE g_his_has(1, id)=0 ' +      #13#10 +
@@ -4586,9 +4611,38 @@ begin
     q2.Transaction := Tr;
 
     try
-      // —оздадим дебетовую часть складского движени€
-
       q.SQL.Text :=
+        'INSERT INTO INV_MOVEMENT ( ' +                 #13#10 +
+        '  id, goodkey, movementkey, ' +                #13#10 +
+        '  movementdate, ' +                            #13#10 +
+        '  documentkey, cardkey, ' +                    #13#10 +
+        '  debit, ' +                                   #13#10 +
+        '  credit, ' +                                  #13#10 +
+        '  contactkey) ' +                              #13#10 +
+        'SELECT ' +                                     #13#10 +
+        '  id_movement_d, goodkey, movementkey, ' +     #13#10 +
+        '  :ClosingDate, ' +                            #13#10 +
+        '  :SaldoDoc, cardkey, ' +                      #13#10 +
+        '  IIF((balance >= 0), ' +                      #13#10 +
+        '    ABS(balance), ' +                          #13#10 +
+        '    0), ' +                                    #13#10 +
+        '  IIF((balance >= 0), ' +                      #13#10 +
+        '    0, ' +                                     #13#10 +
+        '    ABS(balance)), ' +                         #13#10 +
+        '  contactkey ' +                               #13#10 +
+        'FROM  DBS_TMP_INV_SALDO ';
+      q.ParamByName('SaldoDoc').AsInteger := FInvSaldoDoc;
+      q.ParamByName('ClosingDate').AsDateTime := FClosingDate-1;
+      ExecSqlLogEvent(q, 'CreateInvSaldo');
+
+      Tr.Commit;
+      Tr.StartTransaction;
+      ProgressMsgEvent('', 3*PROGRESS_STEP);
+
+
+     { // —оздадим дебетовую часть складского движени€
+
+       q.SQL.Text :=
         'INSERT INTO INV_MOVEMENT ( ' +                 #13#10 +
         '  id, goodkey, movementkey, ' +                #13#10 +
         '  movementdate, ' +                            #13#10 +
@@ -4608,12 +4662,13 @@ begin
         'FROM  DBS_TMP_INV_SALDO ';
       q.ParamByName('SaldoDoc').AsInteger := FInvSaldoDoc;
       q.ParamByName('FPseudoClientKey').AsInteger := FPseudoClientKey;
-      q.ParamByName('ClosingDate').AsDateTime := FClosingDate-1;                //TODO: уточнить
+      q.ParamByName('ClosingDate').AsDateTime := FClosingDate-1;
       ExecSqlLogEvent(q, 'CreateInvSaldo');
 
       Tr.Commit;
       Tr.StartTransaction;
       ProgressMsgEvent('', 3*PROGRESS_STEP);
+
       // —оздадим кредитовую часть складского движени€
 
       q.SQL.Text :=                                     #13#10 +
@@ -4638,9 +4693,8 @@ begin
       q.ParamByName('SaldoDoc').AsInteger := FInvSaldoDoc;
       q.ParamByName('ClosingDate').AsDateTime := FClosingDate-1;
       q.ParamByName('FPseudoClientKey').AsInteger := FPseudoClientKey;
-      q.ParamByName('FPseudoClientKey').AsInteger := FPseudoClientKey;
       if not FDoStopProcessing then
-        ExecSqlLogEvent(q, 'CreateInvSaldo');
+        ExecSqlLogEvent(q, 'CreateInvSaldo');             }
 
       Tr.Commit;
       ProgressMsgEvent('', 4*PROGRESS_STEP);
