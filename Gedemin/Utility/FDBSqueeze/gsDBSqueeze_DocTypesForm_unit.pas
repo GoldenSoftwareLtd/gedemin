@@ -56,6 +56,8 @@ var
 
 implementation
 
+uses gsDBSqueeze_MainForm_unit;
+
 {$R *.DFM}
 
 constructor TgsDBSqueeze_DocTypesForm.Create(AnOwner: TComponent);
@@ -281,7 +283,7 @@ function TgsDBSqueeze_DocTypesForm.GetSelectedDocTypesStr: String;
 var
   Str: String;
 begin
-  Str := StringReplace(FSelectedDocTypesList.Text, #13#10, ',', [rfReplaceAll, rfIgnoreCase]);
+  Str := StringReplace(FSelectedDocTypesList.Text, #13#10, '||', [rfReplaceAll, rfIgnoreCase]);
   Delete(Str, Length(Str), 1);
   Result := Str
 end;
@@ -326,11 +328,13 @@ end;
 //---------------------------------------------------------------------------
 procedure TgsDBSqueeze_DocTypesForm.btnOKClick(Sender: TObject);
 begin
+  gsDBSqueeze_MainForm.DefocusControl(TButton(Sender), False);
   Self.ModalResult := mrOK;
 end;
 //---------------------------------------------------------------------------
 procedure TgsDBSqueeze_DocTypesForm.btnCancelClick(Sender: TObject);
 begin
+  gsDBSqueeze_MainForm.DefocusControl(TButton(Sender), False);
   Self.ModalResult := mrNone;
   Self.Close;
 end;
@@ -348,7 +352,7 @@ begin
   BranchDocTypes := TStringList.Create;
   try
     ClearData;
-    FSelectedDocTypesList.Text := StringReplace(ASelectedTypesStr, ',', #13#10, [rfReplaceAll, rfIgnoreCase]);
+    FSelectedDocTypesList.Text := StringReplace(ASelectedTypesStr, '||', #13#10, [rfReplaceAll, rfIgnoreCase]);
     mIgnoreDocTypes.Clear;
     Str := '';
     for I:=0 to FSelectedDocTypesList.Count-1 do

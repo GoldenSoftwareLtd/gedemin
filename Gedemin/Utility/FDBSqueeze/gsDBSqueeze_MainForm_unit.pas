@@ -1288,6 +1288,7 @@ end;
 //---------------------------------------------------------------------------
 procedure TgsDBSqueeze_MainForm.btnSelectDocTypesClick(Sender: TObject);
 begin
+  gsDBSqueeze_MainForm.DefocusControl(TButton(Sender), False);
   if btnGo.Enabled then
   begin
     if gsDBSqueeze_DocTypesForm.ShowModal = mrOk then
