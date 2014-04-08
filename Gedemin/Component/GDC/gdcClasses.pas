@@ -2926,7 +2926,7 @@ end;
 procedure TgdcDocumentBranch.GetWhereClauseConditions(S: TStrings);
 begin
   inherited;
-  S.Add(' z.documenttype = ''B'' ');
+//    S.Add(' z.documenttype = ''B'' ');
 end;
 
 class function TgdcDocumentBranch.GetDialogFormClassName(

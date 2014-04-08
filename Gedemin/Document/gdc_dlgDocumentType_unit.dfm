@@ -1,6 +1,6 @@
 inherited gdc_dlgDocumentType: Tgdc_dlgDocumentType
-  Left = 539
-  Top = 311
+  Left = 485
+  Top = 200
   Caption = 'Документ'
   ClientHeight = 423
   ClientWidth = 532
@@ -9,31 +9,26 @@ inherited gdc_dlgDocumentType: Tgdc_dlgDocumentType
   inherited btnAccess: TButton
     Left = 4
     Top = 400
-    Anchors = [akLeft, akBottom]
     TabOrder = 3
   end
   inherited btnNew: TButton
     Left = 76
     Top = 400
-    Anchors = [akLeft, akBottom]
     TabOrder = 4
   end
   inherited btnHelp: TButton
     Left = 148
     Top = 400
-    Anchors = [akLeft, akBottom]
     TabOrder = 5
   end
   inherited btnOK: TButton
     Left = 388
     Top = 400
-    Anchors = [akRight, akBottom]
     TabOrder = 1
   end
   inherited btnCancel: TButton
     Left = 460
     Top = 400
-    Anchors = [akRight, akBottom]
     TabOrder = 2
   end
   object pcMain: TPageControl [5]
@@ -110,6 +105,13 @@ inherited gdc_dlgDocumentType: Tgdc_dlgDocumentType
         Height = 13
         Caption = 'Функция ТО позиции:'
         WordWrap = True
+      end
+      object Label6: TLabel
+        Left = 8
+        Top = 256
+        Width = 124
+        Height = 13
+        Caption = 'Родительский документ'
       end
       object edDocumentName: TDBEdit
         Left = 157
@@ -277,6 +279,15 @@ inherited gdc_dlgDocumentType: Tgdc_dlgDocumentType
         Height = 21
         Action = actDeleteLineFunction
         TabOrder = 11
+      end
+      object edParentName: TEdit
+        Left = 157
+        Top = 252
+        Width = 352
+        Height = 21
+        ReadOnly = True
+        TabOrder = 13
+        Text = 'edParentName'
       end
     end
     object tsNumerator: TTabSheet
