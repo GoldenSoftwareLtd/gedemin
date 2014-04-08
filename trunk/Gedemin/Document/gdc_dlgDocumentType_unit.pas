@@ -65,6 +65,8 @@ type
     actAutoNumeration: TAction;
     lblNumCompany: TLabel;
     dbrgIsCheckNumber: TDBRadioGroup;
+    edParentName: TEdit;
+    Label6: TLabel;
     procedure lvVariableDblClick(Sender: TObject);
     procedure dbcMaskChange(Sender: TObject);
     procedure edCurrentNumberExit(Sender: TObject);
@@ -338,6 +340,7 @@ begin
 
   edEnglishName.Text := '';
   edEnglishName.MaxLength := 14;
+  edParentName.Text := '';
 
   ActivateTransaction(gdcObject.Transaction);
 
@@ -377,6 +380,13 @@ begin
       ibsql.Close;
     end;
 
+    ibsql.Close;
+    ibsql.SQL.Text := 'SELECT name FROM gd_documenttype WHERE id = ' +
+      gdcObject.FieldByName('parent').AsString + ' and documenttype = ''D''';
+    ibsql.ExecQuery;
+    if not ibsql.Eof then
+      edParentName.Text := ibsql.FieldByName('name').AsString;
+    ibsql.Close;
   finally
     List.Free;
     ibsql.Free;

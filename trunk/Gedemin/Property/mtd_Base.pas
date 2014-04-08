@@ -1003,6 +1003,7 @@ var
   LClassType: TmtdClassType;
   LgdcCreateableFormClass: CgdcCreateableForm;
   LgdcBaseClass: CgdcBase;
+  FIBSQL: TIBSQL;
 const
   LMsgMethodUserError =
                   'ћетод %s дл€ класса %s вызвал ошибку.'#13#10 +
@@ -1145,7 +1146,27 @@ begin
                 LFullChildName := LCurrentFullClass;
                 // ≈сли в последнем в стеке полном имени класса есть подтип, то
                 // текущий полный класс - это тот-же полный класс без подтипа
-                LCurrentFullClass.SubType := '';
+                if (AnsiUpperCase(GetParentClassName(LCurrentFullClass, LClassType)) = 'TGDCDOCUMENT') then
+                  begin
+                    FIBSQL := TIBSQL.Create(nil);
+                    FIBSQL.Transaction := gdcBaseManager.ReadTransaction;
+                    FIBSQL.SQL.Text :=
+                      'SELECT '#13#10 +
+                      '  p.ruid '#13#10 +
+                      'FROM GD_DOCUMENTTYPE d '#13#10 +
+                      'LEFT JOIN GD_DOCUMENTTYPE p ON p.ID = d.PARENT '#13#10 +
+                      'WHERE d.RUID =:SUBTYPE';
+                    FIBSQL.ParamByName('SUBTYPE').AsString := LCurrentFullClass.SubType;
+                    FIBSQL.ExecQuery;
+                    If not FIBSQL.EoF then
+                      LCurrentFullClass.SubType := FIBSQL.Fields[0].AsString
+                    else
+                      LCurrentFullClass.SubType := '';
+                    FIBSQL.Close;
+                    FIBSQL.Free;
+                  end
+                else
+                  LCurrentFullClass.SubType := '';
               end else
                 begin
                   // ≈сли последний обработанный класс без подтипа, то получаем
