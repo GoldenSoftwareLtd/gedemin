@@ -775,7 +775,7 @@ procedure TgsDBSqueeze.GetDBSizeEvent;
         FindClose(SearchRecord);
       end;
     end;
-  end;   
+  end; 
 
 var
   FileSize: Int64;  // Размер файла в байтах
@@ -798,7 +798,7 @@ begin
     else
       FullFilePath := FConnectInfo.DatabaseName;
   end;
-  
+
   FileSize := GetFileSize(FullFilePath);
   FOnGetDBSizeEvent(BytesToStr(FileSize), FileSize);
 end;
@@ -2570,22 +2570,8 @@ begin
     Tr.Commit;
 
     SetBlockTriggerActive(False);
-
-    Tr.StartTransaction;
     ProgressMsgEvent('', 2*PROGRESS_STEP);
-
-    // oбновляем ссылку на документ прихода
-    q.SQL.Text :=
-      'UPDATE inv_card c ' +                          #13#10 +
-      '   SET c.firstdocumentkey = :SaldoDocKey, ' +  #13#10 +
-      '       c.documentkey = :SaldoDocKey ' +        #13#10 +
-      ' WHERE EXISTS(SELECT * FROM DBS_TMP_INV_SALDO s WHERE s.cardkey = c.id) ';
-
-    q.ParamByName('SaldoDocKey').AsInteger := FInvSaldoDoc;
-    if not FDoStopProcessing then
-      ExecSqlLogEvent(q, 'CalculateInvSaldo');
-
-    Tr.Commit;
+ 
     ProgressMsgEvent('', 2*PROGRESS_STEP);
   finally
     q.Free;
@@ -2687,8 +2673,8 @@ begin
       '      rdb$triggers ' +                                                 #13#10 +
       '    WHERE ' +                                                          #13#10 +
       '      rdb$trigger_inactive = 0 ' +                                     #13#10 +
-      '     AND rdb$system_flag = 0 ' +                                       #13#10 +
-      '     AND rdb$relation_name = ''INV_MOVEMENT'' ' +                      #13#10 +
+      '      AND rdb$system_flag = 0 ' +                                      #13#10 +
+      '      AND rdb$relation_name IN(''INV_MOVEMENT'', ''INV_CARD'') ' +     #13#10 +
       '    INTO :TN ' +                                                       #13#10 +
       '  DO ' +                                                               #13#10 +
       '  BEGIN ' +                                                            #13#10 +
@@ -2759,7 +2745,7 @@ var
     SelfFkFieldsListLine: TStringList;
     SelfFkFieldsList2: TStringList;
   begin
-    LogEvent('Including cascading sequences in HIS...');
+    LogEvent('Including in HIS...');
     Assert(Trim(ATableName) <> '');
     
       LineDocTbls := TStringList.Create;
@@ -3722,7 +3708,7 @@ var
 
         Tr.Commit;
         Tr2.Commit;
-        LogEvent('Including cascading sequences in HIS... OK');
+        LogEvent('Including in HIS... OK');
       except
         on E: Exception do
         begin
@@ -3809,6 +3795,28 @@ begin
     Tr.DefaultDatabase := FIBDatabase;
     Tr.StartTransaction;
     q.Transaction := Tr;
+
+    //////////////////////
+    LogEvent('Update INV_CARD...');
+
+    // oбновляем ссылку на документ прихода
+    q.SQL.Text :=
+      'MERGE INTO inv_card ic ' +                  #13#10 +
+      'USING ( ' +                                 #13#10 +
+      '  SELECT DISTINCT c.id ' +                  #13#10 +
+      '    FROM dbs_tmp_inv_saldo s ' +            #13#10 +
+      '    JOIN inv_card c ON c.id = s.cardkey ' + #13#10 +
+      ') inp ON inp.id = ic.id ' +                 #13#10 +
+      'WHEN MATCHED THEN UPDATE SET firstdocumentkey = :SaldoDocKey, documentkey = :SaldoDocKey ';
+
+    q.ParamByName('SaldoDocKey').AsInteger := FInvSaldoDoc;
+    if not FDoStopProcessing then
+      ExecSqlLogEvent(q, 'CalculateInvSaldo');
+
+    Tr.Commit;
+    Tr.StartTransaction;
+    LogEvent('Update INV_CARD... OK');
+    //////////////////////////
 
     LogEvent('DELETE FROM INV_BALANCE...');
 

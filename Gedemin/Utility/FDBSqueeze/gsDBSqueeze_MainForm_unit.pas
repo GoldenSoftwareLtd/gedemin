@@ -3,7 +3,7 @@ unit gsDBSqueeze_MainForm_unit;
 interface
 
 uses
-  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs, FileCtrl, 
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs, FileCtrl,
   ActnList, ComCtrls, Buttons, StdCtrls, Grids, Spin, ExtCtrls,
   gsDBSqueeze_DocTypesForm_unit,gsDBSqueezeThread_unit, gsDBSqueezeIniOptions_unit, gd_ProgressNotifier_unit,
   DBCtrls, CommCtrl, Db, ADODB;
@@ -202,6 +202,7 @@ type
     shp20: TShape;
     shp22: TShape;
     shp23: TShape;
+    chkGetStatiscits: TCheckBox;
 
     procedure actBackPageExecute(Sender: TObject);
     procedure actClearLogExecute(Sender: TObject);
@@ -229,6 +230,8 @@ type
     procedure statbarMainDrawPanel(StatusBar: TStatusBar;Panel: TStatusPanel; const Rect: TRect);
     procedure tbcPageControllerChange(Sender: TObject);
     procedure btnSelectDocTypesClick(Sender: TObject);
+    procedure btnGetStatisticsMouseDown(Sender: TObject;
+      Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 
   private
     FStartupTime: TDateTime;
@@ -320,7 +323,6 @@ begin
     cbbCharset.Items.AddStrings(CharsetList);
     cbbCharset.ItemIndex := cbbCharset.Items.IndexOf(DEFAULT_CHARACTER_SET);
 
-    
     gsDBSqueeze_MainForm.DefocusControl(tbcDocTypes, False);
 
     FConnected := False;
@@ -381,6 +383,7 @@ begin
   edLogs.Text := '';
   edtBackup.Text := '';
   edtRestore.Text := '';
+  chkGetStatiscits.Checked := True;
   mReviewSettings.Clear;
 
   sttxtDBSizeBefore.Caption := '';
@@ -531,20 +534,22 @@ procedure TgsDBSqueeze_MainForm.GetStatisticsEvent(
   const AnInvCard: String);
 begin
   WriteToLogFile('================= Number of recods in a table =================');
-  if (Trim(sttxtGdDoc.Caption) = '') and (Trim(sttxtAcEntry.Caption) = '') and (Trim(sttxtInvMovement.Caption) = '') then
+  if ((Trim(sttxtGdDoc.Caption) > '') or (Trim(sttxtAcEntry.Caption) > '') or (Trim(sttxtInvMovement.Caption) > '')) or
+     ((btnGetStatistics.Tag = 0) and (btnUpdateStatistics.Tag = 0)) or
+     ((btnUpdateStatistics.Tag = 1) and ((Trim(sttxtGdDoc.Caption) > '') or (Trim(sttxtAcEntry.Caption) > '') or (Trim(sttxtInvMovement.Caption) > ''))) then
   begin
+    sttxtGdDocAfter.Caption := AGdDoc;
+    sttxtAcEntryAfter.Caption := AnAcEntry;
+    sttxtInvMovementAfter.Caption := AnInvMovement;
+    sttxtInvCardAfter.Caption := AnInvCard;
+    WriteToLogFile('Current: ');
+  end
+  else begin
     sttxtGdDoc.Caption := AGdDoc;
     sttxtAcEntry.Caption := AnAcEntry;
     sttxtInvMovement.Caption := AnInvMovement;
     sttxtInvCard.Caption := AnInvCard;
     WriteToLogFile('Original: ');
-  end
-  else begin
-    sttxtGdDocAfter.Caption := AGdDoc;
-    sttxtAcEntryAfter.Caption := AnAcEntry;
-    sttxtInvMovementAfter.Caption := AnInvMovement;
-    sttxtInvCardAfter.Caption := AnInvCard;
-    WriteToLogFile('Now: ');
   end;
   WriteToLogFile('GD_DOCUMENT: ' + AGdDoc);
   WriteToLogFile('AC_ENTRY: ' + AnAcEntry);
@@ -560,27 +565,34 @@ procedure TgsDBSqueeze_MainForm.GetProcStatisticsEvent(
   const AnProcInvCard: String);
 begin
   WriteToLogFile('=========== Number of processing records in a table ===========');
-  if (Trim(sttxtProcGdDoc.Caption) = '') and (Trim(sttxtProcAcEntry.Caption) = '') and (Trim(sttxtProcInvMovement.Caption) = '') then
+  if ((Trim(sttxtProcGdDoc.Caption) > '') and (Trim(sttxtProcAcEntry.Caption) > '') and (Trim(sttxtProcInvMovement.Caption) > '')) or
+     ((btnGetStatistics.Tag = 0) and (btnUpdateStatistics.Tag = 0)) or
+     ((btnUpdateStatistics.Tag = 1) and ((Trim(sttxtProcGdDoc.Caption) > '') and (Trim(sttxtProcAcEntry.Caption) > '') and (Trim(sttxtProcInvMovement.Caption) > ''))) then
   begin
+    sttxtAfterProcGdDoc.Caption := AProcGdDoc;
+    sttxtAfterProcAcEntry.Caption := AnProcAcEntry;
+    sttxtAfterProcInvMovement.Caption := AnProcInvMovement;
+    sttxtAfterProcInvCard.Caption := AnProcInvCard;
+    WriteToLogFile('Current: ');
+  end
+  else begin
     sttxtProcGdDoc.Caption := AProcGdDoc;
     sttxtProcAcEntry.Caption := AnProcAcEntry;
     sttxtProcInvMovement.Caption := AnProcInvMovement;
     sttxtProcInvCard.Caption := AnProcInvCard;
     WriteToLogFile('Original: ');
-  end
-  else begin
-    sttxtAfterProcGdDoc.Caption := AProcGdDoc;
-    sttxtAfterProcAcEntry.Caption := AnProcAcEntry;
-    sttxtAfterProcInvMovement.Caption := AnProcInvMovement;
-    sttxtAfterProcInvCard.Caption := AnProcInvCard;
-    WriteToLogFile('Now: ');
   end;
   WriteToLogFile('GD_DOCUMENT: ' + AProcGdDoc);
   WriteToLogFile('AC_ENTRY: ' + AnProcAcEntry);
   WriteToLogFile('INV_MOVEMENT: ' + AnProcInvMovement);
   WriteToLogFile('INV_CARD: ' + AnProcInvCard);
   WriteToLogFile('===============================================================');
+
   FProcessing := False;
+  if btnGetStatistics.Tag = 1 then
+    btnGetStatistics.Tag := 0
+  else if btnUpdateStatistics.Tag = 1 then
+    btnUpdateStatistics.Tag := 0;
 end;
 //---------------------------------------------------------------------------
 procedure TgsDBSqueeze_MainForm.SetDocTypeStringsEvent(const ADocTypes: TStringList);
@@ -615,7 +627,7 @@ begin
   openDialog := TOpenDialog.Create(Self);
   try
     openDialog.InitialDir := GetCurrentDir;
-    openDialog.Options := [ofFileMustExist];
+    openDialog.Options := [ofFileMustExist, ofEnableSizing];
     openDialog.Filter := 'Firebird Database File (*.FDB)|*.fdb|InterBase Database File (*.GDB)|*.gdb|All Files|*.*';
     openDialog.FilterIndex := 1;
 
@@ -630,6 +642,7 @@ procedure TgsDBSqueeze_MainForm.actGetExecute(Sender: TObject);
 begin
   gsDBSqueeze_MainForm.DefocusControl(btnGetStatistics, False);
   gsDBSqueeze_MainForm.DefocusControl(btnUpdateStatistics, False);
+
   FSThread.DoGetStatistics;
   FProcessing := True;
 end;
@@ -825,6 +838,8 @@ begin
         RestoreDBName,
         False);
 
+      FSThread.DoGetStatisticsAfterProc := chkGetStatiscits.Checked;
+
       mReviewSettings.Clear;
       mReviewSettings.Lines.Add('Host: ' + edtHost.Text);
       if chkDefaultPort.Checked then
@@ -870,6 +885,10 @@ begin
       end
       else
         mReviewSettings.Lines.Add('Restore БД из backup-файла: НЕТ');
+      if chkGetStatiscits.Checked then
+        mReviewSettings.Lines.Add('По завершению обработки получить статистику: ДА')
+      else
+        mReviewSettings.Lines.Add('По завершению обработки получить статистику: НЕТ');
     end;
   end;
 
@@ -877,6 +896,7 @@ begin
     pgcSettings.ActivePageIndex :=  pgcSettings.ActivePageIndex + 1;
 
   gsDBSqueeze_MainForm.DefocusControl(edLogs, False);
+
 end;
 //---------------------------------------------------------------------------
 procedure TgsDBSqueeze_MainForm.actNextPageUpdate(Sender: TObject);
@@ -1094,8 +1114,10 @@ end;
 procedure TgsDBSqueeze_MainForm.FinishEvent(const AIsFinished: Boolean);
 begin
   if AIsFinished then
-   Application.MessageBox(PChar(FormatDateTime('h:nn', Now) + '  Обработка БД успешно завершена!'),
-     PChar('Сообщение'), MB_OK + MB_ICONINFORMATION + MB_TOPMOST)
+    Application.MessageBox(PChar(FormatDateTime('h:nn', Now) + ' - Обработка БД успешно завершена!' + #13#10 +
+      'Затраченное время - ' + FormatDateTime('h:nn', Now-FStartupTime)),
+      PChar('Сообщение'),
+      MB_OK + MB_ICONINFORMATION + MB_TOPMOST)
   else begin                // финиш из-за прерывания
     FIsProcessStop := True; // обработка последнего сообщения завершена
   end;
@@ -1128,7 +1150,7 @@ end;
 procedure TgsDBSqueeze_MainForm.RecLog(const ARec: String);
 var
   RecStr: String;
-begin
+begin 
   RecStr := FormatDateTime('h:nn:ss', Now) + ' -- ' + ARec;
 
   mLog.Lines.Add(RecStr);
@@ -1214,7 +1236,7 @@ begin
     OpenDlg := TOpenDialog.Create(Self);
     try
       OpenDlg.InitialDir := GetCurrentDir;
-      OpenDlg.Options := [ofFileMustExist];
+      OpenDlg.Options := [ofFileMustExist, ofEnableSizing];
       OpenDlg.Filter := 'Configuration File (*.INI)|*.ini';
       OpenDlg.FilterIndex := 1;
 
@@ -1248,7 +1270,7 @@ begin
     SaveDlg := TSaveDialog.Create(self);
     try
       SaveDlg.InitialDir := GetCurrentDir;
-      SaveDlg.Options := [ofFileMustExist];
+      SaveDlg.Options := [ofFileMustExist, ofEnableSizing];
       SaveDlg.Filter := 'Configuration File (*.INI)|*.ini';
       SaveDlg.FilterIndex := 1;
       SaveDlg.DefaultExt := 'ini';
@@ -1297,11 +1319,15 @@ begin
     FWasSelectedDocTypes := (mIgnoreDocTypes.Text > '');
   end;
 end;
-
+//---------------------------------------------------------------------------
+procedure TgsDBSqueeze_MainForm.btnGetStatisticsMouseDown(Sender: TObject;
+  Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+begin
+  if Sender is TButton then
+    TButton(Sender).Tag := 1;
+end;
 
 //initialization
 //  ReportMemoryLeaksOnShutdown := True;
-
-
 
 end.

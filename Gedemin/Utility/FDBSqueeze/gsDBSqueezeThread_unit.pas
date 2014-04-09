@@ -71,6 +71,7 @@ type
 
   TgsDBSqueezeThread = class(TgdMessagedThread)
   private
+    FDoGetStatisticsAfterProc: Boolean;
     FDoStopProcessing: Boolean;    ///////////////
     FFinish: Boolean;
     FBusy: TidThreadSafeInteger;
@@ -199,21 +200,34 @@ type
 
     //property Connected: Boolean read GetConnected;
     property State: Boolean read GetState;
-    property Busy: Boolean read GetBusy;
-    property DBSize: Int64 read FDBSize;
+    property Busy: Boolean  read GetBusy;
+    property DBSize: Int64  read FDBSize;
+    property DoGetStatisticsAfterProc: Boolean read FDoGetStatisticsAfterProc write FDoGetStatisticsAfterProc;
 
-    property OnFinishEvent: TFinishEvent read FOnFinish write FOnFinish;
-    property OnLogSQL: TLogSQLEvent read FOnLogSQL write FOnLogSQL;
-    property OnGetConnected: TGetConnectedEvent read FOnGetConnected write FOnGetConnected;
-    property OnGetInfoTestConnect: TGetInfoTestConnectEvent read FOnGetInfoTestConnect write FOnGetInfoTestConnect;
-    property OnUsedDB: TUsedDBEvent read FOnUsedDB write FOnUsedDB;
-    property OnGetDBProperties: TGetDBPropertiesEvent read FOnGetDBProperties write FOnGetDBProperties;
-    property OnSetItemsCbb: TCbbEvent read FOnSetItemsCbb write FOnSetItemsCbb;
-    property OnSetDocTypeStrings: TSetDocTypeStringsEvent read FOnSetDocTypeStrings write FOnSetDocTypeStrings;
-    property OnSetDocTypeBranch: TSetDocTypeBranchEvent read FOnSetDocTypeBranch write FOnSetDocTypeBranch;
-    property OnGetDBSize: TGetDBSizeEvent read FOnGetDBSize write FOnGetDBSize;
-    property OnGetStatistics: TGetStatisticsEvent read FOnGetStatistics write FOnGetStatistics;
-    property OnGetProcStatistics: TGetProcStatisticsEvent read FOnGetProcStatistics write FOnGetProcStatistics;
+    property OnFinishEvent: TFinishEvent
+      read FOnFinish             write FOnFinish;
+    property OnLogSQL: TLogSQLEvent
+      read FOnLogSQL             write FOnLogSQL;
+    property OnGetConnected: TGetConnectedEvent
+      read FOnGetConnected       write FOnGetConnected;
+    property OnGetInfoTestConnect: TGetInfoTestConnectEvent
+      read FOnGetInfoTestConnect write FOnGetInfoTestConnect;
+    property OnUsedDB: TUsedDBEvent
+      read FOnUsedDB             write FOnUsedDB;
+    property OnGetDBProperties: TGetDBPropertiesEvent
+      read FOnGetDBProperties    write FOnGetDBProperties;
+    property OnSetItemsCbb: TCbbEvent
+      read FOnSetItemsCbb        write FOnSetItemsCbb;
+    property OnSetDocTypeStrings: TSetDocTypeStringsEvent
+      read FOnSetDocTypeStrings  write FOnSetDocTypeStrings;
+    property OnSetDocTypeBranch: TSetDocTypeBranchEvent
+      read FOnSetDocTypeBranch   write FOnSetDocTypeBranch;
+    property OnGetDBSize: TGetDBSizeEvent
+      read FOnGetDBSize          write FOnGetDBSize;
+    property OnGetStatistics: TGetStatisticsEvent
+      read FOnGetStatistics      write FOnGetStatistics;
+    property OnGetProcStatistics: TGetProcStatisticsEvent
+      read FOnGetProcStatistics  write FOnGetProcStatistics;
   end;
 
 implementation
@@ -292,7 +306,7 @@ end;
 procedure TgsDBSqueezeThread.StopProcessing;
 begin
   FDoStopProcessing := True;
-  FDBS.DoStopProcessing  := True;                                                /////////////////////  мб критикал секцию надо
+  FDBS.DoStopProcessing  := True;                                                /////////////////////  CS
   PostMsg(WM_DBS_STOPPROCESSING);
 end;
 
@@ -790,7 +804,7 @@ begin
         begin
           if FCalculateSaldo then
           begin
-            FDBS.ProgressMsgEvent('Сохранение складского сальдо...', 0);              // 7%
+            FDBS.ProgressMsgEvent('Сохранение складского сальдо...', 0);                           // 7%
             FDBS.CreateInvSaldo;
 
             FDBS.InsertDBSStateJournal(Msg.Message, 1);
@@ -889,10 +903,15 @@ begin
         if not FDoStopProcessing then
         begin
           FDBS.GetDBSizeEvent;
-
           FDBS.LogEvent('FINISH!');
           FDBS.ProgressMsgEvent('Обработка БД завершена.');
 
+          if FDoGetStatisticsAfterProc then
+          begin
+            FDBS.GetStatisticsEvent;
+            FDBS.GetProcStatisticsEvent;
+          end;
+          
           FFinish:= True;
           Finish(FFinish);
 
@@ -1125,4 +1144,6 @@ begin
   FMsgLogSQL := AMsgLogSQL;
   Synchronize(DoOnlogSQLSync);
 end;
+
+
 end.

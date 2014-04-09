@@ -1,6 +1,6 @@
 object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
-  Left = 380
-  Top = 163
+  Left = 197
+  Top = 137
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsDialog
   ClientHeight = 537
@@ -118,7 +118,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           Top = 54
           Width = 634
           Height = 369
-          ActivePage = tsConnection
+          ActivePage = tsOptions
           TabOrder = 0
           object tsConnection: TTabSheet
             Caption = 'Database Connection'
@@ -341,6 +341,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
                 Top = 36
                 Width = 94
                 Height = 21
+                Enabled = False
                 TabOrder = 0
               end
               object edPassword: TEdit
@@ -711,7 +712,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             ImageIndex = 2
             object lblLogDir: TLabel
               Left = 176
-              Top = 88
+              Top = 91
               Width = 73
               Height = 13
               Caption = 'Logs Directory:'
@@ -719,7 +720,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             end
             object lblBackup: TLabel
               Left = 173
-              Top = 152
+              Top = 155
               Width = 85
               Height = 13
               Caption = 'Backup Directory:'
@@ -727,7 +728,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             end
             object lblRestore: TLabel
               Left = 190
-              Top = 208
+              Top = 211
               Width = 89
               Height = 13
               Caption = 'Restore Directory:'
@@ -749,7 +750,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Height = 25
               Action = actNextPage
               Caption = '>'
-              TabOrder = 13
+              TabOrder = 14
               TabStop = False
             end
             object btnBack2: TButton
@@ -758,13 +759,13 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Width = 25
               Height = 25
               Caption = '<'
-              TabOrder = 12
+              TabOrder = 13
               TabStop = False
               OnClick = actBackPageExecute
             end
             object chkbSaveLogs: TCheckBox
               Left = 152
-              Top = 64
+              Top = 67
               Width = 113
               Height = 17
               TabStop = False
@@ -774,7 +775,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             end
             object chkBackup: TCheckBox
               Left = 152
-              Top = 128
+              Top = 131
               Width = 177
               Height = 17
               TabStop = False
@@ -785,7 +786,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             end
             object edLogs: TEdit
               Left = 266
-              Top = 85
+              Top = 88
               Width = 253
               Height = 21
               Enabled = False
@@ -793,7 +794,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             end
             object btnLogDirBrowse: TButton
               Left = 523
-              Top = 85
+              Top = 88
               Width = 20
               Height = 21
               Action = actDirectoryBrowse
@@ -803,7 +804,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             end
             object edtBackup: TEdit
               Left = 266
-              Top = 149
+              Top = 152
               Width = 253
               Height = 21
               Enabled = False
@@ -811,7 +812,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             end
             object btnBackupBrowse: TButton
               Left = 523
-              Top = 149
+              Top = 152
               Width = 20
               Height = 21
               Action = actDirectoryBrowse
@@ -821,7 +822,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             end
             object edtRestore: TEdit
               Left = 285
-              Top = 205
+              Top = 208
               Width = 233
               Height = 21
               Enabled = False
@@ -829,7 +830,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             end
             object btnRestoreBrowse: TButton
               Left = 523
-              Top = 205
+              Top = 208
               Width = 20
               Height = 21
               Action = actDirectoryBrowse
@@ -839,7 +840,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             end
             object chkRestore: TCheckBox
               Left = 172
-              Top = 184
+              Top = 187
               Width = 133
               Height = 17
               TabStop = False
@@ -850,11 +851,11 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             end
             object btnSaveConfigFile: TButton
               Left = 152
-              Top = 265
-              Width = 201
+              Top = 286
+              Width = 209
               Height = 25
               Caption = 'Сохранить конфигурацию в файл...'
-              TabOrder = 11
+              TabOrder = 12
               TabStop = False
               OnClick = actConfigBrowseExecute
             end
@@ -894,6 +895,18 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               ParentColor = False
               ParentFont = False
               TabOrder = 1
+            end
+            object chkGetStatiscits: TCheckBox
+              Left = 152
+              Top = 250
+              Width = 225
+              Height = 17
+              TabStop = False
+              Caption = 'Get Statistics after working out process '
+              Checked = True
+              State = cbChecked
+              TabOrder = 11
+              OnClick = actDefocusExecute
             end
           end
           object tsReviewSettings: TTabSheet
@@ -2037,6 +2050,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             ParentFont = False
             TabOrder = 27
             TabStop = False
+            OnMouseDown = btnGetStatisticsMouseDown
           end
           object btnUpdateStatistics: TBitBtn
             Left = 213
@@ -2048,6 +2062,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             Enabled = False
             TabOrder = 28
             TabStop = False
+            OnMouseDown = btnGetStatisticsMouseDown
           end
         end
       end
