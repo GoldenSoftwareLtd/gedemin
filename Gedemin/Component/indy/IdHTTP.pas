@@ -151,6 +151,7 @@ type
   // Must be documented
   TIdHTTPProtocolVersion = (pv1_0, pv1_1);
 
+  TIdHTTPOnHeadersAvailable = procedure(Sender: TObject; AHeaders: TIdHeaderList; var VContinue: Boolean) of object;
   TIdHTTPOnRedirectEvent = procedure(Sender: TObject; var dest: string; var NumRedirect: Integer; var Handled: boolean; var VMethod: TIdHTTPMethod) of object;
   TIdOnSelectAuthorization = procedure(Sender: TObject; var AuthenticationClass: TIdAuthenticationClass; AuthInfo: TIdHeaderList) of object;
   TIdOnAuthorization = procedure(Sender: TObject; Authentication: TIdAuthentication; var Handled: boolean) of object;
@@ -238,6 +239,7 @@ type
     FHTTPProto: TIdHTTPProtocol;
     FProxyParameters: TIdProxyConnectionInfo;
     //
+    FOnHeadersAvailable: TIdHTTPOnHeadersAvailable;
     FOnRedirect: TIdHTTPOnRedirectEvent;
     FOnSelectAuthorization: TIdOnSelectAuthorization;
     FOnSelectProxyAuthorization: TIdOnSelectAuthorization;
@@ -324,6 +326,7 @@ type
     property ProxyParams: TIdProxyConnectionInfo read FProxyParameters write FProxyParameters;
     property Request: TIdHTTPRequest read GetRequestHeaders write SetRequestHeaders;
     property HTTPOptions: TIdHTTPOptions read FOptions write FOptions;
+    property OnHeadersAvailable: TIdHTTPOnHeadersAvailable read FOnHeadersAvailable write FOnHeadersAvailable;
     // Fired when a rediretion is requested.
     property OnRedirect: TIdHTTPOnRedirectEvent read FOnRedirect write FOnRedirect;
     property OnSelectAuthorization: TIdOnSelectAuthorization read FOnSelectAuthorization write FOnSelectAuthorization;
@@ -353,6 +356,7 @@ type
     property ProxyParams;
     property Request;
     property HTTPOptions;
+    property OnHeadersAvailable;
     // Fired when a rediretion is requested.
     property OnRedirect;
     property OnSelectAuthorization;
@@ -385,7 +389,8 @@ uses
   IdGlobal, IdComponent, IdCoderMIME, IdResourceStrings;
 
 const
-  ProtocolVersionString: array[TIdHTTPProtocolVersion] of string = ('1.0', '1.1');
+  ProtocolVersionString: array[TIdHTTPProtocolVersion] of string = ('1.0', '1.1'); {do not localize}
+  MethodString: array[TIdHTTPMethod] of String = ('HEAD', 'GET', 'POST', 'OPTIONS', 'TRACE', 'PUT', 'DELETE', 'CONNECT'); {do not localize}
 
 { EIdHTTPProtocolException }
 
@@ -535,7 +540,7 @@ begin
   try
     Post(AURL, ASource, LResponse);
   finally
-    result := LResponse.DataString;
+    Result := LResponse.DataString;
     LResponse.Free;
   end;
 end;
@@ -726,7 +731,7 @@ begin
     end
     else
     begin
-      if AnsiPos('chunked', AResponse.RawHeaders.Values['Transfer-Encoding']) > 0 then {do not localize}
+      if AnsiPos('chunked', LowerCase(AResponse.RawHeaders.Values['Transfer-Encoding'])) > 0 then {do not localize}
       begin // Chunked
         DoStatus(hsStatusText, [RSHTTPChunkStarted]);
         Size := ChunkSize;
@@ -901,8 +906,8 @@ begin
             if Response.ResponseCode = 200 then
             begin
               // Connection established
-              (IOHandler as TIdSSLIOHandlerSocket).PassThrough := false;
-              break;
+              (IOHandler as TIdSSLIOHandlerSocket).PassThrough := False;
+              Break;
             end
             else begin
               ProcessResponse;
@@ -1081,6 +1086,8 @@ begin
   if not Assigned(ARequest.Authentication) then
   begin
     // Find wich Authentication method is supported from us.
+    Auth := nil;
+
     for i := 0 to AResponse.WWWAuthenticate.Count - 1 do
     begin
       S := AResponse.WWWAuthenticate[i];
@@ -1096,7 +1103,7 @@ begin
     end;
 
     if Assigned(FOnSelectAuthorization) then begin
-      OnSelectAuthorization(self, Auth, AResponse.WWWAuthenticate);
+      OnSelectAuthorization(Self, Auth, AResponse.WWWAuthenticate);
     end;
 
     ARequest.Authentication := Auth.Create;
@@ -1131,9 +1138,9 @@ begin
               ARequest.Authentication.UserName := ARequest.Username;
               ARequest.Authentication.Password := ARequest.Password;
 
-              OnAuthorization(self, ARequest.Authentication, result);
+              OnAuthorization(self, ARequest.Authentication, Result);
 
-              if result then begin
+              if Result then begin
                 ARequest.BasicAuthentication := True;
                 ARequest.Username := ARequest.Authentication.UserName;
                 ARequest.Password := ARequest.Authentication.Password;
@@ -1222,7 +1229,7 @@ begin
 
               OnProxyAuthorization(self, ProxyParams.Authentication, result);
 
-              if result then begin
+              if Result then begin
                 ProxyParams.BasicAuthentication := true;
                 ProxyParams.ProxyUsername := ProxyParams.Authentication.Username;
                 ProxyParams.ProxyPassword := ProxyParams.Authentication.Password;
@@ -1421,27 +1428,24 @@ var
 begin
   Request.SetHeaders;
   FHTTP.ProxyParams.SetHeaders(Request.RawHeaders);
-  if Assigned(AURI) then
+  if Assigned(AURI) then begin
     FHTTP.SetCookies(AURI, Request);
+  end;
 
   // This is a wrokaround for some HTTP servers wich does not implement properly the HTTP protocol
   FHTTP.OpenWriteBuffer;
-  case Request.Method of
-    hmHead: FHTTP.WriteLn('HEAD ' + Request.URL + ' HTTP/' + ProtocolVersionString[FHTTP.ProtocolVersion]); {do not localize}
-    hmGet: FHTTP.WriteLn('GET ' + Request.URL + ' HTTP/' + ProtocolVersionString[FHTTP.ProtocolVersion]); {do not localize}
-    hmPost: FHTTP.WriteLn('POST ' + Request.URL + ' HTTP/' + ProtocolVersionString[FHTTP.ProtocolVersion]); {do not localize}
-    // HTTP 1.1 only
-    hmOptions: FHTTP.WriteLn('OPTIONS ' + Request.URL + ' HTTP/' + ProtocolVersionString[FHTTP.ProtocolVersion]); {do not localize}
-    hmTrace: FHTTP.WriteLn('TRACE ' + Request.URL + ' HTTP/' + ProtocolVersionString[FHTTP.ProtocolVersion]); {do not localize}
-    hmPut: FHTTP.WriteLn('PUT ' + Request.URL + ' HTTP/' + ProtocolVersionString[FHTTP.ProtocolVersion]); {do not localize}
-    hmConnect: FHTTP.WriteLn('CONNECT ' + Request.URL + ' HTTP/' + ProtocolVersionString[FHTTP.ProtocolVersion]); {do not localize}
+  try
+    FHTTP.WriteLn(MethodString[Request.Method] + ' ' + Request.URL + ' HTTP/' + ProtocolVersionString[FHTTP.ProtocolVersion]); {do not localize}
+    // write the headers
+    for i := 0 to Request.RawHeaders.Count - 1 do
+      if Length(Request.RawHeaders.Strings[i]) > 0 then
+        FHTTP.WriteLn(Request.RawHeaders.Strings[i]);
+    FHTTP.WriteLn('');
+    FHTTP.CloseWriteBuffer;
+  except
+    FHTTP.CancelWriteBuffer;
+    raise;
   end;
-  // write the headers
-  for i := 0 to Request.RawHeaders.Count - 1 do
-    if Length(Request.RawHeaders.Strings[i]) > 0 then
-      FHTTP.WriteLn(Request.RawHeaders.Strings[i]);
-  FHTTP.WriteLn('');
-  FHTTP.CloseWriteBuffer;
 end;
 
 procedure TIdHTTPProtocol.RetrieveHeaders;
@@ -1469,6 +1473,7 @@ begin
 end;
 
 function TIdHTTPProtocol.ProcessResponse: TIdHTTPWhatsNext;
+
   procedure RaiseException;
   var
     LRespStream: TStringStream;
@@ -1506,6 +1511,14 @@ function TIdHTTPProtocol.ProcessResponse: TIdHTTPWhatsNext;
     end;
   end;
 
+  function HeadersCanContinue: Boolean;
+  begin
+    Result := True;
+    if Assigned(FHTTP.OnHeadersAvailable) then begin
+      FHTTP.OnHeadersAvailable(FHTTP, Response.RawHeaders, Result);
+    end;
+  end;
+
 var
   LTemp: Integer;
   LLocation: string;
@@ -1513,9 +1526,19 @@ var
   LResponseDigit: Integer;
   LNeedAutorization: Boolean;
 begin
-  result := wnDontKnow;
+
+  // provide the user with the headers and let the user decide
+  // whether the response processing should continue...
+  if not HeadersCanContinue then begin
+    Response.KeepAlive := False; // force DoRequest() to disconnect the connection
+    Result := wnJustExit;
+    Exit;
+  end;
+
+  Result := wnDontKnow;
   LNeedAutorization := False;
   LResponseDigit := Response.ResponseCode div 100;
+
   // Handle Redirects
   if ((LResponseDigit = 3) and (Response.ResponseCode <> 304)) or (Length(Response.Location) > 0) then
   begin
@@ -1527,7 +1550,7 @@ begin
       LMethod := Request.Method;
       if FHTTP.DoOnRedirect(LLocation, LMethod, FHTTP.FRedirectCount) then
       begin
-        result := wnGoToURL;
+        Result := wnGoToURL;
         Request.URL := LLocation;
         Request.Method := LMethod;
       end
@@ -1537,11 +1560,12 @@ begin
     else // Just fire the event
     begin
       LMethod := Request.Method;
-      result := wnJustExit;
-      if not FHTTP.DoOnRedirect(LLocation, LMethod, FHTTP.FRedirectCount) then // If not Handled
-        RaiseException
-      else
+      Result := wnJustExit;
+      if not FHTTP.DoOnRedirect(LLocation, LMethod, FHTTP.FRedirectCount) then begin // If not Handled
+        RaiseException;
+      end else begin
         Response.Location := LLocation;
+      end;
     end;
 
     if FHTTP.Connected then
@@ -1576,9 +1600,9 @@ begin
               if Assigned(Request.Authentication) then
                 Request.Authentication.Reset;
               RaiseException;
-            end else begin
-              if hoInProcessAuth in FHTTP.HTTPOptions then
-                LNeedAutorization := True;
+            end
+            else if hoInProcessAuth in FHTTP.HTTPOptions then begin
+              LNeedAutorization := True;
             end;
           end;
         407:
@@ -1612,15 +1636,16 @@ begin
           ReadContent;
         except end;
         FHTTP.ReadTimeout := LTemp;
-        result := wnAuthRequest
+        Result := wnAuthRequest
       end
       else if (Response.ResponseCode <> 204) then
       begin
         FHTTP.ReadResult(Response);
-        result := wnJustExit;
+        Result := wnJustExit;
       end
-      else
-        result := wnJustExit;
+      else begin
+        Result := wnJustExit;
+      end;
     end;
   end;
 end;
@@ -1628,17 +1653,19 @@ end;
 function TIdCustomHTTP.GetAuthRetries: Integer;
 begin
   if Assigned(Request.Authentication) then begin
-    result := Request.Authentication.AuthRetries;
-  end else
-    result := 0;
+    Result := Request.Authentication.AuthRetries;
+  end else begin
+    Result := 0;
+  end;
 end;
 
 function TIdCustomHTTP.GetProxyAuthRetries: Integer;
 begin
   if Assigned(ProxyParams.Authentication) then begin
-    result := ProxyParams.Authentication.AuthRetries;
-  end else
-    result := 0;
+    Result := ProxyParams.Authentication.AuthRetries;
+  end else begin
+    Result := 0;
+  end;
 end;
 
 end.

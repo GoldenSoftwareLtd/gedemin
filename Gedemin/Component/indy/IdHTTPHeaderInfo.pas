@@ -252,8 +252,9 @@ begin
 end;
 
 procedure TIdEntityHeaderInfo.ProcessHeaders;
-Var
-  LSecs, LMinutes, LHours: Integer;
+var
+  LSecs: Integer;
+  LValue: String;
 begin
   // Set and Delete so that later we copy remaining to optional headers
   with FRawHeaders do
@@ -268,16 +269,21 @@ begin
 
     FDate := idGlobal.GMTToLocalDateTime(Values['Date']); {do not localize}
     FLastModified := GMTToLocalDateTime(Values['Last-Modified']); {do not localize}
-    if StrToIntDef(Values['Expires'], -1) <> -1 then begin
+
+    LValue := Values['Expires']; {do not localize}
+    if IsNumeric(LValue) then
+    begin
       // This is happening when expires is returned as integer number in seconds
-      LSecs := StrToInt(Values['Expires']);
-      LHours := LSecs div 3600;
-      LMinutes := (LSecs mod 3600) div 60;
-      LSecs := (LSecs mod 3600) mod 60;
-      FExpires := Now + EncodeTime(LHours, LMinutes, LSecs, 0);
+      LSecs := StrToInt(LValue);
+      // RLebeau 02/28/2007 - IIS sometimes sends an 'Expires: -1' header
+      if LSecs >= 0 then begin
+        FExpires := Now + (LSecs / SecsPerDay);
+      end else begin
+        FExpires := 0.0;
+      end;
     end
     else begin
-      FExpires := GMTToLocalDateTime(Values['Expires']); {do not localize}
+      FExpires := GMTToLocalDateTime(LValue);
     end;
     FPragma := Values['Pragma'];  {do not localize}
   end;

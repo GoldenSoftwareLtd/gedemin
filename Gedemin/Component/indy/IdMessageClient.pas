@@ -524,6 +524,20 @@ begin
         end;
         WriteLn('--' + IndyMultiPartAlternativeBoundary + '--');
       end
+      // RLebeau 2/3/2006: If the user added a single texpart message without filling the body
+      // RLebeau 2/3/2003: we still need to send that out
+      else if AMsg.MessageParts.TextPartCount = 1 then
+      begin
+        for i := 0 to AMsg.MessageParts.Count - 1 do
+        begin
+          if AMsg.MessageParts.Items[i] is TIdText then
+          begin
+            DoStatus(hsStatusText,  [RSMsgClientEncodingText]);
+            WriteTextPart(AMsg.MessageParts.Items[i] as TIdText);
+            Break;
+          end;
+        end;
+      end
       else begin
         if LMIMEAttachments then
         begin
@@ -570,7 +584,7 @@ begin
             WriteStrings(LAttachment.ExtraHeaders);
             WriteLn('');
           end;
-          LDestStream := TIdTCPStream.Create(Self);
+          LDestStream := TIdTCPStream.Create(Self, 8192);
           try
             TIdAttachment(AMsg.MessageParts[i]).Encode(LDestStream);
           finally

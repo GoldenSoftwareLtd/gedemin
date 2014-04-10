@@ -23,8 +23,11 @@ type
   TIdTCPStream = class(TStream)
   protected
     FConnection: TIdTCPConnection;
+    FWriteBuffering: Boolean;
+    FWriteThreshold: Integer;
   public
-    constructor Create(AConnection: TIdTCPConnection); reintroduce;
+    constructor Create(AConnection: TIdTCPConnection; const AWriteThreshold: Integer = 0); reintroduce;
+    destructor Destroy; override;
     function Read(var ABuffer; ACount: Longint): Longint; override;
     function Write(const ABuffer; ACount: Longint): Longint; override;
     function Seek(AOffset: Longint; AOrigin: Word): Longint; override;
@@ -36,10 +39,19 @@ implementation
 
 { TIdTCPStream }
 
-constructor TIdTCPStream.Create(AConnection: TIdTCPConnection);
+constructor TIdTCPStream.Create(AConnection: TIdTCPConnection; const AWriteThreshold: Integer = 0);
 begin
   inherited Create;
   FConnection := AConnection;
+  FWriteThreshold := AWriteThreshold;
+end;
+
+destructor TIdTCPStream.Destroy;
+begin
+  if FWriteBuffering then begin
+    Connection.CloseWriteBuffer;
+  end;
+  inherited Destroy;
 end;
 
 function TIdTCPStream.Read(var ABuffer; ACount: Integer): Longint;
@@ -53,8 +65,18 @@ begin
   Result := -1;
 end;
 
+type
+  TIdTCPConnectionAccess = class(TIdTCPConnection)
+  end;
+
 function TIdTCPStream.Write(const ABuffer; ACount: Integer): Longint;
 begin
+  if (not FWriteBuffering) and (FWriteThreshold > 0) and
+     (TIdTCPConnectionAccess(Connection).FWriteBuffer = nil) then
+  begin
+    Connection.OpenWriteBuffer(FWriteThreshold);
+    FWriteBuffering := True;
+  end;
   Connection.WriteBuffer(ABuffer, ACount);
   Result := ACount;
 end;

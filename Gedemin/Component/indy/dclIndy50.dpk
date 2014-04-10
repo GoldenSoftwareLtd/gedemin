@@ -22,7 +22,7 @@ package dclIndy50;
 {$WRITEABLECONST ON}
 {$MINENUMSIZE 1}
 {$IMAGEBASE $400000}
-{$DESCRIPTION 'Internet Direct (Indy) for D5 Property and Component Editors'}
+{$DESCRIPTION 'Internet Direct (Indy) for Delphi/C++Builder 5 Property and Component Editors'}
 {$DESIGNONLY}
 {$IMPLICITBUILD OFF}
 

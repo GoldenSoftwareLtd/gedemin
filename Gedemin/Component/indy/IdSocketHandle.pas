@@ -275,13 +275,13 @@ begin
         Result := CheckIsReadable(GAntiFreeze.IdleTimeOut);
       until Result;
       Exit;
-    end else if AMSec > GAntiFreeze.IdleTimeOut then begin
-      Result := CheckIsReadable(AMSec - GAntiFreeze.IdleTimeOut);
+    end;
+    while AMSec > GAntiFreeze.IdleTimeOut do begin
+      Result := CheckIsReadable(GAntiFreeze.IdleTimeOut);
       if Result then begin
         Exit;
-      end else begin
-        AMSec := GAntiFreeze.IdleTimeOut;
       end;
+      Dec(AMSec, GAntiFreeze.IdleTimeOut);
     end;
   end;
   Result := CheckIsReadable(AMSec);

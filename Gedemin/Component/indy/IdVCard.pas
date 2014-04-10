@@ -408,7 +408,7 @@ uses
   IdCoderQuotedPrintable,
   SysUtils;
 
-const VCardProperties : array [1..28] of string = (
+const VCardProperties : array [0..27] of string = (
 'FN', 'N', 'NICKNAME', 'PHOTO',    {Do not Localize}
 'BDAY', 'ADR', 'LABEL', 'TEL',    {Do not Localize}
 'EMAIL', 'MAILER', 'TZ', 'GEO',    {Do not Localize}
@@ -416,9 +416,10 @@ const VCardProperties : array [1..28] of string = (
 'ORG', 'CATEGORIES', 'NOTE', 'PRODID',    {Do not Localize}
 'REV', 'SORT-STRING', 'SOUND', 'URL',    {Do not Localize}
 'UID', 'VERSION', 'CLASS', 'KEY');    {Do not Localize}
+
 { These constants are for testing the VCard for E-Mail types.
   Don't alter these }    {Do not Localize}
-const EMailTypePropertyParameter : array [1..12] of string =
+const EMailTypePropertyParameter : array [0..11] of string =
        ('AOL', {America On-Line}    {Do not Localize}
         'APPLELINK',   {AppleLink}    {Do not Localize}
         'ATTMAIL', { AT&T Mail }    {Do not Localize}
@@ -526,7 +527,7 @@ end;
 procedure ParseOrg ( OrgObj : TIdVCardBusinessInfo; OrgStr : String);
 begin
   { Organization name }
-  OrgObj.Organization := Fetch ( OrgStr );
+  OrgObj.Organization := Fetch ( OrgStr, ';' );
   { Divisions }
   ParseDelinatorToTStrings ( OrgObj.Divisions, OrgStr, ';' );    {Do not Localize}
 end;

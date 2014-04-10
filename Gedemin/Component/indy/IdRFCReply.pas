@@ -133,7 +133,7 @@ begin
         end;
       end;
     end else begin
-      Result := Result + IntToStr(NumericCode) + EOL;
+      Result := Result + IntToStr(NumericCode) + ' ' + EOL;
     end;
   end else if FText.Count > 0 then begin
     Result := FText.Text;

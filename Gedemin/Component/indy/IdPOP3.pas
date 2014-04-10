@@ -54,11 +54,15 @@ uses
 
 const
   DEF_APOP = False;
+  DEF_AUTOLOGIN = True; // RLebeau: backwards compatible behavior
 
 type
   TIdPOP3 = class(TIdMessageClient)
   protected
-    FAPOP : Boolean;
+    FAPOP: Boolean;
+    FAutoLogin: Boolean;
+    FAPOPToken: String;
+    FHasAPOP: Boolean;
   public
     function CheckMessages: longint;
     procedure Connect(const ATimeout: Integer = IdTimeoutDefault); override;
@@ -68,6 +72,7 @@ type
     function GetResponse(const AAllowedResponses: array of SmallInt): SmallInt;
       override;
     procedure KeepAlive;
+    procedure Login;
     function Reset: Boolean;
     function Retrieve(const MsgNum: Integer; AMsg: TIdMessage): Boolean;
     function RetrieveHeader(const MsgNum: Integer; AMsg: TIdMessage): Boolean;
@@ -75,8 +80,10 @@ type
     function RetrieveMailBoxSize: integer;
     function RetrieveRaw(const MsgNum: Integer; const Dest: TStrings): boolean;
     function UIDL(const ADest: TStrings; const AMsgNum: Integer = -1): Boolean;
+    property HasAPOP: Boolean read FHasAPOP;
   published
     property APOP: Boolean read FAPOP write FAPOP default DEF_APOP;
+    property AutoLogin: Boolean read FAutoLogin write FAutoLogin default DEF_AUTOLOGIN;
     property Password;
     property Username;
     property Port default IdPORT_POP3;
@@ -116,47 +123,32 @@ var
   S: String;
   i: Integer;
 begin
+  FHasAPOP := False;
+  FAPOPToken := ''; // RLebeau: February 1, 2006
+
   inherited Connect(ATimeout); // ds 2001-AUG-31
   try
     GetResponse([wsOk]);
-    if FAPOP then
-    begin //APR
-        S:=LastCmdResult.Text[0]; //read response
-        i:=Pos('<',S);    {Do not Localize}
-        if i>0 then begin
-           S:=Copy(S,i,MaxInt); //?: System.Delete(S,1,i-1);
-           i:=Pos('>',S);    {Do not Localize}
-           if i>0 then
-           begin
-             S:=Copy(S,1,i)
-           end
-           else begin
-             S:='';    {Do not Localize}
-           end;
-        end//if
-        else begin
-          S:=''; //no time-stamp    {Do not Localize}
-        end;
 
-        if Length(S) > 0 then
-        begin
-          with TIdHashMessageDigest5.Create do
-          try
-            S:=LowerCase(TIdHash128.AsHex(HashValue(S+Password)));
-          finally
-            Free;
-          end;//try
-
-          SendCmd('APOP '+Username+' '+S, wsOk);    {Do not Localize}
-        end
-        else begin
-          raise EIdException.Create(RSPOP3ServerDoNotSupportAPOP);
-        end;
-    end
-    else begin //classic method
-      SendCmd('USER ' + Username, wsOk);    {Do not Localize}
-      SendCmd('PASS ' + Password, wsOk);    {Do not Localize}
-    end;//if APOP
+    // the initial greeting text is needed to determine APOP availability
+    S := LastCmdResult.Text[0];
+    I := Pos('<', S);    {Do not Localize}
+    if I > 0 then begin
+      S := Copy(S, I, MaxInt);
+      I := Pos('>', S);    {Do not Localize}
+      if I > 0 then begin
+        S := Copy(S, 1, I);
+      end else begin
+        S := '';    {Do not Localize}
+      end;
+    end else begin
+      S := ''; //no time-stamp    {Do not Localize}
+    end;
+    FAPOPToken := S; // RLebeau: February 1, 2006
+    FHasAPOP := (Length(FAPOPToken) > 0);
+    if FAutoLogin then begin
+      Login;
+    end;
   except
     Disconnect;
     raise;
@@ -168,6 +160,7 @@ begin
   inherited Create(AOwner);
   Port := IdPORT_POP3;
   APOP := DEF_APOP;
+  AutoLogin := DEF_AUTOLOGIN;
 end;
 
 function TIdPOP3.Delete(const MsgNum: Integer): Boolean;
@@ -192,12 +185,33 @@ begin
   SendCmd('NOOP', wsOk);    {Do not Localize}
 end;
 
+procedure TIdPOP3.Login;
+var
+  S: String;
+begin
+  if FAPOP then begin
+    if FHasAPOP then begin
+      with TIdHashMessageDigest5.Create do
+      try
+        S := LowerCase(TIdHash128.AsHex(HashValue(FAPOPToken+Password))); // RLebeau: February 1, 2006
+      finally
+        Free;
+      end;//try
+      SendCmd('APOP ' + Username + ' ' + S, wsOk);    {Do not Localize}
+    end else begin
+      raise EIdException.Create(RSPOP3ServerDoNotSupportAPOP);
+    end;
+  end else begin //classic method
+    SendCmd('USER ' + Username, wsOk);    {Do not Localize}
+    SendCmd('PASS ' + Password, wsOk);    {Do not Localize}
+  end;
+end;
+
 function TIdPOP3.Reset: Boolean;
 begin
   SendCmd('RSET', wsOK);    {Do not Localize}
   Result := LastCmdResult.NumericCode = wsOK;
 end;
-
 
 function TIdPOP3.RetrieveRaw(const MsgNum: Integer; const Dest: TStrings):
   boolean;
@@ -229,7 +243,7 @@ begin
 //  Result := False;
   SendCmd('TOP ' + IntToStr(MsgNum) + ' 0', wsOk);    {Do not Localize}
   // Only gets here if no exception is raised
-  ReceiveHeader(AMsg,'.');
+  ReceiveHeader(AMsg, '.');
   Result := True;
 end;
 

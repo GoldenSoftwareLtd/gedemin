@@ -73,7 +73,6 @@ const
   sContentDisposition = 'Content-Disposition: form-data; name="%s"';
   sFileNamePlaceHolder = '; filename="%s"';
   sContentTypePlaceHolder = 'Content-Type: %s';
-  sContentTransferEncoding = 'Content-Transfer-Encoding: binary';
 
 type
   TIdMultiPartFormDataStream = class;
@@ -185,11 +184,11 @@ begin
   LItem := FFields.Add;
 
   with LItem do begin
-  	FFieldName := AFieldName;
-	  FFileName := AFileName;
-  	FFieldObject := AFileData;
+    FFieldName := AFieldName;
+    FFileName := AFileName;
+    FFieldObject := AFileData;
     if Length(AContentType) > 0 then begin
-  	  FContentType := AContentType;
+      FContentType := AContentType;
     end else begin
       if Length(FFileName) > 0 then begin
         FContentType := GetMIMETypeFromFile(FFileName);
@@ -210,19 +209,19 @@ var
 begin
   LStream := TFileStream.Create(AFileName, fmOpenRead or fmShareDenyWrite);
   try
-  	LItem := FFields.Add;
+    LItem := FFields.Add;
   except
-	  FreeAndNil(LStream);
-  	raise;
+    FreeAndNil(LStream);
+    raise;
   end;
 
   with LItem do begin
-  	FFieldName := AFieldName;
-	  FFileName := AFileName;
-  	FFieldObject := LStream;
-  	FCanFreeFieldObject := True;
+    FFieldName := AFieldName;
+    FFileName := AFileName;
+    FFieldObject := LStream;
+    FCanFreeFieldObject := True;
     if Length(AContentType) > 0 then begin
-  	  FContentType := AContentType;
+      FContentType := AContentType;
     end else begin
       FContentType := GetMIMETypeFromFile(AFileName);
     end;
@@ -239,8 +238,8 @@ begin
   LItem := FFields.Add;
 
   with LItem do begin
-  	FFieldName := AFieldName;
-	  FFieldValue := AFieldValue;
+    FFieldName := AFieldName;
+    FFieldValue := AFieldValue;
   end;
 
   FSize := FSize + LItem.FieldSize;
@@ -416,9 +415,8 @@ begin
   if Assigned(FieldObject) then begin
     if Length(FileName) > 0 then begin
       Result := Format('--%s' + crlf + sContentDisposition +
-        sFileNamePlaceHolder + crlf + sContentTypePlaceHolder +
-        crlf + sContentTransferEncoding + crlf + crlf,
-        [LBoundary, FieldName, FileName, ContentType]);
+		sFileNamePlaceHolder + crlf + sContentTypePlaceHolder +
+		crlf + crlf, [LBoundary, FieldName, FileName, ContentType]);
       Exit;
     end;
   end;

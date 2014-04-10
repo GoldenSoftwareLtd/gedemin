@@ -166,6 +166,7 @@ type
   TIdTelnetReadThread = class(TIdThread)
   protected
     FClient: TIdTelnet;
+    FIncomingData: String;
     //
     procedure Run; override;
     procedure HandleIncomingData;
@@ -250,6 +251,8 @@ end;
 
 procedure TIdTelnetReadThread.Run;
 begin
+  FIncomingData := FClient.CurrentReadBuffer;
+
   // if we have data run it through the negotiation routine. If we aren't
   // connected to a telnet server then the data just passes through the
   // negotiate routine unchanged.
@@ -258,17 +261,22 @@ begin
   // ensure that the OnTelnetCommand event handler is synchronized when
   // ThreadedEvent is false
 
-  if FClient.ThreadedEvent then begin
-    HandleIncomingData;
+  if FIncomingData <> '' then begin
+    if FClient.ThreadedEvent then begin
+      HandleIncomingData;
+    end else begin
+      Synchronize(HandleIncomingData);
+    end;
   end else begin
-    Synchronize(HandleIncomingData);
+    IdGlobal.Sleep(50);
   end;
+
   FClient.CheckForDisconnect;
 end;
 
 procedure TIdTelnetReadThread.HandleIncomingData;
 begin
-  FClient.Negotiate(FClient.CurrentReadBuffer);
+  FClient.Negotiate(FIncomingData);
 end;
 { TIdTelnet }
 
@@ -371,7 +379,6 @@ procedure TIdTelnet.Negotiate(const Buf: String);
 var
   LCount: Integer;
   bOffset   : Integer;
-  nOffset   : Integer;
   B         : Char;
   nBuf      : String;
   sbBuf     : String;
@@ -380,7 +387,6 @@ var
   SendBuf   : String;
 begin
   bOffset := 1;
-  nOffset := 0;
   sbCount := 1;
   CurrentSB := 1;
   nbuf := '';    {Do not Localize}
@@ -403,8 +409,7 @@ begin
           TNC_IAC:
             begin
               State := tnsData;
-              inc(nOffset);
-              nbuf[nOffset] := TNC_IAC;
+              nbuf := nbuf + b;
             end;
           TNC_WILL:
             State := tnsIAC_WILL;
@@ -473,9 +478,9 @@ begin
             ReceivedWillWont := TNC_WILL;
           end;
           State := tnsData;
+		end; // end tnsIAC_WONT
 
-        end; // end tnsIAC_WONT
-      tnsIAC_DO:
+	  tnsIAC_DO:
       begin
         case b of
           TNO_ECHO:
@@ -505,9 +510,10 @@ begin
         end;
         State := tnsData;
       end;
-      tnsIAC_DONT:
-      begin
-        case b of
+
+	  tnsIAC_DONT:
+	  begin
+		case b of
           TNO_ECHO:
             begin
               DoTelnetCommand(tncEcho);
@@ -540,47 +546,51 @@ begin
             State := tnsIAC_SBDATA;
           end;
         end;
-      tnsIAC_SBDATA:
-        begin
-          if b = TNC_IAC then
-            State := tnsSBDATA_IAC
-          else begin
-            inc(sbCount);
-            sbBuf := b;
-          end;
-        end;
-      tnsSBDATA_IAC:
-        case b of
-          TNC_IAC:
-            begin
-              State := tnsIAC_SBDATA;
-              inc(sbCount);
-              sbBuf[sbCount] := TNC_IAC;
-            end;
-          TNC_SE:
-            begin
-              handle_sb(CurrentSB,sbBuf,sbCount);
-              CurrentSB	:= 0;
-              State := tnsData;
-            end;
-          TNC_SB:
-            begin
-              handle_sb(CurrentSB,sbBuf,sbCount);
-              CurrentSB	:= 0;
-              State := tnsIAC_SB;
-            end
-         else
-           State := tnsDATA;
-         end;
-      else
-        State := tnsData;
-    end; // end case State
-    inc(boffset);
+
+	  tnsIAC_SBDATA:
+		begin
+		  if b = TNC_IAC then
+			State := tnsSBDATA_IAC
+		  else begin
+			Inc(sbCount);
+			sbBuf := b;
+		  end;
+		end;
+
+	  tnsSBDATA_IAC:
+		case b of
+		  TNC_IAC:
+			begin
+			  State := tnsIAC_SBDATA;
+			  inc(sbCount);
+			  sbBuf[sbCount] := TNC_IAC;
+			end;
+		  TNC_SE:
+			begin
+			  handle_sb(CurrentSB,sbBuf,sbCount);
+			  CurrentSB	:= 0;
+			  State := tnsData;
+			end;
+		  TNC_SB:
+			begin
+			  handle_sb(CurrentSB,sbBuf,sbCount);
+			  CurrentSB	:= 0;
+			  State := tnsIAC_SB;
+			end
+		 else
+		   State := tnsData;
+		 end;
+	  else
+		State := tnsData;
+	end; // end case State
+
+	Inc(bOffset);
   end; // end while
+
   // if textual data is returned by the server then send this data to
   // the client app
   if Length(nBuf) > 0 then begin
-    DoOnDataAvailable(nBuf);
+	DoOnDataAvailable(nBuf);
   end;
 end;
 

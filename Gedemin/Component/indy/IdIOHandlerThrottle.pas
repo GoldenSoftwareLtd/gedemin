@@ -29,6 +29,7 @@ type
     FBytesPerSec : Cardinal;
     function GetBitsPerSec : Cardinal;
     procedure SetBitsPerSec(AValue : Cardinal);
+    procedure SetChainedHandler(AValue: TIdIOHandler);
     procedure Notification(AComponent: TComponent; Operation: TOperation); override;
   public
     procedure Close; override;
@@ -45,21 +46,23 @@ type
   published
     property BytesPerSec : Cardinal read FBytesPerSec write FBytesPerSec;
     property BitsPerSec : Cardinal read GetBitsPerSec write SetBitsPerSec;
-    property ChainedHandler : TIdIOHandler read FChainedHandler write FChainedHandler;
+    property ChainedHandler : TIdIOHandler read FChainedHandler write SetChainedHandler;
   end;
 
 implementation
-uses IdException, IdResourceStrings, SysUtils;
 
-type EIdThrottleNoChainedIOHandler = class(EIdException);
+uses
+  IdException, IdResourceStrings, SysUtils;
+
+type
+  EIdThrottleNoChainedIOHandler = class(EIdException);
 
 { TIdIOHandlerThrottle }
 
 procedure TIdIOHandlerThrottle.Close;
 begin
-  inherited;
-  if Assigned(FChainedHandler) then
-  begin
+  inherited Close;
+  if Assigned(FChainedHandler) then begin
     FChainedHandler.Close;
   end;
 end;
@@ -68,25 +71,19 @@ procedure TIdIOHandlerThrottle.ConnectClient(const AHost: string;
   const APort: Integer; const ABoundIP: string; const ABoundPort,
   ABoundPortMin, ABoundPortMax, ATimeout: Integer);
 begin
-  inherited;
-  if Assigned(FChainedHandler) then
-  begin
-    FChainedHandler.ConnectClient(AHost,APort,ABoundIP,ABoundPort,ABoundPortMin,ABoundPortMax,ATimeout);
-  end
-  else
-  begin
+  inherited ConnectClient(AHost, APort, ABoundIP, ABoundPort, ABoundPortMin, ABoundPortMax, ATimeout);
+  if Assigned(FChainedHandler) then begin
+    FChainedHandler.ConnectClient(AHost, APort, ABoundIP, ABoundPort, ABoundPortMin, ABoundPortMax, ATimeout);
+  end else begin
     raise EIdThrottleNoChainedIOHandler.Create(RSIHTChainedNotAssigned);
   end;
 end;
 
 function TIdIOHandlerThrottle.Connected: Boolean;
 begin
-  if Assigned(FChainedHandler) then
-  begin
+  if Assigned(FChainedHandler) then begin
     Result := FChainedHandler.Connected;
-  end
-  else
-  begin
+  end else begin
     Result := False;
   end;
 end;
@@ -107,48 +104,38 @@ begin
 end;
 
 
-procedure TIdIOHandlerThrottle.Notification(AComponent: TComponent;
-  Operation: TOperation);
+procedure TIdIOHandlerThrottle.Notification(AComponent: TComponent; Operation: TOperation);
 begin
-  if (Operation = opRemove) then begin
-    if (AComponent = FChainedHandler) then begin
-      FChainedHandler := nil;
-    end;
+  if (Operation = opRemove) and (AComponent = FChainedHandler) then begin
+    FChainedHandler := nil;
   end;
-  inherited;
+  inherited Notification(AComponent, Operation);
 end;
 
 procedure TIdIOHandlerThrottle.Open;
 begin
   inherited Open;
-  if Assigned(FChainedHandler) then
-  begin
+  if Assigned(FChainedHandler) then begin
     FChainedHandler.Open;
-  end
-  else
-  begin
+  end else begin
     raise EIdThrottleNoChainedIOHandler.Create(RSIHTChainedNotAssigned);
   end;
 end;
 
-function TIdIOHandlerThrottle.Readable(AMSec: integer): boolean;
+function TIdIOHandlerThrottle.Readable(AMSec: Integer): Boolean;
 begin
-  if Assigned(FChainedHandler) then
-  begin
+  if Assigned(FChainedHandler) then begin
     Result := FChainedHandler.Readable(AMSec);
-  end
-  else
-  begin
+  end else begin
     Result := False;
   end;
 end;
 
-function TIdIOHandlerThrottle.Recv(var ABuf; ALen: integer): integer;
-var LWaitTime : Cardinal;
-    LRecVTime : Cardinal;
+function TIdIOHandlerThrottle.Recv(var ABuf; ALen: Integer): Integer;
+var
+  LWaitTime, LRecVTime : Cardinal;
 begin
-  if Assigned(FChainedHandler) then
-  begin
+  if Assigned(FChainedHandler) then begin
     if FBytesPerSec > 0 then begin
       LRecvTime := IdGlobal.GetTickCount;
       Result := FChainedHandler.Recv(ABuf, ALen);
@@ -162,37 +149,28 @@ begin
     end else begin
       Result := FChainedHandler.Recv(ABuf, ALen);
     end;
-  end
-  else
-  begin
+  end else begin
     Result := 0;
   end;
 end;
 
-function TIdIOHandlerThrottle.Send(var ABuf; ALen: integer): integer;
-var WaitTime : Cardinal;
-    SendTime : Cardinal;
+function TIdIOHandlerThrottle.Send(var ABuf; ALen: Integer): Integer;
+var
+  WaitTime, SendTime : Cardinal;
 begin
-  if Assigned(FChainedHandler) then
-  begin
-    if FBytesPerSec > 0 then
-    begin
+  if Assigned(FChainedHandler) then begin
+    if FBytesPerSec > 0 then begin
       WaitTime :=  Cardinal(ALen * 1000) div FBytesPerSec;
       SendTime := IdGlobal.GetTickCount;
       Result := FChainedHandler.Send(ABuf,ALen);
       SendTime := GetTickDiff(SendTime,IdGlobal.GetTickCount);
-      if WaitTime > SendTime then
-      begin
+      if WaitTime > SendTime then begin
         IdGlobal.Sleep(WaitTime - SendTime);
       end;
-    end
-    else
-    begin
-      Result := FChainedHandler.Send(ABuf,ALen);
+    end else begin
+      Result := FChainedHandler.Send(ABuf, ALen);
     end;
-  end
-  else
-  begin
+  end else begin
     Result := 0;
   end;
 end;
@@ -200,6 +178,16 @@ end;
 procedure TIdIOHandlerThrottle.SetBitsPerSec(AValue: Cardinal);
 begin
   FBytesPerSec := AValue div 8;
+end;
+
+procedure TIdIOHandlerThrottle.SetChainedHandler(AValue: TIdIOHandler);
+begin
+  if AValue <> FChainedHandler then begin
+    FChainedHandler := AValue;
+    if FChainedHandler <> nil then begin
+      FChainedHandler.FreeNotification(Self);
+    end;
+  end;
 end;
 
 end.

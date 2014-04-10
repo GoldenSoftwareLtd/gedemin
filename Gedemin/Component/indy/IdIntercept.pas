@@ -9,6 +9,11 @@
 {}
 { $Log:  10209: IdIntercept.pas 
 {
+{   Rev 1.1    12/14/04 4:08:54 PM  RLebeau
+{ Promoted the TIdConnectionIntercept.Intercept property from protected to
+{ published
+}
+{
 {   Rev 1.0    2002.11.12 10:42:16 PM  czhower
 }
 unit IdIntercept;
@@ -49,7 +54,6 @@ type
     procedure Notification(AComponent: TComponent; Operation: TOperation); override;
     procedure SetIntercept(AValue: TIdConnectionIntercept);
     //
-    property  Intercept: TIdConnectionIntercept read FIntercept write SetIntercept;
   public
     procedure Connect(AConnection: TComponent); virtual;
     constructor Create(AOwner: TComponent); override;
@@ -60,6 +64,7 @@ type
     property Connection: TComponent read FConnection;
     property IsClient: Boolean read FIsClient;
   published
+    property Intercept: TIdConnectionIntercept read FIntercept write SetIntercept;
     property OnConnect: TIdInterceptNotifyEvent read FOnConnect write FOnConnect;
     property OnDisconnect: TIdInterceptNotifyEvent read FOnDisconnect write FOnDisconnect;
     property OnReceive: TIdInterceptStreamEvent read FOnReceive write FOnReceive;

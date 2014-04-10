@@ -178,16 +178,14 @@ function DecodeHeader(Header: string):string;
 
   function FindEncodingStart(const AStr: String; AStartPos: Cardinal): Cardinal;
   begin
-    Result := PosIdx('=?ISO', AStr, AStartPos);
-    if Result = 0 then begin
-      Result := PosIdx('=?WINDOWS', AStr, AStartPos);
-    end;
+    Result := PosIdx('=?', AStr, AStartPos);
   end;
 
 var
   i, l: Integer;
   HeaderEncoding,
   HeaderCharSet,
+  LHeader,
   s: string;
   a3: array [1..3] of byte;
   a4: array [1..4] of byte;
@@ -195,8 +193,9 @@ var
   substring: string;
   EncodingFound : Boolean;
 begin
+  LHeader := UpperCase(Header);
   // Get the Charset part.
-  encodingstartpos := FindEncodingStart(UpperCase(Header), 1);
+  encodingstartpos := FindEncodingStart(LHeader, 1);
   while encodingstartpos > 0 do
   begin
     // Assume we will find the encoding
@@ -205,16 +204,14 @@ begin
     //we need 3 more question marks first and after that a '?='    {Do not Localize}
     //to find the end of the substring, we can't just search for '?=',    {Do not Localize}
     //example: '=?ISO-8859-1?Q?=E4?='    {Do not Localize}
-    encodingendpos := PosIdx('?', UpperCase(Header), encodingstartpos+5);  {Do not Localize}
-    //TODO: Who the hell put gotos in here?
-    //TODO: Remove these and whiplash that person
+    encodingendpos := PosIdx('?', LHeader, encodingstartpos+2);  {Do not Localize}
     if encodingendpos = 0 then begin
       EncodingFound := False;
     end;
 
     if EncodingFound then
     begin
-      encodingendpos := PosIdx('?', UpperCase(Header), encodingendpos+1);  {Do not Localize}
+      encodingendpos := PosIdx('?', LHeader, encodingendpos+1);  {Do not Localize}
       if encodingendpos = 0 then begin
         EncodingFound := False;
       end;
@@ -222,7 +219,7 @@ begin
 
     if EncodingFound then
     begin
-      encodingendpos := PosIdx('?=', UpperCase(Header), encodingendpos+1);  {Do not Localize}
+      encodingendpos := PosIdx('?=', LHeader, encodingendpos+1);  {Do not Localize}
       if encodingendpos > 0 then begin
         substring := Copy(Header, encodingstartpos, encodingendpos-encodingstartpos+2);
         //now decode the substring
@@ -242,33 +239,39 @@ begin
           EncodingFound := False;
         end;
 
-        // Get the HeaderEncoding
-        if AnsiSameText(HeaderEncoding, 'Q') and EncodingFound then {Do not Localize}
-        begin
-          i := 1;
-          s := '';        {Do not Localize}
-          repeat // substring can be accessed by index here, because we know that it ends with '?='    {Do not Localize}
-            if substring[i] = '_' then begin {Do not Localize}
-              s := s + ' ';    {Do not Localize}
-            end else if (substring[i] = '=') and (Length(substring) >= (i+2+2)) then begin //make sure we can access i+2 and '?=' is still beyond    {Do not Localize}
-              s := s + chr(StrToInt('$' + substring[i+1] + substring[i+2]));   {Do not Localize}
-              inc(i, 2);
-            end else begin
-              s := s + substring[i];
+        if EncodingFound then begin
+          // Get the HeaderEncoding
+          if AnsiSameText(HeaderEncoding, 'Q') then {Do not Localize}
+          begin
+            i := 1;
+            s := '';        {Do not Localize}
+            repeat // substring can be accessed by index here, because we know that it ends with '?='    {Do not Localize}
+              if substring[i] = '_' then begin {Do not Localize}
+                s := s + ' ';    {Do not Localize}
+              end else if (substring[i] = '=') and (Length(substring) >= (i+2+2)) then begin //make sure we can access i+2 and '?=' is still beyond    {Do not Localize}
+                s := s + chr(StrToInt('$' + substring[i+1] + substring[i+2]));   {Do not Localize}
+                inc(i, 2);
+              end else begin
+                s := s + substring[i];
+              end;
+              Inc(i);
+            until (substring[i] = '?') and (substring[i+1] = '=')   {Do not Localize}
+          end
+          else if AnsiSameText(HeaderEncoding, 'B') then begin
+            while Length(substring) >= 4 do begin
+              a4[1] := b64(substring[1]);
+              a4[2] := b64(substring[2]);
+              a4[3] := b64(substring[3]);
+              a4[4] := b64(substring[4]);
+              a3[1] := Byte((a4[1] shl 2) or (a4[2] shr 4));
+              a3[2] := Byte((a4[2] shl 4) or (a4[3] shr 2));
+              a3[3] := Byte((a4[3] shl 6) or (a4[4] shr 0));
+              substring := Copy(substring, 5, Length(substring));
+              s := s + CHR(a3[1]) + CHR(a3[2]) + CHR(a3[3]);
             end;
-            Inc(i);
-          until (substring[i] = '?') and (substring[i+1] = '=')   {Do not Localize}
-        end else if EncodingFound then begin
-          while Length(substring) >= 4 do begin
-            a4[1] := b64(substring[1]);
-            a4[2] := b64(substring[2]);
-            a4[3] := b64(substring[3]);
-            a4[4] := b64(substring[4]);
-            a3[1] := Byte((a4[1] shl 2) or (a4[2] shr 4));
-            a3[2] := Byte((a4[2] shl 4) or (a4[3] shr 2));
-            a3[3] := Byte((a4[3] shl 6) or (a4[4] shr 0));
-            substring := Copy(substring, 5, Length(substring));
-            s := s + CHR(a3[1]) + CHR(a3[2]) + CHR(a3[3]);
+          end else
+          begin
+            EncodingFound := False;
           end;
         end;
 
@@ -276,20 +279,28 @@ begin
         begin
           if AnsiSameText(HeaderCharSet, 'ISO-2022-JP') then begin  {Do not Localize}
             substring := Decode2022JP(s);
-          end else begin
+          end
+          {$IFDEF VCL6ORABOVE}
+          else if AnsiSameText(HeaderCharSet, 'UTF-8') then begin  {Do not Localize}
+            substring := UTF8Decode(s);
+          end
+          {$ENDIF}
+          else
+          begin
             substring := s;
           end;
 
           //replace old substring in header with decoded one:
           Header := Copy(Header, 1, encodingstartpos - 1)
-            + substring + Copy(Header, encodingendpos + 2, Length(Header));
+            + substring + Copy(Header, encodingendpos + 2, MaxInt);
           substring := '';   {Do not Localize}
-        end;
 
+          LHeader := UpperCase(Header);
+        end;
       end;
     end;
 
-    encodingstartpos := FindEncodingStart(UpperCase(Header), encodingstartpos+1);
+    encodingstartpos := FindEncodingStart(LHeader, encodingstartpos+1);
   end;
 
   //there might be #0's in header when this it b64 encoded, e.g with:    {Do not Localize}

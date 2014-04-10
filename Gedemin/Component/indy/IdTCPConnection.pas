@@ -648,7 +648,7 @@ begin
       end;
     end;
   until LTermPos > 0;
-  dec(LTermPos); // Strip terminators (string len w/o first terminator char)
+  Dec(LTermPos); // Strip terminators (string len w/o first terminator char)
   Result := InputBuffer.Extract(LTermPos + Length(ATerminator)); // Extract actual data
   if (ATerminator = LF) and (LTermPos > 0) and (Result[LTermPos] = CR) then begin
     SetLength(Result, LTermPos - 1);
@@ -690,7 +690,7 @@ var
   end;
 
 begin
-  if (AByteCount = -1) and (AReadUntilDisconnect = False) then begin
+  if (AByteCount < 0) and (not AReadUntilDisconnect) then begin
     // Read size from connection
     AByteCount := ReadInteger;
   end;
@@ -711,16 +711,27 @@ begin
     // If data already exists in the buffer, write it out first.
     if InputBuffer.Size > 0 then begin
       i := Min(InputBuffer.Size, LWorkCount);
-      InputBuffer.Position := 0;
-      AStream.CopyFrom(InputBuffer, i);
-      InputBuffer.Remove(i);
-      Dec(LWorkCount, i);
+      if i > 0 then begin
+        InputBuffer.Position := 0;
+        AStream.CopyFrom(InputBuffer, i);
+        InputBuffer.Remove(i);
+        Dec(LWorkCount, i);
+      end else if LWorkCount < 0 then begin
+        InputBuffer.Position := 0;
+        AStream.CopyFrom(InputBuffer, 0);
+        InputBuffer.Clear;
+      end;
     end;
 
     LBufSize := Min(LWorkCount, RecvBufferSize);
     SetLength(LBuf, LBufSize);
 
-    while Connected and (LWorkCount > 0) do begin
+    // RLebeau - don't call Connected() here!  ReadBuffer() already
+    // does that internally. Calling Connected() here can cause an
+    // EIdConnClosedGracefully exception that breaks the loop
+    // prematurely and thus leave unread bytes in the InputBuffer.
+    // Let the loop catch the exception before exiting...
+    while {Connected and} (LWorkCount > 0) do begin
       i := Min(LWorkCount, LBufSize);
       //TODO: Improve this - dont like the use of the exception handler
       //DONE -oAPR: Dont use a string, use a memory buffer or better yet the buffer itself.
@@ -729,10 +740,16 @@ begin
           ReadBuffer(LBuf[0], i);
         except
           on E: Exception do begin
-            i := InputBuffer.Size;
+            // RLebeau - ReadFromStack() inside of ReadBuffer()
+            // could have filled the InputBuffer with more bytes
+            // than actually requested, so don't extract too
+            // many bytes here...
+            i := Min(i, InputBuffer.Size);
             Move(InputBuffer.Memory^, LBuf[0], i);
-            InputBuffer.Clear; //InputBuffer.Remove(InputBuffer.Size);
-            if not (E is EIdConnClosedGracefully) or not AReadUntilDisconnect then begin
+            InputBuffer.Remove(i);
+            if (E is EIdConnClosedGracefully) and AReadUntilDisconnect then begin
+              Break;
+            end else begin
               raise;
             end;
           end;
@@ -836,7 +853,7 @@ begin
   if (AByteCount > 0) and (@ABuffer <> nil) then begin
     // Check if disconnected
     CheckForDisconnect(True, True);
-    if connected then begin
+    if Connected then begin
       if (FWriteBuffer = nil) or AWriteNow then begin
         LBuffer := TIdSimpleBuffer.Create; try
           LBuffer.WriteBuffer(ABuffer, AByteCount);
@@ -937,6 +954,7 @@ var
   LBuffer: TMemoryStream;
   LSize: Integer;
   LStreamEnd: Integer;
+//  LBufferingStarted: Boolean;
 begin
   if AAll then begin
     AStream.Position := 0;
@@ -948,28 +966,63 @@ begin
     LStreamEnd := ASize + AStream.Position;
   end;
   LSize := LStreamEnd - AStream.Position;
-  if AWriteByteCount then begin
-    WriteInteger(LSize);
+
+  // RLebeau 3/20/2006: DO NOT ENABLE WRITE BUFFERING IN THIS METHOD!
+  //
+  // When sending large streams, this can easily cause "Out of Memory" errors.
+  // It is the caller's responsibility to enable/disable write buffering as
+  // needed before calling one of the Write...() methods.
+  //
+  // Also, forcing write buffering in this method has major impacts on
+  // TIdFTP, TIdFTPServer, and TIdHTTPServer.
+
+  {
+  LBufferingStarted := FWriteBuffer = nil;
+  if LBufferingStarted then
+  begin
+    OpenWriteBuffer;
   end;
-  BeginWork(wmWrite, LSize); try
+  try
+  }
     LBuffer := TMemoryStream.Create; try
-      LBuffer.SetSize(FSendBufferSize);
-      while True do begin
-        LSize := Min(LStreamEnd - AStream.Position, FSendBufferSize);
-        if LSize = 0 then begin
-          Break;
-        end;
-        // Do not use ReadBuffer. Some source streams are real time and will not
-        // return as much data as we request. Kind of like recv()
-        // NOTE: We use .Size - size must be supported even if real time
-        LSize := AStream.Read(LBuffer.Memory^, LSize);
-        if LSize = 0 then begin
-          raise EIdNoDataToRead.Create(RSIdNoDataToRead);
-        end;
-        WriteBuffer(LBuffer.Memory^, LSize);
+      if AWriteByteCount then begin
+        WriteInteger(LSize);
       end;
+      BeginWork(wmWrite, LSize); try
+        LBuffer.Size := FSendBufferSize;
+        repeat
+          LSize := Min(LStreamEnd - AStream.Position, LBuffer.Size);
+          if LSize = 0 then begin
+            Break;
+          end;
+          // Do not use ReadBuffer. Some source streams are real time and will not
+          // return as much data as we request. Kind of like recv()
+          // NOTE: We use .Size - size must be supported even if real time
+          LSize := AStream.Read(LBuffer.Memory^, LSize);
+          if LSize = 0 then begin
+            raise EIdNoDataToRead.Create(RSIdNoDataToRead);
+          end;
+          WriteBuffer(LBuffer.Memory^, LSize);
+        until False;
+      finally EndWork(wmWrite); end;
     finally FreeAndNil(LBuffer); end;
-  finally EndWork(wmWrite); end;
+
+    {
+    if LBufferingStarted then
+    begin
+      CloseWriteBuffer;
+    end;
+  except
+    on E: Exception do
+    begin
+      if LBufferingStarted then
+      begin
+        CancelWriteBuffer;
+      end;
+      raise;
+    end;
+  end;
+  }
 end;
 
 procedure TIdTCPConnection.WriteStrings(AValue: TStrings; const AWriteLinesCount: Boolean = False);
@@ -1008,22 +1061,28 @@ end;
 
 procedure TIdTCPConnection.OpenWriteBuffer(const AThreshhold: Integer = -1);
 begin
-  FWriteBuffer := TIdSimpleBuffer.Create;
+  if FWriteBuffer = nil then begin
+    FWriteBuffer := TIdSimpleBuffer.Create;
+  end else begin
+    FWriteBuffer.Clear;
+  end;
   FWriteBufferThreshhold := AThreshhold;
 end;
 
 procedure TIdTCPConnection.CloseWriteBuffer;
 begin
-  try
-    FlushWriteBuffer;
-  finally
-    FreeAndNil(FWriteBuffer);
+  if FWriteBuffer <> nil then begin
+    try
+      FlushWriteBuffer;
+    finally
+      FreeAndNil(FWriteBuffer);
+    end;
   end;
 end;
 
 procedure TIdTCPConnection.FlushWriteBuffer(const AByteCount: Integer = -1);
 begin
-  if FWriteBuffer.Size > 0 then begin
+  if (FWriteBuffer <> nil) and (FWriteBuffer.Size > 0) then begin
     if (AByteCount = -1) or (FWriteBuffer.Size < AByteCount) then begin
       WriteBuffer(PChar(FWriteBuffer.Memory)[0], FWriteBuffer.Size, True);
       ClearWriteBuffer;
@@ -1036,7 +1095,9 @@ end;
 
 procedure TIdTCPConnection.ClearWriteBuffer;
 begin
-  FWriteBuffer.Clear;
+  if FWriteBuffer <> nil then begin
+    FWriteBuffer.Clear;
+  end;
 end;
 
 function TIdTCPConnection.InputLn(const AMask: string = ''; AEcho: Boolean = True;
@@ -1276,8 +1337,8 @@ var
   i: Integer;
 begin
   for i := 0 to AStrings.Count - 1 do begin
-    if AStrings[i] = '.' then begin
-      WriteLn('..');
+    if Copy(AStrings[i], 1, 1) = '.' then begin
+      WriteLn('.' + AStrings[i]);
     end else begin
       WriteLn(AStrings[i]);
     end;

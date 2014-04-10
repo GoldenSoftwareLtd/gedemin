@@ -9,6 +9,11 @@
 {}
 { $Log:  10169: IdGlobal.pas
 {
+{   Rev 1.11    24/11/2004 16:26:54  ANeillans
+{ GetTickCount corrected, as per Paul Cooper's post in
+{ atozedsoftware.indy.general.
+}
+{
 {   Rev 1.10    25/10/2004 10:09:58  ANeillans
 { Corrected incorrect brackets in GetTickCount
 }
@@ -318,6 +323,12 @@ type
   function MemoryPos(const ASubStr: String; MemBuff: PChar; MemorySize: Integer): Integer;
   function TimeZoneBias: TDateTime;
   function UpCaseFirst(const AStr: string): string;
+
+  //You could possibly use the standard StrInt and StrIntDef but these
+  //also remove spaces from the string using the trim functions.
+  function IndyStrToInt(const S: string): Integer; overload;
+  function IndyStrToInt(const S: string; ADefault: Integer): Integer; overload;
+
   {$IFDEF MSWINDOWS}
   function Win32Type : TIdWin32Type;
   {$ENDIF}
@@ -975,7 +986,7 @@ var
 begin
   if Windows.QueryPerformanceFrequency(freq) then
     if Windows.QueryPerformanceCounter(nTime) then
-       result:=Trunc((nTime/Freq)*1000)
+       Result := Trunc((nTime / Freq) * 1000) and High(Cardinal)
     else
        result:= Windows.GetTickCount
   else
@@ -1218,7 +1229,7 @@ end;
 function IsNumeric(const AString: string): Boolean;
 var
   LCode: Integer;
-  LVoid: Integer;
+  LVoid: Int64;
 begin
   Val(AString, LVoid, LCode);
   Result := LCode = 0;
@@ -2343,6 +2354,16 @@ begin
   end;
 end;
 
+function IndyStrToInt(const S: string): Integer;
+begin
+  Result := StrToInt(Trim(S));
+end;
+
+function IndyStrToInt(const S: string; ADefault: Integer): Integer;
+begin
+  Result := StrToIntDef(Trim(S), ADefault);
+end;
+
 initialization
   {$IFDEF LINUX}
   GStackClass := TIdStackLinux;
@@ -2366,4 +2387,3 @@ initialization
 finalization
   FreeAndNil(FIdPorts);
 end.
-

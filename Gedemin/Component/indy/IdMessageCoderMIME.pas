@@ -9,6 +9,10 @@
 {}
 { $Log:  10257: IdMessageCoderMIME.pas 
 {
+{   Rev 1.12    05/01/2005 17:22:28  CCostelloe
+{ Randomised MIME boundary.
+}
+{
 {   Rev 1.11    8/15/04 5:25:12 PM  RLebeau
 { Rewrote ReadHeader() to handle attachments similar to how Indy 10 does now
 }
@@ -77,6 +81,8 @@ type
     function ReadBody(ADestStream: TStream;
       var VMsgEnd: Boolean): TIdMessageDecoder; override;
     procedure ReadHeader; override;
+    class procedure SetupBoundaries;
+    class function GenerateRandomChar: Char;
     //
     property MIMEBoundary: string read FMIMEBoundary write FMIMEBoundary;
     property BodyEncoded: Boolean read FBodyEncoded write FBodyEncoded;
@@ -98,10 +104,15 @@ type
     procedure InitializeHeaders(AMsg: TIdMessage); override;
   end;
 
+var
+  IndyMIMEBoundary: string;
+  IndyMultiPartAlternativeBoundary: string;
+  IndyMultiPartRelatedBoundary: string;
+
 const
-  IndyMIMEBoundary = '=_MoreStuf_2zzz1234sadvnqw3nerasdf'; {do not localize}
-  IndyMultiPartAlternativeBoundary = '=_MoreStuf_2altzzz1234sadvnqw3nerasdf'; {do not localize}
-  IndyMultiPartRelatedBoundary = '=_MoreStuf_2relzzzsadvnq1234w3nerasdf'; {do not localize}
+  {IndyMIMEBoundary = '=_MoreStuf_2zzz1234sadvnqw3nerasdf'; {do not localize}
+  {IndyMultiPartAlternativeBoundary = '=_MoreStuf_2altzzz1234sadvnqw3nerasdf'; {do not localize}
+  {IndyMultiPartRelatedBoundary = '=_MoreStuf_2relzzzsadvnq1234w3nerasdf'; {do not localize}
   MIMEGenericText = 'text/'; {do not localize}
   MIMEGenericMultiPart = 'multipart/'; {do not localize}
   MIME7Bit = '7bit'; {do not localize}
@@ -117,15 +128,11 @@ uses
 function TIdMessageDecoderInfoMIME.CheckForStart(ASender: TIdMessage;
  ALine: string): TIdMessageDecoder;
 begin
-  if (ASender.MIMEBoundary.Boundary <> '') then begin
-    if AnsiSameText(ALine, '--' + ASender.MIMEBoundary.Boundary) then begin    {Do not Localize}
-      Result := TIdMessageDecoderMIME.Create(ASender);
-    end else if AnsiSameText(ASender.ContentTransferEncoding, 'base64') or    {Do not Localize}
-      AnsiSameText(ASender.ContentTransferEncoding, 'quoted-printable') then begin    {Do not Localize}
-        Result := TIdMessageDecoderMIME.Create(ASender, ALine);
-    end else begin
-      Result := nil;
-    end;
+  if (ASender.MIMEBoundary.Boundary <> '') and AnsiSameText(ALine, '--' + ASender.MIMEBoundary.Boundary) then begin    {Do not Localize}
+    Result := TIdMessageDecoderMIME.Create(ASender);
+  end else if AnsiSameText(ASender.ContentTransferEncoding, 'base64') or    {Do not Localize}
+    AnsiSameText(ASender.ContentTransferEncoding, 'quoted-printable') then begin    {Do not Localize}
+      Result := TIdMessageDecoderMIME.Create(ASender, ALine);
   end else begin
     Result := nil;
   end;
@@ -155,13 +162,56 @@ begin
   FFirstLine := ALine;
 end;
 
+class function TIdMessageDecoderMIME.GenerateRandomChar: Char;
+var
+  LOrd: integer;
+  LFloat: Double;
+begin
+  {Allow only digits (ASCII 48-57), uppercase letters (65-90) and lowercase
+  letters (97-122), which is 62 possible chars...}
+  LFloat := (Random* 61) + 1.5;  //Gives us 1.5 to 62.5
+  LOrd := Trunc(LFloat)+47;  //(1..62) -> (48..109)
+  if LOrd > 83 then begin
+    LOrd := LOrd + 13;  {Move into lowercase letter range}
+  end else if LOrd > 57 then begin
+    LOrd := LOrd + 7;  {Move into uppercase letter range}
+  end;
+  Result := Chr(LOrd);
+end;
+
+class procedure TIdMessageDecoderMIME.SetupBoundaries;
+var
+  LOrd: integer;
+  LN: integer;
+  LFloat: Double;
+begin
+  IndyMIMEBoundary := '1234567890123456789012345678901234';  {do not localize}
+  Randomize;
+  for LN := 1 to Length(IndyMIMEBoundary) do begin
+    IndyMIMEBoundary[LN] := GenerateRandomChar;
+  end;
+  {CC2: RFC 2045 recommends including "=_" in the boundary, insert in random location...}
+  LFloat := (Random * (Length(IndyMIMEBoundary)-2)) + 1.5;  //Gives us 1.5 to Length-0.5
+  LN := Trunc(LFloat);  // 1 to Length-1 (we are inserting a 2-char string)
+  IndyMIMEBoundary[LN] := '=';
+  IndyMIMEBoundary[LN+1] := '_';
+  {The Alternative boundary is the same with a random lowercase letter added...}
+  LFloat := (Random* 25) + 1.5;  //Gives us 1.5 to 26.5
+  LOrd := Trunc(LFloat)+96;  //(1..26) -> (97..122)
+  IndyMultiPartAlternativeBoundary := Chr(LOrd) + IndyMIMEBoundary;
+  {The Related boundary is the same with a random uppercase letter added...}
+  LFloat := (Random* 25) + 1.5;  //Gives us 1.5 to 26.5
+  LOrd := Trunc(LFloat)+64;  //(1..26) -> (65..90)
+  IndyMultiPartRelatedBoundary := Chr(LOrd) + IndyMultiPartAlternativeBoundary;
+end;
+
 function TIdMessageDecoderMIME.ReadBody(ADestStream: TStream; var VMsgEnd: Boolean): TIdMessageDecoder;
 var
   s: string;
   LDecoder: TIdDecoder;
   LLine: string;
 begin
-  VMsgEnd := FALSE;
+  VMsgEnd := False;
   Result := nil;
   if FBodyEncoded then begin
     s := TIdMessage(Owner).ContentTransferEncoding;
@@ -191,35 +241,35 @@ begin
       if MIMEBoundary <> '' then begin
         if AnsiSameText(LLine, '--' + MIMEBoundary) then begin    {Do not Localize}
           Result := TIdMessageDecoderMIME.Create(Owner);
-          Break;
-        // End of all coders (not quite ALL coders)
-        end
-        else if AnsiSameText(LLine, '--' + MIMEBoundary + '--') then begin    {Do not Localize}
+          Exit;
+        end;
+        if AnsiSameText(LLine, '--' + MIMEBoundary + '--') then begin    {Do not Localize}
           // POP the boundary
           if Owner is TIdMessage then begin
             TIdMessage(Owner).MIMEBoundary.Pop;
           end;
-          Break;
-        // Data to save, but not decode
-        end else if LDecoder = nil then begin
-          if (Length(LLine) > 0) and (LLine[1] = '.') then begin // Process . in front for no encoding    {Do not Localize}
-            Delete(LLine, 1, 1);
-          end;
-          LLine := LLine + EOL;
-          ADestStream.WriteBuffer(LLine[1], Length(LLine));
-        // Data to decode
-        end else begin
-          //for TIdDecoderQuotedPrintable, we have
-          //to make sure all EOLs are intact
-          if LDecoder is TIdDecoderQuotedPrintable then begin
-            LDecoder.DecodeToStream(LLine+EOL,ADestStream);
-          end else if LLine <> '' then begin
-            LDecoder.DecodeToStream(LLine, ADestStream);
-          end;
+          Exit;
+        end;
+      end;
+      if LDecoder = nil then begin
+        if (Length(LLine) > 0) and (LLine[1] = '.') then begin // Process . in front for no encoding    {Do not Localize}
+          Delete(LLine, 1, 1);
+        end;
+        LLine := LLine + EOL;
+        ADestStream.WriteBuffer(LLine[1], Length(LLine));
+      end else begin
+        //for TIdDecoderQuotedPrintable, we have
+        //to make sure all EOLs are intact
+        if LDecoder is TIdDecoderQuotedPrintable then begin
+          LDecoder.DecodeToStream(LLine+EOL, ADestStream);
+        end else if LLine <> '' then begin
+          LDecoder.DecodeToStream(LLine, ADestStream);
         end;
       end;
     until False;
-  finally FreeAndNil(LDecoder); end;
+  finally
+    FreeAndNil(LDecoder);
+  end;
 end;
 
 procedure TIdMessageDecoderMIME.ReadHeader;
@@ -382,4 +432,5 @@ initialization
     TIdMessageDecoderInfoMIME.Create);
   TIdMessageEncoderList.RegisterEncoder('MIME',    {Do not Localize}
     TIdMessageEncoderInfoMIME.Create);
+  TIdMessageDecoderMIME.SetupBoundaries;
 end.
