@@ -4681,7 +4681,7 @@ Begin
     end;                                     {CC3: ...IMAP hack inserted lines end here}
     LMsgEnd := False;
     if AMsg.NoDecode then begin
-        Capture(AMsg.Body, ADelim);
+        Capture(AMsg.Body, LDelim);
     end else begin
         BeginWork(wmRead);
         try

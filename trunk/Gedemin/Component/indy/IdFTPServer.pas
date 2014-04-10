@@ -283,6 +283,15 @@ uses
   IdTCPClient,
   IdEMailAddress;
 
+function TranslatePath(const ACurrentDir, AParam: String; const ASystem: TIdFTPSystems): String;
+begin
+  if ASystem = ftpsDOS then begin
+    Result := ProcessPath(ACurrentDir, AParam, '\');    {Do not Localize}
+  end else begin
+    Result := ProcessPath(ACurrentDir, AParam);
+  end;
+end;
+
 { TIdDataChannelThread }
 
 constructor TIdDataChannelThread.Create(APASV: Boolean; AControlConnection: TIdTCPServerConnection);
@@ -928,10 +937,7 @@ begin
   with TIdFTPServerThread(ASender.Thread) do begin
     if IsAuthenticated(ASender) then begin
       if Assigned(OnChangeDirectory) then begin
-        case FEmulateSystem of
-          ftpsDOS: s := ProcessPath(FCurrentDir, ASender.UnparsedParams, '\');    {Do not Localize}
-          ftpsOther, ftpsUNIX, ftpsVAX: s := ProcessPath(FCurrentDir, ASender.UnparsedParams);
-        end;
+        s := TranslatePath(FCurrentDir, ASender.UnparsedParams, FEmulateSystem);
         DoChangeDirectory(TIdFTPServerThread(ASender.Thread), s);
         ASender.Reply.SetReply(250, Format(RSFTPCmdSuccessful, ['CWD']));    {Do not Localize}
         FCurrentDir := s;
@@ -1117,9 +1123,8 @@ var
 begin
   with TIdFTPServerThread(ASender.Thread) do begin
     if IsAuthenticated(ASender) then begin
-      //TODO: Fix reference to /
-      s := ProcessPath(CurrentDir, ASender.UnparsedParams, '/');    {Do not Localize}
       if Assigned(FOnRetrieveFile) then begin
+        s := TranslatePath(FCurrentDir, ASender.UnparsedParams, FEmulateSystem);
         LStream := nil;
         FOnRetrieveFile(TIdFTPServerThread(ASender.Thread), s, LStream);
         if Assigned(LStream) then begin
@@ -1159,10 +1164,9 @@ begin
         LTmp1 := ASender.UnparsedParams;
       end;
       //
-      LTmp1 := ProcessPath(FCurrentDir, LTmp1);
-      LAppend := AnsiSameText(ASender.CommandHandler.Command, 'APPE');    {Do not Localize}
-      //
       if Assigned(FOnStoreFile) then begin
+        LTmp1 := TranslatePath(FCurrentDir, LTmp1, FEmulateSystem);
+        LAppend := AnsiSameText(ASender.CommandHandler.Command, 'APPE');    {Do not Localize}
         LStream := nil;
         FOnStoreFile(TIdFTPServerThread(ASender.Thread), LTmp1, LAppend, LStream);
         if Assigned(LStream) then begin
@@ -1340,8 +1344,8 @@ var
 begin
   with TIdFTPServerThread(ASender.Thread) do begin
     if IsAuthenticated(ASender) then begin
-      s := ProcessPath(FCurrentDir, ASender.UnparsedParams);
       if Assigned(FOnRemoveDirectory) then begin
+        s := TranslatePath(FCurrentDir, ASender.UnparsedParams, FEmulateSystem);
         DoRemoveDirectory(TIdFTPServerThread(ASender.Thread), s);
         ASender.Reply.SetReply(250, RSFTPFileActionCompleted);
       end else begin
@@ -1353,16 +1357,15 @@ end;
 
 procedure TIdFTPServer.CommandMKD(ASender: TIdCommand);
 var
-  S: string;
+  s: string;
 begin
   with TIdFTPServerThread(ASender.Thread) do begin
     if IsAuthenticated(ASender) then begin
-      S := ProcessPath(FCurrentDir, ASender.UnparsedParams);
       if Assigned(FOnMakeDirectory) then begin
+        s := TranslatePath(FCurrentDir, ASender.UnparsedParams, FEmulateSystem);
         FOnMakeDirectory(TIdFTPServerThread(ASender.Thread), s);
-        ASender.Reply.SetReply(257, RSFTPFileActionCompleted);
-      end
-      else begin
+        ASender.Reply.SetReply(257, Format(RSFTPDirFileCreated, [s])); {Do not Localize}
+      end else begin
         ASender.Reply.SetReply(550, Format(RSFTPCmdNotImplemented, ['MKD']));    {Do not Localize}
       end;
     end;
@@ -1382,14 +1385,15 @@ end;
 
 procedure TIdFTPServer.CommandLIST(ASender: TIdCommand);
 var
+  s: String;
   LStream: TstringList;
 begin
   with TIdFTPServerThread(ASender.Thread) do begin
     if IsAuthenticated(ASender) then begin
-      LStream := TstringList.Create;
+      s := TranslatePath(FCurrentDir, ASender.UnparsedParams, FEmulateSystem);
+      LStream := TStringList.Create;
       try
-        ListDirectory(TIdFTPServerThread(ASender.Thread), ProcessPath(FCurrentDir
-         , ASender.UnparsedParams), LStream, ASender.CommandHandler = FCmdHandlerList);
+        ListDirectory(TIdFTPServerThread(ASender.Thread), s, LStream, ASender.CommandHandler = FCmdHandlerList);
       finally
         FDataChannelThread.Data := LStream;
         FDataChannelThread.OKReply.SetReply(226, RSFTPDataConnClosed);
@@ -1438,22 +1442,23 @@ end;
 
 procedure TIdFTPServer.CommandSTAT(ASender: TIdCommand);
 var
+  s: string;
   LStream: TstringList;
 begin
   with TIdFTPServerThread(ASender.Thread) do begin
     if IsAuthenticated(ASender) then begin
-      if NOT FDataChannelThread.Stopped then begin //was .Suspended
+      if not FDataChannelThread.Stopped then begin //was .Suspended
         ASender.Reply.SetReply(211, RSFTPOpenDataConn);
       end;
       //else act as LIST command without a data channel
       ASender.Reply.SetReply(211, RSFTPDataConnToOpen);
       ASender.SendReply;
+      s := TranslatePath(FCurrentDir, ASender.UnparsedParams, FEmulateSystem);
       LStream := TStringList.Create;
       try
-        ListDirectory(TIdFTPServerThread(ASender.Thread), ProcessPath(FCurrentDir,
-          ASender.UnparsedParams), LStream, True);
+        ListDirectory(TIdFTPServerThread(ASender.Thread), s, LStream, True);
       finally
-        Connection.Writestrings(LStream);
+        Connection.WriteStrings(LStream);
         FreeAndNil(LStream);
       end;
       ASender.Reply.SetReply(211, RSFTPCmdEndOfStat);
@@ -1491,9 +1496,9 @@ begin
   with TIdFTPServerThread(ASender.Thread) do begin
     if IsAuthenticated(ASender) then
     begin
-      s := ProcessPath(FCurrentDir, ASender.UnparsedParams);
       if Assigned(FOnGetFileSize) then
       begin
+        s := TranslatePath(FCurrentDir, ASender.UnparsedParams, FEmulateSystem);
         try
           LSize := -1;
           FOnGetFileSize(TIdFTPServerThread(ASender.Thread), s, LSize);

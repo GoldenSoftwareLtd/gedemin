@@ -308,24 +308,30 @@ begin
   //^FreeAndNil(FOutboundClient);
   FreeAndNil(FReadList);
   inherited Destroy;
-End;
+end;
 
 procedure TIdMappedPortThread.OutboundConnect;
-Begin
-  FOutboundClient := TIdTCPClient.Create(NIL);
+begin
+  FOutboundClient := TIdTCPClient.Create(nil);
   with TIdMappedPortTCP(Connection.Server) do begin
     try
       with TIdTcpClient(FOutboundClient) do begin
         Port := MappedPort;
         Host := MappedHost;
       end;//with
-      DoLocalClientConnect(SELF);
+      DoLocalClientConnect(Self);
 
       TIdTcpClient(FOutboundClient).Connect(FConnectTimeOut);
-      DoOutboundClientConnect(SELF);
+      DoOutboundClientConnect(Self);
+
+      FNetData := Connection.CurrentReadBuffer;
+      if Length(FNetData) > 0 then begin
+        DoLocalClientData(Self);
+        FOutboundClient.Write(FNetData);
+      end;//if
     except
       on E: Exception do begin
-        DoOutboundClientConnect(SELF,E); // DONE: Handle connect failures
+        DoOutboundClientConnect(Self, E); // DONE: Handle connect failures
         Connection.Disconnect; //req IdTcpServer with "Stop this thread if we were disconnected"
       end;
     end;//trye

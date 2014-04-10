@@ -463,11 +463,18 @@ begin
   if Length(AValue) > 0 then
   begin
     try
-      // If you see an exception here then that means the HTTP server has returned an invalid expires
-      // date/time value. The correct format is Wdy, DD-Mon-YY HH:MM:SS GMT
+      if IsNumeric(AValue) then
+      begin
+        // This is happening when expires is returned as integer number in seconds
+        FMax_Age := StrToInt64(AValue);
+      end else
+      begin
+        // If you see an exception here then that means the HTTP server has returned an invalid expires
+        // date/time value. The correct format is Wdy, DD-Mon-YY HH:MM:SS GMT
 
-      // AValue := StringReplace(AValue, '-', ' ', [rfReplaceAll]);    {Do not Localize}
-      FMax_Age := Trunc((GMTToLocalDateTime(AValue) - Now) * MSecsPerDay / 1000);
+        // AValue := StringReplace(AValue, '-', ' ', [rfReplaceAll]);    {Do not Localize}
+        FMax_Age := Trunc((GMTToLocalDateTime(AValue) - Now) * MSecsPerDay / 1000);
+      end;
     except end;
   end;
   inherited SetExpires(AValue);

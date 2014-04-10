@@ -166,6 +166,7 @@ type
     RCPT: TIdEMailAddressList; var CustomError: string) of object;
   TOnReceiveMessage = procedure(ASender: TIdCommand; var AMsg: TIdMessage; RCPT:
     TIdEMailAddressList; var CustomError: string) of object;
+  TOnSMTPEvent = procedure(ASender: TIdCommand) of object;
 
   TBasicHandler = procedure(ASender: TIdCommand) of object;
   TUserHandler = procedure(ASender: TIdCommand; var Accept: Boolean; Username,
@@ -174,6 +175,7 @@ type
     Boolean; EMailAddress: string; var CustomError: string) of object;
   THasAddress2 = procedure(const ASender: TIdCommand; var Accept: Boolean;
     EMailAddress: string) of object;
+
   TIdSMTPReceiveMode = (rmRaw, rmMessage, rmMessageParsed);
   TIdStreamType = (stFileStream, stMemoryStream);
 
@@ -287,7 +289,8 @@ type
     fOnCommandVRFY,
     fOnCommandEXPN,
     fOnCommandTURN,
-    fOnCommandAUTH: TBasicHandler;
+    fOnCommandAUTH,
+    fOnCommandRSET: TBasicHandler;
     fCheckUser: TUserHandler;
     //
     procedure CommandData(ASender: TIdCommand);
@@ -351,6 +354,8 @@ type
       fOnCommandExpn;
     property OnCommandTURN: TBasicHandler read fOnCommandTurn write
       fOnCommandTurn;
+    property OnCommandRSET: TBasicHandler read fOnCommandRset write
+      fOnCommandRset;
   end;
 
   TIdSMTPState = (idSMTPNone,idSMTPHelo,idSMTPMail,idSMTPRcpt,idSMTPData);
@@ -694,58 +699,50 @@ begin
 
   if UpperCase(Login) = 'LOGIN' then    {Do not Localize}
   begin // LOGIN USING THE LOGIN AUTH - BASE64 ENCODED
-    s := 'Username:';    {Do not Localize}
-    s := TIdEncoderMIME.EncodeString(s);
-    //  s := SendRequest( '334 ' + s );    {Do not Localize}
-    ASender.Thread.connection.Writeln('334 ' + s);    {Do not Localize}
-    s := Trim(ASender.Thread.Connection.ReadLn);
-    if s <> '' then    {Do not Localize}
-    begin
-      try
-        s := TIdDecoderMIME.DecodeString(s);
-
-        Username := s;
-        // What? Endcode this string literal?
-        s := 'Password:';    {Do not Localize}
-        s := TIdEncoderMIME.EncodeString(s);
+    try
+      s := TIdEncoderMIME.EncodeString('Username:');  {Do not Localize}
+      //  s := SendRequest( '334 ' + s );    {Do not Localize}
+      ASender.Thread.Connection.WriteLn('334 ' + s);    {Do not Localize}
+      s := Trim(ASender.Thread.Connection.ReadLn);
+      if s <> '' then begin   {Do not Localize}
+        Username := TIdDecoderMIME.DecodeString(s);
+        // What? Encode this string literal?
+        s := TIdEncoderMIME.EncodeString('Password:');  {Do not Localize}
         //    s := SendRequest( '334 ' + s );    {Do not Localize}
-        ASender.Thread.connection.Writeln('334 ' + s);    {Do not Localize}
+        ASender.Thread.Connection.WriteLn('334 ' + s);    {Do not Localize}
         s := Trim(ASender.Thread.Connection.ReadLn);
-        if Length(s) = 0 then
-          AuthFailed := True
-        else
-        begin
+        if s <> '' then begin
           Password := TIdDecoderMIME.DecodeString(s);
+        end else begin
+          AuthFailed := True
         end;
-      // when TIdDecoderMime.DecodeString(s) raise a exception,catch it and set AuthFailed as true
-      except
-        AuthFailed := true;
+      end else begin
+        AuthFailed := True;
       end;
-    end
-    else
-      AuthFailed := True;
+    except
+      AuthFailed := true;
+    end;
   end;
 
   // Add other login units here
 
-  if AuthFailed then
-  begin
+  if AuthFailed then begin
     Result := False;
     ASender.Thread.Connection.Writeln('535 ' + fMessages.FGreeting.fAuthFailed);    {Do not Localize}
-  end
-  else
-  begin
+  end else begin
     Accepted := False;
-    if Assigned(fCheckUser) then
+    if Assigned(fCheckUser) then begin
       CheckUser(ASender, Accepted, Username, Password)
-    else
+    end else begin
       Accepted := True;
+    end;
     TIdSMTPServerThread(ASender.Thread).LoggedIn := Accepted;
     TIdSMTPServerThread(ASender.Thread).Username := Username;
-    if not Accepted then
+    if not Accepted then begin
       ASender.Thread.Connection.Writeln('535 ' + fMessages.FGreeting.fAuthFailed)    {Do not Localize}
-    else
+    end else begin
       ASender.Thread.Connection.Writeln('235 welcome ' + Trim(Username));    {Do not Localize}
+    end;
   end;
 end;
 
@@ -871,15 +868,19 @@ begin
 end;
 
 procedure TIdSMTPServer.CommandRSET(ASender: TIdCommand);
+var
+  LThread: TIdSMTPServerThread;
 begin
-  TIdSMTPServerThread(ASender.Thread).RCPTList.Clear;
-  TIdSMTPServerThread(ASender.Thread).From := '';    {Do not Localize}
-  with TIdSMTPServerThread(ASender.Thread) do
-  begin
-    if Ehlo or Helo then
-      SMTPState := idSMTPHelo
-    else
-      SMTPState := idSMTPNone;
+  LThread := TIdSMTPServerThread(ASender.Thread);
+  LThread.RCPTList.Clear;
+  LThread.From := '';    {Do not Localize}
+  if LThread.Ehlo or LThread.Helo then begin
+    LThread.SMTPState := idSMTPHelo;
+  end else begin
+    LThread.SMTPState := idSMTPNone;
+  end;
+  if Assigned(FOnCommandRset) then begin
+    FOnCommandRset(ASender);
   end;
 end;
 

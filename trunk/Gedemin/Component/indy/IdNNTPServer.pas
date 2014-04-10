@@ -9,6 +9,10 @@
 {}
 { $Log:  10273: IdNNTPServer.pas 
 {
+{   Rev 1.9    1/3/05 4:40:18 PM  RLebeau
+{ Fix for AV in DistributionPatterns property
+}
+{
 {   Rev 1.8    2/9/04 9:22:26 PM  RLebeau
 { Updated to support more extensions from RFC 2980
 }
@@ -135,21 +139,20 @@ Responses
    205 closing connection - goodbye!
    211 n f l s group selected
    215 list of newsgroups follows
-   220 n <a> article retrieved - head and body follow 221 n <a> article
-   retrieved - head follows
+   220 n <a> article retrieved - head and body follow
+   221 n <a> article retrieved - head follows
    222 n <a> article retrieved - body follows
-   223 n <a> article retrieved - request text separately 230 list of new
-   articles by message-id follows
+   223 n <a> article retrieved - request text separately
+   230 list of new articles by message-id follows
    231 list of new newsgroups follows
    235 article transferred ok
    240 article posted ok
    281 Authentication accepted
 
-
-
    335 send article to be transferred.  End with <CR-LF>.<CR-LF>
    340 send article to be posted. End with <CR-LF>.<CR-LF>
    381 More authentication information required
+
    400 service discontinued
    411 no such news group
    412 no newsgroup has been selected
@@ -165,6 +168,7 @@ Responses
    441 posting failed
    480 Authentication required
    482 Authentication rejected
+
    500 command not recognized
    501 command syntax error
    502 access restriction or permission denied
@@ -206,7 +210,7 @@ type
   TIdNNTPOnIHaveCheck = procedure(AThread: TIdNNTPThread; const AMsgID : String; VAccept : Boolean) of object;
   TIdNNTPOnArticleByNo = procedure(AThread: TIdNNTPThread; const AMsgNo: Integer) of object;
   TIdNNTPOnArticleByID = procedure(AThread: TIdNNTPThread; const AMsgID: string) of object;
-  TIdNNTPOnCheckMsgNo = procedure(AThread: TIdNNTPThread; const AMsgNo: Integer;var VMsgID: string) of object;
+  TIdNNTPOnCheckMsgNo = procedure(AThread: TIdNNTPThread; const AMsgNo: Integer; var VMsgID: string) of object;
   TIdNNTPOnCheckMsgID = procedure(AThread: TIdNNTPThread; const AMsgId : string; var VMsgNo : Integer) of object;
   //this has to be a separate event type in case a NNTP client selects a message
   //by Message ID instead of Index number.  If that happens, the user has to
@@ -231,7 +235,6 @@ type
   TIdNNTPOnListPattern = procedure(AThread: TIdNNTPThread; const AGroupPattern: String) of object;
 
   TIdNNTPServer = class(TIdTCPServer)
-  private
   protected
     FHelp: TStrings;
     FDistributionPatterns: TStrings;
@@ -307,6 +310,7 @@ type
     procedure CommandXOver(ASender: TIdCommand);
     procedure CommandXROver(ASender: TIdCommand);
     procedure CommandXPat(ASender: TIdCommand);
+
     procedure DoSelectGroup(AThread: TIdNNTPThread; const AGroup: string; var VMsgCount: Integer;
      var VMsgFirst: Integer; var VMsgLast: Integer; var VGroupExists: Boolean);
     procedure InitializeCommandHandlers; override;
@@ -1899,9 +1903,11 @@ end;
 constructor TIdNNTPServer.Create(AOwner: TComponent);
 begin
   inherited;
-  FHelp := TStringList.Create;
 
+  FDistributionPatterns := TStringList.Create;
+  FHelp := TStringList.Create;
   FOverviewFormat := TStringList.Create;
+
   with FOverviewFormat do begin
     Add('Subject:');
     Add('From:');
@@ -1931,8 +1937,9 @@ end;
 
 destructor TIdNNTPServer.Destroy;
 begin
-  FreeAndNil(FOverviewFormat);
+  FreeAndNil(FDistributionPatterns);
   FreeAndNil(FHelp);
+  FreeAndNil(FOverviewFormat);
   inherited;
 end;
 
@@ -2469,7 +2476,7 @@ begin
     try
       LReply.NumericCode := 350;
       ReplyTexts.UpdateText(LReply);
-      ASender.Thread.Connection.WriteRFCReply(LReply);
+      LThread.Connection.WriteRFCReply(LReply);
     finally
       FreeAndNil(LReply);
     end;
@@ -2603,36 +2610,35 @@ begin
 
   if (Length(s) = 0) then begin
     VNo := LThread.CurrentArticle;
-    Result := (VNo <> 0);
+    Result := (VNo > 0);
     if not Result then begin
-	    ASender.Reply.NumericCode := 420;  // Current article no not set.
-  	end;
+      ASender.Reply.NumericCode := 420;  // Current article no not set.
+    end;
+    Exit;
+  end;
+
+  if (Copy(s, 1, 1) = '<') then begin
+    VNo := DoCheckMsgID(LThread, s);
+    Result := (VNo > 0);
+    if not Result then begin
+      ASender.Reply.NumericCode := 430 // Article not found
+    end;
+    {
+    RL - per RFC 977, the CurrentArticle should not
+    be updated when selecting an article by MsgID
+    }
   end
   else
   begin
-    if (Copy(s, 1, 1) = '<') then begin
-  		VNo := DoCheckMsgID(LThread, s);
-      Result := (VNo <> 0);
-  	  if not Result then begin
-		    ASender.Reply.NumericCode := 430 // Article not found
-  	  end;
-      {
-      RL - per RFC 977, the CurrentArticle should not
-      be updated when selecting an article by MsgID
-      }
-	  end
-    else
-    begin
-  	  VNo := StrToIntDef(s, 0);
-      if Assigned(OnCheckMsgNo) then begin
-        OnCheckMsgNo(LThread, VNo, VId);
-      end;
-      Result := (Length(VId) <> 0);
-      if Result then begin
-        LThread.FCurrentArticle := VNo;
-      end else begin
-        ASender.Reply.NumericCode := 423;  // Article no does not exist
-      end;
+    VNo := StrToIntDef(s, 0);
+    if (VNo > 0) and Assigned(OnCheckMsgNo) then begin
+      OnCheckMsgNo(LThread, VNo, VId);
+    end;
+    Result := (Length(VId) <> 0);
+    if Result then begin
+      LThread.FCurrentArticle := VNo;
+    end else begin
+      ASender.Reply.NumericCode := 423;  // Article no does not exist
     end;
   end;
 end;
@@ -2642,6 +2648,7 @@ function TIdNNTPServer.LookupMessageRange(ASender: TIdCommand; const AData: Stri
 var
   s: String;
   LThread: TIdNNTPThread;
+  IsRange: Boolean;
 begin
   Result := False;
   LThread := TIdNNTPThread(ASender.Thread);
@@ -2654,25 +2661,38 @@ begin
   s := Trim(AData);
 
   if (Length(s) = 0) then begin
+    IsRange := False;
     VMsgFirst := LThread.CurrentArticle;
   end else begin
-    VMsgFirst := StrToIntDef(Trim(Fetch(s, '-')), 0);
+    IsRange := (Pos('-', s) > 1); {do not localize}
+    if IsRange then begin
+      VMsgFirst := StrToIntDef(Trim(Fetch(s, '-')), 0);
+    end else begin
+      VMsgFirst := StrToIntDef(s, 0);
+    end;
   end;
 
-  if (VMsgFirst <> 0) then begin
+  if (VMsgFirst <= 0) then begin
+    ASender.Reply.NumericCode := 420;
+    Exit;
+  end;
+
+  if IsRange then begin
     s := Trim(s);
     if (Length(s) = 0) then begin
-      VMsgLast := VMsgFirst;
+      VMsgLast := 0;  // return all from VMsgFirst onwards
     end else begin
       VMsgLast := StrToIntDef(s, 0);
-    end;
-    Result := (VMsgLast <> 0);
-    if not Result then begin
-      ASender.Reply.NumericCode := 501;
+      if (VMsgLast < VMsgFirst) then begin
+        ASender.Reply.NumericCode := 501;
+        Exit;
+      end;
     end;
   end else begin
-    ASender.Reply.NumericCode := 420;
+    VMsgLast := VMsgFirst;
   end;
+
+  Result := True;
 end;
 
 function TIdNNTPServer.LookupMessageRangeOrID(ASender: TIdCommand; const AData: String;
@@ -2694,14 +2714,14 @@ begin
 
   if (Copy(s, 1, 1) = '<') then begin
     LFirstMsg := DoCheckMsgID(LThread, s);
-    if (LFirstMsg <> 0) then begin
-      VMsgFirst := LFirstMsg;
-      VMsgLast := LFirstMsg;
-      VMsgID := s;
-      Result := True;
-    end else begin
+    if (LFirstMsg <= 0) then begin
       ASender.Reply.NumericCode := 430;
+      Exit;
     end;
+    VMsgFirst := LFirstMsg;
+    VMsgLast := LFirstMsg;
+    VMsgID := s;
+    Result := True;
   end else begin
     Result := LookupMessageRange(ASender, s, VMsgFirst, VMsgLast);
   end;

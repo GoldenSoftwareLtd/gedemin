@@ -41,6 +41,8 @@ type
   TIdIPMCastServer = class(TIdIPMCastBase)
   protected
     FBinding: TIdSocketHandle;
+    FBoundIP: String;
+    FBoundPort: Integer;
     FLoopback: Boolean;
     FTimeToLive: Byte;
     //
@@ -50,6 +52,7 @@ type
     procedure Loaded; override;
     procedure MulticastBuffer(AHost: string; const APort: Integer; var ABuffer; const AByteCount: integer);
     procedure SetLoopback(const AValue: Boolean); virtual;
+    procedure SetLoopbackOption(InBinding: TIdSocketHandle; const Value: Boolean); virtual;
     procedure SetTTL(const Value: Byte); virtual;
     procedure SetTTLOption(InBinding: TIdSocketHandle; const Value: Byte); virtual;
   public
@@ -61,6 +64,8 @@ type
     property Binding: TIdSocketHandle read GetBinding;
   published
     property Active;
+    property BoundIP: String read FBoundIP write FBoundIP;
+    property BoundPort: Integer read FBoundPort write FBoundPort;
     property Loopback: Boolean read FLoopback write SetLoopback default DEF_IMP_LOOPBACK;
     property MulticastGroup;
     property Port;
@@ -98,19 +103,21 @@ end;
 
 function TIdIPMCastServer.GetBinding: TIdSocketHandle;
 var
-  Multicast  : TMultiCast;
+  Multicast: TMultiCast;
 begin
   if not Assigned(FBinding) then begin
     FBinding := TIdSocketHandle.Create(nil);
   end;
   if not FBinding.HandleAllocated then begin
     FBinding.AllocateSocket(Id_SOCK_DGRAM);
+    FBinding.IP := FBoundIP;
+    FBinding.Port := FBoundPort;
     FBinding.Bind;
     Multicast.IMRMultiAddr :=  GStack.StringToTInAddr(FMulticastGroup);
-    Multicast.IMRInterface.S_addr :=  Id_INADDR_ANY;
+    Multicast.IMRInterface.S_addr := Id_INADDR_ANY;
     FBinding.SetSockOpt(Id_IPPROTO_IP, Id_IP_ADD_MEMBERSHIP, pchar(@Multicast), SizeOf(Multicast));
     SetTTLOption(FBinding, FTimeToLive);
-    Loopback := True;
+    SetLoopbackOption(FBinding, FLoopback);
   end;
   Result := FBinding;
 end;
@@ -148,40 +155,42 @@ var
   LThisLoopback: Integer;
 begin
   if FLoopback <> AValue then begin
-    if FDsgnActive or (Assigned(Binding) and Binding.HandleAllocated) then begin
-      if AValue then begin
-        LThisLoopback := 1;
-      end else begin
-        LThisLoopback := 0;
-      end;
-      Binding.SetSockOpt(Id_IPPROTO_IP, Id_IP_MULTICAST_LOOP, PChar(@LThisLoopback)
-       , SizeOf(LThisLoopback));
-    end;
     FLoopback := AValue;
+    SetLoopbackOption(FBinding, AValue);
+  end;
+end;
+
+procedure TIdIPMCastServer.SetLoopbackOption(InBinding: TIdSocketHandle; const Value: Boolean);
+var
+  LThisLoopback: Integer;
+begin
+  if Assigned(InBinding) and InBinding.HandleAllocated then begin
+    LThisLoopback := iif(Value, 1, 0);
+    InBinding.SetSockOpt(Id_IPPROTO_IP, Id_IP_MULTICAST_LOOP, PChar(@LThisLoopback), SizeOf(LThisLoopback));
   end;
 end;
 
 procedure TIdIPMCastServer.SetTTL(const Value: Byte);
 begin
   if (FTimeToLive <> Value) then begin
-    SetTTLOption(FBinding, Value);
     FTimeToLive := Value;
+    SetTTLOption(FBinding, Value);
   end;
 end;
 
 procedure TIdIPMCastServer.SetTTLOption(InBinding: TIdSocketHandle; const Value: Byte);
 var
-  ThisTTL: Integer;
+  LThisTTL: Integer;
 begin
-  if (FDsgnActive or (Assigned(InBinding) and InBinding.HandleAllocated)) then begin
-    ThisTTL := Value;
-    InBinding.SetSockOpt(Id_IPPROTO_IP, Id_IP_MULTICAST_TTL, pchar(@ThisTTL), SizeOf(ThisTTL));
+  if Assigned(InBinding) and InBinding.HandleAllocated then begin
+    LThisTTL := Value;
+    InBinding.SetSockOpt(Id_IPPROTO_IP, Id_IP_MULTICAST_TTL, PChar(@LThisTTL), SizeOf(LThisTTL));
   end;
 end;
 
 destructor TIdIPMCastServer.Destroy;
 begin
-	Active := False;
+  Active := False;
   inherited Destroy;
 end;
 

@@ -179,18 +179,20 @@ begin
     // If terminated while waiting on the event or during the loop
     while not Terminated do begin
       try
-        LNotifications := FNotifications.LockList; try
+        LNotifications := FNotifications.LockList;
+        try
           if LNotifications.Count = 0 then begin
             Break;
           end;
           LNotify := TIdNotify(LNotifications.Items[0]);
-        finally FNotifications.UnlockList; end;
-        Synchronize(LNotify.DoNotify);
-        FreeAndNil(LNotify);
-        with FNotifications.LockList do try
-          Delete(0);
+          LNotifications.Delete(0);
         finally
           FNotifications.UnlockList;
+        end;
+        try
+          Synchronize(LNotify.DoNotify);
+        finally
+          FreeAndNil(LNotify);
         end;
       except // Catch all exceptions especially these which are raised during the application close
       end;

@@ -394,6 +394,7 @@ begin
     end;
   except
     Result.Free;
+    Result := nil;
   end;
 end;
 

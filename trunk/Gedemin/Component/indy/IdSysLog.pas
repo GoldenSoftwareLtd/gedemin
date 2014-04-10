@@ -30,7 +30,8 @@ though.
 }
 interface
 
-uses Classes, IdAssignedNumbers, IdSocketHandle, IdSysLogMessage, IdUDPBase, IdUDPClient;
+uses
+  Classes, IdAssignedNumbers, IdSocketHandle, IdSysLogMessage, IdUDPBase, IdUDPClient;
 
 type
   TIdSysLog = class(TIdUDPClient)
@@ -38,22 +39,18 @@ type
     function GetBinding: TIdSocketHandle; override;
   public
     constructor Create(AOwner: TComponent); override;
-    procedure SendMessage(const AMsg: TIdSysLogMessage;
-      const AAutoTimeStamp: Boolean = true); overload;
-    procedure SendMessage(const AMsg: String;
-      const AFacility : TidSyslogFacility;
-      const ASeverity: TIdSyslogSeverity); overload;
-    procedure SendMessage(const AProcess: String; const AText : String;
-      const AFacility : TidSyslogFacility;
-      const ASeverity: TIdSyslogSeverity;
-      const AUsePID : Boolean = False;
-      const APID : Integer = -1); overload;
+    procedure SendMsg(const AMsg: TIdSysLogMessage; const AAutoTimeStamp: Boolean = True); overload;
+    procedure SendMsg(const AMsg: String; const AFacility : TidSyslogFacility; const ASeverity: TIdSyslogSeverity); overload;
+    procedure SendMsg(const AProcess: String; const AText : String; const AFacility : TidSyslogFacility;
+      const ASeverity: TIdSyslogSeverity; const AUsePID : Boolean = False; const APID : Integer = -1); overload;
   published
     property Port default IdPORT_syslog;
   end;
   
 implementation
-uses IdGlobal, SysUtils, IdStackConsts;
+
+uses
+  IdGlobal, SysUtils, IdStackConsts;
 
 { TIdSysLog }
 
@@ -64,18 +61,18 @@ begin
 end;
 
 
-procedure TIdSysLog.SendMessage(const AMsg: TIdSyslogMessage; const AAutoTimeStamp: Boolean = true);
+procedure TIdSysLog.SendMsg(const AMsg: TIdSyslogMessage; const AAutoTimeStamp: Boolean = True);
 begin
-  if AAutoTimeStamp then
-  begin
-    AMsg.TimeStamp := now;
+  if AAutoTimeStamp then begin
+    AMsg.TimeStamp := Now;
   end;
-  Send( AMsg.EncodeMessage );
+  Send(AMsg.EncodeMessage);
 end;
 
 
 function TIdSysLog.GetBinding: TIdSocketHandle;
-const FromPort = 514;
+const
+  FromPort = 514;
 begin
   Result := inherited GetBinding;
 //  if Result.Port <> FromPort then
@@ -87,28 +84,27 @@ begin
 //  end;
 end;
 
-procedure TIdSysLog.SendMessage(const AMsg: String;
-  const AFacility: TidSyslogFacility;
+procedure TIdSysLog.SendMsg(const AMsg: String; const AFacility: TidSyslogFacility;
   const ASeverity: TIdSyslogSeverity);
-var LMsg : TIdSyslogMessage;
+var
+  LMsg : TIdSyslogMessage;
 begin
   LMsg := TIdSyslogMessage.Create(nil);
   try
     LMsg.Msg.Text := AMsg;
     LMsg.Facility := AFacility;
     LMsg.Severity := ASeverity;
-    SendMessage(LMsg);
+    SendMsg(LMsg);
   finally
     FreeAndNil(LMsg);
   end;
 end;
 
-procedure TIdSysLog.SendMessage(const AProcess, AText: String;
-  const AFacility: TidSyslogFacility;
-  const ASeverity: TIdSyslogSeverity;
-  const AUsePID: Boolean;
-  const APID: Integer);
-var LMsg : TIdSyslogMessage;
+procedure TIdSysLog.SendMsg(const AProcess, AText: String;
+  const AFacility: TidSyslogFacility; const ASeverity: TIdSyslogSeverity;
+  const AUsePID: Boolean; const APID: Integer);
+var
+  LMsg : TIdSyslogMessage;
 begin
   LMsg := TIdSyslogMessage.Create(nil);
   try
@@ -118,18 +114,17 @@ begin
     // <TP>
     // AUsePID was not honored
     LMsg.Msg.PIDAvailable := AUsePID;
-    if AUsePID then
-    begin
+    if AUsePID then begin
       LMsg.Msg.PID := APID;
       LMsg.Msg.Content := AText;
-    end
-    else
+    end else begin
       LMsg.Msg.Content := AText;
+    end;
     // </TP>
 
     LMsg.Facility := AFacility;
     LMsg.Severity := ASeverity;
-    SendMessage(LMsg);
+    SendMsg(LMsg);
   finally
     FreeAndNil(LMsg);
   end;
