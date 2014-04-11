@@ -2,7 +2,7 @@ unit TB2DsgnItemEditor;
 
 {
   Toolbar2000
-  Copyright (C) 1998-2006 by Jordan Russell
+  Copyright (C) 1998-2008 by Jordan Russell
   All rights reserved.
 
   The contents of this file are subject to the "Toolbar2000 License"; you may
@@ -23,7 +23,7 @@ unit TB2DsgnItemEditor;
   GPL. If you do not delete the provisions above, a recipient may use your
   version of this file under either the "Toolbar2000 License" or the GPL.
 
-  $jrsoftware: tb2k/Source/TB2DsgnItemEditor.pas,v 1.58 2006/03/12 23:11:59 jr Exp $
+  $jrsoftware: tb2k/Source/TB2DsgnItemEditor.pas,v 1.63 2008/09/25 18:49:31 jr Exp $
 }
 
 interface
@@ -162,7 +162,7 @@ implementation
 {$R *.DFM}
 
 uses
-  {$IFDEF CLR} WinUtils, {$ENDIF}
+  {$IFDEF CLR} System.Drawing, System.IO, System.Reflection, {$ENDIF}
   TypInfo, CommCtrl, TB2Version, TB2Common, TB2DsgnConverter;
 
 type
@@ -228,6 +228,7 @@ begin
 end;
 {$ENDIF}
 
+{$IFNDEF CLR}
 function LoadItemImage(Instance: HINST; const ResName: String): Integer;
 var
   Bmp: TBitmap;
@@ -243,17 +244,63 @@ begin
     Bmp.Free;
   end;
 end;
+{$ELSE}
+function LoadItemImage(const AAssembly: System.Reflection.Assembly;
+  const ResName: String): Integer;
+var
+  Bmp: TBitmap;
+  ResStream: System.IO.Stream;
+  ResBmp: System.Drawing.Bitmap;
+begin
+  Bmp := TBitmap.Create;
+  try
+    ResStream := AAssembly.GetManifestResourceStream(ResName);
+    if ResStream = nil then begin
+      Result := -1;
+      Exit;
+    end;
+    try
+      ResBmp := System.Drawing.Bitmap.Create(ResStream);
+      try
+        Bmp.LoadFromBitmap(ResBmp);
+      finally
+        ResBmp.Dispose;
+      end;
+    finally
+      ResStream.Close;
+    end;
+    Result := ItemImageList.AddMasked(Bmp, Bmp.Canvas.Pixels[0, Bmp.Height-1]);
+  finally
+    Bmp.Free;
+  end;
+end;
+{$ENDIF}
 
 procedure TBRegisterItemClass(AClass: TTBCustomItemClass;
   const ACaption: String; ResInstance: HINST);
 var
+  I: Integer;
   Info: TItemClassInfo;
 begin
+  { Hack for Delphi.NET 2006 bug:
+    If you start Delphi, open & rebuild the tb2k_dn10 package only, then open
+    the Demo project, the IDE calls the Register procedure on tb2kdsgn_d10 a
+    second time, without reloading either of the two packages. As a result,
+    the TBRegisterItemClass calls are repeated. To avoid doubled items on the
+    editor form's More menu, check if the class was already registered. }
+  for I := 0 to ItemClasses.Count-1 do
+    if TItemClassInfo(ItemClasses[I]).ItemClass = AClass then
+      Exit;
   Info := TItemClassInfo.Create;
   Info.ItemClass := AClass;
   Info.Caption := ACaption;
+  {$IFNDEF CLR}
   Info.ImageIndex := LoadItemImage(ResInstance,
     Uppercase(AClass.ClassName {$IFDEF JR_D9} , loInvariantLocale {$ENDIF}));
+  {$ELSE}
+  Info.ImageIndex := LoadItemImage(Assembly.GetCallingAssembly,
+    AClass.ClassName + '.bmp');
+  {$ENDIF}
   ItemClasses.Add(Info);
 end;
 
@@ -336,7 +383,7 @@ procedure ShowVersion;
 const
   AboutText =
     '%s'#13#10 +
-    'Copyright (C) 1998-2006 by Jordan Russell'#13#10 +
+    'Copyright (C) 1998-2008 by Jordan Russell'#13#10 +
     'For conditions of distribution and use, see LICENSE.TXT.'#13#10 +
     #13#10 +
     'Visit my web site for the latest versions of Toolbar2000:'#13#10 +
@@ -945,7 +992,7 @@ begin
     for I := PropCount-1 downto 0 do begin
       PropInfo := Props[I];
       {$IFNDEF CLR}
-      if CompareText(PropInfo.Name, 'OnClick') = 0 then begin
+      if CompareText(String(PropInfo.Name), 'OnClick') = 0 then begin
       {$ELSE}
       if SameText(PropInfo.Name, 'OnClick', loInvariantLocale) then begin
       {$ENDIF}
@@ -1368,8 +1415,17 @@ end;
 
 initialization
   ItemImageList := TImageList.Create(nil);
+  {$IFNDEF CLR}
   ItemImageList.Handle := ImageList_LoadImage(HInstance, 'TB2_DSGNEDITORIMAGES',
     16, 0, clFuchsia, IMAGE_BITMAP, 0);
+  {$ELSE}
+  { Initialize the image list as plain ILC_COLOR (4-bit), because on Windows
+    2000, at color depths > 16 (what TImageList's ILC_COLORDDB would give us
+    when running on a true-color display), selected images are drawn with an
+    ugly dithering effect }
+  ItemImageList.Handle := ImageList_Create(16, 16, ILC_COLOR or ILC_MASK, 4, 4);
+  LoadItemImage(Assembly.GetExecutingAssembly, 'TB2DsgnEditorImages.bmp');
+  {$ENDIF}
   ItemClasses := TList.Create;
   {$IFNDEF CLR}
   AddModuleUnloadProc(UnregisterModuleItemClasses);

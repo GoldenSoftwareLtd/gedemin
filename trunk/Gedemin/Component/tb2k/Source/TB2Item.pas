@@ -2,7 +2,7 @@ unit TB2Item;
 
 {
   Toolbar2000
-  Copyright (C) 1998-2006 by Jordan Russell
+  Copyright (C) 1998-2008 by Jordan Russell
   All rights reserved.
 
   The contents of this file are subject to the "Toolbar2000 License"; you may
@@ -23,7 +23,7 @@ unit TB2Item;
   GPL. If you do not delete the provisions above, a recipient may use your
   version of this file under either the "Toolbar2000 License" or the GPL.
 
-  $jrsoftware: tb2k/Source/TB2Item.pas,v 1.284 2006/04/05 19:34:05 jr Exp $
+  $jrsoftware: tb2k/Source/TB2Item.pas,v 1.313 2008/09/19 16:35:48 jr Exp $
 }
 
 interface
@@ -62,7 +62,7 @@ type
     Sound: Boolean;
     { tbdaOpenSystemMenu-specific fields: }
     Wnd: HWND;
-    Key: Cardinal;
+    Key: Word;
     { tbdaHelpContext-specific fields: }
     ContextID: Integer;
   end;
@@ -480,7 +480,7 @@ type
     procedure EndModal;
     procedure EndModalWithClick(AViewer: TTBItemViewer);
     procedure EndModalWithHelp(AContextID: Integer);
-    procedure EndModalWithSystemMenu(AWnd: HWND; AKey: Cardinal);
+    procedure EndModalWithSystemMenu(AWnd: HWND; AKey: Word);
     procedure EndUpdate;
     procedure EnterToolbarLoop(Options: TTBEnterToolbarLoopOptions);
     procedure ExecuteSelected(AGivePriority: Boolean);
@@ -728,17 +728,12 @@ type
     {$IFNDEF JR_D5}
     procedure DoPopup(Sender: TObject);
     {$ENDIF}
-    {$IFNDEF CLR}
-    procedure GetChildren(Proc: TGetChildProc; Root: TComponent); override;
-    {$ENDIF}
     function GetRootItemClass: TTBRootItemClass; dynamic;
     procedure SetChildOrder(Child: TComponent; Order: Integer); override;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
-    {$IFDEF CLR}
     procedure GetChildren(Proc: TGetChildProc; Root: TComponent); override;
-    {$ENDIF}
     function IsShortCut(var Message: TWMKey): Boolean; override;
     procedure Popup(X, Y: Integer); override;
     function PopupEx(X, Y: Integer; ReturnClickedItemOnly: Boolean = False): TTBCustomItem;
@@ -828,7 +823,6 @@ const
 
 function TBGetItems(const AObject: TObject): TTBCustomItem;
 procedure TBInitToolbarSystemFont;
-procedure TBRegisterControlItem;
 
 var
   ToolbarFont: TFont;
@@ -837,8 +831,9 @@ var
 implementation
 
 uses
-  {$IFDEF CLR} System.Threading, Types, WinUtils, {$ENDIF}
-  MMSYSTEM, TB2Consts, TB2Common, IMM, TB2Acc;
+  {$IFDEF CLR} System.Runtime.InteropServices, System.Text, System.Threading,
+    Types, WinUtils, {$ENDIF}
+  TB2Consts, TB2Common, IMM, TB2Acc;
 
 {$UNDEF ALLOCHWND_CLASSES}
 {$IFNDEF CLR}
@@ -862,6 +857,7 @@ type
     FInited: Boolean;
     FWnd: HWND;
     FRootPopup: TTBPopupWindow;
+    FSaveFocusWnd: HWND;
     procedure WndProc(var Msg: TMessage);
   public
     constructor Create(AExistingWnd: HWND);
@@ -984,7 +980,7 @@ begin
     tbdaNone: ;
     tbdaClickItem: begin
         if DoneActionData.Sound and NeedToPlaySound('MenuCommand') then
-          PlaySound('MenuCommand', 0, SND_ALIAS or SND_ASYNC or SND_NODEFAULT or SND_NOSTOP);
+          PlaySystemSound('MenuCommand');
         Result := DoneActionData.ClickItem;
         if not ReturnClickedItemOnly then
           Result.PostClick;
@@ -1399,7 +1395,7 @@ begin
   if Message.Msg = WM_TB2K_CLICKITEM then begin
     List := ClickList;  { optimization... }
     if Assigned(List) then begin
-      I := Message.LParam;
+      I := ClipToLongint(Message.LParam);
       if (I >= 0) and (I < List.Count) then begin
         Item := List[I];
         List[I] := nil;
@@ -2007,10 +2003,10 @@ begin
         PlayedSound := True;
         Result.Visible := True;
         Result.Update;
-        PlaySound('MenuPopup', 0, SND_ALIAS or SND_ASYNC or SND_NODEFAULT or SND_NOSTOP);
+        PlaySystemSound('MenuPopup');
       end
       else begin
-        PlaySound('MenuPopup', 0, SND_ALIAS or SND_ASYNC or SND_NODEFAULT or SND_NOSTOP);
+        PlaySystemSound('MenuPopup');
         Result.Visible := True;
       end;
     end;
@@ -2111,7 +2107,7 @@ var
 label StartOver;
 begin
   Result := False;
-  ShiftState := KeyDataToShiftState(Message.KeyData);
+  ShiftState := KeyDataToShiftState(ClipToLongint(Message.KeyData));
   ShortCut := Menus.ShortCut(Message.CharCode, ShiftState);
 StartOver:
   ShortCutItem := FindItemWithShortCut(ShortCut, TopmostItem);
@@ -3497,7 +3493,10 @@ end;
 
 function TTBView.HandleWMGetObject(var Message: TMessage): Boolean;
 begin
-  if (DWORD(Message.LParam) = OBJID_CLIENT) and InitializeOleAcc then begin
+  { Note: In a 64-bit build, object identifiers can come in either
+    sign-extended or zero-extended from 32 to 64 bits. Clip to 32 bits here
+    to ensure we accept both forms. }
+  if (ClipToLongint(Message.LParam) = Longint(OBJID_CLIENT)) and InitializeOleAcc then begin
     Message.Result := LresultFromObjectFunc(
       {$IFNDEF CLR} ITBAccessible {$ELSE} TypeOf(ITBAccessible).GUID {$ENDIF},
       Message.WParam, GetAccObject);
@@ -4210,7 +4209,7 @@ procedure TTBView.UpdateSelection(const P: TPoint; const AllowNewSelection: Bool
     R: TRect;
   begin
     Result := False;
-    if (vsModal in FState) and (vsMouseInWindow in FState) and
+    if (vsModal in FState) and (vsMouseInWindow in FState) and not FCapture and
        (P.X <> Low(Integer)) then begin
       P2 := FWindow.ScreenToClient(P);
       R := FWindow.ClientRect;
@@ -4230,40 +4229,44 @@ var
 begin
   ValidatePositions;
 
-  { If modal, default to keeping the existing selection }
-  if vsModal in FState then
-    NewSelected := FSelected
-  else
-    NewSelected := nil;
-
-  { Is the mouse inside the window? }
-  MouseWasInWindow := vsMouseInWindow in FState;
-  if (P.X <> Low(Integer)) and Assigned(FWindow) and (FindDragTarget(P, True) = FWindow) then begin
-    { If we're a popup window and the mouse is inside, default to no selection }
-    if FIsPopup then
-      NewSelected := nil;
-    Include(FState, vsMouseInWindow);
-    if AllowNewSelection or Assigned(FSelected) then begin
-      P2 := FWindow.ScreenToClient(P);
-      ViewerAtPoint := ViewerFromPoint(P2);
-      if Assigned(ViewerAtPoint) then
-        NewSelected := ViewerAtPoint;
-    end;
-  end
-  else
-    Exclude(FState, vsMouseInWindow);
-
-  { If FCapture is True, don't allow the selection to change }
-  if FCapture and (NewSelected <> FSelected) then
+  if FCapture then begin
+    { If we have the capture, don't allow the selection to change. And always
+      set vsMouseInWindow so that if the mouse is released outside the window,
+      the "remove the selection" code below will be reached the next time
+      UpdateSelection is called. }
     NewSelected := FSelected;
-
-  { If we're a popup window and there is a selection... }
-  if FIsPopup and Assigned(NewSelected) then begin
-    { If the mouse just moved out of the window and no submenu was open,
-      remove the highlight }
-    if not FCapture and MouseWasInWindow and not(vsMouseInWindow in FState) and
-       (not Assigned(FOpenViewerView) or not(tbisSubmenu in NewSelected.Item.ItemStyle)) then
+    Include(FState, vsMouseInWindow);
+  end
+  else begin
+    { If modal, default to keeping the existing selection }
+    if vsModal in FState then
+      NewSelected := FSelected
+    else
       NewSelected := nil;
+
+    { Is the mouse inside the window? }
+    MouseWasInWindow := vsMouseInWindow in FState;
+    if (P.X <> Low(Integer)) and Assigned(FWindow) and (FindDragTarget(P, True) = FWindow) then begin
+      { If we're a popup window and the mouse is inside, default to no selection }
+      if FIsPopup then
+        NewSelected := nil;
+      Include(FState, vsMouseInWindow);
+      if AllowNewSelection or Assigned(FSelected) then begin
+        P2 := FWindow.ScreenToClient(P);
+        ViewerAtPoint := ViewerFromPoint(P2);
+        if Assigned(ViewerAtPoint) then
+          NewSelected := ViewerAtPoint;
+      end;
+    end
+    else begin
+      Exclude(FState, vsMouseInWindow);
+      { If we're a popup window and the mouse just moved outside the window
+        while no submenu was open or a non-submenu-displaying item was
+        selected, remove the selection }
+      if FIsPopup and Assigned(NewSelected) and MouseWasInWindow and
+         (not Assigned(FOpenViewerView) or not(tbisSubmenu in NewSelected.Item.ItemStyle)) then
+        NewSelected := nil;
+    end;
   end;
 
   { Now we set the new Selected value }
@@ -4341,6 +4344,10 @@ type
   TTempPosition = record
     BoundsRect: TRect;
     Show, OffEdge, LineSep, Clipped, SameWidth: Boolean;
+    { Include an Integer field to enforce Integer alignment of the record
+      (which we don't get by default due to TRect being wrongly declared as
+      'packed'). Needed to avoid alignment fault on Delphi.NET 2007 IA-64. }
+    DummyAlignment: Integer;
   end;
   TTempPositionArrayItem = record
     Pos: TTempPosition;
@@ -5029,63 +5036,21 @@ end;
 procedure TTBView.DoUpdatePositions(var ASize: TPoint);
 { This is called by UpdatePositions }
 var
-  Bmp: TBitmap;
-  CtlCanvas: TControlCanvas;
   WrappedLines: Integer;
 begin
   { Don't call InvalidatePositions before CalculatePositions so that
     endless recursion doesn't happen if an item's CalcSize uses a method that
     calls ValidatePositions }
-  if not CalculatePositions(True, FOrientation, FWrapOffset, FChevronOffset,
-     FChevronSize, FBaseSize, ASize, WrappedLines) then begin
-    { If the new positions are identical to the previous ones, continue using
-      the previous ones, and don't redraw }
-    FValidated := True;
-    { Just because the positions are the same doesn't mean the size hasn't
-      changed. (If a shrunken toolbar moves between docks, the positions of
-      the non-OffEdge items may be the same on the new dock as on the old
-      dock.) }
-    AutoSize(ASize.X, ASize.Y);
-  end
-  else begin
-    if not(csDesigning in ComponentState) then begin
-      FValidated := True;
-      { Need to call ValidateRect before AutoSize, otherwise Windows will
-        erase the client area during a resize }
-      if FWindow.HandleAllocated then
-        ValidateRect(FWindow.Handle, nil);
-      AutoSize(ASize.X, ASize.Y);
-      if Assigned(FWindow) and FWindow.HandleAllocated and
-         IsWindowVisible(FWindow.Handle) and
-         (FWindow.ClientWidth > 0) and (FWindow.ClientHeight > 0) then begin
-        CtlCanvas := nil;
-        Bmp := TBitmap.Create;
-        try
-          CtlCanvas := TControlCanvas.Create;
-          CtlCanvas.Control := FWindow;
-          Bmp.Width := FWindow.ClientWidth;
-          Bmp.Height := FWindow.ClientHeight;
-
-          SendMessage(FWindow.Handle, WM_ERASEBKGND, WPARAM(Bmp.Canvas.Handle), 0);
-          SendMessage(FWindow.Handle, WM_PAINT, WPARAM(Bmp.Canvas.Handle), 0);
-          BitBlt(CtlCanvas.Handle, 0, 0, Bmp.Width, Bmp.Height,
-            Bmp.Canvas.Handle, 0, 0, SRCCOPY);
-          ValidateRect(FWindow.Handle, nil);
-        finally
-          CtlCanvas.Free;
-          Bmp.Free;
-        end;
-      end;
-    end
-    else begin
-      { Delphi's handling of canvases is different at design time -- child
-        controls aren't clipped from a parent control's canvas, so the above
-        offscreen rendering code doesn't work right at design-time }
-      InvalidatePositions;
-      FValidated := True;
-      AutoSize(ASize.X, ASize.Y);
-    end;
-  end;
+  CalculatePositions(True, FOrientation, FWrapOffset, FChevronOffset,
+    FChevronSize, FBaseSize, ASize, WrappedLines);
+  FValidated := True;
+  { Need to call ValidateRect before AutoSize, otherwise Windows will
+    erase the client area during a resize }
+  if FWindow.HandleAllocated then
+    ValidateRect(FWindow.Handle, nil);
+  AutoSize(ASize.X, ASize.Y);
+  if FWindow.HandleAllocated then
+    DoubleBufferedRepaint(FWindow.Handle);
 end;
 
 function TTBView.UpdatePositions: TPoint;
@@ -5164,6 +5129,7 @@ var
   ToolbarStyle: Boolean;
   UseDisabledShadow: Boolean;
   SaveIndex, SaveIndex2: Integer;
+  WindowOrg: TPoint;
   BkColor: TColor;
 begin
   ValidatePositions;
@@ -5202,7 +5168,8 @@ begin
       { Tweak the brush origin so that the checked background drawn behind
         checked items always looks the same regardless of whether the item
         is positioned on an even or odd Left or Top coordinate. }
-      SetBrushOrgEx(DrawToDC, R1.Left and 1, R1.Top and 1, nil);
+      if GetWindowOrgEx(DrawToDC, WindowOrg) then
+        SetBrushOrgEx(DrawToDC, -WindowOrg.X, -WindowOrg.Y, nil);
       DrawCanvas := DrawTo;
     end
     else begin
@@ -5272,14 +5239,39 @@ end;
 
 procedure TTBView.DrawSubitems(ACanvas: TCanvas);
 var
+  ClipRect: TRect;
+
+  procedure DoDraw(const AViewer: TTBItemViewer);
+  var
+    Temp: TRect;
+  begin
+    { Speed optimization: Only call DrawItem on viewers that intersect the
+      canvas's clipping rectangle. Without this check, moving the mouse across
+      a toolbar with thousands of visible items uses 100% of the CPU. } 
+    if AViewer.Show and IntersectRect(Temp, ClipRect, AViewer.BoundsRect) then
+      DrawItem(AViewer, ACanvas, False)
+    else begin
+      { Not going to draw the item. Go ahead and clear the tbisInvalidated
+        flag if it's set so it won't needlessly double-buffer next time. }
+      Exclude(AViewer.State, tbisInvalidated);
+    end;
+  end;
+
+var
   I: Integer;
 begin
+  ValidatePositions;
+  ClipRect := ACanvas.ClipRect;
+
+  { Draw non-selected items before drawing the selected item, so that when the
+    selection is changing there's no brief window in which two items appear
+    to be selected }
   for I := 0 to FViewers.Count-1 do begin
     if (vsDrawInOrder in FState) or (Viewers[I] <> FSelected) then
-      DrawItem(Viewers[I], ACanvas, False);
+      DoDraw(Viewers[I]);
   end;
   if not(vsDrawInOrder in FState) and Assigned(FSelected) then
-    DrawItem(FSelected, ACanvas, False);
+    DoDraw(FSelected);
 
   Exclude(FState, vsDrawInOrder);
 end;
@@ -5446,7 +5438,6 @@ end;
 procedure TTBView.EnterToolbarLoop(Options: TTBEnterToolbarLoopOptions);
 var
   ModalHandler: TTBModalHandler;
-  P: TPoint;
 begin
   if vsModal in FState then Exit;
   ModalHandler := TTBModalHandler.Create(FWindow.Handle);
@@ -5471,15 +5462,12 @@ begin
       Exclude(FState, vsModal);
       StopAllTimers;
       CloseChildPopups;
-      GetCursorPos(P);
-      UpdateSelection(P, True);
+      UpdateSelection(Point(Low(Integer), Low(Integer)), True);
     end;
   finally
     ModalHandler.Free;
   end;
   SetAccelsVisibility(False);
-  Selected := nil;
-  // caused flicker: FWindow.Update;
   ProcessDoneAction(FDoneActionData, False);
 end;
 
@@ -5653,7 +5641,7 @@ begin
   RootView.FDoneActionData.DoneAction := tbdaHelpContext;
 end;
 
-procedure TTBView.EndModalWithSystemMenu(AWnd: HWND; AKey: Cardinal);
+procedure TTBView.EndModalWithSystemMenu(AWnd: HWND; AKey: Word);
 var
   RootView: TTBView;
 begin
@@ -5682,7 +5670,7 @@ begin
   else
     EndModal;
   {$IFNDEF CLR}
-  Exit; asm db 0,'Toolbar2000 (C) 1998-2006 Jordan Russell',0 end;
+  Exit; asm db 0,'Toolbar2000 (C) 1998-2008 Jordan Russell',0 end;
   {$ENDIF}
 end;
 
@@ -5778,7 +5766,7 @@ end;
 
 procedure TTBView.HandleHintShowMessage(var Message: TCMHintShow);
 
-  procedure UpdateInfo(var Info: THintInfo);
+  procedure UpdateInfo(var Info: {$IFDEF JR_D12}Controls.{$ENDIF} THintInfo);
   var
     V: TTBItemViewer;
   begin
@@ -5787,6 +5775,7 @@ procedure TTBView.HandleHintShowMessage(var Message: TCMHintShow);
     if Assigned(V) then begin
       Info.CursorRect := V.BoundsRect;
       Info.HintStr := V.GetHintText;
+      Info.HintData := V;
     end;
   end;
 
@@ -5808,6 +5797,31 @@ end;
 { TTBModalHandler }
 
 constructor TTBModalHandler.Create(AExistingWnd: HWND);
+
+  procedure RemoveFocusIfOnOtherThread;
+  { This ensures that the message loop will receive key messages when an Adobe
+    Reader (8.1.2) control embedded in a TWebBrowser is currently focused.
+    The Reader control is actually hosted in a separate thread (in a separate
+    process, AcroRd32.exe). When Alt/Alt+[letter] is pressed, Reader calls
+    GetAncestor(..., GA_ROOT) and forwards the WM_SYSCOMMAND/WM_SYSCHAR
+    message to that window using SendMessage (not PostMessage, for some
+    reason). The focus, however, is left on the Reader control. Consequently,
+    any keystrokes will generate key messages in the Reader thread's queue
+    instead of ours. To avoid that, call SetFocus(0) to remove the focus if
+    it's currently on another thread's window. When no window has the focus,
+    key messages will be posted to the active window, which *should* be a
+    form owned by the same thread as us. }
+  var
+    FocusWnd: HWND;
+  begin
+    FocusWnd := GetFocus;
+    if (FocusWnd <> 0) and
+       (GetWindowThreadProcessId(FocusWnd, nil) <> GetCurrentThreadId) then begin
+      FSaveFocusWnd := FocusWnd;
+      SetFocus(0);
+    end;
+  end;
+
 begin
   inherited Create;
   LastPos := GetMessagePosAsPoint;
@@ -5817,6 +5831,7 @@ begin
     FWnd := {$IFDEF ALLOCHWND_CLASSES}Classes.{$ENDIF} AllocateHWnd(WndProc);
     FCreatedWnd := True;
   end;
+  RemoveFocusIfOnOtherThread;
   { Like standard menus, don't allow other apps to steal the focus during
     our modal loop. This also prevents us from losing activation when
     "active window tracking" is enabled and the user moves the mouse over
@@ -5839,6 +5854,8 @@ begin
     if FCreatedWnd then
       {$IFDEF ALLOCHWND_CLASSES}Classes.{$ENDIF} DeallocateHWnd(FWnd);
   end;
+  if (FSaveFocusWnd <> 0) and (GetFocus = 0) then
+    SetFocus(FSaveFocusWnd);
   inherited;
 end;
 
@@ -5870,16 +5887,19 @@ var
       Result := Result.FOpenViewerView;
   end;
 
+  function GetCaptureView: TTBView;
+  begin
+    Result := RootView;
+    while Assigned(Result) and not Result.FCapture do
+      Result := Result.FOpenViewerView;
+  end;
+
   procedure UpdateAllSelections(const P: TPoint; const AllowNewSelection: Boolean);
   var
     View, CapView: TTBView;
   begin
     View := GetActiveView;
-
-    CapView := View;
-    while Assigned(CapView) and not CapView.FCapture do
-      CapView := CapView.FParentView;
-
+    CapView := GetCaptureView;
     while Assigned(View) do begin
       if (CapView = nil) or (View = CapView) then
         View.UpdateSelection(P, AllowNewSelection);
@@ -5892,19 +5912,13 @@ var
   var
     View: TTBView;
   begin
-    AView := nil;
-    AViewer := nil;
     { Look for a capture item first }
-    View := RootView;
-    repeat
-      if View.FCapture then begin
-        AView := View;
-        AViewer := View.FSelected;
-        Break;
-      end;
-      View := View.FOpenViewerView;
-    until View = nil;
-    if View = nil then begin
+    AView := GetCaptureView;
+    if Assigned(AView) then
+      AViewer := AView.FSelected
+    else begin
+      AView := nil;
+      AViewer := nil;
       View := RootView;
       repeat
         if Assigned(View.FSelected) and View.FMouseOverSelected then begin
@@ -5961,27 +5975,24 @@ var
     {$ENDIF}
     M.Msg := WM_MOUSEMOVE;
     M.WParam := 0;
-    M.LParam := MAKELPARAM(P.X, P.Y);
+    M.LParam := MAKELPARAM(Word(P.X), Word(P.Y));
     M.Result := 0;
     Application.HintMouseMessage(Ctl, M);
   end;
 
   procedure MouseMoved;
   var
-    View: TTBView;
     Cursor: HCURSOR;
-    Item: TTBCustomItem;
+    View: TTBView;
+    Viewer: TTBItemViewer;
     P: TPoint;
-    R: TRect;
   begin
     UpdateAllSelections(LastPos, True);
-    View := GetActiveView;
     Cursor := 0;
-    if Assigned(View.FSelected) and Assigned(View.FWindow) then begin
-      Item := View.FSelected.Item;
+    if GetSelectedViewer(View, Viewer) then begin
       P := View.FWindow.ScreenToClient(LastPos);
       if ((vsAlwaysShowHints in View.FStyle) or
-          (tboShowHint in Item.FEffectiveOptions)) and not View.FCapture then begin
+          (tboShowHint in Viewer.Item.FEffectiveOptions)) and not View.FCapture then begin
         { Display popup hint for the item. Update is called
           first to minimize flicker caused by the hiding &
           showing of the hint window. }
@@ -5990,16 +6001,17 @@ var
       end
       else
         Application.CancelHint;
-      R := View.FSelected.BoundsRect;
-      Dec(P.X, R.Left);
-      Dec(P.Y, R.Top);
-      View.FSelected.GetCursor(P, Cursor);
+      Dec(P.X, Viewer.BoundsRect.Left);
+      Dec(P.Y, Viewer.BoundsRect.Top);
+      Viewer.GetCursor(P, Cursor);
     end
     else
       Application.CancelHint;
     if Cursor = 0 then
       Cursor := LoadCursor(0, IDC_ARROW);
     SetCursor(Cursor);
+    if Assigned(Viewer) then
+      Viewer.MouseMove(P.X, P.Y);
   end;
 
   procedure UpdateAppHint;
@@ -6051,6 +6063,7 @@ var
   P: TPoint;
   Ctl: TControl;
   View: TTBView;
+  ConvertedKey: Char;
   IsOnlyItemWithAccel: Boolean;
   MouseIsDown: Boolean;
   Key: Word;
@@ -6151,11 +6164,11 @@ begin
                 begin
                   if Msg.wParam = VK_PROCESSKEY then
                     { Don't let IME process the key }
-                    Msg.wParam := ImmGetVirtualKey(Msg.hwnd);
-                  if not MouseIsDown or (Msg.wParam = VK_F1) then begin
-                    Key := Word(Msg.wParam);
+                    Msg.wParam := WPARAM(ImmGetVirtualKey(Msg.hwnd));
+                  Key := Word(Msg.wParam);
+                  if not MouseIsDown or (Key = VK_F1) then begin
                     if SendKeyEvent(GetActiveView, Key,
-                       KeyDataToShiftState(Msg.lParam)) then
+                       KeyDataToShiftState(ClipToLongint(Msg.lParam))) then
                       Exit;
                     { If it's not handled by a KeyDown method, translate
                       it into a WM_*CHAR message }
@@ -6165,15 +6178,25 @@ begin
                 end;
               WM_CHAR, WM_SYSCHAR:
                 if not MouseIsDown then begin
+                  Key := Word(Msg.wParam);
                   View := GetActiveView;
+                  {$IFDEF CLR}
+                  { On .NET, under Windows 9x/Me we must convert the character
+                    code from ANSI->Unicode. (We shouldn't get any double-byte
+                    characters due to our VK_PROCESSKEY handling above.) }
+                  if Marshal.SystemDefaultCharSize = 1 then
+                    ConvertedKey := Encoding.GetEncoding(GetInputLocaleCodePage).
+                      GetChars([Byte(Key)])[0]
+                  else
+                  {$ENDIF}
+                    ConvertedKey := Chr(Key);
                   Viewer := View.NextSelectableWithAccel(View.FSelected,
-                    Chr(Msg.WParam), False, IsOnlyItemWithAccel);
+                    ConvertedKey, False, IsOnlyItemWithAccel);
                   if Viewer = nil then begin
-                    if (Msg.WParam in [VK_SPACE, Ord('-')]) and
+                    if (Key in [VK_SPACE, Ord('-')]) and
                        not RootView.FIsPopup and (View = RootView) and
                        (GetActiveWindow <> 0) then begin
-                      RootView.EndModalWithSystemMenu(GetActiveWindow,
-                        Msg.WParam);
+                      RootView.EndModalWithSystemMenu(GetActiveWindow, Key);
                       Exit;
                     end
                     else
@@ -6196,7 +6219,7 @@ begin
                (Msg.wParam <= ViewTimerBaseID + Ord(High(TTBViewTimerID))) then begin
               if Assigned(TTBPopupWindow(Ctl).FView) then
                 HandleTimer(TTBPopupWindow(Ctl).FView,
-                  TTBViewTimerID(WPARAM(Msg.wParam - ViewTimerBaseID)));
+                  TTBViewTimerID(Msg.wParam - ViewTimerBaseID));
             end
             else
               DispatchMessage(Msg);
@@ -6211,10 +6234,6 @@ begin
                 if (Msg.pt.X <> LastPos.X) or (Msg.pt.Y <> LastPos.Y) then begin
                   LastPos := Msg.pt;
                   MouseMoved;
-                end;
-                if GetSelectedViewer(View, Viewer) then begin
-                  P := Viewer.ScreenToClient(Msg.pt);
-                  Viewer.MouseMove(P.X, P.Y);
                 end;
               end;
             WM_MOUSEWHEEL:
@@ -6271,6 +6290,8 @@ begin
       if not ContinueLoop then
         Exit;
       if LastPos.X = Low(LastPos.X) then begin
+        { The capture was released; generate a fake mouse movement to update
+          the selection }
         LastPos := GetMessagePosAsPoint;
         MouseMoved;
       end;
@@ -6948,29 +6969,8 @@ procedure TBInitToolbarSystemFont;
 var
   NonClientMetrics: TNonClientMetrics;
 begin
-  {$IFNDEF CLR}
-  NonClientMetrics.cbSize := SizeOf(NonClientMetrics);
-  if SystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, @NonClientMetrics, 0) then
-  {$ELSE}
-  if Forms.GetNonClientMetrics(NonClientMetrics) then
-  {$ENDIF}
+  if GetSystemNonClientMetrics(NonClientMetrics) then
     ToolbarFont.Handle := CreateFontIndirect(NonClientMetrics.lfMenuFont);
-
-  {$IFDEF GEDEMIN}
-  { http://gsbelarus.com/gs/modules.php?name=Forums&file=viewtopic&t=629 }
-  ToolbarFont.Charset := RUSSIAN_CHARSET;
-  {$ENDIF}
-end;
-
-var
-  ControlItemRegistered: Boolean = False;
-
-procedure TBRegisterControlItem;
-begin
-  if not ControlItemRegistered then begin
-    RegisterClass (TTBControlItem);
-    ControlItemRegistered := True;
-  end;
 end;
 
 initialization

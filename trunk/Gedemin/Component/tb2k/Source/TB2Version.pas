@@ -2,7 +2,7 @@ unit TB2Version;
 
 {
   Toolbar2000
-  Copyright (C) 1998-2006 by Jordan Russell
+  Copyright (C) 1998-2008 by Jordan Russell
   All rights reserved.
 
   The contents of this file are subject to the "Toolbar2000 License"; you may
@@ -23,7 +23,7 @@ unit TB2Version;
   GPL. If you do not delete the provisions above, a recipient may use your
   version of this file under either the "Toolbar2000 License" or the GPL.
 
-  $jrsoftware: tb2k/Source/TB2Version.pas,v 1.65 2006/04/17 19:53:04 jr Exp $
+  $jrsoftware: tb2k/Source/TB2Version.pas,v 1.69 2008/09/13 21:39:24 jr Exp $
 }
 
 interface
@@ -31,12 +31,14 @@ interface
 {$I TB2Ver.inc}
 
 const
-  Toolbar2000Version = '2.2.0';
+  Toolbar2000Version = '2.2.2';
   Toolbar2000VersionPropText = 'Toolbar2000 version ' + Toolbar2000Version
     {$IFDEF CLR} + ' (.NET)' {$ENDIF};
 
 type
   TToolbar2000Version = type string;
+
+implementation
 
 const
   Sig: {$IFNDEF CLR} PAnsiChar {$ELSE} AnsiString {$ENDIF} =
@@ -48,10 +50,11 @@ const
     {$IFNDEF BCB} {$IFDEF VER140} '/D6'+ {$ENDIF} {$ELSE} {$IFDEF VER140} '/CB6'+ {$ENDIF} {$ENDIF}
     {$IFNDEF BCB} {$IFDEF VER150} '/D7'+ {$ENDIF} {$ELSE} {$IFDEF VER150} '/CB7'+ {$ENDIF} {$ENDIF}
     {$IFNDEF BCB} {$IFDEF VER170} '/D9'+ {$ENDIF} {$ELSE} {$IFDEF VER170} '/CB9'+ {$ENDIF} {$ENDIF}
-    {$IFNDEF BCB} {$IFDEF VER180} '/D10'+ {$ENDIF} {$ELSE} {$IFDEF VER180} '/CB10'+ {$ENDIF} {$ENDIF}
-    ', Copyright (C) 1998-2006 by Jordan Russell -';
-
-implementation
+    {$IFNDEF VER185} {$IFNDEF BCB} {$IFDEF VER180} '/D10'+ {$ENDIF} {$ELSE} {$IFDEF VER180} '/CB10'+ {$ENDIF} {$ENDIF} {$ENDIF}
+    {$IFNDEF BCB} {$IFDEF VER185} '/D11'+ {$ENDIF} {$ELSE} {$IFDEF VER185} '/CB11'+ {$ENDIF} {$ENDIF}
+    {$IFNDEF BCB} {$IFDEF VER190} '/D11'+ {$ENDIF} {$ELSE} {$IFDEF VER190} '/CB11'+ {$ENDIF} {$ENDIF}
+    {$IFNDEF BCB} {$IFDEF VER200} '/D12'+ {$ENDIF} {$ELSE} {$IFDEF VER200} '/CB12'+ {$ENDIF} {$ENDIF}
+    ', Copyright (C) 1998-2008 by Jordan Russell -';
 
 {$IFNDEF CLR}
 initialization

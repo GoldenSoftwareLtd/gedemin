@@ -1,5 +1,5 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <title>Toolbar2000 Revision History</title>
 <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
@@ -19,13 +19,36 @@
 </head>
 <body>
 
-<!-- $jrsoftware: tb2k/whatsnew.htm,v 1.48 2006/04/17 19:53:03 jr Exp $ -->
+<!-- $jrsoftware: tb2k/whatsnew.htm,v 1.51 2008/09/25 18:46:26 jr Exp $ -->
 
 <div class="bluehead"><span class="head1">Toolbar2000</span><br /><span class="head2">Revision History</span></div>
 
-<p>Copyright &copy; 1998-2006 <a href="http://www.jrsoftware.org/">Jordan Russell</a>. All rights reserved.<br />
+<p>Copyright &copy; 1998-2008 <a href="http://www.jrsoftware.org/">Jordan Russell</a>. All rights reserved.<br />
 For conditions of distribution and use, see <a href="LICENSE.txt">LICENSE.txt</a>.
 </p>
+
+<p><a name="2.2.2"></a><span class="ver">2.2.2 </span><span class="date">(2008-09-25)</span></p>
+<ul>
+<li>Added support for Delphi 2009, C++Builder 2009, and Delphi 2007 on .NET.</li>
+<li><i>Fix:</i> When the <i>Caption</i> of a toolbar item was changed to a new value with the same dimensions as the old value, it didn't enable double-buffering when redrawing the toolbar, resulting in some flicker.</li>
+<li><i>Fix:</i> A <i>MenuBar=False</i> toolbar would inappropriately continue to respond to accelerator keys after <i>Visible</i> or <i>Enabled</i> was changed to False on one of its parents.</li>
+<li><i>Fix:</i> When an Adobe Reader control inside a TWebBrowser was focused, menus would not respond to keystrokes.</li>
+<li>Internal tweaks and trivial fixes.</li>
+</ul>
+
+<p><a name="2.2.1"></a><span class="ver">2.2.1 </span><span class="date">(2007-06-23)</span></p>
+<ul>
+<li>Packages for Delphi 2007 (Win32) are now included. (Currently they are identical to the existing Delphi 2006 packages; only the filenames have changed.)</li>
+<li>Menu sounds: On Windows Vista, it now passes the SND_SYSTEM flag when calling PlaySound so that the volume is controlled by the "Windows Sounds" mixer control. Also, on all NT platforms, for consistency with native menus it no longer passes the SND_NOSTOP flag.</li>
+<li>TTBEditItem: Published the InheritOptions, MaskOptions, and Options properties.</li>
+<li>Improved painting performance on toolbars with hundreds or thousands of visible items.</li>
+<li><i>Fix:</i> Added workaround for bug in Windows Vista's DrawCaption API that caused the title bar text on floating toolbars to be drawn at the wrong coordinates when the Aero Glass theme was selected.</li>
+<li><i>Fix:</i> In version 2.2.0 on Delphi 4 and 5 only, an access violation would occur when the focus left a TTBEditItem. This was due to a code generation bug in the Delphi compiler.</li>
+<li><i>Fix:</i> Eliminated small memory leak when toolbars were dragged between docks on different forms (which, by default, isn't allowed).</li>
+<li><i>Fix:</i> On Windows 95/98/Me, right-clicking a floating toolbar's title bar would not display the toolbar's context menu.</li>
+<li><i>Fix:</i> If Toolbar2000 was built with range checking enabled (by default, this compiler option is disabled), it was possible to receive a range check error when navigating nested submenus with the mouse.</li>
+<li>Internal tweaks and trivial fixes.</li>
+</ul>
 
 <p><a name="2.2.0"></a><span class="ver">2.2.0 </span><span class="date">(2006-04-17)</span></p>
 <ul>
