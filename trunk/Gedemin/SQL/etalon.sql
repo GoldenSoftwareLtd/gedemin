@@ -1464,6 +1464,15 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (208, '0000.0001.0000.0239', '31.03.2014', 'Introducing AC_INCORRECT_RECORD GTT.');
 
+INSERT INTO fin_versioninfo
+  VALUES (209, '0000.0001.0000.0240', '31.03.2014', 'AC_TC_RECORD.');
+
+INSERT INTO fin_versioninfo
+  VALUES (210, '0000.0001.0000.0241', '03.04.2014', 'Get back "incorrect" field for ac_record.');
+
+INSERT INTO fin_versioninfo
+  VALUES (211, '0000.0001.0000.0242', '04.04.2014', 'Missed grant for AC_INCORRECT_RECORD.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
@@ -1489,7 +1498,7 @@ COMMIT;
 
 /*
 
-  Copyright (c) 2000-2012 by Golden Software of Belarus
+  Copyright (c) 2000-2014 by Golden Software of Belarus
 
   Script
 
@@ -9220,7 +9229,7 @@ CREATE TABLE ac_record(
   creditcurr       dcurrency,           /* Сумма проводки по кредиту в вал */
 
   delayed          dboolean DEFAULT 0,  /* Отложенная проводка или нет */
-  /*incorrect        dboolean DEFAULT 0,*/  /* Не корректная проводка */
+  incorrect        dboolean DEFAULT 0,  /* Некорректная проводка */
 
   afull            dsecurity,           /* Дескрипторы безопасности */
   achag            dsecurity,
@@ -9701,7 +9710,7 @@ BEGIN
       'FROM ac_record r ' ||
       '  JOIN ac_incorrect_record ir ON ir.id = r.id ' ||
       '  LEFT JOIN ac_entry e ON e.recordkey = r.id ' ||
-      '  LEFT JOIN ac_account a ON a.id = e.accountkey ';
+      '  LEFT JOIN ac_account a ON a.id = e.accountkey';
 
     FOR
       EXECUTE STATEMENT (:STM)
@@ -21587,6 +21596,7 @@ GRANT ALL ON gd_weblog        TO administrator;
 GRANT ALL ON gd_weblogdata    TO administrator;
 
 GRANT ALL ON gd_object_dependencies TO administrator;
+GRANT ALL ON ac_incorrect_record TO administrator;
 
 COMMIT;
 

@@ -51,7 +51,7 @@ inherited gdc_dlgDocumentType: Tgdc_dlgDocumentType
       end
       object lblComment: TLabel
         Left = 8
-        Top = 33
+        Top = 56
         Width = 71
         Height = 13
         Caption = 'Комментарий:'
@@ -59,7 +59,7 @@ inherited gdc_dlgDocumentType: Tgdc_dlgDocumentType
       end
       object Label7: TLabel
         Left = 8
-        Top = 123
+        Top = 146
         Width = 144
         Height = 13
         Caption = 'Ветка для команды вызова:'
@@ -67,7 +67,7 @@ inherited gdc_dlgDocumentType: Tgdc_dlgDocumentType
       end
       object Label1: TLabel
         Left = 8
-        Top = 146
+        Top = 169
         Width = 139
         Height = 13
         Caption = 'Таблица шапки документа:'
@@ -75,7 +75,7 @@ inherited gdc_dlgDocumentType: Tgdc_dlgDocumentType
       end
       object Label2: TLabel
         Left = 8
-        Top = 168
+        Top = 191
         Width = 148
         Height = 13
         Caption = 'Таблица позиции документа:'
@@ -83,7 +83,7 @@ inherited gdc_dlgDocumentType: Tgdc_dlgDocumentType
       end
       object Label3: TLabel
         Left = 8
-        Top = 100
+        Top = 123
         Width = 122
         Height = 13
         Caption = 'Наименование на англ.:'
@@ -92,7 +92,7 @@ inherited gdc_dlgDocumentType: Tgdc_dlgDocumentType
       end
       object lFunction: TLabel
         Left = 8
-        Top = 191
+        Top = 214
         Width = 100
         Height = 13
         Caption = 'Функция ТО шапки:'
@@ -100,18 +100,18 @@ inherited gdc_dlgDocumentType: Tgdc_dlgDocumentType
       end
       object Label4: TLabel
         Left = 8
-        Top = 214
+        Top = 237
         Width = 109
         Height = 13
         Caption = 'Функция ТО позиции:'
         WordWrap = True
       end
-      object Label6: TLabel
+      object lblParent: TLabel
         Left = 8
-        Top = 256
-        Width = 124
+        Top = 34
+        Width = 80
         Height = 13
-        Caption = 'Родительский документ'
+        Caption = 'Наследован от:'
       end
       object edDocumentName: TDBEdit
         Left = 157
@@ -126,18 +126,18 @@ inherited gdc_dlgDocumentType: Tgdc_dlgDocumentType
       end
       object edDescription: TDBMemo
         Left = 157
-        Top = 30
+        Top = 53
         Width = 352
         Height = 64
         Color = clBtnFace
         DataField = 'DESCRIPTION'
         DataSource = dsgdcBase
         Enabled = False
-        TabOrder = 1
+        TabOrder = 2
       end
       object iblcExplorerBranch: TgsIBLookupComboBox
         Left = 157
-        Top = 119
+        Top = 142
         Width = 352
         Height = 21
         HelpContext = 1
@@ -154,11 +154,11 @@ inherited gdc_dlgDocumentType: Tgdc_dlgDocumentType
         ItemHeight = 13
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 3
+        TabOrder = 4
       end
       object iblcHeaderTable: TgsIBLookupComboBox
         Left = 157
-        Top = 142
+        Top = 165
         Width = 352
         Height = 21
         HelpContext = 1
@@ -177,11 +177,11 @@ inherited gdc_dlgDocumentType: Tgdc_dlgDocumentType
         ItemHeight = 13
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 4
+        TabOrder = 5
       end
       object iblcLineTable: TgsIBLookupComboBox
         Left = 157
-        Top = 165
+        Top = 188
         Width = 352
         Height = 21
         HelpContext = 1
@@ -200,93 +200,94 @@ inherited gdc_dlgDocumentType: Tgdc_dlgDocumentType
         ItemHeight = 13
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 5
+        TabOrder = 6
       end
       object edEnglishName: TEdit
         Left = 157
-        Top = 96
+        Top = 119
         Width = 352
         Height = 21
         CharCase = ecUpperCase
         Color = clBtnFace
         Enabled = False
-        TabOrder = 2
+        TabOrder = 3
         OnExit = edEnglishNameExit
       end
       object dbcbIsCommon: TDBCheckBox
         Left = 7
-        Top = 234
+        Top = 257
         Width = 163
         Height = 17
         Alignment = taLeftJustify
         Caption = 'Общий документ:'
         DataField = 'iscommon'
         DataSource = dsgdcBase
-        TabOrder = 12
+        TabOrder = 13
         ValueChecked = '1'
         ValueUnchecked = '0'
       end
       object dbeFunctionName: TDBEdit
         Left = 157
-        Top = 188
+        Top = 211
         Width = 188
         Height = 21
         Color = clBtnFace
         DataField = 'NAME'
         DataSource = dsFunction
         ReadOnly = True
-        TabOrder = 6
+        TabOrder = 7
       end
       object btnConstr1: TButton
         Left = 348
-        Top = 188
+        Top = 211
         Width = 79
         Height = 21
         Action = actWizardHeader
-        TabOrder = 7
+        TabOrder = 8
       end
       object DBEdit1: TDBEdit
         Left = 157
-        Top = 211
+        Top = 234
         Width = 188
         Height = 21
         Color = clBtnFace
         DataField = 'NAME'
         DataSource = DataSource1
         ReadOnly = True
-        TabOrder = 9
+        TabOrder = 10
       end
       object btnConstr2: TButton
         Left = 348
-        Top = 211
+        Top = 234
         Width = 79
         Height = 21
         Action = actWizardLine
-        TabOrder = 10
+        TabOrder = 11
       end
       object btnDel1: TButton
-        Left = 429
-        Top = 188
-        Width = 79
-        Height = 21
-        Action = actDeleteHeaderFunction
-        TabOrder = 8
-      end
-      object btnDel2: TButton
         Left = 429
         Top = 211
         Width = 79
         Height = 21
+        Action = actDeleteHeaderFunction
+        TabOrder = 9
+      end
+      object btnDel2: TButton
+        Left = 429
+        Top = 234
+        Width = 79
+        Height = 21
         Action = actDeleteLineFunction
-        TabOrder = 11
+        TabOrder = 12
       end
       object edParentName: TEdit
         Left = 157
-        Top = 252
+        Top = 30
         Width = 352
         Height = 21
+        ParentColor = True
         ReadOnly = True
-        TabOrder = 13
+        TabOrder = 1
         Text = 'edParentName'
       end
     end

@@ -43,6 +43,10 @@ begin
         end;
 
         q.SQL.Text :=
+          'GRANT ALL ON ac_incorrect_record TO administrator';
+        q.ExecQuery;
+
+        q.SQL.Text :=
           'CREATE OR ALTER EXCEPTION ac_e_invalidentry ''Invalid entry'' ';
         q.ExecQuery;
 
@@ -461,6 +465,11 @@ begin
         q.SQL.Text :=
           'UPDATE OR INSERT INTO fin_versioninfo ' +
           '  VALUES (210, ''0000.0001.0000.0241'', ''03.04.2014'', ''Get back "incorrect" field for ac_record.'') ' +
+          '  MATCHING (id)';
+
+        q.SQL.Text :=
+          'UPDATE OR INSERT INTO fin_versioninfo ' +
+          '  VALUES (211, ''0000.0001.0000.0242'', ''04.04.2014'', ''Missed grant for AC_INCORRECT_RECORD.'') ' +
           '  MATCHING (id)';
 
         q.ExecQuery;

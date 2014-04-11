@@ -235,5 +235,6 @@ GRANT ALL ON gd_weblog        TO administrator;
 GRANT ALL ON gd_weblogdata    TO administrator;
 
 GRANT ALL ON gd_object_dependencies TO administrator;
+GRANT ALL ON ac_incorrect_record TO administrator;
 
 COMMIT;
