@@ -662,6 +662,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (210, '0000.0001.0000.0241', '03.04.2014', 'Get back "incorrect" field for ac_record.');
 
+INSERT INTO fin_versioninfo
+  VALUES (211, '0000.0001.0000.0242', '04.04.2014', 'Missed grant for AC_INCORRECT_RECORD.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id

@@ -1,7 +1,7 @@
 
 /*
 
-  Copyright (c) 2000-2012 by Golden Software of Belarus
+  Copyright (c) 2000-2014 by Golden Software of Belarus
 
   Script
 

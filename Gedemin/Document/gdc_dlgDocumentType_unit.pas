@@ -66,7 +66,7 @@ type
     lblNumCompany: TLabel;
     dbrgIsCheckNumber: TDBRadioGroup;
     edParentName: TEdit;
-    Label6: TLabel;
+    lblParent: TLabel;
     procedure lvVariableDblClick(Sender: TObject);
     procedure dbcMaskChange(Sender: TObject);
     procedure edCurrentNumberExit(Sender: TObject);
@@ -313,9 +313,6 @@ var
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-  List: TStringList;
-  ibsql: TIBSQL;
-
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGDOCUMENTTYPE', 'SETUPDIALOG', KEYSETUPDIALOG)}
   {M}  try
@@ -338,61 +335,8 @@ begin
   {END MACRO}
   inherited;
 
-  edEnglishName.Text := '';
-  edEnglishName.MaxLength := 14;
-  edParentName.Text := '';
-
   ActivateTransaction(gdcObject.Transaction);
 
-  List := TStringList.Create;
-  ibsql := TIBSQL.Create(nil);
-  try
-    List.Sorted := True;
-    List.Duplicates := dupIgnore;
-
-    List.Add('"NUMBER"');
-    List.Add('"DAY"-"NUMBER"');
-    List.Add('"DAY"."MONTH"-"NUMBER"');
-
-    ibsql.Database := gdcObject.Database;
-    ibsql.Transaction := gdcObject.ReadTransaction;
-
-    ibsql.SQL.Text := 'SELECT DISTINCT mask FROM gd_lastnumber';
-    ibsql.ExecQuery;
-
-    while not ibsql.EOF do
-    begin
-      if ibsql.FieldByName('mask').AsString > '' then
-        List.Add(ibsql.FieldByName('mask').AsString);
-
-      ibsql.Next;
-    end;
-
-    dbcMask.Items.Assign(List);
-
-    if not gdcObject.FieldByName('headerrelkey').IsNull then
-    begin
-      ibsql.Close;
-      ibsql.SQL.Text := 'SELECT relationname FROM at_relations WHERE id = ' +
-        gdcObject.FieldByName('headerrelkey').AsString;
-      ibsql.ExecQuery;
-      edEnglishName.Text := ibsql.FieldByName('relationname').AsString;
-      ibsql.Close;
-    end;
-
-    ibsql.Close;
-    ibsql.SQL.Text := 'SELECT name FROM gd_documenttype WHERE id = ' +
-      gdcObject.FieldByName('parent').AsString + ' and documenttype = ''D''';
-    ibsql.ExecQuery;
-    if not ibsql.Eof then
-      edParentName.Text := ibsql.FieldByName('name').AsString;
-    ibsql.Close;
-  finally
-    List.Free;
-    ibsql.Free;
-  end;
-
-  dbcMaskChange(dbcMask);
   gdcFunctionHeader.Transaction := gdcObject.Transaction;
   gdcFunctionLine.Transaction := gdcObject.Transaction;
   
@@ -637,6 +581,7 @@ procedure Tgdc_dlgDocumentType.SetupRecord;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
 var
+  List: TStringList;
   ibsql: TIBSQL;
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGDOCUMENTTYPE', 'SETUPRECORD', KEYSETUPRECORD)}
@@ -662,17 +607,70 @@ begin
   inherited;
   ActivateTransaction(gdcObject.Transaction);
 
+  edEnglishName.Text := '';
+  edEnglishName.MaxLength := 14;
+  edParentName.Text := '';
+
+  List := TStringList.Create;
+  ibsql := TIBSQL.Create(nil);
+  try
+    List.Sorted := True;
+    List.Duplicates := dupIgnore;
+
+    List.Add('"NUMBER"');
+    List.Add('"DAY"-"NUMBER"');
+    List.Add('"DAY"."MONTH"-"NUMBER"');
+
+    ibsql.Transaction := gdcObject.ReadTransaction;
+
+    ibsql.SQL.Text := 'SELECT DISTINCT mask FROM gd_lastnumber';
+    ibsql.ExecQuery;
+
+    while not ibsql.EOF do
+    begin
+      if ibsql.FieldByName('mask').AsString > '' then
+        List.Add(ibsql.FieldByName('mask').AsString);
+
+      ibsql.Next;
+    end;
+    ibsql.Close;
+
+    dbcMask.Items.Assign(List);
+
+    if not gdcObject.FieldByName('headerrelkey').IsNull then
+    begin
+      ibsql.SQL.Text := 'SELECT relationname FROM at_relations WHERE id = :id';
+      ibsql.ParamByName('id').AsInteger := gdcObject.FieldByName('headerrelkey').AsInteger;
+      ibsql.ExecQuery;
+      edEnglishName.Text := ibsql.FieldByName('relationname').AsTrimString;
+      ibsql.Close;
+    end;
+
+    ibsql.SQL.Text := 'SELECT name FROM gd_documenttype WHERE id = :id AND documenttype = ''D'' ';
+    ibsql.ParamByName('id').AsInteger := gdcObject.FieldByName('parent').AsInteger;
+    ibsql.ExecQuery;
+    if not ibsql.Eof then
+      edParentName.Text := ibsql.FieldByName('name').AsString
+    else
+      edParentName.Text := gdcObject.FieldByName('classname').AsString;
+  finally
+    List.Free;
+    ibsql.Free;
+  end;
+
+  dbcMaskChange(dbcMask);
+
   //¬ыведем родител€ нашей ветки в исследователе
   if (gdcObject.FieldByName('branchkey').AsInteger > 0) then
   begin
-    ibsql := TIBSQL.Create(Self);
+    ibsql := TIBSQL.Create(nil);
     try
       ibsql.Transaction := gdcBaseManager.ReadTRansaction;
       ibsql.SQL.Text := 'SELECT parent FROM gd_command WHERE id = :id';
       ibsql.ParamByName('id').AsInteger := gdcObject.FieldByName('branchkey').AsInteger;
       ibsql.ExecQuery;
 
-      if (ibsql.RecordCount > 0) and (ibsql.FieldByName('parent').AsInteger > 0) then
+      if (not ibsql.EOF) and (ibsql.FieldByName('parent').AsInteger > 0) then
         iblcExplorerBranch.CurrentKeyInt := ibsql.FieldByName('parent').AsInteger;
     finally
       ibsql.Free;
