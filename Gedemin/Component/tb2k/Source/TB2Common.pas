@@ -2,7 +2,7 @@ unit TB2Common;
 
 {
   Toolbar2000
-  Copyright (C) 1998-2006 by Jordan Russell
+  Copyright (C) 1998-2008 by Jordan Russell
   All rights reserved.
 
   The contents of this file are subject to the "Toolbar2000 License"; you may
@@ -23,7 +23,7 @@ unit TB2Common;
   GPL. If you do not delete the provisions above, a recipient may use your
   version of this file under either the "Toolbar2000 License" or the GPL.
 
-  $jrsoftware: tb2k/Source/TB2Common.pas,v 1.39 2006/03/28 00:38:54 jr Exp $
+  $jrsoftware: tb2k/Source/TB2Common.pas,v 1.48 2008/09/17 19:46:30 jr Exp $
 }
 
 interface
@@ -40,6 +40,10 @@ type
   { The type of item a TList holds; it differs between Win32 and .NET VCL }
   TListItemType = {$IFNDEF CLR} Pointer {$ELSE} TObject {$ENDIF};
 
+  {$IFNDEF CLR}
+  ClipToLongint = Longint;
+  {$ENDIF}
+
 function AddToFrontOfList(var List: TList; Item: TObject): Boolean;
 function AddToList(var List: TList; Item: TObject): Boolean;
 function ApplicationIsActive: Boolean;
@@ -48,17 +52,25 @@ function AreKeyboardCuesEnabled: Boolean;
 procedure CallLockSetForegroundWindow(const ALock: Boolean);
 function CallTrackMouseEvent(const Wnd: HWND; const Flags: DWORD): Boolean;
 function CharToLower(const C: Char): Char;
+{$IFDEF CLR}
+function ClipToLongint(const I: Int64): Longint; inline;
+{$ENDIF}
 function CreateHalftoneBrush: HBRUSH;
 function CreateMonoBitmap(const AWidth, AHeight: Integer;
   const ABits: array of Byte): HBITMAP;
 function CreateRotatedFont(DC: HDC): HFONT;
+procedure DoubleBufferedRepaint(const Wnd: HWND);
 procedure DrawHalftoneInvertRect(const DC: HDC; const NewRect, OldRect: TRect;
   const NewSize, OldSize: TSize);
 procedure DrawRotatedText(const DC: HDC; AText: String; const ARect: TRect;
   const AFormat: Cardinal);
+procedure DrawSmallWindowCaption(const Wnd: HWND; const DC: HDC;
+  const ARect: TRect; const AText: String; const AActive: Boolean);
 function DrawTextStr(const DC: HDC; const AText: String; var ARect: TRect;
   const AFormat: UINT): Integer;
 function EscapeAmpersands(const S: String): String;
+procedure FillRectWithGradient(const DC: HDC; const R: TRect;
+  const StartColor, EndColor: TColorRef; const HorizontalDirection: Boolean);
 function FindAccelChar(const S: String): Char;
 {$IFNDEF JR_D5}
 procedure FreeAndNil(var Obj);
@@ -70,6 +82,7 @@ function GetRectOfMonitorContainingPoint(const P: TPoint; const WorkArea: Boolea
 function GetRectOfMonitorContainingRect(const R: TRect; const WorkArea: Boolean): TRect;
 function GetRectOfMonitorContainingWindow(const W: HWND; const WorkArea: Boolean): TRect;
 function GetRectOfPrimaryMonitor(const WorkArea: Boolean): TRect;
+function GetSystemNonClientMetrics(var Metrics: TNonClientMetrics): Boolean;
 function GetSystemParametersInfoBool(const Param: UINT; const Default: BOOL): BOOL;
 function GetTextExtentPoint32Str(const DC: HDC; const AText: String;
   out ASize: TSize): BOOL;
@@ -84,12 +97,14 @@ procedure InitTrackMouseEvent;
 {$IFNDEF JR_D6}
 function InvalidPoint(const At: TPoint): Boolean;
 {$ENDIF}
+function IsFillRectWithGradientAvailable: Boolean;
 function Max(A, B: Integer): Integer;
 function Min(A, B: Integer): Integer;
 {$IFNDEF CLR}
 function MethodsEqual(const M1, M2: TMethod): Boolean;
 {$ENDIF}
 function NeedToPlaySound(const Alias: String): Boolean;
+procedure PlaySystemSound(const Alias: String);
 procedure ProcessPaintMessages;
 {$IFNDEF JR_D6}
 procedure RaiseLastOSError;
@@ -112,7 +127,7 @@ implementation
 uses
   {$IFDEF CLR} Types, System.Security, System.Runtime.InteropServices,
     System.Text, MultiMon, {$ENDIF}
-  TB2Version;
+  MMSYSTEM, TB2Version;
 
 function ApplicationIsActive: Boolean;
 { Returns True if the application is in the foreground }
@@ -378,7 +393,7 @@ begin
       -1: Break; { if GetMessage failed }
       0: begin
            { Repost WM_QUIT messages }
-           PostQuitMessage(Msg.WParam);
+           PostQuitMessage(ClipToLongint(Msg.wParam));
            Break;
          end;
     end;
@@ -394,7 +409,7 @@ begin
   while PeekMessage(Msg, 0, AMin, AMax, PM_REMOVE) do begin
     if Msg.message = WM_QUIT then begin
       { Repost WM_QUIT messages }
-      PostQuitMessage(Msg.WParam);
+      PostQuitMessage(ClipToLongint(Msg.wParam));
       Break;
     end;
   end;
@@ -628,6 +643,208 @@ begin
   finally
     DeleteObject(Brush);
   end;
+end;
+
+var
+  GradientFillAvailable: Boolean;
+{$IFNDEF CLR}
+type
+  { Note: TTriVertex is unusable on Delphi 7 and earlier (COLOR16 is
+    misdeclared as a Shortint instead of a Word). }
+  TNewTriVertex = record
+    x: Longint;
+    y: Longint;
+    Red: Word;
+    Green: Word;
+    Blue: Word;
+    Alpha: Word;
+  end;
+var
+  GradientFillFunc: function(DC: HDC; var Vertex: TNewTriVertex;
+    NumVertex: ULONG; Mesh: Pointer; NumMesh, Mode: ULONG): BOOL; stdcall;
+{$ENDIF}
+
+procedure InitGradientFillFunc;
+{$IFNDEF CLR}
+var
+  M: HMODULE;
+{$ENDIF}
+begin
+  if (Win32MajorVersion >= 5) or
+     ((Win32MajorVersion = 4) and (Win32MinorVersion >= 10)) then begin
+    {$IFNDEF CLR}
+    M := {$IFDEF JR_D5} SafeLoadLibrary {$ELSE} LoadLibrary {$ENDIF} ('msimg32.dll');
+    if M <> 0 then begin
+      GradientFillFunc := GetProcAddress(M, 'GradientFill');
+      if Assigned(GradientFillFunc) then
+        GradientFillAvailable := True;
+    end;
+    {$ELSE}
+    GradientFillAvailable := True;
+    {$ENDIF}
+  end;
+end;
+
+function IsFillRectWithGradientAvailable: Boolean;
+begin
+  Result := GradientFillAvailable;
+end;
+
+procedure FillRectWithGradient(const DC: HDC; const R: TRect;
+  const StartColor, EndColor: TColorRef; const HorizontalDirection: Boolean);
+var
+  Vertexes: array[0..1] of {$IFNDEF CLR} TNewTriVertex {$ELSE} TTriVertex {$ENDIF};
+  GradientRect: TGradientRect;
+  Mode: ULONG;
+begin
+  if not GradientFillAvailable then
+    Exit;
+  Vertexes[0].x := R.Left;
+  Vertexes[0].y := R.Top;
+  Vertexes[0].Red := GetRValue(StartColor) shl 8;
+  Vertexes[0].Blue := GetBValue(StartColor) shl 8;
+  Vertexes[0].Green := GetGValue(StartColor) shl 8;
+  Vertexes[0].Alpha := 0;
+  Vertexes[1].x := R.Right;
+  Vertexes[1].y := R.Bottom;
+  Vertexes[1].Red := GetRValue(EndColor) shl 8;
+  Vertexes[1].Blue := GetBValue(EndColor) shl 8;
+  Vertexes[1].Green := GetGValue(EndColor) shl 8;
+  Vertexes[1].Alpha := 0;
+  GradientRect.UpperLeft := 0;
+  GradientRect.LowerRight := 1;
+  if HorizontalDirection then
+    Mode := GRADIENT_FILL_RECT_H
+  else
+    Mode := GRADIENT_FILL_RECT_V;
+  {$IFNDEF CLR}
+  GradientFillFunc(DC, Vertexes[0], 2, @GradientRect, 1, Mode);
+  {$ELSE}
+  GradientFill(DC, Vertexes, 2, GradientRect, 1, Mode);
+  {$ENDIF}
+end;
+
+procedure DrawSmallWindowCaption(const Wnd: HWND; const DC: HDC;
+  const ARect: TRect; const AText: String; const AActive: Boolean);
+{ Draws a (non-themed) small window caption bar.
+  On Windows Vista, a custom routine is used to work around an ugly bug in
+  DrawCaption that causes the text to be painted at the wrong coordinates.
+  Note: The value of the AText parameter may be ignored depending on which
+  routine is chosen. }
+
+  procedure FillBackground;
+  const
+    CaptionBkColors: array[Boolean, Boolean] of Integer =
+      ((COLOR_INACTIVECAPTION, COLOR_ACTIVECAPTION),
+       (COLOR_GRADIENTINACTIVECAPTION, COLOR_GRADIENTACTIVECAPTION));
+  var
+    LeftColor, RightColor: TColorRef;
+  begin
+    if GetSystemParametersInfoBool(SPI_GETGRADIENTCAPTIONS, False) and
+       IsFillRectWithGradientAvailable then begin
+      LeftColor := GetSysColor(CaptionBkColors[False, AActive]);
+      RightColor := GetSysColor(CaptionBkColors[True, AActive]);
+      if LeftColor <> RightColor then begin
+        FillRectWithGradient(DC, ARect, LeftColor, RightColor, True);
+        Exit;
+      end;
+    end;
+    FillRect(DC, ARect, GetSysColorBrush(CaptionBkColors[False, AActive]));
+  end;
+
+const
+  CaptionTextColors: array[Boolean] of Integer =
+    (COLOR_INACTIVECAPTIONTEXT, COLOR_CAPTIONTEXT);
+var
+  Flags: UINT;
+  TextRect: TRect;
+  NonClientMetrics: TNonClientMetrics;
+  CaptionFont, SaveFont: HFONT;
+  SaveBkMode: Integer;
+  SaveTextColor: TColorRef;
+begin
+  if ARect.Right <= ARect.Left then
+    Exit;
+
+  { Prior to Windows Vista, continue to use DrawCaption. Don't want to risk
+    introducing new bugs on old OSes, plus on Windows 98, it's several times
+    faster than our custom routine. }
+  if Win32MajorVersion < 6 then begin
+    Flags := DC_TEXT or DC_SMALLCAP;
+    if AActive then
+      Flags := Flags or DC_ACTIVE;
+    if GetSystemParametersInfoBool(SPI_GETGRADIENTCAPTIONS, False) then
+      Flags := Flags or DC_GRADIENT;
+    DrawCaption(Wnd, DC, ARect, Flags);
+  end
+  else begin
+    FillBackground;
+    TextRect := ARect;
+    Inc(TextRect.Left, GetSystemMetrics(SM_CXEDGE));
+    if (TextRect.Right > TextRect.Left) and
+       GetSystemNonClientMetrics(NonClientMetrics) then begin
+      CaptionFont := CreateFontIndirect(NonClientMetrics.lfSmCaptionFont);
+      if CaptionFont <> 0 then begin
+        SaveFont := SelectObject(DC, CaptionFont);
+        SaveBkMode := SetBkMode(DC, TRANSPARENT);
+        SaveTextColor := SetTextColor(DC, GetSysColor(CaptionTextColors[AActive]));
+        try
+          DrawTextStr(DC, AText, TextRect, DT_SINGLELINE or DT_NOPREFIX or
+            DT_VCENTER or DT_END_ELLIPSIS);
+        finally
+          SetTextColor(DC, SaveTextColor);
+          SetBkMode(DC, SaveBkMode);
+          SelectObject(DC, SaveFont);
+          DeleteObject(CaptionFont);
+        end;
+      end;
+    end;
+  end;
+end;
+
+procedure DoubleBufferedRepaint(const Wnd: HWND);
+var
+  ClientRect, ClipRect, R: TRect;
+  WndDC, BmpDC: HDC;
+  Bmp: HBITMAP;
+  SaveIndex: Integer;
+begin
+  if IsWindowVisible(Wnd) and GetClientRect(Wnd, ClientRect) and
+     not IsRectEmpty(ClientRect) then begin
+    ValidateRect(Wnd, nil);
+    BmpDC := 0;
+    Bmp := 0;
+    WndDC := GetDC(Wnd);
+    if WndDC <> 0 then begin
+      try
+        { Only repaint the area that intersects the clipping rectangle }
+        if (GetClipBox(WndDC, ClipRect) <> Windows.ERROR) and
+           IntersectRect(R, ClientRect, ClipRect) then begin
+          Bmp := CreateCompatibleBitmap(WndDC, R.Right - R.Left, R.Bottom - R.Top);
+          if Bmp <> 0 then begin
+            BmpDC := CreateCompatibleDC(WndDC);
+            if BmpDC <> 0 then begin
+              SelectObject(BmpDC, Bmp);
+              SaveIndex := SaveDC(BmpDC);
+              SetWindowOrgEx(BmpDC, R.Left, R.Top, nil);
+              SendMessage(Wnd, WM_ERASEBKGND, WPARAM(BmpDC), 0);
+              SendMessage(Wnd, WM_PAINT, WPARAM(BmpDC), 0);
+              RestoreDC(BmpDC, SaveIndex);
+              BitBlt(WndDC, R.Left, R.Top, R.Right - R.Left, R.Bottom - R.Top,
+                BmpDC, 0, 0, SRCCOPY);
+              Exit;
+            end;
+          end;
+        end;
+      finally
+        if BmpDC <> 0 then DeleteDC(BmpDC);
+        if Bmp <> 0 then DeleteObject(Bmp);
+        ReleaseDC(Wnd, WndDC);
+      end;
+    end;
+  end;
+  { Fall back to invalidating if we didn't or couldn't double-buffer }
+  InvalidateRect(Wnd, nil, True);
 end;
 
 {$IFNDEF CLR}
@@ -1143,6 +1360,20 @@ begin
   end;
 end;
 
+procedure PlaySystemSound(const Alias: String);
+const
+  SND_SYSTEM = $00200000;
+var
+  Flags: DWORD;
+begin
+  Flags := SND_ALIAS or SND_ASYNC or SND_NODEFAULT;
+  if Win32Platform <> VER_PLATFORM_WIN32_NT then
+    Flags := Flags or SND_NOSTOP;  { On 9x, native menus' sounds are NOSTOP } 
+  if Win32MajorVersion >= 6 then
+    Flags := Flags or SND_SYSTEM;
+  PlaySound({$IFNDEF CLR}PChar{$ENDIF}(Alias), 0, Flags);
+end;
+
 function Max(A, B: Integer): Integer;
 begin
   if A >= B then
@@ -1249,6 +1480,26 @@ begin
   Result.Y := Smallint(Pos shr 16);
 end;
 
+function GetSystemNonClientMetrics(var Metrics: TNonClientMetrics): Boolean;
+{$IFNDEF CLR}
+begin
+  Metrics.cbSize := SizeOf(Metrics);
+  Result := SystemParametersInfo(SPI_GETNONCLIENTMETRICS, SizeOf(Metrics),
+    @Metrics, 0);
+end;
+{$ELSE}
+begin
+  {$IFDEF JR_D11}
+  { On Delphi.NET 2007, Forms.GetNonClientMetrics is marked deprecated }
+  Metrics.cbSize := Marshal.SizeOf(TypeOf(TNonClientMetrics));
+  Result := SystemParametersInfo(SPI_GETNONCLIENTMETRICS, Metrics.cbSize,
+    Metrics, 0);
+  {$ELSE}
+  Result := Forms.GetNonClientMetrics(Metrics);
+  {$ENDIF}
+end;
+{$ENDIF}
+
 function GetSystemParametersInfoBool(const Param: UINT; const Default: BOOL): BOOL;
 { Returns the value of the specified BOOL-type system parameter, or Default
   if the function fails }
@@ -1299,10 +1550,22 @@ begin
 end;
 {$ENDIF}
 
-{$IFNDEF CLR}
+{$IFDEF CLR}
+function ClipToLongint(const I: Int64): Longint; inline;
+{ On Delphi.NET 2007, casting a LPARAM (THandle) directly into a Longint can
+  raise an overflow exception (possibly a bug?). By passing the LPARAM to
+  this function, which acts like a Longint(Int64()) cast, the exception can
+  be avoided. }
+begin
+  Result := Longint(I);
+end;
+{$ENDIF}
+
 initialization
+  InitGradientFillFunc;
+  {$IFNDEF CLR}
   InitMultiMonApis;
   LockSetForegroundWindowFunc := GetProcAddress(GetModuleHandle(user32),
     'LockSetForegroundWindow');
-{$ENDIF}
+  {$ENDIF}
 end.

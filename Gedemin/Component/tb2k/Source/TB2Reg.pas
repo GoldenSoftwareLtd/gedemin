@@ -2,7 +2,7 @@ unit TB2Reg;
 
 {
   Toolbar2000
-  Copyright (C) 1998-2006 by Jordan Russell
+  Copyright (C) 1998-2008 by Jordan Russell
   All rights reserved.
 
   The contents of this file are subject to the "Toolbar2000 License"; you may
@@ -23,7 +23,7 @@ unit TB2Reg;
   GPL. If you do not delete the provisions above, a recipient may use your
   version of this file under either the "Toolbar2000 License" or the GPL.
 
-  $jrsoftware: tb2k/Source/TB2Reg.pas,v 1.30 2006/03/13 01:31:34 jr Exp $
+  $jrsoftware: tb2k/Source/TB2Reg.pas,v 1.32 2008/09/18 19:08:40 jr Exp $
 }
 
 interface
@@ -243,12 +243,12 @@ begin
     Therefore, we must search for and unregister any existing classes before
     registering new ones, to avoid having two incompatible sets of classes
     registered at the same time.
-    Without this, if we recompile tb2k_dn10 and then attempt to open the Demo
-    project's main form in the IDE, we get a "Toolbar item cannot be inserted
-    into container of type TTBToolbar" exception inside
-    TTBCustomItem.SetParentComponent, because apparently the TTBToolbar class
-    it's trying to use is located in the new assembly, while the item class
-    is located in the old assembly.
+    Without this, if we rebuild tb2kdsgn_dn10 (which implicitly reloads
+    tb2k_dn10) and then attempt to open the Demo project's main form in the
+    IDE, we get a "Toolbar item cannot be inserted into container of type
+    TTBToolbar" exception inside TTBCustomItem.SetParentComponent, because
+    apparently the TTBToolbar class it's trying to use is located in the new
+    assembly, while the item class is located in the old assembly.
     Note: It appears that this issue only affects registered classes; there
     is no need for an "UnRegisterComponents" call. }
   for I := High(AClasses) downto Low(AClasses) do begin
@@ -266,6 +266,10 @@ end;
 
 procedure Register;
 begin
+  { Note: On Delphi.NET 2006, it's possible for this procedure to be called
+    a second time on the same tb2kdsgn instance. See comments in
+    TBRegisterItemClass. }
+
   RegisterComponents('Toolbar2000', [TTBDock, TTBToolbar, TTBToolWindow,
     TTBPopupMenu, TTBImageList, TTBItemContainer, TTBBackground, TTBMRUList,
     TTBMDIHandler]);
@@ -294,7 +298,15 @@ begin
   {$ENDIF}
 
   { Link in images for the toolbar buttons }
-  {$R TB2DsgnItemEditor.res}
+  {$IFNDEF CLR}
+    {$R TB2DsgnItemEditor.res}
+  {$ELSE}
+    {$R 'Icons\TB2DsgnEditorImages.bmp'}
+    {$R 'Icons\TTBEditItem.bmp'}
+    {$R 'Icons\TTBGroupItem.bmp'}
+    {$R 'Icons\TTBMDIWindowItem.bmp'}
+    {$R 'Icons\TTBMRUListItem.bmp'}
+  {$ENDIF}
   TBRegisterItemClass(TTBEditItem, 'New &Edit', HInstance);
   TBRegisterItemClass(TTBGroupItem, 'New &Group Item', HInstance);
   TBRegisterItemClass(TTBMRUListItem, 'New &MRU List Item', HInstance);

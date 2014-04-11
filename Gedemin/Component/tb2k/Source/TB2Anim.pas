@@ -2,7 +2,7 @@ unit TB2Anim;
 
 {
   Toolbar2000
-  Copyright (C) 1998-2006 by Jordan Russell
+  Copyright (C) 1998-2008 by Jordan Russell
   All rights reserved.
 
   The contents of this file are subject to the "Toolbar2000 License"; you may
@@ -23,7 +23,7 @@ unit TB2Anim;
   GPL. If you do not delete the provisions above, a recipient may use your
   version of this file under either the "Toolbar2000 License" or the GPL.
 
-  $jrsoftware: tb2k/Source/TB2Anim.pas,v 1.12 2006/03/12 23:11:58 jr Exp $
+  $jrsoftware: tb2k/Source/TB2Anim.pas,v 1.13 2008/09/19 16:41:00 jr Exp $
 }
 
 interface
@@ -83,6 +83,10 @@ type
     FLastPos: TPoint;
     FDirection: TTBAnimationDirection;
   end;
+  { Delphi.NET 2007 note: Because TRect/TSize/TPoint are wrongly declared as
+    'packed', fields of these types must be preceded by an Integer- or
+    IntPtr-sized field to ensure correct alignment and avoid an alignment
+    fault on IA-64. }
 
 {$IFNDEF CLR}
 var

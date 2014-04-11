@@ -2,7 +2,7 @@ unit TB2Acc;
 
 {
   Toolbar2000
-  Copyright (C) 1998-2006 by Jordan Russell
+  Copyright (C) 1998-2008 by Jordan Russell
   All rights reserved.
 
   The contents of this file are subject to the "Toolbar2000 License"; you may
@@ -23,7 +23,7 @@ unit TB2Acc;
   GPL. If you do not delete the provisions above, a recipient may use your
   version of this file under either the "Toolbar2000 License" or the GPL.
 
-  $jrsoftware: tb2k/Source/TB2Acc.pas,v 1.8 2006/03/12 23:11:58 jr Exp $
+  $jrsoftware: tb2k/Source/TB2Acc.pas,v 1.9 2008/04/19 05:31:00 jr Exp $
 
   This unit is used internally to implement the IAccessible interface on
   TTBView and TTBItemViewer for Microsoft Active Accessibility support.
@@ -289,7 +289,7 @@ var
   LastAccObjectCritSect: TRTLCriticalSection;
 
   NotifyWinEventInited: BOOL;
-  NotifyWinEventFunc: procedure(event: DWORD; hwnd: HWND; idObject: DWORD;
+  NotifyWinEventFunc: procedure(event: DWORD; hwnd: HWND; idObject: Longint;
     idChild: Longint); stdcall;
 {$ENDIF}
 
@@ -309,10 +309,10 @@ begin
     InterlockedExchange(Integer(NotifyWinEventInited), Ord(True));
   end;
   if Assigned(NotifyWinEventFunc) then
-    NotifyWinEventFunc(event, hwnd, idObject, idChild);
+    NotifyWinEventFunc(event, hwnd, Longint(idObject), idChild);
   {$ELSE}
   { NotifyWinEvent is supported on all platforms .NET supports }
-  NotifyWinEvent(event, hwnd, idObject, idChild);
+  NotifyWinEvent(event, hwnd, Longint(idObject), idChild);
   {$ENDIF}
 end;
 

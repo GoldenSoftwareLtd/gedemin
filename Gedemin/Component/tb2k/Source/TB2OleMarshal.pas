@@ -2,7 +2,7 @@ unit TB2OleMarshal;
 
 {
   Toolbar2000
-  Copyright (C) 1998-2006 by Jordan Russell
+  Copyright (C) 1998-2008 by Jordan Russell
   All rights reserved.
 
   The contents of this file are subject to the "Toolbar2000 License"; you may
@@ -23,11 +23,16 @@ unit TB2OleMarshal;
   GPL. If you do not delete the provisions above, a recipient may use your
   version of this file under either the "Toolbar2000 License" or the GPL.
 
-  $jrsoftware: tb2k/Source/TB2OleMarshal.pas,v 1.2 2006/03/12 23:11:59 jr Exp $
+  $jrsoftware: tb2k/Source/TB2OleMarshal.pas,v 1.4 2008/09/17 18:04:09 jr Exp $
 
   This unit implements the TTBStandardOleMarshalObject class, an exact clone of
-  .NET Framework 2.0's StandardOleMarshalObject class, which we can't use since
-  the current versions of Delphi only require .NET Framework 1.1.
+  .NET Framework 2.0's StandardOleMarshalObject class, which isn't available
+  on the .NET Framework 1.1-based Delphi 2006.
+  On Delphi 2007, I had planned to switch to StandardOleMarshalObject, but it
+  turns out there's a bug that causes it raise AV's on x64 & IA-64 (seen as
+  E_POINTER on the client side). Coincidentally, TTBStandardOleMarshalObject
+  does not suffer from this bug (even though it was intended to be an exact
+  clone!).
 
   The class "replaces the standard common language runtime (CLR) free-threaded
   marshaler with the standard OLE STA marshaler." It "prevents calls made into
@@ -37,6 +42,8 @@ unit TB2OleMarshal;
 }
 
 interface
+
+{$I TB2Ver.inc}
 
 uses
   System.Runtime.InteropServices, Windows;

@@ -2,7 +2,7 @@ unit TB2MDI;
 
 {
   Toolbar2000
-  Copyright (C) 1998-2006 by Jordan Russell
+  Copyright (C) 1998-2008 by Jordan Russell
   All rights reserved.
 
   The contents of this file are subject to the "Toolbar2000 License"; you may
@@ -23,7 +23,7 @@ unit TB2MDI;
   GPL. If you do not delete the provisions above, a recipient may use your
   version of this file under either the "Toolbar2000 License" or the GPL.
 
-  $jrsoftware: tb2k/Source/TB2MDI.pas,v 1.14 2006/03/12 23:11:59 jr Exp $
+  $jrsoftware: tb2k/Source/TB2MDI.pas,v 1.15 2008/04/23 21:54:37 jr Exp $
 }
 
 interface
@@ -244,7 +244,8 @@ var
   I: Integer;
   Form: TForm;
   M: HMENU;
-  State, ID: UINT;
+  State: UINT;
+  ID: Word;
   Item: TTBCustomItem;
 begin
   inherited;
@@ -264,7 +265,7 @@ begin
       if State and MF_GRAYED <> 0 then
         Item.Enabled := False;
       Item.Caption := GetMenuItemStr(M, I);
-      ID := GetMenuItemID(M, I);
+      ID := Word(GetMenuItemID(M, I));
       Item.Tag := {$IFDEF CLR}TTag{$ENDIF}(ID);
       case ID and $FFF0 of
         SC_RESTORE: Item.ImageIndex := 3;
@@ -288,8 +289,8 @@ begin
   if Assigned(Application.MainForm) then begin
     Form := Application.MainForm.ActiveMDIChild;
     if Assigned(Form) then
-      SendMessage(Form.Handle, WM_SYSCOMMAND, UINT(TTBCustomItem(Sender).Tag),
-        GetMessagePos);
+      SendMessage(Form.Handle, WM_SYSCOMMAND, Word(TTBCustomItem(Sender).Tag),
+        LPARAM(GetMessagePos()));
   end;
 end;
 
@@ -444,9 +445,9 @@ begin
       end;
     HCBT_MINMAX: begin
         if WindowIsMDIChild(HWND(WParam)) and Assigned(MDIButtonsItems) and
-           (LParam in [SW_SHOWNORMAL, SW_SHOWMAXIMIZED, SW_MINIMIZE, SW_RESTORE]) then begin
-          Maximizing := (LParam = SW_MAXIMIZE);
-          if (LParam = SW_RESTORE) and not IsZoomed(HWND(WParam)) then begin
+           (Word(LParam) in [SW_SHOWNORMAL, SW_SHOWMAXIMIZED, SW_MINIMIZE, SW_RESTORE]) then begin
+          Maximizing := (Word(LParam) = SW_MAXIMIZE);
+          if (Word(LParam) = SW_RESTORE) and not IsZoomed(HWND(WParam)) then begin
             {$IFNDEF CLR}
             WindowPlacement.length := SizeOf(WindowPlacement);
             {$ELSE}
@@ -588,7 +589,7 @@ begin
         Cmd := SC_CLOSE
       else
         Cmd := SC_MINIMIZE;
-      SendMessage(ChildForm.Handle, WM_SYSCOMMAND, Cmd, GetMessagePos);
+      SendMessage(ChildForm.Handle, WM_SYSCOMMAND, Cmd, LPARAM(GetMessagePos()));
     end;
   end;
 end;
@@ -693,7 +694,7 @@ begin
     Items[Count-1].Free;
   for I := 0 to ItemCount-1 do begin
     Item := Items[I];
-    Item.Tag := {$IFDEF CLR}TTag{$ENDIF}(GetMenuItemID(M, I+1));
+    Item.Tag := {$IFDEF CLR}TTag{$ENDIF}(Word(GetMenuItemID(M, I+1)));
     Item.Caption := GetMenuItemStr(M, I+1);
     Item.Checked := GetMenuState(M, I+1, MF_BYPOSITION) and MF_CHECKED <> 0;
   end;
@@ -707,7 +708,7 @@ var
 begin
   Form := Application.MainForm;
   if Assigned(Form) then
-    PostMessage(Form.Handle, WM_COMMAND, UINT(TTBCustomItem(Sender).Tag), 0);
+    PostMessage(Form.Handle, WM_COMMAND, Word(TTBCustomItem(Sender).Tag), 0);
 end;
 
 end.

@@ -11,7 +11,7 @@ modifications have been made.
 Except where otherwise noted, all of the documentation and Software included
 in the Toolbar2000 package is copyrighted by Jordan Russell (the Author).
 
-Copyright (C) 1998-2006 Jordan Russell. All rights reserved.
+Copyright (C) 1998-2008 Jordan Russell. All rights reserved.
 
 Use and distribution of the software is permitted provided that all of the
 following terms are accepted:
@@ -57,5 +57,5 @@ use the Software in any way, and all copies of it must be deleted from your
 system(s).
 
 Jordan Russell
-jr-2005 AT jrsoftware.org
+jr-2008 AT jrsoftware.org
 http://www.jrsoftware.org/

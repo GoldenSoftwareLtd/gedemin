@@ -2,7 +2,7 @@ unit TB2Toolbar;
 
 {
   Toolbar2000
-  Copyright (C) 1998-2006 by Jordan Russell
+  Copyright (C) 1998-2008 by Jordan Russell
   All rights reserved.
 
   The contents of this file are subject to the "Toolbar2000 License"; you may
@@ -23,7 +23,7 @@ unit TB2Toolbar;
   GPL. If you do not delete the provisions above, a recipient may use your
   version of this file under either the "Toolbar2000 License" or the GPL.
 
-  $jrsoftware: tb2k/Source/TB2Toolbar.pas,v 1.118 2006/03/27 18:51:35 jr Exp $
+  $jrsoftware: tb2k/Source/TB2Toolbar.pas,v 1.126 2008/06/23 18:05:47 jr Exp $
 }
 
 interface
@@ -149,9 +149,6 @@ type
     procedure DoContextPopup(MousePos: TPoint; var Handled: Boolean); override;
     {$ENDIF}
     procedure GetBaseSize(var ASize: TPoint); override;
-    {$IFNDEF CLR}
-    procedure GetChildren(Proc: TGetChildProc; Root: TComponent); override;
-    {$ENDIF}
     procedure GetMinBarSize(var MinimumSize: TPoint);
     procedure GetMinShrinkSize(var AMinimumSize: Integer); override;
     function GetShrinkMode: TTBShrinkMode; override;
@@ -177,9 +174,7 @@ type
     procedure BeginUpdate;
     procedure EndUpdate;
     procedure CreateWrappersForAllControls;
-    {$IFDEF CLR}
     procedure GetChildren(Proc: TGetChildProc; Root: TComponent); override;
-    {$ENDIF}
     procedure GetTabOrderList(List: TList); override;
     procedure InitiateAction; override;
     function IsShortCut(var Message: TWMKey): Boolean;
@@ -546,7 +541,6 @@ type
 
 constructor TTBCustomToolbar.Create(AOwner: TComponent);
 begin
-  TBRegisterControlItem;
   inherited;
   ControlStyle := ControlStyle + [csAcceptsControls, csActionClient] -
     [csCaptureMouse];
@@ -800,21 +794,24 @@ end;
 procedure TTBCustomToolbar.WMSetCursor(var Message: TWMSetCursor);
 var
   P: TPoint;
+  Viewer: TTBItemViewer;
   Cursor: HCURSOR;
-  R: TRect;
 begin
   if not(csDesigning in ComponentState) and
      (Message.CursorWnd = WindowHandle) and
      (Smallint(Message.HitTest) = HTCLIENT) then begin
+    { Note: This should not change the selection, because we can receive this
+      message during a modal loop if a user sets "Screen.Cursor := crDefault"
+      inside a submenu's OnClick handler (which really isn't recommended, as
+      it won't necessarily restore the cursor we set originally). }
     GetCursorPos(P);
-    FView.UpdateSelection(P, True);
-    if Assigned(FView.Selected) then begin
+    P := ScreenToClient(P);
+    Viewer := FView.ViewerFromPoint(P);
+    if Assigned(Viewer) then begin
       Cursor := 0;
-      R := FView.Selected.BoundsRect;
-      P := ScreenToClient(P);
-      Dec(P.X, R.Left);
-      Dec(P.Y, R.Top);
-      TTBItemViewerAccess(FView.Selected).GetCursor(P, Cursor);
+      Dec(P.X, Viewer.BoundsRect.Left);
+      Dec(P.Y, Viewer.BoundsRect.Top);
+      TTBItemViewerAccess(Viewer).GetCursor(P, Cursor);
       if Cursor <> 0 then begin
         SetCursor(Cursor);
         Message.Result := 1;
@@ -829,11 +826,15 @@ procedure TTBCustomToolbar.WMSysCommand(var Message: TWMSysCommand);
 var
   ConvertedKey: Char;
 begin
-  if FMenuBar and Enabled and Showing then
+  if FMenuBar and CanFocus then
     with Message do
       if (CmdType and $FFF0 = SC_KEYMENU) and (Key <> VK_SPACE) and
          (GetCapture = 0) then begin
         {$IFNDEF CLR}
+        {$IFDEF JR_WIDESTR}
+        { Under Unicode Win32 VCL, no conversion required }
+        WideChar(ConvertedKey) := WideChar(Key);
+        {$ELSE}
         if Win32Platform = VER_PLATFORM_WIN32_NT then begin
           { On Windows NT 4/2000/XP, Key is a wide character, so we have to
             convert it. Pressing Alt+N in a Russian input locale, for example,
@@ -845,13 +846,14 @@ begin
             with the code page of the currently active input locale, like
             Windows does when sending WM_(SYS)CHAR messages. }
           if WideCharToMultiByte(GetInputLocaleCodePage, 0, @WideChar(Key), 1,
-             @ConvertedKey, 1, nil, nil) <> 1 then
+             @AnsiChar(ConvertedKey), 1, nil, nil) <> 1 then
             Exit;  { shouldn't fail, but if it does, we can't continue }
         end
         else begin
           { On Windows 95/98/Me, Key is not a wide character. }
-          ConvertedKey := AnsiChar(Key);
+          AnsiChar(ConvertedKey) := AnsiChar(Key);
         end;
+        {$ENDIF}
         {$ELSE}
         if Marshal.SystemDefaultCharSize = 2 then begin
           { Strings are Unicode on .NET, so no need to downconvert to ANSI }
@@ -861,7 +863,7 @@ begin
           { On Windows 98/Me, we have to convert ANSI->Unicode, using the
             code page of the currently active input locale }
           ConvertedKey := Encoding.GetEncoding(GetInputLocaleCodePage).
-            GetString([Byte(Key)])[1];
+            GetChars([Byte(Key)])[0];
         end;
         {$ENDIF}
         if not KeyboardOpen(ConvertedKey, False) then begin
@@ -892,7 +894,7 @@ end;
 procedure TTBCustomToolbar.CMDialogKey(var Message: TCMDialogKey);
 begin
   if not(csDesigning in ComponentState) and
-     (Message.CharCode = VK_MENU) and FMenuBar then
+     (Message.CharCode = VK_MENU) and FMenuBar and CanFocus then
     FView.SetAccelsVisibility(True);
   inherited;
 end;
@@ -906,7 +908,7 @@ begin
     open in the embedded designer, and a tab other than Design is currently
     selected (e.g., Code). }
   if not(csDesigning in ComponentState) and
-     not FMenuBar and Enabled and Showing and (Message.CharCode <> 0) then
+     not FMenuBar and CanFocus and (Message.CharCode <> 0) then
     if KeyboardOpen(Chr(Message.CharCode), True) then begin
       Message.Result := 1;
       Exit;
@@ -1005,10 +1007,13 @@ var
   I: TTBItemViewer;
   IsOnlyItemWithAccel: Boolean;
 begin
+  Result := False;
+  { Sanity check: Bail out early if re-entered }
+  if vsModal in FView.State then
+    Exit;
   I := nil;
   FView.SetAccelsVisibility(True);
   try
-    Result := False;
     if Key = #0 then begin
       I := FView.FirstSelectable;
       if I = nil then Exit;

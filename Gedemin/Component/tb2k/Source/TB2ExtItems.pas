@@ -2,7 +2,7 @@ unit TB2ExtItems;
 
 {
   Toolbar2000
-  Copyright (C) 1998-2006 by Jordan Russell
+  Copyright (C) 1998-2008 by Jordan Russell
   All rights reserved.
 
   The contents of this file are subject to the "Toolbar2000 License"; you may
@@ -23,7 +23,7 @@ unit TB2ExtItems;
   GPL. If you do not delete the provisions above, a recipient may use your
   version of this file under either the "Toolbar2000 License" or the GPL.
 
-  $jrsoftware: tb2k/Source/TB2ExtItems.pas,v 1.65 2006/03/12 23:11:59 jr Exp $
+  $jrsoftware: tb2k/Source/TB2ExtItems.pas,v 1.68 2008/04/10 21:51:12 jr Exp $
 }
 
 interface
@@ -136,6 +136,9 @@ type
     property HelpContext;
     property Hint;
     property ImageIndex;
+    property InheritOptions;
+    property MaskOptions;
+    property Options;
     property RadioItem;
     property ShortCut;
     property Text: String read FText write SetText stored IsTextStored;
@@ -540,7 +543,7 @@ var
 begin
   Item := TTBEditItem(Self.Item);
   if Message.Msg = WM_CHAR then
-    case Message.WParam of
+    case Word(Message.WParam) of
       VK_TAB: begin
           FEditControlStatus := [ecsAccept];
           AcceptText;
@@ -723,8 +726,7 @@ function TTBEditItemViewer.EditLoop(const CapHandle: HWND): Boolean;
           WM_SYSKEYDOWN: begin
               { Exit immediately if Alt+[key] or F10 are pressed, but not
                 Alt+Shift, Alt+`, or Alt+[keypad digit] }
-              if (Msg.wParam <> VK_MENU) and (Msg.wParam <> VK_SHIFT) and
-                 (Msg.wParam <> VK_HANJA) then begin
+              if not(Word(Msg.wParam) in [VK_MENU, VK_SHIFT, VK_HANJA]) then begin
                 IsKeypadDigit := False;
                 { This detect digits regardless of whether Num Lock is on: }
                 ScanCode := Byte(Msg.lParam shr 16);
@@ -742,7 +744,7 @@ function TTBEditItemViewer.EditLoop(const CapHandle: HWND): Boolean;
             end;
           WM_SYSKEYUP: begin
               { Exit when Alt is released by itself }
-              if Msg.wParam = VK_MENU then begin
+              if Word(Msg.wParam) = VK_MENU then begin
                 FEditControlStatus := [ecsClose];
                 Exit;
               end;
@@ -789,6 +791,22 @@ function TTBEditItemViewer.EditLoop(const CapHandle: HWND): Boolean;
     end;
   end;
 
+  procedure RestoreEditControlWndProc;
+  {$IFNDEF CLR}
+  var
+    OrigWndProc: TWndMethod;
+  begin
+    { NOTE: We can't assign WndProc to WindowProc directly because on Delphi 4
+      and 5, the compiler generates incorrect code, causing an AV at run-time }
+    OrigWndProc := TEditAccess(FEditControl).WndProc;
+    FEditControl.WindowProc := OrigWndProc;
+  end;
+  {$ELSE}
+  begin
+    IControl(FEditControl).RestoreWndProc;
+  end;
+  {$ENDIF}
+
 var
   Item: TTBEditItem;
   R: TRect;
@@ -834,11 +852,7 @@ begin
   finally
     { Restore the original window procedure before destroying the control so
       it doesn't see a WM_KILLFOCUS message }
-    {$IFNDEF CLR}
-    FEditControl.WindowProc := TEditAccess(FEditControl).WndProc;
-    {$ELSE}
-    IControl(FEditControl).RestoreWndProc;
-    {$ENDIF}
+    RestoreEditControlWndProc;
     FreeAndNil(FEditControl);
   end;
 

@@ -2,7 +2,7 @@ unit TB2Dock;
 
 {
   Toolbar2000
-  Copyright (C) 1998-2006 by Jordan Russell
+  Copyright (C) 1998-2008 by Jordan Russell
   All rights reserved.
 
   The contents of this file are subject to the "Toolbar2000 License"; you may
@@ -23,7 +23,7 @@ unit TB2Dock;
   GPL. If you do not delete the provisions above, a recipient may use your
   version of this file under either the "Toolbar2000 License" or the GPL.
 
-  $jrsoftware: tb2k/Source/TB2Dock.pas,v 1.112 2006/04/05 19:19:51 jr Exp $
+  $jrsoftware: tb2k/Source/TB2Dock.pas,v 1.127 2008/09/17 20:12:25 jr Exp $
 }
 
 interface
@@ -220,11 +220,11 @@ type
     procedure CreateParams(var Params: TCreateParams); override;
     procedure DrawNCArea(const DrawToDC: Boolean; const ADC: HDC;
       const Clip: HRGN; RedrawWhat: TTBToolWindowNCRedrawWhat); dynamic;
+    procedure Notification(AComponent: TComponent; Operation: TOperation); override;
     property DockableWindow: TTBCustomDockableWindow read FDockableWindow;
     property CloseButtonDown: Boolean read FCloseButtonDown;
   public
     property ParentForm: TTBCustomForm read FParentForm;
-    destructor Destroy; override;
   end;
 
   { TTBCustomDockableWindow }
@@ -674,6 +674,12 @@ begin
       (SParentRequired, [ToolWindow.Name]);
 end;
 
+procedure SetWindowOwner(const Wnd, NewOwnerWnd: HWND);
+begin
+  SetWindowLong(Wnd, GWL_HWNDPARENT,
+    {$IFDEF JR_D11} LONG_PTR {$ELSE} Longint {$ENDIF} (NewOwnerWnd));
+end;
+
 procedure ToolbarHookProc(Code: THookProcCode; Wnd: HWND; WParam: WPARAM; LParam: LPARAM);
 var
   I: Integer;
@@ -722,7 +728,7 @@ begin
                 the tool window's handle. }
               if Assigned(Parent) and Parent.HandleAllocated and
                  (HWND(GetWindowLong(Parent.Handle, GWL_HWNDPARENT)) = Wnd) then
-                SetWindowLong(Parent.Handle, GWL_HWNDPARENT, Longint(Application.Handle));
+                SetWindowOwner(Parent.Handle, Application.Handle);
                 { ^ Restore GWL_HWNDPARENT back to Application.Handle }
           end;
       end;
@@ -814,7 +820,7 @@ begin
   if Ctl.HandleAllocated then
     RedrawWindow(Ctl.Handle, nil, 0, RDW_FRAME or RDW_INVALIDATE or
       RDW_ERASE or RDW_NOCHILDREN);
-end;                   
+end;
 
 type
   TSetCloseButtonStateProc = procedure(Pushed: Boolean) of object;
@@ -843,7 +849,7 @@ begin
         -1: Break; { if GetMessage failed }
         0: begin
              { Repost WM_QUIT messages }
-             PostQuitMessage(Msg.WParam);
+             PostQuitMessage(ClipToLongint(Msg.wParam));
              Break;
            end;
       end;
@@ -1035,7 +1041,10 @@ begin
 end;
 
 procedure TTBDock.ChangeWidthHeight(const NewWidth, NewHeight: Integer);
-{ Same as setting Width/Height directly, but does not lose Align position. }
+{ Same as setting Width/Height directly, but does not lose Align position.
+  Specifically, it ensures that a bottom-aligned dock stays above a
+  bottom-aligned TStatusBar when the only toolbar on the dock is undocked
+  and then redocked. }
 begin
   case Align of
     alNone, alTop, alLeft:
@@ -1515,7 +1524,7 @@ begin
     { Now actually move the toolbars }
     CurRowPixel := 0;
     for R := 0 to HighestRow do begin
-      CurRowSize := 0;
+      CurRowSize := -1;
       for I := 0 to NewDockList.Count-1 do begin
         T := TTBCustomDockableWindow(NewDockList[I]);
         if PosData[I].Row = R then begin
@@ -1555,8 +1564,10 @@ begin
             CurRowSize := K;
         end;
       end;
-      if CurRowSize <> 0 then
-        Inc(CurRowSize, DockedBorderSize2);
+      if CurRowSize <> -1 then
+        Inc(CurRowSize, DockedBorderSize2)
+      else
+        CurRowSize := 0;
       for I := 0 to NewDockList.Count-1 do begin
         T := TTBCustomDockableWindow(NewDockList[I]);
         if PosData[I].Row = R then begin
@@ -1899,7 +1910,7 @@ begin
       default handling would send it back to the main form, resulting in
       infinite recursion. }
     if ((Message.Msg <> WM_SYSCOMMAND) or (csMenuEvents in T.ControlStyle)) and
-       T.Floating and T.Showing and T.Enabled then begin
+       T.Floating and T.CanFocus then begin
       Message.Result := T.Perform(Message.Msg, Message.WParam, Message.LParam);
       if Message.Result <> 0 then
         Exit;
@@ -2060,11 +2071,6 @@ end;*)
 
 { TTBFloatingWindowParent - Internal }
 
-destructor TTBFloatingWindowParent.Destroy;
-begin
-  inherited;
-end;
-
 procedure TTBFloatingWindowParent.CreateParams(var Params: TCreateParams);
 const
   ThickFrames: array[Boolean] of DWORD = (0, WS_THICKFRAME);
@@ -2090,6 +2096,14 @@ begin
       for the toolbar when FloatingMode = fmOnTopOfAllForms. }
     ExStyle := WS_EX_TOOLWINDOW;
   end;
+end;
+
+procedure TTBFloatingWindowParent.Notification(AComponent: TComponent;
+  Operation: TOperation);
+begin
+  inherited;
+  if (Operation = opRemove) and (AComponent = FParentForm) then
+    FParentForm := nil;
 end;
 
 procedure TTBFloatingWindowParent.AlignControls(AControl: TControl; var Rect: TRect);
@@ -2145,7 +2159,8 @@ end;
 procedure TTBFloatingWindowParent.CMDialogKey(var Message: TCMDialogKey);
 begin
   { If Escape if pressed on a floating toolbar, return focus to the form }
-  if (Message.CharCode = VK_ESCAPE) and (KeyDataToShiftState(Message.KeyData) = []) and
+  if (Message.CharCode = VK_ESCAPE) and
+     (KeyDataToShiftState(ClipToLongint(Message.KeyData)) = []) and
      Assigned(ParentForm) then begin
     ParentForm.SetFocus;
     Message.Result := 1;
@@ -2305,14 +2320,14 @@ var
   P: TPoint;
   R, BR: TRect;
 begin
-  case Message.HitTest of
+  case ClipToLongint(Message.HitTest) of
     HT_TB2k_Caption: begin
         P := FDockableWindow.ScreenToClient(Point(Message.XCursor, Message.YCursor));
         FDockableWindow.BeginMoving(P.X, P.Y);
       end;
     HTLEFT..HTBOTTOMRIGHT:
       if FDockableWindow.Resizable then
-        FDockableWindow.BeginSizing(TTBSizeHandle(Message.HitTest - HTLEFT));
+        FDockableWindow.BeginSizing(TTBSizeHandle(ClipToLongint(Message.HitTest) - HTLEFT));
     HT_TB2k_Close: begin
         GetWindowRect(Handle, R);
         BR := GetCloseButtonRect(True);
@@ -2327,7 +2342,7 @@ end;
 
 procedure TTBFloatingWindowParent.WMNCLButtonDblClk(var Message: TWMNCLButtonDblClk);
 begin
-  if Message.HitTest = HT_TB2k_Caption then
+  if ClipToLongint(Message.HitTest) = HT_TB2k_Caption then
     FDockableWindow.DoubleClick;
 end;
 
@@ -2435,28 +2450,12 @@ procedure TTBFloatingWindowParent.DrawNCArea(const DrawToDC: Boolean;
 { Redraws all the non-client area (the border, title bar, and close button) of
   the toolbar when it is floating. }
 const
-  COLOR_GRADIENTACTIVECAPTION = 27;
-  COLOR_GRADIENTINACTIVECAPTION = 28;
   BorderColors: array[Boolean] of Integer =
     (COLOR_ACTIVEBORDER, COLOR_INACTIVEBORDER);
   CaptionBkColors: array[Boolean, Boolean] of Integer =
     ((COLOR_ACTIVECAPTION, COLOR_INACTIVECAPTION),
      (COLOR_GRADIENTACTIVECAPTION, COLOR_GRADIENTINACTIVECAPTION));
-  CaptionTextColors: array[Boolean] of Integer =
-    (COLOR_CAPTIONTEXT, COLOR_INACTIVECAPTIONTEXT);
-
-  function GradientCaptionsEnabled: Boolean;
-  const
-    SPI_GETGRADIENTCAPTIONS = $1008;  { Win98/NT5 only }
-  begin
-    Result := GetSystemParametersInfoBool(SPI_GETGRADIENTCAPTIONS, False);
-  end;
-
-const
   CloseButtonState: array[Boolean] of UINT = (0, DFCS_PUSHED);
-  ActiveCaptionFlags: array[Boolean] of UINT = (DC_ACTIVE, 0);
-  DC_GRADIENT = $20;
-  GradientCaptionFlags: array[Boolean] of UINT = (0, DC_GRADIENT);
 var
   DC: HDC;
   R, R2: TRect;
@@ -2484,7 +2483,7 @@ begin
     GetWindowRect(Handle, R);  OffsetRect(R, -R.Left, -R.Top);
     IntersectClipRect(DC, R.Left, R.Top, R.Right, R.Bottom);
 
-    Gradient := GradientCaptionsEnabled;
+    Gradient := GetSystemParametersInfoBool(SPI_GETGRADIENTCAPTIONS, False);
 
     { Border }
     if twrdBorder in RedrawWhat then begin
@@ -2517,11 +2516,8 @@ begin
         { Caption }
         if twrdCaption in RedrawWhat then begin
           R := GetCaptionRect(True, FDockableWindow.FCloseButton);
-          { Note that Delphi's Win32 help for DrawCaption is totally wrong!
-            I got updated info from www.microsoft.com/msdn/sdk/ }
-          DrawCaption(Handle, DC, R, DC_TEXT or DC_SMALLCAP or
-            ActiveCaptionFlags[FDockableWindow.FInactiveCaption] or
-            GradientCaptionFlags[Gradient]);
+          DrawSmallWindowCaption(Handle, DC, R, Caption,
+            not FDockableWindow.FInactiveCaption);
 
           { Line below caption }
           R := GetCaptionRect(True, False);
@@ -2612,8 +2608,8 @@ end;
 destructor TTBCustomDockableWindow.Destroy;
 begin
   inherited;
-  FDockForms.Free;  { must be done after 'inherited' because Notification accesses FDockForms }
-  FFloatParent.Free;
+  FreeAndNil(FDockForms);  { must be done after 'inherited' because Notification accesses FDockForms }
+  FreeAndNil(FFloatParent);
   UninstallHookProc(Self, ToolbarHookProc);
 end;
 
@@ -2658,6 +2654,7 @@ procedure TTBCustomDockableWindow.WMMove(var Message: TWMMove);
       InvalidateAll(Self);
       Exit;
     end;
+    ValidateRect(W, nil);
     BmpDC := 0;
     Bmp := 0;
     DC := GetDC(W);
@@ -2674,7 +2671,6 @@ procedure TTBCustomDockableWindow.WMMove(var Message: TWMMove);
       if Bmp <> 0 then DeleteObject(Bmp);
       ReleaseDC(W, DC);
     end;
-    ValidateRect(W, nil);
   end;
 
 begin
@@ -2916,7 +2912,7 @@ begin
           Form := GetMDIParent(TBGetToolWindowParentForm(Self));
           if Assigned(Form) and Form.HandleAllocated and
              (HWND(GetWindowLong(Parent.Handle, GWL_HWNDPARENT)) <> Form.Handle) then begin
-            SetWindowLong(Parent.Handle, GWL_HWNDPARENT, Longint(Form.Handle));
+            SetWindowOwner(Parent.Handle, Form.Handle);
             { Following is necessarily to make it immediately realize the
               GWL_HWNDPARENT change }
             SetWindowPos(Parent.Handle, GetPrevWnd(Form.Handle), 0, 0, 0, 0, SWP_NOACTIVATE or
@@ -2924,7 +2920,7 @@ begin
           end;
         end
         else begin
-          SetWindowLong(Parent.Handle, GWL_HWNDPARENT, Longint(Application.Handle));
+          SetWindowOwner(Parent.Handle, Application.Handle);
         end;
         { Initialize caption state after setting owner but before showing }
         UpdateCaptionState;
@@ -2968,25 +2964,8 @@ begin
     else
     if AComponent = FLastDock then
       FLastDock := nil
-    else begin
+    else
       RemoveFromList(FDockForms, AComponent);
-      if Assigned(FFloatParent) and (csDestroying in FFloatParent.ComponentState) and
-         (AComponent = FFloatParent.FParentForm) then begin
-        { ^ Note: Must check csDestroying so that we are sure that FFloatParent
-          is actually being destroyed and not just being removed from its
-          Owner's component list }
-        if Parent = FFloatParent then begin
-          if FFloatingMode = fmOnTopOfParentForm then
-            Parent := nil
-          else
-            FFloatParent.FParentForm := nil;
-        end
-        else begin
-          FFloatParent.Free;
-          FFloatParent := nil;
-        end;
-      end;
-    end;
   end;
 end;
 
@@ -3058,13 +3037,6 @@ var
   R: TRect;
 begin
   inherited;
-
-  {$IFDEF GEDEMIN}
-  FCloseButton := False;
-  FCloseButtonWhenDocked := False;
-  FDockMode := dmCannotFloatOrChangeDocks;
-  {$ENDIF}
-
   { Adjust coordinates if it was initially floating }
   if not FSavedAtRunTime and not(csDesigning in ComponentState) and
      (Parent is TTBFloatingWindowParent) then begin
@@ -3212,7 +3184,6 @@ procedure TTBCustomDockableWindow.SetParent(AParent: TWinControl);
 var
   OldCurrentDock, NewCurrentDock: TTBDock;
   NewFloating: Boolean;
-  OldParent: TWinControl;
   SaveHandle: HWND;
 begin
   OldCurrentDock := ParentToCurrentDock(Parent);
@@ -3265,20 +3236,16 @@ begin
             TTBDock(Parent).ToolbarVisibilityChanged(Self, True);
           end;
 
-          OldParent := Parent;
-
+          { By default, the VCL destroys a control's window handle when it
+            changes parents. Prevent that from happening by capturing the
+            current handle, detaching the control from its current parent,
+            then restoring the handle back. }
           SaveHandle := 0;
           if Assigned(AParent) then begin
-            //AParent.HandleNeeded;
             SaveHandle := WindowHandle;
             WindowHandle := 0;
           end;
-          { Ensure that the handle is destroyed now so that any messages in the queue
-            get flushed. This is neccessary since existing messages may reference
-            FDockedTo or FDocked, which is changed below. }
           inherited SetParent(nil);
-          { ^ Note to self: SetParent is used instead of DestroyHandle because it does
-            additional processing }
           FCurrentDock := NewCurrentDock;
           FFloating := NewFloating;
           FDocked := Assigned(FCurrentDock);
@@ -3291,7 +3258,7 @@ begin
             end;
             inherited;
           except
-            { Failure is rare, but just in case, restore FDockedTo and FDocked back. }
+            { Failure is rare, but just in case, restore these back. }
             FCurrentDock := ParentToCurrentDock(Parent);
             FFloating := Parent is TTBFloatingWindowParent;
             FDocked := Assigned(FCurrentDock);
@@ -3303,10 +3270,15 @@ begin
             toolbar }
           FEffectiveDockRow := -1;
 
-          if not FSmoothDragging and (OldParent is TTBFloatingWindowParent) then begin
-            if FFloatParent = OldParent then FFloatParent := nil;
-            OldParent.Free;
-          end;
+          { To conserve resources, free FFloatParent if it's no longer the
+            Parent. But don't do this while FSmoothDragging=True, because
+            destroying the window the user initially clicked down on causes
+            Windows to stop delivering mouse-move messages when the cursor is
+            moved over other applications' windows, even if we still have the
+            mouse capture. }
+          if not FSmoothDragging and
+             Assigned(FFloatParent) and (Parent <> FFloatParent) then
+            FreeAndNil(FFloatParent);
 
           if Parent is TTBDock then begin
             if FUseLastDock and not FSmoothDragging then begin
@@ -4100,7 +4072,8 @@ var
       D: TTBDockPosition;
       I: Integer;
     begin
-      if ContainsControl(ParentCtl) or not ParentCtl.Showing then
+      if ContainsControl(ParentCtl) or not ParentCtl.HandleAllocated or
+         not IsWindowVisible(ParentCtl.Handle) then
         Exit;
       with ParentCtl do begin
         for D := Low(D) to High(D) do
@@ -4285,7 +4258,7 @@ begin
             -1: Break; { if GetMessage failed }
             0: begin
                  { Repost WM_QUIT messages }
-                 PostQuitMessage(Msg.WParam);
+                 PostQuitMessage(ClipToLongint(Msg.wParam));
                  Break;
                end;
           end;
@@ -4293,7 +4266,7 @@ begin
           case Msg.Message of
             WM_KEYDOWN, WM_KEYUP:
               { Ignore all keystrokes while dragging. But process Ctrl and Escape }
-              case Msg.WParam of
+              case Word(Msg.wParam) of
                 VK_CONTROL:
                   if PreventDocking <> (Msg.Message = WM_KEYDOWN) then begin
                     PreventDocking := Msg.Message = WM_KEYDOWN;
@@ -4364,11 +4337,10 @@ begin
       if FUseLastDock and Assigned(CurrentDock) then
         LastDock := CurrentDock;
 
-      { Free FFloatParent if it's no longer the Parent }
-      if Assigned(FFloatParent) and (Parent <> FFloatParent) then begin
-        FFloatParent.Free;
-        FFloatParent := nil;
-      end;
+      { To conserve resources, free FFloatParent if it's no longer the Parent.
+        (SetParent doesn't do this automatically when FSmoothDragging=True.) }
+      if Assigned(FFloatParent) and (Parent <> FFloatParent) then
+        FreeAndNil(FFloatParent);
     finally
       FSmoothDragging := False;
       if not Docked then begin
@@ -4491,7 +4463,7 @@ begin
   if (Win32MajorVersion >= 5) or
      (Win32MajorVersion = 4) and (Win32MinorVersion >= 10) then
     CallTrackMouseEvent(Handle, TME_LEAVE or $10 {TME_NONCLIENT});
-  InArea := Message.HitTest = HT_TB2k_Close;
+  InArea := (ClipToLongint(Message.HitTest) = HT_TB2k_Close);
   if FCloseButtonHover <> InArea then begin
     FCloseButtonHover := InArea;
     RedrawNCArea;
@@ -4561,7 +4533,7 @@ var
   R, BR: TRect;
   P: TPoint;
 begin
-  case Message.HitTest of
+  case ClipToLongint(Message.HitTest) of
     HT_TB2k_Close: begin
         GetWindowRect(Handle, R);
         BR := GetDockedCloseButtonRect(
@@ -4582,7 +4554,7 @@ end;
 
 procedure TTBCustomDockableWindow.WMNCLButtonDblClk(var Message: TWMNCLButtonDblClk);
 begin
-  if Message.HitTest = HT_TB2k_Border then begin
+  if ClipToLongint(Message.HitTest) = HT_TB2k_Border then begin
     if IsMovable then
       DoubleClick;
   end
@@ -4628,7 +4600,7 @@ procedure TTBCustomDockableWindow.ShowNCContextMenu(const PosX, PosY: Smallint);
 begin
   {$IFDEF JR_D5}
   { Delphi 5 and later use the WM_CONTEXTMENU message for popup menus }
-  SendMessage(Handle, WM_CONTEXTMENU, 0, Word(PosX) or (Word(PosY) shl 16));
+  SendMessage(Handle, WM_CONTEXTMENU, WPARAM(Handle), MAKELPARAM(Word(PosX), Word(PosY)));
   {$ELSE}
   CheckMenuPopup;
   {$ENDIF}
@@ -4878,7 +4850,7 @@ begin
           -1: Break; { if GetMessage failed }
           0: begin
                { Repost WM_QUIT messages }
-               PostQuitMessage(Msg.WParam);
+               PostQuitMessage(ClipToLongint(Msg.wParam));
                Break;
              end;
         end;
@@ -4886,7 +4858,7 @@ begin
         case Msg.Message of
           WM_KEYDOWN, WM_KEYUP:
             { Ignore all keystrokes while sizing except for Escape }
-            if Msg.WParam = VK_ESCAPE then
+            if Word(Msg.wParam) = VK_ESCAPE then
               Break;
           WM_MOUSEMOVE:
             { Note to self: WM_MOUSEMOVE messages should never be dispatched
@@ -5057,18 +5029,16 @@ begin
   if FFloating <> Value then begin
     if Value and not(csDesigning in ComponentState) then begin
       ParentFrm := TBValidToolWindowParentForm(Self);
-      if (FFloatParent = nil) or (FFloatParent.FParentForm <> ParentFrm) then begin
+      if FFloatParent = nil then begin
         NewFloatParent := GetFloatingWindowParentClass.CreateNew(nil);
         try
           with NewFloatParent do begin
-            FParentForm := ParentFrm;
             FDockableWindow := Self;
-            Caption := Self.Caption;
             BorderStyle := bsToolWindow;
-            SetBounds(0, 0, (Width-ClientWidth) + Self.ClientWidth,
-              (Height-ClientHeight) + Self.ClientHeight);
             ShowHint := True;
             Visible := True;
+            { Note: The above line doesn't actually make it visible at this
+              point since FShouldShow is still False. }
           end;
         except
           NewFloatParent.Free;
@@ -5076,7 +5046,9 @@ begin
         end;
         FFloatParent := NewFloatParent;
       end;
-      ParentFrm.FreeNotification(Self);
+      ParentFrm.FreeNotification(FFloatParent);
+      FFloatParent.FParentForm := ParentFrm;
+      FFloatParent.Caption := Caption;
       Parent := FFloatParent;
       SetBounds(0, 0, Width, Height);
     end
