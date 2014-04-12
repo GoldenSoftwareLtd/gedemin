@@ -644,14 +644,9 @@ begin
 end;
 
 procedure Tgdc_dlgTRPC.actNewExecute(Sender: TObject);
-var
-  I: Integer;
 begin
   inherited;
-  //Прячем закладки
-  for I := 0 to pgcMain.PageCount - 1 do
-    if AnsiPos(cstTabSheetPrefix, pgcMain.Pages[I].Name) = 1 then
-      pgcMain.Pages[I].TabVisible := False;
+  pgcMain.ActivePageIndex := 0;    
 end;
 
 function Tgdc_dlgTRPC.OnInvoker(const Name: WideString;
