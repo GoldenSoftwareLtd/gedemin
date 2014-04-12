@@ -325,6 +325,10 @@ begin
 end;
 
 procedure TgdSysInfo.FillSysData;
+{$IFDEF DUNIT_TEST}
+const
+  {$INCLUDE versioninfo.inc}
+{$ENDIF}
 var
   T: TTraceFlag;
   S: String;
@@ -454,6 +458,7 @@ begin
   {$IFDEF GEDEMIN}AddSpaces('FastMM', FastMMVersion);{$ENDIF}
   {$IFDEF EXCMAGIC_GEDEMIN}AddSpaces('Exceptional Magic', ExceptionHook.Version);{$ENDIF}
   {$IFDEF WITH_INDY}AddSpaces(gsIdProductName, gsIdVersion);{$ENDIF}
+  {$IFDEF DUNIT_TEST}AddSpaces('DUnit', ReleaseStr);{$ENDIF}
 
   AddLibrary(GetIBLibraryHandle, 'fbclient.dll');
   AddComLibrary(MIDAS_GUID1, 'MIDAS.DLL');
