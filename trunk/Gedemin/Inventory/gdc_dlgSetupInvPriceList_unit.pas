@@ -95,6 +95,8 @@ type
     lblExplorer: TLabel;
     ibcmbExplorer: TgsIBLookupComboBox;
     dbcbIsCommon: TDBCheckBox;
+    lblParent: TLabel;
+    edParentName: TEdit;
 
     procedure pcMainChange(Sender: TObject);
     procedure pcMainChanging(Sender: TObject; var AllowChange: Boolean);
@@ -1017,7 +1019,22 @@ begin
   inherited;
 
   ActivateTransaction(gdcObject.Transaction);
+  edParentName.Text := '';
 
+  ibsql := TIBSQL.Create(nil);
+  try
+    ibsql.Transaction := gdcObject.ReadTransaction;
+
+    ibsql.SQL.Text := 'SELECT name FROM gd_documenttype WHERE id = :id AND documenttype = ''D'' ';
+    ibsql.ParamByName('id').AsInteger := gdcObject.FieldByName('parent').AsInteger;
+    ibsql.ExecQuery;
+    if not ibsql.Eof then
+      edParentName.Text := ibsql.FieldByName('name').AsString
+    else
+      edParentName.Text := gdcObject.FieldByName('classname').AsString;
+  finally
+    ibsql.Free;
+  end;
   if Document.State = dsEdit then
   begin
     if not Document.FieldByName('OPTIONS').IsNull then
