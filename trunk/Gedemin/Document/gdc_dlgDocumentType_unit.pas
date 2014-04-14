@@ -646,6 +646,26 @@ begin
       ibsql.Close;
     end;
 
+    if gdcObject.FieldByName('headerrelkey').IsNull then
+    begin
+      ibsql.SQL.Text := 'SELECT headerrelkey FROM gd_documenttype WHERE id = :id AND documenttype = ''D'' ';
+      ibsql.ParamByName('id').AsInteger := gdcObject.FieldByName('parent').AsInteger;
+      ibsql.ExecQuery;
+      if not ibsql.Eof then
+        gdcObject.FieldByName('headerrelkey').Asinteger := ibsql.FieldByName('headerrelkey').AsInteger;
+      ibsql.Close;
+    end;
+
+    if gdcObject.FieldByName('linerelkey').IsNull then
+    begin
+      ibsql.SQL.Text := 'SELECT linerelkey FROM gd_documenttype WHERE id = :id AND documenttype = ''D'' ';
+      ibsql.ParamByName('id').AsInteger := gdcObject.FieldByName('parent').AsInteger;
+      ibsql.ExecQuery;
+      if not ibsql.Eof then
+        gdcObject.FieldByName('linerelkey').Asinteger := ibsql.FieldByName('linerelkey').AsInteger;
+      ibsql.Close;
+    end;
+
     ibsql.SQL.Text := 'SELECT name FROM gd_documenttype WHERE id = :id AND documenttype = ''D'' ';
     ibsql.ParamByName('id').AsInteger := gdcObject.FieldByName('parent').AsInteger;
     ibsql.ExecQuery;
