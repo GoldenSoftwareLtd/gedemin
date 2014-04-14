@@ -637,15 +637,6 @@ begin
 
     dbcMask.Items.Assign(List);
 
-    if not gdcObject.FieldByName('headerrelkey').IsNull then
-    begin
-      ibsql.SQL.Text := 'SELECT relationname FROM at_relations WHERE id = :id';
-      ibsql.ParamByName('id').AsInteger := gdcObject.FieldByName('headerrelkey').AsInteger;
-      ibsql.ExecQuery;
-      edEnglishName.Text := ibsql.FieldByName('relationname').AsTrimString;
-      ibsql.Close;
-    end;
-
     if gdcObject.FieldByName('headerrelkey').IsNull then
     begin
       ibsql.SQL.Text := 'SELECT headerrelkey FROM gd_documenttype WHERE id = :id AND documenttype = ''D'' ';
@@ -663,6 +654,15 @@ begin
       ibsql.ExecQuery;
       if not ibsql.Eof then
         gdcObject.FieldByName('linerelkey').Asinteger := ibsql.FieldByName('linerelkey').AsInteger;
+      ibsql.Close;
+    end;
+
+    if not gdcObject.FieldByName('headerrelkey').IsNull then
+    begin
+      ibsql.SQL.Text := 'SELECT relationname FROM at_relations WHERE id = :id';
+      ibsql.ParamByName('id').AsInteger := gdcObject.FieldByName('headerrelkey').AsInteger;
+      ibsql.ExecQuery;
+      edEnglishName.Text := ibsql.FieldByName('relationname').AsTrimString;
       ibsql.Close;
     end;
 
