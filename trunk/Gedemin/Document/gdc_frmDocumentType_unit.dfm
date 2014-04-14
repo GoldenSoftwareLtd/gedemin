@@ -1,17 +1,17 @@
 inherited gdc_frmDocumentType: Tgdc_frmDocumentType
-  Left = 293
-  Top = 118
+  Left = 365
+  Top = 169
   Width = 578
   Height = 433
   Caption = 'Типовые документы'
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 387
-    Width = 570
+    Top = 376
+    Width = 562
   end
   inherited TBDockTop: TTBDock
-    Width = 570
+    Width = 562
     inherited tbMainToolbar: TTBToolbar
       object TBSubmenuItem1: TTBSubmenuItem [1]
         Action = actNew
@@ -29,59 +29,56 @@ inherited gdc_frmDocumentType: Tgdc_frmDocumentType
     end
   end
   inherited TBDockLeft: TTBDock
-    Height = 329
+    Height = 316
   end
   inherited TBDockRight: TTBDock
-    Left = 561
-    Height = 329
+    Left = 553
+    Height = 316
   end
   inherited TBDockBottom: TTBDock
-    Top = 378
-    Width = 570
+    Top = 367
+    Width = 562
   end
   inherited pnlWorkArea: TPanel
-    Width = 552
-    Height = 329
+    Width = 544
+    Height = 316
     inherited sMasterDetail: TSplitter
-      Height = 226
+      Height = 211
     end
     inherited spChoose: TSplitter
-      Top = 226
-      Width = 552
+      Top = 211
+      Width = 544
     end
     inherited pnlMain: TPanel
-      Height = 226
+      Height = 211
       inherited pnlSearchMain: TPanel
-        Height = 226
+        Height = 211
         inherited sbSearchMain: TScrollBox
-          Height = 188
-        end
-        inherited pnlSearchMainButton: TPanel
-          Top = 188
+          Height = 184
         end
       end
       inherited tvGroup: TgsDBTreeView
-        Height = 226
+        Height = 211
       end
     end
     inherited pnChoose: TPanel
-      Top = 230
-      Width = 552
+      Top = 217
+      Width = 544
       inherited pnButtonChoose: TPanel
-        Left = 447
+        Left = 439
       end
       inherited ibgrChoose: TgsIBGrid
-        Width = 447
+        Width = 439
       end
       inherited pnlChooseCaption: TPanel
-        Width = 552
+        Width = 544
       end
     end
     inherited pnlDetail: TPanel
-      Width = 382
-      Height = 226
+      Width = 372
+      Height = 211
       inherited TBDockDetail: TTBDock
-        Width = 382
+        Width = 372
         inherited tbDetailToolbar: TTBToolbar
           object tbsmNew: TTBSubmenuItem [0]
             Caption = 'Добавить'
@@ -105,17 +102,14 @@ inherited gdc_frmDocumentType: Tgdc_frmDocumentType
         end
       end
       inherited pnlSearchDetail: TPanel
-        Height = 200
+        Height = 185
         inherited sbSearchDetail: TScrollBox
-          Height = 162
-        end
-        inherited pnlSearchDetailButton: TPanel
-          Top = 162
+          Height = 158
         end
       end
       inherited ibgrDetail: TgsIBGrid
-        Width = 222
-        Height = 200
+        Width = 212
+        Height = 185
       end
     end
   end
@@ -184,6 +178,7 @@ inherited gdc_frmDocumentType: Tgdc_frmDocumentType
     Top = 140
   end
   object gdcDocumentBranch: TgdcDocumentBranch
+    OnGetWhereClause = gdcDocumentBranchGetWhereClause
     Left = 113
     Top = 135
   end
