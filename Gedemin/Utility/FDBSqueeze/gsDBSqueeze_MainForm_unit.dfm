@@ -1,6 +1,6 @@
 object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
-  Left = 197
-  Top = 137
+  Left = 198
+  Top = 138
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsDialog
   ClientHeight = 537
@@ -118,7 +118,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           Top = 54
           Width = 634
           Height = 369
-          ActivePage = tsOptions
+          ActivePage = tsConnection
           TabOrder = 0
           object tsConnection: TTabSheet
             Caption = 'Database Connection'
