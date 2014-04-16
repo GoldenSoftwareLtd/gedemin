@@ -73,9 +73,8 @@ type
     FOnlyCompanySaldo: Boolean;
     FOurCompaniesListStr: String;      // список компаний из gd_ourcompany
     FProizvolnyyDocTypeKey: Integer;   // ''Произвольный тип'' из gd_documenttype
-    //FPseudoClientKey: Integer;         // ''Псевдоклиент'' из gd_contact
+    //FPseudoClientKey: Integer;       // ''Псевдоклиент'' из gd_contact
     FSaveLog: Boolean;
-
     FDoStopProcessing: Boolean;        // флаг прерывания выполнения
 
     FOnProgressWatch: TProgressWatchEvent;
@@ -2340,10 +2339,10 @@ begin
         '  CAST(0.0000 AS DECIMAL(15,4)) ');
       for I := 0 to AvailableAnalyticsList.Count - 1 do                         /////////////////////////////////////
       begin
-        if UpperCase(Trim(AvailableAnalyticsList[I])) <> 'USR$GS_DOCUMENT' then
+        //if UpperCase(Trim(AvailableAnalyticsList[I])) <> 'USR$GS_DOCUMENT' then
           q3.SQL.Add(', ' +
             AvailableAnalyticsList[I])
-        else begin
+        {else begin
           if FOnlyCompanySaldo then
             q3.SQL.Add( ', ' +
               IntToStr(OnlyCompanyEntryDoc))
@@ -2359,7 +2358,7 @@ begin
             q3.SQL.Add(' ' +
               'END ');
           end;
-        end;
+        end;  }
       end;
 
       q3.SQL.Add(' ' +
@@ -2413,10 +2412,10 @@ begin
           '  ABS(SUM(debiteq)   - SUM(crediteq)) ');
       for I := 0 to AvailableAnalyticsList.Count - 1 do                         /////////////////////////////////////
       begin
-        if UpperCase(Trim(AvailableAnalyticsList[I])) <> 'USR$GS_DOCUMENT' then
+        //if UpperCase(Trim(AvailableAnalyticsList[I])) <> 'USR$GS_DOCUMENT' then
           q3.SQL.Add(', ' +
             AvailableAnalyticsList[I])
-        else begin
+        {else begin
           if FOnlyCompanySaldo then
             q3.SQL.Add( ', ' +
               IntToStr(OnlyCompanyEntryDoc))
@@ -2432,7 +2431,7 @@ begin
             q3.SQL.Add(' ' +
               'END ');
           end;
-        end;
+        end; }
       end;
 
       q3.SQL.Add(' ' +                                          #13#10 +
@@ -2591,7 +2590,6 @@ begin
     q2.Close;
     Tr.Commit;
 
-    SetBlockTriggerActive(False);
     ProgressMsgEvent('', 2*PROGRESS_STEP);
  
     ProgressMsgEvent('', 2*PROGRESS_STEP);
@@ -4354,7 +4352,7 @@ var
 
         ////TEST                                                                 !!!!!!!!!!!!!!!!
     q3.SQL.Text :=
-      'SELECT g_his_has(1, 147818321) AS IsHas FROM rdb$database';
+      'SELECT g_his_has(1, 147637763) AS IsHas FROM rdb$database';
     ExecSqlLogEvent(q3, 'CreateHIS_IncludeInHIS');
     LogEvent('[test] HIS_1 dbs_doc: ' + q3.FieldByName('IsHas').AsString);
     q3.Close;
@@ -4453,7 +4451,7 @@ var
 
                ////TEST
     q3.SQL.Text :=
-      'SELECT g_his_has(1, 147818321) AS IsHas FROM rdb$database';
+      'SELECT g_his_has(1, 147637763) AS IsHas FROM rdb$database';
     ExecSqlLogEvent(q3, 'CreateHIS_IncludeInHIS');
     LogEvent('[test] HIS_1 dbs_doc pos: ' + q3.FieldByName('IsHas').AsString);
     q3.Close;
@@ -4501,7 +4499,7 @@ var
 
              ////TEST
     q3.SQL.Text :=
-      'SELECT g_his_has(1, 147818321) AS IsHas FROM rdb$database';
+      'SELECT g_his_has(1, 147637763) AS IsHas FROM rdb$database';
     ExecSqlLogEvent(q3, 'CreateHIS_IncludeInHIS');
     if q3.FieldByName('IsHas').AsInteger > 0 then
       LogEvent('[test] HIS_1 dbs_doc: ' + q3.FieldByName('IsHas').AsString);
@@ -4568,7 +4566,7 @@ var
 
                       ////TEST
     q3.SQL.Text :=
-      'SELECT g_his_has(1, 147818321) AS IsHas FROM rdb$database';
+      'SELECT g_his_has(1, 147637763) AS IsHas FROM rdb$database';
     ExecSqlLogEvent(q3, 'CreateHIS_IncludeInHIS');
     if q3.FieldByName('IsHas').AsInteger > 0 then
       LogEvent('[test] HIS_1 dbs_doc: ' + q3.FieldByName('IsHas').AsString);
@@ -4581,7 +4579,7 @@ var
 
                              ////TEST
     q3.SQL.Text :=
-      'SELECT g_his_has(1, 147818321) AS IsHas FROM rdb$database';
+      'SELECT g_his_has(1, 147637763) AS IsHas FROM rdb$database';
     ExecSqlLogEvent(q3, 'CreateHIS_IncludeInHIS');
     if q3.FieldByName('IsHas').AsInteger > 0 then
       LogEvent('[test] HIS_1 dbs_doc: ' + q3.FieldByName('IsHas').AsString);
@@ -4600,7 +4598,7 @@ var
 
                      ////TEST
     q3.SQL.Text :=
-      'SELECT g_his_has(1, 147818321) AS IsHas FROM rdb$database';
+      'SELECT g_his_has(1, 147637763) AS IsHas FROM rdb$database';
     ExecSqlLogEvent(q3, 'CreateHIS_IncludeInHIS');
     if q3.FieldByName('IsHas').AsInteger > 0 then
       LogEvent('[test] HIS_1 dbs_doc: ' + q3.FieldByName('IsHas').AsString);
@@ -4838,7 +4836,7 @@ var
 
                      ////TEST
     q3.SQL.Text :=
-      'SELECT g_his_has(1, 147818321) AS IsHas FROM rdb$database';
+      'SELECT g_his_has(1, 147637763) AS IsHas FROM rdb$database';
     ExecSqlLogEvent(q3, 'CreateHIS_IncludeInHIS');
     if q3.FieldByName('IsHas').AsInteger > 0 then
       LogEvent('[test] HIS_1 dbs_doc: ' + q3.FieldByName('IsHas').AsString);
@@ -5060,7 +5058,7 @@ var
 
                      ////TEST
     q3.SQL.Text :=
-      'SELECT g_his_has(1, 147818321) AS IsHas FROM rdb$database';
+      'SELECT g_his_has(1, 147637763) AS IsHas FROM rdb$database';
     ExecSqlLogEvent(q3, 'CreateHIS_IncludeInHIS');
     if q3.FieldByName('IsHas').AsInteger > 0 then
       LogEvent('[test] HIS_1 dbs_doc: ' + q3.FieldByName('IsHas').AsString);
@@ -5141,7 +5139,7 @@ var
 
                   ////TEST
     q3.SQL.Text :=
-      'SELECT g_his_has(1, 147818321) AS IsHas FROM rdb$database';
+      'SELECT g_his_has(1, 147637763) AS IsHas FROM rdb$database';
     ExecSqlLogEvent(q3, 'CreateHIS_IncludeInHIS');
     if q3.FieldByName('IsHas').AsInteger > 0 then
       LogEvent('[test] HIS_1 dbs_doc: ' + q3.FieldByName('IsHas').AsString);
@@ -5284,7 +5282,7 @@ var
 
                                 ////TEST
     q3.SQL.Text :=
-      'SELECT g_his_has(1, 147818321) AS IsHas FROM rdb$database';
+      'SELECT g_his_has(1, 147637763) AS IsHas FROM rdb$database';
     ExecSqlLogEvent(q3, 'CreateHIS_IncludeInHIS');
     if q3.FieldByName('IsHas').AsInteger > 0 then
       LogEvent('[test] HIS_1 dbs_doc: ' + q3.FieldByName('IsHas').AsString);
@@ -5427,6 +5425,7 @@ CreateHIS(0);
     Tr.StartTransaction;
     q.Transaction := Tr;
 
+    SetBlockTriggerActive(False);
 
     q.SQL.Text :=                                                               //////////////////
         'UPDATE gd_document doc ' +
@@ -5439,9 +5438,8 @@ CreateHIS(0);
     Tr.Commit;
     Tr.StartTransaction;
 
-    //////////////////////
     LogEvent('Update INV_CARD...');
-
+ 
     q.SQL.Text :=
       'SELECT SUM(g_his_include(0, cardkey)) FROM DBS_TMP_INV_SALDO';
     if not FDoStopProcessing then
@@ -5454,12 +5452,40 @@ CreateHIS(0);
     q.SQL.Text :=
       'UPDATE inv_card c ' +
       'SET c.firstdocumentkey = :SaldoDocKey, ' +
-      '    c.documentkey = :SaldoDocKey, ' +
-      '    c.USR$INV_ADDLINEKEY = :SaldoDocKey ' +                              //TODO проверка наличия поля
+      '    c.documentkey = :SaldoDocKey ' +
       'WHERE g_his_has(0, c.id)=1 ';
     q.ParamByName('SaldoDocKey').AsInteger := FInvSaldoDoc;
     if not FDoStopProcessing then
-      ExecSqlLogEvent(q, 'CalculateInvSaldo');              
+      ExecSqlLogEvent(q, 'CalculateInvSaldo');
+
+    if (GetCountHIS(0) > 0) and (not FDoStopProcessing) then
+    begin
+      repeat
+        q.Close;
+        q.SQL.Text :=
+          'SELECT SUM(g_his_include(0, id)) AS Kolvo ' +
+          'FROM inv_card ' +
+          'WHERE g_his_has(0, parent)=1';
+        ExecSqlLogEvent(q, 'CalculateInvSaldo');
+      until q.FieldByName('Kolvo').AsInteger = 0;
+    end;
+    q.Close;
+
+
+     q.SQL.Text :=
+      'UPDATE inv_card c ' +
+      'SET ' +
+      '  c.USR$INV_ADDLINEKEY = :SaldoDocKey, ' +                                //TODO проверка наличия поля
+      '  c.USR$INV_MOVEDOCKEY = NULL, ' +
+      '  c.USR$INV_BILLLINEKEY = :SaldoDocKey, ' +
+      '  c.USR$INV_PRMETALKEY = :SaldoDocKey, ' +
+      '  c.USR$WC_STARTUPDOCKEY = :SaldoDocKey, ' +
+      '  c.USR$WC_CONSERVREVDOCKEY =:SaldoDocKey, ' +
+      '  c.USR$WC_CONSERVATIONDOCKEY = :SaldoDocKey ' +
+      'WHERE g_his_has(0, c.id)=1 ';
+    q.ParamByName('SaldoDocKey').AsInteger := FInvSaldoDoc;
+    if not FDoStopProcessing then
+      ExecSqlLogEvent(q, 'CalculateInvSaldo');
 
 DestroyHIS(0);
 
@@ -5467,6 +5493,7 @@ DestroyHIS(0);
     Tr.StartTransaction;
     LogEvent('Update INV_CARD... OK');
     //////////////////////////
+
 
     LogEvent('DELETE FROM INV_BALANCE...');
 
@@ -5546,7 +5573,7 @@ DestroyHIS(0);
 
     ////TEST
     q.SQL.Text :=
-      'SELECT g_his_has(1, 147818321) AS IsHas FROM rdb$database';
+      'SELECT g_his_has(1, 147637763) AS IsHas FROM rdb$database';
     ExecSqlLogEvent(q, 'CreateHIS_IncludeInHIS');
     LogEvent('[test] HIS_1 dbs_doc: ' + q.FieldByName('IsHas').AsString);
     q.Close;
@@ -5562,7 +5589,7 @@ DestroyHIS(0);
 
     ////TEST
     q.SQL.Text :=
-      'SELECT g_his_has(1, 147818321) AS IsHas FROM rdb$database';
+      'SELECT g_his_has(1, 147637763) AS IsHas FROM rdb$database';
     ExecSqlLogEvent(q, 'CreateHIS_IncludeInHIS');
     LogEvent('[test] HIS_1 dbs_doc: ' + q.FieldByName('IsHas').AsString);
     q.Close;
@@ -5595,7 +5622,7 @@ DestroyHIS(0);
 
     ////TEST
     q.SQL.Text :=
-      'SELECT g_his_has(1, 147818321) AS IsHas FROM rdb$database';
+      'SELECT g_his_has(1, 147637763) AS IsHas FROM rdb$database';
     ExecSqlLogEvent(q, 'CreateHIS_IncludeInHIS');
     LogEvent('[test] HIS_1 dbs_doc: ' + q.FieldByName('IsHas').AsString);
     q.Close;

@@ -232,7 +232,7 @@ type
     procedure btnSelectDocTypesClick(Sender: TObject);
     procedure btnGetStatisticsMouseDown(Sender: TObject;
       Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
-
+      
   private
     FStartupTime: TDateTime;
     FSThread: TgsDBSqueezeThread;
@@ -1329,5 +1329,7 @@ end;
 
 //initialization
 //  ReportMemoryLeaksOnShutdown := True;
+
+
 
 end.
