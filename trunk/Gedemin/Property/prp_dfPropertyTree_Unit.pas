@@ -9,7 +9,7 @@ uses
   mtd_Base, gdc_createable_form, ActnList, gdcFunction, TB2Item, TB2Dock,
   TB2Toolbar, gdcMacros, gdcReport, SuperPageControl, gd_createable_form,
   Menus, StdCtrls, FR_Ctrls, FR_Combo, prp_DOCKFORM_unit, evt_i_Base,
-  gdcCustomFunction, ExtCtrls;
+  gdcCustomFunction, ExtCtrls, gdcClasses;
 
 const
   dfPasteError = 'Невозможно вставить данные из буфера обмена.';
@@ -2089,6 +2089,8 @@ var
   ST: TStrings;
   IsGDC: Boolean;
   Init: Boolean;
+  ibsql: TIBSQL;
+  id: integer;
 
   function ClassFilter(Index: Integer; AIsGDC: Boolean; SubType: string): Boolean;
   var
@@ -2279,8 +2281,32 @@ begin
                 if ClassFilter(Index, IsGDC, Replace(ST.Values[ST.Names[I]])) then
                 begin
                   if MC.Class_Reference.InheritsFrom(TgdcBase) then
-                    TN := AddGDCClassNode(AParent, Index,
-                      Replace(ST.Values[ST.Names[I]]), ST.Names[I])
+                  begin
+                    if MC.Class_Reference.InheritsFrom(TgdcDocument) then
+                    begin
+                      ibsql := TIBSQL.Create(nil);
+                      try
+                        ibsql.Transaction:= gdcFunction.ReadTransaction;
+                        ibsql.SQL.Text :=
+                          'SELECT z.* FROM gd_documenttype z '#13#10 +
+                          'WHERE z.documenttype = ''D''  and z.PARENT in ( '#13#10 +
+                          'select p.ID FROM gd_documenttype p '#13#10 +
+                          'WHERE p.documenttype = ''B'') and z.RUID = :RUID';
+                        ibsql.ParamByName('RUID').AsString := Replace(ST.Values[ST.Names[I]]);
+                        ibsql.ExecQuery;
+                        if not ibsql.Eof then
+                        begin
+                          TN := AddGDCClassNode(AParent, Index,
+                            Replace(ST.Values[ST.Names[I]]), ST.Names[I]);
+                        end;
+                      finally
+                        ibsql.Free;
+                      end;
+                    end
+                    else
+                      TN := AddGDCClassNode(AParent, Index,
+                        Replace(ST.Values[ST.Names[I]]), ST.Names[I]);
+                  end
                   else
                     TN := AddFRMClassNode(AParent, Index,
                       Replace(ST.Values[ST.Names[I]]), ST.Names[I]);
@@ -2300,6 +2326,50 @@ begin
             ST.Free;
           end;
         end;
+      end;
+
+      if (TCustomTreeItem(AParent.Data).ItemType = tiGDCClass) and
+        (TGDCClassTreeItem(AParent.Data).SubType <> '') then
+      begin
+        MC := TGDCClassTreeItem(AParent.Data).TheClass;
+        if MC.Class_Reference.InheritsFrom(TgdcDocument) then
+        begin
+          ibsql := TIBSQL.Create(nil);
+          try
+            ibsql.Transaction:= gdcFunction.ReadTransaction;
+            ibsql.Close;
+            ibsql.SQL.Text :=
+              'SELECT z.* FROM gd_documenttype z '#13#10 +
+              'WHERE z.RUID = :RUID ';
+            ibsql.ParamByName('RUID').AsString := TGDCClassTreeItem(AParent.Data).SubType;
+            ibsql.ExecQuery;
+            if not ibsql.Eof then
+            begin
+              id := ibsql.FieldByName('id').AsInteger;
+              ibsql.Close;
+              ibsql.SQL.Text :=
+                'SELECT z.* FROM gd_documenttype z '#13#10 +
+                'WHERE z.parent = :ID ';
+              ibsql.ParamByName('ID').AsInteger := ID;
+              ibsql.ExecQuery;
+              While not ibsql.Eof do
+              begin
+                TN := AddGDCClassNode(AParent, Index, ibsql.FieldByName('RUID').AsString,
+                  ibsql.FieldByName('NAME').AsString);
+                TN.HasChildren := True;
+                if not PropertySettings.Filter.OnlySpecEvent then
+                  InitOverloadAndDisable(TGDCClassTreeItem(TN.Data).TheClass);
+                TGDCClassTreeItem(TN.Data).OverloadMethods :=
+                TGDCClassTreeItem(TN.Data).TheClass.SpecMethodCount;
+                TGDCClassTreeItem(TN.Data).DisabledMethods :=
+                TGDCClassTreeItem(TN.Data).TheClass.SpecDisableMethod;
+                ibsql.Next;
+              end;
+            end;
+        finally
+          ibsql.Free;
+        end;
+      end;
       end;
 
       AddMethods(AParent, IsGDC);
