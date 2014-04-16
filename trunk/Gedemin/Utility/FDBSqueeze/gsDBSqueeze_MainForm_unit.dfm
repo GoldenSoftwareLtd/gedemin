@@ -1,6 +1,6 @@
 object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
-  Left = 198
-  Top = 138
+  Left = 1058
+  Top = 207
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsDialog
   ClientHeight = 537
@@ -106,7 +106,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
       Top = 21
       Width = 1212
       Height = 497
-      ActivePage = tsSettings
+      ActivePage = tsStatistics
       MultiLine = True
       TabOrder = 1
       TabPosition = tpLeft
@@ -118,7 +118,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           Top = 54
           Width = 634
           Height = 369
-          ActivePage = tsConnection
+          ActivePage = tsReviewSettings
           TabOrder = 0
           object tsConnection: TTabSheet
             Caption = 'Database Connection'
@@ -151,7 +151,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               TabStop = False
               Style = csDropDownList
               DropDownCount = 5
-              ItemHeight = 13
+              ItemHeight = 0
               TabOrder = 15
             end
             object StaticText2: TStaticText
@@ -1057,7 +1057,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           Height = 24
           Action = actClearLog
           Caption = 'Clear'
-          TabOrder = 2
+          TabOrder = 1
           TabStop = False
           OnMouseDown = btnClearGeneralLogMouseDown
         end
@@ -1075,9 +1075,9 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         end
         object sttxt19: TStaticText
           Left = 20
-          Top = 3
+          Top = 4
           Width = 417
-          Height = 22
+          Height = 21
           Alignment = taCenter
           AutoSize = False
           Caption = 'General Log'
@@ -1089,7 +1089,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           Font.Style = []
           ParentColor = False
           ParentFont = False
-          TabOrder = 1
+          TabOrder = 3
         end
         object sttxt20: TStaticText
           Left = 487
@@ -1107,16 +1107,16 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           Font.Style = []
           ParentColor = False
           ParentFont = False
-          TabOrder = 3
+          TabOrder = 2
         end
       end
       object tsStatistics: TTabSheet
         Caption = 'tsStatistics'
         ImageIndex = 3
         object shp3: TShape
-          Left = 87
-          Top = 36
-          Width = 309
+          Left = 89
+          Top = 37
+          Width = 306
           Height = 28
           Pen.Color = 671448
           Pen.Mode = pmMask
@@ -1126,8 +1126,8 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         object shp4: TShape
           Left = 488
           Top = 63
-          Width = 228
-          Height = 267
+          Width = 227
+          Height = 266
           Brush.Style = bsClear
           Pen.Color = clBtnShadow
           Pen.Width = 3
@@ -1135,7 +1135,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         object shp2: TShape
           Left = 487
           Top = 37
-          Width = 230
+          Width = 229
           Height = 27
           Pen.Color = 671448
           Pen.Mode = pmMask
@@ -1144,9 +1144,9 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         end
         object shp5: TShape
           Left = 488
-          Top = 376
-          Width = 228
-          Height = 75
+          Top = 375
+          Width = 227
+          Height = 74
           Brush.Style = bsClear
           Pen.Color = clBtnShadow
           Pen.Width = 3
@@ -1154,26 +1154,26 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         object shp1: TShape
           Left = 487
           Top = 349
-          Width = 230
-          Height = 28
+          Width = 229
+          Height = 27
           Pen.Color = 671448
           Pen.Mode = pmMask
           Pen.Style = psInsideFrame
           Pen.Width = 3
         end
         object shp6: TShape
-          Left = 88
+          Left = 90
           Top = 63
-          Width = 307
-          Height = 352
+          Width = 304
+          Height = 350
           Brush.Style = bsClear
           Pen.Color = clBtnShadow
           Pen.Width = 3
         end
         object txt2: TStaticText
-          Left = 86
-          Top = 35
-          Width = 306
+          Left = 90
+          Top = 36
+          Width = 302
           Height = 25
           AutoSize = False
           Caption = '         Number of records in a table                 '
@@ -1507,9 +1507,9 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           end
         end
         object sttxt30: TStaticText
-          Left = 486
-          Top = 35
-          Width = 227
+          Left = 488
+          Top = 36
+          Width = 225
           Height = 25
           Alignment = taCenter
           AutoSize = False
@@ -1526,7 +1526,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         end
         object pnl3: TPanel
           Left = 488
-          Top = 376
+          Top = 375
           Width = 226
           Height = 73
           TabOrder = 5
@@ -1595,9 +1595,9 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           end
         end
         object sttxt21: TStaticText
-          Left = 486
+          Left = 488
           Top = 348
-          Width = 227
+          Width = 225
           Height = 25
           Alignment = taCenter
           AutoSize = False
@@ -1613,15 +1613,15 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           TabOrder = 4
         end
         object pnl4: TPanel
-          Left = 88
+          Left = 90
           Top = 63
-          Width = 305
-          Height = 350
+          Width = 303
+          Height = 349
           TabOrder = 2
           object shp7: TShape
             Left = 124
             Top = 329
-            Width = 83
+            Width = 79
             Height = 2
             Brush.Color = clBtnShadow
             Pen.Color = clGrayText
@@ -1629,7 +1629,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           object shp8: TShape
             Left = 213
             Top = 329
-            Width = 82
+            Width = 79
             Height = 2
             Brush.Color = clBtnShadow
             Pen.Color = clGrayText
@@ -1845,9 +1845,9 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             TabOrder = 13
           end
           object sttxt2: TStaticText
-            Left = -1
+            Left = 0
             Top = 159
-            Width = 305
+            Width = 302
             Height = 24
             Alignment = taCenter
             AutoSize = False
@@ -1941,7 +1941,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           object sttxtProcGdDoc: TStaticText
             Left = 124
             Top = 196
-            Width = 82
+            Width = 79
             Height = 17
             Alignment = taCenter
             AutoSize = False
@@ -1953,7 +1953,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           object sttxtProcAcEntry: TStaticText
             Left = 123
             Top = 220
-            Width = 83
+            Width = 79
             Height = 17
             Alignment = taCenter
             AutoSize = False
@@ -1965,7 +1965,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           object sttxtProcInvMovement: TStaticText
             Left = 123
             Top = 244
-            Width = 83
+            Width = 79
             Height = 17
             Alignment = taCenter
             AutoSize = False
@@ -1977,7 +1977,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           object sttxtProcInvCard: TStaticText
             Left = 122
             Top = 268
-            Width = 84
+            Width = 79
             Height = 17
             Alignment = taCenter
             AutoSize = False
@@ -1989,7 +1989,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           object sttxtAfterProcGdDoc: TStaticText
             Left = 212
             Top = 196
-            Width = 82
+            Width = 79
             Height = 17
             Alignment = taCenter
             AutoSize = False
@@ -2001,7 +2001,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           object sttxtAfterProcAcEntry: TStaticText
             Left = 212
             Top = 220
-            Width = 82
+            Width = 79
             Height = 17
             Alignment = taCenter
             AutoSize = False
@@ -2013,7 +2013,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           object sttxtAfterProcInvMovement: TStaticText
             Left = 212
             Top = 244
-            Width = 82
+            Width = 79
             Height = 17
             Alignment = taCenter
             AutoSize = False
@@ -2025,7 +2025,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           object sttxtAfterProcInvCard: TStaticText
             Left = 212
             Top = 268
-            Width = 82
+            Width = 79
             Height = 17
             Alignment = taCenter
             AutoSize = False
@@ -2037,7 +2037,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           object btnGetStatistics: TButton
             Left = 124
             Top = 305
-            Width = 83
+            Width = 79
             Height = 25
             Action = actGet
             Caption = 'Get'
@@ -2055,7 +2055,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           object btnUpdateStatistics: TBitBtn
             Left = 213
             Top = 305
-            Width = 82
+            Width = 79
             Height = 25
             Action = actGet
             Caption = 'Update'
