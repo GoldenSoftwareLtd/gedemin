@@ -1749,4 +1749,8 @@ inherited dfPropertyTree: TdfPropertyTree
     Left = 48
     Top = 288
   end
+  object gdcDocumentType: TgdcDocumentType
+    Left = 152
+    Top = 248
+  end
 end
