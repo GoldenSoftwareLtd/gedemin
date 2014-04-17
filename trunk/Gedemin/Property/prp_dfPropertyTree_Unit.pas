@@ -192,6 +192,7 @@ type
     actFind: TAction;
     actClassInfo: TAction;
     N14: TMenuItem;
+    gdcDocumentType: TgdcDocumentType;
     procedure FormCreate(Sender: TObject);
     procedure tvClassesDeletion(Sender: TObject; Node: TTreeNode);
     procedure tvClassesDblClick(Sender: TObject);
@@ -2276,52 +2277,52 @@ begin
             else
               CgdcCreateableForm(MC.Class_Reference).GetSubTypeList(ST);
               //Добавляем SubTypы класса
-              for I := 0 to ST.Count - 1 do
+            for I := 0 to ST.Count - 1 do
+            begin
+              if ClassFilter(Index, IsGDC, Replace(ST.Values[ST.Names[I]])) then
               begin
-                if ClassFilter(Index, IsGDC, Replace(ST.Values[ST.Names[I]])) then
+                if MC.Class_Reference.InheritsFrom(TgdcBase) then
                 begin
-                  if MC.Class_Reference.InheritsFrom(TgdcBase) then
+                  if MC.Class_Reference.InheritsFrom(TgdcDocument) then
                   begin
-                    if MC.Class_Reference.InheritsFrom(TgdcDocument) then
-                    begin
-                      ibsql := TIBSQL.Create(nil);
-                      try
-                        ibsql.Transaction:= gdcFunction.ReadTransaction;
-                        ibsql.SQL.Text :=
-                          'SELECT z.* FROM gd_documenttype z '#13#10 +
-                          'WHERE z.documenttype = ''D''  and z.PARENT in ( '#13#10 +
-                          'select p.ID FROM gd_documenttype p '#13#10 +
-                          'WHERE p.documenttype = ''B'') and z.RUID = :RUID';
-                        ibsql.ParamByName('RUID').AsString := Replace(ST.Values[ST.Names[I]]);
-                        ibsql.ExecQuery;
-                        if not ibsql.Eof then
-                        begin
-                          TN := AddGDCClassNode(AParent, Index,
-                            Replace(ST.Values[ST.Names[I]]), ST.Names[I]);
-                        end;
-                      finally
-                        ibsql.Free;
+                    ibsql := TIBSQL.Create(nil);
+                    try
+                      ibsql.Transaction:= gdcDocumentType.ReadTransaction;
+                      ibsql.SQL.Text :=
+                        'SELECT z.* FROM gd_documenttype z '#13#10 +
+                        'WHERE z.documenttype = ''D''  and z.PARENT in ( '#13#10 +
+                        'select p.ID FROM gd_documenttype p '#13#10 +
+                        'WHERE p.documenttype = ''B'') and z.RUID = :RUID';
+                      ibsql.ParamByName('RUID').AsString := Replace(ST.Values[ST.Names[I]]);
+                      ibsql.ExecQuery;
+                      if not ibsql.Eof then
+                      begin
+                        TN := AddGDCClassNode(AParent, Index,
+                          Replace(ST.Values[ST.Names[I]]), ST.Names[I]);
                       end;
-                    end
-                    else
-                      TN := AddGDCClassNode(AParent, Index,
-                        Replace(ST.Values[ST.Names[I]]), ST.Names[I]);
+                    finally
+                      ibsql.Free;
+                    end;
                   end
                   else
-                    TN := AddFRMClassNode(AParent, Index,
+                    TN := AddGDCClassNode(AParent, Index,
                       Replace(ST.Values[ST.Names[I]]), ST.Names[I]);
-                  TN.HasChildren := True;
-                  //Если установлен флаг PropertySettings.Filter.OnlySpecEvent то
-                  //InitOverloadAndDisable для данного класса вызывалась при фильтрации
-                  //иначе вызываем здесь
-                  if not PropertySettings.Filter.OnlySpecEvent then
-                    InitOverloadAndDisable(TGDCClassTreeItem(TN.Data).TheClass);
-                  TGDCClassTreeItem(TN.Data).OverloadMethods :=
-                    TGDCClassTreeItem(TN.Data).TheClass.SpecMethodCount;
-                  TGDCClassTreeItem(TN.Data).DisabledMethods :=
-                    TGDCClassTreeItem(TN.Data).TheClass.SpecDisableMethod;
+                end
+                else
+                  TN := AddFRMClassNode(AParent, Index,
+                    Replace(ST.Values[ST.Names[I]]), ST.Names[I]);
+                TN.HasChildren := True;
+                //Если установлен флаг PropertySettings.Filter.OnlySpecEvent то
+                //InitOverloadAndDisable для данного класса вызывалась при фильтрации
+                //иначе вызываем здесь
+                if not PropertySettings.Filter.OnlySpecEvent then
+                  InitOverloadAndDisable(TGDCClassTreeItem(TN.Data).TheClass);
+                TGDCClassTreeItem(TN.Data).OverloadMethods :=
+                  TGDCClassTreeItem(TN.Data).TheClass.SpecMethodCount;
+                TGDCClassTreeItem(TN.Data).DisabledMethods :=
+                  TGDCClassTreeItem(TN.Data).TheClass.SpecDisableMethod;
                 end;
-              end;
+            end;
           finally
             ST.Free;
           end;
@@ -2336,7 +2337,7 @@ begin
         begin
           ibsql := TIBSQL.Create(nil);
           try
-            ibsql.Transaction:= gdcFunction.ReadTransaction;
+            ibsql.Transaction:= gdcDocumentType.ReadTransaction;
             ibsql.Close;
             ibsql.SQL.Text :=
               'SELECT z.* FROM gd_documenttype z '#13#10 +
@@ -2360,9 +2361,9 @@ begin
                 if not PropertySettings.Filter.OnlySpecEvent then
                   InitOverloadAndDisable(TGDCClassTreeItem(TN.Data).TheClass);
                 TGDCClassTreeItem(TN.Data).OverloadMethods :=
-                TGDCClassTreeItem(TN.Data).TheClass.SpecMethodCount;
+                  TGDCClassTreeItem(TN.Data).TheClass.SpecMethodCount;
                 TGDCClassTreeItem(TN.Data).DisabledMethods :=
-                TGDCClassTreeItem(TN.Data).TheClass.SpecDisableMethod;
+                  TGDCClassTreeItem(TN.Data).TheClass.SpecDisableMethod;
                 ibsql.Next;
               end;
             end;
