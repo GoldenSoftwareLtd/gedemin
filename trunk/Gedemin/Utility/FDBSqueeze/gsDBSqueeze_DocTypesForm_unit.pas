@@ -4,7 +4,8 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  Grids, StdCtrls, ComCtrls, Db, ADODB, DBTables, DBGrids, contnrs;
+  Grids, StdCtrls, ComCtrls, Db, ADODB, DBTables, DBGrids, contnrs,
+  ActnList;
 
 type
   EgsDBSqueeze = class(Exception);
@@ -17,6 +18,8 @@ type
     txt1: TStaticText;
     btnOK: TButton;
     btnCancel: TButton;
+    actList: TActionList;
+    actSelectAll: TAction;
     procedure strngrdIgnoreDocTypesDblClick(Sender: TObject);
     procedure strngrdIgnoreDocTypesDrawCell(Sender: TObject; ACol,
       ARow: Integer; Rect: TRect; State: TGridDrawState);
@@ -25,6 +28,7 @@ type
     procedure tvDocTypesCustomDrawItem(Sender: TCustomTreeView;
       Node: TTreeNode; State: TCustomDrawState; var DefaultDraw: Boolean);
     procedure tvDocTypesClick(Sender: TObject);
+    procedure actSelectAllExecute(Sender: TObject);
   private
     FSelectedDocTypesList: TStringList;
     FAllDocTypesList: TStringList;
@@ -108,23 +112,29 @@ begin
 end;
 //---------------------------------------------------------------------------
 procedure TgsDBSqueeze_DocTypesForm.strngrdIgnoreDocTypesDblClick(Sender: TObject);
+var
+  I: Integer;
 begin
   if FCurBranchIndex <> -1 then
   begin
     if Sender = strngrdIgnoreDocTypes then
     begin
-      if not TBits(FBitsList[FCurBranchIndex])[(Sender as TStringGrid).Row] then
+      for I:= (Sender as TStringGrid).Selection.Top to (Sender as TStringGrid).Selection.Bottom  do
       begin
-        TBits(FBitsList[FCurBranchIndex])[(Sender as TStringGrid).Row] := True;
+        if not TBits(FBitsList[FCurBranchIndex])[I] then
+        begin
+          TBits(FBitsList[FCurBranchIndex])[I] := True;
 
-        if FSelectedDocTypesList.IndexOfName(Trim(strngrdIgnoreDocTypes.Cells[1, (Sender as TStringGrid).Row])) = -1 then
-          FSelectedDocTypesList.Append(Trim(strngrdIgnoreDocTypes.Cells[1, (Sender as TStringGrid).Row]) + '=' + Trim(strngrdIgnoreDocTypes.Cells[0, (Sender as TStringGrid).Row]));
-      end
-      else begin
-        TBits(FBitsList[FCurBranchIndex])[(Sender as TStringGrid).Row] := False;
-        if FSelectedDocTypesList.IndexOfName(Trim(strngrdIgnoreDocTypes.Cells[1, (Sender as TStringGrid).Row])) <> -1 then
-          FSelectedDocTypesList.Delete(FSelectedDocTypesList.IndexOfName(Trim(strngrdIgnoreDocTypes.Cells[1, (Sender as TStringGrid).Row])));
+          if FSelectedDocTypesList.IndexOfName(Trim(strngrdIgnoreDocTypes.Cells[1, I])) = -1 then
+            FSelectedDocTypesList.Append(Trim(strngrdIgnoreDocTypes.Cells[1, I]) + '=' + Trim(strngrdIgnoreDocTypes.Cells[0, I]));
+        end
+        else begin
+          TBits(FBitsList[FCurBranchIndex])[I] := False;
+          if FSelectedDocTypesList.IndexOfName(Trim(strngrdIgnoreDocTypes.Cells[1, I])) <> -1 then
+            FSelectedDocTypesList.Delete(FSelectedDocTypesList.IndexOfName(Trim(strngrdIgnoreDocTypes.Cells[1, I])));
+        end;
       end;
+
       (Sender as TStringGrid).Repaint;
 
       UpdateDocTypesMemo;
@@ -414,6 +424,18 @@ begin
     FBitsList.Add(TBits.Create);
     TBits(FBitsList[I]).Size := SizeBitsArr[I];
   end;
+end;
+//---------------------------------------------------------------------------
+procedure TgsDBSqueeze_DocTypesForm.actSelectAllExecute(Sender: TObject);
+var
+  Rect: TGridRect;
+  I: Integer;
+begin
+  Rect.Left := 0;
+  Rect.Top := 0;
+  Rect.Right := strngrdIgnoreDocTypes.ColCount-1;
+  Rect.Bottom := strngrdIgnoreDocTypes.RowCount-1;
+  strngrdIgnoreDocTypes.Selection := Rect;
 end;
 
 end.

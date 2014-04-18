@@ -603,6 +603,13 @@ begin
         if not FDoStopProcessing then
         begin
           FBusy.Value := 1;
+
+          if FDoGetStatisticsAfterProc then
+          begin
+            FDBS.GetStatisticsEvent;
+            FDBS.GetProcStatisticsEvent;
+          end;
+
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
           FState.Value := 1;
           PostThreadMessage(ThreadID, WM_DBS_SETFVARIABLLES, 0, 0);
@@ -855,6 +862,12 @@ begin
           FDBS.ProgressMsgEvent('Удаление метаданных...', 2*PROGRESS_STEP);                        // 1%
           FDBS.DeleteDBSTables;
 
+          if FDoGetStatisticsAfterProc and (not FDoStopProcessing) then
+          begin
+            FDBS.GetStatisticsEvent;
+            FDBS.GetProcStatisticsEvent;
+          end;
+
           //FDBS.InsertDBSStateJournal(Msg.Message, 1);
           FState.Value := 1;
 
@@ -905,12 +918,6 @@ begin
           FDBS.GetDBSizeEvent;
           FDBS.LogEvent('FINISH!');
           FDBS.ProgressMsgEvent('Обработка БД завершена.');
-
-          if FDoGetStatisticsAfterProc then
-          begin
-            FDBS.GetStatisticsEvent;
-            FDBS.GetProcStatisticsEvent;
-          end;
           
           FFinish:= True;
           Finish(FFinish);
