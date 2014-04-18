@@ -799,7 +799,10 @@ begin
   end;
 
   FileSize := GetFileSize(FullFilePath);
-  FOnGetDBSizeEvent(BytesToStr(FileSize), FileSize);
+  if FileSize > 0 then
+    FOnGetDBSizeEvent(BytesToStr(FileSize), FileSize)
+  else
+    FOnGetDBSizeEvent(' ', FileSize);
 end;
 //---------------------------------------------------------------------------
 procedure TgsDBSqueeze.UsedDBEvent;                                             ///TODO: отпала необходимость
@@ -2203,7 +2206,7 @@ procedure TgsDBSqueeze.CalculateAcSaldo; // подсчет бухгалтерского сальдо c сохр
 var
   Tr: TIBTransaction;
   q2, q3: TIBSQL;
-  I, J: Integer;
+  I: Integer;
   TmpStr: String;
   TmpList: TStringList;
   AvailableAnalyticsList: TStringList;  // cписок активных аналитик для счета
@@ -4054,7 +4057,7 @@ var
   q: TIBSQL;
   I: Integer;
 
-  procedure IncludeCascadingSequences(const ATableName: String);
+  procedure IncludeDependenciesHIS(const ATableName: String);
   const
     STEP_COUNT = 8;
   var
@@ -4174,7 +4177,7 @@ var
           '  AND fc.list_fields NOT LIKE ''%,%'' ' +                                                                        #13#10 +
           'GROUP BY fc.relation_name ';
 
-        ExecSqlLogEvent(q, 'IncludeCascadingSequences');
+        ExecSqlLogEvent(q, 'IncludeDependenciesHIS');
 
         while not q.EOF do
         begin
@@ -4200,6 +4203,7 @@ var
 
         // упорядочить чтобы избежать некоторых переобработок: Line2 ссылающийся на Line1 должен стоять ПЕРЕД Line1
         TmpList.CommaText := LineDocTbls.CommaText;
+
         for J:=0 to TmpList.Count-1 do
         begin
           Line2PosInx := LineDocTbls.IndexOfName(TmpList.Names[J]);
@@ -4212,9 +4216,8 @@ var
             'WHERE  ' +                                           #13#10 +
             '  fc.relation_name = :rln ' +                        #13#10 +
             '  AND fc.list_fields NOT LIKE ''%,%'' ';
-
           q2.ParamByName('rln').AsString := TmpList.Names[J];
-          ExecSqlLogEvent(q2, 'IncludeCascadingSequences');
+          ExecSqlLogEvent(q2, 'IncludeDependenciesHIS');
 
           while not q2.EOF do
           begin
@@ -4229,19 +4232,22 @@ var
             end;
             q2.Next;
           end;
-          q2.Close;
 
           if Inx < Line2PosInx then
           begin
             LineDocTbls.Delete(Line2PosInx);
             LineDocTbls.Insert(Inx, TmpList.Names[J] + '=' + TmpList.Values[TmpList.Names[J]]);
           end;
+
+          q2.Close;
         end;
         TmpList.Clear;
+
 
         LineDocTbls.Append('INV_MOVEMENT=DOCUMENTKEY');
 
         // 2) cross-табл для множеств Line
+
         for J:=0 to LineDocTbls.Count-1 do
         begin
           q.SQL.Text :=
@@ -4255,9 +4261,8 @@ var
             'WHERE ' +                                            #13#10 +
             '  rf.relationname = :rln ' +                         #13#10 +
             '  AND  rf.crosstable IS NOT NULL ';
-
           q.ParamByName('rln').AsString := LineDocTbls.Names[J];
-          ExecSqlLogEvent(q, 'IncludeCascadingSequences');
+          ExecSqlLogEvent(q, 'IncludeDependenciesHIS');
 
           if not q.EOF then
             TmpStr := LineDocTbls.Names[J] + '=';
@@ -4277,8 +4282,8 @@ var
              LineSetTbls.Append(TmpStr);
           end;
 
-          q.Close;
           TmpStr := '';
+          q.Close;
         end;
 
         LogEvent('LineSetTbls: ' + LineSetTbls.Text);
@@ -4290,7 +4295,7 @@ var
 
   q3.SQL.Text :=
     'SELECT SUM(g_his_include(0, id)) FROM gd_document WHERE parent IS NULL';
-  ExecSqlLogEvent(q3, 'IncludeCascadingSequences');
+  ExecSqlLogEvent(q3, 'IncludeDependenciesHIS');
   q3.Close;
 
       Tr2.Commit;
@@ -4311,7 +4316,7 @@ var
           '  AND fc.list_fields NOT LIKE ''%,%'' ' +              #13#10 +
           'GROUP BY fc.relation_name ';
 
-        ExecSqlLogEvent(q2, 'IncludeCascadingSequences');
+        ExecSqlLogEvent(q2, 'IncludeDependenciesHIS');
 
         while (not q2.EOF) and (not FDoStopProcessing) do
         begin
@@ -4330,7 +4335,7 @@ var
                    q2.FieldByName('relation_name').AsString + ' rln ' +               #13#10 +
                 'WHERE ' +
                 '  g_his_has(0, rln.' + FkFieldsList2[I] + ')=1 ';
-              ExecSqlLogEvent(q3, 'IncludeCascadingSequences');
+              ExecSqlLogEvent(q3, 'IncludeDependenciesHIS');
 
               if q3.FieldByName('Kolvo').AsInteger > 0 then
                 LogEvent(q2.FieldByName('relation_name').AsString + '.' + FkFieldsList2[I]);
@@ -4348,14 +4353,6 @@ var
 
         Tr2.Commit;
         Tr2.StartTransaction;
-
-
-        ////TEST                                                                 !!!!!!!!!!!!!!!!
-    q3.SQL.Text :=
-      'SELECT g_his_has(1, 147637763) AS IsHas FROM rdb$database';
-    ExecSqlLogEvent(q3, 'CreateHIS_IncludeInHIS');
-    LogEvent('[test] HIS_1 dbs_doc: ' + q3.FieldByName('IsHas').AsString);
-    q3.Close;
 
         LogEvent('4)');
         // 4) include linefield Line если на нее есть ссылка (не от таблицы Line и не от cross-таблиц Line)
@@ -4384,7 +4381,7 @@ var
             'GROUP BY fc.relation_name, fc.list_ref_fields, pc.list_fields';
 
           q2.ParamByName('rln').AsString := LineDocTbls.Names[J];
-          ExecSqlLogEvent(q2, 'IncludeCascadingSequences');
+          ExecSqlLogEvent(q2, 'IncludeDependenciesHIS');
 
           while not q2.EOF and (not FDoStopProcessing) do
           begin
@@ -4434,7 +4431,7 @@ var
                     '    ON line' + IntToStr(I) + '.' + q2.FieldByName('list_ref_fields').AsString + ' = rln.' + FkFieldsList2[I]);
                 end;
 
-                ExecSqlLogEvent(q3, 'IncludeCascadingSequences');
+                ExecSqlLogEvent(q3, 'IncludeDependenciesHIS');
                 q3.Close;
               end;
             end;
@@ -4448,13 +4445,6 @@ var
 
         Tr2.Commit;
         Tr2.StartTransaction;
-
-               ////TEST
-    q3.SQL.Text :=
-      'SELECT g_his_has(1, 147637763) AS IsHas FROM rdb$database';
-    ExecSqlLogEvent(q3, 'CreateHIS_IncludeInHIS');
-    LogEvent('[test] HIS_1 dbs_doc pos: ' + q3.FieldByName('IsHas').AsString);
-    q3.Close;
 
         LogEvent('5)');
         // 5) Все оставшиеся Line должны затянуть за собой доки и кросс-таблицы, если имеет поле-множество
@@ -4493,17 +4483,9 @@ var
                 'SELECT SUM(g_his_include(1, id)) ' +              #13#10 +
                 '  FROM gd_document ' +                            #13#10 +
                 ' WHERE parent < 147000000';
-              ExecSqlLogEvent(q3, 'IncludeCascadingSequences');
+              ExecSqlLogEvent(q3, 'IncludeDependenciesHIS');
               q3.Close;
             end;
-
-             ////TEST
-    q3.SQL.Text :=
-      'SELECT g_his_has(1, 147637763) AS IsHas FROM rdb$database';
-    ExecSqlLogEvent(q3, 'CreateHIS_IncludeInHIS');
-    if q3.FieldByName('IsHas').AsInteger > 0 then
-      LogEvent('[test] HIS_1 dbs_doc: ' + q3.FieldByName('IsHas').AsString);
-    q3.Close;
 
 
             // if PK<147000000 главные поля include HIS, чтобы далее затянуть FKs таких записей
@@ -4518,7 +4500,7 @@ var
               '  AND c.constraint_type = ''PRIMARY KEY'' ';
 
             q4.ParamByName('rln').AsString := LineDocTbls.Names[J];
-            ExecSqlLogEvent(q4, 'IncludeCascadingSequences');
+            ExecSqlLogEvent(q4, 'IncludeDependenciesHIS');
 
             if not q4.EOF then
             begin
@@ -4550,7 +4532,7 @@ var
                   'rln.' +  FkFieldsList2[I] + ' < 147000000 ');
               end;
 
-              ExecSqlLogEvent(q3, 'IncludeCascadingSequences');
+              ExecSqlLogEvent(q3, 'IncludeDependenciesHIS');
               for I:=0 to q3.Current.Count-1 do // = FkFieldsList.Count
               begin
                 if q3.Fields[I].AsInteger > 0 then
@@ -4563,29 +4545,10 @@ var
               FkFieldsList2.Clear;
             end;
             q4.Close;
-
-                      ////TEST
-    q3.SQL.Text :=
-      'SELECT g_his_has(1, 147637763) AS IsHas FROM rdb$database';
-    ExecSqlLogEvent(q3, 'CreateHIS_IncludeInHIS');
-    if q3.FieldByName('IsHas').AsInteger > 0 then
-      LogEvent('[test] HIS_1 dbs_doc: ' + q3.FieldByName('IsHas').AsString);
-    q3.Close;
-
           end;
 
           if LineDocTbls.Names[J] = 'GD_DOCUMENT' then
           begin
-
-                             ////TEST
-    q3.SQL.Text :=
-      'SELECT g_his_has(1, 147637763) AS IsHas FROM rdb$database';
-    ExecSqlLogEvent(q3, 'CreateHIS_IncludeInHIS');
-    if q3.FieldByName('IsHas').AsInteger > 0 then
-      LogEvent('[test] HIS_1 dbs_doc: ' + q3.FieldByName('IsHas').AsString);
-    q3.Close;
-
-
             repeat
               q3.Close;
               q3.SQL.Text :=
@@ -4595,15 +4558,6 @@ var
               ExecSqlLogEvent(q3, 'CreateHIS_IncludeInHIS');                 //tr убрать sum
             until q3.FieldByName('RealCount').AsInteger = 0;
             q3.Close;
-
-                     ////TEST
-    q3.SQL.Text :=
-      'SELECT g_his_has(1, 147637763) AS IsHas FROM rdb$database';
-    ExecSqlLogEvent(q3, 'CreateHIS_IncludeInHIS');
-    if q3.FieldByName('IsHas').AsInteger > 0 then
-      LogEvent('[test] HIS_1 dbs_doc: ' + q3.FieldByName('IsHas').AsString);
-    q3.Close;
-
           end;
 
           // все FK поля в Line
@@ -4618,7 +4572,7 @@ var
             '  AND fc.list_fields NOT LIKE ''%,%'' ';
 
           q2.ParamByName('rln').AsString := LineDocTbls.Names[J];
-          ExecSqlLogEvent(q2, 'IncludeCascadingSequences');
+          ExecSqlLogEvent(q2, 'IncludeDependenciesHIS');
 
           FkFieldsListLine.Clear;
           FkFieldsList2.Clear;
@@ -4756,7 +4710,7 @@ var
                       '  ON line' + IntToStr(I) + '.' + SelfFkFieldsList2[I] + ' = rln.' + SelfFkFieldsListLine.Names[I]);
                 end;
 
-                ExecSqlLogEvent(q3, 'IncludeCascadingSequences');
+                ExecSqlLogEvent(q3, 'IncludeDependenciesHIS');
               
               until q3.FieldByName('RealCount').AsInteger = 0;
               q3.Close;
@@ -4789,7 +4743,7 @@ var
                   'FROM ' + LineDocTbls.Names[J] + ' rln ' +
                   'WHERE ' + TmpStr);
 
-                ExecSqlLogEvent(q3, 'IncludeCascadingSequences');
+                ExecSqlLogEvent(q3, 'IncludeDependenciesHIS');
 
               until q3.FieldByName('RealCount').AsInteger = 0;
               q3.Close;
@@ -4829,19 +4783,9 @@ var
               end;
 
               q3.SQl.Add(' WHERE ' + TmpStr);
-              ExecSqlLogEvent(q3, 'IncludeCascadingSequences');
+              ExecSqlLogEvent(q3, 'IncludeDependenciesHIS');
               q3.Close;
             end;
-
-
-                     ////TEST
-    q3.SQL.Text :=
-      'SELECT g_his_has(1, 147637763) AS IsHas FROM rdb$database';
-    ExecSqlLogEvent(q3, 'CreateHIS_IncludeInHIS');
-    if q3.FieldByName('IsHas').AsInteger > 0 then
-      LogEvent('[test] HIS_1 dbs_doc: ' + q3.FieldByName('IsHas').AsString);
-    q3.Close;
-
           end;
           {if SelfFkFieldsListLine.Count <> 0 then
           begin
@@ -4936,7 +4880,7 @@ var
                     '  ON line' + IntToStr(I) + '.' + SelfFkFieldsList2[I] + ' = rln.' + SelfFkFieldsListLine.Names[I]);
               end;
 
-              ExecSqlLogEvent(q3, 'IncludeCascadingSequences');
+              ExecSqlLogEvent(q3, 'IncludeDependenciesHIS');
             
             until q3.FieldByName('RealCount').AsInteger = 0;
 
@@ -5039,7 +4983,7 @@ var
                   '  ON line' + IntToStr(I) + '.' + FkFieldsList2[I] + ' = rln.' + FkFieldsListLine.Names[I]);
             end;
 
-            ExecSqlLogEvent(q3, 'IncludeCascadingSequences');
+            ExecSqlLogEvent(q3, 'IncludeDependenciesHIS');
 
             for I:=0 to q3.Current.Count-1 do // = FkFieldsListLine.Count
             begin
@@ -5055,16 +4999,6 @@ var
               end;
             end;
             q3.Close;
-
-                     ////TEST
-    q3.SQL.Text :=
-      'SELECT g_his_has(1, 147637763) AS IsHas FROM rdb$database';
-    ExecSqlLogEvent(q3, 'CreateHIS_IncludeInHIS');
-    if q3.FieldByName('IsHas').AsInteger > 0 then
-      LogEvent('[test] HIS_1 dbs_doc: ' + q3.FieldByName('IsHas').AsString);
-    q3.Close;
-
-
           end;
           TmpStr := '';
 
@@ -5093,7 +5027,7 @@ var
                 '      AND fc.list_fields = c.list_fields) ';
 
               q4.ParamByName('rln').AsString := LineDocTbls.Names[J];
-              ExecSqlLogEvent(q4, 'IncludeCascadingSequences');
+              ExecSqlLogEvent(q4, 'IncludeDependenciesHIS');
 
               if not q4.EOF then
               begin
@@ -5132,19 +5066,10 @@ var
                     q3.SQL.Add(' OR (rln.' +  FkFieldsList[I] + ' < 147000000) ');
                 end;
 
-                ExecSqlLogEvent(q3, 'IncludeCascadingSequences');
+                ExecSqlLogEvent(q3, 'IncludeDependenciesHIS');
                 q3.Close;
               end;
               q4.Close;
-
-                  ////TEST
-    q3.SQL.Text :=
-      'SELECT g_his_has(1, 147637763) AS IsHas FROM rdb$database';
-    ExecSqlLogEvent(q3, 'CreateHIS_IncludeInHIS');
-    if q3.FieldByName('IsHas').AsInteger > 0 then
-      LogEvent('[test] HIS_1 dbs_doc: ' + q3.FieldByName('IsHas').AsString);
-    q3.Close;
-
             end;
             //---------обработка полей-множеств Line
 
@@ -5168,7 +5093,7 @@ var
                  '  AND fc.list_fields <> ''' + CrossLineTbls.Values[FkFieldsList3[N]] + ''' ' +      #13#10 +
                  '  AND fc.list_fields NOT LIKE ''%,%'' ';
               q4.ParamByName('rln').AsString := FkFieldsList3[N];
-              ExecSqlLogEvent(q4, 'IncludeCascadingSequences');
+              ExecSqlLogEvent(q4, 'IncludeDependenciesHIS');
 
               FkFieldsListLine.Clear;
               FkFieldsList2.Clear;
@@ -5261,7 +5186,7 @@ var
                       '    ON line' + IntToStr(I) + '.' + FkFieldsList2[I] + ' = rln.' + FkFieldsListLine.Names[I]);
                 end;
 
-                ExecSqlLogEvent(q3, 'IncludeCascadingSequences');
+                ExecSqlLogEvent(q3, 'IncludeDependenciesHIS');
 
                 for I:=0 to q3.Current.Count-1 do // = FkFieldsListLine.Count
                 begin
@@ -5279,14 +5204,6 @@ var
                 q3.Close;
               end;
               TmpStr := '';
-
-                                ////TEST
-    q3.SQL.Text :=
-      'SELECT g_his_has(1, 147637763) AS IsHas FROM rdb$database';
-    ExecSqlLogEvent(q3, 'CreateHIS_IncludeInHIS');
-    if q3.FieldByName('IsHas').AsInteger > 0 then
-      LogEvent('[test] HIS_1 dbs_doc: ' + q3.FieldByName('IsHas').AsString);
-    q3.Close;
             end;
           end;
 
@@ -5415,17 +5332,16 @@ begin
   LogEvent('Including Keys In HugeIntSet... ');
   Assert(Connected);
 
+  SetBlockTriggerActive(False);
+
   Tr := TIBTransaction.Create(nil);
   q := TIBSQL.Create(nil);
   try
-
 CreateHIS(0);
 
     Tr.DefaultDatabase := FIBDatabase;
     Tr.StartTransaction;
     q.Transaction := Tr;
-
-    SetBlockTriggerActive(False);
 
     q.SQL.Text :=                                                               //////////////////
         'UPDATE gd_document doc ' +
@@ -5458,6 +5374,9 @@ CreateHIS(0);
     if not FDoStopProcessing then
       ExecSqlLogEvent(q, 'CalculateInvSaldo');
 
+    Tr.Commit;
+    Tr.StartTransaction;
+
     if (GetCountHIS(0) > 0) and (not FDoStopProcessing) then
     begin
       repeat
@@ -5471,8 +5390,10 @@ CreateHIS(0);
     end;
     q.Close;
 
+    Tr.Commit;
+    Tr.StartTransaction;
 
-     q.SQL.Text :=
+    q.SQL.Text :=
       'UPDATE inv_card c ' +
       'SET ' +
       '  c.USR$INV_ADDLINEKEY = :SaldoDocKey, ' +                                //TODO проверка наличия поля
@@ -5571,27 +5492,12 @@ DestroyHIS(0);
       ExecSqlLogEvent(q, 'CalculateInvSaldo');
     q.Close;
 
-    ////TEST
-    q.SQL.Text :=
-      'SELECT g_his_has(1, 147637763) AS IsHas FROM rdb$database';
-    ExecSqlLogEvent(q, 'CreateHIS_IncludeInHIS');
-    LogEvent('[test] HIS_1 dbs_doc: ' + q.FieldByName('IsHas').AsString);
-    q.Close;
-
-
     LogEvent('DELETE FROM INV_MOVEMENT...');
 
     q.SQL.Text :=
       'SELECT SUM(g_his_include(1, id)) FROM gd_document WHERE g_his_has(1, parent)=1 OR parent<147000000 ';
     if not FDoStopProcessing then
       ExecSqlLogEvent(q, 'CreateHIS_IncludeInHIS');
-    q.Close;
-
-    ////TEST
-    q.SQL.Text :=
-      'SELECT g_his_has(1, 147637763) AS IsHas FROM rdb$database';
-    ExecSqlLogEvent(q, 'CreateHIS_IncludeInHIS');
-    LogEvent('[test] HIS_1 dbs_doc: ' + q.FieldByName('IsHas').AsString);
     q.Close;
 
     q.SQL.Text :=
@@ -5618,16 +5524,9 @@ DestroyHIS(0);
 
 
     if not FDoStopProcessing then
-      IncludeCascadingSequences('GD_DOCUMENT');
+      IncludeDependenciesHIS('GD_DOCUMENT');
 
-    ////TEST
-    q.SQL.Text :=
-      'SELECT g_his_has(1, 147637763) AS IsHas FROM rdb$database';
-    ExecSqlLogEvent(q, 'CreateHIS_IncludeInHIS');
-    LogEvent('[test] HIS_1 dbs_doc: ' + q.FieldByName('IsHas').AsString);
-    q.Close;
-
-
+ 
     LogEvent(Format('AFTER COUNT in HIS(1): %d', [GetCountHIS(1)]));
     q.SQL.Text :=                                                               ///TODO: обновлять прогресс
       'DELETE FROM gd_ruid gr ' +                    #13#10 +

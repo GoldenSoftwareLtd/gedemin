@@ -1,6 +1,6 @@
 object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
-  Left = 1058
-  Top = 207
+  Left = 186
+  Top = 137
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsDialog
   ClientHeight = 537
@@ -13,6 +13,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
   Font.Style = []
   OldCreateOrder = False
   Position = poDesktopCenter
+  ShowHint = True
   OnCloseQuery = FormCloseQuery
   PixelsPerInch = 96
   TextHeight = 13
@@ -106,7 +107,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
       Top = 21
       Width = 1212
       Height = 497
-      ActivePage = tsStatistics
+      ActivePage = tsSettings
       MultiLine = True
       TabOrder = 1
       TabPosition = tpLeft
@@ -118,7 +119,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           Top = 54
           Width = 634
           Height = 369
-          ActivePage = tsReviewSettings
+          ActivePage = tsConnection
           TabOrder = 0
           object tsConnection: TTabSheet
             Caption = 'Database Connection'
@@ -151,7 +152,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               TabStop = False
               Style = csDropDownList
               DropDownCount = 5
-              ItemHeight = 0
+              ItemHeight = 13
               TabOrder = 15
             end
             object StaticText2: TStaticText
@@ -299,6 +300,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
                 Top = 107
                 Width = 253
                 Height = 21
+                Hint = 'Диск:[\Каталог][\Файл] '
                 TabOrder = 5
                 Text = 'D:\aksGDBASE_2014_04_02.FDB'
               end
@@ -378,7 +380,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             end
             object sttxtServerName: TStaticText
               Left = 458
-              Top = 152
+              Top = 150
               Width = 152
               Height = 17
               Alignment = taCenter
@@ -446,7 +448,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             end
             object sttxtTestServer: TStaticText
               Left = 458
-              Top = 135
+              Top = 133
               Width = 152
               Height = 17
               Alignment = taCenter
@@ -789,6 +791,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Top = 88
               Width = 253
               Height = 21
+              Hint = '\\Сервер\СетевойКаталог[\ОтносительныйПуть]'
               Enabled = False
               TabOrder = 3
             end
@@ -807,6 +810,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Top = 152
               Width = 253
               Height = 21
+              Hint = 'Диск:[\Каталог]'
               Enabled = False
               TabOrder = 6
             end
@@ -825,6 +829,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Top = 208
               Width = 233
               Height = 21
+              Hint = 'Диск:[\Каталог]'
               Enabled = False
               TabOrder = 9
             end
@@ -848,16 +853,6 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Enabled = False
               TabOrder = 8
               OnClick = actDefocusExecute
-            end
-            object btnSaveConfigFile: TButton
-              Left = 152
-              Top = 286
-              Width = 209
-              Height = 25
-              Caption = 'Сохранить конфигурацию в файл...'
-              TabOrder = 12
-              TabStop = False
-              OnClick = actConfigBrowseExecute
             end
             object txt15: TStaticText
               Left = 13
@@ -901,12 +896,23 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
               Top = 250
               Width = 225
               Height = 17
+              Hint = 'статистика ДО обработки и ПОСЛЕ'
               TabStop = False
-              Caption = 'Get Statistics after working out process '
+              Caption = 'Автоматическое получение статистики'
               Checked = True
               State = cbChecked
               TabOrder = 11
               OnClick = actDefocusExecute
+            end
+            object btnSaveConfigFile: TButton
+              Left = 152
+              Top = 286
+              Width = 221
+              Height = 25
+              Caption = 'Сохранить конфигурацию в файл...'
+              TabOrder = 12
+              TabStop = False
+              OnClick = actConfigBrowseExecute
             end
           end
           object tsReviewSettings: TTabSheet
@@ -2118,6 +2124,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
       Top = 518
       Width = 102
       Height = 20
+      Hint = 'Корректно прервать'
       Action = actStop
       BiDiMode = bdLeftToRight
       Font.Charset = RUSSIAN_CHARSET

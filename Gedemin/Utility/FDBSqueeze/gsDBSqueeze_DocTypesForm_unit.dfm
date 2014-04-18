@@ -1,6 +1,7 @@
 object gsDBSqueeze_DocTypesForm: TgsDBSqueeze_DocTypesForm
-  Left = 392
-  Top = 54
+  Left = 1115
+  Top = 23
+  Action = actSelectAll
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsDialog
   Caption = 'Выбор типов документов'
@@ -13,6 +14,7 @@ object gsDBSqueeze_DocTypesForm: TgsDBSqueeze_DocTypesForm
   Font.Name = 'MS Sans Serif'
   Font.Style = []
   OldCreateOrder = False
+  OnClick = actSelectAllExecute
   PixelsPerInch = 96
   TextHeight = 13
   object strngrdIgnoreDocTypes: TStringGrid
@@ -113,5 +115,14 @@ object gsDBSqueeze_DocTypesForm: TgsDBSqueeze_DocTypesForm
     TabOrder = 5
     TabStop = False
     OnClick = btnCancelClick
+  end
+  object actList: TActionList
+    Left = 8
+    Top = 576
+    object actSelectAll: TAction
+      Caption = 'actSelectAll'
+      ShortCut = 16449
+      OnExecute = actSelectAllExecute
+    end
   end
 end

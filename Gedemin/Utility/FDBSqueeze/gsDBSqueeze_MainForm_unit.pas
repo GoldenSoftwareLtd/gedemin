@@ -175,7 +175,6 @@ type
     edtRestore: TEdit;
     btnRestoreBrowse: TButton;
     chkRestore: TCheckBox;
-    btnSaveConfigFile: TButton;
     txt8: TStaticText;
     tsReviewSettings: TTabSheet;
     btnGo: TBitBtn;
@@ -203,6 +202,7 @@ type
     shp22: TShape;
     shp23: TShape;
     chkGetStatiscits: TCheckBox;
+    btnSaveConfigFile: TButton;
 
     procedure actBackPageExecute(Sender: TObject);
     procedure actClearLogExecute(Sender: TObject);
@@ -534,8 +534,7 @@ procedure TgsDBSqueeze_MainForm.GetStatisticsEvent(
   const AnInvCard: String);
 begin
   WriteToLogFile('================= Number of recods in a table =================');
-  if ((Trim(sttxtGdDoc.Caption) > '') or (Trim(sttxtAcEntry.Caption) > '') or (Trim(sttxtInvMovement.Caption) > '')) or
-     ((btnGetStatistics.Tag = 0) and (btnUpdateStatistics.Tag = 0)) or
+  if ((Trim(sttxtGdDoc.Caption) > '') or (Trim(sttxtAcEntry.Caption) > '') or (Trim(sttxtInvMovement.Caption) > '')) or 
      ((btnUpdateStatistics.Tag = 1) and ((Trim(sttxtGdDoc.Caption) > '') or (Trim(sttxtAcEntry.Caption) > '') or (Trim(sttxtInvMovement.Caption) > ''))) then
   begin
     sttxtGdDocAfter.Caption := AGdDoc;
@@ -566,7 +565,6 @@ procedure TgsDBSqueeze_MainForm.GetProcStatisticsEvent(
 begin
   WriteToLogFile('=========== Number of processing records in a table ===========');
   if ((Trim(sttxtProcGdDoc.Caption) > '') and (Trim(sttxtProcAcEntry.Caption) > '') and (Trim(sttxtProcInvMovement.Caption) > '')) or
-     ((btnGetStatistics.Tag = 0) and (btnUpdateStatistics.Tag = 0)) or
      ((btnUpdateStatistics.Tag = 1) and ((Trim(sttxtProcGdDoc.Caption) > '') and (Trim(sttxtProcAcEntry.Caption) > '') and (Trim(sttxtProcInvMovement.Caption) > ''))) then
   begin
     sttxtAfterProcGdDoc.Caption := AProcGdDoc;
@@ -934,6 +932,26 @@ begin
   WriteToLogFile('=======================================================');
   WriteToLogFile(mLog.Text);
 
+  if FSThread.DoGetStatisticsAfterProc then
+  begin
+    sttxtGdDoc.Caption := '';
+    sttxtAcEntry.Caption := '';
+    sttxtInvMovement.Caption := '';
+    sttxtInvCard.Caption := '';
+    sttxtGdDocAfter.Caption := '';
+    sttxtAcEntryAfter.Caption := '';
+    sttxtInvMovementAfter.Caption := '';
+    sttxtInvCardAfter.Caption := '';
+    sttxtProcGdDoc.Caption := '';
+    sttxtProcAcEntry.Caption := '';
+    sttxtProcInvMovement.Caption := '';
+    sttxtProcInvCard.Caption := '';
+    sttxtAfterProcGdDoc.Caption := '';
+    sttxtAfterProcAcEntry.Caption := '';
+    sttxtAfterProcInvMovement.Caption := '';
+    sttxtAfterProcInvCard.Caption := '';
+  end;
+
   FSThread.StartProcessing;
 
   FWrited:= True;
@@ -1114,10 +1132,18 @@ end;
 procedure TgsDBSqueeze_MainForm.FinishEvent(const AIsFinished: Boolean);
 begin
   if AIsFinished then
-    Application.MessageBox(PChar(FormatDateTime('h:nn', Now) + ' - Обработка БД успешно завершена!' + #13#10 +
+  begin
+    pbMain.Step := pbMain.Max; 
+
+    if Application.MessageBox(PChar(FormatDateTime('h:nn', Now) + ' - Обработка БД успешно завершена!' + #13#10 +
       'Затраченное время - ' + FormatDateTime('h:nn', Now-FStartupTime)),
       PChar('Сообщение'),
-      MB_OK + MB_ICONINFORMATION + MB_TOPMOST)
+      MB_OK + MB_ICONINFORMATION + MB_TOPMOST) = IDOK then
+    begin
+      tbcPageController.TabIndex := 2;
+      pgcMain.ActivePage := tsStatistics;
+    end;
+  end  
   else begin                // финиш из-за прерывания
     FIsProcessStop := True; // обработка последнего сообщения завершена
   end;
@@ -1295,14 +1321,34 @@ procedure TgsDBSqueeze_MainForm.CheckFreeDiskSpace(const APath: String; const AF
 var
   CurDirectory: String;
   FreeSpace: Int64;
+
+  function BytesToStr(const i64Size: Int64): String;
+  const
+    i64GB = 1024 * 1024 * 1024;
+    i64MB = 1024 * 1024;
+    i64KB = 1024;
+  begin
+    if i64Size div i64GB > 0 then
+      Result := Format('%.2f GB', [i64Size / i64GB])
+    else if i64Size div i64MB > 0 then
+      Result := Format('%.2f MB', [i64Size / i64MB])
+    else if i64Size div i64KB > 0 then
+      Result := Format('%.2f KB', [i64Size / i64KB])
+    else
+      Result := IntToStr(i64Size) + ' Byte(s)';
+  end;
+
 begin
   CurDirectory := GetCurrentDir;
   SetCurrentDir(ExtractFileDir(APath));
   try
     FreeSpace := DiskFree(0);
     if FreeSpace < AFileSize then
-      Application.MessageBox(PChar('Недостаточно свободного места! Освободите ' + IntToStr((AFileSize - FreeSpace) div 1048576)),
-        PChar('Предупреждение'), MB_OK + MB_ICONWARNING + MB_TOPMOST);
+      //Application.MessageBox(PChar('Недостаточно свободного места! Освободите ' + IntToStr((AFileSize - FreeSpace) div 1048576)),  PChar('Предупреждение'), MB_OK + MB_ICONWARNING + MB_TOPMOST);
+      Application.MessageBox(
+        PChar('Недостаточно свободного места: ' + APath + #13#10 + ' Освободите ' + BytesToStr(AFileSize - FreeSpace)),
+        PChar('Предупреждение'),
+        MB_OK + MB_ICONWARNING + MB_TOPMOST);
   finally
     SetCurrentDir(CurDirectory);
   end;
@@ -1329,7 +1375,6 @@ end;
 
 //initialization
 //  ReportMemoryLeaksOnShutdown := True;
-
 
 
 end.
