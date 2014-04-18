@@ -2276,7 +2276,7 @@ begin
               CgdcBase(MC.Class_Reference).GetSubTypeList(ST)
             else
               CgdcCreateableForm(MC.Class_Reference).GetSubTypeList(ST);
-              //Добавляем SubTypы класса
+            //Добавляем SubTypы класса
             for I := 0 to ST.Count - 1 do
             begin
               if ClassFilter(Index, IsGDC, Replace(ST.Values[ST.Names[I]])) then
@@ -2296,10 +2296,10 @@ begin
                       ibsql.ParamByName('RUID').AsString := Replace(ST.Values[ST.Names[I]]);
                       ibsql.ExecQuery;
                       if not ibsql.Eof then
-                      begin
                         TN := AddGDCClassNode(AParent, Index,
-                          Replace(ST.Values[ST.Names[I]]), ST.Names[I]);
-                      end;
+                          Replace(ST.Values[ST.Names[I]]), ST.Names[I])
+                      else
+                        TN := nil;
                     finally
                       ibsql.Free;
                     end;
@@ -2311,17 +2311,20 @@ begin
                 else
                   TN := AddFRMClassNode(AParent, Index,
                     Replace(ST.Values[ST.Names[I]]), ST.Names[I]);
-                TN.HasChildren := True;
-                //Если установлен флаг PropertySettings.Filter.OnlySpecEvent то
-                //InitOverloadAndDisable для данного класса вызывалась при фильтрации
-                //иначе вызываем здесь
-                if not PropertySettings.Filter.OnlySpecEvent then
-                  InitOverloadAndDisable(TGDCClassTreeItem(TN.Data).TheClass);
-                TGDCClassTreeItem(TN.Data).OverloadMethods :=
-                  TGDCClassTreeItem(TN.Data).TheClass.SpecMethodCount;
-                TGDCClassTreeItem(TN.Data).DisabledMethods :=
-                  TGDCClassTreeItem(TN.Data).TheClass.SpecDisableMethod;
+                if TN <> nil then
+                begin
+                  TN.HasChildren := True;
+                  //Если установлен флаг PropertySettings.Filter.OnlySpecEvent то
+                  //InitOverloadAndDisable для данного класса вызывалась при фильтрации
+                  //иначе вызываем здесь
+                  if not PropertySettings.Filter.OnlySpecEvent then
+                    InitOverloadAndDisable(TGDCClassTreeItem(TN.Data).TheClass);
+                  TGDCClassTreeItem(TN.Data).OverloadMethods :=
+                    TGDCClassTreeItem(TN.Data).TheClass.SpecMethodCount;
+                  TGDCClassTreeItem(TN.Data).DisabledMethods :=
+                    TGDCClassTreeItem(TN.Data).TheClass.SpecDisableMethod;
                 end;
+              end;
             end;
           finally
             ST.Free;
