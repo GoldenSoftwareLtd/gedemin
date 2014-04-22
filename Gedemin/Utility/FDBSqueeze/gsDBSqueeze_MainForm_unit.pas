@@ -1136,7 +1136,7 @@ begin
     pbMain.Step := pbMain.Max; 
 
     if Application.MessageBox(PChar(FormatDateTime('h:nn', Now) + ' - Обработка БД успешно завершена!' + #13#10 +
-      'Затраченное время - ' + FormatDateTime('h:nn', Now-FStartupTime)),
+      'Затраченное время - ' + FormatDateTime('h:nn:ss', Now-FStartupTime)),
       PChar('Сообщение'),
       MB_OK + MB_ICONINFORMATION + MB_TOPMOST) = IDOK then
     begin
