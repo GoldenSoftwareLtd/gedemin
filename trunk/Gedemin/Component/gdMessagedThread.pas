@@ -7,7 +7,9 @@ uses
   Classes, Windows, Messages, SyncObjs, gd_ProgressNotifier_unit;
 
 const
-  WM_GD_THREAD_USER = WM_USER + 1000;
+  WM_GD_THREAD_USER  = WM_USER + 1000;
+  WM_GD_EXIT_THREAD  = WM_USER + 117;
+  WM_GD_UPDATE_TIMER = WM_USER + 118;
 
 type
   TgdMessagedThread = class(TThread)
@@ -59,10 +61,6 @@ implementation
 
 uses
   SysUtils;
-
-const
-  WM_GD_EXIT_THREAD  =      WM_USER + 117;
-  WM_GD_UPDATE_TIMER =      WM_USER + 118;
 
 { TgdMessagedThread }
 

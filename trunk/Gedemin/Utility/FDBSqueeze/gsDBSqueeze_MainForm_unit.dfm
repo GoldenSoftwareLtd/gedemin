@@ -1,19 +1,20 @@
 object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
-  Left = 392
-  Top = 254
+  Left = 482
+  Top = 366
+  Width = 935
+  Height = 575
   BorderIcons = [biSystemMenu, biMinimize]
-  BorderStyle = bsDialog
-  ClientHeight = 537
-  ClientWidth = 919
   Color = clBtnFace
   Font.Charset = RUSSIAN_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
   Font.Name = 'Tahoma'
   Font.Style = []
+  Menu = MainMenu
   OldCreateOrder = False
   Position = poDesktopCenter
   ShowHint = True
+  OnCloseQuery = FormCloseQuery
   PixelsPerInch = 96
   TextHeight = 13
   object Label1: TLabel
@@ -28,7 +29,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
     Left = 0
     Top = 0
     Width = 919
-    Height = 537
+    Height = 517
     Align = alClient
     BevelOuter = bvNone
     BorderWidth = 4
@@ -71,19 +72,11 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
       Brush.Color = clBtnShadow
       Pen.Color = clGrayText
     end
-    object shp21: TShape
-      Left = 84
-      Top = 516
-      Width = 102
-      Height = 11
-      Brush.Color = clBtnShadow
-      Pen.Color = clGrayText
-    end
     object pgcMain: TPageControl
       Left = 4
       Top = 4
       Width = 911
-      Height = 507
+      Height = 487
       ActivePage = tsSettings
       Align = alClient
       MultiLine = True
@@ -92,727 +85,230 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
       object tsSettings: TTabSheet
         BorderWidth = 4
         Caption = 'Параметры'
-        object pgcSettings: TPageControl
-          Left = 0
-          Top = 0
-          Width = 895
-          Height = 471
-          ActivePage = tsConnection
-          Align = alClient
+        object lbl1: TLabel
+          Left = 3
+          Top = 4
+          Width = 69
+          Height = 13
+          Caption = 'База данных:'
+        end
+        object Label2: TLabel
+          Left = 99
+          Top = 24
+          Width = 233
+          Height = 13
+          Caption = '[сервер[/порт]:]путь_к_файлу_базы_данных'
+          Font.Charset = RUSSIAN_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -11
+          Font.Name = 'Tahoma'
+          Font.Style = [fsItalic]
+          ParentFont = False
+        end
+        object lbl2: TLabel
+          Left = 3
+          Top = 47
+          Width = 76
+          Height = 13
+          Caption = 'Пользователь:'
+        end
+        object lbl3: TLabel
+          Left = 211
+          Top = 47
+          Width = 41
+          Height = 13
+          Caption = 'Пароль:'
+        end
+        object Label3: TLabel
+          Left = 393
+          Top = 4
+          Width = 93
+          Height = 13
+          Caption = 'Кодовая таблица:'
+        end
+        object edDatabaseName: TEdit
+          Left = 99
+          Top = 1
+          Width = 256
+          Height = 21
+          Hint = 'Диск:[\Каталог][\Файл] '
           TabOrder = 0
-          object tsConnection: TTabSheet
-            Caption = 'База данных'
-            object lbl1: TLabel
-              Left = 14
-              Top = 14
-              Width = 69
-              Height = 13
-              Caption = 'База данных:'
-            end
-            object Label2: TLabel
-              Left = 110
-              Top = 34
-              Width = 233
-              Height = 13
-              Caption = '[сервер[/порт]:]путь_к_файлу_базы_данных'
-              Font.Charset = RUSSIAN_CHARSET
-              Font.Color = clWindowText
-              Font.Height = -11
-              Font.Name = 'Tahoma'
-              Font.Style = [fsItalic]
-              ParentFont = False
-            end
-            object lbl2: TLabel
-              Left = 14
-              Top = 57
-              Width = 76
-              Height = 13
-              Caption = 'Пользователь:'
-            end
-            object lbl3: TLabel
-              Left = 14
-              Top = 84
-              Width = 41
-              Height = 13
-              Caption = 'Пароль:'
-            end
-            object Label3: TLabel
-              Left = 14
-              Top = 108
-              Width = 93
-              Height = 13
-              Caption = 'Кодовая таблица:'
-            end
-            object StaticText4: TStaticText
-              Left = 562
-              Top = 87
-              Width = 49
-              Height = 20
-              Alignment = taCenter
-              AutoSize = False
-              BorderStyle = sbsSunken
-              Color = clHighlightText
-              ParentColor = False
-              TabOrder = 1
-            end
-            object cbbCharset: TComboBox
-              Left = 110
-              Top = 102
-              Width = 94
-              Height = 21
-              TabStop = False
-              Style = csDropDownList
-              DropDownCount = 5
-              ItemHeight = 13
-              TabOrder = 8
-            end
-            object sttxtStateTestConnect: TStaticText
-              Left = 562
-              Top = 90
-              Width = 49
-              Height = 15
-              Alignment = taCenter
-              AutoSize = False
-              Caption = 'unknown'
-              Color = clHighlightText
-              ParentColor = False
-              TabOrder = 3
-            end
-            object StaticText3: TStaticText
-              Left = 458
-              Top = 87
-              Width = 105
-              Height = 20
-              Alignment = taCenter
-              AutoSize = False
-              Color = 12238
-              Font.Charset = RUSSIAN_CHARSET
-              Font.Color = clWindow
-              Font.Height = -11
-              Font.Name = 'Tahoma'
-              Font.Style = []
-              ParentColor = False
-              ParentFont = False
-              TabOrder = 0
-            end
-            object btnNext1: TButton
-              Left = 587
-              Top = 318
-              Width = 286
-              Height = 25
-              Action = actNextPage
-              Anchors = [akLeft, akTop, akRight]
-              Caption = '>'
-              TabOrder = 10
-              TabStop = False
-            end
-            object btntTestConnection: TButton
-              Left = 111
-              Top = 126
-              Width = 123
-              Height = 21
-              Action = actDisconnect
-              TabOrder = 9
-              TabStop = False
-            end
-            object sttxtActivUserCount: TStaticText
-              Left = 561
-              Top = 112
-              Width = 49
-              Height = 17
-              Alignment = taCenter
-              AutoSize = False
-              BorderStyle = sbsSunken
-              Color = clHighlightText
-              ParentColor = False
-              TabOrder = 5
-              Visible = False
-            end
-            object sttxtServerName: TStaticText
-              Left = 458
-              Top = 150
-              Width = 152
-              Height = 17
-              Alignment = taCenter
-              AutoSize = False
-              BorderStyle = sbsSunken
-              Color = clHighlightText
-              ParentColor = False
-              TabOrder = 7
-              Visible = False
-            end
-            object sttxtActivConnects: TStaticText
-              Left = 458
-              Top = 112
-              Width = 104
-              Height = 16
-              Alignment = taCenter
-              AutoSize = False
-              Caption = 'Activ Connects'
-              Color = 12238
-              Font.Charset = RUSSIAN_CHARSET
-              Font.Color = clWindow
-              Font.Height = -11
-              Font.Name = 'Tahoma'
-              Font.Style = []
-              ParentColor = False
-              ParentFont = False
-              TabOrder = 4
-              Visible = False
-            end
-            object sttxtTestConnectState: TStaticText
-              Left = 460
-              Top = 90
-              Width = 100
-              Height = 16
-              Alignment = taCenter
-              AutoSize = False
-              Caption = 'Test Connect State'
-              Color = 12238
-              Font.Charset = RUSSIAN_CHARSET
-              Font.Color = clWindow
-              Font.Height = -11
-              Font.Name = 'Tahoma'
-              Font.Style = []
-              ParentColor = False
-              ParentFont = False
-              TabOrder = 2
-            end
-            object sttxtTestServer: TStaticText
-              Left = 458
-              Top = 133
-              Width = 152
-              Height = 17
-              Alignment = taCenter
-              AutoSize = False
-              Caption = 'Server'
-              Color = 12238
-              Font.Charset = RUSSIAN_CHARSET
-              Font.Color = clWhite
-              Font.Height = -11
-              Font.Name = 'Tahoma'
-              Font.Style = []
-              ParentColor = False
-              ParentFont = False
-              TabOrder = 6
-              Visible = False
-            end
-            object edDatabaseName: TEdit
-              Left = 110
-              Top = 11
-              Width = 256
-              Height = 21
-              Hint = 'Диск:[\Каталог][\Файл] '
-              TabOrder = 11
-              Text = 'D:\aksGDBASE_2014_04_02.FDB'
-            end
-            object btnDatabaseBrowse: TButton
-              Left = 365
-              Top = 10
-              Width = 20
-              Height = 21
-              Action = actDatabaseBrowse
-              TabOrder = 12
-              TabStop = False
-            end
-            object edUserName: TEdit
-              Left = 110
-              Top = 53
-              Width = 94
-              Height = 21
-              Enabled = False
-              TabOrder = 13
-              Text = 'SYSDBA'
-            end
-            object edPassword: TEdit
-              Left = 110
-              Top = 77
-              Width = 93
-              Height = 21
-              PasswordChar = '*'
-              TabOrder = 14
-            end
+          Text = 'D:\aksGDBASE_2014_04_02.FDB'
+        end
+        object btnDatabaseBrowse: TButton
+          Left = 354
+          Top = 0
+          Width = 20
+          Height = 21
+          Action = actDatabaseBrowse
+          TabOrder = 1
+          TabStop = False
+        end
+        object edUserName: TEdit
+          Left = 99
+          Top = 43
+          Width = 94
+          Height = 21
+          Enabled = False
+          TabOrder = 2
+          Text = 'SYSDBA'
+        end
+        object edPassword: TEdit
+          Left = 261
+          Top = 43
+          Width = 93
+          Height = 21
+          PasswordChar = '*'
+          TabOrder = 3
+        end
+        object cbbCharset: TComboBox
+          Left = 489
+          Top = 1
+          Width = 94
+          Height = 21
+          TabStop = False
+          Style = csDropDownList
+          DropDownCount = 5
+          ItemHeight = 13
+          TabOrder = 4
+        end
+        object btnConnect: TButton
+          Left = 99
+          Top = 71
+          Width = 92
+          Height = 21
+          Action = actConnect
+          TabOrder = 5
+        end
+        object btntTestConnection: TButton
+          Left = 197
+          Top = 71
+          Width = 92
+          Height = 21
+          Action = actDisconnect
+          TabOrder = 6
+          TabStop = False
+        end
+        object GroupBox1: TGroupBox
+          Left = 0
+          Top = 96
+          Width = 894
+          Height = 354
+          TabOrder = 7
+          object lbl5: TLabel
+            Left = 12
+            Top = 18
+            Width = 250
+            Height = 13
+            Caption = 'Удалить записи из gd_document с датой раньше:'
           end
-          object tsSqueezeSettings: TTabSheet
-            Caption = 'Squeeze Settings'
-            ImageIndex = 1
-            object lbl5: TLabel
-              Left = 99
-              Top = 69
-              Width = 228
-              Height = 13
-              Caption = 'Удалить записи из gd_document до (строго):'
-            end
-            object shp14: TShape
-              Left = 13
-              Top = 4
-              Width = 599
-              Height = 43
-              Brush.Style = bsClear
-              Pen.Color = 12238
-              Pen.Width = 3
-            end
-            object dtpClosingDate: TDateTimePicker
-              Left = 337
-              Top = 66
-              Width = 86
-              Height = 21
-              Hint = 'рассчитать сальдо и удалить документы'
-              CalAlignment = dtaLeft
-              Date = 41380.5593590046
-              Time = 41380.5593590046
-              Color = clWhite
-              DateFormat = dfShort
-              DateMode = dmComboBox
-              Kind = dtkDate
-              ParseInput = False
-              TabOrder = 2
-              TabStop = False
-            end
-            object btnNext2: TButton
-              Left = 587
-              Top = 318
-              Width = 25
-              Height = 25
-              Action = actNextPage
-              Caption = '>'
-              TabOrder = 9
-              TabStop = False
-            end
-            object btnBack1: TButton
-              Left = 561
-              Top = 318
-              Width = 25
-              Height = 25
-              Caption = '<'
-              TabOrder = 8
-              TabStop = False
-              OnClick = actBackPageExecute
-            end
-            object chk00Account: TCheckBox
-              Left = 99
-              Top = 322
-              Width = 390
-              Height = 17
-              TabStop = False
-              Caption = 
-                'Дополнительно отразить бухгалтерское сальдо на счете "00 Остатки' +
-                '"'
-              TabOrder = 10
-              Visible = False
-              OnClick = actDefocusExecute
-            end
-            object btnLoadConfigFile: TButton
-              Left = 98
-              Top = 271
-              Width = 209
-              Height = 25
-              Caption = 'Загрузить конфигурацию из файла...'
-              TabOrder = 7
-              TabStop = False
-              OnClick = actConfigBrowseExecute
-            end
-            object chkCalculateSaldo: TCheckBox
-              Left = 99
-              Top = 101
-              Width = 414
-              Height = 17
-              TabStop = False
-              Caption = 
-                'Сохранить бухгалтерское и складское сальдо, вычисленное программ' +
-                'ой'
-              Checked = True
-              State = cbChecked
-              TabOrder = 3
-              OnClick = actDefocusExecute
-            end
-            object mIgnoreDocTypes: TMemo
-              Left = 98
-              Top = 196
-              Width = 445
-              Height = 52
-              TabStop = False
-              Color = clWhite
-              ReadOnly = True
-              ScrollBars = ssVertical
-              TabOrder = 6
-            end
-            object tbcDocTypes: TTabControl
-              Left = 97
-              Top = 168
-              Width = 457
-              Height = 28
-              Style = tsButtons
-              TabHeight = 25
-              TabOrder = 5
-              Tabs.Strings = (
-                'Не обрабатывать выбранные типы'
-                'Обрабатывать только выбранные')
-              TabIndex = 0
-              TabStop = False
-              TabWidth = 220
-              OnChange = actDefocusExecute
-            end
-            object btnSelectDocTypes: TButton
-              Left = 98
-              Top = 135
-              Width = 209
-              Height = 25
-              Caption = 'Выбрать типы документов...'
-              TabOrder = 4
-              TabStop = False
-              OnClick = btnSelectDocTypesClick
-            end
-            object txt13: TStaticText
-              Left = 13
-              Top = 3
-              Width = 599
-              Height = 41
-              AutoSize = False
-              BiDiMode = bdLeftToRight
-              Color = 5206010
-              Font.Charset = RUSSIAN_CHARSET
-              Font.Color = clWindow
-              Font.Height = -24
-              Font.Name = 'Tahoma'
-              Font.Style = []
-              ParentBiDiMode = False
-              ParentColor = False
-              ParentFont = False
-              TabOrder = 0
-            end
-            object txt14: TStaticText
-              Left = 212
-              Top = 9
-              Width = 185
-              Height = 33
-              AutoSize = False
-              BiDiMode = bdLeftToRight
-              Caption = 'Squeeze Settings'
-              Color = 5206010
-              Font.Charset = RUSSIAN_CHARSET
-              Font.Color = clWindow
-              Font.Height = -24
-              Font.Name = 'Tahoma'
-              Font.Style = []
-              ParentBiDiMode = False
-              ParentColor = False
-              ParentFont = False
-              TabOrder = 1
-            end
+          object dtpClosingDate: TDateTimePicker
+            Left = 266
+            Top = 14
+            Width = 86
+            Height = 21
+            Hint = 'рассчитать сальдо и удалить документы'
+            CalAlignment = dtaLeft
+            Date = 41380.5593590046
+            Time = 41380.5593590046
+            Color = clWhite
+            DateFormat = dfShort
+            DateMode = dmComboBox
+            Kind = dtkDate
+            ParseInput = False
+            TabOrder = 0
+            TabStop = False
           end
-          object tsOptions: TTabSheet
-            Caption = 'Options'
-            ImageIndex = 2
-            object lblLogDir: TLabel
-              Left = 176
-              Top = 91
-              Width = 73
-              Height = 13
-              Caption = 'Logs Directory:'
-              Enabled = False
-            end
-            object lblBackup: TLabel
-              Left = 173
-              Top = 155
-              Width = 85
-              Height = 13
-              Caption = 'Backup Directory:'
-              Enabled = False
-            end
-            object lblRestore: TLabel
-              Left = 190
-              Top = 211
-              Width = 89
-              Height = 13
-              Caption = 'Restore Directory:'
-              Enabled = False
-            end
-            object shp11: TShape
-              Left = 13
-              Top = 4
-              Width = 599
-              Height = 43
-              Brush.Style = bsClear
-              Pen.Color = 12238
-              Pen.Width = 3
-            end
-            object btnNext3: TButton
-              Left = 587
-              Top = 318
-              Width = 25
-              Height = 25
-              Action = actNextPage
-              Caption = '>'
-              TabOrder = 14
-              TabStop = False
-            end
-            object btnBack2: TButton
-              Left = 561
-              Top = 318
-              Width = 25
-              Height = 25
-              Caption = '<'
-              TabOrder = 13
-              TabStop = False
-              OnClick = actBackPageExecute
-            end
-            object chkbSaveLogs: TCheckBox
-              Left = 152
-              Top = 67
-              Width = 113
-              Height = 17
-              TabStop = False
-              Caption = 'Save Logs to File'
-              TabOrder = 2
-              OnClick = actDefocusExecute
-            end
-            object chkBackup: TCheckBox
-              Left = 152
-              Top = 131
-              Width = 177
-              Height = 17
-              TabStop = False
-              Caption = 'Backing Up the Database'
-              Enabled = False
-              TabOrder = 5
-              OnClick = actDefocusExecute
-            end
-            object edLogs: TEdit
-              Left = 266
-              Top = 88
-              Width = 253
-              Height = 21
-              Hint = '\\Сервер\СетевойКаталог[\ОтносительныйПуть]'
-              Enabled = False
-              TabOrder = 3
-            end
-            object btnLogDirBrowse: TButton
-              Left = 523
-              Top = 88
-              Width = 20
-              Height = 21
-              Action = actDirectoryBrowse
-              TabOrder = 4
-              TabStop = False
-              OnMouseDown = btnBackupBrowseMouseDown
-            end
-            object edtBackup: TEdit
-              Left = 266
-              Top = 152
-              Width = 253
-              Height = 21
-              Hint = 'Диск:[\Каталог]'
-              Enabled = False
-              TabOrder = 6
-            end
-            object btnBackupBrowse: TButton
-              Left = 523
-              Top = 152
-              Width = 20
-              Height = 21
-              Action = actDirectoryBrowse
-              TabOrder = 7
-              TabStop = False
-              OnMouseDown = btnBackupBrowseMouseDown
-            end
-            object edtRestore: TEdit
-              Left = 285
-              Top = 208
-              Width = 233
-              Height = 21
-              Hint = 'Диск:[\Каталог]'
-              Enabled = False
-              TabOrder = 9
-            end
-            object btnRestoreBrowse: TButton
-              Left = 523
-              Top = 208
-              Width = 20
-              Height = 21
-              Action = actDirectoryBrowse
-              TabOrder = 10
-              TabStop = False
-              OnMouseDown = btnBackupBrowseMouseDown
-            end
-            object chkRestore: TCheckBox
-              Left = 172
-              Top = 187
-              Width = 133
-              Height = 17
-              TabStop = False
-              Caption = 'Restore the Database'
-              Enabled = False
-              TabOrder = 8
-              OnClick = actDefocusExecute
-            end
-            object txt15: TStaticText
-              Left = 13
-              Top = 3
-              Width = 599
-              Height = 41
-              AutoSize = False
-              BiDiMode = bdLeftToRight
-              Color = 5206010
-              Font.Charset = RUSSIAN_CHARSET
-              Font.Color = clWindow
-              Font.Height = -24
-              Font.Name = 'Tahoma'
-              Font.Style = []
-              ParentBiDiMode = False
-              ParentColor = False
-              ParentFont = False
-              TabOrder = 0
-            end
-            object txt8: TStaticText
-              Left = 266
-              Top = 8
-              Width = 83
-              Height = 31
-              AutoSize = False
-              BiDiMode = bdLeftToRight
-              Caption = 'Options'
-              Color = 5206010
-              Font.Charset = RUSSIAN_CHARSET
-              Font.Color = clWindow
-              Font.Height = -24
-              Font.Name = 'Tahoma'
-              Font.Style = []
-              ParentBiDiMode = False
-              ParentColor = False
-              ParentFont = False
-              TabOrder = 1
-            end
-            object chkGetStatiscits: TCheckBox
-              Left = 152
-              Top = 250
-              Width = 225
-              Height = 17
-              Hint = 'статистика ДО обработки и ПОСЛЕ'
-              TabStop = False
-              Caption = 'Автоматическое получение статистики'
-              Checked = True
-              State = cbChecked
-              TabOrder = 11
-              OnClick = actDefocusExecute
-            end
-            object btnSaveConfigFile: TButton
-              Left = 152
-              Top = 286
-              Width = 221
-              Height = 25
-              Caption = 'Сохранить конфигурацию в файл...'
-              TabOrder = 12
-              TabStop = False
-              OnClick = actConfigBrowseExecute
-            end
+          object chkCalculateSaldo: TCheckBox
+            Left = 12
+            Top = 37
+            Width = 334
+            Height = 17
+            TabStop = False
+            Caption = 'Рассчитать и сохранить бухгалтерское и складское сальдо'
+            Checked = True
+            State = cbChecked
+            TabOrder = 1
           end
-          object tsReviewSettings: TTabSheet
-            Caption = 'ReviewSettings'
-            ImageIndex = 3
-            object shp12: TShape
-              Left = 13
-              Top = 4
-              Width = 599
-              Height = 43
-              Brush.Style = bsClear
-              Pen.Color = 12238
-              Pen.Width = 3
-            end
-            object btnGo: TBitBtn
-              Left = 555
-              Top = 318
-              Width = 57
-              Height = 25
-              Action = actGo
-              Caption = 'Go!'
-              TabOrder = 4
-              TabStop = False
-            end
-            object btnBack3: TBitBtn
-              Left = 529
-              Top = 318
-              Width = 25
-              Height = 25
-              Caption = '<'
-              TabOrder = 3
-              TabStop = False
-              OnClick = actBackPageExecute
-            end
-            object mReviewSettings: TMemo
-              Left = 120
-              Top = 74
-              Width = 377
-              Height = 222
-              ParentColor = True
-              ReadOnly = True
-              ScrollBars = ssVertical
-              TabOrder = 2
-            end
-            object txt16: TStaticText
-              Left = 13
-              Top = 3
-              Width = 599
-              Height = 41
-              AutoSize = False
-              BiDiMode = bdLeftToRight
-              Color = 5206010
-              Font.Charset = RUSSIAN_CHARSET
-              Font.Color = clWindow
-              Font.Height = -24
-              Font.Name = 'Tahoma'
-              Font.Style = []
-              ParentBiDiMode = False
-              ParentColor = False
-              ParentFont = False
-              TabOrder = 0
-            end
-            object txt11: TStaticText
-              Left = 226
-              Top = 9
-              Width = 171
-              Height = 31
-              AutoSize = False
-              BiDiMode = bdLeftToRight
-              Caption = 'Review Settings'
-              Color = 5206010
-              Font.Charset = RUSSIAN_CHARSET
-              Font.Color = clWindow
-              Font.Height = -24
-              Font.Name = 'Tahoma'
-              Font.Style = []
-              ParentBiDiMode = False
-              ParentColor = False
-              ParentFont = False
-              TabOrder = 1
-            end
+          object btnSelectDocTypes: TButton
+            Left = 12
+            Top = 93
+            Width = 209
+            Height = 21
+            Action = actSelectDocTypes
+            TabOrder = 2
+            TabStop = False
+          end
+          object mIgnoreDocTypes: TMemo
+            Left = 12
+            Top = 120
+            Width = 869
+            Height = 193
+            TabStop = False
+            Color = clWhite
+            ReadOnly = True
+            ScrollBars = ssVertical
+            TabOrder = 3
+          end
+          object chk00Account: TCheckBox
+            Left = 12
+            Top = 54
+            Width = 390
+            Height = 17
+            TabStop = False
+            Caption = 
+              'Дополнительно отразить бухгалтерское сальдо на счете "00 Остатки' +
+              '"'
+            TabOrder = 4
+            Visible = False
+          end
+          object chkGetStatiscits: TCheckBox
+            Left = 12
+            Top = 71
+            Width = 385
+            Height = 17
+            Hint = 'статистика ДО обработки и ПОСЛЕ'
+            TabStop = False
+            Caption = 'Получить статистику до и после завершения процесса'
+            Checked = True
+            State = cbChecked
+            TabOrder = 5
+          end
+          object rbExcluding: TRadioButton
+            Left = 11
+            Top = 317
+            Width = 361
+            Height = 17
+            Caption = 'Обрабатывать все, кроме выбранных типов'
+            TabOrder = 6
+          end
+          object rbIncluding: TRadioButton
+            Left = 11
+            Top = 333
+            Width = 249
+            Height = 17
+            Caption = 'Обрабатывать только выбранные типы'
+            Checked = True
+            TabOrder = 7
+            TabStop = True
           end
         end
       end
       object tsLogs: TTabSheet
         Caption = 'Журнал'
         ImageIndex = 2
-        object mLog: TMemo
+        object pnlLogButton: TPanel
           Left = 0
-          Top = 0
+          Top = 432
           Width = 903
-          Height = 454
-          Align = alClient
-          ScrollBars = ssVertical
-          TabOrder = 0
-        end
-        object Panel1: TPanel
-          Left = 0
-          Top = 454
-          Width = 903
-          Height = 25
+          Height = 27
           Align = alBottom
           BevelOuter = bvNone
-          TabOrder = 1
+          TabOrder = 0
           object btnClearGeneralLog: TButton
             Tag = 1
             Left = 785
-            Top = 2
+            Top = 4
             Width = 100
             Height = 21
             Action = actClearLog
@@ -821,38 +317,51 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             OnMouseDown = btnClearGeneralLogMouseDown
           end
         end
-      end
-      object TabSheet1: TTabSheet
-        Caption = 'Журнал SQL'
-        ImageIndex = 4
-        object mSqlLog: TMemo
+        object pnlLogs: TPanel
           Left = 0
           Top = 0
           Width = 903
-          Height = 454
+          Height = 432
           Align = alClient
-          ReadOnly = True
-          ScrollBars = ssBoth
-          TabOrder = 0
-        end
-        object Panel2: TPanel
-          Left = 0
-          Top = 454
-          Width = 903
-          Height = 25
-          Align = alBottom
           BevelOuter = bvNone
           TabOrder = 1
-          object btnClearSqlLog: TButton
-            Tag = 2
-            Left = 785
-            Top = 2
-            Width = 100
-            Height = 21
-            Action = actClearLog
+          object Splitter1: TSplitter
+            Left = 450
+            Top = 0
+            Width = 3
+            Height = 432
+            Cursor = crHSplit
+          end
+          object mLog: TMemo
+            Left = 0
+            Top = 0
+            Width = 450
+            Height = 432
+            Align = alLeft
+            Font.Charset = RUSSIAN_CHARSET
+            Font.Color = clWindowText
+            Font.Height = -12
+            Font.Name = 'Courier New'
+            Font.Style = []
+            ParentFont = False
+            ScrollBars = ssBoth
             TabOrder = 0
-            TabStop = False
-            OnMouseDown = btnClearGeneralLogMouseDown
+          end
+          object mSqlLog: TMemo
+            Left = 453
+            Top = 0
+            Width = 450
+            Height = 432
+            Align = alClient
+            Font.Charset = RUSSIAN_CHARSET
+            Font.Color = clWindowText
+            Font.Height = -12
+            Font.Name = 'Courier New'
+            Font.Style = []
+            ParentFont = False
+            ReadOnly = True
+            ScrollBars = ssBoth
+            TabOrder = 1
           end
         end
       end
@@ -1812,14 +1321,10 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           end
         end
       end
-      object tsAbout: TTabSheet
-        Caption = 'О программе'
-        ImageIndex = 3
-      end
     end
     object statbarMain: TStatusBar
       Left = 4
-      Top = 511
+      Top = 491
       Width = 911
       Height = 22
       Panels = <
@@ -1849,7 +1354,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
     end
     object pbMain: TProgressBar
       Left = 120
-      Top = 513
+      Top = 493
       Width = 317
       Height = 19
       DragCursor = crDefault
@@ -1858,31 +1363,12 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
       Smooth = True
       TabOrder = 2
     end
-    object btnStop: TButton
-      Left = 6
-      Top = 514
-      Width = 112
-      Height = 20
-      Action = actStop
-      BiDiMode = bdLeftToRight
-      Font.Charset = RUSSIAN_CHARSET
-      Font.Color = clBlack
-      Font.Height = -11
-      Font.Name = 'Tahoma'
-      Font.Style = []
-      ParentBiDiMode = False
-      ParentFont = False
-      ParentShowHint = False
-      ShowHint = True
-      TabOrder = 3
-      TabStop = False
-    end
   end
   object ActionList: TActionList
-    Left = 5
-    Top = 6
+    Left = 509
+    Top = 478
     object actGo: TAction
-      Caption = 'actGo'
+      Caption = 'Начать процесс'
       OnExecute = actGoExecute
       OnUpdate = actGoUpdate
     end
@@ -1901,41 +1387,90 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
     object actUpdate: TAction
       Caption = 'actUpdate'
     end
-    object actNextPage: TAction
-      Caption = 'actNextPage'
-      OnExecute = actNextPageExecute
-      OnUpdate = actNextPageUpdate
-    end
-    object actBackPage: TAction
-      Caption = 'actBackPage'
-      OnExecute = actBackPageExecute
-    end
-    object actDirectoryBrowse: TAction
-      Caption = '...'
-      OnExecute = actDirectoryBrowseExecute
-      OnUpdate = actDirectoryBrowseUpdate
-    end
     object actStop: TAction
-      Caption = 'STOP'
+      Caption = 'Остановить процесс'
       OnExecute = actStopExecute
       OnUpdate = actStopUpdate
     end
     object actDisconnect: TAction
-      Caption = 'actDisconnect'
+      Caption = 'Отключиться'
       OnExecute = actDisconnectExecute
       OnUpdate = actDisconnectUpdate
     end
     object actClearLog: TAction
       Caption = 'Очистить'
       OnExecute = actClearLogExecute
-      OnUpdate = actClearLogUpdate
     end
     object actDefocus: TAction
-      OnExecute = actDefocusExecute
     end
     object actConfigBrowse: TAction
       Caption = 'actConfigBrowse'
-      OnExecute = actConfigBrowseExecute
+    end
+    object actConnect: TAction
+      Caption = 'Подключиться'
+      OnExecute = actConnectExecute
+      OnUpdate = actConnectUpdate
+    end
+    object actExit: TAction
+      Caption = 'Выйти'
+      OnExecute = actExitExecute
+      OnUpdate = actExitUpdate
+    end
+    object actLoadConfig: TAction
+      Caption = 'Загрузить конфигурацию...'
+      OnExecute = actLoadConfigExecute
+    end
+    object actSaveConfig: TAction
+      Caption = 'Сохранить конфигурацию...'
+      OnExecute = actSaveConfigExecute
+    end
+    object actAbout: TAction
+      Caption = 'О программе...'
+    end
+    object actSelectDocTypes: TAction
+      Caption = 'Выбрать типы документов...'
+      OnExecute = actSelectDocTypesExecute
+      OnUpdate = actSelectDocTypesUpdate
+    end
+  end
+  object MainMenu: TMainMenu
+    Left = 632
+    Top = 65520
+    object N1: TMenuItem
+      Caption = 'База данных'
+      object N4: TMenuItem
+        Action = actConnect
+      end
+      object N5: TMenuItem
+        Action = actDisconnect
+      end
+      object N6: TMenuItem
+        Caption = '-'
+      end
+      object N7: TMenuItem
+        Action = actLoadConfig
+      end
+      object N8: TMenuItem
+        Action = actSaveConfig
+      end
+      object N10: TMenuItem
+        Caption = '-'
+      end
+      object N11: TMenuItem
+        Action = actGo
+      end
+      object STOP1: TMenuItem
+        Action = actStop
+      end
+      object N3: TMenuItem
+        Caption = '-'
+      end
+      object N2: TMenuItem
+        Action = actExit
+      end
+    end
+    object N9: TMenuItem
+      Action = actAbout
     end
   end
 end

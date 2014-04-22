@@ -178,7 +178,6 @@ inherited gdc_frmDocumentType: Tgdc_frmDocumentType
     Top = 140
   end
   object gdcDocumentBranch: TgdcDocumentBranch
-    OnGetWhereClause = gdcDocumentBranchGetWhereClause
     Left = 113
     Top = 135
   end

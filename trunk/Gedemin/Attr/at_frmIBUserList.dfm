@@ -1,6 +1,6 @@
 object frmIBUserList: TfrmIBUserList
-  Left = 540
-  Top = 441
+  Left = 412
+  Top = 176
   BorderStyle = bsDialog
   Caption = 'Пользователи'
   ClientHeight = 366

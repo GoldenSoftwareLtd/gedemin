@@ -35,8 +35,6 @@ type
     procedure actAddInvPriceListUpdate(Sender: TObject);
     procedure actAddUserDocUpdate(Sender: TObject);
     procedure tbsmNewClick(Sender: TObject);
-    procedure gdcDocumentBranchGetWhereClause(Sender: TObject;
-      var Clause: String);
   private
 
   public
@@ -156,13 +154,6 @@ begin
     actAddInvPriceList.Execute
   else if actAddInvDocument.Enabled then
     actAddInvDocument.Execute;
-end;
-
-procedure Tgdc_frmDocumentType.gdcDocumentBranchGetWhereClause(
-  Sender: TObject; var Clause: String);
-begin
-  inherited;
-  Clause := '';
 end;
 
 initialization
