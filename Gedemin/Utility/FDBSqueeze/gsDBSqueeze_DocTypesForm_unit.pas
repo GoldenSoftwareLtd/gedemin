@@ -429,7 +429,6 @@ end;
 procedure TgsDBSqueeze_DocTypesForm.actSelectAllExecute(Sender: TObject);
 var
   Rect: TGridRect;
-  I: Integer;
 begin
   Rect.Left := 0;
   Rect.Top := 0;
