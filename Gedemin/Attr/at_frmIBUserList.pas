@@ -84,6 +84,7 @@ var
   ListItem: TListItem;
   q: TIBSQL;
   Tr: TIBTransaction;
+  S: String;
 begin
   if (lvUser.Items.Count > 0) and Assigned(lvUser.Selected) then
     K := lvUser.Selected.Index
@@ -120,10 +121,10 @@ begin
       else
         ListItem.SubItems.Add(q.FieldByName('NAME').AsTrimString);
 
+      S := q.FieldByName('MON$REMOTE_ADDRESS').AsTrimString;
       if chbxShowNames.Checked then
-        ListItem.SubItems.Add(ALIPAddrToName(q.FieldByName('MON$REMOTE_ADDRESS').AsString))
-      else
-        ListItem.SubItems.Add(q.FieldByName('MON$REMOTE_ADDRESS').AsString);
+        S := ALIPAddrToName(S) + ' (' + S + ')';
+      ListItem.SubItems.Add(S);
 
       ListItem.SubItems.Add(q.FieldByName('MON$TIMESTAMP').AsString);
 

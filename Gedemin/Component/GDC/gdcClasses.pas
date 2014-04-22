@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2001-2013 by Golden Software of Belarus
+  Copyright (c) 2001-2014 by Golden Software of Belarus
 
   Module
 
@@ -58,7 +58,6 @@ type
 type
   TgdcDocument = class;
   CgdcDocument = class of TgdcDocument;
-
 
   TgdcDocument = class(TgdcTree)
   private
@@ -289,7 +288,6 @@ type
     property Relation: String read FRelation;
     property RelationLine: String read FRelationLine;
   end;
-
 
   TgdcUserDocument = class(TgdcUserBaseDocument)
   protected
@@ -1258,7 +1256,6 @@ begin
       gdcMaster.ID := FieldByName('parent').AsInteger;
       gdcMaster.Open;
       FIsInternalMasterSource := True;
-//      MasterSource := dsMaster;
     end
     else
       exit;

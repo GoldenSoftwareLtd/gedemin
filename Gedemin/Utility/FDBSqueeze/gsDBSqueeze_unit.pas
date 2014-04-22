@@ -261,7 +261,8 @@ begin
       FIBDatabase.Params.Append('force_write=0');
 
     FIBDatabase.Connected := True;
-    FOnGetConnectedEvent(True);
+    if Assigned(FOnGetConnectedEvent) then
+      FOnGetConnectedEvent(True);
     LogEvent('Connecting to DB... OK');
     CreateUDFs;
   end;
@@ -518,8 +519,6 @@ begin
         BS.ServerName := FConnectInfo.Host;
       BS.Protocol := TCP;
     end;
-    //else if FConnectInfo.Port <> 0 then
-   //   BS.ServerName := 'localhost/' + IntToStr(FConnectInfo.Port);
 
     BS.BackupFile.Clear;
     BS.BackupFile.Add(FBackupFileName);
@@ -739,70 +738,8 @@ begin
 end;
 //---------------------------------------------------------------------------
 procedure TgsDBSqueeze.GetDBSizeEvent;                                          
-
-  function BytesToStr(const i64Size: Int64): String;
-  const
-    i64GB = 1024 * 1024 * 1024;
-    i64MB = 1024 * 1024;
-    i64KB = 1024;
-  begin
-    if i64Size div i64GB > 0 then
-      Result := Format('%.2f GB', [i64Size / i64GB])
-    else if i64Size div i64MB > 0 then
-      Result := Format('%.2f MB', [i64Size / i64MB])
-    else if i64Size div i64KB > 0 then
-      Result := Format('%.2f KB', [i64Size / i64KB])
-    else
-      Result := IntToStr(i64Size) + ' Byte(s)';
-  end;
-
-  function GetFileSize(ADatabaseName: String): Int64;
-  var
-  SearchRecord : TSearchRec;
-  DatabaseName: String;
-  begin
-    Result := -1;
-    if  AnsiPos('localhost:', ADatabaseName) <> 0 then
-      DatabaseName := StringReplace(ADatabaseName, 'localhost:', '', [rfIgnoreCase])
-    else
-      DatabaseName := ADatabaseName;
-    if FindFirst(DatabaseName, faAnyFile, SearchRecord) = 0 then
-    begin
-      try
-        Result := (SearchRecord.FindData.nFileSizeHigh * Int64(MAXDWORD)) + SearchRecord.FindData.nFileSizeLow;
-      finally
-        FindClose(SearchRecord);
-      end;
-    end;
-  end; 
-
-var
-  FileSize: Int64;  // Размер файла в байтах
-  FullFilePath: String;
 begin
-  Assert(Assigned(FOnGetDBSizeEvent));
-
-  if UpperCase(TRIM(FConnectInfo.Host)) <> 'LOCALHOST' then
-  begin
-    FullFilePath := '\\' + FConnectInfo.Host + '\';
-
-    if FIsProcTablesFinish and (FRestoreDBName > '') then
-      FullFilePath := FullFilePath + StringReplace(FRestoreDBName, ':', '', [rfIgnoreCase])
-    else
-      FullFilePath := FullFilePath + StringReplace(FConnectInfo.DatabaseName, ':', '', [rfIgnoreCase]);
-  end
-  else begin
-    if FIsProcTablesFinish and (FRestoreDBName > '') then
-      FullFilePath := FRestoreDBName
-    else
-      FullFilePath := FConnectInfo.DatabaseName;
-  end;
-
-  FileSize := GetFileSize(FullFilePath);
-  if FileSize > 0 then
-    FOnGetDBSizeEvent(BytesToStr(FileSize), FileSize)
-  else
-    FOnGetDBSizeEvent(' ', FileSize);
+  FOnGetDBSizeEvent(' ', 0);
 end;
 //---------------------------------------------------------------------------
 procedure TgsDBSqueeze.UsedDBEvent;                                             ///TODO: отпала необходимость
