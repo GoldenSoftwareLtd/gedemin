@@ -27,24 +27,18 @@ type
     actCompany: TAction;
     actConfigBrowse: TAction;
     actDatabaseBrowse: TAction;
-    actDefaultPort: TAction;
     actDefocus: TAction;
     actDirectoryBrowse: TAction;
     actDisconnect: TAction;
     actGet: TAction;
     actGo: TAction;
     actNextPage: TAction;
-    actRadioLocation: TAction;
     actStop: TAction;
     actUpdate: TAction;
-    btnClearGeneralLog: TButton;
-    btnClearSqlLog: TButton;
     btnGetStatistics: TButton;
-    btnStop: TButton;
     btnUpdateStatistics: TBitBtn;
     Label1: TLabel;
     mLog: TMemo;
-    mSqlLog: TMemo;
     pbMain: TProgressBar;
     pgcMain: TPageControl;
     pnl1: TPanel;
@@ -70,8 +64,6 @@ type
     StaticText8: TStaticText;
     StaticText9: TStaticText;
     sttxt11: TStaticText;
-    sttxt19: TStaticText;
-    sttxt20: TStaticText;
     sttxt21: TStaticText;
     sttxt28: TStaticText;
     sttxt29: TStaticText;
@@ -111,7 +103,6 @@ type
     sttxtRemoteProtocol: TStaticText;
     sttxtServerVer: TStaticText;
     sttxtUser: TStaticText;
-    tbcPageController: TTabControl;
     tsAbout: TTabSheet;
     tsLogs: TTabSheet;
     tsSettings: TTabSheet;
@@ -126,32 +117,14 @@ type
     tsConnection: TTabSheet;
     StaticText4: TStaticText;
     cbbCharset: TComboBox;
-    StaticText2: TStaticText;
     sttxtStateTestConnect: TStaticText;
     StaticText3: TStaticText;
     btnNext1: TButton;
-    grpDatabase: TGroupBox;
-    lbl4: TLabel;
-    lbl8: TLabel;
-    lbl1: TLabel;
-    rbRemote: TRadioButton;
-    rbLocale: TRadioButton;
-    edtHost: TEdit;
-    chkDefaultPort: TCheckBox;
-    sePort: TSpinEdit;
-    edDatabaseName: TEdit;
-    btnDatabaseBrowse: TButton;
-    grpAuthorization: TGroupBox;
-    lbl2: TLabel;
-    lbl3: TLabel;
-    edUserName: TEdit;
-    edPassword: TEdit;
     btntTestConnection: TButton;
     sttxtActivUserCount: TStaticText;
     sttxtServerName: TStaticText;
     sttxtActivConnects: TStaticText;
     sttxtTestConnectState: TStaticText;
-    StaticText1: TStaticText;
     sttxtTestServer: TStaticText;
     tsSqueezeSettings: TTabSheet;
     lbl5: TLabel;
@@ -185,11 +158,6 @@ type
     mIgnoreDocTypes: TMemo;
     tbcDocTypes: TTabControl;
     btnSelectDocTypes: TButton;
-    shp9: TShape;
-    txt1: TStaticText;
-    txt7: TStaticText;
-    txt9: TStaticText;
-    txt12: TStaticText;
     txt13: TStaticText;
     shp14: TShape;
     txt14: TStaticText;
@@ -197,12 +165,24 @@ type
     shp11: TShape;
     txt16: TStaticText;
     shp12: TShape;
-    shp13: TShape;
-    shp20: TShape;
-    shp22: TShape;
-    shp23: TShape;
     chkGetStatiscits: TCheckBox;
     btnSaveConfigFile: TButton;
+    TabSheet1: TTabSheet;
+    mSqlLog: TMemo;
+    Panel1: TPanel;
+    btnClearGeneralLog: TButton;
+    btnStop: TButton;
+    Panel2: TPanel;
+    btnClearSqlLog: TButton;
+    lbl1: TLabel;
+    edDatabaseName: TEdit;
+    btnDatabaseBrowse: TButton;
+    Label2: TLabel;
+    lbl2: TLabel;
+    edUserName: TEdit;
+    lbl3: TLabel;
+    edPassword: TEdit;
+    Label3: TLabel;
 
     procedure actBackPageExecute(Sender: TObject);
     procedure actClearLogExecute(Sender: TObject);
@@ -226,7 +206,6 @@ type
     procedure actStopUpdate(Sender: TObject);
     procedure btnBackupBrowseMouseDown(Sender: TObject;Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
     procedure btnClearGeneralLogMouseDown(Sender: TObject;Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
-    procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
     procedure statbarMainDrawPanel(StatusBar: TStatusBar;Panel: TStatusPanel; const Rect: TRect);
     procedure tbcPageControllerChange(Sender: TObject);
     procedure btnSelectDocTypesClick(Sender: TObject);
@@ -282,67 +261,56 @@ implementation
 
 {$R *.DFM}
 
+uses
+  gd_common_functions;
+
 constructor TgsDBSqueeze_MainForm.Create(AnOwner: TComponent);
 var
   I: Integer;
-  CharsetList: TStringList;
 begin
   inherited;
 
-  CharsetList := TStringList.Create;
   FDocTypesList := TStringList.Create;
-  try
-    // скрытие ярлыков PageControl
-    for I := 0 to pgcMain.PageCount - 1 do
-      pgcMain.Pages[I].TabVisible := False;
-    pgcMain.ActivePage := tsSettings;
-    for I := 0 to pgcSettings.PageCount - 1 do
-      pgcSettings.Pages[I].TabVisible := False;
-    pgcSettings.ActivePage := tsConnection;
+  // скрытие ярлыков PageControl
+  pgcMain.ActivePage := tsSettings;
+  pgcSettings.ActivePage := tsConnection;
 
-    pnl1.Color := $00B7DEFF;
-    mSqlLog.Clear;
-    mLog.ReadOnly := True;
-    mSqlLog.ReadOnly := True;
-    dtpClosingDate.Date := Date;
+  mSqlLog.Clear;
+  mLog.ReadOnly := True;
+  mSqlLog.ReadOnly := True;
+  dtpClosingDate.Date := Date;
 
-    edtHost.Text := DEFAULT_HOST;
-    sePort.Value := DEFAULT_PORT;
-    edUserName.Text := DEFAULT_USER_NAME;
-    edPassword.Text := DEFAULT_PASSWORD;
+  edUserName.Text := DEFAULT_USER_NAME;
+  edPassword.Text := DEFAULT_PASSWORD;
 
-    pbMain.Parent := statbarMain;
-    //remove progress bar border
-    SetWindowLong(pbMain.Handle, GWL_EXSTYLE, GetWindowLong(pbMain.Handle,GWL_EXSTYLE) - WS_EX_STATICEDGE);
-    SendMessage(pbMain.Handle, PBM_SETBARCOLOR, 0, $005555EC);
-    pbMain.Max := MAX_PROGRESS_STEP;
+  pbMain.Parent := statbarMain;
+  //remove progress bar border
+  SetWindowLong(pbMain.Handle, GWL_EXSTYLE, GetWindowLong(pbMain.Handle,GWL_EXSTYLE) - WS_EX_STATICEDGE);
+  SendMessage(pbMain.Handle, PBM_SETBARCOLOR, 0, $005555EC);
+  pbMain.Max := MAX_PROGRESS_STEP;
 
-    btnStop.Enabled := False;
+  btnStop.Enabled := False;
 
-    CharsetList.CommaText := CHARSET_LIST_CH1 + ',' + CHARSET_LIST_CH2;
-    cbbCharset.Items.AddStrings(CharsetList);
-    cbbCharset.ItemIndex := cbbCharset.Items.IndexOf(DEFAULT_CHARACTER_SET);
+  cbbCharset.Items.CommaText := CHARSET_LIST_CH1 + ',' + CHARSET_LIST_CH2;
+  cbbCharset.ItemIndex := cbbCharset.Items.IndexOf(DEFAULT_CHARACTER_SET);
 
-    gsDBSqueeze_MainForm.DefocusControl(tbcDocTypes, False);
+  gsDBSqueeze_MainForm.DefocusControl(tbcDocTypes, False);
 
-    FConnected := False;
-    FStartupTime := Now;
-    FSThread := TgsDBSqueezeThread.Create(False);
-    FSThread.ProgressWatch := Self;
-    FSThread.OnGetConnected := GetConnectedEvent;
-    FSThread.OnLogSQL := LogSQLEvent;
-    FSThread.OnGetInfoTestConnect := GetInfoTestConnectEvent;
-    FSThread.OnUsedDB := UsedDBEvent;
-    FSThread.OnGetDBProperties := GetDBPropertiesEvent;
-    FSThread.OnSetDocTypeStrings := SetDocTypeStringsEvent;
-    FSThread.OnSetDocTypeBranch := SetDocTypeBranchEvent;
-    FSThread.OnGetDBSize := GetDBSizeEvent;
-    FSThread.OnGetStatistics := GetStatisticsEvent;
-    FSThread.OnGetProcStatistics := GetProcStatisticsEvent;
-    FSThread.OnFinishEvent := FinishEvent;
-  finally
-    CharsetList.Free;
-  end;
+  FConnected := False;
+  FStartupTime := Now;
+  FSThread := TgsDBSqueezeThread.Create(False);
+  FSThread.ProgressWatch := Self;
+  FSThread.OnGetConnected := GetConnectedEvent;
+  FSThread.OnLogSQL := LogSQLEvent;
+  FSThread.OnGetInfoTestConnect := GetInfoTestConnectEvent;
+  FSThread.OnUsedDB := UsedDBEvent;
+  FSThread.OnGetDBProperties := GetDBPropertiesEvent;
+  FSThread.OnSetDocTypeStrings := SetDocTypeStringsEvent;
+  FSThread.OnSetDocTypeBranch := SetDocTypeBranchEvent;
+  FSThread.OnGetDBSize := GetDBSizeEvent;
+  FSThread.OnGetStatistics := GetStatisticsEvent;
+  FSThread.OnGetProcStatistics := GetProcStatisticsEvent;
+  FSThread.OnFinishEvent := FinishEvent;
 end;
 //---------------------------------------------------------------------------
 destructor TgsDBSqueeze_MainForm.Destroy;
@@ -435,6 +403,9 @@ begin
 end;
 //---------------------------------------------------------------------------
 procedure TgsDBSqueeze_MainForm.actDisconnectExecute(Sender: TObject);
+var
+  Server, FileName: String;
+  Port: Integer;
 begin
   gsDBSqueeze_MainForm.DefocusControl(btntTestConnection, False);
 
@@ -456,21 +427,17 @@ begin
     sttxtServerName.Caption := '';
     sttxtActivUserCount.Caption := '';
 
-    if (actDefaultPort.Enabled) and (chkDefaultPort.Checked) then
-      FSThread.StartTestConnect(
-        edDatabaseName.Text,
-        edtHost.Text,
-        edUserName.Text,
-        edPassword.Text,
-        cbbCharset.Text)
-    else if not chkDefaultPort.Checked then
-      FSThread.StartTestConnect(
-        edDatabaseName.Text,
-        edtHost.Text,
-        edUserName.Text,
-        edPassword.Text,
-        cbbCharset.Text,
-        sePort.Value);
+    ParseDatabaseName(edDatabaseName.Text, Server, Port, FileName);
+
+    if Port = 0 then Port := 3050;
+
+    FSThread.StartTestConnect(
+      FileName,
+      Server,
+      edUserName.Text,
+      edPassword.Text,
+      cbbCharset.Text,
+      Port);
   end;
 end;
 //---------------------------------------------------------------------------
@@ -504,18 +471,7 @@ begin
   end;
   FProcessing := False;
 end;
-//---------------------------------------------------------------------------
-procedure TgsDBSqueeze_MainForm.FormCloseQuery(Sender: TObject;                 ///TODO: доработать
-  var CanClose: Boolean);
-begin
-  case Application.MessageBox(PChar('Вы действительно хотите выйти?'),
-    PChar('Подтверждение'), MB_YESNO + MB_ICONQUESTION + MB_TOPMOST) of
-    IDYES:
-      CanClose := True;
-    IDNO:
-      CanClose := False;
-  end;
-end;
+
 //---------------------------------------------------------------------------
 procedure TgsDBSqueeze_MainForm.GetDBSizeEvent(const AnDBSize: String);
 begin
@@ -654,28 +610,14 @@ end;
 //---------------------------------------------------------------------------
 procedure TgsDBSqueeze_MainForm.tbcPageControllerChange(Sender: TObject);
 begin
-  pgcMain.ActivePageIndex := tbcPageController.TabIndex;
 end;
 //---------------------------------------------------------------------------
 procedure TgsDBSqueeze_MainForm.actRadioLocationExecute(Sender: TObject);
 begin
-  if rbLocale.Checked then
-  begin
-    gsDBSqueeze_MainForm.DefocusControl(rbLocale, False);
-    edtHost.Text := DEFAULT_HOST
-  end
-  else begin
-    gsDBSqueeze_MainForm.DefocusControl(rbRemote, False);
-    edtHost.Text := '';
-  end;
-  edtHost.Enabled := rbRemote.Checked;
-  chkDefaultPort.Checked := rbLocale.Checked;
 end;
 //---------------------------------------------------------------------------
 procedure TgsDBSqueeze_MainForm.actDefaultPortExecute(Sender: TObject);
 begin
-  sePort.Enabled := not chkDefaultPort.Checked;
-  gsDBSqueeze_MainForm.DefocusControl(chkDefaultPort, False);
 end;
 //---------------------------------------------------------------------------
 procedure TgsDBSqueeze_MainForm.actNextPageExecute(Sender: TObject);
@@ -685,6 +627,8 @@ var
   BackupFileName: String;
   RestoreDBName: String;
   RequiredSize: Int64; // в байтах
+  Server, FileName: String;
+  Port: Integer;
 begin
   LogFileName := '';
   BackupFileName := '';
@@ -715,25 +659,17 @@ begin
       sttxtDBSizeBefore.Caption := '';
       sttxtDBSizeAfter.Caption := '';
 
-      FDatabaseName := edDatabaseName.Text;
-      if Pos('\', FDatabaseName) <> 0 then
-        Delete(FDatabaseName, 1, LastDelimiter('\', FDatabaseName));
+      ParseDatabaseName(edDatabaseName.Text, Server, Port, FileName);
 
-      if (actDefaultPort.Enabled) and (chkDefaultPort.Checked) then
-        FSThread.SetDBParams(
-          edDatabaseName.Text,
-          edtHost.Text,
-          edUserName.Text,
-          edPassword.Text,
-          cbbCharset.Text)
-      else if not chkDefaultPort.Checked then
-        FSThread.SetDBParams(
-          edDatabaseName.Text,
-          edtHost.Text,
-          edUserName.Text,
-          edPassword.Text,
-          cbbCharset.Text,
-          sePort.Value);
+      if Port = 0 then Port := 3050;
+
+      FSThread.SetDBParams(
+        FileName,
+        Server,
+        edUserName.Text,
+        edPassword.Text,
+        cbbCharset.Text,
+        Port);
 
       FSThread.Connect;
     end;
@@ -839,11 +775,6 @@ begin
       FSThread.DoGetStatisticsAfterProc := chkGetStatiscits.Checked;
 
       mReviewSettings.Clear;
-      mReviewSettings.Lines.Add('Host: ' + edtHost.Text);
-      if chkDefaultPort.Checked then
-        mReviewSettings.Lines.Add('Port: default')
-      else
-        mReviewSettings.Lines.Add('Port: ' + sePort.Text);
       mReviewSettings.Lines.Add('Database: ' + edDatabaseName.Text);
       mReviewSettings.Lines.Add('Username: ' + edUserName.Text);
       mReviewSettings.Lines.Add('Удалить документы с DOCUMENTDATE < ' + DateToStr(dtpClosingDate.Date));
@@ -903,10 +834,8 @@ var
 begin
   if not FConnected then
   begin
-    btnNext1.Enabled := (rbLocale.Checked or rbRemote.Checked)
-      and (Trim(edtHost.Text) > '')
-      and (chkDefaultPort.Checked or sePort.Enabled)
-      and (Trim(edDatabaseName.Text) > '')
+    btnNext1.Enabled :=
+      (Trim(edDatabaseName.Text) > '')
       and (Trim(edUserName.Text) > '')
       and (Trim(edPassword.Text) > '');
   end;
@@ -924,7 +853,6 @@ procedure TgsDBSqueeze_MainForm.actGoExecute(Sender: TObject);
 begin
   btnGo.Enabled := False;
   pgcSettings.ActivePage := tsConnection;
-  tbcPageController.TabIndex := 1;
   pgcMain.ActivePage := tsLogs;
   
   WriteToLogFile('====================== Settings =======================');
@@ -968,7 +896,6 @@ begin
     gsDBSqueeze_MainForm.DefocusControl(TButton(Sender), False);
 
   pgcSettings.ActivePageIndex := pgcSettings.ActivePageIndex - 1;
-  gsDBSqueeze_MainForm.DefocusControl(rbLocale, False);
   gsDBSqueeze_MainForm.DefocusControl(edDatabaseName, False);
   gsDBSqueeze_MainForm.DefocusControl(edLogs, False);
 end;
@@ -1140,7 +1067,6 @@ begin
       PChar('Сообщение'),
       MB_OK + MB_ICONINFORMATION + MB_TOPMOST) = IDOK then
     begin
-      tbcPageController.TabIndex := 2;
       pgcMain.ActivePage := tsStatistics;
     end;
   end  
@@ -1372,9 +1298,5 @@ begin
   if Sender is TButton then
     TButton(Sender).Tag := 1;
 end;
-
-//initialization
-//  ReportMemoryLeaksOnShutdown := True;
-
 
 end.
