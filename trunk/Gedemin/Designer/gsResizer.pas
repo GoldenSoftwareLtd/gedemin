@@ -3918,14 +3918,55 @@ begin
 end;
 
 procedure TgsResizeManager.ReloadComponent(const Attr: Boolean);
+  function FindParentSubType(SubType: string): string;
+  var
+    ibsql: TIBSQL;
+    tr: TIBTransaction;
+    prnt: Integer;
+  begin
+    Result := '';
+    ibsql := TIBSQL.Create(nil);
+    tr:= TIBTransaction.Create(nil);
+    try
+      tr.DefaultDatabase:= dmDatabase.ibdbGAdmin;
+      tr.StartTransaction;
+      ibsql.Transaction:= tr;
+      ibsql.Close;
+      ibsql.SQL.Text :=
+        'SELECT z.* FROM gd_documenttype z '#13#10 +
+        'WHERE z.RUID = :RUID ';
+      ibsql.ParamByName('RUID').AsString := SubType;
+      ibsql.ExecQuery;
+      if not ibsql.Eof then
+      begin
+        prnt := ibsql.FieldByName('Parent').AsInteger;
+        ibsql.Close;
+        ibsql.SQL.Text :=
+          'SELECT z.* FROM gd_documenttype z '#13#10 +
+          'WHERE z.ID = :ID AND z.documenttype = ''D''';
+        ibsql.ParamByName('ID').AsInteger := prnt;
+        ibsql.ExecQuery;
+        if not ibsql.Eof then
+        begin
+          Result := ibsql.FieldByName('RUID').AsString;
+        end;
+      end;
+    finally
+      tr.Commit;
+      tr.Free;
+      ibsql.Free;
+    end;
+  end;
 var
   F: TMemoryStream;
   OldVisible, bLoadedFromStorage: Boolean;
+  bLoadedFromUserStorage: Boolean;
   OldControl: TWinControl;
   Flag: Integer;
   SF: TgsStorageFolder;
   H: THandle;
-
+  SubType: string;
+  ParentSubType: string;
 const
   ErrorMsg =
     'При загрузке настроек произошла ошибка: %s'#10#13 +
@@ -3946,7 +3987,22 @@ begin
           begin
             bLoadedFromStorage:= GlobalStorage.ReadStream(FResourceName, FFormSubType, F, IBLogin.IsIBUserAdmin);
             if not bLoadedFromStorage then
-              bLoadedFromStorage:= GlobalStorage.ReadStream(FResourceName, SubtypeDefaultName, F, IBLogin.IsIBUserAdmin);
+            begin
+              SubType := FFormSubType;
+              repeat
+                ParentSubType := FindParentSubType(SubType);
+                if ParentSubType <> '' then
+                begin
+                  bLoadedFromStorage:= GlobalStorage.ReadStream2(FResourceName,
+                    FFormSubType, ParentSubType, F, IBLogin.IsIBUserAdmin);
+                  SubType := ParentSubType;
+                end;
+              until (bLoadedFromStorage) or (ParentSubType = '');
+
+              if not bLoadedFromStorage then
+                bLoadedFromStorage:= GlobalStorage.ReadStream(FResourceName, SubtypeDefaultName, F, IBLogin.IsIBUserAdmin);
+            end;
+
             if bLoadedFromStorage then
             begin
               Flag := 1;
@@ -3955,8 +4011,25 @@ begin
 
             if (FDesignerType = dtUser) and (Flag = 0) then
             begin
-              if UserStorage.ReadStream(FResourceName, FFormSubType, F) then
+              bLoadedFromUserStorage:= UserStorage.ReadStream(FResourceName, FFormSubType, F);
+              if not bLoadedFromUserStorage then
+              begin
+                SubType := FFormSubType;
+                repeat
+                  ParentSubType := FindParentSubType(SubType);
+                  if ParentSubType <> '' then
+                  begin
+                    bLoadedFromUserStorage:= UserStorage.ReadStream2(FResourceName,
+                      FFormSubType, ParentSubType, F);
+                    SubType := ParentSubType;
+                  end;
+                until (bLoadedFromUserStorage) or (ParentSubType = '');
+              end;
+
+              if bLoadedFromUserStorage then
+              begin
                 Flag := 2;
+              end;
             end;
 
             if Flag <> 0 then
@@ -3976,7 +4049,22 @@ begin
                   begin
                     Flag := 0;
                     F.Clear;
-                    if UserStorage.ReadStream(FResourceName, FFormSubType, F) then
+                    bLoadedFromUserStorage:= UserStorage.ReadStream(FResourceName, FFormSubType, F);
+                    if not bLoadedFromUserStorage then
+                    begin
+                      SubType := FFormSubType;
+                      repeat
+                        ParentSubType := FindParentSubType(SubType);
+                        if ParentSubType <> '' then
+                        begin
+                          bLoadedFromUserStorage:= UserStorage.ReadStream2(FResourceName,
+                            FFormSubType, ParentSubType, F);
+                          SubType := ParentSubType;
+                        end;
+                      until (bLoadedFromUserStorage) or (ParentSubType = '');
+                    end;
+                    
+                    if bLoadedFromUserStorage then
                     begin
                       F.Seek(0, soFromBeginning);
                       CheckPosition(FEditForm, F, Attr);

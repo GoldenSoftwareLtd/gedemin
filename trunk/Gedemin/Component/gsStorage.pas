@@ -436,6 +436,7 @@ type
 
     procedure LoadDataFromStream(S: TStream);
     procedure SaveDataToStream(S: TStream);
+    procedure SaveDataToStream2(S: TStream; SubType, ParentSubType: string);
 
     function Find(AList: TStringList; const ASearchString: String;
       const ASearchOptions: TgstSearchOptions; const DateFrom:TDate = 0;
@@ -502,6 +503,8 @@ type
     function ReadString(const APath, AValue: String;
       const Default: String = ''; const Sync: Boolean = True): String;
     function ReadStream(const APath, AValue: String; S: TStream;
+      const ASync: Boolean = True): Boolean;
+    function ReadStream2(const APath, SubType, ParentSubType: String; S: TStream;
       const ASync: Boolean = True): Boolean;
 
     procedure WriteString(const APath, AValueName, AValue: String; const Sync: Boolean = True);
@@ -2062,6 +2065,31 @@ begin
       if V is TgsStreamValue then
       try
         (V as TgsStreamValue).SaveDataToStream(S);
+        Result := True;
+      except
+      end;
+    end;
+  finally
+    CloseFolder(F, False);
+  end;
+end;
+
+function TgsStorage.ReadStream2(const APath, SubType, ParentSubType: String;
+  S: TStream; const ASync: Boolean = True): Boolean;
+var
+  F: TgsStorageFolder;
+  V: TgsStorageValue;
+begin
+  Assert(S <> nil, 'Stream is not assigned');
+  Result := False;
+  F := OpenFolder(APath, False, ASync);
+  try
+    if Assigned(F) then
+    begin
+      V := F.ValueByName(ParentSubType);
+      if V is TgsStreamValue then
+      try
+        (V as TgsStreamValue).SaveDataToStream2(S, SubType, ParentSubType);
         Result := True;
       except
       end;
@@ -4008,7 +4036,24 @@ begin
     begin
       S.WriteBuffer(T[1], Length(T));
       S.Position := 0;
-    end;  
+    end;
+  end;
+end;
+
+procedure TgsStreamValue.SaveDataToStream2(S: TStream; SubType, ParentSubType: string);
+var
+  T: String;
+begin
+  if Assigned(S) then
+  begin
+    S.Size := 0;
+    T := AsString;
+    T := StringReplace(T, ParentSubType, SubType, [rfReplaceAll]);
+    if Length(T) > 0 then
+    begin
+      S.WriteBuffer(T[1], Length(T));
+      S.Position := 0;
+    end;
   end;
 end;
 
