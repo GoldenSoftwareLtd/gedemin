@@ -12,7 +12,6 @@ uses
 type
   Tgdc_frmDocumentType = class(Tgdc_frmMDVTree)
     gdcDocumentType: TgdcDocumentType;
-    gdcDocumentBranch: TgdcDocumentBranch;
     actNewSub: TAction;
     TBSubmenuItem1: TTBSubmenuItem;
     TBItem1: TTBItem;
@@ -24,6 +23,7 @@ type
     tbiAddInvPriceList: TTBItem;
     tbiAddInvDocument: TTBItem;
     tbiAddUserDoc: TTBItem;
+    gdcBaseDocumentType: TgdcBaseDocumentType;
     procedure FormCreate(Sender: TObject);
     procedure actNewSubExecute(Sender: TObject);
     procedure actNewSubUpdate(Sender: TObject);
@@ -66,7 +66,7 @@ procedure Tgdc_frmDocumentType.FormCreate(Sender: TObject);
 begin
   inherited;
 
-  gdcObject := gdcDocumentBranch;
+  gdcObject := gdcBaseDocumentType;
   gdcDetailObject := gdcDocumentType;
 
   gdcObject.Open;
@@ -75,7 +75,7 @@ end;
 
 procedure Tgdc_frmDocumentType.actNewSubExecute(Sender: TObject);
 begin
-  gdcDocumentBranch.CreateChildrenDialog;
+  gdcBaseDocumentType.CreateChildrenDialog;
 end;
 
 procedure Tgdc_frmDocumentType.actNewSubUpdate(Sender: TObject);
