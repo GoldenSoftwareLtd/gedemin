@@ -157,7 +157,6 @@ inherited gdc_frmDocumentType: Tgdc_frmDocumentType
     Top = 164
   end
   inherited dsMain: TDataSource
-    DataSet = gdcDocumentBranch
     Top = 164
   end
   inherited dsDetail: TDataSource
@@ -177,8 +176,8 @@ inherited gdc_frmDocumentType: Tgdc_frmDocumentType
     Left = 428
     Top = 140
   end
-  object gdcDocumentBranch: TgdcDocumentBranch
-    Left = 113
-    Top = 135
+  object gdcBaseDocumentType: TgdcBaseDocumentType
+    Left = 72
+    Top = 128
   end
 end
