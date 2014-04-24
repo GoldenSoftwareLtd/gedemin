@@ -2452,14 +2452,18 @@ begin
       '  im.contactkey AS ContactKey, ' +                       #13#10 +
       '  ic.goodkey, ' +                                        #13#10 +
       '  im.cardkey, ' +                                        #13#10 +
-      '  doc.companykey, ' +                                     #13#10 +
+      '  doc.companykey, ' +                                    #13#10 +
       '  SUM(im.debit - im.credit) AS Balance ';
     q.SQL.Add(' ' +
       'FROM inv_movement im ' +                                 #13#10 +
       '  JOIN GD_DOCUMENT doc ON im.documentkey = doc.id ' +    #13#10 +
       '  JOIN INV_CARD ic ON im.cardkey = ic.id ' +             #13#10 +
-      'WHERE ' +                                                #13#10 +
-      '  im.cardkey > 0 '); // первый столбец в индексе, чтобы его задействовать
+      '  JOIN GD_CONTACT cont ON cont.id = im.contactkey ' +    #13#10 +
+      '    JOIN gd_contact contact_head ' +                                   #13#10 +
+      '      ON contact_head.lb <= cont.lb AND contact_head.rb >= cont.rb ' + #13#10 +
+      'WHERE ' +                                                              #13#10 +
+      '  im.cardkey > 0 ' +                                     #13#10 +   // первый столбец в индексе, чтобы его задействовать
+      '  AND contact_head.id = doc.companykey ');
 
     if FOnlyCompanySaldo then
       q.SQL.Add(' ' +
