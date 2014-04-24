@@ -3918,6 +3918,22 @@ begin
 end;
 
 procedure TgsResizeManager.ReloadComponent(const Attr: Boolean);
+  procedure ReplaceSubType(var S: TMemoryStream; SubType, ParentSubType: string);
+  var
+    T: String;
+  begin
+    if Assigned(S) and (S.Size > 0) then
+    begin
+      S.Position := 0;
+      SetLength(T, S.Size);
+      S.ReadBuffer(T[1], S.Size);
+      T := StringReplace(T, ParentSubType, SubType, [rfReplaceAll]);
+      S.Size := 0;
+      S.WriteBuffer(T[1], Length(T));
+      S.Position := 0;
+    end;
+  end;
+
   function FindParentSubType(SubType: string): string;
   var
     ibsql: TIBSQL;
@@ -3993,8 +4009,9 @@ begin
                 ParentSubType := FindParentSubType(SubType);
                 if ParentSubType <> '' then
                 begin
-                  bLoadedFromStorage:= GlobalStorage.ReadStream2(FResourceName,
-                    FFormSubType, ParentSubType, F, IBLogin.IsIBUserAdmin);
+                  bLoadedFromStorage:= GlobalStorage.ReadStream(FResourceName, ParentSubType, F, IBLogin.IsIBUserAdmin);
+                  if bLoadedFromStorage then
+                    ReplaceSubType(F, FFormSubType, ParentSubType);
                   SubType := ParentSubType;
                 end;
               until (bLoadedFromStorage) or (ParentSubType = '');
@@ -4019,8 +4036,9 @@ begin
                   ParentSubType := FindParentSubType(SubType);
                   if ParentSubType <> '' then
                   begin
-                    bLoadedFromUserStorage:= UserStorage.ReadStream2(FResourceName,
-                      FFormSubType, ParentSubType, F);
+                    bLoadedFromUserStorage:= UserStorage.ReadStream(FResourceName, ParentSubType, F);
+                    if bLoadedFromUserStorage then
+                      ReplaceSubType(F, FFormSubType, ParentSubType);
                     SubType := ParentSubType;
                   end;
                 until (bLoadedFromUserStorage) or (ParentSubType = '');
@@ -4044,7 +4062,6 @@ begin
 
                   FGlobalLoading := False;
 
-
                   if (FDesignerType = dtUser) and (Flag = 1) then
                   begin
                     Flag := 0;
@@ -4057,8 +4074,9 @@ begin
                         ParentSubType := FindParentSubType(SubType);
                         if ParentSubType <> '' then
                         begin
-                          bLoadedFromUserStorage:= UserStorage.ReadStream2(FResourceName,
-                            FFormSubType, ParentSubType, F);
+                          bLoadedFromUserStorage:= UserStorage.ReadStream(FResourceName, ParentSubType, F);
+                          if bLoadedFromUserStorage then
+                            ReplaceSubType(F, FFormSubType, ParentSubType);
                           SubType := ParentSubType;
                         end;
                       until (bLoadedFromUserStorage) or (ParentSubType = '');
