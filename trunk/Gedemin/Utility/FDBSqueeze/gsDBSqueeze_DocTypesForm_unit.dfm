@@ -1,13 +1,13 @@
 object gsDBSqueeze_DocTypesForm: TgsDBSqueeze_DocTypesForm
-  Left = 538
-  Top = 189
+  Left = 118
+  Top = 349
   Action = actSelectAll
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsDialog
   Caption = 'Выбор типов документов'
-  ClientHeight = 609
-  ClientWidth = 805
-  Color = 12050175
+  ClientHeight = 608
+  ClientWidth = 790
+  Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11

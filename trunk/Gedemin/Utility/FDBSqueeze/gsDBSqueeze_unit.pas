@@ -63,7 +63,6 @@ type
     FCreateBackup: Boolean;
     FCurrentProgressStep: Integer;
     FCurUserContactKey: Integer;
-    FDoAccount00Saldo: Boolean;
     FDocTypesList: TStringList;        // типы документов выбранные пользователем
     FDoProcDocTypes: Boolean;          // true - обрабатывать ТОЛЬКО документы с выбранными типами, false - обрабатывать все КРОМЕ документов с выбранными типами
     FEntryAnalyticsStr: String;        // список всех бухгалтерских аналитик
@@ -113,8 +112,6 @@ type
     procedure Disconnect;
     procedure Reconnect(ANoGarbageCollect: Boolean; AOffForceWrite: Boolean);
 
-
-
     // ExecQuery  и запись в лог
     procedure ExecSqlLogEvent(const AnIBSQL: TIBSQL; const AProcName: String); Overload;
     procedure ExecSqlLogEvent(const AnIBQuery: TIBQuery; const AProcName: String); Overload;
@@ -129,6 +126,10 @@ type
     procedure InsertDBSStateJournal(const AFunctionKey: Integer; const AState: Integer; const AErrorMsg: String = '');
 
     procedure SetFVariables;
+
+    procedure MergeCards(const ADocDate: TDateTime; const ADocTypeList: TStringList; const AUsrSelectedFieldsList);
+
+
 
     // создание необходимых таблиц для программы
     procedure CreateMetadata;
@@ -180,7 +181,6 @@ type
     property ClosingDate: TDateTime        read FClosingDate          write FClosingDate;
     property CompanyKey: Integer           read FCompanyKey           write FCompanyKey;
     property Connected: Boolean            read GetConnected;
-    property DoAccount00Saldo: Boolean     read FDoAccount00Saldo     write FDoAccount00Saldo;
     property DocTypesList: TStringList     read FDocTypesList         write SetSelectDocTypes;
     property DoProcDocTypes: Boolean       read FDoProcDocTypes       write FDoProcDocTypes;
     property CreateBackup: Boolean         read FCreateBackup         write FCreateBackup;
@@ -2393,7 +2393,7 @@ begin
         q3.SQL.Add(', ' +                                       #13#10 +
           AvailableAnalyticsList[I]);
       q3.SQL.Add(' ' +
-        'HAVING ' +                                             #13#10 +
+        'HAVING ' +                                                                    #13#10 +
         '  (SUM(debitncu) - SUM(creditncu)) > CAST(0.0000 AS DECIMAL(15,4)) ' +        #13#10 +
         '   OR (SUM(debitcurr) - SUM(creditcurr)) > CAST(0.0000 AS DECIMAL(15,4)) ' +  #13#10 +
         '   OR (SUM(debiteq)   - SUM(crediteq))   > CAST(0.0000 AS DECIMAL(15,4)) '); 
@@ -5562,7 +5562,61 @@ DestroyHIS(0);
     Tr.Free;
   end;
 end;
+//---------------------------------------------------------------------------
+procedure TgsDBSqueeze.MergeCards(const ADocDate: TDateTime; const ADocTypeList: TStringList; const AUsrSelectedFieldsList);
+  Tr: TIBTransaction;
+  q, q2: TIBSQL;
+begin
+  LogEvent('InvCard merging... ');
+  Assert(Connected);
 
+  Tr := TIBTransaction.Create(nil);
+  q := TIBSQL.Create(nil);
+  q2 := TIBSQL.Create(nil);
+  try
+CreateHIS(0);
+
+    Tr.DefaultDatabase := FIBDatabase;
+    Tr.StartTransaction;
+    q.Transaction := Tr;
+    q2.Transaction := Tr;
+
+    q.SQL.Text :=
+      'SELECT SUM(g_his_include(0, doc.id)) AS Kolvo ' + #13#10 +
+      'FROM gd_document doc ' +                          #13#10 +
+      'WHERE  ' +                                        #13#10 +
+      '  doc.documentdate < :Date ' +                 #13#10 +
+      '   AND doc.documenttypekey IN(' + ADocTypeList.CommaText + ') ');
+    q.SQL.Add(')');
+    q.ParamByName('Date').AsDateTime := ADocDate;
+    if not FDoStopProcessing then
+      ExecSqlLogEvent(q, 'CreateHIS_IncludeInHIS');
+    q.Close;
+
+    q.SQL.Text :=
+      'SELECT MIN(id) ' +
+      'FROM INV_CARD '               +
+      'WHERE g_his_has(0, ic.documentkey)=1 ' +
+      'GROUP BY ' +  AUsrSelectedFieldsList.CommaText;
+    if not FDoStopProcessing then
+      ExecSqlLogEvent(q, 'CreateHIS_IncludeInHIS');
+
+    while not q.EOF do
+    begin
+      //
+    end;
+    q.Close;
+
+
+DestroyHIS(0);
+    Tr.Commit;
+  finally
+    q.Free;
+    q2.Free;
+    Tr.Free;
+  end
+  //
+end;
 //---------------------------------------------------------------------------
 procedure TgsDBSqueeze.PrepareDB;
 var
@@ -6067,71 +6121,6 @@ begin
     qInsertAcEntry.ParamByName('ProizvolnyeTransactionKey').AsInteger := PROIZVOLNYE_TRANSACTION_KEY;
     if not FDoStopProcessing then
       ExecSqlLogEvent(qInsertAcEntry, 'CreateAcEntries');
-
-    // проводки по счету '00 Остатки': Дебетовые остатки счета вводятся по кредиту счета 00. Кредитовые остатки счета вводятся по дебету счета 00.
-    if FDoAccount00Saldo then
-    begin
-      qInsertAcRec.SQL.Text :=
-        'INSERT INTO AC_RECORD ( ' +                                                #13#10 +
-        '  id, ' +                                                                  #13#10 +
-        '  recorddate, ' +                                                          #13#10 +
-        '  trrecordkey, ' +                                                         #13#10 +
-        '  transactionkey, ' +                                                      #13#10 +
-        '  documentkey, masterdockey, afull, achag, aview, companykey) ' +          #13#10 +
-        'SELECT ' +                                                                 #13#10 + //DISTINCT ' +                                                  
-        '  recordkey_ostatky, ' +                                                   #13#10 +
-        '  :ClosingDate, ' +                                                        #13#10 +
-        '  :ProizvolnyeTrRecordKey, ' +                                             #13#10 +
-        '  :ProizvolnyeTransactionKey, ' +                                          #13#10 +
-        '  documentkey, masterdockey, -1, -1, -1, companykey ' +                    #13#10 +
-        'FROM DBS_TMP_AC_SALDO ';
-      qInsertAcRec.ParamByName('ClosingDate').AsDateTime := FClosingDate-1;
-      qInsertAcRec.ParamByName('ProizvolnyeTrRecordKey').AsInteger := PROIZVOLNYE_TRRECORD_KEY;
-      qInsertAcRec.ParamByName('ProizvolnyeTransactionKey').AsInteger := PROIZVOLNYE_TRANSACTION_KEY;
-
-      ExecSqlLogEvent(qInsertAcRec, 'CreateAcEntries');
-
-      qInsertAcEntry.SQL.Text :=
-        'INSERT INTO AC_ENTRY (' +                                                  #13#10 +
-        '  issimple, ' +                                                            #13#10 +
-        '  id, ' +                                                                  #13#10 +
-        '  entrydate, ' +                                                           #13#10 +
-        '  recordkey, ' +                                                           #13#10 +
-        '  transactionkey, ' +                                                      #13#10 +
-        '  documentkey, masterdockey, companykey, accountkey, ' +                   #13#10 +
-        '  currkey, accountpart, ' +                                                #13#10 +
-        '  creditncu, creditcurr, crediteq, ' +                                     #13#10 +
-        '  debitncu, debitcurr, debiteq ';
-      if FEntryAnalyticsStr <> '' then
-        qInsertAcEntry.SQL.Add(',' +
-            FEntryAnalyticsStr);
-      qInsertAcEntry.SQL.Add(') ' +
-        'SELECT ' +                                                                 #13#10 +
-        '  1, ' +                                                                   #13#10 +
-        '  id_ostatky, ' +                                                          #13#10 +
-        '  :ClosingDate, ' +                                                        #13#10 +
-        '  recordkey_ostatky, ' +                                                   #13#10 +
-        '  :ProizvolnyeTransactionKey, ' +                                          #13#10 +
-        '  documentkey, masterdockey, companykey, :OstatkyAccountKey, ' +           #13#10 +
-        '  currkey, accountpart, ' +                                                #13#10 +
-        '  IIF(accountpart = ''C'', CAST(0.0000 AS DECIMAL(15,4)), creditncu), ' +  #13#10 +
-        '  IIF(accountpart = ''C'', CAST(0.0000 AS DECIMAL(15,4)), creditcurr), ' + #13#10 +
-        '  IIF(accountpart = ''C'', CAST(0.0000 AS DECIMAL(15,4)), crediteq),  ' +  #13#10 +
-        '  IIF(accountpart = ''D'', CAST(0.0000 AS DECIMAL(15,4)), debitncu),  ' +  #13#10 +
-        '  IIF(accountpart = ''D'', CAST(0.0000 AS DECIMAL(15,4)), debitcurr), ' +  #13#10 +
-        '  IIF(accountpart = ''D'', CAST(0.0000 AS DECIMAL(15,4)), debiteq) ');
-      if FEntryAnalyticsStr <> '' then
-        qInsertAcEntry.SQL.Add(',' +
-           FEntryAnalyticsStr);
-      qInsertAcEntry.SQL.Add(' ' +
-        'FROM DBS_TMP_AC_SALDO ');
-      
-      qInsertAcEntry.ParamByName('OstatkyAccountKey').AsInteger := OSTATKY_ACCOUNT_KEY;
-      qInsertAcEntry.ParamByName('ClosingDate').AsDateTime := FClosingDate-1;
-      qInsertAcEntry.ParamByName('ProizvolnyeTransactionKey').AsInteger := PROIZVOLNYE_TRANSACTION_KEY;
-
-      ExecSqlLogEvent(qInsertAcEntry, 'CreateAcEntries');
-    end;     
 
     Tr.Commit;
     ProgressMsgEvent('', 3*PROGRESS_STEP);

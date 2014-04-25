@@ -294,7 +294,7 @@ var
   Str: String;
 begin
   Str := StringReplace(FSelectedDocTypesList.Text, #13#10, '||', [rfReplaceAll, rfIgnoreCase]);
-  Delete(Str, Length(Str), 1);
+  //Delete(Str, Length(Str), 1);
   Result := Str
 end;
 //---------------------------------------------------------------------------
