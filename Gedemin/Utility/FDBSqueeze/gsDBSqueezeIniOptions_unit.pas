@@ -6,20 +6,29 @@ uses
   Classes, SysUtils, IniFiles, Forms, Windows;
 
 const
-  iniSection = 'SQUEEZE_SETTINGS';
+  iniDatabaseSection = 'DATABASE_CONNECTION';
+  iniSqueezeSection = 'SQUEEZE_SETTINGS';
 
+  {Section: DATABASE_CONNECTION}
+  iniDatabase = 'Database';
+  iniCharset = 'Charset';
+  
   {Section: SQUEEZE_SETTINGS}
-  iniDoEnterOstatkyAccount = 'DoEnterOstatkyAccount';
-  iniDoProcessDocTypes = 'DoProcessDocTypes';
+  iniClosingDate = 'ClosingDate';
   iniDoCalculateSaldo = 'DoCalculateSaldo';
+  iniDoProcessDocTypes = 'DoProcessDocTypes';
   iniSelectedDocTypeKeys = 'SelectedDocTypeKeys';
   iniSelectedBranchRows = 'SelectedBranchRows';
 
 type
   TgsIniOptions = class(TObject)
   private
+    {Section: DATABASE_CONNECTION}
+    FDatabase: String;
+    FCharset: String;
+
     {Section: SQUEEZE_SETTINGS}
-    FDoEnterOstatkyAccount: Boolean;
+    FClosingDate: TDateTime;   
     FDoProcessDocTypes: Boolean;
     FDoCalculateSaldo: Boolean;
     FSelectedDocTypeKeys: String;
@@ -31,12 +40,16 @@ type
     procedure LoadFromFile(const FileName: String);
     procedure SaveToFile(const FileName: String);
 
+    {Section: DATABASE_CONNECTION}
+    property Database: String                    read FDatabase                    write FDatabase;
+    property Charset: String                     read FCharset                     write FCharset;
+
     {Section: SQUEEZE_SETTINGS}
-    property DoEnterOstatkyAccount: Boolean       read FDoEnterOstatkyAccount       write FDoEnterOstatkyAccount;
-    property DoCalculateSaldo: Boolean            read FDoCalculateSaldo            write FDoCalculateSaldo;
-    property DoProcessDocTypes: Boolean           read FDoProcessDocTypes           write FDoProcessDocTypes;
-    property SelectedDocTypeKeys: String          read FSelectedDocTypeKeys         write FSelectedDocTypeKeys;
-    property SelectedBranchRows: String           read FSelectedBranchRows          write FSelectedBranchRows;
+    property ClosingDate: TDateTime              read FClosingDate                 write FClosingDate;
+    property DoCalculateSaldo: Boolean           read FDoCalculateSaldo            write FDoCalculateSaldo;
+    property DoProcessDocTypes: Boolean          read FDoProcessDocTypes           write FDoProcessDocTypes;
+    property SelectedDocTypeKeys: String         read FSelectedDocTypeKeys         write FSelectedDocTypeKeys;
+    property SelectedBranchRows: String          read FSelectedBranchRows          write FSelectedBranchRows;
   end;
 
 var
@@ -48,12 +61,15 @@ procedure TgsIniOptions.LoadSettings(Ini: TIniFile);
 begin
   if Ini <> nil then
   begin
+    {Section: DATABASE_CONNECTION}
+    FDatabase := Ini.ReadString(iniDatabaseSection, iniDatabase, '');
+    FCharset := Ini.ReadString(iniDatabaseSection, iniCharset, '');
     {Section: SQUEEZE_SETTINGS}
-    FDoEnterOstatkyAccount := Ini.ReadBool(iniSection, iniDoEnterOstatkyAccount, False);
-    FDoProcessDocTypes := Ini.ReadBool(iniSection, iniDoProcessDocTypes, False);
-    FDoCalculateSaldo := Ini.ReadBool(iniSection, iniDoCalculateSaldo, False);
-    FSelectedDocTypeKeys := Ini.ReadString(iniSection, iniSelectedDocTypeKeys, '');
-    FSelectedBranchRows := Ini.ReadString(iniSection, iniSelectedBranchRows, '');
+    FClosingDate := Ini.ReadDate(iniSqueezeSection, iniClosingDate, Date);
+    FDoProcessDocTypes := Ini.ReadBool(iniSqueezeSection, iniDoProcessDocTypes, False);
+    FDoCalculateSaldo := Ini.ReadBool(iniSqueezeSection, iniDoCalculateSaldo, False);
+    FSelectedDocTypeKeys := Ini.ReadString(iniSqueezeSection, iniSelectedDocTypeKeys, '');
+    FSelectedBranchRows := Ini.ReadString(iniSqueezeSection, iniSelectedBranchRows, '');
   end;
 end;
 
@@ -61,12 +77,15 @@ procedure TgsIniOptions.SaveSettings(Ini: TIniFile);
 begin
   if Ini <> nil then
   begin
+    {Section: DATABASE_CONNECTION}
+    Ini.WriteString(iniDatabaseSection, iniDatabase, FDatabase);
+    Ini.WriteString(iniDatabaseSection, iniCharset, FCharset);
     {Section: SQUEEZE_SETTINGS}
-    Ini.WriteBool(iniSection, iniDoEnterOstatkyAccount, FDoEnterOstatkyAccount);
-    Ini.WriteBool(iniSection, iniDoProcessDocTypes, FDoProcessDocTypes);
-    Ini.WriteBool(iniSection, iniDoCalculateSaldo, FDoCalculateSaldo);
-    Ini.WriteString(iniSection, iniSelectedDocTypeKeys, FSelectedDocTypeKeys);
-    Ini.WriteString(iniSection, iniSelectedBranchRows, FSelectedBranchRows);
+    Ini.WriteDate(iniSqueezeSection, iniClosingDate, FClosingDate);
+    Ini.WriteBool(iniSqueezeSection, iniDoProcessDocTypes, FDoProcessDocTypes);
+    Ini.WriteBool(iniSqueezeSection, iniDoCalculateSaldo, FDoCalculateSaldo);
+    Ini.WriteString(iniSqueezeSection, iniSelectedDocTypeKeys, FSelectedDocTypeKeys);
+    Ini.WriteString(iniSqueezeSection, iniSelectedBranchRows, FSelectedBranchRows);
   end;
 end;
 

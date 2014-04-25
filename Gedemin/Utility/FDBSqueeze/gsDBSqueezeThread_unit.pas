@@ -14,7 +14,7 @@ const
   WM_DBS_GETDBSIZE             = WM_GD_THREAD_USER + 5;
   WM_DBS_CONNECT               = WM_GD_THREAD_USER + 6;
   WM_DBS_CREATEDBSSTATEJOURNAL = WM_GD_THREAD_USER + 7;
-  WM_DBS_SETCBBITEMS           = WM_GD_THREAD_USER + 8;
+  
   WM_DBS_SETDOCTYPESRINGS      = WM_GD_THREAD_USER + 9;
   WM_DBS_GETDBPROPERTIES       = WM_GD_THREAD_USER + 10;
   WM_DBS_SETCLOSINGDATE        = WM_GD_THREAD_USER + 11;
@@ -46,13 +46,13 @@ const
   WM_DBS_DISCONNECT            = WM_GD_THREAD_USER + 40;
   WM_DBS_CREATE_INV_BALANCE    = WM_GD_THREAD_USER + 41;
 
+  WM_GD_EXIT_THREAD            = WM_GD_THREAD_USER + 42;
 type
   TErrorEvent = procedure(const ErrorMsg: String) of object;
   TLogSQLEvent = procedure(const MsgLogSQL: String)of object;
   TGetConnectedEvent = procedure(const MsgConnected: Boolean) of object;
   TUsedDBEvent =  procedure(const MsgFunctionKey: Integer; const MsgState: Integer; const MsgCallTime: String; const MsgErrorMessage: String) of object;
   TGetDBPropertiesEvent = procedure(const MsgPropertiesList: TStringList) of object;
-  TCbbEvent = procedure (const MsgStrList: TStringList) of object;
   TSetDocTypeStringsEvent = procedure (const MsgDocTypeList: TStringList) of object;
   TSetDocTypeBranchEvent = procedure (const MsgBranchList: TStringList) of object;
   TGetDBSizeEvent = procedure (const MsgStr: String) of object;
@@ -79,13 +79,11 @@ type
     FClosingDate: TDateTime;
     FAllOurCompaniesSaldo: Boolean;
     FOnlyCompanySaldo: Boolean;
-    FAccount00: Boolean;
     FCalculateSaldo: Boolean;
 
     FDBS: TgsDBSqueeze;
 
     FConnected: TidThreadSafeInteger;  ///
-    FState: TidThreadSafeInteger;
 
     FMsgLogSQL: String;
 
@@ -99,7 +97,6 @@ type
 
     //FMessageConnected: Boolean;
     FMessagePropertiesList: TStringList;
-    FMessageStrList: TStringList;
     FMessageDocTypeList: TStringList;
     FMessageDocTypeBranchList: TStringList;
     FMessageDBSizeStr: String;
@@ -111,7 +108,6 @@ type
     FOnGetConnected: TGetConnectedEvent;
     FOnUsedDB: TUsedDBEvent;
     FOnGetDBProperties: TGetDBPropertiesEvent;
-    FOnSetItemsCbb: TCbbEvent;
     FOnSetDocTypeStrings: TSetDocTypeStringsEvent;
     FOnSetDocTypeBranch: TSetDocTypeBranchEvent;
     FOnGetDBSize: TGetDBSizeEvent;
@@ -123,7 +119,6 @@ type
     procedure DoOnGetConnectedSync;
     procedure DoOnUsedDBSync;
     procedure DoOnGetDBPropertiesSync;
-    procedure DoOnSetItemsCbbSync;
     procedure DoOnSetDocTypeStringsSync;
     procedure DoOnSetDocTypeBranchSync;
     procedure DoOnGetDBSizeSync;
@@ -137,7 +132,6 @@ type
     procedure UsedDB(const AMessageFunctionKey: Integer;const AMessageState: Integer;
       const AMessageCallTime: String; const AMessageErrorMessage: String);
     procedure GetDBProperties(const AMessageProperties: TStringList);
-    procedure SetItemsCbb(const AMessageStrList: TStringList);
     procedure SetDocTypeStrings(const AMessageDocTypeList: TStringList);
     procedure SetDocTypeBranch(const AMessageBranchList: TStringList);
     procedure GetDBSize(const AMessageDBSizeStr: String; const ADBSize: Int64);
@@ -145,7 +139,6 @@ type
     procedure GetProcStatistics(const AMessageProcGdDocStr: String; const AMessageProcAcEntryStr: String; const AMessageProcInvMovementStr: String; const AMessageProcInvCardStr: String);
 
     function GetBusy: Boolean;
-    function GetState: Boolean;
 
   protected
     function ProcessMessage(var Msg: TMsg): Boolean; override;
@@ -161,18 +154,16 @@ type
     procedure StopProcessing;
 
     procedure DoGetDBProperties;
-    procedure DoSetItemsCbb;
     procedure DoGetDBSize;
     procedure DoGetStatistics;
     procedure DoGetProcStatistics;
 
-    procedure SetSaldoParams(const AAllOurCompanies: Boolean; const AOnlyCompany: Boolean; const AnAccount00: Boolean; const ACalculateSaldo: Boolean);
+    procedure SetSaldoParams(const AAllOurCompanies: Boolean; const AOnlyCompany: Boolean; const ACalculateSaldo: Boolean);
     procedure SetCompanyKey(const ACompanyKey: Integer);
     procedure SetSelectDocTypes(const ADocTypes: TStringList; const AnIsProcDocTypes: Boolean);
     procedure SetDBParams(const ADatabaseName: String; const AHost: String; const AUserName: String; const APassword: String; const ACharacterSet: String; const APort: Integer = 0);
     procedure SetClosingDate(const AClosingDate: TDateTime);
 
-    property State: Boolean read GetState;
     property Busy: Boolean  read GetBusy;
     property DBSize: Int64  read FDBSize;
     property DoGetStatisticsAfterProc: Boolean read FDoGetStatisticsAfterProc write FDoGetStatisticsAfterProc;
@@ -187,8 +178,6 @@ type
       read FOnUsedDB             write FOnUsedDB;
     property OnGetDBProperties: TGetDBPropertiesEvent
       read FOnGetDBProperties    write FOnGetDBProperties;
-    property OnSetItemsCbb: TCbbEvent
-      read FOnSetItemsCbb        write FOnSetItemsCbb;
     property OnSetDocTypeStrings: TSetDocTypeStringsEvent
       read FOnSetDocTypeStrings  write FOnSetDocTypeStrings;
     property OnSetDocTypeBranch: TSetDocTypeBranchEvent
@@ -213,7 +202,6 @@ begin
   FDBS.OnGetConnectedEvent := GetConnected;
   FDBS.OnUsedDBEvent := UsedDB;
   FDBS.OnGetDBPropertiesEvent := GetDBProperties;
-  FDBS.OnSetItemsCbbEvent := SetItemsCbb;
   FDBS.OnSetDocTypeStringsEvent := SetDocTypeStrings;
   FDBS.OnSetDocTypeBranchEvent := SetDocTypeBranch;
   FDBS.OnGetDBSizeEvent := GetDBSize;
@@ -223,16 +211,13 @@ begin
   FLogFileName := TIdThreadSafeString.Create;
   FIsFinishMsg := TIdThreadSafeInteger.Create;
   FBusy := TIdThreadSafeInteger.Create;
-  FState := TIdThreadSafeInteger.Create;
   FConnected := TIdThreadSafeInteger.Create;
   FMsgConnectInfoList := TStringList.Create;
-  FMessageStrList := TStringList.Create;
   FMessageDocTypeList := TStringList.Create;
   FMessageDocTypeBranchList := TStringList.Create;
   FMessagePropertiesList := TStringList.Create;
   FDoStopProcessing := TIdThreadSafeInteger.Create;
 
-  FState.Value := 1;
   FBusy.Value := 0;
   FIsFinishMsg.Value := 0;
   FFinish := False;
@@ -249,10 +234,8 @@ begin
   FLogFileName.Free;
   FIsFinishMsg.Free;
   FBusy.Free;
-  FState.Free;
   FConnected.Free;
   FMsgConnectInfoList.Free;
-  FMessageStrList.Free;
   FMessageDocTypeList.Free;
   FMessageDocTypeBranchList.Free;
   FMessagePropertiesList.Free;
@@ -290,12 +273,6 @@ procedure  TgsDBSqueezeThread.GetConnected(const AMsgConnected: Boolean);
 begin
   FMsgConnected := AMsgConnected;
   Synchronize(DoOnGetConnectedSync);
-end;
-
-procedure TgsDBSqueezeThread.DoOnSetItemsCbbSync;
-begin
-  if Assigned(FOnSetItemsCbb) then
-    FOnSetItemsCbb(FMessageStrList);
 end;
 
 procedure TgsDBSqueezeThread.DoOnSetDocTypeStringsSync;
@@ -362,11 +339,6 @@ begin
   Result := FBusy.Value <> 0;
 end;
 
-function TgsDBSqueezeThread.GetState: Boolean;
-begin
-  Result := FState.Value <> 0;
-end;
-
 function TgsDBSqueezeThread.ProcessMessage(var Msg: TMsg): Boolean;
 begin
   Result := False;
@@ -376,14 +348,12 @@ begin
       begin
         FDBS.ConnectInfo := FConnectInfo;
 
-        FState.Value := 1;
         Result := True;
       end;
 
     WM_DBS_GETDBSIZE:
       begin
         FDBS.GetDBSizeEvent;
-        FState.Value := 1;
 
         PostThreadMessage(ThreadID, WM_DBS_CONNECT, 0, 0);
 
@@ -395,7 +365,6 @@ begin
         if not FDBS.Connected then
         begin
           FDBS.Connect(False, True);        // garbage collect ON
-          FState.Value := 1;
           PostThreadMessage(ThreadID, WM_DBS_SETDOCTYPESRINGS, 0, 0);
         end;
         Result := True;
@@ -406,26 +375,14 @@ begin
         FDBS.CreateDBSStateJournal;
 
         FDBS.InsertDBSStateJournal(Msg.Message, 1);
-        FState.Value := 1;
-
-        PostThreadMessage(ThreadID, WM_DBS_SETCBBITEMS, 0, 0);
-        Result := True;
-      end;
-
-    WM_DBS_SETCBBITEMS:
-      begin
-        FDBS.SetItemsCbbEvent;
 
         PostThreadMessage(ThreadID, WM_DBS_GETDBPROPERTIES, 0, 0);
-        FState.Value := 1;
-
         Result := True;
       end;
 
     WM_DBS_SETDOCTYPESRINGS:
       begin
         FDBS.SetDocTypeStringsEvent;
-        FState.Value := 1;
         PostThreadMessage(ThreadID, WM_DBS_CREATEDBSSTATEJOURNAL, 0, 0);
         Result := True;
       end;
@@ -433,7 +390,6 @@ begin
     WM_DBS_GETDBPROPERTIES:
       begin
         FDBS.GetDBPropertiesEvent;
-        FState.Value := 1;
         Result := True;
       end;
 
@@ -453,7 +409,6 @@ begin
       begin
         FDBS.AllOurCompaniesSaldo := FAllOurCompaniesSaldo;
         FDBS.OnlyCompanySaldo := FOnlyCompanySaldo;
-        FDBS.DoAccount00Saldo := FAccount00;
         FDBS.CalculateSaldo := FCalculateSaldo;
 
         Result := True;
@@ -471,7 +426,6 @@ begin
       begin
         FBusy.Value := 1;
         FDBS.GetStatisticsEvent;
-        FState.Value := 1;
         PostThreadMessage(ThreadID, WM_DBS_GETPROCSTATISTICS, 0, 0);
         Result := True;
       end;
@@ -480,7 +434,6 @@ begin
       begin
         FBusy.Value := 1;
         FDBS.GetProcStatisticsEvent;
-        FState.Value := 1;
         Result := True;
       end;
 
@@ -497,7 +450,6 @@ begin
           end;
 
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
-          FState.Value := 1;
           PostThreadMessage(ThreadID, WM_DBS_SETFVARIABLLES, 0, 0);
         end;
         Result := True;
@@ -512,7 +464,6 @@ begin
 
         Finish(FFinish);     // форма начинает ждать завершения
 
-        FState.Value := 1;
         PostThreadMessage(ThreadID, WM_DBS_FINISHED, 0, 0);
         Result := True;
       end;
@@ -533,7 +484,6 @@ begin
           FDBS.SetFVariables;
 
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
-          FState.Value := 1;
 
           PostThreadMessage(ThreadID, WM_DBS_CREATEMETADATA, 0, 0);
         end;
@@ -548,7 +498,6 @@ begin
           FDBS.CreateMetadata;
 
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
-          FState.Value := 1;
 
           PostThreadMessage(ThreadID, WM_DBS_SAVEMETADATA, 0, 0);
         end;
@@ -563,7 +512,6 @@ begin
           FDBS.SaveMetadata;
 
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
-          FState.Value := 1;
 
           PostThreadMessage(ThreadID, WM_DBS_CALCULATEACSALDO, 0, 0);
         end;
@@ -583,7 +531,6 @@ begin
           end
           else
             FDBS.ProgressMsgEvent(' ', 1*PROGRESS_STEP);
-          FState.Value := 1;
 
           PostThreadMessage(ThreadID, WM_DBS_CALCULATEINVSALDO, 0, 0);
         end;
@@ -604,7 +551,6 @@ begin
             FDBS.ProgressMsgEvent(' ', 14*PROGRESS_STEP);
           end;
 
-          FState.Value := 1;
           PostThreadMessage(ThreadID, WM_DBS_CREATEHIS_INCLUDEHIS, 0, 0);
         end;
         Result := True;
@@ -618,7 +564,6 @@ begin
           FDBS.CreateHIS_IncludeInHIS;
 
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
-          FState.Value := 1;
 
           PostThreadMessage(ThreadID, WM_DBS_PREPAREDB, 0, 0);
         end;
@@ -633,7 +578,6 @@ begin
           FDBS.PrepareDB;
 
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
-          FState.Value := 1;
 
           PostThreadMessage(ThreadID, WM_DBS_DELETEOLDBALANCE, 0, 0);
         end;
@@ -647,7 +591,6 @@ begin
           FDBS.ProgressMsgEvent('Очистка от неактуальных данных...', 0);                          // 2%
           FDBS.DeleteOldAcEntryBalance;
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
-          FState.Value := 1;
 
           PostThreadMessage(ThreadID, WM_DBS_DELETEDOCHIS, 0, 0);
         end;
@@ -661,7 +604,6 @@ begin
           FDBS.ProgressMsgEvent('Удаление записей...', 2*PROGRESS_STEP);                          // 8%
           FDBS.DeleteDocuments_DeleteHIS;
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
-          FState.Value := 1;
 
           PostThreadMessage(ThreadID, WM_DBS_CREATEACENTRIES, 0, 0);
         end;  
@@ -680,7 +622,6 @@ begin
           end
           else
             FDBS.ProgressMsgEvent(' ', 8*PROGRESS_STEP);
-          FState.Value := 1;
 
           PostThreadMessage(ThreadID, WM_DBS_CREATEINVSALDO, 0, 0);
         end;
@@ -700,7 +641,6 @@ begin
           end
           else
             FDBS.ProgressMsgEvent(' ', 7*PROGRESS_STEP);
-          FState.Value := 1;
 
           PostThreadMessage(ThreadID, WM_DBS_RESTOREDB, 0, 0);
         end;
@@ -716,7 +656,6 @@ begin
           //FDBS.Reconnect(False, True);
 
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
-          FState.Value := 1;
 
           PostThreadMessage(ThreadID, WM_DBS_CREATE_INV_BALANCE, 0, 0);
         end;
@@ -730,7 +669,6 @@ begin
           FDBS.CreateInvBalance;
           FDBS.ProgressMsgEvent('Вычисление текущих складских остатков...', 0);                    // 2%
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
-          FState.Value := 1;
 
           PostThreadMessage(ThreadID, WM_DBS_CLEARDBSTABLES, 0, 0);
         end;
@@ -751,7 +689,6 @@ begin
           end;
 
           //FDBS.InsertDBSStateJournal(Msg.Message, 1);
-          FState.Value := 1;
 
           FDBS.ProgressMsgEvent('', 1*PROGRESS_STEP);
           PostThreadMessage(ThreadID, WM_DBS_FINISH, 0, 0);
@@ -780,7 +717,6 @@ begin
         FDBS.Disconnect;
         FConnected.Value := 0;
 
-        FState.Value := 1;
         Result := True;
       end;
   else
@@ -790,7 +726,6 @@ begin
   on E: Exception do
   begin
     FDBS.ErrorEvent(E.Message);
-    FState.Value := 0;
   end;
  end;
 end;
@@ -825,11 +760,10 @@ begin
   PostMsg(WM_DBS_SETCLOSINGDATE);
 end;
 
-procedure  TgsDBSqueezeThread.SetSaldoParams(const AAllOurCompanies: Boolean; const AOnlyCompany: Boolean; const AnAccount00: Boolean; const ACalculateSaldo: Boolean);
+procedure  TgsDBSqueezeThread.SetSaldoParams(const AAllOurCompanies: Boolean; const AOnlyCompany: Boolean; const ACalculateSaldo: Boolean);
 begin
   FAllOurCompaniesSaldo := AAllOurCompanies;
   FOnlyCompanySaldo := AOnlyCompany;
-  FAccount00 := AnAccount00;
   FCalculateSaldo := ACalculateSaldo;
   PostMsg(WM_DBS_SETSALDOPARAMS);
 end;
@@ -839,17 +773,6 @@ begin
   FDocTypesList.Text := ADocTypes.Text;
   FIsProcDocTypes := AnIsProcDocTypes;
   PostMsg(WM_DBS_SETSELECTEDDOCTYPES);
-end;
-
-procedure TgsDBSqueezeThread.DoSetItemsCbb;
-begin
-  PostMsg(WM_DBS_SETCBBITEMS);
-end;
-
-procedure TgsDBSqueezeThread.SetItemsCbb(const AMessageStrList: TStringList);
-begin
-  FMessageStrList.Text := AMessageStrList.Text;
-  Synchronize(DoOnSetItemsCbbSync);
 end;
 
 procedure TgsDBSqueezeThread.SetDocTypeStrings(const AMessageDocTypeList: TStringList);

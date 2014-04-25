@@ -5,8 +5,8 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   FileCtrl, ActnList, ComCtrls, Buttons, StdCtrls, Grids, Spin, ExtCtrls,
-  gsDBSqueeze_DocTypesForm_unit, gsDBSqueezeThread_unit,
-  gsDBSqueezeIniOptions_unit, gd_ProgressNotifier_unit, CommCtrl, Db, Menus;
+  gsDBSqueeze_CardMergeForm_unit, gsDBSqueeze_DocTypesForm_unit, gsDBSqueezeThread_unit, gsDBSqueezeIniOptions_unit,
+  gd_ProgressNotifier_unit, CommCtrl, Db, Menus;
 
 const
   DEFAULT_HOST = 'localhost';
@@ -132,7 +132,6 @@ type
     chkCalculateSaldo: TCheckBox;
     btnSelectDocTypes: TButton;
     mIgnoreDocTypes: TMemo;
-    chk00Account: TCheckBox;
     MainMenu: TMainMenu;
     N1: TMenuItem;
     actExit: TAction;
@@ -148,12 +147,18 @@ type
     actAbout: TAction;
     N9: TMenuItem;
     N10: TMenuItem;
-    N11: TMenuItem;
+    N11: TMenuItem;                             
     STOP1: TMenuItem;
     actSelectDocTypes: TAction;
-    chkGetStatiscits: TCheckBox;
     rbExcluding: TRadioButton;
     rbIncluding: TRadioButton;
+    grpOptions: TGroupBox;
+    chkGetStatiscits: TCheckBox;
+    N12: TMenuItem;
+    N13: TMenuItem;
+    chk1: TCheckBox;
+    lbl4: TLabel;
+    actMergeCardDlg: TAction;
     procedure actClearLogExecute(Sender: TObject);
     procedure actDatabaseBrowseExecute(Sender: TObject);
     procedure actDisconnectExecute(Sender: TObject);
@@ -164,7 +169,6 @@ type
     procedure actStopExecute(Sender: TObject);
     procedure actStopUpdate(Sender: TObject);
     procedure btnBackupBrowseMouseDown(Sender: TObject;Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
-    procedure btnClearGeneralLogMouseDown(Sender: TObject;Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
     procedure statbarMainDrawPanel(StatusBar: TStatusBar;Panel: TStatusPanel; const Rect: TRect);
     procedure btnGetStatisticsMouseDown(Sender: TObject;
       Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
@@ -178,6 +182,9 @@ type
     procedure actSelectDocTypesExecute(Sender: TObject);
     procedure actSelectDocTypesUpdate(Sender: TObject);
     procedure actGoUpdate(Sender: TObject);
+    procedure actLoadConfigUpdate(Sender: TObject);
+    procedure actSaveConfigUpdate(Sender: TObject);
+    procedure actMergeCardDlgExecute(Sender: TObject);
 
   private
     FStartupTime: TDateTime;
@@ -288,7 +295,6 @@ begin
 
   cbbCharset.ItemIndex := cbbCharset.Items.IndexOf(DEFAULT_CHARACTER_SET);
   dtpClosingDate.Date := Date;
-  chk00Account.Checked := False;
   chkGetStatiscits.Checked := True;
 
   sttxtDBSizeBefore.Caption := '';
@@ -491,7 +497,6 @@ begin
   FSThread.SetSaldoParams(
     True,
     False,
-    chk00Account.Checked,
     chkCalculateSaldo.Checked);
 
   if FWasSelectedDocTypes then
@@ -571,9 +576,9 @@ end;
 procedure TgsDBSqueeze_MainForm.GetConnectedEvent(const AConnected: Boolean);
 begin
   if AConnected then
-    statbarMain.Panels[3].Text := 'Подключено'
+    statbarMain.Panels[2].Text := '         Подключено'
   else
-    statbarMain.Panels[3].Text := 'Отключено';
+    statbarMain.Panels[2].Text := '          Отключено';
   FConnected := AConnected;
 end;
 
@@ -611,25 +616,16 @@ begin
   mIgnoreDocTypes.Text := Text;
 end;
 
-
 procedure TgsDBSqueeze_MainForm.actClearLogExecute(Sender: TObject);
 begin
   mLog.Clear;
   mSqlLog.Clear;
 end;
 
-procedure TgsDBSqueeze_MainForm.btnClearGeneralLogMouseDown(
-  Sender: TObject; Button: TMouseButton; Shift: TShiftState; X,
-  Y: Integer);
-begin
-  if Sender is TButton then
-    TButton(Sender).Tag := 0;
-end;
-
 procedure TgsDBSqueeze_MainForm.statbarMainDrawPanel(StatusBar: TStatusBar;
   Panel: TStatusPanel; const Rect: TRect);
 begin
-  if Panel = StatusBar.Panels[1] then
+  if Panel = StatusBar.Panels[0] then
   with pbMain do
   begin
     Top := Rect.Top;
@@ -661,7 +657,6 @@ end;
 procedure TgsDBSqueeze_MainForm.LogSQLEvent(const ALogSQL: String);
 begin
   mSqlLog.Lines.Add(ALogSQL);
-  mLog.Lines.Add(ALogSQL);
 end;
 
 procedure TgsDBSqueeze_MainForm.ErrorEvent(const AErrorMsg: String);
@@ -683,7 +678,7 @@ begin
   if pbMain.Position <> ACurrentStep then
     pbMain.Position := ACurrentStep;
   if ACurrentStepName > '' then
-    statbarMain.Panels[2].Text := ' ' + ACurrentStepName;
+    statbarMain.Panels[1].Text := ' ' + ACurrentStepName;
 end;
 
 procedure TgsDBSqueeze_MainForm.UpdateProgress(const AProgressInfo: TgdProgressInfo);
@@ -758,6 +753,10 @@ var
 begin
   ClearStats;
   ParseDatabaseName(edDatabaseName.Text, Server, Port, FileName);
+
+  if Trim(Server) = '' then
+    Server := 'localhost';
+
   FSThread.SetDBParams(
     FileName,
     Server,
@@ -824,9 +823,11 @@ begin
 
     if SaveDlg.Execute then
     begin
-      gsIniOptions.DoEnterOstatkyAccount := chk00Account.Checked;
-      gsIniOptions.DoProcessDocTypes := rbIncluding.Checked;
+      {gsIniOptions.Database := edDatabaseName.Text;
+      gsIniOptions.Charset := cbbCharset.Text;             }
+      gsIniOptions.ClosingDate := dtpClosingDate.Date;
       gsIniOptions.DoCalculateSaldo := chkCalculateSaldo.Checked;
+      gsIniOptions.DoProcessDocTypes := rbIncluding.Checked;
       gsIniOptions.SelectedDocTypeKeys := gsDBSqueeze_DocTypesForm.GetSelectedDocTypesStr;
       gsIniOptions.SelectedBranchRows := gsDBSqueeze_DocTypesForm.GetSelectedBranchRowsStr;
 
@@ -852,19 +853,23 @@ begin
     begin
       gsIniOptions.LoadFromFile(OpenDlg.FileName);
 
-      rbIncluding.Checked := True;
-      chk00Account.Checked := False;
-
+      {edDatabaseName.Text :=  gsIniOptions.Database;
+      cbbCharset.ItemIndex := cbbCharset.Items.IndexOf(Trim(UpperCase(gsIniOptions.Charset))); }
+      dtpClosingDate.Date := gsIniOptions.ClosingDate;
       chkCalculateSaldo.Checked := gsIniOptions.DoCalculateSaldo;
+
+      rbIncluding.Checked := False;
+      rbExcluding.Checked := False;
       if gsIniOptions.DoProcessDocTypes then
         rbIncluding.Checked := True
       else
         rbExcluding.Checked := True;
 
-      mIgnoreDocTypes.Clear;
-
       gsDBSqueeze_DocTypesForm.SetSelectedDocTypes(gsIniOptions.SelectedDocTypeKeys, gsIniOptions.SelectedBranchRows);
+
+      mIgnoreDocTypes.Clear;
       SetTextDocTypesMemo(gsDBSqueeze_DocTypesForm.GetDocTypeMemoText);
+
       FWasSelectedDocTypes := (Trim(mIgnoreDocTypes.Text) > '');
     end;
   finally
@@ -887,6 +892,21 @@ end;
 procedure TgsDBSqueeze_MainForm.actGoUpdate(Sender: TObject);
 begin
   actGo.Enabled := (FSThread <> nil) and FConnected and (not FSThread.Busy);
+end;
+
+procedure TgsDBSqueeze_MainForm.actLoadConfigUpdate(Sender: TObject);
+begin
+  actLoadConfig.Enabled := (FSThread <> nil) and FConnected;
+end;
+
+procedure TgsDBSqueeze_MainForm.actSaveConfigUpdate(Sender: TObject);
+begin
+  actSaveConfig.Enabled :=  (FSThread <> nil) and FConnected;
+end;
+
+procedure TgsDBSqueeze_MainForm.actMergeCardDlgExecute(Sender: TObject);
+begin
+  gsDBSqueeze_CardMergeForm.ShowModal;
 end;
 
 end.
