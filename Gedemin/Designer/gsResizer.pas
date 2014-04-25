@@ -366,7 +366,7 @@ type
     //Сохранеи и востановление настроек
 //    procedure SetDefaultValues(AComponent: TComponent);
 
-    procedure CheckPosition(AnOwner: TComponent; Stream: TStream; const Attr: Boolean);
+    procedure CheckPosition(AnOwner: TComponent; Stream: TStream; const Attr: Boolean; ReplaceSubType: Boolean = False);
     procedure DisableEvents(AnOwner: TComponent);
     procedure EnableEvents;
 
@@ -3751,7 +3751,7 @@ begin
 end;
 
 procedure TgsResizeManager.CheckPosition(AnOwner: TComponent;
-  Stream: TStream; const Attr: Boolean);
+  Stream: TStream; const Attr: Boolean; ReplaceSubType: Boolean);
 var
   Reader: TDesignReader;
 begin
@@ -3760,7 +3760,7 @@ begin
   try
     Reader.Designer := Self;
     Reader.Attributes := Attr;
-    Reader.ProcessComponents(AnOwner, FFormSubType);
+    Reader.ProcessComponents(AnOwner, FFormSubType, ReplaceSubType);
   finally
     Reader.Free;
   end;
@@ -3918,22 +3918,6 @@ begin
 end;
 
 procedure TgsResizeManager.ReloadComponent(const Attr: Boolean);
-  procedure ReplaceSubType(var S: TMemoryStream; SubType, ParentSubType: string);
-  var
-    T: String;
-  begin
-    if Assigned(S) and (S.Size > 0) then
-    begin
-      S.Position := 0;
-      SetLength(T, S.Size);
-      S.ReadBuffer(T[1], S.Size);
-      T := StringReplace(T, ParentSubType, SubType, [rfReplaceAll]);
-      S.Size := 0;
-      S.WriteBuffer(T[1], Length(T));
-      S.Position := 0;
-    end;
-  end;
-
   function FindParentSubType(SubType: string): string;
   var
     ibsql: TIBSQL;
@@ -3983,6 +3967,7 @@ var
   H: THandle;
   SubType: string;
   ParentSubType: string;
+  ReplaceSubType: boolean;
 const
   ErrorMsg =
     'При загрузке настроек произошла ошибка: %s'#10#13 +
@@ -3990,6 +3975,7 @@ const
 
 begin
   H := GETDC(FEditForm.Handle);
+  ReplaceSubType := False;
   try
     Flag := 0;
     FGlobalLoading := False;
@@ -4011,7 +3997,7 @@ begin
                 begin
                   bLoadedFromStorage:= GlobalStorage.ReadStream(FResourceName, ParentSubType, F, IBLogin.IsIBUserAdmin);
                   if bLoadedFromStorage then
-                    ReplaceSubType(F, FFormSubType, ParentSubType);
+                    ReplaceSubType := True;
                   SubType := ParentSubType;
                 end;
               until (bLoadedFromStorage) or (ParentSubType = '');
@@ -4038,7 +4024,7 @@ begin
                   begin
                     bLoadedFromUserStorage:= UserStorage.ReadStream(FResourceName, ParentSubType, F);
                     if bLoadedFromUserStorage then
-                      ReplaceSubType(F, FFormSubType, ParentSubType);
+                      ReplaceSubType := True;
                     SubType := ParentSubType;
                   end;
                 until (bLoadedFromUserStorage) or (ParentSubType = '');
@@ -4058,7 +4044,7 @@ begin
                 OldVisible := FEditForm.Visible;
                 OldControl := FEditForm.ActiveControl;
                 try
-                  CheckPosition(FEditForm, F, Attr);
+                  CheckPosition(FEditForm, F, Attr, ReplaceSubType);
 
                   FGlobalLoading := False;
 
@@ -4076,7 +4062,7 @@ begin
                         begin
                           bLoadedFromUserStorage:= UserStorage.ReadStream(FResourceName, ParentSubType, F);
                           if bLoadedFromUserStorage then
-                            ReplaceSubType(F, FFormSubType, ParentSubType);
+                            ReplaceSubType := True;
                           SubType := ParentSubType;
                         end;
                       until (bLoadedFromUserStorage) or (ParentSubType = '');
@@ -4085,7 +4071,7 @@ begin
                     if bLoadedFromUserStorage then
                     begin
                       F.Seek(0, soFromBeginning);
-                      CheckPosition(FEditForm, F, Attr);
+                      CheckPosition(FEditForm, F, Attr, ReplaceSubType);
                     end;
                   end
                 finally

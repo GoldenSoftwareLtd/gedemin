@@ -19,7 +19,7 @@ type
     procedure BufOnFindMethod(Reader: TReader; const MethodName: string; var Address: Pointer; var Error: Boolean);
 
   public
-    procedure ProcessComponents(AnOwner: TComponent; const ASubType: string = '');
+    procedure ProcessComponents(AnOwner: TComponent; const ASubType: string = ''; ReplaceSubType: boolean = false);
 
 //    procedure ReadProperty(AInstance: TPersistent); reintroduce;
     property Designer: TgsResizeManager read FDesigner write FDesigner;
@@ -662,7 +662,7 @@ begin
   FResolving.Add(OldName + '=' + Name);
 end;
 
-procedure TDesignReader.ProcessComponents(AnOwner: TComponent; const ASubType: string);
+procedure TDesignReader.ProcessComponents(AnOwner: TComponent; const ASubType: string; ReplaceSubType: boolean);
 var
   CompClass: String;
   CompName: String;
@@ -730,6 +730,13 @@ begin
         ReadPrefix(Flags, CurrPos);
         CompClass := ReadStr;
         CompName := ReadStr;
+        
+        if ReplaceSubType then
+        begin
+          CompName := Copy(CompClass,2, Length(CompClass)) + ASubType;
+          ReplaceSubType := False;
+        end;
+
         if CompName <> '' then
         begin
           if (CompClass = AnOwner.ClassName) and (AnOwner is TCreateableForm) and
