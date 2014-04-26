@@ -993,7 +993,6 @@ var
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
   Stream: TStream;
-var
   ibsql: TIBSQL;
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TDLGSETUPINVPRICELIST', 'SETUPRECORD', KEYSETUPRECORD)}
@@ -1052,6 +1051,24 @@ begin
 
   if Document.State = dsInsert then
   begin
+    ibsql := TIBSQL.Create(nil);
+    try
+      ibsql.Transaction := gdcObject.ReadTransaction;
+      ibsql.SQL.Text := 'SELECT OPTIONS FROM gd_documenttype WHERE id = :id AND documenttype = ''D'' ';
+      ibsql.ParamByName('id').AsInteger := gdcObject.FieldByName('parent').AsInteger;
+      ibsql.ExecQuery;
+      if not ibsql.Eof then
+      begin
+        Stream := TStringStream.Create(ibsql.FieldByName('OPTIONS').AsString);
+        try
+          ReadOptions(Stream);
+        finally
+          Stream.Free;
+        end;
+      end
+    finally
+      ibsql.Free;
+    end;
     UpdateInsertingSettings;
   end;
 
