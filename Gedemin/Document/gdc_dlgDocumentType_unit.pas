@@ -642,7 +642,7 @@ begin
       ibsql.SQL.Text := 'SELECT headerrelkey FROM gd_documenttype WHERE id = :id AND documenttype = ''D'' ';
       ibsql.ParamByName('id').AsInteger := gdcObject.FieldByName('parent').AsInteger;
       ibsql.ExecQuery;
-      if not ibsql.Eof then
+      if (not ibsql.Eof) and (not ibsql.FieldByName('headerrelkey').IsNull)then
         gdcObject.FieldByName('headerrelkey').Asinteger := ibsql.FieldByName('headerrelkey').AsInteger;
       ibsql.Close;
     end;
@@ -652,7 +652,7 @@ begin
       ibsql.SQL.Text := 'SELECT linerelkey FROM gd_documenttype WHERE id = :id AND documenttype = ''D'' ';
       ibsql.ParamByName('id').AsInteger := gdcObject.FieldByName('parent').AsInteger;
       ibsql.ExecQuery;
-      if not ibsql.Eof then
+      if (not ibsql.Eof) and (not ibsql.FieldByName('linerelkey').IsNull)then
         gdcObject.FieldByName('linerelkey').Asinteger := ibsql.FieldByName('linerelkey').AsInteger;
       ibsql.Close;
     end;
