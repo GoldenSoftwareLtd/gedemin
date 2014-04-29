@@ -86,5 +86,4 @@ initialization
 
 finalization
   UnRegisterFrmClass(Tgdc_dlgAdminConstValue);
-
 end.

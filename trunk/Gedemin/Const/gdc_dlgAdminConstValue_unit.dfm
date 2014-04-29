@@ -12,11 +12,11 @@ inherited gdc_dlgAdminConstValue: Tgdc_dlgAdminConstValue
   inherited btnNew: TButton
     Top = 114
   end
-  inherited btnCancel: TButton
-    Top = 43
-  end
   inherited btnHelp: TButton
     Top = 149
+  end
+  inherited btnCancel: TButton
+    Top = 43
   end
   inherited pgcMain: TPageControl
     Height = 259

@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2000-2004 by Golden Software of Belarus
+  Copyright (c) 2000-2014 by Golden Software of Belarus
 
   Module
 
@@ -388,7 +388,7 @@ begin
     while (E < Length(Tmp)) and (Tmp[E] in ['0'..'9']) do
       Inc(E);
     M := StrToInt(System.Copy(Tmp, B, E - B));
-    Y := StrToInt(System.Copy(Tmp, E + 1, 4));
+    Y := StrToInt(System.Copy(Tmp, E + 1, 255));
     Result := EncodeDate(Y, M, D);
   except
     raise Exception.Create('Invalid date value');
@@ -637,13 +637,10 @@ begin
 end;
 
 initialization
-
   RegisterGdcClass(TgdcConst);
   RegisterGdcClass(TgdcConstValue);
 
 finalization
-
   UnRegisterGdcClass(TgdcConst);
   UnRegisterGdcClass(TgdcConstValue);
-
 end.
