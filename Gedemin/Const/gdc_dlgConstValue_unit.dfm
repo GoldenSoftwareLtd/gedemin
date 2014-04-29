@@ -18,6 +18,11 @@ inherited gdc_dlgConstValue: Tgdc_dlgConstValue
     Top = 83
     Width = 76
   end
+  inherited btnHelp: TButton
+    Left = 335
+    Top = 108
+    Width = 76
+  end
   inherited btnOK: TButton
     Left = 335
     Top = 8
@@ -26,11 +31,6 @@ inherited gdc_dlgConstValue: Tgdc_dlgConstValue
   inherited btnCancel: TButton
     Left = 335
     Top = 33
-    Width = 76
-  end
-  inherited btnHelp: TButton
-    Left = 335
-    Top = 108
     Width = 76
   end
   inherited pgcMain: TPageControl

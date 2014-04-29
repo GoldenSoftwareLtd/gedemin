@@ -7,6 +7,7 @@ uses
 
 procedure ModifyAC_ACCOUNTEXSALDO_BAL(IBDB: TIBDatabase; Log: TModifyLog);
 procedure IntroduceIncorrectRecordGTT(IBDB: TIBDatabase; Log: TModifyLog);
+procedure Issue3373(IBDB: TIBDatabase; Log: TModifyLog);
 
 implementation
 
@@ -765,6 +766,64 @@ begin
         q.SQL.Text :=
           'UPDATE OR INSERT INTO fin_versioninfo ' +
           '  VALUES (207, ''0000.0001.0000.0238'', ''17.03.2014'', ''Triggers for protection of system storage folders.'') ' +
+          '  MATCHING (id)';
+        q.ExecQuery;
+      finally
+        q.Free;
+      end;
+
+      FTransaction.Commit;
+    except
+      on E: Exception do
+      begin
+        Log(E.Message);
+        if FTransaction.InTransaction then
+          FTransaction.Rollback;
+        raise;
+      end;
+    end;
+  finally
+    FTransaction.Free;
+  end;
+end;
+
+procedure Issue3373(IBDB: TIBDatabase; Log: TModifyLog);
+var
+  FTransaction: TIBTransaction;
+  q: TIBSQL;
+begin
+  FTransaction := TIBTransaction.Create(nil);
+  try
+    FTransaction.DefaultDatabase := IBDB;
+    FTransaction.StartTransaction;
+    try
+      q := TIBSQL.Create(nil);
+      try
+        q.Transaction := FTransaction;
+
+        q.SQL.Text := 
+          'CREATE OR ALTER TRIGGER gd_aiu_constvalue FOR gd_constvalue '#13#10 +
+          '  AFTER INSERT OR UPDATE '#13#10 +
+          '  POSITION 0 '#13#10 +
+          'AS '#13#10 +
+          '  DECLARE VARIABLE F DOUBLE PRECISION; '#13#10 +
+          '  DECLARE VARIABLE T TIMESTAMP; '#13#10 +
+          '  DECLARE VARIABLE D CHAR(1); '#13#10 +
+          'BEGIN '#13#10 +
+          '  SELECT datatype FROM gd_const '#13#10 +
+          '  WHERE id = NEW.constkey '#13#10 +
+          '  INTO :D; '#13#10 +
+          ' '#13#10 +
+          '  IF (:D = ''D'') THEN '#13#10 +
+          '    T = CAST(NEW.constvalue AS TIMESTAMP); '#13#10 +
+          '  IF (:D = ''N'') THEN '#13#10 +
+          '    F = CAST(NEW.constvalue AS DOUBLE PRECISION); '#13#10 +
+          'END';
+        q.ExecQuery;
+
+        q.SQL.Text :=
+          'UPDATE OR INSERT INTO fin_versioninfo ' +
+          '  VALUES (212, ''0000.0001.0000.0243'', ''29.04.2014'', ''Issue 3373.'') ' +
           '  MATCHING (id)';
         q.ExecQuery;
       finally

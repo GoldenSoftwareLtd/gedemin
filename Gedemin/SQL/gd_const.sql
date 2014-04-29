@@ -1,7 +1,7 @@
 
 /*
 
-  Copyright (c) 2000-2012 by Golden Software of Belarus
+  Copyright (c) 2000-2014 by Golden Software of Belarus
 
   Script
 
@@ -149,6 +149,25 @@ AS
 BEGIN
   IF (NEW.id IS NULL) THEN
     NEW.id = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+END
+^
+
+CREATE OR ALTER TRIGGER gd_aiu_constvalue FOR gd_constvalue
+  AFTER INSERT OR UPDATE
+  POSITION 0
+AS
+  DECLARE VARIABLE F DOUBLE PRECISION;
+  DECLARE VARIABLE T TIMESTAMP;
+  DECLARE VARIABLE D CHAR(1);
+BEGIN
+  SELECT datatype FROM gd_const
+  WHERE id = NEW.constkey
+  INTO :D;
+
+  IF (:D = 'D') THEN
+    T = CAST(NEW.constvalue AS TIMESTAMP);
+  IF (:D = 'N') THEN
+    F = CAST(NEW.constvalue AS DOUBLE PRECISION);
 END
 ^
 
