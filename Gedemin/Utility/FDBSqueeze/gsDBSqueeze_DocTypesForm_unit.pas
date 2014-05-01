@@ -52,9 +52,6 @@ type
     function GetDocTypeMemoText: String;
   end;
 
-
-
-
 var
   gsDBSqueeze_DocTypesForm: TgsDBSqueeze_DocTypesForm;
 
