@@ -34,7 +34,6 @@ type
     btnGetStatistics: TButton;
     btnUpdateStatistics: TBitBtn;
     Label1: TLabel;
-    pbMain: TProgressBar;
     pgcMain: TPageControl;
     pnl1: TPanel;
     pnl2: TPanel;
@@ -49,7 +48,6 @@ type
     shp6: TShape;
     shp7: TShape;
     shp8: TShape;
-    statbarMain: TStatusBar;
     StaticText10: TStaticText;
     StaticText11: TStaticText;
     StaticText12: TStaticText;
@@ -154,11 +152,14 @@ type
     rbIncluding: TRadioButton;
     grpOptions: TGroupBox;
     chkGetStatiscits: TCheckBox;
-    N12: TMenuItem;
-    N13: TMenuItem;
     chk1: TCheckBox;
-    lbl4: TLabel;
     actMergeCardDlg: TAction;
+    actCardSetup: TAction;
+    btnCardSetup: TButton;
+    Panel1: TPanel;
+    pbMain: TProgressBar;
+    stConnect: TStaticText;
+    stProgress: TStaticText;
     procedure actClearLogExecute(Sender: TObject);
     procedure actDatabaseBrowseExecute(Sender: TObject);
     procedure actDisconnectExecute(Sender: TObject);
@@ -169,7 +170,6 @@ type
     procedure actStopExecute(Sender: TObject);
     procedure actStopUpdate(Sender: TObject);
     procedure btnBackupBrowseMouseDown(Sender: TObject;Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
-    procedure statbarMainDrawPanel(StatusBar: TStatusBar;Panel: TStatusPanel; const Rect: TRect);
     procedure btnGetStatisticsMouseDown(Sender: TObject;
       Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
     procedure actConnectUpdate(Sender: TObject);
@@ -184,7 +184,7 @@ type
     procedure actGoUpdate(Sender: TObject);
     procedure actLoadConfigUpdate(Sender: TObject);
     procedure actSaveConfigUpdate(Sender: TObject);
-    procedure actMergeCardDlgExecute(Sender: TObject);
+    procedure actCardSetupExecute(Sender: TObject);
 
   private
     FStartupTime: TDateTime;
@@ -250,10 +250,6 @@ begin
   edUserName.Text := DEFAULT_USER_NAME;
   edPassword.Text := DEFAULT_PASSWORD;
 
-  pbMain.Parent := statbarMain;
-  //remove progress bar border
-  SetWindowLong(pbMain.Handle, GWL_EXSTYLE, GetWindowLong(pbMain.Handle,GWL_EXSTYLE) - WS_EX_STATICEDGE);
-  SendMessage(pbMain.Handle, PBM_SETBARCOLOR, 0, $005555EC);
   pbMain.Max := MAX_PROGRESS_STEP;
 
   cbbCharset.Items.CommaText := CHARSET_LIST_CH1 + ',' + CHARSET_LIST_CH2;
@@ -576,9 +572,9 @@ end;
 procedure TgsDBSqueeze_MainForm.GetConnectedEvent(const AConnected: Boolean);
 begin
   if AConnected then
-    statbarMain.Panels[2].Text := '         Подключено'
+    stConnect.Caption := 'Подключено'
   else
-    statbarMain.Panels[2].Text := '          Отключено';
+    stConnect.Caption := 'Отключено';
   FConnected := AConnected;
 end;
 
@@ -622,24 +618,11 @@ begin
   mSqlLog.Clear;
 end;
 
-procedure TgsDBSqueeze_MainForm.statbarMainDrawPanel(StatusBar: TStatusBar;
-  Panel: TStatusPanel; const Rect: TRect);
-begin
-  if Panel = StatusBar.Panels[0] then
-  with pbMain do
-  begin
-    Top := Rect.Top;
-    Left := Rect.Left;
-    Width := Rect.Right - Rect.Left;
-    Height := Rect.Bottom - Rect.Top;
-  end;
-end;
-
 procedure TgsDBSqueeze_MainForm.FinishEvent(const AIsFinished: Boolean);
 begin
   if AIsFinished then
   begin
-    pbMain.Step := pbMain.Max; 
+    pbMain.Step := pbMain.Max;
 
     if Application.MessageBox(PChar(FormatDateTime('h:nn', Now) + ' - Обработка БД успешно завершена!' + #13#10 +
       'Затраченное время - ' + FormatDateTime('h:nn:ss', Now-FStartupTime)),
@@ -678,7 +661,7 @@ begin
   if pbMain.Position <> ACurrentStep then
     pbMain.Position := ACurrentStep;
   if ACurrentStepName > '' then
-    statbarMain.Panels[1].Text := ' ' + ACurrentStepName;
+    stProgress.Caption := ACurrentStepName;
 end;
 
 procedure TgsDBSqueeze_MainForm.UpdateProgress(const AProgressInfo: TgdProgressInfo);
@@ -904,7 +887,7 @@ begin
   actSaveConfig.Enabled :=  (FSThread <> nil) and FConnected;
 end;
 
-procedure TgsDBSqueeze_MainForm.actMergeCardDlgExecute(Sender: TObject);
+procedure TgsDBSqueeze_MainForm.actCardSetupExecute(Sender: TObject);
 begin
   gsDBSqueeze_CardMergeForm.ShowModal;
 end;
