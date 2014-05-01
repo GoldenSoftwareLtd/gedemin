@@ -366,7 +366,7 @@ const
     (ModifyProc: ModifyBLOB; ModifyVersion: '0000.0001.0000.0233'; NeedDBShutdown: True),
     (ModifyProc: ModifyAC_ACCOUNTEXSALDO_BAL; ModifyVersion: '0000.0001.0000.0237'; NeedDBShutdown: False),
     (ModifyProc: IntroduceIncorrectRecordGTT; ModifyVersion: '0000.0001.0000.0241'; NeedDBShutdown: True),
-    (ModifyProc: Issue3373; ModifyVersion: '0000.0001.0000.0243'; NeedDBShutdown: False)
+    (ModifyProc: Issue3373; ModifyVersion: '0000.0001.0000.0242'; NeedDBShutdown: False)
   );
 
 implementation
