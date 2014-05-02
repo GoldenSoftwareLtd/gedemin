@@ -13,9 +13,12 @@ const
   WM_DBS_SETPARAMS             = WM_GD_THREAD_USER + 4;
   WM_DBS_GETDBSIZE             = WM_GD_THREAD_USER + 5;
   WM_DBS_CONNECT               = WM_GD_THREAD_USER + 6;
-  WM_DBS_CREATEDBSSTATEJOURNAL = WM_GD_THREAD_USER + 7;
-  
-  WM_DBS_SETDOCTYPESRINGS      = WM_GD_THREAD_USER + 9;
+
+  WM_DBS_SETDOCTYPESRINGS      = WM_GD_THREAD_USER + 7;
+
+  WM_DBS_GETCARDFEATURES       = WM_GD_THREAD_USER + 8;
+
+  WM_DBS_CREATEDBSSTATEJOURNAL = WM_GD_THREAD_USER + 9;
   WM_DBS_GETDBPROPERTIES       = WM_GD_THREAD_USER + 10;
   WM_DBS_SETCLOSINGDATE        = WM_GD_THREAD_USER + 11;
   WM_DBS_SETCOMPANYKEY         = WM_GD_THREAD_USER + 12;
@@ -54,6 +57,7 @@ type
   TUsedDBEvent =  procedure(const MsgFunctionKey: Integer; const MsgState: Integer; const MsgCallTime: String; const MsgErrorMessage: String) of object;
   TGetDBPropertiesEvent = procedure(const MsgPropertiesList: TStringList) of object;
   TSetDocTypeStringsEvent = procedure (const MsgDocTypeList: TStringList) of object;
+  TGetInvCardFeaturesEvent =  procedure (const MsgCardFeaturesList: TStringList) of object;
   TSetDocTypeBranchEvent = procedure (const MsgBranchList: TStringList) of object;
   TGetDBSizeEvent = procedure (const MsgStr: String) of object;
   TGetStatisticsEvent = procedure (const MsgGdDocStr: String; const MsgAcEntryStr: String; const MsgInvMovementStr: String; const MsgInvCardStr: String) of object;
@@ -98,6 +102,7 @@ type
     //FMessageConnected: Boolean;
     FMessagePropertiesList: TStringList;
     FMessageDocTypeList: TStringList;
+    FMessageCardFeatures:  TStringList;
     FMessageDocTypeBranchList: TStringList;
     FMessageDBSizeStr: String;
     FMessageGdDocStr, FMessageAcEntryStr, FMessageInvMovementStr, FMessageInvCardStr: String;
@@ -109,6 +114,7 @@ type
     FOnUsedDB: TUsedDBEvent;
     FOnGetDBProperties: TGetDBPropertiesEvent;
     FOnSetDocTypeStrings: TSetDocTypeStringsEvent;
+    FOnGetInvCardFeatures: TGetInvCardFeaturesEvent;
     FOnSetDocTypeBranch: TSetDocTypeBranchEvent;
     FOnGetDBSize: TGetDBSizeEvent;
     FOnGetStatistics: TGetStatisticsEvent;
@@ -120,6 +126,7 @@ type
     procedure DoOnUsedDBSync;
     procedure DoOnGetDBPropertiesSync;
     procedure DoOnSetDocTypeStringsSync;
+    procedure DoOnGetCardFeaturesSync;
     procedure DoOnSetDocTypeBranchSync;
     procedure DoOnGetDBSizeSync;
     procedure DoOnGetStatisticsSync;
@@ -133,6 +140,7 @@ type
       const AMessageCallTime: String; const AMessageErrorMessage: String);
     procedure GetDBProperties(const AMessageProperties: TStringList);
     procedure SetDocTypeStrings(const AMessageDocTypeList: TStringList);
+    procedure GetCardFeatures(const AMessageCardFeatures: TStringList);
     procedure SetDocTypeBranch(const AMessageBranchList: TStringList);
     procedure GetDBSize(const AMessageDBSizeStr: String; const ADBSize: Int64);
     procedure GetStatistics(const AMessageGdDocStr: String; const AMessageAcEntryStr: String; const AMessageInvMovementStr: String; const AMessageInvCardStr: String);
@@ -180,6 +188,8 @@ type
       read FOnGetDBProperties    write FOnGetDBProperties;
     property OnSetDocTypeStrings: TSetDocTypeStringsEvent
       read FOnSetDocTypeStrings  write FOnSetDocTypeStrings;
+    property OnGetInvCardFeatures: TGetInvCardFeaturesEvent
+      read FOnGetInvCardFeatures write FOnGetInvCardFeatures;
     property OnSetDocTypeBranch: TSetDocTypeBranchEvent
       read FOnSetDocTypeBranch   write FOnSetDocTypeBranch;
     property OnGetDBSize: TGetDBSizeEvent
@@ -203,6 +213,7 @@ begin
   FDBS.OnUsedDBEvent := UsedDB;
   FDBS.OnGetDBPropertiesEvent := GetDBProperties;
   FDBS.OnSetDocTypeStringsEvent := SetDocTypeStrings;
+  FDBS.OnGetInvCardFeaturesEvent := GetCardFeatures;
   FDBS.OnSetDocTypeBranchEvent := SetDocTypeBranch;
   FDBS.OnGetDBSizeEvent := GetDBSize;
   FDBS.OnGetStatistics := GetStatistics;
@@ -214,6 +225,7 @@ begin
   FConnected := TIdThreadSafeInteger.Create;
   FMsgConnectInfoList := TStringList.Create;
   FMessageDocTypeList := TStringList.Create;
+  FMessageCardFeatures := TStringList.Create;
   FMessageDocTypeBranchList := TStringList.Create;
   FMessagePropertiesList := TStringList.Create;
   FDoStopProcessing := TIdThreadSafeInteger.Create;
@@ -237,6 +249,7 @@ begin
   FConnected.Free;
   FMsgConnectInfoList.Free;
   FMessageDocTypeList.Free;
+  FMessageCardFeatures.Free;
   FMessageDocTypeBranchList.Free;
   FMessagePropertiesList.Free;
   FDoStopProcessing.Free;
@@ -279,6 +292,12 @@ procedure TgsDBSqueezeThread.DoOnSetDocTypeStringsSync;
 begin
   if Assigned(FOnSetDocTypeStrings) then
     FOnSetDocTypeStrings(FMessageDocTypeList);
+end;
+
+procedure TgsDBSqueezeThread.DoOnGetCardFeaturesSync;
+begin
+  if Assigned(OnGetInvCardFeatures) then
+    FOnGetInvCardFeatures(FMessageCardFeatures);
 end;
 
 procedure TgsDBSqueezeThread.DoOnSetDocTypeBranchSync;
@@ -370,6 +389,20 @@ begin
         Result := True;
       end;
 
+    WM_DBS_SETDOCTYPESRINGS:
+      begin
+        FDBS.SetDocTypeStringsEvent;
+        PostThreadMessage(ThreadID, WM_DBS_GETCARDFEATURES, 0, 0);
+        Result := True;
+      end;
+
+    WM_DBS_GETCARDFEATURES:
+      begin
+        FDBS.GetInvCardFeaturesEvent;
+        PostThreadMessage(ThreadID, WM_DBS_CREATEDBSSTATEJOURNAL, 0, 0);
+        Result := True;
+      end;
+
     WM_DBS_CREATEDBSSTATEJOURNAL:
       begin
         FDBS.CreateDBSStateJournal;
@@ -377,13 +410,6 @@ begin
         FDBS.InsertDBSStateJournal(Msg.Message, 1);
 
         PostThreadMessage(ThreadID, WM_DBS_GETDBPROPERTIES, 0, 0);
-        Result := True;
-      end;
-
-    WM_DBS_SETDOCTYPESRINGS:
-      begin
-        FDBS.SetDocTypeStringsEvent;
-        PostThreadMessage(ThreadID, WM_DBS_CREATEDBSSTATEJOURNAL, 0, 0);
         Result := True;
       end;
 
@@ -779,6 +805,12 @@ procedure TgsDBSqueezeThread.SetDocTypeStrings(const AMessageDocTypeList: TStrin
 begin
   FMessageDoctypeList.Text := AMessageDocTypeList.Text;
   Synchronize(DoOnSetDocTypeStringsSync);
+end;
+
+procedure  TgsDBSqueezeThread.GetCardFeatures(const AMessageCardFeatures: TStringList);
+begin
+  FMessageCardFeatures.Text := AMessageCardFeatures.Text;
+  Synchronize(DoOnGetCardFeaturesSync);
 end;
 
 procedure TgsDBSqueezeThread.SetDocTypeBranch(const AMessageBranchList: TStringList);

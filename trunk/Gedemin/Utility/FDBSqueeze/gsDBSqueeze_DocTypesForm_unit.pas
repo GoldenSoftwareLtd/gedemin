@@ -34,8 +34,6 @@ type
     FAllDocTypesList: TStringList;
     FBitsList: TObjectList;
     FCurBranchIndex: Integer;
-
-    TmpList: TStringList;
   public
     constructor Create(AnOwner: TComponent); override;
     destructor Destroy; override;
@@ -69,7 +67,6 @@ begin
   FBitsList :=  TObjectList.Create;
   FSelectedDocTypesList := TStringList.Create;
   FAllDocTypesList := TStringList.Create;
-  TmpList := TStringList.Create;
 
   strngrdIgnoreDocTypes.ColCount := 2;
   strngrdIgnoreDocTypes.RowCount := 0;
@@ -79,7 +76,6 @@ destructor TgsDBSqueeze_DocTypesForm.Destroy;
 begin
   FSelectedDocTypesList.Free;
   FAllDocTypesList.Free;
-  TmpList.Free;
   FBitsList.Free;
 
   inherited;

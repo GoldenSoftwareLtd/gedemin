@@ -1,6 +1,6 @@
 object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
-  Left = 505
-  Top = 189
+  Left = 959
+  Top = 54
   Width = 938
   Height = 575
   BorderIcons = [biSystemMenu, biMinimize]
@@ -28,8 +28,8 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
   object pnl1: TPanel
     Left = 0
     Top = 0
-    Width = 922
-    Height = 517
+    Width = 930
+    Height = 524
     Align = alClient
     BevelOuter = bvNone
     BorderWidth = 4
@@ -67,8 +67,8 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
     object pgcMain: TPageControl
       Left = 4
       Top = 4
-      Width = 914
-      Height = 485
+      Width = 922
+      Height = 492
       ActivePage = tsSettings
       Align = alClient
       MultiLine = True
@@ -81,14 +81,14 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         object lbl1: TLabel
           Left = 15
           Top = 4
-          Width = 69
+          Width = 68
           Height = 13
           Caption = 'База данных:'
         end
         object Label2: TLabel
           Left = 95
           Top = 24
-          Width = 233
+          Width = 242
           Height = 13
           Caption = '[сервер[/порт]:]путь_к_файлу_базы_данных'
           Font.Charset = RUSSIAN_CHARSET
@@ -267,7 +267,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         object grpOptions: TGroupBox
           Left = 491
           Top = 101
-          Width = 407
+          Width = 410
           Height = 348
           Caption = '  Опции  '
           TabOrder = 8
@@ -283,7 +283,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             State = cbChecked
             TabOrder = 0
           end
-          object chk1: TCheckBox
+          object chkMergeCard: TCheckBox
             Left = 13
             Top = 46
             Width = 212
@@ -306,15 +306,15 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         ImageIndex = 2
         object pnlLogButton: TPanel
           Left = 0
-          Top = 430
-          Width = 906
+          Top = 437
+          Width = 914
           Height = 27
           Align = alBottom
           BevelOuter = bvNone
           TabOrder = 1
           object btnClearGeneralLog: TButton
             Tag = 1
-            Left = 791
+            Left = 799
             Top = 4
             Width = 113
             Height = 21
@@ -326,8 +326,8 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         object pnlLogs: TPanel
           Left = 0
           Top = 0
-          Width = 906
-          Height = 430
+          Width = 914
+          Height = 437
           Align = alClient
           BevelOuter = bvNone
           TabOrder = 0
@@ -335,14 +335,14 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             Left = 450
             Top = 0
             Width = 3
-            Height = 430
+            Height = 437
             Cursor = crHSplit
           end
           object mLog: TMemo
             Left = 0
             Top = 0
             Width = 450
-            Height = 430
+            Height = 437
             Align = alLeft
             Font.Charset = RUSSIAN_CHARSET
             Font.Color = clWindowText
@@ -356,8 +356,8 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           object mSqlLog: TMemo
             Left = 453
             Top = 0
-            Width = 453
-            Height = 430
+            Width = 461
+            Height = 437
             Align = alClient
             Font.Charset = RUSSIAN_CHARSET
             Font.Color = clWindowText
@@ -1330,16 +1330,25 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
     end
     object Panel1: TPanel
       Left = 4
-      Top = 489
-      Width = 914
+      Top = 496
+      Width = 922
       Height = 24
       Align = alBottom
       BevelOuter = bvNone
       TabOrder = 1
+      object lblProgress: TLabel
+        Left = 745
+        Top = 0
+        Width = 80
+        Height = 13
+        Alignment = taCenter
+        Caption = 'lblProgress'
+        Layout = tlCenter
+      end
       object pbMain: TProgressBar
         Left = 1
         Top = 4
-        Width = 232
+        Width = 794
         Height = 19
         DragCursor = crDefault
         Min = 0
@@ -1348,24 +1357,15 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         TabOrder = 0
       end
       object stConnect: TStaticText
-        Left = 792
+        Left = 800
         Top = 4
-        Width = 121
+        Width = 122
         Height = 19
         Alignment = taCenter
         AutoSize = False
         BorderStyle = sbsSunken
         Caption = 'Отключено'
         TabOrder = 1
-      end
-      object stProgress: TStaticText
-        Left = 237
-        Top = 4
-        Width = 551
-        Height = 19
-        Alignment = taCenter
-        BorderStyle = sbsSunken
-        TabOrder = 2
       end
     end
   end
@@ -1445,6 +1445,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
     object actCardSetup: TAction
       Caption = 'Параметры...'
       OnExecute = actCardSetupExecute
+      OnUpdate = actCardSetupUpdate
     end
   end
   object MainMenu: TMainMenu

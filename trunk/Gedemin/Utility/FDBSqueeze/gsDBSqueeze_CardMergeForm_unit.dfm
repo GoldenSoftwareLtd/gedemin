@@ -1,10 +1,10 @@
 object gsDBSqueeze_CardMergeForm: TgsDBSqueeze_CardMergeForm
-  Left = 303
-  Top = 154
+  Left = 624
+  Top = 100
   BorderStyle = bsDialog
   Caption = 'Объединение складских карточек'
-  ClientHeight = 752
-  ClientWidth = 1026
+  ClientHeight = 680
+  ClientWidth = 1022
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -14,11 +14,11 @@ object gsDBSqueeze_CardMergeForm: TgsDBSqueeze_CardMergeForm
   OldCreateOrder = False
   PixelsPerInch = 96
   TextHeight = 13
-  object strngrdIgnoreDocTypes: TStringGrid
+  object strngrdDocTypes: TStringGrid
     Left = 281
     Top = 26
     Width = 498
-    Height = 474
+    Height = 399
     TabStop = False
     ColCount = 2
     DefaultColWidth = 390
@@ -29,6 +29,8 @@ object gsDBSqueeze_CardMergeForm: TgsDBSqueeze_CardMergeForm
     Options = [goFixedHorzLine, goVertLine, goHorzLine, goRangeSelect, goRowSelect]
     ScrollBars = ssVertical
     TabOrder = 4
+    OnDblClick = strngrdDocTypesDblClick
+    OnDrawCell = strngrdDocTypesDrawCell
   end
   object txt5: TStaticText
     Left = 281
@@ -70,27 +72,29 @@ object gsDBSqueeze_CardMergeForm: TgsDBSqueeze_CardMergeForm
     Left = 9
     Top = 10
     Width = 262
-    Height = 553
+    Height = 479
     HideSelection = False
     HotTrack = True
     Indent = 19
     ReadOnly = True
     TabOrder = 3
     ToolTips = False
+    OnClick = tvDocTypesClick
+    OnCustomDrawItem = tvDocTypesCustomDrawItem
   end
-  object mIgnoreDocTypes: TMemo
+  object mDocTypes: TMemo
     Left = 281
-    Top = 509
+    Top = 437
     Width = 498
     Height = 53
     TabStop = False
     Color = clBtnFace
     ReadOnly = True
     ScrollBars = ssVertical
-    TabOrder = 5
+    TabOrder = 6
   end
   object txt2: TStaticText
-    Left = 793
+    Left = 789
     Top = 9
     Width = 224
     Height = 17
@@ -109,7 +113,7 @@ object gsDBSqueeze_CardMergeForm: TgsDBSqueeze_CardMergeForm
   end
   object mmo1: TMemo
     Left = 16
-    Top = 576
+    Top = 504
     Width = 873
     Height = 137
     BorderStyle = bsNone
@@ -133,19 +137,21 @@ object gsDBSqueeze_CardMergeForm: TgsDBSqueeze_CardMergeForm
       '2. Выберете общие признаки карточек'
       ''
       '3. Укажите дату, до которой будут выбраны карточки:')
-    TabOrder = 6
+    ReadOnly = True
+    TabOrder = 8
   end
   object btnMergeGo: TButton
-    Left = 696
-    Top = 720
+    Left = 688
+    Top = 648
     Width = 113
     Height = 25
     Caption = 'Запустить сейчас!'
-    TabOrder = 8
+    TabOrder = 10
+    OnClick = btnMergeGoClick
   end
   object dtpClosingDate: TDateTimePicker
     Left = 300
-    Top = 690
+    Top = 618
     Width = 86
     Height = 21
     Hint = 'рассчитать сальдо и удалить документы'
@@ -157,15 +163,60 @@ object gsDBSqueeze_CardMergeForm: TgsDBSqueeze_CardMergeForm
     DateMode = dmComboBox
     Kind = dtkDate
     ParseInput = False
-    TabOrder = 7
+    TabOrder = 9
     TabStop = False
   end
   object btn1: TButton
-    Left = 810
-    Top = 720
+    Left = 802
+    Top = 648
     Width = 209
     Height = 25
     Caption = 'Выполнить в контексте обрезания БД'
-    TabOrder = 9
+    TabOrder = 11
+    OnClick = btnIsMergeOption
+  end
+  object strngrdCardFeatures: TStringGrid
+    Left = 789
+    Top = 26
+    Width = 224
+    Height = 399
+    TabStop = False
+    ColCount = 1
+    DefaultColWidth = 390
+    DefaultRowHeight = 20
+    FixedCols = 0
+    RowCount = 50
+    FixedRows = 0
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -11
+    Font.Name = 'MS Sans Serif'
+    Font.Style = []
+    Options = [goFixedHorzLine, goVertLine, goHorzLine, goRangeSelect, goRowSelect]
+    ParentFont = False
+    ScrollBars = ssVertical
+    TabOrder = 5
+    OnDblClick = strngrdCardFeaturesDblClick
+    OnDrawCell = strngrdCardFeaturesDrawCell
+  end
+  object mCardFeatures: TMemo
+    Left = 789
+    Top = 437
+    Width = 224
+    Height = 53
+    TabStop = False
+    Color = clBtnFace
+    ReadOnly = True
+    ScrollBars = ssVertical
+    TabOrder = 7
+  end
+  object actlstCardMerge: TActionList
+    Left = 936
+    Top = 520
+    object actSelectAllDocs: TAction
+      Caption = 'actSelectAllDocs'
+      ShortCut = 16449
+      OnExecute = actSelectAllDocsExecute
+    end
   end
 end

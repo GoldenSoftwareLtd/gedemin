@@ -152,14 +152,14 @@ type
     rbIncluding: TRadioButton;
     grpOptions: TGroupBox;
     chkGetStatiscits: TCheckBox;
-    chk1: TCheckBox;
+    chkMergeCard: TCheckBox;
     actMergeCardDlg: TAction;
     actCardSetup: TAction;
     btnCardSetup: TButton;
     Panel1: TPanel;
     pbMain: TProgressBar;
     stConnect: TStaticText;
-    stProgress: TStaticText;
+    lblProgress: TLabel;
     procedure actClearLogExecute(Sender: TObject);
     procedure actDatabaseBrowseExecute(Sender: TObject);
     procedure actDisconnectExecute(Sender: TObject);
@@ -185,6 +185,7 @@ type
     procedure actLoadConfigUpdate(Sender: TObject);
     procedure actSaveConfigUpdate(Sender: TObject);
     procedure actCardSetupExecute(Sender: TObject);
+    procedure actCardSetupUpdate(Sender: TObject);
 
   private
     FStartupTime: TDateTime;
@@ -196,6 +197,7 @@ type
     FSaveLogs: Boolean;
     FIsProcessStop: Boolean;
 
+    FCardFeaturesList: TStringList;
     FWasSelectedDocTypes: Boolean;
     FDocTypesList: TStringList;
     FDatabaseName: String;
@@ -216,6 +218,7 @@ type
     procedure GetStatisticsEvent(const AGdDoc: String; const AnAcEntry: String; const AnInvMovement: String; const AnInvCard: String);
     procedure LogSQLEvent(const ALogSQL: String);
     procedure SetDocTypeStringsEvent(const ADocTypes: TStringList);
+    procedure GetCardFeaturesEvent(const ACardFatures: TStringList);
     procedure SetDocTypeBranchEvent(const ABranchList: TStringList);
     procedure UsedDBEvent(const AFunctionKey: Integer; const AState: Integer; const ACallTime: String; const AErrorMessage: String);
     procedure ClearStats;
@@ -239,6 +242,7 @@ constructor TgsDBSqueeze_MainForm.Create(AnOwner: TComponent);
 begin
   inherited;
 
+  FCardFeaturesList := TStringList.Create;
   FDocTypesList := TStringList.Create;
   pgcMain.ActivePage := tsSettings;
 
@@ -252,6 +256,13 @@ begin
 
   pbMain.Max := MAX_PROGRESS_STEP;
 
+  lblProgress.Parent := pbMain;
+  lblProgress.Width := pbMain.Width - 8;
+  lblProgress.Left := pbMain.Left + 4;
+  lblProgress.Top := 2;
+  lblProgress.Transparent := True;
+  lblProgress.Caption := '';
+
   cbbCharset.Items.CommaText := CHARSET_LIST_CH1 + ',' + CHARSET_LIST_CH2;
   cbbCharset.ItemIndex := cbbCharset.Items.IndexOf(DEFAULT_CHARACTER_SET);
 
@@ -264,6 +275,7 @@ begin
   FSThread.OnUsedDB := UsedDBEvent;
   FSThread.OnGetDBProperties := GetDBPropertiesEvent;
   FSThread.OnSetDocTypeStrings := SetDocTypeStringsEvent;
+  FSThread.OnGetInvCardFeatures := GetCardFeaturesEvent;
   FSThread.OnSetDocTypeBranch := SetDocTypeBranchEvent;
   FSThread.OnGetDBSize := GetDBSizeEvent;
   FSThread.OnGetStatistics := GetStatisticsEvent;
@@ -274,6 +286,7 @@ end;
 destructor TgsDBSqueeze_MainForm.Destroy;
 begin
   FSThread.Free;
+  FCardFeaturesList.Free;
   FDocTypesList.Free;
   inherited;
 end;
@@ -429,11 +442,18 @@ end;
 procedure TgsDBSqueeze_MainForm.SetDocTypeStringsEvent(const ADocTypes: TStringList);
 begin
   gsDBSqueeze_DocTypesForm.SetDocTypes(ADocTypes);
+  gsDBSqueeze_CardMergeForm.SetDocTypes(ADocTypes);
+end;
+
+procedure TgsDBSqueeze_MainForm.GetCardFeaturesEvent(const ACardFatures: TStringList);
+begin
+  gsDBSqueeze_CardMergeForm.SetCardFeatures(ACardFatures);
 end;
 
 procedure TgsDBSqueeze_MainForm.SetDocTypeBranchEvent(const ABranchList: TStringList);
 begin
   gsDBSqueeze_DocTypesForm.SetDocTypeBranch(ABranchList);
+  gsDBSqueeze_CardMergeForm.SetDocTypeBranch(ABranchList);
 end;
 
 procedure  TgsDBSqueeze_MainForm.GetDBPropertiesEvent(const AProperties: TStringList);
@@ -661,7 +681,7 @@ begin
   if pbMain.Position <> ACurrentStep then
     pbMain.Position := ACurrentStep;
   if ACurrentStepName > '' then
-    stProgress.Caption := ACurrentStepName;
+    lblProgress.Caption := ACurrentStepName;
 end;
 
 procedure TgsDBSqueeze_MainForm.UpdateProgress(const AProgressInfo: TgdProgressInfo);
@@ -889,7 +909,24 @@ end;
 
 procedure TgsDBSqueeze_MainForm.actCardSetupExecute(Sender: TObject);
 begin
-  gsDBSqueeze_CardMergeForm.ShowModal;
+  if gsDBSqueeze_CardMergeForm.ShowModal = mrYes then
+  begin
+    chkMergeCard.Checked := False;
+    FDocTypesList.CommaText := gsDBSqueeze_CardMergeForm.GetSelectedIdDocTypes;
+    FCardFeaturesList.CommaText := gsDBSqueeze_CardMergeForm.GetSelectedCardFeatures;
+
+    // параметры объединения
+    //FSThread.SetMergeCardParams(gsDBSqueeze_CardMergeForm.GetDate, FDocTypesList, FCardFeaturesList, chkMergeCard.Checked);
+    // запуск объединения карточек
+    //FSThread.DoMergeCards;
+  end
+  else if gsDBSqueeze_CardMergeForm.ShowModal = mrOk then
+    chkMergeCard.Checked := True; // отложенный запуск
+end;
+
+procedure TgsDBSqueeze_MainForm.actCardSetupUpdate(Sender: TObject);
+begin
+  actCardSetup.Enabled := FConnected;
 end;
 
 end.
