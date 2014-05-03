@@ -56,17 +56,20 @@ type
 
     procedure SetDocTypeBranch(const ABranchList: TStringList);
     procedure SetDocTypes(const ADocTypes: TStringList);
-    //procedure SetSelectedDocTypes(const ASelectedTypesStr: String; const ASelectedRowsStr: String);
 
-    //procedure ClearData;
+    procedure SetDate(const AMergingDate: TDateTime);
+    procedure SetSelectedDocTypes(const ASelectedTypesStr: String; const ASelectedRowsStr: String);
+    procedure SetSelectedCardFeatures(const ASelectedCardFeatures: String; const ASelectedFeaturesRows: String);
 
+    procedure ClearData;
 
     function GetDate: TDateTime;
     function GetSelectedCardFeatures: String;
     function GetSelectedIdDocTypes: String;
-   // function GetSelectedDocTypesStr: String;
-   // function GetSelectedBranchRowsStr: String;
-   // function GetDocTypeMemoText: String;
+
+    function GetSelectedDocTypesStr: String;
+    function GetSelectedBranchRowsStr: String;
+    function GetSelectedFeaturesRows: String;
   end;
 
 var
@@ -167,11 +170,11 @@ begin
   strngrdDocTypes.Repaint;
 end;
 //---------------------------------------------------------------------------
-procedure TgsDBSqueeze_CardMergeForm.SetCardFeatures(const ACardFatures: TStringList);
+procedure TgsDBSqueeze_CardMergeForm.SetCardFeatures(const ACardFatures: TStringList);     ///TODO перепроверить
 var
   I: Integer;
 begin
-   with strngrdCardFeatures do
+  with strngrdCardFeatures do
     for I:=0 to ColCount-1 do
       Cols[I].Clear;
   strngrdCardFeatures.RowCount := 0;
@@ -179,13 +182,14 @@ begin
   FCardFeaturesBits.Free;
   FSelectedCardFeatures.Clear;       //
   FAllCardFeatures.CommaText := ACardFatures.CommaText;
-  
+
+
   FCardFeaturesBits := TBits.Create;
-  FCardFeaturesBits.Size := ACardFatures.Count;
-  strngrdCardFeatures.RowCount := ACardFatures.Count;
-  for I:=0 to ACardFatures.Count-1 do
+  FCardFeaturesBits.Size := FAllCardFeatures.Count;
+  strngrdCardFeatures.RowCount := FAllCardFeatures.Count;
+  for I:=0 to FAllCardFeatures.Count-1 do
   begin
-    strngrdCardFeatures.Cells[0, I] := ACardFatures[I];
+    strngrdCardFeatures.Cells[0, I] := FAllCardFeatures[I];
   end;
 
   strngrdCardFeatures.Repaint;
@@ -381,9 +385,7 @@ begin
   end;  
 end;
 //---------------------------------------------------------------------------
-
-procedure TgsDBSqueeze_CardMergeForm.actSelectAllDocsExecute(
-  Sender: TObject);
+procedure TgsDBSqueeze_CardMergeForm.actSelectAllDocsExecute(Sender: TObject);
 var
   Rect: TGridRect;
 begin
@@ -397,7 +399,7 @@ end;
 procedure TgsDBSqueeze_CardMergeForm.btnMergeGoClick(Sender: TObject);
 begin
   Self.ModalResult := mrYes;
-  Self.Close;
+  PostMessage(gsDBSqueeze_CardMergeForm.Handle, WM_CLOSE, 0, 0);
 end;
 
 procedure TgsDBSqueeze_CardMergeForm.btnIsMergeOption(Sender: TObject);
@@ -429,5 +431,190 @@ begin
   end;
   Result := SelectedIdStr;
 end;
-  
+//---------------------------------------------------------------------------
+function TgsDBSqueeze_CardMergeForm.GetSelectedDocTypesStr: String;
+var
+  Str: String;
+begin
+  Str := StringReplace(FSelectedDocTypesList.Text, #13#10, '||', [rfReplaceAll, rfIgnoreCase]);
+  Result := Str;
+end;
+//---------------------------------------------------------------------------
+function TgsDBSqueeze_CardMergeForm.GetSelectedBranchRowsStr: String;
+var
+  I, J: Integer;
+  Str: String;
+  SelectedBranchRows: TStringList;
+begin
+  SelectedBranchRows := TStringList.Create;
+  try
+    for I:=0 to FDocTypesBitsList.Count-1 do
+    begin
+      if TBits(FDocTypesBitsList[I]).Size > 0 then
+      begin
+        for J:=0 to TBits(FDocTypesBitsList[I]).Size-1 do
+        begin
+          if TBits(FDocTypesBitsList[I])[J] = true then
+          begin
+            if SelectedBranchRows.IndexOfName(IntToStr(I)) <> -1 then
+              SelectedBranchRows[SelectedBranchRows.IndexOfName(IntToStr(I))] := SelectedBranchRows[SelectedBranchRows.IndexOfName(IntToStr(I))] + '||' + IntToStr(J)
+            else
+              SelectedBranchRows.Append(IntToStr(I) + '=' + IntToStr(J));
+          end;
+        end;
+      end;  
+    end;
+
+    Str := StringReplace(SelectedBranchRows.Text, #13#10, ',', [rfReplaceAll, rfIgnoreCase]);
+    Delete(Str, Length(Str), 1);
+    Result := Str;
+  finally
+    SelectedBranchRows.Free;
+  end;
+end;
+//---------------------------------------------------------------------------
+function TgsDBSqueeze_CardMergeForm.GetSelectedFeaturesRows: String;
+var
+  I: Integer;
+  SelectedRows: TStringList;
+begin
+  SelectedRows := TStringList.Create;
+  try
+    if FCardFeaturesBits.Size > 0 then
+    begin
+      for I:=0 to FCardFeaturesBits.Size-1 do
+      begin
+        if FCardFeaturesBits[I] = True then
+        begin
+          SelectedRows.Append(IntToStr(I));
+        end;
+      end;
+    end;
+
+    Result := SelectedRows.CommaText;
+  finally
+    SelectedRows.Free;
+  end;
+end;
+//---------------------------------------------------------------------------
+procedure TgsDBSqueeze_CardMergeForm.SetDate(const AMergingDate: TDateTime);
+begin
+  dtpClosingDate.Date := AMergingDate;
+end;
+//---------------------------------------------------------------------------
+procedure TgsDBSqueeze_CardMergeForm.SetSelectedDocTypes(const ASelectedTypesStr: String; const ASelectedRowsStr: String);
+var
+  I, J: Integer;
+  Str: String;
+  SelectedBranch: TStringList;    // ветка=номерастрок
+  SelectedGridRows: TStringList;  // номера строк
+  BranchDocTypes: TStringList;
+begin
+  SelectedBranch := TStringList.Create;
+  SelectedGridRows := TStringList.Create;
+  BranchDocTypes := TStringList.Create;
+  try
+    FSelectedDocTypesList.Text := StringReplace(ASelectedTypesStr, '||', #13#10, [rfReplaceAll, rfIgnoreCase]);
+    mDocTypes.Clear;
+    Str := '';
+    for I:=0 to FSelectedDocTypesList.Count-1 do
+    begin
+      if Str > '' then
+        Str := Str + ', ' + FSelectedDocTypesList.Values[FSelectedDocTypesList.Names[I]] + ' (' + FSelectedDocTypesList.Names[I] + ')'
+      else
+        Str := FSelectedDocTypesList.Values[FSelectedDocTypesList.Names[I]] + ' (' + FSelectedDocTypesList.Names[I] + ')';
+    end;
+    mDocTypes.Text := Str;
+
+    SelectedBranch.Text := StringReplace(ASelectedRowsStr, ',', #13#10, [rfReplaceAll, rfIgnoreCase]);
+
+    for I:=0 to SelectedBranch.Count-1 do
+    begin
+      SelectedGridRows.Clear;
+      SelectedGridRows.Text := StringReplace(SelectedBranch.Values[SelectedBranch.Names[I]], '||', #13#10, [rfReplaceAll, rfIgnoreCase]);
+      for J:=0 to SelectedGridRows.Count-1 do
+        TBits(FDocTypesBitsList[StrToInt(Trim(SelectedBranch.Names[I]))])[StrToInt(Trim(SelectedGridRows[J]))] := True;
+    end;
+
+    FCurBranchIndex := 0;
+    if FAllDocTypesList.Values[FAllDocTypesList.Names[FCurBranchIndex]] <> '0' then
+    begin
+      BranchDocTypes.Text := StringReplace(FAllDocTypesList[FCurBranchIndex], '||', #13#10, [rfReplaceAll, rfIgnoreCase]);
+      strngrdDocTypes.RowCount :=  BranchDocTypes.Count;
+      for I:=0 to BranchDocTypes.Count-1 do
+      begin
+        strngrdDocTypes.Cells[0, I] := BranchDocTypes.Values[BranchDocTypes.Names[I]];  // имя типа дока
+        strngrdDocTypes.Cells[1, I] := BranchDocTypes.Names[I];                         // id типа
+      end;
+    end;
+    strngrdDocTypes.Repaint;
+  finally
+    SelectedBranch.Free;
+    SelectedGridRows.Free;
+    BranchDocTypes.Free;
+  end;
+end;
+//---------------------------------------------------------------------------
+procedure TgsDBSqueeze_CardMergeForm.SetSelectedCardFeatures(const ASelectedCardFeatures: String; const ASelectedFeaturesRows: String);
+var
+  I: Integer;
+  SelectedGridRows: TStringList;  // номера строк
+begin
+  SelectedGridRows := TStringList.Create;
+  try
+    FSelectedCardFeatures.CommaText := ASelectedCardFeatures;
+    mCardFeatures.Clear;
+    mCardFeatures.Text := ASelectedCardFeatures;
+
+    SelectedGridRows.Clear;
+    SelectedGridRows.CommaText := ASelectedFeaturesRows;
+    for I:=0 to SelectedGridRows.Count-1 do
+      FCardFeaturesBits[StrToInt(Trim(SelectedGridRows[I]))] := True;
+
+    strngrdCardFeatures.RowCount := FAllCardFeatures.Count;
+
+    for I:=0 to FAllCardFeatures.Count-1 do
+    begin
+      strngrdCardFeatures.Cells[0, I] := FAllCardFeatures[I];
+    end;
+
+    strngrdCardFeatures.Repaint;
+  finally
+    SelectedGridRows.Free;
+  end;
+end;
+//---------------------------------------------------------------------------
+procedure TgsDBSqueeze_CardMergeForm.ClearData;
+var
+  I: Integer;
+  SizeBitsArr: array of Integer;
+begin
+  with strngrdDocTypes do
+  for I:=0 to ColCount-1 do
+    Cols[I].Clear;
+  mDocTypes.Clear;
+  FSelectedDocTypesList.Clear;
+
+  SetLength(SizeBitsArr, FDocTypesBitsList.Count);
+  for I:=0 to FDocTypesBitsList.Count-1 do
+    SizeBitsArr[I] := TBits(FDocTypesBitsList[I]).Size;
+  FDocTypesBitsList.Clear;
+  for I:=0 to Length(SizeBitsArr)-1 do
+  begin
+    FDocTypesBitsList.Add(TBits.Create);
+    TBits(FDocTypesBitsList[I]).Size := SizeBitsArr[I];
+  end;
+
+  if Assigned(FCardFeaturesBits) then
+    FCardFeaturesBits.Free;
+  FCardFeaturesBits := TBits.Create;
+
+  with strngrdCardFeatures do
+    for I:=0 to ColCount-1 do
+      Cols[I].Clear;
+  strngrdCardFeatures.RowCount := 0;
+
+  FSelectedCardFeatures.Clear;
+end;
+
 end.

@@ -269,17 +269,17 @@ end;
 //---------------------------------------------------------------------------
 function TgsDBSqueeze_DocTypesForm.GetSelectedIdDocTypes: String;
 var
-  SeledctedIdStr: String;
+  SelectedIdStr: String;
   I: Integer;
 begin
   for I:=0 to FSelectedDocTypesList.Count-1 do
   begin
-    if SeledctedIdStr > '' then
-      SeledctedIdStr := SeledctedIdStr + ',' + FSelectedDocTypesList.Names[I]
+    if SelectedIdStr > '' then
+      SelectedIdStr := SelectedIdStr + ',' + FSelectedDocTypesList.Names[I]
     else
-      SeledctedIdStr := FSelectedDocTypesList.Names[I];
+      SelectedIdStr := FSelectedDocTypesList.Names[I];
   end;
-  Result := SeledctedIdStr;
+  Result := SelectedIdStr;
 end;
 //---------------------------------------------------------------------------
 function TgsDBSqueeze_DocTypesForm.GetSelectedDocTypesStr: String;
@@ -287,8 +287,7 @@ var
   Str: String;
 begin
   Str := StringReplace(FSelectedDocTypesList.Text, #13#10, '||', [rfReplaceAll, rfIgnoreCase]);
-  //Delete(Str, Length(Str), 1);
-  Result := Str
+  Result := Str;
 end;
 //---------------------------------------------------------------------------
 function TgsDBSqueeze_DocTypesForm.GetSelectedBranchRowsStr: String;

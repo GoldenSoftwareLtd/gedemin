@@ -8,17 +8,26 @@ uses
 const
   iniDatabaseSection = 'DATABASE_CONNECTION';
   iniSqueezeSection = 'SQUEEZE_SETTINGS';
+  iniMergeSection = 'CARD_MERGE_SETTINGS';
 
   {Section: DATABASE_CONNECTION}
   iniDatabase = 'Database';
   iniCharset = 'Charset';
-  
+
   {Section: SQUEEZE_SETTINGS}
   iniClosingDate = 'ClosingDate';
   iniDoCalculateSaldo = 'DoCalculateSaldo';
   iniDoProcessDocTypes = 'DoProcessDocTypes';
   iniSelectedDocTypeKeys = 'SelectedDocTypeKeys';
   iniSelectedBranchRows = 'SelectedBranchRows';
+  iniDoMergeCards = 'DoMergeCards';
+
+  {Section: CARD_MERGE_SETTINGS}
+  iniMergeDate = 'MergingDate';
+  iniMergeDocTypesKeys = 'MergingDocTypeKeys';
+  iniMergeBranchRows = 'MergingDocBranchRows';
+  iniMergeCardFeatures = 'MergingCardFeatures';
+  iniMergeFeaturesRows = 'MergingFeaturesRows';
 
 type
   TgsIniOptions = class(TObject)
@@ -28,11 +37,19 @@ type
     FCharset: String;
 
     {Section: SQUEEZE_SETTINGS}
-    FClosingDate: TDateTime;   
+    FClosingDate: TDateTime;
     FDoProcessDocTypes: Boolean;
     FDoCalculateSaldo: Boolean;
     FSelectedDocTypeKeys: String;
     FSelectedBranchRows: String;
+    FDoMergeCards: Boolean;
+
+    {Section: CARD_MERGE_SETTINGS}
+    FMergingDate: TDateTime;
+    FMergingDocTypeKeys: String;
+    FMergingDocBranchRows: String;
+    FMergingCardFeatures: String;
+    FMergingFeaturesRows: String;
   public
     procedure LoadSettings(Ini: TIniFile);
     procedure SaveSettings(Ini: TIniFile);
@@ -50,6 +67,14 @@ type
     property DoProcessDocTypes: Boolean          read FDoProcessDocTypes           write FDoProcessDocTypes;
     property SelectedDocTypeKeys: String         read FSelectedDocTypeKeys         write FSelectedDocTypeKeys;
     property SelectedBranchRows: String          read FSelectedBranchRows          write FSelectedBranchRows;
+    property DoMergeCards: Boolean               read FDoMergeCards                write FDoMergeCards;
+
+    {Section: CARD_MERGE_SETTINGS}
+    property MergingDate: TDateTime             read FMergingDate                  write FMergingDate;
+    property MergingDocTypeKeys: String         read FMergingDocTypeKeys           write FMergingDocTypeKeys;
+    property MergingBranchRows: String          read FMergingDocBranchRows         write FMergingDocBranchRows;
+    property MergingCardFeatures: String        read FMergingCardFeatures          write FMergingCardFeatures;
+    property MergingFeaturesRows: string        read FMergingFeaturesRows          write FMergingFeaturesRows;
   end;
 
 var
@@ -70,6 +95,13 @@ begin
     FDoCalculateSaldo := Ini.ReadBool(iniSqueezeSection, iniDoCalculateSaldo, False);
     FSelectedDocTypeKeys := Ini.ReadString(iniSqueezeSection, iniSelectedDocTypeKeys, '');
     FSelectedBranchRows := Ini.ReadString(iniSqueezeSection, iniSelectedBranchRows, '');
+    FDoMergeCards := Ini.ReadBool(iniSqueezeSection, iniDoMergeCards, False);
+    {Section: CARD_MERGE_SETTINGS}
+    FMergingDate :=  Ini.ReadDate(iniMergeSection, iniMergeDate, Date);
+    FMergingDocTypeKeys := Ini.ReadString(iniMergeSection, iniMergeDocTypesKeys, '');
+    FMergingDocBranchRows := Ini.ReadString(iniMergeSection, iniMergeBranchRows, '');
+    FMergingCardFeatures := Ini.ReadString(iniMergeSection, iniMergeCardFeatures, '');
+    FMergingFeaturesRows := Ini.ReadString(iniMergeSection, iniMergeFeaturesRows, '');
   end;
 end;
 
@@ -86,6 +118,13 @@ begin
     Ini.WriteBool(iniSqueezeSection, iniDoCalculateSaldo, FDoCalculateSaldo);
     Ini.WriteString(iniSqueezeSection, iniSelectedDocTypeKeys, FSelectedDocTypeKeys);
     Ini.WriteString(iniSqueezeSection, iniSelectedBranchRows, FSelectedBranchRows);
+    Ini.WriteBool(iniSqueezeSection, iniDoMergeCards, FDoMergeCards);
+    {Section: CARD_MERGE_SETTINGS}
+    Ini.WriteDate(iniMergeSection, iniMergeDate, FMergingDate);
+    Ini.WriteString(iniMergeSection, iniMergeDocTypesKeys, FMergingDocTypeKeys);
+    Ini.WriteString(iniMergeSection, iniMergeBranchRows, FMergingDocBranchRows);
+    Ini.WriteString(iniMergeSection, iniMergeCardFeatures, FMergingCardFeatures);
+    Ini.WriteString(iniMergeSection, iniMergeFeaturesRows, FMergingFeaturesRows);
   end;
 end;
 

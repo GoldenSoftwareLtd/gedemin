@@ -1,6 +1,7 @@
 object gsDBSqueeze_CardMergeForm: TgsDBSqueeze_CardMergeForm
-  Left = 624
-  Top = 100
+  Left = 455
+  Top = 283
+  BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsDialog
   Caption = 'Объединение складских карточек'
   ClientHeight = 680

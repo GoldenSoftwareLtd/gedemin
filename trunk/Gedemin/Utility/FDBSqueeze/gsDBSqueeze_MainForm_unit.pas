@@ -160,6 +160,9 @@ type
     pbMain: TProgressBar;
     stConnect: TStaticText;
     lblProgress: TLabel;
+    N12: TMenuItem;
+    N13: TMenuItem;
+    actSaveLog: TAction;
     procedure actClearLogExecute(Sender: TObject);
     procedure actDatabaseBrowseExecute(Sender: TObject);
     procedure actDisconnectExecute(Sender: TObject);
@@ -186,6 +189,8 @@ type
     procedure actSaveConfigUpdate(Sender: TObject);
     procedure actCardSetupExecute(Sender: TObject);
     procedure actCardSetupUpdate(Sender: TObject);
+    procedure actSaveLogExecute(Sender: TObject);
+    procedure actSaveLogUpdate(Sender: TObject);
 
   private
     FStartupTime: TDateTime;
@@ -198,6 +203,7 @@ type
     FIsProcessStop: Boolean;
 
     FCardFeaturesList: TStringList;
+    FMergeDocTypesList: TStringList;
     FWasSelectedDocTypes: Boolean;
     FDocTypesList: TStringList;
     FDatabaseName: String;
@@ -242,6 +248,7 @@ constructor TgsDBSqueeze_MainForm.Create(AnOwner: TComponent);
 begin
   inherited;
 
+  FMergeDocTypesList := TStringList.Create;
   FCardFeaturesList := TStringList.Create;
   FDocTypesList := TStringList.Create;
   pgcMain.ActivePage := tsSettings;
@@ -286,6 +293,7 @@ end;
 destructor TgsDBSqueeze_MainForm.Destroy;
 begin
   FSThread.Free;
+  FMergeDocTypesList.Free;
   FCardFeaturesList.Free;
   FDocTypesList.Free;
   inherited;
@@ -508,6 +516,10 @@ begin
   LogFileName := '';
   BackupFileName := '';
 
+  // параметры объединения
+  if (chkMergeCard.Checked) and (FMergeDocTypesList.Count <> 0) then
+    FSThread.SetMergeCardParams(gsDBSqueeze_CardMergeForm.GetDate, FMergeDocTypesList, FCardFeaturesList, chkMergeCard.Checked);
+
   FSThread.SetClosingDate(dtpClosingDate.Date);
 
   FSThread.SetSaldoParams(
@@ -604,8 +616,8 @@ begin
     PChar('Прервать процесс обработки БД?' + #13#10 +
       'Прерывание произойдет после завершения последней операции.' + #13#10 +
       'Возобновить процесс будет невозможно.'),
-    PChar('Подтверждение'),
-    MB_OKCANCEL + MB_ICONQUESTION + MB_TOPMOST) of
+      PChar('Подтверждение'),
+      MB_OKCANCEL + MB_ICONQUESTION + MB_TOPMOST) of
       IDOK:
         begin
           FSThread.StopProcessing;
@@ -642,7 +654,7 @@ procedure TgsDBSqueeze_MainForm.FinishEvent(const AIsFinished: Boolean);
 begin
   if AIsFinished then
   begin
-    pbMain.Step := pbMain.Max;
+    pbMain.Step := MAX_PROGRESS_STEP;//pbMain.Max;
 
     if Application.MessageBox(PChar(FormatDateTime('h:nn', Now) + ' - Обработка БД успешно завершена!' + #13#10 +
       'Затраченное время - ' + FormatDateTime('h:nn:ss', Now-FStartupTime)),
@@ -833,6 +845,11 @@ begin
       gsIniOptions.DoProcessDocTypes := rbIncluding.Checked;
       gsIniOptions.SelectedDocTypeKeys := gsDBSqueeze_DocTypesForm.GetSelectedDocTypesStr;
       gsIniOptions.SelectedBranchRows := gsDBSqueeze_DocTypesForm.GetSelectedBranchRowsStr;
+      gsIniOptions.MergingDate := gsDBSqueeze_CardMergeForm.GetDate;
+      gsIniOptions.MergingDocTypeKeys := gsDBSqueeze_CardMergeForm.GetSelectedDocTypesStr;
+      gsIniOptions.MergingBranchRows := gsDBSqueeze_CardMergeForm.GetSelectedBranchRowsStr;
+      gsIniOptions.MergingCardFeatures := gsDBSqueeze_CardMergeForm.GetSelectedCardFeatures;
+      gsIniOptions.MergingFeaturesRows := gsDBSqueeze_CardMergeForm.GetSelectedFeaturesRows;
 
       gsIniOptions.SaveToFile(SaveDlg.FileName);
     end;
@@ -874,6 +891,21 @@ begin
       SetTextDocTypesMemo(gsDBSqueeze_DocTypesForm.GetDocTypeMemoText);
 
       FWasSelectedDocTypes := (Trim(mIgnoreDocTypes.Text) > '');
+
+      gsDBSqueeze_CardMergeForm.ClearData;
+      gsDBSqueeze_CardMergeForm.SetDate(gsIniOptions.MergingDate);
+      gsDBSqueeze_CardMergeForm.SetSelectedDocTypes(gsIniOptions.MergingDocTypeKeys, gsIniOptions.MergingBranchRows);
+      gsDBSqueeze_CardMergeForm.SetSelectedCardFeatures(gsIniOptions.MergingCardFeatures, gsIniOptions.MergingFeaturesRows);
+
+      chkMergeCard.Checked := gsIniOptions.DoMergeCards;
+
+      FMergeDocTypesList.Clear;
+      FCardFeaturesList.Clear;
+      if chkMergeCard.Checked then
+      begin
+        FMergeDocTypesList.CommaText := gsDBSqueeze_CardMergeForm.GetSelectedIdDocTypes;
+        FCardFeaturesList.CommaText := gsDBSqueeze_CardMergeForm.GetSelectedCardFeatures;
+      end;
     end;
   finally
     OpenDlg.Free;
@@ -909,24 +941,43 @@ end;
 
 procedure TgsDBSqueeze_MainForm.actCardSetupExecute(Sender: TObject);
 begin
-  if gsDBSqueeze_CardMergeForm.ShowModal = mrYes then
-  begin
-    chkMergeCard.Checked := False;
-    FDocTypesList.CommaText := gsDBSqueeze_CardMergeForm.GetSelectedIdDocTypes;
-    FCardFeaturesList.CommaText := gsDBSqueeze_CardMergeForm.GetSelectedCardFeatures;
+  case gsDBSqueeze_CardMergeForm.ShowModal of
+    mrYes:
+      begin
+        chkMergeCard.Checked := False;
+        FMergeDocTypesList.CommaText := gsDBSqueeze_CardMergeForm.GetSelectedIdDocTypes;
+        FCardFeaturesList.CommaText := gsDBSqueeze_CardMergeForm.GetSelectedCardFeatures;
 
-    // параметры объединения
-    //FSThread.SetMergeCardParams(gsDBSqueeze_CardMergeForm.GetDate, FDocTypesList, FCardFeaturesList, chkMergeCard.Checked);
-    // запуск объединения карточек
-    //FSThread.DoMergeCards;
-  end
-  else if gsDBSqueeze_CardMergeForm.ShowModal = mrOk then
-    chkMergeCard.Checked := True; // отложенный запуск
+        // параметры объединения
+        FSThread.SetMergeCardParams(gsDBSqueeze_CardMergeForm.GetDate, FMergeDocTypesList, FCardFeaturesList, chkMergeCard.Checked);
+        // запуск объединения карточек
+        FSThread.DoMergeCards;
+      end;
+    mrOk:
+      begin
+        chkMergeCard.Checked := True; // отложенный запуск
+        FMergeDocTypesList.CommaText := gsDBSqueeze_CardMergeForm.GetSelectedIdDocTypes;
+        FCardFeaturesList.CommaText := gsDBSqueeze_CardMergeForm.GetSelectedCardFeatures;
+      end;  
+  end;
 end;
 
 procedure TgsDBSqueeze_MainForm.actCardSetupUpdate(Sender: TObject);
 begin
   actCardSetup.Enabled := FConnected;
+end;
+
+procedure TgsDBSqueeze_MainForm.actSaveLogExecute(Sender: TObject);
+var
+  Dir: String;
+begin
+  //if SelectDirectory('Select Directory', '', Dir) then
+  //  FLogFileName  := Dir + ;
+end;
+
+procedure TgsDBSqueeze_MainForm.actSaveLogUpdate(Sender: TObject);
+begin
+     //
 end;
 
 end.

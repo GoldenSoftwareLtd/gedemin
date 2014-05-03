@@ -1,6 +1,6 @@
 object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
-  Left = 959
-  Top = 54
+  Left = 979
+  Top = 114
   Width = 938
   Height = 575
   BorderIcons = [biSystemMenu, biMinimize]
@@ -88,7 +88,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         object Label2: TLabel
           Left = 95
           Top = 24
-          Width = 242
+          Width = 230
           Height = 13
           Caption = '[сервер[/порт]:]путь_к_файлу_базы_данных'
           Font.Charset = RUSSIAN_CHARSET
@@ -1302,7 +1302,6 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             Height = 25
             Action = actGet
             Caption = 'Получить'
-            Enabled = False
             Font.Charset = RUSSIAN_CHARSET
             Font.Color = clWindowText
             Font.Height = -11
@@ -1320,7 +1319,6 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             Height = 25
             Action = actGet
             Caption = 'Обновить'
-            Enabled = False
             TabOrder = 28
             TabStop = False
             OnMouseDown = btnGetStatisticsMouseDown
@@ -1339,7 +1337,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
       object lblProgress: TLabel
         Left = 745
         Top = 0
-        Width = 80
+        Width = 52
         Height = 13
         Alignment = taCenter
         Caption = 'lblProgress'
@@ -1447,6 +1445,11 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
       OnExecute = actCardSetupExecute
       OnUpdate = actCardSetupUpdate
     end
+    object actSaveLog: TAction
+      Caption = 'actSaveLog'
+      OnExecute = actSaveLogExecute
+      OnUpdate = actSaveLogUpdate
+    end
   end
   object MainMenu: TMainMenu
     Left = 768
@@ -1460,6 +1463,13 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         Action = actDisconnect
       end
       object N6: TMenuItem
+        Caption = '-'
+      end
+      object N13: TMenuItem
+        Action = actSaveLog
+        Caption = 'Cохранять журнал в файл...'
+      end
+      object N12: TMenuItem
         Caption = '-'
       end
       object N7: TMenuItem

@@ -49,7 +49,9 @@ const
   WM_DBS_DISCONNECT            = WM_GD_THREAD_USER + 40;
   WM_DBS_CREATE_INV_BALANCE    = WM_GD_THREAD_USER + 41;
 
-  WM_GD_EXIT_THREAD            = WM_GD_THREAD_USER + 42;
+  WM_DBS_MERGECARDS            = WM_GD_THREAD_USER + 42;
+
+  WM_GD_EXIT_THREAD            = WM_GD_THREAD_USER + 43;
 type
   TErrorEvent = procedure(const ErrorMsg: String) of object;
   TLogSQLEvent = procedure(const MsgLogSQL: String)of object;
@@ -79,6 +81,11 @@ type
 
     FConnectInfo: TgsDBConnectInfo;
     FDBSize: Int64;
+
+    FMergeDocDate: TDateTime;
+    FMergeDocTypes: TStringList;
+    FMergeCardFeatures: TStringList;
+    FMergeInProc: Boolean;
 
     FClosingDate: TDateTime;
     FAllOurCompaniesSaldo: Boolean;
@@ -161,11 +168,13 @@ type
     procedure StartProcessing;
     procedure StopProcessing;
 
+    procedure DoMergeCards;
     procedure DoGetDBProperties;
     procedure DoGetDBSize;
     procedure DoGetStatistics;
     procedure DoGetProcStatistics;
 
+    procedure SetMergeCardParams(const ADocDate: TDateTime; const ADocTypesList: TStringList; const ACardFeaturesList:  TStringList; const AMergeInProc: Boolean);
     procedure SetSaldoParams(const AAllOurCompanies: Boolean; const AOnlyCompany: Boolean; const ACalculateSaldo: Boolean);
     procedure SetCompanyKey(const ACompanyKey: Integer);
     procedure SetSelectDocTypes(const ADocTypes: TStringList; const AnIsProcDocTypes: Boolean);
@@ -500,7 +509,21 @@ begin
 
         PostThreadMessage(ThreadID, WM_GD_EXIT_THREAD, 0, 0);
         Result := True;
-      end;  
+      end;
+
+    WM_DBS_MERGECARDS:                                                          
+      begin
+        FBusy.Value := 1;
+        FDBS.ProgressMsgEvent('Объединение карточек...', 0);
+        FDBS.MergeCards(FMergeDocDate, FMergeDocTypes, FMergeCardFeatures);
+
+        FDBS.ProgressMsgEvent('', 0);
+        if FMergeInProc then
+          PostThreadMessage(ThreadID, WM_DBS_CREATEHIS_INCLUDEHIS, 0, 0);
+
+        FDBS.ProgressMsgEvent('', 0);
+        Result := True;
+      end;
 
     WM_DBS_SETFVARIABLLES:
       begin
@@ -577,7 +600,10 @@ begin
             FDBS.ProgressMsgEvent(' ', 14*PROGRESS_STEP);
           end;
 
-          PostThreadMessage(ThreadID, WM_DBS_CREATEHIS_INCLUDEHIS, 0, 0);
+          if FMergeInProc then
+            PostThreadMessage(ThreadID, WM_DBS_MERGECARDS, 0, 0)
+          else
+            PostThreadMessage(ThreadID, WM_DBS_CREATEHIS_INCLUDEHIS, 0, 0);
         end;
         Result := True;
       end;
@@ -794,6 +820,18 @@ begin
   PostMsg(WM_DBS_SETSALDOPARAMS);
 end;
 
+procedure TgsDBSqueezeThread.SetMergeCardParams(
+  const ADocDate: TDateTime;
+  const ADocTypesList: TStringList;
+  const ACardFeaturesList:  TStringList;
+  const AMergeInProc: Boolean);
+begin
+  FMergeDocDate := ADocDate;
+  FMergeDocTypes := ADocTypesList;
+  FMergeCardFeatures := ACardFeaturesList;
+  FMergeInProc :=  AMergeInProc;
+end;
+
 procedure TgsDBSqueezeThread.SetSelectDocTypes(const ADocTypes: TStringList; const AnIsProcDocTypes: Boolean);
 begin
   FDocTypesList.Text := ADocTypes.Text;
@@ -827,6 +865,11 @@ begin
   FMessageCallTime := AMessageCallTime;
   FMessageErrorMessage :=  AMessageErrorMessage;
   Synchronize(DoOnUsedDBSync);
+end;
+
+procedure TgsDBSqueezeThread.DoMergeCards;
+begin
+  PostMsg(WM_DBS_MERGECARDS);
 end;
 
 procedure TgsDBSqueezeThread.DoGetDBProperties;

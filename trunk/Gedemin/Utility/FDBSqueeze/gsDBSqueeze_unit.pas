@@ -4322,12 +4322,21 @@ begin
     q.Transaction := Tr;
     q2.Transaction := Tr;
 
-    q.SQL.Text :=
-      'CREATE TABLE DBS_TMP_MERGE_CARD ( ' +             #13#10 +
-      '  OLD_CARDKEY INTEGER, ' +                        #13#10 +
-      '  NEW_CARDKEY INTEGER, ' +                        #13#10 +
-      'constraint PK_DBS_TMP_MERGE_CARD primary key (OLD_CARDKEY))';
-    ExecSqlLogEvent(q, 'MergeCards');
+    if RelationExist2('DBS_TMP_MERGE_CARD', Tr) then
+    begin
+      q.SQL.Text := 'DELETE FROM DBS_TMP_MERGE_CARD';
+      ExecSqlLogEvent(q, 'MergeCards');
+      LogEvent('Table DBS_TMP_MERGE_CARD exists.');
+    end
+    else begin
+      q.SQL.Text :=
+        'CREATE TABLE DBS_TMP_MERGE_CARD ( ' +             #13#10 +
+        '  OLD_CARDKEY INTEGER, ' +                        #13#10 +
+        '  NEW_CARDKEY INTEGER, ' +                        #13#10 +
+        'constraint PK_DBS_TMP_MERGE_CARD primary key (OLD_CARDKEY))';
+      ExecSqlLogEvent(q, 'MergeCards');
+      LogEvent('Table DBS_TMP_MERGE_CARD has been created.');
+    end;
 
     Tr.Commit;
     Tr.StartTransaction;
@@ -4435,11 +4444,11 @@ begin
     if not FDoStopProcessing then
       ExecSqlLogEvent(q, 'MergeCards');
       
-{    Tr.Commit;
+    Tr.Commit;
     Tr.StartTransaction;
 
     q.SQL.Text := 'DROP TABLE DBS_TMP_MERGE_CARD';
-    ExecSqlLogEvent(q, 'DeleteDBSTables');     }
+    ExecSqlLogEvent(q, 'DeleteDBSTables');    
 
     Tr.Commit;
     LogEvent('InvCard merging... OK');
