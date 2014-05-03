@@ -9,7 +9,7 @@ uses
   gdc_frmMDH_unit, ExtCtrls, IBDatabase, Db, flt_sqlFilter,
   Menus, ActnList,  ComCtrls, ToolWin, Grids, DBGrids, gsDBGrid, gsIBGrid,
   FrmPlSvr, IBCustomDataSet, gdcBase, gdcConst, TB2Item, TB2Dock,
-  TB2Toolbar, StdCtrls, gd_MacrosMenu;
+  TB2Toolbar, StdCtrls, gd_MacrosMenu, gsStorage_CompPath, ibsql, dmDatabase_unit;
 
 type
   Tgdc_frmMDHGR = class(Tgdc_frmMDH)
@@ -82,11 +82,56 @@ uses
   , gdc_frmStreamSaver;
 
 procedure Tgdc_frmMDHGR.LoadSettings;
+  function FindParentSubType(SubType: string): string;
+  var
+    ibsql: TIBSQL;
+    tr: TIBTransaction;
+    prnt: Integer;
+  begin
+    Result := '';
+    ibsql := TIBSQL.Create(nil);
+    tr:= TIBTransaction.Create(nil);
+    try
+      tr.DefaultDatabase:= dmDatabase.ibdbGAdmin;
+      tr.StartTransaction;
+      ibsql.Transaction:= tr;
+      ibsql.Close;
+      ibsql.SQL.Text :=
+        'SELECT z.* FROM gd_documenttype z '#13#10 +
+        'WHERE z.RUID = :RUID ';
+      ibsql.ParamByName('RUID').AsString := SubType;
+      ibsql.ExecQuery;
+      if not ibsql.Eof then
+      begin
+        prnt := ibsql.FieldByName('Parent').AsInteger;
+        ibsql.Close;
+        ibsql.SQL.Text :=
+          'SELECT z.* FROM gd_documenttype z '#13#10 +
+          'WHERE z.ID = :ID AND z.documenttype = ''D''';
+        ibsql.ParamByName('ID').AsInteger := prnt;
+        ibsql.ExecQuery;
+        if not ibsql.Eof then
+        begin
+          Result := ibsql.FieldByName('RUID').AsString;
+        end;
+      end;
+    finally
+      tr.Commit;
+      tr.Free;
+      ibsql.Free;
+    end;
+  end;
   {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
   {M}VAR
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
+  bLoadedFromUserStorage: boolean;
+  Path: String;
+  F: TMemoryStream;
+  SubType: String;
+  ParentSubType: String;
+
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_FRMMDHGR', 'LOADSETTINGS', KEYLOADSETTINGS)}
   {M}  try
@@ -112,9 +157,54 @@ begin
 
   if Assigned(UserStorage) then
   begin
-    UserStorage.LoadComponent(ibgrMain, ibgrMain.LoadFromStream);
-    UserStorage.LoadComponent(ibgrDetail, ibgrDetail.LoadFromStream);
-  end;  
+    F := TMemoryStream.Create;
+    try
+      Path := BuildComponentPath(ibgrMain);
+      bLoadedFromUserStorage:= UserStorage.ReadStream(Path, 'data', F);
+      if not bLoadedFromUserStorage then
+      begin
+        SubType := FSubType;
+        repeat
+          ParentSubType := FindParentSubType(SubType);
+          if ParentSubType <> '' then
+          begin
+            Path := StringReplace(Path, SubType, ParentSubType, [rfReplaceAll, rfIgnoreCase]);
+            bLoadedFromUserStorage:= UserStorage.ReadStream(Path, 'data', F);
+            SubType := ParentSubType;
+          end;
+        until (bLoadedFromUserStorage) or (ParentSubType = '');
+      end;
+
+      if bLoadedFromUserStorage then
+        ibgrMain.LoadFromStream(F);
+    finally
+      F.Free;
+    end;
+
+    F := TMemoryStream.Create;
+    try
+      Path := BuildComponentPath(ibgrDetail);
+      bLoadedFromUserStorage:= UserStorage.ReadStream(Path, 'data', F);
+      if not bLoadedFromUserStorage then
+      begin
+        SubType := FSubType;
+        repeat
+          ParentSubType := FindParentSubType(SubType);
+          if ParentSubType <> '' then
+          begin
+            Path := StringReplace(Path, SubType, ParentSubType, [rfReplaceAll, rfIgnoreCase]);
+            bLoadedFromUserStorage:= UserStorage.ReadStream(Path, 'data', F);
+            SubType := ParentSubType;
+          end;
+        until (bLoadedFromUserStorage) or (ParentSubType = '');
+      end;
+
+      if bLoadedFromUserStorage then
+        ibgrDetail.LoadFromStream(F);
+    finally
+      F.Free;
+    end;
+  end;
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_FRMMDHGR', 'LOADSETTINGS', KEYLOADSETTINGS)}
   {M}finally
