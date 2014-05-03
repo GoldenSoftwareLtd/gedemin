@@ -542,6 +542,7 @@ type
 constructor TTBCustomToolbar.Create(AOwner: TComponent);
 begin
   inherited;
+  TBRegisterControlItem;
   ControlStyle := ControlStyle + [csAcceptsControls, csActionClient] -
     [csCaptureMouse];
   DockableWindowStyles := DockableWindowStyles - [tbdsResizeEightCorner,
