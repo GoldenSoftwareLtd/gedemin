@@ -823,6 +823,7 @@ const
 
 function TBGetItems(const AObject: TObject): TTBCustomItem;
 procedure TBInitToolbarSystemFont;
+procedure TBRegisterControlItem;
 
 var
   ToolbarFont: TFont;
@@ -6971,6 +6972,17 @@ var
 begin
   if GetSystemNonClientMetrics(NonClientMetrics) then
     ToolbarFont.Handle := CreateFontIndirect(NonClientMetrics.lfMenuFont);
+end;
+
+var
+  ControlItemRegistered: Boolean = False;
+
+procedure TBRegisterControlItem;
+begin
+  if not ControlItemRegistered then begin
+    RegisterClass (TTBControlItem);
+    ControlItemRegistered := True;
+  end;
 end;
 
 initialization
