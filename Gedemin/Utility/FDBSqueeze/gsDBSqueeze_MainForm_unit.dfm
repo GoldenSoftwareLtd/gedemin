@@ -1,6 +1,6 @@
 object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
-  Left = 979
-  Top = 114
+  Left = 35
+  Top = 359
   Width = 938
   Height = 575
   BorderIcons = [biSystemMenu, biMinimize]
@@ -88,9 +88,9 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         object Label2: TLabel
           Left = 95
           Top = 24
-          Width = 230
+          Width = 233
           Height = 13
-          Caption = '[сервер[/порт]:]путь_к_файлу_базы_данных'
+          Caption = '[сервер[/порт]:]путь_к_файлу_базы_данных '
           Font.Charset = RUSSIAN_CHARSET
           Font.Color = clWindowText
           Font.Height = -11
@@ -216,7 +216,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           end
           object chkCalculateSaldo: TCheckBox
             Left = 13
-            Top = 48
+            Top = 46
             Width = 334
             Height = 17
             TabStop = False
@@ -1465,22 +1465,6 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
       object N6: TMenuItem
         Caption = '-'
       end
-      object N13: TMenuItem
-        Action = actSaveLog
-        Caption = 'Cохранять журнал в файл...'
-      end
-      object N12: TMenuItem
-        Caption = '-'
-      end
-      object N7: TMenuItem
-        Action = actLoadConfig
-      end
-      object N8: TMenuItem
-        Action = actSaveConfig
-      end
-      object N10: TMenuItem
-        Caption = '-'
-      end
       object N11: TMenuItem
         Action = actGo
       end
@@ -1492,6 +1476,22 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
       end
       object N2: TMenuItem
         Action = actExit
+      end
+    end
+    object N14: TMenuItem
+      Caption = 'Настройки'
+      object N7: TMenuItem
+        Action = actLoadConfig
+      end
+      object N8: TMenuItem
+        Action = actSaveConfig
+      end
+      object N10: TMenuItem
+        Caption = '-'
+      end
+      object N13: TMenuItem
+        Action = actSaveLog
+        Caption = 'Cохранять журнал в файл...'
       end
     end
     object N9: TMenuItem

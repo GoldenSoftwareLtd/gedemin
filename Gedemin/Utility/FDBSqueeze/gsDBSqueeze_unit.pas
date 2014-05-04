@@ -52,7 +52,6 @@ type
 
     FBackupFileName: String;
     FRestoreDBName: String;
-    FLogFileName: String;
 
     FCalculateSaldo: Boolean;
 
@@ -187,7 +186,6 @@ type
     property DocTypesList: TStringList     read FDocTypesList         write SetSelectDocTypes;
     property DoProcDocTypes: Boolean       read FDoProcDocTypes       write FDoProcDocTypes;
     property CreateBackup: Boolean         read FCreateBackup         write FCreateBackup;
-    property LogFileName: String           read FLogFileName          write FLogFileName;
     property OnProgressWatch: TProgressWatchEvent
       read FOnProgressWatch            write FOnProgressWatch;
     property OnGetConnectedEvent: TOnGetConnectedEvent

@@ -20,25 +20,80 @@ const
 
 type
   TgsDBSqueeze_MainForm = class(TForm, IgdProgressWatch)
-    ActionList: TActionList;
+    actAbout: TAction;
+    actCardSetup: TAction;
     actClearLog: TAction;
     actCompany: TAction;
     actConfigBrowse: TAction;
+    actConnect: TAction;
     actDatabaseBrowse: TAction;
     actDefocus: TAction;
     actDisconnect: TAction;
+    actExit: TAction;
     actGet: TAction;
     actGo: TAction;
+    ActionList: TActionList;
+    actLoadConfig: TAction;
+    actMergeCardDlg: TAction;
+    actSaveConfig: TAction;
+    actSaveLog: TAction;
+    actSelectDocTypes: TAction;
     actStop: TAction;
     actUpdate: TAction;
+    btnCardSetup: TButton;
+    btnClearGeneralLog: TButton;
+    btnConnect: TButton;
+    btnDatabaseBrowse: TButton;
     btnGetStatistics: TButton;
+    btnSelectDocTypes: TButton;
+    btntTestConnection: TButton;
     btnUpdateStatistics: TBitBtn;
+    cbbCharset: TComboBox;
+    chkCalculateSaldo: TCheckBox;
+    chkGetStatiscits: TCheckBox;
+    chkMergeCard: TCheckBox;
+    dtpClosingDate: TDateTimePicker;
+    edDatabaseName: TEdit;
+    edPassword: TEdit;
+    edUserName: TEdit;
+    GroupBox1: TGroupBox;
+    grpOptions: TGroupBox;
     Label1: TLabel;
+    Label2: TLabel;
+    Label3: TLabel;
+    lbl1: TLabel;
+    lbl2: TLabel;
+    lbl3: TLabel;
+    lbl5: TLabel;
+    lblProgress: TLabel;
+    MainMenu: TMainMenu;
+    mIgnoreDocTypes: TMemo;
+    mLog: TMemo;
+    mSqlLog: TMemo;
+    N10: TMenuItem;
+    N11: TMenuItem;                             
+    N13: TMenuItem;
+    N14: TMenuItem;
+    N1: TMenuItem;
+    N2: TMenuItem;
+    N3: TMenuItem;
+    N4: TMenuItem;
+    N5: TMenuItem;
+    N6: TMenuItem;
+    N7: TMenuItem;
+    N8: TMenuItem;
+    N9: TMenuItem;
+    Panel1: TPanel;
+    pbMain: TProgressBar;
     pgcMain: TPageControl;
     pnl1: TPanel;
     pnl2: TPanel;
     pnl3: TPanel;
     pnl4: TPanel;
+    pnlLogButton: TPanel;
+    pnlLogs: TPanel;
+    rbExcluding: TRadioButton;
+    rbIncluding: TRadioButton;
     shp10: TShape;
     shp1: TShape;
     shp2: TShape;
@@ -48,6 +103,7 @@ type
     shp6: TShape;
     shp7: TShape;
     shp8: TShape;
+    Splitter1: TSplitter;
     StaticText10: TStaticText;
     StaticText11: TStaticText;
     StaticText12: TStaticText;
@@ -56,6 +112,8 @@ type
     StaticText7: TStaticText;
     StaticText8: TStaticText;
     StaticText9: TStaticText;
+    stConnect: TStaticText;
+    STOP1: TMenuItem;
     sttxt11: TStaticText;
     sttxt21: TStaticText;
     sttxt28: TStaticText;
@@ -105,64 +163,6 @@ type
     txt4: TStaticText;
     txt5: TStaticText;
     txt6: TStaticText;
-    pnlLogButton: TPanel;
-    btnClearGeneralLog: TButton;
-    actConnect: TAction;
-    pnlLogs: TPanel;
-    mLog: TMemo;
-    Splitter1: TSplitter;
-    mSqlLog: TMemo;
-    lbl1: TLabel;
-    edDatabaseName: TEdit;
-    btnDatabaseBrowse: TButton;
-    Label2: TLabel;
-    lbl2: TLabel;
-    edUserName: TEdit;
-    lbl3: TLabel;
-    edPassword: TEdit;
-    Label3: TLabel;
-    cbbCharset: TComboBox;
-    btnConnect: TButton;
-    btntTestConnection: TButton;
-    GroupBox1: TGroupBox;
-    lbl5: TLabel;
-    dtpClosingDate: TDateTimePicker;
-    chkCalculateSaldo: TCheckBox;
-    btnSelectDocTypes: TButton;
-    mIgnoreDocTypes: TMemo;
-    MainMenu: TMainMenu;
-    N1: TMenuItem;
-    actExit: TAction;
-    N2: TMenuItem;
-    N3: TMenuItem;
-    N4: TMenuItem;
-    N5: TMenuItem;
-    N6: TMenuItem;
-    actLoadConfig: TAction;
-    actSaveConfig: TAction;
-    N7: TMenuItem;
-    N8: TMenuItem;
-    actAbout: TAction;
-    N9: TMenuItem;
-    N10: TMenuItem;
-    N11: TMenuItem;                             
-    STOP1: TMenuItem;
-    actSelectDocTypes: TAction;
-    rbExcluding: TRadioButton;
-    rbIncluding: TRadioButton;
-    grpOptions: TGroupBox;
-    chkGetStatiscits: TCheckBox;
-    chkMergeCard: TCheckBox;
-    actMergeCardDlg: TAction;
-    actCardSetup: TAction;
-    btnCardSetup: TButton;
-    Panel1: TPanel;
-    pbMain: TProgressBar;
-    stConnect: TStaticText;
-    lblProgress: TLabel;
-    N12: TMenuItem;
-    N13: TMenuItem;
-    actSaveLog: TAction;
     procedure actClearLogExecute(Sender: TObject);
     procedure actDatabaseBrowseExecute(Sender: TObject);
     procedure actDisconnectExecute(Sender: TObject);
@@ -193,41 +193,39 @@ type
     procedure actSaveLogUpdate(Sender: TObject);
 
   private
-    FStartupTime: TDateTime;
+    FLogFileStream: TFileStream;
     FSThread: TgsDBSqueezeThread;
 
-    FProcessing: Boolean;
-
     FConnected: Boolean;
-    FSaveLogs: Boolean;
     FIsProcessStop: Boolean;
 
     FCardFeaturesList: TStringList;
-    FMergeDocTypesList: TStringList;
-    FWasSelectedDocTypes: Boolean;
-    FDocTypesList: TStringList;
     FDatabaseName: String;
+    FDocTypesList: TStringList;
+    FMergeDocTypesList: TStringList;
+    FStartupTime: TDateTime;
+    FWasSelectedDocTypes: Boolean;
 
-    procedure ThreadDestroy;
+    procedure CheckFreeDiskSpace(const APath: String; const AFileSize: Int64);
+    procedure DataDestroy;
     procedure RecLog(const ARec: String);
     procedure SetProgress(const ACurrentStepName: String; const ACurrentStep: Integer);
     procedure SetTextDocTypesMemo(Text: String);
     procedure UpdateProgress(const AProgressInfo: TgdProgressInfo);
-    procedure CheckFreeDiskSpace(const APath: String; const AFileSize: Int64);
+    procedure WriteToLogFile(const AStr: String);
 
     procedure ErrorEvent(const AErrorMsg: String);
     procedure FinishEvent(const AIsFinished: Boolean);
+    procedure GetCardFeaturesEvent(const ACardFatures: TStringList);
     procedure GetConnectedEvent(const AConnected: Boolean);
     procedure GetDBPropertiesEvent(const AProperties: TStringList);
     procedure GetDBSizeEvent(const AnDBSize: String);
     procedure GetProcStatisticsEvent(const AProcGdDoc: String; const AnProcAcEntry: String; const AnProcInvMovement: String; const AnProcInvCard: String);
     procedure GetStatisticsEvent(const AGdDoc: String; const AnAcEntry: String; const AnInvMovement: String; const AnInvCard: String);
     procedure LogSQLEvent(const ALogSQL: String);
-    procedure SetDocTypeStringsEvent(const ADocTypes: TStringList);
-    procedure GetCardFeaturesEvent(const ACardFatures: TStringList);
     procedure SetDocTypeBranchEvent(const ABranchList: TStringList);
+    procedure SetDocTypeStringsEvent(const ADocTypes: TStringList);
     procedure UsedDBEvent(const AFunctionKey: Integer; const AState: Integer; const ACallTime: String; const AErrorMessage: String);
-    procedure ClearStats;
 
   public
     constructor Create(AnOwner: TComponent); override;
@@ -293,26 +291,33 @@ end;
 destructor TgsDBSqueeze_MainForm.Destroy;
 begin
   FSThread.Free;
+  if Assigned(FLogFileStream) then
+    FLogFileStream.Free;
   FMergeDocTypesList.Free;
   FCardFeaturesList.Free;
   FDocTypesList.Free;
   inherited;
 end;
 
-procedure TgsDBSqueeze_MainForm.ThreadDestroy;
+procedure TgsDBSqueeze_MainForm.DataDestroy;
 begin
-  FStartupTime := Now;
-
-  FWasSelectedDocTypes := False;
-  gsDBSqueeze_DocTypesForm.ClearData;                                              ///////////////////////////
-  mIgnoreDocTypes.Clear;
-  FDocTypesList.Clear;
-
-  FSaveLogs := False;
-
   cbbCharset.ItemIndex := cbbCharset.Items.IndexOf(DEFAULT_CHARACTER_SET);
   dtpClosingDate.Date := Date;
+  rbIncluding.Checked := True;
+  mIgnoreDocTypes.Clear;
   chkGetStatiscits.Checked := True;
+  chkMergeCard.Checked := False;
+
+  FStartupTime := Now;
+  FWasSelectedDocTypes := False;
+  mIgnoreDocTypes.Clear;
+  FDocTypesList.Clear;
+  FMergeDocTypesList.Clear;
+  FCardFeaturesList.Clear;
+  FDatabaseName := '';
+
+  gsDBSqueeze_DocTypesForm.DataDestroy;
+  gsDBSqueeze_CardMergeForm.DataDestroy;
 
   sttxtDBSizeBefore.Caption := '';
   sttxtDBSizeAfter.Caption := '';
@@ -343,6 +348,9 @@ begin
   sttxtAfterProcInvMovement.Caption := '';
   sttxtAfterProcInvCard.Caption := '';
 
+  if Assigned(FLogFileStream) then
+    FreeAndNil(FLogFileStream);
+
   FreeAndNil(FSThread);
   FSThread := TgsDBSqueezeThread.Create(False);
   FSThread.ProgressWatch := Self;
@@ -351,6 +359,8 @@ begin
   FSThread.OnUsedDB := UsedDBEvent;
   FSThread.OnGetDBProperties := GetDBPropertiesEvent;
   FSThread.OnSetDocTypeStrings := SetDocTypeStringsEvent;
+  FSThread.OnGetInvCardFeatures := GetCardFeaturesEvent;
+  FSThread.OnSetDocTypeBranch := SetDocTypeBranchEvent;
   FSThread.OnGetDBSize := GetDBSizeEvent;
   FSThread.OnGetStatistics := GetStatisticsEvent;
   FSThread.OnGetProcStatistics := GetProcStatisticsEvent;
@@ -361,8 +371,8 @@ end;
 
 procedure TgsDBSqueeze_MainForm.actDisconnectExecute(Sender: TObject);
 begin
-  GetConnectedEvent(False); //FSThread.Disconnect;                            ///TODO: после сообщения о дисконнекте разрушить
-  ThreadDestroy;
+  GetConnectedEvent(False);
+  DataDestroy;
 end;
 
 procedure TgsDBSqueeze_MainForm.actDisconnectUpdate(Sender: TObject);
@@ -387,7 +397,7 @@ procedure TgsDBSqueeze_MainForm.GetStatisticsEvent(
   const AnInvMovement: String;
   const AnInvCard: String);
 begin
-  mLog.Lines.Add('================= Number of recods in a table =================');
+  RecLog('================= Number of recods in a table =================');
   if ((Trim(sttxtGdDoc.Caption) > '') or (Trim(sttxtAcEntry.Caption) > '') or (Trim(sttxtInvMovement.Caption) > '')) or 
      ((btnUpdateStatistics.Tag = 1) and ((Trim(sttxtGdDoc.Caption) > '') or (Trim(sttxtAcEntry.Caption) > '') or (Trim(sttxtInvMovement.Caption) > ''))) then
   begin
@@ -395,20 +405,20 @@ begin
     sttxtAcEntryAfter.Caption := AnAcEntry;
     sttxtInvMovementAfter.Caption := AnInvMovement;
     sttxtInvCardAfter.Caption := AnInvCard;
-    mLog.Lines.Add('Current: ');
+    RecLog('Current: ');
   end
   else begin
     sttxtGdDoc.Caption := AGdDoc;
     sttxtAcEntry.Caption := AnAcEntry;
     sttxtInvMovement.Caption := AnInvMovement;
     sttxtInvCard.Caption := AnInvCard;
-    mLog.Lines.Add('Original: ');
+    RecLog('Original: ');
   end;
-  mLog.Lines.Add('GD_DOCUMENT: ' + AGdDoc);
-  mLog.Lines.Add('AC_ENTRY: ' + AnAcEntry);
-  mLog.Lines.Add('INV_MOVEMENT: ' + AnInvMovement);
-  mLog.Lines.Add('INV_CARD: ' + AnInvCard);
-  mLog.Lines.Add('===============================================================');
+  RecLog('GD_DOCUMENT: ' + AGdDoc);
+  RecLog('AC_ENTRY: ' + AnAcEntry);
+  RecLog('INV_MOVEMENT: ' + AnInvMovement);
+  RecLog('INV_CARD: ' + AnInvCard);
+  RecLog('===============================================================');
 end;
 
 procedure TgsDBSqueeze_MainForm.GetProcStatisticsEvent(
@@ -417,7 +427,7 @@ procedure TgsDBSqueeze_MainForm.GetProcStatisticsEvent(
   const AnProcInvMovement: String;
   const AnProcInvCard: String);
 begin
-  mLog.Lines.Add('=========== Number of processing records in a table ===========');
+  RecLog('=========== Number of processing records in a table ===========');
   if ((Trim(sttxtProcGdDoc.Caption) > '') and (Trim(sttxtProcAcEntry.Caption) > '') and (Trim(sttxtProcInvMovement.Caption) > '')) or
      ((btnUpdateStatistics.Tag = 1) and ((Trim(sttxtProcGdDoc.Caption) > '') and (Trim(sttxtProcAcEntry.Caption) > '') and (Trim(sttxtProcInvMovement.Caption) > ''))) then
   begin
@@ -425,22 +435,21 @@ begin
     sttxtAfterProcAcEntry.Caption := AnProcAcEntry;
     sttxtAfterProcInvMovement.Caption := AnProcInvMovement;
     sttxtAfterProcInvCard.Caption := AnProcInvCard;
-    mLog.Lines.Add('Current: ');
+    RecLog('Current: ');
   end
   else begin
     sttxtProcGdDoc.Caption := AProcGdDoc;
     sttxtProcAcEntry.Caption := AnProcAcEntry;
     sttxtProcInvMovement.Caption := AnProcInvMovement;
     sttxtProcInvCard.Caption := AnProcInvCard;
-    mLog.Lines.Add('Original: ');
+    RecLog('Original: ');
   end;
-  mLog.Lines.Add('GD_DOCUMENT: ' + AProcGdDoc);
-  mLog.Lines.Add('AC_ENTRY: ' + AnProcAcEntry);
-  mLog.Lines.Add('INV_MOVEMENT: ' + AnProcInvMovement);
-  mLog.Lines.Add('INV_CARD: ' + AnProcInvCard);
-  mLog.Lines.Add('===============================================================');
+  RecLog('GD_DOCUMENT: ' + AProcGdDoc);
+  RecLog('AC_ENTRY: ' + AnProcAcEntry);
+  RecLog('INV_MOVEMENT: ' + AnProcInvMovement);
+  RecLog('INV_CARD: ' + AnProcInvCard);
+  RecLog('===============================================================');
 
-  FProcessing := False;
   if btnGetStatistics.Tag = 1 then
     btnGetStatistics.Tag := 0
   else if btnUpdateStatistics.Tag = 1 then
@@ -499,7 +508,6 @@ end;
 procedure TgsDBSqueeze_MainForm.actGetExecute(Sender: TObject);
 begin
   FSThread.DoGetStatistics;
-  FProcessing := True;
 end;
 
 procedure TgsDBSqueeze_MainForm.actGetUpdate(Sender: TObject);
@@ -543,33 +551,33 @@ begin
 
   FSThread.DoGetStatisticsAfterProc := chkGetStatiscits.Checked;
 
-  mLog.Lines.Add('====================== Settings =======================');
+  RecLog('====================== Settings =======================');
 
-  mLog.Lines.Add('Database: ' + edDatabaseName.Text);
-  mLog.Lines.Add('Username: ' + edUserName.Text);
-  mLog.Lines.Add('Удалить документы с DOCUMENTDATE < ' + DateToStr(dtpClosingDate.Date));
+  RecLog('Database: ' + edDatabaseName.Text);
+  RecLog('Username: ' + edUserName.Text);
+  RecLog('Удалить документы с DOCUMENTDATE < ' + DateToStr(dtpClosingDate.Date));
 
   if chkCalculateSaldo.Checked then
-    mLog.Lines.Add('Сохранить сальдо, вычисленное программой: ДА')
+    RecLog('Сохранить сальдо, вычисленное программой: ДА')
   else
-    mLog.Lines.Add('Сохранить сальдо, вычисленное программой: НЕТ');
+    RecLog('Сохранить сальдо, вычисленное программой: НЕТ');
 
   if FDocTypesList.Count > 0 then
   begin
     if rbExcluding.Checked then
-      mLog.Lines.Add('Не обрабатывать документы с  DOCUMENTTYPE: ')
+      RecLog('Не обрабатывать документы с  DOCUMENTTYPE: ')
     else
-      mLog.Lines.Add('Обрабатывать только документы с DOCUMENTTYPE: ');
+      RecLog('Обрабатывать только документы с DOCUMENTTYPE: ');
     for I:=0 to FDocTypesList.Count-1 do
-      mLog.Lines.Add(FDocTypesList[I]);
+      RecLog(FDocTypesList[I]);
   end;
   if chkGetStatiscits.Checked then
-    mLog.Lines.Add('По завершению обработки получить статистику: ДА')
+    RecLog('По завершению обработки получить статистику: ДА')
   else
-    mLog.Lines.Add('По завершению обработки получить статистику: НЕТ');
+    RecLog('По завершению обработки получить статистику: НЕТ');
 
-  mLog.Lines.Add('=======================================================');
-  mLog.Lines.Add(mLog.Text);
+  RecLog('=======================================================');
+  RecLog(mLog.Text);
 
   if FSThread.DoGetStatisticsAfterProc then
   begin
@@ -632,7 +640,7 @@ begin
   if FIsProcessStop then                                                        ///TODO: переделать через event
   begin
     FSThread.WaitFor;    // ожидаем завершения
-    ThreadDestroy;
+    DataDestroy;
     GetConnectedEvent(False);
     FIsProcessStop := False;
   end
@@ -672,6 +680,7 @@ end;
 procedure TgsDBSqueeze_MainForm.LogSQLEvent(const ALogSQL: String);
 begin
   mSqlLog.Lines.Add(ALogSQL);
+  WriteToLogFile(ALogSQL);
 end;
 
 procedure TgsDBSqueeze_MainForm.ErrorEvent(const AErrorMsg: String);
@@ -686,6 +695,7 @@ var
 begin
   RecStr := FormatDateTime('h:nn:ss', Now) + ' -- ' + ARec;
   mLog.Lines.Add(RecStr);
+  WriteToLogFile(RecStr);
 end;
 
 procedure TgsDBSqueeze_MainForm.SetProgress(const ACurrentStepName: String; const ACurrentStep: Integer);
@@ -766,7 +776,6 @@ var
   Server, FileName: String;
   Port: Integer;
 begin
-  ClearStats;
   ParseDatabaseName(edDatabaseName.Text, Server, Port, FileName);
 
   if Trim(Server) = '' then
@@ -780,32 +789,6 @@ begin
     cbbCharset.Text,
     Port);
   FSThread.Connect;
-end;
-
-procedure TgsDBSqueeze_MainForm.ClearStats;
-begin
-  sttxtGdDoc.Caption := '';
-  sttxtGdDocAfter.Caption := '';
-  sttxtAcEntry.Caption := '';
-  sttxtAcEntryAfter.Caption := '';
-  sttxtInvMovement.Caption := '';
-  sttxtInvMovementAfter.Caption := '';
-  sttxtInvMovement.Caption := '';
-  sttxtInvMovementAfter.Caption := '';
-  sttxtInvCard.Caption := '';
-  sttxtInvCardAfter.Caption := '';
-  sttxtUser.Caption := '';
-  sttxtDialect.Caption := '';
-  sttxtServerVer.Caption := '';
-  sttxtODSVer.Caption := '';
-  sttxtRemoteProtocol.Caption := '';
-  sttxtRemoteAddr.Caption := '';
-  sttxtPageSize.Caption := '';
-  sttxtPageBuffers.Caption := '';
-  sttxtForcedWrites.Caption := '';
-  sttxtGarbageCollection.Caption := '';
-  sttxtDBSizeBefore.Caption := '';
-  sttxtDBSizeAfter.Caption := '';
 end;
 
 procedure TgsDBSqueeze_MainForm.actExitExecute(Sender: TObject);
@@ -850,6 +833,7 @@ begin
       gsIniOptions.MergingBranchRows := gsDBSqueeze_CardMergeForm.GetSelectedBranchRowsStr;
       gsIniOptions.MergingCardFeatures := gsDBSqueeze_CardMergeForm.GetSelectedCardFeatures;
       gsIniOptions.MergingFeaturesRows := gsDBSqueeze_CardMergeForm.GetSelectedFeaturesRows;
+      gsIniOptions.DoMergeCards := chkMergeCard.Checked;
 
       gsIniOptions.SaveToFile(SaveDlg.FileName);
     end;
@@ -885,14 +869,14 @@ begin
       else
         rbExcluding.Checked := True;
 
+      gsDBSqueeze_DocTypesForm.ClearSelection;
       gsDBSqueeze_DocTypesForm.SetSelectedDocTypes(gsIniOptions.SelectedDocTypeKeys, gsIniOptions.SelectedBranchRows);
 
       mIgnoreDocTypes.Clear;
       SetTextDocTypesMemo(gsDBSqueeze_DocTypesForm.GetDocTypeMemoText);
-
       FWasSelectedDocTypes := (Trim(mIgnoreDocTypes.Text) > '');
 
-      gsDBSqueeze_CardMergeForm.ClearData;
+      gsDBSqueeze_CardMergeForm.ClearSelection;
       gsDBSqueeze_CardMergeForm.SetDate(gsIniOptions.MergingDate);
       gsDBSqueeze_CardMergeForm.SetSelectedDocTypes(gsIniOptions.MergingDocTypeKeys, gsIniOptions.MergingBranchRows);
       gsDBSqueeze_CardMergeForm.SetSelectedCardFeatures(gsIniOptions.MergingCardFeatures, gsIniOptions.MergingFeaturesRows);
@@ -969,15 +953,44 @@ end;
 
 procedure TgsDBSqueeze_MainForm.actSaveLogExecute(Sender: TObject);
 var
-  Dir: String;
+  SaveDlg: TSaveDialog;
 begin
-  //if SelectDirectory('Select Directory', '', Dir) then
-  //  FLogFileName  := Dir + ;
+  SaveDlg := TSaveDialog.Create(Self);
+  try
+    SaveDlg.InitialDir := GetCurrentDir;
+    SaveDlg.Options := [ofFileMustExist, ofEnableSizing];
+    SaveDlg.Filter := 'Log File (*.LOG)|*.log';
+    SaveDlg.FilterIndex := 1;
+    SaveDlg.DefaultExt := 'log';
+    SaveDlg.FileName := 'DBS_' +  FormatDateTime('yymmdd_hh-mm', FStartupTime) + '.log';
+
+    if SaveDlg.Execute then
+    begin
+      if not FileExists(SaveDlg.FileName) then
+        with TFileStream.Create(SaveDlg.FileName, fmCreate) do Free;
+
+      FLogFileStream := TFileStream.Create(SaveDlg.FileName, fmOpenWrite or fmShareDenyNone);
+    end;
+  finally
+    SaveDlg.Free;
+  end;
 end;
 
 procedure TgsDBSqueeze_MainForm.actSaveLogUpdate(Sender: TObject);
 begin
-     //
+  actSaveLog.Enabled := FConnected and (not Assigned(FLogFileStream));
+end;
+
+procedure TgsDBSqueeze_MainForm.WriteToLogFile(const AStr: String);
+var
+  RecStr: String;
+begin
+  if Assigned(FLogFileStream) then
+  begin
+    RecStr := AStr + #13#10;
+    FLogFileStream.Position := FLogFileStream.Size;
+    FLogFileStream.Write(RecStr[1], Length(RecStr));
+  end;
 end;
 
 end.
