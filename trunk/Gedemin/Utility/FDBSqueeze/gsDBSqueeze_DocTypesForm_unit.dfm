@@ -1,6 +1,6 @@
 object gsDBSqueeze_DocTypesForm: TgsDBSqueeze_DocTypesForm
-  Left = 798
-  Top = 125
+  Left = 211
+  Top = 114
   Action = actSelectAll
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsDialog
@@ -17,7 +17,7 @@ object gsDBSqueeze_DocTypesForm: TgsDBSqueeze_DocTypesForm
   OnClick = actSelectAllExecute
   PixelsPerInch = 96
   TextHeight = 13
-  object strngrdIgnoreDocTypes: TStringGrid
+  object strngrdDocTypes: TStringGrid
     Left = 281
     Top = 26
     Width = 498
@@ -32,10 +32,10 @@ object gsDBSqueeze_DocTypesForm: TgsDBSqueeze_DocTypesForm
     Options = [goFixedHorzLine, goVertLine, goHorzLine, goRangeSelect, goRowSelect]
     ScrollBars = ssVertical
     TabOrder = 3
-    OnDblClick = strngrdIgnoreDocTypesDblClick
-    OnDrawCell = strngrdIgnoreDocTypesDrawCell
+    OnDblClick = strngrdDocTypesDblClick
+    OnDrawCell = strngrdDocTypesDrawCell
   end
-  object mIgnoreDocTypes: TMemo
+  object mDocTypes: TMemo
     Left = 281
     Top = 509
     Width = 498

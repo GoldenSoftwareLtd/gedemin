@@ -1,6 +1,6 @@
 object gsDBSqueeze_CardMergeForm: TgsDBSqueeze_CardMergeForm
-  Left = 455
-  Top = 283
+  Left = 14
+  Top = 257
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsDialog
   Caption = 'Объединение складских карточек'
@@ -142,15 +142,15 @@ object gsDBSqueeze_CardMergeForm: TgsDBSqueeze_CardMergeForm
     TabOrder = 8
   end
   object btnMergeGo: TButton
-    Left = 688
-    Top = 648
+    Left = 899
+    Top = 644
     Width = 113
     Height = 25
     Caption = 'Запустить сейчас!'
-    TabOrder = 10
+    TabOrder = 11
     OnClick = btnMergeGoClick
   end
-  object dtpClosingDate: TDateTimePicker
+  object dtpMergingDate: TDateTimePicker
     Left = 300
     Top = 618
     Width = 86
@@ -168,12 +168,12 @@ object gsDBSqueeze_CardMergeForm: TgsDBSqueeze_CardMergeForm
     TabStop = False
   end
   object btn1: TButton
-    Left = 802
-    Top = 648
+    Left = 689
+    Top = 644
     Width = 209
     Height = 25
     Caption = 'Выполнить в контексте обрезания БД'
-    TabOrder = 11
+    TabOrder = 10
     OnClick = btnIsMergeOption
   end
   object strngrdCardFeatures: TStringGrid
@@ -212,8 +212,8 @@ object gsDBSqueeze_CardMergeForm: TgsDBSqueeze_CardMergeForm
     TabOrder = 7
   end
   object actlstCardMerge: TActionList
-    Left = 936
-    Top = 520
+    Left = 24
+    Top = 648
     object actSelectAllDocs: TAction
       Caption = 'actSelectAllDocs'
       ShortCut = 16449
