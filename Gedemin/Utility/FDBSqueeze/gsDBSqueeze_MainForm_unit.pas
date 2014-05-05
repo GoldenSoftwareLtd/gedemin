@@ -9,8 +9,6 @@ uses
   gd_ProgressNotifier_unit, CommCtrl, Db, Menus;
 
 const
-  DEFAULT_HOST = 'localhost';
-  DEFAULT_PORT = 3050;
   DEFAULT_USER_NAME = 'SYSDBA';
   DEFAULT_PASSWORD = 'masterkey';
   DEFAULT_CHARACTER_SET = 'WIN1251';
@@ -88,18 +86,15 @@ type
     pgcMain: TPageControl;
     pnl1: TPanel;
     pnl2: TPanel;
-    pnl3: TPanel;
     pnl4: TPanel;
     pnlLogButton: TPanel;
     pnlLogs: TPanel;
     rbExcluding: TRadioButton;
     rbIncluding: TRadioButton;
     shp10: TShape;
-    shp1: TShape;
     shp2: TShape;
     shp3: TShape;
     shp4: TShape;
-    shp5: TShape;
     shp6: TShape;
     shp7: TShape;
     shp8: TShape;
@@ -115,9 +110,6 @@ type
     stConnect: TStaticText;
     STOP1: TMenuItem;
     sttxt11: TStaticText;
-    sttxt21: TStaticText;
-    sttxt28: TStaticText;
-    sttxt29: TStaticText;
     sttxt2: TStaticText;
     sttxt30: TStaticText;
     sttxt32: TStaticText;
@@ -132,8 +124,6 @@ type
     sttxtAfterProcGdDoc: TStaticText;
     sttxtAfterProcInvCard: TStaticText;
     sttxtAfterProcInvMovement: TStaticText;
-    sttxtDBSizeAfter: TStaticText;
-    sttxtDBSizeBefore: TStaticText;
     sttxtDialect: TStaticText;
     sttxtForcedWrites: TStaticText;
     sttxtGarbageCollection: TStaticText;
@@ -172,9 +162,7 @@ type
     procedure actGoExecute(Sender: TObject);
     procedure actStopExecute(Sender: TObject);
     procedure actStopUpdate(Sender: TObject);
-    procedure btnBackupBrowseMouseDown(Sender: TObject;Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
-    procedure btnGetStatisticsMouseDown(Sender: TObject;
-      Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+    procedure btnGetStatisticsMouseDown(Sender: TObject;Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
     procedure actConnectUpdate(Sender: TObject);
     procedure actConnectExecute(Sender: TObject);
     procedure actExitExecute(Sender: TObject);
@@ -191,26 +179,23 @@ type
     procedure actCardSetupUpdate(Sender: TObject);
     procedure actSaveLogExecute(Sender: TObject);
     procedure actSaveLogUpdate(Sender: TObject);
+    procedure actDatabaseBrowseUpdate(Sender: TObject);
 
   private
     FLogFileStream: TFileStream;
     FSThread: TgsDBSqueezeThread;
 
-    FConnected: Boolean;
-    FIsProcessStop: Boolean;
-
     FCardFeaturesList: TStringList;
-    FDatabaseName: String;
+    FConnected: Boolean;
     FDocTypesList: TStringList;
+    FIsProcessStop: Boolean;
     FMergeDocTypesList: TStringList;
     FStartupTime: TDateTime;
     FWasSelectedDocTypes: Boolean;
 
-    procedure CheckFreeDiskSpace(const APath: String; const AFileSize: Int64);
     procedure DataDestroy;
     procedure RecLog(const ARec: String);
     procedure SetProgress(const ACurrentStepName: String; const ACurrentStep: Integer);
-    procedure SetTextDocTypesMemo(Text: String);
     procedure UpdateProgress(const AProgressInfo: TgdProgressInfo);
     procedure WriteToLogFile(const AStr: String);
 
@@ -219,14 +204,11 @@ type
     procedure GetCardFeaturesEvent(const ACardFatures: TStringList);
     procedure GetConnectedEvent(const AConnected: Boolean);
     procedure GetDBPropertiesEvent(const AProperties: TStringList);
-    procedure GetDBSizeEvent(const AnDBSize: String);
     procedure GetProcStatisticsEvent(const AProcGdDoc: String; const AnProcAcEntry: String; const AnProcInvMovement: String; const AnProcInvCard: String);
     procedure GetStatisticsEvent(const AGdDoc: String; const AnAcEntry: String; const AnInvMovement: String; const AnInvCard: String);
     procedure LogSQLEvent(const ALogSQL: String);
     procedure SetDocTypeBranchEvent(const ABranchList: TStringList);
     procedure SetDocTypeStringsEvent(const ADocTypes: TStringList);
-    procedure UsedDBEvent(const AFunctionKey: Integer; const AState: Integer; const ACallTime: String; const AErrorMessage: String);
-
   public
     constructor Create(AnOwner: TComponent); override;
     destructor Destroy; override;
@@ -245,7 +227,7 @@ uses
 constructor TgsDBSqueeze_MainForm.Create(AnOwner: TComponent);
 begin
   inherited;
-
+ 
   FMergeDocTypesList := TStringList.Create;
   FCardFeaturesList := TStringList.Create;
   FDocTypesList := TStringList.Create;
@@ -255,11 +237,11 @@ begin
   mLog.ReadOnly := True;
   mSqlLog.ReadOnly := True;
   dtpClosingDate.Date := Date;
-
   edUserName.Text := DEFAULT_USER_NAME;
   edPassword.Text := DEFAULT_PASSWORD;
-
   pbMain.Max := MAX_PROGRESS_STEP;
+  cbbCharset.Items.CommaText := CHARSET_LIST_CH1 + ',' + CHARSET_LIST_CH2;
+  cbbCharset.ItemIndex := cbbCharset.Items.IndexOf(DEFAULT_CHARACTER_SET);
 
   lblProgress.Parent := pbMain;
   lblProgress.Width := pbMain.Width - 8;
@@ -268,21 +250,17 @@ begin
   lblProgress.Transparent := True;
   lblProgress.Caption := '';
 
-  cbbCharset.Items.CommaText := CHARSET_LIST_CH1 + ',' + CHARSET_LIST_CH2;
-  cbbCharset.ItemIndex := cbbCharset.Items.IndexOf(DEFAULT_CHARACTER_SET);
-
-  FConnected := False;
   FStartupTime := Now;
+  FConnected := False;
   FSThread := TgsDBSqueezeThread.Create(False);
+
   FSThread.ProgressWatch := Self;
   FSThread.OnGetConnected := GetConnectedEvent;
   FSThread.OnLogSQL := LogSQLEvent;
-  FSThread.OnUsedDB := UsedDBEvent;
   FSThread.OnGetDBProperties := GetDBPropertiesEvent;
   FSThread.OnSetDocTypeStrings := SetDocTypeStringsEvent;
   FSThread.OnGetInvCardFeatures := GetCardFeaturesEvent;
   FSThread.OnSetDocTypeBranch := SetDocTypeBranchEvent;
-  FSThread.OnGetDBSize := GetDBSizeEvent;
   FSThread.OnGetStatistics := GetStatisticsEvent;
   FSThread.OnGetProcStatistics := GetProcStatisticsEvent;
   FSThread.OnFinishEvent := FinishEvent;
@@ -296,6 +274,7 @@ begin
   FMergeDocTypesList.Free;
   FCardFeaturesList.Free;
   FDocTypesList.Free;
+
   inherited;
 end;
 
@@ -307,20 +286,6 @@ begin
   mIgnoreDocTypes.Clear;
   chkGetStatiscits.Checked := True;
   chkMergeCard.Checked := False;
-
-  FStartupTime := Now;
-  FWasSelectedDocTypes := False;
-  mIgnoreDocTypes.Clear;
-  FDocTypesList.Clear;
-  FMergeDocTypesList.Clear;
-  FCardFeaturesList.Clear;
-  FDatabaseName := '';
-
-  gsDBSqueeze_DocTypesForm.DataDestroy;
-  gsDBSqueeze_CardMergeForm.DataDestroy;
-
-  sttxtDBSizeBefore.Caption := '';
-  sttxtDBSizeAfter.Caption := '';
   sttxtUser.Caption := '';
   sttxtDialect.Caption := '';
   sttxtServerVer.Caption := '';
@@ -348,6 +313,13 @@ begin
   sttxtAfterProcInvMovement.Caption := '';
   sttxtAfterProcInvCard.Caption := '';
 
+  FStartupTime := Now;
+  FWasSelectedDocTypes := False;
+
+  FDocTypesList.Clear;
+  FMergeDocTypesList.Clear;
+  FCardFeaturesList.Clear;
+
   if Assigned(FLogFileStream) then
     FreeAndNil(FLogFileStream);
 
@@ -356,17 +328,61 @@ begin
   FSThread.ProgressWatch := Self;
   FSThread.OnGetConnected := GetConnectedEvent;
   FSThread.OnLogSQL := LogSQLEvent;
-  FSThread.OnUsedDB := UsedDBEvent;
   FSThread.OnGetDBProperties := GetDBPropertiesEvent;
   FSThread.OnSetDocTypeStrings := SetDocTypeStringsEvent;
   FSThread.OnGetInvCardFeatures := GetCardFeaturesEvent;
   FSThread.OnSetDocTypeBranch := SetDocTypeBranchEvent;
-  FSThread.OnGetDBSize := GetDBSizeEvent;
   FSThread.OnGetStatistics := GetStatisticsEvent;
   FSThread.OnGetProcStatistics := GetProcStatisticsEvent;
   FSThread.OnFinishEvent := FinishEvent;
 
+  gsDBSqueeze_DocTypesForm.DataDestroy;
+  gsDBSqueeze_CardMergeForm.DataDestroy;
+
   SetProgress(' ', 0);
+end;
+
+procedure TgsDBSqueeze_MainForm.FormCloseQuery(Sender: TObject;
+  var CanClose: Boolean);
+begin
+  CanClose := actExit.Enabled;
+end;
+
+// =============================== Меню ========================================
+
+procedure TgsDBSqueeze_MainForm.actExitExecute(Sender: TObject);
+begin
+  Close;
+end;
+
+procedure TgsDBSqueeze_MainForm.actExitUpdate(Sender: TObject);
+begin
+  actExit.Enabled := (FSThread = nil) or ((not FConnected) and (not FSThread.Busy));
+end;
+
+procedure TgsDBSqueeze_MainForm.actConnectExecute(Sender: TObject);
+var
+  Server, FileName: String;
+  Port: Integer;
+begin
+  ParseDatabaseName(edDatabaseName.Text, Server, Port, FileName);
+
+  if Trim(Server) = '' then
+    Server := 'localhost';
+
+  FSThread.SetDBParams(
+    FileName,
+    Server,
+    edUserName.Text,
+    edPassword.Text,
+    cbbCharset.Text,
+    Port);
+  FSThread.Connect;
+end;
+
+procedure TgsDBSqueeze_MainForm.actConnectUpdate(Sender: TObject);
+begin
+  actConnect.Enabled := not FConnected;
 end;
 
 procedure TgsDBSqueeze_MainForm.actDisconnectExecute(Sender: TObject);
@@ -380,15 +396,379 @@ begin
   actDisconnect.Enabled := FConnected and (not FSThread.Busy);
 end;
 
-
-procedure TgsDBSqueeze_MainForm.GetDBSizeEvent(const AnDBSize: String);
+procedure TgsDBSqueeze_MainForm.actGoExecute(Sender: TObject);
+var
+  I: Integer;
+  LogFileName, BackupFileName: String;
 begin
-  if Trim(sttxtDBSizeBefore.Caption) = '' then
-    sttxtDBSizeBefore.Caption := AnDBSize
-  else begin
-    sttxtDBSizeAfter.Enabled := True;
-    sttxtDBSizeAfter.Caption := AnDBSize;
+  LogFileName := '';
+  BackupFileName := '';
+
+  // параметры объединения
+  if (chkMergeCard.Checked) and (FMergeDocTypesList.Count <> 0) then
+    FSThread.SetMergeCardParams(gsDBSqueeze_CardMergeForm.GetDate, FMergeDocTypesList, FCardFeaturesList, chkMergeCard.Checked);
+
+  FSThread.SetClosingDate(dtpClosingDate.Date);
+
+  FSThread.SetSaldoParams(
+    True,
+    chkCalculateSaldo.Checked);
+
+  if FWasSelectedDocTypes then
+  begin
+    FDocTypesList.Clear;
+    FDocTypesList.CommaText := gsDBSqueeze_DocTypesForm.GetSelectedIdDocTypes;
+    if FDocTypesList.Count > 0 then
+      FSThread.SetSelectDocTypes(FDocTypesList, rbIncluding.Checked);
   end;
+
+  FSThread.DoGetStatisticsAfterProc := chkGetStatiscits.Checked;
+
+  RecLog('====================== Settings =======================');
+
+  RecLog('Database: ' + edDatabaseName.Text);
+  RecLog('Username: ' + edUserName.Text);
+  RecLog('Удалить документы с DOCUMENTDATE < ' + DateToStr(dtpClosingDate.Date));
+
+  if chkCalculateSaldo.Checked then
+    RecLog('Сохранить сальдо, вычисленное программой: ДА')
+  else
+    RecLog('Сохранить сальдо, вычисленное программой: НЕТ');
+
+  if FDocTypesList.Count > 0 then
+  begin
+    if rbExcluding.Checked then
+      RecLog('Не обрабатывать документы с  DOCUMENTTYPE: ')
+    else
+      RecLog('Обрабатывать только документы с DOCUMENTTYPE: ');
+    for I:=0 to FDocTypesList.Count-1 do
+      RecLog(FDocTypesList[I]);
+  end;
+  if chkGetStatiscits.Checked then
+    RecLog('По завершению обработки получить статистику: ДА')
+  else
+    RecLog('По завершению обработки получить статистику: НЕТ');
+
+  RecLog('=======================================================');
+  RecLog(mLog.Text);
+
+  if FSThread.DoGetStatisticsAfterProc then
+  begin
+    sttxtGdDoc.Caption := '';
+    sttxtAcEntry.Caption := '';
+    sttxtInvMovement.Caption := '';
+    sttxtInvCard.Caption := '';
+    sttxtGdDocAfter.Caption := '';
+    sttxtAcEntryAfter.Caption := '';
+    sttxtInvMovementAfter.Caption := '';
+    sttxtInvCardAfter.Caption := '';
+    sttxtProcGdDoc.Caption := '';
+    sttxtProcAcEntry.Caption := '';
+    sttxtProcInvMovement.Caption := '';
+    sttxtProcInvCard.Caption := '';
+    sttxtAfterProcGdDoc.Caption := '';
+    sttxtAfterProcAcEntry.Caption := '';
+    sttxtAfterProcInvMovement.Caption := '';
+    sttxtAfterProcInvCard.Caption := '';
+  end;
+
+  FSThread.StartProcessing;
+end;
+
+procedure TgsDBSqueeze_MainForm.actGoUpdate(Sender: TObject);
+begin
+  actGo.Enabled := (FSThread <> nil) and FConnected and (not FSThread.Busy);
+end;
+
+procedure TgsDBSqueeze_MainForm.actStopExecute(Sender: TObject);
+begin
+  case Application.MessageBox(
+    PChar('Прервать процесс обработки БД?' + #13#10 +
+      'Прерывание произойдет после завершения последней операции.' + #13#10 +
+      'Возобновить процесс будет невозможно.'),
+      PChar('Подтверждение'),
+      MB_OKCANCEL + MB_ICONQUESTION + MB_TOPMOST) of
+      IDOK:
+        begin
+          FSThread.StopProcessing;
+        end;
+  end;
+end;
+
+procedure TgsDBSqueeze_MainForm.actStopUpdate(Sender: TObject);
+begin
+  actStop.Enabled := Assigned(FSThread) and FSThread.Busy;
+
+  if FIsProcessStop then                                                        ///TODO: переделать через event
+  begin
+    FSThread.WaitFor;    // ожидаем завершения
+    DataDestroy;
+    GetConnectedEvent(False);
+    FIsProcessStop := False;
+  end
+end;
+
+procedure TgsDBSqueeze_MainForm.actSaveConfigExecute(Sender: TObject);
+var
+  SaveDlg: TSaveDialog;
+begin
+  SaveDlg := TSaveDialog.Create(Self);
+  try
+    SaveDlg.InitialDir := GetCurrentDir;
+    SaveDlg.Options := [ofFileMustExist, ofEnableSizing];
+    SaveDlg.Filter := 'Configuration File (*.INI)|*.ini';
+    SaveDlg.FilterIndex := 1;
+    SaveDlg.DefaultExt := 'ini';
+
+    if SaveDlg.Execute then
+    begin
+      {gsIniOptions.Database := edDatabaseName.Text;
+      gsIniOptions.Charset := cbbCharset.Text;             }
+      gsIniOptions.ClosingDate := dtpClosingDate.Date;
+      gsIniOptions.DoCalculateSaldo := chkCalculateSaldo.Checked;
+      gsIniOptions.DoProcessDocTypes := rbIncluding.Checked;
+      gsIniOptions.SelectedDocTypeKeys := gsDBSqueeze_DocTypesForm.GetSelectedDocTypesStr;
+      gsIniOptions.SelectedBranchRows := gsDBSqueeze_DocTypesForm.GetSelectedBranchRowsStr;
+      gsIniOptions.MergingDate := gsDBSqueeze_CardMergeForm.GetDate;
+      gsIniOptions.MergingDocTypeKeys := gsDBSqueeze_CardMergeForm.GetSelectedDocTypesStr;
+      gsIniOptions.MergingBranchRows := gsDBSqueeze_CardMergeForm.GetSelectedBranchRowsStr;
+      gsIniOptions.MergingCardFeatures := gsDBSqueeze_CardMergeForm.GetSelectedCardFeatures;
+      gsIniOptions.MergingFeaturesRows := gsDBSqueeze_CardMergeForm.GetSelectedFeaturesRows;
+      gsIniOptions.DoMergeCards := chkMergeCard.Checked;
+
+      gsIniOptions.SaveToFile(SaveDlg.FileName);
+    end;
+  finally
+    SaveDlg.Free;
+  end;
+end;
+
+procedure TgsDBSqueeze_MainForm.actSaveConfigUpdate(Sender: TObject);
+begin
+  actSaveConfig.Enabled :=  (FSThread <> nil) and FConnected;
+end;
+
+procedure TgsDBSqueeze_MainForm.actLoadConfigExecute(Sender: TObject);
+var
+  OpenDlg: TOpenDialog;
+begin
+  OpenDlg := TOpenDialog.Create(Self);
+  try
+    OpenDlg.InitialDir := GetCurrentDir;
+    OpenDlg.Options := [ofFileMustExist, ofEnableSizing];
+    OpenDlg.Filter := 'Configuration File (*.INI)|*.ini';
+    OpenDlg.FilterIndex := 1;
+
+    if OpenDlg.Execute then
+    begin
+      gsIniOptions.LoadFromFile(OpenDlg.FileName);
+
+      {edDatabaseName.Text :=  gsIniOptions.Database;
+      cbbCharset.ItemIndex := cbbCharset.Items.IndexOf(Trim(UpperCase(gsIniOptions.Charset))); }
+      dtpClosingDate.Date := gsIniOptions.ClosingDate;
+      chkCalculateSaldo.Checked := gsIniOptions.DoCalculateSaldo;
+
+      rbIncluding.Checked := False;
+      rbExcluding.Checked := False;
+      if gsIniOptions.DoProcessDocTypes then
+        rbIncluding.Checked := True
+      else
+        rbExcluding.Checked := True;
+
+      gsDBSqueeze_DocTypesForm.ClearSelection;
+      gsDBSqueeze_DocTypesForm.SetSelectedDocTypes(gsIniOptions.SelectedDocTypeKeys, gsIniOptions.SelectedBranchRows);
+
+      mIgnoreDocTypes.Clear;
+      mIgnoreDocTypes.Text := gsDBSqueeze_DocTypesForm.GetDocTypeMemoText;
+      FWasSelectedDocTypes := (Trim(mIgnoreDocTypes.Text) > '');
+
+      gsDBSqueeze_CardMergeForm.ClearSelection;
+      gsDBSqueeze_CardMergeForm.SetDate(gsIniOptions.MergingDate);
+      gsDBSqueeze_CardMergeForm.SetSelectedDocTypes(gsIniOptions.MergingDocTypeKeys, gsIniOptions.MergingBranchRows);
+      gsDBSqueeze_CardMergeForm.SetSelectedCardFeatures(gsIniOptions.MergingCardFeatures, gsIniOptions.MergingFeaturesRows);
+
+      chkMergeCard.Checked := gsIniOptions.DoMergeCards;
+
+      FMergeDocTypesList.Clear;
+      FCardFeaturesList.Clear;
+      if chkMergeCard.Checked then
+      begin
+        FMergeDocTypesList.CommaText := gsDBSqueeze_CardMergeForm.GetSelectedIdDocTypes;
+        FCardFeaturesList.CommaText := gsDBSqueeze_CardMergeForm.GetSelectedCardFeatures;
+      end;
+    end;
+  finally
+    OpenDlg.Free;
+  end;
+end;
+
+procedure TgsDBSqueeze_MainForm.actLoadConfigUpdate(Sender: TObject);
+begin
+  actLoadConfig.Enabled := (FSThread <> nil) and FConnected;
+end;
+
+procedure TgsDBSqueeze_MainForm.actSaveLogExecute(Sender: TObject);
+var
+  SaveDlg: TSaveDialog;
+begin
+  SaveDlg := TSaveDialog.Create(Self);
+  try
+    SaveDlg.InitialDir := GetCurrentDir;
+    SaveDlg.Options := [ofFileMustExist, ofEnableSizing];
+    SaveDlg.Filter := 'Log File (*.LOG)|*.log';
+    SaveDlg.FilterIndex := 1;
+    SaveDlg.DefaultExt := 'log';
+    SaveDlg.FileName := 'DBS_' +  FormatDateTime('yymmdd_hh-mm', FStartupTime) + '.log';
+
+    if SaveDlg.Execute then
+    begin
+      if not FileExists(SaveDlg.FileName) then
+        with TFileStream.Create(SaveDlg.FileName, fmCreate) do Free;
+
+      FLogFileStream := TFileStream.Create(SaveDlg.FileName, fmOpenWrite or fmShareDenyNone);
+    end;
+  finally
+    SaveDlg.Free;
+  end;
+end;
+
+procedure TgsDBSqueeze_MainForm.actSaveLogUpdate(Sender: TObject);
+begin
+  actSaveLog.Enabled := FConnected and (not Assigned(FLogFileStream));
+end;
+
+// ============================= Параметры =====================================
+
+procedure TgsDBSqueeze_MainForm.actDatabaseBrowseExecute(Sender: TObject);
+var
+  openDialog: TOpenDialog;
+begin
+  openDialog := TOpenDialog.Create(Self);
+  try
+    openDialog.InitialDir := GetCurrentDir;
+    openDialog.Options := [ofFileMustExist, ofEnableSizing];
+    openDialog.Filter := 'Firebird Database File (*.FDB)|*.fdb|InterBase Database File (*.GDB)|*.gdb|All Files|*.*';
+    openDialog.FilterIndex := 1;
+
+    if openDialog.Execute then
+      edDatabaseName.Text := openDialog.FileName;
+  finally
+    openDialog.Free;
+  end;
+end;
+
+procedure TgsDBSqueeze_MainForm.actDatabaseBrowseUpdate(Sender: TObject);
+begin
+  actDatabaseBrowse.Enabled := not FConnected;
+end;
+
+procedure TgsDBSqueeze_MainForm.actSelectDocTypesExecute(Sender: TObject);
+begin
+  if gsDBSqueeze_DocTypesForm.ShowModal = mrOk then
+    mIgnoreDocTypes.Text := gsDBSqueeze_DocTypesForm.GetDocTypeMemoText;
+  FWasSelectedDocTypes := (mIgnoreDocTypes.Text > '');
+end;
+
+procedure TgsDBSqueeze_MainForm.actSelectDocTypesUpdate(Sender: TObject);
+begin
+  actSelectDocTypes.Enabled := (FSThread <> nil) and FConnected and (not FSThread.Busy);
+end;
+
+procedure TgsDBSqueeze_MainForm.actCardSetupExecute(Sender: TObject);
+begin
+  case gsDBSqueeze_CardMergeForm.ShowModal of
+    mrYes:
+      begin
+        chkMergeCard.Checked := False;
+        FMergeDocTypesList.CommaText := gsDBSqueeze_CardMergeForm.GetSelectedIdDocTypes;
+        FCardFeaturesList.CommaText := gsDBSqueeze_CardMergeForm.GetSelectedCardFeatures;
+
+        // параметры объединения
+        FSThread.SetMergeCardParams(gsDBSqueeze_CardMergeForm.GetDate, FMergeDocTypesList, FCardFeaturesList, chkMergeCard.Checked);
+        // запуск объединения карточек
+        FSThread.DoMergeCards;
+      end;
+    mrOk:
+      begin
+        chkMergeCard.Checked := True; // отложенный запуск
+        FMergeDocTypesList.CommaText := gsDBSqueeze_CardMergeForm.GetSelectedIdDocTypes;
+        FCardFeaturesList.CommaText := gsDBSqueeze_CardMergeForm.GetSelectedCardFeatures;
+      end;
+  end;
+end;
+
+procedure TgsDBSqueeze_MainForm.actCardSetupUpdate(Sender: TObject);
+begin
+  actCardSetup.Enabled := FConnected;
+end;
+
+// ============================ Журнал =========================================
+
+procedure TgsDBSqueeze_MainForm.actClearLogExecute(Sender: TObject);
+begin
+  mLog.Clear;
+  mSqlLog.Clear;
+end;
+
+//============================ Статистика ======================================
+
+procedure TgsDBSqueeze_MainForm.actGetExecute(Sender: TObject);
+begin
+  FSThread.DoGetStatistics;
+end;
+
+procedure TgsDBSqueeze_MainForm.actGetUpdate(Sender: TObject);
+begin
+  actGet.Enabled := FConnected and (FSThread <> nil) and (not FSThread.Busy);
+end;
+
+procedure TgsDBSqueeze_MainForm.btnGetStatisticsMouseDown(Sender: TObject;
+  Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+begin
+  if Sender is TButton then
+    TButton(Sender).Tag := 1;
+end;
+
+//==============================================================================
+
+procedure TgsDBSqueeze_MainForm.GetConnectedEvent(const AConnected: Boolean);
+begin
+  if AConnected then
+    stConnect.Caption := 'Подключено'
+  else
+    stConnect.Caption := 'Отключено';
+  FConnected := AConnected;
+end;
+
+procedure  TgsDBSqueeze_MainForm.GetDBPropertiesEvent(const AProperties: TStringList);
+begin
+  sttxtUser.Caption := AProperties.Values['User'];
+  sttxtDialect.Caption := AProperties.Values['SQLDialect'];
+  sttxtServerVer.Caption := AProperties.Values['Server'];
+  sttxtODSVer.Caption := AProperties.Values['ODS'];
+  sttxtRemoteProtocol.Caption := AProperties.Values['RemoteProtocol'];
+  sttxtRemoteAddr.Caption := AProperties.Values['RemoteAddress'];
+  sttxtPageSize.Caption := AProperties.Values['PageSize'];
+  sttxtPageBuffers.Caption := AProperties.Values['PageBuffers'];
+  sttxtForcedWrites.Caption := AProperties.Values['ForcedWrites'];
+  sttxtGarbageCollection.Caption := AProperties.Values['GarbageCollection'];
+end;
+
+procedure TgsDBSqueeze_MainForm.SetDocTypeStringsEvent(const ADocTypes: TStringList);
+begin
+  gsDBSqueeze_DocTypesForm.SetDocTypes(ADocTypes);
+  gsDBSqueeze_CardMergeForm.SetDocTypes(ADocTypes);
+end;
+
+procedure TgsDBSqueeze_MainForm.SetDocTypeBranchEvent(const ABranchList: TStringList);
+begin
+  gsDBSqueeze_DocTypesForm.SetDocTypeBranch(ABranchList);
+  gsDBSqueeze_CardMergeForm.SetDocTypeBranch(ABranchList);
+end;
+
+procedure TgsDBSqueeze_MainForm.GetCardFeaturesEvent(const ACardFatures: TStringList);
+begin
+  gsDBSqueeze_CardMergeForm.SetCardFeatures(ACardFatures);
 end;
 
 procedure TgsDBSqueeze_MainForm.GetStatisticsEvent(
@@ -456,208 +836,6 @@ begin
     btnUpdateStatistics.Tag := 0;
 end;
 
-procedure TgsDBSqueeze_MainForm.SetDocTypeStringsEvent(const ADocTypes: TStringList);
-begin
-  gsDBSqueeze_DocTypesForm.SetDocTypes(ADocTypes);
-  gsDBSqueeze_CardMergeForm.SetDocTypes(ADocTypes);
-end;
-
-procedure TgsDBSqueeze_MainForm.GetCardFeaturesEvent(const ACardFatures: TStringList);
-begin
-  gsDBSqueeze_CardMergeForm.SetCardFeatures(ACardFatures);
-end;
-
-procedure TgsDBSqueeze_MainForm.SetDocTypeBranchEvent(const ABranchList: TStringList);
-begin
-  gsDBSqueeze_DocTypesForm.SetDocTypeBranch(ABranchList);
-  gsDBSqueeze_CardMergeForm.SetDocTypeBranch(ABranchList);
-end;
-
-procedure  TgsDBSqueeze_MainForm.GetDBPropertiesEvent(const AProperties: TStringList);
-begin
-  sttxtUser.Caption := AProperties.Values['User'];
-  sttxtDialect.Caption := AProperties.Values['SQLDialect'];
-  sttxtServerVer.Caption := AProperties.Values['Server'];
-  sttxtODSVer.Caption := AProperties.Values['ODS'];
-  sttxtRemoteProtocol.Caption := AProperties.Values['RemoteProtocol'];
-  sttxtRemoteAddr.Caption := AProperties.Values['RemoteAddress'];
-  sttxtPageSize.Caption := AProperties.Values['PageSize'];
-  sttxtPageBuffers.Caption := AProperties.Values['PageBuffers'];
-  sttxtForcedWrites.Caption := AProperties.Values['ForcedWrites'];
-  sttxtGarbageCollection.Caption := AProperties.Values['GarbageCollection'];
-end;
-
-procedure TgsDBSqueeze_MainForm.actDatabaseBrowseExecute(Sender: TObject);
-var
-  openDialog: TOpenDialog;
-begin
-  openDialog := TOpenDialog.Create(Self);
-  try
-    openDialog.InitialDir := GetCurrentDir;
-    openDialog.Options := [ofFileMustExist, ofEnableSizing];
-    openDialog.Filter := 'Firebird Database File (*.FDB)|*.fdb|InterBase Database File (*.GDB)|*.gdb|All Files|*.*';
-    openDialog.FilterIndex := 1;
-
-    if openDialog.Execute then
-      edDatabaseName.Text := openDialog.FileName;
-  finally
-    openDialog.Free;
-  end;
-end;
-
-procedure TgsDBSqueeze_MainForm.actGetExecute(Sender: TObject);
-begin
-  FSThread.DoGetStatistics;
-end;
-
-procedure TgsDBSqueeze_MainForm.actGetUpdate(Sender: TObject);
-begin
-  actGet.Enabled := FConnected and (FSThread <> nil) and (not FSThread.Busy);
-end;
-
-procedure TgsDBSqueeze_MainForm.actGoExecute(Sender: TObject);
-var
-  I: Integer;
-  LogFileName, BackupFileName: String;
-  RequiredSize: LongInt;
-begin
-  LogFileName := '';
-  BackupFileName := '';
-
-  // параметры объединения
-  if (chkMergeCard.Checked) and (FMergeDocTypesList.Count <> 0) then
-    FSThread.SetMergeCardParams(gsDBSqueeze_CardMergeForm.GetDate, FMergeDocTypesList, FCardFeaturesList, chkMergeCard.Checked);
-
-  FSThread.SetClosingDate(dtpClosingDate.Date);
-
-  FSThread.SetSaldoParams(
-    True,
-    False,
-    chkCalculateSaldo.Checked);
-
-  if FWasSelectedDocTypes then
-  begin
-    FDocTypesList.Clear;
-    FDocTypesList.CommaText := gsDBSqueeze_DocTypesForm.GetSelectedIdDocTypes;
-    if FDocTypesList.Count > 0 then
-      FSThread.SetSelectDocTypes(FDocTypesList, rbIncluding.Checked);
-  end;
-
-  if Pos('\', FDatabaseName) <> 0 then
-    Delete(FDatabaseName, 1, LastDelimiter('\', FDatabaseName));
-
-  RequiredSize := FSThread.DBSize div 2;
-  CheckFreeDiskSpace(ExtractFileDir(FDatabaseName), RequiredSize);
-
-  FSThread.DoGetStatisticsAfterProc := chkGetStatiscits.Checked;
-
-  RecLog('====================== Settings =======================');
-
-  RecLog('Database: ' + edDatabaseName.Text);
-  RecLog('Username: ' + edUserName.Text);
-  RecLog('Удалить документы с DOCUMENTDATE < ' + DateToStr(dtpClosingDate.Date));
-
-  if chkCalculateSaldo.Checked then
-    RecLog('Сохранить сальдо, вычисленное программой: ДА')
-  else
-    RecLog('Сохранить сальдо, вычисленное программой: НЕТ');
-
-  if FDocTypesList.Count > 0 then
-  begin
-    if rbExcluding.Checked then
-      RecLog('Не обрабатывать документы с  DOCUMENTTYPE: ')
-    else
-      RecLog('Обрабатывать только документы с DOCUMENTTYPE: ');
-    for I:=0 to FDocTypesList.Count-1 do
-      RecLog(FDocTypesList[I]);
-  end;
-  if chkGetStatiscits.Checked then
-    RecLog('По завершению обработки получить статистику: ДА')
-  else
-    RecLog('По завершению обработки получить статистику: НЕТ');
-
-  RecLog('=======================================================');
-  RecLog(mLog.Text);
-
-  if FSThread.DoGetStatisticsAfterProc then
-  begin
-    sttxtGdDoc.Caption := '';
-    sttxtAcEntry.Caption := '';
-    sttxtInvMovement.Caption := '';
-    sttxtInvCard.Caption := '';
-    sttxtGdDocAfter.Caption := '';
-    sttxtAcEntryAfter.Caption := '';
-    sttxtInvMovementAfter.Caption := '';
-    sttxtInvCardAfter.Caption := '';
-    sttxtProcGdDoc.Caption := '';
-    sttxtProcAcEntry.Caption := '';
-    sttxtProcInvMovement.Caption := '';
-    sttxtProcInvCard.Caption := '';
-    sttxtAfterProcGdDoc.Caption := '';
-    sttxtAfterProcAcEntry.Caption := '';
-    sttxtAfterProcInvMovement.Caption := '';
-    sttxtAfterProcInvCard.Caption := '';
-  end;
-
-  FSThread.StartProcessing;
-end;
-
-procedure TgsDBSqueeze_MainForm.btnBackupBrowseMouseDown(Sender: TObject;
-  Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
-begin
-  if Sender is TButton then
-    TButton(Sender).Tag := 1;
-end;
-
-procedure TgsDBSqueeze_MainForm.GetConnectedEvent(const AConnected: Boolean);
-begin
-  if AConnected then
-    stConnect.Caption := 'Подключено'
-  else
-    stConnect.Caption := 'Отключено';
-  FConnected := AConnected;
-end;
-
-procedure TgsDBSqueeze_MainForm.actStopExecute(Sender: TObject);
-begin
-  case Application.MessageBox(
-    PChar('Прервать процесс обработки БД?' + #13#10 +
-      'Прерывание произойдет после завершения последней операции.' + #13#10 +
-      'Возобновить процесс будет невозможно.'),
-      PChar('Подтверждение'),
-      MB_OKCANCEL + MB_ICONQUESTION + MB_TOPMOST) of
-      IDOK:
-        begin
-          FSThread.StopProcessing;
-        end;
-  end;
-end;
-
-procedure TgsDBSqueeze_MainForm.actStopUpdate(Sender: TObject);
-begin
-  actStop.Enabled := Assigned(FSThread) and FSThread.Busy;
-
-  if FIsProcessStop then                                                        ///TODO: переделать через event
-  begin
-    FSThread.WaitFor;    // ожидаем завершения
-    DataDestroy;
-    GetConnectedEvent(False);
-    FIsProcessStop := False;
-  end
-end;
-
-procedure TgsDBSqueeze_MainForm.SetTextDocTypesMemo(Text: String);
-begin
-  mIgnoreDocTypes.Clear;
-  mIgnoreDocTypes.Text := Text;
-end;
-
-procedure TgsDBSqueeze_MainForm.actClearLogExecute(Sender: TObject);
-begin
-  mLog.Clear;
-  mSqlLog.Clear;
-end;
-
 procedure TgsDBSqueeze_MainForm.FinishEvent(const AIsFinished: Boolean);
 begin
   if AIsFinished then
@@ -689,6 +867,20 @@ begin
   Application.MessageBox(PChar(AErrorMsg), 'Ошибка', MB_OK + MB_ICONSTOP + MB_TOPMOST);
 end;
 
+//==============================================================================
+
+procedure TgsDBSqueeze_MainForm.WriteToLogFile(const AStr: String);
+var
+  RecStr: String;
+begin
+  if Assigned(FLogFileStream) then
+  begin
+    RecStr := AStr + #13#10;
+    FLogFileStream.Position := FLogFileStream.Size;
+    FLogFileStream.Write(RecStr[1], Length(RecStr));
+  end;
+end;
+
 procedure TgsDBSqueeze_MainForm.RecLog(const ARec: String);
 var
   RecStr: String;
@@ -715,281 +907,6 @@ begin
       SetProgress(AProgressInfo.CurrentStepName, AProgressInfo.CurrentStep);
     psError:
       ErrorEvent(AProgressInfo.Message);
-  end;
-end; 
-
-procedure TgsDBSqueeze_MainForm.UsedDBEvent(const AFunctionKey: Integer; const AState: Integer; const ACallTime: String; const AErrorMessage: String);
-begin
-end;
-
-procedure TgsDBSqueeze_MainForm.CheckFreeDiskSpace(const APath: String; const AFileSize: Int64);
-var
-  CurDirectory: String;
-  FreeSpace: Int64;
-
-  function BytesToStr(const i64Size: Int64): String;
-  const
-    i64GB = 1024 * 1024 * 1024;
-    i64MB = 1024 * 1024;
-    i64KB = 1024;
-  begin
-    if i64Size div i64GB > 0 then
-      Result := Format('%.2f GB', [i64Size / i64GB])
-    else if i64Size div i64MB > 0 then
-      Result := Format('%.2f MB', [i64Size / i64MB])
-    else if i64Size div i64KB > 0 then
-      Result := Format('%.2f KB', [i64Size / i64KB])
-    else
-      Result := IntToStr(i64Size) + ' Byte(s)';
-  end;
-
-begin
-  CurDirectory := GetCurrentDir;
-  SetCurrentDir(ExtractFileDir(APath));
-  try
-    FreeSpace := DiskFree(0);
-    if FreeSpace < AFileSize then
-      //Application.MessageBox(PChar('Недостаточно свободного места! Освободите ' + IntToStr((AFileSize - FreeSpace) div 1048576)),  PChar('Предупреждение'), MB_OK + MB_ICONWARNING + MB_TOPMOST);
-      Application.MessageBox(
-        PChar('Недостаточно свободного места: ' + APath + #13#10 + ' Освободите ' + BytesToStr(AFileSize - FreeSpace)),
-        PChar('Предупреждение'),
-        MB_OK + MB_ICONWARNING + MB_TOPMOST);
-  finally
-    SetCurrentDir(CurDirectory);
-  end;
-end;
-
-procedure TgsDBSqueeze_MainForm.btnGetStatisticsMouseDown(Sender: TObject;
-  Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
-begin
-  if Sender is TButton then
-    TButton(Sender).Tag := 1;
-end;
-
-procedure TgsDBSqueeze_MainForm.actConnectUpdate(Sender: TObject);
-begin
-  actConnect.Enabled := not FConnected;
-end;
-
-procedure TgsDBSqueeze_MainForm.actConnectExecute(Sender: TObject);
-var
-  Server, FileName: String;
-  Port: Integer;
-begin
-  ParseDatabaseName(edDatabaseName.Text, Server, Port, FileName);
-
-  if Trim(Server) = '' then
-    Server := 'localhost';
-
-  FSThread.SetDBParams(
-    FileName,
-    Server,
-    edUserName.Text,
-    edPassword.Text,
-    cbbCharset.Text,
-    Port);
-  FSThread.Connect;
-end;
-
-procedure TgsDBSqueeze_MainForm.actExitExecute(Sender: TObject);
-begin
-  Close;
-end;
-
-procedure TgsDBSqueeze_MainForm.actExitUpdate(Sender: TObject);
-begin
-  actExit.Enabled := (FSThread = nil) or ((not FConnected) and (not FSThread.Busy));
-end;
-
-procedure TgsDBSqueeze_MainForm.FormCloseQuery(Sender: TObject;
-  var CanClose: Boolean);
-begin
-  CanClose := actExit.Enabled;
-end;
-
-procedure TgsDBSqueeze_MainForm.actSaveConfigExecute(Sender: TObject);
-var
-  SaveDlg: TSaveDialog;
-begin
-  SaveDlg := TSaveDialog.Create(Self);
-  try
-    SaveDlg.InitialDir := GetCurrentDir;
-    SaveDlg.Options := [ofFileMustExist, ofEnableSizing];
-    SaveDlg.Filter := 'Configuration File (*.INI)|*.ini';
-    SaveDlg.FilterIndex := 1;
-    SaveDlg.DefaultExt := 'ini';
-
-    if SaveDlg.Execute then
-    begin
-      {gsIniOptions.Database := edDatabaseName.Text;
-      gsIniOptions.Charset := cbbCharset.Text;             }
-      gsIniOptions.ClosingDate := dtpClosingDate.Date;
-      gsIniOptions.DoCalculateSaldo := chkCalculateSaldo.Checked;
-      gsIniOptions.DoProcessDocTypes := rbIncluding.Checked;
-      gsIniOptions.SelectedDocTypeKeys := gsDBSqueeze_DocTypesForm.GetSelectedDocTypesStr;
-      gsIniOptions.SelectedBranchRows := gsDBSqueeze_DocTypesForm.GetSelectedBranchRowsStr;
-      gsIniOptions.MergingDate := gsDBSqueeze_CardMergeForm.GetDate;
-      gsIniOptions.MergingDocTypeKeys := gsDBSqueeze_CardMergeForm.GetSelectedDocTypesStr;
-      gsIniOptions.MergingBranchRows := gsDBSqueeze_CardMergeForm.GetSelectedBranchRowsStr;
-      gsIniOptions.MergingCardFeatures := gsDBSqueeze_CardMergeForm.GetSelectedCardFeatures;
-      gsIniOptions.MergingFeaturesRows := gsDBSqueeze_CardMergeForm.GetSelectedFeaturesRows;
-      gsIniOptions.DoMergeCards := chkMergeCard.Checked;
-
-      gsIniOptions.SaveToFile(SaveDlg.FileName);
-    end;
-  finally
-    SaveDlg.Free;
-  end;
-end;
-
-procedure TgsDBSqueeze_MainForm.actLoadConfigExecute(Sender: TObject);
-var
-  OpenDlg: TOpenDialog;
-begin
-  OpenDlg := TOpenDialog.Create(Self);
-  try
-    OpenDlg.InitialDir := GetCurrentDir;
-    OpenDlg.Options := [ofFileMustExist, ofEnableSizing];
-    OpenDlg.Filter := 'Configuration File (*.INI)|*.ini';
-    OpenDlg.FilterIndex := 1;
-
-    if OpenDlg.Execute then
-    begin
-      gsIniOptions.LoadFromFile(OpenDlg.FileName);
-
-      {edDatabaseName.Text :=  gsIniOptions.Database;
-      cbbCharset.ItemIndex := cbbCharset.Items.IndexOf(Trim(UpperCase(gsIniOptions.Charset))); }
-      dtpClosingDate.Date := gsIniOptions.ClosingDate;
-      chkCalculateSaldo.Checked := gsIniOptions.DoCalculateSaldo;
-
-      rbIncluding.Checked := False;
-      rbExcluding.Checked := False;
-      if gsIniOptions.DoProcessDocTypes then
-        rbIncluding.Checked := True
-      else
-        rbExcluding.Checked := True;
-
-      gsDBSqueeze_DocTypesForm.ClearSelection;
-      gsDBSqueeze_DocTypesForm.SetSelectedDocTypes(gsIniOptions.SelectedDocTypeKeys, gsIniOptions.SelectedBranchRows);
-
-      mIgnoreDocTypes.Clear;
-      SetTextDocTypesMemo(gsDBSqueeze_DocTypesForm.GetDocTypeMemoText);
-      FWasSelectedDocTypes := (Trim(mIgnoreDocTypes.Text) > '');
-
-      gsDBSqueeze_CardMergeForm.ClearSelection;
-      gsDBSqueeze_CardMergeForm.SetDate(gsIniOptions.MergingDate);
-      gsDBSqueeze_CardMergeForm.SetSelectedDocTypes(gsIniOptions.MergingDocTypeKeys, gsIniOptions.MergingBranchRows);
-      gsDBSqueeze_CardMergeForm.SetSelectedCardFeatures(gsIniOptions.MergingCardFeatures, gsIniOptions.MergingFeaturesRows);
-
-      chkMergeCard.Checked := gsIniOptions.DoMergeCards;
-
-      FMergeDocTypesList.Clear;
-      FCardFeaturesList.Clear;
-      if chkMergeCard.Checked then
-      begin
-        FMergeDocTypesList.CommaText := gsDBSqueeze_CardMergeForm.GetSelectedIdDocTypes;
-        FCardFeaturesList.CommaText := gsDBSqueeze_CardMergeForm.GetSelectedCardFeatures;
-      end;
-    end;
-  finally
-    OpenDlg.Free;
-  end;
-end;
-
-procedure TgsDBSqueeze_MainForm.actSelectDocTypesExecute(Sender: TObject);
-begin
-  if gsDBSqueeze_DocTypesForm.ShowModal = mrOk then
-    SetTextDocTypesMemo(gsDBSqueeze_DocTypesForm.GetDocTypeMemoText);
-  FWasSelectedDocTypes := (mIgnoreDocTypes.Text > '');
-end;
-
-procedure TgsDBSqueeze_MainForm.actSelectDocTypesUpdate(Sender: TObject);
-begin
-  actSelectDocTypes.Enabled := (FSThread <> nil) and FConnected and (not FSThread.Busy);
-end;
-
-procedure TgsDBSqueeze_MainForm.actGoUpdate(Sender: TObject);
-begin
-  actGo.Enabled := (FSThread <> nil) and FConnected and (not FSThread.Busy);
-end;
-
-procedure TgsDBSqueeze_MainForm.actLoadConfigUpdate(Sender: TObject);
-begin
-  actLoadConfig.Enabled := (FSThread <> nil) and FConnected;
-end;
-
-procedure TgsDBSqueeze_MainForm.actSaveConfigUpdate(Sender: TObject);
-begin
-  actSaveConfig.Enabled :=  (FSThread <> nil) and FConnected;
-end;
-
-procedure TgsDBSqueeze_MainForm.actCardSetupExecute(Sender: TObject);
-begin
-  case gsDBSqueeze_CardMergeForm.ShowModal of
-    mrYes:
-      begin
-        chkMergeCard.Checked := False;
-        FMergeDocTypesList.CommaText := gsDBSqueeze_CardMergeForm.GetSelectedIdDocTypes;
-        FCardFeaturesList.CommaText := gsDBSqueeze_CardMergeForm.GetSelectedCardFeatures;
-
-        // параметры объединения
-        FSThread.SetMergeCardParams(gsDBSqueeze_CardMergeForm.GetDate, FMergeDocTypesList, FCardFeaturesList, chkMergeCard.Checked);
-        // запуск объединения карточек
-        FSThread.DoMergeCards;
-      end;
-    mrOk:
-      begin
-        chkMergeCard.Checked := True; // отложенный запуск
-        FMergeDocTypesList.CommaText := gsDBSqueeze_CardMergeForm.GetSelectedIdDocTypes;
-        FCardFeaturesList.CommaText := gsDBSqueeze_CardMergeForm.GetSelectedCardFeatures;
-      end;  
-  end;
-end;
-
-procedure TgsDBSqueeze_MainForm.actCardSetupUpdate(Sender: TObject);
-begin
-  actCardSetup.Enabled := FConnected;
-end;
-
-procedure TgsDBSqueeze_MainForm.actSaveLogExecute(Sender: TObject);
-var
-  SaveDlg: TSaveDialog;
-begin
-  SaveDlg := TSaveDialog.Create(Self);
-  try
-    SaveDlg.InitialDir := GetCurrentDir;
-    SaveDlg.Options := [ofFileMustExist, ofEnableSizing];
-    SaveDlg.Filter := 'Log File (*.LOG)|*.log';
-    SaveDlg.FilterIndex := 1;
-    SaveDlg.DefaultExt := 'log';
-    SaveDlg.FileName := 'DBS_' +  FormatDateTime('yymmdd_hh-mm', FStartupTime) + '.log';
-
-    if SaveDlg.Execute then
-    begin
-      if not FileExists(SaveDlg.FileName) then
-        with TFileStream.Create(SaveDlg.FileName, fmCreate) do Free;
-
-      FLogFileStream := TFileStream.Create(SaveDlg.FileName, fmOpenWrite or fmShareDenyNone);
-    end;
-  finally
-    SaveDlg.Free;
-  end;
-end;
-
-procedure TgsDBSqueeze_MainForm.actSaveLogUpdate(Sender: TObject);
-begin
-  actSaveLog.Enabled := FConnected and (not Assigned(FLogFileStream));
-end;
-
-procedure TgsDBSqueeze_MainForm.WriteToLogFile(const AStr: String);
-var
-  RecStr: String;
-begin
-  if Assigned(FLogFileStream) then
-  begin
-    RecStr := AStr + #13#10;
-    FLogFileStream.Position := FLogFileStream.Size;
-    FLogFileStream.Write(RecStr[1], Length(RecStr));
   end;
 end;
 

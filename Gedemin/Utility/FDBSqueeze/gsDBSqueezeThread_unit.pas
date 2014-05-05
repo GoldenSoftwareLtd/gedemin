@@ -11,7 +11,6 @@ const
   PROGRESS_STEP = MAX_PROGRESS_STEP div 100;
 
   WM_DBS_SETPARAMS             = WM_GD_THREAD_USER + 4;
-  WM_DBS_GETDBSIZE             = WM_GD_THREAD_USER + 5;
   WM_DBS_CONNECT               = WM_GD_THREAD_USER + 6;
 
   WM_DBS_SETDOCTYPESRINGS      = WM_GD_THREAD_USER + 7;
@@ -21,7 +20,7 @@ const
   WM_DBS_CREATEDBSSTATEJOURNAL = WM_GD_THREAD_USER + 9;
   WM_DBS_GETDBPROPERTIES       = WM_GD_THREAD_USER + 10;
   WM_DBS_SETCLOSINGDATE        = WM_GD_THREAD_USER + 11;
-  WM_DBS_SETCOMPANYKEY         = WM_GD_THREAD_USER + 12;
+  
   WM_DBS_SETSALDOPARAMS        = WM_GD_THREAD_USER + 13;
   WM_DBS_SETSELECTEDDOCTYPES   = WM_GD_THREAD_USER + 14;
   WM_DBS_GETSTATISTICS         = WM_GD_THREAD_USER + 16;
@@ -52,108 +51,88 @@ const
   WM_DBS_MERGECARDS            = WM_GD_THREAD_USER + 42;
 
   WM_GD_EXIT_THREAD            = WM_GD_THREAD_USER + 43;
+
 type
   TErrorEvent = procedure(const ErrorMsg: String) of object;
   TLogSQLEvent = procedure(const MsgLogSQL: String)of object;
   TGetConnectedEvent = procedure(const MsgConnected: Boolean) of object;
-  TUsedDBEvent =  procedure(const MsgFunctionKey: Integer; const MsgState: Integer; const MsgCallTime: String; const MsgErrorMessage: String) of object;
   TGetDBPropertiesEvent = procedure(const MsgPropertiesList: TStringList) of object;
   TSetDocTypeStringsEvent = procedure (const MsgDocTypeList: TStringList) of object;
   TGetInvCardFeaturesEvent =  procedure (const MsgCardFeaturesList: TStringList) of object;
   TSetDocTypeBranchEvent = procedure (const MsgBranchList: TStringList) of object;
-  TGetDBSizeEvent = procedure (const MsgStr: String) of object;
   TGetStatisticsEvent = procedure (const MsgGdDocStr: String; const MsgAcEntryStr: String; const MsgInvMovementStr: String; const MsgInvCardStr: String) of object;
   TGetProcStatisticsEvent = procedure (const MsgProcGdDocStr: String; const MsgProcAcEntryStr: String; const MsgProcInvMovementStr: String; const MsgProcInvCardStr: String) of object;
   TFinishEvent = procedure (const MsgIsFinished: Boolean) of object;
 
   TgsDBSqueezeThread = class(TgdMessagedThread)
   private
-    FDoGetStatisticsAfterProc: Boolean;
-    FDoStopProcessing: TidThreadSafeInteger;
-    FFinish: Boolean;
-    FBusy: TidThreadSafeInteger;
-    FIsFinishMsg: TidThreadSafeInteger;
-    FLogFileName: TidThreadSafeString;
-    FCompanyKey: Integer;
-
-    FDocTypesList: TStringList;
-    FIsProcDocTypes: Boolean;
-
-    FConnectInfo: TgsDBConnectInfo;
-    FDBSize: Int64;
-
-    FMergeDocDate: TDateTime;
-    FMergeDocTypes: TStringList;
-    FMergeCardFeatures: TStringList;
-    FMergeInProc: Boolean;
-
-    FClosingDate: TDateTime;
-    FAllOurCompaniesSaldo: Boolean;
-    FOnlyCompanySaldo: Boolean;
-    FCalculateSaldo: Boolean;
-
     FDBS: TgsDBSqueeze;
 
-    FConnected: TidThreadSafeInteger;  ///
+    FBusy: TidThreadSafeInteger;
+    FDoGetStatisticsAfterProc: TidThreadSafeInteger;
 
-    FMsgLogSQL: String;
+    FIsFinishMsg: TidThreadSafeInteger;
+    FDoStopProcessing: TidThreadSafeInteger;
 
-    FMsgConnected: Boolean;
-    FMsgConnectInfoList: TStringList;
+    FAllOurCompaniesSaldo: Boolean;                                             ///TODO убрать
+    FCalculateSaldo: Boolean;
+    FClosingDate: TDateTime;
+    FConnectInfo: TgsDBConnectInfo;
+    FDocTypesList: TStringList;
+    FFinish: Boolean;
+    FIsProcDocTypes: Boolean;
+    FMergeCardFeatures: TStringList;
+    FMergeDocDate: TDateTime;
+    FMergeDocTypes: TStringList;
+    FMergeInProc: Boolean;
 
-    FMessageFunctionKey: Integer;
-    FMessageState: Integer;
     FMessageCallTime: String;
-    FMessageErrorMessage: String;
-
-    //FMessageConnected: Boolean;
-    FMessagePropertiesList: TStringList;
-    FMessageDocTypeList: TStringList;
     FMessageCardFeatures:  TStringList;
     FMessageDocTypeBranchList: TStringList;
-    FMessageDBSizeStr: String;
+    FMessageDocTypeList: TStringList;
+    FMessageErrorMessage: String;
+    FMessageFunctionKey: Integer;
     FMessageGdDocStr, FMessageAcEntryStr, FMessageInvMovementStr, FMessageInvCardStr: String;
     FMessageProcGdDocStr, FMessageProcAcEntryStr, FMessageProcInvMovementStr, FMessageProcInvCardStr: String;
+    FMessagePropertiesList: TStringList;
+    FMessageState: Integer;
+    FMsgConnected: Boolean;
+    FMsgConnectInfoList: TStringList;
+    FMsgLogSQL: String;
 
     FOnFinish: TFinishEvent;
-    FOnLogSQL: TLogSQLEvent;
     FOnGetConnected: TGetConnectedEvent;
-    FOnUsedDB: TUsedDBEvent;
     FOnGetDBProperties: TGetDBPropertiesEvent;
-    FOnSetDocTypeStrings: TSetDocTypeStringsEvent;
     FOnGetInvCardFeatures: TGetInvCardFeaturesEvent;
-    FOnSetDocTypeBranch: TSetDocTypeBranchEvent;
-    FOnGetDBSize: TGetDBSizeEvent;
-    FOnGetStatistics: TGetStatisticsEvent;
     FOnGetProcStatistics: TGetProcStatisticsEvent;
+    FOnGetStatistics: TGetStatisticsEvent;
+    FOnLogSQL: TLogSQLEvent;
+    FOnSetDocTypeBranch: TSetDocTypeBranchEvent;
+    FOnSetDocTypeStrings: TSetDocTypeStringsEvent;
 
     procedure DoOnFinishSync;
-    procedure DoOnLogSQLSync;
-    procedure DoOnGetConnectedSync;
-    procedure DoOnUsedDBSync;
-    procedure DoOnGetDBPropertiesSync;
-    procedure DoOnSetDocTypeStringsSync;
     procedure DoOnGetCardFeaturesSync;
-    procedure DoOnSetDocTypeBranchSync;
-    procedure DoOnGetDBSizeSync;
-    procedure DoOnGetStatisticsSync;
+    procedure DoOnGetConnectedSync;
+    procedure DoOnGetDBPropertiesSync;
     procedure DoOnGetProcStatisticsSync;
+    procedure DoOnGetStatisticsSync;
+    procedure DoOnLogSQLSync;
+    procedure DoOnSetDocTypeBranchSync;
+    procedure DoOnSetDocTypeStringsSync;
 
     procedure Finish(const AIsFinished: Boolean);
-
-    procedure LogSQL(const AMsgLogSQL: String);
-    procedure GetConnected(const AMsgConnected: Boolean);
-    procedure UsedDB(const AMessageFunctionKey: Integer;const AMessageState: Integer;
-      const AMessageCallTime: String; const AMessageErrorMessage: String);
-    procedure GetDBProperties(const AMessageProperties: TStringList);
-    procedure SetDocTypeStrings(const AMessageDocTypeList: TStringList);
     procedure GetCardFeatures(const AMessageCardFeatures: TStringList);
-    procedure SetDocTypeBranch(const AMessageBranchList: TStringList);
-    procedure GetDBSize(const AMessageDBSizeStr: String; const ADBSize: Int64);
-    procedure GetStatistics(const AMessageGdDocStr: String; const AMessageAcEntryStr: String; const AMessageInvMovementStr: String; const AMessageInvCardStr: String);
+    procedure GetConnected(const AMsgConnected: Boolean);
+    procedure GetDBProperties(const AMessageProperties: TStringList);
     procedure GetProcStatistics(const AMessageProcGdDocStr: String; const AMessageProcAcEntryStr: String; const AMessageProcInvMovementStr: String; const AMessageProcInvCardStr: String);
+    procedure GetStatistics(const AMessageGdDocStr: String; const AMessageAcEntryStr: String; const AMessageInvMovementStr: String; const AMessageInvCardStr: String);
+    procedure LogSQL(const AMsgLogSQL: String);
+    procedure SetDocTypeBranch(const AMessageBranchList: TStringList);
+    procedure SetDocTypeStrings(const AMessageDocTypeList: TStringList);
+    procedure SetParamStatisticsAfterProc(AParam: Boolean);
 
     function GetBusy: Boolean;
+    function GetParamStatisticsAfterProc: Boolean;
 
   protected
     function ProcessMessage(var Msg: TMsg): Boolean; override;
@@ -164,49 +143,43 @@ type
 
     procedure Connect;
     procedure Disconnect;
-
     procedure StartProcessing;
     procedure StopProcessing;
-
     procedure DoMergeCards;
     procedure DoGetDBProperties;
-    procedure DoGetDBSize;
     procedure DoGetStatistics;
     procedure DoGetProcStatistics;
 
-    procedure SetMergeCardParams(const ADocDate: TDateTime; const ADocTypesList: TStringList; const ACardFeaturesList:  TStringList; const AMergeInProc: Boolean);
-    procedure SetSaldoParams(const AAllOurCompanies: Boolean; const AOnlyCompany: Boolean; const ACalculateSaldo: Boolean);
-    procedure SetCompanyKey(const ACompanyKey: Integer);
-    procedure SetSelectDocTypes(const ADocTypes: TStringList; const AnIsProcDocTypes: Boolean);
-    procedure SetDBParams(const ADatabaseName: String; const AHost: String; const AUserName: String; const APassword: String; const ACharacterSet: String; const APort: Integer = 0);
     procedure SetClosingDate(const AClosingDate: TDateTime);
+    procedure SetDBParams(const ADatabaseName: String; const AHost: String; const AUserName: String; const APassword: String; const ACharacterSet: String; const APort: Integer = 0);
+    procedure SetMergeCardParams(const ADocDate: TDateTime; const ADocTypesList: TStringList; const ACardFeaturesList:  TStringList; const AMergeInProc: Boolean);
+    procedure SetSelectDocTypes(const ADocTypes: TStringList; const AnIsProcDocTypes: Boolean);
+
+
+    procedure SetSaldoParams(const AAllOurCompanies: Boolean; const ACalculateSaldo: Boolean);             ///
+
 
     property Busy: Boolean  read GetBusy;
-    property DBSize: Int64  read FDBSize;
-    property DoGetStatisticsAfterProc: Boolean read FDoGetStatisticsAfterProc write FDoGetStatisticsAfterProc;
-
+    property DoGetStatisticsAfterProc: Boolean
+      read GetParamStatisticsAfterProc write SetParamStatisticsAfterProc;
     property OnFinishEvent: TFinishEvent
-      read FOnFinish             write FOnFinish;
-    property OnLogSQL: TLogSQLEvent
-      read FOnLogSQL             write FOnLogSQL;
+      read FOnFinish                   write FOnFinish;
     property OnGetConnected: TGetConnectedEvent
-      read FOnGetConnected       write FOnGetConnected;
-    property OnUsedDB: TUsedDBEvent
-      read FOnUsedDB             write FOnUsedDB;
+      read FOnGetConnected             write FOnGetConnected;
     property OnGetDBProperties: TGetDBPropertiesEvent
-      read FOnGetDBProperties    write FOnGetDBProperties;
-    property OnSetDocTypeStrings: TSetDocTypeStringsEvent
-      read FOnSetDocTypeStrings  write FOnSetDocTypeStrings;
+      read FOnGetDBProperties          write FOnGetDBProperties;
     property OnGetInvCardFeatures: TGetInvCardFeaturesEvent
-      read FOnGetInvCardFeatures write FOnGetInvCardFeatures;
-    property OnSetDocTypeBranch: TSetDocTypeBranchEvent
-      read FOnSetDocTypeBranch   write FOnSetDocTypeBranch;
-    property OnGetDBSize: TGetDBSizeEvent
-      read FOnGetDBSize          write FOnGetDBSize;
-    property OnGetStatistics: TGetStatisticsEvent
-      read FOnGetStatistics      write FOnGetStatistics;
+      read FOnGetInvCardFeatures       write FOnGetInvCardFeatures;
     property OnGetProcStatistics: TGetProcStatisticsEvent
-      read FOnGetProcStatistics  write FOnGetProcStatistics;
+      read FOnGetProcStatistics        write FOnGetProcStatistics;
+    property OnGetStatistics: TGetStatisticsEvent
+      read FOnGetStatistics            write FOnGetStatistics;
+    property OnLogSQL: TLogSQLEvent
+      read FOnLogSQL                   write FOnLogSQL;
+    property OnSetDocTypeBranch: TSetDocTypeBranchEvent
+      read FOnSetDocTypeBranch         write FOnSetDocTypeBranch;
+    property OnSetDocTypeStrings: TSetDocTypeStringsEvent
+      read FOnSetDocTypeStrings        write FOnSetDocTypeStrings;
   end;
 
 implementation
@@ -219,19 +192,16 @@ begin
   FDBS.OnProgressWatch := DoOnProgressWatch;
   FDBS.OnLogSQLEvent := LogSQL;
   FDBS.OnGetConnectedEvent := GetConnected;
-  FDBS.OnUsedDBEvent := UsedDB;
   FDBS.OnGetDBPropertiesEvent := GetDBProperties;
   FDBS.OnSetDocTypeStringsEvent := SetDocTypeStrings;
   FDBS.OnGetInvCardFeaturesEvent := GetCardFeatures;
   FDBS.OnSetDocTypeBranchEvent := SetDocTypeBranch;
-  FDBS.OnGetDBSizeEvent := GetDBSize;
   FDBS.OnGetStatistics := GetStatistics;
   FDBS.OnGetProcStatistics := GetProcStatistics;
   FDocTypesList :=  TStringList.Create;
-  FLogFileName := TIdThreadSafeString.Create;
   FIsFinishMsg := TIdThreadSafeInteger.Create;
   FBusy := TIdThreadSafeInteger.Create;
-  FConnected := TIdThreadSafeInteger.Create;
+  FDoGetStatisticsAfterProc := TIdThreadSafeInteger.Create;
   FMsgConnectInfoList := TStringList.Create;
   FMessageDocTypeList := TStringList.Create;
   FMessageCardFeatures := TStringList.Create;
@@ -252,10 +222,9 @@ begin
   inherited;
   FDBS.Free;
   FDocTypesList.Free;
-  FLogFileName.Free;
   FIsFinishMsg.Free;
   FBusy.Free;
-  FConnected.Free;
+  FDoGetStatisticsAfterProc.Free;
   FMsgConnectInfoList.Free;
   FMessageDocTypeList.Free;
   FMessageCardFeatures.Free;
@@ -315,12 +284,6 @@ begin
     FOnSetDocTypeBranch(FMessageDocTypeBranchList);
 end;
 
-procedure TgsDBSqueezeThread.DoOnUsedDBSync;
-begin
-  if Assigned(FOnUsedDB) then
-    FOnUsedDB(FMessageFunctionKey, FMessageState, FMessageCallTime,  FMessageErrorMessage);
-end;
-
 procedure TgsDBSqueezeThread.Finish(const AIsFinished: Boolean);
 begin
   if AIsFinished then
@@ -342,12 +305,6 @@ begin
     FOnGetDBProperties(FMessagePropertiesList);
 end;
 
-procedure TgsDBSqueezeThread.DoOnGetDBSizeSync;
-begin
-  if Assigned(FOnGetDBSize) then
-    FOnGetDBSize(FMessageDBSizeStr);
-end;
-
 procedure TgsDBSqueezeThread.DoOnGetStatisticsSync;
 begin
   if Assigned(FOnGetStatistics) then
@@ -367,6 +324,19 @@ begin
   Result := FBusy.Value <> 0;
 end;
 
+function TgsDBSqueezeThread.GetParamStatisticsAfterProc: Boolean;
+begin
+  Result := FDoGetStatisticsAfterProc.Value <> 0;
+end;
+
+procedure TgsDBSqueezeThread.SetParamStatisticsAfterProc(AParam: Boolean);
+begin
+  if AParam then
+    FDoGetStatisticsAfterProc.Value := 1
+  else
+    FDoGetStatisticsAfterProc.Value := 0;
+end;
+
 function TgsDBSqueezeThread.ProcessMessage(var Msg: TMsg): Boolean;
 begin
   Result := False;
@@ -375,15 +345,6 @@ begin
     WM_DBS_SETPARAMS:
       begin
         FDBS.ConnectInfo := FConnectInfo;
-
-        Result := True;
-      end;
-
-    WM_DBS_GETDBSIZE:
-      begin
-        FDBS.GetDBSizeEvent;
-
-        PostThreadMessage(ThreadID, WM_DBS_CONNECT, 0, 0);
 
         Result := True;
       end;
@@ -434,16 +395,9 @@ begin
         Result := True;
       end;
 
-    WM_DBS_SETCOMPANYKEY:
-      begin
-        FDBS.CompanyKey := FCompanyKey;
-        Result := True;
-      end;
-
     WM_DBS_SETSALDOPARAMS:
       begin
         FDBS.AllOurCompaniesSaldo := FAllOurCompaniesSaldo;
-        FDBS.OnlyCompanySaldo := FOnlyCompanySaldo;
         FDBS.CalculateSaldo := FCalculateSaldo;
 
         Result := True;
@@ -478,7 +432,7 @@ begin
         begin
           FBusy.Value := 1;
 
-          if FDoGetStatisticsAfterProc then
+          if GetParamStatisticsAfterProc then
           begin
             FDBS.GetStatisticsEvent;
             FDBS.GetProcStatisticsEvent;
@@ -517,11 +471,11 @@ begin
         FDBS.ProgressMsgEvent('Объединение карточек...', 0);
         FDBS.MergeCards(FMergeDocDate, FMergeDocTypes, FMergeCardFeatures);
 
-        FDBS.ProgressMsgEvent('', 0);
+        FDBS.ProgressMsgEvent(' ', 0);
+        FBusy.Value := 0;
+        
         if FMergeInProc then
           PostThreadMessage(ThreadID, WM_DBS_CREATEHIS_INCLUDEHIS, 0, 0);
-
-        FDBS.ProgressMsgEvent('', 0);
         Result := True;
       end;
 
@@ -734,7 +688,7 @@ begin
           FDBS.ProgressMsgEvent('Удаление метаданных...', 2*PROGRESS_STEP);                        // 1%
           FDBS.DeleteDBSTables;
 
-          if FDoGetStatisticsAfterProc and (FDoStopProcessing.Value = 0) then
+          if GetParamStatisticsAfterProc and (FDoStopProcessing.Value = 0) then
           begin
             FDBS.GetStatisticsEvent;
             FDBS.GetProcStatisticsEvent;
@@ -752,7 +706,6 @@ begin
       begin
         if FDoStopProcessing.Value = 0 then
         begin
-          FDBS.GetDBSizeEvent;
           FDBS.LogEvent('FINISH!');
           FDBS.ProgressMsgEvent('Обработка БД завершена.');
           
@@ -767,7 +720,6 @@ begin
     WM_DBS_DISCONNECT:
       begin
         FDBS.Disconnect;
-        FConnected.Value := 0;
 
         Result := True;
       end;
@@ -780,12 +732,6 @@ begin
     FDBS.ErrorEvent(E.Message);
   end;
  end;
-end;
-
-procedure TgsDBSqueezeThread.SetCompanyKey(const ACompanyKey: Integer);
-begin
-  FCompanyKey := ACompanyKey;
-  PostMsg(WM_DBS_SETCOMPANYKEY);
 end;
 
 procedure TgsDBSqueezeThread.SetDBParams(
@@ -812,10 +758,9 @@ begin
   PostMsg(WM_DBS_SETCLOSINGDATE);
 end;
 
-procedure  TgsDBSqueezeThread.SetSaldoParams(const AAllOurCompanies: Boolean; const AOnlyCompany: Boolean; const ACalculateSaldo: Boolean);
+procedure  TgsDBSqueezeThread.SetSaldoParams(const AAllOurCompanies: Boolean; const ACalculateSaldo: Boolean);
 begin
   FAllOurCompaniesSaldo := AAllOurCompanies;
-  FOnlyCompanySaldo := AOnlyCompany;
   FCalculateSaldo := ACalculateSaldo;
   PostMsg(WM_DBS_SETSALDOPARAMS);
 end;
@@ -857,16 +802,6 @@ begin
   Synchronize(DoOnSetDocTypeBranchSync);
 end;
 
-procedure TgsDBSqueezeThread.UsedDB(const AMessageFunctionKey: Integer; const AMessageState: Integer;
-  const AMessageCallTime: String; const AMessageErrorMessage: String);
-begin
-  FMessageFunctionKey := AMessageFunctionKey;
-  FMessageState := AMessageState;
-  FMessageCallTime := AMessageCallTime;
-  FMessageErrorMessage :=  AMessageErrorMessage;
-  Synchronize(DoOnUsedDBSync);
-end;
-
 procedure TgsDBSqueezeThread.DoMergeCards;
 begin
   PostMsg(WM_DBS_MERGECARDS);
@@ -881,18 +816,6 @@ procedure TgsDBSqueezeThread.GetDBProperties(const AMessageProperties: TStringLi
 begin
   FMessagePropertiesList.Text := AMessageProperties.Text;
   Synchronize(DoOnGetDBPropertiesSync);
-end;
-
-procedure TgsDBSqueezeThread.DoGetDBSize;
-begin
-  PostMsg(WM_DBS_GETDBSIZE);
-end;
-
-procedure TgsDBSqueezeThread.GetDBSize(const AMessageDBSizeStr: String; const ADBSize: Int64);
-begin
-  FDBSize := ADBSize;
-  FMessageDBSizeStr := AMessageDBSizeStr;
-  Synchronize(DoOnGetDBSizeSync);
 end;
 
 procedure TgsDBSqueezeThread.DoGetStatistics;
