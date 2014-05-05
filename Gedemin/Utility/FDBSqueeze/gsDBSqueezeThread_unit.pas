@@ -86,16 +86,12 @@ type
     FMergeDocTypes: TStringList;
     FMergeInProc: Boolean;
 
-    FMessageCallTime: String;
     FMessageCardFeatures:  TStringList;
     FMessageDocTypeBranchList: TStringList;
     FMessageDocTypeList: TStringList;
-    FMessageErrorMessage: String;
-    FMessageFunctionKey: Integer;
     FMessageGdDocStr, FMessageAcEntryStr, FMessageInvMovementStr, FMessageInvCardStr: String;
     FMessageProcGdDocStr, FMessageProcAcEntryStr, FMessageProcInvMovementStr, FMessageProcInvCardStr: String;
     FMessagePropertiesList: TStringList;
-    FMessageState: Integer;
     FMsgConnected: Boolean;
     FMsgConnectInfoList: TStringList;
     FMsgLogSQL: String;

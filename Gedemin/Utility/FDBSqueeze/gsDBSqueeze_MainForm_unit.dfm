@@ -1,7 +1,7 @@
 object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
-  Left = 982
-  Top = 115
-  Width = 938
+  Left = 426
+  Top = 83
+  Width = 940
   Height = 575
   BorderIcons = [biSystemMenu, biMinimize]
   Color = clBtnFace
@@ -28,7 +28,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
   object pnl1: TPanel
     Left = 0
     Top = 0
-    Width = 930
+    Width = 932
     Height = 524
     Align = alClient
     BevelOuter = bvNone
@@ -67,7 +67,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
     object pgcMain: TPageControl
       Left = 4
       Top = 4
-      Width = 922
+      Width = 924
       Height = 492
       ActivePage = tsSettings
       Align = alClient
@@ -307,14 +307,14 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         object pnlLogButton: TPanel
           Left = 0
           Top = 437
-          Width = 914
+          Width = 916
           Height = 27
           Align = alBottom
           BevelOuter = bvNone
           TabOrder = 1
           object btnClearGeneralLog: TButton
             Tag = 1
-            Left = 799
+            Left = 801
             Top = 4
             Width = 113
             Height = 21
@@ -327,7 +327,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         object pnlLogs: TPanel
           Left = 0
           Top = 0
-          Width = 914
+          Width = 916
           Height = 437
           Align = alClient
           BevelOuter = bvNone
@@ -357,7 +357,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           object mSqlLog: TMemo
             Left = 453
             Top = 0
-            Width = 461
+            Width = 463
             Height = 437
             Align = alClient
             Font.Charset = RUSSIAN_CHARSET
@@ -1223,7 +1223,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
     object Panel1: TPanel
       Left = 4
       Top = 496
-      Width = 922
+      Width = 924
       Height = 24
       Align = alBottom
       BevelOuter = bvNone
@@ -1240,7 +1240,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
       object pbMain: TProgressBar
         Left = 1
         Top = 5
-        Width = 794
+        Width = 796
         Height = 19
         Anchors = [akLeft, akRight, akBottom]
         DragCursor = crDefault
@@ -1250,7 +1250,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         TabOrder = 0
       end
       object stConnect: TStaticText
-        Left = 800
+        Left = 802
         Top = 5
         Width = 122
         Height = 19

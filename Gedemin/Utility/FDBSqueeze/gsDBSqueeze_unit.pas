@@ -1942,13 +1942,11 @@ var
   TmpStr: String;
   TmpList: TStringList;
   AvailableAnalyticsList: TStringList;  // cписок активных аналитик для счета
-  OnlyCompanyEntryDoc: Integer;         // документ для проводок для выбранной компании 
   OurCompany_EntryDocList: TStringList; // список "компания=документ для проводок"
 begin
   LogEvent('Calculating entry balance...');
   Assert(Connected);
   TmpStr := '';
-  OnlyCompanyEntryDoc := 0;
   TmpList := TStringList.Create;
   AvailableAnalyticsList := TStringList.Create;
   OurCompany_EntryDocList := TStringList.Create;
@@ -1969,9 +1967,7 @@ begin
         OurCompany_EntryDocList.Append(TmpList[I] + '=' + IntToStr(GetNewID));
 
       TmpList.Clear;  
-    end
-    else
-      OnlyCompanyEntryDoc := GetNewID;
+    end;
 
     //-------------------------------------------- вычисление сальдо для счета
     // получаем счета
