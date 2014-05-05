@@ -1,6 +1,6 @@
 object gsDBSqueeze_DocTypesForm: TgsDBSqueeze_DocTypesForm
-  Left = 211
-  Top = 114
+  Left = 151
+  Top = 82
   Action = actSelectAll
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsDialog
