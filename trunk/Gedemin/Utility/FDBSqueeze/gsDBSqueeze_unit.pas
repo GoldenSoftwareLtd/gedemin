@@ -20,16 +20,13 @@ type
   TActivateFlag = (aiActivate, aiDeactivate);
 
   TOnGetDBPropertiesEvent = procedure(const AProperties: TStringList) of object;
-  TOnGetDBSizeEvent = procedure(const ADBSizeStr: String; const ADBSize: Int64) of object;
   TOnGetInfoTestConnectEvent = procedure(const AConnectSuccess: Boolean; const AConnectInfoList: TStringList) of object;
   TOnGetProcStatistics = procedure(const AnGdDoc: String; const AnAcEntry: String; const AnInvMovement: String; const AnInvCard: String) of object;
   TOnGetStatistics = procedure(const AnGdDoc: String; const AnAcEntry: String; const AnInvMovement: String; const AnInvCard: String) of object;
   TOnLogSQLEvent = procedure(const S: String) of object;
-  TOnSetItemsCbbEvent = procedure(const ACompanies: TStringList) of object;
   TOnSetDocTypeStringsEvent = procedure(const ADocTypeList: TStringList) of object;
   TOnGetInvCardFeaturesEvent =  procedure (const ACardFeaturesList: TStringList) of object;
   TOnSetDocTypeBranchEvent = procedure(const ABranchList: TStringList) of object;
-  TOnUsedDBEvent = procedure(const AFunctionKey: Integer; const AState: Integer; const ACallTime: String; const AnErrorMessage: String) of object;
   TOnGetConnectedEvent = procedure(const AConnected: Boolean) of object;
 
   EgsDBSqueeze = class(Exception);
@@ -50,169 +47,111 @@ type
     FDBPageSize: Integer;
     FDBPageBuffers: Integer;
 
-    FBackupFileName: String;
-    FRestoreDBName: String;
-
-    FCalculateSaldo: Boolean;
-
     FAllOurCompaniesSaldo: Boolean;
-    FCardFeaturesStr: String;   // cписок полей-признаков складской карточки
+    FCalculateSaldo: Boolean;
+    FCardFeaturesStr: String;                                   // cписок полей-признаков складской карточки
     FCascadeTbls: TStringList;
-    FClosingDate: TDateTime;    // дата закрытия периода - до нее (не включительно) удаляем документы
-    FCompanyKey: Integer;
-    FCreateBackup: Boolean;
+    FClosingDate: TDateTime;                                    // дата закрытия периода - до нее (не включительно) удаляем документы
     FCurrentProgressStep: Integer;
     FCurUserContactKey: Integer;
-    FDocTypesList: TStringList;        // типы документов выбранные пользователем
-    FDoProcDocTypes: Boolean;          // true - обрабатывать ТОЛЬКО документы с выбранными типами, false - обрабатывать все КРОМЕ документов с выбранными типами
-    FEntryAnalyticsStr: String;        // список всех бухгалтерских аналитик
+    FDocTypesList: TStringList;                                 // типы документов выбранные пользователем
+    FDoProcDocTypes: Boolean;                                   // true - обрабатывать ТОЛЬКО документы с выбранными типами, false - обрабатывать все КРОМЕ документов с выбранными типами
+    FDoStopProcessing: Boolean;                                 // флаг прерывания выполнения
+    FEntryAnalyticsStr: String;                                 // список всех бухгалтерских аналитик
     FInactivBlockTriggers: String;
     FInvSaldoDoc: Integer;
-    FIsProcTablesFinish: Boolean;
-    FOnlyCompanySaldo: Boolean;
-    FOurCompaniesListStr: String;      // список компаний из gd_ourcompany
-    FProizvolnyyDocTypeKey: Integer;   // ''Произвольный тип'' из gd_documenttype
-    //FPseudoClientKey: Integer;       // ''Псевдоклиент'' из gd_contact
-    FSaveLog: Boolean;
-    FDoStopProcessing: Boolean;        // флаг прерывания выполнения
+    FOurCompaniesListStr: String;                               // список компаний из gd_ourcompany
+    FProizvolnyyDocTypeKey: Integer;                            // ''Произвольный тип'' из gd_documenttype
 
-    FOnProgressWatch: TProgressWatchEvent;
     FOnGetConnectedEvent: TOnGetConnectedEvent;
     FOnGetDBPropertiesEvent: TOnGetDBPropertiesEvent;
-    FOnGetDBSizeEvent: TOnGetDBSizeEvent;
     FOnGetInfoTestConnectEvent: TOnGetInfoTestConnectEvent;
+    FOnGetInvCardFeaturesEvent : TOnGetInvCardFeaturesEvent;
     FOnGetProcStatistics: TOnGetProcStatistics;
     FOnGetStatistics: TOnGetStatistics;
-    FOnSetItemsCbbEvent: TOnSetItemsCbbEvent;
-    FOnSetDocTypeStringsEvent: TOnSetDocTypeStringsEvent;
-    FOnGetInvCardFeaturesEvent : TOnGetInvCardFeaturesEvent;
-    FOnSetDocTypeBranchEvent: TOnSetDocTypeBranchEvent;
-    FOnUsedDBEvent: TOnUsedDBEvent;
     FOnLogSQLEvent: TOnLogSQLEvent;
+    FOnProgressWatch: TProgressWatchEvent;
+    FOnSetDocTypeBranchEvent: TOnSetDocTypeBranchEvent;
+    FOnSetDocTypeStringsEvent: TOnSetDocTypeStringsEvent;
 
     procedure CreateUDFs;
     function CreateHIS(AnIndex: Integer): Integer;
-    function GetCountHIS(AnIndex: Integer): Integer;
     function DestroyHIS(AnIndex: Integer): Integer;
     function GetConnected: Boolean;
-    // возвращает сгенерированный новый уникальный идентификатор
-    function GetNewID: Integer;
+    function GetCountHIS(AnIndex: Integer): Integer;
+    function GetNewID: Integer;                                 // возвращает сгенерированный новый уникальный идентификатор
 
   public
     constructor Create;
     destructor Destroy; override;
 
-    procedure ProgressWatchEvent(const AProgressInfo: TgdProgressInfo);
-    procedure ProgressMsgEvent(const AMsg: String; AStepIncrement: Integer = 1);
-    procedure ErrorEvent(const AMsg: String; const AProcessName: String = '');
-    procedure LogEvent(const AMsg: String);   // записать в лог
-
+    procedure CalculateAcSaldo;                                 // подсчет бухгалтерского сальдо
+    procedure CalculateInvSaldo;                                // подсчет складских остатков
+    procedure Connect(ANoGarbageCollect: Boolean; AOffForceWrite: Boolean);
+    procedure CreateAcEntries;                                  // формирование бухгалтерского сальдо
+    procedure CreateDBSStateJournal;                            // создание таблицы журнала выполения операций, чтобы при повторной обработке БД можно было продолжить
+    procedure CreateHIS_IncludeInHIS;
+    procedure CreateInvBalance;
+    procedure CreateInvSaldo;                                   // формирование складских остатков
+    procedure CreateMetadata;                                   // создание необходимых таблиц для программы
+    procedure DeleteDBSTables;
+    procedure DeleteDocuments_DeleteHIS;
+    procedure DeleteOldAcEntryBalance;                          // удаление старого бух сальдо
+    procedure Disconnect;
+    procedure DropDBSStateJournal;
+    procedure ExecSqlLogEvent(const AnIBQuery: TIBQuery; const AProcName: String); Overload;
+    procedure ExecSqlLogEvent(const AnIBSQL: TIBSQL; const AProcName: String); Overload;   // ExecQuery  и запись в лог
+    procedure InsertDBSStateJournal(const AFunctionKey: Integer; const AState: Integer; const AErrorMsg: String = '');
+    procedure MergeCards(const ADocDate: TDateTime; const ADocTypeList: TStringList; const AUsrSelectedFieldsList: TStringList);
+    procedure PrepareDB;                                        // удаление PKs, FKs, UNIQs, отключение индексов и триггеров
+    procedure Reconnect(ANoGarbageCollect: Boolean; AOffForceWrite: Boolean);
+    procedure RestoreDB;                                        // восстановление певоначального состояния (создание PKs, FKs, UNIQs, включение индексов и триггеров)
+    procedure SaveMetadata;                                     // сохранение первоначального состояния (PKs, FKs, UNIQs, состояния индексов и триггеров)
+    procedure SetBlockTriggerActive(const SetActive: Boolean);  // переключение состояния активности триггеров блокировки (LIKE %BLOCK%)
+    procedure SetFVariables;
     procedure SetSelectDocTypes(const ADocTypesList: TStringList);
 
-    procedure Connect(ANoGarbageCollect: Boolean; AOffForceWrite: Boolean);
-    procedure Disconnect;
-    procedure Reconnect(ANoGarbageCollect: Boolean; AOffForceWrite: Boolean);
+    procedure ErrorEvent(const AMsg: String; const AProcessName: String = '');
+    procedure GetDBPropertiesEvent;                             // получить информацию о БД
+    procedure GetInfoTestConnectEvent;                          // получить версию сервера и количество подключенных юзеров (учитывая нас)
+    procedure GetInvCardFeaturesEvent;                          // заполнить список признаков INV_CARD для StringGrid
+    procedure GetProcStatisticsEvent;                           // получить кол-во записей для обработки в GD_DOCUMENT, AC_ENTRY, INV_MOVEMENT
+    procedure GetStatisticsEvent;                               // получить текущее кол-во записей в GD_DOCUMENT, AC_ENTRY, INV_MOVEMENT
+    procedure LogEvent(const AMsg: String);                     // записать в лог
+    procedure ProgressMsgEvent(const AMsg: String; AStepIncrement: Integer = 1);
+    procedure ProgressWatchEvent(const AProgressInfo: TgdProgressInfo);
+    procedure SetDocTypeStringsEvent;                           // заполнить список типов документов для StringGrid
+    procedure UsedDBEvent;                                      // БД уже ранее обрабатывалась этой программой, вывести диалог для решения продолжить обработку либо начать заново обрабатывать
 
-    // ExecQuery  и запись в лог
-    procedure ExecSqlLogEvent(const AnIBSQL: TIBSQL; const AProcName: String); Overload;
-    procedure ExecSqlLogEvent(const AnIBQuery: TIBQuery; const AProcName: String); Overload;
-
-    // создание бэкап-файла БД (доступно только при локальном размещении БД)
-    procedure BackupDatabase;
-    // восстановление из бэкап-файла
-    procedure RestoreDatabaseFromBackup;
-
-    // создание таблицы журнала выполения операций, чтобы при повторной обработке БД можно было продолжить
-    procedure CreateDBSStateJournal;
-    procedure InsertDBSStateJournal(const AFunctionKey: Integer; const AState: Integer; const AErrorMsg: String = '');
-
-    procedure SetFVariables;
-
-    procedure MergeCards(const ADocDate: TDateTime; const ADocTypeList: TStringList; const AUsrSelectedFieldsList: TStringList);
-
-
-
-    // создание необходимых таблиц для программы
-    procedure CreateMetadata;
-    // сохранение первоначального состояния (PKs, FKs, UNIQs, состояния индексов и триггеров)
-    procedure SaveMetadata;
-
-    // подсчет бухгалтерского сальдо
-    procedure CalculateAcSaldo;
-    // формирование бухгалтерского сальдо
-    procedure CreateAcEntries;
-
-    // подсчет складских остатков
-    procedure CalculateInvSaldo;
-    // формирование складских остатков
-    procedure CreateInvSaldo;
-
-    procedure CreateInvBalance;
-
-    procedure SetBlockTriggerActive(const SetActive: Boolean);  // переключение состояния активности триггеров блокировки (LIKE %BLOCK%)
-
-    // удаление старого бух сальдо
-    procedure DeleteOldAcEntryBalance;
-
-    // удаление документов вместе с каскадными цепочками на них
-    procedure CreateHIS_IncludeInHIS;
-    procedure DeleteDocuments_DeleteHIS;
-
-    // удаление PKs, FKs, UNIQs, отключение индексов и триггеров
-    procedure PrepareDB;
-    // восстановление певоначального состояния (создание PKs, FKs, UNIQs, включение индексов и триггеров)
-    procedure RestoreDB;
-
-    procedure DeleteDBSTables;
-    procedure DropDBSStateJournal;
-
-    procedure GetDBPropertiesEvent;   // получить информацию о БД
-    procedure GetDBSizeEvent;         // получить размер файла БД
-    procedure GetInfoTestConnectEvent;// получить версию сервера и количество подключенных юзеров (учитывая нас)
-    procedure GetProcStatisticsEvent; // получить кол-во записей для обработки в GD_DOCUMENT, AC_ENTRY, INV_MOVEMENT
-    procedure GetStatisticsEvent;     // получить текущее кол-во записей в GD_DOCUMENT, AC_ENTRY, INV_MOVEMENT
-    procedure SetItemsCbbEvent;       // заполнить список our companies для ComboBox
-    procedure SetDocTypeStringsEvent; // заполнить список типов документов для StringGrid
-    procedure GetInvCardFeaturesEvent; // заполнить список признаков INV_CARD для StringGrid
-    procedure UsedDBEvent; // БД уже ранее обрабатывалась этой программой, вывести диалог для решения продолжить обработку либо начать заново обрабатывать
-
-    property ConnectInfo: TgsDBConnectInfo read FConnectInfo          write FConnectInfo;
     property AllOurCompaniesSaldo: Boolean read FAllOurCompaniesSaldo write FAllOurCompaniesSaldo;
-    property BackupFileName: String        read FBackupFileName       write FBackupFileName;
-    property RestoreDBName: String         read FRestoreDBName        write FRestoreDBName;
-    property ClosingDate: TDateTime        read FClosingDate          write FClosingDate;
-    property CompanyKey: Integer           read FCompanyKey           write FCompanyKey;
+    property CalculateSaldo: Boolean       read FCalculateSaldo   write FCalculateSaldo;
+    property ClosingDate: TDateTime        read FClosingDate      write FClosingDate;
     property Connected: Boolean            read GetConnected;
-    property DocTypesList: TStringList     read FDocTypesList         write SetSelectDocTypes;
-    property DoProcDocTypes: Boolean       read FDoProcDocTypes       write FDoProcDocTypes;
-    property CreateBackup: Boolean         read FCreateBackup         write FCreateBackup;
-    property OnProgressWatch: TProgressWatchEvent
-      read FOnProgressWatch            write FOnProgressWatch;
+    property ConnectInfo: TgsDBConnectInfo read FConnectInfo      write FConnectInfo;
+    property DocTypesList: TStringList     read FDocTypesList     write SetSelectDocTypes;
+    property DoProcDocTypes: Boolean       read FDoProcDocTypes   write FDoProcDocTypes;
+    property DoStopProcessing: Boolean     read FDoStopProcessing write FDoStopProcessing;
+
     property OnGetConnectedEvent: TOnGetConnectedEvent
       read FOnGetConnectedEvent        write FOnGetConnectedEvent;
     property OnGetDBPropertiesEvent: TOnGetDBPropertiesEvent
       read FOnGetDBPropertiesEvent     write FOnGetDBPropertiesEvent;
-    property OnGetDBSizeEvent: TOnGetDBSizeEvent  read FOnGetDBSizeEvent write FOnGetDBSizeEvent;
     property OnGetInfoTestConnectEvent: TOnGetInfoTestConnectEvent
       read FOnGetInfoTestConnectEvent  write FOnGetInfoTestConnectEvent;
-    property OnGetProcStatistics: TOnGetProcStatistics
-      read FOnGetProcStatistics        write FOnGetProcStatistics;
-    property OnGetStatistics: TOnGetStatistics    read FOnGetStatistics  write FOnGetStatistics;
-    property OnLogSQLEvent: TOnLogSQLEvent        read FOnLogSQLEvent    write FOnLogSQLEvent;
-    property OnlyCompanySaldo: Boolean            read FOnlyCompanySaldo write FOnlyCompanySaldo;
-
-    property OnSetItemsCbbEvent: TOnSetItemsCbbEvent
-      read FOnSetItemsCbbEvent         write FOnSetItemsCbbEvent;
-    property OnSetDocTypeStringsEvent: TOnSetDocTypeStringsEvent
-      read FOnSetDocTypeStringsEvent   write FOnSetDocTypeStringsEvent;
     property OnGetInvCardFeaturesEvent: TOnGetInvCardFeaturesEvent
       read FOnGetInvCardFeaturesEvent  write FOnGetInvCardFeaturesEvent;
+    property OnGetProcStatistics: TOnGetProcStatistics
+      read FOnGetProcStatistics        write FOnGetProcStatistics;
+    property OnGetStatistics: TOnGetStatistics
+      read FOnGetStatistics            write FOnGetStatistics;
+    property OnLogSQLEvent: TOnLogSQLEvent
+      read FOnLogSQLEvent              write FOnLogSQLEvent;
+    property OnProgressWatch: TProgressWatchEvent
+      read FOnProgressWatch            write FOnProgressWatch;
     property OnSetDocTypeBranchEvent: TOnSetDocTypeBranchEvent
       read FOnSetDocTypeBranchEvent    write FOnSetDocTypeBranchEvent;
-    property OnUsedDBEvent: TOnUsedDBEvent read FOnUsedDBEvent     write FOnUsedDBEvent;
-    property SaveLog: Boolean              read FSaveLog           write FSaveLog;
-    property DoStopProcessing: Boolean     read FDoStopProcessing  write FDoStopProcessing;
-    property CalculateSaldo: Boolean       read FCalculateSaldo    write FCalculateSaldo;
+    property OnSetDocTypeStringsEvent: TOnSetDocTypeStringsEvent
+      read FOnSetDocTypeStringsEvent   write FOnSetDocTypeStringsEvent;
   end;
 
 implementation
@@ -494,146 +433,8 @@ var
       Tr.Free;
     end;
   end;
-//-----------------------------------------------------------
-procedure TgsDBSqueeze.BackupDatabase;
-var
-  BS: TIBBackupService;
-  NextLogLine: String;
-begin
-  LogEvent('Backup DB... ');
-
-  Disconnect;
-
-  BS := TIBBackupService.Create(nil);
-  try
-    BS.Protocol := Local;
-    BS.LoginPrompt := False;
-    BS.Params.Clear;
-    BS.Params.CommaText :=
-      'user_name=' + FConnectInfo.UserName + ',' +
-      'password=' + FConnectInfo.Password;
-
-    BS.DatabaseName := FConnectInfo.DatabaseName;
-    if UpperCase(FConnectInfo.Host) <> UpperCase('localhost') then
-    begin
-      if FConnectInfo.Port <> 0 then
-        BS.ServerName := FConnectInfo.Host + '/' + IntToStr(FConnectInfo.Port)
-      else
-        BS.ServerName := FConnectInfo.Host;
-      BS.Protocol := TCP;
-    end;
-
-    BS.BackupFile.Clear;
-    BS.BackupFile.Add(FBackupFileName);
-    BS.Options := [IgnoreChecksums, IgnoreLimbo, NoGarbageCollection];
-
-    BS.Attach;
-
-    try
-      if BS.Active then
-      begin
-        try
-          BS.ServiceStart;
-
-          while (not BS.EOF) and (BS.IsServiceRunning) do
-          begin
-            NextLogLine := BS.GetNextLine;
-            if NextLogLine <> '' then
-              LogEvent(NextLogLine);
-          end;
-        except
-          on E: Exception do
-          begin
-            BS.Active := False;
-            raise EgsDBSqueeze.Create(E.Message);
-          end;
-        end;
-      end;
-
-      if NextLogLine <> '' then                                                 ///TODO: спросить у пользователя  - мб просто информационное сообщение
-        raise EgsDBSqueeze.Create('Database Backup Error!');
-    finally
-      if BS.Active then
-        BS.Detach;
-    end;
-
-    Connect(False, True);
-    LogEvent('Backup DB... OK');
-  finally
-    FreeAndNil(BS);
-  end;
-end;
 //---------------------------------------------------------------------------
-procedure TgsDBSqueeze.RestoreDatabaseFromBackup;
-var
-  RS: TIBRestoreService;
-  NextLogLine: String;
-begin
-  LogEvent('Restore DB from backup... ');
-
-  Disconnect;
-
-  RS := TIBRestoreService.Create(nil);
-  try
-    RS.Protocol := Local;
-    RS.LoginPrompt := False;
-    RS.Params.Clear;
-    RS.Params.CommaText :=
-      'user_name=' + FConnectInfo.UserName + ',' +
-      'password=' + FConnectInfo.Password;
-    RS.BackupFile.Add(FBackupFileName);
-    RS.DatabaseName.Add(FRestoreDBName);
-    if UpperCase(FConnectInfo.Host) <> UpperCase('localhost') then
-    begin
-      if FConnectInfo.Port <> 0 then
-        RS.ServerName := FConnectInfo.Host + '/' + IntToStr(FConnectInfo.Port)
-      else
-        RS.ServerName := FConnectInfo.Host;
-      RS.Protocol := TCP;
-    end;
-
-    RS.Options := [Replace];
-    RS.PageSize := FDBPageSize;
-    RS.PageBuffers := FDBPageBuffers;
-
-    RS.Attach;
-
-    try
-      if RS.Active then
-      begin
-        try
-          RS.ServiceStart;
-
-          while (not RS.EOF) and (RS.IsServiceRunning) do
-          begin
-            NextLogLine := RS.GetNextLine;
-            if NextLogLine <> '' then
-              LogEvent(NextLogLine);
-          end;
-        except
-          on E: Exception do
-          begin
-            RS.Active := False;
-            raise EgsDBSqueeze.Create(E.Message);
-          end;
-        end;
-      end;
-
-      if NextLogLine <> '' then
-        raise EgsDBSqueeze.Create('Database Restore Error!');
-    finally
-      if RS.Active then
-        RS.Detach;
-    end;
-
-    Connect(False, True);
-    LogEvent('Restore DB from backup... OK');
-  finally
-    FreeAndNil(RS);
-  end;
-end;
-//---------------------------------------------------------------------------
-procedure TgsDBSqueeze.GetInfoTestConnectEvent;                                 
+procedure TgsDBSqueeze.GetInfoTestConnectEvent;
 var
   InfConnectList: TStringList;
   DBInfo: TIBDatabaseInfo;
@@ -740,12 +541,7 @@ begin
     FOnGetInfoTestConnectEvent(False, nil);
 end;
 //---------------------------------------------------------------------------
-procedure TgsDBSqueeze.GetDBSizeEvent;                                          
-begin
-  FOnGetDBSizeEvent(' ', 0);
-end;
-//---------------------------------------------------------------------------
-procedure TgsDBSqueeze.UsedDBEvent;                                             ///TODO: отпала необходимость
+procedure TgsDBSqueeze.UsedDBEvent;                                             
 var
   q: TIBSQL;
   Tr: TIBTransaction;
@@ -771,13 +567,6 @@ begin
       LogEvent('Latest operation: CALL_TIME=' + q.FieldByName('CALL_TIME').AsString +
         ', Message FUNCTIONKEY=WM_USER+' + IntToStr(q.FieldByName('FUNCTIONKEY').AsInteger - WM_USER) +
         ', SUCCESSFULLY=' + q.FieldByName('STATE').AsString);
-
-      FOnUsedDBEvent(
-        q.FieldByName('FUNCTIONKEY').AsInteger,
-        q.FieldByName('STATE').AsInteger,
-        q.FieldByName('CALL_TIME').AsString,
-        q.FieldByName('ERROR_MESSAGE').AsString
-      );
 
       q.Close;
     end;
@@ -889,49 +678,9 @@ begin
     ExecSqlLogEvent(q, 'InsertDBSStateJournal');
 
     Tr.Commit;
-
-    FIsProcTablesFinish := True;
   finally
     q.Free;
     Tr.Free;
-  end;
-end;
-//---------------------------------------------------------------------------
-procedure TgsDBSqueeze.SetItemsCbbEvent;
-var
-  Tr: TIBTransaction;
-  q: TIBSQL;
-  CompaniesList: TStringList;  // Список компаний, по которым ведется учет
-begin
-  Assert(Connected and Assigned(FOnSetItemsCbbEvent));
-
-  CompaniesList := TStringList.Create;
-  Tr := TIBTransaction.Create(nil);
-  q := TIBSQL.Create(nil);
-  try
-    Tr.DefaultDatabase := FIBDatabase;
-    Tr.StartTransaction;
-
-    q.Transaction := Tr;
-    q.SQL.Text :=
-      'SELECT TRIM(go.companykey || ''='' || gc.fullname) AS CompName ' +    #13#10 +
-      '  FROM gd_ourcompany go ' +                                           #13#10 +
-      '  JOIN GD_COMPANY gc ' +                                              #13#10 +
-      '    ON go.companykey = gc.contactkey ';
-    ExecSqlLogEvent(q, 'SetItemsCbbEvent');
-    while not q.EOF do
-    begin
-      CompaniesList.Add(q.FieldByName('CompName').AsString);
-      q.Next;
-    end;
-
-    FOnSetItemsCbbEvent(CompaniesList);
-    q.Close;
-    Tr.Commit;
-  finally
-    q.Free;
-    Tr.Free;
-    CompaniesList.Free;
   end;
 end;
 //---------------------------------------------------------------------------
@@ -1308,7 +1057,7 @@ var
   Tr: TIBTransaction;
 begin
   LogEvent('Getting statistics...');
-  ProgressMsgEvent('Получение статистики...');
+  ProgressMsgEvent('Получение статистики...', 0);
   Assert(Connected);
 
   Tr := TIBTransaction.Create(nil);
@@ -1355,7 +1104,7 @@ begin
       LogEvent('Getting statistics... OK');
       Tr.Commit;
     end;
-    ProgressMsgEvent('');
+    ProgressMsgEvent('', 0);
   finally
     q1.Free;
     q2.Free;
@@ -1446,7 +1195,7 @@ begin
     LogEvent('Getting processing statistics... OK');
 
     
-    ProgressMsgEvent(' ');
+    ProgressMsgEvent(' ', 0);
   finally
     q1.Free;
     q2.Free;
@@ -2234,16 +1983,11 @@ begin
       '  JOIN AC_ACCOUNT ac ON ae.accountkey = ac.id ' +        #13#10 +
       'WHERE ' +                                                #13#10 +
       '  ae.entrydate < :EntryDate ';
-    if FOnlyCompanySaldo then
-      q2.SQL.Add(' ' +                                          
-        'AND ae.companykey = :CompanyKey ')
-    else if FAllOurCompaniesSaldo then
+    if FAllOurCompaniesSaldo then
       q2.SQL.Add(' ' +
         'AND ae.companykey IN (' + FOurCompaniesListStr + ') ');
 
     q2.ParamByName('EntryDate').AsDateTime := FClosingDate;
-    if FOnlyCompanySaldo then
-      q2.ParamByName('CompanyKey').AsInteger := FCompanyKey;
     
     ExecSqlLogEvent(q2, 'CalculateAcSaldo');
 
@@ -2290,10 +2034,7 @@ begin
         ') ' +                                                  #13#10 +
         'SELECT ');                                             // CREDIT
       // documentkey = masterkey
-      if FOnlyCompanySaldo then
-        TmpStr := ' ' +
-          IntToStr(OnlyCompanyEntryDoc)
-      else if FAllOurCompaniesSaldo then
+      if FAllOurCompaniesSaldo then
       begin                     // documentkey
         TmpStr := ' ' +
           'CASE companykey ';
@@ -2351,10 +2092,7 @@ begin
         'FROM AC_ENTRY ' +                                      #13#10 +
         'WHERE accountkey = :AccountKey ' +                     #13#10 +
         '  AND entrydate < :EntryDate ');
-      if FOnlyCompanySaldo then
-        q3.SQL.Add(' ' +                                        #13#10 +
-          'AND companykey = :CompanyKey ')
-      else if FAllOurCompaniesSaldo then
+      if FAllOurCompaniesSaldo then
         q3.SQL.Add(' ' +                                        #13#10 +
           'AND companykey IN (' + FOurCompaniesListStr + ') ');
 
@@ -2376,10 +2114,7 @@ begin
 
         'SELECT ');                                            // DEBIT
       // documentkey = masterkey
-      if FOnlyCompanySaldo then
-        TmpStr := ' ' +
-          IntToStr(OnlyCompanyEntryDoc) + ',' + IntToStr(OnlyCompanyEntryDoc) + ',';
-      
+
       q3.SQL.Add(' ' +
         TmpStr +                                                  #13#10 +
           '  accountkey, ' +                                      #13#10 +
@@ -2424,13 +2159,10 @@ begin
         'FROM AC_ENTRY ' +                                      #13#10 +
         'WHERE accountkey = :AccountKey ' +                     #13#10 +
         '  AND entrydate < :EntryDate ');
-      if FOnlyCompanySaldo then
-        q3.SQL.Add(' ' +                                        #13#10 +
-          'AND companykey = :CompanyKey ')
-      else if FAllOurCompaniesSaldo then
+      if FAllOurCompaniesSaldo then
         q3.SQL.Add(' ' +                                        #13#10 +
           'AND companykey IN (' + FOurCompaniesListStr + ') ');
-      q3.SQL.Add(' ' +                                          
+      q3.SQL.Add(' ' +
         'GROUP BY ' +                                           #13#10 +
         '  accountkey, ' +                                      #13#10 +
         '  companykey, ' +                                      #13#10 +
@@ -2446,8 +2178,6 @@ begin
 
       q3.ParamByName('AccountKey').AsInteger := q2.FieldByName('id').AsInteger;
       q3.ParamByName('EntryDate').AsDateTime := FClosingDate;
-      if FOnlyCompanySaldo then
-        q3.ParamByName('CompanyKey').AsInteger := FCompanyKey;
       
       ExecSqlLogEvent(q3, 'CalculateAcSaldo');
 
@@ -2511,10 +2241,6 @@ begin
       '  im.cardkey > 0 ' +                                     #13#10 +   // первый столбец в индексе, чтобы его задействовать
       '  AND contact_head.id = doc.companykey ');
 
-    if FOnlyCompanySaldo then
-      q.SQL.Add(' ' +
-        'AND ic.companykey = :CompanyKey ');
-
     if Assigned(FDocTypesList) then
     begin
       if not FDoProcDocTypes then
@@ -2534,8 +2260,6 @@ begin
       '  doc.companykey ');
 
     q.ParamByName('RemainsDate').AsDateTime := FClosingDate;
-    if FOnlyCompanySaldo then
-      q.ParamByName('CompanyKey').AsInteger := FCompanyKey;
 
     ExecSqlLogEvent(q, 'CalculateInvSaldo');
     Tr.Commit;
@@ -4110,9 +3834,6 @@ DestroyHIS(0);
       '  FROM AC_RECORD ar ' +                  #13#10 +
       '  WHERE ar.id = gr.xid ' +               #13#10 +
       '    AND ar.recorddate < :ClosingDate ';
-    if FOnlyCompanySaldo then
-      q.SQL.Add(' ' +
-        'AND ar.companykey = ' + IntToStr(FCompanykey));
     q.SQL.Add(')');
     q.ParamByName('ClosingDate').AsDateTime := FClosingDate;
     ExecSqlLogEvent(q, 'CreateHIS_IncludeInHIS');
@@ -4120,9 +3841,6 @@ DestroyHIS(0);
     q.SQL.Text :=
       'DELETE FROM AC_RECORD ' +                #13#10 +
       ' WHERE recorddate < :ClosingDate ';
-    if FOnlyCompanySaldo then
-      q.SQL.Add(' ' +
-        'AND companykey = ' + IntToStr(FCompanykey));
     q.ParamByName('ClosingDate').AsDateTime := FClosingDate;
     if not FDoStopProcessing then
       ExecSqlLogEvent(q, 'CreateHIS_IncludeInHIS');

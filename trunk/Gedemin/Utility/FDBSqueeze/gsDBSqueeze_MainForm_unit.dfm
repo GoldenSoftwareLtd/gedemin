@@ -1,6 +1,6 @@
 object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
-  Left = 35
-  Top = 359
+  Left = 982
+  Top = 115
   Width = 938
   Height = 575
   BorderIcons = [biSystemMenu, biMinimize]
@@ -319,6 +319,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             Width = 113
             Height = 21
             Action = actClearLog
+            Anchors = [akRight, akBottom]
             TabOrder = 0
             TabStop = False
           end
@@ -396,25 +397,6 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         object shp2: TShape
           Left = 487
           Top = 37
-          Width = 229
-          Height = 27
-          Pen.Color = 671448
-          Pen.Mode = pmMask
-          Pen.Style = psInsideFrame
-          Pen.Width = 3
-        end
-        object shp5: TShape
-          Left = 488
-          Top = 375
-          Width = 227
-          Height = 74
-          Brush.Style = bsClear
-          Pen.Color = clBtnShadow
-          Pen.Width = 3
-        end
-        object shp1: TShape
-          Left = 487
-          Top = 349
           Width = 229
           Height = 27
           Pen.Color = 671448
@@ -784,94 +766,6 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           ParentColor = False
           ParentFont = False
           TabOrder = 1
-        end
-        object pnl3: TPanel
-          Left = 488
-          Top = 375
-          Width = 226
-          Height = 73
-          TabOrder = 5
-          object sttxt28: TStaticText
-            Left = 12
-            Top = 14
-            Width = 100
-            Height = 18
-            Alignment = taCenter
-            AutoSize = False
-            BorderStyle = sbsSunken
-            Caption = 'До'
-            Color = 2058236
-            Font.Charset = RUSSIAN_CHARSET
-            Font.Color = clHighlightText
-            Font.Height = -11
-            Font.Name = 'Tahoma'
-            Font.Style = []
-            ParentColor = False
-            ParentFont = False
-            TabOrder = 0
-          end
-          object sttxt29: TStaticText
-            Left = 12
-            Top = 39
-            Width = 99
-            Height = 17
-            Alignment = taCenter
-            AutoSize = False
-            BorderStyle = sbsSunken
-            Caption = 'После'
-            Color = 2058236
-            Font.Charset = RUSSIAN_CHARSET
-            Font.Color = clHighlightText
-            Font.Height = -11
-            Font.Name = 'Tahoma'
-            Font.Style = []
-            ParentColor = False
-            ParentFont = False
-            TabOrder = 2
-          end
-          object sttxtDBSizeBefore: TStaticText
-            Left = 120
-            Top = 15
-            Width = 97
-            Height = 17
-            Alignment = taCenter
-            AutoSize = False
-            BorderStyle = sbsSunken
-            Color = clHighlightText
-            ParentColor = False
-            TabOrder = 1
-          end
-          object sttxtDBSizeAfter: TStaticText
-            Left = 120
-            Top = 39
-            Width = 97
-            Height = 17
-            Alignment = taCenter
-            AutoSize = False
-            BorderStyle = sbsSunken
-            Color = clHighlightText
-            Enabled = False
-            ParentColor = False
-            TabOrder = 3
-          end
-        end
-        object sttxt21: TStaticText
-          Left = 488
-          Top = 348
-          Width = 225
-          Height = 25
-          Alignment = taCenter
-          AutoSize = False
-          Caption = 'DB File Size'
-          Color = 2058236
-          Font.Charset = RUSSIAN_CHARSET
-          Font.Color = clWhite
-          Font.Height = -17
-          Font.Name = 'Tahoma'
-          Font.Style = []
-          ParentColor = False
-          ParentFont = False
-          TabOrder = 4
         end
         object pnl4: TPanel
           Left = 90
@@ -1345,9 +1239,10 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
       end
       object pbMain: TProgressBar
         Left = 1
-        Top = 4
+        Top = 5
         Width = 794
         Height = 19
+        Anchors = [akLeft, akRight, akBottom]
         DragCursor = crDefault
         Min = 0
         Max = 12500
@@ -1356,10 +1251,11 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
       end
       object stConnect: TStaticText
         Left = 800
-        Top = 4
+        Top = 5
         Width = 122
         Height = 19
         Alignment = taCenter
+        Anchors = [akRight, akBottom]
         AutoSize = False
         BorderStyle = sbsSunken
         Caption = 'Отключено'
@@ -1381,6 +1277,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
     object actDatabaseBrowse: TAction
       Caption = '...'
       OnExecute = actDatabaseBrowseExecute
+      OnUpdate = actDatabaseBrowseUpdate
     end
     object actGet: TAction
       Caption = 'actGet'
