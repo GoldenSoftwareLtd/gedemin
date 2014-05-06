@@ -567,7 +567,7 @@ var
 begin
   Result := 0;
   if (CurrKey > -1) and (GetNCUKey <> CurrKey) and (gdcObject <> nil)
-    and (not gdcObject.EOF) and (gdcBaseManager <> nil) then
+    {and (not gdcObject.EOF)} and (gdcBaseManager <> nil) then
   begin
     q := TIBSQL.Create(nil);
     try
