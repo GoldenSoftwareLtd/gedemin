@@ -9,82 +9,79 @@ inherited gdc_frmTransaction: Tgdc_frmTransaction
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 494
-    Width = 775
+    Top = 486
+    Width = 767
   end
   inherited TBDockTop: TTBDock
-    Width = 775
+    Width = 767
   end
   inherited TBDockLeft: TTBDock
-    Height = 436
+    Height = 426
   end
   inherited TBDockRight: TTBDock
-    Left = 766
-    Height = 436
+    Left = 758
+    Height = 426
   end
   inherited TBDockBottom: TTBDock
-    Top = 485
-    Width = 775
+    Top = 477
+    Width = 767
   end
   inherited pnlWorkArea: TPanel
-    Width = 757
-    Height = 436
+    Width = 749
+    Height = 426
     inherited sMasterDetail: TSplitter
-      Height = 331
+      Height = 321
     end
     inherited spChoose: TSplitter
-      Top = 331
-      Width = 757
+      Top = 321
+      Width = 749
     end
     inherited pnlMain: TPanel
-      Height = 331
+      Height = 321
       inherited pnlSearchMain: TPanel
-        Height = 331
+        Height = 321
         inherited sbSearchMain: TScrollBox
-          Height = 293
-        end
-        inherited pnlSearchMainButton: TPanel
-          Top = 293
+          Height = 294
         end
       end
       inherited tvGroup: TgsDBTreeView
-        Height = 331
+        Height = 321
       end
     end
     inherited pnChoose: TPanel
-      Top = 337
-      Width = 757
+      Top = 327
+      Width = 749
       inherited pnButtonChoose: TPanel
-        Left = 652
+        Left = 644
       end
       inherited ibgrChoose: TgsIBGrid
-        Width = 652
+        Width = 644
       end
       inherited pnlChooseCaption: TPanel
-        Width = 757
+        Width = 749
       end
     end
     inherited pnlDetail: TPanel
-      Width = 585
-      Height = 331
+      Width = 577
+      Height = 321
       object splQuentity: TSplitter [0]
         Left = 0
-        Top = 237
-        Width = 585
+        Top = 227
+        Width = 577
         Height = 4
         Cursor = crVSplit
         Align = alBottom
       end
       object bvlSupport: TBevel [1]
         Left = 0
-        Top = 236
-        Width = 585
+        Top = 226
+        Width = 577
         Height = 1
         Align = alBottom
       end
       inherited TBDockDetail: TTBDock
-        Width = 585
-        Height = 49
+        Width = 577
+        Height = 51
         inherited tbDetailToolbar: TTBToolbar
           object TBItem1: TTBItem [0]
             Action = actBack
@@ -115,7 +112,7 @@ inherited gdc_frmTransaction: Tgdc_frmTransaction
           end
           object cbGroupByDocument: TCheckBox
             Left = 0
-            Top = 1
+            Top = 2
             Width = 169
             Height = 17
             Caption = 'Группировать по документу'
@@ -124,7 +121,7 @@ inherited gdc_frmTransaction: Tgdc_frmTransaction
           end
           object cbQuantity: TCheckBox
             Left = 169
-            Top = 1
+            Top = 2
             Width = 240
             Height = 17
             Caption = 'Показывать количественные показатели'
@@ -134,24 +131,21 @@ inherited gdc_frmTransaction: Tgdc_frmTransaction
         end
       end
       inherited pnlSearchDetail: TPanel
-        Top = 49
-        Height = 187
+        Top = 51
+        Height = 175
         inherited sbSearchDetail: TScrollBox
-          Height = 149
-        end
-        inherited pnlSearchDetailButton: TPanel
-          Top = 149
+          Height = 148
         end
       end
       inherited ibgrDetail: TgsIBGrid
-        Top = 49
-        Width = 425
-        Height = 187
+        Top = 51
+        Width = 417
+        Height = 175
       end
       object pnlQuantity: TPanel
         Left = 0
-        Top = 241
-        Width = 585
+        Top = 231
+        Width = 577
         Height = 90
         Align = alBottom
         BevelOuter = bvNone
@@ -159,7 +153,7 @@ inherited gdc_frmTransaction: Tgdc_frmTransaction
         object ibgrQuantity: TgsIBGrid
           Left = 0
           Top = 0
-          Width = 585
+          Width = 577
           Height = 90
           HelpContext = 3
           Align = alClient
