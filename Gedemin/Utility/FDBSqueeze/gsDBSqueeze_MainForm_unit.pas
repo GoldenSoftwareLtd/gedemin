@@ -6,7 +6,7 @@ uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   FileCtrl, ActnList, ComCtrls, Buttons, StdCtrls, Grids, Spin, ExtCtrls,
   gsDBSqueeze_CardMergeForm_unit, gsDBSqueeze_DocTypesForm_unit, gsDBSqueezeThread_unit, gsDBSqueezeIniOptions_unit,
-  gd_ProgressNotifier_unit, CommCtrl, Db, Menus;
+  gd_ProgressNotifier_unit, gdMessagedThread, CommCtrl, Db, Menus;
 
 const
   DEFAULT_USER_NAME = 'SYSDBA';
@@ -15,6 +15,8 @@ const
   CHARSET_LIST_CH1 = 'NONE, CYRL, DOS437, DOS737, DOS775, DOS850, DOS852, DOS857, DOS858, DOS860, DOS861, DOS862, DOS863, DOS864, DOS865, DOS866, DOS869, ISO8859_1, ISO8859_13, ISO8859_2, ISO8859_3, ISO8859_4, ISO8859_5, ISO8859_6, ISO8859_7';
   CHARSET_LIST_CH2 = 'ISO8859_8, ISO8859_9, KOI8R, KOI8U, NEXT, TIS620, WIN1250, WIN1251, WIN1252, WIN1253, WIN1254, WIN1255, WIN1256, WIN1257, WIN1258, ASCII, UNICODE_FSS, UTF8';
   MAX_PROGRESS_STEP = 12500;
+
+  WM_STOPNOTIFY = WM_GD_THREAD_USER + 43;
 
 type
   TgsDBSqueeze_MainForm = class(TForm, IgdProgressWatch)
@@ -209,6 +211,9 @@ type
     procedure LogSQLEvent(const ALogSQL: String);
     procedure SetDocTypeBranchEvent(const ABranchList: TStringList);
     procedure SetDocTypeStringsEvent(const ADocTypes: TStringList);
+
+    procedure StopNotify(var Msg: TMessage); message WM_STOPNOTIFY;
+
   public
     constructor Create(AnOwner: TComponent); override;
     destructor Destroy; override;
@@ -477,7 +482,7 @@ end;
 
 procedure TgsDBSqueeze_MainForm.actGoUpdate(Sender: TObject);
 begin
-  actGo.Enabled := (FSThread <> nil) and FConnected and (not FSThread.Busy);
+  actGo.Enabled := Assigned(FSThread) and FConnected and (not FSThread.Busy);
 end;
 
 procedure TgsDBSqueeze_MainForm.actStopExecute(Sender: TObject);
@@ -490,6 +495,8 @@ begin
       MB_OKCANCEL + MB_ICONQUESTION + MB_TOPMOST) of
       IDOK:
         begin
+          SetProgress('Прерывание...', 0);
+          FSThread.MainFrmHandle := gsDBSqueeze_MainForm.Handle;
           FSThread.StopProcessing;
         end;
   end;
@@ -497,15 +504,7 @@ end;
 
 procedure TgsDBSqueeze_MainForm.actStopUpdate(Sender: TObject);
 begin
-  actStop.Enabled := Assigned(FSThread) and FSThread.Busy;
-
-  if FIsProcessStop then                                                        ///TODO: переделать через event
-  begin
-    FSThread.WaitFor;    // ожидаем завершения
-    DataDestroy;
-    GetConnectedEvent(False);
-    FIsProcessStop := False;
-  end
+  actStop.Enabled := Assigned(FSThread) and FConnected and (not FIsProcessStop) and (FSThread.Busy);              
 end;
 
 procedure TgsDBSqueeze_MainForm.actSaveConfigExecute(Sender: TObject);
@@ -851,7 +850,7 @@ begin
     end;
   end  
   else begin                // финиш из-за прерывания
-    FIsProcessStop := True; // обработка последнего сообщения завершена
+    //FIsProcessStop := True; // обработка последнего сообщения завершена
   end;
 end;
 
@@ -867,6 +866,14 @@ begin
   Application.MessageBox(PChar(AErrorMsg), 'Ошибка', MB_OK + MB_ICONSTOP + MB_TOPMOST);
 end;
 
+procedure TgsDBSqueeze_MainForm.StopNotify(var Msg: TMessage);
+begin
+  FSThread.WaitFor;        // ожидаем завершения
+  DataDestroy;
+  GetConnectedEvent(False);
+  FIsProcessStop := False;
+  SetProgress(' ', 0);
+end;
 //==============================================================================
 
 procedure TgsDBSqueeze_MainForm.WriteToLogFile(const AStr: String);

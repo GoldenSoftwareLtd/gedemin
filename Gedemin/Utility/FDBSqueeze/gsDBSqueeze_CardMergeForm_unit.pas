@@ -95,7 +95,7 @@ begin
   FAllCardFeatures := TStringList.Create;
   FCardFeaturesBits := TBits.Create;
   
-  strngrdCardFeatures.ColCount := 1;
+  strngrdCardFeatures.ColCount := 2;
   strngrdCardFeatures.RowCount := 0;
 end;
 //---------------------------------------------------------------------------
@@ -122,7 +122,7 @@ begin
     for I:=0 to FSelectedDocTypesList.Count-1 do
     begin
       if Str <> '' then
-        Delimiter := ', '
+        Delimiter := #13#10
       else
         Delimiter := '';
       Str := Str + Delimiter + FSelectedDocTypesList.Values[FSelectedDocTypesList.Names[I]]+ ' (' + FSelectedDocTypesList.Names[I] + ')';
@@ -137,7 +137,7 @@ end;
 procedure TgsDBSqueeze_CardMergeForm.UpdateCardFeaturesMemo;
 begin
   mCardFeatures.Clear;
-  mCardFeatures.Text := FSelectedCardFeatures.Text;
+  mCardFeatures.Text := FSelectedCardFeatures.CommaText;
 end;
 //---------------------------------------------------------------------------
 procedure TgsDBSqueeze_CardMergeForm.tvDocTypesClick(Sender: TObject);
@@ -243,8 +243,7 @@ begin
   end;
 end;
 //---------------------------------------------------------------------------
-procedure TgsDBSqueeze_CardMergeForm.strngrdCardFeaturesDblClick(
-  Sender: TObject);
+procedure TgsDBSqueeze_CardMergeForm.strngrdCardFeaturesDblClick(Sender: TObject);
 var
   I: Integer;
 begin
@@ -256,13 +255,13 @@ begin
       begin
         FCardFeaturesBits[I] := True;
 
-        if FSelectedCardFeatures.IndexOf(Trim(strngrdCardFeatures.Cells[0, I])) = -1 then
-          FSelectedCardFeatures.Append(Trim(strngrdCardFeatures.Cells[0, I]));
+        if FSelectedCardFeatures.IndexOf(Trim(strngrdCardFeatures.Cells[1, I])) = -1 then
+          FSelectedCardFeatures.Append(Trim(strngrdCardFeatures.Cells[1, I]));
       end
       else begin
         FCardFeaturesBits[I] := False;
-        if FSelectedCardFeatures.IndexOf(Trim(strngrdCardFeatures.Cells[0, I])) <> -1 then
-          FSelectedCardFeatures.Delete(FSelectedCardFeatures.IndexOf(Trim(strngrdCardFeatures.Cells[0, I])));
+        if FSelectedCardFeatures.IndexOf(Trim(strngrdCardFeatures.Cells[1, I])) <> -1 then
+          FSelectedCardFeatures.Delete(FSelectedCardFeatures.IndexOf(Trim(strngrdCardFeatures.Cells[1, I])));
       end;
     end;
 
@@ -464,7 +463,7 @@ begin
   strngrdDocTypes.Repaint;
 end;
 //---------------------------------------------------------------------------
-procedure TgsDBSqueeze_CardMergeForm.SetCardFeatures(const ACardFatures: TStringList); ///
+procedure TgsDBSqueeze_CardMergeForm.SetCardFeatures(const ACardFatures: TStringList);
 var
   I: Integer;
 begin
@@ -473,7 +472,10 @@ begin
 
   strngrdCardFeatures.RowCount := FAllCardFeatures.Count;
   for I:=0 to FAllCardFeatures.Count-1 do
-    strngrdCardFeatures.Cells[0, I] := FAllCardFeatures[I];
+  begin
+    strngrdCardFeatures.Cells[0, I] := FAllCardFeatures.Values[FAllCardFeatures.Names[I]];
+    strngrdCardFeatures.Cells[1, I] := FAllCardFeatures.Names[I];
+  end;
   strngrdCardFeatures.Repaint;
 end;
 //---------------------------------------------------------------------------
@@ -535,12 +537,6 @@ begin
     SelectedGridRows.CommaText := ASelectedFeaturesRows;
     for I:=0 to SelectedGridRows.Count-1 do
       FCardFeaturesBits[StrToInt(Trim(SelectedGridRows[I]))] := True;
-
-    strngrdCardFeatures.RowCount := FAllCardFeatures.Count;
-    for I:=0 to FAllCardFeatures.Count-1 do
-    begin
-      strngrdCardFeatures.Cells[0, I] := FAllCardFeatures[I];
-    end;
 
     strngrdCardFeatures.Repaint;
   finally

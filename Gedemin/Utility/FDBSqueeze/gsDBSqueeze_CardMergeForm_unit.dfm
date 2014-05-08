@@ -1,11 +1,11 @@
 object gsDBSqueeze_CardMergeForm: TgsDBSqueeze_CardMergeForm
-  Left = 14
-  Top = 257
+  Left = 153
+  Top = 27
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsDialog
   Caption = 'Объединение складских карточек'
-  ClientHeight = 680
-  ClientWidth = 1022
+  ClientHeight = 670
+  ClientWidth = 1205
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -18,11 +18,11 @@ object gsDBSqueeze_CardMergeForm: TgsDBSqueeze_CardMergeForm
   object strngrdDocTypes: TStringGrid
     Left = 281
     Top = 26
-    Width = 498
+    Width = 400
     Height = 399
     TabStop = False
     ColCount = 2
-    DefaultColWidth = 390
+    DefaultColWidth = 315
     DefaultRowHeight = 20
     FixedCols = 0
     RowCount = 50
@@ -36,7 +36,7 @@ object gsDBSqueeze_CardMergeForm: TgsDBSqueeze_CardMergeForm
   object txt5: TStaticText
     Left = 281
     Top = 9
-    Width = 392
+    Width = 317
     Height = 17
     Alignment = taCenter
     AutoSize = False
@@ -52,9 +52,9 @@ object gsDBSqueeze_CardMergeForm: TgsDBSqueeze_CardMergeForm
     TabOrder = 0
   end
   object txt1: TStaticText
-    Left = 674
+    Left = 599
     Top = 9
-    Width = 105
+    Width = 82
     Height = 17
     Alignment = taCenter
     AutoSize = False
@@ -86,7 +86,7 @@ object gsDBSqueeze_CardMergeForm: TgsDBSqueeze_CardMergeForm
   object mDocTypes: TMemo
     Left = 281
     Top = 437
-    Width = 498
+    Width = 400
     Height = 53
     TabStop = False
     Color = clBtnFace
@@ -95,9 +95,9 @@ object gsDBSqueeze_CardMergeForm: TgsDBSqueeze_CardMergeForm
     TabOrder = 6
   end
   object txt2: TStaticText
-    Left = 789
+    Left = 693
     Top = 9
-    Width = 224
+    Width = 500
     Height = 17
     Alignment = taCenter
     AutoSize = False
@@ -113,10 +113,11 @@ object gsDBSqueeze_CardMergeForm: TgsDBSqueeze_CardMergeForm
     TabOrder = 2
   end
   object mmo1: TMemo
-    Left = 16
-    Top = 504
-    Width = 873
+    Left = 24
+    Top = 499
+    Width = 881
     Height = 137
+    TabStop = False
     BorderStyle = bsNone
     Color = clBtnFace
     Lines.Strings = (
@@ -142,8 +143,8 @@ object gsDBSqueeze_CardMergeForm: TgsDBSqueeze_CardMergeForm
     TabOrder = 8
   end
   object btnMergeGo: TButton
-    Left = 899
-    Top = 644
+    Left = 1083
+    Top = 636
     Width = 113
     Height = 25
     Caption = 'Запустить сейчас!'
@@ -151,8 +152,8 @@ object gsDBSqueeze_CardMergeForm: TgsDBSqueeze_CardMergeForm
     OnClick = btnMergeGoClick
   end
   object dtpMergingDate: TDateTimePicker
-    Left = 300
-    Top = 618
+    Left = 308
+    Top = 613
     Width = 86
     Height = 21
     Hint = 'рассчитать сальдо и удалить документы'
@@ -168,8 +169,8 @@ object gsDBSqueeze_CardMergeForm: TgsDBSqueeze_CardMergeForm
     TabStop = False
   end
   object btn1: TButton
-    Left = 689
-    Top = 644
+    Left = 873
+    Top = 636
     Width = 209
     Height = 25
     Caption = 'Выполнить в контексте обрезания БД'
@@ -177,13 +178,13 @@ object gsDBSqueeze_CardMergeForm: TgsDBSqueeze_CardMergeForm
     OnClick = btnIsMergeOption
   end
   object strngrdCardFeatures: TStringGrid
-    Left = 789
+    Left = 693
     Top = 26
-    Width = 224
+    Width = 500
     Height = 399
     TabStop = False
-    ColCount = 1
-    DefaultColWidth = 390
+    ColCount = 2
+    DefaultColWidth = 335
     DefaultRowHeight = 20
     FixedCols = 0
     RowCount = 50
@@ -193,17 +194,16 @@ object gsDBSqueeze_CardMergeForm: TgsDBSqueeze_CardMergeForm
     Font.Height = -11
     Font.Name = 'MS Sans Serif'
     Font.Style = []
-    Options = [goFixedHorzLine, goVertLine, goHorzLine, goRangeSelect, goRowSelect]
+    Options = [goFixedHorzLine, goVertLine, goHorzLine, goRangeSelect, goColSizing, goRowSelect]
     ParentFont = False
-    ScrollBars = ssVertical
     TabOrder = 5
     OnDblClick = strngrdCardFeaturesDblClick
     OnDrawCell = strngrdCardFeaturesDrawCell
   end
   object mCardFeatures: TMemo
-    Left = 789
+    Left = 693
     Top = 437
-    Width = 224
+    Width = 500
     Height = 53
     TabStop = False
     Color = clBtnFace
@@ -212,8 +212,8 @@ object gsDBSqueeze_CardMergeForm: TgsDBSqueeze_CardMergeForm
     TabOrder = 7
   end
   object actlstCardMerge: TActionList
-    Left = 24
-    Top = 648
+    Left = 16
+    Top = 16
     object actSelectAllDocs: TAction
       Caption = 'actSelectAllDocs'
       ShortCut = 16449
