@@ -70,7 +70,6 @@ type
   private
 
     FMainFrmHandle: THandle;
-    FMyEvent: TEvent;
 
     FDBS: TgsDBSqueeze;
 
@@ -214,8 +213,6 @@ begin
   FFinish := False;
   FDoStopProcessing.Value := 0;
 
-  FMyEvent := tevent.create(nil,true,true,'');
-
   inherited Create(CreateSuspended);
 end;
 
@@ -232,8 +229,6 @@ begin
   FMessageDocTypeBranchList.Free;
   FMessagePropertiesList.Free;
   FDoStopProcessing.Free;
-
-  FMyEvent.Free;
 end;
 
 procedure TgsDBSqueezeThread.Connect;
@@ -455,7 +450,6 @@ begin
 
         if FDBS.DoStopProcessing then        // форма начинает ждать завершения
           PostMessage(FMainFrmHandle, WM_STOPNOTIFY, 0, 0);                
-
 
         PostThreadMessage(ThreadID, WM_DBS_FINISHED, 0, 0);
         Result := True;

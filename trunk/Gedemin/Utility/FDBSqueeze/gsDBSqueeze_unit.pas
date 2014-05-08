@@ -4106,9 +4106,9 @@ begin
     Tr.StartTransaction;
 
     q.SQL.Text :=
-      'SELECT SUM(g_his_include(0, doc.id)) AS Kolvo ' + #13#10 +
-      'FROM gd_document doc ' +                          #13#10 +
-      'WHERE  ' +                                        #13#10 +
+      'SELECT SUM(g_his_include(0, doc.id)) AS Kolvo ' +   #13#10 +
+      'FROM gd_document doc ' +                            #13#10 +
+      'WHERE  ' +                                          #13#10 +
       '  doc.documentdate < :DocDate ';
     if ADocTypeList.Count <> 0 then
       q.SQL.Add(' ' +
@@ -4119,36 +4119,66 @@ begin
     q.Close;
 
     q.SQL.Text :=
-      'INSERT INTO DBS_TMP_MERGE_CARD (old_cardkey, new_cardkey) ' +  #13#10 +
-      'SELECT ' +                                                     #13#10 +
-      '  ic.id       AS OldCard, ' +                                  #13#10 +
-      '  icMin.id    AS NewCard ' +                                   #13#10 +
-      'FROM inv_card ic ' +                                           #13#10 +
-      '  JOIN ( ' +                                                   #13#10 +
-      '    SELECT '  +                                                #13#10 +
-      '      MIN(ic2.id) AS id, ' +                                   #13#10 +
-      '      ic2.goodkey ';
+      'EXECUTE BLOCK   ' +
+      'AS  ' +                                             #13#10 +
+      '  DECLARE S VARCHAR(255); ' +                       #13#10 +
+      '  DECLARE VARIABLE OLD_CARD    INTEGER = NULL;  ' + #13#10 +
+      '  DECLARE VARIABLE NEW_CARD    INTEGER = NULL;  ' + #13#10 +
+      '  DECLARE VARIABLE goodkey     INTEGER = NULL;  ' + #13#10 +
+      '  DECLARE VARIABLE old_goodkey INTEGER = NULL;  ';
     if AUsrSelectedFieldsList.Count > 0 then
-      q.SQL.Add(', ' +
-        '    ic2.' + StringReplace(AUsrSelectedFieldsList.CommaText, ',', ',ic2.', [rfReplaceAll, rfIgnoreCase]));
-    q.SQL.Add(' ' +
-      '    FROM inv_card ic2 ' +                                      #13#10 +
-      '    WHERE g_his_has(0, ic2.documentkey)=1 ' +                  #13#10 +
-      '    GROUP BY ic2.goodkey ');
-    if AUsrSelectedFieldsList.Count > 0 then
-      q.SQL.Add(', ' +
-        '    ic2.' + StringReplace(AUsrSelectedFieldsList.CommaText, ',', ',ic2.', [rfReplaceAll, rfIgnoreCase]));
-    q.SQL.Add(' ' +
-      '  )icMin ON icMin.goodkey = ic.goodkey ');
-    for I:=0 to AUsrSelectedFieldsList.Count-1 do
     begin
-      q.SQL.Add(' AND ');
-      q.SQL.Add('   icMin.' + AUsrSelectedFieldsList[I] + ' = ' + 'ic.' + AUsrSelectedFieldsList[I]);
+      q.SQL.Add('  ' +
+        'DECLARE VARIABLE ' + StringReplace(AUsrSelectedFieldsList.CommaText, ',', ' INTEGER = NULL;  DECLARE VARIABLE ', [rfReplaceAll, rfIgnoreCase]) + ' INTEGER = NULL;  ' + 
+        'DECLARE VARIABLE old_' + StringReplace(AUsrSelectedFieldsList.CommaText, ',', ' INTEGER = NULL;  DECLARE VARIABLE old_', [rfReplaceAll, rfIgnoreCase]) + ' INTEGER = NULL; ');
     end;
-    q.SQL.Add(' ' +
-      'WHERE ' +                                                      #13#10 +
-      '  ic.id <> icMin.id ' +                                        #13#10 +
-      '  AND g_his_has(0, ic.documentkey)=1 ');
+    q.SQL.Add('  ' +                                       #13#10 +
+      'BEGIN  ' +                                          #13#10 +
+      '  S = ''INSERT INTO DBS_TMP_MERGE_CARD (old_cardkey, new_cardkey) VALUES (?, ?)''; ' +  #13#10 +
+      '  FOR  ' +                                                                              #13#10 +
+      '      SELECT  ' +                                   #13#10 +
+      '        ic.id, ' +                                  #13#10 +
+      '        ic.goodkey ');
+    if AUsrSelectedFieldsList.Count > 0 then
+      q.SQL.Add(', ' +
+        '      ic.' + StringReplace(AUsrSelectedFieldsList.CommaText, ',', ',ic.', [rfReplaceAll, rfIgnoreCase]));
+    q.SQL.Add(
+      '      FROM inv_card ic  ' +                         #13#10 +
+      '      WHERE g_his_has(0, ic.documentkey)=1 ' +      #13#10 +
+      '      ORDER BY   ' +                                #13#10 +
+      '        ic.goodkey ');
+    if AUsrSelectedFieldsList.Count > 0 then
+      q.SQL.Add(', ' +
+        '      ic.' + StringReplace(AUsrSelectedFieldsList.CommaText, ',', ',ic.', [rfReplaceAll, rfIgnoreCase]));
+    q.SQL.Add(
+      '    INTO ' +                                        #13#10 +
+      '      :OLD_CARD, ' +                                #13#10 +
+      '      :goodkey ');
+    if AUsrSelectedFieldsList.Count > 0 then
+      q.SQL.Add(', ' +
+        '    :' + StringReplace(AUsrSelectedFieldsList.CommaText, ',', ', :', [rfReplaceAll, rfIgnoreCase]));
+    q.SQL.Add(
+      '  DO BEGIN ' +                                      #13#10 +
+      '    IF (' +                                         #13#10 +
+      '      old_goodkey IS NOT DISTINCT FROM :goodkey ');
+    for I:=0 to AUsrSelectedFieldsList.Count-1 do
+      q.SQL.Add(
+        '    AND old_' + AUsrSelectedFieldsList[I] + ' IS NOT DISTINCT FROM :' + AUsrSelectedFieldsList[I]);
+    q.SQL.Add(
+      '    ) THEN ' +                                           #13#10 +
+      '      EXECUTE STATEMENT(:S) (:OLD_CARD, :NEW_CARD); ' +  #13#10 +
+      '    ELSE ' +                                             #13#10 +
+      '    BEGIN ' +                                            #13#10 +
+      '      NEW_CARD = :OLD_CARD; ' +                          #13#10 +
+      '      old_goodkey = :goodkey; ');
+    for I:=0 to AUsrSelectedFieldsList.Count-1 do
+      q.SQL.Add(
+        '    old_' + AUsrSelectedFieldsList[I] + ' = :' + AUsrSelectedFieldsList[I] + '; ');
+    q.SQL.Add(
+      '    END ' +                                         #13#10 +
+      '  END ' +                                           #13#10 +
+      'END ');
+
     if not FDoStopProcessing then
       ExecSqlLogEvent(q, 'MergeCards');
 
