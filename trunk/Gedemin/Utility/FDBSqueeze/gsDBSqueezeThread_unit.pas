@@ -20,7 +20,7 @@ const
   WM_DBS_CREATEDBSSTATEJOURNAL = WM_GD_THREAD_USER + 9;
   WM_DBS_GETDBPROPERTIES       = WM_GD_THREAD_USER + 10;
   WM_DBS_SETCLOSINGDATE        = WM_GD_THREAD_USER + 11;
-  
+
   WM_DBS_SETSALDOPARAMS        = WM_GD_THREAD_USER + 13;
   WM_DBS_SETSELECTEDDOCTYPES   = WM_GD_THREAD_USER + 14;
   WM_DBS_GETSTATISTICS         = WM_GD_THREAD_USER + 16;
@@ -50,7 +50,9 @@ const
 
   WM_DBS_MERGECARDS            = WM_GD_THREAD_USER + 42;
 
-  WM_GD_EXIT_THREAD            = WM_GD_THREAD_USER + 43;
+  WM_STOPNOTIFY                = WM_GD_THREAD_USER + 43;
+
+  WM_GD_EXIT_THREAD            = WM_USER + 117;
 
 type
   TErrorEvent = procedure(const ErrorMsg: String) of object;
@@ -66,12 +68,15 @@ type
 
   TgsDBSqueezeThread = class(TgdMessagedThread)
   private
+
+    FMainFrmHandle: THandle;
+    FMyEvent: TEvent;
+
     FDBS: TgsDBSqueeze;
 
     FBusy: TidThreadSafeInteger;
     FDoGetStatisticsAfterProc: TidThreadSafeInteger;
 
-    FIsFinishMsg: TidThreadSafeInteger;
     FDoStopProcessing: TidThreadSafeInteger;
 
     FAllOurCompaniesSaldo: Boolean;                                             ///TODO убрать
@@ -116,7 +121,7 @@ type
     procedure DoOnSetDocTypeBranchSync;
     procedure DoOnSetDocTypeStringsSync;
 
-    procedure Finish(const AIsFinished: Boolean);
+    procedure Finish;
     procedure GetCardFeatures(const AMessageCardFeatures: TStringList);
     procedure GetConnected(const AMsgConnected: Boolean);
     procedure GetDBProperties(const AMessageProperties: TStringList);
@@ -154,6 +159,7 @@ type
 
     procedure SetSaldoParams(const AAllOurCompanies: Boolean; const ACalculateSaldo: Boolean);             ///
 
+    property MainFrmHandle: THandle read FMainFrmHandle write FMainFrmHandle;
 
     property Busy: Boolean  read GetBusy;
     property DoGetStatisticsAfterProc: Boolean
@@ -195,7 +201,6 @@ begin
   FDBS.OnGetStatistics := GetStatistics;
   FDBS.OnGetProcStatistics := GetProcStatistics;
   FDocTypesList :=  TStringList.Create;
-  FIsFinishMsg := TIdThreadSafeInteger.Create;
   FBusy := TIdThreadSafeInteger.Create;
   FDoGetStatisticsAfterProc := TIdThreadSafeInteger.Create;
   FMsgConnectInfoList := TStringList.Create;
@@ -206,9 +211,10 @@ begin
   FDoStopProcessing := TIdThreadSafeInteger.Create;
 
   FBusy.Value := 0;
-  FIsFinishMsg.Value := 0;
   FFinish := False;
   FDoStopProcessing.Value := 0;
+
+  FMyEvent := tevent.create(nil,true,true,'');
 
   inherited Create(CreateSuspended);
 end;
@@ -218,7 +224,6 @@ begin
   inherited;
   FDBS.Free;
   FDocTypesList.Free;
-  FIsFinishMsg.Free;
   FBusy.Free;
   FDoGetStatisticsAfterProc.Free;
   FMsgConnectInfoList.Free;
@@ -227,6 +232,8 @@ begin
   FMessageDocTypeBranchList.Free;
   FMessagePropertiesList.Free;
   FDoStopProcessing.Free;
+
+  FMyEvent.Free;
 end;
 
 procedure TgsDBSqueezeThread.Connect;
@@ -247,6 +254,7 @@ end;
 procedure TgsDBSqueezeThread.StopProcessing;
 begin
   FDoStopProcessing.Value := 1;
+  FDBS.DoStopProcessing  := True;      ///TODO cs
   PostMsg(WM_DBS_STOPPROCESSING);
 end;
 
@@ -280,12 +288,8 @@ begin
     FOnSetDocTypeBranch(FMessageDocTypeBranchList);
 end;
 
-procedure TgsDBSqueezeThread.Finish(const AIsFinished: Boolean);
+procedure TgsDBSqueezeThread.Finish;
 begin
-  if AIsFinished then
-    FIsFinishMsg.Value := 1
-  else
-    FIsFinishMsg.Value := 0;
   Synchronize(DoOnFinishSync);
 end;
 
@@ -418,7 +422,8 @@ begin
     WM_DBS_GETPROCSTATISTICS:
       begin
         FBusy.Value := 1;
-        FDBS.GetProcStatisticsEvent;
+        if FDoStopProcessing.Value = 0 then
+          FDBS.GetProcStatisticsEvent;
         Result := True;
       end;
 
@@ -431,7 +436,8 @@ begin
           if GetParamStatisticsAfterProc then
           begin
             FDBS.GetStatisticsEvent;
-            FDBS.GetProcStatisticsEvent;
+            if FDoStopProcessing.Value = 0 then
+              FDBS.GetProcStatisticsEvent;
           end;
 
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
@@ -447,7 +453,9 @@ begin
         FDBS.InsertDBSStateJournal(Msg.Message, 1);
         FFinish:= False;
 
-        Finish(FFinish);     // форма начинает ждать завершения
+        if FDBS.DoStopProcessing then        // форма начинает ждать завершения
+          PostMessage(FMainFrmHandle, WM_STOPNOTIFY, 0, 0);                
+
 
         PostThreadMessage(ThreadID, WM_DBS_FINISHED, 0, 0);
         Result := True;
@@ -458,20 +466,26 @@ begin
         FBusy.Value := 0;
 
         PostThreadMessage(ThreadID, WM_GD_EXIT_THREAD, 0, 0);
+
         Result := True;
       end;
 
     WM_DBS_MERGECARDS:                                                          
       begin
-        FBusy.Value := 1;
+        if not FMergeInProc then
+          FBusy.Value := 1;
+
         FDBS.ProgressMsgEvent('Объединение карточек...', 0);
-        FDBS.MergeCards(FMergeDocDate, FMergeDocTypes, FMergeCardFeatures);
+
+        if FDoStopProcessing.Value = 0 then
+          FDBS.MergeCards(FMergeDocDate, FMergeDocTypes, FMergeCardFeatures);
 
         FDBS.ProgressMsgEvent(' ', 0);
-        FBusy.Value := 0;
-        
+
         if FMergeInProc then
-          PostThreadMessage(ThreadID, WM_DBS_CREATEHIS_INCLUDEHIS, 0, 0);
+          PostThreadMessage(ThreadID, WM_DBS_CREATEHIS_INCLUDEHIS, 0, 0)
+        else
+          FBusy.Value := 0;
         Result := True;
       end;
 
@@ -687,7 +701,8 @@ begin
           if GetParamStatisticsAfterProc and (FDoStopProcessing.Value = 0) then
           begin
             FDBS.GetStatisticsEvent;
-            FDBS.GetProcStatisticsEvent;
+            if FDoStopProcessing.Value = 0 then
+              FDBS.GetProcStatisticsEvent;
           end;
 
           //FDBS.InsertDBSStateJournal(Msg.Message, 1);
@@ -706,7 +721,7 @@ begin
           FDBS.ProgressMsgEvent('Обработка БД завершена.');
           
           FFinish:= True;
-          Finish(FFinish);
+          Finish;
 
           FBusy.Value := 0;
         end;
