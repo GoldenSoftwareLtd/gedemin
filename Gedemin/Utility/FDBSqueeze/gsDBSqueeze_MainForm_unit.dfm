@@ -1,8 +1,8 @@
 object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
-  Left = 599
-  Top = 162
+  Left = 426
+  Top = 115
   Width = 940
-  Height = 575
+  Height = 576
   BorderIcons = [biSystemMenu, biMinimize]
   Color = clBtnFace
   Font.Charset = RUSSIAN_CHARSET
@@ -29,7 +29,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
     Left = 0
     Top = 0
     Width = 932
-    Height = 524
+    Height = 525
     Align = alClient
     BevelOuter = bvNone
     BorderWidth = 4
@@ -68,7 +68,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
       Left = 4
       Top = 4
       Width = 924
-      Height = 492
+      Height = 493
       ActivePage = tsSettings
       Align = alClient
       MultiLine = True
@@ -106,7 +106,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           Caption = 'Пользователь:'
         end
         object lbl3: TLabel
-          Left = 211
+          Left = 216
           Top = 47
           Width = 41
           Height = 13
@@ -122,14 +122,14 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         object edDatabaseName: TEdit
           Left = 95
           Top = 1
-          Width = 256
+          Width = 259
           Height = 21
           Hint = 'Диск:[\Каталог][\Файл] '
           TabOrder = 0
           Text = 'D:\GDBASE_2.FDB'
         end
         object btnDatabaseBrowse: TButton
-          Left = 350
+          Left = 354
           Top = 2
           Width = 20
           Height = 19
@@ -140,22 +140,22 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         object edUserName: TEdit
           Left = 95
           Top = 43
-          Width = 94
+          Width = 92
           Height = 21
           Enabled = False
           TabOrder = 3
           Text = 'SYSDBA'
         end
         object edPassword: TEdit
-          Left = 257
+          Left = 262
           Top = 43
-          Width = 94
+          Width = 92
           Height = 21
           PasswordChar = '*'
           TabOrder = 4
         end
         object cbbCharset: TComboBox
-          Left = 488
+          Left = 491
           Top = 1
           Width = 94
           Height = 21
@@ -292,8 +292,8 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             TabOrder = 1
           end
           object btnCardSetup: TButton
-            Left = 31
-            Top = 66
+            Left = 30
+            Top = 68
             Width = 92
             Height = 21
             Action = actCardSetup
@@ -306,7 +306,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         ImageIndex = 2
         object pnlLogButton: TPanel
           Left = 0
-          Top = 437
+          Top = 438
           Width = 916
           Height = 27
           Align = alBottom
@@ -328,7 +328,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           Left = 0
           Top = 0
           Width = 916
-          Height = 437
+          Height = 438
           Align = alClient
           BevelOuter = bvNone
           TabOrder = 0
@@ -336,14 +336,14 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             Left = 450
             Top = 0
             Width = 3
-            Height = 437
+            Height = 438
             Cursor = crHSplit
           end
           object mLog: TMemo
             Left = 0
             Top = 0
             Width = 450
-            Height = 437
+            Height = 438
             Align = alLeft
             Font.Charset = RUSSIAN_CHARSET
             Font.Color = clWindowText
@@ -358,7 +358,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             Left = 453
             Top = 0
             Width = 463
-            Height = 437
+            Height = 438
             Align = alClient
             Font.Charset = RUSSIAN_CHARSET
             Font.Color = clWindowText
@@ -1222,7 +1222,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
     end
     object Panel1: TPanel
       Left = 4
-      Top = 496
+      Top = 497
       Width = 924
       Height = 24
       Align = alBottom

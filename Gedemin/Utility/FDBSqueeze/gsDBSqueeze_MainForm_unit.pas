@@ -489,7 +489,6 @@ procedure TgsDBSqueeze_MainForm.actStopExecute(Sender: TObject);
 begin
   case Application.MessageBox(
     PChar('Прервать процесс обработки БД?' + #13#10 +
-      'Прерывание произойдет после завершения последней операции.' + #13#10 +
       'Возобновить процесс будет невозможно.'),
       PChar('Подтверждение'),
       MB_OKCANCEL + MB_ICONQUESTION + MB_TOPMOST) of
@@ -603,7 +602,7 @@ end;
 
 procedure TgsDBSqueeze_MainForm.actLoadConfigUpdate(Sender: TObject);
 begin
-  actLoadConfig.Enabled := (FSThread <> nil) and FConnected;
+  actLoadConfig.Enabled := (FSThread <> nil) and FConnected and (not FSThread.Busy);
 end;
 
 procedure TgsDBSqueeze_MainForm.actSaveLogExecute(Sender: TObject);
@@ -698,7 +697,7 @@ end;
 
 procedure TgsDBSqueeze_MainForm.actCardSetupUpdate(Sender: TObject);
 begin
-  actCardSetup.Enabled := FConnected;
+  actCardSetup.Enabled := (FSThread <> nil) and FConnected and (not FSThread.Busy);
 end;
 
 // ============================ Журнал =========================================

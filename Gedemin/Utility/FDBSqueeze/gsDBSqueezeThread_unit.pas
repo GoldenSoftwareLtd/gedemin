@@ -304,14 +304,18 @@ procedure TgsDBSqueezeThread.DoOnGetStatisticsSync;
 begin
   if Assigned(FOnGetStatistics) then
     FOnGetStatistics(FMessageGdDocStr, FMessageAcEntryStr, FMessageInvMovementStr, FMessageInvCardStr);
-  FBusy.Value := 0;
+
+  if not GetParamStatisticsAfterProc then
+    FBusy.Value := 0;
 end;
 
 procedure TgsDBSqueezeThread.DoOnGetProcStatisticsSync;
 begin
   if Assigned(FOnGetProcStatistics) then
     FOnGetProcStatistics(FMessageProcGdDocStr, FMessageProcAcEntryStr, FMessageProcInvMovementStr, FMessageProcInvCardStr);
-  FBusy.Value := 0; 
+
+  if not GetParamStatisticsAfterProc then
+    FBusy.Value := 0;
 end;
 
 function TgsDBSqueezeThread.GetBusy: Boolean;
