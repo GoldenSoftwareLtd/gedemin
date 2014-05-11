@@ -3734,7 +3734,7 @@ CreateHIS(0);
     q.SQL.Text :=
       'SELECT SUM(g_his_include(0, cardkey)) FROM DBS_TMP_INV_SALDO';
     if not FDoStopProcessing then
-      ExecSqlLogEvent(q, 'CalculateInvSaldo');
+      ExecSqlLogEvent(q, 'CreateHIS_IncludeInHIS');
     q.Close;
 
     Tr.Commit;
@@ -3747,7 +3747,7 @@ CreateHIS(0);
       'WHERE g_his_has(0, c.id)=1 ';
     q.ParamByName('SaldoDocKey').AsInteger := FInvSaldoDoc;
     if not FDoStopProcessing then
-      ExecSqlLogEvent(q, 'CalculateInvSaldo');
+      ExecSqlLogEvent(q, 'CreateHIS_IncludeInHIS');
 
     Tr.Commit;
     Tr.StartTransaction;
@@ -3760,7 +3760,7 @@ CreateHIS(0);
           'SELECT SUM(g_his_include(0, id)) AS Kolvo ' +
           'FROM inv_card ' +
           'WHERE g_his_has(0, parent)=1';
-        ExecSqlLogEvent(q, 'CalculateInvSaldo');
+        ExecSqlLogEvent(q, 'CreateHIS_IncludeInHIS');
       until q.FieldByName('Kolvo').AsInteger = 0;
     end;
     q.Close;
@@ -3777,7 +3777,7 @@ CreateHIS(0);
         '  rf.rdb$relation_name = ''INV_CARD'' ' +                      #13#10 +
         '  AND rf.rdb$field_name IN(''USR$INV_ADDLINEKEY'', ''USR$INV_MOVEDOCKEY'', ''USR$INV_BILLLINEKEY'', ''USR$INV_PRMETALKEY'', ''USR$WC_STARTUPDOCKEY'', ''USR$WC_CONSERVREVDOCKEY'', ''USR$WC_CONSERVATIONDOCKEY'') ' + #13#10 +
         '  AND COALESCE(rf.rdb$system_flag, 0) = 0 ';
-    ExecSqlLogEvent(q2, 'CreateDBSTmpAcSaldo');
+    ExecSqlLogEvent(q2, 'CreateHIS_IncludeInHIS');
 
     if not q2.EOF then
     begin
@@ -3804,7 +3804,7 @@ CreateHIS(0);
 
     q.ParamByName('SaldoDocKey').AsInteger := FInvSaldoDoc;
     if not FDoStopProcessing then
-      ExecSqlLogEvent(q, 'CalculateInvSaldo');
+      ExecSqlLogEvent(q, 'CreateHIS_IncludeInHIS');
 
 DestroyHIS(0);
 
@@ -3857,8 +3857,8 @@ DestroyHIS(0);
     
     q.SQL.Text :=
       'SELECT SUM(g_his_include(1, doc.id)) AS Kolvo ' + #13#10 +
-      'FROM gd_document doc ' +                        #13#10 +
-      'WHERE doc.parent IS NULL ' +                     #13#10 +
+      'FROM gd_document doc ' +                          #13#10 +
+      'WHERE doc.parent IS NULL ' +                      #13#10 +
       '  AND ((doc.documentdate >= :Date) ';
     if Assigned(FDocTypesList) then
     begin
@@ -4047,7 +4047,7 @@ begin
       '    WHERE ' +                                                          #13#10 +
      // '      rdb$trigger_inactive = 0 ' +                                     #13#10 +
       '      rdb$system_flag = 0 ' +                                          #13#10 +
-      '      AND rdb$relation_name = ''' + UpperCase(Trim(ATableName))  + ''' ' + #13#10 +                              #13#10 +
+      '      AND rdb$relation_name = ''' + UpperCase(Trim(ATableName))  + ''' ' + #13#10 +
       '    INTO :TN ' +                                                       #13#10 +
       '  DO ' +                                                               #13#10 +
       '  BEGIN ' +                                                            #13#10 +
@@ -4118,10 +4118,56 @@ begin
       ExecSqlLogEvent(q, 'CreateHIS_IncludeInHIS');
     q.Close;
 
+
+    q2.SQL.Text :=
+      'SELECT LIST( ' +                                               #13#10 +
+      '  TRIM(rf.rdb$field_name) || '' '' || ' +                      #13#10 +
+      '  CASE f.rdb$field_type ' +                                    #13#10 +
+      '    WHEN 7 THEN ' +                                            #13#10 +
+      '      CASE f.rdb$field_sub_type ' +                            #13#10 +
+      '        WHEN 0 THEN '' SMALLINT'' ' +                          #13#10 +
+      '        WHEN 1 THEN '' NUMERIC('' || f.rdb$field_precision || '','' || (-f.rdb$field_scale) || '')'' ' +  #13#10 +
+      '        WHEN 2 THEN '' DECIMAL(''  || f.rdb$field_precision || '','' || (-f.rdb$field_scale) || '')'' ' + #13#10 +
+      '      END ' +                                                  #13#10 +
+      '    WHEN 8 THEN ' +                                            #13#10 +
+      '      CASE f.rdb$field_sub_type ' +                            #13#10 +
+      '        WHEN 0 THEN '' INTEGER'' ' +                           #13#10 +
+      '        WHEN 1 THEN '' NUMERIC(''  || f.rdb$field_precision || '','' || (-f.rdb$field_scale) || '')'' ' + #13#10 +
+      '        WHEN 2 THEN '' DECIMAL(''  || f.rdb$field_precision || '','' || (-f.rdb$field_scale) || '')'' ' + #13#10 +
+      '      END ' +                                                  #13#10 +
+      '    WHEN 9 THEN '' QUAD'' ' +                                  #13#10 +
+      '    WHEN 10 THEN '' FLOAT'' ' +                                #13#10 +
+      '    WHEN 12 THEN '' DATE'' ' +                                 #13#10 +
+      '    WHEN 13 THEN '' TIME'' ' +                                 #13#10 +
+      '    WHEN 14 THEN '' CHAR('' || (TRUNC(f.rdb$field_length / ch.rdb$bytes_per_character)) || '')'' ' +      #13#10 +
+      '    WHEN 16 THEN ' +                                           #13#10 +
+      '      CASE f.rdb$field_sub_type ' +                            #13#10 +
+      '        WHEN 0 THEN '' BIGINT'' ' +                            #13#10 +
+      '        WHEN 1 THEN '' NUMERIC(''  || f.rdb$field_precision || '','' || (-f.rdb$field_scale) || '')'' ' + #13#10 +
+      '        WHEN 2 THEN '' DECIMAL(''  || f.rdb$field_precision || '','' || (-f.rdb$field_scale) || '')'' ' + #13#10 +
+      '      END ' +                                                  #13#10 +
+      '    WHEN 27 THEN '' DOUBLE'' ' +                               #13#10 +
+      '    WHEN 35 THEN '' TIMESTAMP'' ' +                            #13#10 +
+      '    WHEN 37 THEN '' VARCHAR('' || (TRUNC(f.rdb$field_length / ch.rdb$bytes_per_character)) || '')'' ' +   #13#10 +
+      '    WHEN 40 THEN '' CSTRING('' || (TRUNC(f.rdb$field_length / ch.rdb$bytes_per_character)) || '')'' ' +   #13#10 +
+      '    WHEN 45 THEN '' BLOB_ID'' ' +                              #13#10 +
+      '    WHEN 261 THEN '' BLOB'' ' +                                #13#10 +
+      '    ELSE '' RDB$FIELD_TYPE:?'' ' +                             #13#10 +
+      '  END, '';'')  AS FieldsList ' +                                #13#10 +
+      'FROM rdb$relation_fields rf ' +                                #13#10 +
+      '  JOIN rdb$fields f ON (f.rdb$field_name = rf.rdb$field_source) ' +                                       #13#10 +
+      '  LEFT OUTER JOIN rdb$character_sets ch ON (ch.rdb$character_set_id = f.rdb$character_set_id) ' +         #13#10 +
+      'WHERE ' +                                                      #13#10 +
+      '  rf.rdb$relation_name = ''INV_CARD'' ' +                      #13#10 +
+      '  AND rf.rdb$field_name IN (''' + StringReplace(AUsrSelectedFieldsList.CommaText, ',', ''',''', [rfReplaceAll, rfIgnoreCase]) + ''') ' + #13#10 +
+      '  AND COALESCE(rf.rdb$system_flag, 0) = 0 ';
+    if not FDoStopProcessing then
+      ExecSqlLogEvent(q2, 'MergeCards');
+
+
     q.SQL.Text :=
       'EXECUTE BLOCK   ' +
       'AS  ' +                                             #13#10 +
-      '  DECLARE S VARCHAR(255); ' +                       #13#10 +
       '  DECLARE VARIABLE OLD_CARD    INTEGER = NULL;  ' + #13#10 +
       '  DECLARE VARIABLE NEW_CARD    INTEGER = NULL;  ' + #13#10 +
       '  DECLARE VARIABLE goodkey     INTEGER = NULL;  ' + #13#10 +
@@ -4129,13 +4175,12 @@ begin
     if AUsrSelectedFieldsList.Count > 0 then
     begin
       q.SQL.Add('  ' +
-        'DECLARE VARIABLE ' + StringReplace(AUsrSelectedFieldsList.CommaText, ',', ' INTEGER = NULL;  DECLARE VARIABLE ', [rfReplaceAll, rfIgnoreCase]) + ' INTEGER = NULL;  ' + 
-        'DECLARE VARIABLE old_' + StringReplace(AUsrSelectedFieldsList.CommaText, ',', ' INTEGER = NULL;  DECLARE VARIABLE old_', [rfReplaceAll, rfIgnoreCase]) + ' INTEGER = NULL; ');
+        'DECLARE VARIABLE ' + StringReplace(q2.FieldByName('FieldsList').AsString, ';', ' = NULL;  DECLARE VARIABLE ', [rfReplaceAll, rfIgnoreCase]) + ' = NULL;  ' +
+        'DECLARE VARIABLE old_' + StringReplace(q2.FieldByName('FieldsList').AsString, ';', ' = NULL;  DECLARE VARIABLE old_', [rfReplaceAll, rfIgnoreCase]) + ' = NULL; ');
     end;
     q.SQL.Add('  ' +                                       #13#10 +
       'BEGIN  ' +                                          #13#10 +
-      '  S = ''INSERT INTO DBS_TMP_MERGE_CARD (old_cardkey, new_cardkey) VALUES (?, ?)''; ' +  #13#10 +
-      '  FOR  ' +                                                                              #13#10 +
+      '  FOR  ' +                                          #13#10 +
       '      SELECT  ' +                                   #13#10 +
       '        ic.id, ' +                                  #13#10 +
       '        ic.goodkey ');
@@ -4166,7 +4211,7 @@ begin
         '    AND old_' + AUsrSelectedFieldsList[I] + ' IS NOT DISTINCT FROM :' + AUsrSelectedFieldsList[I]);
     q.SQL.Add(
       '    ) THEN ' +                                           #13#10 +
-      '      EXECUTE STATEMENT(:S) (:OLD_CARD, :NEW_CARD); ' +  #13#10 +
+      '      INSERT INTO DBS_TMP_MERGE_CARD (old_cardkey, new_cardkey) VALUES (:OLD_CARD, :NEW_CARD); ' +  #13#10 +
       '    ELSE ' +                                             #13#10 +
       '    BEGIN ' +                                            #13#10 +
       '      NEW_CARD = :OLD_CARD; ' +                          #13#10 +
@@ -4182,6 +4227,7 @@ begin
     if not FDoStopProcessing then
       ExecSqlLogEvent(q, 'MergeCards');
 
+    q2.Close;  
     DestroyHIS(0);
 
     Tr.Commit;
@@ -4193,6 +4239,14 @@ begin
       'DELETE FROM inv_balance';
     if not FDoStopProcessing then
       ExecSqlLogEvent(q2, 'MergeCards');
+
+
+     SetTriggersState('INV_CARD', False);
+
+    {
+    q.SQL.Text := 'ALTER TRIGGER INV_BU_CARD inactive ';
+    if not FDoStopProcessing then
+      ExecSqlLogEvent(q, 'MergeCards');      }
 
     Tr.Commit;
     Tr.StartTransaction;
@@ -4211,6 +4265,7 @@ begin
       '    ON iseg.rdb$index_name = c.rdb$index_name ' +              #13#10 +
       'WHERE ' +                                                      #13#10 +
       '  c2.rdb$relation_name = ''INV_CARD'' ' +                      #13#10 +
+      '  AND c.rdb$relation_name <> ''INV_BALANCE'' '  +              #13#10 +
       '  AND c.rdb$constraint_type = ''FOREIGN KEY '' ' +             #13#10 +
       '  AND c.rdb$constraint_name NOT LIKE ''RDB$%'' ' +             #13#10 +
       'GROUP BY ' +                                                   #13#10 +
@@ -4264,6 +4319,12 @@ begin
     Tr.StartTransaction;
 
     SetTriggersState('INV_MOVEMENT', True);
+
+   { q.SQL.Text := 'ALTER TRIGGER INV_BU_CARD active ';
+    if not FDoStopProcessing then
+      ExecSqlLogEvent(q, 'MergeCards');   }
+
+    SetTriggersState('INV_CARD', True);
 
     CreateInvBalance;
 
