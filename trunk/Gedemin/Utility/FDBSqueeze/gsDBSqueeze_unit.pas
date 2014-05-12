@@ -4233,20 +4233,38 @@ begin
     Tr.Commit;
     Tr.StartTransaction;
 
-    SetTriggersState('INV_MOVEMENT', False);
+    //SetTriggersState('INV_MOVEMENT', False);
 
     q2.SQL.Text :=
       'DELETE FROM inv_balance';
     if not FDoStopProcessing then
       ExecSqlLogEvent(q2, 'MergeCards');
 
-
-     SetTriggersState('INV_CARD', False);
-
-    {
-    q.SQL.Text := 'ALTER TRIGGER INV_BU_CARD inactive ';
+     ///TODO tmp
+     q.SQL.Text :=
+      'EXECUTE BLOCK ' +                                                     #13#10 +
+      'AS ' +                                                                #13#10 +
+      '  DECLARE VARIABLE TN CHAR(31); ' +                                   #13#10 +
+      'BEGIN ' +                                                             #13#10 +
+      '  FOR ' +                                                             #13#10 +
+      '    SELECT ' + 
+      '      dp.RDB$DEPENDENT_NAME AS TriggerName ' +
+      '    FROM ' +
+      '      RDB$DEPENDENCIES dp ' +
+      '      JOIN rdb$triggers tr ON tr.rdb$trigger_name = dp.RDB$DEPENDENT_NAME ' +
+      '    WHERE ' +
+      '      dp.RDB$DEPENDED_ON_NAME = ''INV_MOVEMENT'' ' +
+      '      AND dp.RDB$FIELD_NAME = ''CARDKEY'' ' +
+      '      AND dp.RDB$DEPENDENT_TYPE = 2 ' +
+      '      AND tr.rdb$system_flag = 0 ' +
+      '    INTO :TN ' +                                                      #13#10 +
+      '  DO ' +                                                              #13#10 +
+      '  BEGIN ' +                                                           #13#10 +
+      '    EXECUTE STATEMENT ''ALTER TRIGGER ''|| :TN || '' INACTIVE ''; ' + #13#10 +
+      '  END ' +                                                             #13#10 +
+      'END';
     if not FDoStopProcessing then
-      ExecSqlLogEvent(q, 'MergeCards');      }
+      ExecSqlLogEvent(q, 'MergeCards');
 
     Tr.Commit;
     Tr.StartTransaction;
@@ -4279,6 +4297,8 @@ begin
 
       for I:=0 to FkFields.Count-1 do
       begin
+        LogEvent('[test] ' + q2.FieldByName('relation_name').AsString);
+
         q.SQL.Text :=
           'MERGE INTO ' + q2.FieldByName('relation_name').AsString + ' rln ' +  #13#10 +
           'USING (SELECT * FROM DBS_TMP_MERGE_CARD) mc ' +                      #13#10 +
@@ -4292,6 +4312,58 @@ begin
       q2.Next;
     end;
     q2.Close;
+
+
+    ///TODO tmp
+     q.SQL.Text :=
+      'EXECUTE BLOCK ' +                                                     #13#10 +
+      'AS ' +                                                                #13#10 +
+      '  DECLARE VARIABLE TN CHAR(31); ' +                                   #13#10 +
+      'BEGIN ' +                                                             #13#10 +
+      '  FOR ' +                                                             #13#10 +
+      '    SELECT ' + 
+      '      dp.RDB$DEPENDENT_NAME AS TriggerName ' +
+      '    FROM ' +
+      '      RDB$DEPENDENCIES dp ' +
+      '      JOIN rdb$triggers tr ON tr.rdb$trigger_name = dp.RDB$DEPENDENT_NAME ' +
+      '    WHERE ' +
+      '      dp.RDB$DEPENDED_ON_NAME = ''INV_MOVEMENT'' ' +
+      '      AND dp.RDB$FIELD_NAME = ''CARDKEY'' ' +
+      '      AND dp.RDB$DEPENDENT_TYPE = 2 ' +
+      '      AND tr.rdb$system_flag = 0 ' +
+      '    INTO :TN ' +                                                      #13#10 +
+      '  DO ' +                                                              #13#10 +
+      '  BEGIN ' +                                                           #13#10 +
+      '    EXECUTE STATEMENT ''ALTER TRIGGER ''|| :TN || '' ACTIVE ''; ' +   #13#10 +
+      '  END ' +                                                             #13#10 +
+      'END';
+    if not FDoStopProcessing then
+      ExecSqlLogEvent(q, 'MergeCards');
+
+
+
+    q.SQL.Text :=
+      'EXECUTE BLOCK ' +                                                     #13#10 +
+      'AS ' +                                                                #13#10 +
+      '  DECLARE VARIABLE TN CHAR(31); ' +                                   #13#10 +
+      'BEGIN ' +                                                             #13#10 +
+      '  FOR ' +                                                             #13#10 +
+      '    SELECT ' +                                                        #13#10 +
+      '      rdb$trigger_name ' +                                            #13#10 +
+      '    FROM ' +                                                          #13#10 +
+      '      RDB$TRIGGERS ' +                                                #13#10 +
+      '    WHERE ' +                                                         #13#10 +
+      '      rdb$relation_name = ''INV_CARD'' ' +                            #13#10 +
+      '      AND rdb$trigger_type = 6 ' +                                    #13#10 +    //after delete
+      '      AND rdb$system_flag = 0 ' +                                     #13#10 +
+      '    INTO :TN ' +                                                      #13#10 +
+      '  DO ' +                                                              #13#10 +
+      '  BEGIN ' +                                                           #13#10 +
+      '    EXECUTE STATEMENT ''ALTER TRIGGER ''|| :TN || '' INACTIVE ''; ' + #13#10 +
+      '  END ' +                                                             #13#10 +
+      'END';
+    if not FDoStopProcessing then
+      ExecSqlLogEvent(q, 'MergeCards');
 
     Tr.Commit;
     Tr.StartTransaction;
@@ -4318,13 +4390,30 @@ begin
     Tr.Commit;
     Tr.StartTransaction;
 
-    SetTriggersState('INV_MOVEMENT', True);
+    //SetTriggersState('INV_MOVEMENT', True);
 
-   { q.SQL.Text := 'ALTER TRIGGER INV_BU_CARD active ';
+    q.SQL.Text :=
+      'EXECUTE BLOCK ' +                                                     #13#10 +
+      'AS ' +                                                                #13#10 +
+      '  DECLARE VARIABLE TN CHAR(31); ' +                                   #13#10 +
+      'BEGIN ' +                                                             #13#10 +
+      '  FOR ' +                                                             #13#10 +
+      '    SELECT ' +                                                        #13#10 +
+      '      rdb$trigger_name ' +                                            #13#10 +
+      '    FROM ' +                                                          #13#10 +
+      '      RDB$TRIGGERS ' +                                                #13#10 +
+      '    WHERE ' +                                                         #13#10 +
+      '      rdb$relation_name = ''INV_CARD'' ' +                            #13#10 +
+      '      AND rdb$trigger_type = 6 ' +                                    #13#10 +    //after delete
+      '      AND rdb$system_flag = 0 ' +                                     #13#10 +
+      '    INTO :TN ' +                                                      #13#10 +
+      '  DO ' +                                                              #13#10 +
+      '  BEGIN ' +                                                           #13#10 +
+      '    EXECUTE STATEMENT ''ALTER TRIGGER ''|| :TN || '' ACTIVE ''; ' +   #13#10 +
+      '  END ' +                                                             #13#10 +
+      'END';
     if not FDoStopProcessing then
-      ExecSqlLogEvent(q, 'MergeCards');   }
-
-    SetTriggersState('INV_CARD', True);
+      ExecSqlLogEvent(q, 'MergeCards');
 
     CreateInvBalance;
 
@@ -4339,7 +4428,7 @@ begin
     q2.Free;
     Tr.Free;
     FkFields.Free;
-  end
+  end;
 end;
 //---------------------------------------------------------------------------
 procedure TgsDBSqueeze.PrepareDB;
