@@ -686,22 +686,6 @@ begin
             Result := TyamlCurrency.CreateCurrency(C)
           else if (DigCount > 0)
             and (OtherCount = 0)
-            and (ECount <= 1)
-            and (SignCount <= 2)
-            and (DotCount <= 1)
-            and (SpaceCount = 0)
-            and ConvertToFloat(Scanner.Scalar, F) then
-            Result := TyamlFloat.CreateFloat(F)
-          else if (DigCount = 0)
-            and (Len <= 5)
-            and (Len >= 4)
-            and (SignCount = 0)
-            and (DotCount = 0)
-            and (SpaceCount = 0)
-            and ConvertToBoolean(Scanner.Scalar, B) then
-            Result := TyamlBoolean.CreateBoolean(B)
-          else if (DigCount > 0)
-            and (OtherCount = 0)
             and (ECount = 0)
             and (SignCount = 2)
             and (DotCount = 0)
@@ -716,6 +700,22 @@ begin
             and (SpaceCount = 0)
             and ConvertToDateTime(Scanner.Scalar, DT) then
             Result := TyamlDateTime.CreateDateTime(DT)
+          else if (DigCount > 0)
+            and (OtherCount = 0)
+            and (ECount <= 1)
+            and (SignCount <= 2)
+            and (DotCount <= 1)
+            and (SpaceCount = 0)
+            and ConvertToFloat(Scanner.Scalar, F) then
+            Result := TyamlFloat.CreateFloat(F)
+          else if (DigCount = 0)
+            and (Len <= 5)
+            and (Len >= 4)
+            and (SignCount = 0)
+            and (DotCount = 0)
+            and (SpaceCount = 0)
+            and ConvertToBoolean(Scanner.Scalar, B) then
+            Result := TyamlBoolean.CreateBoolean(B)
           else
             Result := TyamlString.CreateString(Scanner.Scalar, Scanner.Quoting,
               Scanner.Style);

@@ -277,7 +277,26 @@ begin
   end;
 
   case AField.DataType of
-    ftSmallint, ftInteger: AField.AsInteger := N.AsInteger;
+    ftInteger:
+      try
+        AField.AsInteger := N.AsInteger;
+      except
+        on E: EConvertError do
+        begin
+          if not (N is TYAMLString) then
+            raise;
+
+          TgdcNamespace.ParseReferenceString(N.AsString, RefRUID, RefName);
+          RefID := gdcBaseManager.GetIDByRUID(RefRUID.XID, RefRUID.DBID, FTr);
+          if RefID = -1 then
+            raise;
+
+          AField.AsInteger := RefID;
+          AddWarning('Поле ' + AField.Origin + ' не является внешним ключем.');
+          AddWarning('Значение в файле: ' + N.AsString);
+        end;
+      end;
+    ftSmallint: AField.AsInteger := N.AsInteger;
     ftCurrency, ftBCD: AField.AsCurrency := N.AsCurrency;
     ftTime, ftDateTime: AField.AsDateTime := N.AsDateTime;
     ftDate: AField.AsDateTime := N.AsDate;
