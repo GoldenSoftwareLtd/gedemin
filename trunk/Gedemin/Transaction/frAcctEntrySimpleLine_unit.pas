@@ -315,7 +315,7 @@ begin
       AccountPart := Value.FieldByName('accountpart').AsString;
     end;
     if cCurrSum.Value > 0 then
-      cRate.Value := cSum.Value / cCurrSum.Value;
+      cRate.Value := CurrRate(cbCurrency.CurrentKeyInt) ;
 
   finally
     EnableControls;
