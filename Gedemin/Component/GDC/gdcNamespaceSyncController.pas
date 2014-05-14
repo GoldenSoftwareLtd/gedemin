@@ -566,7 +566,7 @@ end;
 procedure TgdcNamespaceSyncController.GetDependentList(ASL: TStrings);
 var
   q: TIBSQL;
-  I, J: Integer;
+  I, J, C: Integer;
 begin
   Assert(ASL <> nil);
   Assert(FTr <> nil);
@@ -603,6 +603,7 @@ begin
       '  f.filename = :filename ' +
       '  AND s.operation IN (''< '', ''<<'')';
     I := 0;
+    C := 0;
     while I < ASL.Count do
     begin
       q.ParamByName('filename').AsString := ASL[I];
@@ -622,6 +623,10 @@ begin
       end;
       q.Close;
       Inc(I);
+
+      Inc(C);
+      if C > ASL.Count * ASL.Count then
+        raise Exception.Create('Cyclic namespace dependance detected.');
     end;
   finally
     q.Free;
