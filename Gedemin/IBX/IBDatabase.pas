@@ -2508,7 +2508,7 @@ begin
                ParamValue;
         Inc(DPBLength, 2 + Length(ParamValue));
       end;
-      isc_dpb_num_buffers, isc_dpb_dbkey_scope, isc_dpb_force_write,
+      isc_dpb_num_buffers, isc_dpb_buffer_length, isc_dpb_dbkey_scope, isc_dpb_force_write,
       isc_dpb_no_reserve, isc_dpb_damaged, isc_dpb_verify:
       begin
         DPB := DPB +
