@@ -1612,6 +1612,8 @@ begin
   Database.Params.Add('user_name=');
   Database.Params.Add('password=');
   Database.Params.Add(Lc_ctypeValue + '=' + DefaultLc_ctype);
+  if gd_CmdLineParams.NoGarbageCollect then
+    Database.Params.Add('no_garbage_collect');
 
   if not StartUserConnect(WithoutConnection, SingleUserMode) then
     exit;

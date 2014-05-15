@@ -35,26 +35,13 @@ uses
 {TdmDataBase ---------------------------------------------}
 
 procedure TdmDatabase.DataModuleCreate(Sender: TObject);
-{var
-  Reg: TRegistry;}
 begin
-  {Reg := TRegistry.Create(KEY_WRITE);
-  try
-    Reg.RootKey := HKEY_LOCAL_MACHINE;
-    if Reg.OpenKey(cExecuteRegPath, True) then
-    begin
-      if not Reg.ValueExists(Application.ExeName) then
-        Reg.WriteInteger(Application.ExeName, 0);
-      Reg.CloseKey;
-    end;
-  finally
-    Reg.Free;
-  end;}
-
   ibdbGAdmin.Params.Text := 'lc_ctype=WIN1251';
 
   if gd_CmdLineParams.NoGarbageCollect then
     ibdbGAdmin.Params.Add('no_garbage_collect');
+
+  ibdbGAdmin.Params.Add('num_buffers=20000');
 
   {$IFDEF DEBUG}
   ibdbGAdmin.TraceFlags := [{tfQPrepare, }tfQExecute{, tfQFetch, tfError, tfStmt}, tfConnect,
