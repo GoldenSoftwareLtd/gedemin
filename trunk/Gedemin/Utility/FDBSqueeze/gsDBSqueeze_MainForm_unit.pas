@@ -155,6 +155,8 @@ type
     txt4: TStaticText;
     txt5: TStaticText;
     txt6: TStaticText;
+    seBuffer: TSpinEdit;
+    lbl4: TLabel;
     procedure actClearLogExecute(Sender: TObject);
     procedure actDatabaseBrowseExecute(Sender: TObject);
     procedure actDisconnectExecute(Sender: TObject);
@@ -873,6 +875,7 @@ begin
   FIsProcessStop := False;
   SetProgress(' ', 0);
 end;
+
 //==============================================================================
 
 procedure TgsDBSqueeze_MainForm.WriteToLogFile(const AStr: String);

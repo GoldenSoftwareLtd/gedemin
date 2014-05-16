@@ -249,7 +249,7 @@ end;
 procedure TgsDBSqueezeThread.StopProcessing;
 begin
   FDoStopProcessing.Value := 1;
-  FDBS.DoStopProcessing  := True;      ///TODO cs
+  FDBS.DoStopProcessing  := True;      ///TODO: cs
   PostMsg(WM_DBS_STOPPROCESSING);
 end;
 

@@ -1,6 +1,6 @@
 object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
-  Left = 580
-  Top = 170
+  Left = 366
+  Top = 123
   Width = 940
   Height = 576
   BorderIcons = [biSystemMenu, biMinimize]
@@ -119,6 +119,13 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           Height = 13
           Caption = 'Кодовая таблица:'
         end
+        object lbl4: TLabel
+          Left = 613
+          Top = 4
+          Width = 87
+          Height = 13
+          Caption = 'Размер буффера:'
+        end
         object edDatabaseName: TEdit
           Left = 95
           Top = 1
@@ -134,7 +141,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           Width = 20
           Height = 19
           Action = actDatabaseBrowse
-          TabOrder = 2
+          TabOrder = 3
           TabStop = False
         end
         object edUserName: TEdit
@@ -143,7 +150,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           Width = 92
           Height = 21
           Enabled = False
-          TabOrder = 3
+          TabOrder = 4
           Text = 'SYSDBA'
         end
         object edPassword: TEdit
@@ -152,7 +159,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           Width = 92
           Height = 21
           PasswordChar = '*'
-          TabOrder = 4
+          TabOrder = 5
         end
         object cbbCharset: TComboBox
           Left = 491
@@ -171,7 +178,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           Width = 92
           Height = 21
           Action = actConnect
-          TabOrder = 5
+          TabOrder = 6
           TabStop = False
         end
         object btntTestConnection: TButton
@@ -180,7 +187,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           Width = 92
           Height = 21
           Action = actDisconnect
-          TabOrder = 6
+          TabOrder = 7
           TabStop = False
         end
         object GroupBox1: TGroupBox
@@ -189,7 +196,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           Width = 481
           Height = 348
           Caption = '  Параметры  '
-          TabOrder = 7
+          TabOrder = 8
           object lbl5: TLabel
             Left = 13
             Top = 22
@@ -270,7 +277,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           Width = 410
           Height = 348
           Caption = '  Опции  '
-          TabOrder = 8
+          TabOrder = 9
           object chkGetStatiscits: TCheckBox
             Left = 13
             Top = 22
@@ -300,6 +307,16 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             TabOrder = 2
           end
         end
+        object seBuffer: TSpinEdit
+          Left = 712
+          Top = 1
+          Width = 81
+          Height = 22
+          MaxValue = 0
+          MinValue = 0
+          TabOrder = 2
+          Value = 0
+        end
       end
       object tsLogs: TTabSheet
         Caption = 'Журнал'
@@ -314,9 +331,9 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           TabOrder = 1
           object btnClearGeneralLog: TButton
             Tag = 1
-            Left = 801
+            Left = 804
             Top = 4
-            Width = 113
+            Width = 109
             Height = 21
             Action = actClearLog
             Anchors = [akRight, akBottom]
@@ -1264,8 +1281,8 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
     end
   end
   object ActionList: TActionList
-    Left = 733
-    Top = 54
+    Left = 741
+    Top = 70
     object actGo: TAction
       Caption = 'Начать процесс'
       OnExecute = actGoExecute
@@ -1349,8 +1366,8 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
     end
   end
   object MainMenu: TMainMenu
-    Left = 768
-    Top = 55
+    Left = 776
+    Top = 71
     object N1: TMenuItem
       Caption = 'База данных'
       object N4: TMenuItem
