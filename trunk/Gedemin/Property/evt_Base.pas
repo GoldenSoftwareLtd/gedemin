@@ -910,10 +910,13 @@ type
     // TDataSetErrorEvent
     procedure OnPostError(DataSet: TDataSet; E: EDatabaseError; var
       Action: TDataAction);
-
+    // TDataSetNotifyEvent
     procedure AfterInternalPostRecord(DataSet: TDataSet);
+    // TDataSetNotifyEvent
     procedure BeforeInternalPostRecord(DataSet: TDataSet);
+    // TDataSetNotifyEvent
     procedure AfterInternalDeleteRecord(DataSet: TDataSet);
+    // TDataSetNotifyEvent
     procedure BeforeInternalDeleteRecord(DataSet: TDataSet);
 
     {!!! Events from TIBCustomDataSet !!!}
@@ -1944,6 +1947,7 @@ begin
     FKnownEventList.AddObject('OnCloseNotify', @AddrNotifyEvent);
 
     AddrCloseQueryEvent := OnCloseQuery;
+//    TCloseQueryEvent(AddrCloseQueryEvent) := OnCloseQuery;
     FKnownEventList.AddObject('OnCloseQuery', @AddrCloseQueryEvent);
     TNotifyEvent(AddrNotifyEvent) := OnDeactivate;
     FKnownEventList.AddObject('OnDeactivate', @AddrNotifyEvent);
@@ -7988,11 +7992,11 @@ begin
     end;
   end;
 
-  if not ((Pos(USERCOMPONENT_PREFIX, LowerCase(ObjectName)) = 1) or
-    (Pos(GLOBALUSERCOMPONENT_PREFIX, LowerCase(ObjectName)) = 1) or
-    (Pos(ATCOMPONENT_PREFIX, LowerCase(ObjectName)) = 1) or
-    (Pos(MACROSCOMPONENT_PREFIX, LowerCase(ObjectName)) = 1)) then
-  begin
+//  if not ((Pos(USERCOMPONENT_PREFIX, LowerCase(ObjectName)) = 1) or
+//    (Pos(GLOBALUSERCOMPONENT_PREFIX, LowerCase(ObjectName)) = 1) or
+//    (Pos(ATCOMPONENT_PREFIX, LowerCase(ObjectName)) = 1) or
+//    (Pos(MACROSCOMPONENT_PREFIX, LowerCase(ObjectName)) = 1)) then
+//  begin
     case AnLang of
       fplJScript:
       begin
@@ -8060,9 +8064,9 @@ begin
     end;
     Result := OptExplicit + LFN + ' ' + LFunctionName + '(' + LFP +
       ')'#13#10 + LFR + LFB + Comment + CallInherited + EndComment + LFE;
-  end else
-    Result := OptExplicit + LFN + ' ' + LFunctionName + '(' + LFP +
-      ')'#13#10 + LFR + LFB + LFE;
+//  end else
+//    Result := OptExplicit + LFN + ' ' + LFunctionName + '(' + LFP +
+//      ')'#13#10 + LFR + LFB + LFE;
 end;
 
 function TEventItem.GetDelphiParamString(const LocParamCount: Integer;
