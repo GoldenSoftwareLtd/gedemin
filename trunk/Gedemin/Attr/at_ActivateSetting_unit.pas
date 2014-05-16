@@ -31,7 +31,7 @@ var
 implementation
 
 uses
-  IB, IBDatabase, at_classes, gdcSetting, gdcBaseInterface;
+  IB, IBDatabase, at_classes, gdcSetting, gdcBaseInterface, gd_security;
 
 {$R *.DFM}
 
@@ -56,7 +56,7 @@ begin
   try
     Tr.DefaultDatabase := gdcBaseManager.Database;
     atDatabase.SyncIndicesAndTriggers(Tr);
-    atDatabase.ForceLoadFromDatabase;
+    IBLogin.Relogin; //atDatabase.ForceLoadFromDatabase;
   finally
     Tr.Free;
   end;
@@ -73,7 +73,7 @@ begin
   try
     Tr.DefaultDatabase := gdcBaseManager.Database;
     atDatabase.SyncIndicesAndTriggers(Tr);
-    atDatabase.ForceLoadFromDatabase;
+    IBLogin.Relogin; //atDatabase.ForceLoadFromDatabase;
   finally
     Tr.Free;
   end;

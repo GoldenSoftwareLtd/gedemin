@@ -41,8 +41,6 @@ begin
   if gd_CmdLineParams.NoGarbageCollect then
     ibdbGAdmin.Params.Add('no_garbage_collect');
 
-  ibdbGAdmin.Params.Add('num_buffers=20000');
-
   {$IFDEF DEBUG}
   ibdbGAdmin.TraceFlags := [{tfQPrepare, }tfQExecute{, tfQFetch, tfError, tfStmt}, tfConnect,
      tfTransact{, tfBlob, tfService, tfMisc}];

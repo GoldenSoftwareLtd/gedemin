@@ -190,7 +190,7 @@ begin
         begin
           AddWarning('Отсутствует в базе: ' + SL[I]);
           Result := True;
-        end;  
+        end;
       end;
     finally
       SL.Free;

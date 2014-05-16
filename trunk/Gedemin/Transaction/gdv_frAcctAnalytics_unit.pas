@@ -281,7 +281,7 @@ begin
           if SQL.SQL.Count > 0 then
             SQL.SQL.Add(', ');
 
-          SQL.SQL.Add(Format('Sum(%s)', [TatRelationField(FAnalyticsFieldList[i]).FieldName]));
+          SQL.SQL.Add(Format('SUM(%s)', [TatRelationField(FAnalyticsFieldList[i]).FieldName]));
         end;
         if FAnalyticsFieldList.Count > 0 then
         begin
