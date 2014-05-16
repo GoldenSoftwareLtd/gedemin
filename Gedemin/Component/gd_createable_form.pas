@@ -288,7 +288,6 @@ begin
         and (Application.MainForm <> F)
         and ((not F.Visible) or (not OnlyInvisible))
         and ((F.Owner = nil) or (F.Owner = Application))
-        {and (FormsList.IndexOf(F.Owner) = -1)}
       then begin
         //Т.к. данный на форме могли быть изменены то просто вызов метода Relase
         //некорректен.
@@ -301,7 +300,6 @@ begin
           LogRecord('Выдалена чысцільнікам: ' + F.Name + ' (' + F.ClassName + ')');
           {$ENDIF}
 
-          //F.Free;
           F.Release;
         end else
           Abort;

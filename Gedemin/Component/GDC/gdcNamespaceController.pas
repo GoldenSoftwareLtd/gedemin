@@ -44,7 +44,7 @@ implementation
 
 uses
   Classes, Windows, Controls, StdCtrls, ExtCtrls, SysUtils, gdcBaseInterface,
-  gdcNamespace, at_dlgNamespaceOp_unit, flt_sql_parser, gdcMetaData, gsNSObjects;
+  gdcNamespace, at_dlgNamespaceOp_unit, flt_sql_parser, gdcMetaData{, gsNSObjects};
 
 procedure TgdcNamespaceController._AddToNamespace;
 {var

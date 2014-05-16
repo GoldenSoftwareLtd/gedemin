@@ -27,8 +27,6 @@ type
     constructor Create;
     destructor Destroy; override;
 
-    procedure Add(AnObject: TgdcBase);
-
     property ID: TID read FID;
     property ObjectName: String read FObjectName;
     property ObjectClass: String read FObjectClass;
@@ -37,14 +35,21 @@ type
     property EditionDate: TDateTime read FEditionDate;
     property HeadObjectKey: TID read FHeadObjectKey;
     property Checked: Boolean read FChecked write FChecked;
+    property Linked: TgsNSObjects read FLinked;
+    property Compound: TgsNSObjects read FCompound;
+    property Namespace: TgdKeyArray read FNamespace;
   end;
 
   TgsNSObjects = class(TObject)
   private
     FList: TObjectList;
+    FIBTransaction: TIBTransaction;
 
     function GetObjectCount: Integer;
     function GetObjects(Index: Integer): TgsNSObject;
+
+  protected
+    procedure Add(AnObject: TgdcBase);
 
   public
     constructor Create;
@@ -61,6 +66,25 @@ implementation
 
 { TgsNSObjects }
 
+procedure TgsNSObjects.Add(AnObject: TgdcBase);
+var
+  NSObj: TgsNSObject;
+begin
+  Assert(AnObject <> nil);
+  Assert(not AnObject.EOF);
+
+  if FindObject(AnObject.ID) <> nil then
+    exit;
+
+  NSObj := TgsNSObject.Create;
+  FList.Add(NSObj);
+  NSObj.FID := AnObject.ID;
+  NSObj.FObjectName := AnObject.ObjectName;
+  NSObj.FObjectClass := AnObject.ClassName;
+  NSObj.FRUID := AnObject.GetRUID;
+  NSObj.FEditionDate := AnObject.EditionDate;
+end;
+
 constructor TgsNSObjects.Create;
 begin
   inherited Create;
@@ -74,8 +98,18 @@ begin
 end;
 
 function TgsNSObjects.FindObject(const AnID: TID): TgsNSObject;
+var
+  I: Integer;
 begin
   Result := nil;
+  for I := 0 to ObjectCount - 1 do
+  begin
+    if Objects[I].ID = AnID then
+    begin
+      Result := Objects[I];
+      break;
+    end;
+  end;
 end;
 
 function TgsNSObjects.GetObjectCount: Integer;
@@ -89,19 +123,6 @@ begin
 end;
 
 procedure TgsNSObjects.Setup(AnObject: TgdcBase; ABL: TBookmarkList);
-
-  procedure Add(AnObject: TgdcBase);
-  var
-    NSObj: TgsNSObject;
-  begin
-    if FindObject(AnObject.ID) = nil then
-    begin
-      NSObj := TgsNSObject.Create;
-      FList.Add(NSObj);
-      NSObj.Add(AnObject);
-    end;
-  end;
-
 var
   Bm: String;
   I: Integer;
@@ -128,11 +149,6 @@ begin
 end;
 
 { TgsNSObject }
-
-procedure TgsNSObject.Add(AnObject: TgdcBase);
-begin
-
-end;
 
 constructor TgsNSObject.Create;
 begin
