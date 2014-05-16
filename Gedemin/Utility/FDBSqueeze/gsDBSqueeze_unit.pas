@@ -196,6 +196,8 @@ begin
     FIBDatabase.Params.CommaText :=
       'user_name=' + FConnectInfo.UserName + ',' +
       'password=' + FConnectInfo.Password + ',' +
+      'buffer_length=64000,' +
+      'num_buffers=64000,' +
       'lc_ctype=' + FConnectInfo.CharacterSet;
     if ANoGarbageCollect then
       FIBDatabase.Params.Append('no_garbage_collect');
@@ -208,7 +210,6 @@ begin
     LogEvent('Connecting to DB... OK');
 
     CreateUDFs;
-    
   end;
 end;
 //---------------------------------------------------------------------------
@@ -230,6 +231,8 @@ begin
     FIBDatabase.Params.CommaText :=
       'user_name=' + FConnectInfo.UserName + ',' +
       'password=' + FConnectInfo.Password + ',' +
+      'buffer_length=64000,' +
+      'num_buffers=64000,' +
       'lc_ctype=' + FConnectInfo.CharacterSet;
     if ANoGarbageCollect then
       FIBDatabase.Params.Append('no_garbage_collect');
@@ -2246,7 +2249,7 @@ begin
 
     ProgressMsgEvent('', 3*PROGRESS_STEP);
 
-    // перепривязка карточек, необходимых для сальдо, на сальдовый документ
+    // сальдовый документ
 
     q2.SQL.Text :=
       'SELECT FIRST(1) s.companykey FROM DBS_TMP_INV_SALDO s';                  ///TODO: выбрать компанию для дока
@@ -4003,22 +4006,23 @@ var
   Str: String;
   FkFields: TStringList;
   RestoreQueries: TStringList;
+  MergeQueries: TStringList;
 begin
   LogEvent('InvCard merging... ');
 
   Reconnect(True, True);  // garbage collect OFF
-
   Assert(Connected);
+
+  CreateHIS(0);
+  CreateHIS(1);
 
   FkFields :=  TStringList.Create;
   RestoreQueries := TStringList.Create;
+  MergeQueries := TStringList.Create;
   Tr := TIBTransaction.Create(nil);
   q := TIBSQL.Create(nil);
   q2 := TIBSQL.Create(nil);
   try
-    CreateHIS(0);
-    CreateHIS(1);
-
     Tr.DefaultDatabase := FIBDatabase;
     Tr.StartTransaction;
     q.Transaction := Tr;
@@ -4044,7 +4048,7 @@ begin
     Tr.StartTransaction;
 
     q.SQL.Text :=                                                               // карточки по этим документам будем объединять
-      'SELECT SUM(g_his_include(0, doc.id)) AS Kolvo ' +   #13#10 +
+      'SELECT COUNT(g_his_include(0, doc.id)) ' +          #13#10 +
       'FROM gd_document doc ' +                            #13#10 +
       'WHERE  ' +                                          #13#10 +
       '  doc.documentdate < :DocDate ';
@@ -4055,7 +4059,6 @@ begin
     if not FDoStopProcessing then
       ExecSqlLogEvent(q, 'CreateHIS_IncludeInHIS');
     q.Close;
-
 
     q2.SQL.Text :=
       'SELECT LIST( ' +                                               #13#10 +
@@ -4151,7 +4154,7 @@ begin
       '    ) THEN ' +                                                                                     #13#10 +
       '    BEGIN ' +                                                                                      #13#10 +
       '      INSERT INTO DBS_TMP_MERGE_CARD (old_cardkey, new_cardkey) VALUES (:OLD_CARD, :NEW_CARD); ' + #13#10 +
-      '      g_his_include(1, :OLD_CARD); ' +                                                           #13#10 +
+      '      g_his_include(1, :OLD_CARD); ' +                                                             #13#10 +
       '    END ' +                                         #13#10 +
       '    ELSE ' +                                        #13#10 +
       '    BEGIN ' +                                       #13#10 +
@@ -4167,18 +4170,15 @@ begin
 
     if not FDoStopProcessing then
       ExecSqlLogEvent(q, 'MergeCards');
-
     q2.Close;
-
-    Tr.Commit;
-    Tr.StartTransaction;
-
-    //SetTriggersState('INV_MOVEMENT', False);                                  
 
     q.SQL.Text :=
       'DELETE FROM inv_balance';
     if not FDoStopProcessing then
       ExecSqlLogEvent(q, 'MergeCards');
+
+    Tr.Commit;
+    Tr.StartTransaction;                                                                         //////////////////////
 
     // отключение мешающих перепривязке карточек триггеров
 
@@ -4208,12 +4208,14 @@ begin
     end;
     q2.Close;
 
-    RestoreQueries.Append('ALTER TRIGGER INV_BU_CARD ACTIVE');
+   { q.SQL.Text := 'ALTER TRIGGER INV_BU_CARD INACTIVE';
+    if not FDoStopProcessing then
+      ExecSqlLogEvent(q, 'MergeCards');
+
+    RestoreQueries.Append('ALTER TRIGGER INV_BU_CARD ACTIVE');     }
 
     Tr.Commit;
     Tr.StartTransaction;
-
-    // перепривязка ссылок на карточки
 
     q2.SQL.Text :=
       'SELECT ' +                                                     #13#10 +
@@ -4243,40 +4245,28 @@ begin
 
       for I:=0 to FkFields.Count-1 do
       begin
-        LogEvent('[test] ' + q2.FieldByName('relation_name').AsString);
-
-        q.SQL.Text :=
+        MergeQueries.Append(
           'MERGE INTO ' + q2.FieldByName('relation_name').AsString + ' rln ' +  #13#10 +
           'USING (SELECT * FROM DBS_TMP_MERGE_CARD) mc ' +                      #13#10 +
           '  ON (rln.' + FkFields[I] + ' = mc.old_cardkey) ' +                  #13#10 +
           '    WHEN MATCHED THEN ' +                                            #13#10 +
-          '      UPDATE SET rln.' + FkFields[I] + ' = mc.new_cardkey ';
-        ExecSqlLogEvent(q, 'MergeCards');
-        q.Close;
+          '      UPDATE SET rln.' + FkFields[I] + ' = mc.new_cardkey ');
       end;
 
       q2.Next;
     end;
     q2.Close;
 
-    // включение отключенных для перепривязки триггеров
-    for I:=0 to RestoreQueries.Count-1 do
-    begin
-      q.SQL.Text := RestoreQueries[I];
-      ExecSqlLogEvent(q, 'MergeCards');
-    end;
-    RestoreQueries.Clear;
-
+    ///////////
     // отключение триггеров, замедляющих удаление карточек
     q2.SQL.Text :=
       'SELECT ' +                                 #13#10 +
       '  TRIM(rdb$trigger_name) AS TN ' +         #13#10 +
       'FROM ' +                                   #13#10 +
       '  RDB$TRIGGERS ' +                         #13#10 +
-      'WHERE ' +                                  #13#10 +
-      '  rdb$relation_name = ''INV_CARD'' ' +     #13#10 +
-      '  AND rdb$trigger_type IN(5,6) ' +         #13#10 + // after/before delete
-      '  AND rdb$system_flag = 0 ' +              #13#10 +
+      'WHERE ' +                                                   #13#10 +
+      '  rdb$relation_name IN (''INV_CARD'', ''INV_MOVEMENT'') ' + #13#10 +
+      '  AND rdb$system_flag = 0 ' +                               #13#10 +
       '  AND rdb$trigger_inactive = 0';
     if not FDoStopProcessing then
       ExecSqlLogEvent(q2, 'MergeCards');
@@ -4290,12 +4280,190 @@ begin
 
       q2.Next;
     end;
-     q2.Close;
+    q2.Close;
 
     Tr.Commit;
     Tr.StartTransaction;
 
+    q.SQL.Text :=
+      'SELECT ' +                                                     #13#10 +
+      '  LIST(c.rdb$constraint_name) AS FkList ' +                    #13#10 +
+      'FROM ' +                                                       #13#10 +
+      '  rdb$relation_constraints c  ' +                              #13#10 +
+      '  JOIN RDB$REF_CONSTRAINTS refc ' +                            #13#10 +
+      '    ON c.rdb$constraint_name = refc.rdb$constraint_name ' +    #13#10 +
+      '  JOIN RDB$RELATION_CONSTRAINTS c2 ' +                         #13#10 +
+      '    ON refc.rdb$const_name_uq = c2.rdb$constraint_name ' +     #13#10 +
+      'WHERE ' +                                                      #13#10 +
+      '  c2.rdb$relation_name = ''INV_CARD'' ' +                      #13#10 +
+      '  AND c.rdb$relation_name IN(''INV_CARD'',''INV_MOVEMENT'') ' + #13#10 +
+      '  AND c.rdb$constraint_type = ''FOREIGN KEY'' ' +              #13#10 +
+      '  AND c.rdb$constraint_name NOT LIKE ''RDB$%'' ' +             #13#10 +
+      'GROUP BY ' +                                                   #13#10 +
+      '  c.rdb$relation_name, c2.rdb$relation_name ';
+    ExecSqlLogEvent(q, 'MergeCards');
+
     // удаление FKs
+    q2.SQL.Text :=
+      'SELECT ' +                                                               #13#10 +
+      '  TRIM(c.rdb$constraint_name        ) AS Constraint_Name, ' +            #13#10 +
+      '  TRIM(c.rdb$relation_name          ) AS Relation_Name, ' +              #13#10 +
+      '  TRIM(c2.rdb$relation_name         ) AS Ref_Relation_Name, ' +          #13#10 +
+      '  TRIM(refc.rdb$update_rule         ) AS Update_Rule, ' +                #13#10 +
+      '  TRIM(refc.rdb$delete_rule         ) AS Delete_Rule, ' +                #13#10 +
+      '  TRIM(LIST(iseg.rdb$field_name)    ) AS Fields, ' +                     #13#10 +
+      '  TRIM(LIST(ref_iseg.rdb$field_name)) AS Ref_Fields ' +                  #13#10 +
+      'FROM ' +                                                                 #13#10 +
+      '  rdb$relation_constraints c ' +                                         #13#10 +
+      '  JOIN RDB$REF_CONSTRAINTS refc ' +                                      #13#10 +
+      '    ON c.rdb$constraint_name = refc.rdb$constraint_name ' +              #13#10 +
+      '  JOIN RDB$RELATION_CONSTRAINTS c2 ' +                                   #13#10 +
+      '    ON refc.rdb$const_name_uq = c2.rdb$constraint_name ' +               #13#10 +
+      '  JOIN RDB$INDEX_SEGMENTS iseg ' +                                       #13#10 +
+      '    ON iseg.rdb$index_name = c.rdb$index_name ' +                        #13#10 +
+      '  JOIN RDB$INDEX_SEGMENTS ref_iseg ' +                                   #13#10 +
+      '    ON ref_iseg.rdb$index_name = c2.rdb$index_name ' +                   #13#10 +
+      'WHERE ' +                                                                #13#10 +
+      '  c.rdb$relation_name IN(''INV_CARD'',''INV_MOVEMENT'') ' +              #13#10 +
+      '  AND c.rdb$constraint_name NOT IN(''' + StringReplace(q.FieldByName('FkList').AsString, ',', ''',''', [rfReplaceAll, rfIgnoreCase]) + ''') ' + #13#10 +
+      '  AND c.rdb$constraint_type = ''FOREIGN KEY''  ' +                       #13#10 +
+      '  AND c.rdb$constraint_name NOT LIKE ''RDB$%'' ' +                       #13#10 +
+      'GROUP BY ' +                                                             #13#10 +
+      '  1, 2, 3, 4, 5';
+    if not FDoStopProcessing then
+      ExecSqlLogEvent(q2, 'MergeCards');
+    q.Close;
+
+    while (not q2.EOF) and (not FDoStopProcessing) do
+    begin
+      Str :=
+        'ALTER TABLE ' +  q2.FieldByName('Relation_Name').AsString +                                       #13#10 +
+        '  ADD CONSTRAINT ' + q2.FieldByName('Constraint_Name').AsString + #13#10 +
+        '  FOREIGN KEY (' + q2.FieldByName('Fields').AsString + ') ' +     #13#10 +
+        '  REFERENCES ' + q2.FieldByName('Ref_Relation_Name').AsString + '(' + q2.FieldByName('Ref_Fields').AsString + ') ';
+      if UpperCase(q2.FieldByName('Update_Rule').AsString) <> 'RESTRICT' then
+        Str := Str + ' ON UPDATE ' + q2.FieldByName('Update_Rule').AsString;
+      if UpperCase(q2.FieldByName('Delete_Rule').AsString) <> 'RESTRICT' then
+        Str := Str + ' ON DELETE ' + q2.FieldByName('Delete_Rule').AsString;
+
+      RestoreQueries.Append(Str);
+
+      q.SQL.Text := 'ALTER TABLE ' + q2.FieldByName('Relation_Name').AsString + ' DROP CONSTRAINT ' + q2.FieldByName('Constraint_Name').AsString;
+      ExecSqlLogEvent(q, 'MergeCards');
+
+      q2.Next;
+    end;
+    q2.Close;
+
+    Tr.Commit;
+    Tr.StartTransaction;
+
+    // удаление Uniques
+    q2.SQL.Text :=
+      'SELECT ' +                                                               #13#10 +
+      '   c.rdb$constraint_name, ' +                                            #13#10 +
+      '   TRIM(c.rdb$relation_name) AS Relation_Name, ' +                       #13#10 +
+      '   c.rdb$constraint_type, ' +                                            #13#10 +
+      '   i.List_Fields ' +                                                     #13#10 +
+      ' FROM ' +                                                                #13#10 +
+      '   rdb$relation_constraints c ' +                                        #13#10 +
+      '   JOIN (SELECT inx.rdb$index_name, ' +                                  #13#10 +
+      '     LIST(TRIM(inx.rdb$field_name)) AS List_Fields ' +                   #13#10 +
+      '     FROM rdb$index_segments inx ' +                                     #13#10 +
+      '     GROUP BY inx.rdb$index_name ' +                                     #13#10 +
+      '   ) i ON c.rdb$index_name = i.rdb$index_name ' +                        #13#10 +
+      ' WHERE ' +                                                               #13#10 +
+      '   c.rdb$relation_name IN(''INV_CARD'',''INV_MOVEMENT'') ' +             #13#10 +
+      '   AND c.rdb$constraint_type = ''UNIQUE''  ' +                           #13#10 +
+      '   AND c.rdb$constraint_name NOT LIKE ''RDB$%'' ';
+    if not FDoStopProcessing then
+      ExecSqlLogEvent(q2, 'MergeCards');
+
+    while (not q2.EOF) and (not FDoStopProcessing) do
+    begin
+      RestoreQueries.Append(
+        'ALTER TABLE ' + q2.FieldByName('Relation_Name').AsString +             #13#10 +
+        '  ADD CONSTRAINT ' + q2.FieldByName('rdb$constraint_name').AsString +  #13#10 +
+        '  ' + q2.FieldByName('rdb$constraint_type').AsString + ' (' +          #13#10 +
+        '  ' + q2.FieldByName('List_Fields').AsString + ') '
+      );
+
+      q.SQL.Text := 'ALTER TABLE ' + q2.FieldByName('Relation_Name').AsString + ' DROP CONSTRAINT ' + q2.FieldByName('rdb$constraint_name').AsString;
+      ExecSqlLogEvent(q, 'MergeCards');
+
+      q2.Next;
+    end;
+    q2.Close;
+
+    Tr.Commit;
+    Tr.StartTransaction;
+ 
+    // деактивация индексов
+    q2.SQL.Text :=
+      'SELECT i.rdb$index_name ' +                                              #13#10 +
+      'FROM rdb$indices i ' +                                                   #13#10 +
+      '  JOIN RDB$INDEX_SEGMENTS s ON s.rdb$index_name = i.rdb$index_name '  +  #13#10 +
+      'WHERE ((i.rdb$index_inactive = 0) OR (i.rdb$index_inactive IS NULL)) ' + #13#10 +
+      '  AND ((i.RDB$SYSTEM_FLAG = 0) OR (i.RDB$SYSTEM_FLAG IS NULL)) ' +       #13#10 +
+      '  AND (NOT i.rdb$index_name LIKE ''RDB$%'') ' +                          #13#10 +    
+      '  AND (((i.RDB$UNIQUE_FLAG IS NULL) OR (i.RDB$UNIQUE_FLAG=0)) AND (s.RDB$FIELD_NAME <> ''ID'') ) AND (i.RDB$FOREIGN_KEY IS NULL) ' + #13#10 +
+      '  AND rdb$relation_name IN(''INV_CARD'',''INV_MOVEMENT'') ';
+    if not FDoStopProcessing then
+      ExecSqlLogEvent(q2, 'MergeCards');
+
+    while (not q2.EOF) and (not FDoStopProcessing) do
+    begin
+      RestoreQueries.Append('ALTER INDEX ' +  q2.FieldByName('rdb$index_name').AsString + ' ACTIVE');
+
+      q.SQL.Text := 'ALTER INDEX ' +  q2.FieldByName('rdb$index_name').AsString + ' INACTIVE';
+      ExecSqlLogEvent(q, 'MergeCards');
+
+      q2.Next;
+    end;
+    q2.Close;
+
+    Tr.Commit;
+    Tr.StartTransaction;
+
+    // перепривязка ссылок на карточки
+
+    for I:=0 to MergeQueries.Count-1 do
+    begin
+      q.SQL.Text := MergeQueries[I];
+      if not FDoStopProcessing then
+        ExecSqlLogEvent(q, 'MergeCards');
+    end;
+
+    Tr.Commit;
+    Tr.StartTransaction;
+
+   { // включение отключенных для перепривязки триггеров
+    for I:=0 to RestoreQueries.Count-1 do
+    begin
+      q.SQL.Text := RestoreQueries[I];
+      ExecSqlLogEvent(q, 'MergeCards');
+    end;
+    RestoreQueries.Clear; }
+
+///////////////////////////////////////////////////  доотключение
+    q.SQL.Text :=
+      'SELECT ' +                                                     #13#10 +
+      '  LIST(c.rdb$constraint_name) AS FkList ' +                    #13#10 +
+      'FROM ' +                                                       #13#10 +
+      '  rdb$relation_constraints c  ' +                              #13#10 +
+      '  JOIN RDB$REF_CONSTRAINTS refc ' +                            #13#10 +
+      '    ON c.rdb$constraint_name = refc.rdb$constraint_name ' +    #13#10 +
+      '  JOIN RDB$RELATION_CONSTRAINTS c2 ' +                         #13#10 +
+      '    ON refc.rdb$const_name_uq = c2.rdb$constraint_name ' +     #13#10 +
+      'WHERE ' +                                                      #13#10 +
+      '  c2.rdb$relation_name = ''INV_CARD'' ' +                      #13#10 +
+      '  AND c.rdb$relation_name = ''INV_CARD'' ' +                   #13#10 +
+      '  AND c.rdb$constraint_type = ''FOREIGN KEY'' ' +              #13#10 +
+      '  AND c.rdb$constraint_name NOT LIKE ''RDB$%'' ' +             #13#10 +
+      'GROUP BY ' +                                                   #13#10 +
+      '  c.rdb$relation_name, c2.rdb$relation_name ';
+    ExecSqlLogEvent(q, 'MergeCards');
+
     q2.SQL.Text :=
       'SELECT ' +                                                               #13#10 +
       '  TRIM(c.rdb$constraint_name        ) AS Constraint_Name, ' +            #13#10 +
@@ -4316,12 +4484,14 @@ begin
       '    ON ref_iseg.rdb$index_name = c2.rdb$index_name ' +                   #13#10 +
       'WHERE ' +                                                                #13#10 +
       '  c.rdb$relation_name = ''INV_CARD'' ' +                                 #13#10 +
+      '  AND c.rdb$constraint_name IN(''' + StringReplace(q.FieldByName('FkList').AsString, ',', ''',''', [rfReplaceAll, rfIgnoreCase]) + ''') ' + #13#10 +
       '  AND c.rdb$constraint_type = ''FOREIGN KEY''  ' +                       #13#10 +
       '  AND c.rdb$constraint_name NOT LIKE ''RDB$%'' ' +                       #13#10 +
       'GROUP BY ' +                                                             #13#10 +
       '  1, 2, 3, 4';
     if not FDoStopProcessing then
       ExecSqlLogEvent(q2, 'MergeCards');
+    q.Close;
 
     while (not q2.EOF) and (not FDoStopProcessing) do
     begin
@@ -4347,94 +4517,11 @@ begin
     Tr.Commit;
     Tr.StartTransaction;
 
-    // удаление Unique  inv_card
-    q2.SQL.Text :=
-      'SELECT ' +                                                               #13#10 +
-      '   c.rdb$constraint_name, ' +                                            #13#10 +
-      '   c.rdb$constraint_type, ' +                                            #13#10 +
-      '   i.List_Fields ' +                                                     #13#10 +
-      ' FROM ' +                                                                #13#10 +
-      '   rdb$relation_constraints c ' +                                        #13#10 +
-      '   JOIN (SELECT inx.rdb$index_name, ' +                                  #13#10 +
-      '     LIST(TRIM(inx.rdb$field_name)) AS List_Fields ' +                   #13#10 +
-      '     FROM rdb$index_segments inx ' +                                     #13#10 +
-      '     GROUP BY inx.rdb$index_name ' +                                     #13#10 +
-      '   ) i ON c.rdb$index_name = i.rdb$index_name ' +                        #13#10 +
-      ' WHERE ' +                                                               #13#10 +
-      '   c.rdb$relation_name = ''INV_CARD'' ' +                                #13#10 +
-      '   AND c.rdb$constraint_type = ''UNIQUE''  ' +                           #13#10 +
-      '   AND c.rdb$constraint_name NOT LIKE ''RDB$%'' ';
-    if not FDoStopProcessing then
-      ExecSqlLogEvent(q2, 'MergeCards');
-
-    while (not q2.EOF) and (not FDoStopProcessing) do
-    begin
-      RestoreQueries.Append(
-        'ALTER TABLE inv_card ' +                                               #13#10 +
-        '  ADD CONSTRAINT ' + q2.FieldByName('rdb$constraint_name').AsString +  #13#10 +
-        '  ' + q2.FieldByName('rdb$constraint_type').AsString + ' (' +          #13#10 +
-        '  ' + q2.FieldByName('List_Fields').AsString + ') '
-      );
-
-      q.SQL.Text := 'ALTER TABLE inv_card DROP CONSTRAINT ' + q2.FieldByName('rdb$constraint_name').AsString;
-      ExecSqlLogEvent(q, 'MergeCards');
-
-      q2.Next;
-    end;
-    q2.Close;                      
-
-    Tr.Commit;
-    Tr.StartTransaction;
-
-
-    // деактивация индексов
-    q2.SQL.Text :=
-      'SELECT i.rdb$index_name ' +                                              #13#10 +
-      'FROM rdb$indices i ' +                                                   #13#10 +
-      'WHERE ((i.rdb$index_inactive = 0) OR (i.rdb$index_inactive IS NULL)) ' + #13#10 +
-      '  AND ((i.RDB$SYSTEM_FLAG = 0) OR (i.RDB$SYSTEM_FLAG IS NULL)) ' +       #13#10 +
-      '  AND ((NOT i.rdb$index_name LIKE ''RDB$%'') ' +                         #13#10 +
-    //  '    OR ((i.rdb$index_name LIKE ''RDB$PRIMARY%'') ' +                     #13#10 +
-    //  '    OR (i.rdb$index_name LIKE ''RDB$FOREIGN%'')) ' +                     #13#10 +
-      '  ) ' +                                                                  #13#10 +
-      '  AND rdb$relation_name = ''INV_CARD'' ';
-     if not FDoStopProcessing then
-      ExecSqlLogEvent(q2, 'MergeCards');
-
-    while (not q2.EOF) and (not FDoStopProcessing) do
-    begin
-      RestoreQueries.Append('ALTER INDEX ' +  q2.FieldByName('rdb$index_name').AsString + ' ACTIVE');
-
-      q.SQL.Text := 'ALTER INDEX ' +  q2.FieldByName('rdb$index_name').AsString + ' INACTIVE';
-      ExecSqlLogEvent(q, 'MergeCards');
-
-      q2.Next;
-    end;
-    q2.Close;
-
-    Tr.Commit;
-    Tr.StartTransaction;
 
     // удаление карточек, которые были объединены
 
     q.SQL.Text :=
-     { 'EXECUTE BLOCK  ' +                                  #13#10 +
-      'AS ' +                                               #13#10 +
-      '  DECLARE VARIABLE ID INTEGER; ' +                   #13#10 +
-      'BEGIN ' +                                            #13#10 +
-      '  FOR  ' +                                           #13#10 +
-      '    SELECT ic.id ' +                                 #13#10 +
-      '    FROM inv_card ic ' +                             #13#10 +
-      '      JOIN dbs_tmp_merge_card mc  ' +                #13#10 +
-      '        ON mc.old_cardkey = ic.id ' +                #13#10 +
-      '    INTO :ID     ' +                                 #13#10 +
-      '  DO ' +                                             #13#10 +
-      '  BEGIN ' +                                          #13#10 +
-      '    DELETE FROM inv_card ic WHERE ic.id = :ID;  ' +  #13#10 +
-      '  END ' +                                            #13#10 +
-      'END';      }
-
-      'EXECUTE BLOCK ' +                                           #13#10 +
+      {'EXECUTE BLOCK ' +                                           #13#10 +
       'AS ' +                                                      #13#10 +
       '  DECLARE delcur CURSOR FOR (SELECT id FROM inv_card); ' +  #13#10 +
       '  DECLARE VARIABLE id INTEGER; ' +                          #13#10 +
@@ -4448,17 +4535,17 @@ begin
       '    FETCH delcur INTO :id; ' +                              #13#10 +
       '  END ' +                                                   #13#10 +
       '  CLOSE delcur; ' +                                         #13#10 +
-      'END';
+      'END';  }
+
+      'DELETE FROM inv_card WHERE g_his_has(1, id) = 1';
+
     if not FDoStopProcessing then
       ExecSqlLogEvent(q, 'MergeCards');
 
     Tr.Commit;
     Tr.StartTransaction;
 
-DestroyHIS(1);
-DestroyHIS(0);
-
-    // воcстановление inv_card
+    // воcстановление inv_card, inv_movement
 
     for I:=RestoreQueries.Count-1 downto 0 do
     begin
@@ -4469,8 +4556,6 @@ DestroyHIS(0);
     Tr.Commit;
     Tr.StartTransaction;
 
-    //SetTriggersState('INV_MOVEMENT', True);
-
     // пересчет складского сальдо INV_BALANCE
     CreateInvBalance;
 
@@ -4479,6 +4564,9 @@ DestroyHIS(0);
       ExecSqlLogEvent(q, 'DeleteDBSTables');
 
     Tr.Commit;
+
+    DestroyHIS(1);
+    DestroyHIS(0);
 
     Reconnect(False, True);  // garbage collect ON
 
@@ -4489,6 +4577,7 @@ DestroyHIS(0);
     Tr.Free;
     FkFields.Free;
     RestoreQueries.Free;
+    MergeQueries.Free;
   end;
 end;
 //---------------------------------------------------------------------------
@@ -5320,7 +5409,10 @@ end;
 procedure TgsDBSqueeze.CreateInvBalance;
 var
   q: TIBSQL;
+  q2: TIBSQL;
   Tr: TIBTransaction;
+  RestoreQueries: TStringList;
+  I: Integer;
 
   function ExistField(FieldName: String; TableName: String): Boolean;
   var
@@ -5358,12 +5450,42 @@ begin
   Assert(Connected);
 
   q := TIBSQL.Create(nil);
+  q2 := TIBSQL.Create(nil);
   Tr := TIBTransaction.Create(nil);
+  RestoreQueries := TStringList.Create;
   try
     Tr.DefaultDatabase := FIBDatabase;
     Tr.StartTransaction;
 
     q.Transaction := Tr;
+    q2.Transaction := Tr;
+
+    q2.SQL.Text :=
+      'SELECT ' +                                 #13#10 +
+      '  TRIM(rdb$trigger_name) AS TN ' +         #13#10 +
+      'FROM ' +                                   #13#10 +
+      '  RDB$TRIGGERS ' +                         #13#10 +
+      'WHERE ' +                                  #13#10 +
+      '  rdb$relation_name = ''INV_BALANCE'' ' +  #13#10 +
+      '  AND rdb$trigger_type IN(1,2) ' +         #13#10 + // after/before insert
+      '  AND rdb$system_flag = 0 ' +              #13#10 +
+      '  AND rdb$trigger_inactive = 0';
+    if not FDoStopProcessing then
+      ExecSqlLogEvent(q2, 'CreateInvBalance');
+
+    while (not q2.EOF) and (not FDoStopProcessing) do
+    begin
+      RestoreQueries.Append('ALTER TRIGGER ' + q2.FieldByName('TN').AsString + ' ACTIVE');
+
+      q.SQL.Text := 'ALTER TRIGGER ' + q2.FieldByName('TN').AsString + ' INACTIVE';
+      ExecSqlLogEvent(q, 'CreateInvBalance');
+
+      q2.Next;
+    end;
+    q2.Close;
+
+    Tr.Commit;
+    Tr.StartTransaction;
 
     if ExistField('GOODKEY', 'INV_BALANCE') and ExistField('GOODKEY', 'INV_MOVEMENT') then 
       q.SQL.Text :=
@@ -5397,12 +5519,24 @@ begin
         'GROUP BY m.cardkey, m.contactkey ';
     if not FDoStopProcessing then
       ExecSqlLogEvent(q, 'CreateInvBalance');
+      
+    Tr.Commit;
+    Tr.StartTransaction;
+
+    for I:=0 to RestoreQueries.Count-1  do
+    begin
+      q.SQL.Text := RestoreQueries[I];
+      if not FDoStopProcessing then
+        ExecSqlLogEvent(q, 'CreateInvBalance');
+    end;
 
     Tr.Commit;
     LogEvent('Creating inventory balance... OK');
   finally
     q.Free;
+    q2.Free;
     Tr.Free;
+    RestoreQueries.Free;
   end;
 end;
 //---------------------------------------------------------------------------
