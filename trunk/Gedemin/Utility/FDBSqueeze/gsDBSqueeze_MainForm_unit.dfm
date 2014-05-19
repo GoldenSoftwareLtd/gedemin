@@ -1,6 +1,6 @@
 object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
-  Left = 366
-  Top = 123
+  Left = 98
+  Top = 142
   Width = 940
   Height = 576
   BorderIcons = [biSystemMenu, biMinimize]
@@ -69,7 +69,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
       Top = 4
       Width = 924
       Height = 493
-      ActivePage = tsSettings
+      ActivePage = tsStatistics
       Align = alClient
       MultiLine = True
       TabOrder = 0
@@ -120,7 +120,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           Caption = 'Кодовая таблица:'
         end
         object lbl4: TLabel
-          Left = 613
+          Left = 602
           Top = 4
           Width = 87
           Height = 13
@@ -231,6 +231,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             Checked = True
             State = cbChecked
             TabOrder = 1
+            OnClick = actDefocusExecute
           end
           object btnSelectDocTypes: TButton
             Left = 12
@@ -259,6 +260,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             Height = 15
             Caption = 'Обрабатывать все, кроме выбранных типов'
             TabOrder = 5
+            OnClick = actDefocusExecute
           end
           object rbIncluding: TRadioButton
             Left = 11
@@ -269,6 +271,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             Checked = True
             TabOrder = 4
             TabStop = True
+            OnClick = actDefocusExecute
           end
         end
         object grpOptions: TGroupBox
@@ -289,26 +292,11 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             Checked = True
             State = cbChecked
             TabOrder = 0
-          end
-          object chkMergeCard: TCheckBox
-            Left = 13
-            Top = 46
-            Width = 212
-            Height = 17
-            Caption = 'Объединение складских карточек'
-            TabOrder = 1
-          end
-          object btnCardSetup: TButton
-            Left = 30
-            Top = 68
-            Width = 92
-            Height = 21
-            Action = actCardSetup
-            TabOrder = 2
+            OnClick = actDefocusExecute
           end
         end
         object seBuffer: TSpinEdit
-          Left = 712
+          Left = 698
           Top = 1
           Width = 81
           Height = 22
@@ -435,8 +423,9 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           Top = 36
           Width = 302
           Height = 25
+          Alignment = taCenter
           AutoSize = False
-          Caption = '      Количество записей в таблицах'
+          Caption = 'Количество записей в таблицах'
           Color = 2058236
           Font.Charset = RUSSIAN_CHARSET
           Font.Color = clWhite
@@ -1319,6 +1308,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
       OnExecute = actClearLogExecute
     end
     object actDefocus: TAction
+      OnExecute = actDefocusExecute
     end
     object actConfigBrowse: TAction
       Caption = 'actConfigBrowse'
@@ -1355,7 +1345,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
       Caption = 'actMergeCardDlg'
     end
     object actCardSetup: TAction
-      Caption = 'Параметры...'
+      Caption = 'Объединение карточек'
       OnExecute = actCardSetupExecute
       OnUpdate = actCardSetupUpdate
     end
@@ -1363,6 +1353,9 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
       Caption = 'actSaveLog'
       OnExecute = actSaveLogExecute
       OnUpdate = actSaveLogUpdate
+    end
+    object Action1: TAction
+      Caption = 'Action1'
     end
   end
   object MainMenu: TMainMenu
@@ -1390,6 +1383,12 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
       end
       object N2: TMenuItem
         Action = actExit
+      end
+    end
+    object N12: TMenuItem
+      Caption = 'Инструменты'
+      object N15: TMenuItem
+        Action = actCardSetup
       end
     end
     object N14: TMenuItem

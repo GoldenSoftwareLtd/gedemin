@@ -1,6 +1,6 @@
 object gsDBSqueeze_CardMergeForm: TgsDBSqueeze_CardMergeForm
-  Left = 153
-  Top = 27
+  Left = 109
+  Top = 272
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsDialog
   Caption = 'Объединение складских карточек'
@@ -143,11 +143,11 @@ object gsDBSqueeze_CardMergeForm: TgsDBSqueeze_CardMergeForm
     TabOrder = 8
   end
   object btnMergeGo: TButton
-    Left = 1083
-    Top = 636
-    Width = 113
+    Left = 1086
+    Top = 633
+    Width = 107
     Height = 25
-    Caption = 'Запустить сейчас!'
+    Caption = 'Запуск!'
     TabOrder = 11
     OnClick = btnMergeGoClick
   end
@@ -167,15 +167,6 @@ object gsDBSqueeze_CardMergeForm: TgsDBSqueeze_CardMergeForm
     ParseInput = False
     TabOrder = 9
     TabStop = False
-  end
-  object btn1: TButton
-    Left = 873
-    Top = 636
-    Width = 209
-    Height = 25
-    Caption = 'Выполнить в контексте обрезания БД'
-    TabOrder = 10
-    OnClick = btnIsMergeOption
   end
   object strngrdCardFeatures: TStringGrid
     Left = 693
@@ -210,6 +201,16 @@ object gsDBSqueeze_CardMergeForm: TgsDBSqueeze_CardMergeForm
     ReadOnly = True
     ScrollBars = ssVertical
     TabOrder = 7
+  end
+  object btnCancel: TButton
+    Left = 978
+    Top = 633
+    Width = 107
+    Height = 25
+    Caption = 'Отмена'
+    TabOrder = 10
+    TabStop = False
+    OnClick = btnCancelClick
   end
   object actlstCardMerge: TActionList
     Left = 16

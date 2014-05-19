@@ -12,6 +12,7 @@ const
   DEFAULT_USER_NAME = 'SYSDBA';
   DEFAULT_PASSWORD = 'masterkey';
   DEFAULT_CHARACTER_SET = 'WIN1251';
+  DEFAULT_BUFFER = 20000;
   CHARSET_LIST_CH1 = 'NONE, CYRL, DOS437, DOS737, DOS775, DOS850, DOS852, DOS857, DOS858, DOS860, DOS861, DOS862, DOS863, DOS864, DOS865, DOS866, DOS869, ISO8859_1, ISO8859_13, ISO8859_2, ISO8859_3, ISO8859_4, ISO8859_5, ISO8859_6, ISO8859_7';
   CHARSET_LIST_CH2 = 'ISO8859_8, ISO8859_9, KOI8R, KOI8U, NEXT, TIS620, WIN1250, WIN1251, WIN1252, WIN1253, WIN1254, WIN1255, WIN1256, WIN1257, WIN1258, ASCII, UNICODE_FSS, UTF8';
   MAX_PROGRESS_STEP = 12500;
@@ -40,7 +41,6 @@ type
     actSelectDocTypes: TAction;
     actStop: TAction;
     actUpdate: TAction;
-    btnCardSetup: TButton;
     btnClearGeneralLog: TButton;
     btnConnect: TButton;
     btnDatabaseBrowse: TButton;
@@ -51,7 +51,6 @@ type
     cbbCharset: TComboBox;
     chkCalculateSaldo: TCheckBox;
     chkGetStatiscits: TCheckBox;
-    chkMergeCard: TCheckBox;
     dtpClosingDate: TDateTimePicker;
     edDatabaseName: TEdit;
     edPassword: TEdit;
@@ -157,6 +156,9 @@ type
     txt6: TStaticText;
     seBuffer: TSpinEdit;
     lbl4: TLabel;
+    N12: TMenuItem;
+    N15: TMenuItem;
+    Action1: TAction;
     procedure actClearLogExecute(Sender: TObject);
     procedure actDatabaseBrowseExecute(Sender: TObject);
     procedure actDisconnectExecute(Sender: TObject);
@@ -184,6 +186,7 @@ type
     procedure actSaveLogExecute(Sender: TObject);
     procedure actSaveLogUpdate(Sender: TObject);
     procedure actDatabaseBrowseUpdate(Sender: TObject);
+    procedure actDefocusExecute(Sender: TObject);
 
   private
     FLogFileStream: TFileStream;
@@ -246,6 +249,7 @@ begin
   dtpClosingDate.Date := Date;
   edUserName.Text := DEFAULT_USER_NAME;
   edPassword.Text := DEFAULT_PASSWORD;
+  seBuffer.Value := DEFAULT_BUFFER;
   pbMain.Max := MAX_PROGRESS_STEP;
   cbbCharset.Items.CommaText := CHARSET_LIST_CH1 + ',' + CHARSET_LIST_CH2;
   cbbCharset.ItemIndex := cbbCharset.Items.IndexOf(DEFAULT_CHARACTER_SET);
@@ -287,12 +291,12 @@ end;
 
 procedure TgsDBSqueeze_MainForm.DataDestroy;
 begin
+  seBuffer.Value := DEFAULT_BUFFER;
   cbbCharset.ItemIndex := cbbCharset.Items.IndexOf(DEFAULT_CHARACTER_SET);
   dtpClosingDate.Date := Date;
   rbIncluding.Checked := True;
   mIgnoreDocTypes.Clear;
   chkGetStatiscits.Checked := True;
-  chkMergeCard.Checked := False;
   sttxtUser.Caption := '';
   sttxtDialect.Caption := '';
   sttxtServerVer.Caption := '';
@@ -383,6 +387,7 @@ begin
     edUserName.Text,
     edPassword.Text,
     cbbCharset.Text,
+    seBuffer.Value,
     Port);
   FSThread.Connect;
 end;
@@ -410,10 +415,6 @@ var
 begin
   LogFileName := '';
   BackupFileName := '';
-
-  // параметры объединения
-  if (chkMergeCard.Checked) and (FMergeDocTypesList.Count <> 0) then
-    FSThread.SetMergeCardParams(gsDBSqueeze_CardMergeForm.GetDate, FMergeDocTypesList, FCardFeaturesList, chkMergeCard.Checked);
 
   FSThread.SetClosingDate(dtpClosingDate.Date);
 
@@ -522,8 +523,6 @@ begin
 
     if SaveDlg.Execute then
     begin
-      {gsIniOptions.Database := edDatabaseName.Text;
-      gsIniOptions.Charset := cbbCharset.Text;             }
       gsIniOptions.ClosingDate := dtpClosingDate.Date;
       gsIniOptions.DoCalculateSaldo := chkCalculateSaldo.Checked;
       gsIniOptions.DoProcessDocTypes := rbIncluding.Checked;
@@ -534,7 +533,6 @@ begin
       gsIniOptions.MergingBranchRows := gsDBSqueeze_CardMergeForm.GetSelectedBranchRowsStr;
       gsIniOptions.MergingCardFeatures := gsDBSqueeze_CardMergeForm.GetSelectedCardFeatures;
       gsIniOptions.MergingFeaturesRows := gsDBSqueeze_CardMergeForm.GetSelectedFeaturesRows;
-      gsIniOptions.DoMergeCards := chkMergeCard.Checked;
 
       gsIniOptions.SaveToFile(SaveDlg.FileName);
     end;
@@ -563,8 +561,6 @@ begin
     begin
       gsIniOptions.LoadFromFile(OpenDlg.FileName);
 
-      {edDatabaseName.Text :=  gsIniOptions.Database;
-      cbbCharset.ItemIndex := cbbCharset.Items.IndexOf(Trim(UpperCase(gsIniOptions.Charset))); }
       dtpClosingDate.Date := gsIniOptions.ClosingDate;
       chkCalculateSaldo.Checked := gsIniOptions.DoCalculateSaldo;
 
@@ -587,15 +583,12 @@ begin
       gsDBSqueeze_CardMergeForm.SetSelectedDocTypes(gsIniOptions.MergingDocTypeKeys, gsIniOptions.MergingBranchRows);
       gsDBSqueeze_CardMergeForm.SetSelectedCardFeatures(gsIniOptions.MergingCardFeatures, gsIniOptions.MergingFeaturesRows);
 
-      chkMergeCard.Checked := gsIniOptions.DoMergeCards;
-
       FMergeDocTypesList.Clear;
       FCardFeaturesList.Clear;
-      if chkMergeCard.Checked then
-      begin
+
         FMergeDocTypesList.CommaText := gsDBSqueeze_CardMergeForm.GetSelectedIdDocTypes;
         FCardFeaturesList.CommaText := gsDBSqueeze_CardMergeForm.GetSelectedCardFeatures;
-      end;
+      
     end;
   finally
     OpenDlg.Free;
@@ -639,10 +632,17 @@ end;
 
 // ============================= Параметры =====================================
 
+procedure TgsDBSqueeze_MainForm.actDefocusExecute(Sender: TObject);
+begin
+  if Sender is TControl then
+    gsDBSqueeze_MainForm.DefocusControl(TWinControl(Sender), False);
+end;
+
 procedure TgsDBSqueeze_MainForm.actDatabaseBrowseExecute(Sender: TObject);
 var
   openDialog: TOpenDialog;
 begin
+  gsDBSqueeze_MainForm.DefocusControl(btnDatabaseBrowse, False);
   openDialog := TOpenDialog.Create(Self);
   try
     openDialog.InitialDir := GetCurrentDir;
@@ -664,6 +664,7 @@ end;
 
 procedure TgsDBSqueeze_MainForm.actSelectDocTypesExecute(Sender: TObject);
 begin
+  gsDBSqueeze_MainForm.DefocusControl(btnSelectDocTypes, False);
   if gsDBSqueeze_DocTypesForm.ShowModal = mrOk then
     mIgnoreDocTypes.Text := gsDBSqueeze_DocTypesForm.GetDocTypeMemoText;
   FWasSelectedDocTypes := (mIgnoreDocTypes.Text > '');
@@ -679,20 +680,13 @@ begin
   case gsDBSqueeze_CardMergeForm.ShowModal of
     mrYes:
       begin
-        chkMergeCard.Checked := False;
         FMergeDocTypesList.CommaText := gsDBSqueeze_CardMergeForm.GetSelectedIdDocTypes;
         FCardFeaturesList.CommaText := gsDBSqueeze_CardMergeForm.GetSelectedCardFeatures;
 
         // параметры объединения
-        FSThread.SetMergeCardParams(gsDBSqueeze_CardMergeForm.GetDate, FMergeDocTypesList, FCardFeaturesList, chkMergeCard.Checked);
+        FSThread.SetMergeCardParams(gsDBSqueeze_CardMergeForm.GetDate, FMergeDocTypesList, FCardFeaturesList);
         // запуск объединения карточек
         FSThread.DoMergeCards;
-      end;
-    mrOk:
-      begin
-        chkMergeCard.Checked := True; // отложенный запуск
-        FMergeDocTypesList.CommaText := gsDBSqueeze_CardMergeForm.GetSelectedIdDocTypes;
-        FCardFeaturesList.CommaText := gsDBSqueeze_CardMergeForm.GetSelectedCardFeatures;
       end;
   end;
 end;
@@ -706,6 +700,7 @@ end;
 
 procedure TgsDBSqueeze_MainForm.actClearLogExecute(Sender: TObject);
 begin
+  gsDBSqueeze_MainForm.DefocusControl(btnClearGeneralLog, False);
   mLog.Clear;
   mSqlLog.Clear;
 end;
@@ -840,7 +835,7 @@ procedure TgsDBSqueeze_MainForm.FinishEvent(const AIsFinished: Boolean);
 begin
   if AIsFinished then
   begin
-    pbMain.Step := MAX_PROGRESS_STEP;//pbMain.Max;
+    pbMain.Position := pbMain.Max;
 
     if Application.MessageBox(PChar(FormatDateTime('h:nn', Now) + ' - Обработка БД успешно завершена!' + #13#10 +
       'Затраченное время - ' + FormatDateTime('h:nn:ss', Now-FStartupTime)),
@@ -849,9 +844,6 @@ begin
     begin
       pgcMain.ActivePage := tsStatistics;
     end;
-  end  
-  else begin                // финиш из-за прерывания
-    //FIsProcessStop := True; // обработка последнего сообщения завершена
   end;
 end;
 
