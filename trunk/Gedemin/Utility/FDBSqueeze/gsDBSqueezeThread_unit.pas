@@ -568,7 +568,7 @@ begin
       begin
         if FDoStopProcessing.Value = 0 then
         begin
-          FDBS.ProgressMsgEvent('Перепривязка признаков складских карточек...', 0);
+          FDBS.ProgressMsgEvent('Перепривязка признаков складских карточек...', 0);              // 2%
           FDBS.UpdateInvCard;
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
 
@@ -581,7 +581,7 @@ begin
       begin
         if FDoStopProcessing.Value = 0 then
         begin
-          FDBS.ProgressMsgEvent('Выявление записей, которые должны остаться...', 0);            // 16%
+          FDBS.ProgressMsgEvent('Выявление записей, которые должны остаться...', 2*PROGRESS_STEP); // 24%
           FDBS.CreateHIS_IncludeInHIS;
 
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
@@ -595,7 +595,7 @@ begin
       begin
         if FDoStopProcessing.Value = 0 then
         begin
-          FDBS.ProgressMsgEvent('Подготовка БД к удалению записей...', 0);                        // 3%
+          FDBS.ProgressMsgEvent('Подготовка БД к удалению записей...', 0);                        // 5%
           FDBS.PrepareDB;
 
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
@@ -637,7 +637,7 @@ begin
         begin
           if FCalculateSaldo then
           begin
-            FDBS.ProgressMsgEvent('Сохранение бухгалтерского сальдо...', 8*PROGRESS_STEP);          // 7%
+            FDBS.ProgressMsgEvent('Сохранение бухгалтерского сальдо...', 8*PROGRESS_STEP);         // 7%
             FDBS.CreateAcEntries;
             FDBS.InsertDBSStateJournal(Msg.Message, 1);
           end
@@ -674,7 +674,6 @@ begin
         begin
           FDBS.ProgressMsgEvent('Восстановление БД...', 0);                                       // 28%
           FDBS.RestoreDB;
-          //FDBS.Reconnect(False, True);
 
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
 
@@ -688,7 +687,7 @@ begin
         if FDoStopProcessing.Value = 0 then
         begin
           FDBS.CreateInvBalance;
-          FDBS.ProgressMsgEvent('Вычисление текущих складских остатков...', 0);                    // 2%
+          FDBS.ProgressMsgEvent('Вычисление текущих складских остатков...', 0);                    // 5%
           FDBS.InsertDBSStateJournal(Msg.Message, 1);
 
           PostThreadMessage(ThreadID, WM_DBS_CLEARDBSTABLES, 0, 0);
