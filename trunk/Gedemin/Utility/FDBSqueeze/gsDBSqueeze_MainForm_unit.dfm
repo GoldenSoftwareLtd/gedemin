@@ -182,7 +182,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           TabStop = False
         end
         object btntTestConnection: TButton
-          Left = 191
+          Left = 188
           Top = 70
           Width = 92
           Height = 21

@@ -1969,6 +1969,7 @@ begin
         '  CAST(0.0000 AS DECIMAL(15,4)) , ' +                  #13#10 +
         '  CAST(0.0000 AS DECIMAL(15,4)) ');
       for I := 0 to AvailableAnalyticsList.Count - 1 do                         ///
+      begin
         //if UpperCase(Trim(AvailableAnalyticsList[I])) <> 'USR$GS_DOCUMENT' then
           q3.SQL.Add(', ' +
             AvailableAnalyticsList[I])
