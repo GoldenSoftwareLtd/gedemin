@@ -1,6 +1,6 @@
 object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
-  Left = 98
-  Top = 142
+  Left = 484
+  Top = 161
   Width = 940
   Height = 576
   BorderIcons = [biSystemMenu, biMinimize]
@@ -69,7 +69,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
       Top = 4
       Width = 924
       Height = 493
-      ActivePage = tsStatistics
+      ActivePage = tsSettings
       Align = alClient
       MultiLine = True
       TabOrder = 0
@@ -236,7 +236,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           object btnSelectDocTypes: TButton
             Left = 12
             Top = 73
-            Width = 177
+            Width = 173
             Height = 21
             Action = actSelectDocTypes
             TabOrder = 2
