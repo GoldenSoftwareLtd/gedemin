@@ -23,6 +23,7 @@ const
 
   WM_DBS_SETSALDOPARAMS        = WM_GD_THREAD_USER + 13;
   WM_DBS_SETSELECTEDDOCTYPES   = WM_GD_THREAD_USER + 14;
+  
   WM_DBS_GETSTATISTICS         = WM_GD_THREAD_USER + 16;
   WM_DBS_GETPROCSTATISTICS     = WM_GD_THREAD_USER + 17;
   WM_DBS_STARTPROCESSING       = WM_GD_THREAD_USER + 18;
@@ -33,24 +34,25 @@ const
   WM_DBS_SAVEMETADATA          = WM_GD_THREAD_USER + 23;
   WM_DBS_CALCULATEACSALDO      = WM_GD_THREAD_USER + 24;
   WM_DBS_CALCULATEINVSALDO     = WM_GD_THREAD_USER + 25;
-  WM_DBS_PREPAREREBINDINVCARDS = WM_GD_THREAD_USER + 26;
-  WM_DBS_CREATEHIS_INCLUDEHIS  = WM_GD_THREAD_USER + 27;
-  WM_DBS_PREPAREDB             = WM_GD_THREAD_USER + 28;
-  WM_DBS_DELETEOLDBALANCE      = WM_GD_THREAD_USER + 29;
-  WM_DBS_DELETEDOCHIS          = WM_GD_THREAD_USER + 30;
-  WM_DBS_CREATEACENTRIES       = WM_GD_THREAD_USER + 31;
-  WM_DBS_CREATEINVSALDO        = WM_GD_THREAD_USER + 32;
-  WM_DBS_RESTOREDB             = WM_GD_THREAD_USER + 33;
-  WM_DBS_REBINDINVCARDS        = WM_GD_THREAD_USER + 34;
-  WM_DBS_CLEARDBSTABLES        = WM_GD_THREAD_USER + 35;
-  WM_DBS_FINISH                = WM_GD_THREAD_USER + 38;
-  WM_DBS_FINISHED              = WM_GD_THREAD_USER + 39;
-  WM_DBS_DISCONNECT            = WM_GD_THREAD_USER + 40;
-  WM_DBS_CREATE_INV_BALANCE    = WM_GD_THREAD_USER + 41;
+  WM_DBS_UPDATEINVCARD         = WM_GD_THREAD_USER + 26;
+  WM_DBS_PREPAREREBINDINVCARDS = WM_GD_THREAD_USER + 27;
+  WM_DBS_CREATEHIS_INCLUDEHIS  = WM_GD_THREAD_USER + 28;
+  WM_DBS_PREPAREDB             = WM_GD_THREAD_USER + 29;
+  WM_DBS_DELETEOLDBALANCE      = WM_GD_THREAD_USER + 30;
+  WM_DBS_DELETEDOCHIS          = WM_GD_THREAD_USER + 31;
+  WM_DBS_CREATEACENTRIES       = WM_GD_THREAD_USER + 32;
+  WM_DBS_CREATEINVSALDO        = WM_GD_THREAD_USER + 33;
+  WM_DBS_RESTOREDB             = WM_GD_THREAD_USER + 34;
+  WM_DBS_REBINDINVCARDS        = WM_GD_THREAD_USER + 35;
+  WM_DBS_CLEARDBSTABLES        = WM_GD_THREAD_USER + 36;
+  WM_DBS_FINISH                = WM_GD_THREAD_USER + 37;
+  WM_DBS_FINISHED              = WM_GD_THREAD_USER + 38;
+  WM_DBS_DISCONNECT            = WM_GD_THREAD_USER + 39;
+  WM_DBS_CREATE_INV_BALANCE    = WM_GD_THREAD_USER + 40;
 
-  WM_DBS_MERGECARDS            = WM_GD_THREAD_USER + 42;
+  WM_DBS_MERGECARDS            = WM_GD_THREAD_USER + 41;
 
-  WM_STOPNOTIFY                = WM_GD_THREAD_USER + 43;
+  WM_STOPNOTIFY                = WM_GD_THREAD_USER + 42;
 
   WM_GD_EXIT_THREAD            = WM_USER + 117;
 
@@ -88,7 +90,6 @@ type
     FMergeCardFeatures: TStringList;
     FMergeDocDate: TDateTime;
     FMergeDocTypes: TStringList;
-    FMergeInProc: Boolean;
 
     FMessageCardFeatures:  TStringList;
     FMessageDocTypeBranchList: TStringList;
@@ -151,8 +152,8 @@ type
     procedure DoGetProcStatistics;
 
     procedure SetClosingDate(const AClosingDate: TDateTime);
-    procedure SetDBParams(const ADatabaseName: String; const AHost: String; const AUserName: String; const APassword: String; const ACharacterSet: String; const APort: Integer = 0);
-    procedure SetMergeCardParams(const ADocDate: TDateTime; const ADocTypesList: TStringList; const ACardFeaturesList:  TStringList; const AMergeInProc: Boolean);
+    procedure SetDBParams(const ADatabaseName: String; const AHost: String; const AUserName: String; const APassword: String; const ACharacterSet: String; const ANumBuffers: Integer; const APort: Integer = 0);
+    procedure SetMergeCardParams(const ADocDate: TDateTime; const ADocTypesList: TStringList; const ACardFeaturesList:  TStringList);
     procedure SetSelectDocTypes(const ADocTypes: TStringList; const AnIsProcDocTypes: Boolean);
 
 
@@ -352,7 +353,7 @@ begin
       begin
         if not FDBS.Connected then
         begin
-          FDBS.Connect(False, True);        // garbage collect ON
+          FDBS.Connect(True, True);        // garbage collect OFF
           PostThreadMessage(ThreadID, WM_DBS_SETDOCTYPESRINGS, 0, 0);
         end;
         Result := True;
@@ -470,8 +471,7 @@ begin
 
     WM_DBS_MERGECARDS:                                                          
       begin
-        if not FMergeInProc then
-          FBusy.Value := 1;
+        FBusy.Value := 1;
 
         FDBS.ProgressMsgEvent('Объединение карточек...', 0);
 
@@ -480,10 +480,7 @@ begin
 
         FDBS.ProgressMsgEvent(' ', 0);
 
-        if FMergeInProc then
-          PostThreadMessage(ThreadID, WM_DBS_CREATEHIS_INCLUDEHIS, 0, 0)
-        else
-          FBusy.Value := 0;
+        FBusy.Value := 0;
         Result := True;
       end;
 
@@ -562,10 +559,20 @@ begin
             FDBS.ProgressMsgEvent(' ', 14*PROGRESS_STEP);
           end;
 
-          if FMergeInProc then
-            PostThreadMessage(ThreadID, WM_DBS_MERGECARDS, 0, 0)
-          else
-            PostThreadMessage(ThreadID, WM_DBS_CREATEHIS_INCLUDEHIS, 0, 0);
+            PostThreadMessage(ThreadID, WM_DBS_UPDATEINVCARD, 0, 0);
+        end;
+        Result := True;
+      end;
+
+    WM_DBS_UPDATEINVCARD:
+      begin
+        if FDoStopProcessing.Value = 0 then
+        begin
+          FDBS.ProgressMsgEvent('Перепривязка признаков складских карточек...', 0);
+          FDBS.UpdateInvCard;
+          FDBS.InsertDBSStateJournal(Msg.Message, 1);
+
+          PostThreadMessage(ThreadID, WM_DBS_CREATEHIS_INCLUDEHIS, 0, 0);
         end;
         Result := True;
       end;
@@ -749,6 +756,7 @@ procedure TgsDBSqueezeThread.SetDBParams(
   const AUserName: String;
   const APassword: String;
   const ACharacterSet: String;
+  const ANumBuffers: Integer;
   const APort: Integer = 0);
 begin
   FConnectInfo.DatabaseName := ADatabaseName;
@@ -756,6 +764,7 @@ begin
   FConnectInfo.UserName := AUserName;
   FConnectInfo.Password := APassword;
   FConnectInfo.CharacterSet := ACharacterSet;
+  FConnectInfo.NumBuffers := ANumBuffers;
   FConnectInfo.Port := APort;
 
   PostMsg(WM_DBS_SETPARAMS);
@@ -777,13 +786,11 @@ end;
 procedure TgsDBSqueezeThread.SetMergeCardParams(
   const ADocDate: TDateTime;
   const ADocTypesList: TStringList;
-  const ACardFeaturesList:  TStringList;
-  const AMergeInProc: Boolean);
+  const ACardFeaturesList:  TStringList);
 begin
   FMergeDocDate := ADocDate;
   FMergeDocTypes := ADocTypesList;
   FMergeCardFeatures := ACardFeaturesList;
-  FMergeInProc :=  AMergeInProc;
 end;
 
 procedure TgsDBSqueezeThread.SetSelectDocTypes(const ADocTypes: TStringList; const AnIsProcDocTypes: Boolean);

@@ -16,7 +16,6 @@ type
   TgsDBSqueeze_CardMergeForm = class(TForm)
     actlstCardMerge: TActionList;
     actSelectAllDocs: TAction;
-    btn1: TButton;
     btnMergeGo: TButton;
     dtpMergingDate: TDateTimePicker;
     mCardFeatures: TMemo;
@@ -28,8 +27,8 @@ type
     txt1: TStaticText;
     txt2: TStaticText;
     txt5: TStaticText;
+    btnCancel: TButton;
     procedure actSelectAllDocsExecute(Sender: TObject);
-    procedure btnIsMergeOption(Sender: TObject);
     procedure btnMergeGoClick(Sender: TObject);
     procedure strngrdCardFeaturesDblClick(Sender: TObject);
     procedure strngrdCardFeaturesDrawCell(Sender: TObject; ACol, ARow: Integer; Rect: TRect; State: TGridDrawState);
@@ -37,6 +36,7 @@ type
     procedure strngrdDocTypesDrawCell(Sender: TObject; ACol, ARow: Integer; Rect: TRect; State: TGridDrawState);
     procedure tvDocTypesClick(Sender: TObject);
     procedure tvDocTypesCustomDrawItem(Sender: TCustomTreeView; Node: TTreeNode; State: TCustomDrawState; var DefaultDraw: Boolean);
+    procedure btnCancelClick(Sender: TObject);
   private
     FAllCardFeatures: TStringList;
     FAllDocTypesList: TStringList;
@@ -313,13 +313,16 @@ end;
 //---------------------------------------------------------------------------
 procedure TgsDBSqueeze_CardMergeForm.btnMergeGoClick(Sender: TObject);
 begin
+  gsDBSqueeze_CardMergeForm.DefocusControl(TButton(Sender), False);
   Self.ModalResult := mrYes;
   PostMessage(gsDBSqueeze_CardMergeForm.Handle, WM_CLOSE, 0, 0);
 end;
 //---------------------------------------------------------------------------
-procedure TgsDBSqueeze_CardMergeForm.btnIsMergeOption(Sender: TObject);
+procedure TgsDBSqueeze_CardMergeForm.btnCancelClick(Sender: TObject);
 begin
-  Self.ModalResult := mrOK;
+  gsDBSqueeze_CardMergeForm.DefocusControl(TButton(Sender), False);
+  Self.ModalResult := mrNone;
+  Self.Close;
 end;
 //---------------------------------------------------------------------------
 function TgsDBSqueeze_CardMergeForm.GetDate: TDateTime;
