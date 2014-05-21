@@ -1,6 +1,6 @@
 object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
-  Left = 484
-  Top = 161
+  Left = 14
+  Top = 310
   Width = 940
   Height = 576
   BorderIcons = [biSystemMenu, biMinimize]
@@ -298,7 +298,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         object seBuffer: TSpinEdit
           Left = 698
           Top = 1
-          Width = 81
+          Width = 79
           Height = 22
           MaxValue = 0
           MinValue = 0
