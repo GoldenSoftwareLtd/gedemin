@@ -568,7 +568,6 @@ begin
         begin
           dbtvExplorer.TVState.Bookmarks.Remove(DataID);
           dbtvExplorer.Items[I].Delete;
-  //        I := 0;
         end;
       end;
     end;

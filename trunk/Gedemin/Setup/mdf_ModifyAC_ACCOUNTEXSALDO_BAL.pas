@@ -801,7 +801,7 @@ begin
       try
         q.Transaction := FTransaction;
 
-        q.SQL.Text := 
+        q.SQL.Text :=
           'CREATE OR ALTER TRIGGER gd_aiu_constvalue FOR gd_constvalue '#13#10 +
           '  AFTER INSERT OR UPDATE '#13#10 +
           '  POSITION 0 '#13#10 +
@@ -824,6 +824,61 @@ begin
         q.SQL.Text :=
           'UPDATE OR INSERT INTO fin_versioninfo ' +
           '  VALUES (212, ''0000.0001.0000.0243'', ''29.04.2014'', ''Issue 3373.'') ' +
+          '  MATCHING (id)';
+        q.ExecQuery;
+
+        q.SQL.Text :=
+          'CREATE OR ALTER TRIGGER gd_au_documenttype FOR gd_documenttype '#13#10 +
+          '  ACTIVE '#13#10 +
+          '  AFTER UPDATE '#13#10 +
+          '  POSITION 20000 '#13#10 +
+          'AS '#13#10 +
+          '  DECLARE VARIABLE new_root dintkey; '#13#10 +
+          '  DECLARE VARIABLE old_root dintkey; '#13#10 +
+          'BEGIN '#13#10 +
+          '  IF (NEW.parent IS DISTINCT FROM OLD.parent) THEN '#13#10 +
+          '  BEGIN '#13#10 +
+          '    SELECT id FROM gd_documenttype '#13#10 +
+          '    WHERE parent IS NULL AND lb <= NEW.lb AND rb >= NEW.rb '#13#10 +
+          '    INTO :new_root; '#13#10 +
+          ' '#13#10 +
+          '    SELECT id FROM gd_documenttype '#13#10 +
+          '    WHERE parent IS NULL AND lb <= OLD.lb AND rb >= OLD.rb '#13#10 +
+          '    INTO :old_root; '#13#10 +
+          ' '#13#10 +
+          '    IF (:new_root <> :old_root) THEN '#13#10 +
+          '    BEGIN '#13#10 +
+          '      IF (:new_root IN (804000, 805000) OR :old_root IN (804000, 805000)) THEN '#13#10 +
+          '        EXCEPTION gd_e_cannotchangebranch; '#13#10 +
+          '    END '#13#10 +
+          ' '#13#10 +
+          '    IF (NEW.documenttype = ''B'') THEN '#13#10 +
+          '    BEGIN '#13#10 +
+          '      IF (EXISTS (SELECT * FROM gd_documenttype WHERE documenttype <> ''B'' AND id = NEW.parent)) THEN '#13#10 +
+          '        EXCEPTION gd_e_exception ''Document class can not include a folder.''; '#13#10 +
+          '    END '#13#10 +
+          '  END '#13#10 +
+          'END ';
+        q.ExecQuery;
+
+        q.SQL.Text :=
+          'CREATE OR ALTER TRIGGER gd_aiu_documenttype FOR gd_documenttype '#13#10 +
+          '  ACTIVE '#13#10 +
+          '  AFTER INSERT OR UPDATE '#13#10 +
+          '  POSITION 20001 '#13#10 +
+          'AS '#13#10 +
+          'BEGIN '#13#10 +
+          '  IF (NEW.documenttype = ''B'') THEN '#13#10 +
+          '  BEGIN '#13#10 +
+          '    IF (EXISTS (SELECT * FROM gd_documenttype WHERE documenttype <> ''B'' AND id = NEW.parent)) THEN '#13#10 +
+          '      EXCEPTION gd_e_exception ''Document class can not include a folder.''; '#13#10 +
+          '  END '#13#10 +
+          'END';
+        q.ExecQuery;
+
+        q.SQL.Text :=
+          'UPDATE OR INSERT INTO fin_versioninfo ' +
+          '  VALUES (213, ''0000.0001.0000.0244'', ''22.05.2014'', ''Document class can not include a folder.'') ' +
           '  MATCHING (id)';
         q.ExecQuery;
       finally

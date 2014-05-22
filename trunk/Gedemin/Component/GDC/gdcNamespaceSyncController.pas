@@ -624,7 +624,7 @@ begin
       q.Close;
       Inc(I);
 
-      if C > I * I then
+      if C > ASL.Count * ASL.Count then
         raise Exception.Create('Cyclic namespace dependance detected.');
       Inc(C);
     end;

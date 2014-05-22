@@ -1356,6 +1356,25 @@ var
     end;  
   end;
 
+  procedure AddCreationDateField(const ATableName: String);
+  begin
+    if RelationExist2(ATableName, Tr) then
+    begin
+      if not FieldExist2(ATableName, 'creationdate', Tr) then
+      begin
+        q.SQL.Text := 'ALTER TABLE ' + ATableName + ' ADD creationdate dcreationdate';
+        q.ExecQuery;
+
+        Tr.Commit;
+        Tr.StartTransaction;
+      end;
+
+      q.SQL.Text := 'UPDATE ' + ATableName + ' SET creationdate = ''01.01.2000'' ' +
+        'WHERE creationdate IS NULL';
+      q.ExecQuery;
+    end;
+  end;
+
 begin
   Tr := TIBTransaction.Create(nil);
   q := TIBSQL.Create(nil);
@@ -1462,6 +1481,70 @@ begin
       AddEditionDateField('WG_POSITION');
       AddEditionDateField('WG_TBLCAL');
       AddEditionDateField('WG_TBLCALDAY');
+
+      AddEditionDateField('GD_CONTACT');
+      AddEditionDateField('GD_GOOD');
+      AddEditionDateField('GD_GOODGROUP');
+      AddCreationDateField('GD_CONTACT');
+      AddCreationDateField('GD_GOOD');
+      AddCreationDateField('GD_GOODGROUP');
+
+      if not FieldExist2('GD_CONTACT', 'CREATORKEY', Tr) then
+      begin
+        q.SQL.Text := 'ALTER TABLE gd_contact ADD creatorkey dforeignkey';
+        q.ExecQuery;
+
+        q.SQL.Text :=
+          'ALTER TABLE gd_contact ADD CONSTRAINT gd_fk_contact_creatorkey ' +
+          '  FOREIGN KEY (creatorkey) REFERENCES gd_contact(id) ' +
+          '  ON UPDATE CASCADE ';
+        q.ExecQuery;
+      end;
+
+      if not FieldExist2('GD_GOOD', 'CREATORKEY', Tr) then
+      begin
+        q.SQL.Text :=
+          'ALTER TABLE gd_good ADD creatorkey dforeignkey';
+        q.ExecQuery;
+
+        q.SQL.Text :=
+          'ALTER TABLE gd_good ADD CONSTRAINT gd_fk_good_creatorkey ' +
+          '  FOREIGN KEY (creatorkey) REFERENCES gd_contact(id) ' +
+          '  ON UPDATE CASCADE ';
+        q.ExecQuery;
+      end;
+
+      if not FieldExist2('GD_GOODGROUP', 'CREATORKEY', Tr) then
+      begin
+        q.SQL.Text :=
+          'ALTER TABLE gd_goodgroup ADD creatorkey dforeignkey';
+        q.ExecQuery;
+
+        q.SQL.Text :=
+          'ALTER TABLE gd_goodgroup ADD CONSTRAINT gd_fk_goodgroup_creatorkey ' +
+          '  FOREIGN KEY (creatorkey) REFERENCES gd_contact(id) ' +
+          '  ON UPDATE CASCADE ';
+        q.ExecQuery;
+      end;
+
+      if not FieldExist2('GD_GOODGROUP', 'EDITORKEY', Tr) then
+      begin
+        q.SQL.Text :=
+          'ALTER TABLE gd_goodgroup ADD editorkey dforeignkey';
+        q.ExecQuery;
+
+        q.SQL.Text :=
+          'ALTER TABLE gd_goodgroup ADD CONSTRAINT gd_fk_goodgroup_editorkey ' +
+          '  FOREIGN KEY (editorkey) REFERENCES gd_contact(id) ' +
+          '  ON UPDATE CASCADE ';
+        q.ExecQuery;
+      end;
+
+      if not IndexExist2('GD_X_FUNCTION_MODULE', Tr) then
+      begin
+        q.SQL.Text := 'CREATE INDEX gd_x_function_module ON gd_function (module) ';
+        q.ExecQuery;
+      end;
 
       q.SQL.Text := 'ALTER TRIGGER GD_BU_TAXTYPE ACTIVE';
       q.ExecQuery;

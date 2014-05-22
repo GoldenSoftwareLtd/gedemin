@@ -668,6 +668,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (212, '0000.0001.0000.0243', '29.04.2014', 'Issue 3373.');
 
+INSERT INTO fin_versioninfo
+  VALUES (213, '0000.0001.0000.0244', '22.05.2014', 'Document class can not include a folder.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
