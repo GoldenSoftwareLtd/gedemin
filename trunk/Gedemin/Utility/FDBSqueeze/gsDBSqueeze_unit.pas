@@ -170,6 +170,7 @@ begin
 
   FProcessedTbls := TStringList.Create;
   FCurrentProgressStep := 0;
+  FClosingDate := Now;
 end;
 //---------------------------------------------------------------------------
 destructor TgsDBSqueeze.Destroy;
