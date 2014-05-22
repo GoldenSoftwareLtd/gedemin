@@ -73,11 +73,7 @@ begin
 
         FTransaction.StartTransaction;
 
-        FIBSQL.Close;
-        FIBSQL.SQL.Text :=
-          'SELECT * FROM rdb$indices WHERE rdb$index_name = ''GD_X_FUNCTION_MODULE'' ';
-        FIBSQL.ExecQuery;
-        if FIBSQL.RecordCount = 0 then
+        if not IndexExist2('GD_X_FUNCTION_MODULE', FTransaction) then
         begin
           FIBSQL.Close;
           FIBSQL.SQL.Text :=
@@ -85,11 +81,7 @@ begin
           FIBSQL.ExecQuery;
         end;
 
-        FIBSQL.Close;
-        FIBSQL.SQL.Text :=
-          'SELECT * FROM rdb$relation_fields WHERE rdb$relation_name = ''GD_CONTACT'' and rdb$field_name = ''CREATORKEY'' ';
-        FIBSQL.ExecQuery;
-        if FIBSQL.RecordCount = 0 then
+        if not FieldExist2('GD_CONTACT', 'CREATORKEY', FTransaction) then
         begin
           FIBSQL.Close;
           FIBSQL.SQL.Text :=
@@ -109,11 +101,7 @@ begin
           FIBSQL.ExecQuery;
         end;
 
-        FIBSQL.Close;
-        FIBSQL.SQL.Text :=
-          'SELECT * FROM rdb$relation_fields WHERE rdb$relation_name = ''GD_GOOD'' and rdb$field_name = ''CREATORKEY'' ';
-        FIBSQL.ExecQuery;
-        if FIBSQL.RecordCount = 0 then
+        if not FieldExist2('GD_GOOD', 'CREATORKEY', FTransaction) then
         begin
           FIBSQL.Close;
           FIBSQL.SQL.Text :=
@@ -133,11 +121,7 @@ begin
           FIBSQL.ExecQuery;
         end;
 
-        FIBSQL.Close;
-        FIBSQL.SQL.Text :=
-          'SELECT * FROM rdb$relation_fields WHERE rdb$relation_name = ''GD_GOODGROUP'' and rdb$field_name = ''CREATORKEY'' ';
-        FIBSQL.ExecQuery;
-        if FIBSQL.RecordCount = 0 then
+        if not FieldExist2('GD_GOODGROUP', 'CREATORKEY', FTransaction) then
         begin
           FIBSQL.Close;
           FIBSQL.SQL.Text :=

@@ -123,6 +123,26 @@ BEGIN
       IF (:new_root IN (804000, 805000) OR :old_root IN (804000, 805000)) THEN
         EXCEPTION gd_e_cannotchangebranch;
     END
+    
+    IF (NEW.documenttype = 'B') THEN
+    BEGIN
+      IF (EXISTS (SELECT * FROM gd_documenttype WHERE documenttype <> 'B' AND id = NEW.parent)) THEN
+        EXCEPTION gd_e_exception 'Document class can not include a folder.';
+    END
+  END
+END
+^
+
+CREATE OR ALTER TRIGGER gd_aiu_documenttype FOR gd_documenttype
+  ACTIVE
+  AFTER INSERT OR UPDATE
+  POSITION 20001
+AS
+BEGIN
+  IF (NEW.documenttype = 'B') THEN
+  BEGIN
+    IF (EXISTS (SELECT * FROM gd_documenttype WHERE documenttype <> 'B' AND id = NEW.parent)) THEN
+      EXCEPTION gd_e_exception 'Document class can not include a folder.';
   END
 END
 ^

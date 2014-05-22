@@ -2453,6 +2453,10 @@ begin
     begin
       Result.gdClass := CgdcBase(FindClass(FieldByName('classname').AsString));
       Result.SubType := '';
+    end else
+    begin
+      Result.gdClass := CgdcBase(TgdcDocumentType);
+      Result.SubType := '';
     end;
   end;
 end;

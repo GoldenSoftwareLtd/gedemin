@@ -7,7 +7,7 @@ uses
   gdc_frmMDVTree_unit, Db, Menus, ActnList, Grids, DBGrids, gsDBGrid,
   gsIBGrid, ComCtrls, gsDBTreeView, ToolWin, ExtCtrls, TB2Item, TB2Dock,
   TB2Toolbar, gdcClasses, IBCustomDataSet, gdcBase, gdcTree, StdCtrls,
-  gd_MacrosMenu;
+  gd_MacrosMenu, dmImages_unit;
 
 type
   Tgdc_frmDocumentType = class(Tgdc_frmMDVTree)
@@ -35,6 +35,8 @@ type
     procedure actAddInvPriceListUpdate(Sender: TObject);
     procedure actAddUserDocUpdate(Sender: TObject);
     procedure tbsmNewClick(Sender: TObject);
+    procedure actNewExecute(Sender: TObject);
+    procedure tvGroupGetImageIndex(Sender: TObject; Node: TTreeNode);
   private
 
   public
@@ -64,25 +66,22 @@ end;
 
 procedure Tgdc_frmDocumentType.FormCreate(Sender: TObject);
 begin
-  inherited;
-
   gdcObject := gdcBaseDocumentType;
   gdcDetailObject := gdcDocumentType;
-
-  gdcObject.Open;
-  gdcDetailObject.Open;
+  inherited;
 end;
 
 procedure Tgdc_frmDocumentType.actNewSubExecute(Sender: TObject);
 begin
-  gdcBaseDocumentType.CreateChildrenDialog;
+  (gdcObject as TgdcTree).CreateChildrenDialog(TgdcDocumentBranch);
 end;
 
 procedure Tgdc_frmDocumentType.actNewSubUpdate(Sender: TObject);
 begin
   actNewSub.Enabled :=
     (gdcObject <> nil) and (gdcObject.CanCreate)
-    and (gdcObject.State = dsBrowse);
+    and (gdcObject.State = dsBrowse)
+    and (not gdcObject.EOF);
 end;
 
 procedure Tgdc_frmDocumentType.actDetailNewExecute(Sender: TObject);
@@ -154,6 +153,24 @@ begin
     actAddInvPriceList.Execute
   else if actAddInvDocument.Enabled then
     actAddInvDocument.Execute;
+end;
+
+procedure Tgdc_frmDocumentType.actNewExecute(Sender: TObject);
+begin
+  gdcObject.CreateDialog(TgdcDocumentBranch);
+end;
+
+procedure Tgdc_frmDocumentType.tvGroupGetImageIndex(Sender: TObject;
+  Node: TTreeNode);
+var
+  V: Variant;
+begin
+  V := gdcObject.GetFieldValueForID(Integer(Node.Data), 'documenttype');
+  if (VarType(V) = varString) and (V = 'D') then
+    Node.ImageIndex := 3
+  else
+    Node.ImageIndex := 0;
+  Node.SelectedIndex := Node.ImageIndex;
 end;
 
 initialization
