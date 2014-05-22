@@ -16,6 +16,7 @@ const
   CHARSET_LIST_CH1 = 'NONE, CYRL, DOS437, DOS737, DOS775, DOS850, DOS852, DOS857, DOS858, DOS860, DOS861, DOS862, DOS863, DOS864, DOS865, DOS866, DOS869, ISO8859_1, ISO8859_13, ISO8859_2, ISO8859_3, ISO8859_4, ISO8859_5, ISO8859_6, ISO8859_7';
   CHARSET_LIST_CH2 = 'ISO8859_8, ISO8859_9, KOI8R, KOI8U, NEXT, TIS620, WIN1250, WIN1251, WIN1252, WIN1253, WIN1254, WIN1255, WIN1256, WIN1257, WIN1258, ASCII, UNICODE_FSS, UTF8';
   MAX_PROGRESS_STEP = 12500;
+  PROGRESS_COLOR = $001F67FC;
 
   WM_STOPNOTIFY = WM_GD_THREAD_USER + 42;
 
@@ -237,7 +238,7 @@ uses
 constructor TgsDBSqueeze_MainForm.Create(AnOwner: TComponent);
 begin
   inherited;
- 
+
   FMergeDocTypesList := TStringList.Create;
   FCardFeaturesList := TStringList.Create;
   FDocTypesList := TStringList.Create;
@@ -251,6 +252,7 @@ begin
   edPassword.Text := DEFAULT_PASSWORD;
   seBuffer.Value := DEFAULT_BUFFER;
   pbMain.Max := MAX_PROGRESS_STEP;
+  SendMessage(pbMain.Handle, PBM_SETBARCOLOR, 0, PROGRESS_COLOR);
   cbbCharset.Items.CommaText := CHARSET_LIST_CH1 + ',' + CHARSET_LIST_CH2;
   cbbCharset.ItemIndex := cbbCharset.Items.IndexOf(DEFAULT_CHARACTER_SET);
 
