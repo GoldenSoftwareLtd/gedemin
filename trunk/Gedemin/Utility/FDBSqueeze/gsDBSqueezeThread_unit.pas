@@ -353,7 +353,8 @@ begin
       begin
         if not FDBS.Connected then
         begin
-          FDBS.Connect(True, True);        // garbage collect OFF
+          FDBS.Connect(False, True);
+          //FDBS.Connect(True, True);        // garbage collect OFF
           PostThreadMessage(ThreadID, WM_DBS_SETDOCTYPESRINGS, 0, 0);
         end;
         Result := True;
@@ -722,8 +723,10 @@ begin
         if FDoStopProcessing.Value = 0 then
         begin
           FDBS.LogEvent('FINISH!');
+          SetParamStatisticsAfterProc(False);
+          FDBS.ProgressMsgEvent('', MAX_PROGRESS_STEP);
           FDBS.ProgressMsgEvent('Обработка БД завершена.');
-          
+
           FFinish:= True;
           Finish;
 

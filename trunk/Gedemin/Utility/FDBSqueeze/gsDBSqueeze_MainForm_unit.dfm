@@ -1,6 +1,6 @@
 object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
-  Left = 993
-  Top = 171
+  Left = 498
+  Top = 162
   Width = 940
   Height = 576
   BorderIcons = [biSystemMenu, biMinimize]
@@ -69,7 +69,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
       Top = 4
       Width = 924
       Height = 493
-      ActivePage = tsStatistics
+      ActivePage = tsSettings
       Align = alClient
       MultiLine = True
       TabOrder = 0

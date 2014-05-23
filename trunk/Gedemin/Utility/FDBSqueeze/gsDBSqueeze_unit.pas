@@ -5278,7 +5278,7 @@ begin
 
       Tr.Commit;
 
-      DropDBSStateJournal;
+      //DropDBSStateJournal;
       LogEvent('Deleting temporary metadata tables... OK');
     except
       on E: Exception do
