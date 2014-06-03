@@ -12,7 +12,7 @@ const
   PROIZVOLNYE_TRRECORD_KEY = 807100;     // AC_TRRECORD.id WHERE transactionkey = PROIZVOLNYE_TRANSACTION_KEY
   OSTATKY_ACCOUNT_KEY = 300003;          // AC_ACCOUNT.id WHERE fullname = 00 Остатки
   HOZOPERATION_DOCTYPE_KEY = 806001;     // gd_documenttype.id WHERE name = Хозяйственная операция
-  MAX_PROGRESS_STEP = 12500;
+  MAX_PROGRESS_STEP = 12500;                     
   PROGRESS_STEP = MAX_PROGRESS_STEP div 100;
   INCLUDE_HIS_PROGRESS_STEP = PROGRESS_STEP*16;
   INV_CARD_UPDATE_FEATURES_LIST = '''USR$INV_ADDLINEKEY'', ''USR$INV_MOVEDOCKEY'', ''USR$INV_BILLLINEKEY'', ''USR$INV_PRMETALKEY'', ''USR$WC_STARTUPDOCKEY'', ''USR$WC_CONSERVREVDOCKEY'', ''USR$WC_CONSERVATIONDOCKEY''';
@@ -1411,7 +1411,7 @@ begin
     if q.EOF then
       raise EgsDBSqueeze.Create('Отсутствует запись GD_DOCUMENTTYPE.NAME = ''Произвольный тип''');
     FProizvolnyyDocTypeKey := q.FieldByName('InvDocTypeKey').AsInteger;
-    q.Close;  
+    q.Close;
   
     if FAllOurCompaniesSaldo then
     begin
@@ -2236,8 +2236,6 @@ var
     LineSetTbls: TStringList;
     ReProcTbl: String;
     EndReprocLineTbl: String;
-    ReProcLineTbls: TStringList;
-    GoLineReproc: Boolean;
     WaitReProc: Boolean;
     RefRelation: String;
     TmpStr: String;
@@ -2252,25 +2250,14 @@ var
     FkFieldsList: TStringList;
     FkFieldsList2, FkFieldsList3: TStringList;
     FkFieldsListLine: TStringList;
-    IsLine: Boolean;
     TblsNamesList: TStringList; // Process Queue
-    AllProcessedTblsNames: TStringList;
-    ExcFKTbls: TStringList;
-    ReProc, ReProcAll: TStringList;
-    GoReprocess, ReprocStarted: Boolean;
+    GoReprocess: Boolean;
     EndReprocTbl: String;
-    AllProc: TStringList;
     ProcTblsNamesList: TStringList;
-    CascadeProcTbls: TStringList;
-    I, J, K, N, IndexEnd, Inx, Counter, Kolvo, RealKolvo, RealKolvo2, ExcKolvo: Integer;
+    I, J, K, N, Inx, Kolvo, RealKolvo: Integer;
     IsAppended, IsDuplicate, DoNothing, GoToFirst, GoToLast, IsFirstIteration, Condition: Boolean;
 
     TmpList: TStringList;
-    MainDuplicateTblName: String;
-    LineTblsNames: String;
-    LineTblsList:  TStringList;
-    LinePosList: TStringList;
-    LinePosInx: Integer;
     Line1PosInx, Line2PosInx: Integer;
     SelfFkFieldsListLine: TStringList;
     SelfFkFieldsList2: TStringList;
@@ -2282,23 +2269,13 @@ var
     CrossLineTbls := TStringList.Create;
     LineSetTbls := TStringList.Create;
     ProcTblsNamesList := TStringList.Create;
-    ReProcLineTbls := TStringList.Create;
 
     FkFieldsList := TStringList.Create;
     FkFieldsList2 := TStringList.Create;
     FkFieldsList3 := TStringList.Create;
     FkFieldsListLine := TStringList.Create;
     TblsNamesList := TStringList.Create;
-    AllProcessedTblsNames := TStringList.Create;
-
-    ReProc :=  TStringList.Create;
-    ReProcAll :=  TStringList.Create;
-    CascadeProcTbls := TStringList.Create;
-    LineTblsList := TStringList.Create;
-    AllProc := TStringList.Create;
-    LinePosList := TStringList.Create;
     TmpList := TStringList.Create;
-    ExcFKTbls := TStringList.Create;
 
     SelfFkFieldsListLine := TStringList.Create;
     SelfFkFieldsList2 := TStringList.Create;
@@ -2524,7 +2501,7 @@ var
         Tr2.Commit;
         Tr2.StartTransaction;
 
-        LogEvent('4)');
+        LogEvent('4.)');
         // 4) include linefield Line если на нее есть ссылка (не от таблицы Line и не от cross-таблиц Line)
         for J:=0 to LineDocTbls.Count-1 do
         begin
@@ -2725,7 +2702,7 @@ var
                 'SELECT SUM(g_his_include(1, parent)) AS RealCount ' + #13#10 +
                 '  FROM gd_document ' +                                #13#10 +
                 ' WHERE g_his_has(1, id)=1 ';
-              ExecSqlLogEvent(q3, 'CreateHIS_IncludeInHIS');                 //tr убрать sum
+              ExecSqlLogEvent(q3, 'CreateHIS_IncludeInHIS');
             until q3.FieldByName('RealCount').AsInteger = 0;
             q3.Close;
           end;
@@ -2881,7 +2858,6 @@ var
                 end;
 
                 ExecSqlLogEvent(q3, 'IncludeDependenciesHIS');
-              
               until q3.FieldByName('RealCount').AsInteger = 0;
               q3.Close;
             end
@@ -2914,7 +2890,6 @@ var
                   'WHERE ' + TmpStr);
 
                 ExecSqlLogEvent(q3, 'IncludeDependenciesHIS');
-
               until q3.FieldByName('RealCount').AsInteger = 0;
               q3.Close;
 
@@ -2964,6 +2939,7 @@ var
           begin
             LogEvent('5) 3.');
             FkFieldsList3.Clear;
+
 
             q3.SQL.Text :=
               'SELECT ';
@@ -3055,13 +3031,13 @@ var
 
             ExecSqlLogEvent(q3, 'IncludeDependenciesHIS');
 
-            for I:=0 to q3.Current.Count-1 do // = FkFieldsListLine.Count
+            for I:=0 to q3.Current.Count-1 do // FkFieldsListLine.Count-1
             begin
               if q3.Fields[I].AsInteger > 0 then
               begin
                 RefRelation := FkFieldsListLine.Values[FkFieldsListLine.Names[I]];
 
-                if ProcTblsNamesList.IndexOf(RefRelation) <> -1 then
+                if (ProcTblsNamesList.IndexOf(RefRelation) <> -1) or (RefRelation = 'INV_CARD') then            /////////////////tmpFIX
                 begin
                   RealKolvo := RealKolvo + q3.Fields[I].AsInteger;  // каждый раз переобработка с gd_document
                   LogEvent('REPROCESS! LineTable: ' + LineDocTbls.Names[J] + ' FK: ' + FkFieldsListLine.Names[I] + ' --> ' + RefRelation);
@@ -3069,6 +3045,7 @@ var
               end;
             end;
             q3.Close;
+
           end;
           TmpStr := '';
 
@@ -3194,7 +3171,7 @@ var
 
                   q3.SQL.Add('  ' +
                       'SUM( ');
-                   
+
                   if RefRelation = 'GD_DOCUMENT' then
                   begin
                     q3.SQL.Add(' IIF( g_his_has(1, rln.'+ CrossLineTbls.Values[FkFieldsList3[N]] + ') = 1 ');
@@ -3333,24 +3310,15 @@ var
     finally
       LineDocTbls.Free;
       CrossLineTbls.Free;
-      ReProcLineTbls.Free;
       LineSetTbls.Free;
       SelfFkFieldsListLine.Free;
       SelfFkFieldsList2.Free;
-      ExcFKTbls.Free;
       FkFieldsList.Free;
       FkFieldsList2.Free;
       FkFieldsList3.Free;
       FkFieldsListLine.Free;
-      CascadeProcTbls.Free;
       ProcTblsNamesList.Free;
       TblsNamesList.Free;
-      AllProcessedTblsNames.Free;
-      LineTblsList.Free;
-      AllProc.Free;
-      LinePosList.Free;
-      ReProc.Free;
-      ReProcAll.Free;
       TmpList.Free;
       q.Free;
       q2.Free;
@@ -3515,12 +3483,11 @@ begin
     q.Close;
 
     q.SQL.Text :=
-      'SELECT g_his_include(1, :SaldoDocKey) FROM rdb$database ';
+      'SELECT SUM(g_his_include(1, :SaldoDocKey)) FROM rdb$database ';
     q.ParamByName('SaldoDocKey').AsInteger := FInvSaldoDoc;
     if not FDoStopProcessing then
       ExecSqlLogEvent(q, 'CalculateInvSaldo');
     q.Close;
-
 
     LogEvent('DELETE FROM INV_MOVEMENT...');
 
@@ -3997,7 +3964,7 @@ begin
       ExecSqlLogEvent(q, 'MergeCards');
     q.Close;
 
-    q.SQL.Text :=                                                               // карточки учавствующие в движении вне периода не объединяем
+    q.SQL.Text :=                                                               // карточки участвующие в движении вне периода не объединяем
       'SELECT COUNT(g_his_include(0, im.cardkey)) ' +      #13#10 +
       '  FROM inv_movement im ' +                          #13#10 +
       ' WHERE im.movementdate >= :DocDate ';
@@ -4373,7 +4340,7 @@ begin
     q2.SQL.Text :=
       'SELECT ' +                                                               #13#10 +
       '  TRIM(c.rdb$constraint_name        ) AS ConstraintName, ' +             #13#10 +
-      '  TRIM(c2.rdb$relation_name         ) AS RefRelationName, ' +           #13#10 +
+      '  TRIM(c2.rdb$relation_name         ) AS RefRelationName, ' +            #13#10 +
       '  TRIM(refc.rdb$update_rule         ) AS UpdateRule, ' +                 #13#10 +
       '  TRIM(refc.rdb$delete_rule         ) AS DeleteRule, ' +                 #13#10 +
       '  TRIM(LIST(iseg.rdb$field_name)    ) AS Fields, ' +                     #13#10 +
@@ -4715,7 +4682,7 @@ begin
     begin
       if AnsiPos('||', FProcessedTbls.Values[FProcessedTbls.Names[I]]) = 0 then
         q.SQL.Text :=
-          'DELETE FROM ' + FProcessedTbls.Names[I]  +                                      #13#10 +
+          'DELETE FROM ' + FProcessedTbls.Names[I]  +                                        #13#10 +
           ' WHERE (g_his_has(1,' + FProcessedTbls.Values[FProcessedTbls.Names[I]] + ')=0 ' + #13#10 +
           '   AND ' + FProcessedTbls.Values[FProcessedTbls.Names[I]] + ' >= 147000000) '
       else begin
