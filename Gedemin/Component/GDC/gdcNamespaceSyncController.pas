@@ -1084,7 +1084,7 @@ var
   SL, SLDone: TStringList;
 begin
   Assert(FDataSet <> nil);
-  Assert(not FDataSet.EOF);
+  Assert(not FDataSet.IsEmpty);
 
   if
     (
