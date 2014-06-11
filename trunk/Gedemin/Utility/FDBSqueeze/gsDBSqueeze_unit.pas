@@ -1937,7 +1937,7 @@ begin
           AvailableAnalyticsList[I]);
       q3.SQL.Add(
         ') ' +                                                  #13#10 +
-        'SELECT ');                                             // CREDIT
+    {    'SELECT ');                                             // CREDIT
       // documentkey = masterkey
       if FAllOurCompaniesSaldo then
       begin                     // documentkey
@@ -1974,23 +1974,6 @@ begin
         //if UpperCase(Trim(AvailableAnalyticsList[I])) <> 'USR$GS_DOCUMENT' then
           q3.SQL.Add(', ' +
             AvailableAnalyticsList[I])
-        {else begin
-          if FOnlyCompanySaldo then
-            q3.SQL.Add( ', ' +
-              IntToStr(OnlyCompanyEntryDoc))
-          else if FAllOurCompaniesSaldo then
-          begin                     // documentkey
-            q3.SQL.Add(', ' +
-              'CASE companykey ');
-            for J := 0 to OurCompany_EntryDocList.Count-1 do
-            begin
-              q3.SQL.Add( ' ' +
-                'WHEN ' + OurCompany_EntryDocList.Names[J] + ' THEN ' + OurCompany_EntryDocList.Values[OurCompany_EntryDocList.Names[J]]);
-            end;
-            q3.SQL.Add(' ' +
-              'END ');
-          end;
-        end;  }
       end;
 
       q3.SQL.Add(' ' +
@@ -2016,9 +1999,23 @@ begin
         '   OR (SUM(debiteq)   - SUM(crediteq))   < CAST(0.0000 AS DECIMAL(15,4)) ' +  #13#10 +
 
         'UNION ALL ' +                                          #13#10 +  
-
+      }
         'SELECT ');                                            // DEBIT
       // documentkey = masterkey
+
+      if FAllOurCompaniesSaldo then
+      begin                     // documentkey
+        TmpStr := ' ' +
+          'CASE companykey ';
+        for I := 0 to OurCompany_EntryDocList.Count-1 do
+        begin
+          TmpStr :=  TmpStr + ' ' +
+            'WHEN ' + OurCompany_EntryDocList.Names[I] + ' THEN ' + OurCompany_EntryDocList.Values[OurCompany_EntryDocList.Names[I]];
+        end;
+        TmpStr :=  TmpStr + ' ' +
+          'END ';
+      end;
+      TmpStr :=  TmpStr + ',' + TmpStr + ',';// + masterdocumentkey
 
       q3.SQL.Add(' ' +
         TmpStr +                                                  #13#10 +
@@ -2033,9 +2030,9 @@ begin
           '  CAST(0.0000 AS DECIMAL(15,4)), ' +                   #13#10 +
           '  CAST(0.0000 AS DECIMAL(15,4)), ' +                   #13#10 +
           '  CAST(0.0000 AS DECIMAL(15,4)), ' +                   #13#10 +
-          '  ABS(SUM(debitncu)  - SUM(creditncu)), ' +            #13#10 +
-          '  ABS(SUM(debitcurr) - SUM(creditcurr)), ' +           #13#10 +
-          '  ABS(SUM(debiteq)   - SUM(crediteq)) ');
+          '  SUM(debitncu)  - SUM(creditncu), ' +            #13#10 +
+          '  SUM(debitcurr) - SUM(creditcurr), ' +           #13#10 +
+          '  SUM(debiteq)   - SUM(crediteq) ');
       for I := 0 to AvailableAnalyticsList.Count - 1 do                         ///
       begin
         //if UpperCase(Trim(AvailableAnalyticsList[I])) <> 'USR$GS_DOCUMENT' then
@@ -2075,11 +2072,11 @@ begin
       for I := 0 to AvailableAnalyticsList.Count - 1 do
         q3.SQL.Add(', ' +                                       #13#10 +
           AvailableAnalyticsList[I]);
-      q3.SQL.Add(' ' +
+      {q3.SQL.Add(' ' +
         'HAVING ' +                                                                    #13#10 +
         '  (SUM(debitncu) - SUM(creditncu)) > CAST(0.0000 AS DECIMAL(15,4)) ' +        #13#10 +
         '   OR (SUM(debitcurr) - SUM(creditcurr)) > CAST(0.0000 AS DECIMAL(15,4)) ' +  #13#10 +
-        '   OR (SUM(debiteq)   - SUM(crediteq))   > CAST(0.0000 AS DECIMAL(15,4)) '); 
+        '   OR (SUM(debiteq)   - SUM(crediteq))   > CAST(0.0000 AS DECIMAL(15,4)) ');} 
 
       q3.ParamByName('AccountKey').AsInteger := q2.FieldByName('id').AsInteger;
       q3.ParamByName('EntryDate').AsDateTime := FClosingDate;
