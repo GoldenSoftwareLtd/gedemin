@@ -5,7 +5,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   FileCtrl, ActnList, ComCtrls, Buttons, StdCtrls, Grids, Spin, ExtCtrls,
-  gsDBSqueeze_CardMergeForm_unit, gsDBSqueeze_DocTypesForm_unit, gsDBSqueezeThread_unit, gsDBSqueezeIniOptions_unit,
+  gsDBSqueeze_CardMergeForm_unit, gsDBSqueeze_DocTypesForm_unit, gsDBSqueezeThread_unit, gsDBSqueezeIniOptions_unit, gsDBSqueeze_AboutForm_unit,
   gd_ProgressNotifier_unit, gdMessagedThread, CommCtrl, Db, Menus;
 
 const
@@ -916,12 +916,7 @@ end;
 
 procedure TgsDBSqueeze_MainForm.actAboutExecute(Sender: TObject);
 begin
-  MessageBox(Handle,
-    'Утилита сжатия базы данных платформы Гедымин.'#13#10#13#10 +
-    'Copyright (C) 2014 by Golden Software of Belarus, Ltd.'#13#10 +
-    'All rights reserved.',
-    'О программе',
-    MB_OK or MB_ICONINFORMATION);
+  AboutBox.ShowModal;
 end;
 
 end.

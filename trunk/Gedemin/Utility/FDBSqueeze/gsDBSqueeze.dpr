@@ -10,7 +10,8 @@ uses
   gsDBSqueezeIniOptions_unit in 'gsDBSqueezeIniOptions_unit.pas',
   gdMessagedThread in '..\..\Component\gdMessagedThread.pas',
   gsDBSqueezeThread_unit in 'gsDBSqueezeThread_unit.pas',
-  gsDBSqueeze_unit in 'gsDBSqueeze_unit.pas';
+  gsDBSqueeze_unit in 'gsDBSqueeze_unit.pas',
+  gsDBSqueeze_AboutForm_unit in 'gsDBSqueeze_AboutForm_unit.pas' {AboutBox};
 
 {$R *.RES}
 
@@ -19,5 +20,6 @@ begin
   Application.CreateForm(TgsDBSqueeze_MainForm, gsDBSqueeze_MainForm);
   Application.CreateForm(TgsDBSqueeze_DocTypesForm, gsDBSqueeze_DocTypesForm);
   Application.CreateForm(TgsDBSqueeze_CardMergeForm, gsDBSqueeze_CardMergeForm);
+  Application.CreateForm(TAboutBox, AboutBox);
   Application.Run;
 end.
