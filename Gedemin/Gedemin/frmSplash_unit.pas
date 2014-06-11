@@ -14,6 +14,7 @@ type
     lblPositiveLoading: TLabel;
     imgPositive: TImage;
     lblGedeminLoading: TLabel;
+    imgPositiveCash: TImage;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure TimerTimer(Sender: TObject);
@@ -85,17 +86,27 @@ begin
     end;
   end;}
 
-  if Pos('POSITIVE_', AnsiUpperCase(gd_GlobalParams.UpdateToken)) > 0 then
+  if Pos('POSITIVE_CHECK', AnsiUpperCase(gd_GlobalParams.UpdateToken)) > 0 then
   begin
     imgGedemin.Visible := False;
     lblGedeminLoading.Visible := False;
+    imgPositiveCash.Visible := False;
     imgPositive.Visible := True;
+    lblPositiveLoading.Visible := True;
+  end
+  else if Pos('POSITIVE_CASH', AnsiUpperCase(gd_GlobalParams.UpdateToken)) > 0 then
+  begin
+    imgGedemin.Visible := False;
+    lblGedeminLoading.Visible := False;
+    imgPositive.Visible := False;
+    imgPositiveCash.Visible := True;
     lblPositiveLoading.Visible := True;
   end else
   begin
     imgGedemin.Visible := True;
     lblGedeminLoading.Visible := True;
     imgPositive.Visible := False;
+    imgPositiveCash.Visible := False;
     lblPositiveLoading.Visible := False;
   end;
 

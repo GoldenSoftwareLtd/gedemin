@@ -143,3 +143,8 @@ Type: filesandordirs; Name: "{app}\udf"
 Type: filesandordirs; Name: "{app}\Intl"
 Type: filesandordirs; Name: "{app}\Help"
 Type: dirifempty; Name: "{app}\Database"
+
+#ifdef Cash
+  Type: files; Name: "{app}\trpos.log"
+  Type: files; Name: "{app}\trhems.log"
+#endif
