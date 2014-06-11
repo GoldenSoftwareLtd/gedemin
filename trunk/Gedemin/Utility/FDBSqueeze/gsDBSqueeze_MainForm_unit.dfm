@@ -1,9 +1,10 @@
 object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
-  Left = 981
-  Top = 444
+  Left = 598
+  Top = 251
   Width = 940
   Height = 576
   BorderIcons = [biSystemMenu, biMinimize]
+  Caption = 'Утилита сжатия базы данных'
   Color = clBtnFace
   Font.Charset = RUSSIAN_CHARSET
   Font.Color = clWindowText
@@ -28,8 +29,8 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
   object pnl1: TPanel
     Left = 0
     Top = 0
-    Width = 932
-    Height = 525
+    Width = 924
+    Height = 518
     Align = alClient
     BevelOuter = bvNone
     BorderWidth = 4
@@ -67,8 +68,8 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
     object pgcMain: TPageControl
       Left = 4
       Top = 4
-      Width = 924
-      Height = 493
+      Width = 916
+      Height = 486
       ActivePage = tsSettings
       Align = alClient
       MultiLine = True
@@ -81,14 +82,14 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         object lbl1: TLabel
           Left = 15
           Top = 4
-          Width = 68
+          Width = 69
           Height = 13
           Caption = 'База данных:'
         end
         object Label2: TLabel
           Left = 95
           Top = 24
-          Width = 233
+          Width = 236
           Height = 13
           Caption = '[сервер[/порт]:]путь_к_файлу_базы_данных '
           Font.Charset = RUSSIAN_CHARSET
@@ -122,7 +123,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         object lbl4: TLabel
           Left = 602
           Top = 4
-          Width = 87
+          Width = 88
           Height = 13
           Caption = 'Размер буффера:'
         end
@@ -190,111 +191,6 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           TabOrder = 7
           TabStop = False
         end
-        object GroupBox1: TGroupBox
-          Left = 1
-          Top = 101
-          Width = 481
-          Height = 348
-          Caption = '  Параметры  '
-          TabOrder = 8
-          object lbl5: TLabel
-            Left = 13
-            Top = 22
-            Width = 250
-            Height = 13
-            Caption = 'Удалить записи из gd_document с датой раньше:'
-          end
-          object dtpClosingDate: TDateTimePicker
-            Left = 268
-            Top = 18
-            Width = 86
-            Height = 21
-            Hint = 'рассчитать сальдо и удалить документы'
-            CalAlignment = dtaLeft
-            Date = 41380.5593590046
-            Time = 41380.5593590046
-            Color = clWhite
-            DateFormat = dfShort
-            DateMode = dmComboBox
-            Kind = dtkDate
-            ParseInput = False
-            TabOrder = 0
-            TabStop = False
-          end
-          object chkCalculateSaldo: TCheckBox
-            Left = 13
-            Top = 46
-            Width = 334
-            Height = 17
-            TabStop = False
-            Caption = 'Рассчитать и сохранить бухгалтерское и складское сальдо'
-            Checked = True
-            State = cbChecked
-            TabOrder = 1
-            OnClick = actDefocusExecute
-          end
-          object btnSelectDocTypes: TButton
-            Left = 12
-            Top = 73
-            Width = 173
-            Height = 21
-            Action = actSelectDocTypes
-            TabOrder = 2
-            TabStop = False
-          end
-          object mIgnoreDocTypes: TMemo
-            Left = 12
-            Top = 99
-            Width = 453
-            Height = 195
-            TabStop = False
-            Color = clWhite
-            ReadOnly = True
-            ScrollBars = ssVertical
-            TabOrder = 3
-          end
-          object rbExcluding: TRadioButton
-            Left = 11
-            Top = 317
-            Width = 262
-            Height = 15
-            Caption = 'Обрабатывать все, кроме выбранных типов'
-            TabOrder = 5
-            OnClick = actDefocusExecute
-          end
-          object rbIncluding: TRadioButton
-            Left = 11
-            Top = 301
-            Width = 249
-            Height = 14
-            Caption = 'Обрабатывать только выбранные типы'
-            Checked = True
-            TabOrder = 4
-            TabStop = True
-            OnClick = actDefocusExecute
-          end
-        end
-        object grpOptions: TGroupBox
-          Left = 491
-          Top = 101
-          Width = 410
-          Height = 348
-          Caption = '  Опции  '
-          TabOrder = 9
-          object chkGetStatiscits: TCheckBox
-            Left = 13
-            Top = 22
-            Width = 309
-            Height = 17
-            Hint = 'статистика ДО обработки и ПОСЛЕ'
-            TabStop = False
-            Caption = 'Получить статистику до и после завершения процесса'
-            Checked = True
-            State = cbChecked
-            TabOrder = 0
-            OnClick = actDefocusExecute
-          end
-        end
         object seBuffer: TSpinEdit
           Left = 698
           Top = 1
@@ -305,21 +201,146 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           TabOrder = 2
           Value = 0
         end
+        object Panel2: TPanel
+          Left = 0
+          Top = 97
+          Width = 900
+          Height = 353
+          Align = alBottom
+          BevelOuter = bvNone
+          TabOrder = 8
+          object GroupBox1: TGroupBox
+            Left = 0
+            Top = 0
+            Width = 481
+            Height = 353
+            Align = alLeft
+            Caption = '  Параметры  '
+            TabOrder = 0
+            object lbl5: TLabel
+              Left = 13
+              Top = 22
+              Width = 250
+              Height = 13
+              Caption = 'Удалить записи из gd_document с датой раньше:'
+            end
+            object dtpClosingDate: TDateTimePicker
+              Left = 268
+              Top = 18
+              Width = 86
+              Height = 21
+              Hint = 'рассчитать сальдо и удалить документы'
+              CalAlignment = dtaLeft
+              Date = 41380.5593590046
+              Time = 41380.5593590046
+              Color = clWhite
+              DateFormat = dfShort
+              DateMode = dmComboBox
+              Kind = dtkDate
+              ParseInput = False
+              TabOrder = 0
+              TabStop = False
+            end
+            object chkCalculateSaldo: TCheckBox
+              Left = 13
+              Top = 46
+              Width = 334
+              Height = 17
+              TabStop = False
+              Caption = 'Рассчитать и сохранить бухгалтерское и складское сальдо'
+              Checked = True
+              State = cbChecked
+              TabOrder = 1
+              OnClick = actDefocusExecute
+            end
+            object btnSelectDocTypes: TButton
+              Left = 12
+              Top = 70
+              Width = 173
+              Height = 21
+              Action = actSelectDocTypes
+              TabOrder = 2
+              TabStop = False
+            end
+            object mIgnoreDocTypes: TMemo
+              Left = 12
+              Top = 95
+              Width = 453
+              Height = 215
+              TabStop = False
+              Color = clWhite
+              ReadOnly = True
+              ScrollBars = ssVertical
+              TabOrder = 3
+            end
+            object rbExcluding: TRadioButton
+              Left = 11
+              Top = 331
+              Width = 262
+              Height = 15
+              Caption = 'Обрабатывать все, кроме выбранных типов'
+              TabOrder = 5
+              OnClick = actDefocusExecute
+            end
+            object rbIncluding: TRadioButton
+              Left = 11
+              Top = 315
+              Width = 249
+              Height = 14
+              Caption = 'Обрабатывать только выбранные типы'
+              Checked = True
+              TabOrder = 4
+              TabStop = True
+              OnClick = actDefocusExecute
+            end
+          end
+          object grpOptions: TGroupBox
+            Left = 487
+            Top = 0
+            Width = 413
+            Height = 353
+            Align = alClient
+            Caption = '  Опции  '
+            TabOrder = 1
+            object chkGetStatiscits: TCheckBox
+              Left = 13
+              Top = 22
+              Width = 309
+              Height = 17
+              Hint = 'статистика ДО обработки и ПОСЛЕ'
+              TabStop = False
+              Caption = 'Получить статистику до и после завершения процесса'
+              Checked = True
+              State = cbChecked
+              TabOrder = 0
+              OnClick = actDefocusExecute
+            end
+          end
+          object Panel3: TPanel
+            Left = 481
+            Top = 0
+            Width = 6
+            Height = 353
+            Align = alLeft
+            BevelOuter = bvNone
+            TabOrder = 2
+          end
+        end
       end
       object tsLogs: TTabSheet
         Caption = 'Журнал'
         ImageIndex = 2
         object pnlLogButton: TPanel
           Left = 0
-          Top = 438
-          Width = 916
+          Top = 431
+          Width = 908
           Height = 27
           Align = alBottom
           BevelOuter = bvNone
           TabOrder = 1
           object btnClearGeneralLog: TButton
             Tag = 1
-            Left = 804
+            Left = 796
             Top = 4
             Width = 109
             Height = 21
@@ -332,8 +353,8 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         object pnlLogs: TPanel
           Left = 0
           Top = 0
-          Width = 916
-          Height = 438
+          Width = 908
+          Height = 431
           Align = alClient
           BevelOuter = bvNone
           TabOrder = 0
@@ -341,14 +362,14 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             Left = 450
             Top = 0
             Width = 3
-            Height = 438
+            Height = 431
             Cursor = crHSplit
           end
           object mLog: TMemo
             Left = 0
             Top = 0
             Width = 450
-            Height = 438
+            Height = 431
             Align = alLeft
             Font.Charset = RUSSIAN_CHARSET
             Font.Color = clWindowText
@@ -362,8 +383,8 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           object mSqlLog: TMemo
             Left = 453
             Top = 0
-            Width = 463
-            Height = 438
+            Width = 455
+            Height = 431
             Align = alClient
             Font.Charset = RUSSIAN_CHARSET
             Font.Color = clWindowText
@@ -381,8 +402,8 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         Caption = 'Статистика'
         ImageIndex = 3
         object shp3: TShape
-          Left = 89
-          Top = 37
+          Left = 5
+          Top = 8
           Width = 306
           Height = 28
           Pen.Color = 671448
@@ -391,17 +412,17 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           Pen.Width = 3
         end
         object shp4: TShape
-          Left = 488
-          Top = 63
+          Left = 322
+          Top = 34
           Width = 227
-          Height = 266
+          Height = 320
           Brush.Style = bsClear
           Pen.Color = clBtnShadow
           Pen.Width = 3
         end
         object shp2: TShape
-          Left = 487
-          Top = 37
+          Left = 321
+          Top = 8
           Width = 229
           Height = 27
           Pen.Color = 671448
@@ -410,17 +431,17 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           Pen.Width = 3
         end
         object shp6: TShape
-          Left = 90
-          Top = 63
+          Left = 6
+          Top = 34
           Width = 304
-          Height = 350
+          Height = 320
           Brush.Style = bsClear
           Pen.Color = clBtnShadow
           Pen.Width = 3
         end
         object txt2: TStaticText
-          Left = 90
-          Top = 36
+          Left = 6
+          Top = 7
           Width = 302
           Height = 25
           Alignment = taCenter
@@ -437,10 +458,10 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           TabOrder = 0
         end
         object pnl2: TPanel
-          Left = 488
-          Top = 63
+          Left = 322
+          Top = 34
           Width = 226
-          Height = 265
+          Height = 319
           Alignment = taLeftJustify
           BevelOuter = bvSpace
           TabOrder = 3
@@ -756,8 +777,8 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           end
         end
         object sttxt30: TStaticText
-          Left = 488
-          Top = 36
+          Left = 322
+          Top = 7
           Width = 225
           Height = 25
           Alignment = taCenter
@@ -774,27 +795,11 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           TabOrder = 1
         end
         object pnl4: TPanel
-          Left = 90
-          Top = 63
+          Left = 6
+          Top = 34
           Width = 303
-          Height = 349
+          Height = 319
           TabOrder = 2
-          object shp7: TShape
-            Left = 124
-            Top = 329
-            Width = 79
-            Height = 2
-            Brush.Color = clBtnShadow
-            Pen.Color = clGrayText
-          end
-          object shp8: TShape
-            Left = 213
-            Top = 329
-            Width = 79
-            Height = 2
-            Brush.Color = clBtnShadow
-            Pen.Color = clGrayText
-          end
           object txt10: TStaticText
             Left = 123
             Top = 14
@@ -1197,9 +1202,9 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           end
           object btnGetStatistics: TButton
             Left = 124
-            Top = 305
+            Top = 290
             Width = 79
-            Height = 25
+            Height = 21
             Action = actGet
             Caption = 'Получить'
             Font.Charset = RUSSIAN_CHARSET
@@ -1214,9 +1219,9 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           end
           object btnUpdateStatistics: TBitBtn
             Left = 213
-            Top = 305
+            Top = 290
             Width = 79
-            Height = 25
+            Height = 21
             Action = actGet
             Caption = 'Обновить'
             TabOrder = 28
@@ -1228,8 +1233,8 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
     end
     object Panel1: TPanel
       Left = 4
-      Top = 497
-      Width = 924
+      Top = 490
+      Width = 916
       Height = 24
       Align = alBottom
       BevelOuter = bvNone
@@ -1335,6 +1340,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
     end
     object actAbout: TAction
       Caption = 'О программе...'
+      OnExecute = actAboutExecute
     end
     object actSelectDocTypes: TAction
       Caption = 'Выбрать типы документов...'

@@ -46,28 +46,20 @@ type
     btnConnect: TButton;
     btnDatabaseBrowse: TButton;
     btnGetStatistics: TButton;
-    btnSelectDocTypes: TButton;
     btntTestConnection: TButton;
     btnUpdateStatistics: TBitBtn;
     cbbCharset: TComboBox;
-    chkCalculateSaldo: TCheckBox;
-    chkGetStatiscits: TCheckBox;
-    dtpClosingDate: TDateTimePicker;
     edDatabaseName: TEdit;
     edPassword: TEdit;
     edUserName: TEdit;
-    GroupBox1: TGroupBox;
-    grpOptions: TGroupBox;
     Label1: TLabel;
     Label2: TLabel;
     Label3: TLabel;
     lbl1: TLabel;
     lbl2: TLabel;
     lbl3: TLabel;
-    lbl5: TLabel;
     lblProgress: TLabel;
     MainMenu: TMainMenu;
-    mIgnoreDocTypes: TMemo;
     mLog: TMemo;
     mSqlLog: TMemo;
     N10: TMenuItem;
@@ -91,15 +83,11 @@ type
     pnl4: TPanel;
     pnlLogButton: TPanel;
     pnlLogs: TPanel;
-    rbExcluding: TRadioButton;
-    rbIncluding: TRadioButton;
     shp10: TShape;
     shp2: TShape;
     shp3: TShape;
     shp4: TShape;
     shp6: TShape;
-    shp7: TShape;
-    shp8: TShape;
     Splitter1: TSplitter;
     StaticText10: TStaticText;
     StaticText11: TStaticText;
@@ -160,6 +148,18 @@ type
     N12: TMenuItem;
     N15: TMenuItem;
     Action1: TAction;
+    Panel2: TPanel;
+    GroupBox1: TGroupBox;
+    lbl5: TLabel;
+    dtpClosingDate: TDateTimePicker;
+    chkCalculateSaldo: TCheckBox;
+    btnSelectDocTypes: TButton;
+    mIgnoreDocTypes: TMemo;
+    rbExcluding: TRadioButton;
+    rbIncluding: TRadioButton;
+    grpOptions: TGroupBox;
+    chkGetStatiscits: TCheckBox;
+    Panel3: TPanel;
     procedure actClearLogExecute(Sender: TObject);
     procedure actDatabaseBrowseExecute(Sender: TObject);
     procedure actDisconnectExecute(Sender: TObject);
@@ -188,6 +188,7 @@ type
     procedure actSaveLogUpdate(Sender: TObject);
     procedure actDatabaseBrowseUpdate(Sender: TObject);
     procedure actDefocusExecute(Sender: TObject);
+    procedure actAboutExecute(Sender: TObject);
 
   private
     FLogFileStream: TFileStream;
@@ -911,6 +912,16 @@ begin
     psError:
       ErrorEvent(AProgressInfo.Message);
   end;
+end;
+
+procedure TgsDBSqueeze_MainForm.actAboutExecute(Sender: TObject);
+begin
+  MessageBox(Handle,
+    'Утилита сжатия базы данных платформы Гедымин.'#13#10#13#10 +
+    'Copyright (C) 2014 by Golden Software of Belarus, Ltd.'#13#10 +
+    'All rights reserved.',
+    'О программе',
+    MB_OK or MB_ICONINFORMATION);
 end;
 
 end.
