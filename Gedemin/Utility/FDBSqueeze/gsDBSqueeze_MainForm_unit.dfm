@@ -1,6 +1,6 @@
 object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
-  Left = 598
-  Top = 251
+  Left = 308
+  Top = 313
   Width = 940
   Height = 576
   BorderIcons = [biSystemMenu, biMinimize]
@@ -29,8 +29,8 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
   object pnl1: TPanel
     Left = 0
     Top = 0
-    Width = 924
-    Height = 518
+    Width = 932
+    Height = 525
     Align = alClient
     BevelOuter = bvNone
     BorderWidth = 4
@@ -68,9 +68,9 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
     object pgcMain: TPageControl
       Left = 4
       Top = 4
-      Width = 916
-      Height = 486
-      ActivePage = tsSettings
+      Width = 924
+      Height = 493
+      ActivePage = tsStatistics
       Align = alClient
       MultiLine = True
       TabOrder = 0
@@ -82,14 +82,14 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         object lbl1: TLabel
           Left = 15
           Top = 4
-          Width = 69
+          Width = 68
           Height = 13
           Caption = 'База данных:'
         end
         object Label2: TLabel
           Left = 95
           Top = 24
-          Width = 236
+          Width = 233
           Height = 13
           Caption = '[сервер[/порт]:]путь_к_файлу_базы_данных '
           Font.Charset = RUSSIAN_CHARSET
@@ -123,7 +123,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         object lbl4: TLabel
           Left = 602
           Top = 4
-          Width = 88
+          Width = 87
           Height = 13
           Caption = 'Размер буффера:'
         end
@@ -203,8 +203,8 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         end
         object Panel2: TPanel
           Left = 0
-          Top = 97
-          Width = 900
+          Top = 104
+          Width = 908
           Height = 353
           Align = alBottom
           BevelOuter = bvNone
@@ -297,11 +297,11 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           object grpOptions: TGroupBox
             Left = 487
             Top = 0
-            Width = 413
+            Width = 421
             Height = 353
             Align = alClient
             Caption = '  Опции  '
-            TabOrder = 1
+            TabOrder = 2
             object chkGetStatiscits: TCheckBox
               Left = 13
               Top = 22
@@ -323,7 +323,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             Height = 353
             Align = alLeft
             BevelOuter = bvNone
-            TabOrder = 2
+            TabOrder = 1
           end
         end
       end
@@ -332,15 +332,15 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         ImageIndex = 2
         object pnlLogButton: TPanel
           Left = 0
-          Top = 431
-          Width = 908
+          Top = 438
+          Width = 916
           Height = 27
           Align = alBottom
           BevelOuter = bvNone
           TabOrder = 1
           object btnClearGeneralLog: TButton
             Tag = 1
-            Left = 796
+            Left = 804
             Top = 4
             Width = 109
             Height = 21
@@ -353,8 +353,8 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         object pnlLogs: TPanel
           Left = 0
           Top = 0
-          Width = 908
-          Height = 431
+          Width = 916
+          Height = 438
           Align = alClient
           BevelOuter = bvNone
           TabOrder = 0
@@ -362,14 +362,14 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             Left = 450
             Top = 0
             Width = 3
-            Height = 431
+            Height = 438
             Cursor = crHSplit
           end
           object mLog: TMemo
             Left = 0
             Top = 0
             Width = 450
-            Height = 431
+            Height = 438
             Align = alLeft
             Font.Charset = RUSSIAN_CHARSET
             Font.Color = clWindowText
@@ -383,8 +383,8 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           object mSqlLog: TMemo
             Left = 453
             Top = 0
-            Width = 455
-            Height = 431
+            Width = 463
+            Height = 438
             Align = alClient
             Font.Charset = RUSSIAN_CHARSET
             Font.Color = clWindowText
@@ -402,8 +402,8 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         Caption = 'Статистика'
         ImageIndex = 3
         object shp3: TShape
-          Left = 5
-          Top = 8
+          Left = 10
+          Top = 12
           Width = 306
           Height = 28
           Pen.Color = 671448
@@ -412,18 +412,18 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           Pen.Width = 3
         end
         object shp4: TShape
-          Left = 322
-          Top = 34
-          Width = 227
-          Height = 320
+          Left = 327
+          Top = 38
+          Width = 234
+          Height = 331
           Brush.Style = bsClear
           Pen.Color = clBtnShadow
           Pen.Width = 3
         end
         object shp2: TShape
-          Left = 321
-          Top = 8
-          Width = 229
+          Left = 326
+          Top = 12
+          Width = 236
           Height = 27
           Pen.Color = 671448
           Pen.Mode = pmMask
@@ -431,17 +431,17 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           Pen.Width = 3
         end
         object shp6: TShape
-          Left = 6
-          Top = 34
+          Left = 11
+          Top = 38
           Width = 304
-          Height = 320
+          Height = 331
           Brush.Style = bsClear
           Pen.Color = clBtnShadow
           Pen.Width = 3
         end
         object txt2: TStaticText
-          Left = 6
-          Top = 7
+          Left = 11
+          Top = 11
           Width = 302
           Height = 25
           Alignment = taCenter
@@ -458,16 +458,16 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           TabOrder = 0
         end
         object pnl2: TPanel
-          Left = 322
-          Top = 34
-          Width = 226
-          Height = 319
+          Left = 327
+          Top = 38
+          Width = 233
+          Height = 330
           Alignment = taLeftJustify
           BevelOuter = bvSpace
           TabOrder = 3
           object StaticText6: TStaticText
-            Left = 10
-            Top = 15
+            Left = 13
+            Top = 14
             Width = 100
             Height = 18
             Alignment = taCenter
@@ -485,8 +485,8 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             TabOrder = 0
           end
           object sttxtUser: TStaticText
-            Left = 120
-            Top = 16
+            Left = 123
+            Top = 15
             Width = 97
             Height = 17
             Alignment = taCenter
@@ -497,8 +497,8 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             TabOrder = 1
           end
           object sttxtDialect: TStaticText
-            Left = 120
-            Top = 40
+            Left = 123
+            Top = 39
             Width = 97
             Height = 17
             Alignment = taCenter
@@ -509,8 +509,8 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             TabOrder = 3
           end
           object StaticText5: TStaticText
-            Left = 10
-            Top = 39
+            Left = 13
+            Top = 38
             Width = 100
             Height = 18
             Alignment = taCenter
@@ -528,8 +528,8 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             TabOrder = 2
           end
           object sttxt32: TStaticText
-            Left = 10
-            Top = 63
+            Left = 13
+            Top = 62
             Width = 100
             Height = 18
             Alignment = taCenter
@@ -547,8 +547,8 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             TabOrder = 4
           end
           object sttxtServerVer: TStaticText
-            Left = 120
-            Top = 64
+            Left = 123
+            Top = 63
             Width = 97
             Height = 17
             Alignment = taCenter
@@ -559,8 +559,8 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             TabOrder = 5
           end
           object sttxt34: TStaticText
-            Left = 10
-            Top = 87
+            Left = 13
+            Top = 86
             Width = 100
             Height = 18
             Alignment = taCenter
@@ -578,8 +578,8 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             TabOrder = 6
           end
           object sttxtODSVer: TStaticText
-            Left = 120
-            Top = 88
+            Left = 123
+            Top = 87
             Width = 97
             Height = 17
             Alignment = taCenter
@@ -590,8 +590,8 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             TabOrder = 7
           end
           object sttxtRemoteProtocol: TStaticText
-            Left = 120
-            Top = 112
+            Left = 123
+            Top = 111
             Width = 97
             Height = 17
             Alignment = taCenter
@@ -602,8 +602,8 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             TabOrder = 9
           end
           object StaticText7: TStaticText
-            Left = 10
-            Top = 111
+            Left = 13
+            Top = 110
             Width = 100
             Height = 18
             Alignment = taCenter
@@ -621,8 +621,8 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             TabOrder = 8
           end
           object StaticText8: TStaticText
-            Left = 10
-            Top = 135
+            Left = 13
+            Top = 134
             Width = 100
             Height = 18
             Alignment = taCenter
@@ -640,8 +640,8 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             TabOrder = 10
           end
           object sttxtRemoteAddr: TStaticText
-            Left = 120
-            Top = 136
+            Left = 123
+            Top = 135
             Width = 97
             Height = 17
             Alignment = taCenter
@@ -652,8 +652,8 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             TabOrder = 11
           end
           object sttxtPageSize: TStaticText
-            Left = 120
-            Top = 160
+            Left = 123
+            Top = 159
             Width = 97
             Height = 17
             Alignment = taCenter
@@ -664,8 +664,8 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             TabOrder = 13
           end
           object StaticText9: TStaticText
-            Left = 10
-            Top = 159
+            Left = 13
+            Top = 158
             Width = 100
             Height = 18
             Alignment = taCenter
@@ -683,8 +683,8 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             TabOrder = 12
           end
           object StaticText10: TStaticText
-            Left = 10
-            Top = 183
+            Left = 13
+            Top = 182
             Width = 100
             Height = 18
             Alignment = taCenter
@@ -702,8 +702,8 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             TabOrder = 14
           end
           object sttxtPageBuffers: TStaticText
-            Left = 120
-            Top = 184
+            Left = 123
+            Top = 183
             Width = 97
             Height = 17
             Alignment = taCenter
@@ -714,8 +714,8 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             TabOrder = 15
           end
           object sttxtForcedWrites: TStaticText
-            Left = 120
-            Top = 208
+            Left = 123
+            Top = 207
             Width = 97
             Height = 17
             Alignment = taCenter
@@ -726,8 +726,8 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             TabOrder = 17
           end
           object StaticText11: TStaticText
-            Left = 10
-            Top = 207
+            Left = 13
+            Top = 206
             Width = 100
             Height = 18
             Alignment = taCenter
@@ -745,8 +745,8 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             TabOrder = 16
           end
           object StaticText12: TStaticText
-            Left = 10
-            Top = 230
+            Left = 13
+            Top = 229
             Width = 100
             Height = 18
             Alignment = taCenter
@@ -764,8 +764,8 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             TabOrder = 18
           end
           object sttxtGarbageCollection: TStaticText
-            Left = 120
-            Top = 231
+            Left = 123
+            Top = 230
             Width = 97
             Height = 17
             Alignment = taCenter
@@ -777,9 +777,9 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           end
         end
         object sttxt30: TStaticText
-          Left = 322
-          Top = 7
-          Width = 225
+          Left = 327
+          Top = 11
+          Width = 232
           Height = 25
           Alignment = taCenter
           AutoSize = False
@@ -795,10 +795,10 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           TabOrder = 1
         end
         object pnl4: TPanel
-          Left = 6
-          Top = 34
+          Left = 11
+          Top = 38
           Width = 303
-          Height = 319
+          Height = 330
           TabOrder = 2
           object txt10: TStaticText
             Left = 123
@@ -1201,8 +1201,8 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             TabOrder = 26
           end
           object btnGetStatistics: TButton
-            Left = 124
-            Top = 290
+            Left = 122
+            Top = 296
             Width = 79
             Height = 21
             Action = actGet
@@ -1218,8 +1218,8 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             OnMouseDown = btnGetStatisticsMouseDown
           end
           object btnUpdateStatistics: TBitBtn
-            Left = 213
-            Top = 290
+            Left = 212
+            Top = 296
             Width = 79
             Height = 21
             Action = actGet
@@ -1233,8 +1233,8 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
     end
     object Panel1: TPanel
       Left = 4
-      Top = 490
-      Width = 916
+      Top = 497
+      Width = 924
       Height = 24
       Align = alBottom
       BevelOuter = bvNone
