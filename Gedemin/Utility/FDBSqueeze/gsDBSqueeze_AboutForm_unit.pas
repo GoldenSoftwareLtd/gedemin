@@ -10,12 +10,7 @@ type
     OKButton: TButton;
     Panel1: TPanel;
     ProductName: TLabel;
-    Version: TLabel;
-    lblCopyrightSymbol: TLabel;
-    Comments: TLabel;
-    lbl1: TLabel;
-    lbl2: TLabel;
-    procedure FormCreate(Sender: TObject);
+    Memo1: TMemo;
   private
     { Private declarations }
   public
@@ -28,11 +23,6 @@ var
 implementation
 
 {$R *.DFM}
-
-procedure TAboutBox.FormCreate(Sender: TObject);
-begin
-   lblCopyrightSymbol.Caption := #169;
-end;
 
 end.
  

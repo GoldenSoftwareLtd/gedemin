@@ -5,8 +5,9 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   FileCtrl, ActnList, ComCtrls, Buttons, StdCtrls, Grids, Spin, ExtCtrls,
-  gsDBSqueeze_CardMergeForm_unit, gsDBSqueeze_DocTypesForm_unit, gsDBSqueezeThread_unit, gsDBSqueezeIniOptions_unit, gsDBSqueeze_AboutForm_unit,
-  gd_ProgressNotifier_unit, gdMessagedThread, CommCtrl, Db, Menus;
+  gsDBSqueeze_CardMergeForm_unit, gsDBSqueeze_DocTypesForm_unit,
+  gsDBSqueezeThread_unit, gsDBSqueezeIniOptions_unit, gd_ProgressNotifier_unit,
+  gdMessagedThread, CommCtrl, Db, Menus;
 
 const
   DEFAULT_USER_NAME = 'SYSDBA';
@@ -234,7 +235,7 @@ implementation
 {$R *.DFM}
 
 uses
-  gd_common_functions;
+  gd_common_functions, gsDBSqueeze_AboutForm_unit;
 
 constructor TgsDBSqueeze_MainForm.Create(AnOwner: TComponent);
 begin
@@ -916,7 +917,12 @@ end;
 
 procedure TgsDBSqueeze_MainForm.actAboutExecute(Sender: TObject);
 begin
-  AboutBox.ShowModal;
+  with TAboutBox.Create(nil) do
+  try
+    ShowModal;
+  finally
+    Free;
+  end;
 end;
 
 end.
