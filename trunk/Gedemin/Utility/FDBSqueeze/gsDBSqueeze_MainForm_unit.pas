@@ -912,6 +912,9 @@ begin
       SetProgress(AProgressInfo.CurrentStepName, AProgressInfo.CurrentStep);
     psError:
       ErrorEvent(AProgressInfo.Message);
+    psInit:
+      Application.MessageBox(PChar(AProgressInfo.Message), PChar('Предупреждение'),
+        MB_OK + MB_ICONWARNING + MB_TOPMOST);
   end;
 end;
 

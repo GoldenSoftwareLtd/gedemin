@@ -29,8 +29,8 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
   object pnl1: TPanel
     Left = 0
     Top = 0
-    Width = 924
-    Height = 518
+    Width = 932
+    Height = 525
     Align = alClient
     BevelOuter = bvNone
     BorderWidth = 4
@@ -68,8 +68,8 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
     object pgcMain: TPageControl
       Left = 4
       Top = 4
-      Width = 916
-      Height = 486
+      Width = 924
+      Height = 493
       ActivePage = tsSettings
       Align = alClient
       MultiLine = True
@@ -82,14 +82,14 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         object lbl1: TLabel
           Left = 15
           Top = 4
-          Width = 69
+          Width = 68
           Height = 13
           Caption = 'База данных:'
         end
         object Label2: TLabel
           Left = 95
           Top = 24
-          Width = 236
+          Width = 233
           Height = 13
           Caption = '[сервер[/порт]:]путь_к_файлу_базы_данных '
           Font.Charset = RUSSIAN_CHARSET
@@ -123,7 +123,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         object lbl4: TLabel
           Left = 602
           Top = 4
-          Width = 88
+          Width = 87
           Height = 13
           Caption = 'Размер буффера:'
         end
@@ -203,8 +203,8 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         end
         object Panel2: TPanel
           Left = 0
-          Top = 97
-          Width = 900
+          Top = 104
+          Width = 908
           Height = 353
           Align = alBottom
           BevelOuter = bvNone
@@ -297,7 +297,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           object grpOptions: TGroupBox
             Left = 487
             Top = 0
-            Width = 413
+            Width = 421
             Height = 353
             Align = alClient
             Caption = '  Опции  '
@@ -1233,8 +1233,8 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
     end
     object Panel1: TPanel
       Left = 4
-      Top = 490
-      Width = 916
+      Top = 497
+      Width = 924
       Height = 24
       Align = alBottom
       BevelOuter = bvNone
