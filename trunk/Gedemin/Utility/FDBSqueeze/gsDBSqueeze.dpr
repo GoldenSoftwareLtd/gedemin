@@ -20,6 +20,5 @@ begin
   Application.CreateForm(TgsDBSqueeze_MainForm, gsDBSqueeze_MainForm);
   Application.CreateForm(TgsDBSqueeze_DocTypesForm, gsDBSqueeze_DocTypesForm);
   Application.CreateForm(TgsDBSqueeze_CardMergeForm, gsDBSqueeze_CardMergeForm);
-  Application.CreateForm(TAboutBox, AboutBox);
   Application.Run;
 end.

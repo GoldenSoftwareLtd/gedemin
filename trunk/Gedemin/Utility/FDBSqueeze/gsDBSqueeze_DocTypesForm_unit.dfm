@@ -1,11 +1,11 @@
 object gsDBSqueeze_DocTypesForm: TgsDBSqueeze_DocTypesForm
-  Left = 573
-  Top = 88
+  Left = 545
+  Top = 299
   Action = actSelectAll
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsDialog
   Caption = 'Выбор типов документов'
-  ClientHeight = 608
+  ClientHeight = 599
   ClientWidth = 790
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -98,19 +98,19 @@ object gsDBSqueeze_DocTypesForm: TgsDBSqueeze_DocTypesForm
   end
   object btnOK: TButton
     Left = 673
-    Top = 573
+    Top = 570
     Width = 107
-    Height = 25
+    Height = 21
     Caption = 'Принять'
     TabOrder = 6
     TabStop = False
     OnClick = btnOKClick
   end
   object btnCancel: TButton
-    Left = 565
-    Top = 573
+    Left = 562
+    Top = 570
     Width = 107
-    Height = 25
+    Height = 21
     Caption = 'Отмена'
     TabOrder = 5
     TabStop = False
