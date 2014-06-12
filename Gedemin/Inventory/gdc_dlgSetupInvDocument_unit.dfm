@@ -1,6 +1,6 @@
 inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
-  Left = 512
-  Top = 194
+  Left = 473
+  Top = 186
   Caption = 'Складской документ'
   PixelsPerInch = 96
   TextHeight = 13
@@ -11,15 +11,18 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
       inherited lblDocumentName: TLabel
         Top = 11
       end
+      inherited Label7: TLabel
+        Top = 169
+      end
       inherited Label1: TLabel
-        Top = 192
+        Top = 215
       end
       inherited Label2: TLabel
-        Top = 215
+        Top = 238
       end
       object lblDocument: TLabel [6]
         Left = 8
-        Top = 169
+        Top = 192
         Width = 118
         Height = 13
         Caption = 'Из другого документа:'
@@ -32,10 +35,10 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
         Caption = 'Шаблон документа:'
       end
       inherited lFunction: TLabel
-        Top = 238
+        Top = 261
       end
       inherited Label4: TLabel
-        Top = 261
+        Top = 284
       end
       inherited edDocumentName: TDBEdit
         Color = clWindow
@@ -46,19 +49,21 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
         Enabled = True
       end
       inherited iblcExplorerBranch: TgsIBLookupComboBox
+        Top = 165
         Condition = '(Classname is null) or (ClassName = '#39#39')'
         Color = clWindow
         Enabled = True
+        TabOrder = 15
       end
       inherited iblcHeaderTable: TgsIBLookupComboBox
-        Top = 188
+        Top = 211
         Color = clWindow
         Enabled = True
         TabOrder = 6
         OnChange = iblcHeaderTableChange
       end
       inherited iblcLineTable: TgsIBLookupComboBox
-        Top = 211
+        Top = 234
         Color = clWindow
         Enabled = True
         TabOrder = 7
@@ -69,32 +74,32 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
         Enabled = True
       end
       inherited dbcbIsCommon: TDBCheckBox
-        Top = 283
+        Top = 306
         TabOrder = 14
         Visible = False
       end
       inherited dbeFunctionName: TDBEdit
-        Top = 235
+        Top = 258
         TabOrder = 8
       end
       inherited btnConstr1: TButton
-        Top = 235
+        Top = 258
         TabOrder = 9
       end
       inherited DBEdit1: TDBEdit
-        Top = 259
+        Top = 282
         TabOrder = 11
       end
       inherited btnConstr2: TButton
-        Top = 259
+        Top = 282
         TabOrder = 12
       end
       inherited btnDel1: TButton
-        Top = 235
+        Top = 258
         TabOrder = 10
       end
       inherited btnDel2: TButton
-        Top = 259
+        Top = 282
         TabOrder = 13
       end
       object cbTemplate: TComboBox
@@ -116,7 +121,7 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
       end
       object cbDocument: TComboBox
         Left = 157
-        Top = 165
+        Top = 188
         Width = 352
         Height = 21
         Style = csDropDownList
