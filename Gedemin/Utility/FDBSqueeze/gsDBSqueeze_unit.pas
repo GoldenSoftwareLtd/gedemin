@@ -2076,7 +2076,12 @@ begin
         'HAVING ' +                                                                    #13#10 +
         '  (SUM(debitncu) - SUM(creditncu)) > CAST(0.0000 AS DECIMAL(15,4)) ' +        #13#10 +
         '   OR (SUM(debitcurr) - SUM(creditcurr)) > CAST(0.0000 AS DECIMAL(15,4)) ' +  #13#10 +
-        '   OR (SUM(debiteq)   - SUM(crediteq))   > CAST(0.0000 AS DECIMAL(15,4)) ');} 
+        '   OR (SUM(debiteq)   - SUM(crediteq))   > CAST(0.0000 AS DECIMAL(15,4)) ');}
+      q3.SQL.Add(' ' +
+        'HAVING ' +                                                                     #13#10 +
+        '  (SUM(debitncu) - SUM(creditncu)) <> CAST(0.0000 AS DECIMAL(15,4)) ' +        #13#10 +
+        '   OR (SUM(debitcurr) - SUM(creditcurr)) <> CAST(0.0000 AS DECIMAL(15,4)) ' +  #13#10 +
+        '   OR (SUM(debiteq)   - SUM(crediteq))   <> CAST(0.0000 AS DECIMAL(15,4)) ');
 
       q3.ParamByName('AccountKey').AsInteger := q2.FieldByName('id').AsInteger;
       q3.ParamByName('EntryDate').AsDateTime := FClosingDate;
