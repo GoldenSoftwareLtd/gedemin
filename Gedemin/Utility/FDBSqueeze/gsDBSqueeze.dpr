@@ -7,11 +7,11 @@ uses
   gsDBSqueeze_MainForm_unit in 'gsDBSqueeze_MainForm_unit.pas' {gsDBSqueeze_MainForm},
   gsDBSqueeze_DocTypesForm_unit in 'gsDBSqueeze_DocTypesForm_unit.pas' {gsDBSqueeze_DocTypesForm},
   gsDBSqueeze_CardMergeForm_unit in 'gsDBSqueeze_CardMergeForm_unit.pas' {gsDBSqueeze_CardMergeForm},
+  gsDBSqueeze_AboutForm_unit in 'gsDBSqueeze_AboutForm_unit.pas' {AboutBox},
   gsDBSqueezeIniOptions_unit in 'gsDBSqueezeIniOptions_unit.pas',
   gdMessagedThread in '..\..\Component\gdMessagedThread.pas',
   gsDBSqueezeThread_unit in 'gsDBSqueezeThread_unit.pas',
-  gsDBSqueeze_unit in 'gsDBSqueeze_unit.pas',
-  gsDBSqueeze_AboutForm_unit in 'gsDBSqueeze_AboutForm_unit.pas' {AboutBox};
+  gsDBSqueeze_unit in 'gsDBSqueeze_unit.pas';
 
 {$R *.RES}
 

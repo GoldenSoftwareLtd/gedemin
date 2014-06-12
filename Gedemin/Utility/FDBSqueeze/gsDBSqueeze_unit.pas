@@ -21,7 +21,7 @@ type
   TActivateFlag = (aiActivate, aiDeactivate);
 
   TOnGetDBPropertiesEvent = procedure(const AProperties: TStringList) of object;
-  TOnGetInfoTestConnectEvent = procedure(const AConnectSuccess: Boolean; const AConnectInfoList: TStringList) of object;
+  TOnGetInfoTestConnectEvent = procedure(const AConnectSuccess: Boolean) of object;
   TOnGetProcStatistics = procedure(const AnGdDoc: String; const AnAcEntry: String; const AnInvMovement: String; const AnInvCard: String) of object;
   TOnGetStatistics = procedure(const AnGdDoc: String; const AnAcEntry: String; const AnInvMovement: String; const AnInvCard: String) of object;
   TOnLogSQLEvent = procedure(const S: String) of object;
@@ -113,8 +113,8 @@ type
     procedure UpdateInvCard;
 
     procedure ErrorEvent(const AMsg: String; const AProcessName: String = '');
+    procedure WarningEvent(const AMsg: String);
     procedure GetDBPropertiesEvent;                             // получить информацию о БД
-    procedure GetInfoTestConnectEvent;                          // получить версию сервера и количество подключенных юзеров (учитывая нас)
     procedure GetInvCardFeaturesEvent;                          // заполнить список признаков INV_CARD для StringGrid
     procedure GetProcStatisticsEvent;                           // получить кол-во записей для обработки в GD_DOCUMENT, AC_ENTRY, INV_MOVEMENT
     procedure GetStatisticsEvent;                               // получить текущее кол-во записей в GD_DOCUMENT, AC_ENTRY, INV_MOVEMENT
@@ -420,114 +420,7 @@ var
     end;
   end;
 //---------------------------------------------------------------------------
-procedure TgsDBSqueeze.GetInfoTestConnectEvent;
-var
-  InfConnectList: TStringList;
-  DBInfo: TIBDatabaseInfo;
-  ODSMajor, ODSMinor: Integer;
-begin
-  if Connected then
-  begin
-    DBInfo := TIBDatabaseInfo.Create(nil);
-    DBInfo.Database := FIBDatabase;
-    InfConnectList := TStringList.Create;
-    try
-      ODSMajor := DBInfo.ODSMajorVersion;
-      ODSMinor := DBInfo.ODSMinorVersion;
-
-      InfConnectList.Append('ActivConnectCount=' + IntToStr((DBInfo.UserNames).Count));
-
-      try
-        case ODSMajor of
-          8:
-            begin
-              InfConnectList.Append('ServerName=InterBase');
-              if ODSMinor = 0 then
-                InfConnectList.Append('ServerVersion=4.0/4.1')
-              else if ODSMinor = 2 then
-                InfConnectList.Append('ServerVersion=4.2')
-              else
-                raise EgsDBSqueeze.Create('Wrong ODS-version');
-            end;
-          9:
-            begin
-              InfConnectList.Append('ServerName=InterBase');
-              if ODSMinor = 0 then
-                InfConnectList.Append('ServerVersion=5.0/5.1')
-              else if ODSMinor = 1 then
-                InfConnectList.Append('ServerVersion=5.5/5.6')
-              else
-                raise EgsDBSqueeze.Create('Wrong ODS-version');
-            end;
-          10:
-            begin
-              if ODSMinor = 0 then
-              begin
-                InfConnectList.Append('ServerName=Firebird/Yaffil');
-                InfConnectList.Append('ServerVersion=1.0');
-              end
-              else if ODSMinor = 1 then
-              begin
-                InfConnectList.Append('ServerName=Firebird');
-                InfConnectList.Append('ServerVersion=1.5');
-              end
-              else
-                raise EgsDBSqueeze.Create('Wrong ODS-version');
-            end;
-          11:
-            begin
-              InfConnectList.Append('ServerName=Firebird');
-              case ODSMinor of
-                0: InfConnectList.Append('ServerVersion=2.0');
-                1: InfConnectList.Append('ServerVersion=2.1');
-                2: InfConnectList.Append('ServerVersion=2.5');
-              else
-                raise EgsDBSqueeze.Create('Wrong ODS-version');
-              end;
-            end;
-          12:
-            begin
-              InfConnectList.Append('ServerName=InterBase');
-              if ODSMinor = 0 then
-                InfConnectList.Append('ServerVersion=2007')
-              else
-                raise EgsDBSqueeze.Create('Wrong ODS-version');
-            end;
-          13:
-            begin
-              InfConnectList.Append('ServerName=InterBase');
-              if ODSMinor = 1 then
-                InfConnectList.Append('ServerVersion=2009')
-              else
-                raise EgsDBSqueeze.Create('Wrong ODS-version');
-            end;
-          15:
-            begin
-              InfConnectList.Append('ServerName=InterBase');
-              if ODSMinor = 0 then
-                InfConnectList.Append('ServerVersion=XE/XE3')
-              else
-                raise EgsDBSqueeze.Create('Wrong ODS-version');
-            end;
-        else
-          raise EgsDBSqueeze.Create('Wrong ODS-version');
-        end;
-      except
-        on E: EgsDBSqueeze do
-        raise EgsDBSqueeze.Create(E.Message+ ': ' + IntToStr(ODSMajor) + '.' +  IntToStr(ODSMinor));
-      end;
-
-      FOnGetInfoTestConnectEvent(True, InfConnectList);
-    finally
-      InfConnectList.Free;
-      FreeAndNil(DBInfo);
-    end;
-  end
-  else
-    FOnGetInfoTestConnectEvent(False, nil);
-end;
-//---------------------------------------------------------------------------
-procedure TgsDBSqueeze.UsedDBEvent;                                             
+procedure TgsDBSqueeze.UsedDBEvent;
 var
   q: TIBSQL;
   Tr: TIBTransaction;
@@ -1030,6 +923,15 @@ begin
 
     FOnGetDBPropertiesEvent(DBPropertiesList);
 
+    q.Close;
+    q.SQL.Text :=
+      'SELECT COUNT(id) AS Kolvo FROM ac_entry WHERE CAST(entrydate AS DATE) < CAST(''01.01.1900'' AS DATE)';
+    ExecSqlLogEvent(q, 'GetDBPropertiesEvent');
+
+    if q.FieldByName('Kolvo').AsInteger <> 0 then
+      WarningEvent('Внимание!' + #13#10 + 'Обнаружены проводки с датами ac_entry.entrydate < 01.01.1900');
+
+    q.Close;
     Tr.Commit;
   finally
     FreeAndNil(DBInfo);
@@ -2165,6 +2067,13 @@ begin
       '  im.contactkey, ' +                                     #13#10 +
       '  im.cardkey, ic.goodkey, ' +                            #13#10 +
       '  doc.companykey ');
+    q.SQL.Add(' ' +
+        'HAVING ' +                                                                     #13#10 +
+        '  (SUM(im.debit - im.credit)) <> CAST(0.0000 AS DECIMAL(15,4)) ' +        #13#10 +
+        '   OR (SUM(im.debit - im.credit)) <> CAST(0.0000 AS DECIMAL(15,4)) ' +  #13#10 +
+        '   OR (SUM(im.debit - im.credit))   <> CAST(0.0000 AS DECIMAL(15,4)) ');
+
+
 
     q.ParamByName('RemainsDate').AsDateTime := FClosingDate;
 
@@ -5473,6 +5382,18 @@ begin
   begin
     PI.State := psError;
     PI.ProcessName := AProcessName;
+    PI.Message := AMsg;
+    ProgressWatchEvent(PI);
+  end;
+end;
+//---------------------------------------------------------------------------
+procedure TgsDBSqueeze.WarningEvent(const AMsg: String);
+var
+  PI: TgdProgressInfo;
+begin
+  if Assigned(FOnProgressWatch) then
+  begin
+    PI.State := psInit;
     PI.Message := AMsg;
     ProgressWatchEvent(PI);
   end;
