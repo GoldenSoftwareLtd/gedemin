@@ -188,115 +188,6 @@ end;
 
 function TEventInherited.InvokeEvent(const AnObject: IgsObject;
   const AnName: WideString; var AnParams: OleVariant): OleVariant;
-
-  function FindParentSubType(SubType: string): string;
-  var
-    ibsql: TIBSQL;
-    prnt: Integer;
-  begin
-    Result := '';
-    ibsql := TIBSQL.Create(nil);
-    ibsql.Transaction := gdcBaseManager.ReadTransaction;
-    try
-      ibsql.Close;
-      ibsql.SQL.Text :=
-        'SELECT z.* FROM gd_documenttype z '#13#10 +
-        'WHERE z.RUID = :RUID ';
-      ibsql.ParamByName('RUID').AsString := SubType;
-      ibsql.ExecQuery;
-      if not ibsql.Eof then
-      begin
-        prnt := ibsql.FieldByName('Parent').AsInteger;
-        ibsql.Close;
-        ibsql.SQL.Text :=
-          'SELECT z.* FROM gd_documenttype z '#13#10 +
-          'WHERE z.ID = :ID AND z.documenttype = ''D''';
-        ibsql.ParamByName('ID').AsInteger := prnt;
-        ibsql.ExecQuery;
-        if not ibsql.Eof then
-        begin
-          Result := ibsql.FieldByName('RUID').AsString;
-        end;
-      end;
-    finally
-      ibsql.Free;
-    end;
-  end;
-
-  function FindParentObjectKey(OwnerClassName: string; ObjKey: integer; var ParentObjKey: integer): boolean;
-  var
-    ibsql: TIBSQL;
-    OwnerID: integer;
-    OwnerName: string;
-    SubType: string;
-    ParentSubType: string;
-    ParentName: string;
-    ParentID: integer;
-    Name: string;
-  begin
-    Result := False;
-
-    ibsql := TIBSQL.Create(nil);
-    ibsql.Transaction := gdcBaseManager.ReadTransaction;
-    try
-      ibsql.Close;
-      ibsql.SQL.Text := 'SELECT NAME, PARENT FROM evt_object '#13#10 +
-                         'WHERE ID = :ID';
-      ibsql.ParamByName('ID').AsInteger := ObjKey;
-      ibsql.ExecQuery;
-      if not ibsql.Eof then
-      begin
-        OwnerID := ibsql.FieldByName('PARENT').AsInteger;
-        Name := ibsql.FieldByName('NAME').AsString;
-        ibsql.Close;
-        ibsql.SQL.Text := 'SELECT * FROM evt_object '#13#10 +
-                          'WHERE ID = :ID';
-        ibsql.ParamByName('ID').AsInteger := OwnerID;
-        ibsql.ExecQuery;
-        if not ibsql.Eof then
-        begin
-          OwnerName := ibsql.FieldByName('Name').AsString;
-          Delete(OwnerClassName, 1, 1);
-          SubType := StringReplace(OwnerName, OwnerClassName, '', [rfReplaceAll, rfIgnoreCase]);
-          if SubType <> '' then
-          begin
-            repeat
-            ParentSubType := FindParentSubtype(Subtype);
-
-            if ParentSubType <> '' then
-            begin
-              Subtype := ParentSubType;
-              ParentName := OwnerClassName + ParentSubType;
-              ibsql.Close;
-              ibsql.SQL.Text := 'SELECT ID FROM evt_object '#13#10 +
-                                'WHERE NAME = :Name';
-              ibsql.Params[0].AsString := ParentName;
-              ibsql.ExecQuery;
-              If (not ibsql.Eof) and (not ibsql.FieldByName('ID').IsNull) then
-              begin
-                ParentID := ibsql.FieldByName('ID').AsInteger;
-                ibsql.Close;
-                ibsql.SQL.Text := 'SELECT ID FROM evt_object '#13#10 +
-                                  'WHERE NAME = :Name AND PARENT = :PARENT';
-                ibsql.Params[0].AsString := Name;
-                ibsql.Params[1].AsInteger := ParentID;
-                ibsql.ExecQuery;
-                If (not ibsql.Eof) and (not ibsql.FieldByName('ID').IsNull) then
-                begin
-                  ParentObjKey := ibsql.FieldByName('ID').AsInteger;
-                  Result := True;
-                end;
-              end;
-            end;
-            until (ParentSubType = '') or (Result = True);
-          end;
-        end;
-      end;
-    finally
-      ibsql.Free;
-    end;
-  end;
-
 var
   LObj: TObject;
   LEventObject: TEventObject;
@@ -330,42 +221,46 @@ var
   LRect: TRect;
   LParentEventObject: TEventObject;
   LParentEventOfObject: TEventItem;
-  ParentObjectKey: integer;
-  OwnerClassName: string;
-  TempEventOfObject: TEventItem;
-  objkey: integer;
+  ResetCurIndex: boolean;
 begin
   try
+    ResetCurIndex := False;
+    LParentEventObject := nil;
+
     LObj := TObject(AnObject.Get_Self);
     LEventObject := FEventControl.EventObjectList.FindAllObject(LObj as TComponent);
     if not Assigned(LEventObject) then
       raise Exception.Create(Format('Класс %s не найден в списке EventControl', [LObj.ClassName]));
 
-    // поиск обработчика события родителя
-    LParentEventObject := nil;
-    LParentEventOfObject := nil;
-    OwnerClassName := (LObj as TComponent).Owner.ClassName;
-
-    objkey := LEventObject.ObjectKey;
-    TempEventOfObject:= nil;
-
     try
-      While FindParentObjectkey(OwnerClassName, LEventObject.ObjectKey, ParentObjectKey)
-        and ( not Assigned(LParentEventOfObject)) do
+      // поиск обработчика события родителя
+      if Assigned(LEventObject) then
       begin
-        LParentEventObject:= FEventControl.EventObjectList.FindAllObject(ParentObjectKey);
-        if Assigned(LParentEventObject) then
+        if LEventObject.ParentObjectsBySubType.Count > 0 then
         begin
-          LParentEventOfObject := LParentEventObject.EventList.Find(AnName);
-          if Assigned(LParentEventOfObject) then
-          begin
-            TempEventOfObject:= TEventItem.Create;
-            TempEventOfObject.Assign(LEventObject.EventList.Find(AnName));
-            LEventObject.EventList.DeleteForName(AnName);
-            LEventObject.EventList.Add(LParentEventOfObject);
-          end;
+          if LEventObject.CurIndexParentObject = -1 then
+            ResetCurIndex := True;
+          LParentEventOfObject := nil;
+          repeat
+            if (LEventObject.CurIndexParentObject < LEventObject.ParentObjectsBySubType.Count - 1) then
+            begin
+              LEventObject.CurIndexParentObject := LEventObject.CurIndexParentObject + 1;
+              LParentEventObject :=
+                LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+              LParentEventOfObject :=
+                LParentEventObject.EventList.Find(AnName);
+            end
+            else
+            begin
+              LEventObject.CurIndexParentObject := -1;
+              LParentEventObject := nil;
+            end;
+          until (LEventObject.CurIndexParentObject = -1)
+            or ((LParentEventOfObject <> nil)
+                 and (LParentEventOfObject.FunctionKey <> 0)
+                 and (not LParentEventOfObject.Disable)
+                 and (not LParentEventOfObject.IsParental));
         end;
-      LEventObject.ObjectKey := ParentObjectKey;
       end;
 
       // сохранение адреса Delphi обработчика события
@@ -410,7 +305,6 @@ begin
         if (VarType(AnParams[0]) = VarDispatch) and (IDispatch(AnParams[0]) <> nil) then
         begin
           LSender := InterfaceToObject(IDispatch(AnParams[0]));
-          OwnerClassName:=(LSender as TComponent).Owner.Name;
         end else
           raise EIncorrectParams.Create(Format('Для класса %s и события %s не переданы объекты', [LObj.ClassName, AnName]));
         try
@@ -420,226 +314,228 @@ begin
             if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnClick') then
             begin
               FEventControl.OnClick(LSender);
-              exit;
+//              exit;
             end;
             if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnPopup') then
             begin
               FEventControl.OnPopup(LSender);
-              exit;
+//              exit;
             end;
             if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnCreate') then
             begin
               FEventControl.OnCreate(LSender);
-              exit;
+//              exit;
             end;
             if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnDblClick') then
             begin
               FEventControl.OnDblClick(LSender);
-              exit;
+//              exit;
             end;
             if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnResize') then
             begin
               FEventControl.OnResize(LSender);
-              exit;
+//              exit;
             end;
             if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnEnter') then
             begin
               FEventControl.OnEnter(LSender);
-              exit;
+//              exit;
             end;
             if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnExit') then
             begin
               FEventControl.OnExit(LSender);
-              exit;
+//              exit;
             end;
             if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnActivate') then
             begin
               FEventControl.OnActivate(LSender);
-              exit;
+//              exit;
             end;
             if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnClose') then
             begin
               FEventControl.OnCloseNotify(LSender);
-              exit;
+//              exit;
             end;
             if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnDeactivate') then
             begin
               FEventControl.OnDeactivate(LSender);
-              exit;
+//              exit;
             end;
             if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnDestroy') then
             begin
               FEventControl.OnDestroy(LSender);
-              exit;
+//              exit;
             end;
             if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnHide') then
             begin
               FEventControl.OnHide(LSender);
-              exit;
+//              exit;
             end;
             if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnPaint') then
             begin
               FEventControl.OnPaint(LSender);
-              exit;
+//              exit;
             end;
             if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnShow') then
             begin
               FEventControl.OnShow(LSender);
-              exit;
+//              exit;
             end;
             if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnChange') then
             begin
               FEventControl.OnChangeEdit(LSender);
-              exit;
+//              exit;
             end;
             if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnClickCheck') then
             begin
               FEventControl.OnClickCheckListBox(LSender);
-              exit;
+//              exit;
             end;
             if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnDropDown') then
             begin
               FEventControl.OnDropDown(LSender);
-              exit;
+//              exit;
             end;
             if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnExecute') then
             begin
               FEventControl.OnExecuteAction(LSender);
-              exit;
+//              exit;
             end;
             if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnUpdate') then
             begin
               FEventControl.OnUpdateAction(LSender);
-              exit;
+//              exit;
             end;
             if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnMove') then
             begin
               FEventControl.OnMove(LSender);
-              exit;
+//              exit;
             end;
             if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnRecreated') then
             begin
               FEventControl.OnRecreated(LSender);
-              exit;
+//              exit;
             end;
             if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnRecreating') then
             begin
               FEventControl.OnRecreating(LSender);
-              exit;
+//              exit;
             end;
             if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnDockChanged') then
             begin
               FEventControl.OnDockChanged(LSender);
-              exit;
+//              exit;
             end;
             if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnDockChanging') then
             begin
               FEventControl.OnDockChanging(LSender);
-              exit;
+//              exit;
             end;
             if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnDockChangingHidden') then
             begin
               FEventControl.OnDockChangingHidden(LSender);
-              exit;
+//              exit;
             end;
             if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnVisibleChanged') then
             begin
               FEventControl.OnVisibleChanged(LSender);
-              exit;
+//              exit;
             end;
             if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnColEnter') then
             begin
               FEventControl.OnColEnter(LSender);
-              exit;
+//              exit;
             end;
             if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnColExit') then
             begin
               FEventControl.OnColExit(LSender);
-              exit;
+//              exit;
             end;
             if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnEditButtonClick') then
             begin
               FEventControl.OnEditButtonClick(LSender);
-              exit;
+//              exit;
             end;
             if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnAggregateChanged') then
             begin
               FEventControl.OnAggregateChanged(LSender);
-              exit;
+//              exit;
             end;
             if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('AfterDatabaseDisconnect') then
             begin
               FEventControl.AfterDatabaseDisconnect(LSender);
-              exit;
+//              exit;
             end;
             if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('AfterTransactionEnd') then
             begin
               FEventControl.AfterTransactionEnd(LSender);
-              exit;
+//              exit;
             end;
             if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('BeforeDatabaseDisconnect') then
             begin
               FEventControl.BeforeDatabaseDisconnect(LSender);
-              exit;
+//              exit;
             end;
             if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('BeforeTransactionEnd') then
             begin
               FEventControl.BeforeTransactionEnd(LSender);
-              exit;
+//              exit;
             end;
             if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('DatabaseFree') then
             begin
               FEventControl.DatabaseFree(LSender);
-              exit;
+//              exit;
             end;
             if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('TransactionFree') then
             begin
               FEventControl.TransactionFree(LSender);
-              exit;
+//              exit;
             end;
             if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('DatabaseDisconnected') then
             begin
               FEventControl.DatabaseDisconnected(LSender);
-              exit;
+//              exit;
             end;
             if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('DatabaseDisconnecting') then
             begin
               FEventControl.DatabaseDisconnecting(LSender);
-              exit;
+//              exit;
             end;
             if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnFilterChanged') then
             begin
               FEventControl.OnFilterChanged(LSender);
-              exit;
+//              exit;
             end;
             if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnStateChange') then
             begin
               FEventControl.OnStateChange(LSender);
-              exit;
+//              exit;
             end;
             if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnUpdateData') then
             begin
               FEventControl.OnUpdateData(LSender);
-              exit;
+//              exit;
             end;
             if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnTimer') then
             begin
               FEventControl.OnTimer(LSender);
-              exit;
+//              exit;
             end;
             if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnSaveSettings') then
             begin
               FEventControl.OnSaveSettings(LSender);
-              exit;
+//              exit;
             end;
             if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnLoadSettingsAfterCreate') then
             begin
               FEventControl.OnLoadSettingsAfterCreate(LSender);
-              exit;
+//              exit;
             end;
           end;
-        
-          LNotifyEvent^(LSender);
+          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
+          begin
+            LNotifyEvent^(LSender);
+          end;
         except
   //        on E: Exception do ShowMessage('Error');
         end;
@@ -679,11 +575,14 @@ begin
           begin
             FEventControl.OnKeyPress(LSender, LChar);
             AnParams[1] := Ord(LChar);
-            exit;
+//            exit;
           end;
         end;
-        TKeyPressEvent(LNotifyEvent^)(LSender, LChar);
-        AnParams[1] := Ord(LChar);
+        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
+        begin
+          TKeyPressEvent(LNotifyEvent^)(LSender, LChar);
+          AnParams[1] := Ord(LChar);
+        end;
         exit;
       end;
 
@@ -714,11 +613,14 @@ begin
           begin
             FEventControl.OnCanResize(LSender, p1, p2, LBool);
             AnParams[3] := LBool;
-            exit;
+//            exit;
           end;
         end;
-        TCanResizeEvent(LNotifyEvent^)(LSender, p1, p2, LBool);
-        AnParams[3] := LBool;
+        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
+        begin
+          TCanResizeEvent(LNotifyEvent^)(LSender, p1, p2, LBool);
+          AnParams[3] := LBool;
+        end;
         exit;
       end;
 
@@ -753,14 +655,17 @@ begin
             AnParams[2] := p2;
             AnParams[3] := p3;
             AnParams[4] := p4;
-            exit;
+//            exit;
           end;
         end;
-        TConstrainedResizeEvent(LNotifyEvent^)(LSender, p1, p2, p3, p4);
-        AnParams[1] := p1;
-        AnParams[2] := p2;
-        AnParams[3] := p3;
-        AnParams[4] := p4;
+        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
+        begin
+          TConstrainedResizeEvent(LNotifyEvent^)(LSender, p1, p2, p3, p4);
+          AnParams[1] := p1;
+          AnParams[2] := p2;
+          AnParams[3] := p3;
+          AnParams[4] := p4;
+        end;
         exit;
       end;
 
@@ -792,11 +697,14 @@ begin
           begin
             FEventControl.OnContextPopup(LSender, LPoint, LBool);
             AnParams[2] := LBool;
-            exit;
+//            exit;
           end;
         end;
-        TContextPopupEvent(LNotifyEvent^)(LSender, LPoint, LBool);
-        AnParams[2] := LBool;
+        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
+        begin
+          TContextPopupEvent(LNotifyEvent^)(LSender, LPoint, LBool);
+          AnParams[2] := LBool;
+        end;
         exit;
       end;
 
@@ -827,10 +735,13 @@ begin
           if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnDragDrop') then
           begin
             FEventControl.OnDragDrop(LSender, LSender_2, p2, p3);
-            exit;
+//            exit;
           end;
         end;
-        TDragDropEvent(LNotifyEvent^)(LSender, LSender_2, p2, p3);
+        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
+        begin
+          TDragDropEvent(LNotifyEvent^)(LSender, LSender_2, p2, p3);
+        end;
         exit;
       end;
 
@@ -862,12 +773,15 @@ begin
             FEventControl.OnDragOver(LSender, LSender_2, Integer(AnParams[2]),
               Integer(AnParams[3]), TDragState(AnParams[5]), LBool);
             AnParams[5] := LBool;
-            exit;
+//            exit;
           end;
         end;
-        TDragOverEvent(LNotifyEvent^)(LSender, LSender_2, Integer(AnParams[2]),
-          Integer(AnParams[3]), TDragState(AnParams[5]), LBool);
-        AnParams[5] := LBool;
+        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
+        begin
+          TDragOverEvent(LNotifyEvent^)(LSender, LSender_2, Integer(AnParams[2]),
+            Integer(AnParams[3]), TDragState(AnParams[5]), LBool);
+          AnParams[5] := LBool;
+        end;
         exit;
       end;
 
@@ -896,15 +810,18 @@ begin
           if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnEndDock') then
           begin
             FEventControl.OnEndDock(LSender, LSender_2, Integer(AnParams[2]), Integer(AnParams[3]));
-            exit;
+//            exit;
           end;
           if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnEndDrag') then
           begin
             FEventControl.OnEndDrag(LSender, LSender_2, Integer(AnParams[2]), Integer(AnParams[3]));
-            exit;
+//            exit;
           end;
         end;
-        TEndDragEvent(LNotifyEvent^)(LSender, LSender_2, Integer(AnParams[2]), Integer(AnParams[3]));
+        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
+        begin
+          TEndDragEvent(LNotifyEvent^)(LSender, LSender_2, Integer(AnParams[2]), Integer(AnParams[3]));
+        end;
         exit;
       end;
 
@@ -934,11 +851,14 @@ begin
           begin
             FEventControl.OnStartDock(LSender, LDragDockObject);
             AnParams[1] := GetGdcOLEObject(LDragDockObject) as IDispatch;
-            exit;
+//            exit;
           end;
         end;
-        TStartDockEvent(LNotifyEvent^)(LSender, LDragDockObject);
-        AnParams[1] := GetGdcOLEObject(LDragDockObject) as IDispatch;
+        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
+        begin
+          TStartDockEvent(LNotifyEvent^)(LSender, LDragDockObject);
+          AnParams[1] := GetGdcOLEObject(LDragDockObject) as IDispatch;
+        end;
         exit;
       end;
 
@@ -968,11 +888,14 @@ begin
           begin
             FEventControl.OnStartDrag(LSender, LDragObject);
             AnParams[1] := GetGdcOLEObject(LDragObject) as IDispatch;
-            exit;
+//            exit;
           end;
         end;
-        TStartDragEvent(LNotifyEvent^)(LSender, LDragObject);
-        AnParams[1] := GetGdcOLEObject(LDragObject) as IDispatch;
+        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
+        begin
+          TStartDragEvent(LNotifyEvent^)(LSender, LDragObject);
+          AnParams[1] := GetGdcOLEObject(LDragObject) as IDispatch;
+        end;
         exit;
       end;
 
@@ -1001,11 +924,14 @@ begin
           begin
             FEventControl.OnDockDrop(LSender,
               InterfaceToObject(AnParams[1]) as TDragDockObject, Integer(AnParams[2]), Integer(AnParams[3]));
-            exit;
+//            exit;
           end;
         end;
-        TDockDropEvent(LNotifyEvent^)(LSender,
-          InterfaceToObject(AnParams[1]) as TDragDockObject, Integer(AnParams[2]), Integer(AnParams[3]));
+        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
+        begin
+          TDockDropEvent(LNotifyEvent^)(LSender,
+            InterfaceToObject(AnParams[1]) as TDragDockObject, Integer(AnParams[2]), Integer(AnParams[3]));
+        end;
         exit;
       end;
 
@@ -1037,12 +963,15 @@ begin
             FEventControl.OnDockOver(LSender, LDragDockObject, Integer(AnParams[2]),
               Integer(AnParams[3]), TDragState(AnParams[4]), LBool);
             AnParams[5] := LBool;
-            exit;
+//            exit;
           end;
         end;
-        TDockOverEvent(LNotifyEvent^)(LSender, LDragDockObject, Integer(AnParams[2]),
-          Integer(AnParams[3]), TDragState(AnParams[4]), LBool);
-        AnParams[5] := LBool;
+        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
+        begin
+          TDockOverEvent(LNotifyEvent^)(LSender, LDragDockObject, Integer(AnParams[2]),
+            Integer(AnParams[3]), TDragState(AnParams[4]), LBool);
+          AnParams[5] := LBool;
+        end;
         exit;
       end;
 
@@ -1076,11 +1005,14 @@ begin
           begin
             FEventControl.OnUnDock(LSender, LControl, LWinControl, LBool);
             AnParams[3] := LBool;
-            exit;
+//            exit;
           end;
         end;
-        TUnDockEvent(LNotifyEvent^)(LSender, LControl, LWinControl, LBool);
-        AnParams[3] := LBool;
+        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
+        begin
+          TUnDockEvent(LNotifyEvent^)(LSender, LControl, LWinControl, LBool);
+          AnParams[3] := LBool;
+        end;
         exit;
       end;
 
@@ -1109,11 +1041,14 @@ begin
           begin
             FEventControl.OnClose(LSender, LCloseAction);
             AnParams[1] := LCloseAction;
-            exit;
+//            exit;
           end;
         end;
-        TCloseEvent(LNotifyEvent^)(LSender, LCloseAction);
-        AnParams[1] := LCloseAction;
+        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
+        begin
+          TCloseEvent(LNotifyEvent^)(LSender, LCloseAction);
+          AnParams[1] := LCloseAction;
+        end;
         exit;
       end;
 
@@ -1139,12 +1074,15 @@ begin
           begin
             FEventControl.OnCloseQuery(InterfaceToObject(AnParams[0]), LBool);
             AnParams[1] := LCloseAction;
-            exit;
+//            exit;
           end;
         end;
+        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
+        begin
           TCloseQueryEvent(LNotifyEvent^)(InterfaceToObject(AnParams[0]), LBool);
           AnParams[1] := LBool;
-          exit;
+        end;
+        exit;
       end;
 
       //To TMenuChangeEvent
@@ -1171,10 +1109,13 @@ begin
           if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnChange') then
           begin
             FEventControl.OnChange(LSender, LMenuItem, Boolean(AnParams[2]));
-            exit;
+//            exit;
           end;
         end;
-        TMenuChangeEvent(LNotifyEvent^)(LSender, LMenuItem, Boolean(AnParams[2]));
+        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
+        begin
+          TMenuChangeEvent(LNotifyEvent^)(LSender, LMenuItem, Boolean(AnParams[2]));
+        end;
         exit;
       end;
 
@@ -1204,12 +1145,15 @@ begin
             FEventControl.OnMeasureItem(LWinControl,
               Integer(AnParams[1]), p2);
             AnParams[2] := p2;
-            exit;
+//            exit;
           end;
         end;
-        TMeasureItemEvent(LNotifyEvent^)(LWinControl,
-          Integer(AnParams[1]), p2);
-        AnParams[2] := p2;
+        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
+        begin
+          TMeasureItemEvent(LNotifyEvent^)(LWinControl,
+            Integer(AnParams[1]), p2);
+          AnParams[2] := p2;
+        end;
         exit;
       end;
 
@@ -1238,11 +1182,14 @@ begin
           begin
             FEventControl.OnScroll(LSender, TScrollCode(AnParams[1]), p2);
             AnParams[2] := p2;
-            exit;
+//            exit;
           end;
         end;
-        TScrollEvent(LNotifyEvent^)(LSender, TScrollCode(AnParams[1]), p2);
-        AnParams[2] := p2;
+        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
+        begin
+          TScrollEvent(LNotifyEvent^)(LSender, TScrollCode(AnParams[1]), p2);
+          AnParams[2] := p2;
+        end;
         exit;
       end;
 
@@ -1271,17 +1218,20 @@ begin
           begin
             FEventControl.OnExecute(LBasicAction, LBool);
             AnParams[1] := LBool;
-            exit;
+//            exit;
           end;
           if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnUpdate') then
           begin
             FEventControl.OnUpdate(LBasicAction, LBool);
             AnParams[1] := LBool;
-            exit;
+//            exit;
           end;
         end;
-        TActionEvent(LNotifyEvent^)(LBasicAction, LBool);
-        AnParams[1] := LBool;
+        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
+        begin
+          TActionEvent(LNotifyEvent^)(LBasicAction, LBool);
+          AnParams[1] := LBool;
+        end;
         exit;
       end;
 
@@ -1309,11 +1259,14 @@ begin
           begin
             FEventControl.OnColumnMoved(LSender,
               Integer(AnParams[1]), Integer(AnParams[2]));
-            exit;
+//            exit;
           end;
         end;
-        TMovedEvent(LNotifyEvent^)(LSender,
-          Integer(AnParams[1]), Integer(AnParams[2]));
+        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
+        begin
+          TMovedEvent(LNotifyEvent^)(LSender,
+            Integer(AnParams[1]), Integer(AnParams[2]));
+        end;
         exit;
       end;
 
@@ -1342,11 +1295,14 @@ begin
           begin
             FEventControl.OnClickCheck(LSender, String(AnParams[1]), LBool);
               AnParams[2] := LBool;
-            exit;
+//            exit;
           end;
         end;
-        TCheckBoxEvent(LNotifyEvent^)(LSender, String(AnParams[1]), LBool);
-        AnParams[2] := LBool;
+        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
+        begin
+          TCheckBoxEvent(LNotifyEvent^)(LSender, String(AnParams[1]), LBool);
+          AnParams[2] := LBool;
+        end;
         exit;
       end;
 
@@ -1373,10 +1329,13 @@ begin
           if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnClickedCheck') then
           begin
             FEventControl.OnClickedCheck(LSender, String(AnParams[1]), Boolean(AnParams[2]));
-            exit;
+//            exit;
           end;
         end;
-        TAfterCheckEvent(LNotifyEvent^)(LSender, String(AnParams[1]), Boolean(AnParams[2]));
+        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
+        begin
+          TAfterCheckEvent(LNotifyEvent^)(LSender, String(AnParams[1]), Boolean(AnParams[2]));
+        end;
         exit;
       end;
 
@@ -1403,120 +1362,123 @@ begin
           if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('AfterCancel') then
           begin
             FEventControl.AfterCancel(LDataSet);
-            exit;
+//            exit;
           end;
           if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('AfterClose') then
           begin
             FEventControl.AfterClose(LDataSet);
-            exit;
+//            exit;
           end;
           if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('AfterDelete') then
           begin
             FEventControl.AfterDelete(LDataSet);
-            exit;
+//            exit;
           end;
           if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('AfterEdit') then
           begin
             FEventControl.AfterEdit(LDataSet);
-            exit;
+//            exit;
           end;
           if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('AfterInsert') then
           begin
             FEventControl.AfterInsert(LDataSet);
-            exit;
+//            exit;
           end;
           if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('AfterOpen') then
           begin
             FEventControl.AfterOpen(LDataSet);
-            exit;
+//            exit;
           end;
           if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('AfterPost') then
           begin
             FEventControl.AfterPost(LDataSet);
-            exit;
+//            exit;
           end;
           if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('AfterRefresh') then
           begin
             FEventControl.AfterRefresh(LDataSet);
-            exit;
+//            exit;
           end;
           if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('AfterScroll') then
           begin
             FEventControl.AfterScroll(LDataSet);
-            exit;
+//            exit;
           end;
           if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('BeforeCancel') then
           begin
             FEventControl.BeforeCancel(LDataSet);
-            exit;
+//            exit;
           end;
           if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('BeforeClose') then
           begin
             FEventControl.BeforeClose(LDataSet);
-            exit;
+//            exit;
           end;
           if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('BeforeDelete') then
           begin
             FEventControl.BeforeDelete(LDataSet);
-            exit;
+//            exit;
           end;
           if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('BeforeEdit') then
           begin
             FEventControl.BeforeEdit(LDataSet);
-            exit;
+//            exit;
           end;
           if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('BeforeInsert') then
           begin
             FEventControl.BeforeInsert(LDataSet);
-            exit;
+//            exit;
           end;
           if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('BeforeOpen') then
           begin
             FEventControl.BeforeOpen(LDataSet);
-            exit;
+//            exit;
           end;
           if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('BeforePost') then
           begin
             FEventControl.BeforePost(LDataSet);
-            exit;
+//            exit;
           end;
           if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('BeforeScroll') then
           begin
             FEventControl.BeforeScroll(LDataSet);
-            exit;
+//            exit;
           end;
           if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnCalcFields') then
           begin
             FEventControl.OnCalcFields(LDataSet);
-            exit;
+//            exit;
           end;
           if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnNewRecord') then
           begin
             FEventControl.OnNewRecord(LDataSet);
-            exit;
+//            exit;
           end;
           if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('AfterInternalPostRecord') then
           begin
             FEventControl.AfterInternalPostRecord(LDataSet);
-            exit;
+//            exit;
           end;
           if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('BeforeInternalPostRecord') then
           begin
             FEventControl.BeforeInternalPostRecord(LDataSet);
-            exit;
+//            exit;
           end;
           if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('AfterInternalDeleteRecord') then
           begin
             FEventControl.AfterInternalDeleteRecord(LDataSet);
-            exit;
+//            exit;
           end;
           if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('BeforeInternalDeleteRecord') then
           begin
             FEventControl.BeforeInternalDeleteRecord(LDataSet);
-            exit;
+//            exit;
           end;
         end;
-        TDataSetNotifyEvent(LNotifyEvent^)(LDataSet);
+        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
+        begin
+          TDataSetNotifyEvent(LNotifyEvent^)(LDataSet);
+        end;
         exit;
       end;
 
@@ -1546,23 +1508,26 @@ begin
           begin
             FEventControl.OnDeleteError(LDataSet, LEDatabaseError, LDataAction);
               AnParams[2] := LDataAction;
-            exit;
+//            exit;
           end;
           if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnEditError') then
           begin
             FEventControl.OnEditError(LDataSet, LEDatabaseError, LDataAction);
               AnParams[2] := LDataAction;
-            exit;
+//            exit;
           end;
           if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnPostError') then
           begin
             FEventControl.OnPostError(LDataSet, LEDatabaseError, LDataAction);
               AnParams[2] := LDataAction;
-            exit;
+//            exit;
           end;
         end;
-        TDataSetErrorEvent(LNotifyEvent^)(LDataSet, LEDatabaseError, LDataAction);
-        AnParams[2] := LDataAction;
+        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
+        begin
+          TDataSetErrorEvent(LNotifyEvent^)(LDataSet, LEDatabaseError, LDataAction);
+          AnParams[2] := LDataAction;
+        end;
         exit;
       end;
 
@@ -1591,17 +1556,20 @@ begin
           begin
             FEventControl.OnFilterRecord(LDataSet, LBool);
             AnParams[1] := LBool;
-            exit;
+//            exit;
           end;
           if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnCalcAggregates') then
           begin
             FEventControl.OnCalcAggregates(LDataSet, LBool);
             AnParams[1] := LBool;
-            exit;
+//            exit;
           end;
         end;
-        TFilterRecordEvent(LNotifyEvent^)(LDataSet, LBool);
-        AnParams[1] := LBool;
+        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
+        begin
+          TFilterRecordEvent(LNotifyEvent^)(LDataSet, LBool);
+          AnParams[1] := LBool;
+        end;
         exit;
       end;
 
@@ -1631,11 +1599,14 @@ begin
           begin
             FEventControl.OnUpdateError(LDataSet, LEDatabaseError, TUpdateKind(AnParams[2]), LIBUpdateAction);
             AnParams[3] := LIBUpdateAction;
-            exit;
+//            exit;
           end;
         end;
-        TIBUpdateErrorEvent(LNotifyEvent^)(LDataSet, LEDatabaseError, TUpdateKind(AnParams[2]), LIBUpdateAction);
-        AnParams[3] := LIBUpdateAction;
+        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
+        begin
+          TIBUpdateErrorEvent(LNotifyEvent^)(LDataSet, LEDatabaseError, TUpdateKind(AnParams[2]), LIBUpdateAction);
+          AnParams[3] := LIBUpdateAction;
+        end;
         exit;
       end;
 
@@ -1665,12 +1636,15 @@ begin
             FEventControl.OnUpdateRecord(LDataSet,
               TUpdateKind(AnParams[1]), LIBUpdateAction);
             AnParams[2] := LIBUpdateAction;
-            exit;
+//            exit;
           end;
         end;
-        TIBUpdateRecordEvent(LNotifyEvent^)(LDataSet,
-          TUpdateKind(AnParams[1]), LIBUpdateAction);
-        AnParams[2] := LIBUpdateAction;
+        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
+        begin
+          TIBUpdateRecordEvent(LNotifyEvent^)(LDataSet,
+            TUpdateKind(AnParams[1]), LIBUpdateAction);
+          AnParams[2] := LIBUpdateAction;
+        end;
         exit;
       end;
 
@@ -1694,10 +1668,13 @@ begin
                 FEventControl.OnAfterInitSQL(LSender, LStr, LBool);
                 AnParams[1] := LStr;
                 AnParams[2] := LBool;
-                exit;
+//                exit;
               end;
             end;
-            TgdcAfterInitSQL(LNotifyEvent^)(LSender, LStr, LBool);
+            if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
+            begin
+              TgdcAfterInitSQL(LNotifyEvent^)(LSender, LStr, LBool);
+            end;
           end else
             raise EIncorrectParams.Create(Format('Для класса %s и события %s не переданы объекты', [LObj.ClassName, AnName]));
         except
@@ -1734,10 +1711,13 @@ begin
           if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('BeforeShowDialog') then
           begin
             FEventControl.BeforeShowDialog(LSender, LCustomForm);
-            exit;
+//            exit;
           end;
         end;
-        TgdcDoBeforeShowDialog(LNotifyEvent^)(LSender, LCustomForm);
+        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
+        begin
+          TgdcDoBeforeShowDialog(LNotifyEvent^)(LSender, LCustomForm);
+        end;
         exit;
       end;
 
@@ -1765,10 +1745,13 @@ begin
           if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('AfterShowDialog') then
           begin
             FEventControl.AfterShowDialog(LSender, LCustomForm, Boolean(AnParams[2]));
-            exit;
+//            exit;
           end;
         end;
-        TgdcDoAfterShowDialog(LNotifyEvent^)(LSender, LCustomForm, Boolean(AnParams[2]));
+        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
+        begin
+          TgdcDoAfterShowDialog(LNotifyEvent^)(LSender, LCustomForm, Boolean(AnParams[2]));
+        end;
         exit;
       end;
 
@@ -1796,15 +1779,18 @@ begin
           if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnCreateNewObject') then
           begin
             FEventControl.OnCreateNewObject(LSender, LgdcBase);
-            exit;
+//            exit;
           end;
           if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnAfterCreateDialog') then
           begin
             FEventControl.OnAfterCreateDialog(LSender, LgdcBase);
-            exit;
+//            exit;
           end;
         end;
-        TOnCreateNewObject(LNotifyEvent^)(LSender, LgdcBase);
+        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
+        begin
+          TOnCreateNewObject(LNotifyEvent^)(LSender, LgdcBase);
+        end;
         exit;
       end;
 
@@ -1831,10 +1817,13 @@ begin
           if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnConditionChanged') then
           begin
             FEventControl.OnConditionChanged(LSender);
-            exit;
+//            exit;
           end;
         end;
-        TConditionChanged(LNotifyEvent^)(LSender);
+        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
+        begin
+          TConditionChanged(LNotifyEvent^)(LSender);
+        end;
         exit;
       end;
 
@@ -1861,10 +1850,13 @@ begin
           if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnFilterChanged') then
           begin
             FEventControl.OnFilterChangedSQLFilter(LSender, Integer(AnParams[1]));
-            exit;
+//            exit;
           end;
         end;
-        TFilterChanged(LNotifyEvent^)(LSender, Integer(AnParams[1]));
+        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
+        begin
+          TFilterChanged(LNotifyEvent^)(LSender, Integer(AnParams[1]));
+        end;
         exit;
       end;
 
@@ -1893,19 +1885,22 @@ begin
             FEventControl.OnMouseDown(LSender,
               TMouseButton(AnParams[1]), StrToShiftState(AnParams[2]),
               Integer(AnParams[3]), Integer(AnParams[4]));
-            exit;
+//            exit;
           end;
           if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnMouseUp') then
           begin
             FEventControl.OnMouseUp(LSender,
               TMouseButton(AnParams[1]), StrToShiftState(AnParams[2]),
               Integer(AnParams[3]), Integer(AnParams[4]));
-            exit;
+//            exit;
           end;
         end;
-        TMouseEvent(LNotifyEvent^)(LSender,
-          TMouseButton(AnParams[1]), StrToShiftState(AnParams[2]),
-          Integer(AnParams[3]), Integer(AnParams[4]));
+        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
+        begin
+          TMouseEvent(LNotifyEvent^)(LSender,
+            TMouseButton(AnParams[1]), StrToShiftState(AnParams[2]),
+            Integer(AnParams[3]), Integer(AnParams[4]));
+        end;
         exit;
       end;
 
@@ -1933,11 +1928,14 @@ begin
           begin
             FEventControl.OnMouseMove(LSender,
               StrToShiftState(AnParams[1]), Integer(AnParams[2]), Integer(AnParams[3]));
-            exit;
+//            exit;
           end;
         end;
-        TMouseMoveEvent(LNotifyEvent^)(LSender,
-          StrToShiftState(AnParams[1]), Integer(AnParams[2]), Integer(AnParams[3]));
+        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
+        begin
+          TMouseMoveEvent(LNotifyEvent^)(LSender,
+            StrToShiftState(AnParams[1]), Integer(AnParams[2]), Integer(AnParams[3]));
+        end;
         exit;
       end;
 
@@ -1968,19 +1966,22 @@ begin
             FEventControl.OnKeyDown(LSender, LWord, LShiftState);
             AnParams[2] := TShiftStateToStr(LShiftState);
             AnParams[1] := LWord;
-            exit;
+//            exit;
           end;
           if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnKeyUp') then
           begin
             FEventControl.OnKeyUp(LSender, LWord, LShiftState);
             AnParams[2] := TShiftStateToStr(LShiftState);
             AnParams[1] := LWord;
-            exit;
+//            exit;
           end;
         end;
-        TKeyEvent(LNotifyEvent^)(LSender, LWord, LShiftState);
-        AnParams[2] := TShiftStateToStr(LShiftState);
-        AnParams[1] := LWord;
+        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
+        begin
+          TKeyEvent(LNotifyEvent^)(LSender, LWord, LShiftState);
+          AnParams[2] := TShiftStateToStr(LShiftState);
+          AnParams[1] := LWord;
+        end;
         exit;
       end;
 
@@ -2013,12 +2014,15 @@ begin
             FEventControl.OnMouseWheel(LSender, StrToShiftState(String(AnParams[1])),
               Integer(AnParams[2]) ,LPoint, LBool);
             AnParams[4] := LBool;
-            exit;
+//            exit;
           end;
         end;
-        TMouseWheelEvent(LNotifyEvent^)(LSender, StrToShiftState(String(AnParams[1])),
-          Integer(AnParams[2]) ,LPoint, LBool);
-        AnParams[4] := LBool;
+        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
+        begin
+          TMouseWheelEvent(LNotifyEvent^)(LSender, StrToShiftState(String(AnParams[1])),
+            Integer(AnParams[2]) ,LPoint, LBool);
+          AnParams[4] := LBool;
+        end;
         exit;
       end;
 
@@ -2051,19 +2055,22 @@ begin
             FEventControl.OnMouseWheelDown(LSender,
               StrToShiftState(String(AnParams[1])), LPoint, LBool);
             AnParams[3] := LBool;
-            exit;
+//            exit;
           end;
           if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnMouseWheelUp') then
           begin
             FEventControl.OnMouseWheelUp(LSender,
               StrToShiftState(String(AnParams[1])), LPoint, LBool);
             AnParams[3] := LBool;
-            exit;
+//            exit;
           end;
         end;
+        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
+        begin
         TMouseWheelUpDownEvent(LNotifyEvent^)(LSender,
           StrToShiftState(String(AnParams[1])), LPoint, LBool);
         AnParams[3] := LBool;
+        end;
         exit;
       end;
 
@@ -2095,12 +2102,15 @@ begin
             FEventControl.OnGetFooter(LSender,
               String(AnParams[1]), Boolean(AnParams[2]), LStr);
             AnParams[3] := LStr;
-            exit;
+//            exit;
           end;
         end;
-        TOnGetFooter(LNotifyEvent^)(LSender,
-          String(AnParams[1]), Boolean(AnParams[2]), LStr);
-        AnParams[3] := LStr;
+        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
+        begin
+          TOnGetFooter(LNotifyEvent^)(LSender,
+            String(AnParams[1]), Boolean(AnParams[2]), LStr);
+          AnParams[3] := LStr;
+        end;
         exit;
       end;
 
@@ -2130,10 +2140,13 @@ begin
           if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnDataChange') then
           begin
             FEventControl.OnDataChange(LSender, LField);
-            exit;
+//            exit;
           end;
         end;
-        TDataChangeEvent(LNotifyEvent^)(LSender, LField);
+        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
+        begin
+          TDataChangeEvent(LNotifyEvent^)(LSender, LField);
+        end;
         exit;
       end;
 
@@ -2164,10 +2177,13 @@ begin
           if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnSyncField') then
           begin
             FEventControl.OnSyncField(LSender, LField, LList);
-            exit;
+//            exit;
           end;
         end;
-        TOnSyncFieldEvent(LNotifyEvent^)(LSender, LField, LList);
+        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
+        begin
+          TOnSyncFieldEvent(LNotifyEvent^)(LSender, LField, LList);
+        end;
         exit;
       end;
 
@@ -2197,11 +2213,14 @@ begin
           begin
             FEventControl.OnGetText(LField, LStr, LBool);
             AnParams[1] := LStr;
-            exit;
+//            exit;
           end;
         end;
-        TFieldGetTextEvent(LNotifyEvent^)(LField, LStr, LBool);
-        AnParams[1] := LStr;
+        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
+        begin
+          TFieldGetTextEvent(LNotifyEvent^)(LField, LStr, LBool);
+          AnParams[1] := LStr;
+        end;
         exit;
       end;
 
@@ -2229,10 +2248,13 @@ begin
           if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnSetText') then
           begin
             FEventControl.OnSetText(LField, LStr);
-            exit;
+//            exit;
           end;
         end;
-        TFieldSetTextEvent(LNotifyEvent^)(LField, LStr);
+        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
+        begin
+          TFieldSetTextEvent(LNotifyEvent^)(LField, LStr);
+        end;
         exit;
       end;
 
@@ -2259,10 +2281,13 @@ begin
           if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnValidate') then
           begin
             FEventControl.OnValidate(LField);
-            exit;
+//            exit;
           end;
         end;
-        TFieldNotifyEvent(LNotifyEvent^)(LField);
+        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
+        begin
+          TFieldNotifyEvent(LNotifyEvent^)(LField);
+        end;
         exit;
       end;
 
@@ -2289,10 +2314,13 @@ begin
           if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnTestCorrect') then
           begin
             Result := FEventControl.OnTestCorrect(LObj);
-            exit;
+//            exit;
           end;
         end;
-        Result := TOnTestCorrect(LNotifyEvent^)(LObj);
+        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
+        begin
+          Result := TOnTestCorrect(LNotifyEvent^)(LObj);
+        end;
         exit;
       end;
 
@@ -2319,10 +2347,13 @@ begin
           if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnSetupRecord') then
           begin
             FEventControl.OnSetupRecord(LObj);
-            exit;
+//            exit;
           end;
         end;
-        TOnSetupRecord(LNotifyEvent^)(LObj);
+        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
+        begin
+          TOnSetupRecord(LNotifyEvent^)(LObj);
+        end;
         exit;
       end;
 
@@ -2349,10 +2380,13 @@ begin
           if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnSetupDialog') then
           begin
             FEventControl.OnSetupDialog(LObj);
-            exit;
+//            exit;
           end;
         end;
-        TOnSetupDialog(LNotifyEvent^)(LObj);
+        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
+        begin
+          TOnSetupDialog(LNotifyEvent^)(LObj);
+        end;
         exit;
       end;
 
@@ -2381,35 +2415,38 @@ begin
           begin
             FEventControl.OnGetSelectClause(LObj, LStr);
             AnParams[0] := LStr;
-            exit;
+//            exit;
           end;
           if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnGetFromClause') then
           begin
             FEventControl.OnGetFromClause(LObj, LStr);
             AnParams[0] := LStr;
-            exit;
+//            exit;
           end;
           if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnGetWhereClause') then
           begin
             FEventControl.OnGetWhereClause(LObj, LStr);
             AnParams[0] := LStr;
-            exit;
+//            exit;
           end;
           if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnGetGroupClause') then
           begin
             FEventControl.OnGetGroupClause(LObj, LStr);
             AnParams[0] := LStr;
-            exit;
+//            exit;
           end;
           if  AnsiUpperCase(TempPropList[I]^.Name) = AnsiUpperCase('OnGetOrderClause') then
           begin
             FEventControl.OnGetOrderClause(LObj, LStr);
             AnParams[0] := LStr;
-            exit;
+//            exit;
           end;
         end;
-        TgdcOnGetSQLClause(LNotifyEvent^)(LObj, LStr);
-        AnParams[0] := LStr;
+        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
+        begin
+          TgdcOnGetSQLClause(LNotifyEvent^)(LObj, LStr);
+          AnParams[0] := LStr;
+        end;
         exit;
       end;
 
@@ -2467,11 +2504,14 @@ begin
               begin
                 FEventControl.OnDrawItem(InterfaceToObject(AnParams[0]) as TWinControl,
                   Integer(AnParams[1]), LRect, StrToTOwnerDrawState(String(AnParams[3])));
-                exit;
+//                exit;
               end;
             end;
-            TDrawItemEvent(LNotifyEvent^)(InterfaceToObject(AnParams[0]) as TWinControl,
-              Integer(AnParams[1]), LRect, StrToTOwnerDrawState(String(AnParams[3])));
+            if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
+            begin
+              TDrawItemEvent(LNotifyEvent^)(InterfaceToObject(AnParams[0]) as TWinControl,
+                Integer(AnParams[1]), LRect, StrToTOwnerDrawState(String(AnParams[3])));
+            end;
           end else
             raise EIncorrectParams.Create(Format('Для класса %s и события %s не переданы объекты', [LObj.ClassName, AnName]));
           exit;
@@ -2501,11 +2541,14 @@ begin
               begin
                 FEventControl.OnDrawDataCell(InterfaceToObject(AnParams[0]), LRect,
                   InterfaceToObject(AnParams[2]) as TField, StrToTGridDrawState(String(AnParams[3])));
-                exit;
+//                exit;
               end;
             end;
-            TDrawDataCellEvent(LNotifyEvent^)(InterfaceToObject(AnParams[0]), LRect,
-              InterfaceToObject(AnParams[2]) as TField, StrToTGridDrawState(String(AnParams[3])));
+            if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
+            begin
+              TDrawDataCellEvent(LNotifyEvent^)(InterfaceToObject(AnParams[0]), LRect,
+                InterfaceToObject(AnParams[2]) as TField, StrToTGridDrawState(String(AnParams[3])));
+            end;
           end else
             raise EIncorrectParams.Create(Format('Для класса %s и события %s не переданы объекты'
             , [LObj.ClassName, AnName]));
@@ -2536,11 +2579,14 @@ begin
               begin
                 FEventControl.OnDrawColumnCell(InterfaceToObject(AnParams[0]), LRect,
                   Integer(AnParams[2]), InterfaceToObject(AnParams[3]) as TColumn, StrToTGridDrawState(String(AnParams[4])));
-                exit;
+//                exit;
               end;
             end;
-            TDrawColumnCellEvent(LNotifyEvent^)(InterfaceToObject(AnParams[0]), LRect,
-              Integer(AnParams[2]), InterfaceToObject(AnParams[3]) as TColumn, StrToTGridDrawState(String(AnParams[4])));
+            if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
+            begin
+              TDrawColumnCellEvent(LNotifyEvent^)(InterfaceToObject(AnParams[0]), LRect,
+                Integer(AnParams[2]), InterfaceToObject(AnParams[3]) as TColumn, StrToTGridDrawState(String(AnParams[4])));
+            end;
           end else
             raise EIncorrectParams.Create(Format('Для класса %s и события %s не переданы объекты'
             , [LObj.ClassName, AnName]));
@@ -2550,13 +2596,8 @@ begin
         end;
       end;
     finally
-      LEventObject.ObjectKey:= objkey;
-      if Assigned(TempEventOfObject) then
-      begin
-        LEventObject.EventList.DeleteForName(AnName);
-        LEventObject.EventList.Add(TempEventOfObject);
-      end;
-      TempEventOfObject.Free;
+      if ResetCurIndex then
+        LEventObject.CurIndexParentObject := -1
     end;
 
   except
