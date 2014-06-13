@@ -1145,8 +1145,11 @@ begin
               begin
                 LFullChildName := LCurrentFullClass;
                 // Если в последнем в стеке полном имени класса есть подтип, то
-                // текущий полный класс - это тот-же полный класс без подтипа
-                  if GetClass(LCurrentFullClass.gdClassName).InheritsFrom(TGDCDOCUMENT) then
+                // текущий полный класс - это тот-же полный класс без подтипа,
+                // если нет родителя по подтипу GD_ DOCUMENTTYPE
+                  if (GetClass(LCurrentFullClass.gdClassName).InheritsFrom(TGDCDOCUMENT)
+                    or GetClass(LCurrentFullClass.gdClassName).InheritsFrom(TGDCCREATEABLEFORM))
+                    AND  (LCurrentFullClass.SubType <> '') then
                   begin
                     FIBSQL := TIBSQL.Create(nil);
                     FIBSQL.Transaction := gdcBaseManager.ReadTransaction;
