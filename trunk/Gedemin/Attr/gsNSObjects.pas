@@ -4,9 +4,10 @@ unit gsNSObjects;
 interface
 
 uses
-  ContNrs, DBGrids, gdcBaseInterface, gdcBase, gd_KeyAssoc;
+  IBDatabase, ContNrs, DBGrids, gdcBaseInterface, gdcBase, gd_KeyAssoc;
 
 type
+  TgsNSList = class;
   TgsNSObjects = class;
 
   TgsNSObject = class(TObject)
@@ -19,13 +20,17 @@ type
     FEditionDate: TDateTime;
     FHeadObjectKey: TID;
     FChecked: Boolean;
-    FLinked: TgsNSObjects;
-    FCompound: TgsNSObjects;
-    FNamespace: TgdKeyArray;
+    FLinked: TgsNSList;
+    FCompound: TgsNSList;
+    FNamespace: TgsNSList;
+    FNSObjects: TgsNSObjects;
 
   public
-    constructor Create;
+    constructor Create(ANSObjects: TgsNSObjects);
     destructor Destroy; override;
+
+    procedure Add(AnObject: TgdcBase);
+    function FindObject(const AnID: TID): TgsNSObject;
 
     property ID: TID read FID;
     property ObjectName: String read FObjectName;
@@ -35,18 +40,35 @@ type
     property EditionDate: TDateTime read FEditionDate;
     property HeadObjectKey: TID read FHeadObjectKey;
     property Checked: Boolean read FChecked write FChecked;
-    property Linked: TgsNSObjects read FLinked;
-    property Compound: TgsNSObjects read FCompound;
-    property Namespace: TgdKeyArray read FNamespace;
+    property Linked: TgsNSList read FLinked;
+    property Compound: TgsNSList read FCompound;
+    property Namespace: TgsNSList read FNamespace;
+  end;
+
+  TgsNSList = class(TObject)
+  private
+    FList: TObjectList;
+
+    function GetObjectCount: Integer;
+    function GetObjects(Index: Integer): TgsNSObject;
+
+  public
+    constructor Create;
+    destructor Destroy; override;
+
+    procedure Add(AnObject: TgdcBase; ANSObjects: TgsNSObjects);
+    function FindObject(const AnID: TID): TgsNSObject;
+
+    property ObjectCount: Integer read GetObjectCount;
+    property Objects[Index: Integer]: TgsNSObject read GetObjects;
   end;
 
   TgsNSObjects = class(TObject)
   private
-    FList: TObjectList;
+    FList: TgsNSList;
     FIBTransaction: TIBTransaction;
 
-    function GetObjectCount: Integer;
-    function GetObjects(Index: Integer): TgsNSObject;
+    function GetIBTransaction: TIBTransaction;
 
   protected
     procedure Add(AnObject: TgdcBase);
@@ -58,8 +80,7 @@ type
     procedure Setup(AnObject: TgdcBase; ABL: TBookmarkList);
     function FindObject(const AnID: TID): TgsNSObject;
 
-    property ObjectCount: Integer read GetObjectCount;
-    property Objects[Index: Integer]: TgsNSObject read GetObjects;
+    property IBTransaction: TIBTransaction read GetIBTransaction;
   end;
 
 implementation
@@ -67,59 +88,35 @@ implementation
 { TgsNSObjects }
 
 procedure TgsNSObjects.Add(AnObject: TgdcBase);
-var
-  NSObj: TgsNSObject;
 begin
-  Assert(AnObject <> nil);
-  Assert(not AnObject.EOF);
-
-  if FindObject(AnObject.ID) <> nil then
-    exit;
-
-  NSObj := TgsNSObject.Create;
-  FList.Add(NSObj);
-  NSObj.FID := AnObject.ID;
-  NSObj.FObjectName := AnObject.ObjectName;
-  NSObj.FObjectClass := AnObject.ClassName;
-  NSObj.FRUID := AnObject.GetRUID;
-  NSObj.FEditionDate := AnObject.EditionDate;
+  FList.Add(AnObject, Self);
 end;
 
 constructor TgsNSObjects.Create;
 begin
   inherited Create;
-  FList := TObjectList.Create(True);
+  FList := TgsNSList.Create;
+  FIBTransaction := TIBTransaction.Create(nil);
+  FIBTransaction.DefaultDatabase := gdcBaseManager.Database;
 end;
 
 destructor TgsNSObjects.Destroy;
 begin
+  FIBTransaction.Free;
   FList.Free;
   inherited;
 end;
 
 function TgsNSObjects.FindObject(const AnID: TID): TgsNSObject;
-var
-  I: Integer;
 begin
-  Result := nil;
-  for I := 0 to ObjectCount - 1 do
-  begin
-    if Objects[I].ID = AnID then
-    begin
-      Result := Objects[I];
-      break;
-    end;
-  end;
+  Result := FList.FindObject(AnID);
 end;
 
-function TgsNSObjects.GetObjectCount: Integer;
+function TgsNSObjects.GetIBTransaction: TIBTransaction;
 begin
-  Result := FList.Count;
-end;
-
-function TgsNSObjects.GetObjects(Index: Integer): TgsNSObject;
-begin
-  Result := FList[Index] as TgsNSObject;
+  if not FIBTransaction.InTransaction then
+    FIBTransaction.StartTransaction;
+  Result := FIBTransaction;  
 end;
 
 procedure TgsNSObjects.Setup(AnObject: TgdcBase; ABL: TBookmarkList);
@@ -150,14 +147,28 @@ end;
 
 { TgsNSObject }
 
-constructor TgsNSObject.Create;
+procedure TgsNSObject.Add(AnObject: TgdcBase);
+begin
+  Assert(AnObject <> nil);
+  Assert(not AnObject.EOF);
+  Assert(FindObject(AnObject.ID) = nil);
+
+  FID := AnObject.ID;
+  FObjectName := AnObject.ObjectName;
+  FObjectClass := AnObject.ClassName;
+  FRUID := AnObject.GetRUID;
+  FEditionDate := AnObject.EditionDate;
+end;
+
+constructor TgsNSObject.Create(ANSObjects: TgsNSObjects);
 begin
   FID := -1;
   FHeadObjectKey := -1;
   FChecked := True;
-  FLinked := TgsNSObjects.Create;
-  FCompound := TgsNSObjects.Create;
-  FNamespace := TgdKeyArray.Create;
+  FLinked := TgsNSList.Create;
+  FCompound := TgsNSList.Create;
+  FNamespace := TgsNSList.Create;
+  FNSObjects := ANSObjects;
 end;
 
 destructor TgsNSObject.Destroy;
@@ -166,6 +177,69 @@ begin
   FLinked.Free;
   FCompound.Free;
   inherited;
+end;
+
+function TgsNSObject.FindObject(const AnID: TID): TgsNSObject;
+begin
+  if AnID = FID then
+    Result := Self
+  else begin
+    Result := FLinked.FindObject(AnID);
+    if Result = nil then
+      Result := FCompound.FindObject(AnID);
+  end;
+end;
+
+{ TgsNSList }
+
+procedure TgsNSList.Add(AnObject: TgdcBase; ANSObjects: TgsNSObjects);
+var
+  NSObj: TgsNSObject;
+begin
+  Assert(AnObject <> nil);
+  Assert(not AnObject.EOF);
+
+  if FindObject(AnObject.ID) <> nil then
+    exit;
+
+  NSObj := TgsNSObject.Create(ANSObjects);
+  FList.Add(NSObj);
+  NSObj.Add(AnObject);
+end;
+
+constructor TgsNSList.Create;
+begin
+  inherited;
+  FList := TObjectList.Create(True);
+end;
+
+destructor TgsNSList.Destroy;
+begin
+  FList.Free;
+  inherited;
+end;
+
+function TgsNSList.FindObject(const AnID: TID): TgsNSObject;
+var
+  I: Integer;
+begin
+  Result := nil;
+  for I := 0 to ObjectCount - 1 do
+  begin
+    Result := Objects[I].FindObject(AnID);
+    if Result <> nil then
+      break;
+  end;
+end;
+
+function TgsNSList.GetObjectCount: Integer;
+begin
+  Result := FList.Count;
+end;
+
+function TgsNSList.GetObjects(Index: Integer): TgsNSObject;
+begin
+  Result := FList[Index] as TgsNSObject;
 end;
 
 end.

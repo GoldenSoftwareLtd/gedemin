@@ -8,10 +8,6 @@
   Тогда путь, вычисленный при сохранении будет не равен пути при считывании
   данных из хранилища.
 
-  Избежать этого мы планируем вычисляя путь только один раз и сохраняя
-  его в списке. После этого если поступит обращение вычислить путь для
-  данного компонента мы будем брать его из списка.
-
   Context:
 
   Иногда компонент один, но в зависимости от программного контекста он
@@ -30,11 +26,7 @@ interface
 uses
   Classes, Windows;
 
-{var
-  MainForm: TComponent;}
-
 function BuildComponentPath(C: TComponent; const Context: String = ''): String;
-{procedure RemoveComponentFromList(C: TComponent);}
 
 implementation
 
@@ -45,21 +37,6 @@ uses
     , gd_localization_stub
   {$ENDIF}
   ;
-
-{var
-  RegisteredCompPath: TStringList;
-
-procedure RemoveComponentFromList(C: TComponent);
-var
-  I: Integer;
-begin
-  if Assigned(RegisteredCompPath) then
-  begin
-    I := RegisteredCompPath.IndexOfObject(C);
-    if I <> -1 then
-      RegisteredCompPath.Delete(I);
-  end;
-end;}
 
 function BuildComponentPath(C: TComponent; const Context: String = ''): String;
 
@@ -107,9 +84,6 @@ function BuildComponentPath(C: TComponent; const Context: String = ''): String;
       Result := _BuildComponentPath(C.Owner) + '\' + Format('%s(%s)', [RemoveLastNum(C), C.ClassName]);
   end;
 
-{var
-  S: String;}
-
 begin
   try
     if not Assigned(C) then
@@ -120,47 +94,6 @@ begin
       if Context > '' then
         Result := Result + '\' + Context;
     end;
-
-    {if not Assigned(C) then
-    begin
-      Result := Context;
-      exit;
-    end;
-
-    if Assigned(RegisteredCompPath) and (RegisteredCompPath.IndexOfObject(C) > -1) then
-    begin
-      Result := RegisteredCompPath[RegisteredCompPath.IndexOfObject(C)];
-
-      // если компонент создан, для него сгенерирован путь, то он
-      // заносится в наш список. позже компонент может быть удален
-      // но в нашем списке он все равно останется. вынуждены сделать
-      // дополнительную проверку и если выяснилось, что в списке
-      // хранится путь и адрес удаленного компонента, который (адрес)
-      // совпадает с переданным, то удаляем их из списка
-      S := _BuildComponentPath(C);
-
-      // пути могут отличаться левыми частями из-за owner-ов, которые
-      // в отдельных ситуациях могут быть нулевыми
-      if Pos(S, Result) = Length(Result) - Length(S) + 1 then
-      begin
-
-        if Context > '' then
-          Result := Result + '\' + Context;
-
-        exit;
-      end else
-        RegisteredCompPath.Delete(RegisteredCompPath.IndexOfObject(C));
-    end;
-
-    Result := _BuildComponentPath(C);
-
-    RegisteredCompPath.AddObject(Result, C);
-
-    if Assigned(MainForm) then
-      C.FreeNotification(MainForm);
-
-    if Context > '' then
-      Result := Result + '\' + Context;}
   except
     on E: Exception do
     begin
@@ -171,11 +104,4 @@ begin
   end;
 end;
 
-{initialization
-  RegisteredCompPath := TStringList.Create;
-  RegisteredCompPath.Sorted := True;
-  RegisteredCompPath.Duplicates := dupIgnore;
-
-finalization
-  FreeAndNil(RegisteredCompPath);}
 end.

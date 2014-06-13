@@ -44,7 +44,7 @@ implementation
 
 uses
   Classes, Windows, Controls, StdCtrls, ExtCtrls, SysUtils, gdcBaseInterface,
-  gdcNamespace, at_dlgNamespaceOp_unit, flt_sql_parser, gdcMetaData{, gsNSObjects};
+  gdcNamespace, at_dlgNamespaceOp_unit, flt_sql_parser, gdcMetaData, gsNSObjects;
 
 procedure TgdcNamespaceController._AddToNamespace;
 {var
@@ -355,7 +355,7 @@ begin
     q.Transaction := FIBTransaction;
 
     q.SQL.Text :=
-      'SELECT n.id, n.name ' +
+      'SELECT DISTINCT n.id, n.name ' +
       'FROM at_object o ' +
       '  JOIN gd_ruid r ON r.xid = o.xid AND r.dbid = o.dbid ' +
       '  JOIN at_namespace n ON n.id = o.namespacekey ' +
