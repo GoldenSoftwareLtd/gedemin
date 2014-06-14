@@ -6,10 +6,10 @@ uses
   Windows, Messages, ContNrs, SysUtils, Classes, Graphics, Controls, Forms,
   Dialogs, Db, DBClient, StdCtrls, IBDatabase, gsIBLookupComboBox, Grids,
   DBGrids, gsDBGrid, ActnList, gdcBaseInterface, gdcBase, DBCtrls, Buttons,
-  gd_createable_form, ExtCtrls, IBSQL;
+  gd_createable_form, ExtCtrls, IBSQL, at_dlgToNamespaceInterface;
 
 type
-  TdlgToNamespace = class(TCreateableForm)
+  TdlgToNamespace = class(TCreateableForm, Iat_dlgToNamespace)
     dsLink: TDataSource;
     ActionList: TActionList;
     actOK: TAction;
@@ -34,7 +34,6 @@ type
   private
     Pnl: TPanel;
     FNS: TIBSQL;
-    FNSRecords: TObjectList;
 
     procedure DoCheckClick(Sender: TObject);
 
@@ -48,7 +47,7 @@ type
       const ASubType: String;
       const ARUID: TRUID;
       const AEditionDate: TDateTime;
-      const AHeadObjectKey: TID;
+      const AHeadObjectKey: Integer;
       const ANamespace: String;
       const ALinked: Boolean);
   end;
@@ -72,7 +71,6 @@ end;
 
 destructor TdlgToNamespace.Destroy;
 begin
-  FNSRecords.Free;
   FNS.Free;
   inherited;
 end;
@@ -86,7 +84,6 @@ begin
     'SELECT LIST(n.name, '', '') FROM at_namespace n ' +
     '  JOIN at_object o ON o.namespacekey = n.id ' +
     'WHERE o.xid = :xid AND o.dbid = :dbid';
-  FNSRecords := TObjectList.Create(True);
 end;
 
 procedure TdlgToNamespace.FormCreate(Sender: TObject);
@@ -108,7 +105,7 @@ procedure TdlgToNamespace.AddObject(const AnObjID: Integer;
   const ASubType: String;
   const ARUID: TRUID;
   const AEditionDate: TDateTime;
-  const AHeadObjectKey: TID;
+  const AHeadObjectKey: Integer;
   const ANamespace: String;
   const ALinked: Boolean);
 var
@@ -118,8 +115,6 @@ var
   CurrPnl: TPanel;
   FY: Integer;
 begin
-  {
-  Assert((not ALinked) or (FNSRecords.Count > 0));
   Assert((not ALinked) or (Pnl <> nil));
 
   FNS.ParamByName('xid').AsInteger := ARUID.XID;
@@ -144,8 +139,6 @@ begin
     CurrPnl.BorderStyle := bsNone;
     CurrPnl.BevelOuter := bvNone;
     CurrPnl.BevelInner := bvNone;
-    NSRecords[NSRecordCount - 1].AddLinked(TNSRecord.Create(AnObjID, AnObjectName, AClassName,
-      ASubType, ARUID, AEditionDate, AHeadObjectKey));
   end else
   begin
     if Pnl <> nil then
@@ -161,8 +154,6 @@ begin
     Pnl.Height := 21;
     Pnl.Caption := '';
     CurrPnl := Pnl;
-    FNSRecords.Add(TNSRecord.Create(AnObjID, AnObjectName, AClassName,
-      ASubType, ARUID, AEditionDate, AHeadObjectKey));
   end;
 
   ChBx := TCheckBox.Create(Self);
@@ -205,7 +196,6 @@ begin
   begin
     Lbl.Caption := AClassName + ASubType;
   end;
-  }
 end;
 
 procedure TdlgToNamespace.DoCheckClick(Sender: TObject);
