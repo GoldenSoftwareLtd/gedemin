@@ -304,9 +304,18 @@ begin
     if (Items[I] as TgdNotifierItem).Context = AContext then
     begin
       Delete(I);
-      if I < FCurr then Dec(FCurr);
+      if I < FCurr then
+        Dec(FCurr);
       Result := True;
     end;
+  end;
+
+  if Result and (FCurr >= Count) then
+  begin
+    if Count > 0 then
+      FCurr := Count - 1
+    else
+      FCurr := 0;  
   end;
 end;
 
