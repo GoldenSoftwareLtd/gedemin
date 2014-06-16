@@ -3968,6 +3968,7 @@ var
   SubType: string;
   ParentSubType: string;
   ReplaceSubType: boolean;
+  
 const
   ErrorMsg =
     'При загрузке настроек произошла ошибка: %s'#10#13 +
@@ -3988,7 +3989,13 @@ begin
           if Assigned(UserStorage) and Assigned(GlobalStorage) then
           begin
             bLoadedFromStorage:= GlobalStorage.ReadStream(FResourceName, FFormSubType, F, IBLogin.IsIBUserAdmin);
-            if not bLoadedFromStorage then
+            if (not bLoadedFromStorage)
+              and (FEditForm.ClassName <> 'Tgdc_frmAttrUserDefined')
+              and (FEditForm.ClassName <> 'Tgdc_frmAttrUserDefinedTree')
+              and (FEditForm.ClassName <> 'Tgdc_frmAttrUserDefinedLBRBTree')
+              and (FEditForm.ClassName <> 'Tgdc_dlgAttrUserDefined')
+              and (FEditForm.ClassName <> 'Tgdc_dlgAttrUserDefinedTree')
+              and (FEditForm.ClassName <> 'Tgdc_dlgAttrUserDefinedLBRBTree') then
             begin
               SubType := FFormSubType;
               repeat
@@ -4015,7 +4022,13 @@ begin
             if (FDesignerType = dtUser) and (Flag = 0) then
             begin
               bLoadedFromUserStorage:= UserStorage.ReadStream(FResourceName, FFormSubType, F);
-              if not bLoadedFromUserStorage then
+              if not bLoadedFromUserStorage
+                and (FEditForm.ClassName <> 'Tgdc_frmAttrUserDefined')
+                and (FEditForm.ClassName <> 'Tgdc_frmAttrUserDefinedTree')
+                and (FEditForm.ClassName <> 'Tgdc_frmAttrUserDefinedLBRBTree')
+                and (FEditForm.ClassName <> 'Tgdc_dlgAttrUserDefined')
+                and (FEditForm.ClassName <> 'Tgdc_dlgAttrUserDefinedTree')
+                and (FEditForm.ClassName <> 'Tgdc_dlgAttrUserDefinedLBRBTree') then
               begin
                 SubType := FFormSubType;
                 repeat
@@ -4053,7 +4066,13 @@ begin
                     Flag := 0;
                     F.Clear;
                     bLoadedFromUserStorage:= UserStorage.ReadStream(FResourceName, FFormSubType, F);
-                    if not bLoadedFromUserStorage then
+                    if not bLoadedFromUserStorage
+                      and (FEditForm.ClassName <> 'Tgdc_frmAttrUserDefined')
+                      and (FEditForm.ClassName <> 'Tgdc_frmAttrUserDefinedTree')
+                      and (FEditForm.ClassName <> 'Tgdc_frmAttrUserDefinedLBRBTree')
+                      and (FEditForm.ClassName <> 'Tgdc_dlgAttrUserDefined')
+                      and (FEditForm.ClassName <> 'Tgdc_dlgAttrUserDefinedTree')
+                      and (FEditForm.ClassName <> 'Tgdc_dlgAttrUserDefinedLBRBTree') then
                     begin
                       SubType := FFormSubType;
                       repeat
