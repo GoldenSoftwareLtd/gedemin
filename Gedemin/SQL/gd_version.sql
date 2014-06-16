@@ -671,6 +671,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (213, '0000.0001.0000.0244', '22.05.2014', 'Document class can not include a folder.');
 
+INSERT INTO fin_versioninfo
+  VALUES (214, '0000.0001.0000.0245', '16.06.2014', 'Add GD_WEBLOG, GD_WEBLOGDATA tables.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id

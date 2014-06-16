@@ -8,6 +8,7 @@ uses
 procedure ModifyAC_ACCOUNTEXSALDO_BAL(IBDB: TIBDatabase; Log: TModifyLog);
 procedure IntroduceIncorrectRecordGTT(IBDB: TIBDatabase; Log: TModifyLog);
 procedure Issue3373(IBDB: TIBDatabase; Log: TModifyLog);
+procedure AddGD_WEBLOG(IBDB: TIBDatabase; Log: TModifyLog);
 
 implementation
 
@@ -879,6 +880,105 @@ begin
         q.SQL.Text :=
           'UPDATE OR INSERT INTO fin_versioninfo ' +
           '  VALUES (213, ''0000.0001.0000.0244'', ''22.05.2014'', ''Document class can not include a folder.'') ' +
+          '  MATCHING (id)';
+        q.ExecQuery;
+      finally
+        q.Free;
+      end;
+
+      FTransaction.Commit;
+    except
+      on E: Exception do
+      begin
+        Log(E.Message);
+        if FTransaction.InTransaction then
+          FTransaction.Rollback;
+        raise;
+      end;
+    end;
+  finally
+    FTransaction.Free;
+  end;
+end;
+
+procedure AddGD_WEBLOG(IBDB: TIBDatabase; Log: TModifyLog);
+var
+  FTransaction: TIBTransaction;
+  q: TIBSQL;
+begin
+  FTransaction := TIBTransaction.Create(nil);
+  try
+    FTransaction.DefaultDatabase := IBDB;
+    FTransaction.StartTransaction;
+    try
+      q := TIBSQL.Create(nil);
+      try
+        q.Transaction := FTransaction;
+
+        if not DomainExist2('gd_dipaddress', FTransaction) then
+        begin
+          q.SQL.Text :=
+            'CREATE DOMAIN gd_dipaddress '#13#10 +
+            '  VARCHAR(15) NOT NULL '#13#10 +
+            '  CHECK (VALUE SIMILAR TO '#13#10 +
+            '    ''(([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-6]).){3}([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-6])'')';
+          q.ExecQuery;
+        end;
+
+        if not RelationExist2('gd_weblog', FTransaction) then
+        begin
+          q.SQL.Text :=
+            'CREATE TABLE gd_weblog '#13#10 +
+            '( '#13#10 +
+            '  id           dintkey, '#13#10 +
+            '  ipaddress    gd_dipaddress, '#13#10 +
+            '  op           CHAR(4) NOT NULL, '#13#10 +
+            '  datetime     TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL, '#13#10 +
+            ' '#13#10 +
+            '  CONSTRAINT gd_pk_weblog PRIMARY KEY (id) '#13#10 +
+            ')';
+          q.ExecQuery;
+        end;
+
+        if not RelationExist2('gd_weblogdata', FTransaction) then
+        begin
+          q.SQL.Text :=
+            'CREATE TABLE gd_weblogdata '#13#10 +
+            '( '#13#10 +
+            '  logkey       dintkey, '#13#10 +
+            '  valuename    dname, '#13#10 +
+            '  valuestr     dtext254, '#13#10 +
+            '  valueblob    BLOB SUB_TYPE 1 CHARACTER SET WIN1251 COLLATE PXW_CYRL, '#13#10 +
+            ' '#13#10 +
+            '  CONSTRAINT gd_pk_weblogdata PRIMARY KEY (logkey, valuename), '#13#10 +
+            '  CONSTRAINT gd_fk_weblogdata_logkey FOREIGN KEY (logkey) '#13#10 +
+            '    REFERENCES gd_weblog (id) '#13#10 +
+            '    ON DELETE CASCADE '#13#10 +
+            '    ON UPDATE CASCADE '#13#10 +
+            ')';
+          q.ExecQuery;
+        end;
+
+        q.SQL.Text :=
+          'CREATE OR ALTER TRIGGER gd_bi_weblog FOR gd_weblog '#13#10 +
+          '  BEFORE INSERT '#13#10 +
+          '  POSITION 0 '#13#10 +
+          'AS '#13#10 +
+          'BEGIN '#13#10 +
+          '  IF (NEW.ID IS NULL) THEN '#13#10 +
+          '    NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0); '#13#10 +
+          'END';
+        q.ExecQuery;
+
+        q.SQL.Text := 'GRANT ALL ON gd_weblog        TO administrator';
+        q.ExecQuery;
+
+        q.SQL.Text := 'GRANT ALL ON gd_weblogdata    TO administrator';
+        q.ExecQuery;
+
+        q.SQL.Text :=
+          'UPDATE OR INSERT INTO fin_versioninfo ' +
+          '  VALUES (214, ''0000.0001.0000.0245'', ''16.06.2014'', ''Add GD_WEBLOG, GD_WEBLOGDATA tables.'') ' +
           '  MATCHING (id)';
         q.ExecQuery;
       finally
