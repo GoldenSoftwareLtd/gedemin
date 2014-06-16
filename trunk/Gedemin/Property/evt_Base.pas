@@ -9772,7 +9772,13 @@ var
   I: integer;
 begin
   Result := false;
-  if (AnComponent is TCreateableForm) then
+  if (AnComponent is TCreateableForm)
+    and (AnComponent.ClassName <> 'Tgdc_frmAttrUserDefined')
+    and (AnComponent.ClassName <> 'Tgdc_frmAttrUserDefinedTree')
+    and (AnComponent.ClassName <> 'Tgdc_frmAttrUserDefinedLBRBTree')
+    and (AnComponent.ClassName <> 'Tgdc_dlgAttrUserDefined')
+    and (AnComponent.ClassName <> 'Tgdc_dlgAttrUserDefinedTree')
+    and (AnComponent.ClassName <> 'Tgdc_dlgAttrUserDefinedLBRBTree') then
   begin
     LName := AnComponent.Name;
     LClassName := AnComponent.ClassName;
@@ -9797,7 +9803,13 @@ begin
       until ParentSubType = '';
   end;
 
-  if (AnComponent.Owner is TCreateableForm) then
+  if (AnComponent.Owner is TCreateableForm)
+    and (AnComponent.Owner.ClassName <> 'Tgdc_frmAttrUserDefined')
+    and (AnComponent.Owner.ClassName <> 'Tgdc_frmAttrUserDefinedTree')
+    and (AnComponent.Owner.ClassName <> 'Tgdc_frmAttrUserDefinedLBRBTree')
+    and (AnComponent.Owner.ClassName <> 'Tgdc_dlgAttrUserDefined')
+    and (AnComponent.Owner.ClassName <> 'Tgdc_dlgAttrUserDefinedTree')
+    and (AnComponent.Owner.ClassName <> 'Tgdc_dlgAttrUserDefinedLBRBTree') then
   begin
     OwnerEventObject := EventObjectList.FindAllObject(AnComponent.Owner);
     if (Assigned (OwnerEventObject))

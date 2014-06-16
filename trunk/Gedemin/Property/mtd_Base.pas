@@ -1149,7 +1149,13 @@ begin
                 // если нет родителя по подтипу GD_ DOCUMENTTYPE
                   if (GetClass(LCurrentFullClass.gdClassName).InheritsFrom(TGDCDOCUMENT)
                     or GetClass(LCurrentFullClass.gdClassName).InheritsFrom(TGDCCREATEABLEFORM))
-                    AND  (LCurrentFullClass.SubType <> '') then
+                    and  (LCurrentFullClass.SubType <> '')
+                    and (AnsiUpperCase(LCurrentFullClass.gdClassName) <> AnsiUpperCase('Tgdc_frmAttrUserDefined'))
+                    and (AnsiUpperCase(LCurrentFullClass.gdClassName) <> AnsiUpperCase('Tgdc_frmAttrUserDefinedTree'))
+                    and (AnsiUpperCase(LCurrentFullClass.gdClassName) <> AnsiUpperCase('Tgdc_frmAttrUserDefinedLBRBTree'))
+                    and (AnsiUpperCase(LCurrentFullClass.gdClassName) <> AnsiUpperCase('Tgdc_dlgAttrUserDefined'))
+                    and (AnsiUpperCase(LCurrentFullClass.gdClassName) <> AnsiUpperCase('Tgdc_dlgAttrUserDefinedTree'))
+                    and (AnsiUpperCase(LCurrentFullClass.gdClassName) <> AnsiUpperCase('Tgdc_dlgAttrUserDefinedLBRBTree')) then
                   begin
                     FIBSQL := TIBSQL.Create(nil);
                     FIBSQL.Transaction := gdcBaseManager.ReadTransaction;
