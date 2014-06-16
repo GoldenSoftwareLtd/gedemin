@@ -51,7 +51,7 @@ uses
   mdf_DeletecbAnalyticFromScript, mdf_ModifyBLOBDdocumentdate, mdf_ModifyAC_ACCOUNTEXSALDO_BAL;
 
 const
-  cProcCount = 207;
+  cProcCount = 208;
 
 type
   TModifyProc = record
@@ -366,7 +366,8 @@ const
     (ModifyProc: ModifyBLOB; ModifyVersion: '0000.0001.0000.0233'; NeedDBShutdown: True),
     (ModifyProc: ModifyAC_ACCOUNTEXSALDO_BAL; ModifyVersion: '0000.0001.0000.0237'; NeedDBShutdown: False),
     (ModifyProc: IntroduceIncorrectRecordGTT; ModifyVersion: '0000.0001.0000.0241'; NeedDBShutdown: True),
-    (ModifyProc: Issue3373; ModifyVersion: '0000.0001.0000.0243'; NeedDBShutdown: False)
+    (ModifyProc: Issue3373; ModifyVersion: '0000.0001.0000.0243'; NeedDBShutdown: False),
+    (ModifyProc: AddGD_WEBLOG; ModifyVersion: '0000.0001.0000.0244'; NeedDBShutdown: True)
   );
 
 implementation

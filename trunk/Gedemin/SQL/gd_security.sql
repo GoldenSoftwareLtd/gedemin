@@ -737,7 +737,7 @@ CREATE TABLE gd_weblogdata
 
 SET TERM ^ ;
 
-CREATE TRIGGER gd_bi_weblog FOR gd_weblog
+CREATE OR ALTER TRIGGER gd_bi_weblog FOR gd_weblog
   BEFORE INSERT
   POSITION 0
 AS

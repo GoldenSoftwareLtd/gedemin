@@ -177,12 +177,15 @@ begin
   ibsql := TIBSQL.Create(nil);
   try
     ibsql.Transaction := gdcBaseManager.ReadTransaction;
-    ibsql.SQL.Text := 'SELECT * FROM at_relations WHERE relationname = :rn';
+    ibsql.SQL.Text :=
+      'SELECT ruid.xid || ''_'' || ruid.dbid ' +
+      'FROM at_relations r JOIN gd_ruid ruid ON ruid.id = r.id ' +
+      'WHERE relationname = :rn';
     ibsql.ParamByName('rn').AsString := AnsiUpperCase(ARelationName);
     ibsql.ExecQuery;
 
-    if ibsql.RecordCount > 0 then
-      Result := gdcBaseManager.GetRuidStringByID(ibsql.FieldByName('id').AsInteger)
+    if not ibsql.EOF then
+      Result := ibsql.Fields[0].AsString
     else
       Result := '';
   finally
