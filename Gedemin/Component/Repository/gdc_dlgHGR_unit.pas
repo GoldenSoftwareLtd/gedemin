@@ -98,7 +98,8 @@ var
 implementation
 
 uses
-  dmImages_unit, Storages,  gd_ClassList, gsStorage_CompPath, at_classes, at_sql_setup;
+  dmImages_unit, Storages,  gd_ClassList, gsStorage_CompPath, at_classes, at_sql_setup,
+  SubType_Cache;
 
 {$R *.DFM}
 
@@ -199,45 +200,6 @@ begin
 end;
 
 procedure Tgdc_dlgHGR.LoadSettings;
-  function FindParentSubType(SubType: string): string;
-  var
-    ibsql: TIBSQL;
-    tr: TIBTransaction;
-    prnt: Integer;
-  begin
-    Result := '';
-    ibsql := TIBSQL.Create(nil);
-    tr:= TIBTransaction.Create(nil);
-    try
-      tr.DefaultDatabase:= dmDatabase.ibdbGAdmin;
-      tr.StartTransaction;
-      ibsql.Transaction:= tr;
-      ibsql.Close;
-      ibsql.SQL.Text :=
-        'SELECT z.* FROM gd_documenttype z '#13#10 +
-        'WHERE z.RUID = :RUID ';
-      ibsql.ParamByName('RUID').AsString := SubType;
-      ibsql.ExecQuery;
-      if not ibsql.Eof then
-      begin
-        prnt := ibsql.FieldByName('Parent').AsInteger;
-        ibsql.Close;
-        ibsql.SQL.Text :=
-          'SELECT z.* FROM gd_documenttype z '#13#10 +
-          'WHERE z.ID = :ID AND z.documenttype = ''D''';
-        ibsql.ParamByName('ID').AsInteger := prnt;
-        ibsql.ExecQuery;
-        if not ibsql.Eof then
-        begin
-          Result := ibsql.FieldByName('RUID').AsString;
-        end;
-      end;
-    finally
-      tr.Commit;
-      tr.Free;
-      ibsql.Free;
-    end;
-  end;
 var
   {@UNFOLD MACRO INH_CRFORM_PARAMS()}
   {M}
