@@ -1084,7 +1084,7 @@ uses
   gd_Security, obj_i_Debugger, dlg_gsResizer_ObjectInspector_unit,
   prp_frmGedeminProperty_Unit, gd_createable_form, mtd_i_Base,
   gdc_frmMDVTree_unit, gdcReport, FileCtrl, prp_PropertySettings, gsSupportClasses,
-  shdocvw, gdcBaseInterface
+  shdocvw, gdcBaseInterface, SubType_Cache
   {$IFDEF MODEM}
     , gsModem
   {$ENDIF}
@@ -9714,7 +9714,7 @@ begin
   end;
 end;
 
-procedure TEventControl.SetEvents(AnComponent: TComponent; 
+procedure TEventControl.SetEvents(AnComponent: TComponent;
   const OnlyComponent: Boolean = False);
 begin
   if AnComponent <> nil then
@@ -9724,41 +9724,6 @@ end;
 
 function TEventControl.SetParentEventObjectsBySubType(AnComponent: TComponent;
   AnEventObject: TEventObject): boolean;
-
-  function FindParentSubType(SubType: string): string;
-  var
-    ibsql: TIBSQL;
-    prnt: Integer;
-  begin
-    Result := '';
-    ibsql := TIBSQL.Create(nil);
-    ibsql.Transaction := gdcBaseManager.ReadTransaction;
-    try
-      ibsql.Close;
-      ibsql.SQL.Text :=
-        'SELECT z.* FROM gd_documenttype z '#13#10 +
-        'WHERE z.RUID = :RUID ';
-      ibsql.ParamByName('RUID').AsString := SubType;
-      ibsql.ExecQuery;
-      if not ibsql.Eof then
-      begin
-        prnt := ibsql.FieldByName('Parent').AsInteger;
-        ibsql.Close;
-        ibsql.SQL.Text :=
-          'SELECT z.* FROM gd_documenttype z '#13#10 +
-          'WHERE z.ID = :ID AND z.documenttype = ''D''';
-        ibsql.ParamByName('ID').AsInteger := prnt;
-        ibsql.ExecQuery;
-        if not ibsql.Eof then
-        begin
-          Result := ibsql.FieldByName('RUID').AsString;
-        end;
-      end;
-    finally
-      ibsql.Free;
-    end;
-  end;
-
 var
   LName: string;
   LClassName: string;

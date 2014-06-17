@@ -500,7 +500,7 @@ uses
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
   {$ENDIF}
-  ;
+  , SubType_Cache;
 
 var
   ApplicationMessageProcessor: TApplicationMessageProcessor;
@@ -3918,45 +3918,6 @@ begin
 end;
 
 procedure TgsResizeManager.ReloadComponent(const Attr: Boolean);
-  function FindParentSubType(SubType: string): string;
-  var
-    ibsql: TIBSQL;
-    tr: TIBTransaction;
-    prnt: Integer;
-  begin
-    Result := '';
-    ibsql := TIBSQL.Create(nil);
-    tr:= TIBTransaction.Create(nil);
-    try
-      tr.DefaultDatabase:= dmDatabase.ibdbGAdmin;
-      tr.StartTransaction;
-      ibsql.Transaction:= tr;
-      ibsql.Close;
-      ibsql.SQL.Text :=
-        'SELECT z.* FROM gd_documenttype z '#13#10 +
-        'WHERE z.RUID = :RUID ';
-      ibsql.ParamByName('RUID').AsString := SubType;
-      ibsql.ExecQuery;
-      if not ibsql.Eof then
-      begin
-        prnt := ibsql.FieldByName('Parent').AsInteger;
-        ibsql.Close;
-        ibsql.SQL.Text :=
-          'SELECT z.* FROM gd_documenttype z '#13#10 +
-          'WHERE z.ID = :ID AND z.documenttype = ''D''';
-        ibsql.ParamByName('ID').AsInteger := prnt;
-        ibsql.ExecQuery;
-        if not ibsql.Eof then
-        begin
-          Result := ibsql.FieldByName('RUID').AsString;
-        end;
-      end;
-    finally
-      tr.Commit;
-      tr.Free;
-      ibsql.Free;
-    end;
-  end;
 var
   F: TMemoryStream;
   OldVisible, bLoadedFromStorage: Boolean;

@@ -356,7 +356,7 @@ uses
   IBSQL, gd_SetDatabase, gdcOLEClassList,
   rp_ReportScriptControl, gd_i_ScriptFactory, gd_ClassList, prp_dlgScriptError_unit,
   Controls, gs_Exception, gdc_createable_form, Windows, {prp_dlgViewProperty_unit,}
-  gd_Security, forms;
+  gd_Security, forms, SubType_Cache;
 
 var
   LocalSubTypeList: TStrings;
@@ -1003,7 +1003,6 @@ var
   LClassType: TmtdClassType;
   LgdcCreateableFormClass: CgdcCreateableForm;
   LgdcBaseClass: CgdcBase;
-  FIBSQL: TIBSQL;
 const
   LMsgMethodUserError =
                   'ћетод %s дл€ класса %s вызвал ошибку.'#13#10 +
@@ -1147,8 +1146,8 @@ begin
                 // ≈сли в последнем в стеке полном имени класса есть подтип, то
                 // текущий полный класс - это тот-же полный класс без подтипа,
                 // если нет родител€ по подтипу GD_ DOCUMENTTYPE
-                  if (GetClass(LCurrentFullClass.gdClassName).InheritsFrom(TGDCDOCUMENT)
-                    or GetClass(LCurrentFullClass.gdClassName).InheritsFrom(TGDCCREATEABLEFORM))
+                if (GetClass(LCurrentFullClass.gdClassName).InheritsFrom(TGDCDOCUMENT)
+                  or GetClass(LCurrentFullClass.gdClassName).InheritsFrom(TGDCCREATEABLEFORM))
                     and  (LCurrentFullClass.SubType <> '')
                     and (AnsiUpperCase(LCurrentFullClass.gdClassName) <> AnsiUpperCase('Tgdc_frmAttrUserDefined'))
                     and (AnsiUpperCase(LCurrentFullClass.gdClassName) <> AnsiUpperCase('Tgdc_frmAttrUserDefinedTree'))
@@ -1156,24 +1155,9 @@ begin
                     and (AnsiUpperCase(LCurrentFullClass.gdClassName) <> AnsiUpperCase('Tgdc_dlgAttrUserDefined'))
                     and (AnsiUpperCase(LCurrentFullClass.gdClassName) <> AnsiUpperCase('Tgdc_dlgAttrUserDefinedTree'))
                     and (AnsiUpperCase(LCurrentFullClass.gdClassName) <> AnsiUpperCase('Tgdc_dlgAttrUserDefinedLBRBTree')) then
-                  begin
-                    FIBSQL := TIBSQL.Create(nil);
-                    FIBSQL.Transaction := gdcBaseManager.ReadTransaction;
-                    FIBSQL.SQL.Text :=
-                      'SELECT '#13#10 +
-                      '  p.ruid '#13#10 +
-                      'FROM GD_DOCUMENTTYPE d '#13#10 +
-                      'LEFT JOIN GD_DOCUMENTTYPE p ON p.ID = d.PARENT AND p.DOCUMENTTYPE = ''D'''#13#10 +
-                      'WHERE d.RUID =:SUBTYPE';
-                    FIBSQL.ParamByName('SUBTYPE').AsString := LCurrentFullClass.SubType;
-                    FIBSQL.ExecQuery;
-                    If (not FIBSQL.EoF) and (not FIBSQL.Fields[0].IsNull)then
-                      LCurrentFullClass.SubType := FIBSQL.Fields[0].AsString
-                    else
-                      LCurrentFullClass.SubType := '';
-                    FIBSQL.Close;
-                    FIBSQL.Free;
-                  end
+                begin
+                  LCurrentFullClass.SubType := FindParentSubType(LCurrentFullClass.SubType);
+                end
                 else
                   LCurrentFullClass.SubType := '';
               end else
