@@ -49,7 +49,7 @@ type
       const AEditionDate: TDateTime;
       const AHeadObjectKey: Integer;
       const ANamespace: String;
-      const ALinked: Boolean);
+      const AKind: TgsNSObjectKind);
   end;
 
 var
@@ -107,7 +107,7 @@ procedure TdlgToNamespace.AddObject(const AnObjID: Integer;
   const AEditionDate: TDateTime;
   const AHeadObjectKey: Integer;
   const ANamespace: String;
-  const ALinked: Boolean);
+  const AKind: TgsNSObjectKind);
 var
   NS: String;
   ChBx: TCheckBox;
@@ -115,7 +115,7 @@ var
   CurrPnl: TPanel;
   FY: Integer;
 begin
-  Assert((not ALinked) or (Pnl <> nil));
+  Assert((AKind <> nskLinked) or (Pnl <> nil));
 
   FNS.ParamByName('xid').AsInteger := ARUID.XID;
   FNS.ParamByName('dbid').AsInteger := ARUID.DBID;
@@ -126,7 +126,7 @@ begin
     NS := FNS.Fields[0].AsString;
   FNS.Close;
 
-  if ALinked then
+  if AKind = nskLinked then
   begin
     CurrPnl := TPanel.Create(Self);
     CurrPnl.Parent := Pnl;
@@ -158,44 +158,55 @@ begin
 
   ChBx := TCheckBox.Create(Self);
   ChBx.Parent := CurrPnl;
-  ChBx.Caption := '';
-  ChBx.Top := 2;
+  ChBx.Alignment := taRightJustify;
   ChBx.Left := 2;
-  ChBx.Width := 16;
+  ChBx.Top := 2;
+  ChBx.Width := CurrPnl.Width - 24 * 3 - 4;
   ChBx.Checked := True;
   ChBx.Tag := AnObjID;
   ChBx.Hint := RUIDToStr(ARUID);
   ChBx.OnClick := DoCheckClick;
-
-  Lbl := TLabel.Create(Self);
-  Lbl.Parent := CurrPnl;
-  Lbl.Left := 20;
-  Lbl.Top := 2;
-  Lbl.Width := 300;
-  Lbl.AutoSize := False;
-  Lbl.Hint := AClassName;
-  Lbl.ShowHint := True;
   if AHeadObjectKey > -1 then
-    Lbl.Font.Color := clBlue
+    ChBx.Font.Color := clBlue
   else
-    Lbl.Font.Color := clBlack;
-  Lbl.Caption := Copy(AnObjectName, 1, 47);
+    ChBx.Font.Color := clBlack;
+  ChBx.Caption := AnObjectName + ' (' + AClassName + ASubType + ')';
 
-  Lbl := TLabel.Create(Self);
-  Lbl.Parent := CurrPnl;
-  Lbl.Left := 328;
-  Lbl.Top := 2;
-  Lbl.AutoSize := True;
+  NS := 'test, test, test';
 
   if NS > '' then
   begin
+    Lbl := TLabel.Create(Self);
+    Lbl.Parent := CurrPnl;
+    Lbl.AutoSize := True;
     Lbl.Font.Style := [fsItalic];
     Lbl.Font.Color := clMaroon;
     Lbl.Caption := NS;
-  end else
-  begin
-    Lbl.Caption := AClassName + ASubType;
   end;
+
+  ChBx := TCheckBox.Create(Self);
+  ChBx.Parent := CurrPnl;
+  ChBx.Caption := 'Ï';
+  ChBx.Align := alRight;
+  ChBx.Top := 2;
+  ChBx.Width := 28;
+  ChBx.Checked := False;
+
+  ChBx := TCheckBox.Create(Self);
+  ChBx.Parent := CurrPnl;
+  ChBx.Caption := 'Í';
+  ChBx.Align := alRight;
+  ChBx.Top := 2;
+  ChBx.Width := 28;
+  ChBx.Checked := False;
+
+  ChBx := TCheckBox.Create(Self);
+  ChBx.Parent := CurrPnl;
+  ChBx.Caption := 'Ä';
+  ChBx.Align := alRight;
+  ChBx.Top := 2;
+  ChBx.Width := 28;
+  ChBx.Checked := False;
 end;
 
 procedure TdlgToNamespace.DoCheckClick(Sender: TObject);
