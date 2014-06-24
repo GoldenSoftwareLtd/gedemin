@@ -1084,7 +1084,7 @@ uses
   gd_Security, obj_i_Debugger, dlg_gsResizer_ObjectInspector_unit,
   prp_frmGedeminProperty_Unit, gd_createable_form, mtd_i_Base,
   gdc_frmMDVTree_unit, gdcReport, FileCtrl, prp_PropertySettings, gsSupportClasses,
-  shdocvw, gdcBaseInterface, SubType_Cache
+  shdocvw, gdcBaseInterface, gd_ClassList
   {$IFDEF MODEM}
     , gsModem
   {$ENDIF}
@@ -9735,15 +9735,10 @@ var
   OwnerEventObject: TEventObject;
   LParentName: string;
   I: integer;
+  LFullClassName: TgdcFullClassName;
 begin
   Result := false;
-  if (AnComponent is TCreateableForm)
-    and (AnComponent.ClassName <> 'Tgdc_frmAttrUserDefined')
-    and (AnComponent.ClassName <> 'Tgdc_frmAttrUserDefinedTree')
-    and (AnComponent.ClassName <> 'Tgdc_frmAttrUserDefinedLBRBTree')
-    and (AnComponent.ClassName <> 'Tgdc_dlgAttrUserDefined')
-    and (AnComponent.ClassName <> 'Tgdc_dlgAttrUserDefinedTree')
-    and (AnComponent.ClassName <> 'Tgdc_dlgAttrUserDefinedLBRBTree') then
+  if (AnComponent is TCreateableForm) then
   begin
     LName := AnComponent.Name;
     LClassName := AnComponent.ClassName;
@@ -9753,7 +9748,9 @@ begin
     AnEventObject.ParentObjectsBySubType.Clear;
     if SubType <> '' then
       repeat
-        ParentSubType := FindParentSubType(SubType);
+        LFullClassName.gdClassName := AnComponent.ClassName;
+        LFullClassName.SubType := SubType;
+        ParentSubType := frmClassList.GetFRMClass(LFullClassName).ClassParentSubtype(SubType);
         if ParentSubType <> '' then
         begin
           LParentName := LClassName + ParentSubType;
@@ -9768,13 +9765,7 @@ begin
       until ParentSubType = '';
   end;
 
-  if (AnComponent.Owner is TCreateableForm)
-    and (AnComponent.Owner.ClassName <> 'Tgdc_frmAttrUserDefined')
-    and (AnComponent.Owner.ClassName <> 'Tgdc_frmAttrUserDefinedTree')
-    and (AnComponent.Owner.ClassName <> 'Tgdc_frmAttrUserDefinedLBRBTree')
-    and (AnComponent.Owner.ClassName <> 'Tgdc_dlgAttrUserDefined')
-    and (AnComponent.Owner.ClassName <> 'Tgdc_dlgAttrUserDefinedTree')
-    and (AnComponent.Owner.ClassName <> 'Tgdc_dlgAttrUserDefinedLBRBTree') then
+  if (AnComponent.Owner is TCreateableForm) then
   begin
     OwnerEventObject := EventObjectList.FindAllObject(AnComponent.Owner);
     if (Assigned (OwnerEventObject))

@@ -86,7 +86,10 @@ type
     property Document: TgdcInvDocument read GetDocument;
     property DocumentLine: TgdcInvDocumentLine read GetDocumentLine;
 
-    class function GetSubTypeList(SubTypeList: TStrings): Boolean; override;
+    class function GetSubTypeList(SubTypeList: TStrings;
+      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; override;
+
+    class function ClassParentSubtype(Subtype: String): String; override;
   end;
 
 var
@@ -772,9 +775,15 @@ begin
 end;
 
 class function TdlgInvDocumentLine.GetSubTypeList(
-  SubTypeList: TStrings): Boolean;
+  SubTypeList: TStrings; Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
 begin
-  Result := TgdcInvDocumentLine.GetSubTypeList(SubTypeList);
+  Result := TgdcInvDocumentLine.GetSubTypeList(SubTypeList, Subtype, OnlyDirect);
+end;
+
+class function TdlgInvDocumentLine.ClassParentSubtype(
+  Subtype: String): String;
+begin
+  Result := TgdcInvDocumentLine.ClassParentSubtype(SubType);
 end;
 
 procedure TdlgInvDocumentLine.SetupDialog;

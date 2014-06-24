@@ -356,7 +356,7 @@ uses
   IBSQL, gd_SetDatabase, gdcOLEClassList,
   rp_ReportScriptControl, gd_i_ScriptFactory, gd_ClassList, prp_dlgScriptError_unit,
   Controls, gs_Exception, gdc_createable_form, Windows, {prp_dlgViewProperty_unit,}
-  gd_Security, forms, SubType_Cache;
+  gd_Security, forms;
 
 var
   LocalSubTypeList: TStrings;
@@ -1146,20 +1146,12 @@ begin
                 // Если в последнем в стеке полном имени класса есть подтип, то
                 // текущий полный класс - это тот-же полный класс без подтипа,
                 // если нет родителя по подтипу GD_ DOCUMENTTYPE
-                if (GetClass(LCurrentFullClass.gdClassName).InheritsFrom(TGDCDOCUMENT)
-                  or GetClass(LCurrentFullClass.gdClassName).InheritsFrom(TGDCCREATEABLEFORM))
-                    and  (LCurrentFullClass.SubType <> '')
-                    and (AnsiUpperCase(LCurrentFullClass.gdClassName) <> AnsiUpperCase('Tgdc_frmAttrUserDefined'))
-                    and (AnsiUpperCase(LCurrentFullClass.gdClassName) <> AnsiUpperCase('Tgdc_frmAttrUserDefinedTree'))
-                    and (AnsiUpperCase(LCurrentFullClass.gdClassName) <> AnsiUpperCase('Tgdc_frmAttrUserDefinedLBRBTree'))
-                    and (AnsiUpperCase(LCurrentFullClass.gdClassName) <> AnsiUpperCase('Tgdc_dlgAttrUserDefined'))
-                    and (AnsiUpperCase(LCurrentFullClass.gdClassName) <> AnsiUpperCase('Tgdc_dlgAttrUserDefinedTree'))
-                    and (AnsiUpperCase(LCurrentFullClass.gdClassName) <> AnsiUpperCase('Tgdc_dlgAttrUserDefinedLBRBTree')) then
-                begin
-                  LCurrentFullClass.SubType := FindParentSubType(LCurrentFullClass.SubType);
-                end
-                else
-                  LCurrentFullClass.SubType := '';
+               if GetClass(LCurrentFullClass.gdClassName).InheritsFrom(TgdcBase) then
+                 LCurrentFullClass.SubType :=
+                   gdcClassList.GetGDCClass(LCurrentFullClass).ClassParentSubtype(LCurrentFullClass.SubType)
+               else
+                 LCurrentFullClass.SubType :=
+                   frmClassList.GetFRMClass(LCurrentFullClass).ClassParentSubtype(LCurrentFullClass.SubType)
               end else
                 begin
                   // Если последний обработанный класс без подтипа, то получаем
@@ -1175,13 +1167,13 @@ begin
                     LgdcBaseClass := gdcClassList.GetGDCClass(LCurrentFullClass);
                     if LgdcBaseClass = nil then
                       raise Exception.Create('Ошибка перекрытия метода. Обратитесь к разработчикам.');
-                    SubTypePresent := LgdcBaseClass.GetSubTypeList(LocalSubTypeList);
+                    SubTypePresent := LgdcBaseClass.GetSubTypeList(LocalSubTypeList{, ObjectSubType});
                   end else
                     begin
                       LgdcCreateableFormClass := frmClassList.GetFRMClass(LCurrentFullClass);
                       if LgdcCreateableFormClass = nil then
                         raise Exception.Create('Ошибка перекрытия метода. Обратитесь к разработчикам.');
-                      SubTypePresent := LgdcCreateableFormClass.GetSubTypeList(LocalSubTypeList);
+                      SubTypePresent := LgdcCreateableFormClass.GetSubTypeList(LocalSubTypeList{, ObjectSubType});
                     end;
 
                   if SubTypePresent then

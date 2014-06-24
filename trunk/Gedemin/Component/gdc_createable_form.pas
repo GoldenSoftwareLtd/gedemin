@@ -99,7 +99,11 @@ type
     // Стек создается при первом обращении, уничтожается вместе с объектом.
     property ClassMethodAssoc: TgdKeyIntAndStrAssoc read FClassMethodAssoc;
 
-    class function GetSubTypeList(SubTypeList: TStrings): Boolean; virtual;
+    class function GetSubTypeList(SubTypeList: TStrings;
+      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; virtual;
+
+    class function ClassParentSubtype(Subtype: String): String; virtual;
+
     class function CreateAndAssign(AnOwner: TComponent): TForm; override;
     class function FindForm(const AFormClass: CgdcCreateableForm;
       const ASubType: TgdcSubType; const AnInitialName: String = ''): TgdcCreateableForm;
@@ -374,7 +378,7 @@ begin
 end;
 
 class function TgdcCreateableForm.GetSubTypeList(
-  SubTypeList: TStrings): Boolean;
+  SubTypeList: TStrings; Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
 var
   I: Integer;
   F: TgsStorageFolder;
@@ -391,11 +395,11 @@ begin
           if not (F.Values[I] is TgsStringValue) then
             continue;
 
-          GClass := gdcClassList.GetGDCClass(gdcFullClassName(F.Values[I].Name, ''));
+          GClass := gdcClassList.GetGDCClass(gdcFullClassName(F.Values[I].Name, Subtype));
           if (GClass <> nil) and (GClass.InheritsFrom(TgdcBase)) then
           begin
-            if (Self.ClassName = CgdcBase(GClass).GetViewFormClassName(''))
-              or (Self.ClassName = CgdcBase(GClass).GetDialogFormClassName('')) then
+            if (Self.ClassName = CgdcBase(GClass).GetViewFormClassName(Subtype))
+              or (Self.ClassName = CgdcBase(GClass).GetDialogFormClassName(Subtype)) then
             begin
               SubTypeList.CommaText := F.Values[I].AsString;
               Result := SubTypeList.Count > 0;
@@ -411,6 +415,11 @@ begin
 
   SubTypeList.Clear;
   Result := False;
+end;
+
+class function TgdcCreateableForm.ClassParentSubtype(Subtype: String): String;
+begin
+  Result := '';
 end;
 
 procedure TgdcCreateableForm.CreateInherited;

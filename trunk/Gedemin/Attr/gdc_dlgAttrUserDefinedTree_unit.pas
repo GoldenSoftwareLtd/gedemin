@@ -16,7 +16,9 @@ type
 
   public
     procedure SetupDialog; override;
-    class function GetSubTypeList(SubTypeList: TStrings): Boolean; override;
+    class function GetSubTypeList(SubTypeList: TStrings;
+      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; override;
+    class function ClassParentSubtype(Subtype: String): String; override;
   end;
 
 var
@@ -32,17 +34,17 @@ uses
 { Tgdc_dlgAttrUserDefinedTree }
 
 class function Tgdc_dlgAttrUserDefinedTree.GetSubTypeList(
-  SubTypeList: TStrings): Boolean;
+  SubTypeList: TStrings; Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
 var
   sl: TStrings;
   i: integer;
 begin
-  Result := TgdcAttrUserDefinedTree.GetSubTypeList(SubTypeList);
+  Result := TgdcAttrUserDefinedTree.GetSubTypeList(SubTypeList, Subtype, OnlyDirect);
   if SubTypeList.Count > 0 then begin
     sl:= TStringList.Create;
     try
       sl.Assign(SubTypeList);
-      Result := TgdcAttrUserDefinedLBRBTree.GetSubTypeList(SubTypeList) or Result;
+      Result := TgdcAttrUserDefinedLBRBTree.GetSubTypeList(SubTypeList, Subtype, OnlyDirect) or Result;
       for i:= 0 to sl.Count - 1 do
         SubTypeList.Add(sl[i]);
     finally
@@ -50,7 +52,13 @@ begin
     end;
   end
   else
-    Result := TgdcAttrUserDefinedLBRBTree.GetSubTypeList(SubTypeList);
+    Result := TgdcAttrUserDefinedLBRBTree.GetSubTypeList(SubTypeList, Subtype, OnlyDirect);
+end;
+
+class function Tgdc_dlgAttrUserDefinedTree.ClassParentSubtype(
+  Subtype: String): String;
+begin
+  Result := TgdcAttrUserDefinedLBRBTree.ClassParentSubtype(SubType);
 end;
 
 procedure TGDC_DLGATTRUSERDEFINEDTREE.SetupDialog;
