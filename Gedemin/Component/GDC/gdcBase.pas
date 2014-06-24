@@ -1589,8 +1589,14 @@ type
     // функци€, возвращает список возможных подтипов в SubTypeList в формате
     // Ћокализованное им€ подтипа=ѕодтип
     // функци€ возвращает True, если подтипы есть, иначе - False
-    class function GetSubTypeList(SubTypeList: TStrings): Boolean; virtual;
 
+    //Subtype -- подтип.
+    //OnlyDirect -- если True, то возвращаютс€ только непосредственные наследники.
+    //¬ противном случае -- возвращаетс€ вс€ иерархи€ наследников.
+    class function GetSubTypeList(SubTypeList: TStrings;
+      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; virtual;
+
+    class function ClassParentSubtype(Subtype: string): String; virtual;
     //
     class function CheckSubType(const ASubType: String): Boolean;
 
@@ -12316,10 +12322,12 @@ begin
   DoAfterCustomProcess(Buff, cpDelete);
 end;
 
-class function TgdcBase.GetSubTypeList(SubTypeList: TStrings): Boolean;
+class function TgdcBase.GetSubTypeList(SubTypeList: TStrings;
+  Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
 var
   F: TgsStorageFolder;
   V: TgsStorageValue;
+  LClassName: String;
 begin
   if Assigned(GlobalStorage) then
   begin
@@ -12327,7 +12335,11 @@ begin
     try
       if F <> nil then
       begin
-        V := F.ValueByName(Self.ClassName);
+        if Subtype <> '' then
+          LClassName := Self.ClassName + Subtype
+        else
+          LClassName := Self.ClassName;
+        V := F.ValueByName(LClassName);
         if V is TgsStringValue then
         begin
           SubTypeList.CommaText := V.AsString;
@@ -12336,7 +12348,7 @@ begin
         end else
         begin
           if V <> nil then
-            F.DeleteValue(Self.ClassName);
+            F.DeleteValue(LClassName);
         end;
       end;  
     finally
@@ -12346,6 +12358,11 @@ begin
 
   SubTypeList.Clear;
   Result := False;
+end;
+
+class function TgdcBase.ClassParentSubtype(Subtype: string): String;
+begin
+  Result := '';
 end;
 
 function TgdcBase.GetNextID(const Increment: Boolean = True; const ResetCache: Boolean = False): Integer;

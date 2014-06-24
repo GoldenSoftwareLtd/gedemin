@@ -67,7 +67,9 @@ type
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetDisplayName(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
-    class function GetSubTypeList(SubTypeList: TStrings): Boolean; override;
+    class function GetSubTypeList(SubTypeList: TStrings;
+      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; override;
+    class function ClassParentSubtype(Subtype: String): String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
 
@@ -98,7 +100,8 @@ type
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetKeyField(const ASubType: TgdcSubType): String; override;
 
-    class function GetSubTypeList(SubTypeList: TStrings): Boolean; override;
+    class function GetSubTypeList(SubTypeList: TStrings;
+      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; override;
 
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
 
@@ -127,7 +130,8 @@ type
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetKeyField(const ASubType: TgdcSubType): String; override;
 
-    class function GetSubTypeList(SubTypeList: TStrings): Boolean; override;
+    class function GetSubTypeList(SubTypeList: TStrings;
+      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; override;
 
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
 
@@ -360,7 +364,8 @@ begin
   Result := SubType;
 end;
 
-class function TgdcAttrUserDefined.GetSubTypeList(SubTypeList: TStrings): Boolean;
+class function TgdcAttrUserDefined.GetSubTypeList(SubTypeList: TStrings;
+  Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
 var
   I: Integer;
 begin
@@ -387,6 +392,11 @@ begin
   Result := SubTypeList.Count > 0;
 end;
 
+class function TgdcAttrUserDefined.ClassParentSubtype(
+  Subtype: String): String;
+begin
+  Result := '';
+end;
 
 class function TgdcAttrUserDefined.GetViewFormClassName(
   const ASubType: TgdcSubType): String;
@@ -602,7 +612,8 @@ begin
   {END MACRO}
 end;
 
-class function TgdcAttrUserDefinedTree.GetSubTypeList(SubTypeList: TStrings): Boolean;
+class function TgdcAttrUserDefinedTree.GetSubTypeList(SubTypeList: TStrings;
+  Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
 var
   I: Integer;
 begin
@@ -846,7 +857,8 @@ begin
   {END MACRO}
 end;
 
-class function TgdcAttrUserDefinedLBRBTree.GetSubTypeList(SubTypeList: TStrings): Boolean;
+class function TgdcAttrUserDefinedLBRBTree.GetSubTypeList(SubTypeList: TStrings;
+  Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
 var
   I: Integer;
 begin

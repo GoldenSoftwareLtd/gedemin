@@ -29,7 +29,9 @@ type
   public
     { Public declarations }
     class function CreateAndAssign(AnOwner: TComponent): TForm; override;
-    class function GetSubTypeList(SubTypeList: TStrings): Boolean; override;
+    class function GetSubTypeList(SubTypeList: TStrings;
+      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; override;
+    class function ClassParentSubtype(Subtype: String): String; override;
   end;
 
 var
@@ -78,9 +80,15 @@ begin
 end;
 
 class function Tgdc_frmUserComplexDocument.GetSubTypeList(
-  SubTypeList: TStrings): Boolean;
+  SubTypeList: TStrings; Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
 begin
-  Result := TgdcUserDocument.GetSubTypeList(SubTypeList);
+  Result := TgdcUserDocument.GetSubTypeList(SubTypeList, Subtype, OnlyDirect);
+end;
+
+class function Tgdc_frmUserComplexDocument.ClassParentSubtype(
+  Subtype: String): String;
+begin
+  Result := TgdcUserDocument.ClassParentSubtype(SubType);
 end;
 
 procedure Tgdc_frmUserComplexDocument.actCreateEntryExecute(

@@ -277,7 +277,11 @@ type
   public
     constructor Create(AnOwner: TComponent); override;
 
-    class function GetSubTypeList(SubTypeList: TStrings): Boolean; override;
+    class function GetSubTypeList(SubTypeList: TStrings;
+      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; override;
+
+    class function ClassParentSubtype(Subtype: String): String; override;
+
     class function GetRestrictCondition(const ATableName, ASubType: String): String; override;
     class function IsAbstractClass: Boolean; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
@@ -3584,13 +3588,21 @@ begin
 end;
 
 class function TgdcUserBaseDocument.GetSubTypeList(
-  SubTypeList: TStrings): Boolean;
+  SubTypeList: TStrings; Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
 begin
   Assert(Assigned(gdcInvDocumentCache));
 
   Result := gdcInvDocumentCache.GetSubTypeList2('TgdcUserDocumentType',
-    SubTypeList);
+    SubTypeList, Subtype, OnlyDirect);
 end;
+
+class function TgdcUserBaseDocument.ClassParentSubtype(
+  Subtype: String): String;
+begin
+  Assert(Assigned(gdcInvDocumentCache));
+  Result := gdcInvDocumentCache.ClassParentSubtype(SubType);
+end;
+
 
 procedure TgdcUserBaseDocument.ReadOptions(const aRuid: String);
 var

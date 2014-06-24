@@ -64,7 +64,10 @@ type
     procedure LoadSettings; override;
     procedure SaveSettings; override;
 
-    class function GetSubTypeList(SubTypeList: TStrings): Boolean; override;
+    class function GetSubTypeList(SubTypeList: TStrings;
+      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; override;
+
+    class function ClassParentSubtype(Subtype: String): String; override;
 
     property IsSetup: Boolean read FIsSetup write FIsSetup;
   end;
@@ -248,9 +251,16 @@ begin
 end;
 
 class function Tgdc_frmInvBaseRemains.GetSubTypeList(
-  SubTypeList: TStrings): Boolean;
+  SubTypeList: TStrings; Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
 begin
-  Result := TgdcInvRemains.GetSubTypeList(SubTypeList);
+  Result := TgdcInvRemains.GetSubTypeList(SubTypeList, Subtype, OnlyDirect);
+end;
+
+
+class function Tgdc_frmInvBaseRemains.ClassParentSubtype(
+  Subtype: String): String;
+begin
+  Result := TgdcInvRemains.ClassParentSubtype(SubType);
 end;
 
 procedure Tgdc_frmInvBaseRemains.SetupInvRemains(gdcInvRemains: TgdcInvRemains);

@@ -79,7 +79,7 @@ uses
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
   {$ENDIF}
-  , gdc_frmStreamSaver, SubType_Cache;
+  , gdc_frmStreamSaver;
 
 procedure Tgdc_frmMDHGR.LoadSettings;
 
@@ -127,7 +127,7 @@ begin
       begin
         SubType := FSubType;
         repeat
-          ParentSubType := FindParentSubType(SubType);
+          ParentSubType := ClassParentSubtype(SubType);
           if ParentSubType <> '' then
           begin
             Path := StringReplace(Path, SubType, ParentSubType, [rfReplaceAll, rfIgnoreCase]);
@@ -151,7 +151,7 @@ begin
       begin
         SubType := FSubType;
         repeat
-          ParentSubType := FindParentSubType(SubType);
+          ParentSubType := ClassParentSubtype(SubType);
           if ParentSubType <> '' then
           begin
             Path := StringReplace(Path, SubType, ParentSubType, [rfReplaceAll, rfIgnoreCase]);

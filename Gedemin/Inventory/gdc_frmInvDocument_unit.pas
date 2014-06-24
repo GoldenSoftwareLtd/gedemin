@@ -62,7 +62,11 @@ type
 
   public
     class function CreateAndAssign(AnOwner: TComponent): TForm; override;
-    class function GetSubTypeList(SubTypeList: TStrings): Boolean; override;
+    class function GetSubTypeList(SubTypeList: TStrings;
+      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; override;
+
+    class function ClassParentSubtype(Subtype: String): String; override;
+
     procedure SaveDesktopSettings; override;
   end;
 
@@ -107,9 +111,15 @@ begin
 end;
 
 class function Tgdc_frmInvDocument.GetSubTypeList(
-  SubTypeList: TStrings): Boolean;
+  SubTypeList: TStrings; Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
 begin
-  Result := TgdcInvDocument.GetSubTypeList(SubTypeList);
+  Result := TgdcInvDocument.GetSubTypeList(SubTypeList, Subtype, OnlyDirect);
+end;
+
+class function Tgdc_frmInvDocument.ClassParentSubtype(
+  Subtype: String): String;
+begin
+  Result := TgdcInvDocument.ClassParentSubtype(SubType);
 end;
 
 procedure Tgdc_frmInvDocument.SaveDesktopSettings;

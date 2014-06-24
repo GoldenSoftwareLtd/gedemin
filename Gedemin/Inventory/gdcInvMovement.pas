@@ -365,7 +365,9 @@ type
     property IsGetRemains: Boolean read GetIsGetRemains write SetIsGetRemains;
     property NoWait: Boolean read FNoWait write FNoWait;
 
-    class function GetSubTypeList(SubTypeList: TStrings): Boolean; override;
+    class function GetSubTypeList(SubTypeList: TStrings;
+      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; override;
+    class function ClassParentSubtype(Subtype: String): String; override;
     property ShowMovementDlg: Boolean read FShowMovementDlg write FShowMovementDlg default True;
   published
     // Позиция документа
@@ -430,7 +432,8 @@ type
     class function GetKeyField(const ASubType: TgdcSubType): String; override;
     class function GetListTableAlias: String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
-    class function GetSubTypeList(SubTypeList: TStrings): Boolean; override;
+    class function GetSubTypeList(SubTypeList: TStrings;
+      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; override;
     class function IsAbstractClass: Boolean; override;
     class function GetDisplayName(const ASubType: TgdcSubType): String; override;
 
@@ -4627,8 +4630,8 @@ begin
   {END MACRO}
 end;
 
-class function TgdcInvMovement.GetSubTypeList(
-  SubTypeList: TStrings): Boolean;
+class function TgdcInvMovement.GetSubTypeList(SubTypeList: TStrings;
+  Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
 {var
   ibsql: TIBSQL;
   ibtr: TIBTransaction;}
@@ -4636,7 +4639,7 @@ begin
   Assert(Assigned(gdcInvDocumentCache));
 
   Result := gdcInvDocumentCache.GetSubTypeList(TgdcInvDocumentType.InvDocumentTypeBranchKey,
-    SubTypeList);
+    SubTypeList, Subtype, OnlyDirect);
 
   {
   if not Assigned(gdcBaseManager) then
@@ -4680,6 +4683,12 @@ begin
 
   Result := SubTypeList.Count > 0;
   }
+end;
+
+class function TgdcInvMovement.ClassParentSubtype(
+  Subtype: String): String;
+begin
+  Result := gdcInvDocumentCache.ClassParentSubtype(SubType);
 end;
 
 procedure TgdcInvMovement.SetSubSet(const Value: TgdcSubSet);
@@ -5277,8 +5286,8 @@ begin
   Result := inherited GetSubSetList + cst_ByGoodKey + ';' + cst_ByGroupKey + ';' + cst_AllRemains + ';' + cst_Holding + ';';
 end;
 
-class function TgdcInvBaseRemains.GetSubTypeList(
-  SubTypeList: TStrings): Boolean;
+class function TgdcInvBaseRemains.GetSubTypeList(SubTypeList: TStrings;
+      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
 {var
   ibsql: TIBSQL;}
 begin
@@ -5293,7 +5302,7 @@ begin
     Assert(Assigned(gdcInvDocumentCache));
 
     Result := gdcInvDocumentCache.GetSubTypeList2(
-      'TgdcInvBaseRemains', SubTypeList);
+      'TgdcInvBaseRemains', SubTypeList, Subtype, OnlyDirect);
     {if Result then
     begin
       ibsql.Transaction := gdcBaseManager.ReadTransaction;

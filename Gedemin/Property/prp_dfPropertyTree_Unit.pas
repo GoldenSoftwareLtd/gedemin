@@ -2306,7 +2306,7 @@ begin
                   end
                   else
                     TN := AddGDCClassNode(AParent, Index,
-                      Replace(ST.Values[ST.Names[I]]), ST.Names[I]);
+                      Replace(ST.Values[ST.Names[I]]), ST.Names[I]); 
                 end
                 else
                   TN := AddFRMClassNode(AParent, Index,

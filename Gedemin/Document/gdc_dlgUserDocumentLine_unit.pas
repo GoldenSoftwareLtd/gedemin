@@ -14,7 +14,9 @@ type
     Bevel1: TBevel;
     atAttributes: TatContainer;
   public  
-    class function GetSubTypeList(SubTypeList: TStrings): Boolean; override;
+    class function GetSubTypeList(SubTypeList: TStrings;
+      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; override;
+    class function ClassParentSubtype(Subtype: String): String; override;
   end;
 
 var
@@ -30,9 +32,15 @@ uses
 { Tgdc_dlgUserDocumentLine }
 
 class function Tgdc_dlgUserDocumentLine.GetSubTypeList(
-  SubTypeList: TStrings): Boolean;
+  SubTypeList: TStrings; Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
 begin
-  Result := TgdcUserDocument.GetSubTypeList(SubTypeList);
+  Result := TgdcUserDocument.GetSubTypeList(SubTypeList, Subtype, OnlyDirect);
+end;
+
+class function Tgdc_dlgUserDocumentLine.ClassParentSubtype(
+  Subtype: String): String;
+begin
+  Result := TgdcUserDocument.ClassParentSubtype(SubType);
 end;
 
 initialization

@@ -220,8 +220,9 @@ type
 
     property TopGrid: TgsIBGrid read GetTopGrid;
 
-    class function GetSubTypeList(SubTypeList: TStrings): Boolean; override;
-
+    class function GetSubTypeList(SubTypeList: TStrings;
+      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; override;
+    class function ClassParentSubtype(Subtype: String): String; override;
     function Get_SelectedKey: OleVariant; override; safecall;
   end;
 
@@ -2610,9 +2611,15 @@ begin
 end;
 
 class function TdlgInvDocument.GetSubTypeList(
-  SubTypeList: TStrings): Boolean;
+  SubTypeList: TStrings; Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
 begin
-  Result := TgdcInvDocument.GetSubTypeList(SubTypeList);
+  Result := TgdcInvDocument.GetSubTypeList(SubTypeList, Subtype, OnlyDirect);
+end;
+
+class function TdlgInvDocument.ClassParentSubtype(
+  Subtype: String): String;
+begin
+  Result := TgdcInvDocument.ClassParentSubtype(SubType);
 end;
 
 procedure TdlgInvDocument.DoCreateNewObject(Sender: TObject;

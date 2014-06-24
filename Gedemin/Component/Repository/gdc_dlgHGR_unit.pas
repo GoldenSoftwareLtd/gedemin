@@ -98,8 +98,7 @@ var
 implementation
 
 uses
-  dmImages_unit, Storages,  gd_ClassList, gsStorage_CompPath, at_classes, at_sql_setup,
-  SubType_Cache;
+  dmImages_unit, Storages,  gd_ClassList, gsStorage_CompPath, at_classes, at_sql_setup;
 
 {$R *.DFM}
 
@@ -253,7 +252,7 @@ begin
       begin
         SubType := FSubType;
         repeat
-          ParentSubType := FindParentSubType(SubType);
+          ParentSubType := ClassParentSubtype(SubType);
           if ParentSubType <> '' then
           begin
             Path := StringReplace(Path, SubType, ParentSubType, [rfReplaceAll, rfIgnoreCase]);

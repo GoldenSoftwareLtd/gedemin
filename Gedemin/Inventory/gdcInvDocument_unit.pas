@@ -150,7 +150,9 @@ type
 
     procedure ReadOptions(Stream: TStream); virtual;
 
-    class function GetSubTypeList(SubTypeList: TStrings): Boolean; override;
+    class function GetSubTypeList(SubTypeList: TStrings;
+      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; override;
+    class function ClassParentSubtype(Subtype: String): String; override;
     class function IsAbstractClass: Boolean; override;
 
     property MovementSource: TgdcInvMovementContactOption read FMovementSource; // Источник движения
@@ -758,12 +760,19 @@ begin
   Result := RelationTypeByRelation(RelationLine);
 end;
 
-class function TgdcInvBaseDocument.GetSubTypeList(SubTypeList: TStrings): Boolean;
+class function TgdcInvBaseDocument.GetSubTypeList(SubTypeList: TStrings;
+  Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
 begin
   Assert(Assigned(gdcInvDocumentCache));
 
   Result := gdcInvDocumentCache.GetSubTypeList(TgdcInvDocumentType.InvDocumentTypeBranchKey,
-    SubTypeList);
+    SubTypeList, Subtype, OnlyDirect);
+end;
+
+class function TgdcInvBaseDocument.ClassParentSubtype(
+  Subtype: String): String;
+begin
+  Result := gdcInvDocumentCache.ClassParentSubtype(SubType);
 end;
 
 function TgdcInvBaseDocument.JoinListFieldByFieldName(

@@ -32,7 +32,10 @@ type
     procedure Post; override;
 
   public
-    class function GetSubTypeList(SubTypeList: TStrings): Boolean; override;
+    class function GetSubTypeList(SubTypeList: TStrings;
+      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; override;
+
+    class function ClassParentSubtype(Subtype: String): String; override;
 
     procedure SetupDialog; override;
     function GetDetailBookmarkList: TBookmarkList; override;
@@ -124,10 +127,16 @@ begin
 end;*)
 
 
-class function Tgdc_dlgUserComplexDocument.GetSubTypeList(
-  SubTypeList: TStrings): Boolean;
+class function Tgdc_dlgUserComplexDocument.GetSubTypeList(SubTypeList: TStrings;
+  Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
 begin
-  Result := TgdcUserDocument.GetSubTypeList(SubTypeList);
+  Result := TgdcUserDocument.GetSubTypeList(SubTypeList, Subtype, OnlyDirect);
+end;
+
+class function Tgdc_dlgUserComplexDocument.ClassParentSubtype(
+  Subtype: String): String;
+begin
+  Result := TgdcUserDocument.ClassParentSubtype(SubType);
 end;
 
 procedure Tgdc_dlgUserComplexDocument.actDetailNewExecute(Sender: TObject);

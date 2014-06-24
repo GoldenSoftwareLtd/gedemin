@@ -495,12 +495,12 @@ uses
   gsStorage, gsComponentEmulator, consts, gsDesignerRW, dmDatabase_unit,
   gdc_createable_form, gd_security, gd_createable_form, evt_i_Base, Clipbrd,
   TB2Item, imglist, gsPropertyEditor, prp_frmGedeminProperty_Unit, evt_Base,
-  gdcDelphiObject, gdcConstants
+  gdcDelphiObject, gdcConstants, gd_ClassList, gdcBaseInterface
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
   {$ENDIF}
-  , SubType_Cache;
+  ;
 
 var
   ApplicationMessageProcessor: TApplicationMessageProcessor;
@@ -3929,6 +3929,7 @@ var
   SubType: string;
   ParentSubType: string;
   ReplaceSubType: boolean;
+  LFullClassName : TgdcFullClassName;
   
 const
   ErrorMsg =
@@ -3950,17 +3951,14 @@ begin
           if Assigned(UserStorage) and Assigned(GlobalStorage) then
           begin
             bLoadedFromStorage:= GlobalStorage.ReadStream(FResourceName, FFormSubType, F, IBLogin.IsIBUserAdmin);
-            if (not bLoadedFromStorage)
-              and (FEditForm.ClassName <> 'Tgdc_frmAttrUserDefined')
-              and (FEditForm.ClassName <> 'Tgdc_frmAttrUserDefinedTree')
-              and (FEditForm.ClassName <> 'Tgdc_frmAttrUserDefinedLBRBTree')
-              and (FEditForm.ClassName <> 'Tgdc_dlgAttrUserDefined')
-              and (FEditForm.ClassName <> 'Tgdc_dlgAttrUserDefinedTree')
-              and (FEditForm.ClassName <> 'Tgdc_dlgAttrUserDefinedLBRBTree') then
+            if (not bLoadedFromStorage) then
             begin
               SubType := FFormSubType;
               repeat
-                ParentSubType := FindParentSubType(SubType);
+                LFullClassName.gdClassName := FEditForm.ClassName;
+                LFullClassName.SubType := SubType;
+                if Assigned(frmClassList.GetFRMClass(LFullClassName))then
+                  ParentSubType := frmClassList.GetFRMClass(LFullClassName).ClassParentSubtype(SubType);
                 if ParentSubType <> '' then
                 begin
                   bLoadedFromStorage:= GlobalStorage.ReadStream(FResourceName, ParentSubType, F, IBLogin.IsIBUserAdmin);
@@ -3983,17 +3981,13 @@ begin
             if (FDesignerType = dtUser) and (Flag = 0) then
             begin
               bLoadedFromUserStorage:= UserStorage.ReadStream(FResourceName, FFormSubType, F);
-              if not bLoadedFromUserStorage
-                and (FEditForm.ClassName <> 'Tgdc_frmAttrUserDefined')
-                and (FEditForm.ClassName <> 'Tgdc_frmAttrUserDefinedTree')
-                and (FEditForm.ClassName <> 'Tgdc_frmAttrUserDefinedLBRBTree')
-                and (FEditForm.ClassName <> 'Tgdc_dlgAttrUserDefined')
-                and (FEditForm.ClassName <> 'Tgdc_dlgAttrUserDefinedTree')
-                and (FEditForm.ClassName <> 'Tgdc_dlgAttrUserDefinedLBRBTree') then
+              if not bLoadedFromUserStorage then
               begin
                 SubType := FFormSubType;
                 repeat
-                  ParentSubType := FindParentSubType(SubType);
+                  LFullClassName.gdClassName := FEditForm.ClassName;
+                  LFullClassName.SubType := SubType;
+                  ParentSubType := frmClassList.GetFRMClass(LFullClassName).ClassParentSubtype(SubType);
                   if ParentSubType <> '' then
                   begin
                     bLoadedFromUserStorage:= UserStorage.ReadStream(FResourceName, ParentSubType, F);
@@ -4027,17 +4021,13 @@ begin
                     Flag := 0;
                     F.Clear;
                     bLoadedFromUserStorage:= UserStorage.ReadStream(FResourceName, FFormSubType, F);
-                    if not bLoadedFromUserStorage
-                      and (FEditForm.ClassName <> 'Tgdc_frmAttrUserDefined')
-                      and (FEditForm.ClassName <> 'Tgdc_frmAttrUserDefinedTree')
-                      and (FEditForm.ClassName <> 'Tgdc_frmAttrUserDefinedLBRBTree')
-                      and (FEditForm.ClassName <> 'Tgdc_dlgAttrUserDefined')
-                      and (FEditForm.ClassName <> 'Tgdc_dlgAttrUserDefinedTree')
-                      and (FEditForm.ClassName <> 'Tgdc_dlgAttrUserDefinedLBRBTree') then
+                    if not bLoadedFromUserStorage then
                     begin
                       SubType := FFormSubType;
                       repeat
-                        ParentSubType := FindParentSubType(SubType);
+                        LFullClassName.gdClassName := FEditForm.ClassName;
+                        LFullClassName.SubType := SubType;
+                        ParentSubType := frmClassList.GetFRMClass(LFullClassName).ClassParentSubtype(SubType);
                         if ParentSubType <> '' then
                         begin
                           bLoadedFromUserStorage:= UserStorage.ReadStream(FResourceName, ParentSubType, F);

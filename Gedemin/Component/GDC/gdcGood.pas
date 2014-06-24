@@ -151,7 +151,9 @@ type
 
   TgdcSelectedGood = class(TgdcGood)
   public
-    class function GetSubTypeList(SubTypeList: TStrings): Boolean; override;
+    class function GetSubTypeList(SubTypeList: TStrings;
+      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; override;
+  class function ClassParentSubtype(Subtype: String): String; override;
   end;
 
   procedure Register;
@@ -977,10 +979,16 @@ end;
 
 { TgdcSelectedGood }
 
-class function TgdcSelectedGood.GetSubTypeList(
-  SubTypeList: TStrings): Boolean;
+class function TgdcSelectedGood.GetSubTypeList(SubTypeList: TStrings;
+      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
 begin
-  Result := TgdcInvBaseDocument.GetSubTypeList(SubTypeList);
+  Result := TgdcInvBaseDocument.GetSubTypeList(SubTypeList, Subtype, OnlyDirect);
+end;
+
+class function TgdcSelectedGood.ClassParentSubtype(
+  Subtype: String): String;
+begin
+  Result := TgdcInvBaseDocument.ClassParentSubtype(SubType);
 end;
 
 initialization

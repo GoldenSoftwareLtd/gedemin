@@ -47,8 +47,8 @@ type
   public
     constructor Create(AnOwner: TComponent); override;
     class function CreateAndAssign(AnOwner: TComponent): TForm; override;
-    class function GetSubTypeList(SubTypeList: TStrings): Boolean; override;
-
+    class function GetSubTypeList(SubTypeList: TStrings; Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; override;
+    class function ClassParentSubtype(Subtype: String): String; override;
   end;
 
 var
@@ -102,9 +102,15 @@ begin
 end;
 
 class function Tgdc_frmAttrUserDefinedLBRBTree.GetSubTypeList(
-  SubTypeList: TStrings): Boolean;
+  SubTypeList: TStrings; Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
 begin
-  Result := TgdcAttrUserDefinedLBRBTree.GetSubTypeList(SubTypeList);
+  Result := TgdcAttrUserDefinedLBRBTree.GetSubTypeList(SubTypeList, Subtype, OnlyDirect);
+end;
+
+class function Tgdc_frmAttrUserDefinedLBRBTree.ClassParentSubtype(
+  Subtype: String): String;
+begin
+  Result := TgdcAttrUserDefinedLBRBTree.ClassParentSubtype(SubType);
 end;
 
 initialization
