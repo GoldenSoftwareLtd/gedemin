@@ -159,8 +159,8 @@ begin
               ' dt1.NAME, dt1.RUID '#13#10 +
               'FROM GD_DOCUMENTTYPE dt2 '#13#10 +
               'LEFT JOIN GD_DOCUMENTTYPE dt1 ON dt2.ID = dt1.PARENT '#13#10 +
-              '  AND dt1.DOCUMENTTYPE = ''D'' '#13#10 +
-              'WHERE dt2.RUID = :RUID';
+              'WHERE dt2.RUID = :RUID '#13#10 +
+              ' AND dt1.DOCUMENTTYPE = ''D''';
             ibsql.ParamByName('RUID').AsString := SubType;
           end
           else
@@ -298,7 +298,7 @@ function TgdcInvDocumentCache.GetSubTypeList2(const ClassName: String;
   SubTypeList: TStrings; Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
 begin
   CheckDBID;
-  Result := DoCache(StringToKey(ClassName), True, SubTypeList, Subtype, OnlyDirect);
+  Result := DoCache(StringToKey(ClassName + Subtype), True, SubTypeList, Subtype, OnlyDirect);
 end;
 
 function TgdcInvDocumentCache.IntToKey(const I: Integer): Integer;

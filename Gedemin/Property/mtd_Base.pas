@@ -1167,13 +1167,13 @@ begin
                     LgdcBaseClass := gdcClassList.GetGDCClass(LCurrentFullClass);
                     if LgdcBaseClass = nil then
                       raise Exception.Create('Ошибка перекрытия метода. Обратитесь к разработчикам.');
-                    SubTypePresent := LgdcBaseClass.GetSubTypeList(LocalSubTypeList{, ObjectSubType});
+                    SubTypePresent := LgdcBaseClass.GetSubTypeList(LocalSubTypeList);
                   end else
                     begin
                       LgdcCreateableFormClass := frmClassList.GetFRMClass(LCurrentFullClass);
                       if LgdcCreateableFormClass = nil then
                         raise Exception.Create('Ошибка перекрытия метода. Обратитесь к разработчикам.');
-                      SubTypePresent := LgdcCreateableFormClass.GetSubTypeList(LocalSubTypeList{, ObjectSubType});
+                      SubTypePresent := LgdcCreateableFormClass.GetSubTypeList(LocalSubTypeList);
                     end;
 
                   if SubTypePresent then
