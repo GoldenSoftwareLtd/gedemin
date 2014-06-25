@@ -2090,8 +2090,6 @@ var
   ST: TStrings;
   IsGDC: Boolean;
   Init: Boolean;
-  ibsql: TIBSQL;
-  id: integer;
 
   function ClassFilter(Index: Integer; AIsGDC: Boolean; SubType: string): Boolean;
   var
@@ -2273,41 +2271,17 @@ begin
           try
             MC := TGDCClassTreeItem(AParent.Data).TheClass;
             if MC.Class_Reference.InheritsFrom(TgdcBase) then
-              CgdcBase(MC.Class_Reference).GetSubTypeList(ST)
+              CgdcBase(MC.Class_Reference).GetSubTypeList(ST, '', True)
             else
-              CgdcCreateableForm(MC.Class_Reference).GetSubTypeList(ST);
+              CgdcCreateableForm(MC.Class_Reference).GetSubTypeList(ST, '', True);
             //Добавляем SubTypы класса
             for I := 0 to ST.Count - 1 do
             begin
               if ClassFilter(Index, IsGDC, Replace(ST.Values[ST.Names[I]])) then
               begin
                 if MC.Class_Reference.InheritsFrom(TgdcBase) then
-                begin
-                  if MC.Class_Reference.InheritsFrom(TgdcDocument) then
-                  begin
-                    ibsql := TIBSQL.Create(nil);
-                    try
-                      ibsql.Transaction:= gdcDocumentType.ReadTransaction;
-                      ibsql.SQL.Text :=
-                        'SELECT z.* FROM gd_documenttype z '#13#10 +
-                        'WHERE z.documenttype = ''D''  and z.PARENT in ( '#13#10 +
-                        'select p.ID FROM gd_documenttype p '#13#10 +
-                        'WHERE p.documenttype = ''B'') and z.RUID = :RUID';
-                      ibsql.ParamByName('RUID').AsString := Replace(ST.Values[ST.Names[I]]);
-                      ibsql.ExecQuery;
-                      if not ibsql.Eof then
-                        TN := AddGDCClassNode(AParent, Index,
-                          Replace(ST.Values[ST.Names[I]]), ST.Names[I])
-                      else
-                        TN := nil;
-                    finally
-                      ibsql.Free;
-                    end;
-                  end
-                  else
-                    TN := AddGDCClassNode(AParent, Index,
-                      Replace(ST.Values[ST.Names[I]]), ST.Names[I]); 
-                end
+                  TN := AddGDCClassNode(AParent, Index,
+                    Replace(ST.Values[ST.Names[I]]), ST.Names[I])
                 else
                   TN := AddFRMClassNode(AParent, Index,
                     Replace(ST.Values[ST.Names[I]]), ST.Names[I]);
@@ -2336,44 +2310,26 @@ begin
         (TGDCClassTreeItem(AParent.Data).SubType <> '') then
       begin
         MC := TGDCClassTreeItem(AParent.Data).TheClass;
-        if MC.Class_Reference.InheritsFrom(TgdcDocument) then
-        begin
-          ibsql := TIBSQL.Create(nil);
-          try
-            ibsql.Transaction:= gdcDocumentType.ReadTransaction;
-            ibsql.Close;
-            ibsql.SQL.Text :=
-              'SELECT z.* FROM gd_documenttype z '#13#10 +
-              'WHERE z.RUID = :RUID ';
-            ibsql.ParamByName('RUID').AsString := TGDCClassTreeItem(AParent.Data).SubType;
-            ibsql.ExecQuery;
-            if not ibsql.Eof then
-            begin
-              id := ibsql.FieldByName('id').AsInteger;
-              ibsql.Close;
-              ibsql.SQL.Text :=
-                'SELECT z.* FROM gd_documenttype z '#13#10 +
-                'WHERE z.parent = :ID ';
-              ibsql.ParamByName('ID').AsInteger := ID;
-              ibsql.ExecQuery;
-              While not ibsql.Eof do
-              begin
-                TN := AddGDCClassNode(AParent, Index, ibsql.FieldByName('RUID').AsString,
-                  ibsql.FieldByName('NAME').AsString);
-                TN.HasChildren := True;
-                if not PropertySettings.Filter.OnlySpecEvent then
-                  InitOverloadAndDisable(TGDCClassTreeItem(TN.Data).TheClass);
-                TGDCClassTreeItem(TN.Data).OverloadMethods :=
-                  TGDCClassTreeItem(TN.Data).TheClass.SpecMethodCount;
-                TGDCClassTreeItem(TN.Data).DisabledMethods :=
-                  TGDCClassTreeItem(TN.Data).TheClass.SpecDisableMethod;
-                ibsql.Next;
-              end;
-            end;
+        ST := TStringList.Create;
+        try
+          if MC.Class_Reference.InheritsFrom(TgdcBase) then
+            CgdcBase(MC.Class_Reference).GetSubTypeList(ST, TGDCClassTreeItem(AParent.Data).SubType, True)
+          else
+            CgdcCreateableForm(MC.Class_Reference).GetSubTypeList(ST, TGDCClassTreeItem(AParent.Data).SubType, True);
+          for I := 0 to ST.Count - 1 do
+          begin
+            TN := AddGDCClassNode(AParent, Index, Replace(ST.Values[ST.Names[I]]), ST.Names[I]);
+            TN.HasChildren := True;
+            if not PropertySettings.Filter.OnlySpecEvent then
+              InitOverloadAndDisable(TGDCClassTreeItem(TN.Data).TheClass);
+            TGDCClassTreeItem(TN.Data).OverloadMethods :=
+              TGDCClassTreeItem(TN.Data).TheClass.SpecMethodCount;
+            TGDCClassTreeItem(TN.Data).DisabledMethods :=
+              TGDCClassTreeItem(TN.Data).TheClass.SpecDisableMethod;
+          end;
         finally
-          ibsql.Free;
+          ST.Free;
         end;
-      end;
       end;
 
       AddMethods(AParent, IsGDC);
