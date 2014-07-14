@@ -1,6 +1,6 @@
 object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
-  Left = 308
-  Top = 313
+  Left = 902
+  Top = 379
   Width = 940
   Height = 576
   BorderIcons = [biSystemMenu, biMinimize]
@@ -134,7 +134,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           Height = 21
           Hint = 'Диск:[\Каталог][\Файл] '
           TabOrder = 0
-          Text = 'D:\GDBASE_2.FDB'
+          Text = 'D:\databases\_AKSAMIT_NS.FDB'
         end
         object btnDatabaseBrowse: TButton
           Left = 354
@@ -1360,8 +1360,10 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
       OnExecute = actSaveLogExecute
       OnUpdate = actSaveLogUpdate
     end
-    object Action1: TAction
-      Caption = 'Action1'
+    object actSaldoTest: TAction
+      Caption = 'actSaldoTest'
+      OnExecute = actSaldoTestExecute
+      OnUpdate = actSaldoTestUpdate
     end
   end
   object MainMenu: TMainMenu
@@ -1395,6 +1397,10 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
       Caption = 'Инструменты'
       object N15: TMenuItem
         Action = actCardSetup
+      end
+      object TEST1: TMenuItem
+        Action = actSaldoTest
+        Caption = 'Проверка сальдо'
       end
     end
     object N14: TMenuItem

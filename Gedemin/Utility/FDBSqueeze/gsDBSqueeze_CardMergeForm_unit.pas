@@ -297,7 +297,7 @@ begin
    end;
     AGrid.Canvas.FillRect(Rect);
     AGrid.Canvas.TextOut(Rect.Left + 2, Rect.Top + 2, AGrid.Cells[ACol, ARow]);
-  end;  
+  end;
 end;
 //---------------------------------------------------------------------------
 procedure TgsDBSqueeze_CardMergeForm.actSelectAllDocsExecute(Sender: TObject);
@@ -590,6 +590,7 @@ begin
   FCardFeaturesBits := TBits.Create;
 
   ///tvDocTypes
+
   with strngrdDocTypes do
     for I:=0 to ColCount-1 do
       Cols[I].Clear;

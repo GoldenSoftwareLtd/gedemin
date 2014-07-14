@@ -148,7 +148,7 @@ type
     lbl4: TLabel;
     N12: TMenuItem;
     N15: TMenuItem;
-    Action1: TAction;
+    actSaldoTest: TAction;
     Panel2: TPanel;
     GroupBox1: TGroupBox;
     lbl5: TLabel;
@@ -161,6 +161,7 @@ type
     grpOptions: TGroupBox;
     chkGetStatiscits: TCheckBox;
     Panel3: TPanel;
+    TEST1: TMenuItem;
     procedure actClearLogExecute(Sender: TObject);
     procedure actDatabaseBrowseExecute(Sender: TObject);
     procedure actDisconnectExecute(Sender: TObject);
@@ -190,6 +191,8 @@ type
     procedure actDatabaseBrowseUpdate(Sender: TObject);
     procedure actDefocusExecute(Sender: TObject);
     procedure actAboutExecute(Sender: TObject);
+    procedure actSaldoTestExecute(Sender: TObject);
+    procedure actSaldoTestUpdate(Sender: TObject);
 
   private
     FLogFileStream: TFileStream;
@@ -926,6 +929,16 @@ begin
   finally
     Free;
   end;
+end;
+
+procedure TgsDBSqueeze_MainForm.actSaldoTestExecute(Sender: TObject);
+begin
+  FSThread.DoTest;
+end;
+
+procedure TgsDBSqueeze_MainForm.actSaldoTestUpdate(Sender: TObject);
+begin
+  actSaldoTest.Enabled := (FSThread <> nil) and FConnected and (not FSThread.Busy);
 end;
 
 end.

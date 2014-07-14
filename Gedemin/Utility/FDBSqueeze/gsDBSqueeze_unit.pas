@@ -86,6 +86,8 @@ type
     constructor Create;
     destructor Destroy; override;
 
+    procedure Test;
+
     procedure CalculateAcSaldo;                                 // подсчет бухгалтерского сальдо
     procedure CalculateInvSaldo;                                // подсчет складских остатков
     procedure Connect(ANoGarbageCollect: Boolean; AOffForceWrite: Boolean);
@@ -923,7 +925,7 @@ begin
 
     FOnGetDBPropertiesEvent(DBPropertiesList);
 
-    q.Close;
+   q.Close;
     q.SQL.Text :=
       'SELECT COUNT(id) AS Kolvo FROM ac_entry WHERE CAST(entrydate AS DATE) < CAST(''01.01.1900'' AS DATE)';
     ExecSqlLogEvent(q, 'GetDBPropertiesEvent');
@@ -1745,6 +1747,57 @@ begin
   end;
 end;
 //---------------------------------------------------------------------------
+procedure TgsDBSqueeze.Test;
+var
+  Tr: TIBTransaction;
+  q: TIBSQL;
+  Msg: String;
+begin
+  LogEvent('Test...');
+  Assert(Connected);
+
+  q := TIBSQL.Create(nil);
+  Tr := TIBTransaction.Create(nil);
+  try
+    Tr.DefaultDatabase := FIBDatabase;
+    Tr.StartTransaction;
+    q.Transaction := Tr;
+
+    q.SQL.Text :=
+      'select ' +                                                                              #13#10 +
+      '  b.contactkey, b.cardkey, b.balance, SUM(m.debit - m.credit) AS Calculate ' +          #13#10 +
+      'from inv_balance b ' +                                                                  #13#10 +
+      '  left join inv_movement m ON b.cardkey = m.cardkey and m.contactkey = b.contactkey ' + #13#10 +
+      'group by 1, 2, 3 ' +                                                                    #13#10 +
+      'having ' +                                                                              #13#10 +
+      '  coalesce(b.balance, 0) <> coalesce(SUM(m.debit - m.credit), 0) ';
+    ExecSqlLogEvent(q, 'Test');
+
+    if (not q.Eof) then
+    begin
+      Msg := 'Былo обнаружено несовпадение сальдо в inv_balance с inv_movement! Подробнее в логе. ';
+      LogEvent('Былo обнаружено несовпадение сальдо в inv_balance с inv_movement! Подробнее в логе. ');
+    end;
+
+    while not q.Eof do
+    begin
+      LogEvent('CONTACTKEY=' + q.FieldByName('contactkey').AsString + ' cardkey= ' + q.FieldByName('cardkey').AsString + ' balance=' + q.FieldByName('balance').AsString + ' SUM(debit - credit) = ' +  q.FieldByName('Calculate').AsString);
+      q.Next;
+    end;
+
+    if (Msg > '') then
+      WarningEvent(Msg);
+
+    LogEvent('Test...OK');
+    q.Close;
+    Tr.Commit;
+  finally
+    q.Free;
+    Tr.Free;
+  end;
+end;
+
+//---------------------------------------------------------------------------
 procedure TgsDBSqueeze.CalculateAcSaldo; // подсчет бухгалтерского сальдо c сохранением в таблице DBS_TMP_AC_SALDO
 var
   Tr: TIBTransaction;
@@ -2359,6 +2412,19 @@ var
       Tr2.Commit;
       Tr2.StartTransaction;
 
+{
+           ////
+    q3.SQL.Text := 'SELECT g_his_has(1, 148540301) AS Has FROM rdb$database';
+    if not FDoStopProcessing then
+      ExecSqlLogEvent(q3, 'CalculateInvSaldo');
+
+    if q3.FieldByName('Has').AsInteger > 0 then
+      LogEvent('[TEST] HIS_1: 148540301');
+    q3.Close;
+    //////
+}
+
+
         // 3) include HIS доки на которые есть ссылки (не от таблицы Line, не от crossLine)
         q2.SQL.Text :=
           'SELECT ' +                                             #13#10 +
@@ -2401,11 +2467,22 @@ var
               q3.Close;
             end;
           end;
+//////////////////////////////////////////!
+{          ////
+    q3.SQL.Text := 'SELECT g_his_has(1, 148540301) AS Has FROM rdb$database';
+    if not FDoStopProcessing then
+      ExecSqlLogEvent(q3, 'CalculateInvSaldo');
 
+    if q3.FieldByName('Has').AsInteger > 0 then
+      LogEvent('[TEST] HIS_1: 148540301');
+    q3.Close;
+    //////
+}
           q2.Next;
         end;
         q2.Close;
         ProgressMsgEvent('', 100);
+
 
   DestroyHIS(0);
 
@@ -2491,6 +2568,18 @@ var
 
                 ExecSqlLogEvent(q3, 'IncludeDependenciesHIS');
                 q3.Close;
+
+{                ////
+    q3.SQL.Text := 'SELECT g_his_has(1, 148540301) AS Has FROM rdb$database';
+    if not FDoStopProcessing then
+      ExecSqlLogEvent(q3, 'CalculateInvSaldo');
+
+    if q3.FieldByName('Has').AsInteger > 0 then
+      LogEvent('[TEST] HIS_1: 148540301');
+    q3.Close;
+    //////
+ }
+
               end;
             end;
 
@@ -2540,10 +2629,20 @@ var
               q3.SQL.Text :=
                 'SELECT SUM(g_his_include(1, id)) ' +              #13#10 +
                 '  FROM gd_document ' +                            #13#10 +
-                ' WHERE parent < 147000000';
+                ' WHERE parent < 147000000';                                                         ////УЖЕ ДОБАВИЛИ РАШЬНЕ =>  убрать
               ExecSqlLogEvent(q3, 'IncludeDependenciesHIS');
               q3.Close;
-            end;
+
+ {                          ////
+    q3.SQL.Text := 'SELECT g_his_has(1, 148540301) AS Has FROM rdb$database';
+    if not FDoStopProcessing then
+      ExecSqlLogEvent(q3, 'CalculateInvSaldo');
+
+    if q3.FieldByName('Has').AsInteger > 0 then
+      LogEvent('[TEST] HIS_1: 148540301');
+    q3.Close;
+    //////
+}            end;
 
 
             // if PK<147000000 главные поля include HIS, чтобы далее затянуть FKs таких записей
@@ -2601,6 +2700,18 @@ var
               end;
               q3.Close;
               FkFieldsList2.Clear;
+
+
+{                           ////
+    q3.SQL.Text := 'SELECT g_his_has(1, 148540301) AS Has FROM rdb$database';
+    if not FDoStopProcessing then
+      ExecSqlLogEvent(q3, 'CalculateInvSaldo');
+
+    if q3.FieldByName('Has').AsInteger > 0 then
+      LogEvent('[TEST] HIS_1: 148540301');
+    q3.Close;
+    //////
+}
             end;
             q4.Close;
           end;
@@ -2616,7 +2727,17 @@ var
               ExecSqlLogEvent(q3, 'CreateHIS_IncludeInHIS');
             until q3.FieldByName('RealCount').AsInteger = 0;
             q3.Close;
-          end;
+
+{                         ////
+    q3.SQL.Text := 'SELECT g_his_has(1, 148540301) AS Has FROM rdb$database';
+    if not FDoStopProcessing then
+      ExecSqlLogEvent(q3, 'CalculateInvSaldo');
+
+    if q3.FieldByName('Has').AsInteger > 0 then
+      LogEvent('[TEST] HIS_1: 148540301');
+    q3.Close;
+    //////
+}          end;
 
           // все FK поля в Line
           q2.SQL.Text :=                                                      
@@ -2771,7 +2892,27 @@ var
                 ExecSqlLogEvent(q3, 'IncludeDependenciesHIS');
               until q3.FieldByName('RealCount').AsInteger = 0;
               q3.Close;
-            end
+
+                           ////
+{    q3.SQL.Text := 'SELECT g_his_has(1, 148540301) AS Has FROM rdb$database';
+    if not FDoStopProcessing then
+      ExecSqlLogEvent(q3, 'CalculateInvSaldo');
+
+    if q3.FieldByName('Has').AsInteger > 0 then
+      LogEvent('[TEST] HIS_1: 148540301');
+    q3.Close; }
+    //////
+
+{                 ////
+    q3.SQL.Text := 'SELECT g_his_has(2, 148540301) AS Has FROM rdb$database';
+    if not FDoStopProcessing then
+      ExecSqlLogEvent(q3, 'CalculateInvSaldo');
+
+    if q3.FieldByName('Has').AsInteger > 0 then
+      LogEvent('[TEST] HIS_2: 148540301');
+    q3.Close;
+    //////
+}            end
             else begin      LogEvent('5) 2.');
               repeat
                 FkFieldsList3.Clear;
@@ -2804,6 +2945,15 @@ var
               until q3.FieldByName('RealCount').AsInteger = 0;
               q3.Close;
 
+{                               ////
+    q3.SQL.Text := 'SELECT g_his_has(2, 148540301) AS Has FROM rdb$database';
+    if not FDoStopProcessing then
+      ExecSqlLogEvent(q3, 'CalculateInvSaldo');
+
+    if q3.FieldByName('Has').AsInteger > 0 then
+      LogEvent('[TEST] HIS_2: 148540301');
+    q3.Close;
+}    //////
 
               FkFieldsList3.Clear;
               q3.Close;
@@ -2841,6 +2991,16 @@ var
               q3.SQl.Add(' WHERE ' + TmpStr);
               ExecSqlLogEvent(q3, 'IncludeDependenciesHIS');
               q3.Close;
+
+                               ////
+{    q3.SQL.Text := 'SELECT g_his_has(1, 148540301) AS Has FROM rdb$database';
+    if not FDoStopProcessing then
+      ExecSqlLogEvent(q3, 'CalculateInvSaldo');
+
+    if q3.FieldByName('Has').AsInteger > 0 then
+      LogEvent('[TEST] HIS_1: 148540301');
+    q3.Close;
+ }   //////
             end;
           end;
 
@@ -2957,6 +3117,17 @@ var
             end;
             q3.Close;
 
+
+    ////
+{    q3.SQL.Text := 'SELECT g_his_has(1, 148540301) AS Has FROM rdb$database';
+    if not FDoStopProcessing then
+      ExecSqlLogEvent(q3, 'CalculateInvSaldo');
+
+    if q3.FieldByName('Has').AsInteger > 0 then
+      LogEvent('[TEST] HIS_1: 148540301');
+    q3.Close;
+}    //////
+
           end;
           TmpStr := '';
 
@@ -3026,6 +3197,17 @@ var
 
                 ExecSqlLogEvent(q3, 'IncludeDependenciesHIS');
                 q3.Close;
+
+
+    ////
+{    q3.SQL.Text := 'SELECT g_his_has(1, 148540301) AS Has FROM rdb$database';
+    if not FDoStopProcessing then
+      ExecSqlLogEvent(q3, 'CalculateInvSaldo');
+
+    if q3.FieldByName('Has').AsInteger > 0 then
+      LogEvent('[TEST] HIS_1: 148540301');
+    q3.Close;
+}    //////
               end;
               q4.Close;
             end;
@@ -3160,6 +3342,16 @@ var
                   end;
                 end;
                 q3.Close;
+
+                    ////
+{    q3.SQL.Text := 'SELECT g_his_has(1, 148540301) AS Has FROM rdb$database';
+    if not FDoStopProcessing then
+      ExecSqlLogEvent(q3, 'CalculateInvSaldo');
+
+    if q3.FieldByName('Has').AsInteger > 0 then
+      LogEvent('[TEST] HIS_1: 148540301');
+    q3.Close;
+}    //////
               end;
               TmpStr := '';
             end;
@@ -3393,6 +3585,16 @@ begin
       ExecSqlLogEvent(q, 'CreateHIS_IncludeInHIS');
     q.Close;
 
+
+
+{    q.SQL.Text := 'SELECT g_his_has(1, 148540301) AS Has FROM rdb$database';
+    if not FDoStopProcessing then
+      ExecSqlLogEvent(q, 'CalculateInvSaldo');
+
+    if q.FieldByName('Has').AsInteger > 0 then
+      LogEvent('[TEST] HIS_1: 148540301');
+    q.Close;
+}
     q.SQL.Text :=
       'SELECT SUM(g_his_include(1, :SaldoDocKey)) FROM rdb$database ';
     q.ParamByName('SaldoDocKey').AsInteger := FInvSaldoDoc;
@@ -3400,13 +3602,36 @@ begin
       ExecSqlLogEvent(q, 'CalculateInvSaldo');
     q.Close;
 
+ {   q.SQL.Text := 'SELECT g_his_has(1, 148540301) AS Has FROM rdb$database';
+    if not FDoStopProcessing then
+      ExecSqlLogEvent(q, 'CalculateInvSaldo');
+
+    if q.FieldByName('Has').AsInteger > 0 then
+      LogEvent('[TEST] HIS: 148540301');
+    q.Close;
+ }
+
     LogEvent('DELETE FROM INV_MOVEMENT...');
 
-    q.SQL.Text :=
-      'SELECT SUM(g_his_include(1, id)) FROM gd_document WHERE g_his_has(1, parent)=1 OR parent<147000000 ';
-    if not FDoStopProcessing then
+    repeat                                                                      ///////////
+      q.Close;
+      q.SQL.Text :=
+        'SELECT SUM(g_his_include(1, id)) AS RealCount ' +   #13#10 +
+        '  FROM gd_document ' +                              #13#10 +
+        ' WHERE g_his_has(1, parent)=1 OR parent<147000000 ';
       ExecSqlLogEvent(q, 'CreateHIS_IncludeInHIS');
+    until q.FieldByName('RealCount').AsInteger = 0;
     q.Close;
+
+    ////
+{    q.SQL.Text := 'SELECT g_his_has(1, 148540301) AS Has FROM rdb$database';
+    if not FDoStopProcessing then
+      ExecSqlLogEvent(q, 'CalculateInvSaldo');
+
+    if q.FieldByName('Has').AsInteger > 0 then         
+      LogEvent('[TEST] HIS: 148540301');
+    q.Close;
+}    //////
 
     q.SQL.Text :=
       'DELETE FROM gd_ruid gr ' +                    #13#10 +
@@ -3528,6 +3753,16 @@ begin
       end;
       q.Close;
     end;
+
+              ////
+ {   q.SQL.Text := 'SELECT g_his_has(1, 148540301) AS Has FROM rdb$database';
+    if not FDoStopProcessing then
+      ExecSqlLogEvent(q, 'CalculateInvSaldo');
+
+    if q.FieldByName('Has').AsInteger > 0 then
+      LogEvent('[TEST] HIS_1: 148540301');
+    q.Close;
+}    //////
 
     Tr.Commit;
     ProgressMsgEvent('', 100);
@@ -4583,19 +4818,33 @@ begin
 
     q.Transaction := Tr;
 
+   ////
+ {   q.SQL.Text := 'SELECT g_his_has(1, 148540301) AS Has FROM rdb$database';
+    if not FDoStopProcessing then
+      ExecSqlLogEvent(q, 'CalculateInvSaldo');
+
+    if q.FieldByName('Has').AsInteger > 0 then
+      LogEvent('[TEST] HIS_1: 148540301');
+    q.Close;
+}    //////
+
     q.SQL.Text :=
-      'DELETE FROM GD_DOCUMENT ' +        #13#10 +
-      ' WHERE g_his_has(1, id)=0 ' +      #13#10 +
-      '   AND id >= 147000000';
+      'DELETE FROM GD_DOCUMENT ' +                              #13#10 +
+      ' WHERE ' +                                               #13#10 +
+      '   g_his_has(1, id)=0 ' + //   '   ((g_his_has(1, id)=0) AND (g_his_has(1,parent)=0)) ' + #13#10 +      ///////////   g_his_has(1, id)=0
+      '   AND id >= 147000000';                                                 /// проверить что NULL дает his has = 0
     ExecSqlLogEvent(q, 'DeleteDocuments_DeleteHIS');
+
+    Tr.Commit;
+    Tr.StartTransaction;
 
     for I:=1 to FProcessedTbls.Count-1 do
     begin
       if AnsiPos('||', FProcessedTbls.Values[FProcessedTbls.Names[I]]) = 0 then
         q.SQL.Text :=
           'DELETE FROM ' + FProcessedTbls.Names[I]  +                                        #13#10 +
-          ' WHERE (g_his_has(1,' + FProcessedTbls.Values[FProcessedTbls.Names[I]] + ')=0 ' + #13#10 +
-          '   AND ' + FProcessedTbls.Values[FProcessedTbls.Names[I]] + ' >= 147000000) '
+          ' WHERE g_his_has(1,' + FProcessedTbls.Values[FProcessedTbls.Names[I]] + ')=0 ' + #13#10 +
+          '   AND ' + FProcessedTbls.Values[FProcessedTbls.Names[I]] + ' >= 147000000 '
       else begin
         if FProcessedTbls.Names[I] = 'INV_CARD' then
           q.SQL.Text :=
