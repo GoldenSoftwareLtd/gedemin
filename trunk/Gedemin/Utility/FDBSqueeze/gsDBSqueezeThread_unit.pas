@@ -10,6 +10,8 @@ const
   MAX_PROGRESS_STEP = 12500;
   PROGRESS_STEP = MAX_PROGRESS_STEP div 100;
 
+  WM_DBS_TEST                 = WM_GD_THREAD_USER + 12;
+                              
   WM_DBS_SETPARAMS             = WM_GD_THREAD_USER + 4;
   WM_DBS_CONNECT               = WM_GD_THREAD_USER + 6;
 
@@ -150,6 +152,8 @@ type
     procedure DoGetDBProperties;
     procedure DoGetStatistics;
     procedure DoGetProcStatistics;
+
+    procedure DoTest;
 
     procedure SetClosingDate(const AClosingDate: TDateTime);
     procedure SetDBParams(const ADatabaseName: String; const AHost: String; const AUserName: String; const APassword: String; const ACharacterSet: String; const ANumBuffers: Integer; const APort: Integer = 0);
@@ -411,6 +415,22 @@ begin
 
         Result := True;
       end;
+
+
+    WM_DBS_TEST:
+      begin
+        FBusy.Value := 1;
+
+        FDBS.ProgressMsgEvent('Проверка БД...', 0);
+
+        if FDoStopProcessing.Value = 0 then
+          FDBS.Test;
+        FDBS.ProgressMsgEvent(' ', 0);
+
+        FBusy.Value := 0;
+        Result := True;
+      end;
+
 
     WM_DBS_GETSTATISTICS:
       begin
@@ -870,6 +890,11 @@ begin
   FMessageProcInvMovementStr := AMessageProcInvMovementStr;
   FMessageProcInvCardStr := AMessageProcInvCardStr;
   Synchronize(DoOnGetProcStatisticsSync);
+end;
+
+procedure TgsDBSqueezeThread.DoTest;
+begin
+  PostMsg(WM_DBS_TEST);
 end;
 
 procedure  TgsDBSqueezeThread.DoOnLogSQLSync;
