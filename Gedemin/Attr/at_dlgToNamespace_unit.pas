@@ -108,6 +108,11 @@ procedure TdlgToNamespace.AddObject(const AnObjID: Integer;
   const AHeadObjectKey: Integer;
   const ANamespace: String;
   const AKind: TgsNSObjectKind);
+const
+  Padding        = 20;
+  NameWidth      = 360;
+  LineHeight     = 21;
+  ScrollBarWidth = 20;
 var
   NS: String;
   ChBx: TCheckBox;
@@ -130,11 +135,11 @@ begin
   begin
     CurrPnl := TPanel.Create(Self);
     CurrPnl.Parent := Pnl;
-    CurrPnl.Top := Pnl.Height;
-    Pnl.Height := Pnl.Height + 21 + 1;
-    CurrPnl.Left := 24;
-    CurrPnl.Width := Pnl.Width - 24 - 1;
-    CurrPnl.Height := 21;
+    CurrPnl.Top := Pnl.Height + 1;
+    Pnl.Height := Pnl.Height + LineHeight + 2;
+    CurrPnl.Left := Padding;
+    CurrPnl.Width := Pnl.Width - Padding - 1;
+    CurrPnl.Height := LineHeight;
     CurrPnl.Caption := '';
     CurrPnl.BorderStyle := bsNone;
     CurrPnl.BevelOuter := bvNone;
@@ -150,8 +155,8 @@ begin
     Pnl.Parent := SB;
     Pnl.Top := FY;
     Pnl.Left := 0;
-    Pnl.Width := SB.Width - 20;
-    Pnl.Height := 21;
+    Pnl.Width := SB.Width - ScrollBarWidth;
+    Pnl.Height := LineHeight;
     Pnl.Caption := '';
     CurrPnl := Pnl;
   end;
@@ -161,7 +166,7 @@ begin
   ChBx.Alignment := taRightJustify;
   ChBx.Left := 2;
   ChBx.Top := 2;
-  ChBx.Width := CurrPnl.Width - 24 * 3 - 4;
+  ChBx.Width := NameWidth - CurrPnl.Left;
   ChBx.Checked := True;
   ChBx.Tag := AnObjID;
   ChBx.Hint := RUIDToStr(ARUID);
@@ -178,6 +183,8 @@ begin
   begin
     Lbl := TLabel.Create(Self);
     Lbl.Parent := CurrPnl;
+    Lbl.Top := 2;
+    Lbl.Left := NameWidth + 12 - CurrPnl.Left;
     Lbl.AutoSize := True;
     Lbl.Font.Style := [fsItalic];
     Lbl.Font.Color := clMaroon;
@@ -186,26 +193,26 @@ begin
 
   ChBx := TCheckBox.Create(Self);
   ChBx.Parent := CurrPnl;
-  ChBx.Caption := 'Ï';
-  ChBx.Align := alRight;
+  ChBx.Caption := '';
   ChBx.Top := 2;
-  ChBx.Width := 28;
+  ChBx.Left := CurrPnl.Width - 21 * 3;
+  ChBx.Width := 16;
   ChBx.Checked := False;
 
   ChBx := TCheckBox.Create(Self);
   ChBx.Parent := CurrPnl;
-  ChBx.Caption := 'Í';
-  ChBx.Align := alRight;
+  ChBx.Caption := '';
   ChBx.Top := 2;
-  ChBx.Width := 28;
+  ChBx.Left := CurrPnl.Width - 21 * 2;
+  ChBx.Width := 16;
   ChBx.Checked := False;
 
   ChBx := TCheckBox.Create(Self);
   ChBx.Parent := CurrPnl;
-  ChBx.Caption := 'Ä';
-  ChBx.Align := alRight;
+  ChBx.Caption := '';
   ChBx.Top := 2;
-  ChBx.Width := 28;
+  ChBx.Left := CurrPnl.Width - 21;
+  ChBx.Width := 16;
   ChBx.Checked := False;
 end;
 

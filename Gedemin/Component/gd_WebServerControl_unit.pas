@@ -228,7 +228,8 @@ begin
       if Assigned(AComponent) then
         AComponent.FreeNotification(Self);
 
-      ActivateServer;
+      if gd_GlobalParams.GetWebServerActive then
+        ActivateServer;
     end;
   end;
 end;
