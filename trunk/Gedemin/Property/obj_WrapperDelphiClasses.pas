@@ -991,6 +991,9 @@ type
     function  GetComplexCase(const TheWord: WideString; TheCase: Integer): WideString; safecall;
     function  GetNumericWordForm(ANum: Integer; const AStrForm1: WideString;
                                const AStrForm2: WideString; const AStrForm5: WideString): WideString; safecall;
+    procedure MimeEncodeStream(const InputStream: IgsStream; const OutputStream: IgsStream;
+                               WithCRLF: WordBool); safecall;
+    procedure MimeDecodeStream(const InputStream: IgsStream; const OutputStream: IgsStream); safecall;
   end;
 
   TwrpScreen = class(TwrpComponent, IgsScreen)
@@ -4462,7 +4465,7 @@ implementation
 
 uses
   gdcOLEClassList, ComServ, prp_Methods, obj_VarParam, obj_QueryList,
-  OleCtrls, jpeg, TypInfo
+  OleCtrls, jpeg, TypInfo, JclMime
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -22751,6 +22754,24 @@ end;
 procedure TwrpgsPanel.Set_BorderColor(Value: Integer);
 begin
   GetPanel.BorderColor := Value;
+end;
+
+procedure TwrpApplication.MimeDecodeStream(const InputStream,
+  OutputStream: IgsStream);
+begin
+  JclMime.MimeDecodeStream(InterfaceToObject(InputStream) as TStream,
+    InterfaceToObject(OutputStream) as TStream);
+end;
+
+procedure TwrpApplication.MimeEncodeStream(const InputStream,
+  OutputStream: IgsStream; WithCRLF: WordBool);
+begin
+  if WithCRLF then
+    JclMime.MimeEncodeStream(InterfaceToObject(InputStream) as TStream,
+      InterfaceToObject(OutputStream) as TStream)
+  else
+    JclMime.MimeEncodeStreamNoCRLF(InterfaceToObject(InputStream) as TStream,
+      InterfaceToObject(OutputStream) as TStream);
 end;
 
 initialization
