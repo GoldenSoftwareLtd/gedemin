@@ -25,7 +25,7 @@ const
 
   WM_DBS_SETSALDOPARAMS        = WM_GD_THREAD_USER + 13;
   WM_DBS_SETSELECTEDDOCTYPES   = WM_GD_THREAD_USER + 14;
-  
+  WM_DBS_GETSTATISTICS_INVCARD = WM_GD_THREAD_USER + 15;
   WM_DBS_GETSTATISTICS         = WM_GD_THREAD_USER + 16;
   WM_DBS_GETPROCSTATISTICS     = WM_GD_THREAD_USER + 17;
   WM_DBS_STARTPROCESSING       = WM_GD_THREAD_USER + 18;
@@ -66,6 +66,7 @@ type
   TSetDocTypeStringsEvent = procedure (const MsgDocTypeList: TStringList) of object;
   TGetInvCardFeaturesEvent =  procedure (const MsgCardFeaturesList: TStringList) of object;
   TSetDocTypeBranchEvent = procedure (const MsgBranchList: TStringList) of object;
+  TGetInvCardStatisticsEvent = procedure (const MsgInvCardCountStr: String) of object;
   TGetStatisticsEvent = procedure (const MsgGdDocStr: String; const MsgAcEntryStr: String; const MsgInvMovementStr: String; const MsgInvCardStr: String) of object;
   TGetProcStatisticsEvent = procedure (const MsgProcGdDocStr: String; const MsgProcAcEntryStr: String; const MsgProcInvMovementStr: String; const MsgProcInvCardStr: String) of object;
   TFinishEvent = procedure (const MsgIsFinished: Boolean) of object;
@@ -79,6 +80,7 @@ type
 
     FBusy: TidThreadSafeInteger;
     FDoGetStatisticsAfterProc: TidThreadSafeInteger;
+    FDoGetStatisticsInvCardAfterProc: TidThreadSafeInteger;
 
     FDoStopProcessing: TidThreadSafeInteger;
 
@@ -96,6 +98,7 @@ type
     FMessageCardFeatures:  TStringList;
     FMessageDocTypeBranchList: TStringList;
     FMessageDocTypeList: TStringList;
+    FMessageInvCardCountStr: String;
     FMessageGdDocStr, FMessageAcEntryStr, FMessageInvMovementStr, FMessageInvCardStr: String;
     FMessageProcGdDocStr, FMessageProcAcEntryStr, FMessageProcInvMovementStr, FMessageProcInvCardStr: String;
     FMessagePropertiesList: TStringList;
@@ -109,6 +112,7 @@ type
     FOnGetInvCardFeatures: TGetInvCardFeaturesEvent;
     FOnGetProcStatistics: TGetProcStatisticsEvent;
     FOnGetStatistics: TGetStatisticsEvent;
+    FOnGetInvCardStatistics: TGetInvCardStatisticsEvent;
     FOnLogSQL: TLogSQLEvent;
     FOnSetDocTypeBranch: TSetDocTypeBranchEvent;
     FOnSetDocTypeStrings: TSetDocTypeStringsEvent;
@@ -119,6 +123,7 @@ type
     procedure DoOnGetDBPropertiesSync;
     procedure DoOnGetProcStatisticsSync;
     procedure DoOnGetStatisticsSync;
+    procedure DoOnGetStatisticsInvCardSync;
     procedure DoOnLogSQLSync;
     procedure DoOnSetDocTypeBranchSync;
     procedure DoOnSetDocTypeStringsSync;
@@ -129,13 +134,16 @@ type
     procedure GetDBProperties(const AMessageProperties: TStringList);
     procedure GetProcStatistics(const AMessageProcGdDocStr: String; const AMessageProcAcEntryStr: String; const AMessageProcInvMovementStr: String; const AMessageProcInvCardStr: String);
     procedure GetStatistics(const AMessageGdDocStr: String; const AMessageAcEntryStr: String; const AMessageInvMovementStr: String; const AMessageInvCardStr: String);
+    procedure GetInvCardStatistics(const AMessageInvCardCountStr: String);
     procedure LogSQL(const AMsgLogSQL: String);
     procedure SetDocTypeBranch(const AMessageBranchList: TStringList);
     procedure SetDocTypeStrings(const AMessageDocTypeList: TStringList);
     procedure SetParamStatisticsAfterProc(AParam: Boolean);
+    procedure SetParamStatisticsInvCardAfterProc(AParam: Boolean);
 
     function GetBusy: Boolean;
     function GetParamStatisticsAfterProc: Boolean;
+    function GetParamStatisticsInvCardAfterProc: Boolean;
 
   protected
     function ProcessMessage(var Msg: TMsg): Boolean; override;
@@ -151,6 +159,7 @@ type
     procedure DoMergeCards;
     procedure DoGetDBProperties;
     procedure DoGetStatistics;
+    procedure DoGetStatisticsInvCard;
     procedure DoGetProcStatistics;
 
     procedure DoTest;
@@ -168,6 +177,8 @@ type
     property Busy: Boolean  read GetBusy;
     property DoGetStatisticsAfterProc: Boolean
       read GetParamStatisticsAfterProc write SetParamStatisticsAfterProc;
+     property DoGetStatisticsInvCardAfterProc: Boolean
+      read GetParamStatisticsInvCardAfterProc write SetParamStatisticsInvCardAfterProc;
     property OnFinishEvent: TFinishEvent
       read FOnFinish                   write FOnFinish;
     property OnGetConnected: TGetConnectedEvent
@@ -180,6 +191,8 @@ type
       read FOnGetProcStatistics        write FOnGetProcStatistics;
     property OnGetStatistics: TGetStatisticsEvent
       read FOnGetStatistics            write FOnGetStatistics;
+    property OnGetInvCardStatistics: TGetInvCardStatisticsEvent
+      read FOnGetInvCardStatistics     write FOnGetInvCardStatistics;
     property OnLogSQL: TLogSQLEvent
       read FOnLogSQL                   write FOnLogSQL;
     property OnSetDocTypeBranch: TSetDocTypeBranchEvent
@@ -202,11 +215,13 @@ begin
   FDBS.OnSetDocTypeStringsEvent := SetDocTypeStrings;
   FDBS.OnGetInvCardFeaturesEvent := GetCardFeatures;
   FDBS.OnSetDocTypeBranchEvent := SetDocTypeBranch;
+  FDBS.OnGetInvCardStatistics := GetInvCardStatistics;
   FDBS.OnGetStatistics := GetStatistics;
   FDBS.OnGetProcStatistics := GetProcStatistics;
   FDocTypesList :=  TStringList.Create;
   FBusy := TIdThreadSafeInteger.Create;
   FDoGetStatisticsAfterProc := TIdThreadSafeInteger.Create;
+  FDoGetStatisticsInvCardAfterProc := TIdThreadSafeInteger.Create;
   FMsgConnectInfoList := TStringList.Create;
   FMessageDocTypeList := TStringList.Create;
   FMessageCardFeatures := TStringList.Create;
@@ -228,6 +243,7 @@ begin
   FDocTypesList.Free;
   FBusy.Free;
   FDoGetStatisticsAfterProc.Free;
+  FDoGetStatisticsInvCardAfterProc.Free;
   FMsgConnectInfoList.Free;
   FMessageDocTypeList.Free;
   FMessageCardFeatures.Free;
@@ -305,6 +321,15 @@ begin
     FOnGetDBProperties(FMessagePropertiesList);
 end;
 
+procedure TgsDBSqueezeThread.DoOnGetStatisticsInvCardSync;
+begin
+  if Assigned(FOnGetInvCardStatistics) then
+    FOnGetInvCardStatistics(FMessageInvCardCountStr);
+
+  if not GetParamStatisticsInvCardAfterProc then
+    FBusy.Value := 0;
+end;
+
 procedure TgsDBSqueezeThread.DoOnGetStatisticsSync;
 begin
   if Assigned(FOnGetStatistics) then
@@ -339,6 +364,19 @@ begin
     FDoGetStatisticsAfterProc.Value := 1
   else
     FDoGetStatisticsAfterProc.Value := 0;
+end;
+
+function TgsDBSqueezeThread.GetParamStatisticsInvCardAfterProc: Boolean;
+begin
+  Result := FDoGetStatisticsInvCardAfterProc.Value <> 0;
+end;
+
+procedure TgsDBSqueezeThread.SetParamStatisticsInvCardAfterProc(AParam: Boolean);
+begin
+  if AParam then
+    FDoGetStatisticsInvCardAfterProc.Value := 1
+  else
+    FDoGetStatisticsInvCardAfterProc.Value := 0;
 end;
 
 function TgsDBSqueezeThread.ProcessMessage(var Msg: TMsg): Boolean;
@@ -421,16 +459,12 @@ begin
       begin
         FBusy.Value := 1;
 
-        FDBS.ProgressMsgEvent('Проверка БД...', 0);
-
         if FDoStopProcessing.Value = 0 then
           FDBS.Test;
-        FDBS.ProgressMsgEvent(' ', 0);
 
         FBusy.Value := 0;
         Result := True;
       end;
-
 
     WM_DBS_GETSTATISTICS:
       begin
@@ -445,6 +479,14 @@ begin
         FBusy.Value := 1;
         if FDoStopProcessing.Value = 0 then
           FDBS.GetProcStatisticsEvent;
+        Result := True;
+      end;
+
+    WM_DBS_GETSTATISTICS_INVCARD:
+      begin
+        FBusy.Value := 1;
+        if FDoStopProcessing.Value = 0 then
+          FDBS.GetInvCardStatisticsEvent;
         Result := True;
       end;
 
@@ -490,17 +532,21 @@ begin
         Result := True;
       end;
 
-    WM_DBS_MERGECARDS:                                                          
+    WM_DBS_MERGECARDS:
       begin
         FBusy.Value := 1;
 
-        FDBS.ProgressMsgEvent('Объединение карточек...', 0);
+        if GetParamStatisticsInvCardAfterProc then
+          FDBS.GetInvCardStatisticsEvent;
 
         if FDoStopProcessing.Value = 0 then
           FDBS.MergeCards(FMergeDocDate, FMergeDocTypes, FMergeCardFeatures);
 
-        FDBS.ProgressMsgEvent(' ', 0);
+        if GetParamStatisticsInvCardAfterProc and (FDoStopProcessing.Value = 0) then
+          FDBS.GetInvCardStatisticsEvent;
 
+        SetParamStatisticsInvCardAfterProc(False);
+        
         FBusy.Value := 0;
         Result := True;
       end;
@@ -856,6 +902,11 @@ begin
   Synchronize(DoOnGetDBPropertiesSync);
 end;
 
+procedure TgsDBSqueezeThread.DoGetStatisticsInvCard;
+begin
+  PostMsg(WM_DBS_GETSTATISTICS_INVCARD);
+end;
+
 procedure TgsDBSqueezeThread.DoGetStatistics;
 begin
   PostMsg(WM_DBS_GETSTATISTICS);
@@ -890,6 +941,12 @@ begin
   FMessageProcInvMovementStr := AMessageProcInvMovementStr;
   FMessageProcInvCardStr := AMessageProcInvCardStr;
   Synchronize(DoOnGetProcStatisticsSync);
+end;
+
+procedure TgsDBSqueezeThread.GetInvCardStatistics(const AMessageInvCardCountStr: String);
+begin
+  FMessageInvCardCountStr := AMessageInvCardCountStr;
+  Synchronize(DoOnGetStatisticsInvCardSync);
 end;
 
 procedure TgsDBSqueezeThread.DoTest;
