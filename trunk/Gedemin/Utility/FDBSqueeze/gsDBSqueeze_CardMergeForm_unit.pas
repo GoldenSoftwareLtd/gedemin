@@ -28,6 +28,7 @@ type
     txt2: TStaticText;
     txt5: TStaticText;
     btnCancel: TButton;
+    chkGetStatiscits: TCheckBox;
     procedure actSelectAllDocsExecute(Sender: TObject);
     procedure btnMergeGoClick(Sender: TObject);
     procedure strngrdCardFeaturesDblClick(Sender: TObject);
@@ -37,7 +38,9 @@ type
     procedure tvDocTypesClick(Sender: TObject);
     procedure tvDocTypesCustomDrawItem(Sender: TCustomTreeView; Node: TTreeNode; State: TCustomDrawState; var DefaultDraw: Boolean);
     procedure btnCancelClick(Sender: TObject);
+    procedure chkGetStatiscitsClick(Sender: TObject);
   private
+    FDoGetStatisticsAfterProc: Boolean;
     FAllCardFeatures: TStringList;
     FAllDocTypesList: TStringList;
     FCardFeaturesBits: TBits;
@@ -70,6 +73,9 @@ type
     function GetSelectedDocTypesStr: String;
     function GetSelectedBranchRowsStr: String;
     function GetSelectedFeaturesRows: String;
+
+    property DoGetStatisticsAfterProc: Boolean
+      read FDoGetStatisticsAfterProc write FDoGetStatisticsAfterProc;
   end;
 
 var
@@ -97,6 +103,8 @@ begin
   
   strngrdCardFeatures.ColCount := 2;
   strngrdCardFeatures.RowCount := 0;
+
+  chkGetStatiscits.Checked := True;
 end;
 //---------------------------------------------------------------------------
 destructor TgsDBSqueeze_CardMergeForm.Destroy;
@@ -313,6 +321,7 @@ end;
 //---------------------------------------------------------------------------
 procedure TgsDBSqueeze_CardMergeForm.btnMergeGoClick(Sender: TObject);
 begin
+  FDoGetStatisticsAfterProc := chkGetStatiscits.Checked;
   gsDBSqueeze_CardMergeForm.DefocusControl(TButton(Sender), False);
   Self.ModalResult := mrYes;
   PostMessage(gsDBSqueeze_CardMergeForm.Handle, WM_CLOSE, 0, 0);
@@ -602,6 +611,14 @@ begin
   mDocTypes.Clear;
   mCardFeatures.Clear;
   dtpMergingDate.Date := Date;
+  chkGetStatiscits.Checked := True;
+end;
+
+procedure TgsDBSqueeze_CardMergeForm.chkGetStatiscitsClick(
+  Sender: TObject);
+begin
+  if Sender is TControl then
+    gsDBSqueeze_CardMergeForm.DefocusControl(TWinControl(Sender), False);
 end;
 
 end.

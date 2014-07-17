@@ -1,10 +1,10 @@
 object gsDBSqueeze_CardMergeForm: TgsDBSqueeze_CardMergeForm
-  Left = 217
-  Top = 279
+  Left = 244
+  Top = 147
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsDialog
   Caption = 'Объединение складских карточек'
-  ClientHeight = 670
+  ClientHeight = 701
   ClientWidth = 1205
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -144,11 +144,11 @@ object gsDBSqueeze_CardMergeForm: TgsDBSqueeze_CardMergeForm
   end
   object btnMergeGo: TButton
     Left = 1086
-    Top = 633
+    Top = 665
     Width = 107
     Height = 25
     Caption = 'Запуск!'
-    TabOrder = 11
+    TabOrder = 12
     OnClick = btnMergeGoClick
   end
   object dtpMergingDate: TDateTimePicker
@@ -204,13 +204,28 @@ object gsDBSqueeze_CardMergeForm: TgsDBSqueeze_CardMergeForm
   end
   object btnCancel: TButton
     Left = 978
-    Top = 633
+    Top = 665
     Width = 107
     Height = 25
     Caption = 'Отмена'
-    TabOrder = 10
+    TabOrder = 11
     TabStop = False
     OnClick = btnCancelClick
+  end
+  object chkGetStatiscits: TCheckBox
+    Left = 18
+    Top = 648
+    Width = 383
+    Height = 17
+    Hint = 'статистика ДО обработки и ПОСЛЕ'
+    TabStop = False
+    Caption = 
+      'Получить статистику о количестве карточек  до и после объединени' +
+      'я'
+    Checked = True
+    State = cbChecked
+    TabOrder = 10
+    OnClick = chkGetStatiscitsClick
   end
   object actlstCardMerge: TActionList
     Left = 16

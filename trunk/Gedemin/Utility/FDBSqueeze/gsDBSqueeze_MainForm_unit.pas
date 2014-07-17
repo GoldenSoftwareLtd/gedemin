@@ -162,6 +162,18 @@ type
     chkGetStatiscits: TCheckBox;
     Panel3: TPanel;
     TEST1: TMenuItem;
+    Panel4: TPanel;
+    Shape1: TShape;
+    Shape2: TShape;
+    StaticText29: TStaticText;
+    sttxtOrigInvCard: TStaticText;
+    sttxtCurInvCard: TStaticText;
+    StaticText1: TStaticText;
+    StaticText2: TStaticText;
+    btnGetStatisticsInvCard: TButton;
+    btnUpdateStatisticsInvCard: TBitBtn;
+    txt1: TStaticText;
+    actGetStatisticsInvCard: TAction;
     procedure actClearLogExecute(Sender: TObject);
     procedure actDatabaseBrowseExecute(Sender: TObject);
     procedure actDisconnectExecute(Sender: TObject);
@@ -193,6 +205,8 @@ type
     procedure actAboutExecute(Sender: TObject);
     procedure actSaldoTestExecute(Sender: TObject);
     procedure actSaldoTestUpdate(Sender: TObject);
+    procedure actGetStatisticsInvCardExecute(Sender: TObject);
+    procedure actGetStatisticsInvCardUpdate(Sender: TObject);
 
   private
     FLogFileStream: TFileStream;
@@ -219,6 +233,7 @@ type
     procedure GetDBPropertiesEvent(const AProperties: TStringList);
     procedure GetProcStatisticsEvent(const AProcGdDoc: String; const AnProcAcEntry: String; const AnProcInvMovement: String; const AnProcInvCard: String);
     procedure GetStatisticsEvent(const AGdDoc: String; const AnAcEntry: String; const AnInvMovement: String; const AnInvCard: String);
+    procedure GetInvCardStatisticsEvent(const InvCardCount: String);
     procedure LogSQLEvent(const ALogSQL: String);
     procedure SetDocTypeBranchEvent(const ABranchList: TStringList);
     procedure SetDocTypeStringsEvent(const ADocTypes: TStringList);
@@ -279,6 +294,7 @@ begin
   FSThread.OnSetDocTypeStrings := SetDocTypeStringsEvent;
   FSThread.OnGetInvCardFeatures := GetCardFeaturesEvent;
   FSThread.OnSetDocTypeBranch := SetDocTypeBranchEvent;
+  FSThread.OnGetInvCardStatistics := GetInvCardStatisticsEvent;
   FSThread.OnGetStatistics := GetStatisticsEvent;
   FSThread.OnGetProcStatistics := GetProcStatisticsEvent;
   FSThread.OnFinishEvent := FinishEvent;
@@ -304,6 +320,9 @@ begin
   rbIncluding.Checked := True;
   mIgnoreDocTypes.Clear;
   chkGetStatiscits.Checked := True;
+
+  sttxtOrigInvCard.Caption := '';
+  sttxtCurInvCard.Caption := '';
   sttxtUser.Caption := '';
   sttxtDialect.Caption := '';
   sttxtServerVer.Caption := '';
@@ -352,6 +371,7 @@ begin
   FSThread.OnSetDocTypeBranch := SetDocTypeBranchEvent;
   FSThread.OnGetStatistics := GetStatisticsEvent;
   FSThread.OnGetProcStatistics := GetProcStatisticsEvent;
+  FSThread.OnGetInvCardStatistics := GetInvCardStatisticsEvent;
   FSThread.OnFinishEvent := FinishEvent;
 
   gsDBSqueeze_DocTypesForm.DataDestroy;
@@ -690,6 +710,8 @@ begin
         FMergeDocTypesList.CommaText := gsDBSqueeze_CardMergeForm.GetSelectedIdDocTypes;
         FCardFeaturesList.CommaText := gsDBSqueeze_CardMergeForm.GetSelectedCardFeatures;
 
+        // получение статистики
+        FSThread.DoGetStatisticsInvCardAfterProc := gsDBSqueeze_CardMergeForm.DoGetStatisticsAfterProc;
         // параметры объединения
         FSThread.SetMergeCardParams(gsDBSqueeze_CardMergeForm.GetDate, FMergeDocTypesList, FCardFeaturesList);
         // запуск объединения карточек
@@ -729,6 +751,23 @@ procedure TgsDBSqueeze_MainForm.btnGetStatisticsMouseDown(Sender: TObject;
 begin
   if Sender is TButton then
     TButton(Sender).Tag := 1;
+end;
+
+procedure TgsDBSqueeze_MainForm.actGetStatisticsInvCardExecute(
+  Sender: TObject);
+begin
+  FSThread.DoGetStatisticsInvCard;
+end;
+
+procedure TgsDBSqueeze_MainForm.actGetStatisticsInvCardUpdate(
+  Sender: TObject);
+begin
+  actGetStatisticsInvCard.Enabled := FConnected and (FSThread <> nil) and (not FSThread.Busy);
+end;
+
+procedure TgsDBSqueeze_MainForm.actSaldoTestUpdate(Sender: TObject);
+begin
+  actSaldoTest.Enabled := (FSThread <> nil) and FConnected and (not FSThread.Busy);
 end;
 
 //==============================================================================
@@ -773,6 +812,28 @@ begin
   gsDBSqueeze_CardMergeForm.SetCardFeatures(ACardFatures);
 end;
 
+procedure  TgsDBSqueeze_MainForm.GetInvCardStatisticsEvent(const InvCardCount: String);
+begin
+  RecLog('================= Number of recods in INV_CARD =================');
+  if (Trim(sttxtOrigInvCard.Caption) > '') or
+     ((btnUpdateStatisticsInvCard.Tag = 1) and (Trim(sttxtOrigInvCard.Caption) > '')) then
+  begin
+    sttxtCurInvCard.Caption := InvCardCount;
+    RecLog('Current: ');
+  end
+  else begin
+    sttxtOrigInvCard.Caption := InvCardCount;
+    RecLog('Original: ');
+  end;
+  RecLog(InvCardCount);
+  RecLog('===============================================================');
+
+  if btnGetStatisticsInvCard.Tag = 1 then
+    btnGetStatisticsInvCard.Tag := 0
+  else if btnUpdateStatisticsInvCard.Tag = 1 then
+    btnUpdateStatisticsInvCard.Tag := 0;
+end;
+
 procedure TgsDBSqueeze_MainForm.GetStatisticsEvent(
   const AGdDoc: String;
   const AnAcEntry: String;
@@ -780,7 +841,7 @@ procedure TgsDBSqueeze_MainForm.GetStatisticsEvent(
   const AnInvCard: String);
 begin
   RecLog('================= Number of recods in a table =================');
-  if ((Trim(sttxtGdDoc.Caption) > '') or (Trim(sttxtAcEntry.Caption) > '') or (Trim(sttxtInvMovement.Caption) > '')) or 
+  if ((Trim(sttxtGdDoc.Caption) > '') or (Trim(sttxtAcEntry.Caption) > '') or (Trim(sttxtInvMovement.Caption) > '')) or
      ((btnUpdateStatistics.Tag = 1) and ((Trim(sttxtGdDoc.Caption) > '') or (Trim(sttxtAcEntry.Caption) > '') or (Trim(sttxtInvMovement.Caption) > ''))) then
   begin
     sttxtGdDocAfter.Caption := AGdDoc;
@@ -918,6 +979,9 @@ begin
     psInit:
       Application.MessageBox(PChar(AProgressInfo.Message), PChar('Предупреждение'),
         MB_OK + MB_ICONWARNING + MB_TOPMOST);
+    psDone:
+      Application.MessageBox(PChar(AProgressInfo.Message), PChar('Сообщение'), MB_OK +
+        MB_ICONINFORMATION + MB_TOPMOST);
   end;
 end;
 
@@ -933,12 +997,15 @@ end;
 
 procedure TgsDBSqueeze_MainForm.actSaldoTestExecute(Sender: TObject);
 begin
-  FSThread.DoTest;
+  case Application.MessageBox(PChar('Запустить проверку соответствия inv_balance и inv_movement?'), 
+    PChar('Запуск'), MB_OKCANCEL + MB_ICONQUESTION + MB_TOPMOST) of
+    IDOK:
+      begin
+        FSThread.DoTest;
+      end;
+  end;
 end;
 
-procedure TgsDBSqueeze_MainForm.actSaldoTestUpdate(Sender: TObject);
-begin
-  actSaldoTest.Enabled := (FSThread <> nil) and FConnected and (not FSThread.Busy);
-end;
+
 
 end.

@@ -1,6 +1,6 @@
 object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
-  Left = 902
-  Top = 379
+  Left = 170
+  Top = 81
   Width = 940
   Height = 576
   BorderIcons = [biSystemMenu, biMinimize]
@@ -70,7 +70,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
       Top = 4
       Width = 924
       Height = 493
-      ActivePage = tsSettings
+      ActivePage = tsStatistics
       Align = alClient
       MultiLine = True
       TabOrder = 0
@@ -134,7 +134,9 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           Height = 21
           Hint = 'Диск:[\Каталог][\Файл] '
           TabOrder = 0
-          Text = 'D:\databases\_AKSAMIT_NS.FDB'
+          Text = 
+            'india/3053:K:\Bases\1\FDBSqueeze\3\test\aksGDBASE_2014_04_02_ori' +
+            'g.FDB'
         end
         object btnDatabaseBrowse: TButton
           Left = 354
@@ -402,7 +404,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
         Caption = 'Статистика'
         ImageIndex = 3
         object shp3: TShape
-          Left = 10
+          Left = 13
           Top = 12
           Width = 306
           Height = 28
@@ -412,7 +414,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           Pen.Width = 3
         end
         object shp4: TShape
-          Left = 327
+          Left = 367
           Top = 38
           Width = 234
           Height = 331
@@ -421,7 +423,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           Pen.Width = 3
         end
         object shp2: TShape
-          Left = 326
+          Left = 366
           Top = 12
           Width = 236
           Height = 27
@@ -431,7 +433,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           Pen.Width = 3
         end
         object shp6: TShape
-          Left = 11
+          Left = 14
           Top = 38
           Width = 304
           Height = 331
@@ -439,8 +441,27 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           Pen.Color = clBtnShadow
           Pen.Width = 3
         end
+        object Shape1: TShape
+          Left = 652
+          Top = 39
+          Width = 216
+          Height = 126
+          Brush.Style = bsClear
+          Pen.Color = clBtnShadow
+          Pen.Width = 3
+        end
+        object Shape2: TShape
+          Left = 651
+          Top = 13
+          Width = 218
+          Height = 27
+          Pen.Color = 671448
+          Pen.Mode = pmMask
+          Pen.Style = psInsideFrame
+          Pen.Width = 3
+        end
         object txt2: TStaticText
-          Left = 11
+          Left = 14
           Top = 11
           Width = 302
           Height = 25
@@ -458,13 +479,13 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           TabOrder = 0
         end
         object pnl2: TPanel
-          Left = 327
+          Left = 367
           Top = 38
           Width = 233
           Height = 330
           Alignment = taLeftJustify
           BevelOuter = bvSpace
-          TabOrder = 3
+          TabOrder = 4
           object StaticText6: TStaticText
             Left = 13
             Top = 14
@@ -777,7 +798,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           end
         end
         object sttxt30: TStaticText
-          Left = 327
+          Left = 367
           Top = 11
           Width = 232
           Height = 25
@@ -795,11 +816,11 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           TabOrder = 1
         end
         object pnl4: TPanel
-          Left = 11
+          Left = 14
           Top = 38
           Width = 303
           Height = 330
-          TabOrder = 2
+          TabOrder = 3
           object txt10: TStaticText
             Left = 123
             Top = 14
@@ -1229,6 +1250,141 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
             OnMouseDown = btnGetStatisticsMouseDown
           end
         end
+        object Panel4: TPanel
+          Left = 652
+          Top = 39
+          Width = 215
+          Height = 125
+          Alignment = taLeftJustify
+          BevelOuter = bvSpace
+          TabOrder = 5
+          object sttxtOrigInvCard: TStaticText
+            Left = 15
+            Top = 62
+            Width = 90
+            Height = 17
+            Alignment = taCenter
+            AutoSize = False
+            BorderStyle = sbsSunken
+            Color = clHighlightText
+            ParentColor = False
+            TabOrder = 3
+          end
+          object sttxtCurInvCard: TStaticText
+            Left = 112
+            Top = 62
+            Width = 90
+            Height = 17
+            Alignment = taCenter
+            AutoSize = False
+            BorderStyle = sbsSunken
+            Color = clHighlightText
+            ParentColor = False
+            TabOrder = 4
+          end
+          object StaticText1: TStaticText
+            Left = 15
+            Top = 38
+            Width = 90
+            Height = 18
+            Alignment = taCenter
+            AutoSize = False
+            BorderStyle = sbsSunken
+            Caption = 'ORIGINAL'
+            Color = 2058236
+            Font.Charset = RUSSIAN_CHARSET
+            Font.Color = clWindow
+            Font.Height = -11
+            Font.Name = 'Tahoma'
+            Font.Style = []
+            ParentColor = False
+            ParentFont = False
+            TabOrder = 1
+          end
+          object StaticText2: TStaticText
+            Left = 112
+            Top = 38
+            Width = 90
+            Height = 18
+            Alignment = taCenter
+            AutoSize = False
+            BorderStyle = sbsSunken
+            Caption = 'CURRENT'
+            Color = 2058236
+            Font.Charset = RUSSIAN_CHARSET
+            Font.Color = clWindow
+            Font.Height = -11
+            Font.Name = 'Tahoma'
+            Font.Style = []
+            ParentColor = False
+            ParentFont = False
+            TabOrder = 2
+          end
+          object btnGetStatisticsInvCard: TButton
+            Left = 14
+            Top = 91
+            Width = 90
+            Height = 21
+            Action = actGetStatisticsInvCard
+            Caption = 'Получить'
+            Font.Charset = RUSSIAN_CHARSET
+            Font.Color = clWindowText
+            Font.Height = -11
+            Font.Name = 'Tahoma'
+            Font.Style = []
+            ParentFont = False
+            TabOrder = 5
+            TabStop = False
+            OnMouseDown = btnGetStatisticsMouseDown
+          end
+          object btnUpdateStatisticsInvCard: TBitBtn
+            Left = 112
+            Top = 91
+            Width = 90
+            Height = 21
+            Action = actGetStatisticsInvCard
+            Caption = 'Обновить'
+            TabOrder = 6
+            TabStop = False
+            OnMouseDown = btnGetStatisticsMouseDown
+          end
+          object txt1: TStaticText
+            Left = 1
+            Top = 8
+            Width = 213
+            Height = 18
+            Alignment = taCenter
+            AutoSize = False
+            Caption = 'Количество записей INV_CARD'
+            Color = 671448
+            Font.Charset = RUSSIAN_CHARSET
+            Font.Color = clWhite
+            Font.Height = -13
+            Font.Name = 'Tahoma'
+            Font.Style = []
+            ParentColor = False
+            ParentFont = False
+            TabOrder = 0
+          end
+        end
+        object StaticText29: TStaticText
+          Left = 652
+          Top = 12
+          Width = 214
+          Height = 25
+          Alignment = taCenter
+          AutoSize = False
+          Caption = 'Объединение карточек'
+          Color = 2058236
+          Font.Charset = RUSSIAN_CHARSET
+          Font.Color = clWhite
+          Font.Height = -17
+          Font.Name = 'Tahoma'
+          Font.Style = []
+          ParentColor = False
+          ParentFont = False
+          TabOrder = 2
+        end
       end
     end
     object Panel1: TPanel
@@ -1275,8 +1431,8 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
     end
   end
   object ActionList: TActionList
-    Left = 741
-    Top = 70
+    Left = 829
+    Top = 446
     object actGo: TAction
       Caption = 'Начать процесс'
       OnExecute = actGoExecute
@@ -1365,10 +1521,15 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
       OnExecute = actSaldoTestExecute
       OnUpdate = actSaldoTestUpdate
     end
+    object actGetStatisticsInvCard: TAction
+      Caption = 'actGetStatisticsInvCard'
+      OnExecute = actGetStatisticsInvCardExecute
+      OnUpdate = actGetStatisticsInvCardUpdate
+    end
   end
   object MainMenu: TMainMenu
-    Left = 776
-    Top = 71
+    Left = 864
+    Top = 447
     object N1: TMenuItem
       Caption = 'База данных'
       object N4: TMenuItem
