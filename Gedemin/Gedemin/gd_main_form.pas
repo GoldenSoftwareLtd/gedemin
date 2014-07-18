@@ -1673,7 +1673,10 @@ begin
       if (Form as TfrmGedeminProperty).Restored then
        (Form as TForm).Free;
     end else if Form is TForm then
-      (Form as TForm).Free;
+      begin
+        (Form as TForm).Close;
+        (Form as TForm).Free;
+      end;
   except
     tbForms.Items.Delete(tbForms.Items.IndexOf(ToggleItem));
   end;
