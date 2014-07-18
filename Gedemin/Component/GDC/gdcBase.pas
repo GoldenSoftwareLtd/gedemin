@@ -12335,7 +12335,7 @@ begin
     try
       if F <> nil then
       begin
-        if Subtype <> '' then
+        if Subtype > '' then
           LClassName := Self.ClassName + Subtype
         else
           LClassName := Self.ClassName;

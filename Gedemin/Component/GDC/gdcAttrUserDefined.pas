@@ -371,6 +371,13 @@ var
 begin
   SubTypeList.Clear;
 
+  { TODO : ¬ременно пока нет наследовани€ по Subtype }
+  if Subtype > '' then
+  begin
+    Result := False;
+    Exit;
+  end;
+
   { TODO : этот метод будет вызыватьс€ часто и тут возможно замедление }
   with atDatabase.Relations do
   for I := 0 to Count - 1 do
@@ -619,6 +626,13 @@ var
 begin
   SubTypeList.Clear;
 
+  { TODO : ¬ременно пока нет наследовани€ по Subtype }
+  if Subtype > '' then
+  begin
+    Result := False;
+    Exit;
+  end;
+
   { TODO : этот метод будет вызыватьс€ часто и тут возможно замедление }
   with atDatabase.Relations do
   for I := 0 to Count - 1 do
@@ -863,6 +877,13 @@ var
   I: Integer;
 begin
   SubTypeList.Clear;
+
+  { TODO : ¬ременно пока нет наследовани€ по Subtype }
+  if Subtype > '' then
+  begin
+    Result := False;
+    Exit;
+  end;
 
   { TODO : этот метод будет вызыватьс€ часто и тут возможно замедление }
   with atDatabase.Relations do
