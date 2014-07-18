@@ -384,6 +384,15 @@ var
   F: TgsStorageFolder;
   GClass: TClass;
 begin
+
+    { TODO : Временно пока нет наследования по Subtype }
+  if Subtype > '' then
+  begin
+    SubTypeList.Clear;
+    Result := False;
+    Exit;
+  end;
+
   if Assigned(GlobalStorage) then
   begin
     F := GlobalStorage.OpenFolder('SubTypes', False, False);
@@ -395,11 +404,11 @@ begin
           if not (F.Values[I] is TgsStringValue) then
             continue;
 
-          GClass := gdcClassList.GetGDCClass(gdcFullClassName(F.Values[I].Name, Subtype));
+          GClass := gdcClassList.GetGDCClass(gdcFullClassName(F.Values[I].Name, ''));
           if (GClass <> nil) and (GClass.InheritsFrom(TgdcBase)) then
           begin
-            if (Self.ClassName = CgdcBase(GClass).GetViewFormClassName(Subtype))
-              or (Self.ClassName = CgdcBase(GClass).GetDialogFormClassName(Subtype)) then
+            if (Self.ClassName = CgdcBase(GClass).GetViewFormClassName(''))
+              or (Self.ClassName = CgdcBase(GClass).GetDialogFormClassName('')) then
             begin
               SubTypeList.CommaText := F.Values[I].AsString;
               Result := SubTypeList.Count > 0;

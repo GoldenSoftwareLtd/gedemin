@@ -2318,7 +2318,12 @@ begin
             CgdcCreateableForm(MC.Class_Reference).GetSubTypeList(ST, TGDCClassTreeItem(AParent.Data).SubType, True);
           for I := 0 to ST.Count - 1 do
           begin
-            TN := AddGDCClassNode(AParent, Index, Replace(ST.Values[ST.Names[I]]), ST.Names[I]);
+            if MC.Class_Reference.InheritsFrom(TgdcBase) then
+              TN := AddGDCClassNode(AParent, Index,
+                Replace(ST.Values[ST.Names[I]]), ST.Names[I])
+            else
+              TN := AddFRMClassNode(AParent, Index,
+                Replace(ST.Values[ST.Names[I]]), ST.Names[I]);
             TN.HasChildren := True;
             if not PropertySettings.Filter.OnlySpecEvent then
               InitOverloadAndDisable(TGDCClassTreeItem(TN.Data).TheClass);

@@ -21,7 +21,7 @@ type
     function DoCache(const K: Integer; const IsClassName: Boolean;
       SubTypeList: TStrings; SubType: string; OnlyDirect: Boolean): Boolean;
     procedure CheckDBID;
-    function IntToKey(const I: Integer): Integer;
+//    function IntToKey(const I: Integer): Integer;
     function StringToKey(const S: String): Integer;
     procedure FillParentSubTypeList;
   public
@@ -149,72 +149,136 @@ begin
         ibsql.Transaction.StartTransaction;
 
       try
-        if OnlyDirect then
+        if OnlyDirect and (Subtype > '') then
         begin
-          if Subtype <>'' then
+          //непосредственные наследники от SubType
+          ibsql.SQL.Text :=
+            'SELECT '#13#10 +
+            '  dt.name, '#13#10 +
+            '  dt.ruid '#13#10 +
+            'FROM gd_documenttype dt '#13#10 +
+            '  JOIN gd_documenttype dt1 '#13#10 +
+            '    ON dt.parent = dt1.id '#13#10 +
+            'WHERE dt1.ruid = :ruid '#13#10 +
+            '  AND dt.documenttype = ''D''';
+          ibsql.ParamByName('RUID').AsString := SubType;
+        end
+        else if OnlyDirect and (Subtype = '') and (IsClassName) then
+        begin
+          //непосредственные наследники класса
+          if Link[K] = 'TgdcInvBaseRemains' then
           begin
-            // непосредственные наследники от SubType
             ibsql.SQL.Text :=
               'SELECT '#13#10 +
-              ' dt1.NAME, dt1.RUID '#13#10 +
-              'FROM GD_DOCUMENTTYPE dt2 '#13#10 +
-              'LEFT JOIN GD_DOCUMENTTYPE dt1 ON dt2.ID = dt1.PARENT '#13#10 +
-              'WHERE dt2.RUID = :RUID '#13#10 +
-              ' AND dt1.DOCUMENTTYPE = ''D''';
-            ibsql.ParamByName('RUID').AsString := SubType;
+              '  dt.name, '#13#10 +
+              '  dt.ruid, '#13#10 +
+              '  dt.parent '#13#10 +
+              'FROM gd_documenttype dt '#13#10 +
+              '  JOIN gd_documenttype dt1 '#13#10 +
+              '    ON dt.LB >= dt1.lb '#13#10 +
+              '      AND dt.rb <= dt1.rb '#13#10 +
+              '  JOIN gd_documenttype dt2 '#13#10 +
+              '    ON dt.parent = dt2.id '#13#10 +
+              '      AND dt2.documenttype = ''B'' '#13#10 +
+              'WHERE dt1.id = :id '#13#10 +
+              '  AND dt.documenttype = ''D''';
+            ibsql.ParamByName('id').AsInteger :=
+              TgdcInvDocumentType.InvDocumentTypeBranchKey;
           end
           else
           begin
-            // непосредственные наследники класса
-            if IsClassName then
-            begin
-              ibsql.SQL.Text :=
-                'SELECT '#13#10 +
-                '  dt1.NAME, dt1.RUID, dt1.ClassName '#13#10 +
-                'FROM GD_DOCUMENTTYPE dt2 '#13#10 +
-                'LEFT JOIN GD_DOCUMENTTYPE dt1 ON dt2.ID = dt1.PARENT '#13#10 +
-                '  AND dt1.DOCUMENTTYPE = ''D'' '#13#10 +
-                'WHERE dt2.DOCUMENTTYPE = ''B'' AND dt2.ClassName = :CN';
-              ibsql.ParamByName('CN').AsString := Link[K];
-            end;
+            ibsql.SQL.Text :=
+              'SELECT '#13#10 +
+              '  dt.name, '#13#10 +
+              '  dt.ruid '#13#10 +
+              'FROM gd_documenttype dt '#13#10 +
+              '  JOIN gd_documenttype dt1 '#13#10 +
+              '    ON dt.parent = dt1.id '#13#10 +
+              '      AND dt1.documenttype = ''B'' '#13#10 +
+              'WHERE dt.classname = :CN '#13#10 +
+              '  AND dt.documenttype = ''D''';
+            ibsql.ParamByName('CN').AsString := Link[K];
           end;
         end
-        else
+        else if OnlyDirect and (Subtype = '') and (not IsClassName) then
         begin
-          if Subtype <>'' then
+          //непосредственные наследники ветви
+          ibsql.SQL.Text :=
+            'SELECT '#13#10 +
+            '  dt.name, '#13#10 +
+            '  dt.ruid, '#13#10 +
+            '  dt.parent '#13#10 +
+            'FROM gd_documenttype dt '#13#10 +
+            '  JOIN gd_documenttype dt1 '#13#10 +
+            '    ON dt.LB >= dt1.lb '#13#10 +
+            '      AND dt.rb <= dt1.rb '#13#10 +
+            '  JOIN gd_documenttype dt2 '#13#10 +
+            '    ON dt.parent = dt2.id '#13#10 +
+            '      AND dt2.documenttype = ''B'' '#13#10 +
+            'WHERE dt1.id = :id '#13#10 +
+            '  AND dt.documenttype = ''D''';
+          ibsql.ParamByName('id').AsString := Link[K];
+        end
+        else if (not OnlyDirect) and (Subtype > '') then
+        begin
+          //вся иерархия наследников от Subtype
+          ibsql.SQL.Text :=
+            'SELECT '#13#10 +
+            '  dt.name, '#13#10 +
+            '  dt.ruid '#13#10 +
+            'FROM gd_documenttype dt '#13#10 +
+            '  JOIN gd_documenttype dt1 '#13#10 +
+            '    ON dt.lb > dt1.lb '#13#10 +
+            '      AND dt.rb < dt1.rb '#13#10 +
+            'WHERE dt1.ruid = :ruid '#13#10 +
+            '  AND dt.documenttype = ''D''';
+          ibsql.ParamByName('RUID').AsString := SubType;
+        end
+        else if (not OnlyDirect) and (Subtype = '') and IsClassName then
+        begin
+          //вся иерархия наследников класса
+          if Link[K] = 'TgdcInvBaseRemains' then
           begin
-            // вся иерархия наследников от SubType
             ibsql.SQL.Text :=
-              'SELECT dt1.NAME, dt1.RUID '#13#10 +
-              'FROM GD_DOCUMENTTYPE dt1 '#13#10 +
-              'JOIN GD_DOCUMENTTYPE dt2 ON dt1.LB > dt2.LB '#13#10 +
-              '  AND dt1.RB < dt2.RB '#13#10 +
-              'WHERE dt2.RUID = :RUID '#13#10 +
-              ' AND dt1.DOCUMENTTYPE = ''D''';
-            ibsql.ParamByName('RUID').AsString := SubType;
+              'SELECT '#13#10 +
+              '  dt.name, '#13#10 +
+              '  dt.ruid, '#13#10 +
+              '  dt.parent '#13#10 +
+              'FROM gd_documenttype dt '#13#10 +
+              '  JOIN gd_documenttype dt1 '#13#10 +
+              '    ON dt.LB >= dt1.lb '#13#10 +
+              '      AND dt.rb <= dt1.rb '#13#10 +
+              'WHERE dt1.id = :id '#13#10 +
+              '  AND dt.documenttype = ''D''';
+            ibsql.ParamByName('id').AsInteger :=
+              TgdcInvDocumentType.InvDocumentTypeBranchKey;
           end
           else
           begin
-            // вся иерархия наследников класса
-            if IsClassName and (Link[K] <> 'TgdcInvBaseRemains') then
-            begin
-              ibsql.SQL.Text := 'SELECT NAME, RUID FROM GD_DOCUMENTTYPE WHERE CLASSNAME = :CN AND ' +
-                ' DOCUMENTTYPE = ''D''';
-              ibsql.ParamByName('CN').AsString := Link[K];
-            end
-            else if IsClassName and (Link[K] = 'TgdcInvBaseRemains') then
-            begin
-              ibsql.SQL.Text := 'SELECT dt1.name, dt1.ruid FROM gd_documenttype dt1 JOIN gd_documenttype dt ON dt1.LB >= dt.lb AND dt1.rb <= dt.rb WHERE dt.id = :ID ' +
-                ' AND dt1.documenttype = ''D''';
-              ibsql.ParamByName('id').AsInteger := TgdcInvDocumentType.InvDocumentTypeBranchKey;
-            end
-            else
-            begin
-              ibsql.SQL.Text := 'SELECT dt1.name, dt1.ruid FROM gd_documenttype dt1 JOIN gd_documenttype dt ON dt1.LB >= dt.lb AND dt1.rb <= dt.rb WHERE dt.id = :ID ' +
-                ' AND dt1.documenttype = ''D''';
-              ibsql.ParamByName('id').AsString := Link[K];
-            end;
+            ibsql.SQL.Text :=
+              'SELECT '#13#10 +
+              '  name, ruid '#13#10 +
+              'FROM gd_documenttype '#13#10 +
+              'WHERE classname = :CN '#13#10 +
+              '  AND documenttype = ''D''';
+            ibsql.ParamByName('CN').AsString := Link[K];
           end;
+        end
+        else if (not OnlyDirect) and (Subtype = '') and (not IsClassName) then
+        begin
+          //вся иерархия наследников ветви
+          ibsql.SQL.Text :=
+            'SELECT '#13#10 +
+            '  dt.name, '#13#10 +
+            '  dt.ruid, '#13#10 +
+            '  dt.parent '#13#10 +
+            'FROM gd_documenttype dt '#13#10 +
+            '  JOIN gd_documenttype dt1 '#13#10 +
+            '    ON dt.LB >= dt1.lb '#13#10 +
+            '      AND dt.rb <= dt1.rb '#13#10 +
+            'WHERE dt1.id = :id '#13#10 +
+            '  AND dt.documenttype = ''D''';
+          ibsql.ParamByName('id').AsString := Link[K];
         end;
 
         ibsql.ExecQuery;
@@ -243,7 +307,7 @@ begin
 
         ibsql.Close;
 
-        if IsClassName then
+        if IsClassName and (Subtype = '') then
         begin
           if Link[K] = 'TgdcInvBaseRemains' then
           begin
@@ -260,6 +324,7 @@ begin
             ibsql.Close;
           end;
         end;
+
         if OnlyDirect then
           if Subtype <> '' then
             CachedSubTypeListODST.ValuesByIndex[CachedSubTypeListODST.Add(K)] :=
@@ -274,6 +339,7 @@ begin
           else
             CachedSubTypeList.ValuesByIndex[CachedSubTypeList.Add(K)] :=
               SubTypeList.CommaText
+
       finally
         if DidActivate then
           ibsql.Transaction.Commit;
@@ -290,7 +356,7 @@ function TgdcInvDocumentCache.GetSubTypeList(const InvDocumentTypeBranchKey: TID
   SubTypeList: TStrings; SubType: string = ''; OnlyDirect: Boolean = False): Boolean;
 begin
   CheckDBID;
-  Result := DoCache(IntToKey(InvDocumentTypeBranchKey), False, SubTypeList, SubType, OnlyDirect);
+  Result := DoCache(StringToKey(IntToStr(InvDocumentTypeBranchKey) + Subtype), False, SubTypeList, SubType, OnlyDirect);
 end;
 
 
@@ -301,12 +367,12 @@ begin
   Result := DoCache(StringToKey(ClassName + Subtype), True, SubTypeList, Subtype, OnlyDirect);
 end;
 
-function TgdcInvDocumentCache.IntToKey(const I: Integer): Integer;
-begin
-  Result := Link.IndexOf(IntToStr(I));
-  if Result = -1 then
-    Result := Link.Add(IntToStr(I));
-end;
+//function TgdcInvDocumentCache.IntToKey(const I: Integer): Integer;
+//begin
+//  Result := Link.IndexOf(IntToStr(I));
+//  if Result = -1 then
+//    Result := Link.Add(IntToStr(I));
+//end;
 
 function TgdcInvDocumentCache.StringToKey(const S: String): Integer;
 begin
@@ -334,12 +400,13 @@ begin
     ibsql.Close;
     ibsql.SQL.Text :=
       'SELECT '#13#10 +
-      '  d.RUID AS SubType, '#13#10 +
-      '  p.RUID AS ParentSubType '#13#10 +
-      'FROM '#13#10 +
-      '  GD_DOCUMENTTYPE d '#13#10 +
-      '  LEFT JOIN GD_DOCUMENTTYPE p ON p.ID = d.PARENT AND p.DOCUMENTTYPE = ''D'' '#13#10 +
-      'Where d.DOCUMENTTYPE = ''D'' and  p.RUID <> ''''';
+      '  dt.ruid AS SubType, '#13#10 +
+      '  dt1.ruid AS ParentSubType '#13#10 +
+      'FROM gd_documenttype dt '#13#10 +
+      '  JOIN gd_documenttype dt1 '#13#10 +
+      '    ON dt1.id = dt.parent '#13#10 +
+      '      AND dt1.documenttype = ''D'' '#13#10 +
+      'Where dt1.documenttype = ''D''';
     ibsql.ExecQuery;
     while not ibsql.Eof do
     begin
