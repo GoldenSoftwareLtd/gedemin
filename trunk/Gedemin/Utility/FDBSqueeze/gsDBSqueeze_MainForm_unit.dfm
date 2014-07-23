@@ -1,6 +1,6 @@
 object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
-  Left = 170
-  Top = 81
+  Left = 505
+  Top = 162
   Width = 940
   Height = 576
   BorderIcons = [biSystemMenu, biMinimize]
@@ -70,7 +70,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
       Top = 4
       Width = 924
       Height = 493
-      ActivePage = tsStatistics
+      ActivePage = tsSettings
       Align = alClient
       MultiLine = True
       TabOrder = 0
@@ -134,9 +134,6 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
           Height = 21
           Hint = 'Диск:[\Каталог][\Файл] '
           TabOrder = 0
-          Text = 
-            'india/3053:K:\Bases\1\FDBSqueeze\3\test\aksGDBASE_2014_04_02_ori' +
-            'g.FDB'
         end
         object btnDatabaseBrowse: TButton
           Left = 354
