@@ -7,7 +7,7 @@ uses
   FileCtrl, ActnList, ComCtrls, Buttons, StdCtrls, Grids, Spin, ExtCtrls,
   gsDBSqueeze_CardMergeForm_unit, gsDBSqueeze_DocTypesForm_unit,
   gsDBSqueezeThread_unit, gsDBSqueezeIniOptions_unit, gd_ProgressNotifier_unit,
-  gdMessagedThread, CommCtrl, Db, Menus;
+  gdMessagedThread, CommCtrl, Db, Menus, Registry;
 
 const
   DEFAULT_USER_NAME = 'SYSDBA';
@@ -256,8 +256,17 @@ uses
   gd_common_functions, gsDBSqueeze_AboutForm_unit;
 
 constructor TgsDBSqueeze_MainForm.Create(AnOwner: TComponent);
+var
+  RegIni: TRegIniFile;
 begin
   inherited;
+
+  RegIni := TRegIniFile.Create('DBS');
+  try
+    edDatabaseName.Text := RegIni.ReadString('ConnectParams', 'Path', edDatabaseName.Text);
+  finally
+    RegIni.Free;
+  end;
 
   FMergeDocTypesList := TStringList.Create;
   FCardFeaturesList := TStringList.Create;
@@ -402,6 +411,7 @@ procedure TgsDBSqueeze_MainForm.actConnectExecute(Sender: TObject);
 var
   Server, FileName: String;
   Port: Integer;
+  RegIni: TRegIniFile;
 begin
   ParseDatabaseName(edDatabaseName.Text, Server, Port, FileName);
 
@@ -417,6 +427,13 @@ begin
     seBuffer.Value,
     Port);
   FSThread.Connect;
+
+  RegIni:=TRegIniFile.Create('DBS');
+  try
+    RegIni.WriteString('ConnectParams', 'Path', edDatabaseName.Text);
+  finally
+    RegIni.Free;
+  end;  
 end;
 
 procedure TgsDBSqueeze_MainForm.actConnectUpdate(Sender: TObject);
