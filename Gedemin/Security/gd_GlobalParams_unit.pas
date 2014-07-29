@@ -124,7 +124,7 @@ end;
 function Tgd_GlobalParams.GetWebServerActive: Boolean;
 begin
   Result := FIniFile.ReadBool('WEB SERVER', 'Active', False)
-    and (not gd_GlobalParams.SecondaryInstance)
+    {and (not gd_GlobalParams.SecondaryInstance)}  // у нас может быть несколько серверов на разных портах
     and (gd_CmdLineParams.LoadSettingFileName = '');
 end;
 
