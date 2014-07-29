@@ -296,12 +296,17 @@ begin
       for HandlerCounter := 0 to FHttpGetHandlerList.Count - 1 do
       begin
         Handler := FHttpGetHandlerList[HandlerCounter] as TgdHttpHandler;
-        if (Handler.Token = '') or (AnsiCompareText(Handler.Token, RequestToken) = 0) then
+        if (Handler.Token = '')
+          or (AnsiCompareText(Handler.Token, RequestToken) = 0)
+          or (AnsiCompareText(Handler.Token, FRequestInfo.Document) = 0) then
         begin
           HandlerFunction := glbFunctionList.FindFunction(Handler.FunctionKey);
           if Assigned(HandlerFunction) then
           begin
-            Log(FRequestInfo.RemoteIP, 'TOKN', ['token'], [FRequestInfo.Params.Values[PARAM_TOKEN]]);
+            if RequestToken > '' then
+              Log(FRequestInfo.RemoteIP, 'TOKN', ['token'], [RequestToken])
+            else
+              Log(FRequestInfo.RemoteIP, 'DOCM', ['document'], [FRequestInfo.Document]);
 
             // Формирование списка параметров
             //  1 - компонент к которому привязан обработчик
@@ -461,8 +466,9 @@ end;
 procedure TgdWebServerControl.CreateHTTPServer;
 var
   Binding : TIdSocketHandle;
-  PortNumber, I: Integer;
+  PortNumber, I, P: Integer;
   SL: TStringList;
+  BindingAddress: String;
 begin
   Assert(FHTTPServer = nil);
 
@@ -490,11 +496,22 @@ begin
       if Length(SL[I]) > 0 then
       begin
         Binding := FHttpServer.Bindings.Add;
-        Binding.Port := PortNumber;
-        if SL[I][1] in ['0'..'9'] then
-          Binding.IP := SL[I]
+
+        P := Pos(':', SL[I]);
+        if P > 0 then
+        begin
+          Binding.Port := StrToIntDef(System.Copy(SL[I], P + 1, 255), PortNumber);
+          BindingAddress := System.Copy(SL[I], 1, P - 1);
+        end else
+        begin
+          Binding.Port := PortNumber;
+          BindingAddress := SL[I];
+        end;
+
+        if BindingAddress[1] in ['0'..'9'] then
+          Binding.IP := BindingAddress
         else
-          Binding.IP := GetIPAddress(SL[I]);
+          Binding.IP := GetIPAddress(BindingAddress);
       end;
     end;
   finally
