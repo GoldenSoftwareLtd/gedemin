@@ -1,14 +1,14 @@
 inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
-  Left = 447
-  Top = 150
+  Left = 324
+  Top = 204
   Caption = 'Свойства объекта'
-  ClientHeight = 468
+  ClientHeight = 499
   ClientWidth = 451
   PixelsPerInch = 96
   TextHeight = 13
   inherited btnAccess: TButton
     Left = 102
-    Top = 438
+    Top = 469
     Width = 15
     Enabled = False
     TabOrder = 4
@@ -16,7 +16,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
   end
   inherited btnNew: TButton
     Left = 118
-    Top = 438
+    Top = 469
     Width = 15
     Enabled = False
     TabOrder = 5
@@ -24,24 +24,24 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
   end
   inherited btnHelp: TButton
     Left = 4
-    Top = 444
+    Top = 475
     TabOrder = 3
   end
   inherited btnOK: TButton
     Left = 305
-    Top = 444
+    Top = 475
     TabOrder = 1
   end
   inherited btnCancel: TButton
     Left = 379
-    Top = 444
+    Top = 475
     TabOrder = 2
   end
   object pcMain: TPageControl [5]
     Left = 4
     Top = 4
     Width = 443
-    Height = 436
+    Height = 467
     ActivePage = tsGeneral
     TabOrder = 0
     OnChange = tsAccessShow
@@ -49,7 +49,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
       Caption = 'Общие'
       object btnClassMethods: TButton
         Left = 55
-        Top = 385
+        Top = 417
         Width = 119
         Height = 19
         Action = actGoToMethods
@@ -57,7 +57,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
       end
       object btnSubTypeMethods: TButton
         Left = 313
-        Top = 385
+        Top = 417
         Width = 119
         Height = 19
         Action = actGoToMethodsSubtype
@@ -65,7 +65,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
       end
       object btnParentMethods: TButton
         Left = 184
-        Top = 385
+        Top = 417
         Width = 119
         Height = 19
         Action = actGoToMethodsParent
@@ -75,7 +75,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
         Left = 2
         Top = 2
         Width = 431
-        Height = 378
+        Height = 410
         Color = clBtnFace
         Font.Charset = RUSSIAN_CHARSET
         Font.Color = clWindowText
@@ -116,7 +116,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
       end
       object Label6: TLabel
         Left = 8
-        Top = 320
+        Top = 351
         Width = 288
         Height = 13
         Caption = 'Для добавления, выберите группу и нажмите Добавить'
@@ -139,7 +139,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
         Left = 8
         Top = 43
         Width = 419
-        Height = 227
+        Height = 259
         DataSource = dsUserGroup
         Options = [dgColumnResize, dgTabs, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit]
         TabOrder = 1
@@ -178,7 +178,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
       end
       object ibcbUserGroup: TgsIBLookupComboBox
         Left = 8
-        Top = 336
+        Top = 367
         Width = 361
         Height = 21
         HelpContext = 1
@@ -189,14 +189,14 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
         KeyField = 'ID'
         gdClassName = 'TgdcUserGroup'
         StrictOnExit = False
-        ItemHeight = 0
+        ItemHeight = 13
         ParentShowHint = False
         ShowHint = True
         TabOrder = 5
       end
       object memoExclude: TMemo
         Left = 8
-        Top = 275
+        Top = 306
         Width = 417
         Height = 17
         BorderStyle = bsNone
@@ -210,7 +210,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
       end
       object btnExclude: TButton
         Left = 8
-        Top = 295
+        Top = 326
         Width = 75
         Height = 21
         Action = actExclude
@@ -218,7 +218,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
       end
       object btnInclude: TButton
         Left = 8
-        Top = 362
+        Top = 393
         Width = 75
         Height = 21
         Action = actInclude
@@ -226,7 +226,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
       end
       object btnIncludeAll: TButton
         Left = 89
-        Top = 362
+        Top = 393
         Width = 88
         Height = 21
         Action = actIncludeAll
@@ -234,7 +234,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
       end
       object btnExcludeAll: TButton
         Left = 89
-        Top = 295
+        Top = 326
         Width = 88
         Height = 21
         Action = actExcludeAll
@@ -242,7 +242,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
       end
       object chbxUpdateChildren: TCheckBox
         Left = 8
-        Top = 387
+        Top = 418
         Width = 321
         Height = 17
         Caption = 'Распространить права доступа на дочерние объекты'
@@ -282,14 +282,14 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
       end
       object lblParams: TLabel
         Left = 118
-        Top = 386
+        Top = 419
         Width = 61
         Height = 13
         Caption = 'Параметры:'
       end
       object Button6: TButton
         Left = 3
-        Top = 381
+        Top = 414
         Width = 89
         Height = 21
         Action = actShowSQL
@@ -297,7 +297,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
       end
       object cbParams: TComboBox
         Left = 184
-        Top = 383
+        Top = 416
         Width = 189
         Height = 19
         Style = csDropDownList
@@ -306,7 +306,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
         Font.Height = -9
         Font.Name = 'Tahoma'
         Font.Style = []
-        ItemHeight = 0
+        ItemHeight = 11
         ParentFont = False
         TabOrder = 2
       end
@@ -314,7 +314,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
         Left = 3
         Top = 22
         Width = 429
-        Height = 353
+        Height = 387
         Font.Charset = RUSSIAN_CHARSET
         Font.Color = clWindowText
         Font.Height = -9
@@ -331,7 +331,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
         Left = 3
         Top = 3
         Width = 429
-        Height = 401
+        Height = 432
         Font.Charset = RUSSIAN_CHARSET
         Font.Color = clWindowText
         Font.Height = -9
@@ -373,31 +373,44 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
         object TBControlItem2: TTBControlItem
           Control = cbOpenDoc
         end
+        object TBControlItem3: TTBControlItem
+          Control = chbxCKEK
+        end
+        object TBSeparatorItem1: TTBSeparatorItem
+        end
         object Label30: TLabel
           Left = 23
           Top = 4
-          Width = 176
+          Width = 71
           Height = 13
-          Caption = '  Позиция документа, открывать: '
+          Caption = '  Открывать: '
         end
         object cbOpenDoc: TComboBox
-          Left = 199
+          Left = 94
           Top = 0
-          Width = 106
+          Width = 155
           Height = 21
           Style = csDropDownList
           ItemHeight = 13
           TabOrder = 0
           Items.Strings = (
-            'Позицию'
-            'Шапку')
+            'Позицию документа'
+            'Шапку документа')
+        end
+        object chbxCKEK: TCheckBox
+          Left = 249
+          Top = 2
+          Width = 184
+          Height = 17
+          Caption = 'CREATORKEY, EDITORKEY'
+          TabOrder = 1
         end
       end
       object ibgrLinks: TgsIBGrid
         Left = 0
         Top = 22
         Width = 435
-        Height = 386
+        Height = 417
         Align = alClient
         DataSource = dsLinks
         Options = [dgTitles, dgColumnResize, dgColLines, dgTabs, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit]
@@ -426,7 +439,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
         Left = 0
         Top = 0
         Width = 435
-        Height = 408
+        Height = 439
         Align = alClient
         DataSource = dsDependencies
         Options = [dgTitles, dgColumnResize, dgColLines, dgTabs, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit]
@@ -455,7 +468,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
         Left = 3
         Top = 3
         Width = 429
-        Height = 402
+        Height = 433
         Cursor = crIBeam
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clWindowText
@@ -830,7 +843,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
         Left = 0
         Top = 22
         Width = 435
-        Height = 386
+        Height = 417
         Align = alClient
         DataSource = dsNS
         Options = [dgColumnResize, dgColLines, dgTabs, dgRowSelect, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit]

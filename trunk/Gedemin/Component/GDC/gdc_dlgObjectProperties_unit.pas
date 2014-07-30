@@ -81,6 +81,9 @@ type
     dsNS: TDataSource;
     actDeleteFromNamespace: TAction;
     TBItem2: TTBItem;
+    chbxCKEK: TCheckBox;
+    TBControlItem3: TTBControlItem;
+    TBSeparatorItem1: TTBSeparatorItem;
     procedure cbAccessClassChange(Sender: TObject);
     procedure actExcludeUpdate(Sender: TObject);
     procedure actExcludeExecute(Sender: TObject);
@@ -864,6 +867,7 @@ end;
 procedure Tgdc_dlgObjectProperties.BuildLinks;
 var
   SQL: String;
+  Cnt: Integer;
   q: TIBSQL;
   SL: TStringList;
 
@@ -871,12 +875,17 @@ var
   var
     S: String;
   begin
-    if (Length(SQL) < 48000)
+    if (Cnt < 255)
       and (F.Relation.PrimaryKey <> nil)
       and (F.Relation.PrimaryKey.ConstraintFields.Count = 1)
-      and (F.ConstraintFields.Count = 1)
-      {and (Pos('''' + F.Relation.RelationName + '''', SQL) = 0)} then
+      and (F.ConstraintFields.Count = 1) then
     begin
+      if (not chbxCKEK.Checked) and
+        ((F.ConstraintFields[0].FieldName = 'CREATORKEY') or (F.ConstraintFields[0].FieldName = 'EDITORKEY')) then
+      begin
+        exit;
+      end;
+
       S := 'SELECT ' +
         'CAST(''' + F.Relation.RelationName + ''' AS VARCHAR(' + IntToStr(cstMetaDataNameLength) + ')),' +
         F.Relation.PrimaryKey.ConstraintFields[0].FieldName +
@@ -896,7 +905,8 @@ var
         if SQL = '' then
           SQL := S
         else
-          SQL := SQL + ' UNION ' + S;
+          SQL := SQL + #13#10 + 'UNION ALL' + #13#10 + S;
+        Inc(Cnt);
       end;
 
       q.Close;
@@ -914,7 +924,7 @@ var
       SL.Add(TableName)
     else
       exit;
-        
+
     Lst := TObjectList.Create(False);
     try
       atDatabase.ForeignKeys.ConstraintsByReferencedRelation(
@@ -941,6 +951,7 @@ var
 
 begin
   SQL := '';
+  Cnt := 0;
   SL := TStringList.Create;
   q := TIBSQL.Create(nil);
   try
