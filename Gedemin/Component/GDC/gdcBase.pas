@@ -2443,7 +2443,7 @@ function GetBaseClassForRelation(const ARelationName: String): TgdcFullClass;
 var
   I: Integer;
   C: CgdcBase;
-  R: TatRelation;
+  R, ParentR: TatRelation;
   L: TObjectList;
   ibsql: TIBSQL;
   S: String;
@@ -2553,7 +2553,26 @@ begin
             if Assigned(F) then
               Result.gdClass := CgdcBase(GetClass('TgdcAttrUserDefinedTree'))
             else
-              Result.gdClass := CgdcBase(GetClass('TgdcAttrUserDefined'));
+            begin
+              F := R.RelationFields.ByFieldName('INHERITED');
+              if Assigned(F) then
+              begin
+                ParentR := R.RelationFields.ByFieldName('ID').ForeignKey.ReferencesRelation;
+                While Assigned(ParentR.RelationFields.ByFieldName('INHERITED')) do
+                begin
+                  ParentR := ParentR.RelationFields.ByFieldName('ID').ForeignKey.ReferencesRelation;
+                end;
+                if Assigned(ParentR.RelationFields.ByFieldName('PARENT'))
+                  and Assigned(ParentR.RelationFields.ByFieldName('LB')) then
+                    Result.gdClass := CgdcBase(GetClass('TgdcAttrUserDefinedLBRBTree'))
+                else if Assigned(ParentR.RelationFields.ByFieldName('PARENT')) then
+                       Result.gdClass := CgdcBase(GetClass('TgdcAttrUserDefinedTree'))
+                     else
+                       Result.gdClass := CgdcBase(GetClass('TgdcAttrUserDefined'))
+              end
+              else
+                Result.gdClass := CgdcBase(GetClass('TgdcAttrUserDefined'));
+            end;
           end;
           Result.SubType := ARelationName;
         end else

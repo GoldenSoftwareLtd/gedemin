@@ -679,7 +679,8 @@ var
   FClientHeight: Integer;
   FClientWidth: Integer;
   FFormState: TComponentState;
-
+  LSubType: string;
+  LCompName: string;
   procedure SetLoading(AComponent: TComponent; const AState: boolean);
   var
     CS: TComponentState;
@@ -730,7 +731,7 @@ begin
         ReadPrefix(Flags, CurrPos);
         CompClass := ReadStr;
         CompName := ReadStr;
-        
+
         if ReplaceSubType then
         begin
           CompName := Copy(CompClass,2, Length(CompClass)) + ASubType;
@@ -739,9 +740,13 @@ begin
 
         if CompName <> '' then
         begin
+          LSubType := ASubType;
+          LSubType := StringReplace(LSubType, 'USR$', 'USR_',[rfIgnoreCase]);
+          LCompName := CompName;
+          LCompName := StringReplace(LCompName, 'USR$', 'USR_',[rfIgnoreCase]);
           if (CompClass = AnOwner.ClassName) and (AnOwner is TCreateableForm) and
-              ((UpperCase(TCreateableForm(AnOwner).InitialName) = UpperCase(CompName)) or
-               (UpperCase(TCreateableForm(AnOwner).InitialName) = UpperCase(CompName + ASubType))) then
+              ((UpperCase(TCreateableForm(AnOwner).InitialName) = UpperCase(LCompName)) or
+               (UpperCase(TCreateableForm(AnOwner).InitialName) = UpperCase(LCompName + LSubType))) then
             C := AnOwner
           else
             C := GlobalFindComponent(CompName, AnOwner);

@@ -1277,7 +1277,8 @@ begin
        (gdcObject is TgdcSimpleTable) or
        (gdcObject is TgdcTreeTable) or
        (gdcObject is TgdcLBRBTreeTable) or
-       (gdcObject is TgdcTableToTable)
+       (gdcObject is TgdcTableToTable) or
+       (gdcObject is TgdcTableToDefinedTable)
       )
 
   else
@@ -1308,7 +1309,8 @@ begin
            (gdcObject is TgdcSimpleTable) or
            (gdcObject is TgdcTreeTable) or
            (gdcObject is TgdcLBRBTreeTable) or
-           (gdcObject is TgdcTableToTable)
+           (gdcObject is TgdcTableToTable)  or
+           (gdcObject is TgdcTableToDefinedTable)
           );
       end;
   end;
@@ -1335,7 +1337,8 @@ begin
   //Для редактирования нескольких веток запрещаем изменении ветки исследователя
   iblcExplorerBranch.Enabled := not (sMultiple in gdcObject.BaseState);
 
-  if (gdcObject.ClassType = TgdcTableToTable) then
+  if (gdcObject.ClassType = TgdcTableToTable)
+    or (gdcObject.ClassType = TgdcTableToDefinedTable) then
   begin
     lblReference.Visible := True;
     ibcmbReference.Visible := True;
