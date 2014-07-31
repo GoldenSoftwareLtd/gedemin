@@ -446,7 +446,7 @@ begin
           LFR := ';';
         end;
         fplJScript: LFN := 'function';
-        fplVBScript: LFN := 'sub';
+        fplVBScript: LFN := 'Sub';
       else
         raise Exception.Create(GetGsException(Self, 'Unknown language type.'));
       end;
