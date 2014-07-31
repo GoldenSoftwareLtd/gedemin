@@ -4027,6 +4027,10 @@ begin
                       repeat
                         LFullClassName.gdClassName := FEditForm.ClassName;
                         LFullClassName.SubType := SubType;
+
+                        //!!!
+                        Assert(frmClassList.GetFRMClass(LFullClassName) <> nil);
+
                         ParentSubType := frmClassList.GetFRMClass(LFullClassName).ClassParentSubtype(SubType);
                         if ParentSubType <> '' then
                         begin
