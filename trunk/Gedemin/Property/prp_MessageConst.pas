@@ -220,7 +220,7 @@ const
   VB_SCRIPTFUNCTION_TEMPLATE =
     'Option Explicit'#13#10 +
     'Function %s'#13#10 +
-    'End function';
+    'End Function';
 
   VBClASS_TEMPLATE =
     'Option Explicit'#13#10 +

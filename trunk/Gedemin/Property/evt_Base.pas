@@ -13484,12 +13484,10 @@ begin
         fplJScript:
         begin
           LFN := 'function';
-//          LFR := ';';
         end;
         fplVBScript:
         begin
-          LFN := 'sub';
-//            LMacroBody := LMacroBody + '  call ';
+          LFN := 'Sub';
         end;
       else
         raise Exception.Create('Unknown language type.');
@@ -13524,11 +13522,6 @@ begin
     end;
   end;
 
-//  if not ((Pos(USERCOMPONENT_PREFIX, LowerCase(ObjectName)) = 1) or
-//    (Pos(GLOBALUSERCOMPONENT_PREFIX, LowerCase(ObjectName)) = 1) or
-//    (Pos(ATCOMPONENT_PREFIX, LowerCase(ObjectName)) = 1) or
-//    (Pos(MACROSCOMPONENT_PREFIX, LowerCase(ObjectName)) = 1)) then
-//  begin
     case AnLang of
       fplJScript:
       begin
@@ -13565,12 +13558,12 @@ begin
             mkSafeFunction, mkFunction: CallInherited := CallInherited + '  ' + LFunctionName + ' = ';
             mkSafeProcedure, mkProcedure:  CallInherited := CallInherited + '  call ';
           end;
-          CallInherited := CallInherited + '  Inherited(' + GetEventParamName(0, FEventData^.ParamList) +
+          CallInherited := CallInherited + ' Inherited(' + GetEventParamName(0, FEventData^.ParamList) +
             ', ' + '"' + Name + '", ParamArr)'#13#10;
           CallInherited := CallInherited + ReturnParam;
         end else
           begin
-            InheritedDim := '  dim InheritedDim(' + IntToStr(FEventData^.ParamCount - 1) + ')'#13#10;
+            InheritedDim := '  Dim InheritedDim(' + IntToStr(FEventData^.ParamCount - 1) + ')'#13#10;
             InheritedArray := 'Array(' +
               GetEventParamName(0, FEventData^.ParamList);
             for I := 1 to FEventData^.ParamCount - 1 do
@@ -13582,7 +13575,7 @@ begin
 
             case FEventData^.MethodKind of
               mkSafeFunction, mkFunction: CallInherited := '  ' + LFunctionName + ' = ';
-              mkSafeProcedure, mkProcedure:  CallInherited := '  call ';
+              mkSafeProcedure, mkProcedure:  CallInherited := '  Call ';
             end;
             CallInherited := CallInherited + '  Inherited(' + GetEventParamName(0, FEventData^.ParamList) +
               ', ' + '"' + Name + '", ' + InheritedArray + ')'#13#10 + ReturnParam;
