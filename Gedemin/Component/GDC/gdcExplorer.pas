@@ -957,13 +957,16 @@ begin
             repeat
               if not Assigned(gdcClassList.GetGDCClass(LFullClass)) then
                 raise Exception.Create('Класс ' + LFullClass.gdClassName
-                  + ' не зарегестрирован в системе');
+                  + ' не зарегистрирован в системе');
               LFullClass.SubType := gdcClassList.GetGDCClass(LFullClass).ClassParentSubtype(LFullClass.Subtype);
               if not Assigned(gdcClassList.GetGDCClass(LFullClass)) then
                 raise Exception.Create('Класс ' + LFullClass.gdClassName
-                  + ' не зарегестрирован в системе');
+                  + ' не зарегистрирован в системе');
             until gdcClassList.GetGDCClass(LFullClass).ClassParentSubtype(LFullClass.Subtype) = '';
             RL := atDatabase.Relations.ByRelationName(LFullClass.SubType);
+
+            Assert(RL <> nil);
+
             if Assigned(RL.RelationFields.ByFieldName('PARENT'))
               and Assigned(RL.RelationFields.ByFieldName('LB')) then
                 LFullClass.gdClassName := 'TgdcAttrUserDefinedLBRBTree'
