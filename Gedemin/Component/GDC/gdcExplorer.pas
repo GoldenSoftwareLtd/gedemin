@@ -949,13 +949,20 @@ begin
       begin
         LFullClass.gdClassName := 'TgdcAttrUserDefined';
         LFullClass.SubType := FieldByName('subtype').AsString;
-        RL := atDatabase.Relations.ByRelationName(LFullClass.SubType);
-        if Assigned(RL) then
+        if LFullClass.SubType > '' then
         begin
-          While gdcClassList.GetGDCClass(LFullClass).ClassParentSubtype(LFullClass.Subtype) <> '' do
+          RL := atDatabase.Relations.ByRelationName(LFullClass.SubType);
+          if Assigned(RL) then
           begin
-            LFullClass.SubType := gdcClassList.GetGDCClass(LFullClass).ClassParentSubtype(LFullClass.Subtype);
-          end;
+            repeat
+              if not Assigned(gdcClassList.GetGDCClass(LFullClass)) then
+                raise Exception.Create('Класс ' + LFullClass.gdClassName
+                  + ' не зарегестрирован в системе');
+              LFullClass.SubType := gdcClassList.GetGDCClass(LFullClass).ClassParentSubtype(LFullClass.Subtype);
+              if not Assigned(gdcClassList.GetGDCClass(LFullClass)) then
+                raise Exception.Create('Класс ' + LFullClass.gdClassName
+                  + ' не зарегестрирован в системе');
+            until gdcClassList.GetGDCClass(LFullClass).ClassParentSubtype(LFullClass.Subtype) = '';
             RL := atDatabase.Relations.ByRelationName(LFullClass.SubType);
             if Assigned(RL.RelationFields.ByFieldName('PARENT'))
               and Assigned(RL.RelationFields.ByFieldName('LB')) then
@@ -963,6 +970,7 @@ begin
             else if Assigned(RL.RelationFields.ByFieldName('PARENT')) then
               LFullClass.gdClassName := 'TgdcAttrUserDefinedTree'
             else LFullClass.gdClassName := 'TgdcAttrUserDefined'
+          end;
         end;
       end
       else

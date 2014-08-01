@@ -1146,12 +1146,22 @@ begin
                 // ≈сли в последнем в стеке полном имени класса есть подтип, то
                 // текущий полный класс - это тот-же полный класс без подтипа,
                 // если нет родител€ по подтипу GD_ DOCUMENTTYPE
-               if GetClass(LCurrentFullClass.gdClassName).InheritsFrom(TgdcBase) then
-                 LCurrentFullClass.SubType :=
-                   gdcClassList.GetGDCClass(LCurrentFullClass).ClassParentSubtype(LCurrentFullClass.SubType)
-               else
-                 LCurrentFullClass.SubType :=
-                   frmClassList.GetFRMClass(LCurrentFullClass).ClassParentSubtype(LCurrentFullClass.SubType)
+                if GetClass(LCurrentFullClass.gdClassName).InheritsFrom(TgdcBase) then
+                begin
+                  if not Assigned(gdcClassList.GetGDCClass(LCurrentFullClass))then
+                    raise Exception.Create('ќшибка перекрыти€ метода класса '
+                      + LCurrentFullClass.gdClassName);
+                  LCurrentFullClass.SubType :=
+                    gdcClassList.GetGDCClass(LCurrentFullClass).ClassParentSubtype(LCurrentFullClass.SubType)
+                end
+                else
+                begin
+                  if not Assigned(frmClassList.GetFRMClass(LCurrentFullClass))then
+                    raise Exception.Create('ќшибка перекрыти€ метода класса '
+                      + LCurrentFullClass.gdClassName);
+                  LCurrentFullClass.SubType :=
+                    frmClassList.GetFRMClass(LCurrentFullClass).ClassParentSubtype(LCurrentFullClass.SubType)
+                end;
               end else
                 begin
                   // ≈сли последний обработанный класс без подтипа, то получаем

@@ -9750,6 +9750,8 @@ begin
       repeat
         LFullClassName.gdClassName := AnComponent.ClassName;
         LFullClassName.SubType := SubType;
+        if not Assigned(frmClassList.GetFRMClass(LFullClassName))then
+          raise Exception.Create('Ошибка перекрытия события ' + LFullClassName.gdClassName);
         ParentSubType := frmClassList.GetFRMClass(LFullClassName).ClassParentSubtype(SubType);
         if ParentSubType <> '' then
         begin
