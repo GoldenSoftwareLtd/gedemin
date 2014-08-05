@@ -3217,6 +3217,7 @@ type
     procedure BatchInput(const InputObject: IgsIBBatchInput); safecall;
     procedure BatchOutput(const OutputObject: IgsIBBatchOutput); safecall;
     procedure Call(ErrCode: Integer; RaiseError: WordBool); safecall;
+    function  GetAsCSVString: WideString; safecall;
   end;
 
   TwrpClientDataSet = class(TwrpDataset, IgsClientDataSet)
@@ -4457,15 +4458,11 @@ type
     procedure AssignPeriod(ADate: TDateTime; AnEndDate: TDateTime); safecall;
   end;
 
-//function InterfaceToObject(AValue: IDispatch): TObject;
-//function  IgsStringsToTStrings(const AnOleStrings: IgsStrings): TStrings;
-//function  TStringsToIgsStrings(const AStrings: TStrings): IgsStrings;
-
 implementation
 
 uses
-  gdcOLEClassList, ComServ, prp_Methods, obj_VarParam, obj_QueryList,
-  OleCtrls, jpeg, TypInfo, JclMime
+  IBHeader, gdcOLEClassList, ComServ, prp_Methods, obj_VarParam, obj_QueryList,
+  OleCtrls, jpeg, TypInfo, JclMime, gsCSV
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -11348,6 +11345,67 @@ end;
 function TwrpIBSQL.Get_SQLType: TgsIBSQLTypes;
 begin
   Result := TgsIBSQLTypes(GetIBSQL.SQLType);
+end;
+
+function TwrpIBSQL.GetAsCSVString: WideString;
+var
+  CSV: TgsCSVWriter;
+  I: Integer;
+  S: TStringStream;
+  F: TIBXSQLVAR;
+begin
+  CSV := TgsCSVWriter.Create;
+  S := TStringStream.Create('');
+  try
+    CSV.Stream := S;
+    for I := 0 to GetIBSQL.Current.Count - 1 do
+    begin
+      F := GetIBSQL.Fields[I];
+
+      if F.IsNull then
+        CSV.WriteNull
+      else
+        case F.SQLType of
+          SQL_DOUBLE, SQL_FLOAT: CSV.WriteFloat(F.AsFloat);
+          SQL_SHORT:
+          begin
+            if (F.AsXSQLVar.sqlscale = 0) then
+              CSV.WriteInteger(F.AsInteger)
+            else
+              CSV.WriteCurrency(F.AsCurrency);
+          end;
+          SQL_LONG:
+          begin
+            if (F.AsXSQLVar.sqlscale = 0) then
+              CSV.WriteInteger(F.AsInteger)
+            else
+              if (F.AsXSQLVar.sqlscale >= (-4)) then
+                CSV.WriteCurrency(F.AsCurrency)
+              else
+                CSV.WriteFloat(F.AsFloat);
+          end;
+          SQL_INT64:
+          begin
+            if (F.AsXSQLVar.sqlscale = 0) then
+              CSV.WriteLargeInt(F.AsInt64)
+            else
+              if (F.AsXSQLVar.sqlscale >= (-4)) then
+                CSV.WriteCurrency(F.AsCurrency)
+              else
+                CSV.WriteFloat(F.AsFloat);
+          end;
+          SQL_TIMESTAMP: CSV.WriteTimestamp(F.AsDateTime);
+          SQL_TYPE_TIME: CSV.WriteTimestamp(F.AsDateTime);
+          SQL_TYPE_DATE: CSV.WriteDate(F.AsDate);
+        else
+          CSV.WriteString(F.AsString);
+        end;
+    end;
+    Result := S.DataString;
+  finally
+    S.Free;
+    CSV.Free;
+  end;
 end;
 
 { TwrpClientDataSet }
