@@ -304,9 +304,14 @@ begin
           if Assigned(HandlerFunction) then
           begin
             if RequestToken > '' then
-              Log(FRequestInfo.RemoteIP, 'TOKN', ['token'], [RequestToken])
-            else
+            begin
+              Log(FRequestInfo.RemoteIP, 'TOKN', ['token'], [RequestToken]);
+              gdNotifierThread.Add(FRequestInfo.RemoteIP + ' token=' + RequestToken, 0, 2000);
+            end else
+            begin
               Log(FRequestInfo.RemoteIP, 'DOCM', ['document'], [FRequestInfo.Document]);
+              gdNotifierThread.Add(FRequestInfo.RemoteIP + ' ' + FRequestInfo.Document, 0, 2000);
+            end;
 
             // Формирование списка параметров
             //  1 - компонент к которому привязан обработчик

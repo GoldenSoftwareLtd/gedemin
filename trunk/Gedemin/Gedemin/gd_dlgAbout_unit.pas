@@ -356,7 +356,8 @@ begin
         AddSpaces('IP сервера',  HostToIP(IBLogin.ServerName));
       end;
       //AddBoolean('Встроенный сервер',  IBLogin.ServerName = '');
-      AddSpaces('Имя файла БД',  DBFileName);
+      if IBLogin.IsUserAdmin then
+        AddSpaces('Имя файла БД',  DBFileName);
       AddSpaces('ODS версия',  IntToStr(ODSMajorVersion) + '.' + IntToStr(ODSMinorVersion));
       AddSpaces('Размер страницы',  IntToStr(PageSize));
       AddBoolean('Принудительная зап.', Boolean(ForcedWrites));
@@ -584,15 +585,18 @@ begin
         q.Next;
       end;
 
-      q.Close;
-      q.SQL.Text := 'SELECT * FROM mon$database';
-      q.ExecQuery;
-      if not q.EOF then
+      if IBLogin.IsUserAdmin then
       begin
-        AddSection('MON$DATABASE');
-        for I := 0 to q.Current.Count - 1 do
-          AddSpaces(q.Current[I].Name,  q.Current[I].AsString);
-      end;
+        q.Close;
+        q.SQL.Text := 'SELECT * FROM mon$database';
+        q.ExecQuery;
+        if not q.EOF then
+        begin
+          AddSection('MON$DATABASE');
+          for I := 0 to q.Current.Count - 1 do
+            AddSpaces(q.Current[I].Name,  q.Current[I].AsString);
+        end;
+      end;  
 
       q.Close;
       q.SQL.Text :=

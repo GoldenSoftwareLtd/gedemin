@@ -22,7 +22,7 @@ object gd_dlgOptions: Tgd_dlgOptions
     Top = 3
     Width = 565
     Height = 397
-    ActivePage = tsAudit
+    ActivePage = TabSheet1
     TabOrder = 0
     object TabSheet1: TTabSheet
       Caption = 'Общие'
