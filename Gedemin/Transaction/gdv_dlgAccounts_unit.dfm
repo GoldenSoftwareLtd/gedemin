@@ -1,6 +1,6 @@
 object gdv_dlgAccounts: Tgdv_dlgAccounts
-  Left = 417
-  Top = 192
+  Left = 421
+  Top = 194
   Width = 345
   Height = 354
   BorderWidth = 5
@@ -17,7 +17,7 @@ object gdv_dlgAccounts: Tgdv_dlgAccounts
   TextHeight = 13
   object Panel1: TPanel
     Left = 0
-    Top = 276
+    Top = 279
     Width = 319
     Height = 30
     Align = alBottom
@@ -65,7 +65,7 @@ object gdv_dlgAccounts: Tgdv_dlgAccounts
     Left = 0
     Top = 26
     Width = 319
-    Height = 250
+    Height = 253
     DataSource = DataSource1
     KeyField = 'ID'
     ParentField = 'PARENT'

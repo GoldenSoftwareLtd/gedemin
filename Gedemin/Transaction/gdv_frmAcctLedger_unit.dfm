@@ -1,17 +1,14 @@
 inherited gdv_frmAcctLedger: Tgdv_frmAcctLedger
-  Left = 239
-  Top = 141
-  Width = 1050
+  Top = 143
   Height = 566
   HelpContext = 100
   Caption = 'Журнал-ордер'
   PixelsPerInch = 96
   TextHeight = 13
   inherited sLeft: TSplitter
-    Height = 489
+    Height = 492
   end
   inherited TBDock1: TTBDock
-    Width = 1034
     inherited TBToolbar2: TTBToolbar
       DockPos = 154
     end
@@ -24,28 +21,24 @@ inherited gdv_frmAcctLedger: Tgdv_frmAcctLedger
     end
   end
   inherited Panel1: TPanel
-    Width = 764
-    Height = 489
+    Height = 492
     inherited ibgrMain: TgsIBGrid
-      Width = 764
-      Height = 489
+      Height = 492
     end
   end
   inherited TBDock2: TTBDock
-    Height = 489
+    Height = 492
   end
   inherited TBDock3: TTBDock
-    Left = 1025
-    Height = 489
+    Height = 492
   end
   inherited TBDock4: TTBDock
-    Top = 519
-    Width = 1034
+    Top = 522
   end
   inherited pLeft: TPanel
-    Height = 489
+    Height = 492
     inherited ScrollBox: TScrollBox
-      Height = 472
+      Height = 475
       inherited Panel5: TPanel
         Width = 229
         Height = 115
