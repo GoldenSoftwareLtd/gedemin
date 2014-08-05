@@ -1,7 +1,7 @@
 object frEntrySimpleLineQuantity: TfrEntrySimpleLineQuantity
   Left = 0
   Top = 0
-  Width = 442
+  Width = 435
   Height = 69
   Align = alTop
   AutoSize = True
@@ -10,7 +10,7 @@ object frEntrySimpleLineQuantity: TfrEntrySimpleLineQuantity
   object ppMain: TgdvParamPanel
     Left = 0
     Top = 0
-    Width = 442
+    Width = 435
     Height = 69
     Align = alTop
     Caption = ' Количественные показатели'

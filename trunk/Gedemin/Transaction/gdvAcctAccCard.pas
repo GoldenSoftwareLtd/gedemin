@@ -199,9 +199,13 @@ begin
           '     %0:s.valuekey = %1:s'#13#10 +
           '  LEFT JOIN gd_value %2:s ON %2:s.id = %0:s.valuekey',
           [QuantityAlias, FAcctValues.Names[K], ValueAlias]);
-      if AccWhereQuantity > '' then
+
+{ Зачем-то было добавлено ограничение на вывод проводок только с кол-ными показателями если они указаны }
+{ Но при это не видны остальные проводки, а по идее 
+
+{      if AccWhereQuantity > '' then
         AccWhereQuantity := AccWhereQuantity + ' OR ';
-      AccWhereQuantity := AccWhereQuantity + QuantityAlias + '.quantity <> 0 ';
+      AccWhereQuantity := AccWhereQuantity + ' coalesce(' + QuantityAlias + '.quantity, 0) <> 0 '; }
     end; 
   end;
 

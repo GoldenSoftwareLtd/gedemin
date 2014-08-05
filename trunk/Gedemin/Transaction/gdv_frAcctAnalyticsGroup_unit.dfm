@@ -106,7 +106,6 @@ inherited frAcctAnalyticsGroup: TfrAcctAnalyticsGroup
         Width = 40
         Height = 17
         Action = actUp
-        Caption = '¬верх'
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clBlack
         Font.Height = -11
