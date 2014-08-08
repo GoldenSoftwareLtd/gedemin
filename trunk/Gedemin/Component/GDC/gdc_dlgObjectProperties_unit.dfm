@@ -1,9 +1,9 @@
 inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
-  Left = 324
-  Top = 204
+  Left = 618
+  Top = 230
   Caption = 'Свойства объекта'
   ClientHeight = 499
-  ClientWidth = 451
+  ClientWidth = 479
   PixelsPerInch = 96
   TextHeight = 13
   inherited btnAccess: TButton
@@ -28,19 +28,19 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
     TabOrder = 3
   end
   inherited btnOK: TButton
-    Left = 305
+    Left = 333
     Top = 475
     TabOrder = 1
   end
   inherited btnCancel: TButton
-    Left = 379
+    Left = 407
     Top = 475
     TabOrder = 2
   end
   object pcMain: TPageControl [5]
     Left = 4
     Top = 4
-    Width = 443
+    Width = 471
     Height = 467
     ActivePage = tsGeneral
     TabOrder = 0
@@ -48,7 +48,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
     object tsGeneral: TTabSheet
       Caption = 'Общие'
       object btnClassMethods: TButton
-        Left = 55
+        Left = 83
         Top = 417
         Width = 119
         Height = 19
@@ -56,7 +56,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
         TabOrder = 0
       end
       object btnSubTypeMethods: TButton
-        Left = 313
+        Left = 341
         Top = 417
         Width = 119
         Height = 19
@@ -64,7 +64,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
         TabOrder = 2
       end
       object btnParentMethods: TButton
-        Left = 184
+        Left = 212
         Top = 417
         Width = 119
         Height = 19
@@ -74,7 +74,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
       object mProp: TMemo
         Left = 2
         Top = 2
-        Width = 431
+        Width = 458
         Height = 410
         Color = clBtnFace
         Font.Charset = RUSSIAN_CHARSET
@@ -86,6 +86,28 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
         ReadOnly = True
         ScrollBars = ssHorizontal
         TabOrder = 3
+        WantReturns = False
+        WordWrap = False
+      end
+    end
+    object tsSubTypes: TTabSheet
+      Caption = 'Подтипы'
+      ImageIndex = 8
+      object mSubTypes: TMemo
+        Left = 2
+        Top = 2
+        Width = 458
+        Height = 433
+        Color = clBtnFace
+        Font.Charset = RUSSIAN_CHARSET
+        Font.Color = clWindowText
+        Font.Height = -11
+        Font.Name = 'Courier New'
+        Font.Style = []
+        ParentFont = False
+        ReadOnly = True
+        ScrollBars = ssHorizontal
+        TabOrder = 0
         WantReturns = False
         WordWrap = False
       end
@@ -103,16 +125,9 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
       object Label2: TLabel
         Left = 240
         Top = 11
-        Width = 138
+        Width = 182
         Height = 13
-        Caption = 'к данной записи обладают'
-      end
-      object Label3: TLabel
-        Left = 8
-        Top = 28
-        Width = 121
-        Height = 13
-        Caption = 'группы пользователей:'
+        Caption = 'к данной записи обладают группы:'
       end
       object Label6: TLabel
         Left = 8
@@ -137,9 +152,9 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
       end
       object ibgrUserGroup: TgsIBGrid
         Left = 8
-        Top = 43
-        Width = 419
-        Height = 259
+        Top = 32
+        Width = 447
+        Height = 270
         DataSource = dsUserGroup
         Options = [dgColumnResize, dgTabs, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit]
         TabOrder = 1
@@ -298,7 +313,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
       object cbParams: TComboBox
         Left = 184
         Top = 416
-        Width = 189
+        Width = 275
         Height = 19
         Style = csDropDownList
         Font.Charset = RUSSIAN_CHARSET
@@ -313,7 +328,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
       object sbFields: TScrollBox
         Left = 3
         Top = 22
-        Width = 429
+        Width = 456
         Height = 387
         Font.Charset = RUSSIAN_CHARSET
         Font.Color = clWindowText
@@ -330,7 +345,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
       object sbFields2: TScrollBox
         Left = 3
         Top = 3
-        Width = 429
+        Width = 456
         Height = 432
         Font.Charset = RUSSIAN_CHARSET
         Font.Color = clWindowText
@@ -354,7 +369,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
       object tbLinks: TTBToolbar
         Left = 0
         Top = 0
-        Width = 435
+        Width = 463
         Height = 22
         Align = alTop
         Caption = 'tbLinks'
@@ -400,16 +415,16 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
         object chbxCKEK: TCheckBox
           Left = 249
           Top = 2
-          Width = 184
+          Width = 208
           Height = 17
-          Caption = 'CREATORKEY, EDITORKEY'
+          Caption = 'Учитывать CREATORKEY, EDITORKEY'
           TabOrder = 1
         end
       end
       object ibgrLinks: TgsIBGrid
         Left = 0
         Top = 22
-        Width = 435
+        Width = 463
         Height = 417
         Align = alClient
         DataSource = dsLinks
@@ -438,7 +453,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
       object gsibgrDependencies: TgsIBGrid
         Left = 0
         Top = 0
-        Width = 435
+        Width = 463
         Height = 439
         Align = alClient
         DataSource = dsDependencies
@@ -467,7 +482,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
       object mYAMLFile: TSynEdit
         Left = 3
         Top = 3
-        Width = 429
+        Width = 457
         Height = 433
         Cursor = crIBeam
         Font.Charset = DEFAULT_CHARSET
@@ -825,7 +840,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
       object tbNS: TTBToolbar
         Left = 0
         Top = 0
-        Width = 435
+        Width = 463
         Height = 22
         Align = alTop
         Caption = 'tbNS'
@@ -842,7 +857,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
       object ibgrNS: TgsIBGrid
         Left = 0
         Top = 22
-        Width = 435
+        Width = 463
         Height = 417
         Align = alClient
         DataSource = dsNS

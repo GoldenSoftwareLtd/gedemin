@@ -18,7 +18,6 @@ type
     cbAccessClass: TComboBox;
     Label1: TLabel;
     Label2: TLabel;
-    Label3: TLabel;
     ibgrUserGroup: TgsIBGrid;
     ibcbUserGroup: TgsIBLookupComboBox;
     memoExclude: TMemo;
@@ -84,6 +83,8 @@ type
     chbxCKEK: TCheckBox;
     TBControlItem3: TTBControlItem;
     TBSeparatorItem1: TTBSeparatorItem;
+    tsSubTypes: TTabSheet;
+    mSubTypes: TMemo;
     procedure cbAccessClassChange(Sender: TObject);
     procedure actExcludeUpdate(Sender: TObject);
     procedure actExcludeExecute(Sender: TObject);
@@ -288,7 +289,12 @@ var
 begin
   SyncCombo;
 
-  if pcMain.ActivePage = tsLinks then
+  if pcMain.ActivePage = tsSubTypes then
+  begin
+    if Assigned(gdcObject) then
+      gdcObject.GetSubTypeList(mSubTypes.Lines, gdcObject.SubType, False);
+  end
+  else if pcMain.ActivePage = tsLinks then
   begin
     OldCursor := Screen.Cursor;
     try
