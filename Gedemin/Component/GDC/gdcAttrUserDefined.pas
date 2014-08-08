@@ -262,25 +262,31 @@ begin
   While ClassParentSubtype(LSubtype) <> '' do
   begin
     R := atDatabase.Relations.ByRelationName(LSubtype);
-    RF := R.RelationFields;
-    LSQL := 'INSERT INTO ';
-    LSQL := LSQL + R.RelationName + ' (';
-    for i := 0 to RF.Count - 1 do
+    if Assigned(R) then
     begin
-      if (i <> (RF.Count - 1)) then
-        LSQL := LSQL + RF.Items[I].FieldName + ', '
-      else
-        LSQL := LSQL + RF.Items[I].FieldName + ')'
+      RF := R.RelationFields;
+      if Assigned(RF) then
+      begin
+        LSQL := 'INSERT INTO ';
+        LSQL := LSQL + R.RelationName + ' (';
+        for i := 0 to RF.Count - 1 do
+        begin
+          if (i <> (RF.Count - 1)) then
+            LSQL := LSQL + RF.Items[I].FieldName + ', '
+          else
+            LSQL := LSQL + RF.Items[I].FieldName + ')'
+        end;
+        LSQL := LSQL + ' VALUES (';
+        for i := 0 to RF.Count - 1 do
+        begin
+          if (i <> (RF.Count - 1)) then
+            LSQL := LSQL + ':new_' + RF.Items[I].FieldName + ', '
+          else
+            LSQL := LSQL + ':new_' + RF.Items[I].FieldName + ')';
+        end;
+        CustomExecQuery(LSQL, Buff);
+      end;
     end;
-    LSQL := LSQL + ' VALUES (';
-    for i := 0 to RF.Count - 1 do
-    begin
-      if (i <> (RF.Count - 1)) then
-        LSQL := LSQL + ':new_' + RF.Items[I].FieldName + ', '
-      else
-        LSQL := LSQL + ':new_' + RF.Items[I].FieldName + ')';
-    end;
-    CustomExecQuery(LSQL, Buff);
     LSubtype := ClassParentSubtype(LSubtype);
   end;
 
@@ -300,10 +306,11 @@ var
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
        LSQL: string;
-       I: Integer;
+       I, J: Integer;
        R: TatRelation;
        RF: TatRelationFields;
        LSubtype: string;
+       ST: TstringList;
 begin
   {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCATTRUSERDEFINED', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
   {M}  try
@@ -332,20 +339,58 @@ begin
   While ClassParentSubtype(LSubtype) <> '' do
   begin
     R := atDatabase.Relations.ByRelationName(LSubtype);
-    RF := R.RelationFields;
-    LSQL := 'UPDATE ';
-    LSQL := LSQL + R.RelationName + ' SET ';
-    for i := 0 to RF.Count - 1 do
+    if Assigned(R) then
     begin
-      if (i <> (RF.Count - 1)) then
-        LSQL := LSQL + RF.Items[I].FieldName + ' = :new_' + RF.Items[I].FieldName + ', '
-      else
-        LSQL := LSQL + RF.Items[I].FieldName + ' = :new_' + RF.Items[I].FieldName
+      RF := R.RelationFields;
+      if Assigned(RF) then
+      begin
+        LSQL := 'UPDATE ';
+        LSQL := LSQL + R.RelationName + ' SET ';
+        for i := 0 to RF.Count - 1 do
+        begin
+          if (i <> (RF.Count - 1)) then
+            LSQL := LSQL + RF.Items[I].FieldName + ' = :new_'
+              + RF.Items[I].FieldName + ', '
+          else
+            LSQL := LSQL + RF.Items[I].FieldName + ' = :new_'
+              + RF.Items[I].FieldName
+        end;
+        LSQL := LSQL + ' WHERE id = :old_id';
+        CustomExecQuery(LSQL, Buff);
+      end;
     end;
-    LSQL := LSQL + ' WHERE id = :old_id';
-
-    CustomExecQuery(LSQL, Buff);
     LSubtype := ClassParentSubtype(LSubtype);
+  end;
+
+  ST := TStringList.Create;
+  try
+    GetSubTypeList(ST, RelationName, False);
+    for I := 0 to ST.Count - 1 do
+    begin
+      R := atDatabase.Relations.ByRelationName(ST.Values[ST.Names[I]]);
+      if Assigned(R) then
+      begin
+        RF := R.RelationFields;
+        if Assigned(RF) then
+        begin
+          LSQL := 'UPDATE ';
+          LSQL := LSQL + R.RelationName + ' SET ';
+          for J := 0 to RF.Count - 1 do
+          begin
+            if (J <> (RF.Count - 1)) then
+              LSQL := LSQL + RF.Items[J].FieldName + ' = :new_'
+                + RF.Items[J].FieldName + ', '
+            else
+              LSQL := LSQL + RF.Items[J].FieldName + ' = :new_'
+                + RF.Items[J].FieldName
+          end;
+          LSQL := LSQL + ' WHERE id = :old_id';
+          CustomExecQuery(LSQL, Buff);
+        end;
+      end;
+    end;
+  finally
+    ST.Free;
   end;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCATTRUSERDEFINED', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
@@ -387,8 +432,9 @@ function TgdcAttrUserDefined.GetSelectClause: String;
   {END MACRO}
        R: TatRelation;
        RF: TatRelationFields;
-       I: integer;
+       I, J: integer;
        LSubtype: string;
+       ST: TStringList;
 begin
   {@UNFOLD MACRO INH_ORIG_GETSELECTCLAUSE('TGDCATTRUSERDEFINED', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE)}
   {M}  try
@@ -427,11 +473,42 @@ begin
   While ClassParentSubtype(LSubtype) <> '' do
   begin
     R := atDatabase.Relations.ByRelationName(LSubtype);
-    RF := R.RelationFields;
-    for i := 0 to RF.Count - 1 do
-      if (RF.Items[I].FieldName <> 'ID') and (RF.Items[I].FieldName <> 'INHERITED') then
-        Result := Result + ', z_' + R.RelationName + '.' + RF.Items[I].FieldName;
+    if Assigned(R) then
+    begin
+      RF := R.RelationFields;
+      if Assigned(RF) then
+      for i := 0 to RF.Count - 1 do
+        if (RF.Items[I].FieldName <> 'ID')
+          and (RF.Items[I].FieldName <> 'INHERITED')then
+        begin
+          Result := Result + ', z_' + R.RelationName + '.'
+            + RF.Items[I].FieldName;
+        end;
+    end;
     LSubtype := ClassParentSubtype(LSubtype);
+  end;
+
+  ST := TStringList.Create;
+  try
+    GetSubTypeList(ST, RelationName, False);
+    for I := 0 to ST.Count - 1 do
+    begin
+      R := atDatabase.Relations.ByRelationName(ST.Values[ST.Names[I]]);
+      if Assigned(R) then
+      begin
+        RF := R.RelationFields;
+        if Assigned(RF) then
+          for J := 0 to RF.Count - 1 do
+            if (RF.Items[I].FieldName <> 'ID')
+              and (RF.Items[I].FieldName <> 'INHERITED') then
+            begin
+              Result := Result + ', z_' + R.RelationName + '.'
+              + RF.Items[J].FieldName;
+            end;
+      end;
+    end;
+  finally
+    ST.Free;
   end;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCATTRUSERDEFINED', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE)}
@@ -449,6 +526,8 @@ function TgdcAttrUserDefined.GetFromClause(const ARefresh: Boolean = False): Str
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
        LSubtype: string;
+       ST: TStringList;
+       I: Integer;
 begin
   {@UNFOLD MACRO INH_ORIG_GETFROMCLAUSE('TGDCATTRUSERDEFINED', 'GETFROMCLAUSE', KEYGETFROMCLAUSE)}
   {M}  try
@@ -489,6 +568,19 @@ begin
     Result := Result + ' JOIN ' + LSubtype + ' z_' + LSubtype
       + ' ON z_' + LSubtype + '.id = z.id';
     LSubtype := ClassParentSubtype(LSubtype);
+  end;
+
+  ST := TStringList.Create;
+  try
+    GetSubTypeList(ST, Subtype, False);
+    for I := 0 to ST.Count - 1 do
+    begin
+      Result := Result + ' LEFT JOIN ' + ST.Values[ST.Names[I]]
+        + ' z_' + ST.Values[ST.Names[I]] + ' ON z_'
+        + ST.Values[ST.Names[I]] + '.id = z.id';
+    end;
+  finally
+    ST.Free;
   end;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCATTRUSERDEFINED', 'GETFROMCLAUSE', KEYGETFROMCLAUSE)}
@@ -801,6 +893,8 @@ function TgdcAttrUserDefinedTree.GetFromClause(const ARefresh: Boolean = False):
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
        LSubtype: string;
+       ST: TStringList;
+       I: Integer;
 begin
   {@UNFOLD MACRO INH_ORIG_GETFROMCLAUSE('TGDCATTRUSERDEFINEDTREE', 'GETFROMCLAUSE', KEYGETFROMCLAUSE)}
   {M}  try
@@ -833,6 +927,7 @@ begin
   {M}    end;
   {END MACRO}
 
+
   Result := Inherited GetFromClause(ARefresh);
 
   LSubtype := RelationName;
@@ -841,6 +936,19 @@ begin
     Result := Result + ' JOIN ' + LSubtype + ' z_' + LSubtype
       + ' ON z_' + LSubtype + '.id = z.id';
     LSubtype := ClassParentSubtype(LSubtype);
+  end;
+
+  ST := TStringList.Create;
+  try
+    GetSubTypeList(ST, Subtype, False);
+    for I := 0 to ST.Count - 1 do
+    begin
+      Result := Result + ' LEFT JOIN ' + ST.Values[ST.Names[I]]
+        + ' z_' + ST.Values[ST.Names[I]] + ' ON z_'
+        + ST.Values[ST.Names[I]] + '.id = z.id';
+    end;
+  finally
+    ST.Free;
   end;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCATTRUSERDEFINEDTREE', 'GETFROMCLAUSE', KEYGETFROMCLAUSE)}
@@ -890,25 +998,31 @@ begin
   While ClassParentSubtype(LSubtype) <> '' do
   begin
     R := atDatabase.Relations.ByRelationName(LSubtype);
-    RF := R.RelationFields;
-    LSQL := 'INSERT INTO ';
-    LSQL := LSQL + R.RelationName + ' (';
-    for i := 0 to RF.Count - 1 do
+    if Assigned(R) then
     begin
-      if (i <> (RF.Count - 1)) then
-        LSQL := LSQL + RF.Items[I].FieldName + ', '
-      else
-        LSQL := LSQL + RF.Items[I].FieldName + ')'
+      RF := R.RelationFields;
+      if Assigned(RF) then
+      begin
+        LSQL := 'INSERT INTO ';
+        LSQL := LSQL + R.RelationName + ' (';
+        for i := 0 to RF.Count - 1 do
+        begin
+          if (i <> (RF.Count - 1)) then
+            LSQL := LSQL + RF.Items[I].FieldName + ', '
+          else
+            LSQL := LSQL + RF.Items[I].FieldName + ')'
+        end;
+        LSQL := LSQL + ' VALUES (';
+        for i := 0 to RF.Count - 1 do
+        begin
+          if (i <> (RF.Count - 1)) then
+            LSQL := LSQL + ':new_' + RF.Items[I].FieldName + ', '
+          else
+            LSQL := LSQL + ':new_' + RF.Items[I].FieldName + ')';
+        end;
+        CustomExecQuery(LSQL, Buff);
+      end;
     end;
-    LSQL := LSQL + ' VALUES (';
-    for i := 0 to RF.Count - 1 do
-    begin
-      if (i <> (RF.Count - 1)) then
-        LSQL := LSQL + ':new_' + RF.Items[I].FieldName + ', '
-      else
-        LSQL := LSQL + ':new_' + RF.Items[I].FieldName + ')';
-    end;
-    CustomExecQuery(LSQL, Buff);
     LSubtype := ClassParentSubtype(LSubtype);
   end;
 
@@ -928,10 +1042,11 @@ var
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
        LSQL: string;
-       I: Integer;
+       I, J: Integer;
        R: TatRelation;
        RF: TatRelationFields;
        LSubtype: string;
+       ST: TstringList;
 begin
   {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCATTRUSERDEFINEDTREE', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
   {M}  try
@@ -960,20 +1075,58 @@ begin
   While ClassParentSubtype(LSubtype) <> '' do
   begin
     R := atDatabase.Relations.ByRelationName(LSubtype);
-    RF := R.RelationFields;
-    LSQL := 'UPDATE ';
-    LSQL := LSQL + R.RelationName + ' SET ';
-    for i := 0 to RF.Count - 1 do
+    if Assigned(R) then
     begin
-      if (i <> (RF.Count - 1)) then
-        LSQL := LSQL + RF.Items[I].FieldName + ' = :new_' + RF.Items[I].FieldName + ', '
-      else
-        LSQL := LSQL + RF.Items[I].FieldName + ' = :new_' + RF.Items[I].FieldName
+      RF := R.RelationFields;
+      if Assigned(RF) then
+      begin
+        LSQL := 'UPDATE ';
+        LSQL := LSQL + R.RelationName + ' SET ';
+        for i := 0 to RF.Count - 1 do
+        begin
+          if (i <> (RF.Count - 1)) then
+            LSQL := LSQL + RF.Items[I].FieldName + ' = :new_'
+              + RF.Items[I].FieldName + ', '
+          else
+            LSQL := LSQL + RF.Items[I].FieldName + ' = :new_'
+              + RF.Items[I].FieldName
+        end;
+        LSQL := LSQL + ' WHERE id = :old_id';
+        CustomExecQuery(LSQL, Buff);
+      end;
     end;
-    LSQL := LSQL + ' WHERE id = :old_id';
-
-    CustomExecQuery(LSQL, Buff);
     LSubtype := ClassParentSubtype(LSubtype);
+  end;
+
+  ST := TStringList.Create;
+  try
+    GetSubTypeList(ST, RelationName, False);
+    for I := 0 to ST.Count - 1 do
+    begin
+      R := atDatabase.Relations.ByRelationName(ST.Values[ST.Names[I]]);
+      if Assigned(R) then
+      begin
+        RF := R.RelationFields;
+        if Assigned(RF) then
+        begin
+          LSQL := 'UPDATE ';
+          LSQL := LSQL + R.RelationName + ' SET ';
+          for J := 0 to RF.Count - 1 do
+          begin
+            if (J <> (RF.Count - 1)) then
+              LSQL := LSQL + RF.Items[J].FieldName + ' = :new_'
+                + RF.Items[J].FieldName + ', '
+            else
+              LSQL := LSQL + RF.Items[J].FieldName + ' = :new_'
+                + RF.Items[J].FieldName
+          end;
+          LSQL := LSQL + ' WHERE id = :old_id';
+          CustomExecQuery(LSQL, Buff);
+        end;
+      end;
+    end;
+  finally
+    ST.Free;
   end;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCATTRUSERDEFINEDTREE', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
@@ -1025,8 +1178,9 @@ function TgdcAttrUserDefinedTree.GetSelectClause: String;
   {END MACRO}
        R: TatRelation;
        RF: TatRelationFields;
-       I: integer;
+       I, J: integer;
        LSubtype: string;
+       ST: TStringList;
 begin
   {@UNFOLD MACRO INH_ORIG_GETSELECTCLAUSE('TGDCATTRUSERDEFINEDTREE', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE)}
   {M}  try
@@ -1065,13 +1219,44 @@ begin
   While ClassParentSubtype(LSubtype) <> '' do
   begin
     R := atDatabase.Relations.ByRelationName(LSubtype);
-    RF := R.RelationFields;
-    for i := 0 to RF.Count - 1 do
-      if (RF.Items[I].FieldName <> 'ID') and (RF.Items[I].FieldName <> 'INHERITED') then
-        Result := Result + ', z_' + R.RelationName + '.' + RF.Items[I].FieldName;
+    if Assigned(R) then
+    begin
+      RF := R.RelationFields;
+      if Assigned(RF) then
+      for i := 0 to RF.Count - 1 do
+        if (RF.Items[I].FieldName <> 'ID')
+          and (RF.Items[I].FieldName <> 'INHERITED')then
+        begin
+          Result := Result + ', z_' + R.RelationName + '.'
+            + RF.Items[I].FieldName;
+        end;
+    end;
     LSubtype := ClassParentSubtype(LSubtype);
   end;
-  
+
+  ST := TStringList.Create;
+  try
+    GetSubTypeList(ST, RelationName, False);
+    for I := 0 to ST.Count - 1 do
+    begin
+      R := atDatabase.Relations.ByRelationName(ST.Values[ST.Names[I]]);
+      if Assigned(R) then
+      begin
+        RF := R.RelationFields;
+        if Assigned(RF) then
+          for J := 0 to RF.Count - 1 do
+            if (RF.Items[I].FieldName <> 'ID')
+              and (RF.Items[I].FieldName <> 'INHERITED') then
+            begin
+              Result := Result + ', z_' + R.RelationName + '.'
+              + RF.Items[J].FieldName;
+            end;
+      end;
+    end;
+  finally
+    ST.Free;
+  end;
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCATTRUSERDEFINEDTREE', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -1305,6 +1490,8 @@ function TgdcAttrUserDefinedLBRBTree.GetFromClause(const ARefresh: Boolean = Fal
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
        LSubtype: string;
+       ST: TStringList;
+       I: Integer;
 begin
   {@UNFOLD MACRO INH_ORIG_GETFROMCLAUSE('TGDCATTRUSERDEFINEDLBRBTREE', 'GETFROMCLAUSE', KEYGETFROMCLAUSE)}
   {M}  try
@@ -1345,6 +1532,19 @@ begin
     Result := Result + ' JOIN ' + LSubtype + ' z_' + LSubtype
       + ' ON z_' + LSubtype + '.id = z.id';
     LSubtype := ClassParentSubtype(LSubtype);
+  end;
+
+  ST := TStringList.Create;
+  try
+    GetSubTypeList(ST, Subtype, False);
+    for I := 0 to ST.Count - 1 do
+    begin
+      Result := Result + ' LEFT JOIN ' + ST.Values[ST.Names[I]]
+        + ' z_' + ST.Values[ST.Names[I]] + ' ON z_'
+        + ST.Values[ST.Names[I]] + '.id = z.id';
+    end;
+  finally
+    ST.Free;
   end;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCATTRUSERDEFINEDLBRBTREE', 'GETFROMCLAUSE', KEYGETFROMCLAUSE)}
@@ -1394,25 +1594,31 @@ begin
   While ClassParentSubtype(LSubtype) <> '' do
   begin
     R := atDatabase.Relations.ByRelationName(LSubtype);
-    RF := R.RelationFields;
-    LSQL := 'INSERT INTO ';
-    LSQL := LSQL + R.RelationName + ' (';
-    for i := 0 to RF.Count - 1 do
+    if Assigned(R) then
     begin
-      if (i <> (RF.Count - 1)) then
-        LSQL := LSQL + RF.Items[I].FieldName + ', '
-      else
-        LSQL := LSQL + RF.Items[I].FieldName + ')'
+      RF := R.RelationFields;
+      if Assigned(RF) then
+      begin
+        LSQL := 'INSERT INTO ';
+        LSQL := LSQL + R.RelationName + ' (';
+        for i := 0 to RF.Count - 1 do
+        begin
+          if (i <> (RF.Count - 1)) then
+            LSQL := LSQL + RF.Items[I].FieldName + ', '
+          else
+            LSQL := LSQL + RF.Items[I].FieldName + ')'
+        end;
+        LSQL := LSQL + ' VALUES (';
+        for i := 0 to RF.Count - 1 do
+        begin
+          if (i <> (RF.Count - 1)) then
+            LSQL := LSQL + ':new_' + RF.Items[I].FieldName + ', '
+          else
+            LSQL := LSQL + ':new_' + RF.Items[I].FieldName + ')';
+        end;
+        CustomExecQuery(LSQL, Buff);
+      end;
     end;
-    LSQL := LSQL + ' VALUES (';
-    for i := 0 to RF.Count - 1 do
-    begin
-      if (i <> (RF.Count - 1)) then
-        LSQL := LSQL + ':new_' + RF.Items[I].FieldName + ', '
-      else
-        LSQL := LSQL + ':new_' + RF.Items[I].FieldName + ')';
-    end;
-    CustomExecQuery(LSQL, Buff);
     LSubtype := ClassParentSubtype(LSubtype);
   end;
 
@@ -1432,10 +1638,11 @@ var
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
        LSQL: string;
-       I: Integer;
+       I, J: Integer;
        R: TatRelation;
        RF: TatRelationFields;
        LSubtype: string;
+       ST: TstringList;
 begin
   {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCATTRUSERDEFINEDLBRBTREE', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
   {M}  try
@@ -1464,20 +1671,58 @@ begin
   While ClassParentSubtype(LSubtype) <> '' do
   begin
     R := atDatabase.Relations.ByRelationName(LSubtype);
-    RF := R.RelationFields;
-    LSQL := 'UPDATE ';
-    LSQL := LSQL + R.RelationName + ' SET ';
-    for i := 0 to RF.Count - 1 do
+    if Assigned(R) then
     begin
-      if (i <> (RF.Count - 1)) then
-        LSQL := LSQL + RF.Items[I].FieldName + ' = :new_' + RF.Items[I].FieldName + ', '
-      else
-        LSQL := LSQL + RF.Items[I].FieldName + ' = :new_' + RF.Items[I].FieldName
+      RF := R.RelationFields;
+      if Assigned(RF) then
+      begin
+        LSQL := 'UPDATE ';
+        LSQL := LSQL + R.RelationName + ' SET ';
+        for i := 0 to RF.Count - 1 do
+        begin
+          if (i <> (RF.Count - 1)) then
+            LSQL := LSQL + RF.Items[I].FieldName + ' = :new_'
+              + RF.Items[I].FieldName + ', '
+          else
+            LSQL := LSQL + RF.Items[I].FieldName + ' = :new_'
+              + RF.Items[I].FieldName
+        end;
+        LSQL := LSQL + ' WHERE id = :old_id';
+        CustomExecQuery(LSQL, Buff);
+      end;
     end;
-    LSQL := LSQL + ' WHERE id = :old_id';
-
-    CustomExecQuery(LSQL, Buff);
     LSubtype := ClassParentSubtype(LSubtype);
+  end;
+
+  ST := TStringList.Create;
+  try
+    GetSubTypeList(ST, RelationName, False);
+    for I := 0 to ST.Count - 1 do
+    begin
+      R := atDatabase.Relations.ByRelationName(ST.Values[ST.Names[I]]);
+      if Assigned(R) then
+      begin
+        RF := R.RelationFields;
+        if Assigned(RF) then
+        begin
+          LSQL := 'UPDATE ';
+          LSQL := LSQL + R.RelationName + ' SET ';
+          for J := 0 to RF.Count - 1 do
+          begin
+            if (J <> (RF.Count - 1)) then
+              LSQL := LSQL + RF.Items[J].FieldName + ' = :new_'
+                + RF.Items[J].FieldName + ', '
+            else
+              LSQL := LSQL + RF.Items[J].FieldName + ' = :new_'
+                + RF.Items[J].FieldName
+          end;
+          LSQL := LSQL + ' WHERE id = :old_id';
+          CustomExecQuery(LSQL, Buff);
+        end;
+      end;
+    end;
+  finally
+    ST.Free;
   end;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCATTRUSERDEFINEDLBRBTREE', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
@@ -1529,8 +1774,9 @@ function TgdcAttrUserDefinedLBRBTree.GetSelectClause: String;
   {END MACRO}
        R: TatRelation;
        RF: TatRelationFields;
-       I: integer;
+       I, J: integer;
        LSubtype: string;
+       ST: TStringList;
 begin
   {@UNFOLD MACRO INH_ORIG_GETSELECTCLAUSE('TGDCATTRUSERDEFINEDLBRBTREE', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE)}
   {M}  try
@@ -1569,13 +1815,44 @@ begin
   While ClassParentSubtype(LSubtype) <> '' do
   begin
     R := atDatabase.Relations.ByRelationName(LSubtype);
-    RF := R.RelationFields;
-    for i := 0 to RF.Count - 1 do
-      if (RF.Items[I].FieldName <> 'ID') and (RF.Items[I].FieldName <> 'INHERITED') then
-        Result := Result + ', z_' + R.RelationName + '.' + RF.Items[I].FieldName;
+    if Assigned(R) then
+    begin
+      RF := R.RelationFields;
+      if Assigned(RF) then
+      for i := 0 to RF.Count - 1 do
+        if (RF.Items[I].FieldName <> 'ID')
+          and (RF.Items[I].FieldName <> 'INHERITED')then
+        begin
+          Result := Result + ', z_' + R.RelationName + '.'
+            + RF.Items[I].FieldName;
+        end;
+    end;
     LSubtype := ClassParentSubtype(LSubtype);
   end;
-  
+
+  ST := TStringList.Create;
+  try
+    GetSubTypeList(ST, RelationName, False);
+    for I := 0 to ST.Count - 1 do
+    begin
+      R := atDatabase.Relations.ByRelationName(ST.Values[ST.Names[I]]);
+      if Assigned(R) then
+      begin
+        RF := R.RelationFields;
+        if Assigned(RF) then
+          for J := 0 to RF.Count - 1 do
+            if (RF.Items[I].FieldName <> 'ID')
+              and (RF.Items[I].FieldName <> 'INHERITED') then
+            begin
+              Result := Result + ', z_' + R.RelationName + '.'
+              + RF.Items[J].FieldName;
+            end;
+      end;
+    end;
+  finally
+    ST.Free;
+  end;
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCATTRUSERDEFINEDLBRBTREE', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
