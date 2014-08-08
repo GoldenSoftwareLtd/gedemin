@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2001 - 2012 by Golden Software of Belarus
+  Copyright (c) 2001 - 2014 by Golden Software of Belarus
 
   Module
 
@@ -110,6 +110,55 @@ const
   keyGetChooseSubType        = 239;
   keyRemoveSubSetList        = 241;
   keySetupDialog             = 243;
+
+const
+  ClassesHashTableSize = 1024;
+
+type
+  TgdClassEntry = class(TObject)
+  private
+    FParent: TgdClassEntry;
+    FClass: TClass;
+    FSubType: TgdcSubType;
+    FCaption: String;
+    FSiblings: TObjectList;
+    FInitialized: Boolean;
+
+    function GetSiblings(Index: Integer): TgdClassEntry;
+    function GetCount: Integer;
+
+  public
+    constructor Create(AParent: TgdClassEntry;
+      const AClass: TClass; const ASubType: TgdcSubType = '');
+    destructor Destroy; override;
+
+    function Compare(const AClass: TClass; const ASubType: TgdcSubType = ''): Boolean;
+    procedure AddSibling(ASibling: TgdClassEntry);
+    function GetSubTypeList(ASubTypeList: TStrings; const AnOnlyDirect: Boolean): Boolean;
+
+    property Parent: TgdClassEntry read FParent;
+    property TheClass: TClass read FClass;
+    property SubType: TgdcSubType read FSubType;
+    property Caption: String read FCaption;
+    property Count: Integer read GetCount;
+    property Siblings[Index: Integer]: TgdClassEntry read GetSiblings;
+    property Initialized: Boolean read FInitialized write FInitialized;
+  end;
+
+  TgdClassList = class(TObject)
+  private
+    FHashTable: array[0..ClassesHashTableSize - 1] of TObject;
+
+    function GetHash(AClass: TClass; const ASubType: TgdcSubType): Cardinal;
+
+  public
+    constructor Create;
+    destructor Destroy; override;
+
+    function Add(const AClass: TClass; const ASubType: TgdcSubType = ''): TgdClassEntry;
+    function Find(const AClass: TClass; const ASubType: TgdcSubType = ''): TgdClassEntry;
+    procedure Remove(const AClass: TClass; const ASubType: TgdcSubType = '');
+  end;
 
 const
   // Константы для организации хранения перекрытых классов с подтипами
@@ -340,6 +389,8 @@ var
   // для форм
   frmClassList: TfrmClassList;
 
+  gdClassList: TgdClassList;
+
 // добавляет класс в список классов
 {Регистрация класса в списке TgdcClassList}
 procedure RegisterGdcClass(AClass: CgdcBase);
@@ -439,6 +490,8 @@ begin
       break;
     AClass := CgdcBase(AClass.ClassParent);
   end;
+
+  gdClassList.Add(AClass);
 end;
 
 procedure UnRegisterGdcClass(AClass: CgdcBase);
@@ -447,6 +500,8 @@ begin
   if not Assigned(gdcClassList) then
     Exit;
   gdcClassList.Remove(AClass);
+
+  gdClassList.Remove(AClass);
 end;
 
 procedure RegisterGdcClasses(AClasses: array of CgdcBase);
@@ -496,6 +551,7 @@ begin
     AClass := CgdcCreateableForm(AClass.ClassParent);
   end;
 
+  gdClassList.Add(AClass);
 end;
 
 procedure UnRegisterFrmClass(AClass: CgdcCreateableForm);
@@ -505,6 +561,8 @@ begin
     exit;
 
   frmClassList.Remove(AClass);
+
+  gdClassList.Remove(AClass);
 end;
 
 procedure RegisterFrmClasses(AClasses: array of CgdcCreateableForm);
@@ -631,7 +689,6 @@ const
         Inc(CursorPos);
         TrimSpace;
       end else
-  //      if Str[CursorPos] <> #0 then
         if not (CursorPos > L) then
           raise Exception.Create('gd_ClassList: Ошибка формата. Позиция:' + IntToStr(CursorPos) + #13#10 +
             'Нужна точка с запятой');
@@ -983,7 +1040,7 @@ end;
 function TgdcMethodList.AddMethod(const AMethod: TgdcMethod): Integer;
 begin
   if AMethod.Name = '' then
-    raise Exception.Create(GetGsException(Self, 'Method must have name'));
+    raise Exception.Create(GetGsException(Self, 'Method must have a name'));
   if MethodExists(AMethod) then
     raise Exception.Create(GetGsException(Self, 'Method ' + AMethod.Name + ' already found in list'));
 
@@ -1358,10 +1415,206 @@ begin
     end;
 end;
 
+{ TgdClassEntry }
+
+procedure TgdClassEntry.AddSibling(ASibling: TgdClassEntry);
+begin
+  Assert(ASibling <> nil);
+  Assert(ASibling.Parent = Self);
+  if FSiblings = nil then
+    FSiblings := TObjectList.Create(False);
+  FSiblings.Add(ASibling);  
+end;
+
+function TgdClassEntry.Compare(const AClass: TClass;
+  const ASubType: TgdcSubType): Boolean;
+begin
+  Result := (AClass = FClass) and AnsiSameText(FSubType, ASubType);
+end;
+
+constructor TgdClassEntry.Create(AParent: TgdClassEntry;
+  const AClass: TClass; const ASubType: TgdcSubType = '');
+begin
+  FParent := AParent;
+  FClass := AClass;
+  FSubType := ASubType;
+  FCaption := AClass.ClassName + ASubType;
+  FSiblings := nil; 
+end;
+
+destructor TgdClassEntry.Destroy;
+begin
+  FSiblings.Free;
+  inherited;
+end;
+
+function TgdClassEntry.GetCount: Integer;
+begin
+  if FSiblings = nil then
+    Result := 0
+  else
+    Result := FSiblings.Count;  
+end;
+
+function TgdClassEntry.GetSiblings(Index: Integer): TgdClassEntry;
+begin
+  Result := FSiblings[Index] as TgdClassEntry;
+end;
+
+function TgdClassEntry.GetSubTypeList(ASubTypeList: TStrings;
+  const AnOnlyDirect: Boolean): Boolean;
+var
+  I: Integer;
+begin
+  Assert(ASubTypeList <> nil);
+
+  Result := False;
+
+  if FSiblings <> nil then
+  begin
+    for I := 0 to Count - 1 do
+    begin
+      if Siblings[I].SubType > '' then
+      begin
+        ASubTypeList.Add(Siblings[I].Caption + '=' + Siblings[I].SubType);
+        Result := True;
+      end;
+
+      if not AnOnlyDirect then
+        Result := Result or Siblings[I].GetSubTypeList(ASubTypeList, False);
+    end;
+  end;
+end;
+
+{ TgdClassList }
+
+function TgdClassList.Add(const AClass: TClass;
+  const ASubType: TgdcSubType): TgdClassEntry;
+var
+  K: Integer;
+  OL: TObjectList;
+  Prnt: TgdClassEntry;
+begin
+  if AClass = nil then
+  begin
+    Result := nil;
+    exit;
+  end;
+
+  Result := Find(AClass, ASubType);
+
+  if Result <> nil then
+    exit;
+
+  if ASubType = '' then
+    Prnt := Add(AClass.ClassParent)
+  else
+    Prnt := Add(AClass);
+
+  Result := TgdClassEntry.Create(Prnt, AClass, ASubType);
+
+  if Prnt <> nil then
+    Prnt.AddSibling(Result);
+
+  K := GetHash(AClass, ASubType) mod ClassesHashTableSize;
+  if FHashTable[K] = nil then
+    FHashTable[K] := Result
+  else if FHashTable[K] is TObjectList then
+    TObjectList(FHashTable[K]).Add(Result)
+  else begin
+    OL := TObjectList.Create(True);
+    OL.Add(FHashTable[K]);
+    OL.Add(Result);
+    FHashTable[K] := OL;
+  end;
+end;
+
+constructor TgdClassList.Create;
+begin
+
+end;
+
+destructor TgdClassList.Destroy;
+var
+  I: Integer;
+begin
+  for I := 0 to ClassesHashTableSize - 1 do
+    FHashTable[I].Free;
+  inherited;
+end;
+
+function TgdClassList.Find(const AClass: TClass;
+  const ASubType: TgdcSubType): TgdClassEntry;
+var
+  K, J: Integer;
+  FCE: TgdClassEntry;
+begin
+  K := GetHash(AClass, ASubType) mod ClassesHashTableSize;
+  if FHashTable[K] is TgdClassEntry then
+  begin
+    if TgdClassEntry(FHashTable[K]).Compare(AClass, ASubType) then
+      Result := FHashTable[K] as TgdClassEntry
+    else
+      Result := nil;
+  end
+  else if FHashTable[K] is TObjectList then
+  begin
+    Result := nil;
+    for J := 0 to TObjectList(FHashTable[K]).Count - 1 do
+    begin
+      FCE := TObjectList(FHashTable[K])[J] as TgdClassEntry;
+      if FCE.Compare(AClass, ASubType) then
+      begin
+        Result := FCE;
+        break;
+      end;
+    end;
+  end else
+    Result := nil;
+end;
+
+function TgdClassList.GetHash(AClass: TClass; const ASubType: TgdcSubType): Cardinal;
+var
+  I: Integer;
+begin
+  Result := 5381 * 33 + Cardinal(AClass);
+
+  for I := 1 to Length(ASubType) do
+    Result := (Result shl 5) + Result + Byte(ASubType[I]);
+end;
+
+procedure TgdClassList.Remove(const AClass: TClass;
+  const ASubType: TgdcSubType);
+var
+  K, J: Integer;
+  FCE: TgdClassEntry;
+begin
+  K := GetHash(AClass, ASubType) mod ClassesHashTableSize;
+  if FHashTable[K] is TgdClassEntry then
+  begin
+    if TgdClassEntry(FHashTable[K]).Compare(AClass, ASubType) then
+      FreeAndNil(FHashTable[K]);
+  end
+  else if FHashTable[K] is TObjectList then
+  begin
+    for J := 0 to TObjectList(FHashTable[K]).Count - 1 do
+    begin
+      FCE := TObjectList(FHashTable[K])[J] as TgdClassEntry;
+      if FCE.Compare(AClass, ASubType) then
+      begin
+        TObjectList(FHashTable[K]).Delete(J);
+        break;
+      end;
+    end;
+  end;
+end;
+
 initialization
   gdcObjectList := TObjectList.Create(False);
+  gdClassList := TgdClassList.Create;
 
 finalization
+  FreeAndNil(gdClassList);
   FreeAndNil(gdcObjectList);
   FreeAndNil(gdcClassList);
   FreeAndNil(frmClassList);

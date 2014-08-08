@@ -1593,8 +1593,8 @@ type
     //Subtype -- подтип.
     //OnlyDirect -- если True, то возвращаются только непосредственные наследники.
     //В противном случае -- возвращается вся иерархия наследников.
-    class function GetSubTypeList(SubTypeList: TStrings;
-      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; virtual;
+    class function GetSubTypeList(ASubTypeList: TStrings;
+      ASubType: String = ''; AnOnlyDirect: Boolean = False): Boolean; virtual;
 
     class function ClassParentSubtype(Subtype: string): String; virtual;
     //
@@ -12343,42 +12343,77 @@ begin
   DoAfterCustomProcess(Buff, cpDelete);
 end;
 
-class function TgdcBase.GetSubTypeList(SubTypeList: TStrings;
-  Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
-var
-  F: TgsStorageFolder;
-  V: TgsStorageValue;
-  LClassName: String;
-begin
-  if Assigned(GlobalStorage) then
+class function TgdcBase.GetSubTypeList(ASubTypeList: TStrings;
+  ASubType: String = ''; AnOnlyDirect: Boolean = False): Boolean;
+
+  procedure ReadFromStorage(ACE: TgdClassEntry);
+  var
+    F: TgsStorageFolder;
+    V: TgsStorageValue;
+    ValueName: String;
+    I: Integer;
+    CurrCE: TgdClassEntry;
+    SL: TStringList;
   begin
-    F := GlobalStorage.OpenFolder('SubTypes', False, False);
+    if ACE.Initialized then
+      exit;
+
+    SL := TStringList.Create;
     try
-      if F <> nil then
-      begin
-        if Subtype > '' then
-          LClassName := Self.ClassName + Subtype
-        else
-          LClassName := Self.ClassName;
-        V := F.ValueByName(LClassName);
-        if V is TgsStringValue then
+      F := GlobalStorage.OpenFolder('SubTypes', False, False);
+      try
+        if F <> nil then
         begin
-          SubTypeList.CommaText := V.AsString;
-          Result := SubTypeList.Count > 0;
-          exit;
-        end else
-        begin
-          if V <> nil then
-            F.DeleteValue(LClassName);
+          if ACE.SubType > '' then
+            ValueName := ACE.TheClass.ClassName + ACE.SubType
+          else
+            ValueName := ACE.TheClass.ClassName;
+          V := F.ValueByName(ValueName);
+          if V is TgsStringValue then
+            SL.CommaText := V.AsString
+          else if V <> nil then
+            F.DeleteValue(ValueName);
         end;
-      end;  
+      finally
+        GlobalStorage.CloseFolder(F, False);
+      end;
+
+      for I := 0 to SL.Count - 1 do
+      begin
+        CurrCE := gdClassList.Add(ACE.TheClass, SL[I]);
+        ReadFromStorage(CurrCE);
+      end;
     finally
-      GlobalStorage.CloseFolder(F, False);
+      SL.Free;
     end;
+
+    ACE.Initialized := True;
   end;
 
-  SubTypeList.Clear;
-  Result := False;
+var
+  CE, CEBase: TgdClassEntry;
+begin
+  Assert(GlobalStorage <> nil);
+  Assert(ASubTypeList <> nil);
+
+  CE := gdClassList.Find(Self, ASubType);
+
+  if CE = nil then
+  begin
+    if ASubType > '' then
+    begin
+      CEBase := gdClassList.Find(Self);
+      if CEBase = nil then
+        raise EgdcException.Create('Unregistered class.');
+      ReadFromStorage(CEBase);
+      CE := gdClassList.Find(Self, ASubType);
+    end;
+
+    if CE = nil then
+      raise EgdcException.Create('Unregistered class.');
+  end;
+
+  Result := CE.GetSubTypeList(ASubTypeList, AnOnlyDirect);
 end;
 
 class function TgdcBase.ClassParentSubtype(Subtype: string): String;
