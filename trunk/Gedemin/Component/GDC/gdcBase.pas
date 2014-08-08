@@ -2554,24 +2554,26 @@ begin
               Result.gdClass := CgdcBase(GetClass('TgdcAttrUserDefinedTree'))
             else
             begin
+              Result.gdClass := CgdcBase(GetClass('TgdcAttrUserDefined'));
+
               F := R.RelationFields.ByFieldName('INHERITED');
               if Assigned(F) then
               begin
                 ParentR := R.RelationFields.ByFieldName('ID').ForeignKey.ReferencesRelation;
-                While Assigned(ParentR.RelationFields.ByFieldName('INHERITED')) do
+                if Assigned(ParentR) and Assigned(ParentR.RelationFields.ByFieldName('INHERITED')) then
+                  repeat
+                    ParentR := ParentR.RelationFields.ByFieldName('ID').ForeignKey.ReferencesRelation;
+                  until not Assigned(ParentR.RelationFields.ByFieldName('INHERITED'));
+
+                if Assigned(ParentR) then
                 begin
-                  ParentR := ParentR.RelationFields.ByFieldName('ID').ForeignKey.ReferencesRelation;
-                end;
-                if Assigned(ParentR.RelationFields.ByFieldName('PARENT'))
-                  and Assigned(ParentR.RelationFields.ByFieldName('LB')) then
-                    Result.gdClass := CgdcBase(GetClass('TgdcAttrUserDefinedLBRBTree'))
-                else if Assigned(ParentR.RelationFields.ByFieldName('PARENT')) then
-                       Result.gdClass := CgdcBase(GetClass('TgdcAttrUserDefinedTree'))
-                     else
-                       Result.gdClass := CgdcBase(GetClass('TgdcAttrUserDefined'))
-              end
-              else
-                Result.gdClass := CgdcBase(GetClass('TgdcAttrUserDefined'));
+                  if Assigned(ParentR.RelationFields.ByFieldName('PARENT'))
+                    and Assigned(ParentR.RelationFields.ByFieldName('LB')) then
+                      Result.gdClass := CgdcBase(GetClass('TgdcAttrUserDefinedLBRBTree'))
+                  else if Assigned(ParentR.RelationFields.ByFieldName('PARENT')) then
+                         Result.gdClass := CgdcBase(GetClass('TgdcAttrUserDefinedTree'))
+                end
+              end;
             end;
           end;
           Result.SubType := ARelationName;
