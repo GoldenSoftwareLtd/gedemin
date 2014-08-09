@@ -1531,7 +1531,7 @@ end;
 
 constructor TgdClassList.Create;
 begin
-
+  FillChar(FHashTable, SizeOf(FHashTable), 0);
 end;
 
 destructor TgdClassList.Destroy;
@@ -1549,6 +1549,7 @@ var
   K, J: Integer;
   FCE: TgdClassEntry;
 begin
+  Assert(AClass <> nil);
   K := GetHash(AClass, ASubType) mod ClassesHashTableSize;
   if FHashTable[K] is TgdClassEntry then
   begin
