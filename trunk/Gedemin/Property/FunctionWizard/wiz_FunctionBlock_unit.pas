@@ -6936,6 +6936,8 @@ begin
   S.Add(StringOfChar(' ', Paragraph ) + 'EntryDate = EndDate');
   inherited;
   S.Add(StringOfChar(' ', Paragraph ) + 'set gdcTaxDesignDate = Creator.GetObject(null, "TgdcTaxDesignDate", "")');
+  S.Add(StringOfChar(' ', Paragraph ) + 'gdcTaxDesignDate.Transaction = Transaction');
+  S.Add(StringOfChar(' ', Paragraph ) + 'gdcTaxDesignDate.ReadTransaction = Transaction');  
   S.Add(StringOfChar(' ', Paragraph ) + 'gdcTaxDesignDate.SubSet = "ByTaxActual,ByDocumentDate"');
   S.Add(StringOfChar(' ', Paragraph ) + Format('gdcTaxDesignDate.ParamByName("taxactualkey").AsInteger = gdcBaseManager.GetIdByRUIDString("%s")', [FTaxActualRuid]));
   S.Add(StringOfChar(' ', Paragraph ) + 'gdcTaxDesignDate.ParamByName("documentdate").AsDateTime = EndDate');
