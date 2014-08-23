@@ -3233,8 +3233,6 @@ begin
       [FLookup.MainTableAlias, IBLogin.InGroup])
   end;
 
-  //if (FgdClass <> nil) and (AnsiCompareText(FLookup.FLookupTable, FgdClass.GetListTable(FLookup.SubType)) = 0)
-  //  and (tiDisabled in FgdClass.GetTableInfos(FLookup.SubType)) then
   if atDatabase.FindRelationField(FLookup.MainTableName, 'DISABLED') <> nil then
   begin
     if Pos('WHERE ', S) = 0 then
