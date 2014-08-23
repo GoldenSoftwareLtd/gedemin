@@ -17676,13 +17676,13 @@ begin
   if Assigned(IBLogin) and (not IBLogin.IsUserAdmin) then
   begin
     if tiAView in gdcTableInfos then
-      Result := Result + Format(' g_sec_test(%s.aview, %d) <> 0 ',
+      Result := Result + Format(' BIN_AND(BIN_OR(%s.aview, 1), %d) <> 0 ',
         [GetListTableAlias, IBLogin.InGroup])
     else if tiAChag in gdcTableInfos then
-      Result := Result + Format(' g_sec_test(%s.achag, %d) <> 0 ',
+      Result := Result + Format(' BIN_AND(BIN_OR(%s.achag, 1), %d) <> 0 ',
         [GetListTableAlias, IBLogin.InGroup])
     else if tiAFull in gdcTableInfos then
-      Result := Result + Format(' g_sec_test(%s.afull, %d) <> 0 ',
+      Result := Result + Format(' BIN_AND(BIN_OR(%s.afull, 1), %d) <> 0 ',
         [GetListTableAlias, IBLogin.InGroup]);
   end;
 end;
