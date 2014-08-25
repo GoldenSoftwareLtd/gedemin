@@ -889,8 +889,6 @@ var
   F: TrpCustomFunction;
   R: TgdcReport;
   P: Variant;
-  RL: TatRelation;
-  LFullClass: TgdcFullClassName;
 begin
   CheckBrowseMode;
 
@@ -945,45 +943,8 @@ begin
   else
     if FieldByName('classname').AsString > '' then
     begin
-      if FieldByName('classname').AsString = 'TgdcAttrUserDefined' then
-      begin
-        LFullClass.gdClassName := 'TgdcAttrUserDefined';
-        LFullClass.SubType := FieldByName('subtype').AsString;
-        if LFullClass.SubType > '' then
-        begin
-          RL := atDatabase.Relations.ByRelationName(LFullClass.SubType);
-          if Assigned(RL) then
-          begin
-            if Assigned(gdcClassList.GetGDCClass(LFullClass))
-              and (gdcClassList.GetGDCClass(LFullClass).ClassParentSubtype(LFullClass.Subtype) > '') then
-              repeat
-                LFullClass.SubType := gdcClassList.GetGDCClass(LFullClass).ClassParentSubtype(LFullClass.Subtype);
-                if (LFullClass.SubType > '')
-                  and Assigned(atDatabase.Relations.ByRelationName(LFullClass.SubType)) then
-                  RL := atDatabase.Relations.ByRelationName(LFullClass.SubType);
-              until (not (LFullClass.SubType > ''))
-                or (not Assigned(gdcClassList.GetGDCClass(LFullClass)))
-                or  (gdcClassList.GetGDCClass(LFullClass).ClassParentSubtype(LFullClass.Subtype) = '');
-
-            Assert(RL <> nil);
-
-            if Assigned(RL) then
-              if Assigned(RL.RelationFields.ByFieldName('PARENT'))
-                and Assigned(RL.RelationFields.ByFieldName('LB')) then
-                  LFullClass.gdClassName := 'TgdcAttrUserDefinedLBRBTree'
-              else if Assigned(RL.RelationFields.ByFieldName('PARENT')) then
-                LFullClass.gdClassName := 'TgdcAttrUserDefinedTree'
-              else LFullClass.gdClassName := 'TgdcAttrUserDefined'
-          end;
-        end;
-      end
-      else
-      begin
-        LFullClass.gdClassName := FieldByName('classname').AsString;
-      end;
-
       // JKL: Вынесено в отдельную функцию
-      ViewFormByClass(LFullClass.gdClassName, FieldByName('subtype').AsString,
+      ViewFormByClass(FieldByName('classname').AsString, FieldByName('subtype').AsString,
         AlwaysCreateWindow);
     end;
   end;
@@ -1074,30 +1035,13 @@ function TgdcExplorer.TestSubType(const AClassName,
   ASubType: String): Boolean;
 var
   C: TPersistentClass;
-  SL: TStringList;
-  I: Integer;
 begin
-  C := GetClass(AClassName);
-  if (C <> nil) and (C.InheritsFrom(TgdcBase)) then
-  begin
-    SL := TStringList.Create;
-    try
-      if CgdcBase(C).GetSubTypeList(SL) then
-      begin
-        for I := 0 to SL.Count - 1 do
-        begin
-          if Pos('=' + ASubType + '^', SL[I] + '^') > 0 then
-          begin
-            Result := True;
-            exit;
-          end;
-        end;
-      end;
-    finally
-      SL.Free;
-    end;
-  end;
   Result := False;
+
+  C := GetClass(AClassName);
+
+  if (C <> nil) and (C.InheritsFrom(TgdcBase)) and (ASubType > '')then
+    Result := CgdcBase(C).CheckSubType(ASubType);
 end;
 
 procedure TgdcExplorer._SaveToStream(Stream: TStream;

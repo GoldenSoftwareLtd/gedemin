@@ -277,10 +277,7 @@ type
   public
     constructor Create(AnOwner: TComponent); override;
 
-    class function GetSubTypeList(SubTypeList: TStrings;
-      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; override;
-
-    class function ClassParentSubtype(Subtype: String): String; override;
+    class procedure RegisterClassHierarchy; override;
 
     class function GetRestrictCondition(const ATableName, ASubType: String): String; override;
     class function IsAbstractClass: Boolean; override;
@@ -444,8 +441,6 @@ uses
   gd_directories_const,
   IB, gdc_frmMDH_unit,
   ContNrs,
-
-  gdcInvDocumentCache_unit,
   gd_resourcestring,
 
   jclStrings
@@ -3248,9 +3243,6 @@ begin
 
   inherited;
 
-  if Assigned(gdcInvDocumentCache) then
-    gdcInvDocumentCache.Clear;
-
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCUSERDOCUMENTTYPE', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -3289,9 +3281,6 @@ begin
 
   inherited;
 
-  if Assigned(gdcInvDocumentCache) then
-    gdcInvDocumentCache.Clear;
-
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCUSERDOCUMENTTYPE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -3329,9 +3318,6 @@ begin
   {END MACRO}
 
   inherited;
-
-  if Assigned(gdcInvDocumentCache) then
-    gdcInvDocumentCache.Clear;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCUSERDOCUMENTTYPE', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
   {M}  finally
@@ -3587,22 +3573,65 @@ begin
     [XID, DBID]);
 end;
 
-class function TgdcUserBaseDocument.GetSubTypeList(
-  SubTypeList: TStrings; Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
+class procedure TgdcUserBaseDocument.RegisterClassHierarchy;
+
+  procedure ReadFromDocumentType(ACE: TgdClassEntry);
+  var
+    CurrCE: TgdClassEntry;
+    ibsql: TIBSQL;
+    LSubType: string;
+    LParentSubType: string;
+  begin
+    if ACE.Initialized then
+      exit;
+
+    ibsql := TIBSQL.Create(nil);
+    try
+      ibsql.Transaction := gdcBaseManager.ReadTransaction;
+      ibsql.SQL.Text :=
+        'SELECT '#13#10 +
+        '  dt.classname AS classname, '#13#10 +
+        '  dt.ruid AS subtype, '#13#10 +
+        '  dt1.ruid AS parentsubtype '#13#10 +
+        'FROM gd_documenttype dt '#13#10 +
+        'LEFT JOIN gd_documenttype dt1 '#13#10 +
+        '  ON dt1.id = dt.parent '#13#10 +
+        '  AND dt1.documenttype = ''D'' '#13#10 +
+        'WHERE '#13#10 +
+        '  dt.documenttype = ''D'' '#13#10 +
+        '  and dt.classname = ''TgdcUserDocumentType'' '#13#10 +
+        'ORDER BY dt.parent';
+
+      ibsql.ExecQuery;
+
+      while not ibsql.EOF do
+      begin
+        LSubType := ibsql.FieldByName('subtype').AsString;
+        LParentSubType := ibsql.FieldByName('parentsubtype').AsString;
+
+        CurrCE := gdcClassList.Add(ACE.TheClass, LSubType, LParentSubType);
+
+        CurrCE.Initialized := True;
+        ibsql.Next;
+      end;
+    finally
+      ibsql.Free;
+    end;
+
+    ACE.Initialized := True;
+  end;
+
+var
+  CEBase: TgdClassEntry;
+
 begin
-  Assert(Assigned(gdcInvDocumentCache));
+  CEBase := gdcClassList.Find(Self);
 
-  Result := gdcInvDocumentCache.GetSubTypeList2('TgdcUserDocumentType',
-    SubTypeList, Subtype, OnlyDirect);
+  if CEBase = nil then
+    raise EgdcException.Create('Unregistered class.');
+
+  ReadFromDocumentType(CEBase);
 end;
-
-class function TgdcUserBaseDocument.ClassParentSubtype(
-  Subtype: String): String;
-begin
-  Assert(Assigned(gdcInvDocumentCache));
-  Result := gdcInvDocumentCache.ClassParentSubtype(SubType);
-end;
-
 
 procedure TgdcUserBaseDocument.ReadOptions(const aRuid: String);
 var

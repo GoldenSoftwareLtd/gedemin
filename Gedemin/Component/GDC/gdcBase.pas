@@ -1595,10 +1595,12 @@ type
     //В противном случае -- возвращается вся иерархия наследников.
     class function GetSubTypeList(ASubTypeList: TStrings;
       ASubType: String = ''; AnOnlyDirect: Boolean = False): Boolean; virtual;
+    // загрузка всей иерархии класса
+    class procedure RegisterClassHierarchy; virtual;
 
-    class function ClassParentSubtype(Subtype: string): String; virtual;
+    class function ClassParentSubType(ASubType: string): String; virtual;
     //
-    class function CheckSubType(const ASubType: String): Boolean;
+    class function CheckSubType(ASubType: String): Boolean;
 
     // вяртае _нфармацыю аб структуры галоўнай табл_цы БА, выкарыстоўваючы
     // атДатабэйз. Так_м чынам гэты метад можа быць выкл_каны ў любы момант
@@ -10955,6 +10957,12 @@ begin
     FLastQuery := lqDelete;
   end;
 
+  if Assigned(gdcClassList) then
+    gdcClassList.RemoveAll;
+
+  if Assigned(frmClassList) then
+    frmClassList.RemoveAll;
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASE', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -10997,6 +11005,12 @@ begin
     QInsert.ExecQuery;
     FLastQuery := lqInsert;
   end;
+
+  if Assigned(gdcClassList) then
+    gdcClassList.RemoveAll;
+
+  if Assigned(frmClassList) then
+    frmClassList.RemoveAll;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  finally
@@ -11131,6 +11145,12 @@ begin
       Transaction.Rollback;
     raise;
   end;
+
+  if Assigned(gdcClassList) then
+    gdcClassList.RemoveAll;
+
+  if Assigned(frmClassList) then
+    frmClassList.RemoveAll;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASE', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
   {M}  finally
@@ -12345,6 +12365,40 @@ end;
 
 class function TgdcBase.GetSubTypeList(ASubTypeList: TStrings;
   ASubType: String = ''; AnOnlyDirect: Boolean = False): Boolean;
+var
+  CE: TgdClassEntry;
+begin
+  Assert(ASubTypeList <> nil);
+
+  if ASubType > '' then
+    ASubType := StringReplace(ASubType, 'USR_', 'USR$', [rfReplaceAll, rfIgnoreCase]);
+
+  if ASubType > '' then
+  begin
+    CE := gdcClassList.Find(Self, ASubType);
+    if CE = nil then
+      CE := gdcClassList.Find(Self);
+  end
+  else
+    CE := gdcClassList.Find(Self);
+
+  if CE = nil then
+    raise EgdcException.Create('Unregistered class.');
+
+  RegisterClassHierarchy;
+
+  if ASubType > '' then
+    CE := gdcClassList.Find(Self, ASubType)
+  else
+    CE := gdcClassList.Find(Self);
+
+  if CE = nil then
+    raise EgdcException.Create('Unregistered class.');
+
+  Result := CE.GetSubTypeList(ASubTypeList, AnOnlyDirect);
+end;
+
+class procedure TgdcBase.RegisterClassHierarchy;
 
   procedure ReadFromStorage(ACE: TgdClassEntry);
   var
@@ -12355,6 +12409,8 @@ class function TgdcBase.GetSubTypeList(ASubTypeList: TStrings;
     CurrCE: TgdClassEntry;
     SL: TStringList;
   begin
+    Assert(GlobalStorage <> nil);
+
     if ACE.Initialized then
       exit;
 
@@ -12380,7 +12436,7 @@ class function TgdcBase.GetSubTypeList(ASubTypeList: TStrings;
 
       for I := 0 to SL.Count - 1 do
       begin
-        CurrCE := gdClassList.Add(ACE.TheClass, SL[I]);
+        CurrCE := gdcClassList.Add(ACE.TheClass, SL.Names[I], ACE.SubType);
         ReadFromStorage(CurrCE);
       end;
     finally
@@ -12391,34 +12447,44 @@ class function TgdcBase.GetSubTypeList(ASubTypeList: TStrings;
   end;
 
 var
-  CE, CEBase: TgdClassEntry;
-begin
-  Assert(GlobalStorage <> nil);
-  Assert(ASubTypeList <> nil);
+  CEBase: TgdClassEntry;
 
-  CE := gdClassList.Find(Self, ASubType);
+begin
+  CEBase := gdcClassList.Find(Self);
+
+  if CEBase = nil then
+    raise EgdcException.Create('Unregistered class.');
+
+  ReadFromStorage(CEBase);
+end;
+
+class function TgdcBase.ClassParentSubType(ASubType: string): String;
+var
+  CE: TgdClassEntry;
+begin
+  Result := '';
+
+  if ASubType > '' then
+    ASubType := StringReplace(ASubType, 'USR_', 'USR$', [rfReplaceAll, rfIgnoreCase]);
+
+  CE := gdcClassList.Find(Self, ASubType);
 
   if CE = nil then
-  begin
-    if ASubType > '' then
-    begin
-      CEBase := gdClassList.Find(Self);
-      if CEBase = nil then
-        raise EgdcException.Create('Unregistered class.');
-      ReadFromStorage(CEBase);
-      CE := gdClassList.Find(Self, ASubType);
-    end;
+    RegisterClassHierarchy;
 
+  CE := gdcClassList.Find(Self, ASubType);
+
+  if CE <> nil then
+  begin
+    if CE.Parent <> nil then
+      Result := CE.Parent.SubType;
+  end
+  else
+  begin
+    CE := gdcClassList.Find(Self);
     if CE = nil then
       raise EgdcException.Create('Unregistered class.');
   end;
-
-  Result := CE.GetSubTypeList(ASubTypeList, AnOnlyDirect);
-end;
-
-class function TgdcBase.ClassParentSubtype(Subtype: string): String;
-begin
-  Result := '';
 end;
 
 function TgdcBase.GetNextID(const Increment: Boolean = True; const ResetCache: Boolean = False): Integer;
@@ -17902,29 +17968,38 @@ begin
     inherited;
 end;
 
-class function TgdcBase.CheckSubType(const ASubType: String): Boolean;
+class function TgdcBase.CheckSubType(ASubType: String): Boolean;
 var
-  SL: TStringList;
-  I: Integer;
+  CE: TgdClassEntry;
 begin
-  if ASubType = '' then
-    Result := True
-  else begin
-    Result := False;
-    SL := TStringList.Create;
-    try
-      GetSubTypeList(SL);
-      for I := 0 to SL.Count - 1 do
-      begin
-        if Pos('=' + ASubType + '^', SL[I] + '^') > 0 then
-        begin
-          Result := True;
-          break;
-        end;
-      end;
-    finally
-      SL.Free;
-    end;
+  Result := False;
+
+  if ASubType > '' then
+    ASubType := StringReplace(ASubType, 'USR_', 'USR$', [rfReplaceAll, rfIgnoreCase]);
+
+  CE := gdcClassList.Find(Self, ASubType);
+
+  if CE <> nil then
+  begin
+    Result := True;
+    Exit;
+  end;
+
+  if CE = nil then
+    RegisterClassHierarchy;
+
+  CE := gdcClassList.Find(Self, ASubType);
+
+  if CE <> nil then
+  begin
+    Result := True;
+    Exit;
+  end
+  else
+  begin
+    CE := gdcClassList.Find(Self);
+    if CE = nil then
+      raise EgdcException.Create('Unregistered class.');
   end;
 end;
 

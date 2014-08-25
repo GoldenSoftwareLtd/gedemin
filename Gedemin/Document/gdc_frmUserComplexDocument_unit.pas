@@ -29,9 +29,9 @@ type
   public
     { Public declarations }
     class function CreateAndAssign(AnOwner: TComponent): TForm; override;
-    class function GetSubTypeList(SubTypeList: TStrings;
-      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; override;
-    class function ClassParentSubtype(Subtype: String): String; override;
+
+    class procedure RegisterClassHierarchy; override;
+
   end;
 
 var
@@ -45,7 +45,9 @@ uses
   dmDatabase_unit,
   gd_ClassList,
   gdcAcctEntryRegister,
-  gdc_frmTransaction_unit
+  gdc_frmTransaction_unit,
+  gdcBaseInterface,
+  IBSQL
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -79,16 +81,64 @@ begin
   Caption := gdcUserDocument.DocumentName[True];
 end;
 
-class function Tgdc_frmUserComplexDocument.GetSubTypeList(
-  SubTypeList: TStrings; Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
-begin
-  Result := TgdcUserDocument.GetSubTypeList(SubTypeList, Subtype, OnlyDirect);
-end;
+class procedure Tgdc_frmUserComplexDocument.RegisterClassHierarchy;
 
-class function Tgdc_frmUserComplexDocument.ClassParentSubtype(
-  Subtype: String): String;
+  procedure ReadFromDocumentType(ACE: TgdClassEntry);
+  var
+    CurrCE: TgdClassEntry;
+    ibsql: TIBSQL;
+    LSubType: string;
+    LParentSubType: string;
+  begin
+    if ACE.Initialized then
+      exit;
+
+    ibsql := TIBSQL.Create(nil);
+    try
+      ibsql.Transaction := gdcBaseManager.ReadTransaction;
+      ibsql.SQL.Text :=
+        'SELECT '#13#10 +
+        '  dt.classname AS classname, '#13#10 +
+        '  dt.ruid AS subtype, '#13#10 +
+        '  dt1.ruid AS parentsubtype '#13#10 +
+        'FROM gd_documenttype dt '#13#10 +
+        'LEFT JOIN gd_documenttype dt1 '#13#10 +
+        '  ON dt1.id = dt.parent '#13#10 +
+        '  AND dt1.documenttype = ''D'' '#13#10 +
+        'WHERE '#13#10 +
+        '  dt.documenttype = ''D'' '#13#10 +
+        '  and dt.classname = ''TgdcUserDocumentType'' '#13#10 +
+        'ORDER BY dt.parent';
+
+      ibsql.ExecQuery;
+
+      while not ibsql.EOF do
+      begin
+        LSubType := ibsql.FieldByName('subtype').AsString;
+        LParentSubType := ibsql.FieldByName('parentsubtype').AsString;
+
+        CurrCE := frmClassList.Add(ACE.TheClass, LSubType, LParentSubType);
+
+        CurrCE.Initialized := True;
+        ibsql.Next;
+      end;
+    finally
+      ibsql.Free;
+    end;
+
+    ACE.Initialized := True;
+  end;
+
+var
+  CEBase: TgdClassEntry;
+
 begin
-  Result := TgdcUserDocument.ClassParentSubtype(SubType);
+  CEBase := frmClassList.Find(Self);
+
+  if CEBase = nil then
+    raise EgdcException.Create('Unregistered class.');
+
+  ReadFromDocumentType(CEBase);
 end;
 
 procedure Tgdc_frmUserComplexDocument.actCreateEntryExecute(

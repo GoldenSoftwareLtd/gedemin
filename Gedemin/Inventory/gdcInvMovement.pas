@@ -365,9 +365,8 @@ type
     property IsGetRemains: Boolean read GetIsGetRemains write SetIsGetRemains;
     property NoWait: Boolean read FNoWait write FNoWait;
 
-    class function GetSubTypeList(SubTypeList: TStrings;
-      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; override;
-    class function ClassParentSubtype(Subtype: String): String; override;
+    class procedure RegisterClassHierarchy; override;
+
     property ShowMovementDlg: Boolean read FShowMovementDlg write FShowMovementDlg default True;
   published
     // Позиция документа
@@ -432,8 +431,9 @@ type
     class function GetKeyField(const ASubType: TgdcSubType): String; override;
     class function GetListTableAlias: String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
-    class function GetSubTypeList(SubTypeList: TStrings;
-      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; override;
+
+    class procedure RegisterClassHierarchy; override;
+
     class function IsAbstractClass: Boolean; override;
     class function GetDisplayName(const ASubType: TgdcSubType): String; override;
 
@@ -684,7 +684,7 @@ uses
   dmDatabase_unit, gdcInvDocument_unit, gdc_frmInvSelectRemains_unit, gdc_frmInvSelectGoodRemains_unit, at_sql_setup,
   gd_security, gdc_frmInvViewRemains_unit, gd_ClassList,
   gdc_frmInvRemainsOption_unit, gdc_dlgInvRemainsOption_unit, ComObj,
-  gdcInvDocumentCache_unit, gd_resourcestring, gdc_dlgShowMovement_unit
+  gd_resourcestring, gdc_dlgShowMovement_unit
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -4630,65 +4630,64 @@ begin
   {END MACRO}
 end;
 
-class function TgdcInvMovement.GetSubTypeList(SubTypeList: TStrings;
-  Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
-{var
-  ibsql: TIBSQL;
-  ibtr: TIBTransaction;}
-begin
-  Assert(Assigned(gdcInvDocumentCache));
+class procedure TgdcInvMovement.RegisterClassHierarchy;
 
-  Result := gdcInvDocumentCache.GetSubTypeList(TgdcInvDocumentType.InvDocumentTypeBranchKey,
-    SubTypeList, Subtype, OnlyDirect);
-
-  {
-  if not Assigned(gdcBaseManager) then
+  procedure ReadFromDocumentType(ACE: TgdClassEntry);
+  var
+    CurrCE: TgdClassEntry;
+    ibsql: TIBSQL;
+    LSubType: string;
+    LParentSubType: string;
   begin
-    Result := False;
-    exit;
-  end;
+    if ACE.Initialized then
+      exit;
 
-  ibsql := TIBSQL.Create(nil);
-  ibtr := TIBTransaction.Create(nil);
-  try
-    ibtr.DefaultDatabase := gdcBaseManager.Database;
-    ibsql.Database := gdcBaseManager.Database;
-    ibsql.Transaction := ibtr;
+    ibsql := TIBSQL.Create(nil);
+    try
+      ibsql.Transaction := gdcBaseManager.ReadTransaction;
+      ibsql.SQL.Text :=
+        'SELECT '#13#10 +
+        '  dt.classname AS classname, '#13#10 +
+        '  dt.ruid AS subtype, '#13#10 +
+        '  dt1.ruid AS parentsubtype '#13#10 +
+        'FROM gd_documenttype dt '#13#10 +
+        'LEFT JOIN gd_documenttype dt1 '#13#10 +
+        '  ON dt1.id = dt.parent '#13#10 +
+        '  AND dt1.documenttype = ''D'' '#13#10 +
+        'WHERE '#13#10 +
+        '  dt.documenttype = ''D'' '#13#10 +
+        '  and dt.classname = ''TgdcInvDocumentType'' '#13#10 +
+        'ORDER BY dt.parent';
 
-    ibtr.StartTransaction;
+      ibsql.ExecQuery;
 
-    ibsql.SQL.Text :=
-      Format('SELECT NAME, RUID FROM GD_DOCUMENTTYPE WHERE PARENT = %d',
-        [TgdcInvDocumentType.InvDocumentTypeBranchKey]);
+      while not ibsql.EOF do
+      begin
+        LSubType := ibsql.FieldByName('subtype').AsString;
+        LParentSubType := ibsql.FieldByName('parentsubtype').AsString;
 
-    ibsql.ExecQuery;
+        CurrCE := gdcClassList.Add(ACE.TheClass, LSubType, LParentSubType);
 
-    SubTypeList.Clear;
-
-    while not ibsql.EOF do
-    begin
-      SubTypeList.Add(
-        ibsql.FieldByName('NAME').AsString + '=' +
-        ibsql.FieldByName('RUID').AsString);
-
-      ibsql.Next;
+        CurrCE.Initialized := True;
+        ibsql.Next;
+      end;
+    finally
+      ibsql.Free;
     end;
 
-    ibsql.Close;
-    ibtr.Commit;
-  finally
-    ibtr.Free;
-    ibsql.Free;
+    ACE.Initialized := True;
   end;
 
-  Result := SubTypeList.Count > 0;
-  }
-end;
+var
+  CEBase: TgdClassEntry;
 
-class function TgdcInvMovement.ClassParentSubtype(
-  Subtype: String): String;
 begin
-  Result := gdcInvDocumentCache.ClassParentSubtype(SubType);
+  CEBase := gdcClassList.Find(Self);
+
+  if CEBase = nil then
+    raise EgdcException.Create('Unregistered class.');
+
+  ReadFromDocumentType(CEBase);
 end;
 
 procedure TgdcInvMovement.SetSubSet(const Value: TgdcSubSet);
@@ -5286,41 +5285,81 @@ begin
   Result := inherited GetSubSetList + cst_ByGoodKey + ';' + cst_ByGroupKey + ';' + cst_AllRemains + ';' + cst_Holding + ';';
 end;
 
-class function TgdcInvBaseRemains.GetSubTypeList(SubTypeList: TStrings;
-      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
-{var
-  ibsql: TIBSQL;}
-begin
-  if not Assigned(gdcBaseManager) then
+class procedure TgdcInvBaseRemains.RegisterClassHierarchy;
+
+  procedure ReadFromDocumentType(ACE: TgdClassEntry);
+  var
+    CurrCE: TgdClassEntry;
+    ibsql: TIBSQL;
+    LSubType: string;
+    LParentSubType: string;
   begin
-    Result := False;
-    exit;
-  end;
+    if ACE.Initialized then
+      exit;
 
-  {ibsql := TIBSQL.Create(nil);
-  try}
-    Assert(Assigned(gdcInvDocumentCache));
-
-    Result := gdcInvDocumentCache.GetSubTypeList2(
-      'TgdcInvBaseRemains', SubTypeList, Subtype, OnlyDirect);
-    {if Result then
-    begin
+    ibsql := TIBSQL.Create(nil);
+    try
       ibsql.Transaction := gdcBaseManager.ReadTransaction;
       ibsql.SQL.Text :=
-        'SELECT NAME, RUID FROM INV_BALANCEOPTION ';
+        'SELECT '#13#10 +
+        '  dt.classname AS classname, '#13#10 +
+        '  dt.ruid AS subtype, '#13#10 +
+        '  dt1.ruid AS parentsubtype '#13#10 +
+        'FROM gd_documenttype dt '#13#10 +
+        'LEFT JOIN gd_documenttype dt1 '#13#10 +
+        '  ON dt1.id = dt.parent '#13#10 +
+        '  AND dt1.documenttype = ''D'' '#13#10 +
+        'WHERE '#13#10 +
+        '  dt.documenttype = ''D'' '#13#10 +
+        '  and dt.classname = ''TgdcInvDocumentType'' '#13#10 +
+        'ORDER BY dt.parent';
+
       ibsql.ExecQuery;
+
       while not ibsql.EOF do
       begin
-        SubTypeList.Add(
-          ibsql.FieldByName('NAME').AsString + '=' +
-          ibsql.FieldByName('RUID').AsString);
+        LSubType := ibsql.FieldByName('subtype').AsString;
+        LParentSubType := ibsql.FieldByName('parentsubtype').AsString;
+
+        CurrCE := gdcClassList.Add(ACE.TheClass, LSubType, LParentSubType);
+
+        CurrCE.Initialized := True;
         ibsql.Next;
       end;
+
       ibsql.Close;
+
+      ibsql.SQL.Text :=
+        'SELECT RUID FROM INV_BALANCEOPTION ';
+
+      ibsql.ExecQuery;
+
+      while not ibsql.EOF do
+      begin
+        LSubType := ibsql.FieldByName('RUID').AsString;
+        CurrCE := gdcClassList.Add(ACE.TheClass, LSubType + '=' + LSubType);
+
+        CurrCE.Initialized := True;
+        ibsql.Next;
+      end;
+
+    finally
+      ibsql.Free;
     end;
-  finally
-    ibsql.Free;
-  end;}
+
+    ACE.Initialized := True;
+  end;
+
+var
+  CEBase: TgdClassEntry;
+
+begin
+  CEBase := gdcClassList.Find(Self);
+
+  if CEBase = nil then
+    raise EgdcException.Create('Unregistered class.');
+
+  ReadFromDocumentType(CEBase);
 end;
 
 class function TgdcInvBaseRemains.GetViewFormClassName(
@@ -8201,9 +8240,6 @@ begin
   {M}    end;
   {END MACRO}
 
-  if Assigned(gdcInvDocumentCache) then
-    gdcInvDocumentCache.Clear;
-
   inherited;
 
   //
@@ -8250,9 +8286,6 @@ begin
   {M}    end;
   {END MACRO}
 
-  if Assigned(gdcInvDocumentCache) then
-    gdcInvDocumentCache.Clear;
-
   inherited;
 
   UpdateExplorerCommandData(
@@ -8296,9 +8329,6 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-
-  if Assigned(gdcInvDocumentCache) then
-    gdcInvDocumentCache.Clear;
 
   inherited;
 

@@ -16,9 +16,9 @@ type
 
   public
     procedure SetupDialog; override;
-    class function GetSubTypeList(SubTypeList: TStrings;
-      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; override;
-    class function ClassParentSubtype(Subtype: String): String; override;
+
+    class procedure RegisterClassHierarchy; override;
+
   end;
 
 var
@@ -29,40 +29,79 @@ implementation
 {$R *.DFM}
 
 uses
-  gdcTree, gdcBaseInterface, gd_ClassList;
+  gdcTree, gdcBaseInterface, gd_ClassList, gdcBase, at_Classes;
 
 { Tgdc_dlgAttrUserDefinedTree }
 
-class function Tgdc_dlgAttrUserDefinedTree.GetSubTypeList(
-  SubTypeList: TStrings; Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
-var
-  sl: TStrings;
-  i: integer;
-begin
-  Result := TgdcAttrUserDefinedTree.GetSubTypeList(SubTypeList, Subtype, OnlyDirect);
-  if Subtype = '' then
+class procedure Tgdc_dlgAttrUserDefinedTree.RegisterClassHierarchy;
+
+  procedure ReadFromRelations(ACE: TgdClassEntry);
+  var
+    CurrCE: TgdClassEntry;
+    SL: TStringList;
+    I: Integer;
   begin
-    if SubTypeList.Count > 0 then begin
-      sl:= TStringList.Create;
-      try
-        sl.Assign(SubTypeList);
-        Result := TgdcAttrUserDefinedLBRBTree.GetSubTypeList(SubTypeList, Subtype, OnlyDirect) or Result;
-        for i:= 0 to sl.Count - 1 do
-          SubTypeList.Add(sl[i]);
-      finally
-        sl.Free;
+    if ACE.Initialized then
+      exit;
+
+    SL := TStringList.Create;
+    try
+      if ACE.SubType > '' then
+      begin
+        with atDatabase.Relations do
+        for I := 0 to Count - 1 do
+        if Items[I].IsUserDefined
+          and Assigned(Items[I].PrimaryKey)
+          and Assigned(Items[I].PrimaryKey.ConstraintFields)
+          and (Items[I].PrimaryKey.ConstraintFields.Count = 1)
+          and (AnsiCompareText(Items[I].PrimaryKey.ConstraintFields[0].FieldName, 'ID') = 0)
+          and  Assigned(Items[I].RelationFields.ByFieldName('INHERITED'))
+          and (AnsiCompareText(Items[I].RelationFields.ByFieldName('ID').ForeignKey.ReferencesRelation.RelationName,
+            ACE.SubType) = 0) then
+        begin
+          SL.Add(Items[I].RelationName);
+        end;
+      end
+      else
+      begin
+        with atDatabase.Relations do
+        for I := 0 to Count - 1 do
+          if Items[I].IsUserDefined
+            and Assigned(Items[I].PrimaryKey)
+            and Assigned(Items[I].PrimaryKey.ConstraintFields)
+            and (Items[I].PrimaryKey.ConstraintFields.Count = 1)
+            and (AnsiCompareText(Items[I].PrimaryKey.ConstraintFields[0].FieldName, 'ID') = 0)
+            and Assigned(Items[I].RelationFields.ByFieldName('PARENT'))
+            and not Assigned(Items[I].RelationFields.ByFieldName('INHERITED'))then
+          begin
+            SL.Add(Items[I].RelationName);
+          end;
       end;
-    end
-    else
-      Result := TgdcAttrUserDefinedLBRBTree.GetSubTypeList(SubTypeList, Subtype, OnlyDirect);
+
+      for I := 0 to SL.Count - 1 do
+      begin
+        CurrCE := frmClassList.Add(ACE.TheClass, SL[I], ACE.SubType);
+        ReadFromRelations(CurrCE);
+      end;
+    finally
+      SL.Free;
+    end;
+
+    ACE.Initialized := True;
   end;
+
+var
+  CEBase: TgdClassEntry;
+
+begin
+  CEBase := frmClassList.Find(Self);
+
+  if CEBase = nil then
+    raise EgdcException.Create('Unregistered class.');
+
+  ReadFromRelations(CEBase);
 end;
 
-class function Tgdc_dlgAttrUserDefinedTree.ClassParentSubtype(
-  Subtype: String): String;
-begin
-  Result := TgdcAttrUserDefinedLBRBTree.ClassParentSubtype(SubType);
-end;
 
 procedure TGDC_DLGATTRUSERDEFINEDTREE.SetupDialog;
   {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}

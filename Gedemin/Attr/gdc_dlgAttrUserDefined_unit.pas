@@ -43,9 +43,8 @@ type
 
     procedure SaveSettings; override;
 
-    class function GetSubTypeList(SubTypeList: TStrings;
-      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; override;
-    class function ClassParentSubtype(Subtype: String): String; override;
+    class procedure RegisterClassHierarchy; override;
+
   end;
 
 var
@@ -55,20 +54,77 @@ implementation
 {$R *.DFM}
 
 uses
-  at_classes, Storages, gd_ClassList;
+  at_classes, Storages, gd_ClassList, gdcBase;
 
 { Tgdc_dlgAttrUserDefined }
 
-class function Tgdc_dlgAttrUserDefined.GetSubTypeList(
-  SubTypeList: TStrings; Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
-begin
-  Result := TgdcAttrUserDefined.GetSubTypeList(SubTypeList, Subtype, OnlyDirect);
-end;
+class procedure Tgdc_dlgAttrUserDefined.RegisterClassHierarchy;
 
-class function Tgdc_dlgAttrUserDefined.ClassParentSubtype(
-  Subtype: String): String;
+  procedure ReadFromRelations(ACE: TgdClassEntry);
+  var
+    CurrCE: TgdClassEntry;
+    SL: TStringList;
+    I: Integer;
+  begin
+    if ACE.Initialized then
+      exit;
+
+    SL := TStringList.Create;
+    try
+      if ACE.SubType > '' then
+      begin
+        with atDatabase.Relations do
+        for I := 0 to Count - 1 do
+        if Items[I].IsUserDefined
+          and Assigned(Items[I].PrimaryKey)
+          and Assigned(Items[I].PrimaryKey.ConstraintFields)
+          and (Items[I].PrimaryKey.ConstraintFields.Count = 1)
+          and (AnsiCompareText(Items[I].PrimaryKey.ConstraintFields[0].FieldName, 'ID') = 0)
+          and  Assigned(Items[I].RelationFields.ByFieldName('INHERITED'))
+          and (AnsiCompareText(Items[I].RelationFields.ByFieldName('ID').ForeignKey.ReferencesRelation.RelationName,
+            ACE.SubType) = 0) then
+        begin
+          SL.Add(Items[I].RelationName);
+        end;
+      end
+      else
+      begin
+        with atDatabase.Relations do
+        for I := 0 to Count - 1 do
+          if Items[I].IsUserDefined
+            and Assigned(Items[I].PrimaryKey)
+            and Assigned(Items[I].PrimaryKey.ConstraintFields)
+            and (Items[I].PrimaryKey.ConstraintFields.Count = 1)
+            and (AnsiCompareText(Items[I].PrimaryKey.ConstraintFields[0].FieldName, 'ID') = 0)
+            and not Assigned(Items[I].RelationFields.ByFieldName('PARENT'))
+            and not Assigned(Items[I].RelationFields.ByFieldName('INHERITED'))then
+          begin
+            SL.Add(Items[I].RelationName);
+          end;
+      end;
+
+      for I := 0 to SL.Count - 1 do
+      begin
+        CurrCE := frmClassList.Add(ACE.TheClass, SL[I], ACE.SubType);
+        ReadFromRelations(CurrCE);
+      end;
+    finally
+      SL.Free;
+    end;
+
+    ACE.Initialized := True;
+  end;
+
+var
+  CEBase: TgdClassEntry;
+
 begin
-  Result := TgdcAttrUserDefined.ClassParentSubtype(SubType);
+  CEBase := frmClassList.Find(Self);
+
+  if CEBase = nil then
+    raise EgdcException.Create('Unregistered class.');
+
+  ReadFromRelations(CEBase);
 end;
 
 procedure Tgdc_dlgAttrUserDefined.SaveSettings;

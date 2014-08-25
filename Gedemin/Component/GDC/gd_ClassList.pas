@@ -114,11 +114,165 @@ const
 const
   ClassesHashTableSize = 1024;
 
+  // Константы для организации хранения перекрытых классов с подтипами
+  // Ставится в начале строки, если сохраняется класс и подтип
+  SubtypeFlag = '*';
+  // Разделяет класс и подтип в строке
+  SubtypeDetach = '=';
+
 type
-  TgdClassEntry = class(TObject)
+  // Класс для организации стыка классов перекрытых методов
+  TStackStrings = class(TObject)
+  private
+    FStackString: TStrings;
+    function GetFullClassName(const Str: string): TgdcFullClassName;
+
+  public
+    destructor Destroy; override;
+
+    function  Add(const FullClassName: TgdcFullClassName): Integer;
+    function  AddObject(const FullClassName: TgdcFullClassName;  AObject: TObject): Integer;
+    function  IndexOf(const ClassName: String): Integer;
+    function  IsEmpty: Boolean;
+    function  LastClass: TgdcFullClassName;
+    function  LastObject: TObject;
+    procedure Clear;
+  end;
+
+  // Класс предназначен для хранения признаков параметра метода
+  TgdMethodParam = class
+  private
+    {Наименование параметра}
+    FParamName: String;
+    {Класс параметра}
+    FParamClass: TComponentClass;
+    {Тип параметра в строковом виде.}
+    FParamTypeName: String;
+    {Флаг (см. TypInfo.pas) }
+    FParamFlag: TParamFlag;
+
+    function GetIsParamClass: Boolean;
+    procedure SetParamName(const Value: String);
+  protected
+    {Проверка на рав-во имен параметров}
+    function EqualsByName(const AParamName: String): Boolean;
+    {Полная проверка на рав-во пар-ров: проверяются все поля}
+    function EqualsFull(const AParam: TgdMethodParam): Boolean;
+
+  public
+    constructor Create; overload;
+    destructor Destroy; override;
+
+    procedure Assign(ASource: TgdMethodParam);
+
+    property ParamName: String read FParamName write SetParamName;
+    property ParamClass: TComponentClass read FParamClass;
+    property ParamTypeName: String read FParamTypeName;
+    property IsParamClass: Boolean read GetIsParamClass;
+    property ParamFlag: TParamFlag read FParamFlag;
+  end;
+
+  // Класс, хранящий информацию о методе, включая его параметры
+  TgdMethod = class
+  private
+    {Наименование метода}
+    FName: String;
+    {Параметры в форме списка}
+    FParams: TList;
+    {Параметры в формате структуры типа TTypeData}
+    FParamsData: TTypeData;
+    {Тип результата в строковом виде}
+    FFuncResType: String;
+
+    procedure FreeFParams;
+
+    function GetParamCount: Integer;
+    function GetMethodParam(Index: Integer): TgdMethodParam;
+    function AddParamToList(const AParam: TgdMethodParam): Integer; overload;
+    function AddParamToList(AParamName, ATypeName: String;
+      AParamFlag: TParamFlag): Integer; overload;
+    procedure CustomDelete(Index: Integer);
+    procedure StoreResultInTD(APosition: Integer);
+    procedure AddParamToParamsData(AParamName, AParamType: String;
+      AParamFlag: TParamFlag);
+    function IsMethodFunction: Boolean;
+    function ReadStrFromTD(ATD: TTypeData; var APosition: Integer): String;
+    procedure WriteStrToTD(var ATD: TTypeData; var APosition: Integer;
+      const S: String);
+
+  protected
+    {Проверка на существование параметра с данным именем в списке пар-ров}
+    function ParamByNameExists(const AParamName: String): Boolean;
+    {Проверка на существование параметра в списке пар-ров}
+    function ParamExists(const AParam: TgdMethodParam): Boolean;
+    {Проверка методов на рав-во: методы считаются равными если равны их поля и
+     список параметров}
+    function Equals(const AMethod: TgdMethod): Boolean;
+
+  public
+    constructor Create(AName: String; AKind: TMethodKind; AFuncResType: String = ''); overload;
+    destructor Destroy; override;
+
+    function AddParam(AParamName, ATypeName: String;
+      AParamFlag: TParamFlag): Integer; overload;
+    procedure Clear;
+    procedure Assign(ASource: TgdMethod);
+
+    property Name: String read FName write FName;
+    property ParamCount: Integer read GetParamCount;
+    property Params[Index: Integer]: TgdMethodParam read GetMethodParam;
+    property ParamsData: TTypeData read FParamsData write FParamsData;
+  end;
+
+  TgdMethodList = class(TList)
+  private
+    function GetMethod(Index: Integer): TgdMethod;
+
+  protected
+    function MethodExists(const AMethod: TgdMethod): Boolean;
+
+  public
+    constructor Create;
+    destructor Destroy; override;
+
+    {Возвращает метод по имени}
+    function MethodByName(const AName: String) : TgdMethod;
+    {Добавление метода}
+    function AddMethod(const AMethod: TgdMethod): Integer;
+    {Посл. метод в списке}
+    function Last: TgdMethod;
+    {Удаление метода}
+    procedure Delete(Index: Integer);
+    {Очистка списка}
+    procedure Clear; override;
+    {Присвоение}
+    procedure Assign(ASource: TgdMethodList);
+
+    property Methods[Index: Integer]: TgdMethod read GetMethod {write SetMethod}; default;
+  end;
+
+  TgdClassMethods = class
+  private
+    FgdcClass: TComponentClass;
+    FgdMethods: TgdMethodList;
+
+  public
+    constructor Create; overload; {! НУЖЕН !}
+    constructor Create(AClass: TComponentClass); overload;
+    destructor Destroy; override;
+
+    function  GetgdClassMethodsParent: TgdClassMethods;
+    procedure Assign(ASource: TgdClassMethods);
+
+    property gdcClass: TComponentClass read FgdcClass write FgdcClass;
+    property gdMethods: TgdMethodList read FgdMethods;
+  end;
+
+    TgdClassEntry = class(TObject)
   private
     FParent: TgdClassEntry;
     FClass: TClass;
+    FClassMethods: TgdClassMethods;
     FSubType: TgdcSubType;
     FCaption: String;
     FSiblings: TObjectList;
@@ -149,180 +303,12 @@ type
   private
     FHashTable: array[0..ClassesHashTableSize - 1] of TObject;
 
-    function GetHash(AClass: TClass; const ASubType: TgdcSubType): Cardinal;
-
-  public
-    constructor Create;
-    destructor Destroy; override;
-
-    function Add(const AClass: TClass; const ASubType: TgdcSubType = ''): TgdClassEntry;
-    function Find(const AClass: TClass; const ASubType: TgdcSubType = ''): TgdClassEntry;
-    procedure Remove(const AClass: TClass; const ASubType: TgdcSubType = '');
-  end;
-
-const
-  // Константы для организации хранения перекрытых классов с подтипами
-  // Ставится в начале строки, если сохраняется класс и подтип
-  SubtypeFlag = '*';
-  // Разделяет класс и подтип в строке
-  SubtypeDetach = '=';
-
-type
-  // Класс для организации стыка классов перекрытых методов
-  TStackStrings = class(TObject)
-  private
-    FStackString: TStrings;
-    function GetFullClassName(const Str: string): TgdcFullClassName;
-
-  public
-    destructor Destroy; override;
-
-    function  Add(const FullClassName: TgdcFullClassName): Integer;
-    function  AddObject(const FullClassName: TgdcFullClassName;  AObject: TObject): Integer;
-    function  IndexOf(const ClassName: String): Integer;
-    function  IsEmpty: Boolean;
-    function  LastClass: TgdcFullClassName;
-    function  LastObject: TObject;
-    procedure Clear;
-  end;
-
-type
-  // Класс предназначен для хранения признаков параметра метода
-  TgdcMethodParam = class
-  private
-    {Наименование параметра}
-    FParamName: String;
-    {Класс параметра}
-    FParamClass: TComponentClass;
-    {Тип параметра в строковом виде.}
-    FParamTypeName: String;
-    {Флаг (см. TypInfo.pas) }
-    FParamFlag: TParamFlag;
-
-    function GetIsParamClass: Boolean;
-    procedure SetParamName(const Value: String);
-  protected
-    {Проверка на рав-во имен параметров}
-    function EqualsByName(const AParamName: String): Boolean;
-    {Полная проверка на рав-во пар-ров: проверяются все поля}
-    function EqualsFull(const AParam: TgdcMethodParam): Boolean;
-
-  public
-    constructor Create; overload;
-    destructor Destroy; override;
-
-    procedure Assign(ASource: TgdcMethodParam);
-
-    property ParamName: String read FParamName write SetParamName;
-    property ParamClass: TComponentClass read FParamClass;
-    property ParamTypeName: String read FParamTypeName;
-    property IsParamClass: Boolean read GetIsParamClass;
-    property ParamFlag: TParamFlag read FParamFlag;
-  end;
-
-  // Класс, хранящий инфпрмацию о методе, включая его параметры
-  TgdcMethod = class
-  private
-    {Наименование метода}
-    FName: String;
-    {Параметры в форме списка}
-    FParams: TList;
-    {Параметры в формате структуры типа TTypeData}
-    FParamsData: TTypeData;
-    {Тип результата в строковом виде}
-    FFuncResType: String;
-
-    procedure FreeFParams;
-
-    function GetParamCount: Integer;
-    function GetMethodParam(Index: Integer): TgdcMethodParam;
-    function AddParamToList(const AParam: TgdcMethodParam): Integer; overload;
-    function AddParamToList(AParamName, ATypeName: String;
-      AParamFlag: TParamFlag): Integer; overload;
-    procedure CustomDelete(Index: Integer);
-    procedure StoreResultInTD(APosition: Integer);
-    procedure AddParamToParamsData(AParamName, AParamType: String;
-      AParamFlag: TParamFlag);
-    function IsMethodFunction: Boolean;
-    function ReadStrFromTD(ATD: TTypeData; var APosition: Integer): String;
-    procedure WriteStrToTD(var ATD: TTypeData; var APosition: Integer;
-      const S: String);
-
-  protected
-    {Проверка на существование параметра с данным именем в списке пар-ров}
-    function ParamByNameExists(const AParamName: String): Boolean;
-    {Проверка на существование параметра в списке пар-ров}
-    function ParamExists(const AParam: TgdcMethodParam): Boolean;
-    {Проверка методов на рав-во: методы считаются равными если равны их поля и
-     список параметров}
-    function Equals(const AMethod: TgdcMethod): Boolean;
-
-  public
-    constructor Create(AName: String; AKind: TMethodKind; AFuncResType: String = ''); overload;
-    destructor Destroy; override;
-
-    function AddParam(AParamName, ATypeName: String;
-      AParamFlag: TParamFlag): Integer; overload;
-    procedure Clear;
-    procedure Assign(ASource: TgdcMethod);
-
-    property Name: String read FName write FName;
-    property ParamCount: Integer read GetParamCount;
-    property Params[Index: Integer]: TgdcMethodParam read GetMethodParam;
-    property ParamsData: TTypeData read FParamsData write FParamsData;
-  end;
-
-  TgdcMethodList = class(TList)
-  private
-    function GetMethod(Index: Integer): TgdcMethod;
-
-  protected
-    function MethodExists(const AMethod: TgdcMethod): Boolean;
-
-  public
-    constructor Create;
-    destructor Destroy; override;
-
-    {Возвращает метод по имени}
-    function MethodByName(const AName: String) : TgdcMethod;
-    {Добавление метода}
-    function AddMethod(const AMethod: TgdcMethod): Integer;
-    {Посл. метод в списке}
-    function Last: TgdcMethod;
-    {Удаление метода}
-    procedure Delete(Index: Integer);
-    {Очистка списка}
-    procedure Clear; override;
-    {Присвоение}
-    procedure Assign(ASource: TgdcMethodList);
-
-    property Methods[Index: Integer]: TgdcMethod read GetMethod {write SetMethod}; default;
-  end;
-
-  TgdcClassMethods = class
-  private
-    FgdcClass: TComponentClass;
-    FgdcMethods: TgdcMethodList;
-
-  public
-    constructor Create; overload; {! НУЖЕН !}
-    constructor Create(AClass: TComponentClass); overload;
-    destructor Destroy; override;
-
-    function  GetGdcClassMethodsParent: TgdcClassMethods;
-    procedure Assign(ASource: TgdcClassMethods);
-
-    property gdcClass: TComponentClass read FgdcClass write FgdcClass;
-    property gdcMethods: TgdcMethodList read FgdcMethods;
-  end;
-
-  // Базовый класс для хранения классов с описанием методов
-  TgdcCustomClassList = class(TObject)
-  private
     FClassList: THashedStringList;
 
+    function GetHash(AClass: TClass; const ASubType: TgdcSubType): Cardinal;
+
     function GetClass(Index: Integer): TComponentClass;
-    function GetClassMethods(Index: Integer): TgdcClassMethods;
+    function GetClassMethods(Index: Integer): TgdClassMethods;
     function GetCount: Integer;
     function GetCustomClass(const AFullClassName: TgdcFullClassName): TComponentClass;
 
@@ -330,22 +316,28 @@ type
     constructor Create;
     destructor Destroy; override;
 
-    function AddClassMethods(AClassMethods: TgdcClassMethods): Integer; overload;
-    function AddClassMethods(AClass: TComponentClass;
-      AMethods: array of TgdcMethod): Integer; overload;
-    function Add(AClass: TComponentClass): Integer;
+    function Add(const AClass: TClass; const ASubType: TgdcSubType = '';
+      const AParentSubType: TgdcSubType = ''): TgdClassEntry;
+    function Find(const AClass: TClass; const ASubType: TgdcSubType = ''): TgdClassEntry;
+
+    procedure Remove(const AClass: TClass; const ASubType: TgdcSubType = '');
+    // Удаление всех подтипов
+    procedure RemoveAll;
     function IndexOf(AClass: TClass): Integer;
     function IndexOfByName(AFullClassName: TgdcFullClassName): Integer;
-    procedure Remove(AClass: TComponentClass);
+
+    function AddClassMethods(AClassMethods: TgdClassMethods): Integer; overload;
+    function AddClassMethods(AClass: TComponentClass;
+      AMethods: array of TgdMethod): Integer; overload;
+
     procedure Clear;
 
-    property gdcItems[Index: Integer]: TgdcClassMethods
-      read GetClassMethods;
+    property gdcItems[Index: Integer]: TgdClassMethods read GetClassMethods;
     property Count: Integer read GetCount;
   end;
 
   // Класс для хранения классов наследников TgdcBase с описанием методов
-  TgdcClassList = class(TgdcCustomClassList)
+  TgdcClassList = class(TgdClassList)
   private
     function GetItems(Index: Integer): CgdcBase;
   public
@@ -358,7 +350,7 @@ type
   end;
 
   // Класс для хранения классов наследников TgdcCreateableForm с описанием методов
-  TfrmClassList = class(TgdcCustomClassList)
+  TfrmClassList = class(TgdClassList)
   private
     function GetItems(Index: Integer): CgdcCreateableForm;
 
@@ -370,7 +362,6 @@ type
     // Возращает класс CgdcFullClassName по индексу
     property Items[Index: Integer] : CgdcCreateableForm read GetItems; default;
   end;
-
 
 var
   // при создании каждый объект регистрирует себя в этом списке
@@ -388,8 +379,6 @@ var
   gdcClassList: TgdcClassList;
   // для форм
   frmClassList: TfrmClassList;
-
-  gdClassList: TgdClassList;
 
 // добавляет класс в список классов
 {Регистрация класса в списке TgdcClassList}
@@ -458,7 +447,7 @@ begin
   end;
 end;
 
-procedure CheckClassListAssigned;
+procedure CheckGdcClassListAssigned;
 begin
   if not Assigned(gdcClassList) then
   begin
@@ -478,20 +467,11 @@ begin
       ' не наследован от TgdcBase');
   end;
 
-  CheckClassListAssigned;
+  CheckGdcClassListAssigned;
 
-  // возможно это мы полностью заменим своим списком
   Classes.RegisterClass(AClass);
 
-  while gdcClassList.IndexOf(AClass) = -1 do
-  begin
-    gdcClassList.Add(AClass);
-    if AClass = TgdcBase then
-      break;
-    AClass := CgdcBase(AClass.ClassParent);
-  end;
-
-  gdClassList.Add(AClass);
+  gdcClassList.Add(AClass);
 end;
 
 procedure UnRegisterGdcClass(AClass: CgdcBase);
@@ -500,8 +480,6 @@ begin
   if not Assigned(gdcClassList) then
     Exit;
   gdcClassList.Remove(AClass);
-
-  gdClassList.Remove(AClass);
 end;
 
 procedure RegisterGdcClasses(AClasses: array of CgdcBase);
@@ -542,16 +520,7 @@ begin
 
   CheckFrmClassListAssigned;
 
-  // возможно это мы полностью заменим своим списком
-  while frmClassList.IndexOf(AClass) = -1 do
-  begin
-    frmClassList.Add(AClass);
-    if AClass = TgdcCreateableForm then
-      break;
-    AClass := CgdcCreateableForm(AClass.ClassParent);
-  end;
-
-  gdClassList.Add(AClass);
+  frmClassList.Add(AClass);
 end;
 
 procedure UnRegisterFrmClass(AClass: CgdcCreateableForm);
@@ -561,8 +530,6 @@ begin
     exit;
 
   frmClassList.Remove(AClass);
-
-  gdClassList.Remove(AClass);
 end;
 
 procedure RegisterFrmClasses(AClasses: array of CgdcCreateableForm);
@@ -584,7 +551,7 @@ end;
 procedure CustomRegisterClassMethod(ATypeList: TClassTypeList; const AnClass: TComponentClass; AnMethod: String;
   InputParams: String; OutputParam: String = '');
 var
-  Method: TgdcMethod;
+  Method: TgdMethod;
   CursorPos: Integer;
   Str: String;
   L: Integer;
@@ -704,15 +671,14 @@ begin
   L := Length(Str);
 
   if OutputParam = '' then
-    Method := TgdcMethod.Create(AnMethod, mkProcedure)
+    Method := TgdMethod.Create(AnMethod, mkProcedure)
   else
-    Method := TgdcMethod.Create(AnMethod, mkFunction, OutputParam);
+    Method := TgdMethod.Create(AnMethod, mkFunction, OutputParam);
   try
     while CursorPos < Length(Str) do
     begin
       WorkParam;
     end;
-
 
     case ATypeList of
       FRM:
@@ -722,7 +688,7 @@ begin
         end;
       GDC:
         begin
-          CheckClassListAssigned;
+          CheckGdcClassListAssigned;
           gdcClassList.AddClassMethods(AnClass, Method)
         end;
     end;
@@ -743,8 +709,8 @@ begin
   CustomRegisterClassMethod(FRM, AnClass, AnMethod, InputParams, OutputParam);
 end;
 
-{TgdcMethodParam impl}
-constructor TgdcMethodParam.Create;
+{TgdMethodParam}
+constructor TgdMethodParam.Create;
 begin
   inherited;
 
@@ -754,7 +720,7 @@ begin
 end;
 
 
-destructor TgdcMethodParam.Destroy;
+destructor TgdMethodParam.Destroy;
 begin
   inherited;
 
@@ -763,12 +729,12 @@ begin
   {$ENDIF}
 end;
 
-function TgdcMethodParam.EqualsByName(const AParamName: String): Boolean;
+function TgdMethodParam.EqualsByName(const AParamName: String): Boolean;
 begin
   Result := AnsiUpperCase(FParamName) = AnsiUpperCase(AParamName);
 end;
 
-function TgdcMethodParam.EqualsFull(const AParam: TgdcMethodParam): Boolean;
+function TgdMethodParam.EqualsFull(const AParam: TgdMethodParam): Boolean;
 begin
   Result := (FParamName = AParam.FParamName) and
    (FParamClass = AParam.FParamClass) and
@@ -777,7 +743,7 @@ begin
    (FParamFlag = AParam.FParamFlag);
 end;
 
-procedure TgdcMethodParam.Assign(ASource: TgdcMethodParam);
+procedure TgdMethodParam.Assign(ASource: TgdMethodParam);
 begin
   FParamName := ASource.ParamName;
   FParamClass := ASource.ParamClass;
@@ -785,9 +751,8 @@ begin
   FParamFlag := ASource.FParamFlag;
 end;
 
-
-{TgdcMethod impl}
-constructor TgdcMethod.Create(AName: String; AKind: TMethodKind;
+{TgdMethod}
+constructor TgdMethod.Create(AName: String; AKind: TMethodKind;
   AFuncResType: String = '');
 begin
   inherited Create;
@@ -810,20 +775,20 @@ begin
 {$ENDIF}
 end;
 
-procedure TgdcMethod.StoreResultInTD(APosition: Integer);
+procedure TgdMethod.StoreResultInTD(APosition: Integer);
 begin
   if IsMethodFunction then
     WriteStrToTD(FParamsData, APosition, FFuncResType);
 end;
 
-function TgdcMethod.AddParamToList(const AParam: TgdcMethodParam): Integer;
+function TgdMethod.AddParamToList(const AParam: TgdMethodParam): Integer;
 begin
-  Result := FParams.Add(TgdcMethodParam.Create);
+  Result := FParams.Add(TgdMethodParam.Create);
   if Assigned(AParam) then
     Params[Result].Assign(AParam);
 end;
 
-function TgdcMethod.AddParamToList(AParamName, ATypeName: String;
+function TgdMethod.AddParamToList(AParamName, ATypeName: String;
   AParamFlag: TParamFlag): Integer;
 begin
   Result := AddParamToList(nil);
@@ -833,7 +798,7 @@ begin
   Params[Result].FParamFlag := AParamFlag;
 end;
 
-function TgdcMethod.AddParam(AParamName, ATypeName: String;
+function TgdMethod.AddParam(AParamName, ATypeName: String;
   AParamFlag: TParamFlag): Integer;
 begin
   if ParamByNameExists(AParamName) then
@@ -843,7 +808,7 @@ begin
   AddParamToParamsData(AParamName, ATypeName, AParamFlag);
 end;
 
-procedure TgdcMethod.AddParamToParamsData(AParamName, AParamType: String;
+procedure TgdMethod.AddParamToParamsData(AParamName, AParamType: String;
   AParamFlag: TParamFlag);
 var
   I, Pos: Integer;
@@ -866,12 +831,12 @@ begin
   StoreResultInTD(Pos);
 end;
 
-function TgdcMethod.IsMethodFunction: Boolean;
+function TgdMethod.IsMethodFunction: Boolean;
 begin
   Result := FParamsData.MethodKind in [mkFunction, mkClassFunction, mkSafeFunction];
 end;
 
-function TgdcMethod.ParamByNameExists(const AParamName: String): Boolean;
+function TgdMethod.ParamByNameExists(const AParamName: String): Boolean;
 var I: Integer;
 begin
   Result := False;
@@ -883,7 +848,7 @@ begin
     end;
 end;
 
-function TgdcMethod.ParamExists(const AParam: TgdcMethodParam): Boolean;
+function TgdMethod.ParamExists(const AParam: TgdMethodParam): Boolean;
 var I: Integer;
 begin
   Result := False;
@@ -895,7 +860,7 @@ begin
     end;
 end;
 
-function TgdcMethod.Equals(const AMethod: TgdcMethod): Boolean;
+function TgdMethod.Equals(const AMethod: TgdMethod): Boolean;
 var
   I: Integer;
 begin
@@ -916,13 +881,13 @@ begin
     end;
 end;
 
-procedure TgdcMethod.CustomDelete(Index: Integer);
+procedure TgdMethod.CustomDelete(Index: Integer);
 begin
   Params[Index].Free;
   FParams.Delete(Index);
 end;
 
-procedure TgdcMethod.Clear;
+procedure TgdMethod.Clear;
 begin
   FreeFParams;
   FName := '';
@@ -932,7 +897,7 @@ begin
     CustomDelete(0);
 end;
 
-procedure TgdcMethod.Assign(ASource: TgdcMethod);
+procedure TgdMethod.Assign(ASource: TgdMethod);
 var
   I: Integer;
 begin
@@ -944,12 +909,12 @@ begin
     AddParamToList(ASource.Params[I]);
 end;
 
-function TgdcMethod.GetParamCount: Integer;
+function TgdMethod.GetParamCount: Integer;
 begin
   Result := FParams.Count;
 end;
 
-destructor TgdcMethod.Destroy;
+destructor TgdMethod.Destroy;
 begin
   Clear;
   FreeAndNil(FParams);
@@ -960,13 +925,13 @@ begin
   {$ENDIF}
 end;
 
-function TgdcMethod.GetMethodParam(Index: Integer): TgdcMethodParam;
+function TgdMethod.GetMethodParam(Index: Integer): TgdMethodParam;
 begin
   Assert((Index >= 0) and (Index < ParamCount), 'Index out of range');
-  Result := TgdcMethodParam(FParams[Index]);
+  Result := TgdMethodParam(FParams[Index]);
 end;
 
-function TgdcMethod.ReadStrFromTD(ATD: TTypeData; var APosition: Integer): String;
+function TgdMethod.ReadStrFromTD(ATD: TTypeData; var APosition: Integer): String;
 var
   CharCount:Byte;
 begin
@@ -976,15 +941,15 @@ begin
   Inc(APosition, CharCount + 1);
 end;
 
-procedure TgdcMethod.WriteStrToTD(var ATD: TTypeData; var APosition: Integer;
+procedure TgdMethod.WriteStrToTD(var ATD: TTypeData; var APosition: Integer;
   const S: String);
 begin
   ShortString((@ATD.ParamList[APosition])^) := ShortString(S);
   Inc(APosition, Length(S) + 1);
 end;
 
-{TgdcMethodList impl}
-constructor TgdcMethodList.Create;
+{TgdMethodList}
+constructor TgdMethodList.Create;
 begin
   inherited Create;
 
@@ -994,7 +959,7 @@ begin
 {$ENDIF}
 end;
 
-destructor TgdcMethodList.Destroy;
+destructor TgdMethodList.Destroy;
 begin
   Clear;
 
@@ -1005,13 +970,13 @@ begin
 {$ENDIF}
 end;
 
-function TgdcMethodList.GetMethod(Index: Integer): TgdcMethod;
+function TgdMethodList.GetMethod(Index: Integer): TgdMethod;
 begin
   Assert((Index >= 0) and (Index < Count), 'Index out of range');
-  Result := TgdcMethod(inherited Items[Index]);
+  Result := TgdMethod(inherited Items[Index]);
 end;
 
-function TgdcMethodList.MethodExists(const AMethod: TgdcMethod): Boolean;
+function TgdMethodList.MethodExists(const AMethod: TgdMethod): Boolean;
 var
   I: Integer;
 begin
@@ -1024,7 +989,7 @@ begin
     end;
 end;
 
-function TgdcMethodList.MethodByName(const AName: String) : TgdcMethod;
+function TgdMethodList.MethodByName(const AName: String) : TgdMethod;
 var
   I: Integer;
 begin
@@ -1037,31 +1002,31 @@ begin
     end;
 end;
 
-function TgdcMethodList.AddMethod(const AMethod: TgdcMethod): Integer;
+function TgdMethodList.AddMethod(const AMethod: TgdMethod): Integer;
 begin
   if AMethod.Name = '' then
     raise Exception.Create(GetGsException(Self, 'Method must have a name'));
   if MethodExists(AMethod) then
     raise Exception.Create(GetGsException(Self, 'Method ' + AMethod.Name + ' already found in list'));
 
-  Result := Add(TgdcMethod.Create('', mkProcedure{не сущ-но}, ''));
+  Result := Add(TgdMethod.Create('', mkProcedure{не сущ-но}, ''));
   if Assigned(AMethod) then
     Last.Assign(AMethod);
 end;
 
-function TgdcMethodList.Last: TgdcMethod;
+function TgdMethodList.Last: TgdMethod;
 begin
-  Result := TgdcMethod(inherited Last);
+  Result := TgdMethod(inherited Last);
 end;
 
-procedure TgdcMethodList.Delete(Index: Integer);
+procedure TgdMethodList.Delete(Index: Integer);
 begin
   Methods[Index].Free;
 
   inherited Delete(Index);
 end;
 
-procedure TgdcMethodList.Clear;
+procedure TgdMethodList.Clear;
 begin
   while Count > 0 do
     Delete(0);
@@ -1069,7 +1034,7 @@ begin
   inherited Clear;
 end;
 
-procedure TgdcMethodList.Assign(ASource: TgdcMethodList);
+procedure TgdMethodList.Assign(ASource: TgdMethodList);
 var
   I: Integer;
 begin
@@ -1078,13 +1043,14 @@ begin
     AddMethod(ASource.Methods[I]);
 end;
 
-{TgdcClassMethods impl}
-constructor TgdcClassMethods.Create;
+{TgdClassMethods}
+
+constructor TgdClassMethods.Create;
 begin
   inherited Create;
 
   FgdcClass := nil;
-  FgdcMethods := TgdcMethodList.Create;
+  FgdMethods := TgdMethodList.Create;
 
   // for testing purpose
 {$IFDEF DEBUG}
@@ -1092,21 +1058,21 @@ begin
 {$ENDIF}
 end;
 
-constructor TgdcClassMethods.Create(AClass: TComponentClass);
+constructor TgdClassMethods.Create(AClass: TComponentClass);
 begin
   Create;
   FgdcClass := AClass;
 end;
 
-procedure TgdcClassMethods.Assign(ASource: TgdcClassMethods);
+procedure TgdClassMethods.Assign(ASource: TgdClassMethods);
 begin
   gdcClass := ASource.gdcClass;
-  gdcMethods.Assign(ASource.gdcMethods);
+  gdMethods.Assign(ASource.gdMethods);
 end;
 
-destructor TgdcClassMethods.Destroy;
+destructor TgdClassMethods.Destroy;
 begin
-  FgdcMethods.Free;
+  FgdMethods.Free;
 
   inherited;
 
@@ -1116,155 +1082,7 @@ begin
 {$ENDIF}
 end;
 
-{ TgdcCustomClassList }
-
-function TgdcCustomClassList.Add(AClass: TComponentClass): Integer;
-begin
-  Result := FClassList.AddObject(AClass.ClassName, TgdcClassMethods.Create(AClass));
-end;
-
-function TgdcCustomClassList.AddClassMethods(AClass: TComponentClass;
-  AMethods: array of TgdcMethod): Integer;
-var
-  VgdcMethodList : TgdcMethodList;
-  VgdcClassMethods : TgdcClassMethods;
-  I : Integer;
-begin
-  VgdcClassMethods := TgdcClassMethods.Create;
-  try
-    VgdcMethodList := TgdcMethodList.Create;
-    try
-      for I := Low(AMethods) to High(AMethods) do
-      begin
-        VgdcMethodList.AddMethod(AMethods[I]);
-        {$IFDEF METHODSCHECK}
-        if dbgMethodList = nil then
-          dbgMethodList := TStringList.Create;
-        dbgMethodList.Add(Format(mcString, [AClass.ClassName, AMethods[I].Name]));
-        {$ENDIF}
-      end;
-
-      VgdcClassMethods.gdcMethods.Assign(VgdcMethodList);
-      VgdcClassMethods.gdcClass := AClass;
-      Result := AddClassMethods(VgdcClassMethods);
-    finally
-      VgdcMethodList.Free;
-    end;
-  finally
-    VgdcClassMethods.Free;
-  end;
-end;
-
-function TgdcCustomClassList.AddClassMethods(
-  AClassMethods: TgdcClassMethods): Integer;
-var
-  I: Integer;
-begin
-  Result := FClassList.IndexOf(AClassMethods.gdcClass.ClassName);
-  if Result = -1 then
-  begin  {Adding methods to existing class}
-    Result := FClassList.AddObject(AClassMethods.gdcClass.ClassName,
-      TgdcClassMethods.Create);
-    gdcItems[Result].Assign(AClassMethods);
-  end else
-    begin
-      for I := 0 to AClassMethods.gdcMethods.Count - 1 do
-       gdcItems[Result].gdcMethods.AddMethod(AClassMethods.gdcMethods.Items[I]);
-    end;
-end;
-
-procedure TgdcCustomClassList.Clear;
-var
-  i: Integer;
-begin
-  for i := 0 to FClassList.Count - 1 do
-    FClassList.Objects[i].Free;
-  FClassList.Clear;
-end;
-
-constructor TgdcCustomClassList.Create;
-begin
-  inherited;
-
-  FClassList := THashedStringList.Create;
-  FClassList.CaseSensitive := False;
-
-  {$IFDEF DEBUG}
-  Inc(glbClassListCount);
-  {$ENDIF}
-end;
-
-destructor TgdcCustomClassList.Destroy;
-begin
-  Clear;
-  FClassList.Free;
-
-  inherited;
-
-{$IFDEF DEBUG}
-  Dec(glbClassListCount);
-{$ENDIF}
-end;
-
-function TgdcCustomClassList.GetClass(Index: Integer): TComponentClass;
-begin
-  Assert((Index >= 0) and (Index < FClassList.Count), 'Index out of range');
-  Result := gdcItems[Index].FgdcClass;
-end;
-
-function TgdcCustomClassList.GetClassMethods(Index: Integer): TgdcClassMethods;
-begin
-  Assert((Index >= 0) and (Index < FClassList.Count), 'Index out of range');
-  Result := TgdcClassMethods(FClassList.Objects[Index]);
-end;
-
-function TgdcCustomClassList.GetCount: Integer;
-begin
-  Result := FClassList.Count;
-end;
-
-function TgdcCustomClassList.GetCustomClass(
-  const AFullClassName: TgdcFullClassName): TComponentClass;
-var
-  i: Integer;
-begin
-  Result := nil;
-
-  i := FClassList.IndexOf(AFullClassName.gdClassName);
-  if i > -1 then
-    Result := GetClass(i);
-end;
-
-function TgdcCustomClassList.IndexOf(AClass: TClass): Integer;
-begin
-  Result := FClassList.IndexOf(AClass.ClassName);
-end;
-
-function TgdcCustomClassList.IndexOfByName(AFullClassName: TgdcFullClassName): Integer;
-begin
-  Result := FClassList.IndexOf(AFullClassName.gdClassName);
-end;
-
-procedure TgdcCustomClassList.Remove(AClass: TComponentClass);
-var
-  i: Integer;
-begin
-  i := FClassList.IndexOf(AClass.ClassName);
-  if i > -1 then
-  begin
-    gdcItems[i].Free;
-    FClassList.Delete(i);
-  end
-  {$IFDEF DEBUG}
-  else
-    if UseLog then
-      Log.LogLn('gd_ClassList: Unknown class ' + AClass.ClassName + '.')
-  {$ENDIF}
-  ;
-
-end;
-
-{ TgdcClassList }
+{TgdcClassList}
 
 function TgdcClassList.GetGDCClass(const AFullClassName: TgdcFullClassName): CgdcBase;
 var
@@ -1281,7 +1099,7 @@ begin
   Result := CgdcBase(GetClass(Index));
 end;
 
-{ TfrmClassList }
+{TfrmClassList}
 
 function TfrmClassList.GetFrmClass(
   const AFullClassName: TgdcFullClassName): CgdcCreateableForm;
@@ -1299,26 +1117,26 @@ begin
   Result := CgdcCreateableForm(GetClass(Index));
 end;
 
-procedure TgdcMethod.FreeFParams;
+procedure TgdMethod.FreeFParams;
 var
   i: Integer;
 begin
   for i := 0 to FParams.Count - 1 do
-    TgdcMethodParam(FParams[i]).Free;
+    TgdMethodParam(FParams[i]).Free;
   FParams.Clear;
 end;
 
-function TgdcMethodParam.GetIsParamClass: Boolean;
+function TgdMethodParam.GetIsParamClass: Boolean;
 begin
   Result := FParamClass <> nil;
 end;
 
-procedure TgdcMethodParam.SetParamName(const Value: String);
+procedure TgdMethodParam.SetParamName(const Value: String);
 begin
   FParamName := Value;
 end;
 
-{ TStackStrings }
+{TStackStrings}
 
 function TStackStrings.Add(const FullClassName: TgdcFullClassName): Integer;
 begin
@@ -1395,7 +1213,7 @@ begin
     Result := nil;
 end;
 
-function TgdcClassMethods.GetGdcClassMethodsParent: TgdcClassMethods;
+function TgdClassMethods.GetgdClassMethodsParent: TgdClassMethods;
 var
   FN: TgdcFullClassName;
   I: Integer;
@@ -1415,7 +1233,7 @@ begin
     end;
 end;
 
-{ TgdClassEntry }
+{TgdClassEntry}
 
 procedure TgdClassEntry.AddSibling(ASibling: TgdClassEntry);
 begin
@@ -1439,12 +1257,14 @@ begin
   FClass := AClass;
   FSubType := ASubType;
   FCaption := AClass.ClassName + ASubType;
-  FSiblings := nil; 
+  FSiblings := nil;
+  FClassMethods := TgdClassMethods.Create(TComponentClass(FClass));
 end;
 
 destructor TgdClassEntry.Destroy;
 begin
   FSiblings.Free;
+  FClassMethods.Free;
   inherited;
 end;
 
@@ -1476,7 +1296,7 @@ begin
     begin
       if Siblings[I].SubType > '' then
       begin
-        ASubTypeList.Add(Siblings[I].Caption + '=' + Siblings[I].SubType);
+        ASubTypeList.Add(Siblings[I].SubType + '=' + Siblings[I].SubType);
         Result := True;
       end;
 
@@ -1486,10 +1306,10 @@ begin
   end;
 end;
 
-{ TgdClassList }
+{TgdClassList}
 
 function TgdClassList.Add(const AClass: TClass;
-  const ASubType: TgdcSubType): TgdClassEntry;
+  const ASubType: TgdcSubType; const AParentSubType: TgdcSubType): TgdClassEntry;
 var
   K: Integer;
   OL: TObjectList;
@@ -1507,11 +1327,20 @@ begin
     exit;
 
   if ASubType = '' then
-    Prnt := Add(AClass.ClassParent)
+    if (AClass <> TgdcBase) and (AClass <> TgdcCreateableForm) then
+      Prnt := Add(AClass.ClassParent)
+    else
+      Prnt := nil
   else
-    Prnt := Add(AClass);
+    if AParentSubType > '' then
+      Prnt := Add(AClass, AParentSubType)
+    else
+      Prnt := Add(AClass);
 
   Result := TgdClassEntry.Create(Prnt, AClass, ASubType);
+
+  if (Result <> nil) and (not (ASubType > '')) then
+    FClassList.AddObject(AClass.ClassName, Result);
 
   if Prnt <> nil then
     Prnt.AddSibling(Result);
@@ -1531,7 +1360,16 @@ end;
 
 constructor TgdClassList.Create;
 begin
+  inherited;
+
   FillChar(FHashTable, SizeOf(FHashTable), 0);
+
+  FClassList := THashedStringList.Create;
+  FClassList.CaseSensitive := False;
+
+  {$IFDEF DEBUG}
+  Inc(glbClassListCount);
+  {$ENDIF}
 end;
 
 destructor TgdClassList.Destroy;
@@ -1540,7 +1378,16 @@ var
 begin
   for I := 0 to ClassesHashTableSize - 1 do
     FHashTable[I].Free;
+
+  Clear;
+
+  FClassList.Free;
+
   inherited;
+
+{$IFDEF DEBUG}
+  Dec(glbClassListCount);
+{$ENDIF}
 end;
 
 function TgdClassList.Find(const AClass: TClass;
@@ -1584,6 +1431,35 @@ begin
     Result := (Result shl 5) + Result + Byte(ASubType[I]);
 end;
 
+function TgdClassList.GetClass(Index: Integer): TComponentClass;
+begin
+  Assert((Index >= 0) and (Index < FClassList.Count), 'Index out of range');
+  Result := gdcItems[Index].FgdcClass;
+end;
+
+function TgdClassList.GetClassMethods(Index: Integer): TgdClassMethods;
+begin
+  Assert((Index >= 0) and (Index < FClassList.Count), 'Index out of range');
+  Result := TgdClassEntry(FClassList.Objects[Index]).FClassMethods;
+end;
+
+function TgdClassList.GetCount: Integer;
+begin
+  Result := FClassList.Count;
+end;
+
+function TgdClassList.GetCustomClass(
+  const AFullClassName: TgdcFullClassName): TComponentClass;
+var
+  i: Integer;
+begin
+  Result := nil;
+
+  i := FClassList.IndexOf(AFullClassName.gdClassName);
+  if i > -1 then
+    Result := GetClass(i);
+end;
+
 procedure TgdClassList.Remove(const AClass: TClass;
   const ASubType: TgdcSubType);
 var
@@ -1608,14 +1484,101 @@ begin
       end;
     end;
   end;
+
+  if (not (ASubType > '')) and (AClass <> nil) then
+  begin
+    K := FClassList.IndexOf(AClass.ClassName);
+    if K > -1 then
+      FClassList.Delete(K);
+  end;
 end;
+
+procedure TgdClassList.RemoveAll;
+var
+  I: Integer;
+  CE: TgdClassEntry;
+begin
+  for I := 0 to FClassList.Count - 1 do
+  begin
+    CE := FClassList.Objects[I] as TgdClassEntry;
+    if CE <> nil then
+    begin
+      FreeAndNil(CE.FSiblings);
+      CE.Initialized := False;
+    end;
+  end;
+end;
+
+function TgdClassList.IndexOf(AClass: TClass): Integer;
+begin
+  Result := FClassList.IndexOf(AClass.ClassName);
+end;
+
+function TgdClassList.IndexOfByName(AFullClassName: TgdcFullClassName): Integer;
+begin
+  Result := FClassList.IndexOf(AFullClassName.gdClassName);
+end;
+
+function TgdClassList.AddClassMethods(AClass: TComponentClass;
+  AMethods: array of TgdMethod): Integer;
+var
+  VgdMethodList : TgdMethodList;
+  VgdClassMethods : TgdClassMethods;
+  I : Integer;
+begin
+  VgdClassMethods := TgdClassMethods.Create;
+  try
+    VgdMethodList := TgdMethodList.Create;
+    try
+      for I := Low(AMethods) to High(AMethods) do
+      begin
+        VgdMethodList.AddMethod(AMethods[I]);
+        {$IFDEF METHODSCHECK}
+        if dbgMethodList = nil then
+          dbgMethodList := TStringList.Create;
+        dbgMethodList.Add(Format(mcString, [AClass.ClassName, AMethods[I].Name]));
+        {$ENDIF}
+      end;
+
+      VgdClassMethods.gdMethods.Assign(VgdMethodList);
+      VgdClassMethods.gdcClass := AClass;
+      Result := AddClassMethods(VgdClassMethods);
+    finally
+      VgdMethodList.Free;
+    end;
+  finally
+    VgdClassMethods.Free;
+  end;
+end;
+
+function TgdClassList.AddClassMethods(
+  AClassMethods: TgdClassMethods): Integer;
+var
+  I: Integer;
+begin
+  Result := FClassList.IndexOf(AClassMethods.gdcClass.ClassName);
+
+  if Result = -1 then
+     Assert(Result <> -1)
+   else
+     for I := 0 to AClassMethods.gdMethods.Count - 1 do
+       gdcItems[Result].gdMethods.AddMethod(AClassMethods.gdMethods.Items[I]);
+end;
+
+procedure TgdClassList.Clear;
+var
+  i: Integer;
+begin
+  for i := 0 to FClassList.Count - 1 do
+    FClassList.Objects[i] := nil;
+  FClassList.Clear;
+end;
+
 
 initialization
   gdcObjectList := TObjectList.Create(False);
-  gdClassList := TgdClassList.Create;
 
 finalization
-  FreeAndNil(gdClassList);
   FreeAndNil(gdcObjectList);
   FreeAndNil(gdcClassList);
   FreeAndNil(frmClassList);

@@ -2082,7 +2082,7 @@ end;
 
 procedure TdfPropertyTree.AddGDCClasses(AParent: TTreeNode; Index: Integer; CClass: TClass);
 var
-  LocClassList: TgdcCustomClassList;
+  LocClassList: TgdClassList;
   TreeList, CountList: TList;
   I, J, K: Integer;
   TN: TTreeNode;
@@ -2277,27 +2277,24 @@ begin
             //Добавляем SubTypы класса
             for I := 0 to ST.Count - 1 do
             begin
-              if ClassFilter(Index, IsGDC, Replace(ST.Values[ST.Names[I]])) then
+              if MC.Class_Reference.InheritsFrom(TgdcBase) then
+                TN := AddGDCClassNode(AParent, Index,
+                  Replace(ST.Values[ST.Names[I]]), ST.Names[I])
+              else
+                TN := AddFRMClassNode(AParent, Index,
+                  Replace(ST.Values[ST.Names[I]]), ST.Names[I]);
+              if TN <> nil then
               begin
-                if MC.Class_Reference.InheritsFrom(TgdcBase) then
-                  TN := AddGDCClassNode(AParent, Index,
-                    Replace(ST.Values[ST.Names[I]]), ST.Names[I])
-                else
-                  TN := AddFRMClassNode(AParent, Index,
-                    Replace(ST.Values[ST.Names[I]]), ST.Names[I]);
-                if TN <> nil then
-                begin
-                  TN.HasChildren := True;
-                  //Если установлен флаг PropertySettings.Filter.OnlySpecEvent то
-                  //InitOverloadAndDisable для данного класса вызывалась при фильтрации
-                  //иначе вызываем здесь
-                  if not PropertySettings.Filter.OnlySpecEvent then
-                    InitOverloadAndDisable(TGDCClassTreeItem(TN.Data).TheClass);
-                  TGDCClassTreeItem(TN.Data).OverloadMethods :=
-                    TGDCClassTreeItem(TN.Data).TheClass.SpecMethodCount;
-                  TGDCClassTreeItem(TN.Data).DisabledMethods :=
-                    TGDCClassTreeItem(TN.Data).TheClass.SpecDisableMethod;
-                end;
+                TN.HasChildren := True;
+                //Если установлен флаг PropertySettings.Filter.OnlySpecEvent то
+                //InitOverloadAndDisable для данного класса вызывалась при фильтрации
+                //иначе вызываем здесь
+                if not PropertySettings.Filter.OnlySpecEvent then
+                  InitOverloadAndDisable(TGDCClassTreeItem(TN.Data).TheClass);
+                TGDCClassTreeItem(TN.Data).OverloadMethods :=
+                  TGDCClassTreeItem(TN.Data).TheClass.SpecMethodCount;
+                TGDCClassTreeItem(TN.Data).DisabledMethods :=
+                  TGDCClassTreeItem(TN.Data).TheClass.SpecDisableMethod;
               end;
             end;
           finally
@@ -2642,7 +2639,7 @@ procedure TdfPropertyTree.AddMethods(AParent: TTreeNode; IsGDC: Boolean);
 var
   FltFlag: Boolean;
   TheMethod: TMethodItem;
-  MClass: TgdcClassMethods;
+  MClass: TgdClassMethods;
   I, J: Integer;
 
   function AddM(M: TMethodItem; Parent: TTreeNode): TTreeNode;
@@ -2671,7 +2668,6 @@ begin
 
     P := AParent;
 
-
     while TObject(P.Data) is TgdcClassTreeItem do
     begin
       // Добавляем методы класса
@@ -2680,21 +2676,21 @@ begin
       else
         MClass := frmClassList.gdcItems[TGDCClassTreeItem(P.Data).Index];
 
-      for I := 0 to MClass.gdcMethods.Count - 1 do
+      for I := 0 to MClass.gdMethods.Count - 1 do
       begin
         //Ищем метод среди уже зарегестрированных в БД
         TheMethod := TGDCClassTreeItem(AParent.Data).TheClass.MethodList.Find(
-          MClass.gdcMethods.Methods[I].Name);
+          MClass.gdMethods.Methods[I].Name);
         if TheMethod = nil then // if not exist in DB but registered
         begin
           j := TGDCClassTreeItem(AParent.Data).TheClass.MethodList.Add(
-            MClass.gdcMethods.Methods[I].Name, 0, False,
+            MClass.gdMethods.Methods[I].Name, 0, False,
             TGDCClassTreeItem(AParent.Data).TheClass);
           TheMethod := TGDCClassTreeItem(AParent.Data).TheClass.MethodList.Items[j];
   //        TheMethod.MethodClass := TGDCClassTreeItem(AParent.Data).TheClass;
         end;
 
-        TheMethod.MethodData := @MClass.gdcMethods.Methods[I].ParamsData;
+        TheMethod.MethodData := @MClass.gdMethods.Methods[I].ParamsData;
         if FltFlag then
           AddM(TheMethod, AParent);
       end;
