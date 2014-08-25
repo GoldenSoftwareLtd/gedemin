@@ -603,7 +603,7 @@ var
   MethodItem: TMethodItem;
   tmpObject: TObject;
   I: Integer;
-  ClassMethods: TgdcClassMethods;
+  ClassMethods: TgdClassMethods;
   gdcEvent: TgdcEvent;
   tmpClass: TClass;
 
@@ -657,14 +657,14 @@ begin
     MethodItem :=  TCustomMethodClass(tmpObject).MethodList.Items[I];
   end;
 
-  while ClassMethods.gdcMethods.Count = 0 do
+  while ClassMethods.gdMethods.Count = 0 do
   begin
-    ClassMethods := ClassMethods.GetGdcClassMethodsParent;
+    ClassMethods := ClassMethods.GetGdClassMethodsParent;
     if ClassMethods = nil then
       raise Exception.Create(cCMErr);
   end;
 
-  MethodItem.MethodData :=  @ClassMethods.gdcMethods.MethodByName(MethodName).ParamsData;
+  MethodItem.MethodData :=  @ClassMethods.gdMethods.MethodByName(MethodName).ParamsData;
 
   Insert;
   FieldByName(fnLanguage).AsString    := 'VBScript';

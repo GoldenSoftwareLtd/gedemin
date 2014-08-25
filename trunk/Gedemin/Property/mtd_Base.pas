@@ -987,11 +987,10 @@ var
   LMethodItem: TMethodItem;
   LFunction: TrpCustomFunction;
   AnObjectClassName: string;
-  Index, k, mtdCacheIndex: Integer;
+  Index, mtdCacheIndex: Integer;
   //SubTypeList: TStrings;
   tmpStackStrings: TStackStrings;
   ObjectSubType: String;
-  SubTypePresent{, IsGdcBase}: Boolean;
   LClassName: String;
   LmtdCacheItem: TmtdCacheItem;
   LFullClassName_: TgdcFullClassName;
@@ -1177,25 +1176,16 @@ begin
                     LgdcBaseClass := gdcClassList.GetGDCClass(LCurrentFullClass);
                     if LgdcBaseClass = nil then
                       raise Exception.Create('Ошибка перекрытия метода. Обратитесь к разработчикам.');
-                    SubTypePresent := LgdcBaseClass.GetSubTypeList(LocalSubTypeList);
+                    if LgdcBaseClass.CheckSubType(ObjectSubType) then
+                        LCurrentFullClass.SubType := ObjectSubType;
                   end else
                     begin
                       LgdcCreateableFormClass := frmClassList.GetFRMClass(LCurrentFullClass);
                       if LgdcCreateableFormClass = nil then
                         raise Exception.Create('Ошибка перекрытия метода. Обратитесь к разработчикам.');
-                      SubTypePresent := LgdcCreateableFormClass.GetSubTypeList(LocalSubTypeList);
-                    end;
-
-                  if SubTypePresent then
-                  begin
-                    for k := 0 to LocalSubTypeList.Count - 1 do
-                      if ObjectSubType =
-                        AnsiUpperCase(GetSubTypeFromStr(LocalSubTypeList[k])) then
-                      begin
+                      if LgdcCreateableFormClass.CheckSubType(ObjectSubType) then
                         LCurrentFullClass.SubType := ObjectSubType;
-                        break;
-                      end;
-                  end;
+                    end;
                 end;
             end;
         end;

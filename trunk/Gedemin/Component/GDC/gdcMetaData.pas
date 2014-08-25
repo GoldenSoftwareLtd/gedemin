@@ -861,7 +861,7 @@ uses
   jclStrings, gdc_attr_dlgException_unit, gdc_frmException_unit,
   gdc_attr_dlgIndices_unit, gdc_attr_dlgTrigger_unit,
   gdc_attr_frmTrigger_unit, gdc_attr_frmIndices_unit, Dialogs, ib,
-  at_sql_setup, gd_directories_const, gdcInvDocumentCache_unit,
+  at_sql_setup, gd_directories_const,
   gdc_attr_dlgGenerator_unit, gdc_attr_frmGenerator_unit,
   gdc_attr_frmCheckConstraint_unit, gdc_attr_dlgCheckConstraint_unit,
   gdcLBRBTreeMetaData
@@ -2084,9 +2084,6 @@ begin
   atDatabase.Relations.RefreshData(Database, Transaction, True);
   Clear_atSQLSetupCache;
 
-  if Assigned(gdcInvDocumentCache) then
-    gdcInvDocumentCache.Clear;
-
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCRELATION', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -2383,9 +2380,6 @@ begin
     atDatabase.Relations.Remove(atDatabase.Relations.ByRelationName(DelRelName));
   end;
 
-  if Assigned(gdcInvDocumentCache) then
-    gdcInvDocumentCache.Clear;
-
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCRELATION', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -2634,6 +2628,13 @@ begin
       Transaction.Rollback;
     raise;
   end;
+
+  if Assigned(gdcClassList) then
+    gdcClassList.RemoveAll;
+
+  if Assigned(frmClassList) then
+    frmClassList.RemoveAll;
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASETABLE', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then

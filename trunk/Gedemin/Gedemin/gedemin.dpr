@@ -29,7 +29,6 @@ uses
   IBServices,
   IBDatabase,                   
   IBSQL,
-  gdcInvDocumentCache_body,
   gd_regionalsettings_dlgEdit,               
   gd_security,
   gd_CmdLineParams_unit,

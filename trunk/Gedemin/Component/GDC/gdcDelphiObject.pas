@@ -426,7 +426,8 @@ var
     begin
       Result.gdClassName := CgdcBase(GClass).ClassName;
       CgdcBase(GClass).GetSubTypeList(TmpSubTypeList);
-      if TmpSubTypeList.IndexOf(gdcClass.SubType) > -1 then
+
+      if CgdcBase(GClass).CheckSubType(gdcClass.SubType) then
         Result.SubType := gdcClass.SubType
       else
         Result.SubType := '';
@@ -436,7 +437,8 @@ var
       begin
         Result.gdClassName := CgdcCreateableForm(GClass).ClassName;
         CgdcCreateableForm(GClass).GetSubTypeList(TmpSubTypeList);
-        if TmpSubTypeList.IndexOf(gdcClass.SubType) > -1 then
+
+        if CgdcCreateableForm(GClass).CheckSubType(gdcClass.SubType) then
           Result.SubType := gdcClass.SubType
         else
           Result.SubType := '';

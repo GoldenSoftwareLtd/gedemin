@@ -1837,35 +1837,15 @@ end;
 function TgsIBLookupComboBox.CreateGDClassInstance(const AnID: Integer): TgdcBase;
 var
   C: TPersistentClass;
-  SL: TStringList;
-  I: Integer;
-  F: Boolean;
 begin
   C := GetClass(gdClassName);
   if Assigned(C) and (C.InheritsFrom(TgdcBase)) then
   begin
     if FSubType > '' then
     begin
-      SL := TStringList.Create;
-      try
-        CgdcBase(C).GetSubTypeList(SL);
-
-        F := False;
-        for I := 0 to SL.Count - 1 do
-        begin
-          if Pos('=' + FSubType + '^', SL[I] + '^') > 0 then
-          begin
-            F := True;
-            break;
-          end;
-        end;
-
-        if not F then
-          raise Exception.Create('gsIBLookupComboBox: invalid subtype specified'#13#10 +
-             'Class: ' + FgdClassName + #13#10'Subtype: ' + FSubType);
-      finally
-        SL.Free;
-      end;
+      if not CgdcBase(C).CheckSubType(FSubType) then
+        raise Exception.Create('gsIBLookupComboBox: invalid subtype specified'#13#10 +
+          'Class: ' + FgdClassName + #13#10'Subtype: ' + FSubType)
     end;
 
     Result := CgdcBase(C).CreateSubType(Self.Owner, FSubType, 'ByID');

@@ -99,10 +99,14 @@ type
     // Стек создается при первом обращении, уничтожается вместе с объектом.
     property ClassMethodAssoc: TgdKeyIntAndStrAssoc read FClassMethodAssoc;
 
-    class function GetSubTypeList(SubTypeList: TStrings;
-      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; virtual;
+    class function GetSubTypeList(ASubTypeList: TStrings;
+      ASubType: String = ''; AnOnlyDirect: Boolean = False): Boolean; virtual;
 
-    class function ClassParentSubtype(Subtype: String): String; virtual;
+    class procedure RegisterClassHierarchy; virtual;
+
+    class function ClassParentSubType(ASubType: string): String; virtual;
+
+    class function CheckSubType(ASubType: String): Boolean; virtual;
 
     class function CreateAndAssign(AnOwner: TComponent): TForm; override;
     class function FindForm(const AFormClass: CgdcCreateableForm;
@@ -377,58 +381,166 @@ begin
   {END MACRO}
 end;
 
-class function TgdcCreateableForm.GetSubTypeList(
-  SubTypeList: TStrings; Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
+class function TgdcCreateableForm.GetSubTypeList(ASubTypeList: TStrings;
+  ASubType: String = ''; AnOnlyDirect: Boolean = False): Boolean;
 var
-  I: Integer;
-  F: TgsStorageFolder;
-  GClass: TClass;
+  CE: TgdClassEntry;
 begin
+  Assert(ASubTypeList <> nil);
 
-    { TODO : Временно пока нет наследования по Subtype }
-  if Subtype > '' then
+  if ASubType > '' then
   begin
-    SubTypeList.Clear;
-    Result := False;
+    ASubType := StringReplace(ASubType, 'USR_', 'USR$', [rfReplaceAll, rfIgnoreCase]);
+    ASubType := ASubType + '=' + ASubType;
+  end;
+
+  if ASubType > '' then
+  begin
+    CE := frmClassList.Find(Self, ASubType);
+    if CE = nil then
+      CE := frmClassList.Find(Self);
+  end
+  else
+    CE := frmClassList.Find(Self);
+
+  if CE = nil then
+    raise EgdcException.Create('Unregistered class.');
+
+  RegisterClassHierarchy;
+
+  if ASubType > '' then
+    CE := frmClassList.Find(Self, ASubType)
+  else
+    CE := frmClassList.Find(Self);
+
+  if CE = nil then
+    raise EgdcException.Create('Unregistered class.');
+
+  Result := CE.GetSubTypeList(ASubTypeList, AnOnlyDirect);
+end;
+
+class procedure TgdcCreateableForm.RegisterClassHierarchy;
+
+  procedure ReadFromStorage(ACE: TgdClassEntry);
+  var
+    F: TgsStorageFolder;
+    V: TgsStorageValue;
+    ValueName: String;
+    I: Integer;
+    CurrCE: TgdClassEntry;
+    SL: TStringList;
+  begin
+    Assert(GlobalStorage <> nil);
+
+    if ACE.Initialized then
+      exit;
+
+    SL := TStringList.Create;
+    try
+      F := GlobalStorage.OpenFolder('SubTypes', False, False);
+      try
+        if F <> nil then
+        begin
+          if ACE.SubType > '' then
+            ValueName := ACE.TheClass.ClassName + ACE.SubType
+          else
+            ValueName := ACE.TheClass.ClassName;
+          V := F.ValueByName(ValueName);
+          if V is TgsStringValue then
+            SL.CommaText := V.AsString
+          else if V <> nil then
+            F.DeleteValue(ValueName);
+        end;
+      finally
+        GlobalStorage.CloseFolder(F, False);
+      end;
+
+      for I := 0 to SL.Count - 1 do
+      begin
+        CurrCE := frmClassList.Add(ACE.TheClass, SL.Names[I], ACE.SubType);
+        ReadFromStorage(CurrCE);
+      end;
+    finally
+      SL.Free;
+    end;
+
+    ACE.Initialized := True;
+  end;
+
+var
+  CEBase: TgdClassEntry;
+
+begin
+  CEBase := frmClassList.Find(Self);
+
+  if CEBase = nil then
+    raise EgdcException.Create('Unregistered class.');
+
+  ReadFromStorage(CEBase);
+end;
+
+class function TgdcCreateableForm.ClassParentSubtype(ASubType: string): String;
+var
+  CE: TgdClassEntry;
+begin
+  Result := '';
+  
+  if ASubType > '' then
+    ASubType := StringReplace(ASubType, 'USR_', 'USR$', [rfReplaceAll, rfIgnoreCase]);
+  
+  CE := frmClassList.Find(Self, ASubType);
+
+  if CE = nil then
+    RegisterClassHierarchy;
+
+  CE := frmClassList.Find(Self, ASubType);
+
+  if CE <> nil then
+  begin
+    if CE.Parent <> nil then
+      Result := CE.Parent.SubType;
+  end
+  else
+  begin
+    CE := frmClassList.Find(Self);
+    if CE = nil then
+      raise EgdcException.Create('Unregistered class.');
+  end;
+end;
+
+class function TgdcCreateableForm.CheckSubType(ASubType: String): Boolean;
+var
+  CE: TgdClassEntry;
+begin
+  Result := False;
+
+  if ASubType > '' then
+    ASubType := StringReplace(ASubType, 'USR_', 'USR$', [rfReplaceAll, rfIgnoreCase]);
+
+  CE := frmClassList.Find(Self, ASubType);
+
+  if CE <> nil then
+  begin
+    Result := True;
     Exit;
   end;
 
-  if Assigned(GlobalStorage) then
+  if CE = nil then
+    RegisterClassHierarchy;
+
+  CE := frmClassList.Find(Self, ASubType);
+
+  if CE <> nil then
   begin
-    F := GlobalStorage.OpenFolder('SubTypes', False, False);
-    try
-      if F <> nil then
-      begin
-        for I := 0 to F.ValuesCount - 1 do
-        begin
-          if not (F.Values[I] is TgsStringValue) then
-            continue;
-
-          GClass := gdcClassList.GetGDCClass(gdcFullClassName(F.Values[I].Name, ''));
-          if (GClass <> nil) and (GClass.InheritsFrom(TgdcBase)) then
-          begin
-            if (Self.ClassName = CgdcBase(GClass).GetViewFormClassName(''))
-              or (Self.ClassName = CgdcBase(GClass).GetDialogFormClassName('')) then
-            begin
-              SubTypeList.CommaText := F.Values[I].AsString;
-              Result := SubTypeList.Count > 0;
-              exit;
-            end;
-          end;
-        end;
-      end;
-    finally
-      GlobalStorage.CloseFolder(F, False);
-    end;
+    Result := True;
+    Exit;
+  end
+  else
+  begin
+    CE := frmClassList.Find(Self);
+    if CE = nil then
+      raise EgdcException.Create('Unregistered class.');
   end;
-
-  SubTypeList.Clear;
-  Result := False;
-end;
-
-class function TgdcCreateableForm.ClassParentSubtype(Subtype: String): String;
-begin
-  Result := '';
 end;
 
 procedure TgdcCreateableForm.CreateInherited;

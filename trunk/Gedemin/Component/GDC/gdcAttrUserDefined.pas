@@ -69,9 +69,9 @@ type
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetDisplayName(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
-    class function GetSubTypeList(SubTypeList: TStrings;
-      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; override;
-    class function ClassParentSubtype(Subtype: String): String; override;
+
+    class procedure RegisterClassHierarchy; override;
+
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
 
@@ -106,9 +106,8 @@ type
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetKeyField(const ASubType: TgdcSubType): String; override;
 
-    class function GetSubTypeList(SubTypeList: TStrings;
-      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; override;
-    class function ClassParentSubtype(Subtype: String): String; override;
+    class procedure RegisterClassHierarchy; override;
+
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
 
     property RelationName: String read GetRelationName;
@@ -139,9 +138,8 @@ type
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetKeyField(const ASubType: TgdcSubType): String; override;
 
-    class function GetSubTypeList(SubTypeList: TStrings;
-      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; override;
-    class function ClassParentSubtype(Subtype: String): String; override;
+    class procedure RegisterClassHierarchy; override;
+
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
 
     property RelationName: String read GetRelationName;
@@ -672,61 +670,39 @@ begin
   Result := SubType;
 end;
 
-class function TgdcAttrUserDefined.GetSubTypeList(SubTypeList: TStrings;
-  Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
+class procedure TgdcAttrUserDefined.RegisterClassHierarchy;
 
-  procedure GetChildSubtype(var STList: TStrings; SType: string; ODirect: Boolean);
+    procedure ReadFromRelations(ACE: TgdClassEntry);
   var
-    I: integer;
-    ST: string;
+    CurrCE: TgdClassEntry;
+    SL: TStringList;
+    I: Integer;
   begin
-    with atDatabase.Relations do
-    for I := 0 to Count - 1 do
-    begin
-      if Items[I].IsUserDefined
-        and Assigned(Items[I].PrimaryKey)
-        and Assigned(Items[I].PrimaryKey.ConstraintFields)
-        and (Items[I].PrimaryKey.ConstraintFields.Count = 1)
-        and (AnsiCompareText(Items[I].PrimaryKey.ConstraintFields[0].FieldName, 'ID') = 0)
-        and  Assigned(Items[I].RelationFields.ByFieldName('INHERITED'))
-        and (AnsiCompareText(Items[I].RelationFields.ByFieldName('ID').ForeignKey.ReferencesRelation.RelationName, SType) = 0) then
+    if ACE.Initialized then
+      exit;
+
+    SL := TStringList.Create;
+    try
+      if ACE.SubType > '' then
       begin
-        Assert(SubTypeList.IndexOfName(Items[I].LNAME) = -1,
-          'Duplicate local name of user defined table "' + Items[I].LNAME + '".');
-        STList.Add(Items[I].LNAME + '=' + Items[I].RelationName);
-        if not ODirect then
-        begin
-          ST := Items[I].RelationName;
-          GetChildSubtype(STList, ST, False);
-        end;
-      end;
-    end;
-  end;
-
-var
-  I: Integer;
-begin
-  SubTypeList.Clear;
-
-  if Subtype > '' then
-    Subtype := StringReplace(Subtype, 'USR_', 'USR$',[rfIgnoreCase]);
-
-  if (Subtype > '') and OnlyDirect then
-  begin
-    //непосредсвенные наследники от Subtype
-    GetChildSubtype(SubTypeList, Subtype, True);
-  end
-  else if (Subtype > '') and (not OnlyDirect) then
-    begin
-     //вся иерархия наследников от Subtype
-     GetChildSubtype(SubTypeList, Subtype, False);
-    end
-    else if (Subtype = '') and OnlyDirect then
-      begin
-        //непосредсвенные наследники класса
         with atDatabase.Relations do
         for I := 0 to Count - 1 do
+        if Items[I].IsUserDefined
+          and Assigned(Items[I].PrimaryKey)
+          and Assigned(Items[I].PrimaryKey.ConstraintFields)
+          and (Items[I].PrimaryKey.ConstraintFields.Count = 1)
+          and (AnsiCompareText(Items[I].PrimaryKey.ConstraintFields[0].FieldName, 'ID') = 0)
+          and  Assigned(Items[I].RelationFields.ByFieldName('INHERITED'))
+          and (AnsiCompareText(Items[I].RelationFields.ByFieldName('ID').ForeignKey.ReferencesRelation.RelationName,
+            ACE.SubType) = 0) then
         begin
+          SL.Add(Items[I].RelationName);
+        end;
+      end
+      else
+      begin
+        with atDatabase.Relations do
+        for I := 0 to Count - 1 do
           if Items[I].IsUserDefined
             and Assigned(Items[I].PrimaryKey)
             and Assigned(Items[I].PrimaryKey.ConstraintFields)
@@ -735,68 +711,32 @@ begin
             and not Assigned(Items[I].RelationFields.ByFieldName('PARENT'))
             and not Assigned(Items[I].RelationFields.ByFieldName('INHERITED'))then
           begin
-            Assert(SubTypeList.IndexOfName(Items[I].LNAME) = -1,
-              'Duplicate local name of user defined table "' + Items[I].LNAME + '".');
-            SubTypeList.Add(Items[I].LNAME + '=' + Items[I].RelationName);
+            SL.Add(Items[I].RelationName);
           end;
-        end;
-      end
-      else if (Subtype = '') and (not OnlyDirect) then
-        begin
-          //вся иерархия наследников
-          with atDatabase.Relations do
-          for I := 0 to Count - 1 do
-          begin
-            if Items[I].IsUserDefined
-              and Assigned(Items[I].PrimaryKey)
-              and Assigned(Items[I].PrimaryKey.ConstraintFields)
-              and (Items[I].PrimaryKey.ConstraintFields.Count = 1)
-              and (AnsiCompareText(Items[I].PrimaryKey.ConstraintFields[0].FieldName, 'ID') = 0)
-              and not Assigned(Items[I].RelationFields.ByFieldName('PARENT'))
-              and not Assigned(Items[I].RelationFields.ByFieldName('INHERITED'))then
-            begin
-              Assert(SubTypeList.IndexOfName(Items[I].LNAME) = -1,
-                'Duplicate local name of user defined table "' + Items[I].LNAME + '".');
-              SubTypeList.Add(Items[I].LNAME + '=' + Items[I].RelationName);
-              GetChildSubtype(SubTypeList, Subtype, False);
-            end;
-          end;
-        end;
+      end;
 
-  Result := SubTypeList.Count > 0;
-end;
+      for I := 0 to SL.Count - 1 do
+      begin
+        CurrCE := gdcClassList.Add(ACE.TheClass, SL[I], ACE.SubType);
+        ReadFromRelations(CurrCE);
+      end;
+    finally
+      SL.Free;
+    end;
 
-class function TgdcAttrUserDefined.ClassParentSubtype(
-  Subtype: String): String;
-var
-  LSubType: String;
-  Flag: Boolean;
-begin
-  Result := '';
-  
-  Flag := False;
-  if Subtype > '' then
-  begin
-    LSubtype := StringReplace(Subtype, 'USR_', 'USR$',[rfIgnoreCase]);
-    if (Subtype <> LSubtype) then
-      Flag := True;
+    ACE.Initialized := True;
   end;
 
-  if Assigned(atDatabase.Relations.ByRelationName(Subtype)) then
-    with atDatabase.Relations.ByRelationName(Subtype) do
-      if IsUserDefined
-        and Assigned(PrimaryKey)
-        and Assigned(PrimaryKey.ConstraintFields)
-        and (PrimaryKey.ConstraintFields.Count = 1)
-        and (AnsiCompareText(PrimaryKey.ConstraintFields[0].FieldName, 'ID') = 0)
-        and Assigned(RelationFields.ByFieldName('INHERITED'))
-        and Assigned(RelationFields.ByFieldName('ID').ForeignKey.ReferencesRelation) then
-      begin
-        Result := RelationFields.ByFieldName('ID').ForeignKey.ReferencesRelation.RelationName
-      end;
-      
-  if Flag then
-    Result := StringReplace(Result, 'USR$', 'USR_',[rfIgnoreCase]);
+var
+  CEBase: TgdClassEntry;
+
+begin
+  CEBase := gdcClassList.Find(Self);
+
+  if CEBase = nil then
+    raise EgdcException.Create('Unregistered class.');
+
+  ReadFromRelations(CEBase);
 end;
 
 class function TgdcAttrUserDefined.GetViewFormClassName(
@@ -1265,61 +1205,39 @@ begin
   {END MACRO}
 end;
 
-class function TgdcAttrUserDefinedTree.GetSubTypeList(SubTypeList: TStrings;
-  Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
+class procedure TgdcAttrUserDefinedTree.RegisterClassHierarchy;
 
-  procedure GetChildSubtype(var STList: TStrings; SType: string; ODirect: Boolean);
+  procedure ReadFromRelations(ACE: TgdClassEntry);
   var
-    I: integer;
-    ST: string;
+    CurrCE: TgdClassEntry;
+    SL: TStringList;
+    I: Integer;
   begin
-    with atDatabase.Relations do
-    for I := 0 to Count - 1 do
-    begin
-      if Items[I].IsUserDefined
-        and Assigned(Items[I].PrimaryKey)
-        and Assigned(Items[I].PrimaryKey.ConstraintFields)
-        and (Items[I].PrimaryKey.ConstraintFields.Count = 1)
-        and (AnsiCompareText(Items[I].PrimaryKey.ConstraintFields[0].FieldName, 'ID') = 0)
-        and  Assigned(Items[I].RelationFields.ByFieldName('INHERITED'))
-        and (AnsiCompareText(Items[I].RelationFields.ByFieldName('ID').ForeignKey.ReferencesRelation.RelationName, SType) = 0) then
+    if ACE.Initialized then
+      exit;
+
+    SL := TStringList.Create;
+    try
+      if ACE.SubType > '' then
       begin
-        Assert(SubTypeList.IndexOfName(Items[I].LNAME) = -1,
-          'Duplicate local name of user defined table "' + Items[I].LNAME + '".');
-        STList.Add(Items[I].LNAME + '=' + Items[I].RelationName);
-        if not ODirect then
-        begin
-          ST := Items[I].RelationName;
-          GetChildSubtype(STList, ST, False);
-        end;
-      end;
-    end;
-  end;
-
-var
-  I: Integer;
-begin
-  SubTypeList.Clear;
-
-    if Subtype > '' then
-    Subtype := StringReplace(Subtype, 'USR_', 'USR$',[rfIgnoreCase]);
-
-  if (Subtype > '') and OnlyDirect then
-  begin
-    //непосредсвенные наследники от Subtype
-    GetChildSubtype(SubTypeList, Subtype, True);
-  end
-  else if (Subtype > '') and (not OnlyDirect) then
-    begin
-     //вся иерархия наследников от Subtype
-     GetChildSubtype(SubTypeList, Subtype, False);
-    end
-    else if (Subtype = '') and OnlyDirect then
-      begin
-        //непосредсвенные наследники класса
         with atDatabase.Relations do
         for I := 0 to Count - 1 do
+        if Items[I].IsUserDefined
+          and Assigned(Items[I].PrimaryKey)
+          and Assigned(Items[I].PrimaryKey.ConstraintFields)
+          and (Items[I].PrimaryKey.ConstraintFields.Count = 1)
+          and (AnsiCompareText(Items[I].PrimaryKey.ConstraintFields[0].FieldName, 'ID') = 0)
+          and  Assigned(Items[I].RelationFields.ByFieldName('INHERITED'))
+          and (AnsiCompareText(Items[I].RelationFields.ByFieldName('ID').ForeignKey.ReferencesRelation.RelationName,
+            ACE.SubType) = 0) then
         begin
+          SL.Add(Items[I].RelationName);
+        end;
+      end
+      else
+      begin
+        with atDatabase.Relations do
+        for I := 0 to Count - 1 do
           if Items[I].IsUserDefined
             and Assigned(Items[I].PrimaryKey)
             and Assigned(Items[I].PrimaryKey.ConstraintFields)
@@ -1327,73 +1245,34 @@ begin
             and (AnsiCompareText(Items[I].PrimaryKey.ConstraintFields[0].FieldName, 'ID') = 0)
             and Assigned(Items[I].RelationFields.ByFieldName('PARENT'))
             and not Assigned(Items[I].RelationFields.ByFieldName('LB'))
-            and not Assigned(Items[I].RelationFields.ByFieldName('RB'))
             and not Assigned(Items[I].RelationFields.ByFieldName('INHERITED'))then
           begin
-            Assert(SubTypeList.IndexOfName(Items[I].LNAME) = -1,
-              'Duplicate local name of user defined table "' + Items[I].LNAME + '".');
-            SubTypeList.Add(Items[I].LNAME + '=' + Items[I].RelationName);
+            SL.Add(Items[I].RelationName);
           end;
-        end;
-      end
-      else if (Subtype = '') and (not OnlyDirect) then
-        begin
-          //вся иерархия наследников
-          with atDatabase.Relations do
-          for I := 0 to Count - 1 do
-          begin
-            if Items[I].IsUserDefined
-              and Assigned(Items[I].PrimaryKey)
-              and Assigned(Items[I].PrimaryKey.ConstraintFields)
-              and (Items[I].PrimaryKey.ConstraintFields.Count = 1)
-              and (AnsiCompareText(Items[I].PrimaryKey.ConstraintFields[0].FieldName, 'ID') = 0)
-              and Assigned(Items[I].RelationFields.ByFieldName('PARENT'))
-              and not Assigned(Items[I].RelationFields.ByFieldName('LB'))
-              and not Assigned(Items[I].RelationFields.ByFieldName('RB'))
-              and not Assigned(Items[I].RelationFields.ByFieldName('INHERITED'))then
-            begin
-              Assert(SubTypeList.IndexOfName(Items[I].LNAME) = -1,
-                'Duplicate local name of user defined table "' + Items[I].LNAME + '".');
-              SubTypeList.Add(Items[I].LNAME + '=' + Items[I].RelationName);
-              GetChildSubtype(SubTypeList, Subtype, False);
-            end;
-          end;
-        end;
-
-  Result := SubTypeList.Count > 0;
-end;
-
-class function TgdcAttrUserDefinedTree.ClassParentSubtype(
-  Subtype: String): String;
-var
-  LSubType: String;
-  Flag: Boolean;
-begin
-  Result := '';
-  
-  Flag := False;
-  if Subtype > '' then
-  begin
-    LSubtype := StringReplace(Subtype, 'USR_', 'USR$',[rfIgnoreCase]);
-    if (Subtype <> LSubtype) then
-      Flag := True;
-  end;
-
-  if Assigned(atDatabase.Relations.ByRelationName(Subtype)) then
-    with atDatabase.Relations.ByRelationName(Subtype) do
-      if IsUserDefined
-        and Assigned(PrimaryKey)
-        and Assigned(PrimaryKey.ConstraintFields)
-        and (PrimaryKey.ConstraintFields.Count = 1)
-        and (AnsiCompareText(PrimaryKey.ConstraintFields[0].FieldName, 'ID') = 0)
-        and Assigned(RelationFields.ByFieldName('INHERITED'))
-        and Assigned(RelationFields.ByFieldName('ID').ForeignKey.ReferencesRelation) then
-      begin
-        Result := RelationFields.ByFieldName('ID').ForeignKey.ReferencesRelation.RelationName
       end;
 
-  if Flag then
-    Result := StringReplace(Result, 'USR$', 'USR_',[rfIgnoreCase]);
+      for I := 0 to SL.Count - 1 do
+      begin
+        CurrCE := gdcClassList.Add(ACE.TheClass, SL[I], ACE.SubType);
+        ReadFromRelations(CurrCE);
+      end;
+    finally
+      SL.Free;
+    end;
+
+    ACE.Initialized := True;
+  end;
+
+var
+  CEBase: TgdClassEntry;
+
+begin
+  CEBase := gdcClassList.Find(Self);
+
+  if CEBase = nil then
+    raise EgdcException.Create('Unregistered class.');
+
+  ReadFromRelations(CEBase);
 end;
 
 class function TgdcAttrUserDefinedTree.GetViewFormClassName(
@@ -1861,61 +1740,39 @@ begin
   {END MACRO}
 end;
 
-class function TgdcAttrUserDefinedLBRBTree.GetSubTypeList(SubTypeList: TStrings;
-  Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
-  
-  procedure GetChildSubtype(var STList: TStrings; SType: string; ODirect: Boolean);
+class procedure TgdcAttrUserDefinedLBRBTree.RegisterClassHierarchy;
+
+  procedure ReadFromRelations(ACE: TgdClassEntry);
   var
-    I: integer;
-    ST: string;
+    CurrCE: TgdClassEntry;
+    SL: TStringList;
+    I: Integer;
   begin
-    with atDatabase.Relations do
-    for I := 0 to Count - 1 do
-    begin
-      if Items[I].IsUserDefined
-        and Assigned(Items[I].PrimaryKey)
-        and Assigned(Items[I].PrimaryKey.ConstraintFields)
-        and (Items[I].PrimaryKey.ConstraintFields.Count = 1)
-        and (AnsiCompareText(Items[I].PrimaryKey.ConstraintFields[0].FieldName, 'ID') = 0)
-        and  Assigned(Items[I].RelationFields.ByFieldName('INHERITED'))
-        and (AnsiCompareText(Items[I].RelationFields.ByFieldName('ID').ForeignKey.ReferencesRelation.RelationName, SType) = 0) then
+    if ACE.Initialized then
+      exit;
+
+    SL := TStringList.Create;
+    try
+      if ACE.SubType > '' then
       begin
-        Assert(SubTypeList.IndexOfName(Items[I].LNAME) = -1,
-          'Duplicate local name of user defined table "' + Items[I].LNAME + '".');
-        STList.Add(Items[I].LNAME + '=' + Items[I].RelationName);
-        if not ODirect then
-        begin
-          ST := Items[I].RelationName;
-          GetChildSubtype(STList, ST, False);
-        end;
-      end;
-    end;
-  end;
-
-var
-  I: Integer;
-begin
-  SubTypeList.Clear;
-
-  if Subtype > '' then
-    Subtype := StringReplace(Subtype, 'USR_', 'USR$',[rfIgnoreCase]);
-
-  if (Subtype > '') and OnlyDirect then
-  begin
-    //непосредсвенные наследники от Subtype
-    GetChildSubtype(SubTypeList, Subtype, True);
-  end
-  else if (Subtype > '') and (not OnlyDirect) then
-    begin
-     //вся иерархия наследников от Subtype
-     GetChildSubtype(SubTypeList, Subtype, False);
-    end
-    else if (Subtype = '') and OnlyDirect then
-      begin
-        //непосредсвенные наследники класса
         with atDatabase.Relations do
         for I := 0 to Count - 1 do
+        if Items[I].IsUserDefined
+          and Assigned(Items[I].PrimaryKey)
+          and Assigned(Items[I].PrimaryKey.ConstraintFields)
+          and (Items[I].PrimaryKey.ConstraintFields.Count = 1)
+          and (AnsiCompareText(Items[I].PrimaryKey.ConstraintFields[0].FieldName, 'ID') = 0)
+          and  Assigned(Items[I].RelationFields.ByFieldName('INHERITED'))
+          and (AnsiCompareText(Items[I].RelationFields.ByFieldName('ID').ForeignKey.ReferencesRelation.RelationName,
+            ACE.SubType) = 0) then
         begin
+          SL.Add(Items[I].RelationName);
+        end;
+      end
+      else
+      begin
+        with atDatabase.Relations do
+        for I := 0 to Count - 1 do
           if Items[I].IsUserDefined
             and Assigned(Items[I].PrimaryKey)
             and Assigned(Items[I].PrimaryKey.ConstraintFields)
@@ -1923,72 +1780,34 @@ begin
             and (AnsiCompareText(Items[I].PrimaryKey.ConstraintFields[0].FieldName, 'ID') = 0)
             and Assigned(Items[I].RelationFields.ByFieldName('PARENT'))
             and Assigned(Items[I].RelationFields.ByFieldName('LB'))
-            and Assigned(Items[I].RelationFields.ByFieldName('RB'))
             and not Assigned(Items[I].RelationFields.ByFieldName('INHERITED'))then
           begin
-            Assert(SubTypeList.IndexOfName(Items[I].LNAME) = -1,
-              'Duplicate local name of user defined table "' + Items[I].LNAME + '".');
-            SubTypeList.Add(Items[I].LNAME + '=' + Items[I].RelationName);
+            SL.Add(Items[I].RelationName);
           end;
-        end;
-      end
-      else if (Subtype = '') and (not OnlyDirect) then
-        begin
-          //вся иерархия наследников
-          with atDatabase.Relations do
-          for I := 0 to Count - 1 do
-          begin
-            if Items[I].IsUserDefined
-              and Assigned(Items[I].PrimaryKey)
-              and Assigned(Items[I].PrimaryKey.ConstraintFields)
-              and (Items[I].PrimaryKey.ConstraintFields.Count = 1)
-              and (AnsiCompareText(Items[I].PrimaryKey.ConstraintFields[0].FieldName, 'ID') = 0)
-              and Assigned(Items[I].RelationFields.ByFieldName('PARENT'))
-              and Assigned(Items[I].RelationFields.ByFieldName('LB'))
-              and Assigned(Items[I].RelationFields.ByFieldName('RB'))
-              and not Assigned(Items[I].RelationFields.ByFieldName('INHERITED'))then
-            begin
-              Assert(SubTypeList.IndexOfName(Items[I].LNAME) = -1,
-                'Duplicate local name of user defined table "' + Items[I].LNAME + '".');
-              SubTypeList.Add(Items[I].LNAME + '=' + Items[I].RelationName);
-              GetChildSubtype(SubTypeList, Subtype, False);
-            end;
-          end;
-        end;
+      end;
 
-  Result := SubTypeList.Count > 0;
-end;
+      for I := 0 to SL.Count - 1 do
+      begin
+        CurrCE := gdcClassList.Add(ACE.TheClass, SL[I], ACE.SubType);
+        ReadFromRelations(CurrCE);
+      end;
+    finally
+      SL.Free;
+    end;
 
-class function TgdcAttrUserDefinedLBRBTree.ClassParentSubtype(
-  Subtype: String): String;
-var
-  LSubType: String;
-  Flag: Boolean;
-begin
-  Result := '';
-
-  Flag := False;
-  if Subtype > '' then
-  begin
-    LSubtype := StringReplace(Subtype, 'USR_', 'USR$',[rfIgnoreCase]);
-    if (Subtype <> LSubtype) then
-      Flag := True;
+    ACE.Initialized := True;
   end;
 
-  if Assigned(atDatabase.Relations.ByRelationName(LSubtype)) then
-    with atDatabase.Relations.ByRelationName(LSubtype) do
-      if IsUserDefined
-        and Assigned(PrimaryKey)
-        and Assigned(PrimaryKey.ConstraintFields)
-        and (PrimaryKey.ConstraintFields.Count = 1)
-        and (AnsiCompareText(PrimaryKey.ConstraintFields[0].FieldName, 'ID') = 0)
-        and Assigned(RelationFields.ByFieldName('INHERITED'))
-        and Assigned(RelationFields.ByFieldName('ID').ForeignKey.ReferencesRelation) then
-      begin
-        Result := RelationFields.ByFieldName('ID').ForeignKey.ReferencesRelation.RelationName
-      end;
-  if Flag then
-    Result := StringReplace(Result, 'USR$', 'USR_',[rfIgnoreCase]);
+var
+  CEBase: TgdClassEntry;
+
+begin
+  CEBase := gdcClassList.Find(Self);
+
+  if CEBase = nil then
+    raise EgdcException.Create('Unregistered class.');
+
+  ReadFromRelations(CEBase);
 end;
 
 class function TgdcAttrUserDefinedLBRBTree.GetViewFormClassName(
