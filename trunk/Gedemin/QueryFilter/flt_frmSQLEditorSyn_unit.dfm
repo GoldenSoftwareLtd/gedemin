@@ -508,7 +508,6 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
           ParentField = 'PARENT'
           DisplayField = 'NAME'
           Align = alClient
-          HideSelection = False
           Indent = 19
           ReadOnly = True
           SortType = stText

@@ -17,7 +17,7 @@ uses
   gd_createable_form, contnrs, gsStorage, Storages, Menus, TB2Item,
   TB2Dock, TB2Toolbar, SuperPageControl, gsDBGrid, StdActns,
   gsIBLookupComboBox, TeEngine, Series, TeeProcs, Chart, TB2ExtItems,
-  gdc_frmSQLHistory_unit,
+  gdc_frmSQLHistory_unit, gd_ClassList,
   {$IFDEF GEDEMIN}
   gdcBase,
   {$ENDIF}
@@ -372,6 +372,7 @@ type
     function ConcatErrorMessage(const M: String): String;
     procedure FillClassesList;
     function ibtrEditor: TIBTransaction;
+    function BuildClassTree(ACE: TgdClassEntry; AData: Pointer): Boolean;
 
   public
     FDatabase: TIBDatabase;
@@ -401,7 +402,7 @@ uses
   gdcBaseInterface, flt_sql_parser, flt_sqlFilter, at_sql_setup,
   {$ENDIF}
   gd_directories_const, Clipbrd, gd_security, gd_ExternalEditor,
-  gd_common_functions, gd_classlist
+  gd_common_functions
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -1596,21 +1597,44 @@ begin
     Result := _ibtrEditor;
 end;
 
+function TfrmSQLEditorSyn.BuildClassTree(ACE: TgdClassEntry; AData: Pointer): Boolean;
+var
+  LI: TListItem;
+begin
+  LI := lvClasses.Items.Add;
+  LI.Caption := ACE.TheClass.ClassName;
+
+  if ACE.gdClass.IsAbstractClass then
+    LI.SubItems.Text := '<Абстрактный базовый класс>'
+  else
+    LI.SubItems.Text := ACE.SubType;
+
+  LI.SubItems.Add(ACE.gdClass.GetDisplayName(ACE.SubType));
+  LI.SubItems.Add(ACE.gdClass.GetListTable(ACE.SubType));
+
+  Result := True;
+end;
+
 procedure TfrmSQLEditorSyn.FillClassesList;
 {$IFDEF GEDEMIN}
 var
-  SL: TStringList;
+  {SL: TStringList;
   I, J, T: Integer;
   LI: TListItem;
   SubType: String;
-  Cursor: TCursor;
+  Cursor: TCursor;}
+  CE: TgdClassEntry;
 {$ENDIF}
 begin
   if lvClasses.Items.Count > 0 then
     exit;
 
   {$IFDEF GEDEMIN}
-  Cursor := Screen.Cursor;
+  CE := gdcClassList.Find(TgdcBase);
+  if CE <> nil then
+    CE.Traverse(BuildClassTree, nil);
+
+  {Cursor := Screen.Cursor;
   SL := TStringList.Create;
   try
     Screen.Cursor := crSQLWait;
@@ -1647,7 +1671,7 @@ begin
   finally
     Screen.Cursor := Cursor;
     SL.Free;
-  end;
+  end;}
   {$ENDIF}
 
   lblClassesCount.Caption := 'Бизнес-классов: ' + IntToStr(lvClasses.Items.Count);

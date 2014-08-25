@@ -268,7 +268,12 @@ type
     property gdMethods: TgdMethodList read FgdMethods;
   end;
 
-    TgdClassEntry = class(TObject)
+  TgdClassEntry = class;
+
+  TgdClassEntryCallback = function(ACE: TgdClassEntry; AData: Pointer): Boolean
+    of object;
+
+  TgdClassEntry = class(TObject)
   private
     FParent: TgdClassEntry;
     FClass: TClass;
@@ -280,6 +285,7 @@ type
 
     function GetSiblings(Index: Integer): TgdClassEntry;
     function GetCount: Integer;
+    function GetGdClass: CgdcBase;
 
   public
     constructor Create(AParent: TgdClassEntry;
@@ -289,9 +295,12 @@ type
     function Compare(const AClass: TClass; const ASubType: TgdcSubType = ''): Boolean;
     procedure AddSibling(ASibling: TgdClassEntry);
     function GetSubTypeList(ASubTypeList: TStrings; const AnOnlyDirect: Boolean): Boolean;
+    function Traverse(ACallback: TgdClassEntryCallback; AData: Pointer;
+      const AnIncludeRoot: Boolean = True; const AnOnlyDirect: Boolean = False): Boolean;
 
     property Parent: TgdClassEntry read FParent;
     property TheClass: TClass read FClass;
+    property gdClass: CgdcBase read GetGdClass;
     property SubType: TgdcSubType read FSubType;
     property Caption: String read FCaption;
     property Count: Integer read GetCount;
@@ -1276,6 +1285,14 @@ begin
     Result := FSiblings.Count;  
 end;
 
+function TgdClassEntry.GetGdClass: CgdcBase;
+begin
+  if (FClass <> nil) and FClass.InheritsFrom(TgdcBase) then
+    Result := CgdcBase(FClass)
+  else
+    raise Exception.Create('Not a business class.');   
+end;
+
 function TgdClassEntry.GetSiblings(Index: Integer): TgdClassEntry;
 begin
   Result := FSiblings[Index] as TgdClassEntry;
@@ -1290,19 +1307,39 @@ begin
 
   Result := False;
 
-  if FSiblings <> nil then
+  for I := 0 to Count - 1 do
   begin
-    for I := 0 to Count - 1 do
+    if Siblings[I].SubType > '' then
     begin
-      if Siblings[I].SubType > '' then
-      begin
-        ASubTypeList.Add(Siblings[I].SubType + '=' + Siblings[I].SubType);
-        Result := True;
-      end;
-
-      if not AnOnlyDirect then
-        Result := Result or Siblings[I].GetSubTypeList(ASubTypeList, False);
+      ASubTypeList.Add(Siblings[I].SubType + '=' + Siblings[I].SubType);
+      Result := True;
     end;
+
+    if not AnOnlyDirect then
+      Result := Result or Siblings[I].GetSubTypeList(ASubTypeList, False);
+  end;
+end;
+
+function TgdClassEntry.Traverse(ACallback: TgdClassEntryCallback;
+  AData: Pointer; const AnIncludeRoot: Boolean; const AnOnlyDirect: Boolean): Boolean;
+var
+  I: Integer;
+begin
+  Assert(Assigned(ACallback));
+
+  if AnIncludeRoot then
+    Result := ACallback(Self, AData)
+  else
+    Result := True;
+
+  I := 0;
+  while Result and (I < Count) do
+  begin
+    if AnOnlyDirect then
+      Result := Result and ACallback(Siblings[I], AData)
+    else
+      Result := Result and Siblings[I].Traverse(ACallback, AData, True, False);
+    Inc(I);  
   end;
 end;
 
