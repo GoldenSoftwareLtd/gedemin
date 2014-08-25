@@ -2,7 +2,7 @@ object dlgMaster: TdlgMaster
   Left = 547
   Top = 274
   Width = 591
-  Height = 442
+  Height = 449
   HelpContext = 4
   BorderIcons = [biSystemMenu, biMaximize]
   Caption = 'Мастер установок'
@@ -21,17 +21,17 @@ object dlgMaster: TdlgMaster
     Left = 0
     Top = 0
     Width = 575
-    Height = 367
+    Height = 381
     Align = alClient
     BevelOuter = bvNone
-    BorderWidth = 2
+    BorderWidth = 4
     TabOrder = 0
     object pcOptions: TPageControl
-      Left = 2
-      Top = 2
-      Width = 571
-      Height = 363
-      ActivePage = tsColumn
+      Left = 4
+      Top = 4
+      Width = 567
+      Height = 373
+      ActivePage = tsTable
       Align = alClient
       TabHeight = 16
       TabOrder = 0
@@ -247,10 +247,10 @@ object dlgMaster: TdlgMaster
         Caption = 'Колонки'
         ImageIndex = 1
         object Panel4: TPanel
-          Left = 254
+          Left = 250
           Top = 0
           Width = 309
-          Height = 337
+          Height = 347
           Align = alRight
           BevelOuter = bvNone
           BorderWidth = 4
@@ -259,7 +259,7 @@ object dlgMaster: TdlgMaster
             Left = 4
             Top = 4
             Width = 301
-            Height = 329
+            Height = 339
             ActivePage = TabSheet5
             Align = alClient
             TabHeight = 23
@@ -573,8 +573,8 @@ object dlgMaster: TdlgMaster
         object Panel5: TPanel
           Left = 0
           Top = 0
-          Width = 254
-          Height = 337
+          Width = 250
+          Height = 347
           Align = alClient
           BevelOuter = bvNone
           BorderWidth = 6
@@ -582,8 +582,8 @@ object dlgMaster: TdlgMaster
           object lvColumns: TListView
             Left = 6
             Top = 6
-            Width = 242
-            Height = 238
+            Width = 238
+            Height = 248
             Align = alClient
             Columns = <
               item
@@ -609,8 +609,8 @@ object dlgMaster: TdlgMaster
           end
           object Panel7: TPanel
             Left = 6
-            Top = 244
-            Width = 242
+            Top = 254
+            Width = 238
             Height = 87
             Align = alBottom
             BevelOuter = bvNone
@@ -618,7 +618,7 @@ object dlgMaster: TdlgMaster
             object cbColumnsChooseAll: TCheckBox
               Left = 11
               Top = 3
-              Width = 218
+              Width = 214
               Height = 17
               Alignment = taLeftJustify
               Anchors = [akLeft, akTop, akRight]
@@ -631,7 +631,7 @@ object dlgMaster: TdlgMaster
             object GroupBox9: TGroupBox
               Left = 0
               Top = 19
-              Width = 242
+              Width = 238
               Height = 68
               Align = alBottom
               Caption = ' Расширенное отображение '
@@ -639,7 +639,7 @@ object dlgMaster: TdlgMaster
               object cbColumnExpanded: TCheckBox
                 Left = 11
                 Top = 13
-                Width = 210
+                Width = 206
                 Height = 17
                 Action = actColumnExpaneded
                 Alignment = taLeftJustify
@@ -650,7 +650,7 @@ object dlgMaster: TdlgMaster
               object cbColumnSeparateExp: TCheckBox
                 Left = 11
                 Top = 30
-                Width = 210
+                Width = 206
                 Height = 17
                 Action = actColumnSeparateExp
                 Alignment = taLeftJustify
@@ -660,7 +660,7 @@ object dlgMaster: TdlgMaster
               object cbColumnTitleExp: TCheckBox
                 Left = 11
                 Top = 47
-                Width = 210
+                Width = 206
                 Height = 17
                 Action = actColumnTitleExp
                 Alignment = taLeftJustify
@@ -675,10 +675,10 @@ object dlgMaster: TdlgMaster
         Caption = 'Условия'
         ImageIndex = 2
         object Panel6: TPanel
-          Left = 250
+          Left = 246
           Top = 0
           Width = 313
-          Height = 337
+          Height = 347
           Align = alRight
           BevelOuter = bvNone
           BorderWidth = 4
@@ -687,7 +687,7 @@ object dlgMaster: TdlgMaster
             Left = 4
             Top = 4
             Width = 305
-            Height = 329
+            Height = 339
             ActivePage = TabSheet6
             Align = alClient
             Anchors = [akTop, akRight, akBottom]
@@ -742,7 +742,7 @@ object dlgMaster: TdlgMaster
                   Width = 190
                   Height = 21
                   Style = csDropDownList
-                  ItemHeight = 0
+                  ItemHeight = 13
                   TabOrder = 1
                   OnClick = editConditionColumnClick
                 end
@@ -782,7 +782,7 @@ object dlgMaster: TdlgMaster
                   Height = 21
                   Style = csDropDownList
                   DropDownCount = 12
-                  ItemHeight = 0
+                  ItemHeight = 13
                   TabOrder = 0
                   OnClick = editConditionKindClick
                 end
@@ -905,16 +905,16 @@ object dlgMaster: TdlgMaster
         object Panel8: TPanel
           Left = 0
           Top = 0
-          Width = 250
-          Height = 337
+          Width = 246
+          Height = 347
           Align = alClient
           BevelOuter = bvNone
           TabOrder = 0
           object lbConditions: TListBox
             Left = 6
             Top = 25
-            Width = 246
-            Height = 162
+            Width = 242
+            Height = 172
             Anchors = [akLeft, akTop, akRight, akBottom]
             ItemHeight = 13
             TabOrder = 1
@@ -922,7 +922,7 @@ object dlgMaster: TdlgMaster
           end
           object btnConditonAdd: TButton
             Left = 6
-            Top = 199
+            Top = 209
             Width = 75
             Height = 21
             Action = actConditionAdd
@@ -931,7 +931,7 @@ object dlgMaster: TdlgMaster
           end
           object btnConditionDelete: TButton
             Left = 6
-            Top = 223
+            Top = 233
             Width = 75
             Height = 21
             Action = actConditionDelete
@@ -940,7 +940,7 @@ object dlgMaster: TdlgMaster
           end
           object btnConditionUp: TButton
             Left = 6
-            Top = 247
+            Top = 257
             Width = 75
             Height = 21
             Action = actConditionUp
@@ -949,7 +949,7 @@ object dlgMaster: TdlgMaster
           end
           object btnConditionDown: TButton
             Left = 6
-            Top = 271
+            Top = 281
             Width = 75
             Height = 21
             Action = actConditionDown
@@ -978,7 +978,7 @@ object dlgMaster: TdlgMaster
         end
         object Label11: TLabel
           Left = 8
-          Top = 221
+          Top = 231
           Width = 373
           Height = 61
           Anchors = [akLeft, akBottom]
@@ -992,7 +992,7 @@ object dlgMaster: TdlgMaster
         end
         object lblDefaults: TLabel
           Left = 132
-          Top = 282
+          Top = 292
           Width = 233
           Height = 50
           Anchors = [akLeft, akBottom]
@@ -1006,8 +1006,8 @@ object dlgMaster: TdlgMaster
         object lbTemplate: TListBox
           Left = 6
           Top = 26
-          Width = 560
-          Height = 151
+          Width = 556
+          Height = 161
           Anchors = [akLeft, akTop, akRight, akBottom]
           Font.Charset = RUSSIAN_CHARSET
           Font.Color = clWindowText
@@ -1034,7 +1034,7 @@ object dlgMaster: TdlgMaster
         end
         object btnSetTemplate: TButton
           Left = 6
-          Top = 185
+          Top = 195
           Width = 117
           Height = 21
           Action = actTemplate
@@ -1043,7 +1043,7 @@ object dlgMaster: TdlgMaster
         end
         object btnSaveTemplate: TButton
           Left = 266
-          Top = 185
+          Top = 195
           Width = 117
           Height = 21
           Action = actSaveTemplate
@@ -1052,7 +1052,7 @@ object dlgMaster: TdlgMaster
         end
         object btnLoadTemplate: TButton
           Left = 136
-          Top = 185
+          Top = 195
           Width = 117
           Height = 21
           Action = actLoadTemplate
@@ -1061,7 +1061,7 @@ object dlgMaster: TdlgMaster
         end
         object btnDefaults: TButton
           Left = 6
-          Top = 285
+          Top = 295
           Width = 117
           Height = 21
           Hint = 'Установить шаблон'
@@ -1515,9 +1515,9 @@ object dlgMaster: TdlgMaster
   end
   object Panel2: TPanel
     Left = 0
-    Top = 367
+    Top = 381
     Width = 575
-    Height = 37
+    Height = 30
     Align = alBottom
     BevelOuter = bvNone
     TabOrder = 1
@@ -1525,13 +1525,13 @@ object dlgMaster: TdlgMaster
       Left = 311
       Top = 0
       Width = 264
-      Height = 37
+      Height = 30
       Align = alRight
       BevelOuter = bvNone
       TabOrder = 0
       object btnCancel: TButton
-        Left = 98
-        Top = 7
+        Left = 104
+        Top = 3
         Width = 75
         Height = 21
         Action = actCancel
@@ -1540,8 +1540,8 @@ object dlgMaster: TdlgMaster
         TabOrder = 1
       end
       object btnOk: TButton
-        Left = 9
-        Top = 7
+        Left = 24
+        Top = 3
         Width = 75
         Height = 21
         Action = actOk
@@ -1549,8 +1549,8 @@ object dlgMaster: TdlgMaster
         TabOrder = 0
       end
       object btnHelp: TButton
-        Left = 186
-        Top = 7
+        Left = 185
+        Top = 3
         Width = 75
         Height = 21
         Action = actHelp
@@ -1558,16 +1558,16 @@ object dlgMaster: TdlgMaster
       end
     end
     object btnApply: TButton
-      Left = 2
-      Top = 7
+      Left = 4
+      Top = 3
       Width = 75
       Height = 21
       Action = actApply
       TabOrder = 1
     end
     object btnReset: TButton
-      Left = 89
-      Top = 7
+      Left = 84
+      Top = 3
       Width = 75
       Height = 21
       Action = actReset
@@ -1788,7 +1788,7 @@ object dlgMaster: TdlgMaster
     end
     object actHelp: TAction
       Category = 'Result'
-      Caption = 'Помощь'
+      Caption = 'Справка'
       Enabled = False
       OnExecute = actHelpExecute
     end
