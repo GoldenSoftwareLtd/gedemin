@@ -330,17 +330,65 @@ type
   end;
 
   TgdcInvDocumentType = class(TgdcDocumentType)
+  private
+    FSourceFeatures, FDestFeatures, FMinusFeatures: TStringList;
+    FRelationLineName: String;
+    FRelationName: String;
+    FDirection: TgdcInvMovementDirection;
+    FEnglishName: String;
+    FLiveTimeRemains: Boolean;
+    FDelayedDocument: Boolean;
+    FMinusRemains: Boolean;
+    FIsChangeCardValue: Boolean;
+    FIsAppendCardValue: Boolean;
+    FSaveRestWindowOption: Boolean;
+    FIsUseCompanyKey: Boolean;
+    FEndMonthRemains: Boolean;
+    FControlRemains: Boolean;
+    FSources: TgdcInvReferenceSources;
+    FDebitMovement: TgdcInvMovementContactOption;
+    FCreditMovement: TgdcInvMovementContactOption;
+
+
   protected
     procedure CreateFields; override;
     procedure DoBeforePost; override;
+    procedure DoBeforeEdit; override;
+    procedure DoBeforeInsert; override;
+    procedure DoAfterCustomProcess(Buff: Pointer; Process: TgsCustomProcess); override;
+
 
   public
     constructor Create(AnOwner: TComponent); override;
+    destructor Destroy; override;
+
+    procedure ReadOptions(Stream: TStream);
 
     class function InvDocumentTypeBranchKey: Integer;
     class function GetHeaderDocumentClass: CgdcBase; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
+
+    property SourceFeatures: TStringList read FSourceFeatures;
+    property DestFeatures: TStringList read FDestFeatures;
+    property MinusFeatures: TStringList read FMinusFeatures;
+    property Sources: TgdcInvReferenceSources read FSources write FSources;
+    property Direction: TgdcInvMovementDirection read FDirection write FDirection;
+    property ControlRemains: Boolean read FControlRemains write FControlRemains;
+    property DebitMovement: TgdcInvMovementContactOption read FDebitMovement;
+    property CreditMovement: TgdcInvMovementContactOption read FCreditMovement;
+    property RelationName: String read FRelationName write FRelationName;
+    property RelationLineName: String read FRelationLineName write FRelationLineName;
+    property EnglishName: String read FEnglishName;
+    property LiveTimeRemains: Boolean read FLiveTimeRemains write FLiveTimeRemains;
+    property DelayedDocument: Boolean read FDelayedDocument write FDelayedDocument;
+    property MinusRemains: Boolean read FMinusRemains write FMinusRemains;
+    property IsChangeCardValue: Boolean read FIsChangeCardValue write FIsChangeCardValue;
+    property IsAppendCardValue: Boolean read FIsAppendCardValue write FIsAppendCardValue;
+    property IsUseCompanyKey: Boolean read FIsUseCompanyKey write FIsUseCompanyKey;
+    property SaveRestWindowOption: Boolean read FSaveRestWindowOption write FSaveRestWindowOption;
+    property EndMonthRemains: Boolean read FEndMonthRemains write FEndMonthRemains;
+
   end;
 
   EgdcInvBaseDocument = class(Exception);
@@ -3555,6 +3603,12 @@ constructor TgdcInvDocumentType.Create(AnOwner: TComponent);
 begin
   inherited;
   CustomProcess := [cpInsert, cpModify];
+
+  FSourceFeatures := TStringList.Create;
+  FDestFeatures := TStringList.Create;
+  FMinusFeatures := TStringList.Create;
+  FDebitMovement := TgdcInvMovementContactOption.Create;
+  FCreditMovement := TgdcInvMovementContactOption.Create;  
 end;
 
 procedure TgdcInvDocumentType.CreateFields;
@@ -3594,6 +3648,71 @@ begin
   {M}      ClearMacrosStack2('TGDCINVDOCUMENTTYPE', 'CREATEFIELDS', KEYCREATEFIELDS);
   {M}  end;
   {END MACRO}
+end;
+
+destructor TgdcInvDocumentType.Destroy;
+begin
+  inherited;
+  FSourceFeatures.Free;
+  FDestFeatures.Free;
+  FMinusFeatures.Free;
+  FDebitMovement.Free;
+  FCreditMovement.Free;
+
+end;
+
+procedure TgdcInvDocumentType.DoAfterCustomProcess(Buff: Pointer;
+  Process: TgsCustomProcess);
+begin
+  inherited;
+
+end;
+
+procedure TgdcInvDocumentType.DoBeforeEdit;
+var
+  Stream: TStream;
+begin
+  inherited;
+
+  if not FieldByName('OPTIONS').IsNull then
+  begin
+    Stream := TStringStream.Create(FieldByName('OPTIONS').AsString);
+    try
+      ReadOptions(Stream);
+    finally
+      Stream.Free;
+    end;
+  end;
+
+end;
+
+procedure TgdcInvDocumentType.DoBeforeInsert;
+var
+  ibsql: TIBSQL;
+  Stream: TStream;
+begin
+  inherited;
+  if not (sLoadFromStream in BaseState) then
+  begin
+    ibsql := TIBSQL.Create(nil);
+    try
+      ibsql.Transaction := ReadTransaction;
+      ibsql.SQL.Text := 'SELECT OPTIONS FROM gd_documenttype WHERE id = :id AND documenttype = ''D'' ';
+      ibsql.ParamByName('id').AsInteger := FieldByName('parent').AsInteger;
+      ibsql.ExecQuery;
+      if not ibsql.Eof then
+      begin
+        Stream := TStringStream.Create(ibsql.FieldByName('OPTIONS').AsString);
+        try
+          ReadOptions(Stream);
+        finally
+          Stream.Free;
+        end;
+      end
+    finally
+      ibsql.Free;
+    end;
+  end;
 end;
 
 procedure TgdcInvDocumentType.DoBeforePost;
@@ -3653,6 +3772,272 @@ end;
 class function TgdcInvDocumentType.InvDocumentTypeBranchKey: Integer;
 begin
   Result := INV_DOC_INVENTBRANCH;
+end;
+
+procedure TgdcInvDocumentType.ReadOptions(Stream: TStream);
+var
+  Version: String;
+  RKey: Integer;
+  ibsql: TIBSQL;
+  R: TatRelation;
+
+  F: TatRelationField;
+
+begin
+  ibsql := TIBSQL.Create(nil);
+  ibsql.SQL.Text := 'SELECT name FROM gd_contact WHERE id = :id';
+  ibsql.Database := Database;
+  if Transaction.InTransaction then
+    ibsql.Transaction := Transaction
+  else
+    ibsql.Transaction := ReadTransaction;
+
+  with TReader.Create(Stream, 1024) do
+  try
+    // Общие настройки
+    Version := ReadString;
+
+    // Наименования таблиц
+    RelationName := ReadString;
+    RelationLineName := ReadString;
+
+    if FieldByName('headerrelkey').IsNull then
+    begin
+      R := atDatabase.Relations.ByRelationName(RelationName);
+      if Assigned(R) then
+      begin
+        if not (State in [dsEdit, dsInsert]) then
+          Edit;
+        FieldByName('headerrelkey').AsInteger := R.ID;
+      end;
+
+    end;
+
+    if FieldByName('linerelkey').IsNull then
+    begin
+      R := atDatabase.Relations.ByRelationName(RelationLineName);
+      if Assigned(R) then
+      begin
+        if not (State in [dsEdit, dsInsert]) then
+          Edit;
+        FieldByName('linerelkey').AsInteger := R.ID;
+      end;
+
+    end;
+
+    FEnglishName := RelationName;
+
+    if (Version <> gdcInvDocument_Version2_0) and (Version <> gdcInvDocument_Version2_1) and
+       (Version <> gdcInvDocument_Version2_2) and (Version <> gdcInvDocument_Version2_3)
+    then
+    // Тип документа считываем
+      ReadInteger;
+
+    // Ключ записи из сиска отчетов
+    if (Version = gdcInvDocument_Version2_2) or
+      (Version = gdcInvDocument_Version2_3) or
+      (Version = gdcInvDocument_Version2_1) or
+      (Version = gdcInvDocument_Version2_0) or
+      (Version = gdcInvDocument_Version1_9) then
+    begin
+      RKey := ReadInteger;
+      if (RKey > 0) and FieldByName('reportgroupkey').IsNull then
+      begin
+        if not (State in [dsEdit, dsInsert]) then Edit;
+        FieldByName('reportgroupkey').AsInteger := RKey;
+      end;
+    end;
+
+
+//    UpdateEditingSettings;
+
+
+    // Приход
+    SetLength(DebitMovement.Predefined, 0);
+    SetLength(DebitMovement.SubPredefined, 0);
+
+    DebitMovement.RelationName := ReadString;
+    DebitMovement.SourceFieldName := ReadString;
+    DebitMovement.SubRelationName := ReadString;
+    DebitMovement.SubSourceFieldName := ReadString;
+
+    Read(DebitMovement.ContactType, SizeOf(TgdcInvMovementContactType));
+
+    ReadListBegin;
+    while not EndOfList do
+    begin
+      SetLength(DebitMovement.Predefined,
+        Length(DebitMovement.Predefined) + 1);
+      DebitMovement.Predefined[Length(DebitMovement.Predefined) - 1] :=
+        ReadInteger;
+    end;
+    ReadListEnd;
+
+    ReadListBegin;
+    while not EndOfList do
+    begin
+      SetLength(DebitMovement.SubPredefined,
+        Length(DebitMovement.SubPredefined) + 1);
+      DebitMovement.SubPredefined[Length(DebitMovement.SubPredefined) - 1] :=
+        ReadInteger;
+    end;
+    ReadListEnd;
+
+    // Расход
+    SetLength(CreditMovement.Predefined, 0);
+    SetLength(CreditMovement.SubPredefined, 0);
+
+    CreditMovement.RelationName := ReadString;
+    CreditMovement.SourceFieldName := ReadString;
+
+    CreditMovement.SubRelationName := ReadString;
+    CreditMovement.SubSourceFieldName := ReadString;
+
+    Read(CreditMovement.ContactType, SizeOf(TgdcInvMovementContactType));
+
+    ReadListBegin;
+    while not EndOfList do
+    begin
+      SetLength(CreditMovement.Predefined,
+        Length(CreditMovement.Predefined) + 1);
+      CreditMovement.Predefined[Length(CreditMovement.Predefined) - 1] :=
+        ReadInteger;
+    end;
+    ReadListEnd;
+
+    ReadListBegin;
+    while not EndOfList do
+    begin
+      SetLength(CreditMovement.SubPredefined,
+        Length(CreditMovement.SubPredefined) + 1);
+      CreditMovement.SubPredefined[Length(CreditMovement.SubPredefined) - 1] :=
+        ReadInteger;
+    end;
+    ReadListEnd;
+
+    // Настройки признаков
+    ReadListBegin;
+    while not EndOfList do
+    begin
+      F := atDatabase.FindRelationField('INV_CARD', ReadString);
+      if not Assigned(F) then Continue;
+      FSourceFeatures.AddObject(F.FieldName, F);
+    end;
+    ReadListEnd;
+
+    ReadListBegin;
+    while not EndOfList do
+    begin
+      F := atDatabase.FindRelationField('INV_CARD', ReadString);
+      if not Assigned(F) then Continue;
+      FDestFeatures.AddObject(F.FieldName, F);
+    end;
+    ReadListEnd;
+
+  {  SetupFeaturesTab;}
+
+    // Настройка справочников
+    Read(FSources, SizeOf(TgdcInvReferenceSources));
+
+{    cbReference.Checked := irsGoodRef in Sources;
+    cbRemains.Checked := irsRemainsRef in Sources;}
+//  cbFromMacro.Checked := irsMacro in Sources;
+
+    // Настройка FIFO, LIFO
+    Read(FDirection, SizeOf(TgdcInvMovementDirection));
+{    rgMovementDirection.ItemIndex := Integer(Direction);
+
+    // Конроль остатков
+    cbControlRemains.Checked := ReadBoolean;             }
+    FControlRemains := ReadBoolean;
+    // работа только с текущими остатками
+    if (Version = gdcInvDocument_Version1_9) or
+      (Version = gdcInvDocument_Version2_0) or
+      (Version = gdcInvDocument_Version2_1) or
+      (Version = gdcInvDocument_Version2_2) or
+      (Version = gdcInvDocument_Version2_3) or
+      (Version = gdcInvDocument_Version2_4) or
+      (Version = gdcInvDocument_Version2_5) or
+      (Version = gdcInvDocument_Version2_6)   then
+      LiveTimeRemains := ReadBoolean
+    else
+      LiveTimeRemains := False;
+
+{    if not cbRemains.Checked then
+    begin
+      // Конроль остатков
+      cbControlRemains.Checked := False;
+
+      // работа только с текущими остатками
+      cbLiveTimeRemains.Checked := False;
+    end; }
+
+    // Документ может быть отложенным
+    DelayedDocument := ReadBoolean;
+    // Может использоваться кэширование
+    ReadBoolean;
+
+    if (Version = gdcInvDocument_Version2_1) or (Version = gdcInvDocument_Version2_2)
+       or (Version = gdcInvDocument_Version2_3) or (Version = gdcInvDocument_Version2_4)
+       or (Version = gdcInvDocument_Version2_5)  or
+      (Version = gdcInvDocument_Version2_6)
+    then
+      MinusRemains := ReadBoolean
+    else
+      MinusRemains := False;
+
+{    gbMinusFeatures.Visible := cbMinusRemains.Checked;
+
+    if not cbRemains.Checked then
+      cbMinusRemains.Checked := False;                 }
+
+    if (Version = gdcInvDocument_Version2_2) or (Version = gdcInvDocument_Version2_3)
+       or (Version = gdcInvDocument_Version2_4) or (Version = gdcInvDocument_Version2_5) or
+      (Version = gdcInvDocument_Version2_6)
+    then
+    begin
+      ReadListBegin;
+      while not EndOfList do
+      begin
+        F := atDatabase.FindRelationField('INV_CARD', ReadString);
+        if not Assigned(F) then Continue;
+        FMinusFeatures.AddObject(F.FieldName, F);
+      end;
+      ReadListEnd;
+
+{      SetupMinusFeaturesTab;}
+    end;
+
+    if (Version = gdcInvDocument_Version2_3) or (Version = gdcInvDocument_Version2_4) or
+       (Version = gdcInvDocument_Version2_5)  or
+      (Version = gdcInvDocument_Version2_6) then
+    begin
+      IsChangeCardValue := ReadBoolean;
+      IsAppendCardValue := ReadBoolean;
+    end;
+
+    if (Version = gdcInvDocument_Version2_4) or (Version = gdcInvDocument_Version2_5)  or
+      (Version = gdcInvDocument_Version2_6) then
+      IsUseCompanyKey := ReadBoolean
+    else
+      IsUseCompanyKey := True;
+
+    if (Version = gdcInvDocument_Version2_5)  or
+      (Version = gdcInvDocument_Version2_6) then
+      SaveRestWindowOption := ReadBoolean
+    else
+      SaveRestWindowOption := False;
+
+    if (Version = gdcInvDocument_Version2_6) then
+      EndMonthRemains := ReadBoolean
+    else
+      EndMonthRemains := False;
+
+
+  finally
+    Free;
+    ibsql.Free;
+  end;
 end;
 
 initialization

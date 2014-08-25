@@ -1,6 +1,6 @@
 inherited gdc_frmInvDocument: Tgdc_frmInvDocument
-  Left = 379
-  Top = 182
+  Left = 380
+  Top = 184
   Caption = 'Складской документ'
   PixelsPerInch = 96
   TextHeight = 13
@@ -26,7 +26,6 @@ inherited gdc_frmInvDocument: Tgdc_frmInvDocument
     inherited pnlDetail: TPanel
       inherited TBDockDetail: TTBDock
         inherited tbDetailToolbar: TTBToolbar
-          Images = dmImages.il16x16
           object TBItem3: TTBItem
             Action = actGotoEntry
           end

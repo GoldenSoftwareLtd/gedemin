@@ -1,10 +1,11 @@
 inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
-  Left = 473
-  Top = 186
+  Left = 474
+  Top = 187
   Caption = 'Складской документ'
   PixelsPerInch = 96
   TextHeight = 13
   inherited pcMain: TPageControl
+    ActivePage = tsIncomeMovement
     OnChange = pcMainChange
     OnChanging = pcMainChanging
     inherited tsCommon: TTabSheet
@@ -455,7 +456,7 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
         Height = 21
         Style = csDropDownList
         Color = 11141119
-        ItemHeight = 13
+        ItemHeight = 0
         TabOrder = 0
         OnChange = cbDebitMovementChange
       end
@@ -513,7 +514,7 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
         Height = 21
         Style = csDropDownList
         Color = 11141119
-        ItemHeight = 13
+        ItemHeight = 0
         TabOrder = 2
         OnDropDown = luCreditFromDropDown
       end
@@ -523,7 +524,7 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
         Width = 368
         Height = 21
         Style = csDropDownList
-        ItemHeight = 13
+        ItemHeight = 0
         TabOrder = 8
         OnDropDown = luCreditFromDropDown
       end
