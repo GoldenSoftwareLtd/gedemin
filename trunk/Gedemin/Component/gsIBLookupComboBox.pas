@@ -1837,36 +1837,36 @@ end;
 function TgsIBLookupComboBox.CreateGDClassInstance(const AnID: Integer): TgdcBase;
 var
   C: TPersistentClass;
+  Obj: TgdcBase;
 begin
   C := GetClass(gdClassName);
-  if Assigned(C) and (C.InheritsFrom(TgdcBase)) then
-  begin
-    if FSubType > '' then
-    begin
-      if not CgdcBase(C).CheckSubType(FSubType) then
-        raise Exception.Create('gsIBLookupComboBox: invalid subtype specified'#13#10 +
-          'Class: ' + FgdClassName + #13#10'Subtype: ' + FSubType)
-    end;
+  if (C = nil) or (not C.InheritsFrom(TgdcBase)) then
+    Result := nil
+  else begin
+    if (FSubType > '') and (not CgdcBase(C).CheckSubType(FSubType)) then
+      raise EgsIBLookupComboBoxError.Create('gsIBLookupComboBox: invalid subtype specified'#13#10 +
+          'Class: ' + FgdClassName + #13#10'Subtype: ' + FSubType);
 
-    Result := CgdcBase(C).CreateSubType(Self.Owner, FSubType, 'ByID');
-    Result.ID := AnID;
-    if Result.ID <> -1 then
+    Obj := CgdcBase(C).CreateSubType(Self.Owner, FSubType, 'ByID');
+    if AnID > -1 then
     begin
-      Result.Open;
+      Obj.ID := AnID;
+      Obj.Open;
 
-      if Result.IsEmpty then
+      if Obj.IsEmpty then
       begin
         MessageBox(Handle,
           PChar('Невозможно создать экземпляр бизнес объекта с текущим ключем.'#13#10 +
           'Проверьте правильность задания имени класса, главной таблицы, а также транзакцию, '#13#10 +
           'на которой работает выпадающий список.'),
           'Внимание',
-          MB_OK or MB_ICONHAND);
+          MB_OK or MB_ICONHAND or MB_TASKMODAL);
+        Obj.Free;
         Abort;
       end;
     end;
-  end else
-    Result := nil;
+    Result := Obj;
+  end;
 end;
 
 procedure TgsIBLookupComboBox.SetgdClassName(const Value: TgdcClassName);

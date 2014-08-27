@@ -4701,12 +4701,12 @@ begin
       if not DontHideForms then
         if Assigned(frmSQLProcess) and AnModalSQLProcess and not frmSQLProcess.Silent then
         begin
+          frmSQLProcess.BringToFront;
           {$IFNDEF DUNIT_TEST}
           if frmSQLProcess.Visible then
             frmSQLProcess.Hide;
           frmSQLProcess.ShowModal;
           {$ENDIF}
-          frmSQLProcess.BringToFront;
         end;
     end
     else
