@@ -335,7 +335,11 @@ begin
               FResponseInfo.ContentType := 'text/xml; charset=Windows-1251'
             else if Copy(FResponseInfo.ContentText, 1, 14) = '<!DOCTYPE HTML' then
               FResponseInfo.ContentType := 'text/html; charset=Windows-1251'
-            else
+            else if Copy(FResponseInfo.ContentText, 1, 8) = 'text/csv' then
+            begin
+              FResponseInfo.ContentText := Copy(FResponseInfo.ContentText, 9, MaxInt);
+              FResponseInfo.ContentType := 'text/csv; charset=Windows-1251';
+            end else
               FResponseInfo.ContentType := 'text/plain; charset=Windows-1251';
 
             Processed := True;

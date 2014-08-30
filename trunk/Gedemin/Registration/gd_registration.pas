@@ -167,12 +167,11 @@ begin
     try
       Reg.WriteInteger(RegSecureCodeValue, aCode);
     except                  
-//      on E: Exception do
-        MessageBox(0,
-          'При попытке регистрации возникла ошибка!'#13#10 + 
-          'Возможно, вы не обладаете правами администратора.',
-          'Внимание',  
-          MB_OK or MB_ICONERROR or MB_TASKMODAL);
+      MessageBox(0,
+        'При попытке регистрации возникла ошибка!'#13#10 +
+        'Возможно, вы не обладаете правами администратора.',
+        'Внимание',
+        MB_OK or MB_ICONERROR or MB_TASKMODAL);
     end;
   finally
     Reg.Free;
