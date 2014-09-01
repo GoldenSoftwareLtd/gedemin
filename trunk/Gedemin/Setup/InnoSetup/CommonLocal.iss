@@ -96,6 +96,9 @@ Source: "Help\fr24rus.chm"; DestDir: "{app}\Help"; Flags: ignoreversion
 Source: "Help\vbs55.chm"; DestDir: "{app}\Help"; Flags: ignoreversion
 Source: "Database\{#DBFileOnlyName}.bk"; DestDir: "{app}\Database"; Flags: deleteafterinstall; Tasks: databasefile
 
+Source: "libeay32.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "ssleay32.dll"; DestDir: "{app}"; Flags: ignoreversion
+
 Source: "SWIPl\Lib\memfile.dll"; DestDir: "{app}\SWIPl\Lib"; Flags: ignoreversion; Tasks: swipl
 Source: "SWIPl\Lib\readutil.dll"; DestDir: "{app}\SWIPl\Lib"; Flags: ignoreversion; Tasks: swipl
 Source: "SWIPl\gd_pl_state.dat"; DestDir: "{app}\SWIPl"; Flags: ignoreversion; Tasks: swipl
