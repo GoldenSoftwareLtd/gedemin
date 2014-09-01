@@ -8891,7 +8891,7 @@ end;
 
 class function TgdcTrigger.GetSubSetList: String;
 begin
-  Result := inherited GetSubSetList + 'ByRelation;';
+  Result := inherited GetSubSetList + 'ByRelation;ByTriggerName;';
 end;
 
 procedure TgdcTrigger.GetWhereClauseConditions(S: TStrings);
@@ -8901,6 +8901,9 @@ begin
     S.Add('z.triggername LIKE ''USR$%''');
   if HasSubSet('ByRelation') then
     S.Add(' z.relationkey = :relationkey ');
+  if HasSubSet('ByTriggerName') then
+    S.Add(' z.triggername = :triggername ');
+
 end;
 
 procedure TgdcTrigger.MetaDataAlter;

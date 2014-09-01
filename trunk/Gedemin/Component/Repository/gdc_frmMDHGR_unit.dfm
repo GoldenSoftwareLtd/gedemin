@@ -1,6 +1,6 @@
 inherited gdc_frmMDHGR: Tgdc_frmMDHGR
-  Left = 458
-  Top = 237
+  Left = 460
+  Top = 238
   Width = 605
   Caption = 'gdc_frmMDHGR'
   PixelsPerInch = 96

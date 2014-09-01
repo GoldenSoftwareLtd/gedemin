@@ -348,6 +348,8 @@ type
     FDebitMovement: TgdcInvMovementContactOption;
     FCreditMovement: TgdcInvMovementContactOption;
 
+    procedure CreateTriggers;
+    procedure CreateTempTable;
 
   protected
     procedure CreateFields; override;
@@ -405,7 +407,7 @@ uses
   gd_security_OperationConst, gdc_dlgSetupInvDocument_unit, gdc_dlgG_unit,
   gdc_dlgInvDocument_unit, gdc_dlgInvDocumentLine_unit,
   at_sql_setup, gdc_frmInvDocument_unit, gdc_frmInvDocumentType_unit,
-  gd_ClassList, gdc_dlgViewMovement_unit
+  gd_ClassList, gdc_dlgViewMovement_unit, gdcMetaData
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -3694,6 +3696,333 @@ begin
   {END MACRO}
 end;
 
+procedure TgdcInvDocumentType.CreateTempTable;
+var
+  s, head: String;
+  i: Integer;
+  F: TatRelationField;
+  ibsql: TIBSQL;
+  NameTable: String;
+begin
+
+  NameTable := 'usr$' + FieldByName('ruid').AsString;
+  head := 'CREATE global TEMPORARY TABLE ' + NameTable + '(' + #13#10 +
+    '  documentkey INT NOT NULL,' + #13#10 +
+    '  goodkey INT NOT NULL,' + #13#10 +
+    '  typevalue CHAR(1),' + #13#10;
+
+  s := '';
+  for i := 0 to SourceFeatures.Count - 1 do
+  begin
+    if s <> '' then s := s + ',';
+    F := atDatabase.FindRelationField('INV_CARD', SourceFeatures[i]);
+    if Assigned(F) then
+      s := s + '  ' + SourceFeatures[i] + ' ' + F.Field.FieldName;
+  end;
+
+  for i := 0 to DestFeatures.Count - 1 do
+  begin
+    if s <> '' then s := s + ',';
+    if SourceFeatures.IndexOf(DestFeatures[i]) < 0 then
+    begin
+      F := atDatabase.FindRelationField('INV_CARD', DestFeatures[i]);
+      if Assigned(F) then
+        s := s + '  ' + DestFeatures[i] + ' ' + F.Field.FieldName;
+    end;
+  end;
+
+  s := head + s + #13#10 + ') ' + #13#10 +
+    ' ON commit delete ROWS ' + #13#10;
+
+  ibsql := TIBSQL.Create(nil);
+  try
+
+    ibsql.Transaction := Transaction;
+    ibsql.SQL.Text := 'DROP TABLE ' + NameTable;
+    try
+      ibsql.ExecQuery;
+    except
+    end;  
+
+    ibsql.Close;
+    ibsql.SQL.Text := s;
+    ibsql.ExecQuery;
+
+    ibsql.Close;
+    ibsql.SQL.Text := 'GRANT ALL ON ' + NameTable + ' TO administrator';
+    ibsql.ExecQuery;
+
+  finally
+    ibsql.Free;
+  end;
+
+
+end;
+
+procedure TgdcInvDocumentType.CreateTriggers;
+var
+  gdcTrigger: TgdcTrigger;
+  NameTrigger: String;
+
+const
+  ConstTriggerText =
+    'BEGIN ' + #13#10 +
+    '  /* получаем тип докумнта, рабочую компанию и дату, запись в gd_document уже добавлена */ ' + #13#10 +
+    '  select dt.ruid, d.companykey, d.documentdate, d.delayed from  ' + #13#10 +
+    '     gd_document d join gd_documenttype dt ON d.documenttypekey = dt.id ' + #13#10 +
+    '  where d.id = NEW.documentkey ' + #13#10 +
+    '  into :ruid, :companykey, :documentdate, :delayed; ' + #13#10;
+
+  FixedVariableList =
+    'AS ' + #13#10 +
+    '  declare variable ruid druid; ' + #13#10 +
+    '  declare variable documentdate date; ' + #13#10 +
+    '  declare variable id integer; ' + #13#10 +
+    '  declare variable companykey integer; ' + #13#10 +
+    '  declare variable goodkey integer; ' + #13#10 +
+    '  declare variable fromcontactkey integer; ' + #13#10 +
+    '  declare variable tocontactkey integer; ' + #13#10 +
+    '  declare variable movementkey integer; ' + #13#10 +
+    '  declare variable delayed integer; ' + #13#10;
+
+
+function MakeFieldList(StringList: TStringList; Prefix: String): String;
+var
+  i: Integer;
+  F: TatRelationField;
+begin
+  Result := '';
+  for i := 0 to StringList.Count - 1 do
+  begin
+    F := atDatabase.FindRelationField('INV_CARD', StringList[i]);
+    if Assigned(F) then
+      Result := Result + '  declare variable ' + Prefix + StringList[i] + ' ' + F.Field.FieldName + ';' + #13#10;
+  end;
+end;
+
+function GetIntoFieldList(StringList: TStringList; Prefix: String): String;
+var
+  i: Integer;
+begin
+  Result := '';
+  for i := 0 to StringList.Count - 1 do
+  begin
+    if Result <> '' then Result := Result + ',';
+    Result := Result + ':' + Prefix + StringList[i];
+  end;
+end;
+
+function GetMovementContactSQL(Movement: TgdcInvMovementContactOption; IsFrom: Boolean): String;
+var
+  s: String;
+begin
+  if isFrom then
+    s:= ':fromcontactkey'
+  else
+    s:= ':tocontactkey';
+
+  if AnsiCompareText(Movement.RelationName, RelationName) = 0 then
+    Result := Format(
+      '      select %s from %s where documentkey = NEW.masterkey ' + #13#10 +
+      '      into %s; ' + #13#10, [Movement.SourceFieldName, Movement.RelationName, s])
+  else
+    Result := Format('      %s = NEW.%s;' + #13#10, [s, Movement.SourceFieldName]);
+end;
+
+// Создание триггера BeforeInsert для простого складского документа
+function CreateInsertTrigger_SimpleDoc: String;
+var
+  Features: TStringList;
+begin
+
+  if DestFeatures.Count > 0 then
+    Features := DestFeatures
+  else
+    Features := SourceFeatures;
+
+  Result :=
+    FixedVariableList + #13#10 + MakeFieldList(Features, '') + ConstTriggerText +
+    Format(
+          '  if (ruid = ''%0:s'') then ' + #13#10 +
+          '  begin ' + #13#10 +
+          '    select %1:s, goodkey from ' + #13#10 +
+          '    usr$%0:s ' + #13#10 +
+          '    where documentkey = NEW.documentkey ' + #13#10 +
+          '    into %2:s, :goodkey; ' + #13#10 +
+          '                                         ' + #13#10 +
+          '/* создаем новую карточку */ ' + #13#10 +
+          ' ' + #13#10 +
+          '    id = GEN_ID(gd_g_unique, 1); ' + #13#10 +
+          '    insert into inv_card (id, firstdate, companykey, goodkey, documentkey, firstdocumentkey, %1:s) ' + #13#10 +
+          '    values (:id, :documentdate, :companykey, :goodkey, NEW.documentkey, NEW.documentkey, %2:s); ' + #13#10 +
+          ' ' + #13#10 +
+          '/* присваиваем ее в fromcardkey документа */ ' + #13#10 +
+          '    NEW.fromcardkey = :id; ' + #13#10 +
+          ' ' + #13#10 +
+          '    if (delayed = 0) then ' + #13#10 +
+          '    begin ' + #13#10 +
+          '/* если документ не отложенный создаем движение */ ' + #13#10 +
+          '/* из шапки документа достаем значение откуда и куда */ ' + #13#10 +
+          GetMovementContactSQL(CreditMovement, True) +
+          GetMovementContactSQL(DebitMovement, False) +
+          ' ' + #13#10 +
+          '      movementkey = GEN_ID(gd_g_unique, 1); ' + #13#10 +
+          ' ' + #13#10 +
+          '  /* добавляем значения в inv_movememt */ ' + #13#10 +
+          ' ' + #13#10 +
+          '      INSERT INTO inv_movement (movementkey, goodkey, cardkey, contactkey, movementdate, credit) ' + #13#10 +
+          '      VALUES (:movementkey, :goodkey, :id, :fromcontactkey, :documentdate, NEW.quantity); ' + #13#10 +
+          ' ' + #13#10 +
+          '      INSERT INTO inv_movement (movementkey, goodkey, cardkey, contactkey, movementdate, debit) ' + #13#10 +
+          '      VALUES (:movementkey, :goodkey, :id, :tocontactkey, :documentdate, NEW.quantity); ' + #13#10 +
+          ' ' + #13#10 +
+          '    end ' + #13#10 +
+          '  end ' + #13#10 +
+          'end ',
+     [FieldByName('ruid').AsString,
+      Features.CommaText,
+      GetIntoFieldList(Features, '')]);
+end;
+
+// Создание триггера BeforeUpdate для простого складского документа
+function CreateUpdateTrigger_SimpleDoc: String;
+begin
+  Result :=
+    'AS ' + #13#10 +
+    'BEGIN ' + #13#10 +
+    'END'
+end;
+
+// Создание триггера BeforeInsert для простого документа изменения свойств
+function CreateInsertTrigger_ChangeFeatureDoc: String;
+begin
+  Result :=
+    'AS ' + #13#10 +
+    'BEGIN ' + #13#10 +
+    'END'
+end;
+
+// Создание триггера BeforeUpdate для простого документа изменения свойств
+function CreateUpdateTrigger_ChangeFeatureDoc: String;
+begin
+  Result :=
+    'AS ' + #13#10 +
+    'BEGIN ' + #13#10 +
+    'END'
+end;
+
+// Создание триггера BeforeInsert для документа инвентаризации
+function CreateInsertTrigger_InventDoc: String;
+begin
+  Result :=
+    'AS ' + #13#10 +
+    'BEGIN ' + #13#10 +
+    'END'
+end;
+
+// Создание триггера BeforeUpdate для документа инвентаризации
+function CreateUpdateTrigger_InventDoc: String;
+begin
+  Result :=
+    'AS ' + #13#10 +
+    'BEGIN ' + #13#10 +
+    'END'
+end;
+
+// Создание триггера BeforeInsert для документа трансформации
+function CreateInsertTrigger_TransformationDoc: String;
+begin
+  Result :=
+    'AS ' + #13#10 +
+    'BEGIN ' + #13#10 +
+    'END'
+end;
+
+// Создание триггера BeforeUpdate для документа трансформации
+function CreateUpdateTrigger_TransformationDoc: String;
+begin
+  Result :=
+    'AS ' + #13#10 +
+    'BEGIN ' + #13#10 +
+    'END'
+end;
+
+var
+  R: TatRelation;
+  RelType: TgdcInvRelationType;
+
+begin
+  R := atDatabase.Relations.ByID(FieldByName('linerelkey').AsInteger);
+  if Assigned(R) then
+  begin
+    RelType := RelationTypeByRelation(R);
+
+    gdcTrigger := TgdcTrigger.Create(Self);
+    try
+      gdcTrigger.ReadTransaction := Transaction;
+      gdcTrigger.Transaction := Transaction;
+      gdcTrigger.SubSet := 'ByTriggerName';
+
+      NameTrigger := 'USR$BI_' + FieldByName('ruid').AsString;
+
+      gdcTrigger.ParamByName('triggername').AsString := NameTrigger;
+      gdcTrigger.Open;
+      gdcTrigger.Edit;
+      gdcTrigger.FieldByName('triggername').AsString := NameTrigger;
+      gdcTrigger.FieldByName('relationkey').AsInteger := atDatabase.Relations.ByRelationName(RelationLineName).ID;
+      gdcTrigger.FieldByName('rdb$trigger_sequence').AsInteger := 0;
+      gdcTrigger.FieldByName('rdb$trigger_name').AsString := gdcTrigger.FieldByName('triggername').AsString;
+      gdcTrigger.FieldByName('trigger_inactive').AsInteger := 0;
+      gdcTrigger.FieldByName('rdb$trigger_type').AsInteger := 1;
+
+
+      case RelType of
+        irtSimple:
+          gdcTrigger.FieldByName('rdb$trigger_source').AsString := CreateInsertTrigger_SimpleDoc;
+        irtFeatureChange:
+          gdcTrigger.FieldByName('rdb$trigger_source').AsString := CreateInsertTrigger_ChangeFeatureDoc;
+        irtInventorization:
+          gdcTrigger.FieldByName('rdb$trigger_source').AsString := CreateInsertTrigger_InventDoc;
+        irtTransformation:
+          gdcTrigger.FieldByName('rdb$trigger_source').AsString := CreateInsertTrigger_TransformationDoc;
+      end;
+
+      gdcTrigger.Post;
+
+      gdcTrigger.Close;
+      NameTrigger := 'USR$BU_' + FieldByName('ruid').AsString;
+
+      gdcTrigger.ParamByName('triggername').AsString := NameTrigger;
+      gdcTrigger.Open;
+      gdcTrigger.Edit;
+      gdcTrigger.FieldByName('triggername').AsString := NameTrigger;
+      gdcTrigger.FieldByName('relationkey').AsInteger := atDatabase.Relations.ByRelationName(RelationLineName).ID;
+      gdcTrigger.FieldByName('rdb$trigger_sequence').AsInteger := 0;
+      gdcTrigger.FieldByName('rdb$trigger_name').AsString := gdcTrigger.FieldByName('triggername').AsString;
+      gdcTrigger.FieldByName('trigger_inactive').AsInteger := 0;
+      gdcTrigger.FieldByName('rdb$trigger_type').AsInteger := 3;
+
+
+      case RelType of
+        irtSimple:
+          gdcTrigger.FieldByName('rdb$trigger_source').AsString := CreateUpdateTrigger_SimpleDoc;
+        irtFeatureChange:
+          gdcTrigger.FieldByName('rdb$trigger_source').AsString := CreateUpdateTrigger_ChangeFeatureDoc;
+        irtInventorization:
+          gdcTrigger.FieldByName('rdb$trigger_source').AsString := CreateUpdateTrigger_InventDoc;
+        irtTransformation:
+          gdcTrigger.FieldByName('rdb$trigger_source').AsString := CreateUpdateTrigger_TransformationDoc;
+      end;
+
+      gdcTrigger.Post;
+
+    finally
+      gdcTrigger.Free;
+    end;
+    
+  end;
+end;
+
 destructor TgdcInvDocumentType.Destroy;
 begin
   inherited;
@@ -3707,15 +4036,93 @@ end;
 
 procedure TgdcInvDocumentType.DoAfterCustomProcess(Buff: Pointer;
   Process: TgsCustomProcess);
+  var
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+  Stream: TStream;
 begin
+  {@UNFOLD MACRO INH_ORIG_DOAFTERCUSTOMPROCESS('TGDCBASE', 'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCBASE', KEYDOAFTERCUSTOMPROCESS);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOAFTERCUSTOMPROCESS]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCBASE') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self),
+  {M}          Integer(Buff), TgsCustomProcess(Process)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCBASE',
+  {M}          'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS, Params, LResult) then
+  {M}          exit;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCBASE' then
+  {M}        begin
+  {M}          Inherited;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
   inherited;
 
+  if not FieldByName('OPTIONS').IsNull then
+  begin
+{$IFDEF NEWDEPOT}
+    Stream := TStringStream.Create(FieldByName('OPTIONS').AsString);
+    try
+      ReadOptions(Stream);
+    finally
+      Stream.Free;
+    end;
+
+    CreateTempTable;
+
+    CreateTriggers;
+{$ENDIF}    
+  end;
+
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASE', 'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCBASE', 'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS);
+  {M}  end;
+  {END MACRO}
 end;
 
 procedure TgdcInvDocumentType.DoBeforeEdit;
-var
+  VAR
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
   Stream: TStream;
+
 begin
+  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCINVDOCUMENTTYPE', 'DOBEFOREEDIT', KEYDOBEFOREEDIT)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCINVDOCUMENTTYPE', KEYDOBEFOREEDIT);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOBEFOREEDIT]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCINVDOCUMENTTYPE') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCINVDOCUMENTTYPE',
+  {M}          'DOBEFOREEDIT', KEYDOBEFOREEDIT, Params, LResult) then exit;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCINVDOCUMENTTYPE' then
+  {M}        begin
+  {M}          Inherited;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
   inherited;
 
   if not FieldByName('OPTIONS').IsNull then
@@ -3728,13 +4135,45 @@ begin
     end;
   end;
 
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVDOCUMENTTYPE', 'DOBEFOREEDIT', KEYDOBEFOREEDIT)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCINVDOCUMENTTYPE', 'DOBEFOREEDIT', KEYDOBEFOREEDIT);
+  {M}  end;
+  {END MACRO}
 end;
 
 procedure TgdcInvDocumentType.DoBeforeInsert;
-var
-  ibsql: TIBSQL;
+  VAR
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
   Stream: TStream;
+  ibsql: TIBSQL;
+
 begin
+  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCINVDOCUMENTTYPE', 'DOBEFOREINSERT', KEYDOBEFOREINSERT)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCINVDOCUMENTTYPE', KEYDOBEFOREINSERT);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOBEFOREINSERT]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCINVDOCUMENTTYPE') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCINVDOCUMENTTYPE',
+  {M}          'DOBEFOREINSERT', KEYDOBEFOREINSERT, Params, LResult) then exit;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCINVDOCUMENTTYPE' then
+  {M}        begin
+  {M}          Inherited;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
   inherited;
   if not (sLoadFromStream in BaseState) then
   begin
@@ -3757,14 +4196,24 @@ begin
       ibsql.Free;
     end;
   end;
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVDOCUMENTTYPE', 'DOBEFOREINSERT', KEYDOBEFOREINSERT)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCINVDOCUMENTTYPE', 'DOBEFOREINSERT', KEYDOBEFOREINSERT);
+  {M}  end;
+  {END MACRO}
 end;
 
 procedure TgdcInvDocumentType.DoBeforePost;
+  VAR
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
+  {M}
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
+  Stream: TStream;
+
 begin
   {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCINVDOCUMENTTYPE', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
   {M}  try
@@ -3788,6 +4237,17 @@ begin
   inherited;
   //складские документы не могут быть общими!
   FieldByName('iscommon').AsInteger := 0;
+
+  if not FieldByName('OPTIONS').IsNull then
+  begin
+    Stream := TStringStream.Create(FieldByName('OPTIONS').AsString);
+    try
+      ReadOptions(Stream);
+    finally
+      Stream.Free;
+    end;
+  end;
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVDOCUMENTTYPE', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -3960,6 +4420,7 @@ begin
     ReadListEnd;
 
     // Настройки признаков
+    FSourceFeatures.Clear;
     ReadListBegin;
     while not EndOfList do
     begin
@@ -3969,6 +4430,7 @@ begin
     end;
     ReadListEnd;
 
+    FDestFeatures.Clear;
     ReadListBegin;
     while not EndOfList do
     begin

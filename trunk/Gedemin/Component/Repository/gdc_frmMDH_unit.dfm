@@ -1,8 +1,8 @@
 inherited gdc_frmMDH: Tgdc_frmMDH
-  Left = 427
-  Top = 233
+  Left = 300
+  Top = 236
   Width = 732
-  Height = 495
+  Height = 496
   HelpContext = 115
   Caption = 'gdc_frmMDH'
   Font.Charset = DEFAULT_CHARSET
