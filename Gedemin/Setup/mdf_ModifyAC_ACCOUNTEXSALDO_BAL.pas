@@ -981,6 +981,18 @@ begin
           '  VALUES (214, ''0000.0001.0000.0245'', ''16.06.2014'', ''Add GD_WEBLOG, GD_WEBLOGDATA tables.'') ' +
           '  MATCHING (id)';
         q.ExecQuery;
+
+        if not IndexExist2('gd_x_currrate_fordate', FTransaction) then
+        begin
+          q.SQL.Text := 'CREATE DESC INDEX gd_x_currrate_fordate ON gd_currrate(fordate)';
+          q.ExecQuery;
+        end;
+
+        q.SQL.Text :=
+          'UPDATE OR INSERT INTO fin_versioninfo ' +
+          '  VALUES (215, ''0000.0001.0000.0246'', ''02.09.2014'', ''gd_x_currrate_fordate index added.'') ' +
+          '  MATCHING (id)';
+        q.ExecQuery;
       finally
         q.Free;
       end;

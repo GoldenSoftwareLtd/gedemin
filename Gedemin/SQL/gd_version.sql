@@ -674,6 +674,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (214, '0000.0001.0000.0245', '16.06.2014', 'Add GD_WEBLOG, GD_WEBLOGDATA tables.');
 
+INSERT INTO fin_versioninfo
+  VALUES (215, '0000.0001.0000.0246', '02.09.2014', 'gd_x_currrate_fordate index added.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id

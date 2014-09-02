@@ -821,10 +821,8 @@ begin
     else
       GridBm := (Owner as Tgdc_frmG).GetMainBookmarkList;
 
-    if GridBm.Count > 0 then
+    if (GridBm <> nil) and (GridBm.Count > 0) then
     begin
-
-
       FPrintList := '';
       for I := 0 to GridBm.Count - 1 do
       begin
