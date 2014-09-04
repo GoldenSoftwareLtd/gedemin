@@ -993,6 +993,19 @@ begin
           '  VALUES (215, ''0000.0001.0000.0246'', ''02.09.2014'', ''gd_x_currrate_fordate index added.'') ' +
           '  MATCHING (id)';
         q.ExecQuery;
+
+        q.SQL.Text :=
+          'UPDATE OR INSERT INTO gd_command ' +
+          '  (ID,PARENT,NAME,CMD,CMDTYPE,HOTKEY,IMGINDEX,ORDR,CLASSNAME,SUBTYPE,AVIEW,ACHAG,AFULL,DISABLED,RESERVED) ' +
+          'VALUES ' +
+          '  (741118,740400,''Ограничения'',''gdcCheckConstraint'',0,NULL,214,NULL,''TgdcCheckConstraint'',NULL,1,1,1,0,NULL)';
+        q.ExecQuery;
+
+        q.SQL.Text :=
+          'UPDATE OR INSERT INTO fin_versioninfo ' +
+          '  VALUES (216, ''0000.0001.0000.0247'', ''03.09.2014'', ''Added command for TgdcCheckConstraint.'') ' +
+          '  MATCHING (id)';
+        q.ExecQuery;
       finally
         q.Free;
       end;
