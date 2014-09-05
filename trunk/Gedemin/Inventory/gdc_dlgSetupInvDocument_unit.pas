@@ -1015,7 +1015,8 @@ begin
 
 
     // Приход
-{    SetLength(Movement.Predefined, 0);
+{
+    SetLength(Movement.Predefined, 0);
     SetLength(Movement.SubPredefined, 0);
 
     Movement.RelationName := ReadString;
