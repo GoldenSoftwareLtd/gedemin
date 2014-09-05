@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2012-2013 by Golden Software of Belarus
+  Copyright (c) 2012-2014 by Golden Software of Belarus
 
   Module
 
@@ -373,7 +373,7 @@ begin
         end else}
         begin
           S := 'Gedemin Web Server.';
-          S := S + '<br/>Copyright (c) 2013 by <a href="http://gsbelarus.com">Golden Software of Belarus, Ltd.</a>';
+          S := S + '<br/>Copyright (c) 2014 by <a href="http://gsbelarus.com">Golden Software of Belarus, Ltd.</a>';
           S := S + '<br/>All rights reserved.';
 
           S := S + '<br/><br/>Now serving tokens:<ol>';

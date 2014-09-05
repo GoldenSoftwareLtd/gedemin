@@ -747,10 +747,10 @@ begin
     or (AtObjectRecord = nil)
     or ((tiEditionDate in Obj.GetTableInfos(Obj.SubType))
          and
-        (Fields.ReadDateTime('EDITIONDATE', 0) > AtObjectRecord.CurrModified))
+        (Fields.ReadDateTime('EDITIONDATE', 0) > AtObjectRecord.Modified))
     or ((not (tiEditionDate in Obj.GetTableInfos(Obj.SubType)))
          and
-        (AFileTimeStamp > AtObjectRecord.CurrModified)) then
+        (AFileTimeStamp > AtObjectRecord.Modified)) then
   begin
     Obj.Close;
 
@@ -1552,7 +1552,8 @@ begin
       except
         on E: Exception do
         begin
-          AddMistake(E.Message);
+          if not (E is EAbort) then
+            AddMistake(E.Message);
           if not gd_CmdLineParams.QuietMode then
             raise;
         end;
