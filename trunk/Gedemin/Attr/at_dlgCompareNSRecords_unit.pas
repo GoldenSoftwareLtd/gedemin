@@ -4,7 +4,8 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  ActnList, StdCtrls, ExtCtrls, Grids, gdcNamespaceRecCmpController;
+  ActnList, StdCtrls, ExtCtrls, Grids, gdcNamespaceRecCmpController,
+  TB2Item, TB2Dock, TB2Toolbar;
 
 type
   TLoadRecord = (lrNone, lrFromFile, lrNotLoad);
@@ -18,36 +19,51 @@ type
     pnlGrid: TPanel;
     sgMain: TStringGrid;
     pnlTop: TPanel;
-    lTitle: TLabel;
-    lObjClass: TLabel;
-    lObjName: TLabel;
-    lObjID: TLabel;
-    lblID: TLabel;
-    lblName: TLabel;
-    lblClassName: TLabel;
-    actSave: TAction;
+    actContinue: TAction;
     pnlRightBottom: TPanel;
     btnSave: TButton;
     actView: TAction;
-    btnSkip: TButton;
-    actSkip: TAction;
-    chbxShowOnlyDiff: TCheckBox;
     btnCancel: TButton;
     actCancel: TAction;
+    mObject: TMemo;
+    rbSkip: TRadioButton;
+    rbOverwrite: TRadioButton;
+    rbSelected: TRadioButton;
+    actObject: TAction;
+    actProperties: TAction;
+    tbDock: TTBDock;
+    tb: TTBToolbar;
+    TBControlItem1: TTBControlItem;
+    tbView: TTBItem;
+    chbxShowOnlyDiff: TCheckBox;
+    TBSeparatorItem1: TTBSeparatorItem;
+    actSelect: TAction;
+    TBItem1: TTBItem;
+    Panel1: TPanel;
+    btnProperties: TButton;
+    btnObject: TButton;
     procedure sgMainMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
     procedure sgMainDrawCell(Sender: TObject; ACol, ARow: Integer;
       Rect: TRect; State: TGridDrawState);
     procedure actShowOnlyDiffExecute(Sender: TObject);
     procedure pnlGridResize(Sender: TObject);
-    procedure actSaveExecute(Sender: TObject);
+    procedure actContinueExecute(Sender: TObject);
     procedure actViewExecute(Sender: TObject);
     procedure actViewUpdate(Sender: TObject);
     procedure actShowOnlyDiffUpdate(Sender: TObject);
-    procedure actSkipExecute(Sender: TObject);
-    procedure actSaveUpdate(Sender: TObject);
+    procedure actContinueUpdate(Sender: TObject);
     procedure actCancelExecute(Sender: TObject);
     procedure actCancelUpdate(Sender: TObject);
+    procedure rbSkipClick(Sender: TObject);
+    procedure rbOverwriteClick(Sender: TObject);
+    procedure rbSelectedClick(Sender: TObject);
+    procedure actSelectExecute(Sender: TObject);
+    procedure actSelectUpdate(Sender: TObject);
+    procedure actObjectUpdate(Sender: TObject);
+    procedure actPropertiesUpdate(Sender: TObject);
+    procedure actPropertiesExecute(Sender: TObject);
+    procedure actObjectExecute(Sender: TObject);
 
   public
     FgdcNamespaceRecCmpController: TgdcNamespaceRecCmpController;
@@ -61,35 +77,16 @@ implementation
 {$R *.DFM}
 
 uses
-  prp_ScriptComparer_unit;
+  prp_ScriptComparer_unit, dmImages_unit;
 
 procedure TdlgCompareNSRecords.sgMainMouseDown(Sender: TObject;
   Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
-var
-  Idx: Integer;
-  FN: String;
 begin
   if FgdcNamespaceRecCmpController = nil then
     exit;
 
   if (ssDouble in Shift) then
-    actView.Execute
-  else if (ssLeft in Shift) then
-  begin
-    FN := sgMain.Cells[0, sgMain.Row];
-    Idx := FgdcNamespaceRecCmpController.OverwriteFields.IndexOf(FN);
-
-    if (sgMain.Col = 1) and (Idx > -1) then
-    begin
-      FgdcNamespaceRecCmpController.OverwriteFields.Delete(Idx);
-      sgMain.Refresh;
-    end
-    else if (sgMain.Col = 2) and (Idx = -1) then
-    begin
-      FgdcNamespaceRecCmpController.OverwriteFields.Add(FN);
-      sgMain.Refresh;
-    end
-  end;
+    actSelect.Execute;
 end;
 
 procedure TdlgCompareNSRecords.sgMainDrawCell(Sender: TObject; ACol,
@@ -100,46 +97,47 @@ begin
   if FgdcNamespaceRecCmpController = nil then
     exit;
 
-  sgMain.Canvas.Brush.Color := clWindow;
-  sgMain.Canvas.Font.Color := clWindowText;
   sgMain.Canvas.Font.Style := [];
 
   if (gdSelected in State) or (gdFocused in State) then
   begin
     sgMain.Canvas.Brush.Color := clActiveCaption;
     sgMain.Canvas.Font.Color := clCaptionText;
-  end;
-
-  if gdFixed in State then
+  end
+  else if gdFixed in State then
+  begin
+    sgMain.Canvas.Brush.Color := clBtnFace;
+    sgMain.Canvas.Font.Color := clBtnText;
+  end
+  else if rbSelected.Checked then
+  begin
+    sgMain.Canvas.Brush.Color := clWindow;
+    sgMain.Canvas.Font.Color := clWindowText;
+  end else
   begin
     sgMain.Canvas.Brush.Color := clBtnFace;
     sgMain.Canvas.Font.Color := clBtnText;
   end;
 
-  sgMain.Canvas.FillRect(Rect);
-
   if (ARow > 0) and (ACol > 0) then
   begin
     FN := sgMain.Cells[0, ARow];
 
-    if
-      (
-        (ACol = 1) and (not FgdcNamespaceRecCmpController.OverwriteField(FN))
-      )
-      or
-      (
-        (ACol = 2) and FgdcNamespaceRecCmpController.OverwriteField(FN)
-      ) then
+    if FgdcNamespaceRecCmpController.OverwriteField(FN) then
     begin
-      sgMain.Canvas.Font.Style := [fsBold];
-      sgMain.Canvas.Font.Color := clWindowText;
+      if (gdSelected in State) or (gdFocused in State) then
+        sgMain.Canvas.Brush.Color := clMaroon
+      else
+        sgMain.Canvas.Brush.Color := clRed;
+      sgMain.Canvas.Font.Color := clWhite;
     end else
     begin
-      sgMain.Canvas.Font.Style := [];
-      sgMain.Canvas.Font.Color := clGrayText;
+      if sgMain.Cells[1, ARow] = sgMain.Cells[2, ARow] then
+        sgMain.Canvas.Font.Color := clGrayText;
     end;
   end;
 
+  sgMain.Canvas.FillRect(Rect);
   sgMain.Canvas.TextOut(Rect.Left + 2, Rect.Top + 2, sgMain.Cells[ACol, ARow]);
 end;
 
@@ -155,9 +153,12 @@ begin
   sgMain.ColWidths[0] := Trunc(sgMain.Width - sgMain.ColWidths[1] * 2 - GetSystemMetrics(SM_CYHSCROLL) * 1.5);
 end;
 
-procedure TdlgCompareNSRecords.actSaveExecute(Sender: TObject);
+procedure TdlgCompareNSRecords.actContinueExecute(Sender: TObject);
 begin
-  ModalResult := mrOk;
+  if rbSkip.Checked then
+    ModalResult := mrCancel
+  else
+    ModalResult := mrOk;
 end;
 
 procedure TdlgCompareNSRecords.actViewExecute(Sender: TObject);
@@ -185,15 +186,10 @@ begin
   actShowOnlyDiff.Enabled := FgdcNamespaceRecCmpController <> nil;
 end;
 
-procedure TdlgCompareNSRecords.actSkipExecute(Sender: TObject);
+procedure TdlgCompareNSRecords.actContinueUpdate(Sender: TObject);
 begin
-  ModalResult := mrCancel;
-end;
-
-procedure TdlgCompareNSRecords.actSaveUpdate(Sender: TObject);
-begin
-  actSave.Enabled := (FgdcNamespaceRecCmpController <> nil)
-    and (FgdcNamespaceRecCmpController.OverwriteFields.Count > 0);
+  actContinue.Enabled := (FgdcNamespaceRecCmpController <> nil)
+    and (rbSkip.Checked or rbOverwrite.Checked or rbSelected.Checked);
 end;
 
 procedure TdlgCompareNSRecords.actCancelExecute(Sender: TObject);
@@ -205,6 +201,67 @@ end;
 procedure TdlgCompareNSRecords.actCancelUpdate(Sender: TObject);
 begin
   actCancel.Enabled := FgdcNamespaceRecCmpController <> nil;
+end;
+
+procedure TdlgCompareNSRecords.rbSkipClick(Sender: TObject);
+begin
+  sgMain.Refresh;
+end;
+
+procedure TdlgCompareNSRecords.rbOverwriteClick(Sender: TObject);
+begin
+  sgMain.Refresh;
+end;
+
+procedure TdlgCompareNSRecords.rbSelectedClick(Sender: TObject);
+begin
+  sgMain.Refresh;
+end;
+
+procedure TdlgCompareNSRecords.actSelectExecute(Sender: TObject);
+var
+  Idx: Integer;
+  FN: String;
+begin
+  FN := sgMain.Cells[0, sgMain.Row];
+  Idx := FgdcNamespaceRecCmpController.OverwriteFields.IndexOf(FN);
+
+  if Idx > -1 then
+  begin
+    FgdcNamespaceRecCmpController.OverwriteFields.Delete(Idx);
+    sgMain.Refresh;
+  end
+  else if sgMain.Cells[1, sgMain.Row] <> sgMain.Cells[2, sgMain.Row] then
+  begin
+    FgdcNamespaceRecCmpController.OverwriteFields.Add(FN);
+    sgMain.Refresh;
+  end
+end;
+
+procedure TdlgCompareNSRecords.actSelectUpdate(Sender: TObject);
+begin
+  actSelect.Enabled := rbSelected.Checked
+    and (sgMain.Cells[1, sgMain.Row] <> sgMain.Cells[2, sgMain.Row]);
+end;
+
+procedure TdlgCompareNSRecords.actObjectUpdate(Sender: TObject);
+begin
+  actObject.Enabled := FgdcNamespaceRecCmpController <> nil;
+end;
+
+procedure TdlgCompareNSRecords.actPropertiesUpdate(Sender: TObject);
+begin
+  actProperties.Enabled := FgdcNamespaceRecCmpController <> nil;
+end;
+
+procedure TdlgCompareNSRecords.actPropertiesExecute(Sender: TObject);
+begin
+  FgdcNamespaceRecCmpController.ViewObjectProperties;
+end;
+
+procedure TdlgCompareNSRecords.actObjectExecute(Sender: TObject);
+begin
+  FgdcNamespaceRecCmpController.EditObject;
 end;
 
 end.

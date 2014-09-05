@@ -23,6 +23,8 @@ type
     function Compare(AnOwner: TComponent; AnObj: TgdcBase; AMapping: TYAMLMapping): Boolean;
     procedure FillGrid(AGrid: TStringGrid; const AShowEqual: Boolean);
     function OverwriteField(const AFieldName: String): Boolean;
+    procedure EditObject;
+    procedure ViewObjectProperties;
 
     property InequalFields: TStringList read FInequalFields;
     property OverwriteFields: TStringList read FOverwriteFields;
@@ -33,7 +35,8 @@ type
 implementation
 
 uses
-  Forms, Controls, DB, gdcBaseInterface, gdcNamespace, at_dlgCompareNSRecords_unit;
+  SysUtils, Forms, Controls, DB, gdcBaseInterface, gdcNamespace,
+  at_dlgCompareNSRecords_unit;
 
 { TgdcNamespaceRecCmpController }
 
@@ -95,9 +98,8 @@ begin
   try
     FgdcNamespaceRecCmpController := Self;
     FillGrid(sgMain, not chbxShowOnlyDiff.Checked);
-    lblClassName.Caption := AnObj.GetDisplayName(AnObj.SubType);
-    lblName.Caption := AnObj.ObjectName;
-    lblID.Caption := RUIDToStr(AnObj.GetRUID);
+    mObject.Lines.Text := StringReplace(mObject.Lines.Text, '%s',
+      AnObj.ObjectName, []);
     Result := ShowModal = mrOk;
   finally
     Free;
@@ -125,6 +127,12 @@ begin
   FOverwriteFields.Free;
   FDisplayFields.Free;
   inherited;
+end;
+
+procedure TgdcNamespaceRecCmpController.EditObject;
+begin
+  Assert(FObj <> nil);
+  FObj.EditDialog;
 end;
 
 procedure TgdcNamespaceRecCmpController.FillGrid(AGrid: TStringGrid;
@@ -170,6 +178,12 @@ begin
   AGrid.Cells[0, 0] := 'Имя поля';
   AGrid.Cells[1, 0] := 'В базе данных';
   AGrid.Cells[2, 0] := 'В файле';
+end;
+
+procedure TgdcNamespaceRecCmpController.ViewObjectProperties;
+begin
+  Assert(FObj <> nil);
+  FObj.EditDialog('TGDC_DLGOBJECTPROPERTIES');
 end;
 
 function TgdcNamespaceRecCmpController.OverwriteField(

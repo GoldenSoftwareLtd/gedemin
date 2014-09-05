@@ -5,16 +5,6 @@ inherited gdc_dlgOurCompany: Tgdc_dlgOurCompany
   PixelsPerInch = 96
   TextHeight = 13
   inherited pgcMain: TPageControl
-    inherited tbsMain: TTabSheet
-      inherited pnAccount: TPanel
-        inherited gsiblkupMainAccount: TgsIBLookupComboBox
-          ItemHeight = 0
-        end
-      end
-      inherited gsibluFolder: TgsIBLookupComboBox
-        ItemHeight = 0
-      end
-    end
     object TabSheet1: TTabSheet
       Caption = 'План счетов'
       ImageIndex = 6
