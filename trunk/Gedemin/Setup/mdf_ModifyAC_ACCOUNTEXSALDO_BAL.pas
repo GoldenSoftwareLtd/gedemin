@@ -1006,6 +1006,15 @@ begin
           '  VALUES (216, ''0000.0001.0000.0247'', ''03.09.2014'', ''Added command for TgdcCheckConstraint.'') ' +
           '  MATCHING (id)';
         q.ExecQuery;
+
+        AddField2('AT_NAMESPACE', 'MD5', 'CHAR(32)', FTransaction);
+        AddField2('AT_NAMESPACE_FILE', 'MD5', 'CHAR(32)', FTransaction);
+
+        q.SQL.Text :=
+          'UPDATE OR INSERT INTO fin_versioninfo ' +
+          '  VALUES (217, ''0000.0001.0000.0248'', ''06.09.2014'', ''MD5 field added to namespace table.'') ' +
+          '  MATCHING (id)';
+        q.ExecQuery;
       finally
         q.Free;
       end;

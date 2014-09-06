@@ -1,6 +1,6 @@
 object dlgCompareNSRecords: TdlgCompareNSRecords
-  Left = 527
-  Top = 308
+  Left = 790
+  Top = 476
   Width = 728
   Height = 494
   Caption = 'Конфликт изменения данных объекта'

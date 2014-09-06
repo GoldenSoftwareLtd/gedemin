@@ -1522,6 +1522,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (216, '0000.0001.0000.0247', '03.09.2014', 'Added command for TgdcCheckConstraint.');
 
+INSERT INTO fin_versioninfo
+  VALUES (217, '0000.0001.0000.0248', '06.09.2014', 'MD5 field added to namespace table.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
@@ -16214,7 +16217,7 @@ COMMIT;
 
 /*
 
-  Copyright (c) 2000-2013 by Golden Software of Belarus
+  Copyright (c) 2000-2014 by Golden Software of Belarus
 
   Script
 
@@ -16380,6 +16383,7 @@ CREATE TABLE at_namespace (
   settingruid   VARCHAR(21),
   filedata      dscript,
   changed       dboolean_notnull DEFAULT 1,
+  md5           CHAR(32), 
 
   CONSTRAINT at_pk_namespace PRIMARY KEY (id)
 );
@@ -16695,6 +16699,7 @@ CREATE GLOBAL TEMPORARY TABLE at_namespace_file (
   comment       dblobtext80_1251,
   xid           dinteger,
   dbid          dinteger,
+  md5           CHAR(32),
 
   CONSTRAINT at_pk_namespace_file PRIMARY KEY (filename)
 )

@@ -56,6 +56,7 @@ type
     FSecondPassList: TObjectList;
     FOurCompanies: TgdKeyArray;
     FLoading: Boolean;
+    FNSList: TgdKeyArray;
 
     procedure FlushStorages;
     procedure LoadAtObjectCache(const ANamespaceKey: Integer);
@@ -404,10 +405,12 @@ begin
   FSecondPassList := TObjectList.Create(True);
 
   FOurCompanies := TgdKeyArray.Create;
+  FNSList := TgdKeyArray.Create;
 end;
 
 destructor TgdcNamespaceLoader.Destroy;
 begin
+  FNSList.Free;
   FOurCompanies.Free;
   FSecondPassList.Free;
   FRemoveList.Free;
@@ -443,21 +446,22 @@ end;
 
 procedure TgdcNamespaceLoader.Load(AList: TStrings);
 var
-  I, J, K: Integer;
+  I, J, K, T: Integer;
   Parser: TyamlParser;
   Mapping: TyamlMapping;
   Objects: TyamlSequence;
   NSID: TID;
   NSTimeStamp: TDateTime;
   NSRUID: TRUID;
-  NSName, NSList: String;
+  NSName, HashString: String;
+  MS: TMemoryStream;
   q: TIBSQL;
 begin
   Assert(not FLoading);
   Assert(AList <> nil);
   Assert(IBLogin <> nil);
 
-  NSList := '';
+  FNSList.Clear;
   FLoading := True;
   FRemoveList.Clear;
   LoadOurCompanies;
@@ -543,7 +547,7 @@ begin
         FgdcNamespace.Post;
 
         NSID := FgdcNamespace.ID;
-        NSList := NSList + IntToStr(NSID) + ',';
+        FNSList.Add(NSID, True);
         NSTimeStamp := FgdcNamespace.FieldByName('filetimestamp').AsDateTime;
 
         OverwriteRUID(NSID, NSRUID.XID, NSRUID.DBID);
@@ -639,15 +643,34 @@ begin
   if FNeedRelogin then
     ReloginDatabase;
 
-  q := TIBSQL.Create(nil);
   FTr.StartTransaction;
+  q := TIBSQL.Create(nil);
   try
     q.Transaction := FTr;
-    if NSList > '' then
+    q.SQL.Text := 'UPDATE at_namespace SET changed = 0, md5 = :md5 WHERE id = :id';
+
+    for T := 0 to FNSList.Count - 1 do
     begin
-      q.SQL.Text := 'UPDATE at_namespace SET changed = 0 WHERE id IN (' +
-        System.Copy(NSList, 1, Length(NSList) - 1) + ')';
-      q.ExecQuery;
+      HashString := '';
+      FgdcNamespace.ID := FNSList.Keys[T];
+      FgdcNamespace.Open;
+      if not FgdcNamespace.EOF then
+      begin
+        MS := TMemoryStream.Create;
+        try
+          FgdcNamespace.SaveNamespaceToStream(MS, HashString);
+        finally
+          MS.Free;
+        end;
+      end;
+      FgdcNamespace.Close;
+
+      if HashString > '' then
+      begin
+        q.ParamByName('md5').AsString := HashString;
+        q.ParamByName('id').AsInteger := FNSList.Keys[T];
+        q.ExecQuery;
+      end;
     end;
   finally
     q.Free;
