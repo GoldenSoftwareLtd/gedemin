@@ -101,6 +101,7 @@ begin
     FqInsertFile.ParamByName('comment').Clear;
     FqInsertFile.ParamByName('xid').Clear;
     FqInsertFile.ParamByName('dbid').Clear;
+    FqInsertFile.ParamByName('md5').Clear;
     FqInsertFile.ExecQuery;
   end;
 
@@ -145,6 +146,7 @@ begin
         FqInsertFile.ParamByName('comment').AsString := M.ReadString('Properties\Comment');
         FqInsertFile.ParamByName('xid').AsInteger := NSRUID.XID;
         FqInsertFile.ParamByName('dbid').AsInteger := NSRUID.DBID;
+        FqInsertFile.ParamByName('md5').AsString := M.ReadString('Properties\MD5');
         FqInsertFile.ExecQuery;
 
         if M.FindByName('Uses') is TYAMLSequence then
@@ -367,6 +369,7 @@ begin
           if NS.FieldByName('filetimestamp').AsDateTime > Now then
             NS.FieldByName('filetimestamp').AsDateTime := Now;
           NS.FieldByName('filename').AsString := System.Copy(AFileName, 1, 255);
+          NS.FieldByName('md5').AsString := Mapping.ReadString('Properties\MD5');
           NS.Post;
 
           if Mapping.FindByName('Objects') is TYAMLSequence then
@@ -668,10 +671,10 @@ begin
   FqInsertFile.SQL.Text :=
     'INSERT INTO at_namespace_file ' +
     '  (filename, filetimestamp, filesize, name, caption, version, ' +
-    '   dbversion, optional, internal, comment, xid, dbid) ' +
+    '   dbversion, optional, internal, comment, xid, dbid, md5) ' +
     'VALUES ' +
     '  (:filename, :filetimestamp, :filesize, :name, :caption, :version, ' +
-    '   :dbversion, :optional, :internal, :comment, :xid, :dbid)';
+    '   :dbversion, :optional, :internal, :comment, :xid, :dbid, :md5)';
 
   FqFindFile := TIBSQL.Create(nil);
   FqFindFile.Transaction := FTr;
@@ -792,6 +795,14 @@ begin
     '        ON l.uses_xid = j.xid AND l.uses_dbid = j.dbid '#13#10 +
     '      WHERE l.filename = s.filename AND j.xid IS NULL) '#13#10 +
     '    AND (s.operation IN (''<<'', ''< '')); '#13#10 +
+    ' '#13#10 +
+    '  UPDATE at_namespace_sync s SET s.operation = ''? '' '#13#10 +
+    '  WHERE s.operation = ''  '' AND s.namespacekey IS NOT NULL '#13#10 +
+    '    AND s.filename IS NOT NULL '#13#10 +
+    '    AND (SELECT COALESCE(f.md5, '''') FROM at_namespace_file f WHERE f.filename = s.filename) > '''' '#13#10 +
+    '    AND (SELECT COALESCE(s2.md5, '''') FROM at_namespace s2 WHERE s2.id = s.namespacekey) > '''' '#13#10 +
+    '    AND (SELECT f.md5 FROM at_namespace_file f WHERE f.filename = s.filename) '#13#10 +
+    '      IS DISTINCT FROM (SELECT s2.md5 FROM at_namespace s2 WHERE s2.id = s.namespacekey); '#13#10 +
     ' '#13#10 +
     '  UPDATE at_namespace_sync s SET s.operation = ''=='' '#13#10 +
     '  WHERE s.operation = ''  '' AND s.namespacekey IS NOT NULL '#13#10 +

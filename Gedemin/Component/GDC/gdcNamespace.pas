@@ -40,8 +40,8 @@ type
 
     function MakePos: Boolean;
     procedure LoadFromFile(const AFileName: String = ''); override;
-    procedure SaveNamespaceToStream(St: TStream; const AnAnswer: Integer = 0;
-      const ASubstituteEditionDate: Boolean = False);
+    procedure SaveNamespaceToStream(St: TStream; out HashString: String;
+      const AnAnswer: Integer = 0; const ASubstituteEditionDate: Boolean = False);
     function SaveNamespaceToFile(const AFileName: String = '';
       const AnIncBuildVersion: Boolean = False;
       const ASubstituteEditionDate: Boolean = False): Boolean;
@@ -74,7 +74,7 @@ type
 implementation
 
 uses
-  Windows, Controls, ComCtrls, IBHeader, IBErrorCodes, Graphics,
+  Windows, Controls, ComCtrls, IBHeader, IBErrorCodes, Graphics, wcrypt2,
   gdc_dlgNamespacePos_unit, gdc_dlgNamespace_unit, gdc_frmNamespace_unit,
   at_sql_parser, jclStrings, gdcTree, yaml_common, gd_common_functions,
   prp_ScriptComparer_unit, gdc_dlgNamespaceObjectPos_unit, jclUnicode,
@@ -934,7 +934,7 @@ function TgdcNamespace.SaveNamespaceToFile(const AFileName: String = '';
   const AnIncBuildVersion: Boolean = False;
   const ASubstituteEditionDate: Boolean = False): Boolean;
 var
-  FN: String;
+  FN, HashString: String;
   FS: TFileStream;
   SS1251, SSUTF8: TStringStream;
   Tr: TIBTransaction;
@@ -986,7 +986,7 @@ begin
     try
       SS1251 := TStringStream.Create('');
       try
-        NS.SaveNamespaceToStream(SS1251, 0, ASubstituteEditionDate);
+        NS.SaveNamespaceToStream(SS1251, HashString, 0, ASubstituteEditionDate);
         SSUTF8 := TStringStream.Create(WideStringToUTF8(StringToWideStringEx(
           SS1251.DataString, WIN1251_CODEPAGE)));
         try
@@ -1005,6 +1005,8 @@ begin
     NS.FieldByName('filename').AsString := FN;
     NS.FieldByName('filetimestamp').AsDateTime := gd_common_functions.GetFileLastWrite(FN);
     NS.FieldByName('changed').AsInteger := 0;
+    if HashString > '' then
+      NS.FieldByName('md5').AsString := HashString;
     NS.Post;
 
     NS.Close;
@@ -1108,7 +1110,7 @@ var
   ScriptComparer: Tprp_ScriptComparer;
   FS: TFileStream;
   SS, SS1251, SSUTF8: TStringStream;
-  FTemp, FBase, CmdLine: String;
+  FTemp, FBase, CmdLine, HashString: String;
   TempPath: array[0..1023] of Char;
 begin
   if FieldByName('filedata').IsNull or (not A3Way) then
@@ -1173,7 +1175,7 @@ begin
     SS := TStringStream.Create('');
     ScriptComparer := Tprp_ScriptComparer.Create(nil);
     try
-      SaveNamespaceToStream(SS, IDCANCEL);
+      SaveNamespaceToStream(SS, HashString, IDCANCEL);
 
       ScriptComparer.Compare(SS.DataString, SS1251.DataString);
       ScriptComparer.LeftCaption('Текущее состояние в базе данных:');
@@ -1187,7 +1189,7 @@ begin
   end;
 end;
 
-procedure TgdcNamespace.SaveNamespaceToStream(St: TStream;
+procedure TgdcNamespace.SaveNamespaceToStream(St: TStream; out HashString: String;
   const AnAnswer: Integer = 0; const ASubstituteEditionDate: Boolean = False);
 var
   Obj: TgdcNamespaceObject;
@@ -1200,6 +1202,12 @@ var
   Answer: Integer;
   ObjCache: TStringHashMap;
   DidActivate: Boolean;
+  MS: TMemoryStream;
+  hProv: HCRYPTPROV;
+  Hash: HCRYPTHASH;
+  HashValue: array[0..15] of Byte;
+  HashValueSize: DWORD;
+  I: Integer;
 begin
   Assert(St <> nil);
   Assert(Transaction <> nil);
@@ -1207,185 +1215,219 @@ begin
   if State <> dsBrowse then
     raise EgdcException.CreateObj('Not in a browse state', Self);
 
-  DidActivate := not Transaction.InTransaction;
-  if DidActivate then
-    Transaction.StartTransaction;
-
-  Answer := AnAnswer;
-  W := TyamlWriter.Create(St);
-  q := TIBSQL.Create(nil);
+  MS := TMemoryStream.Create;
   try
-    q.Transaction := Transaction;
+    DidActivate := not Transaction.InTransaction;
+    if DidActivate then
+      Transaction.StartTransaction;
 
-    W.WriteDirective(dirYAML11);
-    W.StartNewLine;
-    W.WriteDocumentStart;
-    W.WriteTextValue('StructureVersion', '1.0', qDoubleQuoted);
-    W.StartNewLine;
-    W.WriteKey('Properties');
-    W.IncIndent;
-    W.WriteStringValue('RUID', RUIDToStr(GetRUID));
-    W.WriteTextValue('Name', FieldByName('name').AsString, qDoubleQuoted);
-    W.WriteTextValue('Caption', FieldByName('caption').AsString, qDoubleQuoted);
-    W.WriteTextValue('Version', FieldByName('version').AsString, qDoubleQuoted);
-    W.WriteBooleanValue('Optional', FieldByName('optional').AsInteger);
-    W.WriteBooleanValue('Internal', FieldByName('internal').AsInteger);
-    if FieldByName('settingruid').AsString > '' then
-      W.WriteStringValue('SettingRUID', FieldByName('settingruid').AsString);
-    if FieldByName('dbversion').AsString > '' then
-      W.WriteStringValue('DBVersion', FieldByName('dbversion').AsString);
-    if FieldByName('comment').AsString > '' then
-      W.WriteTextValue('Comment', FieldByName('comment').AsString, qDoubleQuoted);
-    W.DecIndent;
-    W.StartNewLine;
-
-    q.SQL.Text :=
-      'SELECT n.id, n.name ' +
-      'FROM at_namespace_link l JOIN at_namespace n ' +
-      '  ON l.useskey = n.id ' +
-      'WHERE l.namespacekey = :NK';
-    q.ParamByName('NK').AsInteger := Self.ID;
-    q.ExecQuery;
-
-    if not q.EOF then
-    begin
-      W.WriteKey('Uses');
-      W.IncIndent;
-      while not q.EOF do
-      begin
-        W.StartNewLine;
-        W.WriteSequenceIndicator;
-        W.WriteText(
-          GetReferenceString(q.FieldByName('id'), q.FieldByName('name'), Transaction),
-          qDoubleQuoted);
-        q.Next;
-      end;
-      W.DecIndent;
-      W.StartNewLine;
-    end;
-
-    q.Close;
-    q.SQL.Text :=
-      'SELECT xid || ''_'' || dbid as ruid FROM at_object WHERE id = :id';
-
-    CheckIncludesiblings;
-    Deleted := False;
-    Obj := TgdcNamespaceObject.Create(nil);
+    Answer := AnAnswer;
+    W := TyamlWriter.Create(MS);
+    q := TIBSQL.Create(nil);
     try
-      Obj.ReadTransaction := Transaction;
-      Obj.Transaction := Transaction;
-      Obj.SubSet := 'ByNamespace';
-      Obj.ParamByName('namespacekey').AsInteger := Self.ID;
-      Obj.Open;
+      q.Transaction := Transaction;
 
-      if not Obj.Eof then
+      q.SQL.Text :=
+        'SELECT n.id, n.name ' +
+        'FROM at_namespace_link l JOIN at_namespace n ' +
+        '  ON l.useskey = n.id ' +
+        'WHERE l.namespacekey = :NK';
+      q.ParamByName('NK').AsInteger := Self.ID;
+      q.ExecQuery;
+
+      if not q.EOF then
       begin
-        ObjCache := TStringHashMap.Create(CaseInsensitiveTraits, 1024);
-        try
-          W.WriteKey('Objects');
-          W.IncIndent;
-
-          while not Obj.Eof do
-          begin
-            if not ObjCache.Find(Obj.FieldByName('objectclass').AsString +
-              Obj.FieldByName('subtype').AsString, InstObj) then
-            begin
-              InstObj := nil;
-              InstClass := GetClass(Obj.FieldByName('objectclass').AsString);
-              if (InstClass <> nil) and InstClass.InheritsFrom(TgdcBase) then
-              begin
-                InstObj := CgdcBase(InstClass).Create(nil);
-                InstObj.ReadTransaction := Obj.Transaction;
-                InstObj.Transaction := Obj.Transaction;
-                InstObj.SubType := Obj.FieldByName('subtype').AsString;
-                InstObj.SubSet := 'ByID';
-                ObjCache.Add(Obj.FieldByName('objectclass').AsString +
-                  Obj.FieldByName('subtype').AsString, InstObj);
-              end;
-            end;
-
-            if InstObj <> nil then
-            try
-              InstObj.Close;
-              InstObj.ID := gdcBaseManager.GetIDByRUID(Obj.FieldByName('xid').AsInteger,
-                Obj.FieldByName('dbid').AsInteger, Transaction);
-              InstObj.Open;
-
-              if not InstObj.EOF then
-              begin
-                W.StartNewLine;
-                W.WriteSequenceIndicator;
-                W.IncIndent;
-                try
-                  W.StartNewLine;
-                  HeadObject := '';
-                  if not Obj.FieldByName('headobjectkey').IsNull then
-                  begin
-                    q.ParamByName('id').AsInteger := Obj.FieldByName('headobjectkey').AsInteger;
-                    q.ExecQuery;
-                    if not q.Eof then
-                      HeadObject := q.FieldByName('ruid').AsString;
-                    q.Close;
-                  end;
-                  WriteObject(InstObj, W, HeadObject,
-                    Obj.FieldByName('alwaysoverwrite').AsInteger <> 0,
-                    Obj.FieldByName('dontremove').AsInteger <> 0,
-                    Obj.FieldByName('includesiblings').AsInteger <> 0,
-                    Obj.FieldByName('modified').AsDateTime,
-                    ASubstituteEditionDate,
-                    ObjCache);
-
-                  if (InstObj.FindField('editiondate') <> nil)
-                    and (not InstObj.FieldByName('editiondate').IsNull)
-                    and (Obj.FieldByName('modified').AsDateTime <> InstObj.FieldByName('editiondate').AsDateTime) then
-                  begin
-                    Obj.Edit;
-                    Obj.FieldByName('modified').AsDateTime := InstObj.FieldByName('editiondate').AsDateTime;
-                    Obj.Post;
-                  end;
-                finally
-                  W.DecIndent;
-                end;
-              end else
-              begin
-                if Answer = 0 then
-                  Answer := MessageBox(0,
-                    PChar(
-                      'В базе данных не найден объект "' + Obj.FieldByName('objectname').AsString + '"'#13#10 +
-                      'RUID: XID = ' +  Obj.FieldByName('xid').AsString + ', DBID = ' + Obj.FieldByName('dbid').AsString + #13#10 +
-                      'Класс: ' + Obj.FieldByName('objectclass').AsString + Obj.FieldByName('subtype').AsString + #13#10#13#10 +
-                      'Удалить запись об объекте из пространства имен?'),
-                    'Ошибка',
-                    MB_ICONQUESTION or MB_YESNO or MB_TASKMODAL);
-                if Answer = IDYES then
-                begin
-                  Obj.Delete;
-                  Deleted := True;
-                end;
-              end;
-            finally
-              InstObj.Close;
-            end;
-
-            if Deleted then
-              Deleted := False
-            else
-              Obj.Next;
-          end;
-        finally
-          ObjCache.Iterate(nil, Iterate_FreeObjects);
-          ObjCache.Free;
+        W.WriteKey('Uses');
+        W.IncIndent;
+        while not q.EOF do
+        begin
+          W.StartNewLine;
+          W.WriteSequenceIndicator;
+          W.WriteText(
+            GetReferenceString(q.FieldByName('id'), q.FieldByName('name'), Transaction),
+            qDoubleQuoted);
+          q.Next;
         end;
+        W.DecIndent;
+        W.StartNewLine;
+      end;
+
+      q.Close;
+      q.SQL.Text :=
+        'SELECT xid || ''_'' || dbid as ruid FROM at_object WHERE id = :id';
+
+      CheckIncludesiblings;
+      Deleted := False;
+      Obj := TgdcNamespaceObject.Create(nil);
+      try
+        Obj.ReadTransaction := Transaction;
+        Obj.Transaction := Transaction;
+        Obj.SubSet := 'ByNamespace';
+        Obj.ParamByName('namespacekey').AsInteger := Self.ID;
+        Obj.Open;
+
+        if not Obj.Eof then
+        begin
+          ObjCache := TStringHashMap.Create(CaseInsensitiveTraits, 1024);
+          try
+            W.WriteKey('Objects');
+            W.IncIndent;
+
+            while not Obj.Eof do
+            begin
+              if not ObjCache.Find(Obj.FieldByName('objectclass').AsString +
+                Obj.FieldByName('subtype').AsString, InstObj) then
+              begin
+                InstObj := nil;
+                InstClass := GetClass(Obj.FieldByName('objectclass').AsString);
+                if (InstClass <> nil) and InstClass.InheritsFrom(TgdcBase) then
+                begin
+                  InstObj := CgdcBase(InstClass).Create(nil);
+                  InstObj.ReadTransaction := Obj.Transaction;
+                  InstObj.Transaction := Obj.Transaction;
+                  InstObj.SubType := Obj.FieldByName('subtype').AsString;
+                  InstObj.SubSet := 'ByID';
+                  ObjCache.Add(Obj.FieldByName('objectclass').AsString +
+                    Obj.FieldByName('subtype').AsString, InstObj);
+                end;
+              end;
+
+              if InstObj <> nil then
+              try
+                InstObj.Close;
+                InstObj.ID := gdcBaseManager.GetIDByRUID(Obj.FieldByName('xid').AsInteger,
+                  Obj.FieldByName('dbid').AsInteger, Transaction);
+                InstObj.Open;
+
+                if not InstObj.EOF then
+                begin
+                  W.StartNewLine;
+                  W.WriteSequenceIndicator;
+                  W.IncIndent;
+                  try
+                    W.StartNewLine;
+                    HeadObject := '';
+                    if not Obj.FieldByName('headobjectkey').IsNull then
+                    begin
+                      q.ParamByName('id').AsInteger := Obj.FieldByName('headobjectkey').AsInteger;
+                      q.ExecQuery;
+                      if not q.Eof then
+                        HeadObject := q.FieldByName('ruid').AsString;
+                      q.Close;
+                    end;
+                    WriteObject(InstObj, W, HeadObject,
+                      Obj.FieldByName('alwaysoverwrite').AsInteger <> 0,
+                      Obj.FieldByName('dontremove').AsInteger <> 0,
+                      Obj.FieldByName('includesiblings').AsInteger <> 0,
+                      Obj.FieldByName('modified').AsDateTime,
+                      ASubstituteEditionDate,
+                      ObjCache);
+
+                    if (InstObj.FindField('editiondate') <> nil)
+                      and (not InstObj.FieldByName('editiondate').IsNull)
+                      and (Obj.FieldByName('modified').AsDateTime <> InstObj.FieldByName('editiondate').AsDateTime) then
+                    begin
+                      Obj.Edit;
+                      Obj.FieldByName('modified').AsDateTime := InstObj.FieldByName('editiondate').AsDateTime;
+                      Obj.Post;
+                    end;
+                  finally
+                    W.DecIndent;
+                  end;
+                end else
+                begin
+                  if Answer = 0 then
+                    Answer := MessageBox(0,
+                      PChar(
+                        'В базе данных не найден объект "' + Obj.FieldByName('objectname').AsString + '"'#13#10 +
+                        'RUID: XID = ' +  Obj.FieldByName('xid').AsString + ', DBID = ' + Obj.FieldByName('dbid').AsString + #13#10 +
+                        'Класс: ' + Obj.FieldByName('objectclass').AsString + Obj.FieldByName('subtype').AsString + #13#10#13#10 +
+                        'Удалить запись об объекте из пространства имен?'),
+                      'Ошибка',
+                      MB_ICONQUESTION or MB_YESNO or MB_TASKMODAL);
+                  if Answer = IDYES then
+                  begin
+                    Obj.Delete;
+                    Deleted := True;
+                  end;
+                end;
+              finally
+                InstObj.Close;
+              end;
+
+              if Deleted then
+                Deleted := False
+              else
+                Obj.Next;
+            end;
+          finally
+            ObjCache.Iterate(nil, Iterate_FreeObjects);
+            ObjCache.Free;
+          end;
+        end;
+      finally
+        Obj.Free;
       end;
     finally
-      Obj.Free;
-    end;
-  finally
-    W.Free;
-    q.Free;
+      W.Free;
+      q.Free;
 
-    if DidActivate and Transaction.InTransaction then
-      Transaction.Commit;
+      if DidActivate and Transaction.InTransaction then
+        Transaction.Commit;
+    end;
+
+    HashString := '';
+
+    CryptAcquireContext(@hProv, nil, nil, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT);
+    try
+      CryptCreateHash(hProv, CALG_MD5, 0, 0, @Hash);
+      try
+        HashValueSize := SizeOf(HashValue);
+        if CryptHashData(Hash, MS.Memory, MS.Size, 0) and
+          CryptGetHashParam(Hash, HP_HASHVAL, @HashValue, @HashValueSize, 0) then
+        begin
+          for I := 0 to HashValueSize - 1 do
+            HashString := HashString + IntToHex(HashValue[I], 2);
+        end;
+      finally
+        CryptDestroyHash(Hash);
+      end;
+    finally
+      CryptReleaseContext(hProv, 0);
+    end;
+
+    W := TyamlWriter.Create(St);
+    try
+      W.WriteDirective(dirYAML11);
+      W.StartNewLine;
+      W.WriteDocumentStart;
+      W.WriteTextValue('StructureVersion', '1.0', qDoubleQuoted);
+      W.StartNewLine;
+      W.WriteKey('Properties');
+      W.IncIndent;
+      W.WriteStringValue('RUID', RUIDToStr(GetRUID));
+      W.WriteTextValue('Name', FieldByName('name').AsString, qDoubleQuoted);
+      W.WriteTextValue('Caption', FieldByName('caption').AsString, qDoubleQuoted);
+      W.WriteTextValue('Version', FieldByName('version').AsString, qDoubleQuoted);
+      W.WriteBooleanValue('Optional', FieldByName('optional').AsInteger);
+      W.WriteBooleanValue('Internal', FieldByName('internal').AsInteger);
+      if FieldByName('settingruid').AsString > '' then
+        W.WriteStringValue('SettingRUID', FieldByName('settingruid').AsString);
+      if FieldByName('dbversion').AsString > '' then
+        W.WriteStringValue('DBVersion', FieldByName('dbversion').AsString);
+      if FieldByName('comment').AsString > '' then
+        W.WriteTextValue('Comment', FieldByName('comment').AsString, qDoubleQuoted);
+      if HashString > '' then
+        W.WriteStringValue('MD5', HashString);
+      W.DecIndent;
+      W.StartNewLine;
+    finally
+      W.Free;
+    end;
+
+    St.CopyFrom(MS, 0);
+  finally
+    MS.Free;
   end;
 end;
 
