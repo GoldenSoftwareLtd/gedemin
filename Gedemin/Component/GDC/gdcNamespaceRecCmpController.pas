@@ -94,16 +94,23 @@ begin
 
   FCancelLoad := False;
 
-  with TdlgCompareNSRecords.Create(AnOwner) do
-  try
-    FgdcNamespaceRecCmpController := Self;
-    FillGrid(sgMain, not chbxShowOnlyDiff.Checked);
-    mObject.Lines.Text := StringReplace(mObject.Lines.Text, '%s',
-      AnObj.ObjectName, []);
-    Result := ShowModal = mrOk;
-  finally
-    Free;
-  end;
+  if (FInequalFields.Count = 1) and (AnsiCompareText(FInequalFields[0], 'EDITIONDATE') = 0) then
+  begin
+    if FMapping.ReadDateTime('Fields\EDITIONDATE', 0) > FObj.FieldByName('EDITIONDATE').AsDateTime then
+      FOverwriteFields.Text := 'EDITIONDATE';
+
+    Result := True;
+  end else
+    with TdlgCompareNSRecords.Create(AnOwner) do
+    try
+      FgdcNamespaceRecCmpController := Self;
+      FillGrid(sgMain, not chbxShowOnlyDiff.Checked);
+      mObject.Lines.Text := StringReplace(mObject.Lines.Text, '%s',
+        AnObj.ObjectName, []);
+      Result := ShowModal = mrOk;
+    finally
+      Free;
+    end;
 end;
 
 constructor TgdcNamespaceRecCmpController.Create;
