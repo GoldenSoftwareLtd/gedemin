@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2000-2013 by Golden Software of Belarus
+  Copyright (c) 2000-2014 by Golden Software of Belarus
 
   Module
 
@@ -1389,8 +1389,8 @@ end;
 }
 
 const
- CHECK_WIDTH = 13;
- CHECK_HEIGHT = 13;
+  CHECK_WIDTH = 13;
+  CHECK_HEIGHT = 13;
 
 procedure LoadCheckBox(ABitmap: TBitmap; Checked: Boolean);
 var
@@ -1398,7 +1398,6 @@ var
   R: TRect;
 begin
   B := TBitmap.Create;
-
   try
     B.Handle := LoadBitmap(0, MAKEINTRESOURCE(OBM_CHECKBOXES));
 
@@ -1408,7 +1407,7 @@ begin
     if Checked then
       R := Rect(CHECK_WIDTH, 0, CHECK_WIDTH * 2, CHECK_HEIGHT)
     else
-      R := Rect(0, 0, 13, 13);
+      R := Rect(0, 0, CHECK_WIDTH, CHECK_HEIGHT);
 
     ABitmap.Canvas.CopyRect(Rect(0, 0, CHECK_WIDTH, CHECK_HEIGHT), B.Canvas, R);
   finally

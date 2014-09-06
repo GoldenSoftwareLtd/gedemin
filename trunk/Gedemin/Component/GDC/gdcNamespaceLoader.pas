@@ -714,13 +714,14 @@ var
   Fields: TYAMLMapping;
   ObjID, CandidateID, RUIDID: TID;
   ObjPosted, ObjPreserved, CrossTableCreated: Boolean;
-  NeedSecondPass: Boolean;
+  NeedSecondPass, PartialOverwrite: Boolean;
   TempMapping: TyamlMapping;
 begin
   ObjPosted := False;
   ObjPreserved := False;
   CrossTableCreated := False;
   NeedSecondPass := False;
+  PartialOverwrite := False;
   Obj := CacheObject(AMapping.ReadString('Properties\Class'),
     AMapping.ReadString('Properties\SubType'));
   ObjRUIDString := AMapping.ReadString('Properties\RUID');
@@ -851,16 +852,19 @@ begin
       with TgdcNamespaceRecCmpController.Create do
       try
         if Compare(nil, Obj, AMapping) then
-          NeedSecondPass := CopyRecord(Obj, Fields, OverwriteFields)
-        else begin
-          AddText('Объект сохранен в исходном состоянии: ' + Obj.ObjectName);
+        begin
+          PartialOverwrite := InequalFields.Count <> OverwriteFields.Count;
+          NeedSecondPass := CopyRecord(Obj, Fields, OverwriteFields);
+        end else
+        begin
           ObjPreserved := True;
 
           if CancelLoad then
           begin
             AddWarning('Процесс загрузки прерван пользователем.');
             Abort;
-          end;
+          end else
+            AddText('Объект сохранен в исходном состоянии: ' + Obj.ObjectName);
         end;
       finally
         Free;
@@ -945,7 +949,10 @@ begin
     begin
       if tiEditionDate in Obj.GetTableInfos(Obj.SubType) then
       begin
-        FgdcNamespaceObject.FieldByName('modified').AsDateTime := Fields.ReadDateTime('EDITIONDATE');
+        if PartialOverwrite then
+          FgdcNamespaceObject.FieldByName('modified').AsDateTime := AtObjectRecord.Modified
+        else
+          FgdcNamespaceObject.FieldByName('modified').AsDateTime := Fields.ReadDateTime('EDITIONDATE');
         FgdcNamespaceObject.FieldByName('curr_modified').AsDateTime := Fields.ReadDateTime('EDITIONDATE');
       end else
       begin

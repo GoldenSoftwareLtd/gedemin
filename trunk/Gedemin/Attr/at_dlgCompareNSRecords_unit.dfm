@@ -82,6 +82,7 @@ object dlgCompareNSRecords: TdlgCompareNSRecords
         Height = 286
         Align = alClient
         BorderStyle = bsNone
+        Color = clBtnFace
         ColCount = 3
         DefaultRowHeight = 18
         DefaultDrawing = False
@@ -90,7 +91,7 @@ object dlgCompareNSRecords: TdlgCompareNSRecords
         Font.Height = -11
         Font.Name = 'Tahoma'
         Font.Style = []
-        Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goDrawFocusSelected, goColSizing, goRowSelect]
+        Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goDrawFocusSelected, goColSizing]
         ParentFont = False
         ScrollBars = ssVertical
         TabOrder = 0
@@ -127,7 +128,7 @@ object dlgCompareNSRecords: TdlgCompareNSRecords
           ShrinkMode = tbsmWrap
           TabOrder = 0
           object TBItem1: TTBItem
-            Action = actSelect
+            Action = actCopyValue
           end
           object tbView: TTBItem
             Action = actView
@@ -143,6 +144,8 @@ object dlgCompareNSRecords: TdlgCompareNSRecords
             Width = 169
             Height = 17
             Action = actShowOnlyDiff
+            Checked = True
+            State = cbChecked
             TabOrder = 0
           end
         end
@@ -201,7 +204,7 @@ object dlgCompareNSRecords: TdlgCompareNSRecords
         TabOrder = 3
         OnClick = rbSelectedClick
       end
-      object Panel1: TPanel
+      object pnlButtons: TPanel
         Left = 617
         Top = 0
         Width = 95
@@ -215,7 +218,7 @@ object dlgCompareNSRecords: TdlgCompareNSRecords
           Width = 79
           Height = 21
           Action = actProperties
-          TabOrder = 0
+          TabOrder = 1
         end
         object btnObject: TButton
           Left = 8
@@ -223,7 +226,7 @@ object dlgCompareNSRecords: TdlgCompareNSRecords
           Width = 79
           Height = 21
           Action = actObject
-          TabOrder = 1
+          TabOrder = 0
         end
       end
     end
@@ -244,7 +247,7 @@ object dlgCompareNSRecords: TdlgCompareNSRecords
     end
     object actView: TAction
       Caption = 'Просмотр...'
-      Hint = 'Просмотреть значение поля'
+      Hint = 'Просмотреть и сравнить значения выбранного поля'
       ImageIndex = 204
       ShortCut = 114
       OnExecute = actViewExecute
@@ -267,14 +270,11 @@ object dlgCompareNSRecords: TdlgCompareNSRecords
       OnExecute = actPropertiesExecute
       OnUpdate = actPropertiesUpdate
     end
-    object actSelect: TAction
-      Caption = 'Выбрать'
-      Hint = 
-        'Выбрать/снять выделение с поля для записи в базу данных (двойной' +
-        ' щелчек)'
-      ImageIndex = 29
-      OnExecute = actSelectExecute
-      OnUpdate = actSelectUpdate
+    object actCopyValue: TAction
+      Caption = 'Скопировать'
+      ImageIndex = 10
+      OnExecute = actCopyValueExecute
+      OnUpdate = actCopyValueUpdate
     end
   end
 end

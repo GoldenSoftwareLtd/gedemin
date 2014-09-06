@@ -37,11 +37,11 @@ type
     tbView: TTBItem;
     chbxShowOnlyDiff: TCheckBox;
     TBSeparatorItem1: TTBSeparatorItem;
-    actSelect: TAction;
-    TBItem1: TTBItem;
-    Panel1: TPanel;
+    pnlButtons: TPanel;
     btnProperties: TButton;
     btnObject: TButton;
+    actCopyValue: TAction;
+    TBItem1: TTBItem;
     procedure sgMainMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
     procedure sgMainDrawCell(Sender: TObject; ACol, ARow: Integer;
@@ -58,15 +58,24 @@ type
     procedure rbSkipClick(Sender: TObject);
     procedure rbOverwriteClick(Sender: TObject);
     procedure rbSelectedClick(Sender: TObject);
-    procedure actSelectExecute(Sender: TObject);
-    procedure actSelectUpdate(Sender: TObject);
     procedure actObjectUpdate(Sender: TObject);
     procedure actPropertiesUpdate(Sender: TObject);
     procedure actPropertiesExecute(Sender: TObject);
     procedure actObjectExecute(Sender: TObject);
+    procedure actCopyValueUpdate(Sender: TObject);
+    procedure actCopyValueExecute(Sender: TObject);
+
+  private
+    FGlyphChecked: TBitmap;
+    FGlyphUnChecked: TBitmap;
+
+    procedure SelectRow(const ARow: Integer);
 
   public
     FgdcNamespaceRecCmpController: TgdcNamespaceRecCmpController;
+
+    constructor Create(AnOwner: TComponent); override;
+    destructor Destroy; override;
   end;
 
 var
@@ -77,16 +86,25 @@ implementation
 {$R *.DFM}
 
 uses
-  prp_ScriptComparer_unit, dmImages_unit;
+  Clipbrd, prp_ScriptComparer_unit, dmImages_unit;
+
+const
+  CHECK_WIDTH = 13;
+  CHECK_HEIGHT = 13;
 
 procedure TdlgCompareNSRecords.sgMainMouseDown(Sender: TObject;
   Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+var
+  ACol, ARow: Integer;  
 begin
   if FgdcNamespaceRecCmpController = nil then
     exit;
 
-  if (ssDouble in Shift) then
-    actSelect.Execute;
+  if (ssLeft in Shift) and (X <= CHECK_WIDTH + 4) then
+  begin
+    sgMain.MouseToCell(X, Y, ACol, ARow);
+    SelectRow(ARow);
+  end;
 end;
 
 procedure TdlgCompareNSRecords.sgMainDrawCell(Sender: TObject; ACol,
@@ -138,7 +156,34 @@ begin
   end;
 
   sgMain.Canvas.FillRect(Rect);
-  sgMain.Canvas.TextOut(Rect.Left + 2, Rect.Top + 2, sgMain.Cells[ACol, ARow]);
+
+  if (ACol = 0) and (ARow > 0) then
+  begin
+    if rbSelected.Checked and (sgMain.Cells[1, ARow] <> sgMain.Cells[2, ARow]) then
+    begin
+      FN := sgMain.Cells[0, ARow];
+
+      if FgdcNamespaceRecCmpController.OverwriteField(FN) then
+        sgMain.Canvas.BrushCopy
+        (
+          Classes.Rect(Rect.Left + 2, Rect.Top + 2, Rect.Left + 2 + CHECK_WIDTH, Rect.Top + 2 + CHECK_HEIGHT),
+          FGlyphChecked,
+          Classes.Rect(0, 0, CHECK_WIDTH, CHECK_HEIGHT),
+          clNone
+        )
+      else
+        sgMain.Canvas.BrushCopy
+        (
+          Classes.Rect(Rect.Left + 2, Rect.Top + 2, Rect.Left + 2 + CHECK_WIDTH, Rect.Top + 2 + CHECK_HEIGHT),
+          FGlyphUnChecked,
+          Classes.Rect(0, 0, CHECK_WIDTH, CHECK_HEIGHT),
+          clNone
+        );
+    end;    
+
+    sgMain.Canvas.TextOut(Rect.Left + 2 + CHECK_WIDTH + 2, Rect.Top + 2, sgMain.Cells[ACol, ARow]);
+  end else
+    sgMain.Canvas.TextOut(Rect.Left + 2, Rect.Top + 2, sgMain.Cells[ACol, ARow]);
 end;
 
 procedure TdlgCompareNSRecords.actShowOnlyDiffExecute(Sender: TObject);
@@ -157,8 +202,12 @@ procedure TdlgCompareNSRecords.actContinueExecute(Sender: TObject);
 begin
   if rbSkip.Checked then
     ModalResult := mrCancel
-  else
+  else begin
+    if rbOverwrite.Checked then
+      FgdcNamespaceRecCmpController.OverwriteFields.Assign(
+        FgdcNamespaceRecCmpController.InequalFields);
     ModalResult := mrOk;
+  end;
 end;
 
 procedure TdlgCompareNSRecords.actViewExecute(Sender: TObject);
@@ -189,7 +238,8 @@ end;
 procedure TdlgCompareNSRecords.actContinueUpdate(Sender: TObject);
 begin
   actContinue.Enabled := (FgdcNamespaceRecCmpController <> nil)
-    and (rbSkip.Checked or rbOverwrite.Checked or rbSelected.Checked);
+    and (rbSkip.Checked or rbOverwrite.Checked or (rbSelected.Checked
+      and (FgdcNamespaceRecCmpController.OverwriteFields.Count > 0)));
 end;
 
 procedure TdlgCompareNSRecords.actCancelExecute(Sender: TObject);
@@ -218,32 +268,6 @@ begin
   sgMain.Refresh;
 end;
 
-procedure TdlgCompareNSRecords.actSelectExecute(Sender: TObject);
-var
-  Idx: Integer;
-  FN: String;
-begin
-  FN := sgMain.Cells[0, sgMain.Row];
-  Idx := FgdcNamespaceRecCmpController.OverwriteFields.IndexOf(FN);
-
-  if Idx > -1 then
-  begin
-    FgdcNamespaceRecCmpController.OverwriteFields.Delete(Idx);
-    sgMain.Refresh;
-  end
-  else if sgMain.Cells[1, sgMain.Row] <> sgMain.Cells[2, sgMain.Row] then
-  begin
-    FgdcNamespaceRecCmpController.OverwriteFields.Add(FN);
-    sgMain.Refresh;
-  end
-end;
-
-procedure TdlgCompareNSRecords.actSelectUpdate(Sender: TObject);
-begin
-  actSelect.Enabled := rbSelected.Checked
-    and (sgMain.Cells[1, sgMain.Row] <> sgMain.Cells[2, sgMain.Row]);
-end;
-
 procedure TdlgCompareNSRecords.actObjectUpdate(Sender: TObject);
 begin
   actObject.Enabled := FgdcNamespaceRecCmpController <> nil;
@@ -262,6 +286,75 @@ end;
 procedure TdlgCompareNSRecords.actObjectExecute(Sender: TObject);
 begin
   FgdcNamespaceRecCmpController.EditObject;
+end;
+
+constructor TdlgCompareNSRecords.Create(AnOwner: TComponent);
+
+  procedure LoadCheckBox(ABitmap: TBitmap; Checked: Boolean);
+  var
+    B: TBitmap;
+    R: TRect;
+  begin
+    B := TBitmap.Create;
+    try
+      B.Handle := LoadBitmap(0, MAKEINTRESOURCE(OBM_CHECKBOXES));
+
+      ABitmap.Width := CHECK_WIDTH;
+      ABitmap.Height := CHECK_HEIGHT;
+
+      if Checked then
+        R := Rect(CHECK_WIDTH, 0, CHECK_WIDTH * 2, CHECK_HEIGHT)
+      else
+        R := Rect(0, 0, CHECK_WIDTH, CHECK_HEIGHT);
+
+      ABitmap.Canvas.CopyRect(Rect(0, 0, CHECK_WIDTH, CHECK_HEIGHT), B.Canvas, R);
+    finally
+      B.Free;
+    end;
+  end;
+
+begin
+  inherited;
+  FGlyphChecked := TBitmap.Create;
+  LoadCheckBox(FGlyphChecked, True);
+  FGlyphUnChecked := TBitmap.Create;
+  LoadCheckBox(FGlyphUnChecked, False);
+end;
+
+destructor TdlgCompareNSRecords.Destroy;
+begin
+  FGlyphChecked.Free;
+  FGlyphUnChecked.Free;
+  inherited;
+end;
+
+procedure TdlgCompareNSRecords.SelectRow(const ARow: Integer);
+var
+  Idx: Integer;
+  FN: String;
+begin
+  if rbSelected.Checked and (sgMain.Cells[1, ARow] <> sgMain.Cells[2, ARow]) then
+  begin
+    FN := sgMain.Cells[0, ARow];
+    Idx := FgdcNamespaceRecCmpController.OverwriteFields.IndexOf(FN);
+
+    if Idx > -1 then
+      FgdcNamespaceRecCmpController.OverwriteFields.Delete(Idx)
+    else
+      FgdcNamespaceRecCmpController.OverwriteFields.Add(FN);
+
+    sgMain.Refresh;
+  end;
+end;
+
+procedure TdlgCompareNSRecords.actCopyValueUpdate(Sender: TObject);
+begin
+  actCopyValue.Enabled := (sgMain.Row > 0) and (sgMain.Col > 0);
+end;
+
+procedure TdlgCompareNSRecords.actCopyValueExecute(Sender: TObject);
+begin
+  Clipboard.AsText := sgMain.Cells[sgMain.Col, sgMain.Row];
 end;
 
 end.
