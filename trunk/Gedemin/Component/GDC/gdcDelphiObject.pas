@@ -413,10 +413,10 @@ var
     GClass: TClass;
   begin
     Result.gdClassName := '';
-    GClass := gdcClassList.GetGDCClass(ChildFN);
+    GClass := gdClassList.GetGDCClass(ChildFN);
     if GClass = nil then
     begin
-      GClass := frmClassList.GetFrmClass(ChildFN);
+      GClass := gdClassList.GetFrmClass(ChildFN);
       if GClass = nil then
         raise Exception.Create('Передан некорректный класс.');
     end;

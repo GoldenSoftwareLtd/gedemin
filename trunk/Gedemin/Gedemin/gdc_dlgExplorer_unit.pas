@@ -6,7 +6,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   gdc_dlgTR_unit, IBDatabase, Menus, Db, ActnList, StdCtrls, dmDatabase_unit,
-  gsIBLookupComboBox, Mask, DBCtrls, ExtCtrls;
+  gsIBLookupComboBox, Mask, DBCtrls, ExtCtrls, gd_ClassList;
 
 type
   Tgdc_dlgExplorer = class(Tgdc_dlgTR)
@@ -54,6 +54,8 @@ type
     procedure SetupDialog; override;
     function TestCorrect: Boolean; override;
     procedure Post; override;
+
+    function BuildClassTree(ACE: TgdClassEntry; AData: Pointer): Boolean;
   end;
                                                    
 var
@@ -62,7 +64,7 @@ var
 implementation
 
 uses
-  gdcBase, gdcBaseInterface, gd_classlist, IBSQL, gd_security, gdcExplorer,
+  gdcBase, gdcBaseInterface, IBSQL, gd_security, gdcExplorer,
   dmImages_unit, Storages, gsStorage, gdcAttrUserDefined, gdcClasses,
   jclStrings, gsResizerInterface, gd_directories_const, prp_MessageConst,
   prm_ParamFunctions_unit
@@ -138,7 +140,7 @@ begin
       C := CgdcBase(PC);
       C.GetSubTypeList(SL);
       for I := 0 to SL.Count - 1 do
-        cbSubTypes.Items.Add(SL.Values[SL.Names[I]]);
+        cbSubTypes.Items.Add(SL.Names[I]);
     end;
   finally
     SL.Free;
@@ -357,6 +359,13 @@ begin
   {END MACRO}
 end;
 
+function Tgdc_dlgExplorer.BuildClassTree(ACE: TgdClassEntry; AData: Pointer): Boolean;
+begin
+  cbClasses.Items.Add(ACE.TheClass.ClassName);
+
+  Result := True;
+end;
+
 procedure Tgdc_dlgExplorer.SetupDialog;
 var
   {@UNFOLD MACRO INH_CRFORM_PARAMS()}
@@ -364,7 +373,7 @@ var
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-  I: Integer;
+  CE: TgdClassEntry;
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGEXPLORER', 'SETUPDIALOG', KEYSETUPDIALOG)}
   {M}  try
@@ -389,10 +398,10 @@ begin
   inherited;
 
   cbClasses.Clear;
-  for I := 0 to gdcClassList.Count - 1 do
-  begin
-    cbClasses.Items.Add(gdcClassList[I].ClassName);
-  end;
+
+  CE := gdClassList.Find(TgdcBase);
+  if CE <> nil then
+    CE.Traverse(BuildClassTree, nil);
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGEXPLORER', 'SETUPDIALOG', KEYSETUPDIALOG)}
   {M}finally

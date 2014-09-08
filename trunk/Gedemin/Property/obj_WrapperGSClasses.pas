@@ -6848,7 +6848,7 @@ begin
   begin
     LFullClass.gdClassName := Cl;
     LFullClass.SubType := '';
-    LgdcClass := gdcClassList.GetGDCClass(LFullClass);
+    LgdcClass := gdClassList.GetGDCClass(LFullClass);
   end else
     LgdcClass := nil;
   Result := GetGDCBase.ChooseItems(LgdcClass, InterfaceToObject(KeyArray) as TgdKeyArray,
@@ -7391,7 +7391,7 @@ var
 begin
   Result := False;
   LFullClass.gdClassName := Cl;
-  LgdcClass := gdcClassList.GetGDCClass(LFullClass);
+  LgdcClass := gdClassList.GetGDCClass(LFullClass);
   if Assigned(LgdcClass) then
     Result := GetGDCBase.ChooseItems(LgdcClass, InterfaceToObject(KA) as TgdKeyArray,
       AChosenIDInOrder, ChooseComponentName, ChooseSubSet, ChooseSubType, ChooseExtraConditions);
@@ -8218,7 +8218,7 @@ var
   LFullClass: TgdcFullClassName;
 begin
   LFullClass.gdClassName := AgdcClassName;
-  LgdcClass := gdcClassList.GetGDCClass(LFullClass);
+  LgdcClass := gdClassList.GetGDCClass(LFullClass);
   if LgdcClass = nil then
     raise Exception.Create('Класс ' + AgdcClassName + 'не найден.');
 
@@ -12786,7 +12786,7 @@ begin
   правильно ли это?
   }
   LFullClass.gdClassName := Value;
-  LClass := gdcClassList.GetGDCClass(LFullClass);
+  LClass := gdClassList.GetGDCClass(LFullClass);
   if LClass = nil then
     raise Exception.Create('Класс ' + Value + ' не найден.');
 
@@ -19287,7 +19287,7 @@ initialization
   RegisterGdcOLEClass(TTBDock, TwrpTBDock, ComServer.TypeLib, IID_IgsTBDock);
   RegisterGdcOLEClass(TTBToolbar, TwrpTBToolbar, ComServer.TypeLib, IID_IgsTBToolbar);
   RegisterGdcOLEClass(TgdcBase, TwrpGDCBase, ComServer.TypeLib, IID_IgsGDCBase);
-  RegisterGdcOLEClass(TgdcClassList, TwrpGDCClassList, ComServer.TypeLib, IID_IgsGDCClassList);
+  RegisterGdcOLEClass(TgdClassList, TwrpGDCClassList, ComServer.TypeLib, IID_IgsGDCClassList);
   RegisterGdcOLEClass(TCreateableForm, TwrpCreateableForm, ComServer.TypeLib, IID_IgsCreateableForm);
   RegisterGdcOLEClass(TgdKeyArray, TwrpGDKeyArray, ComServer.TypeLib, IID_IgsGDKeyArray);
   RegisterGdcOLEClass(TgdcInvBaseRemains, TwrpGDCInvBaseRemains, ComServer.TypeLib, IID_IgsGDCInvBaseRemains);

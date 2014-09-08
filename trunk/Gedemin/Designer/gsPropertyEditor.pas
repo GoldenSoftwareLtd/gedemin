@@ -183,6 +183,7 @@ type
     class function PropertyType: String; override;
     class function PropertyName: String; override;
     constructor Create; override;
+
   end;
 
   TgsPropertyEditor_DataField = class(TgsPropertyEditor)
@@ -736,15 +737,36 @@ end;
 { TgsPropertyEditor_TgdcClassName }
 
 constructor TgsPropertyEditor_TgdcClassName.Create;
+  procedure TraverseClassTree(ACE: TgdClassEntry);
+  var
+    I: Integer;
+  begin
+    if (ACE <> nil) then
+      if ACE.Count > 0 then
+        for I := 0 to ACE.Count -1 do
+          if (ACE.Siblings[I] <> nil)
+            and (not (ACE.Siblings[I].SubType > '')) then
+          begin
+            FValues.Add(ACE.Siblings[I].gdcClass.ClassName);
+            TraverseClassTree(ACE.Siblings[I]);
+          end;
+  end;
+  
 var
-  I: Integer;
+//  I: Integer;
+  CE:TgdClassEntry;
 begin
   inherited;
   FButtonType := btDown;
   FValues := TStringList.Create;
-  for I := 0 to gdcClassList.Count - 1 do
+
+  CE := gdClassList.Find(TgdcBase);
+  if CE <> nil then
+    TraverseClassTree(CE);
+
+  {for I := 0 to gdcClassList.Count - 1 do
     if CgdcBase(gdcClassList[I]).InheritsFrom(TgdcBase)  then
-      FValues.Add(gdcClassList[I].ClassName);
+      FValues.Add(gdcClassList[I].ClassName);}
 end;
 
 class function TgsPropertyEditor_TgdcClassName.PropertyName: String;

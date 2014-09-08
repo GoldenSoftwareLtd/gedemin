@@ -40,6 +40,7 @@ type
   public
     { Public declarations }
     property Value: string read GetValue write SetValue;
+    function BuildClassTree(ACE: TgdClassEntry; AData: Pointer): Boolean;
   end;
 
 function CustomAnalyticForm: TCustomAnalyticForm;
@@ -121,11 +122,59 @@ begin
   end;
 end;
 
-procedure TCustomAnalyticForm.cbBODropDown(Sender: TObject);
+function TCustomAnalyticForm.BuildClassTree(ACE: TgdClassEntry; AData: Pointer): Boolean;
 var
-  I, J: Integer;
   S: TStringList;
   CL: TClassList;
+  J: Integer;
+begin
+  if (ACE <> nil) and (not (ACE.SubType > '')) then
+  begin
+    S := TStringList.Create;
+    CL := TClassList.Create;
+
+    try
+      if not GetDescendants(ACE.gdcClass, CL, True) then
+      begin
+      if ACE.gdcClass.GetSubTypeList(S) then
+        begin
+          for J := 0 to S.Count - 1 do
+          begin
+            FSubTypeList.AddObject(Format('%s[%s]',
+              [S.Names[J],
+              ACE.gdcClass.ClassName]) + '=' +
+              S.Values[S.Names[J]], Pointer(ACE.gdcClass));
+            cbBo.Items.AddObject(Format('%s[%s]',
+              [S.Names[J],
+              ACE.gdcClass.ClassName]),
+              Pointer(ACE.gdcClass));
+          end;
+        end else
+        begin
+          FSubTypeList.AddObject(Format('%s[%s]',
+            [ACE.gdcClass.GetDisplayName(''),
+            ACE.gdcClass.ClassName]) + '=',
+            Pointer(ACE.gdcClass));
+          cbBo.Items.AddObject(Format('%s[%s]',
+            [ACE.gdcClass.GetDisplayName(''),
+            ACE.gdcClass.ClassName]),
+            Pointer(ACE.gdcClass));
+        end;
+      end;
+    finally
+      S.Free;
+      CL.Free;
+    end;
+  end;
+  Result := True;
+end;
+
+procedure TCustomAnalyticForm.cbBODropDown(Sender: TObject);
+var
+{  I, J: Integer;
+  S: TStringList;
+  CL: TClassList; }
+  CE: TgdClassEntry;
 begin
   if FSubTypeList = nil then
     FSubTypeList := TStringList.Create
@@ -134,7 +183,13 @@ begin
 
   cbBo.Items.BeginUpdate;
   try
-   S := TStringList.Create;
+    cbBo.Items.Clear;
+
+    CE := gdClassList.Find(TgdcBase);
+    if CE <> nil then
+      CE.Traverse(BuildClassTree, nil);
+
+{   S := TStringList.Create;
    CL := TClassList.Create;
    try
      cbBo.Items.Clear;
@@ -171,7 +226,7 @@ begin
    finally
      S.Free;
      CL.Free;
-   end;
+   end;}
   finally
     cbBo.Items.EndUpdate;
   end;

@@ -33,7 +33,7 @@ uses
   Db, IBCustomDataSet, IBDatabase, ActnList, IBSQL, ComCtrls, gdcBase,
   StdCtrls, ExtCtrls, DBCtrls, gsIBLookupComboBox, Mask, Grids, DBGrids,
   gsDBGrid, gsIBGrid, gd_security, Contnrs, gdc_dlgG_unit, gdc_dlgTRMetaData_unit,
-  Menus, gdc_dlgTR_unit, gdcBaseInterface;
+  Menus, gdc_dlgTR_unit, gdcBaseInterface, gd_ClassList;
 
 type
   Tgdc_dlgField = class(Tgdc_dlgTRMetaData)
@@ -216,6 +216,8 @@ type
     procedure SetupRecord; override;
     procedure SetupDialog; override;
     function TestCorrect: Boolean; override;
+
+    function BuildClassTree(ACE: TgdClassEntry; AData: Pointer): Boolean;
   end;
 
   Egdc_dlgFieldError = class(Exception);
@@ -228,7 +230,7 @@ implementation
 {$R *.DFM}
 
 uses
-  gdcMetaData, IBHeader, at_classes, gd_ClassList,
+  gdcMetaData, IBHeader, at_classes,
 
   at_sql_tools
   {must be placed after Windows unit!}
@@ -1346,7 +1348,8 @@ begin
 
       if GetSubTypes(FCurrentSubTypes) then
         for I := 0 to FCurrentSubTypes.Count - 1 do
-          comboClassSubType.Items.Add(FCurrentSubTypes.Names[I]);
+          comboClassSubType.Items.Add(FCurrentSubTypes.Names[I]
+            + '[' + FCurrentSubTypes.Values[FCurrentSubTypes.Names[I]] + ']');
     end;
   end;
 end;
@@ -1763,6 +1766,16 @@ begin
   {END MACRO}
 end;
 
+function Tgdc_dlgField.BuildClassTree(ACE: TgdClassEntry; AData: Pointer): Boolean;
+begin
+  if ACE <> nil then
+    if not (ACE.SubType > '') then
+      FClasses.Add(TgdcClassHandler.Create(
+        ACE.gdcClass, gdcObject.Transaction.DefaultDatabase,
+        gdcObject.Transaction));
+        
+  Result := True;
+end;
 
 procedure Tgdc_dlgField.SetupDialog;
 var
@@ -1771,7 +1784,7 @@ var
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-  I: Integer;
+  CE: TgdClassEntry;
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGFIELD', 'SETUPDIALOG', KEYSETUPDIALOG)}
   {M}  try
@@ -1794,13 +1807,12 @@ begin
   {END MACRO}
   inherited;
   FClasses.Clear;
-  //  Подготовка базовых классов
 
-  for I := 0 to gdcClassList.Count - 1 do
-    if CgdcBase(gdcClassList[I]).InheritsFrom(TgdcBase) then
-      FClasses.Add(TgdcClassHandler.Create(
-        CgdcBase(gdcClassList[I]), gdcObject.Transaction.DefaultDatabase,
-          gdcObject.Transaction));
+  //  Подготовка базовых классов
+  
+  CE := gdClassList.Find(TgdcBase);
+  if CE <> nil then
+    CE.Traverse(BuildClassTree, nil);
 
   luRefRelation.Condition :=
     '(SELECT COUNT(*) ' +

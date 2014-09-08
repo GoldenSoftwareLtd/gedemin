@@ -1604,13 +1604,13 @@ begin
   LI := lvClasses.Items.Add;
   LI.Caption := ACE.TheClass.ClassName;
 
-  if ACE.gdClass.IsAbstractClass then
+  if ACE.gdcClass.IsAbstractClass then
     LI.SubItems.Text := '<Абстрактный базовый класс>'
   else
     LI.SubItems.Text := ACE.SubType;
 
-  LI.SubItems.Add(ACE.gdClass.GetDisplayName(ACE.SubType));
-  LI.SubItems.Add(ACE.gdClass.GetListTable(ACE.SubType));
+  LI.SubItems.Add(ACE.gdcClass.GetDisplayName(ACE.SubType));
+  LI.SubItems.Add(ACE.gdcClass.GetListTable(ACE.SubType));
 
   Result := True;
 end;
@@ -1630,7 +1630,7 @@ begin
     exit;
 
   {$IFDEF GEDEMIN}
-  CE := gdcClassList.Find(TgdcBase);
+  CE := gdClassList.Find(TgdcBase);
   if CE <> nil then
     CE.Traverse(BuildClassTree, nil);
 

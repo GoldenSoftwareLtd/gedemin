@@ -419,7 +419,7 @@ begin
   begin
     FullClassName.gdClassName := DetailObject.ClassName;
     FullClassName.SubType := '';
-    gdcBaseRef := gdcClassList.GetGDCClass(FullClassName);
+    gdcBaseRef := gdClassList.GetGDCClass(FullClassName);
     if gdcBaseRef <> nil then
     begin
       LocGdcBase :=  gdcBaseRef.Create(nil);

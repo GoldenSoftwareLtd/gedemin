@@ -181,7 +181,7 @@ type
     procedure SetEventHandler(const AnComponent: IgsComponent; const EventName: WideString;
                               const FunctionName: WideString); safecall;
     procedure ResetEventHandler(const AnComponent: IgsComponent; const EventName: WideString); safecall;
-    function  GDCClasses(Index: Integer): WideString; safecall;
+//    function  GDCClasses(Index: Integer): WideString; safecall;
     function  GDCClassesCount: Integer; safecall;
     function  Get_IsRegisteredCopy: WordBool; safecall;
   end;
@@ -491,7 +491,7 @@ begin
   FApplication := GetGdcOLEObject(Application) as IgsApplication;
   FScreen := GetGdcOLEObject(Screen) as IgsScreen;
   FMouse := GetGdcOLEObject(Mouse) as IgsMouse;
-  FgdcClassList := GetGdcOLEObject(gdcClassList) as IgsGDCClassList;
+  FgdcClassList := GetGdcOLEObject(gdClassList) as IgsGDCClassList;
   FgdcBaseManager := TgsGdcBaseManager.Create as IgsGdcBaseManager;
 
   FatDatabase := GetGdcOLEObject(atDatabase) as IgsAtDatabase;
@@ -996,14 +996,14 @@ begin
   end;
 end;
 
-function TgsGedeminApplication.GDCClasses(Index: Integer): WideString;
-begin
-  Result := gdcClassList[Index].ClassName;
-end;
+//function TgsGedeminApplication.GDCClasses(Index: Integer): WideString;
+//begin
+//  Result := gdcClassList[Index].ClassName;
+//end;
 
 function TgsGedeminApplication.GDCClassesCount: Integer;
 begin
-  Result := gdcClassList.Count;
+  Result := gdClassList.Count;
 end;
 
 function TgsGedeminApplication.Get_WebServerControl: IgdWebServerControl;
