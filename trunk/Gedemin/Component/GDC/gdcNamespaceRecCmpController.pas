@@ -139,7 +139,12 @@ end;
 procedure TgdcNamespaceRecCmpController.EditObject;
 begin
   Assert(FObj <> nil);
-  FObj.EditDialog;
+  with FObj.CreateSingularByID(nil, FObj.Database, FObj.Transaction, FObj.ID, FObj.SubType) do
+  try
+    EditDialog;
+  finally
+    Free;
+  end;
 end;
 
 procedure TgdcNamespaceRecCmpController.FillGrid(AGrid: TStringGrid;
@@ -190,7 +195,12 @@ end;
 procedure TgdcNamespaceRecCmpController.ViewObjectProperties;
 begin
   Assert(FObj <> nil);
-  FObj.EditDialog('TGDC_DLGOBJECTPROPERTIES');
+  with FObj.CreateSingularByID(nil, FObj.Database, FObj.Transaction, FObj.ID, FObj.SubType) do
+  try
+    EditDialog('TGDC_DLGOBJECTPROPERTIES');
+  finally
+    Free;
+  end;
 end;
 
 function TgdcNamespaceRecCmpController.OverwriteField(
