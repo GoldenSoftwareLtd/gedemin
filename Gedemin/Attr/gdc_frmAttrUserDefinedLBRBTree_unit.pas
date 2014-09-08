@@ -132,7 +132,7 @@ class procedure Tgdc_frmAttrUserDefinedLBRBTree.RegisterClassHierarchy;
           and (AnsiCompareText(Items[I].RelationFields.ByFieldName('ID').ForeignKey.ReferencesRelation.RelationName,
             ACE.SubType) = 0) then
         begin
-          SL.Add(Items[I].RelationName);
+          SL.Add(Items[I].LName + '=' + Items[I].RelationName);
         end;
       end
       else
@@ -148,13 +148,13 @@ class procedure Tgdc_frmAttrUserDefinedLBRBTree.RegisterClassHierarchy;
             and Assigned(Items[I].RelationFields.ByFieldName('LB'))
             and not Assigned(Items[I].RelationFields.ByFieldName('INHERITED'))then
           begin
-            SL.Add(Items[I].RelationName);
+            SL.Add(Items[I].LName + '=' + Items[I].RelationName);
           end;
       end;
 
       for I := 0 to SL.Count - 1 do
       begin
-        CurrCE := frmClassList.Add(ACE.TheClass, SL[I], ACE.SubType);
+        CurrCE := gdClassList.Add(ACE.TheClass, SL.Values[SL.Names[I]], SL.Names[I],  ACE.SubType);
         ReadFromRelations(CurrCE);
       end;
     finally
@@ -168,7 +168,7 @@ var
   CEBase: TgdClassEntry;
 
 begin
-  CEBase := frmClassList.Find(Self);
+  CEBase := gdClassList.Find(Self);
 
   if CEBase = nil then
     raise EgdcException.Create('Unregistered class.');

@@ -29,7 +29,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  ActnList, StdCtrls, ExtCtrls, ComCtrls;
+  ActnList, StdCtrls, ExtCtrls, ComCtrls, gd_ClassList;
 
 type
   Tdlg_NewForm_Wzrd = class(TForm)
@@ -89,6 +89,8 @@ type
     procedure FormOnCloseQuery(Sender: TObject; var CanClose: Boolean);
   public
     { Public declarations }
+    function BuildClassTree(ACE: TgdClassEntry; AData: Pointer): Boolean;
+    
   end;
 
 var
@@ -97,7 +99,7 @@ var
 implementation
 
 uses
-  gsResizerInterface, contnrs, gd_ClassList, gdcBase, Storages,
+  gsResizerInterface, contnrs, gdcBase, Storages,
   gsStorage, gd_directories_const, gdc_createable_form, gdc_dlgG_unit,
   gdc_dlgTR_unit, gdc_dlgTRPC_unit, gdc_dlgHGR_unit,
   gdc_frmG_unit, gdc_frmMDH_unit, gdc_frmMDHGR_unit, gdc_frmMDHGRAccount_unit,
@@ -165,9 +167,19 @@ begin
 
 end;
 
+function Tdlg_NewForm_Wzrd.BuildClassTree(ACE: TgdClassEntry; AData: Pointer): Boolean;
+begin
+  if (ACE <> nil) and (not (ACE.SubType > '')) then
+    if not ACE.gdcClass.IsAbstractClass then
+      cbGdcType.Items.Add(ACE.gdcClass.ClassName);
+      
+  Result := True;
+end;
+
 procedure Tdlg_NewForm_Wzrd.FormCreate(Sender: TObject);
 var
   I: Integer;
+  CE: TgdClassEntry;
   function GetClassDescription(const AName: String): String;
   var
     S: String;
@@ -218,14 +230,9 @@ begin
 
   cbGdcType.Items.Clear;
 
-  for I := 0 to gdcClassList.Count - 1 do
-  begin
-    if CgdcBase(gdcClassList[I]).InheritsFrom(TgdcBase)
-      and (not CgdcBase(gdcClassList[I]).IsAbstractClass) then
-    begin
-      cbGdcType.Items.Add(gdcClassList[I].ClassName);
-    end;
-  end;
+  CE := gdClassList.Find(TgdcBase);
+  if CE <> nil then
+    CE.Traverse(BuildClassTree, nil);
 
   cbFormType.Clear;
   for I := 0 to AncestorFormList.Count - 1 do

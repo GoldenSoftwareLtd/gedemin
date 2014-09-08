@@ -158,6 +158,7 @@ class procedure Tgdc_dlgUserSimpleDocument.RegisterClassHierarchy;
     CurrCE: TgdClassEntry;
     ibsql: TIBSQL;
     LSubType: string;
+    LComment: String;
     LParentSubType: string;
   begin
     if ACE.Initialized then
@@ -168,6 +169,7 @@ class procedure Tgdc_dlgUserSimpleDocument.RegisterClassHierarchy;
       ibsql.Transaction := gdcBaseManager.ReadTransaction;
       ibsql.SQL.Text :=
         'SELECT '#13#10 +
+        '  dt.name AS comment, '#13#10 +
         '  dt.classname AS classname, '#13#10 +
         '  dt.ruid AS subtype, '#13#10 +
         '  dt1.ruid AS parentsubtype '#13#10 +
@@ -185,9 +187,10 @@ class procedure Tgdc_dlgUserSimpleDocument.RegisterClassHierarchy;
       while not ibsql.EOF do
       begin
         LSubType := ibsql.FieldByName('subtype').AsString;
+        LComment := ibsql.FieldByName('comment').AsString;
         LParentSubType := ibsql.FieldByName('parentsubtype').AsString;
 
-        CurrCE := frmClassList.Add(ACE.TheClass, LSubType, LParentSubType);
+        CurrCE := gdClassList.Add(ACE.TheClass, LSubType, LComment, LParentSubType);
 
         CurrCE.Initialized := True;
         ibsql.Next;
@@ -203,7 +206,7 @@ var
   CEBase: TgdClassEntry;
 
 begin
-  CEBase := frmClassList.Find(Self);
+  CEBase := gdClassList.Find(Self);
 
   if CEBase = nil then
     raise EgdcException.Create('Unregistered class.');

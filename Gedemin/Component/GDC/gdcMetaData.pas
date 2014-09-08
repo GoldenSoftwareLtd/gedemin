@@ -2629,11 +2629,8 @@ begin
     raise;
   end;
 
-  if Assigned(gdcClassList) then
-    gdcClassList.RemoveAll;
-
-  if Assigned(frmClassList) then
-    frmClassList.RemoveAll;
+  if Assigned(gdClassList) then
+    gdClassList.RemoveAllSubTypes;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASETABLE', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
   {M}  finally

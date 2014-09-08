@@ -4,7 +4,7 @@ unit gdcBase_PropEditor;
 interface
 
 uses
-  Classes, DsgnIntf, gdcBase;
+  Classes, DsgnIntf, gdcBase, gd_ClassList;
 
 type
   TgdcSubSetProperty = class(TPropertyEditor)
@@ -21,6 +21,8 @@ type
     procedure GetValues(Proc: TGetStrProc); override;
     function GetValue: String; override;
     procedure SetValue(const Value: String); override;
+
+    function BuildClassTree(ACE: TgdClassEntry; AData: Pointer): Boolean;
   end;
 
 
@@ -29,7 +31,7 @@ procedure Register;
 implementation
 
 uses
-  gd_ClassList, gsIBLookupComboBox, gdcBaseInterface;
+  gsIBLookupComboBox, gdcBaseInterface;
 
 function GetNextSubSet(const S: String; var P: Integer): String;
 var
@@ -110,13 +112,26 @@ begin
     Result := inherited GetValue;
 end;
 
+function TgdcClassNameProperty.BuildClassTree(ACE: TgdClassEntry; AData: Pointer): Boolean;
+begin
+  if (ACE <> nil) then
+    TGetStrProc(AData^)(ACE.gdcClass.ClassName);
+
+  Result := True;
+end;
+
 procedure TgdcClassNameProperty.GetValues(Proc: TGetStrProc);
 var
-  I: Integer;
+//  I: Integer;
+  CE: TgdClassEntry;
 begin
-  for I := 0 to gdcClassList.Count - 1 do
-    if gdcClassList[I].InheritsFrom(TgdcBase) then
-      Proc(gdcClassList[I].ClassName);
+  CE := gdClassList.Find(TgdcBase);
+  if CE <> nil then
+    CE.Traverse(BuildClassTree, @Proc);
+
+//  for I := 0 to gdcClassList.Count - 1 do
+//    if gdcClassList[I].InheritsFrom(TgdcBase) then
+//      Proc(gdcClassList[I].ClassName);
 end;
 
 procedure TgdcClassNameProperty.SetValue(const Value: String);

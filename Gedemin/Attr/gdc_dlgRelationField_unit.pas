@@ -31,7 +31,7 @@ uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   gdc_dlgG_unit, Db, ActnList, StdCtrls, DBCtrls, ExtCtrls,
   gsIBLookupComboBox, at_sql_metadata, Mask, ComCtrls, Contnrs,
-  gdc_dlgTRMetaData_unit, IBDatabase, gsTreeView, Menus, gdc_dlgTR_unit, IBHeader;
+  gdc_dlgTRMetaData_unit, IBDatabase, gsTreeView, Menus, gdc_dlgTR_unit, IBHeader, gd_ClassList;
 
 type
   Tgdc_dlgRelationField = class(Tgdc_dlgTRMetaData)
@@ -112,6 +112,8 @@ type
     procedure SetupDialog; override;
     procedure SetupRecord; override;
     function TestCorrect: Boolean; override;
+
+    function BuildClassTree(ACE: TgdClassEntry; AData: Pointer): Boolean;
   end;
 
   Egdc_dlgRelationField = class(Exception);
@@ -124,7 +126,7 @@ implementation
 {$R *.DFM}
 
 uses
-  gdcMetaData, IBSQL, at_classes, gdcBase, gd_ClassList,
+  gdcMetaData, IBSQL, at_classes, gdcBase,
   gd_resourcestring, jclStrings, at_sql_tools;
 
 const
@@ -164,6 +166,7 @@ var
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
   I: Integer;
+  CE: TgdClassEntry;
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGRELATIONFIELD', 'SETUPDIALOG', KEYSETUPDIALOG)}
   {M}  try
@@ -188,11 +191,15 @@ begin
   //////////////////////////////////////////////////////////////////////////////
   //  Подготовка базовых классов
 
-  for I := 0 to gdcClassList.Count - 1 do
+  CE := gdClassList.Find(TgdcBase);
+  if CE <> nil then
+    CE.Traverse(BuildClassTree, nil);
+
+ { for I := 0 to gdcClassList.Count - 1 do
     if CgdcBase(gdcClassList[I]).InheritsFrom(TgdcBase) then
       FClasses.Add(TgdcClassHandler.Create(
         CgdcBase(gdcClassList[I]), gdcObject.Transaction.DefaultDatabase,
-          gdcObject.Transaction));
+          gdcObject.Transaction));  }
 
   comboBusinessClass.ItemIndex := -1;
   comboBusinessClass.Items.Clear;
@@ -434,80 +441,33 @@ begin
   cmbRuleDelete.Visible := not cbCalculated.Checked;
 end;
 
+function Tgdc_dlgRelationField.BuildClassTree(ACE: TgdClassEntry; AData: Pointer): Boolean;
+begin
+  if ACE <> nil then
+    if not (ACE.SubType > '') then
+      FClasses.Add(TgdcClassHandler.Create(
+        ACE.gdcClass, gdcObject.Transaction.DefaultDatabase,
+        gdcObject.Transaction));
+
+  Result := True;
+end;
+
 procedure Tgdc_dlgRelationField.LoadClasses;
-var
-  I, J, K: Integer;
-  TreeList, CountList: TList;
-  LocClassList: TgdcClassList;
-  FCurSubTypes: TStringList;
-  F: TatRelationField;
 
-  function GetObject(const LComponent: TComponent; const LClassName: String): TComponent;
+  procedure TraverseClassList(ACE: TgdClassEntry; ATreeNode: TTreeNode; ARF: TatRelationField);
   var
-    L: Integer;
-  begin
-    if AnsiCompareText(LComponent.ClassName, LClassName) = 0 then
-      Result := LComponent
-    else
-    begin
-      Result := nil;
-      for L := 0 to LComponent.ComponentCount - 1 do
-      begin
-        Result := GetObject(LComponent.Components[L], LClassName);
-        if Result <> nil then
-          Break;
-      end;
-    end;
-  end;
-
-  function InheritsFromCount(AnMainClass, AnParentClass: TClass): Integer;
-  asm
-        { ->    EAX     Pointer to our class    }
-        {       EDX     Pointer to AClass               }
-        { <-    EAX      Boolean result          }
-        PUSH    EBX
-        MOV     EBX, 0
-        JMP     @@haveVMT
-@@loop:
-        MOV     EAX,[EAX]
-@@haveVMT:
-        CMP     EAX,EDX
-        JE      @@success
-        INC     EBX
-        MOV     EAX,[EAX].vmtParent
-        TEST    EAX,EAX
-        JNE     @@loop
-        MOV     EAX, -1
-        JMP     @@exit
-@@success:
-        MOV     EAX, EBX
-@@exit:
-        POP     EBX
-  end;
-
-  procedure AddClass(const AnIndex: Integer);
-  var
-    TempPC: TComponentClass;
     LTreeNode: TTreeNode;
     I: Integer;
   begin
-    if Integer(CountList.Items[AnIndex]) < -1 then
-      Exit;
-
-    try
-      TempPC := TComponentClass(LocClassList.Items[AnIndex]);
-      if TempPC.InheritsFrom(TgdcBase) then
+    if ACE <> nil then
+    begin
+      if not (ACE.SubType > '') then
       begin
-        LTreeNode := nil;
-        if Integer(CountList.Items[AnIndex]) >= 0 then
-        begin
-          AddClass(Integer(CountList.Items[AnIndex]));
-          LTreeNode := TreeList.Items[Integer(CountList.Items[AnIndex])];
-        end;
+        ACE.gdcClass.RegisterClassHierarchy;
 
-        TreeList.Items[AnIndex] := tvObjects.Items.AddChild(LTreeNode,
-          CgdcBase(TempPC).GetDisplayName('') + ' [' + TempPC.ClassName + ']');
-        LTreeNode := TreeList.Items[AnIndex];
+        LTreeNode := tvObjects.Items.AddChild(ATreeNode,
+        ACE.gdcClass.GetDisplayName('') + ' [' + ACE.gdcClass.ClassName + ']');
+
         if gdcObject.State = dsInsert then
         begin
           if tvObjects.Items.Count = 1 then
@@ -517,7 +477,7 @@ var
         end
         else
         begin
-          if F.InObject(TempPC.ClassName) then
+          if ARF.InObject(ACE.gdcClass.ClassName) then
             LTreeNode.StateIndex := 1
           else
             LTreeNode.StateIndex := 2;
@@ -529,113 +489,73 @@ var
               LTreeNode.StateIndex := 3;
             end;
         end;
-        if CgdcBase(TempPC).GetSubTypeList(FCurSubTypes) then
+      end
+      else
+      begin
+        LTreeNode := tvObjects.Items.AddChild(ATreeNode, ACE.Comment +
+         ' [' + ACE.gdcClass.ClassName + '(' + ACE.SubType + ')]');
+        if dsgdcBase.DataSet.State = dsInsert then
+          tvObjects.Items[tvObjects.Items.Count - 1].StateIndex := 2
+        else
         begin
-          for I := 0 to FCurSubTypes.Count - 1 do
-          begin
-            LTreeNode := TreeList.Items[AnIndex];
-            tvObjects.Items.AddChild(LTreeNode,FCurSubTypes.Names[I] +
-              ' [' + TempPC.ClassName + '(' +
-              Copy(FCurSubTypes.Strings[I],
-              AnsiPos('=', FCurSubTypes.Strings[I]) + 1,
-              Length(FCurSubTypes.Strings[I]) -
-              AnsiPos('=', FCurSubTypes.Strings[I])) + ')]');
-            if dsgdcBase.DataSet.State = dsInsert then
-              tvObjects.Items[tvObjects.Items.Count - 1].StateIndex := 2
-            else
-            begin
-              if F.InObject(TempPC.ClassName + '(' +
-                Copy(FCurSubTypes.Strings[I],
-                AnsiPos('=', FCurSubTypes.Strings[I]) + 1,
-                Length(FCurSubTypes.Strings[I]) -
-                AnsiPos('=', FCurSubTypes.Strings[I])) + ')') then
-                tvObjects.Items[tvObjects.Items.Count - 1].StateIndex := 1
-              else
-                tvObjects.Items[tvObjects.Items.Count - 1].StateIndex := 2;
+          if ARF.InObject(ACE.gdcClass.ClassName + '(' + ACE.SubType + ')') then
+            tvObjects.Items[tvObjects.Items.Count - 1].StateIndex := 1
+          else
+            tvObjects.Items[tvObjects.Items.Count - 1].StateIndex := 2;
 
-              LTreeNode := tvObjects.Items[tvObjects.Items.Count - 1];
-              if LTreeNode.StateIndex = 1 then
-                while (LTreeNode.Parent <> nil) and (LTreeNode.Parent.StateIndex <> 1) do
-                begin
-                  LTreeNode := LTreeNode.Parent;
-                  LTreeNode.StateIndex := 3;
-                end;
-            end;
+          LTreeNode := tvObjects.Items[tvObjects.Items.Count - 1];
+            if LTreeNode.StateIndex = 1 then
+              while (LTreeNode.Parent <> nil) and (LTreeNode.Parent.StateIndex <> 1) do
+              begin
+                LTreeNode := LTreeNode.Parent;
+                LTreeNode.StateIndex := 3;
+              end;
+        end;
+      end;
+
+      if ACE.Count > 0 then
+      begin
+        for I := 0 to ACE.Count - 1 do
+        begin
+          if ACE.Siblings[I] <> nil then
+          begin
+            TraverseClassList(ACE.Siblings[I], LTreeNode, ARF);
           end;
         end;
-
-        CountList.Items[AnIndex] := Pointer(-2);
       end;
-    except
-      // Существуют компоненты которые нельзя создавать два раза
     end;
   end;
 
+var
+  F: TatRelationField;
+  CE: TgdClassEntry;
 begin
   tvObjects.SortType := stNone;
   tvObjects.Items.Clear;
 
-  if not Assigned(gdcClassList) then
+  if not Assigned(gdClassList) then
     Exit;
-
-  LocClassList := gdcClassList;
 
   Screen.Cursor:= crHourGlass;
   try
-    TreeList := TList.Create;
+    tvObjects.Items.BeginUpdate;
     try
-      FCurSubTypes := TStringList.Create;
-      CountList := TList.Create;
-      try
-        for I := 0 to LocClassList.Count - 1 do
-        begin
-          CountList.Add(Pointer(-1));
-          TreeList.Add(Pointer($FFFF));
-        end;
+      F := atDatabase.FindRelationField(gdcObject.FieldByName('relationname').AsString,
+        gdcObject.FieldByName('fieldname').AsString);
 
-        for I := 0 to LocClassList.Count - 1 do
-          for J := 0 to LocClassList.Count - 1 do
-          begin
-            K := InheritsFromCount(LocClassList.Items[I], LocClassList.Items[J]);
-            if (K > 0) then
-              if (Integer(TreeList.Items[I]) > K) and (Integer(CountList.Items[I]) <> J) then
-              begin
-                CountList.Items[I] := Pointer(J);
-                TreeList.Items[I] := Pointer(K);
-              end;
-          end;
+      if Assigned(F) then
+      begin
+        CE := gdClassList.Find(TgdcBase);
+        if CE <> nil then
+          TraverseClassList(CE, nil, F);
+      end else
+        Label2.Caption := 'Объекты будут доступны после создания поля.';
 
-        Assert((LocClassList.Count = TreeList.Count) and
-         (TreeList.Count = CountList.Count));
-
-        tvObjects.Items.BeginUpdate;
-        try
-          F := atDatabase.FindRelationField(gdcObject.FieldByName('relationname').AsString,
-            gdcObject.FieldByName('fieldname').AsString);
-
-          if Assigned(F) then
-          begin
-            for I := 0 to LocClassList.Count - 1 do
-            begin
-              AddClass(I);
-            end;
-          end else
-            Label2.Caption := 'Объекты будут доступны после создания поля.';
-
-        finally
-          tvObjects.Items.EndUpdate;
-        end;
-
-      finally
-        CountList.Free;
-        FCurSubtypes.Free;
-      end;
     finally
-      TreeList.Free;
+      tvObjects.Items.EndUpdate;
     end;
+
   finally
-    if LocClassList <> gdcClassList then
-      LocClassList.Free;
     Screen.Cursor:= crArrow;
   end;
   tvObjects.SortType := stText;

@@ -5,7 +5,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   gsIBLookupComboBox, StdCtrls, ActnList, ComCtrls, dmDatabase_unit,
-  IBDatabase, gdcBase;
+  IBDatabase, gdcBase, gd_ClassList;
 
 type
   Tgd_dlgAddLinked = class(TForm)
@@ -60,6 +60,8 @@ type
 
   public
     { Public declarations }
+    function BuildClassTree(ACE: TgdClassEntry; AData: Pointer): Boolean;
+    
   end;
 
 var
@@ -70,7 +72,7 @@ implementation
 {$R *.DFM}
 
 uses
-  gd_ClassList, ShellAPI, IBSQL, gdcBaseInterface
+  ShellAPI, IBSQL, gdcBaseInterface
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -316,12 +318,33 @@ begin
   iblkupObject.CurrentKey := '';
 end;
 
+function Tgd_dlgAddLinked.BuildClassTree(ACE: TgdClassEntry; AData: Pointer): Boolean;
+begin
+  if (ACE <> nil) and (not (ACE.SubType > '')) then
+    if chbxClassFirst.Checked then
+      cbClasses.Items.AddObject(ACE.gdcClass.ClassName + ' - '
+      + ACE.gdcClass.GetDisplayName(''),
+      Pointer(ACE.gdcClass))
+    else
+      cbClasses.Items.AddObject(ACE.gdcClass.GetDisplayName('') + ' - '
+      + ACE.gdcClass.ClassName,
+      Pointer(ACE.gdcClass));
+
+  Result := True;
+end;
+
 procedure Tgd_dlgAddLinked.FillListBox;
 var
-  I: Integer;
+//  I: Integer;
+  CE: TgdClassEntry;
 begin
   cbClasses.Clear;
-  for I := 0 to gdcClassList.Count - 1 do
+
+  CE := gdClassList.Find(TgdcBase);
+  if CE <> nil then
+    CE.Traverse(BuildClassTree, nil);
+
+{  for I := 0 to gdcClassList.Count - 1 do
   begin
     if chbxClassFirst.Checked then
       cbClasses.Items.AddObject(gdcClassList[I].ClassName + ' - '
@@ -331,7 +354,7 @@ begin
       cbClasses.Items.AddObject(gdcClassList[I].GetDisplayName('') + ' - '
         + gdcClassList[I].ClassName,
         Pointer(gdcClassList[I]));
-  end;
+  end;  }
 
   cbSubTypes.Clear;
 end;

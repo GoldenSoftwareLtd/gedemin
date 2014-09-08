@@ -453,7 +453,7 @@ begin
         begin
           LFullClass.gdClassName := V;
           LFullClass.SubType := '';
-          C := gdcClassList.GetGdcClass(LFullClass);
+          C := gdClassList.GetGdcClass(LFullClass);
 
           if (C <> nil) and C.InheritsFrom(TgdcBase) then
           begin
@@ -558,8 +558,7 @@ begin
         LFullClass.SubType := '';
         if (S = '') or (S2 = '') or
           dbtvExplorer.Items[I].HasChildren or
-          (gdcClassList.IndexOfByName(LFullClass) > -1) or
-          (frmClassList.IndexOfByName(LFullClass) > -1) or
+          (gdClassList.FindClassByName(LFullClass)) or
           (GetClass(S) <> nil) or
           (StrIPos(USERFORM_PREFIX, S) = 1) then
         begin

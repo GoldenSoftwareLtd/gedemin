@@ -3958,9 +3958,9 @@ begin
               repeat
                 LFullClassName.gdClassName := FEditForm.ClassName;
                 LFullClassName.SubType := SubType;
-                if not Assigned(frmClassList.GetFRMClass(LFullClassName))then
+                if not Assigned(gdClassList.GetFRMClass(LFullClassName))then
                   raise Exception.Create('Ошибка при загрузке настроек формы');
-                ParentSubType := frmClassList.GetFRMClass(LFullClassName).ClassParentSubtype(SubType);
+                ParentSubType := gdClassList.GetFRMClass(LFullClassName).ClassParentSubtype(SubType);
                 if ParentSubType <> '' then
                 begin
                   bLoadedFromStorage:= GlobalStorage.ReadStream(FResourceName, ParentSubType, F, IBLogin.IsIBUserAdmin);
@@ -3990,9 +3990,9 @@ begin
                 repeat
                   LFullClassName.gdClassName := FEditForm.ClassName;
                   LFullClassName.SubType := SubType;
-                  if not Assigned(frmClassList.GetFRMClass(LFullClassName))then
+                  if not Assigned(gdClassList.GetFRMClass(LFullClassName))then
                     raise Exception.Create('Ошибка при загрузке настроек формы');
-                  ParentSubType := frmClassList.GetFRMClass(LFullClassName).ClassParentSubtype(SubType);
+                  ParentSubType := gdClassList.GetFRMClass(LFullClassName).ClassParentSubtype(SubType);
                   if ParentSubType <> '' then
                   begin
                     bLoadedFromUserStorage:= UserStorage.ReadStream(FResourceName, ParentSubType, F);
@@ -4033,9 +4033,9 @@ begin
                       repeat
                         LFullClassName.gdClassName := FEditForm.ClassName;
                         LFullClassName.SubType := SubType;
-                        if not Assigned(frmClassList.GetFRMClass(LFullClassName))then
+                        if not Assigned(gdClassList.GetFRMClass(LFullClassName))then
                           raise Exception.Create('Ошибка при загрузке настроек формы');
-                        ParentSubType := frmClassList.GetFRMClass(LFullClassName).ClassParentSubtype(SubType);
+                        ParentSubType := gdClassList.GetFRMClass(LFullClassName).ClassParentSubtype(SubType);
                         if ParentSubType <> '' then
                         begin
                           bLoadedFromUserStorage:= UserStorage.ReadStream(FResourceName, ParentSubType, F);

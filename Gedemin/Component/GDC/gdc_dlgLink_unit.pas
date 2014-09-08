@@ -109,7 +109,7 @@ begin
 
   if Result then
   begin
-    if gdcClassList.GetGdcClass(gdcFullClassName(
+    if gdClassList.GetGdcClass(gdcFullClassName(
       gdcObject.FieldByName('linkedclass').AsString,
       gdcObject.FieldByName('linkedsubtype').AsString)) = nil then
     begin

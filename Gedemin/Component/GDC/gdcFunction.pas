@@ -606,13 +606,14 @@ var
   ClassMethods: TgdClassMethods;
   gdcEvent: TgdcEvent;
   tmpClass: TClass;
+  CE: TgdClassEntry;
 
 const
   cCMErr = 'Для класса не найден объект описания методов класса.';
 
 begin
   ClassMethods := nil;
-  I := gdcClassList.IndexOfByName(FullClassName);
+{  I := gdcClassList.IndexOfByName(FullClassName);
   if I > -1 then
   begin
     ClassMethods := gdcClassList.gdcItems[I];
@@ -623,7 +624,15 @@ begin
       begin
         ClassMethods := frmClassList.gdcItems[I];
       end;
-    end;
+    end;  }
+
+  CE := gdClassList.Find(GetClass(FullClassName.gdClassName));
+
+  if CE = nil then
+    raise Exception.Create('Класс ' + FullClassName.gdClassName + ' не найден');
+
+  ClassMethods := CE.ClassMethods;
+
   if ClassMethods = nil then
     raise Exception.Create(cCMErr);
 
@@ -634,9 +643,9 @@ begin
       I := AddClass(FullClassName);
       if I > -1 then
       begin
-        tmpClass := gdcClassList.GetGDCClass(FullClassName);
+        tmpClass := gdClassList.GetGDCClass(FullClassName);
         if tmpClass = nil then
-          tmpClass := frmClassList.GetFrmClass(FullClassName);
+          tmpClass := gdClassList.GetFrmClass(FullClassName);
         if tmpClass = nil then
           raise Exception.Create('Класс ' + FullClassName.gdClassName + ' не зарегистрирован в системе.');
 

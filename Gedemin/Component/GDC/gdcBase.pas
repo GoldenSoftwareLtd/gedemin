@@ -2410,7 +2410,7 @@ begin
   Assert(atDatabase <> nil);
   Assert(Assigned(ibtr));
 
-  if not Assigned(gdcClassList) then
+  if not Assigned(gdClassList) then
     raise Exception.Create(cgdClassListIsNotAssigned);
 
   Result := GetBaseClassForRelation(ARelationName);
@@ -2441,10 +2441,34 @@ begin
   end;
 end;
 
+
 function GetBaseClassForRelation(const ARelationName: String): TgdcFullClass;
+
+  procedure TraverseClassTree(ACE: TgdClassEntry; var AFullClass: TgdcFullClass;
+    const ARName: String);
+  var
+    I: Integer;
+  begin
+    if (ACE <> nil) and (not (ACE.SubType > '')) then
+    begin
+      if (AnsiCompareText(ACE.gdcClass.GetListTable(''), ARName) = 0) then
+        if (AFullClass.gdClass = nil) or AFullClass.gdClass.InheritsFrom(ACE.gdcClass) then
+          AFullClass.gdClass := ACE.gdcClass;
+
+      if ACE.Count > 0 then
+      begin
+        for I := 0 to ACE.Count - 1 do
+        begin
+          if (ACE.Siblings[I] <> nil) and (not (ACE.Siblings[I].SubType > '')) then
+            TraverseClassTree(ACE.Siblings[I], AFullClass, ARName);
+        end;
+      end;
+    end;
+  end;
+
 var
   I: Integer;
-  C: CgdcBase;
+//  C: CgdcBase;
   R, ParentR: TatRelation;
   L: TObjectList;
   ibsql: TIBSQL;
@@ -2453,11 +2477,12 @@ var
   BaseClassName, BaseSubType: String;
   ClName: String;
   F: TatRelationField;
+  CE: TgdClassEntry;
 begin
   Assert(ARelationName > '');
   Assert(atDatabase <> nil);
 
-  if not Assigned(gdcClassList) then
+  if not Assigned(gdClassList) then
     raise Exception.Create(cgdClassListIsNotAssigned);
 
   if not Assigned(CacheBaseClassForRel) then
@@ -2590,21 +2615,26 @@ begin
       Result.gdClass := nil;
       Result.SubType := '';
 
-      with gdcClassList do
+      CE := gdClassList.Find(TgdcBase);
+      if CE <> nil then
+        TraverseClassTree(CE, Result, ARelationName);
+
+
+{      with gdcClassList do
         for I := 0 to Count - 1 do
         begin
           if Items[I].InheritsFrom(TgdcBase) then
           begin
-            C := CgdcBase(Items[I]);
+            C := CgdcBase(Items[I]); }
 
             { TODO 1 -oденис -cсделать : Сделать обработку подтипа }
-            if (AnsiCompareText(C.GetListTable(''), ARelationName) = 0) then
+ {           if (AnsiCompareText(C.GetListTable(''), ARelationName) = 0) then
             begin
               if (Result.gdClass = nil) or Result.gdClass.InheritsFrom(C) then
                 Result.gdClass := C;
             end;
           end;
-        end;
+        end;  }
 
       if Result.gdClass = nil then
       begin
@@ -2644,11 +2674,39 @@ end;
 
 function GetDescendants(AnAncestor: CgdcBase; AClassList: TClassList;
   const OnlyDirect: Boolean = True): Boolean;
+
+  procedure TraverseClassTree(ACE: TgdClassEntry; AClassList: TClassList;
+    const OnlyDirect: Boolean = True);
+  var
+    I: Integer;
+  begin
+    if ACE.Count > 0 then
+      for I := 0 to ACE.Count - 1 do
+        if (ACE.Siblings[I] <> nil) and (not (ACE.Siblings[I].SubType > '')) then
+        begin
+          AClassList.Add(ACE.gdcClass);
+
+          if not OnlyDirect then
+            TraverseClassTree(ACE.Siblings[I], AClassList, False);
+
+        end;
+  end;
+
 var
-  I: Integer;
+//  I: Integer;
+  CE: TgdClassEntry;
 begin
   AClassList.Clear;
-  if Assigned(gdcClassList) then
+
+  if Assigned(gdClassList) then
+  begin
+    CE := gdClassList.Find(TClass(AnAncestor));
+    if CE <> nil then
+      TraverseClassTree(CE, AClassList, OnlyDirect)
+
+  end;
+
+  {if Assigned(gdcClassList) then
   begin
     for I := 0 to gdcClassList.Count - 1 do
     begin
@@ -2658,7 +2716,7 @@ begin
         AClassList.Add(gdcClassList[I]);
       end;
     end;
-  end;
+  end; }
   Result := AClassList.Count > 0;
 end;
 
@@ -10957,11 +11015,8 @@ begin
     FLastQuery := lqDelete;
   end;
 
-  if Assigned(gdcClassList) then
-    gdcClassList.RemoveAll;
-
-  if Assigned(frmClassList) then
-    frmClassList.RemoveAll;
+  if Assigned(gdClassList) then
+    gdClassList.RemoveAllSubTypes;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASE', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
   {M}  finally
@@ -11006,11 +11061,8 @@ begin
     FLastQuery := lqInsert;
   end;
 
-  if Assigned(gdcClassList) then
-    gdcClassList.RemoveAll;
-
-  if Assigned(frmClassList) then
-    frmClassList.RemoveAll;
+  if Assigned(gdClassList) then
+    gdClassList.RemoveAllSubTypes;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  finally
@@ -11146,11 +11198,8 @@ begin
     raise;
   end;
 
-  if Assigned(gdcClassList) then
-    gdcClassList.RemoveAll;
-
-  if Assigned(frmClassList) then
-    frmClassList.RemoveAll;
+  if Assigned(gdClassList) then
+    gdClassList.RemoveAllSubTypes;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASE', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
   {M}  finally
@@ -12375,12 +12424,12 @@ begin
 
   if ASubType > '' then
   begin
-    CE := gdcClassList.Find(Self, ASubType);
+    CE := gdClassList.Find(Self, ASubType);
     if CE = nil then
-      CE := gdcClassList.Find(Self);
+      CE := gdClassList.Find(Self);
   end
   else
-    CE := gdcClassList.Find(Self);
+    CE := gdClassList.Find(Self);
 
   if CE = nil then
     raise EgdcException.Create('Unregistered class.');
@@ -12388,9 +12437,9 @@ begin
   RegisterClassHierarchy;
 
   if ASubType > '' then
-    CE := gdcClassList.Find(Self, ASubType)
+    CE := gdClassList.Find(Self, ASubType)
   else
-    CE := gdcClassList.Find(Self);
+    CE := gdClassList.Find(Self);
 
   if CE = nil then
     raise EgdcException.Create('Unregistered class.');
@@ -12436,7 +12485,7 @@ class procedure TgdcBase.RegisterClassHierarchy;
 
       for I := 0 to SL.Count - 1 do
       begin
-        CurrCE := gdcClassList.Add(ACE.TheClass, SL.Names[I], ACE.SubType);
+        CurrCE := gdClassList.Add(ACE.TheClass, SL.Values[SL.Names[I]], SL.Names[I],  ACE.SubType);
         ReadFromStorage(CurrCE);
       end;
     finally
@@ -12450,7 +12499,7 @@ var
   CEBase: TgdClassEntry;
 
 begin
-  CEBase := gdcClassList.Find(Self);
+  CEBase := gdClassList.Find(Self);
 
   if CEBase = nil then
     raise EgdcException.Create('Unregistered class.');
@@ -12467,12 +12516,12 @@ begin
   if ASubType > '' then
     ASubType := StringReplace(ASubType, 'USR_', 'USR$', [rfReplaceAll, rfIgnoreCase]);
 
-  CE := gdcClassList.Find(Self, ASubType);
+  CE := gdClassList.Find(Self, ASubType);
 
   if CE = nil then
     RegisterClassHierarchy;
 
-  CE := gdcClassList.Find(Self, ASubType);
+  CE := gdClassList.Find(Self, ASubType);
 
   if CE <> nil then
   begin
@@ -12481,7 +12530,7 @@ begin
   end
   else
   begin
-    CE := gdcClassList.Find(Self);
+    CE := gdClassList.Find(Self);
     if CE = nil then
       raise EgdcException.Create('Unregistered class.');
   end;
@@ -17977,7 +18026,7 @@ begin
   if ASubType > '' then
     ASubType := StringReplace(ASubType, 'USR_', 'USR$', [rfReplaceAll, rfIgnoreCase]);
 
-  CE := gdcClassList.Find(Self, ASubType);
+  CE := gdClassList.Find(Self, ASubType);
 
   if CE <> nil then
   begin
@@ -17988,7 +18037,7 @@ begin
   if CE = nil then
     RegisterClassHierarchy;
 
-  CE := gdcClassList.Find(Self, ASubType);
+  CE := gdClassList.Find(Self, ASubType);
 
   if CE <> nil then
   begin
@@ -17997,7 +18046,7 @@ begin
   end
   else
   begin
-    CE := gdcClassList.Find(Self);
+    CE := gdClassList.Find(Self);
     if CE = nil then
       raise EgdcException.Create('Unregistered class.');
   end;

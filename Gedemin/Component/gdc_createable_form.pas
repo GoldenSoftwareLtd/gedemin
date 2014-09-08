@@ -396,12 +396,12 @@ begin
 
   if ASubType > '' then
   begin
-    CE := frmClassList.Find(Self, ASubType);
+    CE := gdClassList.Find(Self, ASubType);
     if CE = nil then
-      CE := frmClassList.Find(Self);
+      CE := gdClassList.Find(Self);
   end
   else
-    CE := frmClassList.Find(Self);
+    CE := gdClassList.Find(Self);
 
   if CE = nil then
     raise EgdcException.Create('Unregistered class.');
@@ -409,9 +409,9 @@ begin
   RegisterClassHierarchy;
 
   if ASubType > '' then
-    CE := frmClassList.Find(Self, ASubType)
+    CE := gdClassList.Find(Self, ASubType)
   else
-    CE := frmClassList.Find(Self);
+    CE := gdClassList.Find(Self);
 
   if CE = nil then
     raise EgdcException.Create('Unregistered class.');
@@ -457,7 +457,7 @@ class procedure TgdcCreateableForm.RegisterClassHierarchy;
 
       for I := 0 to SL.Count - 1 do
       begin
-        CurrCE := frmClassList.Add(ACE.TheClass, SL.Names[I], ACE.SubType);
+        CurrCE := gdClassList.Add(ACE.TheClass, SL.Values[SL.Names[I]], SL.Names[I],  ACE.SubType);
         ReadFromStorage(CurrCE);
       end;
     finally
@@ -471,7 +471,7 @@ var
   CEBase: TgdClassEntry;
 
 begin
-  CEBase := frmClassList.Find(Self);
+  CEBase := gdClassList.Find(Self);
 
   if CEBase = nil then
     raise EgdcException.Create('Unregistered class.');
@@ -488,12 +488,12 @@ begin
   if ASubType > '' then
     ASubType := StringReplace(ASubType, 'USR_', 'USR$', [rfReplaceAll, rfIgnoreCase]);
   
-  CE := frmClassList.Find(Self, ASubType);
+  CE := gdClassList.Find(Self, ASubType);
 
   if CE = nil then
     RegisterClassHierarchy;
 
-  CE := frmClassList.Find(Self, ASubType);
+  CE := gdClassList.Find(Self, ASubType);
 
   if CE <> nil then
   begin
@@ -502,7 +502,7 @@ begin
   end
   else
   begin
-    CE := frmClassList.Find(Self);
+    CE := gdClassList.Find(Self);
     if CE = nil then
       raise EgdcException.Create('Unregistered class.');
   end;
@@ -517,7 +517,7 @@ begin
   if ASubType > '' then
     ASubType := StringReplace(ASubType, 'USR_', 'USR$', [rfReplaceAll, rfIgnoreCase]);
 
-  CE := frmClassList.Find(Self, ASubType);
+  CE := gdClassList.Find(Self, ASubType);
 
   if CE <> nil then
   begin
@@ -528,7 +528,7 @@ begin
   if CE = nil then
     RegisterClassHierarchy;
 
-  CE := frmClassList.Find(Self, ASubType);
+  CE := gdClassList.Find(Self, ASubType);
 
   if CE <> nil then
   begin
@@ -537,7 +537,7 @@ begin
   end
   else
   begin
-    CE := frmClassList.Find(Self);
+    CE := gdClassList.Find(Self);
     if CE = nil then
       raise EgdcException.Create('Unregistered class.');
   end;
