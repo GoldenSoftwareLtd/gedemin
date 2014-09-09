@@ -1684,13 +1684,11 @@ begin
         'MethodControl: Передан некоррестный класс ' + AnObject.ClassName);
 end;
 
-function TMethodControl.VerifyingClass(
-  const FullClassName: TgdcFullClassName; const ClassType: TmtdClassType): Boolean;
+function TMethodControl.VerifyingClass(const FullClassName: TgdcFullClassName;
+  const ClassType: TmtdClassType): Boolean;
 begin
-  Result := False;
-
-  if (gdClassList <> nil) and (gdClassList.FindClassByName(FullClassName)) then
-    Result := True;
+  Assert(gdClassList <> nil);
+  Result := gdClassList.Find(FullClassName) <> nil;
 end;
 
 function TMethodControl.GetSubType(

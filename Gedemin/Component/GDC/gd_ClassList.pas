@@ -328,9 +328,8 @@ type
 
     function Add(const AClass: TClass; const ASubType: TgdcSubType = ''; const AComment: String = '';
       const AParentSubType: TgdcSubType = ''): TgdClassEntry;
-    function Find(const AClass: TClass; const ASubType: TgdcSubType = ''): TgdClassEntry;
-
-    function FindClassByName(AFullClassName: TgdcFullClassName): Boolean;
+    function Find(const AClass: TClass; const ASubType: TgdcSubType = ''): TgdClassEntry; overload;
+    function Find(const AFullClassName: TgdcFullClassName): TgdClassEntry; overload;
 
     procedure Remove(const AClass: TClass; const ASubType: TgdcSubType = '');
     // Удаление всех подтипов
@@ -1424,23 +1423,6 @@ begin
     Result := nil;
 end;
 
-function TgdClassList.FindClassByName(AFullClassName: TgdcFullClassName): Boolean;
-var
-  CE: TgdClassEntry;
-  LClass: TClass;
-
-begin
-  Result := False;
-  CE := nil;
-
-  LClass := GetClass(AFullClassName.gdClassName);
-
-  if LClass <> nil then
-    CE := gdClassList.Find(LClass);
-
-  if CE <> nil then
-    Result := True;
-end;
 
 function TgdClassList.GetHash(AClass: TClass; const ASubType: TgdcSubType): Cardinal;
 var
@@ -1485,10 +1467,10 @@ begin
       end;
     end;
   end;
-
 end;
 
 procedure TgdClassList.RemoveAllSubTypes;
+
   procedure RemoveSiblings(ACE: TgdClassEntry);
   var
     I: Integer;
@@ -1567,6 +1549,17 @@ begin
 
 end;
 
+
+function TgdClassList.Find(const AFullClassName: TgdcFullClassName): TgdClassEntry;
+var
+  LClass: TClass;
+begin
+  LClass := GetClass(AFullClassName.gdClassName);
+  if LClass <> nil then
+    Result := gdClassList.Find(LClass, AFullClassName.SubType)
+  else
+    Result := nil;
+end;
 
 initialization
   gdcObjectList := TObjectList.Create(False);
