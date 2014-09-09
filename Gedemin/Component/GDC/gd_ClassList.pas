@@ -1442,14 +1442,26 @@ end;
 procedure TgdClassList.Remove(const AClass: TClass;
   const ASubType: TgdcSubType);
 var
-  K, J: Integer;
+  K, J, I: Integer;
   FCE: TgdClassEntry;
 begin
+
   K := GetHash(AClass, ASubType) mod ClassesHashTableSize;
+  
   if FHashTable[K] is TgdClassEntry then
   begin
-    if TgdClassEntry(FHashTable[K]).Compare(AClass, ASubType) then
+    FCE := TgdClassEntry(FHashTable[K]);
+    if FCE.Compare(AClass, ASubType) then
     begin
+      if (FCE.FSiblings <> nil) and (FCE.Count > 0) then
+        for J := FCE.Count - 1 downto 0 do
+        begin
+          if (FCE <> nil) then
+            Remove(FCE.Siblings[J].TheClass, FCE.Siblings[J].SubType);
+
+          FCE.FSiblings.Delete(J);
+        end;
+
       FreeAndNil(FHashTable[K]);
       Dec(FCount);
     end;
@@ -1461,6 +1473,15 @@ begin
       FCE := TObjectList(FHashTable[K])[J] as TgdClassEntry;
       if FCE.Compare(AClass, ASubType) then
       begin
+        if (FCE.FSiblings <> nil) and (FCE.Count > 0) then
+          for I := FCE.Count - 1 downto 0 do
+          begin
+            if FCE.Siblings[I] <> nil then
+              Remove(FCE.Siblings[I].TheClass, FCE.Siblings[I].SubType);
+
+            FCE.FSiblings.Delete(I);
+          end;
+
         TObjectList(FHashTable[K]).Delete(J);
         Dec(FCount);
         break;
@@ -1476,10 +1497,13 @@ procedure TgdClassList.RemoveAllSubTypes;
     I: Integer;
   begin
     if (ACE <> nil) and (ACE.FSiblings <> nil) then
-      for I := 0 to ACE.FSiblings.Count - 1 do
+      for I := ACE.FSiblings.Count - 1 downto 0 do
         if ACE.Siblings[I] <> nil then
           if (ACE.Siblings[I].SubType > '') then
-            ACE.FSiblings[I].Free
+          begin
+            Remove(ACE.Siblings[I].TheClass, ACE.Siblings[I].SubType);
+            ACE.FSiblings.Delete(I);
+          end
           else
             RemoveSiblings(ACE.Siblings[I]);
   end;
