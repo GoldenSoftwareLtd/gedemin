@@ -558,7 +558,7 @@ begin
         LFullClass.SubType := '';
         if (S = '') or (S2 = '') or
           dbtvExplorer.Items[I].HasChildren or
-          (gdClassList.FindClassByName(LFullClass)) or
+          (gdClassList.Find(LFullClass) <> nil) or
           (GetClass(S) <> nil) or
           (StrIPos(USERFORM_PREFIX, S) = 1) then
         begin
