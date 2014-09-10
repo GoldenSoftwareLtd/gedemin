@@ -1505,7 +1505,10 @@ procedure TgdClassList.RemoveAllSubTypes;
             ACE.FSiblings.Delete(I);
           end
           else
+          begin
+            ACE.Siblings[I].Initialized := False;
             RemoveSiblings(ACE.Siblings[I]);
+          end;
   end;
 
 var
