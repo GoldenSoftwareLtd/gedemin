@@ -57,11 +57,7 @@ type
 
   private
     procedure FillListBox;
-
-  public
-    { Public declarations }
     function BuildClassTree(ACE: TgdClassEntry; AData: Pointer): Boolean;
-    
   end;
 
 var
@@ -318,9 +314,22 @@ begin
   iblkupObject.CurrentKey := '';
 end;
 
+procedure Tgd_dlgAddLinked.FillListBox;
+begin
+  cbClasses.Clear;
+  gdClassList.Traverse(TgdcBase, '', BuildClassTree, nil);
+  cbSubTypes.Clear;
+end;
+
+procedure Tgd_dlgAddLinked.chbxClassFirstClick(Sender: TObject);
+begin
+  FillListBox;
+end;
+
 function Tgd_dlgAddLinked.BuildClassTree(ACE: TgdClassEntry; AData: Pointer): Boolean;
 begin
-  if (ACE <> nil) and (not (ACE.SubType > '')) then
+  if (ACE <> nil) and (ACE.SubType = '') then
+  begin
     if chbxClassFirst.Checked then
       cbClasses.Items.AddObject(ACE.gdcClass.ClassName + ' - '
       + ACE.gdcClass.GetDisplayName(''),
@@ -329,39 +338,8 @@ begin
       cbClasses.Items.AddObject(ACE.gdcClass.GetDisplayName('') + ' - '
       + ACE.gdcClass.ClassName,
       Pointer(ACE.gdcClass));
-
+  end;
   Result := True;
-end;
-
-procedure Tgd_dlgAddLinked.FillListBox;
-var
-//  I: Integer;
-  CE: TgdClassEntry;
-begin
-  cbClasses.Clear;
-
-  CE := gdClassList.Find(TgdcBase);
-  if CE <> nil then
-    CE.Traverse(BuildClassTree, nil);
-
-{  for I := 0 to gdcClassList.Count - 1 do
-  begin
-    if chbxClassFirst.Checked then
-      cbClasses.Items.AddObject(gdcClassList[I].ClassName + ' - '
-        + gdcClassList[I].GetDisplayName(''),
-        Pointer(gdcClassList[I]))
-    else
-      cbClasses.Items.AddObject(gdcClassList[I].GetDisplayName('') + ' - '
-        + gdcClassList[I].ClassName,
-        Pointer(gdcClassList[I]));
-  end;  }
-
-  cbSubTypes.Clear;
-end;
-
-procedure Tgd_dlgAddLinked.chbxClassFirstClick(Sender: TObject);
-begin
-  FillListBox;
 end;
 
 end.
