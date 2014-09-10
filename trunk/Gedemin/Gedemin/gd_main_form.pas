@@ -1078,27 +1078,9 @@ begin
     end;
   end;
 
-{$IFDEF GEDEMIN_LOCK}
-  if IsRegisteredCopy and
-    (RegParams.UserCount > 0) then
-  begin
-    with TIBDatabaseInfo.Create(Application) do
-    try
-      Database := IBLogin.Database;
-      if UserNames.Count > RegParams.UserCount then
-      begin
-        MessageBox(0,
-          'Количество подключенных к базе данных пользователей превышает лимит, установленный Вашей лицензией!' + #13#10 +
-          'Обратитесь в компанию ''Золотые программы'' по тел. +375-17-256-17-59, 256-27-83!',
-          'Внимание',
-          MB_OK or MB_ICONHAND or MB_TASKMODAL);
-        Application.Terminate;
-      end;
-    finally
-      Free;
-    end
-  end;
-{$ENDIF}
+  {$IFDEF GEDEMIN_LOCK}
+  RegParams.CheckRegistration(True);
+  {$ENDIF}
 
   if IBLogin.IsUserAdmin then
     FNotificationID := gdNotifierThread.Add(IBLogin.Database.DatabaseName)
