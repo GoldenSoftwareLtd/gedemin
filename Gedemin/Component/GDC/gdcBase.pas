@@ -2684,7 +2684,7 @@ function GetDescendants(AnAncestor: CgdcBase; AClassList: TClassList;
       for I := 0 to ACE.Count - 1 do
         if (ACE.Siblings[I] <> nil) and (not (ACE.Siblings[I].SubType > '')) then
         begin
-          AClassList.Add(ACE.gdcClass);
+          AClassList.Add(ACE.Siblings[I].gdcClass);
 
           if not OnlyDirect then
             TraverseClassTree(ACE.Siblings[I], AClassList, False);
@@ -2693,7 +2693,6 @@ function GetDescendants(AnAncestor: CgdcBase; AClassList: TClassList;
   end;
 
 var
-//  I: Integer;
   CE: TgdClassEntry;
 begin
   AClassList.Clear;
@@ -2706,17 +2705,6 @@ begin
 
   end;
 
-  {if Assigned(gdcClassList) then
-  begin
-    for I := 0 to gdcClassList.Count - 1 do
-    begin
-      if (OnlyDirect and (gdcClassList[I].ClassParent = AnAncestor)) or
-        ((not OnlyDirect) and (gdcClassList[I].InheritsFrom(AnAncestor))) then
-      begin
-        AClassList.Add(gdcClassList[I]);
-      end;
-    end;
-  end; }
   Result := AClassList.Count > 0;
 end;
 
