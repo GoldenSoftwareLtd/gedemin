@@ -330,6 +330,9 @@ type
       const AParentSubType: TgdcSubType = ''): TgdClassEntry;
     function Find(const AClass: TClass; const ASubType: TgdcSubType = ''): TgdClassEntry; overload;
     function Find(const AFullClassName: TgdcFullClassName): TgdClassEntry; overload;
+    function Traverse(const AClass: TClass; const ASubType: TgdcSubType;
+      ACallback: TgdClassEntryCallback; AData: Pointer;
+      const AnIncludeRoot: Boolean = True; const AnOnlyDirect: Boolean = False): Boolean;
 
     procedure Remove(const AClass: TClass; const ASubType: TgdcSubType = '');
     // Удаление всех подтипов
@@ -1573,9 +1576,7 @@ begin
 
   for I := 0 to AClassMethods.gdMethods.Count - 1 do
     CE.ClassMethods.gdMethods.AddMethod(AClassMethods.gdMethods.Items[I]);
-
 end;
-
 
 function TgdClassList.Find(const AFullClassName: TgdcFullClassName): TgdClassEntry;
 var
@@ -1586,6 +1587,21 @@ begin
     Result := gdClassList.Find(LClass, AFullClassName.SubType)
   else
     Result := nil;
+end;
+
+function TgdClassList.Traverse(const AClass: TClass;
+  const ASubType: TgdcSubType; ACallback: TgdClassEntryCallback;
+  AData: Pointer; const AnIncludeRoot, AnOnlyDirect: Boolean): Boolean;
+var
+  CE: TgdClassEntry;
+begin
+  Assert(Assigned(ACallback));
+
+  CE := Find(AClass, ASubType);
+  if CE <> nil then
+    Result := CE.Traverse(ACallback, AData, AnIncludeRoot, AnOnlyDirect)
+  else
+    Result := False;  
 end;
 
 initialization
