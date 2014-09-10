@@ -7,12 +7,12 @@ set exit_message=0
 
 if not [%1]==[] goto InitVars
 
-echo *************************************************
-echo **                                             **
-echo **  Auto:                                      **
-echo **  Использование: auto.bat /ftp или /no_ftp   **
-echo **                                             **
-echo *************************************************
+echo **************************************************
+echo **                                              **
+echo **  Auto:                                       **
+echo **  Использование: auto.bat {/ftp|/no_ftp} [/l] **
+echo **                                              **
+echo **************************************************
 
 goto Exit
 
@@ -65,7 +65,8 @@ echo **                                             **
 echo *************************************************
 
 cd ..\..\exe
-call update_gedemin.bat /no_ftp /p
+if [%2]==[] call update_gedemin.bat /no_ftp /p
+if [%2]==[/l] call update_gedemin.bat /no_ftp /l
 cd ..\setup\bootstrap
 
 if not errorlevel 0 goto Error

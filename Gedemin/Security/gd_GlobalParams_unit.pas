@@ -25,6 +25,8 @@ type
     function GetNamespacePath: String;
     procedure SetNamespacePath(const Value: String);
     function GetTerminalSession: Boolean;
+    function GetInnerParam: String;
+    procedure SetInnerParam(const Value: String);
 
   public
     constructor Create;
@@ -52,6 +54,7 @@ type
     property NeedRestartForUpdate: Boolean read FNeedRestartForUpdate write FNeedRestartForUpdate;
     property NamespacePath: String read GetNamespacePath write SetNamespacePath;
     property TerminalSession: Boolean read GetTerminalSession;
+    property InnerParam: String read GetInnerParam write SetInnerParam;
   end;
 
 var
@@ -130,7 +133,11 @@ end;
 
 procedure Tgd_GlobalParams.ReadFromIniFile;
 begin
+  {$IFDEF GEDEMIN_LOCK}
+  FUpdateToken := 'LOCK';
+  {$ELSE}
   FUpdateToken := FIniFile.ReadString('WEB CLIENT', 'Token', '');
+  {$ENDIF}
 end;
 
 function Tgd_GlobalParams.GetWebServerUpdatePath: String;
@@ -152,7 +159,11 @@ end;
 
 function Tgd_GlobalParams.GetAutoUpdate: Boolean;
 begin
+  {$IFDEF GEDEMIN_LOCK}
+  Result := False;
+  {$ELSE}
   Result := FIniFile.ReadBool('WEB CLIENT', 'AutoUpdate', True);
+  {$ENDIF}
 end;
 
 procedure Tgd_GlobalParams.SetAutoUpdate(const Value: Boolean);
@@ -193,6 +204,22 @@ const
   SM_REMOTESESSION = $1000;
 begin
   Result := GetSystemMetrics(SM_REMOTESESSION) <> 0;
+end;
+
+function Tgd_GlobalParams.GetInnerParam: String;
+begin
+  {$IFDEF GEDEMIN_LOCK}
+  Result := FIniFile.ReadString('WEB CLIENT', 'InnerParam', '');
+  {$ELSE}
+  Result := '';
+  {$ENDIF}
+end;
+
+procedure Tgd_GlobalParams.SetInnerParam(const Value: String);
+begin
+  {$IFDEF GEDEMIN_LOCK}
+  FIniFile.WriteString('WEB CLIENT', 'InnerParam', Value);
+  {$ENDIF}
 end;
 
 initialization

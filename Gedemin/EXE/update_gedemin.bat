@@ -4,7 +4,7 @@ setlocal
 echo *************************************************
 echo **                                             **
 echo **  Usage:                                     **
-echo **  update_gedemin {/ftp /no_ftp} {/d /p}      **
+echo **  update_gedemin {/ftp /no_ftp} {/d /p /l}   **
 echo **                                             **
 echo *************************************************
 
@@ -47,6 +47,11 @@ set gudf_arc_name=gudf.rar
 set etalon_arc_name=etalon.rar
 set full_etalon_name=k:\golden\gedemin\exe\etalon.fdb
 set target_dir=beta
+
+if "%2"=="/l" set gedemin_cfg=gedemin.lock.cfg
+if "%2"=="/l" set arc_name=gedemin_lock.rar
+if "%2"=="/l" set target_dir=lock
+
 goto start_process
 
 :make_debug

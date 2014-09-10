@@ -181,7 +181,7 @@ type
     procedure SetEventHandler(const AnComponent: IgsComponent; const EventName: WideString;
                               const FunctionName: WideString); safecall;
     procedure ResetEventHandler(const AnComponent: IgsComponent; const EventName: WideString); safecall;
-//    function  GDCClasses(Index: Integer): WideString; safecall;
+    function  GDCClasses(Index: Integer): WideString; safecall;
     function  GDCClassesCount: Integer; safecall;
     function  Get_IsRegisteredCopy: WordBool; safecall;
   end;
@@ -198,7 +198,11 @@ uses
   gd_CmdLineParams_unit, Classes, gsResizerInterface, Windows, prp_Methods,
   controls, gd_ClassList, obj_GSFunction, gd_i_ScriptFactory, gsWinAPI_unit,
   Storages, gsIBLogin, gsGdcBaseManager_unit, gdcTaxFunction, at_classes,
-  obj_FinallyObject, gdcBaseInterface, gd_registration;
+  obj_FinallyObject, gdcBaseInterface
+  {$IFDEF GEDEMIN_LOCK}
+  , gd_registration
+  {$ENDIF}
+  ;
 
 { TgsGedeminApplication }
 
@@ -996,10 +1000,10 @@ begin
   end;
 end;
 
-//function TgsGedeminApplication.GDCClasses(Index: Integer): WideString;
-//begin
-//  Result := gdcClassList[Index].ClassName;
-//end;
+function TgsGedeminApplication.GDCClasses(Index: Integer): WideString;
+begin
+  Result := ''; //gdcClassList[Index].ClassName;
+end;
 
 function TgsGedeminApplication.GDCClassesCount: Integer;
 begin
@@ -1018,7 +1022,11 @@ end;
 
 function TgsGedeminApplication.Get_IsRegisteredCopy: WordBool;
 begin
-  Result := IsRegisteredCopy;
+  {$IFDEF GEDEMIN_LOCK}
+  Result := RegParams.CheckRegistration(False);
+  {$ELSE}
+  Result := True;
+  {$ENDIF}
 end;
 
 initialization
