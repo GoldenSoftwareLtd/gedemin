@@ -326,15 +326,15 @@ type
     constructor Create;
     destructor Destroy; override;
 
-    function Add(const AClass: TClass; const ASubType: TgdcSubType = ''; const AComment: String = '';
-      const AParentSubType: TgdcSubType = ''): TgdClassEntry;
-    function Find(const AClass: TClass; const ASubType: TgdcSubType = ''): TgdClassEntry; overload;
+    function Add(const AClass: TClass; ASubType: TgdcSubType = ''; const AComment: String = '';
+      AParentSubType: TgdcSubType = ''): TgdClassEntry;
+    function Find(const AClass: TClass; ASubType: TgdcSubType = ''): TgdClassEntry; overload;
     function Find(const AFullClassName: TgdcFullClassName): TgdClassEntry; overload;
     function Traverse(const AClass: TClass; const ASubType: TgdcSubType;
       ACallback: TgdClassEntryCallback; AData: Pointer;
       const AnIncludeRoot: Boolean = True; const AnOnlyDirect: Boolean = False): Boolean;
 
-    procedure Remove(const AClass: TClass; const ASubType: TgdcSubType = '');
+    procedure Remove(const AClass: TClass; ASubType: TgdcSubType = '');
     // Удаление всех подтипов
     procedure RemoveAllSubTypes;
 
@@ -347,12 +347,6 @@ type
 
     property Count: Integer read GetCount;
   end;
-
-  // Класс для хранения классов наследников TgdcBase с описанием методов
-//  TgdcClassList = class(TgdClassList);
-
-  // Класс для хранения классов наследников TgdcCreateableForm с описанием методов
-//  TfrmClassList = class(TgdClassList);
 
 var
   // при создании каждый объект регистрирует себя в этом списке
@@ -1172,7 +1166,7 @@ end;
 function TgdClassEntry.Compare(const AClass: TClass;
   const ASubType: TgdcSubType): Boolean;
 begin
-  Result := (AClass = FClass) and AnsiSameText(FSubType, ASubType);
+  Result := (AClass = FClass) and AnsiSameText(FSubType, UnsiUpperCase(ASubType));
 end;
 
 constructor TgdClassEntry.Create(AParent: TgdClassEntry;
@@ -1319,7 +1313,7 @@ begin
 end;
 
 function TgdClassList.Add(const AClass: TClass;
-  const ASubType: TgdcSubType; const AComment: String; const AParentSubType: TgdcSubType): TgdClassEntry;
+  ASubType: TgdcSubType; const AComment: String; AParentSubType: TgdcSubType): TgdClassEntry;
 var
   K: Integer;
   OL: TObjectList;
@@ -1331,21 +1325,21 @@ begin
     exit;
   end;
 
+  ASubType := AnsiUpperCase(ASubType);
+  AParentSubType := AnsiUpperCase(AParentSubType);
+
   Result := Find(AClass, ASubType);
 
   if Result <> nil then
     exit;
 
-  if ASubType = '' then
-    if (AClass <> TgdcBase) and (AClass <> TgdcCreateableForm) then
-      Prnt := Add(AClass.ClassParent)
-    else
-      Prnt := nil
+  if ASubType > '' then
+    Prnt := Add(AClass, AParentSubType)
   else
-    if AParentSubType > '' then
-      Prnt := Add(AClass, AParentSubType)
+    if (AClass = TgdcBase) or (AClass = TgdcCreateableForm) then
+      Prnt := nil
     else
-      Prnt := Add(AClass);
+      Prnt := Add(AClass.ClassParent);
 
   Result := TgdClassEntry.Create(Prnt, AClass, ASubType, AComment);
 
@@ -1396,12 +1390,15 @@ begin
 end;
 
 function TgdClassList.Find(const AClass: TClass;
-  const ASubType: TgdcSubType): TgdClassEntry;
+  ASubType: TgdcSubType): TgdClassEntry;
 var
   K, J: Integer;
   FCE: TgdClassEntry;
 begin
   Assert(AClass <> nil);
+
+  ASubType := AnsiUpperCase(ASubType);
+
   K := GetHash(AClass, ASubType) mod ClassesHashTableSize;
   if FHashTable[K] is TgdClassEntry then
   begin
@@ -1443,28 +1440,18 @@ begin
 end;
 
 procedure TgdClassList.Remove(const AClass: TClass;
-  const ASubType: TgdcSubType);
+  ASubType: TgdcSubType);
 var
-  K, J, I: Integer;
+  K, J: Integer;
   FCE: TgdClassEntry;
 begin
+  ASubType := AnsiUpperCase(ASubType);
 
   K := GetHash(AClass, ASubType) mod ClassesHashTableSize;
-  
   if FHashTable[K] is TgdClassEntry then
   begin
-    FCE := TgdClassEntry(FHashTable[K]);
-    if FCE.Compare(AClass, ASubType) then
+    if TgdClassEntry(FHashTable[K]).Compare(AClass, ASubType) then
     begin
-      if (FCE.FSiblings <> nil) and (FCE.Count > 0) then
-        for J := FCE.Count - 1 downto 0 do
-        begin
-          if (FCE <> nil) then
-            Remove(FCE.Siblings[J].TheClass, FCE.Siblings[J].SubType);
-
-          FCE.FSiblings.Delete(J);
-        end;
-
       FreeAndNil(FHashTable[K]);
       Dec(FCount);
     end;
@@ -1476,15 +1463,6 @@ begin
       FCE := TObjectList(FHashTable[K])[J] as TgdClassEntry;
       if FCE.Compare(AClass, ASubType) then
       begin
-        if (FCE.FSiblings <> nil) and (FCE.Count > 0) then
-          for I := FCE.Count - 1 downto 0 do
-          begin
-            if FCE.Siblings[I] <> nil then
-              Remove(FCE.Siblings[I].TheClass, FCE.Siblings[I].SubType);
-
-            FCE.FSiblings.Delete(I);
-          end;
-
         TObjectList(FHashTable[K]).Delete(J);
         Dec(FCount);
         break;
@@ -1499,19 +1477,26 @@ procedure TgdClassList.RemoveAllSubTypes;
   var
     I: Integer;
   begin
+    if (ACE <> nil) then
+      ACE.Initialized := False;
+
     if (ACE <> nil) and (ACE.FSiblings <> nil) then
       for I := ACE.FSiblings.Count - 1 downto 0 do
         if ACE.Siblings[I] <> nil then
+        begin
           if (ACE.Siblings[I].SubType > '') then
           begin
+            RemoveSiblings(ACE.Siblings[I]);
             Remove(ACE.Siblings[I].TheClass, ACE.Siblings[I].SubType);
             ACE.FSiblings.Delete(I);
           end
           else
           begin
-            ACE.Siblings[I].Initialized := False;
             RemoveSiblings(ACE.Siblings[I]);
           end;
+        end
+        else
+          ACE.FSiblings.Delete(I);
   end;
 
 var
@@ -1522,14 +1507,20 @@ begin
   Assert(CE <> nil);
 
   if CE <> nil then
+  begin
     RemoveSiblings(CE);
+    CE.Initialized := False;
+  end;
 
   CE := Find(TgdcCreateableForm);
 
   Assert(CE <> nil);
 
   if CE <> nil then
+  begin
     RemoveSiblings(CE);
+    CE.Initialized := False;
+  end;
 end;
 
 procedure TgdClassList.AddClassMethods(AClass: TComponentClass;
