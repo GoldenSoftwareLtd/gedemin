@@ -3411,7 +3411,7 @@ end;
 procedure TGSFList.LoadPackageInfo{(const isForce: Boolean = False)};
 var
   i: Integer;
-  CP {CorrectPack}: Boolean;
+  CP: Boolean;
   MaxVer: TSettingVersion;
   ErrMsg: String;
 begin

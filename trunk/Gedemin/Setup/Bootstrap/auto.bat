@@ -94,9 +94,9 @@ echo **  Делаем инстоляции                          **
 echo **                                             **
 echo *************************************************
 
-call make_install.bat "%setting_source_path%\ККС\ККС общее.gsf"                                             cash      complex.jpg kkc_positive_cash    cash_setup.rar      "%install_target_path%\Касса\setup.exe" %send_ftp%
 call make_install.bat "%setting_source_path%\Меню\2013 Menu. front\2013 - Menu. Front.gsf"                  menufront complex.jpg kkc_positive_check   menufront_setup.rar "%install_target_path%\Меню\setup_front.exe" %send_ftp%
 goto exit
+call make_install.bat "%setting_source_path%\ККС\ККС общее.gsf"                                             cash      complex.jpg kkc_positive_cash    cash_setup.rar      "%install_target_path%\Касса\setup.exe" %send_ftp%
 call make_install.bat "%setting_source_path%\Меню\2011 Бэк-офис\2011. Меню.back.gsf"                        menuback  complex.jpg menubacklocal menuback_setup.rar "%install_target_path%\Меню\setup_back.exe" %send_ftp%
 call make_install.bat "%setting_source_path%\Предприниматель\Подоходный\Предприниматель_подоходный.gsf"     ip        ip.jpg      iplocal       ip_setup.rar       "%install_target_path%\Предприниматель\setup.exe" %send_ftp%
 call make_install.bat "%setting_source_path%\Предприниматель\Единый налог\Предприниматель_единый_налог.gsf" ip        ip.jpg      iplocal       ip_setup_ed.rar    "%install_target_path%\Предприниматель\setup_ed.exe" %send_ftp%

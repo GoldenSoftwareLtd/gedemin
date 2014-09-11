@@ -227,8 +227,12 @@ class function TRegParams.GetComputerKey: LongWord;
 var
   R: TRegistry;
   BIOSDate: AnsiString;
+  I: LongWord;
 begin
-  BIOSDate := '102987232154';
+  SetLength(BIOSDate, MAX_COMPUTERNAME_LENGTH + 1);
+  I := Length(BIOSDate);
+  if GetComputerName(@BIOSDate[1], I) then
+    SetLength(BIOSDate, I);
 
   R := TRegistry.Create(KEY_READ);
   try
