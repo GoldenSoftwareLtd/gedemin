@@ -93,13 +93,21 @@ type
     property Loading: Boolean read FLoading;
   end;
 
+  TAtRemoveRecord = class(TObject)
+  public
+    RUID: TRUID;
+    ObjectClass: CgdcBase;
+    ObjectSubType: String;
+    ObjectName: String;
+  end;
+
 implementation
 
 uses
   IBHeader, Storages, gd_security, at_classes, at_frmSQLProcess,
   at_sql_metadata, gd_common_functions, gdcNamespaceRecCmpController,
   gdcMetadata, gdcFunction, gd_directories_const, mtd_i_Base, evt_i_Base,
-  gd_CmdLineParams_unit;
+  gd_CmdLineParams_unit, at_dlgNamespaceRemoveList_unit;
 
 type
   TAtObjectRecord = class(TObject)
@@ -114,13 +122,6 @@ type
     DontRemove: Boolean;
     HeadObjectKey: Integer;
     Loaded: Boolean;
-  end;
-
-  TAtRemoveRecord = class(TObject)
-  public
-    RUID: TRUID;
-    ObjectClass: CgdcBase;
-    ObjectSubType: String;
   end;
 
 var
@@ -1073,6 +1074,7 @@ begin
     RR.RUID := StrToRUID(AStr);
     RR.ObjectClass := AR.ObjectClass;
     RR.ObjectSubType := AR.ObjectSubType;
+    RR.ObjectName := AR.ObjectName;
     FRemoveList.Add(RR);
   end;
 
@@ -1447,37 +1449,52 @@ begin
     FqFindAtObject.ParamByName('dbid').AsInteger := RR.RUID.DBID;
     FqFindAtObject.ExecQuery;
 
-    if FqFindAtObject.EOF then
-    begin
-      Obj := CacheObject(RR.ObjectClass.ClassName, RR.ObjectSubType);
-      Obj.Close;
-      Obj.ID := gdcBaseManager.GetIDByRUID(RR.RUID.XID, RR.RUID.DBID);
-      Obj.Open;
-      if (not Obj.EOF) and (Obj.ID >= cstUserIDStart) then
-      begin
-        if (not (Obj is TgdcMetaBase)) or TgdcMetaBase(Obj).IsUserDefined then
-        begin
-          try
-            ObjectName := Obj.ObjectName + ' (' + Obj.GetDisplayName(Obj.SubType) + ')';
-            Obj.Delete;
-            if Obj is TgdcFunction then
-              FNeedRelogin := True;
-            AddText('Удален объект: ' + ObjectName);
-          except
-            on E: Exception do
-            begin
-              AddWarning('Объект не может быть удален: ' +
-                ObjectName + #13#10 + E.Message);
-            end;
-          end;
-          if Obj is TgdcMetaBase then
-            Inc(FMetadataCounter);
-        end;
-      end;
-      Obj.Close;
-    end;
+    if not FqFindAtObject.EOF then
+      FRemoveList.Delete(I);
 
     FqFindAtObject.Close;
+  end;
+
+  if FRemoveList.Count > 0 then
+  begin
+    with Tat_dlgNamespaceRemoveList.Create(nil) do
+    try
+      RemoveList := FRemoveList;
+      DoDialog;
+    finally
+      Free;
+    end;
+  end;
+
+  for I := FRemoveList.Count - 1 downto 0 do
+  begin
+    RR := FRemoveList[I] as TatRemoveRecord;
+    Obj := CacheObject(RR.ObjectClass.ClassName, RR.ObjectSubType);
+    Obj.Close;
+    Obj.ID := gdcBaseManager.GetIDByRUID(RR.RUID.XID, RR.RUID.DBID);
+    Obj.Open;
+    if (not Obj.EOF) and (Obj.ID >= cstUserIDStart) then
+    begin
+      if (not (Obj is TgdcMetaBase)) or TgdcMetaBase(Obj).IsUserDefined then
+      begin
+        try
+          ObjectName := Obj.ObjectName + ' (' + Obj.GetDisplayName(Obj.SubType) + ')';
+          Obj.Delete;
+          if Obj is TgdcFunction then
+            FNeedRelogin := True;
+          AddText('Удален объект: ' + ObjectName);
+        except
+          on E: Exception do
+          begin
+            AddWarning('Объект не может быть удален: ' +
+              ObjectName + #13#10 + E.Message);
+          end;
+        end;
+        if Obj is TgdcMetaBase then
+          Inc(FMetadataCounter);
+      end;
+    end;
+    Obj.Close;
   end;
 
   FRemoveList.Clear;
