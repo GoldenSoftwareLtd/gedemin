@@ -532,12 +532,6 @@ begin
   Canvas.Pen.Color := clBlack;
   Canvas.Pen.Width := 1;
   Visible := False;
-{  FPopupMenu := TPopupMenu.Create(Self);
-  FPopupMenu.OnPopup := OnPopup;}
-
-
-
- { Self.PopupMenu := FPopupMenu;}
 end;
 
 procedure TgsResizer.CreateParams(var Params: TCreateParams);

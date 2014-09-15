@@ -1,9 +1,11 @@
 unit gsPropertyEditor;
 
 interface
+
 uses
-  contnrs, classes, Sysutils, gsResizerInterface, dlg_gsProperty_ColectEdit_unit, Controls,
-  windows, imglist, dlg_gsProperty_TVItemsEdit_unit;
+  Contnrs, Classes, SysUtils, Controls, Windows, ImgList, gsResizerInterface,
+  dlg_gsProperty_ColectEdit_unit, dlg_gsProperty_TVItemsEdit_unit;
+
 type
   TDisplayTypes = (dtDefault, dtHex, dtShortCut, dtColor, dtCursor, dtCharSet);
   TButtonType = (btNone, btDefault, btDown, btMore, btBoth);
@@ -20,11 +22,14 @@ type
     FOwnerDrawCombo: Boolean;
     FItemHeight: Integer;
     FgsObjectInspector: IgsObjectInspectorForm;
+
     procedure SetgsObjectInspector(
       const Value: IgsObjectInspectorForm);
+
   protected
     function GetValues: TStringList; virtual;
     procedure SetCurrentComponent(const Value: TComponent); virtual;
+
   public
     class function PropertyType: String; virtual; abstract;
     class function PropertyName: String; virtual;
@@ -51,6 +56,7 @@ type
   TgsPropertyEditor_TColor = class(TgsPropertyEditor)
   protected
     function GetValues: TStringList; override;
+
   public
     procedure OnComboDrawItem(Control: TWinControl; Index: Integer; Rect: TRect; State: TOwnerDrawState); override;
     class function PropertyType: String; override;
@@ -62,6 +68,7 @@ type
   protected
     function GetValues: TStringList; override;
     procedure FillCursors(const AName: string);
+
   public
     class function PropertyType: String; override;
     constructor Create; override;
@@ -180,10 +187,10 @@ type
 
   TgsPropertyEditor_TgdcClassName = class(TgsPropertyEditor)
   public
-    class function PropertyType: String; override;
-    class function PropertyName: String; override;
     constructor Create; override;
 
+    class function PropertyType: String; override;
+    class function PropertyName: String; override;
   end;
 
   TgsPropertyEditor_DataField = class(TgsPropertyEditor)
@@ -231,12 +238,13 @@ type
   function ConvertGsPropertyToString(const AValue: String; AnEditor: TgsPropertyEditor): String;
   function ConvertGsStringToProperty(const AValue: String; AnEditor: TgsPropertyEditor): String;
   procedure KillEditors;
+
 implementation
 
-uses dlg_gsProperty_StrEdit_unit, gd_ClassList, db, TypInfo, gdcBase,
-     dlgPictureDialog_unit, graphics, dlgTB2kEdit_unit, tb2item,
-     dlgMenuEditor_unit, menus, IBDataBase, Forms, dialogs, stdctrls, ActnList,
-     comctrls, extctrls;
+uses
+  dlg_gsProperty_StrEdit_unit, DB, TypInfo, gdcBase, dlgPictureDialog_unit,
+  graphics, dlgTB2kEdit_unit, tb2item, dlgMenuEditor_unit, menus, IBDataBase,
+  Forms, dialogs, stdctrls, ActnList, comctrls, extctrls, gd_ClassList;
 
 type
   PPropEditRec = ^TPropEditRec;
@@ -400,8 +408,8 @@ var
           Result := AValue;
       end;
     end;
-
   end;
+
 { TgsPropertyEditor }
 
 constructor TgsPropertyEditor.Create;
@@ -736,37 +744,19 @@ end;
 
 { TgsPropertyEditor_TgdcClassName }
 
+function BuildTree(ACE: TgdClassEntry; AData: Pointer): Boolean;
+begin
+  if ACE.SubType = '' then
+    TStringList(AData).Add(ACE.gdcClass.ClassName);
+  Result := True;
+end;
+
 constructor TgsPropertyEditor_TgdcClassName.Create;
-  procedure TraverseClassTree(ACE: TgdClassEntry);
-  var
-    I: Integer;
-  begin
-    if (ACE <> nil) then
-      if ACE.Count > 0 then
-        for I := 0 to ACE.Count -1 do
-          if (ACE.Siblings[I] <> nil)
-            and (not (ACE.Siblings[I].SubType > '')) then
-          begin
-            FValues.Add(ACE.Siblings[I].gdcClass.ClassName);
-            TraverseClassTree(ACE.Siblings[I]);
-          end;
-  end;
-  
-var
-//  I: Integer;
-  CE:TgdClassEntry;
 begin
   inherited;
   FButtonType := btDown;
   FValues := TStringList.Create;
-
-  CE := gdClassList.Find(TgdcBase);
-  if CE <> nil then
-    TraverseClassTree(CE);
-
-  {for I := 0 to gdcClassList.Count - 1 do
-    if CgdcBase(gdcClassList[I]).InheritsFrom(TgdcBase)  then
-      FValues.Add(gdcClassList[I].ClassName);}
+  gdClassList.Traverse(TgdcBase, '', BuildTree, FValues, True, False);
 end;
 
 class function TgsPropertyEditor_TgdcClassName.PropertyName: String;
@@ -778,7 +768,6 @@ class function TgsPropertyEditor_TgdcClassName.PropertyType: String;
 begin
   Result := 'TgdcClassName'
 end;
-
 
 { TgsPropertyEditor_DataField }
 
