@@ -48,6 +48,8 @@ type
   private
     function CheckReport(const AReportKey: Integer): Boolean;
 
+    function BuildClassTree(ACE: TgdClassEntry; AData: Pointer): Boolean;
+
   public
     procedure BeforePost; override;
     procedure SetupRecord; override;
@@ -55,7 +57,6 @@ type
     function TestCorrect: Boolean; override;
     procedure Post; override;
 
-    function BuildClassTree(ACE: TgdClassEntry; AData: Pointer): Boolean;
   end;
                                                    
 var
@@ -373,7 +374,6 @@ var
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-  CE: TgdClassEntry;
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGEXPLORER', 'SETUPDIALOG', KEYSETUPDIALOG)}
   {M}  try
@@ -399,9 +399,7 @@ begin
 
   cbClasses.Clear;
 
-  CE := gdClassList.Find(TgdcBase);
-  if CE <> nil then
-    CE.Traverse(BuildClassTree, nil);
+  gdClassList.Traverse(TgdcBase, '', BuildClassTree, nil);
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGEXPLORER', 'SETUPDIALOG', KEYSETUPDIALOG)}
   {M}finally

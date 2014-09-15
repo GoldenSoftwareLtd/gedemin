@@ -87,8 +87,7 @@ type
     { Private declarations }
     FSubTypeList: TStringList;
     procedure FormOnCloseQuery(Sender: TObject; var CanClose: Boolean);
-  public
-    { Public declarations }
+
     function BuildClassTree(ACE: TgdClassEntry; AData: Pointer): Boolean;
     
   end;
@@ -179,7 +178,6 @@ end;
 procedure Tdlg_NewForm_Wzrd.FormCreate(Sender: TObject);
 var
   I: Integer;
-  CE: TgdClassEntry;
   function GetClassDescription(const AName: String): String;
   var
     S: String;
@@ -230,9 +228,7 @@ begin
 
   cbGdcType.Items.Clear;
 
-  CE := gdClassList.Find(TgdcBase);
-  if CE <> nil then
-    CE.Traverse(BuildClassTree, nil);
+  gdClassList.Traverse(TgdcBase, '', BuildClassTree, nil);
 
   cbFormType.Clear;
   for I := 0 to AncestorFormList.Count - 1 do

@@ -36,11 +36,13 @@ type
     FSubTypeList: TStrings;
     procedure SetValue(const Value: string);
     function GetValue: string;
+
+    function BuildClassTree(ACE: TgdClassEntry; AData: Pointer): Boolean;
     { Private declarations }
   public
     { Public declarations }
     property Value: string read GetValue write SetValue;
-    function BuildClassTree(ACE: TgdClassEntry; AData: Pointer): Boolean;
+
   end;
 
 function CustomAnalyticForm: TCustomAnalyticForm;
@@ -170,11 +172,6 @@ begin
 end;
 
 procedure TCustomAnalyticForm.cbBODropDown(Sender: TObject);
-var
-{  I, J: Integer;
-  S: TStringList;
-  CL: TClassList; }
-  CE: TgdClassEntry;
 begin
   if FSubTypeList = nil then
     FSubTypeList := TStringList.Create
@@ -185,48 +182,8 @@ begin
   try
     cbBo.Items.Clear;
 
-    CE := gdClassList.Find(TgdcBase);
-    if CE <> nil then
-      CE.Traverse(BuildClassTree, nil);
+    gdClassList.Traverse(TgdcBase, '', BuildClassTree, nil);
 
-{   S := TStringList.Create;
-   CL := TClassList.Create;
-   try
-     cbBo.Items.Clear;
-     for I := 0 to gdcClassList.Count - 1 do
-     begin
-       if not GetDescendants(gdcClassList[I], CL, True) then
-       begin
-         if gdcClassList[I].GetSubTypeList(S) then
-         begin
-           for J := 0 to S.Count - 1 do
-           begin
-             FSubTypeList.AddObject(Format('%s[%s]',
-               [S.Names[J],
-               gdcClassList[I].ClassName]) + '=' +
-               S.Values[S.Names[J]], Pointer(gdcClassList[I]));
-             cbBo.Items.AddObject(Format('%s[%s]',
-               [S.Names[J],
-               gdcClassList[I].ClassName]),
-               Pointer(gdcClassList[I]));
-           end;
-         end else
-         begin
-           FSubTypeList.AddObject(Format('%s[%s]',
-             [gdcClassList[I].GetDisplayName(''),
-             gdcClassList[i].ClassName]) + '=',
-             Pointer(gdcClassList[I]));
-           cbBo.Items.AddObject(Format('%s[%s]',
-             [gdcClassList[I].GetDisplayName(''),
-             gdcClassList[i].ClassName]),
-              Pointer(gdcClassList[I]));
-         end;
-       end;
-     end;
-   finally
-     S.Free;
-     CL.Free;
-   end;}
   finally
     cbBo.Items.EndUpdate;
   end;

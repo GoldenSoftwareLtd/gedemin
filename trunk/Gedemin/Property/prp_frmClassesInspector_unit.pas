@@ -356,6 +356,9 @@ type
     procedure SetOnInsertCurrentText(const Value: TciInsertCurrentText);
     procedure SetCurrentModule(const Value: TCurrentModule);
 
+    function BuildFrmClassTree(ACE: TgdClassEntry; AData: Pointer): Boolean;
+    function BuildGdcClassTree(ACE: TgdClassEntry; AData: Pointer): Boolean;
+
     property CurrentModule: TCurrentModule read FCurrentModule write SetCurrentModule;
 
   protected
@@ -371,9 +374,6 @@ type
 
     procedure SetModuleClass(const ModuleName: string;
       const ModuleClass: TClass);
-
-    function BuildFrmClassTree(ACE: TgdClassEntry; AData: Pointer): Boolean;
-    function BuildGdcClassTree(ACE: TgdClassEntry; AData: Pointer): Boolean;
     
     property DelphiClassesNode: TTreeNode read FDelphiClassesNode;
     property frmClassesNode: TTreeNode read FfrmClassesNode;
@@ -565,22 +565,13 @@ var
   TreeNode, TmpNode: TTreeNode;
   COMClassItem: TgdcCOMClassItem;
   ClassRef: TClass;
-  CE: TgdClassEntry;
 begin
   TreeNode := FfrmClassesNode;
-
-  CE := gdClassList.Find(TgdcCreateableForm);
-  if CE <> nil then
-    CE.Traverse(BuildFrmClassTree, @TreeNode);
-
+  gdClassList.Traverse(TgdcCreateableForm, '', BuildFrmClassTree, @TreeNode);
   TreeNode.AlphaSort;
 
   TreeNode := FgdcClassesNode;
-
-  CE := gdClassList.Find(TgdcBase);
-  if CE <> nil then
-    CE.Traverse(BuildGdcClassTree, @TreeNode);
-
+  gdClassList.Traverse(TgdcBase, '', BuildGdcClassTree, @TreeNode);
   TreeNode.AlphaSort;
 
   TreeNode := FDelphiClassesNode;

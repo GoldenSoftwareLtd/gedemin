@@ -97,6 +97,7 @@ type
 
     procedure SetGDClass;
 
+    function BuildClassTree(ACE: TgdClassEntry; AData: Pointer): Boolean;
   protected
     procedure LoadClasses;
     procedure UpdateSubTypes;
@@ -113,7 +114,6 @@ type
     procedure SetupRecord; override;
     function TestCorrect: Boolean; override;
 
-    function BuildClassTree(ACE: TgdClassEntry; AData: Pointer): Boolean;
   end;
 
   Egdc_dlgRelationField = class(Exception);
@@ -166,7 +166,6 @@ var
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
   I: Integer;
-  CE: TgdClassEntry;
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGRELATIONFIELD', 'SETUPDIALOG', KEYSETUPDIALOG)}
   {M}  try
@@ -191,15 +190,7 @@ begin
   //////////////////////////////////////////////////////////////////////////////
   //  Подготовка базовых классов
 
-  CE := gdClassList.Find(TgdcBase);
-  if CE <> nil then
-    CE.Traverse(BuildClassTree, nil);
-
- { for I := 0 to gdcClassList.Count - 1 do
-    if CgdcBase(gdcClassList[I]).InheritsFrom(TgdcBase) then
-      FClasses.Add(TgdcClassHandler.Create(
-        CgdcBase(gdcClassList[I]), gdcObject.Transaction.DefaultDatabase,
-          gdcObject.Transaction));  }
+  gdClassList.Traverse(TgdcBase, '', BuildClassTree, nil);
 
   comboBusinessClass.ItemIndex := -1;
   comboBusinessClass.Items.Clear;
