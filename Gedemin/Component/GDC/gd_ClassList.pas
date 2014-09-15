@@ -272,6 +272,7 @@ type
 
   TgdClassEntryCallback = function(ACE: TgdClassEntry; AData: Pointer): Boolean
     of object;
+  TgdClassEntryCallback2 = function(ACE: TgdClassEntry; AData: Pointer): Boolean;
 
   TgdClassEntry = class(TObject)
   private
@@ -298,7 +299,11 @@ type
     procedure AddSibling(ASibling: TgdClassEntry);
     function GetSubTypeList(ASubTypeList: TStrings; const AnOnlyDirect: Boolean): Boolean;
     function Traverse(ACallback: TgdClassEntryCallback; AData: Pointer;
-      const AnIncludeRoot: Boolean = True; const AnOnlyDirect: Boolean = False): Boolean;
+      const AnIncludeRoot: Boolean = True;
+      const AnOnlyDirect: Boolean = False): Boolean; overload;
+    function Traverse(ACallback2: TgdClassEntryCallback2; AData: Pointer;
+      const AnIncludeRoot: Boolean = True;
+      const AnOnlyDirect: Boolean = False): Boolean; overload;
 
     property Parent: TgdClassEntry read FParent;
     property TheClass: TClass read FClass;
@@ -332,7 +337,12 @@ type
     function Find(const AFullClassName: TgdcFullClassName): TgdClassEntry; overload;
     function Traverse(const AClass: TClass; const ASubType: TgdcSubType;
       ACallback: TgdClassEntryCallback; AData: Pointer;
-      const AnIncludeRoot: Boolean = True; const AnOnlyDirect: Boolean = False): Boolean;
+      const AnIncludeRoot: Boolean = True;
+      const AnOnlyDirect: Boolean = False): Boolean; overload;
+    function Traverse(const AClass: TClass; const ASubType: TgdcSubType;
+      ACallback: TgdClassEntryCallback2; AData: Pointer;
+      const AnIncludeRoot: Boolean = True;
+      const AnOnlyDirect: Boolean = False): Boolean; overload;
 
     procedure Remove(const AClass: TClass; ASubType: TgdcSubType = '');
     // Удаление всех подтипов
@@ -1240,7 +1250,7 @@ begin
 end;
 
 function TgdClassEntry.Traverse(ACallback: TgdClassEntryCallback;
-  AData: Pointer; const AnIncludeRoot: Boolean; const AnOnlyDirect: Boolean): Boolean;
+  AData: Pointer; const AnIncludeRoot, AnOnlyDirect: Boolean): Boolean;
 var
   I: Integer;
 begin
@@ -1258,7 +1268,30 @@ begin
       Result := Result and ACallback(Siblings[I], AData)
     else
       Result := Result and Siblings[I].Traverse(ACallback, AData, True, False);
-    Inc(I);  
+    Inc(I);
+  end;
+end;
+
+function TgdClassEntry.Traverse(ACallback2: TgdClassEntryCallback2;
+  AData: Pointer; const AnIncludeRoot, AnOnlyDirect: Boolean): Boolean;
+var
+  I: Integer;
+begin
+  Assert(Assigned(ACallback2));
+
+  if AnIncludeRoot then
+    Result := ACallback2(Self, AData)
+  else
+    Result := True;
+
+  I := 0;
+  while Result and (I < Count) do
+  begin
+    if AnOnlyDirect then
+      Result := Result and ACallback2(Siblings[I], AData)
+    else
+      Result := Result and Siblings[I].Traverse(ACallback2, AData, True, False);
+    Inc(I);
   end;
 end;
 
@@ -1592,7 +1625,22 @@ begin
   if CE <> nil then
     Result := CE.Traverse(ACallback, AData, AnIncludeRoot, AnOnlyDirect)
   else
-    Result := False;  
+    Result := False;
+end;
+
+function TgdClassList.Traverse(const AClass: TClass;
+  const ASubType: TgdcSubType; ACallback: TgdClassEntryCallback2;
+  AData: Pointer; const AnIncludeRoot, AnOnlyDirect: Boolean): Boolean;
+var
+  CE: TgdClassEntry;
+begin
+  Assert(Assigned(ACallback));
+
+  CE := Find(AClass, ASubType);
+  if CE <> nil then
+    Result := CE.Traverse(ACallback, AData, AnIncludeRoot, AnOnlyDirect)
+  else
+    Result := False;
 end;
 
 initialization
