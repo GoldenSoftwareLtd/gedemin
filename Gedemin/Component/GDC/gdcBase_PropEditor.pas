@@ -16,13 +16,15 @@ type
   end;
 
   TgdcClassNameProperty = class(TPropertyEditor)
+  private
+    function BuildClassTree(ACE: TgdClassEntry; AData: Pointer): Boolean;
+
   public
     function GetAttributes: TPropertyAttributes; override;
     procedure GetValues(Proc: TGetStrProc); override;
     function GetValue: String; override;
     procedure SetValue(const Value: String); override;
 
-    function BuildClassTree(ACE: TgdClassEntry; AData: Pointer): Boolean;
   end;
 
 
@@ -121,17 +123,8 @@ begin
 end;
 
 procedure TgdcClassNameProperty.GetValues(Proc: TGetStrProc);
-var
-//  I: Integer;
-  CE: TgdClassEntry;
 begin
-  CE := gdClassList.Find(TgdcBase);
-  if CE <> nil then
-    CE.Traverse(BuildClassTree, @Proc);
-
-//  for I := 0 to gdcClassList.Count - 1 do
-//    if gdcClassList[I].InheritsFrom(TgdcBase) then
-//      Proc(gdcClassList[I].ClassName);
+  gdClassList.Traverse(TgdcBase, '', BuildClassTree, @Proc);
 end;
 
 procedure TgdcClassNameProperty.SetValue(const Value: String);

@@ -198,6 +198,8 @@ type
     procedure TestType;
     procedure TestVisualSettings;
 
+    function BuildClassTree(ACE: TgdClassEntry; AData: Pointer): Boolean;
+
   protected
     procedure UpdateDomainInfo;
 
@@ -217,7 +219,6 @@ type
     procedure SetupDialog; override;
     function TestCorrect: Boolean; override;
 
-    function BuildClassTree(ACE: TgdClassEntry; AData: Pointer): Boolean;
   end;
 
   Egdc_dlgFieldError = class(Exception);
@@ -1784,7 +1785,6 @@ var
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-  CE: TgdClassEntry;
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGFIELD', 'SETUPDIALOG', KEYSETUPDIALOG)}
   {M}  try
@@ -1809,10 +1809,8 @@ begin
   FClasses.Clear;
 
   //  Подготовка базовых классов
-  
-  CE := gdClassList.Find(TgdcBase);
-  if CE <> nil then
-    CE.Traverse(BuildClassTree, nil);
+
+  gdClassList.Traverse(TgdcBase, '', BuildClassTree, nil);
 
   luRefRelation.Condition :=
     '(SELECT COUNT(*) ' +

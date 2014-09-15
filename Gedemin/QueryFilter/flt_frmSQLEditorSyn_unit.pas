@@ -1616,62 +1616,12 @@ begin
 end;
 
 procedure TfrmSQLEditorSyn.FillClassesList;
-{$IFDEF GEDEMIN}
-var
-  {SL: TStringList;
-  I, J, T: Integer;
-  LI: TListItem;
-  SubType: String;
-  Cursor: TCursor;}
-  CE: TgdClassEntry;
-{$ENDIF}
 begin
   if lvClasses.Items.Count > 0 then
     exit;
 
   {$IFDEF GEDEMIN}
-  CE := gdClassList.Find(TgdcBase);
-  if CE <> nil then
-    CE.Traverse(BuildClassTree, nil);
-
-  {Cursor := Screen.Cursor;
-  SL := TStringList.Create;
-  try
-    Screen.Cursor := crSQLWait;
-    for I := 0 to gdcClassList.Count - 1 do
-    begin
-      LI := lvClasses.Items.Add;
-      LI.Caption := gdcClassList[I].ClassName;
-
-      if gdcClassList[I].IsAbstractClass then
-        LI.SubItems.Text :=
-          '<Абстрактный базовый класс>'#13#10 +
-          gdcClassList[I].GetDisplayName('') + #13#10 +
-          gdcClassList[I].GetListTable('')
-      else
-        LI.SubItems.Text := #13#10 +
-          gdcClassList[I].GetDisplayName('') + #13#10 +
-          gdcClassList[I].GetListTable('');
-
-      gdcClassList[I].GetSubTypeList(SL);
-      for J := 0 to SL.Count - 1 do
-      begin
-        LI := lvClasses.Items.Add;
-        LI.Caption := gdcClassList[I].ClassName;
-        T := Pos('=', SL[J]);
-        if T = 0 then
-          SubType := SL[J]
-        else
-          SubType := Copy(SL[J], T + 1, 255);
-        LI.SubItems.Text := SubType;
-        LI.SubItems.Add(gdcClassList[I].GetDisplayName(SubType));
-        LI.SubItems.Add(gdcClassList[I].GetListTable(SubType));
-      end;
-    end;
-  finally
-    Screen.Cursor := Cursor;
-    SL.Free;
-  end;}
+  gdClassList.Traverse(TgdcBase, '', BuildClassTree, nil);
   {$ENDIF}
 
   lblClassesCount.Caption := 'Бизнес-классов: ' + IntToStr(lvClasses.Items.Count);
