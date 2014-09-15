@@ -9472,7 +9472,7 @@ end;
 class function TgdcTableToDefinedTable.GetDisplayName(
   const ASubType: TgdcSubType): String;
 begin
-  Result := 'Новая Таблица со ссылкой';
+  Result := 'Наследуемая таблица';
 end;
 
 function TgdcTableToDefinedTable.CreateForeignKey: String;

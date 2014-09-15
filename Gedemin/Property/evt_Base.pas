@@ -9767,7 +9767,7 @@ begin
       until ParentSubType = '';
   end;
 
-  if (AnComponent.Owner is TCreateableForm) then
+  if not (AnComponent is TCreateableForm) then
   begin
     OwnerEventObject := EventObjectList.FindAllObject(AnComponent.Owner);
     if (Assigned (OwnerEventObject))

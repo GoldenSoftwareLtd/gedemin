@@ -1166,7 +1166,7 @@ end;
 function TgdClassEntry.Compare(const AClass: TClass;
   const ASubType: TgdcSubType): Boolean;
 begin
-  Result := (AClass = FClass) and AnsiSameText(FSubType, UnsiUpperCase(ASubType));
+  Result := (AClass = FClass) and AnsiSameText(FSubType, AnsiUpperCase(ASubType));
 end;
 
 constructor TgdClassEntry.Create(AParent: TgdClassEntry;
