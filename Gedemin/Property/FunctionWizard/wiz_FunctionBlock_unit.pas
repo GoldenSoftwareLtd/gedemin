@@ -8470,25 +8470,31 @@ var
   Names: TStrings;
 begin
   inherited;
+
+  if FSQL = '' then
+    exit;
+
   SQL := TIBSQL.Create(nil);
   try
     SQL.Transaction := gdcBaseManager.ReadTransaction;
-    SQL.SQl.Text := FSQL;
+    SQL.SQL.Text := FSQL;
     try
       SQL.Prepare;
-      Names := TStringList.Create;
-      try
-        Names.Text := SQL.Current.Names;
-        for I := 0 to Names.Count - 1 do
-        begin
-          Strings.AddObject(Format('%s_%s', [FBlockName, Names[I]]) +
-            '=' + Format('Значение поля %s цикла ''%s''', [Names[I],
-            Header]), Self);
-        end;
-      finally
-        Names.Free;
-      end;
     except
+      exit;
+    end;
+
+    Names := TStringList.Create;
+    try
+      Names.Text := SQL.Current.Names;
+      for I := 0 to Names.Count - 1 do
+      begin
+        Strings.AddObject(Format('%s_%s', [FBlockName, Names[I]]) +
+          '=' + Format('Значение поля %s цикла ''%s''', [Names[I],
+          Header]), Self);
+      end;
+    finally
+      Names.Free;
     end;
   finally
     SQL.Free;

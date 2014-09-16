@@ -2,7 +2,7 @@
 {++
 
 
-  Copyright (c) 2001-2013 by Golden Software of Belarus
+  Copyright (c) 2001-2014 by Golden Software of Belarus
 
   Module
 
@@ -7492,7 +7492,7 @@ begin
   {M}    end;
   {END MACRO}
 
-  Result := 'GROUP BY con.Name, doc.number, doc.documentdate, doc.CREATIONDATE, doc.EDITIONDATE, ' +
+  Result := 'GROUP BY con.Name, doc.number, doc.documentdate, doc.creationdate, doc.editiondate, ' +
    ' doct.name, doct.ruid, doc.id, doc.parent, g.Name, v.Name, m.contactkey, z.goodkey, main_con.name, main_con.id ';
   if HasSubSet('ByHolding') then
     Result := Result + ', con_m.name ';
@@ -7583,9 +7583,9 @@ begin
   {M}    end;
   {END MACRO}
   if HasSubSet('ByHolding') then
-    Result := 'ORDER BY doc.documentdate, doc.EDITIONDATE, 16 DESC '
+    Result := 'ORDER BY doc.documentdate, doc.editiondate, 16 DESC '
   else
-    Result := 'ORDER BY doc.documentdate, doc.EDITIONDATE, 15 DESC ';
+    Result := 'ORDER BY doc.documentdate, doc.editiondate, 15 DESC ';
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVCARD', 'GETORDERCLAUSE', KEYGETORDERCLAUSE)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -7815,7 +7815,7 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  Result := 'SELECT con.Name, doc.number, doc.documentdate, doc.CREATIONDATE, doc.EDITIONDATE, g.Name as GoodName, v.Name as ValueName, ' +
+  Result := 'SELECT con.Name, doc.number, doc.documentdate, doc.creationdate, doc.editiondate, g.Name as GoodName, v.Name as ValueName, ' +
    ' doct.name as DocName, doct.ruid, doc.id, doc.parent, m.contactkey, z.goodkey, main_con.name as DEPOTNAME, main_con.id as DEPOTKEY ';
   if HasSubSet('ByHolding') then
     Result := Result + ', con_m.Name as NameMove, SUM(m.Debit) as Debit, SUM(m.Credit) as Credit '

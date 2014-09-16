@@ -133,11 +133,7 @@ end;
 
 procedure Tgd_GlobalParams.ReadFromIniFile;
 begin
-  {$IFDEF GEDEMIN_LOCK}
-  FUpdateToken := 'LOCK';
-  {$ELSE}
   FUpdateToken := FIniFile.ReadString('WEB CLIENT', 'Token', '');
-  {$ENDIF}
 end;
 
 function Tgd_GlobalParams.GetWebServerUpdatePath: String;
@@ -176,7 +172,9 @@ begin
   Result := (not NetworkDrive)
     and (not CDROMDrive)
     and (not SecondaryInstance)
-    and (not FNeedRestartForUpdate);
+    and (not FNeedRestartForUpdate)
+    and (Pos('POSITIVE_CHECK', AnsiUpperCase(UpdateToken)) = 0)
+    and (Pos('POSITIVE_CASH', AnsiUpperCase(UpdateToken)) = 0);
 end;
 
 function Tgd_GlobalParams.GetExternalEditor(const ALang: String): String;
