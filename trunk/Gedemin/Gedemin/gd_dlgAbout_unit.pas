@@ -244,7 +244,8 @@ begin
 
   chbxAutoUpdate.Checked := gd_GlobalParams.AutoUpdate;
 
-  if Assigned(gdWebClientThread) and gdWebClientThread.Connected then
+  if Assigned(gdWebClientThread) and gdWebClientThread.Connected
+    and gd_GlobalParams.CanUpdate then
   begin
     if Pos('UPDATE', gdWebClientThread.WebServerResponse) > 0 then
       lblUpdateStatus.Caption := 'Доступно обновление для файлов платформы.'

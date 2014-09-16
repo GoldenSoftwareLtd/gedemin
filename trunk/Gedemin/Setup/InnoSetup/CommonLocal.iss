@@ -118,6 +118,9 @@ Source: "SWIPl\pthreadGC2.dll"; DestDir: "{app}\SWIPl"; Flags: ignoreversion
 Filename: "{app}\gedemin.ini"; Section: "WEB CLIENT"; Key: "Token"; String: "{#UpdateToken}"; 
 Filename: "{app}\databases.ini"; Section: "{#GedSafeAppName}"; Key: "FileName"; String: "Database\{#DBFileOnlyName}.fdb"; Tasks: "databasefile"
 Filename: "{app}\databases.ini"; Section: "{#GedSafeAppName}"; Key: "Selected"; String: "1"; Tasks: "databasefile"
+#ifdef Cash
+  Filename: "{app}\gedemin.ini"; Section: "WEB CLIENT"; Key: "AutoUpdate"; String: "0"; 
+#endif
 
 [Icons]
 Name: "{group}\{#GedSafeAppName}"; Filename: "{app}\gedemin.exe"; WorkingDir: "{app}"

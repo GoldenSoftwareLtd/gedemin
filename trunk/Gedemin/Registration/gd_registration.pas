@@ -107,6 +107,8 @@ end;
 
 function TRegParams.CheckRegistration(const AShowMessage: Boolean;
   const ADisabledFunction: String = ''): Boolean;
+const
+  MessageShown: Boolean = False;
 var
   MessageText: String;
 begin
@@ -145,18 +147,22 @@ begin
     and (not gd_CmdLineParams.Embedding)
     and (MessageText > '') then
   begin
-    MessageBox(0,
-      PChar(
-        MessageText +
-        #13#10 +
-        'Вы можете выполнить регистрацию вызвав соответствующую'#13#10 +
-        'команду из пункта меню Справка главного окна программы.'#13#10#13#10 +
-        'По всем вопросам обращайтесь в офис Golden Software, Ltd:'#13#10 +
-        'Беларусь, г.Минск, ул. Скрыганова 6, оф. 2-204'#13#10 +
-        'тел/факс: +375-17-2561759, 2562782'#13#10 +
-        'http://gsbelarus.com, email: support@gsbelarus.com'),
-      'Внимание',
-      MB_OK or MB_ICONHAND or MB_TASKMODAL);
+    if (ADisabledFunction > '') or (not MessageShown) then
+    begin
+      MessageBox(0,
+        PChar(
+          MessageText +
+          #13#10 +
+          'Вы можете выполнить регистрацию вызвав соответствующую'#13#10 +
+          'команду из пункта меню Справка главного окна программы.'#13#10#13#10 +
+          'По всем вопросам обращайтесь в офис Golden Software, Ltd:'#13#10 +
+          'Беларусь, г.Минск, ул. Скрыганова 6, оф. 2-204'#13#10 +
+          'тел/факс: +375-17-2561759, 2562782'#13#10 +
+          'http://gsbelarus.com, email: support@gsbelarus.com'),
+        'Внимание',
+        MB_OK or MB_ICONHAND or MB_TASKMODAL);
+      MessageShown := True;  
+    end;
   end;
 end;
 
