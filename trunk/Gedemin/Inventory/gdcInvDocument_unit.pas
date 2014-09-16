@@ -3973,6 +3973,8 @@ begin
     if s <> '' then s := s + ' AND ';
     s := s + ' (c.' + Features[i] + ' = :' + Features[i] + ' or (c.' + Features[i] + ' is NULL and :' + Features[i] + ' is NULL)) ' + #13#10;
   end;
+  
+  if s <> '' then s := ' where ' + #13#10 + s + #13#10;
 
   if not EndMonthRemains then
     Result := '      ondate = :documentdate;' + #13#10
@@ -4006,7 +4008,7 @@ begin
   Result := Result +
     ') m ' + #13#10 +
     '           join inv_card c ON m.cardkey = c.id ' + #13#10 +
-    '         where ' + #13#10 + s +
+    s +
     '         group by 1, 2, 3 ' + #13#10;
   if not MinusRemains then
     Result := Result +
@@ -4034,13 +4036,22 @@ begin
     s2 := ':firstdocumentkey';
   end;
 
-  Result :=
-    Format('/* создаем новую карточку */ ' + #13#10 +
-           ' ' + #13#10 +
-           '    id = GEN_ID(gd_g_unique, 1); ' + #13#10 +
-           '    insert into inv_card (id, firstdate, ' + s + 'companykey, goodkey, documentkey, firstdocumentkey, %0:s) ' + #13#10 +
-           '    values (:id, :documentdate, ' + s1 + ':companykey, :goodkey, NEW.documentkey, %2:s, %1:s); ' + #13#10,
-           [Features.CommaText, GetIntoFieldList(Features, Prefix), s2]);
+  if Features.Count > 0 then
+    Result :=
+      Format('/* создаем новую карточку */ ' + #13#10 +
+             ' ' + #13#10 +
+             '    id = GEN_ID(gd_g_unique, 1); ' + #13#10 +
+             '    insert into inv_card (id, firstdate, ' + s + 'companykey, goodkey, documentkey, firstdocumentkey, %0:s) ' + #13#10 +
+             '    values (:id, :documentdate, ' + s1 + ':companykey, :goodkey, NEW.documentkey, %2:s, %1:s); ' + #13#10,
+             [Features.CommaText, GetIntoFieldList(Features, Prefix), s2])
+  else
+    Result :=
+      Format('/* создаем новую карточку */ ' + #13#10 +
+             ' ' + #13#10 +
+             '    id = GEN_ID(gd_g_unique, 1); ' + #13#10 +
+             '    insert into inv_card (id, firstdate, ' + s + 'companykey, goodkey, documentkey, firstdocumentkey) ' + #13#10 +
+             '    values (:id, :documentdate, ' + s1 + ':companykey, :goodkey, NEW.documentkey, %0:s); ' + #13#10,
+             [s2]);
 
 
 end;
@@ -4066,9 +4077,10 @@ begin
       ' or (' + StringReplace(Features[i], 'usr$', NewPrefix, [rfIgnoreCase]) + ' is not null and '  +
         StringReplace(Features[i], 'usr$', OldPrefix, [rfIgnoreCase]) + ' is null)) ' + #13#10;
   end;
+  if Result <> '' then Result := Result + ' or ';
   Result :=
-    '  ' + s + ' = 0;' + #13#10 + 
-    ' if (' + Result + ' or (coalesce(goodkey, 0) <> coalesce(oldgoodkey, 0)) ) then ' + #13#10 +
+    '  ' + s + ' = 0;' + #13#10 +
+    ' if (' + Result + ' (coalesce(goodkey, 0) <> coalesce(oldgoodkey, 0)) ) then ' + #13#10 +
     '    ' + s + ' = 1;' + #13#10;
 end;
 
@@ -4097,6 +4109,71 @@ begin
 
 end;
 
+function GetReadFeatureSQL(Features: TStringList; IsFrom, IsNew, OnlyFeatures: Boolean; Prefix: String): String;
+var
+  s, s1: String;
+begin
+  if isNew then
+  begin
+    if isFrom then
+      Result := 'F'
+    else
+      Result := 'T';
+    s := '';
+    s1 := '';
+    if Features.Count > 0 then
+    begin
+      s := Features.CommaText;
+      s1 := GetIntoFieldList(Features, Prefix);
+    end;
+    if not OnlyFeatures then
+    begin
+      if s <> '' then s := s + ',';
+      s:= s + 'goodkey, checkremains';
+      if s1 <> '' then s1 := s1 + ',';
+      s1 := s1 + ':goodkey, :checkremains';
+    end;
+    if s <> '' then
+      Result :=
+          '    select ' + s + ' from ' + #13#10 +
+          '    usr$' + FieldByName('ruid').AsString + #13#10 +
+          '    where documentkey = NEW.documentkey and typevalue = ''' + Result + ''' ' + #13#10 +
+          '    into ' + s1 + '; ' + #13#10
+    else
+      Result := '';
+  end
+  else
+  begin
+    if isFrom or (RelType <> irtFeatureChange) then
+      Result := 'OLD.fromcardkey'
+    else
+      Result := 'OLD.tocardkey';
+    s := '';
+    s1 := '';
+    if Features.Count > 0 then
+    begin
+      s := Features.CommaText;
+      s1 := GetIntoFieldList(Features, Prefix);
+    end;
+    if not OnlyFeatures then
+    begin
+      if s <> '' then s := s + ',';
+      s:= s + 'goodkey';
+      if s1 <> '' then s1 := s1 + ',';
+      s1 := s1 + ':oldgoodkey';
+    end;
+    if s <> '' then
+      Result :=
+          '    select ' + s + ' from ' + #13#10 +
+          '    inv_card ' + #13#10 +
+          '    where id = ' + Result + #13#10 +
+          '    into ' + s1 + ';' + #13#10
+    else
+      Result := '';      
+
+  end;
+end;
+
 
 // Создание триггера BeforeInsert для простого складского документа
 function CreateInsertTrigger_SimpleDoc: String;
@@ -4109,20 +4186,34 @@ begin
   else
     Features := SourceFeatures;
 
-  Result :=
-    FixedVariableList + #13#10 + MakeFieldList(Features, 'usr$') + ConstTriggerText +
-    Format(
-          '  if (ruid = ''%0:s'') then ' + #13#10 +
-          '  begin ' + #13#10 +
-          '    select %1:s, goodkey, checkremains, minusremains from ' + #13#10 +
-          '    usr$%0:s ' + #13#10 +
-          '    where documentkey = NEW.documentkey ' + #13#10 +
-          '    into %2:s, :goodkey, :checkremains, :minusremains; ' + #13#10,
-          [FieldByName('ruid').AsString,
-           Features.CommaText,
-           GetIntoFieldList(Features, 'usr$')]) +
-          GetMovementContactSQL(CreditMovement, True) +
-          GetMovementContactSQL(DebitMovement, False);
+  if Features.Count > 0 then
+    Result :=
+      FixedVariableList + #13#10 + MakeFieldList(Features, 'usr$') + ConstTriggerText +
+      Format(
+            '  if (ruid = ''%0:s'') then ' + #13#10 +
+            '  begin ' + #13#10 +
+            '    select %1:s, goodkey, checkremains, minusremains from ' + #13#10 +
+            '    usr$%0:s ' + #13#10 +
+            '    where documentkey = NEW.documentkey ' + #13#10 +
+            '    into %2:s, :goodkey, :checkremains, :minusremains; ' + #13#10,
+            [FieldByName('ruid').AsString,
+             Features.CommaText,
+             GetIntoFieldList(Features, 'usr$')]) +
+            GetMovementContactSQL(CreditMovement, True) +
+            GetMovementContactSQL(DebitMovement, False)
+  else
+    Result :=
+      FixedVariableList + #13#10 + MakeFieldList(Features, 'usr$') + ConstTriggerText +
+      Format(
+            '  if (ruid = ''%0:s'') then ' + #13#10 +
+            '  begin ' + #13#10 +
+            '    select goodkey, checkremains, minusremains from ' + #13#10 +
+            '    usr$%0:s ' + #13#10 +
+            '    where documentkey = NEW.documentkey ' + #13#10 +
+            '    into :goodkey, :checkremains, :minusremains; ' + #13#10,
+            [FieldByName('ruid').AsString]) +
+            GetMovementContactSQL(CreditMovement, True) +
+            GetMovementContactSQL(DebitMovement, False);
 
   if SourceFeatures.Count > 0 then
     Result := Result +
@@ -4229,36 +4320,63 @@ begin
   else
     Features := SourceFeatures;
 
-  Result :=
-    FixedVariableList + #13#10 +
-    '  declare variable oldgoodkey integer; ' + #13#10 +
-    '  declare variable oldfromcontactkey integer; ' + #13#10 +
-    '  declare variable oldtocontactkey integer; ' + #13#10 +
-    '  declare variable oldquantity numeric(15, 4); ' + #13#10 +
-    '  declare variable ischange dboolean; ' + #13#10 +
-    MakeFieldList(Features, 'usr$') + MakeFieldList(Features, 'old$') + ConstTriggerText +
-    Format(
-          '  if (ruid = ''%0:s'') then ' + #13#10 +
-          '  begin ' + #13#10 +
-          '    select %1:s, goodkey, checkremains, minusremains from ' + #13#10 +
-          '    usr$%0:s ' + #13#10 +
-          '    where documentkey = NEW.documentkey ' + #13#10 +
-          '    into %2:s, :goodkey, :checkremains, :minusremains; ' + #13#10,
-          [FieldByName('ruid').AsString,
-           Features.CommaText,
-           GetIntoFieldList(Features, 'usr$')]) +
-        Format(
-        '    select %0:s, goodkey from ' + #13#10 +
-        '    inv_card ' + #13#10 +
-        '    where id = OLD.fromcardkey ' + #13#10 +
-        '    into %1:s, :oldgoodkey; ' + #13#10,
-        [Features.CommaText,
-         GetIntoFieldList(Features, 'old$')]) +
-        GetMovementContactSQL(CreditMovement, True) +
-        GetMovementContactSQL(DebitMovement, False) +
-        GetOldMovementContactSQL(CreditMovement, True) +
-        GetOldMovementContactSQL(DebitMovement, False) +
-        GetCheckFeaturesSQL(Features, 'usr$', 'old$');
+  if Features.Count > 0 then
+    Result :=
+      FixedVariableList + #13#10 +
+      '  declare variable oldgoodkey integer; ' + #13#10 +
+      '  declare variable oldfromcontactkey integer; ' + #13#10 +
+      '  declare variable oldtocontactkey integer; ' + #13#10 +
+      '  declare variable oldquantity numeric(15, 4); ' + #13#10 +
+      '  declare variable ischange dboolean; ' + #13#10 +
+      MakeFieldList(Features, 'usr$') + MakeFieldList(Features, 'old$') + ConstTriggerText +
+      Format(
+            '  if (ruid = ''%0:s'') then ' + #13#10 +
+            '  begin ' + #13#10 +
+            '    select %1:s, goodkey, checkremains, minusremains from ' + #13#10 +
+            '    usr$%0:s ' + #13#10 +
+            '    where documentkey = NEW.documentkey ' + #13#10 +
+            '    into %2:s, :goodkey, :checkremains, :minusremains; ' + #13#10,
+            [FieldByName('ruid').AsString,
+             Features.CommaText,
+             GetIntoFieldList(Features, 'usr$')]) +
+          Format(
+          '    select %0:s, goodkey from ' + #13#10 +
+          '    inv_card ' + #13#10 +
+          '    where id = OLD.fromcardkey ' + #13#10 +
+          '    into %1:s, :oldgoodkey; ' + #13#10,
+          [Features.CommaText,
+           GetIntoFieldList(Features, 'old$')]) +
+          GetMovementContactSQL(CreditMovement, True) +
+          GetMovementContactSQL(DebitMovement, False) +
+          GetOldMovementContactSQL(CreditMovement, True) +
+          GetOldMovementContactSQL(DebitMovement, False) +
+          GetCheckFeaturesSQL(Features, 'usr$', 'old$')
+  else
+    Result :=
+      FixedVariableList + #13#10 +
+      '  declare variable oldgoodkey integer; ' + #13#10 +
+      '  declare variable oldfromcontactkey integer; ' + #13#10 +
+      '  declare variable oldtocontactkey integer; ' + #13#10 +
+      '  declare variable oldquantity numeric(15, 4); ' + #13#10 +
+      '  declare variable ischange dboolean; ' + #13#10 +
+      ConstTriggerText +
+      Format(
+            '  if (ruid = ''%0:s'') then ' + #13#10 +
+            '  begin ' + #13#10 +
+            '    select goodkey, checkremains, minusremains from ' + #13#10 +
+            '    usr$%0:s ' + #13#10 +
+            '    where documentkey = NEW.documentkey ' + #13#10 +
+            '    into :goodkey, :checkremains, :minusremains; ' + #13#10,
+            [FieldByName('ruid').AsString]) +
+          '    selectgoodkey from ' + #13#10 +
+          '    inv_card ' + #13#10 +
+          '    where id = OLD.fromcardkey ' + #13#10 +
+          '    into :oldgoodkey; ' + #13#10 +
+          GetMovementContactSQL(CreditMovement, True) +
+          GetMovementContactSQL(DebitMovement, False) +
+          GetOldMovementContactSQL(CreditMovement, True) +
+          GetOldMovementContactSQL(DebitMovement, False) +
+          GetCheckFeaturesSQL(Features, 'usr$', 'old$');
 
 
   if SourceFeatures.Count > 0 then
@@ -4446,6 +4564,8 @@ begin
    Result := Result + 'end ';
 end;
 
+
+
 // Создание триггера BeforeInsert для документа изменения свойств
 function CreateInsertTrigger_ChangeFeatureDoc: String;
 begin
@@ -4454,20 +4574,9 @@ begin
     FixedVariableList + #13#10 + MakeFieldList(SourceFeatures, 'usr$') + MakeFieldList(DestFeatures, 'new$') + ConstTriggerText +
     Format(
           '  if (ruid = ''%0:s'') then ' + #13#10 +
-          '  begin ' + #13#10 +
-          '    select %1:s, goodkey, checkremains from ' + #13#10 +
-          '    usr$%0:s ' + #13#10 +
-          '    where documentkey = NEW.documentkey and typevalue = ''F'' ' + #13#10 +
-          '    into %2:s, :goodkey, :checkremains; ' + #13#10 +
-          '    select %3:s from ' + #13#10 +
-          '    usr$%0:s ' + #13#10 +
-          '    where documentkey = NEW.documentkey and typevalue = ''T'' ' + #13#10 +
-          '    into %4:s; ' + #13#10,
-          [FieldByName('ruid').AsString,
-           SourceFeatures.CommaText,
-           GetIntoFieldList(SourceFeatures, 'usr$'),
-           DestFeatures.CommaText,
-           GetIntoFieldList(DestFeatures, 'new$')]) +
+          '  begin ' + #13#10 + GetReadFeatureSQL(SourceFeatures, True, True, False, 'usr$') +
+          GetReadFeatureSQL(DestFeatures, False, True, True, 'new$'),
+          [FieldByName('ruid').AsString]) +
           GetMovementContactSQL(CreditMovement, True) +
           GetMovementContactSQL(DebitMovement, False) +
         '    if (delayed = 0) then ' + #13#10 +
@@ -4544,33 +4653,11 @@ begin
     Format(
           '  if (ruid = ''%0:s'') then ' + #13#10 +
           '  begin ' + #13#10 +
-          '    select %1:s, goodkey, checkremains from ' + #13#10 +
-          '    usr$%0:s ' + #13#10 +
-          '    where documentkey = NEW.documentkey and typevalue = ''F'' ' + #13#10 +
-          '    into %2:s, :goodkey, :checkremains; ' + #13#10 +
-          '    select %3:s from ' + #13#10 +
-          '    usr$%0:s ' + #13#10 +
-          '    where documentkey = NEW.documentkey and typevalue = ''T'' ' + #13#10 +
-          '    into %4:s; ' + #13#10,
-          [FieldByName('ruid').AsString,
-           SourceFeatures.CommaText,
-           GetIntoFieldList(SourceFeatures, 'usr$'),
-           DestFeatures.CommaText,
-           GetIntoFieldList(DestFeatures, 'new$')]) +
-    Format(
-        '    select %0:s, goodkey from ' + #13#10 +
-        '    inv_card ' + #13#10 +
-        '    where id = OLD.fromcardkey ' + #13#10 +
-        '    into %1:s, :oldgoodkey; ' + #13#10,
-        [SourceFeatures.CommaText,
-         GetIntoFieldList(SourceFeatures, 'old$')]) +
-    Format(
-        '    select %0:s, goodkey from ' + #13#10 +
-        '    inv_card ' + #13#10 +
-        '    where id = OLD.tocardkey ' + #13#10 +
-        '    into %1:s, :oldgoodkey; ' + #13#10,
-        [DestFeatures.CommaText,
-         GetIntoFieldList(DestFeatures, 'to$')]) +
+          GetReadFeatureSQL(SourceFeatures, True, True, False, 'usr$') +
+          GetReadFeatureSQL(DestFeatures, False, True, True, 'new$'),
+                    [FieldByName('ruid').AsString]) +
+          GetReadFeatureSQL(SourceFeatures, True, False, False, 'old$') +
+          GetReadFeatureSQL(DestFeatures, False, False, False, 'to$') +
       GetMovementContactSQL(CreditMovement, True) +
       GetMovementContactSQL(DebitMovement, False) +
       GetOldMovementContactSQL(CreditMovement, True) +
@@ -4698,13 +4785,8 @@ begin
     Format(
           '  if (ruid = ''%0:s'') then ' + #13#10 +
           '  begin ' + #13#10 +
-          '    select %1:s, goodkey, checkremains, minusremains from ' + #13#10 +
-          '    usr$%0:s ' + #13#10 +
-          '    where documentkey = NEW.documentkey ' + #13#10 +
-          '    into %2:s, :goodkey, :checkremains, :minusremains; ' + #13#10,
-          [FieldByName('ruid').AsString,
-           Features.CommaText,
-           GetIntoFieldList(Features, 'usr$')]) +
+               GetReadFeatureSQL(SourceFeatures, True, True, False, 'usr$'),
+          [FieldByName('ruid').AsString]) +
           GetMovementContactSQL(CreditMovement, True) +
         '    tocontactkey = fromcontactkey; ' + #13#10 +
         '    if (coalesce(NEW.fromquantity, 0) > coalesce(NEW.toquantity, 0)) then ' + #13#10 +
@@ -4805,22 +4887,11 @@ begin
     Format(
           '  if (ruid = ''%0:s'') then ' + #13#10 +
           '  begin ' + #13#10 +
-          '    select %1:s, goodkey, checkremains, minusremains from ' + #13#10 +
-          '    usr$%0:s ' + #13#10 +
-          '    where documentkey = NEW.documentkey ' + #13#10 +
-          '    into %2:s, :goodkey, :checkremains, :minusremains; ' + #13#10,
-          [FieldByName('ruid').AsString,
-           Features.CommaText,
-           GetIntoFieldList(Features, 'usr$')]) +
+               GetReadFeatureSQL(SourceFeatures, True, True, False, 'usr$'),
+          [FieldByName('ruid').AsString]) +
           GetMovementContactSQL(CreditMovement, True) +
           GetOldMovementContactSQL(CreditMovement, True) +
-        Format(
-        '        select %0:s, goodkey from ' + #13#10 +
-        '        inv_card ' + #13#10 +
-        '        where id = NEW.fromcardkey ' + #13#10 +
-        '        into %1:s, :oldgoodkey; ' + #13#10,
-            [SourceFeatures.CommaText,
-             GetIntoFieldList(SourceFeatures, 'old$')]) +
+          GetReadFeatureSQL(SourceFeatures, True, False, False, 'old$') +
              GetCheckFeaturesSQL(SourceFeatures, 'usr$', 'old$') +
         '    tocontactkey = fromcontactkey; ' + #13#10 +
         '    oldtocontactkey = oldfromcontactkey; ' + #13#10 +
@@ -4986,19 +5057,9 @@ begin
     Format(
           '  if (ruid = ''%0:s'') then ' + #13#10 +
           '  begin ' + #13#10 +
-          '    select %1:s, goodkey, checkremains from ' + #13#10 +
-          '    usr$%0:s ' + #13#10 +
-          '    where documentkey = NEW.documentkey and typevalue = ''F'' ' + #13#10 +
-          '    into %2:s, :goodkey, :checkremains; ' + #13#10 +
-          '    select %3:s, goodkey, checkremains from ' + #13#10 +
-          '    usr$%0:s ' + #13#10 +
-          '    where documentkey = NEW.documentkey and typevalue = ''T'' ' + #13#10 +
-          '    into %4:s, :goodkey, :checkremains; ' + #13#10,
-          [FieldByName('ruid').AsString,
-           SourceFeatures.CommaText,
-           GetIntoFieldList(SourceFeatures, 'usr$'),
-           DestFeatures.CommaText,
-           GetIntoFieldList(DestFeatures, 'new$')]) +
+               GetReadFeatureSQL(SourceFeatures, True, True, False, 'usr$') +
+               GetReadFeatureSQL(DestFeatures, False, True, False, 'new$'),
+          [FieldByName('ruid').AsString]) +
           GetMovementContactSQL(CreditMovement, True) +
           GetMovementContactSQL(DebitMovement, False) +
           '    if (delayed = 0) then ' + #13#10 +
@@ -5083,33 +5144,11 @@ begin
     Format(
           '  if (ruid = ''%0:s'') then ' + #13#10 +
           '  begin ' + #13#10 +
-          '    select %1:s, goodkey, checkremains from ' + #13#10 +
-          '    usr$%0:s ' + #13#10 +
-          '    where documentkey = NEW.documentkey and typevalue = ''F'' ' + #13#10 +
-          '    into %2:s, :goodkey, :checkremains; ' + #13#10 +
-          '    select %3:s, goodkey, checkremains from ' + #13#10 +
-          '    usr$%0:s ' + #13#10 +
-          '    where documentkey = NEW.documentkey and typevalue = ''T'' ' + #13#10 +
-          '    into %4:s, :goodkey, :checkremains; ' + #13#10,
-          [FieldByName('ruid').AsString,
-           SourceFeatures.CommaText,
-           GetIntoFieldList(SourceFeatures, 'usr$'),
-           DestFeatures.CommaText,
-           GetIntoFieldList(DestFeatures, 'new$')]) +
-    Format(
-        '    select %0:s, goodkey from ' + #13#10 +
-        '    inv_card ' + #13#10 +
-        '    where id = OLD.fromcardkey ' + #13#10 +
-        '    into %1:s, :oldgoodkey; ' + #13#10,
-        [SourceFeatures.CommaText,
-         GetIntoFieldList(SourceFeatures, 'old$')]) +
-    Format(
-        '    select %0:s, goodkey from ' + #13#10 +
-        '    inv_card ' + #13#10 +
-        '    where id = OLD.fromcardkey ' + #13#10 +
-        '    into %1:s, :oldgoodkey; ' + #13#10,
-        [DestFeatures.CommaText,
-         GetIntoFieldList(DestFeatures, 'to$')]) +
+               GetReadFeatureSQL(SourceFeatures, True, True, False, 'usr$') +
+               GetReadFeatureSQL(DestFeatures, False, True, False, 'new$'),
+          [FieldByName('ruid').AsString]) +
+               GetReadFeatureSQL(SourceFeatures, True, False, False, 'old$') +
+               GetReadFeatureSQL(DestFeatures, False, False, False, 'to$') +
       GetMovementContactSQL(CreditMovement, True) +
       GetMovementContactSQL(DebitMovement, False) +
       GetOldMovementContactSQL(CreditMovement, True) +
