@@ -1,6 +1,6 @@
 inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
-  Left = 474
-  Top = 187
+  Left = 729
+  Top = 188
   Caption = 'Складской документ'
   PixelsPerInch = 96
   TextHeight = 13
@@ -665,6 +665,7 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
         ParentShowHint = False
         ShowHint = True
         TabOrder = 9
+        Visible = False
         object lvMinusFeatures: TListView
           Left = 7
           Top = 21
@@ -747,7 +748,7 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
         Top = 147
         Width = 273
         Height = 17
-        Caption = 'Сохранять настройки окна остаков'
+        Caption = 'Сохранять настройки окна остатков'
         TabOrder = 8
       end
       object cbEndMonthRemains: TCheckBox

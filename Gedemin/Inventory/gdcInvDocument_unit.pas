@@ -1748,16 +1748,19 @@ var
           DocumentLine.Movement.ReadTransaction := DocumentLine.Transaction;
           DocumentLine.Movement.Transaction := DocumentLine.Transaction;
           DocumentLine.Movement.CreateAllMovement(ipsmPosition);
+          
         except
 
           on E: Exception do
           begin
             if (DocumentLine.Movement.CountPositionChanged >= 0) and (not (sLoadFromStream in DocumentLine.BaseState) and not (sLoadFromStream in BaseState) ) then
             begin
+
               MessageBox(ParentHandle,
                 PChar(E.Message),
                 PChar(sAttention),
                 MB_OK or MB_ICONINFORMATION or MB_TASKMODAL);
+
               if DidActivate then
                 Transaction.Rollback
               else
@@ -4045,7 +4048,13 @@ end;
 function GetCheckFeaturesSQL(Features: TStringList; NewPrefix, OldPrefix: String): String;
 var
   i: Integer;
+  s: String;
 begin
+  if NewPrefix = 'new$' then
+    s:= 'istochange'
+  else
+    s:= 'ischange';
+
   Result := '';
   for i:= 0 to Features.Count - 1 do
   begin
@@ -4057,11 +4066,10 @@ begin
       ' or (' + StringReplace(Features[i], 'usr$', NewPrefix, [rfIgnoreCase]) + ' is not null and '  +
         StringReplace(Features[i], 'usr$', OldPrefix, [rfIgnoreCase]) + ' is null)) ' + #13#10;
   end;
-  Result := ' if (' + Result + ' or (coalesce(goodkey, 0) <> coalesce(oldgoodkey, 0)) ) then ' + #13#10;
-  if NewPrefix = 'new$' then
-    Result :=  Result + '   istochange = 1; ' + #13#10
-  else
-    Result :=  Result + '   ischange = 1; ' + #13#10;
+  Result :=
+    '  ' + s + ' = 0;' + #13#10 + 
+    ' if (' + Result + ' or (coalesce(goodkey, 0) <> coalesce(oldgoodkey, 0)) ) then ' + #13#10 +
+    '    ' + s + ' = 1;' + #13#10;
 end;
 
 function GetMakeUpdateCardSQL(Features: TSTringList; Prefix: String): String;
@@ -4227,7 +4235,7 @@ begin
     '  declare variable oldfromcontactkey integer; ' + #13#10 +
     '  declare variable oldtocontactkey integer; ' + #13#10 +
     '  declare variable oldquantity numeric(15, 4); ' + #13#10 +
-    '  declare variable ischange dboolean; ' + #13#10 +    
+    '  declare variable ischange dboolean; ' + #13#10 +
     MakeFieldList(Features, 'usr$') + MakeFieldList(Features, 'old$') + ConstTriggerText +
     Format(
           '  if (ruid = ''%0:s'') then ' + #13#10 +
@@ -4375,7 +4383,7 @@ begin
           '                                         ' + #13#10 +
           ' ' + #13#10 +
           '      if (ischange = 1) then ' + #13#10 +
-          '      begin ' + #13#10 + GetMakeUpdateCardSQL(DestFeatures, 'usr$') + #13#10 + 
+          '      begin ' + #13#10 + GetMakeUpdateCardSQL(DestFeatures, 'usr$') + #13#10 +
           '      end ' + #13#10 +
           '    if (delayed = 1) then ' + #13#10 +
           '      DELETE FROM inv_movement WHERE documentkey = NEW.documentkey;' + #13#10 +
@@ -4529,7 +4537,7 @@ begin
     ' declare variable oldgoodkey integer; ' + #13#10 +
     ' declare variable oldfromcontactkey integer; ' + #13#10 +
     ' declare variable oldtocontactkey integer; ' + #13#10 +
-    ' declare variable ischange DBOOLEAN; ' + #13#10 +    
+    ' declare variable ischange DBOOLEAN; ' + #13#10 +
     ' declare variable istochange DBOOLEAN; ' + #13#10 +
     ' declare variable oldquantity DQUANTITY; ' + #13#10 +
     MakeFieldList(DestFeatures, 'to$') + ConstTriggerText +
@@ -4677,38 +4685,551 @@ end;
 
 // Создание триггера BeforeInsert для документа инвентаризации
 function CreateInsertTrigger_InventDoc: String;
+var
+  Features: TStringList;
 begin
+
+  Features := SourceFeatures;
+
   Result :=
-    'AS ' + #13#10 +
-    'BEGIN ' + #13#10 +
-    'END'
+    FixedVariableList + #13#10 + MakeFieldList(Features, 'usr$') + MakeFieldList(Features, 'old$') +
+    ' declare variable oldgoodkey integer; ' + #13#10 +
+    ' declare variable ischange integer; ' + #13#10 + ConstTriggerText +
+    Format(
+          '  if (ruid = ''%0:s'') then ' + #13#10 +
+          '  begin ' + #13#10 +
+          '    select %1:s, goodkey, checkremains, minusremains from ' + #13#10 +
+          '    usr$%0:s ' + #13#10 +
+          '    where documentkey = NEW.documentkey ' + #13#10 +
+          '    into %2:s, :goodkey, :checkremains, :minusremains; ' + #13#10,
+          [FieldByName('ruid').AsString,
+           Features.CommaText,
+           GetIntoFieldList(Features, 'usr$')]) +
+          GetMovementContactSQL(CreditMovement, True) +
+        '    tocontactkey = fromcontactkey; ' + #13#10 +
+        '    if (coalesce(NEW.fromquantity, 0) > coalesce(NEW.toquantity, 0)) then ' + #13#10 +
+        '    begin ' + #13#10 +
+        '    if (delayed = 0) then ' + #13#10 +
+        '    begin ' + #13#10 +
+        '      tmpquantity = coalesce(NEW.fromquantity, 0) - coalesce(NEW.toquantity, 0); ' + #13#10 +
+        GetChooseRemainsSQL(SourceFeatures) +
+        '       begin ' + #13#10 +
+        '         if (tmpquantity > remains) then ' + #13#10 +
+        '           quant = remains; ' + #13#10 +
+        '         else ' + #13#10 +
+        '           quant = tmpquantity; ' + #13#10 +
+        '         NEW.fromcardkey = :id; ' + #13#10 +
+        '         movementkey = GEN_ID(gd_g_unique, 1); ' + #13#10 +
+        ' ' + #13#10 +
+        '         INSERT INTO inv_movement (movementkey, documentkey, goodkey, cardkey, contactkey, movementdate, credit) ' + #13#10 +
+        '         VALUES (:movementkey, NEW.documentkey, :goodkey, :id, :fromcontactkey, :documentdate, :quant); ' + #13#10 +
+        ' ' + #13#10 +
+        '         tmpquantity = tmpquantity - quant; ' + #13#10 +
+        '       end ' + #13#10 +
+        '       if (tmpquantity > 0 and checkremains = 0) then ' + #13#10 +
+        '       begin ' + #13#10 +
+        GetNewCardSQL(SourceFeatures, 'usr$') +
+        '         movementkey = GEN_ID(gd_g_unique, 1); ' + #13#10 +
+        ' ' + #13#10 +
+        '         INSERT INTO inv_movement (movementkey, documentkey, goodkey, cardkey, contactkey, movementdate, credit) ' + #13#10 +
+        '         VALUES (:movementkey, NEW.documentkey, :goodkey, :id, :fromcontactkey, :documentdate, :quant); ' + #13#10 +
+        '       end' + #13#10 +
+        '       else ' + #13#10 +
+        '       if (tmpquantity > 0) then '  + #13#10 +
+        '         EXCEPTION INV_E_INVALIDMOVEMENT; ' + #13#10 +
+        '    end ' + #13#10 +
+        '    else ' + #13#10 +
+        '    begin ' + #13#10 +
+        GetNewCardSQL(SourceFeatures, 'usr$') +
+        '      NEW.fromcardkey = :id; ' + #13#10 +
+        '    end ' + #13#10 +
+        '    end ' + #13#10 +
+        '    else                                   ' + #13#10 +
+        '    begin ' + #13#10 +
+        '      if (NEW.fromcardkey is NULL) then ' + #13#10 +
+        '      begin ' + #13#10 +
+        '   ' + #13#10 + GetNewCardSQL(Features, 'usr$') +
+        '/* присваиваем ее в fromcardkey документа */ ' + #13#10 +
+        '        NEW.fromcardkey = :id; ' + #13#10 +
+        '      end ' + #13#10 +
+        '      else '  + #13#10 +
+        '      begin '  + #13#10 +
+        Format(
+        '        select %0:s, goodkey from ' + #13#10 +
+        '        inv_card ' + #13#10 +
+        '        where id = NEW.fromcardkey ' + #13#10 +
+        '        into %1:s, :oldgoodkey; ' + #13#10,
+            [SourceFeatures.CommaText,
+             GetIntoFieldList(SourceFeatures, 'old$')]) +
+             GetCheckFeaturesSQL(SourceFeatures, 'usr$', 'old$') +
+        '        if (ischange = 1) then ' + #13#10 +
+        '        begin ' + #13#10 +
+        '   ' + #13#10 + GetNewCardSQL(Features, 'usr$') +
+        '/* присваиваем ее в fromcardkey документа */ ' + #13#10 +
+        '          NEW.fromcardkey = :id; ' + #13#10 +
+        '        end ' + #13#10 +
+        '      end '  + #13#10 +
+        ' ' + #13#10 +
+        '    if (delayed = 0) then ' + #13#10 +
+        '    begin ' + #13#10 +
+        '/* если документ не отложенный создаем движение */ ' + #13#10 +
+        '/* из шапки документа достаем значение откуда и куда */ ' + #13#10 +
+        '      movementkey = GEN_ID(gd_g_unique, 1); ' + #13#10 +
+        ' ' + #13#10 +
+        '  /* добавляем значения в inv_movememt */ ' + #13#10 +
+        ' ' + #13#10 +
+        '      INSERT INTO inv_movement (movementkey, documentkey, goodkey, cardkey, contactkey, movementdate, debit) ' + #13#10 +
+        '      VALUES (:movementkey, NEW.documentkey, :goodkey, NEW.fromcardkey, :tocontactkey, :documentdate, coalesce(NEW.toquantity, 0) - coalesce(NEW.fromquantity, 0)); ' + #13#10 +
+        '    end ' + #13#10 +
+        '    end ' + #13#10 +
+        '  end ' + #13#10 +
+        'end ';
 end;
+
 
 // Создание триггера BeforeUpdate для документа инвентаризации
 function CreateUpdateTrigger_InventDoc: String;
+var
+  Features: TStringList;
 begin
+
+  Features := SourceFeatures;
+
   Result :=
-    'AS ' + #13#10 +
-    'BEGIN ' + #13#10 +
-    'END'
+    FixedVariableList + #13#10 + MakeFieldList(Features, 'usr$') + MakeFieldList(Features, 'old$') +
+    ' declare variable oldgoodkey integer; ' + #13#10 +
+    '  declare variable oldfromcontactkey integer; ' + #13#10 +
+    '  declare variable oldtocontactkey integer; ' + #13#10 +
+    '  declare variable oldquantity numeric(15, 4); ' + #13#10 +
+    ' declare variable ischange integer; ' + #13#10 + ConstTriggerText +
+    Format(
+          '  if (ruid = ''%0:s'') then ' + #13#10 +
+          '  begin ' + #13#10 +
+          '    select %1:s, goodkey, checkremains, minusremains from ' + #13#10 +
+          '    usr$%0:s ' + #13#10 +
+          '    where documentkey = NEW.documentkey ' + #13#10 +
+          '    into %2:s, :goodkey, :checkremains, :minusremains; ' + #13#10,
+          [FieldByName('ruid').AsString,
+           Features.CommaText,
+           GetIntoFieldList(Features, 'usr$')]) +
+          GetMovementContactSQL(CreditMovement, True) +
+          GetOldMovementContactSQL(CreditMovement, True) +
+        Format(
+        '        select %0:s, goodkey from ' + #13#10 +
+        '        inv_card ' + #13#10 +
+        '        where id = NEW.fromcardkey ' + #13#10 +
+        '        into %1:s, :oldgoodkey; ' + #13#10,
+            [SourceFeatures.CommaText,
+             GetIntoFieldList(SourceFeatures, 'old$')]) +
+             GetCheckFeaturesSQL(SourceFeatures, 'usr$', 'old$') +
+        '    tocontactkey = fromcontactkey; ' + #13#10 +
+        '    oldtocontactkey = oldfromcontactkey; ' + #13#10 +
+        '    quant = coalesce(NEW.fromquantity, 0) - coalesce(NEW.toquantity, 0); ' + #13#10 +
+        '    oldquantity = coalesce(OLD.fromquantity, 0) - coalesce(OLD.toquantity, 0); ' + #13#10 +
+        '    if (ischange = 1 or oldfromcontactkey <> fromcontactkey or quant * oldquantity < 0 or delayed = 1) then ' + #13#10 +
+        '    begin ' + #13#10 +
+        '      DELETE FROM inv_movement WHERE documentkey = NEW.documentkey; ' + #13#10 +
+        '      if (coalesce(NEW.fromquantity, 0) > coalesce(NEW.toquantity, 0)) then ' + #13#10 +
+        '      begin ' + #13#10 +
+        '        if (delayed = 0) then ' + #13#10 +
+        '        begin ' + #13#10 +
+        '          tmpquantity = coalesce(NEW.fromquantity, 0) - coalesce(NEW.toquantity, 0); ' + #13#10 +
+        GetChooseRemainsSQL(SourceFeatures) +
+        '          begin ' + #13#10 +
+        '            if (tmpquantity > remains) then ' + #13#10 +
+        '              quant = remains; ' + #13#10 +
+        '            else ' + #13#10 +
+        '              quant = tmpquantity; ' + #13#10 +
+        '            NEW.fromcardkey = :id; ' + #13#10 +
+        '            movementkey = GEN_ID(gd_g_unique, 1); ' + #13#10 +
+        ' ' + #13#10 +
+        '            INSERT INTO inv_movement (movementkey, documentkey, goodkey, cardkey, contactkey, movementdate, credit) ' + #13#10 +
+        '            VALUES (:movementkey, NEW.documentkey, :goodkey, :id, :fromcontactkey, :documentdate, :quant); ' + #13#10 +
+        ' ' + #13#10 +
+        '            tmpquantity = tmpquantity - quant; ' + #13#10 +
+        '          end ' + #13#10 +
+        '          if (tmpquantity > 0 and checkremains = 0) then ' + #13#10 +
+        '          begin ' + #13#10 +
+        GetNewCardSQL(SourceFeatures, 'usr$') +
+        '            movementkey = GEN_ID(gd_g_unique, 1); ' + #13#10 +
+        ' ' + #13#10 +
+        '            INSERT INTO inv_movement (movementkey, documentkey, goodkey, cardkey, contactkey, movementdate, credit) ' + #13#10 +
+        '            VALUES (:movementkey, NEW.documentkey, :goodkey, :id, :fromcontactkey, :documentdate, :quant); ' + #13#10 +
+        '          end' + #13#10 +
+        '          else ' + #13#10 +
+        '            if (tmpquantity > 0) then '  + #13#10 +
+        '              EXCEPTION INV_E_INVALIDMOVEMENT; ' + #13#10 +
+        '       end ' + #13#10 +
+        '       else ' + #13#10 +
+        '       begin ' + #13#10 +
+        '         if (ischange = 1 or NEW.fromcardkey is null) then ' + #13#10 +
+        '         begin ' + #13#10 +
+        GetNewCardSQL(SourceFeatures, 'usr$') +
+        '         NEW.fromcardkey = :id; ' + #13#10 +
+        '         end ' + #13#10 +
+        '       end ' + #13#10 +
+        '      end ' + #13#10 +
+        '      else                                   ' + #13#10 +
+        '      begin ' + #13#10 +
+        '        if (NEW.fromcardkey is NULL) then ' + #13#10 +
+        '        begin ' + #13#10 +
+        '      ' + #13#10 + GetNewCardSQL(Features, 'usr$') +
+        '/* присваиваем ее в fromcardkey документа */ ' + #13#10 +
+        '           NEW.fromcardkey = :id; ' + #13#10 +
+        '        end ' + #13#10 +
+        '        else '  + #13#10 +
+        '        begin '  + #13#10 +
+        '          if (ischange = 1) then ' + #13#10 +
+        '          begin ' + #13#10 +
+        '   ' + #13#10 + GetNewCardSQL(Features, 'usr$') +
+        '/* присваиваем ее в fromcardkey документа */ ' + #13#10 +
+        '            NEW.fromcardkey = :id; ' + #13#10 +
+        '          end ' + #13#10 +
+        '        end '  + #13#10 +
+        ' ' + #13#10 +
+        '        if (delayed = 0) then ' + #13#10 +
+        '        begin ' + #13#10 +
+        '/* если документ не отложенный создаем движение */ ' + #13#10 +
+        '/* из шапки документа достаем значение откуда и куда */ ' + #13#10 +
+        '          movementkey = GEN_ID(gd_g_unique, 1); ' + #13#10 +
+        ' ' + #13#10 +
+        '  /* добавляем значения в inv_movememt */ ' + #13#10 +
+        ' ' + #13#10 +
+        '          INSERT INTO inv_movement (movementkey, documentkey, goodkey, cardkey, contactkey, movementdate, debit) ' + #13#10 +
+        '          VALUES (:movementkey, NEW.documentkey, :goodkey, NEW.fromcardkey, :tocontactkey, :documentdate, coalesce(NEW.toquantity, 0) - coalesce(NEW.fromquantity, 0)); ' + #13#10 +
+        '        end ' + #13#10 +
+        '      end ' + #13#10 +
+        '    end ' + #13#10 +
+        '    else ' + #13#10 +
+        '    begin  ' + #13#10 +
+        '      if (coalesce(NEW.fromquantity, 0) > coalesce(NEW.toquantity, 0)) then ' + #13#10 +
+        '      begin ' + #13#10 +
+        '         ' + #13#10 +
+        '        oldquantity = (coalesce(NEW.fromquantity, 0) - coalesce(NEW.toquantity, 0)) - (coalesce(OLD.fromquantity, 0) - coalesce(OLD.toquantity, 0)); ' + #13#10 +
+        '        if (oldquantity > 0) then ' + #13#10 +
+        '        begin ' + #13#10 +
+        '          tmpquantity = oldquantity; ' + #13#10 +
+        GetChooseRemainsSQL(SourceFeatures) +
+        '          begin ' + #13#10 +
+        '            if (tmpquantity > remains) then ' + #13#10 +
+        '              quant = remains; ' + #13#10 +
+        '            else ' + #13#10 +
+        '              quant = tmpquantity; ' + #13#10 +
+        '            NEW.fromcardkey = :id; ' + #13#10 +
+        '            movementkey = GEN_ID(gd_g_unique, 1); ' + #13#10 +
+        ' ' + #13#10 +
+        '            INSERT INTO inv_movement (movementkey, documentkey, goodkey, cardkey, contactkey, movementdate, credit) ' + #13#10 +
+        '            VALUES (:movementkey, NEW.documentkey, :goodkey, :id, :fromcontactkey, :documentdate, :quant); ' + #13#10 +
+        ' ' + #13#10 +
+        '            tmpquantity = tmpquantity - quant; ' + #13#10 +
+        '          end ' + #13#10 +
+        '          if (tmpquantity > 0 and checkremains = 0) then ' + #13#10 +
+        '          begin ' + #13#10 +
+        GetNewCardSQL(SourceFeatures, 'usr$') +
+        '            movementkey = GEN_ID(gd_g_unique, 1); ' + #13#10 +
+        ' ' + #13#10 +
+        '            INSERT INTO inv_movement (movementkey, documentkey, goodkey, cardkey, contactkey, movementdate, credit) ' + #13#10 +
+        '            VALUES (:movementkey, NEW.documentkey, :goodkey, :id, :fromcontactkey, :documentdate, :quant); ' + #13#10 +
+        '          end' + #13#10 +
+        '          else ' + #13#10 +
+        '            if (tmpquantity > 0) then '  + #13#10 +
+        '              EXCEPTION INV_E_INVALIDMOVEMENT; ' + #13#10 +
+        '        end ' + #13#10 +
+        '        else ' + #13#10 +
+        '        begin ' + #13#10 +
+        '           tmpquantity = abs(oldquantity); ' + #13#10 +
+        '           for ' + #13#10 +
+        '             select m.movementkey, SUM(m.debit) ' + #13#10 +
+        '             from inv_movement m ' + #13#10 +
+        '             where m.documentkey = NEW.documentkey ' + #13#10 +
+        '             group by 1 ' + #13#10 +
+        '             order by 2 ' + #13#10 +
+        '             into :movementkey, :oldquantity ' + #13#10 +
+        '           do ' + #13#10 +
+        '           begin ' + #13#10 +
+        '             if (tmpquantity >= oldquantity) then ' + #13#10 +
+        '             begin ' + #13#10 +
+        '               delete from inv_movement where movementkey = :movementkey; ' + #13#10 +
+        '               tmpquantity = tmpquantity - oldquantity; ' + #13#10 +
+        '             end ' + #13#10 +
+        '             else ' + #13#10 +
+        '             begin ' + #13#10 +
+        '               if (tmpquantity > 0) then ' + #13#10 +
+        '               begin ' + #13#10 +
+        ' ' + #13#10 +
+        '                 update inv_movement set credit = credit - :tmpquantity ' + #13#10 +
+        '                 where movementkey = :movementkey and credit <> 0; ' + #13#10 +
+        ' ' + #13#10 +
+        '                 tmpquantity = 0; ' + #13#10 +
+        ' ' + #13#10 +
+        '               end ' + #13#10 +
+        '             end ' + #13#10 +
+        '           end ' + #13#10 +
+        '        end ' + #13#10 +
+        '      end  ' + #13#10 +
+        '      else  ' + #13#10 +
+        '      begin   ' + #13#10 +
+        '        oldquantity = (coalesce(NEW.toquantity, 0) - coalesce(NEW.fromquantity, 0)) - (coalesce(OLD.toquantity, 0) - coalesce(OLD.fromquantity, 0)); ' + #13#10 +
+        '        UPDATE inv_movement SET debit = debit + :oldquantity ' + #13#10 +
+        '        WHERE documentkey = NEW.documentkey; ' + #13#10 +
+        '      end   ' + #13#10 +
+        '    end ' + #13#10 +
+        '  end ' + #13#10 +
+        'end ';
 end;
 
 // Создание триггера BeforeInsert для документа трансформации
 function CreateInsertTrigger_TransformationDoc: String;
 begin
   Result :=
-    'AS ' + #13#10 +
-    'BEGIN ' + #13#10 +
-    'END'
+    FixedVariableList + #13#10 + MakeFieldList(SourceFeatures, 'usr$') + MakeFieldList(DestFeatures, 'new$') + ConstTriggerText +
+    Format(
+          '  if (ruid = ''%0:s'') then ' + #13#10 +
+          '  begin ' + #13#10 +
+          '    select %1:s, goodkey, checkremains from ' + #13#10 +
+          '    usr$%0:s ' + #13#10 +
+          '    where documentkey = NEW.documentkey and typevalue = ''F'' ' + #13#10 +
+          '    into %2:s, :goodkey, :checkremains; ' + #13#10 +
+          '    select %3:s, goodkey, checkremains from ' + #13#10 +
+          '    usr$%0:s ' + #13#10 +
+          '    where documentkey = NEW.documentkey and typevalue = ''T'' ' + #13#10 +
+          '    into %4:s, :goodkey, :checkremains; ' + #13#10,
+          [FieldByName('ruid').AsString,
+           SourceFeatures.CommaText,
+           GetIntoFieldList(SourceFeatures, 'usr$'),
+           DestFeatures.CommaText,
+           GetIntoFieldList(DestFeatures, 'new$')]) +
+          GetMovementContactSQL(CreditMovement, True) +
+          GetMovementContactSQL(DebitMovement, False) +
+          '    if (delayed = 0) then ' + #13#10 +
+          '    begin ' + #13#10 +
+          '      if (coalesce(NEW.inquantity, 0) <> 0) then ' + #13#10 +
+          '      begin ' + #13#10 +
+          '        firstdocumentkey = NEW.documentkey; ' + #13#10 +
+          ' ' + #13#10 + GetNewCardSQL(DestFeatures, 'new$') +
+          '/* присваиваем ее в fromcardkey документа */ ' + #13#10 +
+          '    NEW.fromcardkey = :id; ' + #13#10 +
+          '        movementkey = GEN_ID(gd_g_unique, 1); ' + #13#10 +
+          ' ' + #13#10 +
+          '  /* добавляем значения в inv_movememt */ ' + #13#10 +
+          ' ' + #13#10 +
+          '        INSERT INTO inv_movement (movementkey, documentkey, goodkey, cardkey, contactkey, movementdate, debit) ' + #13#10 +
+          '        VALUES (:movementkey, NEW.documentkey, :goodkey, :id, :tocontactkey, :documentdate, NEW.inquantity); ' + #13#10 +
+          '      end  ' + #13#10 +
+          '      else ' + #13#10 +
+          '      begin ' + #13#10 +
+          '      tmpquantity = coalesce(NEW.outquantity, 0); ' + #13#10 +
+          GetChooseRemainsSQL(SourceFeatures) +
+          '       begin ' + #13#10 +
+          '         if (tmpquantity > remains) then ' + #13#10 +
+          '           quant = remains; ' + #13#10 +
+          '         else ' + #13#10 +
+          '           quant = tmpquantity; ' + #13#10 +
+          '         NEW.fromcardkey = :id; ' + #13#10 +
+          '         movementkey = GEN_ID(gd_g_unique, 1); ' + #13#10 +
+          ' ' + #13#10 +
+          '         INSERT INTO inv_movement (movementkey, documentkey, goodkey, cardkey, contactkey, movementdate, credit) ' + #13#10 +
+          '         VALUES (:movementkey, NEW.documentkey, :goodkey, :id, :fromcontactkey, :documentdate, :quant); ' + #13#10 +
+          ' ' + #13#10 +
+          '         tmpquantity = tmpquantity - quant; ' + #13#10 +
+          '       end ' + #13#10 +
+          '       if (tmpquantity > 0 and checkremains = 0) then ' + #13#10 +
+          '       begin ' + #13#10 +
+          GetNewCardSQL(SourceFeatures, 'usr$') +
+          '         movementkey = GEN_ID(gd_g_unique, 1); ' + #13#10 +
+          ' ' + #13#10 +
+          '         INSERT INTO inv_movement (movementkey, documentkey, goodkey, cardkey, contactkey, movementdate, credit) ' + #13#10 +
+          '         VALUES (:movementkey, NEW.documentkey, :goodkey, :id, :fromcontactkey, :documentdate, :quant); ' + #13#10 +
+          '       end' + #13#10 +
+          '       else ' + #13#10 +
+          '       if (tmpquantity > 0) then '  + #13#10 +
+          '         EXCEPTION INV_E_INVALIDMOVEMENT; ' + #13#10 +
+          '      end ' + #13#10 +
+          '    end ' + #13#10 +
+          '    else  ' + #13#10 +
+          '  /* Если документ отложенный то не формируем движение */  ' + #13#10 +
+          '    begin ' + #13#10 +
+          '      if (coalesce(NEW.outquantity, 0) <> 0) then ' + #13#10 +
+          '      begin ' + #13#10 +
+                 GetNewCardSQL(SourceFeatures, 'usr$') + #13#10 +
+          '      end ' + #13#10 +
+          '      else ' + #13#10 +
+          '      begin ' + #13#10 +
+          '        firstdocumentkey = NEW.documentkey; ' + #13#10 +
+          GetNewCardSQL(DestFeatures, 'new$') + #13#10 +
+          '      end ' + #13#10 +
+          '      NEW.fromcardkey = :id; '  + #13#10 +
+          '    end ' + #13#10 +
+          '  end ' + #13#10 +
+          'end  ' + #13#10;
 end;
 
 // Создание триггера BeforeUpdate для документа трансформации
 function CreateUpdateTrigger_TransformationDoc: String;
 begin
   Result :=
-    'AS ' + #13#10 +
-    'BEGIN ' + #13#10 +
-    'END'
+    FixedVariableList + #13#10 +
+    MakeFieldList(SourceFeatures, 'usr$') +
+    MakeFieldList(DestFeatures, 'new$') +
+    MakeFieldList(SourceFeatures, 'old$') +
+    ' declare variable oldgoodkey integer; ' + #13#10 +
+    ' declare variable oldfromcontactkey integer; ' + #13#10 +
+    ' declare variable oldtocontactkey integer; ' + #13#10 +
+    ' declare variable ischange DBOOLEAN; ' + #13#10 +
+    ' declare variable istochange DBOOLEAN; ' + #13#10 +
+    ' declare variable oldquantity DQUANTITY; ' + #13#10 +
+    ' declare variable updatesql VARCHAR(1024); ' + #13#10 +
+    MakeFieldList(DestFeatures, 'to$') + ConstTriggerText +
+    Format(
+          '  if (ruid = ''%0:s'') then ' + #13#10 +
+          '  begin ' + #13#10 +
+          '    select %1:s, goodkey, checkremains from ' + #13#10 +
+          '    usr$%0:s ' + #13#10 +
+          '    where documentkey = NEW.documentkey and typevalue = ''F'' ' + #13#10 +
+          '    into %2:s, :goodkey, :checkremains; ' + #13#10 +
+          '    select %3:s, goodkey, checkremains from ' + #13#10 +
+          '    usr$%0:s ' + #13#10 +
+          '    where documentkey = NEW.documentkey and typevalue = ''T'' ' + #13#10 +
+          '    into %4:s, :goodkey, :checkremains; ' + #13#10,
+          [FieldByName('ruid').AsString,
+           SourceFeatures.CommaText,
+           GetIntoFieldList(SourceFeatures, 'usr$'),
+           DestFeatures.CommaText,
+           GetIntoFieldList(DestFeatures, 'new$')]) +
+    Format(
+        '    select %0:s, goodkey from ' + #13#10 +
+        '    inv_card ' + #13#10 +
+        '    where id = OLD.fromcardkey ' + #13#10 +
+        '    into %1:s, :oldgoodkey; ' + #13#10,
+        [SourceFeatures.CommaText,
+         GetIntoFieldList(SourceFeatures, 'old$')]) +
+    Format(
+        '    select %0:s, goodkey from ' + #13#10 +
+        '    inv_card ' + #13#10 +
+        '    where id = OLD.fromcardkey ' + #13#10 +
+        '    into %1:s, :oldgoodkey; ' + #13#10,
+        [DestFeatures.CommaText,
+         GetIntoFieldList(DestFeatures, 'to$')]) +
+      GetMovementContactSQL(CreditMovement, True) +
+      GetMovementContactSQL(DebitMovement, False) +
+      GetOldMovementContactSQL(CreditMovement, True) +
+      GetOldMovementContactSQL(DebitMovement, False) +
+      GetCheckFeaturesSQL(SourceFeatures, 'usr$', 'old$') +
+      GetCheckFeaturesSQL(DestFeatures, 'new$', 'to$') +
+        '    if (coalesce(NEW.inquantity, 0) <> 0) then ' + #13#10 +
+        '    begin '  + #13#10 +
+        '      if (delayed = 1) then '  + #13#10 +
+        '        DELETE FROM inv_movement WHERE documentkey = NEW.documentkey; '  + #13#10 +
+        '    end '  + #13#10 +
+        '    else '  + #13#10 +
+        '      if (delayed = 1 or fromcontactkey <> oldfromcontactkey or ischange = 1) then '  + #13#10 +
+        '        DELETE FROM inv_movement WHERE documentkey = NEW.documentkey; '  + #13#10 +
+        '    if (delayed = 0) then ' + #13#10 +
+        '    begin ' + #13#10 +
+        '      if (coalesce(NEW.inquantity, 0) <> 0) then ' + #13#10 +
+        '      begin ' + #13#10 +
+        '        if (delayed = 0) then ' + #13#10 +
+        '        begin ' + #13#10 +
+        '          tmpquantity = coalesce(NEW.inquantity, 0) - coalesce(OLD.inquantity, 0); '  + #13#10 +
+        '          UPDATE inv_movement SET debit = debit + :tmpquantity, contactkey = :tocontactkey WHERE documentkey = NEW.documentkey; '  + #13#10 +
+        '        end ' + #13#10 +
+        '        if (istochange = 1) then '  + #13#10 +
+        '        begin '   + #13#10 +
+        GetMakeUpdateCardSQL(DestFeatures, 'new$') + #13#10 +
+        '        end '   + #13#10 +
+        '      end ' + #13#10 +
+        '      else ' + #13#10 +
+        '      begin ' + #13#10 +
+        '        if (delayed = 0) then ' + #13#10 +
+        '        begin ' + #13#10 +
+        '        if (ischange = 1 or fromcontactkey <> oldfromcontactkey) then ' + #13#10 +
+        '          oldquantity = NEW.outquantity;' + #13#10 +
+        '        else '  + #13#10 +
+        '          oldquantity = (coalesce(NEW.outquantity, 0) - coalesce(OLD.outquantity, 0)); ' + #13#10 +
+        '        if (oldquantity > 0) then ' + #13#10 +
+        '        begin ' + #13#10 +
+        '          tmpquantity = oldquantity; ' + #13#10 +
+        GetChooseRemainsSQL(SourceFeatures) +
+        '          begin ' + #13#10 +
+        '            if (tmpquantity > remains) then ' + #13#10 +
+        '              quant = remains; ' + #13#10 +
+        '            else ' + #13#10 +
+        '              quant = tmpquantity; ' + #13#10 +
+        '            NEW.fromcardkey = :id; ' + #13#10 +
+        '            movementkey = GEN_ID(gd_g_unique, 1); ' + #13#10 +
+        ' ' + #13#10 +
+        '            INSERT INTO inv_movement (movementkey, documentkey, goodkey, cardkey, contactkey, movementdate, credit) ' + #13#10 +
+        '            VALUES (:movementkey, NEW.documentkey, :goodkey, :id, :fromcontactkey, :documentdate, :quant); ' + #13#10 +
+        ' ' + #13#10 +
+        '            tmpquantity = tmpquantity - quant; ' + #13#10 +
+        '          end ' + #13#10 +
+        '          if (tmpquantity > 0 and checkremains = 0) then ' + #13#10 +
+        '          begin ' + #13#10 +
+        GetNewCardSQL(SourceFeatures, 'usr$') +
+        '            movementkey = GEN_ID(gd_g_unique, 1); ' + #13#10 +
+        ' ' + #13#10 +
+        '            INSERT INTO inv_movement (movementkey, documentkey, goodkey, cardkey, contactkey, movementdate, credit) ' + #13#10 +
+        '            VALUES (:movementkey, NEW.documentkey, :goodkey, :id, :fromcontactkey, :documentdate, :quant); ' + #13#10 +
+        '          end' + #13#10 +
+        '          else ' + #13#10 +
+        '            if (tmpquantity > 0) then '  + #13#10 +
+        '              EXCEPTION INV_E_INVALIDMOVEMENT; ' + #13#10 +
+        '        end ' + #13#10 +
+        '        else ' + #13#10 +
+        '        begin ' + #13#10 +
+        '           tmpquantity = abs(oldquantity); ' + #13#10 +
+        '           for ' + #13#10 +
+        '             select m.movementkey, SUM(m.debit) ' + #13#10 +
+        '             from inv_movement m ' + #13#10 +
+        '             where m.documentkey = NEW.documentkey ' + #13#10 +
+        '             group by 1 ' + #13#10 +
+        '             order by 2 ' + #13#10 +
+        '             into :movementkey, :oldquantity ' + #13#10 +
+        '           do ' + #13#10 +
+        '           begin ' + #13#10 +
+        '             if (tmpquantity >= oldquantity) then ' + #13#10 +
+        '             begin ' + #13#10 +
+        '               delete from inv_movement where movementkey = :movementkey; ' + #13#10 +
+        '               tmpquantity = tmpquantity - oldquantity; ' + #13#10 +
+        '             end ' + #13#10 +
+        '             else ' + #13#10 +
+        '             begin ' + #13#10 +
+        '               if (tmpquantity > 0) then ' + #13#10 +
+        '               begin ' + #13#10 +
+        ' ' + #13#10 +
+        '                 update inv_movement set credit = credit - :tmpquantity ' + #13#10 +
+        '                 where movementkey = :movementkey and credit <> 0; ' + #13#10 +
+        ' ' + #13#10 +
+        '                 tmpquantity = 0; ' + #13#10 +
+        ' ' + #13#10 +
+        '               end ' + #13#10 +
+        '             end ' + #13#10 +
+        '           end ' + #13#10 +
+        '        end ' + #13#10 +
+        '        end ' + #13#10 +
+
+        '      end ' + #13#10 +
+        '    end ' + #13#10 +
+        '    else '  + #13#10 +
+        '    begin ' + #13#10 +
+        '      if (coalesce(NEW.inquantity, 0) <> 0) then ' + #13#10 +
+        '      begin ' + #13#10 +
+        '        if (istochange = 1) then ' + #13#10 +
+        '        begin ' + #13#10 +
+        '          firstdocumentkey = NEW.documentkey; ' + #13#10 +
+        GetNewCardSQL(DestFeatures, 'new$') +
+        '         NEW.fromcardkey = :id; ' + #13#10 +
+        '        end ' + #13#10 +
+        '      end ' + #13#10 +
+        '      else ' + #13#10 +
+        '        if (ischange = 1) then ' + #13#10 +
+        '        begin ' + #13#10 +
+        GetNewCardSQL(SourceFeatures, 'usr$') +
+        '         NEW.fromcardkey = :id; ' + #13#10 +
+        '        end ' + #13#10 +
+        '    end '  + #13#10 +
+        '  end ' + #13#10 +
+        'end ' + #13#10;
 end;
 
 
