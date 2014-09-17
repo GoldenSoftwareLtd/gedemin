@@ -2152,17 +2152,16 @@ implementation
 {$R gdcClasses.dcr}
 
 uses
-  IBTable,                      DBClient,                     gd_security,
+  DBClient,                     gd_security,
   at_classes,                   dialogs,                      jclSelected,
-  gdc_frmG_unit,                ActiveX,                      IBUtils,
-  rp_BaseReport_Unit,           IBQuery,                      rp_dlgEnterParam_unit,
+  gdc_frmG_unit,                ActiveX,
   Gedemin_TLB,                  jclStrings,                   gdcMetaData,
   IBErrorCodes,                 gd_strings,                   gdc_createable_form,
   TypInfo,                      dmImages_unit,                gd_ClassList,
   Messages,                     gsIBLookupCombobox,           comctrls,
   gsDBDelete_dlgTableValues,    rp_ReportClient,              gdc_dlgQueryDescendant_unit,
-  gdc_dlgObjectProperties_unit, gsDBReduction,                gdc_dlgCantCreateObject_unit,
-  flt_sql_parser,               JclStrHashMap,                gdDBImpExp_unit,
+  gsDBReduction,
+  JclStrHashMap,                
   gdcClasses,                   gdc_dlgG_unit,                gdc_dlgSelectObject_unit,
   mtd_i_Inherited,              gdcOLEClassList,              prp_methods,
   gs_Exception,                 gd_directories_const,         Storages,

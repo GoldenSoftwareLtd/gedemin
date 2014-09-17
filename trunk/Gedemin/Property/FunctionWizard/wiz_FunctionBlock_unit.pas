@@ -18,11 +18,13 @@
   Revisions history
 
     1.00    30.05.03    tiptop        Initial version.
+    
 --}
 
 unit wiz_FunctionBlock_unit;
 
 interface
+
 uses
   {$IFDEF GEDEMIN}
    gdcClasses, gdc_frmAnalyticsSel_unit, wiz_DocumentInfo_unit, at_classes, gd_createable_form,

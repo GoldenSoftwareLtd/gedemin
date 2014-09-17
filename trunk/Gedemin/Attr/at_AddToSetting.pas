@@ -12,8 +12,7 @@ procedure AddToSetting(FromStorage: Boolean; ABranchName, AValueName: String;
 implementation
 
 uses
-  Windows, DB, IBDatabase, IBSQL, gdcBaseInterface, at_dlgToSetting_unit,
-  gdcNamespaceController;
+  Windows, DB, gdcBaseInterface, at_dlgToSetting_unit, gdcNamespaceController;
 
 procedure AddToSetting(FromStorage: Boolean; ABranchName, AValueName: String;
   AgdcObject: TgdcBase; BL: TBookmarkList);
