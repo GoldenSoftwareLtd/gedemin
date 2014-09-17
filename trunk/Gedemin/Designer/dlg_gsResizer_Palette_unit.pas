@@ -173,26 +173,19 @@ begin
   actArrowExecute(nil);
 end;
 
-constructor Tdlg_gsResizer_Palette.Create(AnOwner: TComponent);
-
-  procedure TraverseClassTree(ACE: TgdClassEntry; AClassList: TClassList);
-  var
-    I: Integer;
+function BuildTree(ACE: TgdClassEntry; AData: Pointer): Boolean;
+begin
+  if (ACE.SubType = '')
+    and (ACE.gdcClass.ClassName <> 'TgdcBase')
+    and (ACE.gdcClass.ClassName <> 'TgdcTree')
+    and (ACE.gdcClass.ClassName <> 'TgdcLBRBTree') then
   begin
-    if (ACE <> nil) and (AClassList <> nil) then
-      if ACE.Count > 0 then
-        for I := 0 to ACE.Count -1 do
-          if (ACE.Siblings[I] <> nil)
-            and (not (ACE.Siblings[I].SubType > ''))
-            and (ACE.Siblings[I].gdcClass.ClassName <> 'TgdcBase')
-            and (ACE.Siblings[I].gdcClass.ClassName <> 'TgdcTree')
-            and (ACE.Siblings[I].gdcClass.ClassName <> 'TgdcLBRBTree') then
-          begin
-            AClassList.Add(ACE.Siblings[I].gdcClass);
-            TraverseClassTree(ACE.Siblings[I], AClassList);
-          end;
+    TClassList(AData).Add(ACE.gdcClass);
   end;
+  Result := True;
+end;
 
+constructor Tdlg_gsResizer_Palette.Create(AnOwner: TComponent);
 var
   I, J: Integer;
   TB: TTBItem;
@@ -202,7 +195,6 @@ var
   OldSheet: String;
   P: PClassPalette;
   TempList: TClassList;
-  CE: TgdClassEntry;
 begin
   inherited;
   OldSheet := '';
@@ -216,7 +208,6 @@ begin
   else
     FManager := nil;
 
-//  if J >= 0 then
   if Assigned(gdClassList) then
   begin
     if (ClassArray[High(ClassArray)]^.FolderName <> GDCFolderName) and
@@ -224,9 +215,7 @@ begin
     begin
       TempList := TClassList.Create;
       try
-        CE := gdClassList.Find(TgdcBase);
-        if CE <> nil then
-          TraverseClassTree(CE, TempList);
+        gdClassList.Traverse(TgdcBase, '', BuildTree, TempList, True, False);
 
         J := High(ClassArray);
         SetLength(ClassArray, J + TempList.Count + 1);
@@ -240,29 +229,6 @@ begin
       finally
         TempList.Free;
       end;
-(*      TempList := TClassList.Create;
-      try
-        for I := 0 to gdcClassList.Count - 1 do
-          if CgdcBase(gdcClassList[I]).InheritsFrom(TgdcBase)
-            and {(not CgdcBase(gdcClassList[I]).IsAbstractClass)}
-              (gdcClassList[I].ClassName <> 'TgdcBase')
-            and (gdcClassList[I].ClassName <> 'TgdcTree')
-            and (gdcClassList[I].ClassName <> 'TgdcLBRBTree') then
-          begin
-            TempList.Add(gdcClassList[I]);
-          end;
-        J := High(ClassArray);
-        SetLength(ClassArray, J + TempList.Count + 1);
-        for I := J + 1 to High(ClassArray) do
-        begin
-          New(P);
-          P^.ClassType := TPersistentClass(TempList[I - (J + 1)]);
-          P^.FolderName := GDCFolderName;
-          ClassArray[I] := P;
-        end;
-      finally
-        TempList.Free;
-      end;  *)
     end;
   end;
 

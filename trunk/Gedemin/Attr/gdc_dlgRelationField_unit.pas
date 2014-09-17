@@ -97,7 +97,10 @@ type
 
     procedure SetGDClass;
 
-    function BuildClassTree(ACE: TgdClassEntry; AData: Pointer): Boolean;
+    function BuildClassTree(ACE: TgdClassEntry; AData: Pointer): Boolean; overload;
+    function BuildClassTree(ACE: TgdClassEntry; AData1: Pointer;
+      AData2: Pointer): Boolean; overload;
+
   protected
     procedure LoadClasses;
     procedure UpdateSubTypes;
@@ -443,83 +446,75 @@ begin
   Result := True;
 end;
 
-procedure Tgdc_dlgRelationField.LoadClasses;
+function Tgdc_dlgRelationField.BuildClassTree(ACE: TgdClassEntry; AData1: Pointer; AData2: Pointer): Boolean;
+var
+  LTreeNode: TTreeNode;
+begin
 
-  procedure TraverseClassList(ACE: TgdClassEntry; ATreeNode: TTreeNode; ARF: TatRelationField);
-  var
-    LTreeNode: TTreeNode;
-    I: Integer;
+  if ACE.SubType = '' then
   begin
-    if ACE <> nil then
+    ACE.gdcClass.RegisterClassHierarchy;
+
+    LTreeNode := tvObjects.Items.AddChild(TTreeNode(AData1^),
+    ACE.gdcClass.GetDisplayName('') + ' [' + ACE.gdcClass.ClassName + ']');
+
+    if gdcObject.State = dsInsert then
     begin
-      if not (ACE.SubType > '') then
-      begin
-        ACE.gdcClass.RegisterClassHierarchy;
-
-        LTreeNode := tvObjects.Items.AddChild(ATreeNode,
-        ACE.gdcClass.GetDisplayName('') + ' [' + ACE.gdcClass.ClassName + ']');
-
-        if gdcObject.State = dsInsert then
-        begin
-          if tvObjects.Items.Count = 1 then
-            LTreeNode.StateIndex := 1
-          else
-            LTreeNode.StateIndex := 2;
-        end
-        else
-        begin
-          if ARF.InObject(ACE.gdcClass.ClassName) then
-            LTreeNode.StateIndex := 1
-          else
-            LTreeNode.StateIndex := 2;
-
-          if LTreeNode.StateIndex = 1 then
-            while (LTreeNode.Parent <> nil) and (LTreeNode.Parent.StateIndex <> 1) do
-            begin
-              LTreeNode := LTreeNode.Parent;
-              LTreeNode.StateIndex := 3;
-            end;
-        end;
-      end
+      if tvObjects.Items.Count = 1 then
+        LTreeNode.StateIndex := 1
       else
-      begin
-        LTreeNode := tvObjects.Items.AddChild(ATreeNode, ACE.Comment +
-         ' [' + ACE.gdcClass.ClassName + '(' + ACE.SubType + ')]');
-        if dsgdcBase.DataSet.State = dsInsert then
-          tvObjects.Items[tvObjects.Items.Count - 1].StateIndex := 2
-        else
-        begin
-          if ARF.InObject(ACE.gdcClass.ClassName + '(' + ACE.SubType + ')') then
-            tvObjects.Items[tvObjects.Items.Count - 1].StateIndex := 1
-          else
-            tvObjects.Items[tvObjects.Items.Count - 1].StateIndex := 2;
+        LTreeNode.StateIndex := 2;
+    end
+    else
+    begin
+      if TatRelationField(AData2^).InObject(ACE.gdcClass.ClassName) then
+        LTreeNode.StateIndex := 1
+      else
+        LTreeNode.StateIndex := 2;
 
-          LTreeNode := tvObjects.Items[tvObjects.Items.Count - 1];
-            if LTreeNode.StateIndex = 1 then
-              while (LTreeNode.Parent <> nil) and (LTreeNode.Parent.StateIndex <> 1) do
-              begin
-                LTreeNode := LTreeNode.Parent;
-                LTreeNode.StateIndex := 3;
-              end;
+      if LTreeNode.StateIndex = 1 then
+        while (LTreeNode.Parent <> nil) and (LTreeNode.Parent.StateIndex <> 1) do
+        begin
+          LTreeNode := LTreeNode.Parent;
+          LTreeNode.StateIndex := 3;
         end;
-      end;
+    end;
+  end
+  else
+  begin
+    LTreeNode := tvObjects.Items.AddChild(TTreeNode(AData1^), ACE.Comment +
+     ' [' + ACE.gdcClass.ClassName + '(' + ACE.SubType + ')]');
+    if dsgdcBase.DataSet.State = dsInsert then
+      tvObjects.Items[tvObjects.Items.Count - 1].StateIndex := 2
+    else
+    begin
+      if TatRelationField(AData2^).InObject(ACE.gdcClass.ClassName + '(' + ACE.SubType + ')') then
+        tvObjects.Items[tvObjects.Items.Count - 1].StateIndex := 1
+      else
+        tvObjects.Items[tvObjects.Items.Count - 1].StateIndex := 2;
 
-      if ACE.Count > 0 then
-      begin
-        for I := 0 to ACE.Count - 1 do
-        begin
-          if ACE.Siblings[I] <> nil then
+      LTreeNode := tvObjects.Items[tvObjects.Items.Count - 1];
+        if LTreeNode.StateIndex = 1 then
+          while (LTreeNode.Parent <> nil) and (LTreeNode.Parent.StateIndex <> 1) do
           begin
-            TraverseClassList(ACE.Siblings[I], LTreeNode, ARF);
+            LTreeNode := LTreeNode.Parent;
+            LTreeNode.StateIndex := 3;
           end;
-        end;
-      end;
     end;
   end;
 
+  if TTreeNode(AData1^) = nil then
+    TTreeNode(AData1^) := LTreeNode
+  else
+    gdClassList.Traverse(ACE.gdcClass, ACE.SubType, BuildClassTree, @LTreeNode, AData2, False, True);
+
+  Result := True;
+end;
+
+procedure Tgdc_dlgRelationField.LoadClasses;
 var
   F: TatRelationField;
-  CE: TgdClassEntry;
+  LTreeNode: TTreeNode;
 begin
   tvObjects.SortType := stNone;
   tvObjects.Items.Clear;
@@ -536,10 +531,10 @@ begin
 
       if Assigned(F) then
       begin
-        CE := gdClassList.Find(TgdcBase);
-        if CE <> nil then
-          TraverseClassList(CE, nil, F);
-      end else
+        LTreeNode := nil;
+        gdClassList.Traverse(TgdcBase, '', BuildClassTree, @LTreeNode, @F, True, True);
+      end
+      else
         Label2.Caption := 'Объекты будут доступны после создания поля.';
 
     finally

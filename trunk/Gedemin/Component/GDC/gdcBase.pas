@@ -2441,34 +2441,23 @@ begin
   end;
 end;
 
+function BuildTree2(ACE: TgdClassEntry; AData1: Pointer; AData2: Pointer): Boolean;
+begin
+  if ACE.SubType = '' then
+  begin
+    if (AnsiCompareText(ACE.gdcClass.GetListTable(''), String(AData2^)) = 0) then
+        if (TgdcFullClass(AData1^).gdClass = nil)
+          or TgdcFullClass(AData1^).gdClass.InheritsFrom(ACE.gdcClass) then
+        begin
+          TgdcFullClass(AData1^).gdClass := ACE.gdcClass;
+        end;
+  end;
+  Result := True;
+end;
 
 function GetBaseClassForRelation(const ARelationName: String): TgdcFullClass;
-
-  procedure TraverseClassTree(ACE: TgdClassEntry; var AFullClass: TgdcFullClass;
-    const ARName: String);
-  var
-    I: Integer;
-  begin
-    if (ACE <> nil) and (not (ACE.SubType > '')) then
-    begin
-      if (AnsiCompareText(ACE.gdcClass.GetListTable(''), ARName) = 0) then
-        if (AFullClass.gdClass = nil) or AFullClass.gdClass.InheritsFrom(ACE.gdcClass) then
-          AFullClass.gdClass := ACE.gdcClass;
-
-      if ACE.Count > 0 then
-      begin
-        for I := 0 to ACE.Count - 1 do
-        begin
-          if (ACE.Siblings[I] <> nil) and (not (ACE.Siblings[I].SubType > '')) then
-            TraverseClassTree(ACE.Siblings[I], AFullClass, ARName);
-        end;
-      end;
-    end;
-  end;
-
 var
   I: Integer;
-//  C: CgdcBase;
   R, ParentR: TatRelation;
   L: TObjectList;
   ibsql: TIBSQL;
@@ -2477,7 +2466,6 @@ var
   BaseClassName, BaseSubType: String;
   ClName: String;
   F: TatRelationField;
-  CE: TgdClassEntry;
 begin
   Assert(ARelationName > '');
   Assert(atDatabase <> nil);
@@ -2615,27 +2603,8 @@ begin
       Result.gdClass := nil;
       Result.SubType := '';
 
-      CE := gdClassList.Find(TgdcBase);
-      if CE <> nil then
-        TraverseClassTree(CE, Result, ARelationName);
-
-
-{      with gdcClassList do
-        for I := 0 to Count - 1 do
-        begin
-          if Items[I].InheritsFrom(TgdcBase) then
-          begin
-            C := CgdcBase(Items[I]); }
-
-            { TODO 1 -oденис -cсделать : Сделать обработку подтипа }
- {           if (AnsiCompareText(C.GetListTable(''), ARelationName) = 0) then
-            begin
-              if (Result.gdClass = nil) or Result.gdClass.InheritsFrom(C) then
-                Result.gdClass := C;
-            end;
-          end;
-        end;  }
-
+      gdClassList.Traverse(TgdcBase, '', BuildTree2, @Result, @ARelationName, True, False);
+   
       if Result.gdClass = nil then
       begin
         R := atDatabase.Relations.ByRelationName(ARelationName);
@@ -2672,38 +2641,20 @@ begin
   end;
 end;
 
+function BuildTree(ACE: TgdClassEntry; AData: Pointer): Boolean;
+begin
+  if ACE.SubType = '' then
+    TClassList(AData).Add(ACE.gdcClass);
+  Result := True;
+end;
+
 function GetDescendants(AnAncestor: CgdcBase; AClassList: TClassList;
   const OnlyDirect: Boolean = True): Boolean;
-
-  procedure TraverseClassTree(ACE: TgdClassEntry; AClassList: TClassList;
-    const OnlyDirect: Boolean = True);
-  var
-    I: Integer;
-  begin
-    if ACE.Count > 0 then
-      for I := 0 to ACE.Count - 1 do
-        if (ACE.Siblings[I] <> nil) and (not (ACE.Siblings[I].SubType > '')) then
-        begin
-          AClassList.Add(ACE.Siblings[I].gdcClass);
-
-          if not OnlyDirect then
-            TraverseClassTree(ACE.Siblings[I], AClassList, False);
-
-        end;
-  end;
-
-var
-  CE: TgdClassEntry;
 begin
   AClassList.Clear;
 
   if Assigned(gdClassList) then
-  begin
-    CE := gdClassList.Find(TClass(AnAncestor));
-    if CE <> nil then
-      TraverseClassTree(CE, AClassList, OnlyDirect)
-
-  end;
+    gdClassList.Traverse(TClass(AnAncestor), '', BuildTree, AClassList, False, OnlyDirect);
 
   Result := AClassList.Count > 0;
 end;
