@@ -1024,9 +1024,6 @@ begin
     V := TgsIntegerValue.Create(Self, AValueName);
     V.AsInteger := AValue;
   end;
-
-  if (Self.Name = 'SubTypes') and Assigned(gdClassList) then
-        gdClassList.RemoveAllSubTypes;
 end;
 
 procedure TgsStorageFolder.WriteCurrency(const AValueName: String;
@@ -1042,9 +1039,6 @@ begin
     V := TgsCurrencyValue.Create(Self, AValueName);
     V.AsCurrency := AValue;
   end;
-
-  if (Self.Name = 'SubTypes') and Assigned(gdClassList) then
-        gdClassList.RemoveAllSubTypes;
 end;
 
 procedure TgsStorageFolder.WriteBoolean(const AValueName: String;
@@ -1060,9 +1054,6 @@ begin
     V := TgsBooleanValue.Create(Self, AValueName);
     V.AsBoolean := AValue;
   end;
-
-  if (Self.Name = 'SubTypes') and Assigned(gdClassList) then
-        gdClassList.RemoveAllSubTypes;
 end;
 
 procedure TgsStorageFolder.WriteDateTime(const AValueName: String;
@@ -1078,9 +1069,6 @@ begin
     V := TgsDateTimeValue.Create(Self, AValueName);
     V.AsDateTime := AValue;
   end;
-
-  if (Self.Name = 'SubTypes') and Assigned(gdClassList) then
-        gdClassList.RemoveAllSubTypes;
 end;
 
 procedure TgsStorageFolder.WriteString(const AValueName: String; const AValue: String = '');
@@ -1095,9 +1083,6 @@ begin
     V := TgsStringValue.Create(Self, AValueName);
     V.AsString := AValue;
   end;
-
-  if (Self.Name = 'SubTypes') and Assigned(gdClassList) then
-        gdClassList.RemoveAllSubTypes;
 end;
 
 procedure TgsStorageFolder.ShowPropDialog;
@@ -3383,6 +3368,8 @@ begin
     FData := Value;
     FChanged := FChanged or (not StorageLoading);
     FModified := Now;
+    if (Parent.Name = 'SubTypes') and Assigned(gdClassList) then
+        gdClassList.RemoveAllSubTypes;
   end;
 end;
 
