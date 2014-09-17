@@ -110,9 +110,9 @@ begin
   FCorrActualAnalytics := TList.Create;
   FAvailableAnalytics := TgdvAvailAnalytics.Create;
 
-  FIBDSSaldoBegin := TIBDataset.Create(Self);
-  FIBDSSaldoEnd := TIBDataset.Create(Self);
-  FIBDSCirculation := TIBDataset.Create(Self);
+  FIBDSSaldoBegin := TIBDataset.Create(nil);
+  FIBDSSaldoEnd := TIBDataset.Create(nil);
+  FIBDSCirculation := TIBDataset.Create(nil);
 end;
 
 destructor TgdvAcctAccReview.Destroy;

@@ -34,7 +34,9 @@ type
   end;
 
 implementation
-uses IBSQL, gdv_frameMapOfAnalitic_unit, gdcBaseInterface, at_classes, Math;
+
+uses 
+  IBSQL, gdv_frameMapOfAnalitic_unit, gdcBaseInterface, at_classes, Math;
 
 {$R *.DFM}
 

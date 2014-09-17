@@ -2160,7 +2160,7 @@ uses
   TypInfo,                      dmImages_unit,                gd_ClassList,
   Messages,                     gsIBLookupCombobox,           comctrls,
   gsDBDelete_dlgTableValues,    rp_ReportClient,              gdc_dlgQueryDescendant_unit,
-  gsDBReduction,
+  gsDBReduction,                gdc_dlgObjectProperties_unit,
   JclStrHashMap,                
   gdcClasses,                   gdc_dlgG_unit,                gdc_dlgSelectObject_unit,
   mtd_i_Inherited,              gdcOLEClassList,              prp_methods,
