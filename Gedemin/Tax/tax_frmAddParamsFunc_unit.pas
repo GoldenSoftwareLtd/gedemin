@@ -1,6 +1,5 @@
 {++
 
-
   Copyright (c) 2001 by Golden Software of Belarus
 
   Module
@@ -35,8 +34,10 @@ type
   private
     FedtParam: TBtnEdit;
     FlblParam: TLabel;
+
     procedure SetedtParam(const Value: TBtnEdit);
     procedure SetlblParam(const Value: TLabel);
+
   public
     constructor Create(AOwner: TComponent); override;
 
@@ -44,7 +45,6 @@ type
 
     property lblParam: TLabel read FlblParam write SetlblParam;
     property edtParam: TBtnEdit read FedtParam write SetedtParam;
-
   end;
 
 type
@@ -150,9 +150,7 @@ begin
   inherited;
 
   if GetDeviceCaps(GetDC(Self.Handle), VERTRES) > 479 then
-  begin
     FMaxHeight := GetDeviceCaps(GetDC(Self.Handle), VERTRES) - 60;
-  end;
 
   FParamPanelList := TList.Create;
 end;
@@ -230,9 +228,7 @@ begin
   FFuncDescr := FuncDescr;
 
   if Length(FFuncDescr.ParamArray) = 0 then
-  begin
     raise Exception.Create('Функция ' + FFuncDescr.Name + ' не имеет параметров.');
-  end;
 
   ParamPanel := TParamPanel.Create(Self);
   with ParamPanel do
