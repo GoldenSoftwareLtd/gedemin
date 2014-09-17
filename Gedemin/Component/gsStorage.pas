@@ -598,9 +598,9 @@ implementation
 uses
   JclSysUtils, ZLib, Windows, st_dlgfolderprop_unit, gd_common_functions,
   st_dlgeditvalue_unit, gsStorage_CompPath, DB, IB, IBErrorCodes,
-  IBBlob, gdcBaseInterface, jclStrings, gdcStorage_Types
+  IBBlob, gdcBaseInterface, jclStrings, gdcStorage_Types, gd_ClassList
   {$IFDEF GEDEMIN}
-  , gd_directories_const, Storages, gdc_frmG_unit, gd_ClassList
+  , gd_directories_const, Storages, gdc_frmG_unit
   {$ENDIF}
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
