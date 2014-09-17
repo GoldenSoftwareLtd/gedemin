@@ -1,5 +1,5 @@
- {++
 
+ {++
 
   Copyright (c) 2001 by Golden Software of Belarus
 
@@ -23,7 +23,6 @@
 
 --}
 
-
 unit at_Container;
 
 interface
@@ -32,11 +31,9 @@ uses
   Windows,          Messages,         SysUtils,         Classes,
   Graphics,         Controls,         Forms,            Dialogs,
   StdCtrls,         DB,               Contnrs,          IBDatabase,
-  IBCustomDataSet,  IBQuery,          IBSQL,            IBUpdateSQL,
-  ExtCtrls,         at_Classes,       IBHeader,
-  DBCtrls,          menus,            gsIBLookupComboBox,
-  at_SetComboBox,   xDateEdits,       gsResizerInterface, evt_i_base,
-  gdEnumComboBox, xCalculatorEdit;
+  IBCustomDataSet,  ExtCtrls,         at_Classes,       DBCtrls,
+  Menus,            gsIBLookupComboBox, at_SetComboBox, xDateEdits,
+  gdEnumComboBox,   xCalculatorEdit;
 
 const
   AT_START_X = 5;
@@ -49,7 +46,6 @@ const
 
 type
   TatContainer = class;
-//  TatPanel = class;
 
   TatControl = class
   private
@@ -154,9 +150,6 @@ type
 
   TatMemoControl = class(TatControl)
   private
-    {FSaveButton: TButton;
-    FLoadButton: TButton;}
-
     function GetMemoEdit: TDBMemo;
 
   protected
@@ -167,9 +160,7 @@ type
 
   public
     property MemoEdit: TDBMemo read GetMemoEdit;
-
   end;
-
 
   TatSetControl = class(TatControl)
   private
@@ -183,9 +174,7 @@ type
 
   public
     property SetEdit: TatSetLookupComboBox read GetSetEdit;
-
   end;
-
 
   TatLookupControl = class(TatControl)
   private
@@ -205,9 +194,7 @@ type
     destructor Destroy; override;
 
     property LookupEdit: TgsIBLookupComboBox read GetLookupEdit;
-
   end;
-
 
   TatImageControl = class(TatControl)
   private
@@ -254,7 +241,6 @@ type
   public
     constructor Create(AContainer: TatContainer);
     destructor Destroy; override;
-
   end;
 
 
@@ -267,14 +253,12 @@ type
     property Category: String read FCategory;
 
     function FindByRelationFieldName(AName: String): Integer;
-
   end;
 
   TatOnRelationNames = procedure (Sender: TObject; Relations,
     FieldAliases: TStringList) of object;
 
   TatOnAdjustControl = procedure (Sender: TObject; Control: TControl) of object;
-
 
   TatContainer = class(TScrollingWinControl)
   private
@@ -401,9 +385,8 @@ procedure Register;
 implementation
 
 uses
-  at_sql_parser, gd_createable_form, gd_security, gdc_dlgTR_unit;
-
-{ TCategoryList }
+  IBSQL, gd_createable_form, gd_security, gdc_dlgTR_unit,
+  gsResizerInterface, evt_i_base;
 
 type
   TIBCustomDataSetCracker = class(TIBCustomDataSet);
@@ -412,7 +395,6 @@ constructor TCategoryList.Create(const ACategory: String);
 begin
   FCategory := ACategory;
 end;
-
 
 function TCategoryList.FindByRelationFieldName(AName: String): Integer;
 var

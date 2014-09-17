@@ -1,7 +1,7 @@
+
 {++
 
-
-  Copyright (c) 2000 by Golden Software of Belarus
+  Copyright (c) 2000-2014 by Golden Software of Belarus
 
   Module
 
@@ -20,9 +20,7 @@
 
     < history >
 
-
 --}
-
 
 unit at_Controls;
 
@@ -32,8 +30,7 @@ uses
   Windows,          Messages,         SysUtils,         Classes,
   Graphics,         Controls,         Forms,            Dialogs,
   StdCtrls,         DB,               Contnrs,          IBDatabase,
-  IBCustomDataSet,  IBQuery,          IBSQL,            IBUpdateSQL,
-  at_Classes,       IBHeader;
+  IBCustomDataSet,  at_Classes;
 
 {
   1. Необходимо разобрать запрос
@@ -374,7 +371,9 @@ procedure Register;
 
 implementation
 
-uses TypInfo, DBCtrls, at_sql_parser, gsIBLookupComboBox, {at_SetEditor,} at_SetComboBox;
+uses
+  TypInfo, DBCtrls, at_sql_parser, gsIBLookupComboBox,
+  IBUpdateSQL, at_SetComboBox;
 
 {
   ---------------------------------------------------
@@ -392,20 +391,6 @@ begin
   Result := Symbols * (TM.tmAveCharWidth - (TM.tmAveCharWidth div 2) +
     TM.tmOverhang + 3);
 end;
-
-// Переводит точки на экране (пиксели) в количество символов
-{
-function PixelsToSymbols(const Pixels: Integer; Canvas: TCanvas): Integer;
-var
-  TM: TTextMetric;
-begin
-  GetTextMetrics(Canvas.Handle, TM);
-
-  Result := Pixels div (TM.tmAveCharWidth - (TM.tmAveCharWidth div 2) +
-    TM.tmOverhang + 3);
-
-end;
-}
 
 { TatDocForm }
 

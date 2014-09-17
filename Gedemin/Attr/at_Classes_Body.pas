@@ -35,8 +35,7 @@ interface
 
 uses
   Classes,           Contnrs,           Comctrls,          SysUtils,
-  IBDatabase,        DB,                IB,                IBHeader,
-  Forms,             IBSQL,             gd_security_OperationConst,
+  IBDatabase,        DB,                Forms,             IBSQL,
   at_Classes;
 
 const
@@ -474,11 +473,11 @@ implementation
 
 uses
   Windows,           JclSysUtils,       Graphics,          Messages,
-  gd_resourcestring, IBCustomDataset,   gdcBase,           ZLib,
-  IBStoredProc,      JclStrings,        gd_security,       at_sql_setup,
+  gd_resourcestring, IBCustomDataset,   ZLib,
+  JclStrings,        gd_security,       at_sql_setup,
   gd_directories_const,                 at_sql_metadata,   gd_CmdLineParams_unit,
   IBUtils,           gd_splash,         at_frmIBUserList,  iberrorcodes,
-  dmDatabase_unit
+  dmDatabase_unit,   IB,                IBHeader
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
