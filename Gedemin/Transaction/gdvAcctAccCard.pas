@@ -68,16 +68,14 @@ end;
 constructor TgdvAcctAccCard.Create(AOwner: TComponent);
 begin
   inherited;
-
-  FIBDSSaldoQuantityBegin := TIBDataset.Create(Self);
-  FIBDSSaldoQuantityEnd := TIBDataset.Create(Self);
+  FIBDSSaldoQuantityBegin := TIBDataset.Create(nil);
+  FIBDSSaldoQuantityEnd := TIBDataset.Create(nil);
 end;
 
 destructor TgdvAcctAccCard.Destroy;
 begin
   FIBDSSaldoQuantityBegin.Free;
   FIBDSSaldoQuantityEnd.Free;
-
   inherited;
 end;
 
