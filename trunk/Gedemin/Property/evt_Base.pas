@@ -9589,6 +9589,11 @@ begin
           If (EK <> nil) and (EK.FunctionKey <> 0) and (not EK.Disable) then
           begin
             // добавляем родительский TEventItem
+            if EI <> nil then
+            begin
+              AnEventObject.EventList.DeleteForName(TempPropList[I]^.Name);
+              EI := AnEventObject.EventList.Find(TempPropList[I]^.Name);
+            end;
             AnEventObject.EventList.Add(EK);
             EI := AnEventObject.EventList.Last;
             // снимаем отметку об установке метода Delphi
@@ -9753,6 +9758,7 @@ begin
         if not Assigned(gdClassList.GetFRMClass(LFullClassName))then
           raise Exception.Create('Ошибка перекрытия события ' + LFullClassName.gdClassName);
         ParentSubType := gdClassList.GetFRMClass(LFullClassName).ClassParentSubtype(SubType);
+        ParentSubType := StringReplace(ParentSubType, 'USR$', 'USR_', [rfReplaceAll, rfIgnoreCase]);
         if ParentSubType <> '' then
         begin
           LParentName := LClassName + ParentSubType;
