@@ -320,7 +320,7 @@ uses
   jclStrings, at_frmSQLProcess, gsStorage_CompPath,
   gd_security, prp_methods, Gedemin_TLB, gsStorage,
   gdcUser, at_classes, DBCtrls, at_AddToSetting,
-  gdcClasses, DBGrids, gdcJournal, gdHelp_Interface
+  gdcClasses, DBGrids, gdcJournal, gdHelp_Interface, gdcDelphiObject
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -1825,12 +1825,22 @@ end;
 
 
 constructor Tgdc_dlgG.Create(AnOwner: TComponent);
+var
+  gdcDelphiObject: TgdcDelphiObject;
 begin
   inherited;
   ErrorAction := False;
   FFieldsCallOnSync := TFieldsCallList.Create;
   FAlreadyRestory := False;
   FAppliedID := -1;
+
+  gdcDelphiObject := TgdcDelphiObject.Create(nil);
+  try
+    gdcDelphiObject.AddObject(Self);
+    gdcDelphiObject.Close;
+  finally
+    gdcDelphiObject.Free;
+  end;
 end;
 
 constructor Tgdc_dlgG.CreateNewUser(AnOwner: TComponent;
