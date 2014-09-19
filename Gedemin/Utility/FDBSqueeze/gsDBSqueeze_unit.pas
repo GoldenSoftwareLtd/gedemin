@@ -63,7 +63,7 @@ type
     FEntryAnalyticsStr: String;                                 // список всех бухгалтерских аналитик
     FInvSaldoDoc: Integer;
     FOurCompaniesListStr: String;                               // список компаний из gd_ourcompany
-    FProizvolnyyDocTypeKey: Integer;                            // ''Произвольный тип'' из gd_documenttype
+    //FProizvolnyyDocTypeKey: Integer;                            // ''Произвольный тип'' из gd_documenttype
 
     FOnGetConnectedEvent: TOnGetConnectedEvent;
     FOnGetDBPropertiesEvent: TOnGetDBPropertiesEvent;
@@ -1347,7 +1347,7 @@ begin
       FCardFeaturesStr := q.FieldByName('UsrFieldsList').AsString;
     q.Close;
 
-    q.SQL.Text :=
+    {q.SQL.Text :=
       'SELECT gd.id AS InvDocTypeKey ' +                #13#10 +
       '  FROM GD_DOCUMENTTYPE gd ' +                    #13#10 +
       ' WHERE TRIM(gd.name) = ''Произвольный тип'' ';
@@ -1356,7 +1356,7 @@ begin
     if q.EOF then
       raise EgsDBSqueeze.Create('Отсутствует запись GD_DOCUMENTTYPE.NAME = ''Произвольный тип''');
     FProizvolnyyDocTypeKey := q.FieldByName('InvDocTypeKey').AsInteger;
-    q.Close;
+    q.Close; }
   
     if FAllOurCompaniesSaldo then
     begin
@@ -2206,7 +2206,7 @@ begin
         '  :UserKey, :UserKey) ';
 
       q.ParamByName('id').AsInteger := FInvSaldoDoc;
-      q.ParamByName('documenttypekey').AsInteger := FProizvolnyyDocTypeKey;
+      q.ParamByName('documenttypekey').AsInteger := HOZOPERATION_DOCTYPE_KEY;//FProizvolnyyDocTypeKey;
       q.ParamByName('documentdate').AsDateTime := FClosingDate;
       q.ParamByName('UserKey').AsInteger := FCurUserContactKey;
       q.ParamByName('number').AsString := NEWINVDOCUMENT_NUMBER;
