@@ -5336,14 +5336,15 @@ class procedure TgdcInvBaseRemains.RegisterClassHierarchy;
       ibsql.Close;
 
       ibsql.SQL.Text :=
-        'SELECT RUID FROM INV_BALANCEOPTION ';
+        'SELECT NAME, RUID FROM INV_BALANCEOPTION ';
 
       ibsql.ExecQuery;
 
       while not ibsql.EOF do
       begin
         LSubType := ibsql.FieldByName('RUID').AsString;
-        CurrCE := gdClassList.Add(ACE.TheClass, LSubType + '=' + LSubType);
+        LComment := ibsql.FieldByName('NAME').AsString;
+        CurrCE := gdClassList.Add(ACE.TheClass, LSubType, LComment);
 
         CurrCE.Initialized := True;
         ibsql.Next;
