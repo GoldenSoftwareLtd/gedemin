@@ -132,7 +132,8 @@ begin
     '  id, ' +
     '  xid, ' +
     '  dbid, ' +
-    '  modified ';
+    '  modified, ' +
+    '  editorkey';
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCRUID', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
