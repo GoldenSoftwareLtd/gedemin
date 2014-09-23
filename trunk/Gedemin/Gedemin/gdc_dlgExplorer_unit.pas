@@ -362,7 +362,8 @@ end;
 
 function Tgdc_dlgExplorer.BuildClassTree(ACE: TgdClassEntry; AData: Pointer): Boolean;
 begin
-  cbClasses.Items.Add(ACE.TheClass.ClassName);
+  if ACE.SubType = '' then
+    cbClasses.Items.Add(ACE.TheClass.ClassName);
 
   Result := True;
 end;

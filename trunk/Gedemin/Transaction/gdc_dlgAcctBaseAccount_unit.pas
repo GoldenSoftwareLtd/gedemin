@@ -352,7 +352,8 @@ begin
   try
     gdcRelationFields.ExtraConditions.Text := ' z.fieldname like ''USR$%'' and z.relationname = ''AC_ACCOUNT''';
     gdcRelationFields.Open;
-    gdcRelationFields.Sort(gdcRelationFields.FieldByName('lname'), true);
+    if not gdcRelationFields.EOF then
+      gdcRelationFields.Sort(gdcRelationFields.FieldByName('lname'), true);
     while not gdcRelationFields.EOF do
     begin
 
