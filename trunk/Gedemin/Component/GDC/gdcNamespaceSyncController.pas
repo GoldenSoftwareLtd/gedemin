@@ -570,12 +570,13 @@ procedure TgdcNamespaceSyncController.GetDependentList(ASL: TStrings);
 var
   q: TIBSQL;
   I, J, C: Integer;
+  SL: TStringList;
 begin
   Assert(ASL <> nil);
   Assert(FTr <> nil);
   Assert(FTr.InTransaction);
 
-  ASL.Clear;
+  SL := TStringList.Create;
   q := TIBSQL.Create(nil);
   try
     q.Transaction := FTr;
@@ -589,7 +590,10 @@ begin
     q.ExecQuery;
     while not q.EOF do
     begin
-      ASL.Add(q.Fields[0].AsString);
+      if SL.IndexOf(q.Fields[0].AsString) = -1 then
+        SL.Add(q.Fields[0].AsString)
+      else
+        DoLog(lmtWarning, 'ПИ "' + q.Fields[0].AsString + '" уже находится в списке загрузки.');
       q.Next;
     end;
 
@@ -607,19 +611,19 @@ begin
       '  AND s.operation IN (''< '', ''<<'')';
     I := 0;
     C := 0;
-    while I < ASL.Count do
+    while I < SL.Count do
     begin
-      q.ParamByName('filename').AsString := ASL[I];
+      q.ParamByName('filename').AsString := SL[I];
       q.ExecQuery;
       while not q.EOF do
       begin
-        J := ASL.IndexOf(q.Fields[0].AsString);
+        J := SL.IndexOf(q.Fields[0].AsString);
         if J = -1 then
-          ASL.Add(q.Fields[0].AsString)
+          SL.Add(q.Fields[0].AsString)
         else if J < I then
         begin
-          ASL.Insert(I + 1, ASL[J]);
-          ASL.Delete(J);
+          SL.Insert(I + 1, SL[J]);
+          SL.Delete(J);
           Dec(I);
         end;
         q.Next;
@@ -627,12 +631,15 @@ begin
       q.Close;
       Inc(I);
 
-      if C > ASL.Count * ASL.Count then
+      if C > SL.Count * SL.Count then
         raise Exception.Create('Cyclic namespace dependance detected.');
       Inc(C);
     end;
+
+    ASL.Assign(SL);
   finally
     q.Free;
+    SL.Free;
   end;
 end;
 
