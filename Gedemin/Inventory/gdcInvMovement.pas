@@ -2698,6 +2698,7 @@ begin
 
           tmpQuantity := GetLastRemains(FieldByName('cardkey').AsInteger, FieldByName('contactkey').AsInteger) +
              tmpQuantity + ipQuantity;
+             
           if (tmpQuantity < 0)
           then
           begin
