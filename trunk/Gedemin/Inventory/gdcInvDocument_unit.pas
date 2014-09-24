@@ -3811,7 +3811,7 @@ begin
     '  goodkey INT NOT NULL,' + #13#10 +
     '  typevalue CHAR(1),' + #13#10 +
     '  checkremains DBOOLEAN, ' + #13#10 +
-    '  minusremains DBOOLEAN, ' + #13#10;
+    '  minusremains DBOOLEAN ' + #13#10;
 
   s := '';
   for i := 0 to SourceFeatures.Count - 1 do
@@ -3833,10 +3833,13 @@ begin
       begin
         if s <> '' then s := s + ',';
         s := s + '  ' + DestFeatures[i] + ' ' + F.Field.FieldName;
-      end;  
+      end;
     end;
   end;
 
+  if s <> '' then
+    s := ', ' + s;
+   
   s := head + s + #13#10 + ') ' + #13#10 +
     ' ON commit delete ROWS ' + #13#10;
 
@@ -3848,7 +3851,7 @@ begin
     try
       ibsql.ExecQuery;
     except
-    end;  
+    end;
 
     ibsql.Close;
     ibsql.SQL.Text := s;
@@ -3873,14 +3876,6 @@ var
   RelType: TgdcInvRelationType;
 
 const
-  ConstTriggerText =
-    'BEGIN ' + #13#10 +
-    '  /* получаем тип докумнта, рабочую компанию и дату, запись в gd_document уже добавлена */ ' + #13#10 +
-    '  select dt.ruid, d.companykey, d.documentdate, d.delayed from  ' + #13#10 +
-    '     gd_document d join gd_documenttype dt ON d.documenttypekey = dt.id ' + #13#10 +
-    '  where d.id = NEW.documentkey ' + #13#10 +
-    '  into :ruid, :companykey, :documentdate, :delayed; ' + #13#10;
-
   FixedVariableList =
     'AS ' + #13#10 +
     '  declare variable ruid druid; ' + #13#10 +
@@ -3901,9 +3896,20 @@ const
     '  declare variable quant numeric(15, 4); ' + #13#10 + 
     '  declare variable ondate DATE; ' + #13#10 +
     '  declare variable firstdate DATE; ' + #13#10 +
+    '  declare variable movementquantity numeric(15, 4); ' + #13#10 +
+    '  declare variable olddocumentdate date; ' + #13#10 +
+    '  declare variable isdeletemovement INTEGER; ' + #13#10 +
     '  declare variable firstdocumentkey INTEGER; ' + #13#10;
 
 
+  ConstTriggerText =
+    'BEGIN ' + #13#10 +
+    '  /* получаем тип докумнта, рабочую компанию и дату, запись в gd_document уже добавлена */ ' + #13#10 +
+    '  select dt.ruid, d.companykey, d.documentdate, d.delayed from  ' + #13#10 +
+    '     gd_document d join gd_documenttype dt ON d.documenttypekey = dt.id ' + #13#10 +
+    '  where d.id = NEW.documentkey ' + #13#10 +
+    '  into :ruid, :companykey, :documentdate, :delayed; ' + #13#10 +
+    '  isdeletemovement = 0; ' + #13#10;
 
 
 function MakeFieldList(StringList: TStringList; Prefix: String): String;
@@ -3961,6 +3967,13 @@ begin
               '      into :oldtocontactkey; '  + #13#10 ;
 end;
 
+function GetOldDocumentDateSQL: String;
+begin
+  Result :=
+    ' select FIRST(1) movementdate from inv_movement where documentkey = NEW.documentkey ' + #13#10 +
+    ' into :olddocumentdate; ' + #13#10;
+end;
+
 
 function GetChooseRemainsSQL(Features: TStringList): String;
 var
@@ -3973,7 +3986,7 @@ begin
     if s <> '' then s := s + ' AND ';
     s := s + ' (c.' + Features[i] + ' = :' + Features[i] + ' or (c.' + Features[i] + ' is NULL and :' + Features[i] + ' is NULL)) ' + #13#10;
   end;
-  
+
   if s <> '' then s := ' where ' + #13#10 + s + #13#10;
 
   if not EndMonthRemains then
@@ -4109,16 +4122,20 @@ begin
 
 end;
 
-function GetReadFeatureSQL(Features: TStringList; IsFrom, IsNew, OnlyFeatures: Boolean; Prefix: String): String;
+function GetReadFeatureSQL(Features: TStringList; IsFrom: Char; IsNew, OnlyFeatures: Boolean; Prefix: String): String;
 var
-  s, s1: String;
+  s, s1, FieldName: String;
 begin
+  if (isFrom = 'F') or (RelType <> irtFeatureChange) then
+    FieldName := 'fromcardkey'
+  else
+    FieldName := 'tocardkey';
+
   if isNew then
   begin
-    if isFrom then
-      Result := 'F'
-    else
-      Result := 'T';
+    if isFrom <> #0 then
+      Result := ' and typevalue = ''' + IsFrom + '''';
+
     s := '';
     s1 := '';
     if Features.Count > 0 then
@@ -4129,25 +4146,28 @@ begin
     if not OnlyFeatures then
     begin
       if s <> '' then s := s + ',';
-      s:= s + 'goodkey, checkremains';
+      s:= s + 'goodkey, checkremains, minusremains';
       if s1 <> '' then s1 := s1 + ',';
-      s1 := s1 + ':goodkey, :checkremains';
+      s1 := s1 + ':goodkey, :checkremains, :minusremains';
     end;
     if s <> '' then
       Result :=
           '    select ' + s + ' from ' + #13#10 +
           '    usr$' + FieldByName('ruid').AsString + #13#10 +
-          '    where documentkey = NEW.documentkey and typevalue = ''' + Result + ''' ' + #13#10 +
-          '    into ' + s1 + '; ' + #13#10
+          '    where documentkey = NEW.documentkey  ' + Result + #13#10 +
+          '    into ' + s1 + '; ' + #13#10 +
+          '    if (ROW_COUNT = 0) then '  + #13#10 +
+          '      select ' + StringReplace(StringReplace(s, 'checkremains', 'CAST(' + IntToStr(Integer(ControlRemains)) + ' as INTEGER) as checkremains', [rfIgnoreCase]),
+               'minusremains', 'CAST(0 as INTEGER) as minusremains', [rfIgnoreCase])  + ' from ' + #13#10 +
+          '      inv_card ' + #13#10 +
+          '      where id = NEW.' + FieldName + #13#10 +
+          '      into ' + s1 + ';' + #13#10
+
     else
       Result := '';
   end
   else
   begin
-    if isFrom or (RelType <> irtFeatureChange) then
-      Result := 'OLD.fromcardkey'
-    else
-      Result := 'OLD.tocardkey';
     s := '';
     s1 := '';
     if Features.Count > 0 then
@@ -4162,16 +4182,68 @@ begin
       if s1 <> '' then s1 := s1 + ',';
       s1 := s1 + ':oldgoodkey';
     end;
+    if isFrom = 'N' then
+      FieldName := 'NEW.' + FieldName
+    else
+      FieldName := 'OLD.' + FieldName;
     if s <> '' then
       Result :=
           '    select ' + s + ' from ' + #13#10 +
           '    inv_card ' + #13#10 +
-          '    where id = ' + Result + #13#10 +
+          '    where id = ' + FieldName + #13#10 +
           '    into ' + s1 + ';' + #13#10
     else
-      Result := '';      
+      Result := '';
 
   end;
+end;
+
+function GetCheckRemainsOnDateSQL(IsFrom: Boolean): String;
+begin
+  if isFrom then
+    Result :=
+       '            for ' + #13#10 +
+       '              select cardkey, credit from inv_movement ' + #13#10 +
+       '              where documentkey = NEW.documentkey and credit <> 0 ' + #13#10 +
+       '              into :id, :movementquantity ' + #13#10 +
+       '            do ' + #13#10 +
+       '            begin ' + #13#10 +
+       '              select SUM(m.balance)  from ' + #13#10 +
+       '                (select SUM(balance) as balance from inv_balance where ' + #13#10 +
+       '                 cardkey = :id and contactkey = :fromcontactkey ' + #13#10 +
+       '                 union all ' + #13#10 +
+       '                 select SUM(credit - debit) from inv_movement where ' + #13#10 +
+       '                 cardkey = :id and contactkey = :fromcontactkey and movementdate > :documentdate) m ' + #13#10 +
+       '              into :oldquantity; ' + #13#10 +
+       '              if (oldquantity < movementquantity) then ' + #13#10 +
+       '                EXCEPTION INV_E_INVALIDMOVEMENT; ' + #13#10 +
+       '            end ' + #13#10
+  else
+    Result :=
+       '            for ' + #13#10 +
+       '              select cardkey, debit from inv_movement ' + #13#10 +
+       '              where documentkey = NEW.documentkey and debit <> 0 ' + #13#10 +
+       '              into :id, :movementquantity ' + #13#10 +
+       '            do ' + #13#10 +
+       '            begin ' + #13#10 +
+       '              select SUM(m.balance)  from ' + #13#10 +
+       '                (select SUM(balance) as balance from inv_balance where ' + #13#10 +
+       '                 cardkey = :id and contactkey = :tocontactkey ' + #13#10 +
+       '                 union all ' + #13#10 +
+       '                 select SUM(credit - debit) from inv_movement where ' + #13#10 +
+       '                 cardkey = :id and contactkey = :tocontactkey and movementdate >= :documentdate) m ' + #13#10 +
+       '              into :oldquantity; ' + #13#10 +
+       '              if (oldquantity < movementquantity) then ' + #13#10 +
+       '                EXCEPTION INV_E_INVALIDMOVEMENT; ' + #13#10 +
+       '            end ' + #13#10;
+end;
+
+function GetUpdateDateSQL: String;
+begin
+  Result :=
+       '            update inv_movement set movementdate = :documentdate ' + #13#10 +
+       '            where documentkey = NEW.documentkey; ' + #13#10;
+
 end;
 
 
@@ -4186,34 +4258,14 @@ begin
   else
     Features := SourceFeatures;
 
-  if Features.Count > 0 then
-    Result :=
-      FixedVariableList + #13#10 + MakeFieldList(Features, 'usr$') + ConstTriggerText +
-      Format(
-            '  if (ruid = ''%0:s'') then ' + #13#10 +
-            '  begin ' + #13#10 +
-            '    select %1:s, goodkey, checkremains, minusremains from ' + #13#10 +
-            '    usr$%0:s ' + #13#10 +
-            '    where documentkey = NEW.documentkey ' + #13#10 +
-            '    into %2:s, :goodkey, :checkremains, :minusremains; ' + #13#10,
-            [FieldByName('ruid').AsString,
-             Features.CommaText,
-             GetIntoFieldList(Features, 'usr$')]) +
-            GetMovementContactSQL(CreditMovement, True) +
-            GetMovementContactSQL(DebitMovement, False)
-  else
-    Result :=
-      FixedVariableList + #13#10 + MakeFieldList(Features, 'usr$') + ConstTriggerText +
-      Format(
-            '  if (ruid = ''%0:s'') then ' + #13#10 +
-            '  begin ' + #13#10 +
-            '    select goodkey, checkremains, minusremains from ' + #13#10 +
-            '    usr$%0:s ' + #13#10 +
-            '    where documentkey = NEW.documentkey ' + #13#10 +
-            '    into :goodkey, :checkremains, :minusremains; ' + #13#10,
-            [FieldByName('ruid').AsString]) +
-            GetMovementContactSQL(CreditMovement, True) +
-            GetMovementContactSQL(DebitMovement, False);
+  Result :=
+    FixedVariableList + #13#10 + MakeFieldList(Features, 'usr$') + ConstTriggerText +
+    Format(
+          '  if (ruid = ''%0:s'') then ' + #13#10 +
+          '  begin ' + #13#10 + GetReadFeatureSQL(Features, #0, True, False, 'usr$'),
+          [FieldByName('ruid').AsString]) +
+          GetMovementContactSQL(CreditMovement, True) +
+          GetMovementContactSQL(DebitMovement, False);
 
   if SourceFeatures.Count > 0 then
     Result := Result +
@@ -4313,6 +4365,7 @@ end;
 function CreateUpdateTrigger_SimpleDoc: String;
 var
   Features: TStringList;
+  s: String;
 begin
 
   if DestFeatures.Count > 0 then
@@ -4320,64 +4373,47 @@ begin
   else
     Features := SourceFeatures;
 
-  if Features.Count > 0 then
-    Result :=
-      FixedVariableList + #13#10 +
-      '  declare variable oldgoodkey integer; ' + #13#10 +
-      '  declare variable oldfromcontactkey integer; ' + #13#10 +
-      '  declare variable oldtocontactkey integer; ' + #13#10 +
-      '  declare variable oldquantity numeric(15, 4); ' + #13#10 +
-      '  declare variable ischange dboolean; ' + #13#10 +
-      MakeFieldList(Features, 'usr$') + MakeFieldList(Features, 'old$') + ConstTriggerText +
-      Format(
-            '  if (ruid = ''%0:s'') then ' + #13#10 +
-            '  begin ' + #13#10 +
-            '    select %1:s, goodkey, checkremains, minusremains from ' + #13#10 +
-            '    usr$%0:s ' + #13#10 +
-            '    where documentkey = NEW.documentkey ' + #13#10 +
-            '    into %2:s, :goodkey, :checkremains, :minusremains; ' + #13#10,
-            [FieldByName('ruid').AsString,
-             Features.CommaText,
-             GetIntoFieldList(Features, 'usr$')]) +
-          Format(
-          '    select %0:s, goodkey from ' + #13#10 +
-          '    inv_card ' + #13#10 +
-          '    where id = OLD.fromcardkey ' + #13#10 +
-          '    into %1:s, :oldgoodkey; ' + #13#10,
-          [Features.CommaText,
-           GetIntoFieldList(Features, 'old$')]) +
-          GetMovementContactSQL(CreditMovement, True) +
-          GetMovementContactSQL(DebitMovement, False) +
-          GetOldMovementContactSQL(CreditMovement, True) +
-          GetOldMovementContactSQL(DebitMovement, False) +
-          GetCheckFeaturesSQL(Features, 'usr$', 'old$')
-  else
-    Result :=
-      FixedVariableList + #13#10 +
-      '  declare variable oldgoodkey integer; ' + #13#10 +
-      '  declare variable oldfromcontactkey integer; ' + #13#10 +
-      '  declare variable oldtocontactkey integer; ' + #13#10 +
-      '  declare variable oldquantity numeric(15, 4); ' + #13#10 +
-      '  declare variable ischange dboolean; ' + #13#10 +
-      ConstTriggerText +
-      Format(
-            '  if (ruid = ''%0:s'') then ' + #13#10 +
-            '  begin ' + #13#10 +
-            '    select goodkey, checkremains, minusremains from ' + #13#10 +
-            '    usr$%0:s ' + #13#10 +
-            '    where documentkey = NEW.documentkey ' + #13#10 +
-            '    into :goodkey, :checkremains, :minusremains; ' + #13#10,
-            [FieldByName('ruid').AsString]) +
-          '    selectgoodkey from ' + #13#10 +
-          '    inv_card ' + #13#10 +
-          '    where id = OLD.fromcardkey ' + #13#10 +
-          '    into :oldgoodkey; ' + #13#10 +
-          GetMovementContactSQL(CreditMovement, True) +
-          GetMovementContactSQL(DebitMovement, False) +
-          GetOldMovementContactSQL(CreditMovement, True) +
-          GetOldMovementContactSQL(DebitMovement, False) +
-          GetCheckFeaturesSQL(Features, 'usr$', 'old$');
+  Result :=
+    FixedVariableList + #13#10 +
+    '  declare variable oldgoodkey integer; ' + #13#10 +
+    '  declare variable oldfromcontactkey integer; ' + #13#10 +
+    '  declare variable oldtocontactkey integer; ' + #13#10 +
+    '  declare variable oldquantity numeric(15, 4); ' + #13#10 +
+    '  declare variable ischange dboolean; ' + #13#10 +
+    MakeFieldList(Features, 'usr$') + MakeFieldList(Features, 'old$') + ConstTriggerText +
+    Format(
+          '  if (ruid = ''%0:s'') then ' + #13#10 +
+          '  begin ' + #13#10 + GetReadFeatureSQL(Features, #0, True, False, 'usr$'),
+          [FieldByName('ruid').AsString]) + GetReadFeatureSQL(Features, #0, False, False, 'old$') +
+        GetMovementContactSQL(CreditMovement, True) +
+        GetMovementContactSQL(DebitMovement, False) +
+        GetOldMovementContactSQL(CreditMovement, True) +
+        GetOldMovementContactSQL(DebitMovement, False) +
+        GetCheckFeaturesSQL(Features, 'usr$', 'old$') +
+        GetOldDocumentDateSQL;
 
+    if LiveTimeRemains then
+      s := '        if (isdeletemovement = 0) then ' + #13#10 +
+           '        begin ' + #13#10 +
+           '        if (olddocumentdate > documentdate) then ' + #13#10 + GetUpdateDateSQL +
+           '        else ' + #13#10 +
+           '        begin ' + #13#10 + GetCheckRemainsOnDateSQL(False) +  GetUpdateDateSQL +
+           '        end ' + #13#10 +
+           '        end ' + #13#10
+
+    else
+      s := '        if (isdeletemovement = 0) then ' + #13#10 +
+           '        begin ' + #13#10 +
+           '        if (olddocumentdate <> documentdate) then ' + #13#10 +
+           '        begin ' + #13#10 +
+           '          if (checkremains = 1 and olddocumentdate > documentdate) then ' + #13#10 +
+           '          begin ' + #13#10 +  GetCheckRemainsOnDateSQL(True) +
+           '          end ' + #13#10 +
+           '          if (olddocumentdate < documentdate) then ' + #13#10 +
+           '          begin ' + #13#10 + GetCheckRemainsOnDateSQL(False) +
+           '          end ' + #13#10 + GetUpdateDateSQL +
+           '        end ' + #13#10 +
+           '        end ' + #13#10;
 
   if SourceFeatures.Count > 0 then
     Result := Result +
@@ -4385,9 +4421,10 @@ begin
         '      DELETE FROM inv_movement WHERE documentkey = NEW.documentkey; ' + #13#10 +
         '    else ' + #13#10 +
         '    begin ' + #13#10 +
-        '      if ((ischange = 1) or (oldfromcontactkey <> fromcontactkey)) then ' + #13#10 +
+        '      if ((ischange = 1) or (oldfromcontactkey <> fromcontactkey) or (olddocumentdate IS NULL)) then ' + #13#10 +
         '      begin ' + #13#10 +
         '        DELETE FROM inv_movement WHERE documentkey = NEW.documentkey; ' + #13#10 +
+        '        isdeletemovement = 1; ' + #13#10 +
         '        tmpquantity = NEW.quantity; ' + #13#10 +
         GetChooseRemainsSQL(SourceFeatures) +
         '         begin ' + #13#10 +
@@ -4425,7 +4462,7 @@ begin
         '      begin '  + #13#10 +
         '        if (coalesce(oldtocontactkey, 0) <> coalesce(tocontactkey, 0)) then ' + #13#10 +
         '          UPDATE inv_movement SET contactkey = :tocontactkey ' + #13#10 +
-        '          WHERE documentkey = NEW.documentkey and debit <> 0; ' + #13#10 +
+        '          WHERE documentkey = NEW.documentkey and debit <> 0; ' + #13#10 + S +
         '        if (coalesce(OLD.quantity, 0) < coalesce(NEW.quantity, 0)) then ' + #13#10 +
         '        begin ' + #13#10 +
         '         tmpquantity = coalesce(NEW.quantity, 0) - coalesce(OLD.quantity, 0); ' + #13#10 +
@@ -4559,6 +4596,13 @@ begin
         '          end ' + #13#10 +
         '        end ' + #13#10 +
         '      end ' + #13#10 +
+        '      if (olddocumentdate <> documentdate and isdeletemovement = 0) then ' + #13#10 +
+        '      begin ' + #13#10 +
+        '      if (olddocumentdate > documentdate) then ' + #13#10 + GetUpdateDateSQL +
+        '      else ' + #13#10 +
+        '      begin ' + #13#10 + GetCheckRemainsOnDateSQL(False) + GetUpdateDateSQL +
+        '      end ' + #13#10 +
+        '    end ' + #13#10 +
         '    end ' + #13#10 +
         '  end ' + #13#10;
    Result := Result + 'end ';
@@ -4574,8 +4618,8 @@ begin
     FixedVariableList + #13#10 + MakeFieldList(SourceFeatures, 'usr$') + MakeFieldList(DestFeatures, 'new$') + ConstTriggerText +
     Format(
           '  if (ruid = ''%0:s'') then ' + #13#10 +
-          '  begin ' + #13#10 + GetReadFeatureSQL(SourceFeatures, True, True, False, 'usr$') +
-          GetReadFeatureSQL(DestFeatures, False, True, True, 'new$'),
+          '  begin ' + #13#10 + GetReadFeatureSQL(SourceFeatures, 'F', True, False, 'usr$') +
+          GetReadFeatureSQL(DestFeatures, 'T', True, True, 'new$'),
           [FieldByName('ruid').AsString]) +
           GetMovementContactSQL(CreditMovement, True) +
           GetMovementContactSQL(DebitMovement, False) +
@@ -4637,37 +4681,63 @@ end;
 
 // Создание триггера BeforeUpdate для документа изменения свойств
 function CreateUpdateTrigger_ChangeFeatureDoc: String;
+var
+  s : String;
 begin
+    if LiveTimeRemains then
+      s := '        if (isdeletemovement = 0 and olddocumentdate <> documentdate) then ' + #13#10 +
+           '        begin ' + #13#10 +
+           '        if (olddocumentdate > documentdate) then ' + #13#10 + GetUpdateDateSQL +
+           '        else ' + #13#10 +
+           '        begin ' + #13#10 + GetCheckRemainsOnDateSQL(False) +  GetUpdateDateSQL +
+           '        end ' + #13#10 +
+           '        end ' + #13#10
+
+    else
+      s := '        if (isdeletemovement = 0 and olddocumentdate <> documentdate) then ' + #13#10 +
+           '        begin ' + #13#10 +
+           '          if (checkremains = 1 and olddocumentdate > documentdate) then ' + #13#10 +
+           '          begin ' + #13#10 + GetCheckRemainsOnDateSQL(True) +
+           '          end ' + #13#10 +
+           '          if (olddocumentdate < documentdate) then ' + #13#10 +
+           '          begin ' + #13#10 + GetCheckRemainsOnDateSQL(False) +
+           '          end ' + #13#10 + GetUpdateDateSQL +
+           '        end ' + #13#10;
+
   Result :=
     FixedVariableList + #13#10 +
     MakeFieldList(SourceFeatures, 'usr$') +
     MakeFieldList(DestFeatures, 'new$') +
     MakeFieldList(SourceFeatures, 'old$') +
-    ' declare variable oldgoodkey integer; ' + #13#10 +
-    ' declare variable oldfromcontactkey integer; ' + #13#10 +
-    ' declare variable oldtocontactkey integer; ' + #13#10 +
-    ' declare variable ischange DBOOLEAN; ' + #13#10 +
-    ' declare variable istochange DBOOLEAN; ' + #13#10 +
-    ' declare variable oldquantity DQUANTITY; ' + #13#10 +
+    '  declare variable oldgoodkey integer; ' + #13#10 +
+    '  declare variable oldfromcontactkey integer; ' + #13#10 +
+    '  declare variable oldtocontactkey integer; ' + #13#10 +
+    '  declare variable ischange DBOOLEAN; ' + #13#10 +
+    '  declare variable istochange DBOOLEAN; ' + #13#10 +
+    '  declare variable oldquantity DQUANTITY; ' + #13#10 +
     MakeFieldList(DestFeatures, 'to$') + ConstTriggerText +
     Format(
           '  if (ruid = ''%0:s'') then ' + #13#10 +
           '  begin ' + #13#10 +
-          GetReadFeatureSQL(SourceFeatures, True, True, False, 'usr$') +
-          GetReadFeatureSQL(DestFeatures, False, True, True, 'new$'),
+          GetReadFeatureSQL(SourceFeatures, 'F', True, False, 'usr$') +
+          GetReadFeatureSQL(DestFeatures, 'T', True, True, 'new$'),
                     [FieldByName('ruid').AsString]) +
-          GetReadFeatureSQL(SourceFeatures, True, False, False, 'old$') +
-          GetReadFeatureSQL(DestFeatures, False, False, False, 'to$') +
+          GetReadFeatureSQL(SourceFeatures, 'F', False, False, 'old$') +
+          GetReadFeatureSQL(DestFeatures, 'T', False, False, 'to$') +
       GetMovementContactSQL(CreditMovement, True) +
       GetMovementContactSQL(DebitMovement, False) +
       GetOldMovementContactSQL(CreditMovement, True) +
       GetOldMovementContactSQL(DebitMovement, False) +
       GetCheckFeaturesSQL(SourceFeatures, 'usr$', 'old$') +
       GetCheckFeaturesSQL(DestFeatures, 'new$', 'to$') +
+      GetOldDocumentDateSQL + 
         '    if (delayed = 0) then ' + #13#10 +
         '    begin ' + #13#10 +
         '      if (ischange = 1 or fromcontactkey <> oldfromcontactkey or coalesce(NEW.quantity, 0) = 0) then' + #13#10 +
+        '      begin ' + #13#10 +
         '        DELETE FROM inv_movement WHERE documentkey = NEW.documentkey; ' + #13#10 +
+        '        isdeletemovement = 1; ' + #13#10 +
+        '      end ' + #13#10 +
         '      if (ischange = 1 or coalesce(NEW.quantity, 0) > coalesce(OLD.quantity, 0) or fromcontactkey <> oldfromcontactkey) then ' + #13#10 +
         '      begin ' + #13#10 +
         '        if (tocontactkey <> oldtocontactkey) then ' + #13#10 +
@@ -4751,7 +4821,7 @@ begin
         '               end ' + #13#10 +
         '             end ' + #13#10 +
         '           end ' + #13#10 +
-        '         end ' + #13#10 +
+        '         end ' + #13#10 + S +
         '      if (istochange = 1 and ischange = 0 and fromcontactkey = oldfromcontactkey) then ' + #13#10 +
         '      begin ' + #13#10 + GetMakeUpdateCardSQL(DestFeatures, 'new$') + 
         '      end ' + #13#10 +
@@ -4785,7 +4855,7 @@ begin
     Format(
           '  if (ruid = ''%0:s'') then ' + #13#10 +
           '  begin ' + #13#10 +
-               GetReadFeatureSQL(SourceFeatures, True, True, False, 'usr$'),
+               GetReadFeatureSQL(SourceFeatures, 'F', True, False, 'usr$'),
           [FieldByName('ruid').AsString]) +
           GetMovementContactSQL(CreditMovement, True) +
         '    tocontactkey = fromcontactkey; ' + #13#10 +
@@ -4835,14 +4905,7 @@ begin
         '        NEW.fromcardkey = :id; ' + #13#10 +
         '      end ' + #13#10 +
         '      else '  + #13#10 +
-        '      begin '  + #13#10 +
-        Format(
-        '        select %0:s, goodkey from ' + #13#10 +
-        '        inv_card ' + #13#10 +
-        '        where id = NEW.fromcardkey ' + #13#10 +
-        '        into %1:s, :oldgoodkey; ' + #13#10,
-            [SourceFeatures.CommaText,
-             GetIntoFieldList(SourceFeatures, 'old$')]) +
+        '      begin '  + #13#10 + GetReadFeatureSQL(SourceFeatures, 'N', False, False, 'old$') +
              GetCheckFeaturesSQL(SourceFeatures, 'usr$', 'old$') +
         '        if (ischange = 1) then ' + #13#10 +
         '        begin ' + #13#10 +
@@ -4879,20 +4942,21 @@ begin
 
   Result :=
     FixedVariableList + #13#10 + MakeFieldList(Features, 'usr$') + MakeFieldList(Features, 'old$') +
-    ' declare variable oldgoodkey integer; ' + #13#10 +
+    '  declare variable oldgoodkey integer; ' + #13#10 +
     '  declare variable oldfromcontactkey integer; ' + #13#10 +
     '  declare variable oldtocontactkey integer; ' + #13#10 +
     '  declare variable oldquantity numeric(15, 4); ' + #13#10 +
-    ' declare variable ischange integer; ' + #13#10 + ConstTriggerText +
+    '  declare variable ischange integer; ' + #13#10 + ConstTriggerText +
     Format(
           '  if (ruid = ''%0:s'') then ' + #13#10 +
           '  begin ' + #13#10 +
-               GetReadFeatureSQL(SourceFeatures, True, True, False, 'usr$'),
+               GetReadFeatureSQL(SourceFeatures, 'F', True, False, 'usr$'),
           [FieldByName('ruid').AsString]) +
           GetMovementContactSQL(CreditMovement, True) +
           GetOldMovementContactSQL(CreditMovement, True) +
-          GetReadFeatureSQL(SourceFeatures, True, False, False, 'old$') +
+          GetReadFeatureSQL(SourceFeatures, 'F', False, False, 'old$') +
              GetCheckFeaturesSQL(SourceFeatures, 'usr$', 'old$') +
+             GetOldDocumentDateSQL + 
         '    tocontactkey = fromcontactkey; ' + #13#10 +
         '    oldtocontactkey = oldfromcontactkey; ' + #13#10 +
         '    quant = coalesce(NEW.fromquantity, 0) - coalesce(NEW.toquantity, 0); ' + #13#10 +
@@ -5044,6 +5108,15 @@ begin
         '        UPDATE inv_movement SET debit = debit + :oldquantity ' + #13#10 +
         '        WHERE documentkey = NEW.documentkey; ' + #13#10 +
         '      end   ' + #13#10 +
+        '      if (olddocumentdate <> documentdate) then ' + #13#10 +
+        '      begin ' + #13#10 +
+        '          if (checkremains = 1 and olddocumentdate > documentdate and NEW.fromquantity > NEW.toquantity) then ' + #13#10 +
+        '          begin ' + #13#10 + GetCheckRemainsOnDateSQL(True) +
+        '          end ' + #13#10 +
+        '          if (olddocumentdate < documentdate and NEW.fromquantity < NEW.toquantity) then ' + #13#10 +
+        '          begin ' + #13#10 + GetCheckRemainsOnDateSQL(False) +
+        '          end ' + #13#10 + GetUpdateDateSQL +
+        '      end ' + #13#10 +
         '    end ' + #13#10 +
         '  end ' + #13#10 +
         'end ';
@@ -5057,8 +5130,14 @@ begin
     Format(
           '  if (ruid = ''%0:s'') then ' + #13#10 +
           '  begin ' + #13#10 +
-               GetReadFeatureSQL(SourceFeatures, True, True, False, 'usr$') +
-               GetReadFeatureSQL(DestFeatures, False, True, False, 'new$'),
+          '    if (coalesce(NEW.outquantity, 0) <> 0) then ' + #13#10 +
+          '    begin ' + #13#10 +
+                 GetReadFeatureSQL(SourceFeatures, 'F', True, False, 'usr$') +
+          '    end ' + #13#10 +
+          '    else '  + #13#10 +
+          '    begin '  + #13#10 +
+                 GetReadFeatureSQL(DestFeatures, 'T', True, False, 'new$') +
+          '    end ' + #13#10,
           [FieldByName('ruid').AsString]) +
           GetMovementContactSQL(CreditMovement, True) +
           GetMovementContactSQL(DebitMovement, False) +
@@ -5133,28 +5212,35 @@ begin
     MakeFieldList(SourceFeatures, 'usr$') +
     MakeFieldList(DestFeatures, 'new$') +
     MakeFieldList(SourceFeatures, 'old$') +
-    ' declare variable oldgoodkey integer; ' + #13#10 +
-    ' declare variable oldfromcontactkey integer; ' + #13#10 +
-    ' declare variable oldtocontactkey integer; ' + #13#10 +
-    ' declare variable ischange DBOOLEAN; ' + #13#10 +
-    ' declare variable istochange DBOOLEAN; ' + #13#10 +
-    ' declare variable oldquantity DQUANTITY; ' + #13#10 +
-    ' declare variable updatesql VARCHAR(1024); ' + #13#10 +
+    '  declare variable oldgoodkey integer; ' + #13#10 +
+    '  declare variable oldfromcontactkey integer; ' + #13#10 +
+    '  declare variable oldtocontactkey integer; ' + #13#10 +
+    '  declare variable ischange DBOOLEAN; ' + #13#10 +
+    '  declare variable istochange DBOOLEAN; ' + #13#10 +
+    '  declare variable oldquantity DQUANTITY; ' + #13#10 +
+    '  declare variable updatesql VARCHAR(1024); ' + #13#10 +
     MakeFieldList(DestFeatures, 'to$') + ConstTriggerText +
     Format(
           '  if (ruid = ''%0:s'') then ' + #13#10 +
           '  begin ' + #13#10 +
-               GetReadFeatureSQL(SourceFeatures, True, True, False, 'usr$') +
-               GetReadFeatureSQL(DestFeatures, False, True, False, 'new$'),
+          '    if (coalesce(NEW.outquantity, 0) <> 0 or coalesce(OLD.outquantity, 0) <> 0) then ' + #13#10 +
+          '    begin '  + #13#10 +
+               GetReadFeatureSQL(SourceFeatures, 'F', True, False, 'usr$') +
+               GetReadFeatureSQL(SourceFeatures, 'F', False, False, 'old$') +
+          '    end '  + #13#10 +
+          '    else '  + #13#10 +
+          '    begin '  + #13#10 +
+               GetReadFeatureSQL(DestFeatures, 'T', True, False, 'new$') +
+               GetReadFeatureSQL(DestFeatures, 'T', False, False, 'to$') +
+          '    end ' + #13#10,
           [FieldByName('ruid').AsString]) +
-               GetReadFeatureSQL(SourceFeatures, True, False, False, 'old$') +
-               GetReadFeatureSQL(DestFeatures, False, False, False, 'to$') +
       GetMovementContactSQL(CreditMovement, True) +
       GetMovementContactSQL(DebitMovement, False) +
       GetOldMovementContactSQL(CreditMovement, True) +
       GetOldMovementContactSQL(DebitMovement, False) +
       GetCheckFeaturesSQL(SourceFeatures, 'usr$', 'old$') +
       GetCheckFeaturesSQL(DestFeatures, 'new$', 'to$') +
+      GetOldDocumentDateSQL + 
         '    if (coalesce(NEW.inquantity, 0) <> 0) then ' + #13#10 +
         '    begin '  + #13#10 +
         '      if (delayed = 1) then '  + #13#10 +
@@ -5162,7 +5248,10 @@ begin
         '    end '  + #13#10 +
         '    else '  + #13#10 +
         '      if (delayed = 1 or fromcontactkey <> oldfromcontactkey or ischange = 1) then '  + #13#10 +
+        '      begin ' + #13#10 +
         '        DELETE FROM inv_movement WHERE documentkey = NEW.documentkey; '  + #13#10 +
+        '        isdeletemovement = 1; ' + #13#10 +
+        '      end ' + #13#10 +
         '    if (delayed = 0) then ' + #13#10 +
         '    begin ' + #13#10 +
         '      if (coalesce(NEW.inquantity, 0) <> 0) then ' + #13#10 +
@@ -5176,6 +5265,12 @@ begin
         '        begin '   + #13#10 +
         GetMakeUpdateCardSQL(DestFeatures, 'new$') + #13#10 +
         '        end '   + #13#10 +
+        '        if (isdeletemovement = 0 and olddocumentdate <> documentdate) then ' + #13#10 +
+        '        begin ' + #13#10 +
+        '          if (olddocumentdate < documentdate) then ' + #13#10 +
+        '          begin ' + #13#10 + GetCheckRemainsOnDateSQL(False) +
+        '          end ' + #13#10 + GetUpdateDateSQL +
+        '        end ' + #13#10 +
         '      end ' + #13#10 +
         '      else ' + #13#10 +
         '      begin ' + #13#10 +
@@ -5246,7 +5341,12 @@ begin
         '           end ' + #13#10 +
         '        end ' + #13#10 +
         '        end ' + #13#10 +
-
+        '        if (isdeletemovement = 0 and olddocumentdate <> documentdate) then ' + #13#10 +
+        '        begin ' + #13#10 +
+        '          if (olddocumentdate > documentdate) then ' + #13#10 +
+        '          begin ' + #13#10 + GetCheckRemainsOnDateSQL(True) +
+        '          end ' + #13#10 + GetUpdateDateSQL +
+        '        end ' + #13#10 +
         '      end ' + #13#10 +
         '    end ' + #13#10 +
         '    else '  + #13#10 +
@@ -5336,6 +5436,32 @@ begin
       end;
 
       gdcTrigger.Post;
+
+      NameTrigger := 'USR$AU_DC_' + FieldByName('ruid').AsString;
+
+      gdcTrigger.Close;
+      gdcTrigger.ParamByName('triggername').AsString := NameTrigger;
+      gdcTrigger.Open;
+      gdcTrigger.Edit;
+      gdcTrigger.FieldByName('triggername').AsString := NameTrigger;
+      gdcTrigger.FieldByName('relationname').AsString := 'GD_DOCUMENT';
+      gdcTrigger.FieldByName('relationkey').AsInteger := atDatabase.Relations.ByRelationName('GD_DOCUMENT').ID;
+      gdcTrigger.FieldByName('rdb$trigger_sequence').AsInteger := 10;
+      gdcTrigger.FieldByName('rdb$trigger_name').AsString := gdcTrigger.FieldByName('triggername').AsString;
+      gdcTrigger.FieldByName('trigger_inactive').AsInteger := 0;
+      gdcTrigger.FieldByName('rdb$trigger_type').AsInteger := 4;
+
+      gdcTrigger.FieldByName('rdb$trigger_source').AsString :=
+      'AS ' + #13#10 +
+      'BEGIN ' + #13#10 +
+      '  if (NEW.parent is not null and NEW.documenttypekey = ' + FieldByName('id').AsString + ') then '  + #13#10 +
+      '    if (NEW.documentdate <> OLD.documentdate) then '  + #13#10 +
+      '      UPDATE ' + RelationLineName + ' SET documentkey = documentkey WHERE documentkey = NEW.id; '  + #13#10 +
+      'END '  + #13#10;
+
+
+      gdcTrigger.Post;
+
 
     finally
       gdcTrigger.Free;
