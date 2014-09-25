@@ -1605,9 +1605,9 @@ begin
   LI.Caption := ACE.TheClass.ClassName;
 
   if ACE.gdcClass.IsAbstractClass then
-    LI.SubItems.Text := '<Абстрактный базовый класс>'
+    LI.SubItems.Add('<Абстрактный базовый класс>')
   else
-    LI.SubItems.Text := ACE.SubType;
+    LI.SubItems.Add(ACE.SubType);
 
   LI.SubItems.Add(ACE.gdcClass.GetDisplayName(ACE.SubType));
   LI.SubItems.Add(ACE.gdcClass.GetListTable(ACE.SubType));

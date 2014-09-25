@@ -1383,7 +1383,6 @@ begin
 
   if CE <> nil then
     Result := CE.gdcClass;
-
 end;
 
 function TgdClassList.GetFrmClass(const AFullClassName: TgdcFullClassName): CgdcCreateableForm;

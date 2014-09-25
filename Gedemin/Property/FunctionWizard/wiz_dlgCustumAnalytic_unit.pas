@@ -15,7 +15,7 @@ type
     ActionList: TActionList;
     actOk: TAction;
     actCancel: TAction;
-    Panel1: TPanel;
+    pnl: TPanel;
     Label1: TLabel;
     Label2: TLabel;
     cbNeedId: TCheckBox;
@@ -25,41 +25,42 @@ type
     actAdd: TAction;
     actEdit: TAction;
     actDelete: TAction;
-    cbBO: TComboBox;
+    edBO: TEdit;
+    btnSelectClass: TButton;
+    actSelectClass: TAction;
+
     procedure actOkExecute(Sender: TObject);
     procedure actCancelExecute(Sender: TObject);
-    procedure cbAnalyticNameChange(Sender: TObject);
-    procedure cbBODropDown(Sender: TObject);
-    procedure FormDestroy(Sender: TObject);
+    procedure actSelectClassExecute(Sender: TObject);
+    procedure actOkUpdate(Sender: TObject);
+
   private
-    FValue: string;
-    FSubTypeList: TStrings;
-    procedure SetValue(const Value: string);
-    function GetValue: string;
+    FC: TgdcFullClassName;
 
-    function BuildClassTree(ACE: TgdClassEntry; AData: Pointer): Boolean;
-    { Private declarations }
+    function GetValue: String;
+
   public
-    { Public declarations }
-    property Value: string read GetValue write SetValue;
-
+    property Value: String read GetValue;
   end;
 
 function CustomAnalyticForm: TCustomAnalyticForm;
+
 implementation
+
+{$R *.DFM}
+
+uses
+  gd_dlgClassList_unit;
+
 var
   _CustomAnalyticForm: TCustomAnalyticForm;
 
 function CustomAnalyticForm: TCustomAnalyticForm;
 begin
   if _CustomAnalyticForm = nil then
-  begin
     _CustomAnalyticForm := TCustomAnalyticForm.Create(nil);
-  end;
-
   Result := _CustomAnalyticForm;
 end;
-{$R *.DFM}
 
 procedure TCustomAnalyticForm.actOkExecute(Sender: TObject);
 begin
@@ -71,130 +72,53 @@ begin
   ModalResult := mrCancel;
 end;
 
-procedure TCustomAnalyticForm.cbAnalyticNameChange(Sender: TObject);
+function TCustomAnalyticForm.GetValue: String;
 var
-  C: CgdcBase;
-  Index: Integer;
+  RUID: String;
 begin
-  cbAnalyticValue.Condition := '';
-  cbAnalyticValue.gdClassName := '';
-  cbAnalyticValue.ListTable := '';
-  cbAnalyticValue.ListField := '';
-  cbAnalyticValue.KeyField :=  '';
-  cbAnalyticValue.Fields := '';
-
-  if cbBO.ItemIndex > - 1 then
-  begin
-    Index := FSubTypeList.IndexOfName(cbBO.Items[cbBo.ItemIndex]);
-    C := CgdcBase(FSubTypeList.Objects[Index]);
-
-    cbAnalyticValue.SubType := FsubTypeList.Values[FSubTypeList.Names[Index]];
-    cbAnalyticValue.gdClassName := C.ClassName;
-
-    cbAnalyticValue.ListTable := C.GetListTable(cbAnalyticValue.SubType);
-    cbAnalyticValue.ListField := C.GetListField(cbAnalyticValue.SubType);
-    cbAnalyticValue.KeyField := C.GetKeyField(cbAnalyticValue.SubType);
-    cbAnalyticValue.Text := '';
-
-    cbAnalyticValue.Enabled := True;
-  end else
-  begin
-    cbAnalyticValue.Enabled := False;
-  end;
-end;
-
-procedure TCustomAnalyticForm.SetValue(const Value: string);
-begin
-  FValue := Value;
-end;
-
-function TCustomAnalyticForm.GetValue: string;
-begin
-  Result := '';
   if cbAnalyticValue.Enabled then
   begin
+    RUID := '"' + gdcBaseManager.GetRUIDStringById(cbAnalyticValue.CurrentKeyInt) + '"';
     if cbNeedId.Checked then
-    begin
-      Result := Format('gdcBaseManager.GetidByRUIDString("%s")',
-        [gdcBaseManager.GetRUIDStringById(cbAnalyticValue.CurrentKeyInt)]);
-    end else
-    begin
-      Result := Format('"%s"', [gdcBaseManager.GetRUIDStringById(cbAnalyticValue.CurrentKeyInt)]);
-    end;
-  end;
+      Result := 'gdcBaseManager.GetIdByRUIDString(' + RUID + ')'
+    else
+      Result := RUID;
+  end else
+    Result := '';
 end;
 
-function TCustomAnalyticForm.BuildClassTree(ACE: TgdClassEntry; AData: Pointer): Boolean;
-var
-  S: TStringList;
-  CL: TClassList;
-  J: Integer;
+procedure TCustomAnalyticForm.actSelectClassExecute(Sender: TObject);
 begin
-  if (ACE <> nil) and (not (ACE.SubType > '')) then
-  begin
-    S := TStringList.Create;
-    CL := TClassList.Create;
-
-    try
-      if not GetDescendants(ACE.gdcClass, CL, True) then
-      begin
-      if ACE.gdcClass.GetSubTypeList(S) then
-        begin
-          for J := 0 to S.Count - 1 do
-          begin
-            FSubTypeList.AddObject(Format('%s[%s]',
-              [S.Names[J],
-              ACE.gdcClass.ClassName]) + '=' +
-              S.Values[S.Names[J]], Pointer(ACE.gdcClass));
-            cbBo.Items.AddObject(Format('%s[%s]',
-              [S.Names[J],
-              ACE.gdcClass.ClassName]),
-              Pointer(ACE.gdcClass));
-          end;
-        end else
-        begin
-          FSubTypeList.AddObject(Format('%s[%s]',
-            [ACE.gdcClass.GetDisplayName(''),
-            ACE.gdcClass.ClassName]) + '=',
-            Pointer(ACE.gdcClass));
-          cbBo.Items.AddObject(Format('%s[%s]',
-            [ACE.gdcClass.GetDisplayName(''),
-            ACE.gdcClass.ClassName]),
-            Pointer(ACE.gdcClass));
-        end;
-      end;
-    finally
-      S.Free;
-      CL.Free;
-    end;
-  end;
-  Result := True;
-end;
-
-procedure TCustomAnalyticForm.cbBODropDown(Sender: TObject);
-begin
-  if FSubTypeList = nil then
-    FSubTypeList := TStringList.Create
-  else
-    FSubTypeList.Clear;
-
-  cbBo.Items.BeginUpdate;
+  with Tgd_dlgClassList.Create(nil) do
   try
-    cbBo.Items.Clear;
+    if SelectModal('', FC) then
+    begin
+      edBO.Text := FC.gdClassName + FC.SubType;
 
-    gdClassList.Traverse(TgdcBase, '', BuildClassTree, nil);
+      cbAnalyticValue.Condition := '';
+      cbAnalyticValue.gdClassName := '';
+      cbAnalyticValue.ListTable := '';
+      cbAnalyticValue.ListField := '';
+      cbAnalyticValue.KeyField :=  '';
+      cbAnalyticValue.Fields := '';
+      cbAnalyticValue.Text := '';
 
+      cbAnalyticValue.gdClassName := FC.gdClassName;
+      cbAnalyticValue.SubType := FC.SubType;
+      cbAnalyticValue.Enabled := True;
+    end;
   finally
-    cbBo.Items.EndUpdate;
+    Free;
   end;
 end;
 
-procedure TCustomAnalyticForm.FormDestroy(Sender: TObject);
+procedure TCustomAnalyticForm.actOkUpdate(Sender: TObject);
 begin
-  FSubTypeList.Free;
+  actOk.Enabled := Value > '';
 end;
 
 initialization
+
 finalization
   FreeAndNil(_CustomAnalyticForm);
 end.
