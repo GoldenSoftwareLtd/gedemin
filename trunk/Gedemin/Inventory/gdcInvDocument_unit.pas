@@ -4216,7 +4216,7 @@ begin
        '                 cardkey = :id and contactkey = :fromcontactkey and movementdate > :documentdate) m ' + #13#10 +
        '              into :oldquantity; ' + #13#10 +
        '              if (oldquantity < movementquantity) then ' + #13#10 +
-       '                EXCEPTION INV_E_INVALIDMOVEMENT; ' + #13#10 +
+       '                EXCEPTION INV_E_NOPRODUCT; ' + #13#10 +
        '            end ' + #13#10
   else
     Result :=
@@ -4234,7 +4234,7 @@ begin
        '                 cardkey = :id and contactkey = :tocontactkey and movementdate >= :documentdate) m ' + #13#10 +
        '              into :oldquantity; ' + #13#10 +
        '              if (oldquantity < movementquantity) then ' + #13#10 +
-       '                EXCEPTION INV_E_INVALIDMOVEMENT; ' + #13#10 +
+       '                EXCEPTION INV_E_EARLIERMOVEMENT; ' + #13#10 +
        '            end ' + #13#10;
 end;
 
@@ -5436,32 +5436,6 @@ begin
       end;
 
       gdcTrigger.Post;
-
-      NameTrigger := 'USR$AU_DC_' + FieldByName('ruid').AsString;
-
-      gdcTrigger.Close;
-      gdcTrigger.ParamByName('triggername').AsString := NameTrigger;
-      gdcTrigger.Open;
-      gdcTrigger.Edit;
-      gdcTrigger.FieldByName('triggername').AsString := NameTrigger;
-      gdcTrigger.FieldByName('relationname').AsString := 'GD_DOCUMENT';
-      gdcTrigger.FieldByName('relationkey').AsInteger := atDatabase.Relations.ByRelationName('GD_DOCUMENT').ID;
-      gdcTrigger.FieldByName('rdb$trigger_sequence').AsInteger := 10;
-      gdcTrigger.FieldByName('rdb$trigger_name').AsString := gdcTrigger.FieldByName('triggername').AsString;
-      gdcTrigger.FieldByName('trigger_inactive').AsInteger := 0;
-      gdcTrigger.FieldByName('rdb$trigger_type').AsInteger := 4;
-
-      gdcTrigger.FieldByName('rdb$trigger_source').AsString :=
-      'AS ' + #13#10 +
-      'BEGIN ' + #13#10 +
-      '  if (NEW.parent is not null and NEW.documenttypekey = ' + FieldByName('id').AsString + ') then '  + #13#10 +
-      '    if (NEW.documentdate <> OLD.documentdate) then '  + #13#10 +
-      '      UPDATE ' + RelationLineName + ' SET documentkey = documentkey WHERE documentkey = NEW.id; '  + #13#10 +
-      'END '  + #13#10;
-
-
-      gdcTrigger.Post;
-
 
     finally
       gdcTrigger.Free;
