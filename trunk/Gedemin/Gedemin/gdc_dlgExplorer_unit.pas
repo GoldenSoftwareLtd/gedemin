@@ -6,7 +6,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   gdc_dlgTR_unit, IBDatabase, Menus, Db, ActnList, StdCtrls, dmDatabase_unit,
-  gsIBLookupComboBox, Mask, DBCtrls, ExtCtrls, gd_ClassList;
+  gsIBLookupComboBox, Mask, DBCtrls, ExtCtrls;
 
 type
   Tgdc_dlgExplorer = class(Tgdc_dlgTR)
@@ -21,10 +21,8 @@ type
     Bevel1: TBevel;
     Bevel2: TBevel;
     Bevel3: TBevel;
-    cbClasses: TComboBox;
-    cbSubTypes: TComboBox;
-    Label3: TLabel;
-    Label4: TLabel;
+    lblClassName: TLabel;
+    lblSubType: TLabel;
     Label5: TLabel;
     Label6: TLabel;
     DBText1: TDBText;
@@ -36,19 +34,22 @@ type
     rbReport: TRadioButton;
     iblkupReport: TgsIBLookupComboBox;
     Bevel5: TBevel;
+    dbeClassName: TDBEdit;
+    dbeSubType: TDBEdit;
+    btnSelectClass: TButton;
+    actSelectClass: TAction;
     procedure rbFolderClick(Sender: TObject);
-    procedure cbClassesChange(Sender: TObject);
     procedure actOkUpdate(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure cbImagesMeasureItem(Control: TWinControl; Index: Integer;
       var Height: Integer);
     procedure cbImagesDrawItem(Control: TWinControl; Index: Integer;
       Rect: TRect; State: TOwnerDrawState);
+    procedure actSelectClassExecute(Sender: TObject);
+    procedure actSelectClassUpdate(Sender: TObject);
 
   private
     function CheckReport(const AReportKey: Integer): Boolean;
-
-    function BuildClassTree(ACE: TgdClassEntry; AData: Pointer): Boolean;
 
   public
     procedure BeforePost; override;
@@ -56,9 +57,8 @@ type
     procedure SetupDialog; override;
     function TestCorrect: Boolean; override;
     procedure Post; override;
-
   end;
-                                                   
+
 var
   gdc_dlgExplorer: Tgdc_dlgExplorer;
 
@@ -68,7 +68,7 @@ uses
   gdcBase, gdcBaseInterface, IBSQL, gd_security, gdcExplorer,
   dmImages_unit, Storages, gsStorage, gdcAttrUserDefined, gdcClasses,
   jclStrings, gsResizerInterface, gd_directories_const, prp_MessageConst,
-  prm_ParamFunctions_unit
+  prm_ParamFunctions_unit, gd_dlgClassList_unit, gd_ClassList
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -82,8 +82,6 @@ begin
   if rbFolder.Checked then
   begin
     gdcObject.FieldByName('cmdtype').AsInteger := cst_expl_cmdtype_class;
-    cbClasses.Enabled := False;
-    cbSubTypes.Enabled := False;
     iblkupFunction.Enabled := False;
     iblkupReport.Enabled := False;
     edFormClass.Enabled := False;
@@ -91,17 +89,14 @@ begin
   else if rbClass.Checked then
   begin
     gdcObject.FieldByName('cmdtype').AsInteger := cst_expl_cmdtype_class;
-    cbClasses.Enabled := True;
-    cbSubTypes.Enabled := True;
     iblkupFunction.Enabled := False;
     iblkupReport.Enabled := False;
     edFormClass.Enabled := False;
+    actSelectClass.Update;
   end
   else if rbFunction.Checked then
   begin
     gdcObject.FieldByName('cmdtype').AsInteger := cst_expl_cmdtype_function;
-    cbClasses.Enabled := False;
-    cbSubTypes.Enabled := False;
     iblkupFunction.Enabled := True;
     iblkupReport.Enabled := False;
     edFormClass.Enabled := False;
@@ -109,42 +104,15 @@ begin
   else if rbReport.Checked then
   begin
     gdcObject.FieldByName('cmdtype').AsInteger := cst_expl_cmdtype_report;
-    cbClasses.Enabled := False;
-    cbSubTypes.Enabled := False;
     iblkupFunction.Enabled := False;
     iblkupReport.Enabled := True;
     edFormClass.Enabled := False;
   end else
   begin
     gdcObject.FieldByName('cmdtype').AsInteger := cst_expl_cmdtype_function;
-    cbClasses.Enabled := False;
-    cbSubTypes.Enabled := False;
     iblkupFunction.Enabled := False;
     iblkupReport.Enabled := False;
     edFormClass.Enabled := True;
-  end;
-end;
-
-procedure Tgdc_dlgExplorer.cbClassesChange(Sender: TObject);
-var
-  SL: TStringList;
-  C: CgdcBase;
-  I: Integer;
-  PC: TPersistentClass;
-begin
-  cbSubTypes.Items.Clear;
-  SL := TStringList.Create;
-  try
-    PC := GetClass(cbClasses.Text);
-    if (PC <> nil) and PC.InheritsFrom(TgdcBase) then
-    begin
-      C := CgdcBase(PC);
-      C.GetSubTypeList(SL);
-      for I := 0 to SL.Count - 1 do
-        cbSubTypes.Items.Add(SL.Names[I]);
-    end;
-  finally
-    SL.Free;
   end;
 end;
 
@@ -199,8 +167,6 @@ begin
   else if rbClass.Checked then
   begin
     gdcObject.FieldByName('cmdtype').AsInteger := cst_expl_cmdtype_class;
-    gdcObject.FieldByName('classname').AsString := cbClasses.Text;
-    gdcObject.FieldByName('subtype').AsString := cbSubTypes.Text;
     {Для пользовательских таблиц cmd = РУИД таблицы, для польз док-тов РУИД = Subtype}
     C := CgdcBase(GetClass(gdcObject.FieldByName('classname').AsString));
     if Assigned(C) then
@@ -276,7 +242,6 @@ var
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
   PC: TPersistentClass;
-  I: Integer;
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGEXPLORER', 'SETUPRECORD', KEYSETUPRECORD)}
   {M}  try
@@ -310,38 +275,17 @@ begin
   end else if gdcObject.FieldByName('classname').AsString > '' then
   begin
     PC := GetClass(gdcObject.FieldByName('classname').AsString);
-    if (PC <> nil) and PC.InheritsFrom(TgdcBase) then
+    if PC <> nil then
     begin
-      rbClass.Checked := True;
-      cbSubTypes.Clear;
       if PC.InheritsFrom(TgdcBase) then
-      begin
-        cbClasses.ItemIndex := cbClasses.Items.IndexOf(gdcObject.FieldByName('classname').AsString);
-        cbClassesChange(nil);
-        if gdcObject.FieldByName('subtype').AsString > '' then
-        begin
-          I := cbSubTypes.Items.IndexOf(gdcObject.FieldByName('subtype').AsString);
-          if I = -1 then
-            cbSubTypes.Text := gdcObject.FieldByName('subtype').AsString
-          else
-            cbSubTypes.ItemIndex := I;
-        end;
-      end else
-      begin
-        cbClasses.ItemIndex :=
-          cbClasses.Items.Add(gdcObject.FieldByName('classname').AsString);
-      end;
-    end
-    else if ((PC <> nil) and PC.InheritsFrom(TCustomForm))
-      or (StrIPos(USERFORM_PREFIX,
+        rbClass.Checked := True
+      else if PC.InheritsFrom(TCustomForm) or (StrIPos(USERFORM_PREFIX,
         gdcObject.FieldByName('classname').AsString) = 1) then
-    begin
-      rbForm.Checked := True;
-      cbSubTypes.Clear;
-      cbClasses.Text := '';
-      edFormClass.Text := gdcObject.FieldByName('classname').AsString;
-    end else
-      cbClasses.Text := '';
+      begin
+        rbForm.Checked := True;
+        edFormClass.Text := gdcObject.FieldByName('classname').AsString;
+      end;
+    end;
   end else
   begin
     rbFolder.Checked := True;
@@ -358,14 +302,6 @@ begin
   {M}    ClearMacrosStack('TGDC_DLGEXPLORER', 'SETUPRECORD', KEYSETUPRECORD);
   {M}end;
   {END MACRO}
-end;
-
-function Tgdc_dlgExplorer.BuildClassTree(ACE: TgdClassEntry; AData: Pointer): Boolean;
-begin
-  if ACE.SubType = '' then
-    cbClasses.Items.Add(ACE.TheClass.ClassName);
-
-  Result := True;
 end;
 
 procedure Tgdc_dlgExplorer.SetupDialog;
@@ -397,10 +333,6 @@ begin
   {END MACRO}
 
   inherited;
-
-  cbClasses.Clear;
-
-  gdClassList.Traverse(TgdcBase, '', BuildClassTree, nil);
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGEXPLORER', 'SETUPDIALOG', KEYSETUPDIALOG)}
   {M}finally
@@ -443,7 +375,6 @@ end;
 
 function Tgdc_dlgExplorer.TestCorrect: Boolean;
 var
-  I: Integer;
   PC: TPersistentClass;
   {@UNFOLD MACRO INH_CRFORM_PARAMS()}
   {M}
@@ -494,39 +425,6 @@ begin
       Result := False;
       exit;
     end;
-  end;
-
-  cbSubTypes.Text := Trim(cbSubTypes.Text);
-
-  if cbSubTypes.Enabled and (cbSubTypes.Text > '')
-    and (cbSubTypes.Items.IndexOf(cbSubTypes.Text) = -1) then
-  begin
-    cbSubTypes.Text := UpperCase(Trim(cbSubTypes.Text));
-
-    for I := 1 to Length(cbSubTypes.Text) do
-    begin
-      if not (cbSubTypes.Text[I] in cst_sbt_Symbols) then
-      begin
-        MessageBox(Handle,
-          'Недопустимый символ в подтипе.',
-          'Внимание',
-          MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
-        Result := False;
-        exit;
-      end;
-    end;
-  end;
-
-  if cbSubTypes.Enabled and (cbSubTypes.Text > '')
-    and (cbSubTypes.Items.IndexOf(cbSubTypes.Text) = -1) then
-  begin
-    Result := MessageBox(Handle,
-      'Введен нестандартный подтип. Сохранить?',
-      'Внимание',
-      MB_ICONQUESTION or MB_YESNO or MB_TASKMODAL) = IDYES;
-
-    if not Result then
-      cbSubTypes.Text := '';
   end;
 
   if edFormClass.Enabled then
@@ -689,6 +587,37 @@ begin
       LocParamList.Free;
     end;
   end;
+end;
+
+procedure Tgdc_dlgExplorer.actSelectClassExecute(Sender: TObject);
+var
+  FC: TgdcFullClassName;
+begin
+  with Tgd_dlgClassList.Create(nil) do
+  try
+    FC.gdClassName := gdcObject.FieldByName('classname').AsString;
+    FC.SubType := gdcObject.FieldByName('subtype').AsString;
+    if SelectModal('', FC) then
+    begin
+      gdcObject.FieldByName('classname').AsString := FC.gdClassName;
+      gdcObject.FieldByName('subtype').AsString := FC.SubType;
+    end;  
+  finally
+    Free;
+  end;
+end;
+
+procedure Tgdc_dlgExplorer.actSelectClassUpdate(Sender: TObject);
+var
+  F: Boolean;
+begin
+  F := rbClass.Checked and (gdcObject <> nil) and (gdcObject.State in [dsEdit, dsInsert]);
+  actSelectClass.Enabled := F;
+  lblClassName.Visible := F;
+  lblSubType.Visible := F;
+  dbeClassName.Visible := F;
+  dbeSubType.Visible := F;
+  btnSelectClass.Visible := F;
 end;
 
 initialization

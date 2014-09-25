@@ -4,7 +4,7 @@ inherited gdc_dlgExplorer: Tgdc_dlgExplorer
   HelpContext = 110
   ActiveControl = dbeName
   Caption = 'Исследователь'
-  ClientHeight = 353
+  ClientHeight = 347
   ClientWidth = 372
   PixelsPerInch = 96
   TextHeight = 13
@@ -55,14 +55,14 @@ inherited gdc_dlgExplorer: Tgdc_dlgExplorer
     Height = 2
     Shape = bsTopLine
   end
-  object Label3: TLabel [5]
+  object lblClassName: TLabel [5]
     Left = 32
     Top = 156
     Width = 70
     Height = 13
     Caption = 'Бизнес-класс:'
   end
-  object Label4: TLabel [6]
+  object lblSubType: TLabel [6]
     Left = 32
     Top = 180
     Width = 42
@@ -121,28 +121,28 @@ inherited gdc_dlgExplorer: Tgdc_dlgExplorer
   end
   inherited btnAccess: TButton
     Left = 6
-    Top = 327
-    TabOrder = 11
+    Top = 321
+    TabOrder = 12
   end
   inherited btnNew: TButton
     Left = 78
-    Top = 327
-    TabOrder = 12
+    Top = 321
+    TabOrder = 13
   end
   inherited btnHelp: TButton
     Left = 150
-    Top = 327
-    TabOrder = 13
+    Top = 321
+    TabOrder = 14
   end
   inherited btnOK: TButton
     Left = 226
-    Top = 327
-    TabOrder = 9
+    Top = 321
+    TabOrder = 10
   end
   inherited btnCancel: TButton
     Left = 297
-    Top = 327
-    TabOrder = 10
+    Top = 321
+    TabOrder = 11
   end
   object dbeName: TDBEdit [18]
     Left = 125
@@ -190,7 +190,7 @@ inherited gdc_dlgExplorer: Tgdc_dlgExplorer
     ItemHeight = 13
     ParentShowHint = False
     ShowHint = True
-    TabOrder = 8
+    TabOrder = 9
   end
   object rbFolder: TRadioButton [21]
     Left = 8
@@ -216,32 +216,10 @@ inherited gdc_dlgExplorer: Tgdc_dlgExplorer
     Width = 73
     Height = 17
     Caption = 'Функция'
-    TabOrder = 7
+    TabOrder = 8
     OnClick = rbFolderClick
   end
-  object cbClasses: TComboBox [24]
-    Left = 125
-    Top = 152
-    Width = 241
-    Height = 21
-    Style = csDropDownList
-    DropDownCount = 16
-    ItemHeight = 13
-    Sorted = True
-    TabOrder = 5
-    OnChange = cbClassesChange
-  end
-  object cbSubTypes: TComboBox [25]
-    Left = 125
-    Top = 176
-    Width = 241
-    Height = 21
-    DropDownCount = 16
-    ItemHeight = 13
-    Sorted = True
-    TabOrder = 6
-  end
-  object cbImages: TComboBox [26]
+  object cbImages: TComboBox [24]
     Left = 125
     Top = 80
     Width = 52
@@ -253,32 +231,32 @@ inherited gdc_dlgExplorer: Tgdc_dlgExplorer
     OnDrawItem = cbImagesDrawItem
     OnMeasureItem = cbImagesMeasureItem
   end
-  object rbForm: TRadioButton [27]
+  object rbForm: TRadioButton [25]
     Left = 8
     Top = 240
     Width = 73
     Height = 17
     Caption = 'Форма'
-    TabOrder = 14
+    TabOrder = 15
     OnClick = rbFolderClick
   end
-  object edFormClass: TEdit [28]
+  object edFormClass: TEdit [26]
     Left = 125
     Top = 256
     Width = 241
     Height = 21
-    TabOrder = 15
+    TabOrder = 16
   end
-  object rbReport: TRadioButton [29]
+  object rbReport: TRadioButton [27]
     Left = 8
     Top = 278
     Width = 65
     Height = 17
     Caption = 'Отчет'
-    TabOrder = 16
+    TabOrder = 17
     OnClick = rbFolderClick
   end
-  object iblkupReport: TgsIBLookupComboBox [30]
+  object iblkupReport: TgsIBLookupComboBox [28]
     Left = 125
     Top = 296
     Width = 241
@@ -294,11 +272,48 @@ inherited gdc_dlgExplorer: Tgdc_dlgExplorer
     ItemHeight = 13
     ParentShowHint = False
     ShowHint = True
-    TabOrder = 17
+    TabOrder = 18
+  end
+  object dbeClassName: TDBEdit [29]
+    Left = 125
+    Top = 153
+    Width = 213
+    Height = 21
+    TabStop = False
+    Color = clBtnFace
+    DataField = 'classname'
+    DataSource = dsgdcBase
+    ReadOnly = True
+    TabOrder = 5
+  end
+  object dbeSubType: TDBEdit [30]
+    Left = 125
+    Top = 178
+    Width = 212
+    Height = 21
+    TabStop = False
+    Color = clBtnFace
+    DataField = 'subtype'
+    DataSource = dsgdcBase
+    ReadOnly = True
+    TabOrder = 7
+  end
+  object btnSelectClass: TButton [31]
+    Left = 338
+    Top = 153
+    Width = 27
+    Height = 20
+    Action = actSelectClass
+    TabOrder = 6
   end
   inherited alBase: TActionList
-    Left = 446
-    Top = 167
+    Left = 302
+    Top = 79
+    object actSelectClass: TAction
+      Caption = '...'
+      OnExecute = actSelectClassExecute
+      OnUpdate = actSelectClassUpdate
+    end
   end
   inherited dsgdcBase: TDataSource
     Left = 432
