@@ -31,6 +31,9 @@
 */
 
 CREATE EXCEPTION INV_E_INVALIDMOVEMENT 'The movement was made incorrect!';
+CREATE EXCEPTION INV_E_NOPRODUCT 'On the date no product!';
+CREATE EXCEPTION INV_E_EARLIERMOVEMENT 'It was the movement of goods earlier date!';
+CREATE EXCEPTION INV_E_INSUFFICIENTBALANCE 'Insufficient balances at that date';
 
 COMMIT;
 

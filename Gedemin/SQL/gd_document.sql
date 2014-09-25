@@ -133,6 +133,7 @@ BEGIN
 END
 ^
 
+
 CREATE OR ALTER TRIGGER gd_aiu_documenttype FOR gd_documenttype
   ACTIVE
   AFTER INSERT OR UPDATE
@@ -362,6 +363,31 @@ BEGIN
   END
 END
 ^
+
+CREATE TRIGGER GD_AU_DOCUMENT_DATE FOR GD_DOCUMENT 
+ACTIVE AFTER UPDATE POSITION 11
+AS
+  DECLARE VARIABLE updatesql VARCHAR(1024);
+  DECLARE VARIABLE nametable VARCHAR(31);
+BEGIN
+/*Тело триггера*/
+  if (OLD.documentdate <> NEW.documentdate and NEW.parent IS NOT NULL) then
+  begin
+    select r.relationname from
+      gd_documenttype dt
+        join at_relations r ON dt.LINERELKEY = r.id
+    where UPPER(dt.classname) = 'TGDCINVDOCUMENTTYPE' and dt.id = OLD.documenttypekey
+    into :nametable;
+  
+    if (nametable is not null) then
+    begin
+      updatesql = 'UPDATE ' || nametable || ' SET documentkey = documentkey WHERE documentkey = ' || CAST(OLD.ID as VARCHAR(10));
+      EXECUTE STATEMENT :updatesql;
+    end
+  END
+END
+^
+
 
 CREATE TRIGGER GD_AD_DOCUMENT FOR GD_DOCUMENT
   AFTER DELETE
