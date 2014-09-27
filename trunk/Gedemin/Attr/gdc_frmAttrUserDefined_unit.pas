@@ -45,8 +45,8 @@ type
     constructor Create(AnOwner: TComponent); override;
     class function CreateAndAssign(AnOwner: TComponent): TForm; override;
 
-    class procedure RegisterClassHierarchy; override;
-    
+    class procedure RegisterClassHierarchy(AClass: TClass = nil;
+      AValue: String = ''); override;
   end;
 
 var
@@ -75,7 +75,7 @@ procedure Tgdc_frmAttrUserDefined.FormCreate(Sender: TObject);
 begin
   gdcObject := gdcAttrUserDefined;
 
-  inherited;  
+  inherited;
 
   with atDatabase.Relations do
     if ByRelationName(FSubType) <> nil then
@@ -84,73 +84,10 @@ begin
       Self.Caption := 'Подтип не определен!';
 end;
 
-class procedure Tgdc_frmAttrUserDefined.RegisterClassHierarchy;
-
-  procedure ReadFromRelations(ACE: TgdClassEntry);
-  var
-    CurrCE: TgdClassEntry;
-    SL: TStringList;
-    I: Integer;
-  begin
-    if ACE.Initialized then
-      exit;
-
-    SL := TStringList.Create;
-    try
-      if ACE.SubType > '' then
-      begin
-        with atDatabase.Relations do
-        for I := 0 to Count - 1 do
-        if Items[I].IsUserDefined
-          and Assigned(Items[I].PrimaryKey)
-          and Assigned(Items[I].PrimaryKey.ConstraintFields)
-          and (Items[I].PrimaryKey.ConstraintFields.Count = 1)
-          and (AnsiCompareText(Items[I].PrimaryKey.ConstraintFields[0].FieldName, 'ID') = 0)
-          and  Assigned(Items[I].RelationFields.ByFieldName('INHERITED'))
-          and (AnsiCompareText(Items[I].RelationFields.ByFieldName('ID').ForeignKey.ReferencesRelation.RelationName,
-            ACE.SubType) = 0) then
-        begin
-          SL.Add(Items[I].LName + '=' + Items[I].RelationName);
-        end;
-      end
-      else
-      begin
-        with atDatabase.Relations do
-        for I := 0 to Count - 1 do
-          if Items[I].IsUserDefined
-            and Assigned(Items[I].PrimaryKey)
-            and Assigned(Items[I].PrimaryKey.ConstraintFields)
-            and (Items[I].PrimaryKey.ConstraintFields.Count = 1)
-            and (AnsiCompareText(Items[I].PrimaryKey.ConstraintFields[0].FieldName, 'ID') = 0)
-            and not Assigned(Items[I].RelationFields.ByFieldName('PARENT'))
-            and not Assigned(Items[I].RelationFields.ByFieldName('INHERITED'))then
-          begin
-            SL.Add(Items[I].LName + '=' + Items[I].RelationName);
-          end;
-      end;
-
-      for I := 0 to SL.Count - 1 do
-      begin
-        CurrCE := gdClassList.Add(ACE.TheClass, SL.Values[SL.Names[I]], SL.Names[I],  ACE.SubType);
-        ReadFromRelations(CurrCE);
-      end;
-    finally
-      SL.Free;
-    end;
-
-    ACE.Initialized := True;
-  end;
-
-var
-  CEBase: TgdClassEntry;
-
+class procedure Tgdc_frmAttrUserDefined.RegisterClassHierarchy(AClass: TClass = nil;
+  AValue: String = '');
 begin
-  CEBase := gdClassList.Find(Self);
-
-  if CEBase = nil then
-    raise EgdcException.Create('Unregistered class.');
-
-  ReadFromRelations(CEBase);
+  TgdcAttrUserDefined.RegisterClassHierarchy(Self);
 end;
 
 initialization

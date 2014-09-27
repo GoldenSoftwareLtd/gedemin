@@ -70,7 +70,8 @@ type
     class function GetDisplayName(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
 
-    class procedure RegisterClassHierarchy; override;
+    class procedure RegisterClassHierarchy(AClass: TClass = nil;
+      AValue: String = ''); override;
 
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
@@ -106,7 +107,8 @@ type
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetKeyField(const ASubType: TgdcSubType): String; override;
 
-    class procedure RegisterClassHierarchy; override;
+    class procedure RegisterClassHierarchy(AClass: TClass = nil;
+      AValue: String = ''); override;
 
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
 
@@ -138,7 +140,8 @@ type
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetKeyField(const ASubType: TgdcSubType): String; override;
 
-    class procedure RegisterClassHierarchy; override;
+    class procedure RegisterClassHierarchy(AClass: TClass = nil;
+      AValue: String = ''); override;
 
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
 
@@ -670,7 +673,8 @@ begin
   Result := SubType;
 end;
 
-class procedure TgdcAttrUserDefined.RegisterClassHierarchy;
+class procedure TgdcAttrUserDefined.RegisterClassHierarchy(AClass: TClass = nil;
+  AValue: String = '');
 
     procedure ReadFromRelations(ACE: TgdClassEntry);
   var
@@ -680,6 +684,8 @@ class procedure TgdcAttrUserDefined.RegisterClassHierarchy;
   begin
     if ACE.Initialized then
       exit;
+
+    ACE.Initialized := True;
 
     SL := TStringList.Create;
     try
@@ -723,15 +729,16 @@ class procedure TgdcAttrUserDefined.RegisterClassHierarchy;
     finally
       SL.Free;
     end;
-
-    ACE.Initialized := True;
   end;
 
 var
   CEBase: TgdClassEntry;
 
 begin
-  CEBase := gdClassList.Find(Self);
+  if AClass <> nil then
+    CEBase := gdClassList.Find(AClass)
+  else
+    CEBase := gdClassList.Find(Self);
 
   if CEBase = nil then
     raise EgdcException.Create('Unregistered class.');
@@ -1205,7 +1212,8 @@ begin
   {END MACRO}
 end;
 
-class procedure TgdcAttrUserDefinedTree.RegisterClassHierarchy;
+class procedure TgdcAttrUserDefinedTree.RegisterClassHierarchy(AClass: TClass = nil;
+  AValue: String = '');
 
   procedure ReadFromRelations(ACE: TgdClassEntry);
   var
@@ -1215,6 +1223,8 @@ class procedure TgdcAttrUserDefinedTree.RegisterClassHierarchy;
   begin
     if ACE.Initialized then
       exit;
+
+    ACE.Initialized := True;
 
     SL := TStringList.Create;
     try
@@ -1259,15 +1269,16 @@ class procedure TgdcAttrUserDefinedTree.RegisterClassHierarchy;
     finally
       SL.Free;
     end;
-
-    ACE.Initialized := True;
   end;
 
 var
   CEBase: TgdClassEntry;
 
 begin
-  CEBase := gdClassList.Find(Self);
+  if AClass <> nil then
+    CEBase := gdClassList.Find(AClass)
+  else
+    CEBase := gdClassList.Find(Self);
 
   if CEBase = nil then
     raise EgdcException.Create('Unregistered class.');
@@ -1740,7 +1751,8 @@ begin
   {END MACRO}
 end;
 
-class procedure TgdcAttrUserDefinedLBRBTree.RegisterClassHierarchy;
+class procedure TgdcAttrUserDefinedLBRBTree.RegisterClassHierarchy(AClass: TClass = nil;
+  AValue: String = '');
 
   procedure ReadFromRelations(ACE: TgdClassEntry);
   var
@@ -1750,6 +1762,8 @@ class procedure TgdcAttrUserDefinedLBRBTree.RegisterClassHierarchy;
   begin
     if ACE.Initialized then
       exit;
+
+    ACE.Initialized := True;
 
     SL := TStringList.Create;
     try
@@ -1794,15 +1808,16 @@ class procedure TgdcAttrUserDefinedLBRBTree.RegisterClassHierarchy;
     finally
       SL.Free;
     end;
-
-    ACE.Initialized := True;
   end;
 
 var
   CEBase: TgdClassEntry;
 
 begin
-  CEBase := gdClassList.Find(Self);
+  if AClass <> nil then
+    CEBase := gdClassList.Find(AClass)
+  else
+    CEBase := gdClassList.Find(Self);
 
   if CEBase = nil then
     raise EgdcException.Create('Unregistered class.');

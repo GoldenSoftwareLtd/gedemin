@@ -1596,7 +1596,8 @@ type
     class function GetSubTypeList(ASubTypeList: TStrings;
       ASubType: String = ''; AnOnlyDirect: Boolean = False): Boolean; virtual;
     // загрузка всей иерархии класса
-    class procedure RegisterClassHierarchy; virtual;
+    class procedure RegisterClassHierarchy(AClass: TClass = nil;
+      AValue: String = ''); virtual;
 
     class function ClassParentSubType(ASubType: string): String; virtual;
     //
@@ -12360,32 +12361,16 @@ begin
   if ASubType > '' then
     ASubType := StringReplace(ASubType, 'USR_', 'USR$', [rfReplaceAll, rfIgnoreCase]);
 
-  if ASubType > '' then
-  begin
-    CE := gdClassList.Find(Self, ASubType);
-    if CE = nil then
-      CE := gdClassList.Find(Self);
-  end
-  else
-    CE := gdClassList.Find(Self);
+  CE := gdClassList.Find(Self, ASubType);
 
   if CE = nil then
     raise EgdcException.Create('Unregistered class.');
-
-  RegisterClassHierarchy;
-
-  if ASubType > '' then
-    CE := gdClassList.Find(Self, ASubType)
-  else
-    CE := gdClassList.Find(Self);
-
-  if CE = nil then
-    raise EgdcException.Create('Unregistered class.');
-
+ 
   Result := CE.GetSubTypeList(ASubTypeList, AnOnlyDirect);
 end;
 
-class procedure TgdcBase.RegisterClassHierarchy;
+class procedure TgdcBase.RegisterClassHierarchy(AClass: TClass = nil;
+  AValue: String = '');
 
   procedure ReadFromStorage(ACE: TgdClassEntry);
   var
@@ -12400,6 +12385,8 @@ class procedure TgdcBase.RegisterClassHierarchy;
 
     if ACE.Initialized then
       exit;
+
+    ACE.Initialized := True;
 
     SL := TStringList.Create;
     try
@@ -12429,8 +12416,6 @@ class procedure TgdcBase.RegisterClassHierarchy;
     finally
       SL.Free;
     end;
-
-    ACE.Initialized := True;
   end;
 
 var
@@ -12456,22 +12441,8 @@ begin
 
   CE := gdClassList.Find(Self, ASubType);
 
-  if CE = nil then
-    RegisterClassHierarchy;
-
-  CE := gdClassList.Find(Self, ASubType);
-
-  if CE <> nil then
-  begin
-    if CE.Parent <> nil then
-      Result := CE.Parent.SubType;
-  end
-  else
-  begin
-    CE := gdClassList.Find(Self);
-    if CE = nil then
-      raise EgdcException.Create('Unregistered class.');
-  end;
+  if (CE <> nil) and (CE.Parent <> nil) then
+    Result := CE.Parent.SubType;
 end;
 
 function TgdcBase.GetNextID(const Increment: Boolean = True; const ResetCache: Boolean = False): Integer;
@@ -17967,27 +17938,7 @@ begin
   CE := gdClassList.Find(Self, ASubType);
 
   if CE <> nil then
-  begin
     Result := True;
-    Exit;
-  end;
-
-  if CE = nil then
-    RegisterClassHierarchy;
-
-  CE := gdClassList.Find(Self, ASubType);
-
-  if CE <> nil then
-  begin
-    Result := True;
-    Exit;
-  end
-  else
-  begin
-    CE := gdClassList.Find(Self);
-    if CE = nil then
-      raise EgdcException.Create('Unregistered class.');
-  end;
 end;
 
 { TgdcSetAttribute }
