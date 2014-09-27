@@ -372,7 +372,8 @@ type
     function ConcatErrorMessage(const M: String): String;
     procedure FillClassesList;
     function ibtrEditor: TIBTransaction;
-    function BuildClassTree(ACE: TgdClassEntry; AData: Pointer): Boolean;
+    function BuildClassTree(ACE: TgdClassEntry; AData1: Pointer;
+      AData2: Pointer): Boolean;
 
   public
     FDatabase: TIBDatabase;
@@ -1597,7 +1598,8 @@ begin
     Result := _ibtrEditor;
 end;
 
-function TfrmSQLEditorSyn.BuildClassTree(ACE: TgdClassEntry; AData: Pointer): Boolean;
+function TfrmSQLEditorSyn.BuildClassTree(ACE: TgdClassEntry; AData1: Pointer;
+  AData2: Pointer): Boolean;
 var
   LI: TListItem;
 begin
@@ -1621,7 +1623,7 @@ begin
     exit;
 
   {$IFDEF GEDEMIN}
-  gdClassList.Traverse(TgdcBase, '', BuildClassTree, nil);
+  gdClassList.Traverse(TgdcBase, '', BuildClassTree, nil, nil);
   {$ENDIF}
 
   lblClassesCount.Caption := 'Бизнес-классов: ' + IntToStr(lvClasses.Items.Count);

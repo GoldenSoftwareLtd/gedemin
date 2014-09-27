@@ -88,7 +88,8 @@ type
     FSubTypeList: TStringList;
     procedure FormOnCloseQuery(Sender: TObject; var CanClose: Boolean);
 
-    function BuildClassTree(ACE: TgdClassEntry; AData: Pointer): Boolean;
+    function BuildClassTree(ACE: TgdClassEntry; AData1: Pointer;
+      AData2: Pointer): Boolean;
     
   end;
 
@@ -166,7 +167,8 @@ begin
 
 end;
 
-function Tdlg_NewForm_Wzrd.BuildClassTree(ACE: TgdClassEntry; AData: Pointer): Boolean;
+function Tdlg_NewForm_Wzrd.BuildClassTree(ACE: TgdClassEntry; AData1: Pointer;
+  AData2: Pointer): Boolean;
 begin
   if (ACE <> nil) and (not (ACE.SubType > '')) then
     if not ACE.gdcClass.IsAbstractClass then
@@ -228,7 +230,7 @@ begin
 
   cbGdcType.Items.Clear;
 
-  gdClassList.Traverse(TgdcBase, '', BuildClassTree, nil);
+  gdClassList.Traverse(TgdcBase, '', BuildClassTree, nil, nil);
 
   cbFormType.Clear;
   for I := 0 to AncestorFormList.Count - 1 do

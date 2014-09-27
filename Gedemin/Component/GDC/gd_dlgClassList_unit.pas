@@ -41,7 +41,8 @@ type
   private
     FFullClass: TgdcFullClassName;
 
-    function BuildClassTree(ACE: TgdClassEntry; AData: Pointer): Boolean;
+    function BuildClassTree(ACE: TgdClassEntry; AData1: Pointer;
+      AData2: Pointer): Boolean;
     procedure RefreshList;
 
   public
@@ -62,7 +63,7 @@ uses
 { Tgd_dlgClassList }
 
 function Tgd_dlgClassList.BuildClassTree(ACE: TgdClassEntry;
-  AData: Pointer): Boolean;
+  AData1: Pointer; AData2: Pointer): Boolean;
 var
   LI: TListItem;
 begin
@@ -150,7 +151,7 @@ begin
       lvClasses.Color := clWindow;
       edFilter.Color := clWindow;
     end;
-    gdClassList.Traverse(TgdcBase, '', BuildClassTree, nil);
+    gdClassList.Traverse(TgdcBase, '', BuildClassTree, nil, nil);
     lblClassesCount.Caption := ' Бизнес-классов: ' + IntToStr(lvClasses.Items.Count);
     if lvClasses.Selected <> nil then
       lvClasses.Selected.MakeVisible(False);

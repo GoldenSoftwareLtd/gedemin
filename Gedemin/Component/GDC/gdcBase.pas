@@ -2641,10 +2641,11 @@ begin
   end;
 end;
 
-function BuildTree(ACE: TgdClassEntry; AData: Pointer): Boolean;
+function BuildTree(ACE: TgdClassEntry; AData1: Pointer;
+  AData2: Pointer): Boolean;
 begin
   if ACE.SubType = '' then
-    TClassList(AData).Add(ACE.gdcClass);
+    TClassList(AData1).Add(ACE.gdcClass);
   Result := True;
 end;
 
@@ -2654,7 +2655,7 @@ begin
   AClassList.Clear;
 
   if Assigned(gdClassList) then
-    gdClassList.Traverse(TClass(AnAncestor), '', BuildTree, AClassList, False, OnlyDirect);
+    gdClassList.Traverse(TClass(AnAncestor), '', BuildTree, AClassList, nil, False, OnlyDirect);
 
   Result := AClassList.Count > 0;
 end;

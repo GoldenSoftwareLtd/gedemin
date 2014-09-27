@@ -356,8 +356,10 @@ type
     procedure SetOnInsertCurrentText(const Value: TciInsertCurrentText);
     procedure SetCurrentModule(const Value: TCurrentModule);
 
-    function BuildFrmClassTree(ACE: TgdClassEntry; AData: Pointer): Boolean;
-    function BuildGdcClassTree(ACE: TgdClassEntry; AData: Pointer): Boolean;
+    function BuildFrmClassTree(ACE: TgdClassEntry; AData1: Pointer;
+      AData2: Pointer): Boolean;
+    function BuildGdcClassTree(ACE: TgdClassEntry; AData1: Pointer;
+      AData2: Pointer): Boolean;
 
     property CurrentModule: TCurrentModule read FCurrentModule write SetCurrentModule;
 
@@ -494,13 +496,14 @@ begin
   frmClassesInspector := nil;
 end;
 
-function TfrmClassesInspector.BuildFrmClassTree(ACE: TgdClassEntry; AData: Pointer): Boolean;
+function TfrmClassesInspector.BuildFrmClassTree(ACE: TgdClassEntry; AData1: Pointer;
+  AData2: Pointer): Boolean;
 var
   TreeNode, TmpNode: TTreeNode;
   COMClassItem: TgdcCOMClassItem;
   ClassRef: TClass;
 begin
-  TreeNode := TTreeNode(AData^);
+  TreeNode := TTreeNode(AData1^);
 
   if (ACE <> nil) and (TTreeNode <> nil) and (not (ACE.SubType > '')) then
   begin
@@ -527,13 +530,14 @@ begin
   Result := True;
 end;
 
-function TfrmClassesInspector.BuildGdcClassTree(ACE: TgdClassEntry; AData: Pointer): Boolean;
+function TfrmClassesInspector.BuildGdcClassTree(ACE: TgdClassEntry; AData1: Pointer;
+  AData2: Pointer): Boolean;
 var
   TreeNode, TmpNode: TTreeNode;
   COMClassItem: TgdcCOMClassItem;
   ClassRef: TClass;
 begin
-  TreeNode := TTreeNode(AData^);
+  TreeNode := TTreeNode(AData1^);
 
   if (ACE <> nil) and (TTreeNode <> nil) and (not (ACE.SubType > '')) then
   begin
@@ -567,11 +571,11 @@ var
   ClassRef: TClass;
 begin
   TreeNode := FfrmClassesNode;
-  gdClassList.Traverse(TgdcCreateableForm, '', BuildFrmClassTree, @TreeNode);
+  gdClassList.Traverse(TgdcCreateableForm, '', BuildFrmClassTree, @TreeNode, nil);
   TreeNode.AlphaSort;
 
   TreeNode := FgdcClassesNode;
-  gdClassList.Traverse(TgdcBase, '', BuildGdcClassTree, @TreeNode);
+  gdClassList.Traverse(TgdcBase, '', BuildGdcClassTree, @TreeNode, nil);
   TreeNode.AlphaSort;
 
   TreeNode := FDelphiClassesNode;

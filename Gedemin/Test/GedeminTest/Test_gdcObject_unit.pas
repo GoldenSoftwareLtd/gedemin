@@ -9,7 +9,8 @@ uses
 type
   Tgs_gdcObjectTest = class(TgsDBTestCase)
   private
-    function BuildClassTree(ACE: TgdClassEntry; AData: Pointer): Boolean;
+    function BuildClassTree(ACE: TgdClassEntry; AData1: Pointer;
+      AData2: Pointer): Boolean;
     
   published
     procedure Test_gdcObject;
@@ -128,7 +129,8 @@ begin
   end;
 end;
 
-function Tgs_gdcObjectTest.BuildClassTree(ACE: TgdClassEntry; AData: Pointer): Boolean;
+function Tgs_gdcObjectTest.BuildClassTree(ACE: TgdClassEntry; AData1: Pointer;
+  AData2: Pointer): Boolean;
 var
   C: CgdcBase;
   Obj: TgdcBase;
@@ -155,10 +157,10 @@ begin
           DN := Obj.GetDisplayName(Obj.SubType);
       end;
 
-      TStringList(AData).Add('| '  + ' || ' + C.ClassName + ' || ' + Obj.SubType + ' || ' +
+      TStringList(AData1).Add('| '  + ' || ' + C.ClassName + ' || ' + Obj.SubType + ' || ' +
         C.ClassParent.ClassName + ' || ' +
         '[[' + AnsiUpperCase(Obj.GetListTable(Obj.SubType)) + ']] || ' + DN);
-      TStringList(AData).Add('|-');
+      TStringList(AData1).Add('|-');
 
       if (Obj.GetListTable(Obj.SubType) > '')
         and ((not (Obj is TgdcDocument)) or (TgdcDocument(Obj).DocumentTypeKey > -1)) then
@@ -235,10 +237,10 @@ begin
       DN := ''
     else
       DN := '''''''' + DN + '''''''';
-    TStringList(AData).Add('| ' + ' || ''''''' + C.ClassName + ''''''' ||  || ' +
+    TStringList(AData1).Add('| ' + ' || ''''''' + C.ClassName + ''''''' ||  || ' +
       '''''''' + C.ClassParent.ClassName + ''''''' || ' +
       ' || ' + DN);
-    TStringList(AData).Add('|-');
+    TStringList(AData1).Add('|-');
   end;
 
   Result := True;
@@ -250,7 +252,7 @@ var
 begin
   Output := TStringList.Create;
   try
-    gdClassList.Traverse(TgdcBase, '', BuildClassTree, Output, True, False);
+    gdClassList.Traverse(TgdcBase, '', BuildClassTree, Output, nil, True, False);
 
     //Output.SaveToFile('c:\temp\list.txt');
   finally
