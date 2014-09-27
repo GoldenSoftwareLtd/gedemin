@@ -197,7 +197,8 @@ type
     procedure TestType;
     procedure TestVisualSettings;
 
-    function BuildClassTree(ACE: TgdClassEntry; AData: Pointer): Boolean;
+    function BuildClassTree(ACE: TgdClassEntry; AData1: Pointer;
+      AData2: Pointer): Boolean;
 
   protected
     procedure UpdateDomainInfo;
@@ -1766,7 +1767,8 @@ begin
   {END MACRO}
 end;
 
-function Tgdc_dlgField.BuildClassTree(ACE: TgdClassEntry; AData: Pointer): Boolean;
+function Tgdc_dlgField.BuildClassTree(ACE: TgdClassEntry; AData1: Pointer;
+  AData2: Pointer): Boolean;
 begin
   if ACE <> nil then
     if not (ACE.SubType > '') then
@@ -1809,7 +1811,7 @@ begin
 
   //  Подготовка базовых классов
 
-  gdClassList.Traverse(TgdcBase, '', BuildClassTree, nil);
+  gdClassList.Traverse(TgdcBase, '', BuildClassTree, nil, nil);
 
   luRefRelation.Condition :=
     '(SELECT COUNT(*) ' +

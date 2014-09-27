@@ -193,7 +193,7 @@ begin
   //////////////////////////////////////////////////////////////////////////////
   //  Подготовка базовых классов
 
-  gdClassList.Traverse(TgdcBase, '', BuildClassTree, nil);
+  gdClassList.Traverse(TgdcBase, '', BuildClassTree, nil, nil);
 
   comboBusinessClass.ItemIndex := -1;
   comboBusinessClass.Items.Clear;

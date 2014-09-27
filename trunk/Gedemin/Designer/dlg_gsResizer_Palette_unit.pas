@@ -173,14 +173,15 @@ begin
   actArrowExecute(nil);
 end;
 
-function BuildTree(ACE: TgdClassEntry; AData: Pointer): Boolean;
+function BuildTree(ACE: TgdClassEntry; AData1: Pointer;
+  AData2: Pointer): Boolean;
 begin
   if (ACE.SubType = '')
     and (ACE.gdcClass.ClassName <> 'TgdcBase')
     and (ACE.gdcClass.ClassName <> 'TgdcTree')
     and (ACE.gdcClass.ClassName <> 'TgdcLBRBTree') then
   begin
-    TClassList(AData).Add(ACE.gdcClass);
+    TClassList(AData1).Add(ACE.gdcClass);
   end;
   Result := True;
 end;
@@ -215,7 +216,7 @@ begin
     begin
       TempList := TClassList.Create;
       try
-        gdClassList.Traverse(TgdcBase, '', BuildTree, TempList, True, False);
+        gdClassList.Traverse(TgdcBase, '', BuildTree, TempList, nil, True, False);
 
         J := High(ClassArray);
         SetLength(ClassArray, J + TempList.Count + 1);

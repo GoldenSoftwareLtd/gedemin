@@ -57,7 +57,8 @@ type
 
   private
     procedure FillListBox;
-    function BuildClassTree(ACE: TgdClassEntry; AData: Pointer): Boolean;
+    function BuildClassTree(ACE: TgdClassEntry; AData1: Pointer;
+      AData2: Pointer): Boolean;
   end;
 
 var
@@ -317,7 +318,7 @@ end;
 procedure Tgd_dlgAddLinked.FillListBox;
 begin
   cbClasses.Clear;
-  gdClassList.Traverse(TgdcBase, '', BuildClassTree, nil);
+  gdClassList.Traverse(TgdcBase, '', BuildClassTree, nil, nil);
   cbSubTypes.Clear;
 end;
 
@@ -326,7 +327,8 @@ begin
   FillListBox;
 end;
 
-function Tgd_dlgAddLinked.BuildClassTree(ACE: TgdClassEntry; AData: Pointer): Boolean;
+function Tgd_dlgAddLinked.BuildClassTree(ACE: TgdClassEntry; AData1: Pointer;
+  AData2: Pointer): Boolean;
 begin
   if (ACE <> nil) and (ACE.SubType = '') then
   begin

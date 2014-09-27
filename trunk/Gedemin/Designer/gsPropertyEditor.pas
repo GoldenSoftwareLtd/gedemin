@@ -744,10 +744,11 @@ end;
 
 { TgsPropertyEditor_TgdcClassName }
 
-function BuildTree(ACE: TgdClassEntry; AData: Pointer): Boolean;
+function BuildTree(ACE: TgdClassEntry; AData1: Pointer;
+  AData2: Pointer): Boolean;
 begin
   if ACE.SubType = '' then
-    TStringList(AData).Add(ACE.gdcClass.ClassName);
+    TStringList(AData1).Add(ACE.gdcClass.ClassName);
   Result := True;
 end;
 
@@ -756,7 +757,7 @@ begin
   inherited;
   FButtonType := btDown;
   FValues := TStringList.Create;
-  gdClassList.Traverse(TgdcBase, '', BuildTree, FValues, True, False);
+  gdClassList.Traverse(TgdcBase, '', BuildTree, FValues, nil, True, False);
 end;
 
 class function TgsPropertyEditor_TgdcClassName.PropertyName: String;
