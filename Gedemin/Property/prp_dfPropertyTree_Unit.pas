@@ -2089,14 +2089,6 @@ function TdfPropertyTree.BuildClassTree(ACE: TgdClassEntry; AData1: Pointer;
 var
   TN: TTreeNode;
 begin
-  if ACE.SubType = '' then
-  begin
-    if Boolean(AData2^) then
-      ACE.gdcClass.RegisterClassHierarchy
-    else
-      ACE.frmClass.RegisterClassHierarchy;
-  end;
-
   if Boolean(AData2^) then
     TN := AddGDCClassNode(TTreeNode(AData1^), ACE, ACE.SubType, ACE.Comment)
   else

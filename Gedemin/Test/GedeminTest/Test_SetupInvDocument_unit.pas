@@ -54,7 +54,7 @@ var
 begin
   gdcInvDocumentType := TgdcInvDocumentType.Create(nil);
   try
-    gdcInvDocumentType.ExtraConditions.Text = 'classname = ''TgdcInvDocumentType''';
+    gdcInvDocumentType.ExtraConditions.Text := 'classname = ''TgdcInvDocumentType''';
     gdcInvDocumentType.Open;
     gdcInvDocumentType.First;
     while not gdcInvDocumentType.EOF do

@@ -135,9 +135,6 @@ var
   F: TForm;
   SS, DN: String;
 begin
-  if ACE.SubType = '' then
-    ACE.gdcClass.RegisterClassHierarchy;
-
   C := ACE.gdcClass;
   if not C.IsAbstractClass then
   begin

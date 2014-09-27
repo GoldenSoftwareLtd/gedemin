@@ -453,8 +453,6 @@ begin
 
   if ACE.SubType = '' then
   begin
-    ACE.gdcClass.RegisterClassHierarchy;
-
     LTreeNode := tvObjects.Items.AddChild(TTreeNode(AData1^),
     ACE.gdcClass.GetDisplayName('') + ' [' + ACE.gdcClass.ClassName + ']');
 

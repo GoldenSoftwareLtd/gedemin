@@ -150,7 +150,8 @@ type
 
     procedure ReadOptions(Stream: TStream); virtual;
 
-    class procedure RegisterClassHierarchy; override;
+    class procedure RegisterClassHierarchy(AClass: TClass = nil;
+      AValue: String = ''); override;
 
     class function IsAbstractClass: Boolean; override;
 
@@ -813,9 +814,10 @@ begin
   Result := RelationTypeByRelation(RelationLine);
 end;
 
-class procedure TgdcInvBaseDocument.RegisterClassHierarchy;
+class procedure TgdcInvBaseDocument.RegisterClassHierarchy(AClass: TClass = nil;
+  AValue: String = '');
 
-  procedure ReadFromDocumentType(ACE: TgdClassEntry);
+  procedure ReadFromDocumentType(ACE: TgdClassEntry; ADocType: string);
   var
     CurrCE: TgdClassEntry;
     ibsql: TIBSQL;
@@ -825,6 +827,8 @@ class procedure TgdcInvBaseDocument.RegisterClassHierarchy;
   begin
     if ACE.Initialized then
       exit;
+
+    ACE.Initialized := True;
 
     ibsql := TIBSQL.Create(nil);
     try
@@ -841,9 +845,10 @@ class procedure TgdcInvBaseDocument.RegisterClassHierarchy;
         '  AND dt1.documenttype = ''D'' '#13#10 +
         'WHERE '#13#10 +
         '  dt.documenttype = ''D'' '#13#10 +
-        '  and dt.classname = ''TgdcInvDocumentType'' '#13#10 +
+        '  and dt.classname = :DT '#13#10 +
         'ORDER BY dt.parent';
 
+      ibsql.ParamByName('DT').AsString := ADocType;
       ibsql.ExecQuery;
 
       while not ibsql.EOF do
@@ -860,20 +865,24 @@ class procedure TgdcInvBaseDocument.RegisterClassHierarchy;
     finally
       ibsql.Free;
     end;
-
-    ACE.Initialized := True;
   end;
 
 var
   CEBase: TgdClassEntry;
 
 begin
-  CEBase := gdClassList.Find(Self);
+  if AClass <> nil then
+    CEBase := gdClassList.Find(AClass)
+  else
+  begin
+    CEBase := gdClassList.Find(Self);
+    AValue := 'TgdcInvDocumentType'
+  end;
 
   if CEBase = nil then
     raise EgdcException.Create('Unregistered class.');
 
-  ReadFromDocumentType(CEBase);
+  ReadFromDocumentType(CEBase, AValue);
 end;
 
 function TgdcInvBaseDocument.JoinListFieldByFieldName(

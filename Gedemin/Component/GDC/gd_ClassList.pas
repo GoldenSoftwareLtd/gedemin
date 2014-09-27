@@ -293,6 +293,7 @@ type
     function GetCount: Integer;
     function GetGdcClass: CgdcBase;
     function GetFrmClass: CgdcCreateableForm;
+    procedure CheckInitialized;
 
   public
     constructor Create(AParent: TgdClassEntry;
@@ -337,6 +338,7 @@ type
 
     function GetCount: Integer;
 
+    procedure CheckInitialized(AClass: TClass);
   public
     constructor Create;
     destructor Destroy; override;
@@ -1240,6 +1242,18 @@ begin
     raise Exception.Create('Not a form class.');
 end;
 
+procedure TgdClassEntry.CheckInitialized;
+begin
+  if not FInitialized then
+    if FClass.InheritsFrom(TgdcBase) then
+      gdcClass.RegisterClassHierarchy
+    else
+      if FClass.InheritsFrom(TgdcCreateableForm) then
+        frmClass.RegisterClassHierarchy
+      else
+        raise Exception.Create('Not a business or form class.');
+end;
+
 function TgdClassEntry.GetSiblings(Index: Integer): TgdClassEntry;
 begin
   Result := FSiblings[Index] as TgdClassEntry;
@@ -1254,6 +1268,8 @@ begin
 
   Result := False;
 
+  CheckInitialized;
+  
   for I := 0 to Count - 1 do
   begin
     if Siblings[I].SubType > '' then
@@ -1273,6 +1289,8 @@ var
   I: Integer;
 begin
   Assert(Assigned(ACallback));
+
+  CheckInitialized;
 
   if AnIncludeRoot then
     Result := ACallback(Self, AData)
@@ -1297,6 +1315,8 @@ var
 begin
   Assert(Assigned(ACallback2));
 
+  CheckInitialized;
+
   if AnIncludeRoot then
     Result := ACallback2(Self, AData)
   else
@@ -1320,6 +1340,8 @@ var
 begin
   Assert(Assigned(ACallback3));
 
+  CheckInitialized;
+
   if AnIncludeRoot then
     Result := ACallback3(Self, AData1, AData2)
   else
@@ -1342,6 +1364,8 @@ var
   I: Integer;
 begin
   Assert(Assigned(ACallback4));
+
+  CheckInitialized;
 
   if AnIncludeRoot then
     Result := ACallback4(Self, AData1, AData2)
@@ -1494,6 +1518,9 @@ var
 begin
   Assert(AClass <> nil);
 
+  if ASubType > '' then
+    CheckInitialized(AClass);
+
   ASubType := AnsiUpperCase(ASubType);
 
   K := GetHash(AClass, ASubType) mod ClassesHashTableSize;
@@ -1534,6 +1561,18 @@ end;
 function TgdClassList.GetCount: Integer;
 begin
   Result := FCount;
+end;
+
+procedure TgdClassList.CheckInitialized(AClass: TClass);
+var
+  CE: TgdClassEntry;
+begin
+  CE := Find(AClass);
+
+  Assert(CE <> nil);
+
+  if CE <> nil then
+    CE.CheckInitialized;
 end;
 
 procedure TgdClassList.Remove(const AClass: TClass;
