@@ -36,9 +36,10 @@ type
     procedure FormCreate(Sender: TObject);
     procedure cbImageClick(Sender: TObject);
     procedure actWizardUpdate(Sender: TObject);
+
   private
-    { Private declarations }
     FScriptChanged: Boolean;
+
   protected
     procedure SetupRecord; override;
     procedure SetupDialog; override;
@@ -48,8 +49,8 @@ type
     procedure FillImageList;
     class function DefImageIndex: Integer; virtual;
     class function DefFolderKey: Integer; virtual;
+
   public
-    { Public declarations }
     function TestCorrect: Boolean; override;
   end;
 
@@ -58,8 +59,11 @@ var
   gdc_dlgAutoTrRecord: Tgdc_dlgAutoTrRecord;
 
 implementation
-uses wiz_Main_Unit, gd_security_operationconst, gd_security,
-  gd_i_ScriptFactory, dmImages_unit;
+
+uses
+  wiz_Main_Unit, gd_security_operationconst, gd_security, gd_i_ScriptFactory,
+  dmImages_unit;
+
 {$R *.DFM}
 
 { Tgdc_dlgAutoTrRecord }
@@ -138,7 +142,7 @@ var
   DS: TDataSetState;
   NewFun: Boolean;
 begin
-  F := TdlgFunctionWisard.Create(Application);
+  F := TdlgFunctionWisard.Create(nil);
   try
     D := dsgdcBase.DataSet;
     if D <> nil then
@@ -458,7 +462,8 @@ end;
 
 procedure Tgdc_dlgAutoTrRecord.actWizardUpdate(Sender: TObject);
 begin
-  TAction(Sender).Enabled := gdcObject.FieldByName(fnAccountKey).AsInteger > 0;
+  TAction(Sender).Enabled := (gdcObject.FieldByName(fnAccountKey).AsInteger > 0)
+    and (IBLogin <> nil) and IBLogin.IsUserAdmin;
 end;
 
 initialization
@@ -466,5 +471,4 @@ initialization
 
 finalization
   UnRegisterFrmClass(Tgdc_dlgAutoTrRecord);
-
 end.

@@ -71,7 +71,7 @@ uses
   SysUtils, Controls, jclFileUtils, gdcBaseInterface, gdcBase,
   gdcNamespace, gdcNamespaceLoader, gd_GlobalParams_unit, yaml_parser,
   gd_common_functions, at_dlgCheckOperation_unit, at_frmSQLProcess,
-  flt_frmSQLEditorSyn_unit;
+  flt_frmSQLEditorSyn_unit, gd_security;
 
 { TgdcNamespaceSyncController }
 
@@ -658,6 +658,10 @@ end;
 procedure TgdcNamespaceSyncController.Init;
 begin
   Assert(gdcBaseManager <> nil);
+  Assert(IBLogin <> nil);
+
+  if not IBLogin.IsIBUserAdmin then
+    raise Exception.Create('Access denied.');
 
   if FTr <> nil then
   begin

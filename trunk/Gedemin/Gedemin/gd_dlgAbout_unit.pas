@@ -599,18 +599,21 @@ begin
         end;
       end;  
 
-      q.Close;
-      q.SQL.Text :=
-        'SELECT u.name as username, a.*, ROUND(mu.mon$memory_used / 1024 / 1024 + 0.5) || '' Mb'' AS mon$memory_usage ' +
-        'FROM mon$attachments a JOIN gd_user u ON u.ibname = a.mon$user ' +
-        '  JOIN mon$memory_usage mu ON mu.mon$stat_id = a.mon$stat_id ' +
-        'WHERE mon$attachment_id = CURRENT_CONNECTION';
-      q.ExecQuery;
-      if not q.EOF then
+      if IBLogin.IsUserAdmin then
       begin
-        AddSection('Текущее подключение из MON$ATTACHMENTS');
-        for I := 0 to q.Current.Count - 1 do
-          AddSpaces(q.Current[I].Name,  q.Current[I].AsString);
+        q.Close;
+        q.SQL.Text :=
+          'SELECT u.name as username, a.*, ROUND(mu.mon$memory_used / 1024 / 1024 + 0.5) || '' Mb'' AS mon$memory_usage ' +
+          'FROM mon$attachments a JOIN gd_user u ON u.ibname = a.mon$user ' +
+          '  JOIN mon$memory_usage mu ON mu.mon$stat_id = a.mon$stat_id ' +
+          'WHERE mon$attachment_id = CURRENT_CONNECTION';
+        q.ExecQuery;
+        if not q.EOF then
+        begin
+          AddSection('Текущее подключение из MON$ATTACHMENTS');
+          for I := 0 to q.Current.Count - 1 do
+            AddSpaces(q.Current[I].Name,  q.Current[I].AsString);
+        end;
       end;
 
       if IBLogin.IsIBUserAdmin then

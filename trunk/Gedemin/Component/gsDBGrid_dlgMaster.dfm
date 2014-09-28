@@ -697,7 +697,7 @@ object dlgMaster: TdlgMaster
               Caption = 'Формат условия'
               object Label8: TLabel
                 Left = 16
-                Top = 228
+                Top = 261
                 Width = 274
                 Height = 41
                 AutoSize = False
@@ -730,7 +730,7 @@ object dlgMaster: TdlgMaster
                 object editConditionName: TEdit
                   Left = 71
                   Top = 22
-                  Width = 190
+                  Width = 191
                   Height = 21
                   TabOrder = 0
                   Text = 'editConditionName'
@@ -739,7 +739,7 @@ object dlgMaster: TdlgMaster
                 object editConditionColumn: TComboBox
                   Left = 71
                   Top = 52
-                  Width = 190
+                  Width = 191
                   Height = 21
                   Style = csDropDownList
                   ItemHeight = 13
@@ -751,7 +751,7 @@ object dlgMaster: TdlgMaster
                 Left = 16
                 Top = 99
                 Width = 276
-                Height = 102
+                Height = 134
                 Caption = ' Операция и содержание условия '
                 TabOrder = 1
                 object Label14: TLabel
@@ -762,8 +762,8 @@ object dlgMaster: TdlgMaster
                   Caption = 'Операция:'
                 end
                 object lblAnd: TLabel
-                  Left = 134
-                  Top = 70
+                  Left = 14
+                  Top = 88
                   Width = 6
                   Height = 13
                   Caption = 'и'
@@ -778,7 +778,7 @@ object dlgMaster: TdlgMaster
                 object editConditionKind: TComboBox
                   Left = 79
                   Top = 22
-                  Width = 182
+                  Width = 184
                   Height = 21
                   Style = csDropDownList
                   DropDownCount = 12
@@ -789,16 +789,16 @@ object dlgMaster: TdlgMaster
                 object editConditionText1: TEdit
                   Left = 14
                   Top = 66
-                  Width = 110
+                  Width = 248
                   Height = 21
                   TabOrder = 1
                   Text = 'editConditionText1'
                   OnChange = editConditionText1Change
                 end
                 object editConditionText2: TEdit
-                  Left = 150
-                  Top = 66
-                  Width = 110
+                  Left = 14
+                  Top = 104
+                  Width = 248
                   Height = 21
                   TabOrder = 2
                   Text = 'editConditionText2'
@@ -807,7 +807,7 @@ object dlgMaster: TdlgMaster
               end
               object cbEvaluateExpression: TCheckBox
                 Left = 16
-                Top = 208
+                Top = 241
                 Width = 143
                 Height = 17
                 Caption = 'Рассчитывать формулы'
