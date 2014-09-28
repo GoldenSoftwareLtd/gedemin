@@ -1338,7 +1338,9 @@ end;
 procedure TfrmSQLEditorSyn.actExecuteUpdate(Sender: TObject);
 begin
   actExecute.Enabled := (pcMain.ActivePage = tsQuery)
-    and (Trim(seQuery.Text) > '');
+    and (Trim(seQuery.Text) > '')
+    and (IBLogin <> nil)
+    and IBLogin.IsUserAdmin;
 end;
 
 procedure TfrmSQLEditorSyn.actPrepareUpdate(Sender: TObject);

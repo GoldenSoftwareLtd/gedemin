@@ -1015,7 +1015,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
             Height = 21
             Style = csDropDownList
             DropDownCount = 24
-            ItemHeight = 13
+            ItemHeight = 0
             TabOrder = 0
             OnChange = cbTransactionsChange
           end
