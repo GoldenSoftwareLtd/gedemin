@@ -446,8 +446,6 @@ begin
     seQuery.Text := AnSQL;
   end;
     
-  //ibsqlPlan.Database := FDatabase;
-  //ibqryWork.Database := FDatabase;
   _ibtrEditor.DefaultDatabase := FDatabase;
   IBDatabaseInfo.Database := FDatabase;
   tsResult.TabVisible := False;
