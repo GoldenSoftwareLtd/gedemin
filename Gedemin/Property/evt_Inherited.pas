@@ -238,24 +238,24 @@ begin
       begin
         if LEventObject.ParentObjectsBySubType.Count > 0 then
         begin
-          if LEventObject.CurIndexParentObject = -1 then
+          if LEventObject.CurrIndexParentObject = -1 then
             ResetCurIndex := True;
           LParentEventOfObject := nil;
           repeat
-            if (LEventObject.CurIndexParentObject < LEventObject.ParentObjectsBySubType.Count - 1) then
+            if (LEventObject.CurrIndexParentObject < LEventObject.ParentObjectsBySubType.Count - 1) then
             begin
-              LEventObject.CurIndexParentObject := LEventObject.CurIndexParentObject + 1;
+              LEventObject.CurrIndexParentObject := LEventObject.CurrIndexParentObject + 1;
               LParentEventObject :=
-                LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+                LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
               LParentEventOfObject :=
                 LParentEventObject.EventList.Find(AnName);
             end
             else
             begin
-              LEventObject.CurIndexParentObject := -1;
+              LEventObject.CurrIndexParentObject := -1;
               LParentEventObject := nil;
             end;
-          until (LEventObject.CurIndexParentObject = -1)
+          until (LEventObject.CurrIndexParentObject = -1)
             or ((LParentEventOfObject <> nil)
                  and (LParentEventOfObject.FunctionKey <> 0)
                  and (not LParentEventOfObject.Disable)
@@ -2597,7 +2597,7 @@ begin
       end;
     finally
       if ResetCurIndex then
-        LEventObject.CurIndexParentObject := -1
+        LEventObject.CurrIndexParentObject := -1
     end;
 
   except
