@@ -229,7 +229,7 @@ type
     // Список родителей по SubType
     FParentObjectsBySubType: TEventObjectList;
     // Индекс текущего родителя по SubType (По умолчению -1)
-    FCurIndexParentObject: integer;
+    FCurrIndexParentObject: integer;
 
 //    procedure SetHasSpecEvent(const Value: Boolean);
     procedure SetSpecEventCount(const Value: Integer);
@@ -257,8 +257,8 @@ type
 
     property ParentObjectsBySubType: TEventObjectList
       read FParentObjectsBySubType write FParentObjectsBySubType;
-    property CurIndexParentObject: Integer
-      read FCurIndexParentObject write FCurIndexParentObject;
+    property CurrIndexParentObject: Integer
+      read FCurrIndexParentObject write FCurrIndexParentObject;
   end;
 
   TEventObjectList = class(TObjectList)
@@ -1084,7 +1084,7 @@ uses
   gd_Security, obj_i_Debugger, dlg_gsResizer_ObjectInspector_unit,
   prp_frmGedeminProperty_Unit, gd_createable_form, mtd_i_Base,
   gdc_frmMDVTree_unit, gdcReport, FileCtrl, prp_PropertySettings, gsSupportClasses,
-  shdocvw, gdcBaseInterface, gd_ClassList
+  shdocvw, gdcBaseInterface, gd_ClassList, gdc_createable_form
   {$IFDEF MODEM}
     , gsModem
   {$ENDIF}
@@ -1287,9 +1287,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -1307,7 +1307,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cAfterCancelEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -1329,7 +1329,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
              TDataSetNotifyEvent(LNotifyEvent^)(DataSet);
@@ -1358,9 +1358,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -1378,7 +1378,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cAfterCloseEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -1401,7 +1401,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             TDataSetNotifyEvent(LNotifyEvent^)(DataSet);
@@ -1429,9 +1429,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -1449,7 +1449,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cAfterDatabaseDisconnectEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -1471,7 +1471,7 @@ begin
       if ResetIndex then
       begin
         if Assigned(TempEventObject)  then
-          TempEventObject.CurIndexParentObject := -1;
+          TempEventObject.CurrIndexParentObject := -1;
         //Выполнить метод Delphi
         if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
           LNotifyEvent^(Sender);
@@ -1500,9 +1500,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -1520,7 +1520,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cAfterDeleteEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -1542,7 +1542,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             TDataSetNotifyEvent(LNotifyEvent^)(DataSet);
@@ -1570,9 +1570,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -1590,7 +1590,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cAfterEditEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -1606,7 +1606,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             TDataSetNotifyEvent(LNotifyEvent^)(DataSet);
@@ -1635,9 +1635,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -1655,7 +1655,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cAfterInsertEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -1677,7 +1677,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             TDataSetNotifyEvent(LNotifyEvent^)(DataSet);
@@ -1706,9 +1706,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -1726,7 +1726,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cAfterOpenEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -1748,7 +1748,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             TDataSetNotifyEvent(LNotifyEvent^)(DataSet);
@@ -1777,9 +1777,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -1797,7 +1797,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cAfterPostEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -1813,7 +1813,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             TDataSetNotifyEvent(LNotifyEvent^)(DataSet);
@@ -1842,9 +1842,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -1862,7 +1862,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cAfterRefreshEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -1878,7 +1878,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             TDataSetNotifyEvent(LNotifyEvent^)(DataSet);
@@ -1907,9 +1907,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -1927,7 +1927,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cAfterScrollEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -1943,7 +1943,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             TDataSetNotifyEvent(LNotifyEvent^)(DataSet);
@@ -1973,9 +1973,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -1994,7 +1994,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cAfterShowDialogEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -2010,7 +2010,7 @@ begin
       if ResetIndex then
       begin
         if Assigned(TempEventObject)  then
-          TempEventObject.CurIndexParentObject := -1;
+          TempEventObject.CurrIndexParentObject := -1;
         //Выполнить метод Delphi
         if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
           TgdcDoAfterShowDialog(LNotifyEvent^)(Sender, DlgForm, IsOk);
@@ -2039,9 +2039,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -2059,7 +2059,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cAfterTransactionEndEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -2075,7 +2075,7 @@ begin
       if ResetIndex then
       begin
         if Assigned(TempEventObject)  then
-          TempEventObject.CurIndexParentObject := -1;
+          TempEventObject.CurrIndexParentObject := -1;
         //Выполнить метод Delphi
         if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
           LNotifyEvent^(Sender);
@@ -2104,9 +2104,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -2124,7 +2124,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cBeforeCancelEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -2140,7 +2140,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             TDataSetNotifyEvent(LNotifyEvent^)(DataSet);
@@ -2169,9 +2169,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -2189,7 +2189,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cBeforeCloseEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -2205,7 +2205,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             TDataSetNotifyEvent(LNotifyEvent^)(DataSet);
@@ -2234,9 +2234,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -2254,7 +2254,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cBeforeDatabaseDisconnectEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -2270,7 +2270,7 @@ begin
       if ResetIndex then
       begin
         if Assigned(TempEventObject)  then
-          TempEventObject.CurIndexParentObject := -1;
+          TempEventObject.CurrIndexParentObject := -1;
         //Выполнить метод Delphi
         if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
           LNotifyEvent^(Sender);
@@ -2299,9 +2299,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -2319,7 +2319,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cBeforeDeleteEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -2335,7 +2335,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             TDataSetNotifyEvent(LNotifyEvent^)(DataSet);
@@ -2364,9 +2364,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -2384,7 +2384,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cBeforeEditEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -2400,7 +2400,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             TDataSetNotifyEvent(LNotifyEvent^)(DataSet);
@@ -2429,9 +2429,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -2449,7 +2449,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cBeforeInsertEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -2465,7 +2465,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             TDataSetNotifyEvent(LNotifyEvent^)(DataSet);
@@ -2494,9 +2494,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -2514,7 +2514,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cBeforeOpenEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -2530,7 +2530,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             TDataSetNotifyEvent(LNotifyEvent^)(DataSet);
@@ -2559,9 +2559,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -2579,7 +2579,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cBeforePostEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -2595,7 +2595,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             TDataSetNotifyEvent(LNotifyEvent^)(DataSet);
@@ -2624,9 +2624,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -2644,7 +2644,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cBeforeScrollEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -2660,7 +2660,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             TDataSetNotifyEvent(LNotifyEvent^)(DataSet);
@@ -2690,9 +2690,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -2711,7 +2711,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cBeforeShowDialogEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -2727,7 +2727,7 @@ begin
       if ResetIndex then
       begin
         if Assigned(TempEventObject)  then
-          TempEventObject.CurIndexParentObject := -1;
+          TempEventObject.CurrIndexParentObject := -1;
         //Выполнить метод Delphi
         if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
           TgdcDoBeforeShowDialog(LNotifyEvent^)(Sender, DlgForm);
@@ -2756,9 +2756,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -2776,7 +2776,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cBeforeTransactionEndEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -2792,7 +2792,7 @@ begin
       if ResetIndex then
       begin
         if Assigned(TempEventObject)  then
-          TempEventObject.CurIndexParentObject := -1;
+          TempEventObject.CurrIndexParentObject := -1;
         //Выполнить метод Delphi
         if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
           LNotifyEvent^(Sender);
@@ -3195,9 +3195,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -3215,7 +3215,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cDatabaseDisconnectedEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -3231,7 +3231,7 @@ begin
       if ResetIndex then
       begin
         if Assigned(TempEventObject)  then
-          TempEventObject.CurIndexParentObject := -1;
+          TempEventObject.CurrIndexParentObject := -1;
         //Выполнить метод Delphi
         if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
           LNotifyEvent^(Sender);
@@ -3259,9 +3259,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -3279,7 +3279,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cDatabaseDisconnectingEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -3295,7 +3295,7 @@ begin
       if ResetIndex then
       begin
         if Assigned(TempEventObject)  then
-          TempEventObject.CurIndexParentObject := -1;
+          TempEventObject.CurrIndexParentObject := -1;
         //Выполнить метод Delphi
         if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
           LNotifyEvent^(Sender);
@@ -3324,9 +3324,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -3344,7 +3344,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cDatabaseFreeEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -3360,7 +3360,7 @@ begin
       if ResetIndex then
       begin
         if Assigned(TempEventObject)  then
-          TempEventObject.CurIndexParentObject := -1;
+          TempEventObject.CurrIndexParentObject := -1;
         //Выполнить метод Delphi
         if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
           LNotifyEvent^(Sender);
@@ -3833,9 +3833,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -3852,7 +3852,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cActivateEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -3866,7 +3866,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             LNotifyEvent^(Sender);
@@ -3896,9 +3896,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -3920,7 +3920,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cAfterInitSQLEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -3940,7 +3940,7 @@ begin
       if ResetIndex then
       begin
         if Assigned(TempEventObject)  then
-          TempEventObject.CurIndexParentObject := -1;
+          TempEventObject.CurrIndexParentObject := -1;
         //Выполнить метод Delphi
         if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
           TgdcAfterInitSQL(LNotifyEvent^)(Sender, SQLText, isReplaceSQL);
@@ -3969,9 +3969,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -3989,7 +3989,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cAggregateChangedEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -4005,7 +4005,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             LNotifyEvent^(Sender);
@@ -4034,9 +4034,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -4054,7 +4054,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cCalcFieldsEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -4070,7 +4070,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             TDataSetNotifyEvent(LNotifyEvent^)(DataSet);
@@ -4100,9 +4100,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -4123,7 +4123,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cCanResizeEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -4141,7 +4141,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
              TCanResizeEvent(LNotifyEvent^)(Sender, NewWidth, NewHeight, Resize);
@@ -4172,9 +4172,9 @@ begin
     if Assigned(LEventObject) then
     begin
       //Проверка на вызов родительского объекта
-      if LEventObject.CurIndexParentObject > -1 then
+      if LEventObject.CurrIndexParentObject > -1 then
         LEventObject :=
-          LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+          LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
     end;
     // Проверка результата поиска
     if Assigned(LEventObject) then
@@ -4192,7 +4192,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cChangeEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -4207,7 +4207,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             TMenuChangeEvent(LNotifyEvent^)(Sender, Source, Rebuild);
@@ -4237,9 +4237,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -4257,7 +4257,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cChangeEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -4273,7 +4273,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             LNotifyEvent^(Sender);
@@ -4301,9 +4301,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if  Assigned(LEventObject) then
@@ -4320,7 +4320,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cClickEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -4334,7 +4334,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             LNotifyEvent^(Sender);
@@ -4364,9 +4364,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -4388,7 +4388,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cClickCheckEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -4407,7 +4407,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             TCheckBoxEvent(LNotifyEvent^)(Sender, CheckID, Checked);
@@ -4438,9 +4438,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -4462,7 +4462,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cClickedCheckEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -4483,7 +4483,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             TAfterCheckEvent(LNotifyEvent^)(Sender, CheckID, Checked);
@@ -4510,9 +4510,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -4531,7 +4531,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cCloseEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -4549,7 +4549,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             TCloseEvent(LNotifyEvent^)(Sender, Action);
@@ -4578,9 +4578,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -4597,7 +4597,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cCloseEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -4611,7 +4611,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             LNotifyEvent^(Sender);
@@ -4641,9 +4641,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -4662,7 +4662,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cCloseQueryEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -4681,7 +4681,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             TCloseQueryEvent(LNotifyEvent^)(Sender, CanClose);
@@ -4710,9 +4710,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -4730,7 +4730,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cColEnterEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -4746,7 +4746,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             LNotifyEvent^(Sender);
@@ -4775,9 +4775,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -4795,7 +4795,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cColExitEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -4811,7 +4811,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             LNotifyEvent^(Sender);
@@ -4841,9 +4841,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -4862,7 +4862,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cColumnMovedEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -4878,7 +4878,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             TMovedEvent(LNotifyEvent^)(Sender, FromIndex, ToIndex);
@@ -4907,9 +4907,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -4927,7 +4927,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cConditionChangedEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -4943,7 +4943,7 @@ begin
       if ResetIndex then
       begin
         if Assigned(TempEventObject)  then
-          TempEventObject.CurIndexParentObject := -1;
+          TempEventObject.CurrIndexParentObject := -1;
         //Выполнить метод Delphi
         if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
           TConditionChanged(LNotifyEvent^)(Sender);
@@ -4973,9 +4973,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -4998,7 +4998,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cConstrainedResizeEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -5017,7 +5017,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             TConstrainedResizeEvent(LNotifyEvent^)(Sender, MinWidth, MinHeight, MaxWidth, MaxHeight);
@@ -5047,9 +5047,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -5078,7 +5078,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cContextPopupEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -5094,7 +5094,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             TContextPopupEvent(LNotifyEvent^)(Sender, MousePos, Handled);
@@ -5123,9 +5123,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   if Assigned(LEventObject) then
   begin
@@ -5141,7 +5141,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cCreateEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -5155,7 +5155,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             LNotifyEvent^(Sender);
@@ -5184,9 +5184,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -5205,7 +5205,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cCreateNewObjectEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -5221,7 +5221,7 @@ begin
       if ResetIndex then
       begin
         if Assigned(TempEventObject)  then
-          TempEventObject.CurIndexParentObject := -1;
+          TempEventObject.CurrIndexParentObject := -1;
         //Выполнить метод Delphi
         if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
           TOnCreateNewObject(LNotifyEvent^)(Sender, ANewObject);
@@ -5249,9 +5249,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -5270,7 +5270,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cDataChangeEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -5286,7 +5286,7 @@ begin
       if ResetIndex then
       begin
         if Assigned(TempEventObject)  then
-          TempEventObject.CurIndexParentObject := -1;
+          TempEventObject.CurrIndexParentObject := -1;
         //Выполнить метод Delphi
         if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
           TDataChangeEvent(LNotifyEvent^)(Sender, Field);
@@ -5315,9 +5315,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -5334,7 +5334,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cDblClickEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -5348,7 +5348,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             LNotifyEvent^(Sender);
@@ -5376,9 +5376,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -5395,7 +5395,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cDeactivateEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -5410,7 +5410,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             LNotifyEvent^(Sender);
@@ -5443,9 +5443,9 @@ begin
     if Assigned(LEventObject) then
     begin
       //Проверка на вызов родительского объекта
-      if LEventObject.CurIndexParentObject > -1 then
+      if LEventObject.CurrIndexParentObject > -1 then
         LEventObject :=
-          LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+          LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
     end;
     // Проверка результата поиска
     if Assigned(LEventObject) then
@@ -5467,7 +5467,7 @@ begin
             // сохранение адреса Delphi обработчика события
             LNotifyEvent := @LEventObject.EventList.Find(cDeleteErrorEventName).OldEvent.Code;
             // выбор родительскокого объекта
-            LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+            LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
             TempEventObject := LEventObject;
             ResetIndex := True;
             LEventObject :=
@@ -5489,7 +5489,7 @@ begin
         if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
               TDataSetErrorEvent(LNotifyEvent^)(DataSet, E, Action);
@@ -5519,9 +5519,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -5538,7 +5538,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cDestroyEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -5553,7 +5553,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             LNotifyEvent^(Sender);
@@ -5582,9 +5582,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -5602,7 +5602,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cDockChangedEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -5618,7 +5618,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             LNotifyEvent^(Sender);
@@ -5647,9 +5647,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -5667,7 +5667,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cDockChangingEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -5683,7 +5683,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             LNotifyEvent^(Sender);
@@ -5712,9 +5712,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -5732,7 +5732,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cDockChangingHiddenEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -5748,7 +5748,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             LNotifyEvent^(Sender);
@@ -5778,9 +5778,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -5798,7 +5798,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cDockDropEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -5812,7 +5812,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             TDockDropEvent(LNotifyEvent^)(Sender, Source, X, Y);
@@ -5843,9 +5843,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -5863,7 +5863,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cDockOverEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -5879,7 +5879,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
              TDockOverEvent(LNotifyEvent^)(Sender, Source, X, Y, State, Accept);
@@ -5908,9 +5908,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -5928,7 +5928,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cDragDropEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -5942,7 +5942,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             TDragDropEvent(LNotifyEvent^)(Sender, Source, X, Y);
@@ -5972,9 +5972,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -5993,7 +5993,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cDragOverEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -6009,7 +6009,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             TDragOverEvent(LNotifyEvent^)(Sender, Source, X, Y, State, Accept);
@@ -6041,9 +6041,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -6072,7 +6072,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cDrawColumnCellEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -6088,7 +6088,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             TDrawColumnCellEvent(LNotifyEvent^)(Sender, Rect, DataCol, Column, State);
@@ -6119,9 +6119,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -6150,7 +6150,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cDrawDataCellEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -6166,7 +6166,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
              TDrawDataCellEvent(LNotifyEvent^)(Sender, Rect, Field, State);
@@ -6212,9 +6212,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -6242,7 +6242,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cDrawItemEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -6258,7 +6258,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             TDrawItemEvent(LNotifyEvent^)(Control, Index, Rect, State);
@@ -6287,9 +6287,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -6307,7 +6307,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cDropDownEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -6322,7 +6322,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             LNotifyEvent^(Sender);
@@ -6352,9 +6352,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -6372,7 +6372,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cEditButtonClickEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -6388,7 +6388,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             LNotifyEvent^(Sender);
@@ -6421,9 +6421,9 @@ begin
     if Assigned(LEventObject) then
     begin
       //Проверка на вызов родительского объекта
-      if LEventObject.CurIndexParentObject > -1 then
+      if LEventObject.CurrIndexParentObject > -1 then
         LEventObject :=
-          LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+          LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
     end;
     // Проверка результата поиска
     if Assigned(LEventObject) then
@@ -6443,7 +6443,7 @@ begin
             // сохранение адреса Delphi обработчика события
             LNotifyEvent := @LEventObject.EventList.Find(cEditErrorEventName).OldEvent.Code;
             // выбор родительскокого объекта
-            LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+            LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
             TempEventObject := LEventObject;
             ResetIndex := True;
             LEventObject :=
@@ -6465,7 +6465,7 @@ begin
         if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             TDataSetErrorEvent(LNotifyEvent^)(DataSet, E, Action);
@@ -6495,9 +6495,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -6515,7 +6515,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cEndDockEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -6529,7 +6529,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             TEndDragEvent(LNotifyEvent^)(Sender, Target, X, Y);
@@ -6558,9 +6558,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -6578,7 +6578,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cEndDragEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -6592,7 +6592,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             TEndDragEvent(LNotifyEvent^)(Sender, Target, X, Y);
@@ -6621,9 +6621,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -6640,7 +6640,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cEnterEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -6654,7 +6654,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             LNotifyEvent^(Sender);
@@ -6685,9 +6685,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -6707,7 +6707,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cExecuteEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -6726,7 +6726,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             TActionEvent(LNotifyEvent^)(Action, Handled);
@@ -6775,9 +6775,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
 
   // Проверка результата поиска
@@ -6796,7 +6796,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cExecuteEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -6812,7 +6812,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             LNotifyEvent^(Sender);
@@ -6841,9 +6841,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -6860,7 +6860,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cExitEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -6874,7 +6874,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             LNotifyEvent^(Sender);
@@ -6903,9 +6903,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -6923,7 +6923,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cFilterChangedEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -6939,7 +6939,7 @@ begin
       if ResetIndex then
       begin
         if Assigned(TempEventObject)  then
-          TempEventObject.CurIndexParentObject := -1;
+          TempEventObject.CurrIndexParentObject := -1;
         //Выполнить метод Delphi
         if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
           LNotifyEvent^(Sender);
@@ -6969,9 +6969,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -6989,7 +6989,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cFilterChangedEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -7005,7 +7005,7 @@ begin
       if ResetIndex then
       begin
         if Assigned(TempEventObject)  then
-          TempEventObject.CurIndexParentObject := -1;
+          TempEventObject.CurrIndexParentObject := -1;
         //Выполнить метод Delphi
         if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
           TFilterChanged(LNotifyEvent^)(Sender, AnCurrentFilter);
@@ -7035,9 +7035,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -7057,7 +7057,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cFilterRecordEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -7076,7 +7076,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             TFilterRecordEvent(LNotifyEvent^)(DataSet, Accept);
@@ -7109,9 +7109,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -7130,7 +7130,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cGetFooterEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -7147,7 +7147,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             TOnGetFooter(LNotifyEvent^)(Sender, FieldName, AggregatesObsolete, DisplayString);
@@ -7178,9 +7178,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -7197,7 +7197,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cHideEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -7211,7 +7211,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             LNotifyEvent^(Sender);
@@ -7242,9 +7242,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -7265,7 +7265,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cKeyDownEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -7281,7 +7281,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             TKeyEvent(LNotifyEvent^)(Sender, Key, Shift);
@@ -7310,9 +7310,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -7331,7 +7331,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cKeyPressEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -7359,7 +7359,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             TKeyPressEvent(LNotifyEvent^)(Sender, Key);
@@ -7389,9 +7389,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -7412,7 +7412,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cKeyUpEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -7428,7 +7428,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             TKeyEvent(LNotifyEvent^)(Sender, Key, Shift);
@@ -7459,9 +7459,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -7481,7 +7481,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cMeasureItemEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -7500,7 +7500,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             TMeasureItemEvent(LNotifyEvent^)(Control, Index, Height);
@@ -7530,9 +7530,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -7550,7 +7550,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cMouseDownEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -7564,7 +7564,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             TMouseEvent(LNotifyEvent^)(Sender, Button, Shift, X, Y);
@@ -7594,9 +7594,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -7615,7 +7615,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cMouseMoveEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -7629,7 +7629,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             TMouseMoveEvent(LNotifyEvent^)(Sender, Shift, X, Y);
@@ -7658,9 +7658,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -7678,7 +7678,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cMouseUpEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -7692,7 +7692,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             TMouseEvent(LNotifyEvent^)(Sender, Button, Shift, X, Y)
@@ -7723,9 +7723,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -7755,7 +7755,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cMouseWheelEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -7771,7 +7771,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             TMouseWheelEvent(LNotifyEvent^)(Sender, Shift, WheelDelta, MousePos, Handled);
@@ -7802,9 +7802,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -7833,7 +7833,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cMouseWheelDownEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -7849,7 +7849,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             TMouseWheelUpDownEvent(LNotifyEvent^)(Sender, Shift, MousePos, Handled);
@@ -7880,9 +7880,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -7912,7 +7912,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cMouseWheelUpEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -7928,7 +7928,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             TMouseWheelUpDownEvent(LNotifyEvent^)(Sender, Shift, MousePos, Handled);
@@ -7957,9 +7957,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -7977,7 +7977,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cMoveEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -7993,7 +7993,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             LNotifyEvent^(Sender);
@@ -8022,9 +8022,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -8042,7 +8042,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cNewRecordEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -8058,7 +8058,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             TDataSetNotifyEvent(LNotifyEvent^)(DataSet);
@@ -8091,9 +8091,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -8111,7 +8111,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cPaintEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -8126,7 +8126,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             LNotifyEvent^(Sender);
@@ -8157,9 +8157,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   // OpPopup вызывается и при нажатии "быстрых клавиш", в этом случае, естественно,
@@ -8177,7 +8177,7 @@ begin
         if LEventOfObject.IsParental then
         begin
           LNotifyEvent := @LEventObject.EventList.Find(cPopupEventName).OldEvent.Code;
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -8191,7 +8191,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             LNotifyEvent^(Sender);
         end;
@@ -8223,9 +8223,9 @@ begin
     if Assigned(LEventObject) then
     begin
       //Проверка на вызов родительского объекта
-      if LEventObject.CurIndexParentObject > -1 then
+      if LEventObject.CurrIndexParentObject > -1 then
         LEventObject :=
-          LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+          LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
     end;
     // Проверка результата поиска
     if Assigned(LEventObject) then
@@ -8245,7 +8245,7 @@ begin
             // сохранение адреса Delphi обработчика события
             LNotifyEvent := @LEventObject.EventList.Find(cPostErrorEventName).OldEvent.Code;
             // выбор родительскокого объекта
-            LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+            LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
             TempEventObject := LEventObject;
             ResetIndex := True;
             LEventObject :=
@@ -8267,7 +8267,7 @@ begin
         if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             TDataSetErrorEvent(LNotifyEvent^)(DataSet, E, Action);
@@ -8297,9 +8297,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -8317,7 +8317,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cRecreatedEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -8333,7 +8333,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             LNotifyEvent^(Sender);
@@ -8362,9 +8362,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -8382,7 +8382,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cRecreatingEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -8398,7 +8398,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             LNotifyEvent^(Sender);
@@ -8427,9 +8427,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -8446,7 +8446,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cResizeEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -8460,7 +8460,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             LNotifyEvent^(Sender);
@@ -8491,9 +8491,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -8513,7 +8513,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cScrollEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -8532,7 +8532,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             TScrollEvent(LNotifyEvent^)(Sender, ScrollCode, ScrollPos);
@@ -8561,9 +8561,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -8580,7 +8580,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cShowEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -8595,7 +8595,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             LNotifyEvent^(Sender);
@@ -8625,9 +8625,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -8646,7 +8646,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cStartDockEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -8661,7 +8661,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             TStartDockEvent(LNotifyEvent^)(Sender, DragObject);
@@ -8691,9 +8691,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -8712,7 +8712,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cStartDragEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -8728,7 +8728,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             TStartDragEvent(LNotifyEvent^)(Sender, DragObject);
@@ -8756,9 +8756,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -8776,7 +8776,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cStateChangeEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -8792,7 +8792,7 @@ begin
       if ResetIndex then
       begin
         if Assigned(TempEventObject)  then
-          TempEventObject.CurIndexParentObject := -1;
+          TempEventObject.CurrIndexParentObject := -1;
         //Выполнить метод Delphi
         if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
           LNotifyEvent^(Sender);
@@ -8821,9 +8821,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -8841,7 +8841,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cTimerEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -8857,7 +8857,7 @@ begin
       if ResetIndex then
       begin
         if Assigned(TempEventObject)  then
-          TempEventObject.CurIndexParentObject := -1;
+          TempEventObject.CurrIndexParentObject := -1;
         //Выполнить метод Delphi
         if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
           LNotifyEvent^(Sender);
@@ -8887,9 +8887,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -8909,7 +8909,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cUnDockEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -8925,7 +8925,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             TUnDockEvent(LNotifyEvent^)(Sender, Client, NewTarget, Allow);
@@ -8956,9 +8956,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -8978,7 +8978,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cUpdateEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -8997,7 +8997,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             TActionEvent(LNotifyEvent^)(Action, Handled);
@@ -9026,9 +9026,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -9046,7 +9046,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cUpdateEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -9062,7 +9062,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             LNotifyEvent^(Sender);
@@ -9089,9 +9089,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -9109,7 +9109,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cUpdateDataEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -9125,7 +9125,7 @@ begin
       if ResetIndex then
       begin
         if Assigned(TempEventObject)  then
-          TempEventObject.CurIndexParentObject := -1;
+          TempEventObject.CurrIndexParentObject := -1;
         //Выполнить метод Delphi
         if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
           LNotifyEvent^(Sender);
@@ -9158,9 +9158,9 @@ begin
     if Assigned(LEventObject) then
     begin
       //Проверка на вызов родительского объекта
-      if LEventObject.CurIndexParentObject > -1 then
+      if LEventObject.CurrIndexParentObject > -1 then
         LEventObject :=
-          LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+          LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
     // Проверка результата поиска
     if Assigned(LEventObject) then
@@ -9181,7 +9181,7 @@ begin
             // сохранение адреса Delphi обработчика события
             LNotifyEvent := @LEventObject.EventList.Find(cUpdateErrorEventName).OldEvent.Code;
             // выбор родительскокого объекта
-            LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+            LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
             TempEventObject := LEventObject;
             ResetIndex := True;
             LEventObject :=
@@ -9203,7 +9203,7 @@ begin
         if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             TIBUpdateErrorEvent(LNotifyEvent^)(DataSet, E, UpdateKind, UpdateAction);
@@ -9234,9 +9234,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -9258,7 +9258,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cUpdateRecordEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -9281,7 +9281,7 @@ begin
       if ResetIndex then
       begin
         if Assigned(TempEventObject)  then
-          TempEventObject.CurIndexParentObject := -1;
+          TempEventObject.CurrIndexParentObject := -1;
         //Выполнить метод Delphi
         if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
           TIBUpdateRecordEvent(LNotifyEvent^)(DataSet, UpdateKind, UpdateAction);
@@ -9310,9 +9310,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -9330,7 +9330,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cVisibleChangedEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -9346,7 +9346,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             LNotifyEvent^(Sender);
@@ -9577,7 +9577,6 @@ begin
         if  (AnEventObject.ParentObjectsBySubType.Count > 0) then
         begin
           K := 0;
-//          EK := nil;
           repeat
             TempEventObject := AnEventObject.ParentObjectsBySubType.EventObject[K];
             EK := TempEventObject.EventList.Find(TempPropList[I]^.Name);
@@ -9590,14 +9589,10 @@ begin
           begin
             // добавляем родительский TEventItem
             if EI <> nil then
-            begin
               AnEventObject.EventList.DeleteForName(TempPropList[I]^.Name);
-              EI := AnEventObject.EventList.Find(TempPropList[I]^.Name);
-            end;
             AnEventObject.EventList.Add(EK);
             EI := AnEventObject.EventList.Last;
             // снимаем отметку об установке метода Delphi
-//            EI.FIsOldEventSet := False;
             EI.Reset;
             EI.IsParental := True;
             EI.ParentIndex := K - 1;
@@ -9730,64 +9725,62 @@ end;
 function TEventControl.SetParentEventObjectsBySubType(AnComponent: TComponent;
   AnEventObject: TEventObject): boolean;
 var
-  LName: string;
-  LClassName: string;
-  SubType: string;
-  ParentSubType: string;
-  ParentEventObject: TEventObject;
-  TempEventObject: TEventObject;
-  TempChildEventObject: TEventObject;
-  OwnerEventObject: TEventObject;
-  LParentName: string;
+  LSubType: string;
+  LParentSubType: string;
+  LParentEventObject: TEventObject;
+  LTempEventObject: TEventObject;
+  LTempChildEventObject: TEventObject;
+  LOwnerEventObject: TEventObject;
+  LParentCompName: string;
   I: integer;
   LFullClassName: TgdcFullClassName;
 begin
   Result := false;
-  if (AnComponent is TCreateableForm) then
+  if (AnComponent is TgdcCreateableForm) then
   begin
-    LName := AnComponent.Name;
-    LClassName := AnComponent.ClassName;
-    Delete(LClassName, 1, 1);
-    SubType := StringReplace(LName, LClassName, '', [rfReplaceAll, rfIgnoreCase]);
-    ParentSubType := '';
+    LSubType := TgdcCreateableForm(AnComponent).SubType;
+    LParentSubType := '';
     AnEventObject.ParentObjectsBySubType.Clear;
-    if SubType <> '' then
+    if LSubType <> '' then
       repeat
         LFullClassName.gdClassName := AnComponent.ClassName;
-        LFullClassName.SubType := SubType;
+        LFullClassName.SubType := LSubType;
         if not Assigned(gdClassList.GetFRMClass(LFullClassName))then
           raise Exception.Create('Ошибка перекрытия события ' + LFullClassName.gdClassName);
-        ParentSubType := gdClassList.GetFRMClass(LFullClassName).ClassParentSubtype(SubType);
-        ParentSubType := StringReplace(ParentSubType, 'USR$', 'USR_', [rfReplaceAll, rfIgnoreCase]);
-        if ParentSubType <> '' then
+        LParentSubType := gdClassList.GetFRMClass(LFullClassName).ClassParentSubtype(LSubType);
+        LParentSubType := StringReplace(LParentSubType, 'USR$', 'USR_', [rfReplaceAll, rfIgnoreCase]);
+        if LParentSubType <> '' then
         begin
-          LParentName := LClassName + ParentSubType;
-          ParentEventObject := EventObjectList.FindAllObject(LParentName);
-          if Assigned(ParentEventObject) then
+          LParentCompName :=
+            Copy(AnComponent.ClassName, 2, Length(AnComponent.ClassName) - 1)
+            + LParentSubType;
+
+          LParentEventObject := EventObjectList.FindAllObject(LParentCompName);
+          if Assigned(LParentEventObject) then
           begin
-            AnEventObject.CurIndexParentObject := -1;
-            AnEventObject.ParentObjectsBySubType.AddObject(ParentEventObject);
+            AnEventObject.CurrIndexParentObject := -1;
+            AnEventObject.ParentObjectsBySubType.AddObject(LParentEventObject);
           end;
         end;
-        SubType := ParentSubType;
-      until ParentSubType = '';
+        LSubType := LParentSubType;
+      until LParentSubType = '';
   end;
 
   if not (AnComponent is TCreateableForm) then
   begin
-    OwnerEventObject := EventObjectList.FindAllObject(AnComponent.Owner);
-    if (Assigned (OwnerEventObject))
-      and (OwnerEventObject.ParentObjectsBySubType.Count > 0) then
+    LOwnerEventObject := EventObjectList.FindAllObject(AnComponent.Owner);
+    if (Assigned (LOwnerEventObject))
+      and (LOwnerEventObject.ParentObjectsBySubType.Count > 0) then
     begin
       AnEventObject.ParentObjectsBySubType.Clear;
-      for I := 0 to OwnerEventObject.ParentObjectsBySubType.Count - 1 do
+      for I := 0 to LOwnerEventObject.ParentObjectsBySubType.Count - 1 do
       begin
-        TempEventObject := OwnerEventObject.ParentObjectsBySubType.EventObject[I];
-        TempChildEventObject := TempEventObject.ChildObjects.FindObject(AnComponent.Name);
-        if Assigned(TempChildEventObject)then
+        LTempEventObject := LOwnerEventObject.ParentObjectsBySubType.EventObject[I];
+        LTempChildEventObject := LTempEventObject.ChildObjects.FindObject(AnComponent.Name);
+        if Assigned(LTempChildEventObject)then
         begin
-          AnEventObject.CurIndexParentObject := -1;
-          AnEventObject.ParentObjectsBySubType.AddObject(TempChildEventObject);
+          AnEventObject.CurrIndexParentObject := -1;
+          AnEventObject.ParentObjectsBySubType.AddObject(LTempChildEventObject);
         end;
       end;
     end;
@@ -9839,9 +9832,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -9859,7 +9852,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cTransactionFreeEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -9881,7 +9874,7 @@ begin
       if ResetIndex then
       begin
         if Assigned(TempEventObject)  then
-          TempEventObject.CurIndexParentObject := -1;
+          TempEventObject.CurrIndexParentObject := -1;
         //Выполнить метод Delphi
         if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
           LNotifyEvent^(Sender);
@@ -10133,9 +10126,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -10154,7 +10147,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cSyncFieldEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -10170,7 +10163,7 @@ begin
       if ResetIndex then
       begin
         if Assigned(TempEventObject)  then
-          TempEventObject.CurIndexParentObject := -1;
+          TempEventObject.CurrIndexParentObject := -1;
         //Выполнить метод Delphi
         if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
           TOnSyncFieldEvent(LNotifyEvent^)(Sender, Field, SyncList);
@@ -10255,9 +10248,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -10276,7 +10269,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cAfterCreateDialogEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -10292,7 +10285,7 @@ begin
       if ResetIndex then
       begin
         if Assigned(TempEventObject)  then
-          TempEventObject.CurIndexParentObject := -1;
+          TempEventObject.CurrIndexParentObject := -1;
         //Выполнить метод Delphi
         if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
           TOnCreateNewObject(LNotifyEvent^)(Sender, ANewObject);
@@ -10321,9 +10314,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -10343,7 +10336,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cGetTextEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -10361,7 +10354,7 @@ begin
       if ResetIndex then
       begin
         if Assigned(TempEventObject)  then
-          TempEventObject.CurIndexParentObject := -1;
+          TempEventObject.CurrIndexParentObject := -1;
         //Выполнить метод Delphi
         if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
           TFieldGetTextEvent(LNotifyEvent^)(Sender, Text, DisplayText);
@@ -10389,9 +10382,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -10410,7 +10403,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cSetTextEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -10426,7 +10419,7 @@ begin
       if ResetIndex then
       begin
         if Assigned(TempEventObject)  then
-          TempEventObject.CurIndexParentObject := -1;
+          TempEventObject.CurrIndexParentObject := -1;
         //Выполнить метод Delphi
         if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
           TFieldSetTextEvent(LNotifyEvent^)(Sender, Text);
@@ -10454,9 +10447,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -10475,7 +10468,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cValidateEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -10491,7 +10484,7 @@ begin
       if ResetIndex then
       begin
         if Assigned(TempEventObject)  then
-          TempEventObject.CurIndexParentObject := -1;
+          TempEventObject.CurrIndexParentObject := -1;
         //Выполнить метод Delphi
         if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
           TFieldNotifyEvent(LNotifyEvent^)(Sender);
@@ -10556,9 +10549,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -10576,7 +10569,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cTestCorrectEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -10599,7 +10592,7 @@ begin
       if ResetIndex then
       begin
         if Assigned(TempEventObject)  then
-          TempEventObject.CurIndexParentObject := -1;
+          TempEventObject.CurrIndexParentObject := -1;
         //Выполнить метод Delphi
         if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
           Result := TOnTestCorrect(LNotifyEvent^)(Sender);
@@ -10627,9 +10620,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -10647,7 +10640,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cSetupDialogEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -10663,7 +10656,7 @@ begin
       if ResetIndex then
       begin
         if Assigned(TempEventObject)  then
-          TempEventObject.CurIndexParentObject := -1;
+          TempEventObject.CurrIndexParentObject := -1;
         //Выполнить метод Delphi
         if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
           TOnSetupDialog(LNotifyEvent^)(Sender);
@@ -10691,9 +10684,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -10711,7 +10704,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cSetupRecordEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -10727,7 +10720,7 @@ begin
       if ResetIndex then
       begin
         if Assigned(TempEventObject)  then
-          TempEventObject.CurIndexParentObject := -1;
+          TempEventObject.CurrIndexParentObject := -1;
         //Выполнить метод Delphi
         if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
           TOnSetupRecord(LNotifyEvent^)(Sender);
@@ -10763,9 +10756,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -10785,7 +10778,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cOnGetFromClauseEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -10804,7 +10797,7 @@ begin
       if ResetIndex then
       begin
         if Assigned(TempEventObject)  then
-          TempEventObject.CurIndexParentObject := -1;
+          TempEventObject.CurrIndexParentObject := -1;
         //Выполнить метод Delphi
         if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
           TgdcOnGetSQLClause(LNotifyEvent^)(Sender, Clause);
@@ -10833,9 +10826,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -10855,7 +10848,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cOnGetGroupClauseEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -10874,7 +10867,7 @@ begin
       if ResetIndex then
       begin
         if Assigned(TempEventObject)  then
-          TempEventObject.CurIndexParentObject := -1;
+          TempEventObject.CurrIndexParentObject := -1;
         //Выполнить метод Delphi
         if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
           TgdcOnGetSQLClause(LNotifyEvent^)(Sender, Clause);
@@ -10903,9 +10896,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -10925,7 +10918,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cOnGetOrderClauseEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -10944,7 +10937,7 @@ begin
       if ResetIndex then
       begin
         if Assigned(TempEventObject)  then
-          TempEventObject.CurIndexParentObject := -1;
+          TempEventObject.CurrIndexParentObject := -1;
         //Выполнить метод Delphi
         if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
           TgdcOnGetSQLClause(LNotifyEvent^)(Sender, Clause);
@@ -10973,9 +10966,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -10995,7 +10988,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cOnGetSelectClauseEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -11013,7 +11006,7 @@ begin
       if ResetIndex then
       begin
         if Assigned(TempEventObject)  then
-          TempEventObject.CurIndexParentObject := -1;
+          TempEventObject.CurrIndexParentObject := -1;
         //Выполнить метод Delphi
         if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
           TgdcOnGetSQLClause(LNotifyEvent^)(Sender, Clause);
@@ -11042,9 +11035,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -11064,7 +11057,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cOnGetWhereClauseEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -11083,7 +11076,7 @@ begin
       if ResetIndex then
       begin
         if Assigned(TempEventObject)  then
-          TempEventObject.CurIndexParentObject := -1;
+          TempEventObject.CurrIndexParentObject := -1;
         //Выполнить метод Delphi
         if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
           TgdcOnGetSQLClause(LNotifyEvent^)(Sender, Clause);
@@ -11139,9 +11132,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -11161,7 +11154,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cChangingEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -11179,7 +11172,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             TTabChangingEvent(LNotifyEvent^)(Sender, AllowChange);
@@ -11208,9 +11201,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -11230,7 +11223,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cOnCalcAggregatesEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -11252,7 +11245,7 @@ begin
       if ResetIndex then
       begin
         if Assigned(TempEventObject)  then
-          TempEventObject.CurIndexParentObject := -1;
+          TempEventObject.CurrIndexParentObject := -1;
         //Выполнить метод Delphi
         if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
           TFilterRecordEvent(LNotifyEvent^)(DataSet, Accept);
@@ -11423,9 +11416,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -11443,7 +11436,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cClickCheckEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -11459,7 +11452,7 @@ begin
       if ResetIndex then
         begin
           if Assigned(TempEventObject)  then
-            TempEventObject.CurIndexParentObject := -1;
+            TempEventObject.CurrIndexParentObject := -1;
           //Выполнить метод Delphi
           if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
             LNotifyEvent^(Sender);
@@ -11492,9 +11485,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -11512,7 +11505,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cSaveSettingsEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -11528,7 +11521,7 @@ begin
       if ResetIndex then
       begin
         if Assigned(TempEventObject)  then
-          TempEventObject.CurIndexParentObject := -1;
+          TempEventObject.CurrIndexParentObject := -1;
         //Выполнить метод Delphi
         if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
           LNotifyEvent^(Sender);
@@ -11556,9 +11549,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -11576,7 +11569,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cLoadSettingsAfterCreateEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -11592,7 +11585,7 @@ begin
       if ResetIndex then
       begin
         if Assigned(TempEventObject)  then
-          TempEventObject.CurIndexParentObject := -1;
+          TempEventObject.CurrIndexParentObject := -1;
         //Выполнить метод Delphi
         if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
           LNotifyEvent^(Sender);
@@ -11731,9 +11724,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -11751,7 +11744,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cAfterInternalDeleteRecordEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -11767,7 +11760,7 @@ begin
       if ResetIndex then
       begin
         if Assigned(TempEventObject)  then
-          TempEventObject.CurIndexParentObject := -1;
+          TempEventObject.CurrIndexParentObject := -1;
         //Выполнить метод Delphi
         if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
           TDataSetNotifyEvent(LNotifyEvent^)(DataSet);
@@ -11795,9 +11788,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -11815,7 +11808,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cAfterInternalPostRecordEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -11831,7 +11824,7 @@ begin
       if ResetIndex then
       begin
         if Assigned(TempEventObject)  then
-          TempEventObject.CurIndexParentObject := -1;
+          TempEventObject.CurrIndexParentObject := -1;
         //Выполнить метод Delphi
         if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
           TDataSetNotifyEvent(LNotifyEvent^)(DataSet);
@@ -11859,9 +11852,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -11879,7 +11872,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cBeforeInternalDeleteRecordEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -11895,7 +11888,7 @@ begin
       if ResetIndex then
       begin
         if Assigned(TempEventObject)  then
-          TempEventObject.CurIndexParentObject := -1;
+          TempEventObject.CurrIndexParentObject := -1;
         //Выполнить метод Delphi
         if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
           TDataSetNotifyEvent(LNotifyEvent^)(DataSet);
@@ -11923,9 +11916,9 @@ begin
   if Assigned(LEventObject) then
   begin
     //Проверка на вызов родительского объекта
-    if LEventObject.CurIndexParentObject > -1 then
+    if LEventObject.CurrIndexParentObject > -1 then
       LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurIndexParentObject];
+        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
   end;
   // Проверка результата поиска
   if Assigned(LEventObject) then
@@ -11943,7 +11936,7 @@ begin
           // сохранение адреса Delphi обработчика события
           LNotifyEvent := @LEventObject.EventList.Find(cBeforeInternalPostRecordEventName).OldEvent.Code;
           // выбор родительскокого объекта
-          LEventObject.CurIndexParentObject := LEventOfObject.ParentIndex;
+          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
           TempEventObject := LEventObject;
           ResetIndex := True;
           LEventObject :=
@@ -11959,7 +11952,7 @@ begin
       if ResetIndex then
       begin
         if Assigned(TempEventObject)  then
-          TempEventObject.CurIndexParentObject := -1;
+          TempEventObject.CurrIndexParentObject := -1;
         //Выполнить метод Delphi
         if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
           TDataSetNotifyEvent(LNotifyEvent^)(DataSet);
@@ -12673,7 +12666,7 @@ begin
   FObjectKey := 0;
 //  FHasSpecEvent := False;
   FParentObjectsBySubType := TEventObjectList.Create;
-  FCurIndexParentObject := -1;
+  FCurrIndexParentObject := -1;
 end;
 
 destructor TEventObject.Destroy;
