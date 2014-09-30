@@ -9723,50 +9723,52 @@ begin
 end;
 
 function TEventControl.SetParentEventObjectsBySubType(AnComponent: TComponent;
-  AnEventObject: TEventObject): boolean;
+  AnEventObject: TEventObject): Boolean;
 var
-  LSubType: string;
-  LParentSubType: string;
+  LSubType: String;
+  LParentSubType: String;
   LParentEventObject: TEventObject;
   LTempEventObject: TEventObject;
   LTempChildEventObject: TEventObject;
   LOwnerEventObject: TEventObject;
-  LParentCompName: string;
-  I: integer;
+  LParentCompName: String;
+  I: Integer;
   LFullClassName: TgdcFullClassName;
 begin
-  Result := false;
-  if (AnComponent is TgdcCreateableForm) then
+  Result := False;
+
+  if AnComponent is TCreateableForm then
   begin
-    LSubType := TgdcCreateableForm(AnComponent).SubType;
-    LParentSubType := '';
-    AnEventObject.ParentObjectsBySubType.Clear;
-    if LSubType <> '' then
-      repeat
-        LFullClassName.gdClassName := AnComponent.ClassName;
-        LFullClassName.SubType := LSubType;
-        if not Assigned(gdClassList.GetFRMClass(LFullClassName))then
-          raise Exception.Create('Ошибка перекрытия события ' + LFullClassName.gdClassName);
-        LParentSubType := gdClassList.GetFRMClass(LFullClassName).ClassParentSubtype(LSubType);
-        LParentSubType := StringReplace(LParentSubType, 'USR$', 'USR_', [rfReplaceAll, rfIgnoreCase]);
-        if LParentSubType <> '' then
-        begin
-          LParentCompName :=
-            Copy(AnComponent.ClassName, 2, Length(AnComponent.ClassName) - 1)
-            + LParentSubType;
-
-          LParentEventObject := EventObjectList.FindAllObject(LParentCompName);
-          if Assigned(LParentEventObject) then
+    if (AnComponent is TgdcCreateableForm) then
+    begin
+      LSubType := TgdcCreateableForm(AnComponent).SubType;
+      LParentSubType := '';
+      AnEventObject.ParentObjectsBySubType.Clear;
+      if LSubType > '' then
+        repeat
+          LFullClassName.gdClassName := AnComponent.ClassName;
+          LFullClassName.SubType := LSubType;
+          if not Assigned(gdClassList.GetFRMClass(LFullClassName))then
+            raise Exception.Create('Ошибка перекрытия события ' + LFullClassName.gdClassName);
+          LParentSubType := gdClassList.GetFRMClass(LFullClassName).ClassParentSubtype(LSubType);
+          LParentSubType := StringReplace(LParentSubType, 'USR$', 'USR_', [rfReplaceAll, rfIgnoreCase]);
+          if LParentSubType <> '' then
           begin
-            AnEventObject.CurrIndexParentObject := -1;
-            AnEventObject.ParentObjectsBySubType.AddObject(LParentEventObject);
-          end;
-        end;
-        LSubType := LParentSubType;
-      until LParentSubType = '';
-  end;
+            LParentCompName :=
+              Copy(AnComponent.ClassName, 2, Length(AnComponent.ClassName) - 1)
+              + LParentSubType;
 
-  if not (AnComponent is TCreateableForm) then
+            LParentEventObject := EventObjectList.FindAllObject(LParentCompName);
+            if Assigned(LParentEventObject) then
+            begin
+              AnEventObject.CurrIndexParentObject := -1;
+              AnEventObject.ParentObjectsBySubType.AddObject(LParentEventObject);
+            end;
+          end;
+          LSubType := LParentSubType;
+        until LParentSubType = '';
+    end;
+  end else
   begin
     LOwnerEventObject := EventObjectList.FindAllObject(AnComponent.Owner);
     if (Assigned (LOwnerEventObject))
