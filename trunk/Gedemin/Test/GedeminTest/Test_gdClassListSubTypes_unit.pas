@@ -108,7 +108,7 @@ begin
             F.DeleteValue(ValueName);
           for J := 0 to SL.Count - 1 do
           begin
-            ASL.Add(SL.Names[I] + '=' + AnsiUpperCase(SL.Values[SL.Names[I]]));
+            ASL.Add(SL[I]);
           end;
         end;
       end;
