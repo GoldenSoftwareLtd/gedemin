@@ -96,7 +96,8 @@ type
 
     procedure SetGDClass;
 
-    function BuildClassTree(ACE: TgdClassEntry; AData: Pointer): Boolean; overload;
+    function BuildBaseClassTree(ACE: TgdClassEntry; AData1: Pointer;
+      AData2: Pointer): Boolean; overload;
     function BuildClassTree(ACE: TgdClassEntry; AData1: Pointer;
       AData2: Pointer): Boolean; overload;
 
@@ -192,7 +193,7 @@ begin
   //////////////////////////////////////////////////////////////////////////////
   //  Подготовка базовых классов
 
-  gdClassList.Traverse(TgdcBase, '', BuildClassTree, nil, nil);
+  gdClassList.Traverse(TgdcBase, '', BuildBaseClassTree, nil, nil);
 
   comboBusinessClass.ItemIndex := -1;
   comboBusinessClass.Items.Clear;
@@ -434,7 +435,8 @@ begin
   cmbRuleDelete.Visible := not cbCalculated.Checked;
 end;
 
-function Tgdc_dlgRelationField.BuildClassTree(ACE: TgdClassEntry; AData: Pointer): Boolean;
+function Tgdc_dlgRelationField.BuildBaseClassTree(ACE: TgdClassEntry; AData1: Pointer;
+  AData2: Pointer): Boolean;
 begin
   if ACE <> nil then
     if not (ACE.SubType > '') then
@@ -445,7 +447,8 @@ begin
   Result := True;
 end;
 
-function Tgdc_dlgRelationField.BuildClassTree(ACE: TgdClassEntry; AData1: Pointer; AData2: Pointer): Boolean;
+function Tgdc_dlgRelationField.BuildClassTree(ACE: TgdClassEntry; AData1: Pointer;
+  AData2: Pointer): Boolean;
 var
   LTreeNode: TTreeNode;
 begin
