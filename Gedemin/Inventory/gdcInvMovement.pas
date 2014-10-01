@@ -5249,6 +5249,7 @@ class procedure TgdcInvBaseRemains.RegisterClassHierarchy(AClass: TClass = nil;
     ibsql: TIBSQL;
     LSubType: string;
     LComment: String;
+    DidActivate: Boolean;
   begin
     if ACE.Initialized then
       exit;
@@ -5257,6 +5258,10 @@ class procedure TgdcInvBaseRemains.RegisterClassHierarchy(AClass: TClass = nil;
 
     ibsql := TIBSQL.Create(nil);
     try
+      ibsql.Transaction := gdcBaseManager.ReadTransaction;
+      DidActivate := not ibsql.Transaction.Active;
+      if DidActivate then
+        ibsql.Transaction.StartTransaction;
       ibsql.SQL.Text :=
         'SELECT NAME, RUID FROM INV_BALANCEOPTION ';
 
@@ -5271,7 +5276,9 @@ class procedure TgdcInvBaseRemains.RegisterClassHierarchy(AClass: TClass = nil;
         CurrCE.Initialized := True;
         ibsql.Next;
       end;
-
+      ibsql.Close;
+      if DidActivate then
+        ibsql.Transaction.Commit;
     finally
       ibsql.Free;
     end;
@@ -5288,7 +5295,7 @@ begin
 
     if CEBase = nil then
       raise EgdcException.Create('Unregistered class.');
-
+    CEBase.Initialized := False;
     ReadFromINV_BALANCEOPTION(CEBase);
   end
   else
