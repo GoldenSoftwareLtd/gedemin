@@ -112,7 +112,7 @@ const
   keySetupDialog             = 243;
 
 const
-  ClassesHashTableSize = 1024;
+  ClassesHashTableSize = 4096;
 
   //  онстанты дл€ организации хранени€ перекрытых классов с подтипами
   // —тавитс€ в начале строки, если сохран€етс€ класс и подтип
@@ -292,6 +292,14 @@ type
     function GetFrmClass: CgdcCreateableForm;
     procedure CheckInitialized;
 
+  protected
+    function Traverse(ACallback: TgdClassEntryCallback; AData1: Pointer; AData2: Pointer;
+      const AnIncludeRoot: Boolean = True;
+      const AnOnlyDirect: Boolean = False): Boolean; overload;
+    function Traverse(ACallback2: TgdClassEntryCallback2; AData1: Pointer; AData2: Pointer;
+      const AnIncludeRoot: Boolean = True;
+      const AnOnlyDirect: Boolean = False): Boolean; overload;
+
   public
     constructor Create(AParent: TgdClassEntry;
       const AClass: TClass; const ASubType: TgdcSubType = ''; const AComment: String = '');
@@ -300,13 +308,6 @@ type
     function Compare(const AClass: TClass; const ASubType: TgdcSubType = ''): Boolean;
     procedure AddSibling(ASibling: TgdClassEntry);
     function GetSubTypeList(ASubTypeList: TStrings; const AnOnlyDirect: Boolean): Boolean;
-
-    function Traverse(ACallback: TgdClassEntryCallback; AData1: Pointer; AData2: Pointer;
-      const AnIncludeRoot: Boolean = True;
-      const AnOnlyDirect: Boolean = False): Boolean; overload;
-    function Traverse(ACallback2: TgdClassEntryCallback2; AData1: Pointer; AData2: Pointer;
-      const AnIncludeRoot: Boolean = True;
-      const AnOnlyDirect: Boolean = False): Boolean; overload;
 
     property Parent: TgdClassEntry read FParent;
     property TheClass: TClass read FClass;
@@ -327,17 +328,16 @@ type
     FCount: Integer;
 
     function GetHash(AClass: TClass; const ASubType: TgdcSubType): Cardinal;
-
     function GetCount: Integer;
-
     procedure CheckInitialized(AClass: TClass);
+
   public
     constructor Create;
     destructor Destroy; override;
 
-    function Add(const AClass: TClass; ASubType: TgdcSubType = ''; const AComment: String = '';
-      AParentSubType: TgdcSubType = ''): TgdClassEntry;
-    function Find(const AClass: TClass; ASubType: TgdcSubType = ''): TgdClassEntry; overload;
+    function Add(const AClass: TClass; const ASubType: TgdcSubType = ''; const AComment: String = '';
+      const AParentSubType: TgdcSubType = ''): TgdClassEntry;
+    function Find(const AClass: TClass; const ASubType: TgdcSubType = ''): TgdClassEntry; overload;
     function Find(const AFullClassName: TgdcFullClassName): TgdClassEntry; overload;
 
     function Traverse(const AClass: TClass; const ASubType: TgdcSubType;
@@ -349,7 +349,7 @@ type
       const AnIncludeRoot: Boolean = True;
       const AnOnlyDirect: Boolean = False): Boolean; overload;
 
-    procedure Remove(const AClass: TClass; ASubType: TgdcSubType = '');
+    procedure Remove(const AClass: TClass; const ASubType: TgdcSubType = '');
     // ”даление всех подтипов
     procedure RemoveAllSubTypes;
 
@@ -708,7 +708,7 @@ end;
 
 function TgdMethodParam.EqualsByName(const AParamName: String): Boolean;
 begin
-  Result := AnsiUpperCase(FParamName) = AnsiUpperCase(AParamName);
+  Result := AnsiSameText(FParamName, AParamName);
 end;
 
 function TgdMethodParam.EqualsFull(const AParam: TgdMethodParam): Boolean;
@@ -972,7 +972,7 @@ var
 begin
   Result := nil;
   for I := 0 to Count - 1 do
-    if AnsiUpperCase(Methods[I].Name) = AnsiUpperCase(AName) then
+    if AnsiSameText(Methods[I].Name, AName) then
     begin
       Result := Methods[I];
       Break;
@@ -1181,7 +1181,7 @@ end;
 function TgdClassEntry.Compare(const AClass: TClass;
   const ASubType: TgdcSubType): Boolean;
 begin
-  Result := (AClass = FClass) and AnsiSameText(FSubType, AnsiUpperCase(ASubType));
+  Result := (AClass = FClass) and AnsiSameText(FSubType, ASubType);
 end;
 
 constructor TgdClassEntry.Create(AParent: TgdClassEntry;
@@ -1316,7 +1316,6 @@ begin
       Result := Result and Siblings[I].Traverse(ACallback2, AData1, AData2, True, False);
     Inc(I);
   end;
-
 end;
 
 {TgdClassList}
@@ -1368,8 +1367,8 @@ begin
 
 end;
 
-function TgdClassList.Add(const AClass: TClass;
-  ASubType: TgdcSubType; const AComment: String; AParentSubType: TgdcSubType): TgdClassEntry;
+function TgdClassList.Add(const AClass: TClass; const ASubType: TgdcSubType;
+  const AComment: String; const AParentSubType: TgdcSubType): TgdClassEntry;
 var
   K: Integer;
   OL: TObjectList;
@@ -1380,9 +1379,6 @@ begin
     Result := nil;
     exit;
   end;
-
-  ASubType := AnsiUpperCase(ASubType);
-  AParentSubType := AnsiUpperCase(AParentSubType);
 
   Result := Find(AClass, ASubType);
 
@@ -1446,7 +1442,7 @@ begin
 end;
 
 function TgdClassList.Find(const AClass: TClass;
-  ASubType: TgdcSubType): TgdClassEntry;
+  const ASubType: TgdcSubType): TgdClassEntry;
 var
   K, J: Integer;
   FCE: TgdClassEntry;
@@ -1455,8 +1451,6 @@ begin
 
   if ASubType > '' then
     CheckInitialized(AClass);
-
-  ASubType := AnsiUpperCase(ASubType);
 
   K := GetHash(AClass, ASubType) mod ClassesHashTableSize;
   if FHashTable[K] is TgdClassEntry then
@@ -1487,10 +1481,13 @@ function TgdClassList.GetHash(AClass: TClass; const ASubType: TgdcSubType): Card
 var
   I: Integer;
 begin
-  Result := 5381 * 33 + Cardinal(AClass);
+  Result := 5381;
+
+  for I := 0 to SizeOf(AClass) - 1 do
+    Result := (Result shl 5) + Result + PByteArray(@AClass)^[I];
 
   for I := 1 to Length(ASubType) do
-    Result := (Result shl 5) + Result + Byte(ASubType[I]);
+    Result := (Result shl 5) + Result + Byte(UpCase(ASubType[I]));
 end;
 
 function TgdClassList.GetCount: Integer;
@@ -1511,13 +1508,11 @@ begin
 end;
 
 procedure TgdClassList.Remove(const AClass: TClass;
-  ASubType: TgdcSubType);
+  const ASubType: TgdcSubType);
 var
   K, J: Integer;
   FCE: TgdClassEntry;
 begin
-  ASubType := AnsiUpperCase(ASubType);
-
   K := GetHash(AClass, ASubType) mod ClassesHashTableSize;
   if FHashTable[K] is TgdClassEntry then
   begin
