@@ -412,7 +412,7 @@ uses
   gd_security_OperationConst, gdc_dlgSetupInvDocument_unit, gdc_dlgG_unit,
   gdc_dlgInvDocument_unit, gdc_dlgInvDocumentLine_unit,
   at_sql_setup, gdc_frmInvDocument_unit, gdc_frmInvDocumentType_unit,
-  gd_ClassList, gdc_dlgViewMovement_unit, gdcMetaData
+  gd_ClassList, gdc_dlgViewMovement_unit, gdcMetaData, gd_security
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -824,7 +824,11 @@ class procedure TgdcInvBaseDocument.RegisterClassHierarchy(AClass: TClass = nil;
     LSubType: string;
     LComment: String;
     LParentSubType: string;
+    DidActivate: Boolean;
   begin
+    if (IBLogin = nil) or (not IBLogin.LoggedIn) then
+      exit;
+
     if ACE.Initialized then
       exit;
 
@@ -833,6 +837,9 @@ class procedure TgdcInvBaseDocument.RegisterClassHierarchy(AClass: TClass = nil;
     ibsql := TIBSQL.Create(nil);
     try
       ibsql.Transaction := gdcBaseManager.ReadTransaction;
+      DidActivate := not ibsql.Transaction.Active;
+      if DidActivate then
+        ibsql.Transaction.StartTransaction;
       ibsql.SQL.Text :=
         'SELECT '#13#10 +
         '  dt.name AS comment, '#13#10 +
@@ -862,6 +869,8 @@ class procedure TgdcInvBaseDocument.RegisterClassHierarchy(AClass: TClass = nil;
         CurrCE.Initialized := True;
         ibsql.Next;
       end;
+      if DidActivate then
+        ibsql.Transaction.Commit;
     finally
       ibsql.Free;
     end;

@@ -108,7 +108,7 @@ begin
             F.DeleteValue(ValueName);
           for J := 0 to SL.Count - 1 do
           begin
-            ASL.Add(SL[I]);
+            ASL.Add(SL[J]);
           end;
         end;
       end;

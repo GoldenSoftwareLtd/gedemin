@@ -5251,6 +5251,9 @@ class procedure TgdcInvBaseRemains.RegisterClassHierarchy(AClass: TClass = nil;
     LComment: String;
     DidActivate: Boolean;
   begin
+    if (IBLogin = nil) or (not IBLogin.LoggedIn) then
+      exit;
+
     if ACE.Initialized then
       exit;
 
