@@ -225,7 +225,7 @@ begin
 
   Scripts.Add(Format(
       'CREATE OR ALTER TRIGGER %1:s FOR %0:s ACTIVE '#13#10 +
-      'BEFORE INSERT POSITION 0 '#13#10 +
+      'BEFORE INSERT POSITION 1 '#13#10 +
       'AS '#13#10 +
       '  DECLARE VARIABLE delayed INTEGER; '#13#10 +
       '  DECLARE VARIABLE debit NUMERIC(15, 4); '#13#10 +
@@ -253,12 +253,12 @@ begin
       '        credit = 0; '#13#10 +
       '      IF ((:debit <> NEW.quantity) OR (:credit <> NEW.quantity)) THEN'#13#10 +
       '        EXCEPTION INV_E_INVALIDMOVEMENT;'#13#10 +
-      '      fc = NULL;'#13#10 +
+      '/*      fc = NULL;'#13#10 +
       '      SELECT MAX(cardkey) FROM inv_movement'#13#10 +
       '        WHERE (documentkey = NEW.documentkey) AND (credit > 0)'#13#10 +
       '      INTO :fc;'#13#10 +
       '      IF (:fc > 0) THEN'#13#10 +
-      '        NEW.fromcardkey = :fc;'#13#10 +
+      '        NEW.fromcardkey = :fc; */'#13#10 +
       '    END'#13#10 +
       '  END'#13#10 +
       'END ',
@@ -268,7 +268,7 @@ begin
 
   Scripts.Add(Format(
       'CREATE OR ALTER TRIGGER %1:s FOR %0:s ACTIVE '#13#10 +
-      'BEFORE UPDATE POSITION 0 '#13#10 +
+      'BEFORE UPDATE POSITION 1 '#13#10 +
       'AS '#13#10 +
       '  DECLARE VARIABLE delayed INTEGER; '#13#10 +
       '  DECLARE VARIABLE debit NUMERIC(15, 4); '#13#10 +
@@ -296,12 +296,12 @@ begin
       '        credit = 0; '#13#10 +
       '      IF ((:debit <> NEW.quantity) OR (:credit <> NEW.quantity)) THEN'#13#10 +
       '        EXCEPTION INV_E_INVALIDMOVEMENT;'#13#10 +
-      '      fc = NULL;'#13#10 +
+      '/*      fc = NULL;'#13#10 +
       '      SELECT MAX(cardkey) FROM inv_movement'#13#10 +
       '        WHERE (documentkey = NEW.documentkey) AND (credit > 0)'#13#10 +
       '      INTO :fc;'#13#10 +
       '      IF (:fc > 0) THEN'#13#10 +
-      '        NEW.fromcardkey = :fc;'#13#10 +
+      '        NEW.fromcardkey = :fc; */'#13#10 +
       '    END'#13#10 +
       '  END'#13#10 +
       'END ',
@@ -389,7 +389,7 @@ begin
 
   Scripts.Add(Format(
       'CREATE OR ALTER TRIGGER %1:s FOR %0:s ACTIVE '#13#10 +
-      'BEFORE INSERT POSITION 0 '#13#10 +
+      'BEFORE INSERT POSITION 1 '#13#10 +
       'AS '#13#10 +
       '  DECLARE VARIABLE delayed INTEGER; '#13#10 +
       '  DECLARE VARIABLE debit NUMERIC(15, 4); '#13#10 +
@@ -417,7 +417,7 @@ begin
       '        credit = 0; '#13#10 +
       '      IF ((:debit <> NEW.quantity) OR (:credit <> NEW.quantity)) THEN'#13#10 +
       '        EXCEPTION INV_E_INVALIDMOVEMENT;'#13#10 +
-      '      fc = NULL;'#13#10 +
+      '/*      fc = NULL;'#13#10 +
       '      SELECT MAX(cardkey) FROM inv_movement'#13#10 +
       '        WHERE (documentkey = NEW.documentkey) AND (credit > 0)'#13#10 +
       '      INTO :fc;'#13#10 +
@@ -428,7 +428,7 @@ begin
       '        WHERE (documentkey = NEW.documentkey) AND (debit > 0)'#13#10 +
       '      INTO :tc;'#13#10 +
       '      IF (:tc > 0) THEN'#13#10 +
-      '        NEW.tocardkey = :tc;'#13#10 +
+      '        NEW.tocardkey = :tc; */'#13#10 +
       '    END'#13#10 +
       '  END'#13#10 +
       'END ',
@@ -438,7 +438,7 @@ begin
 
   Scripts.Add(Format(
       'CREATE OR ALTER TRIGGER %1:s FOR %0:s ACTIVE '#13#10 +
-      'BEFORE UPDATE POSITION 0 '#13#10 +
+      'BEFORE UPDATE POSITION 1 '#13#10 +
       'AS '#13#10 +
       '  DECLARE VARIABLE delayed INTEGER; '#13#10 +
       '  DECLARE VARIABLE debit NUMERIC(15, 4); '#13#10 +
@@ -466,7 +466,7 @@ begin
       '        credit = 0; '#13#10 +
       '      IF ((:debit <> NEW.quantity) OR (:credit <> NEW.quantity)) THEN'#13#10 +
       '        EXCEPTION INV_E_INVALIDMOVEMENT;'#13#10 +
-      '      fc = NULL;'#13#10 +
+      '/*      fc = NULL;'#13#10 +
       '      SELECT MAX(cardkey) FROM inv_movement'#13#10 +
       '        WHERE (documentkey = NEW.documentkey) AND (credit > 0)'#13#10 +
       '      INTO :fc;'#13#10 +
@@ -477,7 +477,7 @@ begin
       '        WHERE (documentkey = NEW.documentkey) AND (debit > 0)'#13#10 +
       '      INTO :tc;'#13#10 +
       '      IF (:tc > 0) THEN'#13#10 +
-      '        NEW.tocardkey = :tc;'#13#10 +
+      '        NEW.tocardkey = :tc; */'#13#10 +
       '    END'#13#10 +
       '  END'#13#10 +
       'END ',
@@ -554,7 +554,7 @@ begin
 
   Scripts.Add(Format(
       'CREATE OR ALTER TRIGGER %1:s FOR %0:s ACTIVE '#13#10 +
-      'BEFORE INSERT POSITION 0 '#13#10 +
+      'BEFORE INSERT POSITION 1 '#13#10 +
       'AS '#13#10 +
       '  DECLARE VARIABLE delayed INTEGER; '#13#10 +
       '  DECLARE VARIABLE debit NUMERIC(15, 4); '#13#10 +
@@ -590,12 +590,12 @@ begin
       '         ) '#13#10 +
       '      THEN '#13#10 +
       '        EXCEPTION INV_E_INVALIDMOVEMENT;'#13#10 +
-      '      fc = NULL;'#13#10 +
+      '/*      fc = NULL;'#13#10 +
       '      SELECT MAX(cardkey) FROM inv_movement'#13#10 +
       '        WHERE (documentkey = NEW.documentkey) AND (credit > 0)'#13#10 +
       '      INTO :fc;'#13#10 +
       '      IF (:fc > 0) THEN'#13#10 +
-      '        NEW.fromcardkey = :fc;'#13#10 +
+      '        NEW.fromcardkey = :fc; */'#13#10 +
       '    END'#13#10 +
       '  END'#13#10 +
       'END ',
@@ -605,7 +605,7 @@ begin
 
   Scripts.Add(Format(
       'CREATE OR ALTER TRIGGER %1:s FOR %0:s ACTIVE '#13#10 +
-      'BEFORE UPDATE POSITION 0 '#13#10 +
+      'BEFORE UPDATE POSITION 1 '#13#10 +
       'AS '#13#10 +
       '  DECLARE VARIABLE delayed INTEGER; '#13#10 +
       '  DECLARE VARIABLE debit NUMERIC(15, 4); '#13#10 +
@@ -641,12 +641,12 @@ begin
       '         ) '#13#10 +
       '      THEN '#13#10 +
       '        EXCEPTION INV_E_INVALIDMOVEMENT;'#13#10 +
-      '      fc = NULL;'#13#10 +
+      '/*      fc = NULL;'#13#10 +
       '      SELECT MAX(cardkey) FROM inv_movement'#13#10 +
       '        WHERE (documentkey = NEW.documentkey) AND (credit > 0)'#13#10 +
       '      INTO :fc;'#13#10 +
       '      IF (:fc > 0) THEN'#13#10 +
-      '        NEW.fromcardkey = :fc;'#13#10 +
+      '        NEW.fromcardkey = :fc; */'#13#10 +
       '    END'#13#10 +
       '  END'#13#10 +
       'END ',
@@ -722,7 +722,7 @@ begin
 
   Scripts.Add(Format(
       'CREATE OR ALTER TRIGGER %1:s FOR %0:s ACTIVE '#13#10 +
-      'BEFORE INSERT POSITION 0 '#13#10 +
+      'BEFORE INSERT POSITION 1 '#13#10 +
       'AS '#13#10 +
       '  DECLARE VARIABLE delayed INTEGER; '#13#10 +
       '  DECLARE VARIABLE debit NUMERIC(15, 4); '#13#10 +
@@ -758,7 +758,7 @@ begin
       '         )'#13#10 +
       '      THEN'#13#10 +
       '        EXCEPTION INV_E_INVALIDMOVEMENT;'#13#10 +
-      '      fc = NULL;'#13#10 +
+      '   /*   fc = NULL;'#13#10 +
       '      IF ((NEW.inquantity IS NOT NULL) AND (NEW.inquantity > 0)) THEN '#13#10 +
       '        SELECT MAX(cardkey) FROM inv_movement'#13#10 +
       '          WHERE (documentkey = NEW.documentkey) AND (debit > 0)'#13#10 +
@@ -768,7 +768,7 @@ begin
       '          WHERE (documentkey = NEW.documentkey) AND (credit > 0)'#13#10 +
       '        INTO :fc;'#13#10 +
       '      IF (:fc > 0) THEN'#13#10 +
-      '        NEW.fromcardkey = :fc;'#13#10 +
+      '        NEW.fromcardkey = :fc; */'#13#10 +
       '    END'#13#10 +
       '  END'#13#10 +
       'END ',
@@ -778,7 +778,7 @@ begin
 
   Scripts.Add(Format(
       'CREATE OR ALTER TRIGGER %1:s FOR %0:s ACTIVE '#13#10 +
-      'BEFORE UPDATE POSITION 0 '#13#10 +
+      'BEFORE UPDATE POSITION 1 '#13#10 +
       'AS '#13#10 +
       '  DECLARE VARIABLE delayed INTEGER; '#13#10 +
       '  DECLARE VARIABLE debit NUMERIC(15, 4); '#13#10 +
@@ -815,7 +815,7 @@ begin
       '      THEN'#13#10 +
       '        EXCEPTION INV_E_INVALIDMOVEMENT;'#13#10 +
       '      fc = NULL;'#13#10 +
-      '      IF ((NEW.inquantity IS NOT NULL) AND (NEW.inquantity > 0)) THEN '#13#10 +
+      '  /*    IF ((NEW.inquantity IS NOT NULL) AND (NEW.inquantity > 0)) THEN '#13#10 +
       '        SELECT MAX(cardkey) FROM inv_movement'#13#10 +
       '          WHERE (documentkey = NEW.documentkey) AND (debit > 0)'#13#10 +
       '        INTO :fc;'#13#10 +
@@ -824,7 +824,7 @@ begin
       '          WHERE (documentkey = NEW.documentkey) AND (credit > 0)'#13#10 +
       '        INTO :fc;'#13#10 +
       '      IF (:fc > 0) THEN'#13#10 +
-      '        NEW.fromcardkey = :fc;'#13#10 +
+      '        NEW.fromcardkey = :fc;  */ '#13#10 +
       '    END'#13#10 +
       '  END'#13#10 +
       'END ',
