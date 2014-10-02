@@ -105,6 +105,7 @@ type
     cbIsUseCompanyKey: TCheckBox;
     cbSaveRestWindowOption: TCheckBox;
     cbEndMonthRemains: TCheckBox;
+    cbWithoutSearchRemains: TCheckBox;
 
     procedure actAddFeatureExecute(Sender: TObject);
     procedure actRemoveFeatureExecute(Sender: TObject);
@@ -773,6 +774,7 @@ begin
   cbControlRemains.Visible := cbRemains.Checked;
   cbLiveTimeRemains.Visible := cbRemains.Checked;
   cbMinusRemains.Visible := cbRemains.Checked;
+  cbWithoutSearchRemains.Visible := not cbControlRemains.Checked and (cbTemplate.ItemIndex = 1);
 end;
 
 constructor Tgdc_dlgSetupInvDocument.Create(AOwner: TComponent);
@@ -1207,6 +1209,12 @@ begin
     cbIsUseCompanyKey.Checked := Document.IsUseCompanyKey;
     cbSaveRestWindowOption.Checked := Document.SaveRestWindowOption;
     cbEndMonthRemains.Checked := Document.EndMonthRemains;
+
+    cbWithoutSearchRemains.Visible := not cbControlRemains.Checked and (cbTemplate.ItemIndex = 1);
+    if cbWithoutSearchRemains.Visible then
+      cbWithoutSearchRemains.Checked := Document.WithoutSearchRemains
+    else
+      cbWithoutSearchRemains.Checked := False;
 
   finally
     ibsql.Free;
@@ -1722,6 +1730,7 @@ begin
   tsIncomeMovement.TabVisible := tsFeatures.TabVisible;
   tsOutlayMovement.TabVisible := tsFeatures.TabVisible;
   tsReferences.TabVisible := tsFeatures.TabVisible;
+  cbWithoutSearchRemains.Visible := (cbTemplate.ItemIndex = 1) and not cbControlRemains.Checked;
 end;
 
 procedure Tgdc_dlgSetupInvDocument.UpdateTemplate;
@@ -1815,7 +1824,7 @@ begin
   with TWriter.Create(Stream, 1024) do
   try
     // Общие настройки
-    WriteString(gdcInvDocument_Version2_6);
+    WriteString(gdcInvDocument_Version3_0);
 
     R := GetRelation(True);
     RL := GetRelation(False);
@@ -1997,6 +2006,10 @@ begin
     WriteBoolean(cbIsUseCompanyKey.Checked);
     WriteBoolean(cbSaveRestWindowOption.Checked);
     WriteBoolean(cbEndMonthRemains.Checked);
+    if not cbControlRemains.Checked then
+      WriteBoolean(cbWithoutSearchRemains.Checked)
+    else
+      WriteBoolean(False);
 
   finally
     Free;

@@ -1,10 +1,10 @@
 inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
-  Left = 813
   Top = 188
   Caption = 'Складской документ'
   PixelsPerInch = 96
   TextHeight = 13
   inherited pcMain: TPageControl
+    ActivePage = tsReferences
     OnChange = pcMainChange
     OnChanging = pcMainChanging
     inherited tsCommon: TTabSheet
@@ -758,6 +758,15 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
         Height = 17
         Caption = 'Контроль остатков на конец месяца'
         TabOrder = 10
+      end
+      object cbWithoutSearchRemains: TCheckBox
+        Left = 276
+        Top = 146
+        Width = 221
+        Height = 17
+        Caption = 'Движение без поиска остатков'
+        TabOrder = 11
+        Visible = False
       end
     end
   end
