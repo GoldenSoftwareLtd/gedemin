@@ -2580,6 +2580,11 @@ var
   {END MACRO}
   DelRelName: String;
   DidActivate: Boolean;
+  gdcCN: String;
+  frmCN: String;
+  dlgCN: String;
+  R: TatRelation;
+  F: TatRelationField;
 begin
   {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCBASETABLE', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
   {M}  try
@@ -2629,8 +2634,64 @@ begin
     raise;
   end;
 
-  if Assigned(gdClassList) then
-    gdClassList.RemoveAllSubTypes;
+  gdcCN := '';
+  frmCN := '';
+  dlgCN := '';
+
+  R := nil;
+  if Assigned(atDatabase) and Assigned(atDatabase.Relations) then
+  begin
+    R := atDatabase.Relations.ByRelationName(DelRelName);
+    if Assigned(R) then
+    begin
+      F := R.RelationFields.ByFieldName('INHERITED');
+      if Assigned(F) then
+        repeat
+          R := R.RelationFields.ByFieldName('ID').ForeignKey.ReferencesRelation;
+        until not Assigned(R.RelationFields.ByFieldName('INHERITED'));
+    end;
+  end;
+
+  if Assigned(R) then
+  begin
+    F := R.RelationFields.ByFieldName('LB');
+    if Assigned(F) then
+      gdcCN := 'TgdcAttrUserDefinedLBRBTree'
+    else
+    begin
+      F := R.RelationFields.ByFieldName('PARENT');
+      if Assigned(F) then
+        gdcCN := 'TgdcAttrUserDefinedTree'
+      else
+        gdcCN := 'TgdcAttrUserDefined';
+    end;
+  end;
+
+  if gdcCN = 'TgdcAttrUserDefined' then
+  begin
+    frmCN := 'Tgdc_frmAttrUserDefined';
+    dlgCN := 'Tgdc_dlgAttrUserDefined';
+  end
+  else if gdcCN = 'TgdcAttrUserDefinedTree' then
+    begin
+      frmCN := 'Tgdc_frmAttrUserDefinedTree';
+      dlgCN := 'Tgdc_dlgAttrUserDefinedTree';
+    end
+    else if gdcCN = 'TgdcAttrUserDefinedLBRBTree' then
+    begin
+      frmCN := 'Tgdc_frmAttrUserDefinedLBRBTree';
+      dlgCN := 'Tgdc_dlgAttrUserDefinedTree';
+    end;
+
+  if (gdcCN > '') and (Assigned(gdClassList))then
+  begin
+    if GetClass(gdcCN) <> nil then
+      gdClassList.Remove(GetClass(gdcCN), FieldByName('relationname').AsString);
+    if GetClass(frmCN) <> nil then
+      gdClassList.Remove(GetClass(frmCN), FieldByName('relationname').AsString);
+    if GetClass(frmCN) <> nil then
+      gdClassList.Remove(GetClass(dlgCN), FieldByName('relationname').AsString);
+  end;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASETABLE', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
   {M}  finally
@@ -9676,6 +9737,12 @@ procedure TgdcBaseTable.CustomInsert(Buff: Pointer);
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
+  gdcCN: String;
+  frmCN: String;
+  dlgCN: String;
+  R: TatRelation;
+  F: TatRelationField;
+  RN: String;
 begin
   {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCBASETABLE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  try
@@ -9703,6 +9770,80 @@ begin
   begin
     MakePredefinedRelationFields;
     FNeedPredefinedFields := False;
+  end;
+
+  gdcCN := '';
+  frmCN := '';
+  dlgCN := '';
+  RN := '';
+  
+  if (Self is TgdcSimpleTable) or (Self is TgdcPrimeTable) or (Self is TgdcTableToTable) then
+    gdcCN := 'TgdcAttrUserDefined'
+  else if Self is TgdcTreeTable then
+    gdcCN := 'TgdcAttrUserDefinedTree'
+  else if Self is TgdcLBRBTreeTable then
+    gdcCN := 'TgdcAttrUserDefinedLBRBTree'
+  else if Self is TgdcTableToDefinedTable then
+  begin
+    RN := TgdcTableToDefinedTable(Self).GetReferenceName;
+    Assert(RN <> '');
+    R := nil;
+    if Assigned(atDatabase) and Assigned(atDatabase.Relations) then
+    begin
+      R := atDatabase.Relations.ByRelationName(RN);
+      if Assigned(R) then
+      begin
+        F := R.RelationFields.ByFieldName('INHERITED');
+        if Assigned(F) then
+          repeat
+            R := R.RelationFields.ByFieldName('ID').ForeignKey.ReferencesRelation;
+          until not Assigned(R.RelationFields.ByFieldName('INHERITED'));
+      end;
+    end;
+
+    if Assigned(R) then
+    begin
+      F := R.RelationFields.ByFieldName('LB');
+      if Assigned(F) then
+        gdcCN := 'TgdcAttrUserDefinedLBRBTree'
+      else
+      begin
+        F := R.RelationFields.ByFieldName('PARENT');
+        if Assigned(F) then
+          gdcCN := 'TgdcAttrUserDefinedTree'
+        else
+          gdcCN := 'TgdcAttrUserDefined';
+      end;
+    end;
+  end;
+
+  if gdcCN = 'TgdcAttrUserDefined' then
+  begin
+    frmCN := 'Tgdc_frmAttrUserDefined';
+    dlgCN := 'Tgdc_dlgAttrUserDefined';
+  end
+  else if gdcCN = 'TgdcAttrUserDefinedTree' then
+    begin
+      frmCN := 'Tgdc_frmAttrUserDefinedTree';
+      dlgCN := 'Tgdc_dlgAttrUserDefinedTree';
+    end
+    else if gdcCN = 'TgdcAttrUserDefinedLBRBTree' then
+    begin
+      frmCN := 'Tgdc_frmAttrUserDefinedLBRBTree';
+      dlgCN := 'Tgdc_dlgAttrUserDefinedTree';
+    end;
+
+  if (gdcCN > '') and (Assigned(gdClassList))then
+  begin
+    if GetClass(gdcCN) <> nil then
+      gdClassList.Add(GetClass(gdcCN),
+        FieldByName('relationname').AsString, FieldByName('lname').AsString, RN);
+    if GetClass(frmCN) <> nil then
+      gdClassList.Add(GetClass(frmCN),
+        FieldByName('relationname').AsString, FieldByName('lname').AsString, RN);
+    if GetClass(frmCN) <> nil then
+      gdClassList.Add(GetClass(dlgCN),
+        FieldByName('relationname').AsString, FieldByName('lname').AsString, RN);
   end;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASETABLE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
