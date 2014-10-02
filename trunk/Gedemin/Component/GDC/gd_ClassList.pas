@@ -112,7 +112,7 @@ const
   keySetupDialog             = 243;
 
 const
-  ClassesHashTableSize = 4096;
+  ClassesHashTableSize = 32609;
 
   // Константы для организации хранения перекрытых классов с подтипами
   // Ставится в начале строки, если сохраняется класс и подтип
@@ -1433,7 +1433,7 @@ var
 begin
   for I := 0 to ClassesHashTableSize - 1 do
     FHashTable[I].Free;
-    
+
   inherited;
 
 {$IFDEF DEBUG}
@@ -1476,18 +1476,36 @@ begin
     Result := nil;
 end;
 
-
+// http://www.eternallyconfuzzled.com/tuts/algorithms/jsw_tut_hashing.aspx
+// using ELF hash
 function TgdClassList.GetHash(AClass: TClass; const ASubType: TgdcSubType): Cardinal;
 var
   I: Integer;
+  G: Cardinal;
 begin
-  Result := 5381;
+  Result := 0;
 
-  for I := 0 to SizeOf(AClass) - 1 do
-    Result := (Result shl 5) + Result + PByteArray(@AClass)^[I];
+  for I := 1 to Length(AClass.ClassName) do
+  begin
+    Result := (Result shl 4) + Byte(AClass.ClassName[I]);
+    G := Result and Cardinal($F0000000);
+
+    if G <> 0 then
+      Result := Result xor (G shr 24);
+
+    Result := Result and (not G);
+  end;
 
   for I := 1 to Length(ASubType) do
-    Result := (Result shl 5) + Result + Byte(UpCase(ASubType[I]));
+  begin
+    Result := (Result shl 4) + Byte(UpCase(ASubType[I]));
+    G := Result and Cardinal($F0000000);
+
+    if G <> 0 then
+      Result := Result xor (G shr 24);
+
+    Result := Result and (not G);
+  end;
 end;
 
 function TgdClassList.GetCount: Integer;
