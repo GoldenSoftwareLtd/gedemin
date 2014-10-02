@@ -380,7 +380,8 @@ begin
   FAddModule.Free;
   FModuleVBClassArray.Free;
   FHistoryList.Free;
-  ScriptControlList.Remove(Integer(Self));
+  if Assigned(ScriptControlList) then
+    ScriptControlList.Remove(Integer(Self));
   FFunctionKeyList.Free;
   {$IFDEF DEBUG}
   if UseLog then
@@ -1597,5 +1598,5 @@ Finalization
   if ScriptControlList.Count > 0 then
     Beep(4000, 1500);
   {$ENDIF}
-  ScriptControlList.Free;
+  FreeAndNil(ScriptControlList);
 end.

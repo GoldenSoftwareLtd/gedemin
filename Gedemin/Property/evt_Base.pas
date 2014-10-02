@@ -3451,7 +3451,7 @@ begin
   FDynamicCreatedEventObjects.Free;
   FgdcReportGroupList.Free;
 
-  if (EventControl.Get_Self = Self) then
+  if (EventControl <> nil) and (EventControl.Get_Self = Self) then
     EventControl := nil;
 
   if Assigned(frmGedeminProperty) then
@@ -3460,7 +3460,6 @@ begin
   FRectList.Free;
   FPointList.Free;
 
-  
   inherited Destroy;
 end;
 
@@ -12381,7 +12380,7 @@ begin
 
   FreeAndNil(FSortFuncList);
 
-  if glbFunctionList.Get_Self = Self then
+  if (glbFunctionList <> nil) and (glbFunctionList.Get_Self = Self) then
     glbFunctionList := nil;
 
   FSFStream.Free;
