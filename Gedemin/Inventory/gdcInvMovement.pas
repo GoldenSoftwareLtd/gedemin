@@ -5293,13 +5293,17 @@ var
 begin
   if AClass = nil then
   begin
-    TgdcInvBaseDocument.RegisterClassHierarchy(Self, 'TgdcInvDocumentType');
     CEBase := gdClassList.Find(Self);
 
     if CEBase = nil then
       raise EgdcException.Create('Unregistered class.');
-    CEBase.Initialized := False;
-    ReadFromINV_BALANCEOPTION(CEBase);
+
+    if not CEBase.Initialized then
+    begin
+      TgdcInvBaseDocument.RegisterClassHierarchy(Self, 'TgdcInvDocumentType');
+      CEBase.Initialized := False;
+      ReadFromINV_BALANCEOPTION(CEBase);
+    end;
   end
   else
   begin

@@ -38,11 +38,17 @@ class procedure Tgdc_dlgAttrUserDefinedTree.RegisterClassHierarchy(AClass: TClas
 var
   CEBase: TgdClassEntry;
 begin
-  TgdcAttrUserDefinedTree.RegisterClassHierarchy(Self);
   CEBase := gdClassList.Find(Self);
-  Assert(CEBase <> nil);
-  CEBase.Initialized := False;
-  TgdcAttrUserDefinedLBRBTree.RegisterClassHierarchy(Self);
+
+  if CEBase = nil then
+      raise EgdcException.Create('Unregistered class.');
+
+  if not CEBase.Initialized then
+  begin
+    TgdcAttrUserDefinedTree.RegisterClassHierarchy(Self);
+    CEBase.Initialized := False;
+    TgdcAttrUserDefinedLBRBTree.RegisterClassHierarchy(Self);
+  end;
 end;
 
 
