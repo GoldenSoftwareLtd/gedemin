@@ -277,8 +277,8 @@ type
   private
     FParent: TgdClassEntry;
     FClass: TClass;
-    FClassMethods: TgdClassMethods;
     FSubType: TgdcSubType;
+    FClassMethods: TgdClassMethods;
     FComment: String;
     FCaption: String;
     FSiblings: TObjectList;
@@ -303,15 +303,16 @@ type
       const AClass: TClass; const ASubType: TgdcSubType = ''; const AComment: String = '');
     destructor Destroy; override;
 
-    function Compare(const AClass: TClass; const ASubType: TgdcSubType = ''): Integer;
+    function Compare(const AClass: TClass; const ASubType: TgdcSubType = ''): Integer; overload;
+    function Compare(const AClassName: AnsiString; const ASubType: TgdcSubType = ''): Integer; overload;
     procedure AddSibling(ASibling: TgdClassEntry);
     function GetSubTypeList(ASubTypeList: TStrings; const AnOnlyDirect: Boolean): Boolean;
 
     property Parent: TgdClassEntry read FParent;
     property TheClass: TClass read FClass;
+    property SubType: TgdcSubType read FSubType;
     property gdcClass: CgdcBase read GetGdcClass;
     property frmClass: CgdcCreateableForm read GetFrmClass;
-    property SubType: TgdcSubType read FSubType;
     property Comment: String read FComment;
     property Caption: String read FCaption;
     property Count: Integer read GetCount;
@@ -325,11 +326,11 @@ type
     FClasses: array of TgdClassEntry;
     FCount: Integer;
 
-    function _Find(const AClass: TClass; const ASubType: TgdcSubType;
+    function _Find(const AClassName: AnsiString; const ASubType: TgdcSubType;
       out Index: Integer): Boolean;
     procedure _Insert(const Index: Integer; ACE: TgdClassEntry);
     procedure _Grow;
-    procedure CheckInitialized(AClass: TClass);
+    procedure CheckInitialized(const AClassName: AnsiString);
 
   public
     constructor Create;
@@ -338,6 +339,7 @@ type
     function Add(const AClass: TClass; const ASubType: TgdcSubType = ''; const AComment: String = '';
       const AParentSubType: TgdcSubType = ''): TgdClassEntry;
     function Find(const AClass: TClass; const ASubType: TgdcSubType = ''): TgdClassEntry; overload;
+    function Find(const AClassName: AnsiString; const ASubType: TgdcSubType = ''): TgdClassEntry; overload;
     function Find(const AFullClassName: TgdcFullClassName): TgdClassEntry; overload;
 
     function Traverse(const AClass: TClass; const ASubType: TgdcSubType;
@@ -1159,10 +1161,8 @@ end;
 function TgdClassEntry.Compare(const AClass: TClass;
   const ASubType: TgdcSubType): Integer;
 begin
-  if AClass = FClass then
-    Result := AnsiCompareText(FSubType, ASubType)
-  else
-    Result := AnsiCompareText(FClass.ClassName, AClass.ClassName);
+  Assert(AClass <> nil);
+  Result := Compare(AClass.ClassName, ASubType);
 end;
 
 constructor TgdClassEntry.Create(AParent: TgdClassEntry;
@@ -1197,7 +1197,7 @@ begin
   if (FClass <> nil) and FClass.InheritsFrom(TgdcBase) then
     Result := CgdcBase(FClass)
   else
-    raise Exception.Create('Not a business class.');
+    Result := nil;
 end;
 
 function TgdClassEntry.GetFrmClass: CgdcCreateableForm;
@@ -1205,7 +1205,7 @@ begin
   if (FClass <> nil) and FClass.InheritsFrom(TgdcCreateableForm) then
     Result := CgdcCreateableForm(FClass)
   else
-    raise Exception.Create('Not a form class.');
+    Result := nil;
 end;
 
 procedure TgdClassEntry.CheckInitialized;
@@ -1299,53 +1299,38 @@ begin
   end;
 end;
 
+function TgdClassEntry.Compare(const AClassName: AnsiString;
+  const ASubType: TgdcSubType): Integer;
+begin
+  Result := AnsiCompareText(FClass.ClassName, AClassName);
+  if Result = 0 then
+    Result := AnsiCompareText(FSubType, ASubType);
+end;
+
 {TgdClassList}
 
 function TgdClassList.GetGDCClass(const AFullClassName: TgdcFullClassName): CgdcBase;
 var
-  LClass: TClass;
   CE: TgdClassEntry;
 begin
-  Result := nil;
-  CE := nil;
-
-  LClass := GetClass(AFullClassName.gdClassName);
-
-  if (LClass <> nil) and (not LClass.InheritsFrom(TgdcBase)) then
-  begin
-    Result := nil;
-    Exit;
-  end;
-
-  if LClass <> nil then
-    CE := gdClassList.Find(LClass);
+  CE := Find(AFullClassName);
 
   if CE <> nil then
-    Result := CE.gdcClass;
+    Result := CE.gdcClass
+  else
+    Result := nil;
 end;
 
 function TgdClassList.GetFrmClass(const AFullClassName: TgdcFullClassName): CgdcCreateableForm;
 var
-  LClass: TClass;
   CE: TgdClassEntry;
 begin
-  Result := nil;
-  CE := nil;
-
-  LClass := GetClass(AFullClassName.gdClassName);
-
-  if (LClass <> nil) and (not LClass.InheritsFrom(TgdcCreateableForm)) then
-  begin
-    Result := nil;
-    Exit;
-  end;
-
-  if LClass <> nil then
-    CE := gdClassList.Find(LClass);
+  CE := Find(AFullClassName);
 
   if CE <> nil then
-    Result := CE.frmClass;
-
+    Result := CE.frmClass
+  else
+    Result := nil;
 end;
 
 function TgdClassList.Add(const AClass: TClass; const ASubType: TgdcSubType;
@@ -1378,7 +1363,7 @@ begin
   if Prnt <> nil then
     Prnt.AddSibling(Result);
 
-  if not _Find(AClass, ASubType, Index) then
+  if not _Find(AClass.ClassName, ASubType, Index) then
     _Insert(Index, Result)
   else
     raise Exception.Create('Internal consistency check');
@@ -1408,25 +1393,16 @@ end;
 
 function TgdClassList.Find(const AClass: TClass;
   const ASubType: TgdcSubType): TgdClassEntry;
-var
-  Index: Integer;
 begin
   Assert(AClass <> nil);
-
-  if ASubType > '' then
-    CheckInitialized(AClass);
-
-  if _Find(AClass, ASubType, Index) then
-    Result := FClasses[Index]
-  else
-    Result := nil;
+  Result := Find(AClass.ClassName, ASubType);
 end;
 
-procedure TgdClassList.CheckInitialized(AClass: TClass);
+procedure TgdClassList.CheckInitialized(const AClassName: AnsiString);
 var
   CE: TgdClassEntry;
 begin
-  CE := Find(AClass);
+  CE := Find(AClassName);
 
   Assert(CE <> nil);
 
@@ -1442,7 +1418,7 @@ begin
   if AClass = nil then
     exit;
 
-  if _Find(AClass, ASubType, Index) then
+  if _Find(AClass.ClassName, ASubType, Index) then
   begin
     FClasses[Index].Free;
     System.Move(FClasses[Index + 1], FClasses[Index],
@@ -1549,14 +1525,8 @@ begin
 end;
 
 function TgdClassList.Find(const AFullClassName: TgdcFullClassName): TgdClassEntry;
-var
-  LClass: TClass;
 begin
-  LClass := GetClass(AFullClassName.gdClassName);
-  if LClass <> nil then
-    Result := gdClassList.Find(LClass, AFullClassName.SubType)
-  else
-    Result := nil;
+  Result := Find(AFullClassName.gdClassName, AFullClassName.SubType);
 end;
 
 function TgdClassList.Traverse(const AClass: TClass;
@@ -1589,22 +1559,21 @@ begin
     Result := False;
 end;
 
-function TgdClassList._Find(const AClass: TClass; const ASubType: TgdcSubType;
+function TgdClassList._Find(const AClassName: AnsiString; const ASubType: TgdcSubType;
   out Index: Integer): Boolean;
 var
   I, L, H: Integer;
 begin
-  Assert(AClass <> nil);
   Result := False;
   L := 0;
   H := FCount - 1;
   while L <= H do
   begin
     I := (L + H) shr 1;
-    if FClasses[I].Compare(AClass, ASubType) < 0 then L := I + 1 else
+    if FClasses[I].Compare(AClassName, ASubType) < 0 then L := I + 1 else
     begin
       H := I - 1;
-      if FClasses[I].Compare(AClass, ASubType) = 0 then
+      if FClasses[I].Compare(AClassName, ASubType) = 0 then
       begin
         Result := True;
         L := I;
@@ -1632,6 +1601,20 @@ begin
   end;
   FClasses[Index] := ACE;
   Inc(FCount);
+end;
+
+function TgdClassList.Find(const AClassName: AnsiString;
+  const ASubType: TgdcSubType): TgdClassEntry;
+var
+  Index: Integer;
+begin
+  if ASubType > '' then
+    CheckInitialized(AClassName);
+
+  if _Find(AClassName, ASubType, Index) then
+    Result := FClasses[Index]
+  else
+    Result := nil;
 end;
 
 initialization
