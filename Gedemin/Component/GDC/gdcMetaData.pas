@@ -365,31 +365,14 @@ type
     property ReferenceName: String read GetReferenceName;// write SetReferenceName;
   end;
 
-  TgdcTableToDefinedTable = class(TgdcTable)
-  private
-    FIDDomain: String;
-
-    function CreateSimpleTable: String;
-    function CreateNewDomain: String;
-    function CreateForeignKey: String;
-
+  TgdcTableToDefinedTable = class(TgdcTableToTable)
   protected
     procedure AddGdClass; override;
     procedure RemoveGdClass; override;
-    
-    procedure DropTable; override;
-    procedure CreateRelationSQL(Scripts: TSQLProcessList); override;
-    procedure CustomInsert(Buff: Pointer); override;
-
-    procedure _DoOnNewRecord; override;
-
-    function GetReferenceName: String;
 
   public
     procedure MakePredefinedRelationFields; override;
     class function GetDisplayName(const ASubType: TgdcSubType): String; override;
-
-    property ReferenceName: String read GetReferenceName;// write SetReferenceName;
   end;
 
   TgdcTreeTable = class(TgdcTable)
@@ -9451,154 +9434,19 @@ end;
 
 { TgdcTableToDefinedTable }
 
-procedure TgdcTableToDefinedTable.CustomInsert(Buff: Pointer);
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCTABLETODEFINEDTABLE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCTABLETODEFINEDTABLE', KEYCUSTOMINSERT);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMINSERT]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCTABLETODEFINEDTABLE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCTABLETODEFINEDTABLE',
-  {M}          'CUSTOMINSERT', KEYCUSTOMINSERT, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCTABLETODEFINEDTABLE' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  Assert(atDatabase <> nil);
-
-  inherited;
-
-  //синхронизируем информацию о новом домене
-  if (FIDDomain > '') and (atDatabase.Relations.ByRelationName(GetReferenceName) <> nil) then
-  begin
-    CustomExecQuery(Format('INSERT INTO at_fields (' +
-      ' fieldname, ' +
-      ' lname, ' +
-      ' description, ' +
-      ' reftable, ' +
-      ' reflistfield, ' +
-      ' reftablekey, ' +
-      ' reflistfieldkey) ' +
-      ' VALUES ('+
-      ' ''%0:s'', ''%0:s'', ''Ссылка на таблицу %1:s'',' +
-      ' ''%1:s'', ''%2:s'', %3:d, %4:d )',
-      [FIDDomain, GetReferenceName,
-       atDatabase.Relations.ByRelationName(GetReferenceName).ListField.FieldName,
-       atDatabase.Relations.ByRelationName(GetReferenceName).ID,
-       atDatabase.Relations.ByRelationName(GetReferenceName).ListField.ID
-      ]), Buff);
-  end;
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCTABLETODEFINEDTABLE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCTABLETODEFINEDTABLE', 'CUSTOMINSERT', KEYCUSTOMINSERT);
-  {M}  end;
-  {END MACRO}
-end;
-
-function TgdcTableToDefinedTable.CreateNewDomain: String;
-begin
-  if FIDDomain = '' then
-    FIDDomain := gdcBaseManager.AdjustMetaName(
-      FieldByName('relationname').AsString + '_DPK');
-
-  Result := Format('CREATE DOMAIN %s AS INTEGER NOT NULL',
-    [FIDDomain]);
-end;
-
-procedure TgdcTableToDefinedTable.CreateRelationSQL(Scripts: TSQLProcessList);
-begin
-  Scripts.Add(CreateNewDomain);
-  Scripts.Add(CreateSimpleTable);
-  Scripts.Add(CreateForeignKey);
-  Scripts.Add(CreateGrantSQL);
-end;
-
-function TgdcTableToDefinedTable.CreateSimpleTable: String;
-begin
-  Result := Format
-  (
-    'CREATE TABLE %s (id %s, inherited dboolean, CONSTRAINT %s PRIMARY KEY (id))',
-    [
-      FieldByName('relationname').AsString,
-      FIDDomain,
-      gdcBaseManager.AdjustMetaName(FieldByName('relationname').AsString + '_PK')
-    ]
-  );
-end;
-
 class function TgdcTableToDefinedTable.GetDisplayName(
   const ASubType: TgdcSubType): String;
 begin
   Result := 'Наследуемая таблица';
 end;
 
-function TgdcTableToDefinedTable.CreateForeignKey: String;
+procedure TgdcTableToDefinedTable.MakePredefinedRelationFields;
 begin
- Result := Format
-  (
-    'ALTER TABLE %s ADD CONSTRAINT %s FOREIGN KEY (id) REFERENCES %s (%s) ON UPDATE CASCADE ON DELETE CASCADE',
-    [
-      FieldByName('relationname').AsString,
-      gdcBaseManager.AdjustMetaName(FieldByName('relationname').AsString + '_FK'),
-      GetReferenceName,
-      GetKeyFieldName(GetReferenceName)
-    ]
-  );
-end;
-
-procedure TgdcTableToDefinedTable._DoOnNewRecord;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCTABLETODEFINEDTABLE', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCTABLETODEFINEDTABLE', KEY_DOONNEWRECORD);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEY_DOONNEWRECORD]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCTABLETODEFINEDTABLE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCTABLETODEFINEDTABLE',
-  {M}          '_DOONNEWRECORD', KEY_DOONNEWRECORD, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCTABLETODEFINEDTABLE' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
   inherited;
-  FIDDomain := '';
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCTABLETODEFINEDTABLE', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCTABLETODEFINEDTABLE', '_DOONNEWRECORD', KEY_DOONNEWRECORD);
-  {M}  end;
-  {END MACRO}
+  if (State = dsInsert) and Assigned(gdcTableField) then
+    NewField('INHERITED',
+      'Унаследована', 'DBOOLEAN', 'Унаследована', 'Унаследована',
+      'L', '20', '0', '0');
 end;
 
 procedure TgdcTableToDefinedTable.AddGdClass;
@@ -9738,71 +9586,6 @@ begin
     gdClassList.Remove(GetClass(frmCN), FieldByName('relationname').AsString);
     gdClassList.Remove(GetClass(dlgCN), FieldByName('relationname').AsString);
   end;
-end;
-
-procedure TgdcTableToDefinedTable.DropTable;
-var
-  FSQL: TSQLProcessList;
-  KeyField: TatRelationField;
-  KeyDomain: TatField;
-begin
-  Assert(atDatabase <> nil);
-
-  FSQL := TSQLProcessList.Create;
-  try
-    KeyField := atDatabase.FindRelationField(FieldByName('relationname').AsString,
-      GetKeyField(SubType));
-
-    if KeyField = nil then
-      raise EgdcIBError.Create('При удалении таблицы произошла ошибка. Требуется переподключение');
-
-    KeyDomain := KeyField.Field;
-    if (KeyDomain = nil) or (KeyDomain.RefTable = nil) then
-       raise EgdcIBError.Create('При удалении таблицы произошла ошибка. Требуется переподключение');
-
-    inherited;
-
-    FSQL.Add('DROP DOMAIN ' + KeyDomain.FieldName);
-
-    ShowSQLProcess(FSQL);
-  finally
-    FSQL.Free;
-  end;
-end;
-
-function TgdcTableToDefinedTable.GetReferenceName: String;
-var
-  q: TIBSQL;
-begin
-  q := CreateReadIBSQL;
-  try
-    q.Close;
-    if FieldByName('referencekey').AsInteger > 0 then
-    begin
-      q.SQL.Text := 'SELECT relationname FROM at_relations WHERE id = :id';
-      q.ParamByName('id').AsInteger := FieldByName('referencekey').AsInteger;
-      q.ExecQuery;
-    end;
-
-    if q.EOF then
-    begin
-      if sDialog in BaseState then
-        FieldByName('referencekey').FocusControl;
-      raise EgdcIBError.Create('Не указана таблица-ссылка!');
-    end else
-      Result :=  q.FieldByName('relationname').AsString;
-  finally
-    q.Free;
-  end;
-end;
-
-procedure TgdcTableToDefinedTable.MakePredefinedRelationFields;
-begin
-  inherited;
-  if (State = dsInsert) and Assigned(gdcTableField) then
-    NewField('INHERITED',
-      'Унаследована', 'DBOOLEAN', 'Унаследована', 'Унаследована',
-      'L', '20', '0', '0');
 end;
 
 { TgdcBaseTable }

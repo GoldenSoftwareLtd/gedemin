@@ -58,6 +58,11 @@ type
     procedure TestMetaData; override;
   end;
 
+  TgdcTableToDefinedTableTest = class(TgdcTableToTableTest)
+  protected
+    function GetTableClass: CgdcTable; override;
+  end;
+
   TgdcLBRBTreeTest = class(TgdcSimpleTableTest)
   private
     procedure TestRestrLBRBTree;
@@ -479,6 +484,11 @@ begin
   Check(TableToTableMetaNames.BITriggerName = '');
   Check(TableToTableMetaNames.BI5TriggerName = '');
   Check(TableToTableMetaNames.BU5TriggerName = '');
+end;
+
+function TgdcTableToDefinedTableTest.GetTableClass;
+begin
+  Result := TgdcTableToDefinedTable;
 end;
 
 function TgdcLBRBTreeTest.GetTableClass;
@@ -1968,6 +1978,7 @@ initialization
   RegisterTest('DB\TgdcMetaDataTest\StandartTables', TgdcSimpleTableTest.Suite);
   RegisterTest('DB\TgdcMetaDataTest\StandartTables', TgdcTreeTableTest.Suite);
   RegisterTest('DB\TgdcMetaDataTest\StandartTables', TgdcTableToTableTest.Suite);
+  RegisterTest('DB\TgdcMetaDataTest\StandartTables', TgdcTableToDefinedTableTest.Suite);
   RegisterTest('DB\TgdcMetaDataTest\StandartTables', TgdcLBRBTreeTest.Suite);
   RegisterTest('DB\TgdcMetaDataTest\Set', TgdcSetTest.Suite);
   RegisterTest('DB\TgdcMetaDataTest\SaveSettingXML', TgdcTreeTableSaveToXMLTest.Suite);
