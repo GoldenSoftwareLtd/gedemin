@@ -7470,7 +7470,6 @@ var
   Cl: TPersistentClass;
   gdcBaseClass: CgdcBase;
   gdcObject: TgdcBase;
-{  LocTransaction: TIBTransaction;}
 begin
   Result := GetIndexObjectByName(AScriptName);
 
@@ -7483,28 +7482,13 @@ begin
 
     if Assigned(gdcBaseClass) then
     begin
-{      try
-        if InterfaceToObject(ATransaction) <> nil then
-          LocTransaction := InterfaceToObject(ATransaction) as TIBTransaction
-        else
-          LocTransaction := nil;
-      except
-        LocTransaction := nil;
-      end;}
       gdcObject := gdcBaseClass.CreateSubType(Application, ASubType);
-
       Result := gdcObjectList.IndexOf(gdcObject);
-
-//      gdcObjectList.Items[Result] := GetGdcOLEObject(gdcObject);
-
-//      (TObject(gdcObjectList.Items[Result]) as TwrpGDCBase)._AddRef;
       gdcObject.NameInScript := AScriptName;
     end;
   except
-    Result := -1;
-    raise Exception.Create('Ошибка при создании объекта ' + AClassName);
+    raise Exception.Create('Ошибка при создании объекта типа ' + AClassName);
   end;
-
 end;
 
 function TwrpGDCClassList.GetObject(const AScriptName: WideString): IgsGDCBase; safecall;
@@ -7521,18 +7505,12 @@ var
 begin
   Result := -1;
   for I := 0 to gdcObjectList.Count - 1 do
-  try
-    if (TObject(gdcObjectList.Items[I]) is TgdcBase) and
-        (AnsiUpperCase((TObject(gdcObjectList.Items[I]) as TgdcBase).NameInScript) =
-    	AnsiUpperCase(AScriptName))
-    then
+    if (gdcObjectList.Items[I] is TgdcBase) and
+        AnsiSameText((gdcObjectList.Items[I] as TgdcBase).NameInScript, AScriptName) then
     begin
       Result := I;
-      Break;
+      break;
     end;
-  except
-//    raise Exception.Create('В хранилище обнаружен объект не совместимый с TwrpGDCBase');
-  end;
 end;
 
 function TwrpGDCClassList.DeleteObject(const AScriptName: WideString): WordBool; safecall;
@@ -7543,18 +7521,16 @@ end;
 function TwrpGDCClassList.DeleteObjectByIndex(
   AnIndex: Integer): WordBool;
 var
-  P: TgdcBase;
+  P: TObject;
 begin
-  Result := False;
   if (-1 < AnIndex) and (AnIndex < gdcObjectList.Count) then
-  try
-//    TwrpGDCBase(gdcObjectList.Items[AnIndex])._Release;
-    P := TgdcBase(gdcObjectList[anIndex]);
+  begin
+    P := gdcObjectList[AnIndex];
     gdcObjectList.Delete(AnIndex);
-    FreeAndNil(P);
+    P.Free;
     Result := True;
-  finally
-  end;
+  end else
+    Result := False;
 end;
 
 function TwrpGDCClassList.GetObjectByIndex(AnIndex: Integer): IgsGDCBase;

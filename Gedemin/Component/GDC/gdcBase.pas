@@ -3382,7 +3382,7 @@ begin
   begin
     if Transaction = nil then
     begin
-      FInternalTransaction := TIBTransaction.Create(Self);
+      FInternalTransaction := TIBTransaction.Create(nil);
       FInternalTransaction.Params.Text := 'read_committed'#13#10'rec_version'#13#10'nowait';
       FInternalTransaction.Name := 'ibtrInternal';
       FInternalTransaction.AutoStopAction := saNone;
@@ -9233,7 +9233,7 @@ begin
   FReadTransaction.Name := 'InternalRead';
   FReadTransaction.AutoStopAction := saNone;
   gdcBaseManager := Self;
-  FIBSQL := TIBSQL.Create(Self);
+  FIBSQL := TIBSQL.Create(nil);
   FIDCurrent := 0;
   FIDLimit := -1;
 end;
@@ -9291,9 +9291,9 @@ begin
   if Assigned(FReadTransaction) and FReadTransaction.InTransaction then
     FReadTransaction.Commit;
 
+  FIBSQL.Free;
   FreeAndNil(FReadTransaction);
   FreeAndNil(FIBBase);
-  FIBSQL.Free;
   FNextIDSQL.Free;
   ClearSecDescArr;
   inherited;
