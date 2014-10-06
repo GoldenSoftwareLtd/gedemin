@@ -112,7 +112,7 @@ const
   keySetupDialog             = 243;
 
 const
-  ClassesHashTableSize = 32609;
+  ClassesHashTableSize = 37813; //32609;
 
   // Константы для организации хранения перекрытых классов с подтипами
   // Ставится в начале строки, если сохраняется класс и подтип
@@ -1401,7 +1401,7 @@ begin
   if Prnt <> nil then
     Prnt.AddSibling(Result);
 
-  K := GetHash(AClass, ASubType) mod ClassesHashTableSize;
+  K := GetHash(AClass, ASubType);
   if FHashTable[K] = nil then
     FHashTable[K] := Result
   else if FHashTable[K] is TObjectList then
@@ -1452,7 +1452,7 @@ begin
   if ASubType > '' then
     CheckInitialized(AClass);
 
-  K := GetHash(AClass, ASubType) mod ClassesHashTableSize;
+  K := GetHash(AClass, ASubType);
   if FHashTable[K] is TgdClassEntry then
   begin
     if TgdClassEntry(FHashTable[K]).Compare(AClass, ASubType) then
@@ -1476,36 +1476,45 @@ begin
     Result := nil;
 end;
 
-// http://www.eternallyconfuzzled.com/tuts/algorithms/jsw_tut_hashing.aspx
-// using ELF hash
 function TgdClassList.GetHash(AClass: TClass; const ASubType: TgdcSubType): Cardinal;
 var
   I: Integer;
-  G: Cardinal;
 begin
   Result := 0;
 
-  for I := 1 to Length(AClass.ClassName) do
+  // ignore mostly 'Tgd'
+  for I := 4 to Length(AClass.ClassName) do
   begin
-    Result := (Result shl 4) + Byte(AClass.ClassName[I]);
-    G := Result and Cardinal($F0000000);
-
-    if G <> 0 then
-      Result := Result xor (G shr 24);
-
-    Result := Result and (not G);
+    Result := Result + Byte(AClass.ClassName[I]);
+    Result := Result + (Result shl 10);
+    Result := Result xor (Result shr 6);
   end;
 
-  for I := 1 to Length(ASubType) do
+  if Length(ASubType) > 0 then
   begin
-    Result := (Result shl 4) + Byte(UpCase(ASubType[I]));
-    G := Result and Cardinal($F0000000);
-
-    if G <> 0 then
-      Result := Result xor (G shr 24);
-
-    Result := Result and (not G);
+    if ASubType[1] in ['0'..'9'] then
+    begin
+      for I := 1 to Length(ASubType) do
+      begin
+        Result := Result + Byte(UpCase(ASubType[I]));
+        Result := Result + (Result shl 10);
+        Result := Result xor (Result shr 6);
+      end;
+    end else
+      // ignore mostly 'USR$'
+      for I := 5 to Length(ASubType) do
+      begin
+        Result := Result + Byte(UpCase(ASubType[I]));
+        Result := Result + (Result shl 10);
+        Result := Result xor (Result shr 6);
+      end;
   end;
+
+  Result := Result + (Result shl 3);
+  Result := Result xor (Result shr 11);
+  Result := Result + (Result shl 15);
+
+  Result := Result mod ClassesHashTableSize;
 end;
 
 function TgdClassList.GetCount: Integer;
@@ -1535,7 +1544,7 @@ begin
   if AClass = nil then
     exit;
   
-  K := GetHash(AClass, ASubType) mod ClassesHashTableSize;
+  K := GetHash(AClass, ASubType);
   if FHashTable[K] is TgdClassEntry then
   begin
     if TgdClassEntry(FHashTable[K]).Compare(AClass, ASubType) then
