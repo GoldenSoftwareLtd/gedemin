@@ -612,7 +612,7 @@ const
   cCMErr = 'Для класса не найден объект описания методов класса.';
 
 begin
-  ClassMethods := nil;
+  //ClassMethods := nil;
 {  I := gdcClassList.IndexOfByName(FullClassName);
   if I > -1 then
   begin
