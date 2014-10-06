@@ -1,6 +1,6 @@
 object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
-  Left = 505
-  Top = 162
+  Left = 978
+  Top = 459
   Width = 940
   Height = 576
   BorderIcons = [biSystemMenu, biMinimize]
