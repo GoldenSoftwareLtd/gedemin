@@ -2340,18 +2340,21 @@ function TdfPropertyTree.AddFRMClassNode(AParent: TTreeNode; ACE: TgdClassEntry;
 var
   CClass: CgdcCreateableForm;
   CI: TgdcClassTreeItem;
+  MObj: TObject;
   MClass: TMethodClass;
   FullName: TgdcFullClassName;
 begin
   Result := nil;
   CClass := ACE.frmClass;
 
-  if Assigned(CClass) then
+  if CClass <> nil then
   begin
     FullName.gdClassName := CClass.ClassName;
     FullName.SubType := SubType;
-    MClass := TMethodClass(MethodControl.FindMethodClass(FullName));
-    if MClass = nil then
+    MObj := MethodControl.FindMethodClass(FullName);
+    if MObj is TMethodClass then
+      MClass := TMethodClass(MObj)
+    else
       //Если не найден то регистрируем его в списке
       MClass := TMethodClass(MethodControl.AddClass(0, FullName, CClass));
     MClass.Class_Reference := CClass;
@@ -2374,7 +2377,7 @@ begin
     CI.OverloadMethods := MClass.SpecMethodCount;
     Ci.DisabledMethods := MClass.SpecDisableMethod;
     CI.TheClass := MClass;
-    
+
     if SubTypeComent > '' then
       Result := GetPageByObjID(OBJ_APPLICATION).Tree.Items.AddChild(AParent,
         CClass.ClassName + SubType + ' (' + SubTypeComent + ')')
@@ -2420,7 +2423,7 @@ begin
       '  o2.lb';
     SQl.Params[0].AsInteger := ID;
     SQL.ExecQuery;
-    if not SQl.Eof then
+    if not SQL.Eof then
     begin
       //Получаем коренную папку
       if not Assigned(GetPageByObjID(OBJ_APPLICATION)) then

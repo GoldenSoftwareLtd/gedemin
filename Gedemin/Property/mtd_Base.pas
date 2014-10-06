@@ -887,7 +887,7 @@ begin
   Inc(MethodClassListCount);
   {$ENDIF}
 
-  FHashMethodClassList := TStringHashMap.Create(CaseInSensitiveTraits, 512);
+  FHashMethodClassList := TStringHashMap.Create(CaseInSensitiveTraits, 2048);
 end;
 
 destructor TMethodClassList.Destroy;
