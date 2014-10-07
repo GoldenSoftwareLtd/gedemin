@@ -306,6 +306,7 @@ type
     function Compare(const AClass: TClass; const ASubType: TgdcSubType = ''): Integer; overload;
     function Compare(const AClassName: AnsiString; const ASubType: TgdcSubType = ''): Integer; overload;
     procedure AddSibling(ASibling: TgdClassEntry);
+    procedure FreeSibling(const AnIndex: Integer);
     function GetSubTypeList(ASubTypeList: TStrings; const AnOnlyDirect: Boolean): Boolean;
 
     property Parent: TgdClassEntry read FParent;
@@ -1307,6 +1308,12 @@ begin
     Result := AnsiCompareText(FSubType, ASubType);
 end;
 
+procedure TgdClassEntry.FreeSibling(const AnIndex: Integer);
+begin
+  FSiblings[AnIndex].Free;
+  FSiblings.Delete(AnIndex);
+end;
+
 {TgdClassList}
 
 function TgdClassList.GetGDCClass(const AFullClassName: TgdcFullClassName): CgdcBase;
@@ -1433,49 +1440,23 @@ procedure TgdClassList.RemoveAllSubTypes;
   var
     I: Integer;
   begin
-    if (ACE <> nil) then
-      ACE.Initialized := False;
+    if ACE = nil then
+      exit;
 
-    if (ACE <> nil) and (ACE.FSiblings <> nil) then
-      for I := ACE.FSiblings.Count - 1 downto 0 do
-        if ACE.Siblings[I] <> nil then
-        begin
-          if (ACE.Siblings[I].SubType > '') then
-          begin
-            RemoveSiblings(ACE.Siblings[I]);
-            Remove(ACE.Siblings[I].TheClass, ACE.Siblings[I].SubType);
-          end
-          else
-          begin
-            RemoveSiblings(ACE.Siblings[I]);
-          end;
-        end
-        else
-          ACE.FSiblings.Delete(I);
+    for I := ACE.Count - 1 downto 0 do
+    begin
+      if ACE.Siblings[I].SubType > '' then
+      begin
+        RemoveSiblings(ACE.Siblings[I]);
+        ACE.FreeSibling(I);
+        ACE.Initialized := False;
+      end;
+    end;
   end;
 
-var
-  CE: TgdClassEntry;
 begin
-  CE := Find(TgdcBase);
-
-  Assert(CE <> nil);
-
-  if CE <> nil then
-  begin
-    RemoveSiblings(CE);
-    CE.Initialized := False;
-  end;
-
-  CE := Find(TgdcCreateableForm);
-
-  Assert(CE <> nil);
-
-  if CE <> nil then
-  begin
-    RemoveSiblings(CE);
-    CE.Initialized := False;
-  end;
+  RemoveSiblings(Find(TgdcBase));
+  RemoveSiblings(Find(TgdcCreateableForm));
 end;
 
 procedure TgdClassList.AddClassMethods(AClass: TComponentClass;
