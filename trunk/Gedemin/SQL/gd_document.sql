@@ -358,9 +358,10 @@ BEGIN
   END
 
   /* просто игнорируем все ошибки */
-  WHEN ANY DO
+/* сейчас не игнорируем ошибки */
+/*  WHEN ANY DO
   BEGIN
-  END
+  END */
 END
 ^
 
