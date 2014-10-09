@@ -1961,7 +1961,6 @@ begin
     Direction := TgdcInvMovementDirection(rgMovementDirection.ItemIndex);
     Write(Direction, SizeOf(TgdcInvMovementDirection));
 
-    //
     // Только если используются остатки сохраняем текущее значение checkbox-ов
 
     if cbRemains.Checked then

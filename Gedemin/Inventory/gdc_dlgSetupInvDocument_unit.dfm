@@ -278,7 +278,7 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
         Height = 21
         Style = csDropDownList
         Color = 11141119
-        ItemHeight = 13
+        ItemHeight = 0
         TabOrder = 0
         OnChange = cbDebitMovementChange
       end
@@ -336,7 +336,7 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
         Height = 21
         Style = csDropDownList
         Color = 11141119
-        ItemHeight = 13
+        ItemHeight = 0
         TabOrder = 2
         OnDropDown = luCreditFromDropDown
       end
@@ -346,7 +346,7 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
         Width = 368
         Height = 21
         Style = csDropDownList
-        ItemHeight = 13
+        ItemHeight = 0
         TabOrder = 8
         OnDropDown = luCreditFromDropDown
       end
@@ -455,7 +455,7 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
         Height = 21
         Style = csDropDownList
         Color = 11141119
-        ItemHeight = 13
+        ItemHeight = 0
         TabOrder = 0
         OnChange = cbDebitMovementChange
       end
@@ -513,7 +513,7 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
         Height = 21
         Style = csDropDownList
         Color = 11141119
-        ItemHeight = 13
+        ItemHeight = 0
         TabOrder = 2
         OnDropDown = luCreditFromDropDown
       end
@@ -523,7 +523,7 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
         Width = 368
         Height = 21
         Style = csDropDownList
-        ItemHeight = 13
+        ItemHeight = 0
         TabOrder = 8
         OnDropDown = luCreditFromDropDown
       end
