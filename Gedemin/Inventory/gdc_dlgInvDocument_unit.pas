@@ -220,9 +220,6 @@ type
 
     property TopGrid: TgsIBGrid read GetTopGrid;
 
-    class procedure RegisterClassHierarchy(AClass: TClass = nil;
-      AValue: String = ''); override;
-
     function Get_SelectedKey: OleVariant; override; safecall;
   end;
 
@@ -2608,18 +2605,6 @@ begin
   {M}    ClearMacrosStack('TDLGINVDOCUMENT', 'POST', KEYPOST);
   {M}end;
   {END MACRO}
-end;
-
-class procedure TdlgInvDocument.RegisterClassHierarchy(AClass: TClass = nil;
-  AValue: String = '');
-begin
-  if AClass = nil then
-    TgdcInvDocument.RegisterClassHierarchy(Self, 'TgdcInvDocumentType')
-  else
-  begin
-    Assert(AValue <> '');
-    TgdcInvDocument.RegisterClassHierarchy(AClass, AValue);
-  end;
 end;
 
 procedure TdlgInvDocument.DoCreateNewObject(Sender: TObject;

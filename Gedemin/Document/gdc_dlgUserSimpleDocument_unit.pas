@@ -22,9 +22,6 @@ type
 
     procedure SaveSettings; override;
     procedure LoadSettingsAfterCreate; override;
-
-    class procedure RegisterClassHierarchy(AClass: TClass = nil;
-      AValue: String = ''); override;
   end;
 
 var
@@ -149,18 +146,6 @@ begin
   {M}    ClearMacrosStack('TGDC_DLGUSERSIMPLEDOCUMENT', 'LOADSETTINGSAFTERCREATE', KEYLOADSETTINGSAFTERCREATE);
   {M}end;
   {END MACRO}
-end;
-
-class procedure Tgdc_dlgUserSimpleDocument.RegisterClassHierarchy(AClass: TClass = nil;
-  AValue: String = '');
-begin
-  if AClass = nil then
-    TgdcUserBaseDocument.RegisterClassHierarchy(Self, 'TgdcUserDocumentType')
-  else
-  begin
-    Assert(AValue <> '');
-    TgdcUserBaseDocument.RegisterClassHierarchy(AClass, AValue);
-  end;
 end;
 
 procedure Tgdc_dlgUserSimpleDocument.SetupDialog;

@@ -22,9 +22,6 @@ type
   public
     constructor Create(AnOwner: TComponent); override;
 
-    class procedure RegisterClassHierarchy(AClass: TClass = nil;
-      AValue: String = ''); override;
-
     property Document: TgdcInvPriceList read GetDocument;
     property DocumentLine: TgdcInvPriceListLine read GetDocumentLine;
   end;
@@ -40,18 +37,6 @@ uses
   gd_ClassList, gdcClasses, at_classes, gdcBase, IBSQL, gdcBaseInterface;
 
 { TdlgInvPriceLine }
-
-class procedure TdlgInvPriceLine.RegisterClassHierarchy(AClass: TClass = nil;
-  AValue: String = '');
-begin
-  if AClass = nil then
-    TgdcInvPriceListLine.RegisterClassHierarchy(Self, 'TgdcInvPriceListType')
-  else
-  begin
-    Assert(AValue <> '');
-    TgdcInvPriceListLine.RegisterClassHierarchy(AClass, AValue);
-  end;
-end;
 
 procedure TdlgInvPriceLine.atAttributesRelationNames(Sender: TObject;
   Relations, FieldAliases: TStringList);

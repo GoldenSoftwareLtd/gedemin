@@ -49,9 +49,6 @@ type
 
     procedure PassSelectedGoods(const gdcObject: TgdcBase; const SubType: String = '');
 
-    class procedure RegisterClassHierarchy(AClass: TClass = nil;
-      AValue: String = ''); override;
-
     //Строка-список присваиваемых полей вида:
     //имя поля 1 приемника = имя поля 1 gdcObject; имя поля 2 приемника = имя поля 2 gdcObject и т.д
     property AssignFieldsName: String read GetAssignFieldsName write SetAssignFieldsName;
@@ -325,18 +322,6 @@ begin
   {M}    ClearMacrosStack('TGDC_FRMINVSELECTEDGOODS', 'SAVESETTINGS', KEYSAVESETTINGS);
   {M}end;
   {END MACRO}
-end;
-
-class procedure Tgdc_frmInvSelectedGoods.RegisterClassHierarchy(AClass: TClass = nil;
-  AValue: String = '');
-begin
-  if AClass = nil then
-    TgdcSelectedGood.RegisterClassHierarchy(Self, 'TgdcInvDocumentType')
-  else
-  begin
-    Assert(AValue <> '');
-    TgdcSelectedGood.RegisterClassHierarchy(AClass, AValue);
-  end;
 end;
 
 procedure Tgdc_frmInvSelectedGoods.AfterSelectedGoodDelete(DataSet: TDataSet);

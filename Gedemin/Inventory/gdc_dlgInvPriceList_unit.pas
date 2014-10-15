@@ -80,9 +80,6 @@ type
 
     property Document: TgdcInvPriceList read GetDocument;
     property DocumentLine: TgdcInvPriceListLine read GetDocumentLine;
-
-    class procedure RegisterClassHierarchy(AClass: TClass = nil;
-      AValue: String = ''); override;
   end;
 
   EdlgInvPriceList = class(Exception);
@@ -497,18 +494,6 @@ begin
     end;
   finally
     Good.Free;
-  end;
-end;
-
-class procedure TdlgInvPriceList.RegisterClassHierarchy(AClass: TClass = nil;
-  AValue: String = '');
-begin
-  if AClass = nil then
-    TgdcInvPriceList.RegisterClassHierarchy(Self, 'TgdcInvPriceListType')
-  else
-  begin
-    Assert(AValue <> '');
-    TgdcInvPriceList.RegisterClassHierarchy(AClass, AValue);
   end;
 end;
 

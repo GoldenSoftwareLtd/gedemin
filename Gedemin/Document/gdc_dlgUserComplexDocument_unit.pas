@@ -32,9 +32,6 @@ type
     procedure Post; override;
 
   public
-    class procedure RegisterClassHierarchy(AClass: TClass = nil;
-      AValue: String = ''); override;
-
     procedure SetupDialog; override;
     function GetDetailBookmarkList: TBookmarkList; override;
 
@@ -123,18 +120,6 @@ begin
   {M}end;
   {END MACRO}
 end;*)
-
-class procedure Tgdc_dlgUserComplexDocument.RegisterClassHierarchy(AClass: TClass = nil;
-  AValue: String = '');
-begin
-  if AClass = nil then
-    TgdcUserBaseDocument.RegisterClassHierarchy(Self, 'TgdcUserDocumentType')
-  else
-  begin
-    Assert(AValue <> '');
-    TgdcUserBaseDocument.RegisterClassHierarchy(AClass, AValue);
-  end;
-end;
 
 procedure Tgdc_dlgUserComplexDocument.actDetailNewExecute(Sender: TObject);
 begin

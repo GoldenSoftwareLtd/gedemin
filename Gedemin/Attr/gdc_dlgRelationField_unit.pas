@@ -508,8 +508,10 @@ begin
   if TTreeNode(AData1^) = nil then
     TTreeNode(AData1^) := LTreeNode
   else
-    gdClassList.Traverse(ACE.gdcClass, ACE.SubType, BuildClassTree, @LTreeNode, AData2, False, True);
-
+    begin
+      gdClassList.Traverse(ACE.gdcClass, ACE.SubType, BuildClassTree,
+        @LTreeNode, AData2, False, True);
+    end;
   Result := True;
 end;
 
@@ -520,9 +522,6 @@ var
 begin
   tvObjects.SortType := stNone;
   tvObjects.Items.Clear;
-
-  if not Assigned(gdClassList) then
-    Exit;
 
   Screen.Cursor:= crHourGlass;
   try

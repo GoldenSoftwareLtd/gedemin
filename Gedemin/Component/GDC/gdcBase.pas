@@ -1595,9 +1595,6 @@ type
     //В противном случае -- возвращается вся иерархия наследников.
     class function GetSubTypeList(ASubTypeList: TStrings;
       ASubType: String = ''; AnOnlyDirect: Boolean = False): Boolean; virtual;
-    // загрузка всей иерархии класса
-    class procedure RegisterClassHierarchy(AClass: TClass = nil;
-      AValue: String = ''); virtual;
 
     class function ClassParentSubType(ASubType: string): String; virtual;
     //
@@ -2572,14 +2569,14 @@ begin
             begin
               Result.gdClass := CgdcBase(GetClass('TgdcAttrUserDefined'));
 
-              F := R.RelationFields.ByFieldName('INHERITED');
+              F := R.RelationFields.ByFieldName('INHERITEDKEY');
               if Assigned(F) then
               begin
-                ParentR := R.RelationFields.ByFieldName('ID').ForeignKey.ReferencesRelation;
-                if Assigned(ParentR) and Assigned(ParentR.RelationFields.ByFieldName('INHERITED')) then
+                ParentR := R.RelationFields.ByFieldName('INHERITEDKEY').ForeignKey.ReferencesRelation;
+                if Assigned(ParentR) and Assigned(ParentR.RelationFields.ByFieldName('INHERITEDKEY')) then
                   repeat
-                    ParentR := ParentR.RelationFields.ByFieldName('ID').ForeignKey.ReferencesRelation;
-                  until not Assigned(ParentR.RelationFields.ByFieldName('INHERITED'));
+                    ParentR := ParentR.RelationFields.ByFieldName('INHERITEDKEY').ForeignKey.ReferencesRelation;
+                  until not Assigned(ParentR.RelationFields.ByFieldName('INHERITEDKEY'));
 
                 if Assigned(ParentR) then
                 begin
@@ -2655,8 +2652,7 @@ function GetDescendants(AnAncestor: CgdcBase; AClassList: TClassList;
 begin
   AClassList.Clear;
 
-  if Assigned(gdClassList) then
-    gdClassList.Traverse(TClass(AnAncestor), '', BuildTree, AClassList, nil, False, OnlyDirect);
+  gdClassList.Traverse(TClass(AnAncestor), '', BuildTree, AClassList, nil, False, OnlyDirect);
 
   Result := AClassList.Count > 0;
 end;
@@ -10956,9 +10952,6 @@ begin
     FLastQuery := lqDelete;
   end;
 
-  if Assigned(gdClassList) then
-    gdClassList.RemoveAllSubTypes;
-
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASE', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -11001,9 +10994,6 @@ begin
     QInsert.ExecQuery;
     FLastQuery := lqInsert;
   end;
-
-  if Assigned(gdClassList) then
-    gdClassList.RemoveAllSubTypes;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  finally
@@ -11138,9 +11128,6 @@ begin
       Transaction.Rollback;
     raise;
   end;
-
-  if Assigned(gdClassList) then
-    gdClassList.RemoveAllSubTypes;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASE', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
   {M}  finally
@@ -12355,81 +12342,13 @@ end;
 
 class function TgdcBase.GetSubTypeList(ASubTypeList: TStrings;
   ASubType: String = ''; AnOnlyDirect: Boolean = False): Boolean;
-var
-  CE: TgdClassEntry;
 begin
   Assert(ASubTypeList <> nil);
 
   if ASubType > '' then
     ASubType := StringReplace(ASubType, 'USR_', 'USR$', [rfReplaceAll, rfIgnoreCase]);
 
-  CE := gdClassList.Find(Self, ASubType);
-
-  if CE = nil then
-    raise EgdcException.Create('Unregistered class.');
- 
-  Result := CE.GetSubTypeList(ASubTypeList, AnOnlyDirect);
-end;
-
-class procedure TgdcBase.RegisterClassHierarchy(AClass: TClass = nil;
-  AValue: String = '');
-
-  procedure ReadFromStorage(ACE: TgdClassEntry);
-  var
-    F: TgsStorageFolder;
-    V: TgsStorageValue;
-    ValueName: String;
-    I: Integer;
-    CurrCE: TgdClassEntry;
-    SL: TStringList;
-  begin
-    Assert(GlobalStorage <> nil);
-
-    if ACE.Initialized then
-      exit;
-
-    ACE.Initialized := True;
-
-    SL := TStringList.Create;
-    try
-      F := GlobalStorage.OpenFolder('SubTypes', False, False);
-      try
-        if F <> nil then
-        begin
-          if ACE.SubType > '' then
-            ValueName := ACE.TheClass.ClassName + ACE.SubType
-          else
-            ValueName := ACE.TheClass.ClassName;
-          V := F.ValueByName(ValueName);
-          if V is TgsStringValue then
-            SL.CommaText := V.AsString
-          else if V <> nil then
-            F.DeleteValue(ValueName);
-        end;
-      finally
-        GlobalStorage.CloseFolder(F, False);
-      end;
-
-      for I := 0 to SL.Count - 1 do
-      begin
-        CurrCE := gdClassList.Add(ACE.TheClass, SL.Values[SL.Names[I]], SL.Names[I],  ACE.SubType);
-        ReadFromStorage(CurrCE);
-      end;
-    finally
-      SL.Free;
-    end;
-  end;
-
-var
-  CEBase: TgdClassEntry;
-
-begin
-  CEBase := gdClassList.Find(Self);
-
-  if CEBase = nil then
-    raise EgdcException.Create('Unregistered class.');
-
-  ReadFromStorage(CEBase);
+  Result := gdClassList.GetSubTypeList(Self, ASubType, ASubTypeList, AnOnlyDirect)
 end;
 
 class function TgdcBase.ClassParentSubType(ASubType: string): String;

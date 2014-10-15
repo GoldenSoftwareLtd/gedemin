@@ -46,9 +46,6 @@ type
     constructor Create(AnOwner: TComponent); override;
     class function CreateAndAssign(AnOwner: TComponent): TForm; override;
 
-    class procedure RegisterClassHierarchy(AClass: TClass = nil;
-      AValue: String = ''); override;
-
     procedure SaveDesktopSettings; override;
   end;
 
@@ -85,18 +82,6 @@ begin
   inherited;
 
   Caption := gdcInvPriceList.DocumentName[True];
-end;
-
-class procedure Tgdc_frmInvPriceList.RegisterClassHierarchy(AClass: TClass = nil;
-  AValue: String = '');
-begin
-  if AClass = nil then
-    TgdcInvPriceList.RegisterClassHierarchy(Self, 'TgdcInvPriceListType')
-  else
-  begin
-    Assert(AValue <> '');
-    TgdcInvPriceList.RegisterClassHierarchy(AClass, AValue);
-  end;
 end;
 
 procedure Tgdc_frmInvPriceList.SaveDesktopSettings;

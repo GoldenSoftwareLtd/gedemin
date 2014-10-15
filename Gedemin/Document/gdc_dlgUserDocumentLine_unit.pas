@@ -13,10 +13,6 @@ type
     pnlAttributes: TPanel;
     Bevel1: TBevel;
     atAttributes: TatContainer;
-    
-  public
-    class procedure RegisterClassHierarchy(AClass: TClass = nil;
-      AValue: String = ''); override;
   end;
 
 var
@@ -30,19 +26,6 @@ uses
   gd_ClassList, gdcClasses, IBSQL, gdcBaseInterface, gdcBase;
 
 { Tgdc_dlgUserDocumentLine }
-
-class procedure Tgdc_dlgUserDocumentLine.RegisterClassHierarchy(AClass: TClass = nil;
-  AValue: String = '');
-begin
-  if AClass = nil then
-    TgdcUserDocumentLine.RegisterClassHierarchy(Self, 'TgdcUserDocumentType')
-  else
-  begin
-    Assert(AValue <> '');
-    TgdcUserDocumentLine.RegisterClassHierarchy(AClass, AValue);
-  end;
-end;
-
 
 initialization
   RegisterFrmClass(Tgdc_dlgUserDocumentLine);

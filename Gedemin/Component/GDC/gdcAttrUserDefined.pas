@@ -70,9 +70,6 @@ type
     class function GetDisplayName(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
 
-    class procedure RegisterClassHierarchy(AClass: TClass = nil;
-      AValue: String = ''); override;
-
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
 
@@ -107,9 +104,6 @@ type
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetKeyField(const ASubType: TgdcSubType): String; override;
 
-    class procedure RegisterClassHierarchy(AClass: TClass = nil;
-      AValue: String = ''); override;
-
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
 
     property RelationName: String read GetRelationName;
@@ -139,9 +133,6 @@ type
     class function GetDisplayName(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetKeyField(const ASubType: TgdcSubType): String; override;
-
-    class procedure RegisterClassHierarchy(AClass: TClass = nil;
-      AValue: String = ''); override;
 
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
 
@@ -281,9 +272,15 @@ begin
         for i := 0 to RF.Count - 1 do
         begin
           if (i <> (RF.Count - 1)) then
-            LSQL := LSQL + ':new_' + RF.Items[I].FieldName + ', '
+            if RF.Items[I].FieldName = 'INHERITEDKEY' then
+              LSQL := LSQL + ':new_id, '
+            else
+              LSQL := LSQL + ':new_' + RF.Items[I].FieldName + ', '
           else
-            LSQL := LSQL + ':new_' + RF.Items[I].FieldName + ')';
+            if RF.Items[I].FieldName = 'INHERITEDKEY' then
+              LSQL := LSQL + ':new_id)'
+            else
+              LSQL := LSQL + ':new_' + RF.Items[I].FieldName + ')';
         end;
         CustomExecQuery(LSQL, Buff);
       end;
@@ -350,13 +347,19 @@ begin
         for i := 0 to RF.Count - 1 do
         begin
           if (i <> (RF.Count - 1)) then
-            LSQL := LSQL + RF.Items[I].FieldName + ' = :new_'
-              + RF.Items[I].FieldName + ', '
+            if RF.Items[I].FieldName = 'INHERITEDKEY' then
+              LSQL := LSQL + RF.Items[I].FieldName + ' = :new_id, '
+            else
+              LSQL := LSQL + RF.Items[I].FieldName + ' = :new_'
+                + RF.Items[I].FieldName + ', '
           else
-            LSQL := LSQL + RF.Items[I].FieldName + ' = :new_'
-              + RF.Items[I].FieldName
+            if RF.Items[I].FieldName = 'INHERITEDKEY' then
+              LSQL := LSQL + RF.Items[I].FieldName + ' = :new_id'
+            else
+              LSQL := LSQL + RF.Items[I].FieldName + ' = :new_'
+                + RF.Items[I].FieldName
         end;
-        LSQL := LSQL + ' WHERE id = :old_id';
+        LSQL := LSQL + ' WHERE INHERITEDKEY = :old_id';
         CustomExecQuery(LSQL, Buff);
       end;
     end;
@@ -379,13 +382,19 @@ begin
           for J := 0 to RF.Count - 1 do
           begin
             if (J <> (RF.Count - 1)) then
-              LSQL := LSQL + RF.Items[J].FieldName + ' = :new_'
-                + RF.Items[J].FieldName + ', '
+              if RF.Items[J].FieldName = 'INHERITEDKEY' then
+                LSQL := LSQL + RF.Items[J].FieldName + ' = :new_id, '
+              else
+                LSQL := LSQL + RF.Items[J].FieldName + ' = :new_'
+                  + RF.Items[J].FieldName + ', '
             else
-              LSQL := LSQL + RF.Items[J].FieldName + ' = :new_'
-                + RF.Items[J].FieldName
+              if RF.Items[J].FieldName = 'INHERITEDKEY' then
+                LSQL := LSQL + RF.Items[J].FieldName + ' = :new_id'
+              else
+                LSQL := LSQL + RF.Items[J].FieldName + ' = :new_'
+                  + RF.Items[J].FieldName
           end;
-          LSQL := LSQL + ' WHERE id = :old_id';
+          LSQL := LSQL + ' WHERE INHERITEDKEY = :old_id';
           CustomExecQuery(LSQL, Buff);
         end;
       end;
@@ -479,8 +488,7 @@ begin
       RF := R.RelationFields;
       if Assigned(RF) then
       for i := 0 to RF.Count - 1 do
-        if (RF.Items[I].FieldName <> 'ID')
-          and (RF.Items[I].FieldName <> 'INHERITED')then
+        if (RF.Items[I].FieldName <> 'INHERITEDKEY') then
         begin
           Result := Result + ', z_' + R.RelationName + '.'
             + RF.Items[I].FieldName;
@@ -500,8 +508,7 @@ begin
         RF := R.RelationFields;
         if Assigned(RF) then
           for J := 0 to RF.Count - 1 do
-            if (RF.Items[I].FieldName <> 'ID')
-              and (RF.Items[I].FieldName <> 'INHERITED') then
+            if (RF.Items[J].FieldName <> 'INHERITEDKEY') then
             begin
               Result := Result + ', z_' + R.RelationName + '.'
               + RF.Items[J].FieldName;
@@ -567,7 +574,7 @@ begin
   While ClassParentSubtype(LSubtype) <> '' do
   begin
     Result := Result + ' JOIN ' + LSubtype + ' z_' + LSubtype
-      + ' ON z_' + LSubtype + '.id = z.id';
+      + ' ON z_' + LSubtype + '.inheritedkey = z.id';
     LSubtype := ClassParentSubtype(LSubtype);
   end;
 
@@ -578,7 +585,7 @@ begin
     begin
       Result := Result + ' LEFT JOIN ' + ST.Values[ST.Names[I]]
         + ' z_' + ST.Values[ST.Names[I]] + ' ON z_'
-        + ST.Values[ST.Names[I]] + '.id = z.id';
+        + ST.Values[ST.Names[I]] + '.inheritedkey = z.id';
     end;
   finally
     ST.Free;
@@ -671,79 +678,6 @@ end;
 function TgdcAttrUserDefined.GetRelationName: String;
 begin
   Result := SubType;
-end;
-
-class procedure TgdcAttrUserDefined.RegisterClassHierarchy(AClass: TClass = nil;
-  AValue: String = '');
-
-    procedure ReadFromRelations(ACE: TgdClassEntry);
-  var
-    CurrCE: TgdClassEntry;
-    SL: TStringList;
-    I: Integer;
-  begin
-    if ACE.Initialized then
-      exit;
-
-    ACE.Initialized := True;
-
-    SL := TStringList.Create;
-    try
-      if ACE.SubType > '' then
-      begin
-        with atDatabase.Relations do
-        for I := 0 to Count - 1 do
-        if Items[I].IsUserDefined
-          and Assigned(Items[I].PrimaryKey)
-          and Assigned(Items[I].PrimaryKey.ConstraintFields)
-          and (Items[I].PrimaryKey.ConstraintFields.Count = 1)
-          and (AnsiCompareText(Items[I].PrimaryKey.ConstraintFields[0].FieldName, 'ID') = 0)
-          and  Assigned(Items[I].RelationFields.ByFieldName('INHERITED'))
-          and (AnsiCompareText(Items[I].RelationFields.ByFieldName('ID').ForeignKey.ReferencesRelation.RelationName,
-            ACE.SubType) = 0) then
-        begin
-          SL.Add(Items[I].LName + '=' + Items[I].RelationName);
-        end;
-      end
-      else
-      begin
-        with atDatabase.Relations do
-        for I := 0 to Count - 1 do
-          if Items[I].IsUserDefined
-            and Assigned(Items[I].PrimaryKey)
-            and Assigned(Items[I].PrimaryKey.ConstraintFields)
-            and (Items[I].PrimaryKey.ConstraintFields.Count = 1)
-            and (AnsiCompareText(Items[I].PrimaryKey.ConstraintFields[0].FieldName, 'ID') = 0)
-            and not Assigned(Items[I].RelationFields.ByFieldName('PARENT'))
-            and not Assigned(Items[I].RelationFields.ByFieldName('INHERITED'))then
-          begin
-            SL.Add(Items[I].LName + '=' + Items[I].RelationName);
-          end;
-      end;
-
-      for I := 0 to SL.Count - 1 do
-      begin
-        CurrCE := gdClassList.Add(ACE.TheClass, SL.Values[SL.Names[I]], SL.Names[I],  ACE.SubType);
-        ReadFromRelations(CurrCE);
-      end;
-    finally
-      SL.Free;
-    end;
-  end;
-
-var
-  CEBase: TgdClassEntry;
-
-begin
-  if AClass <> nil then
-    CEBase := gdClassList.Find(AClass)
-  else
-    CEBase := gdClassList.Find(Self);
-
-  if CEBase = nil then
-    raise EgdcException.Create('Unregistered class.');
-
-  ReadFromRelations(CEBase);
 end;
 
 class function TgdcAttrUserDefined.GetViewFormClassName(
@@ -881,7 +815,7 @@ begin
   While ClassParentSubtype(LSubtype) <> '' do
   begin
     Result := Result + ' JOIN ' + LSubtype + ' z_' + LSubtype
-      + ' ON z_' + LSubtype + '.id = z.id';
+      + ' ON z_' + LSubtype + '.inheritedkey = z.id';
     LSubtype := ClassParentSubtype(LSubtype);
   end;
 
@@ -892,7 +826,7 @@ begin
     begin
       Result := Result + ' LEFT JOIN ' + ST.Values[ST.Names[I]]
         + ' z_' + ST.Values[ST.Names[I]] + ' ON z_'
-        + ST.Values[ST.Names[I]] + '.id = z.id';
+        + ST.Values[ST.Names[I]] + '.inheritedkey = z.id';
     end;
   finally
     ST.Free;
@@ -963,9 +897,15 @@ begin
         for i := 0 to RF.Count - 1 do
         begin
           if (i <> (RF.Count - 1)) then
-            LSQL := LSQL + ':new_' + RF.Items[I].FieldName + ', '
+            if RF.Items[I].FieldName = 'INHERITEDKEY' then
+              LSQL := LSQL + ':new_id, '
+            else
+              LSQL := LSQL + ':new_' + RF.Items[I].FieldName + ', '
           else
-            LSQL := LSQL + ':new_' + RF.Items[I].FieldName + ')';
+            if RF.Items[I].FieldName = 'INHERITEDKEY' then
+              LSQL := LSQL + ':new_id)'
+            else
+              LSQL := LSQL + ':new_' + RF.Items[I].FieldName + ')';
         end;
         CustomExecQuery(LSQL, Buff);
       end;
@@ -1032,13 +972,19 @@ begin
         for i := 0 to RF.Count - 1 do
         begin
           if (i <> (RF.Count - 1)) then
-            LSQL := LSQL + RF.Items[I].FieldName + ' = :new_'
-              + RF.Items[I].FieldName + ', '
+            if RF.Items[I].FieldName = 'INHERITEDKEY' then
+              LSQL := LSQL + RF.Items[I].FieldName + ' = :new_id, '
+            else
+              LSQL := LSQL + RF.Items[I].FieldName + ' = :new_'
+                + RF.Items[I].FieldName + ', '
           else
-            LSQL := LSQL + RF.Items[I].FieldName + ' = :new_'
-              + RF.Items[I].FieldName
+            if RF.Items[I].FieldName = 'INHERITEDKEY' then
+              LSQL := LSQL + RF.Items[I].FieldName + ' = :new_id'
+            else
+              LSQL := LSQL + RF.Items[I].FieldName + ' = :new_'
+                + RF.Items[I].FieldName
         end;
-        LSQL := LSQL + ' WHERE id = :old_id';
+        LSQL := LSQL + ' WHERE INHERITEDKEY = :old_id';
         CustomExecQuery(LSQL, Buff);
       end;
     end;
@@ -1061,13 +1007,19 @@ begin
           for J := 0 to RF.Count - 1 do
           begin
             if (J <> (RF.Count - 1)) then
-              LSQL := LSQL + RF.Items[J].FieldName + ' = :new_'
-                + RF.Items[J].FieldName + ', '
+              if RF.Items[J].FieldName = 'INHERITEDKEY' then
+                LSQL := LSQL + RF.Items[J].FieldName + ' = :new_id, '
+              else
+                LSQL := LSQL + RF.Items[J].FieldName + ' = :new_'
+                  + RF.Items[J].FieldName + ', '
             else
-              LSQL := LSQL + RF.Items[J].FieldName + ' = :new_'
-                + RF.Items[J].FieldName
+              if RF.Items[J].FieldName = 'INHERITEDKEY' then
+                LSQL := LSQL + RF.Items[J].FieldName + ' = :new_id'
+              else
+                LSQL := LSQL + RF.Items[J].FieldName + ' = :new_'
+                  + RF.Items[J].FieldName
           end;
-          LSQL := LSQL + ' WHERE id = :old_id';
+          LSQL := LSQL + ' WHERE INHERITEDKEY = :old_id';
           CustomExecQuery(LSQL, Buff);
         end;
       end;
@@ -1171,8 +1123,7 @@ begin
       RF := R.RelationFields;
       if Assigned(RF) then
       for i := 0 to RF.Count - 1 do
-        if (RF.Items[I].FieldName <> 'ID')
-          and (RF.Items[I].FieldName <> 'INHERITED')then
+        if (RF.Items[I].FieldName <> 'INHERITEDKEY') then
         begin
           Result := Result + ', z_' + R.RelationName + '.'
             + RF.Items[I].FieldName;
@@ -1192,8 +1143,7 @@ begin
         RF := R.RelationFields;
         if Assigned(RF) then
           for J := 0 to RF.Count - 1 do
-            if (RF.Items[I].FieldName <> 'ID')
-              and (RF.Items[I].FieldName <> 'INHERITED') then
+            if (RF.Items[J].FieldName <> 'INHERITEDKEY') then
             begin
               Result := Result + ', z_' + R.RelationName + '.'
               + RF.Items[J].FieldName;
@@ -1210,80 +1160,6 @@ begin
   {M}      ClearMacrosStack2('TGDCATTRUSERDEFINEDTREE', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE);
   {M}  end;
   {END MACRO}
-end;
-
-class procedure TgdcAttrUserDefinedTree.RegisterClassHierarchy(AClass: TClass = nil;
-  AValue: String = '');
-
-  procedure ReadFromRelations(ACE: TgdClassEntry);
-  var
-    CurrCE: TgdClassEntry;
-    SL: TStringList;
-    I: Integer;
-  begin
-    if ACE.Initialized then
-      exit;
-
-    ACE.Initialized := True;
-
-    SL := TStringList.Create;
-    try
-      if ACE.SubType > '' then
-      begin
-        with atDatabase.Relations do
-        for I := 0 to Count - 1 do
-        if Items[I].IsUserDefined
-          and Assigned(Items[I].PrimaryKey)
-          and Assigned(Items[I].PrimaryKey.ConstraintFields)
-          and (Items[I].PrimaryKey.ConstraintFields.Count = 1)
-          and (AnsiCompareText(Items[I].PrimaryKey.ConstraintFields[0].FieldName, 'ID') = 0)
-          and  Assigned(Items[I].RelationFields.ByFieldName('INHERITED'))
-          and (AnsiCompareText(Items[I].RelationFields.ByFieldName('ID').ForeignKey.ReferencesRelation.RelationName,
-            ACE.SubType) = 0) then
-        begin
-          SL.Add(Items[I].LName + '=' + Items[I].RelationName);
-        end;
-      end
-      else
-      begin
-        with atDatabase.Relations do
-        for I := 0 to Count - 1 do
-          if Items[I].IsUserDefined
-            and Assigned(Items[I].PrimaryKey)
-            and Assigned(Items[I].PrimaryKey.ConstraintFields)
-            and (Items[I].PrimaryKey.ConstraintFields.Count = 1)
-            and (AnsiCompareText(Items[I].PrimaryKey.ConstraintFields[0].FieldName, 'ID') = 0)
-            and Assigned(Items[I].RelationFields.ByFieldName('PARENT'))
-            and not Assigned(Items[I].RelationFields.ByFieldName('LB'))
-            and not Assigned(Items[I].RelationFields.ByFieldName('INHERITED'))then
-          begin
-            SL.Add(Items[I].LName + '=' + Items[I].RelationName);
-          end;
-      end;
-
-      for I := 0 to SL.Count - 1 do
-      begin
-        CurrCE := gdClassList.Add(ACE.TheClass, SL.Values[SL.Names[I]], SL.Names[I],  ACE.SubType);
-        ReadFromRelations(CurrCE);
-      end;
-    finally
-      SL.Free;
-    end;
-  end;
-
-var
-  CEBase: TgdClassEntry;
-
-begin
-  if AClass <> nil then
-    CEBase := gdClassList.Find(AClass)
-  else
-    CEBase := gdClassList.Find(Self);
-
-  if CEBase = nil then
-    raise EgdcException.Create('Unregistered class.');
-
-  ReadFromRelations(CEBase);
 end;
 
 class function TgdcAttrUserDefinedTree.GetViewFormClassName(
@@ -1420,7 +1296,7 @@ begin
   While ClassParentSubtype(LSubtype) <> '' do
   begin
     Result := Result + ' JOIN ' + LSubtype + ' z_' + LSubtype
-      + ' ON z_' + LSubtype + '.id = z.id';
+      + ' ON z_' + LSubtype + '.inheritedkey = z.id';
     LSubtype := ClassParentSubtype(LSubtype);
   end;
 
@@ -1431,7 +1307,7 @@ begin
     begin
       Result := Result + ' LEFT JOIN ' + ST.Values[ST.Names[I]]
         + ' z_' + ST.Values[ST.Names[I]] + ' ON z_'
-        + ST.Values[ST.Names[I]] + '.id = z.id';
+        + ST.Values[ST.Names[I]] + '.inheritedkey = z.id';
     end;
   finally
     ST.Free;
@@ -1502,9 +1378,15 @@ begin
         for i := 0 to RF.Count - 1 do
         begin
           if (i <> (RF.Count - 1)) then
-            LSQL := LSQL + ':new_' + RF.Items[I].FieldName + ', '
+            if RF.Items[I].FieldName = 'INHERITEDKEY' then
+              LSQL := LSQL + ':new_id, '
+            else
+              LSQL := LSQL + ':new_' + RF.Items[I].FieldName + ', '
           else
-            LSQL := LSQL + ':new_' + RF.Items[I].FieldName + ')';
+            if RF.Items[I].FieldName = 'INHERITEDKEY' then
+              LSQL := LSQL + ':new_id)'
+            else
+              LSQL := LSQL + ':new_' + RF.Items[I].FieldName + ')';
         end;
         CustomExecQuery(LSQL, Buff);
       end;
@@ -1571,13 +1453,19 @@ begin
         for i := 0 to RF.Count - 1 do
         begin
           if (i <> (RF.Count - 1)) then
-            LSQL := LSQL + RF.Items[I].FieldName + ' = :new_'
-              + RF.Items[I].FieldName + ', '
+            if RF.Items[I].FieldName = 'INHERITEDKEY' then
+              LSQL := LSQL + RF.Items[I].FieldName + ' = :new_id, '
+            else
+              LSQL := LSQL + RF.Items[I].FieldName + ' = :new_'
+                + RF.Items[I].FieldName + ', '
           else
-            LSQL := LSQL + RF.Items[I].FieldName + ' = :new_'
-              + RF.Items[I].FieldName
+            if RF.Items[I].FieldName = 'INHERITEDKEY' then
+              LSQL := LSQL + RF.Items[I].FieldName + ' = :new_id'
+            else
+              LSQL := LSQL + RF.Items[I].FieldName + ' = :new_'
+                + RF.Items[I].FieldName
         end;
-        LSQL := LSQL + ' WHERE id = :old_id';
+        LSQL := LSQL + ' WHERE INHERITEDKEY = :old_id';
         CustomExecQuery(LSQL, Buff);
       end;
     end;
@@ -1600,13 +1488,19 @@ begin
           for J := 0 to RF.Count - 1 do
           begin
             if (J <> (RF.Count - 1)) then
-              LSQL := LSQL + RF.Items[J].FieldName + ' = :new_'
-                + RF.Items[J].FieldName + ', '
+              if RF.Items[J].FieldName = 'INHERITEDKEY' then
+                LSQL := LSQL + RF.Items[J].FieldName + ' = :new_id, '
+              else
+                LSQL := LSQL + RF.Items[J].FieldName + ' = :new_'
+                  + RF.Items[J].FieldName + ', '
             else
-              LSQL := LSQL + RF.Items[J].FieldName + ' = :new_'
-                + RF.Items[J].FieldName
+              if RF.Items[J].FieldName = 'INHERITEDKEY' then
+                LSQL := LSQL + RF.Items[J].FieldName + ' = :new_id'
+              else
+                LSQL := LSQL + RF.Items[J].FieldName + ' = :new_'
+                  + RF.Items[J].FieldName
           end;
-          LSQL := LSQL + ' WHERE id = :old_id';
+          LSQL := LSQL + ' WHERE INHERITEDKEY = :old_id';
           CustomExecQuery(LSQL, Buff);
         end;
       end;
@@ -1699,6 +1593,7 @@ begin
   {M}    end;
   {END MACRO}
 
+
   Result := Inherited GetSelectClause;
 
   LSubtype := RelationName;
@@ -1710,8 +1605,7 @@ begin
       RF := R.RelationFields;
       if Assigned(RF) then
       for i := 0 to RF.Count - 1 do
-        if (RF.Items[I].FieldName <> 'ID')
-          and (RF.Items[I].FieldName <> 'INHERITED')then
+        if (RF.Items[I].FieldName <> 'INHERITEDKEY') then
         begin
           Result := Result + ', z_' + R.RelationName + '.'
             + RF.Items[I].FieldName;
@@ -1731,8 +1625,7 @@ begin
         RF := R.RelationFields;
         if Assigned(RF) then
           for J := 0 to RF.Count - 1 do
-            if (RF.Items[I].FieldName <> 'ID')
-              and (RF.Items[I].FieldName <> 'INHERITED') then
+            if (RF.Items[J].FieldName <> 'INHERITEDKEY') then
             begin
               Result := Result + ', z_' + R.RelationName + '.'
               + RF.Items[J].FieldName;
@@ -1749,80 +1642,6 @@ begin
   {M}      ClearMacrosStack2('TGDCATTRUSERDEFINEDLBRBTREE', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE);
   {M}  end;
   {END MACRO}
-end;
-
-class procedure TgdcAttrUserDefinedLBRBTree.RegisterClassHierarchy(AClass: TClass = nil;
-  AValue: String = '');
-
-  procedure ReadFromRelations(ACE: TgdClassEntry);
-  var
-    CurrCE: TgdClassEntry;
-    SL: TStringList;
-    I: Integer;
-  begin
-    if ACE.Initialized then
-      exit;
-
-    ACE.Initialized := True;
-
-    SL := TStringList.Create;
-    try
-      if ACE.SubType > '' then
-      begin
-        with atDatabase.Relations do
-        for I := 0 to Count - 1 do
-        if Items[I].IsUserDefined
-          and Assigned(Items[I].PrimaryKey)
-          and Assigned(Items[I].PrimaryKey.ConstraintFields)
-          and (Items[I].PrimaryKey.ConstraintFields.Count = 1)
-          and (AnsiCompareText(Items[I].PrimaryKey.ConstraintFields[0].FieldName, 'ID') = 0)
-          and  Assigned(Items[I].RelationFields.ByFieldName('INHERITED'))
-          and (AnsiCompareText(Items[I].RelationFields.ByFieldName('ID').ForeignKey.ReferencesRelation.RelationName,
-            ACE.SubType) = 0) then
-        begin
-          SL.Add(Items[I].LName + '=' + Items[I].RelationName);
-        end;
-      end
-      else
-      begin
-        with atDatabase.Relations do
-        for I := 0 to Count - 1 do
-          if Items[I].IsUserDefined
-            and Assigned(Items[I].PrimaryKey)
-            and Assigned(Items[I].PrimaryKey.ConstraintFields)
-            and (Items[I].PrimaryKey.ConstraintFields.Count = 1)
-            and (AnsiCompareText(Items[I].PrimaryKey.ConstraintFields[0].FieldName, 'ID') = 0)
-            and Assigned(Items[I].RelationFields.ByFieldName('PARENT'))
-            and Assigned(Items[I].RelationFields.ByFieldName('LB'))
-            and not Assigned(Items[I].RelationFields.ByFieldName('INHERITED'))then
-          begin
-            SL.Add(Items[I].LName + '=' + Items[I].RelationName);
-          end;
-      end;
-
-      for I := 0 to SL.Count - 1 do
-      begin
-        CurrCE := gdClassList.Add(ACE.TheClass, SL.Values[SL.Names[I]], SL.Names[I],  ACE.SubType);
-        ReadFromRelations(CurrCE);
-      end;
-    finally
-      SL.Free;
-    end;
-  end;
-
-var
-  CEBase: TgdClassEntry;
-
-begin
-  if AClass <> nil then
-    CEBase := gdClassList.Find(AClass)
-  else
-    CEBase := gdClassList.Find(Self);
-
-  if CEBase = nil then
-    raise EgdcException.Create('Unregistered class.');
-
-  ReadFromRelations(CEBase);
 end;
 
 class function TgdcAttrUserDefinedLBRBTree.GetViewFormClassName(

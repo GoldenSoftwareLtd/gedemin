@@ -29,9 +29,6 @@ type
   public
     { Public declarations }
     class function CreateAndAssign(AnOwner: TComponent): TForm; override;
-
-    class procedure RegisterClassHierarchy(AClass: TClass = nil;
-      AValue: String = ''); override;
   end;
 
 var
@@ -79,18 +76,6 @@ begin
   gdcDetailObject.Open;
 
   Caption := gdcUserDocument.DocumentName[True];
-end;
-
-class procedure Tgdc_frmUserComplexDocument.RegisterClassHierarchy(AClass: TClass = nil;
-  AValue: String = '');
-begin
-  if AClass = nil then
-    TgdcUserBaseDocument.RegisterClassHierarchy(Self, 'TgdcUserDocumentType')
-  else
-  begin
-    Assert(AValue <> '');
-    TgdcUserBaseDocument.RegisterClassHierarchy(AClass, AValue);
-  end;
 end;
 
 procedure Tgdc_frmUserComplexDocument.actCreateEntryExecute(

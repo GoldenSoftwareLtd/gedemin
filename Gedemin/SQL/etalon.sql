@@ -5712,6 +5712,7 @@ BEGIN
 END
 ^
 
+
 CREATE OR ALTER TRIGGER gd_aiu_documenttype FOR gd_documenttype
   ACTIVE
   AFTER INSERT OR UPDATE
@@ -5936,11 +5937,37 @@ BEGIN
   END
 
   /* просто игнорируем все ошибки */
-  WHEN ANY DO
+/* сейчас не игнорируем ошибки */
+/*  WHEN ANY DO
   BEGIN
+  END */
+END
+^
+
+CREATE TRIGGER GD_AU_DOCUMENT_DATE FOR GD_DOCUMENT 
+ACTIVE AFTER UPDATE POSITION 11
+AS
+  DECLARE VARIABLE updatesql VARCHAR(1024);
+  DECLARE VARIABLE nametable VARCHAR(31);
+BEGIN
+/*Тело триггера*/
+  if (OLD.documentdate <> NEW.documentdate and NEW.parent IS NOT NULL) then
+  begin
+    select r.relationname from
+      gd_documenttype dt
+        join at_relations r ON dt.LINERELKEY = r.id
+    where UPPER(dt.classname) = 'TGDCINVDOCUMENTTYPE' and dt.id = OLD.documenttypekey
+    into :nametable;
+  
+    if (nametable is not null) then
+    begin
+      updatesql = 'UPDATE ' || nametable || ' SET documentkey = documentkey WHERE documentkey = ' || CAST(OLD.ID as VARCHAR(10));
+      EXECUTE STATEMENT :updatesql;
+    end
   END
 END
 ^
+
 
 CREATE TRIGGER GD_AD_DOCUMENT FOR GD_DOCUMENT
   AFTER DELETE
@@ -14992,6 +15019,13 @@ COMMIT;
 */
 
 CREATE EXCEPTION INV_E_INVALIDMOVEMENT 'The movement was made incorrect!';
+CREATE EXCEPTION INV_E_NOPRODUCT 'On the date no product!';
+CREATE EXCEPTION INV_E_EARLIERMOVEMENT 'It was the movement of goods earlier date!';
+CREATE EXCEPTION INV_E_INSUFFICIENTBALANCE 'Insufficient balances at that date';
+CREATE EXCEPTION INV_E_INCORRECTQUANTITY 'Quantity at the document does not match the movement!';
+CREATE EXCEPTION INV_E_DONTREDUCEAMOUNT 'You can not reduce the amount of';
+CREATE EXCEPTION INV_E_DONTCHANGEBENEFICIARY 'You can not change the beneficiary';
+CREATE EXCEPTION INV_E_DONTCHANGESOURCE 'You can not change the source';
 
 COMMIT;
 
@@ -15632,7 +15666,7 @@ BEGIN
 
     IF ((NEW.disabled = 1) OR (NEW.contactkey <> OLD.contactkey) OR (NEW.cardkey <> OLD.cardkey)) THEN
     BEGIN
-      IF (OLD.debit > 0) THEN
+      IF (OLD.debit <> 0) THEN
       BEGIN
         SELECT balance FROM inv_balance
         WHERE contactkey = OLD.contactkey
@@ -15651,7 +15685,7 @@ BEGIN
         INTO :balance;
         balance = COALESCE(:balance, 0);
         IF ((:balance > 0) AND (:balance < OLD.debit - NEW.debit)) THEN
-          EXCEPTION INV_E_INVALIDMOVEMENT;
+          EXCEPTION INV_E_DONTREDUCEAMOUNT;
       END ELSE
       BEGIN
         IF (NEW.credit > OLD.credit) THEN
@@ -15662,7 +15696,7 @@ BEGIN
           INTO :balance;
           balance = COALESCE(:balance, 0);
           IF ((:balance > 0) AND (:balance < NEW.credit - OLD.credit)) THEN
-            EXCEPTION INV_E_INVALIDMOVEMENT;
+            EXCEPTION INV_E_INSUFFICIENTBALANCE;
         END
       END
     END
@@ -15945,6 +15979,31 @@ BEGIN
       END
     END
   END
+END
+^
+
+CREATE OR ALTER PROCEDURE INV_INSERT_CARD (id INTEGER, parent INTEGER)
+AS
+  declare variable sqltext varchar(32000);
+  declare variable fieldname varchar(31);
+BEGIN
+  sqltext = '';
+  FOR
+    select fieldname from AT_RELATION_FIELDS
+    where relationname = 'INV_CARD' and fieldname <> 'ID' and fieldname <> 'PARENT'
+    into :fieldname
+  DO
+  BEGIN
+    if (sqltext <> '') then
+      sqltext = sqltext || ',';
+    sqltext = sqltext || fieldname;
+  END
+  
+  sqltext = 'INSERT INTO inv_card (id, parent, ' || sqltext || ')' ||
+    ' select ' || CAST(ID as VARCHAR(10)) || ',' || CAST(PARENT as VARCHAR(10)) || ',' ||
+    sqltext || ' from inv_card where id = ' || CAST(parent as VARCHAR(10));
+    
+  execute statement sqltext;
 END
 ^
 
@@ -21662,6 +21721,7 @@ GRANT EXECUTE ON PROCEDURE AC_G_L_S TO ADMINISTRATOR;
 GRANT EXECUTE ON PROCEDURE AC_Q_G_L TO ADMINISTRATOR;
 GRANT EXECUTE ON PROCEDURE  AC_GETSIMPLEENTRY TO ADMINISTRATOR;
 GRANT EXECUTE ON PROCEDURE  INV_GETCARDMOVEMENT TO ADMINISTRATOR;
+GRANT EXECUTE ON PROCEDURE INV_INSERT_CARD TO ADMINISTRATOR;
 
 GRANT ALL ON AC_AUTOTRRECORD TO ADMINISTRATOR;
 GRANT ALL ON AC_GENERALLEDGER TO ADMINISTRATOR;
