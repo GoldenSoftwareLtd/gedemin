@@ -1135,7 +1135,7 @@ begin
   if V <> nil then
   begin
     V.Drop;
-    if (Self.Name = 'SubTypes') and Assigned(gdClassList) then
+    if (Self.Name = 'SubTypes') {and Assigned(gdClassList)} then
       gdClassList.RemoveAllSubTypes;
     Result := True;
   end else
@@ -3368,7 +3368,7 @@ begin
     FData := Value;
     FChanged := FChanged or (not StorageLoading);
     FModified := Now;
-    if (Parent.Name = 'SubTypes') and Assigned(gdClassList) then
+    if (Parent.Name = 'SubTypes') {and Assigned(gdClassList)} then
         gdClassList.RemoveAllSubTypes;
   end;
 end;

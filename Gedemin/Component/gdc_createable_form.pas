@@ -387,10 +387,10 @@ begin
   if ASubType > '' then
     ASubType := StringReplace(ASubType, 'USR_', 'USR$', [rfReplaceAll, rfIgnoreCase]);
 
-  if Assigned(gdClassList) then
+  //if Assigned(gdClassList) then
     Result := gdClassList.GetSubTypeList(Self, ASubType, ASubTypeList, AnOnlyDirect)
-  else
-    Result := False;
+  //else
+  //  Result := False;
 end;
 
 class function TgdcCreateableForm.ClassParentSubType(ASubType: string): String;
@@ -402,10 +402,10 @@ begin
   if ASubType > '' then
     ASubType := StringReplace(ASubType, 'USR_', 'USR$', [rfReplaceAll, rfIgnoreCase]);
 
-  if Assigned(gdClassList) then
-    CE := gdClassList.Find(Self, ASubType)
-  else
-    CE := nil;
+  //if Assigned(gdClassList) then
+    CE := gdClassList.Find(Self, ASubType);
+  //else
+  //  CE := nil;
 
   if (CE <> nil) and (CE.Parent <> nil) then
     Result := CE.Parent.SubType;
@@ -420,10 +420,10 @@ begin
   if ASubType > '' then
     ASubType := StringReplace(ASubType, 'USR_', 'USR$', [rfReplaceAll, rfIgnoreCase]);
 
-  if Assigned(gdClassList) then
-    CE := gdClassList.Find(Self, ASubType)
-  else
-    CE := nil;
+  //if Assigned(gdClassList) then
+    CE := gdClassList.Find(Self, ASubType);
+  //else
+  //  CE := nil;
 
   if CE <> nil then
     Result := True;

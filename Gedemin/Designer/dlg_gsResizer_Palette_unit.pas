@@ -209,7 +209,7 @@ begin
   else
     FManager := nil;
 
-  if Assigned(gdClassList) then
+  //if Assigned(gdClassList) then
   begin
     if (ClassArray[High(ClassArray)]^.FolderName <> GDCFolderName) and
        (gdClassList.Count > 0) then

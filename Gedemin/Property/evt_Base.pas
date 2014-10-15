@@ -9747,8 +9747,8 @@ begin
         repeat
           LFullClassName.gdClassName := AnComponent.ClassName;
           LFullClassName.SubType := StringReplace(LSubType, 'USR_', 'USR$', [rfReplaceAll, rfIgnoreCase]);;
-          if (not Assigned(gdClassList))
-            or(not Assigned(gdClassList.GetFRMClass(LFullClassName)))then
+          if {(not Assigned(gdClassList))
+            or}(not Assigned(gdClassList.GetFRMClass(LFullClassName)))then
               raise Exception.Create('Ошибка перекрытия события ' + LFullClassName.gdClassName);
           LParentSubType := gdClassList.GetFRMClass(LFullClassName).ClassParentSubtype(LSubType);
           LParentSubType := StringReplace(LParentSubType, 'USR$', 'USR_', [rfReplaceAll, rfIgnoreCase]);

@@ -464,8 +464,9 @@ var
   // по заданному имени главной таблицы (пока, у нас, ListTable)
 
   // для GDC-классов и форм
-  gdClassList: TgdClassList;
+  _gdClassList: TgdClassList;
 
+function gdClassList: TgdClassList;
 
 procedure RegisterGdClass(AClass: TClass; ASubType: TgdcSubType = '';
   AComment: String = ''; AParentSubType: TgdcSubType = ''; AnInitialize: Boolean = False);
@@ -542,6 +543,13 @@ begin
 end;
 
 
+function gdClassList: TgdClassList;
+begin
+  if _gdClassList = nil then
+    _gdClassList := TgdClassList.Create;
+  Result := _gdClassList;
+end;
+
 procedure RegisterGdClass(AClass: TClass; ASubType: TgdcSubType = '';
   AComment: String = ''; AParentSubType: TgdcSubType = ''; AnInitialize: Boolean = False);
 var
@@ -564,14 +572,14 @@ begin
   if AClass.InheritsFrom(TgdcBase) then
   begin
     Classes.RegisterClass(CgdcBase(AClass));
-    if Assigned(gdClassList) then
+    //if Assigned(gdClassList) then
       CurrCE := gdClassList.Add(CgdcBase(AClass), ASubType, AComment, AParentSubType);
   end
   else
     if AClass.InheritsFrom(TgdcCreateableForm) then
     begin
       Classes.RegisterClass(CgdcCreateableForm(AClass));
-      if Assigned(gdClassList) then
+      //if Assigned(gdClassList) then
         CurrCE := gdClassList.Add(CgdcCreateableForm(AClass), ASubType, AComment, AParentSubType);
     end
     else
@@ -591,7 +599,7 @@ begin
   begin
     if ASubType = '' then
       Classes.UnRegisterClass(CgdcBase(AClass));
-    if Assigned(gdClassList) then
+    //if Assigned(gdClassList) then
       gdClassList.Remove(CgdcBase(AClass), ASubType);
   end
   else
@@ -599,7 +607,7 @@ begin
     begin
       if ASubType = '' then
         Classes.UnRegisterClass(CgdcCreateableForm(AClass));
-      if Assigned(gdClassList) then
+      //if Assigned(gdClassList) then
         gdClassList.Remove(CgdcCreateableForm(AClass), ASubType);
     end
     else
@@ -610,6 +618,9 @@ end;
 
 procedure RegisterGdcClass(AClass: CgdcBase);
 begin
+  Assert(AClass <> nil);
+  Assert(gdClassList <> nil, AClass.ClassName);
+
   if not AClass.InheritsFrom(TgdcBase) then
   begin
     raise Exception.Create('Класс ' + AClass.ClassName +
@@ -617,14 +628,13 @@ begin
   end;
 
   Classes.RegisterClass(AClass);
-  if Assigned(gdClassList) then
-    gdClassList.Add(AClass);
+  gdClassList.Add(AClass);
 end;
 
 procedure UnRegisterGdcClass(AClass: CgdcBase);
 begin
   UnRegisterClass(AClass);
-  if Assigned(gdClassList) then
+  //if Assigned(gdClassList) then
     gdClassList.Remove(AClass);
 end;
 
@@ -651,14 +661,14 @@ begin
       ' не наследован от TgdcCreateableForm');
 
   Classes.RegisterClass(AClass);
-  if Assigned(gdClassList) then
+  //if Assigned(gdClassList) then
     gdClassList.Add(AClass);
 end;
 
 procedure UnRegisterFrmClass(AClass: CgdcCreateableForm);
 begin
   UnRegisterClass(AClass);
-  if Assigned(gdClassList) then
+  //if Assigned(gdClassList) then
     gdClassList.Remove(AClass);
 end;
 
@@ -807,7 +817,7 @@ begin
   try
     while CursorPos < Length(Str) do
       WorkParam;
-    if Assigned(gdClassList) then
+    //if Assigned(gdClassList) then
       gdClassList.AddClassMethods(AnClass, Method);
   finally
     Method.Free;
@@ -2428,12 +2438,12 @@ begin
 end;
 
 initialization
-  gdClassList := TgdClassList.Create;
+  _gdClassList := nil;
   gdcObjectList := TObjectList.Create(False);
 
 finalization
   FreeAndNil(gdcObjectList);
-  FreeAndNil(gdClassList);
+  FreeAndNil(_gdClassList);
 
 {$IFDEF METHODSCHECK}
   if dbgMethodList <> nil then
