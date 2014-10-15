@@ -102,9 +102,6 @@ type
     class function GetSubTypeList(ASubTypeList: TStrings;
       ASubType: String = ''; AnOnlyDirect: Boolean = False): Boolean; virtual;
 
-    class procedure RegisterClassHierarchy(AClass: TClass = nil;
-      AValue: String = ''); virtual;
-
     class function ClassParentSubType(ASubType: string): String; virtual;
 
     class function CheckSubType(ASubType: String): Boolean; virtual;
@@ -384,81 +381,16 @@ end;
 
 class function TgdcCreateableForm.GetSubTypeList(ASubTypeList: TStrings;
   ASubType: String = ''; AnOnlyDirect: Boolean = False): Boolean;
-var
-  CE: TgdClassEntry;
 begin
   Assert(ASubTypeList <> nil);
 
   if ASubType > '' then
     ASubType := StringReplace(ASubType, 'USR_', 'USR$', [rfReplaceAll, rfIgnoreCase]);
 
-  CE := gdClassList.Find(Self, ASubType);
-
-  if CE = nil then
-    raise EgdcException.Create('Unregistered class.');
- 
-  Result := CE.GetSubTypeList(ASubTypeList, AnOnlyDirect);
-end;
-
-class procedure TgdcCreateableForm.RegisterClassHierarchy(AClass: TClass = nil;
-  AValue: String = '');
-
-  procedure ReadFromStorage(ACE: TgdClassEntry);
-  var
-    F: TgsStorageFolder;
-    V: TgsStorageValue;
-    ValueName: String;
-    I: Integer;
-    CurrCE: TgdClassEntry;
-    SL: TStringList;
-  begin
-    Assert(GlobalStorage <> nil);
-
-    if ACE.Initialized then
-      exit;
-
-    ACE.Initialized := True;  
-
-    SL := TStringList.Create;
-    try
-      F := GlobalStorage.OpenFolder('SubTypes', False, False);
-      try
-        if F <> nil then
-        begin
-          if ACE.SubType > '' then
-            ValueName := ACE.TheClass.ClassName + ACE.SubType
-          else
-            ValueName := ACE.TheClass.ClassName;
-          V := F.ValueByName(ValueName);
-          if V is TgsStringValue then
-            SL.CommaText := V.AsString
-          else if V <> nil then
-            F.DeleteValue(ValueName);
-        end;
-      finally
-        GlobalStorage.CloseFolder(F, False);
-      end;
-
-      for I := 0 to SL.Count - 1 do
-      begin
-        CurrCE := gdClassList.Add(ACE.TheClass, SL.Values[SL.Names[I]], SL.Names[I],  ACE.SubType);
-        ReadFromStorage(CurrCE);
-      end;
-    finally
-      SL.Free;
-    end;
-  end;
-
-var
-  CEBase: TgdClassEntry;
-
-begin
-  CEBase := gdClassList.Find(Self);
-
-  if CEBase = nil then
-    raise EgdcException.Create('Unregistered class.');
-
-  ReadFromStorage(CEBase);
+  if Assigned(gdClassList) then
+    Result := gdClassList.GetSubTypeList(Self, ASubType, ASubTypeList, AnOnlyDirect)
+  else
+    Result := False;
 end;
 
 class function TgdcCreateableForm.ClassParentSubType(ASubType: string): String;
@@ -470,7 +402,10 @@ begin
   if ASubType > '' then
     ASubType := StringReplace(ASubType, 'USR_', 'USR$', [rfReplaceAll, rfIgnoreCase]);
 
-  CE := gdClassList.Find(Self, ASubType);
+  if Assigned(gdClassList) then
+    CE := gdClassList.Find(Self, ASubType)
+  else
+    CE := nil;
 
   if (CE <> nil) and (CE.Parent <> nil) then
     Result := CE.Parent.SubType;
@@ -485,7 +420,10 @@ begin
   if ASubType > '' then
     ASubType := StringReplace(ASubType, 'USR_', 'USR$', [rfReplaceAll, rfIgnoreCase]);
 
-  CE := gdClassList.Find(Self, ASubType);
+  if Assigned(gdClassList) then
+    CE := gdClassList.Find(Self, ASubType)
+  else
+    CE := nil;
 
   if CE <> nil then
     Result := True;

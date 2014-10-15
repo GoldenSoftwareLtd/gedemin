@@ -365,9 +365,6 @@ type
     property IsGetRemains: Boolean read GetIsGetRemains write SetIsGetRemains;
     property NoWait: Boolean read FNoWait write FNoWait;
 
-    class procedure RegisterClassHierarchy(AClass: TClass = nil;
-      AValue: String = ''); override;
-
     property ShowMovementDlg: Boolean read FShowMovementDlg write FShowMovementDlg default True;
   published
     // Позиция документа
@@ -432,9 +429,6 @@ type
     class function GetKeyField(const ASubType: TgdcSubType): String; override;
     class function GetListTableAlias: String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
-
-    class procedure RegisterClassHierarchy(AClass: TClass = nil;
-      AValue: String = ''); override;
 
     class function IsAbstractClass: Boolean; override;
     class function GetDisplayName(const ASubType: TgdcSubType): String; override;
@@ -4633,18 +4627,6 @@ begin
   {END MACRO}
 end;
 
-class procedure TgdcInvMovement.RegisterClassHierarchy(AClass: TClass = nil;
-  AValue: String = '');
-begin
-  if AClass = nil then
-    TgdcInvBaseDocument.RegisterClassHierarchy(Self, 'TgdcInvDocumentType')
-  else
-  begin
-    Assert(AValue <> '');
-    TgdcInvBaseDocument.RegisterClassHierarchy(AClass, AValue);
-  end;
-end;
-
 procedure TgdcInvMovement.SetSubSet(const Value: TgdcSubSet);
 begin
   inherited;
@@ -5238,78 +5220,6 @@ end;
 class function TgdcInvBaseRemains.GetSubSetList: String;
 begin
   Result := inherited GetSubSetList + cst_ByGoodKey + ';' + cst_ByGroupKey + ';' + cst_AllRemains + ';' + cst_Holding + ';';
-end;
-
-class procedure TgdcInvBaseRemains.RegisterClassHierarchy(AClass: TClass = nil;
-  AValue: String = '');
-
-  procedure ReadFromINV_BALANCEOPTION(ACE: TgdClassEntry);
-  var
-    CurrCE: TgdClassEntry;
-    ibsql: TIBSQL;
-    LSubType: string;
-    LComment: String;
-    DidActivate: Boolean;
-  begin
-    if (IBLogin = nil) or (not IBLogin.LoggedIn) then
-      exit;
-
-    if ACE.Initialized then
-      exit;
-
-    ACE.Initialized := True;
-
-    ibsql := TIBSQL.Create(nil);
-    try
-      ibsql.Transaction := gdcBaseManager.ReadTransaction;
-      DidActivate := not ibsql.Transaction.Active;
-      if DidActivate then
-        ibsql.Transaction.StartTransaction;
-      ibsql.SQL.Text :=
-        'SELECT NAME, RUID FROM INV_BALANCEOPTION ';
-
-      ibsql.ExecQuery;
-
-      while not ibsql.EOF do
-      begin
-        LSubType := ibsql.FieldByName('RUID').AsString;
-        LComment := ibsql.FieldByName('NAME').AsString;
-        CurrCE := gdClassList.Add(ACE.TheClass, LSubType, LComment);
-
-        CurrCE.Initialized := True;
-        ibsql.Next;
-      end;
-      ibsql.Close;
-      if DidActivate then
-        ibsql.Transaction.Commit;
-    finally
-      ibsql.Free;
-    end;
-  end;
-
-var
-  CEBase: TgdClassEntry;
-
-begin
-  if AClass = nil then
-  begin
-    CEBase := gdClassList.Find(Self);
-
-    if CEBase = nil then
-      raise EgdcException.Create('Unregistered class.');
-
-    if not CEBase.Initialized then
-    begin
-      TgdcInvBaseDocument.RegisterClassHierarchy(Self, 'TgdcInvDocumentType');
-      CEBase.Initialized := False;
-      ReadFromINV_BALANCEOPTION(CEBase);
-    end;
-  end
-  else
-  begin
-    Assert(AValue <> '');
-    TgdcInvBaseDocument.RegisterClassHierarchy(AClass, AValue);
-  end;
 end;
 
 class function TgdcInvBaseRemains.GetViewFormClassName(
@@ -8168,6 +8078,7 @@ procedure TgdcInvRemainsOption.CustomDelete(Buff: Pointer);
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
+  I: Integer;
 begin
   {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCINVREMAINSOPTION', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
   {M}  try
@@ -8200,6 +8111,9 @@ begin
     '  subtype = ''%s''',
     [FieldByName('ruid').AsString]));
 
+  for I := Low(RemainsClasses) to High(RemainsClasses) do
+    UnRegisterGdClass(GetClass(RemainsClasses[I]), FieldByName('RUID').AsString);
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVREMAINSOPTION', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -8214,6 +8128,7 @@ procedure TgdcInvRemainsOption.CustomInsert(Buff: Pointer);
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
+  I: Integer;
 begin
   {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCINVREMAINSOPTION', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  try
@@ -8243,6 +8158,10 @@ begin
     FieldByName('NAME').AsString, FieldByName('ruid').AsString,
     TgdcInvRemains.ClassName, False, FieldByName('branchkey').AsInteger
   );
+
+  for I := Low(RemainsClasses) to High(RemainsClasses) do
+    RegisterGdClass(GetClass(RemainsClasses[I]),
+      FieldByName('RUID').AsString, FieldByName('name').AsString, '', True);
   
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVREMAINSOPTION', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  finally

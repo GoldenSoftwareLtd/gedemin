@@ -828,11 +828,11 @@ procedure Tgdc_dlgRelation.BeforePost;
       R := atDatabase.Relations.ByRelationName(ibcmbReference.text);
       if Assigned(R) then
       begin
-        F := R.RelationFields.ByFieldName('INHERITED');
+        F := R.RelationFields.ByFieldName('INHERITEDKEY');
         if Assigned(F) then
           repeat
-            R := R.RelationFields.ByFieldName('ID').ForeignKey.ReferencesRelation;
-          until not Assigned(R.RelationFields.ByFieldName('INHERITED'));
+            R := R.RelationFields.ByFieldName('INHERITEDKEY').ForeignKey.ReferencesRelation;
+          until not Assigned(R.RelationFields.ByFieldName('INHERITEDKEY'));
       end;
 
       if Assigned(R) then

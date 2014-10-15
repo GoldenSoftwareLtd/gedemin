@@ -488,7 +488,7 @@ end;
 
 function TgdcTableToDefinedTableTest.GetTableClass;
 begin
-  Result := TgdcTableToDefinedTable;
+  Result := TgdctableToDefinedTable;
 end;
 
 function TgdcLBRBTreeTest.GetTableClass;

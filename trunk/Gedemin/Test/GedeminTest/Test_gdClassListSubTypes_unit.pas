@@ -132,7 +132,8 @@ begin
         and Assigned(Items[I].PrimaryKey)
         and Assigned(Items[I].PrimaryKey.ConstraintFields)
         and (Items[I].PrimaryKey.ConstraintFields.Count = 1)
-        and (AnsiCompareText(Items[I].PrimaryKey.ConstraintFields[0].FieldName, 'ID') = 0) then
+        and ((AnsiCompareText(Items[I].PrimaryKey.ConstraintFields[0].FieldName, 'ID') = 0)
+        or (AnsiCompareText(Items[I].PrimaryKey.ConstraintFields[0].FieldName, 'INHERITEDKEY') = 0)) then
       begin
         ASL.Add(Items[I].LName + '=' + Items[I].RelationName);
       end;

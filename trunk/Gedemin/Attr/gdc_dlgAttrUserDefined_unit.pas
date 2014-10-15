@@ -40,11 +40,7 @@ type
 
   public
     procedure SetupDialog; override;
-
     procedure SaveSettings; override;
-
-    class procedure RegisterClassHierarchy(AClass: TClass = nil;
-      AValue: String = ''); override;
   end;
 
 var
@@ -57,12 +53,6 @@ uses
   at_classes, Storages, gd_ClassList, gdcBase;
 
 { Tgdc_dlgAttrUserDefined }
-
-class procedure Tgdc_dlgAttrUserDefined.RegisterClassHierarchy(AClass: TClass = nil;
-  AValue: String = '');
-begin
-  TgdcAttrUserDefined.RegisterClassHierarchy(Self);
-end;
 
 procedure Tgdc_dlgAttrUserDefined.SaveSettings;
   {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}

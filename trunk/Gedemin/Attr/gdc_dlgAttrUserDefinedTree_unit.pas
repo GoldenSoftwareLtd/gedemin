@@ -16,9 +16,6 @@ type
 
   public
     procedure SetupDialog; override;
-
-    class procedure RegisterClassHierarchy(AClass: TClass = nil;
-      AValue: String = ''); override;
   end;
 
 var
@@ -32,25 +29,6 @@ uses
   gdcTree, gdcBaseInterface, gd_ClassList, gdcBase, at_Classes;
 
 { Tgdc_dlgAttrUserDefinedTree }
-
-class procedure Tgdc_dlgAttrUserDefinedTree.RegisterClassHierarchy(AClass: TClass = nil;
-  AValue: String = '');
-var
-  CEBase: TgdClassEntry;
-begin
-  CEBase := gdClassList.Find(Self);
-
-  if CEBase = nil then
-      raise EgdcException.Create('Unregistered class.');
-
-  if not CEBase.Initialized then
-  begin
-    TgdcAttrUserDefinedTree.RegisterClassHierarchy(Self);
-    CEBase.Initialized := False;
-    TgdcAttrUserDefinedLBRBTree.RegisterClassHierarchy(Self);
-  end;
-end;
-
 
 procedure TGDC_DLGATTRUSERDEFINEDTREE.SetupDialog;
   {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}

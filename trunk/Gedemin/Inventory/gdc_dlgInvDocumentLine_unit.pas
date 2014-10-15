@@ -85,10 +85,6 @@ type
 
     property Document: TgdcInvDocument read GetDocument;
     property DocumentLine: TgdcInvDocumentLine read GetDocumentLine;
-
-    class procedure RegisterClassHierarchy(AClass: TClass = nil;
-      AValue: String = ''); override;
-
   end;
 
 var
@@ -771,18 +767,6 @@ begin
     FContactSQL.Database := DocumentLine.Database;
     FContactSQL.Transaction := DocumentLine.ReadTransaction;
     FContactSQL.SQL.Text := 'SELECT LB, RB FROM GD_CONTACT WHERE ID = :ID';
-  end;
-end;
-
-class procedure TdlgInvDocumentLine.RegisterClassHierarchy(AClass: TClass = nil;
-  AValue: String = '');
-begin
-  if AClass = nil then
-    TgdcInvDocumentLine.RegisterClassHierarchy(Self, 'TgdcInvDocumentType')
-  else
-  begin
-    Assert(AValue <> '');
-    TgdcInvDocumentLine.RegisterClassHierarchy(AClass, AValue);
   end;
 end;
 

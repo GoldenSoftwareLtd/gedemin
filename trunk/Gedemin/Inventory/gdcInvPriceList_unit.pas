@@ -77,9 +77,6 @@ type
   public
     constructor Create(AnOwner: TComponent); override;
 
-    class procedure RegisterClassHierarchy(AClass: TClass = nil;
-      AValue: String = ''); override;
-
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
 
     function DocumentTypeKey: Integer; override;
@@ -337,18 +334,6 @@ begin
   {M}      ClearMacrosStack2('TGDCINVBASEPRICELIST', 'GETNOTCOPYFIELD', KEYGETNOTCOPYFIELD);
   {M}  end;
   {END MACRO}
-end;
-
-class procedure TgdcInvBasePriceList.RegisterClassHierarchy(AClass: TClass = nil;
-  AValue: String = '');
-begin
-  if AClass = nil then
-    TgdcInvBaseDocument.RegisterClassHierarchy(Self, 'TgdcInvPriceListType')
-  else
-  begin
-    Assert(AValue <> '');
-    TgdcInvBaseDocument.RegisterClassHierarchy(AClass, AValue);
-  end;
 end;
 
 class function TgdcInvBasePriceList.GetViewFormClassName(

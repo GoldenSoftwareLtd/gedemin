@@ -151,8 +151,7 @@ type
 
   TgdcSelectedGood = class(TgdcGood)
   public
-    class procedure RegisterClassHierarchy(AClass: TClass = nil;
-      AValue: String = ''); override;
+
   end;
 
   procedure Register;
@@ -977,18 +976,6 @@ begin
 end;
 
 { TgdcSelectedGood }
-
-class procedure TgdcSelectedGood.RegisterClassHierarchy(AClass: TClass = nil;
-  AValue: String = '');
-begin
-  if AClass = nil then
-    TgdcInvBaseDocument.RegisterClassHierarchy(Self, 'TgdcInvDocumentType')
-  else
-  begin
-    Assert(AValue <> '');
-    TgdcInvBaseDocument.RegisterClassHierarchy(AClass, AValue);
-  end;
-end;
 
 initialization
   RegisterGdcClass(TgdcTNVD);

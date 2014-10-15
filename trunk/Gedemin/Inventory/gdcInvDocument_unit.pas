@@ -153,9 +153,6 @@ type
 
     procedure ReadOptions(Stream: TStream); virtual;
 
-    class procedure RegisterClassHierarchy(AClass: TClass = nil;
-      AValue: String = ''); override;
-
     class function IsAbstractClass: Boolean; override;
 
     property MovementSource: TgdcInvMovementContactOption read FMovementSource; // Источник движения
@@ -820,86 +817,6 @@ end;
 function TgdcInvBaseDocument.GetRelationType: TgdcInvRelationType;
 begin
   Result := RelationTypeByRelation(RelationLine);
-end;
-
-class procedure TgdcInvBaseDocument.RegisterClassHierarchy(AClass: TClass = nil;
-  AValue: String = '');
-
-  procedure ReadFromDocumentType(ACE: TgdClassEntry; ADocType: string);
-  var
-    CurrCE: TgdClassEntry;
-    ibsql: TIBSQL;
-    LSubType: string;
-    LComment: String;
-    LParentSubType: string;
-    DidActivate: Boolean;
-  begin
-    if (IBLogin = nil) or (not IBLogin.LoggedIn) then
-      exit;
-
-    if ACE.Initialized then
-      exit;
-
-    ACE.Initialized := True;
-
-    ibsql := TIBSQL.Create(nil);
-    try
-      ibsql.Transaction := gdcBaseManager.ReadTransaction;
-      DidActivate := not ibsql.Transaction.Active;
-      if DidActivate then
-        ibsql.Transaction.StartTransaction;
-      ibsql.SQL.Text :=
-        'SELECT '#13#10 +
-        '  dt.name AS comment, '#13#10 +
-        '  dt.classname AS classname, '#13#10 +
-        '  dt.ruid AS subtype, '#13#10 +
-        '  dt1.ruid AS parentsubtype '#13#10 +
-        'FROM gd_documenttype dt '#13#10 +
-        'LEFT JOIN gd_documenttype dt1 '#13#10 +
-        '  ON dt1.id = dt.parent '#13#10 +
-        '  AND dt1.documenttype = ''D'' '#13#10 +
-        'WHERE '#13#10 +
-        '  dt.documenttype = ''D'' '#13#10 +
-        '  and dt.classname = :DT '#13#10 +
-        'ORDER BY dt.parent';
-
-      ibsql.ParamByName('DT').AsString := ADocType;
-      ibsql.ExecQuery;
-
-      while not ibsql.EOF do
-      begin
-        LSubType := ibsql.FieldByName('subtype').AsString;
-        LComment := ibsql.FieldByName('comment').AsString;
-        LParentSubType := ibsql.FieldByName('parentsubtype').AsString;
-
-        CurrCE := gdClassList.Add(ACE.TheClass, LSubType, LComment, LParentSubType);
-
-        CurrCE.Initialized := True;
-        ibsql.Next;
-      end;
-      if DidActivate then
-        ibsql.Transaction.Commit;
-    finally
-      ibsql.Free;
-    end;
-  end;
-
-var
-  CEBase: TgdClassEntry;
-
-begin
-  if AClass <> nil then
-    CEBase := gdClassList.Find(AClass)
-  else
-  begin
-    CEBase := gdClassList.Find(Self);
-    AValue := 'TgdcInvDocumentType'
-  end;
-
-  if CEBase = nil then
-    raise EgdcException.Create('Unregistered class.');
-
-  ReadFromDocumentType(CEBase, AValue);
 end;
 
 function TgdcInvBaseDocument.JoinListFieldByFieldName(

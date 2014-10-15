@@ -216,6 +216,9 @@ type
     function GetSelectClause: String; override;
     function GetFromClause(const ARefresh: Boolean = False): String; override;
 
+    procedure CustomInsert(Buff: Pointer); override;
+    procedure CustomDelete(Buff: Pointer); override;
+
   public
     class function GetDisplayName(const ASubType: TgdcSubType): String; override;
 
@@ -276,9 +279,6 @@ type
 
   public
     constructor Create(AnOwner: TComponent); override;
-
-    class procedure RegisterClassHierarchy(AClass: TClass = nil;
-      AValue: String = '');override;
 
     class function GetRestrictCondition(const ATableName, ASubType: String): String; override;
     class function IsAbstractClass: Boolean; override;
@@ -1421,7 +1421,6 @@ begin
     if S > '' then
     begin
       C := gdClassList.GetGDCClass(gdcFullClassName(S, RUID));
-
       if C <> nil then
       begin
         Result.gdClass := C;
@@ -3052,6 +3051,153 @@ begin
   {END MACRO}
 end;
 
+procedure TGDCDOCUMENTTYPE.CustomInsert(Buff: Pointer);
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+  I: Integer;
+  ibsql: TIBSQL;
+  LParentSubType: String;
+begin
+  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCDOCUMENTTYPE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCDOCUMENTTYPE', KEYCUSTOMINSERT);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMINSERT]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCDOCUMENTTYPE') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCDOCUMENTTYPE',
+  {M}          'CUSTOMINSERT', KEYCUSTOMINSERT, Params, LResult) then
+  {M}          exit;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCDOCUMENTTYPE' then
+  {M}        begin
+  {M}          Inherited;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  inherited;
+
+  LParentSubType := '';
+
+  ibsql := TIBSQL.Create(nil);
+  try
+    ibsql.Transaction := ReadTransaction;
+    ibsql.SQL.Text :=
+      'SELECT ruid FROM gd_documenttype WHERE id = :id AND documenttype = ''D'' ';
+    ibsql.ParamByName('id').AsInteger := FieldByName('parent').AsInteger;
+    ibsql.ExecQuery;
+    if not ibsql.Eof then
+      LParentSubType := ibsql.FieldByName('RUID').AsString;
+
+    if Self.ClassName =  'TgdcUserDocumentType' then
+    begin
+      for I := Low(UserDocumentClasses) to High(UserDocumentClasses) do
+      begin
+        RegisterGdClass(GetClass(UserDocumentClasses[I]),
+          FieldByName('RUID').AsString, FieldByName('name').AsString,
+          LParentSubType, True);
+      end;
+    end
+    else
+      if Self.ClassName =  'TgdcInvDocumentType' then
+      begin
+        for I := Low(InvDocumentClasses) to High(InvDocumentClasses) do
+        begin
+          RegisterGdClass(GetClass(InvDocumentClasses[I]),
+            FieldByName('RUID').AsString, FieldByName('name').AsString,
+            LParentSubType, True);
+        end;
+      end
+      else
+        if Self.ClassName =  'TgdcInvPriceListType' then
+        begin
+          for I := Low(InvPriceListClasses) to High(InvPriceListClasses) do
+          begin
+            RegisterGdClass(GetClass(InvPriceListClasses[I]),
+              FieldByName('RUID').AsString, FieldByName('name').AsString,
+              LParentSubType, True);
+          end;
+        end
+        else
+          raise Exception.Create('unknown class.');
+  finally
+    ibsql.Free;
+  end;
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCDOCUMENTTYPE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCDOCUMENTTYPE', 'CUSTOMINSERT', KEYCUSTOMINSERT);
+  {M}  end;
+  {END MACRO}
+end;
+
+procedure TGDCDOCUMENTTYPE.CustomDelete(Buff: Pointer);
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+  I: Integer;
+begin
+  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCDOCUMENTTYPE', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCDOCUMENTTYPE', KEYCUSTOMDELETE);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMDELETE]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCDOCUMENTTYPE') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCDOCUMENTTYPE',
+  {M}          'CUSTOMDELETE', KEYCUSTOMDELETE, Params, LResult) then
+  {M}          exit;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCDOCUMENTTYPE' then
+  {M}        begin
+  {M}          Inherited;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  inherited;
+
+  if Self.ClassName =  'TgdcUserDocumentType' then
+  begin
+    for I := Low(UserDocumentClasses) to High(UserDocumentClasses) do
+      UnRegisterGdClass(GetClass(UserDocumentClasses[I]), FieldByName('RUID').AsString);
+  end
+  else
+    if Self.ClassName =  'TgdcInvDocumentType' then
+    begin
+      for I := Low(InvDocumentClasses) to High(InvDocumentClasses) do
+        UnRegisterGdClass(GetClass(InvDocumentClasses[I]), FieldByName('RUID').AsString);
+    end
+    else
+      if Self.ClassName =  'TgdcInvPriceListType' then
+      begin
+        for I := Low(InvPriceListClasses) to High(InvPriceListClasses) do
+          UnRegisterGdClass(GetClass(InvPriceListClasses[I]), FieldByName('RUID').AsString);
+      end
+      else
+        raise Exception.Create('unknown class.');
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCDOCUMENTTYPE', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCDOCUMENTTYPE', 'CUSTOMDELETE', KEYCUSTOMDELETE);
+  {M}  end;
+  {END MACRO}
+end;
+
 function TGDCDOCUMENTTYPE.GetSelectClause: String;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
   {M}VAR
@@ -3571,18 +3717,6 @@ begin
   DBID := System.Copy(ASubType, UnderLinePos + 1, Length(ASubType) - UnderLinePos);
   Result := Format('z.documenttypekey = <RUID XID = "%s" DBID = "%s"/> AND z.parent + 0 IS NULL ',
     [XID, DBID]);
-end;
-
-class procedure TgdcUserBaseDocument.RegisterClassHierarchy(AClass: TClass = nil;
-  AValue: String = '');
-begin
-  if AClass = nil then
-    TgdcInvBaseDocument.RegisterClassHierarchy(Self, 'TgdcUserDocumentType')
-  else
-  begin
-    Assert(AValue <> '');
-    TgdcInvBaseDocument.RegisterClassHierarchy(AClass, AValue);
-  end;
 end;
 
 procedure TgdcUserBaseDocument.ReadOptions(const aRuid: String);

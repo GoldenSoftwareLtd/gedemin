@@ -44,9 +44,6 @@ type
   public
     constructor Create(AnOwner: TComponent); override;
     class function CreateAndAssign(AnOwner: TComponent): TForm; override;
-
-    class procedure RegisterClassHierarchy(AClass: TClass = nil;
-      AValue: String = ''); override;
   end;
 
 var
@@ -84,18 +81,11 @@ begin
       Self.Caption := 'Подтип не определен!';
 end;
 
-class procedure Tgdc_frmAttrUserDefined.RegisterClassHierarchy(AClass: TClass = nil;
-  AValue: String = '');
-begin
-  TgdcAttrUserDefined.RegisterClassHierarchy(Self);
-end;
-
 initialization
   RegisterFrmClass(Tgdc_frmAttrUserDefined);
 
 finalization
   UnRegisterFrmClass(Tgdc_frmAttrUserDefined);
-
 
 end.
 

@@ -64,9 +64,6 @@ type
     procedure LoadSettings; override;
     procedure SaveSettings; override;
 
-    class procedure RegisterClassHierarchy(AClass: TClass = nil;
-      AValue: String = ''); override;
-
     property IsSetup: Boolean read FIsSetup write FIsSetup;
   end;
 
@@ -246,18 +243,6 @@ end;
 procedure Tgdc_frmInvBaseRemains.actDuplicateExecute(Sender: TObject);
 begin
 // nothing...
-end;
-
-class procedure Tgdc_frmInvBaseRemains.RegisterClassHierarchy(AClass: TClass = nil;
-  AValue: String = '');
-begin
-  if AClass = nil then
-    TgdcInvBaseRemains.RegisterClassHierarchy(Self, 'TgdcInvDocumentType')
-  else
-  begin
-    Assert(AValue <> '');
-    TgdcInvBaseRemains.RegisterClassHierarchy(AClass, AValue);
-  end;
 end;
 
 procedure Tgdc_frmInvBaseRemains.SetupInvRemains(gdcInvRemains: TgdcInvRemains);

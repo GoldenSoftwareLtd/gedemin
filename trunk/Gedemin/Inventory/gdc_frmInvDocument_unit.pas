@@ -63,11 +63,7 @@ type
   public
     class function CreateAndAssign(AnOwner: TComponent): TForm; override;
 
-    class procedure RegisterClassHierarchy(AClass: TClass = nil;
-      AValue: String = ''); override;
-
     procedure SaveDesktopSettings; override;
-    
   end;
 
 var
@@ -110,18 +106,6 @@ begin
 
   Caption := gdcInvDocument.DocumentName[True];
 
-end;
-
-class procedure Tgdc_frmInvDocument.RegisterClassHierarchy(AClass: TClass = nil;
-  AValue: String = '');
-begin
-  if AClass = nil then
-    TgdcInvDocument.RegisterClassHierarchy(Self, 'TgdcInvDocumentType')
-  else
-  begin
-    Assert(AValue <> '');
-    TgdcInvDocument.RegisterClassHierarchy(AClass, AValue);
-  end;
 end;
 
 procedure Tgdc_frmInvDocument.SaveDesktopSettings;
