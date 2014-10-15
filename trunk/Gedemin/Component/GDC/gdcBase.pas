@@ -2408,8 +2408,8 @@ begin
   Assert(atDatabase <> nil);
   Assert(Assigned(ibtr));
 
-  if not Assigned(gdClassList) then
-    raise Exception.Create(cgdClassListIsNotAssigned);
+  {if not Assigned(gdClassList) then
+    raise Exception.Create(cgdClassListIsNotAssigned);}
 
   Result := GetBaseClassForRelation(ARelationName);
 
@@ -2468,8 +2468,8 @@ begin
   Assert(ARelationName > '');
   Assert(atDatabase <> nil);
 
-  if not Assigned(gdClassList) then
-    raise Exception.Create(cgdClassListIsNotAssigned);
+  {if not Assigned(gdClassList) then
+    raise Exception.Create(cgdClassListIsNotAssigned);}
 
   if not Assigned(CacheBaseClassForRel) then
   begin
