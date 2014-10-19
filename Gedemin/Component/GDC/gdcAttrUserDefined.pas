@@ -65,7 +65,9 @@ type
 
     procedure CustomInsert(Buff: Pointer); override;
     procedure CustomModify(Buff: Pointer); override;
+
   public
+    function GetCurrRecordSubType: String; override;
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetDisplayName(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
@@ -95,10 +97,10 @@ type
 
     property Relation: TatRelation read GetRelation;
 
-
   public
     constructor Create(AnOwner: TComponent); override;
 
+    function GetCurrRecordSubType: String; override;
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetDisplayName(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
@@ -129,6 +131,7 @@ type
   public
     constructor Create(AnOwner: TComponent); override;
 
+    function GetCurrRecordSubType: String; override;
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetDisplayName(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
@@ -223,9 +226,11 @@ procedure TgdcAttrUserDefined.CustomInsert(Buff: Pointer);
   {END MACRO}
        LSQL: string;
        I: Integer;
+       J: Integer;
        R: TatRelation;
        RF: TatRelationFields;
        LSubtype: string;
+       ST: TStringList;
 begin
   {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCATTRUSERDEFINED', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  try
@@ -251,41 +256,52 @@ begin
   inherited;
 
   LSubtype := RelationName;
-  While ClassParentSubtype(LSubtype) <> '' do
-  begin
-    R := atDatabase.Relations.ByRelationName(LSubtype);
-    if Assigned(R) then
+
+  ST := TStringList.Create;
+  try
+    While ClassParentSubtype(LSubtype) <> '' do
     begin
-      RF := R.RelationFields;
-      if Assigned(RF) then
+      ST.Add(LSubType);
+      LSubType := ClassParentSubtype(LSubtype);
+    end;
+
+    for J := ST.Count - 1 downto 0 do
+    begin
+      R := atDatabase.Relations.ByRelationName(ST[J]);
+      if Assigned(R) then
       begin
-        LSQL := 'INSERT INTO ';
-        LSQL := LSQL + R.RelationName + ' (';
-        for i := 0 to RF.Count - 1 do
+        RF := R.RelationFields;
+        if Assigned(RF) then
         begin
-          if (i <> (RF.Count - 1)) then
-            LSQL := LSQL + RF.Items[I].FieldName + ', '
-          else
-            LSQL := LSQL + RF.Items[I].FieldName + ')'
-        end;
-        LSQL := LSQL + ' VALUES (';
-        for i := 0 to RF.Count - 1 do
-        begin
-          if (i <> (RF.Count - 1)) then
-            if RF.Items[I].FieldName = 'INHERITEDKEY' then
-              LSQL := LSQL + ':new_id, '
+          LSQL := 'INSERT INTO ';
+          LSQL := LSQL + R.RelationName + ' (';
+          for i := 0 to RF.Count - 1 do
+          begin
+            if (i <> (RF.Count - 1)) then
+              LSQL := LSQL + RF.Items[I].FieldName + ', '
             else
-              LSQL := LSQL + ':new_' + RF.Items[I].FieldName + ', '
-          else
-            if RF.Items[I].FieldName = 'INHERITEDKEY' then
-              LSQL := LSQL + ':new_id)'
+              LSQL := LSQL + RF.Items[I].FieldName + ')'
+          end;
+          LSQL := LSQL + ' VALUES (';
+          for i := 0 to RF.Count - 1 do
+          begin
+            if (i <> (RF.Count - 1)) then
+              if RF.Items[I].FieldName = 'INHERITEDKEY' then
+                LSQL := LSQL + ':new_id, '
+              else
+                LSQL := LSQL + ':new_' + RF.Items[I].FieldName + ', '
             else
-              LSQL := LSQL + ':new_' + RF.Items[I].FieldName + ')';
+              if RF.Items[I].FieldName = 'INHERITEDKEY' then
+                LSQL := LSQL + ':new_id)'
+              else
+                LSQL := LSQL + ':new_' + RF.Items[I].FieldName + ')';
+          end;
+          CustomExecQuery(LSQL, Buff);
         end;
-        CustomExecQuery(LSQL, Buff);
       end;
     end;
-    LSubtype := ClassParentSubtype(LSubtype);
+  finally
+    ST.Free;
   end;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCATTRUSERDEFINED', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
@@ -488,11 +504,8 @@ begin
       RF := R.RelationFields;
       if Assigned(RF) then
       for i := 0 to RF.Count - 1 do
-        if (RF.Items[I].FieldName <> 'INHERITEDKEY') then
-        begin
-          Result := Result + ', z_' + R.RelationName + '.'
-            + RF.Items[I].FieldName;
-        end;
+        Result := Result + ', z_' + R.RelationName + '.'
+          + RF.Items[I].FieldName;
     end;
     LSubtype := ClassParentSubtype(LSubtype);
   end;
@@ -508,11 +521,8 @@ begin
         RF := R.RelationFields;
         if Assigned(RF) then
           for J := 0 to RF.Count - 1 do
-            if (RF.Items[J].FieldName <> 'INHERITEDKEY') then
-            begin
-              Result := Result + ', z_' + R.RelationName + '.'
+            Result := Result + ', z_' + R.RelationName + '.'
               + RF.Items[J].FieldName;
-            end;
       end;
     end;
   finally
@@ -636,11 +646,78 @@ begin
   Result := FIsView;
 end;
 
+function TgdcAttrUserDefined.GetCurrRecordSubType: String;
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+  ST: TStringList;
+  I: Integer;
+begin
+  {@UNFOLD MACRO INH_ORIG_GETNOTCOPYFIELD('TGDCATTRUSERDEFINED', 'GETCURRRECORDSUBTYPE', KEYGETCURRRECORDSUBTYPE)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCATTRUSERDEFINED', KEYGETCURRRECORDSUBTYPE);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYGETCURRRECORDSUBTYPE]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCATTRUSERDEFINED') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCATTRUSERDEFINED',
+  {M}          'GETCURRRECORDSUBTYPE', KEYGETCURRRECORDSUBTYPE, Params, LResult) then
+  {M}          begin
+  {M}            if (VarType(LResult) = varOleStr) or (VarType(LResult) = varString) then
+  {M}              Result := String(LResult)
+  {M}            else
+  {M}              begin
+  {M}                raise Exception.Create('Для метода ''' + 'GETCURRRECORDSUBTYPE' + ' ''' +
+  {M}                  ' класса ' + Self.ClassName + TgdcBase(Self).SubType + #10#13 +
+  {M}                  'Из макроса возвращен не строковый тип');
+  {M}              end;
+  {M}            exit;
+  {M}          end;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCATTRUSERDEFINED' then
+  {M}        begin
+  {M}//          Result := Inherited GetCurrRecordSubType;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  Result := SubType;
+
+  ST := TStringList.Create;
+  try
+    GetSubTypeList(ST, RelationName, False);
+    for I := 0 to ST.Count - 1 do
+    begin
+      if not FieldByName(ST.Values[ST.Names[I]], 'INHERITEDKEY').IsNull then
+        Result := ST.Values[ST.Names[I]];
+    end;
+  finally
+    ST.Free;
+  end;
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCATTRUSERDEFINED', 'GETCURRRECORDSUBTYPE', KEYGETCURRRECORDSUBTYPE)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCATTRUSERDEFINED', 'GETCURRRECORDSUBTYPE', KEYGETCURRRECORDSUBTYPE);
+  {M}  end;
+  {END MACRO}
+end;
+
 class function TgdcAttrUserDefined.GetListField(const ASubType: TgdcSubType): String;
 var
   R: TatRelation;
+  LSubType: String;
 begin
-  R := atDatabase.Relations.ByRelationName(ASubType);
+  LSubType := ASubType;
+  While ClassParentSubType(LSubType) <> '' do
+    LSubType := ClassParentSubtype(LSubType);
+
+  R := atDatabase.Relations.ByRelationName(LSubType);
   if Assigned(R) then
     Result := R.ListField.FieldName
   else
@@ -701,6 +778,68 @@ constructor TgdcAttrUserDefinedTree.Create(AnOwner: TComponent);
 begin
   inherited;
   CustomProcess := [];
+end;
+
+function TGDCATTRUSERDEFINEDTREE.GetCurrRecordSubType: String;
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+  ST: TStringList;
+  I: Integer;
+begin
+  {@UNFOLD MACRO INH_ORIG_GETNOTCOPYFIELD('TGDCATTRUSERDEFINEDTREE', 'GETCURRRECORDSUBTYPE', KEYGETCURRRECORDSUBTYPE)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCATTRUSERDEFINEDTREE', KEYGETCURRRECORDSUBTYPE);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYGETCURRRECORDSUBTYPE]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCATTRUSERDEFINEDTREE') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCATTRUSERDEFINEDTREE',
+  {M}          'GETCURRRECORDSUBTYPE', KEYGETCURRRECORDSUBTYPE, Params, LResult) then
+  {M}          begin
+  {M}            if (VarType(LResult) = varOleStr) or (VarType(LResult) = varString) then
+  {M}              Result := String(LResult)
+  {M}            else
+  {M}              begin
+  {M}                raise Exception.Create('Для метода ''' + 'GETCURRRECORDSUBTYPE' + ' ''' +
+  {M}                  ' класса ' + Self.ClassName + TgdcBase(Self).SubType + #10#13 +
+  {M}                  'Из макроса возвращен не строковый тип');
+  {M}              end;
+  {M}            exit;
+  {M}          end;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCATTRUSERDEFINEDTREE' then
+  {M}        begin
+  {M}//          Result := Inherited GetCurrRecordSubType;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  Result := SubType;
+
+  ST := TStringList.Create;
+  try
+    GetSubTypeList(ST, RelationName, False);
+    for I := 0 to ST.Count - 1 do
+    begin
+      if not FieldByName(ST.Values[ST.Names[I]], 'INHERITEDKEY').IsNull then
+        Result := ST.Values[ST.Names[I]];
+    end;
+  finally
+    ST.Free;
+  end;
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCATTRUSERDEFINED', 'GETCURRRECORDSUBTYPE', KEYGETCURRRECORDSUBTYPE)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCATTRUSERDEFINEDTREE', 'GETCURRRECORDSUBTYPE', KEYGETCURRRECORDSUBTYPE);
+  {M}  end;
+  {END MACRO}
 end;
 
 function TgdcAttrUserDefinedTree.CreateDialogForm: TCreateableForm;
@@ -808,7 +947,6 @@ begin
   {M}    end;
   {END MACRO}
 
-
   Result := Inherited GetFromClause(ARefresh);
 
   LSubtype := RelationName;
@@ -848,9 +986,11 @@ procedure TgdcAttrUserDefinedTree.CustomInsert(Buff: Pointer);
   {END MACRO}
        LSQL: string;
        I: Integer;
+       J: Integer;
        R: TatRelation;
        RF: TatRelationFields;
        LSubtype: string;
+       ST: TStringList;
 begin
   {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCATTRUSERDEFINEDTREE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  try
@@ -876,41 +1016,52 @@ begin
   inherited;
 
   LSubtype := RelationName;
-  While ClassParentSubtype(LSubtype) <> '' do
-  begin
-    R := atDatabase.Relations.ByRelationName(LSubtype);
-    if Assigned(R) then
+
+  ST := TStringList.Create;
+  try
+    While ClassParentSubtype(LSubtype) <> '' do
     begin
-      RF := R.RelationFields;
-      if Assigned(RF) then
+      ST.Add(LSubType);
+      LSubType := ClassParentSubtype(LSubtype);
+    end;
+
+    for J := ST.Count - 1 downto 0 do
+    begin
+      R := atDatabase.Relations.ByRelationName(ST[J]);
+      if Assigned(R) then
       begin
-        LSQL := 'INSERT INTO ';
-        LSQL := LSQL + R.RelationName + ' (';
-        for i := 0 to RF.Count - 1 do
+        RF := R.RelationFields;
+        if Assigned(RF) then
         begin
-          if (i <> (RF.Count - 1)) then
-            LSQL := LSQL + RF.Items[I].FieldName + ', '
-          else
-            LSQL := LSQL + RF.Items[I].FieldName + ')'
-        end;
-        LSQL := LSQL + ' VALUES (';
-        for i := 0 to RF.Count - 1 do
-        begin
-          if (i <> (RF.Count - 1)) then
-            if RF.Items[I].FieldName = 'INHERITEDKEY' then
-              LSQL := LSQL + ':new_id, '
+          LSQL := 'INSERT INTO ';
+          LSQL := LSQL + R.RelationName + ' (';
+          for i := 0 to RF.Count - 1 do
+          begin
+            if (i <> (RF.Count - 1)) then
+              LSQL := LSQL + RF.Items[I].FieldName + ', '
             else
-              LSQL := LSQL + ':new_' + RF.Items[I].FieldName + ', '
-          else
-            if RF.Items[I].FieldName = 'INHERITEDKEY' then
-              LSQL := LSQL + ':new_id)'
+              LSQL := LSQL + RF.Items[I].FieldName + ')'
+          end;
+          LSQL := LSQL + ' VALUES (';
+          for i := 0 to RF.Count - 1 do
+          begin
+            if (i <> (RF.Count - 1)) then
+              if RF.Items[I].FieldName = 'INHERITEDKEY' then
+                LSQL := LSQL + ':new_id, '
+              else
+                LSQL := LSQL + ':new_' + RF.Items[I].FieldName + ', '
             else
-              LSQL := LSQL + ':new_' + RF.Items[I].FieldName + ')';
+              if RF.Items[I].FieldName = 'INHERITEDKEY' then
+                LSQL := LSQL + ':new_id)'
+              else
+                LSQL := LSQL + ':new_' + RF.Items[I].FieldName + ')';
+          end;
+          CustomExecQuery(LSQL, Buff);
         end;
-        CustomExecQuery(LSQL, Buff);
       end;
     end;
-    LSubtype := ClassParentSubtype(LSubtype);
+  finally
+    ST.Free;
   end;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCATTRUSERDEFINEDTREE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
@@ -1044,8 +1195,13 @@ end;
 class function TgdcAttrUserDefinedTree.GetListField(const ASubType: TgdcSubType): String;
 var
   R: TatRelation;
+  LSubType: String;
 begin
-  R := atDatabase.Relations.ByRelationName(ASubType);
+  LSubType := ASubType;
+  While ClassParentSubType(LSubType) <> '' do
+    LSubType := ClassParentSubtype(LSubType);
+
+  R := atDatabase.Relations.ByRelationName(LSubType);
   if Assigned(R) then
     Result := R.ListField.FieldName
   else
@@ -1123,11 +1279,8 @@ begin
       RF := R.RelationFields;
       if Assigned(RF) then
       for i := 0 to RF.Count - 1 do
-        if (RF.Items[I].FieldName <> 'INHERITEDKEY') then
-        begin
-          Result := Result + ', z_' + R.RelationName + '.'
-            + RF.Items[I].FieldName;
-        end;
+        Result := Result + ', z_' + R.RelationName + '.'
+          + RF.Items[I].FieldName;
     end;
     LSubtype := ClassParentSubtype(LSubtype);
   end;
@@ -1143,11 +1296,8 @@ begin
         RF := R.RelationFields;
         if Assigned(RF) then
           for J := 0 to RF.Count - 1 do
-            if (RF.Items[J].FieldName <> 'INHERITEDKEY') then
-            begin
-              Result := Result + ', z_' + R.RelationName + '.'
+            Result := Result + ', z_' + R.RelationName + '.'
               + RF.Items[J].FieldName;
-            end;
       end;
     end;
   finally
@@ -1183,6 +1333,68 @@ constructor TgdcAttrUserDefinedLBRBTree.Create(AnOwner: TComponent);
 begin
   inherited;
   CustomProcess := [];
+end;
+
+function TgdcAttrUserDefinedLBRBTree.GetCurrRecordSubType: String;
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+  ST: TStringList;
+  I: Integer;
+begin
+  {@UNFOLD MACRO INH_ORIG_GETNOTCOPYFIELD('TGDCATTRUSERDEFINEDLBRBTREE', 'GETCURRRECORDSUBTYPE', KEYGETCURRRECORDSUBTYPE)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCATTRUSERDEFINEDLBRBTREE', KEYGETCURRRECORDSUBTYPE);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYGETCURRRECORDSUBTYPE]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCATTRUSERDEFINEDLBRBTREE') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCATTRUSERDEFINEDLBRBTREE',
+  {M}          'GETCURRRECORDSUBTYPE', KEYGETCURRRECORDSUBTYPE, Params, LResult) then
+  {M}          begin
+  {M}            if (VarType(LResult) = varOleStr) or (VarType(LResult) = varString) then
+  {M}              Result := String(LResult)
+  {M}            else
+  {M}              begin
+  {M}                raise Exception.Create('Для метода ''' + 'GETCURRRECORDSUBTYPE' + ' ''' +
+  {M}                  ' класса ' + Self.ClassName + TgdcBase(Self).SubType + #10#13 +
+  {M}                  'Из макроса возвращен не строковый тип');
+  {M}              end;
+  {M}            exit;
+  {M}          end;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCATTRUSERDEFINEDLBRBTREE' then
+  {M}        begin
+  {M}//          Result := Inherited GetCurrRecordSubType;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  Result := SubType;
+
+  ST := TStringList.Create;
+  try
+    GetSubTypeList(ST, RelationName, False);
+    for I := 0 to ST.Count - 1 do
+    begin
+      if not FieldByName(ST.Values[ST.Names[I]], 'INHERITEDKEY').IsNull then
+        Result := ST.Values[ST.Names[I]];
+    end;
+  finally
+    ST.Free;
+  end;
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCATTRUSERDEFINEDLBRBTREE', 'GETCURRRECORDSUBTYPE', KEYGETCURRRECORDSUBTYPE)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCATTRUSERDEFINEDLBRBTREE', 'GETCURRRECORDSUBTYPE', KEYGETCURRRECORDSUBTYPE);
+  {M}  end;
+  {END MACRO}
 end;
 
 function TgdcAttrUserDefinedLBRBTree.CreateDialogForm: TCreateableForm;
@@ -1329,9 +1541,11 @@ procedure TgdcAttrUserDefinedLBRBTree.CustomInsert(Buff: Pointer);
   {END MACRO}
        LSQL: string;
        I: Integer;
+       J: Integer;
        R: TatRelation;
        RF: TatRelationFields;
        LSubtype: string;
+       ST: TstringList;
 begin
   {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCATTRUSERDEFINEDLBRBTREE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  try
@@ -1357,41 +1571,52 @@ begin
   inherited;
 
   LSubtype := RelationName;
-  While ClassParentSubtype(LSubtype) <> '' do
-  begin
-    R := atDatabase.Relations.ByRelationName(LSubtype);
-    if Assigned(R) then
+
+  ST := TStringList.Create;
+  try
+    While ClassParentSubtype(LSubtype) <> '' do
     begin
-      RF := R.RelationFields;
-      if Assigned(RF) then
+      ST.Add(LSubType);
+      LSubType := ClassParentSubtype(LSubtype);
+    end;
+
+    for J := ST.Count - 1 downto 0 do
+    begin
+      R := atDatabase.Relations.ByRelationName(ST[J]);
+      if Assigned(R) then
       begin
-        LSQL := 'INSERT INTO ';
-        LSQL := LSQL + R.RelationName + ' (';
-        for i := 0 to RF.Count - 1 do
+        RF := R.RelationFields;
+        if Assigned(RF) then
         begin
-          if (i <> (RF.Count - 1)) then
-            LSQL := LSQL + RF.Items[I].FieldName + ', '
-          else
-            LSQL := LSQL + RF.Items[I].FieldName + ')'
-        end;
-        LSQL := LSQL + ' VALUES (';
-        for i := 0 to RF.Count - 1 do
-        begin
-          if (i <> (RF.Count - 1)) then
-            if RF.Items[I].FieldName = 'INHERITEDKEY' then
-              LSQL := LSQL + ':new_id, '
+          LSQL := 'INSERT INTO ';
+          LSQL := LSQL + R.RelationName + ' (';
+          for i := 0 to RF.Count - 1 do
+          begin
+            if (i <> (RF.Count - 1)) then
+              LSQL := LSQL + RF.Items[I].FieldName + ', '
             else
-              LSQL := LSQL + ':new_' + RF.Items[I].FieldName + ', '
-          else
-            if RF.Items[I].FieldName = 'INHERITEDKEY' then
-              LSQL := LSQL + ':new_id)'
+              LSQL := LSQL + RF.Items[I].FieldName + ')'
+          end;
+          LSQL := LSQL + ' VALUES (';
+          for i := 0 to RF.Count - 1 do
+          begin
+            if (i <> (RF.Count - 1)) then
+              if RF.Items[I].FieldName = 'INHERITEDKEY' then
+                LSQL := LSQL + ':new_id, '
+              else
+                LSQL := LSQL + ':new_' + RF.Items[I].FieldName + ', '
             else
-              LSQL := LSQL + ':new_' + RF.Items[I].FieldName + ')';
+              if RF.Items[I].FieldName = 'INHERITEDKEY' then
+                LSQL := LSQL + ':new_id)'
+              else
+                LSQL := LSQL + ':new_' + RF.Items[I].FieldName + ')';
+          end;
+          CustomExecQuery(LSQL, Buff);
         end;
-        CustomExecQuery(LSQL, Buff);
       end;
     end;
-    LSubtype := ClassParentSubtype(LSubtype);
+  finally
+    ST.Free;
   end;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCATTRUSERDEFINEDLBRBTREE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
@@ -1525,8 +1750,13 @@ end;
 class function TgdcAttrUserDefinedLBRBTree.GetListField(const ASubType: TgdcSubType): String;
 var
   R: TatRelation;
+  LSubType: String;
 begin
-  R := atDatabase.Relations.ByRelationName(ASubType);
+  LSubType := ASubType;
+  While ClassParentSubType(LSubType) <> '' do
+    LSubType := ClassParentSubtype(LSubType);
+
+  R := atDatabase.Relations.ByRelationName(LSubType);
   if Assigned(R) then
     Result := R.ListField.FieldName
   else
@@ -1593,7 +1823,6 @@ begin
   {M}    end;
   {END MACRO}
 
-
   Result := Inherited GetSelectClause;
 
   LSubtype := RelationName;
@@ -1605,11 +1834,8 @@ begin
       RF := R.RelationFields;
       if Assigned(RF) then
       for i := 0 to RF.Count - 1 do
-        if (RF.Items[I].FieldName <> 'INHERITEDKEY') then
-        begin
-          Result := Result + ', z_' + R.RelationName + '.'
-            + RF.Items[I].FieldName;
-        end;
+        Result := Result + ', z_' + R.RelationName + '.'
+          + RF.Items[I].FieldName;
     end;
     LSubtype := ClassParentSubtype(LSubtype);
   end;
@@ -1625,11 +1851,8 @@ begin
         RF := R.RelationFields;
         if Assigned(RF) then
           for J := 0 to RF.Count - 1 do
-            if (RF.Items[J].FieldName <> 'INHERITEDKEY') then
-            begin
-              Result := Result + ', z_' + R.RelationName + '.'
+            Result := Result + ', z_' + R.RelationName + '.'
               + RF.Items[J].FieldName;
-            end;
       end;
     end;
   finally

@@ -5400,7 +5400,7 @@ begin
   CFull := GetCurrRecordClass;
 
   if ((UpperCase(ADlgClassName) = 'TGDC_DLGOBJECTPROPERTIES') and Assigned(CFull.gdClass))
-    or (CFull.gdClass = Self.ClassType) then
+    or ((CFull.gdClass = Self.ClassType) and (CFull.SubType = Self.SubType)) then
   begin
     C := GetClass(ADlgClassName);
 
