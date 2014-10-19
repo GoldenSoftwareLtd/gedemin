@@ -567,7 +567,7 @@ begin
       exit;
   end;
 
-  CurrCE := nil;
+  //CurrCE := nil;
 
   if AClass.InheritsFrom(TgdcBase) then
   begin

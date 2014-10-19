@@ -72,21 +72,12 @@ begin
 end;
 
 procedure Tgdc_frmAttrUserDefinedLBRBTree.FormCreate(Sender: TObject);
-var
-  R: TatRelation;
-  LSubtype: string;
 begin
   gdcObject := Master;
   //gdcObject.SubType := FSubType;
 
-  LSubtype := FSubType;
-  While ClassParentSubtype(LSubtype) <> '' do
-    LSubtype := ClassParentSubtype(LSubtype);
-  R := atDatabase.Relations.ByRelationName(LSubType);
-  Assert(R <> nil);
-
   if tvGroup.DisplayField = '' then
-    tvGroup.DisplayField := R.ListField.FieldName;
+    tvGroup.DisplayField := gdcObject.GetListField(gdcObject.SubType);
 
   gdcDetailObject := Detail;
   gdcDetailObject.SubType := FSubType;
