@@ -3126,7 +3126,9 @@ begin
           end;
         end
         else
-          raise Exception.Create('unknown class.');
+          if Self.ClassName <> 'TgdcDocumentType' then
+            raise Exception.Create('unknown class.');
+
   finally
     ibsql.Free;
   end;
@@ -3188,7 +3190,8 @@ begin
           UnRegisterGdClass(GetClass(InvPriceListClasses[I]), FieldByName('RUID').AsString);
       end
       else
-        raise Exception.Create('unknown class.');
+        if Self.ClassName <> 'TgdcDocumentType' then
+          raise Exception.Create('unknown class.');
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCDOCUMENTTYPE', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
   {M}  finally
