@@ -245,9 +245,6 @@ type
     function GetgdcTableField: TgdcTableField;
 
   protected
-    procedure AddGdClasses; virtual; abstract;
-    procedure RemoveGdClasses; virtual; abstract;
-
     procedure DropTable; virtual;
     procedure DropCrossTable;
     function CreateInsertTrigger: String;
@@ -313,8 +310,11 @@ type
 
   TgdcTable = class(TgdcBaseTable)
   protected
-    procedure AddGdClasses; override;
-    procedure RemoveGdClasses; override;
+    procedure CustomDelete(Buff: Pointer); override;
+    procedure CustomInsert(Buff: Pointer); override;
+
+    procedure AddGdClasses; virtual;
+    procedure RemoveGdClasses; virtual;
 
   end;
 
@@ -374,6 +374,8 @@ type
   protected
     procedure AddGdClasses; override;
     procedure RemoveGdClasses; override;
+
+    procedure CreateRelationSQL(Scripts: TSQLProcessList); override;
 
   public
     class function GetDisplayName(const ASubType: TgdcSubType): String; override;
@@ -2622,7 +2624,6 @@ begin
     if Assigned(atDatabase) and Assigned(atDatabase.Relations.ByRelationName(DelRelName)) and
       not (atDatabase.InMultiConnection) then
     begin
-      RemoveGdClasses;
       atDatabase.Relations.Remove(atDatabase.Relations.ByRelationName(DelRelName));
     end;
 
@@ -9538,11 +9539,19 @@ var
   dlgCN: String;
   R: TatRelation;
   F: TatRelationField;
+  RN: String;
 begin
+  gdcCN := '';
+  frmCN := '';
+  dlgCN := '';
+  RN := '';
+
+  RN := TgdcTableToDefinedTable(Self).GetReferenceName;
+  Assert(RN <> '');
   R := nil;
   if Assigned(atDatabase) and Assigned(atDatabase.Relations) then
   begin
-    R := atDatabase.Relations.ByRelationName(FieldByName('relationname').AsString);
+    R := atDatabase.Relations.ByRelationName(RN);
     if Assigned(R) then
     begin
       F := R.RelationFields.ByFieldName('INHERITEDKEY');
@@ -9583,13 +9592,19 @@ begin
       frmCN := 'Tgdc_frmAttrUserDefinedLBRBTree';
       dlgCN := 'Tgdc_dlgAttrUserDefinedTree';
     end;
-
   if gdcCN <> '' then
   begin
     UnRegisterGdClass(GetClass(gdcCN), FieldByName('relationname').AsString);
     UnRegisterGdClass(GetClass(frmCN), FieldByName('relationname').AsString);
     UnRegisterGdClass(GetClass(dlgCN), FieldByName('relationname').AsString);
   end;
+end;
+
+
+procedure TgdcTableToDefinedTable.CreateRelationSQL(Scripts: TSQLProcessList);
+begin
+  inherited;
+  atDatabase.NotifyMultiConnectionTransaction;
 end;
 
 { TgdcBaseTable }
@@ -9704,8 +9719,6 @@ begin
     MakePredefinedRelationFields;
     FNeedPredefinedFields := False;
   end;
-
-  AddGdClasses;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASETABLE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  finally
@@ -9861,6 +9874,91 @@ begin
 end;
 
 { TgdcTable }
+
+procedure TgdcTable.CustomDelete(Buff: Pointer);
+var
+  {@UNFOLD MACRO INH_ORIG_PARAMS()}
+  {M}
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+  DelRelName: String;
+begin
+  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCTABLE', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCTABLE', KEYCUSTOMDELETE);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMDELETE]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCTABLE') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCTABLE',
+  {M}          'CUSTOMDELETE', KEYCUSTOMDELETE, Params, LResult) then
+  {M}          exit;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCTABLE' then
+  {M}        begin
+  {M}          Inherited;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  DelRelName := FieldByName('relationname').AsString;
+
+  inherited;
+
+  if Assigned(atDatabase) and (not Assigned(atDatabase.Relations.ByRelationName(DelRelName))) then
+    RemoveGdClasses;
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCTABLE', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCTABLE', 'CUSTOMDELETE', KEYCUSTOMDELETE);
+  {M}  end;
+  {END MACRO}
+end;
+
+procedure TgdcTable.CustomInsert(Buff: Pointer);
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+begin
+  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCTABLE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCTABLE', KEYCUSTOMINSERT);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMINSERT]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCTABLE') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCTABLE',
+  {M}          'CUSTOMINSERT', KEYCUSTOMINSERT, Params, LResult) then
+  {M}          exit;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCTABLE' then
+  {M}        begin
+  {M}          Inherited;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  inherited;
+
+  AddGdClasses;
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCTABLE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCTABLE', 'CUSTOMINSERT', KEYCUSTOMINSERT);
+  {M}  end;
+  {END MACRO}
+end;
 
 procedure TgdcTable.AddGdClasses;
 begin
