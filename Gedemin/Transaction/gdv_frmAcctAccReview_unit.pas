@@ -448,19 +448,19 @@ var
       for ii:= 0 to ibgrMain.SelectedRows.Count - 1 do begin
         if ii = 0 then begin
           if frAcctSum.InNCU then begin
-            if gdvObject.FieldByName('ncu_debit').AsInteger > 0 then
+            if gdvObject.FieldByName('ncu_debit').AsInteger <> 0 then
               Result:= 'C'
             else
               Result:= 'D';
           end
           else if frAcctSum.InCurr then begin
-            if gdvObject.FieldByName('curr_debit').AsInteger > 0 then
+            if gdvObject.FieldByName('curr_debit').AsInteger <> 0 then
               Result:= 'C'
             else
               Result:= 'D';
           end
           else if frAcctSum.InEq then begin
-            if gdvObject.FieldByName('eq_debit').AsInteger > 0 then
+            if gdvObject.FieldByName('eq_debit').AsInteger <> 0 then
               Result:= 'C'
             else
               Result:= 'D';
