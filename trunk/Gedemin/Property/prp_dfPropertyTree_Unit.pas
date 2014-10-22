@@ -2090,10 +2090,12 @@ var
   TN: TTreeNode;
 begin
   if Boolean(AData2^) then
-    TN := AddGDCClassNode(TTreeNode(AData1^), ACE, ACE.SubType, ACE.Comment)
+    TN := AddGDCClassNode(TTreeNode(AData1^), ACE,
+      StringReplace(ACE.SubType, 'USR$', 'USR_',[rfReplaceAll, rfIgnoreCase]), ACE.Comment)
   else
-    TN := AddFRMClassNode(TTreeNode(AData1^), ACE, ACE.SubType, ACE.Comment);
-
+    TN := AddFRMClassNode(TTreeNode(AData1^), ACE,
+      StringReplace(ACE.SubType, 'USR$', 'USR_',[rfReplaceAll, rfIgnoreCase]), ACE.Comment);
+    
   if TN <> nil then
     begin
       TN.HasChildren := True;
@@ -2116,6 +2118,7 @@ var
 //  Init: Boolean;
   CE: TgdClassEntry;
   CEBase: TgdClassEntry;
+  LSubType: String;
   
 {  function ClassFilter(Index: Integer; AIsGDC: Boolean; SubType: string): Boolean;
   var
@@ -2253,7 +2256,9 @@ begin
 
   if (TCustomTreeItem(AParent.Data).ItemType = tiGDCClass) then
   begin
-    gdClassList.Traverse(CClass, TGDCClassTreeItem(AParent.Data).SubType,
+    LSubType := StringReplace(TGDCClassTreeItem(AParent.Data).SubType, 'USR_',
+      'USR$',[rfReplaceAll, rfIgnoreCase]);
+    gdClassList.Traverse(CClass, LSubType,
       BuildClassTree, @AParent, @IsGDC, False, True);
   end;
 

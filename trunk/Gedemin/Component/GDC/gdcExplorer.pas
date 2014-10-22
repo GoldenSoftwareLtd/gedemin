@@ -131,14 +131,21 @@ var
 begin
   C := GetClass(AClassName);
   if (C <> nil)
+    // список классов подтипы которых находятся не в хранилище
     and (C.InheritsFrom(TgdcBase))
     and (not C.ClassNameIs('TgdcAttrUserDefined'))
     and (not C.ClassNameIs('TgdcAttrUserDefinedTree'))
     and (not C.ClassNameIs('TgdcAttrUserDefinedLBRBTree'))
     and (not C.ClassNameIs('TgdcUserDocument'))
     and (not C.ClassNameIs('TgdcUserDocumentLine'))
+    and (not C.ClassNameIs('TgdcInvBasePriceList'))
+    and (not C.ClassNameIs('TgdcSelectedGood'))
+    and (not C.ClassNameIs('TgdcInvGoodRemains'))
+    and (not C.ClassNameIs('TgdcInvRemains'))
+    and (not C.ClassNameIs('TgdcInvMovement'))
     and (not C.ClassNameIs('TgdcInvDocument'))
     and (not C.ClassNameIs('TgdcInvDocumentLine'))
+    and (not C.ClassNameIs('TgdcInvBasePriceList'))
     and (not C.ClassNameIs('TgdcInvPriceList'))
     and (not C.ClassNameIs('TgdcInvPriceListLine'))
     then

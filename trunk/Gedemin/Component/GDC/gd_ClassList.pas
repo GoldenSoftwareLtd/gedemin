@@ -130,8 +130,8 @@ const
   'Tgdc_frmAttrUserDefinedLBRBTree');
 
   //Классы докуменотов пользователя
-  UserDocumentClasses: array[0..7] of String = (
-    'TgdcUserBaseDocument',
+  UserDocumentClasses: array[0..6] of String = (
+    //'TgdcUserBaseDocument',
     'TgdcUserDocument',
     'TgdcUserDocumentLine',
     'Tgdc_dlgUserComplexDocument',
@@ -141,13 +141,13 @@ const
     'Tgdc_frmUserSimpleDocument');
 
   //Классы складских документов
-  InvDocumentClasses: array[0..16] of String = (
+  InvDocumentClasses: array[0..14] of String = (
     'TgdcSelectedGood',
-    'TgdcInvBaseRemains',
+    //'TgdcInvBaseRemains',
     'TgdcInvGoodRemains',
     'TgdcInvRemains',
     'TgdcInvMovement',
-    'TgdcInvBaseDocument',
+    //'TgdcInvBaseDocument',
     'TgdcInvDocument',
     'TgdcInvDocumentLine',
     'TdlgInvDocument',
@@ -170,8 +170,8 @@ const
     'Tgdc_frmInvPriceList');
 
   //Классы остатков
-  RemainsClasses: array[0..7] of String = (
-    'TgdcInvBaseRemains',
+  RemainsClasses: array[0..6] of String = (
+    //'TgdcInvBaseRemains',
     'TgdcInvGoodRemains',
     'TgdcInvRemains',
     'Tgdc_frmInvBaseRemains',
