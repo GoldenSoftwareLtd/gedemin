@@ -742,7 +742,7 @@ object dlgMaster: TdlgMaster
                   Width = 191
                   Height = 21
                   Style = csDropDownList
-                  ItemHeight = 13
+                  ItemHeight = 0
                   TabOrder = 1
                   OnClick = editConditionColumnClick
                 end
@@ -782,7 +782,7 @@ object dlgMaster: TdlgMaster
                   Height = 21
                   Style = csDropDownList
                   DropDownCount = 12
-                  ItemHeight = 13
+                  ItemHeight = 0
                   TabOrder = 0
                   OnClick = editConditionKindClick
                 end

@@ -777,7 +777,7 @@ begin
       CurrItem.Caption := NewColumn.Title.Caption;
       CurrItem.SubItems.Add(NewColumn.FieldName);
       CurrItem.Data := NewColumn;
-
+                             
       // Создаем список колонок для раздела условного форматирования
       New(P);
       FFields.Add(P);
