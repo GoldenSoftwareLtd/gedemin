@@ -2431,7 +2431,9 @@ var
         repeat
           if FoundCount > 1 then
           begin
-            raise EgsStorageError.Create('Дублируются наименования элементов хранилища в рамках одного родителя!'#13#10 +
+            raise EgsStorageError.Create(
+              'Дублируются наименования элементов хранилища'#13#10 +
+              'в рамках одного родителя (ИД = ' + q.ParamByName('parent').AsString + ').'#13#10 +
               'Обратитесь к системному администратору!');
           end;
 
