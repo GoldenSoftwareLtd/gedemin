@@ -11236,10 +11236,10 @@ begin
     begin
       if (ComponentState * [csDesigning, csLoading] = []) then
         raise EgdcException.CreateObj('Can not change subtype', Self);
-
-      if not CheckSubType(Value) then
-        raise EgdcException.CreateObj('Invalid subtype specified', Self);
     end;
+
+    if not CheckSubType(Value) then
+      raise EgdcException.CreateObj('Invalid subtype ' + value + ' specified', Self);
 
     Close;
     FSubType := Value;
