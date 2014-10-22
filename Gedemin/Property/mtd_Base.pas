@@ -1000,8 +1000,8 @@ var
   FullFindFlag: Boolean;
   LCurrentFullClass, LFullChildName: TgdcFullClassName;
   LClassType: TmtdClassType;
-  LgdcCreateableFormClass: CgdcCreateableForm;
-  LgdcBaseClass: CgdcBase;
+//  LgdcCreateableFormClass: CgdcCreateableForm;
+//  LgdcBaseClass: CgdcBase;
 const
   LMsgMethodUserError =
                   'Метод %s для класса %s вызвал ошибку.'#13#10 +
@@ -1144,14 +1144,14 @@ begin
                 LFullChildName := LCurrentFullClass;
                 // Если в последнем в стеке полном имени класса есть подтип, то
                 // текущий полный класс - это тот-же полный класс без подтипа,
-                // если нет родителя по подтипу GD_ DOCUMENTTYPE
+                // если нет родителя с подтипом
                 if GetClass(LCurrentFullClass.gdClassName).InheritsFrom(TgdcBase) then
                 begin
                   if not Assigned(gdClassList.GetGDCClass(LCurrentFullClass))then
                     raise Exception.Create('Ошибка перекрытия метода класса '
                       + LCurrentFullClass.gdClassName);
                   LCurrentFullClass.SubType :=
-                    gdClassList.GetGDCClass(LCurrentFullClass).ClassParentSubtype(LCurrentFullClass.SubType)
+                    gdClassList.GetGDCClass(LCurrentFullClass).ClassParentSubType(LCurrentFullClass.SubType)
                 end
                 else
                 begin
@@ -1164,28 +1164,10 @@ begin
               end else
                 begin
                   // Если последний обработанный класс без подтипа, то получаем
-                  // класс родителя, проверяем для него наличия подтипа объект.
-                  // Если подтип для класса родителя определен, то текущий
-                  // полный класс - класс родителя + подтип, иначе только класс
-                  // родителя
+                  // класс родителя
                   LFullChildName := LCurrentFullClass;
                   LCurrentFullClass.gdClassName :=
                     AnsiUpperCase(GetParentClassName(LCurrentFullClass, LClassType));
-                  if AgdcBase.InheritsFrom(TgdcBase) then
-                  begin
-                    LgdcBaseClass := gdClassList.GetGDCClass(LCurrentFullClass);
-                    if LgdcBaseClass = nil then
-                      raise Exception.Create('Ошибка перекрытия метода. Обратитесь к разработчикам.');
-                    if LgdcBaseClass.CheckSubType(ObjectSubType) then
-                        LCurrentFullClass.SubType := ObjectSubType;
-                  end else
-                    begin
-                      LgdcCreateableFormClass := gdClassList.GetFRMClass(LCurrentFullClass);
-                      if LgdcCreateableFormClass = nil then
-                        raise Exception.Create('Ошибка перекрытия метода. Обратитесь к разработчикам.');
-                      if LgdcCreateableFormClass.CheckSubType(ObjectSubType) then
-                        LCurrentFullClass.SubType := ObjectSubType;
-                    end;
                 end;
             end;
         end;
