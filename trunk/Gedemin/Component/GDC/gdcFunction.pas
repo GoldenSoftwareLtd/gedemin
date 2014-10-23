@@ -643,9 +643,9 @@ begin
       I := AddClass(FullClassName);
       if I > -1 then
       begin
-        tmpClass := gdClassList.GetGDCClass(FullClassName);
+        tmpClass := gdClassList.GetGDCClass(FullClassName.gdClassName);
         if tmpClass = nil then
-          tmpClass := gdClassList.GetFrmClass(FullClassName);
+          tmpClass := gdClassList.GetFrmClass(FullClassName.gdClassName);
         if tmpClass = nil then
           raise Exception.Create('Класс ' + FullClassName.gdClassName + ' не зарегистрирован в системе.');
 

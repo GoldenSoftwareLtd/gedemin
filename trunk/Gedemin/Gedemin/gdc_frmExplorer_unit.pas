@@ -453,7 +453,7 @@ begin
         begin
           LFullClass.gdClassName := V;
           LFullClass.SubType := '';
-          C := gdClassList.GetGdcClass(LFullClass);
+          C := gdClassList.GetGdcClass(LFullClass.gdClassName);
 
           if (C <> nil) and C.InheritsFrom(TgdcBase) then
           begin

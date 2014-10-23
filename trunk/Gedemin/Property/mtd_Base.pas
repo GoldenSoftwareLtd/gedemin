@@ -1147,19 +1147,19 @@ begin
                 // если нет родителя с подтипом
                 if GetClass(LCurrentFullClass.gdClassName).InheritsFrom(TgdcBase) then
                 begin
-                  if not Assigned(gdClassList.GetGDCClass(LCurrentFullClass))then
+                  if not Assigned(gdClassList.GetGDCClass(LCurrentFullClass.gdClassName))then
                     raise Exception.Create('Ошибка перекрытия метода класса '
                       + LCurrentFullClass.gdClassName);
                   LCurrentFullClass.SubType :=
-                    gdClassList.GetGDCClass(LCurrentFullClass).ClassParentSubType(LCurrentFullClass.SubType)
+                    gdClassList.GetGDCClass(LCurrentFullClass.gdClassName).ClassParentSubType(LCurrentFullClass.SubType)
                 end
                 else
                 begin
-                  if not Assigned(gdClassList.GetFRMClass(LCurrentFullClass))then
+                  if not Assigned(gdClassList.GetFRMClass(LCurrentFullClass.gdClassName))then
                     raise Exception.Create('Ошибка перекрытия метода класса '
                       + LCurrentFullClass.gdClassName);
                   LCurrentFullClass.SubType :=
-                    gdClassList.GetFRMClass(LCurrentFullClass).ClassParentSubtype(LCurrentFullClass.SubType)
+                    gdClassList.GetFRMClass(LCurrentFullClass.gdClassName).ClassParentSubtype(LCurrentFullClass.SubType)
                 end;
               end else
                 begin
@@ -1693,9 +1693,9 @@ begin
   LClass := nil;
   case ClassType of
     mtd_gdcBase:
-      LClass := gdClassList.GetGDCClass(FullClassName);
+      LClass := gdClassList.GetGDCClass(FullClassName.gdClassName);
     mtd_gdcForm:
-      LClass := gdClassList.GetFRMClass(FullClassName);
+      LClass := gdClassList.GetFRMClass(FullClassName.gdClassName);
   end;
   if LClass = nil then raise Exception.Create('Ошибка перекрытия метода. Обратитесь к разработчикам.');
   Result :=

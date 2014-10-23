@@ -2468,9 +2468,6 @@ begin
   Assert(ARelationName > '');
   Assert(atDatabase <> nil);
 
-  {if not Assigned(gdClassList) then
-    raise Exception.Create(cgdClassListIsNotAssigned);}
-
   if not Assigned(CacheBaseClassForRel) then
   begin
     CacheBaseClassForRel := TStringList.Create;
@@ -11236,10 +11233,10 @@ begin
     begin
       if (ComponentState * [csDesigning, csLoading] = []) then
         raise EgdcException.CreateObj('Can not change subtype', Self);
-    end;
 
-    if not CheckSubType(Value) then
-      raise EgdcException.CreateObj('Invalid subtype ' + value + ' specified', Self);
+      if not CheckSubType(Value) then
+        raise EgdcException.CreateObj('Invalid subtype specified', Self);  
+    end;
 
     Close;
     FSubType := Value;

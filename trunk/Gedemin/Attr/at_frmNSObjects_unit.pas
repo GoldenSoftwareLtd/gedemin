@@ -195,7 +195,7 @@ var
 begin
   FC.gdClassName := ibds.FieldByName('objectclass').AsString;
   FC.SubType := ibds.FieldByName('subtype').AsString;
-  C := gdClassList.GetGdcClass(FC);
+  C := gdClassList.GetGdcClass(FC.gdClassName);
   if C = nil then
     Result := nil
   else begin

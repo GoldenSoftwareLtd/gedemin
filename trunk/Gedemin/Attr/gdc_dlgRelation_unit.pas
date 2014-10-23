@@ -825,7 +825,7 @@ procedure Tgdc_dlgRelation.BeforePost;
 
     if gdcObject is TgdcTableToDefinedTable then
     begin
-      R := atDatabase.Relations.ByRelationName(ibcmbReference.text);
+      R := atDatabase.Relations.ByRelationName((gdcObject as TgdcTableToDefinedTable).GetReferenceName);
       if Assigned(R) then
       begin
         F := R.RelationFields.ByFieldName('INHERITEDKEY');
@@ -900,6 +900,12 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
+  if gdcObject is TgdcTableToDefinedTable then
+  begin
+    if AnsiPos('USR$', (gdcObject as TgdcTableToDefinedTable).GetReferenceName) = 0 then
+      raise Exception.Create('Ссылка может быть только на пользовательскую таблицу.');
+  end;
 
   inherited;
 

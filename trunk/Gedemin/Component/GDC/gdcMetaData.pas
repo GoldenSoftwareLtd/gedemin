@@ -358,9 +358,8 @@ type
 
     procedure _DoOnNewRecord; override;
 
-    function GetReferenceName: String;
-
   public
+    function GetReferenceName: String;
     class function GetDisplayName(const ASubType: TgdcSubType): String; override;
 
     property ReferenceName: String read GetReferenceName;// write SetReferenceName;

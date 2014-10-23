@@ -1420,7 +1420,7 @@ begin
 
     if S > '' then
     begin
-      C := gdClassList.GetGDCClass(gdcFullClassName(S, RUID));
+      C := gdClassList.GetGDCClass(S);
       if C <> nil then
       begin
         Result.gdClass := C;

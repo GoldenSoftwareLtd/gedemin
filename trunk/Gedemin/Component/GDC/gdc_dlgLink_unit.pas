@@ -109,9 +109,7 @@ begin
 
   if Result then
   begin
-    if gdClassList.GetGdcClass(gdcFullClassName(
-      gdcObject.FieldByName('linkedclass').AsString,
-      gdcObject.FieldByName('linkedsubtype').AsString)) = nil then
+    if gdClassList.GetGdcClass(gdcObject.FieldByName('linkedclass').AsString) = nil then
     begin
       Result := MessageBox(Self.Handle,
         'Возможно введен неверный класс прикрепленного объекта. Сохранить?',

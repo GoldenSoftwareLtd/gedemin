@@ -346,7 +346,6 @@ var
   FunctionKey: Integer;
   LocGdcBase: TgdcBase;
   gdcBaseRef: CgdcBase;
-  FullClassName: TgdcFullClassName;
 begin
   Result := False;
   //If it has not rights for delete then exit
@@ -417,9 +416,7 @@ begin
   // 03.03.2003 DAlex. Удалять запись должен объект того же класса, что и создает ее.
   if FNeedDeleteDetail and Assigned(DetailObject) and (FunctionKey <> 0) then
   begin
-    FullClassName.gdClassName := DetailObject.ClassName;
-    FullClassName.SubType := '';
-    gdcBaseRef := gdClassList.GetGDCClass(FullClassName);
+    gdcBaseRef := gdClassList.GetGDCClass(DetailObject.ClassName);
     if gdcBaseRef <> nil then
     begin
       LocGdcBase :=  gdcBaseRef.Create(nil);

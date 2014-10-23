@@ -514,10 +514,10 @@ begin
     begin
       gdcFullClassName.gdClassName := LClassName;
       gdcFullClassName.SubType := '';
-      TmpClass := gdClassList.GetFrmClass(gdcFullClassName);
+      TmpClass := gdClassList.GetFrmClass(gdcFullClassName.gdClassName);
       if not Assigned(TmpClass) then
       begin
-        TmpClass := gdClassList.GetGDCClass(gdcFullClassName);
+        TmpClass := gdClassList.GetGDCClass(gdcFullClassName.gdClassName);
         if not Assigned(TmpClass) then
           TmpClass := OLEClassList.GetClass(LClassName);
       end;
