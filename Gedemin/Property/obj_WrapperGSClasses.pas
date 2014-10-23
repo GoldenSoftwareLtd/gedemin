@@ -6840,16 +6840,12 @@ function TwrpGDCBase.ChooseItems(const Cl: WideString;
   ChooseSubType: WideString): WordBool;
 var
   LgdcClass: CgdcBase;
-  LFullClass: TgdcFullClassName;
   V: OleVariant;
 begin
   Result := False;
   if Cl > '' then
-  begin
-    LFullClass.gdClassName := Cl;
-    LFullClass.SubType := '';
-    LgdcClass := gdClassList.GetGDCClass(LFullClass);
-  end else
+    LgdcClass := gdClassList.GetGDCClass(Cl)
+  else
     LgdcClass := nil;
   Result := GetGDCBase.ChooseItems(LgdcClass, InterfaceToObject(KeyArray) as TgdKeyArray,
     V, ChooseComponentName, ChooseSubSet, ChooseSubType);
@@ -7391,7 +7387,7 @@ var
 begin
   Result := False;
   LFullClass.gdClassName := Cl;
-  LgdcClass := gdClassList.GetGDCClass(LFullClass);
+  LgdcClass := gdClassList.GetGDCClass(LFullClass.gdClassName);
   if Assigned(LgdcClass) then
     Result := GetGDCBase.ChooseItems(LgdcClass, InterfaceToObject(KA) as TgdKeyArray,
       AChosenIDInOrder, ChooseComponentName, ChooseSubSet, ChooseSubType, ChooseExtraConditions);
@@ -8194,7 +8190,7 @@ var
   LFullClass: TgdcFullClassName;
 begin
   LFullClass.gdClassName := AgdcClassName;
-  LgdcClass := gdClassList.GetGDCClass(LFullClass);
+  LgdcClass := gdClassList.GetGDCClass(LFullClass.gdClassName);
   if LgdcClass = nil then
     raise Exception.Create('Класс ' + AgdcClassName + 'не найден.');
 
@@ -12762,7 +12758,7 @@ begin
   правильно ли это?
   }
   LFullClass.gdClassName := Value;
-  LClass := gdClassList.GetGDCClass(LFullClass);
+  LClass := gdClassList.GetGDCClass(LFullClass.gdClassName);
   if LClass = nil then
     raise Exception.Create('Класс ' + Value + ' не найден.');
 

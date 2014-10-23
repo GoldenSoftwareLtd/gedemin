@@ -905,7 +905,7 @@ var
 begin
   gdcFullClassName.SubType := '';
   gdcFullClassName.gdClassName := FrmClassName;
-  TmpClass := gdClassList.GetFrmClass(gdcFullClassName);
+  TmpClass := gdClassList.GetFrmClass(gdcFullClassName.gdClassName);
   if not Assigned(TmpClass) then
     TmpClass := GetClass(FrmClassName);
   if not Assigned(TmpClass) then

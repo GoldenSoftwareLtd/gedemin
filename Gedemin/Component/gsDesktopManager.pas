@@ -1124,7 +1124,7 @@ begin
           begin
             if (Items[i] is TgdcBaseData) then
             begin
-              PC := gdClassList.GetFrmClass(gdcFullClassName((Items[i] as TgdcBaseData).gdcClassName, (Items[i] as TgdcBaseData).gdcSubType));
+              PC := gdClassList.GetFrmClass((Items[i] as TgdcBaseData).gdcClassName);
               if (PC <> nil) {and GdC.Class_TestUserRights([tiAView, tiAChag, tiAFull], (Items[i] as TgdcBaseData).gdcSubType)} then
               begin
                 // если был загружен деск-топ с пользовательскими формами

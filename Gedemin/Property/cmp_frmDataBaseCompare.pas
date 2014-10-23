@@ -1143,7 +1143,7 @@ begin
       end;
     end else
     begin
-      C := gdClassList.GetGDCClass(gdcFullClassName(FSQL.FieldByName('CLASSNAME').AsString, S));
+      C := gdClassList.GetGDCClass(FSQL.FieldByName('CLASSNAME').AsString);
       if (C <> nil) and (IBLogin.Database = FSQL.Database) then
         Result := C.GetDisplayName(S)
     end;

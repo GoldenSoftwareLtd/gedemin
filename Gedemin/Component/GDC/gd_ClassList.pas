@@ -445,8 +445,35 @@ type
     procedure AddClassMethods(AClass: TComponentClass;
       AMethods: array of TgdMethod); overload;
 
-    function GetGDCClass(const AFullClassName: TgdcFullClassName): CgdcBase;
-    function GetFrmClass(const AFullClassName: TgdcFullClassName): CgdcCreateableForm;
+    //function GetGDCClass(const AFullClassName: TgdcFullClassName): CgdcBase;
+    //function GetFrmClass(const AFullClassName: TgdcFullClassName): CgdcCreateableForm;
+
+    { ÂÎÒ ÒÀÊ ÁÛËÎ ÐÀÍÜØÅ!!! 
+    function TgdClassList.GetCustomClass(
+      const AFullClassName: TgdcFullClassName): TComponentClass;
+    var
+      i: Integer;
+    begin
+      Result := nil;
+
+      i := FClassList.IndexOf(AFullClassName.gdClassName);
+      if i > -1 then
+        Result := GetClass(i);
+    end;
+
+    function TgdcClassList.GetGDCClass(const AFullClassName: TgdcFullClassName): CgdcBase;
+    var
+      LComponentClass: TComponentClass;
+    begin
+      Result := nil;
+      LComponentClass := GetCustomClass(AFullClassName);
+      if Assigned(LComponentClass) then
+        Result := CgdcBase(LComponentClass);
+    end;
+
+    }
+    function GetGDCClass(const AClassName: String): CgdcBase;
+    function GetFrmClass(const AClassName: String): CgdcCreateableForm;
 
     property Count: Integer read FCount;
   end;
@@ -2056,7 +2083,7 @@ end;
 
 {TgdClassList}
 
-function TgdClassList.GetGDCClass(const AFullClassName: TgdcFullClassName): CgdcBase;
+{function TgdClassList.GetGDCClass(const AFullClassName: TgdcFullClassName): CgdcBase;
 var
   CE: TgdClassEntry;
 begin
@@ -2066,13 +2093,37 @@ begin
     Result := CE.gdcClass
   else
     Result := nil;
-end;
+end;}
 
-function TgdClassList.GetFrmClass(const AFullClassName: TgdcFullClassName): CgdcCreateableForm;
+{function TgdClassList.GetFrmClass(const AFullClassName: TgdcFullClassName): CgdcCreateableForm;
 var
   CE: TgdClassEntry;
 begin
   CE := Find(AFullClassName.gdClassName, AFullClassName.SubType);
+
+  if CE <> nil then
+    Result := CE.frmClass
+  else
+    Result := nil;
+end;}
+
+function TgdClassList.GetGDCClass(const AClassName: String): CgdcBase;
+var
+  CE: TgdClassEntry;
+begin
+  CE := Find(AClassName, '');
+
+  if CE <> nil then
+    Result := CE.gdcClass
+  else
+    Result := nil;
+end;
+
+function TgdClassList.GetFrmClass(const AClassName: String): CgdcCreateableForm;
+var
+  CE: TgdClassEntry;
+begin
+  CE := Find(AClassName, '');
 
   if CE <> nil then
     Result := CE.frmClass
