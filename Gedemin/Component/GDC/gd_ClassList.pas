@@ -372,7 +372,6 @@ type
     function Find(const AClassName: AnsiString;
       const ASubType: TgdcSubType = ''): TgdClassEntry;
 
-    procedure CheckDBID;
     procedure SetReadOnly(AReadOnly: Boolean);
     function Add(const AClass: TClass; const ASubType: TgdcSubType = '';
       const AComment: String = ''; const AParentSubType: TgdcSubType = '';
@@ -402,7 +401,6 @@ type
 
   TgdClassList = class(TObject)
   private
-    FCachedDBID: TID;
     FClasses: array of TgdClassEntry;
     FCount: Integer;
 
@@ -412,8 +410,6 @@ type
       out Index: Integer): Boolean;
     procedure _Insert(const Index: Integer; ACE: TgdClassEntry);
     procedure _Grow;
-
-    procedure CheckDBID;
 
   public
     constructor Create;
@@ -1850,7 +1846,6 @@ begin
 
   Result := False;
 
-  CheckDBID;
   CheckInitialized;
 
   for I := 0 to Count - 1 do
@@ -1988,11 +1983,6 @@ begin
   Result := gdClassList.Find(AClassName, ASubType);
 end;
 
-procedure TgdClassEntry.CheckDBID;
-begin
-  gdClassList.CheckDBID;
-end;
-
 procedure TgdClassEntry.SetReadOnly(AReadOnly: Boolean);
 begin
   gdClassList.FReadOnly := AReadOnly
@@ -2016,7 +2006,6 @@ begin
 
   SetReadOnly(False);
 
-  CheckDBID;
   CheckInitialized;
 
   SetReadOnly(True);
@@ -2049,7 +2038,6 @@ begin
 
   SetReadOnly(False);
 
-  CheckDBID;
   CheckInitialized;
   
   SetReadOnly(True);
@@ -2174,7 +2162,6 @@ constructor TgdClassList.Create;
 begin
   inherited;
   FReadOnly := False;
-  FCachedDBID := -1;
   {$IFDEF DEBUG}
   Inc(glbClassListCount);
   {$ENDIF}
@@ -2298,8 +2285,6 @@ begin
       SL.Free;
     end;
   end;
-
-  FCachedDBID := -1;
 end;
 
 procedure TgdClassList.AddClassMethods(AClass: TComponentClass;
@@ -2437,26 +2422,11 @@ begin
   Inc(FCount);
 end;
 
-procedure TgdClassList.CheckDBID;
-begin
-  if Assigned(IBLogin) then
-    begin
-    if FCachedDBID <> IBLogin.DBID then
-    begin
-      if FCachedDBID <> -1 then
-        RemoveAllSubTypes;
-      FCachedDBID := IBLogin.DBID;
-    end;
-  end;
-end;
-
 function TgdClassList.Find(const AClassName: AnsiString;
   const ASubType: TgdcSubType): TgdClassEntry;
 var
   Index: Integer;
 begin
-  CheckDBID;
-
   if _Find(AClassName, ASubType, Index) then
     Result := FClasses[Index]
   else
