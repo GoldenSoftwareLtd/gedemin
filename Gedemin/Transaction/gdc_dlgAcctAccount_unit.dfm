@@ -15,6 +15,9 @@ inherited gdc_dlgAcctAccount: Tgdc_dlgAcctAccount
           TabStop = True
         end
       end
+      inherited gsibRelationFields: TgsIBLookupComboBox
+        SortOrder = soAsc
+      end
     end
   end
 end
