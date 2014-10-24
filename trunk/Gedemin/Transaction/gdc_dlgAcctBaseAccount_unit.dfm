@@ -1,5 +1,5 @@
 inherited gdc_dlgAcctBaseAccount: Tgdc_dlgAcctBaseAccount
-  Left = 623
+  Left = 624
   Top = 250
   BorderIcons = [biSystemMenu]
   BorderWidth = 5
@@ -170,6 +170,7 @@ inherited gdc_dlgAcctBaseAccount: Tgdc_dlgAcctBaseAccount
         ListTable = 'AT_RELATION_FIELDS'
         ListField = 'LNAME'
         KeyField = 'ID'
+        SortOrder = soAsc
         Condition = 'RELATIONNAME = '#39'AC_ACCOUNT'#39' AND FIELDNAME LIKE '#39'USR$%'#39
         ItemHeight = 13
         ParentShowHint = False
