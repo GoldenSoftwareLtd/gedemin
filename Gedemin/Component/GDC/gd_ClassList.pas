@@ -161,8 +161,8 @@ const
     'Tgdc_frmInvDocument');
 
   //Классы прайс листов
-  InvPriceListClasses: array[0..5] of String = (
-    'TgdcInvBasePriceList',
+  InvPriceListClasses: array[0..4] of String = (
+    //'TgdcInvBasePriceList',
     'TgdcInvPriceList',
     'TgdcInvPriceListLine',
     'TdlgInvPriceLine',

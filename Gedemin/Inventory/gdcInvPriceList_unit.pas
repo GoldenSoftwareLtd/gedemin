@@ -76,7 +76,7 @@ type
 
   public
     constructor Create(AnOwner: TComponent); override;
-
+    class function IsAbstractClass: Boolean; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
 
     function DocumentTypeKey: Integer; override;
@@ -192,6 +192,10 @@ begin
   FLastRelationCostKey := -1;
 end;
 
+class function TgdcInvBasePriceList.IsAbstractClass: Boolean;
+begin
+  Result := Self.ClassNameIs('TgdcInvBasePriceList');
+end;
 
 function TgdcInvBasePriceList.DocumentTypeKey: Integer;
 begin
