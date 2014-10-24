@@ -1,5 +1,5 @@
 inherited gdc_dlgAcctAccount: Tgdc_dlgAcctAccount
-  Left = 403
+  Left = 404
   Top = 190
   HelpContext = 112
   PixelsPerInch = 96
@@ -14,9 +14,6 @@ inherited gdc_dlgAcctAccount: Tgdc_dlgAcctAccount
           Top = -1
           TabStop = True
         end
-      end
-      inherited gsibRelationFields: TgsIBLookupComboBox
-        SortOrder = soAsc
       end
     end
   end
