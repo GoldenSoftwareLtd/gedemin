@@ -511,15 +511,15 @@ begin
       '      corr_entry.accountkey AS corr_accountkey, '#13#10 +
         IIF(FCurrSumInfo.Show and (FCurrkey > 0),
           ' IIF(corr_entry.issimple = 0 and entry.currkey <> corr_entry.currkey and corr_entry.debitcurr = 0 and corr_entry.creditcurr = 0, corr_entry.currkey, entry.currkey) AS currkey, '#13#10, '') +
-      '      SUM(CAST(IIF(corr_entry.issimple = 0, corr_entry.creditncu, entry.debitncu) / %0:d AS NUMERIC(15, %1:d))) AS ncu_debit, '#13#10 +
-      '      SUM(CAST(IIF(corr_entry.issimple = 0, corr_entry.debitncu, entry.creditncu) / %0:d AS NUMERIC(15, %1:d))) AS ncu_credit, '#13#10 +
+      '      CAST(SUM(IIF(corr_entry.issimple = 0, corr_entry.creditncu, entry.debitncu) / %0:d ) AS NUMERIC(15, %1:d)) AS ncu_debit, '#13#10 +
+      '      CAST(SUM(IIF(corr_entry.issimple = 0, corr_entry.debitncu, entry.creditncu) / %0:d ) AS NUMERIC(15, %1:d))AS ncu_credit, '#13#10 +
         IIF(FCurrSumInfo.Show and (FCurrkey > 0),
-          '      SUM(CAST(IIF(corr_entry.issimple = 0, IIF(entry.currkey <> corr_entry.currkey, entry.debitcurr, corr_entry.creditcurr), entry.debitcurr) / %2:d AS NUMERIC(15, %3:d))) AS curr_debit, '#13#10 +
-          '      SUM(CAST(IIF(corr_entry.issimple = 0, IIF(entry.currkey <> corr_entry.currkey, entry.creditcurr, corr_entry.debitcurr), entry.creditcurr) / %2:d AS NUMERIC(15, %3:d))) AS curr_credit, ',
-          '      SUM(CAST(IIF(corr_entry.issimple = 0, corr_entry.creditcurr, entry.debitcurr) / %2:d AS NUMERIC(15, %3:d))) AS curr_debit, '#13#10 +
-          '      SUM(CAST(IIF(corr_entry.issimple = 0, corr_entry.debitcurr, entry.creditcurr) / %2:d AS NUMERIC(15, %3:d))) AS curr_credit, ')  + #13#10 +
-      '      SUM(CAST(IIF(corr_entry.issimple = 0, corr_entry.crediteq, entry.debiteq) / %4:d AS NUMERIC(15, %5:d))) AS eq_debit, '#13#10 +
-      '      SUM(CAST(IIF(corr_entry.issimple = 0, corr_entry.debiteq, entry.crediteq) / %4:d AS NUMERIC(15, %5:d))) AS eq_credit '#13#10 +
+          '      CAST(SUM(IIF(corr_entry.issimple = 0, IIF(entry.currkey <> corr_entry.currkey, entry.debitcurr, corr_entry.creditcurr), entry.debitcurr) / %2:d ) AS NUMERIC(15, %3:d)) AS curr_debit, '#13#10 +
+          '      CAST(SUM(IIF(corr_entry.issimple = 0, IIF(entry.currkey <> corr_entry.currkey, entry.creditcurr, corr_entry.debitcurr), entry.creditcurr) / %2:d ) AS NUMERIC(15, %3:d)) AS curr_credit, ',
+          '      CAST(SUM(IIF(corr_entry.issimple = 0, corr_entry.creditcurr, entry.debitcurr) / %2:d ) AS NUMERIC(15, %3:d)) AS curr_debit, '#13#10 +
+          '      CAST(SUM(IIF(corr_entry.issimple = 0, corr_entry.debitcurr, entry.creditcurr) / %2:d ) AS NUMERIC(15, %3:d)) AS curr_credit, ')  + #13#10 +
+      '      CAST(SUM(IIF(corr_entry.issimple = 0, corr_entry.crediteq, entry.debiteq) / %4:d) AS NUMERIC(15, %5:d)) AS eq_debit, '#13#10 +
+      '      CAST(SUM(IIF(corr_entry.issimple = 0, corr_entry.debiteq, entry.crediteq) / %4:d) AS NUMERIC(15, %5:d)) AS eq_credit '#13#10 +
       '    FROM '#13#10 +
       '    ( '#13#10 +
       '      SELECT '#13#10 +
@@ -574,15 +574,15 @@ begin
       '  corr_a.id AS corrid, '#13#10 +
       '  a.name AS name, '#13#10 +
       '  corr_a.name AS corrname, '#13#10 +
-      '  SUM(CAST(IIF(e1.issimple = 0, e1.creditncu, e.debitncu) / %0:d AS NUMERIC(15, %1:d))) AS NCU_DEBIT, '#13#10 +
-      '  SUM(CAST(IIF(e1.issimple = 0, e1.debitncu, e.creditncu) / %0:d AS NUMERIC(15, %1:d))) AS NCU_CREDIT, '#13#10 +
+      '  CAST(SUM(IIF(e1.issimple = 0, e1.creditncu, e.debitncu) / %0:d) AS NUMERIC(15, %1:d)) AS NCU_DEBIT, '#13#10 +
+      '  CAST(SUM(IIF(e1.issimple = 0, e1.debitncu, e.creditncu) / %0:d) AS NUMERIC(15, %1:d)) AS NCU_CREDIT, '#13#10 +
       IIF(FCurrSumInfo.Show and (FCurrkey > 0),
-        '  SUM(CAST(IIF(e1.issimple = 0, IIF(e.currkey <> e1.currkey, e.debitcurr, e1.creditcurr), e.debitcurr) / %2:d AS NUMERIC(15, %3:d))) AS CURR_DEBIT, '#13#10 +
-        '  SUM(CAST(IIF(e1.issimple = 0, IIF(e.currkey <> e1.currkey, e.creditcurr, e1.debitcurr), e.creditcurr) / %2:d AS NUMERIC(15, %3:d))) AS CURR_CREDIT, ',
-        '  SUM(CAST(IIF(e1.issimple = 0, e1.creditcurr, e.debitcurr) / %2:d AS NUMERIC(15, %3:d))) AS CURR_DEBIT, '#13#10 +
-        '  SUM(CAST(IIF(e1.issimple = 0, e1.debitcurr, e.creditcurr) / %2:d AS NUMERIC(15, %3:d))) AS CURR_CREDIT, ')  + #13#10 +
-      '  SUM(CAST(IIF(e1.issimple = 0, e1.crediteq, e.debiteq) / %4:d AS NUMERIC(15, %5:d))) AS EQ_DEBIT, '#13#10 +
-      '  SUM(CAST(IIF(e1.issimple = 0, e1.debiteq, e.crediteq) / %4:d AS NUMERIC(15, %5:d))) AS EQ_CREDIT '#13#10 +
+        '  CAST(SUM(IIF(e1.issimple = 0, IIF(e.currkey <> e1.currkey, e.debitcurr, e1.creditcurr), e.debitcurr) / %2:d) AS NUMERIC(15, %3:d)) AS CURR_DEBIT, '#13#10 +
+        '  CAST(SUM(IIF(e1.issimple = 0, IIF(e.currkey <> e1.currkey, e.creditcurr, e1.debitcurr), e.creditcurr) / %2:d) AS NUMERIC(15, %3:d)) AS CURR_CREDIT, ',
+        '  CAST(SUM(IIF(e1.issimple = 0, e1.creditcurr, e.debitcurr) / %2:d) AS NUMERIC(15, %3:d)) AS CURR_DEBIT, '#13#10 +
+        '  CAST(SUM(IIF(e1.issimple = 0, e1.debitcurr, e.creditcurr) / %2:d) AS NUMERIC(15, %3:d)) AS CURR_CREDIT, ')  + #13#10 +
+      '  CAST(SUM(IIF(e1.issimple = 0, e1.crediteq, e.debiteq) / %4:d) AS NUMERIC(15, %5:d)) AS EQ_DEBIT, '#13#10 +
+      '  CAST(SUM(IIF(e1.issimple = 0, e1.debiteq, e.crediteq) / %4:d) AS NUMERIC(15, %5:d)) AS EQ_CREDIT '#13#10 +
       ValueSelect + #13#10 +
       ' FROM ac_entry e  '#13#10 +
       '  LEFT JOIN ac_entry e1 ON e.recordkey = e1.recordkey AND e.accountpart <> e1.accountpart '#13#10 +
