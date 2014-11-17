@@ -1,6 +1,6 @@
 object dlgAnaliticSelect: TdlgAnaliticSelect
-  Left = 825
-  Top = 359
+  Left = 350
+  Top = 179
   Width = 264
   Height = 245
   BorderWidth = 5
@@ -26,7 +26,7 @@ object dlgAnaliticSelect: TdlgAnaliticSelect
     BevelOuter = bvNone
     TabOrder = 0
     object Button1: TButton
-      Left = 161
+      Left = 171
       Top = 5
       Width = 75
       Height = 21
@@ -35,7 +35,7 @@ object dlgAnaliticSelect: TdlgAnaliticSelect
       TabOrder = 0
     end
     object Button2: TButton
-      Left = 81
+      Left = 83
       Top = 5
       Width = 75
       Height = 21

@@ -2570,16 +2570,13 @@ var
   procedure DoRecurse(F: TgsStorageFolder);
   var
     V: TgsStorageValue;
-    //RB: Integer;
     Prnt: Integer;
   begin
     F.FID := q.FieldByName('id').AsInteger;
     F.FModified := q.FieldByName('editiondate').AsDateTime;
-    //RB := q.FieldByName('rb').AsInteger;
     Prnt := q.FieldByName('id').AsInteger;
     q.Next;
 
-    //while (not q.EOF) and (q.FieldByName('rb').AsInteger <= RB) do
     while (not q.EOF) and (q.FieldByName('parent').AsInteger = Prnt) do
     begin
       if q.FieldByName('data_type').AsString = 'F' then
@@ -2635,8 +2632,12 @@ var
         if (V <> nil) and (not q.EOF) and (q.FieldByName('parent').AsInteger = V.ID) then
         begin
           MessageBox(0,
-            PChar('Ошибка данных хранилища. Обратитесь к системному администратору. ID элемента = ' + q.FieldByName('id').AsString),
-            'Ошибка',
+            PChar(
+              'Элемент ID = ' + q.FieldByName('id').AsString +
+              ' входит в элемент ID = ' + q.FieldByName('parent').AsString +
+              ', который не является папкой.'#13#10 +
+              'Обратитесь к системному администратору.'),
+            'Ошибка данных хранилища',
             MB_ICONEXCLAMATION or MB_OK or MB_TASKMODAL);
           while (not q.EOF) and (q.FieldByName('parent').AsInteger <> Prnt) do
             q.Next;

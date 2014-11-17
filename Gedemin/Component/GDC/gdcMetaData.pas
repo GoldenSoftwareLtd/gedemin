@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2001-2013 by Golden Software of Belarus
+  Copyright (c) 2001-2014 by Golden Software of Belarus
 
   Module
 
@@ -7847,8 +7847,7 @@ begin
   Assert(atDatabase <> nil);
   FSQL := TSQLProcessList.Create;
   try
-    FSQL.Add(Format('DROP INDEX %s',
-      [FieldByName('indexname').AsString]));
+    FSQL.Add('DROP INDEX ' + FieldByName('indexname').AsString);
     atDatabase.NotifyMultiConnectionTransaction;
     ShowSQLProcess(FSQL);
   finally
@@ -8442,18 +8441,14 @@ begin
     ibsql.ParamByName('indexname').AsString := FieldByName('indexname').AsString;
     ibsql.ExecQuery;
 
-    if ibsql.RecordCount > 0 then
-    begin
-      Result := False;
-    end else
-
-    if CachedUpdates then
-    begin
-      if FIndexList.IndexOf(AnsiUpperCase(FieldByName('indexname').AsString)) > -1
-      then
-        Result := False;
-    end;
-
+    if not ibsql.EOF then
+      Result := False
+    else
+      if CachedUpdates then
+      begin
+        if FIndexList.IndexOf(AnsiUpperCase(FieldByName('indexname').AsString)) > -1 then
+          Result := False;
+      end;
   finally
     ibsql.Free;
   end;
