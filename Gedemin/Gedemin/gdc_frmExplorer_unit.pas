@@ -35,7 +35,7 @@ uses
   TB2Item,          TB2Dock,             TB2Toolbar,      gdcExplorer,
   gd_security,      IBCustomDataSet,     gdcBase,         gdcTree,
   StdCtrls,         gd_MacrosMenu,       Grids,           DBGrids,
-  gsDBGrid,         gsIBGrid, ImgList, gsIBLookupComboBox;
+  gsDBGrid,         gsIBGrid, ImgList,   gsIBLookupComboBox;
 
 type
   Tgdc_frmExplorer = class(Tgdc_frmG)
