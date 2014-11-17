@@ -17352,11 +17352,12 @@ begin
   begin
     if (not (sView in BaseState)) or
          (MessageBox(Application.Handle,
-            PChar(Format('Выделено записей: %d'#13#10'Удалить?', [VarArrayHighBound(BL, 1) + 1])),
+            PChar(
+              'Выделено записей: ' + FormatFloat('#,##0', VarArrayHighBound(BL, 1) + 1) + #13#10 +
+              'Удалить?'),
             'Внимание!',
             MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = IDYES) then
     begin
-      {DisableControls;}
       OldState := FBaseState;
       try
         if VarArrayHighBound(BL, 1) > VarArrayLowBound(BL, 1) then
@@ -17384,7 +17385,6 @@ begin
         end;
       finally
         FBaseState := OldState;
-        {EnableControls;}
       end;
     end;
   end;
@@ -17431,7 +17431,9 @@ begin
       and UserStorage.ReadBoolean('Options\Confirmations', 'EditMultiple', True) then
     begin
       if MessageBox(ParentHandle,
-        PChar(Format('Выделено для редактирования записей: %d. Продолжить?', [VarArrayHighBound(BL, 1) + 1])),
+        PChar(
+          'Выделено для редактирования записей: ' +
+          FormatFloat('#,##0', VarArrayHighBound(BL, 1) + 1) + '. Продолжить?'),
         'Внимание',
         MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = IDNO then
       begin
