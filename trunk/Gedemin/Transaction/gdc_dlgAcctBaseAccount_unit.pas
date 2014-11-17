@@ -237,13 +237,11 @@ begin
 end;
 
 procedure Tgdc_dlgAcctBaseAccount.SetupRecord;
-   VAR
   {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
-  {M}
+  {M}VAR
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-     tbsAttr: TComponent;
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGACCTBASEACCOUNT', 'SETUPRECORD', KEYSETUPRECORD)}
   {M}  try
@@ -273,8 +271,7 @@ begin
   lbRelation.Visible := gdcObject.FieldByName('activity').AsString = 'B';
   gsibRelationFields.Visible := lbRelation.Visible;
 
-  tbsAttr := Self.FindComponent('tbsAttr');
-  if Assigned(tbsAttr) then (tbsAttr as TTabSheet).TabVisible := False;
+  tbsAttr.TabVisible := False;
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGACCTBASEACCOUNT', 'SETUPRECORD', KEYSETUPRECORD)}
   {M}finally
