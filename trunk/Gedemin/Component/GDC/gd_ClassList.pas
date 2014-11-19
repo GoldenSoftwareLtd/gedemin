@@ -1854,10 +1854,10 @@ begin
     begin
       ASubTypeList.Add(Siblings[I].Comment + '=' + Siblings[I].SubType);
       Result := True;
-    end;
 
-    if not AnOnlyDirect then
-      Result := Siblings[I].GetSubTypeList(ASubTypeList, False) or Result;
+      if not AnOnlyDirect then
+        Result := Siblings[I].GetSubTypeList(ASubTypeList, False) or Result;
+    end;
   end;
 end;
 
