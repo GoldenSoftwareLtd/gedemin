@@ -487,6 +487,7 @@ begin
     Add(AddSpaces('Тип объекта:') + gdcObject.ClassName);
     Add(AddSpaces('Тип родителя:') + gdcObject.ClassParent.ClassName);
     Add(AddSpaces('Подтип:') + gdcObject.SubType);
+    Add(AddSpaces('Имя компонента:') + gdcObject.Name);
     if gdcObject.Owner is TCustomForm then
     begin
       Add(AddSpaces('Принадлежит форме:') + gdcObject.Owner.Name);
