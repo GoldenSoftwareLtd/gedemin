@@ -2190,6 +2190,17 @@ end;
 
 procedure TgdClassList.Remove(const AClass: TClass;
   const ASubType: TgdcSubType);
+
+  function ValueFromString(const Str: String): string;
+  var
+    P: Integer;
+  begin
+    Result := '';
+    P := AnsiPos('=', Str);
+    if (P <> 0) and (P <> Length(Str)) then
+      Result := Copy(Str, P + 1, Length(Str) - P);
+  end;
+
 var
   Index: Integer;
   SL: TStringList;
@@ -2209,7 +2220,7 @@ begin
       (FClasses[Index] as TgdClassEntry).GetRemoveList(SL, True, False);
       for I := 0 to SL.Count - 1 do
       begin
-        if _Find(SL.Names[I], SL.Values[SL.Names[I]], Index) then
+        if _Find(SL.Names[I], ValueFromString(SL[I]), Index) then
         begin
           FClasses[Index].Free;
           System.Move(FClasses[Index + 1], FClasses[Index],
@@ -2224,6 +2235,15 @@ begin
 end;
 
 procedure TgdClassList.RemoveAllSubTypes;
+  function ValueFromString(const Str: String): string;
+  var
+    P: Integer;
+  begin
+    Result := '';
+    P := AnsiPos('=', Str);
+    if (P <> 0) and (P <> Length(Str)) then
+      Result := Copy(Str, P + 1, Length(Str) - P);
+  end;
 var
   Index: Integer;
   SL: TStringList;
@@ -2239,7 +2259,7 @@ begin
       (FClasses[Index] as TgdClassEntry).GetRemoveList(SL, False, True);
       for I := 0 to SL.Count - 1 do
       begin
-        if _Find(SL.Names[I], SL.Values[SL.Names[I]], Index) then
+        if _Find(SL.Names[I], ValueFromString(SL[I]), Index) then
         begin
           if ((FClasses[Index] as TgdClassEntry).Parent <> nil)
             and ((FClasses[Index] as TgdClassEntry).Parent.SubType = '') then
@@ -2247,7 +2267,6 @@ begin
             (FClasses[Index] as TgdClassEntry).RemoveFromParent;
             (FClasses[Index] as TgdClassEntry).Parent.Initialized := False;
           end;
-
           FClasses[Index].Free;
           System.Move(FClasses[Index + 1], FClasses[Index],
             (FCount - Index - 1) * SizeOf(FClasses[0]));
@@ -2267,7 +2286,7 @@ begin
       (FClasses[Index] as TgdClassEntry).GetRemoveList(SL, False, True);
       for I := 0 to SL.Count - 1 do
       begin
-        if _Find(SL.Names[I], SL.Values[SL.Names[I]], Index) then
+        if _Find(SL.Names[I], ValueFromString(SL[I]), Index) then
         begin
           if ((FClasses[Index] as TgdClassEntry).Parent <> nil)
             and ((FClasses[Index] as TgdClassEntry).Parent.SubType = '') then
