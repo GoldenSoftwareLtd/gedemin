@@ -10658,9 +10658,8 @@ end;
 
 function TgdcBase.QueryDescendant: TgdcFullClass;
 var
-  I, J: Integer;
+  I: Integer;
   CL: TClassList;
-  Found: Boolean;
 begin
   {Если у нас явно указан сабтайп, то нафига выводить выбор классов? Исправлено}
   Result.SubType := SubType;
@@ -10699,35 +10698,7 @@ begin
 
     with Tgdc_dlgQueryDescendant.Create(ParentForm) do
     try
-      rgObjects.Items.Clear;
-
-      for I := 0 to CL.Count - 1 do
-      begin
-        Found := False;
-        for J := 0 to CL.Count - 1 do
-        begin
-          if J = I then
-            continue;
-          if CgdcBase(CL[I]).GetDisplayName(SubType) = CgdcBase(CL[J]).GetDisplayName(SubType) then
-          begin
-            Found := True;
-            break;
-          end;
-        end;
-
-        if Found then
-          rgObjects.Items.AddObject(CgdcBase(CL[I]).GetDisplayName(SubType) +
-            ' (' + CL[I].ClassName + ')',
-            Pointer(CL[I]))
-        else
-          rgObjects.Items.AddObject(CgdcBase(CL[I]).GetDisplayName(SubType),
-            Pointer(CL[I]));
-      end;
-
-      if Height < rgObjects.Items.Count * 30 + 30 then
-        Height := rgObjects.Items.Count * 30 + 30;
-
-      rgObjects.ItemIndex := 0;
+      FillrgObjects(CL);
 
       if (ShowModal <> mrOk) or (rgObjects.ItemIndex = -1) then
       begin
@@ -10736,7 +10707,8 @@ begin
         exit;
       end;
 
-      Result.gdClass := CgdcBase(rgObjects.Items.Objects[rgObjects.ItemIndex]);
+      Result.gdClass := TgdClassEntry(rgObjects.Items.Objects[rgObjects.ItemIndex]).gdcClass;
+      Result.SubType := TgdClassEntry(rgObjects.Items.Objects[rgObjects.ItemIndex]).SubType;
     finally
       Free;
     end;
