@@ -364,8 +364,6 @@ type
       const AnOnlyDirect: Boolean = False): Boolean; overload;
     function GetSubTypeList(ASubTypeList: TStrings; const AnOnlyDirect: Boolean): Boolean;
 
-    function GetRemoveList(ARemoveList: TStrings;
-      AnIncludeRoot: Boolean; AnOnlySubType: Boolean): Boolean;
     function RemoveFromParent: Boolean;
 
     procedure RegisterClassHierarchy;
@@ -441,33 +439,6 @@ type
     procedure AddClassMethods(AClass: TComponentClass;
       AMethods: array of TgdMethod); overload;
 
-    //function GetGDCClass(const AFullClassName: TgdcFullClassName): CgdcBase;
-    //function GetFrmClass(const AFullClassName: TgdcFullClassName): CgdcCreateableForm;
-
-    { ВОТ ТАК БЫЛО РАНЬШЕ!!! 
-    function TgdClassList.GetCustomClass(
-      const AFullClassName: TgdcFullClassName): TComponentClass;
-    var
-      i: Integer;
-    begin
-      Result := nil;
-
-      i := FClassList.IndexOf(AFullClassName.gdClassName);
-      if i > -1 then
-        Result := GetClass(i);
-    end;
-
-    function TgdcClassList.GetGDCClass(const AFullClassName: TgdcFullClassName): CgdcBase;
-    var
-      LComponentClass: TComponentClass;
-    begin
-      Result := nil;
-      LComponentClass := GetCustomClass(AFullClassName);
-      if Assigned(LComponentClass) then
-        Result := CgdcBase(LComponentClass);
-    end;
-
-    }
     function GetGDCClass(const AClassName: String): CgdcBase;
     function GetFrmClass(const AClassName: String): CgdcCreateableForm;
 
@@ -822,7 +793,7 @@ const
         if not (CursorPos > L) then
           raise Exception.Create('gd_ClassList: Ошибка формата. Позиция:' + IntToStr(CursorPos) + #13#10 +
             'Нужна точка с запятой');
-    end;        
+    end;
 
     if Assigned(Method) then
       Method.AddParam(ParamName, ParamType, PF);
@@ -1333,7 +1304,7 @@ var
   CE: TgdClassEntry;
 begin
   Result := nil;
-  
+
 //  CE := nil;
 //  if Assigned(gdClassList) then
   CE := gdClassList.Find(FgdcClass.ClassParent);
@@ -1350,7 +1321,7 @@ begin
   Assert(ASibling.Parent = Self);
   if FSiblings = nil then
     FSiblings := TObjectList.Create(False);
-  FSiblings.Add(ASibling);  
+  FSiblings.Add(ASibling);
 end;
 
 function TgdClassEntry.Compare(const AClass: TClass;
@@ -1861,29 +1832,6 @@ begin
   end;
 end;
 
-function TgdClassEntry.GetRemoveList(ARemoveList: TStrings;
-  AnIncludeRoot: Boolean; AnOnlySubType: Boolean): Boolean;
-var
-  I: Integer;
-begin
-  Assert(ARemoveList <> nil);
-
-  if AnIncludeRoot then
-    ARemoveList.Add(TheClass.ClassName + '=' + SubType);
-
-  for I := 0 to Count - 1 do
-  begin
-    if ((AnOnlySubType) and (Siblings[I].SubType <> ''))
-      or (not AnOnlySubType) then
-    begin
-      ARemoveList.Add(Siblings[I].TheClass.ClassName + '=' + Siblings[I].SubType);
-    end;
-
-    Siblings[I].GetRemoveList(ARemoveList, False, AnOnlySubType);
-  end;
-  Result := ARemoveList.Count > 0
-end;
-
 function TgdClassEntry.RemoveFromParent: Boolean;
 var
   I: Integer;
@@ -2039,7 +1987,7 @@ begin
   SetReadOnly(False);
 
   CheckInitialized;
-  
+
   SetReadOnly(True);
   try
     if AnIncludeRoot then
@@ -2188,19 +2136,24 @@ begin
   Result := Find(AClass.ClassName, ASubType);
 end;
 
+function GetRemoveList(ACE: TgdClassEntry; AData1: Pointer; AData2: Pointer): Boolean;
+begin
+  TStringList(AData1^).Add(ACE.TheClass.ClassName + '=' + ACE.SubType);
+  Result := True;
+end;
+
+function ValueFromString(const Str: String): string;
+var
+  P: Integer;
+begin
+  Result := '';
+  P := AnsiPos('=', Str);
+  if (P <> 0) and (P <> Length(Str)) then
+    Result := Copy(Str, P + 1, Length(Str) - P);
+end;
+
 procedure TgdClassList.Remove(const AClass: TClass;
   const ASubType: TgdcSubType);
-
-  function ValueFromString(const Str: String): string;
-  var
-    P: Integer;
-  begin
-    Result := '';
-    P := AnsiPos('=', Str);
-    if (P <> 0) and (P <> Length(Str)) then
-      Result := Copy(Str, P + 1, Length(Str) - P);
-  end;
-
 var
   Index: Integer;
   SL: TStringList;
@@ -2208,7 +2161,7 @@ var
 begin
   if FReadOnly then
     raise Exception.Create('removal of class can not be. gdClassList is read-only');
-    
+
   if AClass = nil then
     exit;
 
@@ -2217,8 +2170,8 @@ begin
     (FClasses[Index] as TgdClassEntry).RemoveFromParent;
     SL := TStringList.Create;
     try
-      (FClasses[Index] as TgdClassEntry).GetRemoveList(SL, True, False);
-      for I := 0 to SL.Count - 1 do
+      Traverse(AClass, ASubType, GetRemoveList, @SL, nil, True, False);
+      for I := SL.Count - 1 downto 0 do
       begin
         if _Find(SL.Names[I], ValueFromString(SL[I]), Index) then
         begin
@@ -2226,7 +2179,9 @@ begin
           System.Move(FClasses[Index + 1], FClasses[Index],
             (FCount - Index - 1) * SizeOf(FClasses[0]));
           Dec(FCount);
-        end;
+        end
+        else
+          raise Exception.Create('Класс не найден');
       end;
     finally
       SL.Free;
@@ -2234,20 +2189,36 @@ begin
   end;
 end;
 
+function GetAllSubTypes(ACE: TgdClassEntry; AData1: Pointer; AData2: Pointer): Boolean;
+begin
+  if ACE.SubType <> '' then
+    TStringList(AData1^).Add(ACE.TheClass.ClassName + '=' + ACE.SubType);
+
+  Result := True;
+end;
+
+procedure ResetIntialize(ACE: TgdClassEntry);
+var
+  I: Integer;
+begin
+  if ACE.SubType <> '' then
+    raise Exception.Create('Класс с подтипом');
+
+  ACE.Initialized := False;
+
+  if ACE.FSiblings <> nil then
+    for I := 0 to ACE.Count - 1 do
+    begin
+      ResetIntialize(ACE.Siblings[I]);
+    end;
+end;
+
 procedure TgdClassList.RemoveAllSubTypes;
-  function ValueFromString(const Str: String): string;
-  var
-    P: Integer;
-  begin
-    Result := '';
-    P := AnsiPos('=', Str);
-    if (P <> 0) and (P <> Length(Str)) then
-      Result := Copy(Str, P + 1, Length(Str) - P);
-  end;
 var
   Index: Integer;
   SL: TStringList;
   I: Integer;
+  CE: TgdClassEntry;
 begin
   if FReadOnly then
     raise Exception.Create('removal of classes can not be. gdClassList is read-only');
@@ -2256,54 +2227,69 @@ begin
   begin
     SL := TStringList.Create;
     try
-      (FClasses[Index] as TgdClassEntry).GetRemoveList(SL, False, True);
-      for I := 0 to SL.Count - 1 do
+      Traverse(TgdcBase, '', GetAllSubTypes, @SL, nil, True, False);
+      for I := SL.Count - 1 downto 0 do
       begin
         if _Find(SL.Names[I], ValueFromString(SL[I]), Index) then
         begin
-          if ((FClasses[Index] as TgdClassEntry).Parent <> nil)
-            and ((FClasses[Index] as TgdClassEntry).Parent.SubType = '') then
-          begin
+          if (FClasses[Index] as TgdClassEntry).Parent <> nil then
             (FClasses[Index] as TgdClassEntry).RemoveFromParent;
-            (FClasses[Index] as TgdClassEntry).Parent.Initialized := False;
-          end;
+
           FClasses[Index].Free;
           System.Move(FClasses[Index + 1], FClasses[Index],
             (FCount - Index - 1) * SizeOf(FClasses[0]));
           Dec(FCount);
-        end;
+        end
+        else
+          raise Exception.Create('Класс не найден');
       end;
     finally
       SL.Free;
     end;
-  end;
+  end
+  else
+    raise Exception.Create('Класс не найден');
 
+  CE := Find(TgdcBase, '');
+
+  if CE = nil then
+    raise Exception.Create('Класс не найден');
+
+  ResetIntialize(CE);
 
   if _Find('TgdcCreateableForm', '', Index) then
   begin
     SL := TStringList.Create;
     try
-      (FClasses[Index] as TgdClassEntry).GetRemoveList(SL, False, True);
-      for I := 0 to SL.Count - 1 do
+      Traverse(TgdcCreateableForm, '', GetAllSubTypes, @SL, nil, True, False);
+      for I := SL.Count - 1 downto 0 do
       begin
         if _Find(SL.Names[I], ValueFromString(SL[I]), Index) then
         begin
-          if ((FClasses[Index] as TgdClassEntry).Parent <> nil)
-            and ((FClasses[Index] as TgdClassEntry).Parent.SubType = '') then
-          begin
+          if (FClasses[Index] as TgdClassEntry).Parent <> nil then
             (FClasses[Index] as TgdClassEntry).RemoveFromParent;
-            (FClasses[Index] as TgdClassEntry).Parent.Initialized := False;
-          end;
           FClasses[Index].Free;
           System.Move(FClasses[Index + 1], FClasses[Index],
             (FCount - Index - 1) * SizeOf(FClasses[0]));
           Dec(FCount);
-        end;
+        end
+        else
+          raise Exception.Create('Класс не найден');
       end;
     finally
       SL.Free;
     end;
-  end;
+  end
+  else
+    raise Exception.Create('Класс не найден');
+
+  CE := Find(TgdcCreateableForm, '');
+
+  if CE = nil then
+    raise Exception.Create('Класс не найден');
+    
+  ResetIntialize(CE);
+
 end;
 
 procedure TgdClassList.AddClassMethods(AClass: TComponentClass;
