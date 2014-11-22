@@ -484,7 +484,7 @@ begin
   end
   else
   begin
-    LTreeNode := tvObjects.Items.AddChild(TTreeNode(AData1^), ACE.Comment +
+    LTreeNode := tvObjects.Items.AddChild(TTreeNode(AData1^), ACE.Caption +
      ' [' + ACE.gdcClass.ClassName + '(' + ACE.SubType + ')]');
     if dsgdcBase.DataSet.State = dsInsert then
       tvObjects.Items[tvObjects.Items.Count - 1].StateIndex := 2

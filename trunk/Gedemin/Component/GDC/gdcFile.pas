@@ -46,8 +46,6 @@ type
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function NeedModifyFromStream(const SubType: String): Boolean; override;
 
-    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
-
     function CheckTheSameStatement: String; override;  
     function GetCurrRecordClass: TgdcFullClass; override;
 
@@ -110,7 +108,6 @@ type
     procedure SaveToFieldFromStream(S: TStream; Fld: TField);
 
   public
-    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
     class function GetRestrictCondition(const ATableName, ASubType: String): String; override;
 
     {Считывание содержимого из файла в текущую запись. Запись должна находится
@@ -145,7 +142,6 @@ type
       Action: TflAction = flAsk); override;
 
   public
-    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
     class function GetRestrictCondition(const ATableName, ASubType: String): String; override;
 
     function FolderSize: Integer;
@@ -300,12 +296,6 @@ begin
       //Result.SubType := '';
     end;
   end;
-end;
-
-class function TgdcBaseFile.GetDisplayName(
-  const ASubType: TgdcSubType): String;
-begin
-  Result := 'Файлы';
 end;
 
 function TgdcBaseFile.GetFullPath: String;
@@ -838,12 +828,6 @@ begin
   {END MACRO}
 end;
 
-class function TgdcFileFolder.GetDisplayName(
-  const ASubType: TgdcSubType): String;
-begin
-  Result := 'Папка';
-end;
-
 procedure TgdcFileFolder._DoOnNewRecord;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
   {M}VAR
@@ -1064,12 +1048,6 @@ begin
   {M}      ClearMacrosStack2('TGDCFILE', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM);
   {M}  end;
   {END MACRO}
-end;
-
-class function TgdcFile.GetDisplayName(
-  const ASubType: TgdcSubType): String;
-begin
-  Result := 'Файл';
 end;
 
 procedure TgdcFile.LoadDataFromFile(AfileName: String);
@@ -1535,9 +1513,13 @@ begin
 end;
 
 initialization
-  RegisterGDCClasses([TgdcBaseFile, TgdcFile, TgdcFileFolder]);
+  RegisterGDCClass(TgdcBaseFile, 'Файлы');
+  RegisterGDCClass(TgdcFile, 'Файл');
+  RegisterGDCClass(TgdcFileFolder, 'Папка');
   FRootDirectory := '';
 
 finalization
-  UnRegisterGDCClasses([TgdcBaseFile, TgdcFile, TgdcFileFolder]);
+  UnRegisterGDCClass(TgdcBaseFile);
+  UnRegisterGDCClass(TgdcFile);
+  UnRegisterGDCClass(TgdcFileFolder);
 end.

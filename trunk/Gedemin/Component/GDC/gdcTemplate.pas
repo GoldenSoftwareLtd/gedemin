@@ -21,7 +21,6 @@ type
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetSubSetList: String; override;
 
-    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
     class function NeedModifyFromStream(const SubType: String): Boolean; override;
 
     function CheckTheSameStatement: String; override;
@@ -153,12 +152,6 @@ begin
   {END MACRO}
 end;
 
-class function TgdcTemplate.GetDisplayName(
-  const ASubType: TgdcSubType): String;
-begin
-  Result := 'Шаблон отчета';
-end;
-
 class function TgdcTemplate.GetKeyField(const ASubType: TgdcSubType): String;
 begin
   Result := fnId;
@@ -186,7 +179,7 @@ begin
 end;
 
 initialization
-  RegisterGDCClass(TgdcTemplate);
+  RegisterGDCClass(TgdcTemplate, 'Шаблон отчета');
 
 finalization
   UnRegisterGDCClass(TgdcTemplate);

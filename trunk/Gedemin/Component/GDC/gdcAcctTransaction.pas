@@ -64,7 +64,6 @@ type
   public
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
-    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
   end;
 
   TgdcBaseAcctTransactionEntry = class(TgdcBase)
@@ -97,7 +96,6 @@ type
     procedure GetWhereClauseConditions(S: TStrings); override;
   public
     class function GetDialogFormClassName(const ASubType: TgdcSubType): string; override;
-    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
   end;
 
   EgdcAcctTransaction = class(Exception);
@@ -370,12 +368,6 @@ class function TgdcAcctTransaction.GetDialogFormClassName(
   const ASubType: TgdcSubType): String;
 begin
   Result := 'Tgdc_dlgAcctTransaction'
-end;
-
-class function TgdcAcctTransaction.GetDisplayName(
-  const ASubType: TgdcSubType): String;
-begin
-  Result := 'Типовая операция'
 end;
 
 class function TgdcAcctTransaction.GetViewFormClassName(
@@ -799,12 +791,6 @@ begin
   Result := 'Tgdc_dlgAcctTrEntry';
 end;
 
-class function TgdcAcctTransactionEntry.GetDisplayName(
-  const ASubType: TgdcSubType): String;
-begin
-  Result := 'Типовые проводки';
-end;
-
 procedure TgdcAcctTransactionEntry.GetWhereClauseConditions(S: TStrings);
 begin
   inherited;
@@ -917,8 +903,8 @@ begin
 end;
 
 initialization
-  RegisterGdcClass(TgdcAcctTransaction);
-  RegisterGdcClass(TgdcAcctTransactionEntry);
+  RegisterGdcClass(TgdcAcctTransaction, 'Типовая операция');
+  RegisterGdcClass(TgdcAcctTransactionEntry, 'Типовые проводки');
   RegistergdcClass(TgdcBaseAcctTransaction);
 
 finalization

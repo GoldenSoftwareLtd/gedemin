@@ -794,11 +794,11 @@ end;
 {$ENDIF}
 
 initialization
-  RegisterFrmClasses([TgdcCreateableForm]);
+  RegisterFrmClass(TgdcCreateableForm);
   TgdcCreateableForm.RegisterMethod;
 
 finalization
-  UnRegisterFrmClasses([TgdcCreateableForm]);
+  UnRegisterFrmClass(TgdcCreateableForm);
 
 {@DECLARE MACRO Inh_CrForm_Params(%Var%)
 %Var%

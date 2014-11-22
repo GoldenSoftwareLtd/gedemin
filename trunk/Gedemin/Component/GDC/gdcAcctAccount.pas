@@ -49,7 +49,6 @@ type
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
-    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
     class function GetSubSetList: String; override;
   end;
 
@@ -60,7 +59,6 @@ type
 
   public
     class function GetDialogFormClassName(const ASubType: TgdcSubType): string; override;
-    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
     class function GetRestrictCondition(const ATableName,
       ASubType: String): String; override;
   end;
@@ -89,7 +87,6 @@ type
 
   public
     class function GetDialogFormClassName(const ASubType: TgdcSubType): string; override;
-    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
     class function GetRestrictCondition(const ATableName,
       ASubType: String): String; override;
       
@@ -103,7 +100,6 @@ type
 
   public
     class function GetDialogFormClassName(const ASubType: TgdcSubType): string; override;
-    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
     class function GetRestrictCondition(const ATableName,
       ASubType: String): String; override;
   end;
@@ -197,12 +193,6 @@ begin
   Result := 'Tgdc_frmAcctAccount';
 end;
 
-class function TgdcAcctBase.GetDisplayName(
-  const ASubType: TgdcSubType): String;
-begin
-  Result := 'Бухгалтерский план счетов'
-end;
-
 class function TgdcAcctBase.GetSubSetList: String;
 begin
   Result := inherited GetSubSetList +
@@ -293,12 +283,6 @@ class function TgdcAcctFolder.GetDialogFormClassName(
   const ASubType: TgdcSubType): string;
 begin
   Result := 'Tgdc_dlgAcctFolder';
-end;
-
-class function TgdcAcctFolder.GetDisplayName(
-  const ASubType: TgdcSubType): String;
-begin
-  Result := 'Раздел плана счетов';
 end;
 
 class function TgdcAcctFolder.GetRestrictCondition(const ATableName,
@@ -614,11 +598,6 @@ begin
   Result := 'Tgdc_dlgAcctAccount';
 end;
 
-class function TgdcAcctAccount.GetDisplayName(const ASubType: TgdcSubType): String;
-begin
-  Result := 'Счет';
-end;
-
 class function TgdcAcctAccount.GetRestrictCondition(const ATableName,
   ASubType: String): String;
 begin
@@ -692,11 +671,6 @@ begin
   Result := 'Tgdc_dlgAcctSubAccount';
 end;
 
-class function TgdcAcctSubAccount.GetDisplayName(const ASubType: TgdcSubType): String;
-begin
-  Result := 'Субсчет';
-end;
-
 class function TgdcAcctSubAccount.GetRestrictCondition(const ATableName,
   ASubType: String): String;
 begin
@@ -710,11 +684,11 @@ begin
 end;
 
 initialization
-  RegisterGdcClass(TgdcAcctBase);
-  RegisterGdcClass(TgdcAcctFolder);
+  RegisterGdcClass(TgdcAcctBase, 'Бухгалтерский план счетов');
+  RegisterGdcClass(TgdcAcctFolder, 'Раздел плана счетов');
   RegisterGdcClass(TgdcAcctChart);
-  RegisterGdcClass(TgdcAcctAccount);
-  RegisterGdcClass(TgdcAcctSubAccount);
+  RegisterGdcClass(TgdcAcctAccount, 'Счет');
+  RegisterGdcClass(TgdcAcctSubAccount, 'Субсчет');
 
 finalization
   UnRegisterGdcClass(TgdcAcctBase);

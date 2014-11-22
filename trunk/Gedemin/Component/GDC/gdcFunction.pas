@@ -30,7 +30,6 @@ type
     constructor Create(AnOwner: TComponent); override;
     destructor  Destroy; override;
 
-    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetKeyField(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
@@ -532,11 +531,6 @@ begin
   Result := True;
 end;
 
-class function TgdcFunction.GetDisplayName(const ASubType: TgdcSubType): String;
-begin
-  Result := 'Функция';
-end;
-
 function TgdcFunction.GetFromClause(const ARefresh: Boolean): String;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
   {M}VAR
@@ -727,7 +721,7 @@ begin
 end;
 
 initialization
-  RegisterGdcClass(TgdcFunction);
+  RegisterGdcClass(TgdcFunction, 'Функция');
 
 finalization
   UnRegisterGdcClass(TgdcFunction);

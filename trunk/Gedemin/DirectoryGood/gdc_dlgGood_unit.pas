@@ -331,10 +331,10 @@ begin
 end;
 
 initialization
-  RegisterFrmClasses([Tgdc_dlgGood]);
+  RegisterFrmClass(Tgdc_dlgGood);
 
 finalization
-  UnRegisterFrmClasses([Tgdc_dlgGood]);
+  UnRegisterFrmClass(Tgdc_dlgGood);
 end.
 
 

@@ -1230,11 +1230,12 @@ initialization
   UpdateChildren_AView_And := 0;
   UpdateChildren_AView_Or := 0;
 
-  RegisterGDCClasses([TgdcTree, TgdcLBRBTree]);
+  RegisterGDCClass(TgdcTree);
+  RegisterGDCClass(TgdcLBRBTree);
 
 finalization
-  UnRegisterGDCClasses([TgdcTree, TgdcLBRBTree]);
-
+  UnRegisterGDCClass(TgdcTree);
+  UnRegisterGDCClass(TgdcLBRBTree);
 end.
 
 

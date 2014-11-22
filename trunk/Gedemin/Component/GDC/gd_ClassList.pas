@@ -341,7 +341,7 @@ type
     FClass: TClass;
     FSubType: TgdcSubType;
     FClassMethods: TgdClassMethods;
-    FComment: String;
+//    FComment: String;
     FCaption: String;
     FSiblings: TObjectList;
     FInitialized: Boolean;
@@ -372,12 +372,12 @@ type
 
     procedure SetReadOnly(AReadOnly: Boolean);
     function Add(const AClass: TClass; const ASubType: TgdcSubType = '';
-      const AComment: String = ''; const AParentSubType: TgdcSubType = '';
+      const ACaption: String = ''; const AParentSubType: TgdcSubType = '';
       AnInitialize: Boolean = False): TgdClassEntry;
 
   public
     constructor Create(AParent: TgdClassEntry;
-      const AClass: TClass; const ASubType: TgdcSubType = ''; const AComment: String = '');
+      const AClass: TClass; const ASubType: TgdcSubType = ''; const ACaption: String = '');
     destructor Destroy; override;
 
     function Compare(const AClass: TClass; const ASubType: TgdcSubType = ''): Integer; overload;
@@ -389,7 +389,7 @@ type
     property SubType: TgdcSubType read FSubType;
     property gdcClass: CgdcBase read GetGdcClass;
     property frmClass: CgdcCreateableForm read GetFrmClass;
-    property Comment: String read FComment;
+//    property Comment: String read FComment;
     property Caption: String read FCaption;
     property Count: Integer read GetCount;
     property Siblings[Index: Integer]: TgdClassEntry read GetSiblings;
@@ -413,7 +413,7 @@ type
     constructor Create;
     destructor Destroy; override;
 
-    function Add(const AClass: TClass; const ASubType: TgdcSubType = ''; const AComment: String = '';
+    function Add(const AClass: TClass; const ASubType: TgdcSubType = ''; const ACaption: String = '';
       const AParentSubType: TgdcSubType = ''): TgdClassEntry;
     function Find(const AClass: TClass; const ASubType: TgdcSubType = ''): TgdClassEntry; overload;
     function Find(const AClassName: AnsiString; const ASubType: TgdcSubType = ''): TgdClassEntry; overload;
@@ -463,24 +463,24 @@ var
 function gdClassList: TgdClassList;
 
 procedure RegisterGdClass(AClass: TClass; ASubType: TgdcSubType = '';
-  AComment: String = ''; AParentSubType: TgdcSubType = ''; AnInitialize: Boolean = False);
+  ACaption: String = ''; AParentSubType: TgdcSubType = ''; AnInitialize: Boolean = False);
 
 procedure UnRegisterGdClass(AClass: TClass; ASubType: TgdcSubType = '');
 
 
 // добавляет класс в список классов
 {Регистрация класса в списке TgdcClassList}
-procedure RegisterGdcClass(AClass: CgdcBase);
+procedure RegisterGdcClass(AClass: CgdcBase; ACaption: String = '');
 procedure UnRegisterGdcClass(AClass: CgdcBase);
 {Регистрация массива классов}
-procedure RegisterGdcClasses(AClasses: array of CgdcBase);
-procedure UnRegisterGdcClasses(AClasses: array of CgdcBase);
+//procedure RegisterGdcClasses(AClasses: array of CgdcBase);
+//procedure UnRegisterGdcClasses(AClasses: array of CgdcBase);
 // добавляет класс в список классов
 {Регистрация класса в списке TgdcClassList}
 procedure RegisterFrmClass(AClass: CgdcCreateableForm);
 procedure UnRegisterFrmClass(AClass: CgdcCreateableForm);
-procedure RegisterFrmClasses(AClasses: array of CgdcCreateableForm);
-procedure UnRegisterFrmClasses(AClasses: array of CgdcCreateableForm);
+//procedure RegisterFrmClasses(AClasses: array of CgdcCreateableForm);
+//procedure UnRegisterFrmClasses(AClasses: array of CgdcCreateableForm);
 {Регистрация метода для класса.}
 procedure RegisterFrmClassMethod(const AnClass: TComponentClass; AnMethod: String;
   InputParams: String; OutputParam: String = '');
@@ -545,7 +545,7 @@ begin
 end;
 
 procedure RegisterGdClass(AClass: TClass; ASubType: TgdcSubType = '';
-  AComment: String = ''; AParentSubType: TgdcSubType = ''; AnInitialize: Boolean = False);
+  ACaption: String = ''; AParentSubType: TgdcSubType = ''; AnInitialize: Boolean = False);
 var
   CurrCE: TgdClassEntry;
   CEBase: TgdClassEntry;
@@ -561,20 +561,16 @@ begin
       exit;
   end;
 
-  //CurrCE := nil;
-
   if AClass.InheritsFrom(TgdcBase) then
   begin
     Classes.RegisterClass(CgdcBase(AClass));
-    //if Assigned(gdClassList) then
-      CurrCE := gdClassList.Add(CgdcBase(AClass), ASubType, AComment, AParentSubType);
+    CurrCE := gdClassList.Add(CgdcBase(AClass), ASubType, ACaption, AParentSubType);
   end
   else
     if AClass.InheritsFrom(TgdcCreateableForm) then
     begin
       Classes.RegisterClass(CgdcCreateableForm(AClass));
-      //if Assigned(gdClassList) then
-        CurrCE := gdClassList.Add(CgdcCreateableForm(AClass), ASubType, AComment, AParentSubType);
+      CurrCE := gdClassList.Add(CgdcCreateableForm(AClass), ASubType, ACaption, AParentSubType);
     end
     else
       raise Exception.Create('Класс ' + AClass.ClassName +
@@ -610,7 +606,7 @@ begin
 end;
 
 
-procedure RegisterGdcClass(AClass: CgdcBase);
+procedure RegisterGdcClass(AClass: CgdcBase; ACaption: String = '');
 begin
   Assert(AClass <> nil);
   Assert(gdClassList <> nil, AClass.ClassName);
@@ -622,7 +618,7 @@ begin
   end;
 
   Classes.RegisterClass(AClass);
-  gdClassList.Add(AClass);
+  gdClassList.Add(AClass, '', ACaption);
 end;
 
 procedure UnRegisterGdcClass(AClass: CgdcBase);
@@ -632,21 +628,21 @@ begin
     gdClassList.Remove(AClass);
 end;
 
-procedure RegisterGdcClasses(AClasses: array of CgdcBase);
+{procedure RegisterGdcClasses(AClasses: array of CgdcBase);
 var
   I: Integer;
 begin
   for I := Low(AClasses) to High(AClasses) do
     RegisterGdcClass(AClasses[I]);
-end;
+end;}
 
-procedure UnRegisterGdcClasses(AClasses: array of CgdcBase);
+{procedure UnRegisterGdcClasses(AClasses: array of CgdcBase);
 var
   I: Integer;
 begin
   for I := Low(AClasses) to High(AClasses) do
     UnRegisterGdcClass(AClasses[I]);
-end;
+end;}
 
 procedure RegisterFrmClass(AClass: CgdcCreateableForm);
 begin
@@ -666,21 +662,21 @@ begin
     gdClassList.Remove(AClass);
 end;
 
-procedure RegisterFrmClasses(AClasses: array of CgdcCreateableForm);
+{procedure RegisterFrmClasses(AClasses: array of CgdcCreateableForm);
 var
   I: Integer;
 begin
   for I := Low(AClasses) to High(AClasses) do
     RegisterFrmClass(AClasses[I]);
-end;
+end;}
 
-procedure UnRegisterFrmClasses(AClasses: array of CgdcCreateableForm);
+{procedure UnRegisterFrmClasses(AClasses: array of CgdcCreateableForm);
 var
   I: Integer;
 begin
   for I := Low(AClasses) to High(AClasses) do
     UnRegisterFrmClass(AClasses[I]);
-end;
+end;}
 
 procedure CustomRegisterClassMethod(ATypeList: TClassTypeList; const AnClass: TComponentClass; AnMethod: String;
   InputParams: String; OutputParam: String = '');
@@ -1332,13 +1328,12 @@ begin
 end;
 
 constructor TgdClassEntry.Create(AParent: TgdClassEntry;
-  const AClass: TClass; const ASubType: TgdcSubType = ''; const AComment: String = '');
+  const AClass: TClass; const ASubType: TgdcSubType = ''; const ACaption: String = '');
 begin
   FParent := AParent;
   FClass := AClass;
   FSubType := ASubType;
-  FComment := AComment;
-  FCaption := AClass.ClassName + ASubType;
+  FCaption := ACaption;
   FSiblings := nil;
   FClassMethods := TgdClassMethods.Create(TComponentClass(FClass));
 end;
@@ -1597,7 +1592,7 @@ var
   CE: TgdClassEntry;
   ibsql: TIBSQL;
   LSubType: string;
-  LComment: String;
+  LCaption: String;
   LParentSubType: string;
   LClassName: String;
   DidActivate: Boolean;
@@ -1674,7 +1669,7 @@ begin
           ibsql.Transaction.StartTransaction;
         ibsql.SQL.Text :=
           'SELECT '#13#10 +
-          '  dt.name AS comment, '#13#10 +
+          '  dt.name AS caption, '#13#10 +
           '  dt.classname AS classname, '#13#10 +
           '  dt.ruid AS subtype, '#13#10 +
           '  dt1.ruid AS parentsubtype '#13#10 +
@@ -1694,7 +1689,7 @@ begin
         while not ibsql.EOF do
         begin
           LSubType := ibsql.FieldByName('subtype').AsString;
-          LComment := ibsql.FieldByName('comment').AsString;
+          LCaption := ibsql.FieldByName('caption').AsString;
           LParentSubType := ibsql.FieldByName('parentsubtype').AsString;
           LClassName := ibsql.FieldByName('classname').AsString;
 
@@ -1711,7 +1706,7 @@ begin
               CurrClassList := InvPriceClassList;
 
           for I := 0 to CurrClassList.Count - 1 do
-            Add(CurrClassList[I], LSubType, LComment, LParentSubType, True);
+            Add(CurrClassList[I], LSubType, LCaption, LParentSubType, True);
 
           ibsql.Next;
         end;
@@ -1730,10 +1725,10 @@ begin
           while not ibsql.EOF do
           begin
             LSubType := ibsql.FieldByName('RUID').AsString;
-            LComment := ibsql.FieldByName('NAME').AsString;
+            LCaption := ibsql.FieldByName('NAME').AsString;
 
             for I := 0 to RemainsClassList.Count - 1 do
-              Add(RemainsClassList[I], LSubType, LComment, '', True);
+              Add(RemainsClassList[I], LSubType, LCaption, '', True);
 
             ibsql.Next;
           end;
@@ -1823,7 +1818,7 @@ begin
   begin
     if Siblings[I].SubType > '' then
     begin
-      ASubTypeList.Add(Siblings[I].Comment + '=' + Siblings[I].SubType);
+      ASubTypeList.Add(Siblings[I].Caption + '=' + Siblings[I].SubType);
       Result := True;
 
       if not AnOnlyDirect then
@@ -1937,10 +1932,10 @@ begin
 end;
 
 function TgdClassEntry.Add(const AClass: TClass; const ASubType: TgdcSubType = '';
-  const AComment: String = ''; const AParentSubType: TgdcSubType = '';
+  const ACaption: String = ''; const AParentSubType: TgdcSubType = '';
   AnInitialize: Boolean = False): TgdClassEntry;
 begin
-  Result := gdClassList.Add(AClass, ASubType, AComment, AParentSubType);
+  Result := gdClassList.Add(AClass, ASubType, ACaption, AParentSubType);
   if Result <> nil then
     Result.Initialized := AnInitialize;
 end;
@@ -2068,7 +2063,7 @@ begin
 end;
 
 function TgdClassList.Add(const AClass: TClass; const ASubType: TgdcSubType;
-  const AComment: String; const AParentSubType: TgdcSubType): TgdClassEntry;
+  const ACaption: String; const AParentSubType: TgdcSubType): TgdClassEntry;
 var
   Index: Integer;
   Prnt: TgdClassEntry;
@@ -2085,7 +2080,11 @@ begin
   Result := Find(AClass, ASubType);
 
   if Result <> nil then
+  begin
+    if (Result.SubType = '') and (Result.Caption <> ACaption) then
+      Result.FCaption := ACaption;
     exit;
+  end;
 
   if ASubType > '' then
     Prnt := Add(AClass, AParentSubType)
@@ -2095,7 +2094,7 @@ begin
     else
       Prnt := Add(AClass.ClassParent);
 
-  Result := TgdClassEntry.Create(Prnt, AClass, ASubType, AComment);
+  Result := TgdClassEntry.Create(Prnt, AClass, ASubType, ACaption);
 
   if Prnt <> nil then
     Prnt.AddSibling(Result);

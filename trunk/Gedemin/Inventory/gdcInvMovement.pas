@@ -5487,17 +5487,11 @@ end;
 
 class function TgdcInvBaseRemains.GetDisplayName(
   const ASubType: TgdcSubType): String;
-var
-  Idx: Integer;
 begin
   Result := 'Îñòàòêè ÒÌÖ';
 
   if ASubType > '' then
-  begin
-    Idx := TgdcDocument.CacheDocumentTypeByRUID(ASubType);
-    if Idx > -1 then
-      Result := Result + ' ' + gdcClasses.DocTypeCache.CacheItemsByIndex[Idx].Name;
-  end;
+    Result := Result + ' ' + Inherited GetDisplayName(ASubType);
 end;
 
 { TgdcInvRemains }
