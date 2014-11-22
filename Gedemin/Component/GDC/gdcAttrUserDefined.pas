@@ -69,7 +69,6 @@ type
   public
     function GetCurrRecordSubType: String; override;
     class function GetListTable(const ASubType: TgdcSubType): String; override;
-    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
 
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
@@ -102,7 +101,6 @@ type
 
     function GetCurrRecordSubType: String; override;
     class function GetListTable(const ASubType: TgdcSubType): String; override;
-    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetKeyField(const ASubType: TgdcSubType): String; override;
 
@@ -133,7 +131,6 @@ type
 
     function GetCurrRecordSubType: String; override;
     class function GetListTable(const ASubType: TgdcSubType): String; override;
-    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetKeyField(const ASubType: TgdcSubType): String; override;
 
@@ -439,15 +436,6 @@ class function TgdcAttrUserDefined.GetDialogFormClassName(
   const ASubType: TgdcSubType): String;
 begin
   Result := 'Tgdc_dlgAttrUserDefined'; 
-end;
-
-class function TgdcAttrUserDefined.GetDisplayName(
-  const ASubType: TgdcSubType): String;
-begin
-  if aSubType > '' then
-    Result := inherited GetDisplayName(aSubType)
-  else
-    Result := 'Таблица пользователя';
 end;
 
 function TgdcAttrUserDefined.GetSelectClause: String;
@@ -894,16 +882,6 @@ begin
   {M}      ClearMacrosStack2('TGDCATTRUSERDEFINEDTREE', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM);
   {M}  end;
   {END MACRO}
-end;
-
-class function TgdcAttrUserDefinedTree.GetDisplayName(
-  const ASubType: TgdcSubType): String;
-begin
-  if aSubType > '' then
-    Result := inherited GetDisplayName(aSubType)
-  else
-    Result := 'Таблица пользователя (простое дерево)';
-
 end;
 
 function TgdcAttrUserDefinedTree.GetFromClause(const ARefresh: Boolean = False): String;
@@ -1451,16 +1429,6 @@ begin
   {END MACRO}
 end;
 
-class function TgdcAttrUserDefinedLBRBTree.GetDisplayName(
-  const ASubType: TgdcSubType): String;
-begin
-  if aSubType <> '' then
-    Result := inherited GetDisplayName(aSubType)
-  else
-    Result := 'Таблица пользователя (интервальное дерево)';
-
-end;
-
 function TgdcAttrUserDefinedLBRBTree.GetFromClause(const ARefresh: Boolean = False): String;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
   {M}VAR
@@ -1883,9 +1851,9 @@ begin
 end;
 
 initialization
-  RegisterGdcClass(TgdcAttrUserDefined);
-  RegisterGdcClass(TgdcAttrUserDefinedTree);
-  RegisterGdcClass(TgdcAttrUserDefinedLBRBTree);
+  RegisterGdcClass(TgdcAttrUserDefined, 'Таблица пользователя');
+  RegisterGdcClass(TgdcAttrUserDefinedTree, 'Таблица пользователя (простое дерево)');
+  RegisterGdcClass(TgdcAttrUserDefinedLBRBTree, 'Таблица пользователя (интервальное дерево)');
 
 finalization
   UnRegisterGdcClass(TgdcAttrUserDefined);

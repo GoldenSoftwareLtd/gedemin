@@ -5745,7 +5745,47 @@ end;
 class function TgdcBase.GetDisplayName(const ASubType: TgdcSubType): String;
 var
   R: TatRelation;
+  CE: TgdClassEntry;
+  LSubType: TgdcSubType;
+  CL: TClass;
 begin
+  Result := '';
+
+  if ASubType > '' then
+  begin
+    LSubType := StringReplace(ASubType, 'USR_', 'USR$', [rfReplaceAll, rfIgnoreCase]);
+    CE := gdClassList.Find(Self, LSubType);
+    //Тут возможно надо кидать исключение если  CE = nil
+    if CE <> nil then
+      Result := CE.Caption;
+  end;
+
+  if ASubType = '' then
+  begin
+    CE := gdClassList.Find(Self, '');
+
+    if CE = nil then
+      raise EgdcException.Create('Класс не найден');
+
+    Result := CE.Caption;
+
+    if Result = '' then
+    begin
+      CL := Self;
+      While (CL <> TgdcBase) and (Result = '') do
+      begin
+        CL := CL.ClassParent;
+        CE := gdClassList.Find(CL, '');
+        if CE = nil then
+          raise EgdcException.Create('Класс не найден');
+        Result := CE.Caption;
+      end;
+    end;
+  end;
+
+  if Result > '' then
+    exit;
+
   Result := GetListTable(ASubType);
 
   if Assigned(atDatabase) then
@@ -9686,7 +9726,7 @@ begin
   end;
 
   { TODO :
-внимание! вызов TestConnected может привести 
+внимание! вызов TestConnected может привести
 к потере производительности! }
   if (not IBLogin.LoggedIn) or (not IBlogin.Database.TestConnected) then
   begin
@@ -18397,7 +18437,7 @@ initialization
   UseSavepoints := True;
   gdcClipboardFormat := RegisterClipboardFormat(gdcClipboardFormatName);
 
-  RegisterGDCClasses([TgdcBase]);
+  RegisterGDCClass(TgdcBase);
 
   // Регистрация методов TgdcBase для перекрытия их из макросов
   TgdcBase.RegisterMethod;

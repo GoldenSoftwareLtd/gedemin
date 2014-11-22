@@ -97,8 +97,6 @@ type
     class function NeedModifyFromStream(const SubType: String): Boolean; override;
     class function NeedDeleteTheSame(const SubType: String): Boolean; override;
 
-    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
-
     property Silent: Boolean read FSilent write FSilent default false;
     //property ActivateError: TSettingError read FActivateError;
     property ActivateErrorDescription: WideString read FActivateErrorDescription;
@@ -148,8 +146,6 @@ type
     procedure SetNeedModify(const Value: Boolean; BL: TBookmarkList);
     procedure SetNeedInsert(const Value: Boolean; BL: TBookmarkList);
     procedure SetNeedModifyDefault;
-
-    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
   end;
 
   TgdcSettingStorage = class(TgdcBase)
@@ -169,7 +165,6 @@ type
     procedure Valid;
 
     class function NeedModifyFromStream(const SubType: String): Boolean; override;
-    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
   end;
 
 // тип версия_настройки
@@ -760,11 +755,6 @@ begin
   {M}      ClearMacrosStack2('TGDCSETTING', 'DOBEFOREPOST', KEYDOBEFOREPOST);
   {M}  end;
   {END MACRO}
-end;
-
-class function TgdcSetting.GetDisplayName(const ASubType: TgdcSubType): String;
-begin
-  Result := 'Настройка';
 end;
 
 class function TgdcSetting.GetListField(const ASubType: TgdcSubType): String;
@@ -2554,11 +2544,6 @@ begin
   end;
 end;
 
-class function TgdcSettingPos.GetDisplayName(const ASubType: TgdcSubType): String;
-begin
-  Result := 'Позиция настройки';
-end;
-
 procedure TgdcSettingPos.SetNeedModify(const Value: Boolean;
   BL: TBookmarkList);
 var
@@ -2795,11 +2780,6 @@ constructor TgdcSettingStorage.Create(AnOwner: TComponent);
 begin
   inherited;
   CustomProcess := [cpInsert, cpDelete, cpModify];
-end;
-
-class function TgdcSettingStorage.GetDisplayName(const ASubType: TgdcSubType): String;
-begin
-  Result := 'Позиция настройки хранилища'
 end;
 
 class function TgdcSettingStorage.GetListField(
@@ -5295,9 +5275,9 @@ begin
 end;
 
 initialization
-  RegisterGDCClass(TgdcSetting);
-  RegisterGDCClass(TgdcSettingPos);
-  RegisterGDCClass(TgdcSettingStorage);
+  RegisterGDCClass(TgdcSetting, 'Настройка');
+  RegisterGDCClass(TgdcSettingPos, 'Позиция настройки');
+  RegisterGDCClass(TgdcSettingStorage, 'Позиция настройки хранилища');
 
 finalization
   UnRegisterGDCClass(TgdcSetting);

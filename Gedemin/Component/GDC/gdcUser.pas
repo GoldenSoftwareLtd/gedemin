@@ -1810,8 +1810,10 @@ begin
 end;
 
 initialization
-  RegisterGDCClasses([TgdcUser, TgdcUserGroup]);
+  RegisterGDCClass(TgdcUser);
+  RegisterGDCClass(TgdcUserGroup);
 
 finalization
-  UnRegisterGDCClasses([TgdcUser, TgdcUserGroup]);
+  UnRegisterGDCClass(TgdcUser);
+  UnRegisterGDCClass(TgdcUserGroup);
 end.

@@ -2292,7 +2292,7 @@ begin
       //≈сли не найден то регистрируем его в списке
       MClass := TMethodClass(MethodControl.AddClass(0, FullName, ACE.gdcClass));
     MClass.Class_Reference := ACE.gdcClass;
-    MClass.SubTypeComment := ACE.Comment;
+    MClass.SubTypeComment := ACE.Caption;
 
     CI := TgdcClassTreeItem.Create;
     CI.Id := MClass.Class_Key;
@@ -2311,9 +2311,9 @@ begin
     CI.OverloadMethods := MClass.SpecMethodCount;
     Ci.DisabledMethods := MClass.SpecDisableMethod;
     CI.TheClass := MClass;
-    if ACE.Comment > '' then
+    if ACE.Caption > '' then
       Result := GetPageByObjID(OBJ_APPLICATION).Tree.Items.AddChild(AParent,
-        FullName.gdClassName + FullName.SubType + ' (' + ACE.Comment + ')')
+        FullName.gdClassName + FullName.SubType + ' (' + ACE.Caption + ')')
     else
       Result := GetPageByObjID(OBJ_APPLICATION).Tree.Items.AddChild(AParent,
         FullName.gdClassName + FullName.SubType);
@@ -2358,7 +2358,7 @@ begin
       //≈сли не найден то регистрируем его в списке
       MClass := TMethodClass(MethodControl.AddClass(0, FullName, ACE.frmClass));
     MClass.Class_Reference := ACE.frmClass;
-    MClass.SubTypeComment := ACE.Comment;
+    MClass.SubTypeComment := ACE.Caption;
 
     CI := TgdcClassTreeItem.Create;
     CI.Id := MClass.Class_Key;
@@ -2378,9 +2378,9 @@ begin
     Ci.DisabledMethods := MClass.SpecDisableMethod;
     CI.TheClass := MClass;
 
-    if ACE.Comment > '' then
+    if ACE.Caption > '' then
       Result := GetPageByObjID(OBJ_APPLICATION).Tree.Items.AddChild(AParent,
-        FullName.gdClassName + FullName.SubType + ' (' + ACE.Comment + ')')
+        FullName.gdClassName + FullName.SubType + ' (' + ACE.Caption + ')')
     else
       Result := GetPageByObjID(OBJ_APPLICATION).Tree.Items.AddChild(AParent,
         FullName.gdClassName + FullName.SubType);

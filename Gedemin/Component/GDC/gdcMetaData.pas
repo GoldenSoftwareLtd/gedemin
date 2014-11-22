@@ -179,8 +179,6 @@ type
       PropertyList: TgdcPropertySets; BindedList: TgdcObjectSet;
       WithDetailList: TgdKeyArray;
       const SaveDetailObjects: Boolean = True); override;
-
-    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
   end;
 
   TgdcRelation = class(TgdcMetaBase)
@@ -217,7 +215,6 @@ type
 
     class function GetSubSetList: String; override;
 
-    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
 
     function CheckTheSameStatement: String; override;
@@ -269,8 +266,6 @@ type
 
     procedure MakePredefinedRelationFields; virtual;
 
-    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
-
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
 
@@ -300,7 +295,6 @@ type
     procedure CustomInsert(Buff: Pointer); override;
     
   public
-    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
     procedure MakePredefinedRelationFields; override;
 
     procedure _SaveToStream(Stream: TStream; ObjectSet: TgdcObjectSet;
@@ -327,7 +321,7 @@ type
     procedure _DoOnNewRecord; override;
 
   public
-    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
+
   end;
 
   TgdcSimpleTable = class(TgdcTable)
@@ -339,7 +333,6 @@ type
     procedure _DoOnNewRecord; override;
     
   public
-    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
     procedure MakePredefinedRelationFields; override;
   end;
 
@@ -360,7 +353,6 @@ type
 
   public
     function GetReferenceName: String;
-    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
 
     property ReferenceName: String read GetReferenceName;// write SetReferenceName;
   end;
@@ -377,7 +369,7 @@ type
     procedure CreateRelationSQL(Scripts: TSQLProcessList); override;
 
   public
-    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
+
   end;
 
   TgdcTreeTable = class(TgdcTable)
@@ -392,7 +384,6 @@ type
     procedure _DoOnNewRecord; override;
 
   public
-     class function GetDisplayName(const ASubType: TgdcSubType): String; override;
      procedure MakePredefinedRelationFields; override;
   end;
 
@@ -410,7 +401,6 @@ type
     procedure _DoOnNewRecord; override;
 
   public
-    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
     procedure MakePredefinedRelationFields; override;
     function GetAutoObjectsNames(SL: TStrings): Boolean; override;
   end;
@@ -443,8 +433,6 @@ type
 
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
-
-    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
 
     procedure ReCreateView;
 
@@ -515,7 +503,6 @@ type
     class function GetListFieldExtended(const ASubType: TgdcSubType): String; override;
     class function GetKeyField(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
-    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
 
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
 
@@ -585,7 +572,6 @@ type
 
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
-    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetKeyField(const ASubType: TgdcSubType): String; override;
@@ -629,8 +615,6 @@ type
 
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
-
-    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
 
     function CheckTheSameStatement: String; override;
   end;
@@ -685,7 +669,6 @@ type
     class function GetKeyField(const ASubType: TgdcSubType): String; override;
 
     class function GetSubSetList: String; override;
-    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
 
     function CheckTheSameStatement: String; override;
 
@@ -736,7 +719,6 @@ type
 
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
-    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
     class function GetSubSetList: String; override;
     // Список полей, которые не надо сохранять в поток.
     class function GetNotStreamSavedField(const IsReplicationMode: Boolean = False): String; override;
@@ -788,8 +770,6 @@ type
 
     class function GetSubSetList: String; override;
 
-    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
-
     function CheckTheSameStatement: String; override;
 
     procedure _SaveToStream(Stream: TStream; ObjectSet: TgdcObjectSet;
@@ -828,7 +808,6 @@ type
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetKeyField(const ASubType: TgdcSubType): String; override;
-    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
 
@@ -1899,11 +1878,6 @@ begin
   inherited;
 end;
 
-class function TgdcField.GetDisplayName(const ASubType: TgdcSubType): String;
-begin
-  Result := 'Домен';
-end;
-
 class function TgdcField.GetDialogFormClassName(
   const ASubType: TgdcSubType): String;
 begin
@@ -2008,11 +1982,6 @@ begin
     end else
       Result := inherited GetCurrRecordClass;
   end;
-end;
-
-class function TgdcRelation.GetDisplayName(const ASubType: TgdcSubType): String;
-begin
-  Result := 'Таблицы и представления';
 end;
 
 class function TgdcRelation.GetKeyField(const ASubType: TgdcSubType): String;
@@ -2742,11 +2711,6 @@ begin
   end;
 end;
 
-class function TGDCBASETABLE.GetDisplayName(const ASubType: TgdcSubType): String;
-begin
-  Result := 'Таблица';
-end;
-
 function TGDCBASETABLE.GetgdcTableField: TgdcTableField;
 var
   i: Integer;
@@ -2862,11 +2826,6 @@ begin
   {M}      ClearMacrosStack2('TGDCVIEW', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE);
   {M}  end;
   {END MACRO}
-end;
-
-class function TgdcView.GetDisplayName(const ASubType: TgdcSubType): String;
-begin
-  Result := 'Представление';
 end;
 
 procedure TgdcView.GetWhereClauseConditions(S: TStrings);
@@ -5330,11 +5289,6 @@ begin
   {END MACRO}
 end;
 
-class function TgdcRelationField.GetDisplayName(const ASubType: TgdcSubType): String;
-begin
-  Result := 'Поле';
-end;
-
 function TgdcRelationField.GetCurrRecordClass: TgdcFullClass;
 begin
   Result := inherited GetCurrRecordClass;
@@ -6088,11 +6042,6 @@ begin
      FieldByName('rdb$procedure_source').AsString]);
 end;
 
-class function TgdcStoredProc.GetDisplayName(const ASubType: TgdcSubType): String;
-begin
-  Result := 'Процедура';
-end;
-
 function TgdcStoredProc.GetFromClause(const ARefresh: Boolean = False): String;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
   {M}VAR
@@ -6485,13 +6434,6 @@ begin
   );
 end;
 
-
-class function TgdcSimpleTable.GetDisplayName(
-  const ASubType: TgdcSubType): String;
-begin
-  Result := 'Таблица с идентификатором';
-end;
-
 procedure TgdcSimpleTable.MakePredefinedRelationFields;
 begin
   inherited;
@@ -6594,12 +6536,6 @@ begin
 
 end;
 
-class function TgdcTreeTable.GetDisplayName(
-  const ASubType: TgdcSubType): String;
-begin
-  Result := 'Простое дерево';
-end;
-
 procedure TgdcTreeTable.MakePredefinedRelationFields;
 begin
   inherited;
@@ -6699,12 +6635,6 @@ begin
     'REFERENCES %0:s (id) ON DELETE CASCADE ON UPDATE CASCADE/*, CHECK(lb <= rb) */ )',
     [FieldByName('relationname').AsString]
   );
-end;
-
-class function TgdcLBRBTreeTable.GetDisplayName(
-  const ASubType: TgdcSubType): String;
-begin
-  Result := 'Интервальное дерево';
 end;
 
 procedure TgdcLBRBTreeTable.CreateRelationSQL(Scripts: TSQLProcessList);
@@ -7550,11 +7480,6 @@ begin
   Result := 'Tgdc_dlgException';
 end;
 
-class function TgdcException.GetDisplayName(const ASubType: TgdcSubType): String;
-begin
-  Result := 'Исключение';
-end;
-
 function TgdcException.GetFirebirdObjectName: String;
 begin
   Result := FieldByName('exceptionname').AsString;
@@ -8219,11 +8144,6 @@ class function TgdcIndex.GetViewFormClassName(
   const ASubType: TgdcSubType): String;
 begin
   Result := 'Tgdc_frmIndices';
-end;
-
-class function TgdcIndex.GetDisplayName(const ASubType: TgdcSubType): String;
-begin
-  Result := 'Индекс';
 end;
 
 procedure TgdcIndex._SaveToStream(Stream: TStream;
@@ -9166,11 +9086,6 @@ begin
   {END MACRO}
 end;
 
-class function TgdcTrigger.GetDisplayName(const ASubType: TgdcSubType): String;
-begin
-  Result := 'Триггер';
-end;
-
 class function TgdcTrigger.GetNotStreamSavedField(const IsReplicationMode: Boolean): String;
 begin
   Result := inherited GetNotStreamSavedField(IsReplicationMode);
@@ -9301,12 +9216,6 @@ begin
       gdcBaseManager.AdjustMetaName(FieldByName('relationname').AsString + '_PK')
     ]
   );
-end;
-
-class function TgdcTableToTable.GetDisplayName(
-  const ASubType: TgdcSubType): String;
-begin
-  Result := 'Таблица со ссылкой';
 end;
 
 function TgdcTableToTable.CreateForeignKey: String;
@@ -9444,12 +9353,6 @@ begin
       GetKeyFieldName(GetReferenceName)
     ]
   );
-end;
-
-class function TgdcTableToDefinedTable.GetDisplayName(
-  const ASubType: TgdcSubType): String;
-begin
-  Result := 'Наследуемая таблица';
 end;
 
 procedure TgdcTableToDefinedTable.AddGdClasses;
@@ -9797,12 +9700,6 @@ begin
   );
 end;
 
-class function TgdcUnknownTable.GetDisplayName(
-  const ASubType: TgdcSubType): String;
-begin
-  Result := 'Таблица'
-end;
-
 function GetSimulateFieldNameByRel(RelName: String): String;
 begin
 // Имя поля для создания кросс-таблицы (таблица не может быть создана без полей,
@@ -10081,12 +9978,6 @@ begin
   Scripts.Add(CreatePrimeTable);
   Scripts.Add(CreateInsertTrigger);
   Scripts.Add(CreateGrantSQL);
-end;
-
-class function TgdcPrimeTable.GetDisplayName(
-  const ASubType: TgdcSubType): String;
-begin
-  Result := 'Простая таблица с идентификатором'
 end;
 
 { TgdcGenerator }
@@ -10546,11 +10437,6 @@ begin
   {END MACRO}
 end;
 
-class function TgdcGenerator.GetDisplayName(const ASubType: TgdcSubType): String;
-begin
-  Result := 'Генератор';
-end;
-
 class function TgdcGenerator.GetDialogFormClassName(
   const ASubType: TgdcSubType): String;
 begin
@@ -10875,12 +10761,6 @@ begin
   end;
 end;
 
-class function TgdcCheckConstraint.GetDisplayName(
-  const ASubType: TgdcSubType): String;
-begin
-  Result := 'Ограничение';
-end;
-
 function TgdcCheckConstraint.GetFromClause(
   const ARefresh: Boolean): String;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
@@ -11127,27 +11007,27 @@ end;
 
 initialization
   RegisterGdcClass(TgdcMetaBase);
-  RegisterGdcClass(TgdcField);
-  RegisterGdcClass(TgdcRelation);
-  RegisterGdcClass(TgdcBaseTable);
+  RegisterGdcClass(TgdcField, 'Домен');
+  RegisterGdcClass(TgdcRelation, 'Таблицы и представления');
+  RegisterGdcClass(TgdcBaseTable, 'Таблица');
   RegisterGdcClass(TgdcTable);
-  RegisterGdcClass(TgdcSimpleTable);
-  RegisterGdcClass(TgdcPrimeTable);
-  RegisterGdcClass(TgdcUnknownTable);
-  RegisterGdcClass(TgdcTableToTable);
-  RegisterGdcClass(TgdcTableToDefinedTable);
-  RegisterGdcClass(TgdcTreeTable);
-  RegisterGdcClass(TgdcLBRBTreeTable);
-  RegisterGdcClass(TgdcView);
-  RegisterGdcClass(TgdcRelationField);
+  RegisterGdcClass(TgdcSimpleTable, 'Таблица с идентификатором');
+  RegisterGdcClass(TgdcPrimeTable, 'Простая таблица с идентификатором');
+  RegisterGdcClass(TgdcUnknownTable, 'Таблица');
+  RegisterGdcClass(TgdcTableToTable, 'Таблица со ссылкой');
+  RegisterGdcClass(TgdcTableToDefinedTable, 'Наследуемая таблица');
+  RegisterGdcClass(TgdcTreeTable, 'Простое дерево');
+  RegisterGdcClass(TgdcLBRBTreeTable, 'Интервальное дерево');
+  RegisterGdcClass(TgdcView, 'Представление');
+  RegisterGdcClass(TgdcRelationField, 'Поле');
   RegisterGdcClass(TgdcTableField);
   RegisterGdcClass(TgdcViewField);
-  RegisterGdcClass(TgdcStoredProc);
-  RegisterGdcClass(TgdcException);
-  RegisterGdcClass(TgdcIndex);
-  RegisterGdcClass(TgdcTrigger);
-  RegisterGdcClass(TgdcGenerator);
-  RegisterGdcClass(TgdcCheckConstraint);
+  RegisterGdcClass(TgdcStoredProc, 'Процедура');
+  RegisterGdcClass(TgdcException, 'Исключение');
+  RegisterGdcClass(TgdcIndex, 'Индекс');
+  RegisterGdcClass(TgdcTrigger, 'Триггер');
+  RegisterGdcClass(TgdcGenerator, 'Генератор');
+  RegisterGdcClass(TgdcCheckConstraint, 'Ограничение');
 
   for TrCount := 1 to MaxInvCardTrigger do
   begin

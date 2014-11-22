@@ -111,9 +111,9 @@ begin
 end;
 
 initialization
-  RegisterGDCClasses([TgdcWgPosition]);
+  RegisterGDCClass(TgdcWgPosition);
 
 finalization
-  UnRegisterGDCClasses([TgdcWgPosition]);
+  UnRegisterGDCClass(TgdcWgPosition);
 end.
  

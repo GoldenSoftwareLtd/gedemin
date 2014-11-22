@@ -13,7 +13,6 @@ type
   public
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
-    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
   end;
   //Б.к. автоматической проводки
   TgdcAutoTrRecord = class(TgdcBaseAcctTransactionEntry)
@@ -35,7 +34,6 @@ type
     constructor Create(AnOwner: TComponent); override;
 
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
-    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
   end;
 
 procedure Register;
@@ -93,12 +91,6 @@ class function TgdcAutoTransaction.GetDialogFormClassName(
   const ASubType: TgdcSubType): String;
 begin
   Result := 'Tgdc_dlgAutoTransaction';
-end;
-
-class function TgdcAutoTransaction.GetDisplayName(
-  const ASubType: TgdcSubType): String;
-begin
-  Result := 'Автоматическая операция'
 end;
 
 class function TgdcAutoTransaction.GetViewFormClassName(
@@ -459,12 +451,6 @@ begin
   Result := 'Tgdc_dlgAutoTrRecord';
 end;
 
-class function TgdcAutoTrRecord.GetDisplayName(
-  const ASubType: TgdcSubType): String;
-begin
-  Result := 'Автоматическая проводка';
-end;
-
 function TgdcAutoTrRecord.GetFromClause(const ARefresh: Boolean): String;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
   {M}VAR
@@ -560,8 +546,9 @@ begin
 end;
 
 initialization
-  RegisterGdcClass(TgdcAutoTrRecord);
-  RegisterGdcClass(TgdcAutoTransaction);
+  RegisterGdcClass(TgdcAutoTrRecord, 'Автоматическая проводка');
+  RegisterGdcClass(TgdcAutoTransaction, 'Автоматическая операция');
+  
 finalization
   UnRegisterGdcClass(TgdcAutoTrRecord);
   UnRegisterGdcClass( TgdcAutoTransaction);

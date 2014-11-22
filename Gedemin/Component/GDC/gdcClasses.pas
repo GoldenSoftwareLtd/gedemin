@@ -202,7 +202,6 @@ type
     procedure GetWhereClauseConditions(S: TStrings); override;
 
   public
-    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
   end;
 
@@ -220,8 +219,6 @@ type
     procedure CustomDelete(Buff: Pointer); override;
 
   public
-    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
-
     function GetCurrRecordClass: TgdcFullClass; override;
     class function GetHeaderDocumentClass: CgdcBase; virtual;
   end;
@@ -1516,8 +1513,6 @@ begin
 end;
 
 class function TgdcDocument.GetDisplayName(const ASubType: TgdcSubType): String;
-var
-  Idx: Integer;
 begin
   if GetDocumentClassPart = dcpHeader then
     Result := 'Документ'
@@ -1525,11 +1520,7 @@ begin
     Result := 'Позиция';
 
   if ASubType > '' then
-  begin
-    Idx := CacheDocumentTypeByRUID(ASubType);
-    if Idx > -1 then
-      Result := Result + ' ' + DocTypeCache.CacheItemsByIndex[Idx].Name;
-  end;
+    Result := Result + ' ' + Inherited GetDisplayName(ASubType);
 end;
 
 class function TgdcDocument.GetSubSetList: String;
@@ -2916,12 +2907,6 @@ begin
   {END MACRO}
 end;
 
-class function TgdcDocumentBranch.GetDisplayName(
-  const ASubType: TgdcSubType): String;
-begin
-  Result := 'Папка';
-end;
-
 procedure TgdcDocumentBranch.GetWhereClauseConditions(S: TStrings);
 begin
   inherited;
@@ -2976,12 +2961,6 @@ begin
   {M}      ClearMacrosStack2('TGDCDOCUMENTTYPE', '_DOONNEWRECORD', KEY_DOONNEWRECORD);
   {M}  end;
   {END MACRO}
-end;
-
-class function TgdcDocumentType.GetDisplayName(
-  const ASubType: TgdcSubType): String;
-begin
-  Result := 'Тип документа';
 end;
 
 procedure TgdcDocumentType.GetWhereClauseConditions(S: TStrings);
@@ -4714,8 +4693,8 @@ end;
 initialization
   RegisterGdcClass(TgdcDocument);
   RegisterGdcClass(TgdcBaseDocumentType);
-  RegisterGdcClass(TgdcDocumentBranch);
-  RegisterGdcClass(TgdcDocumentType);
+  RegisterGdcClass(TgdcDocumentBranch, 'Папка');
+  RegisterGdcClass(TgdcDocumentType, 'Тип документа');
   RegisterGdcClass(TgdcUserDocumentType);
   RegisterGdcClass(TgdcUserBaseDocument);
   RegisterGdcClass(TgdcUserDocument);

@@ -811,8 +811,12 @@ begin
 end;
 
 initialization
-  RegisterGdcClasses([TgdcStorage, TgdcStorageFolder, TgdcStorageValue]);
+  RegisterGdcClass(TgdcStorage);
+  RegisterGdcClass(TgdcStorageFolder);
+  RegisterGdcClass(TgdcStorageValue);
 
 finalization
-  UnRegisterGdcClasses([TgdcStorage, TgdcStorageFolder, TgdcStorageValue]);
+  UnRegisterGdcClass(TgdcStorage);
+  UnRegisterGdcClass(TgdcStorageFolder);
+  UnRegisterGdcClass(TgdcStorageValue);
 end.

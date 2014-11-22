@@ -87,9 +87,7 @@ type
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
-    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
 
-    //
     class function GetSubSetList: String; override;
 
     function CheckTheSameStatement: String; override;
@@ -232,7 +230,6 @@ type
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
     class function ContactType: Integer; override;
-    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
 
     class function Class_TestUserRights(const SS: TgdcTableInfos;
       const ST: String): Boolean; override;
@@ -273,7 +270,6 @@ type
     procedure CreateFields; override;
 
   public
-    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
     //Если не указана рабочая компания, но указано подразделение,
@@ -810,12 +806,6 @@ begin
   Result := 'Tgdc_frmAccount';
 end;
 
-class function TgdcAccount.GetDisplayName(
-  const ASubType: TgdcSubType): String;
-begin
-  Result := 'Расчетный счет';
-end;
-
 procedure TgdcAccount.DoAfterCustomProcess(Buff: Pointer;
   Process: TgsCustomProcess);
 var
@@ -1190,7 +1180,10 @@ end;
 class function TgdcBaseContact.GetDisplayName(
   const ASubType: TgdcSubType): String;
 begin
-  Result := ContactTypeNames[ContactType];
+  if ASubType > '' then
+    Result := Inherited GetDisplayName(ASubType)
+  else
+    Result := ContactTypeNames[ContactType];
 end;
 
 function TgdcBaseContact.GetDialogDefaultsFields: String;
@@ -3404,12 +3397,6 @@ begin
     inherited;
 end;
 
-class function TgdcOurCompany.GetDisplayName(
-  const ASubType: TgdcSubType): String;
-begin
-  Result := 'Рабочая организация';
-end;
-
 procedure TgdcEmployee.CreateFields;
 var
   {@UNFOLD MACRO INH_ORIG_PARAMS()}
@@ -3523,12 +3510,6 @@ begin
   {M}      ClearMacrosStack2('TGDCEMPLOYEE', 'DOBEFOREPOST', KEYDOBEFOREPOST);
   {M}  end;
   {END MACRO}
-end;
-
-class function TgdcEmployee.GetDisplayName(
-  const ASubType: TgdcSubType): String;
-begin
-  Result := 'Сотрудник предприятия';
 end;
 
 function TgdcEmployee.GetFromClause(const ARefresh: Boolean): String;
@@ -3811,12 +3792,12 @@ initialization
   RegisterGdcClass(TgdcFolder);
   RegisterGdcClass(TgdcGroup);
   RegisterGdcClass(TgdcContact);
-  RegisterGdcClass(TgdcEmployee);
+  RegisterGdcClass(TgdcEmployee, 'Сотрудник предприятия');
   RegisterGdcClass(TgdcDepartment);
   RegisterGdcClass(TgdcCompany);
-  RegisterGdcClass(TgdcOurCompany);
+  RegisterGdcClass(TgdcOurCompany, 'Рабочая организация');
   RegisterGdcClass(TgdcBank);
-  RegisterGdcClass(TgdcAccount);
+  RegisterGdcClass(TgdcAccount, 'Расчетный счет');
 
 finalization
   UnRegisterGdcClass(TgdcBaseContact);

@@ -140,7 +140,7 @@ begin
   C := ACE.gdcClass;
   if not C.IsAbstractClass then
   begin
-    DN := ACE.Comment;
+    DN := ACE.Caption;
     SS := ACE.SubType;
 
     if SS = '' then

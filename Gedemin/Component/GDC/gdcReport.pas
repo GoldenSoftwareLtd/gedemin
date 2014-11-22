@@ -23,7 +23,6 @@ type
     class function GetSubSetList: String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
-    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
 
     function CheckTheSameStatement: String; override;
     procedure _SaveToStream(Stream: TStream; ObjectSet: TgdcObjectSet;
@@ -75,8 +74,6 @@ type
     property LastInsertID: Integer read FLastInsertID;
 
     class function NeedModifyFromStream(const SubType: String): Boolean; override;
-
-    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
 
     property OnlyDisplaying: Boolean read FOnlyDisplaying write SetOnlyDisplaying default False;
   end;
@@ -478,12 +475,6 @@ class function TgdcReportGroup.GetDialogFormClassName(
   const ASubType: TgdcSubType): String;
 begin
   Result := 'Tgdc_dlgReportGroup'; 
-end;
-
-class function TgdcReportGroup.GetDisplayName(
-  const ASubType: TgdcSubType): String;
-begin
-  Result := 'Папка отчетов';
 end;
 
 function TgdcReportGroup.GetFromClause(const ARefresh: Boolean = False): String;
@@ -1118,12 +1109,6 @@ begin
   Result := True;
 end;
 
-class function TgdcReport.GetDisplayName(
-  const ASubType: TgdcSubType): String;
-begin
-  Result := 'Отчет';
-end;
-
 procedure TgdcReport.DoBeforePost;
 var
   LocParamList: TgsParamList;
@@ -1319,9 +1304,11 @@ begin
 end;
 
 initialization
-  RegisterGDCClasses([TgdcReportGroup, TgdcReport]);
+  RegisterGDCClass(TgdcReportGroup, 'Папка отчетов');
+  RegisterGDCClass(TgdcReport, 'Отчет');
 
 finalization
-  UnRegisterGDCClasses([TgdcReportGroup, TgdcReport]);
+  UnRegisterGDCClass(TgdcReportGroup);
+  UnRegisterGDCClass(TgdcReport);
 end.
 

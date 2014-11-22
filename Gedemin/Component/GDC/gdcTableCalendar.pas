@@ -725,8 +725,12 @@ begin
 end;
 
 initialization
-  RegisterGDCClasses([TgdcHoliday, TgdcTableCalendar, TgdcTableCalendarDay]);
+  RegisterGDCClass(TgdcHoliday);
+  RegisterGDCClass(TgdcTableCalendar);
+  RegisterGDCClass(TgdcTableCalendarDay);
 
 finalization
-  UnRegisterGDCClasses([TgdcHoliday, TgdcTableCalendar, TgdcTableCalendarDay]);
+  UnRegisterGDCClass(TgdcHoliday);
+  UnRegisterGDCClass(TgdcTableCalendar);
+  UnRegisterGDCClass(TgdcTableCalendarDay);
 end.

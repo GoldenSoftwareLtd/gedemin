@@ -143,7 +143,7 @@ function BuildClassTree(ACE: TgdClassEntry; AData1: Pointer;
   AData2: Pointer): Boolean;
 begin
   if ACE.SubType > '' then
-      TStringList(AData1^).Add(ACE.Comment + '=' + ACE.SubType);
+      TStringList(AData1^).Add(ACE.Caption + '=' + ACE.SubType);
   Result := True;
 end;
 
