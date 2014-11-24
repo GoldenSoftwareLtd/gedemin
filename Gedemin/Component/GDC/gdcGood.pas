@@ -826,7 +826,7 @@ begin
 
   if Result then
   begin
-    for I := OL.Count - 1 to 0 do
+    for I := OL.Count - 1 downto 0 do
     begin
       if TgdClassEntry(OL[I]).TheClass = TgdcSelectedGood then
         OL.Delete(I);
