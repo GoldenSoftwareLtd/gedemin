@@ -12,10 +12,11 @@ type
     ActionList: TActionList;
     acOk: TAction;
     actCancel: TAction;
+    actClasses: TAction;
+    pnlBtns: TPanel;
+    btnClasses: TButton;
     btnOK: TButton;
     btnCancel: TButton;
-    btnClasses: TButton;
-    actClasses: TAction;
     procedure acOkExecute(Sender: TObject);
     procedure acOkUpdate(Sender: TObject);
     procedure actCancelExecute(Sender: TObject);
