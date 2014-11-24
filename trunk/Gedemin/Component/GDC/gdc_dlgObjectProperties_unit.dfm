@@ -48,23 +48,15 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
     object tsGeneral: TTabSheet
       Caption = 'Общие'
       object btnClassMethods: TButton
-        Left = 83
+        Left = 217
         Top = 417
         Width = 119
         Height = 19
         Action = actGoToMethods
         TabOrder = 0
       end
-      object btnSubTypeMethods: TButton
-        Left = 341
-        Top = 417
-        Width = 119
-        Height = 19
-        Action = actGoToMethodsSubtype
-        TabOrder = 2
-      end
       object btnParentMethods: TButton
-        Left = 212
+        Left = 341
         Top = 417
         Width = 119
         Height = 19
@@ -85,7 +77,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
         ParentFont = False
         ReadOnly = True
         ScrollBars = ssHorizontal
-        TabOrder = 3
+        TabOrder = 2
         WantReturns = False
         WordWrap = False
       end
@@ -321,7 +313,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
         Font.Height = -9
         Font.Name = 'Tahoma'
         Font.Style = []
-        ItemHeight = 0
+        ItemHeight = 11
         ParentFont = False
         TabOrder = 2
       end
@@ -919,12 +911,6 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
       Hint = 'Перейти на методы класса'
       OnExecute = actGoToMethodsExecute
       OnUpdate = actGoToMethodsUpdate
-    end
-    object actGoToMethodsSubtype: TAction
-      Caption = 'Методы подтипа'
-      Hint = 'Перейти на методы класса'
-      OnExecute = actGoToMethodsSubtypeExecute
-      OnUpdate = actGoToMethodsSubtypeUpdate
     end
     object actGoToMethodsParent: TAction
       Caption = 'Методы родителя'

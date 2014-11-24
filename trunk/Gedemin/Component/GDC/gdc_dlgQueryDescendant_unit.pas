@@ -14,10 +14,13 @@ type
     actCancel: TAction;
     btnOK: TButton;
     btnCancel: TButton;
+    btnClasses: TButton;
+    actClasses: TAction;
     procedure acOkExecute(Sender: TObject);
     procedure acOkUpdate(Sender: TObject);
     procedure actCancelExecute(Sender: TObject);
-  private
+    procedure actClassesExecute(Sender: TObject);
+
   public
     procedure FillrgObjects(OL: TObjectList);
   end;
@@ -37,7 +40,7 @@ begin
   for I := 0 to OL.Count - 1 do
   begin
     CE := TgdClassEntry(OL[I]);
-    rgObjects.Items.AddObject(CE.gdcClass.GetDisplayName(CE.SubType), CE);
+    rgObjects.Items.AddObject(CE.Caption, CE);
 
     if Height < rgObjects.Items.Count * 30 + 30 then
       Height := rgObjects.Items.Count * 30 + 30;
@@ -57,6 +60,23 @@ end;
 procedure Tgdc_dlgQueryDescendant.actCancelExecute(Sender: TObject);
 begin
   ModalResult := mrCancel;
+end;
+
+procedure Tgdc_dlgQueryDescendant.actClassesExecute(Sender: TObject);
+var
+  I: Integer;
+  CE: TgdClassEntry;
+begin
+  actClasses.Checked := not actClasses.Checked;
+
+  for I := 0 to rgObjects.Items.Count - 1 do
+  begin
+    CE := rgObjects.Items.Objects[I] as TgdClassEntry;
+    if actClasses.Checked then
+      rgObjects.Items[I] := CE.TheClass.ClassName + CE.SubType
+    else
+      rgObjects.Items[I] := CE.Caption;
+  end;
 end;
 
 end.

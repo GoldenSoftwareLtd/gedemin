@@ -13467,7 +13467,7 @@ begin
   case FEventData^.MethodKind of
     mkSafeFunction, mkFunction:
     begin
-      LFN := 'function';
+      LFN := 'Function';
       case AnLang of
         fplDelphi: LFR := ': ' + LResultParam + ';';
         fplJScript, fplVBScript:

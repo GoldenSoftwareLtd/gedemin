@@ -1,6 +1,6 @@
 object gdc_dlgQueryDescendant: Tgdc_dlgQueryDescendant
-  Left = 515
-  Top = 352
+  Left = 679
+  Top = 635
   BorderIcons = [biSystemMenu]
   BorderStyle = bsDialog
   Caption = 'Выбор объекта '
@@ -10,7 +10,7 @@ object gdc_dlgQueryDescendant: Tgdc_dlgQueryDescendant
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = True
   Position = poScreenCenter
@@ -44,9 +44,17 @@ object gdc_dlgQueryDescendant: Tgdc_dlgQueryDescendant
     Cancel = True
     TabOrder = 2
   end
+  object btnClasses: TButton
+    Left = 6
+    Top = 96
+    Width = 21
+    Height = 21
+    Action = actClasses
+    TabOrder = 3
+  end
   object ActionList: TActionList
-    Left = 25
-    Top = 80
+    Left = 193
+    Top = 32
     object acOk: TAction
       Caption = 'Ок'
       OnExecute = acOkExecute
@@ -55,6 +63,10 @@ object gdc_dlgQueryDescendant: Tgdc_dlgQueryDescendant
     object actCancel: TAction
       Caption = 'Отмена'
       OnExecute = actCancelExecute
+    end
+    object actClasses: TAction
+      Caption = '?'
+      OnExecute = actClassesExecute
     end
   end
 end
