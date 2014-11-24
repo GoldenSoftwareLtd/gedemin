@@ -134,7 +134,9 @@ type
     class function GetDisplayName(const ASubType: TgdcSubType): String; override;
     class function ContactType: Integer; virtual;
     class function GetRestrictCondition(const ATableName, ASubType: String): String; override;
-    class function GetChildrenClass(CL: TClassList): Boolean; override;
+    class function GetChildrenClass(const ASubType: TgdcSubType;
+      OL: TObjectList; const AnIncludeRoot: Boolean = True;
+      const AnOnlyDirect: Boolean = False ): Boolean; override;
 
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
 
@@ -1063,22 +1065,46 @@ begin
   {END MACRO}
 end;
 
-class function TgdcBaseContact.GetChildrenClass(CL: TClassList): Boolean;
+class function TgdcBaseContact.GetChildrenClass(const ASubType: TgdcSubType;
+  OL: TObjectList; const AnIncludeRoot: Boolean = True;
+  const AnOnlyDirect: Boolean = False ): Boolean;
+var
+  CL: TClassList;
+  I, J: Integer;
 begin
-  Result := inherited GetChildrenClass(CL);
+  Result := inherited GetChildrenClass(ASubType, OL, AnIncludeRoot, AnOnlyDirect);
 
   if Result then
   begin
-    if Self <> TgdcOurCompany then
-      CL.Remove(TgdcOurCompany);
-    if Self <> TgdcFolder then
-      CL.Remove(TgdcFolder);
-    if Self <> TgdcGroup then
-      CL.Remove(TgdcGroup);
-    if Self <> TgdcDepartment then
-      CL.Remove(TgdcDepartment);
-    Result := CL.Count > 0;
+    CL := TClassList.Create;
+    try
+      if Self <> TgdcOurCompany then
+        CL.Add(TgdcOurCompany);
+      if Self <> TgdcFolder then
+        CL.Add(TgdcFolder);
+      if Self <> TgdcGroup then
+        CL.Add(TgdcGroup);
+      if Self <> TgdcDepartment then
+        CL.Add(TgdcDepartment);
+
+      if OL.Count > 0 then
+        for I := OL.Count - 1 downto 0 do
+        begin
+          for J := 0 to CL.Count - 1 do
+          begin
+            if TgdClassEntry(OL[I]).TheClass = CL[J] then
+            begin
+              OL.Delete(I);
+              break;
+            end;
+          end;
+        end;
+    finally
+      CL.Free;
+    end;
   end;
+
+  Result := OL.Count > 0;
 end;
 
 class function TgdcBaseContact.GetListField(
