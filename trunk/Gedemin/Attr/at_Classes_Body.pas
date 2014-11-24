@@ -910,17 +910,12 @@ end;
 
 function TatBodyRelation.GetIsSystem: Boolean;
 begin
-  // мы провер€ем на наличие префикса в имени, а не
-  // на то начинаетс€ им€ с такого префикса или нет
-  // преднамеренно. ћы еще не определились будем ли мы
-  // хранить имена идентификаторов с кавычками или без
-  Result := AnsiPos(SystemPrefix, AnsiUpperCase(FRelationName)) > 0;
+  Result := StrIPos(SystemPrefix, FRelationName) = 1;
 end;
 
 function TatBodyRelation.GetIsUserDefined: Boolean;
 begin
-  // см. комментарий к √ет»з—ыстем
-  Result := AnsiPos(UserPrefix, AnsiUpperCase(FRelationName)) > 0;
+  Result := StrIPos(UserPrefix, FRelationName) = 1;
 end;
 
 function TatBodyRelation.GetListField: TatRelationField;
@@ -3653,7 +3648,7 @@ end;
 
 function TatBodyRelationField.GetIsUserDefined: Boolean;
 begin
-  Result := AnsiPos(UserPrefix, AnsiUpperCase(FFieldName)) = 1;
+  Result := StrIPos(UserPrefix, FFieldName) = 1;
 end;
 
 function TatBodyRelationField.GetSQLType: Smallint;

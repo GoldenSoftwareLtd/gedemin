@@ -485,8 +485,11 @@ begin
     Clear;
     Add(AddSpaces('Метка типа:') + gdcObject.GetDisplayName(gdcObject.SubType));
     Add(AddSpaces('Тип объекта:') + gdcObject.ClassName);
-    Add(AddSpaces('Тип родителя:') + gdcObject.ClassParent.ClassName);
     Add(AddSpaces('Подтип:') + gdcObject.SubType);
+    if gdcObject.ClassParentSubType(gdcObject.SubType) = '' then
+      Add(AddSpaces('Тип родителя:') + gdcObject.ClassParent.ClassName)
+    else
+      Add(AddSpaces('Тип родителя:') + gdcObject.ClassName + gdcObject.ClassParentSubType(gdcObject.SubType));
     Add(AddSpaces('Имя компонента:') + gdcObject.Name);
     if gdcObject.Owner is TCustomForm then
     begin
