@@ -2069,7 +2069,7 @@ var
   Prnt: TgdClassEntry;
 begin
   if FReadOnly then
-    raise Exception.Create('add a class can not be. gdClassList is read-only');
+    raise Exception.Create('The gdClassList is in a read-only mode.');
 
   if AClass = nil then
   begin
@@ -2385,25 +2385,22 @@ end;
 function TgdClassList._Find(const AClassName: AnsiString; const ASubType: TgdcSubType;
   out Index: Integer): Boolean;
 var
-  I, L, H: Integer;
+  L, H: Integer;
 begin
   Result := False;
   L := 0;
   H := FCount - 1;
   while L <= H do
   begin
-    I := (L + H) shr 1;
-    if FClasses[I].Compare(AClassName, ASubType) < 0 then L := I + 1 else
-    begin
-      H := I - 1;
-      if FClasses[I].Compare(AClassName, ASubType) = 0 then
-      begin
-        Result := True;
-        L := I;
-      end;
+    Index := (L + H) shr 1;
+    case FClasses[Index].Compare(AClassName, ASubType) of
+      -1: L := Index + 1;
+      +1: H := Index - 1;
+    else
+      Result := True;
+      break;
     end;
   end;
-  Index := L;
 end;
 
 procedure TgdClassList._Grow;

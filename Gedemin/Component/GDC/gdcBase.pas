@@ -1596,7 +1596,7 @@ type
     class function GetSubTypeList(ASubTypeList: TStrings;
       ASubType: String = ''; AnOnlyDirect: Boolean = False): Boolean; virtual;
 
-    class function ClassParentSubType(ASubType: string): String; virtual;
+    class function ClassParentSubType(ASubType: String): String; virtual;
     //
     class function CheckSubType(ASubType: String): Boolean;
 
@@ -5765,7 +5765,7 @@ begin
     CE := gdClassList.Find(Self, '');
 
     if CE = nil then
-      raise EgdcException.Create('Класс не найден');
+      raise EgdcException.Create('Класс ' + Self.ClassName + ' не найден');
 
     Result := CE.Caption;
 
@@ -5805,7 +5805,7 @@ end;
 
 function TgdcBase.GetGroupClause: String;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
+  {M}VAR                                                                        
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
@@ -5879,7 +5879,7 @@ begin
   LT := GetListTable(SubType);
   LF := GetListField(SubType);
 
-  IsUserTable := Pos(UserPrefix, UpperCase(LT)) = 1;
+  IsUserTable := StrIPos(UserPrefix, LT) = 1;
 
   if Database = nil then
     Result := Format('INSERT INTO %s (%s) VALUES (:NEW_%s) ', [LT, LF, LF])
@@ -5944,7 +5944,7 @@ begin
   KF := GetKeyField(SubType);
   LF := GetListField(SubType);
 
-  IsUserTable := Pos(UserPrefix, UpperCase(LT)) = 1;
+  IsUserTable := StrIPos(UserPrefix, LT) = 1;
 
   if (Database = nil) then
     Result := Format('UPDATE %s SET %s=:NEW_%s WHERE %s=:OLD_%s ',
@@ -12360,7 +12360,7 @@ begin
   Result := gdClassList.GetSubTypeList(Self, ASubType, ASubTypeList, AnOnlyDirect)
 end;
 
-class function TgdcBase.ClassParentSubType(ASubType: string): String;
+class function TgdcBase.ClassParentSubType(ASubType: String): String;
 var
   CE: TgdClassEntry;
 begin

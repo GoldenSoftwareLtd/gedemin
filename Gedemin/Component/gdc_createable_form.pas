@@ -387,10 +387,7 @@ begin
   if ASubType > '' then
     ASubType := StringReplace(ASubType, 'USR_', 'USR$', [rfReplaceAll, rfIgnoreCase]);
 
-  //if Assigned(gdClassList) then
-    Result := gdClassList.GetSubTypeList(Self, ASubType, ASubTypeList, AnOnlyDirect)
-  //else
-  //  Result := False;
+  Result := gdClassList.GetSubTypeList(Self, ASubType, ASubTypeList, AnOnlyDirect)
 end;
 
 class function TgdcCreateableForm.ClassParentSubType(ASubType: string): String;
