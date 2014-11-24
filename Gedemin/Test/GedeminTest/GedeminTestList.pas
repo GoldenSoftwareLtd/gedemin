@@ -23,6 +23,7 @@ uses
   {$IFDEF GEDEMIN}
   , Test_gsStorage_unit
   , Test_gdClassListSubTypes_unit
+  , Test_OverrideMethods_unit
   , Test_gdcContact_unit
   , Test_AcEntry_unit
   , Test_CopyObject_unit

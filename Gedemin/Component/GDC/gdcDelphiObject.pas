@@ -410,6 +410,36 @@ var
 
   function GetParentFullName(ChildFN: TgdcFullClassName): TgdcFullClassName;
   var
+    CE: TgdClassEntry;
+  begin
+    ChildFN.SubType := StringReplace(ChildFN.SubType, 'USR_', 'USR$', [rfReplaceAll, rfIgnoreCase]);
+    Result.gdClassName := '';
+    Result.SubType := '';
+    CE := gdClassList.Find(ChildFN);
+
+    if CE = nil then
+      raise Exception.Create('Передан некорректный класс.');
+
+    if CE.TheClass.InheritsFrom(TgdcBase) then
+    begin
+      if CE.Parent <> nil then
+      begin
+        Result.gdClassName := CE.Parent.gdcClass.ClassName;
+        Result.SubType := CE.Parent.SubType;
+      end;
+    end
+    else if CE.TheClass.InheritsFrom(TgdcCreateableForm) then
+    begin
+      if CE.Parent <> nil then
+      begin
+        Result.gdClassName := CE.Parent.frmClass.ClassName;
+        Result.SubType := CE.Parent.SubType;
+      end;
+    end;
+  end;
+  
+  {function GetParentFullName(ChildFN: TgdcFullClassName): TgdcFullClassName;
+  var
     GClass: TClass;
   begin
     Result.gdClassName := '';
@@ -444,7 +474,7 @@ var
           Result.SubType := '';
         Exit;
       end;
-  end;
+  end;}
 
   function GetClassID(ClFullName: TgdcFullClassName): Integer;
   begin
