@@ -1,5 +1,6 @@
+
 {++
-  Copyright (c) 2002 by Golden Software of Belarus
+  Copyright (c) 2002-2014 by Golden Software of Belarus
 
   Module
     dlg_gsResizer_TabOrder_unit
@@ -38,12 +39,12 @@ type
     procedure lbControlsDragOver(Sender, Source: TObject; X, Y: Integer;
       State: TDragState; var Accept: Boolean);
     procedure lbControlsDragDrop(Sender, Source: TObject; X, Y: Integer);
+
   private
-    { Private declarations }
     FChanged: Boolean;
     FManager: IgsResizeManager;
+
   public
-    { Public declarations }
     constructor Create(AnOwner: TComponent); override;
     procedure ShowTabOrder(MainControl: TWinControl);
   end;
@@ -52,7 +53,10 @@ var
   dlg_gsResizer_TabOrder: Tdlg_gsResizer_TabOrder;
 
 implementation
-uses gsResizer, gsComponentEmulator;
+
+uses
+  gsResizer, gsComponentEmulator;
+
 {$R *.DFM}
 
 { Tdlg_gsResizer_TabOrder }
@@ -84,8 +88,6 @@ begin
     for I := 0 to lbControls.Items.Count - 1 do
     begin
       TWinControl(lbControls.Items.Objects[I]).TabOrder := I;
-//      if Assigned(FManager) then
-//        FManager.ChangedPropList.Add(lbControls.Items.Objects[I], 'TabOrder');
     end;
   end
 end;

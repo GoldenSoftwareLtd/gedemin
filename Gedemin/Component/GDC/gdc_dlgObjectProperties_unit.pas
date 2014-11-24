@@ -61,8 +61,6 @@ type
     TBControlItem2: TTBControlItem;
     btnClassMethods: TButton;
     actGoToMethods: TAction;
-    actGoToMethodsSubtype: TAction;
-    btnSubTypeMethods: TButton;
     btnParentMethods: TButton;
     actGoToMethodsParent: TAction;
     mProp: TMemo;
@@ -101,10 +99,8 @@ type
     procedure actShowLinkObjectUpdate(Sender: TObject);
     procedure actShowLinkObjectExecute(Sender: TObject);
     procedure actGoToMethodsExecute(Sender: TObject);
-    procedure actGoToMethodsSubtypeExecute(Sender: TObject);
     procedure actGoToMethodsParentExecute(Sender: TObject);
     procedure actGoToMethodsUpdate(Sender: TObject);
-    procedure actGoToMethodsSubtypeUpdate(Sender: TObject);
     procedure actGoToMethodsParentUpdate(Sender: TObject);
     procedure actDeleteFromNamespaceUpdate(Sender: TObject);
     procedure actDeleteFromNamespaceExecute(Sender: TObject);
@@ -1045,27 +1041,12 @@ end;
 procedure Tgdc_dlgObjectProperties.actGoToMethodsExecute(Sender: TObject);
 begin
   ModalResult:= mrCancel;
-  EventControl.GoToClassMethods(gdcObject.ClassName, '');
+  EventControl.GoToClassMethods(gdcObject.ClassName, gdcObject.SubType);
 end;
 
 procedure Tgdc_dlgObjectProperties.actGoToMethodsUpdate(Sender: TObject);
 begin
   TAction(Sender).Enabled:= (gdcObject <> nil) and (EventControl <> nil)
-    and IBLogin.IsIBUserAdmin;
-end;
-
-procedure Tgdc_dlgObjectProperties.actGoToMethodsSubtypeExecute(
-  Sender: TObject);
-begin
-  ModalResult:= mrCancel;
-  EventControl.GoToClassMethods(gdcObject.ClassName, gdcObject.SubType);
-end;
-
-procedure Tgdc_dlgObjectProperties.actGoToMethodsSubtypeUpdate(
-  Sender: TObject);
-begin
-  TAction(Sender).Enabled:= (gdcObject <> nil) and (EventControl <> nil)
-    and (gdcObject.SubType > '')
     and IBLogin.IsIBUserAdmin;
 end;
 
