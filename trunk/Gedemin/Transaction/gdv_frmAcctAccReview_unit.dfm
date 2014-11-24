@@ -11,11 +11,7 @@ inherited gdv_frmAcctAccReview: Tgdv_frmAcctAccReview
   end
   inherited TBDock1: TTBDock
     Width = 922
-    inherited TBToolbar2: TTBToolbar
-      Left = 166
-    end
     inherited TBToolbar1: TTBToolbar
-      Left = 405
       inherited pCofiguration: TPanel
         inherited iblConfiguratior: TgsIBLookupComboBox
           gdClassName = 'TgdcAcctAccReviewConfig'
@@ -520,9 +516,6 @@ inherited gdv_frmAcctAccReview: Tgdv_frmAcctAccReview
       Caption = 'Перейти на карту счета'
       Hint = 'Перейти на карту счета'
       ImageIndex = 220
-    end
-    inherited actEditInGrid: TAction
-      Visible = False
     end
   end
   inherited AccountDelayTimer: TTimer
