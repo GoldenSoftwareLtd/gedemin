@@ -5751,7 +5751,6 @@ var
   R: TatRelation;
   CE: TgdClassEntry;
   LSubType: TgdcSubType;
-  CL: TClass;
 begin
   Result := '';
 
@@ -5772,19 +5771,6 @@ begin
       raise EgdcException.Create('Класс ' + Self.ClassName + ' не найден');
 
     Result := CE.Caption;
-
-    if Result = '' then
-    begin
-      CL := Self;
-      While (CL <> TgdcBase) and (Result = '') do
-      begin
-        CL := CL.ClassParent;
-        CE := gdClassList.Find(CL, '');
-        if CE = nil then
-          raise EgdcException.Create('Класс не найден');
-        Result := CE.Caption;
-      end;
-    end;
   end;
 
   if Result > '' then
