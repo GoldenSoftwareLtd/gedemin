@@ -348,6 +348,7 @@ type
 
     function GetSiblings(Index: Integer): TgdClassEntry;
     function GetCount: Integer;
+    function GetCaption: String;
     function GetGdcClass: CgdcBase;
     function GetFrmClass: CgdcCreateableForm;
     procedure CheckInitialized;
@@ -390,7 +391,7 @@ type
     property gdcClass: CgdcBase read GetGdcClass;
     property frmClass: CgdcCreateableForm read GetFrmClass;
 //    property Comment: String read FComment;
-    property Caption: String read FCaption;
+    property Caption: String read GetCaption;
     property Count: Integer read GetCount;
     property Siblings[Index: Integer]: TgdClassEntry read GetSiblings;
     property Initialized: Boolean read FInitialized write FInitialized;
@@ -1345,6 +1346,15 @@ begin
   inherited;
 end;
 
+function TgdClassEntry.GetCaption: String;
+begin
+  Result := FCaption;
+  if (Result = '') and (Parent <> nil) then
+  begin
+    Result := Parent.Caption;
+  end;
+end;
+
 function TgdClassEntry.GetCount: Integer;
 begin
   if FSiblings = nil then
@@ -2083,7 +2093,7 @@ begin
   begin
     if (Result.SubType = '')
       and (ACaption > '')
-      and (Result.Caption <> ACaption) then
+      and (Result.FCaption <> ACaption) then
     begin
       Result.FCaption := ACaption;
     end;
