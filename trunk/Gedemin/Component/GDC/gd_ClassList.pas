@@ -2398,9 +2398,10 @@ begin
       +1: H := Index - 1;
     else
       Result := True;
-      break;
+      exit;
     end;
   end;
+  Index := L;
 end;
 
 procedure TgdClassList._Grow;
