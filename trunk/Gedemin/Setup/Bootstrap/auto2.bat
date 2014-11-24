@@ -94,7 +94,7 @@ echo *************************************************
 
 call make_install.bat "%setting_source_path%\Розничная торговля\PositiveCash\GS.PositiveCash.yml"           cash      complex.jpg kkc_positive_cash    cash_setup.rar      "%install_target_path%\Касса\setup.exe" %send_ftp%
 call make_install.bat "%setting_source_path%\Общие\Комплексная автоматизация.yml"                           business  complex.jpg businesslocal compl_setup.rar    "%install_target_path%\Комплексная автоматизация\setup.exe" %send_ftp%
-rem goto exit
+goto exit
 call make_install.bat "%setting_source_path%\Банк\Банк и касса.yml"                                         plat      doc.jpg     platlocal     plat_setup.rar     "%install_target_path%\Платежные документы\setup.exe" %send_ftp% 
 call make_install.bat "%setting_source_path%\Общие\Общие данные.yml"                                        devel     complex.jpg devellocal    devel_setup.rar    "%install_target_path%\Разработчик\setup.exe"         %send_ftp%
 call make_install.bat "%setting_source_path%\Меню\2014 Бэк-офис\GS.Общепит.back.yml"                        menuback  complex.jpg menubacklocal menuback_setup.rar "%install_target_path%\Меню\setup_back.exe" %send_ftp%
