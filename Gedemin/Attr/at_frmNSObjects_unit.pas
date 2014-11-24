@@ -190,17 +190,14 @@ end;
 
 function Tat_frmNSObjects.GetObject: TgdcBase;
 var
-  FC: TgdcFullClassName;
   C: CgdcBase;
 begin
-  FC.gdClassName := ibds.FieldByName('objectclass').AsString;
-  FC.SubType := ibds.FieldByName('subtype').AsString;
-  C := gdClassList.GetGdcClass(FC.gdClassName);
+  C := gdClassList.GetGdcClass(ibds.FieldByName('objectclass').AsString);
   if C = nil then
     Result := nil
   else begin
     Result := C.Create(nil);
-    Result.SubType := FC.SubType;
+    Result.SubType := ibds.FieldByName('subtype').AsString;
     Result.SubSet := 'ByID';
     Result.ID := gdcBaseManager.GetIDByRUID(ibds.FieldByName('xid').AsInteger,
       ibds.FieldByName('dbid').AsInteger);
@@ -263,7 +260,9 @@ begin
         and (CgdcBase(C).GetListTable('') > '') then
       begin
         if C.InheritsFrom(TgdcMetaBase) then
-          USRCond := '(' + CgdcBase(C).GetListField('') + ' LIKE ''USR$%'')'#13#10
+          USRCond := 
+            '  (' + CgdcBase(C).GetListField('') + ' LIKE ''USR$%'')'#13#10 +
+            '  AND (NOT r.' + CgdcBase(C).GetListField('') + ' LIKE ''USR$CROSS%'')'#13#10        
         else
           USRCond := '';
 

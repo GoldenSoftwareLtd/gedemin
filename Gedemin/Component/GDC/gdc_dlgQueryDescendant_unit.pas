@@ -43,8 +43,8 @@ begin
     CE := TgdClassEntry(OL[I]);
     rgObjects.Items.AddObject(CE.Caption, CE);
 
-    if Height < rgObjects.Items.Count * 30 + 30 then
-      Height := rgObjects.Items.Count * 30 + 30;
+    if (Height < rgObjects.Items.Count * 24 + 30) and (Height < 540) then
+      Height := rgObjects.Items.Count * 24 + 30;
   end;
 end;
 
