@@ -24,33 +24,42 @@ object gdc_dlgQueryDescendant: Tgdc_dlgQueryDescendant
     Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 0
   end
-  object btnOK: TButton
-    Left = 104
-    Top = 96
-    Width = 75
-    Height = 21
-    Action = acOk
-    Anchors = [akRight, akBottom]
-    Default = True
+  object pnlBtns: TPanel
+    Left = 0
+    Top = 93
+    Width = 265
+    Height = 30
+    Align = alBottom
+    BevelOuter = bvNone
     TabOrder = 1
-  end
-  object btnCancel: TButton
-    Left = 184
-    Top = 96
-    Width = 75
-    Height = 21
-    Action = actCancel
-    Anchors = [akRight, akBottom]
-    Cancel = True
-    TabOrder = 2
-  end
-  object btnClasses: TButton
-    Left = 6
-    Top = 96
-    Width = 21
-    Height = 21
-    Action = actClasses
-    TabOrder = 3
+    object btnClasses: TButton
+      Left = 5
+      Top = 3
+      Width = 21
+      Height = 21
+      Action = actClasses
+      TabOrder = 0
+    end
+    object btnOK: TButton
+      Left = 103
+      Top = 3
+      Width = 75
+      Height = 21
+      Action = acOk
+      Anchors = [akRight, akBottom]
+      Default = True
+      TabOrder = 1
+    end
+    object btnCancel: TButton
+      Left = 183
+      Top = 3
+      Width = 75
+      Height = 21
+      Action = actCancel
+      Anchors = [akRight, akBottom]
+      Cancel = True
+      TabOrder = 2
+    end
   end
   object ActionList: TActionList
     Left = 193
