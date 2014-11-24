@@ -344,6 +344,7 @@ uses
   gdcTree, gdcClasses,
   gdHelp_Interface,
   Storages,
+  gd_ClassList,
   gd_converttext, jclStrHashMap, IBErrorCodes,
   gdv_dlgSelectDocument_unit, gdv_frmAcctAccCard_unit
   {must be placed after Windows unit!}
@@ -555,12 +556,13 @@ var
   StrFields: String;
   MessageBoxResult, I, J: Integer;
   SL: TStringList;
-  CL: TClassList;
+  OL: TObjectList;
   SelectCondition: String;
   DistinctStr: String;
-  Found: Boolean;
+//  Found: Boolean;
   NewClass: CgdcBase;
   dlgAction: TgsIBLkUp_dlgAction;
+  CE: TgdClassEntry;
 begin
   if (not Assigned(Database)) or (not Database.Connected) then
     exit;
@@ -748,56 +750,30 @@ begin
             cb.Visible := False;
             if (gdClass <> nil) and (SubType = '') then
             begin
-              CL := TClassList.Create;
+              OL := TObjectList.Create(False);
               try
-                if gdClass.GetChildrenClass(CL) then
+                if gdClass.GetChildrenClass(SubType, OL, True, False) then
                 begin
-                  if not gdClass.IsAbstractClass then
+                  for I := OL.Count - 1 downto 0 do
                   begin
-                    if CL.IndexOf(gdClass) = -1 then
-                      CL.Add(gdClass);
+                    if TgdClassEntry(OL[I]).gdcClass.IsAbstractClass then
+                      OL.Delete(I);
                   end;
 
-                  for I := CL.Count - 1 downto 0 do
+                  for I := 0 to OL.Count - 1 do
                   begin
-                    if CgdcBase(CL[I]).IsAbstractClass then
-                      CL.Delete(I);
-                  end;
-
-                  if CL.Count > 0 then
-                  begin
-                    for I := 0 to CL.Count - 1 do
-                    begin
-                      Found := False;
-                      for J := 0 to CL.Count - 1 do
-                      begin
-                        if J = I then
-                          continue;
-                        if CgdcBase(CL[I]).GetDisplayName(SubType) = CgdcBase(CL[J]).GetDisplayName(SubType) then
-                        begin
-                          Found := True;
-                          break;
-                        end;
-                      end;
-
-                      if Found then
-                        cb.Items.AddObject(CgdcBase(CL[I]).GetDisplayName(SubType) +
-                          ' (' + CL[I].ClassName + ')',
-                          Pointer(CL[I]))
-                      else
-                        cb.Items.AddObject(CgdcBase(CL[I]).GetDisplayName(SubType),
-                          Pointer(CL[I]));
-                    end;
+                    CE := TgdClassEntry(OL[I]);
+                    cb.Items.AddObject(CE.gdcClass.GetDisplayName(CE.SubType), OL[I]);
                   end;
 
                   cb.Visible := True;
-                  if CL.Count > 1 then
+                  if OL.Count > 1 then
                     cb.ItemIndex := 0
                   else
                     cb.ItemIndex := 1;
                 end;
               finally
-                CL.Free;
+                OL.Free;
               end;
             end;
 
@@ -833,7 +809,7 @@ begin
                 mrYes:
                 begin
                   if cb.Visible and (cb.ItemIndex > 0) then
-                    NewClass := CgdcBase(cb.Items.Objects[cb.ItemIndex]);
+                    NewClass := TgdClassEntry(cb.Items.Objects[cb.ItemIndex]).gdcClass;
                   MessageBoxResult := IDNO;
                   UserStorage.WriteInteger('Options', 'LkupDef', 2);
                 end;

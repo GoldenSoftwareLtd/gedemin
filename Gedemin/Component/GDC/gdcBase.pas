@@ -1491,7 +1491,9 @@ type
     // возвращает список классов, являющихся потомками
     // для данного класса. Используется в диалоге выбора
     // класса при создании потомка
-    class function GetChildrenClass(CL: TClassList): Boolean; virtual;
+    class function GetChildrenClass(const ASubType: TgdcSubType;
+      OL: TObjectList; const AnIncludeRoot: Boolean = True;
+      const AnOnlyDirect: Boolean = False ): Boolean; Virtual;
 
     // предоставляет пользователю возможность выбрать один из классов
     // наследников для данного класса
@@ -2116,8 +2118,9 @@ function GetBaseClassForRelationByID(const ARelationName: String;
 // наследуются от заданного и возвращает Истину или Ложь, если
 // наследников нет. Третий параметр определяет будут учитываться
 // только непосредственные наследники или далекие родственники тоже.
-function GetDescendants(AnAncestor: CgdcBase; AClassList: TClassList;
-  const OnlyDirect: Boolean = True): Boolean;
+function GetDescendants(AnAncestor: TClass; const ASubType: TgdcSubType;
+  AObjectList: TObjectList; const AnIncludeRoot: Boolean = True;
+  const OnlyDirect: Boolean = False): Boolean;
 
 //
 function GetClassForObjectByID(ADatabase: TIBDatabase; ATransaction: TIBTransaction;
@@ -2639,19 +2642,20 @@ end;
 function BuildTree(ACE: TgdClassEntry; AData1: Pointer;
   AData2: Pointer): Boolean;
 begin
-  if ACE.SubType = '' then
-    TClassList(AData1).Add(ACE.gdcClass);
+    TObjectList(AData1).Add(ACE);
   Result := True;
 end;
 
-function GetDescendants(AnAncestor: CgdcBase; AClassList: TClassList;
-  const OnlyDirect: Boolean = True): Boolean;
+function GetDescendants(AnAncestor: TClass; const ASubType: TgdcSubType;
+  AObjectList: TObjectList; const AnIncludeRoot: Boolean = True;
+  const OnlyDirect: Boolean = False): Boolean;
 begin
-  AClassList.Clear;
+  AObjectList.Clear;
 
-  gdClassList.Traverse(TClass(AnAncestor), '', BuildTree, AClassList, nil, False, OnlyDirect);
+  gdClassList.Traverse(AnAncestor, ASubType, BuildTree,
+    AObjectList, nil, AnIncludeRoot, OnlyDirect);
 
-  Result := AClassList.Count > 0;
+  Result := AObjectList.Count > 0;
 end;
 
 procedure MakeFieldList(Fields: String; List: TStrings);
@@ -10699,46 +10703,33 @@ end;
 function TgdcBase.QueryDescendant: TgdcFullClass;
 var
   I: Integer;
-  CL: TClassList;
+  OL: TObjectList;
 begin
-  {Если у нас явно указан сабтайп, то нафига выводить выбор классов? Исправлено}
-  Result.SubType := SubType;
-
-  if Subtype > '' then
-  begin
-    Result.gdClass := CgdcBase(Self.ClassType);
-    Exit;
-  end;
-
-  CL := TClassList.Create;
+  OL := TObjectList.Create(False);
   try
-    if not GetChildrenClass(CL) then
+    if not GetChildrenClass(SubType, OL, True, False) then
     begin
       Result.gdClass := CgdcBase(Self.ClassType);
+      Result.SubType := SubType;
       exit;
     end;
 
-    if not Self.IsAbstractClass then
+    for I := OL.Count - 1 downto 0 do
     begin
-      if CL.IndexOf(Self.ClassType) = -1 then
-        CL.Add(Self.ClassType);
+      if TgdClassEntry(OL[I]).gdcClass.IsAbstractClass then
+        OL.Delete(I);
     end;
 
-    for I := CL.Count - 1 downto 0 do
+    if OL.Count = 1 then
     begin
-      if CgdcBase(CL[I]).IsAbstractClass then
-        CL.Delete(I);
-    end;
-
-    if CL.Count = 1 then
-    begin
-      Result.gdClass := CgdcBase(CL[0]);
+      Result.gdClass := TgdClassEntry(OL[0]).gdcClass;
+      Result.SubType := TgdClassEntry(OL[0]).SubType;
       exit;
     end;
 
     with Tgdc_dlgQueryDescendant.Create(ParentForm) do
     try
-      FillrgObjects(CL);
+      FillrgObjects(OL);
 
       if (ShowModal <> mrOk) or (rgObjects.ItemIndex = -1) then
       begin
@@ -10754,7 +10745,7 @@ begin
     end;
 
   finally
-    CL.Free;
+    OL.Free;
   end;
 end;
 
@@ -10906,9 +10897,11 @@ begin
   end;
 end;
 
-class function TgdcBase.GetChildrenClass(CL: TClassList): Boolean;
+class function TgdcBase.GetChildrenClass(const ASubType: TgdcSubType;
+  OL: TObjectList; const AnIncludeRoot: Boolean = True;
+  const AnOnlyDirect: Boolean = False ): Boolean;
 begin
-  Result := GetDescendants(Self, CL, False);
+  Result := GetDescendants(Self, ASubType, OL, AnIncludeRoot, AnOnlyDirect);
 end;
 
 function TgdcBase.RelationByAliasName(const AnAliasName: String): String;

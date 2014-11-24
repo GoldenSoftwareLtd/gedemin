@@ -2081,8 +2081,12 @@ begin
 
   if Result <> nil then
   begin
-    if (Result.SubType = '') and (Result.Caption <> ACaption) then
+    if (Result.SubType = '')
+      and (ACaption > '')
+      and (Result.Caption <> ACaption) then
+    begin
       Result.FCaption := ACaption;
+    end;
     exit;
   end;
 
