@@ -100,9 +100,9 @@ type
     property ClassMethodAssoc: TgdKeyIntAndStrAssoc read FClassMethodAssoc;
 
     class function GetSubTypeList(ASubTypeList: TStrings;
-      ASubType: String = ''; AnOnlyDirect: Boolean = False): Boolean; virtual;
+      const ASubType: String = ''; AnOnlyDirect: Boolean = False): Boolean; virtual;
 
-    class function ClassParentSubType(ASubType: string): String; virtual;
+    class function ClassParentSubType(const ASubType: string): String; virtual;
 
     class function CheckSubType(ASubType: String): Boolean; virtual;
 
@@ -380,29 +380,26 @@ begin
 end;
 
 class function TgdcCreateableForm.GetSubTypeList(ASubTypeList: TStrings;
-  ASubType: String = ''; AnOnlyDirect: Boolean = False): Boolean;
+  const ASubType: String = ''; AnOnlyDirect: Boolean = False): Boolean;
 begin
-  Assert(ASubTypeList <> nil);
+  if AnsiPos('USR_', AnsiUpperCase(ASubType)) > 0 then
+    raise EgdcException.Create('Недопустимый символ ''_''в подтипе');
 
-  if ASubType > '' then
-    ASubType := StringReplace(ASubType, 'USR_', 'USR$', [rfReplaceAll, rfIgnoreCase]);
+  Assert(ASubTypeList <> nil);
 
   Result := gdClassList.GetSubTypeList(Self, ASubType, ASubTypeList, AnOnlyDirect)
 end;
 
-class function TgdcCreateableForm.ClassParentSubType(ASubType: string): String;
+class function TgdcCreateableForm.ClassParentSubType(const ASubType: string): String;
 var
   CE: TgdClassEntry;
 begin
+  if AnsiPos('USR_', AnsiUpperCase(ASubType)) > 0 then
+    raise Exception.Create('Недопустимый символ ''_''в подтипе');
+
   Result := '';
 
-  if ASubType > '' then
-    ASubType := StringReplace(ASubType, 'USR_', 'USR$', [rfReplaceAll, rfIgnoreCase]);
-
-  //if Assigned(gdClassList) then
-    CE := gdClassList.Find(Self, ASubType);
-  //else
-  //  CE := nil;
+  CE := gdClassList.Find(Self, ASubType);
 
   if (CE <> nil) and (CE.Parent <> nil) then
     Result := CE.Parent.SubType;
@@ -412,15 +409,12 @@ class function TgdcCreateableForm.CheckSubType(ASubType: String): Boolean;
 var
   CE: TgdClassEntry;
 begin
+  if AnsiPos('USR_', AnsiUpperCase(ASubType)) > 0 then
+    raise Exception.Create('Недопустимый символ ''_''в подтипе');
+
   Result := False;
 
-  if ASubType > '' then
-    ASubType := StringReplace(ASubType, 'USR_', 'USR$', [rfReplaceAll, rfIgnoreCase]);
-
-  //if Assigned(gdClassList) then
-    CE := gdClassList.Find(Self, ASubType);
-  //else
-  //  CE := nil;
+  CE := gdClassList.Find(Self, ASubType);
 
   if CE <> nil then
     Result := True;
