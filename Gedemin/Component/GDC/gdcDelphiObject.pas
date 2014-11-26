@@ -412,7 +412,9 @@ var
   var
     CE: TgdClassEntry;
   begin
-    ChildFN.SubType := StringReplace(ChildFN.SubType, 'USR_', 'USR$', [rfReplaceAll, rfIgnoreCase]);
+    if AnsiPos('USR_', AnsiUpperCase(ChildFN.SubType)) > 0 then
+      raise Exception.Create('Недопустимый символ ''_''в подтипе');
+
     Result.gdClassName := '';
     Result.SubType := '';
     CE := gdClassList.Find(ChildFN);

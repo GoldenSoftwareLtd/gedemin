@@ -1596,11 +1596,11 @@ type
     //OnlyDirect -- если True, то возвращаются только непосредственные наследники.
     //В противном случае -- возвращается вся иерархия наследников.
     class function GetSubTypeList(ASubTypeList: TStrings;
-      ASubType: String = ''; AnOnlyDirect: Boolean = False): Boolean; virtual;
+      const ASubType: String = ''; AnOnlyDirect: Boolean = False): Boolean; virtual;
 
-    class function ClassParentSubType(ASubType: String): String; virtual;
+    class function ClassParentSubType(const ASubType: String): String; virtual;
     //
-    class function CheckSubType(ASubType: String): Boolean;
+    class function CheckSubType(const ASubType: String): Boolean;
 
     // вяртае _нфармацыю аб структуры галоўнай табл_цы БА, выкарыстоўваючы
     // атДатабэйз. Так_м чынам гэты метад можа быць выкл_каны ў любы момант
@@ -5750,14 +5750,15 @@ class function TgdcBase.GetDisplayName(const ASubType: TgdcSubType): String;
 var
   R: TatRelation;
   CE: TgdClassEntry;
-  LSubType: TgdcSubType;
 begin
+  if AnsiPos('USR_', AnsiUpperCase(ASubType)) > 0 then
+    raise EgdcException.Create('Недопустимый символ ''_''в подтипе');
+
   Result := '';
 
   if ASubType > '' then
   begin
-    LSubType := StringReplace(ASubType, 'USR_', 'USR$', [rfReplaceAll, rfIgnoreCase]);
-    CE := gdClassList.Find(Self, LSubType);
+    CE := gdClassList.Find(Self, ASubType);
     //Тут возможно надо кидать исключение если  CE = nil
     if CE <> nil then
       Result := CE.Caption;
@@ -12327,24 +12328,24 @@ begin
 end;
 
 class function TgdcBase.GetSubTypeList(ASubTypeList: TStrings;
-  ASubType: String = ''; AnOnlyDirect: Boolean = False): Boolean;
+  const ASubType: String = ''; AnOnlyDirect: Boolean = False): Boolean;
 begin
-  Assert(ASubTypeList <> nil);
+  if AnsiPos('USR_', AnsiUpperCase(ASubType)) > 0 then
+    raise EgdcException.Create('Недопустимый символ ''_''в подтипе');
 
-  if ASubType > '' then
-    ASubType := StringReplace(ASubType, 'USR_', 'USR$', [rfReplaceAll, rfIgnoreCase]);
+  Assert(ASubTypeList <> nil);
 
   Result := gdClassList.GetSubTypeList(Self, ASubType, ASubTypeList, AnOnlyDirect)
 end;
 
-class function TgdcBase.ClassParentSubType(ASubType: String): String;
+class function TgdcBase.ClassParentSubType(const ASubType: String): String;
 var
   CE: TgdClassEntry;
 begin
-  Result := '';
+  if AnsiPos('USR_', AnsiUpperCase(ASubType)) > 0 then
+    raise EgdcException.Create('Недопустимый символ ''_''в подтипе');
 
-  if ASubType > '' then
-    ASubType := StringReplace(ASubType, 'USR_', 'USR$', [rfReplaceAll, rfIgnoreCase]);
+  Result := '';
 
   CE := gdClassList.Find(Self, ASubType);
 
@@ -17835,14 +17836,14 @@ begin
     inherited;
 end;
 
-class function TgdcBase.CheckSubType(ASubType: String): Boolean;
+class function TgdcBase.CheckSubType(const ASubType: String): Boolean;
 var
   CE: TgdClassEntry;
 begin
-  Result := False;
+  if AnsiPos('USR_', AnsiUpperCase(ASubType)) > 0 then
+    raise EgdcException.Create('Недопустимый символ ''_''в подтипе');
 
-  if ASubType > '' then
-    ASubType := StringReplace(ASubType, 'USR_', 'USR$', [rfReplaceAll, rfIgnoreCase]);
+  Result := False;
 
   CE := gdClassList.Find(Self, ASubType);
 
