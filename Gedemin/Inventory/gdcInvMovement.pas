@@ -9089,7 +9089,6 @@ initialization
   RegisterGdcClass(TgdcInvGoodRemains);
   RegisterGdcClass(TgdcInvMovement);
   RegisterGdcClass(TgdcInvCard);
-{  RegisterGdcClass(TgdcInvCardFull);}
   RegisterGdcClass(TgdcInvRemainsOption);
   RegisterGdcClass(TgdcInvCardConfig);
 
@@ -9099,9 +9098,7 @@ finalization
   UnRegisterGdcClass(TgdcInvGoodRemains);
   UnRegisterGdcClass(TgdcInvMovement);
   UnRegisterGdcClass(TgdcInvCard);
-{  UnRegisterGdcClass(TgdcInvCardFull);}
   UnRegisterGdcClass(TgdcInvRemainsOption);
   UnRegisterGdcClass(TgdcInvCardConfig);
-
 end.
 
