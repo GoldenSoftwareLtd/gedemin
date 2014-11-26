@@ -10691,6 +10691,9 @@ var
   I: Integer;
   OL: TObjectList;
 begin
+  Result.gdClass := nil;
+  Result.SubType := '';
+
   OL := TObjectList.Create(False);
   try
     if not GetChildrenClass(SubType, OL, True, False) then
@@ -10717,19 +10720,14 @@ begin
     try
       FillrgObjects(OL);
 
-      if (ShowModal <> mrOk) or (rgObjects.ItemIndex = -1) then
+      if (ShowModal = mrOk) and (rgObjects.ItemIndex > -1) then
       begin
-        Result.gdClass := nil;
-        Result.SubType := '';
-        exit;
+        Result.gdClass := TgdClassEntry(rgObjects.Items.Objects[rgObjects.ItemIndex]).gdcClass;
+        Result.SubType := TgdClassEntry(rgObjects.Items.Objects[rgObjects.ItemIndex]).SubType;
       end;
-
-      Result.gdClass := TgdClassEntry(rgObjects.Items.Objects[rgObjects.ItemIndex]).gdcClass;
-      Result.SubType := TgdClassEntry(rgObjects.Items.Objects[rgObjects.ItemIndex]).SubType;
     finally
       Free;
     end;
-
   finally
     OL.Free;
   end;

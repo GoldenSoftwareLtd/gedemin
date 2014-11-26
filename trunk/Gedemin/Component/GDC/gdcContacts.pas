@@ -131,7 +131,6 @@ type
     function GetCurrRecordClass: TgdcFullClass; override;
 
     class function IsAbstractClass: Boolean; override;
-    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
     class function ContactType: Integer; virtual;
     class function GetRestrictCondition(const ATableName, ASubType: String): String; override;
     class function GetChildrenClass(const ASubType: TgdcSubType;
@@ -355,17 +354,6 @@ const
     TgdcDepartment,
     TgdcBank,
     TgdcOurCompany
-  );
-
-  ContactTypeNames: array[-1..6] of String = (
-    'Адресная книга',
-    'Папка',
-    'Группа',
-    'Физическое лицо',
-    'Организация',
-    'Подразделение',
-    'Банк',
-    'Рабочая организация'
   );
 
 procedure Register;
@@ -1201,15 +1189,6 @@ end;
 class function TgdcBaseContact.HasLeafs: Boolean;
 begin
   Result := True;
-end;
-
-class function TgdcBaseContact.GetDisplayName(
-  const ASubType: TgdcSubType): String;
-begin
-  if ASubType > '' then
-    Result := Inherited GetDisplayName(ASubType)
-  else
-    Result := ContactTypeNames[ContactType];
 end;
 
 function TgdcBaseContact.GetDialogDefaultsFields: String;
@@ -3814,15 +3793,15 @@ begin
 end;
 
 initialization
-  RegisterGdcClass(TgdcBaseContact);
-  RegisterGdcClass(TgdcFolder);
-  RegisterGdcClass(TgdcGroup);
-  RegisterGdcClass(TgdcContact);
+  RegisterGdcClass(TgdcBaseContact, 'Адресная книга');
+  RegisterGdcClass(TgdcFolder, 'Папка');
+  RegisterGdcClass(TgdcGroup, 'Группа');
+  RegisterGdcClass(TgdcContact, 'Физическое лицо');
   RegisterGdcClass(TgdcEmployee, 'Сотрудник предприятия');
-  RegisterGdcClass(TgdcDepartment);
-  RegisterGdcClass(TgdcCompany);
+  RegisterGdcClass(TgdcDepartment, 'Подразделение');
+  RegisterGdcClass(TgdcCompany, 'Организация');
   RegisterGdcClass(TgdcOurCompany, 'Рабочая организация');
-  RegisterGdcClass(TgdcBank);
+  RegisterGdcClass(TgdcBank, 'Банк');
   RegisterGdcClass(TgdcAccount, 'Расчетный счет');
 
 finalization
@@ -3836,7 +3815,6 @@ finalization
   UnRegisterGdcClass(TgdcOurCompany);
   UnRegisterGdcClass(TgdcBank);
   UnRegisterGdcClass(TgdcAccount);
-
 end.
 
 

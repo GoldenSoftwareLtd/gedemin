@@ -41,7 +41,7 @@ begin
   for I := 0 to OL.Count - 1 do
   begin
     CE := TgdClassEntry(OL[I]);
-    rgObjects.Items.AddObject(CE.Caption, CE);
+    rgObjects.Items.AddObject(CE.gdcClass.GetDisplayName(CE.SubType), CE);
 
     if (Height < rgObjects.Items.Count * 24 + 30) and (Height < 540) then
       Height := rgObjects.Items.Count * 24 + 30;
@@ -74,7 +74,7 @@ begin
   begin
     CE := rgObjects.Items.Objects[I] as TgdClassEntry;
     if actClasses.Checked then
-      rgObjects.Items[I] := CE.TheClass.ClassName + CE.SubType
+      rgObjects.Items[I] := CE.gdcClass.ClassName + CE.SubType
     else
       rgObjects.Items[I] := CE.Caption;
   end;
