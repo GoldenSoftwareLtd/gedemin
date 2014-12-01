@@ -886,25 +886,22 @@ var
   TempColor: TColor;
   NodeRect: TRect;
 begin
+  // иначе портится шрифт
+  Sender.Canvas.Font.Style := [fsBold];
+  Sender.Canvas.Font.Style := Sender.Canvas.Font.Style - [fsBold];
+
   NodeType := TCustomTreeItem(Node.Data).ItemType;
   if ((NodeType = tiEvent) and
     (TEventTreeItem(Node.Data).EventItem.FunctionKey > 0)) {or
     ((NodeType in [tiReportFunction, tiReportTemplate]) and
     (TscrCustomItem(Node.Data).Id > 0)) } or
-    ((NodeType = tiMethod) {and (TMethodTreeItem(Node.Data).TheMethod.FunctionKey > 0)}) then
+    ((NodeType = tiMethod) and (TMethodTreeItem(Node.Data).TheMethod.FunctionKey > 0)) then
   begin
-    if TMethodTreeItem(Node.Data).TheMethod.FunctionKey > 0 then
+    Sender.Canvas.Font.Style := [fsBold];
+    if (cdsSelected in State) and not (cdsFocused in State) then
     begin
-      Sender.Canvas.Font.Style := [fsBold];
-      if (cdsSelected in State) and not (cdsFocused in State) then
-      begin
-        Sender.Canvas.Font.Color := clWindowText;
-        Sender.Canvas.Brush.Color := clInactiveCaptionText;
-      end;
-    end else
-    begin
-      Sender.Canvas.Font.Style := [fsBold];
-      Sender.Canvas.Font.Style := Sender.Canvas.Font.Style - [fsBold];
+      Sender.Canvas.Font.Color := clWindowText;
+      Sender.Canvas.Brush.Color := clInactiveCaptionText;
     end;
   end else if NodeType = tiObject then
   begin
