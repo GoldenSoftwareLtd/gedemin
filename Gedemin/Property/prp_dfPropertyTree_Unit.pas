@@ -883,19 +883,28 @@ procedure TdfPropertyTree.tvClassesAdvancedCustomDrawItem(
   Stage: TCustomDrawStage; var PaintImages, DefaultDraw: Boolean);
 var
   NodeType: TTreeItemType;
+  TempColor: TColor;
+  NodeRect: TRect;
 begin
   NodeType := TCustomTreeItem(Node.Data).ItemType;
   if ((NodeType = tiEvent) and
     (TEventTreeItem(Node.Data).EventItem.FunctionKey > 0)) {or
     ((NodeType in [tiReportFunction, tiReportTemplate]) and
     (TscrCustomItem(Node.Data).Id > 0)) } or
-    ((NodeType = tiMethod) and (TMethodTreeItem(Node.Data).TheMethod.FunctionKey > 0)) then
+    ((NodeType = tiMethod) {and (TMethodTreeItem(Node.Data).TheMethod.FunctionKey > 0)}) then
   begin
-    Sender.Canvas.Font.Style := [fsBold];
-    if (cdsSelected in State) and not (cdsFocused in State) then
+    if TMethodTreeItem(Node.Data).TheMethod.FunctionKey > 0 then
     begin
-      Sender.Canvas.Font.Color := clWindowText;
-      Sender.Canvas.Brush.Color := clInactiveCaptionText;
+      Sender.Canvas.Font.Style := [fsBold];
+      if (cdsSelected in State) and not (cdsFocused in State) then
+      begin
+        Sender.Canvas.Font.Color := clWindowText;
+        Sender.Canvas.Brush.Color := clInactiveCaptionText;
+      end;
+    end else
+    begin
+      Sender.Canvas.Font.Style := [fsBold];
+      Sender.Canvas.Font.Style := Sender.Canvas.Font.Style - [fsBold];
     end;
   end else if NodeType = tiObject then
   begin
@@ -922,6 +931,23 @@ begin
       Sender.Canvas.Font.Color := clWindowText;
     if (cdsSelected in State) then
       Sender.Canvas.Font.Color := clHighlightText;
+
+    if TgdcClassTreeItem(Node.Data).Key <> TgdcClassTreeItem(Node.Data).Name then
+    begin
+      TempColor := Sender.Canvas.Font.Color;
+      NodeRect := Node.DisplayRect(True);
+
+      Sender.Canvas.FillRect(NodeRect);
+      
+      if (cdsSelected in State) then
+        SetTextColor(Sender.Canvas.Handle, ColorToRGB(clYellow))
+      else
+        SetTextColor(Sender.Canvas.Handle, ColorToRGB(clGreen));
+
+      Sender.Canvas.TextOut(NodeRect.Left + 1, NodeRect.Top, Node.Text);
+      SetTextColor(Sender.Canvas.Handle, ColorToRGB(TempColor));
+      Sender.Canvas.TextOut(NodeRect.Left, NodeRect.Top, TgdcClassTreeItem(Node.Data).Name);
+    end;
   end;
 end;
 
@@ -2311,12 +2337,9 @@ begin
     CI.OverloadMethods := MClass.SpecMethodCount;
     Ci.DisabledMethods := MClass.SpecDisableMethod;
     CI.TheClass := MClass;
-    if ACE.Caption > '' then
-      Result := GetPageByObjID(OBJ_APPLICATION).Tree.Items.AddChild(AParent,
-        FullName.gdClassName + FullName.SubType + ' (' + ACE.Caption + ')')
-    else
-      Result := GetPageByObjID(OBJ_APPLICATION).Tree.Items.AddChild(AParent,
-        FullName.gdClassName + FullName.SubType);
+
+    Result := GetPageByObjID(OBJ_APPLICATION).Tree.Items.AddChild(AParent,
+      FullName.gdClassName + FullName.SubType);
 
     Result.ImageIndex := 42;
     Result.SelectedIndex := 42;
@@ -2378,12 +2401,8 @@ begin
     Ci.DisabledMethods := MClass.SpecDisableMethod;
     CI.TheClass := MClass;
 
-    if ACE.Caption > '' then
-      Result := GetPageByObjID(OBJ_APPLICATION).Tree.Items.AddChild(AParent,
-        FullName.gdClassName + FullName.SubType + ' (' + ACE.Caption + ')')
-    else
-      Result := GetPageByObjID(OBJ_APPLICATION).Tree.Items.AddChild(AParent,
-        FullName.gdClassName + FullName.SubType);
+    Result := GetPageByObjID(OBJ_APPLICATION).Tree.Items.AddChild(AParent,
+      FullName.gdClassName + FullName.SubType);
 
     if FullName.SubType <> '' then
     begin
