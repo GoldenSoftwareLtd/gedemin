@@ -1800,7 +1800,14 @@ begin
       CurrCE := Add(TheClass, SL.Values[SL.Names[I]], SL.Names[I], SubType);
 
       if CurrCE <> nil then
+      begin
+        if TheClass.InheritsFrom(TgdcBase) then
+        begin
+          Add(GetClass(CgdcBase(TheClass).GetViewFormClassName(SL.Values[SL.Names[I]])), SL.Values[SL.Names[I]], SL.Names[I], SubType);
+          Add(GetClass(CgdcBase(TheClass).GetDialogFormClassName(SL.Values[SL.Names[I]])), SL.Values[SL.Names[I]], SL.Names[I], SubType);
+        end;
         CurrCE.ReadFromStorage;
+      end;
     end;
   finally
     SL.Free;
