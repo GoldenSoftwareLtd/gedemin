@@ -9751,19 +9751,18 @@ begin
             raise Exception.Create('Ошибка перекрытия события ' + LFullClassName.gdClassName);
           LParentSubType := gdClassList.GetFRMClass(LFullClassName.gdClassName).ClassParentSubtype(LSubType);
           LParentSubType := StringReplace(LParentSubType, 'USR$', 'USR_', [rfReplaceAll, rfIgnoreCase]);
-          if LParentSubType <> '' then
-          begin
-            LParentCompName :=
-              Copy(AnComponent.ClassName, 2, Length(AnComponent.ClassName) - 1)
-              + LParentSubType;
 
-            LParentEventObject := EventObjectList.FindAllObject(LParentCompName);
-            if Assigned(LParentEventObject) then
-            begin
-              AnEventObject.CurrIndexParentObject := -1;
-              AnEventObject.ParentObjectsBySubType.AddObject(LParentEventObject);
-            end;
+          LParentCompName :=
+            Copy(AnComponent.ClassName, 2, Length(AnComponent.ClassName) - 1)
+            + LParentSubType;
+
+          LParentEventObject := EventObjectList.FindAllObject(LParentCompName);
+          if Assigned(LParentEventObject) then
+          begin
+            AnEventObject.CurrIndexParentObject := -1;
+            AnEventObject.ParentObjectsBySubType.AddObject(LParentEventObject);
           end;
+
           LSubType := LParentSubType;
         until LParentSubType = '';
     end;
