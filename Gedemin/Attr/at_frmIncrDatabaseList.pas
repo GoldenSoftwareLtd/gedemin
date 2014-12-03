@@ -5,17 +5,17 @@ interface
 uses 
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   Grids, DBGrids, gsDBGrid, gsIBGrid, Db, IBCustomDataSet, gdcBase,
-  gdcAttrUserDefined, TB2Dock, TB2Toolbar, TB2Item;
+  gdcAttrUserDefined, TB2Dock, TB2Toolbar, TB2Item, gdcRplDatabase;
 
 type
   TfrmIncrDatabaseList = class(TFrame)
     TBDock1: TTBDock;
     TBToolbar1: TTBToolbar;
-    gdcDatabases: TgdcAttrUserDefined;
     dsDatabases: TDataSource;
     ibgrDatabases: TgsIBGrid;
     TBItem1: TTBItem;
     TBItem3: TTBItem;
+    gdcDatabases: TgdcRplDatabase;
     procedure TBItem3Click(Sender: TObject);
     procedure TBItem1Click(Sender: TObject);
     procedure ibgrDatabasesExit(Sender: TObject);
