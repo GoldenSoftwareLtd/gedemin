@@ -5746,7 +5746,7 @@ begin
         Continue;
       end;
 
-      if (C = AClass) and (TI.SubType = ASubType) then begin
+      if (C = AClass) and (AnsiUpperCase(TI.SubType) = AnsiUpperCase(ASubType)) then begin
         Result:= TN;
         Exit;
       end else if (TI.ItemType = tiGDCClass) and AClass.InheritsFrom(C) and (TI.SubType = '') then
