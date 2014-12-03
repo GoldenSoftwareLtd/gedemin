@@ -7,7 +7,7 @@ uses
   Db, IBCustomDataSet, gdcBase, gdcBaseInterface, gd_ClassList;
 
 type
-  TgdcRplDatabase = class(TgdcBase)
+  TgdcRplDatabase2 = class(TgdcBase)
   public
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
@@ -20,38 +20,41 @@ procedure Register;
 
 implementation
 
+uses
+  gdc_frmRplDatabase2_unit, gdc_dlgRplDatabase2_unit;
+
 procedure Register;
 begin
-  RegisterComponents('gdc', [TgdcRplDatabase]);
+  RegisterComponents('gdc', [TgdcRplDatabase2]);
 end;
 
-{ TgdcRplDatabase }
+{ TgdcRplDatabase2 }
 
-class function TgdcRplDatabase.GetViewFormClassName(
+class function TgdcRplDatabase2.GetViewFormClassName(
   const ASubType: TgdcSubType): String;
 begin
-  Result := '';
+  Result := 'Tgdc_frmRplDatabase';
 end;
 
-class function TgdcRplDatabase.GetDialogFormClassName(
+class function TgdcRplDatabase2.GetDialogFormClassName(
   const ASubType: TgdcSubType): String;
 begin
-  Result := '';
+  Result := 'Tgdc_dlgRplDatabase';
 end;
 
-class function TgdcRplDatabase.GetListTable(const ASubType: TgdcSubType): String;
+class function TgdcRplDatabase2.GetListTable(const ASubType: TgdcSubType): String;
 begin
   Result := 'RPL_DATABASE';
 end;
 
-class function TgdcRplDatabase.GetListField(const ASubType: TgdcSubType): String;
+class function TgdcRplDatabase2.GetListField(const ASubType: TgdcSubType): String;
 begin
   Result := 'NAME';
 end;
 
 initialization
-  RegisterGDCClass(TgdcRplDatabase);
+  RegisterGDCClass(TgdcRplDatabase2);
 
 finalization
-  UnRegisterGDCClass(TgdcRplDatabase);
+  UnRegisterGDCClass(TgdcRplDatabase2);
 end.

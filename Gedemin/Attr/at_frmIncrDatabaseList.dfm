@@ -57,7 +57,7 @@ object frmIncrDatabaseList: TfrmIncrDatabaseList
     Left = 264
     Top = 96
   end
-  object gdcDatabases: TgdcRplDatabase
+  object gdcDatabases: TgdcRplDatabase2
     Left = 320
     Top = 96
   end
