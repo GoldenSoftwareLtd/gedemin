@@ -15,7 +15,7 @@ type
     ibgrDatabases: TgsIBGrid;
     TBItem1: TTBItem;
     TBItem3: TTBItem;
-    gdcDatabases: TgdcRplDatabase;
+    gdcDatabases: TgdcRplDatabase2;
     procedure TBItem3Click(Sender: TObject);
     procedure TBItem1Click(Sender: TObject);
     procedure ibgrDatabasesExit(Sender: TObject);
