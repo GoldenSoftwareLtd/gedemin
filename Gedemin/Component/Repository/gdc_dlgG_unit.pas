@@ -320,7 +320,7 @@ uses
   jclStrings, at_frmSQLProcess, gsStorage_CompPath,
   gd_security, prp_methods, Gedemin_TLB, gsStorage,
   gdcUser, at_classes, DBCtrls, at_AddToSetting,
-  gdcClasses, DBGrids, gdcJournal, gdHelp_Interface, gdcDelphiObject
+  gdcClasses, DBGrids, gdcJournal, gdHelp_Interface, gdcDelphiObject, Contnrs
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -1294,6 +1294,7 @@ var
   L: TList;
   I, P: Integer;
   IsNewCtrl: Boolean;
+  OL: TObjectList;
 
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGG', 'SETUPRECORD', KEYSETUPRECORD)}
@@ -1378,6 +1379,24 @@ begin
   end;
 
   FOldPostCount := gdcObject.PostCount;
+
+  if (gdcObject.State = dsInsert) then
+  begin
+    if fgdcObject.FindField('USR$CurrRecordClass') <> nil then
+      gdcObject.FieldByName('USR$CurrRecordClass').AsString :=
+        gdcObject.ClassName + gdcObject.SubType
+    else
+    begin
+      OL := TObjectList.Create(False);
+      try
+        if gdcObject.GetChildrenClass('', OL, True, False) then
+          if OL.Count > 1 then
+            raise Exception.Create('Поле ''USR$CurrRecordClass'' не найдено');
+      finally
+        OL.Free;
+      end;
+    end;
+  end;
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGG', 'SETUPRECORD', KEYSETUPRECORD)}
   {M}finally

@@ -9890,9 +9890,85 @@ begin
 end;
 
 function TgdcBase.GetCurrRecordClass: TgdcFullClass;
+var
+  I: Integer;
+//  CE: TgdClassEntry;
+//  SL: TStringList;
+  OL: TObjectList;
 begin
-  Result.gdClass := CgdcBase(Self.ClassType);
-  Result.SubType := GetCurrRecordSubType;
+  Result.gdClass := nil;
+  Result.SubType := '';
+
+  OL := TObjectList.Create(False);
+  try
+    if GetChildrenClass('', OL, True, False) then
+    begin
+      if (FindField('USR$CurrRecordClass') = nil) and (OL.Count > 1) then
+        raise Exception.Create('Поле ''USR$CurrRecordClass'' не найдено');
+      if not FieldByName('USR$CurrRecordClass').IsNull then
+      begin
+        for I := 0 to OL.Count - 1 do
+        begin
+          if TgdClassEntry(OL[I]).TheClass.ClassName + TgdClassEntry(OL[I]).SubType
+            = FieldByName('USR$CurrRecordClass').AsString then
+          begin
+            Result.gdClass := TgdClassEntry(OL[I]).gdcClass;
+            Result.SubType := TgdClassEntry(OL[I]).SubType;
+            exit;
+          end;
+        end
+      end;
+    end;
+  finally
+    OL.Free;
+  end;
+
+  {//Есть вероятность что родительский(делфийский) класс тоже делает
+  //записи в эту же таблицу. Поэтому ищем.
+
+
+  if (FindField('USR$CurrRecordClass') <> nil) and (not FieldByName('USR$CurrRecordClass').IsNull) then
+  begin
+    CE := gdClassList.Find(Self.ClassType, '');
+    while CE.Parent <> nil do
+    begin
+      CE := CE.Parent;
+      if CE.TheClass.ClassName = FieldByName('USR$CurrRecordClass').AsString then
+      begin
+        Result.gdClass := CE.gdcClass;
+        Result.SubType := '';
+        exit;
+      end;
+      SL := TStringList.Create;
+      try
+        CE.gdcClass.GetSubTypeList(SL, '', False);
+        for I := 0 to SL.Count - 1 do
+        begin
+          if CE.TheClass.ClassName + SL.Values[SL.Names[I]]
+            = FieldByName('USR$CurrRecordClass').AsString then
+          begin
+            Result.gdClass := CE.gdcClass;
+            Result.SubType := SL.Values[SL.Names[I]];
+            exit;
+          end;
+        end;
+      finally
+        SL.Free;
+      end;
+    end;
+  end; }
+
+
+  //if (not FieldByName('USR$CurrRecordClass').IsNull) and (Result.gdClass = nil)then
+    //raise Exception.Create('Invalid CurrRecordClass');
+
+  // если все-таки дошли до сюда, то класс записи не определен
+  // и что с этим делать??? а наверное ничего и не сделаешь
+  if Result.gdClass = nil then
+  begin
+    Result.gdClass := CgdcBase(Self.ClassType);
+    Result.SubType := '';
+  end;
 end;
 
 function TgdcBase.GetNameInScript: String;
@@ -10887,6 +10963,8 @@ class function TgdcBase.GetChildrenClass(const ASubType: TgdcSubType;
   const AnOnlyDirect: Boolean = False ): Boolean;
 begin
   Result := GetDescendants(Self, ASubType, OL, AnIncludeRoot, AnOnlyDirect);
+  // возможно надо добавить проверку на таблицу
+  // если другая таблица, то удалять из списка???
 end;
 
 function TgdcBase.RelationByAliasName(const AnAliasName: String): String;
