@@ -1,0 +1,6 @@
+inherited ManualInput: TManualInput
+  Left = 551
+  Top = 446
+  OnCreate = FormCreate
+  OnKeyDown = FormKeyDown
+end

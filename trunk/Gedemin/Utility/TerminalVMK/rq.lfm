@@ -1,0 +1,16 @@
+inherited RQ: TRQ
+  Left = 494
+  Height = 311
+  Top = 295
+  Width = 357
+  ClientHeight = 311
+  ClientWidth = 357
+  Font.CharSet = RUSSIAN_CHARSET
+  OnCreate = FormCreate
+  inherited lInfo: TLabel
+    Width = 347
+  end
+  inherited eInfo: TEdit
+    Width = 347
+  end
+end
