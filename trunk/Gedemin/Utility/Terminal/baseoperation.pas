@@ -442,7 +442,7 @@ begin
     then
       Inc(FGoodsCount, Number)
     else
-      Inc(FGoodsCount);
+       if  Number > 0 then Inc(FGoodsCount);
     eGoods.Text := IntToStr(FGoodsCount);
   end else
     FPosition.Add(AString + Separator);

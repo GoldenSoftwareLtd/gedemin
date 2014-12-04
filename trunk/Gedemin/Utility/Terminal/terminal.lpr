@@ -34,7 +34,66 @@ uses
   procedure deinit;
     stdcall; external 'scaner_dll.dll' name 'init';
  {$ENDIF}
+ {$IFNDEF M3T}
+ type  TBarcodeType = record
+    bMC_UPCA: byte;
+    bMC_UPCA_ADDON: byte;
+    bMC_UPCE: byte;
+    bMC_EAN13: byte;
+    bMC_EAN13_ADDON: byte;
+    bMC_BOOKLAND: byte;
+    bMC_EAN8: byte;
+    bMC_CODE39: byte;
+    bMC_CODE32: byte;
+    bMC_PZN: byte;
+    bMC_CODE128: byte;
+    bMC_UCCEAN128: byte;
+    bMC_CODE93: byte;
+    bMC_CODE35: byte;
+    bMC_CODE11: byte;
+    bMC_I2OF5: byte;
+    bMC_CODE25_ITF14: byte;
+    bMC_CODE25_MATRIX: byte;
+    bMC_CODE25_DLOGIC: byte;
+    bMC_CODE25_INDUSTRY: byte;
+    bMC_CODE25_IATA: byte;
+    bMC_CODABAR: byte;
+    bMC_COUPON: byte;
+    bMC_MSI: byte;
+    bMC_PLESSEY: byte;
+    bMC_GS1: byte;
+    bMC_GS1_LIMITED: byte;
+    bMC_GS1_EXPANDED: byte;
+    bMC_TELEPEN: byte;
 
+  end;
+  function MCScanInit: Integer;
+    stdcall; external 'MCSSLib.dll' name 'MCScanInit';
+  function MCScanRead: Integer;
+    stdcall; external 'MCSSLib.dll' name 'MCScanRead';
+
+  function MCScanReadCancel: Integer;
+    stdcall; external 'MCSSLib.dll' name 'MCScanReadCancel';
+
+  function MCScanClose: Integer;
+    stdcall; external 'MCSSLib.dll' name 'MCScanClose';
+
+  procedure MCRegisterWindow(hWnd: HWND);
+    stdcall; external 'MCSSLib.dll' name 'MCRegisterWindow';
+
+ { procedure MCGetScanDataChar(szBarData: PChar; szBarType: PChar);
+    stdcall; external 'MCSSLib.dll' name 'MCGetScanDataWchar';}
+
+  procedure MCGetScanDataByte(szBarData: pbyte; szBarType: pbyte);
+    stdcall; external 'MCSSLib.dll' name 'MCGetScanDataByte';
+
+
+  procedure MCGetBarCodeType(szBarType: pointer);
+    stdcall; external 'MCSSLib.dll' name 'MCGetBarCodeType';
+
+  procedure MCSetBarCodeType(szBarType: pointer);
+    stdcall; external 'MCSSLib.dll' name 'MCSetBarCodeType';
+  {$ENDIF}
   procedure CheckFiles;
   const
     constfile = ';SHCODE_GOODS.txt;SHCODE_USERS.txt;SHCODE_DEPART.txt;ENDTRANSFER.txt;ALLTRANSFER.txt';
