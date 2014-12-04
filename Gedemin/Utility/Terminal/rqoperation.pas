@@ -156,6 +156,11 @@ const
        Key := Copy(SL[I], 1, Length(SL[I]) - 1);
        GetInfoGoods(Key, Code, NameGoods, WeightInGram, Date, Number);
        Weight := WeightInGram/1000;
+       if (Weight > weight_for_checking_sites)
+       then
+          Inc(FGoodsCount, Number)
+       else
+          if  Number > 0 then Inc(FGoodsCount);
        Index := FMemoPositions.IndexOf(Code);
        if (Index <> - 1) and ((FMemoPositions.Objects[Index] as TGoodInfo).Weight > (FMemoPositions.Objects[Index] as TGoodInfo).Error) then
        begin
@@ -200,7 +205,7 @@ end;
    then
      Dec(FGoodsCount, Number)
    else
-     Dec(FGoodsCount);
+     if  Number > 0  then Dec(FGoodsCount);
  end;
 
  procedure TOperationRQ.Clear;
@@ -253,7 +258,7 @@ end;
            FMemoPositions.Objects[Index].Free;
            FMemoPositions.Delete(Index);
          end; }
-         AddPosition(AKey);
+         AddPosition(BarCode);
          //FPosition.Add(AKey + Separator);
 
          CurrGood := NameGoods + '=' + FloatToStr(Weight) + 'кг';

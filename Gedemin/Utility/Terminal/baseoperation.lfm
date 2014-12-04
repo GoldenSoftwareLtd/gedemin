@@ -19,7 +19,7 @@ object BaseOperation: TBaseOperation
   OnDestroy = FormDestroy
   OnKeyDown = FormKeyDown
   OnShow = FormShow
-  LCLVersion = '1.0.8.0'
+  LCLVersion = '1.0.14.0'
   object mTP: TMemo
     Left = 5
     Height = 128
