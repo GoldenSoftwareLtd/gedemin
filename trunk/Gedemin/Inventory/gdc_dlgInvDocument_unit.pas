@@ -1020,6 +1020,18 @@ begin
                           C.Lookup.Params.Add('ck=' + IntToStr(IBLogin.CompanyKey));
                         Alias := 'c.';
                       end;
+                      imctOurDepartAndPeople: //ѕриход/расход оформлен на наше подразделение
+                      begin
+                        C.Lookup.gdClassName :=  '';
+                        C.Lookup.LookupTable := 'gd_contact c JOIN gd_contact cp ON cp.lb <= c.lb AND cp.rb >= c.rb ';
+                        C.Lookup.Condition := 'c.contacttype in (2, 4) AND cp.id = :ck';
+                        C.Lookup.Params.Clear;
+                        if HasConstraint then //≈сть дополнительное ограничение
+                          C.Lookup.Params.Add('ck=0')
+                        else
+                          C.Lookup.Params.Add('ck=' + IntToStr(IBLogin.CompanyKey));
+                        Alias := 'c.';
+                      end;
                       imctOurPeople:  //ѕриход/расход оформлен на нашего сотрудника
                       begin
                         C.Lookup.gdClassName :=  'TgdcEmployee';
@@ -1397,6 +1409,18 @@ begin
                   C.Lookup.gdClassName :=  'TgdcDepartment';
                   C.Lookup.LookupTable := 'gd_contact c JOIN gd_contact cp ON cp.lb <= c.lb AND cp.rb >= c.rb ';
                   C.Lookup.Condition := 'c.contacttype = 4 AND cp.id = :ck';
+                  C.Lookup.Params.Clear;
+                  if HasConstraint then //≈сть дополнительное ограничение
+                    C.Lookup.Params.Add('ck=0')
+                  else
+                    C.Lookup.Params.Add('ck=' + IntToStr(IBLogin.CompanyKey));
+                  Alias := 'c.';
+                end;
+                imctOurDepartAndPeople:
+                begin
+                  C.Lookup.gdClassName :=  '';
+                  C.Lookup.LookupTable := 'gd_contact c JOIN gd_contact cp ON cp.lb <= c.lb AND cp.rb >= c.rb ';
+                  C.Lookup.Condition := 'c.contacttype in (2,4) AND cp.id = :ck';
                   C.Lookup.Params.Clear;
                   if HasConstraint then //≈сть дополнительное ограничение
                     C.Lookup.Params.Add('ck=0')
@@ -1810,6 +1834,20 @@ begin
           Params.Add('ck=' + IntToStr(IBLogin.CompanyKey));
         Alias := 'c.';
       end;
+
+      imctOurDepartAndPeople:
+      begin
+        gdClassName :=  '';
+        ListTable := 'gd_contact c JOIN gd_contact cp ON cp.lb <= c.lb AND cp.rb >= c.rb ';
+        Condition := 'c.contacttype in (2, 4) AND cp.id = :ck';
+        Params.Clear;
+        {≈сли у нас есть есть доп ограничение, то считывать параметр мы должны по доп ограничению}
+        if HasConstraint then
+          Params.Add('ck=0')
+        else
+          Params.Add('ck=' + IntToStr(IBLogin.CompanyKey));
+        Alias := 'c.';
+      end;
       imctOurPeople:
       begin
         gdClassName :=  'TgdcEmployee';
@@ -1907,7 +1945,7 @@ var
       Exit;
 
     case MovementOption.ContactType of
-      imctOurDepartment, imctOurPeople, imctCompanyDepartment, imctCompanyPeople:
+      imctOurDepartment, imctOurPeople, imctCompanyDepartment, imctCompanyPeople, imctOurDepartAndPeople:
       begin
         if C <> nil then
         begin
@@ -2009,7 +2047,7 @@ begin
   if Assigned(Col) then
   begin
     case MovementOption.ContactType of
-      imctOurDepartment, imctCompanyDepartment, imctCompanyPeople:
+      imctOurDepartment, imctCompanyDepartment, imctCompanyPeople, imctOurDepartAndPeople:
       begin
         Col.Lookup.Params.Clear;
         Col.Lookup.Params.Add('ck=' + AnID);
@@ -2660,6 +2698,8 @@ begin
   begin
     case ContactType of
       imctOurDepartment:
+        aNewObject.FieldByName('parent').AsInteger := IbLogin.CompanyKey;
+      imctOurDepartAndPeople:
         aNewObject.FieldByName('parent').AsInteger := IbLogin.CompanyKey;
       imctCompanyDepartment:
         aNewObject.FieldByName('parent').AsInteger := SubContactKey;

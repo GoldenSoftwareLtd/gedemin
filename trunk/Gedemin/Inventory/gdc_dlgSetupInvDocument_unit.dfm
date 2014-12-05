@@ -4,7 +4,7 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
   PixelsPerInch = 96
   TextHeight = 13
   inherited pcMain: TPageControl
-    ActivePage = tsReferences
+    ActivePage = tsIncomeMovement
     OnChange = pcMainChange
     OnChanging = pcMainChanging
     inherited tsCommon: TTabSheet

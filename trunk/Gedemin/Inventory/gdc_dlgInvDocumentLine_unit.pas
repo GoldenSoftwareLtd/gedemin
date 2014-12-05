@@ -506,7 +506,7 @@ begin
         ListField := 'COMPNAME';
         KeyField := 'COMPID';
       end;
-      imctOurDepartment:
+      imctOurDepartment, imctOurDepartAndPeople:
       begin
         if HasConstraint then
         begin
@@ -532,7 +532,10 @@ begin
         if Condition > '' then
           Condition := Condition + ' AND ';
 
-        Condition := Format('CONTACTTYPE IN (4) AND LB >= %d AND RB <= %d', [LB, RB]);
+        if ContactType = imctOurDepartment then
+          Condition := Format('CONTACTTYPE IN (4) AND LB >= %d AND RB <= %d', [LB, RB])
+        else
+          Condition := Format('CONTACTTYPE <> 3 AND LB >= %d AND RB <= %d', [LB, RB]);
       end;
       imctOurPeople:
       begin
@@ -677,6 +680,11 @@ var
       imctOurDepartment:
       begin
         C.Condition := Format('CONTACTTYPE IN (4) AND LB >= %d AND RB <= %d',
+          [FContactSQL.FieldByName('LB').AsInteger, FContactSQL.FieldByName('RB').AsInteger]);
+      end;
+      imctOurDepartAndPeople:
+      begin
+        C.Condition := Format('CONTACTTYPE in (2, 4) AND LB >= %d AND RB <= %d',
           [FContactSQL.FieldByName('LB').AsInteger, FContactSQL.FieldByName('RB').AsInteger]);
       end;
       imctOurPeople:
