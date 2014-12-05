@@ -36,7 +36,7 @@ inherited dlgInvDocument: TdlgInvDocument
   object pnlMain: TPanel [6]
     Left = 0
     Top = 25
-    Width = 552
+    Width = 544
     Height = 320
     Align = alTop
     Anchors = [akLeft, akTop, akRight, akBottom]
@@ -46,7 +46,7 @@ inherited dlgInvDocument: TdlgInvDocument
     object sptMain: TSplitter
       Left = 2
       Top = 147
-      Width = 548
+      Width = 540
       Height = 6
       Cursor = crVSplit
       Align = alTop
@@ -54,7 +54,7 @@ inherited dlgInvDocument: TdlgInvDocument
     object pnlAttributes: TPanel
       Left = 2
       Top = 2
-      Width = 548
+      Width = 540
       Height = 145
       Align = alTop
       BevelOuter = bvNone
@@ -62,7 +62,7 @@ inherited dlgInvDocument: TdlgInvDocument
       object pnlCommonAttributes: TPanel
         Left = 0
         Top = 0
-        Width = 548
+        Width = 540
         Height = 145
         Align = alClient
         BevelOuter = bvNone
@@ -70,7 +70,7 @@ inherited dlgInvDocument: TdlgInvDocument
         object atAttributes: TatContainer
           Left = 0
           Top = 0
-          Width = 548
+          Width = 540
           Height = 145
           DataSource = dsgdcBase
           Align = alClient
@@ -86,7 +86,7 @@ inherited dlgInvDocument: TdlgInvDocument
     object pnlCommon: TPanel
       Left = 2
       Top = 153
-      Width = 548
+      Width = 540
       Height = 165
       Align = alClient
       BevelOuter = bvNone
@@ -94,7 +94,7 @@ inherited dlgInvDocument: TdlgInvDocument
       object pnlGrids: TPanel
         Left = 9
         Top = 26
-        Width = 530
+        Width = 522
         Height = 130
         Align = alClient
         BevelOuter = bvNone
@@ -102,7 +102,7 @@ inherited dlgInvDocument: TdlgInvDocument
         object ibgrdTop: TgsIBGrid
           Left = 0
           Top = 0
-          Width = 530
+          Width = 522
           Height = 130
           Align = alClient
           BorderStyle = bsNone
@@ -130,7 +130,7 @@ inherited dlgInvDocument: TdlgInvDocument
         Position = dpLeft
       end
       object TBDockRight: TTBDock
-        Left = 539
+        Left = 531
         Top = 26
         Width = 9
         Height = 130
@@ -139,14 +139,14 @@ inherited dlgInvDocument: TdlgInvDocument
       object TBDockBottom: TTBDock
         Left = 0
         Top = 156
-        Width = 548
+        Width = 540
         Height = 9
         Position = dpBottom
       end
       object TBDockTop: TTBDock
         Left = 0
         Top = 0
-        Width = 548
+        Width = 540
         Height = 26
         object tbDetailToolbar: TTBToolbar
           Left = 0
@@ -212,7 +212,7 @@ inherited dlgInvDocument: TdlgInvDocument
   object pnlHolding: TPanel [7]
     Left = 0
     Top = 0
-    Width = 552
+    Width = 544
     Height = 25
     Align = alTop
     BevelOuter = bvNone

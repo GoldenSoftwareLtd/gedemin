@@ -6758,7 +6758,7 @@ begin
     case MovementContactType of
     imctOurCompany:
       ContactType := 3;
-    imctOurDepartment, imctOurPeople:
+    imctOurDepartment, imctOurPeople, imctOurDepartAndPeople:
       begin
         if (High(SubDepartmentKeys) < Low(SubDepartmentKeys)) and
            (High(DepartmentKeys) < Low(DepartmentKeys))
@@ -6923,7 +6923,7 @@ begin
     case MovementContactType of
     imctOurCompany:
       ContactType := 3;
-    imctOurDepartment, imctOurPeople:
+    imctOurDepartment, imctOurPeople, imctOurDepartAndPeople:
       begin
         if (High(SubDepartmentKeys) < Low(SubDepartmentKeys)) and
            (High(DepartmentKeys) < Low(DepartmentKeys))
@@ -7797,7 +7797,7 @@ begin
         FieldPrefix := INV_SOURCEFEATURE_PREFIX;
     end else
 
-    if (gdcInvDocumentLine as TgdcInvBaseDocument).MovementSource.ContactType in [imctOurCompany, imctOurDepartment, imctOurPeople] then
+    if (gdcInvDocumentLine as TgdcInvBaseDocument).MovementSource.ContactType in [imctOurCompany, imctOurDepartment, imctOurPeople, imctOurDepartAndPeople] then
       FieldPrefix := INV_SOURCEFEATURE_PREFIX
     else
       FieldPrefix := INV_DESTFEATURE_PREFIX;

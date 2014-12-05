@@ -617,7 +617,7 @@ begin
 
       cbUseIncomeSubClick(CheckBox);
     end;
-    imctOurDepartment:
+    imctOurDepartment, imctOurDepartAndPeople:
     begin
       LabelCombo.Caption := 'Поле подразделения нашей компании:';
       Combo.Visible := True;
@@ -906,6 +906,7 @@ begin
   cbDebitMovement.Items.Add('Подразделение клиента');
   cbDebitMovement.Items.Add('Сотрудника клиента');
   cbDebitMovement.Items.Add('Физическое лицо');
+  cbDebitMovement.Items.Add('Подразделение или сотрудника нашей организации');
 
   cbCreditMovement.Items.Clear;
   cbCreditMovement.Items.Add('Нашу организацию');
@@ -915,6 +916,8 @@ begin
   cbCreditMovement.Items.Add('Подразделение клиента');
   cbCreditMovement.Items.Add('Сотрудника клиента');
   cbCreditMovement.Items.Add('Физическое лицо');
+  cbCreditMovement.Items.Add('Подразделение или сотрудника нашей организации');
+
 
   // Страница справочники
   cbReference.Checked := False;
@@ -1118,9 +1121,12 @@ begin
       ibsql.Close;
       ibsql.ParamByName('ID').AsInteger := Document.CreditMovement.Predefined[I];
       ibsql.ExecQuery;
-      Item := lvCreditMovementValues.Items.Add;
-      Item.Caption := ibsql.FieldByName('NAME').AsString;
-      Item.SubItems.Add(IntToStr(Document.CreditMovement.Predefined[I]));
+      if not ibsql.EOF then
+      begin
+        Item := lvCreditMovementValues.Items.Add;
+        Item.Caption := ibsql.FieldByName('NAME').AsString;
+        Item.SubItems.Add(IntToStr(Document.CreditMovement.Predefined[I]));
+      end;  
       ibsql.Close;
     end;
 
@@ -1129,9 +1135,12 @@ begin
       ibsql.Close;
       ibsql.ParamByName('ID').AsInteger := Document.CreditMovement.SubPredefined[I];
       ibsql.ExecQuery;
-      Item := lvSubCreditMovementValues.Items.Add;
-      Item.Caption := ibsql.FieldByName('NAME').AsString;
-      Item.SubItems.Add(IntToStr(Document.CreditMovement.SubPredefined[I]));
+      if not ibsql.EOF then
+      begin
+        Item := lvSubCreditMovementValues.Items.Add;
+        Item.Caption := ibsql.FieldByName('NAME').AsString;
+        Item.SubItems.Add(IntToStr(Document.CreditMovement.SubPredefined[I]));
+      end;  
       ibsql.Close;
     end;
 
