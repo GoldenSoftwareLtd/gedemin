@@ -1294,7 +1294,6 @@ var
   L: TList;
   I, P: Integer;
   IsNewCtrl: Boolean;
-  OL: TObjectList;
 
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGG', 'SETUPRECORD', KEYSETUPRECORD)}
@@ -1380,22 +1379,12 @@ begin
 
   FOldPostCount := gdcObject.PostCount;
 
-  if (gdcObject.State = dsInsert) then
+  if (gdcObject.State = dsInsert) and (gdcObject.SubType > '') then
   begin
-    if fgdcObject.FindField('USR$CurrRecordClass') <> nil then
-      gdcObject.FieldByName('USR$CurrRecordClass').AsString :=
-        gdcObject.ClassName + gdcObject.SubType
-    else
-    begin
-      OL := TObjectList.Create(False);
-      try
-        if gdcObject.GetChildrenClass('', OL, True, False) then
-          if OL.Count > 1 then
-            raise Exception.Create('Поле ''USR$CurrRecordClass'' не найдено');
-      finally
-        OL.Free;
-      end;
-    end;
+    if fgdcObject.FindField('USR$CurrRecordSubType') = nil then
+      raise Exception.Create('Поле ''USR$CurrRecordSubType'' не найдено');
+
+    gdcObject.FieldByName('USR$CurrRecordSubType').AsString := gdcObject.SubType;
   end;
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGG', 'SETUPRECORD', KEYSETUPRECORD)}
