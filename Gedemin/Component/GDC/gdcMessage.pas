@@ -293,7 +293,12 @@ begin
     Result.gdClass := TgdcPhoneCall;
     Result.SubType := '';
   end else
-    Result := inherited GetCurrRecordClass;
+  begin
+    Result.gdClass := CgdcBase(Self.ClassType);
+    Result.SubType := '';
+  end;
+
+  Result.SubType := GetCurrRecordSubType(Result.gdClass);
 end;
 
 function TgdcBaseMessage.GetFromClause(const ARefresh: Boolean = False): String;

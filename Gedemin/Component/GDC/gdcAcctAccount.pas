@@ -167,7 +167,9 @@ end;
 
 function TgdcAcctBase.GetCurrRecordClass: TgdcFullClass;
 begin
-  Result := inherited GetCurrRecordClass;
+  Result.gdClass := CgdcBase(Self.ClassType);
+  Result.SubType := '';
+
   if (not IsEmpty) and (FieldByName('accounttype').AsString > '') then
     case FieldByName('accounttype').AsString[1] of
       'C': Result.gdClass := TgdcAcctChart;
@@ -175,6 +177,8 @@ begin
       'A': Result.gdClass := TgdcAcctAccount;
       'S': Result.gdClass := TgdcAcctSubAccount;
     end;
+
+  Result.SubType := GetCurrRecordSubType(Result.gdClass);
 end;
 
 class function TgdcAcctBase.GetListTable(const ASubType: TgdcSubType): String;

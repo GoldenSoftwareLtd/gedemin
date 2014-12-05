@@ -67,7 +67,8 @@ type
     procedure CustomModify(Buff: Pointer); override;
 
   public
-    function GetCurrRecordSubType: String; override;
+    function GetCurrRecordSubType(const CClass: CgdcBase): String; override;
+
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
 
@@ -99,7 +100,8 @@ type
   public
     constructor Create(AnOwner: TComponent); override;
 
-    function GetCurrRecordSubType: String; override;
+    function GetCurrRecordSubType(const CClass: CgdcBase): String; override;
+
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetKeyField(const ASubType: TgdcSubType): String; override;
@@ -129,7 +131,8 @@ type
   public
     constructor Create(AnOwner: TComponent); override;
 
-    function GetCurrRecordSubType: String; override;
+    function GetCurrRecordSubType(const CClass: CgdcBase): String; override;
+
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetKeyField(const ASubType: TgdcSubType): String; override;
@@ -634,51 +637,17 @@ begin
   Result := FIsView;
 end;
 
-function TgdcAttrUserDefined.GetCurrRecordSubType: String;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
+
+function TgdcAttrUserDefined.GetCurrRecordSubType(const CClass: CgdcBase): String;
+var
   ST: TStringList;
   I: Integer;
 begin
-  {@UNFOLD MACRO INH_ORIG_GETNOTCOPYFIELD('TGDCATTRUSERDEFINED', 'GETCURRRECORDSUBTYPE', KEYGETCURRRECORDSUBTYPE)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCATTRUSERDEFINED', KEYGETCURRRECORDSUBTYPE);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYGETCURRRECORDSUBTYPE]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCATTRUSERDEFINED') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCATTRUSERDEFINED',
-  {M}          'GETCURRRECORDSUBTYPE', KEYGETCURRRECORDSUBTYPE, Params, LResult) then
-  {M}          begin
-  {M}            if (VarType(LResult) = varOleStr) or (VarType(LResult) = varString) then
-  {M}              Result := String(LResult)
-  {M}            else
-  {M}              begin
-  {M}                raise Exception.Create('Для метода ''' + 'GETCURRRECORDSUBTYPE' + ' ''' +
-  {M}                  ' класса ' + Self.ClassName + TgdcBase(Self).SubType + #10#13 +
-  {M}                  'Из макроса возвращен не строковый тип');
-  {M}              end;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCATTRUSERDEFINED' then
-  {M}        begin
-  {M}//          Result := Inherited GetCurrRecordSubType;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
   Result := SubType;
 
   ST := TStringList.Create;
   try
-    GetSubTypeList(ST, RelationName, False);
+    CClass.GetSubTypeList(ST, RelationName, False);
     for I := 0 to ST.Count - 1 do
     begin
       if not FieldByName(ST.Values[ST.Names[I]], 'INHERITEDKEY').IsNull then
@@ -687,13 +656,6 @@ begin
   finally
     ST.Free;
   end;
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCATTRUSERDEFINED', 'GETCURRRECORDSUBTYPE', KEYGETCURRRECORDSUBTYPE)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCATTRUSERDEFINED', 'GETCURRRECORDSUBTYPE', KEYGETCURRRECORDSUBTYPE);
-  {M}  end;
-  {END MACRO}
 end;
 
 class function TgdcAttrUserDefined.GetListField(const ASubType: TgdcSubType): String;
@@ -768,51 +730,16 @@ begin
   CustomProcess := [];
 end;
 
-function TGDCATTRUSERDEFINEDTREE.GetCurrRecordSubType: String;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
+function TgdcAttrUserDefinedTree.GetCurrRecordSubType(const CClass: CgdcBase): String;
+var
   ST: TStringList;
   I: Integer;
 begin
-  {@UNFOLD MACRO INH_ORIG_GETNOTCOPYFIELD('TGDCATTRUSERDEFINEDTREE', 'GETCURRRECORDSUBTYPE', KEYGETCURRRECORDSUBTYPE)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCATTRUSERDEFINEDTREE', KEYGETCURRRECORDSUBTYPE);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYGETCURRRECORDSUBTYPE]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCATTRUSERDEFINEDTREE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCATTRUSERDEFINEDTREE',
-  {M}          'GETCURRRECORDSUBTYPE', KEYGETCURRRECORDSUBTYPE, Params, LResult) then
-  {M}          begin
-  {M}            if (VarType(LResult) = varOleStr) or (VarType(LResult) = varString) then
-  {M}              Result := String(LResult)
-  {M}            else
-  {M}              begin
-  {M}                raise Exception.Create('Для метода ''' + 'GETCURRRECORDSUBTYPE' + ' ''' +
-  {M}                  ' класса ' + Self.ClassName + TgdcBase(Self).SubType + #10#13 +
-  {M}                  'Из макроса возвращен не строковый тип');
-  {M}              end;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCATTRUSERDEFINEDTREE' then
-  {M}        begin
-  {M}//          Result := Inherited GetCurrRecordSubType;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
   Result := SubType;
 
   ST := TStringList.Create;
   try
-    GetSubTypeList(ST, RelationName, False);
+    CClass.GetSubTypeList(ST, RelationName, False);
     for I := 0 to ST.Count - 1 do
     begin
       if not FieldByName(ST.Values[ST.Names[I]], 'INHERITEDKEY').IsNull then
@@ -821,13 +748,6 @@ begin
   finally
     ST.Free;
   end;
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCATTRUSERDEFINED', 'GETCURRRECORDSUBTYPE', KEYGETCURRRECORDSUBTYPE)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCATTRUSERDEFINEDTREE', 'GETCURRRECORDSUBTYPE', KEYGETCURRRECORDSUBTYPE);
-  {M}  end;
-  {END MACRO}
 end;
 
 function TgdcAttrUserDefinedTree.CreateDialogForm: TCreateableForm;
@@ -1313,51 +1233,16 @@ begin
   CustomProcess := [];
 end;
 
-function TgdcAttrUserDefinedLBRBTree.GetCurrRecordSubType: String;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
+function TgdcAttrUserDefinedLBRBTree.GetCurrRecordSubType(const CClass: CgdcBase): String;
+var
   ST: TStringList;
   I: Integer;
 begin
-  {@UNFOLD MACRO INH_ORIG_GETNOTCOPYFIELD('TGDCATTRUSERDEFINEDLBRBTREE', 'GETCURRRECORDSUBTYPE', KEYGETCURRRECORDSUBTYPE)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCATTRUSERDEFINEDLBRBTREE', KEYGETCURRRECORDSUBTYPE);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYGETCURRRECORDSUBTYPE]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCATTRUSERDEFINEDLBRBTREE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCATTRUSERDEFINEDLBRBTREE',
-  {M}          'GETCURRRECORDSUBTYPE', KEYGETCURRRECORDSUBTYPE, Params, LResult) then
-  {M}          begin
-  {M}            if (VarType(LResult) = varOleStr) or (VarType(LResult) = varString) then
-  {M}              Result := String(LResult)
-  {M}            else
-  {M}              begin
-  {M}                raise Exception.Create('Для метода ''' + 'GETCURRRECORDSUBTYPE' + ' ''' +
-  {M}                  ' класса ' + Self.ClassName + TgdcBase(Self).SubType + #10#13 +
-  {M}                  'Из макроса возвращен не строковый тип');
-  {M}              end;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCATTRUSERDEFINEDLBRBTREE' then
-  {M}        begin
-  {M}//          Result := Inherited GetCurrRecordSubType;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
   Result := SubType;
 
   ST := TStringList.Create;
   try
-    GetSubTypeList(ST, RelationName, False);
+    CClass.GetSubTypeList(ST, RelationName, False);
     for I := 0 to ST.Count - 1 do
     begin
       if not FieldByName(ST.Values[ST.Names[I]], 'INHERITEDKEY').IsNull then
@@ -1366,13 +1251,6 @@ begin
   finally
     ST.Free;
   end;
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCATTRUSERDEFINEDLBRBTREE', 'GETCURRRECORDSUBTYPE', KEYGETCURRRECORDSUBTYPE)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCATTRUSERDEFINEDLBRBTREE', 'GETCURRRECORDSUBTYPE', KEYGETCURRRECORDSUBTYPE);
-  {M}  end;
-  {END MACRO}
 end;
 
 function TgdcAttrUserDefinedLBRBTree.CreateDialogForm: TCreateableForm;

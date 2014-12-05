@@ -964,7 +964,8 @@ var
   S: String;
   q: TIBSQL;
 begin
-  Result := inherited GetCurrRecordClass;
+  Result.gdClass := CgdcBase(Self.ClassType);
+  Result.SubType := '';
 
   if not IsEmpty then
   begin
@@ -1010,6 +1011,11 @@ begin
       {$ENDIF}
       ;
   end;
+
+  if (Result.gdClass = TgdcCompany) or (Result.gdClass = TgdcOurCompany) then
+    Exit;
+
+  Result.SubType := GetCurrRecordSubType(Result.gdClass);  
 end;
 
 function TgdcBaseContact.GetGroupID: Integer;
@@ -2733,6 +2739,8 @@ begin
       end;
     end;
   end;
+
+  Result.SubType := GetCurrRecordSubType(Result.gdClass);
 end;
 
 procedure TgdcCompany.DoBeforePost;

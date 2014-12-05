@@ -1948,7 +1948,10 @@ var
   S: String;
 begin
   if EOF then
-    Result := inherited GetCurrRecordClass
+  begin
+    Result.gdClass := CgdcBase(Self.ClassType);
+    Result.SubType := '';
+  end
   else begin
     if FieldByName('relationtype').AsString = 'T' then
     begin
@@ -1980,7 +1983,12 @@ begin
       Result.gdClass := CgdcBase(TgdcView);
       Result.SubType := '';
     end else
-      Result := inherited GetCurrRecordClass;
+    begin
+      Result.gdClass := CgdcBase(Self.ClassType);
+      Result.SubType := '';
+    end;
+
+    Result.SubType := GetCurrRecordSubType(Result.gdClass);
   end;
 end;
 
@@ -5291,7 +5299,9 @@ end;
 
 function TgdcRelationField.GetCurrRecordClass: TgdcFullClass;
 begin
-  Result := inherited GetCurrRecordClass;
+  Result.gdClass := CgdcBase(Self.ClassType);
+  Result.SubType := '';
+
   if RecordCount > 0 then
   begin
     if FieldByName('relationtype').AsString = 'T' then
@@ -5300,6 +5310,8 @@ begin
       Result.gdClass := CgdcBase(TgdcViewField);
     Result.SubType := '';
   end;
+
+  Result.SubType := GetCurrRecordSubType(Result.gdClass);
 end;
 
 function TgdcRelationField.ReadObjectState(AFieldId,

@@ -84,7 +84,6 @@ const
   keyCheckTheSameStatement = 107;
   keyCreateFields          = 109;
   keyGetNotCopyField       = 111;
-  keyGetCurrRecordSubType  = 112;
   keyBeforeDestruction     = 113;
   keyAfterConstruction     = 114;
   keyCheckSubSet           = 117;
