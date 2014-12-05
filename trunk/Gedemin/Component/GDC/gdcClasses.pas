@@ -1510,7 +1510,15 @@ begin
   // С классом определились
   // Если подтип еще не определен пытаемся найти
   if (Result.SubType = '') then
-    Result.SubType := GetCurrRecordSubType(Result.gdClass);
+  begin
+    if (FindField('USR$ST') <> nil) and (not FieldByName('USR$ST').IsNull) then
+    begin
+      if not Result.gdClass.CheckSubType(FieldByName('USR$ST').AsString) then
+        raise Exception.Create('Invalid RecordSubType or SubType');
+
+      Result.SubType := FieldByName('USR$ST').AsString;
+    end;
+  end;
 end;
 
 class function TgdcDocument.HasLeafs: Boolean;
@@ -2457,7 +2465,13 @@ begin
     end;
   end;
 
-  Result.SubType := GetCurrRecordSubType(Result.gdClass);
+  if (FindField('USR$ST') <> nil) and (not FieldByName('USR$ST').IsNull) then
+  begin
+    if not Result.gdClass.CheckSubType(FieldByName('USR$ST').AsString) then
+      raise Exception.Create('Invalid RecordSubType or SubType');
+
+    Result.SubType := FieldByName('USR$ST').AsString;
+  end;
 end;
 
 class function TgdcBaseDocumentType.GetKeyField(
@@ -2984,7 +2998,15 @@ begin
   if FieldByName('classname').AsString > '' then
   begin
     Result.gdClass := CgdcBase(GetClass(FieldByName('classname').AsString));
-    Result.SubType := GetCurrRecordSubType(Result.gdClass);
+    Result.SubType := '';
+
+    if (FindField('USR$ST') <> nil) and (not FieldByName('USR$ST').IsNull) then
+    begin
+      if not Result.gdClass.CheckSubType(FieldByName('USR$ST').AsString) then
+        raise Exception.Create('Invalid RecordSubType or SubType');
+
+      Result.SubType := FieldByName('USR$ST').AsString;
+    end;
   end else
     Result := inherited GetCurrRecordClass;
 end;

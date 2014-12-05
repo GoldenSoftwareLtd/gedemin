@@ -298,7 +298,13 @@ begin
     Result.SubType := '';
   end;
 
-  Result.SubType := GetCurrRecordSubType(Result.gdClass);
+  if (FindField('USR$ST') <> nil) and (not FieldByName('USR$ST').IsNull) then
+  begin
+    if not Result.gdClass.CheckSubType(FieldByName('USR$ST').AsString) then
+      raise Exception.Create('Invalid RecordSubType or SubType');
+
+    Result.SubType := FieldByName('USR$ST').AsString;
+  end;
 end;
 
 function TgdcBaseMessage.GetFromClause(const ARefresh: Boolean = False): String;
