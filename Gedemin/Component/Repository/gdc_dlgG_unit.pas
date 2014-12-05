@@ -1391,10 +1391,10 @@ begin
     and (Self.ClassName <> 'TdlgInvPriceLine')
     and (Self.ClassName <> 'TdlgInvPriceList') then
   begin
-    if fgdcObject.FindField('USR$CurrRecordSubType') = nil then
-      raise Exception.Create('Поле ''USR$CurrRecordSubType'' не найдено');
+    if fgdcObject.FindField('USR$ST') = nil then
+      raise Exception.Create('Поле ''USR$ST'' не найдено');
 
-    gdcObject.FieldByName('USR$CurrRecordSubType').AsString := gdcObject.SubType;
+    gdcObject.FieldByName('USR$ST').AsString := gdcObject.SubType;
   end;
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGG', 'SETUPRECORD', KEYSETUPRECORD)}

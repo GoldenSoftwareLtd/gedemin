@@ -67,7 +67,7 @@ type
     procedure CustomModify(Buff: Pointer); override;
 
   public
-    function GetCurrRecordSubType(const CClass: CgdcBase): String; override;
+    function GetCurrRecordClass: TgdcFullClass; override;
 
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
@@ -100,7 +100,7 @@ type
   public
     constructor Create(AnOwner: TComponent); override;
 
-    function GetCurrRecordSubType(const CClass: CgdcBase): String; override;
+    function GetCurrRecordClass: TgdcFullClass; override;
 
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
@@ -131,7 +131,7 @@ type
   public
     constructor Create(AnOwner: TComponent); override;
 
-    function GetCurrRecordSubType(const CClass: CgdcBase): String; override;
+    function GetCurrRecordClass: TgdcFullClass; override;
 
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
@@ -638,20 +638,21 @@ begin
 end;
 
 
-function TgdcAttrUserDefined.GetCurrRecordSubType(const CClass: CgdcBase): String;
+function TgdcAttrUserDefined.GetCurrRecordClass: TgdcFullClass;
 var
   ST: TStringList;
   I: Integer;
 begin
-  Result := SubType;
+  Result.gdClass := CgdcBase(Self.ClassType);
+  Result.SubType := RelationName;
 
   ST := TStringList.Create;
   try
-    CClass.GetSubTypeList(ST, RelationName, False);
+    GetSubTypeList(ST, RelationName, False);
     for I := 0 to ST.Count - 1 do
     begin
       if not FieldByName(ST.Values[ST.Names[I]], 'INHERITEDKEY').IsNull then
-        Result := ST.Values[ST.Names[I]];
+        Result.SubType := ST.Values[ST.Names[I]];
     end;
   finally
     ST.Free;
@@ -730,20 +731,21 @@ begin
   CustomProcess := [];
 end;
 
-function TgdcAttrUserDefinedTree.GetCurrRecordSubType(const CClass: CgdcBase): String;
+function TgdcAttrUserDefinedTree.GetCurrRecordClass: TgdcFullClass;
 var
   ST: TStringList;
   I: Integer;
 begin
-  Result := SubType;
+  Result.gdClass := CgdcBase(Self.ClassType);
+  Result.SubType := RelationName;
 
   ST := TStringList.Create;
   try
-    CClass.GetSubTypeList(ST, RelationName, False);
+    GetSubTypeList(ST, RelationName, False);
     for I := 0 to ST.Count - 1 do
     begin
       if not FieldByName(ST.Values[ST.Names[I]], 'INHERITEDKEY').IsNull then
-        Result := ST.Values[ST.Names[I]];
+        Result.SubType := ST.Values[ST.Names[I]];
     end;
   finally
     ST.Free;
@@ -1233,20 +1235,21 @@ begin
   CustomProcess := [];
 end;
 
-function TgdcAttrUserDefinedLBRBTree.GetCurrRecordSubType(const CClass: CgdcBase): String;
+function TgdcAttrUserDefinedLBRBTree.GetCurrRecordClass: TgdcFullClass;
 var
   ST: TStringList;
   I: Integer;
 begin
-  Result := SubType;
+  Result.gdClass := CgdcBase(Self.ClassType);
+  Result.SubType := RelationName;
 
   ST := TStringList.Create;
   try
-    CClass.GetSubTypeList(ST, RelationName, False);
+    GetSubTypeList(ST, RelationName, False);
     for I := 0 to ST.Count - 1 do
     begin
       if not FieldByName(ST.Values[ST.Names[I]], 'INHERITEDKEY').IsNull then
-        Result := ST.Values[ST.Names[I]];
+        Result.SubType := ST.Values[ST.Names[I]];
     end;
   finally
     ST.Free;

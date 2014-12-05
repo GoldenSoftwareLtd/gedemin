@@ -1465,7 +1465,6 @@ type
 
     //
     function GetCurrRecordClass: TgdcFullClass; virtual;
-    function GetCurrRecordSubType(const CClass: CgdcBase): String; virtual;
 
     // Возвращает значение дисплейного поля по ключу
     class function GetListNameByID(const AnID: TID;
@@ -9891,7 +9890,15 @@ end;
 function TgdcBase.GetCurrRecordClass: TgdcFullClass;
 begin
   Result.gdClass := CgdcBase(Self.ClassType);
-  Result.SubType := GetCurrRecordSubType(Result.gdClass);
+  Result.SubType :='';
+
+  if (FindField('USR$ST') <> nil) and (not FieldByName('USR$ST').IsNull) then
+  begin
+    if not Result.gdClass.CheckSubType(FieldByName('USR$ST').AsString) then
+      raise Exception.Create('Invalid RecordSubType or SubType');
+
+    Result.SubType := FieldByName('USR$ST').AsString;
+  end;
 end;
 
 function TgdcBase.GetNameInScript: String;
@@ -17613,36 +17620,6 @@ begin
     else if tiAFull in gdcTableInfos then
       Result := Result + Format(' BIN_AND(BIN_OR(%s.afull, 1), %d) <> 0 ',
         [GetListTableAlias, IBLogin.InGroup]);
-  end;
-end;
-
-function TgdcBase.GetCurrRecordSubType(const CClass: CgdcBase): String;
-var
-  I: Integer;
-  SL: TStringList;
-begin
-  Result := '';
-
-  if (FindField('USR$CurrRecordSubType') <> nil)
-    and (not FieldByName('USR$CurrRecordSubType').IsNull) then
-  begin
-    SL := TStringList.Create;
-    try
-      CClass.GetSubTypeList(SL, '', False);
-      for I := 0 to SL.Count - 1 do
-      begin
-        if AnsiUpperCase(SL.Values[SL.Names[I]])
-          = AnsiUpperCase(FieldByName('USR$CurrRecordSubType').AsString) then
-        begin
-          Result := SL.Values[SL.Names[I]];
-          exit;
-        end;
-      end;
-    finally
-      SL.Free;
-    end;
-
-    raise Exception.Create('Invalid RecordSubType or SubType');
   end;
 end;
 
