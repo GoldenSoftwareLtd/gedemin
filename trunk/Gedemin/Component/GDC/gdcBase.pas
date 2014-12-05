@@ -156,7 +156,6 @@ const
   GDC_DOBEFOREPOST       = 'DOBEFOREPOST';
   GDC_DOAFTERTRANSACTIONEND = 'DOAFTERTRANSACTIONEND';
   GDC_GETNOTCOPYFIELD    = 'GETNOTCOPYFIELD';
-  GDC_GETCURRRECORDSUBTYPE    = 'GETCURRRECORDSUBTYPE';
   GDC_GETDIALOGDEFAULTSFIELDS = 'GETDIALOGDEFAULTSFIELDS';
   
 
@@ -1466,7 +1465,7 @@ type
 
     //
     function GetCurrRecordClass: TgdcFullClass; virtual;
-    function GetCurrRecordSubType: String; virtual;
+    function GetCurrRecordSubType(const CClass: CgdcBase): String; virtual;
 
     // ¬озвращает значение дисплейного пол€ по ключу
     class function GetListNameByID(const AnID: TID;
@@ -9890,36 +9889,9 @@ begin
 end;
 
 function TgdcBase.GetCurrRecordClass: TgdcFullClass;
-var
-  I: Integer;
-  SL: TStringList;
 begin
   Result.gdClass := CgdcBase(Self.ClassType);
-  Result.SubType := '';
-
-  if (FindField('USR$CurrRecordSubType') <> nil)
-    and (not FieldByName('USR$CurrRecordSubType').IsNull) then
-  begin
-    //на вс€кий случай делаем проверку подтипа
-    SL := TStringList.Create;
-    try
-      Result.gdClass.GetSubTypeList(SL, '', False);
-      for I := 0 to SL.Count - 1 do
-      begin
-        if AnsiUpperCase(SL.Values[SL.Names[I]])
-          = AnsiUpperCase(FieldByName('USR$CurrRecordSubType').AsString) then
-        begin
-          Result.SubType := SL.Values[SL.Names[I]];
-          exit;
-        end;
-      end;
-    finally
-      SL.Free;
-    end;
-
-    raise Exception.Create('Invalid RecordSubType or SubType');
-  end;
-
+  Result.SubType := GetCurrRecordSubType(Result.gdClass);
 end;
 
 function TgdcBase.GetNameInScript: String;
@@ -15413,10 +15385,6 @@ begin
   begin
     DoOnNewRecord;
   end else}
-  if  UpperName = GDC_GETCURRRECORDSUBTYPE then
-  begin
-    Result := GetCurrRecordSubType;
-  end else
   if  UpperName = GDC_GETNOTCOPYFIELD then
   begin
     Result := GetNotCopyField;
@@ -15571,7 +15539,6 @@ begin
 
   RegisterGDCClassMethod(TgdcBase, 'CreateFields', 'Self: Object', '');
   RegisterGDCClassMethod(TgdcBase, 'GetNotCopyField', 'Self: Object', 'Variable');
-  RegisterGDCClassMethod(TgdcBase, 'GetCurrRecordSubType', 'Self: Object', 'Variable');
   RegisterGDCClassMethod(TgdcBase, 'GetDialogDefaultsFields', 'Self: Object', 'Variable');
   RegisterGDCClassMethod(TgdcBase, 'BeforeDestruction', 'Self: Object', 'Variable');
 
@@ -16272,7 +16239,6 @@ begin
   FClassMethodAssoc.Add(keyCheckTheSameStatement);
   FClassMethodAssoc.Add(keyCreateFields);
   FClassMethodAssoc.Add(keyGetNotCopyField);
-  FClassMethodAssoc.Add(keyGetCurrRecordSubType);
   FClassMethodAssoc.Add(keyGetDialogDefaultsFields);
   FClassMethodAssoc.Add(keyBeforeDestruction);
   FClassMethodAssoc.Add(keyCheckSubSet);
@@ -17650,52 +17616,34 @@ begin
   end;
 end;
 
-function TgdcBase.GetCurrRecordSubType: String;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
+function TgdcBase.GetCurrRecordSubType(const CClass: CgdcBase): String;
+var
+  I: Integer;
+  SL: TStringList;
 begin
-  {@UNFOLD MACRO INH_ORIG_GETNOTCOPYFIELD('TGDCBASE', 'GETCURRRECORDSUBTYPE', KEYGETCURRRECORDSUBTYPE)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCBASE', KEYGETCURRRECORDSUBTYPE);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYGETCURRRECORDSUBTYPE]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCBASE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCBASE',
-  {M}          'GETCURRRECORDSUBTYPE', KEYGETCURRRECORDSUBTYPE, Params, LResult) then
-  {M}          begin
-  {M}            if (VarType(LResult) = varOleStr) or (VarType(LResult) = varString) then
-  {M}              Result := String(LResult)
-  {M}            else
-  {M}              begin
-  {M}                raise Exception.Create('ƒл€ метода ''' + 'GETCURRRECORDSUBTYPE' + ' ''' +
-  {M}                  ' класса ' + Self.ClassName + TgdcBase(Self).SubType + #10#13 +
-  {M}                  '»з макроса возвращен не строковый тип');
-  {M}              end;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCBASE' then
-  {M}        begin
-  {M}//          Result := Inherited GetCurrRecordSubType;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
+  Result := '';
 
-  Result := SubType;
+  if (FindField('USR$CurrRecordSubType') <> nil)
+    and (not FieldByName('USR$CurrRecordSubType').IsNull) then
+  begin
+    SL := TStringList.Create;
+    try
+      CClass.GetSubTypeList(SL, '', False);
+      for I := 0 to SL.Count - 1 do
+      begin
+        if AnsiUpperCase(SL.Values[SL.Names[I]])
+          = AnsiUpperCase(FieldByName('USR$CurrRecordSubType').AsString) then
+        begin
+          Result := SL.Values[SL.Names[I]];
+          exit;
+        end;
+      end;
+    finally
+      SL.Free;
+    end;
 
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASE', 'GETCURRRECORDSUBTYPE', KEYGETCURRRECORDSUBTYPE)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCBASE', 'GETCURRRECORDSUBTYPE', KEYGETCURRRECORDSUBTYPE);
-  {M}  end;
-  {END MACRO}
+    raise Exception.Create('Invalid RecordSubType or SubType');
+  end;
 end;
 
 function TgdcBase.GetDlgForm: TForm;

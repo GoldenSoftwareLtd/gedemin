@@ -1379,7 +1379,17 @@ begin
 
   FOldPostCount := gdcObject.PostCount;
 
-  if (gdcObject.State = dsInsert) and (gdcObject.SubType > '') then
+  if (SubType > '')
+    and (gdcObject.State = dsInsert)
+    and (Self.ClassName <> 'Tgdc_dlgAttrUserDefined')
+    and (Self.ClassName <> 'Tgdc_dlgAttrUserDefinedTree')
+    and (Self.ClassName <> 'Tgdc_dlgUserComplexDocument')
+    and (Self.ClassName <> 'Tgdc_dlgUserDocumentLine')
+    and (Self.ClassName <> 'Tgdc_dlgUserSimpleDocument')
+    and (Self.ClassName <> 'TdlgInvDocument')
+    and (Self.ClassName <> 'TdlgInvDocumentLine')
+    and (Self.ClassName <> 'TdlgInvPriceLine')
+    and (Self.ClassName <> 'TdlgInvPriceList') then
   begin
     if fgdcObject.FindField('USR$CurrRecordSubType') = nil then
       raise Exception.Create('Поле ''USR$CurrRecordSubType'' не найдено');

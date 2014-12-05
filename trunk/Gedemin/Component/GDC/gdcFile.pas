@@ -282,7 +282,8 @@ end;
 
 function TgdcBaseFile.GetCurrRecordClass: TgdcFullClass;
 begin
-  Result := inherited GetCurrRecordClass;
+  Result.gdClass := CgdcBase(Self.ClassType);
+  Result.SubType := '';
 
   if Result.gdClass = TgdcBaseFile then
   begin
@@ -296,6 +297,8 @@ begin
       //Result.SubType := '';
     end;
   end;
+
+  Result.SubType := GetCurrRecordSubType(Result.gdClass);
 end;
 
 function TgdcBaseFile.GetFullPath: String;

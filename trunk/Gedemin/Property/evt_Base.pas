@@ -9749,7 +9749,7 @@ begin
           LFullClassName.SubType := StringReplace(LSubType, 'USR_', 'USR$', [rfReplaceAll, rfIgnoreCase]);
           if (not Assigned(gdClassList.GetFRMClass(LFullClassName.gdClassName)))then
             raise Exception.Create('Ошибка перекрытия события ' + LFullClassName.gdClassName);
-          LParentSubType := gdClassList.GetFRMClass(LFullClassName.gdClassName).ClassParentSubtype(LSubType);
+          LParentSubType := gdClassList.GetFRMClass(LFullClassName.gdClassName).ClassParentSubtype(LFullClassName.SubType);
           LParentSubType := StringReplace(LParentSubType, 'USR$', 'USR_', [rfReplaceAll, rfIgnoreCase]);
 
           LParentCompName :=

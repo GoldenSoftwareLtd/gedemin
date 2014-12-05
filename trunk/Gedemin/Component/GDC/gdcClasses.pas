@@ -1347,7 +1347,8 @@ var
   ClName, RUID: String;
   DTK, Idx: Integer;
 begin
-  Result := inherited GetCurrRecordClass;
+  Result.gdClass := CgdcBase(Self.ClassType);
+  Result.SubType := '';
 
   DTK := FieldByName('documenttypekey').AsInteger;
 
@@ -1505,6 +1506,11 @@ begin
       Result.SubType := '';
     end;
   end;
+
+  // С классом определились
+  // Если подтип еще не определен пытаемся найти
+  if (Result.SubType = '') then
+    Result.SubType := GetCurrRecordSubType(Result.gdClass);
 end;
 
 class function TgdcDocument.HasLeafs: Boolean;
@@ -2430,7 +2436,9 @@ end;
 
 function TgdcBaseDocumentType.GetCurrRecordClass: TgdcFullClass;
 begin
-  Result := inherited GetCurrRecordClass;
+  Result.gdClass := CgdcBase(Self.ClassType);
+  Result.SubType := '';
+  
   if RecordCount > 0 then
   begin
     if FieldByName('documenttype').AsString = 'B' then
@@ -2448,6 +2456,8 @@ begin
       Result.SubType := '';
     end;
   end;
+
+  Result.SubType := GetCurrRecordSubType(Result.gdClass);
 end;
 
 class function TgdcBaseDocumentType.GetKeyField(
@@ -2974,7 +2984,7 @@ begin
   if FieldByName('classname').AsString > '' then
   begin
     Result.gdClass := CgdcBase(GetClass(FieldByName('classname').AsString));
-    Result.SubType := '';
+    Result.SubType := GetCurrRecordSubType(Result.gdClass);
   end else
     Result := inherited GetCurrRecordClass;
 end;
