@@ -9892,6 +9892,8 @@ var
   F: TField;
 begin
   Result.gdClass := CgdcBase(Self.ClassType);
+  Result.SubType := '';
+  
   F := FindField('USR$ST');
   if F <> nil then
     Result.SubType := F.AsString;
