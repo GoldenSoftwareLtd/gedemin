@@ -313,6 +313,7 @@ end;
 function TgdcBaseAcctTransaction.GetCurrRecordClass: TgdcFullClass;
 var
   s: string;
+  F: TField;
 begin
   S := '';                                   
   if FieldByName(fnAutoTransaction).AsInteger = 1 then
@@ -327,13 +328,11 @@ begin
     Result.gdClass := CgdcBase(GetClass(S));
     Result.SubType := '';
 
-    if (FindField('USR$ST') <> nil) and (not FieldByName('USR$ST').IsNull) then
-    begin
-      if not Result.gdClass.CheckSubType(FieldByName('USR$ST').AsString) then
-        raise Exception.Create('Invalid RecordSubType or SubType');
-
-      Result.SubType := FieldByName('USR$ST').AsString;
-    end;
+    F := FindField('USR$ST');
+    if F <> nil then
+      Result.SubType := F.AsString;
+    if (Result.SubType > '') and (not Result.gdClass.CheckSubType(Result.SubType)) then
+      raise EgdcException.Create('Invalid USR$ST value.');
   end else
     Result := inherited GetCurrRecordClass;
 end;
@@ -577,6 +576,8 @@ end;
 
 function TgdcBaseAcctTransactionEntry.GetCurrRecordClass: TgdcFullClass;
 var
+  F: TField;
+var
   s: string;
   SQL: TIBSQL;
   DidActivate: Boolean;
@@ -624,13 +625,11 @@ begin
         Result.gdClass := CgdcBase(GetClass(S));
         Result.SubType := '';
 
-        if (FindField('USR$ST') <> nil) and (not FieldByName('USR$ST').IsNull) then
-        begin
-          if not Result.gdClass.CheckSubType(FieldByName('USR$ST').AsString) then
-            raise Exception.Create('Invalid RecordSubType or SubType');
-
-          Result.SubType := FieldByName('USR$ST').AsString;
-        end;
+        F := FindField('USR$ST');
+        if F <> nil then
+          Result.SubType := F.AsString;
+        if (Result.SubType > '') and (not Result.gdClass.CheckSubType(Result.SubType)) then
+          raise EgdcException.Create('Invalid USR$ST value.');
       end else
         Result := inherited GetCurrRecordClass;
       if DidActivate then

@@ -963,6 +963,7 @@ function TgdcBaseContact.GetCurrRecordClass: TgdcFullClass;
 var
   S: String;
   q: TIBSQL;
+  F: TField;
 begin
   Result.gdClass := CgdcBase(Self.ClassType);
   Result.SubType := '';
@@ -1015,13 +1016,11 @@ begin
   if (Result.gdClass = TgdcCompany) or (Result.gdClass = TgdcOurCompany) then
     Exit;
 
-  if (FindField('USR$ST') <> nil) and (not FieldByName('USR$ST').IsNull) then
-  begin
-    if not Result.gdClass.CheckSubType(FieldByName('USR$ST').AsString) then
-      raise Exception.Create('Invalid RecordSubType or SubType');
-
-    Result.SubType := FieldByName('USR$ST').AsString;
-  end;
+  F := FindField('USR$ST');
+  if F <> nil then
+    Result.SubType := F.AsString;
+  if (Result.SubType > '') and (not Result.gdClass.CheckSubType(Result.SubType)) then
+    raise EgdcException.Create('Invalid USR$ST value.');
 end;
 
 function TgdcBaseContact.GetGroupID: Integer;
@@ -2723,8 +2722,11 @@ end;
 function TgdcCompany.GetCurrRecordClass: TgdcFullClass;
 var
   q: TIBSQL;
+  F: TField;
 begin
-  Result := inherited GetCurrRecordClass;
+  Result.gdClass := CgdcBase(Self.ClassType);
+  Result.SubType := '';
+
   if Active and (not IsEmpty) and Assigned(IBLogin) then
   begin
     if ID = IBLogin.CompanyKey then
@@ -2746,13 +2748,11 @@ begin
     end;
   end;
 
-  if (FindField('USR$ST') <> nil) and (not FieldByName('USR$ST').IsNull) then
-  begin
-    if not Result.gdClass.CheckSubType(FieldByName('USR$ST').AsString) then
-      raise Exception.Create('Invalid RecordSubType or SubType');
-
-    Result.SubType := FieldByName('USR$ST').AsString;
-  end;
+  F := FindField('USR$ST');
+  if F <> nil then
+    Result.SubType := F.AsString;
+  if (Result.SubType > '') and (not Result.gdClass.CheckSubType(Result.SubType)) then
+    raise EgdcException.Create('Invalid USR$ST value.');
 end;
 
 procedure TgdcCompany.DoBeforePost;

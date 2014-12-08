@@ -347,6 +347,8 @@ begin
 end;
 
 function TgdcStorage.GetCurrRecordClass: TgdcFullClass;
+var
+  F: TField;
 begin
   Result.gdClass := CgdcBase(Self.ClassType);
   Result.SubType := '';
@@ -364,13 +366,11 @@ begin
     end;
   end;
 
-  if (FindField('USR$ST') <> nil) and (not FieldByName('USR$ST').IsNull) then
-  begin
-    if not Result.gdClass.CheckSubType(FieldByName('USR$ST').AsString) then
-      raise Exception.Create('Invalid RecordSubType or SubType');
-
-    Result.SubType := FieldByName('USR$ST').AsString;
-  end;
+  F := FindField('USR$ST');
+  if F <> nil then
+    Result.SubType := F.AsString;
+  if (Result.SubType > '') and (not Result.gdClass.CheckSubType(Result.SubType)) then
+    raise EgdcException.Create('Invalid USR$ST value.');
 end;
 
 procedure TgdcStorage._DoOnNewRecord;

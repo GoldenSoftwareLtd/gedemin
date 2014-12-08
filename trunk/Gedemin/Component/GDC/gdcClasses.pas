@@ -1346,6 +1346,7 @@ var
   C: CgdcBase;
   ClName, RUID: String;
   DTK, Idx: Integer;
+  F: TField;
 begin
   Result.gdClass := CgdcBase(Self.ClassType);
   Result.SubType := '';
@@ -1511,13 +1512,11 @@ begin
   // ≈сли подтип еще не определен пытаемс€ найти
   if (Result.SubType = '') then
   begin
-    if (FindField('USR$ST') <> nil) and (not FieldByName('USR$ST').IsNull) then
-    begin
-      if not Result.gdClass.CheckSubType(FieldByName('USR$ST').AsString) then
-        raise Exception.Create('Invalid RecordSubType or SubType');
-
-      Result.SubType := FieldByName('USR$ST').AsString;
-    end;
+    F := FindField('USR$ST');
+    if F <> nil then
+      Result.SubType := F.AsString;
+    if (Result.SubType > '') and (not Result.gdClass.CheckSubType(Result.SubType)) then
+      raise EgdcException.Create('Invalid USR$ST value.');
   end;
 end;
 
@@ -2443,6 +2442,8 @@ begin
 end;
 
 function TgdcBaseDocumentType.GetCurrRecordClass: TgdcFullClass;
+var
+  F: TField;
 begin
   Result.gdClass := CgdcBase(Self.ClassType);
   Result.SubType := '';
@@ -2465,13 +2466,11 @@ begin
     end;
   end;
 
-  if (FindField('USR$ST') <> nil) and (not FieldByName('USR$ST').IsNull) then
-  begin
-    if not Result.gdClass.CheckSubType(FieldByName('USR$ST').AsString) then
-      raise Exception.Create('Invalid RecordSubType or SubType');
-
-    Result.SubType := FieldByName('USR$ST').AsString;
-  end;
+  F := FindField('USR$ST');
+  if F <> nil then
+    Result.SubType := F.AsString;
+  if (Result.SubType > '') and (not Result.gdClass.CheckSubType(Result.SubType)) then
+    raise EgdcException.Create('Invalid USR$ST value.');
 end;
 
 class function TgdcBaseDocumentType.GetKeyField(
@@ -2994,19 +2993,19 @@ begin
 end;
 
 function TgdcDocumentType.GetCurrRecordClass: TgdcFullClass;
+var
+  F: TField;
 begin
   if FieldByName('classname').AsString > '' then
   begin
     Result.gdClass := CgdcBase(GetClass(FieldByName('classname').AsString));
     Result.SubType := '';
 
-    if (FindField('USR$ST') <> nil) and (not FieldByName('USR$ST').IsNull) then
-    begin
-      if not Result.gdClass.CheckSubType(FieldByName('USR$ST').AsString) then
-        raise Exception.Create('Invalid RecordSubType or SubType');
-
-      Result.SubType := FieldByName('USR$ST').AsString;
-    end;
+    F := FindField('USR$ST');
+    if F <> nil then
+      Result.SubType := F.AsString;
+    if (Result.SubType > '') and (not Result.gdClass.CheckSubType(Result.SubType)) then
+      raise EgdcException.Create('Invalid USR$ST value.');
   end else
     Result := inherited GetCurrRecordClass;
 end;
