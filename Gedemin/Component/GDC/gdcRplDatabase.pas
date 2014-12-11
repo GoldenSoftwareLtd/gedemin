@@ -33,13 +33,13 @@ end;
 class function TgdcRplDatabase2.GetViewFormClassName(
   const ASubType: TgdcSubType): String;
 begin
-  Result := 'Tgdc_frmRplDatabase';
+  Result := 'Tgdc_frmRplDatabase2';
 end;
 
 class function TgdcRplDatabase2.GetDialogFormClassName(
   const ASubType: TgdcSubType): String;
 begin
-  Result := 'Tgdc_dlgRplDatabase';
+  Result := 'Tgdc_dlgRplDatabase2';
 end;
 
 class function TgdcRplDatabase2.GetListTable(const ASubType: TgdcSubType): String;
