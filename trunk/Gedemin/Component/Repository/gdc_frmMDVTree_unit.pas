@@ -396,20 +396,13 @@ end;
 procedure Tgdc_frmMDVTree.actDetailNewExecute(Sender: TObject);
 var
   OldID: Integer;
-  FullClass: TgdcFullClass;
 begin
   if not gdcDetailObject.IsEmpty then
     OldID := gdcDetailObject.ID
   else
     OldID := -1;
 
-  if not gdcObject.IsEmpty then
-  begin
-    FullClass.gdClass := gdcDetailObject.GetCurrRecordClass.gdClass;
-    FullClass.SubType := gdcObject.GetCurrRecordClass.SubType;
-    if FullClass.gdClass <> nil then
-      gdcDetailObject.CreateDialog(FullClass);
-  end;
+  gdcDetailObject.CreateDescendant;
 
   if OldID <> gdcDetailObject.ID then
   begin
