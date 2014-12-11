@@ -54,6 +54,7 @@ type
 
     function CreateChildrenDialog: Boolean; overload; virtual;
     function CreateChildrenDialog(C: CgdcBase): Boolean; overload; virtual;
+    function CreateChildrenDialog(AFullClass: TgdcFullClass): Boolean; overload; virtual;
 
     // функция создает и возвращает объект, на который ссылается
     // поле пэрэнт, т.е. родительский объект
@@ -295,8 +296,7 @@ function TgdcTree.CreateChildrenDialog: Boolean;
 begin
   FForceChildren := True;
   try
-    //Result := CreateDialog;
-    Result := CreateDialog(GetCurrRecordClass);
+    Result := CreateDialog;
   finally
     FForceChildren := False;
   end;
@@ -307,6 +307,16 @@ begin
   FForceChildren := True;
   try
     Result := CreateDialog(C);
+  finally
+    FForceChildren := False;
+  end;
+end;
+
+function TgdcTree.CreateChildrenDialog(AFullClass: TgdcFullClass): Boolean;
+begin
+  FForceChildren := True;
+  try
+    Result := CreateDialog(AFullClass);
   finally
     FForceChildren := False;
   end;

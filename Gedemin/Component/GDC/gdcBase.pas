@@ -4843,7 +4843,6 @@ function TgdcBase.CreateDialogForm: TCreateableForm;
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-  LSubType: TgdcSubType;
 begin
   {@UNFOLD MACRO INH_ORIG_FUNCCREATEDIALOGFORM('TGDCBASE', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
   {M}  try
@@ -6317,7 +6316,6 @@ var
   I: Integer;
   str: String;
   OL: TObjectList;
-  qwe: TstringList;
 begin
   {@UNFOLD MACRO INH_ORIG_GETWHERECLAUSE('TGDCBASE', 'GETWHERECLAUSE', KEYGETWHERECLAUSE)}
   {M}  try
