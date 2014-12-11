@@ -6,7 +6,7 @@ inherited gdc_frmMainGood: Tgdc_frmMainGood
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 556
+    Top = 546
   end
   inherited TBDockTop: TTBDock
     inherited tbMainToolbar: TTBToolbar
@@ -69,13 +69,12 @@ inherited gdc_frmMainGood: Tgdc_frmMainGood
     end
   end
   inherited TBDockBottom: TTBDock
-    Top = 575
+    Top = 565
   end
   inherited pnlWorkArea: TPanel
     inherited pnlDetail: TPanel
       inherited TBDockDetail: TTBDock
         inherited tbDetailToolbar: TTBToolbar
-          Images = dmImages.il16x16
           object tbiViewAllCard: TTBItem
             Action = actViewAllCard
           end

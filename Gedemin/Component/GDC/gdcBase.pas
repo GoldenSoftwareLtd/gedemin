@@ -1490,7 +1490,7 @@ type
     // для данного класса. Используется в диалоге выбора
     // класса при создании потомка
     class function GetChildrenClass(const ASubType: TgdcSubType;
-      OL: TObjectList; const AnIncludeRoot: Boolean = True;
+      AnOL: TObjectList; const AnIncludeRoot: Boolean = True;
       const AnOnlyDirect: Boolean = False ): Boolean; Virtual;
 
     // предоставляет пользователю возможность выбрать один из классов
@@ -2112,14 +2112,6 @@ function GetBaseClassForRelation(const ARelationName: String): TgdcFullClass;
 function GetBaseClassForRelationByID(const ARelationName: String;
   const AnID: Integer; ibtr: TIBTransaction): TgdcFullClass;
 
-// в функцию передается класс, она заполняет список классами, которые
-// наследуются от заданного и возвращает Истину или Ложь, если
-// наследников нет. Третий параметр определяет будут учитываться
-// только непосредственные наследники или далекие родственники тоже.
-function GetDescendants(AnAncestor: TClass; const ASubType: TgdcSubType;
-  AObjectList: TObjectList; const AnIncludeRoot: Boolean = True;
-  const OnlyDirect: Boolean = False): Boolean;
-
 //
 function GetClassForObjectByID(ADatabase: TIBDatabase; ATransaction: TIBTransaction;
   AClass: CgdcBase; ASubType: TgdcSubType; const AnID: Integer): TgdcFullClass;
@@ -2642,18 +2634,6 @@ function BuildTree(ACE: TgdClassEntry; AData1: Pointer;
 begin
     TObjectList(AData1).Add(ACE);
   Result := True;
-end;
-
-function GetDescendants(AnAncestor: TClass; const ASubType: TgdcSubType;
-  AObjectList: TObjectList; const AnIncludeRoot: Boolean = True;
-  const OnlyDirect: Boolean = False): Boolean;
-begin
-  AObjectList.Clear;
-
-  gdClassList.Traverse(AnAncestor, ASubType, BuildTree,
-    AObjectList, nil, AnIncludeRoot, OnlyDirect);
-
-  Result := AObjectList.Count > 0;
 end;
 
 procedure MakeFieldList(Fields: String; List: TStrings);
@@ -4863,6 +4843,7 @@ function TgdcBase.CreateDialogForm: TCreateableForm;
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
+  LSubType: TgdcSubType;
 begin
   {@UNFOLD MACRO INH_ORIG_FUNCCREATEDIALOGFORM('TGDCBASE', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
   {M}  try
@@ -6332,8 +6313,11 @@ var
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-  S: TStringList;
+  SL: TStringList;
   I: Integer;
+  str: String;
+  OL: TObjectList;
+  qwe: TstringList;
 begin
   {@UNFOLD MACRO INH_ORIG_GETWHERECLAUSE('TGDCBASE', 'GETWHERECLAUSE', KEYGETWHERECLAUSE)}
   {M}  try
@@ -6365,25 +6349,94 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  S := TStringList.Create;
+  SL := TStringList.Create;
   try
-    S.Duplicates := dupIgnore;
-    GetWhereClauseConditions(S);
+    SL.Duplicates := dupIgnore;
+    GetWhereClauseConditions(SL);
     for I := 0 to FExtraConditions.Count - 1 do
-      S.Add(FExtraConditions[I]);
-    for I := S.Count - 1 downto 0 do
-      if Trim(S[I]) = '' then
-        S.Delete(I);
-    if S.Count > 0 then
+      SL.Add(FExtraConditions[I]);
+    for I := SL.Count - 1 downto 0 do
+      if Trim(SL[I]) = '' then
+        SL.Delete(I);
+    if SL.Count > 0 then
     begin
-      Result := 'WHERE ' + S[0];
-      for I := 1 to S.Count - 1 do
-        Result := Result + ' AND ' + S[I];
+      Result := 'WHERE ' + SL[0];
+      for I := 1 to SL.Count - 1 do
+        Result := Result + ' AND ' + SL[I];
     end else
       Result := '';
   finally
-    S.Free;
+    SL.Free;
   end;
+
+
+  //отсеиваем родительские записи в наследниках
+  if (Self.ClassName <> 'TgdcUserDocument')
+    and (Self.ClassName <> 'TgdcUserDocumentLine')
+    and (Self.ClassName <> 'TgdcAttrUserDefined')
+    and (Self.ClassName <> 'TgdcAttrUserDefinedTree')
+    and (Self.ClassName <> 'TgdcAttrUserDefinedLBRBTree')
+    and (Self.ClassName <> 'TgdcSelectedGood')
+    and (Self.ClassName <> 'TgdcInvGoodRemains')
+    and (Self.ClassName <> 'TgdcInvRemains')
+    and (Self.ClassName <> 'TgdcInvMovement')
+    and (Self.ClassName <> 'TgdcInvDocument')
+    and (Self.ClassName <> 'TgdcInvDocumentLine')
+    and (Self.ClassName <> 'TgdcInvPriceList')
+    and (Self.ClassName <> 'TgdcInvPriceListLine')
+    and (Self.ClassName <> 'TgdcInvGoodRemains')
+    and (Self.ClassName <> 'TgdcInvRemains') then
+  begin
+    OL := TObjectList.Create(False);
+    try
+      CgdcBase(Self.ClassType).GetChildrenClass(SubType, OL, True, False);
+
+      SL := TStringList.Create;
+      try
+        SL.Sorted := True;
+        SL.Duplicates := dupIgnore;
+
+        for I := 0 to OL.Count - 1 do
+          SL.Add(TgdClassEntry(OL[I]).SubType);
+
+        if ((SL.Count = 1) and (SL[0] > ''))
+          or (SL.Count > 1) then
+        begin
+          str := '(';
+
+          for I := 0 to SL.Count - 1 do
+          begin
+            if I = 0 then
+            begin
+              if SL[I] = '' then
+                str := str + Format('%s.%s %s', [GetListTableAlias, 'USR$ST', ' is null'])
+              else
+                str := str + Format('%s.%s=''%s''', [GetListTableAlias, 'USR$ST', AnsiUpperCase(SL[I])]);
+            end
+            else
+            begin
+              if SL[I] = '' then
+                str := str + ' OR ' + Format('%s.%s %s', [GetListTableAlias, 'USR$ST', ' is null'])
+              else
+                str := str + ' OR ' + Format('%s.%s=''%s''', [GetListTableAlias, 'USR$ST', AnsiUpperCase(SL[I])]);
+            end;
+          end;
+
+          str := str + ')';
+
+          if Result = '' then
+            Result := 'WHERE ' + str
+          else
+            Result := Result + ' AND ' + str;
+        end;
+      finally
+        SL.Free;
+      end;
+    finally
+      OL.Free;
+    end;
+  end;
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASE', 'GETWHERECLAUSE', KEYGETWHERECLAUSE)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -9928,7 +9981,7 @@ begin
   if C.gdClass <> nil then
   begin
     CheckClass(C.gdClass);
-    if (C.gdClass = Self.ClassType) and (C.SubType = SubType) then
+    if (C.gdClass = Self.ClassType) and (AnsiUpperCase(C.SubType) = AnsiUpperCase(SubType)) then
       Result := CreateDialog
     else begin
       Obj := C.gdClass.CreateWithParams(Owner, Database, Transaction, C.SubType, 'OnlySelected');
@@ -10889,12 +10942,17 @@ begin
 end;
 
 class function TgdcBase.GetChildrenClass(const ASubType: TgdcSubType;
-  OL: TObjectList; const AnIncludeRoot: Boolean = True;
+  AnOL: TObjectList; const AnIncludeRoot: Boolean = True;
   const AnOnlyDirect: Boolean = False ): Boolean;
 begin
-  Result := GetDescendants(Self, ASubType, OL, AnIncludeRoot, AnOnlyDirect);
-  // возможно надо добавить проверку на таблицу
-  // если другая таблица, то удалять из списка???
+  if AnOL = nil then
+    raise Exception.Create('');
+  AnOL.Clear;
+
+  gdClassList.Traverse(Self, ASubType, BuildTree,
+    AnOL, nil, AnIncludeRoot, AnOnlyDirect);
+
+  Result := AnOL.Count > 0;
 end;
 
 function TgdcBase.RelationByAliasName(const AnAliasName: String): String;
