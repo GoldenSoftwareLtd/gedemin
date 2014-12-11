@@ -63,8 +63,7 @@ end;
 
 procedure Tgdc_frmMainGood.actNewSubExecute(Sender: TObject);
 begin
-  gdcGoodGroup.CreateChildrenDialog;
-  //gdcGoodGroup.CreateRecordClassDialog;
+  gdcGoodGroup.CreateChildrenDialog(gdcGoodGroup.GetCurrRecordClass);
 end;
 
 procedure Tgdc_frmMainGood.RemoveSubSetList(S: TStrings);
