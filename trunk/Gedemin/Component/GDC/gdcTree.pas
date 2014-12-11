@@ -295,7 +295,8 @@ function TgdcTree.CreateChildrenDialog: Boolean;
 begin
   FForceChildren := True;
   try
-    Result := CreateDialog;
+    //Result := CreateDialog;
+    Result := CreateDialog(GetCurrRecordClass);
   finally
     FForceChildren := False;
   end;
