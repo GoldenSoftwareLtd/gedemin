@@ -344,6 +344,7 @@ type
     FCaption: String;
     FSiblings: TObjectList;
     FInitialized: Boolean;
+    FIsStorage: Boolean;
 
     function GetSiblings(Index: Integer): TgdClassEntry;
     function GetCount: Integer;
@@ -395,6 +396,7 @@ type
     property Siblings[Index: Integer]: TgdClassEntry read GetSiblings;
     property Initialized: Boolean read FInitialized write FInitialized;
     property ClassMethods: TgdClassMethods read FClassMethods;
+    property IsStorage: Boolean read FIsStorage;
   end;
 
   TgdClassList = class(TObject)
@@ -1336,6 +1338,7 @@ begin
   FCaption := ACaption;
   FSiblings := nil;
   FClassMethods := TgdClassMethods.Create(TComponentClass(FClass));
+  FIsStorage := False;
 end;
 
 destructor TgdClassEntry.Destroy;
@@ -1805,6 +1808,7 @@ begin
           Add(GetClass(CgdcBase(TheClass).GetViewFormClassName(SL.Values[SL.Names[I]])), SL.Values[SL.Names[I]], SL.Names[I], SubType);
           Add(GetClass(CgdcBase(TheClass).GetDialogFormClassName(SL.Values[SL.Names[I]])), SL.Values[SL.Names[I]], SL.Names[I], SubType);
         end;
+        CurrCE.FIsStorage := True;
         CurrCE.ReadFromStorage;
       end;
     end;
