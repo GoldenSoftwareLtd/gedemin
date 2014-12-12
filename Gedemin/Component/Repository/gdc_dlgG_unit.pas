@@ -1294,6 +1294,7 @@ var
   L: TList;
   I, P: Integer;
   IsNewCtrl: Boolean;
+  CE : TgdClassEntry;
 
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGG', 'SETUPRECORD', KEYSETUPRECORD)}
@@ -1379,22 +1380,16 @@ begin
 
   FOldPostCount := gdcObject.PostCount;
 
-  if (SubType > '')
-    and (gdcObject.State = dsInsert)
-    and (Self.ClassName <> 'Tgdc_dlgAttrUserDefined')
-    and (Self.ClassName <> 'Tgdc_dlgAttrUserDefinedTree')
-    and (Self.ClassName <> 'Tgdc_dlgUserComplexDocument')
-    and (Self.ClassName <> 'Tgdc_dlgUserDocumentLine')
-    and (Self.ClassName <> 'Tgdc_dlgUserSimpleDocument')
-    and (Self.ClassName <> 'TdlgInvDocument')
-    and (Self.ClassName <> 'TdlgInvDocumentLine')
-    and (Self.ClassName <> 'TdlgInvPriceLine')
-    and (Self.ClassName <> 'TdlgInvPriceList') then
+  if (SubType > '') then
   begin
-    if fgdcObject.FindField('USR$ST') = nil then
-      raise Exception.Create('Поле ''USR$ST'' не найдено');
+    CE := gdClassList.Find(gdcObject.ClassType, SubType);
+    if (CE <> nil) and (CE.IsStorage) then
+    begin
+      if fgdcObject.FindField('USR$ST') = nil then
+        raise Exception.Create('Поле ''USR$ST'' не найдено');
 
-    gdcObject.FieldByName('USR$ST').AsString := AnsiUpperCase(gdcObject.SubType);
+      gdcObject.FieldByName('USR$ST').AsString := AnsiUpperCase(gdcObject.SubType);
+    end;
   end;
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGG', 'SETUPRECORD', KEYSETUPRECORD)}
