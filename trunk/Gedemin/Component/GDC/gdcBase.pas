@@ -6315,7 +6315,9 @@ var
   SL: TStringList;
   I: Integer;
   str: String;
-  OL: TObjectList;
+//  OL: TObjectList;
+  LSubType: String;
+  CE: TgdClassEntry;
 begin
   {@UNFOLD MACRO INH_ORIG_GETWHERECLAUSE('TGDCBASE', 'GETWHERECLAUSE', KEYGETWHERECLAUSE)}
   {M}  try
@@ -6368,70 +6370,30 @@ begin
   end;
 
 
-  //отсеиваем родительские записи в наследниках
-  if (Self.ClassName <> 'TgdcUserDocument')
-    and (Self.ClassName <> 'TgdcUserDocumentLine')
-    and (Self.ClassName <> 'TgdcAttrUserDefined')
-    and (Self.ClassName <> 'TgdcAttrUserDefinedTree')
-    and (Self.ClassName <> 'TgdcAttrUserDefinedLBRBTree')
-    and (Self.ClassName <> 'TgdcSelectedGood')
-    and (Self.ClassName <> 'TgdcInvGoodRemains')
-    and (Self.ClassName <> 'TgdcInvRemains')
-    and (Self.ClassName <> 'TgdcInvMovement')
-    and (Self.ClassName <> 'TgdcInvDocument')
-    and (Self.ClassName <> 'TgdcInvDocumentLine')
-    and (Self.ClassName <> 'TgdcInvPriceList')
-    and (Self.ClassName <> 'TgdcInvPriceListLine')
-    and (Self.ClassName <> 'TgdcInvGoodRemains')
-    and (Self.ClassName <> 'TgdcInvRemains') then
+  if SubType > '' then
   begin
-    OL := TObjectList.Create(False);
-    try
-      CgdcBase(Self.ClassType).GetChildrenClass(SubType, OL, True, False);
+    CE := gdClassList.Find(Self.ClassType, SubType);
+    // подтип может быть липовым поэтому CE = nil это нормально
+    // можно конечно добавить проверку подтипа
+    if (CE <> nil) and CE.IsStorage then
+    begin
+      str := '';
+      LSubType := SubType;
+      repeat
+        LSubType := ClassParentSubType(LSubType);
+        if str <> '' then
+          str := str + ' AND ';
 
-      SL := TStringList.Create;
-      try
-        SL.Sorted := True;
-        SL.Duplicates := dupIgnore;
+        if LSubType = '' then
+          str := str + Format('%s.%s %s', [GetListTableAlias, 'USR$ST', ' is not null'])
+        else
+          str := str + Format('%s.%s<>''%s''', [GetListTableAlias, 'USR$ST', AnsiUpperCase(LSubType)]);
+      until LSubType = '';
 
-        for I := 0 to OL.Count - 1 do
-          SL.Add(TgdClassEntry(OL[I]).SubType);
-
-        if ((SL.Count = 1) and (SL[0] > ''))
-          or (SL.Count > 1) then
-        begin
-          str := '(';
-
-          for I := 0 to SL.Count - 1 do
-          begin
-            if I = 0 then
-            begin
-              if SL[I] = '' then
-                str := str + Format('%s.%s %s', [GetListTableAlias, 'USR$ST', ' is null'])
-              else
-                str := str + Format('%s.%s=''%s''', [GetListTableAlias, 'USR$ST', AnsiUpperCase(SL[I])]);
-            end
-            else
-            begin
-              if SL[I] = '' then
-                str := str + ' OR ' + Format('%s.%s %s', [GetListTableAlias, 'USR$ST', ' is null'])
-              else
-                str := str + ' OR ' + Format('%s.%s=''%s''', [GetListTableAlias, 'USR$ST', AnsiUpperCase(SL[I])]);
-            end;
-          end;
-
-          str := str + ')';
-
-          if Result = '' then
-            Result := 'WHERE ' + str
-          else
-            Result := Result + ' AND ' + str;
-        end;
-      finally
-        SL.Free;
-      end;
-    finally
-      OL.Free;
+      if Result = '' then
+        Result := 'WHERE ' + str
+      else
+        Result := Result + ' AND ' + str;
     end;
   end;
 
