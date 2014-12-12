@@ -1779,38 +1779,37 @@ begin
 
   SL := TStringList.Create;
   try
-    F := GlobalStorage.OpenFolder('SubTypes', False, False);
+    F := GlobalStorage.OpenFolder('SubTypes\'+ TheClass.ClassName + SubType, False, False);
     try
       if F <> nil then
       begin
-        if SubType > '' then
-          ValueName := TheClass.ClassName + SubType
-        else
-          ValueName := TheClass.ClassName;
-        V := F.ValueByName(ValueName);
-        if V is TgsStringValue then
-          SL.CommaText := V.AsString
-        else if V <> nil then
-          F.DeleteValue(ValueName);
+        for I := 0 to F.ValuesCount - 1 do
+        begin
+          V := F.Values[I];
+          if V is TgsStringValue then
+            SL.Add(V.Name + '=' + V.AsString)
+          else if V <> nil then
+            F.DeleteValue(ValueName);
+        end;
+
+        for I := 0 to SL.Count - 1 do
+        begin
+          CurrCE := Add(TheClass, SL.Values[SL.Names[I]], SL.Names[I], SubType);
+
+          if CurrCE <> nil then
+          begin
+            if TheClass.InheritsFrom(TgdcBase) then
+            begin
+              Add(GetClass(CgdcBase(TheClass).GetViewFormClassName(SL.Values[SL.Names[I]])), SL.Values[SL.Names[I]], SL.Names[I], SubType);
+              Add(GetClass(CgdcBase(TheClass).GetDialogFormClassName(SL.Values[SL.Names[I]])), SL.Values[SL.Names[I]], SL.Names[I], SubType);
+            end;
+            CurrCE.FIsStorage := True;
+            CurrCE.ReadFromStorage;
+          end;
+        end;
       end;
     finally
       GlobalStorage.CloseFolder(F, False);
-    end;
-
-    for I := 0 to SL.Count - 1 do
-    begin
-      CurrCE := Add(TheClass, SL.Values[SL.Names[I]], SL.Names[I], SubType);
-
-      if CurrCE <> nil then
-      begin
-        if TheClass.InheritsFrom(TgdcBase) then
-        begin
-          Add(GetClass(CgdcBase(TheClass).GetViewFormClassName(SL.Values[SL.Names[I]])), SL.Values[SL.Names[I]], SL.Names[I], SubType);
-          Add(GetClass(CgdcBase(TheClass).GetDialogFormClassName(SL.Values[SL.Names[I]])), SL.Values[SL.Names[I]], SL.Names[I], SubType);
-        end;
-        CurrCE.FIsStorage := True;
-        CurrCE.ReadFromStorage;
-      end;
     end;
   finally
     SL.Free;
