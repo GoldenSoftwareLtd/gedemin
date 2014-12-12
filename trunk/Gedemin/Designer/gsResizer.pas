@@ -3204,7 +3204,7 @@ begin
     Result := USERCOMPONENT_PREFIX;
 
   if (FFormSubType <> SubtypeDefaultName) and ((FDesignerType = dtGlobal) or (FDesignerType = dtUser)) then
-    Result := Result + FFormSubType + '_';
+    Result := Result + StringReplace(FFormSubType, '$', '_', [rfReplaceAll]) + '_';
 
   Result := Result + Copy(AClassName, 2, Length(AClassName));
   if FDesignerType = dtUser then
