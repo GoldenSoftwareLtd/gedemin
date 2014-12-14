@@ -340,11 +340,11 @@ type
     FClass: TClass;
     FSubType: TgdcSubType;
     FClassMethods: TgdClassMethods;
-//    FComment: String;
     FCaption: String;
     FSiblings: TObjectList;
     FInitialized: Boolean;
     FIsStorage: Boolean;
+    FPath: String;
 
     function GetSiblings(Index: Integer): TgdClassEntry;
     function GetCount: Integer;
@@ -390,13 +390,13 @@ type
     property SubType: TgdcSubType read FSubType;
     property gdcClass: CgdcBase read GetGdcClass;
     property frmClass: CgdcCreateableForm read GetFrmClass;
-//    property Comment: String read FComment;
     property Caption: String read GetCaption;
     property Count: Integer read GetCount;
     property Siblings[Index: Integer]: TgdClassEntry read GetSiblings;
     property Initialized: Boolean read FInitialized write FInitialized;
     property ClassMethods: TgdClassMethods read FClassMethods;
     property IsStorage: Boolean read FIsStorage;
+    property Path: String read FPath;
   end;
 
   TgdClassList = class(TObject)
@@ -1777,9 +1777,16 @@ begin
 
   Initialized := True;
 
+  FIsStorage := True;
+
+  if SubType = '' then
+    FPath := '\SubTypes\'+ TheClass.ClassName
+  else
+    FPath := Parent.Path + '\' + TheClass.ClassName + SubType;
+
   SL := TStringList.Create;
   try
-    F := GlobalStorage.OpenFolder('SubTypes\'+ TheClass.ClassName + SubType, False, False);
+    F := GlobalStorage.OpenFolder(Path, False, False);
     try
       if F <> nil then
       begin
@@ -1787,7 +1794,7 @@ begin
         begin
           V := F.Values[I];
           if V is TgsStringValue then
-            SL.Add(V.Name + '=' + V.AsString)
+            SL.Add(V.AsString + '=' + V.Name)
           else if V <> nil then
             F.DeleteValue(ValueName);
         end;
@@ -1803,7 +1810,6 @@ begin
               Add(GetClass(CgdcBase(TheClass).GetViewFormClassName(SL.Values[SL.Names[I]])), SL.Values[SL.Names[I]], SL.Names[I], SubType);
               Add(GetClass(CgdcBase(TheClass).GetDialogFormClassName(SL.Values[SL.Names[I]])), SL.Values[SL.Names[I]], SL.Names[I], SubType);
             end;
-            CurrCE.FIsStorage := True;
             CurrCE.ReadFromStorage;
           end;
         end;

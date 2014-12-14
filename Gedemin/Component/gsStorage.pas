@@ -1135,7 +1135,7 @@ begin
   if V <> nil then
   begin
     V.Drop;
-    if (Self.Name = 'SubTypes') {and Assigned(gdClassList)} then
+    if (AnsiPos('\SUBTYPES', AnsiUpperCase(Parent.Path)) = 1) then
       gdClassList.RemoveAllSubTypes;
     Result := True;
   end else
@@ -2128,7 +2128,11 @@ begin
   if F = FRootFolder then
     raise EgsStorageFolderError.Create('Can not delete root folder!');
   if F <> nil then
+  begin
+    if (AnsiPos('\SUBTYPES', AnsiUpperCase(F.Path)) = 1) then
+      gdClassList.RemoveAllSubTypes;
     F.Drop;
+  end;
   if SyncWithDatabase then
     AfterCloseFolder;
 end;
@@ -3371,8 +3375,8 @@ begin
     FData := Value;
     FChanged := FChanged or (not StorageLoading);
     FModified := Now;
-    if (Parent.Name = 'SubTypes') {and Assigned(gdClassList)} then
-        gdClassList.RemoveAllSubTypes;
+    if (not StorageLoading) and (AnsiPos('\SUBTYPES', AnsiUpperCase(Parent.Path)) = 1) then
+      gdClassList.RemoveAllSubTypes;
   end;
 end;
 
