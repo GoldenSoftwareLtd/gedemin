@@ -93,7 +93,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmInvPriceList);
+  RegisterFrmClass(Tgdc_frmInvPriceList, ctInvPriceList);
 
 finalization
   UnRegisterFrmClass(Tgdc_frmInvPriceList);

@@ -694,11 +694,11 @@ begin
 end;
 
 initialization
-  RegisterGdcClass(TgdcAcctBase, 'Бухгалтерский план счетов');
-  RegisterGdcClass(TgdcAcctFolder, 'Раздел плана счетов');
+  RegisterGdcClass(TgdcAcctBase, ctStorage, 'Бухгалтерский план счетов');
+  RegisterGdcClass(TgdcAcctFolder, ctStorage, 'Раздел плана счетов');
   RegisterGdcClass(TgdcAcctChart);
-  RegisterGdcClass(TgdcAcctAccount, 'Счет');
-  RegisterGdcClass(TgdcAcctSubAccount, 'Субсчет');
+  RegisterGdcClass(TgdcAcctAccount, ctStorage, 'Счет');
+  RegisterGdcClass(TgdcAcctSubAccount, ctStorage, 'Субсчет');
 
 finalization
   UnRegisterGdcClass(TgdcAcctBase);

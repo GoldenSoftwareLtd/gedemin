@@ -135,7 +135,7 @@ begin
 end;
 
 initialization
-  RegisterGdcClass(TgdcPlace, 'Административно-территориальная единица');
+  RegisterGdcClass(TgdcPlace, ctStorage, 'Административно-территориальная единица');
 
 finalization
   UnRegisterGdcClass(TgdcPlace);

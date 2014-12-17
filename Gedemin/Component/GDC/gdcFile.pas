@@ -1522,9 +1522,9 @@ begin
 end;
 
 initialization
-  RegisterGDCClass(TgdcBaseFile, 'Τΰιλϋ');
-  RegisterGDCClass(TgdcFile, 'Τΰιλ');
-  RegisterGDCClass(TgdcFileFolder, 'Οΰοκΰ');
+  RegisterGDCClass(TgdcBaseFile, ctStorage, 'Τΰιλϋ');
+  RegisterGDCClass(TgdcFile, ctStorage, 'Τΰιλ');
+  RegisterGDCClass(TgdcFileFolder, ctStorage, 'Οΰοκΰ');
   FRootDirectory := '';
 
 finalization

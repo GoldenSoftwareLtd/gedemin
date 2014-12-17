@@ -8072,7 +8072,6 @@ procedure TgdcInvRemainsOption.CustomDelete(Buff: Pointer);
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-  I: Integer;
 begin
   {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCINVREMAINSOPTION', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
   {M}  try
@@ -8105,8 +8104,7 @@ begin
     '  subtype = ''%s''',
     [FieldByName('ruid').AsString]));
 
-  for I := Low(RemainsClasses) to High(RemainsClasses) do
-    UnRegisterGdClass(GetClass(RemainsClasses[I]), FieldByName('RUID').AsString);
+  UnRegisterGdClasses(ctInvRemains, FieldByName('RUID').AsString);
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVREMAINSOPTION', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
   {M}  finally
@@ -8122,7 +8120,6 @@ procedure TgdcInvRemainsOption.CustomInsert(Buff: Pointer);
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-  I: Integer;
 begin
   {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCINVREMAINSOPTION', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  try
@@ -8153,9 +8150,8 @@ begin
     TgdcInvRemains.ClassName, False, FieldByName('branchkey').AsInteger
   );
 
-  for I := Low(RemainsClasses) to High(RemainsClasses) do
-    RegisterGdClass(GetClass(RemainsClasses[I]),
-      FieldByName('RUID').AsString, FieldByName('name').AsString, '', True);
+  RegisterGdClasses(ctInvRemains, FieldByName('name').AsString,
+    FieldByName('RUID').AsString, '', True);
   
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVREMAINSOPTION', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  finally
@@ -9085,9 +9081,9 @@ end;
 
 initialization
   RegisterGdcClass(TgdcInvBaseRemains);
-  RegisterGdcClass(TgdcInvRemains);
-  RegisterGdcClass(TgdcInvGoodRemains);
-  RegisterGdcClass(TgdcInvMovement);
+  RegisterGdcClass(TgdcInvRemains, ctInvRemains);
+  RegisterGdcClass(TgdcInvGoodRemains, ctInvRemains);
+  RegisterGdcClass(TgdcInvMovement, ctInvDocument);
   RegisterGdcClass(TgdcInvCard);
   RegisterGdcClass(TgdcInvRemainsOption);
   RegisterGdcClass(TgdcInvCardConfig);

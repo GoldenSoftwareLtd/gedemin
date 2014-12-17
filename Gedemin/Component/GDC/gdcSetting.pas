@@ -5275,9 +5275,9 @@ begin
 end;
 
 initialization
-  RegisterGDCClass(TgdcSetting, 'Настройка');
-  RegisterGDCClass(TgdcSettingPos, 'Позиция настройки');
-  RegisterGDCClass(TgdcSettingStorage, 'Позиция настройки хранилища');
+  RegisterGDCClass(TgdcSetting, ctStorage, 'Настройка');
+  RegisterGDCClass(TgdcSettingPos, ctStorage, 'Позиция настройки');
+  RegisterGDCClass(TgdcSettingStorage, ctStorage, 'Позиция настройки хранилища');
 
 finalization
   UnRegisterGDCClass(TgdcSetting);

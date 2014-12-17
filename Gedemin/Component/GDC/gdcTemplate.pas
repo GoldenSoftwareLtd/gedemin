@@ -179,7 +179,7 @@ begin
 end;
 
 initialization
-  RegisterGDCClass(TgdcTemplate, 'Шаблон отчета');
+  RegisterGDCClass(TgdcTemplate, ctStorage, 'Шаблон отчета');
 
 finalization
   UnRegisterGDCClass(TgdcTemplate);

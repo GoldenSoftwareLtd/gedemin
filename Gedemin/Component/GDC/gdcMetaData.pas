@@ -6515,21 +6515,18 @@ end;
 
 procedure TgdcTreeTable.AddGdClasses;
 begin
-  RegisterGdClass(GetClass('TgdcAttrUserDefinedTree'),
-    FieldByName('relationname').AsString, FieldByName('lname').AsString, '', True);
+  RegisterGdClasses(ctUserDefinedTree, FieldByName('lname').AsString,
+    FieldByName('relationname').AsString, '', True);
 
-  RegisterGdClass(GetClass('TgdcAttrUserDefinedTree'),
-    FieldByName('relationname').AsString, FieldByName('lname').AsString, '', True);
-
-  RegisterGdClass(GetClass('TgdcAttrUserDefinedTree'),
-    FieldByName('relationname').AsString, FieldByName('lname').AsString, '', True);
+  RegisterGdClasses(ctDlgUserDefinedTree, FieldByName('lname').AsString,
+    FieldByName('relationname').AsString, '', True);
 end;
 
 procedure TgdcTreeTable.RemoveGdClasses;
 begin
-  UnRegisterGdClass(GetClass('TgdcAttrUserDefinedTree'), FieldByName('relationname').AsString);
-  UnRegisterGdClass(GetClass('Tgdc_frmAttrUserDefinedTree'), FieldByName('relationname').AsString);
-  UnRegisterGdClass(GetClass('Tgdc_dlgAttrUserDefinedTree'), FieldByName('relationname').AsString);
+  UnRegisterGdClasses(ctUserDefinedTree, FieldByName('relationname').AsString);
+
+  UnRegisterGdClasses(ctDlgUserDefinedTree,FieldByName('relationname').AsString);
 end;
 
 procedure TgdcTreeTable.CreateRelationSQL(Scripts: TSQLProcessList);
@@ -6732,21 +6729,18 @@ end;
 
 procedure TgdcLBRBTreeTable.AddGdClasses;
 begin
-  RegisterGdClass(GetClass('TgdcAttrUserDefinedLBRBTree'),
-    FieldByName('relationname').AsString, FieldByName('lname').AsString, '', True);
+  RegisterGdClasses(ctUserDefinedLBRBTree, FieldByName('lname').AsString,
+    FieldByName('relationname').AsString, '', True);
 
-  RegisterGdClass(GetClass('Tgdc_frmAttrUserDefinedLBRBTree'),
-    FieldByName('relationname').AsString, FieldByName('lname').AsString, '', True);
-
-  RegisterGdClass(GetClass('Tgdc_dlgAttrUserDefinedTree'),
-    FieldByName('relationname').AsString, FieldByName('lname').AsString, '', True);
+  RegisterGdClasses(ctDlgUserDefinedTree, FieldByName('lname').AsString,
+    FieldByName('relationname').AsString, '', True);
 end;
 
 procedure TgdcLBRBTreeTable.RemoveGdClasses;
 begin
-  UnRegisterGdClass(GetClass('TgdcAttrUserDefinedLBRBTree'), FieldByName('relationname').AsString);
-  UnRegisterGdClass(GetClass('Tgdc_frmAttrUserDefinedLBRBTree'), FieldByName('relationname').AsString);
-  UnRegisterGdClass(GetClass('Tgdc_dlgAttrUserDefinedTree'), FieldByName('relationname').AsString);
+  UnRegisterGdClasses(ctUserDefinedLBRBTree, FieldByName('relationname').AsString);
+
+  UnRegisterGdClasses(ctDlgUserDefinedTree, FieldByName('relationname').AsString);
 end;
 
 procedure TgdcLBRBTreeTable.DropTable;
@@ -9380,16 +9374,11 @@ end;
 
 procedure TgdcTableToDefinedTable.AddGdClasses;
 var
-  gdcCN: String;
-  frmCN: String;
-  dlgCN: String;
   R: TatRelation;
   F: TatRelationField;
   RN: String;
+  LgdClassType: TgdClassTypes;
 begin
-  gdcCN := '';
-  frmCN := '';
-  dlgCN := '';
   RN := '';
 
   RN := TgdcTableToDefinedTable(Self).GetReferenceName;
@@ -9408,62 +9397,36 @@ begin
     end;
   end;
 
+  LgdClassType := ctUserDefined;
+
   if Assigned(R) then
   begin
     F := R.RelationFields.ByFieldName('LB');
     if Assigned(F) then
-      gdcCN := 'TgdcAttrUserDefinedLBRBTree'
+      LgdClassType := ctUserDefinedLBRBTree
     else
     begin
       F := R.RelationFields.ByFieldName('PARENT');
       if Assigned(F) then
-        gdcCN := 'TgdcAttrUserDefinedTree'
-      else
-        gdcCN := 'TgdcAttrUserDefined';
+        LgdClassType := ctUserDefinedTree
     end;
   end;
 
-  if gdcCN = 'TgdcAttrUserDefined' then
-  begin
-    frmCN := 'Tgdc_frmAttrUserDefined';
-    dlgCN := 'Tgdc_dlgAttrUserDefined';
-  end
-  else if gdcCN = 'TgdcAttrUserDefinedTree' then
-    begin
-      frmCN := 'Tgdc_frmAttrUserDefinedTree';
-      dlgCN := 'Tgdc_dlgAttrUserDefinedTree';
-    end
-    else if gdcCN = 'TgdcAttrUserDefinedLBRBTree' then
-    begin
-      frmCN := 'Tgdc_frmAttrUserDefinedLBRBTree';
-      dlgCN := 'Tgdc_dlgAttrUserDefinedTree';
-    end;
+  RegisterGdClasses(LgdClassType, FieldByName('lname').AsString,
+    FieldByName('relationname').AsString, RN, True);
 
-  if gdcCN <> '' then
-  begin
-    RegisterGdClass(GetClass(gdcCN), FieldByName('relationname').AsString,
-      FieldByName('lname').AsString, RN, True);
-
-    RegisterGdClass(GetClass(frmCN), FieldByName('relationname').AsString,
-      FieldByName('lname').AsString, RN, True);
-
-    RegisterGdClass(GetClass(dlgCN), FieldByName('relationname').AsString,
-      FieldByName('lname').AsString, RN, True);
-  end;
+  if LgdClassType <> ctUserDefined then
+    RegisterGdClasses(ctDlgUserDefinedTree, FieldByName('lname').AsString,
+      FieldByName('relationname').AsString, RN, True);
 end;
 
 procedure TgdcTableToDefinedTable.RemoveGdClasses;
 var
-  gdcCN: String;
-  frmCN: String;
-  dlgCN: String;
   R: TatRelation;
   F: TatRelationField;
   RN: String;
+  LgdClassType: TgdClassTypes;
 begin
-  gdcCN := '';
-  frmCN := '';
-  dlgCN := '';
   RN := '';
 
   RN := TgdcTableToDefinedTable(Self).GetReferenceName;
@@ -9482,42 +9445,25 @@ begin
     end;
   end;
 
+  LgdClassType := ctUserDefined;
+
   if Assigned(R) then
   begin
     F := R.RelationFields.ByFieldName('LB');
     if Assigned(F) then
-      gdcCN := 'TgdcAttrUserDefinedLBRBTree'
+      LgdClassType := ctUserDefinedLBRBTree
     else
     begin
       F := R.RelationFields.ByFieldName('PARENT');
       if Assigned(F) then
-        gdcCN := 'TgdcAttrUserDefinedTree'
-      else
-        gdcCN := 'TgdcAttrUserDefined';
+        LgdClassType := ctUserDefinedTree
     end;
   end;
 
-  if gdcCN = 'TgdcAttrUserDefined' then
-  begin
-    frmCN := 'Tgdc_frmAttrUserDefined';
-    dlgCN := 'Tgdc_dlgAttrUserDefined';
-  end
-  else if gdcCN = 'TgdcAttrUserDefinedTree' then
-    begin
-      frmCN := 'Tgdc_frmAttrUserDefinedTree';
-      dlgCN := 'Tgdc_dlgAttrUserDefinedTree';
-    end
-    else if gdcCN = 'TgdcAttrUserDefinedLBRBTree' then
-    begin
-      frmCN := 'Tgdc_frmAttrUserDefinedLBRBTree';
-      dlgCN := 'Tgdc_dlgAttrUserDefinedTree';
-    end;
-  if gdcCN <> '' then
-  begin
-    UnRegisterGdClass(GetClass(gdcCN), FieldByName('relationname').AsString);
-    UnRegisterGdClass(GetClass(frmCN), FieldByName('relationname').AsString);
-    UnRegisterGdClass(GetClass(dlgCN), FieldByName('relationname').AsString);
-  end;
+  UnRegisterGdClasses(LgdClassType, FieldByName('relationname').AsString);
+
+  if LgdClassType <> ctUserDefined then
+    UnRegisterGdClasses(ctDlgUserDefinedTree, FieldByName('relationname').AsString);
 end;
 
 
@@ -9876,21 +9822,13 @@ end;
 
 procedure TgdcTable.AddGdClasses;
 begin
-  RegisterGdClass(GetClass('TgdcAttrUserDefined'),
-    FieldByName('relationname').AsString, FieldByName('lname').AsString, '', True);
-
-  RegisterGdClass(GetClass('Tgdc_frmAttrUserDefined'),
-    FieldByName('relationname').AsString, FieldByName('lname').AsString, '', True);
-
-  RegisterGdClass(GetClass('Tgdc_dlgAttrUserDefined'),
-    FieldByName('relationname').AsString, FieldByName('lname').AsString, '', True);
+  RegisterGdClasses(ctUserDefined, FieldByName('lname').AsString,
+    FieldByName('relationname').AsString, '', True);
 end;
 
 procedure TgdcTable.RemoveGdClasses;
 begin
-  UnRegisterGdClass(GetClass('TgdcAttrUserDefined'), FieldByName('relationname').AsString);
-  UnRegisterGdClass(GetClass('Tgdc_frmAttrUserDefined'), FieldByName('relationname').AsString);
-  UnRegisterGdClass(GetClass('Tgdc_dlgAttrUserDefined'), FieldByName('relationname').AsString);
+  UnRegisterGdClasses(ctUserDefined, FieldByName('relationname').AsString);
 end;
 
 { TSQLProcessList }
@@ -11030,27 +10968,27 @@ end;
 
 initialization
   RegisterGdcClass(TgdcMetaBase);
-  RegisterGdcClass(TgdcField, 'Домен');
-  RegisterGdcClass(TgdcRelation, 'Таблицы и представления');
-  RegisterGdcClass(TgdcBaseTable, 'Таблица');
+  RegisterGdcClass(TgdcField, ctStorage, 'Домен');
+  RegisterGdcClass(TgdcRelation, ctStorage, 'Таблицы и представления');
+  RegisterGdcClass(TgdcBaseTable, ctStorage, 'Таблица');
   RegisterGdcClass(TgdcTable);
-  RegisterGdcClass(TgdcSimpleTable, 'Таблица с идентификатором');
-  RegisterGdcClass(TgdcPrimeTable, 'Простая таблица с идентификатором');
-  RegisterGdcClass(TgdcUnknownTable, 'Таблица');
-  RegisterGdcClass(TgdcTableToTable, 'Таблица со ссылкой');
-  RegisterGdcClass(TgdcTableToDefinedTable, 'Наследуемая таблица');
-  RegisterGdcClass(TgdcTreeTable, 'Простое дерево');
-  RegisterGdcClass(TgdcLBRBTreeTable, 'Интервальное дерево');
-  RegisterGdcClass(TgdcView, 'Представление');
-  RegisterGdcClass(TgdcRelationField, 'Поле');
+  RegisterGdcClass(TgdcSimpleTable, ctStorage, 'Таблица с идентификатором');
+  RegisterGdcClass(TgdcPrimeTable, ctStorage, 'Простая таблица с идентификатором');
+  RegisterGdcClass(TgdcUnknownTable, ctStorage, 'Таблица');
+  RegisterGdcClass(TgdcTableToTable, ctStorage, 'Таблица со ссылкой');
+  RegisterGdcClass(TgdcTableToDefinedTable, ctStorage, 'Наследуемая таблица');
+  RegisterGdcClass(TgdcTreeTable, ctStorage, 'Простое дерево');
+  RegisterGdcClass(TgdcLBRBTreeTable, ctStorage, 'Интервальное дерево');
+  RegisterGdcClass(TgdcView, ctStorage, 'Представление');
+  RegisterGdcClass(TgdcRelationField, ctStorage, 'Поле');
   RegisterGdcClass(TgdcTableField);
   RegisterGdcClass(TgdcViewField);
-  RegisterGdcClass(TgdcStoredProc, 'Процедура');
-  RegisterGdcClass(TgdcException, 'Исключение');
-  RegisterGdcClass(TgdcIndex, 'Индекс');
-  RegisterGdcClass(TgdcTrigger, 'Триггер');
-  RegisterGdcClass(TgdcGenerator, 'Генератор');
-  RegisterGdcClass(TgdcCheckConstraint, 'Ограничение');
+  RegisterGdcClass(TgdcStoredProc, ctStorage, 'Процедура');
+  RegisterGdcClass(TgdcException, ctStorage, 'Исключение');
+  RegisterGdcClass(TgdcIndex, ctStorage, 'Индекс');
+  RegisterGdcClass(TgdcTrigger, ctStorage, 'Триггер');
+  RegisterGdcClass(TgdcGenerator, ctStorage, 'Генератор');
+  RegisterGdcClass(TgdcCheckConstraint, ctStorage, 'Ограничение');
 
   for TrCount := 1 to MaxInvCardTrigger do
   begin

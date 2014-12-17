@@ -721,7 +721,7 @@ begin
 end;
 
 initialization
-  RegisterGdcClass(TgdcFunction, 'Функция');
+  RegisterGdcClass(TgdcFunction, ctStorage, 'Функция');
 
 finalization
   UnRegisterGdcClass(TgdcFunction);

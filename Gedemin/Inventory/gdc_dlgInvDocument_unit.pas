@@ -3247,7 +3247,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(TdlgInvDocument);
+  RegisterFrmClass(TdlgInvDocument, ctInvDocument);
 
 finalization
   UnRegisterFrmClass(TdlgInvDocument);

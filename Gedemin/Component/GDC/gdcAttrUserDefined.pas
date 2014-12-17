@@ -1732,9 +1732,9 @@ begin
 end;
 
 initialization
-  RegisterGdcClass(TgdcAttrUserDefined, 'Таблица пользователя');
-  RegisterGdcClass(TgdcAttrUserDefinedTree, 'Таблица пользователя (простое дерево)');
-  RegisterGdcClass(TgdcAttrUserDefinedLBRBTree, 'Таблица пользователя (интервальное дерево)');
+  RegisterGdcClass(TgdcAttrUserDefined, ctUserDefined, 'Таблица пользователя');
+  RegisterGdcClass(TgdcAttrUserDefinedTree, ctUserDefinedTree, 'Таблица пользователя (простое дерево)');
+  RegisterGdcClass(TgdcAttrUserDefinedLBRBTree, ctUserDefinedLBRBTree, 'Таблица пользователя (интервальное дерево)');
 
 finalization
   UnRegisterGdcClass(TgdcAttrUserDefined);

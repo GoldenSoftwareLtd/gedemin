@@ -359,7 +359,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmInvBaseRemains);
+  RegisterFrmClass(Tgdc_frmInvBaseRemains, ctInvRemains);
 
 finalization
   UnRegisterFrmClass(Tgdc_frmInvBaseRemains);

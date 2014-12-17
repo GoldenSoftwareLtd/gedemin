@@ -121,7 +121,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmUserSimpleDocument);
+  RegisterFrmClass(Tgdc_frmUserSimpleDocument, ctUserDocument);
 
 finalization
   UnRegisterFrmClass(Tgdc_frmUserSimpleDocument);

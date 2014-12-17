@@ -28,7 +28,7 @@ uses
 { Tgdc_dlgUserDocumentLine }
 
 initialization
-  RegisterFrmClass(Tgdc_dlgUserDocumentLine);
+  RegisterFrmClass(Tgdc_dlgUserDocumentLine, ctUserDocument);
 
 finalization
   UnRegisterFrmClass(Tgdc_dlgUserDocumentLine);

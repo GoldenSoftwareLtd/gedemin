@@ -95,7 +95,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmAttrUserDefinedLBRBTree);
+  RegisterFrmClass(Tgdc_frmAttrUserDefinedLBRBTree, ctUserDefinedLBRBTree);
 
 finalization
   UnRegisterFrmClass(Tgdc_frmAttrUserDefinedLBRBTree);

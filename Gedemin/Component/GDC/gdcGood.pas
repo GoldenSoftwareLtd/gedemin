@@ -946,13 +946,13 @@ end;
 
 initialization
   RegisterGdcClass(TgdcTNVD);
-  RegisterGdcClass(TgdcGoodBarCode, 'Штрих код товара');
-  RegisterGdcClass(TgdcGoodGroup, 'Группа товара');
-  RegisterGdcClass(TgdcGood, 'Товар');
-  RegisterGdcClass(TgdcValue, 'Единица измерения');
-  RegisterGdcClass(TgdcTax, 'Налог');
-  RegisterGdcClass(TgdcMetal, 'Драгоценный металл');
-  RegisterGdcClass(TgdcSelectedGood);
+  RegisterGdcClass(TgdcGoodBarCode, ctStorage, 'Штрих код товара');
+  RegisterGdcClass(TgdcGoodGroup, ctStorage, 'Группа товара');
+  RegisterGdcClass(TgdcGood, ctStorage, 'Товар');
+  RegisterGdcClass(TgdcValue, ctStorage, 'Единица измерения');
+  RegisterGdcClass(TgdcTax, ctStorage, 'Налог');
+  RegisterGdcClass(TgdcMetal, ctStorage, 'Драгоценный металл');
+  RegisterGdcClass(TgdcSelectedGood, ctInvDocument);
 
 
 finalization

@@ -3813,16 +3813,16 @@ begin
 end;
 
 initialization
-  RegisterGdcClass(TgdcBaseContact, 'Адресная книга');
-  RegisterGdcClass(TgdcFolder, 'Папка');
-  RegisterGdcClass(TgdcGroup, 'Группа');
-  RegisterGdcClass(TgdcContact, 'Физическое лицо');
-  RegisterGdcClass(TgdcEmployee, 'Сотрудник предприятия');
-  RegisterGdcClass(TgdcDepartment, 'Подразделение');
-  RegisterGdcClass(TgdcCompany, 'Организация');
-  RegisterGdcClass(TgdcOurCompany, 'Рабочая организация');
-  RegisterGdcClass(TgdcBank, 'Банк');
-  RegisterGdcClass(TgdcAccount, 'Расчетный счет');
+  RegisterGdcClass(TgdcBaseContact, ctStorage, 'Адресная книга');
+  RegisterGdcClass(TgdcFolder, ctStorage, 'Папка');
+  RegisterGdcClass(TgdcGroup, ctStorage, 'Группа');
+  RegisterGdcClass(TgdcContact, ctStorage, 'Физическое лицо');
+  RegisterGdcClass(TgdcEmployee, ctStorage, 'Сотрудник предприятия');
+  RegisterGdcClass(TgdcDepartment, ctStorage, 'Подразделение');
+  RegisterGdcClass(TgdcCompany, ctStorage, 'Организация');
+  RegisterGdcClass(TgdcOurCompany, ctStorage, 'Рабочая организация');
+  RegisterGdcClass(TgdcBank, ctStorage, 'Банк');
+  RegisterGdcClass(TgdcAccount, ctStorage, 'Расчетный счет');
 
 finalization
   UnRegisterGdcClass(TgdcBaseContact);

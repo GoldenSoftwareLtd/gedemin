@@ -546,8 +546,8 @@ begin
 end;
 
 initialization
-  RegisterGdcClass(TgdcAutoTrRecord, 'Автоматическая проводка');
-  RegisterGdcClass(TgdcAutoTransaction, 'Автоматическая операция');
+  RegisterGdcClass(TgdcAutoTrRecord, ctStorage, 'Автоматическая проводка');
+  RegisterGdcClass(TgdcAutoTransaction, ctStorage, 'Автоматическая операция');
   
 finalization
   UnRegisterGdcClass(TgdcAutoTrRecord);

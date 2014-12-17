@@ -203,7 +203,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_dlgUserSimpleDocument);
+  RegisterFrmClass(Tgdc_dlgUserSimpleDocument, ctUserDocument);
 
 finalization
   UnRegisterFrmClass(Tgdc_dlgUserSimpleDocument);

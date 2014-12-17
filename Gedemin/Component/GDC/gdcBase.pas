@@ -186,6 +186,10 @@ type
                  etBeforeRefresh, etBeforeScroll, etOnCalcFields, etOnNewRecord,
                  etOnFieldChange, etAfterInternalPostRecord, etBeforeInternalPostRecord,
                  etAfterInternalDeleteRecord, etBeforeInternalDeleteRecord);
+
+  TgdClassTypes = (ctUserDefined, ctUserDefinedTree, ctUserDefinedLBRBTree,
+                 ctDlgUserDefinedTree, ctUserDocument, ctInvDocument, ctInvPriceList,
+                 ctInvRemains, ctStorage);
 const
   /////////////////////////////////////////////////////////////
   // наименования типов событий
@@ -6375,7 +6379,7 @@ begin
     CE := gdClassList.Find(Self.ClassType, SubType);
     // подтип может быть липовым поэтому CE = nil это нормально
     // можно конечно добавить проверку подтипа
-    if (CE <> nil) and CE.IsStorage then
+    if (CE <> nil) and (CE.gdClassType = ctStorage) then
     begin
       str := '';
       LSubType := SubType;

@@ -3567,15 +3567,15 @@ begin
 end;
 
 initialization
-  RegisterGdcClass(Tgdc_dpInventory, 'Акты описи и оценки');
-  RegisterGdcClass(Tgdc_dpTransfer, 'Акты передачи');
-  RegisterGdcClass(Tgdc_dpRevaluation, 'Акты переоценки');
-  RegisterGdcClass(Tgdc_dpSale, 'Реализующая организация');
-  RegisterGdcClass(Tgdc_dpMain, 'Главный уполномоченный орган');
-  RegisterGdcClass(Tgdc_dpAuthority, 'Уполномоченный орган');
-  RegisterGdcClass(Tgdc_dpFinancial, 'Финансовый орган');
+  RegisterGdcClass(Tgdc_dpInventory, ctStorage, 'Акты описи и оценки');
+  RegisterGdcClass(Tgdc_dpTransfer, ctStorage, 'Акты передачи');
+  RegisterGdcClass(Tgdc_dpRevaluation, ctStorage, 'Акты переоценки');
+  RegisterGdcClass(Tgdc_dpSale, ctStorage, 'Реализующая организация');
+  RegisterGdcClass(Tgdc_dpMain, ctStorage, 'Главный уполномоченный орган');
+  RegisterGdcClass(Tgdc_dpAuthority, ctStorage, 'Уполномоченный орган');
+  RegisterGdcClass(Tgdc_dpFinancial, ctStorage, 'Финансовый орган');
   RegisterGdcClass(Tgdc_dpDecree);
-  RegisterGdcClass(Tgdc_dpComittee, 'Комиссия');
+  RegisterGdcClass(Tgdc_dpComittee, ctStorage, 'Комиссия');
   RegisterGdcClass(Tgdc_dpWithDrawal);
   RegisterGdcClass(Tgdc_dpAssetDest);
   RegisterGdcClass(TgdcBankStatementLineD);

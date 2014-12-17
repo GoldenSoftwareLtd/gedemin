@@ -971,8 +971,8 @@ begin
 end;
 
 initialization
-  RegisterGDCClass(TgdcMacrosGroup, 'Папка макросов');
-  RegisterGDCClass(TgdcMacros, 'Макрос');
+  RegisterGDCClass(TgdcMacrosGroup, ctStorage, 'Папка макросов');
+  RegisterGDCClass(TgdcMacros, ctStorage, 'Макрос');
 
 finalization
   UnRegisterGDCClass(TgdcMacrosGroup);
