@@ -97,7 +97,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmAttrUserDefinedTree);
+  RegisterFrmClass(Tgdc_frmAttrUserDefinedTree, ctUserDefinedTree);
 
 finalization
   UnRegisterFrmClass(Tgdc_frmAttrUserDefinedTree);

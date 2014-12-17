@@ -79,7 +79,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_dlgAttrUserDefinedTree);
+  RegisterFrmClass(Tgdc_dlgAttrUserDefinedTree, ctDlgUserDefinedTree);
 
 finalization
   UnRegisterFrmClass(Tgdc_dlgAttrUserDefinedTree);

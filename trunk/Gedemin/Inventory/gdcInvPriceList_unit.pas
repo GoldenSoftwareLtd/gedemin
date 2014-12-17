@@ -146,6 +146,9 @@ type
   protected
     procedure CreateFields; override;
 
+    procedure CustomInsert(Buff: Pointer); override;
+    procedure CustomDelete(Buff: Pointer); override;
+    
   public
     constructor Create(AnOwner: TComponent); override;
 
@@ -1354,6 +1357,87 @@ begin
   {END MACRO}
 end;
 
+procedure TgdcInvPriceListType.CustomInsert(Buff: Pointer);
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+begin
+  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCINVPRICELISTTYPE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCINVPRICELISTTYPE', KEYCUSTOMINSERT);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMINSERT]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCINVPRICELISTTYPE') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCINVPRICELISTTYPE',
+  {M}          'CUSTOMINSERT', KEYCUSTOMINSERT, Params, LResult) then
+  {M}          exit;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCINVPRICELISTTYPE' then
+  {M}        begin
+  {M}          Inherited;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  inherited;
+
+  RegisterGdClasses(ctInvPriceList, FieldByName('name').AsString,
+    FieldByName('RUID').AsString, GetParentSubType, True);
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCUSERDOCUMENTTYPE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCINVPRICELISTTYPE', 'CUSTOMINSERT', KEYCUSTOMINSERT);
+  {M}  end;
+  {END MACRO}
+end;
+
+procedure TgdcInvPriceListType.CustomDelete(Buff: Pointer);
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+begin
+  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCINVPRICELISTTYPE', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCINVPRICELISTTYPE', KEYCUSTOMDELETE);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMDELETE]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCINVPRICELISTTYPE') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCINVPRICELISTTYPE',
+  {M}          'CUSTOMDELETE', KEYCUSTOMDELETE, Params, LResult) then
+  {M}          exit;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCINVPRICELISTTYPE' then
+  {M}        begin
+  {M}          Inherited;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  inherited;
+
+  UnRegisterGdClasses(ctInvPriceList, FieldByName('RUID').AsString);
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVPRICELISTTYPE', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCINVPRICELISTTYPE', 'CUSTOMDELETE', KEYCUSTOMDELETE);
+  {M}  end;
+  {END MACRO}
+end;
+
 class function TgdcInvPriceListType.GetDialogFormClassName(
   const ASubType: TgdcSubType): String;
 begin
@@ -1378,8 +1462,8 @@ end;
 
 initialization
   RegisterGdcClass(TgdcInvPriceListType);
-  RegisterGdcClass(TgdcInvPriceList);
-  RegisterGdcClass(TgdcInvPriceListLine);
+  RegisterGdcClass(TgdcInvPriceList, ctInvPriceList);
+  RegisterGdcClass(TgdcInvPriceListLine, ctInvPriceList);
 
 finalization
   UnRegisterGdcClass(TgdcInvPriceListType);

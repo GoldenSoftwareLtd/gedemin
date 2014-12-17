@@ -1304,8 +1304,8 @@ begin
 end;
 
 initialization
-  RegisterGDCClass(TgdcReportGroup, 'Папка отчетов');
-  RegisterGDCClass(TgdcReport, 'Отчет');
+  RegisterGDCClass(TgdcReportGroup, ctStorage, 'Папка отчетов');
+  RegisterGDCClass(TgdcReport, ctStorage, 'Отчет');
 
 finalization
   UnRegisterGDCClass(TgdcReportGroup);

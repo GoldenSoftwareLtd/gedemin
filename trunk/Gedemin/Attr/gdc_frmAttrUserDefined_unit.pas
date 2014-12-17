@@ -82,7 +82,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmAttrUserDefined);
+  RegisterFrmClass(Tgdc_frmAttrUserDefined, ctUserDefined);
 
 finalization
   UnRegisterFrmClass(Tgdc_frmAttrUserDefined);

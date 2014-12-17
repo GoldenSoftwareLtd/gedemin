@@ -874,7 +874,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(TdlgInvDocumentLine);
+  RegisterFrmClass(TdlgInvDocumentLine, ctInvDocument);
 
 finalization
   UnRegisterFrmClass(TdlgInvDocumentLine);

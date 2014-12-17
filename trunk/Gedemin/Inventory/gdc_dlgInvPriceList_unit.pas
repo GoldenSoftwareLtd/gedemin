@@ -575,7 +575,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(TdlgInvPriceList);
+  RegisterFrmClass(TdlgInvPriceList, ctInvPriceList);
 
 finalization
   UnRegisterFrmClass(TdlgInvPriceList);

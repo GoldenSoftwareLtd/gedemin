@@ -329,7 +329,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmInvDocument);
+  RegisterFrmClass(Tgdc_frmInvDocument, ctInvDocument);
 
 finalization
   UnRegisterFrmClass(Tgdc_frmInvDocument);

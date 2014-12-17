@@ -918,8 +918,8 @@ begin
 end;
 
 initialization
-  RegisterGdcClass(TgdcAcctTransaction, 'Типовая операция');
-  RegisterGdcClass(TgdcAcctTransactionEntry, 'Типовые проводки');
+  RegisterGdcClass(TgdcAcctTransaction, ctStorage, 'Типовая операция');
+  RegisterGdcClass(TgdcAcctTransactionEntry, ctStorage, 'Типовые проводки');
   RegistergdcClass(TgdcBaseAcctTransaction);
 
 finalization

@@ -355,7 +355,7 @@ begin
 end;
 
 initialization
-  RegisterGdcClass(TgdcEvent, 'Событие');
+  RegisterGdcClass(TgdcEvent, ctStorage, 'Событие');
 
 finalization
   UnRegisterGdcClass(TgdcEvent);

@@ -559,7 +559,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmInvSelectedGoods);
+  RegisterFrmClass(Tgdc_frmInvSelectedGoods, ctInvDocument);
 
 finalization
   UnRegisterFrmClass(Tgdc_frmInvSelectedGoods);

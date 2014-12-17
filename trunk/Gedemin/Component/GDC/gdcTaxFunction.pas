@@ -1342,7 +1342,7 @@ initialization
   RegisterGdcClass(TgdcTaxActual);
   RegisterGdcClass(TgdcTaxResult);
   RegisterGdcClass(TgdcTaxDesignDate);
-  RegisterGdcClass(TgdcTaxName, 'Бухгалтерский отчет');
+  RegisterGdcClass(TgdcTaxName, ctStorage, 'Бухгалтерский отчет');
 
 finalization
   UnRegisterGdcClass(TgdcTaxActual);

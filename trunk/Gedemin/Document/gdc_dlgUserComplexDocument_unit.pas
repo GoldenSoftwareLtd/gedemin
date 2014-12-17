@@ -354,7 +354,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_dlgUserComplexDocument);
+  RegisterFrmClass(Tgdc_dlgUserComplexDocument, ctUserDocument);
 
 finalization
   UnRegisterFrmClass(Tgdc_dlgUserComplexDocument);

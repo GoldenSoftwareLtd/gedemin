@@ -149,7 +149,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_dlgAttrUserDefined);
+  RegisterFrmClass(Tgdc_dlgAttrUserDefined, ctUserDefined);
 
 finalization
   UnRegisterFrmClass(Tgdc_dlgAttrUserDefined);

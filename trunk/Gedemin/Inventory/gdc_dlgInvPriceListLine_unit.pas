@@ -99,7 +99,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(TdlgInvPriceLine);
+  RegisterFrmClass(TdlgInvPriceLine, ctInvPriceList);
 
 finalization
   UnRegisterFrmClass(TdlgInvPriceLine);

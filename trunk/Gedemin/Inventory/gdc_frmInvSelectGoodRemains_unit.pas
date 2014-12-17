@@ -106,7 +106,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmInvSelectGoodRemains);
+  RegisterFrmClass(Tgdc_frmInvSelectGoodRemains, ctInvRemains);
 
 finalization
   UnRegisterFrmClass(Tgdc_frmInvSelectGoodRemains);

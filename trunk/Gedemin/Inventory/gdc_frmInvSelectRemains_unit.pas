@@ -108,7 +108,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmInvSelectRemains);
+  RegisterFrmClass(Tgdc_frmInvSelectRemains, ctInvRemains);
 
 finalization
   UnRegisterFrmClass(Tgdc_frmInvSelectRemains);
