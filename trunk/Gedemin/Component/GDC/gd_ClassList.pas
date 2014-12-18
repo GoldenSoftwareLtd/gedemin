@@ -412,10 +412,14 @@ var
 function gdClassList: TgdClassList;
 
 procedure RegisterGdClasses(const AgdClassType: TgdClassTypes;
-  const ACaption: String = ''; const ASubType: TgdcSubType = '';
-  const AParentSubType: TgdcSubType = ''; const AnInitialize: Boolean = False);
+  const ACaption: String; const ASubType: TgdcSubType;
+  const AParentSubType: TgdcSubType = '');
 
-procedure UnRegisterGdClasses(const AgdClassType: TgdClassTypes; ASubType: TgdcSubType = '');
+procedure UnRegisterGdClasses(const AgdClassType: TgdClassTypes;
+  const ASubType: TgdcSubType);
+
+procedure UpdateGdClasses(const AgdClassType: TgdClassTypes;
+  const ACaption: String; const ASubType: TgdcSubType);
 
 {Регистрация класса в списке TgdcClassList}
 procedure RegisterGdcClass(AClass: CgdcBase; AgdClassType: TgdClassTypes = ctStorage; ACaption: String = '');
@@ -489,8 +493,8 @@ begin
 end;
 
 procedure RegisterGdClasses(const AgdClassType: TgdClassTypes;
-  const ACaption: String = ''; const ASubType: TgdcSubType = '';
-  const AParentSubType: TgdcSubType = ''; const AnInitialize: Boolean = False);
+  const ACaption: String; const ASubType: TgdcSubType;
+  const AParentSubType: TgdcSubType = '');
 var
   CurrCE: TgdClassEntry;
   CL :TClassList;
@@ -503,8 +507,11 @@ begin
       for I := 0 to CL.Count - 1 do
       begin
         CurrCE := gdClassList.Add(CL[I], AgdClassType, ACaption, ASubType, AParentSubType);
-        if (CurrCE <> nil) and (AnInitialize) then
-          CurrCE.Initialized := True;
+        
+        if CurrCE = nil then
+          raise Exception.Create('Класс не добавлен в gdClassList.');
+
+        CurrCE.Initialized := True;
       end;
     end;
   finally
@@ -512,7 +519,8 @@ begin
   end;
 end;
 
-procedure UnRegisterGdClasses(const AgdClassType: TgdClassTypes; ASubType: TgdcSubType = '');
+procedure UnRegisterGdClasses(const AgdClassType: TgdClassTypes;
+  const ASubType: TgdcSubType);
 var
   CL :TClassList;
   I: Integer;
@@ -524,6 +532,32 @@ begin
       for I := 0 to CL.Count - 1 do
       begin
         gdClassList.Remove(CL[I], ASubType);
+      end;
+    end;
+  finally
+    CL.Free;
+  end;
+end;
+
+procedure UpdateGdClasses(const AgdClassType: TgdClassTypes;
+  const ACaption: String; const ASubType: TgdcSubType);
+var
+  CL :TClassList;
+  I: Integer;
+  CurrCE: TgdClassEntry;
+begin
+  CL := TClassList.Create;
+  try
+    if gdClassList.GetDefiniteClasses(AgdClassType, CL) then
+    begin
+      for I := 0 to CL.Count - 1 do
+      begin
+        CurrCE := gdClassList.Find(CL[I], ASubType);
+
+        if CurrCE = nil then
+          raise Exception.Create('Класс не найден.');
+
+        CurrCE.FCaption := ACaption;
       end;
     end;
   finally
