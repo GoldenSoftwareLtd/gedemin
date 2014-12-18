@@ -305,9 +305,11 @@ type
   TgdcTable = class(TgdcBaseTable)
   protected
     procedure CustomDelete(Buff: Pointer); override;
+    procedure CustomModify(Buff: Pointer); override;
     procedure CustomInsert(Buff: Pointer); override;
 
     procedure AddGdClasses; virtual;
+    procedure ModifyGdClasses; virtual;
     procedure RemoveGdClasses; virtual;
 
   end;
@@ -364,6 +366,7 @@ type
 
   protected
     procedure AddGdClasses; override;
+    procedure ModifyGdClasses; override;
     procedure RemoveGdClasses; override;
 
     procedure CreateRelationSQL(Scripts: TSQLProcessList); override;
@@ -378,6 +381,7 @@ type
 
   protected
     procedure AddGdClasses; override;
+    procedure ModifyGdClasses; override;
     procedure RemoveGdClasses; override;
     
     procedure CreateRelationSQL(Scripts: TSQLProcessList); override;
@@ -393,6 +397,7 @@ type
 
   protected
     procedure AddGdClasses; override;
+    procedure ModifyGdClasses; override;
     procedure RemoveGdClasses; override;
     
     procedure DropTable; override;
@@ -6516,10 +6521,19 @@ end;
 procedure TgdcTreeTable.AddGdClasses;
 begin
   RegisterGdClasses(ctUserDefinedTree, FieldByName('lname').AsString,
-    FieldByName('relationname').AsString, '', True);
+    FieldByName('relationname').AsString);
 
   RegisterGdClasses(ctDlgUserDefinedTree, FieldByName('lname').AsString,
-    FieldByName('relationname').AsString, '', True);
+    FieldByName('relationname').AsString);
+end;
+
+procedure TgdcTreeTable.ModifyGdClasses;
+begin
+  UpdateGdClasses(ctUserDefinedTree, FieldByName('lname').AsString,
+    FieldByName('relationname').AsString);
+
+  UpdateGdClasses(ctDlgUserDefinedTree, FieldByName('lname').AsString,
+    FieldByName('relationname').AsString);
 end;
 
 procedure TgdcTreeTable.RemoveGdClasses;
@@ -6730,10 +6744,19 @@ end;
 procedure TgdcLBRBTreeTable.AddGdClasses;
 begin
   RegisterGdClasses(ctUserDefinedLBRBTree, FieldByName('lname').AsString,
-    FieldByName('relationname').AsString, '', True);
+    FieldByName('relationname').AsString);
 
   RegisterGdClasses(ctDlgUserDefinedTree, FieldByName('lname').AsString,
-    FieldByName('relationname').AsString, '', True);
+    FieldByName('relationname').AsString);
+end;
+
+procedure TgdcLBRBTreeTable.ModifyGdClasses;
+begin
+  UpdateGdClasses(ctUserDefinedLBRBTree, FieldByName('lname').AsString,
+    FieldByName('relationname').AsString);
+
+  UpdateGdClasses(ctDlgUserDefinedTree, FieldByName('lname').AsString,
+    FieldByName('relationname').AsString);
 end;
 
 procedure TgdcLBRBTreeTable.RemoveGdClasses;
@@ -9413,11 +9436,59 @@ begin
   end;
 
   RegisterGdClasses(LgdClassType, FieldByName('lname').AsString,
-    FieldByName('relationname').AsString, RN, True);
+    FieldByName('relationname').AsString, RN);
 
   if LgdClassType <> ctUserDefined then
     RegisterGdClasses(ctDlgUserDefinedTree, FieldByName('lname').AsString,
-      FieldByName('relationname').AsString, RN, True);
+      FieldByName('relationname').AsString, RN);
+end;
+
+procedure TgdcTableToDefinedTable.ModifyGdClasses;
+var
+  R: TatRelation;
+  F: TatRelationField;
+  RN: String;
+  LgdClassType: TgdClassTypes;
+begin
+  RN := '';
+
+  RN := TgdcTableToDefinedTable(Self).GetReferenceName;
+  Assert(RN <> '');
+  R := nil;
+  if Assigned(atDatabase) and Assigned(atDatabase.Relations) then
+  begin
+    R := atDatabase.Relations.ByRelationName(RN);
+    if Assigned(R) then
+    begin
+      F := R.RelationFields.ByFieldName('INHERITEDKEY');
+      if Assigned(F) then
+        repeat
+          R := R.RelationFields.ByFieldName('INHERITEDKEY').ForeignKey.ReferencesRelation;
+        until not Assigned(R.RelationFields.ByFieldName('INHERITEDKEY'));
+    end;
+  end;
+
+  LgdClassType := ctUserDefined;
+
+  if Assigned(R) then
+  begin
+    F := R.RelationFields.ByFieldName('LB');
+    if Assigned(F) then
+      LgdClassType := ctUserDefinedLBRBTree
+    else
+    begin
+      F := R.RelationFields.ByFieldName('PARENT');
+      if Assigned(F) then
+        LgdClassType := ctUserDefinedTree
+    end;
+  end;
+
+  UpdateGdClasses(LgdClassType, FieldByName('lname').AsString,
+    FieldByName('relationname').AsString);
+
+  if LgdClassType <> ctUserDefined then
+    UpdateGdClasses(ctDlgUserDefinedTree, FieldByName('lname').AsString,
+      FieldByName('relationname').AsString);
 end;
 
 procedure TgdcTableToDefinedTable.RemoveGdClasses;
@@ -9820,10 +9891,56 @@ begin
   {END MACRO}
 end;
 
+procedure TgdcTable.CustomModify(Buff: Pointer);
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+begin
+  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCTABLE', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCTABLE', KEYCUSTOMMODIFY);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMMODIFY]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCTABLE') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCTABLE',
+  {M}          'CUSTOMMODIFY', KEYCUSTOMMODIFY, Params, LResult) then
+  {M}          exit;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCTABLE' then
+  {M}        begin
+  {M}          Inherited;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  inherited;
+
+  ModifyGdClasses;
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCTABLE', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCRELATION', 'CUSTOMMODIFY', KEYCUSTOMMODIFY);
+  {M}  end;
+  {END MACRO}
+end;
+
 procedure TgdcTable.AddGdClasses;
 begin
   RegisterGdClasses(ctUserDefined, FieldByName('lname').AsString,
-    FieldByName('relationname').AsString, '', True);
+    FieldByName('relationname').AsString);
+end;
+
+procedure TgdcTable.ModifyGdClasses;
+begin
+  UpdateGdClasses(ctUserDefined, FieldByName('lname').AsString,
+    FieldByName('relationname').AsString);
 end;
 
 procedure TgdcTable.RemoveGdClasses;

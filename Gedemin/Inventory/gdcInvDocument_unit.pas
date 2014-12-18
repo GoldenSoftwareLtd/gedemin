@@ -368,6 +368,7 @@ type
     procedure DoAfterCustomProcess(Buff: Pointer; Process: TgsCustomProcess); override;
 
     procedure CustomInsert(Buff: Pointer); override;
+    procedure CustomModify(Buff: Pointer); override;
     procedure CustomDelete(Buff: Pointer); override;
 
   public
@@ -5651,15 +5652,57 @@ begin
   LParentSubType := GetParentSubType;
 
   RegisterGdClasses(ctInvDocument, FieldByName('name').AsString,
-    FieldByName('RUID').AsString, LParentSubType, True);
+    FieldByName('RUID').AsString, LParentSubType);
 
   RegisterGdClasses(ctInvRemains, FieldByName('name').AsString,
-    FieldByName('RUID').AsString, LParentSubType, True);
+    FieldByName('RUID').AsString, LParentSubType);
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVDOCUMENTTYPE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
   {M}      ClearMacrosStack2('TGDCINVDOCUMENTTYPE', 'CUSTOMINSERT', KEYCUSTOMINSERT);
+  {M}  end;
+  {END MACRO}
+end;
+
+procedure TgdcInvDocumentType.CustomModify(Buff: Pointer);
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+begin
+  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCINVDOCUMENTTYPE', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCINVDOCUMENTTYPE', KEYCUSTOMMODIFY);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMMODIFY]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCINVDOCUMENTTYPE') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCINVDOCUMENTTYPE',
+  {M}          'CUSTOMMODIFY', KEYCUSTOMMODIFY, Params, LResult) then
+  {M}          exit;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCINVDOCUMENTTYPE' then
+  {M}        begin
+  {M}          Inherited;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  inherited;
+
+  UpdateGdClasses(ctInvDocument, FieldByName('name').AsString, FieldByName('RUID').AsString);
+
+  UpdateGdClasses(ctInvRemains, FieldByName('name').AsString, FieldByName('RUID').AsString);
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVDOCUMENTTYPE', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCINVDOCUMENTTYPE', 'CUSTOMMODIFY', KEYCUSTOMMODIFY);
   {M}  end;
   {END MACRO}
 end;

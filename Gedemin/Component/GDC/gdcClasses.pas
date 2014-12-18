@@ -3390,7 +3390,7 @@ begin
   inherited;
 
   RegisterGdClasses(ctUserDocument, FieldByName('name').AsString,
-    FieldByName('RUID').AsString, GetParentSubType, True);
+    FieldByName('RUID').AsString, GetParentSubType);
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCUSERDOCUMENTTYPE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  finally
@@ -3429,6 +3429,8 @@ begin
   {END MACRO}
 
   inherited;
+
+  UpdateGdClasses(ctUserDocument, FieldByName('name').AsString, FieldByName('RUID').AsString);
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCUSERDOCUMENTTYPE', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
   {M}  finally

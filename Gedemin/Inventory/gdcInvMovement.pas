@@ -8151,7 +8151,7 @@ begin
   );
 
   RegisterGdClasses(ctInvRemains, FieldByName('name').AsString,
-    FieldByName('RUID').AsString, '', True);
+    FieldByName('RUID').AsString);
   
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVREMAINSOPTION', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  finally
@@ -8197,6 +8197,8 @@ begin
     TgdcInvRemains.ClassName,
     True, FieldByName('branchkey').AsInteger
   );
+
+  UpdateGdClasses(ctInvRemains, FieldByName('name').AsString, FieldByName('RUID').AsString);
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVREMAINSOPTION', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
   {M}  finally
