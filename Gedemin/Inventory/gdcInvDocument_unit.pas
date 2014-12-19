@@ -361,6 +361,7 @@ type
 {$ENDIF}
 
   protected
+    procedure DoAfterInsert; override;
     procedure CreateFields; override;
     procedure DoBeforePost; override;
     procedure DoBeforeEdit; override;
@@ -5831,6 +5832,7 @@ begin
   {END MACRO}
 
   inherited;
+
   if not (sLoadFromStream in BaseState) then
   begin
     ibsql := TIBSQL.Create(nil);
@@ -5908,6 +5910,69 @@ begin
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
   {M}      ClearMacrosStack2('TGDCINVDOCUMENTTYPE', 'DOBEFOREPOST', KEYDOBEFOREPOST);
+  {M}  end;
+  {END MACRO}
+end;
+
+procedure TgdcInvDocumentType.DoAfterInsert;
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+  Stream: TStream;
+  ibsql: TIBSQL;
+begin
+  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCINVDOCUMENTTYPE', 'DOAFTERINSERT', KEYDOAFTERINSERT)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCINVDOCUMENTTYPE', KEYDOAFTERINSERT);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOAFTERINSERT]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCBASE') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCINVDOCUMENTTYPE',
+  {M}          'DOAFTERINSERT', KEYDOAFTERINSERT, Params, LResult) then exit;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCINVDOCUMENTTYPE' then
+  {M}        begin
+  {M}          Inherited;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  inherited;
+
+  if not (sLoadFromStream in BaseState) then
+  begin
+    ibsql := TIBSQL.Create(nil);
+    try
+      ibsql.Transaction := ReadTransaction;
+      ibsql.SQL.Text := 'SELECT OPTIONS FROM gd_documenttype WHERE id = :id AND documenttype = ''D'' ';
+      ibsql.ParamByName('id').AsInteger := FieldByName('parent').AsInteger;
+      ibsql.ExecQuery;
+      if not ibsql.Eof then
+      begin
+        Stream := TStringStream.Create(ibsql.FieldByName('OPTIONS').AsString);
+        try
+          ReadOptions(Stream);
+          if not ibsql.FieldByName('OPTIONS').IsNull then
+            FieldByName('OPTIONS').AsString := ibsql.FieldByName('OPTIONS').AsString;
+        finally
+          Stream.Free;
+        end;
+      end
+    finally
+      ibsql.Free;
+    end;
+  end;
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVDOCUMENTTYPE', 'DOAFTERINSERT', KEYDOAFTERINSERT)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCINVDOCUMENTTYPE', 'DOAFTERINSERT', KEYDOAFTERINSERT);
   {M}  end;
   {END MACRO}
 end;
