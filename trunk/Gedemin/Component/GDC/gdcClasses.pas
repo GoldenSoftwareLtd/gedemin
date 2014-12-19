@@ -207,6 +207,7 @@ type
 
   TgdcDocumentType = class(TgdcBaseDocumentType)
   protected
+    procedure DoAfterInsert; override;
     procedure _DoOnNewRecord; override;
 
     procedure GetWhereClauseConditions(S: TStrings); override;
@@ -2945,6 +2946,64 @@ begin
 end;
 
 { TgdcDocumentType }
+
+procedure TgdcDocumentType.DoAfterInsert;
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+  ibsql: TIBSQL;
+begin
+  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCDOCUMENTTYPE', 'DOAFTERINSERT', KEYDOAFTERINSERT)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCDOCUMENTTYPE', KEYDOAFTERINSERT);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOAFTERINSERT]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCBASE') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCDOCUMENTTYPE',
+  {M}          'DOAFTERINSERT', KEYDOAFTERINSERT, Params, LResult) then exit;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCDOCUMENTTYPE' then
+  {M}        begin
+  {M}          Inherited;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  inherited;
+
+  if not (sLoadFromStream in BaseState) then
+  begin
+    ibsql := TIBSQL.Create(nil);
+    try
+      ibsql.Transaction := ReadTransaction;
+      ibsql.SQL.Text := 'SELECT * FROM gd_documenttype WHERE id = :id AND documenttype = ''D'' ';
+      ibsql.ParamByName('id').AsInteger := FieldByName('parent').AsInteger;
+      ibsql.ExecQuery;
+      if not ibsql.Eof then
+      begin
+        if not ibsql.FieldByName('HEADERRELKEY').IsNull then
+          FieldByName('HEADERRELKEY').AsInteger := ibsql.FieldByName('HEADERRELKEY').AsInteger;
+        if not ibsql.FieldByName('LINERELKEY').IsNull then
+          FieldByName('LINERELKEY').AsInteger := ibsql.FieldByName('LINERELKEY').AsInteger;
+      end
+    finally
+      ibsql.Free;
+    end;
+  end;
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCDOCUMENTTYPE', 'DOAFTERINSERT', KEYDOAFTERINSERT)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCDOCUMENTTYPE', 'DOAFTERINSERT', KEYDOAFTERINSERT);
+  {M}  end;
+  {END MACRO}
+end;
 
 procedure TgdcDocumentType._DoOnNewRecord;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}

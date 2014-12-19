@@ -1678,7 +1678,7 @@ begin
     cbTemplate.ItemIndex := -1;
 
   lblDocument.Visible := False;
-  cbDocument.Visible := False;
+  cbDocument.Visible := True;
 
 end;
 
@@ -2286,7 +2286,8 @@ begin
   {END MACRO}
 
   inherited;
-  if Document.State = dsEdit then
+
+  if (Document.State = dsEdit) or (Document.State = dsInsert) then
   begin
     if not Document.FieldByName('OPTIONS').IsNull then
     begin
@@ -2294,7 +2295,7 @@ begin
       UpdateTabs;
     end else
       UpdateEditingSettings;
-  end else
+  end;
 
   if Document.State = dsInsert then
   begin
