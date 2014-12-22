@@ -211,7 +211,7 @@ type
     //Запись и чтение из потока
     procedure SaveToStream(Stream: TStream); virtual;
     class procedure LoadFromStream(Stream: TStream; AOwner: TComponent;
-      AParent: TWinControl); virtual;
+      AParent: TWinControl; AFunctionName: String = ''); virtual;
 
     function EditDialog: boolean; virtual;
 
@@ -2489,7 +2489,7 @@ begin
 end;
 
 class procedure TVisualBlock.LoadFromStream(Stream: TStream; AOwner: TComponent;
-  AParent: TWinControl);
+  AParent: TWinControl; AFunctionName: String = '');
 var
   CName: String;
   C: TVisualBlockClass;
@@ -2507,10 +2507,15 @@ begin
   end;
   V := C.Create(AOwner);
   V.DoLoadFromStream(Stream);
-  V.Parent := AParent; 
+  V.Parent := AParent;
+
+  if AnsiPos('AutoEntryScript', V.FBlockName) = 1 then
+  begin
+    V.FBlockName := AFunctionName;
+  end;
   Stream.ReadBuffer(LCount, SizeOf(LCount));
   for I := 0 to LCount - 1 do
-    TVisualBlock.LoadFromStream(Stream, AOwner, V);
+    TVisualBlock.LoadFromStream(Stream, AOwner, V, AFunctionName);
 end;
 
 procedure TVisualBlock.SaveToStream(Stream: TStream);

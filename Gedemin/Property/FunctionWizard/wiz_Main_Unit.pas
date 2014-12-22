@@ -894,7 +894,7 @@ begin
 
   for I := 0 to LCount - 1 do
   begin
-    TVisualBlock.LoadFromStream(Stream, Owner, TWinControl(Owner));
+    TVisualBlock.LoadFromStream(Stream, Owner, TWinControl(Owner), FunctionName);
   end;
 
   FFunction := MainFunction
