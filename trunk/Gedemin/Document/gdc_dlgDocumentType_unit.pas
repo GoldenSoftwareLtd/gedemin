@@ -360,6 +360,7 @@ var
   gdcFunction: TgdcFunction;
   DS: TDataSetState;
   DocumentPart: TgdcDocumentClassPart;
+  ibsql: TIBSQL;
 begin
   if Sender = actWizardHeader then
   begin
@@ -398,7 +399,28 @@ begin
           gdcFunction.Edit;
       end;
 
-      Str := D.CreateBlobStream(D.FieldByName(FunctionTemplateField), bmReadWrite);
+      Str := D.CreateBlobStream(D.FieldByName(FunctionTemplateField), bmRead);
+
+      if gdcObject.FieldByName(FunctionTemplateField).IsNull then
+      begin
+        ibsql := TIBSQL.Create(nil);
+        try
+          ibsql.Transaction := gdcObject.ReadTransaction;
+          ibsql.SQL.Text := 'SELECT * FROM gd_documenttype WHERE id = :id AND documenttype = ''D'' ';
+          ibsql.ParamByName('id').AsInteger := gdcObject.FieldByName('parent').AsInteger;
+          ibsql.ExecQuery;
+          if not ibsql.Eof then
+          begin
+            if not ibsql.FieldByName(FunctionTemplateField).IsNull then
+            begin
+              Str := TStringStream.Create(ibsql.FieldByName(FunctionTemplateField).AsString);
+            end
+          end
+        finally
+          ibsql.Free;
+        end;
+      end;
+
       try
         FunctionCreater := TNewDocumentTransactioCreater.Create;
         try
@@ -415,6 +437,7 @@ begin
         FScriptChanged := F.ShowModal = mrOk;
         if FScriptChanged then
         begin
+          Str := D.CreateBlobStream(D.FieldByName(FunctionTemplateField), bmReadWrite);
           Str.size := 0;
           Str.Position := 0;
           F.SaveToStream(Str);
