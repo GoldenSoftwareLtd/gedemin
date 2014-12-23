@@ -198,8 +198,6 @@ begin
 end;
 
 function Tgd_GlobalParams.GetTerminalSession: Boolean;
-const
-  SM_REMOTESESSION = $1000;
 begin
   Result := GetSystemMetrics(SM_REMOTESESSION) <> 0;
 end;

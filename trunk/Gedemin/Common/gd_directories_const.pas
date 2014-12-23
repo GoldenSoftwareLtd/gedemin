@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2000-2013 by Golden Software of Belarus
+  Copyright (c) 2000-2014 by Golden Software of Belarus
 
   Module
 
@@ -240,6 +240,8 @@ const
 
   //
   WIN1251_CODEPAGE                = 1251;
+
+  SM_REMOTESESSION                = $1000;
 
 function IsGedeminSystemID(const AnID: Integer): Boolean;
 function IsGedeminNonSystemID(const AnID: Integer): Boolean;

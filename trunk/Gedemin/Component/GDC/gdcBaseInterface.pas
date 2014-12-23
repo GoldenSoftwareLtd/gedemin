@@ -143,7 +143,7 @@ type
 
 const
   IDCacheRegKey = ClientRootRegistrySubKey + 'IDCache\';
-  IDCacheStep = 100;
+  IDCacheStep: Integer = 100; // will be set to 1 if in terminal session
   IDCacheCurrentName = 'IDCurrent';
   IDCacheLimitName = 'IDLimit';
   IDCacheTestName = 'IDTest';
