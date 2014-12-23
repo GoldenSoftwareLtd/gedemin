@@ -2189,9 +2189,6 @@ const
   cst_sql_DeleteRuidByID =
     'DELETE FROM gd_ruid WHERE id=:id';
 
-const
-  SM_REMOTESESSION = $1000;
-
 var
   CacheList: TStringHashMap;
   CacheBaseClassForRel: TStringList;
@@ -9411,11 +9408,15 @@ begin
   begin
     if FNextIDSQL = nil then
     begin
+      if GetSystemMetrics(SM_REMOTESESSION) <> 0 then
+        IDCacheStep := 1;
+
       FNextIDSQL := TIBSQL.Create(nil);
+      FNextIDSQL.Transaction := gdcBaseManager.ReadTransaction;
       FNextIDSQL.SQL.Text := 'SELECT GEN_ID(gd_g_unique, ' +
         IntToStr(IDCacheStep) + ') + GEN_ID(gd_g_offset, 0) FROM rdb$database';
     end;
-    FNextIDSQL.Transaction := gdcBaseManager.ReadTransaction;
+
     FNextIDSQL.ExecQuery;
     FIDLimit := FNextIDSQL.Fields[0].AsInteger;
     FNextIDSQL.Close;
