@@ -361,6 +361,7 @@ var
   DS: TDataSetState;
   DocumentPart: TgdcDocumentClassPart;
   ibsql: TIBSQL;
+  ParentFunctionName: String;
 begin
   if Sender = actWizardHeader then
   begin
@@ -400,22 +401,31 @@ begin
       end;
 
       Str := D.CreateBlobStream(D.FieldByName(FunctionTemplateField), bmRead);
-
+      ParentFunctionName := '';
+      
       if gdcObject.FieldByName(FunctionTemplateField).IsNull then
       begin
         ibsql := TIBSQL.Create(nil);
         try
           ibsql.Transaction := gdcObject.ReadTransaction;
-          ibsql.SQL.Text := 'SELECT * FROM gd_documenttype WHERE id = :id AND documenttype = ''D'' ';
+          //ibsql.SQL.Text := 'SELECT * FROM gd_documenttype WHERE id = :id AND documenttype = ''D'' ';
+            ibsql.SQL.Text := 'SELECT '#13#10 +
+              '  d.' + FunctionTemplateField + ',' + #13#10 +
+              '  f.Name '#13#10 +
+              'FROM gd_documenttype d '#13#10 +
+              'LEFT JOIN gd_function f '#13#10 +
+              '  ON d.' + FunctionKeyField + ' = f.id '#13#10 +
+              'WHERE '#13#10 +
+              '  d.id = :id '#13#10 +
+              '  AND d.documenttype = ''D'' '#13#10 +
+              '  AND d.' + FunctionTemplateField + ' is not null';
           ibsql.ParamByName('id').AsInteger := gdcObject.FieldByName('parent').AsInteger;
           ibsql.ExecQuery;
-          if not ibsql.Eof then
+          if (not ibsql.Eof) and (not ibsql.FieldByName(FunctionTemplateField).IsNull) then
           begin
-            if not ibsql.FieldByName(FunctionTemplateField).IsNull then
-            begin
-              Str := TStringStream.Create(ibsql.FieldByName(FunctionTemplateField).AsString);
-            end
-          end
+            Str := TStringStream.Create(ibsql.FieldByName(FunctionTemplateField).AsString);
+            ParentFunctionName := ibsql.FieldByName(fnName).AsString
+          end;
         finally
           ibsql.Free;
         end;
@@ -427,6 +437,7 @@ begin
           FunctionCreater.FunctionRUID := RUIDToStr(gdcFunction.GetRUID);
           FunctionCreater.Stream := Str;
           FunctionCreater.FunctionName := gdcFunction.FieldByName(fnName).AsString;
+          FunctionCreater.ParentFunctionName := ParentFunctionName;
           FunctionCreater.DocumentTypeRUID := gdcBaseManager.GetRUIDStringById(D.FieldByName(fnId).AsInteger);
           FunctionCreater.DocumentPart := DocumentPart;
           F.CreateNewFunction(FunctionCreater);

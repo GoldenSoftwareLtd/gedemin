@@ -48,11 +48,13 @@ type
   TCustomNewFunctionCreater = class
   private
     FFunctionName: string;
+    FParentFunctionName: string;
     FCardOfAccountRUID: string;
     FStream: TStream;
     FFunctionRUID: String;
     FFunction: TFunctionBlock;
     procedure SetFunctionName(const Value: string);
+    procedure SetParentFunctionName(const Value: string);
     procedure SetCardOfAccountRUID(const Value: string);
     procedure SetStream(const Value: TStream);
     procedure LoadFromStream(Owner: TComponent; Stream: TStream);
@@ -67,6 +69,7 @@ type
     procedure InitComponentPallete(Form: TdlgFunctionWisard); virtual;
 
     property FunctionName: string read FFunctionName write SetFunctionName;
+    property ParentFunctionName: string read FParentFunctionName write SetParentFunctionName;
     property CardOfAccountRUID: string read FCardOfAccountRUID write SetCardOfAccountRUID;
     property Stream: TStream read FStream write SetStream;
     property FunctionRUID: String read FFunctionRUID write SetFunctionRUID;
@@ -894,7 +897,7 @@ begin
 
   for I := 0 to LCount - 1 do
   begin
-    TVisualBlock.LoadFromStream(Stream, Owner, TWinControl(Owner), FunctionName);
+    TVisualBlock.LoadFromStream(Stream, Owner, TWinControl(Owner), FunctionName, ParentFunctionName);
   end;
 
   FFunction := MainFunction
@@ -909,6 +912,11 @@ end;
 procedure TCustomNewFunctionCreater.SetFunctionName(const Value: string);
 begin
   FFunctionName := Value;
+end;
+
+procedure TCustomNewFunctionCreater.SetParentFunctionName(const Value: string);
+begin
+  FParentFunctionName := Value;
 end;
 
 procedure TCustomNewFunctionCreater.SetFunctionRUID(const Value: String);
