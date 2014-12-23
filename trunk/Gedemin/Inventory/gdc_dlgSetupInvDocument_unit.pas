@@ -1678,19 +1678,19 @@ begin
     cbTemplate.ItemIndex := -1;
 
   lblDocument.Visible := False;
-  cbDocument.Visible := True;
+  cbDocument.Visible := False;
 
 end;
 
 procedure Tgdc_dlgSetupInvDocument.UpdateInsertingSettings;
 
 begin
-  tsFeatures.TabVisible := False;
-  tsIncomeMovement.TabVisible := False;
-  tsOutlayMovement.TabVisible := False;
-  tsReferences.TabVisible := False;
-//  tsEditing.TabVisible := False;
+  UpdateTabs;
+
   pcMain.ActivePage := tsCommon;
+
+  lblDocument.Visible := True;
+  cbDocument.Visible := True;
 
   CreateDocumentTemplateData;
   UpdateDocumentTemplates;
@@ -2287,7 +2287,7 @@ begin
 
   inherited;
 
-  if (Document.State = dsEdit) or (Document.State = dsInsert) then
+  if Document.State = dsEdit then
   begin
     if not Document.FieldByName('OPTIONS').IsNull then
     begin
@@ -2299,7 +2299,12 @@ begin
 
   if Document.State = dsInsert then
   begin
-    UpdateInsertingSettings;
+    if not Document.FieldByName('OPTIONS').IsNull then
+    begin
+      ReadOptions;
+      UpdateTabs;
+    end else
+      UpdateInsertingSettings;
   end;
 
 
