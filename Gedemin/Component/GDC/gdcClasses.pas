@@ -2991,6 +2991,10 @@ begin
           FieldByName('HEADERRELKEY').AsInteger := ibsql.FieldByName('HEADERRELKEY').AsInteger;
         if not ibsql.FieldByName('LINERELKEY').IsNull then
           FieldByName('LINERELKEY').AsInteger := ibsql.FieldByName('LINERELKEY').AsInteger;
+        if not ibsql.FieldByName('NAME').IsNull then
+          FieldByName('NAME').AsString := 'Наследник ' + ibsql.FieldByName('NAME').AsString;
+        if not ibsql.FieldByName('BRANCHKEY').IsNull then
+          FieldByName('BRANCHKEY').AsInteger := ibsql.FieldByName('BRANCHKEY').AsInteger;
       end
     finally
       ibsql.Free;
