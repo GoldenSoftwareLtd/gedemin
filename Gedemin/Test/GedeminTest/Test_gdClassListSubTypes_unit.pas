@@ -6,16 +6,19 @@ uses
   TestFrameWork,
   gsTestFrameWork,
   gdcBase,
-  classes;
+  classes,
+  gd_ClassList;
 
 type
   TgsGdClassListSubTypes = class(TgsDBTestCase)
   protected
-    procedure ReadFromDocumentType(ASL: TStringList);
-    procedure ReadFromStorage(ASL: TStringList);
-    procedure ReadFromRelation(ASL: TStringList);
-    procedure ReadFromGdClassList(ASL: TStringList);
-	
+    procedure ReadFromDocumentType(ASL: TStringList;
+      const AgdClassType: TgdClassTypes; const ASubType: String);
+    procedure ReadFromStorage(ACE: TgdClassEntry; ASL: TStringList);
+    procedure ReadFromRelation(ASL: TStringList;
+      const AgdClassType: TgdClassTypes; const ASubType: String);
+    function BuildClassTree(ACE: TgdClassEntry; AData1: Pointer;
+      AData2: Pointer): Boolean;
   published
     procedure DoTest;
   end;
@@ -27,75 +30,150 @@ uses
   gsStorage,
   Storages,
   at_classes,
-  gdc_createable_form,
-  gd_ClassList;
+  gdc_createable_form;
 
 { TgsGdClassListSubTypes }
 
-procedure TgsGdClassListSubTypes.ReadFromDocumentType(ASL: TStringList);
+procedure TgsGdClassListSubTypes.ReadFromDocumentType(ASL: TStringList;
+  const AgdClassType: TgdClassTypes; const ASubType: String);
 var
-  LSubType: String;
-  LComment: String;
+  SL: TStringList;
+  I: Integer;
+  ClassName: String;
 begin
-  FQ.SQL.Text :=
-    'SELECT '#13#10 +
-    '  dt.name AS comment, '#13#10 +
-    '  dt.classname AS classname, '#13#10 +
-    '  dt.ruid AS subtype, '#13#10 +
-    '  dt1.ruid AS parentsubtype '#13#10 +
-    'FROM gd_documenttype dt '#13#10 +
-    'LEFT JOIN gd_documenttype dt1 '#13#10 +
-    '  ON dt1.id = dt.parent '#13#10 +
-    '  AND dt1.documenttype = ''D'' '#13#10 +
-    'WHERE '#13#10 +
-    '  dt.documenttype = ''D'' '#13#10 +
-    '  and (dt.classname = ''TgdcInvDocumentType'' '#13#10 +
-    '  or dt.classname = ''TgdcUserDocumentType'' '#13#10 +
-    '  or dt.classname = ''TgdcInvPriceListType'') '#13#10 +
-    'ORDER BY dt.parent';
+  if AgdClassType = ctUserDocument then
+    ClassName := 'TgdcUserDocumentType'
+  else
+    if (AgdClassType = ctInvDocument) or (AgdClassType = ctInvRemains) then
+      ClassName := 'TgdcInvDocumentType'
+    else
+      if AgdClassType = ctInvPriceList then
+        ClassName := 'TgdcInvPriceListType';
 
-  FQ.ExecQuery;
+  SL := TStringList.Create;
+  try
+    FQ.Close;
+    if ASubType = '' then
+    begin
+      FQ.SQL.Text :=
+        'SELECT '#13#10 +
+        '  dt.name AS caption, '#13#10 +
+        '  dt.ruid AS subtype '#13#10 +
+        'FROM gd_documenttype dt '#13#10 +
+        'LEFT JOIN gd_documenttype dt1 '#13#10 +
+        '  ON dt1.id = dt.parent '#13#10 +
+        'WHERE '#13#10 +
+        '  dt.documenttype = ''D'' '#13#10 +
+        '  and dt.classname = ''' + ClassName + ''' '#13#10 +
+        '  and dt1.documenttype = ''B'' '
+    end
+    else
+    begin
+      FQ.SQL.Text :=
+        'SELECT '#13#10 +
+        '  dt.name AS caption, '#13#10 +
+        '  dt.ruid AS subtype '#13#10 +
+        'FROM gd_documenttype dt '#13#10 +
+        'LEFT JOIN gd_documenttype dt1 '#13#10 +
+        '  ON dt1.id = dt.parent '#13#10 +
+        'WHERE '#13#10 +
+        '  dt.documenttype = ''D'' '#13#10 +
+        '  and dt1.ruid = ''' + ASubType + ''' '#13#10 +
+        '  and dt1.documenttype = ''D'' '
+    end;
 
-  while not FQ.EOF do
-  begin
-    LSubType := FQ.FieldByName('subtype').AsString;
-    LComment := FQ.FieldByName('comment').AsString;
+    FQ.ExecQuery;
 
-    ASL.Add(LComment + '=' + LSubType);
+    while not FQ.EOF do
+    begin
+      SL.Add(FQ.FieldByName('caption').AsString + '=' + FQ.FieldByName('subtype').AsString);
+      FQ.Next;
+    end;
 
-    FQ.Next;
-  end;
+    for I := 0 to SL.Count - 1 do
+    begin
+      ASL.Add(SL[I]);
+      ReadFromDocumentType(ASL, AgdClassType, SL.Values[SL.Names[I]]);
+    end;
 
-  FQ.Close;
+    if (AgdClassType = ctInvRemains) and (ASubType = '') then
+    begin
+      FQ.Close;
+      FQ.SQL.Text :=
+        'SELECT NAME, RUID FROM INV_BALANCEOPTION ';
+      FQ.ExecQuery;
 
-  FQ.SQL.Text :=
-    'SELECT NAME, RUID FROM INV_BALANCEOPTION ';
-
-  FQ.ExecQuery;
-
-  while not FQ.EOF do
-  begin
-    LSubType := FQ.FieldByName('RUID').AsString;
-    LComment := FQ.FieldByName('NAME').AsString;
-
-    ASL.Add(LComment + '=' + LSubType);
-    FQ.Next;
+      while not FQ.EOF do
+      begin
+        ASL.Add(FQ.FieldByName('NAME').AsString + '=' + FQ.FieldByName('RUID').AsString);
+        FQ.Next;
+      end;
+    end;
+  finally
+    SL.Free;
   end;
 end;
 
-procedure TgsGdClassListSubTypes.ReadFromStorage(ASL: TStringList);
+procedure TgsGdClassListSubTypes.ReadFromStorage(ACE: TgdClassEntry; ASL: TStringList);
+
+  procedure ReadSubTypes(ASL: TStringList; AClassName: String; ASubType: String; APath: String);
+  var
+    Path: String;
+    SL: TStringList;
+    I: Integer;
+    F: TgsStorageFolder;
+    V: TgsStorageValue;
+  begin
+    Path := APath + '\' + AClassName + ASubType;
+
+    SL := TStringList.Create;
+    try
+      F := GlobalStorage.OpenFolder(Path, False, False);
+      try
+        if F <> nil then
+        begin
+          for I := 0 to F.ValuesCount - 1 do
+          begin
+            V := F.Values[I];
+            if V is TgsStringValue then
+              SL.Add(V.AsString + '=' + V.Name)
+            else if V <> nil then
+              F.DeleteValue(V.Name);
+          end;
+
+          for I := 0 to SL.Count - 1 do
+          begin
+            ASL.Add(SL[I]);
+            ReadSubTypes(ASL, AClassName, SL.Values[ASL.Names[I]], Path);
+
+          end;
+        end;
+      finally
+        GlobalStorage.CloseFolder(F, False);
+      end;
+    finally
+      SL.Free;
+    end;
+  end;
+  
 var
   F: TgsStorageFolder;
   V: TgsStorageValue;
   ValueName: String;
-  I, J: Integer;
+  I: Integer;
   SL: TStringList;
 begin
   Assert(GlobalStorage <> nil);
 
+  if ACE.Path = '' then
+    raise Exception.Create('классу не назначен путь в хранилище');
+
+  if ACE.gdClassType <> ctStorage then
+    raise Exception.Create('это не класс хранилища');
+
   SL := TStringList.Create;
   try
-    F := GlobalStorage.OpenFolder('SubTypes', False, False);
+    F := GlobalStorage.OpenFolder(ACE.Path, False, False);
     try
       if F <> nil then
       begin
@@ -103,13 +181,15 @@ begin
         begin
           V := F.Values[I];
           if V is TgsStringValue then
-            SL.CommaText := V.AsString
+            SL.Add(V.AsString + '=' + V.Name)
           else if V <> nil then
             F.DeleteValue(ValueName);
-          for J := 0 to SL.Count - 1 do
-          begin
-            ASL.Add(SL[J]);
-          end;
+        end;
+
+        for I := 0 to SL.Count - 1 do
+        begin
+          ASL.Add(SL[I]);
+          ReadSubTypes(ASL, ACE.TheClass.ClassName, ASL.Values[ASL.Names[I]], ACE.Path);
         end;
       end;
     finally
@@ -120,66 +200,165 @@ begin
   end;
 end;
 
-procedure TgsGdClassListSubTypes.ReadFromRelation(ASL: TStringList);
+procedure TgsGdClassListSubTypes.ReadFromRelation(ASL: TStringList;
+  const AgdClassType: TgdClassTypes; const ASubType: String);
 var
+  SL: TStringList;
   I: Integer;
 begin
-  Assert(atDatabase.Relations <> nil);
-  
-  with atDatabase.Relations do
-    for I := 0 to Count - 1 do
+  if (not Assigned(atDatabase)) and (not Assigned(atDatabase.Relations)) then
+    exit;
+
+  SL := TStringList.Create;
+  try
+    if ASubType > '' then
+    begin
+      with atDatabase.Relations do
+      for I := 0 to Count - 1 do
       if Items[I].IsUserDefined
         and Assigned(Items[I].PrimaryKey)
         and Assigned(Items[I].PrimaryKey.ConstraintFields)
         and (Items[I].PrimaryKey.ConstraintFields.Count = 1)
-        and ((AnsiCompareText(Items[I].PrimaryKey.ConstraintFields[0].FieldName, 'ID') = 0)
-        or (AnsiCompareText(Items[I].PrimaryKey.ConstraintFields[0].FieldName, 'INHERITEDKEY') = 0)) then
+        and (AnsiCompareText(Items[I].PrimaryKey.ConstraintFields[0].FieldName, 'INHERITEDKEY') = 0)
+        and (AnsiCompareText(Items[I].RelationFields.ByFieldName('INHERITEDKEY').ForeignKey.ReferencesRelation.RelationName,
+          ASubType) = 0) then
       begin
-        ASL.Add(Items[I].LName + '=' + Items[I].RelationName);
+        SL.Add(Items[I].LName + '=' + Items[I].RelationName);
       end;
+    end
+    else
+      if AgdClassType = ctUserDefined then
+      begin
+        with atDatabase.Relations do
+          for I := 0 to Count - 1 do
+            if Items[I].IsUserDefined
+              and Assigned(Items[I].PrimaryKey)
+              and Assigned(Items[I].PrimaryKey.ConstraintFields)
+              and (Items[I].PrimaryKey.ConstraintFields.Count = 1)
+              and (AnsiCompareText(Items[I].PrimaryKey.ConstraintFields[0].FieldName, 'ID') = 0)
+              and not Assigned(Items[I].RelationFields.ByFieldName('PARENT'))
+              and not Assigned(Items[I].RelationFields.ByFieldName('INHERITEDKEY'))then
+            begin
+              SL.Add(Items[I].LName + '=' + Items[I].RelationName);
+            end;
+      end
+      else
+        if AgdClassType = ctUserDefinedTree then
+        begin
+          with atDatabase.Relations do
+            for I := 0 to Count - 1 do
+              if Items[I].IsUserDefined
+                and Assigned(Items[I].PrimaryKey)
+                and Assigned(Items[I].PrimaryKey.ConstraintFields)
+                and (Items[I].PrimaryKey.ConstraintFields.Count = 1)
+                and (AnsiCompareText(Items[I].PrimaryKey.ConstraintFields[0].FieldName, 'ID') = 0)
+                and Assigned(Items[I].RelationFields.ByFieldName('PARENT'))
+                and not Assigned(Items[I].RelationFields.ByFieldName('LB'))
+                and not Assigned(Items[I].RelationFields.ByFieldName('INHERITEDKEY'))then
+              begin
+                SL.Add(Items[I].LName + '=' + Items[I].RelationName);
+              end;
+        end
+        else
+          if AgdClassType = ctUserDefinedLBRBTree then
+          begin
+            with atDatabase.Relations do
+              for I := 0 to Count - 1 do
+                if Items[I].IsUserDefined
+                  and Assigned(Items[I].PrimaryKey)
+                  and Assigned(Items[I].PrimaryKey.ConstraintFields)
+                  and (Items[I].PrimaryKey.ConstraintFields.Count = 1)
+                  and (AnsiCompareText(Items[I].PrimaryKey.ConstraintFields[0].FieldName, 'ID') = 0)
+                  and Assigned(Items[I].RelationFields.ByFieldName('PARENT'))
+                  and Assigned(Items[I].RelationFields.ByFieldName('LB'))
+                  and not Assigned(Items[I].RelationFields.ByFieldName('INHERITEDKEY'))then
+                begin
+                  SL.Add(Items[I].LName + '=' + Items[I].RelationName);
+                end;
+          end
+          else
+            if AgdClassType = ctDlgUserDefinedTree then
+            begin
+              with atDatabase.Relations do
+                for I := 0 to Count - 1 do
+                  if Items[I].IsUserDefined
+                    and Assigned(Items[I].PrimaryKey)
+                    and Assigned(Items[I].PrimaryKey.ConstraintFields)
+                    and (Items[I].PrimaryKey.ConstraintFields.Count = 1)
+                    and (AnsiCompareText(Items[I].PrimaryKey.ConstraintFields[0].FieldName, 'ID') = 0)
+                    and Assigned(Items[I].RelationFields.ByFieldName('PARENT'))
+                    and not Assigned(Items[I].RelationFields.ByFieldName('INHERITEDKEY'))then
+                  begin
+                    SL.Add(Items[I].LName + '=' + Items[I].RelationName);
+                  end;
+            end
+            else
+              raise Exception.Create('Not a relation class.');
+
+    for I := 0 to SL.Count - 1 do
+    begin
+      ASL.Add(SL[I]);
+      ReadFromRelation(ASL, AgdClassType, SL.Values[SL.Names[I]]);
+    end;
+
+  finally
+    SL.Free;
+  end;
 end;
 
-function BuildClassTree(ACE: TgdClassEntry; AData1: Pointer;
+function TgsGdClassListSubTypes.BuildClassTree(ACE: TgdClassEntry; AData1: Pointer;
   AData2: Pointer): Boolean;
+var
+  SL1, SL2: TStringList;
+  I: Integer;
 begin
-  if ACE.SubType > '' then
-      TStringList(AData1^).Add(ACE.Caption + '=' + ACE.SubType);
+  SL1 := TStringList.Create;
+  SL2 := TStringList.Create;
+  try
+    if (ACE.gdClassType = ctUserDocument)
+      or (ACE.gdClassType = ctInvDocument)
+      or (ACE.gdClassType = ctInvPriceList)
+      or (ACE.gdClassType = ctInvRemains) then
+    begin
+      gdClassList.GetSubTypeList(ACE.TheClass, ACE.SubType, SL1, False);
+      ReadFromDocumentType(SL2, ACE.gdClassType, ACE.SubType);
+    end
+    else
+      if (ACE.gdClassType = ctUserDefined)
+        or (ACE.gdClassType = ctUserDefinedTree)
+        or (ACE.gdClassType = ctUserDefinedLBRBTree)
+        or (ACE.gdClassType = ctDlgUserDefinedTree) then
+      begin
+        gdClassList.GetSubTypeList(ACE.TheClass, ACE.SubType, SL1, False);
+        ReadFromRelation(SL2, ACE.gdClassType, ACE.SubType);
+      end
+      else
+        if (ACE.gdClassType = ctStorage)
+          and (ACE.TheClass.InheritsFrom(TgdcBase)
+          or ACE.TheClass.InheritsFrom(TgdcCreateableForm)) then
+        begin
+          gdClassList.GetSubTypeList(ACE.TheClass, ACE.SubType, SL1, False);
+          ReadFromStorage(ACE, SL2);
+        end
+        else
+          raise Exception.Create('unknown classtype.');
+
+    Check(SL1.Count = SL2.Count, 'количество подтипов не совпадает');
+
+    for I := 0 to SL1.Count - 1 do
+      Check(SL2.IndexOf(SL1[I]) >= 0, 'подтип не найден')
+
+  finally
+    SL1.Free;
+    SL2.Free;
+  end;
+
   Result := True;
 end;
 
-procedure TgsGdClassListSubTypes.ReadFromGdClassList(ASL: TStringList);
-begin
-  gdClassList.Traverse(TgdcBase, '', BuildClassTree, @ASL, nil, True, False);
-  gdClassList.Traverse(TgdcCreateableForm, '', BuildClassTree, @ASL, nil, True, False);
-end;
-
 procedure TgsGdClassListSubTypes.DoTest;
-var
-  SubTypeList: TstringList;
-  SubTypeList2: TstringList;
-  I: Integer;
 begin
-  SubTypeList := TstringList.Create;
-  SubTypeList2 := TstringList.Create;
-  try
-    SubTypeList.Sorted := True;
-    SubTypeList2.Sorted := True;
-    SubTypeList.Duplicates := dupIgnore;
-    SubTypeList2.Duplicates := dupIgnore;
-    ReadFromDocumentType(SubTypeList);
-    ReadFromStorage(SubTypeList);
-    ReadFromRelation(SubTypeList);
-    ReadFromGdClassList(SubTypeList2);
-
-    Check(SubTypeList.Count = SubTypeList2.Count, 'количество подтипов не совпадает');
-
-    for I := 0 to SubTypeList.Count - 1 do
-      Check(SubTypeList2.IndexOf(SubTypeList[i]) > -1, 'подтипы не совпадают');
-
-  finally
-    SubTypeList.Free;
-    SubTypeList2.Free;
-  end;
+  gdClassList.Traverse(TgdcBase, '', BuildClassTree, nil, nil, True, False);
 end;
 
 initialization
