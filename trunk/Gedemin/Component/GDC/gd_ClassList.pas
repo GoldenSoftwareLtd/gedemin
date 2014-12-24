@@ -1589,7 +1589,6 @@ procedure TgdClassEntry.ReadFromStorage;
 var
   F: TgsStorageFolder;
   V: TgsStorageValue;
-  ValueName: String;
   I: Integer;
   CurrCE: TgdClassEntry;
   SL: TStringList;
@@ -1619,7 +1618,7 @@ begin
           if V is TgsStringValue then
             SL.Add(V.AsString + '=' + V.Name)
           else if V <> nil then
-            F.DeleteValue(ValueName);
+            F.DeleteValue(V.Name);
         end;
 
         for I := 0 to SL.Count - 1 do
