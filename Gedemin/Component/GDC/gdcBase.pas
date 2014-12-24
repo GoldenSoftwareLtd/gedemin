@@ -9398,7 +9398,17 @@ end;
 
 function TgdcBaseManager.GetNextID(const ResetCache: Boolean = False): TID;
 begin
-  if (FIDLimit < 0) or ResetCache then
+    if FNextIDSQL = nil then
+    begin
+      FNextIDSQL := TIBSQL.Create(nil);
+      FNextIDSQL.SQL.Text := 'SELECT GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0) FROM rdb$database';
+    end;
+    FNextIDSQL.Transaction := gdcBaseManager.ReadTransaction;
+    FNextIDSQL.ExecQuery;
+    Result := FNextIDSQL.Fields[0].AsInteger;
+    FNextIDSQL.Close;
+
+{  if (FIDLimit < 0) or ResetCache then
     IDCacheInit;
 
   if FIDCurrent <= FIDLimit then
@@ -9423,7 +9433,7 @@ begin
     FIDCurrent := FIDLimit - IDCacheStep + 1;
     Result := FIDCurrent;
   end;
-  Inc(FIDCurrent);
+  Inc(FIDCurrent); }
 end;
 
 procedure TgdcBaseManager.IDCacheInit;
