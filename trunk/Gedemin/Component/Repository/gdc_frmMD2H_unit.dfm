@@ -1,62 +1,62 @@
 inherited gdc_frmMD2H: Tgdc_frmMD2H
-  Left = 250
-  Top = 129
+  Left = 720
+  Top = 277
   Width = 671
   Height = 538
   Caption = 'gdc_frmMD2H'
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 492
-    Width = 663
+    Top = 481
+    Width = 655
   end
   inherited TBDockTop: TTBDock
-    Width = 663
+    Width = 655
   end
   inherited TBDockLeft: TTBDock
-    Height = 434
+    Height = 421
   end
   inherited TBDockRight: TTBDock
-    Left = 654
-    Height = 434
+    Left = 646
+    Height = 421
   end
   inherited TBDockBottom: TTBDock
-    Top = 483
-    Width = 663
+    Top = 472
+    Width = 655
   end
   inherited pnlWorkArea: TPanel
-    Width = 645
-    Height = 434
+    Width = 637
+    Height = 421
     inherited sMasterDetail: TSplitter
-      Width = 645
+      Width = 637
     end
     inherited spChoose: TSplitter
-      Top = 331
-      Width = 645
+      Top = 316
+      Width = 637
     end
     inherited pnlMain: TPanel
-      Width = 645
+      Width = 637
     end
     inherited pnChoose: TPanel
-      Top = 335
-      Width = 645
+      Top = 322
+      Width = 637
       inherited pnButtonChoose: TPanel
-        Left = 540
+        Left = 532
       end
       inherited ibgrChoose: TgsIBGrid
-        Width = 540
+        Width = 532
       end
       inherited pnlChooseCaption: TPanel
-        Width = 645
+        Width = 637
       end
     end
     inherited pnlDetail: TPanel
-      Width = 645
-      Height = 160
+      Width = 637
+      Height = 143
       object sSubDetail: TSplitter [0]
         Left = 1
-        Top = 79
-        Width = 643
+        Top = 62
+        Width = 635
         Height = 4
         Cursor = crVSplit
         Align = alBottom
@@ -64,21 +64,18 @@ inherited gdc_frmMD2H: Tgdc_frmMD2H
         MinSize = 20
       end
       inherited TBDockDetail: TTBDock
-        Width = 643
+        Width = 635
       end
       inherited pnlSearchDetail: TPanel
-        Height = 52
+        Height = 35
         inherited sbSearchDetail: TScrollBox
-          Height = 14
-        end
-        inherited pnlSearchDetailButton: TPanel
-          Top = 14
+          Height = 8
         end
       end
       object pnlSubDetail: TPanel
         Left = 1
-        Top = 83
-        Width = 643
+        Top = 66
+        Width = 635
         Height = 76
         Align = alBottom
         BevelOuter = bvNone
@@ -86,7 +83,7 @@ inherited gdc_frmMD2H: Tgdc_frmMD2H
         object TbDockSubDetail: TTBDock
           Left = 0
           Top = 0
-          Width = 643
+          Width = 635
           Height = 26
           OnRequestDock = TbDockSubDetailRequestDock
           object tbSubDetailToolbar: TTBToolbar
@@ -97,8 +94,9 @@ inherited gdc_frmMD2H: Tgdc_frmMD2H
             DockMode = dmCannotFloat
             Images = dmImages.il16x16
             TabOrder = 0
-            object tbiSubDetailNew: TTBItem
+            object tbsiSubDetailNew: TTBSubmenuItem
               Action = actSubDetailNew
+              OnPopup = tbsiSubDetailNewPopup
             end
             object tbiSubDetailEdit: TTBItem
               Action = actSubDetailEdit
@@ -126,16 +124,16 @@ inherited gdc_frmMD2H: Tgdc_frmMD2H
     end
   end
   inherited alMain: TActionList
-    inherited actDetailReduction: TAction
-      Caption = 'Слияние...'
-    end
-    object actSubDetailNew: TAction
+    object actSubDetailNew: TAction [0]
       Category = 'SubDetail'
       Caption = 'Добавить...'
       Hint = 'Добавить'
       ImageIndex = 0
       OnExecute = actSubDetailNewExecute
       OnUpdate = actSubDetailNewUpdate
+    end
+    inherited actDetailReduction: TAction
+      Caption = 'Слияние...'
     end
     object actSubDetailEdit: TAction
       Category = 'SubDetail'

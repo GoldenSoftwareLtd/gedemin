@@ -109,7 +109,7 @@ begin
 end;
 
 initialization
-  RegisterGdcClass(TgdcBlockRule);
+  RegisterGdcClass(TgdcBlockRule, ctStorage, 'TgdcBlockRule');
 
 finalization
   UnRegisterGdcClass(TgdcBlockRule);

@@ -16,10 +16,7 @@ type
   Tgdc_frmMainGood = class(Tgdc_frmMDVTree)
     gdcGoodGroup: TgdcGoodGroup;
     gdcGood: TgdcGood;
-    tbsiNew: TTBSubmenuItem;
-    tbiSubNew: TTBItem;
     actNewSub: TAction;
-    tblMenuNew: TTBItem;
     actViewAllCard: TAction;
     tbiViewAllCard: TTBItem;
     procedure FormCreate(Sender: TObject);

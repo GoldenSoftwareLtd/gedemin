@@ -18,6 +18,9 @@ inherited gdc_ab_frmmain: Tgdc_ab_frmmain
       Left = 342
       DockPos = 317
     end
+    inherited tbMainInvariant: TTBToolbar
+      Left = 280
+    end
   end
   inherited TBDockLeft: TTBDock
     Height = 288
@@ -47,10 +50,7 @@ inherited gdc_ab_frmmain: Tgdc_ab_frmmain
       inherited pnlSearchMain: TPanel
         Height = 183
         inherited sbSearchMain: TScrollBox
-          Height = 145
-        end
-        inherited pnlSearchMainButton: TPanel
-          Top = 145
+          Height = 156
         end
       end
       inherited tvGroup: TgsDBTreeView
@@ -83,47 +83,11 @@ inherited gdc_ab_frmmain: Tgdc_ab_frmmain
       Height = 183
       inherited TBDockDetail: TTBDock
         Width = 577
-        inherited tbDetailToolbar: TTBToolbar
-          object TBSubmenuItem2: TTBSubmenuItem [0]
-            Action = actAddCompany
-            DropdownCombo = True
-            object TBItem4: TTBItem
-              Action = actAddContact
-            end
-            object TBSeparatorItem2: TTBSeparatorItem
-            end
-            object TBItem3: TTBItem
-              Action = actAddCompany
-            end
-            object TBItem5: TTBItem
-              Action = actAddBank
-            end
-            object TBSeparatorItem3: TTBSeparatorItem
-            end
-            object TBItem2: TTBItem
-              Action = actAddEmployee
-            end
-            object TBSeparatorItem4: TTBSeparatorItem
-            end
-            object TBItem1: TTBItem
-              Action = actAddGroup
-            end
-          end
-          inherited tbiDetailNew: TTBItem
-            Visible = False
-          end
-        end
-        inherited tbDetailCustom: TTBToolbar
-          Left = 286
-        end
       end
       inherited pnlSearchDetail: TPanel
         Height = 157
         inherited sbSearchDetail: TScrollBox
-          Height = 119
-        end
-        inherited pnlSearchDetailButton: TPanel
-          Top = 119
+          Height = 130
         end
       end
       inherited ibgrDetail: TgsIBGrid

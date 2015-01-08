@@ -10,26 +10,6 @@ inherited gdc_frmMainGood: Tgdc_frmMainGood
   end
   inherited TBDockTop: TTBDock
     inherited tbMainToolbar: TTBToolbar
-      object tbsiNew: TTBSubmenuItem [0]
-        Action = actNew
-        DropdownCombo = True
-        object tblMenuNew: TTBItem
-          Action = actNew
-        end
-        object tbiSubNew: TTBItem
-          Action = actNewSub
-        end
-      end
-      inherited tbiEdit: TTBItem [1]
-      end
-      inherited tbiDelete: TTBItem [2]
-      end
-      inherited tbiDuplicate: TTBItem [3]
-      end
-      inherited tbiReduction: TTBItem [4]
-      end
-      inherited tbsiMainOne: TTBSeparatorItem [5]
-      end
       inherited tbiCopy: TTBItem [6]
       end
       inherited tbiCut: TTBItem [7]
@@ -56,12 +36,9 @@ inherited gdc_frmMainGood: Tgdc_frmMainGood
       end
       inherited tbiHelp: TTBItem [18]
       end
-      inherited tbiNew: TTBItem [19]
-        Visible = False
+      inherited tbiEditInGrid: TTBItem [19]
       end
-      inherited tbiEditInGrid: TTBItem [20]
-      end
-      inherited tbiLinkObject: TTBItem [21]
+      inherited tbiLinkObject: TTBItem [20]
       end
     end
     inherited tbMainInvariant: TTBToolbar
@@ -80,7 +57,7 @@ inherited gdc_frmMainGood: Tgdc_frmMainGood
           end
         end
         inherited tbDetailCustom: TTBToolbar
-          Left = 298
+          Left = 309
         end
       end
     end

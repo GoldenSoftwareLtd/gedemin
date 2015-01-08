@@ -28,7 +28,8 @@ interface
 
 uses
   Classes, IBCustomDataSet, gdcBase, gdcTree, gdcBaseInterface,
-  Forms, gd_createable_form, SysUtils, ibsql;
+  Forms, gd_createable_form, SysUtils, ibsql, Contnrs, TB2Item,
+  Menus;
 
 const
   cst_ByCompany           = 'ByCompany';
@@ -44,12 +45,29 @@ type
     function GetOrderClause: String; override;
 
   public
+    class function GetChildrenClass(const ASubType: TgdcSubType;
+      AnOL: TObjectList; const AnIncludeRoot: Boolean = True;
+      const AnOnlyDirect: Boolean = False;
+      const AnIncludeAbstract: Boolean = False): Boolean; override;
+
     function GetCurrRecordClass: TgdcFullClass; override;
+
+    class function IsAbstractClass: Boolean; override;
 
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetSubSetList: String; override;
+
+    procedure SubNewPopup(ATBSI: TTBSubmenuItem;
+      const AnOnlySameLevel: Boolean;
+      ADisabled: TClassList = nil); overload; override;
+
+      procedure SubNewPopup(AMI: TMenuItem;
+      const AnOnlySameLevel: Boolean;
+      ADisabled: TClassList = nil); overload; override;
+
+    class function GetDefaultClassForDialog: TgdcFullClass; override;
   end;
 
   TgdcAcctFolder = class(TgdcAcctBase)
@@ -187,6 +205,36 @@ begin
     raise EgdcException.Create('Invalid USR$ST value.');
 end;
 
+class function TgdcAcctBase.GetChildrenClass(const ASubType: TgdcSubType;
+  AnOL: TObjectList; const AnIncludeRoot: Boolean = True;
+  const AnOnlyDirect: Boolean = False;
+  const AnIncludeAbstract: Boolean = False): Boolean;
+var
+  I: Integer;
+begin
+  Result := inherited GetChildrenClass(ASubType, AnOL, AnIncludeRoot,
+    AnOnlyDirect, AnIncludeAbstract);
+
+  if Result and (Self = TgdcAcctBase) then
+  begin
+    for I := AnOL.Count - 1 downto 0 do
+    begin
+      if (TgdClassEntry(AnOL[I]).TheClass = TgdcAcctAccount)
+        or (TgdClassEntry(AnOL[I]).TheClass = TgdcAcctSubAccount) then
+      begin
+        AnOL.Delete(I);
+      end;
+    end;
+  end;
+
+  Result := AnOL.Count > 0;
+end;
+
+class function TgdcAcctBase.IsAbstractClass: Boolean;
+begin
+  Result := Self.ClassNameIs('TgdcAcctBase');
+end;
+
 class function TgdcAcctBase.GetListTable(const ASubType: TgdcSubType): String;
 begin
   Result := 'ac_account';
@@ -209,6 +257,130 @@ begin
     acc_ss_ChartsAndFolders + ';' +
     acc_ss_Accounts + ';' +
     cst_ByCompany + ';';
+end;
+
+procedure TgdcAcctBase.SubNewPopup(ATBSI: TTBSubmenuItem;
+  const AnOnlySameLevel: Boolean;
+  ADisabled: TClassList = nil);
+var
+  I, J: Integer;
+  OL: TObjectList;
+  TBEI: TTBExtItem;
+begin
+  if ClassType <> TgdcAcctBase then
+    inherited
+  else
+  begin
+    if ATBSI = nil then
+      raise Exception.Create('SubmenuItem is nil');
+
+    ATBSI.Clear;
+
+    OL := TObjectList.Create(False);
+    try
+      if GetChildrenClass(SubType, OL) then
+      begin
+        for I := 0 to OL.Count - 1 do
+        begin
+          TBEI := TTBExtItem.Create(ATBSI);
+          TBEI.Caption := TgdClassEntry(OL[I]).Caption;
+          if TBEI.Caption = '' then
+            TBEI.Caption := TgdClassEntry(OL[I]).TheClass.ClassName;
+          TBEI.Obj := OL[I];
+          TBEI.OnClick := DoOnDescendantClick;
+          TBEI.ImageIndex := 0;
+          if TgdClassEntry(OL[I]).TheClass = TgdcAcctChart then
+          begin
+            TBEI.AsChildren := False;
+          end
+          else
+            if TgdClassEntry(OL[I]).TheClass = TgdcAcctFolder then
+            begin
+              TBEI.AsChildren := True;
+            end
+            else
+              raise Exception.Create('unknown class');
+
+          if ADisabled <> nil then
+          for J := 0 to ADisabled.Count - 1 do
+          begin
+            if ADisabled[J] = TgdClassEntry(OL[I]).TheClass then
+              TBEI.Enabled := False;
+          end;
+          ATBSI.Add(TBEI);
+        end;
+      end;
+    finally
+      OL.Free;
+    end;
+  end;
+end;
+
+procedure TgdcAcctBase.SubNewPopup(AMI: TMenuItem;
+  const AnOnlySameLevel: Boolean;
+  ADisabled: TClassList = nil);
+var
+  I, J: Integer;
+  OL: TObjectList;
+  EMI: TExtMenuItem;
+begin
+  if ClassType <> TgdcAcctBase then
+    inherited
+  else
+  begin
+    if AMI = nil then
+      raise Exception.Create('SubmenuItem is nil');
+
+    AMI.Clear;
+
+    OL := TObjectList.Create(False);
+    try
+      if GetChildrenClass(SubType, OL) then
+      begin
+        for I := 0 to OL.Count - 1 do
+        begin
+          EMI := TExtMenuItem.Create(AMI);
+          EMI.Caption := TgdClassEntry(OL[I]).Caption;
+          if EMI.Caption = '' then
+            EMI.Caption := TgdClassEntry(OL[I]).TheClass.ClassName;
+          EMI.Obj := OL[I];
+          EMI.OnClick := DoOnDescendantClick;
+          EMI.ImageIndex := 0;
+          if TgdClassEntry(OL[I]).TheClass = TgdcAcctChart then
+          begin
+            EMI.AsChildren := False;
+          end
+          else
+            if TgdClassEntry(OL[I]).TheClass = TgdcAcctFolder then
+            begin
+              EMI.AsChildren := True;
+            end
+            else
+              raise Exception.Create('unknown class');
+
+          for J := 0 to ADisabled.Count - 1 do
+          begin
+            if ADisabled[J] = TgdClassEntry(OL[I]).TheClass then
+              AMI.Enabled := False;
+          end;
+          AMI.Add(EMI);
+        end;
+      end;
+    finally
+      OL.Free;
+    end;
+  end;
+end;
+
+class function TgdcAcctBase.GetDefaultClassForDialog: TgdcFullClass;
+begin
+  if Self <> TgdcAcctBase then
+    inherited GetDefaultClassForDialog
+  else
+  begin
+    Result.gdClass := TgdcAcctChart;
+    Result.SubType := '';
+  end;
 end;
 
 procedure TgdcAcctBase.GetWhereClauseConditions(S: TStrings);
@@ -695,15 +867,15 @@ end;
 
 initialization
   RegisterGdcClass(TgdcAcctBase, ctStorage, 'Бухгалтерский план счетов');
+  RegisterGdcClass(TgdcAcctChart, ctStorage, 'План счетов');
   RegisterGdcClass(TgdcAcctFolder, ctStorage, 'Раздел плана счетов');
-  RegisterGdcClass(TgdcAcctChart);
   RegisterGdcClass(TgdcAcctAccount, ctStorage, 'Счет');
   RegisterGdcClass(TgdcAcctSubAccount, ctStorage, 'Субсчет');
 
 finalization
   UnRegisterGdcClass(TgdcAcctBase);
-  UnRegisterGdcClass(TgdcAcctFolder);
   UnRegisterGdcClass(TgdcAcctChart);
+  UnRegisterGdcClass(TgdcAcctFolder);
   UnRegisterGdcClass(TgdcAcctAccount);
   UnRegisterGdcClass(TgdcAcctSubAccount);
 end.

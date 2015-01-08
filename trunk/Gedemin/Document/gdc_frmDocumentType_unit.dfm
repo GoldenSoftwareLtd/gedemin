@@ -1,117 +1,81 @@
 inherited gdc_frmDocumentType: Tgdc_frmDocumentType
-  Left = 365
-  Top = 169
-  Width = 795
-  Height = 542
+  Left = 262
+  Top = 136
+  Width = 1067
+  Height = 749
   Caption = 'Типовые документы'
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 485
-    Width = 779
+    Top = 692
+    Width = 1051
   end
   inherited TBDockTop: TTBDock
-    Width = 779
-    inherited tbMainToolbar: TTBToolbar
-      object TBSubmenuItem1: TTBSubmenuItem [1]
-        Action = actNew
-        DropdownCombo = True
-        object TBItem1: TTBItem
-          Action = actNew
-        end
-        object TBItem2: TTBItem
-          Action = actNewSub
-        end
-      end
-    end
-    inherited tbMainInvariant: TTBToolbar
-      Left = 309
-    end
+    Width = 1051
   end
   inherited TBDockLeft: TTBDock
-    Height = 425
+    Height = 632
   end
   inherited TBDockRight: TTBDock
-    Left = 770
-    Height = 425
+    Left = 1042
+    Height = 632
   end
   inherited TBDockBottom: TTBDock
-    Top = 476
-    Width = 779
+    Top = 683
+    Width = 1051
   end
   inherited pnlWorkArea: TPanel
-    Width = 761
-    Height = 425
+    Width = 1033
+    Height = 632
     inherited sMasterDetail: TSplitter
-      Height = 320
+      Height = 527
     end
     inherited spChoose: TSplitter
-      Top = 320
-      Width = 761
+      Top = 527
+      Width = 1033
     end
     inherited pnlMain: TPanel
-      Height = 320
+      Height = 527
       inherited pnlSearchMain: TPanel
-        Height = 320
+        Height = 527
         inherited sbSearchMain: TScrollBox
-          Height = 293
+          Height = 500
         end
       end
       inherited tvGroup: TgsDBTreeView
-        Height = 320
+        Height = 527
         Images = dmImages.ilTree
         OnGetImageIndex = tvGroupGetImageIndex
       end
     end
     inherited pnChoose: TPanel
-      Top = 326
-      Width = 761
+      Top = 533
+      Width = 1033
       inherited pnButtonChoose: TPanel
-        Left = 656
+        Left = 928
       end
       inherited ibgrChoose: TgsIBGrid
-        Width = 656
+        Width = 928
       end
       inherited pnlChooseCaption: TPanel
-        Width = 761
+        Width = 1033
       end
     end
     inherited pnlDetail: TPanel
-      Width = 589
-      Height = 320
+      Width = 861
+      Height = 527
       inherited TBDockDetail: TTBDock
-        Width = 589
-        inherited tbDetailToolbar: TTBToolbar
-          object tbsmNew: TTBSubmenuItem [0]
-            Caption = 'Добавить'
-            DropdownCombo = True
-            Hint = 'Добавить документ'
-            ImageIndex = 0
-            OnClick = tbsmNewClick
-            object tbiAddUserDoc: TTBItem
-              Action = actAddUserDoc
-            end
-            object tbiAddInvDocument: TTBItem
-              Action = actAddInvDocument
-            end
-            object tbiAddInvPriceList: TTBItem
-              Action = actAddInvPriceList
-            end
-          end
-        end
-        inherited tbDetailCustom: TTBToolbar
-          Left = 286
-        end
+        Width = 861
       end
       inherited pnlSearchDetail: TPanel
-        Height = 294
+        Height = 501
         inherited sbSearchDetail: TScrollBox
-          Height = 267
+          Height = 474
         end
       end
       inherited ibgrDetail: TgsIBGrid
-        Width = 429
-        Height = 294
+        Width = 701
+        Height = 501
       end
     end
   end
@@ -122,36 +86,9 @@ inherited gdc_frmDocumentType: Tgdc_frmDocumentType
       Caption = 'Добавить ветвь...'
       Hint = 'Добавить ветвь...'
       ImageIndex = 0
-      OnExecute = actNewSubExecute
-      OnUpdate = actNewSubUpdate
     end
     inherited actDetailNew: TAction
       Visible = False
-      OnExecute = actAddUserDocExecute
-    end
-    object actAddUserDoc: TAction
-      Category = 'Detail'
-      Caption = 'Добавить документ пользователя'
-      Hint = 'Добавить документ пользователя'
-      ImageIndex = 0
-      OnExecute = actAddUserDocExecute
-      OnUpdate = actAddUserDocUpdate
-    end
-    object actAddInvDocument: TAction
-      Category = 'Detail'
-      Caption = 'Добавить складской документ'
-      Hint = 'Добавить складской документ'
-      ImageIndex = 0
-      OnExecute = actAddInvDocumentExecute
-      OnUpdate = actAddInvDocumentUpdate
-    end
-    object actAddInvPriceList: TAction
-      Category = 'Detail'
-      Caption = 'Добавить прайс-лист'
-      Hint = 'Добавить прайс-лист'
-      ImageIndex = 0
-      OnExecute = actAddInvPriceListExecute
-      OnUpdate = actAddInvPriceListUpdate
     end
   end
   inherited pmMain: TPopupMenu
@@ -179,7 +116,7 @@ inherited gdc_frmDocumentType: Tgdc_frmDocumentType
     Top = 140
   end
   object gdcBaseDocumentType: TgdcBaseDocumentType
-    Left = 72
-    Top = 128
+    Left = 137
+    Top = 222
   end
 end

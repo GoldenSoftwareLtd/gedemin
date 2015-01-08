@@ -5,7 +5,7 @@ unit gdc_frmMDH_unit;
 interface
 
 uses
-  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Contnrs, Forms, Dialogs,
   gdc_frmG_unit, ExtCtrls, IBDatabase, Db, flt_sqlFilter,
   Menus, ActnList,  ComCtrls, ToolWin, gdcBase, gdcBaseInterface, DBGrids,
   IBCustomDataSet, gdcConst, TB2Item, TB2Dock, TB2Toolbar,
@@ -48,7 +48,6 @@ type
     tbiDetailFilter: TTBItem;
     tbiDetailPrint: TTBItem;
     tbsiMainMenuDetailObject: TTBSubmenuItem;
-    tbi_mm_DetailNew: TTBItem;
     tbi_mm_DetailEdit: TTBItem;
     tbi_mm_DetailDelete: TTBItem;
     tbi_mm_DetailDuplicate: TTBItem;
@@ -84,6 +83,8 @@ type
     tbiDetailMenuAddToSelected: TTBItem;
     actDetailLinkObject: TAction;
     tbiDetailLinkObject: TTBItem;
+    tbsiDetailNew: TTBSubmenuItem;
+    tbsi_mm_DetailNew: TTBSubmenuItem;
     procedure actDetailEditExecute(Sender: TObject);
     procedure actDetailNewExecute(Sender: TObject);
     procedure actDetailNewUpdate(Sender: TObject);
@@ -140,6 +141,10 @@ type
     procedure actDetailFilterUpdate(Sender: TObject);
     procedure pnlSearchDetailEnter(Sender: TObject);
     procedure pnlSearchDetailExit(Sender: TObject);
+    procedure tbsiDetailNewPopup(Sender: TTBCustomItem; FromLink: Boolean);
+    procedure tbsi_mm_DetailNewPopup(Sender: TTBCustomItem;
+      FromLink: Boolean);
+    procedure pmDetailPopup(Sender: TObject);
 
   private
     FgdcDetailObject: TgdcBase;
@@ -168,6 +173,8 @@ type
     function Get_SelectedKey: OleVariant; override; safecall;
     procedure DoShowAllFields(Sender: TObject); override;
 
+    procedure GetDisabledDetailClasses(ACL: TClassList); virtual;
+    
   public
     destructor Destroy; override;
     function GetDetailBookmarkList: TBookmarkList; virtual;
@@ -207,15 +214,57 @@ end;
 
 procedure Tgdc_frmMDH.actDetailNewExecute(Sender: TObject);
 begin
-  gdcDetailObject.CreateDescendant;
+  if (gdcDetailObject <> nil) and (not gdcDetailObject.IsAbstractClass) then
+    gdcDetailObject.CreateDialog;
 end;
 
 procedure Tgdc_frmMDH.actDetailNewUpdate(Sender: TObject);
+var
+  I: Integer;
+  DescendantCount: Integer;
+  SubMenu: Boolean;
 begin
+  if gdcDetailObject <> nil then
+    DescendantCount := gdcDetailObject.GetDescendantCount(True)
+  else
+    DescendantCount := 0;
+
   actDetailNew.Enabled := (gdcObject <> nil)
     and (gdcDetailObject <> nil)
     and gdcDetailObject.CanCreate
-    and ((gdcObject.RecordCount > 0) or (gdcDetailObject.HasSubSet('All')));
+    and ((gdcObject.RecordCount > 0) or (gdcDetailObject.HasSubSet('All')))
+    and (DescendantCount > 0);
+
+  SubMenu := DescendantCount > 1;
+
+  if not SubMenu then
+    SubMenu := (gdcDetailObject <> nil) and (gdcDetailObject.IsAbstractClass) and (DescendantCount > 0);
+
+  With tbDetailToolbar.Items do
+  begin
+    for I := 0 to Count - 1 do
+    begin
+      if (Items[I] is TTBSubmenuItem) and (Items[I].Action = (Sender as TBasicAction)) then
+      begin
+        (Items[I] as TTBSubmenuItem).DropDownCombo := SubMenu;
+        Break;
+      end;
+    end;
+  end;
+
+  With tbMainMenu.Items[1] do
+  begin
+    for I := 0 to Count - 1 do
+    begin
+      if (Items[I] is TTBSubmenuItem) and (Items[I].Action = (Sender as TBasicAction)) then
+      begin
+        (Items[I] as TTBSubmenuItem).DropDownCombo := SubMenu;
+        TTBExtSubmenuItem(Items[I]).SubMenuStyle := SubMenu;
+        Break;
+      end;
+    end;
+  end;
+  
 end;
 
 procedure Tgdc_frmMDH.actDetailEditUpdate(Sender: TObject);
@@ -429,7 +478,7 @@ begin
       FgdcDetailObject.RemoveFreeNotification(Self);
 
     FgdcDetailObject := Value;
-    if (FSubType > '') and (FgdcDetailObject <> nil) then
+    if (FSubType > '') and (FgdcDetailObject <> nil) and (FgdcDetailObject.CheckSubType(FSubType))then
       FgdcDetailObject.SubType := FSubType;
     if dsDetail.DataSet <> Value then
       dsDetail.DataSet := Value;
@@ -442,6 +491,11 @@ begin
       //tbsiMainMenuDetailObject.Caption := FgdcDetailObject.GetDisplayName(FgdcDetailObject.SubType);
     end;
   end;
+end;
+
+procedure Tgdc_frmMDH.GetDisabledDetailClasses(ACL: TClassList);
+begin
+  //
 end;
 
 procedure Tgdc_frmMDH.actSaveToFileExecute(Sender: TObject);
@@ -1186,6 +1240,87 @@ begin
     end;
   end else
     inherited;
+end;
+
+procedure Tgdc_frmMDH.tbsiDetailNewPopup(Sender: TTBCustomItem;
+  FromLink: Boolean);
+var
+  CL: TClassList;
+begin
+  if (TTBSubmenuItem(Sender).DropDownCombo) and (gdcDetailObject <> nil) then
+  begin
+    CL := TClassList.Create;
+    try
+      GetDisabledDetailClasses(CL);
+      gdcDetailObject.SubNewPopup((Sender as TTBSubmenuItem), True, CL);
+    finally
+      CL.Free;
+    end;
+  end;
+end;
+
+procedure Tgdc_frmMDH.tbsi_mm_DetailNewPopup(Sender: TTBCustomItem;
+  FromLink: Boolean);
+var
+  CL: TClassList;
+begin
+  if (TTBSubmenuItem(Sender).DropDownCombo) and (gdcDetailObject <> nil) then
+  begin
+    CL := TClassList.Create;
+    try
+      GetDisabledDetailClasses(CL);
+      gdcDetailObject.SubNewPopup((Sender as TTBSubmenuItem), True, CL);
+    finally
+      CL.Free;
+    end;
+  end;
+end;
+
+procedure Tgdc_frmMDH.pmDetailPopup(Sender: TObject);
+var
+  I: Integer;
+  DescendantCount: Integer;
+  SubMenu: Boolean;
+  CL: TClassList;
+begin
+  if (Sender is TPopupMenu) and (gdcDetailObject <> nil) then
+    with (Sender as TPopupMenu) do
+    begin
+      for I := 0 to Items.Count - 1 do
+      begin
+        if Items[I].Name = 'nDetailNew' then
+        begin
+          if actDetailNew.Enabled then
+          begin
+            DescendantCount := gdcDetailObject.GetDescendantCount(True);
+
+            SubMenu := DescendantCount > 1;
+            if not SubMenu then
+              SubMenu := (gdcDetailObject.IsAbstractClass) and (DescendantCount > 0);
+            if SubMenu then
+            begin
+              CL := TClassList.Create;
+              try
+                GetDisabledDetailClasses(CL);
+                gdcDetailObject.SubNewPopup(Items[I], True, CL);
+                Items[I].OnClick := nil;
+                Items[I].Action := nil;
+              finally
+                CL.Free;
+              end;
+            end
+            else
+            begin
+              Items[I].OnClick := actDetailNewExecute;
+              Items[I].Action := actDetailNew;
+            end;
+          end;
+
+          Items[I].Enabled := actDetailNew.Enabled;
+          Break;
+        end;
+      end;
+    end;
 end;
 
 initialization

@@ -55,6 +55,8 @@ type
     class function NeedModifyFromStream(const SubType: String): Boolean; override;
 
     function GetCurrRecordClass: TgdcFullClass; override;
+
+    class function IsAbstractClass: Boolean; override;
   end;
   //Б.к. типовой операции
   TgdcAcctTransaction = class(TgdcBaseAcctTransaction)
@@ -310,12 +312,17 @@ begin
       Result := inherited AcceptClipboard(CD);
 end;
 
+class function TgdcBaseAcctTransaction.IsAbstractClass: Boolean;
+begin
+  Result := Self.ClassNameIs('TgdcBaseAcctTransaction');
+end;
+
 function TgdcBaseAcctTransaction.GetCurrRecordClass: TgdcFullClass;
 var
   s: string;
   F: TField;
 begin
-  S := '';                                   
+  S := '';
   if FieldByName(fnAutoTransaction).AsInteger = 1 then
   begin
     S := 'TgdcAutoTransaction';

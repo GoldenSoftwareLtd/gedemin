@@ -102,7 +102,8 @@ uses
   menus,                flt_QueryFilterGDC,    at_sql_setup,     gd_createable_form,
   ActnList,             gsStorage,             gd_KeyAssoc,      ExtCtrls,
   Graphics,             mtd_i_Base,            evt_i_Base,       zlib,
-  gdcConstants,         Registry,              gsStreamHelper;
+  gdcConstants,         Registry,              gsStreamHelper,
+  TB2Item;
 
 resourcestring
   strHaventRights =
@@ -177,6 +178,39 @@ const
   ValidCharsForNames: set of char = ['A'..'Z', 'a'..'z', '0'..'9', '$', '_'];
 
 type
+  TExtMenuItem = Class(TMenuItem)
+  private
+    FObj: Tobject;
+    FAsChildren: Boolean;
+
+  public
+    constructor Create(AOwner: TComponent); override;
+
+    property Obj: Tobject read FObj write FObj;
+    property AsChildren: Boolean read FAsChildren write FAsChildren;
+  end;
+
+  TTBExtItem = Class(TTBItem)
+  private
+    FObj: Tobject;
+    FAsChildren: Boolean;
+
+  public
+    constructor Create(AOwner: TComponent); override;
+
+    property Obj: Tobject read FObj write FObj;
+    property AsChildren: Boolean read FAsChildren write FAsChildren;
+  end;
+
+  TTBExtSubmenuItem = class(TTBSubmenuItem)
+  private
+    function GetSubMenuStyle: Boolean;
+    procedure SetSubMenuStyle(Value: Boolean);
+
+  public
+    property SubMenuStyle: Boolean read GetSubMenuStyle write SetSubMenuStyle;
+  end;
+
   /////////////////////////////////////////////////////////////
   // типы событий, поддерживаемые бизнес объектом
   TgdcEventTypes = (etAfterCancel, etAfterClose, etAfterDelete, etAfterEdit,
@@ -737,7 +771,6 @@ type
     // формирование выпадающего меню со списком отчетов
     // доступных для данного объекта
     procedure MakeReportMenu;
-
     //
     procedure DoOnFilterChanged(Sender: TObject; const AnCurrentFilter: Integer);
 
@@ -855,6 +888,8 @@ type
 
     // Печать отчета. OnClick - в PopupMenu
     procedure DoOnReportClick(Sender: TObject); virtual;
+
+    procedure DoOnDescendantClick (Sender: TObject); virtual;
 
     // проверяет, является ли переданный класс потомком текущего класса
     // если нет -- вызывает исключение
@@ -1325,7 +1360,22 @@ type
 
     // выводит на экран меню со списком доступных для объекта отчетов
     procedure PopupReportMenu(const X, Y: Integer);
+    // выводит на экран меню со списком доступных обектов для вставки
+    // AnOnlySameLevel разрешает/запрещает втавку в дереве на следующий уровень
+    // ADisabled список классов которые по каким либо причинам не доступны для вставки
+    procedure SubNewPopup(ATBSI: TTBSubmenuItem;
+      const AnOnlySameLevel: Boolean;
+      ADisabled: TClassList = nil); overload; virtual;
+    // выводит на экран меню со списком доступных обектов для вставки
+    procedure SubNewPopup(AMI: TMenuItem;
+      const AnOnlySameLevel: Boolean;
+      ADisabled: TClassList = nil); overload; virtual;
+    // возвращает количество доступных обектов для вставки
+    function GetDescendantCount(const AnOnlySameLevel: Boolean): Integer; virtual;
 
+    class function GetDefaultClassForDialog: TgdcFullClass; virtual;
+
+    procedure CreateDefaultDialog; virtual;
     //
     procedure PopupFilterMenu(const X, Y: Integer);
 
@@ -1495,7 +1545,8 @@ type
     // класса при создании потомка
     class function GetChildrenClass(const ASubType: TgdcSubType;
       AnOL: TObjectList; const AnIncludeRoot: Boolean = True;
-      const AnOnlyDirect: Boolean = False ): Boolean; Virtual;
+      const AnOnlyDirect: Boolean = False;
+      const AnIncludeAbstract: Boolean = False): Boolean; Virtual;
 
     // предоставляет пользователю возможность выбрать один из классов
     // наследников для данного класса
@@ -1527,7 +1578,6 @@ type
 
     // Issue 2162
     procedure Resync(Mode: TResyncMode); override;
-
 
     // создает форму для просмотра датасета, для заданного БА
     // поскольку форм может быть предусмотрено несколько, то возможна
@@ -1679,6 +1729,10 @@ type
     procedure AddVariableItem(const Name: String);
     // Добавляют итем для хранения Objects
     procedure AddObjectItem(const Name: String);
+
+    function CreateChildrenDialog: Boolean; overload; virtual;
+    function CreateChildrenDialog(C: CgdcBase): Boolean; overload; virtual;
+    function CreateChildrenDialog(C:  TgdcFullClass): Boolean; overload; virtual;
 
     // Свойства только для использования в скрипт-функциях
     // В СФ являются аналогами свойств формы
@@ -2657,6 +2711,39 @@ begin
   I := Pos('^', Copy(AString, 2, 1024));
   Result.gdClass := CgdcBase(FindClass(Copy(AString, 2, I - 1)));
   Result.SubType := Copy(AString, I + 2, 1024);
+end;
+
+{ TExtMenuItem }
+
+constructor TExtMenuItem.Create(AOwner: TComponent);
+begin
+  inherited;
+  FAsChildren := False;
+  FObj := nil;
+end;
+
+{ TTBExtItem }
+
+constructor TTBExtItem.Create(AOwner: TComponent);
+begin
+  inherited;
+  FAsChildren := False;
+  FObj := nil;
+end;
+
+procedure TTBExtSubmenuItem.SetSubMenuStyle(Value: Boolean);
+begin
+  if (tbisSubMenu in ItemStyle) <> Value then begin
+    if Value then
+      ItemStyle := ItemStyle + [tbisSubMenu]
+    else
+      ItemStyle := ItemStyle - [tbisSubMenu];
+  end;
+end;
+
+function TTBExtSubmenuItem.GetSubMenuStyle: Boolean;
+begin
+  Result := tbisSubMenu in ItemStyle;
 end;
 
 { TgdcBase }
@@ -5252,6 +5339,102 @@ begin
   finally
     if DidActivate then
       DeactivateReadTransaction;
+  end;
+end;
+
+procedure TgdcBase.SubNewPopup(ATBSI: TTBSubmenuItem;
+  const AnOnlySameLevel: Boolean;
+  ADisabled: TClassList = nil);
+var
+  I, J: Integer;
+  OL: TObjectList;
+  TBEI: TTBExtItem;
+begin
+  if ATBSI = nil then
+    raise Exception.Create('SubmenuItem is nil');
+
+  ATBSI.Clear;
+
+  OL := TObjectList.Create(False);
+    try
+    if GetChildrenClass(SubType, OL) then
+    begin
+      for I := 0 to OL.Count - 1 do
+      begin
+        TBEI := TTBExtItem.Create(ATBSI);
+        TBEI.Caption := TgdClassEntry(OL[I]).Caption;
+        if TBEI.Caption = '' then
+          TBEI.Caption := TgdClassEntry(OL[I]).TheClass.ClassName;
+        TBEI.Obj := OL[I];
+        TBEI.AsChildren := False;
+        TBEI.OnClick := DoOnDescendantClick;
+        TBEI.ImageIndex := 0;
+        if ADisabled <> nil then
+          for J := 0 to ADisabled.Count - 1 do
+          begin
+            if ADisabled[J] = TgdClassEntry(OL[I]).TheClass then
+              TBEI.Enabled := False;
+          end;
+        ATBSI.Add(TBEI);
+      end;
+
+    end;
+  finally
+    OL.Free;
+  end;
+end;
+
+procedure TgdcBase.SubNewPopup(AMI: TMenuItem;
+  const AnOnlySameLevel: Boolean;
+  ADisabled: TClassList = nil);
+var
+  I, J: Integer;
+  OL: TObjectList;
+  EMI: TExtMenuItem;
+begin
+  if AMI = nil then
+    raise Exception.Create('SubmenuItem is nil');
+
+  AMI.Clear;
+
+  OL := TObjectList.Create(False);
+  try
+    if GetChildrenClass(SubType, OL) then
+    begin
+      for I := 0 to OL.Count - 1 do
+      begin
+        EMI := TExtMenuItem.Create(AMI);
+        EMI.Caption := TgdClassEntry(OL[I]).Caption;
+        if EMI.Caption = '' then
+          EMI.Caption := TgdClassEntry(OL[I]).TheClass.ClassName;
+        EMI.Obj := OL[I];
+        EMI.AsChildren := False;
+        EMI.OnClick := DoOnDescendantClick;
+        EMI.ImageIndex := 0;
+        if ADisabled <> nil then
+          for J := 0 to ADisabled.Count - 1 do
+          begin
+            if ADisabled[J] = TgdClassEntry(OL[I]).TheClass then
+              EMI.Enabled := False;
+          end;
+        AMI.Add(EMI);
+      end;
+    end;
+  finally
+    OL.Free;
+  end;
+end;
+
+function TgdcBase.GetDescendantCount(const AnOnlySameLevel: Boolean): Integer;
+var
+  OL: TObjectList;
+begin
+  OL := TObjectList.Create(False);
+  try
+    GetChildrenClass(SubType, OL);
+    Result := OL.Count;
+  finally
+    OL.Free;
   end;
 end;
 
@@ -10084,6 +10267,38 @@ begin
   {END MACRO}
 end;
 
+procedure TgdcBase.DoOnDescendantClick (Sender: TObject);
+var
+  CE: TgdClassEntry;
+  C: TgdcFullClass;
+  AsChildren: Boolean;
+begin
+  if Sender is TTBExtItem then
+  begin
+    CE := TgdClassEntry((Sender as TTBExtItem).Obj);
+    AsChildren := (Sender as TTBExtItem).AsChildren;
+  end
+  else
+    if Sender is TExtMenuItem then
+    begin
+      CE := TgdClassEntry((Sender as TExtMenuItem).Obj);
+      AsChildren := (Sender as TExtMenuItem).AsChildren;
+    end
+    else
+      raise Exception.Create('invalid classtype.');
+
+  if CE = nil then
+    raise EgdcException.CreateObj('DescendantObject = nil', Self);
+
+  C.gdClass := CE.gdcClass;
+  C.SubType := CE.SubType;
+
+  if AsChildren then
+    CreateChildrenDialog(C)
+  else
+    CreateDialog(C)
+end;
+
 procedure TgdcBase.PrintReport(const ID: Integer);
 begin
   Assert(ClientReport <> nil, 'Не подключен сервер отчетов');
@@ -10713,7 +10928,6 @@ end;
 
 function TgdcBase.QueryDescendant: TgdcFullClass;
 var
-  I: Integer;
   OL: TObjectList;
 begin
   Result.gdClass := nil;
@@ -10721,17 +10935,11 @@ begin
 
   OL := TObjectList.Create(False);
   try
-    if not GetChildrenClass(SubType, OL, True, False) then
+    if not GetChildrenClass(SubType, OL) then
     begin
       Result.gdClass := CgdcBase(Self.ClassType);
       Result.SubType := SubType;
       exit;
-    end;
-
-    for I := OL.Count - 1 downto 0 do
-    begin
-      if TgdClassEntry(OL[I]).gdcClass.IsAbstractClass then
-        OL.Delete(I);
     end;
 
     if OL.Count = 1 then
@@ -10908,7 +11116,10 @@ end;
 
 class function TgdcBase.GetChildrenClass(const ASubType: TgdcSubType;
   AnOL: TObjectList; const AnIncludeRoot: Boolean = True;
-  const AnOnlyDirect: Boolean = False ): Boolean;
+  const AnOnlyDirect: Boolean = False;
+  const AnIncludeAbstract: Boolean = False): Boolean;
+var
+  I: Integer;
 begin
   if AnOL = nil then
     raise Exception.Create('');
@@ -10916,6 +11127,13 @@ begin
 
   gdClassList.Traverse(Self, ASubType, BuildTree,
     AnOL, nil, AnIncludeRoot, AnOnlyDirect);
+
+  if not AnIncludeAbstract then
+    for I := AnOL.Count - 1 downto 0 do
+    begin
+      if TgdClassEntry(AnOL[I]).gdcClass.IsAbstractClass then
+        AnOL.Delete(I);
+    end;
 
   Result := AnOL.Count > 0;
 end;
@@ -14769,6 +14987,21 @@ begin
   Result := Self.ClassNameIs('TgdcBase');
 end;
 
+class function TgdcBase.GetDefaultClassForDialog: TgdcFullClass;
+begin
+  Result.gdClass := nil;
+  Result.SubType := '';
+end;
+
+procedure TgdcBase.CreateDefaultDialog;
+var
+  C: TgdcFullClass;
+begin
+  C := GetDefaultClassForDialog;
+  if C.gdClass <> nil then
+    CreateDialog(C);
+end;
+
 function TgdcBase.GetSubSet: TgdcSubSet;
 begin
   if Assigned(FSubSets) then
@@ -17124,6 +17357,21 @@ begin
     S.Write(Strings[I][1], J);
     Objects[I].SaveToStream(S);
   end;
+end;
+
+function TgdcBase.CreateChildrenDialog: Boolean;
+begin
+  Result := CreateDialog;
+end;
+
+function TgdcBase.CreateChildrenDialog(C: CgdcBase): Boolean;
+begin
+  Result := CreateDialog(C);
+end;
+
+function TgdcBase.CreateChildrenDialog(C: TgdcFullClass): Boolean;
+begin
+  Result := CreateDialog(C);
 end;
 
 procedure TgdcBase.AddObjectItem(const Name: String);

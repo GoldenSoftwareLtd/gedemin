@@ -1,32 +1,29 @@
 inherited gdc_frmTaxDesignTime: Tgdc_frmTaxDesignTime
   Left = 148
   Top = 179
-  Height = 504
+  Height = 521
   HelpContext = 14
   Caption = 'Расчет отчетов бухгалтерии'
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 457
+    Top = 447
   end
   inherited TBDockTop: TTBDock
-    Height = 75
+    Height = 77
     inherited tbMainToolbar: TTBToolbar
-      inherited tbiNew: TTBItem
-        Visible = False
-      end
       inherited tbiEdit: TTBItem
         Visible = False
       end
     end
     inherited tbMainCustom: TTBToolbar
       Left = 0
-      Top = 49
+      Top = 51
       DockPos = 1
       DockRow = 2
     end
     inherited tbMainInvariant: TTBToolbar
-      Left = 281
+      Left = 315
       object TBSeparatorItem2: TTBSeparatorItem
       end
       object TBItem1: TTBItem
@@ -39,21 +36,21 @@ inherited gdc_frmTaxDesignTime: Tgdc_frmTaxDesignTime
     end
   end
   inherited TBDockLeft: TTBDock
-    Top = 75
-    Height = 373
+    Top = 77
+    Height = 361
   end
   inherited TBDockRight: TTBDock
-    Top = 75
-    Height = 373
+    Top = 77
+    Height = 361
   end
   inherited TBDockBottom: TTBDock
-    Top = 448
+    Top = 438
   end
   inherited pnlWorkArea: TPanel
-    Top = 75
-    Height = 373
+    Top = 77
+    Height = 378
     inherited spChoose: TSplitter
-      Top = 270
+      Top = 273
     end
     inherited pnlMain: TPanel
       object Label1: TLabel [0]
@@ -65,27 +62,14 @@ inherited gdc_frmTaxDesignTime: Tgdc_frmTaxDesignTime
       end
     end
     inherited pnChoose: TPanel
-      Top = 274
+      Top = 279
     end
     inherited pnlDetail: TPanel
       Height = 100
-      inherited TBDockDetail: TTBDock
-        inherited tbDetailToolbar: TTBToolbar
-          inherited tbiDetailNew: TTBItem
-            Visible = False
-          end
-        end
-        inherited tbDetailCustom: TTBToolbar
-          Left = 256
-        end
-      end
       inherited pnlSearchDetail: TPanel
         Height = 74
         inherited sbSearchDetail: TScrollBox
-          Height = 36
-        end
-        inherited pnlSearchDetailButton: TPanel
-          Top = 36
+          Height = 47
         end
       end
       inherited ibgrDetail: TgsIBGrid

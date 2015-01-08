@@ -6277,7 +6277,7 @@ end;
 
 initialization
   RegisterGdcClass(TgdcInvBaseDocument);
-  RegisterGdcClass(TgdcInvDocumentType);
+  RegisterGdcClass(TgdcInvDocumentType, ctStorage, 'Складской документ');
   RegisterGdcClass(TgdcInvDocument, ctInvDocument);
   RegisterGdcClass(TgdcInvDocumentLine, ctInvDocument);
 

@@ -1502,7 +1502,7 @@ begin
 end;
 
 initialization
-  RegisterGdcClass(TgdcInvPriceListType);
+  RegisterGdcClass(TgdcInvPriceListType, ctStorage, 'Прайс-лист');
   RegisterGdcClass(TgdcInvPriceList, ctInvPriceList);
   RegisterGdcClass(TgdcInvPriceListLine, ctInvPriceList);
 

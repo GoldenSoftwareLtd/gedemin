@@ -409,7 +409,7 @@ begin
 end;
 
 initialization
-  RegisterGDCClass(TgdcBugBase);
+  RegisterGDCClass(TgdcBugBase, ctStorage, 'Памылка');
   
 finalization
   UnRegisterGDCClass(TgdcBugBase);
