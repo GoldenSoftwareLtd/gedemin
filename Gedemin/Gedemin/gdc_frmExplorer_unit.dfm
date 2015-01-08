@@ -1,6 +1,6 @@
 inherited gdc_frmExplorer: Tgdc_frmExplorer
-  Left = -1
-  Top = 104
+  Left = 190
+  Top = 101
   Width = 297
   Height = 746
   HelpContext = 332
@@ -10,19 +10,19 @@ inherited gdc_frmExplorer: Tgdc_frmExplorer
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 691
-    Width = 289
+    Top = 680
+    Width = 281
     Visible = False
   end
   inherited TBDockTop: TTBDock
-    Width = 289
+    Width = 281
     inherited tbMainToolbar: TTBToolbar
       inherited tbsiMainOneAndHalf: TTBSeparatorItem
         Visible = False
       end
     end
     inherited tbMainCustom: TTBToolbar
-      Left = 187
+      Left = 201
       DockPos = 192
       object tbiOpenExp: TTBItem
         Action = actShow
@@ -46,56 +46,55 @@ inherited gdc_frmExplorer: Tgdc_frmExplorer
       DockPos = 120
     end
     inherited tbChooseMain: TTBToolbar
-      Left = 154
+      Left = 168
       DockPos = 168
     end
   end
   inherited TBDockLeft: TTBDock
-    Height = 642
+    Height = 629
   end
   inherited TBDockRight: TTBDock
-    Left = 280
-    Height = 642
+    Left = 272
+    Height = 629
   end
   inherited TBDockBottom: TTBDock
-    Top = 710
-    Width = 289
+    Top = 699
+    Width = 281
   end
   inherited pnlWorkArea: TPanel
-    Width = 271
-    Height = 642
+    Width = 263
+    Height = 629
     inherited spChoose: TSplitter
-      Top = 539
-      Width = 271
+      Top = 526
+      Width = 263
     end
     inherited pnlMain: TPanel
-      Width = 271
-      Height = 539
+      Width = 263
+      Height = 526
       Constraints.MinWidth = 0
       inherited pnlSearchMain: TPanel
         Width = 78
-        Height = 539
+        Height = 526
         inherited sbSearchMain: TScrollBox
           Width = 78
-          Height = 501
+          Height = 499
         end
         inherited pnlSearchMainButton: TPanel
-          Top = 501
           Width = 78
         end
       end
       object Panel1: TPanel
         Left = 78
         Top = 0
-        Width = 193
-        Height = 539
+        Width = 185
+        Height = 526
         Align = alClient
         BevelOuter = bvNone
         TabOrder = 1
         object spl: TSplitter
           Left = 0
           Top = 163
-          Width = 193
+          Width = 185
           Height = 2
           Cursor = crVSplit
           Align = alTop
@@ -103,8 +102,8 @@ inherited gdc_frmExplorer: Tgdc_frmExplorer
         object dbtvExplorer: TgsDBTreeView
           Left = 0
           Top = 165
-          Width = 193
-          Height = 374
+          Width = 185
+          Height = 361
           DataSource = dsMain
           KeyField = 'ID'
           ParentField = 'PARENT'
@@ -113,7 +112,6 @@ inherited gdc_frmExplorer: Tgdc_frmExplorer
           OnFilterRecord = dbtvExplorerFilterRecord
           OnPostProcess = dbtvExplorerPostProcess
           Align = alClient
-          HideSelection = False
           Images = dmImages.ilTree
           Indent = 19
           PopupMenu = pmMain
@@ -121,7 +119,6 @@ inherited gdc_frmExplorer: Tgdc_frmExplorer
           RightClickSelect = True
           SortType = stText
           TabOrder = 0
-          OnAdvancedCustomDrawItem = dbtvExplorerAdvancedCustomDrawItem
           OnClick = dbtvExplorerClick
           OnDblClick = dbtvExplorerDblClick
           OnExpanded = dbtvExplorerExpanded
@@ -134,7 +131,7 @@ inherited gdc_frmExplorer: Tgdc_frmExplorer
         object pnlTop: TPanel
           Left = 0
           Top = 0
-          Width = 193
+          Width = 185
           Height = 163
           Align = alTop
           BevelOuter = bvNone
@@ -143,7 +140,7 @@ inherited gdc_frmExplorer: Tgdc_frmExplorer
           object lb: TListBox
             Left = 0
             Top = 0
-            Width = 193
+            Width = 185
             Height = 163
             Hint = 'Список последних вызовов'
             Align = alClient
@@ -158,7 +155,7 @@ inherited gdc_frmExplorer: Tgdc_frmExplorer
           object pcSecurity: TPageControl
             Left = 0
             Top = 0
-            Width = 193
+            Width = 185
             Height = 163
             ActivePage = tsGroup
             Align = alClient
@@ -362,7 +359,7 @@ inherited gdc_frmExplorer: Tgdc_frmExplorer
               object Panel5: TPanel
                 Left = 0
                 Top = 82
-                Width = 185
+                Width = 177
                 Height = 53
                 Align = alBottom
                 BevelOuter = bvLowered
@@ -396,7 +393,7 @@ inherited gdc_frmExplorer: Tgdc_frmExplorer
               object Panel6: TPanel
                 Left = 0
                 Top = 0
-                Width = 185
+                Width = 177
                 Height = 82
                 Align = alClient
                 BevelOuter = bvNone
@@ -404,7 +401,7 @@ inherited gdc_frmExplorer: Tgdc_frmExplorer
                 object lblClass: TLabel
                   Left = 0
                   Top = 0
-                  Width = 185
+                  Width = 177
                   Height = 17
                   Align = alTop
                   AutoSize = False
@@ -413,7 +410,7 @@ inherited gdc_frmExplorer: Tgdc_frmExplorer
                 object mRights: TMemo
                   Left = 0
                   Top = 17
-                  Width = 185
+                  Width = 177
                   Height = 65
                   TabStop = False
                   Align = alClient
@@ -507,16 +504,16 @@ inherited gdc_frmExplorer: Tgdc_frmExplorer
       end
     end
     inherited pnChoose: TPanel
-      Top = 543
-      Width = 271
+      Top = 530
+      Width = 263
       inherited pnButtonChoose: TPanel
-        Left = 166
+        Left = 158
       end
       inherited ibgrChoose: TgsIBGrid
-        Width = 166
+        Width = 158
       end
       inherited pnlChooseCaption: TPanel
-        Width = 271
+        Width = 263
       end
     end
   end

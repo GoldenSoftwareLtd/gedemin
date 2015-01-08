@@ -7,7 +7,7 @@ inherited gdc_frmMDVTree: Tgdc_frmMDVTree
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 558
+    Top = 555
     Width = 796
   end
   inherited TBDockTop: TTBDock
@@ -29,45 +29,45 @@ inherited gdc_frmMDVTree: Tgdc_frmMDVTree
       end
     end
     inherited tbMainInvariant: TTBToolbar
-      Left = 280
+      Left = 286
     end
   end
   inherited TBDockLeft: TTBDock
-    Height = 498
+    Height = 495
   end
   inherited TBDockRight: TTBDock
     Left = 787
-    Height = 498
+    Height = 495
   end
   inherited TBDockBottom: TTBDock
-    Top = 549
+    Top = 546
     Width = 796
   end
   inherited pnlWorkArea: TPanel
     Width = 778
-    Height = 498
+    Height = 495
     inherited sMasterDetail: TSplitter
       Left = 166
-      Height = 393
+      Height = 390
     end
     inherited spChoose: TSplitter
-      Top = 393
+      Top = 390
       Width = 778
     end
     inherited pnlMain: TPanel
       Width = 166
-      Height = 393
+      Height = 390
       inherited pnlSearchMain: TPanel
-        Height = 393
+        Height = 390
         inherited sbSearchMain: TScrollBox
-          Height = 366
+          Height = 363
         end
       end
       object tvGroup: TgsDBTreeView
         Left = 160
         Top = 0
         Width = 6
-        Height = 393
+        Height = 390
         DataSource = dsMain
         KeyField = 'ID'
         ParentField = 'PARENT'
@@ -76,7 +76,6 @@ inherited gdc_frmMDVTree: Tgdc_frmMDVTree
           '')
         Align = alClient
         DragMode = dmAutomatic
-        HideSelection = False
         Indent = 19
         PopupMenu = pmMain
         RightClickSelect = True
@@ -95,7 +94,7 @@ inherited gdc_frmMDVTree: Tgdc_frmMDVTree
       end
     end
     inherited pnChoose: TPanel
-      Top = 399
+      Top = 396
       Width = 778
       inherited pnButtonChoose: TPanel
         Left = 673
@@ -110,30 +109,30 @@ inherited gdc_frmMDVTree: Tgdc_frmMDVTree
     inherited pnlDetail: TPanel
       Left = 172
       Width = 606
-      Height = 393
+      Height = 390
       BevelOuter = bvNone
       inherited TBDockDetail: TTBDock
         Left = 0
         Top = 0
         Width = 606
         inherited tbDetailCustom: TTBToolbar
-          Left = 275
+          Left = 286
         end
       end
       inherited pnlSearchDetail: TPanel
         Left = 0
         Top = 26
-        Height = 367
+        Height = 364
         TabOrder = 2
         inherited sbSearchDetail: TScrollBox
-          Height = 340
+          Height = 337
         end
       end
       object ibgrDetail: TgsIBGrid
         Left = 160
         Top = 26
         Width = 446
-        Height = 367
+        Height = 364
         HelpContext = 3
         Align = alClient
         BorderStyle = bsNone
@@ -195,13 +194,13 @@ inherited gdc_frmMDVTree: Tgdc_frmMDVTree
     end
     inherited actUnSelectAll: TAction [48]
     end
-    inherited actDetailToSetting: TAction [49]
-    end
-    inherited actDetailSaveToFile: TAction [50]
-    end
     inherited actClearSelection: TAction [51]
     end
     inherited actDetailLoadFromFile: TAction [52]
+    end
+    inherited actDeleteChoose: TAction [53]
+    end
+    inherited actCopySettingsFromUser: TAction [54]
     end
     inherited actDetailEditInGrid: TAction
       Visible = True

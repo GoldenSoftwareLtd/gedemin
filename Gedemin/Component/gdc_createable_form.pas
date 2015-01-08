@@ -176,7 +176,7 @@ begin
     if Assigned(FgdcObject) then
       FgdcObject.RemoveFreeNotification(Self);
     FgdcObject := Value;
-    if (FSubType > '') and (FgdcObject <> nil) then
+    if (FSubType > '') and (FgdcObject <> nil) and (FgdcObject.CheckSubType(FSubType))then
       FgdcObject.SubType := FSubType;
     if Active then
       SetCurrentForm(Self);

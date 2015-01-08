@@ -752,14 +752,8 @@ begin
             begin
               OL := TObjectList.Create(False);
               try
-                if gdClass.GetChildrenClass(SubType, OL, True, False) then
+                if gdClass.GetChildrenClass(SubType, OL) then
                 begin
-                  for I := OL.Count - 1 downto 0 do
-                  begin
-                    if TgdClassEntry(OL[I]).gdcClass.IsAbstractClass then
-                      OL.Delete(I);
-                  end;
-
                   for I := 0 to OL.Count - 1 do
                   begin
                     CE := TgdClassEntry(OL[I]);

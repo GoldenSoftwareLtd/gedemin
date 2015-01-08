@@ -25,7 +25,7 @@ interface
 
 uses
   DB, Windows, Classes, ContNrs, IBCustomDataSet, gdcBase, gdcTree,
-  Forms, gd_createable_form, dbgrids, gdcBaseInterface, Graphics;
+  Forms, gd_createable_form, dbgrids, gdcBaseInterface, Graphics, TB2Item, Menus;
 
 const
   // contact type constants
@@ -134,8 +134,9 @@ type
     class function ContactType: Integer; virtual;
     class function GetRestrictCondition(const ATableName, ASubType: String): String; override;
     class function GetChildrenClass(const ASubType: TgdcSubType;
-      OL: TObjectList; const AnIncludeRoot: Boolean = True;
-      const AnOnlyDirect: Boolean = False ): Boolean; override;
+      AnOL: TObjectList; const AnIncludeRoot: Boolean = True;
+      const AnOnlyDirect: Boolean = False;
+      const AnIncludeAbstract: Boolean = False): Boolean; override;
 
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
 
@@ -165,6 +166,16 @@ type
   public
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
+
+    procedure SubNewPopup(ATBSI: TTBSubmenuItem;
+      const AnOnlySameLevel: Boolean;
+      ADisabled: TClassList = nil); overload; override;
+
+    procedure SubNewPopup(AMI: TMenuItem;
+      const AnOnlySameLevel: Boolean;
+      ADisabled: TClassList = nil); overload; override;
+
+    function GetDescendantCount(const AnOnlySameLevel: Boolean): Integer; override;
   end;
 
   TgdcDepartment = class(TgdcBaseContact)
@@ -240,6 +251,16 @@ type
     function CheckTheSameStatement: String; override;
     procedure _DoOnNewRecord; override;
 
+    procedure SubNewPopup(ATBSI: TTBSubmenuItem;
+      const AnOnlySameLevel: Boolean;
+      ADisabled: TClassList = nil); overload; override;
+
+    procedure SubNewPopup(AMI: TMenuItem;
+      const AnOnlySameLevel: Boolean;
+      ADisabled: TClassList = nil); overload; override;
+
+    function GetDescendantCount(const AnOnlySameLevel: Boolean): Integer; override;
+
     property OnlyOurCompany: Boolean read FOnlyOurCompany write FOnlyOurCompany;
   end;
 
@@ -298,6 +319,16 @@ type
     class procedure GetClassImage(const ASizeX, ASizeY: Integer; AGraphic: TGraphic); override;
 
     function CheckTheSameStatement: String; override;
+
+    procedure SubNewPopup(ATBSI: TTBSubmenuItem;
+      const AnOnlySameLevel: Boolean;
+      ADisabled: TClassList = nil); overload; override;
+
+    procedure SubNewPopup(AMI: TMenuItem;
+      const AnOnlySameLevel: Boolean;
+      ADisabled: TClassList = nil); overload; override;
+
+    function GetDescendantCount(const AnOnlySameLevel: Boolean): Integer; override;
   end;
 
 procedure Register;
@@ -1065,13 +1096,15 @@ begin
 end;
 
 class function TgdcBaseContact.GetChildrenClass(const ASubType: TgdcSubType;
-  OL: TObjectList; const AnIncludeRoot: Boolean = True;
-  const AnOnlyDirect: Boolean = False ): Boolean;
+  AnOL: TObjectList; const AnIncludeRoot: Boolean = True;
+  const AnOnlyDirect: Boolean = False;
+  const AnIncludeAbstract: Boolean = False): Boolean;
 var
   CL: TClassList;
   I, J: Integer;
 begin
-  Result := inherited GetChildrenClass(ASubType, OL, AnIncludeRoot, AnOnlyDirect);
+  Result := inherited GetChildrenClass(ASubType, AnOL, AnIncludeRoot,
+    AnOnlyDirect, AnIncludeAbstract);
 
   if Result then
   begin
@@ -1086,14 +1119,14 @@ begin
       if Self <> TgdcDepartment then
         CL.Add(TgdcDepartment);
 
-      if OL.Count > 0 then
-        for I := OL.Count - 1 downto 0 do
+      if AnOL.Count > 0 then
+        for I := AnOL.Count - 1 downto 0 do
         begin
           for J := 0 to CL.Count - 1 do
           begin
-            if TgdClassEntry(OL[I]).TheClass = CL[J] then
+            if TgdClassEntry(AnOL[I]).TheClass = CL[J] then
             begin
-              OL.Delete(I);
+              AnOL.Delete(I);
               break;
             end;
           end;
@@ -1103,7 +1136,7 @@ begin
     end;
   end;
 
-  Result := OL.Count > 0;
+  Result := AnOL.Count > 0;
 end;
 
 class function TgdcBaseContact.GetListField(
@@ -1533,6 +1566,102 @@ procedure TgdcGroup.GetWhereClauseConditions(S: TStrings);
 begin
   inherited;
   S.Add(GetListTableAlias + '.contacttype=1');
+end;
+
+procedure TgdcGroup.SubNewPopup(ATBSI: TTBSubmenuItem;
+  const AnOnlySameLevel: Boolean;
+  ADisabled: TClassList = nil);
+var
+  I, J: Integer;
+  OL: TObjectList;
+  TBEI: TTBExtItem;
+begin
+  if ATBSI = nil then
+    raise Exception.Create('SubmenuItem is nil');
+
+  ATBSI.Clear;
+
+  OL := TObjectList.Create(False);
+    try
+    if GetChildrenClass(SubType, OL) then
+    begin
+      for I := 0 to OL.Count - 1 do
+      begin
+        TBEI := TTBExtItem.Create(ATBSI);
+        TBEI.Caption := TgdClassEntry(OL[I]).Caption;
+        if TBEI.Caption = '' then
+          TBEI.Caption := TgdClassEntry(OL[I]).TheClass.ClassName;
+        TBEI.Obj := OL[I];
+        TBEI.AsChildren := False;
+        TBEI.OnClick := DoOnDescendantClick;
+        TBEI.ImageIndex := 0;
+        if ADisabled <> nil then
+          for J := 0 to ADisabled.Count - 1 do
+          begin
+            if ADisabled[J] = TgdClassEntry(OL[I]).TheClass then
+              TBEI.Enabled := False;
+          end;
+        ATBSI.Add(TBEI);
+      end;
+
+    end;
+  finally
+    OL.Free;
+  end;
+end;
+
+procedure TgdcGroup.SubNewPopup(AMI: TMenuItem;
+  const AnOnlySameLevel: Boolean;
+  ADisabled: TClassList = nil);
+var
+  I, J: Integer;
+  OL: TObjectList;
+  EMI: TExtMenuItem;
+begin
+  if AMI = nil then
+    raise Exception.Create('SubmenuItem is nil');
+
+  AMI.Clear;
+
+  OL := TObjectList.Create(False);
+  try
+    if GetChildrenClass(SubType, OL) then
+    begin
+      for I := 0 to OL.Count - 1 do
+      begin
+        EMI := TExtMenuItem.Create(AMI);
+        EMI.Caption := TgdClassEntry(OL[I]).Caption;
+        if EMI.Caption = '' then
+          EMI.Caption := TgdClassEntry(OL[I]).TheClass.ClassName;
+        EMI.Obj := OL[I];
+        EMI.AsChildren := False;
+        EMI.OnClick := DoOnDescendantClick;
+        EMI.ImageIndex := 0;
+        if ADisabled <> nil then
+          for J := 0 to ADisabled.Count - 1 do
+          begin
+            if ADisabled[J] = TgdClassEntry(OL[I]).TheClass then
+              EMI.Enabled := False;
+          end;
+        AMI.Add(EMI);
+      end;
+    end;
+  finally
+    OL.Free;
+  end;
+end;
+
+function TgdcGroup.GetDescendantCount(const AnOnlySameLevel: Boolean): Integer;
+var
+  OL: TObjectList;
+begin
+  OL := TObjectList.Create(False);
+  try
+    GetChildrenClass(SubType, OL);
+    Result := OL.Count;
+  finally
+    OL.Free;
+  end;
 end;
 
 { TgdcDepartment }
@@ -2444,6 +2573,102 @@ begin
   finally
     q.Free;
     Tr.Free;
+  end;
+end;
+
+procedure TgdcOurCompany.SubNewPopup(ATBSI: TTBSubmenuItem;
+  const AnOnlySameLevel: Boolean;
+  ADisabled: TClassList = nil);
+var
+  I, J: Integer;
+  OL: TObjectList;
+  TBEI: TTBExtItem;
+begin
+  if ATBSI = nil then
+    raise Exception.Create('SubmenuItem is nil');
+
+  ATBSI.Clear;
+
+  OL := TObjectList.Create(False);
+    try
+    if GetChildrenClass(SubType, OL) then
+    begin
+      for I := 0 to OL.Count - 1 do
+      begin
+        TBEI := TTBExtItem.Create(ATBSI);
+        TBEI.Caption := TgdClassEntry(OL[I]).Caption;
+        if TBEI.Caption = '' then
+          TBEI.Caption := TgdClassEntry(OL[I]).TheClass.ClassName;
+        TBEI.Obj := OL[I];
+        TBEI.AsChildren := False;
+        TBEI.OnClick := DoOnDescendantClick;
+        TBEI.ImageIndex := 0;
+        if ADisabled <> nil then
+          for J := 0 to ADisabled.Count - 1 do
+          begin
+            if ADisabled[J] = TgdClassEntry(OL[I]).TheClass then
+              TBEI.Enabled := False;
+          end;
+        ATBSI.Add(TBEI);
+      end;
+
+    end;
+  finally
+    OL.Free;
+  end;
+end;
+
+procedure TgdcOurCompany.SubNewPopup(AMI: TMenuItem;
+  const AnOnlySameLevel: Boolean;
+  ADisabled: TClassList = nil);
+var
+  I, J: Integer;
+  OL: TObjectList;
+  EMI: TExtMenuItem;
+begin
+  if AMI = nil then
+    raise Exception.Create('SubmenuItem is nil');
+
+  AMI.Clear;
+
+  OL := TObjectList.Create(False);
+  try
+    if GetChildrenClass(SubType, OL) then
+    begin
+      for I := 0 to OL.Count - 1 do
+      begin
+        EMI := TExtMenuItem.Create(AMI);
+        EMI.Caption := TgdClassEntry(OL[I]).Caption;
+        if EMI.Caption = '' then
+          EMI.Caption := TgdClassEntry(OL[I]).TheClass.ClassName;
+        EMI.Obj := OL[I];
+        EMI.AsChildren := False;
+        EMI.OnClick := DoOnDescendantClick;
+        EMI.ImageIndex := 0;
+        if ADisabled <> nil then
+          for J := 0 to ADisabled.Count - 1 do
+          begin
+            if ADisabled[J] = TgdClassEntry(OL[I]).TheClass then
+              EMI.Enabled := False;
+          end;
+        AMI.Add(EMI);
+      end;
+    end;
+  finally
+    OL.Free;
+  end;
+end;
+
+function TgdcOurCompany.GetDescendantCount(const AnOnlySameLevel: Boolean): Integer;
+var
+  OL: TObjectList;
+begin
+  OL := TObjectList.Create(False);
+  try
+    GetChildrenClass(SubType, OL);
+    Result := OL.Count;
+  finally
+    OL.Free;
   end;
 end;
 
@@ -3394,6 +3619,102 @@ begin
   {M}      ClearMacrosStack2('TGDCBANK', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT);
   {M}  end;
   {END MACRO}
+end;
+
+procedure TgdcBank.SubNewPopup(ATBSI: TTBSubmenuItem;
+  const AnOnlySameLevel: Boolean;
+  ADisabled: TClassList = nil);
+var
+  I, J: Integer;
+  OL: TObjectList;
+  TBEI: TTBExtItem;
+begin
+  if ATBSI = nil then
+    raise Exception.Create('SubmenuItem is nil');
+
+  ATBSI.Clear;
+
+  OL := TObjectList.Create(False);
+    try
+    if GetChildrenClass(SubType, OL) then
+    begin
+      for I := 0 to OL.Count - 1 do
+      begin
+        TBEI := TTBExtItem.Create(ATBSI);
+        TBEI.Caption := TgdClassEntry(OL[I]).Caption;
+        if TBEI.Caption = '' then
+          TBEI.Caption := TgdClassEntry(OL[I]).TheClass.ClassName;
+        TBEI.Obj := OL[I];
+        TBEI.AsChildren := False;
+        TBEI.OnClick := DoOnDescendantClick;
+        TBEI.ImageIndex := 0;
+        if ADisabled <> nil then
+          for J := 0 to ADisabled.Count - 1 do
+          begin
+            if ADisabled[J] = TgdClassEntry(OL[I]).TheClass then
+              TBEI.Enabled := False;
+          end;
+        ATBSI.Add(TBEI);
+      end;
+
+    end;
+  finally
+    OL.Free;
+  end;
+end;
+
+procedure TgdcBank.SubNewPopup(AMI: TMenuItem;
+  const AnOnlySameLevel: Boolean;
+  ADisabled: TClassList = nil);
+var
+  I, J: Integer;
+  OL: TObjectList;
+  EMI: TExtMenuItem;
+begin
+  if AMI = nil then
+    raise Exception.Create('SubmenuItem is nil');
+
+  AMI.Clear;
+
+  OL := TObjectList.Create(False);
+  try
+    if GetChildrenClass(SubType, OL) then
+    begin
+      for I := 0 to OL.Count - 1 do
+      begin
+        EMI := TExtMenuItem.Create(AMI);
+        EMI.Caption := TgdClassEntry(OL[I]).Caption;
+        if EMI.Caption = '' then
+          EMI.Caption := TgdClassEntry(OL[I]).TheClass.ClassName;
+        EMI.Obj := OL[I];
+        EMI.AsChildren := False;
+        EMI.OnClick := DoOnDescendantClick;
+        EMI.ImageIndex := 0;
+        if ADisabled <> nil then
+          for J := 0 to ADisabled.Count - 1 do
+          begin
+            if ADisabled[J] = TgdClassEntry(OL[I]).TheClass then
+              EMI.Enabled := False;
+          end;
+        AMI.Add(EMI);
+      end;
+    end;
+  finally
+    OL.Free;
+  end;
+end;
+
+function TgdcBank.GetDescendantCount(const AnOnlySameLevel: Boolean): Integer;
+var
+  OL: TObjectList;
+begin
+  OL := TObjectList.Create(False);
+  try
+    GetChildrenClass(SubType, OL);
+    Result := OL.Count;
+  finally
+    OL.Free;
+  end;
 end;
 
 class function TgdcBank.GetViewFormClassName(

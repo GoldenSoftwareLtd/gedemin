@@ -402,7 +402,7 @@ begin
   else
     OldID := -1;
 
-  gdcDetailObject.CreateDescendant;
+  inherited;
 
   if OldID <> gdcDetailObject.ID then
   begin

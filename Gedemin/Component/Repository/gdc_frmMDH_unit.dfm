@@ -1,6 +1,6 @@
 inherited gdc_frmMDH: Tgdc_frmMDH
-  Left = 300
-  Top = 236
+  Left = 801
+  Top = 345
   Width = 732
   Height = 496
   HelpContext = 115
@@ -22,8 +22,9 @@ inherited gdc_frmMDH: Tgdc_frmMDH
       DockPos = 8
       object tbsiMainMenuDetailObject: TTBSubmenuItem [1]
         Caption = 'Детальный'
-        object tbi_mm_DetailNew: TTBItem
+        object tbsi_mm_DetailNew: TTBSubmenuItem
           Action = actDetailNew
+          OnPopup = tbsi_mm_DetailNewPopup
         end
         object tbi_mm_DetailEdit: TTBItem
           Action = actDetailEdit
@@ -151,13 +152,14 @@ inherited gdc_frmMDH: Tgdc_frmMDH
           Caption = 'Панель инструментов (детальная)'
           CloseButton = False
           DockMode = dmCannotFloat
-          Images = dmImages.il16x16
           ParentShowHint = False
           ShowHint = True
           Stretch = True
           TabOrder = 0
-          object tbiDetailNew: TTBItem
+          object tbsiDetailNew: TTBSubmenuItem
             Action = actDetailNew
+            DropdownCombo = True
+            OnPopup = tbsiDetailNewPopup
           end
           object tbiDetailEdit: TTBItem
             Action = actDetailEdit
@@ -526,6 +528,7 @@ inherited gdc_frmMDH: Tgdc_frmMDH
     Top = 300
   end
   object pmDetail: TPopupMenu
+    OnPopup = pmDetailPopup
     Left = 464
     Top = 304
     object nDetailNew: TMenuItem

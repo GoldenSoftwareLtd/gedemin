@@ -7,7 +7,8 @@ uses
   Classes,    Controls,         DB,           IB,       IBHeader,
   IBDatabase, IBCustomDataSet,  IBSQL,        SysUtils, DBGrids,
   Forms,      gdcBaseInterface, gd_createable_form,
-  menus,      at_sql_setup,     gd_ClassList, gdcBase,  gd_KeyAssoc;
+  menus,      at_sql_setup,     gd_ClassList, gdcBase,  gd_KeyAssoc,
+  TB2Item,    Contnrs;
 
 type
   TgdcTree = class;
@@ -52,8 +53,9 @@ type
 
     procedure InsertChildren;
 
-    function CreateChildrenDialog: Boolean; overload; virtual;
-    function CreateChildrenDialog(C: CgdcBase): Boolean; overload; virtual;
+    function CreateChildrenDialog: Boolean; overload; override;
+    function CreateChildrenDialog(C: CgdcBase): Boolean; overload; override;
+    function CreateChildrenDialog(C:  TgdcFullClass): Boolean; overload; override;
 
     // функция создает и возвращает объект, на который ссылается
     // поле пэрэнт, т.е. родительский объект
@@ -92,6 +94,16 @@ type
     // или нет.
     class function HasLeafs: Boolean; virtual;
 
+    procedure SubNewPopup(ATBSI: TTBSubmenuItem;
+      const AnOnlySameLevel: Boolean;
+      ADisabled: TClassList = nil); overload; override;
+
+    procedure SubNewPopup(AMI: TMenuItem;
+      const AnOnlySameLevel: Boolean;
+      ADisabled: TClassList = nil); overload; override;
+
+    function GetDescendantCount(const AnOnlySameLevel: Boolean): Integer; override;
+
     property Parent: TID read GetParent write SetParent;
   end;
 
@@ -101,7 +113,7 @@ type
     function GetRB: Integer;
     procedure SetLB(const Value: Integer);
     procedure SetRB(const Value: Integer);
-
+    
   protected
     procedure _DoOnNewRecord; override;
     procedure CreateFields; override;
@@ -295,7 +307,7 @@ function TgdcTree.CreateChildrenDialog: Boolean;
 begin
   FForceChildren := True;
   try
-    Result := CreateDialog;
+    Result := inherited CreateChildrenDialog;
   finally
     FForceChildren := False;
   end;
@@ -305,7 +317,17 @@ function TgdcTree.CreateChildrenDialog(C: CgdcBase): Boolean;
 begin
   FForceChildren := True;
   try
-    Result := CreateDialog(C);
+    Result := inherited CreateChildrenDialog(C);
+  finally
+    FForceChildren := False;
+  end;
+end;
+
+function TgdcTree.CreateChildrenDialog(C:  TgdcFullClass): Boolean;
+begin
+  FForceChildren := True;
+  try
+    Result := inherited CreateChildrenDialog(C);
   finally
     FForceChildren := False;
   end;
@@ -443,6 +465,137 @@ end;
 class function TgdcTree.HasLeafs: Boolean;
 begin
   Result := False;
+end;
+
+procedure TgdcTree.SubNewPopup(ATBSI: TTBSubmenuItem;
+  const AnOnlySameLevel: Boolean;
+  ADisabled: TClassList = nil);
+var
+  I, J: Integer;
+  OL: TObjectList;
+  TBEI: TTBExtItem;
+begin
+  if ATBSI = nil then
+    raise Exception.Create('SubmenuItem is nil');
+
+  ATBSI.Clear;
+
+  OL := TObjectList.Create(False);
+    try
+    if GetChildrenClass(SubType, OL) then
+    begin
+      for I := 0 to OL.Count - 1 do
+      begin
+        TBEI := TTBExtItem.Create(ATBSI);
+        TBEI.Caption := TgdClassEntry(OL[I]).Caption;
+        if TBEI.Caption = '' then
+          TBEI.Caption := TgdClassEntry(OL[I]).TheClass.ClassName;
+        TBEI.Obj := OL[I];
+        TBEI.AsChildren := False;
+        TBEI.OnClick := DoOnDescendantClick;
+        TBEI.ImageIndex := 0;
+        if ADisabled <> nil then
+          for J := 0 to ADisabled.Count - 1 do
+          begin
+            if ADisabled[J] = TgdClassEntry(OL[I]).TheClass then
+              TBEI.Enabled := False;
+          end;
+        ATBSI.Add(TBEI);
+
+        if not AnOnlySameLevel then
+        begin
+          TBEI := TTBExtItem.Create(ATBSI);
+          TBEI.Caption := TgdClassEntry(OL[I]).Caption;
+          if TBEI.Caption = '' then
+            TBEI.Caption := TgdClassEntry(OL[I]).TheClass.ClassName;
+          TBEI.Caption := TBEI.Caption + '(подуровень)';
+          TBEI.Obj := OL[I];
+          TBEI.AsChildren := True;
+          TBEI.OnClick := DoOnDescendantClick;
+          TBEI.ImageIndex := 0;
+          if ADisabled <> nil then
+            for J := 0 to ADisabled.Count - 1 do
+            begin
+              if ADisabled[J] = TgdClassEntry(OL[I]).TheClass then
+                TBEI.Enabled := False;
+            end;
+          ATBSI.Add(TBEI);
+        end;
+      end;
+
+    end;
+  finally
+    OL.Free;
+  end;
+end;
+
+procedure TgdcTree.SubNewPopup(AMI: TMenuItem;
+  const AnOnlySameLevel: Boolean;
+  ADisabled: TClassList = nil);
+var
+  I, J: Integer;
+  OL: TObjectList;
+  EMI: TExtMenuItem;
+begin
+  if AMI = nil then
+    raise Exception.Create('SubmenuItem is nil');
+
+  AMI.Clear;
+
+  OL := TObjectList.Create(False);
+  try
+    if GetChildrenClass(SubType, OL) then
+    begin
+      for I := 0 to OL.Count - 1 do
+      begin
+        EMI := TExtMenuItem.Create(AMI);
+        EMI.Caption := TgdClassEntry(OL[I]).Caption;
+        if EMI.Caption = '' then
+          EMI.Caption := TgdClassEntry(OL[I]).TheClass.ClassName;
+        EMI.Obj := OL[I];
+        EMI.AsChildren := False;
+        EMI.OnClick := DoOnDescendantClick;
+        EMI.ImageIndex := 0;
+        if ADisabled <> nil then
+          for J := 0 to ADisabled.Count - 1 do
+          begin
+            if ADisabled[J] = TgdClassEntry(OL[I]).TheClass then
+              EMI.Enabled := False;
+          end;
+        AMI.Add(EMI);
+
+        if not AnOnlySameLevel then
+        begin
+          EMI := TExtMenuItem.Create(AMI);
+          EMI.Caption := TgdClassEntry(OL[I]).Caption;
+          if EMI.Caption = '' then
+            EMI.Caption := TgdClassEntry(OL[I]).TheClass.ClassName;
+          EMI.Caption := EMI.Caption + '(подуровень)';
+          EMI.Obj := OL[I];
+          EMI.AsChildren := True;
+          EMI.OnClick := DoOnDescendantClick;
+          EMI.ImageIndex := 0;
+          if ADisabled <> nil then
+            for J := 0 to ADisabled.Count - 1 do
+            begin
+              if ADisabled[J] = TgdClassEntry(OL[I]).TheClass then
+                EMI.Enabled := False;
+            end;
+          AMI.Add(EMI);
+        end;
+      end;
+    end;
+  finally
+    OL.Free;
+  end;
+end;
+
+function TgdcTree.GetDescendantCount(const AnOnlySameLevel: Boolean): Integer;
+begin
+  Result := inherited GetDescendantCount(AnOnlySameLevel);
+
+  if not AnOnlySameLevel then
+    Result := Result * 2;
 end;
 
 class function TgdcTree.IsAbstractClass: Boolean;

@@ -840,9 +840,9 @@ begin
 end;
 
 initialization
-  RegisterGDCClass(TgdcMessageBox);
+  RegisterGDCClass(TgdcMessageBox, ctStorage, 'Почтовый ящик');
   RegisterGDCClass(TgdcBaseMessage);
-  RegisterGDCClass(TgdcPhoneCall);
+  RegisterGDCClass(TgdcPhoneCall, ctStorage, 'Телефонный звонок');
   RegisterGDCClass(TgdcAttachment);
 
 finalization

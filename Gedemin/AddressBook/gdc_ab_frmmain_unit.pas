@@ -48,17 +48,8 @@ type
     nAddContact2: TMenuItem;
     nAddBank2: TMenuItem;
     ilSmall: TImageList;
-    TBSubmenuItem2: TTBSubmenuItem;
-    TBItem3: TTBItem;
-    TBItem4: TTBItem;
-    TBItem5: TTBItem;
-    TBItem1: TTBItem;
     gdcFolder: TgdcFolder;
-    TBItem2: TTBItem;
     actAddEmployee: TAction;
-    TBSeparatorItem2: TTBSeparatorItem;
-    TBSeparatorItem3: TTBSeparatorItem;
-    TBSeparatorItem4: TTBSeparatorItem;
     procedure FormCreate(Sender: TObject);
     procedure actAddFolderExecute(Sender: TObject);
     procedure actAddContactExecute(Sender: TObject);

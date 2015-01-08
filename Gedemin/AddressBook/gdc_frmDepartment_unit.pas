@@ -14,10 +14,6 @@ type
   Tgdc_frmDepartment = class(Tgdc_frmMDVTree)
     gdcDepartment: TgdcDepartment;
     IBTransaction: TIBTransaction;
-    actSubNew: TAction;
-    tbsiNew: TTBSubmenuItem;
-    tbiMenuSubNew: TTBItem;
-    tbiMenuNew: TTBItem;
     TBControlItem2: TTBControlItem;
     Label1: TLabel;
     TBControlItem1: TTBControlItem;

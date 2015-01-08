@@ -12,21 +12,6 @@ inherited gdc_frmDepartment: Tgdc_frmDepartment
   end
   inherited TBDockTop: TTBDock
     Width = 731
-    inherited tbMainToolbar: TTBToolbar
-      object tbsiNew: TTBSubmenuItem [0]
-        Action = actNew
-        DropdownCombo = True
-        object tbiMenuNew: TTBItem
-          Action = actNew
-        end
-        object tbiMenuSubNew: TTBItem
-          Action = actSubNew
-        end
-      end
-      inherited tbiNew: TTBItem
-        Visible = False
-      end
-    end
     inherited tbMainCustom: TTBToolbar
       Left = 422
       DockPos = 454
@@ -61,9 +46,6 @@ inherited gdc_frmDepartment: Tgdc_frmDepartment
         OnChange = ibcmbCompanyChange
       end
     end
-    inherited tbMainInvariant: TTBToolbar
-      Left = 286
-    end
     inherited tbChooseMain: TTBToolbar
       Left = 698
     end
@@ -94,10 +76,7 @@ inherited gdc_frmDepartment: Tgdc_frmDepartment
       inherited pnlSearchMain: TPanel
         Height = 299
         inherited sbSearchMain: TScrollBox
-          Height = 261
-        end
-        inherited pnlSearchMainButton: TPanel
-          Top = 261
+          Height = 272
         end
       end
       inherited tvGroup: TgsDBTreeView
@@ -126,10 +105,7 @@ inherited gdc_frmDepartment: Tgdc_frmDepartment
       inherited pnlSearchDetail: TPanel
         Height = 273
         inherited sbSearchDetail: TScrollBox
-          Height = 235
-        end
-        inherited pnlSearchDetailButton: TPanel
-          Top = 235
+          Height = 246
         end
       end
       inherited ibgrDetail: TgsIBGrid
@@ -141,13 +117,6 @@ inherited gdc_frmDepartment: Tgdc_frmDepartment
   inherited alMain: TActionList
     Left = 55
     Top = 170
-    object actSubNew: TAction
-      Category = 'Main'
-      Caption = 'Добавить подуровень...'
-      Hint = 'Добавить подуровень...'
-      ImageIndex = 0
-      OnExecute = actSubNewExecute
-    end
   end
   inherited pmMain: TPopupMenu
     Left = 115

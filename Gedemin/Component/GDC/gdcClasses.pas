@@ -35,7 +35,7 @@ uses
   gdcTree,      Forms,             gd_createable_form,
   at_classes,   gdcBaseInterface,  DB,             gd_KeyAssoc,
   gdcConstants, gd_i_ScriptFactory,
-  gd_security,  gdcOLEClassList,   DBGrids;
+  gd_security,  gdcOLEClassList,   DBGrids, Contnrs;
 
 {$IFDEF DEBUGMOVE}
 const
@@ -143,6 +143,8 @@ type
 
     function GetCurrRecordClass: TgdcFullClass; override;
 
+    function GetDescendantCount(const AnOnlySameLevel: Boolean): Integer; override;
+
     //Кэширует документтайп и возвращает индекс в кэше
     function CacheDocumentType: Integer;
     class function CacheDocumentTypeByRUID(const RUIDString: String): Integer;
@@ -193,6 +195,12 @@ type
     class function GetSubSetList: String; override;
     class function NeedModifyFromStream(const SubType: String): Boolean; override;
     class function IsAbstractClass: Boolean; override;
+
+    class function GetChildrenClass(const ASubType: TgdcSubType;
+      AnOL: TObjectList; const AnIncludeRoot: Boolean = True;
+      const AnOnlyDirect: Boolean = False;
+      const AnIncludeAbstract: Boolean = False): Boolean; override;
+
   end;
 
   TgdcDocumentBranch = class(TgdcBaseDocumentType)
@@ -224,6 +232,9 @@ type
   public
     function GetCurrRecordClass: TgdcFullClass; override;
     class function GetHeaderDocumentClass: CgdcBase; virtual;
+
+    class function IsAbstractClass: Boolean; override;
+
   end;
 
   TgdcUserDocumentType = class(TgdcDocumentType)
@@ -442,7 +453,6 @@ uses
   gdc_dlgUserDocumentLine_unit,
   gd_directories_const,
   IB, gdc_frmMDH_unit,
-  ContNrs,
   gd_resourcestring,
 
   jclStrings
@@ -522,7 +532,7 @@ const
 procedure Register;
 begin
   RegisterComponents('gdc', [TgdcDocumentBranch, TgdcDocumentType,
-    TgdcUserDocument, TgdcUserDocumentLine]);
+    TgdcUserDocument, TgdcUserDocumentLine, TgdcBaseDocumentType]);
 end;
 
 function EncodeNumber(const AMask: String; const ALastNumber: Integer;
@@ -1521,6 +1531,11 @@ begin
     if (Result.SubType > '') and (not Result.gdClass.CheckSubType(Result.SubType)) then
       raise EgdcException.Create('Invalid USR$ST value.');
   end;
+end;
+
+function TgdcDocument.GetDescendantCount(const AnOnlySameLevel: Boolean): Integer;
+begin
+  Result := 1;
 end;
 
 class function TgdcDocument.HasLeafs: Boolean;
@@ -2887,6 +2902,30 @@ begin
   Result := Self.ClassNameIs('TgdcBaseDocumentType');
 end;
 
+class function TgdcBaseDocumentType.GetChildrenClass(const ASubType: TgdcSubType;
+  AnOL: TObjectList; const AnIncludeRoot: Boolean = True;
+  const AnOnlyDirect: Boolean = False;
+  const AnIncludeAbstract: Boolean = False): Boolean;
+var
+  I: Integer;
+begin
+  Result := inherited GetChildrenClass(ASubType, AnOL, AnIncludeRoot,
+    AnOnlyDirect, AnIncludeAbstract);
+
+  if Result and (Self = TgdcBaseDocumentType) then
+  begin
+    for I := AnOL.Count - 1 downto 0 do
+    begin
+      if TgdClassEntry(AnOL[I]).TheClass <> TgdcDocumentBranch then
+      begin
+        AnOL.Delete(I);
+      end;
+    end;
+  end;
+
+  Result := AnOL.Count > 0;
+end;
+
 class function TgdcBaseDocumentType.GetDialogFormClassName(
   const ASubType: TgdcSubType): String;
 begin
@@ -3372,6 +3411,11 @@ end;
 class function TgdcDocumentType.GetHeaderDocumentClass: CgdcBase;
 begin
   Result := TgdcDocument;
+end;
+
+class function TgdcDocumentType.IsAbstractClass: Boolean;
+begin
+  Result := Self.ClassNameIs('TgdcDocumentType');
 end;
 
 { TgdcUserDocumentType }
@@ -4743,7 +4787,7 @@ initialization
   RegisterGdcClass(TgdcBaseDocumentType);
   RegisterGdcClass(TgdcDocumentBranch, ctStorage, 'Папка');
   RegisterGdcClass(TgdcDocumentType, ctStorage, 'Тип документа');
-  RegisterGdcClass(TgdcUserDocumentType);
+  RegisterGdcClass(TgdcUserDocumentType, ctStorage, 'Документ пользователя');
   RegisterGdcClass(TgdcUserBaseDocument);
   RegisterGdcClass(TgdcUserDocument, ctUserDocument);
   RegisterGdcClass(TgdcUserDocumentLine, ctUserDocument);

@@ -3,7 +3,7 @@ unit gdc_frmMD2H_unit;
 interface
 
 uses
-  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Contnrs, Forms, Dialogs,
   gdc_frmMDH_unit, gd_MacrosMenu, Db, Menus, ActnList, Grids, DBGrids,
   gsDBGrid, gsIBGrid, StdCtrls, ExtCtrls, TB2Item, TB2Dock, TB2Toolbar,
   ComCtrls, gdcBase;
@@ -29,8 +29,8 @@ type
     tbiSubDetailDup: TTBItem;
     tbiSubDetailDel: TTBItem;
     tbiSubDetailEdit: TTBItem;
-    tbiSubDetailNew: TTBItem;
     tbsSubdetail1: TTBSeparatorItem;
+    tbsiSubDetailNew: TTBSubmenuItem;
     procedure actSubDetailNewExecute(Sender: TObject);
     procedure actSubDetailNewUpdate(Sender: TObject);
     procedure actSubDetailEditExecute(Sender: TObject);
@@ -53,6 +53,8 @@ type
       Bar: TTBCustomDockableWindow; var Accept: Boolean);
     procedure TBDockTopRequestDock(Sender: TObject;
       Bar: TTBCustomDockableWindow; var Accept: Boolean);
+    procedure tbsiSubDetailNewPopup(Sender: TTBCustomItem;
+      FromLink: Boolean);
 
   private
     FgdcSubDetailObject: TgdcBase;
@@ -129,17 +131,45 @@ end;
 
 procedure Tgdc_frmMD2H.actSubDetailNewExecute(Sender: TObject);
 begin
-  gdcSubDetailObject.CreateDescendant;
+  if (gdcSubDetailObject <> nil) and (not gdcSubDetailObject.IsAbstractClass) then
+    gdcSubDetailObject.CreateDialog;
 end;
 
 procedure Tgdc_frmMD2H.actSubDetailNewUpdate(Sender: TObject);
+var
+  I: Integer;
+  DescendantCount: Integer;
+  SubMenu: Boolean;
 begin
+  if gdcSubDetailObject <> nil then
+    DescendantCount := gdcSubDetailObject.GetDescendantCount(True)
+  else
+    DescendantCount := 0;
+
   actSubDetailNew.Enabled := (gdcObject <> nil)
     and (gdcDetailObject <> nil)
     and (gdcSubDetailObject <> nil)
     and gdcSubDetailObject.CanCreate
     and ((gdcDetailObject.RecordCount > 0)
-      or (gdcSubDetailObject.HasSubSet('All')));
+      or (gdcSubDetailObject.HasSubSet('All')))
+    and (DescendantCount > 0);
+
+  SubMenu := DescendantCount > 1;
+
+  if not SubMenu then
+    SubMenu := (gdcSubDetailObject <> nil) and (gdcSubDetailObject.IsAbstractClass) and (DescendantCount > 0);
+
+  With tbSubDetailToolbar.Items do
+  begin
+    for I := 0 to Count - 1 do
+    begin
+      if (Items[I] is TTBSubmenuItem) and (Items[I].Action = (Sender as TBasicAction)) then
+      begin
+        (Items[I] as TTBSubmenuItem).DropDownCombo := SubMenu;
+        Break;
+      end
+    end;
+  end;
 end;
 
 procedure Tgdc_frmMD2H.actSubDetailEditExecute(Sender: TObject);
@@ -408,6 +438,13 @@ begin
   {M}    ClearMacrosStack('TGDC_FRMMD2H', 'LOADSETTINGSAFTERCREATE', KEYLOADSETTINGSAFTERCREATE);
   {M}end;
   {END MACRO}
+end;
+
+procedure Tgdc_frmMD2H.tbsiSubDetailNewPopup(Sender: TTBCustomItem;
+  FromLink: Boolean);
+begin
+  if (TTBSubmenuItem(Sender).DropDownCombo) and (gdcSubDetailObject <> nil) then
+    gdcSubDetailObject.SubNewPopup((Sender as TTBSubmenuItem), True);
 end;
 
 initialization

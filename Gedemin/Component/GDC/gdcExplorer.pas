@@ -34,7 +34,7 @@ uses
   Windows,      Messages,       SysUtils,       Classes,        Graphics,
   Controls,     Forms,          Dialogs,        Db,             IBCustomDataSet,
   gdcBase,      gdcTree,        gd_security,    gd_createable_form, dmDatabase_unit,
-  gdcBaseInterface, gd_KeyAssoc, rp_ReportClient;
+  gdcBaseInterface, gd_KeyAssoc, rp_ReportClient, TB2Item, Contnrs, Menus;
 
 
 const
@@ -88,6 +88,16 @@ type
       PropertyList: TgdcPropertySets; BindedList: TgdcObjectSet;
       WithDetailList: TgdKeyArray; const SaveDetailObjects: Boolean = True); override;
 
+    procedure SubNewPopup(ATBSI: TTBSubmenuItem;
+      const AnOnlySameLevel: Boolean;
+      ADisabled: TClassList = nil); overload; override;
+
+    procedure SubNewPopup(AMI: TMenuItem;
+      const AnOnlySameLevel: Boolean;
+      ADisabled: TClassList = nil); overload; override;
+
+    function GetDescendantCount(const AnOnlySameLevel: Boolean): Integer; override;
+
     property gdcClass: CgdcBase read Get_gdcClass;
   end;
 
@@ -104,7 +114,7 @@ uses
   gdc_dlgExplorer_unit, gd_directories_const,    Storages,
   scr_i_functionlist,   rp_BaseReport_unit,      gd_i_scriptfactory,
   gdcFunction,          jclStrings,              gsResizerInterface,
-  IBUtils,              ContNrs,                 at_classes,
+  IBUtils,              at_classes,
   IBDatabase,           IBSQL,                   gdcReport
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
@@ -1099,6 +1109,102 @@ begin
         R.Free;
       end;
     end;
+  end;
+end;
+
+procedure TgdcExplorer.SubNewPopup(ATBSI: TTBSubmenuItem;
+  const AnOnlySameLevel: Boolean;
+  ADisabled: TClassList = nil);
+var
+  I, J: Integer;
+  OL: TObjectList;
+  TBEI: TTBExtItem;
+begin
+  if ATBSI = nil then
+    raise Exception.Create('SubmenuItem is nil');
+
+  ATBSI.Clear;
+
+  OL := TObjectList.Create(False);
+    try
+    if GetChildrenClass(SubType, OL) then
+    begin
+      for I := 0 to OL.Count - 1 do
+      begin
+        TBEI := TTBExtItem.Create(ATBSI);
+        TBEI.Caption := TgdClassEntry(OL[I]).Caption;
+        if TBEI.Caption = '' then
+          TBEI.Caption := TgdClassEntry(OL[I]).TheClass.ClassName;
+        TBEI.Obj := OL[I];
+        TBEI.AsChildren := False;
+        TBEI.OnClick := DoOnDescendantClick;
+        TBEI.ImageIndex := 0;
+        if ADisabled <> nil then
+          for J := 0 to ADisabled.Count - 1 do
+          begin
+            if ADisabled[J] = TgdClassEntry(OL[I]).TheClass then
+              TBEI.Enabled := False;
+          end;
+        ATBSI.Add(TBEI);
+      end;
+
+    end;
+  finally
+    OL.Free;
+  end;
+end;
+
+procedure TgdcExplorer.SubNewPopup(AMI: TMenuItem;
+  const AnOnlySameLevel: Boolean;
+  ADisabled: TClassList = nil);
+var
+  I, J: Integer;
+  OL: TObjectList;
+  EMI: TExtMenuItem;
+begin
+  if AMI = nil then
+    raise Exception.Create('SubmenuItem is nil');
+
+  AMI.Clear;
+
+  OL := TObjectList.Create(False);
+  try
+    if GetChildrenClass(SubType, OL) then
+    begin
+      for I := 0 to OL.Count - 1 do
+      begin
+        EMI := TExtMenuItem.Create(AMI);
+        EMI.Caption := TgdClassEntry(OL[I]).Caption;
+        if EMI.Caption = '' then
+          EMI.Caption := TgdClassEntry(OL[I]).TheClass.ClassName;
+        EMI.Obj := OL[I];
+        EMI.AsChildren := False;
+        EMI.OnClick := DoOnDescendantClick;
+        EMI.ImageIndex := 0;
+        if ADisabled <> nil then
+          for J := 0 to ADisabled.Count - 1 do
+          begin
+            if ADisabled[J] = TgdClassEntry(OL[I]).TheClass then
+              EMI.Enabled := False;
+          end;
+        AMI.Add(EMI);
+      end;
+    end;
+  finally
+    OL.Free;
+  end;
+end;
+
+function TgdcExplorer.GetDescendantCount(const AnOnlySameLevel: Boolean): Integer;
+var
+  OL: TObjectList;
+begin
+  OL := TObjectList.Create(False);
+  try
+    GetChildrenClass(SubType, OL);
+    Result := OL.Count;
+  finally
+    OL.Free;
   end;
 end;
 
