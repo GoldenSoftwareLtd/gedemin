@@ -214,8 +214,11 @@ end;
 
 procedure Tgdc_frmMDH.actDetailNewExecute(Sender: TObject);
 begin
-  if (gdcDetailObject <> nil) and (not gdcDetailObject.IsAbstractClass) then
-    gdcDetailObject.CreateDialog;
+  if (gdcDetailObject <> nil) then
+    if not gdcDetailObject.IsAbstractClass then
+      gdcDetailObject.CreateDialog
+    else
+      gdcDetailObject.CreateDefaultDialog;
 end;
 
 procedure Tgdc_frmMDH.actDetailNewUpdate(Sender: TObject);

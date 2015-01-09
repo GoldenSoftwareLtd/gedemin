@@ -201,6 +201,7 @@ type
       const AnOnlyDirect: Boolean = False;
       const AnIncludeAbstract: Boolean = False): Boolean; override;
 
+    class function GetDefaultClassForDialog: TgdcFullClass; override;
   end;
 
   TgdcDocumentBranch = class(TgdcBaseDocumentType)
@@ -2924,6 +2925,17 @@ begin
   end;
 
   Result := AnOL.Count > 0;
+end;
+
+class function TgdcBaseDocumentType.GetDefaultClassForDialog: TgdcFullClass;
+begin
+  if Self <> TgdcBaseDocumentType then
+    Result := inherited GetDefaultClassForDialog
+  else
+  begin
+    Result.gdClass := TgdcDocumentBranch;
+    Result.SubType := '';
+  end;
 end;
 
 class function TgdcBaseDocumentType.GetDialogFormClassName(
