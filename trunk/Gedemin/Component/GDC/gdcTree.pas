@@ -104,6 +104,8 @@ type
 
     function GetDescendantCount(const AnOnlySameLevel: Boolean): Integer; override;
 
+    function CreateDialog(C: TgdcFullClass): Boolean; override;
+
     property Parent: TID read GetParent write SetParent;
   end;
 
@@ -167,6 +169,7 @@ begin
   inherited;
   FForceChildren := False;
   FParent := -1;
+  FCurrentParent := -1;
 end;
 
 procedure TgdcTree.DoBeforeInsert;
@@ -206,9 +209,9 @@ begin
     if ((Parent = -1) or (RecordCount = 0)) and Active and (FgdcDataLink.DataSet is TgdcTree) then
       FCurrentParent := (FgdcDataLink.DataSet as TgdcBase).ID
     else if RecordCount > 0 then
-      FCurrentParent := Parent
-    else
-      FCurrentParent := -1;
+      FCurrentParent := Parent;
+//    else FCurrentParent
+//      FCurrentParent := -1;
   end else
      FCurrentParent := ID;
 
@@ -596,6 +599,80 @@ begin
 
   if not AnOnlySameLevel then
     Result := Result * 2;
+end;
+
+function TgdcTree.CreateDialog(C: TgdcFullClass): Boolean;
+var
+  Obj: TgdcBase;
+  I: Integer;
+  F: TField;
+begin
+  if C.gdClass <> nil then
+  begin
+    CheckClass(C.gdClass);
+    if (C.gdClass = Self.ClassType) and (AnsiUpperCase(C.SubType) = AnsiUpperCase(SubType)) then
+      Result := CreateDialog
+    else begin
+      Obj := C.gdClass.CreateWithParams(Owner, Database, Transaction, C.SubType, 'OnlySelected');
+      try
+        // об€зательно надо сохранить мастера!
+        //Obj.MasterField := MasterField;
+        //Obj.DetailField := DetailField;
+        CopyEventHandlers(Obj, Self);
+
+        if Obj is TgdcTree then
+          if FForceChildren then
+            (Obj as TgdcTree).FCurrentParent := Self.ID
+          else
+            (Obj as TgdcTree).FCurrentParent := Self.Parent;
+        try
+
+          //Obj.Assign(Self);
+
+          Result := Obj.CreateDialog;
+
+          if Result and Active and Obj.Active then
+          begin
+            FDataTransfer := True;
+
+            ResetEventHandlers(Self);
+            try
+              { TODO : вернетс€ только одна запись! поскольку —аб—ет стоит Ѕай»ƒ }
+
+              Obj.First;
+              while not Obj.EOF do
+              begin
+                Insert;
+                try
+                  for I := 0 to FieldCount - 1 do
+                  begin
+                    F := Obj.FindField(Fields[I].FieldName);
+                    if Assigned(F) then
+                      Fields[I].Assign(F);
+                  end;
+                  Post;
+                except
+                  if State in dsEditModes then
+                    Cancel;
+                  raise;
+                end;
+                Obj.Next;
+              end;
+            finally
+              FDataTransfer := False;
+            end;
+          end;
+
+        finally
+          CopyEventHandlers(Self, Obj);
+        end;
+
+      finally
+        Obj.Free;
+      end;
+    end;
+  end else
+    Result := False;
 end;
 
 class function TgdcTree.IsAbstractClass: Boolean;
