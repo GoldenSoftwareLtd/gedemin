@@ -148,6 +148,8 @@ type
     class function HasLeafs: Boolean; override;
 
     procedure SetInclude(const AnID: TID); override;
+
+    class function GetDefaultClassForDialog: TgdcFullClass; override;
   end;
 
   TgdcFolder = class(TgdcBaseContact)
@@ -1114,7 +1116,7 @@ begin
         CL.Add(TgdcOurCompany);
       if Self <> TgdcFolder then
         CL.Add(TgdcFolder);
-      if Self <> TgdcGroup then
+      if (Self <> TgdcGroup) and (Self <> TgdcBaseContact) then
         CL.Add(TgdcGroup);
       if Self <> TgdcDepartment then
         CL.Add(TgdcDepartment);
@@ -1529,6 +1531,16 @@ begin
   Result := Self.ClassNameIs('TgdcBaseContact');
 end;
 
+class function TgdcBaseContact.GetDefaultClassForDialog: TgdcFullClass;
+begin
+  if Self <> TgdcBaseContact then
+    Result := inherited GetDefaultClassForDialog
+  else
+  begin
+    Result.gdClass := TgdcCompany;
+    Result.SubType := '';
+  end;
+end;
 { TgdcFolder }
 
 class function TgdcFolder.GetDialogFormClassName(
