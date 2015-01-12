@@ -80,12 +80,12 @@ object gd_DatabasesListView: Tgd_DatabasesListView
           Width = 200
         end
         item
-          Caption = 'Сервер'
+          Caption = 'Сервер/порт'
           Width = 94
         end
         item
           AutoSize = True
-          Caption = 'Файл БД'
+          Caption = 'Имя файла'
         end>
       ColumnClick = False
       GridLines = True

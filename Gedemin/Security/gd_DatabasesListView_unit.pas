@@ -347,6 +347,7 @@ begin
     begin
       DICopy := gd_DatabasesList.Add as Tgd_DatabaseItem;
       DICopy.Assign(DI);
+      DICopy.Name := 'Копия_' + DI.Name;
       if DICopy.EditInDialog then
         AddListItem(DICopy).Selected := True
       else
