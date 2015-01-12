@@ -527,7 +527,8 @@ uses
     , gd_localization_stub
   {$ENDIF}
   , gdcExplorer,
-  gd_dlgStreamSaverOptions;
+  gd_dlgStreamSaverOptions,
+  gdc_frmStreamSaver;
 
 type
   TCrackPopupMenu = class(TPopupMenu);
@@ -815,6 +816,9 @@ begin
   end;
   {$ENDIF}
   DesktopManager.InitComboBox(cbDesktop);
+
+  if Assigned(frmStreamSaver) then
+    SetWindowPos(frmStreamSaver.Handle, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE or SWP_NOMOVE);
 
   // кожны раз, як карыстальнік мяняе кампанію
   // трэба сфарміраваць новы кэпшэн
