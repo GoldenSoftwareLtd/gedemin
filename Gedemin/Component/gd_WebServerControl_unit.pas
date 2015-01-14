@@ -265,7 +265,7 @@ end;
 
 procedure TgdWebServerControl.ServerOnCommandGetSync;
 var
-  RequestToken, S: String;
+  RequestToken, S, conType: String;
   HandlerCounter: Integer;
   Handler: TgdHttpHandler;
   HandlerFunction: TrpCustomFunction;
@@ -335,13 +335,22 @@ begin
               FResponseInfo.ContentType := 'text/xml; charset=Windows-1251'
             else if Copy(FResponseInfo.ContentText, 1, 14) = '<!DOCTYPE HTML' then
               FResponseInfo.ContentType := 'text/html; charset=Windows-1251'
-            else if Copy(FResponseInfo.ContentText, 1, 8) = 'text/csv' then
-            begin
-              FResponseInfo.ContentText := Copy(FResponseInfo.ContentText, 9, MaxInt);
-              FResponseInfo.ContentType := 'text/csv; charset=Windows-1251';
-            end else
+            else if Copy(FResponseInfo.ContentText, 1, 11) = 'ContentType' then begin
+              conType := Copy(FResponseInfo.ContentText, 13, Ansipos(';',FResponseInfo.ContentText)-13);
+              if conType = 'text/csv' then
+                FResponseInfo.ContentType := 'text/csv; charset=Windows-1251'
+              else if conType = 'text/css' then
+                FResponseInfo.ContentType := 'text/css; charset=Windows-1251'
+              else if conType = 'text/javascript' then
+                FResponseInfo.ContentType := 'text/javascript; charset=Windows-1251'
+              else if conType = 'text/plain' then
+                FResponseInfo.ContentType := 'text/plain; charset=Windows-1251'
+              else
+                FResponseInfo.ContentType := 'text/plain; charset=Windows-1251';
+              FResponseInfo.ContentText := Copy(FResponseInfo.ContentText, Ansipos(';',FResponseInfo.ContentText)+1, MaxInt);
+            end
+            else
               FResponseInfo.ContentType := 'text/plain; charset=Windows-1251';
-
             Processed := True;
             Break;
           end;
