@@ -388,6 +388,8 @@ type
 
     FSearchValue: String;
 
+    FColFormatChanged: Boolean;
+
     function GetTableFont: TFont;
     function GetTableColor: TColor;
 
@@ -674,6 +676,8 @@ begin
   FFields := TList.Create;
 
   FPreparingForEditing := False;
+
+  FColFormatChanged := False;
 end;
 
 destructor TdlgMaster.Destroy;
@@ -2350,9 +2354,13 @@ begin
   if lvColumns.SelCount = 1 then
     CurrColumn.DisplayFormat := editColumnFormat.Text
   else
-    for I := 0 to lvColumns.Items.Count - 1 do
-      if lvColumns.Items[I].Selected then
-        TgsColumn(lvColumns.Items[I].Data).DisplayFormat := editColumnFormat.Text
+    if FColFormatChanged then
+    begin
+      FColFormatChanged := False;
+      for I := 0 to lvColumns.Items.Count - 1 do
+        if lvColumns.Items[I].Selected then
+          TgsColumn(lvColumns.Items[I].Data).DisplayFormat := editColumnFormat.Text
+    end;
 end;
 
 {
@@ -2915,9 +2923,12 @@ begin
   try
     if ShowModal = mrOk then
     begin
+      FColFormatChanged := True;
       editColumnFormat.Text := DisplayFormat;
       editColumnFormatExit(editColumnFormat);
-    end;
+    end
+    else
+      FColFormatChanged := False;
   finally
     Free;
   end;
