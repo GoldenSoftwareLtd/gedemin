@@ -13,6 +13,7 @@ type
   public
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
+    class function GetRestrictCondition(const ATableName, ASubType: String): String; override;
   end;
   //Б.к. автоматической проводки
   TgdcAutoTrRecord = class(TgdcBaseAcctTransactionEntry)
@@ -103,6 +104,15 @@ procedure TgdcAutoTransaction.GetWhereClauseConditions(S: TStrings);
 begin
   inherited;
   S.Add(' (Z.AUTOTRANSACTION = 1) ');
+end;
+
+class function TgdcAutoTransaction.GetRestrictCondition(const ATableName,
+  ASubType: String): String;
+begin
+  if (self = TgdcAutoTransaction) and (AnsiCompareText(ATableName, GetListTable(ASubType)) = 0) then
+    Result := ' (Z.AUTOTRANSACTION = 1) '
+  else
+    Result := inherited GetRestrictCondition(ATableName, ASubType)
 end;
 
 { TgdcAutoTrRecord }

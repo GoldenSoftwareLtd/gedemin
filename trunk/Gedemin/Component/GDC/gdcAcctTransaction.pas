@@ -66,6 +66,7 @@ type
   public
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
+    class function GetRestrictCondition(const ATableName, ASubType: String): String; override;
   end;
 
   TgdcBaseAcctTransactionEntry = class(TgdcBase)
@@ -395,6 +396,15 @@ begin
   inherited;
 
   S.Add(' (Z.AUTOTRANSACTION IS NULL OR Z.AUTOTRANSACTION = 0) ');
+end;
+
+class function TgdcAcctTransaction.GetRestrictCondition(const ATableName,
+  ASubType: String): String;
+begin
+  if (self = TgdcAcctTransaction) and (AnsiCompareText(ATableName, GetListTable(ASubType)) = 0) then
+    Result := ' (Z.AUTOTRANSACTION IS NULL OR Z.AUTOTRANSACTION = 0) '
+  else
+    Result := inherited GetRestrictCondition(ATableName, ASubType)
 end;
 
 { TgdcBaseAcctTransactionEntry }
