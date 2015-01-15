@@ -9,7 +9,7 @@ uses
   Buttons, ExtCtrls, contnrs, gd_KeyAssoc;
 
 
-type         
+type
   TAnalyticFieldType = (aftReference, aftString, aftDate, aftTime, aftDateTime);
 
   TfrAcctAnalyticLine = class(TFrame)
@@ -237,10 +237,19 @@ begin
 end;
 
 procedure TfrAcctAnalyticLine.SetOnValueChange(const Value: TNotifyEvent);
+var
+  I: Integer;
 begin
   FOnValueChange := Value;
   eAnalitic.OnChange := OnValueChange;
   xdeDateTime.OnChange := OnValueChange;
+  
+  if FLookUp <> nil then
+    for I := 0 to FLookUp.Count - 1 do
+    begin
+      if FLookUp[I] <> nil then
+        (FLookUp[I] as TgsIBLookupComboBox).OnChange := OnValueChange;
+    end;
 end;
 
 procedure TfrAcctAnalyticLine.SetValue(const Value: String);
@@ -364,7 +373,7 @@ begin
     FLookUp.Add(CreateLookUp);
     FButtons.Add(CreateButton);
     ReSizeControls;
-  end;  
+  end;
 end;
 
 procedure TfrAcctAnalyticLine.ReSizeControls;
