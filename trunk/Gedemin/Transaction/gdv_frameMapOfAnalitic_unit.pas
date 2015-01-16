@@ -188,7 +188,7 @@ begin
       end;
     end;
 
-    cbInputParam.Left := Self.ClientWidth - cbInputParam.Width - 2;
+    cbInputParam.Left := FrameWidth - cbInputParam.Width - 2;
     Self.Height := AllHeight + 2;
   end;
 end;
