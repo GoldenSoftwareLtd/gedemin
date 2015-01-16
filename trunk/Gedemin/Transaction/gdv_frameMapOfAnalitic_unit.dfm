@@ -1,8 +1,10 @@
 object frameMapOfAnaliticLine: TframeMapOfAnaliticLine
   Left = 0
   Top = 0
-  Width = 443
+  Width = 435
   Height = 44
+  HorzScrollBar.Visible = False
+  VertScrollBar.Visible = False
   Align = alTop
   Constraints.MinWidth = 220
   TabOrder = 0
@@ -13,43 +15,22 @@ object frameMapOfAnaliticLine: TframeMapOfAnaliticLine
     Height = 13
     Caption = 'lAnaliticName'
   end
-  object Bevel1: TBevel
-    Left = 0
-    Top = 41
-    Width = 443
-    Height = 3
-    Align = alBottom
-    Shape = bsBottomLine
-  end
-  object cbAnalitic: TgsIBLookupComboBox
-    Left = 192
-    Top = 2
-    Width = 167
+  object eAnalitic: TEdit
+    Left = 168
+    Top = 18
+    Width = 128
     Height = 21
-    HelpContext = 1
-    SortOrder = soAsc
     Anchors = [akLeft, akTop, akRight]
-    ItemHeight = 13
     TabOrder = 0
     Visible = False
     OnChange = eAnaliticChange
   end
-  object eAnalitic: TEdit
-    Left = 192
-    Top = 2
-    Width = 128
-    Height = 21
-    Anchors = [akLeft, akTop, akRight]
-    TabOrder = 1
-    Visible = False
-    OnChange = eAnaliticChange
-  end
   object cbInputParam: TCheckBox
-    Left = 18
-    Top = 24
+    Left = 154
+    Top = 6
     Width = 204
     Height = 17
     Caption = 'Запрашивать значение'
-    TabOrder = 2
+    TabOrder = 1
   end
 end
