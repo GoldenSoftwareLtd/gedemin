@@ -112,6 +112,7 @@ inherited gdc_frmExplorer: Tgdc_frmExplorer
           OnFilterRecord = dbtvExplorerFilterRecord
           OnPostProcess = dbtvExplorerPostProcess
           Align = alClient
+          HideSelection = False
           Images = dmImages.ilTree
           Indent = 19
           PopupMenu = pmMain
@@ -119,6 +120,7 @@ inherited gdc_frmExplorer: Tgdc_frmExplorer
           RightClickSelect = True
           SortType = stText
           TabOrder = 0
+          OnAdvancedCustomDrawItem = dbtvExplorerAdvancedCustomDrawItem
           OnClick = dbtvExplorerClick
           OnDblClick = dbtvExplorerDblClick
           OnExpanded = dbtvExplorerExpanded
