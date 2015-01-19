@@ -2249,9 +2249,15 @@ var
   TempColor: TColor;
 begin
   if SelBlockList.IndexOf(self) > -1 then
-    TempColor := SelectColor
+  begin
+    TempColor := SelectColor;
+    Canvas.Font.Color := clWhite;
+  end
   else
+  begin
     TempColor := HeaderColor;
+    Canvas.Font.Color := clBlack;
+  end;
 
   R := GetClientRect;
   Canvas.Brush.Color := GetFrameColor;
@@ -2265,7 +2271,7 @@ begin
   Canvas.Brush.Color := TempColor;
   Canvas.FillRect(R);
 
-  Canvas.Font.Color := clBlack;
+  //Canvas.Font.Color := clBlack;
   L := 0;
   if HasBody or HasFootter then
   begin
@@ -3207,7 +3213,7 @@ end;
 
 function TVisualBlock.SelectColor: TColor;
 begin
-  Result := RGB(141, 182, 205);
+  Result := RGB(100, 100, 100);
 end;
 
 { TFunctionBlock }
