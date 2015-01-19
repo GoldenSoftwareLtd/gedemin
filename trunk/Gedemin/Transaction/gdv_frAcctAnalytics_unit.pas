@@ -339,7 +339,7 @@ begin
           SQL.Close;
         end;
       end;
-      Height := Max(P + 4, cMinUnwrapedHeight);
+      ppAnalytics.UpdateHeight(Max(P + 4, cMinUnwrapedHeight));
     finally
       SQL.Free;
     end;

@@ -28,9 +28,10 @@ object frameMapOfAnaliticLine: TframeMapOfAnaliticLine
   object cbInputParam: TCheckBox
     Left = 154
     Top = 6
-    Width = 204
+    Width = 150
     Height = 17
     Caption = 'Запрашивать значение'
     TabOrder = 1
+    OnClick = cbInputParamClick
   end
 end
