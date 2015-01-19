@@ -74,8 +74,8 @@ uses
 
 const
   FrameHeight = 22;
-  ButtonHeight = 18;
-  ButtonWidth = 14;
+  ButtonHeight = 19;
+  ButtonWidth = 18;
 
 { TfrAcctAnalyticLine }
 
@@ -452,9 +452,9 @@ begin
   with Result do
   begin
     Parent := Self;
-    ParentFont := False;
+    //ParentFont := False;
     Caption := 'X';
-    Font.Style := [fsBold];
+    //Font.Style := [fsBold];
     Action := FactVisible;
     Visible := True;
     Height := ButtonHeight;

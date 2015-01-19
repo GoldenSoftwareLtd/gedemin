@@ -15,6 +15,7 @@ type
     eAnalitic: TEdit;
     cbInputParam: TCheckBox;
     procedure eAnaliticChange(Sender: TObject);
+    procedure cbInputParamClick(Sender: TObject);
   private
     FButtons, FLookUp: TObjectList;
     FField: TatRelationField;
@@ -58,8 +59,8 @@ uses dmDataBase_unit;
 const
   FrameHeight = 22;
   FrameWidth =  496;
-  ButtonHeight = 18;
-  ButtonWidth = 14;
+  ButtonHeight = 19;
+  ButtonWidth = 18;
 
 { TframeMapOfAnaliticLine }
 
@@ -372,6 +373,33 @@ end;
 procedure TframeMapOfAnaliticLine.eAnaliticChange(Sender: TObject);
 begin
   cbInputParam.Checked := False
+end;
+
+procedure TframeMapOfAnaliticLine.cbInputParamClick(Sender: TObject);
+var
+  I: Integer;
+begin
+  if (FLookUp <> nil) and (FLookUp.Count > 0) then
+  begin
+    if cbInputParam.Checked then
+    begin
+      for I := FLookUp.Count - 1 downto 1 do
+      begin
+        FLookUp.Delete(I);
+        if (FButtons.Count - 1) <= I then
+          FButtons.Delete(I);
+      end;
+      if FLookUp[0] <> nil then
+      begin
+        (FLookUp[0] as TgsIBLookupComboBox).CurrentKey := '';
+        (FLookUp[0] as TgsIBLookupComboBox).Enabled := False;
+      end;
+
+      ReSizeControls;
+    end
+    else if FLookUp[0] <> nil then
+      (FLookUp[0] as TgsIBLookupComboBox).Enabled := True;
+  end;
 end;
 
 end.
