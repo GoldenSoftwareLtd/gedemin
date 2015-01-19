@@ -1426,6 +1426,9 @@ begin
     if Assigned(IBLogin) and IBLogin.LoggedIn then
       PostMessage(Handle, WM_GD_RUNONLOGINMACROS, 0, 0);
   end;
+
+  if Assigned(tbMainMenu) then
+    tbMainMenu.SetFocus;
 end;
 
 procedure TfrmGedeminMain.actShowSQLObjectsUpdate(Sender: TObject);
