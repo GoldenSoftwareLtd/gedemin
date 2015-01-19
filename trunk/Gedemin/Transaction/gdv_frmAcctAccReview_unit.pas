@@ -231,7 +231,7 @@ begin
   if Config is TAccReviewConfig then
   begin
     C := Config as TAccReviewConfig;
-    C.ShowCorrSubAccounts := cbShowCorrSubAccounts.Checked;
+    cbShowCorrSubAccounts.Checked := C.ShowCorrSubAccounts;
     cbCorrAccounts.Text := C.CorrAccounts;
     rbDebit.Checked := C.AccountPart = 'D';
     rbCredit.Checked := C.AccountPart <> 'D';
