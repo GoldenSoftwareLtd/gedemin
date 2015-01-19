@@ -6151,7 +6151,7 @@ begin
             'S_' + FSumFeatures[i];
       end
       else
-        Result := Result + ', SUM(m.balance * C.' + FSumFeatures[i] + ') as ' +
+        Result := Result + ', SUM(m.balance * cast(C.' + FSumFeatures[i] + ' as double precision)) as ' +
           'S_' + FSumFeatures[i];
 
   if Assigned(FGoodSumFeatures) then
@@ -6166,7 +6166,7 @@ begin
             'SG_' + FGoodSumFeatures[i]
       end
       else
-        Result := Result + ', SUM(m.balance * G.' + FGoodSumFeatures[i] + ') as ' +
+        Result := Result + ', SUM(m.balance * cast(G.' + FGoodSumFeatures[i] + ' as double precision)) as ' +
           'SG_' + FGoodSumFeatures[i];
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVREMAINS', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE)}
