@@ -125,7 +125,7 @@ object dlgFilterList: TdlgFilterList
       OnUpdate = acDeleteUpdate
     end
     object acEdit: TAction
-      Caption = 'Изменить ...'
+      Caption = 'Изменить'
       ShortCut = 13
       OnExecute = acEditExecute
       OnUpdate = acEditUpdate
@@ -136,7 +136,8 @@ object dlgFilterList: TdlgFilterList
       OnUpdate = actSelectUpdate
     end
     object actNew: TAction
-      Caption = 'Добавить'
+      Caption = 'Создать'
+      ShortCut = 45
       OnExecute = actNewExecute
       OnUpdate = actNewUpdate
     end
