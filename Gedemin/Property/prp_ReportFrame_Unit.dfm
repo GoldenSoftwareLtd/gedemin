@@ -1,16 +1,11 @@
 inherited ReportFrame: TReportFrame
-  Width = 499
-  Height = 340
   HelpContext = 325
   inherited PageControl: TSuperPageControl
-    Width = 499
-    Height = 340
     OnDrawTab = PageControlDrawTab
     OwnerDraw = True
     OnChange = PageControlChange
     inherited tsProperty: TSuperTabSheet
       inherited TBDock1: TTBDock
-        Width = 495
         Height = 28
         object TBToolbar1: TTBToolbar
           Left = 0
@@ -29,8 +24,7 @@ inherited ReportFrame: TReportFrame
       end
       inherited pMain: TPanel
         Top = 28
-        Width = 495
-        Height = 285
+        Height = 211
         OnResize = pMainResize
         inherited lbName: TLabel
           Width = 116
@@ -206,19 +200,13 @@ inherited ReportFrame: TReportFrame
       ImageIndex = 1
       inline MainFunctionFrame: TReportFunctionFrame
         Top = 9
-        Width = 499
-        Height = 308
+        Height = 234
         PopupMenu = MainFunctionFrame.PopupMenu
         inherited PageControl: TSuperPageControl
-          Width = 499
-          Height = 308
+          Height = 234
           inherited tsProperty: TSuperTabSheet
-            inherited TBDock1: TTBDock
-              Width = 495
-            end
             inherited pMain: TPanel
-              Width = 495
-              Height = 253
+              Height = 179
               inherited dbeName: TprpDBComboBox
                 Width = 359
                 OnChange = MainFunctionFramedbeNameChange
@@ -269,7 +257,7 @@ inherited ReportFrame: TReportFrame
       object Panel1: TPanel
         Left = 0
         Top = 0
-        Width = 499
+        Width = 435
         Height = 9
         Align = alTop
         BevelOuter = bvNone
@@ -281,19 +269,13 @@ inherited ReportFrame: TReportFrame
       ImageIndex = 2
       inline ParamFunctionFrame: TReportFunctionFrame
         Top = 9
-        Width = 499
-        Height = 308
+        Height = 234
         PopupMenu = ParamFunctionFrame.PopupMenu
         inherited PageControl: TSuperPageControl
-          Width = 499
-          Height = 308
+          Height = 234
           inherited tsProperty: TSuperTabSheet
-            inherited TBDock1: TTBDock
-              Width = 495
-            end
             inherited pMain: TPanel
-              Width = 495
-              Height = 253
+              Height = 179
               inherited dbeName: TprpDBComboBox
                 Width = 359
                 OnNewRecord = ParamFunctionFramedbeNameNewRecord
@@ -335,7 +317,7 @@ inherited ReportFrame: TReportFrame
       object Panel2: TPanel
         Left = 0
         Top = 0
-        Width = 499
+        Width = 435
         Height = 9
         Align = alTop
         BevelOuter = bvNone
@@ -347,19 +329,13 @@ inherited ReportFrame: TReportFrame
       ImageIndex = 3
       inline EventFunctionFrame: TReportFunctionFrame
         Top = 9
-        Width = 499
-        Height = 308
+        Height = 234
         PopupMenu = EventFunctionFrame.PopupMenu
         inherited PageControl: TSuperPageControl
-          Width = 499
-          Height = 308
+          Height = 234
           inherited tsProperty: TSuperTabSheet
-            inherited TBDock1: TTBDock
-              Width = 495
-            end
             inherited pMain: TPanel
-              Width = 495
-              Height = 253
+              Height = 179
               inherited dbeName: TprpDBComboBox
                 Width = 359
                 OnNewRecord = EventFunctionFramedbeNameNewRecord
@@ -402,7 +378,7 @@ inherited ReportFrame: TReportFrame
       object Panel3: TPanel
         Left = 0
         Top = 0
-        Width = 499
+        Width = 435
         Height = 9
         Align = alTop
         BevelOuter = bvNone
@@ -414,19 +390,13 @@ inherited ReportFrame: TReportFrame
       ImageIndex = 4
       inline TemplateFrame: TTemplateFrame
         Top = 9
-        Width = 499
-        Height = 308
+        Height = 234
         PopupMenu = TemplateFrame.PopupMenu
         inherited PageControl: TSuperPageControl
-          Width = 499
-          Height = 308
+          Height = 234
           inherited tsProperty: TSuperTabSheet
-            inherited TBDock1: TTBDock
-              Width = 495
-            end
             inherited pMain: TPanel
-              Width = 495
-              Height = 253
+              Height = 179
               inherited dbeName: TprpDBComboBox
                 Width = 503
                 OnChange = nil
@@ -474,7 +444,7 @@ inherited ReportFrame: TReportFrame
       object Panel4: TPanel
         Left = 0
         Top = 0
-        Width = 499
+        Width = 435
         Height = 9
         Align = alTop
         BevelOuter = bvNone
@@ -509,6 +479,7 @@ inherited ReportFrame: TReportFrame
   object gdcReport: TgdcReport
     AfterDelete = gdcReportAfterDelete
     AfterEdit = gdcReportAfterEdit
+    AfterOpen = gdcReportAfterOpen
     AfterInternalDeleteRecord = gdcReportAfterInternalDeleteRecord
     SubSet = 'ByID'
     Left = 16
