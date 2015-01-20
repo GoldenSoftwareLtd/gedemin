@@ -81,6 +81,7 @@ type
     procedure MainFunctionFramedbeNameDropDown(Sender: TObject);
     procedure gdcReportAfterInternalDeleteRecord(DataSet: TDataSet);
     procedure gdcReportAfterDelete(DataSet: TDataSet);
+    procedure gdcReportAfterOpen(DataSet: TDataSet);
   private
     { Private declarations }
     procedure PrepareTestResult;
@@ -2486,6 +2487,35 @@ begin
   inherited;
   if Assigned(N) then
     N.Delete;
+end;
+
+procedure TReportFrame.gdcReportAfterOpen(DataSet: TDataSet);
+var
+  ibsql: TIBSQL;
+  RUID: String;
+begin
+  inherited;
+
+  RUID := gdcBaseManager.GetRUIDStringByID(gdcReport.ID);
+
+  if (RUID <> '') and (gdcReport.State = dsBrowse)
+    and (gdcReport.FieldByName('folderkey').AsInteger > -1) then
+  begin
+    ibsql := TIBSQL.Create(nil);
+    try
+      ibsql.Transaction := gdcReport.ReadTransaction;
+      ibsql.SQL.Text := 'SELECT id FROM gd_command WHERE parent = '
+        + gdcReport.FieldByName('FOLDERKEY').AsString
+        + ' and CMD = ''' + RUID + '''';
+
+      ibsql.ExecQuery;
+
+      if ibsql.EoF then
+        iblFolder.CurrentKeyInt := -1;
+    finally
+      ibsql.Free;
+    end;
+  end;
 end;
 
 initialization
