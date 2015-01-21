@@ -1278,6 +1278,8 @@ begin
     with TgsCustomIBGrid(Grid) do
       Column := Columns[SelectedIndex];
 
+    if Column.ReadOnly then Exit;
+
     if FActiveList = FDataList then
     with Column.Field do
     begin
