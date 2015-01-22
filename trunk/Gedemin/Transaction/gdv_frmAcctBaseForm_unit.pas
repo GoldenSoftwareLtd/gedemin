@@ -281,6 +281,12 @@ begin
         C.DisplayFormat := '';
         C.DisplayFormat := F.DisplayFormat;
 
+        if (C.DisplayFormat = '')
+          and ((Pos('Q_D_', F.FieldName) = 1) or (Pos('Q_C_', F.FieldName) = 1)) then
+        begin
+          C.DisplayFormat := DisplayFormat(frAcctSum.QuantityDecDigits);
+        end;
+
         // если F.Visible = fvUnknown, то видимость поля определяется сохраненными настройками грида
         case F.Visible of
           fvVisible: C.Visible := True;
