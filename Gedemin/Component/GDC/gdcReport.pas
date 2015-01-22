@@ -1269,7 +1269,10 @@ begin
       gdcExplorer.FieldByName('name').AsString := FieldByName('name').AsString;
       gdcExplorer.FieldByName('cmd').AsString := RUIDStr;
       gdcExplorer.FieldByName('cmdtype').AsInteger := cst_expl_cmdtype_report;
-      gdcExplorer.FieldByName('imgindex').AsInteger := cReportImage;
+
+      if gdcExplorer.State = dsInsert then
+        gdcExplorer.FieldByName('imgindex').AsInteger := cReportImage;
+
       gdcExplorer.Post;
     finally
       gdcExplorer.Free;
