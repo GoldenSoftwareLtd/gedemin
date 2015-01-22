@@ -613,8 +613,8 @@ begin
   if not Assigned(FAccountIDs) then
     FAccountIDs := TList.Create;
   SetAccountIDs(cbAccounts, FAccountIDs, IncSubAccounts, FShowMessage);
-  frAcctQuantity.UpdateQuantityList(FAccountIDs);
   frAcctAnalytics.UpdateAnalyticsList(FAccountIDs);
+  frAcctQuantity.UpdateQuantityList(FAccountIDs);
 
   // Отображение настроек количественных сумм
   frAcctSum.SetQuantityVisible(frAcctQuantity.ValueCount > 0);
