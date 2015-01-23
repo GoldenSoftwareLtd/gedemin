@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2000-2014 by Golden Software of Belarus
+  Copyright (c) 2000-2015 by Golden Software of Belarus
 
   Module
 
@@ -1278,7 +1278,8 @@ begin
     with TgsCustomIBGrid(Grid) do
       Column := Columns[SelectedIndex];
 
-    if Column.ReadOnly then Exit;
+    if Column.ReadOnly then 
+      exit;
 
     if FActiveList = FDataList then
     with Column.Field do

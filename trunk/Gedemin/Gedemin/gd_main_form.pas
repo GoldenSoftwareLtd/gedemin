@@ -817,7 +817,7 @@ begin
   {$ENDIF}
   DesktopManager.InitComboBox(cbDesktop);
 
-  if Assigned(frmStreamSaver) then
+  if Assigned(frmStreamSaver) and frmStreamSaver.Visible then
     SetWindowPos(frmStreamSaver.Handle, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE or SWP_NOMOVE);
 
   // кожны раз, як карыстальнік мяняе кампанію

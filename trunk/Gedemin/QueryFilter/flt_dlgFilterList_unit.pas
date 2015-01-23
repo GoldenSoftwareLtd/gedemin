@@ -208,7 +208,7 @@ end;
 
 procedure TdlgFilterList.actNewExecute(Sender: TObject);
 begin
-  if (Self.Owner <> nil) and (Self.Owner is TgsQueryFilter) then
+  if Self.Owner is TgsQueryFilter then
   begin
     (Self.Owner as TgsQueryFilter).CreateFilterExecute;
     ShowFilter(0);
@@ -218,7 +218,7 @@ end;
 
 procedure TdlgFilterList.actNewUpdate(Sender: TObject);
 begin
-  (Sender as TAction).Enabled := (Self.Owner <> nil) and (Self.Owner is TgsQueryFilter);
+  (Sender as TAction).Enabled := Self.Owner is TgsQueryFilter;
 end;
 
 end.
