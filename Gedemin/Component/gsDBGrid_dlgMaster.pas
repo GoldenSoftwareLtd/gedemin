@@ -1,8 +1,7 @@
 
-
 {++
 
-  Copyright (c) 2000-2014 by Golden Software of Belarus
+  Copyright (c) 2000-2015 by Golden Software of Belarus
 
   Module
 
@@ -2359,7 +2358,7 @@ begin
       FColFormatChanged := False;
       for I := 0 to lvColumns.Items.Count - 1 do
         if lvColumns.Items[I].Selected then
-          TgsColumn(lvColumns.Items[I].Data).DisplayFormat := editColumnFormat.Text
+          TgsColumn(lvColumns.Items[I].Data).DisplayFormat := editColumnFormat.Text;
     end;
 end;
 
