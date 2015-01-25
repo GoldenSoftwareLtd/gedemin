@@ -265,13 +265,13 @@ end;
 
 procedure TgdWebServerControl.ServerOnCommandGetSync;
 var
-  RequestToken, S, conType: String;
+  RequestToken, S, ConType: String;
   HandlerCounter: Integer;
   Handler: TgdHttpHandler;
   HandlerFunction: TrpCustomFunction;
   LParams, LResult: Variant;
   Processed: Boolean;
-  I: Integer;
+  I, P: Integer;
 begin
   Assert(FHTTPGetHandlerList <> nil);
 
@@ -331,25 +331,21 @@ begin
             FResponseInfo.ResponseNo := Integer(GetVarParam(LParams[2]));
             FResponseInfo.ContentText := String(GetVarParam(LParams[3]));
 
-            if Copy(FResponseInfo.ContentText, 1, 5) = '<?xml' then
+            ConType := Copy(FResponseInfo.ContentText, 1, 128);
+            if Pos('<?xml', ConType) = 1 then
               FResponseInfo.ContentType := 'text/xml; charset=Windows-1251'
-            else if Copy(FResponseInfo.ContentText, 1, 14) = '<!DOCTYPE HTML' then
+            else if Pos('<!DOCTYPE HTML', ConType) = 1 then
               FResponseInfo.ContentType := 'text/html; charset=Windows-1251'
-            else if Copy(FResponseInfo.ContentText, 1, 11) = 'ContentType' then begin
-              conType := Copy(FResponseInfo.ContentText, 13, Ansipos(';',FResponseInfo.ContentText)-13);
-              if conType = 'text/csv' then
-                FResponseInfo.ContentType := 'text/csv; charset=Windows-1251'
-              else if conType = 'text/css' then
-                FResponseInfo.ContentType := 'text/css; charset=Windows-1251'
-              else if conType = 'text/javascript' then
-                FResponseInfo.ContentType := 'text/javascript; charset=Windows-1251'
-              else if conType = 'text/plain' then
-                FResponseInfo.ContentType := 'text/plain; charset=Windows-1251'
-              else
+            else if Pos('Content-Type:', ConType) = 1 then
+            begin
+              P := Pos(#13#10, ConType);
+              if P > 0 then
+              begin
+                FResponseInfo.ContentType := Trim(Copy(ConType, 14, P - 1)); // Length('Content-Type:')
+                FResponseInfo.ContentText := Copy(FResponseInfo.ContentText, P + 2, MaxInt);
+              end else
                 FResponseInfo.ContentType := 'text/plain; charset=Windows-1251';
-              FResponseInfo.ContentText := Copy(FResponseInfo.ContentText, Ansipos(';',FResponseInfo.ContentText)+1, MaxInt);
-            end
-            else
+            end else
               FResponseInfo.ContentType := 'text/plain; charset=Windows-1251';
             Processed := True;
             Break;
