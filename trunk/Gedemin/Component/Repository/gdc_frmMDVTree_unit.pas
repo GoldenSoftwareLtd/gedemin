@@ -262,7 +262,9 @@ begin
 
   if UserStorage <> nil then
   begin
-    UserStorage.WriteBoolean(BuildComponentPath(Self), 'ShSG', SubGroupsChecked);
+    UserStorage.WriteBoolean(BuildComponentPath(Self), 'ShSG',
+     Assigned(gdcDetailObject) and gdcDetailObject.HasSubSet(ByLBRBSubSetName));
+
     UserStorage.WriteBoolean(BuildComponentPath(Self), 'AllowDD', DragnDropAllowed);
 
     SaveGrid(ibgrDetail);
