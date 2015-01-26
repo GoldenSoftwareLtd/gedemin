@@ -40,6 +40,7 @@ type
     cbDocumentPart: TDBComboBox;
     iblcTransaction: TgsIBLookupComboBox;
     Label4: TLabel;
+    dbcbIsDiasabled: TDBCheckBox;
     procedure actWizardExecute(Sender: TObject);
     procedure actWizardUpdate(Sender: TObject);
   private
