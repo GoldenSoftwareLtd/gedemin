@@ -23,6 +23,7 @@ type
     actAddTypeEntry: TAction;
     gdcAcctTransactionEntry: TgdcAcctTransactionEntry;
     dbcbIsInternal: TDBCheckBox;
+    dbcbIsDisabled: TDBCheckBox;
     procedure actAddTypeEntryExecute(Sender: TObject);
   public
     function TestCorrect: Boolean; override;

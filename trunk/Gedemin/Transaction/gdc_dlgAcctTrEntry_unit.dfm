@@ -208,9 +208,9 @@ inherited gdc_dlgAcctTrEntry: Tgdc_dlgAcctTrEntry
     object dbcbIsDiasabled: TDBCheckBox
       Left = 88
       Top = 160
-      Width = 137
+      Width = 185
       Height = 17
-      Caption = 'Проводка отключена'
+      Caption = 'Типовая проводка отключена'
       DataField = 'DISABLED'
       DataSource = dsgdcBase
       TabOrder = 8
