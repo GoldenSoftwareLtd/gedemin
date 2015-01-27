@@ -4,7 +4,7 @@ inherited gdc_dlgAcctTransaction: Tgdc_dlgAcctTransaction
   ActiveControl = dbedName
   BorderIcons = [biSystemMenu]
   Caption = 'Типовая операция'
-  ClientHeight = 273
+  ClientHeight = 282
   ClientWidth = 420
   PixelsPerInch = 96
   TextHeight = 13
@@ -37,7 +37,7 @@ inherited gdc_dlgAcctTransaction: Tgdc_dlgAcctTransaction
   end
   object Bevel1: TBevel [3]
     Left = 1
-    Top = 237
+    Top = 246
     Width = 420
     Height = 2
     Anchors = [akLeft, akRight, akBottom]
@@ -50,32 +50,27 @@ inherited gdc_dlgAcctTransaction: Tgdc_dlgAcctTransaction
     Caption = 'Входит в:'
   end
   inherited btnAccess: TButton
-    Top = 246
-    Anchors = [akLeft, akBottom]
+    Top = 255
     TabOrder = 7
   end
   inherited btnNew: TButton
     Left = 85
-    Top = 246
-    Anchors = [akLeft, akBottom]
+    Top = 255
     TabOrder = 8
   end
   inherited btnHelp: TButton
     Left = 160
-    Top = 246
-    Anchors = [akLeft, akBottom]
+    Top = 255
     TabOrder = 9
   end
   inherited btnOK: TButton
     Left = 267
-    Top = 246
-    Anchors = [akRight, akBottom]
+    Top = 255
     TabOrder = 5
   end
   inherited btnCancel: TButton
     Left = 342
-    Top = 246
-    Anchors = [akRight, akBottom]
+    Top = 255
     TabOrder = 6
   end
   object dbedName: TDBEdit [10]
@@ -130,6 +125,9 @@ inherited gdc_dlgAcctTransaction: Tgdc_dlgAcctTransaction
     ListTable = 'ac_transaction'
     ListField = 'name'
     KeyField = 'ID'
+    Condition = 
+      '(ac_transaction.AUTOTRANSACTION IS NULL OR ac_transaction.AUTOTR' +
+      'ANSACTION = 0)'
     gdClassName = 'TgdcAcctTransaction'
     ItemHeight = 13
     ParentShowHint = False
@@ -138,7 +136,7 @@ inherited gdc_dlgAcctTransaction: Tgdc_dlgAcctTransaction
   end
   object btnAdd: TButton [14]
     Left = 105
-    Top = 209
+    Top = 217
     Width = 184
     Height = 21
     Action = actAddTypeEntry
@@ -146,7 +144,7 @@ inherited gdc_dlgAcctTransaction: Tgdc_dlgAcctTransaction
   end
   object dbcbIsInternal: TDBCheckBox [15]
     Left = 104
-    Top = 176
+    Top = 168
     Width = 137
     Height = 17
     Hint = 
@@ -158,6 +156,18 @@ inherited gdc_dlgAcctTransaction: Tgdc_dlgAcctTransaction
     ParentShowHint = False
     ShowHint = True
     TabOrder = 10
+    ValueChecked = '1'
+    ValueUnchecked = '0'
+  end
+  object dbcbIsDisabled: TDBCheckBox [16]
+    Left = 104
+    Top = 192
+    Width = 185
+    Height = 17
+    Caption = 'Типовая операция отключена'
+    DataField = 'DISABLED'
+    DataSource = dsgdcBase
+    TabOrder = 11
     ValueChecked = '1'
     ValueUnchecked = '0'
   end
