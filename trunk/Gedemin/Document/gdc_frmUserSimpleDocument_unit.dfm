@@ -7,11 +7,11 @@ inherited gdc_frmUserSimpleDocument: Tgdc_frmUserSimpleDocument
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 494
-    Width = 775
+    Top = 483
+    Width = 767
   end
   inherited TBDockTop: TTBDock
-    Width = 775
+    Width = 767
     inherited tbMainInvariant: TTBToolbar
       object TBItem2: TTBItem
         Action = actCreateEntry
@@ -22,51 +22,48 @@ inherited gdc_frmUserSimpleDocument: Tgdc_frmUserSimpleDocument
     end
   end
   inherited TBDockLeft: TTBDock
-    Height = 436
+    Height = 423
   end
   inherited TBDockRight: TTBDock
-    Left = 766
-    Height = 436
+    Left = 758
+    Height = 423
   end
   inherited TBDockBottom: TTBDock
-    Top = 485
-    Width = 775
+    Top = 474
+    Width = 767
   end
   inherited pnlWorkArea: TPanel
-    Width = 757
-    Height = 436
+    Width = 749
+    Height = 423
     inherited spChoose: TSplitter
-      Top = 333
-      Width = 757
+      Top = 320
+      Width = 749
     end
     inherited pnlMain: TPanel
-      Width = 757
-      Height = 333
+      Width = 749
+      Height = 320
       inherited pnlSearchMain: TPanel
-        Height = 333
+        Height = 320
         inherited sbSearchMain: TScrollBox
-          Height = 295
-        end
-        inherited pnlSearchMainButton: TPanel
-          Top = 295
+          Height = 293
         end
       end
       inherited ibgrMain: TgsIBGrid
-        Width = 597
-        Height = 333
+        Width = 589
+        Height = 320
       end
     end
     inherited pnChoose: TPanel
-      Top = 337
-      Width = 757
+      Top = 324
+      Width = 749
       inherited pnButtonChoose: TPanel
-        Left = 652
+        Left = 644
       end
       inherited ibgrChoose: TgsIBGrid
-        Width = 652
+        Width = 644
       end
       inherited pnlChooseCaption: TPanel
-        Width = 757
+        Width = 749
       end
     end
   end
@@ -77,6 +74,7 @@ inherited gdc_frmUserSimpleDocument: Tgdc_frmUserSimpleDocument
       Hint = 'Провести проводки по документам'
       ImageIndex = 104
       OnExecute = actCreateEntryExecute
+      OnUpdate = actCreateEntryUpdate
     end
     object actGotoEntry: TAction
       Category = 'Commands'
