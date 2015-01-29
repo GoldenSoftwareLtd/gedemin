@@ -1602,7 +1602,9 @@ begin
           if not (E is EAbort) then
             AddMistake(E.Message);
           if not gd_CmdLineParams.QuietMode then
-            raise;
+            raise
+          else
+            ExitCode := 1;
         end;
       end;
     finally
