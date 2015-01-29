@@ -24,6 +24,7 @@ type
     procedure actCreateEntryExecute(Sender: TObject);
     procedure actGotoEntryExecute(Sender: TObject);
     procedure actMainGotoEntryExecute(Sender: TObject);
+    procedure actCreateEntryUpdate(Sender: TObject);
   private
     { Private declarations }
   public
@@ -148,6 +149,12 @@ begin
     MessageBox(HANDLE, 'По данной позиции не установлена операция.', 'Внимание',
       mb_OK or mb_IconInformation);
   end;
+end;
+
+procedure Tgdc_frmUserComplexDocument.actCreateEntryUpdate(
+  Sender: TObject);
+begin
+  actCreateEntry.Enabled := (gdcObject <> nil) and (gdcObject.CanEdit);
 end;
 
 initialization

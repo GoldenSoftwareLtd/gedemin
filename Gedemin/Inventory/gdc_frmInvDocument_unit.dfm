@@ -36,9 +36,6 @@ inherited gdc_frmInvDocument: Tgdc_frmInvDocument
             Action = actViewAllCard
           end
         end
-        inherited tbDetailCustom: TTBToolbar
-          Left = 344
-        end
       end
     end
   end
@@ -58,6 +55,7 @@ inherited gdc_frmInvDocument: Tgdc_frmInvDocument
       Hint = 'Провести проводки по документам'
       ImageIndex = 104
       OnExecute = actCreateEntryExecute
+      OnUpdate = actCreateEntryUpdate
     end
     object actGotoEntry: TAction
       Category = 'Detail'

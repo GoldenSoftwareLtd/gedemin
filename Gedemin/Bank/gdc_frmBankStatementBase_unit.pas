@@ -36,6 +36,7 @@ type
     procedure gdcBankStatementAfterOpen(DataSet: TDataSet);
     procedure actCreateEntryExecute(Sender: TObject);
     procedure actGotoEntryExecute(Sender: TObject);
+    procedure actCreateEntryUpdate(Sender: TObject);
   end;
 
 var
@@ -178,6 +179,11 @@ begin
       mb_OK or mb_IconInformation);
   end;
 
+end;
+
+procedure Tgdc_frmBankStatementBase.actCreateEntryUpdate(Sender: TObject);
+begin
+  actCreateEntry.Enabled := (gdcObject <> nil) and (gdcObject.CanEdit);
 end;
 
 initialization

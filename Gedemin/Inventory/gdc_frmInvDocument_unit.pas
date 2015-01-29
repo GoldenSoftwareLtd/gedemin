@@ -57,6 +57,7 @@ type
     procedure actGotoEntryExecute(Sender: TObject);
     procedure actMainGotoEntryExecute(Sender: TObject);
     procedure actViewAllCardExecute(Sender: TObject);
+    procedure actCreateEntryUpdate(Sender: TObject);
 
   private
 
@@ -326,6 +327,11 @@ begin
     Free;
   end;
 
+end;
+
+procedure Tgdc_frmInvDocument.actCreateEntryUpdate(Sender: TObject);
+begin
+  actCreateEntry.Enabled := (gdcObject <> nil) and (gdcObject.CanEdit);
 end;
 
 initialization

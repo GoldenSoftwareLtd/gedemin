@@ -7,11 +7,11 @@ inherited gdc_frmUserComplexDocument: Tgdc_frmUserComplexDocument
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 494
-    Width = 775
+    Top = 483
+    Width = 767
   end
   inherited TBDockTop: TTBDock
-    Width = 775
+    Width = 767
     inherited tbMainInvariant: TTBToolbar
       object TBItem1: TTBItem
         Action = actCreateEntry
@@ -22,71 +22,65 @@ inherited gdc_frmUserComplexDocument: Tgdc_frmUserComplexDocument
     end
   end
   inherited TBDockLeft: TTBDock
-    Height = 436
+    Height = 423
   end
   inherited TBDockRight: TTBDock
-    Left = 766
-    Height = 436
+    Left = 758
+    Height = 423
   end
   inherited TBDockBottom: TTBDock
-    Top = 485
-    Width = 775
+    Top = 474
+    Width = 767
   end
   inherited pnlWorkArea: TPanel
-    Width = 757
-    Height = 436
+    Width = 749
+    Height = 423
     inherited sMasterDetail: TSplitter
-      Width = 757
+      Width = 749
     end
     inherited spChoose: TSplitter
-      Top = 333
-      Width = 757
+      Top = 318
+      Width = 749
     end
     inherited pnlMain: TPanel
-      Width = 757
+      Width = 749
       inherited ibgrMain: TgsIBGrid
-        Width = 597
+        Width = 589
       end
     end
     inherited pnChoose: TPanel
-      Top = 337
-      Width = 757
+      Top = 324
+      Width = 749
       inherited pnButtonChoose: TPanel
-        Left = 652
+        Left = 644
       end
       inherited ibgrChoose: TgsIBGrid
-        Width = 652
+        Width = 644
       end
       inherited pnlChooseCaption: TPanel
-        Width = 757
+        Width = 749
       end
     end
     inherited pnlDetail: TPanel
-      Width = 757
-      Height = 162
+      Width = 749
+      Height = 145
       inherited TBDockDetail: TTBDock
-        Width = 757
+        Width = 749
         inherited tbDetailToolbar: TTBToolbar
           object TBItem2: TTBItem
             Action = actGotoEntry
           end
         end
-        inherited tbDetailCustom: TTBToolbar
-          Left = 298
-        end
       end
       inherited pnlSearchDetail: TPanel
-        Height = 136
+        Height = 119
         inherited sbSearchDetail: TScrollBox
-          Height = 98
-        end
-        inherited pnlSearchDetailButton: TPanel
-          Top = 98
+          Height = 92
         end
       end
       inherited ibgrDetail: TgsIBGrid
-        Width = 597
-        Height = 136
+        Width = 589
+        Height = 119
       end
     end
   end
@@ -97,6 +91,7 @@ inherited gdc_frmUserComplexDocument: Tgdc_frmUserComplexDocument
       Hint = 'Провести проводки по документам'
       ImageIndex = 104
       OnExecute = actCreateEntryExecute
+      OnUpdate = actCreateEntryUpdate
     end
     object actGotoEntry: TAction
       Category = 'Detail'
