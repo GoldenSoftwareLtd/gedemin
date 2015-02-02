@@ -37,6 +37,7 @@ type
     procedure Action1Execute(Sender: TObject);
   private
     FOnSelect: TNotifyEvent;
+    FStringListAvail: TStringList;
     function GetAvail: TgdvAvailAnalytics;
     function GetSelected: TgdvAnalyticsList;
     function GetSelectedCount: Integer;
@@ -53,12 +54,14 @@ type
     function ListBoxSelected: TCheckListBox;virtual; abstract;
     function ListBoxAvail: TListBox;virtual; abstract;
     function AvailIndex(FieldName: string): Integer;
+    function StringListAvail: TStringList;
     procedure DoSelect;
   public
     { Public declarations }
+    destructor Destroy; override;
+
     procedure SaveToStream(Stream: TStream); virtual;
     procedure LoadFromStream(Stream: TStream); virtual;
-    destructor Destroy; override;
 
     procedure UpdateAnalyticsList(AIdList: TList); virtual;
 
@@ -102,11 +105,19 @@ end;
 
 procedure TfrAcctBaseAnalyticsGroup.actDownUpdate(Sender: TObject);
 begin
-  (Sender as TAction).Enabled := ListBoxSelected.ItemIndex >= 0;
+  (Sender as TAction).Enabled := (ListBoxSelected.ItemIndex >= 0)
+    and (ListBoxSelected.Items.Count > 1);
 end;
 
 procedure TfrAcctBaseAnalyticsGroup.actExcludeAllExecute(Sender: TObject);
+var
+  I: Integer;
 begin
+  for I := 0 to ListBoxSelected.Items.Count - 1 do
+  begin
+    ListBoxAvail.Items.AddObject(ListBoxSelected.Items[I], ListBoxSelected.Items.Objects[I]);
+  end;
+
   ListBoxSelected.Items.Clear;
   SelectedFieldListClear;
   DoSelect;
@@ -117,63 +128,47 @@ begin
   TAction(Sender).Enabled := ListBoxSelected.Items.Count > 0;
 end;
 
+function TfrAcctBaseAnalyticsGroup.StringListAvail: TStringList;
+begin
+  if FStringListAvail = nil then
+    FStringListAvail := TStringList.Create;
+    
+  Result := FStringListAvail;
+end;
+
 procedure TfrAcctBaseAnalyticsGroup.actExcludeExecute(Sender: TObject);
 var
   I: Integer;
-  Index: Integer;
 begin
-  Index := - 1;
-  for I := ListBoxSelected.Items.Count - 1 downto 0 do
-  begin
+  for I := 0 to ListBoxSelected.Items.Count - 1 do
     if ListBoxSelected.Selected[I] then
-    begin
-      Index := I;
-      ListBoxSelected.Items.Delete(I);
-    end;
-  end;
+      ListBoxAvail.Items.AddObject(ListBoxSelected.Items[I], ListBoxSelected.Items.Objects[I]);
 
-  while Index > - 1 do
-  begin
-    if Index < ListBoxSelected.Items.Count then
-    begin
-      ListBoxSelected.ItemIndex := Index;
-      Break;
-    end else
-      Dec(Index);
-  end;
+  for I := ListBoxSelected.Items.Count - 1 downto 0 do
+    if ListBoxSelected.Selected[I] then
+      ListBoxSelected.Items.Delete(I);
+
   SelectedFieldListClear;
   DoSelect;
 end;
 
 procedure TfrAcctBaseAnalyticsGroup.actExcludeUpdate(Sender: TObject);
 begin
-  (Sender as TAction).Enabled := ListBoxSelected.ItemIndex > - 1;
+  TAction(Sender).Enabled := ListBoxSelected.ItemIndex > -1;
 end;
 
 procedure TfrAcctBaseAnalyticsGroup.actIncludeAllExecute(Sender: TObject);
 var
-  I, J: Integer;
-  Flag: Boolean;
+  I: Integer;
   Index: Integer;
 begin
   for I := 0 to ListBoxAvail.Items.Count - 1 do
   begin
-    Flag := True;
-    for J := 0 to ListBoxSelected.Items.Count - 1 do
-    begin
-      if (ListBoxSelected.Items.Objects[J] = ListBoxAvail.Items.Objects[I]) {and
-        (ListBoxSelected.Items[J] = ListBoxAvail.Items[I]) }then
-      begin
-        Flag := False;
-        break;
-      end;
-    end;
-    if Flag then
-    begin
-      Index := ListBoxSelected.Items.AddObject(ListBoxAvail.Items[I], ListBoxAvail.Items.Objects[I]);
-      ListBoxSelected.Checked[Index] := True;
-    end;
+    Index := ListBoxSelected.Items.AddObject(ListBoxAvail.Items[I], ListBoxAvail.Items.Objects[I]);
+    ListBoxSelected.Checked[Index] := True;
   end;
+
+  ListBoxAvail.Items.Clear;
   SelectedFieldListClear;
   DoSelect;
 end;
@@ -185,30 +180,22 @@ end;
 
 procedure TfrAcctBaseAnalyticsGroup.actIncludeExecute(Sender: TObject);
 var
-  I, J: Integer;
-  Flag: Boolean;
+  I: Integer;
   Index: Integer;
 begin
   for I := 0 to ListBoxAvail.Items.Count - 1 do
   begin
     if ListBoxAvail.Selected[I] then
     begin
-      Flag := True;
-      for J := 0 to ListBoxSelected.Items.Count - 1 do
-      begin
-        if (ListBoxSelected.Items.Objects[J] = ListBoxAvail.Items.Objects[I]) {and
-          (ListBoxSelected.Items[J] = ListBoxAvail.Items[I]) }then
-        begin
-          Flag := False;
-          break;
-        end;
-      end;
-      if Flag then
-      begin
-        Index := ListBoxSelected.Items.AddObject(ListBoxAvail.Items[I], ListBoxAvail.Items.Objects[I]);
-        ListBoxSelected.Checked[Index] := True;
-      end;
+      Index := ListBoxSelected.Items.AddObject(ListBoxAvail.Items[I], ListBoxAvail.Items.Objects[I]);
+      ListBoxSelected.Checked[Index] := True;
     end;
+  end;
+
+  for I := ListBoxAvail.Items.Count - 1 downto 0 do
+  begin
+    if ListBoxAvail.Selected[I] then
+      ListBoxAvail.Items.Delete(I);
   end;
 
   SelectedFieldListClear;
@@ -217,7 +204,7 @@ end;
 
 procedure TfrAcctBaseAnalyticsGroup.actIncludeUpdate(Sender: TObject);
 begin
-  TAction(Sender).Enabled := ListBoxAvail.ItemIndex > - 1;
+  TAction(Sender).Enabled := ListBoxAvail.ItemIndex > -1;
 end;
 
 procedure TfrAcctBaseAnalyticsGroup.actUpExecute(Sender: TObject);
@@ -250,7 +237,8 @@ end;
 
 procedure TfrAcctBaseAnalyticsGroup.actUpUpdate(Sender: TObject);
 begin
-  (Sender as TAction).Enabled := ListBoxSelected.ItemIndex >= 0;
+  (Sender as TAction).Enabled := (ListBoxSelected.ItemIndex >= 0)
+    and (ListBoxSelected.Items.Count > 1);
 end;
 
 function TfrAcctBaseAnalyticsGroup.AvailIndex(FieldName: string): Integer;
@@ -258,9 +246,9 @@ var
   I: Integer;
 begin
   Result := - 1;
-  for I := 0 to ListBoxAvail.Items.Count - 1 do
+  for I := 0 to StringListAvail.Count - 1 do
   begin
-    if TgdvAnalytics(ListBoxAvail.Items.Objects[I]).FieldName = FieldName then
+    if TgdvAnalytics(StringListAvail.Objects[I]).FieldName = FieldName then
     begin
       Result := I;
       Exit;
@@ -273,6 +261,7 @@ begin
   inherited;
   FAvailFieldList.Free;
   FSelectedFieldList.Free;
+  FStringListAvail.Free;
 end;
 
 function TfrAcctBaseAnalyticsGroup.GetAvail: TgdvAvailAnalytics;
@@ -340,11 +329,13 @@ var
   Index: Integer;
   FieldName: string;
   SIndex: Integer;
+  AvIndex: Integer;
 begin
   SelectedFieldListClear;
   ListBoxSelected.Items.BeginUpdate;
   try
     ListBoxSelected.Items.Clear;
+
     Count := ReadIntegerFromStream(Stream);
     for I := 0 to Count - 1 do
     begin
@@ -352,11 +343,14 @@ begin
       Index := AvailIndex(FieldName);
       if Index > - 1 then
       begin
-        SIndex := ListBoxSelected.Items.AddObject(ListBoxAvail.Items[Index],
-          ListBoxAvail.Items.Objects[Index]);
-        ListBoxSelected.Checked[SIndex] := ReadBooleanFromStream(Stream);  
-      end;
+        SIndex := ListBoxSelected.Items.AddObject(StringListAvail[Index],
+          StringListAvail.Objects[Index]);
+        ListBoxSelected.Checked[SIndex] := ReadBooleanFromStream(Stream);
 
+        AvIndex := ListBoxAvail.Items.IndexOfObject(StringListAvail.Objects[Index]);
+        if AvIndex > -1 then
+          ListBoxAvail.Items.Delete(AvIndex);
+      end;
     end;
   finally
     ListBoxSelected.Items.EndUpdate;
@@ -393,9 +387,10 @@ begin
   if FAvailFieldList = nil then
   begin
     FAvailFieldList := TgdvAvailAnalytics.Create;
-//    GetAnalyticsFields(FAvailFieldList);
     FAvailFieldList.Refresh;
   end;
+
+  StringListAvail.Clear;
 
   ListBoxAvail.Items.BeginUpdate;
   try
@@ -433,7 +428,7 @@ begin
           end;                      }
         end else
         begin
-          ListBoxAvail.Items.AddObject(FAvailFieldList[i].Caption, FAvailFieldList[I]);
+          StringListAvail.AddObject(FAvailFieldList[i].Caption, FAvailFieldList[I]);
         end;
       end;
       if SQL.SQL.Count > 0 then
@@ -452,8 +447,7 @@ begin
             (FAvailFieldList[i].FieldName <> 'COMPANYKEY') and
             ((SQL.Fields[i].AsInteger = AIDList.Count) or (AIDList.Count = 0)) then
           begin
-            ListBoxAvail.Items.AddObject(FAvailFieldList[i].Caption,
-              FAvailFieldList[I]);
+            StringListAvail.AddObject(FAvailFieldList[i].Caption, FAvailFieldList[I]);
           end;
         end;  
       end;
@@ -464,9 +458,16 @@ begin
     SelectedFieldListClear;
     for I := ListBoxSelected.Items.Count - 1 downto 0 do
     begin
-      if ListBoxAvail.Items.IndexOfObject(ListBoxSelected.Items.Objects[I]) = - 1 then
+      if (StringListAvail.IndexOfObject(ListBoxSelected.Items.Objects[I]) = -1) then
         ListBoxSelected.Items.Delete(I);
     end;
+
+    for I := 0 to StringListAvail.Count - 1 do
+    begin
+      if (ListBoxSelected.Items.IndexOfObject(StringListAvail.Objects[I]) = -1) then
+        ListBoxAvail.Items.AddObject(StringListAvail[I], StringListAvail.Objects[I]);
+    end;
+
   finally
     ListBoxAvail.Items.EndUpdate;
   end;
