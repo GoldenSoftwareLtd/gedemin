@@ -1383,7 +1383,7 @@ begin
   if (SubType > '') then
   begin
     CE := gdClassList.Find(gdcObject.ClassType, SubType);
-    if (CE <> nil) and (CE.gdClassType = ctStorage) then
+    if (CE <> nil) and (CE.gdClassKind = ctStorage) then
     begin
       if fgdcObject.FindField('USR$ST') = nil then
         raise Exception.Create('Поле ''USR$ST'' не найдено');

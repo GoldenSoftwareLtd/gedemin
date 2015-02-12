@@ -9400,7 +9400,7 @@ var
   R: TatRelation;
   F: TatRelationField;
   RN: String;
-  LgdClassType: TgdClassTypes;
+  LgdClassKind: TgdClassKind;
 begin
   RN := '';
 
@@ -9420,25 +9420,25 @@ begin
     end;
   end;
 
-  LgdClassType := ctUserDefined;
+  LgdClassKind := ctUserDefined;
 
   if Assigned(R) then
   begin
     F := R.RelationFields.ByFieldName('LB');
     if Assigned(F) then
-      LgdClassType := ctUserDefinedLBRBTree
+      LgdClassKind := ctUserDefinedLBRBTree
     else
     begin
       F := R.RelationFields.ByFieldName('PARENT');
       if Assigned(F) then
-        LgdClassType := ctUserDefinedTree
+        LgdClassKind := ctUserDefinedTree
     end;
   end;
 
-  RegisterGdClasses(LgdClassType, FieldByName('lname').AsString,
+  RegisterGdClasses(LgdClassKind, FieldByName('lname').AsString,
     FieldByName('relationname').AsString, RN);
 
-  if LgdClassType <> ctUserDefined then
+  if LgdClassKind <> ctUserDefined then
     RegisterGdClasses(ctDlgUserDefinedTree, FieldByName('lname').AsString,
       FieldByName('relationname').AsString, RN);
 end;
@@ -9448,7 +9448,7 @@ var
   R: TatRelation;
   F: TatRelationField;
   RN: String;
-  LgdClassType: TgdClassTypes;
+  LgdClassKind: TgdClassKind;
 begin
   RN := '';
 
@@ -9468,25 +9468,25 @@ begin
     end;
   end;
 
-  LgdClassType := ctUserDefined;
+  LgdClassKind := ctUserDefined;
 
   if Assigned(R) then
   begin
     F := R.RelationFields.ByFieldName('LB');
     if Assigned(F) then
-      LgdClassType := ctUserDefinedLBRBTree
+      LgdClassKind := ctUserDefinedLBRBTree
     else
     begin
       F := R.RelationFields.ByFieldName('PARENT');
       if Assigned(F) then
-        LgdClassType := ctUserDefinedTree
+        LgdClassKind := ctUserDefinedTree
     end;
   end;
 
-  UpdateGdClasses(LgdClassType, FieldByName('lname').AsString,
+  UpdateGdClasses(LgdClassKind, FieldByName('lname').AsString,
     FieldByName('relationname').AsString);
 
-  if LgdClassType <> ctUserDefined then
+  if LgdClassKind <> ctUserDefined then
     UpdateGdClasses(ctDlgUserDefinedTree, FieldByName('lname').AsString,
       FieldByName('relationname').AsString);
 end;
@@ -9496,7 +9496,7 @@ var
   R: TatRelation;
   F: TatRelationField;
   RN: String;
-  LgdClassType: TgdClassTypes;
+  LgdClassKind: TgdClassKind;
 begin
   RN := '';
 
@@ -9516,24 +9516,24 @@ begin
     end;
   end;
 
-  LgdClassType := ctUserDefined;
+  LgdClassKind := ctUserDefined;
 
   if Assigned(R) then
   begin
     F := R.RelationFields.ByFieldName('LB');
     if Assigned(F) then
-      LgdClassType := ctUserDefinedLBRBTree
+      LgdClassKind := ctUserDefinedLBRBTree
     else
     begin
       F := R.RelationFields.ByFieldName('PARENT');
       if Assigned(F) then
-        LgdClassType := ctUserDefinedTree
+        LgdClassKind := ctUserDefinedTree
     end;
   end;
 
-  UnRegisterGdClasses(LgdClassType, FieldByName('relationname').AsString);
+  UnRegisterGdClasses(LgdClassKind, FieldByName('relationname').AsString);
 
-  if LgdClassType <> ctUserDefined then
+  if LgdClassKind <> ctUserDefined then
     UnRegisterGdClasses(ctDlgUserDefinedTree, FieldByName('relationname').AsString);
 end;
 
