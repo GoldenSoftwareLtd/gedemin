@@ -118,6 +118,17 @@ const
   SubtypeDetach = '=';
 
 type
+  TgdClassKind = (
+    ctUserDefined,
+    ctUserDefinedTree,
+    ctUserDefinedLBRBTree,
+    ctDlgUserDefinedTree,
+    ctUserDocument,
+    ctInvDocument,
+    ctInvPriceList,
+    ctInvRemains,
+    ctStorage);
+
   // Класс для организации стыка классов перекрытых методов
   TStackStrings = class(TObject)
   private
@@ -282,7 +293,7 @@ type
     FChildren: TObjectList;
     FInitialized: Boolean;
     FPath: String;
-    FgdClassType: TgdClassTypes;
+    FgdClassKind: TgdClassKind;
 
     function GetChildren(Index: Integer): TgdClassEntry;
     function GetCount: Integer;
@@ -311,13 +322,13 @@ type
 
     procedure SetReadOnly(AReadOnly: Boolean);
     
-    function Add(const AClass: TClass; const AgdClassType: TgdClassTypes;
+    function Add(const AClass: TClass; const AgdClassKind: TgdClassKind;
       const ACaption: String = ''; const ASubType: TgdcSubType = '';
       const AParentSubType: TgdcSubType = ''; const AnInitialize: Boolean = False): TgdClassEntry;
 
   public
     constructor Create(AParent: TgdClassEntry; const AClass: TClass;
-      const AgdClassType: TgdClassTypes = ctStorage; const ACaption: String = '';
+      const AgdClassKind: TgdClassKind = ctStorage; const ACaption: String = '';
       const ASubType: TgdcSubType = '');
 
     destructor Destroy; override;
@@ -336,7 +347,7 @@ type
     property Children[Index: Integer]: TgdClassEntry read GetChildren;
     property Initialized: Boolean read FInitialized write FInitialized;
     property ClassMethods: TgdClassMethods read FClassMethods;
-    property gdClassType: TgdClassTypes read FgdClassType;
+    property gdClassKind: TgdClassKind read FgdClassKind;
     property Path: String read FPath;
   end;
 
@@ -352,14 +363,14 @@ type
     procedure _Insert(const Index: Integer; ACE: TgdClassEntry);
     procedure _Grow;
 
-    function GetDefiniteClasses(const AgdClassType: TgdClassTypes;
+    function GetDefiniteClasses(const AgdClassKind: TgdClassKind;
       AClassList: TClassList): Boolean;
 
   public
     constructor Create;
     destructor Destroy; override;
 
-    function Add(const AClass: TClass; AgdClassType: TgdClassTypes = ctStorage;
+    function Add(const AClass: TClass; AgdClassKind: TgdClassKind = ctStorage;
       const ACaption: String = ''; const ASubType: TgdcSubType = '';
       const AParentSubType: TgdcSubType = ''): TgdClassEntry;
 
@@ -411,23 +422,23 @@ var
 
 function gdClassList: TgdClassList;
 
-procedure RegisterGdClasses(const AgdClassType: TgdClassTypes;
+procedure RegisterGdClasses(const AgdClassKind: TgdClassKind;
   const ACaption: String; const ASubType: TgdcSubType;
   const AParentSubType: TgdcSubType = '');
 
-procedure UnRegisterGdClasses(const AgdClassType: TgdClassTypes;
+procedure UnRegisterGdClasses(const AgdClassKind: TgdClassKind;
   const ASubType: TgdcSubType);
 
-procedure UpdateGdClasses(const AgdClassType: TgdClassTypes;
+procedure UpdateGdClasses(const AgdClassKind: TgdClassKind;
   const ACaption: String; const ASubType: TgdcSubType);
 
 {Регистрация класса в списке TgdcClassList}
-procedure RegisterGdcClass(const AClass: CgdcBase; const AgdClassType: TgdClassTypes = ctStorage; const ACaption: String = '');
+procedure RegisterGdcClass(const AClass: CgdcBase; const AgdClassKind: TgdClassKind = ctStorage; const ACaption: String = '');
 procedure UnRegisterGdcClass(AClass: CgdcBase);
 
 // добавляет класс в список классов
 {Регистрация класса в списке TgdcClassList}
-procedure RegisterFrmClass(AClass: CgdcCreateableForm; AgdClassType: TgdClassTypes = ctStorage);
+procedure RegisterFrmClass(AClass: CgdcCreateableForm; AgdClassKind: TgdClassKind = ctStorage);
 procedure UnRegisterFrmClass(AClass: CgdcCreateableForm);
 
 {Регистрация метода для класса.}
@@ -492,7 +503,7 @@ begin
   Result := _gdClassList;
 end;
 
-procedure RegisterGdClasses(const AgdClassType: TgdClassTypes;
+procedure RegisterGdClasses(const AgdClassKind: TgdClassKind;
   const ACaption: String; const ASubType: TgdcSubType;
   const AParentSubType: TgdcSubType = '');
 var
@@ -502,11 +513,11 @@ var
 begin
   CL := TClassList.Create;
   try
-    if gdClassList.GetDefiniteClasses(AgdClassType, CL) then
+    if gdClassList.GetDefiniteClasses(AgdClassKind, CL) then
     begin
       for I := 0 to CL.Count - 1 do
       begin
-        CurrCE := gdClassList.Add(CL[I], AgdClassType, ACaption, ASubType, AParentSubType);
+        CurrCE := gdClassList.Add(CL[I], AgdClassKind, ACaption, ASubType, AParentSubType);
         
         if CurrCE = nil then
           raise Exception.Create('Класс не добавлен в gdClassList.');
@@ -519,7 +530,7 @@ begin
   end;
 end;
 
-procedure UnRegisterGdClasses(const AgdClassType: TgdClassTypes;
+procedure UnRegisterGdClasses(const AgdClassKind: TgdClassKind;
   const ASubType: TgdcSubType);
 var
   CL :TClassList;
@@ -527,7 +538,7 @@ var
 begin
   CL := TClassList.Create;
   try
-    if gdClassList.GetDefiniteClasses(AgdClassType, CL) then
+    if gdClassList.GetDefiniteClasses(AgdClassKind, CL) then
     begin
       for I := 0 to CL.Count - 1 do
       begin
@@ -539,7 +550,7 @@ begin
   end;
 end;
 
-procedure UpdateGdClasses(const AgdClassType: TgdClassTypes;
+procedure UpdateGdClasses(const AgdClassKind: TgdClassKind;
   const ACaption: String; const ASubType: TgdcSubType);
 var
   CL :TClassList;
@@ -548,7 +559,7 @@ var
 begin
   CL := TClassList.Create;
   try
-    if gdClassList.GetDefiniteClasses(AgdClassType, CL) then
+    if gdClassList.GetDefiniteClasses(AgdClassKind, CL) then
     begin
       for I := 0 to CL.Count - 1 do
       begin
@@ -566,7 +577,7 @@ begin
 end;
 
 procedure RegisterGdcClass(const AClass: CgdcBase;
-  const AgdClassType: TgdClassTypes = ctStorage; const ACaption: String = '');
+  const AgdClassKind: TgdClassKind = ctStorage; const ACaption: String = '');
 begin
   Assert(AClass <> nil);
   Assert(gdClassList <> nil);
@@ -578,7 +589,7 @@ begin
   end;
 
   Classes.RegisterClass(AClass);
-  gdClassList.Add(AClass, AgdClassType, ACaption);
+  gdClassList.Add(AClass, AgdClassKind, ACaption);
 end;
 
 procedure UnRegisterGdcClass(AClass: CgdcBase);
@@ -587,14 +598,14 @@ begin
   gdClassList.Remove(AClass);
 end;
 
-procedure RegisterFrmClass(AClass: CgdcCreateableForm; AgdClassType: TgdClassTypes = ctStorage);
+procedure RegisterFrmClass(AClass: CgdcCreateableForm; AgdClassKind: TgdClassKind = ctStorage);
 begin
   if not AClass.InheritsFrom(TgdcCreateableForm) then
     raise Exception.Create('Класс ' + AClass.ClassName +
       ' не наследован от TgdcCreateableForm');
 
   Classes.RegisterClass(AClass);
-    gdClassList.Add(AClass, AgdClassType);
+    gdClassList.Add(AClass, AgdClassKind);
 end;
 
 procedure UnRegisterFrmClass(AClass: CgdcCreateableForm);
@@ -1250,12 +1261,12 @@ begin
 end;
 
 constructor TgdClassEntry.Create(AParent: TgdClassEntry; const AClass: TClass;
-  const AgdClassType: TgdClassTypes = ctStorage; const ACaption: String = '';
+  const AgdClassKind: TgdClassKind = ctStorage; const ACaption: String = '';
   const ASubType: TgdcSubType = '');
 begin
   FParent := AParent;
   FClass := AClass;
-  FgdClassType := AgdClassType;
+  FgdClassKind := AgdClassKind;
   FCaption := ACaption;
   FSubType := ASubType;
   FChildren := nil;
@@ -1347,7 +1358,7 @@ begin
       end;
     end
     else
-      if gdClassType = ctUserDefined then
+      if gdClassKind = ctUserDefined then
       begin
         with atDatabase.Relations do
           for I := 0 to Count - 1 do
@@ -1363,7 +1374,7 @@ begin
             end;
       end
       else
-        if gdClassType = ctUserDefinedTree then
+        if gdClassKind = ctUserDefinedTree then
         begin
           with atDatabase.Relations do
             for I := 0 to Count - 1 do
@@ -1380,7 +1391,7 @@ begin
               end;
         end
         else
-          if gdClassType = ctUserDefinedLBRBTree then
+          if gdClassKind = ctUserDefinedLBRBTree then
           begin
             with atDatabase.Relations do
               for I := 0 to Count - 1 do
@@ -1397,7 +1408,7 @@ begin
                 end;
           end
           else
-            if gdClassType = ctDlgUserDefinedTree then
+            if gdClassKind = ctDlgUserDefinedTree then
             begin
               with atDatabase.Relations do
                 for I := 0 to Count - 1 do
@@ -1417,7 +1428,7 @@ begin
 
     for I := 0 to SL.Count - 1 do
     begin
-      CurrCE := Add(TheClass, gdClassType, SL.Names[I], SL.Values[SL.Names[I]], SubType, False);
+      CurrCE := Add(TheClass, gdClassKind, SL.Names[I], SL.Values[SL.Names[I]], SubType, False);
 
       if CurrCE <> nil then
         CurrCE.ReadFromRelation;
@@ -1433,10 +1444,7 @@ procedure TgdClassEntry.ReadFromDocumentType;
     I: Integer;
   begin
     if (ACE.SubType = '') and (not ACE.Initialized)
-      and ((ACE.gdClassType = ctUserDocument)
-      or (ACE.gdClassType = ctInvDocument)
-      or (ACE.gdClassType = ctInvPriceList)
-      or (ACE.gdClassType = ctInvRemains)) then
+      and (ACE.gdClassKind in [ctUserDocument, ctInvDocument, ctInvPriceList, ctInvRemains]) then
     begin
       AnOL.Add(ACE);
     end;
@@ -1522,8 +1530,8 @@ begin
             begin
               CE := TgdClassEntry(OL[I]);
 
-              if CE.gdClassType = ctUserDocument then
-                Add(CE.TheClass, CE.gdClassType, LCaption, LSubType, LParentSubType, True);
+              if CE.gdClassKind = ctUserDocument then
+                Add(CE.TheClass, CE.gdClassKind, LCaption, LSubType, LParentSubType, True);
             end
           end
           else
@@ -1534,8 +1542,8 @@ begin
               begin
                 CE := TgdClassEntry(OL[I]);
 
-                if (CE.gdClassType = ctInvDocument) or (CE.gdClassType = ctInvRemains) then
-                  Add(CE.TheClass, CE.gdClassType, LCaption, LSubType, LParentSubType, True);
+                if CE.gdClassKind in [ctInvDocument, ctInvRemains] then
+                  Add(CE.TheClass, CE.gdClassKind, LCaption, LSubType, LParentSubType, True);
               end
             end
             else
@@ -1546,8 +1554,8 @@ begin
                 begin
                   CE := TgdClassEntry(OL[I]);
 
-                  if CE.gdClassType = ctInvPriceList then
-                    Add(CE.TheClass, CE.gdClassType, LCaption, LSubType, LParentSubType, True);
+                  if CE.gdClassKind = ctInvPriceList then
+                    Add(CE.TheClass, CE.gdClassKind, LCaption, LSubType, LParentSubType, True);
                 end
               end;
 
@@ -1570,8 +1578,8 @@ begin
           begin
             CE := TgdClassEntry(OL[I]);
 
-            if CE.gdClassType = ctInvRemains then
-              Add(CE.TheClass, CE.gdClassType, LCaption, LSubType, '', True);
+            if CE.gdClassKind = ctInvRemains then
+              Add(CE.TheClass, CE.gdClassKind, LCaption, LSubType, '', True);
           end;
           ibsql.Next;
         end;
@@ -1624,16 +1632,16 @@ begin
 
         for I := 0 to SL.Count - 1 do
         begin
-          CurrCE := Add(TheClass, gdClassType, SL.Names[I], SL.Values[SL.Names[I]], SubType);
+          CurrCE := Add(TheClass, gdClassKind, SL.Names[I], SL.Values[SL.Names[I]], SubType);
 
           if CurrCE <> nil then
           begin
             if TheClass.InheritsFrom(TgdcBase) then
             begin
               Add(GetClass(CgdcBase(TheClass).GetViewFormClassName(SL.Values[SL.Names[I]])),
-                gdClassType, '', SL.Values[SL.Names[I]], SubType, True);
+                gdClassKind, '', SL.Values[SL.Names[I]], SubType, True);
               Add(GetClass(CgdcBase(TheClass).GetDialogFormClassName(SL.Values[SL.Names[I]])),
-                gdClassType, '', SL.Values[SL.Names[I]], SubType, True);
+                gdClassKind, '', SL.Values[SL.Names[I]], SubType, True);
             end;
             CurrCE.ReadFromStorage;
           end;
@@ -1694,23 +1702,23 @@ end;
 
 procedure TgdClassEntry.RegisterClassHierarchy;
 begin
-  if (gdClassType = ctUserDocument)
-    or (gdClassType = ctInvDocument)
-    or (gdClassType = ctInvPriceList)
-    or (gdClassType = ctInvRemains) then
+  if (gdClassKind = ctUserDocument)
+    or (gdClassKind = ctInvDocument)
+    or (gdClassKind = ctInvPriceList)
+    or (gdClassKind = ctInvRemains) then
   begin
     ReadFromDocumentType;
   end
   else
-    if (gdClassType = ctUserDefined)
-      or (gdClassType = ctUserDefinedTree)
-      or (gdClassType = ctUserDefinedLBRBTree)
-      or (gdClassType = ctDlgUserDefinedTree) then
+    if (gdClassKind = ctUserDefined)
+      or (gdClassKind = ctUserDefinedTree)
+      or (gdClassKind = ctUserDefinedLBRBTree)
+      or (gdClassKind = ctDlgUserDefinedTree) then
     begin
       ReadFromRelation
     end
     else
-      if (gdClassType = ctStorage)
+      if (gdClassKind = ctStorage)
         and (TheClass.InheritsFrom(TgdcBase)
         or TheClass.InheritsFrom(TgdcCreateableForm)) then
       begin
@@ -1732,11 +1740,11 @@ begin
   gdClassList.FReadOnly := AReadOnly
 end;
 
-function TgdClassEntry.Add(const AClass: TClass; const AgdClassType: TgdClassTypes;
+function TgdClassEntry.Add(const AClass: TClass; const AgdClassKind: TgdClassKind;
   const ACaption: String = ''; const ASubType: TgdcSubType = '';
   const AParentSubType: TgdcSubType = ''; const AnInitialize: Boolean = False): TgdClassEntry;
 begin
-  Result := gdClassList.Add(AClass, AgdClassType, ACaption, ASubType, AParentSubType);
+  Result := gdClassList.Add(AClass, AgdClassKind, ACaption, ASubType, AParentSubType);
   
   if Result <> nil then
     Result.Initialized := AnInitialize;
@@ -1840,7 +1848,7 @@ begin
     Result := nil;
 end;
 
-function TgdClassList.Add(const AClass: TClass; AgdClassType: TgdClassTypes = ctStorage;
+function TgdClassList.Add(const AClass: TClass; AgdClassKind: TgdClassKind = ctStorage;
   const ACaption: String = ''; const ASubType: TgdcSubType = '';
   const AParentSubType: TgdcSubType = ''): TgdClassEntry;
 var
@@ -1867,23 +1875,23 @@ begin
       Result.FCaption := ACaption;
     end;
 
-    if (Result.FgdClassType <> AgdClassType) and (AgdClassType <> ctStorage) then
+    if (Result.FgdClassKind <> AgdClassKind) and (AgdClassKind <> ctStorage) then
     begin
-      Result.FgdClassType := AgdClassType
+      Result.FgdClassKind := AgdClassKind
     end;
 
     exit;
   end;
 
   if ASubType > '' then
-    Prnt := Add(AClass, AgdClassType, '', AParentSubType)
+    Prnt := Add(AClass, AgdClassKind, '', AParentSubType)
   else
     if (AClass = TgdcBase) or (AClass = TgdcCreateableForm) then
       Prnt := nil
     else
       Prnt := Add(AClass.ClassParent, ctStorage);
 
-  Result := TgdClassEntry.Create(Prnt, AClass, AgdClassType, ACaption, ASubType);
+  Result := TgdClassEntry.Create(Prnt, AClass, AgdClassKind, ACaption, ASubType);
 
   if Prnt <> nil then
     Prnt.AddSibling(Result);
@@ -2222,19 +2230,19 @@ begin
   Assert(AData2 <> nil);
   Assert(TClassList(AData1^) <> nil);
 
-  if (ACE.SubType = '') and (ACE.gdClassType = TgdClassTypes(AData2^)) then
+  if (ACE.SubType = '') and (ACE.gdClassKind = TgdClassKind(AData2^)) then
     TClassList(AData1^).Add(ACE.TheClass);
   Result := True;
 end;
 
-function TgdClassList.GetDefiniteClasses(const AgdClassType: TgdClassTypes;
+function TgdClassList.GetDefiniteClasses(const AgdClassKind: TgdClassKind;
   AClassList: TClassList): Boolean;
 begin
   if AClassList = nil then
     raise Exception.Create('ClassList is nil');
 
-  Traverse(TgdcBase, '', GetClassTree, @AClassList, @AgdClassType);
-  Traverse(TgdcCreateableForm, '', GetClassTree, @AClassList, @AgdClassType);
+  Traverse(TgdcBase, '', GetClassTree, @AClassList, @AgdClassKind);
+  Traverse(TgdcCreateableForm, '', GetClassTree, @AClassList, @AgdClassKind);
 
   Result := AClassList.Count > 0;
 end;
