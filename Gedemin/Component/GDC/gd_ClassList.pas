@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2001 - 2014 by Golden Software of Belarus
+  Copyright (c) 2001 - 2015 by Golden Software of Belarus
 
   Module
 
@@ -279,12 +279,12 @@ type
     FSubType: TgdcSubType;
     FClassMethods: TgdClassMethods;
     FCaption: String;
-    FSiblings: TObjectList;
+    FChildren: TObjectList;
     FInitialized: Boolean;
     FPath: String;
     FgdClassType: TgdClassTypes;
 
-    function GetSiblings(Index: Integer): TgdClassEntry;
+    function GetChildren(Index: Integer): TgdClassEntry;
     function GetCount: Integer;
     function GetCaption: String;
     function GetGdcClass: CgdcBase;
@@ -333,7 +333,7 @@ type
     property frmClass: CgdcCreateableForm read GetFrmClass;
     property Caption: String read GetCaption;
     property Count: Integer read GetCount;
-    property Siblings[Index: Integer]: TgdClassEntry read GetSiblings;
+    property Children[Index: Integer]: TgdClassEntry read GetChildren;
     property Initialized: Boolean read FInitialized write FInitialized;
     property ClassMethods: TgdClassMethods read FClassMethods;
     property gdClassType: TgdClassTypes read FgdClassType;
@@ -1237,9 +1237,9 @@ procedure TgdClassEntry.AddSibling(ASibling: TgdClassEntry);
 begin
   Assert(ASibling <> nil);
   Assert(ASibling.Parent = Self);
-  if FSiblings = nil then
-    FSiblings := TObjectList.Create(False);
-  FSiblings.Add(ASibling);
+  if FChildren = nil then
+    FChildren := TObjectList.Create(False);
+  FChildren.Add(ASibling);
 end;
 
 function TgdClassEntry.Compare(const AClass: TClass;
@@ -1258,13 +1258,13 @@ begin
   FgdClassType := AgdClassType;
   FCaption := ACaption;
   FSubType := ASubType;
-  FSiblings := nil;
+  FChildren := nil;
   FClassMethods := TgdClassMethods.Create(TComponentClass(FClass));
 end;
 
 destructor TgdClassEntry.Destroy;
 begin
-  FSiblings.Free;
+  FChildren.Free;
   FClassMethods.Free;
   inherited;
 end;
@@ -1280,10 +1280,10 @@ end;
 
 function TgdClassEntry.GetCount: Integer;
 begin
-  if FSiblings = nil then
+  if FChildren = nil then
     Result := 0
   else
-    Result := FSiblings.Count;
+    Result := FChildren.Count;
 end;
 
 function TgdClassEntry.GetGdcClass: CgdcBase;
@@ -1441,9 +1441,9 @@ procedure TgdClassEntry.ReadFromDocumentType;
       AnOL.Add(ACE);
     end;
 
-    if (ACE.SubType = '') and (ACE.FSiblings <> nil) then
+    if (ACE.SubType = '') and (ACE.FChildren <> nil) then
       for I := 0 to ACE.Count - 1 do
-        GetDocumentTypeObjects(ACE.Siblings[I], AnOL);
+        GetDocumentTypeObjects(ACE.Children[I], AnOL);
   end;
 
 var
@@ -1647,10 +1647,10 @@ begin
   end;
 end;
 
-function TgdClassEntry.GetSiblings(Index: Integer): TgdClassEntry;
+function TgdClassEntry.GetChildren(Index: Integer): TgdClassEntry;
 begin
-  Assert(FSiblings[Index] <> nil);
-  Result := FSiblings[Index] as TgdClassEntry;
+  Assert(FChildren[Index] <> nil);
+  Result := FChildren[Index] as TgdClassEntry;
 end;
 
 function TgdClassEntry.GetSubTypeList(ASubTypeList: TStrings;
@@ -1666,13 +1666,13 @@ begin
 
   for I := 0 to Count - 1 do
   begin
-    if Siblings[I].SubType > '' then
+    if Children[I].SubType > '' then
     begin
-      ASubTypeList.Add(Siblings[I].Caption + '=' + Siblings[I].SubType);
+      ASubTypeList.Add(Children[I].Caption + '=' + Children[I].SubType);
       Result := True;
 
       if not AnOnlyDirect then
-        Result := Siblings[I].GetSubTypeList(ASubTypeList, False) or Result;
+        Result := Children[I].GetSubTypeList(ASubTypeList, False) or Result;
     end;
   end;
 end;
@@ -1682,11 +1682,11 @@ var
   I: Integer;
 begin
   Result := False;
-  if (Parent <> nil) and (Parent.FSiblings <> nil) then
+  if (Parent <> nil) and (Parent.FChildren <> nil) then
     for I := Parent.Count - 1 downto 0 do
-      if Parent.Siblings[I] = Self then
+      if Parent.Children[I] = Self then
       begin
-        Parent.FSiblings.Delete(I);
+        Parent.FChildren.Delete(I);
         Result := True;
         break;
       end;
@@ -1764,9 +1764,9 @@ begin
     while Result and (I < Count) do
     begin
       if AnOnlyDirect then
-        Result := Result and ACallback(Siblings[I], AData1, AData2)
+        Result := Result and ACallback(Children[I], AData1, AData2)
       else
-        Result := Result and Siblings[I].Traverse(ACallback, AData1, AData2, True, False);
+        Result := Result and Children[I].Traverse(ACallback, AData1, AData2, True, False);
       Inc(I);
     end;
   finally
@@ -1796,9 +1796,9 @@ begin
     while Result and (I < Count) do
     begin
       if AnOnlyDirect then
-        Result := Result and ACallback2(Siblings[I], AData1, AData2)
+        Result := Result and ACallback2(Children[I], AData1, AData2)
       else
-        Result := Result and Siblings[I].Traverse(ACallback2, AData1, AData2, True, False);
+        Result := Result and Children[I].Traverse(ACallback2, AData1, AData2, True, False);
       Inc(I);
     end;
   finally
@@ -1996,10 +1996,10 @@ procedure TgdClassList.RemoveAllSubTypes;
 
     ACE.Initialized := False;
 
-    if ACE.FSiblings <> nil then
+    if ACE.FChildren <> nil then
       for I := 0 to ACE.Count - 1 do
       begin
-        ResetIntialize(ACE.Siblings[I]);
+        ResetIntialize(ACE.Children[I]);
       end;
   end;
 
