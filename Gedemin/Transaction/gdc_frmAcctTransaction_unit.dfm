@@ -31,11 +31,6 @@ inherited gdc_frmAcctTransaction: Tgdc_frmAcctTransaction
   inherited pmMain: TPopupMenu
     Left = 115
     Top = 174
-    inherited nNew_OLD: TMenuItem
-      Action = nil
-      ShortCut = 0
-      OnClick = nil
-    end
   end
   inherited dsMain: TDataSource
     DataSet = gdcAcctTransaction

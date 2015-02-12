@@ -9,7 +9,7 @@ uses
   gdc_frmG_unit, ExtCtrls, IBDatabase, Db, flt_sqlFilter,
   Menus, ActnList,  ComCtrls, ToolWin, gdcBase, gdcBaseInterface, DBGrids,
   IBCustomDataSet, gdcConst, TB2Item, TB2Dock, TB2Toolbar,
-  StdCtrls, gd_MacrosMenu, Grids, gsDBGrid, gsIBGrid, amSplitter;
+  StdCtrls, gd_MacrosMenu, Grids, gsDBGrid, gsIBGrid, amSplitter, ExtMenuItem;
 
 type
   Tgdc_frmMDH = class(Tgdc_frmG)
@@ -84,7 +84,7 @@ type
     actDetailLinkObject: TAction;
     tbiDetailLinkObject: TTBItem;
     tbsiDetailNew: TTBSubmenuItem;
-    tbsi_mm_DetailNew: TTBSubmenuItem;
+    tbi_mm_DetailNew: TTBItem;
     procedure actDetailEditExecute(Sender: TObject);
     procedure actDetailNewExecute(Sender: TObject);
     procedure actDetailNewUpdate(Sender: TObject);
@@ -142,9 +142,6 @@ type
     procedure pnlSearchDetailEnter(Sender: TObject);
     procedure pnlSearchDetailExit(Sender: TObject);
     procedure tbsiDetailNewPopup(Sender: TTBCustomItem; FromLink: Boolean);
-    procedure tbsi_mm_DetailNewPopup(Sender: TTBCustomItem;
-      FromLink: Boolean);
-    procedure pmDetailPopup(Sender: TObject);
 
   private
     FgdcDetailObject: TgdcBase;
@@ -152,6 +149,9 @@ type
     FDetailPreservedConditions: String;
 
     procedure SetgdcDetailObject(const Value: TgdcBase);
+
+    procedure DoOnDetailDescendantClick (Sender: TObject);
+    procedure FillPopupDetailNew(ATBSubmenuItem: TTBSubmenuItem);
 
   protected
     FSavedMasterSource: TDataSource;
@@ -254,20 +254,6 @@ begin
       end;
     end;
   end;
-
-  With tbMainMenu.Items[1] do
-  begin
-    for I := 0 to Count - 1 do
-    begin
-      if (Items[I] is TTBSubmenuItem) and (Items[I].Action = (Sender as TBasicAction)) then
-      begin
-        (Items[I] as TTBSubmenuItem).DropDownCombo := SubMenu;
-        TTBExtSubmenuItem(Items[I]).SubMenuStyle := SubMenu;
-        Break;
-      end;
-    end;
-  end;
-  
 end;
 
 procedure Tgdc_frmMDH.actDetailEditUpdate(Sender: TObject);
@@ -493,6 +479,70 @@ begin
       DoOnFilterChanged(nil);
       //tbsiMainMenuDetailObject.Caption := FgdcDetailObject.GetDisplayName(FgdcDetailObject.SubType);
     end;
+  end;
+end;
+
+procedure Tgdc_frmMDH.DoOnDetailDescendantClick (Sender: TObject);
+var
+  CE: TgdClassEntry;
+  C: TgdcFullClass;
+begin
+  if Sender is TTBExtItem then
+    CE := TgdClassEntry((Sender as TTBExtItem).Obj)
+  else
+    raise Exception.Create('invalid classtype.');
+
+  if CE = nil then
+    raise Exception.Create('DescendantObject = nil');
+
+  C.gdClass := CE.gdcClass;
+  C.SubType := CE.SubType;
+
+  if gdcDetailObject <> nil then
+    gdcDetailObject.CreateDialog(C)
+end;
+
+procedure Tgdc_frmMDH.FillPopupDetailNew(ATBSubmenuItem: TTBSubmenuItem);
+var
+  CL: TClassList;
+  OL: TObjectList;
+  TBEI: TTBExtItem;
+  I: Integer;
+  J: Integer;
+begin
+  if gdcDetailObject = nil then
+    raise Exception.Create('gdcDetailObject is nil.');
+
+  CL := TClassList.Create;
+  OL := TObjectList.Create;
+  try
+    GetDisabledDetailClasses(CL);
+    gdcDetailObject.GetDescendantList(OL, True);
+
+    ATBSubmenuItem.Clear;
+
+    for I := 0 to OL.Count - 1 do
+    begin
+      TBEI := TTBExtItem.Create(ATBSubmenuItem);
+      TBEI.Caption := TCreatedObject(OL[I]).Caption;
+      TBEI.Obj := TCreatedObject(OL[I]).Obj;
+
+      TBEI.AsChildren := False;
+
+      TBEI.OnClick := DoOnDetailDescendantClick;
+      TBEI.ImageIndex := 0;
+
+      for J := 0 to CL.Count - 1 do
+      begin
+        if CL[J] = TgdClassEntry(TBEI.Obj).TheClass then
+          TBEI.Enabled := False;
+      end;
+      ATBSubmenuItem.Add(TBEI);
+    end;
+
+  finally
+    CL.Free;
+    OL.Free;
   end;
 end;
 
@@ -1247,83 +1297,9 @@ end;
 
 procedure Tgdc_frmMDH.tbsiDetailNewPopup(Sender: TTBCustomItem;
   FromLink: Boolean);
-var
-  CL: TClassList;
 begin
   if (TTBSubmenuItem(Sender).DropDownCombo) and (gdcDetailObject <> nil) then
-  begin
-    CL := TClassList.Create;
-    try
-      GetDisabledDetailClasses(CL);
-      gdcDetailObject.SubNewPopup((Sender as TTBSubmenuItem), True, CL);
-    finally
-      CL.Free;
-    end;
-  end;
-end;
-
-procedure Tgdc_frmMDH.tbsi_mm_DetailNewPopup(Sender: TTBCustomItem;
-  FromLink: Boolean);
-var
-  CL: TClassList;
-begin
-  if (TTBSubmenuItem(Sender).DropDownCombo) and (gdcDetailObject <> nil) then
-  begin
-    CL := TClassList.Create;
-    try
-      GetDisabledDetailClasses(CL);
-      gdcDetailObject.SubNewPopup((Sender as TTBSubmenuItem), True, CL);
-    finally
-      CL.Free;
-    end;
-  end;
-end;
-
-procedure Tgdc_frmMDH.pmDetailPopup(Sender: TObject);
-var
-  I: Integer;
-  DescendantCount: Integer;
-  SubMenu: Boolean;
-  CL: TClassList;
-begin
-  if (Sender is TPopupMenu) and (gdcDetailObject <> nil) then
-    with (Sender as TPopupMenu) do
-    begin
-      for I := 0 to Items.Count - 1 do
-      begin
-        if Items[I].Name = 'nDetailNew' then
-        begin
-          if actDetailNew.Enabled then
-          begin
-            DescendantCount := gdcDetailObject.GetDescendantCount(True);
-
-            SubMenu := DescendantCount > 1;
-            if not SubMenu then
-              SubMenu := (gdcDetailObject.IsAbstractClass) and (DescendantCount > 0);
-            if SubMenu then
-            begin
-              CL := TClassList.Create;
-              try
-                GetDisabledDetailClasses(CL);
-                gdcDetailObject.SubNewPopup(Items[I], True, CL);
-                Items[I].OnClick := nil;
-                Items[I].Action := nil;
-              finally
-                CL.Free;
-              end;
-            end
-            else
-            begin
-              Items[I].OnClick := actDetailNewExecute;
-              Items[I].Action := actDetailNew;
-            end;
-          end;
-
-          Items[I].Enabled := actDetailNew.Enabled;
-          Break;
-        end;
-      end;
-    end;
+    FillPopupDetailNew(TTBSubmenuItem(Sender));
 end;
 
 initialization

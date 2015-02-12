@@ -1,6 +1,6 @@
 inherited gdc_ab_frmmain: Tgdc_ab_frmmain
-  Left = 219
-  Top = 221
+  Left = 398
+  Top = 392
   Width = 785
   Height = 405
   HelpContext = 31
@@ -15,11 +15,8 @@ inherited gdc_ab_frmmain: Tgdc_ab_frmmain
   inherited TBDockTop: TTBDock
     Width = 769
     inherited tbMainCustom: TTBToolbar
-      Left = 342
+      Left = 317
       DockPos = 317
-    end
-    inherited tbMainInvariant: TTBToolbar
-      Left = 280
     end
   end
   inherited TBDockLeft: TTBDock
@@ -119,33 +116,9 @@ inherited gdc_ab_frmmain: Tgdc_ab_frmmain
     inherited actDetailEdit: TAction
       Caption = 'Изменить'
     end
-    object actAddContact: TAction [21]
-      Caption = 'Добавить контакт'
-      OnExecute = actAddContactExecute
-    end
-    object actAddBank: TAction [22]
-      Caption = 'Добавить банк'
-      OnExecute = actAddBankExecute
-    end
-    object actAddCompany: TAction [23]
-      Caption = 'Добавить компанию'
-      ImageIndex = 0
-      OnExecute = actAddCompanyExecute
-    end
-    object actAddGroup: TAction [24]
-      Caption = 'Добавить группу'
-      ImageIndex = 3
-      OnExecute = actAddGroupExecute
-    end
-    object actAddFolder: TAction [25]
-      Caption = 'Добавить папку'
-      ImageIndex = 0
-      OnExecute = actAddFolderExecute
-    end
     object actAddEmployee: TAction
       Caption = 'Добавить сотрудника'
       ImageIndex = 0
-      OnExecute = actAddEmployeeExecute
     end
   end
   inherited pmMain: TPopupMenu
@@ -168,21 +141,6 @@ inherited gdc_ab_frmmain: Tgdc_ab_frmmain
   inherited pmDetail: TPopupMenu
     Left = 435
     Top = 230
-    inherited nDetailNew: TMenuItem
-      Action = nil
-      Caption = 'Добавить'
-      ShortCut = 0
-      OnClick = nil
-      object nAddCompany2: TMenuItem
-        Action = actAddCompany
-      end
-      object nAddContact2: TMenuItem
-        Action = actAddContact
-      end
-      object nAddBank2: TMenuItem
-        Action = actAddBank
-      end
-    end
   end
   object gdcContacts: TgdcBaseContact
     MasterSource = dsMain

@@ -50,12 +50,6 @@ inherited gdc_frmAcctAccount: Tgdc_frmAcctAccount
   inherited pmMain: TPopupMenu
     Left = 115
     Top = 175
-    inherited nNew_OLD: TMenuItem
-      Action = nil
-      Caption = 'Добавить'
-      ShortCut = 0
-      OnClick = nil
-    end
     object NAddAn: TMenuItem [17]
       Action = actAddAnalize
     end
@@ -75,11 +69,6 @@ inherited gdc_frmAcctAccount: Tgdc_frmAcctAccount
   inherited pmDetail: TPopupMenu
     Left = 350
     Top = 220
-    inherited nDetailNew: TMenuItem
-      Action = nil
-      Caption = 'Добавить'
-      ShortCut = 0
-    end
   end
   object gdcAcctAccount: TgdcAcctAccount
     MasterSource = dsMain

@@ -1,6 +1,6 @@
 inherited gdc_frmMD2H: Tgdc_frmMD2H
-  Left = 720
-  Top = 277
+  Left = 518
+  Top = 180
   Width = 671
   Height = 538
   Caption = 'gdc_frmMD2H'

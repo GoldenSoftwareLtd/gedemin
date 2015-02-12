@@ -59,15 +59,10 @@ type
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetSubSetList: String; override;
 
-    procedure SubNewPopup(ATBSI: TTBSubmenuItem;
-      const AnOnlySameLevel: Boolean;
-      ADisabled: TClassList = nil); overload; override;
+    function GetDescendantList(AOL: TObjectList;
+      const AnOnlySameLevel: Boolean): Boolean; override;
 
-      procedure SubNewPopup(AMI: TMenuItem;
-      const AnOnlySameLevel: Boolean;
-      ADisabled: TClassList = nil); overload; override;
-
-    class function GetDefaultClassForDialog: TgdcFullClass; override;
+    function GetDefaultClassForDialog: TgdcFullClass; override;
   end;
 
   TgdcAcctFolder = class(TgdcAcctBase)
@@ -259,122 +254,54 @@ begin
     cst_ByCompany + ';';
 end;
 
-procedure TgdcAcctBase.SubNewPopup(ATBSI: TTBSubmenuItem;
-  const AnOnlySameLevel: Boolean;
-  ADisabled: TClassList = nil);
+function TgdcAcctBase.GetDescendantList(AOL: TObjectList;
+  const AnOnlySameLevel: Boolean): Boolean;
 var
-  I, J: Integer;
   OL: TObjectList;
-  TBEI: TTBExtItem;
+  I: Integer;
+  CO : TCreatedObject;
 begin
-  if ClassType <> TgdcAcctBase then
-    inherited
+  if Self.ClassType <> TgdcAcctBase then
+    Result := inherited GetDescendantList(AOL, AnOnlySameLevel)
   else
   begin
-    if ATBSI = nil then
-      raise Exception.Create('SubmenuItem is nil');
-
-    ATBSI.Clear;
-
     OL := TObjectList.Create(False);
     try
       if GetChildrenClass(SubType, OL) then
       begin
         for I := 0 to OL.Count - 1 do
         begin
-          TBEI := TTBExtItem.Create(ATBSI);
-          TBEI.Caption := TgdClassEntry(OL[I]).Caption;
-          if TBEI.Caption = '' then
-            TBEI.Caption := TgdClassEntry(OL[I]).TheClass.ClassName;
-          TBEI.Obj := OL[I];
-          TBEI.OnClick := DoOnDescendantClick;
-          TBEI.ImageIndex := 0;
+          CO := TCreatedObject.Create;
+          CO.Obj := OL[I];
+          CO.Caption := TgdClassEntry(OL[I]).Caption;
+          if CO.Caption = '' then
+            CO.Caption := TgdClassEntry(OL[I]).TheClass.ClassName;
           if TgdClassEntry(OL[I]).TheClass = TgdcAcctChart then
           begin
-            TBEI.AsChildren := False;
+            CO.IsSubLevel := False;
           end
           else
             if TgdClassEntry(OL[I]).TheClass = TgdcAcctFolder then
             begin
-              TBEI.AsChildren := True;
+              CO.IsSubLevel := True;
             end
             else
               raise Exception.Create('unknown class');
 
-          if ADisabled <> nil then
-          for J := 0 to ADisabled.Count - 1 do
-          begin
-            if ADisabled[J] = TgdClassEntry(OL[I]).TheClass then
-              TBEI.Enabled := False;
-          end;
-          ATBSI.Add(TBEI);
+          AOL.Add(CO);
         end;
       end;
     finally
       OL.Free;
     end;
+
+    Result := AOL.Count > 0;
   end;
 end;
 
-procedure TgdcAcctBase.SubNewPopup(AMI: TMenuItem;
-  const AnOnlySameLevel: Boolean;
-  ADisabled: TClassList = nil);
-var
-  I, J: Integer;
-  OL: TObjectList;
-  EMI: TExtMenuItem;
+function TgdcAcctBase.GetDefaultClassForDialog: TgdcFullClass;
 begin
-  if ClassType <> TgdcAcctBase then
-    inherited
-  else
-  begin
-    if AMI = nil then
-      raise Exception.Create('SubmenuItem is nil');
-
-    AMI.Clear;
-
-    OL := TObjectList.Create(False);
-    try
-      if GetChildrenClass(SubType, OL) then
-      begin
-        for I := 0 to OL.Count - 1 do
-        begin
-          EMI := TExtMenuItem.Create(AMI);
-          EMI.Caption := TgdClassEntry(OL[I]).Caption;
-          if EMI.Caption = '' then
-            EMI.Caption := TgdClassEntry(OL[I]).TheClass.ClassName;
-          EMI.Obj := OL[I];
-          EMI.OnClick := DoOnDescendantClick;
-          EMI.ImageIndex := 0;
-          if TgdClassEntry(OL[I]).TheClass = TgdcAcctChart then
-          begin
-            EMI.AsChildren := False;
-          end
-          else
-            if TgdClassEntry(OL[I]).TheClass = TgdcAcctFolder then
-            begin
-              EMI.AsChildren := True;
-            end
-            else
-              raise Exception.Create('unknown class');
-
-          for J := 0 to ADisabled.Count - 1 do
-          begin
-            if ADisabled[J] = TgdClassEntry(OL[I]).TheClass then
-              AMI.Enabled := False;
-          end;
-          AMI.Add(EMI);
-        end;
-      end;
-    finally
-      OL.Free;
-    end;
-  end;
-end;
-
-class function TgdcAcctBase.GetDefaultClassForDialog: TgdcFullClass;
-begin
-  if Self <> TgdcAcctBase then
+  if Self.ClassType <> TgdcAcctBase then
     inherited GetDefaultClassForDialog
   else
   begin

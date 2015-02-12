@@ -1,6 +1,6 @@
 inherited gdc_frmMDH: Tgdc_frmMDH
-  Left = 801
-  Top = 345
+  Left = 526
+  Top = 196
   Width = 732
   Height = 496
   HelpContext = 115
@@ -22,9 +22,8 @@ inherited gdc_frmMDH: Tgdc_frmMDH
       DockPos = 8
       object tbsiMainMenuDetailObject: TTBSubmenuItem [1]
         Caption = 'Детальный'
-        object tbsi_mm_DetailNew: TTBSubmenuItem
+        object tbi_mm_DetailNew: TTBItem
           Action = actDetailNew
-          OnPopup = tbsi_mm_DetailNewPopup
         end
         object tbi_mm_DetailEdit: TTBItem
           Action = actDetailEdit
@@ -528,7 +527,6 @@ inherited gdc_frmMDH: Tgdc_frmMDH
     Top = 300
   end
   object pmDetail: TPopupMenu
-    OnPopup = pmDetailPopup
     Left = 464
     Top = 304
     object nDetailNew: TMenuItem

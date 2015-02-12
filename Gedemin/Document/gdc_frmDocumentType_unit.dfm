@@ -44,7 +44,6 @@ inherited gdc_frmDocumentType: Tgdc_frmDocumentType
       end
       inherited tvGroup: TgsDBTreeView
         Height = 527
-        Images = dmImages.ilTree
         OnGetImageIndex = tvGroupGetImageIndex
       end
     end
