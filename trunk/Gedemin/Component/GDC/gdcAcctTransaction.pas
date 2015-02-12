@@ -67,6 +67,11 @@ type
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetRestrictCondition(const ATableName, ASubType: String): String; override;
+
+    function GetDescendantList(AOL: TObjectList;
+      const AnOnlySameLevel: Boolean): Boolean; override;
+
+    function GetDescendantCount(const AnOnlySameLevel: Boolean): Integer; override;
   end;
 
   TgdcBaseAcctTransactionEntry = class(TgdcBase)
@@ -405,6 +410,60 @@ begin
     Result := ' (Z.AUTOTRANSACTION IS NULL OR Z.AUTOTRANSACTION = 0) '
   else
     Result := inherited GetRestrictCondition(ATableName, ASubType)
+end;
+
+function TgdcAcctTransaction.GetDescendantList(AOL: TObjectList;
+  const AnOnlySameLevel: Boolean): Boolean;
+var
+  OL: TObjectList;
+  I: Integer;
+  CO : TCreatedObject;
+begin
+  if Self.ClassType <> TgdcAcctTransaction then
+    Result := inherited GetDescendantList(AOL, AnOnlySameLevel)
+  else
+  begin
+    OL := TObjectList.Create(False);
+    try
+      if GetChildrenClass(SubType, OL) then
+      begin
+        for I := 0 to OL.Count - 1 do
+        begin
+          CO := TCreatedObject.Create;
+          CO.Obj := OL[I];
+          CO.Caption := TgdClassEntry(OL[I]).Caption;
+          if CO.Caption = '' then
+            CO.Caption := TgdClassEntry(OL[I]).TheClass.ClassName;
+          CO.IsSubLevel := False;
+          AOL.Add(CO);
+
+          if not AnOnlySameLevel then
+          begin
+            CO := TCreatedObject.Create;
+            CO.Obj := OL[I];
+            CO.Caption := TgdClassEntry(OL[I]).Caption;
+            if CO.Caption = '' then
+              CO.Caption := TgdClassEntry(OL[I]).TheClass.ClassName;
+            CO.Caption := CO.Caption + ' (подуровень)';
+            CO.IsSubLevel := True;
+            AOL.Add(CO);
+          end;
+        end;
+      end;
+    finally
+      OL.Free;
+    end;
+
+    Result := AOL.Count > 0;
+  end;
+end;
+
+function TgdcAcctTransaction.GetDescendantCount(const AnOnlySameLevel: Boolean): Integer;
+begin
+  Result := inherited GetDescendantCount(AnOnlySameLevel);
+
+  if (Self.ClassType = TgdcAcctTransaction) and (not AnOnlySameLevel) then
+    Result := Result * 2;
 end;
 
 { TgdcBaseAcctTransactionEntry }

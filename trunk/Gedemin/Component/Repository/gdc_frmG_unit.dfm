@@ -1,6 +1,6 @@
 object gdc_frmG: Tgdc_frmG
-  Left = 867
-  Top = 355
+  Left = 425
+  Top = 222
   Width = 1059
   Height = 784
   HelpContext = 116
@@ -159,9 +159,8 @@ object gdc_frmG: Tgdc_frmG
       TabOrder = 2
       object tbsiMainMenuObject: TTBSubmenuItem
         Caption = 'Главный'
-        object tbsi_mm_New: TTBSubmenuItem
+        object tbi_mm_New: TTBItem
           Action = actNew
-          OnPopup = tbsi_mm_NewPopup
         end
         object tbi_mm_Edit: TTBItem
           Action = actEdit
@@ -787,7 +786,6 @@ object gdc_frmG: Tgdc_frmG
     end
   end
   object pmMain: TPopupMenu
-    OnPopup = pmMainPopup
     Left = 124
     Top = 204
     object nNew_OLD: TMenuItem

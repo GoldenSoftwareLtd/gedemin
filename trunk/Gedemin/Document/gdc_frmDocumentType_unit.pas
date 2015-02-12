@@ -16,6 +16,7 @@ type
     gdcBaseDocumentType: TgdcBaseDocumentType;
     procedure FormCreate(Sender: TObject);
     procedure tvGroupGetImageIndex(Sender: TObject; Node: TTreeNode);
+    procedure actDetailNewExecute(Sender: TObject);
   private
 
   public
@@ -83,9 +84,9 @@ begin
   inherited;
 
   //хз почему руками не выставляется???
-  tbsi_mm_DetailNew.Visible := True;
   tbsiDetailNew.Visible := True;
   nDetailNew.Visible := True;
+  tbi_mm_DetailNew.Visible := True;
 end;
 
 procedure Tgdc_frmDocumentType.tvGroupGetImageIndex(Sender: TObject;
@@ -99,6 +100,28 @@ begin
   else
     Node.ImageIndex := 0;
   Node.SelectedIndex := Node.ImageIndex;
+end;
+
+procedure Tgdc_frmDocumentType.actDetailNewExecute(Sender: TObject);
+var
+  N: TTreeNode;
+  RUID: String;
+begin
+    N := tvGroup.Selected;
+  while (N <> nil) and (N.Parent <> nil) do
+    N := N.Parent;
+
+  if N <> nil then
+  begin
+    RUID := gdcBaseManager.GetRUIDStringByID(Integer(N.Data));
+    if RUID = '804000_17' then
+      gdcDetailObject.CreateDialog(TgdcInvDocumentType)
+    else
+      if RUID = '805000_17' then
+        gdcDetailObject.CreateDialog(TgdcInvPriceListType)
+      else
+        gdcDetailObject.CreateDialog(TgdcUserDocumentType);
+  end;
 end;
 
 initialization

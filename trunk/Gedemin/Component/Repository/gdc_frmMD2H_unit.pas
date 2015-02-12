@@ -6,7 +6,7 @@ uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Contnrs, Forms, Dialogs,
   gdc_frmMDH_unit, gd_MacrosMenu, Db, Menus, ActnList, Grids, DBGrids,
   gsDBGrid, gsIBGrid, StdCtrls, ExtCtrls, TB2Item, TB2Dock, TB2Toolbar,
-  ComCtrls, gdcBase;
+  ComCtrls, gdcBase, ExtMenuItem;
 
 type
   Tgdc_frmMD2H = class(Tgdc_frmMDH)
@@ -59,6 +59,9 @@ type
   private
     FgdcSubDetailObject: TgdcBase;
     procedure SetgdcSubDetailObject(const Value: TgdcBase);
+
+    procedure DoOnSubDetailDescendantClick (Sender: TObject);
+    procedure FillPopupSubDetailNew(ATBSubmenuItem: TTBSubmenuItem);
 
   protected
     procedure Notification(AComponent: TComponent;
@@ -126,6 +129,70 @@ begin
       DoOnFilterChanged(nil);
       //tbsiMainMenuDetailObject.Caption := FgdcDetailObject.GetDisplayName(FgdcDetailObject.SubType);
     end;
+  end;
+end;
+
+procedure Tgdc_frmMD2H.DoOnSubDetailDescendantClick (Sender: TObject);
+var
+  CE: TgdClassEntry;
+  C: TgdcFullClass;
+begin
+  if Sender is TTBExtItem then
+    CE := TgdClassEntry((Sender as TTBExtItem).Obj)
+  else
+    raise Exception.Create('invalid classtype.');
+
+  if CE = nil then
+    raise Exception.Create('DescendantObject is nil');
+
+  C.gdClass := CE.gdcClass;
+  C.SubType := CE.SubType;
+
+  if gdcSubDetailObject <> nil then
+    gdcSubDetailObject.CreateDialog(C)
+end;
+
+procedure Tgdc_frmMD2H.FillPopupSubDetailNew(ATBSubmenuItem: TTBSubmenuItem);
+var
+  CL: TClassList;
+  OL: TObjectList;
+  TBEI: TTBExtItem;
+  I: Integer;
+  J: Integer;
+begin
+  if gdcSubDetailObject = nil then
+    raise Exception.Create('gdcSubDetailObject is nil.');
+
+  CL := TClassList.Create;
+  OL := TObjectList.Create;
+  try
+    //GetDisabledSubDetailClasses(CL);
+    gdcSubDetailObject.GetDescendantList(OL, True);
+
+      ATBSubmenuItem.Clear;
+
+      for I := 0 to OL.Count - 1 do
+      begin
+        TBEI := TTBExtItem.Create(ATBSubmenuItem);
+        TBEI.Caption := TCreatedObject(OL[I]).Caption;
+        TBEI.Obj := TCreatedObject(OL[I]).Obj;
+
+        TBEI.AsChildren := False;
+
+        TBEI.OnClick := DoOnSubDetailDescendantClick;
+        TBEI.ImageIndex := 0;
+
+        for J := 0 to CL.Count - 1 do
+        begin
+          if CL[J] = TgdClassEntry(TBEI.Obj).TheClass then
+            TBEI.Enabled := False;
+        end;
+        ATBSubmenuItem.Add(TBEI);
+      end;
+
+  finally
+    CL.Free;
+    OL.Free;
   end;
 end;
 
@@ -444,7 +511,7 @@ procedure Tgdc_frmMD2H.tbsiSubDetailNewPopup(Sender: TTBCustomItem;
   FromLink: Boolean);
 begin
   if (TTBSubmenuItem(Sender).DropDownCombo) and (gdcSubDetailObject <> nil) then
-    gdcSubDetailObject.SubNewPopup((Sender as TTBSubmenuItem), True);
+    FillPopupSubDetailNew(TTBSubmenuItem(Sender));
 end;
 
 initialization

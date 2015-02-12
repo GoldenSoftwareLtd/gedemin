@@ -201,7 +201,12 @@ type
       const AnOnlyDirect: Boolean = False;
       const AnIncludeAbstract: Boolean = False): Boolean; override;
 
-    class function GetDefaultClassForDialog: TgdcFullClass; override;
+    function GetDefaultClassForDialog: TgdcFullClass; override;
+
+    function GetDescendantList(AOL: TObjectList;
+      const AnOnlySameLevel: Boolean): Boolean; override;
+
+    function GetDescendantCount(const AnOnlySameLevel: Boolean): Integer; override;
   end;
 
   TgdcDocumentBranch = class(TgdcBaseDocumentType)
@@ -2927,15 +2932,69 @@ begin
   Result := AnOL.Count > 0;
 end;
 
-class function TgdcBaseDocumentType.GetDefaultClassForDialog: TgdcFullClass;
+function TgdcBaseDocumentType.GetDefaultClassForDialog: TgdcFullClass;
 begin
-  if Self <> TgdcBaseDocumentType then
+  if Self.ClassType <> TgdcBaseDocumentType then
     Result := inherited GetDefaultClassForDialog
   else
   begin
     Result.gdClass := TgdcDocumentBranch;
     Result.SubType := '';
   end;
+end;
+
+function TgdcBaseDocumentType.GetDescendantList(AOL: TObjectList;
+  const AnOnlySameLevel: Boolean): Boolean;
+var
+  OL: TObjectList;
+  I: Integer;
+  CO : TCreatedObject;
+begin
+  if Self.ClassType <> TgdcBaseDocumentType then
+    Result := inherited GetDescendantList(AOL, AnOnlySameLevel)
+  else
+  begin
+    OL := TObjectList.Create(False);
+    try
+      if GetChildrenClass(SubType, OL) then
+      begin
+        for I := 0 to OL.Count - 1 do
+        begin
+          CO := TCreatedObject.Create;
+          CO.Obj := OL[I];
+          CO.Caption := TgdClassEntry(OL[I]).Caption;
+          if CO.Caption = '' then
+            CO.Caption := TgdClassEntry(OL[I]).TheClass.ClassName;
+          CO.IsSubLevel := False;
+          AOL.Add(CO);
+
+          if not AnOnlySameLevel then
+          begin
+            CO := TCreatedObject.Create;
+            CO.Obj := OL[I];
+            CO.Caption := TgdClassEntry(OL[I]).Caption;
+            if CO.Caption = '' then
+              CO.Caption := TgdClassEntry(OL[I]).TheClass.ClassName;
+            CO.Caption := CO.Caption + ' (подуровень)';
+            CO.IsSubLevel := True;
+            AOL.Add(CO);
+          end;
+        end;
+      end;
+    finally
+      OL.Free;
+    end;
+
+    Result := AOL.Count > 0;
+  end;
+end;
+
+function TgdcBaseDocumentType.GetDescendantCount(const AnOnlySameLevel: Boolean): Integer;
+begin
+  Result := inherited GetDescendantCount(AnOnlySameLevel);
+
+  if (Self.ClassType = TgdcBaseDocumentType) and (not AnOnlySameLevel) then
+    Result := Result * 2;
 end;
 
 class function TgdcBaseDocumentType.GetDialogFormClassName(
