@@ -422,7 +422,7 @@ procedure UpdateGdClasses(const AgdClassType: TgdClassTypes;
   const ACaption: String; const ASubType: TgdcSubType);
 
 {–егистраци€ класса в списке TgdcClassList}
-procedure RegisterGdcClass(AClass: CgdcBase; AgdClassType: TgdClassTypes = ctStorage; ACaption: String = '');
+procedure RegisterGdcClass(const AClass: CgdcBase; const AgdClassType: TgdClassTypes = ctStorage; const ACaption: String = '');
 procedure UnRegisterGdcClass(AClass: CgdcBase);
 
 // добавл€ет класс в список классов
@@ -565,15 +565,16 @@ begin
   end;
 end;
 
-procedure RegisterGdcClass(AClass: CgdcBase; AgdClassType: TgdClassTypes = ctStorage; ACaption: String = '');
+procedure RegisterGdcClass(const AClass: CgdcBase;
+  const AgdClassType: TgdClassTypes = ctStorage; const ACaption: String = '');
 begin
   Assert(AClass <> nil);
-  Assert(gdClassList <> nil, AClass.ClassName);
+  Assert(gdClassList <> nil);
 
   if not AClass.InheritsFrom(TgdcBase) then
   begin
     raise Exception.Create(' ласс ' + AClass.ClassName +
-      ' не наследован от TgdcBase');
+      ' не наследован от TgdcBase.');
   end;
 
   Classes.RegisterClass(AClass);

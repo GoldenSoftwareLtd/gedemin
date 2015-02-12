@@ -3421,7 +3421,6 @@ begin
     begin
       q := TIBSQL.Create(nil);
       try
-      //Здесь транзакция должна быть открыта!!!
         q.Transaction := Transaction;
         q.SQL.Text := cst_sql_GetLastNumber;
         q.ParamByName('ck').AsInteger := IBLogin.CompanyKey;
