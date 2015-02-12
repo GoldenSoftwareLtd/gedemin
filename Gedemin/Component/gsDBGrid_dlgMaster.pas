@@ -786,7 +786,6 @@ begin
       FFields.Add(P);
       P^ := NewColumn.FieldName;
       editConditionColumn.Items.AddObject(NewColumn.Title.Caption, Pointer(P));
-      //FFields.Add(NewColumn.FieldName);
     end;
 
     EnableCategory('Column', True);

@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2001-2014 by Golden Software of Belarus
+  Copyright (c) 2001-2015 by Golden Software of Belarus
 
   Module
 
@@ -211,8 +211,8 @@ type
     //Запись и чтение из потока
     procedure SaveToStream(Stream: TStream); virtual;
     class procedure LoadFromStream(Stream: TStream; AOwner: TComponent;
-      AParent: TWinControl; AFunctionName: String = '';
-      AParentFunctionName: String = ''); virtual;
+      AParent: TWinControl; const AFunctionName: String = '';
+      const AParentFunctionName: String = ''); virtual;
 
     function EditDialog: boolean; virtual;
 
@@ -2496,8 +2496,8 @@ begin
 end;
 
 class procedure TVisualBlock.LoadFromStream(Stream: TStream; AOwner: TComponent;
-  AParent: TWinControl; AFunctionName: String = '';
-  AParentFunctionName: String = '');
+  AParent: TWinControl; const AFunctionName: String = '';
+  const AParentFunctionName: String = '');
 var
   CName: String;
   C: TVisualBlockClass;
@@ -2506,21 +2506,19 @@ var
 begin
   CName := ReadStringFromStream(Stream);
   C := TVisualBlockClass(GetClass(CName));
-  Assert(C <> nil, Format('Не зарегестрированный класс %s', [CName]));
+  Assert(C <> nil, Format('Незарегистрированный класс %s', [CName]));
   if AParent is TVisualBlock then
   begin
     if not (TVisualBlock(AParent).CanHasOwnBlock  and
       C.CheckParent(TVisualBlock(AParent)) and TVisualBlock(AParent).CanEdit) then
-      Exit;
+      exit;
   end;
   V := C.Create(AOwner);
   V.DoLoadFromStream(Stream);
   V.Parent := AParent;
 
-  if (AFunctionName > '')
-  and (AParentFunctionName > '')
-  and (AnsiUpperCase(V.FBlockName) = AnsiUpperCase(AParentFunctionName))
-  then
+  if (AFunctionName > '') and (AParentFunctionName > '')
+    and (AnsiUpperCase(V.FBlockName) = AnsiUpperCase(AParentFunctionName)) then
   begin
     V.FBlockName := AFunctionName;
   end;
@@ -2532,7 +2530,6 @@ end;
 
 procedure TVisualBlock.SaveToStream(Stream: TStream);
 var
-//  I: Integer;
   LCount: Integer;
   T, Index: Integer;
 begin
@@ -2616,7 +2613,7 @@ begin
   CName := ReadStringFromStream(Stream);
   C := TVisualBlockClass(GetClass(CName));
   if C = nil then
-    raise Exception.CreateFmt('Не зарегестрированный класс %s', [CName]);
+    raise Exception.CreateFmt('Незарегистрированный класс %s', [CName]);
 
   if AParent is TVisualBlock then
   begin
@@ -2687,7 +2684,6 @@ var
   Str: TStringList;
 begin
   Sl := StringOfChar(' ',Paragraph);
-//  S.Add(Sl + '''' + HeaderPrefix + ' ''' + FBlockName + '''');
   Str := TStringList.Create;
   try
     Str.Text := FDescription;
@@ -2707,7 +2703,7 @@ end;
 
 procedure TVisualBlock.ShowException(Msg: string);
 begin
-  Application.MessageBox(PChar(Format('Во время генерации блока %s возникла ошибка:',
+  Application.MessageBox(PChar(Format('Во время генерации блока "%s" возникла ошибка:',
     [FBlockName]) + #13#10 + Msg), 'Ошибка генерации', MB_OK or MB_ICONERROR);
 end;
 
@@ -3084,9 +3080,6 @@ begin
   if not Assigned(SelBlockList) then Exit;
   Copy;
   Delete;
-  {for i:= SelBlockList.Count - 1 downto 0 do
-    TVisualBlock(SelBlockList[i]).Delete;
-  SelBlockList.Clear; }
 end;
 
 procedure TVisualBlock.Paste;
@@ -4404,7 +4397,6 @@ begin
   Result := 'Конец цикла';
 end;
 
-
 procedure TAccountCycleBlock.GenerateSQL(S: TStrings; Paragraph: Integer;
   SQLName: string);
 var
@@ -4471,31 +4463,31 @@ begin
     end;
 
     S.Add(lS + 'If IBLogin.IsHolding Then ');
-    S.Add(lS + Format('  %s.SQL.Text = %s.SQL.Text & " and r.companykey in (" & IBLogin.HoldingList & ") " ',
+    S.Add(lS + Format('  %s.SQL.Text = %s.SQL.Text & " AND r.companykey IN (" & IBLogin.HoldingList & ") " ',
       [SQLName, SQLName]));
     S.Add(lS + 'Else');
-    S.Add(lS + Format('  %s.SQL.Text = %s.SQL.Text & " and r.companykey in (" & Cstr(IBLogin.Companykey) & ") " ',
+    S.Add(lS + Format('  %s.SQL.Text = %s.SQL.Text & " AND r.companykey IN (" & Cstr(IBLogin.Companykey) & ") " ',
       [SQLName, SQLName]));
     S.Add(lS + 'End If');
 
-    S.Add(lS + Format('%s.SQL.Text = %s.SQL.Text & " and BIN_AND(BIN_OR(r.aview, 1), " & Cstr(IBLogin.InGroup) & ") <> 0 " ',
+    S.Add(lS + Format('%s.SQL.Text = %s.SQL.Text & " AND BIN_AND(BIN_OR(r.aview, 1), " & Cstr(IBLogin.InGroup) & ") <> 0 " ',
       [SQLName, SQLName]));
 
     if (BeginDate > '')  then
     begin
       S[S.Count - 1] := S[S.Count - 1] + ' + _';
-      S.Add(lS + '   "and e.entrydate >= :begindate "');
+      S.Add(lS + '   "AND e.entrydate >= :begindate "');
     end;
 
     if EndDate > '' then
     begin
       S[S.Count - 1] := S[S.Count - 1] + ' + _';
-      S.Add(lS + '   "and e.entrydate <= :enddate"');
+      S.Add(lS + '   "AND e.entrydate <= :enddate"');
     end;
 
     if FWhere <> '' then
     begin
-      S.Add(lS + Format('%s.SQL.Add("and %s ")', [SQLName, FWhere]));
+      S.Add(lS + Format('%s.SQL.Add("AND %s ")', [SQLName, FWhere]));
     end;
 
     if (FGroupBy > '') then
@@ -4504,7 +4496,7 @@ begin
       ParseString(FGroupBy, pS);
       if pS.Count > 0 then
       begin
-        S.Add(lS + Format('%s.SQL.Add(" order by ")', [SQLName]));
+        S.Add(lS + Format('%s.SQL.Add(" ORDER BY ")', [SQLName]));
         for I := 0 to pS.Count - 1 do
         begin
           if (I = pS.Count - 1) and (FOrder = '') then
@@ -4521,7 +4513,7 @@ begin
     begin
       if FOrder > '' then
       begin
-        S.Add(lS + Format('%s.SQL.Add(" order by ")', [SQLName]));
+        S.Add(lS + Format('%s.SQL.Add(" ORDER BY ")', [SQLName]));
         S.Add(lS + Format('%s.SQL.Add("   %s ")', [SQLName, FOrder]));
       end;
     end;
@@ -4578,9 +4570,9 @@ var
 begin
   if Strings.IndexOfName(FBlockName) = - 1 then
     if FLocalName = '' then
-      Strings.AddObject(FBlockName + Format('=Текущие значения счета и аналитик цикла по счёту %s', [FBlockName]), Self)
+      Strings.AddObject(FBlockName + Format('=Текущие значения счёта и аналитик цикла по счёту %s', [FBlockName]), Self)
     else
-      Strings.AddObject(FBlockName + Format('=Текущие значения счета и аналитик цикла по счёту %s', [FLocalName]), Self);
+      Strings.AddObject(FBlockName + Format('=Текущие значения счёта и аналитик цикла по счёту %s', [FLocalName]), Self);
 
   S := TStringList.Create;
   try
@@ -4625,7 +4617,7 @@ end;
 
 function TAccountCycleBlock.HeaderPrefix: string;
 begin
-  Result := 'Цикл по счету';
+  Result := 'Цикл по счёту';
 end;
 
 class function TAccountCycleBlock.NamePrefix: string;
@@ -5081,7 +5073,7 @@ begin
       S.Add(lS + Format('%s.Post', [gdcSRName]));
 
       S.Add(lS + '');
-      S.Add(lS + '''Заносим информацию в вспомогательную таблицу');
+      S.Add(lS + '''Заносим информацию во вспомогательную таблицу');
       S.Add('');
       S.Add(lS + Format('%s.ParamByName("trrecordkey").AsInteger = TrRecordKey',
         [SQLName]));
@@ -5346,9 +5338,6 @@ begin
 end;
 
 procedure TScriptBlock.AdjustSize;
-{var
-  W, H, nH: Integer;
-  I: Integer;}
 begin
   if not (csLoading in ComponentState) and HandleAllocated then
   begin
@@ -5527,7 +5516,7 @@ var
 begin
   lS := StringOfChar(' ', Paragraph);
   S.Add(lS + '''Данная скрипт-функция создана конструктором функций.');
-  S.Add(lS + '''Все изменения, произведённые вручную будут потеряны');
+  S.Add(lS + '''Все изменения, произведённые вручную, будут потеряны');
   S.Add(lS + '''при следующей генерации скрипт-функции.');
 end;
 
