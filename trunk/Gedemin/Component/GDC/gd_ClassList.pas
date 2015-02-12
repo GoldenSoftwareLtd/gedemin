@@ -363,7 +363,7 @@ type
     procedure _Insert(const Index: Integer; ACE: TgdClassEntry);
     procedure _Grow;
 
-    function GetDefiniteClasses(const AgdClassKind: TgdClassKind;
+    function GetDefinedClasses(const AgdClassKind: TgdClassKind;
       AClassList: TClassList): Boolean;
 
   public
@@ -513,7 +513,7 @@ var
 begin
   CL := TClassList.Create;
   try
-    if gdClassList.GetDefiniteClasses(AgdClassKind, CL) then
+    if gdClassList.GetDefinedClasses(AgdClassKind, CL) then
     begin
       for I := 0 to CL.Count - 1 do
       begin
@@ -538,7 +538,7 @@ var
 begin
   CL := TClassList.Create;
   try
-    if gdClassList.GetDefiniteClasses(AgdClassKind, CL) then
+    if gdClassList.GetDefinedClasses(AgdClassKind, CL) then
     begin
       for I := 0 to CL.Count - 1 do
       begin
@@ -559,7 +559,7 @@ var
 begin
   CL := TClassList.Create;
   try
-    if gdClassList.GetDefiniteClasses(AgdClassKind, CL) then
+    if gdClassList.GetDefinedClasses(AgdClassKind, CL) then
     begin
       for I := 0 to CL.Count - 1 do
       begin
@@ -2235,7 +2235,7 @@ begin
   Result := True;
 end;
 
-function TgdClassList.GetDefiniteClasses(const AgdClassKind: TgdClassKind;
+function TgdClassList.GetDefinedClasses(const AgdClassKind: TgdClassKind;
   AClassList: TClassList): Boolean;
 begin
   if AClassList = nil then
