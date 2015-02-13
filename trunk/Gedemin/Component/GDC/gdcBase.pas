@@ -14837,8 +14837,6 @@ end;
 
 function TgdcBase.GetDefaultClassForDialog: TgdcFullClass;
 begin
-  //Result.gdClass := nil;
-  //Result.SubType := '';
   Result := QueryDescendant;
 end;
 

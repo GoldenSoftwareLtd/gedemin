@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 1998-2013 by Golden Software of Belarus
+  Copyright (c) 1998-2015 by Golden Software of Belarus
 
   Module
     gd_security.pas
@@ -604,6 +604,8 @@ begin
   InitDatabase(dmLogin.ibtrAttr);
   atDatabase.ProceedLoading(True);
 
+  gdClassList.LoadUserDefinedClasses;
+
   ClearHoldingListCache;
 
   if dm_i_ClientReport <> nil then begin
@@ -632,7 +634,6 @@ procedure TboLogin.DoBeforeDisconnect;
 var
   I: Integer;
   Msg: TMsg;
-
 begin
   //
   // Закрываем все окна
