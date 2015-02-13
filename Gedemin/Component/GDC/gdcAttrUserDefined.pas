@@ -45,6 +45,7 @@ type
     function GetRelationName: String;
     function GetRelation: TatRelation;
     function GetIsView: Boolean;
+    
   protected
     function GetSelectClause: String; override;
     function GetFromClause(const ARefresh: Boolean = False): String; override;
@@ -665,7 +666,7 @@ var
   LSubType: String;
 begin
   LSubType := ASubType;
-  While ClassParentSubType(LSubType) <> '' do
+  while ClassParentSubType(LSubType) <> '' do
     LSubType := ClassParentSubtype(LSubType);
 
   R := atDatabase.Relations.ByRelationName(LSubType);
@@ -678,7 +679,7 @@ end;
 class function TgdcAttrUserDefined.GetListTable(const ASubType: TgdcSubType): String;
 begin
   Result := ASubType;
-  While ClassParentSubtype(Result) <> '' do
+  while ClassParentSubtype(Result) <> '' do
     Result := ClassParentSubtype(Result);
 end;
 

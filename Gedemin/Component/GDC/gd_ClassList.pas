@@ -402,6 +402,8 @@ type
     function GetGDCClass(const AClassName: String): CgdcBase;
     function GetFrmClass(const AClassName: String): CgdcCreateableForm;
 
+    procedure LoadUserDefinedClasses;
+
     property Count: Integer read FCount;
   end;
 
@@ -605,7 +607,7 @@ begin
       ' не наследован от TgdcCreateableForm');
 
   Classes.RegisterClass(AClass);
-    gdClassList.Add(AClass, AgdClassKind);
+  gdClassList.Add(AClass, AgdClassKind);
 end;
 
 procedure UnRegisterFrmClass(AClass: CgdcCreateableForm);
@@ -2281,6 +2283,29 @@ end;
 function TgdClassList.Find(const AFullClassName: TgdcFullClassName): TgdClassEntry;
 begin
   Result := Find(AFullClassName.gdClassName, AFullClassName.SubType);
+end;
+
+procedure TgdClassList.LoadUserDefinedClasses;
+var
+  I: Integer;
+  R: TatRelation;
+begin
+  for I := 0 to atDatabase.Relations.Count - 1 do
+  begin
+    R := atDatabase.Relations[I];
+
+    {
+    if R.IsUserDefined and (R.PrimaryKey <> nil)
+      and Assigned(Items[I].PrimaryKey.ConstraintFields)
+      and (Items[I].PrimaryKey.ConstraintFields.Count = 1)
+      and (AnsiCompareText(Items[I].PrimaryKey.ConstraintFields[0].FieldName, 'ID') = 0)
+      and Assigned(Items[I].RelationFields.ByFieldName('PARENT'))
+      and not Assigned(Items[I].RelationFields.ByFieldName('INHERITEDKEY'))then
+    begin
+      SL.Add(Items[I].LName + '=' + Items[I].RelationName);
+    end;
+    }
+  end;
 end;
 
 initialization
