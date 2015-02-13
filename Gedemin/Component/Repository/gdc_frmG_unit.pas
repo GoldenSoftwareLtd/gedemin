@@ -12,7 +12,7 @@ uses
   ToolWin, ExtCtrls, StdCtrls, Menus, flt_sqlFilter, Db, dmDatabase_unit,
   IBDatabase, gdcBaseInterface, gdcBase, DBGrids, gdcLink, 
   IBCustomDataSet, gdcConst, TB2Item, TB2Dock, TB2Toolbar, gd_MacrosMenu,
-  Grids, gsDBGrid, gsIBGrid, Mask, xDateEdits, gd_KeyAssoc, ExtMenuItem;
+  Grids, gsDBGrid, gsIBGrid, Mask, xDateEdits, gd_KeyAssoc;
 
 const
   scNew         = 'Ins';
@@ -262,6 +262,8 @@ type
     // онтрол, который отображает датасет, из которого идет выбор
     FChooseControl: TComponent;
     FChosenIDInOrder: TStringList;
+    //храним объекты дл€ св€зи с выпадающим меню добавить
+    FpmNewObject: TObjectList;
 
     class procedure RegisterMethod;
     function GetChosenIDInOrder: OleVariant;
@@ -966,6 +968,9 @@ begin
   LocalizeListName.Free;
   PreviousSelectedID.Free;
   FgdcLink.Free;
+
+  FpmNewObject.Free;
+  
   inherited;
 end;
 
@@ -1500,12 +1505,14 @@ procedure Tgdc_frmG.DoOnDescendantClick (Sender: TObject);
 var
   CE: TgdClassEntry;
   C: TgdcFullClass;
-  AsChildren: Boolean;
+  IsSubLevel: Boolean;
+  Index: Integer;
 begin
-  if Sender is TTBExtItem then
+  if Sender is TTBItem then
   begin
-    CE := TgdClassEntry((Sender as TTBExtItem).Obj);
-    AsChildren := (Sender as TTBExtItem).AsChildren;
+    Index := (Sender as TTBItem).Tag;
+    CE := TgdClassEntry(TCreatedObject(FpmNewObject[Index]).Obj);
+    IsSubLevel := TCreatedObject(FpmNewObject[Index]).IsSubLevel;
   end
   else
     raise Exception.Create('invalid classtype.');
@@ -1519,7 +1526,7 @@ begin
 
   if gdcObject <> nil then
   begin
-    if AsChildren then
+    if IsSubLevel then
       gdcObject.CreateChildrenDialog(C)
     else
       gdcObject.CreateDialog(C);
@@ -1529,44 +1536,50 @@ end;
 procedure Tgdc_frmG.FillPopupNew(ATBSubmenuItem: TTBSubmenuItem);
 var
   CL: TClassList;
-  OL: TObjectList;
-  TBEI: TTBExtItem;
+  TBI: TTBItem;
   I: Integer;
   J: Integer;
 begin
   if gdcObject = nil then
     raise Exception.Create('gdcObject is nil.');
 
+  if FpmNewObject <> nil then
+  begin
+    FpmNewObject.Free;
+    FpmNewObject := nil;
+  end;
+
+  FpmNewObject := TObjectList.Create;
+
   CL := TClassList.Create;
-  OL := TObjectList.Create;
   try
     GetDisabledClasses(CL);
-    gdcObject.GetDescendantList(OL, False);
+    gdcObject.GetDescendantList(FpmNewObject, False);
 
     ATBSubmenuItem.Clear;
 
-    for I := 0 to OL.Count - 1 do
+    for I := 0 to FpmNewObject.Count - 1 do
     begin
-      TBEI := TTBExtItem.Create(ATBSubmenuItem);
-      TBEI.Caption := TCreatedObject(OL[I]).Caption;
-      TBEI.Obj := TCreatedObject(OL[I]).Obj;
-      TBEI.AsChildren := TCreatedObject(OL[I]).IsSubLevel;
-      if TBEI.AsChildren and gdcObject.IsEmpty then
-        TBEI.Enabled := False;
-      TBEI.OnClick := DoOnDescendantClick;
-      TBEI.ImageIndex := 0;
+      TBI := TTBItem.Create(ATBSubmenuItem);
+      TBI.Tag := I;
+      TBI.Caption := TCreatedObject(FpmNewObject[I]).Caption;
+
+      if TCreatedObject(FpmNewObject[I]).IsSubLevel and gdcObject.IsEmpty then
+        TBI.Enabled := False;
+
+      TBI.OnClick := DoOnDescendantClick;
+      TBI.ImageIndex := 0;
 
       for J := 0 to CL.Count - 1 do
       begin
-        if CL[J] = TgdClassEntry(TBEI.Obj).TheClass then
-          TBEI.Enabled := False;
+        if CL[J] = TgdClassEntry(TCreatedObject(FpmNewObject[I]).Obj).TheClass then
+          TBI.Enabled := False;
       end;
-      ATBSubmenuItem.Add(TBEI);
+      ATBSubmenuItem.Add(TBI);
     end;
 
   finally
     CL.Free;
-    OL.Free;
   end;
 end;
 
@@ -1814,7 +1827,6 @@ begin
   FInChoose := False;
   FChooseControl := nil;
   PreviousSelectedID := TgdKeyArray.Create;
-
 end;
 
 procedure Tgdc_frmG.actSelectAllExecute(Sender: TObject);

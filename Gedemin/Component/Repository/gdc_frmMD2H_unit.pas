@@ -6,7 +6,7 @@ uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Contnrs, Forms, Dialogs,
   gdc_frmMDH_unit, gd_MacrosMenu, Db, Menus, ActnList, Grids, DBGrids,
   gsDBGrid, gsIBGrid, StdCtrls, ExtCtrls, TB2Item, TB2Dock, TB2Toolbar,
-  ComCtrls, gdcBase, ExtMenuItem;
+  ComCtrls, gdcBase;
 
 type
   Tgdc_frmMD2H = class(Tgdc_frmMDH)
@@ -58,6 +58,9 @@ type
 
   private
     FgdcSubDetailObject: TgdcBase;
+
+    FpmSubDetailNewObject: TObjectList;
+
     procedure SetgdcSubDetailObject(const Value: TgdcBase);
 
     procedure DoOnSubDetailDescendantClick (Sender: TObject);
@@ -94,6 +97,8 @@ destructor Tgdc_frmMD2H.Destroy;
 begin
   if Assigned(FgdcSubDetailObject) then
     FgdcSubDetailObject.OnFilterChanged := nil;
+
+  FpmSubDetailNewObject.Free;  
 
   inherited;
 end;
@@ -136,9 +141,13 @@ procedure Tgdc_frmMD2H.DoOnSubDetailDescendantClick (Sender: TObject);
 var
   CE: TgdClassEntry;
   C: TgdcFullClass;
+  Index: Integer;
 begin
-  if Sender is TTBExtItem then
-    CE := TgdClassEntry((Sender as TTBExtItem).Obj)
+  if Sender is TTBItem then
+  begin
+    Index := (Sender as TTBItem).Tag;
+    CE := TgdClassEntry(TCreatedObject(FpmSubDetailNewObject[Index]).Obj);
+  end
   else
     raise Exception.Create('invalid classtype.');
 
@@ -154,45 +163,37 @@ end;
 
 procedure Tgdc_frmMD2H.FillPopupSubDetailNew(ATBSubmenuItem: TTBSubmenuItem);
 var
-  CL: TClassList;
-  OL: TObjectList;
-  TBEI: TTBExtItem;
+  TBI: TTBItem;
   I: Integer;
-  J: Integer;
 begin
   if gdcSubDetailObject = nil then
     raise Exception.Create('gdcSubDetailObject is nil.');
 
-  CL := TClassList.Create;
-  OL := TObjectList.Create;
-  try
-    //GetDisabledSubDetailClasses(CL);
-    gdcSubDetailObject.GetDescendantList(OL, True);
+  if FpmSubDetailNewObject <> nil then
+  begin
+    FpmSubDetailNewObject.Free;
+    FpmSubDetailNewObject := nil;
+  end;
 
-      ATBSubmenuItem.Clear;
+  FpmSubDetailNewObject := TObjectList.Create;
 
-      for I := 0 to OL.Count - 1 do
-      begin
-        TBEI := TTBExtItem.Create(ATBSubmenuItem);
-        TBEI.Caption := TCreatedObject(OL[I]).Caption;
-        TBEI.Obj := TCreatedObject(OL[I]).Obj;
+  gdcSubDetailObject.GetDescendantList(FpmSubDetailNewObject, True);
 
-        TBEI.AsChildren := False;
+  ATBSubmenuItem.Clear;
 
-        TBEI.OnClick := DoOnSubDetailDescendantClick;
-        TBEI.ImageIndex := 0;
+  for I := 0 to FpmSubDetailNewObject.Count - 1 do
+  begin
+    TBI := TTBItem.Create(ATBSubmenuItem);
+    TBI.Tag := I;
+    TBI.Caption := TCreatedObject(FpmSubDetailNewObject[I]).Caption;
 
-        for J := 0 to CL.Count - 1 do
-        begin
-          if CL[J] = TgdClassEntry(TBEI.Obj).TheClass then
-            TBEI.Enabled := False;
-        end;
-        ATBSubmenuItem.Add(TBEI);
-      end;
+    if TCreatedObject(FpmSubDetailNewObject[I]).IsSubLevel and gdcObject.IsEmpty then
+      TBI.Enabled := False;
 
-  finally
-    CL.Free;
-    OL.Free;
+    TBI.OnClick := DoOnSubDetailDescendantClick;
+    TBI.ImageIndex := 0;
+
+    ATBSubmenuItem.Add(TBI);
   end;
 end;
 

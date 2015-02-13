@@ -9,7 +9,7 @@ uses
   gdc_frmG_unit, ExtCtrls, IBDatabase, Db, flt_sqlFilter,
   Menus, ActnList,  ComCtrls, ToolWin, gdcBase, gdcBaseInterface, DBGrids,
   IBCustomDataSet, gdcConst, TB2Item, TB2Dock, TB2Toolbar,
-  StdCtrls, gd_MacrosMenu, Grids, gsDBGrid, gsIBGrid, amSplitter, ExtMenuItem;
+  StdCtrls, gd_MacrosMenu, Grids, gsDBGrid, gsIBGrid, amSplitter;
 
 type
   Tgdc_frmMDH = class(Tgdc_frmG)
@@ -147,6 +147,8 @@ type
     FgdcDetailObject: TgdcBase;
     FFieldOriginDetail: TStringList;
     FDetailPreservedConditions: String;
+
+    FpmDetailNewObject: TObjectList;
 
     procedure SetgdcDetailObject(const Value: TgdcBase);
 
@@ -486,9 +488,13 @@ procedure Tgdc_frmMDH.DoOnDetailDescendantClick (Sender: TObject);
 var
   CE: TgdClassEntry;
   C: TgdcFullClass;
+  Index: Integer;
 begin
-  if Sender is TTBExtItem then
-    CE := TgdClassEntry((Sender as TTBExtItem).Obj)
+  if Sender is TTBItem then
+  begin
+    Index := (Sender as TTBItem).Tag;
+    CE := TgdClassEntry(TCreatedObject(FpmDetailNewObject[Index]).Obj);
+  end
   else
     raise Exception.Create('invalid classtype.');
 
@@ -505,44 +511,50 @@ end;
 procedure Tgdc_frmMDH.FillPopupDetailNew(ATBSubmenuItem: TTBSubmenuItem);
 var
   CL: TClassList;
-  OL: TObjectList;
-  TBEI: TTBExtItem;
+  TBI: TTBItem;
   I: Integer;
   J: Integer;
 begin
   if gdcDetailObject = nil then
     raise Exception.Create('gdcDetailObject is nil.');
 
+  if FpmDetailNewObject <> nil then
+  begin
+    FpmDetailNewObject.Free;
+    FpmDetailNewObject := nil;
+  end;
+
+  FpmDetailNewObject := TObjectList.Create;
+
   CL := TClassList.Create;
-  OL := TObjectList.Create;
   try
     GetDisabledDetailClasses(CL);
-    gdcDetailObject.GetDescendantList(OL, True);
+    gdcDetailObject.GetDescendantList(FpmDetailNewObject, True);
 
     ATBSubmenuItem.Clear;
 
-    for I := 0 to OL.Count - 1 do
+    for I := 0 to FpmDetailNewObject.Count - 1 do
     begin
-      TBEI := TTBExtItem.Create(ATBSubmenuItem);
-      TBEI.Caption := TCreatedObject(OL[I]).Caption;
-      TBEI.Obj := TCreatedObject(OL[I]).Obj;
+      TBI := TTBItem.Create(ATBSubmenuItem);
+      TBI.Tag := I;
+      TBI.Caption := TCreatedObject(FpmDetailNewObject[I]).Caption;
 
-      TBEI.AsChildren := False;
+      if TCreatedObject(FpmDetailNewObject[I]).IsSubLevel and gdcObject.IsEmpty then
+        TBI.Enabled := False;
 
-      TBEI.OnClick := DoOnDetailDescendantClick;
-      TBEI.ImageIndex := 0;
+      TBI.OnClick := DoOnDetailDescendantClick;
+      TBI.ImageIndex := 0;
 
       for J := 0 to CL.Count - 1 do
       begin
-        if CL[J] = TgdClassEntry(TBEI.Obj).TheClass then
-          TBEI.Enabled := False;
+        if CL[J] = TgdClassEntry(TCreatedObject(FpmDetailNewObject[I]).Obj).TheClass then
+          TBI.Enabled := False;
       end;
-      ATBSubmenuItem.Add(TBEI);
+      ATBSubmenuItem.Add(TBI);
     end;
 
   finally
     CL.Free;
-    OL.Free;
   end;
 end;
 
@@ -588,6 +600,8 @@ begin
   if Assigned(FgdcDetailObject) then
     FgdcDetailObject.OnFilterChanged := nil;
 
+  FpmDetailNewObject.Free;
+  
   inherited;
   FFieldOriginDetail.Free;
 end;

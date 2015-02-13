@@ -151,6 +151,7 @@ inherited gdc_frmMDH: Tgdc_frmMDH
           Caption = 'ѕанель инструментов (детальна€)'
           CloseButton = False
           DockMode = dmCannotFloat
+          Images = dmImages.il16x16
           ParentShowHint = False
           ShowHint = True
           Stretch = True
@@ -205,7 +206,7 @@ inherited gdc_frmMDH: Tgdc_frmMDH
           end
         end
         object tbDetailCustom: TTBToolbar
-          Left = 256
+          Left = 257
           Top = 0
           Caption = 'ƒополнительна€ панель инструментов (детальна€)'
           CloseButton = False

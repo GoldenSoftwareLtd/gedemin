@@ -60,6 +60,7 @@ object gdc_frmG: Tgdc_frmG
       DockPos = 16
       DockRow = 1
       FloatingMode = fmOnTopOfAllForms
+      Images = dmImages.il16x16
       ParentShowHint = False
       ProcessShortCuts = True
       ShowHint = True
@@ -257,13 +258,14 @@ object gdc_frmG: Tgdc_frmG
       end
     end
     object tbMainInvariant: TTBToolbar
-      Left = 280
+      Left = 309
       Top = 25
       Caption = 'ƒополнительна€ панель инструментов'
       CloseButton = False
       DockMode = dmCannotFloat
       DockPos = 280
       DockRow = 1
+      Images = dmImages.il16x16
       ParentShowHint = False
       ShowHint = True
       Stretch = True
