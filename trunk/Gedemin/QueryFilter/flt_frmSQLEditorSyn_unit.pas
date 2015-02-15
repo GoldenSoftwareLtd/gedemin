@@ -377,6 +377,9 @@ type
     procedure FillClassesList;
     function ibtrEditor: TIBTransaction;
 
+    function BuildClassTree(ACE: TgdClassEntry; AData1: Pointer;
+      AData2: Pointer): Boolean;
+
   public
     FDatabase: TIBDatabase;
 
@@ -1600,47 +1603,55 @@ begin
     Result := _ibtrEditor;
 end;
 
-procedure TfrmSQLEditorSyn.FillClassesList;
+function TfrmSQLEditorSyn.BuildClassTree(ACE: TgdClassEntry; AData1: Pointer;
+  AData2: Pointer): Boolean;
+var
+  LI: TListItem;
+  S: String;
+  Level: Integer;
+begin
+  Result := False;
 
-  procedure Iterate(ACE: TgdClassEntry; const ALevel: Integer);
-  var
-    LI: TListItem;
-    I: Integer;
-    S: String;
+  if ACE = nil then
+    exit;
+
+  S := ACE.TheClass.ClassName + ACE.SubType
+    + ACE.gdcClass.GetDisplayName(ACE.SubType)
+    + ACE.gdcClass.GetListTable(ACE.SubType);
+
+  Level := Integer(AData1^);
+  if (edClassesFilter.Text = '') or (StrIPos(edClassesFilter.Text, S) > 0) then
   begin
-    if ACE = nil then
-      exit;
+    LI := lvClasses.Items.Add;
+    LI.Caption := StringOfChar(' ', Level * 2) + ACE.TheClass.ClassName;
 
-    S := ACE.TheClass.ClassName + ACE.SubType
-      + ACE.gdcClass.GetDisplayName(ACE.SubType)
-      + ACE.gdcClass.GetListTable(ACE.SubType);
+    if ACE.gdcClass.IsAbstractClass then
+      LI.SubItems.Add('<Абстрактный базовый класс>')
+    else
+      LI.SubItems.Add(ACE.SubType);
 
-    if (edClassesFilter.Text = '') or (StrIPos(edClassesFilter.Text, S) > 0) then
-    begin
-      LI := lvClasses.Items.Add;
-      LI.Caption := StringOfChar(' ', ALevel * 2) + ACE.TheClass.ClassName;
-
-      if ACE.gdcClass.IsAbstractClass then
-        LI.SubItems.Add('<Абстрактный базовый класс>')
-      else
-        LI.SubItems.Add(ACE.SubType);
-
-      LI.SubItems.Add(ACE.gdcClass.GetDisplayName(ACE.SubType));
-      LI.SubItems.Add(ACE.gdcClass.GetListTable(ACE.SubType));
-    end;
-
-    for I := 0 to ACE.Count - 1 do
-      Iterate(ACE.Children[I], ALevel + 1);
+    LI.SubItems.Add(ACE.gdcClass.GetDisplayName(ACE.SubType));
+    LI.SubItems.Add(ACE.gdcClass.GetListTable(ACE.SubType));
   end;
 
+  Inc(Level);
+  gdClassList.Traverse(ACE.gdcClass, ACE.SubType, BuildClassTree, @Level, nil, False, True);
+
+  Result := True;
+end;
+
+procedure TfrmSQLEditorSyn.FillClassesList;
+var
+  Level: Integer;
 begin
   {$IFDEF GEDEMIN}
   if gdClassList <> nil then
   begin
     lvClasses.Items.BeginUpdate;
+    Level := 0;
     try
       lvClasses.Items.Clear;
-      Iterate(gdClassList.Find(TgdcBase), 0);
+      BuildClassTree(gdClassList.Find(TgdcBase), @Level, nil);
     finally
       lvClasses.Items.EndUpdate;
     end;
