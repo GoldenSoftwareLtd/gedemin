@@ -251,6 +251,8 @@ type
     TBItem34: TTBItem;
     actFilter: TAction;
     tbiFilter: TTBItem;
+    Label17: TLabel;
+    edClassesFilter: TEdit;
     procedure actPrepareExecute(Sender: TObject);
     procedure actExecuteExecute(Sender: TObject);
     procedure actCommitExecute(Sender: TObject);
@@ -330,6 +332,8 @@ type
     procedure actChangeRUIDExecute(Sender: TObject);
     procedure actFilterUpdate(Sender: TObject);
     procedure actFilterExecute(Sender: TObject);
+    procedure actFindNextUpdate(Sender: TObject);
+    procedure edClassesFilterChange(Sender: TObject);
 
   private
     FOldDelete, FOldInsert, FOldUpdate, FOldIndRead, FOldSeqRead: TStrings;
@@ -372,8 +376,6 @@ type
     function ConcatErrorMessage(const M: String): String;
     procedure FillClassesList;
     function ibtrEditor: TIBTransaction;
-    function BuildClassTree(ACE: TgdClassEntry; AData1: Pointer;
-      AData2: Pointer): Boolean;
 
   public
     FDatabase: TIBDatabase;
@@ -1598,32 +1600,51 @@ begin
     Result := _ibtrEditor;
 end;
 
-function TfrmSQLEditorSyn.BuildClassTree(ACE: TgdClassEntry; AData1: Pointer;
-  AData2: Pointer): Boolean;
-var
-  LI: TListItem;
-begin
-  LI := lvClasses.Items.Add;
-  LI.Caption := ACE.TheClass.ClassName;
-
-  if ACE.gdcClass.IsAbstractClass then
-    LI.SubItems.Add('<Абстрактный базовый класс>')
-  else
-    LI.SubItems.Add(ACE.SubType);
-
-  LI.SubItems.Add(ACE.gdcClass.GetDisplayName(ACE.SubType));
-  LI.SubItems.Add(ACE.gdcClass.GetListTable(ACE.SubType));
-
-  Result := True;
-end;
-
 procedure TfrmSQLEditorSyn.FillClassesList;
-begin
-  if lvClasses.Items.Count > 0 then
-    exit;
 
+  procedure Iterate(ACE: TgdClassEntry; const ALevel: Integer);
+  var
+    LI: TListItem;
+    I: Integer;
+    S: String;
+  begin
+    if ACE = nil then
+      exit;
+
+    S := ACE.TheClass.ClassName + ACE.SubType
+      + ACE.gdcClass.GetDisplayName(ACE.SubType)
+      + ACE.gdcClass.GetListTable(ACE.SubType);
+
+    if (edClassesFilter.Text = '') or (StrIPos(edClassesFilter.Text, S) > 0) then
+    begin
+      LI := lvClasses.Items.Add;
+      LI.Caption := StringOfChar(' ', ALevel * 2) + ACE.TheClass.ClassName;
+
+      if ACE.gdcClass.IsAbstractClass then
+        LI.SubItems.Add('<Абстрактный базовый класс>')
+      else
+        LI.SubItems.Add(ACE.SubType);
+
+      LI.SubItems.Add(ACE.gdcClass.GetDisplayName(ACE.SubType));
+      LI.SubItems.Add(ACE.gdcClass.GetListTable(ACE.SubType));
+    end;
+
+    for I := 0 to ACE.Count - 1 do
+      Iterate(ACE.Children[I], ALevel + 1);
+  end;
+
+begin
   {$IFDEF GEDEMIN}
-  gdClassList.Traverse(TgdcBase, '', BuildClassTree, nil, nil);
+  if gdClassList <> nil then
+  begin
+    lvClasses.Items.BeginUpdate;
+    try
+      lvClasses.Items.Clear;
+      Iterate(gdClassList.Find(TgdcBase), 0);
+    finally
+      lvClasses.Items.EndUpdate;
+    end;
+  end;
   {$ENDIF}
 
   lblClassesCount.Caption := 'Бизнес-классов: ' + IntToStr(lvClasses.Items.Count);
@@ -1966,7 +1987,10 @@ begin
   else if pcMain.ActivePage = tsHistory then
     AddSQLHistory(False)
   else if pcMain.ActivePage = tsClasses then
-    FillClassesList
+  begin
+    if lvClasses.Items.Count = 0 then
+      FillClassesList;
+  end
   else if pcMain.ActivePage = tsTransaction then
     FillTransactionsList
   else if (pcMain.ActivePage = tsResult) and (not tsResult.TabVisible) then
@@ -2346,13 +2370,12 @@ begin
   Assert(lvClasses.Selected <> nil);
 
   Obj := nil;
-  C := GetClass(lvClasses.Selected.Caption);
+  C := GetClass(Trim(lvClasses.Selected.Caption));
 
-  if (C <> nil) and C.InheritsFrom(TgdcBase) then
+  if (C <> nil) and C.InheritsFrom(TgdcBase) and (not CgdcBase(C).IsAbstractClass) then
   begin
     Obj := CgdcBase(C).Create(nil);
-    if Pos('<', lvClasses.Selected.SubItems[0]) = 0 then
-      Obj.SubType := lvClasses.Selected.SubItems[0];
+    Obj.SubType := lvClasses.Selected.SubItems[0];
   end;
 
   Result := Obj <> nil;
@@ -2526,6 +2549,17 @@ begin
     Free;
   end;
   {$ENDIF}
+end;
+
+procedure TfrmSQLEditorSyn.actFindNextUpdate(Sender: TObject);
+begin
+  (Sender as TAction).Enabled := (pcMain.ActivePage = tsQuery) or
+    (pcMain.ActivePage = tsResult);
+end;
+
+procedure TfrmSQLEditorSyn.edClassesFilterChange(Sender: TObject);
+begin
+  FillClassesList;
 end;
 
 initialization
