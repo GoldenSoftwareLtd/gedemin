@@ -13,10 +13,10 @@ type
   TgsGdClassListSubTypes = class(TgsDBTestCase)
   protected
     procedure ReadFromDocumentType(ASL: TStringList;
-      const AgdClassType: TgdClassTypes; const ASubType: String);
+      const AgdClassKind: TgdClassKind; const ASubType: String);
     procedure ReadFromStorage(ACE: TgdClassEntry; ASL: TStringList);
     procedure ReadFromRelation(ASL: TStringList;
-      const AgdClassType: TgdClassTypes; const ASubType: String);
+      const AgdClassKind: TgdClassKind; const ASubType: String);
     function BuildClassTree(ACE: TgdClassEntry; AData1: Pointer;
       AData2: Pointer): Boolean;
   published
@@ -35,19 +35,19 @@ uses
 { TgsGdClassListSubTypes }
 
 procedure TgsGdClassListSubTypes.ReadFromDocumentType(ASL: TStringList;
-  const AgdClassType: TgdClassTypes; const ASubType: String);
+  const AgdClassKind: TgdClassKind; const ASubType: String);
 var
   SL: TStringList;
   I: Integer;
   ClassName: String;
 begin
-  if AgdClassType = ctUserDocument then
+  if AgdClassKind = ctUserDocument then
     ClassName := 'TgdcUserDocumentType'
   else
-    if (AgdClassType = ctInvDocument) or (AgdClassType = ctInvRemains) then
+    if (AgdClassKind = ctInvDocument) or (AgdClassKind = ctInvRemains) then
       ClassName := 'TgdcInvDocumentType'
     else
-      if AgdClassType = ctInvPriceList then
+      if AgdClassKind = ctInvPriceList then
         ClassName := 'TgdcInvPriceListType';
 
   SL := TStringList.Create;
@@ -93,10 +93,10 @@ begin
     for I := 0 to SL.Count - 1 do
     begin
       ASL.Add(SL[I]);
-      ReadFromDocumentType(ASL, AgdClassType, SL.Values[SL.Names[I]]);
+      ReadFromDocumentType(ASL, AgdClassKind, SL.Values[SL.Names[I]]);
     end;
 
-    if (AgdClassType = ctInvRemains) and (ASubType = '') then
+    if (AgdClassKind = ctInvRemains) and (ASubType = '') then
     begin
       FQ.Close;
       FQ.SQL.Text :=
@@ -168,7 +168,7 @@ begin
   if ACE.Path = '' then
     raise Exception.Create('классу не назначен путь в хранилище');
 
-  if ACE.gdClassType <> ctStorage then
+  if ACE.gdClassKind <> ctStorage then
     raise Exception.Create('это не класс хранилища');
 
   SL := TStringList.Create;
@@ -201,7 +201,7 @@ begin
 end;
 
 procedure TgsGdClassListSubTypes.ReadFromRelation(ASL: TStringList;
-  const AgdClassType: TgdClassTypes; const ASubType: String);
+  const AgdClassKind: TgdClassKind; const ASubType: String);
 var
   SL: TStringList;
   I: Integer;
@@ -227,7 +227,7 @@ begin
       end;
     end
     else
-      if AgdClassType = ctUserDefined then
+      if AgdClassKind = ctUserDefined then
       begin
         with atDatabase.Relations do
           for I := 0 to Count - 1 do
@@ -243,7 +243,7 @@ begin
             end;
       end
       else
-        if AgdClassType = ctUserDefinedTree then
+        if AgdClassKind = ctUserDefinedTree then
         begin
           with atDatabase.Relations do
             for I := 0 to Count - 1 do
@@ -260,7 +260,7 @@ begin
               end;
         end
         else
-          if AgdClassType = ctUserDefinedLBRBTree then
+          if AgdClassKind = ctUserDefinedLBRBTree then
           begin
             with atDatabase.Relations do
               for I := 0 to Count - 1 do
@@ -277,7 +277,7 @@ begin
                 end;
           end
           else
-            if AgdClassType = ctDlgUserDefinedTree then
+            if AgdClassKind = ctDlgUserDefinedTree then
             begin
               with atDatabase.Relations do
                 for I := 0 to Count - 1 do
@@ -298,7 +298,7 @@ begin
     for I := 0 to SL.Count - 1 do
     begin
       ASL.Add(SL[I]);
-      ReadFromRelation(ASL, AgdClassType, SL.Values[SL.Names[I]]);
+      ReadFromRelation(ASL, AgdClassKind, SL.Values[SL.Names[I]]);
     end;
 
   finally
@@ -315,25 +315,25 @@ begin
   SL1 := TStringList.Create;
   SL2 := TStringList.Create;
   try
-    if (ACE.gdClassType = ctUserDocument)
-      or (ACE.gdClassType = ctInvDocument)
-      or (ACE.gdClassType = ctInvPriceList)
-      or (ACE.gdClassType = ctInvRemains) then
+    if (ACE.gdClassKind = ctUserDocument)
+      or (ACE.gdClassKind = ctInvDocument)
+      or (ACE.gdClassKind = ctInvPriceList)
+      or (ACE.gdClassKind = ctInvRemains) then
     begin
       gdClassList.GetSubTypeList(ACE.TheClass, ACE.SubType, SL1, False);
-      ReadFromDocumentType(SL2, ACE.gdClassType, ACE.SubType);
+      ReadFromDocumentType(SL2, ACE.gdClassKind, ACE.SubType);
     end
     else
-      if (ACE.gdClassType = ctUserDefined)
-        or (ACE.gdClassType = ctUserDefinedTree)
-        or (ACE.gdClassType = ctUserDefinedLBRBTree)
-        or (ACE.gdClassType = ctDlgUserDefinedTree) then
+      if (ACE.gdClassKind = ctUserDefined)
+        or (ACE.gdClassKind = ctUserDefinedTree)
+        or (ACE.gdClassKind = ctUserDefinedLBRBTree)
+        or (ACE.gdClassKind = ctDlgUserDefinedTree) then
       begin
         gdClassList.GetSubTypeList(ACE.TheClass, ACE.SubType, SL1, False);
-        ReadFromRelation(SL2, ACE.gdClassType, ACE.SubType);
+        ReadFromRelation(SL2, ACE.gdClassKind, ACE.SubType);
       end
       else
-        if (ACE.gdClassType = ctStorage)
+        if (ACE.gdClassKind = ctStorage)
           and (ACE.TheClass.InheritsFrom(TgdcBase)
           or ACE.TheClass.InheritsFrom(TgdcCreateableForm)) then
         begin
