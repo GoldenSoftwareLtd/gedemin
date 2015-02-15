@@ -1,6 +1,6 @@
 object frmSQLEditorSyn: TfrmSQLEditorSyn
-  Left = 420
-  Top = 272
+  Left = 295
+  Top = 117
   Width = 963
   Height = 556
   HelpContext = 121
@@ -33,7 +33,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
       Height = 453
       BorderStyle = bsNone
       TabsVisible = True
-      ActivePage = tsQuery
+      ActivePage = tsClasses
       Align = alClient
       TabHeight = 23
       TabOrder = 0
@@ -445,6 +445,8 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
             Width = 150
             Height = 22
             Caption = 'tbResult'
+            CloseButton = False
+            DockMode = dmCannotFloatOrChangeDocks
             Images = dmImages.il16x16
             Options = [tboShowHint]
             ParentShowHint = False
@@ -872,6 +874,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
             Left = 0
             Top = 0
             Caption = 'tbStatistic'
+            CloseButton = False
             DefaultDock = TBDock5
             DockMode = dmCannotFloatOrChangeDocks
             FullSize = True
@@ -1015,7 +1018,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
             Height = 21
             Style = csDropDownList
             DropDownCount = 24
-            ItemHeight = 0
+            ItemHeight = 13
             TabOrder = 0
             OnChange = cbTransactionsChange
           end
@@ -1065,6 +1068,8 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
             Width = 104
             Height = 22
             Caption = 'TBToolbar2'
+            CloseButton = False
+            DockMode = dmCannotFloatOrChangeDocks
             Images = dmImages.il16x16
             ParentShowHint = False
             ShowHint = True
@@ -1497,10 +1502,18 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
           BevelOuter = bvNone
           TabOrder = 0
           object lblClassesCount: TLabel
-            Left = 72
+            Left = 273
             Top = 6
-            Width = 3
+            Width = 10
             Height = 13
+            Caption = 'lbl'
+          end
+          object Label17: TLabel
+            Left = 60
+            Top = 6
+            Width = 42
+            Height = 13
+            Caption = 'Фильтр:'
           end
           object tbClasses: TTBToolbar
             Left = 6
@@ -1508,6 +1521,8 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
             Width = 46
             Height = 22
             Caption = 'tbClasses'
+            CloseButton = False
+            DockMode = dmCannotFloatOrChangeDocks
             Images = dmImages.il16x16
             ParentShowHint = False
             ShowHint = True
@@ -1519,6 +1534,14 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
               Action = actClassesShowViewForm
             end
           end
+          object edClassesFilter: TEdit
+            Left = 106
+            Top = 3
+            Width = 160
+            Height = 21
+            TabOrder = 1
+            OnChange = edClassesFilterChange
+          end
         end
         object lvClasses: TListView
           Left = 0
@@ -1529,11 +1552,11 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
           Columns = <
             item
               Caption = 'Бизнес-класс'
-              Width = 180
+              Width = 380
             end
             item
               Caption = 'Подтип'
-              Width = 180
+              Width = 200
             end
             item
               Caption = 'Описание'
@@ -1543,10 +1566,15 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
               Caption = 'Таблица'
               Width = 180
             end>
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -12
+          Font.Name = 'Courier New'
+          Font.Style = []
           HideSelection = False
           ReadOnly = True
           RowSelect = True
-          SortType = stText
+          ParentFont = False
           TabOrder = 1
           ViewStyle = vsReport
         end
@@ -1562,6 +1590,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         Top = 0
         Caption = 'Панель инструментов'
         CloseButton = False
+        DockMode = dmCannotFloatOrChangeDocks
         Font.Charset = RUSSIAN_CHARSET
         Font.Color = clWindowText
         Font.Height = -11
@@ -1956,6 +1985,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
       ImageIndex = 24
       ShortCut = 114
       OnExecute = actFindNextExecute
+      OnUpdate = actFindNextUpdate
     end
     object actShowTree: TAction
       Category = 'Result'
