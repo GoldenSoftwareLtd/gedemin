@@ -146,6 +146,7 @@ type
     function GetIsSystem: Boolean; override;
     function GetHasSecurityDescriptors: Boolean; override;
     function GetListField: TatRelationField; override;
+    function GetIsStandartRelation: Boolean; override;
     function GetIsStandartTreeRelation: Boolean; override;
     function GetIsLBRBTreeRelation: Boolean; override;
 
@@ -1174,23 +1175,20 @@ end;
 
 function TatBodyRelation.GetIsStandartTreeRelation: Boolean;
 begin
-  Result :=
-    Assigned(FRelationFields.ByFieldName('ID'))
-      and
-    Assigned(FRelationFields.ByFieldName('PARENT'));
+  Result := (FPrimaryKey <> nil)
+    and (FPrimaryKey.ConstraintFields.Count = 1)
+    and (FPrimaryKey.ConstraintFields[0].FieldName = 'ID')
+    and (FRelationFields.ByFieldName('PARENT') <> nil);
 end;
 
 function TatBodyRelation.GetIsLBRBTreeRelation: Boolean;
 begin
-  Result :=
-    Assigned(FRelationFields.ByFieldName('ID'))
-      and
-    Assigned(FRelationFields.ByFieldName('PARENT'))
-      and
-    Assigned(FRelationFields.ByFieldName('LB'))
-      and
-    Assigned(FRelationFields.ByFieldName('RB'))
-    ;
+  Result := (FPrimaryKey <> nil)
+    and (FPrimaryKey.ConstraintFields.Count = 1)
+    and (FPrimaryKey.ConstraintFields[0].FieldName = 'ID')
+    and (FRelationFields.ByFieldName('PARENT') <> nil)
+    and (FRelationFields.ByFieldName('LB') <> nil)
+    and (FRelationFields.ByFieldName('RB') <> nil);
 end;
 
 { TatBodyRelations }
@@ -5000,6 +4998,14 @@ begin
     (PrimaryKey.ConstraintFields[0].References <> nil)
   then
     Result := PrimaryKey.ConstraintFields[0].References;
+end;
+
+function TatBodyRelation.GetIsStandartRelation: Boolean;
+begin
+  Result := (FPrimaryKey <> nil)
+    and (FPrimaryKey.ConstraintFields.Count = 1)
+    and (FPrimaryKey.ConstraintFields[0].FieldName = 'ID')
+    and (FRelationFields.ByFieldName('PARENT') = nil);
 end;
 
 initialization

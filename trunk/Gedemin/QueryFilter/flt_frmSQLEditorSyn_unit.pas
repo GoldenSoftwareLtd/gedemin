@@ -1610,16 +1610,17 @@ var
   S: String;
   Level: Integer;
 begin
-  Result := False;
-
   if ACE = nil then
+  begin
+    Result := False;
     exit;
+  end;
 
   S := ACE.TheClass.ClassName + ACE.SubType
     + ACE.gdcClass.GetDisplayName(ACE.SubType)
     + ACE.gdcClass.GetListTable(ACE.SubType);
+  Level := PInteger(AData1)^;
 
-  Level := Integer(AData1^);
   if (edClassesFilter.Text = '') or (StrIPos(edClassesFilter.Text, S) > 0) then
   begin
     LI := lvClasses.Items.Add;
@@ -2571,6 +2572,16 @@ end;
 procedure TfrmSQLEditorSyn.edClassesFilterChange(Sender: TObject);
 begin
   FillClassesList;
+
+  if edClassesFilter.Text > '' then
+  begin
+    edClassesFilter.Color := clInfoBk;
+    lvClasses.Color := clInfoBk;
+  end else
+  begin
+    edClassesFilter.Color := clWindow;
+    lvClasses.Color := clWindow;
+  end;
 end;
 
 initialization

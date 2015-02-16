@@ -1,6 +1,6 @@
 object frmSQLEditorSyn: TfrmSQLEditorSyn
-  Left = 295
-  Top = 117
+  Left = 252
+  Top = 210
   Width = 963
   Height = 556
   HelpContext = 121
@@ -33,7 +33,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
       Height = 453
       BorderStyle = bsNone
       TabsVisible = True
-      ActivePage = tsClasses
+      ActivePage = tsQuery
       Align = alClient
       TabHeight = 23
       TabOrder = 0
@@ -1556,11 +1556,11 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
             end
             item
               Caption = 'Подтип'
-              Width = 200
+              Width = 208
             end
             item
               Caption = 'Описание'
-              Width = 240
+              Width = 260
             end
             item
               Caption = 'Таблица'

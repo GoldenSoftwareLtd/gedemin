@@ -335,7 +335,7 @@ type
 
     function Compare(const AClass: TClass; const ASubType: TgdcSubType = ''): Integer; overload;
     function Compare(const AClassName: AnsiString; const ASubType: TgdcSubType = ''): Integer; overload;
-    procedure AddSibling(ASibling: TgdClassEntry);
+    procedure AddChild(AChild: TgdClassEntry);
 
     property Parent: TgdClassEntry read FParent;
     property TheClass: TClass read FClass;
@@ -1246,13 +1246,13 @@ end;
 
 {TgdClassEntry}
 
-procedure TgdClassEntry.AddSibling(ASibling: TgdClassEntry);
+procedure TgdClassEntry.AddChild(AChild: TgdClassEntry);
 begin
-  Assert(ASibling <> nil);
-  Assert(ASibling.Parent = Self);
+  Assert(AChild <> nil);
+  Assert(AChild.Parent = Self);
   if FChildren = nil then
     FChildren := TObjectList.Create(False);
-  FChildren.Add(ASibling);
+  FChildren.Add(AChild);
 end;
 
 function TgdClassEntry.Compare(const AClass: TClass;
@@ -1879,7 +1879,7 @@ begin
 
     if (Result.FgdClassKind <> AgdClassKind) and (AgdClassKind <> ctStorage) then
     begin
-      Result.FgdClassKind := AgdClassKind
+      Result.FgdClassKind := AgdClassKind;
     end;
 
     exit;
@@ -1896,7 +1896,7 @@ begin
   Result := TgdClassEntry.Create(Prnt, AClass, AgdClassKind, ACaption, ASubType);
 
   if Prnt <> nil then
-    Prnt.AddSibling(Result);
+    Prnt.AddChild(Result);
 
   if not _Find(AClass.ClassName, ASubType, Index) then
     _Insert(Index, Result)
@@ -2289,22 +2289,28 @@ procedure TgdClassList.LoadUserDefinedClasses;
 var
   I: Integer;
   R: TatRelation;
+  CN: String;
+  Prnt: TgdClassEntry;
 begin
   for I := 0 to atDatabase.Relations.Count - 1 do
   begin
     R := atDatabase.Relations[I];
 
-    {
-    if R.IsUserDefined and (R.PrimaryKey <> nil)
-      and Assigned(Items[I].PrimaryKey.ConstraintFields)
-      and (Items[I].PrimaryKey.ConstraintFields.Count = 1)
-      and (AnsiCompareText(Items[I].PrimaryKey.ConstraintFields[0].FieldName, 'ID') = 0)
-      and Assigned(Items[I].RelationFields.ByFieldName('PARENT'))
-      and not Assigned(Items[I].RelationFields.ByFieldName('INHERITEDKEY'))then
+    if R.IsUserDefined then
     begin
-      SL.Add(Items[I].LName + '=' + Items[I].RelationName);
+      if R.IsStandartRelation then
+        CN := 'TgdcAttrUserDefined'
+      else if R.IsLBRBTreeRelation then
+        CN := 'TgdcAttrUserDefinedLBRBTree'
+      else if R.IsStandartTreeRelation then
+        CN := 'TgdcAttrUserDefinedTree';
+
+      if R.RelationFields.ByFieldName('INHERITEDKEY') <> nil then
+      begin
+      end;
     end;
-    }
+
+
   end;
 end;
 
