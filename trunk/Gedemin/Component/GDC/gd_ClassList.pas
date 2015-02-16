@@ -321,7 +321,7 @@ type
       const ASubType: TgdcSubType = ''): TgdClassEntry;
 
     procedure SetReadOnly(AReadOnly: Boolean);
-    
+
     function Add(const AClass: TClass; const AgdClassKind: TgdClassKind;
       const ACaption: String = ''; const ASubType: TgdcSubType = '';
       const AParentSubType: TgdcSubType = ''; const AnInitialize: Boolean = False): TgdClassEntry;
@@ -329,7 +329,7 @@ type
   public
     constructor Create(AParent: TgdClassEntry; const AClass: TClass;
       const AgdClassKind: TgdClassKind = ctStorage; const ACaption: String = '';
-      const ASubType: TgdcSubType = '');
+      const ASubType: TgdcSubType = ''); overload;
 
     destructor Destroy; override;
 
@@ -372,7 +372,9 @@ type
 
     function Add(const AClass: TClass; AgdClassKind: TgdClassKind = ctStorage;
       const ACaption: String = ''; const ASubType: TgdcSubType = '';
-      const AParentSubType: TgdcSubType = ''): TgdClassEntry;
+      const AParentSubType: TgdcSubType = ''): TgdClassEntry; overload;
+    function Add(const AClassName: AnsiString; const ASubType: TgdcSubType;
+      const AParentSubType: TgdcSubType; const ACaption: String): TgdClassEntry; overload;
 
     function Find(const AClass: TClass; const ASubType: TgdcSubType = ''): TgdClassEntry; overload;
     function Find(const AClassName: AnsiString; const ASubType: TgdcSubType = ''): TgdClassEntry; overload;
@@ -1858,7 +1860,7 @@ var
   Prnt: TgdClassEntry;
 begin
   if FReadOnly then
-    raise Exception.Create('The gdClassList is in a read-only mode.');
+    raise Exception.Create('gdClassList is in a read-only mode.');
 
   if AClass = nil then
   begin
@@ -1870,38 +1872,33 @@ begin
 
   if Result <> nil then
   begin
-    if (Result.SubType = '')
-      and (ACaption > '')
-      and (Result.FCaption <> ACaption) then
-    begin
+    if ACaption > '' then
       Result.FCaption := ACaption;
-    end;
 
     if (Result.FgdClassKind <> AgdClassKind) and (AgdClassKind <> ctStorage) then
     begin
       Result.FgdClassKind := AgdClassKind;
     end;
-
-    exit;
-  end;
-
-  if ASubType > '' then
-    Prnt := Add(AClass, AgdClassKind, '', AParentSubType)
-  else
-    if (AClass = TgdcBase) or (AClass = TgdcCreateableForm) then
-      Prnt := nil
+  end else
+  begin
+    if ASubType > '' then
+      Prnt := Add(AClass, AgdClassKind, '', AParentSubType)
     else
-      Prnt := Add(AClass.ClassParent, ctStorage);
+      if (AClass = TgdcBase) or (AClass = TgdcCreateableForm) then
+        Prnt := nil
+      else
+        Prnt := Add(AClass.ClassParent, ctStorage);
 
-  Result := TgdClassEntry.Create(Prnt, AClass, AgdClassKind, ACaption, ASubType);
+    Result := TgdClassEntry.Create(Prnt, AClass, AgdClassKind, ACaption, ASubType);
 
-  if Prnt <> nil then
-    Prnt.AddChild(Result);
+    if Prnt <> nil then
+      Prnt.AddChild(Result);
 
-  if not _Find(AClass.ClassName, ASubType, Index) then
-    _Insert(Index, Result)
-  else
-    raise Exception.Create('Internal consistency check');
+    if not _Find(AClass.ClassName, ASubType, Index) then
+      _Insert(Index, Result)
+    else
+      raise Exception.Create('Internal consistency check');
+  end;
 end;
 
 constructor TgdClassList.Create;
@@ -2309,8 +2306,47 @@ begin
       begin
       end;
     end;
+  end;
+end;
 
+function TgdClassList.Add(const AClassName: AnsiString; const ASubType,
+  AParentSubType: TgdcSubType; const ACaption: String): TgdClassEntry;
+var
+  Index: Integer;
+  Prnt: TgdClassEntry;
+  AClass: TClass;
+begin
+  Result := Find(AClassName, ASubType);
 
+  if Result = nil then
+  begin
+    AClass := GetClass(AClassName);
+
+    if AClass = nil then
+      raise Exception.Create('Invalid class name');
+
+    if ASubType > '' then
+    begin
+      Prnt := Find(AClassName, AParentSubType);
+      if Prnt = nil then
+        raise Exception.Create('Can not find parent subtype');
+    end else
+    begin
+      if (AClass = TgdcBase) or (AClass = TgdcCreateableForm) then
+        Prnt := nil
+      else
+        Prnt := Add(AClass.ClassParent);
+    end;
+
+    Result := TgdClassEntry.Create(Prnt, AClass, ctStorage, ACaption, ASubType);
+
+    if Prnt <> nil then
+      Prnt.AddChild(Result);
+
+    if not _Find(AClassName, ASubType, Index) then
+      _Insert(Index, Result)
+    else
+      raise Exception.Create('Internal consistency check');
   end;
 end;
 
