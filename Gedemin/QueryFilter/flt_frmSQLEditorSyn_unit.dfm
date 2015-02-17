@@ -1,6 +1,6 @@
 object frmSQLEditorSyn: TfrmSQLEditorSyn
-  Left = 252
-  Top = 210
+  Left = 317
+  Top = 172
   Width = 963
   Height = 556
   HelpContext = 121
@@ -1018,7 +1018,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
             Height = 21
             Style = csDropDownList
             DropDownCount = 24
-            ItemHeight = 13
+            ItemHeight = 0
             TabOrder = 0
             OnChange = cbTransactionsChange
           end

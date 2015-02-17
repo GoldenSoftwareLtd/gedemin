@@ -1178,7 +1178,8 @@ begin
   Result := (FPrimaryKey <> nil)
     and (FPrimaryKey.ConstraintFields.Count = 1)
     and (FPrimaryKey.ConstraintFields[0].FieldName = 'ID')
-    and (FRelationFields.ByFieldName('PARENT') <> nil);
+    and (FRelationFields.ByFieldName('PARENT') <> nil)
+    and (FRelationFields.ByFieldName('LB') = nil);
 end;
 
 function TatBodyRelation.GetIsLBRBTreeRelation: Boolean;

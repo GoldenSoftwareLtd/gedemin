@@ -2377,17 +2377,17 @@ end;
 {$IFDEF GEDEMIN}
 function TfrmSQLEditorSyn.CreateCurrClassBusinessObject(out Obj: TgdcBase): Boolean;
 var
-  C: TPersistentClass;
+  CE: TgdClassEntry;
 begin
   Assert(lvClasses.Selected <> nil);
 
   Obj := nil;
-  C := GetClass(Trim(lvClasses.Selected.Caption));
+  CE := gdClassList.Find(Trim(lvClasses.Selected.Caption), lvClasses.Selected.SubItems[0]);
 
-  if (C <> nil) and C.InheritsFrom(TgdcBase) and (not CgdcBase(C).IsAbstractClass) then
+  if (CE <> nil) and (CE.gdcClass <> nil) and (not CE.gdcClass.IsAbstractClass) then
   begin
-    Obj := CgdcBase(C).Create(nil);
-    Obj.SubType := lvClasses.Selected.SubItems[0];
+    Obj := CE.gdcClass.Create(nil);
+    Obj.SubType := CE.SubType;
   end;
 
   Result := Obj <> nil;
