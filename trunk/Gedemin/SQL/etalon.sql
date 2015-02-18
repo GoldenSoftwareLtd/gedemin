@@ -6619,19 +6619,18 @@ BEGIN
 
  /* добавим новые триггеры */
   FOR
-    SELECT rdb$relation_name, rdb$trigger_name,
-      rdb$trigger_inactive, r.id
-    FROM rdb$triggers LEFT JOIN at_triggers t
-      ON t.triggername=rdb$trigger_name
-    LEFT JOIN at_relations r ON rdb$relation_name = r.relationname
+    SELECT TRIM(tr.rdb$relation_name), TRIM(tr.rdb$trigger_name),
+      COALESCE(tr.rdb$trigger_inactive, 0), r.id
+    FROM
+      rdb$triggers tr
+      LEFT JOIN at_triggers t ON t.triggername=tr.rdb$trigger_name
+      LEFT JOIN at_relations r ON tr.rdb$relation_name = r.relationname
     WHERE
-     t.triggername IS NULL AND rdb$relation_name = :RELATION_NAME
+      t.triggername IS NULL
+      AND tr.rdb$relation_name = :RELATION_NAME
+      AND tr.rdb$system_flag = 0
     INTO :RN, :TN, :TI, :ID
   DO BEGIN
-    RN = G_S_TRIM(RN, ' ');
-    TN = G_S_TRIM(TN, ' ');
-    IF (TI IS NULL) THEN
-      TI = 0;
     IF (TI > 1) THEN
       TI = 1;
     INSERT INTO at_triggers(
@@ -6660,7 +6659,6 @@ BEGIN
 
 END
 ^
-
 
 CREATE PROCEDURE AT_P_SYNC_INDEXES_ALL
 AS
@@ -6791,19 +6789,17 @@ BEGIN
 
  /* добавим новые триггеры */
   FOR
-    SELECT rdb$relation_name, rdb$trigger_name,
-      rdb$trigger_inactive, r.id
-    FROM rdb$triggers LEFT JOIN at_triggers t
-      ON t.triggername=rdb$trigger_name
-    LEFT JOIN at_relations r ON rdb$relation_name = r.relationname
+    SELECT TRIM(tr.rdb$relation_name), TRIM(tr.rdb$trigger_name),
+      COALESCE(tr.rdb$trigger_inactive, 0), r.id
+    FROM
+      rdb$triggers tr
+      LEFT JOIN at_triggers t ON t.triggername=tr.rdb$trigger_name
+      LEFT JOIN at_relations r ON tr.rdb$relation_name = r.relationname
     WHERE
-     (t.triggername IS NULL) and (r.id IS NOT NULL)
+      t.triggername IS NULL AND r.id IS NOT NULL
+      AND tr.rdb$system_flag = 0
     INTO :RN, :TN, :TI, :ID
   DO BEGIN
-    RN = G_S_TRIM(RN, ' ');
-    TN = G_S_TRIM(TN, ' ');
-    IF (TI IS NULL) THEN
-      TI = 0;
     IF (TI > 1) THEN
       TI = 1;
     INSERT INTO at_triggers(relationname, triggername, relationkey, trigger_inactive)
