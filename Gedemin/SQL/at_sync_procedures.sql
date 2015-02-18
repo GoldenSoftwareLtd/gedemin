@@ -304,15 +304,28 @@ BEGIN
      DELETE FROM AT_CHECK_CONSTRAINTS WHERE CHECKNAME = :EN; 
    END 
        
- /* добавим новые чеки */ 
+ /* добавим новые чеки */
+ /*
    INSERT INTO AT_CHECK_CONSTRAINTS(CHECKNAME)
-   SELECT G_S_TRIM(C.RDB$CONSTRAINT_NAME,  ' ')
+   SELECT TRIM(C.RDB$CONSTRAINT_NAME)
    FROM RDB$TRIGGERS T
    LEFT JOIN RDB$CHECK_CONSTRAINTS C ON C.RDB$TRIGGER_NAME = T.RDB$TRIGGER_NAME
    LEFT JOIN AT_CHECK_CONSTRAINTS CON ON CON.CHECKNAME = C.RDB$CONSTRAINT_NAME
    WHERE T.RDB$TRIGGER_SOURCE LIKE 'CHECK%'
      AND CON.CHECKNAME IS NULL;
+ */    
 
+   MERGE INTO at_check_constraints cc
+   USING
+     (
+       SELECT TRIM(c.rdb$constraint_name) AS c_name
+       FROM rdb$triggers t
+         JOIN rdb$check_constraints c ON c.rdb$trigger_name = t.rdb$trigger_name
+       WHERE
+         t.rdb$trigger_source LIKE 'CHECK%'
+     ) AS new_constraints
+   ON (cc.checkname = new_constraints.c_name)
+   WHEN NOT MATCHED THEN INSERT (checkname) VALUES (new_constraints.c_name);
 END
 ^
 
