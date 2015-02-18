@@ -6463,15 +6463,28 @@ BEGIN
      DELETE FROM AT_CHECK_CONSTRAINTS WHERE CHECKNAME = :EN; 
    END 
        
- /* добавим новые чеки */ 
+ /* добавим новые чеки */
+ /*
    INSERT INTO AT_CHECK_CONSTRAINTS(CHECKNAME)
-   SELECT G_S_TRIM(C.RDB$CONSTRAINT_NAME,  ' ')
+   SELECT TRIM(C.RDB$CONSTRAINT_NAME)
    FROM RDB$TRIGGERS T
    LEFT JOIN RDB$CHECK_CONSTRAINTS C ON C.RDB$TRIGGER_NAME = T.RDB$TRIGGER_NAME
    LEFT JOIN AT_CHECK_CONSTRAINTS CON ON CON.CHECKNAME = C.RDB$CONSTRAINT_NAME
    WHERE T.RDB$TRIGGER_SOURCE LIKE 'CHECK%'
      AND CON.CHECKNAME IS NULL;
+ */    
 
+   MERGE INTO at_check_constraints cc
+   USING
+     (
+       SELECT TRIM(c.rdb$constraint_name) AS c_name
+       FROM rdb$triggers t
+         JOIN rdb$check_constraints c ON c.rdb$trigger_name = t.rdb$trigger_name
+       WHERE
+         t.rdb$trigger_source LIKE 'CHECK%'
+     ) AS new_constraints
+   ON (cc.checkname = new_constraints.c_name)
+   WHEN NOT MATCHED THEN INSERT (checkname) VALUES (new_constraints.c_name);
 END
 ^
 
@@ -6619,18 +6632,19 @@ BEGIN
 
  /* добавим новые триггеры */
   FOR
-    SELECT TRIM(tr.rdb$relation_name), TRIM(tr.rdb$trigger_name),
-      COALESCE(tr.rdb$trigger_inactive, 0), r.id
-    FROM
-      rdb$triggers tr
-      LEFT JOIN at_triggers t ON t.triggername=tr.rdb$trigger_name
-      LEFT JOIN at_relations r ON tr.rdb$relation_name = r.relationname
+    SELECT rdb$relation_name, rdb$trigger_name,
+      rdb$trigger_inactive, r.id
+    FROM rdb$triggers LEFT JOIN at_triggers t
+      ON t.triggername=rdb$trigger_name
+    LEFT JOIN at_relations r ON rdb$relation_name = r.relationname
     WHERE
-      t.triggername IS NULL
-      AND tr.rdb$relation_name = :RELATION_NAME
-      AND tr.rdb$system_flag = 0
+     t.triggername IS NULL AND rdb$relation_name = :RELATION_NAME
     INTO :RN, :TN, :TI, :ID
   DO BEGIN
+    RN = G_S_TRIM(RN, ' ');
+    TN = G_S_TRIM(TN, ' ');
+    IF (TI IS NULL) THEN
+      TI = 0;
     IF (TI > 1) THEN
       TI = 1;
     INSERT INTO at_triggers(
@@ -6659,6 +6673,7 @@ BEGIN
 
 END
 ^
+
 
 CREATE PROCEDURE AT_P_SYNC_INDEXES_ALL
 AS
@@ -6789,17 +6804,19 @@ BEGIN
 
  /* добавим новые триггеры */
   FOR
-    SELECT TRIM(tr.rdb$relation_name), TRIM(tr.rdb$trigger_name),
-      COALESCE(tr.rdb$trigger_inactive, 0), r.id
-    FROM
-      rdb$triggers tr
-      LEFT JOIN at_triggers t ON t.triggername=tr.rdb$trigger_name
-      LEFT JOIN at_relations r ON tr.rdb$relation_name = r.relationname
+    SELECT rdb$relation_name, rdb$trigger_name,
+      rdb$trigger_inactive, r.id
+    FROM rdb$triggers LEFT JOIN at_triggers t
+      ON t.triggername=rdb$trigger_name
+    LEFT JOIN at_relations r ON rdb$relation_name = r.relationname
     WHERE
-      t.triggername IS NULL AND r.id IS NOT NULL
-      AND tr.rdb$system_flag = 0
+     (t.triggername IS NULL) and (r.id IS NOT NULL)
     INTO :RN, :TN, :TI, :ID
   DO BEGIN
+    RN = G_S_TRIM(RN, ' ');
+    TN = G_S_TRIM(TN, ' ');
+    IF (TI IS NULL) THEN
+      TI = 0;
     IF (TI > 1) THEN
       TI = 1;
     INSERT INTO at_triggers(relationname, triggername, relationkey, trigger_inactive)
