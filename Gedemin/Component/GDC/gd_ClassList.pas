@@ -2146,27 +2146,6 @@ begin
     Result := FClasses[Index]
   else
     Result := nil;
-{
-  if (Result = nil) and (ASubType <> '') then
-  begin
-    if _Find(AClassName, '', Index) then
-      Result := FClasses[Index]
-    else
-      Result := nil;
-
-    if (Result <> nil) and (not Result.Initialized) then
-    begin
-      Result.CheckInitialized;
-
-      if _Find(AClassName, ASubType, Index) then
-        Result := FClasses[Index]
-      else
-        Result := nil;
-    end
-    else
-      Result := nil;
-  end;
-}  
 end;
 
 function TgdClassList.Find(const AFullClassName: TgdcFullClassName): TgdClassEntry;
@@ -2195,12 +2174,35 @@ procedure TgdClassList.LoadUserDefinedClasses;
       raise Exception.Create('Internal consistency check');
   end;
 
+  function LoadDocument(Prnt: TgdClassEntry; q: TIBSQL): TgdClassEntry;
+  var
+    Index, PrevRB: Integer;
+  begin
+    Result := TgdClassEntry.Create(Prnt, Prnt.TheClass, ctUserDocument,
+      q.FieldByName('name').AsString, q.FieldByName('ruid').AsString);
+    Prnt.AddChild(Result);
+
+    if not _Find(Result.TheClass.ClassName, Result.SubType, Index) then
+      _Insert(Index, Result)
+    else
+      raise Exception.Create('Internal consistency check');
+
+    PrevRB := q.FieldByName('rb').AsInteger;
+    q.Next;
+
+    while (not q.EOF) and (q.FieldByName('lb').AsInteger < PrevRB) do
+      LoadDocument(Result, q);
+  end;
+
 var
   I: Integer;
   R: TatRelation;
   CEAttrUserDefined,
   CEAttrUserDefinedLBRBTree,
-  CEAttrUserDefinedTree: TgdClassEntry;
+  CEAttrUserDefinedTree,
+  CEUserDocumentType,
+  CEInvDocumentType,
+  CEInvPriceListType: TgdClassEntry;
   q: TIBSQL;
 begin
   CEAttrUserDefined := Find('TgdcAttrUserDefined');
@@ -2222,6 +2224,10 @@ begin
     end;
   end;
 
+  CEUserDocumentType := Find('TgdcUserDocumentType');
+  CEInvDocumentType := Find('TgdcInvDocumentType');
+  CEInvPriceListType := Find('TgdcInvPriceListType');
+
   q := TIBSQL.Create(nil);
   try
     q.Transaction := gdcBaseManager.ReadTransaction;
@@ -2229,8 +2235,35 @@ begin
     q.ExecQuery;
     while not q.EOF do
     begin
-      q.Next;
+      if CompareText(q.FieldbyName('classname').AsString, 'TgdcUserDocumentType') = 0 then
+        LoadDocument(CEUserDocumentType, q)
+      else if CompareText(q.FieldbyName('classname').AsString, 'TgdcInvDocumentType') = 0 then
+        LoadDocument(CEInvDocumentType, q)
+      else if CompareText(q.FieldbyName('classname').AsString, 'TgdcInvPriceListType') = 0 then
+        LoadDocument(CEInvPriceListType, q)
+      else
+        q.Next;
     end;
+
+    {
+    q.Close;
+    q.SQL.Text := 'SELECT NAME, RUID FROM INV_BALANCEOPTION ';
+    q.ExecQuery;
+    while not q.EOF do
+    begin
+      LSubType := ibsql.FieldByName('RUID').AsString;
+      LCaption := ibsql.FieldByName('NAME').AsString;
+
+      for I := 0 to OL.Count - 1 do
+      begin
+        CE := TgdClassEntry(OL[I]);
+
+        if CE.gdClassKind = ctInvRemains then
+          Add(CE.TheClass, CE.gdClassKind, LCaption, LSubType, '', True);
+      end;
+      ibsql.Next;
+    end;
+    }
   finally
     q.Free;
   end;
