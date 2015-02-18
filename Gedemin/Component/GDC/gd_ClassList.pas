@@ -2195,14 +2195,17 @@ procedure TgdClassList.LoadUserDefinedClasses;
   end;
 
 var
-  I: Integer;
+  I, Index: Integer;
   R: TatRelation;
   CEAttrUserDefined,
   CEAttrUserDefinedLBRBTree,
   CEAttrUserDefinedTree,
   CEUserDocumentType,
   CEInvDocumentType,
-  CEInvPriceListType: TgdClassEntry;
+  CEInvPriceListType,
+  CEInvRemains,
+  CEInvGoodRemains,
+  CE: TgdClassEntry;
   q: TIBSQL;
 begin
   CEAttrUserDefined := Find('TgdcAttrUserDefined');
@@ -2231,7 +2234,9 @@ begin
   q := TIBSQL.Create(nil);
   try
     q.Transaction := gdcBaseManager.ReadTransaction;
-    q.SQL.Text := 'SELECT dt.* FROM gd_documenttype dt WHERE dt.documenttype = ''D'' ORDER BY lb';
+    q.SQL.Text :=
+      'SELECT dt.* FROM gd_documenttype dt ' +
+      'WHERE dt.classname > '''' AND dt.documenttype = ''D'' ORDER BY lb';
     q.ExecQuery;
     while not q.EOF do
     begin
@@ -2245,25 +2250,34 @@ begin
         q.Next;
     end;
 
-    {
+    CEInvRemains := Find('TgdcInvRemains');
+    CEInvGoodRemains := Find('TgdcInvGoodRemains');
+
     q.Close;
-    q.SQL.Text := 'SELECT NAME, RUID FROM INV_BALANCEOPTION ';
+    q.SQL.Text := 'SELECT name, ruid FROM inv_balanceoption';
     q.ExecQuery;
     while not q.EOF do
     begin
-      LSubType := ibsql.FieldByName('RUID').AsString;
-      LCaption := ibsql.FieldByName('NAME').AsString;
+      CE := TgdClassEntry.Create(CEInvRemains, CEInvRemains.TheClass, ctInvRemains,
+        q.FieldByName('name').AsString, q.FieldByName('ruid').AsString);
+      CEInvRemains.AddChild(CE);
 
-      for I := 0 to OL.Count - 1 do
-      begin
-        CE := TgdClassEntry(OL[I]);
+      if not _Find(CE.TheClass.ClassName, CE.SubType, Index) then
+        _Insert(Index, CE)
+      else
+        raise Exception.Create('Internal consistency check');
 
-        if CE.gdClassKind = ctInvRemains then
-          Add(CE.TheClass, CE.gdClassKind, LCaption, LSubType, '', True);
-      end;
-      ibsql.Next;
+      CE := TgdClassEntry.Create(CEInvGoodRemains, CEInvGoodRemains.TheClass, ctInvRemains,
+        q.FieldByName('name').AsString, q.FieldByName('ruid').AsString);
+      CEInvGoodRemains.AddChild(CE);
+
+      if not _Find(CE.TheClass.ClassName, CE.SubType, Index) then
+        _Insert(Index, CE)
+      else
+        raise Exception.Create('Internal consistency check');
+
+      q.Next;
     end;
-    }
   finally
     q.Free;
   end;
