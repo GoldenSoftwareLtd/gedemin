@@ -1060,8 +1060,8 @@ type
     procedure InternalSetFieldData(Field: TField; Buffer: Pointer); override;
 
     //
-    procedure SetSubType(const Value: String); virtual;
-    function GetSubType: String; virtual;
+    procedure SetSubType(const Value: TgdcSubType); virtual;
+    function GetSubType: TgdcSubType; virtual;
 
     // если бизнес-объект представляет собой объединение данных из
     // нескольких таблиц, то может возникнуть следующая ситуация:
@@ -1882,7 +1882,7 @@ type
       stored False;
 
     //
-    property SubType: String read GetSubType write SetSubType;
+    property SubType: TgdcSubType read GetSubType write SetSubType;
 
     // наш механ_зм сувяз_ мастер-дз_тэйл
     property MasterSource: TDataSource read GetMasterSource write SetMasterSource;
@@ -11312,7 +11312,7 @@ begin
   end;  
 end;
 
-procedure TgdcBase.SetSubType(const Value: String);
+procedure TgdcBase.SetSubType(const Value: TgdcSubType);
 begin
   if FSubType <> Value then
   begin
@@ -12121,7 +12121,7 @@ begin
   end;
 end;
 
-function TgdcBase.GetSubType: String;
+function TgdcBase.GetSubType: TgdcSubType;
 begin
   Result := FSubType;
 end;

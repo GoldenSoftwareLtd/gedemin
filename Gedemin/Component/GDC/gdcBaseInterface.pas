@@ -109,7 +109,7 @@ type
     ['{823AC601-4D13-11D5-B4C1-0060520A1991}']
 
     function GetClassName: String;
-    function GetSubType: String;
+    function GetSubType: TgdcSubType;
     function GetObject: TObject;
     function GetFieldByNameValue(const AField: String): Variant;
     function FindField(const AFieldName: String): TField;

@@ -412,7 +412,7 @@ type
     procedure CustomInsert(Buff: Pointer); override;
     procedure CustomModify(Buff: Pointer); override;
     procedure CustomDelete(Buff: Pointer); override;
-    procedure SetSubType(const Value: String); override;
+    procedure SetSubType(const Value: TgdcSubType); override;
 
     procedure DoBeforeInsert; override;
 
@@ -5228,7 +5228,7 @@ begin
   Result := 'Tgdc_frmInvViewRemains';
 end;
 
-procedure TgdcInvBaseRemains.SetSubType(const Value: String);
+procedure TgdcInvBaseRemains.SetSubType(const Value: TgdcSubType);
 var
   ibsql: TIBSQL;
   DidActivate: Boolean;

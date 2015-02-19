@@ -318,7 +318,7 @@ BEGIN
    MERGE INTO at_check_constraints cc
    USING
      (
-       SELECT TRIM(c.rdb$constraint_name) AS c_name
+       SELECT DISTINCT TRIM(c.rdb$constraint_name) AS c_name
        FROM rdb$triggers t
          JOIN rdb$check_constraints c ON c.rdb$trigger_name = t.rdb$trigger_name
        WHERE

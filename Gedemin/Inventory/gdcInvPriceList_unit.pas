@@ -69,7 +69,7 @@ type
     procedure ReadOptions(Stream: TStream); virtual;
     procedure WriteStream(Stream: TStream); virtual;
 
-    procedure SetSubType(const Value: String); override;
+    procedure SetSubType(const Value: TgdcSubType); override;
 
     function GetGroupID: Integer; override;
     function GetNotCopyField: String; override;
@@ -420,7 +420,7 @@ begin
   end;
 end;
 
-procedure TgdcInvBasePriceList.SetSubType(const Value: String);
+procedure TgdcInvBasePriceList.SetSubType(const Value: TgdcSubType);
 var
   ibsql: TIBSQL;
   Stream: TStream;

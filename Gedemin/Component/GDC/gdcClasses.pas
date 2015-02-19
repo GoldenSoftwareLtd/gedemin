@@ -282,7 +282,7 @@ type
 
     procedure SetActive(Value: Boolean); override;
 
-    procedure SetSubType(const Value: String); override;
+    procedure SetSubType(const Value: TgdcSubType); override;
 
     function EnumRelationFields(RelationName: String; const AliasName: String = '';
       const UseDot: Boolean = True): String;
@@ -3897,7 +3897,7 @@ begin
     raise EgdcIBError.Create('Не верен тип документа');
 end;
 
-procedure TgdcUserBaseDocument.SetSubType(const Value: String);
+procedure TgdcUserBaseDocument.SetSubType(const Value: TgdcSubType);
 begin
   if Value <> SubType then
   begin
