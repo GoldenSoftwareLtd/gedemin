@@ -128,7 +128,7 @@ type
     procedure CreateFields; override;
     procedure SetActive(Value: Boolean); override;
 
-    procedure SetSubType(const Value: String); override;
+    procedure SetSubType(const Value: TgdcSubType); override;
 
     procedure WriteOptions(Stream: TStream); virtual;
 
@@ -279,7 +279,7 @@ type
 
     procedure GetWhereClauseConditions(S: TStrings); override;
 
-    procedure SetSubType(const Value: String); override;
+    procedure SetSubType(const Value: TgdcSubType); override;
     function GetMasterObject: TgdcDocument; override;
     procedure SaveHeader;
 
@@ -1110,7 +1110,7 @@ begin
   {END MACRO}
 end;
 
-procedure TgdcInvBaseDocument.SetSubType(const Value: String);
+procedure TgdcInvBaseDocument.SetSubType(const Value: TgdcSubType);
 var
   Stream: TStream;
   Index: Integer;
@@ -3326,7 +3326,7 @@ begin
   end;
 end;
 
-procedure TgdcInvDocumentLine.SetSubType(const Value: String);
+procedure TgdcInvDocumentLine.SetSubType(const Value: TgdcSubType);
 begin
   inherited;
   if Assigned(FMovement) then
