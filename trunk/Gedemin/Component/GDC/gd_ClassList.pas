@@ -291,7 +291,6 @@ type
     FClassMethods: TgdClassMethods;
     FCaption: String;
     FChildren: TObjectList;
-    FPath: String;
     FgdClassKind: TgdClassKind;
 
     function GetChildren(Index: Integer): TgdClassEntry;
@@ -339,7 +338,9 @@ type
     property Children[Index: Integer]: TgdClassEntry read GetChildren;
     property ClassMethods: TgdClassMethods read FClassMethods;
     property gdClassKind: TgdClassKind read FgdClassKind;
-    property Path: String read FPath;
+  end;
+
+  TgdStorageEntry = class(TgdClassEntry)
   end;
 
   TgdClassList = class(TObject)
@@ -1922,6 +1923,7 @@ var
   CEInvGoodRemains,
   CE: TgdClassEntry;
   q: TIBSQL;
+  F: TgsStorageFolder;
 begin
   CEAttrUserDefined := Find('TgdcAttrUserDefined');
   CEAttrUserDefinedTree := Find('TgdcAttrUserDefinedTree');
@@ -2002,6 +2004,13 @@ begin
     CopySubTree(CEInvDocument, Find('TgdcSelectedGood'));
   finally
     q.Free;
+  end;
+
+  F := GlobalStorage.OpenFolder('\SubTypes', False, False);
+  try
+
+  finally
+    GlobalStorage.CloseFolder(F);
   end;
 end;
 
