@@ -3,7 +3,7 @@ unit gdModify;
 interface
 
 uses
-  Classes, IBDatabase, sysutils;
+  Classes, IBDatabase, sysutils, Windows, IBSQL;
 
 type
   TModifyLog = procedure(const AnLogText: String) of object;
@@ -28,6 +28,7 @@ type
     function BringOnLine: Boolean;
     procedure ReadDBVersion;
     procedure DoModifyLog(const AnLogText: String);
+    function GetServerVersion(IBDB: TIBDatabase): String;
 
   public
     procedure Execute;
@@ -71,6 +72,32 @@ procedure TgdModify.DoModifyLog(const AnLogText: String);
 begin
   if Assigned(FModifyLog) then
     FModifyLog(AnLogText);
+end;
+
+function TgdModify.GetServerVersion(IBDB: TIBDatabase): String;
+var
+  FTransaction: TIBTransaction;
+  FIBSQL: TIBSQL;
+begin
+  FTransaction := TIBTransaction.Create(nil);
+  try
+    FTransaction.DefaultDatabase := IBDB;
+    FTransaction.StartTransaction;
+
+    FIBSQL := TIBSQL.Create(nil);
+    try
+      FIBSQL.Transaction := FTransaction;
+ 
+      FIBSQL.SQL.Text :=
+        'SELECT RDB$GET_CONTEXT(''SYSTEM'', ''ENGINE_VERSION'') FROM RDB$DATABASE';
+      FIBSQL.ExecQuery;
+      Result := FIBSQL.Fields[0].AsString;
+    finally
+      FIBSQL.Free;
+    end;
+  finally
+    FTransaction.Free;
+  end;
 end;
 
 procedure TgdModify.Execute;
@@ -121,12 +148,43 @@ begin
       ReadDBVersion;
       try
         try
-          for I := 0 to cProcCount - 1 do
-            if FDBVersion <= cProcList[I].ModifyVersion then
+          if AnsiPos('2.5', GetServerVersion(FIBDatabase)) = 1 then
+          begin
+            for I := 0 to 207 do
             begin
-              DoModifyLog('>  Номер версии базы данных: ' + cProcList[I].ModifyVersion);
-              cProcList[I].ModifyProc(FIBDatabase, DoModifyLog);
+              if FDBVersion <= cProcList[I].ModifyVersion then
+              begin
+                DoModifyLog('>  Номер версии базы данных: ' + cProcList[I].ModifyVersion);
+                cProcList[I].ModifyProc(FIBDatabase, DoModifyLog);
+              end;
             end;
+            MessageBox(0,
+              'Для далнейшего обновления базы данных'#13#10 +
+              'необходимо перейти на сервер Firebird 3',
+              'Внимание',
+              MB_OK or MB_ICONINFORMATION or MB_TASKMODAL or MB_TOPMOST);
+          end
+          else
+          begin
+            if FDBVersion >= cProcList[208].ModifyVersion then
+            begin
+              for I := 208 to cProcCount - 1 do
+              begin
+                if FDBVersion <= cProcList[I].ModifyVersion then
+                begin
+                  DoModifyLog('>  Номер версии базы данных: ' + cProcList[I].ModifyVersion);
+                  cProcList[I].ModifyProc(FIBDatabase, DoModifyLog);
+                end;
+              end;
+              DoModifyLog('Процесс модификации БД завершен');
+            end
+            else
+              MessageBox(0,
+                'Выполните процесс обновления базы данных'#13#10 +
+                'на сервере Firebird 2.5',
+                'Внимание',
+                MB_OK or MB_ICONINFORMATION or MB_TASKMODAL or MB_TOPMOST);
+          end;
           DoModifyLog('Процесс модификации БД завершен');
         except
           on E: EgsWrongServerVersion do
