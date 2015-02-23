@@ -1,0 +1,12 @@
+
+select count(a.name), a.name
+from ph_icattr p, ph_attr a, ph_incomingcall i
+where 
+  p.attrkey = a.id and
+  p.attrkey in (select id from ph_attr where parent = 2013)  and
+  i.id = p.ickey and
+  i.startcall >= "01.01.2000" and i.startcall < "01.02.2000" and
+  p.ickey not in (select ickey from ph_icattr where attrkey in (2063, 2026, 2027, 2053, 2017))
+
+group by a.name
+

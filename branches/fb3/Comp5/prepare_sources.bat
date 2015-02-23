@@ -1,0 +1,1 @@
+for /R %%f in (*.sample) do copy /Y %%f %%~dpnf

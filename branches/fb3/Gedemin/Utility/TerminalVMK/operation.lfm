@@ -1,0 +1,4 @@
+inherited OperationTP: TOperationTP
+  Left = 512
+  OnKeyDown = FormKeyDown
+end

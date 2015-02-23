@@ -1,0 +1,52 @@
+package tdbf_d4;
+
+{$R *.RES}
+{$ALIGN ON}
+{$ASSERTIONS ON}
+{$BOOLEVAL OFF}
+{$DEBUGINFO ON}
+{$EXTENDEDSYNTAX ON}
+{$IMPORTEDDATA ON}
+{$IOCHECKS ON}
+{$LOCALSYMBOLS ON}
+{$LONGSTRINGS ON}
+{$OPENSTRINGS ON}
+{$OPTIMIZATION ON}
+{$OVERFLOWCHECKS OFF}
+{$RANGECHECKS OFF}
+{$REFERENCEINFO OFF}
+{$SAFEDIVIDE OFF}
+{$STACKFRAMES OFF}
+{$TYPEDADDRESS OFF}
+{$VARSTRINGCHECKS ON}
+{$WRITEABLECONST ON}
+{$MINENUMSIZE 1}
+{$IMAGEBASE $00400000}
+{$DESCRIPTION 'TDbf for Delphi 4'}
+{$DESIGNONLY}
+{$IMPLICITBUILD OFF}
+
+requires
+  vcl40,
+  VCLDB40;
+
+contains
+  dbf_reg in 'dbf_reg.pas',
+  Dbf_Common in 'Dbf_Common.pas',
+  Dbf_Str in 'Dbf_Str.pas',
+  Dbf_Cursor in 'Dbf_Cursor.pas',
+  Dbf_Parser in 'Dbf_Parser.pas',
+  Dbf_PrsDef in 'Dbf_PrsDef.pas',
+  Dbf_PrsCore in 'Dbf_PrsCore.pas',
+  Dbf_PrsSupp in 'Dbf_PrsSupp.pas',
+  Dbf_PgFile in 'Dbf_PgFile.pas',
+  Dbf_Memo in 'Dbf_Memo.pas',
+  Dbf_Lang in 'Dbf_Lang.pas',
+  Dbf_Fields in 'Dbf_Fields.pas',
+  Dbf_IdxFile in 'Dbf_IdxFile.pas',
+  Dbf_IdxCur in 'Dbf_IdxCur.pas',
+  Dbf_DbfFile in 'Dbf_DbfFile.pas',
+  Dbf_Wtil in 'Dbf_Wtil.pas',
+  Dbf in 'Dbf.pas';
+
+end.

@@ -1,0 +1,52 @@
+package tdbf_d2005r;
+
+{$R *.res}
+{$R 'dbf.dcr'}
+{$ALIGN 8}
+{$ASSERTIONS ON}
+{$BOOLEVAL OFF}
+{$DEBUGINFO ON}
+{$EXTENDEDSYNTAX ON}
+{$IMPORTEDDATA ON}
+{$IOCHECKS ON}
+{$LOCALSYMBOLS ON}
+{$LONGSTRINGS ON}
+{$OPENSTRINGS ON}
+{$OPTIMIZATION ON}
+{$OVERFLOWCHECKS OFF}
+{$RANGECHECKS OFF}
+{$REFERENCEINFO ON}
+{$SAFEDIVIDE OFF}
+{$STACKFRAMES OFF}
+{$TYPEDADDRESS OFF}
+{$VARSTRINGCHECKS ON}
+{$WRITEABLECONST OFF}
+{$MINENUMSIZE 1}
+{$IMAGEBASE $400000}
+{$IMPLICITBUILD OFF}
+
+requires
+  rtl,
+  dbrtl;
+
+contains
+  dbf_common in 'dbf_common.pas',
+  dbf_str in 'dbf_str.pas',
+  dbf_cursor in 'dbf_cursor.pas',
+  dbf_parser in 'dbf_parser.pas',
+  dbf_prsdef in 'dbf_prsdef.pas',
+  dbf_prscore in 'dbf_prscore.pas',
+  dbf_prssupp in 'dbf_prssupp.pas',
+  dbf_pgfile in 'dbf_pgfile.pas',
+  dbf_memo in 'dbf_memo.pas',
+  dbf_lang in 'dbf_lang.pas',
+  dbf_fields in 'dbf_fields.pas',
+  dbf_idxfile in 'dbf_idxfile.pas',
+  dbf_idxcur in 'dbf_idxcur.pas',
+  dbf_dbffile in 'dbf_dbffile.pas',
+  dbf_avl in 'dbf_avl.pas',
+  dbf_pgcfile in 'dbf_pgcfile.pas',
+  dbf_wtil in 'dbf_wtil.pas',
+  dbf in 'dbf.pas';
+
+end.

@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<schema targetNS="http://gsbelarus.com/local.xsd"
+  version="1.0"
+  xmlns="http://www.w3.org/2001/XMLSchema">
+
+  <element name="localizations">
+    <type>
+      <element name="entries">
+        <attribute name="letter" type="string" />
+        <type>
+          <element name="entry">
+            <type>
+              <element name="tokem" type="string">
+                <attribute name="lang" type="string" />
+              </element>
+            </type>
+          </element>
+        </type>
+      </element>
+    </type>
+  </element>
+
+</schema>   
