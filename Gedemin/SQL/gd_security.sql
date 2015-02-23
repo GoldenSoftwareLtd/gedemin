@@ -230,6 +230,7 @@ CREATE UNIQUE ASC INDEX gd_x_usergroup_name ON gd_usergroup
 COMMIT;
 
 CREATE GENERATOR gd_g_session_id;
+GRANT USAGE ON SEQUENCE gd_g_session_id TO STARTUSER;
 SET GENERATOR gd_g_session_id TO 1;
 
 SET TERM ^ ;
