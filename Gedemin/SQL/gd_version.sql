@@ -682,9 +682,7 @@ INSERT INTO fin_versioninfo
 
 INSERT INTO fin_versioninfo
   VALUES (217, '0000.0001.0000.0248', '06.09.2014', 'MD5 field added to namespace table.');
-  
-INSERT INTO fin_versioninfo
-  VALUES (218, '0000.0001.0000.0249', '19.02.2015', 'Support FireBird 3 added.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id

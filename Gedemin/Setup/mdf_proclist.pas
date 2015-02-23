@@ -48,12 +48,10 @@ uses
   mdf_ConvertBNStatementCommentToBlob, mdf_AddFieldReportlistModalPreview,
   mdf_ChangeUSRCOEF, mdf_ChangeDuplicateAccount, mdf_MovementDocument,
   mdf_Delete_BITrigger_AtSettingPos, mdf_ReportCommand, mdf_DeleteInvCardParams,
-  mdf_DeletecbAnalyticFromScript, mdf_ModifyBLOBDdocumentdate, mdf_ModifyAC_ACCOUNTEXSALDO_BAL,
-  mdf_AddSupportFB3;
+  mdf_DeletecbAnalyticFromScript, mdf_ModifyBLOBDdocumentdate, mdf_ModifyAC_ACCOUNTEXSALDO_BAL;
 
 const
-  cProcCount = 209;
-
+  cProcCount = 208;
 
 type
   TModifyProc = record
@@ -369,8 +367,7 @@ const
     (ModifyProc: ModifyAC_ACCOUNTEXSALDO_BAL; ModifyVersion: '0000.0001.0000.0237'; NeedDBShutdown: False),
     (ModifyProc: IntroduceIncorrectRecordGTT; ModifyVersion: '0000.0001.0000.0241'; NeedDBShutdown: True),
     (ModifyProc: Issue3373; ModifyVersion: '0000.0001.0000.0243'; NeedDBShutdown: False),
-    (ModifyProc: AddGD_WEBLOG; ModifyVersion: '0000.0001.0000.0247'; NeedDBShutdown: True),
-    (ModifyProc: AddSupportFB3; ModifyVersion: '0000.0001.0000.0248'; NeedDBShutdown: True)
+    (ModifyProc: AddGD_WEBLOG; ModifyVersion: '0000.0001.0000.0247'; NeedDBShutdown: True)
   );
 
 implementation
