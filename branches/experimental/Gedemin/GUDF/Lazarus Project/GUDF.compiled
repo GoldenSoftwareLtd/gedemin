@@ -1,0 +1,5 @@
+<?xml version="1.0"?>
+<CONFIG>
+  <Compiler Value="C:\lazarus\fpc\2.6.2\bin\x86_64-win64\fpc.exe" Date="1120493294"/>
+  <Params Value=" -MObjFPC -Scgi -O1 -Twin64 -g -gl -vewnhi -FiC:\Golden\Gedemin\jcl\source -FuC:\Golden\Gedemin\jcl\source\common -FuC:\Golden\Gedemin\jcl\source -FuC:\Golden\Gedemin\common &quot;-FuC:\Golden\Gedemin\GUDF\Lazarus Project\&quot; -l GUDF.lpr"/>
+</CONFIG>

@@ -1,0 +1,11 @@
+
+
+SELECT m.*,
+  c.name as contact, c.phone as phone, u.name as username, 
+  (SELECT COUNT(*) FROM msg_attachment WHERE messagekey = m.id) as att 
+    FROM msg_message m 
+     JOIN gd_contact u ON m.operatorkey = u.id 
+     LEFT JOIN gd_contact c ON m.fromcontactkey = c.id 
+       AND (g_sec_testall(c.afull, c.achag, c.aview, %0:d) <> 0) 
+    WHERE 
+     m.ID = :ID

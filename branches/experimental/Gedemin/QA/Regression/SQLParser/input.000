@@ -1,0 +1,13 @@
+
+select 
+ doc.id, doc.NUMBER, doc.documentdate, doc.currkey,
+ doc.sumncu, doc.sumcurr,
+ c.name as contactname, a.name as authorityname,
+ GD_CURR.name as currname,
+ doc.aview, doc.achag, doc.afull
+ from 
+  gd_document doc
+  JOIN dp_withdrawal w ON doc.id = w.documentkey
+  JOIN gd_contact c ON w.contactkey = c.id
+  JOIN gd_contact a ON w.authoritykey = a.id
+  LEFT JOIN   GD_CURR   ON   GD_CURR.id = doc.currkey

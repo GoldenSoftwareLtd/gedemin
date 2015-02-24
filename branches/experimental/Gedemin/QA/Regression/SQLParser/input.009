@@ -1,0 +1,4 @@
+SELECT g.id, g.name, g.description, g.icon, g.disabled, g.reserved 
+FROM usr$gd_usergroup g, gd_place 
+WHERE EXISTS(SELECT * FROM gd_user u WHERE u.id=:USERID 
+  AND (g_b_and(u.ingroup, g_b_shl(1, g.id - 1)) <> 0) )   
