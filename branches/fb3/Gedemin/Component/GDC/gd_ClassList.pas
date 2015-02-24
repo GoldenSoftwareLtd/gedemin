@@ -298,7 +298,6 @@ type
     function GetCaption: String;
     function GetGdcClass: CgdcBase;
     function GetFrmClass: CgdcCreateableForm;
-    procedure ReadFromStorage;
     function ListCallback(ACE: TgdClassEntry; AData1: Pointer;
       AData2: Pointer): Boolean;
 
@@ -327,6 +326,7 @@ type
     function Compare(const AClassName: AnsiString; const ASubType: TgdcSubType = ''): Integer; overload;
     procedure AddChild(AChild: TgdClassEntry);
     procedure RemoveChild(AChild: TgdClassEntry);
+    function FindChild(const AClassName: AnsiString): TgdClassEntry;
 
     property Parent: TgdClassEntry read FParent;
     property TheClass: TClass read FClass;
@@ -1303,69 +1303,6 @@ begin
     Result := nil;
 end;
 
-procedure TgdClassEntry.ReadFromStorage;
-var
-  F: TgsStorageFolder;
-  V: TgsStorageValue;
-  I: Integer;
-  CurrCE: TgdClassEntry;
-  SL: TStringList;
-begin
-{
-  if not Assigned(GlobalStorage) then
-    exit;
-
-  if Initialized then
-    exit;
-
-  Initialized := True;
-
-  if SubType = '' then
-    FPath := '\SubTypes\'+ TheClass.ClassName
-  else
-    FPath := Parent.Path + '\' + TheClass.ClassName + SubType;
-
-  SL := TStringList.Create;
-  try
-    F := GlobalStorage.OpenFolder(Path, False, False);
-    try
-      if F <> nil then
-      begin
-        for I := 0 to F.ValuesCount - 1 do
-        begin
-          V := F.Values[I];
-          if V is TgsStringValue then
-            SL.Add(V.AsString + '=' + V.Name)
-          else if V <> nil then
-            F.DeleteValue(V.Name);
-        end;
-
-        for I := 0 to SL.Count - 1 do
-        begin
-          CurrCE := Add(TheClass, gdClassKind, SL.Names[I], SL.Values[SL.Names[I]], SubType);
-
-          if CurrCE <> nil then
-          begin
-            if TheClass.InheritsFrom(TgdcBase) then
-            begin
-              Add(GetClass(CgdcBase(TheClass).GetViewFormClassName(SL.Values[SL.Names[I]])),
-                gdClassKind, '', SL.Values[SL.Names[I]], SubType, True);
-              Add(GetClass(CgdcBase(TheClass).GetDialogFormClassName(SL.Values[SL.Names[I]])),
-                gdClassKind, '', SL.Values[SL.Names[I]], SubType, True);
-            end;
-            CurrCE.ReadFromStorage;
-          end;
-        end;
-      end;
-    finally
-      GlobalStorage.CloseFolder(F, False);
-    end;
-  finally
-    SL.Free;
-  end;
-}
-end;
-
 function TgdClassEntry.GetChildren(Index: Integer): TgdClassEntry;
 begin
   Result := FChildren[Index] as TgdClassEntry;
@@ -1480,6 +1417,22 @@ function TgdClassEntry.ListCallback(ACE: TgdClassEntry; AData1,
 begin
   TObjectList(AData1).Add(ACE);
   Result := True;
+end;
+
+function TgdClassEntry.FindChild(const AClassName: AnsiString): TgdClassEntry;
+var
+  I: Integer;
+begin
+  for I := 0 to Self.Count - 1 do
+  begin
+    Result := FChildren[I] as TgdClassEntry;
+    if (CompareText(Result.TheClass.ClassName, AClassName) = 0)
+      or (CompareText(Result.SubType, AClassName) = 0) then
+    begin
+      exit;
+    end;
+  end;
+  Result := nil;
 end;
 
 {TgdClassList}
@@ -1907,8 +1860,36 @@ procedure TgdClassList.LoadUserDefinedClasses;
     end;
   end;
 
+  procedure IterateStorage(F: TgsStorageFolder; APrnt: TgdClassEntry);
+  var
+    I, Index: Integer;
+    Prnt: TgdClassEntry;
+  begin
+    if APrnt = nil then
+    begin
+      Prnt := Find(F.Name);
+    end else
+    begin
+      Prnt := APrnt.FindChild(F.Name);
+      if Prnt = nil then
+      begin
+        Prnt := TgdStorageEntry.Create(APrnt, APrnt.TheClass, ctStorage,
+          F.ReadString('Caption'), F.Name);
+        APrnt.AddChild(Prnt);
+
+        if not _Find(Prnt.TheClass.ClassName, Prnt.SubType, Index) then
+          _Insert(Index, Prnt)
+        else
+          raise Exception.Create('Internal consistency check');
+      end;
+    end;
+
+    for I := 0 to F.FoldersCount - 1 do
+      IterateStorage(F.Folders[I], Prnt);
+  end;
+
 var
-  I, Index: Integer;
+  I, J, Index: Integer;
   R: TatRelation;
   CEAttrUserDefined,
   CEAttrUserDefinedLBRBTree,
@@ -1921,9 +1902,10 @@ var
   CEInvPriceListLine,
   CEInvRemains,
   CEInvGoodRemains,
-  CE: TgdClassEntry;
+  CE, CEStorage: TgdClassEntry;
   q: TIBSQL;
-  F: TgsStorageFolder;
+  FSubTypes: TgsStorageFolder;
+  SL: TStringList;
 begin
   CEAttrUserDefined := Find('TgdcAttrUserDefined');
   CEAttrUserDefinedTree := Find('TgdcAttrUserDefinedTree');
@@ -2006,11 +1988,50 @@ begin
     q.Free;
   end;
 
-  F := GlobalStorage.OpenFolder('\SubTypes', False, False);
-  try
+  CopySubTree(CEUserDocument, CEUserDocumentLine);
+  CopySubTree(CEInvDocument, CEInvDocumentLine);
+  CopySubTree(CEInvPriceList, CEInvPriceListLine);
 
+  FSubTypes := GlobalStorage.OpenFolder('\SubTypes', False, False);
+  try
+    if FSubTypes <> nil then
+    begin
+      // support old format
+      if FSubTypes.ValuesCount > 0 then
+      begin
+        SL := TStringList.Create;
+        try
+          for I := 0 to FSubTypes.ValuesCount - 1 do
+          begin
+            CEStorage := Find(FSubTypes.Values[I].Name);
+            if CEStorage <> nil then
+            begin
+              SL.CommaText := FSubTypes.Values[I].AsString;
+              for J := 0 to SL.Count - 1 do
+              begin
+                if CEStorage.FindChild(SL.Values[SL.Names[J]]) = nil then
+                begin
+                  CE := TgdStorageEntry.Create(CEStorage, CEStorage.TheClass, ctStorage,
+                    SL.Names[J], SL.Values[SL.Names[J]]);
+                  CEStorage.AddChild(CE);
+
+                  if not _Find(CE.TheClass.ClassName, CE.SubType, Index) then
+                    _Insert(Index, CE)
+                  else
+                    raise Exception.Create('Internal consistency check');
+                end;
+              end;
+            end;
+          end;
+        finally
+          SL.Free;
+        end;
+      end;
+
+      IterateStorage(FSubTypes, nil);
+    end;
   finally
-    GlobalStorage.CloseFolder(F);
+    GlobalStorage.CloseFolder(FSubTypes);
   end;
 end;
 
