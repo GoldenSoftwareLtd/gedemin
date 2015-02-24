@@ -558,8 +558,6 @@ type
 
     function GetParamsText: String;
 
-    procedure UpdateDescription;
-
   protected
     function GetSelectClause: String; override;
     function GetFromClause(const ARefresh: Boolean = False): String; override;
@@ -5938,7 +5936,6 @@ begin
   FieldByName('RDB$PROCEDURE_NAME').AsString := AnsiUpperCase(FieldByName('procedurename').AsString);
 
   SaveStoredProc(True);
-  UpdateDescription;
 
   inherited;
 
@@ -5958,6 +5955,7 @@ procedure TgdcStoredProc.CustomModify(Buff: Pointer);
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
+  S: String;
 begin
   {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCSTOREDPROC', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
   {M}  try
@@ -5987,9 +5985,18 @@ begin
     if (Pos('ALTER PROCEDURE', AnsiUpperCase(FieldByName('rdb$procedure_source').AsString)) > 0)
       or (sLoadFromStream in BaseState)
     then
-      SaveStoredProc(False);
+      SaveStoredProc(False)
+    else
+    begin
+      S := 'COMMENT ON PROCEDURE ' + FieldByName('procedurename').AsString + ' IS ';
+      if FieldByName('rdb$description').IsNull then
+        S := S + 'NULL'
+      else
+        S := S + '''' + StringReplace(
+          FieldByName('rdb$description').AsString, '''', '''''', [rfReplaceAll]) + '''';
 
-    UpdateDescription;
+      CustomExecQuery(S, Buff, False);
+    end;
 
     inherited;
     atDatabase.Fields.RefreshData(Database, Transaction);
@@ -6204,28 +6211,6 @@ begin
   finally
     ibsql.Free;
     gdcField.Free;
-  end;
-end;
-
-procedure TgdcStoredProc.UpdateDescription;
-var
-  S: String;
-  ibsql: TIBSQL;
-begin
-  S := 'COMMENT ON PROCEDURE ' + FieldByName('procedurename').AsString + ' IS ';
-  if FieldByName('rdb$description').IsNull then
-    S := S + 'NULL'
-  else
-    S := S + '''' + StringReplace(
-      FieldByName('rdb$description').AsString, '''', '''''', [rfReplaceAll]) + '''';
-
-  ibsql := TIBSQL.Create(nil);
-  try
-    ibsql.Transaction := Transaction;
-    ibsql.SQL.Text := S;
-    ibsql.ExecQuery;
-  finally
-    ibsql.Free;
   end;
 end;
 
