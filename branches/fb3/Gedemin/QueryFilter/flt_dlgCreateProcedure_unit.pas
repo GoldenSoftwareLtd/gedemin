@@ -357,7 +357,7 @@ begin
   begin
     MessageBox(Self.Handle, 'Данная процедура не обнаружена.', 'Внимание', MB_OK or MB_ICONSTOP);
     ibsqlCreate.Close;
-    ibsqlCreate.SQL.Text := 'DELETE FROM rdb$procedures WHERE rdb$procedure_name = ''' + LocProcedureName + '''';
+    ibsqlCreate.SQL.Text := 'DROP PROCEDURE ' + LocProcedureName;
     ibsqlCreate.ExecQuery;
     Result := True;
     Exit;
@@ -442,7 +442,7 @@ begin
   begin
     MessageBox(Self.Handle, 'Данная процедура не обнаружена.', 'Внимание', MB_OK or MB_ICONSTOP);
     ibsqlCreate.Close;
-    ibsqlCreate.SQL.Text := 'DELETE FROM rdb$procedures WHERE rdb$procedure_name = ''' + LocProcedureName + '''';
+    ibsqlCreate.SQL.Text := 'DROP PROCEDURE ' + LocProcedureName;
     ibsqlCreate.ExecQuery;
     Exit;
   end;

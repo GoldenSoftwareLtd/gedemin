@@ -558,6 +558,8 @@ type
 
     function GetParamsText: String;
 
+    procedure UpdateDescription;
+
   protected
     function GetSelectClause: String; override;
     function GetFromClause(const ARefresh: Boolean = False): String; override;
@@ -5936,9 +5938,7 @@ begin
   FieldByName('RDB$PROCEDURE_NAME').AsString := AnsiUpperCase(FieldByName('procedurename').AsString);
 
   SaveStoredProc(True);
-  CustomExecQuery(
-    'UPDATE rdb$procedures SET rdb$description = :new_rdb$description ' +
-    ' WHERE rdb$procedure_name = :new_rdb$procedure_name ', Buff, False);
+  UpdateDescription;
 
   inherited;
 
@@ -5989,9 +5989,7 @@ begin
     then
       SaveStoredProc(False);
 
-    CustomExecQuery(
-      'UPDATE rdb$procedures SET rdb$description = :new_rdb$description ' +
-      ' WHERE rdb$procedure_name = :new_rdb$procedure_name ', Buff);
+    UpdateDescription;
 
     inherited;
     atDatabase.Fields.RefreshData(Database, Transaction);
@@ -6206,6 +6204,28 @@ begin
   finally
     ibsql.Free;
     gdcField.Free;
+  end;
+end;
+
+procedure TgdcStoredProc.UpdateDescription;
+var
+  S: String;
+  ibsql: TIBSQL;
+begin
+  S := 'COMMENT ON PROCEDURE ' + FieldByName('procedurename').AsString + ' IS ';
+  if FieldByName('rdb$description').IsNull then
+    S := S + 'NULL'
+  else
+    S := S + '''' + StringReplace(
+      FieldByName('rdb$description').AsString, '''', '''''', [rfReplaceAll]) + '''';
+
+  ibsql := TIBSQL.Create(nil);
+  try
+    ibsql.Transaction := Transaction;
+    ibsql.SQL.Text := S;
+    ibsql.ExecQuery;
+  finally
+    ibsql.Free;
   end;
 end;
 
