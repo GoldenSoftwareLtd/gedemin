@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2001-2013 by Golden Software of Belarus
+  Copyright (c) 2001-2015 by Golden Software of Belarus
 
   Module
 
@@ -28,8 +28,7 @@ interface
 
 uses
   Classes, IBCustomDataSet, gdcBase, gdcTree, gdcBaseInterface,
-  Forms, gd_createable_form, SysUtils, ibsql, Contnrs, TB2Item,
-  Menus;
+  Forms, gd_createable_form, SysUtils, ibsql;
 
 const
   cst_ByCompany           = 'ByCompany';
@@ -45,24 +44,13 @@ type
     function GetOrderClause: String; override;
 
   public
-    class function GetChildrenClass(const ASubType: TgdcSubType;
-      AnOL: TObjectList; const AnIncludeRoot: Boolean = True;
-      const AnOnlyDirect: Boolean = False;
-      const AnIncludeAbstract: Boolean = False): Boolean; override;
-
     function GetCurrRecordClass: TgdcFullClass; override;
 
     class function IsAbstractClass: Boolean; override;
-
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetSubSetList: String; override;
-
-    function GetDescendantList(AOL: TObjectList;
-      const AnOnlySameLevel: Boolean): Boolean; override;
-
-    function GetDefaultClassForDialog: TgdcFullClass; override;
   end;
 
   TgdcAcctFolder = class(TgdcAcctBase)
@@ -179,11 +167,8 @@ begin
 end;
 
 function TgdcAcctBase.GetCurrRecordClass: TgdcFullClass;
-var
-  F: TField;
 begin
-  Result.gdClass := CgdcBase(Self.ClassType);
-  Result.SubType := '';
+  Result := inherited GetCurrRecordClass;
 
   if (not IsEmpty) and (FieldByName('accounttype').AsString > '') then
     case FieldByName('accounttype').AsString[1] of
@@ -192,37 +177,6 @@ begin
       'A': Result.gdClass := TgdcAcctAccount;
       'S': Result.gdClass := TgdcAcctSubAccount;
     end;
-
-  F := FindField('USR$ST');
-  if F <> nil then
-    Result.SubType := F.AsString;
-  if (Result.SubType > '') and (not Result.gdClass.CheckSubType(Result.SubType)) then
-    raise EgdcException.Create('Invalid USR$ST value.');
-end;
-
-class function TgdcAcctBase.GetChildrenClass(const ASubType: TgdcSubType;
-  AnOL: TObjectList; const AnIncludeRoot: Boolean = True;
-  const AnOnlyDirect: Boolean = False;
-  const AnIncludeAbstract: Boolean = False): Boolean;
-var
-  I: Integer;
-begin
-  Result := inherited GetChildrenClass(ASubType, AnOL, AnIncludeRoot,
-    AnOnlyDirect, AnIncludeAbstract);
-
-  if Result and (Self = TgdcAcctBase) then
-  begin
-    for I := AnOL.Count - 1 downto 0 do
-    begin
-      if (TgdClassEntry(AnOL[I]).TheClass = TgdcAcctAccount)
-        or (TgdClassEntry(AnOL[I]).TheClass = TgdcAcctSubAccount) then
-      begin
-        AnOL.Delete(I);
-      end;
-    end;
-  end;
-
-  Result := AnOL.Count > 0;
 end;
 
 class function TgdcAcctBase.IsAbstractClass: Boolean;
@@ -252,62 +206,6 @@ begin
     acc_ss_ChartsAndFolders + ';' +
     acc_ss_Accounts + ';' +
     cst_ByCompany + ';';
-end;
-
-function TgdcAcctBase.GetDescendantList(AOL: TObjectList;
-  const AnOnlySameLevel: Boolean): Boolean;
-var
-  OL: TObjectList;
-  I: Integer;
-  CO : TCreatedObject;
-begin
-  if Self.ClassType <> TgdcAcctBase then
-    Result := inherited GetDescendantList(AOL, AnOnlySameLevel)
-  else
-  begin
-    OL := TObjectList.Create(False);
-    try
-      if GetChildrenClass(SubType, OL) then
-      begin
-        for I := 0 to OL.Count - 1 do
-        begin
-          CO := TCreatedObject.Create;
-          CO.Obj := OL[I];
-          CO.Caption := TgdClassEntry(OL[I]).Caption;
-          if CO.Caption = '' then
-            CO.Caption := TgdClassEntry(OL[I]).TheClass.ClassName;
-          if TgdClassEntry(OL[I]).TheClass = TgdcAcctChart then
-          begin
-            CO.IsSubLevel := False;
-          end
-          else
-            if TgdClassEntry(OL[I]).TheClass = TgdcAcctFolder then
-            begin
-              CO.IsSubLevel := True;
-            end
-            else
-              raise Exception.Create('unknown class');
-
-          AOL.Add(CO);
-        end;
-      end;
-    finally
-      OL.Free;
-    end;
-
-    Result := AOL.Count > 0;
-  end;
-end;
-
-function TgdcAcctBase.GetDefaultClassForDialog: TgdcFullClass;
-begin
-  if Self.ClassType <> TgdcAcctBase then
-    inherited GetDefaultClassForDialog
-  else
-  begin
-    Result.gdClass := TgdcAcctChart;
-    Result.SubType := '';
-  end;
 end;
 
 procedure TgdcAcctBase.GetWhereClauseConditions(S: TStrings);
@@ -380,7 +278,6 @@ begin
   {END MACRO}
 end;
 
-
 { TgdcAcctFolder }
 
 function TgdcAcctFolder.GetAccountType: String;
@@ -403,7 +300,7 @@ end;
 procedure TgdcAcctFolder.GetWhereClauseConditions(S: TStrings);
 begin
   inherited;
-  S.Add('z.accounttype = ''F''');
+  S.Add(GetRestrictCondition('', ''));
 end;
 
 { TgdcAcctChart }
@@ -682,7 +579,6 @@ begin
         ibsql.ParamByName('id').AsInteger := FieldByName('analyticalfield').AsInteger;
         ibsql.ExecQuery;
         FieldByName(ibsql.FieldByName('fieldname').AsString).AsInteger := 1;
-        ibsql.Close;
       finally
         ibsql.Free;
       end;
@@ -716,7 +612,7 @@ end;
 procedure TgdcAcctAccount.GetWhereClauseConditions(S: TStrings);
 begin
   inherited;
-  S.Add('z.accounttype in (''A'', ''S'')');
+  S.Add(GetRestrictCondition('', ''));
 end;
 
 procedure TgdcAcctAccount._DoOnNewRecord;
@@ -789,15 +685,15 @@ end;
 procedure TgdcAcctSubAccount.GetWhereClauseConditions(S: TStrings);
 begin
   inherited;
-  S.Add('z.accounttype = ''S''');
+  S.Add(GetRestrictCondition('', ''));
 end;
 
 initialization
-  RegisterGdcClass(TgdcAcctBase, ctStorage, 'Бухгалтерский план счетов');
-  RegisterGdcClass(TgdcAcctChart, ctStorage, 'План счетов');
-  RegisterGdcClass(TgdcAcctFolder, ctStorage, 'Раздел плана счетов');
-  RegisterGdcClass(TgdcAcctAccount, ctStorage, 'Счет');
-  RegisterGdcClass(TgdcAcctSubAccount, ctStorage, 'Субсчет');
+  RegisterGdcClass(TgdcAcctBase,       'Бухгалтерский план счетов');
+  RegisterGdcClass(TgdcAcctChart,      'План счетов');
+  RegisterGdcClass(TgdcAcctFolder,     'Раздел плана счетов');
+  RegisterGdcClass(TgdcAcctAccount,    'Счет');
+  RegisterGdcClass(TgdcAcctSubAccount, 'Субсчет');
 
 finalization
   UnRegisterGdcClass(TgdcAcctBase);

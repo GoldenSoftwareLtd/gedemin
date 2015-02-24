@@ -36,6 +36,9 @@ inherited gdc_frmInvDocument: Tgdc_frmInvDocument
             Action = actViewAllCard
           end
         end
+        inherited tbDetailCustom: TTBToolbar
+          Left = 355
+        end
       end
     end
   end

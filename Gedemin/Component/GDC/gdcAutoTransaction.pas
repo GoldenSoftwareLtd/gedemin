@@ -1,8 +1,10 @@
 unit gdcAutoTransaction;
 
 interface
-uses gdcBase, gdcTree, gdcBaseInterface, Classes, gd_ClassList, gd_createable_form,
-  sysutils, gdcAcctTransaction, gd_KeyAssoc, gdcConstants;
+
+uses
+  gdcBase, gdcTree, gdcBaseInterface, Classes,
+  SysUtils, gdcAcctTransaction, gdcConstants;
 
 type
   //Б.к. автоматической операции
@@ -15,6 +17,7 @@ type
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetRestrictCondition(const ATableName, ASubType: String): String; override;
   end;
+
   //Б.к. автоматической проводки
   TgdcAutoTrRecord = class(TgdcBaseAcctTransactionEntry)
   protected
@@ -40,8 +43,10 @@ type
 procedure Register;
 
 implementation
-uses {gdc_dlgAutoTransaction_unit, gdc_dlgAutoTrRecord_unit, }gd_security,
-  gdcExplorer, IBSQL, gdcFunction, IBDatabase, gd_directories_const;
+
+uses
+  gd_security, gdcExplorer, IBSQL, gdcFunction, IBDatabase, gd_directories_const,
+  gd_ClassList;
 
 procedure Register;
 begin
@@ -76,6 +81,7 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
   //Устанавливаем признак автоматической операции
   FieldByName(fnAutoTransaction).AsInteger := 1;
   inherited DoBeforePost;
@@ -109,7 +115,7 @@ end;
 class function TgdcAutoTransaction.GetRestrictCondition(const ATableName,
   ASubType: String): String;
 begin
-  if (self = TgdcAutoTransaction) and (AnsiCompareText(ATableName, GetListTable(ASubType)) = 0) then
+  if CompareText(ATableName, GetListTable(ASubType)) = 0 then
     Result := ' (Z.AUTOTRANSACTION = 1) '
   else
     Result := inherited GetRestrictCondition(ATableName, ASubType)
@@ -156,58 +162,6 @@ begin
     SQL.Free;
   end;
 end;
-
-(*function TgdcAutoTrRecord.CreateDialogForm: TCreateableForm;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_FUNCCREATEDIALOGFORM('TGDCAUTOTRRECORD', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  try
-  {M}    Result := nil;
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCAUTOTRRECORD', KEYCREATEDIALOGFORM);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCREATEDIALOGFORM]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCAUTOTRRECORD') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCAUTOTRRECORD',
-  {M}          'CREATEDIALOGFORM', KEYCREATEDIALOGFORM, Params, LResult) then
-  {M}          begin
-  {M}            Result := nil;
-  {M}            if VarType(LResult) <> varDispatch then
-  {M}              raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен не объект.')
-  {M}            else
-  {M}              if IDispatch(LResult) = nil then
-  {M}                raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                  'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен пустой (null) объект.');
-  {M}            Result := GetInterfaceToObject(LResult) as TCreateableForm;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCAUTOTRRECORD' then
-  {M}        begin
-  {M}          Result := Inherited CreateDialogForm;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  Result := Tgdc_dlgAutoTrRecord.Create(ParentForm);
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCAUTOTRRECORD', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCAUTOTRRECORD', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM);
-  {M}  end;
-  {END MACRO}
-end;*)
 
 procedure TgdcAutoTrRecord.CustomDelete(Buff: Pointer);
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
@@ -301,7 +255,9 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
   inherited;
+
   CustomExecQuery(
     'INSERT INTO ac_autotrrecord ' +
     '  (id, showinexplorer, imageindex, folderkey) ' +
@@ -345,7 +301,9 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
   inherited;
+
   CustomExecQuery(
     'UPDATE ac_autotrrecord ' +
     'SET ' +
@@ -357,6 +315,7 @@ begin
     '  id = :OLD_ID',
     Buff
   );
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCAUTOTRRECORD', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -393,7 +352,7 @@ begin
     finally
       SQL.Free;
     end;
-  end;  
+  end;
 end;
 
 procedure TgdcAutoTrRecord.DoAfterCustomProcess(Buff: Pointer;
@@ -439,6 +398,7 @@ begin
     else
       DeleteCommand;
   end;
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCAUTOTRRECORD', 'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -447,7 +407,7 @@ begin
   {END MACRO}
 end;
 
-function TgdcAutoTrRecord.FunctionRUID: string;
+function TgdcAutoTrRecord.FunctionRUID: String;
 begin
   if FieldByname(fnFunctionkey).AsInteger > 0 then
     Result := gdcBaseManager.GetRUIDStringByID(FieldByName(fnFunctionkey).AsInteger, Transaction)
@@ -498,8 +458,9 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  Result := inherited GetFromClause(ARefresh) +
-    ' JOIN ac_autotrrecord t ON t.id = z.id ';
+
+  Result := inherited GetFromClause(ARefresh) + ' JOIN ac_autotrrecord t ON t.id = z.id ';
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCAUTOTRRECORD', 'GETFROMCLAUSE', KEYGETFROMCLAUSE)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -545,8 +506,9 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  Result := inherited GetSelectClause +
-    ', t.imageindex, t.showinexplorer, t.folderkey ';
+
+  Result := inherited GetSelectClause + ', t.imageindex, t.showinexplorer, t.folderkey ';
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCAUTOTRRECORD', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -556,8 +518,8 @@ begin
 end;
 
 initialization
-  RegisterGdcClass(TgdcAutoTrRecord, ctStorage, 'Автоматическая проводка');
-  RegisterGdcClass(TgdcAutoTransaction, ctStorage, 'Автоматическая операция');
+  RegisterGdcClass(TgdcAutoTrRecord,    'Автоматическая проводка');
+  RegisterGdcClass(TgdcAutoTransaction, 'Автоматическая операция');
   
 finalization
   UnRegisterGdcClass(TgdcAutoTrRecord);

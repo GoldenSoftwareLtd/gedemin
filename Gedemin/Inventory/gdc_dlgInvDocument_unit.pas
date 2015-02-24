@@ -131,10 +131,10 @@ type
     procedure actDetailSecurityUpdate(Sender: TObject);
     procedure actDetailSecurityExecute(Sender: TObject);
     procedure actCommitUpdate(Sender: TObject);
-    procedure actViewCardUpdate(Sender: TObject);
     procedure actViewCardExecute(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure actViewFullCardExecute(Sender: TObject);
+    procedure actViewCardUpdate(Sender: TObject);
 
   private
     //FTopGrid: TgsIBGrid;
@@ -3065,13 +3065,7 @@ begin
   begin
     Result := VarArrayOf([VarArrayOf([gdcObject.ID]),
       CreateSelectedArr(DocumentLine, ibgrdTop.SelectedRows)]);
-  end //else
-//  begin
-    {ѕо-хорошему должен быть определен хот€ бы один грид,
-    если грид не определен кидать ошибку не будем,
-    а дл€ детального объекта вернем -1, чтобы сохран€лс€ двумерный массив}
-//    Result := VarArrayOf([VarArrayOf([gdcObject.ID]), VarArrayOf([-1])]);
-//  end;
+  end;
 end;
 
 procedure TdlgInvDocument.actCommitUpdate(Sender: TObject);
@@ -3118,13 +3112,6 @@ begin
   {M}    ClearMacrosStack('TDLGINVDOCUMENT', 'LOADSETTINGS', KEYLOADSETTINGS);
   {M}end;
   {END MACRO}
-end;
-
-procedure TdlgInvDocument.actViewCardUpdate(Sender: TObject);
-begin
-{  actViewCard.Enabled := Assigned(DocumentLine)
-    and (DocumentLine.State = dsBrowse)
-    and (not DocumentLine.IsEmpty);}
 end;
 
 procedure TdlgInvDocument.actViewCardExecute(Sender: TObject);
@@ -3182,7 +3169,6 @@ begin
   FOldOnChangeEventList := TObjectList.Create;
   FOldDocOnChangeEventList := TObjectList.Create;
 
-//  FTopGrid := nil;
   FBottomGrid := nil;
 
   FTopDataSource := nil;
@@ -3190,7 +3176,6 @@ begin
 
   FFirstDocumentLine := nil;
   FSecondDocumentLine := nil;
-
 end;
 
 constructor TdlgInvDocument.CreateUser(AnOwner: TComponent;
@@ -3211,7 +3196,6 @@ begin
   FOldOnChangeEventList := TObjectList.Create;
   FOldDocOnChangeEventList := TObjectList.Create;
 
-//  FTopGrid := nil;
   FBottomGrid := nil;
 
   FTopDataSource := nil;
@@ -3219,7 +3203,6 @@ begin
 
   FFirstDocumentLine := nil;
   FSecondDocumentLine := nil;
-
 end;
 
 function TdlgInvDocument.GetTopGrid: TgsIBGrid;
@@ -3246,12 +3229,17 @@ begin
   end;
 end;
 
+procedure TdlgInvDocument.actViewCardUpdate(Sender: TObject);
+begin
+  inherited;
+  //
+end;
+
 initialization
-  RegisterFrmClass(TdlgInvDocument, ctInvDocument);
+  RegisterFrmClass(TdlgInvDocument);
 
 finalization
   UnRegisterFrmClass(TdlgInvDocument);
-
 end.
 
 

@@ -1348,7 +1348,7 @@ type
 
     // функции производят поиск объекта (ов)
     // возвращают ИД (или список ИД)
-//    procedure Find;
+    //    procedure Find;
 
     // мы вымушаныя перавызначыць гэтую функцыю, бо
     // яе няма ў TIBCustomDataSet
@@ -1513,7 +1513,7 @@ type
     class function GetChildrenClass(const ASubType: TgdcSubType;
       AnOL: TObjectList; const AnIncludeRoot: Boolean = True;
       const AnOnlyDirect: Boolean = False;
-      const AnIncludeAbstract: Boolean = False): Boolean; Virtual;
+      const AnIncludeAbstract: Boolean = False): Boolean; virtual;
 
     // предоставляет пользователю возможность выбрать один из классов
     // наследников для данного класса
@@ -9977,9 +9977,11 @@ begin
   
   F := FindField('USR$ST');
   if F <> nil then
+  begin
     Result.SubType := F.AsString;
-  if (Result.SubType > '') and (not CheckSubType(Result.SubType)) then
-    raise EgdcException.Create('Invalid USR$ST value.');
+    if not CheckSubType(Result.SubType) then
+      raise EgdcException.Create('Invalid USR$ST value.');
+  end;    
 end;
 
 function TgdcBase.GetNameInScript: String;
@@ -17909,18 +17911,8 @@ begin
 end;
 
 class function TgdcBase.CheckSubType(const ASubType: String): Boolean;
-var
-  CE: TgdClassEntry;
 begin
-  if AnsiPos('USR_', AnsiUpperCase(ASubType)) > 0 then
-    raise EgdcException.Create('Недопустимый символ ''_''в подтипе');
-
-  Result := False;
-
-  CE := gdClassList.Find(Self, ASubType);
-
-  if CE <> nil then
-    Result := True;
+  Result := gdClassList.Find(Self, ASubType) <> nil;
 end;
 
 { TgdcSetAttribute }

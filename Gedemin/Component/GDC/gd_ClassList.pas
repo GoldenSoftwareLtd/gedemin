@@ -118,7 +118,7 @@ const
   SubtypeDetach = '=';
 
 type
-  TgdClassKind = (
+  TgdClassKind2 = (
     ctUserDefined,
     ctUserDefinedTree,
     ctUserDefinedLBRBTree,
@@ -291,7 +291,6 @@ type
     FClassMethods: TgdClassMethods;
     FCaption: String;
     FChildren: TObjectList;
-    FgdClassKind: TgdClassKind;
 
     function GetChildren(Index: Integer): TgdClassEntry;
     function GetCount: Integer;
@@ -317,8 +316,8 @@ type
 
   public
     constructor Create(AParent: TgdClassEntry; const AClass: TClass;
-      const AgdClassKind: TgdClassKind = ctStorage; const ACaption: String = '';
-      const ASubType: TgdcSubType = ''); overload;
+      const ASubType: TgdcSubType = '';
+      const ACaption: String = ''); overload; virtual; 
 
     destructor Destroy; override;
 
@@ -337,8 +336,8 @@ type
     property Count: Integer read GetCount;
     property Children[Index: Integer]: TgdClassEntry read GetChildren;
     property ClassMethods: TgdClassMethods read FClassMethods;
-    property gdClassKind: TgdClassKind read FgdClassKind;
   end;
+  CgdClassEntry = class of TgdClassEntry;
 
   TgdStorageEntry = class(TgdClassEntry)
   end;
@@ -355,17 +354,15 @@ type
     procedure _Insert(const Index: Integer; ACE: TgdClassEntry);
     procedure _Grow;
     procedure _Compact;
-
-    function GetDefinedClasses(const AgdClassKind: TgdClassKind;
-      AClassList: TClassList): Boolean;
+    function _Create(APrnt: TgdClassEntry; AClass: CgdClassEntry;
+      ASubType: TgdcSubType; ACaption: String): TgdClassEntry;
 
   public
     constructor Create;
     destructor Destroy; override;
 
-    function Add(const AClass: TClass; AgdClassKind: TgdClassKind = ctStorage;
-      const ACaption: String = ''; const ASubType: TgdcSubType = '';
-      const AParentSubType: TgdcSubType = ''): TgdClassEntry; overload;
+    function Add(const AClass: TClass; const ASubType: TgdcSubType;
+      const AParentSubType: TgdcSubType; const ACaption: String): TgdClassEntry; overload;
     function Add(const AClassName: AnsiString; const ASubType: TgdcSubType;
       const AParentSubType: TgdcSubType; const ACaption: String): TgdClassEntry; overload;
 
@@ -418,23 +415,13 @@ var
 
 function gdClassList: TgdClassList;
 
-procedure RegisterGdClasses(const AgdClassKind: TgdClassKind;
-  const ACaption: String; const ASubType: TgdcSubType;
-  const AParentSubType: TgdcSubType = '');
-
-procedure UnRegisterGdClasses(const AgdClassKind: TgdClassKind;
-  const ASubType: TgdcSubType);
-
-procedure UpdateGdClasses(const AgdClassKind: TgdClassKind;
-  const ACaption: String; const ASubType: TgdcSubType);
-
 {Регистрация класса в списке TgdcClassList}
-procedure RegisterGdcClass(const AClass: CgdcBase; const AgdClassKind: TgdClassKind = ctStorage; const ACaption: String = '');
+procedure RegisterGdcClass(const AClass: CgdcBase; const ACaption: String = '');
 procedure UnRegisterGdcClass(AClass: CgdcBase);
 
 // добавляет класс в список классов
 {Регистрация класса в списке TgdcClassList}
-procedure RegisterFrmClass(AClass: CgdcCreateableForm; AgdClassKind: TgdClassKind = ctStorage);
+procedure RegisterFrmClass(AClass: CgdcCreateableForm);
 procedure UnRegisterFrmClass(AClass: CgdcCreateableForm);
 
 {Регистрация метода для класса.}
@@ -499,91 +486,13 @@ begin
   Result := _gdClassList;
 end;
 
-procedure RegisterGdClasses(const AgdClassKind: TgdClassKind;
-  const ACaption: String; const ASubType: TgdcSubType;
-  const AParentSubType: TgdcSubType = '');
-var
-  CurrCE: TgdClassEntry;
-  CL :TClassList;
-  I: Integer;
-begin
-  CL := TClassList.Create;
-  try
-    if gdClassList.GetDefinedClasses(AgdClassKind, CL) then
-    begin
-      for I := 0 to CL.Count - 1 do
-      begin
-        CurrCE := gdClassList.Add(CL[I], AgdClassKind, ACaption, ASubType, AParentSubType);
-        
-        if CurrCE = nil then
-          raise Exception.Create('Класс не добавлен в gdClassList.');
-      end;
-    end;
-  finally
-    CL.Free;
-  end;
-end;
-
-procedure UnRegisterGdClasses(const AgdClassKind: TgdClassKind;
-  const ASubType: TgdcSubType);
-var
-  CL :TClassList;
-  I: Integer;
-begin
-  CL := TClassList.Create;
-  try
-    if gdClassList.GetDefinedClasses(AgdClassKind, CL) then
-    begin
-      for I := 0 to CL.Count - 1 do
-      begin
-        gdClassList.Remove(CL[I], ASubType);
-      end;
-    end;
-  finally
-    CL.Free;
-  end;
-end;
-
-procedure UpdateGdClasses(const AgdClassKind: TgdClassKind;
-  const ACaption: String; const ASubType: TgdcSubType);
-var
-  CL :TClassList;
-  I: Integer;
-  CurrCE: TgdClassEntry;
-begin
-  CL := TClassList.Create;
-  try
-    if gdClassList.GetDefinedClasses(AgdClassKind, CL) then
-    begin
-      for I := 0 to CL.Count - 1 do
-      begin
-        CurrCE := gdClassList.Find(CL[I], ASubType);
-
-        if CurrCE = nil then
-          raise Exception.Create('Класс не найден.');
-
-        CurrCE.FCaption := ACaption;
-      end;
-    end;
-  finally
-    CL.Free;
-  end;
-end;
-
-procedure RegisterGdcClass(const AClass: CgdcBase;
-  const AgdClassKind: TgdClassKind = ctStorage; const ACaption: String = '');
+procedure RegisterGdcClass(const AClass: CgdcBase; const ACaption: String = '');
 begin
   Assert(AClass <> nil);
   Assert(gdClassList <> nil);
 
-  if not AClass.InheritsFrom(TgdcBase) then
-  begin
-    raise Exception.Create('Класс ' + AClass.ClassName +
-      ' не наследован от TgdcBase.');
-  end;
-
   Classes.RegisterClass(AClass);
-  gdClassList.Add(AClass, AgdClassKind, ACaption);
+  gdClassList.Add(AClass, '', '', ACaption);
 end;
 
 procedure UnRegisterGdcClass(AClass: CgdcBase);
@@ -592,14 +501,10 @@ begin
   UnRegisterClass(AClass);
 end;
 
-procedure RegisterFrmClass(AClass: CgdcCreateableForm; AgdClassKind: TgdClassKind = ctStorage);
+procedure RegisterFrmClass(AClass: CgdcCreateableForm);
 begin
-  if not AClass.InheritsFrom(TgdcCreateableForm) then
-    raise Exception.Create('Класс ' + AClass.ClassName +
-      ' не наследован от TgdcCreateableForm');
-
   Classes.RegisterClass(AClass);
-  gdClassList.Add(AClass, AgdClassKind);
+  gdClassList.Add(AClass, '', '', '');
 end;
 
 procedure UnRegisterFrmClass(AClass: CgdcCreateableForm);
@@ -639,8 +544,6 @@ const
       else
         Break;
     end;
-//    while Pos(Str[BeginPos - 1], Letters) > 0 do
-//      Dec(BeginPos);
     while EndPos + 1 <= L do
     begin
       if Str[EndPos + 1] in ['0'..'9','a'..'z', 'A'..'Z', '_'] then
@@ -649,8 +552,6 @@ const
         Break;
     end;
 
-//    while Pos(Str[EndPos], Letters) > 0 do
-//      Inc(EndPos);
     if EndPos >= BeginPos then
       Result := System.Copy(Str, BeginPos, EndPos - BeginPos + 1)
     else
@@ -664,10 +565,8 @@ const
     ParamName: String;
     ParamFlag: String;
     PF: TParamFlag;
-//    CR: Integer;
   begin
     TrimSpace;
-//    CR := CursorPos;
 
     ParamName := '';
     ParamFlag := GetCurrentWord;
@@ -686,7 +585,6 @@ const
       PF := pfOut
     else
       begin
-//        CursorPos := CR;
         ParamName := ParamFlag;
         ParamFlag := 'REFERENCE';
         PF := pfReference;
@@ -1255,12 +1153,10 @@ begin
 end;
 
 constructor TgdClassEntry.Create(AParent: TgdClassEntry; const AClass: TClass;
-  const AgdClassKind: TgdClassKind = ctStorage; const ACaption: String = '';
-  const ASubType: TgdcSubType = '');
+  const ASubType: TgdcSubType = ''; const ACaption: String = '');
 begin
   FParent := AParent;
   FClass := AClass;
-  FgdClassKind := AgdClassKind;
   FCaption := ACaption;
   FSubType := ASubType;
   FChildren := nil;
@@ -1461,53 +1357,12 @@ begin
     Result := nil;
 end;
 
-function TgdClassList.Add(const AClass: TClass; AgdClassKind: TgdClassKind = ctStorage;
-  const ACaption: String = ''; const ASubType: TgdcSubType = '';
-  const AParentSubType: TgdcSubType = ''): TgdClassEntry;
-var
-  Index: Integer;
-  Prnt: TgdClassEntry;
+function TgdClassList.Add(const AClass: TClass;
+  const ASubType: TgdcSubType;
+  const AParentSubType: TgdcSubType;
+  const ACaption: String): TgdClassEntry;
 begin
-  if FReadOnly then
-    raise Exception.Create('gdClassList is in a read-only mode.');
-
-  if AClass = nil then
-  begin
-    Result := nil;
-    exit;
-  end;
-
-  Result := Find(AClass, ASubType);
-
-  if Result <> nil then
-  begin
-    if ACaption > '' then
-      Result.FCaption := ACaption;
-
-    if (Result.FgdClassKind <> AgdClassKind) and (AgdClassKind <> ctStorage) then
-    begin
-      Result.FgdClassKind := AgdClassKind;
-    end;
-  end else
-  begin
-    if ASubType > '' then
-      Prnt := Add(AClass, AgdClassKind, '', AParentSubType)
-    else
-      if (AClass = TgdcBase) or (AClass = TgdcCreateableForm) then
-        Prnt := nil
-      else
-        Prnt := Add(AClass.ClassParent, ctStorage);
-
-    Result := TgdClassEntry.Create(Prnt, AClass, AgdClassKind, ACaption, ASubType);
-
-    if Prnt <> nil then
-      Prnt.AddChild(Result);
-
-    if not _Find(AClass.ClassName, ASubType, Index) then
-      _Insert(Index, Result)
-    else
-      raise Exception.Create('Internal consistency check');
-  end;
+  Result := Add(AClass.ClassName, ASubType, AParentSubType, ACaption);
 end;
 
 constructor TgdClassList.Create;
@@ -1765,21 +1620,9 @@ begin
   Assert(AData2 <> nil);
   Assert(TClassList(AData1^) <> nil);
 
-  if (ACE.SubType = '') and (ACE.gdClassKind = TgdClassKind(AData2^)) then
+  if ACE.SubType = '' then
     TClassList(AData1^).Add(ACE.TheClass);
   Result := True;
-end;
-
-function TgdClassList.GetDefinedClasses(const AgdClassKind: TgdClassKind;
-  AClassList: TClassList): Boolean;
-begin
-  if AClassList = nil then
-    raise Exception.Create('ClassList is nil');
-
-  Traverse(TgdcBase, '', GetClassTree, @AClassList, @AgdClassKind);
-  Traverse(TgdcCreateableForm, '', GetClassTree, @AClassList, @AgdClassKind);
-
-  Result := AClassList.Count > 0;
 end;
 
 function TgdClassList.Find(const AClassName: AnsiString;
@@ -1803,34 +1646,20 @@ procedure TgdClassList.LoadUserDefinedClasses;
   function LoadRelation(Prnt: TgdClassEntry; R: TatRelation): TgdClassEntry;
   var
     F: TatRelationField;
-    Index: Integer;
   begin
     F := R.RelationFields.ByFieldName('INHERITEDKEY');
 
     if (F <> nil) and (F.References <> nil) then
       Prnt := LoadRelation(Prnt, F.References);
 
-    Result := TgdClassEntry.Create(Prnt, Prnt.TheClass, ctUserDefined, R.LName, R.RelationName);
-    Prnt.AddChild(Result);
-
-    if not _Find(Result.TheClass.ClassName, Result.SubType, Index) then
-      _Insert(Index, Result)
-    else
-      raise Exception.Create('Internal consistency check');
+    Result := _Create(Prnt, TgdClassEntry, R.RelationName, R.LName);
   end;
 
   function LoadDocument(Prnt: TgdClassEntry; q: TIBSQL): TgdClassEntry;
   var
-    Index, PrevRB: Integer;
+    PrevRB: Integer;
   begin
-    Result := TgdClassEntry.Create(Prnt, Prnt.TheClass, ctUserDocument,
-      q.FieldByName('name').AsString, q.FieldByName('ruid').AsString);
-    Prnt.AddChild(Result);
-
-    if not _Find(Result.TheClass.ClassName, Result.SubType, Index) then
-      _Insert(Index, Result)
-    else
-      raise Exception.Create('Internal consistency check');
+    Result := _Create(Prnt, TgdClassEntry, q.FieldByName('ruid').AsString, q.FieldByName('name').AsString);
 
     PrevRB := q.FieldByName('rb').AsInteger;
     q.Next;
@@ -1841,20 +1670,12 @@ procedure TgdClassList.LoadUserDefinedClasses;
 
   procedure CopySubTree(Src, Dst: TgdClassEntry);
   var
-    I, Index: Integer;
+    I: Integer;
     CE: TgdClassEntry;
   begin
     for I := 0 to Src.Count - 1 do
     begin
-      CE := TgdClassEntry.Create(Dst, Dst.TheClass, ctInvRemains,
-        Src.Children[I].Caption, Src.Children[I].SubType);
-      Dst.AddChild(CE);
-
-      if not _Find(CE.TheClass.ClassName, CE.SubType, Index) then
-        _Insert(Index, CE)
-      else
-        raise Exception.Create('Internal consistency check');
-
+      CE := _Create(Dst, TgdClassEntry, Src.Children[I].SubType, Src.Children[I].Caption);
       if Src.Children[I].Count > 0 then
         CopySubTree(Src.Children[I], CE);
     end;
@@ -1862,26 +1683,16 @@ procedure TgdClassList.LoadUserDefinedClasses;
 
   procedure IterateStorage(F: TgsStorageFolder; APrnt: TgdClassEntry);
   var
-    I, Index: Integer;
+    I: Integer;
     Prnt: TgdClassEntry;
   begin
     if APrnt = nil then
-    begin
-      Prnt := Find(F.Name);
-    end else
+      Prnt := Find(F.Name)
+    else
     begin
       Prnt := APrnt.FindChild(F.Name);
       if Prnt = nil then
-      begin
-        Prnt := TgdStorageEntry.Create(APrnt, APrnt.TheClass, ctStorage,
-          F.ReadString('Caption'), F.Name);
-        APrnt.AddChild(Prnt);
-
-        if not _Find(Prnt.TheClass.ClassName, Prnt.SubType, Index) then
-          _Insert(Index, Prnt)
-        else
-          raise Exception.Create('Internal consistency check');
-      end;
+        Prnt := _Create(APrnt, TgdStorageEntry, F.Name, F.ReadString('Caption'));
     end;
 
     for I := 0 to F.FoldersCount - 1 do
@@ -1960,24 +1771,10 @@ begin
     q.ExecQuery;
     while not q.EOF do
     begin
-      CE := TgdClassEntry.Create(CEInvRemains, CEInvRemains.TheClass, ctInvRemains,
-        q.FieldByName('name').AsString, q.FieldByName('ruid').AsString);
-      CEInvRemains.AddChild(CE);
-
-      if not _Find(CE.TheClass.ClassName, CE.SubType, Index) then
-        _Insert(Index, CE)
-      else
-        raise Exception.Create('Internal consistency check');
-
-      CE := TgdClassEntry.Create(CEInvGoodRemains, CEInvGoodRemains.TheClass, ctInvRemains,
-        q.FieldByName('name').AsString, q.FieldByName('ruid').AsString);
-      CEInvGoodRemains.AddChild(CE);
-
-      if not _Find(CE.TheClass.ClassName, CE.SubType, Index) then
-        _Insert(Index, CE)
-      else
-        raise Exception.Create('Internal consistency check');
-
+      _Create(CEInvRemains, TgdClassEntry,
+        q.FieldByName('ruid').AsString, q.FieldByName('name').AsString);
+      _Create(CEInvGoodRemains, TgdClassEntry,
+        q.FieldByName('ruid').AsString, q.FieldByName('name').AsString);
       q.Next;
     end;
 
@@ -2010,16 +1807,7 @@ begin
               for J := 0 to SL.Count - 1 do
               begin
                 if CEStorage.FindChild(SL.Values[SL.Names[J]]) = nil then
-                begin
-                  CE := TgdStorageEntry.Create(CEStorage, CEStorage.TheClass, ctStorage,
-                    SL.Names[J], SL.Values[SL.Names[J]]);
-                  CEStorage.AddChild(CE);
-
-                  if not _Find(CE.TheClass.ClassName, CE.SubType, Index) then
-                    _Insert(Index, CE)
-                  else
-                    raise Exception.Create('Internal consistency check');
-                end;
+                  _Create(CEStorage, TgdStorageEntry, SL.Values[SL.Names[J]], SL.Names[J]);
               end;
             end;
           end;
@@ -2072,19 +1860,11 @@ begin
         else if AClass = nil then
           raise Exception.Create('Invalid class name')
         else
-          Prnt := Add(AClass.ClassParent);
+          Prnt := Add(AClass.ClassParent, '', '', '');
       end;    
     end;
 
-    Result := TgdClassEntry.Create(Prnt, AClass, ctStorage, ACaption, ASubType);
-
-    if Prnt <> nil then
-      Prnt.AddChild(Result);
-
-    if not _Find(AClassName, ASubType, Index) then
-      _Insert(Index, Result)
-    else
-      raise Exception.Create('Internal consistency check');
+    Result := _Create(Prnt, TgdClassEntry, ASubType, ACaption);
   end;
 end;
 
@@ -2110,6 +1890,20 @@ begin
     end;
     Inc(B);
   end;
+end;
+
+function TgdClassList._Create(APrnt: TgdClassEntry; AClass: CgdClassEntry;
+  ASubType: TgdcSubType; ACaption: String): TgdClassEntry;
+var
+  Index: Integer;
+begin
+  Result := AClass.Create(APrnt, APrnt.TheClass, ASubType, ACaption);
+  APrnt.AddChild(Result);
+
+  if not _Find(Result.TheClass.ClassName, Result.SubType, Index) then
+    _Insert(Index, Result)
+  else
+    raise Exception.Create('Internal consistency check');
 end;
 
 initialization
