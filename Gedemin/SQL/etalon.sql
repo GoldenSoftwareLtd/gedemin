@@ -21,6 +21,8 @@ CREATE ROLE administrator;
 
 COMMIT;
 
+GRANT ALTER ANY SEQUENCE TO STARTUSER;
+
 CREATE GENERATOR gd_g_unique;
 SET GENERATOR gd_g_unique TO 147000000;
 
@@ -28,6 +30,7 @@ CREATE GENERATOR gd_g_offset;
 SET GENERATOR gd_g_offset TO 0;
 
 CREATE GENERATOR gd_g_dbid;
+GRANT USAGE ON SEQUENCE gd_g_dbid TO STARTUSER;
 SET GENERATOR gd_g_dbid TO 0;
 
 /* в новой системе блокировки периода следующие два */
@@ -1524,7 +1527,9 @@ INSERT INTO fin_versioninfo
 
 INSERT INTO fin_versioninfo
   VALUES (217, '0000.0001.0000.0248', '06.09.2014', 'MD5 field added to namespace table.');
-
+  
+INSERT INTO fin_versioninfo
+  VALUES (218, '0000.0001.0000.0249', '19.02.2015', 'Support FireBird 3 added.');
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
@@ -1779,6 +1784,7 @@ CREATE UNIQUE ASC INDEX gd_x_usergroup_name ON gd_usergroup
 COMMIT;
 
 CREATE GENERATOR gd_g_session_id;
+GRANT USAGE ON SEQUENCE gd_g_session_id TO STARTUSER;
 SET GENERATOR gd_g_session_id TO 1;
 
 SET TERM ^ ;
@@ -6477,7 +6483,7 @@ BEGIN
    MERGE INTO at_check_constraints cc
    USING
      (
-       SELECT TRIM(c.rdb$constraint_name) AS c_name
+       SELECT DISTINCT TRIM(c.rdb$constraint_name) AS c_name
        FROM rdb$triggers t
          JOIN rdb$check_constraints c ON c.rdb$trigger_name = t.rdb$trigger_name
        WHERE

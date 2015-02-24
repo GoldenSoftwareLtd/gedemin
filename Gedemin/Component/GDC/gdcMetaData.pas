@@ -3490,11 +3490,10 @@ begin
 
       {Сделано через системную таюлицу, чтобы хоть каким-то образом восстановить порядок полей}
       if (sLoadFromStream in BaseState) and Self.IsUserDefined  then
-        FQuery.Add(Format('UPDATE rdb$relation_fields SET rdb$field_position = %0:d ' +
-          ' WHERE rdb$relation_name = ''%2:s'' AND rdb$field_name = ''%1:s'' ',
-        [FieldByName('rdb$field_position').AsInteger,
-         AnsiUpperCase(Trim(FieldByName('fieldname').AsString)),
-         AnsiUpperCase(FieldByName('relationname').AsString)]));
+        FQuery.Add(Format('ALTER TABLE %s ALTER COLUMN %s POSITION %d',
+          [AnsiUpperCase(FieldByName('relationname').AsString),
+          AnsiUpperCase(Trim(FieldByName('fieldname').AsString)),
+          FieldByName('rdb$field_position').AsInteger]));
 
       ShowSQLProcess(FQuery);
 
@@ -3636,13 +3635,10 @@ begin
 
     {Сделано через системные таблицы чтобы хоть как-то сохранить порядок полей}
     if (sLoadFromStream in BaseState) and Self.IsUserDefined then
-    begin
-      FQuery.Add(Format('UPDATE rdb$relation_fields SET rdb$field_position = %0:d ' +
-        ' WHERE rdb$relation_name = ''%2:s'' AND rdb$field_name = ''%1:s'' ',
-        [FieldByName('rdb$field_position').AsInteger,
-         AnsiUpperCase(Trim(FieldByName('fieldname').AsString)),
-         AnsiUpperCase(FieldByName('relationname').AsString)]));
-    end;
+      FQuery.Add(Format('ALTER TABLE %s ALTER COLUMN %s POSITION %d',
+        [AnsiUpperCase(FieldByName('relationname').AsString),
+        AnsiUpperCase(Trim(FieldByName('fieldname').AsString)),
+        FieldByName('rdb$field_position').AsInteger]));
 
     ShowSQLProcess(FQuery);
 

@@ -163,7 +163,7 @@ var
   I: Integer;
   SL: TStringList;
 begin
-  Assert(GlobalStorage <> nil);
+  {Assert(GlobalStorage <> nil);
 
   if ACE.Path = '' then
     raise Exception.Create('классу не назначен путь в хранилище');
@@ -197,7 +197,7 @@ begin
     end;
   finally
     SL.Free;
-  end;
+  end;}
 end;
 
 procedure TgsGdClassListSubTypes.ReadFromRelation(ASL: TStringList;
