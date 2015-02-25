@@ -3312,22 +3312,23 @@ begin
   {END MACRO}
 end;
 
-function TGDCDOCUMENTTYPE.GetParentSubType: String;
+function TgdcDocumentType.GetParentSubType: String;
 var
-  ibsql: TIBSQL;
+  q: TIBSQL;
 begin
-  Result := '';
-  ibsql := TIBSQL.Create(nil);
+  q := TIBSQL.Create(nil);
   try
-    ibsql.Transaction := ReadTransaction;
-    ibsql.SQL.Text :=
+    q.Transaction := ReadTransaction;
+    q.SQL.Text :=
       'SELECT ruid FROM gd_documenttype WHERE id = :id AND documenttype = ''D'' ';
-    ibsql.ParamByName('id').AsInteger := FieldByName('parent').AsInteger;
-    ibsql.ExecQuery;
-    if not ibsql.Eof then
-      Result := ibsql.FieldByName('RUID').AsString;
+    q.ParamByName('id').AsInteger := FieldByName('parent').AsInteger;
+    q.ExecQuery;
+    if not q.Eof then
+      Result := q.FieldByName('RUID').AsString
+    else
+      Result := '';
   finally
-    ibsql.Free;
+    q.Free;
   end;
 end;
 

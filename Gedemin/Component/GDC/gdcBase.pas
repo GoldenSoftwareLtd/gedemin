@@ -12441,15 +12441,11 @@ class function TgdcBase.ClassParentSubType(const ASubType: String): String;
 var
   CE: TgdClassEntry;
 begin
-  if AnsiPos('USR_', AnsiUpperCase(ASubType)) > 0 then
-    raise EgdcException.Create('Недопустимый символ ''_''в подтипе');
-
-  Result := '';
-
   CE := gdClassList.Find(Self, ASubType);
-
   if (CE <> nil) and (CE.Parent <> nil) then
-    Result := CE.Parent.SubType;
+    Result := CE.Parent.SubType
+  else
+    Result := '';
 end;
 
 function TgdcBase.GetNextID(const Increment: Boolean = True; const ResetCache: Boolean = False): Integer;
