@@ -5594,9 +5594,9 @@ begin
 
   inherited;
 
+  {$IFDEF NEWDEPOT}
   if not FieldByName('OPTIONS').IsNull then
   begin
-{$IFDEF NEWDEPOT}
     Stream := TStringStream.Create(FieldByName('OPTIONS').AsString);
     try
       ReadOptions(Stream);
@@ -5607,9 +5607,8 @@ begin
     CreateTempTable;
 
     CreateTriggers;
-{$ENDIF}    
   end;
-
+  {$ENDIF}
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASE', 'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS)}
   {M}  finally
@@ -5625,7 +5624,7 @@ procedure TgdcInvDocumentType.CustomInsert(Buff: Pointer);
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-  LParentSubType: String;
+  LParentSubType: TgdcSubType;
 begin
   {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCINVDOCUMENTTYPE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  try
@@ -5652,11 +5651,16 @@ begin
 
   LParentSubType := GetParentSubType;
 
-  RegisterGdClasses(ctInvDocument, FieldByName('name').AsString,
-    FieldByName('RUID').AsString, LParentSubType);
-
-  RegisterGdClasses(ctInvRemains, FieldByName('name').AsString,
-    FieldByName('RUID').AsString, LParentSubType);
+  gdClassList.Add('TgdcInvDocument', FieldByName('RUID').AsString,
+    LParentSubType, FieldByName('name').AsString);
+  gdClassList.Add('TgdcInvDocumentLine', FieldByName('RUID').AsString,
+    LParentSubType, FieldByName('name').AsString);
+  gdClassList.Add('TgdcInvRemains', FieldByName('RUID').AsString,
+    LParentSubType, FieldByName('name').AsString);
+  gdClassList.Add('TgdcInvGoodRemains', FieldByName('RUID').AsString,
+    LParentSubType, FieldByName('name').AsString);
+  gdClassList.Add('TgdcSelectedGood', FieldByName('RUID').AsString,
+    LParentSubType, FieldByName('name').AsString);
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVDOCUMENTTYPE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  finally
