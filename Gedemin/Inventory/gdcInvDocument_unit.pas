@@ -365,12 +365,7 @@ type
     procedure CreateFields; override;
     procedure DoBeforePost; override;
     procedure DoBeforeEdit; override;
-    procedure DoBeforeInsert; override;
     procedure DoAfterCustomProcess(Buff: Pointer; Process: TgsCustomProcess); override;
-
-    procedure CustomInsert(Buff: Pointer); override;
-    procedure CustomModify(Buff: Pointer); override;
-    procedure CustomDelete(Buff: Pointer); override;
 
   public
     constructor Create(AnOwner: TComponent); override;
@@ -5569,6 +5564,8 @@ procedure TgdcInvDocumentType.DoAfterCustomProcess(Buff: Pointer;
   {$IFDEF NEWDEPOT}
   Stream: TStream;
   {$ENDIF}
+  LParentSubType: TgdcSubType;
+  CE: TgdClassEntry;
 begin
   {@UNFOLD MACRO INH_ORIG_DOAFTERCUSTOMPROCESS('TGDCBASE', 'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS)}
   {M}  try
@@ -5594,6 +5591,53 @@ begin
 
   inherited;
 
+  if Process = cpInsert then
+  begin
+    LParentSubType := GetParentSubType;
+
+    gdClassList.Add('TgdcInvDocument', FieldByName('RUID').AsString,
+      LParentSubType, FieldByName('name').AsString);
+    gdClassList.Add('TgdcInvDocumentLine', FieldByName('RUID').AsString,
+      LParentSubType, FieldByName('name').AsString);
+    gdClassList.Add('TgdcInvRemains', FieldByName('RUID').AsString,
+      LParentSubType, FieldByName('name').AsString);
+    gdClassList.Add('TgdcInvGoodRemains', FieldByName('RUID').AsString,
+      LParentSubType, FieldByName('name').AsString);
+    gdClassList.Add('TgdcSelectedGood', FieldByName('RUID').AsString,
+      LParentSubType, FieldByName('name').AsString);
+  end
+  else if Process = cpModify then
+  begin
+    if FieldChanged('ruid') then
+      raise EgdcInvDocumentType.Create('Can not change a document type RUID');
+
+    if FieldChanged('name') then
+    begin
+      CE := gdClassList.Find('TgdcInvDocument', FieldByName('RUID').AsString);
+      if CE <> nil then
+        CE.Caption := FieldByName('name').AsString;
+      CE := gdClassList.Find('TgdcInvDocumentLine', FieldByName('RUID').AsString);
+      if CE <> nil then
+        CE.Caption := FieldByName('name').AsString;
+      CE := gdClassList.Find('TgdcInvRemains', FieldByName('RUID').AsString);
+      if CE <> nil then
+        CE.Caption := FieldByName('name').AsString;
+      CE := gdClassList.Find('TgdcInvGoodRemains', FieldByName('RUID').AsString);
+      if CE <> nil then
+        CE.Caption := FieldByName('name').AsString;
+      CE := gdClassList.Find('TgdcSelectedGood', FieldByName('RUID').AsString);
+      if CE <> nil then
+        CE.Caption := FieldByName('name').AsString;
+    end;
+  end else
+  begin
+    gdClassList.Remove('TgdcInvDocument', FieldByName('RUID').AsString);
+    gdClassList.Remove('TgdcInvDocumentLine', FieldByName('RUID').AsString);
+    gdClassList.Remove('TgdcInvRemains', FieldByName('RUID').AsString);
+    gdClassList.Remove('TgdcInvGoodRemains', FieldByName('RUID').AsString);
+    gdClassList.Remove('TgdcSelectedGood', FieldByName('RUID').AsString);
+  end;
+
   {$IFDEF NEWDEPOT}
   if not FieldByName('OPTIONS').IsNull then
   begin
@@ -5618,142 +5662,6 @@ begin
   {END MACRO}
 end;
 
-procedure TgdcInvDocumentType.CustomInsert(Buff: Pointer);
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-  LParentSubType: TgdcSubType;
-begin
-  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCINVDOCUMENTTYPE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCINVDOCUMENTTYPE', KEYCUSTOMINSERT);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMINSERT]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCINVDOCUMENTTYPE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCINVDOCUMENTTYPE',
-  {M}          'CUSTOMINSERT', KEYCUSTOMINSERT, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCINVDOCUMENTTYPE' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  inherited;
-
-  LParentSubType := GetParentSubType;
-
-  gdClassList.Add('TgdcInvDocument', FieldByName('RUID').AsString,
-    LParentSubType, FieldByName('name').AsString);
-  gdClassList.Add('TgdcInvDocumentLine', FieldByName('RUID').AsString,
-    LParentSubType, FieldByName('name').AsString);
-  gdClassList.Add('TgdcInvRemains', FieldByName('RUID').AsString,
-    LParentSubType, FieldByName('name').AsString);
-  gdClassList.Add('TgdcInvGoodRemains', FieldByName('RUID').AsString,
-    LParentSubType, FieldByName('name').AsString);
-  gdClassList.Add('TgdcSelectedGood', FieldByName('RUID').AsString,
-    LParentSubType, FieldByName('name').AsString);
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVDOCUMENTTYPE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCINVDOCUMENTTYPE', 'CUSTOMINSERT', KEYCUSTOMINSERT);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcInvDocumentType.CustomModify(Buff: Pointer);
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCINVDOCUMENTTYPE', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCINVDOCUMENTTYPE', KEYCUSTOMMODIFY);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMMODIFY]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCINVDOCUMENTTYPE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCINVDOCUMENTTYPE',
-  {M}          'CUSTOMMODIFY', KEYCUSTOMMODIFY, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCINVDOCUMENTTYPE' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  inherited;
-
-  UpdateGdClasses(ctInvDocument, FieldByName('name').AsString, FieldByName('RUID').AsString);
-
-  UpdateGdClasses(ctInvRemains, FieldByName('name').AsString, FieldByName('RUID').AsString);
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVDOCUMENTTYPE', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCINVDOCUMENTTYPE', 'CUSTOMMODIFY', KEYCUSTOMMODIFY);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcInvDocumentType.CustomDelete(Buff: Pointer);
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCINVDOCUMENTTYPE', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCINVDOCUMENTTYPE', KEYCUSTOMDELETE);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMDELETE]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCINVDOCUMENTTYPE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCINVDOCUMENTTYPE',
-  {M}          'CUSTOMDELETE', KEYCUSTOMDELETE, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCINVDOCUMENTTYPE' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  inherited;
-
-  UnRegisterGdClasses(ctInvDocument, FieldByName('RUID').AsString);
-
-  UnRegisterGdClasses(ctInvRemains, FieldByName('RUID').AsString);
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVDOCUMENTTYPE', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCINVDOCUMENTTYPE', 'CUSTOMDELETE', KEYCUSTOMDELETE);
-  {M}  end;
-  {END MACRO}
-end;
-
 procedure TgdcInvDocumentType.DoBeforeEdit;
   VAR
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
@@ -5762,7 +5670,6 @@ procedure TgdcInvDocumentType.DoBeforeEdit;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
   Stream: TStream;
-
 begin
   {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCINVDOCUMENTTYPE', 'DOBEFOREEDIT', KEYDOBEFOREEDIT)}
   {M}  try
@@ -5800,69 +5707,6 @@ begin
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
   {M}      ClearMacrosStack2('TGDCINVDOCUMENTTYPE', 'DOBEFOREEDIT', KEYDOBEFOREEDIT);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcInvDocumentType.DoBeforeInsert;
-  VAR
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-  Stream: TStream;
-  ibsql: TIBSQL;
-
-begin
-  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCINVDOCUMENTTYPE', 'DOBEFOREINSERT', KEYDOBEFOREINSERT)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCINVDOCUMENTTYPE', KEYDOBEFOREINSERT);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOBEFOREINSERT]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCINVDOCUMENTTYPE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCINVDOCUMENTTYPE',
-  {M}          'DOBEFOREINSERT', KEYDOBEFOREINSERT, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCINVDOCUMENTTYPE' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  inherited;
-
-  if not (sLoadFromStream in BaseState) then
-  begin
-    ibsql := TIBSQL.Create(nil);
-    try
-      ibsql.Transaction := ReadTransaction;
-      ibsql.SQL.Text := 'SELECT OPTIONS FROM gd_documenttype WHERE id = :id AND documenttype = ''D'' ';
-      ibsql.ParamByName('id').AsInteger := FieldByName('parent').AsInteger;
-      ibsql.ExecQuery;
-      if not ibsql.Eof then
-      begin
-        Stream := TStringStream.Create(ibsql.FieldByName('OPTIONS').AsString);
-        try
-          ReadOptions(Stream);
-        finally
-          Stream.Free;
-        end;
-      end
-    finally
-      ibsql.Free;
-    end;
-  end;
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVDOCUMENTTYPE', 'DOBEFOREINSERT', KEYDOBEFOREINSERT)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCINVDOCUMENTTYPE', 'DOBEFOREINSERT', KEYDOBEFOREINSERT);
   {M}  end;
   {END MACRO}
 end;
@@ -6280,15 +6124,15 @@ begin
 end;
 
 initialization
-  RegisterGdcClass(TgdcInvBaseDocument);
-  RegisterGdcClass(TgdcInvDocumentType, ctStorage, 'Складской документ');
-  RegisterGdcClass(TgdcInvDocument, ctInvDocument);
-  RegisterGdcClass(TgdcInvDocumentLine, ctInvDocument);
+  RegisterGdcClass(TgdcInvDocumentType, 'Тип складского документа');
+  RegisterGdcClass(TgdcInvBaseDocument, 'Складской документ');
+  RegisterGdcClass(TgdcInvDocument, 'Складской документ');
+  RegisterGdcClass(TgdcInvDocumentLine, 'Позиция складского документа');
 
 finalization
+  UnRegisterGdcClass(TgdcInvDocumentLine);
+  UnRegisterGdcClass(TgdcInvDocument);
   UnRegisterGdcClass(TgdcInvBaseDocument);
   UnRegisterGdcClass(TgdcInvDocumentType);
-  UnRegisterGdcClass(TgdcInvDocument);
-  UnRegisterGdcClass(TgdcInvDocumentLine);
 end.
 

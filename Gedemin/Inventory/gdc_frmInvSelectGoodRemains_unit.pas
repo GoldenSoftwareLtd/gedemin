@@ -17,9 +17,8 @@ type
     procedure ibgrDetailClickedCheck(Sender: TObject; CheckID: String;
       Checked: Boolean);
     procedure FormCreate(Sender: TObject);
-    { Private declarations }
+
   public
-    { Public declarations }
      procedure Setup(anObject: TObject); override;
   end;
 
@@ -32,7 +31,6 @@ implementation
 
 uses
   Storages,  gd_ClassList;
-
 
 procedure Tgdc_frmInvSelectGoodRemains.Setup(anObject: TObject);
   {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
@@ -71,8 +69,6 @@ begin
   {END MACRO}
 end;
 
-
-
 procedure Tgdc_frmInvSelectGoodRemains.actDeleteChooseExecute(Sender: TObject);
 begin
   FgdcChooseObject.DeleteMultiple(ibgrChoose.SelectedRows)
@@ -106,10 +102,8 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmInvSelectGoodRemains, ctInvRemains);
+  RegisterFrmClass(Tgdc_frmInvSelectGoodRemains);
 
 finalization
   UnRegisterFrmClass(Tgdc_frmInvSelectGoodRemains);
-
-
 end.

@@ -118,17 +118,6 @@ const
   SubtypeDetach = '=';
 
 type
-  TgdClassKind2 = (
-    ctUserDefined,
-    ctUserDefinedTree,
-    ctUserDefinedLBRBTree,
-    ctDlgUserDefinedTree,
-    ctUserDocument,
-    ctInvDocument,
-    ctInvPriceList,
-    ctInvRemains,
-    ctStorage);
-
   // Класс для организации стыка классов перекрытых методов
   TStackStrings = class(TObject)
   private
@@ -294,7 +283,6 @@ type
 
     function GetChildren(Index: Integer): TgdClassEntry;
     function GetCount: Integer;
-    function GetCaption: String;
     function GetGdcClass: CgdcBase;
     function GetFrmClass: CgdcCreateableForm;
     function ListCallback(ACE: TgdClassEntry; AData1: Pointer;
@@ -312,12 +300,10 @@ type
       const AnOnlyDirect: Boolean = False): Boolean; overload;
     function GetSubTypeList(ASubTypeList: TStrings; const AnOnlyDirect: Boolean): Boolean;
 
-    procedure SetReadOnly(AReadOnly: Boolean);
-
   public
     constructor Create(AParent: TgdClassEntry; const AClass: TClass;
       const ASubType: TgdcSubType = '';
-      const ACaption: String = ''); overload; virtual; 
+      const ACaption: String = ''); overload; virtual;
 
     destructor Destroy; override;
 
@@ -332,7 +318,7 @@ type
     property SubType: TgdcSubType read FSubType;
     property gdcClass: CgdcBase read GetGdcClass;
     property frmClass: CgdcCreateableForm read GetFrmClass;
-    property Caption: String read GetCaption;
+    property Caption: String read FCaption write FCaption;
     property Count: Integer read GetCount;
     property Children[Index: Integer]: TgdClassEntry read GetChildren;
     property ClassMethods: TgdClassMethods read FClassMethods;
@@ -346,8 +332,6 @@ type
   private
     FClasses: array of TgdClassEntry;
     FCount: Integer;
-
-    FReadOnly: Boolean;
 
     function _Find(const AClassName: AnsiString; const ASubType: TgdcSubType;
       out Index: Integer): Boolean;
@@ -383,7 +367,8 @@ type
     function GetSubTypeList(AClass: TClass; const ASubType: TgdcSubType;
       ASubTypeList: TStrings; const AnOnlyDirect: Boolean): Boolean;
 
-    procedure Remove(const AClass: TClass; const ASubType: TgdcSubType = '');
+    procedure Remove(const AClass: TClass; const ASubType: TgdcSubType = ''); overload;
+    procedure Remove(const AClassName: String; const ASubType: TgdcSubType = ''); overload;
     procedure RemoveAllSubTypes;
 
     procedure AddClassMethods(AClassMethods: TgdClassMethods); overload;
@@ -1170,11 +1155,6 @@ begin
   inherited;
 end;
 
-function TgdClassEntry.GetCaption: String;
-begin
-  Result := FCaption;
-end;
-
 function TgdClassEntry.GetCount: Integer;
 begin
   if FChildren = nil then
@@ -1226,11 +1206,6 @@ begin
   end;
 end;
 
-procedure TgdClassEntry.SetReadOnly(AReadOnly: Boolean);
-begin
-  gdClassList.FReadOnly := AReadOnly
-end;
-
 function TgdClassEntry.Traverse(ACallback: TgdClassEntryCallback;
   AData1: Pointer; AData2: Pointer; const AnIncludeRoot, AnOnlyDirect: Boolean): Boolean;
 var
@@ -1238,24 +1213,19 @@ var
 begin
   Assert(Assigned(ACallback));
 
-  SetReadOnly(True);
-  try
-    if AnIncludeRoot then
-      Result := ACallback(Self, AData1, AData2)
-    else
-      Result := True;
+  if AnIncludeRoot then
+    Result := ACallback(Self, AData1, AData2)
+  else
+    Result := True;
 
-    I := 0;
-    while Result and (I < Count) do
-    begin
-      if AnOnlyDirect then
-        Result := Result and ACallback(Children[I], AData1, AData2)
-      else
-        Result := Result and Children[I].Traverse(ACallback, AData1, AData2, True, False);
-      Inc(I);
-    end;
-  finally
-    SetReadOnly(False);
+  I := 0;
+  while Result and (I < Count) do
+  begin
+    if AnOnlyDirect then
+      Result := Result and ACallback(Children[I], AData1, AData2)
+    else
+      Result := Result and Children[I].Traverse(ACallback, AData1, AData2, True, False);
+    Inc(I);
   end;
 end;
 
@@ -1266,24 +1236,19 @@ var
 begin
   Assert(Assigned(ACallback2));
 
-  SetReadOnly(True);
-  try
-    if AnIncludeRoot then
-      Result := ACallback2(Self, AData1, AData2)
-    else
-      Result := True;
+  if AnIncludeRoot then
+    Result := ACallback2(Self, AData1, AData2)
+  else
+    Result := True;
 
-    I := 0;
-    while Result and (I < Count) do
-    begin
-      if AnOnlyDirect then
-        Result := Result and ACallback2(Children[I], AData1, AData2)
-      else
-        Result := Result and Children[I].Traverse(ACallback2, AData1, AData2, True, False);
-      Inc(I);
-    end;
-  finally
-    SetReadOnly(False);
+  I := 0;
+  while Result and (I < Count) do
+  begin
+    if AnOnlyDirect then
+      Result := Result and ACallback2(Children[I], AData1, AData2)
+    else
+      Result := Result and Children[I].Traverse(ACallback2, AData1, AData2, True, False);
+    Inc(I);
   end;
 end;
 
@@ -1368,7 +1333,6 @@ end;
 constructor TgdClassList.Create;
 begin
   inherited;
-  FReadOnly := False;
   {$IFDEF DEBUG}
   Inc(glbClassListCount);
   {$ENDIF}
@@ -1413,42 +1377,9 @@ end;
 
 procedure TgdClassList.Remove(const AClass: TClass;
   const ASubType: TgdcSubType);
-var
-  Index: Integer;
-  OL: TObjectList;
-  I: Integer;
 begin
-  if FReadOnly then
-    raise Exception.Create('gdClassList is read-only');
-
-  if AClass = nil then
-    exit;
-
-  if _Find(AClass.ClassName, ASubType, Index) then
-  begin
-    if FClasses[Index].Parent <> nil then
-      FClasses[Index].Parent.RemoveChild(FClasses[Index]);
-    OL := TObjectList.Create(False);
-    try
-      FClasses[Index].Traverse(OL, False);
-      FClasses[Index].Free;
-      System.Move(FClasses[Index + 1], FClasses[Index],
-        (FCount - Index - 1) * SizeOf(FClasses[0]));
-      Dec(FCount);
-      for I := OL.Count - 1 downto 0 do
-      begin
-        if _Find(TgdClassEntry(OL[I]).TheClass.ClassName, TgdClassEntry(OL[I]).SubType, Index) then
-        begin
-          FClasses[Index].Free;
-          System.Move(FClasses[Index + 1], FClasses[Index],
-            (FCount - Index - 1) * SizeOf(FClasses[0]));
-          Dec(FCount);
-        end;
-      end;
-    finally
-      OL.Free;
-    end;
-  end;
+  Assert(AClass <> nil);
+  Remove(AClass.ClassName, ASubType);
 end;
 
 function GetAllSubTypes(ACE: TgdClassEntry; AData1: Pointer; AData2: Pointer): Boolean;
@@ -1463,9 +1394,6 @@ procedure TgdClassList.RemoveAllSubTypes;
 var
   I: Integer;
 begin
-  if FReadOnly then
-    raise Exception.Create('gdClassList is in a read-only mode');
-
   for I := 0 to FCount - 1 do
   begin
     if FClasses[I].SubType > '' then
@@ -1904,6 +1832,40 @@ begin
     _Insert(Index, Result)
   else
     raise Exception.Create('Internal consistency check');
+end;
+
+procedure TgdClassList.Remove(const AClassName: String;
+  const ASubType: TgdcSubType);
+var
+  Index: Integer;
+  OL: TObjectList;
+  I: Integer;
+begin
+  if _Find(AClassName, ASubType, Index) then
+  begin
+    if FClasses[Index].Parent <> nil then
+      FClasses[Index].Parent.RemoveChild(FClasses[Index]);
+    OL := TObjectList.Create(False);
+    try
+      FClasses[Index].Traverse(OL, False);
+      FClasses[Index].Free;
+      System.Move(FClasses[Index + 1], FClasses[Index],
+        (FCount - Index - 1) * SizeOf(FClasses[0]));
+      Dec(FCount);
+      for I := OL.Count - 1 downto 0 do
+      begin
+        if _Find(TgdClassEntry(OL[I]).TheClass.ClassName, TgdClassEntry(OL[I]).SubType, Index) then
+        begin
+          FClasses[Index].Free;
+          System.Move(FClasses[Index + 1], FClasses[Index],
+            (FCount - Index - 1) * SizeOf(FClasses[0]));
+          Dec(FCount);
+        end;
+      end;
+    finally
+      OL.Free;
+    end;
+  end;
 end;
 
 initialization

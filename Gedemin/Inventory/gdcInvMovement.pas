@@ -8065,7 +8065,6 @@ begin
   {END MACRO}
 end;
 
-
 procedure TgdcInvRemainsOption.CustomDelete(Buff: Pointer);
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
   {M}VAR
@@ -8104,7 +8103,8 @@ begin
     '  subtype = ''%s''',
     [FieldByName('ruid').AsString]));
 
-  UnRegisterGdClasses(ctInvRemains, FieldByName('RUID').AsString);
+  gdClassList.Remove(TgdcInvRemains, FieldByName('RUID').AsString);
+  gdClassList.Remove(TgdcInvGoodRemains, FieldByName('RUID').AsString);
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVREMAINSOPTION', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
   {M}  finally
@@ -8150,9 +8150,9 @@ begin
     TgdcInvRemains.ClassName, False, FieldByName('branchkey').AsInteger
   );
 
-  RegisterGdClasses(ctInvRemains, FieldByName('name').AsString,
-    FieldByName('RUID').AsString);
-  
+  gdClassList.Add(TgdcInvRemains, FieldByName('RUID').AsString, '', FieldByName('name').AsString);
+  gdClassList.Add(TgdcInvGoodRemains, FieldByName('RUID').AsString, '', FieldByName('name').AsString);
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVREMAINSOPTION', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -8167,6 +8167,7 @@ procedure TgdcInvRemainsOption.CustomModify(Buff: Pointer);
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
+  CE: TgdClassEntry;
 begin
   {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCINVREMAINSOPTION', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
   {M}  try
@@ -8198,7 +8199,15 @@ begin
     True, FieldByName('branchkey').AsInteger
   );
 
-  UpdateGdClasses(ctInvRemains, FieldByName('name').AsString, FieldByName('RUID').AsString);
+  if FieldChanged('name') then
+  begin
+    CE := gdClassList.Find(TgdcInvRemains, FieldByName('RUID').AsString);
+    if CE <> nil then
+      CE.Caption := FieldByName('name').AsString;
+    CE := gdClassList.Find(TgdcInvGoodRemains, FieldByName('RUID').AsString);
+    if CE <> nil then
+      CE.Caption := FieldByName('name').AsString;
+  end;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVREMAINSOPTION', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
   {M}  finally
@@ -9083,17 +9092,17 @@ end;
 
 initialization
   RegisterGdcClass(TgdcInvBaseRemains);
-  RegisterGdcClass(TgdcInvRemains, ctInvRemains);
-  RegisterGdcClass(TgdcInvGoodRemains, ctInvRemains);
-  RegisterGdcClass(TgdcInvMovement, ctInvDocument);
+  RegisterGdcClass(TgdcInvRemains);
+  RegisterGdcClass(TgdcInvGoodRemains);
+  RegisterGdcClass(TgdcInvMovement);
   RegisterGdcClass(TgdcInvCard);
   RegisterGdcClass(TgdcInvRemainsOption);
   RegisterGdcClass(TgdcInvCardConfig);
 
 finalization
-  UnRegisterGdcClass(TgdcInvBaseRemains);
-  UnRegisterGdcClass(TgdcInvRemains);
   UnRegisterGdcClass(TgdcInvGoodRemains);
+  UnRegisterGdcClass(TgdcInvRemains);
+  UnRegisterGdcClass(TgdcInvBaseRemains);
   UnRegisterGdcClass(TgdcInvMovement);
   UnRegisterGdcClass(TgdcInvCard);
   UnRegisterGdcClass(TgdcInvRemainsOption);
