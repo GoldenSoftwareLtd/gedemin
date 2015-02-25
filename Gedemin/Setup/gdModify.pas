@@ -28,7 +28,6 @@ type
     function BringOnLine: Boolean;
     procedure ReadDBVersion;
     procedure DoModifyLog(const AnLogText: String);
-    function GetServerVersion(IBDB: TIBDatabase): String;
 
   public
     procedure Execute;
@@ -72,32 +71,6 @@ procedure TgdModify.DoModifyLog(const AnLogText: String);
 begin
   if Assigned(FModifyLog) then
     FModifyLog(AnLogText);
-end;
-
-function TgdModify.GetServerVersion(IBDB: TIBDatabase): String;
-var
-  FTransaction: TIBTransaction;
-  FIBSQL: TIBSQL;
-begin
-  FTransaction := TIBTransaction.Create(nil);
-  try
-    FTransaction.DefaultDatabase := IBDB;
-    FTransaction.StartTransaction;
-
-    FIBSQL := TIBSQL.Create(nil);
-    try
-      FIBSQL.Transaction := FTransaction;
- 
-      FIBSQL.SQL.Text :=
-        'SELECT RDB$GET_CONTEXT(''SYSTEM'', ''ENGINE_VERSION'') FROM RDB$DATABASE';
-      FIBSQL.ExecQuery;
-      Result := FIBSQL.Fields[0].AsString;
-    finally
-      FIBSQL.Free;
-    end;
-  finally
-    FTransaction.Free;
-  end;
 end;
 
 procedure TgdModify.Execute;
@@ -148,7 +121,7 @@ begin
       ReadDBVersion;
       try
         try
-          if AnsiPos('2.5', GetServerVersion(FIBDatabase)) = 1 then
+          if FIBDatabase.IsFirebird25Connect then
           begin
             for I := 0 to 207 do
             begin
@@ -164,7 +137,7 @@ begin
               'Внимание',
               MB_OK or MB_ICONINFORMATION or MB_TASKMODAL or MB_TOPMOST);
           end
-          else
+          else if FIBDatabase.IsFirebird30Connect then
           begin
             if FDBVersion >= cProcList[208].ModifyVersion then
             begin
