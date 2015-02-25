@@ -3493,7 +3493,7 @@ begin
         FQuery.Add(Format('ALTER TABLE %s ALTER COLUMN %s POSITION %d',
           [AnsiUpperCase(FieldByName('relationname').AsString),
           AnsiUpperCase(Trim(FieldByName('fieldname').AsString)),
-          FieldByName('rdb$field_position').AsInteger]));
+          FieldByName('rdb$field_position').AsInteger + 1]));
 
       ShowSQLProcess(FQuery);
 
@@ -3638,7 +3638,7 @@ begin
       FQuery.Add(Format('ALTER TABLE %s ALTER COLUMN %s POSITION %d',
         [AnsiUpperCase(FieldByName('relationname').AsString),
         AnsiUpperCase(Trim(FieldByName('fieldname').AsString)),
-        FieldByName('rdb$field_position').AsInteger]));
+        FieldByName('rdb$field_position').AsInteger + 1]));
 
     ShowSQLProcess(FQuery);
 
