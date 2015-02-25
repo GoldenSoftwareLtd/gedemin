@@ -7,11 +7,11 @@ inherited gdc_frmInvBaseRemains: Tgdc_frmInvBaseRemains
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Width = 628
+    Width = 620
     OnClick = sbMainClick
   end
   inherited TBDockTop: TTBDock
-    Width = 628
+    Width = 620
     inherited tbMainToolbar: TTBToolbar
       inherited tbsiMainOne: TTBSeparatorItem
         Visible = False
@@ -67,30 +67,30 @@ inherited gdc_frmInvBaseRemains: Tgdc_frmInvBaseRemains
     end
   end
   inherited TBDockRight: TTBDock
-    Left = 619
+    Left = 611
   end
   inherited TBDockBottom: TTBDock
-    Width = 628
+    Width = 620
   end
   inherited pnlWorkArea: TPanel
-    Width = 610
+    Width = 602
     inherited spChoose: TSplitter
-      Width = 610
+      Width = 602
     end
     inherited pnlMain: TPanel
-      Width = 610
+      Width = 602
       object Splitter1: TSplitter [0]
         Left = 377
         Top = 0
         Width = 3
-        Height = 215
+        Height = 564
         Cursor = crHSplit
       end
       object pnMain: TPanel
         Left = 160
         Top = 0
         Width = 217
-        Height = 215
+        Height = 564
         Align = alLeft
         BevelOuter = bvNone
         Caption = 'pnMain'
@@ -100,7 +100,7 @@ inherited gdc_frmInvBaseRemains: Tgdc_frmInvBaseRemains
           Left = 0
           Top = 0
           Width = 217
-          Height = 215
+          Height = 564
           DataSource = dsDetail
           KeyField = 'ID'
           ParentField = 'PARENT'
@@ -110,7 +110,6 @@ inherited gdc_frmInvBaseRemains: Tgdc_frmInvBaseRemains
             '101=3')
           Align = alClient
           ChangeDelay = 300
-          HideSelection = False
           Indent = 19
           RightClickSelect = True
           SortType = stText
@@ -124,8 +123,8 @@ inherited gdc_frmInvBaseRemains: Tgdc_frmInvBaseRemains
       object pnDetail: TPanel
         Left = 380
         Top = 0
-        Width = 230
-        Height = 215
+        Width = 222
+        Height = 564
         Align = alClient
         BevelOuter = bvNone
         Caption = 'pnDetail'
@@ -133,8 +132,8 @@ inherited gdc_frmInvBaseRemains: Tgdc_frmInvBaseRemains
         object ibgrDetail: TgsIBGrid
           Left = 0
           Top = 0
-          Width = 230
-          Height = 215
+          Width = 222
+          Height = 564
           HelpContext = 3
           Align = alClient
           Ctl3D = True
@@ -164,15 +163,15 @@ inherited gdc_frmInvBaseRemains: Tgdc_frmInvBaseRemains
       end
     end
     inherited pnChoose: TPanel
-      Width = 610
+      Width = 602
       inherited pnButtonChoose: TPanel
-        Left = 505
+        Left = 497
       end
       inherited ibgrChoose: TgsIBGrid
-        Width = 505
+        Width = 497
       end
       inherited pnlChooseCaption: TPanel
-        Width = 610
+        Width = 602
       end
     end
   end
