@@ -31,7 +31,6 @@ type
     destructor  Destroy; override;
 
     class function GetListTable(const ASubType: TgdcSubType): String; override;
-    class function GetKeyField(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetSubSetList: String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
@@ -182,11 +181,6 @@ begin
   {END MACRO}
 end;
 
-class function TgdcFunction.GetKeyField(const ASubType: TgdcSubType): String;
-begin
-  Result := 'ID';
-end;
-
 class function TgdcFunction.GetListField(const ASubType: TgdcSubType): String;
 begin
   Result := 'NAME'
@@ -261,7 +255,7 @@ begin
     S.Add('UPPER(z.module) = :module');
   if HasSubSet(cByLBRBModule) then
     S.Add('o.lb >= :LB AND o.rb <= :RB ');
-//исключаем все методы, макросы, события
+  //исключаем все методы, макросы, события
   if HasSubSet(cOnlyFunction) then
     S.Add('((UPPER(z.module) = ''' + scrUnkonownModule + ''') OR ' +
      '(UPPER(z.module) = ''' + scrGlobalObject + ''') OR ' +
@@ -606,20 +600,6 @@ const
   cCMErr = 'Для класса не найден объект описания методов класса.';
 
 begin
-  //ClassMethods := nil;
-{  I := gdcClassList.IndexOfByName(FullClassName);
-  if I > -1 then
-  begin
-    ClassMethods := gdcClassList.gdcItems[I];
-  end else
-    begin
-      I := frmClassList.IndexOfByName(FullClassName);
-      if I > -1 then
-      begin
-        ClassMethods := frmClassList.gdcItems[I];
-      end;
-    end;  }
-
   CE := gdClassList.Find(GetClass(FullClassName.gdClassName));
 
   if CE = nil then
@@ -721,7 +701,7 @@ begin
 end;
 
 initialization
-  RegisterGdcClass(TgdcFunction, ctStorage, 'Функция');
+  RegisterGdcClass(TgdcFunction, 'Скрипт-функция');
 
 finalization
   UnRegisterGdcClass(TgdcFunction);
