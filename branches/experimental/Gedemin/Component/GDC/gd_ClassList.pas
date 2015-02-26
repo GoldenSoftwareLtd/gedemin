@@ -1654,7 +1654,7 @@ begin
   begin
     R := atDatabase.Relations[I];
 
-    if R.IsUserDefined then
+    if (R.RelationType = rtTable) and R.IsUserDefined then
     begin
       if R.IsStandartRelation then
         LoadRelation(CEAttrUserDefined, R)

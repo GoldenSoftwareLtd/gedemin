@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2001-2013 by Golden Software of Belarus
+  Copyright (c) 2001-2015 by Golden Software of Belarus
 
   Module
 
@@ -157,11 +157,7 @@ uses
   gdcCustomFunction, gd_directories_const, gdcAutoTransaction, gdcAcctTransaction;
 
 const
-  txNameChars =
-    'qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890_';
-
   txReportFolder = '%s (%s)';
-
   gdcTaxNameReportGroupKey          = 1020002;
 
 type
@@ -1342,7 +1338,7 @@ initialization
   RegisterGdcClass(TgdcTaxActual);
   RegisterGdcClass(TgdcTaxResult);
   RegisterGdcClass(TgdcTaxDesignDate);
-  RegisterGdcClass(TgdcTaxName, ctStorage, 'Бухгалтерский отчет');
+  RegisterGdcClass(TgdcTaxName, 'Бухгалтерский отчет');
 
 finalization
   UnRegisterGdcClass(TgdcTaxActual);
