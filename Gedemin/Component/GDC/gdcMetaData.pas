@@ -293,7 +293,7 @@ type
   protected
     procedure CreateRelationSQL(Scripts: TSQLProcessList); override;
     procedure CustomInsert(Buff: Pointer); override;
-    
+
   public
     procedure MakePredefinedRelationFields; override;
 
@@ -303,15 +303,6 @@ type
   end;
 
   TgdcTable = class(TgdcBaseTable)
-  protected
-    procedure CustomDelete(Buff: Pointer); override;
-    procedure CustomModify(Buff: Pointer); override;
-    procedure CustomInsert(Buff: Pointer); override;
-
-    procedure AddGdClasses; virtual;
-    procedure ModifyGdClasses; virtual;
-    procedure RemoveGdClasses; virtual;
-
   end;
 
   TgdcPrimeTable = class(TgdcTable)
@@ -365,14 +356,7 @@ type
     function CreateForeignKey: String; override;
 
   protected
-    procedure AddGdClasses; override;
-    procedure ModifyGdClasses; override;
-    procedure RemoveGdClasses; override;
-
     procedure CreateRelationSQL(Scripts: TSQLProcessList); override;
-
-  public
-
   end;
 
   TgdcTreeTable = class(TgdcTable)
@@ -380,10 +364,6 @@ type
     function CreateTreeTable: String;
 
   protected
-    procedure AddGdClasses; override;
-    procedure ModifyGdClasses; override;
-    procedure RemoveGdClasses; override;
-    
     procedure CreateRelationSQL(Scripts: TSQLProcessList); override;
     procedure _DoOnNewRecord; override;
 
@@ -396,10 +376,6 @@ type
     function CreateIntervalTreeTable: String;
 
   protected
-    procedure AddGdClasses; override;
-    procedure ModifyGdClasses; override;
-    procedure RemoveGdClasses; override;
-    
     procedure DropTable; override;
 
     procedure CreateRelationSQL(Scripts: TSQLProcessList); override;
@@ -2075,6 +2051,7 @@ begin
 
   atDatabase.Relations.RefreshData(Database, Transaction, True);
   Clear_atSQLSetupCache;
+  gdClassList.LoadRelation(FieldByName('relationname').AsString);
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCRELATION', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  finally
@@ -6518,31 +6495,6 @@ end;
 
 { TgdcTreeTable }
 
-procedure TgdcTreeTable.AddGdClasses;
-begin
-  RegisterGdClasses(ctUserDefinedTree, FieldByName('lname').AsString,
-    FieldByName('relationname').AsString);
-
-  RegisterGdClasses(ctDlgUserDefinedTree, FieldByName('lname').AsString,
-    FieldByName('relationname').AsString);
-end;
-
-procedure TgdcTreeTable.ModifyGdClasses;
-begin
-  UpdateGdClasses(ctUserDefinedTree, FieldByName('lname').AsString,
-    FieldByName('relationname').AsString);
-
-  UpdateGdClasses(ctDlgUserDefinedTree, FieldByName('lname').AsString,
-    FieldByName('relationname').AsString);
-end;
-
-procedure TgdcTreeTable.RemoveGdClasses;
-begin
-  UnRegisterGdClasses(ctUserDefinedTree, FieldByName('relationname').AsString);
-
-  UnRegisterGdClasses(ctDlgUserDefinedTree,FieldByName('relationname').AsString);
-end;
-
 procedure TgdcTreeTable.CreateRelationSQL(Scripts: TSQLProcessList);
 begin
   Scripts.Add(CreateTreeTable);
@@ -6739,31 +6691,6 @@ begin
   {M}      ClearMacrosStack2('TGDCLBRBTREETABLE', '_DOONNEWRECORD', KEY_DOONNEWRECORD);
   {M}  end;
   {END MACRO}
-end;
-
-procedure TgdcLBRBTreeTable.AddGdClasses;
-begin
-  RegisterGdClasses(ctUserDefinedLBRBTree, FieldByName('lname').AsString,
-    FieldByName('relationname').AsString);
-
-  RegisterGdClasses(ctDlgUserDefinedTree, FieldByName('lname').AsString,
-    FieldByName('relationname').AsString);
-end;
-
-procedure TgdcLBRBTreeTable.ModifyGdClasses;
-begin
-  UpdateGdClasses(ctUserDefinedLBRBTree, FieldByName('lname').AsString,
-    FieldByName('relationname').AsString);
-
-  UpdateGdClasses(ctDlgUserDefinedTree, FieldByName('lname').AsString,
-    FieldByName('relationname').AsString);
-end;
-
-procedure TgdcLBRBTreeTable.RemoveGdClasses;
-begin
-  UnRegisterGdClasses(ctUserDefinedLBRBTree, FieldByName('relationname').AsString);
-
-  UnRegisterGdClasses(ctDlgUserDefinedTree, FieldByName('relationname').AsString);
 end;
 
 procedure TgdcLBRBTreeTable.DropTable;
@@ -9395,149 +9322,6 @@ begin
   );
 end;
 
-procedure TgdcTableToDefinedTable.AddGdClasses;
-var
-  R: TatRelation;
-  F: TatRelationField;
-  RN: String;
-  LgdClassKind: TgdClassKind;
-begin
-  RN := '';
-
-  RN := TgdcTableToDefinedTable(Self).GetReferenceName;
-  Assert(RN <> '');
-  R := nil;
-  if Assigned(atDatabase) and Assigned(atDatabase.Relations) then
-  begin
-    R := atDatabase.Relations.ByRelationName(RN);
-    if Assigned(R) then
-    begin
-      F := R.RelationFields.ByFieldName('INHERITEDKEY');
-      if Assigned(F) then
-        repeat
-          R := R.RelationFields.ByFieldName('INHERITEDKEY').ForeignKey.ReferencesRelation;
-        until not Assigned(R.RelationFields.ByFieldName('INHERITEDKEY'));
-    end;
-  end;
-
-  LgdClassKind := ctUserDefined;
-
-  if Assigned(R) then
-  begin
-    F := R.RelationFields.ByFieldName('LB');
-    if Assigned(F) then
-      LgdClassKind := ctUserDefinedLBRBTree
-    else
-    begin
-      F := R.RelationFields.ByFieldName('PARENT');
-      if Assigned(F) then
-        LgdClassKind := ctUserDefinedTree
-    end;
-  end;
-
-  RegisterGdClasses(LgdClassKind, FieldByName('lname').AsString,
-    FieldByName('relationname').AsString, RN);
-
-  if LgdClassKind <> ctUserDefined then
-    RegisterGdClasses(ctDlgUserDefinedTree, FieldByName('lname').AsString,
-      FieldByName('relationname').AsString, RN);
-end;
-
-procedure TgdcTableToDefinedTable.ModifyGdClasses;
-var
-  R: TatRelation;
-  F: TatRelationField;
-  RN: String;
-  LgdClassKind: TgdClassKind;
-begin
-  RN := '';
-
-  RN := TgdcTableToDefinedTable(Self).GetReferenceName;
-  Assert(RN <> '');
-  R := nil;
-  if Assigned(atDatabase) and Assigned(atDatabase.Relations) then
-  begin
-    R := atDatabase.Relations.ByRelationName(RN);
-    if Assigned(R) then
-    begin
-      F := R.RelationFields.ByFieldName('INHERITEDKEY');
-      if Assigned(F) then
-        repeat
-          R := R.RelationFields.ByFieldName('INHERITEDKEY').ForeignKey.ReferencesRelation;
-        until not Assigned(R.RelationFields.ByFieldName('INHERITEDKEY'));
-    end;
-  end;
-
-  LgdClassKind := ctUserDefined;
-
-  if Assigned(R) then
-  begin
-    F := R.RelationFields.ByFieldName('LB');
-    if Assigned(F) then
-      LgdClassKind := ctUserDefinedLBRBTree
-    else
-    begin
-      F := R.RelationFields.ByFieldName('PARENT');
-      if Assigned(F) then
-        LgdClassKind := ctUserDefinedTree
-    end;
-  end;
-
-  UpdateGdClasses(LgdClassKind, FieldByName('lname').AsString,
-    FieldByName('relationname').AsString);
-
-  if LgdClassKind <> ctUserDefined then
-    UpdateGdClasses(ctDlgUserDefinedTree, FieldByName('lname').AsString,
-      FieldByName('relationname').AsString);
-end;
-
-procedure TgdcTableToDefinedTable.RemoveGdClasses;
-var
-  R: TatRelation;
-  F: TatRelationField;
-  RN: String;
-  LgdClassKind: TgdClassKind;
-begin
-  RN := '';
-
-  RN := TgdcTableToDefinedTable(Self).GetReferenceName;
-  Assert(RN <> '');
-  R := nil;
-  if Assigned(atDatabase) and Assigned(atDatabase.Relations) then
-  begin
-    R := atDatabase.Relations.ByRelationName(RN);
-    if Assigned(R) then
-    begin
-      F := R.RelationFields.ByFieldName('INHERITEDKEY');
-      if Assigned(F) then
-        repeat
-          R := R.RelationFields.ByFieldName('INHERITEDKEY').ForeignKey.ReferencesRelation;
-        until not Assigned(R.RelationFields.ByFieldName('INHERITEDKEY'));
-    end;
-  end;
-
-  LgdClassKind := ctUserDefined;
-
-  if Assigned(R) then
-  begin
-    F := R.RelationFields.ByFieldName('LB');
-    if Assigned(F) then
-      LgdClassKind := ctUserDefinedLBRBTree
-    else
-    begin
-      F := R.RelationFields.ByFieldName('PARENT');
-      if Assigned(F) then
-        LgdClassKind := ctUserDefinedTree
-    end;
-  end;
-
-  UnRegisterGdClasses(LgdClassKind, FieldByName('relationname').AsString);
-
-  if LgdClassKind <> ctUserDefined then
-    UnRegisterGdClasses(ctDlgUserDefinedTree, FieldByName('relationname').AsString);
-end;
-
-
 procedure TgdcTableToDefinedTable.CreateRelationSQL(Scripts: TSQLProcessList);
 begin
   inherited;
@@ -9802,150 +9586,6 @@ begin
       end;
     end;
   end;
-end;
-
-{ TgdcTable }
-
-procedure TgdcTable.CustomDelete(Buff: Pointer);
-var
-  {@UNFOLD MACRO INH_ORIG_PARAMS()}
-  {M}
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-  DelRelName: String;
-begin
-  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCTABLE', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCTABLE', KEYCUSTOMDELETE);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMDELETE]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCTABLE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCTABLE',
-  {M}          'CUSTOMDELETE', KEYCUSTOMDELETE, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCTABLE' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  DelRelName := FieldByName('relationname').AsString;
-
-  inherited;
-
-  if Assigned(atDatabase) and (not Assigned(atDatabase.Relations.ByRelationName(DelRelName))) then
-    RemoveGdClasses;
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCTABLE', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCTABLE', 'CUSTOMDELETE', KEYCUSTOMDELETE);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcTable.CustomInsert(Buff: Pointer);
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCTABLE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCTABLE', KEYCUSTOMINSERT);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMINSERT]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCTABLE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCTABLE',
-  {M}          'CUSTOMINSERT', KEYCUSTOMINSERT, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCTABLE' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  inherited;
-
-  AddGdClasses;
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCTABLE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCTABLE', 'CUSTOMINSERT', KEYCUSTOMINSERT);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcTable.CustomModify(Buff: Pointer);
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCTABLE', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCTABLE', KEYCUSTOMMODIFY);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMMODIFY]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCTABLE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCTABLE',
-  {M}          'CUSTOMMODIFY', KEYCUSTOMMODIFY, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCTABLE' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  inherited;
-
-  ModifyGdClasses;
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCTABLE', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCRELATION', 'CUSTOMMODIFY', KEYCUSTOMMODIFY);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcTable.AddGdClasses;
-begin
-  RegisterGdClasses(ctUserDefined, FieldByName('lname').AsString,
-    FieldByName('relationname').AsString);
-end;
-
-procedure TgdcTable.ModifyGdClasses;
-begin
-  UpdateGdClasses(ctUserDefined, FieldByName('lname').AsString,
-    FieldByName('relationname').AsString);
-end;
-
-procedure TgdcTable.RemoveGdClasses;
-begin
-  UnRegisterGdClasses(ctUserDefined, FieldByName('relationname').AsString);
 end;
 
 { TSQLProcessList }
@@ -11085,27 +10725,27 @@ end;
 
 initialization
   RegisterGdcClass(TgdcMetaBase);
-  RegisterGdcClass(TgdcField, ctStorage, 'Домен');
-  RegisterGdcClass(TgdcRelation, ctStorage, 'Таблицы и представления');
-  RegisterGdcClass(TgdcBaseTable, ctStorage, 'Таблица');
+  RegisterGdcClass(TgdcField, 'Домен');
+  RegisterGdcClass(TgdcRelation, 'Отношение');
+  RegisterGdcClass(TgdcBaseTable, 'Таблица');
   RegisterGdcClass(TgdcTable);
-  RegisterGdcClass(TgdcSimpleTable, ctStorage, 'Таблица с идентификатором');
-  RegisterGdcClass(TgdcPrimeTable, ctStorage, 'Простая таблица с идентификатором');
-  RegisterGdcClass(TgdcUnknownTable, ctStorage, 'Таблица');
-  RegisterGdcClass(TgdcTableToTable, ctStorage, 'Таблица со ссылкой');
-  RegisterGdcClass(TgdcTableToDefinedTable, ctStorage, 'Наследуемая таблица');
-  RegisterGdcClass(TgdcTreeTable, ctStorage, 'Простое дерево');
-  RegisterGdcClass(TgdcLBRBTreeTable, ctStorage, 'Интервальное дерево');
-  RegisterGdcClass(TgdcView, ctStorage, 'Представление');
-  RegisterGdcClass(TgdcRelationField, ctStorage, 'Поле');
+  RegisterGdcClass(TgdcSimpleTable, 'Таблица с идентификатором');
+  RegisterGdcClass(TgdcPrimeTable, 'Простая таблица с идентификатором');
+  RegisterGdcClass(TgdcUnknownTable, 'Таблица');
+  RegisterGdcClass(TgdcTableToTable, 'Таблица со ссылкой');
+  RegisterGdcClass(TgdcTableToDefinedTable, 'Наследуемая таблица');
+  RegisterGdcClass(TgdcTreeTable, 'Простое дерево');
+  RegisterGdcClass(TgdcLBRBTreeTable, 'Интервальное дерево');
+  RegisterGdcClass(TgdcView, 'Представление');
+  RegisterGdcClass(TgdcRelationField, 'Поле');
   RegisterGdcClass(TgdcTableField);
   RegisterGdcClass(TgdcViewField);
-  RegisterGdcClass(TgdcStoredProc, ctStorage, 'Процедура');
-  RegisterGdcClass(TgdcException, ctStorage, 'Исключение');
-  RegisterGdcClass(TgdcIndex, ctStorage, 'Индекс');
-  RegisterGdcClass(TgdcTrigger, ctStorage, 'Триггер');
-  RegisterGdcClass(TgdcGenerator, ctStorage, 'Генератор');
-  RegisterGdcClass(TgdcCheckConstraint, ctStorage, 'Ограничение');
+  RegisterGdcClass(TgdcStoredProc, 'Процедура');
+  RegisterGdcClass(TgdcException, 'Исключение');
+  RegisterGdcClass(TgdcIndex, 'Индекс');
+  RegisterGdcClass(TgdcTrigger, 'Триггер');
+  RegisterGdcClass(TgdcGenerator, 'Генератор');
+  RegisterGdcClass(TgdcCheckConstraint, 'Ограничение');
 
   for TrCount := 1 to MaxInvCardTrigger do
   begin

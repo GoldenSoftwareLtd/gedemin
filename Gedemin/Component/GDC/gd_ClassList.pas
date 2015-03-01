@@ -32,7 +32,7 @@ interface
 
 uses
   Contnrs,        Classes,   TypInfo,     Forms,        gd_KeyAssoc,
-  gdcBase,        gdc_createable_form,    gdcBaseInterface,
+  gdcBase,        gdc_createable_form,    gdcBaseInterface, at_classes,
   {$IFDEF VER130}
   gsStringHashList
   {$ELSE}
@@ -379,6 +379,9 @@ type
     function GetFrmClass(const AClassName: String): CgdcCreateableForm;
 
     procedure LoadUserDefinedClasses;
+    function LoadRelation(Prnt: TgdClassEntry; R: TatRelation; ACEAttrUserDefined,
+      ACEAttrUserDefinedTree, ACEAttrUserDefinedLBRBTree: TgdClassEntry): TgdClassEntry; overload;
+    function LoadRelation(const ARelationName: String): TgdClassEntry; overload;
 
     property Count: Integer read FCount;
   end;
@@ -426,7 +429,7 @@ var
 implementation
 
 uses
-  SysUtils, gs_Exception, at_classes, IBSQL, gd_security, gsStorage, Storages
+  SysUtils, gs_Exception, IBSQL, gd_security, gsStorage, Storages
   {$IFDEF DEBUG}
   , gd_DebugLog
   {$ENDIF}
@@ -1571,18 +1574,6 @@ end;
 
 procedure TgdClassList.LoadUserDefinedClasses;
 
-  function LoadRelation(Prnt: TgdClassEntry; R: TatRelation): TgdClassEntry;
-  var
-    F: TatRelationField;
-  begin
-    F := R.RelationFields.ByFieldName('INHERITEDKEY');
-
-    if (F <> nil) and (F.References <> nil) then
-      Prnt := LoadRelation(Prnt, F.References);
-
-    Result := _Create(Prnt, TgdClassEntry, R.RelationName, R.LName);
-  end;
-
   function LoadDocument(Prnt: TgdClassEntry; q: TIBSQL): TgdClassEntry;
   var
     PrevRB: Integer;
@@ -1629,10 +1620,9 @@ procedure TgdClassList.LoadUserDefinedClasses;
 
 var
   I, J, Index: Integer;
-  R: TatRelation;
   CEAttrUserDefined,
-  CEAttrUserDefinedLBRBTree,
   CEAttrUserDefinedTree,
+  CEAttrUserDefinedLBRBTree,
   CEUserDocument,
   CEUserDocumentLine,
   CEInvDocument,
@@ -1645,7 +1635,10 @@ var
   q: TIBSQL;
   FSubTypes: TgsStorageFolder;
   SL: TStringList;
+  R: TatRelation;
 begin
+  Assert(atDatabase <> nil);
+
   CEAttrUserDefined := Find('TgdcAttrUserDefined');
   CEAttrUserDefinedTree := Find('TgdcAttrUserDefinedTree');
   CEAttrUserDefinedLBRBTree := Find('TgdcAttrUserDefinedLBRBTree');
@@ -1653,16 +1646,9 @@ begin
   for I := 0 to atDatabase.Relations.Count - 1 do
   begin
     R := atDatabase.Relations[I];
-
     if (R.RelationType = rtTable) and R.IsUserDefined then
-    begin
-      if R.IsStandartRelation then
-        LoadRelation(CEAttrUserDefined, R)
-      else if R.IsLBRBTreeRelation then
-        LoadRelation(CEAttrUserDefinedLBRBTree, R)
-      else if R.IsStandartTreeRelation then
-        LoadRelation(CEAttrUserDefinedTree, R);
-    end;
+      LoadRelation(nil, R, CEAttrUserDefined, CEAttrUserDefinedTree,
+        CEAttrUserDefinedLBRBTree);
   end;
 
   CEUserDocument := Find('TgdcUserDocument');
@@ -1749,6 +1735,48 @@ begin
   finally
     GlobalStorage.CloseFolder(FSubTypes);
   end;
+end;
+
+function TgdClassList.LoadRelation(Prnt: TgdClassEntry; R: TatRelation; ACEAttrUserDefined,
+  ACEAttrUserDefinedTree, ACEAttrUserDefinedLBRBTree: TgdClassEntry): TgdClassEntry;
+var
+  F: TatRelationField;
+begin
+  F := R.RelationFields.ByFieldName('INHERITEDKEY');
+
+  if (F <> nil) and (F.References <> nil) then
+    Prnt := LoadRelation(nil, F.References, ACEAttrUserDefined,
+      ACEAttrUserDefinedTree, ACEAttrUserDefinedLBRBTree);
+
+  if Prnt = nil then
+  begin
+    if R.IsStandartRelation then
+      Prnt := ACEAttrUserDefined
+    else if R.IsLBRBTreeRelation then
+      Prnt := ACEAttrUserDefinedLBRBTree
+    else if R.IsStandartTreeRelation then
+      Prnt := ACEAttrUserDefinedTree
+    else
+      raise Exception.Create('Invalid relation.');
+  end;
+
+  Result := Find(Prnt.TheClass.ClassName, R.RelationName);
+
+  if Result = nil then
+    Result := _Create(Prnt, TgdClassEntry, R.RelationName, R.LName);
+end;
+
+function TgdClassList.LoadRelation(const ARelationName: String): TgdClassEntry;
+var
+  R: TatRelation;
+begin
+  Assert(atDatabase <> nil);
+  R := atDatabase.Relations.ByRelationName(ARelationName);
+  if (R <> nil) and (R.RelationType = rtTable) and R.IsUserDefined then
+    Result := LoadRelation(nil, R, Find('TgdcAttrUserDefined'),
+      Find('TgdcAttrUserDefinedTree'), Find('TgdcAttrUserDefinedLBRBTree'))
+  else
+    raise Exception.Create('Invalid relation.');
 end;
 
 function TgdClassList.Add(const AClassName: AnsiString; const ASubType,
