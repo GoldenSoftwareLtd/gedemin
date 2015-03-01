@@ -2,7 +2,7 @@
 {++
 
 
-  Copyright (c) 2001 by Golden Software of Belarus
+  Copyright (c) 2001-2015 by Golden Software of Belarus
 
   Module
 
@@ -65,27 +65,21 @@ end;
 class function Tgdc_frmAttrUserDefined.CreateAndAssign(
   AnOwner: TComponent): TForm;
 begin
-  result := nil;
+  Result := nil;
 end;
 
 procedure Tgdc_frmAttrUserDefined.FormCreate(Sender: TObject);
 begin
   gdcObject := gdcAttrUserDefined;
-
   inherited;
-
-  with atDatabase.Relations do
-    if ByRelationName(FSubType) <> nil then
-      Self.Caption := ByRelationName(FSubType).LName
-    else
-      Self.Caption := 'Подтип не определен!';
+  if gdcObject <> nil then
+    Self.Caption := gdcObject.GetDisplayName(gdcObject.SubType);
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmAttrUserDefined, ctUserDefined);
+  RegisterFrmClass(Tgdc_frmAttrUserDefined);
 
 finalization
   UnRegisterFrmClass(Tgdc_frmAttrUserDefined);
-
 end.
 
