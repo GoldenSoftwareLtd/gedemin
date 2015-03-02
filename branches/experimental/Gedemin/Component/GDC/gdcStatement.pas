@@ -1263,12 +1263,6 @@ begin
       raise Exception.Create('Не указана сумма выписки!');
   end;
 
- {!!!!! Сейчас на bn_bankstatementline стоит Check:
-     (dsumncu IS NULL) and (csumncu > 0) OR
-     (csumncu IS NULL) and (dsumncu > 0)
-   Поэтому если в поле с суммой 0 - то очистим это поле
-   Если Check уберут, здесь необходимо убрать очистку!!!!
-  }
   if (FieldByName('dsumncu').AsCurrency = 0) and (not FieldByName('dsumncu').IsNull)
   then
     FieldByName('dsumncu').Clear;
@@ -1299,7 +1293,6 @@ begin
     (FieldByName('csumncu').AsCurrency = 0))
   then
     raise EgdcIBError.Create('Если введена валютная сумма, то должна быть указана и сумма В НДЕ!');
-
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASESTATEMENTLINE', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
   {M}  finally
@@ -1559,7 +1552,7 @@ begin
     MasterSource.DataSet.Post;
     MasterSource.DataSet.Edit;
   end;
-  
+
   inherited;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASELINE', 'DOBEFOREINSERT', KEYDOBEFOREINSERT)}
@@ -1724,14 +1717,12 @@ var
         gdcAccount.FieldByName('companykey').AsInteger := FieldByName('companykeyline').AsInteger;
         gdcAccount.Post;
       end;
-
     finally
       gdcBank.Free;
       gdcAccount.Free;
     end;
 
   end;
-
 
 begin
 {Если у такой компании нет расчетного счета и банка, подставим их}
@@ -2063,9 +2054,9 @@ end;
 
 initialization
   RegisterGdcClass(TgdcBaseLine);
-  RegisterGdcClass(TgdcBankCatalogue, ctStorage, 'Банковская картотека');
+  RegisterGdcClass(TgdcBankCatalogue,    'Банковская картотека');
   RegisterGdcClass(TgdcBankCatalogueLine);
-  RegisterGdcClass(TgdcBankStatement);
+  RegisterGdcClass(TgdcBankStatement,    'Банковская выписка');
   RegisterGdcClass(TgdcBankStatementLine);
 
 finalization

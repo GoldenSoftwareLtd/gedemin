@@ -268,16 +268,6 @@ var
   P: TPersistentClass;
   I: Integer;
 begin
-{ if cbGdcType.ItemIndex > -1 then
-  begin
-    P := GetClass(cbGdcType.Text);
-    CgdcBase(P).GetSubTypeList(FSubTypeList);
-    cbGdcSubtype.Items.Clear;
-    for I := 0 to FSubTypeList.Count - 1 do
-    begin
-      cbGdcSubtype.Items.Add(FSubTypeList.Names[I]);
-    end;
-  end;}
   if cbGdcType.ItemIndex > -1 then
   begin
     P := GetClass(cbGdcType.Text);
@@ -287,7 +277,6 @@ begin
       for I := 0 to FSubTypeList.Count - 1 do
         cbGdcSubtype.Items.Add(FSubTypeList.Names[I]);
   end;
-
 end;
 
 procedure RegisterAncestorForm(AncestorForms: Array of TPersistentClass);

@@ -95,8 +95,6 @@ type
   {Класс для работы непосредственно с файлами}
   TgdcFile = class(TgdcBaseFile)
   protected
-    function CreateDialogForm: TCreateableForm; override;
-
     procedure _DoOnNewRecord; override;
 
     procedure GetWhereClauseConditions(S: TStrings); override;
@@ -109,6 +107,7 @@ type
 
   public
     class function GetRestrictCondition(const ATableName, ASubType: String): String; override;
+    class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
 
     {Считывание содержимого из файла в текущую запись. Запись должна находится
      в состоянии редактирования или вставки}
@@ -132,8 +131,6 @@ type
   {Класс для работы с папками}
   TgdcFileFolder = class(TgdcBaseFile)
   protected
-    function CreateDialogForm: TCreateableForm; override;
-
     procedure _DoOnNewRecord; override;
 
     procedure GetWhereClauseConditions(S: TStrings); override;
@@ -143,6 +140,7 @@ type
 
   public
     class function GetRestrictCondition(const ATableName, ASubType: String): String; override;
+    class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
 
     function FolderSize: Integer;
   end;
@@ -281,30 +279,13 @@ begin
 end;
 
 function TgdcBaseFile.GetCurrRecordClass: TgdcFullClass;
-var
-  F: TField;
 begin
-  Result.gdClass := CgdcBase(Self.ClassType);
-  Result.SubType := '';
+  Result := inherited GetCurrRecordClass;
 
-  if Result.gdClass = TgdcBaseFile then
-  begin
-    if FieldByName('filetype').AsString = 'D' then
-    begin
-      Result.gdClass := CgdcBase(TgdcFileFolder);
-      //Result.SubType := '';
-    end else if FieldByName('filetype').AsString = 'F' then
-    begin
-      Result.gdClass := CgdcBase(TgdcFile);
-      //Result.SubType := '';
-    end;
-  end;
-
-  F := FindField('USR$ST');
-  if F <> nil then
-    Result.SubType := F.AsString;
-  if (Result.SubType > '') and (not Result.gdClass.CheckSubType(Result.SubType)) then
-    raise EgdcException.Create('Invalid USR$ST value.');
+  if FieldByName('filetype').AsString = 'D' then
+    Result.gdClass := TgdcFileFolder
+  else if FieldByName('filetype').AsString = 'F' then
+    Result.gdClass := TgdcFile;
 end;
 
 function TgdcBaseFile.GetFullPath: String;
@@ -441,7 +422,7 @@ begin
     if not CreateDir(Path) then
       raise Exception.Create('Ошибка при создании директории ' + Path + '!');
 
-{На самом верхнем уровне обрабатываем ситуацию синхронизации всех файлов и папок}
+  {На самом верхнем уровне обрабатываем ситуацию синхронизации всех файлов и папок}
 
   if AnID = -1 then
   begin
@@ -587,7 +568,6 @@ procedure TgdcBaseFile._DoOnNewRecord;
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-
 begin
   {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCBASEFILE', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
   {M}  try
@@ -628,7 +608,7 @@ begin
   if (RecordCount = 0) and (State <> dsInsert) then
     raise Exception.Create('Не найдена запись объекта ' + Self.ClassName + '!');
 
-  ibsql := TIBSQL.Create(Self);
+  ibsql := TIBSQL.Create(nil);
   try
     ibsql.Transaction := gdcBaseManager.ReadTransaction;
     ibsql.SQL.Text := 'SELECT * FROM gd_file WHERE id = :id AND filetype = ''D''';
@@ -785,65 +765,12 @@ end;
 
 { TgdcFileFolder }
 
-function TgdcFileFolder.CreateDialogForm: TCreateableForm;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_FUNCCREATEDIALOGFORM('TGDCFILEFOLDER', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  try
-  {M}    Result := nil;
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCFILEFOLDER', KEYCREATEDIALOGFORM);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCREATEDIALOGFORM]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCFILEFOLDER') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCFILEFOLDER',
-  {M}          'CREATEDIALOGFORM', KEYCREATEDIALOGFORM, Params, LResult) then
-  {M}          begin
-  {M}            Result := nil;
-  {M}            if VarType(LResult) <> varDispatch then
-  {M}              raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен не объект.')
-  {M}            else
-  {M}              if IDispatch(LResult) = nil then
-  {M}                raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                  'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен пустой (null) объект.');
-  {M}            Result := GetInterfaceToObject(LResult) as TCreateableForm;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCFILEFOLDER' then
-  {M}        begin
-  {M}          Result := Inherited CreateDialogForm;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  Result := Tgdc_dlgFileFolder.CreateSubType(ParentForm, SubType);
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCFILEFOLDER', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCFILEFOLDER', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM);
-  {M}  end;
-  {END MACRO}
-end;
-
 procedure TgdcFileFolder._DoOnNewRecord;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
   {M}VAR
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-
 begin
   {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCFILEFOLDER', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
   {M}  try
@@ -879,13 +806,13 @@ end;
 procedure TgdcFileFolder.GetWhereClauseConditions(S: TStrings);
 begin
   inherited;
-  S.Add(Format('%s.filetype = ''D''', [GetListTableAlias]));
+  S.Add(GetRestrictCondition('', ''));
 end;
 
 class function TgdcFileFolder.GetRestrictCondition(const ATableName,
   ASubType: String): String;
 begin
-  Result := 'filetype = ''D''';
+  Result := 'z.filetype = ''D''';
 end;
 
 function TgdcFileFolder.FolderSize: Integer;
@@ -919,8 +846,7 @@ var
   ibsql: TIBSQL;
   AnAnswer: Integer;
 begin
-{На самом верхнем уровне обрабатываем ситуацию синхронизации всех файлов и папок}
-
+  {На самом верхнем уровне обрабатываем ситуацию синхронизации всех файлов и папок}
   if AnID = -1 then
   begin
     inherited;
@@ -951,7 +877,7 @@ begin
             if ObjFile.RecordCount > 0 then
             begin
               S := Path + ObjFile.GetPathToFolder(AnID);
-            //Если это файл, то попробуем найти его
+              //Если это файл, то попробуем найти его
               if FileExists(S) then
               begin
                 if not ObjFile.TheSame(S) then
@@ -1005,59 +931,13 @@ begin
   end;
 end;
 
-{ TgdcFile }
-
-function TgdcFile.CreateDialogForm: TCreateableForm;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
+class function TgdcFileFolder.GetDialogFormClassName(
+  const ASubType: TgdcSubType): String;
 begin
-  {@UNFOLD MACRO INH_ORIG_FUNCCREATEDIALOGFORM('TGDCFILE', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  try
-  {M}    Result := nil;
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCFILE', KEYCREATEDIALOGFORM);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCREATEDIALOGFORM]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCFILE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCFILE',
-  {M}          'CREATEDIALOGFORM', KEYCREATEDIALOGFORM, Params, LResult) then
-  {M}          begin
-  {M}            Result := nil;
-  {M}            if VarType(LResult) <> varDispatch then
-  {M}              raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен не объект.')
-  {M}            else
-  {M}              if IDispatch(LResult) = nil then
-  {M}                raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                  'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен пустой (null) объект.');
-  {M}            Result := GetInterfaceToObject(LResult) as TCreateableForm;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCFILE' then
-  {M}        begin
-  {M}          Result := Inherited CreateDialogForm;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  Result := Tgdc_dlgFile.CreateSubType(ParentForm, SubType);
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCFILE', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCFILE', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM);
-  {M}  end;
-  {END MACRO}
+  Result := 'Tgdc_dlgFileFolder';
 end;
+
+{ TgdcFile }
 
 procedure TgdcFile.LoadDataFromFile(AfileName: String);
 var
@@ -1181,7 +1061,7 @@ begin
       StrPCopy(Operation, 'open');
       {Попытаемся открыть через ShellExecute.
        Команда FindExecuteable некорректно обрабатывает строку, если в ней есть пробелы,
-       и при этом она не заключена в ковычки}
+       и при этом она не заключена в кавычки}
       if ShellExecute(ParentHandle, Operation, @FileName[1], nil, Directory, SW_SHOW) <= 32 then
       begin
         MessageBox(ParentHandle,
@@ -1253,9 +1133,6 @@ begin
     if not CreateDir(S) then
       raise Exception.Create('Ошибка при создании директории ' + S);
 
-{  if FileExists(AFileName) then
-    exit; }
-
   FS := TFileStream.Create(AFileName, fmCreate);
   try
     SaveToStreamFromField(FS, FieldByName('data'));
@@ -1270,7 +1147,6 @@ procedure TgdcFile._DoOnNewRecord;
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-
 begin
   {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCFILE', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
   {M}  try
@@ -1306,13 +1182,13 @@ end;
 procedure TgdcFile.GetWhereClauseConditions(S: TStrings);
 begin
   inherited;
-  S.Add(Format('%s.filetype = ''F''', [GetListTableAlias]));
+  S.Add(GetRestrictCondition('', ''));
 end;
 
 class function TgdcFile.GetRestrictCondition(const ATableName,
   ASubType: String): String;
 begin
-  Result := 'filetype = ''F''';
+  Result := 'z.filetype = ''F''';
 end;
 
 function TgdcFile.GetViewFilePath: String;
@@ -1330,8 +1206,7 @@ var
   Obj: TgdcFile;
   AnAnswer: Integer;
 begin
-{На самом верхнем уровне обрабатываем ситуацию синхронизации всех файлов и папок}
-
+  {На самом верхнем уровне обрабатываем ситуацию синхронизации всех файлов и папок}
   if AnID = -1 then
   begin
     inherited;
@@ -1521,10 +1396,16 @@ begin
   end;
 end;
 
+class function TgdcFile.GetDialogFormClassName(
+  const ASubType: TgdcSubType): String;
+begin
+  Result := 'Tgdc_dlgFile';
+end;
+
 initialization
-  RegisterGDCClass(TgdcBaseFile, ctStorage, 'Файлы');
-  RegisterGDCClass(TgdcFile, ctStorage, 'Файл');
-  RegisterGDCClass(TgdcFileFolder, ctStorage, 'Папка');
+  RegisterGDCClass(TgdcBaseFile,   'Файл (базовый класс)');
+  RegisterGDCClass(TgdcFile,       'Файл');
+  RegisterGDCClass(TgdcFileFolder, 'Папка');
   FRootDirectory := '';
 
 finalization

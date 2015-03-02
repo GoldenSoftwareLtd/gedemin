@@ -1,7 +1,6 @@
 
 {++
 
-
   Copyright (c) 2001-2015 by Golden Software of Belarus
 
   Module
@@ -20,7 +19,6 @@
   Revisions history
 
     1.0    30.10.2001    Dennis    Initial version.
-
 
 --}
 
@@ -42,7 +40,6 @@ type
     procedure FormCreate(Sender: TObject);
 
   public
-    constructor Create(AnOwner: TComponent); override;
     class function CreateAndAssign(AnOwner: TComponent): TForm; override;
   end;
 
@@ -56,11 +53,6 @@ implementation
 uses at_classes, gd_ClassList;
 
 { Tgdc_frmAttrUserDefined }
-
-constructor Tgdc_frmAttrUserDefined.Create(AnOwner: TComponent);
-begin
-  inherited;
-end;
 
 class function Tgdc_frmAttrUserDefined.CreateAndAssign(
   AnOwner: TComponent): TForm;

@@ -48,10 +48,6 @@ begin
     if
       not DocumentLine.Fields[I].Calculated and
       (
-{        (AnsiCompareText(
-          DocumentLine.RelationByAliasName(DocumentLine.Fields[I].FieldName),
-          'GD_GOOD') = 0)
-          or                    }
         (AnsiCompareText(
           DocumentLine.RelationByAliasName(DocumentLine.Fields[I].FieldName),
           'INV_PRICELINE') = 0)
@@ -94,14 +90,12 @@ end;
 constructor TdlgInvPriceLine.Create(AnOwner: TComponent);
 begin
   inherited;
-
   FDocument := nil;
 end;
 
 initialization
-  RegisterFrmClass(TdlgInvPriceLine, ctInvPriceList);
+  RegisterFrmClass(TdlgInvPriceLine);
 
 finalization
   UnRegisterFrmClass(TdlgInvPriceLine);
-
 end.

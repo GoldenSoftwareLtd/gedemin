@@ -1615,7 +1615,8 @@ type
     //OnlyDirect -- если True, то возвращаются только непосредственные наследники.
     //В противном случае -- возвращается вся иерархия наследников.
     class function GetSubTypeList(ASubTypeList: TStrings;
-      const ASubType: String = ''; AnOnlyDirect: Boolean = False): Boolean; virtual;
+      const ASubType: String = ''; const AnOnlyDirect: Boolean = False;
+      const AVerbose: Boolean = True): Boolean; virtual;
 
     class function ClassParentSubType(const ASubType: String): String; virtual;
     //
@@ -6422,6 +6423,25 @@ begin
     for I := SL.Count - 1 downto 0 do
       if Trim(SL[I]) = '' then
         SL.Delete(I);
+
+    if SubType > '' then
+    begin
+      CE := gdClassList.Find(Self.ClassType, SubType);
+      // подтип может быть липовым поэтому CE = nil это нормально
+      // можно конечно добавить проверку подтипа
+      if CE is TgdStorageEntry then
+      begin
+        LSubType := SubType;
+        repeat
+          LSubType := ClassParentSubType(LSubType);
+          if LSubType = '' then
+            SL.Add(GetListTableAlias + '.USR$ST IS NOT NULL')
+          else
+            SL.Add(GetListTableAlias + '.USR$ST <> ''' + AnsiUpperCase(LSubType) + '''')
+        until LSubType = '';
+      end;
+    end;
+
     if SL.Count > 0 then
     begin
       Result := 'WHERE ' + SL[0];
@@ -6431,34 +6451,6 @@ begin
       Result := '';
   finally
     SL.Free;
-  end;
-
-
-  if SubType > '' then
-  begin
-    CE := gdClassList.Find(Self.ClassType, SubType);
-    // подтип может быть липовым поэтому CE = nil это нормально
-    // можно конечно добавить проверку подтипа
-    if (CE <> nil) and (CE.gdClassKind = ctStorage) then
-    begin
-      str := '';
-      LSubType := SubType;
-      repeat
-        LSubType := ClassParentSubType(LSubType);
-        if str <> '' then
-          str := str + ' AND ';
-
-        if LSubType = '' then
-          str := str + Format('%s.%s %s', [GetListTableAlias, 'USR$ST', ' is not null'])
-        else
-          str := str + Format('%s.%s<>''%s''', [GetListTableAlias, 'USR$ST', AnsiUpperCase(LSubType)]);
-      until LSubType = '';
-
-      if Result = '' then
-        Result := 'WHERE ' + str
-      else
-        Result := Result + ' AND ' + str;
-    end;
   end;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASE', 'GETWHERECLAUSE', KEYGETWHERECLAUSE)}
@@ -12427,14 +12419,12 @@ begin
 end;
 
 class function TgdcBase.GetSubTypeList(ASubTypeList: TStrings;
-  const ASubType: String = ''; AnOnlyDirect: Boolean = False): Boolean;
+  const ASubType: String = ''; const AnOnlyDirect: Boolean = False;
+  const AVerbose: Boolean = True): Boolean;
 begin
-  if AnsiPos('USR_', AnsiUpperCase(ASubType)) > 0 then
-    raise EgdcException.Create('Недопустимый символ ''_''в подтипе');
-
   Assert(ASubTypeList <> nil);
-
-  Result := gdClassList.GetSubTypeList(Self, ASubType, ASubTypeList, AnOnlyDirect)
+  Result := gdClassList.GetSubTypeList(Self, ASubType, ASubTypeList,
+    AnOnlyDirect, AVerbose);
 end;
 
 class function TgdcBase.ClassParentSubType(const ASubType: String): String;

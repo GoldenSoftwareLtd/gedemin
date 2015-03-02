@@ -76,50 +76,7 @@ begin
     if Assigned(F) and F.IsUserDefined then
       FieldAliases.Add(gdcObject.Fields[I].FieldName);
   end;
-
-
 end;
-
-(*function Tgdc_dlgUserComplexDocument.TestCorrect: Boolean;
-  {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_CRFORM_TESTCORRECT('TGDC_DLGUSERCOMPLEXDOCUMENT', 'TESTCORRECT', KEYTESTCORRECT)}
-  {M}Result := True;
-  {M}try
-  {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
-  {M}  begin
-  {M}    SetFirstMethodAssoc('TGDC_DLGUSERCOMPLEXDOCUMENT', KEYTESTCORRECT);
-  {M}    tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYTESTCORRECT]);
-  {M}    if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDC_DLGUSERCOMPLEXDOCUMENT') = -1) then
-  {M}    begin
-  {M}      Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}      if gdcMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDC_DLGUSERCOMPLEXDOCUMENT',
-  {M}        'TESTCORRECT', KEYTESTCORRECT, Params, LResult) then
-  {M}      begin
-  {M}        if VarType(LResult) = $000B then
-  {M}          Result := LResult;
-  {M}        exit;
-  {M}      end;
-  {M}    end else
-  {M}      if tmpStrings.LastClass.gdClassName <> 'TGDC_DLGUSERCOMPLEXDOCUMENT' then
-  {M}      begin
-  {M}        Result := Inherited TestCorrect;
-  {M}        Exit;
-  {M}      end;
-  {M}  end;
-  {END MACRO}
-  Result := True;
-  {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGUSERCOMPLEXDOCUMENT', 'TESTCORRECT', KEYTESTCORRECT)}
-  {M}finally
-  {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
-  {M}    ClearMacrosStack('TGDC_DLGUSERCOMPLEXDOCUMENT', 'TESTCORRECT', KEYTESTCORRECT);
-  {M}end;
-  {END MACRO}
-end;*)
 
 procedure Tgdc_dlgUserComplexDocument.actDetailNewExecute(Sender: TObject);
 begin
@@ -130,17 +87,12 @@ procedure Tgdc_dlgUserComplexDocument.actDetailEditExecute(
   Sender: TObject);
 begin
   gdcDetailObject.Edit;
-
 end;
 
 procedure Tgdc_dlgUserComplexDocument.actCancelUpdate(Sender: TObject);
 begin
+  //
   inherited;
-  {
-  actCancel.Enabled := ((gdcObject = nil) or
-    (not (sSubDialog in gdcObject.BaseState))) and ((gdcDetailObject <> nil) and
-    not (gdcDetailObject.State in [dsEdit, dsInsert]))
-  }  
 end;
 
 procedure Tgdc_dlgUserComplexDocument.SetupRecord;
@@ -279,13 +231,11 @@ end;
 
 procedure Tgdc_dlgUserComplexDocument.FormCreate(Sender: TObject);
 begin
-  inherited;
   Assert(IBLogin <> nil);
+  inherited;
   pnlHolding.Enabled := IBLogin.IsHolding;
   if pnlHolding.Enabled then
-  begin
     iblkCompany.Condition := 'gd_contact.id IN (' + IBLogin.HoldingList + ')';
-  end;
 end;
 
 procedure Tgdc_dlgUserComplexDocument.Post;
@@ -325,23 +275,6 @@ begin
     begin
       (gdcObject as TgdcDocument).CreateEntry;
     end;
-
-    {
-    ibsql := TIBSQL.Create(Self);
-    try
-      ibsql.Transaction := gdcObject.ReadTransaction;
-      ibsql.SQL.Text := 'SELECT id FROM gd_documenttype dt WHERE dt.id = :id and ' +
-      ' dt.headerfunctionkey is not null and ' +
-      ' dt.linefunctionkey is null ';
-      ibsql.ParamByName('id').AsInteger := gdcObject.FieldByName('documenttypekey').AsInteger;
-      ibsql.ExecQuery;
-      if ibsql.RecordCount > 0 then
-        (gdcObject as TgdcDocument).CreateEntry;
-      ibsql.Close;
-    finally
-      ibsql.Free;
-    end;
-    }
   end;
 
   inherited Post;
@@ -354,9 +287,8 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_dlgUserComplexDocument, ctUserDocument);
+  RegisterFrmClass(Tgdc_dlgUserComplexDocument);
 
 finalization
   UnRegisterFrmClass(Tgdc_dlgUserComplexDocument);
-
 end.

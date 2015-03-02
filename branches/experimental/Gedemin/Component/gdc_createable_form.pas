@@ -102,7 +102,7 @@ type
     class function GetSubTypeList(ASubTypeList: TStrings;
       const ASubType: String = ''; AnOnlyDirect: Boolean = False): Boolean; virtual;
 
-    class function ClassParentSubType(const ASubType: string): String; virtual;
+    class function ClassParentSubType(const ASubType: TgdcSubType): TgdcSubType; virtual;
 
     class function CheckSubType(ASubType: String): Boolean; virtual;
 
@@ -382,21 +382,14 @@ end;
 class function TgdcCreateableForm.GetSubTypeList(ASubTypeList: TStrings;
   const ASubType: String = ''; AnOnlyDirect: Boolean = False): Boolean;
 begin
-  if AnsiPos('USR_', AnsiUpperCase(ASubType)) > 0 then
-    raise EgdcException.Create('Недопустимый символ ''_''в подтипе');
-
   Assert(ASubTypeList <> nil);
-
-  Result := gdClassList.GetSubTypeList(Self, ASubType, ASubTypeList, AnOnlyDirect)
+  Result := gdClassList.GetSubTypeList(Self, ASubType, ASubTypeList, AnOnlyDirect, True)
 end;
 
-class function TgdcCreateableForm.ClassParentSubType(const ASubType: string): String;
+class function TgdcCreateableForm.ClassParentSubType(const ASubType: TgdcSubType): TgdcSubType;
 var
   CE: TgdClassEntry;
 begin
-  if AnsiPos('USR_', AnsiUpperCase(ASubType)) > 0 then
-    raise Exception.Create('Недопустимый символ ''_''в подтипе');
-
   Result := '';
 
   CE := gdClassList.Find(Self, ASubType);
@@ -409,9 +402,6 @@ class function TgdcCreateableForm.CheckSubType(ASubType: String): Boolean;
 var
   CE: TgdClassEntry;
 begin
-  if AnsiPos('USR_', AnsiUpperCase(ASubType)) > 0 then
-    raise Exception.Create('Недопустимый символ ''_''в подтипе');
-
   Result := False;
 
   CE := gdClassList.Find(Self, ASubType);

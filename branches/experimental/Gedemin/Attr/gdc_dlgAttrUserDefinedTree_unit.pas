@@ -11,7 +11,6 @@ uses
 type
   Tgdc_dlgAttrUserDefinedTree = class(Tgdc_dlgAttrUserDefined)
     gsiblkupParent: TgsIBLookupComboBox;
-    ibtrParent: TIBTransaction;
     lblParent: TLabel;
 
   public
@@ -36,7 +35,7 @@ procedure TGDC_DLGATTRUSERDEFINEDTREE.SetupDialog;
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-       LSubtype: string;
+  LSubtype: TgdcSubType;
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGATTRUSERDEFINEDTREE', 'SETUPDIALOG', KEYSETUPDIALOG)}
   {M}  try
@@ -59,17 +58,13 @@ begin
   {END MACRO}
 
   inherited;
-  if gdcObject is TgdcTree then
-    with gdcObject as TgdcTree do
-    begin
-      ibtrParent.DefaultDatabase := Database;
-      gsiblkupParent.gdClassName := ClassName;
-      LSubtype := SubType;
-      While ClassParentSubtype(LSubtype) <> '' do
-        LSubtype := ClassParentSubtype(LSubtype);
-      gsiblkupParent.SubType := LSubType;
-    end;
-    
+
+  gsiblkupParent.gdClassName := gdcObject.ClassName;
+  LSubtype := gdcObject.SubType;
+  while gdcObject.ClassParentSubtype(LSubtype) > '' do
+    LSubtype := gdcObject.ClassParentSubtype(LSubtype);
+  gsiblkupParent.SubType := LSubType;
+
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGATTRUSERDEFINEDTREE', 'SETUPDIALOG', KEYSETUPDIALOG)}
   {M}finally
   {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
@@ -79,9 +74,8 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_dlgAttrUserDefinedTree, ctDlgUserDefinedTree);
+  RegisterFrmClass(Tgdc_dlgAttrUserDefinedTree);
 
 finalization
   UnRegisterFrmClass(Tgdc_dlgAttrUserDefinedTree);
-
 end.

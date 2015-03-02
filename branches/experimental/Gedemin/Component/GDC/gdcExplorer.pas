@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2000-2013 by Golden Software of Belarus
+  Copyright (c) 2000-2015 by Golden Software of Belarus
                                                                
   Module
 
@@ -57,8 +57,6 @@ type
     procedure RemoveSubType(const AClassName, ASubType: String);
 
   protected
-    procedure GetWhereClauseConditions(S: TStrings); override;
-
     procedure DoAfterPost; override;
     procedure DoAfterEdit; override;
     procedure DoAfterInsert; override;
@@ -797,20 +795,6 @@ begin
   Result := True;
 end;
 
-procedure TgdcExplorer.GetWhereClauseConditions(S: TStrings);
-begin
-  inherited;
-  {
-  if HasSubSet('ByExplorer') then
-  begin
-    S.Add('z.id > 710000'); // саму "голову" Исследователь в дерево не будем включать
-    S.Add('z.disabled = 0'); // Только активные пункты меню. Таким образом мы можем отключать
-                             // не неужные пункты меню не удаляя их из gd_command и затем при
-                             // Upgrade все будет нормально.
-  end;
-  }
-end;
-
 function TgdcExplorer.Get_gdcClass: CgdcBase;
 var
   Cl: TClass;
@@ -1047,7 +1031,7 @@ begin
 
   C := GetClass(AClassName);
 
-  if (C <> nil) and (C.InheritsFrom(TgdcBase)) and (ASubType > '')then
+  if (C <> nil) and C.InheritsFrom(TgdcBase) and (ASubType > '')then
     Result := CgdcBase(C).CheckSubType(ASubType);
 end;
 

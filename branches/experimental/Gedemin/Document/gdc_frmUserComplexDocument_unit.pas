@@ -25,10 +25,8 @@ type
     procedure actGotoEntryExecute(Sender: TObject);
     procedure actMainGotoEntryExecute(Sender: TObject);
     procedure actCreateEntryUpdate(Sender: TObject);
-  private
-    { Private declarations }
+
   public
-    { Public declarations }
     class function CreateAndAssign(AnOwner: TComponent): TForm; override;
   end;
 
@@ -43,9 +41,7 @@ uses
   dmDatabase_unit,
   gd_ClassList,
   gdcAcctEntryRegister,
-  gdc_frmTransaction_unit,
-  gdcBaseInterface,
-  IBSQL
+  gdc_frmTransaction_unit
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -62,11 +58,7 @@ end;
 
 procedure Tgdc_frmUserComplexDocument.FormCreate(Sender: TObject);
 begin
-//  gdcUserDocument.SubType := FSubType;
-//  gdcUserDocumentLine.SubType := FSubType;
-
   gdcObject := gdcUserDocument;
-  //gdcObject.SubType := FSubType;
 
   gdcDetailObject := gdcUserDocumentLine;
   gdcDetailObject.SubType := FSubType;
@@ -113,7 +105,6 @@ end;
 
 procedure Tgdc_frmUserComplexDocument.actGotoEntryExecute(Sender: TObject);
 begin
-
   if Self.gdcDetailObject.FieldByName('transactionkey').AsInteger > 0 then
   begin
     with Tgdc_frmTransaction.CreateAndAssignWithID(Application, Self.gdcDetailObject.FieldByName('id').AsInteger, esDocumentKey) as Tgdc_frmTransaction do
@@ -138,7 +129,7 @@ begin
   begin
     with Tgdc_frmTransaction.CreateAndAssignWithID(Application, Self.gdcObject.FieldByName('id').AsInteger, esDocumentKey) as Tgdc_frmTransaction do
     begin
-      cbGroupByDocument.Checked := False;  
+      cbGroupByDocument.Checked := False;
       tvGroup.GoToID(Self.gdcObject.FieldByName('transactionkey').AsInteger);
       gdcAcctViewEntryRegister.Locate('DOCUMENTKEY', Self.gdcObject.FieldByName('id').AsInteger, []);
       Show;
@@ -154,13 +145,12 @@ end;
 procedure Tgdc_frmUserComplexDocument.actCreateEntryUpdate(
   Sender: TObject);
 begin
-  actCreateEntry.Enabled := (gdcObject <> nil) and (gdcObject.CanEdit);
+  actCreateEntry.Enabled := (gdcObject <> nil) and gdcObject.CanEdit;
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmUserComplexDocument, ctUserDocument);
+  RegisterFrmClass(Tgdc_frmUserComplexDocument);
 
 finalization
   UnRegisterFrmClass(Tgdc_frmUserComplexDocument);
-
 end.

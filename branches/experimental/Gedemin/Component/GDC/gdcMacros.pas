@@ -56,7 +56,6 @@ type
     constructor Create(AnOwner: TComponent); override;
 
     class function GetListTable(const ASubType: TgdcSubType): String; override;
-    class function GetKeyField(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetSubSetList: String; override;
 
@@ -501,7 +500,6 @@ begin
   finally
     ibsql.Free;
   end;
-
 end;
 
 { TgdcMacros }
@@ -512,9 +510,6 @@ var
 begin
   SQL := TIBSQL.Create(nil);
   try
-  {Какой урод написал так SQL? Вы передаете строковую константу через параметр
-    Format-а и не учитываете что в наименовании могут быть ковычки.
-    Передалено через парамерт. И все остальное по-хорошему нужно сделать через параметры ibsql}
     SQL.Transaction := gdcBaseManager.ReadTransaction;
     if Active then
       SQL.SQL.Text := Format('SELECT * FROM evt_macroslist WHERE UPPER(NAME) = :name ' +
@@ -627,11 +622,6 @@ begin
   {M}      ClearMacrosStack2('TGDCMACROS', 'GETFROMCLAUSE', KEYGETFROMCLAUSE);
   {M}  end;
   {END MACRO}
-end;
-
-class function TgdcMacros.GetKeyField(const ASubType: TgdcSubType): String;
-begin
-  Result := fnId;
 end;
 
 class function TgdcMacros.GetListField(const ASubType: TgdcSubType): String;
@@ -866,7 +856,6 @@ begin
   {M}      ClearMacrosStack2('TGDCMACROS', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT);
   {M}  end;
   {END MACRO}
-
 end;
 
 function TgdcMacros.GetSelectClause: String;
@@ -907,7 +896,8 @@ begin
   {M}    end;
   {END MACRO}
 
-   Result := inherited GetSelectClause + ', o.name as objectname '; 
+  Result := inherited GetSelectClause + ', o.name as objectname ';
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCMACROS', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -971,8 +961,8 @@ begin
 end;
 
 initialization
-  RegisterGDCClass(TgdcMacrosGroup, ctStorage, 'Папка макросов');
-  RegisterGDCClass(TgdcMacros, ctStorage, 'Макрос');
+  RegisterGDCClass(TgdcMacrosGroup, 'Папка макросов');
+  RegisterGDCClass(TgdcMacros,      'Макрос');
 
 finalization
   UnRegisterGDCClass(TgdcMacrosGroup);
