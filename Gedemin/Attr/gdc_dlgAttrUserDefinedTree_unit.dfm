@@ -43,7 +43,7 @@ inherited gdc_dlgAttrUserDefinedTree: Tgdc_dlgAttrUserDefinedTree
       Width = 207
       Height = 21
       HelpContext = 1
-      Transaction = ibtrParent
+      Transaction = ibtrCommon
       DataSource = dsgdcBase
       DataField = 'PARENT'
       ItemHeight = 13
@@ -55,15 +55,5 @@ inherited gdc_dlgAttrUserDefinedTree: Tgdc_dlgAttrUserDefinedTree
   end
   inherited dsgdcBase: TDataSource
     Top = 63
-  end
-  object ibtrParent: TIBTransaction
-    Active = False
-    Params.Strings = (
-      'read_committed'
-      'rec_version'
-      'nowait')
-    AutoStopAction = saNone
-    Left = 256
-    Top = 16
   end
 end

@@ -25,7 +25,6 @@ inherited gdc_frmInvPriceList: Tgdc_frmInvPriceList
     Top = 296
   end
   object gdcInvPriceList: TgdcInvPriceList
-    CachedUpdates = False
     Left = 114
     Top = 79
   end
@@ -34,7 +33,6 @@ inherited gdc_frmInvPriceList: Tgdc_frmInvPriceList
     MasterField = 'ID'
     DetailField = 'PARENT'
     SubSet = 'ByParent'
-    CachedUpdates = False
     Left = 409
     Top = 267
   end

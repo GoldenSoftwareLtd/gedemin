@@ -9,7 +9,7 @@ object gd_dlgAddLinked: Tgd_dlgAddLinked
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
   Position = poScreenCenter
@@ -68,14 +68,14 @@ object gd_dlgAddLinked: Tgd_dlgAddLinked
       object Label1: TLabel
         Left = 3
         Top = 8
-        Width = 60
+        Width = 58
         Height = 13
         Caption = 'Имя файла:'
       end
       object Label7: TLabel
         Left = 3
         Top = 79
-        Width = 135
+        Width = 133
         Height = 13
         Caption = 'Разместить файл в папке:'
       end
@@ -123,73 +123,46 @@ object gd_dlgAddLinked: Tgd_dlgAddLinked
     object tsObject: TTabSheet
       Caption = 'Объект'
       ImageIndex = 1
-      object Label2: TLabel
-        Left = 8
-        Top = 8
-        Width = 67
-        Height = 13
-        Caption = 'Тип объекта:'
-      end
       object Label3: TLabel
         Left = 8
-        Top = 88
-        Width = 41
+        Top = 86
+        Width = 43
         Height = 13
         Caption = 'Объект:'
       end
-      object Label6: TLabel
-        Left = 8
-        Top = 48
-        Width = 85
-        Height = 13
-        Caption = 'Подтип объекта:'
-      end
-      object cbClasses: TComboBox
-        Left = 8
-        Top = 24
-        Width = 273
-        Height = 21
-        Style = csDropDownList
-        DropDownCount = 24
-        ItemHeight = 0
-        Sorted = True
-        TabOrder = 0
-        OnChange = cbClassesChange
-      end
       object iblkupObject: TgsIBLookupComboBox
         Left = 8
-        Top = 104
+        Top = 102
         Width = 273
         Height = 21
         HelpContext = 1
         DropDownCount = 24
-        ItemHeight = 0
-        TabOrder = 2
-        OnEnter = iblkupObjectEnter
-      end
-      object cbSubTypes: TComboBox
-        Left = 8
-        Top = 64
-        Width = 273
-        Height = 21
-        Style = csDropDownList
-        DropDownCount = 24
-        ItemHeight = 0
-        Sorted = True
+        Enabled = False
+        ItemHeight = 13
         TabOrder = 1
-        OnChange = cbSubTypesChange
       end
-      object chbxClassFirst: TCheckBox
-        Left = 157
-        Top = 7
-        Width = 123
-        Height = 17
-        Alignment = taLeftJustify
-        Caption = 'Сначала имя класса'
-        Checked = True
-        State = cbChecked
-        TabOrder = 3
-        OnClick = chbxClassFirstClick
+      object gbClass: TGroupBox
+        Left = 8
+        Top = 6
+        Width = 272
+        Height = 71
+        Caption = ' Тип объекта '
+        TabOrder = 0
+        object lblClass: TLabel
+          Left = 10
+          Top = 20
+          Width = 131
+          Height = 13
+          Caption = 'Выберите бизнес-класс...'
+        end
+        object Button1: TButton
+          Left = 8
+          Top = 42
+          Width = 75
+          Height = 21
+          Action = actSelectClass
+          TabOrder = 0
+        end
       end
     end
   end
@@ -242,6 +215,10 @@ object gd_dlgAddLinked: Tgd_dlgAddLinked
     object actCreateName: TAction
       Caption = 'Сформировать'
       OnExecute = actCreateNameExecute
+    end
+    object actSelectClass: TAction
+      Caption = 'Выбрать...'
+      OnExecute = actSelectClassExecute
     end
   end
   object od: TOpenDialog

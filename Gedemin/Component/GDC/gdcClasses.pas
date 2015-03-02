@@ -92,7 +92,6 @@ type
     procedure MakeEntry; virtual;
 
     procedure _DoOnNewRecord; override;
-    procedure DoBeforeInsert; override;
     procedure DoBeforeCancel; override;
     procedure DoBeforePost; override;
 
@@ -240,7 +239,6 @@ type
     class function GetHeaderDocumentClass: CgdcBase; virtual;
 
     class function IsAbstractClass: Boolean; override;
-
   end;
 
   TgdcUserDocumentType = class(TgdcDocumentType)
@@ -250,15 +248,10 @@ type
     FDocLineRelationName: String;
 
   protected
-    procedure CustomInsert(Buff: Pointer); override;
-    procedure CustomModify(Buff: Pointer); override;
-    procedure CustomDelete(Buff: Pointer); override;
-
     procedure _DoOnNewRecord; override;
 
   public
     constructor Create(AnOwner: TComponent); override;
-    destructor Destroy; override;
 
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetHeaderDocumentClass: CgdcBase; override;
@@ -317,9 +310,6 @@ type
 
     procedure CustomInsert(Buff: Pointer); override;
     procedure CustomModify(Buff: Pointer); override;
-    procedure CustomDelete(Buff: Pointer); override;
-
-    procedure DoAfterPost; override;
 
     function CreateDialogForm: TCreateableForm; override;
     function GetDetailObject: TgdcDocument; override;
@@ -342,14 +332,12 @@ type
 
     procedure CustomInsert(Buff: Pointer); override;
     procedure CustomModify(Buff: Pointer); override;
-    procedure CustomDelete(Buff: Pointer); override;
 
     function GetMasterObject: TgdcDocument; override;
     function GetCompoundMasterTable: String; override;
 
   public
     constructor Create(AnOwner: TComponent); override;
-    destructor Destroy; override;
 
     class function GetDocumentClassPart: TgdcDocumentClassPart; override;
     class function GetRestrictCondition(const ATableName, ASubType: String): String; override;
@@ -483,22 +471,6 @@ const
      '"MONTHSTR"',
      '"COMPUTER"',
      '"USER"');
-
-{  MonthNames: array[1..12] of String =
-  (
-    'январь',
-    'февраль',
-    'март',
-    'апрель',
-    'май',
-    'июнь',
-    'июль',
-    'август',
-    'сентябрь',
-    'октябрь',
-    'ноябрь',
-    'декабрь'
-  );}
 
 var
   _DocTypeCache: TDocumentTypeCache;
@@ -664,7 +636,6 @@ begin
       FieldByName('PARENT').Clear;
     end else
       UpdateLineFromHeader;
-
 
     FieldByName('DISABLED').AsInteger := 0;
   end;
@@ -939,44 +910,6 @@ begin
     FDocumentDescription := '(UNKNOWN DOCUMENT TYPE)';
   end;
 end;
-
-procedure TgdcDocument.DoBeforeInsert;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCDOCUMENT', 'DOBEFOREINSERT', KEYDOBEFOREINSERT)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCDOCUMENT', KEYDOBEFOREINSERT);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOBEFOREINSERT]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCDOCUMENT') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCDOCUMENT',
-  {M}          'DOBEFOREINSERT', KEYDOBEFOREINSERT, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCDOCUMENT' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  inherited DoBeforeInsert;
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCDOCUMENT', 'DOBEFOREINSERT', KEYDOBEFOREINSERT)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCDOCUMENT', 'DOBEFOREINSERT', KEYDOBEFOREINSERT);
-  {M}  end;
-  {END MACRO}
-end;
-
 
 procedure TgdcDocument.DoBeforeCancel;
 begin
@@ -1620,7 +1553,6 @@ begin
   Result := False;
 end;
 
-
 class function TgdcDocument.GetDocumentClass(const TypeKey: Integer;
   const DocClassPart: TgdcDocumentClassPart): TgdcFullClass;
 var
@@ -1628,7 +1560,7 @@ var
   ibsql: TIBSQL;
   ClName: String;
 begin
-//dcpHeader, dcpLine
+  //dcpHeader, dcpLine
   Result.gdClass := nil;
   Result.SubType := '';
   if TypeKey = 0 then Exit;
@@ -2740,9 +2672,6 @@ procedure TgdcBaseDocumentType.DoAfterCustomProcess(Buff: Pointer;
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-{var
-  q: TIBSQL;
-  gdcExplorer: TgdcExplorer;}
 begin
   {@UNFOLD MACRO INH_ORIG_DOAFTERCUSTOMPROCESS('TGDCBASEDOCUMENTTYPE', 'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS)}
   {M}  try
@@ -3497,132 +3426,6 @@ begin
   CustomProcess := [cpInsert, cpModify, cpDelete];
 end;
 
-procedure TgdcUserDocumentType.CustomDelete(Buff: Pointer);
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCUSERDOCUMENTTYPE', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCUSERDOCUMENTTYPE', KEYCUSTOMDELETE);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMDELETE]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCUSERDOCUMENTTYPE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCUSERDOCUMENTTYPE',
-  {M}          'CUSTOMDELETE', KEYCUSTOMDELETE, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCUSERDOCUMENTTYPE' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  inherited;
-
-  UnRegisterGdClasses(ctUserDocument, FieldByName('RUID').AsString);
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCUSERDOCUMENTTYPE', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCUSERDOCUMENTTYPE', 'CUSTOMDELETE', KEYCUSTOMDELETE);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcUserDocumentType.CustomInsert(Buff: Pointer);
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCUSERDOCUMENTTYPE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCUSERDOCUMENTTYPE', KEYCUSTOMINSERT);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMINSERT]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCUSERDOCUMENTTYPE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCUSERDOCUMENTTYPE',
-  {M}          'CUSTOMINSERT', KEYCUSTOMINSERT, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCUSERDOCUMENTTYPE' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  inherited;
-
-  RegisterGdClasses(ctUserDocument, FieldByName('name').AsString,
-    FieldByName('RUID').AsString, GetParentSubType);
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCUSERDOCUMENTTYPE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCUSERDOCUMENTTYPE', 'CUSTOMINSERT', KEYCUSTOMINSERT);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcUserDocumentType.CustomModify(Buff: Pointer);
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCUSERDOCUMENTTYPE', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCUSERDOCUMENTTYPE', KEYCUSTOMMODIFY);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMMODIFY]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCUSERDOCUMENTTYPE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCUSERDOCUMENTTYPE',
-  {M}          'CUSTOMMODIFY', KEYCUSTOMMODIFY, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCUSERDOCUMENTTYPE' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  inherited;
-
-  UpdateGdClasses(ctUserDocument, FieldByName('name').AsString, FieldByName('RUID').AsString);
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCUSERDOCUMENTTYPE', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCUSERDOCUMENTTYPE', 'CUSTOMMODIFY', KEYCUSTOMMODIFY);
-  {M}  end;
-  {END MACRO}
-end;
-
-destructor TgdcUserDocumentType.Destroy;
-begin
-  inherited;
-end;
-
 procedure TgdcUserDocumentType._DoOnNewRecord;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
   {M}VAR
@@ -3767,7 +3570,7 @@ begin
       R.RelationFields[I].FieldName +
       ' = :' +
       R.RelationFields[I].FieldName;
-  end;    
+  end;
 end;
 
 function TgdcUserBaseDocument.EnumRelationFields(RelationName: String;
@@ -3794,7 +3597,6 @@ begin
       Result := Result + '.';
 
     Result := Result + R.RelationFields[I].FieldName;
-
   end;
 end;
 
@@ -4008,42 +3810,6 @@ begin
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
   {M}      ClearMacrosStack2('TGDCUSERDOCUMENT', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcUserDocument.CustomDelete(Buff: Pointer);
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCUSERDOCUMENT', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCUSERDOCUMENT', KEYCUSTOMDELETE);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMDELETE]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCUSERDOCUMENT') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCUSERDOCUMENT',
-  {M}          'CUSTOMDELETE', KEYCUSTOMDELETE, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCUSERDOCUMENT' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  inherited;
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCUSERDOCUMENT', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCUSERDOCUMENT', 'CUSTOMDELETE', KEYCUSTOMDELETE);
   {M}  end;
   {END MACRO}
 end;
@@ -4269,48 +4035,6 @@ begin
     'ByParent;', '', []);
 end;
 
-procedure TgdcUserDocument.DoAfterPost;
-var
-  {@UNFOLD MACRO INH_ORIG_PARAMS()}
-  {M}
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCUSERDOCUMENT', 'DOAFTERPOST', KEYDOAFTERPOST)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCUSERDOCUMENT', KEYDOAFTERPOST);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOAFTERPOST]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCUSERDOCUMENT') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCUSERDOCUMENT',
-  {M}          'DOAFTERPOST', KEYDOAFTERPOST, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCUSERDOCUMENT' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  inherited;
-
-  // Зачем здесь присваивалась эта переменная?
-  //  Из-за этого не откатывалась нумерация документов при вызове Cancel
-  //FNumberUpdated := False;
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCUSERDOCUMENT', 'DOAFTERPOST', KEYDOAFTERPOST)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCUSERDOCUMENT', 'DOAFTERPOST', KEYDOAFTERPOST);
-  {M}  end;
-  {END MACRO}
-end;
-
 function TgdcUserDocument.GetDetailObject: TgdcDocument;
 begin
 // Через try except т.к. в общем случае мы не знаем есть ли detail в пользовательском документе
@@ -4376,43 +4100,6 @@ constructor TgdcUserDocumentLine.Create(AnOwner: TComponent);
 begin
   inherited;
   DetailField := 'Parent';
-end;
-
-procedure TgdcUserDocumentLine.CustomDelete(Buff: Pointer);
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCUSERDOCUMENTLINE', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCUSERDOCUMENTLINE', KEYCUSTOMDELETE);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMDELETE]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCUSERDOCUMENTLINE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCUSERDOCUMENTLINE',
-  {M}          'CUSTOMDELETE', KEYCUSTOMDELETE, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCUSERDOCUMENTLINE' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  inherited;
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCUSERDOCUMENTLINE', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCUSERDOCUMENTLINE', 'CUSTOMDELETE', KEYCUSTOMDELETE);
-  {M}  end;
-  {END MACRO}
 end;
 
 procedure TgdcUserDocumentLine.CustomInsert(Buff: Pointer);
@@ -4514,12 +4201,6 @@ begin
   {M}      ClearMacrosStack2('TGDCUSERDOCUMENTLINE', 'CUSTOMMODIFY', KEYCUSTOMMODIFY);
   {M}  end;
   {END MACRO}
-end;
-
-destructor TgdcUserDocumentLine.Destroy;
-begin
-  inherited;
-
 end;
 
 procedure TgdcUserDocumentLine.DoBeforeInsert;
@@ -4856,12 +4537,12 @@ end;
 initialization
   RegisterGdcClass(TgdcDocument);
   RegisterGdcClass(TgdcBaseDocumentType);
-  RegisterGdcClass(TgdcDocumentBranch, ctStorage, 'Папка');
-  RegisterGdcClass(TgdcDocumentType, ctStorage, 'Тип документа');
-  RegisterGdcClass(TgdcUserDocumentType, ctStorage, 'Документ пользователя');
+  RegisterGdcClass(TgdcDocumentBranch,    'Папка');
+  RegisterGdcClass(TgdcDocumentType,      'Тип документа');
+  RegisterGdcClass(TgdcUserDocumentType,  'Тип пользовательского документа');
   RegisterGdcClass(TgdcUserBaseDocument);
-  RegisterGdcClass(TgdcUserDocument, ctUserDocument);
-  RegisterGdcClass(TgdcUserDocumentLine, ctUserDocument);
+  RegisterGdcClass(TgdcUserDocument);
+  RegisterGdcClass(TgdcUserDocumentLine);
 
 finalization
   UnRegisterGdcClass(TgdcDocument);

@@ -1,7 +1,6 @@
 
 {++
 
-
   Copyright (c) 2001-2015 by Golden Software of Belarus
 
   Module
@@ -1673,17 +1672,17 @@ begin
   {M}    end;
   {END MACRO}
 
-  Result := Inherited GetSelectClause;
+  Result := inherited GetSelectClause;
 
   LSubtype := RelationName;
-  While ClassParentSubtype(LSubtype) <> '' do
+  while ClassParentSubtype(LSubtype) > '' do
   begin
     R := atDatabase.Relations.ByRelationName(LSubtype);
     if Assigned(R) then
     begin
       RF := R.RelationFields;
       if Assigned(RF) then
-      for i := 0 to RF.Count - 1 do
+      for I := 0 to RF.Count - 1 do
         Result := Result + ', z_' + R.RelationName + '.'
           + RF.Items[I].FieldName;
     end;
@@ -1728,14 +1727,14 @@ end;
 
 procedure TgdcAttrUserDefinedLBRBTree.SetActive(Value: Boolean);
 begin
-  if (SubType <> '') or not Value then
+  if (SubType > '') or not Value then
     inherited;
 end;
 
 initialization
-  RegisterGdcClass(TgdcAttrUserDefined, ctUserDefined, 'Таблица пользователя');
-  RegisterGdcClass(TgdcAttrUserDefinedTree, ctUserDefinedTree, 'Таблица пользователя (простое дерево)');
-  RegisterGdcClass(TgdcAttrUserDefinedLBRBTree, ctUserDefinedLBRBTree, 'Таблица пользователя (интервальное дерево)');
+  RegisterGdcClass(TgdcAttrUserDefined, 'Таблица пользователя');
+  RegisterGdcClass(TgdcAttrUserDefinedTree, 'Таблица пользователя (простое дерево)');
+  RegisterGdcClass(TgdcAttrUserDefinedLBRBTree, 'Таблица пользователя (интервальное дерево)');
 
 finalization
   UnRegisterGdcClass(TgdcAttrUserDefined);

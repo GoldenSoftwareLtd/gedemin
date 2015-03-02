@@ -1380,18 +1380,6 @@ begin
 
   FOldPostCount := gdcObject.PostCount;
 
-  if (SubType > '') then
-  begin
-    CE := gdClassList.Find(gdcObject.ClassType, SubType);
-    if (CE <> nil) and (CE.gdClassKind = ctStorage) then
-    begin
-      if fgdcObject.FindField('USR$ST') = nil then
-        raise Exception.Create('Поле ''USR$ST'' не найдено');
-
-      gdcObject.FieldByName('USR$ST').AsString := AnsiUpperCase(gdcObject.SubType);
-    end;
-  end;
-
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGG', 'SETUPRECORD', KEYSETUPRECORD)}
   {M}finally
   {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then

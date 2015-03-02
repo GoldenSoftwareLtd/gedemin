@@ -439,44 +439,6 @@ var
       end;
     end;
   end;
-  
-  {function GetParentFullName(ChildFN: TgdcFullClassName): TgdcFullClassName;
-  var
-    GClass: TClass;
-  begin
-    Result.gdClassName := '';
-    GClass := gdClassList.GetGDCClass(ChildFN.gdClassName);
-    if GClass = nil then
-    begin
-      GClass := gdClassList.GetFrmClass(ChildFN.gdClassName);
-      if GClass = nil then
-        raise Exception.Create('Передан некорректный класс.');
-    end;
-
-    GClass := GClass.ClassParent;
-    if GClass.InheritsFrom(TgdcBase) then
-    begin
-      Result.gdClassName := CgdcBase(GClass).ClassName;
-      CgdcBase(GClass).GetSubTypeList(TmpSubTypeList);
-
-      if CgdcBase(GClass).CheckSubType(gdcClass.SubType) then
-        Result.SubType := gdcClass.SubType
-      else
-        Result.SubType := '';
-      Exit;
-    end else
-      if GClass.InheritsFrom(TgdcCreateableForm) then
-      begin
-        Result.gdClassName := CgdcCreateableForm(GClass).ClassName;
-        CgdcCreateableForm(GClass).GetSubTypeList(TmpSubTypeList);
-
-        if CgdcCreateableForm(GClass).CheckSubType(gdcClass.SubType) then
-          Result.SubType := gdcClass.SubType
-        else
-          Result.SubType := '';
-        Exit;
-      end;
-  end;}
 
   function GetClassID(ClFullName: TgdcFullClassName): Integer;
   begin

@@ -1,8 +1,7 @@
 
 {++
 
-
-  Copyright (c) 2001 by Golden Software of Belarus
+  Copyright (c) 2001-2015 by Golden Software of Belarus
 
   Module
 
@@ -24,7 +23,6 @@
 
 unit gdc_frmInvPriceList_unit;
 
-
 interface
 
 uses
@@ -39,11 +37,8 @@ type
     gdcInvPriceList: TgdcInvPriceList;
     gdcInvPriceListLine: TgdcInvPriceListLine;
     procedure FormCreate(Sender: TObject);
-  private
-
 
   public
-    constructor Create(AnOwner: TComponent); override;
     class function CreateAndAssign(AnOwner: TComponent): TForm; override;
 
     procedure SaveDesktopSettings; override;
@@ -60,11 +55,6 @@ uses
   gd_ClassList, Storages, IBSQL, gdcBaseInterface;
 
 { Tgdc_frmMDHGR1 }
-
-constructor Tgdc_frmInvPriceList.Create(AnOwner: TComponent);
-begin
-  inherited Create(AnOwner);
-end;
 
 class function Tgdc_frmInvPriceList.CreateAndAssign(AnOwner: TComponent): TForm;
 begin
@@ -89,14 +79,12 @@ begin
   inherited;
   if Assigned(DesktopManager) then
     DesktopManager.SaveDesktopItem(Self);
-
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmInvPriceList, ctInvPriceList);
+  RegisterFrmClass(Tgdc_frmInvPriceList);
 
 finalization
   UnRegisterFrmClass(Tgdc_frmInvPriceList);
-
 end.
  

@@ -289,9 +289,8 @@ begin
           if pc.ActivePage = tsObject then
           begin
             FieldByName('linkedkey').AsInteger := iblkupObject.CurrentKeyInt;
-            FieldByName('linkedclass').AsString :=
-              CgdcBase(cbClasses.Items.Objects[cbClasses.ItemIndex]).ClassName;
-            FieldByName('linkedsubtype').AsString := cbSubTypes.Text;
+            FieldByName('linkedclass').AsString := iblkupObject.gdClassName;
+            FieldByName('linkedsubtype').AsString := iblkupObject.SubType;
           end else
           begin
             Obj := TgdcFile.Create(nil);

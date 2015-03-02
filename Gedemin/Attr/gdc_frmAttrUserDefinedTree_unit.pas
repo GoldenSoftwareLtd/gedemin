@@ -43,7 +43,6 @@ type
   private
 
   public
-    constructor Create(AnOwner: TComponent); override;
     class function CreateAndAssign(AnOwner: TComponent): TForm; override;
   end;
 
@@ -57,11 +56,6 @@ implementation
 uses at_classes,  gd_ClassList;
 
 { Tgdc_frmAttrUserDefinedTree }
-
-constructor Tgdc_frmAttrUserDefinedTree.Create(AnOwner: TComponent);
-begin
-  inherited;
-end;
 
 class function Tgdc_frmAttrUserDefinedTree.CreateAndAssign(
   AnOwner: TComponent): TForm;

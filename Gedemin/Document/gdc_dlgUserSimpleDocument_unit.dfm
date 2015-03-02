@@ -9,32 +9,27 @@ inherited gdc_dlgUserSimpleDocument: Tgdc_dlgUserSimpleDocument
   inherited btnAccess: TButton
     Left = 2
     Top = 313
-    Anchors = [akLeft, akBottom]
     TabOrder = 4
   end
   inherited btnNew: TButton
     Left = 74
     Top = 313
-    Anchors = [akLeft, akBottom]
     TabOrder = 5
+  end
+  inherited btnHelp: TButton
+    Left = 146
+    Top = 313
+    TabOrder = 6
   end
   inherited btnOK: TButton
     Left = 373
     Top = 313
-    Anchors = [akRight, akBottom]
     TabOrder = 2
   end
   inherited btnCancel: TButton
     Left = 445
     Top = 313
-    Anchors = [akRight, akBottom]
     TabOrder = 3
-  end
-  inherited btnHelp: TButton
-    Left = 146
-    Top = 313
-    Anchors = [akLeft, akBottom]
-    TabOrder = 6
   end
   object atContainer: TatContainer [5]
     Left = 0

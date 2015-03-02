@@ -3227,11 +3227,6 @@ begin
           Exit;
         end else
         begin
-//          if aRUID = '147050153_263731' then
-//          if aRUID = '147029166_3974129' then
-//          if aRUID = '147060927_33177288' then
-{          if aRUID = '147060929_33177288' then
-            ShowMessage((Objects[ind] as TGSFHeader).Name);}
           if (Objects[ind] as TGSFHeader).FilePath = aPath then
           begin                                 
             isFound := True; // промежуточная по нужному пути 
@@ -3330,7 +3325,7 @@ begin
       begin
         if InterRUID.Count > 0 then
         for k := 0 to InterRUID.Count-1 do
-        begin            // получаем версию промежуточной              
+        begin            // получаем версию промежуточной
           LoadInfoFor(-1, InterRUID[k], FilePath, Err, MaxPackVerInfo, isCorrect);
 
 //          if  (MaxPackVerInfo < VerInfo) then
@@ -3363,7 +3358,7 @@ begin
         if gdcSetts.FieldByName('Ending').AsInteger = 1 then
           isCorrect := True; 
       end
-    end 
+    end
   end;
 {  if MaxPackVerInfo > svEqual then
     if Result < svEqual then
@@ -5275,9 +5270,9 @@ begin
 end;
 
 initialization
-  RegisterGDCClass(TgdcSetting, ctStorage, 'Настройка');
-  RegisterGDCClass(TgdcSettingPos, ctStorage, 'Позиция настройки');
-  RegisterGDCClass(TgdcSettingStorage, ctStorage, 'Позиция настройки хранилища');
+  RegisterGDCClass(TgdcSetting,        'Настройка');
+  RegisterGDCClass(TgdcSettingPos,     'Позиция настройки');
+  RegisterGDCClass(TgdcSettingStorage, 'Позиция настройки хранилища');
 
 finalization
   UnRegisterGDCClass(TgdcSetting);

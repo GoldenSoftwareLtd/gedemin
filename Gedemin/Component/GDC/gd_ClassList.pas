@@ -24,6 +24,7 @@
     1.04   09.01.02  oleg_m  Added TTypeData field und accesories
     1.05   11.01.02  oleg_m  TTypeData field & Streaming
     1.10   24.01.02  oleg_m  Final version
+
 --}
 
 unit gd_ClassList;
@@ -298,7 +299,8 @@ type
     function Traverse(AList: TObjectList;
       const AnIncludeRoot: Boolean = True;
       const AnOnlyDirect: Boolean = False): Boolean; overload;
-    function GetSubTypeList(ASubTypeList: TStrings; const AnOnlyDirect: Boolean): Boolean;
+    function GetSubTypeList(ASubTypeList: TStrings; const AnOnlyDirect: Boolean;
+      const AVerbose: Boolean): Boolean;
 
   public
     constructor Create(AParent: TgdClassEntry; const AClass: TClass;
@@ -365,7 +367,7 @@ type
       const AnOnlyDirect: Boolean = False): Boolean; overload;
 
     function GetSubTypeList(AClass: TClass; const ASubType: TgdcSubType;
-      ASubTypeList: TStrings; const AnOnlyDirect: Boolean): Boolean;
+      ASubTypeList: TStrings; const AnOnlyDirect: Boolean; const AVerbose: Boolean): Boolean;
 
     procedure Remove(const AClass: TClass; const ASubType: TgdcSubType = ''); overload;
     procedure Remove(const AClassName: String; const ASubType: TgdcSubType = ''); overload;
@@ -1188,7 +1190,7 @@ begin
 end;
 
 function TgdClassEntry.GetSubTypeList(ASubTypeList: TStrings;
-  const AnOnlyDirect: Boolean): Boolean;
+  const AnOnlyDirect: Boolean; const AVerbose: Boolean): Boolean;
 var
   I: Integer;
 begin
@@ -1200,11 +1202,14 @@ begin
   begin
     if Children[I].SubType > '' then
     begin
-      ASubTypeList.Add(Children[I].Caption + '=' + Children[I].SubType);
+      if AVerbose then
+        ASubTypeList.Add(Children[I].Caption + '=' + Children[I].SubType)
+      else
+        ASubTypeList.Add(Children[I].SubType);
       Result := True;
 
       if not AnOnlyDirect then
-        Result := Children[I].GetSubTypeList(ASubTypeList, False) or Result;
+        Result := Children[I].GetSubTypeList(ASubTypeList, False, AVerbose) or Result;
     end;
   end;
 end;
@@ -1487,7 +1492,7 @@ begin
 end;
 
 function TgdClassList.GetSubTypeList(AClass: TClass; const ASubType: TgdcSubType;
-  ASubTypeList: TStrings; const AnOnlyDirect: Boolean): Boolean;
+  ASubTypeList: TStrings; const AnOnlyDirect: Boolean; const AVerbose: Boolean): Boolean;
 var
   CE: TgdClassEntry;
 begin
@@ -1498,7 +1503,7 @@ begin
   if CE = nil then
     raise Exception.Create('Unregistered class.');
 
-  Result := CE.GetSubTypeList(ASubTypeList, AnOnlyDirect);
+  Result := CE.GetSubTypeList(ASubTypeList, AnOnlyDirect, AVerbose);
 end;
 
 function TgdClassList._Find(const AClassName: AnsiString; const ASubType: TgdcSubType;

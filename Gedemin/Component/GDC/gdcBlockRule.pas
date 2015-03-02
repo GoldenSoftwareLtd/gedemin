@@ -109,9 +109,8 @@ begin
 end;
 
 initialization
-  RegisterGdcClass(TgdcBlockRule, ctStorage, 'TgdcBlockRule');
+  RegisterGdcClass(TgdcBlockRule);
 
 finalization
   UnRegisterGdcClass(TgdcBlockRule);
-
 end.
