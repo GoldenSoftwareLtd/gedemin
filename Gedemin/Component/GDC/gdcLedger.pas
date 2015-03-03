@@ -80,6 +80,7 @@ uses
   prm_ParamFunctions_unit, IBDatabase, at_classes, gd_security, Windows, DB,
   AcctStrings, AcctUtils, gdcConstants, gd_common_functions, gd_i_ScriptFactory,
   Clipbrd, gdcFunction, gdcExplorer, rp_report_const, gd_security_operationconst;
+
 const
   cFunctionName = 'AcctReportScriptFunction%s';
 
@@ -89,6 +90,7 @@ begin
     TgdcAcctBaseConfig, TgdcAcctCicrilationListConfig,
     TgdcAcctGeneralLedgerConfig, TgdcAcctAccReviewConfig ]);
 end;
+
 { TgdcAcctBaseConfig }
 
 procedure TgdcAcctBaseConfig.CreateCommand(SFRUID: TRUID);
@@ -614,11 +616,12 @@ end;
 
 initialization
   RegisterGdcClass(TgdcAcctBaseConfig);
-  RegisterGdcClass(TgdcAcctAccConfig, ctStorage, 'Конфигурация карты счета');
-  RegisterGdcClass(TgdcAcctLedgerConfig, ctStorage, 'Конфигурация журнал-ордера');
-  RegisterGdcClass(TgdcAcctCicrilationListConfig ctStorage, 'Конфигурация оборотной ведомости');
-  RegisterGdcClass(TgdcAcctGeneralLedgerConfig, ctStorage, 'Конфигурация главной книги');
-  RegisterGdcClass(TgdcAcctAccReviewConfig, ctStorage, 'Конфигурация анализа счета');
+  RegisterGdcClass(TgdcAcctAccConfig,            'Конфигурация карты счета');
+  RegisterGdcClass(TgdcAcctLedgerConfig,         'Конфигурация журнал-ордера');
+  RegisterGdcClass(TgdcAcctCicrilationListConfig,'Конфигурация оборотной ведомости');
+  RegisterGdcClass(TgdcAcctGeneralLedgerConfig,  'Конфигурация главной книги');
+  RegisterGdcClass(TgdcAcctAccReviewConfig,      'Конфигурация анализа счета');
+
 finalization
   UnRegisterGdcClass(TgdcAcctBaseConfig);
   UnRegisterGdcClass(TgdcAcctAccConfig);

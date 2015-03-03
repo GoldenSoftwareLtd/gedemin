@@ -340,8 +340,8 @@ type
     procedure _Insert(const Index: Integer; ACE: TgdClassEntry);
     procedure _Grow;
     procedure _Compact;
-    function _Create(APrnt: TgdClassEntry; AClass: CgdClassEntry;
-      ASubType: TgdcSubType; ACaption: String): TgdClassEntry;
+    function _Create(APrnt: TgdClassEntry; AnEntryClass: CgdClassEntry;
+      AClass: TClass; const ASubType: TgdcSubType; const ACaption: String): TgdClassEntry;
 
   public
     constructor Create;
@@ -1334,8 +1334,47 @@ function TgdClassList.Add(const AClass: TClass;
   const ASubType: TgdcSubType;
   const AParentSubType: TgdcSubType;
   const ACaption: String): TgdClassEntry;
+var
+  Prnt: TgdClassEntry;
 begin
-  Result := Add(AClass.ClassName, ASubType, AParentSubType, ACaption);
+  if AClass = nil then
+    raise Exception.Create('Class is not assigned.');
+
+  Result := Find(AClass.ClassName, ASubType);
+
+  if Result <> nil then
+  begin
+    if Result.FCaption = '' then
+      Result.FCaption := ACaption;
+  end else
+  begin
+    if AParentSubType > '' then
+    begin
+      Prnt := Find(AClass.ClassName, AParentSubType);
+      if Prnt = nil then
+        raise Exception.Create('Invalid parent subtype');
+    end else
+    begin
+      if ASubType > '' then
+      begin
+        Prnt := Find(AClass.ClassName);
+        if Prnt = nil then
+          raise Exception.Create('Invalid class name');
+      end else
+      begin
+        if (AClass = TgdcBase) or (AClass = TgdcCreateableForm) then
+        begin
+          Result := _Create(nil, TgdClassEntry, AClass, '', '');
+          exit;
+        end else if AClass = nil then
+          raise Exception.Create('Invalid class name')
+        else
+          Prnt := Add(AClass.ClassParent, '', '', '');
+      end;
+    end;
+
+    Result := _Create(Prnt, TgdClassEntry, AClass, ASubType, ACaption);
+  end;
 end;
 
 constructor TgdClassList.Create;
@@ -1583,7 +1622,8 @@ procedure TgdClassList.LoadUserDefinedClasses;
   var
     PrevRB: Integer;
   begin
-    Result := _Create(Prnt, TgdClassEntry, q.FieldByName('ruid').AsString, q.FieldByName('name').AsString);
+    Result := _Create(Prnt, TgdClassEntry, Prnt.TheClass,
+      q.FieldByName('ruid').AsString, q.FieldByName('name').AsString);
 
     PrevRB := q.FieldByName('rb').AsInteger;
     q.Next;
@@ -1599,7 +1639,8 @@ procedure TgdClassList.LoadUserDefinedClasses;
   begin
     for I := 0 to Src.Count - 1 do
     begin
-      CE := _Create(Dst, TgdClassEntry, Src.Children[I].SubType, Src.Children[I].Caption);
+      CE := _Create(Dst, TgdClassEntry, Dst.TheClass, Src.Children[I].SubType,
+        Src.Children[I].Caption);
       if Src.Children[I].Count > 0 then
         CopySubTree(Src.Children[I], CE);
     end;
@@ -1616,7 +1657,8 @@ procedure TgdClassList.LoadUserDefinedClasses;
     begin
       Prnt := APrnt.FindChild(F.Name);
       if Prnt = nil then
-        Prnt := _Create(APrnt, TgdStorageEntry, F.Name, F.ReadString('Caption'));
+        Prnt := _Create(APrnt, TgdStorageEntry, APrnt.TheClass, F.Name,
+          F.ReadString('Caption'));
     end;
 
     for I := 0 to F.FoldersCount - 1 do
@@ -1624,7 +1666,7 @@ procedure TgdClassList.LoadUserDefinedClasses;
   end;
 
 var
-  I, J, Index: Integer;
+  I, J: Integer;
   CEAttrUserDefined,
   CEAttrUserDefinedTree,
   CEAttrUserDefinedLBRBTree,
@@ -1636,7 +1678,7 @@ var
   CEInvPriceListLine,
   CEInvRemains,
   CEInvGoodRemains,
-  CE, CEStorage: TgdClassEntry;
+  CEStorage: TgdClassEntry;
   q: TIBSQL;
   FSubTypes: TgsStorageFolder;
   SL: TStringList;
@@ -1690,9 +1732,9 @@ begin
     q.ExecQuery;
     while not q.EOF do
     begin
-      _Create(CEInvRemains, TgdClassEntry,
+      _Create(CEInvRemains, TgdClassEntry, CEInvRemains.TheClass,
         q.FieldByName('ruid').AsString, q.FieldByName('name').AsString);
-      _Create(CEInvGoodRemains, TgdClassEntry,
+      _Create(CEInvGoodRemains, TgdClassEntry, CEInvGoodRemains.TheClass,
         q.FieldByName('ruid').AsString, q.FieldByName('name').AsString);
       q.Next;
     end;
@@ -1726,7 +1768,8 @@ begin
               for J := 0 to SL.Count - 1 do
               begin
                 if CEStorage.FindChild(SL.Values[SL.Names[J]]) = nil then
-                  _Create(CEStorage, TgdStorageEntry, SL.Values[SL.Names[J]], SL.Names[J]);
+                  _Create(CEStorage, TgdStorageEntry, CEStorage.TheClass,
+                    SL.Values[SL.Names[J]], SL.Names[J]);
               end;
             end;
           end;
@@ -1761,14 +1804,16 @@ begin
       Prnt := ACEAttrUserDefinedLBRBTree
     else if R.IsStandartTreeRelation then
       Prnt := ACEAttrUserDefinedTree
-    else
-      raise Exception.Create('Invalid relation.');
+    else begin
+      Result := nil;
+      exit;
+    end;
   end;
 
   Result := Find(Prnt.TheClass.ClassName, R.RelationName);
 
   if Result = nil then
-    Result := _Create(Prnt, TgdClassEntry, R.RelationName, R.LName);
+    Result := _Create(Prnt, TgdClassEntry, Prnt.TheClass, R.RelationName, R.LName);
 end;
 
 function TgdClassList.LoadRelation(const ARelationName: String): TgdClassEntry;
@@ -1786,10 +1831,6 @@ end;
 
 function TgdClassList.Add(const AClassName: AnsiString; const ASubType,
   AParentSubType: TgdcSubType; const ACaption: String): TgdClassEntry;
-var
-  Index: Integer;
-  Prnt: TgdClassEntry;
-  AClass: TClass;
 begin
   Result := Find(AClassName, ASubType);
 
@@ -1798,35 +1839,7 @@ begin
     if Result.FCaption = '' then
       Result.FCaption := ACaption;
   end else
-  begin
-    if AParentSubType > '' then
-    begin
-      Prnt := Find(AClassName, AParentSubType);
-      if Prnt = nil then
-        raise Exception.Create('Invalid parent subtype');
-      AClass := Prnt.TheClass;
-    end else
-    begin
-      if ASubType > '' then
-      begin
-        Prnt := Find(AClassName);
-        if Prnt = nil then
-          raise Exception.Create('Invalid class name');
-        AClass := Prnt.TheClass;
-      end else
-      begin
-        AClass := GetClass(AClassName);
-        if (AClass = TgdcBase) or (AClass = TgdcCreateableForm) then
-          Prnt := nil
-        else if AClass = nil then
-          raise Exception.Create('Invalid class name')
-        else
-          Prnt := Add(AClass.ClassParent, '', '', '');
-      end;    
-    end;
-
-    Result := _Create(Prnt, TgdClassEntry, ASubType, ACaption);
-  end;
+    Result := Add(GetClass(AClassName), ASubType, AParentSubType, ACaption);
 end;
 
 procedure TgdClassList._Compact;
@@ -1853,13 +1866,14 @@ begin
   end;
 end;
 
-function TgdClassList._Create(APrnt: TgdClassEntry; AClass: CgdClassEntry;
-  ASubType: TgdcSubType; ACaption: String): TgdClassEntry;
+function TgdClassList._Create(APrnt: TgdClassEntry; AnEntryClass: CgdClassEntry;
+  AClass: TClass; const ASubType: TgdcSubType; const ACaption: String): TgdClassEntry;
 var
   Index: Integer;
 begin
-  Result := AClass.Create(APrnt, APrnt.TheClass, ASubType, ACaption);
-  APrnt.AddChild(Result);
+  Result := AnEntryClass.Create(APrnt, AClass, ASubType, ACaption);
+  if APrnt <> nil then
+    APrnt.AddChild(Result);
 
   if not _Find(Result.TheClass.ClassName, Result.SubType, Index) then
     _Insert(Index, Result)

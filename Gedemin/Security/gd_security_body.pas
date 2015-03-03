@@ -604,6 +604,9 @@ begin
   InitDatabase(dmLogin.ibtrAttr);
   atDatabase.ProceedLoading(True);
 
+  if Assigned(gdSplash) then
+    gdSplash.ShowText(sLoadingUserDefinedClasses);
+
   gdClassList.LoadUserDefinedClasses;
 
   ClearHoldingListCache;

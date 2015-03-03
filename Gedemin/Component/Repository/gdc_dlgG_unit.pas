@@ -1294,8 +1294,6 @@ var
   L: TList;
   I, P: Integer;
   IsNewCtrl: Boolean;
-  CE : TgdClassEntry;
-
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGG', 'SETUPRECORD', KEYSETUPRECORD)}
   {M}  try
