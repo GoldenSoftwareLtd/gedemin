@@ -6379,7 +6379,7 @@ var
   {END MACRO}
   SL: TStringList;
   I: Integer;
-  LSubType: String;
+  LSubType: TgdcSubType;
   CE: TgdClassEntry;
 begin
   {@UNFOLD MACRO INH_ORIG_GETWHERECLAUSE('TGDCBASE', 'GETWHERECLAUSE', KEYGETWHERECLAUSE)}
