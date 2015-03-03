@@ -58,16 +58,6 @@ type
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
   end;
 
-  {TgdcFKManagerData = class(TgdcBase)
-  protected
-    procedure GetWhereClauseConditions(S: TStrings); override;
-
-  public
-    class function GetSubSetList: String; override;
-    class function GetListTable(const ASubType: TgdcSubType): String; override;
-    class function GetListField(const ASubType: TgdcSubType): String; override;
-  end;}
-
 procedure Register;
 
 implementation
@@ -76,15 +66,9 @@ uses
   gd_ClassList, gdc_dlgFKManager_unit, gdc_frmFKManager_unit,
   IBDatabase, IBSQL, SysUtils, Forms, Controls;
 
-{const
-  MinRecCount: Integer         = 20000;
-  MaxUqCount: Integer          = 40;
-  DontProcessCyclicRef:Boolean = True;}
-
 procedure Register;
 begin
   RegisterComponents('gdc', [TgdcFKManager]);
-  //RegisterComponents('gdc', [TgdcFKManagerData]);
 end;
 
 { TgdcFKManager }
@@ -613,33 +597,6 @@ begin
   FThread.FWindowHandle := AHandle;
 end;
 
-{ TgdcFKManagerData }
-
-{class function TgdcFKManagerData.GetListField(
-  const ASubType: TgdcSubType): String;
-begin
-  Result := 'value_data';
-end;
-
-class function TgdcFKManagerData.GetListTable(
-  const ASubType: TgdcSubType): String;
-begin
-  Result := 'gd_ref_constraint_data';
-end;
-
-class function TgdcFKManagerData.GetSubSetList: String;
-begin
-  Result := inherited GetSubSetList + 'ByRefConstraint;';
-end;
-
-procedure TgdcFKManagerData.GetWhereClauseConditions(S: TStrings);
-begin
-  inherited;
-
-  if HasSubSet('ByRefConstraint') then
-    S.Add(' z.constraintkey = :constraintkey ');
-end;}
-
 { TgdcFKManagerThread }
 
 procedure TgdcFKManagerThread.ClearScreen;
@@ -704,36 +661,6 @@ begin
 
     qList.Close;
 
-    {if not Terminated then
-    begin
-      qList.SQL.Text := 'UPDATE gd_ref_constraints SET ref_next_state = ''TRIGGER'' ' +
-        'WHERE constraint_rec_count > :CRC AND constraint_uq_count <= :CUC ' +
-        '  AND ref_next_state <> ''TRIGGER'' AND ref_state = ''ORIGINAL'' ';
-      if DontProcessCyclicRef then
-        qList.SQL.Text := qList.SQL.Text +
-          ' AND constraint_rel <> ref_rel ';
-      qList.ParamByName('CRC').AsInteger := MinRecCount;
-      qList.ParamByName('CUC').AsInteger := MaxUqCount;
-      qList.ExecQuery;
-
-      qList.SQL.Text := 'UPDATE gd_ref_constraints SET ref_next_state = ''ORIGINAL'' ' +
-        'WHERE (constraint_rec_count <= :CRC OR constraint_uq_count > :CUC) ' +
-        '  AND ref_next_state <> ''ORIGINAL'' AND ref_state = ''ORIGINAL'' ';
-      qList.ParamByName('CRC').AsInteger := MinRecCount;
-      qList.ParamByName('CUC').AsInteger := MaxUqCount;
-      qList.ExecQuery;
-
-      if DontProcessCyclicRef then
-      begin
-        qList.SQL.Text := 'UPDATE gd_ref_constraints SET ref_next_state = ''ORIGINAL'' ' +
-          'WHERE constraint_rel = ref_rel AND ref_next_state <> ''ORIGINAL'' ';
-        qList.ExecQuery;
-      end;
-
-      Synchronize(DoneScreen);
-    end else
-      Synchronize(ClearScreen);}
-
     Synchronize(DoneScreen);
     Tr.Commit;
   finally
@@ -759,13 +686,8 @@ begin
 end;
 
 initialization
-
-  RegisterGdcClass(TgdcFKManager, ctStorage, 'Внешний ключ');
-  //RegisterGdcClass(TgdcFKManagerData);
+  RegisterGdcClass(TgdcFKManager, 'Внешний ключ');
 
 finalization
-
   UnRegisterGdcClass(TgdcFKManager);
-  //UnRegisterGdcClass(TgdcFKManagerData);
-
 end.

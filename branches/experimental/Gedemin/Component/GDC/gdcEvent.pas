@@ -224,7 +224,6 @@ begin
   EN := AnsiUpperCase((TObject(AnEventNode.Data) as TEventItem).Name);
   FK := (TObject(AnEventNode.Data) as TEventItem).FunctionKey;
 
-  Result := False;
   DidActivate := False;
   q := TIBSQL.Create(nil);
   try

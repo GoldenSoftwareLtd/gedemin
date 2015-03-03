@@ -6379,8 +6379,6 @@ var
   {END MACRO}
   SL: TStringList;
   I: Integer;
-  str: String;
-//  OL: TObjectList;
   LSubType: String;
   CE: TgdClassEntry;
 begin
