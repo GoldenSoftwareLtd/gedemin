@@ -2159,6 +2159,9 @@ begin
 
   inherited;
 
+  if FieldChanged('lname') then
+    gdClassList.LoadRelation(FieldByName('relationname').AsString);
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCRELATION', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -2348,6 +2351,8 @@ begin
   begin
     atDatabase.Relations.Remove(atDatabase.Relations.ByRelationName(DelRelName));
   end;
+
+  gdClassList.RemoveSubType(DelRelName);
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCRELATION', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
   {M}  finally

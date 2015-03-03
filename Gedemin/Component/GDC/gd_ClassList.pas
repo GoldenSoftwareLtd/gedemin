@@ -327,6 +327,9 @@ type
   end;
   CgdClassEntry = class of TgdClassEntry;
 
+  TgdAttrUserDefinedEntry = class(TgdClassEntry)
+  end;
+
   TgdStorageEntry = class(TgdClassEntry)
   end;
 
@@ -372,6 +375,7 @@ type
     procedure Remove(const AClass: TClass; const ASubType: TgdcSubType = ''); overload;
     procedure Remove(const AClassName: String; const ASubType: TgdcSubType = ''); overload;
     procedure RemoveAllSubTypes;
+    procedure RemoveSubType(const ASubType: TgdcSubType);
 
     procedure AddClassMethods(AClassMethods: TgdClassMethods); overload;
     procedure AddClassMethods(AClass: TComponentClass;
@@ -1813,7 +1817,10 @@ begin
   Result := Find(Prnt.TheClass.ClassName, R.RelationName);
 
   if Result = nil then
-    Result := _Create(Prnt, TgdClassEntry, Prnt.TheClass, R.RelationName, R.LName);
+    Result := _Create(Prnt, TgdAttrUserDefinedEntry, Prnt.TheClass,
+      R.RelationName, R.LName)
+  else
+    Result.Caption := R.LName;
 end;
 
 function TgdClassList.LoadRelation(const ARelationName: String): TgdClassEntry;
@@ -1912,6 +1919,24 @@ begin
     finally
       OL.Free;
     end;
+  end;
+end;
+
+procedure TgdClassList.RemoveSubType(const ASubType: TgdcSubType);
+var
+  I, PrevCount: Integer;
+begin
+  I := 0;
+  while I < FCount do
+  begin
+    if FClasses[I].SubType = ASubType then
+    begin
+      PrevCount := FCount;
+      Remove(FClasses[I].TheClass.ClassName, ASubType);
+      if (PrevCount - FCount) > 1 then
+        I := 0;
+    end else
+      Inc(I);
   end;
 end;
 
