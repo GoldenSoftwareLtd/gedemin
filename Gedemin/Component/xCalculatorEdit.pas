@@ -777,13 +777,8 @@ end;
 procedure TxCalculatorEdit.SetValue(AValue: Double);
 
 begin
-  if Value <> AValue then
-  begin
-//    if DecDigits = -1 then
-      Text := FloatToStr(AValue)
-//    else
-//      Text := FloatToStrF(AValue, ffFixed, 15, DecDigits);
-  end;    
+  if (Text = '') or (Value <> AValue) then
+    Text := FloatToStr(AValue)
 end;
 
 {

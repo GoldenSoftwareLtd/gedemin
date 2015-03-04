@@ -271,6 +271,8 @@ begin
   lbRelation.Visible := gdcObject.FieldByName('activity').AsString = 'B';
   gsibRelationFields.Visible := lbRelation.Visible;
 
+  tbsAttr.TabVisible := False;
+
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGACCTBASEACCOUNT', 'SETUPRECORD', KEYSETUPRECORD)}
   {M}finally
   {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
@@ -352,7 +354,8 @@ begin
   try
     gdcRelationFields.ExtraConditions.Text := ' z.fieldname like ''USR$%'' and z.relationname = ''AC_ACCOUNT''';
     gdcRelationFields.Open;
-    gdcRelationFields.Sort(gdcRelationFields.FieldByName('lname'), true);
+    if not gdcRelationFields.EOF then
+      gdcRelationFields.Sort(gdcRelationFields.FieldByName('lname'), true);
     while not gdcRelationFields.EOF do
     begin
 

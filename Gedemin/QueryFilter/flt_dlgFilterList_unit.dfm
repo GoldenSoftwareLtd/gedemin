@@ -68,27 +68,27 @@ object dlgFilterList: TdlgFilterList
       TabOrder = 1
       object btnEdit: TButton
         Left = 6
-        Top = 18
+        Top = 50
         Width = 75
-        Height = 23
+        Height = 24
         Action = acEdit
         Cancel = True
         TabOrder = 0
       end
       object btnDelete: TButton
         Left = 6
-        Top = 46
+        Top = 78
         Width = 75
-        Height = 23
+        Height = 24
         Action = acDelete
         Cancel = True
         TabOrder = 1
       end
       object btnSelect: TButton
         Left = 6
-        Top = 74
+        Top = 106
         Width = 75
-        Height = 23
+        Height = 24
         Action = actSelect
         Cancel = True
         ModalResult = 1
@@ -105,6 +105,14 @@ object dlgFilterList: TdlgFilterList
         ModalResult = 2
         TabOrder = 3
       end
+      object btnNew: TButton
+        Left = 6
+        Top = 22
+        Width = 75
+        Height = 24
+        Action = actNew
+        TabOrder = 4
+      end
     end
   end
   object alFilter: TActionList
@@ -117,7 +125,7 @@ object dlgFilterList: TdlgFilterList
       OnUpdate = acDeleteUpdate
     end
     object acEdit: TAction
-      Caption = 'Изменить ...'
+      Caption = 'Изменить'
       ShortCut = 13
       OnExecute = acEditExecute
       OnUpdate = acEditUpdate
@@ -126,6 +134,12 @@ object dlgFilterList: TdlgFilterList
       Caption = 'Выбрать'
       OnExecute = actSelectExecute
       OnUpdate = actSelectUpdate
+    end
+    object actNew: TAction
+      Caption = 'Создать'
+      ShortCut = 45
+      OnExecute = actNewExecute
+      OnUpdate = actNewUpdate
     end
   end
   object ibsqlFilter: TIBSQL
@@ -147,6 +161,9 @@ object dlgFilterList: TdlgFilterList
   object pm: TPopupMenu
     Left = 216
     Top = 56
+    object N4: TMenuItem
+      Action = actNew
+    end
     object N1: TMenuItem
       Action = acEdit
     end

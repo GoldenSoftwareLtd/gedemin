@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, ExtCtrls, ComCtrls;
+  StdCtrls, ExtCtrls, ComCtrls, ActnList;
 
 type
   Tgd_dlgReg = class(TForm)
@@ -17,12 +17,17 @@ type
     tsReg: TTabSheet;
     tsUnReg: TTabSheet;
     mUnreg: TMemo;
-    mReg: TMemo;
     lblRegNumber: TLabel;
     lblRegNumber2: TLabel;
-    procedure btnRegClick(Sender: TObject);
+    mUnreg2: TMemo;
+    mReg: TMemo;
+    mReg2: TMemo;
+    ActionList: TActionList;
+    actReg: TAction;
     procedure FormCreate(Sender: TObject);
     procedure btnCloseClick(Sender: TObject);
+    procedure actRegExecute(Sender: TObject);
+    procedure actRegUpdate(Sender: TObject);
   private
     { Private declarations }
   public
@@ -44,17 +49,57 @@ uses
 
 {$R *.DFM}
 
-procedure Tgd_dlgReg.btnRegClick(Sender: TObject);
+procedure Tgd_dlgReg.FormCreate(Sender: TObject);
+var
+  S1, S2: String;
 begin
-  if not IsRegisteredCopy or
-     (IsRegisteredCopy and
-     (MessageBox(HANDLE, 'Âûøà êîïèÿ ïğîãğàììû óæå çàğåãèñòğèğîâàíà. '#13#10 +
-       'Âû äåéñòâèòåëüíî õîòèòå âûïîëíèòü ğåãèñòğàöèş?', 'Âíèìàíèå', mb_YesNo or MB_ICONQUESTION) = mrYes)) then
-  try
-    DoRegister(StrToInt64(eCipher.Text));
-    IsRegisteredCopy := CheckRegistration;
+  lblRegNumber.Caption := RegParams.GetControlNumber;
 
-    if IsRegisteredCopy then
+  if RegParams.ValidUntil > 0 then
+    S1 := 'Ğåãèñòğàöèÿ äî: ' + FormatDateTime('dd.mm.yy', RegParams.ValidUntil)
+  else
+    S1 := '';
+
+  if RegParams.MaxUserCount > 0 then
+    S2 := 'Ìàêñèìàëüíîå êîëè÷åñòâî ïîëüçîâàòåëåé: ' + IntToStr(RegParams.MaxUserCount) + '.'
+  else
+    S2 := '';
+
+  mReg.Lines.Text := Format(mReg.Lines.Text, [S2, S1]);
+  lblRegNumber2.Caption := RegParams.GetControlNumber;
+
+  if RegParams.CheckRegistration(False) then
+    pc.ActivePage := tsReg
+  else
+    pc.ActivePage := tsUnReg;
+end;
+
+procedure Tgd_dlgReg.btnCloseClick(Sender: TObject);
+begin
+  actReg.Execute;
+end;
+
+procedure Tgd_dlgReg.actRegExecute(Sender: TObject);
+begin
+  if
+    (
+      not RegParams.CheckRegistration(False)
+    )
+    or
+    (
+      RegParams.CheckRegistration(False)
+      and
+      (
+        MessageBox(Handle,
+          'Âàøà êîïèÿ ïğîãğàììû óæå çàğåãèñòğèğîâàíà.'#13#10 +
+          'Âûïîëíèòü ïîâòîğíóş ğåãèñòğàöèş?',
+          'Âíèìàíèå', mb_YesNo or MB_ICONQUESTION) = mrYes
+        )
+    ) then
+  try
+    RegParams.RegisterProgram(StrToInt64(eCipher.Text));
+
+    if RegParams.CheckRegistration(True) then
     begin
       MessageBox(Handle,
         'Ğåãèñòğàöèÿ ïğîãğàììû ïğîøëà óñïåøíî.',
@@ -63,51 +108,21 @@ begin
     end;
 
     Close;
-  except 
-    on EConvertError do
-      MessageBox(HANDLE, 'Âîçíèêëà îøèáêà ïğè îáğàáîòêå êîäà ğàçáëîêèğîâêè. Ïğîâåğüòå, ïîæàëóéñòà, ââåäåííîå çíà÷åíèå.', 'Âíèìàíèå', MB_OK or MB_ICONERROR);
-    else                                                                     
-      MessageBox(HANDLE, 'Âîçíèêëà íåèçâåñòíàÿ îøèáêà ïğè îáğàáîòêå êîäà ğàçáëîêèğîâêè.', 'Âíèìàíèå', MB_OK or MB_ICONERROR);
+  except
+    on Exception do
+    begin
+      MessageBox(Handle,
+        'Âîçíèêëà îøèáêà ïğè îáğàáîòêå êîäà ğàçáëîêèğîâêè.'#13#10 +
+        'Ïîæàëóéñòà, ïğîâåğüòå ââåäåííîå çíà÷åíèå.',
+        'Âíèìàíèå',
+        MB_OK or MB_ICONHAND or MB_TASKMODAL);
+    end;
   end;
 end;
 
-procedure Tgd_dlgReg.FormCreate(Sender: TObject);
-var
-  S1, S2: String;
+procedure Tgd_dlgReg.actRegUpdate(Sender: TObject);
 begin
-  lblRegNumber.Caption := GetVisRegNumber;
-
-  if RegParams.Period > 0 then
-    S1 := FormatDateTime('dd.mm.yy', IncMonth(regInitialDate, RegParams.Period * 3))
-  else
-    S1 := 'íå îãğàíè÷åíî';
-
-  if RegParams.UserCount > 0 then
-    S2 := IntToStr(RegParams.UserCount)
-  else
-    S2 := 'íå îãğàíè÷åíî';
-
-  mReg.Lines.Text := Format(mReg.Lines.Text, [S2, S1]);
-  lblRegNumber2.Caption := GetVisRegNumber;
-
-  if IsRegisteredCopy then
-  begin
-    pc.ActivePage := tsReg;
-    Clipboard.AsText := lblRegNumber2.Caption;
-  end else
-  begin
-    pc.ActivePage := tsUnReg;
-    Clipboard.AsText := lblRegNumber.Caption;
-  end;
-end;
-
-
-procedure Tgd_dlgReg.btnCloseClick(Sender: TObject);
-begin
-  if eCipher.Text > '' then
-  begin
-    btnReg.OnClick(nil);
-  end;
+  actReg.Enabled := StrToInt64Def(eCipher.Text, -1) >= 0;
 end;
 
 end.

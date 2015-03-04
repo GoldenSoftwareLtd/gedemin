@@ -331,6 +331,19 @@ begin
       Check(Scanner.GetNextToken = tSequenceStart);
       Check(Scanner.GetNextToken = tSequenceStart);
 
+      Check(Scanner.GetNextToken = tDocumentStart);
+      Check(Scanner.GetNextToken = tKey);
+      Check(Scanner.Key = 'test');
+      Check(Scanner.GetNextToken = tScalar);
+      Check(Scanner.Scalar = 'text with colon:'#13#10' line2');
+      Check(Scanner.Quoting = qDoubleQuoted);
+
+      Check(Scanner.GetNextToken = tKey);
+      Check(Scanner.Key = 's');
+      Check(Scanner.GetNextToken = tScalar);
+      Check(Scanner.Scalar = '');
+      Check(Scanner.Quoting = qPlain);
+
       Check(Scanner.GetNextToken = tDocumentEnd);
       Check(Scanner.GetNextToken = tStreamEnd);
     finally

@@ -4,8 +4,8 @@ object dlgSelectFSet: TdlgSelectFSet
   BorderIcons = [biSystemMenu]
   BorderStyle = bsDialog
   Caption = 'Выбор множества'
-  ClientHeight = 349
-  ClientWidth = 538
+  ClientHeight = 455
+  ClientWidth = 737
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -20,7 +20,7 @@ object dlgSelectFSet: TdlgSelectFSet
   PixelsPerInch = 96
   TextHeight = 13
   object Label3: TLabel
-    Left = 235
+    Left = 334
     Top = 264
     Width = 68
     Height = 53
@@ -31,7 +31,7 @@ object dlgSelectFSet: TdlgSelectFSet
   object Panel1: TPanel
     Left = 4
     Top = 5
-    Width = 530
+    Width = 730
     Height = 59
     BevelInner = bvRaised
     BevelOuter = bvLowered
@@ -53,7 +53,7 @@ object dlgSelectFSet: TdlgSelectFSet
     object edName: TEdit
       Left = 91
       Top = 6
-      Width = 314
+      Width = 518
       Height = 21
       TabOrder = 0
       OnKeyDown = edNameKeyDown
@@ -61,7 +61,7 @@ object dlgSelectFSet: TdlgSelectFSet
     object cbCondition: TComboBox
       Left = 91
       Top = 31
-      Width = 313
+      Width = 518
       Height = 21
       ItemHeight = 13
       TabOrder = 1
@@ -72,7 +72,7 @@ object dlgSelectFSet: TdlgSelectFSet
         'Заканчивается')
     end
     object btnFind: TButton
-      Left = 418
+      Left = 618
       Top = 6
       Width = 100
       Height = 21
@@ -80,7 +80,7 @@ object dlgSelectFSet: TdlgSelectFSet
       TabOrder = 2
     end
     object btnAll: TButton
-      Left = 418
+      Left = 618
       Top = 31
       Width = 100
       Height = 21
@@ -92,15 +92,15 @@ object dlgSelectFSet: TdlgSelectFSet
   object Panel2: TPanel
     Left = 4
     Top = 68
-    Width = 225
-    Height = 249
+    Width = 318
+    Height = 349
     BevelOuter = bvNone
     TabOrder = 0
     object tvAttrSet: TTreeView
       Left = 0
       Top = 0
-      Width = 225
-      Height = 249
+      Width = 318
+      Height = 349
       Align = alClient
       HideSelection = False
       Images = ImageList1
@@ -113,8 +113,8 @@ object dlgSelectFSet: TdlgSelectFSet
     end
   end
   object btnOk: TButton
-    Left = 310
-    Top = 322
+    Left = 526
+    Top = 426
     Width = 100
     Height = 21
     Caption = 'OK'
@@ -123,8 +123,8 @@ object dlgSelectFSet: TdlgSelectFSet
     TabOrder = 7
   end
   object btnCancel: TButton
-    Left = 433
-    Top = 322
+    Left = 633
+    Top = 426
     Width = 100
     Height = 21
     Cancel = True
@@ -133,7 +133,7 @@ object dlgSelectFSet: TdlgSelectFSet
     TabOrder = 8
   end
   object Button6: TButton
-    Left = 234
+    Left = 333
     Top = 69
     Width = 70
     Height = 21
@@ -141,7 +141,7 @@ object dlgSelectFSet: TdlgSelectFSet
     TabOrder = 1
   end
   object Button7: TButton
-    Left = 234
+    Left = 333
     Top = 133
     Width = 70
     Height = 21
@@ -149,7 +149,7 @@ object dlgSelectFSet: TdlgSelectFSet
     TabOrder = 3
   end
   object Button3: TButton
-    Left = 234
+    Left = 333
     Top = 239
     Width = 70
     Height = 21
@@ -157,10 +157,10 @@ object dlgSelectFSet: TdlgSelectFSet
     TabOrder = 5
   end
   object tvTarget: TTreeView
-    Left = 309
+    Left = 416
     Top = 68
-    Width = 225
-    Height = 249
+    Width = 318
+    Height = 349
     HideSelection = False
     Images = ImageList1
     Indent = 19
@@ -170,7 +170,7 @@ object dlgSelectFSet: TdlgSelectFSet
     OnDblClick = lvTargetDblClick
   end
   object Button1: TButton
-    Left = 234
+    Left = 333
     Top = 93
     Width = 70
     Height = 21
@@ -178,7 +178,7 @@ object dlgSelectFSet: TdlgSelectFSet
     TabOrder = 2
   end
   object Button2: TButton
-    Left = 234
+    Left = 333
     Top = 157
     Width = 70
     Height = 21

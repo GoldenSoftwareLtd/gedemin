@@ -1589,14 +1589,8 @@ type
     // функци€, возвращает список возможных подтипов в SubTypeList в формате
     // Ћокализованное им€ подтипа=ѕодтип
     // функци€ возвращает True, если подтипы есть, иначе - False
+    class function GetSubTypeList(SubTypeList: TStrings): Boolean; virtual;
 
-    //Subtype -- подтип.
-    //OnlyDirect -- если True, то возвращаютс€ только непосредственные наследники.
-    //¬ противном случае -- возвращаетс€ вс€ иерархи€ наследников.
-    class function GetSubTypeList(SubTypeList: TStrings;
-      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; virtual;
-
-    class function ClassParentSubtype(Subtype: string): String; virtual;
     //
     class function CheckSubType(const ASubType: String): Boolean;
 
@@ -2159,7 +2153,7 @@ uses
   TypInfo,                      dmImages_unit,                gd_ClassList,
   Messages,                     gsIBLookupCombobox,           comctrls,
   gsDBDelete_dlgTableValues,    rp_ReportClient,              gdc_dlgQueryDescendant_unit,
-  gdc_dlgObjectProperties_unit, gsDBReduction,                gdc_dlgCantCreateObject_unit,
+  gdc_dlgObjectProperties_unit, gsDBReduction,                
   flt_sql_parser,               JclStrHashMap,                gdDBImpExp_unit,
   gdcClasses,                   gdc_dlgG_unit,                gdc_dlgSelectObject_unit,
   mtd_i_Inherited,              gdcOLEClassList,              prp_methods,
@@ -2191,9 +2185,6 @@ const
     'DELETE FROM gd_ruid WHERE xid=:xid AND dbid=:dbid';
   cst_sql_DeleteRuidByID =
     'DELETE FROM gd_ruid WHERE id=:id';
-
-const
-  SM_REMOTESESSION = $1000;
 
 var
   CacheList: TStringHashMap;
@@ -2443,7 +2434,7 @@ function GetBaseClassForRelation(const ARelationName: String): TgdcFullClass;
 var
   I: Integer;
   C: CgdcBase;
-  R, ParentR: TatRelation;
+  R: TatRelation;
   L: TObjectList;
   ibsql: TIBSQL;
   S: String;
@@ -2553,28 +2544,7 @@ begin
             if Assigned(F) then
               Result.gdClass := CgdcBase(GetClass('TgdcAttrUserDefinedTree'))
             else
-            begin
               Result.gdClass := CgdcBase(GetClass('TgdcAttrUserDefined'));
-
-              F := R.RelationFields.ByFieldName('INHERITED');
-              if Assigned(F) then
-              begin
-                ParentR := R.RelationFields.ByFieldName('ID').ForeignKey.ReferencesRelation;
-                if Assigned(ParentR) and Assigned(ParentR.RelationFields.ByFieldName('INHERITED')) then
-                  repeat
-                    ParentR := ParentR.RelationFields.ByFieldName('ID').ForeignKey.ReferencesRelation;
-                  until not Assigned(ParentR.RelationFields.ByFieldName('INHERITED'));
-
-                if Assigned(ParentR) then
-                begin
-                  if Assigned(ParentR.RelationFields.ByFieldName('PARENT'))
-                    and Assigned(ParentR.RelationFields.ByFieldName('LB')) then
-                      Result.gdClass := CgdcBase(GetClass('TgdcAttrUserDefinedLBRBTree'))
-                  else if Assigned(ParentR.RelationFields.ByFieldName('PARENT')) then
-                         Result.gdClass := CgdcBase(GetClass('TgdcAttrUserDefinedTree'))
-                end
-              end;
-            end;
           end;
           Result.SubType := ARelationName;
         end else
@@ -9371,11 +9341,14 @@ begin
   begin
     if FNextIDSQL = nil then
     begin
+      if GetSystemMetrics(SM_REMOTESESSION) <> 0 then
+        IDCacheStep := 1;
+
       FNextIDSQL := TIBSQL.Create(nil);
+      FNextIDSQL.Transaction := gdcBaseManager.ReadTransaction;
       FNextIDSQL.SQL.Text := 'SELECT GEN_ID(gd_g_unique, ' +
         IntToStr(IDCacheStep) + ') + GEN_ID(gd_g_offset, 0) FROM rdb$database';
     end;
-    FNextIDSQL.Transaction := gdcBaseManager.ReadTransaction;
     FNextIDSQL.ExecQuery;
     FIDLimit := FNextIDSQL.Fields[0].AsInteger;
     FNextIDSQL.Close;
@@ -12343,12 +12316,10 @@ begin
   DoAfterCustomProcess(Buff, cpDelete);
 end;
 
-class function TgdcBase.GetSubTypeList(SubTypeList: TStrings;
-  Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
+class function TgdcBase.GetSubTypeList(SubTypeList: TStrings): Boolean;
 var
   F: TgsStorageFolder;
   V: TgsStorageValue;
-  LClassName: String;
 begin
   if Assigned(GlobalStorage) then
   begin
@@ -12356,11 +12327,7 @@ begin
     try
       if F <> nil then
       begin
-        if Subtype > '' then
-          LClassName := Self.ClassName + Subtype
-        else
-          LClassName := Self.ClassName;
-        V := F.ValueByName(LClassName);
+        V := F.ValueByName(Self.ClassName);
         if V is TgsStringValue then
         begin
           SubTypeList.CommaText := V.AsString;
@@ -12369,7 +12336,7 @@ begin
         end else
         begin
           if V <> nil then
-            F.DeleteValue(LClassName);
+            F.DeleteValue(Self.ClassName);
         end;
       end;  
     finally
@@ -12379,11 +12346,6 @@ begin
 
   SubTypeList.Clear;
   Result := False;
-end;
-
-class function TgdcBase.ClassParentSubtype(Subtype: string): String;
-begin
-  Result := '';
 end;
 
 function TgdcBase.GetNextID(const Increment: Boolean = True; const ResetCache: Boolean = False): Integer;
@@ -12403,7 +12365,6 @@ begin
         q.SQL.Text := 'SELECT GEN_ID(gd_g_unique, 0) + GEN_ID(gd_g_offset, 0) FROM rdb$database';
       q.ExecQuery;
       Result := q.Fields[0].AsInteger;
-      q.Close;
     finally
       q.Free;
     end;

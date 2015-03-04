@@ -101,6 +101,7 @@ begin
     FqInsertFile.ParamByName('comment').Clear;
     FqInsertFile.ParamByName('xid').Clear;
     FqInsertFile.ParamByName('dbid').Clear;
+    FqInsertFile.ParamByName('md5').Clear;
     FqInsertFile.ExecQuery;
   end;
 
@@ -145,6 +146,7 @@ begin
         FqInsertFile.ParamByName('comment').AsString := M.ReadString('Properties\Comment');
         FqInsertFile.ParamByName('xid').AsInteger := NSRUID.XID;
         FqInsertFile.ParamByName('dbid').AsInteger := NSRUID.DBID;
+        FqInsertFile.ParamByName('md5').AsString := M.ReadString('Properties\MD5');
         FqInsertFile.ExecQuery;
 
         if M.FindByName('Uses') is TYAMLSequence then
@@ -367,6 +369,7 @@ begin
           if NS.FieldByName('filetimestamp').AsDateTime > Now then
             NS.FieldByName('filetimestamp').AsDateTime := Now;
           NS.FieldByName('filename').AsString := System.Copy(AFileName, 1, 255);
+          NS.FieldByName('md5').AsString := Mapping.ReadString('Properties\MD5');
           NS.Post;
 
           if Mapping.FindByName('Objects') is TYAMLSequence then
@@ -567,12 +570,13 @@ procedure TgdcNamespaceSyncController.GetDependentList(ASL: TStrings);
 var
   q: TIBSQL;
   I, J, C: Integer;
+  SL: TStringList;
 begin
   Assert(ASL <> nil);
   Assert(FTr <> nil);
   Assert(FTr.InTransaction);
 
-  ASL.Clear;
+  SL := TStringList.Create;
   q := TIBSQL.Create(nil);
   try
     q.Transaction := FTr;
@@ -586,7 +590,10 @@ begin
     q.ExecQuery;
     while not q.EOF do
     begin
-      ASL.Add(q.Fields[0].AsString);
+      if SL.IndexOf(q.Fields[0].AsString) = -1 then
+        SL.Add(q.Fields[0].AsString)
+      else
+        DoLog(lmtWarning, 'ПИ "' + q.Fields[0].AsString + '" уже находится в списке загрузки.');
       q.Next;
     end;
 
@@ -604,19 +611,19 @@ begin
       '  AND s.operation IN (''< '', ''<<'')';
     I := 0;
     C := 0;
-    while I < ASL.Count do
+    while I < SL.Count do
     begin
-      q.ParamByName('filename').AsString := ASL[I];
+      q.ParamByName('filename').AsString := SL[I];
       q.ExecQuery;
       while not q.EOF do
       begin
-        J := ASL.IndexOf(q.Fields[0].AsString);
+        J := SL.IndexOf(q.Fields[0].AsString);
         if J = -1 then
-          ASL.Add(q.Fields[0].AsString)
+          SL.Add(q.Fields[0].AsString)
         else if J < I then
         begin
-          ASL.Insert(I + 1, ASL[J]);
-          ASL.Delete(J);
+          SL.Insert(I + 1, SL[J]);
+          SL.Delete(J);
           Dec(I);
         end;
         q.Next;
@@ -624,12 +631,15 @@ begin
       q.Close;
       Inc(I);
 
-      if C > ASL.Count * ASL.Count then
+      if C > SL.Count * SL.Count then
         raise Exception.Create('Cyclic namespace dependance detected.');
       Inc(C);
     end;
+
+    ASL.Assign(SL);
   finally
     q.Free;
+    SL.Free;
   end;
 end;
 
@@ -668,10 +678,10 @@ begin
   FqInsertFile.SQL.Text :=
     'INSERT INTO at_namespace_file ' +
     '  (filename, filetimestamp, filesize, name, caption, version, ' +
-    '   dbversion, optional, internal, comment, xid, dbid) ' +
+    '   dbversion, optional, internal, comment, xid, dbid, md5) ' +
     'VALUES ' +
     '  (:filename, :filetimestamp, :filesize, :name, :caption, :version, ' +
-    '   :dbversion, :optional, :internal, :comment, :xid, :dbid)';
+    '   :dbversion, :optional, :internal, :comment, :xid, :dbid, :md5)';
 
   FqFindFile := TIBSQL.Create(nil);
   FqFindFile.Transaction := FTr;
@@ -792,6 +802,14 @@ begin
     '        ON l.uses_xid = j.xid AND l.uses_dbid = j.dbid '#13#10 +
     '      WHERE l.filename = s.filename AND j.xid IS NULL) '#13#10 +
     '    AND (s.operation IN (''<<'', ''< '')); '#13#10 +
+    ' '#13#10 +
+    '  UPDATE at_namespace_sync s SET s.operation = ''? '' '#13#10 +
+    '  WHERE s.operation = ''  '' AND s.namespacekey IS NOT NULL '#13#10 +
+    '    AND s.filename IS NOT NULL '#13#10 +
+    '    AND (SELECT COALESCE(f.md5, '''') FROM at_namespace_file f WHERE f.filename = s.filename) > '''' '#13#10 +
+    '    AND (SELECT COALESCE(s2.md5, '''') FROM at_namespace s2 WHERE s2.id = s.namespacekey) > '''' '#13#10 +
+    '    AND (SELECT f.md5 FROM at_namespace_file f WHERE f.filename = s.filename) '#13#10 +
+    '      IS DISTINCT FROM (SELECT s2.md5 FROM at_namespace s2 WHERE s2.id = s.namespacekey); '#13#10 +
     ' '#13#10 +
     '  UPDATE at_namespace_sync s SET s.operation = ''=='' '#13#10 +
     '  WHERE s.operation = ''  '' AND s.namespacekey IS NOT NULL '#13#10 +

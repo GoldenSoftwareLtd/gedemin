@@ -1516,6 +1516,15 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (214, '0000.0001.0000.0245', '16.06.2014', 'Add GD_WEBLOG, GD_WEBLOGDATA tables.');
 
+INSERT INTO fin_versioninfo
+  VALUES (215, '0000.0001.0000.0246', '02.09.2014', 'gd_x_currrate_fordate index added.');
+
+INSERT INTO fin_versioninfo
+  VALUES (216, '0000.0001.0000.0247', '03.09.2014', 'Added command for TgdcCheckConstraint.');
+
+INSERT INTO fin_versioninfo
+  VALUES (217, '0000.0001.0000.0248', '06.09.2014', 'MD5 field added to namespace table.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
@@ -2511,6 +2520,8 @@ ALTER TABLE gd_currrate ADD CONSTRAINT gd_fk2_currrate
 
 ALTER TABLE gd_currrate ADD CONSTRAINT gd_chk1_currrate
   CHECK(fromcurr <> tocurr);
+
+CREATE DESC INDEX gd_x_currrate_fordate ON gd_currrate(fordate);
 
 COMMIT;
 /*
@@ -16206,7 +16217,7 @@ COMMIT;
 
 /*
 
-  Copyright (c) 2000-2013 by Golden Software of Belarus
+  Copyright (c) 2000-2014 by Golden Software of Belarus
 
   Script
 
@@ -16372,6 +16383,7 @@ CREATE TABLE at_namespace (
   settingruid   VARCHAR(21),
   filedata      dscript,
   changed       dboolean_notnull DEFAULT 1,
+  md5           CHAR(32), 
 
   CONSTRAINT at_pk_namespace PRIMARY KEY (id)
 );
@@ -16687,6 +16699,7 @@ CREATE GLOBAL TEMPORARY TABLE at_namespace_file (
   comment       dblobtext80_1251,
   xid           dinteger,
   dbid          dinteger,
+  md5           CHAR(32),
 
   CONSTRAINT at_pk_namespace_file PRIMARY KEY (filename)
 )
@@ -20015,7 +20028,7 @@ SET TERM ; ^
 
 /*
 
-  Copyright (c) 2000-2013 by Golden Software of Belarus
+  Copyright (c) 2000-2014 by Golden Software of Belarus
 
   Script
 
@@ -21147,6 +21160,7 @@ INSERT INTO GD_COMMAND
   (ID,CMD,CMDTYPE,PARENT,HOTKEY,NAME,IMGINDEX,ORDR,CLASSNAME,SUBTYPE,AFULL,ACHAG,AVIEW,DISABLED,RESERVED)
 VALUES
   (741101,'gdcField',0,740400,NULL,'Домены',250,NULL,'TgdcField',NULL,1,1,1,0,NULL);
+
 INSERT INTO GD_COMMAND
   (ID,CMD,CMDTYPE,PARENT,HOTKEY,NAME,IMGINDEX,ORDR,CLASSNAME,SUBTYPE,AFULL,ACHAG,AVIEW,DISABLED,RESERVED)
 VALUES
@@ -21180,23 +21194,18 @@ VALUES
 INSERT INTO gd_command
   (ID,PARENT,NAME,CMD,CMDTYPE,HOTKEY,IMGINDEX,ORDR,CLASSNAME,SUBTYPE,AVIEW,ACHAG,AFULL,DISABLED,RESERVED)
 VALUES
-  (741120,740400,'Внешние ключи','gdcFKManager',0,NULL,228,NULL,'TgdcFKManager',NULL,1,1,1,0,NULL);
-
-INSERT INTO gd_command
-  (ID,PARENT,NAME,CMD,CMDTYPE,HOTKEY,IMGINDEX,ORDR,CLASSNAME,SUBTYPE,AVIEW,ACHAG,AFULL,DISABLED,RESERVED)
-VALUES
   (741108,740400,'Пространства имен','gdcNamespace',0,NULL,80,NULL,'TgdcNamespace',NULL,1,1,1,0,NULL);
 
 INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
-  VALUES (
-    741109,
-    740400,
-    'Синхронизация ПИ',
-    '',
-    'Tat_frmSyncNamespace',
-    NULL,
-    0
-  );
+VALUES (
+  741109,
+  740400,
+  'Синхронизация ПИ',
+  '',
+  'Tat_frmSyncNamespace',
+  NULL,
+  0
+);
 
 INSERT INTO gd_command
   (ID,PARENT,NAME,CMD,CMDTYPE,HOTKEY,IMGINDEX,ORDR,CLASSNAME,SUBTYPE,AVIEW,ACHAG,AFULL,DISABLED,RESERVED)
@@ -21207,6 +21216,16 @@ INSERT INTO gd_command
   (ID,PARENT,NAME,CMD,CMDTYPE,HOTKEY,IMGINDEX,ORDR,CLASSNAME,SUBTYPE,AVIEW,ACHAG,AFULL,DISABLED,RESERVED)
 VALUES
   (741117,740400,'Триггеры','gdcTrigger',0,NULL,253,NULL,'TgdcTrigger',NULL,1,1,1,0,NULL);
+
+INSERT INTO gd_command
+  (ID,PARENT,NAME,CMD,CMDTYPE,HOTKEY,IMGINDEX,ORDR,CLASSNAME,SUBTYPE,AVIEW,ACHAG,AFULL,DISABLED,RESERVED)
+VALUES
+  (741118,740400,'Ограничения','gdcCheckConstraint',0,NULL,214,NULL,'TgdcCheckConstraint',NULL,1,1,1,0,NULL);
+
+INSERT INTO gd_command
+  (ID,PARENT,NAME,CMD,CMDTYPE,HOTKEY,IMGINDEX,ORDR,CLASSNAME,SUBTYPE,AVIEW,ACHAG,AFULL,DISABLED,RESERVED)
+VALUES
+  (741120,740400,'Внешние ключи','gdcFKManager',0,NULL,228,NULL,'TgdcFKManager',NULL,1,1,1,0,NULL);
 
 -- gd_documenttype
 -- 800001..850000

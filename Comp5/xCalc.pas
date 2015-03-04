@@ -299,6 +299,20 @@ begin
       Result := Result + S[I];
 end;
 
+{ deletes all leading and trailing white spaces }
+(*
+function StripStr(const S: String): String;
+var
+  B, E: Integer;
+begin
+  B := 1;
+  while (B < Length(S)) and (S[B] in [#32, #9]) do Inc(B);
+  E := Length(S);
+  while (E >= B) and (S[E] in [#32, #9]) do Dec(E);
+  Result := Copy(S, B, E - B + 1);
+end;
+*)
+
 { Stack of doubles ---------------------------------------}
 
 constructor TDoubleStack.Create;
@@ -1063,7 +1077,7 @@ begin
       // просто пропустим ее данные
       while not Reader.EndOfList do
         Reader.Read(T, 1);
-      break;
+      break;  
     end;
   end;
   Reader.ReadListEnd;
@@ -1079,6 +1093,7 @@ begin
     begin
       Writer.WriteString(PVariable(FVariables[I])^.Name);
       Writer.WriteFloat(PVariable(FVariables[I])^.Value);
+//      Writer.Write(PVariable(FVariables[I])^, SizeOf(TVariable));
     end;
   Writer.WriteListEnd;
 end;

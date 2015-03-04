@@ -10,22 +10,27 @@ inherited gdc_dlgHGR: Tgdc_dlgHGR
   inherited btnAccess: TButton
     Left = 9
     Top = 357
+    Anchors = [akLeft, akBottom]
   end
   inherited btnNew: TButton
     Left = 85
     Top = 357
+    Anchors = [akLeft, akBottom]
   end
   inherited btnHelp: TButton
     Left = 161
     Top = 357
+    Anchors = [akLeft, akBottom]
   end
   inherited btnOK: TButton
     Left = 438
     Top = 357
+    Anchors = [akRight, akBottom]
   end
   inherited btnCancel: TButton
     Left = 514
     Top = 357
+    Anchors = [akRight, akBottom]
   end
   object pnlMain: TPanel [5]
     Left = 0

@@ -16,9 +16,7 @@ type
 
   public
     procedure SetupDialog; override;
-    class function GetSubTypeList(SubTypeList: TStrings;
-      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; override;
-    class function ClassParentSubtype(Subtype: String): String; override;
+    class function GetSubTypeList(SubTypeList: TStrings): Boolean; override;
   end;
 
 var
@@ -34,34 +32,25 @@ uses
 { Tgdc_dlgAttrUserDefinedTree }
 
 class function Tgdc_dlgAttrUserDefinedTree.GetSubTypeList(
-  SubTypeList: TStrings; Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
+  SubTypeList: TStrings): Boolean;
 var
   sl: TStrings;
   i: integer;
 begin
-  Result := TgdcAttrUserDefinedTree.GetSubTypeList(SubTypeList, Subtype, OnlyDirect);
-  if Subtype = '' then
-  begin
-    if SubTypeList.Count > 0 then begin
-      sl:= TStringList.Create;
-      try
-        sl.Assign(SubTypeList);
-        Result := TgdcAttrUserDefinedLBRBTree.GetSubTypeList(SubTypeList, Subtype, OnlyDirect) or Result;
-        for i:= 0 to sl.Count - 1 do
-          SubTypeList.Add(sl[i]);
-      finally
-        sl.Free;
-      end;
-    end
-    else
-      Result := TgdcAttrUserDefinedLBRBTree.GetSubTypeList(SubTypeList, Subtype, OnlyDirect);
-  end;
-end;
-
-class function Tgdc_dlgAttrUserDefinedTree.ClassParentSubtype(
-  Subtype: String): String;
-begin
-  Result := TgdcAttrUserDefinedLBRBTree.ClassParentSubtype(SubType);
+  Result := TgdcAttrUserDefinedTree.GetSubTypeList(SubTypeList);
+  if SubTypeList.Count > 0 then begin
+    sl:= TStringList.Create;
+    try
+      sl.Assign(SubTypeList);
+      Result := TgdcAttrUserDefinedLBRBTree.GetSubTypeList(SubTypeList) or Result;
+      for i:= 0 to sl.Count - 1 do
+        SubTypeList.Add(sl[i]);
+    finally
+      sl.Free;
+    end;
+  end
+  else
+    Result := TgdcAttrUserDefinedLBRBTree.GetSubTypeList(SubTypeList);
 end;
 
 procedure TGDC_DLGATTRUSERDEFINEDTREE.SetupDialog;
@@ -70,7 +59,6 @@ procedure TGDC_DLGATTRUSERDEFINEDTREE.SetupDialog;
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-       LSubtype: string;
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGATTRUSERDEFINEDTREE', 'SETUPDIALOG', KEYSETUPDIALOG)}
   {M}  try
@@ -98,12 +86,8 @@ begin
     begin
       ibtrParent.DefaultDatabase := Database;
       gsiblkupParent.gdClassName := ClassName;
-      LSubtype := SubType;
-      While ClassParentSubtype(LSubtype) <> '' do
-        LSubtype := ClassParentSubtype(LSubtype);
-      gsiblkupParent.SubType := LSubType;
+      gsiblkupParent.SubType := SubType;
     end;
-    
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGATTRUSERDEFINEDTREE', 'SETUPDIALOG', KEYSETUPDIALOG)}
   {M}finally
   {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then

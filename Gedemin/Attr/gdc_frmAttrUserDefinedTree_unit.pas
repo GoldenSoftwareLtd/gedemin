@@ -47,9 +47,8 @@ type
   public
     constructor Create(AnOwner: TComponent); override;
     class function CreateAndAssign(AnOwner: TComponent): TForm; override;
-    class function GetSubTypeList(SubTypeList: TStrings;
-      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; override;
-    class function ClassParentSubtype(Subtype: String): String; override;
+    class function GetSubTypeList(SubTypeList: TStrings): Boolean; override;
+
   end;
 
 var
@@ -77,15 +76,11 @@ end;
 procedure Tgdc_frmAttrUserDefinedTree.FormCreate(Sender: TObject);
 var
   R: TatRelation;
-  LSubType: string;
 begin
   gdcObject := Master;
   //gdcObject.SubType := FSubType;
 
-  LSubtype := FSubType;
-  While ClassParentSubtype(LSubtype) <> '' do
-    LSubtype := ClassParentSubtype(LSubtype);
-  R := atDatabase.Relations.ByRelationName(LSubType);
+  R := atDatabase.Relations.ByRelationName(FSubType);
   Assert(R <> nil);
 
   if tvGroup.DisplayField = '' then
@@ -112,15 +107,9 @@ begin
 end;
 
 class function Tgdc_frmAttrUserDefinedTree.GetSubTypeList(
-  SubTypeList: TStrings; Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
+  SubTypeList: TStrings): Boolean;
 begin
-  Result := TgdcAttrUserDefinedTree.GetSubTypeList(SubTypeList, Subtype, OnlyDirect);
-end;
-
-class function Tgdc_frmAttrUserDefinedTree.ClassParentSubtype(
-  Subtype: String): String;
-begin
-  Result := TgdcAttrUserDefinedTree.ClassParentSubtype(SubType);
+  Result := TgdcAttrUserDefinedTree.GetSubTypeList(SubTypeList);
 end;
 
 initialization

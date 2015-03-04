@@ -204,7 +204,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
         KeyField = 'ID'
         gdClassName = 'TgdcUserGroup'
         StrictOnExit = False
-        ItemHeight = 13
+        ItemHeight = 0
         ParentShowHint = False
         ShowHint = True
         TabOrder = 5
@@ -321,7 +321,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
         Font.Height = -9
         Font.Name = 'Tahoma'
         Font.Style = []
-        ItemHeight = 11
+        ItemHeight = 0
         ParentFont = False
         TabOrder = 2
       end

@@ -340,10 +340,8 @@ begin
   FAcctConditions.Free;
   FAcctValues.Free;
 
-  if Assigned(FNameAliasList) then
-    FNameAliasList.Free;
-  if Assigned(FKeyAliasList) then
-    FKeyAliasList.Free;
+  FNameAliasList.Free;
+  FKeyAliasList.Free;
 
   inherited;
 end;

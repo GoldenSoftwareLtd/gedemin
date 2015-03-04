@@ -367,7 +367,7 @@ const
     (ModifyProc: ModifyAC_ACCOUNTEXSALDO_BAL; ModifyVersion: '0000.0001.0000.0237'; NeedDBShutdown: False),
     (ModifyProc: IntroduceIncorrectRecordGTT; ModifyVersion: '0000.0001.0000.0241'; NeedDBShutdown: True),
     (ModifyProc: Issue3373; ModifyVersion: '0000.0001.0000.0243'; NeedDBShutdown: False),
-    (ModifyProc: AddGD_WEBLOG; ModifyVersion: '0000.0001.0000.0244'; NeedDBShutdown: True)
+    (ModifyProc: AddGD_WEBLOG; ModifyVersion: '0000.0001.0000.0247'; NeedDBShutdown: True)
   );
 
 implementation

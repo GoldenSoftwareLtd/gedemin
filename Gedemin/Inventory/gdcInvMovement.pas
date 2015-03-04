@@ -2,7 +2,7 @@
 {++
 
 
-  Copyright (c) 2001-2013 by Golden Software of Belarus
+  Copyright (c) 2001-2014 by Golden Software of Belarus
 
   Module
 
@@ -365,9 +365,7 @@ type
     property IsGetRemains: Boolean read GetIsGetRemains write SetIsGetRemains;
     property NoWait: Boolean read FNoWait write FNoWait;
 
-    class function GetSubTypeList(SubTypeList: TStrings;
-      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; override;
-    class function ClassParentSubtype(Subtype: String): String; override;
+    class function GetSubTypeList(SubTypeList: TStrings): Boolean; override;
     property ShowMovementDlg: Boolean read FShowMovementDlg write FShowMovementDlg default True;
   published
     // Позиция документа
@@ -432,8 +430,7 @@ type
     class function GetKeyField(const ASubType: TgdcSubType): String; override;
     class function GetListTableAlias: String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
-    class function GetSubTypeList(SubTypeList: TStrings;
-      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; override;
+    class function GetSubTypeList(SubTypeList: TStrings): Boolean; override;
     class function IsAbstractClass: Boolean; override;
     class function GetDisplayName(const ASubType: TgdcSubType): String; override;
 
@@ -4630,8 +4627,8 @@ begin
   {END MACRO}
 end;
 
-class function TgdcInvMovement.GetSubTypeList(SubTypeList: TStrings;
-  Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
+class function TgdcInvMovement.GetSubTypeList(
+  SubTypeList: TStrings): Boolean;
 {var
   ibsql: TIBSQL;
   ibtr: TIBTransaction;}
@@ -4639,7 +4636,7 @@ begin
   Assert(Assigned(gdcInvDocumentCache));
 
   Result := gdcInvDocumentCache.GetSubTypeList(TgdcInvDocumentType.InvDocumentTypeBranchKey,
-    SubTypeList, Subtype, OnlyDirect);
+    SubTypeList);
 
   {
   if not Assigned(gdcBaseManager) then
@@ -4683,12 +4680,6 @@ begin
 
   Result := SubTypeList.Count > 0;
   }
-end;
-
-class function TgdcInvMovement.ClassParentSubtype(
-  Subtype: String): String;
-begin
-  Result := gdcInvDocumentCache.ClassParentSubtype(SubType);
 end;
 
 procedure TgdcInvMovement.SetSubSet(const Value: TgdcSubSet);
@@ -5286,8 +5277,8 @@ begin
   Result := inherited GetSubSetList + cst_ByGoodKey + ';' + cst_ByGroupKey + ';' + cst_AllRemains + ';' + cst_Holding + ';';
 end;
 
-class function TgdcInvBaseRemains.GetSubTypeList(SubTypeList: TStrings;
-      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
+class function TgdcInvBaseRemains.GetSubTypeList(
+  SubTypeList: TStrings): Boolean;
 {var
   ibsql: TIBSQL;}
 begin
@@ -5302,7 +5293,7 @@ begin
     Assert(Assigned(gdcInvDocumentCache));
 
     Result := gdcInvDocumentCache.GetSubTypeList2(
-      'TgdcInvBaseRemains', SubTypeList, Subtype, OnlyDirect);
+      'TgdcInvBaseRemains', SubTypeList);
     {if Result then
     begin
       ibsql.Transaction := gdcBaseManager.ReadTransaction;
@@ -7447,7 +7438,7 @@ begin
   {M}    end;
   {END MACRO}
 
-  Result := 'GROUP BY con.Name, doc.number, doc.documentdate, ' +
+  Result := 'GROUP BY con.Name, doc.number, doc.documentdate, doc.creationdate, doc.editiondate, ' +
    ' doct.name, doct.ruid, doc.id, doc.parent, g.Name, v.Name, m.contactkey, z.goodkey, main_con.name, main_con.id ';
   if HasSubSet('ByHolding') then
     Result := Result + ', con_m.name ';
@@ -7538,9 +7529,9 @@ begin
   {M}    end;
   {END MACRO}
   if HasSubSet('ByHolding') then
-    Result := 'ORDER BY doc.documentdate, doc.id, 14 DESC '
+    Result := 'ORDER BY doc.documentdate, doc.editiondate, 16 DESC '
   else
-    Result := 'ORDER BY doc.documentdate, doc.id, 13 DESC ';
+    Result := 'ORDER BY doc.documentdate, doc.editiondate, 15 DESC ';
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVCARD', 'GETORDERCLAUSE', KEYGETORDERCLAUSE)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -7770,7 +7761,7 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  Result := 'SELECT con.Name, doc.number, doc.documentdate, g.Name as GoodName, v.Name as ValueName, ' +
+  Result := 'SELECT con.Name, doc.number, doc.documentdate, doc.creationdate, doc.editiondate, g.Name as GoodName, v.Name as ValueName, ' +
    ' doct.name as DocName, doct.ruid, doc.id, doc.parent, m.contactkey, z.goodkey, main_con.name as DEPOTNAME, main_con.id as DEPOTKEY ';
   if HasSubSet('ByHolding') then
     Result := Result + ', con_m.Name as NameMove, SUM(m.Debit) as Debit, SUM(m.Credit) as Credit '

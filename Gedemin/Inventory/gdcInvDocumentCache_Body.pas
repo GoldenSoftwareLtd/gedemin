@@ -11,28 +11,23 @@ type
   private
     CachedDBID: TID;
     CachedSubTypeList: TgdKeyStringAssoc;
-    CachedSubTypeListOD: TgdKeyStringAssoc;
-    CachedSubTypeListST: TgdKeyStringAssoc;
-    CachedSubTypeListODST: TgdKeyStringAssoc;
     Link: TStringList;
 
-    CachedParentSubTypeList: TStringList;
-
     function DoCache(const K: Integer; const IsClassName: Boolean;
-      SubTypeList: TStrings; SubType: string; OnlyDirect: Boolean): Boolean;
+      SubTypeList: TStrings): Boolean;
     procedure CheckDBID;
-//    function IntToKey(const I: Integer): Integer;
+    function IntToKey(const I: Integer): Integer;
     function StringToKey(const S: String): Integer;
-    procedure FillParentSubTypeList;
+
   public
     constructor Create;
     destructor Destroy; override;
 
     function GetSubTypeList(const InvDocumentTypeBranchKey: TID;
-      SubTypeList: TStrings; SubType: string = ''; OnlyDirect: Boolean = False): Boolean;
+      SubTypeList: TStrings): Boolean;
     function GetSubTypeList2(const ClassName: String;
-      SubTypeList: TStrings; Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
-    function ClassParentSubtype(SubType: string): string;
+      SubTypeList: TStrings): Boolean;
+
     procedure Clear;
   end;
 
@@ -56,9 +51,6 @@ begin
   begin
     Link.Clear;
     CachedSubTypeList.Clear;
-    CachedSubTypeListOD.Clear;
-    CachedSubTypeListST.Clear;
-    CachedSubTypeListODST.Clear;
     CachedDBID := IBLogin.DBID;
   end;
 end;
@@ -67,9 +59,6 @@ procedure TgdcInvDocumentCache.Clear;
 begin
   CachedDBID := -1;
   CachedSubTypeList.Clear;
-  CachedSubTypeListOD.Clear;
-  CachedSubTypeListST.Clear;
-  CachedSubTypeListODST.Clear;
   Link.Clear;
 end;
 
@@ -77,33 +66,20 @@ constructor TgdcInvDocumentCache.Create;
 begin
   CachedDBID := -1;
   CachedSubTypeList := TgdKeyStringAssoc.Create;
-  CachedSubTypeListOD := TgdKeyStringAssoc.Create;
-  CachedSubTypeListST := TgdKeyStringAssoc.Create;
-  CachedSubTypeListODST := TgdKeyStringAssoc.Create;
   Link := TStringList.Create;
   Link.Sorted := False;
   Link.Duplicates := dupError;
-
-  CachedParentSubTypeList := TStringList.Create;
-  CachedParentSubTypeList.Sorted := False;
-  CachedParentSubTypeList.Duplicates := dupError;
-  if Assigned(CachedParentSubTypeList) then
-    FillParentSubTypeList;
 end;
 
 destructor TgdcInvDocumentCache.Destroy;
 begin
   Link.Free;
   CachedSubTypeList.Free;
-  CachedSubTypeListOD.Free;
-  CachedSubTypeListST.Free;
-  CachedSubTypeListODST.Free;
-  CachedParentSubTypeList.Free;
   inherited;
 end;
 
 function TgdcInvDocumentCache.DoCache(const K: Integer;
-  const IsClassName: Boolean; SubTypeList: TStrings; SubType: string; OnlyDirect: Boolean): Boolean;
+  const IsClassName: Boolean; SubTypeList: TStrings): Boolean;
 var
   ibsql: TIBSQL;
   DidActivate: Boolean;
@@ -115,29 +91,12 @@ begin
     Result := False;
     exit;
   end;
-  if OnlyDirect then
-    if Subtype <> '' then
-      I := CachedSubTypeListODST.IndexOf(K)
-    else
-      I := CachedSubTypeListOD.IndexOf(K)
-  else
-    if Subtype <> '' then
-      I := CachedSubTypeListST.IndexOf(K)
-    else
-      I := CachedSubTypeList.IndexOf(K);
+
+  I := CachedSubTypeList.IndexOf(K);
 
   if I <> -1 then
   begin
-    if OnlyDirect then
-      if Subtype <> '' then
-        SubTypeList.CommaText := CachedSubTypeListODST.ValuesByIndex[I]
-      else
-        SubTypeList.CommaText := CachedSubTypeListOD.ValuesByIndex[I]
-    else
-      if Subtype <> '' then
-        SubTypeList.CommaText := CachedSubTypeListST.ValuesByIndex[I]
-      else
-        SubTypeList.CommaText := CachedSubTypeList.ValuesByIndex[I];
+    SubTypeList.CommaText := CachedSubTypeList.ValuesByIndex[I];
   end else
   begin
     ibsql := TIBSQL.Create(nil);
@@ -149,135 +108,21 @@ begin
         ibsql.Transaction.StartTransaction;
 
       try
-        if OnlyDirect and (Subtype > '') then
+        if IsClassName and (Link[K] <> 'TgdcInvBaseRemains') then
         begin
-          //непосредственные наследники от SubType
-          ibsql.SQL.Text :=
-            'SELECT '#13#10 +
-            '  dt.name, '#13#10 +
-            '  dt.ruid '#13#10 +
-            'FROM gd_documenttype dt '#13#10 +
-            '  JOIN gd_documenttype dt1 '#13#10 +
-            '    ON dt.parent = dt1.id '#13#10 +
-            'WHERE dt1.ruid = :ruid '#13#10 +
-            '  AND dt.documenttype = ''D''';
-          ibsql.ParamByName('RUID').AsString := SubType;
+          ibsql.SQL.Text := 'SELECT NAME, RUID FROM GD_DOCUMENTTYPE WHERE CLASSNAME = :CN AND ' +
+            ' DOCUMENTTYPE = ''D''';
+          ibsql.ParamByName('CN').AsString := Link[K];
         end
-        else if OnlyDirect and (Subtype = '') and (IsClassName) then
+        else if IsClassName and (Link[K] = 'TgdcInvBaseRemains') then
         begin
-          //непосредственные наследники класса
-          if Link[K] = 'TgdcInvBaseRemains' then
-          begin
-            ibsql.SQL.Text :=
-              'SELECT '#13#10 +
-              '  dt.name, '#13#10 +
-              '  dt.ruid, '#13#10 +
-              '  dt.parent '#13#10 +
-              'FROM gd_documenttype dt '#13#10 +
-              '  JOIN gd_documenttype dt1 '#13#10 +
-              '    ON dt.LB >= dt1.lb '#13#10 +
-              '      AND dt.rb <= dt1.rb '#13#10 +
-              '  JOIN gd_documenttype dt2 '#13#10 +
-              '    ON dt.parent = dt2.id '#13#10 +
-              '      AND dt2.documenttype = ''B'' '#13#10 +
-              'WHERE dt1.id = :id '#13#10 +
-              '  AND dt.documenttype = ''D''';
-            ibsql.ParamByName('id').AsInteger :=
-              TgdcInvDocumentType.InvDocumentTypeBranchKey;
-          end
-          else
-          begin
-            ibsql.SQL.Text :=
-              'SELECT '#13#10 +
-              '  dt.name, '#13#10 +
-              '  dt.ruid '#13#10 +
-              'FROM gd_documenttype dt '#13#10 +
-              '  JOIN gd_documenttype dt1 '#13#10 +
-              '    ON dt.parent = dt1.id '#13#10 +
-              '      AND dt1.documenttype = ''B'' '#13#10 +
-              'WHERE dt.classname = :CN '#13#10 +
-              '  AND dt.documenttype = ''D''';
-            ibsql.ParamByName('CN').AsString := Link[K];
-          end;
-        end
-        else if OnlyDirect and (Subtype = '') and (not IsClassName) then
+          ibsql.SQL.Text := 'SELECT dt1.name, dt1.ruid FROM gd_documenttype dt1 JOIN gd_documenttype dt ON dt1.LB >= dt.lb AND dt1.rb <= dt.rb WHERE dt.id = :ID ' +
+            ' AND dt1.documenttype = ''D''';
+          ibsql.ParamByName('id').AsInteger := TgdcInvDocumentType.InvDocumentTypeBranchKey;
+        end else
         begin
-          //непосредственные наследники ветви
-          ibsql.SQL.Text :=
-            'SELECT '#13#10 +
-            '  dt.name, '#13#10 +
-            '  dt.ruid, '#13#10 +
-            '  dt.parent '#13#10 +
-            'FROM gd_documenttype dt '#13#10 +
-            '  JOIN gd_documenttype dt1 '#13#10 +
-            '    ON dt.LB >= dt1.lb '#13#10 +
-            '      AND dt.rb <= dt1.rb '#13#10 +
-            '  JOIN gd_documenttype dt2 '#13#10 +
-            '    ON dt.parent = dt2.id '#13#10 +
-            '      AND dt2.documenttype = ''B'' '#13#10 +
-            'WHERE dt1.id = :id '#13#10 +
-            '  AND dt.documenttype = ''D''';
-          ibsql.ParamByName('id').AsString := Link[K];
-        end
-        else if (not OnlyDirect) and (Subtype > '') then
-        begin
-          //вся иерархия наследников от Subtype
-          ibsql.SQL.Text :=
-            'SELECT '#13#10 +
-            '  dt.name, '#13#10 +
-            '  dt.ruid '#13#10 +
-            'FROM gd_documenttype dt '#13#10 +
-            '  JOIN gd_documenttype dt1 '#13#10 +
-            '    ON dt.lb > dt1.lb '#13#10 +
-            '      AND dt.rb < dt1.rb '#13#10 +
-            'WHERE dt1.ruid = :ruid '#13#10 +
-            '  AND dt.documenttype = ''D''';
-          ibsql.ParamByName('RUID').AsString := SubType;
-        end
-        else if (not OnlyDirect) and (Subtype = '') and IsClassName then
-        begin
-          //вся иерархия наследников класса
-          if Link[K] = 'TgdcInvBaseRemains' then
-          begin
-            ibsql.SQL.Text :=
-              'SELECT '#13#10 +
-              '  dt.name, '#13#10 +
-              '  dt.ruid, '#13#10 +
-              '  dt.parent '#13#10 +
-              'FROM gd_documenttype dt '#13#10 +
-              '  JOIN gd_documenttype dt1 '#13#10 +
-              '    ON dt.LB >= dt1.lb '#13#10 +
-              '      AND dt.rb <= dt1.rb '#13#10 +
-              'WHERE dt1.id = :id '#13#10 +
-              '  AND dt.documenttype = ''D''';
-            ibsql.ParamByName('id').AsInteger :=
-              TgdcInvDocumentType.InvDocumentTypeBranchKey;
-          end
-          else
-          begin
-            ibsql.SQL.Text :=
-              'SELECT '#13#10 +
-              '  name, ruid '#13#10 +
-              'FROM gd_documenttype '#13#10 +
-              'WHERE classname = :CN '#13#10 +
-              '  AND documenttype = ''D''';
-            ibsql.ParamByName('CN').AsString := Link[K];
-          end;
-        end
-        else if (not OnlyDirect) and (Subtype = '') and (not IsClassName) then
-        begin
-          //вся иерархия наследников ветви
-          ibsql.SQL.Text :=
-            'SELECT '#13#10 +
-            '  dt.name, '#13#10 +
-            '  dt.ruid, '#13#10 +
-            '  dt.parent '#13#10 +
-            'FROM gd_documenttype dt '#13#10 +
-            '  JOIN gd_documenttype dt1 '#13#10 +
-            '    ON dt.LB >= dt1.lb '#13#10 +
-            '      AND dt.rb <= dt1.rb '#13#10 +
-            'WHERE dt1.id = :id '#13#10 +
-            '  AND dt.documenttype = ''D''';
+          ibsql.SQL.Text := 'SELECT dt1.name, dt1.ruid FROM gd_documenttype dt1 JOIN gd_documenttype dt ON dt1.LB >= dt.lb AND dt1.rb <= dt.rb WHERE dt.id = :ID ' +
+            ' AND dt1.documenttype = ''D''';
           ibsql.ParamByName('id').AsString := Link[K];
         end;
 
@@ -307,7 +152,7 @@ begin
 
         ibsql.Close;
 
-        if IsClassName and (Subtype = '') then
+        if IsClassName then
         begin
           if Link[K] = 'TgdcInvBaseRemains' then
           begin
@@ -325,21 +170,8 @@ begin
           end;
         end;
 
-        if OnlyDirect then
-          if Subtype <> '' then
-            CachedSubTypeListODST.ValuesByIndex[CachedSubTypeListODST.Add(K)] :=
-              SubTypeList.CommaText
-          else
-            CachedSubTypeListOD.ValuesByIndex[CachedSubTypeListOD.Add(K)] :=
-              SubTypeList.CommaText
-        else
-          if Subtype <> '' then
-            CachedSubTypeListST.ValuesByIndex[CachedSubTypeListST.Add(K)] :=
-              SubTypeList.CommaText
-          else
-            CachedSubTypeList.ValuesByIndex[CachedSubTypeList.Add(K)] :=
-              SubTypeList.CommaText
-
+        CachedSubTypeList.ValuesByIndex[CachedSubTypeList.Add(K)] :=
+          SubTypeList.CommaText;
       finally
         if DidActivate then
           ibsql.Transaction.Commit;
@@ -353,88 +185,32 @@ begin
 end;
 
 function TgdcInvDocumentCache.GetSubTypeList(const InvDocumentTypeBranchKey: TID;
-  SubTypeList: TStrings; SubType: string = ''; OnlyDirect: Boolean = False): Boolean;
+  SubTypeList: TStrings): Boolean;
 begin
   CheckDBID;
-  Result := DoCache(StringToKey(IntToStr(InvDocumentTypeBranchKey) + Subtype), False, SubTypeList, SubType, OnlyDirect);
+  Result := DoCache(IntToKey(InvDocumentTypeBranchKey), False, SubTypeList);
 end;
 
 
 function TgdcInvDocumentCache.GetSubTypeList2(const ClassName: String;
-  SubTypeList: TStrings; Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
+  SubTypeList: TStrings): Boolean;
 begin
   CheckDBID;
-  Result := DoCache(StringToKey(ClassName + Subtype), True, SubTypeList, Subtype, OnlyDirect);
+  Result := DoCache(StringToKey(ClassName), True, SubTypeList);
 end;
 
-//function TgdcInvDocumentCache.IntToKey(const I: Integer): Integer;
-//begin
-//  Result := Link.IndexOf(IntToStr(I));
-//  if Result = -1 then
-//    Result := Link.Add(IntToStr(I));
-//end;
+function TgdcInvDocumentCache.IntToKey(const I: Integer): Integer;
+begin
+  Result := Link.IndexOf(IntToStr(I));
+  if Result = -1 then
+    Result := Link.Add(IntToStr(I));
+end;
 
 function TgdcInvDocumentCache.StringToKey(const S: String): Integer;
 begin
   Result := Link.IndexOf(S);
   if Result = -1 then
     Result := Link.Add(S);
-end;
-
-procedure TgdcInvDocumentCache.FillParentSubTypeList;
-var
-  ibsql: TIBSQL;
-begin
-  CachedParentSubTypeList.Clear;
-
-  if (not Assigned(gdcBaseManager))
-    or (not Assigned(IBLogin)) then
-  begin
-//    Result := False;
-    exit;
-  end;
-
-  ibsql := TIBSQL.Create(nil);
-  ibsql.Transaction := gdcBaseManager.ReadTransaction;
-  try
-    ibsql.Close;
-    ibsql.SQL.Text :=
-      'SELECT '#13#10 +
-      '  dt.ruid AS SubType, '#13#10 +
-      '  dt1.ruid AS ParentSubType '#13#10 +
-      'FROM gd_documenttype dt '#13#10 +
-      '  JOIN gd_documenttype dt1 '#13#10 +
-      '    ON dt1.id = dt.parent '#13#10 +
-      '      AND dt1.documenttype = ''D'' '#13#10 +
-      'Where dt1.documenttype = ''D''';
-    ibsql.ExecQuery;
-    while not ibsql.Eof do
-    begin
-      CachedParentSubTypeList.Values[ibsql.Fields[0].AsString] := ibsql.Fields[1].AsString;
-      ibsql.Next;
-    end;
-  finally
-    ibsql.Free;
-  end;
-end;
-
-function TgdcInvDocumentCache.ClassParentSubtype(SubType: string): string;
-begin
-  Result := '';
-  if CachedParentSubTypeList.Count = 0 then
-  begin
-    FillParentSubTypeList;
-    Result := CachedParentSubTypeList.Values[SubType];
-  end
-  else
-  begin
-    Result := CachedParentSubTypeList.Values[SubType];
-    if Result = '' then
-    begin
-      FillParentSubTypeList;
-      Result := CachedParentSubTypeList.Values[SubType];
-    end;
-  end;
 end;
 
 initialization

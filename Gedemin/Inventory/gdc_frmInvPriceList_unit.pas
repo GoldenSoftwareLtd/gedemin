@@ -45,9 +45,7 @@ type
   public
     constructor Create(AnOwner: TComponent); override;
     class function CreateAndAssign(AnOwner: TComponent): TForm; override;
-    class function GetSubTypeList(SubTypeList: TStrings;
-      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; override;
-    class function ClassParentSubtype(Subtype: String): String; override;
+    class function GetSubTypeList(SubTypeList: TStrings): Boolean; override;
     procedure SaveDesktopSettings; override;
   end;
 
@@ -87,16 +85,9 @@ begin
 end;
 
 class function Tgdc_frmInvPriceList.GetSubTypeList(
-  SubTypeList: TStrings;
-    Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
+  SubTypeList: TStrings): Boolean;
 begin
-  Result := TgdcInvPriceList.GetSubTypeList(SubTypeList, Subtype, OnlyDirect);
-end;
-
-class function Tgdc_frmInvPriceList.ClassParentSubtype(
-  Subtype: String): String;
-begin
-  Result := TgdcInvPriceList.ClassParentSubtype(SubType);
+  Result := TgdcInvPriceList.GetSubTypeList(SubTypeList);
 end;
 
 procedure Tgdc_frmInvPriceList.SaveDesktopSettings;

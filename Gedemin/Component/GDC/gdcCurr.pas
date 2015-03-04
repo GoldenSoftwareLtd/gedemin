@@ -16,8 +16,7 @@ unit gdcCurr;
 interface
 
 uses
-  Classes, IBCustomDataSet, gdcBase, Forms, gd_createable_form, Controls, DB,
-  gdcBaseInterface, IBDataBase;
+  Classes, gdcBase, Forms, Controls, DB, gdcBaseInterface, IBDataBase;
 
 type
   TgdcCurr = class(TgdcBase)
@@ -63,7 +62,7 @@ implementation
 
 uses
   IBSQL,
-  dmDataBase_unit,
+  IBCustomDataSet,
   SysUtils,
 
   AcctUtils,

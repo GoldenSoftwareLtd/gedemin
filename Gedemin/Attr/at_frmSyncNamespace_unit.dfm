@@ -243,6 +243,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
     Options = [dgTitles, dgColumnResize, dgColLines, dgRowLines, dgTabs, dgRowSelect, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit, dgMultiSelect]
     PopupMenu = pmSync
     ReadOnly = True
+    RefreshType = rtNone
     TabOrder = 1
     InternalMenuKind = imkWithSeparator
     Expands = <>

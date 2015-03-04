@@ -45,9 +45,7 @@ type
     constructor Create(AnOwner: TComponent); override;
     class function CreateAndAssign(AnOwner: TComponent): TForm; override;
 
-    class function GetSubTypeList(SubTypeList: TStrings;
-      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; override;
-    class function ClassParentSubtype(Subtype: String): String; override;
+    class function GetSubTypeList(SubTypeList: TStrings): Boolean; override;
   end;
 
 var
@@ -86,15 +84,9 @@ begin
 end;
 
 class function Tgdc_frmAttrUserDefined.GetSubTypeList(
-  SubTypeList: TStrings; Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
+  SubTypeList: TStrings): Boolean;
 begin
-  Result := TgdcAttrUserDefined.GetSubTypeList(SubTypeList, Subtype, OnlyDirect);
-end;
-
-class function Tgdc_frmAttrUserDefined.ClassParentSubtype(
-  Subtype: String): String;
-begin
-  Result := TgdcAttrUserDefined.ClassParentSubtype(SubType);
+  Result := TgdcAttrUserDefined.GetSubTypeList(SubTypeList);
 end;
 
 initialization

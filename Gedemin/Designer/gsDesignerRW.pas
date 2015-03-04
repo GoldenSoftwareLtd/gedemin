@@ -19,7 +19,7 @@ type
     procedure BufOnFindMethod(Reader: TReader; const MethodName: string; var Address: Pointer; var Error: Boolean);
 
   public
-    procedure ProcessComponents(AnOwner: TComponent; const ASubType: string = ''; ReplaceSubType: boolean = false);
+    procedure ProcessComponents(AnOwner: TComponent; const ASubType: string = '');
 
 //    procedure ReadProperty(AInstance: TPersistent); reintroduce;
     property Designer: TgsResizeManager read FDesigner write FDesigner;
@@ -662,7 +662,7 @@ begin
   FResolving.Add(OldName + '=' + Name);
 end;
 
-procedure TDesignReader.ProcessComponents(AnOwner: TComponent; const ASubType: string; ReplaceSubType: boolean);
+procedure TDesignReader.ProcessComponents(AnOwner: TComponent; const ASubType: string);
 var
   CompClass: String;
   CompName: String;
@@ -679,8 +679,7 @@ var
   FClientHeight: Integer;
   FClientWidth: Integer;
   FFormState: TComponentState;
-  LSubType: string;
-  LCompName: string;
+
   procedure SetLoading(AComponent: TComponent; const AState: boolean);
   var
     CS: TComponentState;
@@ -731,22 +730,11 @@ begin
         ReadPrefix(Flags, CurrPos);
         CompClass := ReadStr;
         CompName := ReadStr;
-
-        if ReplaceSubType then
-        begin
-          CompName := Copy(CompClass,2, Length(CompClass)) + ASubType;
-          ReplaceSubType := False;
-        end;
-
         if CompName <> '' then
         begin
-          LSubType := ASubType;
-          LSubType := StringReplace(LSubType, 'USR$', 'USR_',[rfIgnoreCase]);
-          LCompName := CompName;
-          LCompName := StringReplace(LCompName, 'USR$', 'USR_',[rfIgnoreCase]);
           if (CompClass = AnOwner.ClassName) and (AnOwner is TCreateableForm) and
-              ((UpperCase(TCreateableForm(AnOwner).InitialName) = UpperCase(LCompName)) or
-               (UpperCase(TCreateableForm(AnOwner).InitialName) = UpperCase(LCompName + LSubType))) then
+              ((UpperCase(TCreateableForm(AnOwner).InitialName) = UpperCase(CompName)) or
+               (UpperCase(TCreateableForm(AnOwner).InitialName) = UpperCase(CompName + ASubType))) then
             C := AnOwner
           else
             C := GlobalFindComponent(CompName, AnOwner);

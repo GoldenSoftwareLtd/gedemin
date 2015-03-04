@@ -32,7 +32,7 @@ type
     procedure Add(AnObject: TgdcBase);
     function FindObject(const AnID: TID): TgsNSObject;
     procedure GetNamespaces(AKeyArray: TgdKeyArray);
-    procedure InitView(I: Iat_dlgToNamespace; const AKind: TgsNSObjectKind);
+    procedure InitView(I: Iat_dlgToNamespace);
 
     property ID: TID read FID;
     property ObjectName: String read FObjectName;
@@ -60,7 +60,7 @@ type
     function Add(AnObject: TgdcBase; ANSObjects: TgsNSObjects): Integer;
     function FindObject(const AnID: TID): TgsNSObject;
     procedure GetNamespaces(AKeyArray: TgdKeyArray);
-    procedure InitView(I: Iat_dlgToNamespace; const AKind: TgsNSObjectKind);
+    procedure InitView(I: Iat_dlgToNamespace);
 
     property ObjectCount: Integer read GetObjectCount;
     property Objects[Index: Integer]: TgsNSObject read GetObjects;
@@ -93,7 +93,7 @@ type
 implementation
 
 uses
-  Controls, Forms, IBSQL, gdcMetaData, flt_sql_parser;
+  IBSQL, gdcMetaData, flt_sql_parser;
 
 { TgsNSObjects }
 
@@ -134,34 +134,26 @@ procedure TgsNSObjects.Setup(AnObject: TgdcBase; ABL: TBookmarkList);
 var
   Bm: String;
   I: Integer;
-  OldCursor: TCursor;
 begin
-  OldCursor := Screen.Cursor;
-  try
-    Screen.Cursor := crHourGlass;
+  if ABL <> nil then
+  begin
+    ABL.Refresh;
 
-    if ABL <> nil then
-    begin
-      ABL.Refresh;
-
-      AnObject.DisableControls;
-      try
-        Bm := AnObject.Bookmark;
-        for I := 0 to ABL.Count - 1 do
-        begin
-          AnObject.Bookmark := ABL[I];
-          FList.Add(AnObject, Self);
-        end;
-        AnObject.Bookmark := Bm;
-      finally
-        AnObject.EnableControls;
+    AnObject.DisableControls;
+    try
+      Bm := AnObject.Bookmark;
+      for I := 0 to ABL.Count - 1 do
+      begin
+        AnObject.Bookmark := ABL[I];
+        FList.Add(AnObject, Self);
       end;
+      AnObject.Bookmark := Bm;
+    finally
+      AnObject.EnableControls;
     end;
-
-    FList.Add(AnObject, Self);
-  finally
-    Screen.Cursor := OldCursor;
   end;
+
+  FList.Add(AnObject, Self);
 end;
 
 function TgsNSObjects.GetNamespaceCount: Integer;
@@ -179,7 +171,7 @@ end;
 
 procedure TgsNSObjects.InitView(I: Iat_dlgToNamespace);
 begin
-  FList.InitView(I, nskSelected);
+  FList.InitView(I);
 end;
 
 { TgsNSObject }
@@ -353,12 +345,10 @@ begin
   FCompound.GetNamespaces(AKeyArray);
 end;
 
-procedure TgsNSObject.InitView(I: Iat_dlgToNamespace; const AKind: TgsNSObjectKind);
+procedure TgsNSObject.InitView(I: Iat_dlgToNamespace);
 begin
   I.AddObject(FID, FObjectName, FObjectClass, FSubType, FRUID, FEditionDate,
-    -1, '', AKind);
-  FLinked.InitView(I, nskLinked);
-  FCompound.InitView(I, nskCompound);  
+    -1, '', False);
 end;
 
 { TgsNSList }
@@ -428,12 +418,12 @@ begin
   Result := FList[Index] as TgsNSObject;
 end;
 
-procedure TgsNSList.InitView(I: Iat_dlgToNamespace; const AKind: TgsNSObjectKind);
+procedure TgsNSList.InitView(I: Iat_dlgToNamespace);
 var
   J: Integer;
 begin
   for J := 0 to ObjectCount - 1 do
-    Objects[J].InitView(I, AKind);
+    Objects[J].InitView(I);
 end;
 
 end.

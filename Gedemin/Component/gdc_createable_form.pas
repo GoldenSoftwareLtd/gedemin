@@ -99,11 +99,7 @@ type
     // Стек создается при первом обращении, уничтожается вместе с объектом.
     property ClassMethodAssoc: TgdKeyIntAndStrAssoc read FClassMethodAssoc;
 
-    class function GetSubTypeList(SubTypeList: TStrings;
-      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; virtual;
-
-    class function ClassParentSubtype(Subtype: String): String; virtual;
-
+    class function GetSubTypeList(SubTypeList: TStrings): Boolean; virtual;
     class function CreateAndAssign(AnOwner: TComponent): TForm; override;
     class function FindForm(const AFormClass: CgdcCreateableForm;
       const ASubType: TgdcSubType; const AnInitialName: String = ''): TgdcCreateableForm;
@@ -378,21 +374,12 @@ begin
 end;
 
 class function TgdcCreateableForm.GetSubTypeList(
-  SubTypeList: TStrings; Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
+  SubTypeList: TStrings): Boolean;
 var
   I: Integer;
   F: TgsStorageFolder;
   GClass: TClass;
 begin
-
-    { TODO : Временно пока нет наследования по Subtype }
-  if Subtype > '' then
-  begin
-    SubTypeList.Clear;
-    Result := False;
-    Exit;
-  end;
-
   if Assigned(GlobalStorage) then
   begin
     F := GlobalStorage.OpenFolder('SubTypes', False, False);
@@ -424,11 +411,6 @@ begin
 
   SubTypeList.Clear;
   Result := False;
-end;
-
-class function TgdcCreateableForm.ClassParentSubtype(Subtype: String): String;
-begin
-  Result := '';
 end;
 
 procedure TgdcCreateableForm.CreateInherited;

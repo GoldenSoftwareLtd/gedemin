@@ -1,5 +1,5 @@
 inherited gdc_dlgTrigger: Tgdc_dlgTrigger
-  Left = 307
+  Left = 425
   Top = 199
   Width = 435
   Height = 424

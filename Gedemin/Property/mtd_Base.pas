@@ -6,7 +6,7 @@ interface
 uses
   evt_i_Base, mtd_i_Base, SysUtils, TypInfo, IBDatabase, Classes,
   Contnrs, rp_BaseReport_unit, scr_i_FunctionList, gdcBase, gd_DebugLog,
-  gd_KeyAssoc, gdcBaseInterface, JclStrHashMap, gdcClasses;
+  gd_KeyAssoc, gdcBaseInterface, JclStrHashMap;
 
 const
   strStartClass = 'SCS';
@@ -446,7 +446,7 @@ begin
           LFR := ';';
         end;
         fplJScript: LFN := 'function';
-        fplVBScript: LFN := 'Sub';
+        fplVBScript: LFN := 'sub';
       else
         raise Exception.Create(GetGsException(Self, 'Unknown language type.'));
       end;
@@ -1144,24 +1144,8 @@ begin
               begin
                 LFullChildName := LCurrentFullClass;
                 // Если в последнем в стеке полном имени класса есть подтип, то
-                // текущий полный класс - это тот-же полный класс без подтипа,
-                // если нет родителя по подтипу GD_ DOCUMENTTYPE
-                if GetClass(LCurrentFullClass.gdClassName).InheritsFrom(TgdcBase) then
-                begin
-                  if not Assigned(gdcClassList.GetGDCClass(LCurrentFullClass))then
-                    raise Exception.Create('Ошибка перекрытия метода класса '
-                      + LCurrentFullClass.gdClassName);
-                  LCurrentFullClass.SubType :=
-                    gdcClassList.GetGDCClass(LCurrentFullClass).ClassParentSubtype(LCurrentFullClass.SubType)
-                end
-                else
-                begin
-                  if not Assigned(frmClassList.GetFRMClass(LCurrentFullClass))then
-                    raise Exception.Create('Ошибка перекрытия метода класса '
-                      + LCurrentFullClass.gdClassName);
-                  LCurrentFullClass.SubType :=
-                    frmClassList.GetFRMClass(LCurrentFullClass).ClassParentSubtype(LCurrentFullClass.SubType)
-                end;
+                // текущий полный класс - это тот-же полный класс без подтипа
+                LCurrentFullClass.SubType := '';
               end else
                 begin
                   // Если последний обработанный класс без подтипа, то получаем

@@ -292,7 +292,8 @@ begin
   if pcMain.ActivePage = tsSubTypes then
   begin
     if Assigned(gdcObject) then
-      gdcObject.GetSubTypeList(mSubTypes.Lines, gdcObject.SubType, False);
+      gdcObject.GetSubTypeList(mSubTypes.Lines);
+      //gdcObject.GetSubTypeList(mSubTypes.Lines, gdcObject.SubType, False);
   end
   else if pcMain.ActivePage = tsLinks then
   begin

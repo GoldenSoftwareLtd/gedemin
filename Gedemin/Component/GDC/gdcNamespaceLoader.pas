@@ -56,6 +56,7 @@ type
     FSecondPassList: TObjectList;
     FOurCompanies: TgdKeyArray;
     FLoading: Boolean;
+    FNSList: TgdKeyArray;
 
     procedure FlushStorages;
     procedure LoadAtObjectCache(const ANamespaceKey: Integer);
@@ -92,13 +93,21 @@ type
     property Loading: Boolean read FLoading;
   end;
 
+  TAtRemoveRecord = class(TObject)
+  public
+    RUID: TRUID;
+    ObjectClass: CgdcBase;
+    ObjectSubType: String;
+    ObjectName: String;
+  end;
+
 implementation
 
 uses
   IBHeader, Storages, gd_security, at_classes, at_frmSQLProcess,
   at_sql_metadata, gd_common_functions, gdcNamespaceRecCmpController,
   gdcMetadata, gdcFunction, gd_directories_const, mtd_i_Base, evt_i_Base,
-  gd_CmdLineParams_unit;
+  gd_CmdLineParams_unit, at_dlgNamespaceRemoveList_unit;
 
 type
   TAtObjectRecord = class(TObject)
@@ -113,13 +122,6 @@ type
     DontRemove: Boolean;
     HeadObjectKey: Integer;
     Loaded: Boolean;
-  end;
-
-  TAtRemoveRecord = class(TObject)
-  public
-    RUID: TRUID;
-    ObjectClass: CgdcBase;
-    ObjectSubType: String;
   end;
 
 var
@@ -404,10 +406,12 @@ begin
   FSecondPassList := TObjectList.Create(True);
 
   FOurCompanies := TgdKeyArray.Create;
+  FNSList := TgdKeyArray.Create;
 end;
 
 destructor TgdcNamespaceLoader.Destroy;
 begin
+  FNSList.Free;
   FOurCompanies.Free;
   FSecondPassList.Free;
   FRemoveList.Free;
@@ -443,21 +447,22 @@ end;
 
 procedure TgdcNamespaceLoader.Load(AList: TStrings);
 var
-  I, J, K: Integer;
+  I, J, K, T: Integer;
   Parser: TyamlParser;
   Mapping: TyamlMapping;
   Objects: TyamlSequence;
   NSID: TID;
   NSTimeStamp: TDateTime;
   NSRUID: TRUID;
-  NSName, NSList: String;
+  NSName, HashString: String;
+  MS: TMemoryStream;
   q: TIBSQL;
 begin
   Assert(not FLoading);
   Assert(AList <> nil);
   Assert(IBLogin <> nil);
 
-  NSList := '';
+  FNSList.Clear;
   FLoading := True;
   FRemoveList.Clear;
   LoadOurCompanies;
@@ -543,7 +548,7 @@ begin
         FgdcNamespace.Post;
 
         NSID := FgdcNamespace.ID;
-        NSList := NSList + IntToStr(NSID) + ',';
+        FNSList.Add(NSID, True);
         NSTimeStamp := FgdcNamespace.FieldByName('filetimestamp').AsDateTime;
 
         OverwriteRUID(NSID, NSRUID.XID, NSRUID.DBID);
@@ -639,15 +644,34 @@ begin
   if FNeedRelogin then
     ReloginDatabase;
 
-  q := TIBSQL.Create(nil);
   FTr.StartTransaction;
+  q := TIBSQL.Create(nil);
   try
     q.Transaction := FTr;
-    if NSList > '' then
+    q.SQL.Text := 'UPDATE at_namespace SET changed = 0, md5 = :md5 WHERE id = :id';
+
+    for T := 0 to FNSList.Count - 1 do
     begin
-      q.SQL.Text := 'UPDATE at_namespace SET changed = 0 WHERE id IN (' +
-        System.Copy(NSList, 1, Length(NSList) - 1) + ')';
-      q.ExecQuery;
+      HashString := '';
+      FgdcNamespace.ID := FNSList.Keys[T];
+      FgdcNamespace.Open;
+      if not FgdcNamespace.EOF then
+      begin
+        MS := TMemoryStream.Create;
+        try
+          FgdcNamespace.SaveNamespaceToStream(MS, HashString);
+        finally
+          MS.Free;
+        end;
+      end;
+      FgdcNamespace.Close;
+
+      if HashString > '' then
+      begin
+        q.ParamByName('md5').AsString := HashString;
+        q.ParamByName('id').AsInteger := FNSList.Keys[T];
+        q.ExecQuery;
+      end;
     end;
   finally
     q.Free;
@@ -714,13 +738,14 @@ var
   Fields: TYAMLMapping;
   ObjID, CandidateID, RUIDID: TID;
   ObjPosted, ObjPreserved, CrossTableCreated: Boolean;
-  NeedSecondPass: Boolean;
+  NeedSecondPass, PartialOverwrite: Boolean;
   TempMapping: TyamlMapping;
 begin
   ObjPosted := False;
   ObjPreserved := False;
   CrossTableCreated := False;
   NeedSecondPass := False;
+  PartialOverwrite := False;
   Obj := CacheObject(AMapping.ReadString('Properties\Class'),
     AMapping.ReadString('Properties\SubType'));
   ObjRUIDString := AMapping.ReadString('Properties\RUID');
@@ -747,10 +772,10 @@ begin
     or (AtObjectRecord = nil)
     or ((tiEditionDate in Obj.GetTableInfos(Obj.SubType))
          and
-        (Fields.ReadDateTime('EDITIONDATE', 0) > AtObjectRecord.CurrModified))
+        (Fields.ReadDateTime('EDITIONDATE', 0) > AtObjectRecord.Modified))
     or ((not (tiEditionDate in Obj.GetTableInfos(Obj.SubType)))
          and
-        (AFileTimeStamp > AtObjectRecord.CurrModified)) then
+        (AFileTimeStamp > AtObjectRecord.Modified)) then
   begin
     Obj.Close;
 
@@ -851,16 +876,19 @@ begin
       with TgdcNamespaceRecCmpController.Create do
       try
         if Compare(nil, Obj, AMapping) then
-          NeedSecondPass := CopyRecord(Obj, Fields, OverwriteFields)
-        else begin
-          AddText('Объект сохранен в исходном состоянии: ' + Obj.ObjectName);
+        begin
+          PartialOverwrite := InequalFields.Count <> OverwriteFields.Count;
+          NeedSecondPass := CopyRecord(Obj, Fields, OverwriteFields);
+        end else
+        begin
           ObjPreserved := True;
 
           if CancelLoad then
           begin
             AddWarning('Процесс загрузки прерван пользователем.');
             Abort;
-          end;
+          end else
+            AddText('Объект сохранен в исходном состоянии: ' + Obj.ObjectName);
         end;
       finally
         Free;
@@ -945,7 +973,10 @@ begin
     begin
       if tiEditionDate in Obj.GetTableInfos(Obj.SubType) then
       begin
-        FgdcNamespaceObject.FieldByName('modified').AsDateTime := Fields.ReadDateTime('EDITIONDATE');
+        if PartialOverwrite then
+          FgdcNamespaceObject.FieldByName('modified').AsDateTime := AtObjectRecord.Modified
+        else
+          FgdcNamespaceObject.FieldByName('modified').AsDateTime := Fields.ReadDateTime('EDITIONDATE');
         FgdcNamespaceObject.FieldByName('curr_modified').AsDateTime := Fields.ReadDateTime('EDITIONDATE');
       end else
       begin
@@ -1043,6 +1074,7 @@ begin
     RR.RUID := StrToRUID(AStr);
     RR.ObjectClass := AR.ObjectClass;
     RR.ObjectSubType := AR.ObjectSubType;
+    RR.ObjectName := AR.ObjectName;
     FRemoveList.Add(RR);
   end;
 
@@ -1417,37 +1449,52 @@ begin
     FqFindAtObject.ParamByName('dbid').AsInteger := RR.RUID.DBID;
     FqFindAtObject.ExecQuery;
 
-    if FqFindAtObject.EOF then
-    begin
-      Obj := CacheObject(RR.ObjectClass.ClassName, RR.ObjectSubType);
-      Obj.Close;
-      Obj.ID := gdcBaseManager.GetIDByRUID(RR.RUID.XID, RR.RUID.DBID);
-      Obj.Open;
-      if (not Obj.EOF) and (Obj.ID >= cstUserIDStart) then
-      begin
-        if (not (Obj is TgdcMetaBase)) or TgdcMetaBase(Obj).IsUserDefined then
-        begin
-          try
-            ObjectName := Obj.ObjectName + ' (' + Obj.GetDisplayName(Obj.SubType) + ')';
-            Obj.Delete;
-            if Obj is TgdcFunction then
-              FNeedRelogin := True;
-            AddText('Удален объект: ' + ObjectName);
-          except
-            on E: Exception do
-            begin
-              AddWarning('Объект не может быть удален: ' +
-                ObjectName + #13#10 + E.Message);
-            end;
-          end;
-          if Obj is TgdcMetaBase then
-            Inc(FMetadataCounter);
-        end;
-      end;
-      Obj.Close;
-    end;
+    if not FqFindAtObject.EOF then
+      FRemoveList.Delete(I);
 
     FqFindAtObject.Close;
+  end;
+
+  if FRemoveList.Count > 0 then
+  begin
+    with Tat_dlgNamespaceRemoveList.Create(nil) do
+    try
+      RemoveList := FRemoveList;
+      DoDialog;
+    finally
+      Free;
+    end;
+  end;
+
+  for I := FRemoveList.Count - 1 downto 0 do
+  begin
+    RR := FRemoveList[I] as TatRemoveRecord;
+    Obj := CacheObject(RR.ObjectClass.ClassName, RR.ObjectSubType);
+    Obj.Close;
+    Obj.ID := gdcBaseManager.GetIDByRUID(RR.RUID.XID, RR.RUID.DBID);
+    Obj.Open;
+    if (not Obj.EOF) and (Obj.ID >= cstUserIDStart) then
+    begin
+      if (not (Obj is TgdcMetaBase)) or TgdcMetaBase(Obj).IsUserDefined then
+      begin
+        try
+          ObjectName := Obj.ObjectName + ' (' + Obj.GetDisplayName(Obj.SubType) + ')';
+          Obj.Delete;
+          if Obj is TgdcFunction then
+            FNeedRelogin := True;
+          AddText('Удален объект: ' + ObjectName);
+        except
+          on E: Exception do
+          begin
+            AddWarning('Объект не может быть удален: ' +
+              ObjectName + #13#10 + E.Message);
+          end;
+        end;
+        if Obj is TgdcMetaBase then
+          Inc(FMetadataCounter);
+      end;
+    end;
+    Obj.Close;
   end;
 
   FRemoveList.Clear;
@@ -1552,7 +1599,8 @@ begin
       except
         on E: Exception do
         begin
-          AddMistake(E.Message);
+          if not (E is EAbort) then
+            AddMistake(E.Message);
           if not gd_CmdLineParams.QuietMode then
             raise;
         end;

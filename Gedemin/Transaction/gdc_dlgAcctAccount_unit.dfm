@@ -1,5 +1,5 @@
 inherited gdc_dlgAcctAccount: Tgdc_dlgAcctAccount
-  Left = 403
+  Left = 404
   Top = 190
   HelpContext = 112
   PixelsPerInch = 96

@@ -1,6 +1,6 @@
 object gdc_frmG: Tgdc_frmG
-  Left = 452
-  Top = 263
+  Left = 430
+  Top = 266
   Width = 659
   Height = 411
   HelpContext = 116
@@ -26,7 +26,7 @@ object gdc_frmG: Tgdc_frmG
   TextHeight = 13
   object sbMain: TStatusBar
     Left = 0
-    Top = 354
+    Top = 353
     Width = 643
     Height = 19
     Font.Charset = RUSSIAN_CHARSET
@@ -313,19 +313,19 @@ object gdc_frmG: Tgdc_frmG
     Left = 0
     Top = 51
     Width = 9
-    Height = 294
+    Height = 293
     Position = dpLeft
   end
   object TBDockRight: TTBDock
     Left = 634
     Top = 51
     Width = 9
-    Height = 294
+    Height = 293
     Position = dpRight
   end
   object TBDockBottom: TTBDock
     Left = 0
-    Top = 345
+    Top = 344
     Width = 643
     Height = 9
     Position = dpBottom
@@ -334,13 +334,13 @@ object gdc_frmG: Tgdc_frmG
     Left = 9
     Top = 51
     Width = 625
-    Height = 294
+    Height = 293
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 5
     object spChoose: TSplitter
       Left = 0
-      Top = 191
+      Top = 190
       Width = 625
       Height = 4
       Cursor = crVSplit
@@ -351,7 +351,7 @@ object gdc_frmG: Tgdc_frmG
       Left = 0
       Top = 0
       Width = 625
-      Height = 191
+      Height = 190
       Align = alClient
       BevelOuter = bvNone
       Constraints.MinHeight = 100
@@ -361,7 +361,7 @@ object gdc_frmG: Tgdc_frmG
         Left = 0
         Top = 0
         Width = 160
-        Height = 191
+        Height = 190
         Align = alLeft
         BevelOuter = bvNone
         Color = 14741233
@@ -373,7 +373,7 @@ object gdc_frmG: Tgdc_frmG
           Left = 0
           Top = 27
           Width = 160
-          Height = 164
+          Height = 163
           HorzScrollBar.Style = ssFlat
           HorzScrollBar.Visible = False
           VertScrollBar.Style = ssFlat
@@ -421,7 +421,7 @@ object gdc_frmG: Tgdc_frmG
     end
     object pnChoose: TPanel
       Left = 0
-      Top = 195
+      Top = 194
       Width = 625
       Height = 99
       Align = alBottom

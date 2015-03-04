@@ -29,6 +29,13 @@ inherited gdc_dlgAutoTrRecord: Tgdc_dlgAutoTrRecord
     Anchors = [akLeft, akBottom]
     TabOrder = 4
   end
+  inherited btnHelp: TButton
+    Left = 144
+    Top = 149
+    Hint = '200'
+    Anchors = [akLeft, akBottom]
+    TabOrder = 5
+  end
   inherited btnOK: TButton
     Left = 217
     Top = 149
@@ -40,13 +47,6 @@ inherited gdc_dlgAutoTrRecord: Tgdc_dlgAutoTrRecord
     Top = 149
     Anchors = [akRight, akBottom]
     TabOrder = 2
-  end
-  inherited btnHelp: TButton
-    Left = 144
-    Top = 149
-    Hint = '200'
-    Anchors = [akLeft, akBottom]
-    TabOrder = 5
   end
   object Panel1: TPanel [6]
     Left = 0

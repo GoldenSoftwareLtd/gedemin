@@ -4,7 +4,7 @@ setlocal
 echo *************************************************
 echo **                                             **
 echo **  Usage:                                     **
-echo **  update_gedemin {/ftp /no_ftp} {/d /p}      **
+echo **  update_gedemin {/ftp /no_ftp} {/d /p /l}   **
 echo **                                             **
 echo *************************************************
 
@@ -47,6 +47,11 @@ set gudf_arc_name=gudf.rar
 set etalon_arc_name=etalon.rar
 set full_etalon_name=k:\golden\gedemin\exe\etalon.fdb
 set target_dir=beta
+
+if "%2"=="/l" set gedemin_cfg=gedemin.lock.cfg
+if "%2"=="/l" set arc_name=gedemin_lock.rar
+if "%2"=="/l" set target_dir=lock
+
 goto start_process
 
 :make_debug
@@ -273,6 +278,7 @@ if exist %arc_name% del %arc_name%
 %arc_command% fbembed.dll firebird.msg
 %arc_command% microsoft.vc80.crt.manifest msvcp80.dll msvcr80.dll
 %arc_command% gedemin_upd.exe
+%arc_command% libeay32.dll ssleay32.dll
 %arc_command% udf\gudf.dll intl\fbintl.conf intl\fbintl.dll
 %arc_command% swipl\lib\memfile.dll swipl\lib\readutil.dll
 %arc_command% swipl\gd_pl_state.dat 
@@ -348,6 +354,7 @@ echo *************************************************
 for %%F in (gedemin.exe midas.dll midas.sxs.manifest gedemin.exe.manifest ib_util.dll) do xcopy %%F \\basel\web\%target_dir% /Y
 for %%F in (icudt30.dll icuin30.dll icuuc30.dll fbembed.dll firebird.msg) do xcopy %%F \\basel\web\%target_dir% /Y
 for %%F in (microsoft.vc80.crt.manifest msvcp80.dll msvcr80.dll gedemin_upd.exe) do xcopy %%F \\basel\web\%target_dir% /Y
+for %%F in (libeay32.dll ssleay32.dll) do xcopy %%F \\basel\web\%target_dir% /Y
 xcopy udf\gudf.dll     \\basel\web\%target_dir%\udf\ /Y
 xcopy intl\fbintl.conf \\basel\web\%target_dir%\intl\ /Y
 xcopy intl\fbintl.dll  \\basel\web\%target_dir%\intl\ /Y
