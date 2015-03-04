@@ -17,7 +17,7 @@ object at_frmNSObjects: Tat_frmNSObjects
   object TBDock: TTBDock
     Left = 0
     Top = 0
-    Width = 1134
+    Width = 1126
     Height = 26
     object tb: TTBToolbar
       Left = 0
@@ -45,8 +45,8 @@ object at_frmNSObjects: Tat_frmNSObjects
   end
   object sb: TStatusBar
     Left = 0
-    Top = 608
-    Width = 1134
+    Top = 597
+    Width = 1126
     Height = 19
     Panels = <>
     SimplePanel = False
@@ -54,8 +54,8 @@ object at_frmNSObjects: Tat_frmNSObjects
   object gsIBGrid: TgsIBGrid
     Left = 0
     Top = 138
-    Width = 1134
-    Height = 470
+    Width = 1126
+    Height = 459
     Align = alClient
     BorderStyle = bsNone
     DataSource = ds
@@ -80,7 +80,7 @@ object at_frmNSObjects: Tat_frmNSObjects
   object pnlTopFilter: TPanel
     Left = 0
     Top = 26
-    Width = 1134
+    Width = 1126
     Height = 112
     Align = alTop
     TabOrder = 3
@@ -142,7 +142,7 @@ object at_frmNSObjects: Tat_frmNSObjects
     object pnlFilter: TPanel
       Left = 220
       Top = 1
-      Width = 913
+      Width = 905
       Height = 110
       Align = alClient
       BevelOuter = bvNone
