@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2001-2014 by Golden Software of Belarus
+  Copyright (c) 2001-2015 by Golden Software of Belarus
 
   Module
 
@@ -228,10 +228,6 @@ type
 
     function GetSelectClause: String; override;
     function GetFromClause(const ARefresh: Boolean = False): String; override;
-
-    procedure CustomInsert(Buff: Pointer); override;
-    procedure CustomDelete(Buff: Pointer); override;
-
     function GetParentSubType: String;
 
   public
@@ -3165,82 +3161,6 @@ begin
   {END MACRO}
 end;
 
-procedure TGDCDOCUMENTTYPE.CustomInsert(Buff: Pointer);
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCDOCUMENTTYPE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCDOCUMENTTYPE', KEYCUSTOMINSERT);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMINSERT]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCDOCUMENTTYPE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCDOCUMENTTYPE',
-  {M}          'CUSTOMINSERT', KEYCUSTOMINSERT, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCDOCUMENTTYPE' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  inherited;
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCDOCUMENTTYPE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCDOCUMENTTYPE', 'CUSTOMINSERT', KEYCUSTOMINSERT);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TGDCDOCUMENTTYPE.CustomDelete(Buff: Pointer);
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCDOCUMENTTYPE', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCDOCUMENTTYPE', KEYCUSTOMDELETE);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMDELETE]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCDOCUMENTTYPE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCDOCUMENTTYPE',
-  {M}          'CUSTOMDELETE', KEYCUSTOMDELETE, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCDOCUMENTTYPE' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  inherited;
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCDOCUMENTTYPE', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCDOCUMENTTYPE', 'CUSTOMDELETE', KEYCUSTOMDELETE);
-  {M}  end;
-  {END MACRO}
-end;
-
 function TgdcDocumentType.GetParentSubType: String;
 var
   q: TIBSQL;
@@ -3319,6 +3239,7 @@ var
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
   q: TIBSQL;
+  CE: TgdClassEntry;
 begin
   {@UNFOLD MACRO INH_ORIG_DOAFTERCUSTOMPROCESS('TGDCDOCUMENTTYPE', 'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS)}
   {M}  try
@@ -3343,6 +3264,23 @@ begin
   {END MACRO}
 
   inherited;
+
+  if Process = cpInsert then
+  begin
+    if gdClassList.Find(FieldbyName('classname').AsString, GetParentSubType) <> nil then
+      gdClassList.Add(FieldbyName('classname').AsString, FieldByName('ruid').AsString,
+        GetParentSubType, FieldbyName('name').AsString);
+  end
+  else if Process = cpModify then
+  begin
+    if FieldChanged('name') then
+    begin
+      CE := gdClassList.Find(FieldbyName('classname').AsString, FieldbyName('ruid').AsString);
+      if CE <> nil then
+        CE.Caption := FieldByName('name').AsString;
+    end;
+  end else
+    gdClassList.RemoveSubType(FieldByName('ruid').AsString);
 
   if Process <> cpDelete then
   begin

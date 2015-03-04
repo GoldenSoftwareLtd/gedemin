@@ -327,9 +327,6 @@ type
   end;
   CgdClassEntry = class of TgdClassEntry;
 
-  TgdAttrUserDefinedEntry = class(TgdClassEntry)
-  end;
-
   TgdStorageEntry = class(TgdClassEntry)
   end;
 
@@ -1817,7 +1814,7 @@ begin
   Result := Find(Prnt.TheClass.ClassName, R.RelationName);
 
   if Result = nil then
-    Result := _Create(Prnt, TgdAttrUserDefinedEntry, Prnt.TheClass,
+    Result := _Create(Prnt, TgdClassEntry, Prnt.TheClass,
       R.RelationName, R.LName)
   else
     Result.Caption := R.LName;
@@ -1877,6 +1874,8 @@ function TgdClassList._Create(APrnt: TgdClassEntry; AnEntryClass: CgdClassEntry;
   AClass: TClass; const ASubType: TgdcSubType; const ACaption: String): TgdClassEntry;
 var
   Index: Integer;
+  CN: String;
+  ParentST: TgdcSubType;
 begin
   Result := AnEntryClass.Create(APrnt, AClass, ASubType, ACaption);
   if APrnt <> nil then
@@ -1886,6 +1885,34 @@ begin
     _Insert(Index, Result)
   else
     raise Exception.Create('Internal consistency check');
+
+  if (ASubType > '') and AClass.InheritsFrom(TgdcBase)
+    and (not CgdcBase(AClass).IsAbstractClass) then
+  begin
+    CN := CgdcBase(AClass).GetDialogFormClassName(ASubType);
+    if CN > '' then
+    begin
+      if (APrnt <> nil) and (APrnt.SubType > '')
+        and (APrnt.gdcClass.GetDialogFormClassName(APrnt.SubType) = CN) then
+      begin
+        ParentST := APrnt.SubType;
+      end else
+        ParentST := '';
+      Add(CN, ASubType, ParentST, '');
+    end;
+
+    CN := CgdcBase(AClass).GetViewFormClassName(ASubType);
+    if CN > '' then
+    begin
+      if (APrnt <> nil) and (APrnt.SubType > '')
+        and (APrnt.gdcClass.GetViewFormClassName(APrnt.SubType) = CN) then
+      begin
+        ParentST := APrnt.SubType;
+      end else
+        ParentST := '';
+      Add(CN, ASubType, ParentST, '');
+    end;
+  end;
 end;
 
 procedure TgdClassList.Remove(const AClassName: String;
