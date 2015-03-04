@@ -1,6 +1,6 @@
 object ExpressionEditorForm: TExpressionEditorForm
-  Left = 415
-  Top = 266
+  Left = 242
+  Top = 152
   Width = 703
   Height = 440
   BorderWidth = 5
@@ -9,7 +9,7 @@ object ExpressionEditorForm: TExpressionEditorForm
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
-  Font.Name = 'Tahoma'
+  Font.Name = 'MS Sans Serif'
   Font.Style = []
   OldCreateOrder = False
   Position = poScreenCenter
@@ -18,14 +18,14 @@ object ExpressionEditorForm: TExpressionEditorForm
   object TBDock: TTBDock
     Left = 0
     Top = 0
-    Width = 677
-    Height = 53
+    Width = 685
+    Height = 51
     BoundLines = [blTop, blBottom, blLeft, blRight]
     object tbtMain: TTBToolbar
       Left = 0
       Top = 0
       Caption = 'tbtMain'
-      DockMode = dmCannotFloatOrChangeDocks
+      DockMode = dmCannotFloat
       DockPos = 0
       Images = dmImages.il16x16
       ShrinkMode = tbsmWrap
@@ -55,7 +55,6 @@ object ExpressionEditorForm: TExpressionEditorForm
       Left = 0
       Top = 26
       Caption = 'TBToolbar1'
-      DockMode = dmCannotFloatOrChangeDocks
       DockPos = 0
       DockRow = 1
       TabOrder = 1
@@ -119,14 +118,14 @@ object ExpressionEditorForm: TExpressionEditorForm
   end
   object Panel1: TPanel
     Left = 0
-    Top = 363
-    Width = 677
+    Top = 374
+    Width = 685
     Height = 29
     Align = alBottom
     BevelOuter = bvNone
     TabOrder = 1
     object Button1: TButton
-      Left = 602
+      Left = 610
       Top = 7
       Width = 75
       Height = 21
@@ -135,7 +134,7 @@ object ExpressionEditorForm: TExpressionEditorForm
       TabOrder = 0
     end
     object Button2: TButton
-      Left = 522
+      Left = 530
       Top = 7
       Width = 75
       Height = 21
@@ -147,9 +146,9 @@ object ExpressionEditorForm: TExpressionEditorForm
   end
   object Panel2: TPanel
     Left = 0
-    Top = 53
-    Width = 677
-    Height = 310
+    Top = 51
+    Width = 685
+    Height = 323
     Align = alClient
     BevelInner = bvLowered
     BevelOuter = bvNone
@@ -158,8 +157,8 @@ object ExpressionEditorForm: TExpressionEditorForm
     object mExpression: TMemo
       Left = 1
       Top = 1
-      Width = 675
-      Height = 308
+      Width = 683
+      Height = 321
       Align = alClient
       BorderStyle = bsNone
       Lines.Strings = (

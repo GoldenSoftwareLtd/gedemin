@@ -169,35 +169,21 @@ begin
             '>':
             begin
               FStyle := sFolded;
+              FReader.SkipUntilEOL;
+              FReader.RememberIndent;
               FQuoting := qPlain;
               FScalar := '';
-              FReader.SkipUntilEOL;
-              if FReader.Indent > FIndent then
-              begin
-                FReader.RememberIndent;
-                FState := sScalar;
-              end else
-              begin
-                Result := tScalar;
-                FState := sDocument;
-              end;
+              FState := sScalar;
             end;
 
             '|':
             begin
               FStyle := sLiteral;
+              FReader.SkipUntilEOL;
+              FReader.RememberIndent;
               FQuoting := qPlain;
               FScalar := '';
-              FReader.SkipUntilEOL;
-              if FReader.Indent > FIndent then
-              begin
-                FReader.RememberIndent;
-                FState := sScalar;
-              end else
-              begin
-                Result := tScalar;
-                FState := sDocument;
-              end;
+              FState := sScalar;
             end;
 
             '''':

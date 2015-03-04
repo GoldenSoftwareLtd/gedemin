@@ -1,15 +1,15 @@
 inherited gdc_dlgAcctTrEntry: Tgdc_dlgAcctTrEntry
-  Left = 501
-  Top = 260
+  Left = 459
+  Top = 430
   BorderWidth = 5
   Caption = 'Типовая проводка'
-  ClientHeight = 215
+  ClientHeight = 190
   ClientWidth = 357
   PixelsPerInch = 96
   TextHeight = 13
   object Bevel1: TBevel [0]
     Left = 0
-    Top = 185
+    Top = 162
     Width = 357
     Height = 2
     Align = alTop
@@ -17,34 +17,39 @@ inherited gdc_dlgAcctTrEntry: Tgdc_dlgAcctTrEntry
   end
   inherited btnAccess: TButton
     Left = 0
-    Top = 194
+    Top = 169
+    Anchors = [akLeft, akBottom]
     TabOrder = 3
   end
   inherited btnNew: TButton
     Left = 72
-    Top = 194
+    Top = 169
+    Anchors = [akLeft, akBottom]
     TabOrder = 4
   end
   inherited btnHelp: TButton
     Left = 144
-    Top = 194
+    Top = 169
+    Anchors = [akLeft, akBottom]
     TabOrder = 5
   end
   inherited btnOK: TButton
     Left = 217
-    Top = 194
+    Top = 169
+    Anchors = [akRight, akBottom]
     TabOrder = 1
   end
   inherited btnCancel: TButton
     Left = 289
-    Top = 194
+    Top = 169
+    Anchors = [akRight, akBottom]
     TabOrder = 2
   end
   object Panel2: TPanel [6]
     Left = 0
     Top = 0
     Width = 357
-    Height = 185
+    Height = 162
     Align = alTop
     BevelOuter = bvNone
     TabOrder = 0
@@ -196,26 +201,11 @@ inherited gdc_dlgAcctTrEntry: Tgdc_dlgAcctTrEntry
       ListTable = 'ac_transaction'
       ListField = 'name'
       KeyField = 'ID'
-      Condition = 
-        '(ac_transaction.AUTOTRANSACTION IS NULL OR ac_transaction.AUTOTR' +
-        'ANSACTION = 0)'
       gdClassName = 'TgdcAcctTransaction'
       ItemHeight = 13
       ParentShowHint = False
       ShowHint = True
       TabOrder = 1
-    end
-    object dbcbIsDiasabled: TDBCheckBox
-      Left = 88
-      Top = 160
-      Width = 185
-      Height = 17
-      Caption = 'Типовая проводка отключена'
-      DataField = 'DISABLED'
-      DataSource = dsgdcBase
-      TabOrder = 8
-      ValueChecked = '1'
-      ValueUnchecked = '0'
     end
   end
   inherited alBase: TActionList

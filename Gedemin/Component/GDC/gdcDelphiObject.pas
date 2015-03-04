@@ -410,45 +410,13 @@ var
 
   function GetParentFullName(ChildFN: TgdcFullClassName): TgdcFullClassName;
   var
-    CE: TgdClassEntry;
-  begin
-    if AnsiPos('USR_', AnsiUpperCase(ChildFN.SubType)) > 0 then
-      raise Exception.Create('Недопустимый символ ''_''в подтипе');
-
-    Result.gdClassName := '';
-    Result.SubType := '';
-    CE := gdClassList.Find(ChildFN);
-
-    if CE = nil then
-      raise Exception.Create('Передан некорректный класс.');
-
-    if CE.TheClass.InheritsFrom(TgdcBase) then
-    begin
-      if CE.Parent <> nil then
-      begin
-        Result.gdClassName := CE.Parent.gdcClass.ClassName;
-        Result.SubType := CE.Parent.SubType;
-      end;
-    end
-    else if CE.TheClass.InheritsFrom(TgdcCreateableForm) then
-    begin
-      if CE.Parent <> nil then
-      begin
-        Result.gdClassName := CE.Parent.frmClass.ClassName;
-        Result.SubType := CE.Parent.SubType;
-      end;
-    end;
-  end;
-  
-  {function GetParentFullName(ChildFN: TgdcFullClassName): TgdcFullClassName;
-  var
     GClass: TClass;
   begin
     Result.gdClassName := '';
-    GClass := gdClassList.GetGDCClass(ChildFN.gdClassName);
+    GClass := gdcClassList.GetGDCClass(ChildFN);
     if GClass = nil then
     begin
-      GClass := gdClassList.GetFrmClass(ChildFN.gdClassName);
+      GClass := frmClassList.GetFrmClass(ChildFN);
       if GClass = nil then
         raise Exception.Create('Передан некорректный класс.');
     end;
@@ -458,8 +426,7 @@ var
     begin
       Result.gdClassName := CgdcBase(GClass).ClassName;
       CgdcBase(GClass).GetSubTypeList(TmpSubTypeList);
-
-      if CgdcBase(GClass).CheckSubType(gdcClass.SubType) then
+      if TmpSubTypeList.IndexOf(gdcClass.SubType) > -1 then
         Result.SubType := gdcClass.SubType
       else
         Result.SubType := '';
@@ -469,14 +436,13 @@ var
       begin
         Result.gdClassName := CgdcCreateableForm(GClass).ClassName;
         CgdcCreateableForm(GClass).GetSubTypeList(TmpSubTypeList);
-
-        if CgdcCreateableForm(GClass).CheckSubType(gdcClass.SubType) then
+        if TmpSubTypeList.IndexOf(gdcClass.SubType) > -1 then
           Result.SubType := gdcClass.SubType
         else
           Result.SubType := '';
         Exit;
       end;
-  end;}
+  end;
 
   function GetClassID(ClFullName: TgdcFullClassName): Integer;
   begin

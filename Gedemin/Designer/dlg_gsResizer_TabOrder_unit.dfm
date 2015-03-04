@@ -1,8 +1,8 @@
 object dlg_gsResizer_TabOrder: Tdlg_gsResizer_TabOrder
   Left = 290
   Top = 212
-  Width = 296
-  Height = 387
+  Width = 279
+  Height = 271
   Anchors = [akLeft, akTop, akRight, akBottom]
   Caption = 'Табуляция'
   Color = clBtnFace
@@ -12,20 +12,19 @@ object dlg_gsResizer_TabOrder: Tdlg_gsResizer_TabOrder
   Font.Name = 'MS Sans Serif'
   Font.Style = []
   OldCreateOrder = True
-  Position = poScreenCenter
   PixelsPerInch = 96
   TextHeight = 13
   object Bevel1: TBevel
     Left = 8
     Top = 8
-    Width = 264
-    Height = 310
+    Width = 258
+    Height = 204
     Anchors = [akLeft, akTop, akRight, akBottom]
     Shape = bsFrame
   end
   object btnControlUp: TSpeedButton
-    Left = 237
-    Top = 125
+    Left = 229
+    Top = 80
     Width = 26
     Height = 26
     Anchors = [akRight, akBottom]
@@ -45,8 +44,8 @@ object dlg_gsResizer_TabOrder: Tdlg_gsResizer_TabOrder
     OnClick = btnControlUpClick
   end
   object btnControlDown: TSpeedButton
-    Left = 237
-    Top = 157
+    Left = 229
+    Top = 112
     Width = 26
     Height = 26
     Anchors = [akRight, akBottom]
@@ -68,8 +67,8 @@ object dlg_gsResizer_TabOrder: Tdlg_gsResizer_TabOrder
   object lbControls: TListBox
     Left = 16
     Top = 16
-    Width = 214
-    Height = 293
+    Width = 204
+    Height = 188
     Anchors = [akLeft, akTop, akRight, akBottom]
     DragMode = dmAutomatic
     ItemHeight = 13
@@ -78,32 +77,30 @@ object dlg_gsResizer_TabOrder: Tdlg_gsResizer_TabOrder
     OnDragOver = lbControlsDragOver
   end
   object btnOk: TButton
-    Left = 134
-    Top = 324
+    Left = 128
+    Top = 218
     Width = 65
-    Height = 20
+    Height = 21
     Anchors = [akRight, akBottom]
     Caption = 'ОК'
-    Default = True
     ModalResult = 1
     TabOrder = 1
   end
   object btnCancel: TButton
-    Left = 206
-    Top = 324
+    Left = 200
+    Top = 218
     Width = 65
-    Height = 20
+    Height = 21
     Anchors = [akRight, akBottom]
-    Cancel = True
     Caption = 'Отмена'
     ModalResult = 2
     TabOrder = 2
   end
   object btnHelp: TButton
     Left = 7
-    Top = 324
+    Top = 218
     Width = 65
-    Height = 20
+    Height = 21
     Anchors = [akLeft, akBottom]
     Caption = 'Помощь'
     TabOrder = 3

@@ -210,11 +210,11 @@ type
   TgdcClassTreeItem = class(TCustomTreeFolder)
   private
     FTheClass: TMethodClass;
-    FKey: String;
+    FIndex: Integer;
     FDisabledMethods: Integer;
     procedure SetTheClass(const Value: TMethodClass);
     procedure SetOverloadMethods(const Value: Integer);
-    procedure SetKey(const Value: String);
+    procedure SetIndex(const Value: Integer);
     function GetSubType: string;
     function GetOverloadMethods: Integer;
     function GetSubTypeComent: string;
@@ -226,7 +226,7 @@ type
     property DisabledMethods: Integer read FDisabledMethods write SetDisabledMethods;
     property SubType: string read GetSubType;
     property SubTypeComent: string read GetSubTypeComent;
-    property Key: String read FKey write SetKey; //Индекс в списке классов
+    property Index: Integer read FIndex write SetIndex; //Индекс в списке классов
   end;
 
   TSFTreeFolder = class(TCustomTreeFolder)
@@ -514,9 +514,9 @@ begin
   FDisabledMethods := Value;
 end;
 
-procedure TgdcClassTreeItem.SetKey(const Value: String);
+procedure TgdcClassTreeItem.SetIndex(const Value: Integer);
 begin
-  FKey := Value;
+  FIndex := Value;
 end;
 
 procedure TgdcClassTreeItem.SetOverloadMethods(const Value: Integer);

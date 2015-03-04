@@ -287,24 +287,13 @@ begin
 end;
 
 function TgdcBaseMessage.GetCurrRecordClass: TgdcFullClass;
-var
-  F: TField;
 begin
   if System.Copy(FieldByName('msgtype').AsString, 1, 1) = 'A' then
   begin
     Result.gdClass := TgdcPhoneCall;
     Result.SubType := '';
   end else
-  begin
-    Result.gdClass := CgdcBase(Self.ClassType);
-    Result.SubType := '';
-  end;
-
-  F := FindField('USR$ST');
-  if F <> nil then
-    Result.SubType := F.AsString;
-  if (Result.SubType > '') and (not Result.gdClass.CheckSubType(Result.SubType)) then
-    raise EgdcException.Create('Invalid USR$ST value.');
+    Result := inherited GetCurrRecordClass;
 end;
 
 function TgdcBaseMessage.GetFromClause(const ARefresh: Boolean = False): String;
@@ -840,9 +829,9 @@ begin
 end;
 
 initialization
-  RegisterGDCClass(TgdcMessageBox, ctStorage, 'Почтовый ящик');
+  RegisterGDCClass(TgdcMessageBox);
   RegisterGDCClass(TgdcBaseMessage);
-  RegisterGDCClass(TgdcPhoneCall, ctStorage, 'Телефонный звонок');
+  RegisterGDCClass(TgdcPhoneCall);
   RegisterGDCClass(TgdcAttachment);
 
 finalization

@@ -1,6 +1,6 @@
 object gdv_frmG: Tgdv_frmG
-  Left = 441
-  Top = 456
+  Left = 437
+  Top = 493
   Width = 601
   Height = 404
   Caption = 'gdv_frmG'
@@ -125,7 +125,7 @@ object gdv_frmG: Tgdv_frmG
     Left = 9
     Top = 30
     Width = 567
-    Height = 330
+    Height = 327
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 1
@@ -134,19 +134,19 @@ object gdv_frmG: Tgdv_frmG
     Left = 0
     Top = 30
     Width = 9
-    Height = 330
+    Height = 327
     Position = dpLeft
   end
   object TBDock3: TTBDock
     Left = 576
     Top = 30
     Width = 9
-    Height = 330
+    Height = 327
     Position = dpRight
   end
   object TBDock4: TTBDock
     Left = 0
-    Top = 360
+    Top = 357
     Width = 585
     Height = 9
     Position = dpBottom

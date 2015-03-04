@@ -13,7 +13,7 @@ type
   public
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
-    class function GetRestrictCondition(const ATableName, ASubType: String): String; override;
+    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
   end;
   //Б.к. автоматической проводки
   TgdcAutoTrRecord = class(TgdcBaseAcctTransactionEntry)
@@ -35,6 +35,7 @@ type
     constructor Create(AnOwner: TComponent); override;
 
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
+    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
   end;
 
 procedure Register;
@@ -94,6 +95,12 @@ begin
   Result := 'Tgdc_dlgAutoTransaction';
 end;
 
+class function TgdcAutoTransaction.GetDisplayName(
+  const ASubType: TgdcSubType): String;
+begin
+  Result := 'Автоматическая операция'
+end;
+
 class function TgdcAutoTransaction.GetViewFormClassName(
   const ASubType: TgdcSubType): String;
 begin
@@ -104,15 +111,6 @@ procedure TgdcAutoTransaction.GetWhereClauseConditions(S: TStrings);
 begin
   inherited;
   S.Add(' (Z.AUTOTRANSACTION = 1) ');
-end;
-
-class function TgdcAutoTransaction.GetRestrictCondition(const ATableName,
-  ASubType: String): String;
-begin
-  if (self = TgdcAutoTransaction) and (AnsiCompareText(ATableName, GetListTable(ASubType)) = 0) then
-    Result := ' (Z.AUTOTRANSACTION = 1) '
-  else
-    Result := inherited GetRestrictCondition(ATableName, ASubType)
 end;
 
 { TgdcAutoTrRecord }
@@ -461,6 +459,12 @@ begin
   Result := 'Tgdc_dlgAutoTrRecord';
 end;
 
+class function TgdcAutoTrRecord.GetDisplayName(
+  const ASubType: TgdcSubType): String;
+begin
+  Result := 'Автоматическая проводка';
+end;
+
 function TgdcAutoTrRecord.GetFromClause(const ARefresh: Boolean): String;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
   {M}VAR
@@ -556,9 +560,8 @@ begin
 end;
 
 initialization
-  RegisterGdcClass(TgdcAutoTrRecord, ctStorage, 'Автоматическая проводка');
-  RegisterGdcClass(TgdcAutoTransaction, ctStorage, 'Автоматическая операция');
-  
+  RegisterGdcClass(TgdcAutoTrRecord);
+  RegisterGdcClass(TgdcAutoTransaction);
 finalization
   UnRegisterGdcClass(TgdcAutoTrRecord);
   UnRegisterGdcClass( TgdcAutoTransaction);

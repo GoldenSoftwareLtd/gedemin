@@ -29,6 +29,7 @@ uses
   IBServices,
   IBDatabase,                   
   IBSQL,
+  gdcInvDocumentCache_body,
   gd_regionalsettings_dlgEdit,               
   gd_security,
   gd_CmdLineParams_unit,
@@ -237,6 +238,8 @@ uses
   wiz_EntryFunctionEditFrame_Unit in '..\Property\FunctionWizard\wiz_EntryFunctionEditFrame_Unit.pas' {frEntryFunctionEditFrame: TFrame},
   gdc_frmCurrOnly_unit in '..\Common\gdc_frmCurrOnly_unit.pas' {gdc_frmCurrOnly},
   wiz_frBalanceOffTrEntry_unit in '..\Property\FunctionWizard\wiz_frBalanceOffTrEntry_unit.pas' {frBalanceOffTrEntry: TFrame},
+  gd_registration in '..\Registration\gd_registration.pas',
+  gd_dlgReg_unit in '..\Registration\gd_dlgReg_unit.pas' {gd_dlgReg},
   wiz_frAnalytics_unit in '..\Property\FunctionWizard\wiz_frAnalytics_unit.pas' {frAnalytics: TFrame},
   wiz_frFixedAnalytics_unit in '..\Property\FunctionWizard\wiz_frFixedAnalytics_unit.pas' {frFixedAnalytics: TFrame},
   gdc_dlgAcctCirculationList_unit in '..\Transaction\gdc_dlgAcctCirculationList_unit.pas' {dlgAcctCirculationList},
@@ -620,6 +623,10 @@ begin
 
   if RestoreDatabase then
     exit;
+
+{$IFDEF GEDEMIN_LOCK}
+  IsRegisteredCopy := CheckRegistration;
+{$ENDIF}
 
   ApplicationEventsHandler := TgdApplicationEventsHandler.Create;
   try

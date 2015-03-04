@@ -1,10 +1,10 @@
 object CustomAnalyticForm: TCustomAnalyticForm
-  Left = 610
-  Top = 415
+  Left = 310
+  Top = 196
   BorderStyle = bsDialog
   BorderWidth = 5
   Caption = 'Произвольная аналитика'
-  ClientHeight = 135
+  ClientHeight = 130
   ClientWidth = 352
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -13,12 +13,12 @@ object CustomAnalyticForm: TCustomAnalyticForm
   Font.Name = 'MS Sans Serif'
   Font.Style = []
   OldCreateOrder = False
-  Position = poScreenCenter
+  OnDestroy = FormDestroy
   PixelsPerInch = 96
   TextHeight = 13
   object Bevel1: TBevel
     Left = 0
-    Top = 105
+    Top = 104
     Width = 352
     Height = 3
     Align = alTop
@@ -26,7 +26,7 @@ object CustomAnalyticForm: TCustomAnalyticForm
   end
   object bCancel: TButton
     Left = 277
-    Top = 112
+    Top = 109
     Width = 75
     Height = 21
     Action = actCancel
@@ -36,7 +36,7 @@ object CustomAnalyticForm: TCustomAnalyticForm
   end
   object bOK: TButton
     Left = 197
-    Top = 112
+    Top = 109
     Width = 75
     Height = 21
     Action = actOk
@@ -45,11 +45,11 @@ object CustomAnalyticForm: TCustomAnalyticForm
     ModalResult = 1
     TabOrder = 1
   end
-  object pnl: TPanel
+  object Panel1: TPanel
     Left = 0
     Top = 0
     Width = 352
-    Height = 105
+    Height = 104
     Align = alTop
     Anchors = [akLeft, akTop, akRight, akBottom]
     BevelOuter = bvNone
@@ -71,11 +71,11 @@ object CustomAnalyticForm: TCustomAnalyticForm
     end
     object cbNeedId: TCheckBox
       Left = 2
-      Top = 82
+      Top = 83
       Width = 289
       Height = 17
       Caption = 'Получить ИД аналитики'
-      TabOrder = 3
+      TabOrder = 2
     end
     object cbAnalyticValue: TgsIBLookupComboBox
       Left = 2
@@ -88,25 +88,19 @@ object CustomAnalyticForm: TCustomAnalyticForm
       SortOrder = soAsc
       Enabled = False
       ItemHeight = 13
-      TabOrder = 2
+      TabOrder = 1
     end
-    object edBO: TEdit
+    object cbBO: TComboBox
       Left = 2
       Top = 16
-      Width = 320
+      Width = 350
       Height = 21
-      TabStop = False
-      ParentColor = True
-      ReadOnly = True
+      DropDownCount = 24
+      ItemHeight = 13
+      Sorted = True
       TabOrder = 0
-    end
-    object btnSelectClass: TButton
-      Left = 322
-      Top = 16
-      Width = 29
-      Height = 21
-      Action = actSelectClass
-      TabOrder = 1
+      OnChange = cbAnalyticNameChange
+      OnDropDown = cbBODropDown
     end
   end
   object ActionList: TActionList
@@ -116,7 +110,6 @@ object CustomAnalyticForm: TCustomAnalyticForm
     object actOk: TAction
       Caption = 'OK'
       OnExecute = actOkExecute
-      OnUpdate = actOkUpdate
     end
     object actCancel: TAction
       Caption = 'Отмена'
@@ -136,10 +129,6 @@ object CustomAnalyticForm: TCustomAnalyticForm
       Caption = 'Удалить аналитику'
       Hint = 'Удалить аналитику'
       ImageIndex = 178
-    end
-    object actSelectClass: TAction
-      Caption = '...'
-      OnExecute = actSelectClassExecute
     end
   end
   object Transaction: TIBTransaction

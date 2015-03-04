@@ -5,7 +5,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   gsIBLookupComboBox, StdCtrls, ActnList, ComCtrls, dmDatabase_unit,
-  IBDatabase, gdcBase, gd_ClassList;
+  IBDatabase, gdcBase;
 
 type
   Tgd_dlgAddLinked = class(TForm)
@@ -57,8 +57,9 @@ type
 
   private
     procedure FillListBox;
-    function BuildClassTree(ACE: TgdClassEntry; AData1: Pointer;
-      AData2: Pointer): Boolean;
+
+  public
+    { Public declarations }
   end;
 
 var
@@ -69,7 +70,7 @@ implementation
 {$R *.DFM}
 
 uses
-  ShellAPI, IBSQL, gdcBaseInterface
+  gd_ClassList, ShellAPI, IBSQL, gdcBaseInterface
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -316,32 +317,28 @@ begin
 end;
 
 procedure Tgd_dlgAddLinked.FillListBox;
+var
+  I: Integer;
 begin
   cbClasses.Clear;
-  gdClassList.Traverse(TgdcBase, '', BuildClassTree, nil, nil);
+  for I := 0 to gdcClassList.Count - 1 do
+  begin
+    if chbxClassFirst.Checked then
+      cbClasses.Items.AddObject(gdcClassList[I].ClassName + ' - '
+        + gdcClassList[I].GetDisplayName(''),
+        Pointer(gdcClassList[I]))
+    else
+      cbClasses.Items.AddObject(gdcClassList[I].GetDisplayName('') + ' - '
+        + gdcClassList[I].ClassName,
+        Pointer(gdcClassList[I]));
+  end;
+
   cbSubTypes.Clear;
 end;
 
 procedure Tgd_dlgAddLinked.chbxClassFirstClick(Sender: TObject);
 begin
   FillListBox;
-end;
-
-function Tgd_dlgAddLinked.BuildClassTree(ACE: TgdClassEntry; AData1: Pointer;
-  AData2: Pointer): Boolean;
-begin
-  if (ACE <> nil) and (ACE.SubType = '') then
-  begin
-    if chbxClassFirst.Checked then
-      cbClasses.Items.AddObject(ACE.gdcClass.ClassName + ' - '
-      + ACE.gdcClass.GetDisplayName(''),
-      Pointer(ACE.gdcClass))
-    else
-      cbClasses.Items.AddObject(ACE.gdcClass.GetDisplayName('') + ' - '
-      + ACE.gdcClass.ClassName,
-      Pointer(ACE.gdcClass));
-  end;
-  Result := True;
 end;
 
 end.

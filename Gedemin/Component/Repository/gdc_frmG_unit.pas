@@ -7,7 +7,7 @@ unit gdc_frmG_unit;
 interface
 
 uses
-  Windows, Messages, SysUtils, Classes, Graphics, Controls, Contnrs, Forms, Dialogs,
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   gdc_createable_form, ComCtrls,  dmImages_unit, ActnList,
   ToolWin, ExtCtrls, StdCtrls, Menus, flt_sqlFilter, Db, dmDatabase_unit,
   IBDatabase, gdcBaseInterface, gdcBase, DBGrids, gdcLink, 
@@ -64,6 +64,7 @@ type
     TBDockRight: TTBDock;
     TBDockBottom: TTBDock;
     tbMainToolbar: TTBToolbar;
+    tbiNew: TTBItem;
     tbiEdit: TTBItem;
     tbiDelete: TTBItem;
     tbiDuplicate: TTBItem;
@@ -107,6 +108,7 @@ type
     gdMacrosMenu: TgdMacrosMenu;
     tbsiMainThreeAndAHalf: TTBSeparatorItem;
     tbsiMainMenuObject: TTBSubmenuItem;
+    tbi_mm_New: TTBItem;
     tbi_mm_Edit: TTBItem;
     tbi_mm_Delete: TTBItem;
     tbi_mm_Duplicate: TTBItem;
@@ -174,8 +176,6 @@ type
     tbiDistributeSettings: TTBItem;
     actDontSaveSettings: TAction;
     tbiDontSaveSettings: TTBItem;
-    tbsiNew: TTBSubmenuItem;
-    tbi_mm_New: TTBItem;
 
     procedure actFilterExecute(Sender: TObject);
     procedure actPrintExecute(Sender: TObject);
@@ -253,7 +253,6 @@ type
     procedure actHlpUpdate(Sender: TObject);
     procedure FormHide(Sender: TObject);
     procedure FormShow(Sender: TObject);
-    procedure tbsiNewPopup(Sender: TTBCustomItem; FromLink: Boolean);
 
   private
     FFieldOrigin: TStringList;
@@ -262,14 +261,9 @@ type
     //Контрол, который отображает датасет, из которого идет выбор
     FChooseControl: TComponent;
     FChosenIDInOrder: TStringList;
-    //храним объекты для связи с выпадающим меню добавить
-    FpmNewObject: TObjectList;
 
     class procedure RegisterMethod;
     function GetChosenIDInOrder: OleVariant;
-
-    procedure DoOnDescendantClick (Sender: TObject);
-    procedure FillPopupNew(ATBSubmenuItem: TTBSubmenuItem);
 
   protected
     FgdcChooseObject: TgdcBase; // объект, который хранит выбранные записи
@@ -327,8 +321,6 @@ type
     //
     procedure DoShowAllFields(Sender: TObject); virtual;
 
-    procedure GetDisabledClasses(ACL: TClassList); virtual;
-    
   public
     constructor Create(AnOwner: TComponent); override;
 
@@ -417,37 +409,10 @@ begin
 end;
 
 procedure Tgdc_frmG.actNewUpdate(Sender: TObject);
-var
-  I: Integer;
-  DescendantCount: Integer;
-  SubMenu: Boolean;
 begin
-  if gdcObject <> nil then
-    DescendantCount := gdcObject.GetDescendantCount(False)
-  else
-    DescendantCount := 0;
-
-  actNew.Enabled := (gdcObject <> nil)
+  (Sender as TAction).Enabled := (gdcObject <> nil)
     and (gdcObject.State = dsBrowse)
-    and gdcObject.CanCreate
-    and (DescendantCount > 0);
-
-  SubMenu := DescendantCount > 1;
-
-  if not SubMenu then
-    SubMenu := (gdcObject <> nil) and (gdcObject.IsAbstractClass) and (DescendantCount > 0);
-
-  with tbMainToolbar.Items do
-  begin
-    for I := 0 to Count - 1 do
-    begin
-      if (Items[I] is TTBSubmenuItem) and (Items[I].Action = (Sender as TBasicAction)) then
-      begin
-        (Items[I] as TTBSubmenuItem).DropDownCombo := SubMenu;
-        Break;
-      end;
-    end;
-  end;
+    and gdcObject.CanCreate;
 end;
 
 procedure Tgdc_frmG.actEditUpdate(Sender: TObject);
@@ -509,11 +474,7 @@ end;
 
 procedure Tgdc_frmG.actNewExecute(Sender: TObject);
 begin
-  if (gdcObject <> nil) then
-    if not gdcObject.IsAbstractClass then
-      gdcObject.CreateDialog
-    else
-      gdcObject.CreateDefaultDialog;
+  gdcObject.CreateDescendant;
 end;
 
 procedure Tgdc_frmG.actEditExecute(Sender: TObject);
@@ -968,9 +929,6 @@ begin
   LocalizeListName.Free;
   PreviousSelectedID.Free;
   FgdcLink.Free;
-
-  FpmNewObject.Free;
-  
   inherited;
 end;
 
@@ -1501,88 +1459,6 @@ begin
   {END MACRO}
 end;
 
-procedure Tgdc_frmG.DoOnDescendantClick (Sender: TObject);
-var
-  CE: TgdClassEntry;
-  C: TgdcFullClass;
-  IsSubLevel: Boolean;
-  Index: Integer;
-begin
-  if Sender is TTBItem then
-  begin
-    Index := (Sender as TTBItem).Tag;
-    CE := TgdClassEntry(TCreatedObject(FpmNewObject[Index]).Obj);
-    IsSubLevel := TCreatedObject(FpmNewObject[Index]).IsSubLevel;
-  end
-  else
-    raise Exception.Create('invalid classtype.');
-
-  if CE = nil then
-    raise Exception.Create('DescendantObject is nil');
-
-  C.gdClass := CE.gdcClass;
-  C.SubType := CE.SubType;
-
-
-  if gdcObject <> nil then
-  begin
-    if IsSubLevel then
-      gdcObject.CreateChildrenDialog(C)
-    else
-      gdcObject.CreateDialog(C);
-  end;
-end;
-
-procedure Tgdc_frmG.FillPopupNew(ATBSubmenuItem: TTBSubmenuItem);
-var
-  CL: TClassList;
-  TBI: TTBItem;
-  I: Integer;
-  J: Integer;
-begin
-  if gdcObject = nil then
-    raise Exception.Create('gdcObject is nil.');
-
-  if FpmNewObject <> nil then
-  begin
-    FpmNewObject.Free;
-    FpmNewObject := nil;
-  end;
-
-  FpmNewObject := TObjectList.Create;
-
-  CL := TClassList.Create;
-  try
-    GetDisabledClasses(CL);
-    gdcObject.GetDescendantList(FpmNewObject, False);
-
-    ATBSubmenuItem.Clear;
-
-    for I := 0 to FpmNewObject.Count - 1 do
-    begin
-      TBI := TTBItem.Create(ATBSubmenuItem);
-      TBI.Tag := I;
-      TBI.Caption := TCreatedObject(FpmNewObject[I]).Caption;
-
-      if TCreatedObject(FpmNewObject[I]).IsSubLevel and gdcObject.IsEmpty then
-        TBI.Enabled := False;
-
-      TBI.OnClick := DoOnDescendantClick;
-      TBI.ImageIndex := 0;
-
-      for J := 0 to CL.Count - 1 do
-      begin
-        if CL[J] = TgdClassEntry(TCreatedObject(FpmNewObject[I]).Obj).TheClass then
-          TBI.Enabled := False;
-      end;
-      ATBSubmenuItem.Add(TBI);
-    end;
-
-  finally
-    CL.Free;
-  end;
-end;
-
 procedure Tgdc_frmG.DoCreate;
 begin
   inherited;
@@ -1827,6 +1703,7 @@ begin
   FInChoose := False;
   FChooseControl := nil;
   PreviousSelectedID := TgdKeyArray.Create;
+
 end;
 
 procedure Tgdc_frmG.actSelectAllExecute(Sender: TObject);
@@ -2028,11 +1905,6 @@ begin
   Result := V;
 end;
 
-procedure Tgdc_frmG.GetDisabledClasses(ACL: TClassList);
-begin
-  //
-end;
-
 procedure Tgdc_frmG.tbMainInvariantVisibleChanged(Sender: TObject);
 begin
   //
@@ -2136,16 +2008,8 @@ begin
   actHlp.Enabled := gdcObject <> nil;
 end;
 
-procedure Tgdc_frmG.tbsiNewPopup(Sender: TTBCustomItem;
-  FromLink: Boolean);
-begin
-  if (TTBSubmenuItem(Sender).DropDownCombo) and (gdcObject <> nil) then
-    FillPopupNew(TTBSubmenuItem(Sender));
-end;
-
 procedure Tgdc_frmG.actDistributeSettingsExecute(Sender: TObject);
 {$INCLUDE distribute_user_settings.pas}
-
 
 initialization
   RegisterFrmClass(Tgdc_frmG);

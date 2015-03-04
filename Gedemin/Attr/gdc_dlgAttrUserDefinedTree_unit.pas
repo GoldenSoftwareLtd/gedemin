@@ -16,6 +16,9 @@ type
 
   public
     procedure SetupDialog; override;
+    class function GetSubTypeList(SubTypeList: TStrings;
+      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; override;
+    class function ClassParentSubtype(Subtype: String): String; override;
   end;
 
 var
@@ -26,9 +29,40 @@ implementation
 {$R *.DFM}
 
 uses
-  gdcTree, gdcBaseInterface, gd_ClassList, gdcBase, at_Classes;
+  gdcTree, gdcBaseInterface, gd_ClassList;
 
 { Tgdc_dlgAttrUserDefinedTree }
+
+class function Tgdc_dlgAttrUserDefinedTree.GetSubTypeList(
+  SubTypeList: TStrings; Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
+var
+  sl: TStrings;
+  i: integer;
+begin
+  Result := TgdcAttrUserDefinedTree.GetSubTypeList(SubTypeList, Subtype, OnlyDirect);
+  if Subtype = '' then
+  begin
+    if SubTypeList.Count > 0 then begin
+      sl:= TStringList.Create;
+      try
+        sl.Assign(SubTypeList);
+        Result := TgdcAttrUserDefinedLBRBTree.GetSubTypeList(SubTypeList, Subtype, OnlyDirect) or Result;
+        for i:= 0 to sl.Count - 1 do
+          SubTypeList.Add(sl[i]);
+      finally
+        sl.Free;
+      end;
+    end
+    else
+      Result := TgdcAttrUserDefinedLBRBTree.GetSubTypeList(SubTypeList, Subtype, OnlyDirect);
+  end;
+end;
+
+class function Tgdc_dlgAttrUserDefinedTree.ClassParentSubtype(
+  Subtype: String): String;
+begin
+  Result := TgdcAttrUserDefinedLBRBTree.ClassParentSubtype(SubType);
+end;
 
 procedure TGDC_DLGATTRUSERDEFINEDTREE.SetupDialog;
   {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
@@ -79,7 +113,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_dlgAttrUserDefinedTree, ctDlgUserDefinedTree);
+  RegisterFrmClass(Tgdc_dlgAttrUserDefinedTree);
 
 finalization
   UnRegisterFrmClass(Tgdc_dlgAttrUserDefinedTree);

@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 1998-2014 by Golden Software of Belarus
+  Copyright (c) 1998-2012 by Golden Software of Belarus
 
   Module
 
@@ -36,7 +36,9 @@ interface
 uses
   Windows,            Messages,           SysUtils,           Classes,
   Graphics,           Controls,           Forms,              Dialogs,
-  ComCtrls,           DB,                 IBDatabase;
+  ComCtrls,           DB,                 IBTable,            IBQuery,
+  IBCustomDataSet,    IBDatabase,         IBSQL,              IBUpdateSQL,
+  IB,                 gdcBaseInterface;
 
 // бітавыя маскі для зарэзерваваных групаў карыстальнікаў
 const
@@ -353,7 +355,8 @@ var
 implementation
 
 uses
-  Registry;
+  IBStoredProc,             gd_resourcestring,
+  registry,                 gd_directories_const,       gd_security_OperationConst;
 
 // функцыі для шыфроўкі/дэшыфроўкі пароля
 

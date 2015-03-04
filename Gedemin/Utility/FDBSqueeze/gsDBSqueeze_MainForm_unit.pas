@@ -392,7 +392,7 @@ end;
 procedure TgsDBSqueeze_MainForm.FormCloseQuery(Sender: TObject;
   var CanClose: Boolean);
 begin
-  CanClose := (FSThread = nil) or ((not FConnected) and (not FSThread.Busy)); //actExit.Enabled;
+  CanClose := actExit.Enabled;
 end;
 
 // =============================== Меню ========================================
@@ -457,80 +457,74 @@ var
   I: Integer;
   LogFileName, BackupFileName: String;
 begin
+  LogFileName := '';
+  BackupFileName := '';
 
-  if not FWasSelectedDocTypes then
-    Application.MessageBox(PChar('Выбор типов документов обязателен! Осуществите выбор.'), PChar('Предупреждение'),
-        MB_OK + MB_ICONWARNING + MB_TOPMOST)
-  else begin
-    LogFileName := '';
-    BackupFileName := '';
+  FSThread.SetClosingDate(dtpClosingDate.Date);
 
-    FSThread.SetClosingDate(dtpClosingDate.Date);
+  FSThread.SetSaldoParams(
+    True,
+    chkCalculateSaldo.Checked);
 
-    FSThread.SetSaldoParams(
-      True,
-      chkCalculateSaldo.Checked);
-
-    if FWasSelectedDocTypes then
-    begin
-      FDocTypesList.Clear;
-      FDocTypesList.CommaText := gsDBSqueeze_DocTypesForm.GetSelectedIdDocTypes;
-      if FDocTypesList.Count > 0 then
-        FSThread.SetSelectDocTypes(FDocTypesList, rbIncluding.Checked);
-    end;
-
-    FSThread.DoGetStatisticsAfterProc := chkGetStatiscits.Checked;
-
-    RecLog('====================== Settings =======================');
-
-    RecLog('Database: ' + edDatabaseName.Text);
-    RecLog('Username: ' + edUserName.Text);
-    RecLog('Удалить документы с DOCUMENTDATE < ' + DateToStr(dtpClosingDate.Date));
-
-    if chkCalculateSaldo.Checked then
-      RecLog('Сохранить сальдо, вычисленное программой: ДА')
-    else
-      RecLog('Сохранить сальдо, вычисленное программой: НЕТ');
-
+  if FWasSelectedDocTypes then
+  begin
+    FDocTypesList.Clear;
+    FDocTypesList.CommaText := gsDBSqueeze_DocTypesForm.GetSelectedIdDocTypes;
     if FDocTypesList.Count > 0 then
-    begin
-      if rbExcluding.Checked then
-        RecLog('Не обрабатывать документы с  DOCUMENTTYPE: ')
-      else
-        RecLog('Обрабатывать только документы с DOCUMENTTYPE: ');
-      for I:=0 to FDocTypesList.Count-1 do
-        RecLog(FDocTypesList[I]);
-    end;
-    if chkGetStatiscits.Checked then
-      RecLog('По завершению обработки получить статистику: ДА')
+      FSThread.SetSelectDocTypes(FDocTypesList, rbIncluding.Checked);
+  end;
+
+  FSThread.DoGetStatisticsAfterProc := chkGetStatiscits.Checked;
+
+  RecLog('====================== Settings =======================');
+
+  RecLog('Database: ' + edDatabaseName.Text);
+  RecLog('Username: ' + edUserName.Text);
+  RecLog('Удалить документы с DOCUMENTDATE < ' + DateToStr(dtpClosingDate.Date));
+
+  if chkCalculateSaldo.Checked then
+    RecLog('Сохранить сальдо, вычисленное программой: ДА')
+  else
+    RecLog('Сохранить сальдо, вычисленное программой: НЕТ');
+
+  if FDocTypesList.Count > 0 then
+  begin
+    if rbExcluding.Checked then
+      RecLog('Не обрабатывать документы с  DOCUMENTTYPE: ')
     else
-      RecLog('По завершению обработки получить статистику: НЕТ');
+      RecLog('Обрабатывать только документы с DOCUMENTTYPE: ');
+    for I:=0 to FDocTypesList.Count-1 do
+      RecLog(FDocTypesList[I]);
+  end;
+  if chkGetStatiscits.Checked then
+    RecLog('По завершению обработки получить статистику: ДА')
+  else
+    RecLog('По завершению обработки получить статистику: НЕТ');
 
-    RecLog('=======================================================');
-    RecLog(mLog.Text);
+  RecLog('=======================================================');
+  RecLog(mLog.Text);
 
-    if FSThread.DoGetStatisticsAfterProc then
-    begin
-      sttxtGdDoc.Caption := '';
-      sttxtAcEntry.Caption := '';
-      sttxtInvMovement.Caption := '';
-      sttxtInvCard.Caption := '';
-      sttxtGdDocAfter.Caption := '';
-      sttxtAcEntryAfter.Caption := '';
-      sttxtInvMovementAfter.Caption := '';
-      sttxtInvCardAfter.Caption := '';
-      sttxtProcGdDoc.Caption := '';
-      sttxtProcAcEntry.Caption := '';
-      sttxtProcInvMovement.Caption := '';
-      sttxtProcInvCard.Caption := '';
-      sttxtAfterProcGdDoc.Caption := '';
-      sttxtAfterProcAcEntry.Caption := '';
-      sttxtAfterProcInvMovement.Caption := '';
-      sttxtAfterProcInvCard.Caption := '';
-    end;
+  if FSThread.DoGetStatisticsAfterProc then
+  begin
+    sttxtGdDoc.Caption := '';
+    sttxtAcEntry.Caption := '';
+    sttxtInvMovement.Caption := '';
+    sttxtInvCard.Caption := '';
+    sttxtGdDocAfter.Caption := '';
+    sttxtAcEntryAfter.Caption := '';
+    sttxtInvMovementAfter.Caption := '';
+    sttxtInvCardAfter.Caption := '';
+    sttxtProcGdDoc.Caption := '';
+    sttxtProcAcEntry.Caption := '';
+    sttxtProcInvMovement.Caption := '';
+    sttxtProcInvCard.Caption := '';
+    sttxtAfterProcGdDoc.Caption := '';
+    sttxtAfterProcAcEntry.Caption := '';
+    sttxtAfterProcInvMovement.Caption := '';
+    sttxtAfterProcInvCard.Caption := '';
+  end;
 
-    FSThread.StartProcessing;
-  end;  
+  FSThread.StartProcessing;
 end;
 
 procedure TgsDBSqueeze_MainForm.actGoUpdate(Sender: TObject);

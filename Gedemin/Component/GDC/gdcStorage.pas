@@ -347,11 +347,8 @@ begin
 end;
 
 function TgdcStorage.GetCurrRecordClass: TgdcFullClass;
-var
-  F: TField;
 begin
-  Result.gdClass := CgdcBase(Self.ClassType);
-  Result.SubType := '';
+  Result := inherited GetCurrRecordClass;
 
   if (not IsEmpty) and (Length(FieldByName('data_type').AsString) = 1) then
   begin
@@ -365,12 +362,6 @@ begin
         Result.gdClass := TgdcStorageValue;
     end;
   end;
-
-  F := FindField('USR$ST');
-  if F <> nil then
-    Result.SubType := F.AsString;
-  if (Result.SubType > '') and (not Result.gdClass.CheckSubType(Result.SubType)) then
-    raise EgdcException.Create('Invalid USR$ST value.');
 end;
 
 procedure TgdcStorage._DoOnNewRecord;
@@ -820,12 +811,8 @@ begin
 end;
 
 initialization
-  RegisterGdcClass(TgdcStorage);
-  RegisterGdcClass(TgdcStorageFolder);
-  RegisterGdcClass(TgdcStorageValue);
+  RegisterGdcClasses([TgdcStorage, TgdcStorageFolder, TgdcStorageValue]);
 
 finalization
-  UnRegisterGdcClass(TgdcStorage);
-  UnRegisterGdcClass(TgdcStorageFolder);
-  UnRegisterGdcClass(TgdcStorageValue);
+  UnRegisterGdcClasses([TgdcStorage, TgdcStorageFolder, TgdcStorageValue]);
 end.

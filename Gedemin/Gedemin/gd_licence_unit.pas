@@ -312,6 +312,10 @@ function Check(ProgramCode: Integer): Integer;
 var
   AppName, KeyName, DateName, Default, ReturnedString: array[0..255] of Char;
 begin
+  {St := EncodeKey('111111');
+  ShowMessage(DecodeKey(St));
+  St := DateCoder(StrToDate('25.12.2001'));
+  ShowMessage (DateToStr(DateDecoder(St)));}
   Result := 0; // Проверка пройдена
   StrCopy(AppName, PChar(IntToStr(ProgramCode)){'VMDdriver'});
   StrCopy(KeyName, 'Data');
@@ -324,6 +328,10 @@ begin
     if ReturnedString = 'NoData' then
     begin
        Result := 1;
+{      ShowMessage('Register, please!');
+//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      NewCopy(AppName, KeyName, DateName);}
+//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     end
     else
     begin

@@ -1,7 +1,8 @@
 
 {++
 
-  Copyright (c) 2000-2014 by Golden Software of Belarus
+
+  Copyright (c) 2000-2012 by Golden Software of Belarus
 
   Module
 
@@ -32,7 +33,7 @@ uses
   Db, IBCustomDataSet, IBDatabase, ActnList, IBSQL, ComCtrls, gdcBase,
   StdCtrls, ExtCtrls, DBCtrls, gsIBLookupComboBox, Mask, Grids, DBGrids,
   gsDBGrid, gsIBGrid, gd_security, Contnrs, gdc_dlgG_unit, gdc_dlgTRMetaData_unit,
-  Menus, gdc_dlgTR_unit, gdcBaseInterface, gd_ClassList;
+  Menus, gdc_dlgTR_unit, gdcBaseInterface;
 
 type
   Tgdc_dlgField = class(Tgdc_dlgTRMetaData)
@@ -197,9 +198,6 @@ type
     procedure TestType;
     procedure TestVisualSettings;
 
-    function BuildClassTree(ACE: TgdClassEntry; AData1: Pointer;
-      AData2: Pointer): Boolean;
-
   protected
     procedure UpdateDomainInfo;
 
@@ -218,7 +216,6 @@ type
     procedure SetupRecord; override;
     procedure SetupDialog; override;
     function TestCorrect: Boolean; override;
-
   end;
 
   Egdc_dlgFieldError = class(Exception);
@@ -231,7 +228,7 @@ implementation
 {$R *.DFM}
 
 uses
-  gdcMetaData, IBHeader, at_classes,
+  gdcMetaData, IBHeader, at_classes, gd_ClassList,
 
   at_sql_tools
   {must be placed after Windows unit!}
@@ -1349,8 +1346,7 @@ begin
 
       if GetSubTypes(FCurrentSubTypes) then
         for I := 0 to FCurrentSubTypes.Count - 1 do
-          comboClassSubType.Items.Add(FCurrentSubTypes.Names[I]
-            + '[' + FCurrentSubTypes.Values[FCurrentSubTypes.Names[I]] + ']');
+          comboClassSubType.Items.Add(FCurrentSubTypes.Names[I]);
     end;
   end;
 end;
@@ -1767,17 +1763,6 @@ begin
   {END MACRO}
 end;
 
-function Tgdc_dlgField.BuildClassTree(ACE: TgdClassEntry; AData1: Pointer;
-  AData2: Pointer): Boolean;
-begin
-  if ACE <> nil then
-    if not (ACE.SubType > '') then
-      FClasses.Add(TgdcClassHandler.Create(
-        ACE.gdcClass, gdcObject.Transaction.DefaultDatabase,
-        gdcObject.Transaction));
-        
-  Result := True;
-end;
 
 procedure Tgdc_dlgField.SetupDialog;
 var
@@ -1786,6 +1771,7 @@ var
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
+  I: Integer;
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGFIELD', 'SETUPDIALOG', KEYSETUPDIALOG)}
   {M}  try
@@ -1808,10 +1794,13 @@ begin
   {END MACRO}
   inherited;
   FClasses.Clear;
-
   //  Подготовка базовых классов
 
-  gdClassList.Traverse(TgdcBase, '', BuildClassTree, nil, nil);
+  for I := 0 to gdcClassList.Count - 1 do
+    if CgdcBase(gdcClassList[I]).InheritsFrom(TgdcBase) then
+      FClasses.Add(TgdcClassHandler.Create(
+        CgdcBase(gdcClassList[I]), gdcObject.Transaction.DefaultDatabase,
+          gdcObject.Transaction));
 
   luRefRelation.Condition :=
     '(SELECT COUNT(*) ' +
@@ -1881,5 +1870,6 @@ initialization
 
 finalization
   UnRegisterFrmClass(Tgdc_dlgField);
+
 end.
 

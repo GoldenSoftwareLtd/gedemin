@@ -25,6 +25,7 @@ type
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetSubSetList: String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
+    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
     class function NeedModifyFromStream(const SubType: String): Boolean; override;
 
     function CheckTheSameStatement: String; override;
@@ -348,6 +349,11 @@ begin
   {END MACRO}
 end;
 
+class function TgdcEvent.GetDisplayName(const ASubType: TgdcSubType): String;
+begin
+  Result := 'Событие';
+end;
+
 class function TgdcEvent.NeedModifyFromStream(
   const SubType: String): Boolean;
 begin
@@ -355,7 +361,7 @@ begin
 end;
 
 initialization
-  RegisterGdcClass(TgdcEvent, ctStorage, 'Событие');
+  RegisterGdcClass(TgdcEvent);
 
 finalization
   UnRegisterGdcClass(TgdcEvent);

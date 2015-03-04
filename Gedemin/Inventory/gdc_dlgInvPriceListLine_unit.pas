@@ -22,6 +22,11 @@ type
   public
     constructor Create(AnOwner: TComponent); override;
 
+    class function GetSubTypeList(SubTypeList: TStrings;
+      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; override;
+
+    class function ClassParentSubtype(Subtype: String): String; override;
+
     property Document: TgdcInvPriceList read GetDocument;
     property DocumentLine: TgdcInvPriceListLine read GetDocumentLine;
   end;
@@ -34,9 +39,21 @@ implementation
 {$R *.DFM}
 
 uses
-  gd_ClassList, gdcClasses, at_classes, gdcBase, IBSQL, gdcBaseInterface;
+  gd_ClassList, gdcClasses, at_classes;
 
 { TdlgInvPriceLine }
+
+class function TdlgInvPriceLine.GetSubTypeList(
+  SubTypeList: TStrings; Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
+begin
+  Result := TgdcInvPriceList.GetSubTypeList(SubTypeList, Subtype, OnlyDirect);
+end;
+
+class function TdlgInvPriceLine.ClassParentSubtype(
+  Subtype: String): String;
+begin
+  Result := TgdcInvPriceList.ClassParentSubtype(SubType);
+end;
 
 procedure TdlgInvPriceLine.atAttributesRelationNames(Sender: TObject;
   Relations, FieldAliases: TStringList);
@@ -99,7 +116,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(TdlgInvPriceLine, ctInvPriceList);
+  RegisterFrmClass(TdlgInvPriceLine);
 
 finalization
   UnRegisterFrmClass(TdlgInvPriceLine);

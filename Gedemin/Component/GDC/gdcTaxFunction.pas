@@ -63,6 +63,7 @@ type
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
+    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
 
     function CheckTheSameStatement: String; override;
   end;
@@ -1320,6 +1321,12 @@ begin
   Result := 'Tgdc_dlgTaxName';
 end;
 
+class function TgdcTaxName.GetDisplayName(
+  const ASubType: TgdcSubType): String;
+begin
+  Result := 'Бухгалтерский отчет';
+end;
+
 class function TgdcTaxName.GetListField(
   const ASubType: TgdcSubType): String;
 begin
@@ -1342,7 +1349,7 @@ initialization
   RegisterGdcClass(TgdcTaxActual);
   RegisterGdcClass(TgdcTaxResult);
   RegisterGdcClass(TgdcTaxDesignDate);
-  RegisterGdcClass(TgdcTaxName, ctStorage, 'Бухгалтерский отчет');
+  RegisterGdcClass(TgdcTaxName);
 
 finalization
   UnRegisterGdcClass(TgdcTaxActual);

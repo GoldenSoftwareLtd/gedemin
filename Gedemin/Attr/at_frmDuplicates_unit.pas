@@ -75,7 +75,7 @@ var
 begin
   FC.gdClassName := ibds.FieldByName('objectclass').AsString;
   FC.SubType := ibds.FieldByName('subtype').AsString;
-  C := gdClassList.GetGdcClass(FC.gdClassName);
+  C := gdcClassList.GetGdcClass(FC);
   if C <> nil then
   begin
     Obj := C.Create(nil);

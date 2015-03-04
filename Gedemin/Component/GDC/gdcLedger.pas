@@ -614,17 +614,17 @@ end;
 
 initialization
   RegisterGdcClass(TgdcAcctBaseConfig);
-  RegisterGdcClass(TgdcAcctAccConfig, ctStorage, 'Конфигурация карты счета');
-  RegisterGdcClass(TgdcAcctLedgerConfig, ctStorage, 'Конфигурация журнал-ордера');
-  RegisterGdcClass(TgdcAcctCicrilationListConfig ctStorage, 'Конфигурация оборотной ведомости');
-  RegisterGdcClass(TgdcAcctGeneralLedgerConfig, ctStorage, 'Конфигурация главной книги');
-  RegisterGdcClass(TgdcAcctAccReviewConfig, ctStorage, 'Конфигурация анализа счета');
+  RegisterGdcClass(TgdcAcctAccConfig);
+  RegisterGdcClass(TgdcAcctLedgerConfig);
+  RegisterGdcClass(TgdcAcctCicrilationListConfig);
+  RegisterGdcClass(TgdcAcctGeneralLedgerConfig );
+  RegisterGdcClass(TgdcAcctAccReviewConfig);
 finalization
   UnRegisterGdcClass(TgdcAcctBaseConfig);
   UnRegisterGdcClass(TgdcAcctAccConfig);
   UnRegisterGdcClass(TgdcAcctLedgerConfig);
   UnRegisterGdcClass(TgdcAcctCicrilationListConfig);
-  UnRegisterGdcClass(TgdcAcctGeneralLedgerConfig);
+  UnRegisterGdcClass(TgdcAcctGeneralLedgerConfig );
   UnRegisterGdcClass(TgdcAcctAccReviewConfig);
 end.
 

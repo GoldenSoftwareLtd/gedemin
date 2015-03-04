@@ -1,47 +1,47 @@
 inherited gdc_wage_frmTableCalendarMain: Tgdc_wage_frmTableCalendarMain
-  Left = 440
-  Top = 214
+  Left = 218
+  Top = 172
   Width = 696
   Caption = 'gdc_wage_frmTableCalendarMain'
   OldCreateOrder = False
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Width = 680
+    Width = 688
   end
   inherited TBDockTop: TTBDock
-    Width = 680
+    Width = 688
   end
   inherited TBDockRight: TTBDock
-    Left = 671
+    Left = 679
   end
   inherited TBDockBottom: TTBDock
-    Width = 680
+    Width = 688
   end
   inherited pnlWorkArea: TPanel
-    Width = 662
+    Width = 670
     inherited spChoose: TSplitter
-      Width = 662
+      Width = 670
     end
     inherited pnChoose: TPanel
-      Width = 662
+      Width = 670
       inherited pnButtonChoose: TPanel
-        Left = 557
+        Left = 565
       end
       inherited ibgrChoose: TgsIBGrid
-        Width = 557
+        Width = 565
       end
       inherited pnlChooseCaption: TPanel
-        Width = 662
+        Width = 670
       end
     end
     inherited pnlDetail: TPanel
-      Width = 433
+      Width = 441
       inherited TBDockDetail: TTBDock
-        Width = 433
+        Width = 441
       end
       inherited ibgrDetail: TgsIBGrid
-        Width = 273
+        Width = 281
         ReadOnly = False
       end
     end

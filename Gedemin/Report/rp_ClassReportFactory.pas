@@ -165,12 +165,20 @@ begin
     FReportInterface.ExportReport(FReportInterface.ExportType, FReportInterface.FileName)
   else if FReportInterface.Preview then
     FReportInterface.BuildReport
-  else
-  begin
-    {$IFDEF GEDEMIN_LOCK}
-    if not RegParams.CheckRegistration(True, 'Печать невозможна.') then
-      exit;
-    {$ENDIF}
+  else begin
+
+  {$IFDEF GEDEMIN_LOCK}
+    if not IsRegisteredCopy then
+    begin
+      MessageBox(0,
+        'Вы используете незарегистрированную копию программы. Печать невозможна.'#13#10 +
+        'Вы можете выполнить регистрацию вызвав команду Регистрация'#13#10 +
+        'из пункта меню Справка главного окна программы.',
+        'Внимание',
+        MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+      Exit;
+    end;
+  {$ENDIF}
 
     if Assigned(GlobalStorage) and Assigned(IBLogin)
       and ((GlobalStorage.ReadInteger('Options\Policy',
@@ -185,6 +193,7 @@ begin
 
     FReportInterface.PrintReport;
   end;
+
 end;
 
 end.

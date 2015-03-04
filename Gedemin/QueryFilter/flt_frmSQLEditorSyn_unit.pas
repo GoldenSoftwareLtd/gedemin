@@ -17,7 +17,7 @@ uses
   gd_createable_form, contnrs, gsStorage, Storages, Menus, TB2Item,
   TB2Dock, TB2Toolbar, SuperPageControl, gsDBGrid, StdActns,
   gsIBLookupComboBox, TeEngine, Series, TeeProcs, Chart, TB2ExtItems,
-  gdc_frmSQLHistory_unit, gd_ClassList,
+  gdc_frmSQLHistory_unit,
   {$IFDEF GEDEMIN}
   gdcBase,
   {$ENDIF}
@@ -251,8 +251,6 @@ type
     TBItem34: TTBItem;
     actFilter: TAction;
     tbiFilter: TTBItem;
-    Label17: TLabel;
-    edClassesFilter: TEdit;
     procedure actPrepareExecute(Sender: TObject);
     procedure actExecuteExecute(Sender: TObject);
     procedure actCommitExecute(Sender: TObject);
@@ -332,8 +330,6 @@ type
     procedure actChangeRUIDExecute(Sender: TObject);
     procedure actFilterUpdate(Sender: TObject);
     procedure actFilterExecute(Sender: TObject);
-    procedure actFindNextUpdate(Sender: TObject);
-    procedure edClassesFilterChange(Sender: TObject);
 
   private
     FOldDelete, FOldInsert, FOldUpdate, FOldIndRead, FOldSeqRead: TStrings;
@@ -377,9 +373,6 @@ type
     procedure FillClassesList;
     function ibtrEditor: TIBTransaction;
 
-    function BuildClassTree(ACE: TgdClassEntry; AData1: Pointer;
-      AData2: Pointer): Boolean;
-
   public
     FDatabase: TIBDatabase;
 
@@ -408,7 +401,7 @@ uses
   gdcBaseInterface, flt_sql_parser, flt_sqlFilter, at_sql_setup,
   {$ENDIF}
   gd_directories_const, Clipbrd, gd_security, gd_ExternalEditor,
-  gd_common_functions
+  gd_common_functions, gd_classlist
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -451,6 +444,8 @@ begin
     seQuery.Text := AnSQL;
   end;
     
+  //ibsqlPlan.Database := FDatabase;
+  //ibqryWork.Database := FDatabase;
   _ibtrEditor.DefaultDatabase := FDatabase;
   IBDatabaseInfo.Database := FDatabase;
   tsResult.TabVisible := False;
@@ -1341,9 +1336,7 @@ end;
 procedure TfrmSQLEditorSyn.actExecuteUpdate(Sender: TObject);
 begin
   actExecute.Enabled := (pcMain.ActivePage = tsQuery)
-    and (Trim(seQuery.Text) > '')
-    and (IBLogin <> nil)
-    and IBLogin.IsUserAdmin;
+    and (Trim(seQuery.Text) > '');
 end;
 
 procedure TfrmSQLEditorSyn.actPrepareUpdate(Sender: TObject);
@@ -1603,59 +1596,57 @@ begin
     Result := _ibtrEditor;
 end;
 
-function TfrmSQLEditorSyn.BuildClassTree(ACE: TgdClassEntry; AData1: Pointer;
-  AData2: Pointer): Boolean;
-var
-  LI: TListItem;
-  S: String;
-  Level: Integer;
-begin
-  if ACE = nil then
-  begin
-    Result := False;
-    exit;
-  end;
-
-  S := ACE.TheClass.ClassName + ACE.SubType
-    + ACE.gdcClass.GetDisplayName(ACE.SubType)
-    + ACE.gdcClass.GetListTable(ACE.SubType);
-  Level := PInteger(AData1)^;
-
-  if (edClassesFilter.Text = '') or (StrIPos(edClassesFilter.Text, S) > 0) then
-  begin
-    LI := lvClasses.Items.Add;
-    LI.Caption := StringOfChar(' ', Level * 2) + ACE.TheClass.ClassName;
-
-    if ACE.gdcClass.IsAbstractClass then
-      LI.SubItems.Add('<Абстрактный базовый класс>')
-    else
-      LI.SubItems.Add(ACE.SubType);
-
-    LI.SubItems.Add(ACE.gdcClass.GetDisplayName(ACE.SubType));
-    LI.SubItems.Add(ACE.gdcClass.GetListTable(ACE.SubType));
-  end;
-
-  Inc(Level);
-  gdClassList.Traverse(ACE.gdcClass, ACE.SubType, BuildClassTree, @Level, nil, False, True);
-
-  Result := True;
-end;
-
 procedure TfrmSQLEditorSyn.FillClassesList;
+{$IFDEF GEDEMIN}
 var
-  Level: Integer;
+  SL: TStringList;
+  I, J, T: Integer;
+  LI: TListItem;
+  SubType: String;
+  Cursor: TCursor;
+{$ENDIF}
 begin
+  if lvClasses.Items.Count > 0 then
+    exit;
+
   {$IFDEF GEDEMIN}
-  if gdClassList <> nil then
-  begin
-    lvClasses.Items.BeginUpdate;
-    Level := 0;
-    try
-      lvClasses.Items.Clear;
-      BuildClassTree(gdClassList.Find(TgdcBase), @Level, nil);
-    finally
-      lvClasses.Items.EndUpdate;
+  Cursor := Screen.Cursor;
+  SL := TStringList.Create;
+  try
+    Screen.Cursor := crSQLWait;
+    for I := 0 to gdcClassList.Count - 1 do
+    begin
+      LI := lvClasses.Items.Add;
+      LI.Caption := gdcClassList[I].ClassName;
+
+      if gdcClassList[I].IsAbstractClass then
+        LI.SubItems.Text :=
+          '<Абстрактный базовый класс>'#13#10 +
+          gdcClassList[I].GetDisplayName('') + #13#10 +
+          gdcClassList[I].GetListTable('')
+      else
+        LI.SubItems.Text := #13#10 +
+          gdcClassList[I].GetDisplayName('') + #13#10 +
+          gdcClassList[I].GetListTable('');
+
+      gdcClassList[I].GetSubTypeList(SL);
+      for J := 0 to SL.Count - 1 do
+      begin
+        LI := lvClasses.Items.Add;
+        LI.Caption := gdcClassList[I].ClassName;
+        T := Pos('=', SL[J]);
+        if T = 0 then
+          SubType := SL[J]
+        else
+          SubType := Copy(SL[J], T + 1, 255);
+        LI.SubItems.Text := SubType;
+        LI.SubItems.Add(gdcClassList[I].GetDisplayName(SubType));
+        LI.SubItems.Add(gdcClassList[I].GetListTable(SubType));
+      end;
     end;
+  finally
+    Screen.Cursor := Cursor;
+    SL.Free;
   end;
   {$ENDIF}
 
@@ -1999,10 +1990,7 @@ begin
   else if pcMain.ActivePage = tsHistory then
     AddSQLHistory(False)
   else if pcMain.ActivePage = tsClasses then
-  begin
-    if lvClasses.Items.Count = 0 then
-      FillClassesList;
-  end
+    FillClassesList
   else if pcMain.ActivePage = tsTransaction then
     FillTransactionsList
   else if (pcMain.ActivePage = tsResult) and (not tsResult.TabVisible) then
@@ -2377,17 +2365,18 @@ end;
 {$IFDEF GEDEMIN}
 function TfrmSQLEditorSyn.CreateCurrClassBusinessObject(out Obj: TgdcBase): Boolean;
 var
-  CE: TgdClassEntry;
+  C: TPersistentClass;
 begin
   Assert(lvClasses.Selected <> nil);
 
   Obj := nil;
-  CE := gdClassList.Find(Trim(lvClasses.Selected.Caption), lvClasses.Selected.SubItems[0]);
+  C := GetClass(lvClasses.Selected.Caption);
 
-  if (CE <> nil) and (CE.gdcClass <> nil) and (not CE.gdcClass.IsAbstractClass) then
+  if (C <> nil) and C.InheritsFrom(TgdcBase) then
   begin
-    Obj := CE.gdcClass.Create(nil);
-    Obj.SubType := CE.SubType;
+    Obj := CgdcBase(C).Create(nil);
+    if Pos('<', lvClasses.Selected.SubItems[0]) = 0 then
+      Obj.SubType := lvClasses.Selected.SubItems[0];
   end;
 
   Result := Obj <> nil;
@@ -2561,27 +2550,6 @@ begin
     Free;
   end;
   {$ENDIF}
-end;
-
-procedure TfrmSQLEditorSyn.actFindNextUpdate(Sender: TObject);
-begin
-  (Sender as TAction).Enabled := (pcMain.ActivePage = tsQuery) or
-    (pcMain.ActivePage = tsResult);
-end;
-
-procedure TfrmSQLEditorSyn.edClassesFilterChange(Sender: TObject);
-begin
-  FillClassesList;
-
-  if edClassesFilter.Text > '' then
-  begin
-    edClassesFilter.Color := clInfoBk;
-    lvClasses.Color := clInfoBk;
-  end else
-  begin
-    edClassesFilter.Color := clWindow;
-    lvClasses.Color := clWindow;
-  end;
 end;
 
 initialization

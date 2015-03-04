@@ -33,6 +33,7 @@ type
       const SaveDetailObjects: Boolean = True); override;
 
     class function NeedModifyFromStream(const SubType: String): Boolean; override;
+    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
   end;
 
 type
@@ -59,6 +60,7 @@ type
     class function GetKeyField(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetSubSetList: String; override;
+    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
 
     function CheckTheSameStatement: String; override;
 
@@ -280,6 +282,12 @@ begin
   {M}      ClearMacrosStack2('TGDCMACROSGROUP', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT);
   {M}  end;
   {END MACRO}
+end;
+
+class function TgdcMacrosGroup.GetDisplayName(
+  const ASubType: TgdcSubType): String;
+begin
+  Result := 'Папка макросов';
 end;
 
 function TgdcMacrosGroup.GetFromClause(const ARefresh: Boolean = False): String;
@@ -815,6 +823,12 @@ begin
   Result := True;
 end;
 
+class function TgdcMacros.GetDisplayName(
+  const ASubType: TgdcSubType): String;
+begin
+  Result := 'Макрос';
+end;
+
 function TgdcMacros.CheckTheSameStatement: String;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
   {M}VAR
@@ -971,8 +985,8 @@ begin
 end;
 
 initialization
-  RegisterGDCClass(TgdcMacrosGroup, ctStorage, 'Папка макросов');
-  RegisterGDCClass(TgdcMacros, ctStorage, 'Макрос');
+  RegisterGDCClass(TgdcMacrosGroup);
+  RegisterGDCClass(TgdcMacros);
 
 finalization
   UnRegisterGDCClass(TgdcMacrosGroup);

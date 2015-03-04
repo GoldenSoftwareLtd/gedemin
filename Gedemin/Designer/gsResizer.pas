@@ -532,6 +532,12 @@ begin
   Canvas.Pen.Color := clBlack;
   Canvas.Pen.Width := 1;
   Visible := False;
+{  FPopupMenu := TPopupMenu.Create(Self);
+  FPopupMenu.OnPopup := OnPopup;}
+
+
+
+ { Self.PopupMenu := FPopupMenu;}
 end;
 
 procedure TgsResizer.CreateParams(var Params: TCreateParams);
@@ -3203,9 +3209,6 @@ begin
   else if FDesignerType = dtUser then
     Result := USERCOMPONENT_PREFIX;
 
-  if (FFormSubType <> SubtypeDefaultName) and ((FDesignerType = dtGlobal) or (FDesignerType = dtUser)) then
-    Result := Result + StringReplace(FFormSubType, '$', '_', [rfReplaceAll]) + '_';
-
   Result := Result + Copy(AClassName, 2, Length(AClassName));
   if FDesignerType = dtUser then
     Result := Result + '_' + IBLogin.UserName;
@@ -3955,9 +3958,9 @@ begin
               repeat
                 LFullClassName.gdClassName := FEditForm.ClassName;
                 LFullClassName.SubType := SubType;
-                if not Assigned(gdClassList.GetFRMClass(LFullClassName.gdClassName))then
+                if not Assigned(frmClassList.GetFRMClass(LFullClassName))then
                   raise Exception.Create('Ошибка при загрузке настроек формы');
-                ParentSubType := gdClassList.GetFRMClass(LFullClassName.gdClassName).ClassParentSubtype(SubType);
+                ParentSubType := frmClassList.GetFRMClass(LFullClassName).ClassParentSubtype(SubType);
                 if ParentSubType <> '' then
                 begin
                   bLoadedFromStorage:= GlobalStorage.ReadStream(FResourceName, ParentSubType, F, IBLogin.IsIBUserAdmin);
@@ -3987,9 +3990,9 @@ begin
                 repeat
                   LFullClassName.gdClassName := FEditForm.ClassName;
                   LFullClassName.SubType := SubType;
-                  if not Assigned(gdClassList.GetFRMClass(LFullClassName.gdClassName))then
+                  if not Assigned(frmClassList.GetFRMClass(LFullClassName))then
                     raise Exception.Create('Ошибка при загрузке настроек формы');
-                  ParentSubType := gdClassList.GetFRMClass(LFullClassName.gdClassName).ClassParentSubtype(SubType);
+                  ParentSubType := frmClassList.GetFRMClass(LFullClassName).ClassParentSubtype(SubType);
                   if ParentSubType <> '' then
                   begin
                     bLoadedFromUserStorage:= UserStorage.ReadStream(FResourceName, ParentSubType, F);
@@ -4030,9 +4033,9 @@ begin
                       repeat
                         LFullClassName.gdClassName := FEditForm.ClassName;
                         LFullClassName.SubType := SubType;
-                        if not Assigned(gdClassList.GetFRMClass(LFullClassName.gdClassName))then
+                        if not Assigned(frmClassList.GetFRMClass(LFullClassName))then
                           raise Exception.Create('Ошибка при загрузке настроек формы');
-                        ParentSubType := gdClassList.GetFRMClass(LFullClassName.gdClassName).ClassParentSubtype(SubType);
+                        ParentSubType := frmClassList.GetFRMClass(LFullClassName).ClassParentSubtype(SubType);
                         if ParentSubType <> '' then
                         begin
                           bLoadedFromUserStorage:= UserStorage.ReadStream(FResourceName, ParentSubType, F);

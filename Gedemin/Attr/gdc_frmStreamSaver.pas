@@ -202,6 +202,7 @@ begin
     cbStreamFormat.Items.Add(STREAM_FORMATS[I]);
     cbSettingFormat.Items.Add(STREAM_FORMATS[I]);
   end;
+
 end;
 
 destructor Tgdc_frmStreamSaver.Destroy;

@@ -598,7 +598,7 @@ implementation
 uses
   JclSysUtils, ZLib, Windows, st_dlgfolderprop_unit, gd_common_functions,
   st_dlgeditvalue_unit, gsStorage_CompPath, DB, IB, IBErrorCodes,
-  IBBlob, gdcBaseInterface, jclStrings, gdcStorage_Types, gd_ClassList
+  IBBlob, gdcBaseInterface, jclStrings, gdcStorage_Types
   {$IFDEF GEDEMIN}
   , gd_directories_const, Storages, gdc_frmG_unit
   {$ENDIF}
@@ -1135,8 +1135,6 @@ begin
   if V <> nil then
   begin
     V.Drop;
-    if (AnsiPos('\SUBTYPES', AnsiUpperCase(Parent.Path)) = 1) then
-      gdClassList.RemoveAllSubTypes;
     Result := True;
   end else
     Result := False;
@@ -2128,11 +2126,7 @@ begin
   if F = FRootFolder then
     raise EgsStorageFolderError.Create('Can not delete root folder!');
   if F <> nil then
-  begin
-    if (AnsiPos('\SUBTYPES', AnsiUpperCase(F.Path)) = 1) then
-      gdClassList.RemoveAllSubTypes;
     F.Drop;
-  end;
   if SyncWithDatabase then
     AfterCloseFolder;
 end;
@@ -2435,9 +2429,7 @@ var
         repeat
           if FoundCount > 1 then
           begin
-            raise EgsStorageError.Create(
-              'Дублируются наименования элементов хранилища'#13#10 +
-              'в рамках одного родителя (ИД = ' + q.ParamByName('parent').AsString + ').'#13#10 +
+            raise EgsStorageError.Create('Дублируются наименования элементов хранилища в рамках одного родителя!'#13#10 +
               'Обратитесь к системному администратору!');
           end;
 
@@ -2574,13 +2566,16 @@ var
   procedure DoRecurse(F: TgsStorageFolder);
   var
     V: TgsStorageValue;
+    //RB: Integer;
     Prnt: Integer;
   begin
     F.FID := q.FieldByName('id').AsInteger;
     F.FModified := q.FieldByName('editiondate').AsDateTime;
+    //RB := q.FieldByName('rb').AsInteger;
     Prnt := q.FieldByName('id').AsInteger;
     q.Next;
 
+    //while (not q.EOF) and (q.FieldByName('rb').AsInteger <= RB) do
     while (not q.EOF) and (q.FieldByName('parent').AsInteger = Prnt) do
     begin
       if q.FieldByName('data_type').AsString = 'F' then
@@ -2636,12 +2631,8 @@ var
         if (V <> nil) and (not q.EOF) and (q.FieldByName('parent').AsInteger = V.ID) then
         begin
           MessageBox(0,
-            PChar(
-              'Элемент ID = ' + q.FieldByName('id').AsString +
-              ' входит в элемент ID = ' + q.FieldByName('parent').AsString +
-              ', который не является папкой.'#13#10 +
-              'Обратитесь к системному администратору.'),
-            'Ошибка данных хранилища',
+            PChar('Ошибка данных хранилища. Обратитесь к системному администратору. ID элемента = ' + q.FieldByName('id').AsString),
+            'Ошибка',
             MB_ICONEXCLAMATION or MB_OK or MB_TASKMODAL);
           while (not q.EOF) and (q.FieldByName('parent').AsInteger <> Prnt) do
             q.Next;
@@ -3375,8 +3366,6 @@ begin
     FData := Value;
     FChanged := FChanged or (not StorageLoading);
     FModified := Now;
-    if (not StorageLoading) and (AnsiPos('\SUBTYPES', AnsiUpperCase(Parent.Path)) = 1) then
-      gdClassList.RemoveAllSubTypes;
   end;
 end;
 

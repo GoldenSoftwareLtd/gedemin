@@ -197,7 +197,7 @@ var
   hProv: HCRYPTPROV;
   Key: HCRYPTKEY;
   Hash: HCRYPTHASH;
-  CryptoKey, PassHex: AnsiString;
+  CryptoKey, PassHex: String;
   Len, I, P: Integer;
 begin
   Assert(FDIType = ditINI);

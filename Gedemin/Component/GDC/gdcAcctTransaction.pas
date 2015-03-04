@@ -55,8 +55,6 @@ type
     class function NeedModifyFromStream(const SubType: String): Boolean; override;
 
     function GetCurrRecordClass: TgdcFullClass; override;
-
-    class function IsAbstractClass: Boolean; override;
   end;
   //Б.к. типовой операции
   TgdcAcctTransaction = class(TgdcBaseAcctTransaction)
@@ -66,12 +64,7 @@ type
   public
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
-    class function GetRestrictCondition(const ATableName, ASubType: String): String; override;
-
-    function GetDescendantList(AOL: TObjectList;
-      const AnOnlySameLevel: Boolean): Boolean; override;
-
-    function GetDescendantCount(const AnOnlySameLevel: Boolean): Integer; override;
+    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
   end;
 
   TgdcBaseAcctTransactionEntry = class(TgdcBase)
@@ -104,6 +97,7 @@ type
     procedure GetWhereClauseConditions(S: TStrings); override;
   public
     class function GetDialogFormClassName(const ASubType: TgdcSubType): string; override;
+    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
   end;
 
   EgdcAcctTransaction = class(Exception);
@@ -318,17 +312,11 @@ begin
       Result := inherited AcceptClipboard(CD);
 end;
 
-class function TgdcBaseAcctTransaction.IsAbstractClass: Boolean;
-begin
-  Result := Self.ClassNameIs('TgdcBaseAcctTransaction');
-end;
-
 function TgdcBaseAcctTransaction.GetCurrRecordClass: TgdcFullClass;
 var
   s: string;
-  F: TField;
 begin
-  S := '';
+  S := '';                                   
   if FieldByName(fnAutoTransaction).AsInteger = 1 then
   begin
     S := 'TgdcAutoTransaction';
@@ -340,12 +328,6 @@ begin
   begin
     Result.gdClass := CgdcBase(GetClass(S));
     Result.SubType := '';
-
-    F := FindField('USR$ST');
-    if F <> nil then
-      Result.SubType := F.AsString;
-    if (Result.SubType > '') and (not Result.gdClass.CheckSubType(Result.SubType)) then
-      raise EgdcException.Create('Invalid USR$ST value.');
   end else
     Result := inherited GetCurrRecordClass;
 end;
@@ -390,6 +372,12 @@ begin
   Result := 'Tgdc_dlgAcctTransaction'
 end;
 
+class function TgdcAcctTransaction.GetDisplayName(
+  const ASubType: TgdcSubType): String;
+begin
+  Result := 'Типовая операция'
+end;
+
 class function TgdcAcctTransaction.GetViewFormClassName(
   const ASubType: TgdcSubType): String;
 begin
@@ -401,69 +389,6 @@ begin
   inherited;
 
   S.Add(' (Z.AUTOTRANSACTION IS NULL OR Z.AUTOTRANSACTION = 0) ');
-end;
-
-class function TgdcAcctTransaction.GetRestrictCondition(const ATableName,
-  ASubType: String): String;
-begin
-  if (self = TgdcAcctTransaction) and (AnsiCompareText(ATableName, GetListTable(ASubType)) = 0) then
-    Result := ' (Z.AUTOTRANSACTION IS NULL OR Z.AUTOTRANSACTION = 0) '
-  else
-    Result := inherited GetRestrictCondition(ATableName, ASubType)
-end;
-
-function TgdcAcctTransaction.GetDescendantList(AOL: TObjectList;
-  const AnOnlySameLevel: Boolean): Boolean;
-var
-  OL: TObjectList;
-  I: Integer;
-  CO : TCreatedObject;
-begin
-  if Self.ClassType <> TgdcAcctTransaction then
-    Result := inherited GetDescendantList(AOL, AnOnlySameLevel)
-  else
-  begin
-    OL := TObjectList.Create(False);
-    try
-      if GetChildrenClass(SubType, OL) then
-      begin
-        for I := 0 to OL.Count - 1 do
-        begin
-          CO := TCreatedObject.Create;
-          CO.Obj := OL[I];
-          CO.Caption := TgdClassEntry(OL[I]).Caption;
-          if CO.Caption = '' then
-            CO.Caption := TgdClassEntry(OL[I]).TheClass.ClassName;
-          CO.IsSubLevel := False;
-          AOL.Add(CO);
-
-          if not AnOnlySameLevel then
-          begin
-            CO := TCreatedObject.Create;
-            CO.Obj := OL[I];
-            CO.Caption := TgdClassEntry(OL[I]).Caption;
-            if CO.Caption = '' then
-              CO.Caption := TgdClassEntry(OL[I]).TheClass.ClassName;
-            CO.Caption := CO.Caption + ' (подуровень)';
-            CO.IsSubLevel := True;
-            AOL.Add(CO);
-          end;
-        end;
-      end;
-    finally
-      OL.Free;
-    end;
-
-    Result := AOL.Count > 0;
-  end;
-end;
-
-function TgdcAcctTransaction.GetDescendantCount(const AnOnlySameLevel: Boolean): Integer;
-begin
-  Result := inherited GetDescendantCount(AnOnlySameLevel);
-
-  if (Self.ClassType = TgdcAcctTransaction) and (not AnOnlySameLevel) then
-    Result := Result * 2;
 end;
 
 { TgdcBaseAcctTransactionEntry }
@@ -652,8 +577,6 @@ end;
 
 function TgdcBaseAcctTransactionEntry.GetCurrRecordClass: TgdcFullClass;
 var
-  F: TField;
-var
   s: string;
   SQL: TIBSQL;
   DidActivate: Boolean;
@@ -700,12 +623,6 @@ begin
       begin
         Result.gdClass := CgdcBase(GetClass(S));
         Result.SubType := '';
-
-        F := FindField('USR$ST');
-        if F <> nil then
-          Result.SubType := F.AsString;
-        if (Result.SubType > '') and (not Result.gdClass.CheckSubType(Result.SubType)) then
-          raise EgdcException.Create('Invalid USR$ST value.');
       end else
         Result := inherited GetCurrRecordClass;
       if DidActivate then
@@ -882,6 +799,12 @@ begin
   Result := 'Tgdc_dlgAcctTrEntry';
 end;
 
+class function TgdcAcctTransactionEntry.GetDisplayName(
+  const ASubType: TgdcSubType): String;
+begin
+  Result := 'Типовые проводки';
+end;
+
 procedure TgdcAcctTransactionEntry.GetWhereClauseConditions(S: TStrings);
 begin
   inherited;
@@ -994,8 +917,8 @@ begin
 end;
 
 initialization
-  RegisterGdcClass(TgdcAcctTransaction, ctStorage, 'Типовая операция');
-  RegisterGdcClass(TgdcAcctTransactionEntry, ctStorage, 'Типовые проводки');
+  RegisterGdcClass(TgdcAcctTransaction);
+  RegisterGdcClass(TgdcAcctTransactionEntry);
   RegistergdcClass(TgdcBaseAcctTransaction);
 
 finalization

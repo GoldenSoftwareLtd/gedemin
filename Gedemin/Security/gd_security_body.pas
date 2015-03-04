@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 1998-2015 by Golden Software of Belarus
+  Copyright (c) 1998-2013 by Golden Software of Belarus
 
   Module
     gd_security.pas
@@ -348,7 +348,7 @@ uses
   IBServices,               DBLogDlg,             at_frmSQLProcess,
   Storages,                 mdf_proclist,         gdModify,
   IBDatabaseInfo,           gd_DatabasesList_unit,gd_security_operationconst,
-  IBErrorCodes,             gd_common_functions,  gd_ClassList
+  IBErrorCodes,             gd_common_functions 
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -604,8 +604,6 @@ begin
   InitDatabase(dmLogin.ibtrAttr);
   atDatabase.ProceedLoading(True);
 
-  gdClassList.LoadUserDefinedClasses;
-
   ClearHoldingListCache;
 
   if dm_i_ClientReport <> nil then begin
@@ -634,6 +632,7 @@ procedure TboLogin.DoBeforeDisconnect;
 var
   I: Integer;
   Msg: TMsg;
+
 begin
   //
   // Закрываем все окна
@@ -1721,7 +1720,6 @@ begin
       begin
         FSilentLogin := False;
         Result := True;
-        gdClassList.RemoveAllSubTypes;
       end;
     finally
       FLoggingOff := False;

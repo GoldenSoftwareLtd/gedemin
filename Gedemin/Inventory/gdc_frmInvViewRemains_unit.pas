@@ -581,7 +581,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmInvViewRemains, ctInvRemains);
+  RegisterFrmClass(Tgdc_frmInvViewRemains);
 
 finalization
   UnRegisterFrmClass(Tgdc_frmInvViewRemains);

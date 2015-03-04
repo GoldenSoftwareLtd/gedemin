@@ -6840,12 +6840,16 @@ function TwrpGDCBase.ChooseItems(const Cl: WideString;
   ChooseSubType: WideString): WordBool;
 var
   LgdcClass: CgdcBase;
+  LFullClass: TgdcFullClassName;
   V: OleVariant;
 begin
   Result := False;
   if Cl > '' then
-    LgdcClass := gdClassList.GetGDCClass(Cl)
-  else
+  begin
+    LFullClass.gdClassName := Cl;
+    LFullClass.SubType := '';
+    LgdcClass := gdcClassList.GetGDCClass(LFullClass);
+  end else
     LgdcClass := nil;
   Result := GetGDCBase.ChooseItems(LgdcClass, InterfaceToObject(KeyArray) as TgdKeyArray,
     V, ChooseComponentName, ChooseSubSet, ChooseSubType);
@@ -7387,7 +7391,7 @@ var
 begin
   Result := False;
   LFullClass.gdClassName := Cl;
-  LgdcClass := gdClassList.GetGDCClass(LFullClass.gdClassName);
+  LgdcClass := gdcClassList.GetGDCClass(LFullClass);
   if Assigned(LgdcClass) then
     Result := GetGDCBase.ChooseItems(LgdcClass, InterfaceToObject(KA) as TgdKeyArray,
       AChosenIDInOrder, ChooseComponentName, ChooseSubSet, ChooseSubType, ChooseExtraConditions);
@@ -7466,6 +7470,7 @@ var
   Cl: TPersistentClass;
   gdcBaseClass: CgdcBase;
   gdcObject: TgdcBase;
+{  LocTransaction: TIBTransaction;}
 begin
   Result := GetIndexObjectByName(AScriptName);
 
@@ -7478,13 +7483,28 @@ begin
 
     if Assigned(gdcBaseClass) then
     begin
+{      try
+        if InterfaceToObject(ATransaction) <> nil then
+          LocTransaction := InterfaceToObject(ATransaction) as TIBTransaction
+        else
+          LocTransaction := nil;
+      except
+        LocTransaction := nil;
+      end;}
       gdcObject := gdcBaseClass.CreateSubType(Application, ASubType);
+
       Result := gdcObjectList.IndexOf(gdcObject);
+
+//      gdcObjectList.Items[Result] := GetGdcOLEObject(gdcObject);
+
+//      (TObject(gdcObjectList.Items[Result]) as TwrpGDCBase)._AddRef;
       gdcObject.NameInScript := AScriptName;
     end;
   except
-    raise Exception.Create('Ошибка при создании объекта типа ' + AClassName);
+    Result := -1;
+    raise Exception.Create('Ошибка при создании объекта ' + AClassName);
   end;
+
 end;
 
 function TwrpGDCClassList.GetObject(const AScriptName: WideString): IgsGDCBase; safecall;
@@ -7501,12 +7521,18 @@ var
 begin
   Result := -1;
   for I := 0 to gdcObjectList.Count - 1 do
-    if (gdcObjectList.Items[I] is TgdcBase) and
-        AnsiSameText((gdcObjectList.Items[I] as TgdcBase).NameInScript, AScriptName) then
+  try
+    if (TObject(gdcObjectList.Items[I]) is TgdcBase) and
+        (AnsiUpperCase((TObject(gdcObjectList.Items[I]) as TgdcBase).NameInScript) =
+    	AnsiUpperCase(AScriptName))
+    then
     begin
       Result := I;
-      break;
+      Break;
     end;
+  except
+//    raise Exception.Create('В хранилище обнаружен объект не совместимый с TwrpGDCBase');
+  end;
 end;
 
 function TwrpGDCClassList.DeleteObject(const AScriptName: WideString): WordBool; safecall;
@@ -7517,16 +7543,18 @@ end;
 function TwrpGDCClassList.DeleteObjectByIndex(
   AnIndex: Integer): WordBool;
 var
-  P: TObject;
+  P: TgdcBase;
 begin
+  Result := False;
   if (-1 < AnIndex) and (AnIndex < gdcObjectList.Count) then
-  begin
-    P := gdcObjectList[AnIndex];
+  try
+//    TwrpGDCBase(gdcObjectList.Items[AnIndex])._Release;
+    P := TgdcBase(gdcObjectList[anIndex]);
     gdcObjectList.Delete(AnIndex);
-    P.Free;
+    FreeAndNil(P);
     Result := True;
-  end else
-    Result := False;
+  finally
+  end;
 end;
 
 function TwrpGDCClassList.GetObjectByIndex(AnIndex: Integer): IgsGDCBase;
@@ -8190,7 +8218,7 @@ var
   LFullClass: TgdcFullClassName;
 begin
   LFullClass.gdClassName := AgdcClassName;
-  LgdcClass := gdClassList.GetGDCClass(LFullClass.gdClassName);
+  LgdcClass := gdcClassList.GetGDCClass(LFullClass);
   if LgdcClass = nil then
     raise Exception.Create('Класс ' + AgdcClassName + 'не найден.');
 
@@ -12758,7 +12786,7 @@ begin
   правильно ли это?
   }
   LFullClass.gdClassName := Value;
-  LClass := gdClassList.GetGDCClass(LFullClass.gdClassName);
+  LClass := gdcClassList.GetGDCClass(LFullClass);
   if LClass = nil then
     raise Exception.Create('Класс ' + Value + ' не найден.');
 
@@ -19259,7 +19287,7 @@ initialization
   RegisterGdcOLEClass(TTBDock, TwrpTBDock, ComServer.TypeLib, IID_IgsTBDock);
   RegisterGdcOLEClass(TTBToolbar, TwrpTBToolbar, ComServer.TypeLib, IID_IgsTBToolbar);
   RegisterGdcOLEClass(TgdcBase, TwrpGDCBase, ComServer.TypeLib, IID_IgsGDCBase);
-  RegisterGdcOLEClass(TgdClassList, TwrpGDCClassList, ComServer.TypeLib, IID_IgsGDCClassList);
+  RegisterGdcOLEClass(TgdcClassList, TwrpGDCClassList, ComServer.TypeLib, IID_IgsGDCClassList);
   RegisterGdcOLEClass(TCreateableForm, TwrpCreateableForm, ComServer.TypeLib, IID_IgsCreateableForm);
   RegisterGdcOLEClass(TgdKeyArray, TwrpGDKeyArray, ComServer.TypeLib, IID_IgsGDKeyArray);
   RegisterGdcOLEClass(TgdcInvBaseRemains, TwrpGDCInvBaseRemains, ComServer.TypeLib, IID_IgsGDCInvBaseRemains);

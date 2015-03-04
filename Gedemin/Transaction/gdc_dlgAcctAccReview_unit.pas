@@ -11,13 +11,13 @@ uses
 
 type
   TdlgAcctAccReviewConfig = class(TdlgBaseAcctConfig)
+    cbShowCorrSubAccounts: TCheckBox;
     gbCorrAccounts: TGroupBox;
     Label1: TLabel;
     cbCorrAccounts: TComboBox;
     btnCorrAccounts: TButton;
     rbDebit: TRadioButton;
     rbCredit: TRadioButton;
-    cbShowCorrSubAccounts: TCheckBox;
     procedure btnCorrAccountsClick(Sender: TObject);
     procedure FormDockDrop(Sender: TObject; Source: TDragDockObject; X,
       Y: Integer);

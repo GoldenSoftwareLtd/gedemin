@@ -1,316 +1,317 @@
+{
 
+
+
+}
 unit gd_registration;
 
 interface
 
 type
-  TRegistrationState = (rsUnknown, rsRegistered, rsUnregistered, rsInvalid, rsExpired, rsUserCountExceeded);
-
-  TRegParams = class(TObject)
-  private
-    FState: TRegistrationState;
-    FValidUntil: TDateTime;
-    FMaxUserCount: Word;
-
-    class function GetComputerKey: LongWord;
-    class function GetMask(const AKey: LongWord): LongWord;
-    class function Decode(W: LongWord; var AValidUntil: TDateTime;
-      var AMaxUserCount: Word; const AKey: LongWord): Boolean;
-    class function Encode(const AValidUntil: TDateTime;
-      AMaxUserCount: Word; const AKey: LongWord): LongWord;
-
-    procedure Check;
-    function GetState: TRegistrationState;
-    function GetMaxUserCount: Integer;
-    function GetValidUntil: TDateTime;
-
-  public
-    constructor Create;
-
-    class function GetControlNumber: String;
-    class function GetCode(const AParams: String): Longword;
-
-    function CheckRegistration(const AShowMessage: Boolean;
-      const ADisabledFunction: String = ''): Boolean;
-    procedure RegisterProgram(const ANumber: LongWord);
-
-    property State: TRegistrationState read GetState;
-    property ValidUntil: TDateTime read GetValidUntil;
-    property MaxUserCount: Integer read GetMaxUserCount;
+  TRegParams = record
+    BlockVersion,
+    ProgCode,
+    Period,
+    UserCount,       
+    Reserved: Integer;
   end;
+
+  TUnregParams = record
+    DocCount: Integer;
+  end;
+
+const
+// Параметры работы незарегистрированной версии
+  UnregParams: TUnregParams = (DocCount: 40);
+  regInitialDate = 38015; // StrToDate('29.01.2004')
 
 var
   RegParams: TRegParams;
+  IsRegisteredCopy: Boolean;
 
+  function GetVisRegNumber: String;
+  procedure DoRegister(aCode: LongWord);
+  function CheckRegistration: Boolean;
+
+  function GetCode(aParams: String): Longword;
 
 implementation
 
 uses
   SysUtils, Windows, Classes, jclMath, Registry, inst_const,
-  gd_security, gd_CmdLineParams_unit, gd_GlobalParams_unit,
-  IBDatabase, IBSQL
+  gd_security, gd_CmdLineParams_unit, gd_GlobalParams_unit
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
   {$ENDIF}
   ;
 
-procedure TRegParams.Check;
-var
-  W: LongWord;
-  S: String;
-  Tr: TIBTransaction;
-  q: TIBSQL;
-begin
-  if FState = rsUnknown then
-  begin
-    FValidUntil := 0;
-    FMaxUserCount := 0;
-
-    S := gd_GlobalParams.InnerParam;
-
-    if (S = '') or (StrToInt64Def(S, 0) <> StrToInt64Def(S, 1)) then
-      FState := rsUnregistered
-    else begin
-      W := StrToInt64Def(S, 0);
-
-      if not Decode(W, FValidUntil, FMaxUserCount, GetComputerKey) then
-        FState := rsInvalid
-      else
-        FState := rsRegistered;
-    end;    
-  end;
-
-  if FState = rsRegistered then
-  begin
-    if (FValidUntil > 0) and (FValidUntil < Date) then
-      FState := rsExpired
-    else if (FMaxUserCount > 0) and Assigned(IBLogin) and IBLogin.LoggedIn then
-    begin
-      Tr := TIBTransaction.Create(nil);
-      q := TIBSQL.Create(nil);
-      try
-        Tr.DefaultDatabase := IBLogin.Database;
-        Tr.StartTransaction;
-        q.Transaction := Tr;
-        q.SQL.Text := 'SELECT COUNT(*) FROM mon$attachments';
-        q.ExecQuery;
-        if q.Fields[0].AsInteger > FMaxUserCount then
-          FState := rsUserCountExceeded;
-      finally
-        q.Free;
-        Tr.Free;
-      end;
-    end;
-  end;
-end;
-
-function TRegParams.CheckRegistration(const AShowMessage: Boolean;
-  const ADisabledFunction: String = ''): Boolean;
 const
-  MessageShown: Boolean = False;
-var
-  MessageText: String;
+  regBlockVersion = 0;
+  regProgCode = 0;
+  regReserved = 0;
+
+  RegSecureCodeValue = 'InnerParams';
+  RegKey = cClientRegPath;
+
+// Получаем CRC переданной строки
+function GetCRC32FromText(Text: String): LongWord;
 begin
-  Check;
+  Result := LongWord(Crc32_P(@Text[1], Length(Text), 0));
+end;
 
-  MessageText := '';
-  Result := False;
-
-  case FState of
-    rsInvalid, rsUnregistered:
-    begin
-      MessageText := 'Вы используете незарегистрированную копию программы.'#13#10;
-      if ADisabledFunction > '' then
-        MessageText := MessageText + ADisabledFunction + #13#10;
-    end;
-
-    rsExpired:
-    begin
-      MessageText := 'Период работы программы истек.'#13#10;
-      if ADisabledFunction > '' then
-        MessageText := MessageText + ADisabledFunction + #13#10;
-    end;
-
-    rsUserCountExceeded:
-    begin
-      MessageText := 'Превышен лимит количества пользователей,'#13#10'установленный Вашей лицензией.'#13#10;
-      if ADisabledFunction > '' then
-        MessageText := MessageText + ADisabledFunction + #13#10;
-    end;
-  else
-    Result := True;
-  end;
-
-  if AShowMessage and (not gd_CmdLineParams.QuietMode)
-    and (gd_CmdLineParams.LoadSettingFileName = '')
-    and (not gd_CmdLineParams.Embedding)
-    and (MessageText > '') then
+// возвращает блок, идентиф. компьютер
+function GetComputerKey: LongWord;
+var
+  R: TRegistry;
+  BIOSDate: String;
+begin
+  if Win32Platform = VER_PLATFORM_WIN32_NT then
   begin
-    if (ADisabledFunction > '') or (not MessageShown) then
-    begin
-      MessageBox(0,
-        PChar(
-          MessageText +
-          #13#10 +
-          'Вы можете выполнить регистрацию вызвав соответствующую'#13#10 +
-          'команду из пункта меню Справка главного окна программы.'#13#10#13#10 +
-          'По всем вопросам обращайтесь в офис Golden Software, Ltd:'#13#10 +
-          'Беларусь, г.Минск, ул. Скрыганова 6, оф. 2-204'#13#10 +
-          'тел/факс: +375-17-2561759, 2562782'#13#10 +
-          'http://gsbelarus.com, email: support@gsbelarus.com'),
-        'Внимание',
-        MB_OK or MB_ICONHAND or MB_TASKMODAL);
-      MessageShown := True;  
+    R := TRegistry.Create(KEY_READ);
+    BIOSDate := '';
+    try
+      try
+        R.RootKey := HKEY_LOCAL_MACHINE;
+        R.OpenKeyReadOnly('\HARDWARE\DESCRIPTION\System');
+        BIOSDate := BIOSDate + R.ReadString('SystemBiosDate');
+        BIOSDate := BIOSDate + R.ReadString('VideoBiosDate');
+      except
+        BIOSDate := '256918198432';
+      end;
+    finally
+      R.Free;
+    end;
+  end else
+  begin
+    try
+      SetString(BIOSDate, PChar(Ptr($FFFF5)), 8);
+      BIOSDate := BIOSDate + '893621';
+    except
+      BIOSDate := '102987232154';
     end;
   end;
+
+  Result := GetCRC32FromText(BIOSDate);
 end;
 
-constructor TRegParams.Create;
+// кодирование числа
+function Encryption(const aCode, aCompKey: LongWord): LongWord;
+var
+  RandNumber: LongWord;
 begin
-  FState := rsUnknown;
+  RandSeed := aCompKey;
+
+  RandNumber := Random(MaxInt) + Random(MaxInt);
+  if Odd(RandNumber) then
+    RandNumber := Random(MaxInt) + Random(MaxInt);
+
+  Result := aCode xor RandNumber;
 end;
 
-class function TRegParams.Decode(W: LongWord; var AValidUntil: TDateTime;
-  var AMaxUserCount: Word; const AKey: LongWord): Boolean;
+// GetVisRegNumber - возвращает контрольное число (ключ) для отображения на экране
+function GetVisRegNumber: String;
 begin
-  W := W xor GetMask(AKey);
-  if (W shr 18) <> $2AAA then
-    Result := False
-  else begin
-    if (W and $3FFF) = 0 then
-      AValidUntil := 0
-    else
-      AValidUntil := EncodeDate(2014, 08, 30) + (W and $3FFF);
-    AMaxUserCount := (W shr 14) and $F;
-    Result := True;
+  Result := FormatFloat('#,###', GetComputerKey);
+end;
+
+// GetRegNum - возвращает раскодир. код разблокировки, сохраненный в реестре
+function GetRegNum(var Code: LongWord): Boolean;
+var
+  Reg: TRegistry;
+begin
+  Result := False;
+  Reg := TRegistry.Create(KEY_READ);
+  try
+    Reg.RootKey := HKEY_LOCAL_MACHINE;
+    if Reg.OpenKeyReadOnly(RegKey) and
+       Reg.ValueExists(RegSecureCodeValue) then
+    begin
+      Code := Encryption(Reg.ReadInteger(RegSecureCodeValue), GetComputerKey);
+      Result := True;
+    end;
+  finally
+    Reg.Free;
   end;
 end;
 
-class function TRegParams.Encode(const AValidUntil: TDateTime;
-  AMaxUserCount: Word; const AKey: LongWord): LongWord;
+// GetUnlockCode - возвращает код разблокировки, сост. из параметров регистрации
+function GetUnlockCodeByParams(aParams: TRegParams): LongWord;
 begin
-  Result := $2AAA;
-
-  if AMaxUserCount > $F then
-    AMaxUserCount := 0;
-
-  Result := (Result shl 4) + AMaxUserCount;
-
-  Result := Result shl 14;
-
-  if AValidUntil > EncodeDate(2014, 08, 30) then
-    Result := Result + Trunc(AValidUntil - EncodeDate(2014, 08, 30));
-
-  Result := Result xor GetMask(AKey);
+  Result := aParams.BlockVersion;
+  Result := Result * 256 or LongWord(aParams.ProgCode);
+  Result := Result * 256 or LongWord(aParams.Period);
+  Result := Result * 256 or LongWord(aParams.UserCount);
+  Result := Result * 64  or LongWord(aParams.Reserved);
 end;
 
-class function TRegParams.GetCode(const AParams: String): Longword;
+// GetUnlockCode - возвращает параметры регистрации из кода разблокировки
+function GetParamsByUnlockCode(aCode: LongWord): TRegParams;
+begin
+  Result.Reserved := aCode and $3F;
+  Result.UserCount := (aCode and $3FC0) shr 6;
+  Result.Period := (aCode and $3FC000) shr (6 + 8);
+  Result.ProgCode := (aCode and $3FC00000) shr (6 + 8 + 8);
+  Result.BlockVersion := (aCode and $C0000000) shr (6 + 8 + 8 + 8);
+end;
+
+// SaveParamsInReg - сохр. в реестре переданный шифр
+procedure SaveUnlockCodeToReg(aCode: LongWord);
 var
+  Reg: TRegistry;
+begin
+  Reg := TRegistry.Create;
+  try
+    Reg.RootKey := HKEY_LOCAL_MACHINE;
+    Reg.OpenKey(RegKey, True);
+    try
+      Reg.WriteInteger(RegSecureCodeValue, aCode);
+    except                  
+//      on E: Exception do
+        MessageBox(0,
+          'При попытке регистрации возникла ошибка!'#13#10 + 
+          'Возможно, вы не обладаете правами администратора.',
+          'Внимание',  
+          MB_OK or MB_ICONERROR or MB_TASKMODAL);
+    end;
+  finally
+    Reg.Free;
+  end;
+end;
+
+function GetCipher(aParams: TRegParams; aCompKey: LongWord): LongWord;
+begin
+  Result := Encryption(GetUnlockCodeByParams(aParams), aCompKey);
+end;
+
+// DoRegister - регистрирует компьютер (сохр. данные в реестре)
+procedure DoRegister(aCode: LongWord);
+begin
+  SaveUnlockCodeToReg(aCode);
+end;
+
+// GetRegistrationInfo - расшифровка кода разблокировки и проверка
+function CheckRegistration: Boolean;
+var
+  C: LongWord;
+begin
+  CheckRegistration := True;
+
+  if Pos('POSITIVE_', AnsiUpperCase(gd_GlobalParams.UpdateToken)) = 0 then
+    exit;
+
+  if not GetRegNum(C) then
+  begin
+  {$IFDEF NOGEDEMIN}
+    MessageBox(0,
+      'Программа не зарегистрирована на этом компьютере.'#13#10#13#10,
+      'Внимание',
+      MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+  {$ELSE}
+    if (not gd_CmdLineParams.QuietMode) and (gd_CmdLineParams.LoadSettingFileName = '')
+        and (not gd_CmdLineParams.Embedding) then
+      MessageBox(0,
+        'Программа не зарегистрирована на этом компьютере.'#13#10#13#10 +
+        'Вы можете выполнить регистрацию вызвав команду Регистрация'#13#10 +
+        'из пункта меню Справка главного окна программы.'#13#10#13#10 +
+        'По всем вопросам обращайтесь в офис компании Golden Software:'#13#10 +
+        'Беларусь, г.Минск, ул. Скрыганова 6, оф. 2-204'#13#10 +
+        'тел/факс: +375-17-2561759, 2562782'#13#10 +
+        'http://gsbelarus.com, email: support@gsbelarus.com'#13#10 +
+        '',
+        'Внимание',
+        MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+  {$ENDIF}
+    CheckRegistration := False;
+    Exit;
+  end else
+    RegParams := GetParamsByUnlockCode(C);
+
+// изменилась конфигурация компьютера
+  if (RegParams.Reserved <> regReserved) or
+     (RegParams.BlockVersion <> regBlockVersion) or
+     (RegParams.ProgCode <> regProgCode) then
+  begin
+  {$IFDEF NOGEDEMIN}
+    MessageBox(0,
+      'Программа не зарегистрирована на этом компьютере.'#13#10#13#10 +
+      'Возможно, конфигурация компьютера была изменена.',
+      'Внимание',
+      MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+  {$ELSE}
+    if (not gd_CmdLineParams.QuietMode) and (gd_CmdLineParams.LoadSettingFileName = '')
+        and (not gd_CmdLineParams.Embedding) then
+      MessageBox(0,
+        'Программа не зарегистрирована на этом компьютере.'#13#10#13#10 +
+        'Возможно, конфигурация компьютера была изменена.'#13#10 +
+        'Вы можете выполнить регистрацию вызвав команду Регистрация'#13#10 +
+        'из пункта меню Справка главного окна программы.'#13#10#13#10 +
+        'По всем вопросам обращайтесь в офис компании Golden Software:'#13#10 +
+        'Беларусь, г.Минск, ул. Скрыганова 6, оф. 2-204'#13#10 +
+        'тел/факс: +375-17-2561759, 2562782'#13#10 +
+        'http://gsbelarus.com, email: support@gsbelarus.com'#13#10 +
+        '',
+        'Внимание',
+        MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+  {$ENDIF}
+    CheckRegistration := False;
+    Exit;
+  end;
+
+// период действия
+  if (RegParams.Period > 0) and
+     (Now > IncMonth(regInitialDate, RegParams.Period * 3)) then
+  begin
+  {$IFDEF NOGEDEMIN}
+    MessageBox(0,
+      'Период работы программы истек.',
+      'Внимание',
+      MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+  {$ELSE}
+    MessageBox(0,
+      'Период работы программы истек.'#13#10 +
+      'Вы можете выполнить регистрацию вызвав команду Регистрация'#13#10 +
+      'из пункта меню Справка главного окна программы.',
+      'Внимание',
+      MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+  {$ENDIF}
+    CheckRegistration := False;
+    Exit;
+  end;
+
+end;
+
+// GetCode - генерация кода (для объекта System)
+function GetCode(aParams: String): Longword;
+var
+  Params: TRegParams;
   List: TStringList;
-  D: TDateTime;
 begin
   Result := 0;
   List := TStringList.Create;
   try
-    List.CommaText := AParams;
+    List.CommaText := aParams;
 
-    if List.Count <> 5 then
+    if List.Count <> 6 then
       raise Exception.Create('Invalid params string');
 
-    if List[0] = '0' then
-      D := 0
-    else
-      D := EncodeDate(StrToInt(List[0]), StrToInt(List[1]), StrToInt(List[2]));
-
-    Result := Encode(D, StrToInt(List[3]), StrToInt64(List[4]));
+    try
+      Params.BlockVersion := StrToInt(List[0]);
+      Params.ProgCode     := StrToInt(List[1]);
+      Params.Period       := StrToInt(List[2]);
+      Params.UserCount    := StrToInt(List[3]);
+      Params.Reserved     := StrToInt(List[4]);
+      Result := GetCipher(Params, LongWord(StrToInt64(List[5])));
+    except
+      raise Exception.Create('Invalid params string');
+    end;
   finally
     List.Free;
   end;
 end;
 
-class function TRegParams.GetComputerKey: LongWord;
-var
-  R: TRegistry;
-  BIOSDate: AnsiString;
-  I: LongWord;
-begin
-  SetLength(BIOSDate, MAX_COMPUTERNAME_LENGTH + 1);
-  I := Length(BIOSDate);
-  if GetComputerName(@BIOSDate[1], I) then
-    SetLength(BIOSDate, I);
-
-  R := TRegistry.Create(KEY_READ);
-  try
-    R.RootKey := HKEY_LOCAL_MACHINE;
-    if R.OpenKeyReadOnly('\HARDWARE\DESCRIPTION\System') then
-    begin
-      BIOSDate := BIOSDate +
-        R.ReadString('SystemBiosDate') +
-        R.ReadString('VideoBiosDate');
-      R.CloseKey;
-    end;
-    if R.OpenKeyReadOnly('\HARDWARE\DESCRIPTION\System\BIOS') then
-    begin
-      BIOSDate := BIOSDate +
-        R.ReadString('SystemProductName') +
-        R.ReadString('SystemVersion');
-      R.CloseKey;
-    end;
-  finally
-    R.Free;
-  end;
-
-  Result := LongWord(Crc32_P(@BIOSDate[1], Length(BIOSDate), 0));
-end;
-
-class function TRegParams.GetControlNumber: String;
-begin
-  Result := FormatFloat('#,###', GetComputerKey);
-end;
-
-class function TRegParams.GetMask(const AKey: LongWord): LongWord;
-var
-  I: Integer;
-begin
-  Result := 0;
-  RandSeed := LongInt(AKey);
-  for I := 1 to 4 do
-    Result := (Result shl 8) or Byte(Random(256));
-end;
-
-function TRegParams.GetMaxUserCount: Integer;
-begin
-  Check;
-  Result := FMaxUserCount;
-end;
-
-function TRegParams.GetState: TRegistrationState;
-begin
-  Check;
-  Result := FState;
-end;
-
-function TRegParams.GetValidUntil: TDateTime;
-begin
-  Check;
-  Result := FValidUntil;
-end;
-
-procedure TRegParams.RegisterProgram(const ANumber: LongWord);
-var
-  D: TDateTime;
-  W: Word;
-begin
-  if not Decode(ANumber, D, W, GetComputerKey) then
-    raise Exception.Create('Invalid registration number.');
-  gd_GlobalParams.InnerParam := IntToStr(ANumber);
-  FState := rsUnknown;
-end;
-
 initialization
-  RegParams := TRegParams.Create;
 
-finalization
-  RegParams.Free;
+  IsRegisteredCopy := False;
+
 end.

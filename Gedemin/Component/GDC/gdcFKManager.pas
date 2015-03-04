@@ -760,7 +760,7 @@ end;
 
 initialization
 
-  RegisterGdcClass(TgdcFKManager, ctStorage, 'Внешний ключ');
+  RegisterGdcClass(TgdcFKManager);
   //RegisterGdcClass(TgdcFKManagerData);
 
 finalization

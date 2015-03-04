@@ -23,16 +23,16 @@ object frmPeriod: TfrmPeriod
   object pnlMain: TPanel
     Left = 0
     Top = 0
-    Width = 487
-    Height = 325
+    Width = 495
+    Height = 336
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 0
     object pcSelDate: TPageControl
       Left = 0
       Top = 0
-      Width = 487
-      Height = 325
+      Width = 495
+      Height = 336
       ActivePage = tsMonth
       Align = alClient
       TabOrder = 0
@@ -43,8 +43,8 @@ object frmPeriod: TfrmPeriod
         object Panel1: TPanel
           Left = 0
           Top = 26
-          Width = 473
-          Height = 265
+          Width = 481
+          Height = 276
           Align = alClient
           BevelOuter = bvLowered
           FullRepaint = False
@@ -52,8 +52,8 @@ object frmPeriod: TfrmPeriod
           object GridMonth: TgsIBGrid
             Left = 1
             Top = 1
-            Width = 471
-            Height = 263
+            Width = 479
+            Height = 274
             Align = alClient
             BorderStyle = bsNone
             DataSource = dsTaxName
@@ -80,7 +80,7 @@ object frmPeriod: TfrmPeriod
         object Panel4: TPanel
           Left = 0
           Top = 0
-          Width = 473
+          Width = 481
           Height = 26
           Align = alTop
           BevelOuter = bvNone
@@ -116,7 +116,7 @@ object frmPeriod: TfrmPeriod
             MaxValue = 2030
             MinValue = 1990
             TabOrder = 1
-            Value = 2014
+            Value = 2003
           end
         end
       end
@@ -127,8 +127,8 @@ object frmPeriod: TfrmPeriod
         object Panel2: TPanel
           Left = 0
           Top = 26
-          Width = 473
-          Height = 265
+          Width = 481
+          Height = 276
           Align = alClient
           BevelOuter = bvLowered
           FullRepaint = False
@@ -163,7 +163,7 @@ object frmPeriod: TfrmPeriod
         object Panel5: TPanel
           Left = 0
           Top = 0
-          Width = 473
+          Width = 481
           Height = 26
           Align = alTop
           BevelOuter = bvNone
@@ -297,15 +297,15 @@ object frmPeriod: TfrmPeriod
   end
   object pnlButton: TPanel
     Left = 0
-    Top = 325
-    Width = 487
+    Top = 336
+    Width = 495
     Height = 30
     Align = alBottom
     BevelOuter = bvNone
     TabOrder = 1
     object btnOk: TButton
-      Left = 331
-      Top = 7
+      Left = 340
+      Top = 9
       Width = 75
       Height = 21
       Anchors = [akRight, akBottom]
@@ -315,8 +315,8 @@ object frmPeriod: TfrmPeriod
       TabOrder = 0
     end
     object btnCancel: TButton
-      Left = 411
-      Top = 7
+      Left = 420
+      Top = 9
       Width = 75
       Height = 21
       Anchors = [akRight, akBottom]
@@ -327,7 +327,7 @@ object frmPeriod: TfrmPeriod
     end
     object Button1: TButton
       Left = 1
-      Top = 7
+      Top = 9
       Width = 75
       Height = 21
       Action = actHelp

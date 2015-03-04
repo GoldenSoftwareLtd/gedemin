@@ -1516,15 +1516,6 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (214, '0000.0001.0000.0245', '16.06.2014', 'Add GD_WEBLOG, GD_WEBLOGDATA tables.');
 
-INSERT INTO fin_versioninfo
-  VALUES (215, '0000.0001.0000.0246', '02.09.2014', 'gd_x_currrate_fordate index added.');
-
-INSERT INTO fin_versioninfo
-  VALUES (216, '0000.0001.0000.0247', '03.09.2014', 'Added command for TgdcCheckConstraint.');
-
-INSERT INTO fin_versioninfo
-  VALUES (217, '0000.0001.0000.0248', '06.09.2014', 'MD5 field added to namespace table.');
-
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
@@ -2520,8 +2511,6 @@ ALTER TABLE gd_currrate ADD CONSTRAINT gd_fk2_currrate
 
 ALTER TABLE gd_currrate ADD CONSTRAINT gd_chk1_currrate
   CHECK(fromcurr <> tocurr);
-
-CREATE DESC INDEX gd_x_currrate_fordate ON gd_currrate(fordate);
 
 COMMIT;
 /*
@@ -5712,7 +5701,6 @@ BEGIN
 END
 ^
 
-
 CREATE OR ALTER TRIGGER gd_aiu_documenttype FOR gd_documenttype
   ACTIVE
   AFTER INSERT OR UPDATE
@@ -5937,37 +5925,11 @@ BEGIN
   END
 
   /* просто игнорируем все ошибки */
-/* сейчас не игнорируем ошибки */
-/*  WHEN ANY DO
+  WHEN ANY DO
   BEGIN
-  END */
-END
-^
-
-CREATE TRIGGER GD_AU_DOCUMENT_DATE FOR GD_DOCUMENT 
-ACTIVE AFTER UPDATE POSITION 11
-AS
-  DECLARE VARIABLE updatesql VARCHAR(1024);
-  DECLARE VARIABLE nametable VARCHAR(31);
-BEGIN
-/*Тело триггера*/
-  if (OLD.documentdate <> NEW.documentdate and NEW.parent IS NOT NULL) then
-  begin
-    select r.relationname from
-      gd_documenttype dt
-        join at_relations r ON dt.LINERELKEY = r.id
-    where UPPER(dt.classname) = 'TGDCINVDOCUMENTTYPE' and dt.id = OLD.documenttypekey
-    into :nametable;
-  
-    if (nametable is not null) then
-    begin
-      updatesql = 'UPDATE ' || nametable || ' SET documentkey = documentkey WHERE documentkey = ' || CAST(OLD.ID as VARCHAR(10));
-      EXECUTE STATEMENT :updatesql;
-    end
   END
 END
 ^
-
 
 CREATE TRIGGER GD_AD_DOCUMENT FOR GD_DOCUMENT
   AFTER DELETE
@@ -6463,28 +6425,15 @@ BEGIN
      DELETE FROM AT_CHECK_CONSTRAINTS WHERE CHECKNAME = :EN; 
    END 
        
- /* добавим новые чеки */
- /*
+ /* добавим новые чеки */ 
    INSERT INTO AT_CHECK_CONSTRAINTS(CHECKNAME)
-   SELECT TRIM(C.RDB$CONSTRAINT_NAME)
+   SELECT G_S_TRIM(C.RDB$CONSTRAINT_NAME,  ' ')
    FROM RDB$TRIGGERS T
    LEFT JOIN RDB$CHECK_CONSTRAINTS C ON C.RDB$TRIGGER_NAME = T.RDB$TRIGGER_NAME
    LEFT JOIN AT_CHECK_CONSTRAINTS CON ON CON.CHECKNAME = C.RDB$CONSTRAINT_NAME
    WHERE T.RDB$TRIGGER_SOURCE LIKE 'CHECK%'
      AND CON.CHECKNAME IS NULL;
- */    
 
-   MERGE INTO at_check_constraints cc
-   USING
-     (
-       SELECT TRIM(c.rdb$constraint_name) AS c_name
-       FROM rdb$triggers t
-         JOIN rdb$check_constraints c ON c.rdb$trigger_name = t.rdb$trigger_name
-       WHERE
-         t.rdb$trigger_source LIKE 'CHECK%'
-     ) AS new_constraints
-   ON (cc.checkname = new_constraints.c_name)
-   WHEN NOT MATCHED THEN INSERT (checkname) VALUES (new_constraints.c_name);
 END
 ^
 
@@ -15032,13 +14981,6 @@ COMMIT;
 */
 
 CREATE EXCEPTION INV_E_INVALIDMOVEMENT 'The movement was made incorrect!';
-CREATE EXCEPTION INV_E_NOPRODUCT 'On the date no product!';
-CREATE EXCEPTION INV_E_EARLIERMOVEMENT 'It was the movement of goods earlier date!';
-CREATE EXCEPTION INV_E_INSUFFICIENTBALANCE 'Insufficient balances at that date';
-CREATE EXCEPTION INV_E_INCORRECTQUANTITY 'Quantity at the document does not match the movement!';
-CREATE EXCEPTION INV_E_DONTREDUCEAMOUNT 'You can not reduce the amount of';
-CREATE EXCEPTION INV_E_DONTCHANGEBENEFICIARY 'You can not change the beneficiary';
-CREATE EXCEPTION INV_E_DONTCHANGESOURCE 'You can not change the source';
 
 COMMIT;
 
@@ -15679,7 +15621,7 @@ BEGIN
 
     IF ((NEW.disabled = 1) OR (NEW.contactkey <> OLD.contactkey) OR (NEW.cardkey <> OLD.cardkey)) THEN
     BEGIN
-      IF (OLD.debit <> 0) THEN
+      IF (OLD.debit > 0) THEN
       BEGIN
         SELECT balance FROM inv_balance
         WHERE contactkey = OLD.contactkey
@@ -15698,7 +15640,7 @@ BEGIN
         INTO :balance;
         balance = COALESCE(:balance, 0);
         IF ((:balance > 0) AND (:balance < OLD.debit - NEW.debit)) THEN
-          EXCEPTION INV_E_DONTREDUCEAMOUNT;
+          EXCEPTION INV_E_INVALIDMOVEMENT;
       END ELSE
       BEGIN
         IF (NEW.credit > OLD.credit) THEN
@@ -15709,7 +15651,7 @@ BEGIN
           INTO :balance;
           balance = COALESCE(:balance, 0);
           IF ((:balance > 0) AND (:balance < NEW.credit - OLD.credit)) THEN
-            EXCEPTION INV_E_INSUFFICIENTBALANCE;
+            EXCEPTION INV_E_INVALIDMOVEMENT;
         END
       END
     END
@@ -15995,31 +15937,6 @@ BEGIN
 END
 ^
 
-CREATE OR ALTER PROCEDURE INV_INSERT_CARD (id INTEGER, parent INTEGER)
-AS
-  declare variable sqltext varchar(32000);
-  declare variable fieldname varchar(31);
-BEGIN
-  sqltext = '';
-  FOR
-    select fieldname from AT_RELATION_FIELDS
-    where relationname = 'INV_CARD' and fieldname <> 'ID' and fieldname <> 'PARENT'
-    into :fieldname
-  DO
-  BEGIN
-    if (sqltext <> '') then
-      sqltext = sqltext || ',';
-    sqltext = sqltext || fieldname;
-  END
-  
-  sqltext = 'INSERT INTO inv_card (id, parent, ' || sqltext || ')' ||
-    ' select ' || CAST(ID as VARCHAR(10)) || ',' || CAST(PARENT as VARCHAR(10)) || ',' ||
-    sqltext || ' from inv_card where id = ' || CAST(parent as VARCHAR(10));
-    
-  execute statement sqltext;
-END
-^
-
 SET TERM ; ^
 
 COMMIT;
@@ -16289,7 +16206,7 @@ COMMIT;
 
 /*
 
-  Copyright (c) 2000-2014 by Golden Software of Belarus
+  Copyright (c) 2000-2013 by Golden Software of Belarus
 
   Script
 
@@ -16455,7 +16372,6 @@ CREATE TABLE at_namespace (
   settingruid   VARCHAR(21),
   filedata      dscript,
   changed       dboolean_notnull DEFAULT 1,
-  md5           CHAR(32), 
 
   CONSTRAINT at_pk_namespace PRIMARY KEY (id)
 );
@@ -16771,7 +16687,6 @@ CREATE GLOBAL TEMPORARY TABLE at_namespace_file (
   comment       dblobtext80_1251,
   xid           dinteger,
   dbid          dinteger,
-  md5           CHAR(32),
 
   CONSTRAINT at_pk_namespace_file PRIMARY KEY (filename)
 )
@@ -20100,7 +20015,7 @@ SET TERM ; ^
 
 /*
 
-  Copyright (c) 2000-2014 by Golden Software of Belarus
+  Copyright (c) 2000-2013 by Golden Software of Belarus
 
   Script
 
@@ -21232,7 +21147,6 @@ INSERT INTO GD_COMMAND
   (ID,CMD,CMDTYPE,PARENT,HOTKEY,NAME,IMGINDEX,ORDR,CLASSNAME,SUBTYPE,AFULL,ACHAG,AVIEW,DISABLED,RESERVED)
 VALUES
   (741101,'gdcField',0,740400,NULL,'Домены',250,NULL,'TgdcField',NULL,1,1,1,0,NULL);
-
 INSERT INTO GD_COMMAND
   (ID,CMD,CMDTYPE,PARENT,HOTKEY,NAME,IMGINDEX,ORDR,CLASSNAME,SUBTYPE,AFULL,ACHAG,AVIEW,DISABLED,RESERVED)
 VALUES
@@ -21266,18 +21180,23 @@ VALUES
 INSERT INTO gd_command
   (ID,PARENT,NAME,CMD,CMDTYPE,HOTKEY,IMGINDEX,ORDR,CLASSNAME,SUBTYPE,AVIEW,ACHAG,AFULL,DISABLED,RESERVED)
 VALUES
+  (741120,740400,'Внешние ключи','gdcFKManager',0,NULL,228,NULL,'TgdcFKManager',NULL,1,1,1,0,NULL);
+
+INSERT INTO gd_command
+  (ID,PARENT,NAME,CMD,CMDTYPE,HOTKEY,IMGINDEX,ORDR,CLASSNAME,SUBTYPE,AVIEW,ACHAG,AFULL,DISABLED,RESERVED)
+VALUES
   (741108,740400,'Пространства имен','gdcNamespace',0,NULL,80,NULL,'TgdcNamespace',NULL,1,1,1,0,NULL);
 
 INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
-VALUES (
-  741109,
-  740400,
-  'Синхронизация ПИ',
-  '',
-  'Tat_frmSyncNamespace',
-  NULL,
-  0
-);
+  VALUES (
+    741109,
+    740400,
+    'Синхронизация ПИ',
+    '',
+    'Tat_frmSyncNamespace',
+    NULL,
+    0
+  );
 
 INSERT INTO gd_command
   (ID,PARENT,NAME,CMD,CMDTYPE,HOTKEY,IMGINDEX,ORDR,CLASSNAME,SUBTYPE,AVIEW,ACHAG,AFULL,DISABLED,RESERVED)
@@ -21288,16 +21207,6 @@ INSERT INTO gd_command
   (ID,PARENT,NAME,CMD,CMDTYPE,HOTKEY,IMGINDEX,ORDR,CLASSNAME,SUBTYPE,AVIEW,ACHAG,AFULL,DISABLED,RESERVED)
 VALUES
   (741117,740400,'Триггеры','gdcTrigger',0,NULL,253,NULL,'TgdcTrigger',NULL,1,1,1,0,NULL);
-
-INSERT INTO gd_command
-  (ID,PARENT,NAME,CMD,CMDTYPE,HOTKEY,IMGINDEX,ORDR,CLASSNAME,SUBTYPE,AVIEW,ACHAG,AFULL,DISABLED,RESERVED)
-VALUES
-  (741118,740400,'Ограничения','gdcCheckConstraint',0,NULL,214,NULL,'TgdcCheckConstraint',NULL,1,1,1,0,NULL);
-
-INSERT INTO gd_command
-  (ID,PARENT,NAME,CMD,CMDTYPE,HOTKEY,IMGINDEX,ORDR,CLASSNAME,SUBTYPE,AVIEW,ACHAG,AFULL,DISABLED,RESERVED)
-VALUES
-  (741120,740400,'Внешние ключи','gdcFKManager',0,NULL,228,NULL,'TgdcFKManager',NULL,1,1,1,0,NULL);
 
 -- gd_documenttype
 -- 800001..850000
@@ -21734,7 +21643,6 @@ GRANT EXECUTE ON PROCEDURE AC_G_L_S TO ADMINISTRATOR;
 GRANT EXECUTE ON PROCEDURE AC_Q_G_L TO ADMINISTRATOR;
 GRANT EXECUTE ON PROCEDURE  AC_GETSIMPLEENTRY TO ADMINISTRATOR;
 GRANT EXECUTE ON PROCEDURE  INV_GETCARDMOVEMENT TO ADMINISTRATOR;
-GRANT EXECUTE ON PROCEDURE INV_INSERT_CARD TO ADMINISTRATOR;
 
 GRANT ALL ON AC_AUTOTRRECORD TO ADMINISTRATOR;
 GRANT ALL ON AC_GENERALLEDGER TO ADMINISTRATOR;

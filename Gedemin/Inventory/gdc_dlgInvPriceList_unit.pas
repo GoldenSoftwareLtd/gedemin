@@ -80,6 +80,11 @@ type
 
     property Document: TgdcInvPriceList read GetDocument;
     property DocumentLine: TgdcInvPriceListLine read GetDocumentLine;
+
+    class function GetSubTypeList(SubTypeList: TStrings;
+      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; override;
+
+    class function ClassParentSubtype(Subtype: String): String; override;
   end;
 
   EdlgInvPriceList = class(Exception);
@@ -497,6 +502,18 @@ begin
   end;
 end;
 
+class function TdlgInvPriceList.GetSubTypeList(
+  SubTypeList: TStrings; Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
+begin
+  Result := TgdcInvPriceList.GetSubTypeList(SubTypeList, Subtype, OnlyDirect);
+end;
+
+class function TdlgInvPriceList.ClassParentSubtype(
+  Subtype: String): String;
+begin
+  Result := TgdcInvPriceList.ClassParentSubtype(SubType);
+end;
+
 procedure TdlgInvPriceList.actCancelUpdate(Sender: TObject);
 begin
   inherited;
@@ -575,7 +592,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(TdlgInvPriceList, ctInvPriceList);
+  RegisterFrmClass(TdlgInvPriceList);
 
 finalization
   UnRegisterFrmClass(TdlgInvPriceList);

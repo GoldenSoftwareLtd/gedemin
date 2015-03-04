@@ -35,7 +35,7 @@ uses
   TB2Item,          TB2Dock,             TB2Toolbar,      gdcExplorer,
   gd_security,      IBCustomDataSet,     gdcBase,         gdcTree,
   StdCtrls,         gd_MacrosMenu,       Grids,           DBGrids,
-  gsDBGrid,         gsIBGrid, ImgList,   gsIBLookupComboBox;
+  gsDBGrid,         gsIBGrid, ImgList, gsIBLookupComboBox;
 
 type
   Tgdc_frmExplorer = class(Tgdc_frmG)
@@ -453,7 +453,7 @@ begin
         begin
           LFullClass.gdClassName := V;
           LFullClass.SubType := '';
-          C := gdClassList.GetGdcClass(LFullClass.gdClassName);
+          C := gdcClassList.GetGdcClass(LFullClass);
 
           if (C <> nil) and C.InheritsFrom(TgdcBase) then
           begin
@@ -558,7 +558,8 @@ begin
         LFullClass.SubType := '';
         if (S = '') or (S2 = '') or
           dbtvExplorer.Items[I].HasChildren or
-          (gdClassList.Find(LFullClass) <> nil) or
+          (gdcClassList.IndexOfByName(LFullClass) > -1) or
+          (frmClassList.IndexOfByName(LFullClass) > -1) or
           (GetClass(S) <> nil) or
           (StrIPos(USERFORM_PREFIX, S) = 1) then
         begin

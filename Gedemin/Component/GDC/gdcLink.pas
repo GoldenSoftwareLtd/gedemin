@@ -383,7 +383,8 @@ var
 begin
   Result := nil;
   
-  C := gdClassList.GetGDCClass(AClassName);
+  C := gdcClassList.GetGDCClass(
+    gdcFullClassName(AClassName, ASubType));
 
   if C <> nil then
   begin

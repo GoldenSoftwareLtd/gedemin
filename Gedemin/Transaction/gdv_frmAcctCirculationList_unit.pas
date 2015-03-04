@@ -734,8 +734,8 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdv_frmAcctCirculationList);
+  RegisterFrmClasses([Tgdv_frmAcctCirculationList]);
 
 finalization
-  UnRegisterFrmClass(Tgdv_frmAcctCirculationList);
+  UnRegisterFrmClasses([Tgdv_frmAcctCirculationList]);
 end.

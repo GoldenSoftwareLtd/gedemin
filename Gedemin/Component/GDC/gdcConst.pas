@@ -297,71 +297,75 @@ begin
   Assert(Assigned(gdcBaseManager.ReadTransaction));
   Assert(gdcBaseManager.ReadTransaction.Active);
 
+  Result := Unassigned;
   q := TIBSQL.Create(nil);
   try
     q.Transaction := gdcBaseManager.ReadTransaction;
-    
     if AnID > -1 then
+      q.SQL.Text :=
+        Format('SELECT * FROM gd_const WHERE id=%d ',
+          [AnID])
+    else
+      q.SQL.Text :=
+        Format('SELECT * FROM gd_const WHERE UPPER(name)=''%s'' ',
+          [AnsiUpperCase(AName)]);
+    q.ExecQuery;
+    if not q.EOF then
     begin
-      q.SQL.Text := 'SELECT * FROM gd_const WHERE id=:id';
-      q.ParamByName('id').AsInteger := AnID;
+      S := Format('SELECT constvalue FROM gd_constvalue WHERE constkey = %d ',
+        [q.FieldByName('id').AsInteger]);
+
+      if (q.FieldByName('consttype').AsInteger and 2) <> 0 then
+      begin
+        if AUserKey = -1 then
+          AUserKey := IBLogin.ContactKey;
+
+        S := Format('%s AND userkey = %d ', [S, AUserKey]);
+      end;
+
+      if (q.FieldByName('consttype').AsInteger and 4) <> 0 then
+      begin
+        if ACompanyKey <> -1 then
+          S := Format('%s AND companykey = %d ', [S, ACompanyKey])
+        else
+          S := Format('%s AND companykey IN (%s) ', [S, IBLogin.HoldingList]);
+      end;
+
+      if (q.FieldByName('consttype').AsInteger and 1) <> 0 then
+      begin
+        if ADate = 0 then
+          ADate := SysUtils.Date;
+
+        S := Format('%s AND constdate < :d ORDER BY constdate DESC', [S]);
+      end;
+
+      try
+        DT := q.FieldByName('datatype').AsString;
+      except
+        DT := '';
+      end;
+
+      q.Close;
+      q.SQL.Text := S;
+      q.Prepare;
+      if q.Params.Count = 1 then
+        q.Params[0].AsDateTime := Trunc(ADate) + 1;
+      q.ExecQuery;
+      if not q.EOF then
+      begin
+        if DT = 'D' then
+        begin
+          Result := StringToDate(q.Fields[0].AsString);
+        end
+        else if DT = 'N' then
+        begin
+          Result := StringToFloat(q.Fields[0].AsString);
+        end else
+          Result := q.Fields[0].AsString;
+      end;
     end else
-    begin
-      q.SQL.Text := 'SELECT * FROM gd_const WHERE UPPER(name)=:name';
-      q.ParamByName('name').AsString := AnsiUpperCase(AName);
-    end;
-
-    q.ExecQuery;
-
-    if q.EOF then
       raise EgdcConst.Create('Invalid constant ID');
-
-    S := 'SELECT FIRST 1 constvalue FROM gd_constvalue WHERE constkey = ' +
-      q.FieldByName('id').AsString + ' ';
-
-    if (q.FieldByName('consttype').AsInteger and 2) <> 0 then
-    begin
-      if AUserKey = -1 then
-        AUserKey := IBLogin.ContactKey;
-
-      S := Format('%s AND userkey = %d ', [S, AUserKey]);
-    end;
-
-    if (q.FieldByName('consttype').AsInteger and 4) <> 0 then
-    begin
-      if ACompanyKey <> -1 then
-        S := Format('%s AND companykey = %d ', [S, ACompanyKey])
-      else
-        S := Format('%s AND companykey IN (%s) ', [S, IBLogin.HoldingList]);
-    end;
-
-    if (q.FieldByName('consttype').AsInteger and 1) <> 0 then
-    begin
-      if ADate = 0 then
-        ADate := SysUtils.Date;
-
-      S := Format('%s AND constdate < :d ORDER BY constdate DESC', [S]);
-    end;
-
-    DT := q.FieldByName('datatype').AsString;
-
     q.Close;
-    q.SQL.Text := S;
-    q.Prepare;
-    if q.Params.Count = 1 then
-      q.Params[0].AsDateTime := Trunc(ADate) + 1;
-    q.ExecQuery;
-
-    if q.EOF then
-      Result := Unassigned
-    else begin
-      if DT = 'D' then
-        Result := StringToDate(q.Fields[0].AsString)
-      else if DT = 'N' then
-        Result := StringToFloat(q.Fields[0].AsString)
-      else
-        Result := q.Fields[0].AsString;
-    end;
   finally
     q.Free;
   end;

@@ -10,32 +10,37 @@ inherited dlgInvDocumentLine: TdlgInvDocumentLine
   inherited btnAccess: TButton
     Left = 3
     Top = 406
+    Anchors = [akLeft, akBottom]
     TabOrder = 3
   end
   inherited btnNew: TButton
     Left = 79
     Top = 406
+    Anchors = [akLeft, akBottom]
     TabOrder = 4
-  end
-  inherited btnHelp: TButton
-    Left = 156
-    Top = 406
-    TabOrder = 5
   end
   inherited btnOK: TButton
     Left = 465
     Top = 406
+    Anchors = [akRight, akBottom]
     TabOrder = 1
   end
   inherited btnCancel: TButton
     Left = 541
     Top = 406
+    Anchors = [akRight, akBottom]
     TabOrder = 2
+  end
+  inherited btnHelp: TButton
+    Left = 156
+    Top = 406
+    Anchors = [akLeft, akBottom]
+    TabOrder = 5
   end
   object pnlData: TPanel [5]
     Left = 0
     Top = 0
-    Width = 605
+    Width = 613
     Height = 393
     Align = alTop
     Anchors = [akLeft, akTop, akRight, akBottom]
@@ -44,7 +49,7 @@ inherited dlgInvDocumentLine: TdlgInvDocumentLine
     object pcMain: TPageControl
       Left = 0
       Top = 0
-      Width = 605
+      Width = 613
       Height = 393
       ActivePage = tsMain
       Align = alClient
@@ -74,7 +79,7 @@ inherited dlgInvDocumentLine: TdlgInvDocumentLine
         object sbMain: TScrollBox
           Left = 0
           Top = 0
-          Width = 597
+          Width = 605
           Height = 365
           Align = alClient
           TabOrder = 0

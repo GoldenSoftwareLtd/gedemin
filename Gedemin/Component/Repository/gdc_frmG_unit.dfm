@@ -1,8 +1,8 @@
 object gdc_frmG: Tgdc_frmG
-  Left = 425
-  Top = 222
-  Width = 1059
-  Height = 784
+  Left = 452
+  Top = 263
+  Width = 659
+  Height = 411
   HelpContext = 116
   Caption = 'gdc_frmG'
   Color = clBtnFace
@@ -26,8 +26,8 @@ object gdc_frmG: Tgdc_frmG
   TextHeight = 13
   object sbMain: TStatusBar
     Left = 0
-    Top = 727
-    Width = 1043
+    Top = 354
+    Width = 643
     Height = 19
     Font.Charset = RUSSIAN_CHARSET
     Font.Color = clWindowText
@@ -49,7 +49,7 @@ object gdc_frmG: Tgdc_frmG
   object TBDockTop: TTBDock
     Left = 0
     Top = 0
-    Width = 1043
+    Width = 643
     Height = 51
     object tbMainToolbar: TTBToolbar
       Left = 0
@@ -66,10 +66,8 @@ object gdc_frmG: Tgdc_frmG
       ShowHint = True
       Stretch = True
       TabOrder = 0
-      object tbsiNew: TTBSubmenuItem
+      object tbiNew: TTBItem
         Action = actNew
-        DropdownCombo = True
-        OnPopup = tbsiNewPopup
       end
       object tbiEdit: TTBItem
         Action = actEdit
@@ -140,6 +138,7 @@ object gdc_frmG: Tgdc_frmG
       DockPos = 512
       DockRow = 1
       FloatingMode = fmOnTopOfAllForms
+      Images = dmImages.il16x16
       ParentShowHint = False
       ShowHint = True
       Stretch = True
@@ -258,7 +257,7 @@ object gdc_frmG: Tgdc_frmG
       end
     end
     object tbMainInvariant: TTBToolbar
-      Left = 309
+      Left = 298
       Top = 25
       Caption = 'ƒополнительна€ панель инструментов'
       CloseButton = False
@@ -293,6 +292,7 @@ object gdc_frmG: Tgdc_frmG
       DockPos = 456
       DockRow = 1
       FloatingMode = fmOnTopOfAllForms
+      Images = dmImages.il16x16
       ParentShowHint = False
       ShowHint = True
       Stretch = True
@@ -313,35 +313,35 @@ object gdc_frmG: Tgdc_frmG
     Left = 0
     Top = 51
     Width = 9
-    Height = 667
+    Height = 294
     Position = dpLeft
   end
   object TBDockRight: TTBDock
-    Left = 1034
+    Left = 634
     Top = 51
     Width = 9
-    Height = 667
+    Height = 294
     Position = dpRight
   end
   object TBDockBottom: TTBDock
     Left = 0
-    Top = 718
-    Width = 1043
+    Top = 345
+    Width = 643
     Height = 9
     Position = dpBottom
   end
   object pnlWorkArea: TPanel
     Left = 9
     Top = 51
-    Width = 1025
-    Height = 667
+    Width = 625
+    Height = 294
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 5
     object spChoose: TSplitter
       Left = 0
-      Top = 564
-      Width = 1025
+      Top = 191
+      Width = 625
       Height = 4
       Cursor = crVSplit
       Align = alBottom
@@ -350,8 +350,8 @@ object gdc_frmG: Tgdc_frmG
     object pnlMain: TPanel
       Left = 0
       Top = 0
-      Width = 1025
-      Height = 564
+      Width = 625
+      Height = 191
       Align = alClient
       BevelOuter = bvNone
       Constraints.MinHeight = 100
@@ -361,7 +361,7 @@ object gdc_frmG: Tgdc_frmG
         Left = 0
         Top = 0
         Width = 160
-        Height = 564
+        Height = 191
         Align = alLeft
         BevelOuter = bvNone
         Color = 14741233
@@ -373,7 +373,7 @@ object gdc_frmG: Tgdc_frmG
           Left = 0
           Top = 27
           Width = 160
-          Height = 537
+          Height = 164
           HorzScrollBar.Style = ssFlat
           HorzScrollBar.Visible = False
           VertScrollBar.Style = ssFlat
@@ -421,8 +421,8 @@ object gdc_frmG: Tgdc_frmG
     end
     object pnChoose: TPanel
       Left = 0
-      Top = 568
-      Width = 1025
+      Top = 195
+      Width = 625
       Height = 99
       Align = alBottom
       BevelOuter = bvNone
@@ -430,7 +430,7 @@ object gdc_frmG: Tgdc_frmG
       TabOrder = 1
       Visible = False
       object pnButtonChoose: TPanel
-        Left = 920
+        Left = 520
         Top = 18
         Width = 105
         Height = 81
@@ -467,7 +467,7 @@ object gdc_frmG: Tgdc_frmG
       object ibgrChoose: TgsIBGrid
         Left = 0
         Top = 18
-        Width = 920
+        Width = 520
         Height = 81
         HelpContext = 3
         Align = alClient
@@ -493,7 +493,7 @@ object gdc_frmG: Tgdc_frmG
       object pnlChooseCaption: TPanel
         Left = 0
         Top = 0
-        Width = 1025
+        Width = 625
         Height = 18
         Align = alTop
         Alignment = taLeftJustify
@@ -505,6 +505,7 @@ object gdc_frmG: Tgdc_frmG
     end
   end
   object alMain: TActionList
+    Images = dmImages.il16x16
     Left = 92
     Top = 168
     object actNew: TAction

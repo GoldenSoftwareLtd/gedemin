@@ -1,6 +1,6 @@
 inherited gdc_frmMDVTree: Tgdc_frmMDVTree
-  Left = 221
-  Top = 150
+  Left = 468
+  Top = 158
   Width = 812
   Height = 612
   Caption = 'gdc_frmMDVTree'
@@ -27,6 +27,9 @@ inherited gdc_frmMDVTree: Tgdc_frmMDVTree
         object tbi_mm_sep5: TTBSeparatorItem [18]
         end
       end
+    end
+    inherited tbMainInvariant: TTBToolbar
+      Left = 280
     end
   end
   inherited TBDockLeft: TTBDock
@@ -57,7 +60,10 @@ inherited gdc_frmMDVTree: Tgdc_frmMDVTree
       inherited pnlSearchMain: TPanel
         Height = 390
         inherited sbSearchMain: TScrollBox
-          Height = 363
+          Height = 352
+        end
+        inherited pnlSearchMainButton: TPanel
+          Top = 352
         end
       end
       object tvGroup: TgsDBTreeView
@@ -73,6 +79,7 @@ inherited gdc_frmMDVTree: Tgdc_frmMDVTree
           '')
         Align = alClient
         DragMode = dmAutomatic
+        HideSelection = False
         Indent = 19
         PopupMenu = pmMain
         RightClickSelect = True
@@ -112,6 +119,9 @@ inherited gdc_frmMDVTree: Tgdc_frmMDVTree
         Left = 0
         Top = 0
         Width = 606
+        inherited tbDetailCustom: TTBToolbar
+          Left = 275
+        end
       end
       inherited pnlSearchDetail: TPanel
         Left = 0
@@ -119,7 +129,10 @@ inherited gdc_frmMDVTree: Tgdc_frmMDVTree
         Height = 364
         TabOrder = 2
         inherited sbSearchDetail: TScrollBox
-          Height = 337
+          Height = 326
+        end
+        inherited pnlSearchDetailButton: TPanel
+          Top = 326
         end
       end
       object ibgrDetail: TgsIBGrid
@@ -165,44 +178,36 @@ inherited gdc_frmMDVTree: Tgdc_frmMDVTree
       Enabled = False
       Visible = False
     end
-    inherited actSearchDetail: TAction [38]
+    inherited actSearchDetail: TAction [40]
     end
-    inherited actSearchdetailClose: TAction [39]
+    inherited actSearchdetailClose: TAction [41]
     end
-    inherited actDetailAddToSelected: TAction [40]
+    inherited actDetailAddToSelected: TAction [42]
     end
-    inherited actDetailRemoveFromSelected: TAction [41]
+    inherited actDetailRemoveFromSelected: TAction [43]
     end
-    inherited actDetailOnlySelected: TAction [42]
+    inherited actDetailOnlySelected: TAction [44]
     end
-    inherited actDetailQExport: TAction [43]
+    inherited actDetailQExport: TAction [45]
     end
-    object actShowSubGroups: TAction [44]
+    object actShowSubGroups: TAction [46]
       Category = 'Main'
       Caption = 'Вложенные уровни'
       Checked = True
       OnExecute = actShowSubGroupsExecute
       OnUpdate = actShowSubGroupsUpdate
     end
-    inherited actSelectAll: TAction [45]
+    inherited actSelectAll: TAction [47]
     end
-    inherited actUnSelectAll: TAction [46]
+    inherited actUnSelectAll: TAction [48]
     end
-    inherited actDetailToSetting: TAction [47]
+    inherited actDetailToSetting: TAction [49]
     end
-    inherited actDetailSaveToFile: TAction [48]
+    inherited actDetailSaveToFile: TAction [50]
     end
-    inherited actClearSelection: TAction [49]
+    inherited actClearSelection: TAction [51]
     end
-    inherited actEditInGrid: TAction [50]
-    end
-    inherited actDeleteChoose: TAction [51]
-    end
-    inherited actLinkObject: TAction [52]
-    end
-    inherited actDetailLoadFromFile: TAction [53]
-    end
-    inherited actCopySettingsFromUser: TAction [54]
+    inherited actDetailLoadFromFile: TAction [52]
     end
     inherited actDetailEditInGrid: TAction
       Visible = True

@@ -1,6 +1,6 @@
 object gdc_dlgQueryDescendant: Tgdc_dlgQueryDescendant
-  Left = 679
-  Top = 635
+  Left = 515
+  Top = 352
   BorderIcons = [biSystemMenu]
   BorderStyle = bsDialog
   Caption = 'Выбор объекта '
@@ -10,7 +10,7 @@ object gdc_dlgQueryDescendant: Tgdc_dlgQueryDescendant
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
-  Font.Name = 'Tahoma'
+  Font.Name = 'MS Sans Serif'
   Font.Style = []
   OldCreateOrder = True
   Position = poScreenCenter
@@ -24,46 +24,29 @@ object gdc_dlgQueryDescendant: Tgdc_dlgQueryDescendant
     Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 0
   end
-  object pnlBtns: TPanel
-    Left = 0
-    Top = 93
-    Width = 265
-    Height = 30
-    Align = alBottom
-    BevelOuter = bvNone
+  object btnOK: TButton
+    Left = 104
+    Top = 96
+    Width = 75
+    Height = 21
+    Action = acOk
+    Anchors = [akRight, akBottom]
+    Default = True
     TabOrder = 1
-    object btnClasses: TButton
-      Left = 5
-      Top = 3
-      Width = 21
-      Height = 21
-      Action = actClasses
-      TabOrder = 0
-    end
-    object btnOK: TButton
-      Left = 103
-      Top = 3
-      Width = 75
-      Height = 21
-      Action = acOk
-      Anchors = [akRight, akBottom]
-      Default = True
-      TabOrder = 1
-    end
-    object btnCancel: TButton
-      Left = 183
-      Top = 3
-      Width = 75
-      Height = 21
-      Action = actCancel
-      Anchors = [akRight, akBottom]
-      Cancel = True
-      TabOrder = 2
-    end
+  end
+  object btnCancel: TButton
+    Left = 184
+    Top = 96
+    Width = 75
+    Height = 21
+    Action = actCancel
+    Anchors = [akRight, akBottom]
+    Cancel = True
+    TabOrder = 2
   end
   object ActionList: TActionList
-    Left = 193
-    Top = 32
+    Left = 25
+    Top = 80
     object acOk: TAction
       Caption = 'Ок'
       OnExecute = acOkExecute
@@ -72,10 +55,6 @@ object gdc_dlgQueryDescendant: Tgdc_dlgQueryDescendant
     object actCancel: TAction
       Caption = 'Отмена'
       OnExecute = actCancelExecute
-    end
-    object actClasses: TAction
-      Caption = '?'
-      OnExecute = actClassesExecute
     end
   end
 end

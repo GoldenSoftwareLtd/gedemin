@@ -13,7 +13,15 @@ type
   Tgdc_frmAcctTransaction = class(Tgdc_frmMDVTree)
     gdcAcctTransaction: TgdcAcctTransaction;
     gdcAcctTransactionEntry: TgdcAcctTransactionEntry;
+    actNewSub: TAction;
+    TBSubmenuItem1: TTBSubmenuItem;
+    TBItem1: TTBItem;
+    TBItem2: TTBItem;
+    N1: TMenuItem;
+    N2: TMenuItem;
     procedure FormCreate(Sender: TObject);
+    procedure actNewSubExecute(Sender: TObject);
+    procedure actNewSubUpdate(Sender: TObject);
   private
 
   protected
@@ -50,6 +58,18 @@ begin
 
   gdcObject := gdcAcctTransaction;
   gdcDetailObject := gdcAcctTransactionEntry;
+end;
+
+procedure Tgdc_frmAcctTransaction.actNewSubExecute(Sender: TObject);
+begin
+  gdcAcctTransaction.CreateChildrenDialog;
+end;
+
+procedure Tgdc_frmAcctTransaction.actNewSubUpdate(Sender: TObject);
+begin
+  actNewSub.Enabled :=
+    (gdcObject <> nil) and (gdcObject.CanCreate)
+    and (gdcObject.State = dsBrowse);
 end;
 
 procedure Tgdc_frmAcctTransaction.RemoveSubSetList(S: TStrings);

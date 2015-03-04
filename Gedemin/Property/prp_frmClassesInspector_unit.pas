@@ -28,7 +28,7 @@ uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   ComCtrls, gdcOLEClassList, TB2Dock, TB2Toolbar, StdCtrls, gd_KeyAssoc,
   TB2Item, ActnList, Menus, ToolWin, ExtCtrls, ImgList, prp_DOCKFORM_unit,
-  Buttons, contnrs, gd_Createable_Form, clipbrd, gd_ClassList;
+  Buttons, contnrs, gd_Createable_Form, clipbrd;
 
 const
   NoShowProp =
@@ -356,11 +356,6 @@ type
     procedure SetOnInsertCurrentText(const Value: TciInsertCurrentText);
     procedure SetCurrentModule(const Value: TCurrentModule);
 
-    function BuildFrmClassTree(ACE: TgdClassEntry; AData1: Pointer;
-      AData2: Pointer): Boolean;
-    function BuildGdcClassTree(ACE: TgdClassEntry; AData1: Pointer;
-      AData2: Pointer): Boolean;
-
     property CurrentModule: TCurrentModule read FCurrentModule write SetCurrentModule;
 
   protected
@@ -376,7 +371,7 @@ type
 
     procedure SetModuleClass(const ModuleName: string;
       const ModuleClass: TClass);
-    
+
     property DelphiClassesNode: TTreeNode read FDelphiClassesNode;
     property frmClassesNode: TTreeNode read FfrmClassesNode;
     property gdcClassesNode: TTreeNode read FgdcClassesNode;
@@ -406,9 +401,9 @@ var
 implementation
 
 uses
-  IBSQL, IBDatabase, gdcBaseInterface, gd_directories_const,
+  IBSQL, IBDatabase, gd_ClassList, gdcBaseInterface, gd_directories_const,
   Storages, gsStorage, dmImages_unit, gsStorage_CompPath, registry,
-  prp_frmGedeminProperty_Unit, {HashUnit,} gd_i_ScriptFactory, gdcBase, gdc_createable_form
+  prp_frmGedeminProperty_Unit, {HashUnit,} gd_i_ScriptFactory
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -496,23 +491,22 @@ begin
   frmClassesInspector := nil;
 end;
 
-function TfrmClassesInspector.BuildFrmClassTree(ACE: TgdClassEntry; AData1: Pointer;
-  AData2: Pointer): Boolean;
+procedure TfrmClassesInspector.FillClassesTree;
 var
+  i: Integer;
   TreeNode, TmpNode: TTreeNode;
   COMClassItem: TgdcCOMClassItem;
   ClassRef: TClass;
 begin
-  TreeNode := TTreeNode(AData1^);
-
-  if (ACE <> nil) and (TTreeNode <> nil) and (not (ACE.SubType > '')) then
+ TreeNode := FfrmClassesNode;
+  for i := 0 to frmClassList.Count - 1 do
   begin
-    COMClassItem := OLEClassList.FindOLEClassItem(ACE.frmClass);
+    COMClassItem := OLEClassList.FindOLEClassItem(frmClassList[i]);
     if Assigned(COMClassItem) then
     begin
       ClassRef := COMClassItem.DelphiClass;
       TmpNode := tvClassesInsp.Items.AddChild(TreeNode,
-        ACE.frmClass.ClassName);
+        frmClassList[i].ClassName);
       AddItemData(TmpNode, ciFrmClass,
         'Класс стандартной формы', ClassRef, Self);
 
@@ -527,26 +521,17 @@ begin
       TmpNode.HasChildren := True;
     end;
   end;
-  Result := True;
-end;
+  TreeNode.AlphaSort;
 
-function TfrmClassesInspector.BuildGdcClassTree(ACE: TgdClassEntry; AData1: Pointer;
-  AData2: Pointer): Boolean;
-var
-  TreeNode, TmpNode: TTreeNode;
-  COMClassItem: TgdcCOMClassItem;
-  ClassRef: TClass;
-begin
-  TreeNode := TTreeNode(AData1^);
-
-  if (ACE <> nil) and (TTreeNode <> nil) and (not (ACE.SubType > '')) then
+  TreeNode := FgdcClassesNode;
+  for i := 0 to gdcClassList.Count - 1 do
   begin
-    COMClassItem := OLEClassList.FindOLEClassItem(ACE.gdcClass);
+    COMClassItem := OLEClassList.FindOLEClassItem(gdcClassList[i]);
     if Assigned(COMClassItem) then
     begin
       ClassRef := COMClassItem.DelphiClass;
       TmpNode := tvClassesInsp.Items.AddChild(TreeNode,
-        ACE.gdcClass.ClassName);
+        gdcClassList[i].ClassName);
       AddItemData(TmpNode, ciGdcClass, 'Бизнес-класс', ClassRef, Self);
 
       if Assigned(prpClassesInspector) then
@@ -560,22 +545,6 @@ begin
       TmpNode.HasChildren := True;
     end;
   end;
-  Result := True;
-end;
-
-procedure TfrmClassesInspector.FillClassesTree;
-var
-  i: Integer;
-  TreeNode, TmpNode: TTreeNode;
-  COMClassItem: TgdcCOMClassItem;
-  ClassRef: TClass;
-begin
-  TreeNode := FfrmClassesNode;
-  gdClassList.Traverse(TgdcCreateableForm, '', BuildFrmClassTree, @TreeNode, nil);
-  TreeNode.AlphaSort;
-
-  TreeNode := FgdcClassesNode;
-  gdClassList.Traverse(TgdcBase, '', BuildGdcClassTree, @TreeNode, nil);
   TreeNode.AlphaSort;
 
   TreeNode := FDelphiClassesNode;
@@ -905,7 +874,7 @@ var
 begin
   gdcFullClassName.SubType := '';
   gdcFullClassName.gdClassName := FrmClassName;
-  TmpClass := gdClassList.GetFrmClass(gdcFullClassName.gdClassName);
+  TmpClass := frmClassList.GetFrmClass(gdcFullClassName);
   if not Assigned(TmpClass) then
     TmpClass := GetClass(FrmClassName);
   if not Assigned(TmpClass) then

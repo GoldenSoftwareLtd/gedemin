@@ -39,11 +39,34 @@ uses
 type
   Tgdc_ab_frmmain = class(Tgdc_frmMDVTree)
     gdcContacts: TgdcBaseContact;
+    actAddContact: TAction;
+    actAddBank: TAction;
+    actAddCompany: TAction;
+    actAddGroup: TAction;
+    actAddFolder: TAction;
+    nAddCompany2: TMenuItem;
+    nAddContact2: TMenuItem;
+    nAddBank2: TMenuItem;
     ilSmall: TImageList;
+    TBSubmenuItem2: TTBSubmenuItem;
+    TBItem3: TTBItem;
+    TBItem4: TTBItem;
+    TBItem5: TTBItem;
+    TBItem1: TTBItem;
     gdcFolder: TgdcFolder;
+    TBItem2: TTBItem;
     actAddEmployee: TAction;
+    TBSeparatorItem2: TTBSeparatorItem;
+    TBSeparatorItem3: TTBSeparatorItem;
+    TBSeparatorItem4: TTBSeparatorItem;
     procedure FormCreate(Sender: TObject);
+    procedure actAddFolderExecute(Sender: TObject);
+    procedure actAddContactExecute(Sender: TObject);
+    procedure actAddBankExecute(Sender: TObject);
+    procedure actAddCompanyExecute(Sender: TObject);
+    procedure actAddGroupExecute(Sender: TObject);
     procedure actNewExecute(Sender: TObject);
+    procedure actAddEmployeeExecute(Sender: TObject);
   end;
 
 var
@@ -64,9 +87,39 @@ begin
   inherited;
 end;
 
+procedure Tgdc_ab_frmmain.actAddFolderExecute(Sender: TObject);
+begin
+  gdcFolder.CreateDialog(TgdcFolder);
+end;
+
+procedure Tgdc_ab_frmmain.actAddContactExecute(Sender: TObject);
+begin
+  gdcContacts.CreateDialog(TgdcContact);
+end;
+
+procedure Tgdc_ab_frmmain.actAddBankExecute(Sender: TObject);
+begin
+  gdcContacts.CreateDialog(TgdcBank);
+end;
+
+procedure Tgdc_ab_frmmain.actAddCompanyExecute(Sender: TObject);
+begin
+  gdcContacts.CreateDialog(TgdcCompany);
+end;
+
+procedure Tgdc_ab_frmmain.actAddGroupExecute(Sender: TObject);
+begin
+  gdcContacts.CreateDialog(TgdcGroup);
+end;
+
 procedure Tgdc_ab_frmmain.actNewExecute(Sender: TObject);
 begin
   gdcObject.CreateDialog(TgdcFolder);
+end;
+
+procedure Tgdc_ab_frmmain.actAddEmployeeExecute(Sender: TObject);
+begin
+  gdcContacts.CreateDialog(TgdcEmployee);
 end;
 
 initialization

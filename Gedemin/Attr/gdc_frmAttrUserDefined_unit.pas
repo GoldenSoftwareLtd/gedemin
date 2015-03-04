@@ -44,6 +44,10 @@ type
   public
     constructor Create(AnOwner: TComponent); override;
     class function CreateAndAssign(AnOwner: TComponent): TForm; override;
+
+    class function GetSubTypeList(SubTypeList: TStrings;
+      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; override;
+    class function ClassParentSubtype(Subtype: String): String; override;
   end;
 
 var
@@ -72,7 +76,7 @@ procedure Tgdc_frmAttrUserDefined.FormCreate(Sender: TObject);
 begin
   gdcObject := gdcAttrUserDefined;
 
-  inherited;
+  inherited;  
 
   with atDatabase.Relations do
     if ByRelationName(FSubType) <> nil then
@@ -81,11 +85,24 @@ begin
       Self.Caption := 'Подтип не определен!';
 end;
 
+class function Tgdc_frmAttrUserDefined.GetSubTypeList(
+  SubTypeList: TStrings; Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
+begin
+  Result := TgdcAttrUserDefined.GetSubTypeList(SubTypeList, Subtype, OnlyDirect);
+end;
+
+class function Tgdc_frmAttrUserDefined.ClassParentSubtype(
+  Subtype: String): String;
+begin
+  Result := TgdcAttrUserDefined.ClassParentSubtype(SubType);
+end;
+
 initialization
-  RegisterFrmClass(Tgdc_frmAttrUserDefined, ctUserDefined);
+  RegisterFrmClass(Tgdc_frmAttrUserDefined);
 
 finalization
   UnRegisterFrmClass(Tgdc_frmAttrUserDefined);
+
 
 end.
 

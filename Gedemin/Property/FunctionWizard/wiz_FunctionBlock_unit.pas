@@ -1,7 +1,6 @@
-
 {++
 
-  Copyright (c) 2001-2015 by Golden Software of Belarus
+  Copyright (c) 2001 by Golden Software of Belarus
 
   Module
 
@@ -18,13 +17,10 @@
   Revisions history
 
     1.00    30.05.03    tiptop        Initial version.
-    
 --}
-
 unit wiz_FunctionBlock_unit;
 
 interface
-
 uses
   {$IFDEF GEDEMIN}
    gdcClasses, gdc_frmAnalyticsSel_unit, wiz_DocumentInfo_unit, at_classes, gd_createable_form,
@@ -211,8 +207,7 @@ type
     //Запись и чтение из потока
     procedure SaveToStream(Stream: TStream); virtual;
     class procedure LoadFromStream(Stream: TStream; AOwner: TComponent;
-      AParent: TWinControl; const AFunctionName: String = '';
-      const AParentFunctionName: String = ''); virtual;
+      AParent: TWinControl); virtual;
 
     function EditDialog: boolean; virtual;
 
@@ -1380,15 +1375,20 @@ begin
   if not Assigned(CopiedBlockList) then Exit;
   CopiedBlockList.Clear;
   AStr.Position:= 0;
-  CheckLabel(cWizLb, AStr, cLoadStreamError);
-  iCount:= ReadIntegerFromStream(AStr);
-  for i:= 1 to iCount do begin
-    msBlock:= TMemoryStream.Create;
-    iSize:= ReadIntegerFromStream(AStr);
-    msBlock.CopyFrom(AStr, iSize);
-    CopiedBlockList.Add(msBlock);
+  try
+    CheckLabel(cWizLb, AStr, cLoadStreamError);
+    iCount:= ReadIntegerFromStream(AStr);
+    for i:= 1 to iCount do begin
+      msBlock:= TMemoryStream.Create;
+      iSize:= ReadIntegerFromStream(AStr);
+      msBlock.CopyFrom(AStr, iSize);
+      CopiedBlockList.Add(msBlock);
+    end;
+    Result:= True;
+  finally
+{    if not Result then
+      raise Exception.Create('Ошибка при вставке.');}
   end;
-  Result:= True;
 end;
 
 function LoadCopiedFromClipboard: boolean;
@@ -1640,7 +1640,7 @@ begin
   if Assigned(OnExpr) then
   begin
     MI := TMenuItem.Create(Menu);
-    MI.Caption := 'Выражение...';
+    MI.Caption := 'Выражение ...';
     MI.OnClick := OnExpr;
     MenuItem.Add(MI);
   end;
@@ -2249,15 +2249,9 @@ var
   TempColor: TColor;
 begin
   if SelBlockList.IndexOf(self) > -1 then
-  begin
-    TempColor := SelectColor;
-    Canvas.Font.Color := clWhite;
-  end
+    TempColor := SelectColor
   else
-  begin
     TempColor := HeaderColor;
-    Canvas.Font.Color := clBlack;
-  end;
 
   R := GetClientRect;
   Canvas.Brush.Color := GetFrameColor;
@@ -2271,7 +2265,7 @@ begin
   Canvas.Brush.Color := TempColor;
   Canvas.FillRect(R);
 
-  //Canvas.Font.Color := clBlack;
+  Canvas.Font.Color := clBlack;
   L := 0;
   if HasBody or HasFootter then
   begin
@@ -2496,8 +2490,7 @@ begin
 end;
 
 class procedure TVisualBlock.LoadFromStream(Stream: TStream; AOwner: TComponent;
-  AParent: TWinControl; const AFunctionName: String = '';
-  const AParentFunctionName: String = '');
+  AParent: TWinControl);
 var
   CName: String;
   C: TVisualBlockClass;
@@ -2506,30 +2499,24 @@ var
 begin
   CName := ReadStringFromStream(Stream);
   C := TVisualBlockClass(GetClass(CName));
-  Assert(C <> nil, Format('Незарегистрированный класс %s', [CName]));
+  Assert(C <> nil, Format('Не зарегестрированный класс %s', [CName]));
   if AParent is TVisualBlock then
   begin
     if not (TVisualBlock(AParent).CanHasOwnBlock  and
       C.CheckParent(TVisualBlock(AParent)) and TVisualBlock(AParent).CanEdit) then
-      exit;
+      Exit;
   end;
   V := C.Create(AOwner);
   V.DoLoadFromStream(Stream);
-  V.Parent := AParent;
-
-  if (AFunctionName > '') and (AParentFunctionName > '')
-    and (AnsiUpperCase(V.FBlockName) = AnsiUpperCase(AParentFunctionName)) then
-  begin
-    V.FBlockName := AFunctionName;
-  end;
-
+  V.Parent := AParent; 
   Stream.ReadBuffer(LCount, SizeOf(LCount));
   for I := 0 to LCount - 1 do
-    TVisualBlock.LoadFromStream(Stream, AOwner, V, AFunctionName, AParentFunctionName);
+    TVisualBlock.LoadFromStream(Stream, AOwner, V);
 end;
 
 procedure TVisualBlock.SaveToStream(Stream: TStream);
 var
+//  I: Integer;
   LCount: Integer;
   T, Index: Integer;
 begin
@@ -2545,6 +2532,11 @@ begin
     T := Controls[Index].Top;
     TVisualBlock(Controls[Index]).SaveToStream(Stream);
   end;
+
+{  for I := 0 to ControlCount - 1 do
+  begin
+    TVisualBlock(Controls[i]).SaveToStream(Stream);
+  end;}
 end;
 
 procedure TVisualBlock.DoLoadFromStream(Stream: TStream);
@@ -2613,7 +2605,7 @@ begin
   CName := ReadStringFromStream(Stream);
   C := TVisualBlockClass(GetClass(CName));
   if C = nil then
-    raise Exception.CreateFmt('Незарегистрированный класс %s', [CName]);
+    raise Exception.CreateFmt('Не зарегестрированный класс %s', [CName]);
 
   if AParent is TVisualBlock then
   begin
@@ -2684,6 +2676,7 @@ var
   Str: TStringList;
 begin
   Sl := StringOfChar(' ',Paragraph);
+//  S.Add(Sl + '''' + HeaderPrefix + ' ''' + FBlockName + '''');
   Str := TStringList.Create;
   try
     Str.Text := FDescription;
@@ -2698,12 +2691,16 @@ end;
 
 procedure TVisualBlock.DoGenerateEndComment(S: TStrings;
   Paragraph: Integer);
+//var
+//  sl: string;
 begin
+//  Sl := StringOfChar(' ',Paragraph);
+//  S.Add(Sl + '''' + FotterPrefix + ' ''' + FBlockName + '''');
 end;
 
 procedure TVisualBlock.ShowException(Msg: string);
 begin
-  Application.MessageBox(PChar(Format('Во время генерации блока "%s" возникла ошибка:',
+  Application.MessageBox(PChar(Format('Во время генерации блока %s возникла ошибка:',
     [FBlockName]) + #13#10 + Msg), 'Ошибка генерации', MB_OK or MB_ICONERROR);
 end;
 
@@ -2725,6 +2722,8 @@ procedure TVisualBlock.WMKillFocus(var Message: TWMSetFocus);
 begin
   inherited
   Invalidate;
+//  if Assigned(OnBlockUnselect) then
+//    OnBlockUnSelect(Self);
 end;
 
 procedure TVisualBlock.WMSetFocus(var Message: TWMSetFocus);
@@ -3080,6 +3079,9 @@ begin
   if not Assigned(SelBlockList) then Exit;
   Copy;
   Delete;
+  {for i:= SelBlockList.Count - 1 downto 0 do
+    TVisualBlock(SelBlockList[i]).Delete;
+  SelBlockList.Clear; }
 end;
 
 procedure TVisualBlock.Paste;
@@ -3206,7 +3208,8 @@ end;
 
 function TVisualBlock.SelectColor: TColor;
 begin
-  Result := RGB(100, 100, 100);
+  //Result := RGB(100, 149, 237);
+  Result := RGB(141, 182, 205);
 end;
 
 { TFunctionBlock }
@@ -3265,14 +3268,15 @@ var
   lS: String;
   Str: TStringList;
   I: Integer;
+//  BS: TBlockSet;
 begin
   lS := StringOfChar(' ', Paragraph);
   ReserveVars;
   try
     if FReturnResult then
-      S.Add(Format(lS + 'Function %s%s', [FBlockName,  GetParamsString]))
+      S.Add(Format(lS + 'function %s%s', [FBlockName,  GetParamsString]))
     else
-      S.Add(Format(lS + 'Sub %s%s', [FBlockName,  GetParamsString]));
+      S.Add(Format(lS + 'sub %s%s', [FBlockName,  GetParamsString]));
 
 
     Inc(Paragraph, 2);
@@ -3587,7 +3591,7 @@ begin
         end;
       end;
     end;
-    { TODO :
+    { TODO : 
     Есть необходимость вводить произвольные значения счета, но
     как проверть их коректность? }
     Result := True;
@@ -3700,6 +3704,8 @@ end;
 function TdlgBaseEditForm.CheckOk: Boolean;
 begin
   Result := True;
+{  if FBlock <> nil then
+    Result := FBlock.CheckName;}
   if FEditFrame <> nil then
     Result := TfrEditFrame(FEditFrame).CheckOk
 end;
@@ -3828,14 +3834,14 @@ end;
 
 procedure TIfBlock.DoGenerate(S: TStrings; Paragraph: Integer);
 begin
-  S.Add(Format(StringOfChar(' ',Paragraph) + 'If %s Then', [GenerateExpression(FCondition)]));
+  S.Add(Format(StringOfChar(' ',Paragraph) + 'if %s then', [GenerateExpression(FCondition)]));
   Inc(Paragraph, 2);
   try
     inherited DoGenerate(S, Paragraph);
   finally
     Dec(Paragraph, 2);
   end;
-  S.Add(StringOfChar(' ',Paragraph) + 'End If');
+  S.Add(StringOfChar(' ',Paragraph) + 'end if');
 end;
 
 procedure TIfBlock.SetCondition(const Value: string);
@@ -3927,7 +3933,7 @@ var
   lS: string;
 begin
   lS := '';
-  if IsObject then lS := 'Set ';
+  if IsObject then lS := 'set ';
   lS := lS + FBlockName + ' = ' + GenerateExpression(Expression);
   S.Add(StringOfChar(' ', Paragraph) + lS);
   AddVarName(Name);
@@ -4150,13 +4156,13 @@ const
                                    if MainFunction is TTrEntryFunctionBlock then
                                    begin
                                      if TTrEntryFunctionBlock(MainFunction).DocumentLine = nil then
-                                       raise Exception.Create('Ссылка на документ позиции невозможна!');
+                                       raise Exception.Create('Ссылка на  документ позиции невозможна!');
 
                                      Di := TTrEntryFunctionBlock(MainFunction).DocumentLine.Find(FieldName);
                                    end else
                                    begin
                                      if TDocumentTransactionFunction(MainFunction).DocumentLine = nil then
-                                       raise Exception.Create('Ссылка на документ позиции невозможна!');
+                                       raise Exception.Create('Ссылка на  документ позиции невозможна!');
 
                                      Di := TDocumentTransactionFunction(MainFunction).DocumentLine.Find(FieldName);
                                    end;
@@ -4248,11 +4254,21 @@ begin
 end;
 
 procedure TVarBlock.GetNamesList(const S: TStrings);
+{var
+  V: TFunctionBlock;
+  Index: Integer;}
 begin
   inherited;
+{  V := TFunctionBlock(ParentFunction(Self));
+  if V.ReturnResult then
+  begin
+    Index := S.IndexOf(V.BlockName);
+    S.AddObject(V.BlockName, V);
+  end;}
 end;
 
 { TElseBlock }
+
 
 class function TElseBlock.CheckParent(AParent: TVisualBlock): Boolean;
 var
@@ -4302,7 +4318,7 @@ procedure TElseBlock.DoGenerate(S: TStrings; Paragraph: Integer);
 begin
   Dec(Paragraph, 2);
   try
-    S.Add(StringOfChar(' ',Paragraph) + 'Else')
+    S.Add(StringOfChar(' ',Paragraph) + 'else')
   finally
     Inc(Paragraph, 2);
   end;
@@ -4324,7 +4340,7 @@ begin
   lS := StringOfChar(' ', Paragraph);
   VarName := 'sql_' + FBlockName;
   try
-    S.Add(lS + Format('Set %s = Creator.GetObject(null, "TIBSQL", "")', [VarName]));
+    S.Add(lS + Format('set %s = Creator.GetObject(null, "TIBSQL", "")', [VarName]));
     S.Add(lS + Format('%s.Transaction = gdcBaseManager.ReadTransaction', [VarName]));
 
     GenerateSQL(S, Paragraph, VarName);
@@ -4337,7 +4353,7 @@ begin
         [VarName, EndDate]));
 
     S.Add(lS + Format('%s.ExecQuery', [VarName]));
-    S.Add(lS + Format('Do While Not %s.Eof', [VarName]));
+    S.Add(lS + Format('do while not %s.Eof', [VarName]));
     inc(Paragraph, 2);
     try
       lS := StringOfChar(' ', Paragraph);
@@ -4348,7 +4364,7 @@ begin
       dec(Paragraph, 2);
       lS := StringOfChar(' ', Paragraph);
     end;
-    S.Add(lS + 'Loop');
+    S.Add(lS + 'loop');
     S.Add(lS + Format('Creator.DestroyObject(%s)', [VarName]));
   finally
     ReleaseVarName(VarName);
@@ -4397,6 +4413,7 @@ begin
   Result := 'Конец цикла';
 end;
 
+
 procedure TAccountCycleBlock.GenerateSQL(S: TStrings; Paragraph: Integer;
   SQLName: string);
 var
@@ -4404,6 +4421,7 @@ var
   pS: TStrings;
   I: Integer;
   FieldName, Value: string;
+//  F: TatRelationField;
 begin
   pS := TStringList.Create;
   try
@@ -4446,6 +4464,7 @@ begin
       begin
         GetNameAndValue(pS[I], FieldName, Value);
         S.Add(lS + Format('%s.SQL.Add("and ")', [SQLName]));
+//        F := atDataBase.FindRelationField('AC_ENTRY', FieldName);
         if Pos('GS.', value) = 0 then
         begin
           {$IFDEF GEDEMIN}
@@ -4453,41 +4472,41 @@ begin
           {$ENDIF}
         end else
         begin
-          S.Add(lS + Format('If %s = "" Then ', [Value]));
+          S.Add(lS + Format('if %s = "" then ', [Value]));
           S.Add(lS + Format('  %s.SQL.Add("e.%s IS NULL ")', [SQLName, FieldName]));
-          S.Add(lS + 'Else');
+          S.Add(lS + 'else');
           S.Add(lS + Format('  %s.SQL.Add("e.%s = " & %s)', [SQLName, FieldName, Value]));
-          S.Add(lS + 'End If');
+          S.Add(lS + 'end if');
         end;
       end;
     end;
 
-    S.Add(lS + 'If IBLogin.IsHolding Then ');
-    S.Add(lS + Format('  %s.SQL.Text = %s.SQL.Text & " AND r.companykey IN (" & IBLogin.HoldingList & ") " ',
+    S.Add(lS + 'if IBLogin.IsHolding then ');
+    S.Add(lS + Format('  %s.SQL.Text = %s.SQL.Text & " and r.companykey in (" & IBLogin.HoldingList & ") " ',
       [SQLName, SQLName]));
-    S.Add(lS + 'Else');
-    S.Add(lS + Format('  %s.SQL.Text = %s.SQL.Text & " AND r.companykey IN (" & Cstr(IBLogin.Companykey) & ") " ',
+    S.Add(lS + 'else');
+    S.Add(lS + Format('  %s.SQL.Text = %s.SQL.Text & " and r.companykey in (" & Cstr(IBLogin.Companykey) & ") " ',
       [SQLName, SQLName]));
-    S.Add(lS + 'End If');
+    S.Add(lS + 'end if');
 
-    S.Add(lS + Format('%s.SQL.Text = %s.SQL.Text & " AND BIN_AND(BIN_OR(r.aview, 1), " & Cstr(IBLogin.InGroup) & ") <> 0 " ',
+    S.Add(lS + Format('%s.SQL.Text = %s.SQL.Text & " and G_SEC_TEST(r.aview, " & Cstr(IBLogin.InGroup) & ") <> 0 " ',
       [SQLName, SQLName]));
 
     if (BeginDate > '')  then
     begin
       S[S.Count - 1] := S[S.Count - 1] + ' + _';
-      S.Add(lS + '   "AND e.entrydate >= :begindate "');
+      S.Add(lS + '   "and e.entrydate >= :begindate "');
     end;
 
     if EndDate > '' then
     begin
       S[S.Count - 1] := S[S.Count - 1] + ' + _';
-      S.Add(lS + '   "AND e.entrydate <= :enddate"');
+      S.Add(lS + '   "and e.entrydate <= :enddate"');
     end;
 
     if FWhere <> '' then
     begin
-      S.Add(lS + Format('%s.SQL.Add("AND %s ")', [SQLName, FWhere]));
+      S.Add(lS + Format('%s.SQL.Add("and %s ")', [SQLName, FWhere]));
     end;
 
     if (FGroupBy > '') then
@@ -4496,7 +4515,7 @@ begin
       ParseString(FGroupBy, pS);
       if pS.Count > 0 then
       begin
-        S.Add(lS + Format('%s.SQL.Add(" ORDER BY ")', [SQLName]));
+        S.Add(lS + Format('%s.SQL.Add(" order by ")', [SQLName]));
         for I := 0 to pS.Count - 1 do
         begin
           if (I = pS.Count - 1) and (FOrder = '') then
@@ -4513,7 +4532,7 @@ begin
     begin
       if FOrder > '' then
       begin
-        S.Add(lS + Format('%s.SQL.Add(" ORDER BY ")', [SQLName]));
+        S.Add(lS + Format('%s.SQL.Add(" order by ")', [SQLName]));
         S.Add(lS + Format('%s.SQL.Add("   %s ")', [SQLName, FOrder]));
       end;
     end;
@@ -4570,9 +4589,9 @@ var
 begin
   if Strings.IndexOfName(FBlockName) = - 1 then
     if FLocalName = '' then
-      Strings.AddObject(FBlockName + Format('=Текущие значения счёта и аналитик цикла по счёту %s', [FBlockName]), Self)
+      Strings.AddObject(FBlockName + Format('=Текущие значения счета и аналитик цикла по счёту %s', [FBlockName]), Self)
     else
-      Strings.AddObject(FBlockName + Format('=Текущие значения счёта и аналитик цикла по счёту %s', [FLocalName]), Self);
+      Strings.AddObject(FBlockName + Format('=Текущие значения счета и аналитик цикла по счёту %s', [FLocalName]), Self);
 
   S := TStringList.Create;
   try
@@ -4617,8 +4636,9 @@ end;
 
 function TAccountCycleBlock.HeaderPrefix: string;
 begin
-  Result := 'Цикл по счёту';
+  Result := 'Цикл по счету';
 end;
+
 
 class function TAccountCycleBlock.NamePrefix: string;
 begin
@@ -4804,6 +4824,7 @@ begin
   SaveStringToStream(FAnalDebit, Stream);
   SaveStringToStream(FAnalCredit, Stream);
   SaveStringToStream(FSum, Stream);
+//  Stream.Write(FCurr, SizeOf(FCurr));
   SaveStringToStream(FSumCurr, Stream);
   SaveStringToStream(FBeginDate, Stream);
   SaveStringToStream(FEndDate, Stream);
@@ -4823,13 +4844,14 @@ var
   SQLName, gdcSRName, SumName, CurrSumName, EqSumName: string;
   pS: TStringList;
   I: Integer;
+//  FieldName, Value: String;
   A: TStrings;
   AName, AValue: string;
 const
-  cCreateSQl = 'Set %s = Designer.CreateObject(null, "TIBSQL", "")';
-  cCreateSR = 'Set %s = Designer.CreateObject(null, "TgdcAcctSimpleRecord", "")';
-  cDidActivateTr = '%s = Not %s.Transaction.InTransaction';
-  cActivateTr = 'If %s Then %s.Transaction.StartTransaction';
+  cCreateSQl = 'set %s = Designer.CreateObject(null, "TIBSQL", "")';
+  cCreateSR = 'set %s = Designer.CreateObject(null, "TgdcAcctSimpleRecord", "")';
+  cDidActivateTr = '%s = not %s.Transaction.InTransaction';
+  cActivateTr = 'if %s then %s.Transaction.StartTransaction';
   cSetSQLTransaction = '%s.Transaction = %s.Transaction';
   cSQLExecQuery = '%s.ExecQuery';
   cSQLClose = '%s.Close';
@@ -4838,6 +4860,7 @@ const
   cSetInsertSQLText3 = '  ":trrecordkey, :begindate, :enddate, :debit, :credit)"';
   cSetDebitField = '%s.DebitEntryLine.FieldByName("%s").AsString = %s';
   cSetCreditField = '%s.CreditEntryLine.FieldByName("%s").AsString = %s';
+
 
   function GetAccount(Alias: string): string;
   var
@@ -4864,6 +4887,7 @@ const
       end else
         //Передана переменная
         Result := Alias;
+        //raise Exception.Create(Format('Не найден счет "%s"', [Alias]));
     end;
   end;
 begin
@@ -4888,7 +4912,7 @@ begin
 
     if not FSaveEmpty then
     begin
-      S.Add(lS + Format('If (%s <> 0) Or (%s <> 0) Or (%s <> 0) Then', [SumName, CurrSumName, EQSumName]));
+      S.Add(lS + Format('if (%s <> 0) or (%s <> 0) or (%s <> 0)then', [SumName, CurrSumName, EQSumName]));
       Inc(Paragraph, 2);
       lS := StringOfChar(' ', Paragraph);
     end;
@@ -4901,12 +4925,13 @@ begin
     S.Add(lS + Format('%s.FieldByName("transactionkey").AsInteger = TransactionKey',
       [gdcSRName]));
 
-    S.Add(lS + 'If Assigned(gdcTaxDesignDate) Then');
+// Исправлено Mike 11111
+    S.Add(lS + 'if Assigned(gdcTaxDesignDate) then');
     S.Add(lS + Format('  %s.FieldByName("documentkey").AsInteger = %s',
       [gdcSRName, 'gdcTaxDesignDate.FieldByName("id").AsInteger']));
     S.Add(lS + Format('  %s.FieldByName("masterdockey").AsInteger = %s',
       [gdcSRName, 'gdcTaxDesignDate.FieldByName("id").AsInteger']));
-    S.Add(lS + 'End If');
+    S.Add(lS + 'end if');  
 //-------------------------------------
 
     if FEntryDescription <> '' then
@@ -4918,6 +4943,7 @@ begin
       S.Add(lS + Format('%s.DebitEntryLine.Edit', [gdcSRName]));
       S.Add(lS + Format('%s.DebitEntryLine.FieldByName("accountkey").AsInteger = %s',
         [gdcSRName, GetAccount(FDebit)]));
+
 
       //Аналитика пл дебету
       if FAnalDebit > '' then
@@ -5028,10 +5054,11 @@ begin
           A.Free;
         end;
       end;
-
+//      S.Add(lS + '''Вычисляем сумму проводки');
       if Sum <> '' then
       begin
         //Сумма в НДЕ
+//        S.Add(lS + Format('%s = %s', [SumName, GenerateExpression(FSum)]));
         S.Add(lS + Format('%s.FieldByName("debitncu").AsCurrency = %s',
           [gdcSRName, SumName]));
       end;
@@ -5039,6 +5066,7 @@ begin
       if FSumCurr <> '' then
       begin
         //Сумма в валюте
+//        S.Add(lS + Format('%s = %s', [SumName, GenerateExpression(FSumCurr)]));
         {$IFDEF GEDEMIN}
         S.Add(lS + Format('%s.DebitEntryLine.FieldByName("debitcurr").AsCurrency = %s',
           [gdcSRName, CurrSumName]));
@@ -5073,7 +5101,7 @@ begin
       S.Add(lS + Format('%s.Post', [gdcSRName]));
 
       S.Add(lS + '');
-      S.Add(lS + '''Заносим информацию во вспомогательную таблицу');
+      S.Add(lS + '''Заносим информацию в вспомогательную таблицу');
       S.Add('');
       S.Add(lS + Format('%s.ParamByName("trrecordkey").AsInteger = TrRecordKey',
         [SQLName]));
@@ -5101,7 +5129,7 @@ begin
       begin
         Dec(Paragraph, 2);
         lS := StringOfChar(' ', Paragraph);
-        S.Add(lS + 'End If');
+        S.Add(lS + 'end if');
       end;
     finally
       pS.Free;
@@ -5338,6 +5366,9 @@ begin
 end;
 
 procedure TScriptBlock.AdjustSize;
+{var
+  W, H, nH: Integer;
+  I: Integer;}
 begin
   if not (csLoading in ComponentState) and HandleAllocated then
   begin
@@ -5345,6 +5376,21 @@ begin
       SWP_NOZORDER);
     RequestAlign;
   end;
+
+(*  if Parent <> nil then
+  begin
+    W := Parent.ClientWidth;
+    H := Parent.ClientHeight;
+
+{    for I := 0 to ControlCount - 1 do
+    begin
+      W := Max(W, Controls[I].Width + Controls[I].Left + cRightSpace);
+      nH := Controls[I].Top + Controls[I]. Height + cSpace ;
+      if H < nH then
+        H := nH;
+    end;}
+    SetBounds(0, 0, W, H);
+  end;*)
 end;
 
 procedure TScriptBlock.AlignControls(AControl: TControl; var ARect: TRect);
@@ -5397,6 +5443,7 @@ begin
   Save := Message.WParam;
   try
     { prevent inherited from calling Invalidate & RecreateWnd }
+//    if not (Self is TScrollBox) then Message.wParam := 1;
     inherited;
   finally
     Message.wParam := Save;
@@ -5516,7 +5563,7 @@ var
 begin
   lS := StringOfChar(' ', Paragraph);
   S.Add(lS + '''Данная скрипт-функция создана конструктором функций.');
-  S.Add(lS + '''Все изменения, произведённые вручную, будут потеряны');
+  S.Add(lS + '''Все изменения, произведённые вручную будут потеряны');
   S.Add(lS + '''при следующей генерации скрипт-функции.');
 end;
 
@@ -5550,6 +5597,7 @@ end;
 function TScriptBlock.GetClientRect: TRect;
 begin
   Windows.GetClientRect(Handle, Result);
+//  Result := Rect(0, 0, Width, Height);
 end;
 
 procedure TScriptBlock.MouseMove(Shift: TShiftState; X, Y: Integer);
@@ -5853,6 +5901,7 @@ function TVisualBlockScrollBar.GetScrollPos: Integer;
 begin
   Result := 0;
   if Visible then Result := Position;
+
 end;
 
 function TVisualBlockScrollBar.IsIncrementStored: Boolean;
@@ -6145,8 +6194,11 @@ begin
   ScrollInfo.nPage := ControlSize(ControlSB, AssumeSB) + 1;
   ScrollInfo.nPos := FPosition;
   ScrollInfo.nTrackPos := FPosition;
-  UpdateScrollProperties(FUpdateNeeded);
-  FUpdateNeeded := False;
+//  if FUpdateNeeded then
+  begin
+    UpdateScrollProperties(FUpdateNeeded);
+    FUpdateNeeded := False;
+  end;
   FlatSB_SetScrollInfo(FControl.Handle, Code, ScrollInfo, True);
   SetPosition(FPosition);
   FPageIncrement := (ControlSize(True, False) * 9) div 10;
@@ -6166,7 +6218,7 @@ begin
   SQLName := GetVarName('SQL');
   try
     S.Add(lS + '''Удаляем предыдущие проводки');
-    S.Add(lS + Format('Set %s = Creator.GetObject(null, "TIBSQL", "")', [SQLName]));
+    S.Add(lS + Format('set %s = Creator.GetObject(null, "TIBSQL", "")', [SQLName]));
     S.Add(lS + Format('%s.Transaction = %s', [SQLName, 'Transaction']));
 
     S.Add(lS + Format('%s.SQL.Text = "execute block (begindate DATE = :begindate, enddate DATE = :enddate, trrecordkey INTEGER = :trrecordkey)" & vbCrLf & _', [SQLName]));
@@ -6244,17 +6296,18 @@ var
 begin
   lS := StringOfChar(' ', Paragraph );
 
-  S.Add(lS + 'Set SimpleRecordSQL = Creator.GetObject(null, "TIBSQL", "")');
+  S.Add(lS + 'set SimpleRecordSQL = Creator.GetObject(null, "TIBSQL", "")');
   S.Add(lS + 'SimpleRecordSQL.Transaction = Transaction');
   S.Add(lS + 'SimpleRecordSQL.SQL.Text = "INSERT INTO AC_AUTOENTRY (id, entrykey, trrecordkey, begindate, " & _');
   S.Add(lS + '  "enddate, debitaccount, creditaccount) VALUES((SELECT gen_id(gd_g_unique, 1) FROM rdb$database), :entrykey, " & _');
   S.Add(lS + '  ":trrecordkey, :begindate, :enddate, :debit, :credit)"');
   S.Add('');
-  S.Add(lS + 'Set gdcSimpleRecord = Creator.GetObject(null, "TgdcAcctSimpleRecord", "")');
+  S.Add(lS + 'set gdcSimpleRecord = Creator.GetObject(null, "TgdcAcctSimpleRecord", "")');
   S.Add(lS + 'gdcSimpleRecord.Transaction = Transaction');
   S.Add(lS + 'gdcSimpleRecord.ReadTransaction = Transaction');
   S.Add(lS + 'gdcSimpleRecord.Open');
   S.Add('');
+
 end;
 
 function TEntryFunctionBlock.GetBlockSetMember: TBlockSetMember;
@@ -6281,16 +6334,16 @@ begin
   try
     lS := '';
     SQLName := 'ViewEntryFormSQL';
-    S.Add(lS + Format('Set %s = Creator.GetObject(null, "TIBSQL", "")', [SQLName]));
+    S.Add(lS + Format('set %s = Creator.GetObject(null, "TIBSQL", "")', [SQLName]));
     S.Add(lS + Format('%s.Transaction = %s', [SQLName, 'Transaction']));
     S.Add('');
-    S.Add(lS + 'Set ViewEntryForm = Creator.GetObject(null, "usrf_acc_viewdelayedentry", "")');
+    S.Add(lS + 'set ViewEntryForm = Creator.GetObject(null, "usrf_acc_viewdelayedentry", "")');
     S.Add(lS + Format('%s.SQL.Text = "SELECT description FROM ac_trrecord WHERE id = :id"', [SQLName]));
     S.Add(lS + Format('%s.ParamByName("id").AsInteger = TrRecordKey', [SQLName]));
     S.Add(lS + Format('%s.ExecQuery', [SQLName]));
     S.Add(lS + Format('ViewEntryForm.Caption = "Результаты расчёта автоматической операции ''" & %s.FieldByName("description").AsString & "''"', [SQLName]));
     S.Add(lS + Format('%s.Close',  [SQLName]));
-    S.Add(lS + 'Set usrg_gdcAcctEntryRegister1 = ViewEntryForm.FindComponent("usrg_gdcAcctViewEntryRegister1")');
+    S.Add(lS + 'set usrg_gdcAcctEntryRegister1 = ViewEntryForm.FindComponent("usrg_gdcAcctViewEntryRegister1")');
     S.Add(lS + Format('usrg_gdcAcctEntryRegister1.Transaction = %s', ['Transaction']));
     S.Add(lS + Format('usrg_gdcAcctEntryRegister1.ReadTransaction = %s', ['Transaction']));
     S.Add(lS + 'usrg_gdcAcctEntryRegister1.ExtraConditions.Clear');
@@ -6387,6 +6440,7 @@ var
   pS: TStrings;
   I: Integer;
   FieldName, Value: string;
+//  F: TatRelationField;
 begin
   pS := TStringList.Create;
   try
@@ -6429,6 +6483,7 @@ begin
       begin
         GetNameAndValue(pS[I], FieldName, Value);
         S.Add(lS + Format('%s.SQL.Add("and ")', [SQLName]));
+//        F := atDataBase.FindRelationField('AC_ENTRY', FieldName);
         if Pos('GS.', value) = 0 then
         begin
           {$IFDEF GEDEMIN}
@@ -6436,22 +6491,22 @@ begin
           {$ENDIF}
         end else
         begin
-          S.Add(lS + Format('If %s = "" Then ', [Value]));
+          S.Add(lS + Format('if %s = "" then ', [Value]));
           S.Add(lS + Format('  %s.SQL.Add("e.%s IS NULL ")', [SQLName, FieldName]));
-          S.Add(lS + 'Else');
+          S.Add(lS + 'else');
           S.Add(lS + Format('  %s.SQL.Add("e.%s = " & %s)', [SQLName, FieldName, Value]));
-          S.Add(lS + 'End If');
+          S.Add(lS + 'end if');
         end;
       end;
     end;
 
-    S.Add(lS + 'If IBLogin.IsHolding then ');
+    S.Add(lS + 'if IBLogin.IsHolding then ');
     S.Add(lS + Format('  %s.SQL.Add(" and r.companykey in (" & IBLogin.HoldingList & ") " )',
       [SQLName, SQLName]));
-    S.Add(lS + 'Else');
+    S.Add(lS + 'else');
     S.Add(lS + Format('  %s.SQL.Add(" and r.companykey in (" & Cstr(IBLogin.Companykey) & ") ") ',
       [SQLName, SQLName]));
-    S.Add(lS + 'End If');
+    S.Add(lS + 'end if');
 
     S.Add(lS + Format('%s.SQL.Add(" and G_SEC_TEST(r.aview, " & Cstr(IBLogin.InGroup) & ") <> 0 " )',
       [SQLName, SQLName]));
@@ -6718,17 +6773,29 @@ begin
       begin
         S.Add('''#include tax_AddTaxResult');
         S.Add('''Сохраняем налоги');
-        S.Add(ls + 'If Result Then');
+        S.Add(ls + 'if Result then');
+{        S.Add(lS + '  set gdcTaxDesignDate = Creator.GetObject(null, "TgdcTaxDesignDate", "")');
+        S.Add(lS + '  gdcTaxDesignDate.SubSet = "ByTaxActual,ByDocumentDate"');
+        S.Add(lS + Format('  gdcTaxDesignDate.ParamByName("taxactualkey").AsInteger = gdcBaseManager.GetIdByRUIDString("%s")', [FTaxActualRuid]));
+        S.Add(lS + '  gdcTaxDesignDate.ParamByName("documentdate").AsDateTime = EndDate');
+        S.Add(lS + '  gdcTaxDesignDate.Open');
+        S.Add(lS + '  if gdcTaxDesignDate.Eof then');
+        S.Add(lS + '    gdcTaxDesignDate.Insert');
+        S.Add(lS + Format('    gdcTaxDesignDate.FieldByName("taxactualkey").AsInteger = gdcBaseManager.GetIdByRUIDString("%s")', [FTaxActualRuid]));
+        S.Add(lS + Format('    gdcTaxDesignDate.FieldByName("taxnamekey").AsInteger = gdcBaseManager.GetIdByRUIDString("%s")', [FTaxNameRuid]));
+        S.Add(lS + '    gdcTaxDesignDate.FieldByName("documentdate").AsDateTime = EndDate');
+        S.Add(lS + '    gdcTaxDesignDate.Post');
+        S.Add(lS + '  end if');}
 
-        S.Add(lS + '  Set gdcTaxResult = Creator.GetObject(null, "TgdcTaxResult", "")');
+        S.Add(lS + '  set gdcTaxResult = Creator.GetObject(null, "TgdcTaxResult", "")');
         S.Add(lS + '  gdcTaxResult.Transaction = Transaction');
         S.Add(lS + '  gdcTaxResult.ReadTransaction = Transaction');
         S.Add(lS + '  gdcTaxResult.SubSet = "ByDesignDate"');
         S.Add(lS + '  gdcTaxResult.ParamByName("taxdesigndatekey").AsInteger = gdcTaxDesignDate.Id');
         S.Add(lS + '  gdcTaxResult.Open');
-        S.Add(lS + '  While Not gdcTaxResult.Eof ');
+        S.Add(lS + '  while not gdcTaxResult.Eof ');
         S.Add(lS + '    gdcTaxResult.Delete');
-        S.Add(lS + '  WEnd');
+        S.Add(lS + '  wend');
 
         V1 := TStringList.Create;
         try
@@ -6740,7 +6807,7 @@ begin
               B := TTaxVarBlock(BlockList[i]);
               if (V.IndexOfName(B.BlockName) > - 1) and (V1.IndexOf(B.BlockName) < 0) then
               begin
-                S.Add(lS + Format('  Call tax_AddTaxResult(gdcTaxResult, gdcTaxDesignDate.id, _'#13#10 +
+                S.Add(lS + Format('  call tax_AddTaxResult(gdcTaxResult, gdcTaxDesignDate.id, _'#13#10 +
                   lS + '    "%s", EndDate, %s, "%s")',
                   [B.BlockName, B.BlockName, StringReplace(B.Description, #13#10, ' ', [rfReplaceAll])]));
                 V1.Add(B.BlockName);
@@ -6750,7 +6817,7 @@ begin
         finally
           V1.Free;
         end;
-        S.Add(lS + 'End If')
+        S.Add(lS + 'end if')
       end;
     end;
   finally
@@ -6790,8 +6857,8 @@ begin
   begin
     SQLName := GetVarName('SQL');
     try
-      S.Add(lS + 'If Result Then');
-      S.Add(lS + Format('  Set %s = Creator.GetObject(null, "TIBSQL", "")', [SQLName]));
+      S.Add(lS + 'if Result then');
+      S.Add(lS + Format('  set %s = Creator.GetObject(null, "TIBSQL", "")', [SQLName]));
       S.Add(lS + Format('  %s.Transaction = %s', [SQLName, 'Transaction']));
       S.Add(lS + Format('  %s.SQL.Text = "execute block (trrecordkey INTEGER = :trrecordkey, begindate DATE = :begindate, enddate DATE = :enddate)" & _', [SQLName]));
       S.Add(lS + '    "as " & _');
@@ -6811,7 +6878,7 @@ begin
       S.Add(lS + Format('  %s.ParamByName("enddate").AsDateTime = %s', [SQLName, 'EndDate']));
       S.Add(lS + Format('  %s.ExecQuery', [SQLName]));
       S.Add(lS + Format('  Creator.DestroyObject(%s)', [SQLName]));
-      S.Add(lS + 'End If');
+      S.Add(lS + 'end if');
     finally
       ReleaseVarName(SQLName);
     end;
@@ -6819,11 +6886,11 @@ begin
 
   S.Add(lS + 'GS.Transaction = nothing');
 
-  S.Add(lS + 'If Result Then');
+  S.Add(lS + 'if Result then');
   S.Add(lS + '  Transaction.Commit');
-  S.Add(lS + 'Else');
+  S.Add(lS + 'else');
   S.Add(lS + '  Transaction.Rollback');
-  S.Add(lS + 'End If');
+  S.Add(lS + 'end if');
 
   inherited;
 end;
@@ -6832,13 +6899,14 @@ procedure TEntryFunctionBlock._DoBeforeGenerate(S: TStrings;
   Paragraph: Integer);
 var
   lS: string;
+//  SQLName: string;
   BS: TBlockSet;
 begin
   lS := StringOfChar(' ', Paragraph );
 
   S.Add(lS + 'Result = False');
-  S.Add(lS + 'Set Creator = new TCreator');
-  S.Add(lS + 'Set Transaction = Creator.GetObject(null, "TIBTransaction", "")');
+  S.Add(lS + 'set Creator = new TCreator');
+  S.Add(lS + 'set Transaction = Creator.GetObject(null, "TIBTransaction", "")');
   S.Add(lS + 'Transaction.DefaultDataBase = gdcBaseManager.DataBase');
   S.Add(lS + 'Transaction.StartTransaction');
   S.Add(lS + 'GS.Transaction = Transaction');
@@ -6867,21 +6935,19 @@ procedure TTaxFunctionBlock._DoBeforeGenerate(S: TStrings;
 begin
   S.Add(StringOfChar(' ', Paragraph ) + 'EntryDate = EndDate');
   inherited;
-  S.Add(StringOfChar(' ', Paragraph ) + 'Set gdcTaxDesignDate = Creator.GetObject(null, "TgdcTaxDesignDate", "")');
-  S.Add(StringOfChar(' ', Paragraph ) + 'gdcTaxDesignDate.Transaction = Transaction');
-  S.Add(StringOfChar(' ', Paragraph ) + 'gdcTaxDesignDate.ReadTransaction = Transaction');  
+  S.Add(StringOfChar(' ', Paragraph ) + 'set gdcTaxDesignDate = Creator.GetObject(null, "TgdcTaxDesignDate", "")');
   S.Add(StringOfChar(' ', Paragraph ) + 'gdcTaxDesignDate.SubSet = "ByTaxActual,ByDocumentDate"');
   S.Add(StringOfChar(' ', Paragraph ) + Format('gdcTaxDesignDate.ParamByName("taxactualkey").AsInteger = gdcBaseManager.GetIdByRUIDString("%s")', [FTaxActualRuid]));
   S.Add(StringOfChar(' ', Paragraph ) + 'gdcTaxDesignDate.ParamByName("documentdate").AsDateTime = EndDate');
   S.Add(StringOfChar(' ', Paragraph ) + 'gdcTaxDesignDate.Open');
-  S.Add(StringOfChar(' ', Paragraph ) + 'If gdcTaxDesignDate.Eof Then');
+  S.Add(StringOfChar(' ', Paragraph ) + 'if gdcTaxDesignDate.Eof then');
   S.Add(StringOfChar(' ', Paragraph ) + '  gdcTaxDesignDate.Insert');
   S.Add(StringOfChar(' ', Paragraph ) + Format('  gdcTaxDesignDate.FieldByName("taxactualkey").AsInteger = gdcBaseManager.GetIdByRUIDString("%s")', [FTaxActualRuid]));
   S.Add(StringOfChar(' ', Paragraph ) + Format('  gdcTaxDesignDate.FieldByName("taxnamekey").AsInteger = gdcBaseManager.GetIdByRUIDString("%s")', [FTaxNameRuid]));
   S.Add(StringOfChar(' ', Paragraph ) + '  gdcTaxDesignDate.FieldByName("documentdate").AsDateTime = EndDate');
   S.Add(StringOfChar(' ', Paragraph ) + '  gdcTaxDesignDate.Post');
-  S.Add(StringOfChar(' ', Paragraph ) + 'End If');
-
+  S.Add(StringOfChar(' ', Paragraph ) + 'end if');
+  
 end;
 
 { TTrEntryFunctionBlock }
@@ -6898,6 +6964,10 @@ var
   I: Integer;
 begin
   ls := StringOfChar(' ', Paragraph);
+{  if FReturnResult then
+    S.Insert(FCheckMasterInsertLine, lS + 'if InStr(gdcDocument.BaseState, "sLoadFromStream") > 0 then exit function')
+  else
+    S.Insert(FCheckMasterInsertLine, lS + 'if InStr(gdcDocument.BaseState, "sLoadFromStream") > 0 then exit sub');}
 
   Inc(FEndScriptLine, 1);
   for I := 0 to ControlCount - 1 do
@@ -6909,16 +6979,16 @@ begin
   if _CheckMaster then
   begin
     if DocumentPart = dcpLine then
-    S.Insert(FCheckMasterInsertLine + 1, lS + 'If Assigned(gdcDocument.MasterSource) Then');
-    S.Insert(FCheckMasterInsertLine + 2, lS + '  Set gdcDocumentHeader = gdcDocument.MasterSource.Dataset');
-    S.Insert(FCheckMasterInsertLine + 3, lS + 'Else');
-    S.Insert(FCheckMasterInsertLine + 4, lS + '  Set gdcDocumentHeader = Creator.GetObject(nil, "' + DocumentHead.Document.ClassName + '", "")');
+    S.Insert(FCheckMasterInsertLine + 1, lS + 'if Assigned(gdcDocument.MasterSource) then');
+    S.Insert(FCheckMasterInsertLine + 2, lS + '  set gdcDocumentHeader = gdcDocument.MasterSource.Dataset');
+    S.Insert(FCheckMasterInsertLine + 3, lS + 'else');
+    S.Insert(FCheckMasterInsertLine + 4, lS + '  set gdcDocumentHeader = Creator.GetObject(nil, "' + DocumentHead.Document.ClassName + '", "")');
     S.Insert(FCheckMasterInsertLine + 5, lS + '  gdcDocumentHeader.Transaction = Transaction');
     S.Insert(FCheckMasterInsertLine + 6, lS + '  gdcDocumentHeader.SubType = gdcDocument.SubType');
     S.Insert(FCheckMasterInsertLine + 7, lS + '  gdcDocumentHeader.Subset = "ByID"');
     S.Insert(FCheckMasterInsertLine + 8, lS + '  gdcDocumentHeader.ID = gdcDocument.FieldByName("parent").AsInteger');
     S.Insert(FCheckMasterInsertLine + 9, lS + '  gdcDocumentHeader.Open');
-    S.Insert(FCheckMasterInsertLine + 10, lS + 'End If');
+    S.Insert(FCheckMasterInsertLine + 10, lS + 'end if');
     Inc(FEndScriptLine, 11);
     for I := 0 to ControlCount - 1 do
     begin
@@ -6933,6 +7003,7 @@ procedure TTrEntryFunctionBlock._DoBeforeGenerate(S: TStrings;
 var
   lS: string;
 begin
+//  IncludeList.Add('''#include tr_ExecSingleQuery');
   _CheckMaster := False;
 
   lS := StringOfChar(' ', Paragraph );
@@ -6945,6 +7016,7 @@ begin
   S.Add(lS + 'EndDate = BeginDate');
   S.Add(lS + 'EntryDate = EndDate');
   S.Add(lS + Format('TrRecordKey = gdcBaseManager.GetIDByRUIDString("%s")', [FTrRecordRUID]));
+//  S.Add(lS + Format('TransactionKey = gdcBaseManager.GetIDByRUIDString("%s")', [FTransactionRUID]));
   S.Add(lS + 'Set Transaction = gdcDocument.Transaction');
   S.Add(lS + 'GS.Transaction = Transaction');
   S.Add(lS + 'Set Creator = New TCreator');
@@ -7065,8 +7137,11 @@ begin
       end;
     end;
 
+
     if F.ShowModal = mrOk then
+    begin
       Result := F.mExpression.Lines.Text;
+    end;
   finally
     F.Free;
   end;
@@ -7111,10 +7186,116 @@ begin
   FDocumentPart := Value;
 end;
 {$ENDIF}
-
 function TTrEntryFunctionBlock.CanSave: Boolean;
+{var
+  I: Integer;
+  DebitCount, CreditCount: Integer;
+  SD, SC: TStrings;
+  Index: Integer;
+  Account, AccountPart: string;
+  BlockNames: string;}
 begin
+//  Result := True;
   Result := inherited CanSave;
+{  DebitCount := 0;
+  CreditCount := 0;
+  SD := TStringList.Create;
+  SC := TStringList.Create;
+  try
+    for I := 0 to BlockList.Count - 1 do
+    begin
+      if TObject(BlockList[i]) is TTrEntryPositionBlock then
+      begin
+        if TTrEntryPositionBlock(BlockList[i]).AccountPart = 'D' then
+        begin
+          Inc(DebitCount);
+          Index := SD.Indexof(TTrEntryPositionBlock(BlockList[i]).Account);
+          if Index = - 1 then
+            SD.AddObject(TTrEntryPositionBlock(BlockList[i]).Account, Pointer(1))
+          else
+            SD.Objects[Index] := Pointer(Integer(SD.Objects[Index]) + 1);
+        end else
+        begin
+          Inc(CreditCount);
+          Index := SC.Indexof(TTrEntryPositionBlock(BlockList[i]).Account);
+          if Index = - 1 then
+            SC.AddObject(TTrEntryPositionBlock(BlockList[i]).Account, Pointer(1))
+          else
+            SC.Objects[Index] := Pointer(Integer(SC.Objects[Index]) + 1);
+        end;
+      end;
+    end;
+
+    if (DebitCount = 0) and (CreditCount = 0) then
+    begin
+      ShowMessage(RUS_TRENTRY_ERROR1);
+      Result := False;
+      Exit;
+    end else
+    if (DebitCount > 1) and (CreditCount > 1)then
+    begin
+      ShowMessage(RUS_TRENTRY_ERROR2);
+      Result := False;
+      Exit;
+    end else
+    if (DebitCount > 0) and (CreditCount = 0) then
+    begin
+      ShowMessage(RUS_TRENTRY_ERROR3);
+      Result := False;
+      Exit;
+    end else
+    if (CreditCount > 0) and (DebitCount = 0) then
+    begin
+      ShowMessage(RUS_TRENTRY_ERROR4);
+      Result := False;
+      Exit;
+    end else
+    begin
+      Account := '';
+      for I := 0 to SD.Count - 1 do
+      begin
+        if Integer(SD.Objects[I]) > 1 then
+        begin
+          Account := SD[I];
+          AccountPart := 'D';
+          Break;
+        end;
+      end;
+      if Account = '' then
+      begin
+        for I := 0 to SC.Count - 1 do
+        begin
+          if Integer(SC.Objects[I]) > 1 then
+          begin
+            Account := SC[I];
+            AccountPart := 'C';
+            Break;
+          end;
+        end;
+      end;
+
+      if Account > '' then
+      begin
+        BlockNames := '';
+        for I := 0 to BlockList.Count - 1 do
+        begin
+          if (TObject(BlockList[i]) is TTrEntryPositionBlock) and
+            (TTrEntryPositionBlock(BlockList[i]).Account = Account) and
+            (TTrEntryPositionBlock(BlockList[i]).AccountPart = AccountPart) then
+          begin
+            BlockNames := BlockNames + '  ' + TTrEntryPositionBlock(BlockList[i]).Header + #13#10
+          end;
+        end;
+        ShowMessage(Format(RUS_TRENTRY_ERROR5, [BlockNames]));
+        Result := False;
+        Exit;
+
+      end;
+    end;
+  finally
+    SD.Free;
+    SC.Free;
+  end;}
 end;
 
 procedure TTrEntryFunctionBlock.DoGenerateExceptFunction(S: TStrings;
@@ -7762,6 +7943,7 @@ var
 begin
   lS := StringOfChar(' ', Paragraph);
   S.Add(lS + 'RecordKey = gdcEntry.GetNextId(True)');
+//  S.Add(lS + 'IsZero = True');
   S.Add(lS + 'DebitNcu = 0');
   S.Add(lS + 'CreditNcu = 0');
   S.Add(lS + 'DebitCurr = 0');
@@ -7771,10 +7953,11 @@ begin
 
   inherited;
 
-  S.Add(lS + 'If (DebitNcu <> CreditNcu) Then');
-  S.Add(lS + '  Call Exception.Raise("Exception", "Сумма по дебету не равна сумме по кредиту!" & Chr(13) & Chr(10) & _');
+//  S.Add(lS + 'if (DebitNcu <> CreditNcu) or (DebitCurr <> CreditCurr) then');
+  S.Add(lS + 'if (DebitNcu <> CreditNcu) then');
+  S.Add(lS + '  call Exception.Raise("Exception", "Сумма по дебету не равна сумме по кредиту!" & Chr(13) & Chr(10) & _');
   S.Add(lS + '    "Проверьте настройку типовой операции." & Chr(13) & Chr(10))');
-  S.Add(lS + 'End If');
+  S.Add(lS + 'end if');
 
   if MainFunction is TTrEntryFunctionBlock then
   begin
@@ -7783,10 +7966,12 @@ begin
        S.Add(lS + 'IsZero = (DebitNcu = 0) and (CreditNcu = 0) and _ ');
        S.Add(lS + '  (DebitCurr = 0) and (CreditCurr = 0) and _ ');
        S.Add(lS + '  (DebitEq = 0) and (CreditEq = 0)');
-       S.Add(lS + 'If IsZero Then ');
+       S.Add(lS + 'if IsZero then ');
+//       S.Add(lS + '  gdcEntry.Close');
        S.Add(lS + '  call gdcBaseManager.ExecSingleQuery("DELETE FROM ac_record WHERE id = (" & _ ');
        S.Add(lS + '    CStr(RecordKey) & ")", Transaction )');
-       S.Add(lS + 'End If');
+//       S.Add(lS + '  gdcEntry.Open');
+       S.Add(lS + 'end if');
      end;
   end;
 end;
@@ -7821,6 +8006,7 @@ begin
   ReleaseVarName(ENG_CREDITCURR);
   ReleaseVarName(ENG_DEBITEQ);
   ReleaseVarName(ENG_CREDITEQ);
+
 end;
 
 procedure TTrEntryBlock.DoReserveVars;
@@ -7952,12 +8138,12 @@ begin
   lS := StringOfChar(' ', Paragraph);
 
   if Trim(FStep) = '' then
-    S.Add(lS + Format('For %s = %s To %s ', [FBlockName, FCondition, FConditionTo]))
+    S.Add(lS + Format('for %s = %s to %s ', [FBlockName, FCondition, FConditionTo]))
   else
-    S.Add(lS + Format('For %s = %s To %s Step %s', [FBlockName, FCondition, FConditionTo, FStep]));
+    S.Add(lS + Format('for %s = %s to %s step %s', [FBlockName, FCondition, FConditionTo, FStep]));
   inc(Paragraph, 2);
   inherited;
-  S.Add(lS + 'Next');
+  S.Add(lS + 'next');
 end;
 
 procedure TForCycleBlock.DoLoadFromStream(Stream: TStream);
@@ -8033,10 +8219,10 @@ var
   lS: String;
 begin
   lS := StringOfChar(' ', Paragraph);
-  S.Add(lS + Format('Select Case %s', [GenerateExpression(FCondition)]));
+  S.Add(lS + Format('select case %s', [GenerateExpression(FCondition)]));
   inc(Paragraph, 2);
   inherited;
-  S.Add(lS + 'End Select');
+  S.Add(lS + 'end select');
 end;
 
 procedure TSelectBlock.DoLoadFromStream(Stream: TStream);
@@ -8107,7 +8293,7 @@ var
   lS: string;
 begin
   lS := StringOfChar(' ', Paragraph);
-  S.Add(lS + Format('Case %s', [GenerateExpression(FCondition)]));
+  S.Add(lS + Format('case %s', [GenerateExpression(FCondition)]));
   Inc(Paragraph, 2);
   inherited;
 end;
@@ -8281,7 +8467,7 @@ end;
 procedure TDocumentTransactionFunction.InitInitScript;
 begin
   FInitScript :=
-    'If Not gdcDocument.FieldByName("transactionkey").IsNull Then _'#13#10 +
+    'if not gdcDocument.FieldByName("transactionkey").IsNull then _'#13#10 +
     '  gdcDocument.FieldByName("transactionkey").Clear'#13#10
 end;
 
@@ -8298,24 +8484,24 @@ var
 begin
   inherited;
   lS := StringOfChar(' ', Paragraph );
-  S.Add(lS + 'Set Creator = New TCreator');
-  S.Add(lS + 'If gdcDocument.Transaction.InTransaction Then');
-  S.Add(lS + '  Set Transaction = gdcDocument.Transaction');
-  S.Add(lS + 'Else');
-  S.Add(lS + '  Set Transaction = gdcDocument.ReadTransaction');
-  S.Add(lS + 'End If');
+  S.Add(lS + 'set Creator = new TCreator');
+  S.Add(lS + 'if gdcDocument.Transaction.InTransaction then');
+  S.Add(lS + '  set Transaction = gdcDocument.Transaction');
+  S.Add(lS + 'else');
+  S.Add(lS + '  set Transaction = gdcDocument.ReadTransaction');
+  S.Add(lS + 'end if');
   {$IFDEF GEDEMIN}
   if FDocumentPart = dcpLine then begin
-    S.Add(lS + 'If Assigned(gdcDocument.MasterSource) Then');
-    S.Add(lS + '  Set gdcDocumentHeader = gdcDocument.MasterSource.Dataset');
-    S.Add(lS + 'Else');
-    S.Add(lS + '  Set gdcDocumentHeader = Creator.GetObject(nil, "' + DocumentHead.Document.ClassName + '", "")');
+    S.Add(lS + 'if Assigned(gdcDocument.MasterSource) then');
+    S.Add(lS + '  set gdcDocumentHeader = gdcDocument.MasterSource.Dataset');
+    S.Add(lS + 'else');
+    S.Add(lS + '  set gdcDocumentHeader = Creator.GetObject(nil, "' + DocumentHead.Document.ClassName + '", "")');
     S.Add(lS + '  gdcDocumentHeader.Transaction = Transaction');
     S.Add(lS + '  gdcDocumentHeader.SubType = gdcDocument.SubType');
     S.Add(lS + '  gdcDocumentHeader.Subset = "ByID"');
     S.Add(lS + '  gdcDocumentHeader.ID = gdcDocument.FieldByName("parent").AsInteger');
     S.Add(lS + '  gdcDocumentHeader.Open');
-    S.Add(lS + 'End If');
+    S.Add(lS + 'end if');
     AddVarName('gdcDocumentHeader');
   end;
   {$ENDIF}
@@ -8401,7 +8587,7 @@ begin
     lS := StringOfChar(' ', Paragraph);
     SQLName := FBlockName;
 
-    S.Add(lS + Format('Set %s = Creator.GetObject(nul, "TIBSQL", "")', [SQLName]));
+    S.Add(lS + Format('set %s = Creator.GetObject(nul, "TIBSQL", "")', [SQLName]));
     S.Add(lS + Format('%s.Transaction = Transaction', [SQLName]));
     S.Add(lS + Format('%s.SQL.Text = _', [SQLName]));
     Strings.Text := FSQL;
@@ -8423,10 +8609,10 @@ begin
     end;
 
     S.Add(lS + Format('%s.ExecQuery', [SQLName]));
-    S.Add(lS + Format('Do While Not %s.Eof ', [SQLName]));
+    S.Add(lS + Format('do while not %s.Eof ', [SQLName]));
     inherited DoGenerate(S, Paragraph + 2);
     S.Add(lS + Format('  %s.Next', [SQLName]));
-    S.Add(lS + 'Loop');
+    S.Add(lS + 'loop');
 
     S.Add(lS + Format('Creator.DestroyObject(%s)', [SQLName]));
   finally
@@ -8478,31 +8664,25 @@ var
   Names: TStrings;
 begin
   inherited;
-
-  if FSQL = '' then
-    exit;
-
   SQL := TIBSQL.Create(nil);
   try
     SQL.Transaction := gdcBaseManager.ReadTransaction;
-    SQL.SQL.Text := FSQL;
+    SQL.SQl.Text := FSQL;
     try
       SQL.Prepare;
-    except
-      exit;
-    end;
-
-    Names := TStringList.Create;
-    try
-      Names.Text := SQL.Current.Names;
-      for I := 0 to Names.Count - 1 do
-      begin
-        Strings.AddObject(Format('%s_%s', [FBlockName, Names[I]]) +
-          '=' + Format('Значение поля %s цикла ''%s''', [Names[I],
-          Header]), Self);
+      Names := TStringList.Create;
+      try
+        Names.Text := SQL.Current.Names;
+        for I := 0 to Names.Count - 1 do
+        begin
+          Strings.AddObject(Format('%s_%s', [FBlockName, Names[I]]) +
+            '=' + Format('Значние поля %s цикла ''%s''', [Names[I],
+            Header]), Self);
+        end;
+      finally
+        Names.Free;
       end;
-    finally
-      Names.Free;
+    except
     end;
   finally
     SQL.Free;
@@ -8572,7 +8752,7 @@ begin
     else
       P := P.Parent;
   end;
-
+  
   Result := not Result;
 end;
 
@@ -8610,12 +8790,12 @@ begin
        S.Add(lS + 'IsZero = (DebitNcu = 0) and (CreditNcu = 0) and _ ');
        S.Add(lS + '  (DebitCurr = 0) and (CreditCurr = 0) and _ ');
        S.Add(lS + '  (DebitEq = 0) and (CreditEq = 0) ');
-       S.Add(lS + 'If IsZero Then ');
+       S.Add(lS + 'if IsZero then ');
        S.Add(lS + '  gdcEntry.Close');
-       S.Add(lS + '  Call gdcBaseManager.ExecSingleQuery("DELETE FROM ac_record WHERE id = (" & _ ');
+       S.Add(lS + '  call gdcBaseManager.ExecSingleQuery("DELETE FROM ac_record WHERE id = (" & _ ');
        S.Add(lS + '    CStr(RecordKey) & ")", Transaction )');
        S.Add(lS + '  gdcEntry.Open');
-       S.Add(lS + 'End If');
+       S.Add(lS + 'end if');
      end;
   end;
 end;
@@ -8702,8 +8882,8 @@ begin
     lS := StringOfChar(' ', Paragraph);
     SQLName := FBlockName;
 
-    S.Add(lS + Format('If Not Assigned(%s) Then', [SQLName]));
-    S.Add(lS + Format('  Set %s = Creator.GetObject(null, "TIBSQL", "")', [SQLName]));
+    S.Add(lS + Format('if not Assigned(%s) then', [SQLName]));
+    S.Add(lS + Format('  set %s = Creator.GetObject(null, "TIBSQL", "")', [SQLName]));
     S.Add(lS + Format('  %s.Transaction = Transaction', [SQLName]));
     S.Add(lS + Format('  %s.SQL.Text = _', [SQLName]));
     Strings.Text := FSQL;
@@ -8714,7 +8894,7 @@ begin
     end;
     S.Add(lS + Format('  %s.Prepare', [SQLName]));
 
-    S.Add(lS + 'End If');
+    S.Add(lS + 'end if');
 
     S.Add(lS + Format('%s.Close', [SQLName]));
 
@@ -8730,6 +8910,9 @@ begin
     end;
 
     S.Add(lS + Format('%s.ExecQuery', [SQLName]));
+//    inherited DoGenerate(S, Paragraph + 2);
+
+//    S.Add(lS + Format('Creator.DestroyObject(%s)', [SQLName]));
   finally
     Strings.Free;
   end;
@@ -8741,6 +8924,7 @@ var
   I: Integer;
   Names: TStrings;
 begin
+//  inherited;
   SQL := TIBSQL.Create(nil);
   try
     SQL.Transaction := gdcBaseManager.ReadTransaction;
@@ -8753,7 +8937,7 @@ begin
         for I := 0 to Names.Count - 1 do
         begin
           Strings.AddObject(Format('%s_%s', [FBlockName, Names[I]]) +
-            '=' + Format('Значение поля %s запроса ''%s''', [Names[I],
+            '=' + Format('Значние поля %s запроса ''%s''', [Names[I],
             Header]), Self);
         end;
       finally
@@ -8773,7 +8957,7 @@ end;
 
 function TSQLBlock.HeaderColor: TColor;
 begin
-  Result := RGB(252, 224, 233)
+  Result := RGB(252, 224, 233) 
 end;
 
 function TSQLBlock.HeaderPrefix: string;
@@ -8813,7 +8997,7 @@ end;
 
 procedure TCaseElseBlock.DoGenerate(S: TStrings; Paragraph: Integer);
 begin
-  S.Add(StringOfChar(' ',Paragraph) + 'Case Else');
+  S.Add(StringOfChar(' ',Paragraph) + 'case else');
   Inc(Paragraph, 2);
   inherited DoGenerate(S, Paragraph);
 end;
@@ -8876,7 +9060,6 @@ initialization
   BlockList := TList.Create;
   NameList := TStringList.Create;
   IncludeList := TStringList.Create;
-  
 finalization
   BlockList.Free;
   NameList.Free;

@@ -422,6 +422,7 @@ begin
   FQuantDebitAliases.Free;
   FQuantCreditAliases.Free;
 
+  //FTotals.Free;
   inherited;
 end;
 

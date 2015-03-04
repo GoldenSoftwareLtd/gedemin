@@ -22,6 +22,10 @@ type
 
     procedure SaveSettings; override;
     procedure LoadSettingsAfterCreate; override;
+
+    class function GetSubTypeList(SubTypeList: TStrings;
+      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; override;
+    class function ClassParentSubtype(Subtype: String): String; override;
   end;
 
 var
@@ -32,8 +36,7 @@ implementation
 {$R *.DFM}
 
 uses
-  gdcClasses, Storages, gd_ClassList, gd_security, IBSQL, gdcBaseInterface,
-  gdcBase;
+  gdcClasses, Storages, gd_ClassList, gd_security;
 
 { Tgdc_dlgUserSimpleDocument }
 
@@ -148,6 +151,18 @@ begin
   {END MACRO}
 end;
 
+class function Tgdc_dlgUserSimpleDocument.GetSubTypeList(
+  SubTypeList: TStrings; Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
+begin
+  Result := TgdcUserDocument.GetSubTypeList(SubTypeList, Subtype, OnlyDirect);
+end;
+
+class function Tgdc_dlgUserSimpleDocument.ClassParentSubtype(
+  Subtype: String): String;
+begin
+  Result := TgdcUserDocument.ClassParentSubtype(SubType);
+end;
+
 procedure Tgdc_dlgUserSimpleDocument.SetupDialog;
   {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
   {M}VAR
@@ -203,7 +218,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_dlgUserSimpleDocument, ctUserDocument);
+  RegisterFrmClass(Tgdc_dlgUserSimpleDocument);
 
 finalization
   UnRegisterFrmClass(Tgdc_dlgUserSimpleDocument);

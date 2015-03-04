@@ -5,8 +5,7 @@ interface
 
 uses
   Classes, Windows, Messages, SyncObjs, SysUtils, idHTTP, idURI, idComponent,
-  idThreadSafe, gdMessagedThread, gd_FileList_unit, gd_ProgressNotifier_unit,
-  IdSSLOpenSSL;
+  idThreadSafe, gdMessagedThread, gd_FileList_unit, gd_ProgressNotifier_unit;
 
 type
   TgdWebClientThread = class(TgdMessagedThread)
@@ -16,7 +15,6 @@ type
     FServerFileList: TFLCollection;
     FInUpdate: TidThreadSafeInteger;
     FHTTP: TidHTTP;
-    FHandler: TIdSSLIOHandlerSocket;
     FCmdList: TStringList;
     FURI: TidURI;
     FDBID: Integer;
@@ -93,8 +91,6 @@ begin
   FreeOnTerminate := False;
   Priority := tpLowest;
   FHTTP := TidHTTP.Create(nil);
-  FHandler := TIdSSLIOHandlerSocket.Create(nil);
-  FHTTP.IOHandler := FHandler;
   FHTTP.HandleRedirects := True;
   FHTTP.ReadTimeout := gd_GlobalParams.GetWebClientTimeout;
   FHTTP.ConnectTimeout := gd_GlobalParams.GetWebClientTimeout;
@@ -307,7 +303,6 @@ begin
   FConnected.Free;
   FInUpdate.Free;
   FServerFileList.Free;
-  FHandler.Free;
   FHTTP.Free;
   FCmdList.Free;
   FURI.Free;

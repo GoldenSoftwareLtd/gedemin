@@ -2243,7 +2243,7 @@ end;
 
 procedure TgsQueryFilter.ShowRecordCountExecute;
 begin
-  MessageBox(0, PChar('Количество записей в текущей выборке: ' + FormatFloat('#,##0', RecordCount)),
+  MessageBox(0, PChar('Количество записей в текущей выборке: ' + IntToStr(RecordCount)),
    'Информация', MB_OK or MB_ICONINFORMATION or MB_TASKMODAL);
 end;
 

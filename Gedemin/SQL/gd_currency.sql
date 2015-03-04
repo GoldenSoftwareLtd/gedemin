@@ -139,6 +139,4 @@ ALTER TABLE gd_currrate ADD CONSTRAINT gd_fk2_currrate
 ALTER TABLE gd_currrate ADD CONSTRAINT gd_chk1_currrate
   CHECK(fromcurr <> tocurr);
 
-CREATE DESC INDEX gd_x_currrate_fordate ON gd_currrate(fordate);
-
 COMMIT;

@@ -668,6 +668,8 @@ end;
 constructor TPopupCheckList.Create(AOwner: TComponent);
 begin
   inherited;
+
+//  ControlStyle := ControlStyle + [csNoDesignVisible, csReflector, csReplicatable];
   BevelInner := bvNone;
   BevelOuter := bvNone;
   Height := 100;

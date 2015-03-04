@@ -234,6 +234,7 @@ var
   I, Index: Integer;
   SQL: TIBSQl;
   Line: TfrAcctAnalyticLine;
+  H: Integer;
   P, C: Integer;
   LAnaliseLines: TObjectList;
 
@@ -274,6 +275,7 @@ begin
     SQL := TIBSQL.Create(nil);
     try
       SQL.Transaction := gdcBaseManager.ReadTransaction;
+      P := ppAnalytics.ClientRect.Top;
       if AIDList.Count > 0 then begin
         for I := 0 to FAnalyticsFieldList.Count - 1 do begin
           if SQL.SQL.Count > 0 then
@@ -322,24 +324,22 @@ begin
               Line.OnResize := OnFrameResize;
             end else
             begin
+              Line := TfrAcctAnalyticLine(LAnaliseLines[Index]);
               FAnalyticsLineList.Add(LAnaliseLines[Index]);
               LAnaliseLines.Extract(LAnaliseLines[Index]);
             end;
+            with Line do
+            begin
+              H := Height;
+              Top := P;
+            end;
+            P := P + H;
           end;
         finally
           SQL.Close;
         end;
       end;
-
-      if FAnalyticsLineList <> nil then
-      begin
-        P := ppAnalytics.ClientRect.Top;
-        for I := 0 to FAnalyticsLineList.Count - 1 do
-          P := P + (FAnalyticsLineList[I] as TfrAcctAnalyticLine).Height;
-
-        ppAnalytics.UpdateHeight(Max(P + 4, cMinUnwrapedHeight));
-        ClientHeight := ppAnalytics.Height;
-      end;
+      ppAnalytics.UpdateHeight(Max(P + 4, cMinUnwrapedHeight));
     finally
       SQL.Free;
     end;

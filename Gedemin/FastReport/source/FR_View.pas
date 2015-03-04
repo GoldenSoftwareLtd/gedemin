@@ -1768,8 +1768,17 @@ begin
   Result := False;
 
 {$IFDEF GEDEMIN_LOCK}
-  if not RegParams.CheckRegistration(True, 'Печать и сохранение документа в файл невозможны.') then
-    exit;
+  if not IsRegisteredCopy then
+  begin
+    MessageBox(Handle,
+      'Вы используете незарегистрированную копию программы.'#13#10 +
+      'Печать и сохранение документа в файл невозможны.'#13#10 +
+      'Вы можете выполнить регистрацию вызвав команду Регистрация'#13#10 +
+      'из пункта меню Справка главного окна программы.',
+      'Внимание',
+      MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+    Exit;
+  end;
 {$ENDIF}
 
   if Assigned(GlobalStorage) and Assigned(IBLogin)

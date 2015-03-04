@@ -346,6 +346,7 @@ begin
   {M}    ClearMacrosStack('TGDC_DLGDOCUMENTTYPE', 'SETUPDIALOG', KEYSETUPDIALOG);
   {M}end;
   {END MACRO}
+
 end;
 
 procedure Tgdc_dlgDocumentType.actWizardHeaderExecute(Sender: TObject);
@@ -360,8 +361,6 @@ var
   gdcFunction: TgdcFunction;
   DS: TDataSetState;
   DocumentPart: TgdcDocumentClassPart;
-  ibsql: TIBSQL;
-  ParentFunctionName: String;
 begin
   if Sender = actWizardHeader then
   begin
@@ -400,44 +399,13 @@ begin
           gdcFunction.Edit;
       end;
 
-      Str := D.CreateBlobStream(D.FieldByName(FunctionTemplateField), bmRead);
-      ParentFunctionName := '';
-      
-      if gdcObject.FieldByName(FunctionTemplateField).IsNull then
-      begin
-        ibsql := TIBSQL.Create(nil);
-        try
-          ibsql.Transaction := gdcObject.ReadTransaction;
-          //ibsql.SQL.Text := 'SELECT * FROM gd_documenttype WHERE id = :id AND documenttype = ''D'' ';
-            ibsql.SQL.Text := 'SELECT '#13#10 +
-              '  d.' + FunctionTemplateField + ',' + #13#10 +
-              '  f.Name '#13#10 +
-              'FROM gd_documenttype d '#13#10 +
-              'LEFT JOIN gd_function f '#13#10 +
-              '  ON d.' + FunctionKeyField + ' = f.id '#13#10 +
-              'WHERE '#13#10 +
-              '  d.id = :id '#13#10 +
-              '  AND d.documenttype = ''D'' '#13#10 +
-              '  AND d.' + FunctionTemplateField + ' is not null';
-          ibsql.ParamByName('id').AsInteger := gdcObject.FieldByName('parent').AsInteger;
-          ibsql.ExecQuery;
-          if (not ibsql.Eof) and (not ibsql.FieldByName(FunctionTemplateField).IsNull) then
-          begin
-            Str := TStringStream.Create(ibsql.FieldByName(FunctionTemplateField).AsString);
-            ParentFunctionName := ibsql.FieldByName(fnName).AsString
-          end;
-        finally
-          ibsql.Free;
-        end;
-      end;
-
+      Str := D.CreateBlobStream(D.FieldByName(FunctionTemplateField), bmReadWrite);
       try
         FunctionCreater := TNewDocumentTransactioCreater.Create;
         try
           FunctionCreater.FunctionRUID := RUIDToStr(gdcFunction.GetRUID);
           FunctionCreater.Stream := Str;
           FunctionCreater.FunctionName := gdcFunction.FieldByName(fnName).AsString;
-          FunctionCreater.ParentFunctionName := ParentFunctionName;
           FunctionCreater.DocumentTypeRUID := gdcBaseManager.GetRUIDStringById(D.FieldByName(fnId).AsInteger);
           FunctionCreater.DocumentPart := DocumentPart;
           F.CreateNewFunction(FunctionCreater);
@@ -448,7 +416,6 @@ begin
         FScriptChanged := F.ShowModal = mrOk;
         if FScriptChanged then
         begin
-          Str := D.CreateBlobStream(D.FieldByName(FunctionTemplateField), bmReadWrite);
           Str.size := 0;
           Str.Position := 0;
           F.SaveToStream(Str);
@@ -670,6 +637,26 @@ begin
 
     dbcMask.Items.Assign(List);
 
+    if gdcObject.FieldByName('headerrelkey').IsNull then
+    begin
+      ibsql.SQL.Text := 'SELECT headerrelkey FROM gd_documenttype WHERE id = :id AND documenttype = ''D'' ';
+      ibsql.ParamByName('id').AsInteger := gdcObject.FieldByName('parent').AsInteger;
+      ibsql.ExecQuery;
+      if (not ibsql.Eof) and (not ibsql.FieldByName('headerrelkey').IsNull)then
+        gdcObject.FieldByName('headerrelkey').Asinteger := ibsql.FieldByName('headerrelkey').AsInteger;
+      ibsql.Close;
+    end;
+
+    if gdcObject.FieldByName('linerelkey').IsNull then
+    begin
+      ibsql.SQL.Text := 'SELECT linerelkey FROM gd_documenttype WHERE id = :id AND documenttype = ''D'' ';
+      ibsql.ParamByName('id').AsInteger := gdcObject.FieldByName('parent').AsInteger;
+      ibsql.ExecQuery;
+      if (not ibsql.Eof) and (not ibsql.FieldByName('linerelkey').IsNull)then
+        gdcObject.FieldByName('linerelkey').Asinteger := ibsql.FieldByName('linerelkey').AsInteger;
+      ibsql.Close;
+    end;
+
     if not gdcObject.FieldByName('headerrelkey').IsNull then
     begin
       ibsql.SQL.Text := 'SELECT relationname FROM at_relations WHERE id = :id';
@@ -679,7 +666,6 @@ begin
       ibsql.Close;
     end;
 
-    ibsql.Close;
     ibsql.SQL.Text := 'SELECT name FROM gd_documenttype WHERE id = :id AND documenttype = ''D'' ';
     ibsql.ParamByName('id').AsInteger := gdcObject.FieldByName('parent').AsInteger;
     ibsql.ExecQuery;
@@ -691,12 +677,7 @@ begin
         iblcLineTable.Enabled := false;
       end
     else
-    begin
       edParentName.Text := gdcObject.FieldByName('classname').AsString;
-      edEnglishName.Enabled := True;
-      iblcHeaderTable.Enabled := True;
-      iblcLineTable.Enabled := True;
-    end;
   finally
     List.Free;
     ibsql.Free;

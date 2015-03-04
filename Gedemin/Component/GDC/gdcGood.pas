@@ -45,6 +45,8 @@ type
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
+
+    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
   end;
 
   TgdcTax = class(TgdcBase)
@@ -54,6 +56,8 @@ type
 
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
+
+    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
 
     function CheckTheSameStatement: String; override;
   end;
@@ -65,6 +69,8 @@ type
 
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
+
+    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
   end;
 
   TgdcTNVD = class(TgdcBase)
@@ -88,6 +94,8 @@ type
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
 
     class function GetSubSetList: String; override;
+
+    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
   end;
 
   TgdcGoodGroup = class(TgdcLBRBTree)
@@ -100,13 +108,9 @@ type
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
 
+    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
-
-    function GetDescendantList(AOL: TObjectList;
-      const AnOnlySameLevel: Boolean): Boolean; override;
-
-    function GetDescendantCount(const AnOnlySameLevel: Boolean): Integer; override;
   end;
 
   TgdcGood = class(TgdcBase)
@@ -133,10 +137,8 @@ type
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetSubSetList: String; override;
-    class function GetChildrenClass(const ASubType: TgdcSubType;
-      AnOL: TObjectList; const AnIncludeRoot: Boolean = True;
-      const AnOnlyDirect: Boolean = False;
-      const AnIncludeAbstract: Boolean = False): Boolean; override;
+    class function GetChildrenClass(CL: TClassList): Boolean; override;
+    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
 
     function GetTaxRate(const TaxKey: Integer; const ForDate: TDateTime): Currency;
     function GetTaxRateOnName(const TaxName: String; const ForDate: TDateTime): Currency;
@@ -149,7 +151,9 @@ type
 
   TgdcSelectedGood = class(TgdcGood)
   public
-
+    class function GetSubTypeList(SubTypeList: TStrings;
+      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; override;
+  class function ClassParentSubtype(Subtype: String): String; override;
   end;
 
   procedure Register;
@@ -207,6 +211,12 @@ begin
   Result := 'Tgdc_frmValue';
 end;
 
+class function TgdcValue.GetDisplayName(
+  const ASubType: TgdcSubType): String;
+begin
+  Result := 'Единица измерения';
+end;
+
 class function TgdcValue.GetDialogFormClassName(
   const ASubType: TgdcSubType): String;
 begin
@@ -229,6 +239,11 @@ class function TgdcTax.GetViewFormClassName(
   const ASubType: TgdcSubType): String;
 begin
   Result := 'Tgdc_frmTax';
+end;
+
+class function TgdcTax.GetDisplayName(const ASubType: TgdcSubType): String;
+begin
+  Result := 'Налог';
 end;
 
 function TgdcTax.CheckTheSameStatement: String;
@@ -309,6 +324,12 @@ begin
   Result := 'Tgdc_frmMetal';
 end;
 
+class function TgdcMetal.GetDisplayName(
+  const ASubType: TgdcSubType): String;
+begin
+  Result := 'Драгоценный металл';
+end;
+
 class function TgdcMetal.GetDialogFormClassName(
   const ASubType: TgdcSubType): String;
 begin
@@ -371,6 +392,12 @@ end;
 class function TgdcGoodBarCode.GetSubSetList: String;
 begin
   Result := inherited GetSubSetList + 'ByGood;';
+end;
+
+class function TgdcGoodBarCode.GetDisplayName(
+  const ASubType: TgdcSubType): String;
+begin
+  Result := 'Штрих код товара';
 end;
 
 class function TgdcGoodBarCode.GetDialogFormClassName(
@@ -489,6 +516,12 @@ begin
   {END MACRO}
 end;
 
+class function TgdcGoodGroup.GetDisplayName(
+  const ASubType: TgdcSubType): String;
+begin
+  Result := 'Группа товара';
+end;
+
 class function TgdcGoodGroup.GetViewFormClassName(
   const ASubType: TgdcSubType): String;
 begin
@@ -499,60 +532,6 @@ class function TgdcGoodGroup.GetDialogFormClassName(
   const ASubType: TgdcSubType): String;
 begin
   Result := 'Tgdc_dlgGoodGroup';
-end;
-
-function TgdcGoodGroup.GetDescendantList(AOL: TObjectList;
-  const AnOnlySameLevel: Boolean): Boolean;
-var
-  OL: TObjectList;
-  I: Integer;
-  CO : TCreatedObject;
-begin
-  if Self.ClassType <> TgdcGoodGroup then
-    Result := inherited GetDescendantList(AOL, AnOnlySameLevel)
-  else
-  begin
-    OL := TObjectList.Create(False);
-    try
-      if GetChildrenClass(SubType, OL) then
-      begin
-        for I := 0 to OL.Count - 1 do
-        begin
-          CO := TCreatedObject.Create;
-          CO.Obj := OL[I];
-          CO.Caption := TgdClassEntry(OL[I]).Caption;
-          if CO.Caption = '' then
-            CO.Caption := TgdClassEntry(OL[I]).TheClass.ClassName;
-          CO.IsSubLevel := False;
-          AOL.Add(CO);
-
-          if not AnOnlySameLevel then
-          begin
-            CO := TCreatedObject.Create;
-            CO.Obj := OL[I];
-            CO.Caption := TgdClassEntry(OL[I]).Caption;
-            if CO.Caption = '' then
-              CO.Caption := TgdClassEntry(OL[I]).TheClass.ClassName;
-            CO.Caption := CO.Caption + ' (подуровень)';
-            CO.IsSubLevel := True;
-            AOL.Add(CO);
-          end;
-        end;
-      end;
-    finally
-      OL.Free;
-    end;
-
-    Result := AOL.Count > 0;
-  end;
-end;
-
-function TgdcGoodGroup.GetDescendantCount(const AnOnlySameLevel: Boolean): Integer;
-begin
-  Result := inherited GetDescendantCount(AnOnlySameLevel);
-
-  if (Self.ClassType = TgdcGoodGroup) and (not AnOnlySameLevel) then
-    Result := Result * 2;
 end;
 
 { TgdcGood }
@@ -870,32 +849,26 @@ begin
   {END MACRO}
 end;
 
+class function TgdcGood.GetDisplayName(
+  const ASubType: TgdcSubType): String;
+begin
+  Result := 'Товар';
+end;
+
 class function TgdcGood.GetDialogFormClassName(
   const ASubType: TgdcSubType): String;
 begin
   Result := 'Tgdc_dlgGood';
 end;
 
-class function TgdcGood.GetChildrenClass(const ASubType: TgdcSubType;
-  AnOL: TObjectList; const AnIncludeRoot: Boolean = True;
-  const AnOnlyDirect: Boolean = False;
-  const AnIncludeAbstract: Boolean = False): Boolean;
-var
-  I: Integer;
+class function TgdcGood.GetChildrenClass(CL: TClassList): Boolean;
 begin
-  Result := inherited GetChildrenClass(ASubType, AnOL, AnIncludeRoot,
-    AnOnlyDirect, AnIncludeAbstract);
+  Result := inherited GetChildrenClass(CL);
 
   if Result then
   begin
-    for I := AnOL.Count - 1 downto 0 do
-    begin
-      if TgdClassEntry(AnOL[I]).TheClass = TgdcSelectedGood then
-        AnOL.Delete(I);
-    end;
+    CL.Remove(TgdcSelectedGood);
   end;
-
-  Result := AnOL.Count > 0;
 end;
 
 function TgdcGood.CheckTheSameStatement: String;
@@ -1006,15 +979,27 @@ end;
 
 { TgdcSelectedGood }
 
+class function TgdcSelectedGood.GetSubTypeList(SubTypeList: TStrings;
+      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
+begin
+  Result := TgdcInvBaseDocument.GetSubTypeList(SubTypeList, Subtype, OnlyDirect);
+end;
+
+class function TgdcSelectedGood.ClassParentSubtype(
+  Subtype: String): String;
+begin
+  Result := TgdcInvBaseDocument.ClassParentSubtype(SubType);
+end;
+
 initialization
   RegisterGdcClass(TgdcTNVD);
-  RegisterGdcClass(TgdcGoodBarCode, ctStorage, 'Штрих код товара');
-  RegisterGdcClass(TgdcGoodGroup, ctStorage, 'Товарная группа');
-  RegisterGdcClass(TgdcGood, ctStorage, 'Товар');
-  RegisterGdcClass(TgdcValue, ctStorage, 'Единица измерения');
-  RegisterGdcClass(TgdcTax, ctStorage, 'Налог');
-  RegisterGdcClass(TgdcMetal, ctStorage, 'Драгоценный металл');
-  RegisterGdcClass(TgdcSelectedGood, ctInvDocument);
+  RegisterGdcClass(TgdcGoodBarCode);
+  RegisterGdcClass(TgdcGoodGroup);
+  RegisterGdcClass(TgdcGood);
+  RegisterGdcClass(TgdcValue);
+  RegisterGdcClass(TgdcTax);
+  RegisterGdcClass(TgdcMetal);
+  RegisterGdcClass(TgdcSelectedGood);
 
 
 finalization

@@ -99,12 +99,10 @@ type
     // Стек создается при первом обращении, уничтожается вместе с объектом.
     property ClassMethodAssoc: TgdKeyIntAndStrAssoc read FClassMethodAssoc;
 
-    class function GetSubTypeList(ASubTypeList: TStrings;
-      const ASubType: String = ''; AnOnlyDirect: Boolean = False): Boolean; virtual;
+    class function GetSubTypeList(SubTypeList: TStrings;
+      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; virtual;
 
-    class function ClassParentSubType(const ASubType: string): String; virtual;
-
-    class function CheckSubType(ASubType: String): Boolean; virtual;
+    class function ClassParentSubtype(Subtype: String): String; virtual;
 
     class function CreateAndAssign(AnOwner: TComponent): TForm; override;
     class function FindForm(const AFormClass: CgdcCreateableForm;
@@ -176,7 +174,7 @@ begin
     if Assigned(FgdcObject) then
       FgdcObject.RemoveFreeNotification(Self);
     FgdcObject := Value;
-    if (FSubType > '') and (FgdcObject <> nil) and (FgdcObject.CheckSubType(FSubType))then
+    if (FSubType > '') and (FgdcObject <> nil) then
       FgdcObject.SubType := FSubType;
     if Active then
       SetCurrentForm(Self);
@@ -379,45 +377,58 @@ begin
   {END MACRO}
 end;
 
-class function TgdcCreateableForm.GetSubTypeList(ASubTypeList: TStrings;
-  const ASubType: String = ''; AnOnlyDirect: Boolean = False): Boolean;
-begin
-  if AnsiPos('USR_', AnsiUpperCase(ASubType)) > 0 then
-    raise EgdcException.Create('Недопустимый символ ''_''в подтипе');
-
-  Assert(ASubTypeList <> nil);
-
-  Result := gdClassList.GetSubTypeList(Self, ASubType, ASubTypeList, AnOnlyDirect)
-end;
-
-class function TgdcCreateableForm.ClassParentSubType(const ASubType: string): String;
+class function TgdcCreateableForm.GetSubTypeList(
+  SubTypeList: TStrings; Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
 var
-  CE: TgdClassEntry;
+  I: Integer;
+  F: TgsStorageFolder;
+  GClass: TClass;
 begin
-  if AnsiPos('USR_', AnsiUpperCase(ASubType)) > 0 then
-    raise Exception.Create('Недопустимый символ ''_''в подтипе');
 
-  Result := '';
+    { TODO : Временно пока нет наследования по Subtype }
+  if Subtype > '' then
+  begin
+    SubTypeList.Clear;
+    Result := False;
+    Exit;
+  end;
 
-  CE := gdClassList.Find(Self, ASubType);
+  if Assigned(GlobalStorage) then
+  begin
+    F := GlobalStorage.OpenFolder('SubTypes', False, False);
+    try
+      if F <> nil then
+      begin
+        for I := 0 to F.ValuesCount - 1 do
+        begin
+          if not (F.Values[I] is TgsStringValue) then
+            continue;
 
-  if (CE <> nil) and (CE.Parent <> nil) then
-    Result := CE.Parent.SubType;
-end;
+          GClass := gdcClassList.GetGDCClass(gdcFullClassName(F.Values[I].Name, ''));
+          if (GClass <> nil) and (GClass.InheritsFrom(TgdcBase)) then
+          begin
+            if (Self.ClassName = CgdcBase(GClass).GetViewFormClassName(''))
+              or (Self.ClassName = CgdcBase(GClass).GetDialogFormClassName('')) then
+            begin
+              SubTypeList.CommaText := F.Values[I].AsString;
+              Result := SubTypeList.Count > 0;
+              exit;
+            end;
+          end;
+        end;
+      end;
+    finally
+      GlobalStorage.CloseFolder(F, False);
+    end;
+  end;
 
-class function TgdcCreateableForm.CheckSubType(ASubType: String): Boolean;
-var
-  CE: TgdClassEntry;
-begin
-  if AnsiPos('USR_', AnsiUpperCase(ASubType)) > 0 then
-    raise Exception.Create('Недопустимый символ ''_''в подтипе');
-
+  SubTypeList.Clear;
   Result := False;
+end;
 
-  CE := gdClassList.Find(Self, ASubType);
-
-  if CE <> nil then
-    Result := True;
+class function TgdcCreateableForm.ClassParentSubtype(Subtype: String): String;
+begin
+  Result := '';
 end;
 
 procedure TgdcCreateableForm.CreateInherited;
@@ -785,11 +796,11 @@ end;
 {$ENDIF}
 
 initialization
-  RegisterFrmClass(TgdcCreateableForm);
+  RegisterFrmClasses([TgdcCreateableForm]);
   TgdcCreateableForm.RegisterMethod;
 
 finalization
-  UnRegisterFrmClass(TgdcCreateableForm);
+  UnRegisterFrmClasses([TgdcCreateableForm]);
 
 {@DECLARE MACRO Inh_CrForm_Params(%Var%)
 %Var%

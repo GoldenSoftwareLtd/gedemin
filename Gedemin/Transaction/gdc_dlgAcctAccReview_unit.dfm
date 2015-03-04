@@ -54,14 +54,22 @@ inherited dlgAcctAccReviewConfig: TdlgAcctAccReviewConfig
           Visible = False
         end
       end
+      object cbShowCorrSubAccounts: TCheckBox
+        Left = 0
+        Top = 61
+        Width = 185
+        Height = 17
+        Caption = 'Корреспонденция с субсчетами'
+        TabOrder = 8
+      end
       object gbCorrAccounts: TGroupBox
         Left = 0
-        Top = 63
+        Top = 78
         Width = 522
-        Height = 70
+        Height = 55
         Align = alBottom
         Caption = ' Корсчета '
-        TabOrder = 8
+        TabOrder = 9
         object Label1: TLabel
           Left = 8
           Top = 16
@@ -103,20 +111,14 @@ inherited dlgAcctAccReviewConfig: TdlgAcctAccReviewConfig
           Caption = 'Кредит'
           TabOrder = 3
         end
-        object cbShowCorrSubAccounts: TCheckBox
-          Left = 8
-          Top = 49
-          Width = 185
-          Height = 17
-          Caption = 'Включать субсчета'
-          TabOrder = 4
-        end
       end
     end
     inherited tsAnalytics: TTabSheet
       inherited frAnalytics: TframeAnalyticValue
+        Width = 522
         Height = 451
         inherited sbAnaliseLines: TScrollBox
+          Width = 522
           Height = 451
         end
       end

@@ -194,20 +194,12 @@ begin
       q.SQL.Text :=
         'UPDATE rdb$fields SET rdb$field_sub_type = 0 ' +
         'WHERE rdb$field_name = ''DBMP'' AND rdb$field_sub_type <> 0';
-      try
-        q.ExecQuery;
-      except
-        // на FB 3 не пройдет
-      end;
+      q.ExecQuery;
 
       q.SQL.Text :=
         'UPDATE rdb$fields SET rdb$field_sub_type = 0 ' +
         'WHERE rdb$field_name = ''DRTF'' AND rdb$field_sub_type <> 0';
-      try
-        q.ExecQuery;
-      except
-        // на FB 3 не пройдет
-      end;
+      q.ExecQuery;
 
       q.SQL.Text := 'ALTER TRIGGER gd_au_documenttype INACTIVE';
       q.ExecQuery;

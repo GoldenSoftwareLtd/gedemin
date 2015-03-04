@@ -60,6 +60,7 @@ type
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
 
     class function GetRestrictCondition(const ATableName, ASubType: String): String; override;
+    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
     class function GetSubSetList: String; override;
   end;
 
@@ -89,6 +90,7 @@ type
     function GetCompany(const Account: String): Integer;
 
     class function GetRestrictCondition(const ATableName, ASubType: String): String; override;
+    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
     class function GetSubSetList: String; override;
   end;
 
@@ -116,6 +118,7 @@ type
 
     function DocumentTypeKey: Integer; override;
     class function GetRestrictCondition(const ATableName, ASubType: String): String; override;
+    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
     class function GetSubSetList: String; override;
 
     property TransferKey: Integer read FTransferKey write FTransferKey;
@@ -126,6 +129,7 @@ type
     function CreateDialogForm: TCreateableForm; override;
   public
     class function ContactType: Integer; override;
+    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
   end;
 
   Tgdc_dpAuthority = class(TgdcCompany)
@@ -140,6 +144,7 @@ type
     procedure ValidateField(Sender: TField); override;
   public
     class function ContactType: Integer; override;
+    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
   end;
 
   Tgdc_dpFinancial = class(TgdcCompany)
@@ -147,6 +152,7 @@ type
     function CreateDialogForm: TCreateableForm; override;
   public
     class function ContactType: Integer; override;
+    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
   end;
 
   Tgdc_dpComittee = class(TgdcCompany)
@@ -154,6 +160,7 @@ type
     function CreateDialogForm: TCreateableForm; override;
   public
     class function ContactType: Integer; override;
+    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
   end;
 
   Tgdc_dpMain = class(TgdcCompany)
@@ -161,6 +168,7 @@ type
     function CreateDialogForm: TCreateableForm; override;
   public
     class function ContactType: Integer; override;
+    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
   end;
 
   Tgdc_dpDecree = class(TgdcBase)
@@ -1114,6 +1122,12 @@ begin
   {END MACRO}
 end;
 
+class function Tgdc_dpTransfer.GetDisplayName(
+  const ASubType: TgdcSubType): String;
+begin
+  Result := 'Акты передачи';
+end;
+
 function Tgdc_dpTransfer.GetDialogDefaultsFields: String;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
   {M}VAR
@@ -1483,6 +1497,12 @@ begin
     S.Add(' t.inventorykey = :inventorykey ');
 end;
 
+class function Tgdc_dpRevaluation.GetDisplayName(
+  const ASubType: TgdcSubType): String;
+begin
+  Result := 'Акты переоценки';
+end;
+
 function Tgdc_dpRevaluation.GetReductionCondition: String;
 begin
   if IsEmpty then
@@ -1558,6 +1578,11 @@ end;
 class function Tgdc_dpSale.ContactType: Integer;
 begin
   Result := cst_Sale;
+end;
+
+class function Tgdc_dpSale.GetDisplayName(const ASubType: TgdcSubType): String;
+begin
+  Result := 'Реализующая организация';
 end;
 
 { Tgdc_dpAuthority }
@@ -1790,6 +1815,12 @@ begin
   {END MACRO}
 end;
 
+class function Tgdc_dpAuthority.GetDisplayName(
+  const ASubType: TgdcSubType): String;
+begin
+  Result := 'Уполномоченный орган';
+end;
+
 procedure Tgdc_dpAuthority.ValidateField(Sender: TField);
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
   {M}VAR
@@ -1895,6 +1926,12 @@ begin
   Result := cst_Financial;
 end;
 
+class function Tgdc_dpFinancial.GetDisplayName(
+  const ASubType: TgdcSubType): String;
+begin
+  Result := 'Финансовый орган';
+end;
+
 { Tgdc_dpMain }
 
 function Tgdc_dpMain.CreateDialogForm: TCreateableForm;
@@ -1952,6 +1989,12 @@ end;
 class function Tgdc_dpMain.ContactType: Integer;
 begin
   Result := cst_Main;
+end;
+
+
+class function Tgdc_dpMain.GetDisplayName(const ASubType: TgdcSubType): String;
+begin
+  Result := 'Главный уполномоченный орган';
 end;
 
 { Tgdc_dpDecree }
@@ -3384,6 +3427,12 @@ begin
   Result := 'Tgdc_dp_frmBSLine';
 end;
 
+class function Tgdc_dpInventory.GetDisplayName(
+  const ASubType: TgdcSubType): String;
+begin
+  Result := 'Акты описи и оценки';
+end;
+
 function Tgdc_dpInventory.GetDialogDefaultsFields: String;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
   {M}VAR
@@ -3561,21 +3610,27 @@ begin
   {END MACRO}
 end;
 
+class function Tgdc_dpComittee.GetDisplayName(
+  const ASubType: TgdcSubType): String;
+begin
+  Result := 'Комиссия';
+end;
+
 class function Tgdc_dpInventory.GetSubSetList: String;
 begin
   Result := inherited GetSubSetList + 'NotDisabled;OnlyDisabled;';
 end;
 
 initialization
-  RegisterGdcClass(Tgdc_dpInventory, ctStorage, 'Акты описи и оценки');
-  RegisterGdcClass(Tgdc_dpTransfer, ctStorage, 'Акты передачи');
-  RegisterGdcClass(Tgdc_dpRevaluation, ctStorage, 'Акты переоценки');
-  RegisterGdcClass(Tgdc_dpSale, ctStorage, 'Реализующая организация');
-  RegisterGdcClass(Tgdc_dpMain, ctStorage, 'Главный уполномоченный орган');
-  RegisterGdcClass(Tgdc_dpAuthority, ctStorage, 'Уполномоченный орган');
-  RegisterGdcClass(Tgdc_dpFinancial, ctStorage, 'Финансовый орган');
+  RegisterGdcClass(Tgdc_dpInventory);
+  RegisterGdcClass(Tgdc_dpTransfer);
+  RegisterGdcClass(Tgdc_dpRevaluation);
+  RegisterGdcClass(Tgdc_dpSale);
+  RegisterGdcClass(Tgdc_dpMain);
+  RegisterGdcClass(Tgdc_dpAuthority);
+  RegisterGdcClass(Tgdc_dpFinancial);
   RegisterGdcClass(Tgdc_dpDecree);
-  RegisterGdcClass(Tgdc_dpComittee, ctStorage, 'Комиссия');
+  RegisterGdcClass(Tgdc_dpComittee);
   RegisterGdcClass(Tgdc_dpWithDrawal);
   RegisterGdcClass(Tgdc_dpAssetDest);
   RegisterGdcClass(TgdcBankStatementLineD);

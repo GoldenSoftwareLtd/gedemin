@@ -34,7 +34,7 @@ uses
   Windows,      Messages,       SysUtils,       Classes,        Graphics,
   Controls,     Forms,          Dialogs,        Db,             IBCustomDataSet,
   gdcBase,      gdcTree,        gd_security,    gd_createable_form, dmDatabase_unit,
-  gdcBaseInterface, gd_KeyAssoc, rp_ReportClient, Contnrs;
+  gdcBaseInterface, gd_KeyAssoc, rp_ReportClient;
 
 
 const
@@ -104,7 +104,7 @@ uses
   gdc_dlgExplorer_unit, gd_directories_const,    Storages,
   scr_i_functionlist,   rp_BaseReport_unit,      gd_i_scriptfactory,
   gdcFunction,          jclStrings,              gsResizerInterface,
-  IBUtils,              at_classes,
+  IBUtils,              ContNrs,                 at_classes,
   IBDatabase,           IBSQL,                   gdcReport
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
@@ -131,21 +131,14 @@ var
 begin
   C := GetClass(AClassName);
   if (C <> nil)
-    // список классов подтипы которых находятся не в хранилище
     and (C.InheritsFrom(TgdcBase))
     and (not C.ClassNameIs('TgdcAttrUserDefined'))
     and (not C.ClassNameIs('TgdcAttrUserDefinedTree'))
     and (not C.ClassNameIs('TgdcAttrUserDefinedLBRBTree'))
     and (not C.ClassNameIs('TgdcUserDocument'))
     and (not C.ClassNameIs('TgdcUserDocumentLine'))
-    and (not C.ClassNameIs('TgdcInvBasePriceList'))
-    and (not C.ClassNameIs('TgdcSelectedGood'))
-    and (not C.ClassNameIs('TgdcInvGoodRemains'))
-    and (not C.ClassNameIs('TgdcInvRemains'))
-    and (not C.ClassNameIs('TgdcInvMovement'))
     and (not C.ClassNameIs('TgdcInvDocument'))
     and (not C.ClassNameIs('TgdcInvDocumentLine'))
-    and (not C.ClassNameIs('TgdcInvBasePriceList'))
     and (not C.ClassNameIs('TgdcInvPriceList'))
     and (not C.ClassNameIs('TgdcInvPriceListLine'))
     then
@@ -896,6 +889,8 @@ var
   F: TrpCustomFunction;
   R: TgdcReport;
   P: Variant;
+  RL: TatRelation;
+  LFullClass: TgdcFullClassName;
 begin
   CheckBrowseMode;
 
@@ -950,8 +945,45 @@ begin
   else
     if FieldByName('classname').AsString > '' then
     begin
+      if FieldByName('classname').AsString = 'TgdcAttrUserDefined' then
+      begin
+        LFullClass.gdClassName := 'TgdcAttrUserDefined';
+        LFullClass.SubType := FieldByName('subtype').AsString;
+        if LFullClass.SubType > '' then
+        begin
+          RL := atDatabase.Relations.ByRelationName(LFullClass.SubType);
+          if Assigned(RL) then
+          begin
+            if Assigned(gdcClassList.GetGDCClass(LFullClass))
+              and (gdcClassList.GetGDCClass(LFullClass).ClassParentSubtype(LFullClass.Subtype) > '') then
+              repeat
+                LFullClass.SubType := gdcClassList.GetGDCClass(LFullClass).ClassParentSubtype(LFullClass.Subtype);
+                if (LFullClass.SubType > '')
+                  and Assigned(atDatabase.Relations.ByRelationName(LFullClass.SubType)) then
+                  RL := atDatabase.Relations.ByRelationName(LFullClass.SubType);
+              until (not (LFullClass.SubType > ''))
+                or (not Assigned(gdcClassList.GetGDCClass(LFullClass)))
+                or  (gdcClassList.GetGDCClass(LFullClass).ClassParentSubtype(LFullClass.Subtype) = '');
+
+            Assert(RL <> nil);
+
+            if Assigned(RL) then
+              if Assigned(RL.RelationFields.ByFieldName('PARENT'))
+                and Assigned(RL.RelationFields.ByFieldName('LB')) then
+                  LFullClass.gdClassName := 'TgdcAttrUserDefinedLBRBTree'
+              else if Assigned(RL.RelationFields.ByFieldName('PARENT')) then
+                LFullClass.gdClassName := 'TgdcAttrUserDefinedTree'
+              else LFullClass.gdClassName := 'TgdcAttrUserDefined'
+          end;
+        end;
+      end
+      else
+      begin
+        LFullClass.gdClassName := FieldByName('classname').AsString;
+      end;
+
       // JKL: Вынесено в отдельную функцию
-      ViewFormByClass(FieldByName('classname').AsString, FieldByName('subtype').AsString,
+      ViewFormByClass(LFullClass.gdClassName, FieldByName('subtype').AsString,
         AlwaysCreateWindow);
     end;
   end;
@@ -1042,13 +1074,30 @@ function TgdcExplorer.TestSubType(const AClassName,
   ASubType: String): Boolean;
 var
   C: TPersistentClass;
+  SL: TStringList;
+  I: Integer;
 begin
-  Result := False;
-
   C := GetClass(AClassName);
-
-  if (C <> nil) and (C.InheritsFrom(TgdcBase)) and (ASubType > '')then
-    Result := CgdcBase(C).CheckSubType(ASubType);
+  if (C <> nil) and (C.InheritsFrom(TgdcBase)) then
+  begin
+    SL := TStringList.Create;
+    try
+      if CgdcBase(C).GetSubTypeList(SL) then
+      begin
+        for I := 0 to SL.Count - 1 do
+        begin
+          if Pos('=' + ASubType + '^', SL[I] + '^') > 0 then
+          begin
+            Result := True;
+            exit;
+          end;
+        end;
+      end;
+    finally
+      SL.Free;
+    end;
+  end;
+  Result := False;
 end;
 
 procedure TgdcExplorer._SaveToStream(Stream: TStream;

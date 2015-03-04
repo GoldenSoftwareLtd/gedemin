@@ -45,7 +45,9 @@ type
   public
     constructor Create(AnOwner: TComponent); override;
     class function CreateAndAssign(AnOwner: TComponent): TForm; override;
-
+    class function GetSubTypeList(SubTypeList: TStrings;
+      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; override;
+    class function ClassParentSubtype(Subtype: String): String; override;
     procedure SaveDesktopSettings; override;
   end;
 
@@ -57,7 +59,7 @@ implementation
 {$R *.DFM}
 
 uses
-  gd_ClassList, Storages, IBSQL, gdcBaseInterface;
+  gd_ClassList, Storages;
 
 { Tgdc_frmMDHGR1 }
 
@@ -84,6 +86,19 @@ begin
   Caption := gdcInvPriceList.DocumentName[True];
 end;
 
+class function Tgdc_frmInvPriceList.GetSubTypeList(
+  SubTypeList: TStrings;
+    Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
+begin
+  Result := TgdcInvPriceList.GetSubTypeList(SubTypeList, Subtype, OnlyDirect);
+end;
+
+class function Tgdc_frmInvPriceList.ClassParentSubtype(
+  Subtype: String): String;
+begin
+  Result := TgdcInvPriceList.ClassParentSubtype(SubType);
+end;
+
 procedure Tgdc_frmInvPriceList.SaveDesktopSettings;
 begin
   inherited;
@@ -93,7 +108,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmInvPriceList, ctInvPriceList);
+  RegisterFrmClass(Tgdc_frmInvPriceList);
 
 finalization
   UnRegisterFrmClass(Tgdc_frmInvPriceList);

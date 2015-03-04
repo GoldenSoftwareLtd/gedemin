@@ -47,7 +47,6 @@ type
 
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
-
   end;
 
   TgdcBankCatalogueLine = class(TgdcBaseLine)
@@ -2063,7 +2062,7 @@ end;
 
 initialization
   RegisterGdcClass(TgdcBaseLine);
-  RegisterGdcClass(TgdcBankCatalogue, ctStorage, 'Банковская картотека');
+  RegisterGdcClass(TgdcBankCatalogue);
   RegisterGdcClass(TgdcBankCatalogueLine);
   RegisterGdcClass(TgdcBankStatement);
   RegisterGdcClass(TgdcBankStatementLine);

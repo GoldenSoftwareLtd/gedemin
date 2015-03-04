@@ -1,6 +1,6 @@
 object dlgCompareNSRecords: TdlgCompareNSRecords
-  Left = 790
-  Top = 476
+  Left = 595
+  Top = 395
   Width = 728
   Height = 494
   Caption = 'Конфликт изменения данных объекта'
@@ -37,52 +37,67 @@ object dlgCompareNSRecords: TdlgCompareNSRecords
       BevelOuter = bvNone
       TabOrder = 1
       object pnlRightBottom: TPanel
-        Left = 445
+        Left = 188
         Top = 0
-        Width = 267
+        Width = 524
         Height = 31
         Align = alRight
         BevelOuter = bvNone
-        TabOrder = 0
+        TabOrder = 1
         object btnSave: TButton
-          Left = 7
+          Left = 17
           Top = 3
-          Width = 124
+          Width = 164
           Height = 21
-          Action = actContinue
+          Action = actSave
           Default = True
           TabOrder = 0
         end
-        object btnCancel: TButton
-          Left = 138
+        object btnSkip: TButton
+          Left = 186
           Top = 3
-          Width = 124
+          Width = 164
+          Height = 21
+          Action = actSkip
+          Default = True
+          TabOrder = 1
+        end
+        object btnCancel: TButton
+          Left = 355
+          Top = 3
+          Width = 164
           Height = 21
           Action = actCancel
           Cancel = True
-          TabOrder = 1
+          Default = True
+          TabOrder = 2
         end
+      end
+      object chbxShowOnlyDiff: TCheckBox
+        Left = 4
+        Top = 4
+        Width = 169
+        Height = 17
+        Action = actShowOnlyDiff
+        TabOrder = 0
       end
     end
     object pnlGrid: TPanel
       Left = 0
-      Top = 102
+      Top = 91
       Width = 712
-      Height = 323
+      Height = 334
       Align = alClient
-      BevelInner = bvLowered
       BevelOuter = bvNone
       BorderWidth = 4
       TabOrder = 0
       OnResize = pnlGridResize
       object sgMain: TStringGrid
-        Left = 5
-        Top = 32
-        Width = 702
-        Height = 286
+        Left = 4
+        Top = 4
+        Width = 704
+        Height = 326
         Align = alClient
-        BorderStyle = bsNone
-        Color = clBtnFace
         ColCount = 3
         DefaultRowHeight = 18
         DefaultDrawing = False
@@ -104,135 +119,72 @@ object dlgCompareNSRecords: TdlgCompareNSRecords
           18
           18)
       end
-      object tbDock: TTBDock
-        Left = 5
-        Top = 5
-        Width = 702
-        Height = 27
-        AllowDrag = False
-        BoundLines = [blBottom]
-        LimitToOneRow = True
-        object tb: TTBToolbar
-          Left = 0
-          Top = 0
-          Align = alTop
-          CloseButton = False
-          DockMode = dmCannotFloatOrChangeDocks
-          FullSize = True
-          Images = dmImages.il16x16
-          MenuBar = True
-          Options = [tboShowHint, tboToolbarStyle]
-          ParentShowHint = False
-          ProcessShortCuts = True
-          ShowHint = True
-          ShrinkMode = tbsmWrap
-          TabOrder = 0
-          object TBItem1: TTBItem
-            Action = actCopyValue
-          end
-          object tbView: TTBItem
-            Action = actView
-          end
-          object TBSeparatorItem1: TTBSeparatorItem
-          end
-          object TBControlItem1: TTBControlItem
-            Control = chbxShowOnlyDiff
-          end
-          object chbxShowOnlyDiff: TCheckBox
-            Left = 52
-            Top = 2
-            Width = 169
-            Height = 17
-            Action = actShowOnlyDiff
-            Checked = True
-            State = cbChecked
-            TabOrder = 0
-          end
-        end
-      end
     end
     object pnlTop: TPanel
       Left = 0
       Top = 0
       Width = 712
-      Height = 102
+      Height = 91
       Align = alTop
       BevelOuter = bvNone
       TabOrder = 2
-      object mObject: TMemo
+      object lTitle: TLabel
         Left = 8
-        Top = 8
-        Width = 601
-        Height = 29
-        TabStop = False
-        BorderStyle = bsNone
-        Lines.Strings = (
-          
-            'Объект "%s" был изменен и в базе данных, и в файле. Выберите дал' +
-            'ьнейшее действие.'
-          ' ')
-        ParentColor = True
-        ReadOnly = True
-        TabOrder = 0
-      end
-      object rbSkip: TRadioButton
-        Left = 8
-        Top = 44
-        Width = 481
-        Height = 17
+        Top = 64
+        Width = 617
+        Height = 27
+        AutoSize = False
         Caption = 
-          'Не изменять объект в базе данных. Игнорировать изменения из файл' +
-          'а.'
-        TabOrder = 1
-        OnClick = rbSkipClick
+          'Выделенные жирным шрифтом значения будут записаны в базу данных.' +
+          ' Используйте двойной щелчек мыши для просмотра и одинарный -- дл' +
+          'я выделения.'
+        WordWrap = True
       end
-      object rbOverwrite: TRadioButton
+      object lObjClass: TLabel
         Left = 8
-        Top = 60
-        Width = 393
-        Height = 23
-        Caption = 'Полностью перезаписать объект в базе данных данными из файла.'
-        TabOrder = 2
-        OnClick = rbOverwriteClick
+        Top = 7
+        Width = 68
+        Height = 13
+        Caption = 'Тип объекта:'
       end
-      object rbSelected: TRadioButton
+      object lObjName: TLabel
         Left = 8
-        Top = 82
-        Width = 497
-        Height = 17
-        Caption = 'Обновить из файла только выбранные в списке ниже поля объекта:'
-        TabOrder = 3
-        OnClick = rbSelectedClick
+        Top = 25
+        Width = 77
+        Height = 13
+        Caption = 'Наименование:'
       end
-      object pnlButtons: TPanel
-        Left = 617
-        Top = 0
-        Width = 95
-        Height = 102
-        Align = alRight
-        BevelOuter = bvNone
-        TabOrder = 4
-        object btnProperties: TButton
-          Left = 8
-          Top = 32
-          Width = 79
-          Height = 21
-          Action = actProperties
-          TabOrder = 1
-        end
-        object btnObject: TButton
-          Left = 8
-          Top = 8
-          Width = 79
-          Height = 21
-          Action = actObject
-          TabOrder = 0
-        end
+      object lObjID: TLabel
+        Left = 8
+        Top = 43
+        Width = 32
+        Height = 13
+        Caption = 'РУИД:'
+      end
+      object lblID: TLabel
+        Left = 93
+        Top = 43
+        Width = 21
+        Height = 13
+        Caption = 'lblID'
+      end
+      object lblName: TLabel
+        Left = 93
+        Top = 25
+        Width = 37
+        Height = 13
+        Caption = 'lblName'
+      end
+      object lblClassName: TLabel
+        Left = 93
+        Top = 7
+        Width = 62
+        Height = 13
+        Caption = 'lblClassName'
       end
     end
   end
   object actList: TActionList
-    Images = dmImages.il16x16
     Left = 320
     Top = 184
     object actShowOnlyDiff: TAction
@@ -240,41 +192,25 @@ object dlgCompareNSRecords: TdlgCompareNSRecords
       OnExecute = ActShowOnlyDiffExecute
       OnUpdate = actShowOnlyDiffUpdate
     end
-    object actContinue: TAction
-      Caption = 'Продолжить'
-      OnExecute = actContinueExecute
-      OnUpdate = actContinueUpdate
+    object actSave: TAction
+      Caption = 'Записать изменения'
+      OnExecute = actSaveExecute
+      OnUpdate = actSaveUpdate
     end
     object actView: TAction
       Caption = 'Просмотр...'
-      Hint = 'Просмотреть и сравнить значения выбранного поля'
-      ImageIndex = 204
       ShortCut = 114
       OnExecute = actViewExecute
       OnUpdate = actViewUpdate
+    end
+    object actSkip: TAction
+      Caption = 'Сохранить исходную запись'
+      OnExecute = actSkipExecute
     end
     object actCancel: TAction
       Caption = 'Прервать загрузку'
       OnExecute = actCancelExecute
       OnUpdate = actCancelUpdate
-    end
-    object actObject: TAction
-      Caption = 'Объект'
-      ImageIndex = 0
-      OnExecute = actObjectExecute
-      OnUpdate = actObjectUpdate
-    end
-    object actProperties: TAction
-      Caption = 'Свойства'
-      ImageIndex = 83
-      OnExecute = actPropertiesExecute
-      OnUpdate = actPropertiesUpdate
-    end
-    object actCopyValue: TAction
-      Caption = 'Скопировать'
-      ImageIndex = 10
-      OnExecute = actCopyValueExecute
-      OnUpdate = actCopyValueUpdate
     end
   end
 end

@@ -267,8 +267,6 @@ type
     { Private declarations }
     procedure SetVisibleDisable;
     function  FindMacrosByKey(MacrosKey: Integer): TTreeNode;
-    function BuildClassTree(ACE: TgdClassEntry; AData1: Pointer; AData2: Pointer): Boolean;
-
   protected
     FPageControl: TSuperPageControl;
 
@@ -306,20 +304,17 @@ type
     //Добавляет папку локальных объектов
     procedure AddLocalMacrosFolder(Id: Integer);
     //Функции работы с классами
-    procedure AddGDCClasses(AParent: TTreeNode; AKey: String);overload;
-    procedure AddGDCClasses(AParent: TTreeNode; AKey: String; CClass: TClass);overload;
+    procedure AddGDCClasses(AParent: TTreeNode; Index: Integer);overload;
+    procedure AddGDCClasses(AParent: TTreeNode; Index: Integer; CClass: TClass);overload;
     //функция добавления одного нода гдс-класса без учета фильтра
     //используется при поиске функции
     //ClassName = ClassName + subtype
-    function AddGDCClass(AParent: TTreeNode;
-      const AClassName: String; const ASubType: string): TTreeNode;
-
-    function AddGDCClassNode(AParent: TTreeNode;
-      ACE: TgdClassEntry): TTreeNode; overload;
-    function AddFRMClassNode(AParent: TTreeNode;
-      ACE: TgdClassEntry): TTreeNode; overload;
-      
-    procedure AddMethods(AParent: TTreeNode; IsGDC: Boolean; ACE: TgdClassEntry);
+    function AddGDCClass(AParent: TTreeNode; ClassName, SubType: string): TTreeNode;
+    function AddGDCClassNode(AParent: TTreeNode; I: Integer;
+      SubType, SubTypeComent: String): TTreeNode; overload;
+    function AddFRMClassNode(AParent: TTreeNode; I: Integer;
+      SubType, SubTypeComent: String): TTreeNode;
+    procedure AddMethods(AParent: TTreeNode; IsGDC: Boolean);
     //Добавляем нод метода
     function AddMethodItem(AnMethod: TMethodItem;
       const AnParentNode: TTreeNode): TTreeNode; overload;
@@ -883,13 +878,7 @@ procedure TdfPropertyTree.tvClassesAdvancedCustomDrawItem(
   Stage: TCustomDrawStage; var PaintImages, DefaultDraw: Boolean);
 var
   NodeType: TTreeItemType;
-  TempColor: TColor;
-  NodeRect: TRect;
 begin
-  // иначе портится шрифт
-  Sender.Canvas.Font.Style := [fsBold];
-  Sender.Canvas.Font.Style := Sender.Canvas.Font.Style - [fsBold];
-
   NodeType := TCustomTreeItem(Node.Data).ItemType;
   if ((NodeType = tiEvent) and
     (TEventTreeItem(Node.Data).EventItem.FunctionKey > 0)) {or
@@ -928,23 +917,6 @@ begin
       Sender.Canvas.Font.Color := clWindowText;
     if (cdsSelected in State) then
       Sender.Canvas.Font.Color := clHighlightText;
-
-    if TgdcClassTreeItem(Node.Data).Key <> TgdcClassTreeItem(Node.Data).Name then
-    begin
-      TempColor := Sender.Canvas.Font.Color;
-      NodeRect := Node.DisplayRect(True);
-
-      Sender.Canvas.FillRect(NodeRect);
-      
-      if (cdsSelected in State) then
-        SetTextColor(Sender.Canvas.Handle, ColorToRGB(clYellow))
-      else
-        SetTextColor(Sender.Canvas.Handle, ColorToRGB(clGreen));
-
-      Sender.Canvas.TextOut(NodeRect.Left + 1, NodeRect.Top, Node.Text);
-      SetTextColor(Sender.Canvas.Handle, ColorToRGB(TempColor));
-      Sender.Canvas.TextOut(NodeRect.Left, NodeRect.Top, TgdcClassTreeItem(Node.Data).Name);
-    end;
   end;
 end;
 
@@ -1684,13 +1656,13 @@ begin
     tiGDCClassFolder:
       if not TCustomTreeFolder(Node.Data).ChildsCreated then
       begin
-        AddGDCClasses(Node, 'TgdcBase', TgdcBase);
-        AddGDCClasses(Node, 'TgdcCreateableForm', TgdcCreateableForm);
+        AddGDCClasses(Node, -1, TgdcBase);
+        AddGDCClasses(Node, -1, TgdcCreateableForm);
       end;
 
     tiGDCClass:
       if not TCustomTreeFolder(Node.Data).ChildsCreated then
-        AddGDCClasses(Node, TgdcClassTreeItem(Node.Data).Key);
+        AddGDCClasses(Node, TgdcClassTreeItem(Node.Data).Index);
 
     tiForm:
       CheckFullEvents(Node);
@@ -2108,41 +2080,18 @@ begin
   end;
 end;
 
-function TdfPropertyTree.BuildClassTree(ACE: TgdClassEntry; AData1: Pointer;
-  AData2: Pointer): Boolean;
+procedure TdfPropertyTree.AddGDCClasses(AParent: TTreeNode; Index: Integer; CClass: TClass);
 var
+  LocClassList: TgdcCustomClassList;
+  TreeList, CountList: TList;
+  I, J, K: Integer;
   TN: TTreeNode;
-begin
-  if Boolean(AData2^) then
-    TN := AddGDCClassNode(TTreeNode(AData1^), ACE)
-  else
-    TN := AddFRMClassNode(TTreeNode(AData1^), ACE);
-
-  if TN <> nil then
-    begin
-      TN.HasChildren := True;
-      if not PropertySettings.Filter.OnlySpecEvent then
-        InitOverloadAndDisable(TGDCClassTreeItem(TN.Data).TheClass);
-      TGDCClassTreeItem(TN.Data).OverloadMethods :=
-        TGDCClassTreeItem(TN.Data).TheClass.SpecMethodCount;
-      TGDCClassTreeItem(TN.Data).DisabledMethods :=
-        TGDCClassTreeItem(TN.Data).TheClass.SpecDisableMethod;
-    end;
-  Result := True;
-end;
-
-procedure TdfPropertyTree.AddGDCClasses(AParent: TTreeNode; AKey: String; CClass: TClass);
-var
-  TN: TTreeNode;
-//  MC: TMethodClass;
-//  ST: TStrings;
+  MC: TMethodClass;
+  ST: TStrings;
   IsGDC: Boolean;
-//  Init: Boolean;
-  CE: TgdClassEntry;
-  CEBase: TgdClassEntry;
-  LSubType: String;
-  
-{  function ClassFilter(Index: Integer; AIsGDC: Boolean; SubType: string): Boolean;
+  Init: Boolean;
+
+  function ClassFilter(Index: Integer; AIsGDC: Boolean; SubType: string): Boolean;
   var
     I: Integer;
     C: TComponentClass;
@@ -2240,110 +2189,213 @@ var
           Exit;
       end;
     end;
-  end;  }
+  end;
 
 begin
   TCustomTreeFolder(AParent.Data).ChildsCreated := True;
   IsGDC := CClass.InheritsFrom(TgdcBase);
-
-  if (TCustomTreeItem(AParent.Data).ItemType = tiGDCClassFolder) then
-  begin
-    if IsGDC then
-      CE := gdClassList.Find(TgdcBase)
-    else
-      CE := gdClassList.Find(TgdcCreateableForm);
-
-    if CE <> nil then
-    begin
-      if IsGDC then
-        TN := AddGDCClassNode(AParent, CE)
-      else
-        TN := AddFRMClassNode(AParent, CE);
-
-      if TN <> nil then
-      begin
-        TN.HasChildren := True;
-        //Если установлен флаг PropertySettings.Filter.OnlySpecEvent то
-        //InitOverloadAndDisable для данного класса вызывалась при фильтрации
-        //иначе вызываем здесь
-        if not PropertySettings.Filter.OnlySpecEvent then
-          InitOverloadAndDisable(TGDCClassTreeItem(TN.Data).TheClass);
-        TGDCClassTreeItem(TN.Data).OverloadMethods :=
-          TGDCClassTreeItem(TN.Data).TheClass.SpecMethodCount;
-        TGDCClassTreeItem(TN.Data).DisabledMethods :=
-          TGDCClassTreeItem(TN.Data).TheClass.SpecDisableMethod;
-      end;
-    end;
-  end;
-
-  if (TCustomTreeItem(AParent.Data).ItemType = tiGDCClass) then
-  begin
-    LSubType := StringReplace(TGDCClassTreeItem(AParent.Data).SubType, 'USR_',
-      'USR$',[rfReplaceAll, rfIgnoreCase]);
-    gdClassList.Traverse(CClass, LSubType,
-      BuildClassTree, @AParent, @IsGDC, False, True);
-  end;
-
   if IsGDC then
-    CEBase := gdClassList.Find(CClass)
+    LocClassList := gdcClassList
   else
-    CEBase := gdClassList.Find(CClass);
+    LocClassList := frmClassList;
 
-  if CEBase <> nil then
-  begin
-    AddMethods(AParent, IsGDC, CEBase);
-    AParent.HasChildren := AParent.Count > 0;
+  TreeList := TList.Create;
+  try
+    CountList := TList.Create;
+    try
+      for I := 0 to LocClassList.Count - 1 do
+      begin
+        CountList.Add(Pointer(-1));
+        TreeList.Add(Pointer($FFFF));
+      end;
+
+      if IsGDC then
+      begin
+        for I := 0 to LocClassList.Count - 1 do
+          for J := 0 to LocClassList.Count - 1 do
+          begin
+            K := InheritsFromCount(TgdcClassList(LocClassList).Items[I],
+               TgdcClassList(LocClassList).Items[J]);
+            if (K > 0) then
+              if (Integer(TreeList.Items[I]) > K) and (Integer(CountList.Items[I]) <> J) then
+              begin
+                CountList.Items[I] := Pointer(J); //Класс с индексам I и класс с индексом J
+                TreeList.Items[I] := Pointer(K);  //отделяется K наследованиями
+              end;
+          end;
+      end else
+      begin
+        for I := 0 to LocClassList.Count - 1 do
+          for J := 0 to LocClassList.Count - 1 do
+          begin
+            K := InheritsFromCount(TfrmClassList(LocClassList).Items[I],
+              TfrmClassList(LocClassList).Items[J]);
+            if (K > 0) then
+              if (Integer(TreeList.Items[I]) > K) and (Integer(CountList.Items[I]) <> J) then
+              begin
+                CountList.Items[I] := Pointer(J); //Класс с индексам I и класс с индексом J
+                TreeList.Items[I] := Pointer(K);  //отделяется K наследованиями
+              end;
+          end;
+      end;
+
+      Assert(((LocClassList.Count) =
+        TreeList.Count) and (TreeList.Count = CountList.Count));
+
+      if (TCustomTreeItem(AParent.Data).ItemType = tiGDCClassFolder) or
+        (TGDCClassTreeItem(AParent.Data).SubType = '') then
+      begin
+        for I := 0 to CountList.Count - 1 do
+          if (CountList[I] = Pointer(Index)) and ClassFilter(I, IsGDC, '') then
+          begin
+            if IsGDC then
+              TN := AddGDCClassNode(AParent, I, '', '')
+            else
+              TN := AddFRMClassNode(AParent, I, '', '');
+
+            TN.HasChildren := True;
+            //Если установлен флаг PropertySettings.Filter.OnlySpecEvent то
+            //InitOverloadAndDisable для данного класса вызывалась при фильтрации
+            //иначе вызываем здесь
+            if not PropertySettings.Filter.OnlySpecEvent then
+              InitOverloadAndDisable(TGDCClassTreeItem(TN.Data).TheClass);
+            TGDCClassTreeItem(TN.Data).OverloadMethods :=
+              TGDCClassTreeItem(TN.Data).TheClass.SpecMethodCount;
+            TGDCClassTreeItem(TN.Data).DisabledMethods :=
+              TGDCClassTreeItem(TN.Data).TheClass.SpecDisableMethod;
+          end;
+
+        if TCustomTreeItem(AParent.Data).ItemType = tiGDCClass then
+        begin
+          ST := TStringList.Create;
+          try
+            MC := TGDCClassTreeItem(AParent.Data).TheClass;
+            if MC.Class_Reference.InheritsFrom(TgdcBase) then
+              CgdcBase(MC.Class_Reference).GetSubTypeList(ST, '', True)
+            else
+              CgdcCreateableForm(MC.Class_Reference).GetSubTypeList(ST, '', True);
+            //Добавляем SubTypы класса
+            for I := 0 to ST.Count - 1 do
+            begin
+              if ClassFilter(Index, IsGDC, Replace(ST.Values[ST.Names[I]])) then
+              begin
+                if MC.Class_Reference.InheritsFrom(TgdcBase) then
+                  TN := AddGDCClassNode(AParent, Index,
+                    Replace(ST.Values[ST.Names[I]]), ST.Names[I])
+                else
+                  TN := AddFRMClassNode(AParent, Index,
+                    Replace(ST.Values[ST.Names[I]]), ST.Names[I]);
+                if TN <> nil then
+                begin
+                  TN.HasChildren := True;
+                  //Если установлен флаг PropertySettings.Filter.OnlySpecEvent то
+                  //InitOverloadAndDisable для данного класса вызывалась при фильтрации
+                  //иначе вызываем здесь
+                  if not PropertySettings.Filter.OnlySpecEvent then
+                    InitOverloadAndDisable(TGDCClassTreeItem(TN.Data).TheClass);
+                  TGDCClassTreeItem(TN.Data).OverloadMethods :=
+                    TGDCClassTreeItem(TN.Data).TheClass.SpecMethodCount;
+                  TGDCClassTreeItem(TN.Data).DisabledMethods :=
+                    TGDCClassTreeItem(TN.Data).TheClass.SpecDisableMethod;
+                end;
+              end;
+            end;
+          finally
+            ST.Free;
+          end;
+        end;
+      end;
+
+      if (TCustomTreeItem(AParent.Data).ItemType = tiGDCClass) and
+        (TGDCClassTreeItem(AParent.Data).SubType <> '') then
+      begin
+        MC := TGDCClassTreeItem(AParent.Data).TheClass;
+        ST := TStringList.Create;
+        try
+          if MC.Class_Reference.InheritsFrom(TgdcBase) then
+            CgdcBase(MC.Class_Reference).GetSubTypeList(ST, TGDCClassTreeItem(AParent.Data).SubType, True)
+          else
+            CgdcCreateableForm(MC.Class_Reference).GetSubTypeList(ST, TGDCClassTreeItem(AParent.Data).SubType, True);
+          for I := 0 to ST.Count - 1 do
+          begin
+            if MC.Class_Reference.InheritsFrom(TgdcBase) then
+              TN := AddGDCClassNode(AParent, Index,
+                Replace(ST.Values[ST.Names[I]]), ST.Names[I])
+            else
+              TN := AddFRMClassNode(AParent, Index,
+                Replace(ST.Values[ST.Names[I]]), ST.Names[I]);
+            TN.HasChildren := True;
+            if not PropertySettings.Filter.OnlySpecEvent then
+              InitOverloadAndDisable(TGDCClassTreeItem(TN.Data).TheClass);
+            TGDCClassTreeItem(TN.Data).OverloadMethods :=
+              TGDCClassTreeItem(TN.Data).TheClass.SpecMethodCount;
+            TGDCClassTreeItem(TN.Data).DisabledMethods :=
+              TGDCClassTreeItem(TN.Data).TheClass.SpecDisableMethod;
+          end;
+        finally
+          ST.Free;
+        end;
+      end;
+
+      AddMethods(AParent, IsGDC);
+      AParent.HasChildren := AParent.Count > 0;
+    finally
+      CountList.Clear;
+      CountList.Free;
+    end;
+  finally
+    TreeList.Clear;
+    TreeList.Free;
   end;
-  
 end;
 
 function TdfPropertyTree.AddGDCClassNode(AParent: TTreeNode;
-  ACE: TgdClassEntry): TTreeNode;
+  I: Integer; SubType, SubTypeComent: String): TTreeNode;
 var
+  CClass: CgdcBase;
   CI: TgdcClassTreeItem;
   MClass: TMethodClass;
   FullName: TgdcFullClassName;
 begin
   Result := nil;
+  CClass := gdcClassList[I];
 
-  if Assigned(ACE.gdcClass) then
+  if Assigned(CClass) then
   begin
-    FullName.gdClassName := ACE.gdcClass.ClassName;
-    FullName.SubType := StringReplace(ACE.SubType, 'USR$', 'USR_',[rfReplaceAll, rfIgnoreCase]);
+    FullName.gdClassName := CClass.ClassName;
+    FullName.SubType := SubType;
     MClass := TMethodClass(MethodControl.FindMethodClass(FullName));
     if MClass = nil then
       //Если не найден то регистрируем его в списке
-      MClass := TMethodClass(MethodControl.AddClass(0, FullName, ACE.gdcClass));
-    MClass.Class_Reference := ACE.gdcClass;
-    MClass.SubTypeComment := ACE.Caption;
+      MClass := TMethodClass(MethodControl.AddClass(0, FullName, CClass));
+    MClass.Class_Reference := CClass;
+    MClass.SubTypeComment := SubTypeComent;
 
     CI := TgdcClassTreeItem.Create;
     CI.Id := MClass.Class_Key;
-    CI.Key := FullName.gdClassName + FullName.SubType;
-    CI.Name := FullName.gdClassName;
+    CI.Index := I;
+    CI.Name := CClass.ClassName;
     CI.Parent := TgdcClassTreeItem(AParent.Data);
-    if FullName.gdClassName <> TgdcBase.ClassName then
+    if CClass.ClassName <> TgdcBase.ClassName then
     begin
       CI.OwnerId := TgdcClassTreeItem(AParent.Data).OwnerId;
       CI.MainOwnerName := TgdcClassTreeItem(AParent.Data).MainOwnerName;
     end else
     begin
       CI.OwnerId := MClass.Class_Key;
-      CI.MainOwnerName := ACE.gdcClass.ClassName;
+      CI.MainOwnerName := CClass.ClassName;
     end;
     CI.OverloadMethods := MClass.SpecMethodCount;
     Ci.DisabledMethods := MClass.SpecDisableMethod;
     CI.TheClass := MClass;
-
     Result := GetPageByObjID(OBJ_APPLICATION).Tree.Items.AddChild(AParent,
-      FullName.gdClassName + FullName.SubType);
-
+      CClass.ClassName + SubType);
     Result.ImageIndex := 42;
-    Result.SelectedIndex := 42;
-    if FullName.SubType <> '' then
+    Result.SelectedIndex := 42;  
+    if SubType <> '' then
     begin
       if not PropertySettings.GeneralSet.FullClassName then
-        Result.Text := FullName.SubType;
+        Result.Text := SubType;
     end else
       Result.Text := MClass.Class_Name;
     Result.Data := CI;
@@ -2351,60 +2403,57 @@ begin
   end;
 end;
 
-procedure TdfPropertyTree.AddGDCClasses(AParent: TTreeNode; AKey: String);
+procedure TdfPropertyTree.AddGDCClasses(AParent: TTreeNode; Index: Integer);
 begin
   if TCustomTreeItem(AParent.Data).ItemType = tiGDCClass then
-    AddGDCClasses(AParent, AKey, TgdcClassTreeItem(AParent.Data).TheClass.Class_Reference);
+    AddGDCClasses(AParent, Index, TgdcClassTreeItem(AParent.Data).TheClass.Class_Reference);
 end;
 
-function TdfPropertyTree.AddFRMClassNode(AParent: TTreeNode;
-  ACE: TgdClassEntry): TTreeNode;
+function TdfPropertyTree.AddFRMClassNode(AParent: TTreeNode; I: Integer;
+  SubType, SubTypeComent: String): TTreeNode;
 var
+  CClass: CgdcCreateableForm;
   CI: TgdcClassTreeItem;
-  MObj: TObject;
   MClass: TMethodClass;
   FullName: TgdcFullClassName;
 begin
   Result := nil;
+  CClass := frmClassList[I];
 
-  if ACE.frmClass <> nil then
+  if Assigned(CClass) then
   begin
-    FullName.gdClassName := ACE.frmClass.ClassName;
-    FullName.SubType := StringReplace(ACE.SubType, 'USR$', 'USR_',[rfReplaceAll, rfIgnoreCase]);
-    MObj := MethodControl.FindMethodClass(FullName);
-    if MObj is TMethodClass then
-      MClass := TMethodClass(MObj)
-    else
+    FullName.gdClassName := CClass.ClassName;
+    FullName.SubType := SubType;
+    MClass := TMethodClass(MethodControl.FindMethodClass(FullName));
+    if MClass = nil then
       //Если не найден то регистрируем его в списке
-      MClass := TMethodClass(MethodControl.AddClass(0, FullName, ACE.frmClass));
-    MClass.Class_Reference := ACE.frmClass;
-    MClass.SubTypeComment := ACE.Caption;
+      MClass := TMethodClass(MethodControl.AddClass(0, FullName, CClass));
+    MClass.Class_Reference := CClass;
+    MClass.SubTypeComment := SubTypeComent;
 
     CI := TgdcClassTreeItem.Create;
     CI.Id := MClass.Class_Key;
-    CI.Key := FullName.gdClassName + FullName.SubType;
-    CI.Name := FullName.gdClassName;
+    CI.Index := I;
+    CI.Name := CClass.ClassName;
     CI.Parent := TgdcClassTreeItem(AParent.Data);
-    if FullName.gdClassName <> TgdcBase.ClassName then
+    if CClass.ClassName <> TgdcBase.ClassName then
     begin
       CI.OwnerId := TgdcClassTreeItem(AParent.Data).OwnerId;
       CI.MainOwnerName := TgdcClassTreeItem(AParent.Data).MainOwnerName;
     end else
     begin
       CI.OwnerId := MClass.Class_Key;
-      CI.MainOwnerName := FullName.gdClassName;
+      CI.MainOwnerName := CClass.ClassName;
     end;
     CI.OverloadMethods := MClass.SpecMethodCount;
     Ci.DisabledMethods := MClass.SpecDisableMethod;
     CI.TheClass := MClass;
-
     Result := GetPageByObjID(OBJ_APPLICATION).Tree.Items.AddChild(AParent,
-      FullName.gdClassName + FullName.SubType);
-
-    if FullName.SubType <> '' then
+      CClass.ClassName + SubType);
+    if SubType <> '' then
     begin
       if not PropertySettings.GeneralSet.FullClassName then
-        Result.Text := FullName.SubType;
+        Result.Text := SubType;
     end else
       Result.Text := MClass.Class_Name;
     Result.Data := CI;
@@ -2439,7 +2488,7 @@ begin
       '  o2.lb';
     SQl.Params[0].AsInteger := ID;
     SQL.ExecQuery;
-    if not SQL.Eof then
+    if not SQl.Eof then
     begin
       //Получаем коренную папку
       if not Assigned(GetPageByObjID(OBJ_APPLICATION)) then
@@ -2499,34 +2548,48 @@ begin
 end;
 
 function TdfPropertyTree.AddGDCClass(AParent: TTreeNode;
-  const AClassName: String; const ASubType: string): TTreeNode;
+  ClassName, SubType: string): TTreeNode;
 var
+//  Index: Integer;
   C: TClass;
-  CE: TgdClassEntry;
+  S: TStrings;
+  FullName: TgdcFullClassName;
 begin
   Result := nil;
-
-  C := gdClassList.GetGDCClass(AClassName);
-  if C <> nil then
-  begin
-    CE := gdClassList.Find(GetClass(AClassName), ASubType);
-    if CE <> nil then
+  S := TStringList.Create;
+  try
+    FullName.gdClassName := ClassName;
+    FullName.SubType := SubType;
+    C := gdcClassList.GetGDCClass(FullName);
+    if C <> nil then
     begin
-      Result := AddGDCClassNode(AParent, CE);
-
+      if SubType <> '' then
+      begin
+        CgdcBase(C).GetSubTypeList(S);
+        Result := AddGDCClassNode(AParent, gdcClassList.IndexOf(C), SubType,
+          S.Values[SubType])
+      end else
+        Result := AddGDCClassNode(AParent, gdcClassList.IndexOf(C), '', '');
       TCustomTreeFolder(Result.Data).ChildsCreated := True;
-      AddMethods(Result, True, CE);
-    end;
-  end else
-  begin
-    CE := gdClassList.Find(GetClass(AClassName), ASubType);
-    if CE <> nil then
+      AddMethods(Result, True);
+    end else
     begin
-      Result := AddFRMClassNode(AParent, CE);
-
-      TCustomTreeFolder(Result.Data).ChildsCreated := True;
-      AddMethods(Result, False, CE);
+      C := frmClassList.GetFrmClass(FullName);
+      if C <> nil then
+      begin
+        if SubType <> '' then
+        begin
+          CgdcCreateableForm(C).GetSubTypeList(S);
+          Result := AddFRMClassNode(AParent, frmClassList.IndexOf(C), SubType,
+            S.Values[SubType])
+        end else
+          Result := AddFRMClassNode(AParent, frmClassList.IndexOf(C), '', '');
+        TCustomTreeFolder(Result.Data).ChildsCreated := True;
+        AddMethods(Result, False);
+      end;
     end;
+  finally
+    S.Free;
   end;
 end;
 
@@ -2575,11 +2638,11 @@ begin
   end;
 end;
 
-procedure TdfPropertyTree.AddMethods(AParent: TTreeNode; IsGDC: Boolean; ACE: TgdClassEntry);
+procedure TdfPropertyTree.AddMethods(AParent: TTreeNode; IsGDC: Boolean);
 var
   FltFlag: Boolean;
   TheMethod: TMethodItem;
-  MClass: TgdClassMethods;
+  MClass: TgdcClassMethods;
   I, J: Integer;
 
   function AddM(M: TMethodItem; Parent: TTreeNode): TTreeNode;
@@ -2608,32 +2671,34 @@ begin
 
     P := AParent;
 
-    while (TObject(P.Data) is TgdcClassTreeItem) and (ACE <> nil) do
+
+    while TObject(P.Data) is TgdcClassTreeItem do
     begin
       // Добавляем методы класса
+      if IsGDC then
+        MClass := gdcClassList.gdcItems[TGDCClassTreeItem(P.Data).Index]
+      else
+        MClass := frmClassList.gdcItems[TGDCClassTreeItem(P.Data).Index];
 
-      MClass := ACE.ClassMethods;
-
-      for I := 0 to MClass.gdMethods.Count - 1 do
+      for I := 0 to MClass.gdcMethods.Count - 1 do
       begin
         //Ищем метод среди уже зарегестрированных в БД
         TheMethod := TGDCClassTreeItem(AParent.Data).TheClass.MethodList.Find(
-          MClass.gdMethods.Methods[I].Name);
+          MClass.gdcMethods.Methods[I].Name);
         if TheMethod = nil then // if not exist in DB but registered
         begin
           j := TGDCClassTreeItem(AParent.Data).TheClass.MethodList.Add(
-            MClass.gdMethods.Methods[I].Name, 0, False,
+            MClass.gdcMethods.Methods[I].Name, 0, False,
             TGDCClassTreeItem(AParent.Data).TheClass);
           TheMethod := TGDCClassTreeItem(AParent.Data).TheClass.MethodList.Items[j];
   //        TheMethod.MethodClass := TGDCClassTreeItem(AParent.Data).TheClass;
         end;
 
-        TheMethod.MethodData := @MClass.gdMethods.Methods[I].ParamsData;
+        TheMethod.MethodData := @MClass.gdcMethods.Methods[I].ParamsData;
         if FltFlag then
           AddM(TheMethod, AParent);
       end;
       P := P.Parent;
-      ACE := ACE.Parent;
     end;
 {     // Adding inherited methods
     if TObject(AParent.Parent.Data) is TgdcClassTreeItem then
@@ -2738,7 +2803,7 @@ begin
 
     TS.ClassesRootNode := TS.Tree.Items.AddChild(nil, 'Методы');
     TS.ClassesRootNode.Data := TgdcClassTreeFolder.Create;
-    TS.ClassesRootNode.HasChildren := gdClassList.Count > 0;
+    TS.ClassesRootNode.HasChildren := (gdcClassList.Count > 0) or (frmClassList.Count > 0);
 
    {TS.PrologRootNode := TS.Tree.Items.AddChild(nil, 'Пролог-скрипты');
     TS.PrologRootNode.Data := TPrologTreeFolder.Create;
@@ -5746,7 +5811,7 @@ begin
         Continue;
       end;
 
-      if (C = AClass) and (AnsiUpperCase(TI.SubType) = AnsiUpperCase(ASubType)) then begin
+      if (C = AClass) and (TI.SubType = ASubType) then begin
         Result:= TN;
         Exit;
       end else if (TI.ItemType = tiGDCClass) and AClass.InheritsFrom(C) and (TI.SubType = '') then

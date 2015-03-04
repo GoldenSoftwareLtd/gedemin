@@ -40,7 +40,12 @@ type
 
   public
     procedure SetupDialog; override;
+
     procedure SaveSettings; override;
+
+    class function GetSubTypeList(SubTypeList: TStrings;
+      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; override;
+    class function ClassParentSubtype(Subtype: String): String; override;
   end;
 
 var
@@ -50,9 +55,21 @@ implementation
 {$R *.DFM}
 
 uses
-  at_classes, Storages, gd_ClassList, gdcBase;
+  at_classes, Storages, gd_ClassList;
 
 { Tgdc_dlgAttrUserDefined }
+
+class function Tgdc_dlgAttrUserDefined.GetSubTypeList(
+  SubTypeList: TStrings; Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
+begin
+  Result := TgdcAttrUserDefined.GetSubTypeList(SubTypeList, Subtype, OnlyDirect);
+end;
+
+class function Tgdc_dlgAttrUserDefined.ClassParentSubtype(
+  Subtype: String): String;
+begin
+  Result := TgdcAttrUserDefined.ClassParentSubtype(SubType);
+end;
 
 procedure Tgdc_dlgAttrUserDefined.SaveSettings;
   {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
@@ -149,7 +166,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_dlgAttrUserDefined, ctUserDefined);
+  RegisterFrmClass(Tgdc_dlgAttrUserDefined);
 
 finalization
   UnRegisterFrmClass(Tgdc_dlgAttrUserDefined);

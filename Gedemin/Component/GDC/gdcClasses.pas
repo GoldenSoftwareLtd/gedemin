@@ -35,7 +35,7 @@ uses
   gdcTree,      Forms,             gd_createable_form,
   at_classes,   gdcBaseInterface,  DB,             gd_KeyAssoc,
   gdcConstants, gd_i_ScriptFactory,
-  gd_security,  gdcOLEClassList,   DBGrids, Contnrs;
+  gd_security,  gdcOLEClassList,   DBGrids;
 
 {$IFDEF DEBUGMOVE}
 const
@@ -143,8 +143,6 @@ type
 
     function GetCurrRecordClass: TgdcFullClass; override;
 
-    function GetDescendantCount(const AnOnlySameLevel: Boolean): Integer; override;
-
     //Кэширует документтайп и возвращает индекс в кэше
     function CacheDocumentType: Integer;
     class function CacheDocumentTypeByRUID(const RUIDString: String): Integer;
@@ -195,18 +193,6 @@ type
     class function GetSubSetList: String; override;
     class function NeedModifyFromStream(const SubType: String): Boolean; override;
     class function IsAbstractClass: Boolean; override;
-
-    class function GetChildrenClass(const ASubType: TgdcSubType;
-      AnOL: TObjectList; const AnIncludeRoot: Boolean = True;
-      const AnOnlyDirect: Boolean = False;
-      const AnIncludeAbstract: Boolean = False): Boolean; override;
-
-    function GetDefaultClassForDialog: TgdcFullClass; override;
-
-    function GetDescendantList(AOL: TObjectList;
-      const AnOnlySameLevel: Boolean): Boolean; override;
-
-    function GetDescendantCount(const AnOnlySameLevel: Boolean): Integer; override;
   end;
 
   TgdcDocumentBranch = class(TgdcBaseDocumentType)
@@ -216,12 +202,12 @@ type
     procedure GetWhereClauseConditions(S: TStrings); override;
 
   public
+    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
   end;
 
   TgdcDocumentType = class(TgdcBaseDocumentType)
   protected
-    procedure DoAfterInsert; override;
     procedure _DoOnNewRecord; override;
 
     procedure GetWhereClauseConditions(S: TStrings); override;
@@ -230,17 +216,11 @@ type
     function GetSelectClause: String; override;
     function GetFromClause(const ARefresh: Boolean = False): String; override;
 
-    procedure CustomInsert(Buff: Pointer); override;
-    procedure CustomDelete(Buff: Pointer); override;
-
-    function GetParentSubType: String;
-
   public
+    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
+
     function GetCurrRecordClass: TgdcFullClass; override;
     class function GetHeaderDocumentClass: CgdcBase; virtual;
-
-    class function IsAbstractClass: Boolean; override;
-
   end;
 
   TgdcUserDocumentType = class(TgdcDocumentType)
@@ -282,7 +262,7 @@ type
 
     procedure SetActive(Value: Boolean); override;
 
-    procedure SetSubType(const Value: TgdcSubType); override;
+    procedure SetSubType(const Value: String); override;
 
     function EnumRelationFields(RelationName: String; const AliasName: String = '';
       const UseDot: Boolean = True): String;
@@ -296,6 +276,11 @@ type
 
   public
     constructor Create(AnOwner: TComponent); override;
+
+    class function GetSubTypeList(SubTypeList: TStrings;
+      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; override;
+
+    class function ClassParentSubtype(Subtype: String): String; override;
 
     class function GetRestrictCondition(const ATableName, ASubType: String): String; override;
     class function IsAbstractClass: Boolean; override;
@@ -443,7 +428,6 @@ uses
   gd_security_operationconst,
 
   gd_ClassList,
-  gdcInvDocument_unit,
   gdcEvent,
 
   gdcAcctEntryRegister,
@@ -459,6 +443,9 @@ uses
   gdc_dlgUserDocumentLine_unit,
   gd_directories_const,
   IB, gdc_frmMDH_unit,
+  ContNrs,
+
+  gdcInvDocumentCache_unit,
   gd_resourcestring,
 
   jclStrings
@@ -538,7 +525,7 @@ const
 procedure Register;
 begin
   RegisterComponents('gdc', [TgdcDocumentBranch, TgdcDocumentType,
-    TgdcUserDocument, TgdcUserDocumentLine, TgdcBaseDocumentType]);
+    TgdcUserDocument, TgdcUserDocumentLine]);
 end;
 
 function EncodeNumber(const AMask: String; const ALastNumber: Integer;
@@ -839,8 +826,10 @@ begin
     else
       GridBm := (Owner as Tgdc_frmG).GetMainBookmarkList;
 
-    if (GridBm <> nil) and (GridBm.Count > 0) then
+    if GridBm.Count > 0 then
     begin
+
+
       FPrintList := '';
       for I := 0 to GridBm.Count - 1 do
       begin
@@ -1365,10 +1354,8 @@ var
   C: CgdcBase;
   ClName, RUID: String;
   DTK, Idx: Integer;
-  F: TField;
 begin
-  Result.gdClass := CgdcBase(Self.ClassType);
-  Result.SubType := '';
+  Result := inherited GetCurrRecordClass;
 
   DTK := FieldByName('documenttypekey').AsInteger;
 
@@ -1438,7 +1425,8 @@ begin
 
     if S > '' then
     begin
-      C := gdClassList.GetGDCClass(S);
+      C := gdcClassList.GetGDCClass(gdcFullClassName(S, RUID));
+
       if C <> nil then
       begin
         Result.gdClass := C;
@@ -1526,22 +1514,6 @@ begin
       Result.SubType := '';
     end;
   end;
-
-  // С классом определились
-  // Если подтип еще не определен пытаемся найти
-  if (Result.SubType = '') then
-  begin
-    F := FindField('USR$ST');
-    if F <> nil then
-      Result.SubType := F.AsString;
-    if (Result.SubType > '') and (not Result.gdClass.CheckSubType(Result.SubType)) then
-      raise EgdcException.Create('Invalid USR$ST value.');
-  end;
-end;
-
-function TgdcDocument.GetDescendantCount(const AnOnlySameLevel: Boolean): Integer;
-begin
-  Result := 1;
 end;
 
 class function TgdcDocument.HasLeafs: Boolean;
@@ -1550,6 +1522,8 @@ begin
 end;
 
 class function TgdcDocument.GetDisplayName(const ASubType: TgdcSubType): String;
+var
+  Idx: Integer;
 begin
   if GetDocumentClassPart = dcpHeader then
     Result := 'Документ'
@@ -1557,7 +1531,11 @@ begin
     Result := 'Позиция';
 
   if ASubType > '' then
-    Result := Result + ' ' + Inherited GetDisplayName(ASubType);
+  begin
+    Idx := CacheDocumentTypeByRUID(ASubType);
+    if Idx > -1 then
+      Result := Result + ' ' + DocTypeCache.CacheItemsByIndex[Idx].Name;
+  end;
 end;
 
 class function TgdcDocument.GetSubSetList: String;
@@ -2466,12 +2444,8 @@ begin
 end;
 
 function TgdcBaseDocumentType.GetCurrRecordClass: TgdcFullClass;
-var
-  F: TField;
 begin
-  Result.gdClass := CgdcBase(Self.ClassType);
-  Result.SubType := '';
-  
+  Result := inherited GetCurrRecordClass;
   if RecordCount > 0 then
   begin
     if FieldByName('documenttype').AsString = 'B' then
@@ -2489,12 +2463,6 @@ begin
       Result.SubType := '';
     end;
   end;
-
-  F := FindField('USR$ST');
-  if F <> nil then
-    Result.SubType := F.AsString;
-  if (Result.SubType > '') and (not Result.gdClass.CheckSubType(Result.SubType)) then
-    raise EgdcException.Create('Invalid USR$ST value.');
 end;
 
 class function TgdcBaseDocumentType.GetKeyField(
@@ -2908,95 +2876,6 @@ begin
   Result := Self.ClassNameIs('TgdcBaseDocumentType');
 end;
 
-class function TgdcBaseDocumentType.GetChildrenClass(const ASubType: TgdcSubType;
-  AnOL: TObjectList; const AnIncludeRoot: Boolean = True;
-  const AnOnlyDirect: Boolean = False;
-  const AnIncludeAbstract: Boolean = False): Boolean;
-var
-  I: Integer;
-begin
-  Result := inherited GetChildrenClass(ASubType, AnOL, AnIncludeRoot,
-    AnOnlyDirect, AnIncludeAbstract);
-
-  if Result and (Self = TgdcBaseDocumentType) then
-  begin
-    for I := AnOL.Count - 1 downto 0 do
-    begin
-      if TgdClassEntry(AnOL[I]).TheClass <> TgdcDocumentBranch then
-      begin
-        AnOL.Delete(I);
-      end;
-    end;
-  end;
-
-  Result := AnOL.Count > 0;
-end;
-
-function TgdcBaseDocumentType.GetDefaultClassForDialog: TgdcFullClass;
-begin
-  if Self.ClassType <> TgdcBaseDocumentType then
-    Result := inherited GetDefaultClassForDialog
-  else
-  begin
-    Result.gdClass := TgdcDocumentBranch;
-    Result.SubType := '';
-  end;
-end;
-
-function TgdcBaseDocumentType.GetDescendantList(AOL: TObjectList;
-  const AnOnlySameLevel: Boolean): Boolean;
-var
-  OL: TObjectList;
-  I: Integer;
-  CO : TCreatedObject;
-begin
-  if Self.ClassType <> TgdcBaseDocumentType then
-    Result := inherited GetDescendantList(AOL, AnOnlySameLevel)
-  else
-  begin
-    OL := TObjectList.Create(False);
-    try
-      if GetChildrenClass(SubType, OL) then
-      begin
-        for I := 0 to OL.Count - 1 do
-        begin
-          CO := TCreatedObject.Create;
-          CO.Obj := OL[I];
-          CO.Caption := TgdClassEntry(OL[I]).Caption;
-          if CO.Caption = '' then
-            CO.Caption := TgdClassEntry(OL[I]).TheClass.ClassName;
-          CO.IsSubLevel := False;
-          AOL.Add(CO);
-
-          if not AnOnlySameLevel then
-          begin
-            CO := TCreatedObject.Create;
-            CO.Obj := OL[I];
-            CO.Caption := TgdClassEntry(OL[I]).Caption;
-            if CO.Caption = '' then
-              CO.Caption := TgdClassEntry(OL[I]).TheClass.ClassName;
-            CO.Caption := CO.Caption + ' (подуровень)';
-            CO.IsSubLevel := True;
-            AOL.Add(CO);
-          end;
-        end;
-      end;
-    finally
-      OL.Free;
-    end;
-
-    Result := AOL.Count > 0;
-  end;
-end;
-
-function TgdcBaseDocumentType.GetDescendantCount(const AnOnlySameLevel: Boolean): Integer;
-begin
-  Result := inherited GetDescendantCount(AnOnlySameLevel);
-
-  if (Self.ClassType = TgdcBaseDocumentType) and (not AnOnlySameLevel) then
-    Result := Result * 2;
-end;
-
 class function TgdcBaseDocumentType.GetDialogFormClassName(
   const ASubType: TgdcSubType): String;
 begin
@@ -3043,6 +2922,12 @@ begin
   {END MACRO}
 end;
 
+class function TgdcDocumentBranch.GetDisplayName(
+  const ASubType: TgdcSubType): String;
+begin
+  Result := 'Папка';
+end;
+
 procedure TgdcDocumentBranch.GetWhereClauseConditions(S: TStrings);
 begin
   inherited;
@@ -3056,68 +2941,6 @@ begin
 end;
 
 { TgdcDocumentType }
-
-procedure TgdcDocumentType.DoAfterInsert;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-  ibsql: TIBSQL;
-begin
-  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCDOCUMENTTYPE', 'DOAFTERINSERT', KEYDOAFTERINSERT)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCDOCUMENTTYPE', KEYDOAFTERINSERT);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOAFTERINSERT]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCBASE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCDOCUMENTTYPE',
-  {M}          'DOAFTERINSERT', KEYDOAFTERINSERT, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCDOCUMENTTYPE' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  inherited;
-
-  if not (sLoadFromStream in BaseState) then
-  begin
-    ibsql := TIBSQL.Create(nil);
-    try
-      ibsql.Transaction := ReadTransaction;
-      ibsql.SQL.Text := 'SELECT * FROM gd_documenttype WHERE id = :id AND documenttype = ''D'' ';
-      ibsql.ParamByName('id').AsInteger := FieldByName('parent').AsInteger;
-      ibsql.ExecQuery;
-      if not ibsql.Eof then
-      begin
-        if not ibsql.FieldByName('HEADERRELKEY').IsNull then
-          FieldByName('HEADERRELKEY').AsInteger := ibsql.FieldByName('HEADERRELKEY').AsInteger;
-        if not ibsql.FieldByName('LINERELKEY').IsNull then
-          FieldByName('LINERELKEY').AsInteger := ibsql.FieldByName('LINERELKEY').AsInteger;
-        if not ibsql.FieldByName('NAME').IsNull then
-          FieldByName('NAME').AsString := 'Наследник ' + ibsql.FieldByName('NAME').AsString;
-        if not ibsql.FieldByName('BRANCHKEY').IsNull then
-          FieldByName('BRANCHKEY').AsInteger := ibsql.FieldByName('BRANCHKEY').AsInteger;
-      end
-    finally
-      ibsql.Free;
-    end;
-  end;
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCDOCUMENTTYPE', 'DOAFTERINSERT', KEYDOAFTERINSERT)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCDOCUMENTTYPE', 'DOAFTERINSERT', KEYDOAFTERINSERT);
-  {M}  end;
-  {END MACRO}
-end;
 
 procedure TgdcDocumentType._DoOnNewRecord;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
@@ -3161,6 +2984,12 @@ begin
   {END MACRO}
 end;
 
+class function TgdcDocumentType.GetDisplayName(
+  const ASubType: TgdcSubType): String;
+begin
+  Result := 'Тип документа';
+end;
+
 procedure TgdcDocumentType.GetWhereClauseConditions(S: TStrings);
 begin
   inherited;
@@ -3168,19 +2997,11 @@ begin
 end;
 
 function TgdcDocumentType.GetCurrRecordClass: TgdcFullClass;
-var
-  F: TField;
 begin
   if FieldByName('classname').AsString > '' then
   begin
     Result.gdClass := CgdcBase(GetClass(FieldByName('classname').AsString));
     Result.SubType := '';
-
-    F := FindField('USR$ST');
-    if F <> nil then
-      Result.SubType := F.AsString;
-    if (Result.SubType > '') and (not Result.gdClass.CheckSubType(Result.SubType)) then
-      raise EgdcException.Create('Invalid USR$ST value.');
   end else
     Result := inherited GetCurrRecordClass;
 end;
@@ -3234,101 +3055,6 @@ begin
   {M}      ClearMacrosStack2('TGDCDOCUMENTTYPE', 'GETFROMCLAUSE', KEYGETFROMCLAUSE);
   {M}  end;
   {END MACRO}
-end;
-
-procedure TGDCDOCUMENTTYPE.CustomInsert(Buff: Pointer);
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCDOCUMENTTYPE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCDOCUMENTTYPE', KEYCUSTOMINSERT);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMINSERT]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCDOCUMENTTYPE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCDOCUMENTTYPE',
-  {M}          'CUSTOMINSERT', KEYCUSTOMINSERT, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCDOCUMENTTYPE' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  inherited;
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCDOCUMENTTYPE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCDOCUMENTTYPE', 'CUSTOMINSERT', KEYCUSTOMINSERT);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TGDCDOCUMENTTYPE.CustomDelete(Buff: Pointer);
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCDOCUMENTTYPE', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCDOCUMENTTYPE', KEYCUSTOMDELETE);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMDELETE]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCDOCUMENTTYPE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCDOCUMENTTYPE',
-  {M}          'CUSTOMDELETE', KEYCUSTOMDELETE, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCDOCUMENTTYPE' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  inherited;
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCDOCUMENTTYPE', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCDOCUMENTTYPE', 'CUSTOMDELETE', KEYCUSTOMDELETE);
-  {M}  end;
-  {END MACRO}
-end;
-
-function TGDCDOCUMENTTYPE.GetParentSubType: String;
-var
-  ibsql: TIBSQL;
-begin
-  Result := '';
-  ibsql := TIBSQL.Create(nil);
-  try
-    ibsql.Transaction := ReadTransaction;
-    ibsql.SQL.Text :=
-      'SELECT ruid FROM gd_documenttype WHERE id = :id AND documenttype = ''D'' ';
-    ibsql.ParamByName('id').AsInteger := FieldByName('parent').AsInteger;
-    ibsql.ExecQuery;
-    if not ibsql.Eof then
-      Result := ibsql.FieldByName('RUID').AsString;
-  finally
-    ibsql.Free;
-  end;
 end;
 
 function TGDCDOCUMENTTYPE.GetSelectClause: String;
@@ -3421,6 +3147,7 @@ begin
     begin
       q := TIBSQL.Create(nil);
       try
+      //Здесь транзакция должна быть открыта!!!
         q.Transaction := Transaction;
         q.SQL.Text := cst_sql_GetLastNumber;
         q.ParamByName('ck').AsInteger := IBLogin.CompanyKey;
@@ -3483,11 +3210,6 @@ begin
   Result := TgdcDocument;
 end;
 
-class function TgdcDocumentType.IsAbstractClass: Boolean;
-begin
-  Result := Self.ClassNameIs('TgdcDocumentType');
-end;
-
 { TgdcUserDocumentType }
 
 constructor TgdcUserDocumentType.Create(AnOwner: TComponent);
@@ -3526,7 +3248,8 @@ begin
 
   inherited;
 
-  UnRegisterGdClasses(ctUserDocument, FieldByName('RUID').AsString);
+  if Assigned(gdcInvDocumentCache) then
+    gdcInvDocumentCache.Clear;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCUSERDOCUMENTTYPE', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
   {M}  finally
@@ -3566,8 +3289,8 @@ begin
 
   inherited;
 
-  RegisterGdClasses(ctUserDocument, FieldByName('name').AsString,
-    FieldByName('RUID').AsString, GetParentSubType);
+  if Assigned(gdcInvDocumentCache) then
+    gdcInvDocumentCache.Clear;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCUSERDOCUMENTTYPE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  finally
@@ -3607,7 +3330,8 @@ begin
 
   inherited;
 
-  UpdateGdClasses(ctUserDocument, FieldByName('name').AsString, FieldByName('RUID').AsString);
+  if Assigned(gdcInvDocumentCache) then
+    gdcInvDocumentCache.Clear;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCUSERDOCUMENTTYPE', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
   {M}  finally
@@ -3863,6 +3587,23 @@ begin
     [XID, DBID]);
 end;
 
+class function TgdcUserBaseDocument.GetSubTypeList(
+  SubTypeList: TStrings; Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
+begin
+  Assert(Assigned(gdcInvDocumentCache));
+
+  Result := gdcInvDocumentCache.GetSubTypeList2('TgdcUserDocumentType',
+    SubTypeList, Subtype, OnlyDirect);
+end;
+
+class function TgdcUserBaseDocument.ClassParentSubtype(
+  Subtype: String): String;
+begin
+  Assert(Assigned(gdcInvDocumentCache));
+  Result := gdcInvDocumentCache.ClassParentSubtype(SubType);
+end;
+
+
 procedure TgdcUserBaseDocument.ReadOptions(const aRuid: String);
 var
   R: TatRelation;
@@ -3897,7 +3638,7 @@ begin
     raise EgdcIBError.Create('Не верен тип документа');
 end;
 
-procedure TgdcUserBaseDocument.SetSubType(const Value: TgdcSubType);
+procedure TgdcUserBaseDocument.SetSubType(const Value: String);
 begin
   if Value <> SubType then
   begin
@@ -4855,12 +4596,12 @@ end;
 initialization
   RegisterGdcClass(TgdcDocument);
   RegisterGdcClass(TgdcBaseDocumentType);
-  RegisterGdcClass(TgdcDocumentBranch, ctStorage, 'Папка');
-  RegisterGdcClass(TgdcDocumentType, ctStorage, 'Тип документа');
-  RegisterGdcClass(TgdcUserDocumentType, ctStorage, 'Документ пользователя');
+  RegisterGdcClass(TgdcDocumentBranch);
+  RegisterGdcClass(TgdcDocumentType);
+  RegisterGdcClass(TgdcUserDocumentType);
   RegisterGdcClass(TgdcUserBaseDocument);
-  RegisterGdcClass(TgdcUserDocument, ctUserDocument);
-  RegisterGdcClass(TgdcUserDocumentLine, ctUserDocument);
+  RegisterGdcClass(TgdcUserDocument);
+  RegisterGdcClass(TgdcUserDocumentLine);
 
 finalization
   UnRegisterGdcClass(TgdcDocument);

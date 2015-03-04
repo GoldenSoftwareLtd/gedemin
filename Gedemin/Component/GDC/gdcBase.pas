@@ -156,8 +156,9 @@ const
   GDC_DOBEFOREPOST       = 'DOBEFOREPOST';
   GDC_DOAFTERTRANSACTIONEND = 'DOAFTERTRANSACTIONEND';
   GDC_GETNOTCOPYFIELD    = 'GETNOTCOPYFIELD';
+  GDC_GETCURRRECORDSUBTYPE    = 'GETCURRRECORDSUBTYPE';
   GDC_GETDIALOGDEFAULTSFIELDS = 'GETDIALOGDEFAULTSFIELDS';
-
+  
 
   // Имена классов, в которых перекрываюся методы макросами
   GDC_BASE               = 'TGDCBASE';
@@ -186,7 +187,6 @@ type
                  etBeforeRefresh, etBeforeScroll, etOnCalcFields, etOnNewRecord,
                  etOnFieldChange, etAfterInternalPostRecord, etBeforeInternalPostRecord,
                  etAfterInternalDeleteRecord, etBeforeInternalDeleteRecord);
-
 const
   /////////////////////////////////////////////////////////////
   // наименования типов событий
@@ -264,18 +264,6 @@ type
   TgdcFullClass = record
     gdClass: CgdcBase;
     SubType: TgdcSubType;
-  end;
-
-  TCreatedObject = class(TObject)
-  private
-    FObj: TObject;
-    FCaption: String;
-    FIsSubLevel: Boolean;
-
-  public
-    property Obj: TObject read FObj write FObj;
-    property Caption: String read FCaption write FCaption;
-    property IsSubLevel: Boolean read FIsSubLevel write FIsSubLevel;
   end;
 
   //
@@ -746,6 +734,7 @@ type
     // формирование выпадающего меню со списком отчетов
     // доступных для данного объекта
     procedure MakeReportMenu;
+
     //
     procedure DoOnFilterChanged(Sender: TObject; const AnCurrentFilter: Integer);
 
@@ -1060,8 +1049,8 @@ type
     procedure InternalSetFieldData(Field: TField; Buffer: Pointer); override;
 
     //
-    procedure SetSubType(const Value: TgdcSubType); virtual;
-    function GetSubType: TgdcSubType; virtual;
+    procedure SetSubType(const Value: String); virtual;
+    function GetSubType: String; virtual;
 
     // если бизнес-объект представляет собой объединение данных из
     // нескольких таблиц, то может возникнуть следующая ситуация:
@@ -1334,15 +1323,6 @@ type
     // выводит на экран меню со списком доступных для объекта отчетов
     procedure PopupReportMenu(const X, Y: Integer);
 
-    // возвращает количество доступных обектов для вставки
-    function GetDescendantCount(const AnOnlySameLevel: Boolean): Integer; virtual;
-    // возвращает список доступных обектов для вставки
-    function GetDescendantList(AOL: TObjectList;
-      const AnOnlySameLevel: Boolean): Boolean; virtual;
-
-    function GetDefaultClassForDialog: TgdcFullClass; virtual;
-
-    procedure CreateDefaultDialog; virtual;
     //
     procedure PopupFilterMenu(const X, Y: Integer);
 
@@ -1486,6 +1466,7 @@ type
 
     //
     function GetCurrRecordClass: TgdcFullClass; virtual;
+    function GetCurrRecordSubType: String; virtual;
 
     // Возвращает значение дисплейного поля по ключу
     class function GetListNameByID(const AnID: TID;
@@ -1510,10 +1491,7 @@ type
     // возвращает список классов, являющихся потомками
     // для данного класса. Используется в диалоге выбора
     // класса при создании потомка
-    class function GetChildrenClass(const ASubType: TgdcSubType;
-      AnOL: TObjectList; const AnIncludeRoot: Boolean = True;
-      const AnOnlyDirect: Boolean = False;
-      const AnIncludeAbstract: Boolean = False): Boolean; Virtual;
+    class function GetChildrenClass(CL: TClassList): Boolean; virtual;
 
     // предоставляет пользователю возможность выбрать один из классов
     // наследников для данного класса
@@ -1545,6 +1523,7 @@ type
 
     // Issue 2162
     procedure Resync(Mode: TResyncMode); override;
+
 
     // создает форму для просмотра датасета, для заданного БА
     // поскольку форм может быть предусмотрено несколько, то возможна
@@ -1614,10 +1593,10 @@ type
     //Subtype -- подтип.
     //OnlyDirect -- если True, то возвращаются только непосредственные наследники.
     //В противном случае -- возвращается вся иерархия наследников.
-    class function GetSubTypeList(ASubTypeList: TStrings;
-      const ASubType: String = ''; AnOnlyDirect: Boolean = False): Boolean; virtual;
+    class function GetSubTypeList(SubTypeList: TStrings;
+      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; virtual;
 
-    class function ClassParentSubType(const ASubType: String): String; virtual;
+    class function ClassParentSubtype(Subtype: string): String; virtual;
     //
     class function CheckSubType(const ASubType: String): Boolean;
 
@@ -1696,10 +1675,6 @@ type
     procedure AddVariableItem(const Name: String);
     // Добавляют итем для хранения Objects
     procedure AddObjectItem(const Name: String);
-
-    function CreateChildrenDialog: Boolean; overload; virtual;
-    function CreateChildrenDialog(C: CgdcBase): Boolean; overload; virtual;
-    function CreateChildrenDialog(C:  TgdcFullClass): Boolean; overload; virtual;
 
     // Свойства только для использования в скрипт-функциях
     // В СФ являются аналогами свойств формы
@@ -1882,7 +1857,7 @@ type
       stored False;
 
     //
-    property SubType: TgdcSubType read GetSubType write SetSubType;
+    property SubType: String read GetSubType write SetSubType;
 
     // наш механ_зм сувяз_ мастер-дз_тэйл
     property MasterSource: TDataSource read GetMasterSource write SetMasterSource;
@@ -2137,6 +2112,13 @@ function GetBaseClassForRelation(const ARelationName: String): TgdcFullClass;
 function GetBaseClassForRelationByID(const ARelationName: String;
   const AnID: Integer; ibtr: TIBTransaction): TgdcFullClass;
 
+// в функцию передается класс, она заполняет список классами, которые
+// наследуются от заданного и возвращает Истину или Ложь, если
+// наследников нет. Третий параметр определяет будут учитываться
+// только непосредственные наследники или далекие родственники тоже.
+function GetDescendants(AnAncestor: CgdcBase; AClassList: TClassList;
+  const OnlyDirect: Boolean = True): Boolean;
+
 //
 function GetClassForObjectByID(ADatabase: TIBDatabase; ATransaction: TIBTransaction;
   AClass: CgdcBase; ASubType: TgdcSubType; const AnID: Integer): TgdcFullClass;
@@ -2177,7 +2159,7 @@ uses
   TypInfo,                      dmImages_unit,                gd_ClassList,
   Messages,                     gsIBLookupCombobox,           comctrls,
   gsDBDelete_dlgTableValues,    rp_ReportClient,              gdc_dlgQueryDescendant_unit,
-  gdc_dlgObjectProperties_unit, gsDBReduction,                
+  gdc_dlgObjectProperties_unit, gsDBReduction,                gdc_dlgCantCreateObject_unit,
   flt_sql_parser,               JclStrHashMap,                gdDBImpExp_unit,
   gdcClasses,                   gdc_dlgG_unit,                gdc_dlgSelectObject_unit,
   mtd_i_Inherited,              gdcOLEClassList,              prp_methods,
@@ -2209,6 +2191,9 @@ const
     'DELETE FROM gd_ruid WHERE xid=:xid AND dbid=:dbid';
   cst_sql_DeleteRuidByID =
     'DELETE FROM gd_ruid WHERE id=:id';
+
+const
+  SM_REMOTESESSION = $1000;
 
 var
   CacheList: TStringHashMap;
@@ -2423,8 +2408,8 @@ begin
   Assert(atDatabase <> nil);
   Assert(Assigned(ibtr));
 
-  {if not Assigned(gdClassList) then
-    raise Exception.Create(cgdClassListIsNotAssigned);}
+  if not Assigned(gdcClassList) then
+    raise Exception.Create(cgdClassListIsNotAssigned);
 
   Result := GetBaseClassForRelation(ARelationName);
 
@@ -2454,23 +2439,10 @@ begin
   end;
 end;
 
-function BuildTree2(ACE: TgdClassEntry; AData1: Pointer; AData2: Pointer): Boolean;
-begin
-  if ACE.SubType = '' then
-  begin
-    if (AnsiCompareText(ACE.gdcClass.GetListTable(''), String(AData2^)) = 0) then
-        if (TgdcFullClass(AData1^).gdClass = nil)
-          or TgdcFullClass(AData1^).gdClass.InheritsFrom(ACE.gdcClass) then
-        begin
-          TgdcFullClass(AData1^).gdClass := ACE.gdcClass;
-        end;
-  end;
-  Result := True;
-end;
-
 function GetBaseClassForRelation(const ARelationName: String): TgdcFullClass;
 var
   I: Integer;
+  C: CgdcBase;
   R, ParentR: TatRelation;
   L: TObjectList;
   ibsql: TIBSQL;
@@ -2482,6 +2454,9 @@ var
 begin
   Assert(ARelationName > '');
   Assert(atDatabase <> nil);
+
+  if not Assigned(gdcClassList) then
+    raise Exception.Create(cgdClassListIsNotAssigned);
 
   if not Assigned(CacheBaseClassForRel) then
   begin
@@ -2581,14 +2556,14 @@ begin
             begin
               Result.gdClass := CgdcBase(GetClass('TgdcAttrUserDefined'));
 
-              F := R.RelationFields.ByFieldName('INHERITEDKEY');
+              F := R.RelationFields.ByFieldName('INHERITED');
               if Assigned(F) then
               begin
-                ParentR := R.RelationFields.ByFieldName('INHERITEDKEY').ForeignKey.ReferencesRelation;
-                if Assigned(ParentR) and Assigned(ParentR.RelationFields.ByFieldName('INHERITEDKEY')) then
+                ParentR := R.RelationFields.ByFieldName('ID').ForeignKey.ReferencesRelation;
+                if Assigned(ParentR) and Assigned(ParentR.RelationFields.ByFieldName('INHERITED')) then
                   repeat
-                    ParentR := ParentR.RelationFields.ByFieldName('INHERITEDKEY').ForeignKey.ReferencesRelation;
-                  until not Assigned(ParentR.RelationFields.ByFieldName('INHERITEDKEY'));
+                    ParentR := ParentR.RelationFields.ByFieldName('ID').ForeignKey.ReferencesRelation;
+                  until not Assigned(ParentR.RelationFields.ByFieldName('INHERITED'));
 
                 if Assigned(ParentR) then
                 begin
@@ -2613,8 +2588,22 @@ begin
       Result.gdClass := nil;
       Result.SubType := '';
 
-      gdClassList.Traverse(TgdcBase, '', BuildTree2, @Result, @ARelationName, True, False);
-   
+      with gdcClassList do
+        for I := 0 to Count - 1 do
+        begin
+          if Items[I].InheritsFrom(TgdcBase) then
+          begin
+            C := CgdcBase(Items[I]);
+
+            { TODO 1 -oденис -cсделать : Сделать обработку подтипа }
+            if (AnsiCompareText(C.GetListTable(''), ARelationName) = 0) then
+            begin
+              if (Result.gdClass = nil) or Result.gdClass.InheritsFrom(C) then
+                Result.gdClass := C;
+            end;
+          end;
+        end;
+
       if Result.gdClass = nil then
       begin
         R := atDatabase.Relations.ByRelationName(ARelationName);
@@ -2651,11 +2640,24 @@ begin
   end;
 end;
 
-function BuildTree(ACE: TgdClassEntry; AData1: Pointer;
-  AData2: Pointer): Boolean;
+function GetDescendants(AnAncestor: CgdcBase; AClassList: TClassList;
+  const OnlyDirect: Boolean = True): Boolean;
+var
+  I: Integer;
 begin
-    TObjectList(AData1).Add(ACE);
-  Result := True;
+  AClassList.Clear;
+  if Assigned(gdcClassList) then
+  begin
+    for I := 0 to gdcClassList.Count - 1 do
+    begin
+      if (OnlyDirect and (gdcClassList[I].ClassParent = AnAncestor)) or
+        ((not OnlyDirect) and (gdcClassList[I].InheritsFrom(AnAncestor))) then
+      begin
+        AClassList.Add(gdcClassList[I]);
+      end;
+    end;
+  end;
+  Result := AClassList.Count > 0;
 end;
 
 procedure MakeFieldList(Fields: String; List: TStrings);
@@ -3379,7 +3381,7 @@ begin
   begin
     if Transaction = nil then
     begin
-      FInternalTransaction := TIBTransaction.Create(nil);
+      FInternalTransaction := TIBTransaction.Create(Self);
       FInternalTransaction.Params.Text := 'read_committed'#13#10'rec_version'#13#10'nowait';
       FInternalTransaction.Name := 'ibtrInternal';
       FInternalTransaction.AutoStopAction := saNone;
@@ -5276,48 +5278,6 @@ begin
   end;
 end;
 
-function TgdcBase.GetDescendantCount(const AnOnlySameLevel: Boolean): Integer;
-var
-  OL: TObjectList;
-begin
-  OL := TObjectList.Create(False);
-  try
-    GetChildrenClass(SubType, OL);
-    Result := OL.Count;
-  finally
-    OL.Free;
-  end;
-end;
-
-function TgdcBase.GetDescendantList(AOL: TObjectList;
-  const AnOnlySameLevel: Boolean): Boolean;
-var
-  OL: TObjectList;
-  I: Integer;
-  CO : TCreatedObject;
-begin
-  OL := TObjectList.Create(False);
-  try
-    if GetChildrenClass(SubType, OL) then
-    begin
-      for I := 0 to OL.Count - 1 do
-      begin
-        CO := TCreatedObject.Create;
-        CO.Obj := OL[I];
-        CO.Caption := TgdClassEntry(OL[I]).Caption;
-        if CO.Caption = '' then
-          CO.Caption := TgdClassEntry(OL[I]).TheClass.ClassName;
-        CO.IsSubLevel := False;
-        AOL.Add(CO);
-      end;
-    end;
-  finally
-    OL.Free;
-  end;
-
-  Result := AOL.Count > 0;
-end;
-
 procedure TgdcBase.DoBeforeOpen;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
   {M}VAR
@@ -5443,7 +5403,7 @@ begin
   CFull := GetCurrRecordClass;
 
   if ((UpperCase(ADlgClassName) = 'TGDC_DLGOBJECTPROPERTIES') and Assigned(CFull.gdClass))
-    or ((CFull.gdClass = Self.ClassType) and (CFull.SubType = Self.SubType)) then
+    or (CFull.gdClass = Self.ClassType) then
   begin
     C := GetClass(ADlgClassName);
 
@@ -5791,34 +5751,7 @@ end;
 class function TgdcBase.GetDisplayName(const ASubType: TgdcSubType): String;
 var
   R: TatRelation;
-  CE: TgdClassEntry;
 begin
-  if AnsiPos('USR_', AnsiUpperCase(ASubType)) > 0 then
-    raise EgdcException.Create('Недопустимый символ ''_''в подтипе');
-
-  Result := '';
-
-  if ASubType > '' then
-  begin
-    CE := gdClassList.Find(Self, ASubType);
-    //Тут возможно надо кидать исключение если  CE = nil
-    if CE <> nil then
-      Result := CE.Caption;
-  end;
-
-  if ASubType = '' then
-  begin
-    CE := gdClassList.Find(Self, '');
-
-    if CE = nil then
-      raise EgdcException.Create('Класс ' + Self.ClassName + ' не найден');
-
-    Result := CE.Caption;
-  end;
-
-  if Result > '' then
-    exit;
-
   Result := GetListTable(ASubType);
 
   if Assigned(atDatabase) then
@@ -5838,7 +5771,7 @@ end;
 
 function TgdcBase.GetGroupClause: String;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR                                                                        
+  {M}VAR
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
@@ -5912,7 +5845,7 @@ begin
   LT := GetListTable(SubType);
   LF := GetListField(SubType);
 
-  IsUserTable := StrIPos(UserPrefix, LT) = 1;
+  IsUserTable := Pos(UserPrefix, UpperCase(LT)) = 1;
 
   if Database = nil then
     Result := Format('INSERT INTO %s (%s) VALUES (:NEW_%s) ', [LT, LF, LF])
@@ -5977,7 +5910,7 @@ begin
   KF := GetKeyField(SubType);
   LF := GetListField(SubType);
 
-  IsUserTable := StrIPos(UserPrefix, LT) = 1;
+  IsUserTable := Pos(UserPrefix, UpperCase(LT)) = 1;
 
   if (Database = nil) then
     Result := Format('UPDATE %s SET %s=:NEW_%s WHERE %s=:OLD_%s ',
@@ -6376,12 +6309,8 @@ var
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-  SL: TStringList;
+  S: TStringList;
   I: Integer;
-  str: String;
-//  OL: TObjectList;
-  LSubType: String;
-  CE: TgdClassEntry;
 begin
   {@UNFOLD MACRO INH_ORIG_GETWHERECLAUSE('TGDCBASE', 'GETWHERECLAUSE', KEYGETWHERECLAUSE)}
   {M}  try
@@ -6413,54 +6342,25 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  SL := TStringList.Create;
+  S := TStringList.Create;
   try
-    SL.Duplicates := dupIgnore;
-    GetWhereClauseConditions(SL);
+    S.Duplicates := dupIgnore;
+    GetWhereClauseConditions(S);
     for I := 0 to FExtraConditions.Count - 1 do
-      SL.Add(FExtraConditions[I]);
-    for I := SL.Count - 1 downto 0 do
-      if Trim(SL[I]) = '' then
-        SL.Delete(I);
-    if SL.Count > 0 then
+      S.Add(FExtraConditions[I]);
+    for I := S.Count - 1 downto 0 do
+      if Trim(S[I]) = '' then
+        S.Delete(I);
+    if S.Count > 0 then
     begin
-      Result := 'WHERE ' + SL[0];
-      for I := 1 to SL.Count - 1 do
-        Result := Result + ' AND ' + SL[I];
+      Result := 'WHERE ' + S[0];
+      for I := 1 to S.Count - 1 do
+        Result := Result + ' AND ' + S[I];
     end else
       Result := '';
   finally
-    SL.Free;
+    S.Free;
   end;
-
-
-  if SubType > '' then
-  begin
-    CE := gdClassList.Find(Self.ClassType, SubType);
-    // подтип может быть липовым поэтому CE = nil это нормально
-    // можно конечно добавить проверку подтипа
-    if (CE <> nil) and (CE.gdClassKind = ctStorage) then
-    begin
-      str := '';
-      LSubType := SubType;
-      repeat
-        LSubType := ClassParentSubType(LSubType);
-        if str <> '' then
-          str := str + ' AND ';
-
-        if LSubType = '' then
-          str := str + Format('%s.%s %s', [GetListTableAlias, 'USR$ST', ' is not null'])
-        else
-          str := str + Format('%s.%s<>''%s''', [GetListTableAlias, 'USR$ST', AnsiUpperCase(LSubType)]);
-      until LSubType = '';
-
-      if Result = '' then
-        Result := 'WHERE ' + str
-      else
-        Result := Result + ' AND ' + str;
-    end;
-  end;
-
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASE', 'GETWHERECLAUSE', KEYGETWHERECLAUSE)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -9332,7 +9232,7 @@ begin
   FReadTransaction.Name := 'InternalRead';
   FReadTransaction.AutoStopAction := saNone;
   gdcBaseManager := Self;
-  FIBSQL := TIBSQL.Create(nil);
+  FIBSQL := TIBSQL.Create(Self);
   FIDCurrent := 0;
   FIDLimit := -1;
 end;
@@ -9390,9 +9290,9 @@ begin
   if Assigned(FReadTransaction) and FReadTransaction.InTransaction then
     FReadTransaction.Commit;
 
-  FIBSQL.Free;
   FreeAndNil(FReadTransaction);
   FreeAndNil(FIBBase);
+  FIBSQL.Free;
   FNextIDSQL.Free;
   ClearSecDescArr;
   inherited;
@@ -9471,15 +9371,11 @@ begin
   begin
     if FNextIDSQL = nil then
     begin
-      if GetSystemMetrics(SM_REMOTESESSION) <> 0 then
-        IDCacheStep := 1;
-
       FNextIDSQL := TIBSQL.Create(nil);
-      FNextIDSQL.Transaction := gdcBaseManager.ReadTransaction;
       FNextIDSQL.SQL.Text := 'SELECT GEN_ID(gd_g_unique, ' +
         IntToStr(IDCacheStep) + ') + GEN_ID(gd_g_offset, 0) FROM rdb$database';
     end;
-
+    FNextIDSQL.Transaction := gdcBaseManager.ReadTransaction;
     FNextIDSQL.ExecQuery;
     FIDLimit := FNextIDSQL.Fields[0].AsInteger;
     FNextIDSQL.Close;
@@ -9796,7 +9692,7 @@ begin
   end;
 
   { TODO :
-внимание! вызов TestConnected может привести
+внимание! вызов TestConnected может привести 
 к потере производительности! }
   if (not IBLogin.LoggedIn) or (not IBlogin.Database.TestConnected) then
   begin
@@ -9969,17 +9865,9 @@ begin
 end;
 
 function TgdcBase.GetCurrRecordClass: TgdcFullClass;
-var
-  F: TField;
 begin
   Result.gdClass := CgdcBase(Self.ClassType);
-  Result.SubType := '';
-  
-  F := FindField('USR$ST');
-  if F <> nil then
-    Result.SubType := F.AsString;
-  if (Result.SubType > '') and (not CheckSubType(Result.SubType)) then
-    raise EgdcException.Create('Invalid USR$ST value.');
+  Result.SubType := GetCurrRecordSubType;
 end;
 
 function TgdcBase.GetNameInScript: String;
@@ -10009,7 +9897,7 @@ begin
   if C.gdClass <> nil then
   begin
     CheckClass(C.gdClass);
-    if (C.gdClass = Self.ClassType) and (AnsiUpperCase(C.SubType) = AnsiUpperCase(SubType)) then
+    if (C.gdClass = Self.ClassType) and (C.SubType = SubType) then
       Result := CreateDialog
     else begin
       Obj := C.gdClass.CreateWithParams(Owner, Database, Transaction, C.SubType, 'OnlySelected');
@@ -10776,41 +10664,91 @@ end;
 
 function TgdcBase.QueryDescendant: TgdcFullClass;
 var
-  OL: TObjectList;
+  I, J: Integer;
+  CL: TClassList;
+  Found: Boolean;
 begin
-  Result.gdClass := nil;
-  Result.SubType := '';
+  {Если у нас явно указан сабтайп, то нафига выводить выбор классов? Исправлено}
+  Result.SubType := SubType;
 
-  OL := TObjectList.Create(False);
+  if Subtype > '' then
+  begin
+    Result.gdClass := CgdcBase(Self.ClassType);
+    Exit;
+  end;
+
+  CL := TClassList.Create;
   try
-    if not GetChildrenClass(SubType, OL) then
+    if not GetChildrenClass(CL) then
     begin
       Result.gdClass := CgdcBase(Self.ClassType);
-      Result.SubType := SubType;
       exit;
     end;
 
-    if OL.Count = 1 then
+    if not Self.IsAbstractClass then
     begin
-      Result.gdClass := TgdClassEntry(OL[0]).gdcClass;
-      Result.SubType := TgdClassEntry(OL[0]).SubType;
+      if CL.IndexOf(Self.ClassType) = -1 then
+        CL.Add(Self.ClassType);
+    end;
+
+    for I := CL.Count - 1 downto 0 do
+    begin
+      if CgdcBase(CL[I]).IsAbstractClass then
+        CL.Delete(I);
+    end;
+
+    if CL.Count = 1 then
+    begin
+      Result.gdClass := CgdcBase(CL[0]);
       exit;
     end;
 
     with Tgdc_dlgQueryDescendant.Create(ParentForm) do
     try
-      FillrgObjects(OL);
+      rgObjects.Items.Clear;
 
-      if (ShowModal = mrOk) and (rgObjects.ItemIndex > -1) then
+      for I := 0 to CL.Count - 1 do
       begin
-        Result.gdClass := TgdClassEntry(rgObjects.Items.Objects[rgObjects.ItemIndex]).gdcClass;
-        Result.SubType := TgdClassEntry(rgObjects.Items.Objects[rgObjects.ItemIndex]).SubType;
+        Found := False;
+        for J := 0 to CL.Count - 1 do
+        begin
+          if J = I then
+            continue;
+          if CgdcBase(CL[I]).GetDisplayName(SubType) = CgdcBase(CL[J]).GetDisplayName(SubType) then
+          begin
+            Found := True;
+            break;
+          end;
+        end;
+
+        if Found then
+          rgObjects.Items.AddObject(CgdcBase(CL[I]).GetDisplayName(SubType) +
+            ' (' + CL[I].ClassName + ')',
+            Pointer(CL[I]))
+        else
+          rgObjects.Items.AddObject(CgdcBase(CL[I]).GetDisplayName(SubType),
+            Pointer(CL[I]));
       end;
+
+      if Height < rgObjects.Items.Count * 30 + 30 then
+        Height := rgObjects.Items.Count * 30 + 30;
+
+      rgObjects.ItemIndex := 0;
+
+      if (ShowModal <> mrOk) or (rgObjects.ItemIndex = -1) then
+      begin
+        Result.gdClass := nil;
+        Result.SubType := '';
+        exit;
+      end;
+
+      Result.gdClass := CgdcBase(rgObjects.Items.Objects[rgObjects.ItemIndex]);
     finally
       Free;
     end;
+
   finally
-    OL.Free;
+    CL.Free;
   end;
 end;
 
@@ -10962,28 +10900,9 @@ begin
   end;
 end;
 
-class function TgdcBase.GetChildrenClass(const ASubType: TgdcSubType;
-  AnOL: TObjectList; const AnIncludeRoot: Boolean = True;
-  const AnOnlyDirect: Boolean = False;
-  const AnIncludeAbstract: Boolean = False): Boolean;
-var
-  I: Integer;
+class function TgdcBase.GetChildrenClass(CL: TClassList): Boolean;
 begin
-  if AnOL = nil then
-    raise Exception.Create('');
-  AnOL.Clear;
-
-  gdClassList.Traverse(Self, ASubType, BuildTree,
-    AnOL, nil, AnIncludeRoot, AnOnlyDirect);
-
-  if not AnIncludeAbstract then
-    for I := AnOL.Count - 1 downto 0 do
-    begin
-      if TgdClassEntry(AnOL[I]).gdcClass.IsAbstractClass then
-        AnOL.Delete(I);
-    end;
-
-  Result := AnOL.Count > 0;
+  Result := GetDescendants(Self, CL, False);
 end;
 
 function TgdcBase.RelationByAliasName(const AnAliasName: String): String;
@@ -11312,7 +11231,7 @@ begin
   end;  
 end;
 
-procedure TgdcBase.SetSubType(const Value: TgdcSubType);
+procedure TgdcBase.SetSubType(const Value: String);
 begin
   if FSubType <> Value then
   begin
@@ -11322,7 +11241,7 @@ begin
         raise EgdcException.CreateObj('Can not change subtype', Self);
 
       if not CheckSubType(Value) then
-        raise EgdcException.CreateObj('Invalid subtype specified', Self);  
+        raise EgdcException.CreateObj('Invalid subtype specified', Self);
     end;
 
     Close;
@@ -12121,7 +12040,7 @@ begin
   end;
 end;
 
-function TgdcBase.GetSubType: TgdcSubType;
+function TgdcBase.GetSubType: String;
 begin
   Result := FSubType;
 end;
@@ -12424,30 +12343,47 @@ begin
   DoAfterCustomProcess(Buff, cpDelete);
 end;
 
-class function TgdcBase.GetSubTypeList(ASubTypeList: TStrings;
-  const ASubType: String = ''; AnOnlyDirect: Boolean = False): Boolean;
+class function TgdcBase.GetSubTypeList(SubTypeList: TStrings;
+  Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
+var
+  F: TgsStorageFolder;
+  V: TgsStorageValue;
+  LClassName: String;
 begin
-  if AnsiPos('USR_', AnsiUpperCase(ASubType)) > 0 then
-    raise EgdcException.Create('Недопустимый символ ''_''в подтипе');
+  if Assigned(GlobalStorage) then
+  begin
+    F := GlobalStorage.OpenFolder('SubTypes', False, False);
+    try
+      if F <> nil then
+      begin
+        if Subtype > '' then
+          LClassName := Self.ClassName + Subtype
+        else
+          LClassName := Self.ClassName;
+        V := F.ValueByName(LClassName);
+        if V is TgsStringValue then
+        begin
+          SubTypeList.CommaText := V.AsString;
+          Result := SubTypeList.Count > 0;
+          exit;
+        end else
+        begin
+          if V <> nil then
+            F.DeleteValue(LClassName);
+        end;
+      end;  
+    finally
+      GlobalStorage.CloseFolder(F, False);
+    end;
+  end;
 
-  Assert(ASubTypeList <> nil);
-
-  Result := gdClassList.GetSubTypeList(Self, ASubType, ASubTypeList, AnOnlyDirect)
+  SubTypeList.Clear;
+  Result := False;
 end;
 
-class function TgdcBase.ClassParentSubType(const ASubType: String): String;
-var
-  CE: TgdClassEntry;
+class function TgdcBase.ClassParentSubtype(Subtype: string): String;
 begin
-  if AnsiPos('USR_', AnsiUpperCase(ASubType)) > 0 then
-    raise EgdcException.Create('Недопустимый символ ''_''в подтипе');
-
   Result := '';
-
-  CE := gdClassList.Find(Self, ASubType);
-
-  if (CE <> nil) and (CE.Parent <> nil) then
-    Result := CE.Parent.SubType;
 end;
 
 function TgdcBase.GetNextID(const Increment: Boolean = True; const ResetCache: Boolean = False): Integer;
@@ -14835,20 +14771,6 @@ begin
   Result := Self.ClassNameIs('TgdcBase');
 end;
 
-function TgdcBase.GetDefaultClassForDialog: TgdcFullClass;
-begin
-  Result := QueryDescendant;
-end;
-
-procedure TgdcBase.CreateDefaultDialog;
-var
-  C: TgdcFullClass;
-begin
-  C := GetDefaultClassForDialog;
-  if C.gdClass <> nil then
-    CreateDialog(C);
-end;
-
 function TgdcBase.GetSubSet: TgdcSubSet;
 begin
   if Assigned(FSubSets) then
@@ -15495,6 +15417,10 @@ begin
   begin
     DoOnNewRecord;
   end else}
+  if  UpperName = GDC_GETCURRRECORDSUBTYPE then
+  begin
+    Result := GetCurrRecordSubType;
+  end else
   if  UpperName = GDC_GETNOTCOPYFIELD then
   begin
     Result := GetNotCopyField;
@@ -15649,6 +15575,7 @@ begin
 
   RegisterGDCClassMethod(TgdcBase, 'CreateFields', 'Self: Object', '');
   RegisterGDCClassMethod(TgdcBase, 'GetNotCopyField', 'Self: Object', 'Variable');
+  RegisterGDCClassMethod(TgdcBase, 'GetCurrRecordSubType', 'Self: Object', 'Variable');
   RegisterGDCClassMethod(TgdcBase, 'GetDialogDefaultsFields', 'Self: Object', 'Variable');
   RegisterGDCClassMethod(TgdcBase, 'BeforeDestruction', 'Self: Object', 'Variable');
 
@@ -16349,6 +16276,7 @@ begin
   FClassMethodAssoc.Add(keyCheckTheSameStatement);
   FClassMethodAssoc.Add(keyCreateFields);
   FClassMethodAssoc.Add(keyGetNotCopyField);
+  FClassMethodAssoc.Add(keyGetCurrRecordSubType);
   FClassMethodAssoc.Add(keyGetDialogDefaultsFields);
   FClassMethodAssoc.Add(keyBeforeDestruction);
   FClassMethodAssoc.Add(keyCheckSubSet);
@@ -17206,21 +17134,6 @@ begin
   end;
 end;
 
-function TgdcBase.CreateChildrenDialog: Boolean;
-begin
-  Result := CreateDialog;
-end;
-
-function TgdcBase.CreateChildrenDialog(C: CgdcBase): Boolean;
-begin
-  Result := CreateDialog(C);
-end;
-
-function TgdcBase.CreateChildrenDialog(C: TgdcFullClass): Boolean;
-begin
-  Result := CreateDialog(C);
-end;
-
 procedure TgdcBase.AddObjectItem(const Name: String);
 begin
   if FObjects = nil then
@@ -17462,12 +17375,11 @@ begin
   begin
     if (not (sView in BaseState)) or
          (MessageBox(Application.Handle,
-            PChar(
-              'Выделено записей: ' + FormatFloat('#,##0', VarArrayHighBound(BL, 1) + 1) + #13#10 +
-              'Удалить?'),
+            PChar(Format('Выделено записей: %d'#13#10'Удалить?', [VarArrayHighBound(BL, 1) + 1])),
             'Внимание!',
             MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = IDYES) then
     begin
+      {DisableControls;}
       OldState := FBaseState;
       try
         if VarArrayHighBound(BL, 1) > VarArrayLowBound(BL, 1) then
@@ -17495,6 +17407,7 @@ begin
         end;
       finally
         FBaseState := OldState;
+        {EnableControls;}
       end;
     end;
   end;
@@ -17541,9 +17454,7 @@ begin
       and UserStorage.ReadBoolean('Options\Confirmations', 'EditMultiple', True) then
     begin
       if MessageBox(ParentHandle,
-        PChar(
-          'Выделено для редактирования записей: ' +
-          FormatFloat('#,##0', VarArrayHighBound(BL, 1) + 1) + '. Продолжить?'),
+        PChar(Format('Выделено для редактирования записей: %d. Продолжить?', [VarArrayHighBound(BL, 1) + 1])),
         'Внимание',
         MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = IDNO then
       begin
@@ -17730,15 +17641,63 @@ begin
   if Assigned(IBLogin) and (not IBLogin.IsUserAdmin) then
   begin
     if tiAView in gdcTableInfos then
-      Result := Result + Format(' BIN_AND(BIN_OR(%s.aview, 1), %d) <> 0 ',
+      Result := Result + Format(' g_sec_test(%s.aview, %d) <> 0 ',
         [GetListTableAlias, IBLogin.InGroup])
     else if tiAChag in gdcTableInfos then
-      Result := Result + Format(' BIN_AND(BIN_OR(%s.achag, 1), %d) <> 0 ',
+      Result := Result + Format(' g_sec_test(%s.achag, %d) <> 0 ',
         [GetListTableAlias, IBLogin.InGroup])
     else if tiAFull in gdcTableInfos then
-      Result := Result + Format(' BIN_AND(BIN_OR(%s.afull, 1), %d) <> 0 ',
+      Result := Result + Format(' g_sec_test(%s.afull, %d) <> 0 ',
         [GetListTableAlias, IBLogin.InGroup]);
   end;
+end;
+
+function TgdcBase.GetCurrRecordSubType: String;
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+begin
+  {@UNFOLD MACRO INH_ORIG_GETNOTCOPYFIELD('TGDCBASE', 'GETCURRRECORDSUBTYPE', KEYGETCURRRECORDSUBTYPE)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCBASE', KEYGETCURRRECORDSUBTYPE);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYGETCURRRECORDSUBTYPE]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCBASE') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCBASE',
+  {M}          'GETCURRRECORDSUBTYPE', KEYGETCURRRECORDSUBTYPE, Params, LResult) then
+  {M}          begin
+  {M}            if (VarType(LResult) = varOleStr) or (VarType(LResult) = varString) then
+  {M}              Result := String(LResult)
+  {M}            else
+  {M}              begin
+  {M}                raise Exception.Create('Для метода ''' + 'GETCURRRECORDSUBTYPE' + ' ''' +
+  {M}                  ' класса ' + Self.ClassName + TgdcBase(Self).SubType + #10#13 +
+  {M}                  'Из макроса возвращен не строковый тип');
+  {M}              end;
+  {M}            exit;
+  {M}          end;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCBASE' then
+  {M}        begin
+  {M}//          Result := Inherited GetCurrRecordSubType;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  Result := SubType;
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASE', 'GETCURRRECORDSUBTYPE', KEYGETCURRRECORDSUBTYPE)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCBASE', 'GETCURRRECORDSUBTYPE', KEYGETCURRRECORDSUBTYPE);
+  {M}  end;
+  {END MACRO}
 end;
 
 function TgdcBase.GetDlgForm: TForm;
@@ -17910,17 +17869,28 @@ end;
 
 class function TgdcBase.CheckSubType(const ASubType: String): Boolean;
 var
-  CE: TgdClassEntry;
+  SL: TStringList;
+  I: Integer;
 begin
-  if AnsiPos('USR_', AnsiUpperCase(ASubType)) > 0 then
-    raise EgdcException.Create('Недопустимый символ ''_''в подтипе');
-
-  Result := False;
-
-  CE := gdClassList.Find(Self, ASubType);
-
-  if CE <> nil then
-    Result := True;
+  if ASubType = '' then
+    Result := True
+  else begin
+    Result := False;
+    SL := TStringList.Create;
+    try
+      GetSubTypeList(SL);
+      for I := 0 to SL.Count - 1 do
+      begin
+        if Pos('=' + ASubType + '^', SL[I] + '^') > 0 then
+        begin
+          Result := True;
+          break;
+        end;
+      end;
+    finally
+      SL.Free;
+    end;
+  end;
 end;
 
 { TgdcSetAttribute }
@@ -18487,7 +18457,7 @@ initialization
   UseSavepoints := True;
   gdcClipboardFormat := RegisterClipboardFormat(gdcClipboardFormatName);
 
-  RegisterGDCClass(TgdcBase);
+  RegisterGDCClasses([TgdcBase]);
 
   // Регистрация методов TgdcBase для перекрытия их из макросов
   TgdcBase.RegisterMethod;

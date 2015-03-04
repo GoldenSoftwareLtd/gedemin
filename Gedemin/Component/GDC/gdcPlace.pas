@@ -15,6 +15,7 @@ uses
 type
   TgdcPlace = class(TgdcLBRBTree)
   public
+    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
@@ -112,6 +113,11 @@ begin
   {END MACRO}
 end;
 
+class function TgdcPlace.GetDisplayName(const ASubType: TgdcSubType): String;
+begin
+  Result := 'Административно-территориальная единица';
+end;
+
 class function TgdcPlace.GetDialogFormClassName(
   const ASubType: TgdcSubType): String;
 begin
@@ -135,7 +141,7 @@ begin
 end;
 
 initialization
-  RegisterGdcClass(TgdcPlace, ctStorage, 'Административно-территориальная единица');
+  RegisterGdcClass(TgdcPlace);
 
 finalization
   UnRegisterGdcClass(TgdcPlace);

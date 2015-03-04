@@ -28,8 +28,7 @@ interface
 
 uses
   Classes, IBCustomDataSet, gdcBase, gdcTree, gdcBaseInterface,
-  Forms, gd_createable_form, SysUtils, ibsql, Contnrs, TB2Item,
-  Menus;
+  Forms, gd_createable_form, SysUtils, ibsql;
 
 const
   cst_ByCompany           = 'ByCompany';
@@ -45,24 +44,13 @@ type
     function GetOrderClause: String; override;
 
   public
-    class function GetChildrenClass(const ASubType: TgdcSubType;
-      AnOL: TObjectList; const AnIncludeRoot: Boolean = True;
-      const AnOnlyDirect: Boolean = False;
-      const AnIncludeAbstract: Boolean = False): Boolean; override;
-
     function GetCurrRecordClass: TgdcFullClass; override;
-
-    class function IsAbstractClass: Boolean; override;
 
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
+    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
     class function GetSubSetList: String; override;
-
-    function GetDescendantList(AOL: TObjectList;
-      const AnOnlySameLevel: Boolean): Boolean; override;
-
-    function GetDefaultClassForDialog: TgdcFullClass; override;
   end;
 
   TgdcAcctFolder = class(TgdcAcctBase)
@@ -72,6 +60,7 @@ type
 
   public
     class function GetDialogFormClassName(const ASubType: TgdcSubType): string; override;
+    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
     class function GetRestrictCondition(const ATableName,
       ASubType: String): String; override;
   end;
@@ -100,6 +89,7 @@ type
 
   public
     class function GetDialogFormClassName(const ASubType: TgdcSubType): string; override;
+    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
     class function GetRestrictCondition(const ATableName,
       ASubType: String): String; override;
       
@@ -113,6 +103,7 @@ type
 
   public
     class function GetDialogFormClassName(const ASubType: TgdcSubType): string; override;
+    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
     class function GetRestrictCondition(const ATableName,
       ASubType: String): String; override;
   end;
@@ -179,12 +170,8 @@ begin
 end;
 
 function TgdcAcctBase.GetCurrRecordClass: TgdcFullClass;
-var
-  F: TField;
 begin
-  Result.gdClass := CgdcBase(Self.ClassType);
-  Result.SubType := '';
-
+  Result := inherited GetCurrRecordClass;
   if (not IsEmpty) and (FieldByName('accounttype').AsString > '') then
     case FieldByName('accounttype').AsString[1] of
       'C': Result.gdClass := TgdcAcctChart;
@@ -192,42 +179,6 @@ begin
       'A': Result.gdClass := TgdcAcctAccount;
       'S': Result.gdClass := TgdcAcctSubAccount;
     end;
-
-  F := FindField('USR$ST');
-  if F <> nil then
-    Result.SubType := F.AsString;
-  if (Result.SubType > '') and (not Result.gdClass.CheckSubType(Result.SubType)) then
-    raise EgdcException.Create('Invalid USR$ST value.');
-end;
-
-class function TgdcAcctBase.GetChildrenClass(const ASubType: TgdcSubType;
-  AnOL: TObjectList; const AnIncludeRoot: Boolean = True;
-  const AnOnlyDirect: Boolean = False;
-  const AnIncludeAbstract: Boolean = False): Boolean;
-var
-  I: Integer;
-begin
-  Result := inherited GetChildrenClass(ASubType, AnOL, AnIncludeRoot,
-    AnOnlyDirect, AnIncludeAbstract);
-
-  if Result and (Self = TgdcAcctBase) then
-  begin
-    for I := AnOL.Count - 1 downto 0 do
-    begin
-      if (TgdClassEntry(AnOL[I]).TheClass = TgdcAcctAccount)
-        or (TgdClassEntry(AnOL[I]).TheClass = TgdcAcctSubAccount) then
-      begin
-        AnOL.Delete(I);
-      end;
-    end;
-  end;
-
-  Result := AnOL.Count > 0;
-end;
-
-class function TgdcAcctBase.IsAbstractClass: Boolean;
-begin
-  Result := Self.ClassNameIs('TgdcAcctBase');
 end;
 
 class function TgdcAcctBase.GetListTable(const ASubType: TgdcSubType): String;
@@ -246,68 +197,18 @@ begin
   Result := 'Tgdc_frmAcctAccount';
 end;
 
+class function TgdcAcctBase.GetDisplayName(
+  const ASubType: TgdcSubType): String;
+begin
+  Result := 'Бухгалтерский план счетов'
+end;
+
 class function TgdcAcctBase.GetSubSetList: String;
 begin
   Result := inherited GetSubSetList +
     acc_ss_ChartsAndFolders + ';' +
     acc_ss_Accounts + ';' +
     cst_ByCompany + ';';
-end;
-
-function TgdcAcctBase.GetDescendantList(AOL: TObjectList;
-  const AnOnlySameLevel: Boolean): Boolean;
-var
-  OL: TObjectList;
-  I: Integer;
-  CO : TCreatedObject;
-begin
-  if Self.ClassType <> TgdcAcctBase then
-    Result := inherited GetDescendantList(AOL, AnOnlySameLevel)
-  else
-  begin
-    OL := TObjectList.Create(False);
-    try
-      if GetChildrenClass(SubType, OL) then
-      begin
-        for I := 0 to OL.Count - 1 do
-        begin
-          CO := TCreatedObject.Create;
-          CO.Obj := OL[I];
-          CO.Caption := TgdClassEntry(OL[I]).Caption;
-          if CO.Caption = '' then
-            CO.Caption := TgdClassEntry(OL[I]).TheClass.ClassName;
-          if TgdClassEntry(OL[I]).TheClass = TgdcAcctChart then
-          begin
-            CO.IsSubLevel := False;
-          end
-          else
-            if TgdClassEntry(OL[I]).TheClass = TgdcAcctFolder then
-            begin
-              CO.IsSubLevel := True;
-            end
-            else
-              raise Exception.Create('unknown class');
-
-          AOL.Add(CO);
-        end;
-      end;
-    finally
-      OL.Free;
-    end;
-
-    Result := AOL.Count > 0;
-  end;
-end;
-
-function TgdcAcctBase.GetDefaultClassForDialog: TgdcFullClass;
-begin
-  if Self.ClassType <> TgdcAcctBase then
-    inherited GetDefaultClassForDialog
-  else
-  begin
-    Result.gdClass := TgdcAcctChart;
-    Result.SubType := '';
-  end;
 end;
 
 procedure TgdcAcctBase.GetWhereClauseConditions(S: TStrings);
@@ -322,7 +223,7 @@ begin
 
   if HasSubSet(cst_ByCompany) and Assigned(IBLogin) then
   begin
-    S.Add(Format(' EXISTS (SELECT lb FROM ac_account c1 JOIN ac_companyaccount cc ' +
+    S.Add(Format(' exists (SELECT lb FROM ac_account c1 JOIN ac_companyaccount cc ' +
     '  ON c1.ID = cc.accountkey  ' +
     '  WHERE z.LB >= c1.lb AND z.rb <= c1.rb AND cc.companykey IN (%s) ) ',
     [IBLogin.HoldingList]));
@@ -392,6 +293,12 @@ class function TgdcAcctFolder.GetDialogFormClassName(
   const ASubType: TgdcSubType): string;
 begin
   Result := 'Tgdc_dlgAcctFolder';
+end;
+
+class function TgdcAcctFolder.GetDisplayName(
+  const ASubType: TgdcSubType): String;
+begin
+  Result := 'Раздел плана счетов';
 end;
 
 class function TgdcAcctFolder.GetRestrictCondition(const ATableName,
@@ -707,6 +614,11 @@ begin
   Result := 'Tgdc_dlgAcctAccount';
 end;
 
+class function TgdcAcctAccount.GetDisplayName(const ASubType: TgdcSubType): String;
+begin
+  Result := 'Счет';
+end;
+
 class function TgdcAcctAccount.GetRestrictCondition(const ATableName,
   ASubType: String): String;
 begin
@@ -780,6 +692,11 @@ begin
   Result := 'Tgdc_dlgAcctSubAccount';
 end;
 
+class function TgdcAcctSubAccount.GetDisplayName(const ASubType: TgdcSubType): String;
+begin
+  Result := 'Субсчет';
+end;
+
 class function TgdcAcctSubAccount.GetRestrictCondition(const ATableName,
   ASubType: String): String;
 begin
@@ -793,16 +710,16 @@ begin
 end;
 
 initialization
-  RegisterGdcClass(TgdcAcctBase, ctStorage, 'Бухгалтерский план счетов');
-  RegisterGdcClass(TgdcAcctChart, ctStorage, 'План счетов');
-  RegisterGdcClass(TgdcAcctFolder, ctStorage, 'Раздел плана счетов');
-  RegisterGdcClass(TgdcAcctAccount, ctStorage, 'Счет');
-  RegisterGdcClass(TgdcAcctSubAccount, ctStorage, 'Субсчет');
+  RegisterGdcClass(TgdcAcctBase);
+  RegisterGdcClass(TgdcAcctFolder);
+  RegisterGdcClass(TgdcAcctChart);
+  RegisterGdcClass(TgdcAcctAccount);
+  RegisterGdcClass(TgdcAcctSubAccount);
 
 finalization
   UnRegisterGdcClass(TgdcAcctBase);
-  UnRegisterGdcClass(TgdcAcctChart);
   UnRegisterGdcClass(TgdcAcctFolder);
+  UnRegisterGdcClass(TgdcAcctChart);
   UnRegisterGdcClass(TgdcAcctAccount);
   UnRegisterGdcClass(TgdcAcctSubAccount);
 end.

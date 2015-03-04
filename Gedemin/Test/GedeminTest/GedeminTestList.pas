@@ -5,7 +5,6 @@ interface
 uses
   TestSQLParser_unit,
   Test_MovementDocumenttype,
-  Test_SetupInvDocument_unit,
   Test_gdcInvMovement,
   Test_AddDuplicateAccount,
   TestGdKeyArray_unit,
@@ -22,8 +21,6 @@ uses
   {$ENDIF}
   {$IFDEF GEDEMIN}
   , Test_gsStorage_unit
-  , Test_gdClassListSubTypes_unit
-  , Test_OverrideMethods_unit
   , Test_gdcContact_unit
   , Test_AcEntry_unit
   , Test_CopyObject_unit

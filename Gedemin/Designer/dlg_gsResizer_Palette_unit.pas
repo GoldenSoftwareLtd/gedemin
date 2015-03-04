@@ -173,19 +173,6 @@ begin
   actArrowExecute(nil);
 end;
 
-function BuildTree(ACE: TgdClassEntry; AData1: Pointer;
-  AData2: Pointer): Boolean;
-begin
-  if (ACE.SubType = '')
-    and (ACE.gdcClass.ClassName <> 'TgdcBase')
-    and (ACE.gdcClass.ClassName <> 'TgdcTree')
-    and (ACE.gdcClass.ClassName <> 'TgdcLBRBTree') then
-  begin
-    TClassList(AData1).Add(ACE.gdcClass);
-  end;
-  Result := True;
-end;
-
 constructor Tdlg_gsResizer_Palette.Create(AnOwner: TComponent);
 var
   I, J: Integer;
@@ -209,15 +196,23 @@ begin
   else
     FManager := nil;
 
-  //if Assigned(gdClassList) then
+//  if J >= 0 then
+  if Assigned(gdcClassList) then
   begin
     if (ClassArray[High(ClassArray)]^.FolderName <> GDCFolderName) and
-       (gdClassList.Count > 0) then
+       (gdcClassList.Count > 0) then
     begin
       TempList := TClassList.Create;
       try
-        gdClassList.Traverse(TgdcBase, '', BuildTree, TempList, nil, True, False);
-
+        for I := 0 to gdcClassList.Count - 1 do
+          if CgdcBase(gdcClassList[I]).InheritsFrom(TgdcBase)
+            and {(not CgdcBase(gdcClassList[I]).IsAbstractClass)}
+              (gdcClassList[I].ClassName <> 'TgdcBase')
+            and (gdcClassList[I].ClassName <> 'TgdcTree')
+            and (gdcClassList[I].ClassName <> 'TgdcLBRBTree') then
+          begin
+            TempList.Add(gdcClassList[I]);
+          end;
         J := High(ClassArray);
         SetLength(ClassArray, J + TempList.Count + 1);
         for I := J + 1 to High(ClassArray) do

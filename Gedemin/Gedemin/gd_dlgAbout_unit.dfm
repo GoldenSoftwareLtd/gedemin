@@ -4,7 +4,7 @@ object gd_dlgAbout: Tgd_dlgAbout
   HelpContext = 119
   BorderStyle = bsDialog
   Caption = 'О программе'
-  ClientHeight = 446
+  ClientHeight = 427
   ClientWidth = 564
   Color = clBtnFace
   Font.Charset = RUSSIAN_CHARSET
@@ -22,7 +22,7 @@ object gd_dlgAbout: Tgd_dlgAbout
     Left = 8
     Top = 8
     Width = 547
-    Height = 403
+    Height = 385
     ActivePage = tsAbout
     TabOrder = 0
     object tsAbout: TTabSheet
@@ -44,7 +44,7 @@ object gd_dlgAbout: Tgd_dlgAbout
         Left = 5
         Top = 29
         Width = 527
-        Height = 342
+        Height = 323
         TabStop = False
         BorderStyle = bsNone
         Color = clBtnFace
@@ -116,16 +116,13 @@ object gd_dlgAbout: Tgd_dlgAbout
             'акина, Артур Латунов, Кирилл Зезюлин,'
           
             'Александр Эрюжев, Анна Тарун, Павел Жолнерович, Евгений Федоров,' +
-            ' Алексей Якубель, Юрий Ломашко,'
-          'Андрей Андилевко, Михаил Васильев, Анастасия Благодова.'
+            ' Алексей Якубель, Юрий Ломашко.'
           ''
           'Отдельное спасибо:'
           
             'ООО Святогор, Владимир Гетманец, Stefan Boether, Евгений Кучеряв' +
             'енко, Сергей "Дейрас" Борисовец,'
           'Андрей Башун, Наталья Белковская.'
-          ' '
-          ' '
           ' '
           ' '
           ' '
@@ -142,7 +139,7 @@ object gd_dlgAbout: Tgd_dlgAbout
         Left = 3
         Top = 3
         Width = 532
-        Height = 369
+        Height = 352
         Cursor = crIBeam
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clWindowText
@@ -498,7 +495,7 @@ object gd_dlgAbout: Tgd_dlgAbout
         Left = 3
         Top = 3
         Width = 532
-        Height = 369
+        Height = 352
         Cursor = crIBeam
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clWindowText
@@ -870,7 +867,7 @@ object gd_dlgAbout: Tgd_dlgAbout
         Left = 7
         Top = 47
         Width = 525
-        Height = 322
+        Height = 304
         TabOrder = 1
         object lblUpdateStatus: TLabel
           Left = 12
@@ -954,7 +951,7 @@ object gd_dlgAbout: Tgd_dlgAbout
           Left = 11
           Top = 186
           Width = 502
-          Height = 125
+          Height = 107
           Cursor = crIBeam
           Color = clInfoBk
           Font.Charset = DEFAULT_CHARSET
@@ -1309,7 +1306,7 @@ object gd_dlgAbout: Tgd_dlgAbout
   end
   object btnOk: TButton
     Left = 480
-    Top = 418
+    Top = 400
     Width = 75
     Height = 21
     Caption = 'Ok'
@@ -1319,7 +1316,7 @@ object gd_dlgAbout: Tgd_dlgAbout
   end
   object btnHelp: TButton
     Left = 8
-    Top = 418
+    Top = 400
     Width = 75
     Height = 21
     Caption = 'Справка'
@@ -1329,7 +1326,7 @@ object gd_dlgAbout: Tgd_dlgAbout
   end
   object btnMSInfo: TButton
     Left = 89
-    Top = 418
+    Top = 400
     Width = 75
     Height = 21
     Caption = 'О Системе...'
@@ -1338,7 +1335,7 @@ object gd_dlgAbout: Tgd_dlgAbout
   end
   object btnCopy: TButton
     Left = 170
-    Top = 418
+    Top = 400
     Width = 129
     Height = 21
     Caption = 'Копировать в буфер'

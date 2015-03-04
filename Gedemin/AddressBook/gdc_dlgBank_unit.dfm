@@ -1,6 +1,6 @@
 inherited gdc_dlgBank: Tgdc_dlgBank
-  Left = 411
-  Top = 200
+  Left = 246
+  Top = 178
   HelpContext = 32
   Caption = '¡‡ÌÍ'
   ClientHeight = 384
@@ -34,9 +34,9 @@ inherited gdc_dlgBank: Tgdc_dlgBank
       object LabelMFO: TLabel [11]
         Left = 321
         Top = 129
-        Width = 24
+        Width = 28
         Height = 13
-        Caption = '¡» :'
+        Caption = 'Ã‘Œ:'
       end
       object lblSWIFT: TLabel [12]
         Left = 6
@@ -48,9 +48,9 @@ inherited gdc_dlgBank: Tgdc_dlgBank
       object lblBankBranch: TLabel [13]
         Left = 172
         Top = 129
-        Width = 25
+        Width = 75
         Height = 13
-        Caption = '÷¡”:'
+        Caption = 'π ÓÚ‰ÂÎÂÌËˇ:'
       end
       inherited btnSaveRec: TButton
         TabOrder = 13
@@ -137,37 +137,12 @@ inherited gdc_dlgBank: Tgdc_dlgBank
         TabOrder = 8
       end
       object dbedBankBranch: TDBEdit
-        Left = 200
+        Left = 258
         Top = 125
-        Width = 115
+        Width = 57
         Height = 21
-        DataField = 'BANKBRANCH'
         DataSource = dsgdcBase
         TabOrder = 14
-      end
-    end
-    inherited TabSheet3: TTabSheet
-      inherited gsiblkupAddress: TgsIBLookupComboBox
-        ItemHeight = 13
-      end
-      inherited gsIBlcHeadCompany: TgsIBLookupComboBox
-        ItemHeight = 13
-      end
-      inherited gsiblkupChiefAccountant: TgsIBLookupComboBox
-        ItemHeight = 13
-      end
-      inherited gsiblkupDirector: TgsIBLookupComboBox
-        ItemHeight = 13
-      end
-    end
-    inherited tbsLogo: TTabSheet
-      inherited JvDBImage: TJvDBImage
-        Height = 296
-      end
-    end
-    inherited tbsAttr: TTabSheet
-      inherited atcMain: TatContainer
-        Height = 318
       end
     end
   end

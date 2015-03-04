@@ -10867,18 +10867,27 @@ procedure TfrReport.ExportTo(Filter: TfrExportFilter; FileName: string);
 var
   s: string;
   Flag, NeedConnect: Boolean;
-  TempExp : TfrExportFilter;
+  TempExp : TfrExportFilter; 
 begin
+
 {$IFDEF GEDEMIN_LOCK}
-  if not RegParams.CheckRegistration(True, 'Экспорт невозможен.') then
-    exit;
+  if not IsRegisteredCopy then
+  begin
+    MessageBox(0,
+      'Вы используете незарегистрированную копию программы. Экспорт невозможен.'#13#10 +
+      'Вы можете выполнить регистрацию вызвав команду Регистрация'#13#10 +
+      'из пункта меню Справка главного окна программы.',
+      'Внимание',
+      MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+    Exit;
+  end;
 {$ENDIF}
 
 {$IFDEF GEDEMIN}
   if Assigned(GlobalStorage) and Assigned(IBLogin)
     and ((GlobalStorage.ReadInteger('Options\Policy',
       GD_POL_PRINT_ID, GD_POL_PRINT_MASK, False) and IBLogin.InGroup) = 0) then
-  begin
+  begin         
     MessageBox(0,
       'Печать (экспорт) документов запрещена текущими настройками политики безопасности.',
       'Отказано в доступе',

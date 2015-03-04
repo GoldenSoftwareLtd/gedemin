@@ -19,15 +19,15 @@ object frmAddParamsFunc: TfrmAddParamsFunc
   TextHeight = 13
   object plnButton: TPanel
     Left = 0
-    Top = 120
-    Width = 548
+    Top = 131
+    Width = 556
     Height = 26
     Align = alBottom
     BevelOuter = bvNone
     TabOrder = 0
     object btnOk: TButton
-      Left = 389
-      Top = 5
+      Left = 401
+      Top = 4
       Width = 75
       Height = 21
       Action = actOk
@@ -36,8 +36,8 @@ object frmAddParamsFunc: TfrmAddParamsFunc
       TabOrder = 0
     end
     object btnCancel: TButton
-      Left = 469
-      Top = 5
+      Left = 481
+      Top = 4
       Width = 75
       Height = 21
       Action = actCancel
@@ -49,15 +49,15 @@ object frmAddParamsFunc: TfrmAddParamsFunc
   object pnlMain: TPanel
     Left = 0
     Top = 0
-    Width = 548
-    Height = 120
+    Width = 556
+    Height = 131
     Align = alClient
     BevelOuter = bvLowered
     TabOrder = 1
     object pnlFunction: TPanel
       Left = 1
       Top = 1
-      Width = 546
+      Width = 554
       Height = 16
       Align = alTop
       BevelOuter = bvNone
@@ -65,7 +65,7 @@ object frmAddParamsFunc: TfrmAddParamsFunc
       object lblFunction: TLabel
         Left = 0
         Top = 0
-        Width = 546
+        Width = 554
         Height = 16
         Align = alClient
         Color = clInactiveCaption
@@ -81,8 +81,8 @@ object frmAddParamsFunc: TfrmAddParamsFunc
     object sbParams: TScrollBox
       Left = 1
       Top = 17
-      Width = 546
-      Height = 41
+      Width = 554
+      Height = 46
       Align = alClient
       BorderStyle = bsNone
       TabOrder = 1
@@ -90,7 +90,7 @@ object frmAddParamsFunc: TfrmAddParamsFunc
         Left = 0
         Top = 0
         Width = 545
-        Height = 44
+        Height = 43
         Anchors = [akLeft, akTop, akRight]
         BevelOuter = bvNone
         TabOrder = 0
@@ -147,25 +147,26 @@ object frmAddParamsFunc: TfrmAddParamsFunc
     end
     object pnlDescr: TPanel
       Left = 1
-      Top = 58
-      Width = 546
-      Height = 61
+      Top = 63
+      Width = 554
+      Height = 67
       Align = alBottom
       BevelOuter = bvNone
       TabOrder = 2
       object Bevel1: TBevel
         Left = 0
         Top = 0
-        Width = 546
+        Width = 554
         Height = 2
         Align = alTop
         Shape = bsBottomLine
+        Style = bsRaised
       end
       object mmDescription: TMemo
         Left = 0
         Top = 2
-        Width = 546
-        Height = 59
+        Width = 554
+        Height = 65
         TabStop = False
         Align = alClient
         BorderStyle = bsNone

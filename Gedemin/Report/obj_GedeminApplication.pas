@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2001-2014 by Golden Software of Belarus
+  Copyright (c) 2001-2012 by Golden Software of Belarus
 
   Module
 
@@ -183,7 +183,6 @@ type
     procedure ResetEventHandler(const AnComponent: IgsComponent; const EventName: WideString); safecall;
     function  GDCClasses(Index: Integer): WideString; safecall;
     function  GDCClassesCount: Integer; safecall;
-    function  Get_IsRegisteredCopy: WordBool; safecall;
   end;
 
 var
@@ -192,17 +191,14 @@ var
 implementation
 
 uses
-  ComServ, Dialogs, dmClientReport_unit, dmImages_unit, gd_main_form, gd_security,
-  Forms, SysUtils, gd_frmOLEMainForm_unit, gdcOLEClassList, gdcExplorer,
-  obj_QueryList, obj_Gedemin, gsTextTemplate_unit, scrOpenSaveDialog_unit,
-  gd_CmdLineParams_unit, Classes, gsResizerInterface, Windows, prp_Methods,
-  controls, gd_ClassList, obj_GSFunction, gd_i_ScriptFactory, gsWinAPI_unit,
-  Storages, gsIBLogin, gsGdcBaseManager_unit, gdcTaxFunction, at_classes,
-  obj_FinallyObject, gdcBaseInterface
-  {$IFDEF GEDEMIN_LOCK}
-  , gd_registration
-  {$ENDIF}
-  ;
+  ComServ, Dialogs, dmClientReport_unit, dmImages_unit,
+  gd_main_form, gd_security, Forms, SysUtils, gd_frmOLEMainForm_unit,
+  gdcOLEClassList, gdcExplorer, obj_QueryList, obj_Gedemin,
+  gsTextTemplate_unit, scrOpenSaveDialog_unit, gd_CmdLineParams_unit,
+  Classes, gsResizerInterface, Windows, prp_Methods,
+  controls,{ obj_Designer, } gd_ClassList, obj_GSFunction,
+  gd_i_ScriptFactory, gsWinAPI_unit, Storages, gsIBLogin, gsGdcBaseManager_unit,
+  gdcTaxFunction, {obj_AtDatabase, }at_classes, obj_FinallyObject, gdcBaseInterface;
 
 { TgsGedeminApplication }
 
@@ -495,7 +491,7 @@ begin
   FApplication := GetGdcOLEObject(Application) as IgsApplication;
   FScreen := GetGdcOLEObject(Screen) as IgsScreen;
   FMouse := GetGdcOLEObject(Mouse) as IgsMouse;
-  FgdcClassList := GetGdcOLEObject(gdClassList) as IgsGDCClassList;
+  FgdcClassList := GetGdcOLEObject(gdcClassList) as IgsGDCClassList;
   FgdcBaseManager := TgsGdcBaseManager.Create as IgsGdcBaseManager;
 
   FatDatabase := GetGdcOLEObject(atDatabase) as IgsAtDatabase;
@@ -1002,12 +998,12 @@ end;
 
 function TgsGedeminApplication.GDCClasses(Index: Integer): WideString;
 begin
-  Result := ''; //gdcClassList[Index].ClassName;
+  Result := gdcClassList[Index].ClassName;
 end;
 
 function TgsGedeminApplication.GDCClassesCount: Integer;
 begin
-  Result := gdClassList.Count;
+  Result := gdcClassList.Count;
 end;
 
 function TgsGedeminApplication.Get_WebServerControl: IgdWebServerControl;
@@ -1018,15 +1014,6 @@ end;
 function TgsGedeminApplication.GetWebServerControl: IgdWebServerControl;
 begin
   Result := FgdWebServerControl;
-end;
-
-function TgsGedeminApplication.Get_IsRegisteredCopy: WordBool;
-begin
-  {$IFDEF GEDEMIN_LOCK}
-  Result := RegParams.CheckRegistration(False);
-  {$ELSE}
-  Result := True;
-  {$ENDIF}
 end;
 
 initialization

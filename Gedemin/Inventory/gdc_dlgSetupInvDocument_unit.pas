@@ -105,7 +105,6 @@ type
     cbIsUseCompanyKey: TCheckBox;
     cbSaveRestWindowOption: TCheckBox;
     cbEndMonthRemains: TCheckBox;
-    cbWithoutSearchRemains: TCheckBox;
 
     procedure actAddFeatureExecute(Sender: TObject);
     procedure actRemoveFeatureExecute(Sender: TObject);
@@ -146,6 +145,7 @@ type
     FOperationCount: Integer;// Кол-во сложных операций спереподключением
     FMetaChangeCount: Integer; // Кол-во изменений в метаданных
 
+    FSourceFeatures, FDestFeatures, FMinusFeatures: TStringList; // Список признаков
     FTemplates: TObjectList; // Список шаблонов
 
     //FReportGroupKey: Integer; // Ключ списка отчетов
@@ -180,7 +180,7 @@ type
     procedure RemoveFeature(UsedFeatures, Features: TListView);
 
   protected
-    procedure ReadOptions;
+    procedure ReadOptions(Stream: TStream);
     procedure WriteOptions(Stream: TStream);
 
   public
@@ -543,21 +543,21 @@ begin
     case TgdcInvFeatureKind(rgFeatures.ItemIndex) of
       ifkDest:
       begin
-        List := Document.DestFeatures;
+        List := FDestFeatures;
 
         if [TgdcInvRelationType(cbTemplate.ItemIndex)] *
           [irtFeatureChange, irtTransformation] = []
         then
-          Document.SourceFeatures.Clear;
+          FSourceFeatures.Clear;
       end;
       ifkSource:
       begin
-        List := Document.SourceFeatures;
+        List := FSourceFeatures;
 
         if [TgdcInvRelationType(cbTemplate.ItemIndex)] *
           [irtFeatureChange, irtTransformation] = []
         then
-          Document.DestFeatures.Clear;
+          FDestFeatures.Clear;
       end;
     else
       List := nil;
@@ -565,7 +565,7 @@ begin
   end
   else
   begin
-    List := Document.MinusFeatures;
+    List := FMinusFeatures;
     UsedListView := lvMinusUsedFeatures;
   end;
 
@@ -617,7 +617,7 @@ begin
 
       cbUseIncomeSubClick(CheckBox);
     end;
-    imctOurDepartment, imctOurDepartAndPeople:
+    imctOurDepartment:
     begin
       LabelCombo.Caption := 'Поле подразделения нашей компании:';
       Combo.Visible := True;
@@ -774,7 +774,6 @@ begin
   cbControlRemains.Visible := cbRemains.Checked;
   cbLiveTimeRemains.Visible := cbRemains.Checked;
   cbMinusRemains.Visible := cbRemains.Checked;
-  cbWithoutSearchRemains.Visible := not cbControlRemains.Checked and (cbTemplate.ItemIndex = 1);
 end;
 
 constructor Tgdc_dlgSetupInvDocument.Create(AOwner: TComponent);
@@ -786,6 +785,9 @@ begin
 
   FTemplates := TObjectList.Create(False);
 
+  FSourceFeatures := TStringList.Create;
+  FDestFeatures := TStringList.Create;
+  FMinusFeatures := TStringList.Create;
 end;
 
 procedure Tgdc_dlgSetupInvDocument.CreateDocumentTemplateData;
@@ -810,6 +812,9 @@ destructor Tgdc_dlgSetupInvDocument.Destroy;
 begin
   FTemplates.Free;
 
+  FSourceFeatures.Free;
+  FDestFeatures.Free;
+  FMinusFeatures.Free;
 
   inherited;
 
@@ -906,7 +911,6 @@ begin
   cbDebitMovement.Items.Add('Подразделение клиента');
   cbDebitMovement.Items.Add('Сотрудника клиента');
   cbDebitMovement.Items.Add('Физическое лицо');
-  cbDebitMovement.Items.Add('Подразделение или сотрудника нашей организации');
 
   cbCreditMovement.Items.Clear;
   cbCreditMovement.Items.Add('Нашу организацию');
@@ -916,8 +920,6 @@ begin
   cbCreditMovement.Items.Add('Подразделение клиента');
   cbCreditMovement.Items.Add('Сотрудника клиента');
   cbCreditMovement.Items.Add('Физическое лицо');
-  cbCreditMovement.Items.Add('Подразделение или сотрудника нашей организации');
-
 
   // Страница справочники
   cbReference.Checked := False;
@@ -935,15 +937,19 @@ begin
   iblcHeaderTable.Enabled := edEnglishName.Text > '';
 end;
 
-procedure Tgdc_dlgSetupInvDocument.ReadOptions;
+procedure Tgdc_dlgSetupInvDocument.ReadOptions(Stream: TStream);
 var
-{  Sources: TgdcInvReferenceSources;
+  Sources: TgdcInvReferenceSources;
   Direction: TgdcInvMovementDirection;
   Movement: TgdcInvMovementContactOption;
-  Version, RelationName, RelationLineName: String;}
+  Version, RelationName, RelationLineName: String;
+  RKey: Integer;
   I: Integer;
   Item: TListItem;
   ibsql: TIBSQL;
+  R: TatRelation;
+
+  F: TatRelationField;
 
   procedure UpdateComboBox(Box: TComboBox; FieldName: String);
   begin
@@ -958,11 +964,11 @@ begin
   ibsql.Database := Document.Database;
   ibsql.Transaction := Document.Transaction;
 
- { Movement := TgdcInvMovementContactOption.Create;
-  with TReader.Create(Stream, 1024) do}
+  Movement := TgdcInvMovementContactOption.Create;
+  with TReader.Create(Stream, 1024) do
   try
     // Общие настройки
-{    Version := ReadString;
+    Version := ReadString;
 
     // Наименования таблиц
     RelationName := ReadString;
@@ -990,11 +996,11 @@ begin
         Document.FieldByName('linerelkey').AsInteger := R.ID;
       end;
 
-    end; }
+    end;
 
-    edEnglishName.Text := Document.RelationName;
+    edEnglishName.Text := RelationName;
 
-{    if (Version <> gdcInvDocument_Version2_0) and (Version <> gdcInvDocument_Version2_1) and
+    if (Version <> gdcInvDocument_Version2_0) and (Version <> gdcInvDocument_Version2_1) and
        (Version <> gdcInvDocument_Version2_2) and (Version <> gdcInvDocument_Version2_3)
     then
     // Тип документа считываем
@@ -1014,13 +1020,12 @@ begin
         gdcObject.FieldByName('reportgroupkey').AsInteger := RKey;
       end;
     end;
- }
+
 
     UpdateEditingSettings;
 
 
     // Приход
-{
     SetLength(Movement.Predefined, 0);
     SetLength(Movement.SubPredefined, 0);
 
@@ -1050,127 +1055,180 @@ begin
         ReadInteger;
     end;
     ReadListEnd;
- }
-    cbDebitMovement.ItemIndex := Integer(Document.DebitMovement.ContactType);
-    if AnsiCompareText(Document.DebitMovement.RelationName, Document.RelationName) = 0 then
+
+    cbDebitMovement.ItemIndex := Integer(Movement.ContactType);
+    if AnsiCompareText(Movement.RelationName, RelationName) = 0 then
       rgDebitFrom.ItemIndex := 0
     else
       rgDebitFrom.ItemIndex := 1;
 
     if cbUseIncomeSub.Checked then
     begin
-      if AnsiCompareText(Document.DebitMovement.SubRelationName, Document.RelationName) = 0 then
+      if AnsiCompareText(Movement.SubRelationName, RelationName) = 0 then
         rgDebitSubFrom.ItemIndex := 0
       else
         rgDebitSubFrom.ItemIndex := 1;
     end;
 
-    UpdateComboBox(luDebitFrom, Document.DebitMovement.SourceFieldName);
-    UpdateComboBox(luDebitSubFrom, Document.DebitMovement.SubSourceFieldName);
+    UpdateComboBox(luDebitFrom, Movement.SourceFieldName);
+    UpdateComboBox(luDebitSubFrom, Movement.SubSourceFieldName);
 
-    for I := 0 to Length(Document.DebitMovement.Predefined) - 1 do
+    for I := 0 to Length(Movement.Predefined) - 1 do
     begin
       ibsql.Close;
-      ibsql.ParamByName('ID').AsInteger := Document.DebitMovement.Predefined[I];
+      ibsql.ParamByName('ID').AsInteger := Movement.Predefined[I];
       ibsql.ExecQuery;
       Item := lvDebitMovementValues.Items.Add;
       Item.Caption := ibsql.FieldByName('NAME').AsString;
-      Item.SubItems.Add(IntToStr(Document.DebitMovement.Predefined[I]));
+      Item.SubItems.Add(IntToStr(Movement.Predefined[I]));
       ibsql.Close;
     end;
 
-    for I := 0 to Length(Document.DebitMovement.SubPredefined) - 1 do
+    for I := 0 to Length(Movement.SubPredefined) - 1 do
     begin
       ibsql.Close;
-      ibsql.ParamByName('ID').AsInteger := Document.DebitMovement.SubPredefined[I];
+      ibsql.ParamByName('ID').AsInteger := Movement.SubPredefined[I];
       ibsql.ExecQuery;
       Item := lvSubDebitMovementValues.Items.Add;
       Item.Caption := ibsql.FieldByName('NAME').AsString;
-      Item.SubItems.Add(IntToStr(Document.DebitMovement.SubPredefined[I]));
+      Item.SubItems.Add(IntToStr(Movement.SubPredefined[I]));
       ibsql.Close;
     end;
 
     cbDebitMovementChange(cbDebitMovement);
     if cbUseIncomeSub.Visible then
       cbUseIncomeSub.Checked :=
-        (Document.DebitMovement.SubRelationName > '') and (Document.DebitMovement.SubSourceFieldName > '');
+        (Movement.SubRelationName > '') and (Movement.SubSourceFieldName > '');
 
     cbUseIncomeSubClick(cbUseIncomeSub);
 
 
     // Расход
-    cbCreditMovement.ItemIndex := Integer(Document.CreditMovement.ContactType);
-    if AnsiCompareText(Document.CreditMovement.RelationName, Document.RelationName) = 0 then
+    SetLength(Movement.Predefined, 0);
+    SetLength(Movement.SubPredefined, 0);
+
+    Movement.RelationName := ReadString;
+    Movement.SourceFieldName := ReadString;
+
+    Movement.SubRelationName := ReadString;
+    Movement.SubSourceFieldName := ReadString;
+
+    Read(Movement.ContactType, SizeOf(TgdcInvMovementContactType));
+
+    ReadListBegin;
+    while not EndOfList do
+    begin
+      SetLength(Movement.Predefined,
+        Length(Movement.Predefined) + 1);
+      Movement.Predefined[Length(Movement.Predefined) - 1] :=
+        ReadInteger;
+    end;
+    ReadListEnd;
+
+    ReadListBegin;
+    while not EndOfList do
+    begin
+      SetLength(Movement.SubPredefined,
+        Length(Movement.SubPredefined) + 1);
+      Movement.SubPredefined[Length(Movement.SubPredefined) - 1] :=
+        ReadInteger;
+    end;
+    ReadListEnd;
+
+    cbCreditMovement.ItemIndex := Integer(Movement.ContactType);
+    if AnsiCompareText(Movement.RelationName, RelationName) = 0 then
       rgCreditFrom.ItemIndex := 0
     else
       rgCreditFrom.ItemIndex := 1;
 
     if cbUseOutlaySub.Checked then
     begin
-      if AnsiCompareText(Document.CreditMovement.SubRelationName, Document.RelationName) = 0 then
+      if AnsiCompareText(Movement.SubRelationName, RelationName) = 0 then
         rgCreditSubFrom.ItemIndex := 0
       else
         rgCreditSubFrom.ItemIndex := 1;
     end;
 
-    UpdateComboBox(luCreditFrom, Document.CreditMovement.SourceFieldName);
-    UpdateComboBox(luCreditSubFrom, Document.CreditMovement.SubSourceFieldName);
+    UpdateComboBox(luCreditFrom, Movement.SourceFieldName);
+    UpdateComboBox(luCreditSubFrom, Movement.SubSourceFieldName);
 
-    for I := 0 to Length(Document.CreditMovement.Predefined) - 1 do
+    for I := 0 to Length(Movement.Predefined) - 1 do
     begin
       ibsql.Close;
-      ibsql.ParamByName('ID').AsInteger := Document.CreditMovement.Predefined[I];
+      ibsql.ParamByName('ID').AsInteger := Movement.Predefined[I];
       ibsql.ExecQuery;
-      if not ibsql.EOF then
-      begin
-        Item := lvCreditMovementValues.Items.Add;
-        Item.Caption := ibsql.FieldByName('NAME').AsString;
-        Item.SubItems.Add(IntToStr(Document.CreditMovement.Predefined[I]));
-      end;  
+      Item := lvCreditMovementValues.Items.Add;
+      Item.Caption := ibsql.FieldByName('NAME').AsString;
+      Item.SubItems.Add(IntToStr(Movement.Predefined[I]));
       ibsql.Close;
     end;
 
-    for I := 0 to Length(Document.CreditMovement.SubPredefined) - 1 do
+    for I := 0 to Length(Movement.SubPredefined) - 1 do
     begin
       ibsql.Close;
-      ibsql.ParamByName('ID').AsInteger := Document.CreditMovement.SubPredefined[I];
+      ibsql.ParamByName('ID').AsInteger := Movement.SubPredefined[I];
       ibsql.ExecQuery;
-      if not ibsql.EOF then
-      begin
-        Item := lvSubCreditMovementValues.Items.Add;
-        Item.Caption := ibsql.FieldByName('NAME').AsString;
-        Item.SubItems.Add(IntToStr(Document.CreditMovement.SubPredefined[I]));
-      end;  
+      Item := lvSubCreditMovementValues.Items.Add;
+      Item.Caption := ibsql.FieldByName('NAME').AsString;
+      Item.SubItems.Add(IntToStr(Movement.SubPredefined[I]));
       ibsql.Close;
     end;
 
     cbDebitMovementChange(cbCreditMovement);
     if cbUseOutlaySub.Visible then
       cbUseOutlaySub.Checked :=
-        (Document.CreditMovement.SubRelationName > '') and (Document.CreditMovement.SubSourceFieldName > '');
+        (Movement.SubRelationName > '') and (Movement.SubSourceFieldName > '');
 
     cbUseIncomeSubClick(cbUseIncomeSub);
 
 
     // Настройки признаков
+    ReadListBegin;
+    while not EndOfList do
+    begin
+      F := atDatabase.FindRelationField('INV_CARD', ReadString);
+      if not Assigned(F) then Continue;
+      FSourceFeatures.AddObject(F.FieldName, F);
+    end;
+    ReadListEnd;
+
+    ReadListBegin;
+    while not EndOfList do
+    begin
+      F := atDatabase.FindRelationField('INV_CARD', ReadString);
+      if not Assigned(F) then Continue;
+      FDestFeatures.AddObject(F.FieldName, F);
+    end;
+    ReadListEnd;
+
     SetupFeaturesTab;
 
     // Настройка справочников
-{    Read(Sources, SizeOf(TgdcInvReferenceSources)); }
+    Read(Sources, SizeOf(TgdcInvReferenceSources));
 
-    cbReference.Checked := irsGoodRef in Document.Sources;
-    cbRemains.Checked := irsRemainsRef in Document.Sources;
+    cbReference.Checked := irsGoodRef in Sources;
+    cbRemains.Checked := irsRemainsRef in Sources;
 //  cbFromMacro.Checked := irsMacro in Sources;
 
     // Настройка FIFO, LIFO
-{    Read(Direction, SizeOf(TgdcInvMovementDirection));}
-    rgMovementDirection.ItemIndex := Integer(Document.Direction);
+    Read(Direction, SizeOf(TgdcInvMovementDirection));
+    rgMovementDirection.ItemIndex := Integer(Direction);
 
     // Конроль остатков
-    cbControlRemains.Checked := Document.ControlRemains;
+    cbControlRemains.Checked := ReadBoolean;
 
     // работа только с текущими остатками
-    cbLiveTimeRemains.Checked := Document.LiveTimeRemains;
+    if (Version = gdcInvDocument_Version1_9) or
+      (Version = gdcInvDocument_Version2_0) or
+      (Version = gdcInvDocument_Version2_1) or
+      (Version = gdcInvDocument_Version2_2) or
+      (Version = gdcInvDocument_Version2_3) or
+      (Version = gdcInvDocument_Version2_4) or
+      (Version = gdcInvDocument_Version2_5) or
+      (Version = gdcInvDocument_Version2_6)   then
+      cbLiveTimeRemains.Checked := ReadBoolean
+    else
+      cbLiveTimeRemains.Checked := False;
 
     if not cbRemains.Checked then
     begin
@@ -1182,16 +1240,25 @@ begin
     end;
 
     // Документ может быть отложенным
-    cbDelayedDocument.Checked := Document.DelayedDocument;
+    cbDelayedDocument.Checked := ReadBoolean;
     // Может использоваться кэширование
+    ReadBoolean;
 
-    cbMinusRemains.Checked := Document.MinusRemains;
+    if (Version = gdcInvDocument_Version2_1) or (Version = gdcInvDocument_Version2_2)
+       or (Version = gdcInvDocument_Version2_3) or (Version = gdcInvDocument_Version2_4)
+       or (Version = gdcInvDocument_Version2_5)  or
+      (Version = gdcInvDocument_Version2_6)
+    then
+      cbMinusRemains.Checked := ReadBoolean
+    else
+      cbMinusRemains.Checked := False;
+
     gbMinusFeatures.Visible := cbMinusRemains.Checked;
 
     if not cbRemains.Checked then
       cbMinusRemains.Checked := False;
 
-{    if (Version = gdcInvDocument_Version2_2) or (Version = gdcInvDocument_Version2_3)
+    if (Version = gdcInvDocument_Version2_2) or (Version = gdcInvDocument_Version2_3)
        or (Version = gdcInvDocument_Version2_4) or (Version = gdcInvDocument_Version2_5) or
       (Version = gdcInvDocument_Version2_6)
     then
@@ -1201,32 +1268,42 @@ begin
       begin
         F := atDatabase.FindRelationField('INV_CARD', ReadString);
         if not Assigned(F) then Continue;
-        Document.MinusFeatures.AddObject(F.FieldName, F);
+        FMinusFeatures.AddObject(F.FieldName, F);
       end;
       ReadListEnd;
-}
-      SetupMinusFeaturesTab;
-{    end;}
 
-{    if (Version = gdcInvDocument_Version2_3) or (Version = gdcInvDocument_Version2_4) or
+      SetupMinusFeaturesTab;
+    end;
+
+    if (Version = gdcInvDocument_Version2_3) or (Version = gdcInvDocument_Version2_4) or
        (Version = gdcInvDocument_Version2_5)  or
       (Version = gdcInvDocument_Version2_6) then
-    begin}
-      cbIsChangeCardValue.Checked := Document.IsChangeCardValue;
-      cbIsAppendCardValue.Checked := Document.IsAppendCardValue;
-{    end;}
-    cbIsUseCompanyKey.Checked := Document.IsUseCompanyKey;
-    cbSaveRestWindowOption.Checked := Document.SaveRestWindowOption;
-    cbEndMonthRemains.Checked := Document.EndMonthRemains;
-
-    cbWithoutSearchRemains.Visible := not cbControlRemains.Checked and (cbTemplate.ItemIndex = 1);
-    if cbWithoutSearchRemains.Visible then
-      cbWithoutSearchRemains.Checked := Document.WithoutSearchRemains
+    begin
+      cbIsChangeCardValue.Checked := ReadBoolean;
+      cbIsAppendCardValue.Checked := ReadBoolean;
+    end;
+    if (Version = gdcInvDocument_Version2_4) or (Version = gdcInvDocument_Version2_5)  or
+      (Version = gdcInvDocument_Version2_6) then
+      cbIsUseCompanyKey.Checked := ReadBoolean
     else
-      cbWithoutSearchRemains.Checked := False;
+      cbIsUseCompanyKey.Checked := True;
+
+    if (Version = gdcInvDocument_Version2_5)  or
+      (Version = gdcInvDocument_Version2_6) then
+      cbSaveRestWindowOption.Checked := ReadBoolean
+    else
+      cbSaveRestWindowOption.Checked := False;
+
+    if (Version = gdcInvDocument_Version2_6) then
+      cbEndMonthRemains.Checked := ReadBoolean
+    else
+      cbEndMonthRemains.Checked := False;
+
 
   finally
+    Free;
     ibsql.Free;
+    Movement.Free; 
   end;
 end;
 
@@ -1251,8 +1328,8 @@ begin
   if rgFeatures.ItemIndex = -1 then Exit;
 
   case TgdcInvFeatureKind(rgFeatures.ItemIndex) of
-    ifkDest: List := Document.DestFeatures;
-    ifkSource: List := Document.SourceFeatures;
+    ifkDest: List := FDestFeatures;
+    ifkSource: List := FSourceFeatures;
   else
     List := nil;
   end;
@@ -1685,12 +1762,12 @@ end;
 procedure Tgdc_dlgSetupInvDocument.UpdateInsertingSettings;
 
 begin
-  UpdateTabs;
-
+  tsFeatures.TabVisible := False;
+  tsIncomeMovement.TabVisible := False;
+  tsOutlayMovement.TabVisible := False;
+  tsReferences.TabVisible := False;
+//  tsEditing.TabVisible := False;
   pcMain.ActivePage := tsCommon;
-
-  lblDocument.Visible := True;
-  cbDocument.Visible := True;
 
   CreateDocumentTemplateData;
   UpdateDocumentTemplates;
@@ -1739,7 +1816,6 @@ begin
   tsIncomeMovement.TabVisible := tsFeatures.TabVisible;
   tsOutlayMovement.TabVisible := tsFeatures.TabVisible;
   tsReferences.TabVisible := tsFeatures.TabVisible;
-  cbWithoutSearchRemains.Visible := (cbTemplate.ItemIndex = 1) and not cbControlRemains.Checked;
 end;
 
 procedure Tgdc_dlgSetupInvDocument.UpdateTemplate;
@@ -1833,7 +1909,7 @@ begin
   with TWriter.Create(Stream, 1024) do
   try
     // Общие настройки
-    WriteString(gdcInvDocument_Version3_0);
+    WriteString(gdcInvDocument_Version2_6);
 
     R := GetRelation(True);
     RL := GetRelation(False);
@@ -1944,15 +2020,15 @@ begin
     // Настройки признаков
     WriteListBegin;
 
-    for I := 0 to Document.SourceFeatures.Count - 1 do
-      WriteString(Document.SourceFeatures[I]);
+    for I := 0 to FSourceFeatures.Count - 1 do
+      WriteString(FSourceFeatures[I]);
 
     WriteListEnd;
 
     WriteListBegin;
 
-    for I := 0 to Document.DestFeatures.Count - 1 do
-      WriteString(Document.DestFeatures[I]);
+    for I := 0 to FDestFeatures.Count - 1 do
+      WriteString(FDestFeatures[I]);
 
     WriteListEnd;
 
@@ -1970,6 +2046,7 @@ begin
     Direction := TgdcInvMovementDirection(rgMovementDirection.ItemIndex);
     Write(Direction, SizeOf(TgdcInvMovementDirection));
 
+    //
     // Только если используются остатки сохраняем текущее значение checkbox-ов
 
     if cbRemains.Checked then
@@ -2004,8 +2081,8 @@ begin
     // Настройки признаков для отрицательных остатков
     WriteListBegin;
 
-    for I := 0 to Document.MinusFeatures.Count - 1 do
-      WriteString(Document.MinusFeatures[I]);
+    for I := 0 to FMinusFeatures.Count - 1 do
+      WriteString(FMinusFeatures[I]);
 
     WriteListEnd;
 
@@ -2014,10 +2091,6 @@ begin
     WriteBoolean(cbIsUseCompanyKey.Checked);
     WriteBoolean(cbSaveRestWindowOption.Checked);
     WriteBoolean(cbEndMonthRemains.Checked);
-    if not cbControlRemains.Checked then
-      WriteBoolean(cbWithoutSearchRemains.Checked)
-    else
-      WriteBoolean(False);
 
   finally
     Free;
@@ -2131,7 +2204,7 @@ begin
   lvMinusFeatures.Items.Clear;
   lvMinusUsedFeatures.Items.Clear;
 
-  List := Document.MinusFeatures;
+  List := FMinusFeatures;
 
   if not Assigned(List) then
     exit;
@@ -2147,9 +2220,9 @@ begin
       Item.Caption := RelationFields[I].LName;
       Item.Data := RelationFields[I];
     end;}
-  for I := 0 to Document.DestFeatures.Count - 1 do
+  for I := 0 to FDestFeatures.Count - 1 do
   begin
-    RF := R.RelationFields.ByFieldName(Document.DestFeatures[I]);
+    RF := R.RelationFields.ByFieldName(FDestFeatures[I]);
     if Assigned(RF) then
     begin
       Item := lvMinusFeatures.Items.Add;
@@ -2259,6 +2332,8 @@ end;
 
 procedure Tgdc_dlgSetupInvDocument.SetupRecord;
 var
+  Stream: TStringStream;
+  ibsql: TIBSQL;
   {@UNFOLD MACRO INH_CRFORM_PARAMS()}
   {M}
   {M}  Params, LResult: Variant;
@@ -2286,25 +2361,42 @@ begin
   {END MACRO}
 
   inherited;
-
   if Document.State = dsEdit then
   begin
     if not Document.FieldByName('OPTIONS').IsNull then
     begin
-      ReadOptions;
+      Stream := TStringStream.Create(Document.FieldByName('OPTIONS').AsString);
+      try
+        ReadOptions(Stream);
+      finally
+        Stream.Free;
+      end;
       UpdateTabs;
     end else
       UpdateEditingSettings;
-  end;
+  end else
 
   if Document.State = dsInsert then
   begin
-    if not Document.FieldByName('OPTIONS').IsNull then
-    begin
-      ReadOptions;
-      UpdateTabs;
-    end else
-      UpdateInsertingSettings;
+    ibsql := TIBSQL.Create(nil);
+    try
+      ibsql.Transaction := gdcObject.ReadTransaction;
+      ibsql.SQL.Text := 'SELECT OPTIONS FROM gd_documenttype WHERE id = :id AND documenttype = ''D'' ';
+      ibsql.ParamByName('id').AsInteger := gdcObject.FieldByName('parent').AsInteger;
+      ibsql.ExecQuery;
+      if not ibsql.Eof then
+      begin
+        Stream := TStringStream.Create(ibsql.FieldByName('OPTIONS').AsString);
+        try
+          ReadOptions(Stream);
+        finally
+          Stream.Free;
+        end;
+      end
+    finally
+      ibsql.Free;
+    end;
+    UpdateInsertingSettings;
   end;
 
 

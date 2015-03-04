@@ -1,10 +1,10 @@
-
 unit AcctUtils;
 
 interface
 
 uses
-  Classes, Windows, stdctrls, Forms, Controls, Dialogs, gd_KeyAssoc;
+  classes, Windows, stdctrls, Forms, Controls, Dialogs,
+  gdcBaseInterface, AcctStrings, gd_KeyAssoc;
 
 type
   TgdvSumInfo = record
@@ -72,8 +72,7 @@ uses
   {$IFDEF GEDEMIN}
   at_classes, gdv_dlgAccounts_unit,
   {$ENDIF}
-  AcctStrings, SysUtils, IBSQL, gd_security, gdcConstants,
-  IBDatabase, gdcBaseInterface
+  Sysutils, IBSQL, gd_security, gdcConstants, IBDatabase
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub

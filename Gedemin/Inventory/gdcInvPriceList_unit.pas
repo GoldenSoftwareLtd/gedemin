@@ -69,14 +69,17 @@ type
     procedure ReadOptions(Stream: TStream); virtual;
     procedure WriteStream(Stream: TStream); virtual;
 
-    procedure SetSubType(const Value: TgdcSubType); override;
+    procedure SetSubType(const Value: String); override;
 
     function GetGroupID: Integer; override;
     function GetNotCopyField: String; override;
 
   public
     constructor Create(AnOwner: TComponent); override;
-    class function IsAbstractClass: Boolean; override;
+
+    class function GetSubTypeList(SubTypeList: TStrings;
+      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; override;
+    class function ClassParentSubtype(Subtype: String): String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
 
     function DocumentTypeKey: Integer; override;
@@ -146,10 +149,6 @@ type
   protected
     procedure CreateFields; override;
 
-    procedure CustomInsert(Buff: Pointer); override;
-    procedure CustomModify(Buff: Pointer); override;
-    procedure CustomDelete(Buff: Pointer); override;
-    
   public
     constructor Create(AnOwner: TComponent); override;
 
@@ -172,7 +171,7 @@ uses
   gd_security_OperationConst, gdc_dlgSetupInvPriceList_unit,
   gdc_frmInvPriceList_unit, gdc_frmInvPriceListType_unit,
   gdc_dlgInvPriceList_unit, at_sql_setup, gd_ClassList,
-  gdc_dlgInvPriceListLine_unit, gdcInvDocument_unit;
+  gdcInvDocumentCache_unit, gdc_dlgInvPriceListLine_unit;
 
 procedure Register;
 begin
@@ -196,10 +195,6 @@ begin
   FLastRelationCostKey := -1;
 end;
 
-class function TgdcInvBasePriceList.IsAbstractClass: Boolean;
-begin
-  Result := Self.ClassNameIs('TgdcInvBasePriceList');
-end;
 
 function TgdcInvBasePriceList.DocumentTypeKey: Integer;
 begin
@@ -344,6 +339,20 @@ begin
   {END MACRO}
 end;
 
+class function TgdcInvBasePriceList.GetSubTypeList(SubTypeList: TStrings;
+  Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
+begin
+  Assert(Assigned(gdcInvDocumentCache));
+
+  Result := gdcInvDocumentCache.GetSubTypeList(INV_DOC_PRICELISTBRANCH,
+    SubTypeList, Subtype, OnlyDirect);
+end;
+
+class function TgdcInvBasePriceList.ClassParentSubtype(Subtype: String): String;
+begin
+  Result := gdcInvDocumentCache.ClassParentSubtype(SubType);
+end;
+
 class function TgdcInvBasePriceList.GetViewFormClassName(
   const ASubType: TgdcSubType): String;
 begin
@@ -420,7 +429,7 @@ begin
   end;
 end;
 
-procedure TgdcInvBasePriceList.SetSubType(const Value: TgdcSubType);
+procedure TgdcInvBasePriceList.SetSubType(const Value: String);
 var
   ibsql: TIBSQL;
   Stream: TStream;
@@ -1358,127 +1367,6 @@ begin
   {END MACRO}
 end;
 
-procedure TgdcInvPriceListType.CustomInsert(Buff: Pointer);
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCINVPRICELISTTYPE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCINVPRICELISTTYPE', KEYCUSTOMINSERT);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMINSERT]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCINVPRICELISTTYPE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCINVPRICELISTTYPE',
-  {M}          'CUSTOMINSERT', KEYCUSTOMINSERT, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCINVPRICELISTTYPE' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  inherited;
-
-  RegisterGdClasses(ctInvPriceList, FieldByName('name').AsString,
-    FieldByName('RUID').AsString, GetParentSubType);
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVPRICELISTTYPE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCINVPRICELISTTYPE', 'CUSTOMINSERT', KEYCUSTOMINSERT);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcInvPriceListType.CustomModify(Buff: Pointer);
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCINVPRICELISTTYPE', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCINVPRICELISTTYPE', KEYCUSTOMMODIFY);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMMODIFY]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCINVPRICELISTTYPE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCINVPRICELISTTYPE',
-  {M}          'CUSTOMMODIFY', KEYCUSTOMMODIFY, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCINVPRICELISTTYPE' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  inherited;
-
-  UpdateGdClasses(ctInvPriceList, FieldByName('name').AsString, FieldByName('RUID').AsString);
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVPRICELISTTYPE', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCINVPRICELISTTYPE', 'CUSTOMMODIFY', KEYCUSTOMMODIFY);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcInvPriceListType.CustomDelete(Buff: Pointer);
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCINVPRICELISTTYPE', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCINVPRICELISTTYPE', KEYCUSTOMDELETE);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMDELETE]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCINVPRICELISTTYPE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCINVPRICELISTTYPE',
-  {M}          'CUSTOMDELETE', KEYCUSTOMDELETE, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCINVPRICELISTTYPE' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  inherited;
-
-  UnRegisterGdClasses(ctInvPriceList, FieldByName('RUID').AsString);
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVPRICELISTTYPE', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCINVPRICELISTTYPE', 'CUSTOMDELETE', KEYCUSTOMDELETE);
-  {M}  end;
-  {END MACRO}
-end;
-
 class function TgdcInvPriceListType.GetDialogFormClassName(
   const ASubType: TgdcSubType): String;
 begin
@@ -1502,9 +1390,9 @@ begin
 end;
 
 initialization
-  RegisterGdcClass(TgdcInvPriceListType, ctStorage, 'Прайс-лист');
-  RegisterGdcClass(TgdcInvPriceList, ctInvPriceList);
-  RegisterGdcClass(TgdcInvPriceListLine, ctInvPriceList);
+  RegisterGdcClass(TgdcInvPriceListType);
+  RegisterGdcClass(TgdcInvPriceList);
+  RegisterGdcClass(TgdcInvPriceListLine);
 
 finalization
   UnRegisterGdcClass(TgdcInvPriceListType);

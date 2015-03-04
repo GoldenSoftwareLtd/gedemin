@@ -21,12 +21,14 @@ type
     procedure FormCreate(Sender: TObject);
     procedure actCreateEntryExecute(Sender: TObject);
     procedure actGotoEntryExecute(Sender: TObject);
-    procedure actCreateEntryUpdate(Sender: TObject);
   private
     { Private declarations }
   public
     { Public declarations }
     class function CreateAndAssign(AnOwner: TComponent): TForm; override;
+    class function GetSubTypeList(SubTypeList: TStrings;
+      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; override;
+    class function ClassParentSubtype(Subtype: String): String; override;
   end;
 
 var
@@ -40,9 +42,7 @@ uses
   dmDatabase_unit,
   gd_ClassList,
   gdcAcctEntryRegister,
-  gdc_frmTransaction_unit,
-  gdcBaseInterface,
-  IBSQL
+  gdc_frmTransaction_unit
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -67,6 +67,19 @@ begin
 
   Caption := gdcUserDocument.DocumentName[True];
 
+end;
+
+class function Tgdc_frmUserSimpleDocument.GetSubTypeList(
+  SubTypeList: TStrings; Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
+begin
+  Result := TgdcUserDocument.GetSubTypeList(SubTypeList, Subtype, OnlyDirect);
+end;
+
+
+class function Tgdc_frmUserSimpleDocument.ClassParentSubtype(
+  Subtype: String): String;
+begin
+  Result := TgdcUserDocument.ClassParentSubtype(SubType);
 end;
 
 procedure Tgdc_frmUserSimpleDocument.actCreateEntryExecute(
@@ -121,13 +134,8 @@ begin
   
 end;
 
-procedure Tgdc_frmUserSimpleDocument.actCreateEntryUpdate(Sender: TObject);
-begin
-  actCreateEntry.Enabled := (gdcObject <> nil) and (gdcObject.CanEdit);
-end;
-
 initialization
-  RegisterFrmClass(Tgdc_frmUserSimpleDocument, ctUserDocument);
+  RegisterFrmClass(Tgdc_frmUserSimpleDocument);
 
 finalization
   UnRegisterFrmClass(Tgdc_frmUserSimpleDocument);

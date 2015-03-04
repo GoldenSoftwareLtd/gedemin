@@ -15,7 +15,7 @@ type
     FFields: TObjectList;
     FAlias: string;
     function GetAnalyticCount: Integer;
-    //function GetCondition: string;
+    function GetCondition: string;
     procedure SetAlias(const Value: string);
     procedure SetValues(const Value: string);
     function GetValues: string;
@@ -28,15 +28,13 @@ type
     procedure UpdateAnalytic(IdList: TList);
 
     property AnalyticCount: Integer read GetAnalyticCount;
-    //property Condition: string read GetCondition;
+    property Condition: string read GetCondition;
     property Alias:  string read FAlias write SetAlias;
     property Values: string read GetValues write SetValues;
   end;
 
 implementation
-
-uses 
-  IBSQL, gdv_frameMapOfAnalitic_unit, gdcBaseInterface, at_classes, Math;
+uses IBSQL, gdv_frameMapOfAnalitic_unit, gdcBaseInterface, at_classes, Math;
 
 {$R *.DFM}
 
@@ -50,9 +48,8 @@ begin
   for I := 0 to FAnaliseLines.Count - 1 do
   begin
     Line := TframeMapOfAnaliticLine(FAnaliseLines[I]);
-    //Line.cbAnalitic.CurrentKey := '';
-    //Line.eAnalitic.Text := '';
-    Line.Clear;
+    Line.cbAnalitic.CurrentKey := '';
+    Line.eAnalitic.Text := '';
   end;
 end;
 
@@ -77,43 +74,53 @@ function TframeAnalyticValue.GetAnalyticCount: Integer;
 var
   I: Integer;
 begin
-   Result := 0;
-
-   for I := 0 to FAnaliseLines.Count - 1 do
-   begin
-     Result := Result + TframeMapOfAnaliticLine(FAnaliseLines[I]).Count;
-   end;
+  Result := 0;
+  for I := 0 to FAnaliseLines.Count - 1 do
+  begin
+    if TframeMapOfAnaliticLine(FAnaliseLines[I]).cbAnalitic.Visible then
+    begin
+      if TframeMapOfAnaliticLine(FAnaliseLines[I]).cbAnalitic.CurrentKeyInt > - 1 then
+        Inc(Result)
+    end else
+      if Trim(TframeMapOfAnaliticLine(FAnaliseLines[I]).eAnalitic.Text) > '' then
+        Inc(Result)
+  end;
 end;
 
-{function TframeAnalyticValue.GetCondition: string;
+function TframeAnalyticValue.GetCondition: string;
 var
   I: Integer;
   Line: TframeMapOfAnaliticLine;
   F: TatRelationField;
-  S: String;
 begin
   Result := '';
-
   for I := 0 to FAnaliseLines.Count - 1 do
   begin
     Line := TframeMapOfAnaliticLine(FAnaliseLines[I]);
     F := Line.Field;
-    S := Line.Value;
-    if S > '' then
+    if Line.cbAnalitic.Visible then
     begin
-      if Result > '' then
-        Result := Result + #13#10;
-      Result := Result + F.FieldName + '=' + S;
-    end;
+      if Line.cbAnalitic.CurrentKeyInt > - 1 then
+      begin
+        if Result > '' then
+          Result := Result + ' AND '#13#10;
+        Result := Result + FAlias + '.' + F.FieldName + ' = ' + Line.cbAnalitic.CurrentKey;
+      end;
+    end else
+      if Trim(Line.eAnalitic.Text) > '' then
+      begin
+        if Result > '' then
+          Result := Result + ' AND '#13#10;
+        Result := Result + FAlias + '.' + F.FieldName + ' = ' + Line.eAnalitic.Text;
+      end;
   end;
-end;}
+end;
 
 function TframeAnalyticValue.GetValues: string;
 var
   I: Integer;
   Line: TframeMapOfAnaliticLine;
   F: TatRelationField;
-  S: String;
 begin
   Result := '';
   for I := 0 to FAnaliseLines.Count - 1 do
@@ -122,13 +129,21 @@ begin
     F := Line.Field;
     if not Line.cbInputParam.Checked then
     begin
-      S := Line.Value;
-      if S > '' then
+      if Line.cbAnalitic.Visible then
       begin
-        if Result > '' then
-          Result := Result + #13#10;
-        Result := Result + F.FieldName + '=' + S;
-      end;
+        if Line.cbAnalitic.CurrentKeyInt > - 1 then
+        begin
+          if Result > '' then
+              Result := Result + #13#10;
+          Result := Result + F.FieldName + '=' + Line.cbAnalitic.CurrentKey;
+        end;
+      end else
+        if Trim(Line.eAnalitic.Text) > '' then
+        begin
+          if Result > '' then
+            Result := Result + #13#10;
+          Result := Result + F.FieldName + '=' + Line.eAnalitic.Text;
+        end;
     end else
     begin
       if Result > '' then
@@ -180,8 +195,16 @@ begin
         Line := TframeMapOfAnaliticLine(FAnaliseLines[Index]);
 
         if S.Values[S.Names[I]] <> cInputParam then
-          Line.Value := S.Values[S.Names[I]]
-        else
+        begin
+          if Line.cbAnalitic.Visible then
+            try
+              Line.cbAnalitic.CurrentKey := S.Values[S.Names[I]];
+            except
+              Line.cbAnalitic.CurrentKey := '';
+            end
+          else
+            Line.eAnalitic.Text := S.Values[S.Names[I]];
+        end else
           Line.cbInputParam.Checked := True;
       end;
     end;
@@ -195,7 +218,7 @@ var
   I, Index: Integer;
   SQL: TIBSQl;
   Line: TframeMapOfAnaliticLine;
-  H: Integer;
+  H, W: Integer;
   P: Integer;
   LAnaliseLines: TObjectList;
 
@@ -247,6 +270,7 @@ begin
               begin
                 Name := '';
                 Field := TatRelationField(FFields[i]);
+                cbAnalitic.Transaction := gdcBaseManager.ReadTransaction;
                 Parent := sbAnaliseLines;
               end;
             end else
@@ -277,6 +301,20 @@ begin
       SQL.Free;
     end;
 
+    W := 0;
+    for I := 0 to sbAnaliseLines.ControlCount - 1 do
+    begin
+      W := Max(TframeMapOfAnaliticLine(sbAnaliseLines.Controls[i]).lAnaliticName.Left +
+        TframeMapOfAnaliticLine(sbAnaliseLines.Controls[i]).lAnaliticName.Width, W);
+    end;
+    W := W + 5;
+    for I := 0 to sbAnaliseLines.ControlCount - 1 do
+    begin
+      TframeMapOfAnaliticLine(sbAnaliseLines.Controls[i]).cbAnalitic.Left := W;
+      TframeMapOfAnaliticLine(sbAnaliseLines.Controls[i]).cbAnalitic.Width := sbAnaliseLines.ClientWidth - 2 - W;
+      TframeMapOfAnaliticLine(sbAnaliseLines.Controls[i]).eAnalitic.Left := W;
+      TframeMapOfAnaliticLine(sbAnaliseLines.Controls[i]).eAnalitic.Width := sbAnaliseLines.ClientWidth - 2 - W;
+    end;
   finally
     LAnaliseLines.Free;
   end;

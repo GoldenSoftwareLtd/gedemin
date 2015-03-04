@@ -47,14 +47,9 @@ constructor TfrAcctCompany.Create(AOwner: TComponent);
 begin
   inherited;
 
-  if gdcBaseManager <> nil then
-    Transaction.DefaultDataBase := gdcBaseManager.Database;
-    
-  if IBLogin <> nil then
-  begin  
-    iblCompany.CurrentKeyInt := IbLogin.CompanyKey;
-    cbAllCompanies.Checked := IbLogin.IsHolding;
-  end;  
+  Transaction.DefaultDataBase := gdcBaseManager.Database;
+  iblCompany.CurrentKeyInt := IbLogin.CompanyKey;
+  cbAllCompanies.Checked := IbLogin.IsHolding;
 end;
 
 procedure TfrAcctCompany.ppMainResize(Sender: TObject);
@@ -76,7 +71,6 @@ var
   SQL: TIBSQL;
 begin
   Assert(gdcBaseManager <> nil);
-  Assert(IBLogin <> nil);
 
   if iblCompany.CurrentKey = '' then
     FHoldingList := ''

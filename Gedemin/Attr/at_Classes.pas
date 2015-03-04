@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2001-2015 by Golden Software of Belarus
+  Copyright (c) 2001-2013 by Golden Software of Belarus
 
   Module
 
@@ -34,7 +34,7 @@ uses
 
 const
   UserPrefix            = 'USR$';  //Пользователькие мета-данные
-  SystemPrefix          = 'RDB$';  //Системные мета-данные
+  SystemPrefix          = 'RDB$'; //Системные мета-данные
   BooleanDomainName     = 'DBOOLEAN';
   BoolNotNullDomainName = 'DBOOLEAN_NOTNULL';
   CrossTablePrefix      = 'USR$CROSS';
@@ -181,7 +181,7 @@ type
 
   end;
 
-  TatRelationType = (rtTable, rtView);
+  TatRelationType = (rtTable, rtView{, rtGedeminGlobalNamespace, rtQuery});
 
   TatRelation = class(TObject)
   protected
@@ -211,7 +211,6 @@ type
     function GetIsSystem: Boolean; virtual; abstract;
     function GetHasSecurityDescriptors: Boolean; virtual; abstract;
     function GetListField: TatRelationField; virtual; abstract;
-    function GetIsStandartRelation: Boolean; virtual; abstract;
     function GetIsStandartTreeRelation: Boolean; virtual; abstract;
     function GetIsLBRBTreeRelation: Boolean; virtual; abstract;
 
@@ -232,7 +231,6 @@ type
     function GetReferencesRelation: TatRelation; virtual; abstract;
 
     property RelationType: TatRelationType read FRelationType;
-    property IsStandartRelation: Boolean read GetIsStandartRelation;
     property IsStandartTreeRelation: Boolean read GetIsStandartTreeRelation;
     property IsLBRBTreeRelation: Boolean read GetIsLBRBTreeRelation;
 

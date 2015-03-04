@@ -320,7 +320,7 @@ uses
   jclStrings, at_frmSQLProcess, gsStorage_CompPath,
   gd_security, prp_methods, Gedemin_TLB, gsStorage,
   gdcUser, at_classes, DBCtrls, at_AddToSetting,
-  gdcClasses, DBGrids, gdcJournal, gdHelp_Interface, gdcDelphiObject, Contnrs
+  gdcClasses, DBGrids, gdcJournal, gdHelp_Interface
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -1294,7 +1294,6 @@ var
   L: TList;
   I, P: Integer;
   IsNewCtrl: Boolean;
-  CE : TgdClassEntry;
 
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGG', 'SETUPRECORD', KEYSETUPRECORD)}
@@ -1379,18 +1378,6 @@ begin
   end;
 
   FOldPostCount := gdcObject.PostCount;
-
-  if (SubType > '') then
-  begin
-    CE := gdClassList.Find(gdcObject.ClassType, SubType);
-    if (CE <> nil) and (CE.gdClassKind = ctStorage) then
-    begin
-      if fgdcObject.FindField('USR$ST') = nil then
-        raise Exception.Create('Поле ''USR$ST'' не найдено');
-
-      gdcObject.FieldByName('USR$ST').AsString := AnsiUpperCase(gdcObject.SubType);
-    end;
-  end;
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGG', 'SETUPRECORD', KEYSETUPRECORD)}
   {M}finally
@@ -1838,22 +1825,12 @@ end;
 
 
 constructor Tgdc_dlgG.Create(AnOwner: TComponent);
-var
-  gdcDelphiObject: TgdcDelphiObject;
 begin
   inherited;
   ErrorAction := False;
   FFieldsCallOnSync := TFieldsCallList.Create;
   FAlreadyRestory := False;
   FAppliedID := -1;
-
-  gdcDelphiObject := TgdcDelphiObject.Create(nil);
-  try
-    gdcDelphiObject.AddObject(Self);
-    gdcDelphiObject.Close;
-  finally
-    gdcDelphiObject.Free;
-  end;
 end;
 
 constructor Tgdc_dlgG.CreateNewUser(AnOwner: TComponent;

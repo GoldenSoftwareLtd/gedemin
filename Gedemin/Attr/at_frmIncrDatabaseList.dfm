@@ -52,13 +52,14 @@ object frmIncrDatabaseList: TfrmIncrDatabaseList
     ColumnEditors = <>
     Aliases = <>
   end
+  object gdcDatabases: TgdcAttrUserDefined
+    SubType = 'RPL_DATABASE'
+    Left = 312
+    Top = 96
+  end
   object dsDatabases: TDataSource
     DataSet = gdcDatabases
     Left = 264
-    Top = 96
-  end
-  object gdcDatabases: TgdcRplDatabase2
-    Left = 320
     Top = 96
   end
 end

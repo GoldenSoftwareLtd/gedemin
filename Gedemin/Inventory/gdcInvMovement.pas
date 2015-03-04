@@ -2,7 +2,7 @@
 {++
 
 
-  Copyright (c) 2001-2014 by Golden Software of Belarus
+  Copyright (c) 2001-2013 by Golden Software of Belarus
 
   Module
 
@@ -365,6 +365,9 @@ type
     property IsGetRemains: Boolean read GetIsGetRemains write SetIsGetRemains;
     property NoWait: Boolean read FNoWait write FNoWait;
 
+    class function GetSubTypeList(SubTypeList: TStrings;
+      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; override;
+    class function ClassParentSubtype(Subtype: String): String; override;
     property ShowMovementDlg: Boolean read FShowMovementDlg write FShowMovementDlg default True;
   published
     // Позиция документа
@@ -412,7 +415,7 @@ type
     procedure CustomInsert(Buff: Pointer); override;
     procedure CustomModify(Buff: Pointer); override;
     procedure CustomDelete(Buff: Pointer); override;
-    procedure SetSubType(const Value: TgdcSubType); override;
+    procedure SetSubType(const Value: String); override;
 
     procedure DoBeforeInsert; override;
 
@@ -429,7 +432,8 @@ type
     class function GetKeyField(const ASubType: TgdcSubType): String; override;
     class function GetListTableAlias: String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
-
+    class function GetSubTypeList(SubTypeList: TStrings;
+      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; override;
     class function IsAbstractClass: Boolean; override;
     class function GetDisplayName(const ASubType: TgdcSubType): String; override;
 
@@ -680,7 +684,7 @@ uses
   dmDatabase_unit, gdcInvDocument_unit, gdc_frmInvSelectRemains_unit, gdc_frmInvSelectGoodRemains_unit, at_sql_setup,
   gd_security, gdc_frmInvViewRemains_unit, gd_ClassList,
   gdc_frmInvRemainsOption_unit, gdc_dlgInvRemainsOption_unit, ComObj,
-  gd_resourcestring, gdc_dlgShowMovement_unit
+  gdcInvDocumentCache_unit, gd_resourcestring, gdc_dlgShowMovement_unit
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -2694,7 +2698,6 @@ begin
 
           tmpQuantity := GetLastRemains(FieldByName('cardkey').AsInteger, FieldByName('contactkey').AsInteger) +
              tmpQuantity + ipQuantity;
-             
           if (tmpQuantity < 0)
           then
           begin
@@ -4627,6 +4630,67 @@ begin
   {END MACRO}
 end;
 
+class function TgdcInvMovement.GetSubTypeList(SubTypeList: TStrings;
+  Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
+{var
+  ibsql: TIBSQL;
+  ibtr: TIBTransaction;}
+begin
+  Assert(Assigned(gdcInvDocumentCache));
+
+  Result := gdcInvDocumentCache.GetSubTypeList(TgdcInvDocumentType.InvDocumentTypeBranchKey,
+    SubTypeList, Subtype, OnlyDirect);
+
+  {
+  if not Assigned(gdcBaseManager) then
+  begin
+    Result := False;
+    exit;
+  end;
+
+  ibsql := TIBSQL.Create(nil);
+  ibtr := TIBTransaction.Create(nil);
+  try
+    ibtr.DefaultDatabase := gdcBaseManager.Database;
+    ibsql.Database := gdcBaseManager.Database;
+    ibsql.Transaction := ibtr;
+
+    ibtr.StartTransaction;
+
+    ibsql.SQL.Text :=
+      Format('SELECT NAME, RUID FROM GD_DOCUMENTTYPE WHERE PARENT = %d',
+        [TgdcInvDocumentType.InvDocumentTypeBranchKey]);
+
+    ibsql.ExecQuery;
+
+    SubTypeList.Clear;
+
+    while not ibsql.EOF do
+    begin
+      SubTypeList.Add(
+        ibsql.FieldByName('NAME').AsString + '=' +
+        ibsql.FieldByName('RUID').AsString);
+
+      ibsql.Next;
+    end;
+
+    ibsql.Close;
+    ibtr.Commit;
+  finally
+    ibtr.Free;
+    ibsql.Free;
+  end;
+
+  Result := SubTypeList.Count > 0;
+  }
+end;
+
+class function TgdcInvMovement.ClassParentSubtype(
+  Subtype: String): String;
+begin
+  Result := gdcInvDocumentCache.ClassParentSubtype(SubType);
+end;
+
 procedure TgdcInvMovement.SetSubSet(const Value: TgdcSubSet);
 begin
   inherited;
@@ -5222,13 +5286,50 @@ begin
   Result := inherited GetSubSetList + cst_ByGoodKey + ';' + cst_ByGroupKey + ';' + cst_AllRemains + ';' + cst_Holding + ';';
 end;
 
+class function TgdcInvBaseRemains.GetSubTypeList(SubTypeList: TStrings;
+      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
+{var
+  ibsql: TIBSQL;}
+begin
+  if not Assigned(gdcBaseManager) then
+  begin
+    Result := False;
+    exit;
+  end;
+
+  {ibsql := TIBSQL.Create(nil);
+  try}
+    Assert(Assigned(gdcInvDocumentCache));
+
+    Result := gdcInvDocumentCache.GetSubTypeList2(
+      'TgdcInvBaseRemains', SubTypeList, Subtype, OnlyDirect);
+    {if Result then
+    begin
+      ibsql.Transaction := gdcBaseManager.ReadTransaction;
+      ibsql.SQL.Text :=
+        'SELECT NAME, RUID FROM INV_BALANCEOPTION ';
+      ibsql.ExecQuery;
+      while not ibsql.EOF do
+      begin
+        SubTypeList.Add(
+          ibsql.FieldByName('NAME').AsString + '=' +
+          ibsql.FieldByName('RUID').AsString);
+        ibsql.Next;
+      end;
+      ibsql.Close;
+    end;
+  finally
+    ibsql.Free;
+  end;}
+end;
+
 class function TgdcInvBaseRemains.GetViewFormClassName(
   const ASubType: TgdcSubType): String;
 begin
   Result := 'Tgdc_frmInvViewRemains';
 end;
 
-procedure TgdcInvBaseRemains.SetSubType(const Value: TgdcSubType);
+procedure TgdcInvBaseRemains.SetSubType(const Value: String);
 var
   ibsql: TIBSQL;
   DidActivate: Boolean;
@@ -5487,11 +5588,17 @@ end;
 
 class function TgdcInvBaseRemains.GetDisplayName(
   const ASubType: TgdcSubType): String;
+var
+  Idx: Integer;
 begin
   Result := 'Остатки ТМЦ';
 
   if ASubType > '' then
-    Result := Result + ' ' + Inherited GetDisplayName(ASubType);
+  begin
+    Idx := TgdcDocument.CacheDocumentTypeByRUID(ASubType);
+    if Idx > -1 then
+      Result := Result + ' ' + gdcClasses.DocTypeCache.CacheItemsByIndex[Idx].Name;
+  end;
 end;
 
 { TgdcInvRemains }
@@ -6151,7 +6258,7 @@ begin
             'S_' + FSumFeatures[i];
       end
       else
-        Result := Result + ', SUM(m.balance * cast(C.' + FSumFeatures[i] + ' as double precision)) as ' +
+        Result := Result + ', SUM(m.balance * C.' + FSumFeatures[i] + ') as ' +
           'S_' + FSumFeatures[i];
 
   if Assigned(FGoodSumFeatures) then
@@ -6166,7 +6273,7 @@ begin
             'SG_' + FGoodSumFeatures[i]
       end
       else
-        Result := Result + ', SUM(m.balance * cast(G.' + FGoodSumFeatures[i] + ' as double precision)) as ' +
+        Result := Result + ', SUM(m.balance * G.' + FGoodSumFeatures[i] + ') as ' +
           'SG_' + FGoodSumFeatures[i];
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVREMAINS', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE)}
@@ -6758,7 +6865,7 @@ begin
     case MovementContactType of
     imctOurCompany:
       ContactType := 3;
-    imctOurDepartment, imctOurPeople, imctOurDepartAndPeople:
+    imctOurDepartment, imctOurPeople:
       begin
         if (High(SubDepartmentKeys) < Low(SubDepartmentKeys)) and
            (High(DepartmentKeys) < Low(DepartmentKeys))
@@ -6923,7 +7030,7 @@ begin
     case MovementContactType of
     imctOurCompany:
       ContactType := 3;
-    imctOurDepartment, imctOurPeople, imctOurDepartAndPeople:
+    imctOurDepartment, imctOurPeople:
       begin
         if (High(SubDepartmentKeys) < Low(SubDepartmentKeys)) and
            (High(DepartmentKeys) < Low(DepartmentKeys))
@@ -7340,7 +7447,7 @@ begin
   {M}    end;
   {END MACRO}
 
-  Result := 'GROUP BY con.Name, doc.number, doc.documentdate, doc.creationdate, doc.editiondate, ' +
+  Result := 'GROUP BY con.Name, doc.number, doc.documentdate, ' +
    ' doct.name, doct.ruid, doc.id, doc.parent, g.Name, v.Name, m.contactkey, z.goodkey, main_con.name, main_con.id ';
   if HasSubSet('ByHolding') then
     Result := Result + ', con_m.name ';
@@ -7431,9 +7538,9 @@ begin
   {M}    end;
   {END MACRO}
   if HasSubSet('ByHolding') then
-    Result := 'ORDER BY doc.documentdate, doc.editiondate, 16 DESC '
+    Result := 'ORDER BY doc.documentdate, doc.id, 14 DESC '
   else
-    Result := 'ORDER BY doc.documentdate, doc.editiondate, 15 DESC ';
+    Result := 'ORDER BY doc.documentdate, doc.id, 13 DESC ';
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVCARD', 'GETORDERCLAUSE', KEYGETORDERCLAUSE)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -7663,7 +7770,7 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  Result := 'SELECT con.Name, doc.number, doc.documentdate, doc.creationdate, doc.editiondate, g.Name as GoodName, v.Name as ValueName, ' +
+  Result := 'SELECT con.Name, doc.number, doc.documentdate, g.Name as GoodName, v.Name as ValueName, ' +
    ' doct.name as DocName, doct.ruid, doc.id, doc.parent, m.contactkey, z.goodkey, main_con.name as DEPOTNAME, main_con.id as DEPOTKEY ';
   if HasSubSet('ByHolding') then
     Result := Result + ', con_m.Name as NameMove, SUM(m.Debit) as Debit, SUM(m.Credit) as Credit '
@@ -7797,7 +7904,7 @@ begin
         FieldPrefix := INV_SOURCEFEATURE_PREFIX;
     end else
 
-    if (gdcInvDocumentLine as TgdcInvBaseDocument).MovementSource.ContactType in [imctOurCompany, imctOurDepartment, imctOurPeople, imctOurDepartAndPeople] then
+    if (gdcInvDocumentLine as TgdcInvBaseDocument).MovementSource.ContactType in [imctOurCompany, imctOurDepartment, imctOurPeople] then
       FieldPrefix := INV_SOURCEFEATURE_PREFIX
     else
       FieldPrefix := INV_DESTFEATURE_PREFIX;
@@ -8094,6 +8201,9 @@ begin
   {M}    end;
   {END MACRO}
 
+  if Assigned(gdcInvDocumentCache) then
+    gdcInvDocumentCache.Clear;
+
   inherited;
 
   //
@@ -8103,8 +8213,6 @@ begin
     'DELETE FROM gd_command WHERE classname = ''TgdcInvRemains'' AND ' +
     '  subtype = ''%s''',
     [FieldByName('ruid').AsString]));
-
-  UnRegisterGdClasses(ctInvRemains, FieldByName('RUID').AsString);
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVREMAINSOPTION', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
   {M}  finally
@@ -8142,6 +8250,9 @@ begin
   {M}    end;
   {END MACRO}
 
+  if Assigned(gdcInvDocumentCache) then
+    gdcInvDocumentCache.Clear;
+
   inherited;
 
   UpdateExplorerCommandData(
@@ -8149,9 +8260,6 @@ begin
     FieldByName('NAME').AsString, FieldByName('ruid').AsString,
     TgdcInvRemains.ClassName, False, FieldByName('branchkey').AsInteger
   );
-
-  RegisterGdClasses(ctInvRemains, FieldByName('name').AsString,
-    FieldByName('RUID').AsString);
   
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVREMAINSOPTION', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  finally
@@ -8189,6 +8297,9 @@ begin
   {M}    end;
   {END MACRO}
 
+  if Assigned(gdcInvDocumentCache) then
+    gdcInvDocumentCache.Clear;
+
   inherited;
 
   UpdateExplorerCommandData(
@@ -8197,8 +8308,6 @@ begin
     TgdcInvRemains.ClassName,
     True, FieldByName('branchkey').AsInteger
   );
-
-  UpdateGdClasses(ctInvRemains, FieldByName('name').AsString, FieldByName('RUID').AsString);
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVREMAINSOPTION', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
   {M}  finally
@@ -9083,10 +9192,11 @@ end;
 
 initialization
   RegisterGdcClass(TgdcInvBaseRemains);
-  RegisterGdcClass(TgdcInvRemains, ctInvRemains);
-  RegisterGdcClass(TgdcInvGoodRemains, ctInvRemains);
-  RegisterGdcClass(TgdcInvMovement, ctInvDocument);
+  RegisterGdcClass(TgdcInvRemains);
+  RegisterGdcClass(TgdcInvGoodRemains);
+  RegisterGdcClass(TgdcInvMovement);
   RegisterGdcClass(TgdcInvCard);
+{  RegisterGdcClass(TgdcInvCardFull);}
   RegisterGdcClass(TgdcInvRemainsOption);
   RegisterGdcClass(TgdcInvCardConfig);
 
@@ -9096,7 +9206,9 @@ finalization
   UnRegisterGdcClass(TgdcInvGoodRemains);
   UnRegisterGdcClass(TgdcInvMovement);
   UnRegisterGdcClass(TgdcInvCard);
+{  UnRegisterGdcClass(TgdcInvCardFull);}
   UnRegisterGdcClass(TgdcInvRemainsOption);
   UnRegisterGdcClass(TgdcInvCardConfig);
+
 end.
 

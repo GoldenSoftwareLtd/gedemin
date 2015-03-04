@@ -9,7 +9,7 @@ uses
   Buttons, ExtCtrls, contnrs, gd_KeyAssoc;
 
 
-type
+type         
   TAnalyticFieldType = (aftReference, aftString, aftDate, aftTime, aftDateTime);
 
   TfrAcctAnalyticLine = class(TFrame)
@@ -74,8 +74,8 @@ uses
 
 const
   FrameHeight = 22;
-  ButtonHeight = 19;
-  ButtonWidth = 18;
+  ButtonHeight = 18;
+  ButtonWidth = 14;
 
 { TfrAcctAnalyticLine }
 
@@ -364,8 +364,7 @@ begin
     FLookUp.Add(CreateLookUp);
     FButtons.Add(CreateButton);
     ReSizeControls;
-  end;
-  if Assigned(FOnValueChange) then FOnValueChange(Sender);
+  end;  
 end;
 
 procedure TfrAcctAnalyticLine.ReSizeControls;
@@ -452,9 +451,9 @@ begin
   with Result do
   begin
     Parent := Self;
-    //ParentFont := False;
+    ParentFont := False;
     Caption := 'X';
-    //Font.Style := [fsBold];
+    Font.Style := [fsBold];
     Action := FactVisible;
     Visible := True;
     Height := ButtonHeight;

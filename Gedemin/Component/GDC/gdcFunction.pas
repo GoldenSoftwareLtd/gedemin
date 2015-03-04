@@ -30,6 +30,7 @@ type
     constructor Create(AnOwner: TComponent); override;
     destructor  Destroy; override;
 
+    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetKeyField(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
@@ -531,6 +532,11 @@ begin
   Result := True;
 end;
 
+class function TgdcFunction.GetDisplayName(const ASubType: TgdcSubType): String;
+begin
+  Result := 'Функция';
+end;
+
 function TgdcFunction.GetFromClause(const ARefresh: Boolean): String;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
   {M}VAR
@@ -597,17 +603,16 @@ var
   MethodItem: TMethodItem;
   tmpObject: TObject;
   I: Integer;
-  ClassMethods: TgdClassMethods;
+  ClassMethods: TgdcClassMethods;
   gdcEvent: TgdcEvent;
   tmpClass: TClass;
-  CE: TgdClassEntry;
 
 const
   cCMErr = 'Для класса не найден объект описания методов класса.';
 
 begin
-  //ClassMethods := nil;
-{  I := gdcClassList.IndexOfByName(FullClassName);
+  ClassMethods := nil;
+  I := gdcClassList.IndexOfByName(FullClassName);
   if I > -1 then
   begin
     ClassMethods := gdcClassList.gdcItems[I];
@@ -618,15 +623,7 @@ begin
       begin
         ClassMethods := frmClassList.gdcItems[I];
       end;
-    end;  }
-
-  CE := gdClassList.Find(GetClass(FullClassName.gdClassName));
-
-  if CE = nil then
-    raise Exception.Create('Класс ' + FullClassName.gdClassName + ' не найден');
-
-  ClassMethods := CE.ClassMethods;
-
+    end;
   if ClassMethods = nil then
     raise Exception.Create(cCMErr);
 
@@ -637,9 +634,9 @@ begin
       I := AddClass(FullClassName);
       if I > -1 then
       begin
-        tmpClass := gdClassList.GetGDCClass(FullClassName.gdClassName);
+        tmpClass := gdcClassList.GetGDCClass(FullClassName);
         if tmpClass = nil then
-          tmpClass := gdClassList.GetFrmClass(FullClassName.gdClassName);
+          tmpClass := frmClassList.GetFrmClass(FullClassName);
         if tmpClass = nil then
           raise Exception.Create('Класс ' + FullClassName.gdClassName + ' не зарегистрирован в системе.');
 
@@ -660,14 +657,14 @@ begin
     MethodItem :=  TCustomMethodClass(tmpObject).MethodList.Items[I];
   end;
 
-  while ClassMethods.gdMethods.Count = 0 do
+  while ClassMethods.gdcMethods.Count = 0 do
   begin
-    ClassMethods := ClassMethods.GetGdClassMethodsParent;
+    ClassMethods := ClassMethods.GetGdcClassMethodsParent;
     if ClassMethods = nil then
       raise Exception.Create(cCMErr);
   end;
 
-  MethodItem.MethodData :=  @ClassMethods.gdMethods.MethodByName(MethodName).ParamsData;
+  MethodItem.MethodData :=  @ClassMethods.gdcMethods.MethodByName(MethodName).ParamsData;
 
   Insert;
   FieldByName(fnLanguage).AsString    := 'VBScript';
@@ -721,7 +718,7 @@ begin
 end;
 
 initialization
-  RegisterGdcClass(TgdcFunction, ctStorage, 'Функция');
+  RegisterGdcClass(TgdcFunction);
 
 finalization
   UnRegisterGdcClass(TgdcFunction);

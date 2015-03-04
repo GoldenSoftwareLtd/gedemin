@@ -85,6 +85,11 @@ type
 
     property Document: TgdcInvDocument read GetDocument;
     property DocumentLine: TgdcInvDocumentLine read GetDocumentLine;
+
+    class function GetSubTypeList(SubTypeList: TStrings;
+      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; override;
+
+    class function ClassParentSubtype(Subtype: String): String; override;
   end;
 
 var
@@ -95,8 +100,7 @@ implementation
 {$R *.DFM}
 
 uses
-  gdcInvConsts_unit, at_classes, Storages, gd_security, gdcGood, gdcBase,
-  gd_ClassList, gdcBaseInterface;
+  gdcInvConsts_unit, at_classes, Storages, gd_security, gdcGood, gdcBase,  gd_ClassList;
 
 function GetArrAsCommaText(Ar: array of Integer): String;
 var
@@ -506,7 +510,7 @@ begin
         ListField := 'COMPNAME';
         KeyField := 'COMPID';
       end;
-      imctOurDepartment, imctOurDepartAndPeople:
+      imctOurDepartment:
       begin
         if HasConstraint then
         begin
@@ -532,10 +536,7 @@ begin
         if Condition > '' then
           Condition := Condition + ' AND ';
 
-        if ContactType = imctOurDepartment then
-          Condition := Format('CONTACTTYPE IN (4) AND LB >= %d AND RB <= %d', [LB, RB])
-        else
-          Condition := Format('CONTACTTYPE <> 3 AND LB >= %d AND RB <= %d', [LB, RB]);
+        Condition := Format('CONTACTTYPE IN (4) AND LB >= %d AND RB <= %d', [LB, RB]);
       end;
       imctOurPeople:
       begin
@@ -682,11 +683,6 @@ var
         C.Condition := Format('CONTACTTYPE IN (4) AND LB >= %d AND RB <= %d',
           [FContactSQL.FieldByName('LB').AsInteger, FContactSQL.FieldByName('RB').AsInteger]);
       end;
-      imctOurDepartAndPeople:
-      begin
-        C.Condition := Format('CONTACTTYPE in (2, 4) AND LB >= %d AND RB <= %d',
-          [FContactSQL.FieldByName('LB').AsInteger, FContactSQL.FieldByName('RB').AsInteger]);
-      end;
       imctOurPeople:
       begin
         C.Condition := Format(
@@ -776,6 +772,18 @@ begin
     FContactSQL.Transaction := DocumentLine.ReadTransaction;
     FContactSQL.SQL.Text := 'SELECT LB, RB FROM GD_CONTACT WHERE ID = :ID';
   end;
+end;
+
+class function TdlgInvDocumentLine.GetSubTypeList(
+  SubTypeList: TStrings; Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
+begin
+  Result := TgdcInvDocumentLine.GetSubTypeList(SubTypeList, Subtype, OnlyDirect);
+end;
+
+class function TdlgInvDocumentLine.ClassParentSubtype(
+  Subtype: String): String;
+begin
+  Result := TgdcInvDocumentLine.ClassParentSubtype(SubType);
 end;
 
 procedure TdlgInvDocumentLine.SetupDialog;
@@ -874,7 +882,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(TdlgInvDocumentLine, ctInvDocument);
+  RegisterFrmClass(TdlgInvDocumentLine);
 
 finalization
   UnRegisterFrmClass(TdlgInvDocumentLine);

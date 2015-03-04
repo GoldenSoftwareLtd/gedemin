@@ -720,7 +720,7 @@ begin
         dmTestReport.IBDatabase1.Connected := True;
         ClientReport1.Database := dmTestReport.IBDatabase1;
         IBTransaction1.DefaultDatabase := dmTestReport.IBDatabase1;
-        //gsFunctionList1.Database := dmTestReport.IBDatabase1;
+        gsFunctionList1.Database := dmTestReport.IBDatabase1;
         EventControl1.Database := dmTestReport.IBDatabase1;
         gdScriptFactory1.Database := dmTestReport.IBDatabase1;
       end;
@@ -883,10 +883,10 @@ var
   Cent: String;
 
   function GetName(const Name: TNameSelector): String;
-  {$IFDEF GEDEMIN}
   var
+    {$IFDEF GEDEMIN}
     gdcCurr: TgdcCurr;
-  {$ENDIF}
+    {$ENDIF}
   begin
     repeat
       if (Trunc(Num) mod 100 >= 20) or (Trunc(Num) mod 100 <= 10) then

@@ -1,7 +1,6 @@
-
 {++
 
-  Copyright (c) 2001-2015 by Golden Software of Belarus
+  Copyright (c) 2001 by Golden Software of Belarus
 
   Module
 
@@ -18,7 +17,6 @@
 
     1.00    30.05.03    tiptop        Initial version.
 --}
-
 unit wiz_Main_Unit;
 
 interface
@@ -48,13 +46,11 @@ type
   TCustomNewFunctionCreater = class
   private
     FFunctionName: string;
-    FParentFunctionName: string;
     FCardOfAccountRUID: string;
     FStream: TStream;
     FFunctionRUID: String;
     FFunction: TFunctionBlock;
     procedure SetFunctionName(const Value: string);
-    procedure SetParentFunctionName(const Value: string);
     procedure SetCardOfAccountRUID(const Value: string);
     procedure SetStream(const Value: TStream);
     procedure LoadFromStream(Owner: TComponent; Stream: TStream);
@@ -69,7 +65,6 @@ type
     procedure InitComponentPallete(Form: TdlgFunctionWisard); virtual;
 
     property FunctionName: string read FFunctionName write SetFunctionName;
-    property ParentFunctionName: string read FParentFunctionName write SetParentFunctionName;
     property CardOfAccountRUID: string read FCardOfAccountRUID write SetCardOfAccountRUID;
     property Stream: TStream read FStream write SetStream;
     property FunctionRUID: String read FFunctionRUID write SetFunctionRUID;
@@ -343,7 +338,6 @@ type
     procedure actCaseElseExecute(Sender: TObject);
     procedure actCaseElseUpdate(Sender: TObject);
     procedure actFindNextExecute(Sender: TObject);
-    procedure actOkUpdate(Sender: TObject);
   private
     FSelectedBlock: TVisualBlock;
     FDebugLink: TWizardDebugLink;
@@ -387,8 +381,7 @@ implementation
 uses
   prm_ParamFunctions_unit,
   syn_ManagerInterface_unit,
-  dmImages_unit,
-  gd_security
+  dmImages_unit
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -396,6 +389,8 @@ uses
   ;
 
 {$R *.DFM}
+
+
 
 procedure TdlgFunctionWisard.TBItem1Click(Sender: TObject);
 begin
@@ -477,6 +472,29 @@ procedure TdlgFunctionWisard.actCancelExecute(Sender: TObject);
 begin
   Modalresult := mrCancel;
 end;
+
+{procedure TdlgFunctionWisard.CreateNewFunction(MainFunctionName: string);
+var
+  F: TFunctionBlock;
+  S: TScriptBlock;
+begin
+  Scrollbox1.HandleNeeded;
+
+  S := TScriptBlock.Create(self);
+  S.Parent := Scrollbox1;
+
+  F := TEntryFunctionBlock.Create(self);
+  F.Parent := S;
+  f.UnWrap := True;
+  f.BlockName := MainFunctionName;
+  F.SetBounds(10, 10, 250, 100);
+  f.CannotDelete := True;
+  f.FunctionParams.AddParam('BeginDate', 'Начало периода', prmDate, 'Начало периода');
+  f.FunctionParams.AddParam('EndDate', 'Конец периода', prmDate, 'Конец периода');
+  f.FunctionParams.AddParam('EntryDate', 'Дата проводки', prmDate, 'Дата проводки');
+  MainFunction := F;
+  ReGenerate := True;
+end;}
 
 procedure TdlgFunctionWisard.FormCreate(Sender: TObject);
 begin
@@ -897,7 +915,7 @@ begin
 
   for I := 0 to LCount - 1 do
   begin
-    TVisualBlock.LoadFromStream(Stream, Owner, TWinControl(Owner), FunctionName, ParentFunctionName);
+    TVisualBlock.LoadFromStream(Stream, Owner, TWinControl(Owner));
   end;
 
   FFunction := MainFunction
@@ -912,11 +930,6 @@ end;
 procedure TCustomNewFunctionCreater.SetFunctionName(const Value: string);
 begin
   FFunctionName := Value;
-end;
-
-procedure TCustomNewFunctionCreater.SetParentFunctionName(const Value: string);
-begin
-  FParentFunctionName := Value;
 end;
 
 procedure TCustomNewFunctionCreater.SetFunctionRUID(const Value: String);
@@ -1283,8 +1296,7 @@ end;
 
 procedure TdlgFunctionWisard.actRunUpdate(Sender: TObject);
 begin
-  TAction(Sender).Enabled := (MainFunction <> nil) and (MainFunction.CanRun)
-    and (IBLogin <> nil) and IBLogin.IsUserAdmin;
+  TAction(Sender).Enabled := (MainFunction <> nil) and (MainFunction.CanRun);
 end;
 
 procedure TdlgFunctionWisard.actTrEntryExecute(Sender: TObject);
@@ -1434,8 +1446,7 @@ end;
 
 procedure TdlgFunctionWisard.actSQLCycleUpdate(Sender: TObject);
 begin
-  TAction(Sender).Checked := (NeedCreate = TSQLCycleBlock)
-    and (IBLogin <> nil) and IBLogin.IsUserAdmin;
+  TAction(Sender).Checked := NeedCreate = TSQLCycleBlock;
 end;
 
 procedure TdlgFunctionWisard.actSQLCycleExecute(Sender: TObject);
@@ -1460,8 +1471,7 @@ end;
 
 procedure TdlgFunctionWisard.actSQLUpdate(Sender: TObject);
 begin
-  TAction(Sender).Checked := (NeedCreate = TSQLBlock)
-    and (IBLogin <> nil) and IBLogin.IsUserAdmin;
+  TAction(Sender).Checked := NeedCreate = TSQLBlock;
 end;
 
 procedure TdlgFunctionWisard.actCopyExecute(Sender: TObject);
@@ -1535,12 +1545,6 @@ procedure TdlgFunctionWisard.actCaseElseUpdate(Sender: TObject);
 begin
   TAction(Sender).Checked := NeedCreate = TCaseElseBlock;
 end;  
-
-procedure TdlgFunctionWisard.actOkUpdate(Sender: TObject);
-begin
-  TAction(Sender).Enabled := (FDebugLink <> nil) and (not FDebugLink.IsRuning)
-    and (IBLogin <> nil) and IBLogin.IsUserAdmin;
-end;
 
 initialization
   ClipboardFormat := RegisterClipboardFormat(ClipboardFormatName);

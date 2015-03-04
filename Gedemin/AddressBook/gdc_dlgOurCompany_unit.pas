@@ -252,9 +252,12 @@ begin
   {END MACRO}
 end;
 
+
+
 initialization
   RegisterFrmClass(Tgdc_dlgOurCompany);
 
 finalization
   UnRegisterFrmClass(Tgdc_dlgOurCompany);
+
 end.

@@ -344,7 +344,6 @@ uses
   gdcTree, gdcClasses,
   gdHelp_Interface,
   Storages,
-  gd_ClassList,
   gd_converttext, jclStrHashMap, IBErrorCodes,
   gdv_dlgSelectDocument_unit, gdv_frmAcctAccCard_unit
   {must be placed after Windows unit!}
@@ -556,13 +555,12 @@ var
   StrFields: String;
   MessageBoxResult, I, J: Integer;
   SL: TStringList;
-  OL: TObjectList;
+  CL: TClassList;
   SelectCondition: String;
   DistinctStr: String;
-//  Found: Boolean;
+  Found: Boolean;
   NewClass: CgdcBase;
   dlgAction: TgsIBLkUp_dlgAction;
-  CE: TgdClassEntry;
 begin
   if (not Assigned(Database)) or (not Database.Connected) then
     exit;
@@ -750,24 +748,56 @@ begin
             cb.Visible := False;
             if (gdClass <> nil) and (SubType = '') then
             begin
-              OL := TObjectList.Create(False);
+              CL := TClassList.Create;
               try
-                if gdClass.GetChildrenClass(SubType, OL) then
+                if gdClass.GetChildrenClass(CL) then
                 begin
-                  for I := 0 to OL.Count - 1 do
+                  if not gdClass.IsAbstractClass then
                   begin
-                    CE := TgdClassEntry(OL[I]);
-                    cb.Items.AddObject(CE.gdcClass.GetDisplayName(CE.SubType), OL[I]);
+                    if CL.IndexOf(gdClass) = -1 then
+                      CL.Add(gdClass);
+                  end;
+
+                  for I := CL.Count - 1 downto 0 do
+                  begin
+                    if CgdcBase(CL[I]).IsAbstractClass then
+                      CL.Delete(I);
+                  end;
+
+                  if CL.Count > 0 then
+                  begin
+                    for I := 0 to CL.Count - 1 do
+                    begin
+                      Found := False;
+                      for J := 0 to CL.Count - 1 do
+                      begin
+                        if J = I then
+                          continue;
+                        if CgdcBase(CL[I]).GetDisplayName(SubType) = CgdcBase(CL[J]).GetDisplayName(SubType) then
+                        begin
+                          Found := True;
+                          break;
+                        end;
+                      end;
+
+                      if Found then
+                        cb.Items.AddObject(CgdcBase(CL[I]).GetDisplayName(SubType) +
+                          ' (' + CL[I].ClassName + ')',
+                          Pointer(CL[I]))
+                      else
+                        cb.Items.AddObject(CgdcBase(CL[I]).GetDisplayName(SubType),
+                          Pointer(CL[I]));
+                    end;
                   end;
 
                   cb.Visible := True;
-                  if OL.Count > 1 then
+                  if CL.Count > 1 then
                     cb.ItemIndex := 0
                   else
                     cb.ItemIndex := 1;
                 end;
               finally
-                OL.Free;
+                CL.Free;
               end;
             end;
 
@@ -803,7 +833,7 @@ begin
                 mrYes:
                 begin
                   if cb.Visible and (cb.ItemIndex > 0) then
-                    NewClass := TgdClassEntry(cb.Items.Objects[cb.ItemIndex]).gdcClass;
+                    NewClass := CgdcBase(cb.Items.Objects[cb.ItemIndex]);
                   MessageBoxResult := IDNO;
                   UserStorage.WriteInteger('Options', 'LkupDef', 2);
                 end;
@@ -1807,36 +1837,56 @@ end;
 function TgsIBLookupComboBox.CreateGDClassInstance(const AnID: Integer): TgdcBase;
 var
   C: TPersistentClass;
-  Obj: TgdcBase;
+  SL: TStringList;
+  I: Integer;
+  F: Boolean;
 begin
   C := GetClass(gdClassName);
-  if (C = nil) or (not C.InheritsFrom(TgdcBase)) then
-    Result := nil
-  else begin
-    if (FSubType > '') and (not CgdcBase(C).CheckSubType(FSubType)) then
-      raise EgsIBLookupComboBoxError.Create('gsIBLookupComboBox: invalid subtype specified'#13#10 +
-          'Class: ' + FgdClassName + #13#10'Subtype: ' + FSubType);
-
-    Obj := CgdcBase(C).CreateSubType(Self.Owner, FSubType, 'ByID');
-    if AnID > -1 then
+  if Assigned(C) and (C.InheritsFrom(TgdcBase)) then
+  begin
+    if FSubType > '' then
     begin
-      Obj.ID := AnID;
-      Obj.Open;
+      SL := TStringList.Create;
+      try
+        CgdcBase(C).GetSubTypeList(SL);
 
-      if Obj.IsEmpty then
+        F := False;
+        for I := 0 to SL.Count - 1 do
+        begin
+          if Pos('=' + FSubType + '^', SL[I] + '^') > 0 then
+          begin
+            F := True;
+            break;
+          end;
+        end;
+
+        if not F then
+          raise Exception.Create('gsIBLookupComboBox: invalid subtype specified'#13#10 +
+             'Class: ' + FgdClassName + #13#10'Subtype: ' + FSubType);
+      finally
+        SL.Free;
+      end;
+    end;
+
+    Result := CgdcBase(C).CreateSubType(Self.Owner, FSubType, 'ByID');
+    Result.ID := AnID;
+    if Result.ID <> -1 then
+    begin
+      Result.Open;
+
+      if Result.IsEmpty then
       begin
         MessageBox(Handle,
           PChar('Невозможно создать экземпляр бизнес объекта с текущим ключем.'#13#10 +
           'Проверьте правильность задания имени класса, главной таблицы, а также транзакцию, '#13#10 +
           'на которой работает выпадающий список.'),
           'Внимание',
-          MB_OK or MB_ICONHAND or MB_TASKMODAL);
-        Obj.Free;
+          MB_OK or MB_ICONHAND);
         Abort;
       end;
     end;
-    Result := Obj;
-  end;
+  end else
+    Result := nil;
 end;
 
 procedure TgsIBLookupComboBox.SetgdClassName(const Value: TgdcClassName);

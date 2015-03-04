@@ -7,12 +7,12 @@ set exit_message=0
 
 if not [%1]==[] goto InitVars
 
-echo **************************************************
-echo **                                              **
-echo **  Auto:                                       **
-echo **  Использование: auto.bat {/ftp|/no_ftp} [/l] **
-echo **                                              **
-echo **************************************************
+echo *************************************************
+echo **                                             **
+echo **  Auto:                                      **
+echo **  Использование: auto.bat /ftp или /no_ftp   **
+echo **                                             **
+echo *************************************************
 
 goto Exit
 
@@ -65,8 +65,7 @@ echo **                                             **
 echo *************************************************
 
 cd ..\..\exe
-if [%2]==[] call update_gedemin.bat /no_ftp /p
-if [%2]==[/l] call update_gedemin.bat /no_ftp /l
+call update_gedemin.bat /no_ftp /p
 cd ..\setup\bootstrap
 
 if not errorlevel 0 goto Error
@@ -94,9 +93,9 @@ echo **  Делаем инстоляции                          **
 echo **                                             **
 echo *************************************************
 
-call make_install.bat "%setting_source_path%\Меню\2013 Menu. front\2013 - Menu. Front.gsf"                  menufront complex.jpg kkc_positive_check   menufront_setup.rar "%install_target_path%\Меню\setup_front.exe" %send_ftp%
-goto exit
 call make_install.bat "%setting_source_path%\ККС\ККС общее.gsf"                                             cash      complex.jpg kkc_positive_cash    cash_setup.rar      "%install_target_path%\Касса\setup.exe" %send_ftp%
+goto exit
+call make_install.bat "%setting_source_path%\Меню\2013 Menu. front\2013 - Menu. Front.gsf"                  menufront complex.jpg kkc_positive_check   menufront_setup.rar "%install_target_path%\Меню\setup_front.exe" %send_ftp%
 call make_install.bat "%setting_source_path%\Меню\2011 Бэк-офис\2011. Меню.back.gsf"                        menuback  complex.jpg menubacklocal menuback_setup.rar "%install_target_path%\Меню\setup_back.exe" %send_ftp%
 call make_install.bat "%setting_source_path%\Предприниматель\Подоходный\Предприниматель_подоходный.gsf"     ip        ip.jpg      iplocal       ip_setup.rar       "%install_target_path%\Предприниматель\setup.exe" %send_ftp%
 call make_install.bat "%setting_source_path%\Предприниматель\Единый налог\Предприниматель_единый_налог.gsf" ip        ip.jpg      iplocal       ip_setup_ed.rar    "%install_target_path%\Предприниматель\setup_ed.exe" %send_ftp%

@@ -1,11 +1,11 @@
 object gd_dlgReg: Tgd_dlgReg
-  Left = 556
-  Top = 582
+  Left = 373
+  Top = 230
   ActiveControl = eCipher
   BorderStyle = bsDialog
   Caption = 'Регистрация'
   ClientHeight = 299
-  ClientWidth = 446
+  ClientWidth = 396
   Color = clBtnFace
   Font.Charset = RUSSIAN_CHARSET
   Font.Color = clWindowText
@@ -18,28 +18,28 @@ object gd_dlgReg: Tgd_dlgReg
   PixelsPerInch = 96
   TextHeight = 13
   object Label2: TLabel
-    Left = 7
+    Left = 17
     Top = 236
-    Width = 183
+    Width = 104
     Height = 13
-    Caption = 'Код разблокировки (без пробелов):'
+    Caption = 'Код разблокировки:'
   end
   object Bevel1: TBevel
     Left = 0
     Top = 263
-    Width = 447
+    Width = 401
     Height = 6
     Shape = bsTopLine
   end
   object eCipher: TEdit
-    Left = 200
+    Left = 124
     Top = 233
-    Width = 124
+    Width = 153
     Height = 21
-    TabOrder = 0
+    TabOrder = 1
   end
   object btnClose: TButton
-    Left = 363
+    Left = 316
     Top = 271
     Width = 75
     Height = 21
@@ -48,32 +48,33 @@ object gd_dlgReg: Tgd_dlgReg
     Caption = 'Закрыть'
     Default = True
     ModalResult = 2
-    TabOrder = 2
+    TabOrder = 3
     OnClick = btnCloseClick
   end
   object btnReg: TButton
-    Left = 329
+    Left = 282
     Top = 233
     Width = 109
     Height = 21
-    Action = actReg
     Anchors = []
-    TabOrder = 1
+    Caption = 'Зарегистрировать'
+    TabOrder = 2
+    OnClick = btnRegClick
   end
   object pc: TPageControl
     Left = 5
     Top = 4
-    Width = 433
+    Width = 386
     Height = 221
-    ActivePage = tsReg
-    TabOrder = 3
+    ActivePage = tsUnReg
+    TabOrder = 0
     object tsReg: TTabSheet
       Caption = 'tsReg'
       TabVisible = False
       object lblRegNumber2: TLabel
         Left = 8
-        Top = 103
-        Width = 409
+        Top = 175
+        Width = 361
         Height = 33
         Alignment = taCenter
         AutoSize = False
@@ -86,42 +87,29 @@ object gd_dlgReg: Tgd_dlgReg
         ParentFont = False
       end
       object mReg: TMemo
-        Left = 2
+        Left = 5
         Top = 3
-        Width = 417
-        Height = 94
+        Width = 372
+        Height = 171
         BorderStyle = bsNone
         Lines.Strings = (
-          'Вы работаете с зарегистрированной копией программы.'
+          'Вы работаете с зарегистрированной копией программы. '
+          'Количество пользователей: %s. Дата истечения лицензии: %s'
           ''
-          '%s %s'
+          'Для увеличения количества рабочих мест или продления срока '
+          'действия необходимо получить дополнительную лицензию и '
+          'выполнить регистрацию программы. Сообщите в офис компании '
+          'Golden Software по телефонам +375-17-2561759 или '
+          '+375-17-2562782, или электронной почте support@gsbelarus.com '
+          'номер лицензии, а также указанное ниже контрольное число.'
           ''
+          'В ответ, Вам будет выслан код разблокировки, который необходимо'
           
-            'Для изменения параметров регистрации необходимо обратиться в офи' +
-            'с '
-          
-            'компании Golden Software, Ltd за дополнительной лицензией, а так' +
-            'же '
-          'сообщить указанное ниже контрольное число.'
-          ' ')
+            'ввести в поле Код разблокировки и нажать кнопку Зарегистрировать' +
+            '. ')
         ParentColor = True
         ReadOnly = True
         TabOrder = 0
-      end
-      object mReg2: TMemo
-        Left = 2
-        Top = 146
-        Width = 417
-        Height = 57
-        BorderStyle = bsNone
-        Lines.Strings = (
-          'Контактные номера телефонов: +375-17-2561759, 2562782  '
-          'Электронная почта: support@gsbelarus.com'
-          ''
-          'В ответ Вам будет сообщен код разблокировки.')
-        ParentColor = True
-        ReadOnly = True
-        TabOrder = 1
       end
     end
     object tsUnReg: TTabSheet
@@ -130,8 +118,8 @@ object gd_dlgReg: Tgd_dlgReg
       TabVisible = False
       object lblRegNumber: TLabel
         Left = 8
-        Top = 103
-        Width = 408
+        Top = 174
+        Width = 361
         Height = 33
         Alignment = taCenter
         AutoSize = False
@@ -144,52 +132,30 @@ object gd_dlgReg: Tgd_dlgReg
         ParentFont = False
       end
       object mUnreg: TMemo
-        Left = 2
+        Left = 5
         Top = 3
-        Width = 417
-        Height = 94
+        Width = 372
+        Height = 169
         BorderStyle = bsNone
         Lines.Strings = (
-          'Вы работаете с незарегистрированной копией программы.'
+          'Вы работаете с незарегистрированной копией программы. '
+          'В незарегистрированном режиме работы Вы не можете посылать'
+          'документы на печать.'
           ''
-          'Некоторые функции будут недоступны.'
+          'Для регистрации программы необходимо сообщить в офис '
+          'компании Golden Software по телефонам +375-17-2561759,'
+          'или +375-17-2562782 или электронной почте support@gsbelarus.com'
+          'номер лицензии, который был выдан Вам вместе с программой,'
+          'а также указанное ниже контрольное число.'
           ''
+          'В ответ, Вам будет выслан код разблокировки, который необходимо'
           
-            'Для регистрации необходимо сообщить в офис компании Golden Softw' +
-            'are, Ltd '
-          
-            'номер лицензии, который был выдан Вам при покупке, а также указа' +
-            'нное '
-          'ниже контрольное число.'
-          ' ')
+            'ввести в поле Код разблокировки и нажать кнопку Зарегистрировать' +
+            '. ')
         ParentColor = True
         ReadOnly = True
         TabOrder = 0
       end
-      object mUnreg2: TMemo
-        Left = 2
-        Top = 146
-        Width = 417
-        Height = 57
-        BorderStyle = bsNone
-        Lines.Strings = (
-          'Контактные номера телефонов: +375-17-2561759, 2562782  '
-          'Электронная почта: support@gsbelarus.com'
-          ''
-          'В ответ Вам будет сообщен код разблокировки.')
-        ParentColor = True
-        ReadOnly = True
-        TabOrder = 1
-      end
-    end
-  end
-  object ActionList: TActionList
-    Left = 376
-    Top = 144
-    object actReg: TAction
-      Caption = 'Зарегистрировать'
-      OnExecute = actRegExecute
-      OnUpdate = actRegUpdate
     end
   end
 end

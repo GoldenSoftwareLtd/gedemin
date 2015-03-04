@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2001 - 2015 by Golden Software of Belarus
+  Copyright (c) 2001 - 2012 by Golden Software of Belarus
 
   Module
 
@@ -84,6 +84,7 @@ const
   keyCheckTheSameStatement = 107;
   keyCreateFields          = 109;
   keyGetNotCopyField       = 111;
+  keyGetCurrRecordSubType  = 112;
   keyBeforeDestruction     = 113;
   keyAfterConstruction     = 114;
   keyCheckSubSet           = 117;
@@ -118,17 +119,6 @@ const
   SubtypeDetach = '=';
 
 type
-  TgdClassKind = (
-    ctUserDefined,
-    ctUserDefinedTree,
-    ctUserDefinedLBRBTree,
-    ctDlgUserDefinedTree,
-    ctUserDocument,
-    ctInvDocument,
-    ctInvPriceList,
-    ctInvRemains,
-    ctStorage);
-
   // Класс для организации стыка классов перекрытых методов
   TStackStrings = class(TObject)
   private
@@ -147,8 +137,9 @@ type
     procedure Clear;
   end;
 
+type
   // Класс предназначен для хранения признаков параметра метода
-  TgdMethodParam = class
+  TgdcMethodParam = class
   private
     {Наименование параметра}
     FParamName: String;
@@ -165,13 +156,13 @@ type
     {Проверка на рав-во имен параметров}
     function EqualsByName(const AParamName: String): Boolean;
     {Полная проверка на рав-во пар-ров: проверяются все поля}
-    function EqualsFull(const AParam: TgdMethodParam): Boolean;
+    function EqualsFull(const AParam: TgdcMethodParam): Boolean;
 
   public
     constructor Create; overload;
     destructor Destroy; override;
 
-    procedure Assign(ASource: TgdMethodParam);
+    procedure Assign(ASource: TgdcMethodParam);
 
     property ParamName: String read FParamName write SetParamName;
     property ParamClass: TComponentClass read FParamClass;
@@ -180,8 +171,8 @@ type
     property ParamFlag: TParamFlag read FParamFlag;
   end;
 
-  // Класс, хранящий информацию о методе, включая его параметры
-  TgdMethod = class
+  // Класс, хранящий инфпрмацию о методе, включая его параметры
+  TgdcMethod = class
   private
     {Наименование метода}
     FName: String;
@@ -195,8 +186,8 @@ type
     procedure FreeFParams;
 
     function GetParamCount: Integer;
-    function GetMethodParam(Index: Integer): TgdMethodParam;
-    function AddParamToList(const AParam: TgdMethodParam): Integer; overload;
+    function GetMethodParam(Index: Integer): TgdcMethodParam;
+    function AddParamToList(const AParam: TgdcMethodParam): Integer; overload;
     function AddParamToList(AParamName, ATypeName: String;
       AParamFlag: TParamFlag): Integer; overload;
     procedure CustomDelete(Index: Integer);
@@ -212,10 +203,10 @@ type
     {Проверка на существование параметра с данным именем в списке пар-ров}
     function ParamByNameExists(const AParamName: String): Boolean;
     {Проверка на существование параметра в списке пар-ров}
-    function ParamExists(const AParam: TgdMethodParam): Boolean;
+    function ParamExists(const AParam: TgdcMethodParam): Boolean;
     {Проверка методов на рав-во: методы считаются равными если равны их поля и
      список параметров}
-    function Equals(const AMethod: TgdMethod): Boolean;
+    function Equals(const AMethod: TgdcMethod): Boolean;
 
   public
     constructor Create(AName: String; AKind: TMethodKind; AFuncResType: String = ''); overload;
@@ -224,182 +215,113 @@ type
     function AddParam(AParamName, ATypeName: String;
       AParamFlag: TParamFlag): Integer; overload;
     procedure Clear;
-    procedure Assign(ASource: TgdMethod);
+    procedure Assign(ASource: TgdcMethod);
 
     property Name: String read FName write FName;
     property ParamCount: Integer read GetParamCount;
-    property Params[Index: Integer]: TgdMethodParam read GetMethodParam;
+    property Params[Index: Integer]: TgdcMethodParam read GetMethodParam;
     property ParamsData: TTypeData read FParamsData write FParamsData;
   end;
 
-  TgdMethodList = class(TList)
+  TgdcMethodList = class(TList)
   private
-    function GetMethod(Index: Integer): TgdMethod;
+    function GetMethod(Index: Integer): TgdcMethod;
 
   protected
-    function MethodExists(const AMethod: TgdMethod): Boolean;
+    function MethodExists(const AMethod: TgdcMethod): Boolean;
 
   public
     constructor Create;
     destructor Destroy; override;
 
     {Возвращает метод по имени}
-    function MethodByName(const AName: String) : TgdMethod;
+    function MethodByName(const AName: String) : TgdcMethod;
     {Добавление метода}
-    function AddMethod(const AMethod: TgdMethod): Integer;
+    function AddMethod(const AMethod: TgdcMethod): Integer;
     {Посл. метод в списке}
-    function Last: TgdMethod;
+    function Last: TgdcMethod;
     {Удаление метода}
     procedure Delete(Index: Integer);
     {Очистка списка}
     procedure Clear; override;
     {Присвоение}
-    procedure Assign(ASource: TgdMethodList);
+    procedure Assign(ASource: TgdcMethodList);
 
-    property Methods[Index: Integer]: TgdMethod read GetMethod {write SetMethod}; default;
+    property Methods[Index: Integer]: TgdcMethod read GetMethod {write SetMethod}; default;
   end;
 
-  TgdClassMethods = class
+  TgdcClassMethods = class
   private
     FgdcClass: TComponentClass;
-    FgdMethods: TgdMethodList;
+    FgdcMethods: TgdcMethodList;
 
   public
     constructor Create; overload; {! НУЖЕН !}
     constructor Create(AClass: TComponentClass); overload;
     destructor Destroy; override;
 
-    function  GetgdClassMethodsParent: TgdClassMethods;
-    procedure Assign(ASource: TgdClassMethods);
+    function  GetGdcClassMethodsParent: TgdcClassMethods;
+    procedure Assign(ASource: TgdcClassMethods);
 
     property gdcClass: TComponentClass read FgdcClass write FgdcClass;
-    property gdMethods: TgdMethodList read FgdMethods;
+    property gdcMethods: TgdcMethodList read FgdcMethods;
   end;
 
-  TgdClassEntry = class;
-
-  TgdClassEntryCallback = function(ACE: TgdClassEntry; AData1: Pointer;
-    AData2: Pointer): Boolean of object;
-  TgdClassEntryCallback2 = function(ACE: TgdClassEntry; AData1: Pointer;
-    AData2: Pointer): Boolean;
-
-  TgdClassEntry = class(TObject)
+  // Базовый класс для хранения классов с описанием методов
+  TgdcCustomClassList = class(TObject)
   private
-    FParent: TgdClassEntry;
-    FClass: TClass;
-    FSubType: TgdcSubType;
-    FClassMethods: TgdClassMethods;
-    FCaption: String;
-    FChildren: TObjectList;
-    FgdClassKind: TgdClassKind;
+    FClassList: THashedStringList;
 
-    function GetChildren(Index: Integer): TgdClassEntry;
+    function GetClass(Index: Integer): TComponentClass;
+    function GetClassMethods(Index: Integer): TgdcClassMethods;
     function GetCount: Integer;
-    function GetCaption: String;
-    function GetGdcClass: CgdcBase;
-    function GetFrmClass: CgdcCreateableForm;
-    function ListCallback(ACE: TgdClassEntry; AData1: Pointer;
-      AData2: Pointer): Boolean;
-
-  protected
-    function Traverse(ACallback: TgdClassEntryCallback; AData1: Pointer; AData2: Pointer;
-      const AnIncludeRoot: Boolean = True;
-      const AnOnlyDirect: Boolean = False): Boolean; overload;
-    function Traverse(ACallback2: TgdClassEntryCallback2; AData1: Pointer; AData2: Pointer;
-      const AnIncludeRoot: Boolean = True;
-      const AnOnlyDirect: Boolean = False): Boolean; overload;
-    function Traverse(AList: TObjectList;
-      const AnIncludeRoot: Boolean = True;
-      const AnOnlyDirect: Boolean = False): Boolean; overload;
-    function GetSubTypeList(ASubTypeList: TStrings; const AnOnlyDirect: Boolean): Boolean;
-
-    procedure SetReadOnly(AReadOnly: Boolean);
-
-  public
-    constructor Create(AParent: TgdClassEntry; const AClass: TClass;
-      const AgdClassKind: TgdClassKind = ctStorage; const ACaption: String = '';
-      const ASubType: TgdcSubType = ''); overload;
-
-    destructor Destroy; override;
-
-    function Compare(const AClass: TClass; const ASubType: TgdcSubType = ''): Integer; overload;
-    function Compare(const AClassName: AnsiString; const ASubType: TgdcSubType = ''): Integer; overload;
-    procedure AddChild(AChild: TgdClassEntry);
-    procedure RemoveChild(AChild: TgdClassEntry);
-    function FindChild(const AClassName: AnsiString): TgdClassEntry;
-
-    property Parent: TgdClassEntry read FParent;
-    property TheClass: TClass read FClass;
-    property SubType: TgdcSubType read FSubType;
-    property gdcClass: CgdcBase read GetGdcClass;
-    property frmClass: CgdcCreateableForm read GetFrmClass;
-    property Caption: String read GetCaption;
-    property Count: Integer read GetCount;
-    property Children[Index: Integer]: TgdClassEntry read GetChildren;
-    property ClassMethods: TgdClassMethods read FClassMethods;
-    property gdClassKind: TgdClassKind read FgdClassKind;
-  end;
-
-  TgdStorageEntry = class(TgdClassEntry)
-  end;
-
-  TgdClassList = class(TObject)
-  private
-    FClasses: array of TgdClassEntry;
-    FCount: Integer;
-
-    FReadOnly: Boolean;
-
-    function _Find(const AClassName: AnsiString; const ASubType: TgdcSubType;
-      out Index: Integer): Boolean;
-    procedure _Insert(const Index: Integer; ACE: TgdClassEntry);
-    procedure _Grow;
-    procedure _Compact;
-
-    function GetDefinedClasses(const AgdClassKind: TgdClassKind;
-      AClassList: TClassList): Boolean;
+    function GetCustomClass(const AFullClassName: TgdcFullClassName): TComponentClass;
 
   public
     constructor Create;
     destructor Destroy; override;
 
-    function Add(const AClass: TClass; AgdClassKind: TgdClassKind = ctStorage;
-      const ACaption: String = ''; const ASubType: TgdcSubType = '';
-      const AParentSubType: TgdcSubType = ''): TgdClassEntry; overload;
-    function Add(const AClassName: AnsiString; const ASubType: TgdcSubType;
-      const AParentSubType: TgdcSubType; const ACaption: String): TgdClassEntry; overload;
+    function AddClassMethods(AClassMethods: TgdcClassMethods): Integer; overload;
+    function AddClassMethods(AClass: TComponentClass;
+      AMethods: array of TgdcMethod): Integer; overload;
+    function Add(AClass: TComponentClass): Integer;
+    function IndexOf(AClass: TClass): Integer;
+    function IndexOfByName(AFullClassName: TgdcFullClassName): Integer;
+    procedure Remove(AClass: TComponentClass);
+    procedure Clear;
 
-    function Find(const AClass: TClass; const ASubType: TgdcSubType = ''): TgdClassEntry; overload;
-    function Find(const AClassName: AnsiString; const ASubType: TgdcSubType = ''): TgdClassEntry; overload;
-    function Find(const AFullClassName: TgdcFullClassName): TgdClassEntry; overload;
-
-    function Traverse(const AClass: TClass; const ASubType: TgdcSubType;
-      ACallback: TgdClassEntryCallback; AData1: Pointer; AData2: Pointer;
-      const AnIncludeRoot: Boolean = True;
-      const AnOnlyDirect: Boolean = False): Boolean; overload;
-
-    function Traverse(const AClass: TClass; const ASubType: TgdcSubType;
-      ACallback: TgdClassEntryCallback2; AData1: Pointer; AData2: Pointer;
-      const AnIncludeRoot: Boolean = True;
-      const AnOnlyDirect: Boolean = False): Boolean; overload;
-
-    function GetSubTypeList(AClass: TClass; const ASubType: TgdcSubType;
-      ASubTypeList: TStrings; const AnOnlyDirect: Boolean): Boolean;
-
-    procedure Remove(const AClass: TClass; const ASubType: TgdcSubType = '');
-    procedure RemoveAllSubTypes;
-
-    procedure AddClassMethods(AClassMethods: TgdClassMethods); overload;
-    procedure AddClassMethods(AClass: TComponentClass;
-      AMethods: array of TgdMethod); overload;
-
-    function GetGDCClass(const AClassName: String): CgdcBase;
-    function GetFrmClass(const AClassName: String): CgdcCreateableForm;
-
-    procedure LoadUserDefinedClasses;
-
-    property Count: Integer read FCount;
+    property gdcItems[Index: Integer]: TgdcClassMethods
+      read GetClassMethods;
+    property Count: Integer read GetCount;
   end;
+
+  // Класс для хранения классов наследников TgdcBase с описанием методов
+  TgdcClassList = class(TgdcCustomClassList)
+  private
+    function GetItems(Index: Integer): CgdcBase;
+  public
+    // Возращает класс CgdcBase по имени класса
+    // Если класс не зарегистрирован, то nill
+    function GetGDCClass(const AFullClassName: TgdcFullClassName): CgdcBase;
+
+    // Возращает класс CgdcBase по индексу
+    property Items[Index: Integer] : CgdcBase read GetItems; default;
+  end;
+
+  // Класс для хранения классов наследников TgdcCreateableForm с описанием методов
+  TfrmClassList = class(TgdcCustomClassList)
+  private
+    function GetItems(Index: Integer): CgdcCreateableForm;
+
+  public
+    // Возращает класс CgdcFullClassName по имени класса
+    // Если класс не зарегистрирован, то nill
+    function GetFrmClass(const AFullClassName: TgdcFullClassName): CgdcCreateableForm;
+
+    // Возращает класс CgdcFullClassName по индексу
+    property Items[Index: Integer] : CgdcCreateableForm read GetItems; default;
+  end;
+
 
 var
   // при создании каждый объект регистрирует себя в этом списке
@@ -413,30 +335,24 @@ var
   // для мастер объекта (точнее, нам мы сможем определить класс объекта
   // по заданному имени главной таблицы (пока, у нас, ListTable)
 
-  // для GDC-классов и форм
-  _gdClassList: TgdClassList;
-
-function gdClassList: TgdClassList;
-
-procedure RegisterGdClasses(const AgdClassKind: TgdClassKind;
-  const ACaption: String; const ASubType: TgdcSubType;
-  const AParentSubType: TgdcSubType = '');
-
-procedure UnRegisterGdClasses(const AgdClassKind: TgdClassKind;
-  const ASubType: TgdcSubType);
-
-procedure UpdateGdClasses(const AgdClassKind: TgdClassKind;
-  const ACaption: String; const ASubType: TgdcSubType);
-
-{Регистрация класса в списке TgdcClassList}
-procedure RegisterGdcClass(const AClass: CgdcBase; const AgdClassKind: TgdClassKind = ctStorage; const ACaption: String = '');
-procedure UnRegisterGdcClass(AClass: CgdcBase);
+  // для GDC-классов
+  gdcClassList: TgdcClassList;
+  // для форм
+  frmClassList: TfrmClassList;
 
 // добавляет класс в список классов
 {Регистрация класса в списке TgdcClassList}
-procedure RegisterFrmClass(AClass: CgdcCreateableForm; AgdClassKind: TgdClassKind = ctStorage);
+procedure RegisterGdcClass(AClass: CgdcBase);
+procedure UnRegisterGdcClass(AClass: CgdcBase);
+{Регистрация массива классов}
+procedure RegisterGdcClasses(AClasses: array of CgdcBase);
+procedure UnRegisterGdcClasses(AClasses: array of CgdcBase);
+// добавляет класс в список классов
+{Регистрация класса в списке TgdcClassList}
+procedure RegisterFrmClass(AClass: CgdcCreateableForm);
 procedure UnRegisterFrmClass(AClass: CgdcCreateableForm);
-
+procedure RegisterFrmClasses(AClasses: array of CgdcCreateableForm);
+procedure UnRegisterFrmClasses(AClasses: array of CgdcCreateableForm);
 {Регистрация метода для класса.}
 procedure RegisterFrmClassMethod(const AnClass: TComponentClass; AnMethod: String;
   InputParams: String; OutputParam: String = '');
@@ -454,7 +370,7 @@ var
 implementation
 
 uses
-  SysUtils, gs_Exception, at_classes, IBSQL, gd_security, gsStorage, Storages
+  SysUtils, gs_Exception
   {$IFDEF DEBUG}
   , gd_DebugLog
   {$ENDIF}
@@ -474,7 +390,6 @@ const
 {$IFDEF METHODSCHECK}
 var
   dbgMethodList: TStrings;
-
 const
   mcString = '%s;%s';
 {$ENDIF}
@@ -492,126 +407,126 @@ begin
   end;
 end;
 
-function gdClassList: TgdClassList;
+procedure CheckClassListAssigned;
 begin
-  if _gdClassList = nil then
-    _gdClassList := TgdClassList.Create;
-  Result := _gdClassList;
-end;
-
-procedure RegisterGdClasses(const AgdClassKind: TgdClassKind;
-  const ACaption: String; const ASubType: TgdcSubType;
-  const AParentSubType: TgdcSubType = '');
-var
-  CurrCE: TgdClassEntry;
-  CL :TClassList;
-  I: Integer;
-begin
-  CL := TClassList.Create;
-  try
-    if gdClassList.GetDefinedClasses(AgdClassKind, CL) then
-    begin
-      for I := 0 to CL.Count - 1 do
-      begin
-        CurrCE := gdClassList.Add(CL[I], AgdClassKind, ACaption, ASubType, AParentSubType);
-        
-        if CurrCE = nil then
-          raise Exception.Create('Класс не добавлен в gdClassList.');
-      end;
-    end;
-  finally
-    CL.Free;
+  if not Assigned(gdcClassList) then
+  begin
+    {$IFDEF DEBUG}
+    if UseLog then
+      Log.LogLn('gdcClassList был создан');
+    {$ENDIF}
+    gdcClassList := TgdcClassList.Create;
   end;
 end;
 
-procedure UnRegisterGdClasses(const AgdClassKind: TgdClassKind;
-  const ASubType: TgdcSubType);
-var
-  CL :TClassList;
-  I: Integer;
+procedure RegisterGdcClass(AClass: CgdcBase);
 begin
-  CL := TClassList.Create;
-  try
-    if gdClassList.GetDefinedClasses(AgdClassKind, CL) then
-    begin
-      for I := 0 to CL.Count - 1 do
-      begin
-        gdClassList.Remove(CL[I], ASubType);
-      end;
-    end;
-  finally
-    CL.Free;
-  end;
-end;
-
-procedure UpdateGdClasses(const AgdClassKind: TgdClassKind;
-  const ACaption: String; const ASubType: TgdcSubType);
-var
-  CL :TClassList;
-  I: Integer;
-  CurrCE: TgdClassEntry;
-begin
-  CL := TClassList.Create;
-  try
-    if gdClassList.GetDefinedClasses(AgdClassKind, CL) then
-    begin
-      for I := 0 to CL.Count - 1 do
-      begin
-        CurrCE := gdClassList.Find(CL[I], ASubType);
-
-        if CurrCE = nil then
-          raise Exception.Create('Класс не найден.');
-
-        CurrCE.FCaption := ACaption;
-      end;
-    end;
-  finally
-    CL.Free;
-  end;
-end;
-
-procedure RegisterGdcClass(const AClass: CgdcBase;
-  const AgdClassKind: TgdClassKind = ctStorage; const ACaption: String = '');
-begin
-  Assert(AClass <> nil);
-  Assert(gdClassList <> nil);
-
   if not AClass.InheritsFrom(TgdcBase) then
   begin
     raise Exception.Create('Класс ' + AClass.ClassName +
-      ' не наследован от TgdcBase.');
+      ' не наследован от TgdcBase');
   end;
 
+  CheckClassListAssigned;
+
+  // возможно это мы полностью заменим своим списком
   Classes.RegisterClass(AClass);
-  gdClassList.Add(AClass, AgdClassKind, ACaption);
+
+  while gdcClassList.IndexOf(AClass) = -1 do
+  begin
+    gdcClassList.Add(AClass);
+    if AClass = TgdcBase then
+      break;
+    AClass := CgdcBase(AClass.ClassParent);
+  end;
 end;
 
 procedure UnRegisterGdcClass(AClass: CgdcBase);
 begin
-  gdClassList.Remove(AClass);
   UnRegisterClass(AClass);
+  if not Assigned(gdcClassList) then
+    Exit;
+  gdcClassList.Remove(AClass);
 end;
 
-procedure RegisterFrmClass(AClass: CgdcCreateableForm; AgdClassKind: TgdClassKind = ctStorage);
+procedure RegisterGdcClasses(AClasses: array of CgdcBase);
+var
+  I: Integer;
+begin
+  for I := Low(AClasses) to High(AClasses) do
+    RegisterGdcClass(AClasses[I]);
+end;
+
+procedure UnRegisterGdcClasses(AClasses: array of CgdcBase);
+var
+  I: Integer;
+begin
+  for I := Low(AClasses) to High(AClasses) do
+    UnRegisterGdcClass(AClasses[I]);
+end;
+
+procedure CheckFrmClassListAssigned;
+begin
+  if not Assigned(frmClassList) then
+  begin
+    {$IFDEF DEBUG}
+    if UseLog then
+      Log.LogLn('frmClassList был создан');
+    {$ENDIF}
+    frmClassList := TfrmClassList.Create;
+  end;
+end;
+
+procedure RegisterFrmClass(AClass: CgdcCreateableForm);
 begin
   if not AClass.InheritsFrom(TgdcCreateableForm) then
     raise Exception.Create('Класс ' + AClass.ClassName +
       ' не наследован от TgdcCreateableForm');
 
   Classes.RegisterClass(AClass);
-  gdClassList.Add(AClass, AgdClassKind);
+
+  CheckFrmClassListAssigned;
+
+  // возможно это мы полностью заменим своим списком
+  while frmClassList.IndexOf(AClass) = -1 do
+  begin
+    frmClassList.Add(AClass);
+    if AClass = TgdcCreateableForm then
+      break;
+    AClass := CgdcCreateableForm(AClass.ClassParent);
+  end;
+
 end;
 
 procedure UnRegisterFrmClass(AClass: CgdcCreateableForm);
 begin
   UnRegisterClass(AClass);
-  gdClassList.Remove(AClass);
+  if Not Assigned(frmClassList) then
+    exit;
+
+  frmClassList.Remove(AClass);
+end;
+
+procedure RegisterFrmClasses(AClasses: array of CgdcCreateableForm);
+var
+  I: Integer;
+begin
+  for I := Low(AClasses) to High(AClasses) do
+    RegisterFrmClass(AClasses[I]);
+end;
+
+procedure UnRegisterFrmClasses(AClasses: array of CgdcCreateableForm);
+var
+  I: Integer;
+begin
+  for I := Low(AClasses) to High(AClasses) do
+    UnRegisterFrmClass(AClasses[I]);
 end;
 
 procedure CustomRegisterClassMethod(ATypeList: TClassTypeList; const AnClass: TComponentClass; AnMethod: String;
   InputParams: String; OutputParam: String = '');
 var
-  Method: TgdMethod;
+  Method: TgdcMethod;
   CursorPos: Integer;
   Str: String;
   L: Integer;
@@ -716,10 +631,11 @@ const
         Inc(CursorPos);
         TrimSpace;
       end else
+  //      if Str[CursorPos] <> #0 then
         if not (CursorPos > L) then
           raise Exception.Create('gd_ClassList: Ошибка формата. Позиция:' + IntToStr(CursorPos) + #13#10 +
             'Нужна точка с запятой');
-    end;
+    end;        
 
     if Assigned(Method) then
       Method.AddParam(ParamName, ParamType, PF);
@@ -731,13 +647,28 @@ begin
   L := Length(Str);
 
   if OutputParam = '' then
-    Method := TgdMethod.Create(AnMethod, mkProcedure)
+    Method := TgdcMethod.Create(AnMethod, mkProcedure)
   else
-    Method := TgdMethod.Create(AnMethod, mkFunction, OutputParam);
+    Method := TgdcMethod.Create(AnMethod, mkFunction, OutputParam);
   try
     while CursorPos < Length(Str) do
+    begin
       WorkParam;
-      gdClassList.AddClassMethods(AnClass, Method);
+    end;
+
+
+    case ATypeList of
+      FRM:
+        begin
+          CheckFrmClassListAssigned;
+          frmClassList.AddClassMethods(AnClass, Method)
+        end;
+      GDC:
+        begin
+          CheckClassListAssigned;
+          gdcClassList.AddClassMethods(AnClass, Method)
+        end;
+    end;
   finally
     Method.Free;
   end;
@@ -755,8 +686,8 @@ begin
   CustomRegisterClassMethod(FRM, AnClass, AnMethod, InputParams, OutputParam);
 end;
 
-{TgdMethodParam}
-constructor TgdMethodParam.Create;
+{TgdcMethodParam impl}
+constructor TgdcMethodParam.Create;
 begin
   inherited;
 
@@ -766,7 +697,7 @@ begin
 end;
 
 
-destructor TgdMethodParam.Destroy;
+destructor TgdcMethodParam.Destroy;
 begin
   inherited;
 
@@ -775,12 +706,12 @@ begin
   {$ENDIF}
 end;
 
-function TgdMethodParam.EqualsByName(const AParamName: String): Boolean;
+function TgdcMethodParam.EqualsByName(const AParamName: String): Boolean;
 begin
-  Result := AnsiSameText(FParamName, AParamName);
+  Result := AnsiUpperCase(FParamName) = AnsiUpperCase(AParamName);
 end;
 
-function TgdMethodParam.EqualsFull(const AParam: TgdMethodParam): Boolean;
+function TgdcMethodParam.EqualsFull(const AParam: TgdcMethodParam): Boolean;
 begin
   Result := (FParamName = AParam.FParamName) and
    (FParamClass = AParam.FParamClass) and
@@ -789,7 +720,7 @@ begin
    (FParamFlag = AParam.FParamFlag);
 end;
 
-procedure TgdMethodParam.Assign(ASource: TgdMethodParam);
+procedure TgdcMethodParam.Assign(ASource: TgdcMethodParam);
 begin
   FParamName := ASource.ParamName;
   FParamClass := ASource.ParamClass;
@@ -797,8 +728,9 @@ begin
   FParamFlag := ASource.FParamFlag;
 end;
 
-{TgdMethod}
-constructor TgdMethod.Create(AName: String; AKind: TMethodKind;
+
+{TgdcMethod impl}
+constructor TgdcMethod.Create(AName: String; AKind: TMethodKind;
   AFuncResType: String = '');
 begin
   inherited Create;
@@ -821,20 +753,20 @@ begin
 {$ENDIF}
 end;
 
-procedure TgdMethod.StoreResultInTD(APosition: Integer);
+procedure TgdcMethod.StoreResultInTD(APosition: Integer);
 begin
   if IsMethodFunction then
     WriteStrToTD(FParamsData, APosition, FFuncResType);
 end;
 
-function TgdMethod.AddParamToList(const AParam: TgdMethodParam): Integer;
+function TgdcMethod.AddParamToList(const AParam: TgdcMethodParam): Integer;
 begin
-  Result := FParams.Add(TgdMethodParam.Create);
+  Result := FParams.Add(TgdcMethodParam.Create);
   if Assigned(AParam) then
     Params[Result].Assign(AParam);
 end;
 
-function TgdMethod.AddParamToList(AParamName, ATypeName: String;
+function TgdcMethod.AddParamToList(AParamName, ATypeName: String;
   AParamFlag: TParamFlag): Integer;
 begin
   Result := AddParamToList(nil);
@@ -844,7 +776,7 @@ begin
   Params[Result].FParamFlag := AParamFlag;
 end;
 
-function TgdMethod.AddParam(AParamName, ATypeName: String;
+function TgdcMethod.AddParam(AParamName, ATypeName: String;
   AParamFlag: TParamFlag): Integer;
 begin
   if ParamByNameExists(AParamName) then
@@ -854,7 +786,7 @@ begin
   AddParamToParamsData(AParamName, ATypeName, AParamFlag);
 end;
 
-procedure TgdMethod.AddParamToParamsData(AParamName, AParamType: String;
+procedure TgdcMethod.AddParamToParamsData(AParamName, AParamType: String;
   AParamFlag: TParamFlag);
 var
   I, Pos: Integer;
@@ -877,12 +809,12 @@ begin
   StoreResultInTD(Pos);
 end;
 
-function TgdMethod.IsMethodFunction: Boolean;
+function TgdcMethod.IsMethodFunction: Boolean;
 begin
   Result := FParamsData.MethodKind in [mkFunction, mkClassFunction, mkSafeFunction];
 end;
 
-function TgdMethod.ParamByNameExists(const AParamName: String): Boolean;
+function TgdcMethod.ParamByNameExists(const AParamName: String): Boolean;
 var I: Integer;
 begin
   Result := False;
@@ -894,7 +826,7 @@ begin
     end;
 end;
 
-function TgdMethod.ParamExists(const AParam: TgdMethodParam): Boolean;
+function TgdcMethod.ParamExists(const AParam: TgdcMethodParam): Boolean;
 var I: Integer;
 begin
   Result := False;
@@ -906,7 +838,7 @@ begin
     end;
 end;
 
-function TgdMethod.Equals(const AMethod: TgdMethod): Boolean;
+function TgdcMethod.Equals(const AMethod: TgdcMethod): Boolean;
 var
   I: Integer;
 begin
@@ -927,13 +859,13 @@ begin
     end;
 end;
 
-procedure TgdMethod.CustomDelete(Index: Integer);
+procedure TgdcMethod.CustomDelete(Index: Integer);
 begin
   Params[Index].Free;
   FParams.Delete(Index);
 end;
 
-procedure TgdMethod.Clear;
+procedure TgdcMethod.Clear;
 begin
   FreeFParams;
   FName := '';
@@ -943,7 +875,7 @@ begin
     CustomDelete(0);
 end;
 
-procedure TgdMethod.Assign(ASource: TgdMethod);
+procedure TgdcMethod.Assign(ASource: TgdcMethod);
 var
   I: Integer;
 begin
@@ -955,12 +887,12 @@ begin
     AddParamToList(ASource.Params[I]);
 end;
 
-function TgdMethod.GetParamCount: Integer;
+function TgdcMethod.GetParamCount: Integer;
 begin
   Result := FParams.Count;
 end;
 
-destructor TgdMethod.Destroy;
+destructor TgdcMethod.Destroy;
 begin
   Clear;
   FreeAndNil(FParams);
@@ -971,13 +903,13 @@ begin
   {$ENDIF}
 end;
 
-function TgdMethod.GetMethodParam(Index: Integer): TgdMethodParam;
+function TgdcMethod.GetMethodParam(Index: Integer): TgdcMethodParam;
 begin
   Assert((Index >= 0) and (Index < ParamCount), 'Index out of range');
-  Result := TgdMethodParam(FParams[Index]);
+  Result := TgdcMethodParam(FParams[Index]);
 end;
 
-function TgdMethod.ReadStrFromTD(ATD: TTypeData; var APosition: Integer): String;
+function TgdcMethod.ReadStrFromTD(ATD: TTypeData; var APosition: Integer): String;
 var
   CharCount:Byte;
 begin
@@ -987,15 +919,15 @@ begin
   Inc(APosition, CharCount + 1);
 end;
 
-procedure TgdMethod.WriteStrToTD(var ATD: TTypeData; var APosition: Integer;
+procedure TgdcMethod.WriteStrToTD(var ATD: TTypeData; var APosition: Integer;
   const S: String);
 begin
   ShortString((@ATD.ParamList[APosition])^) := ShortString(S);
   Inc(APosition, Length(S) + 1);
 end;
 
-{TgdMethodList}
-constructor TgdMethodList.Create;
+{TgdcMethodList impl}
+constructor TgdcMethodList.Create;
 begin
   inherited Create;
 
@@ -1005,7 +937,7 @@ begin
 {$ENDIF}
 end;
 
-destructor TgdMethodList.Destroy;
+destructor TgdcMethodList.Destroy;
 begin
   Clear;
 
@@ -1016,13 +948,13 @@ begin
 {$ENDIF}
 end;
 
-function TgdMethodList.GetMethod(Index: Integer): TgdMethod;
+function TgdcMethodList.GetMethod(Index: Integer): TgdcMethod;
 begin
   Assert((Index >= 0) and (Index < Count), 'Index out of range');
-  Result := TgdMethod(inherited Items[Index]);
+  Result := TgdcMethod(inherited Items[Index]);
 end;
 
-function TgdMethodList.MethodExists(const AMethod: TgdMethod): Boolean;
+function TgdcMethodList.MethodExists(const AMethod: TgdcMethod): Boolean;
 var
   I: Integer;
 begin
@@ -1035,44 +967,44 @@ begin
     end;
 end;
 
-function TgdMethodList.MethodByName(const AName: String) : TgdMethod;
+function TgdcMethodList.MethodByName(const AName: String) : TgdcMethod;
 var
   I: Integer;
 begin
   Result := nil;
   for I := 0 to Count - 1 do
-    if AnsiSameText(Methods[I].Name, AName) then
+    if AnsiUpperCase(Methods[I].Name) = AnsiUpperCase(AName) then
     begin
       Result := Methods[I];
       Break;
     end;
 end;
 
-function TgdMethodList.AddMethod(const AMethod: TgdMethod): Integer;
+function TgdcMethodList.AddMethod(const AMethod: TgdcMethod): Integer;
 begin
   if AMethod.Name = '' then
-    raise Exception.Create(GetGsException(Self, 'Method must have a name'));
+    raise Exception.Create(GetGsException(Self, 'Method must have name'));
   if MethodExists(AMethod) then
     raise Exception.Create(GetGsException(Self, 'Method ' + AMethod.Name + ' already found in list'));
 
-  Result := Add(TgdMethod.Create('', mkProcedure{не сущ-но}, ''));
+  Result := Add(TgdcMethod.Create('', mkProcedure{не сущ-но}, ''));
   if Assigned(AMethod) then
     Last.Assign(AMethod);
 end;
 
-function TgdMethodList.Last: TgdMethod;
+function TgdcMethodList.Last: TgdcMethod;
 begin
-  Result := TgdMethod(inherited Last);
+  Result := TgdcMethod(inherited Last);
 end;
 
-procedure TgdMethodList.Delete(Index: Integer);
+procedure TgdcMethodList.Delete(Index: Integer);
 begin
   Methods[Index].Free;
 
   inherited Delete(Index);
 end;
 
-procedure TgdMethodList.Clear;
+procedure TgdcMethodList.Clear;
 begin
   while Count > 0 do
     Delete(0);
@@ -1080,7 +1012,7 @@ begin
   inherited Clear;
 end;
 
-procedure TgdMethodList.Assign(ASource: TgdMethodList);
+procedure TgdcMethodList.Assign(ASource: TgdcMethodList);
 var
   I: Integer;
 begin
@@ -1089,14 +1021,13 @@ begin
     AddMethod(ASource.Methods[I]);
 end;
 
-{TgdClassMethods}
-
-constructor TgdClassMethods.Create;
+{TgdcClassMethods impl}
+constructor TgdcClassMethods.Create;
 begin
   inherited Create;
 
   FgdcClass := nil;
-  FgdMethods := TgdMethodList.Create;
+  FgdcMethods := TgdcMethodList.Create;
 
   // for testing purpose
 {$IFDEF DEBUG}
@@ -1104,21 +1035,21 @@ begin
 {$ENDIF}
 end;
 
-constructor TgdClassMethods.Create(AClass: TComponentClass);
+constructor TgdcClassMethods.Create(AClass: TComponentClass);
 begin
   Create;
   FgdcClass := AClass;
 end;
 
-procedure TgdClassMethods.Assign(ASource: TgdClassMethods);
+procedure TgdcClassMethods.Assign(ASource: TgdcClassMethods);
 begin
   gdcClass := ASource.gdcClass;
-  gdMethods.Assign(ASource.gdMethods);
+  gdcMethods.Assign(ASource.gdcMethods);
 end;
 
-destructor TgdClassMethods.Destroy;
+destructor TgdcClassMethods.Destroy;
 begin
-  FgdMethods.Free;
+  FgdcMethods.Free;
 
   inherited;
 
@@ -1128,26 +1059,209 @@ begin
 {$ENDIF}
 end;
 
-procedure TgdMethod.FreeFParams;
+{ TgdcCustomClassList }
+
+function TgdcCustomClassList.Add(AClass: TComponentClass): Integer;
+begin
+  Result := FClassList.AddObject(AClass.ClassName, TgdcClassMethods.Create(AClass));
+end;
+
+function TgdcCustomClassList.AddClassMethods(AClass: TComponentClass;
+  AMethods: array of TgdcMethod): Integer;
+var
+  VgdcMethodList : TgdcMethodList;
+  VgdcClassMethods : TgdcClassMethods;
+  I : Integer;
+begin
+  VgdcClassMethods := TgdcClassMethods.Create;
+  try
+    VgdcMethodList := TgdcMethodList.Create;
+    try
+      for I := Low(AMethods) to High(AMethods) do
+      begin
+        VgdcMethodList.AddMethod(AMethods[I]);
+        {$IFDEF METHODSCHECK}
+        if dbgMethodList = nil then
+          dbgMethodList := TStringList.Create;
+        dbgMethodList.Add(Format(mcString, [AClass.ClassName, AMethods[I].Name]));
+        {$ENDIF}
+      end;
+
+      VgdcClassMethods.gdcMethods.Assign(VgdcMethodList);
+      VgdcClassMethods.gdcClass := AClass;
+      Result := AddClassMethods(VgdcClassMethods);
+    finally
+      VgdcMethodList.Free;
+    end;
+  finally
+    VgdcClassMethods.Free;
+  end;
+end;
+
+function TgdcCustomClassList.AddClassMethods(
+  AClassMethods: TgdcClassMethods): Integer;
+var
+  I: Integer;
+begin
+  Result := FClassList.IndexOf(AClassMethods.gdcClass.ClassName);
+  if Result = -1 then
+  begin  {Adding methods to existing class}
+    Result := FClassList.AddObject(AClassMethods.gdcClass.ClassName,
+      TgdcClassMethods.Create);
+    gdcItems[Result].Assign(AClassMethods);
+  end else
+    begin
+      for I := 0 to AClassMethods.gdcMethods.Count - 1 do
+       gdcItems[Result].gdcMethods.AddMethod(AClassMethods.gdcMethods.Items[I]);
+    end;
+end;
+
+procedure TgdcCustomClassList.Clear;
+var
+  i: Integer;
+begin
+  for i := 0 to FClassList.Count - 1 do
+    FClassList.Objects[i].Free;
+  FClassList.Clear;
+end;
+
+constructor TgdcCustomClassList.Create;
+begin
+  inherited;
+
+  FClassList := THashedStringList.Create;
+  FClassList.CaseSensitive := False;
+
+  {$IFDEF DEBUG}
+  Inc(glbClassListCount);
+  {$ENDIF}
+end;
+
+destructor TgdcCustomClassList.Destroy;
+begin
+  Clear;
+  FClassList.Free;
+
+  inherited;
+
+{$IFDEF DEBUG}
+  Dec(glbClassListCount);
+{$ENDIF}
+end;
+
+function TgdcCustomClassList.GetClass(Index: Integer): TComponentClass;
+begin
+  Assert((Index >= 0) and (Index < FClassList.Count), 'Index out of range');
+  Result := gdcItems[Index].FgdcClass;
+end;
+
+function TgdcCustomClassList.GetClassMethods(Index: Integer): TgdcClassMethods;
+begin
+  Assert((Index >= 0) and (Index < FClassList.Count), 'Index out of range');
+  Result := TgdcClassMethods(FClassList.Objects[Index]);
+end;
+
+function TgdcCustomClassList.GetCount: Integer;
+begin
+  Result := FClassList.Count;
+end;
+
+function TgdcCustomClassList.GetCustomClass(
+  const AFullClassName: TgdcFullClassName): TComponentClass;
+var
+  i: Integer;
+begin
+  Result := nil;
+
+  i := FClassList.IndexOf(AFullClassName.gdClassName);
+  if i > -1 then
+    Result := GetClass(i);
+end;
+
+function TgdcCustomClassList.IndexOf(AClass: TClass): Integer;
+begin
+  Result := FClassList.IndexOf(AClass.ClassName);
+end;
+
+function TgdcCustomClassList.IndexOfByName(AFullClassName: TgdcFullClassName): Integer;
+begin
+  Result := FClassList.IndexOf(AFullClassName.gdClassName);
+end;
+
+procedure TgdcCustomClassList.Remove(AClass: TComponentClass);
+var
+  i: Integer;
+begin
+  i := FClassList.IndexOf(AClass.ClassName);
+  if i > -1 then
+  begin
+    gdcItems[i].Free;
+    FClassList.Delete(i);
+  end
+  {$IFDEF DEBUG}
+  else
+    if UseLog then
+      Log.LogLn('gd_ClassList: Unknown class ' + AClass.ClassName + '.')
+  {$ENDIF}
+  ;
+
+end;
+
+{ TgdcClassList }
+
+function TgdcClassList.GetGDCClass(const AFullClassName: TgdcFullClassName): CgdcBase;
+var
+  LComponentClass: TComponentClass;
+begin
+  Result := nil;
+  LComponentClass := GetCustomClass(AFullClassName);
+  if Assigned(LComponentClass) then
+    Result := CgdcBase(LComponentClass);
+end;
+
+function TgdcClassList.GetItems(Index: Integer): CgdcBase;
+begin
+  Result := CgdcBase(GetClass(Index));
+end;
+
+{ TfrmClassList }
+
+function TfrmClassList.GetFrmClass(
+  const AFullClassName: TgdcFullClassName): CgdcCreateableForm;
+var
+  LComponentClass: TComponentClass;
+begin
+  Result := nil;
+  LComponentClass := GetCustomClass(AFullClassName);
+  if Assigned(LComponentClass) then
+    Result := CgdcCreateableForm(LComponentClass);
+end;
+
+function TfrmClassList.GetItems(Index: Integer): CgdcCreateableForm;
+begin
+  Result := CgdcCreateableForm(GetClass(Index));
+end;
+
+procedure TgdcMethod.FreeFParams;
 var
   i: Integer;
 begin
   for i := 0 to FParams.Count - 1 do
-    TgdMethodParam(FParams[i]).Free;
+    TgdcMethodParam(FParams[i]).Free;
   FParams.Clear;
 end;
 
-function TgdMethodParam.GetIsParamClass: Boolean;
+function TgdcMethodParam.GetIsParamClass: Boolean;
 begin
   Result := FParamClass <> nil;
 end;
 
-procedure TgdMethodParam.SetParamName(const Value: String);
+procedure TgdcMethodParam.SetParamName(const Value: String);
 begin
   FParamName := Value;
 end;
 
-{TStackStrings}
+{ TStackStrings }
 
 function TStackStrings.Add(const FullClassName: TgdcFullClassName): Integer;
 begin
@@ -1224,901 +1338,33 @@ begin
     Result := nil;
 end;
 
-function TgdClassMethods.GetgdClassMethodsParent: TgdClassMethods;
+function TgdcClassMethods.GetGdcClassMethodsParent: TgdcClassMethods;
 var
-  CE: TgdClassEntry;
+  FN: TgdcFullClassName;
+  I: Integer;
 begin
   Result := nil;
-
-  CE := gdClassList.Find(FgdcClass.ClassParent);
-
-  if (CE <> nil) and (CE.ClassMethods <> nil) then
-    Result := CE.ClassMethods
-end;
-
-{TgdClassEntry}
-
-procedure TgdClassEntry.AddChild(AChild: TgdClassEntry);
-begin
-  Assert(AChild <> nil);
-  Assert(AChild.Parent = Self);
-  if FChildren = nil then
-    FChildren := TObjectList.Create(False);
-  FChildren.Add(AChild);
-end;
-
-function TgdClassEntry.Compare(const AClass: TClass;
-  const ASubType: TgdcSubType): Integer;
-begin
-  Assert(AClass <> nil);
-  Result := Compare(AClass.ClassName, ASubType);
-end;
-
-constructor TgdClassEntry.Create(AParent: TgdClassEntry; const AClass: TClass;
-  const AgdClassKind: TgdClassKind = ctStorage; const ACaption: String = '';
-  const ASubType: TgdcSubType = '');
-begin
-  FParent := AParent;
-  FClass := AClass;
-  FgdClassKind := AgdClassKind;
-  FCaption := ACaption;
-  FSubType := ASubType;
-  FChildren := nil;
-  FClassMethods := TgdClassMethods.Create(TComponentClass(FClass));
-end;
-
-destructor TgdClassEntry.Destroy;
-begin
-  FChildren.Free;
-  FClassMethods.Free;
-  inherited;
-end;
-
-function TgdClassEntry.GetCaption: String;
-begin
-  Result := FCaption;
-end;
-
-function TgdClassEntry.GetCount: Integer;
-begin
-  if FChildren = nil then
-    Result := 0
-  else
-    Result := FChildren.Count;
-end;
-
-function TgdClassEntry.GetGdcClass: CgdcBase;
-begin
-  if (FClass <> nil) and FClass.InheritsFrom(TgdcBase) then
-    Result := CgdcBase(FClass)
-  else
-    Result := nil;
-end;
-
-function TgdClassEntry.GetFrmClass: CgdcCreateableForm;
-begin
-  if (FClass <> nil) and FClass.InheritsFrom(TgdcCreateableForm) then
-    Result := CgdcCreateableForm(FClass)
-  else
-    Result := nil;
-end;
-
-function TgdClassEntry.GetChildren(Index: Integer): TgdClassEntry;
-begin
-  Result := FChildren[Index] as TgdClassEntry;
-end;
-
-function TgdClassEntry.GetSubTypeList(ASubTypeList: TStrings;
-  const AnOnlyDirect: Boolean): Boolean;
-var
-  I: Integer;
-begin
-  Assert(ASubTypeList <> nil);
-
-  Result := False;
-
-  for I := 0 to Count - 1 do
+  FN.gdClassName := FgdcClass.ClassParent.ClassName;
+  FN.SubType := '';
+  if FgdcClass.InheritsFrom(TgdcBase) then
   begin
-    if Children[I].SubType > '' then
-    begin
-      ASubTypeList.Add(Children[I].Caption + '=' + Children[I].SubType);
-      Result := True;
-
-      if not AnOnlyDirect then
-        Result := Children[I].GetSubTypeList(ASubTypeList, False) or Result;
-    end;
-  end;
-end;
-
-procedure TgdClassEntry.SetReadOnly(AReadOnly: Boolean);
-begin
-  gdClassList.FReadOnly := AReadOnly
-end;
-
-function TgdClassEntry.Traverse(ACallback: TgdClassEntryCallback;
-  AData1: Pointer; AData2: Pointer; const AnIncludeRoot, AnOnlyDirect: Boolean): Boolean;
-var
-  I: Integer;
-begin
-  Assert(Assigned(ACallback));
-
-  SetReadOnly(True);
-  try
-    if AnIncludeRoot then
-      Result := ACallback(Self, AData1, AData2)
-    else
-      Result := True;
-
-    I := 0;
-    while Result and (I < Count) do
-    begin
-      if AnOnlyDirect then
-        Result := Result and ACallback(Children[I], AData1, AData2)
-      else
-        Result := Result and Children[I].Traverse(ACallback, AData1, AData2, True, False);
-      Inc(I);
-    end;
-  finally
-    SetReadOnly(False);
-  end;
-end;
-
-function TgdClassEntry.Traverse(ACallback2: TgdClassEntryCallback2;
-  AData1: Pointer; AData2: Pointer; const AnIncludeRoot, AnOnlyDirect: Boolean): Boolean;
-var
-  I: Integer;
-begin
-  Assert(Assigned(ACallback2));
-
-  SetReadOnly(True);
-  try
-    if AnIncludeRoot then
-      Result := ACallback2(Self, AData1, AData2)
-    else
-      Result := True;
-
-    I := 0;
-    while Result and (I < Count) do
-    begin
-      if AnOnlyDirect then
-        Result := Result and ACallback2(Children[I], AData1, AData2)
-      else
-        Result := Result and Children[I].Traverse(ACallback2, AData1, AData2, True, False);
-      Inc(I);
-    end;
-  finally
-    SetReadOnly(False);
-  end;
-end;
-
-function TgdClassEntry.Compare(const AClassName: AnsiString;
-  const ASubType: TgdcSubType): Integer;
-begin
-  Result := AnsiCompareText(FSubType, ASubType);
-  if Result = 0 then
-    Result := AnsiCompareText(FClass.ClassName, AClassName);
-end;
-
-procedure TgdClassEntry.RemoveChild(AChild: TgdClassEntry);
-begin
-  if FChildren <> nil then
-    FChildren.Remove(AChild);
-end;
-
-function TgdClassEntry.Traverse(AList: TObjectList; const AnIncludeRoot,
-  AnOnlyDirect: Boolean): Boolean;
-begin
-  Assert(AList <> nil);
-  Result := Traverse(ListCallBack, AList, nil, AnIncludeRoot, AnOnlyDirect);
-end;
-
-function TgdClassEntry.ListCallback(ACE: TgdClassEntry; AData1,
-  AData2: Pointer): Boolean;
-begin
-  TObjectList(AData1).Add(ACE);
-  Result := True;
-end;
-
-function TgdClassEntry.FindChild(const AClassName: AnsiString): TgdClassEntry;
-var
-  I: Integer;
-begin
-  for I := 0 to Self.Count - 1 do
-  begin
-    Result := FChildren[I] as TgdClassEntry;
-    if (CompareText(Result.TheClass.ClassName, AClassName) = 0)
-      or (CompareText(Result.SubType, AClassName) = 0) then
-    begin
-      exit;
-    end;
-  end;
-  Result := nil;
-end;
-
-{TgdClassList}
-
-function TgdClassList.GetGDCClass(const AClassName: String): CgdcBase;
-var
-  CE: TgdClassEntry;
-begin
-  CE := Find(AClassName, '');
-
-  if CE <> nil then
-    Result := CE.gdcClass
-  else
-    Result := nil;
-end;
-
-function TgdClassList.GetFrmClass(const AClassName: String): CgdcCreateableForm;
-var
-  CE: TgdClassEntry;
-begin
-  CE := Find(AClassName, '');
-
-  if CE <> nil then
-    Result := CE.frmClass
-  else
-    Result := nil;
-end;
-
-function TgdClassList.Add(const AClass: TClass; AgdClassKind: TgdClassKind = ctStorage;
-  const ACaption: String = ''; const ASubType: TgdcSubType = '';
-  const AParentSubType: TgdcSubType = ''): TgdClassEntry;
-var
-  Index: Integer;
-  Prnt: TgdClassEntry;
-begin
-  if FReadOnly then
-    raise Exception.Create('gdClassList is in a read-only mode.');
-
-  if AClass = nil then
-  begin
-    Result := nil;
-    exit;
-  end;
-
-  Result := Find(AClass, ASubType);
-
-  if Result <> nil then
-  begin
-    if ACaption > '' then
-      Result.FCaption := ACaption;
-
-    if (Result.FgdClassKind <> AgdClassKind) and (AgdClassKind <> ctStorage) then
-    begin
-      Result.FgdClassKind := AgdClassKind;
-    end;
+    I := gdcClassList.IndexOfByName(FN);
+    Result := gdcClassList.gdcItems[I];
   end else
-  begin
-    if ASubType > '' then
-      Prnt := Add(AClass, AgdClassKind, '', AParentSubType)
-    else
-      if (AClass = TgdcBase) or (AClass = TgdcCreateableForm) then
-        Prnt := nil
-      else
-        Prnt := Add(AClass.ClassParent, ctStorage);
-
-    Result := TgdClassEntry.Create(Prnt, AClass, AgdClassKind, ACaption, ASubType);
-
-    if Prnt <> nil then
-      Prnt.AddChild(Result);
-
-    if not _Find(AClass.ClassName, ASubType, Index) then
-      _Insert(Index, Result)
-    else
-      raise Exception.Create('Internal consistency check');
-  end;
-end;
-
-constructor TgdClassList.Create;
-begin
-  inherited;
-  FReadOnly := False;
-  {$IFDEF DEBUG}
-  Inc(glbClassListCount);
-  {$ENDIF}
-end;
-
-destructor TgdClassList.Destroy;
-var
-  I: Integer;
-begin
-  for I := 0 to FCount - 1 do
-    FClasses[I].Free;
-
-  inherited;
-
-{$IFDEF DEBUG}
-  Dec(glbClassListCount);
-{$ENDIF}
-end;
-
-function TgdClassList.Find(const AClass: TClass;
-  const ASubType: TgdcSubType): TgdClassEntry;
-begin
-  Assert(AClass <> nil);
-  Result := Find(AClass.ClassName, ASubType);
-end;
-
-function GetRemoveList(ACE: TgdClassEntry; AData1: Pointer; AData2: Pointer): Boolean;
-begin
-  TStringList(AData1^).Add(ACE.TheClass.ClassName + '=' + ACE.SubType);
-  Result := True;
-end;
-
-function ValueFromString(const Str: String): string;
-var
-  P: Integer;
-begin
-  Result := '';
-  P := AnsiPos('=', Str);
-  if (P <> 0) and (P <> Length(Str)) then
-    Result := Copy(Str, P + 1, Length(Str) - P);
-end;
-
-procedure TgdClassList.Remove(const AClass: TClass;
-  const ASubType: TgdcSubType);
-var
-  Index: Integer;
-  OL: TObjectList;
-  I: Integer;
-begin
-  if FReadOnly then
-    raise Exception.Create('gdClassList is read-only');
-
-  if AClass = nil then
-    exit;
-
-  if _Find(AClass.ClassName, ASubType, Index) then
-  begin
-    if FClasses[Index].Parent <> nil then
-      FClasses[Index].Parent.RemoveChild(FClasses[Index]);
-    OL := TObjectList.Create(False);
-    try
-      FClasses[Index].Traverse(OL, False);
-      FClasses[Index].Free;
-      System.Move(FClasses[Index + 1], FClasses[Index],
-        (FCount - Index - 1) * SizeOf(FClasses[0]));
-      Dec(FCount);
-      for I := OL.Count - 1 downto 0 do
-      begin
-        if _Find(TgdClassEntry(OL[I]).TheClass.ClassName, TgdClassEntry(OL[I]).SubType, Index) then
-        begin
-          FClasses[Index].Free;
-          System.Move(FClasses[Index + 1], FClasses[Index],
-            (FCount - Index - 1) * SizeOf(FClasses[0]));
-          Dec(FCount);
-        end;
-      end;
-    finally
-      OL.Free;
-    end;
-  end;
-end;
-
-function GetAllSubTypes(ACE: TgdClassEntry; AData1: Pointer; AData2: Pointer): Boolean;
-begin
-  if ACE.SubType <> '' then
-    TStringList(AData1^).Add(ACE.TheClass.ClassName + '=' + ACE.SubType);
-
-  Result := True;
-end;
-
-procedure TgdClassList.RemoveAllSubTypes;
-var
-  I: Integer;
-begin
-  if FReadOnly then
-    raise Exception.Create('gdClassList is in a read-only mode');
-
-  for I := 0 to FCount - 1 do
-  begin
-    if FClasses[I].SubType > '' then
+    if FgdcClass.InheritsFrom(TgdcCreateableForm) then
     begin
-      if FClasses[I].Parent <> nil then
-        FClasses[I].Parent.RemoveChild(FClasses[I]);
-      FreeAndNil(FClasses[I]);
+      I := frmClassList.IndexOfByName(FN);
+      Result := frmClassList.gdcItems[I];
     end;
-  end;
-
-  _Compact;
-end;
-
-procedure TgdClassList.AddClassMethods(AClass: TComponentClass;
-  AMethods: array of TgdMethod);
-var
-  VgdMethodList : TgdMethodList;
-  VgdClassMethods : TgdClassMethods;
-  I : Integer;
-begin
-  VgdClassMethods := TgdClassMethods.Create;
-  try
-    VgdMethodList := TgdMethodList.Create;
-    try
-      for I := Low(AMethods) to High(AMethods) do
-      begin
-        VgdMethodList.AddMethod(AMethods[I]);
-        {$IFDEF METHODSCHECK}
-        if dbgMethodList = nil then
-          dbgMethodList := TStringList.Create;
-        dbgMethodList.Add(Format(mcString, [AClass.ClassName, AMethods[I].Name]));
-        {$ENDIF}
-      end;
-
-      VgdClassMethods.gdMethods.Assign(VgdMethodList);
-      VgdClassMethods.gdcClass := AClass;
-      AddClassMethods(VgdClassMethods);
-    finally
-      VgdMethodList.Free;
-    end;
-  finally
-    VgdClassMethods.Free;
-  end;
-end;
-
-procedure TgdClassList.AddClassMethods(
-  AClassMethods: TgdClassMethods);
-var
-  I: Integer;
-  CE: TgdClassEntry;
-begin
-  CE := Find(AClassMethods.gdcClass);
-
-  Assert(CE <> nil);
-  
-  for I := 0 to AClassMethods.gdMethods.Count - 1 do
-    CE.ClassMethods.gdMethods.AddMethod(AClassMethods.gdMethods.Items[I]);
-end;
-
-function TgdClassList.Traverse(const AClass: TClass;
-  const ASubType: TgdcSubType; ACallback: TgdClassEntryCallback;
-  AData1: Pointer; AData2: Pointer; const AnIncludeRoot, AnOnlyDirect: Boolean): Boolean;
-var
-  CE: TgdClassEntry;
-begin
-  Assert(Assigned(ACallback));
-
-  CE := Find(AClass, ASubType);
-  if CE <> nil then
-    Result := CE.Traverse(ACallback, AData1, AData2, AnIncludeRoot, AnOnlyDirect)
-  else
-    Result := False;
-end;
-
-function TgdClassList.Traverse(const AClass: TClass;
-  const ASubType: TgdcSubType; ACallback: TgdClassEntryCallback2;
-  AData1: Pointer; AData2: Pointer; const AnIncludeRoot, AnOnlyDirect: Boolean): Boolean;
-var
-  CE: TgdClassEntry;
-begin
-  Assert(Assigned(ACallback));
-
-  CE := Find(AClass, ASubType);
-  if CE <> nil then
-    Result := CE.Traverse(ACallback, AData1, AData2, AnIncludeRoot, AnOnlyDirect)
-  else
-    Result := False;
-end;
-
-function TgdClassList.GetSubTypeList(AClass: TClass; const ASubType: TgdcSubType;
-  ASubTypeList: TStrings; const AnOnlyDirect: Boolean): Boolean;
-var
-  CE: TgdClassEntry;
-begin
-  Assert(AClass <> nil);
-
-  CE := Find(AClass, ASubType);
-
-  if CE = nil then
-    raise Exception.Create('Unregistered class.');
-
-  Result := CE.GetSubTypeList(ASubTypeList, AnOnlyDirect);
-end;
-
-function TgdClassList._Find(const AClassName: AnsiString; const ASubType: TgdcSubType;
-  out Index: Integer): Boolean;
-var
-  L, H: Integer;
-begin
-  Result := False;
-  L := 0;
-  H := FCount - 1;
-  while L <= H do
-  begin
-    Index := (L + H) shr 1;
-    case FClasses[Index].Compare(AClassName, ASubType) of
-      -1: L := Index + 1;
-      +1: H := Index - 1;
-    else
-      Result := True;
-      exit;
-    end;
-  end;
-  Index := L;
-end;
-
-procedure TgdClassList._Grow;
-begin
-  if High(FClasses) = -1 then
-    SetLength(FClasses, 2048)
-  else
-    SetLength(FClasses, High(FClasses) + 1 + 1024);
-end;
-
-procedure TgdClassList._Insert(const Index: Integer; ACE: TgdClassEntry);
-begin
-  if FCount > High(FClasses) then _Grow;
-  if Index < FCount then
-  begin
-    System.Move(FClasses[Index], FClasses[Index + 1],
-      (FCount - Index) * SizeOf(FClasses[0]));
-  end;
-  FClasses[Index] := ACE;
-  Inc(FCount);
-end;
-
-function GetClassTree(ACE: TgdClassEntry; AData1: Pointer;
-  AData2: Pointer): Boolean;
-begin
-  Assert(ACE <> nil);
-  Assert(AData1 <> nil);
-  Assert(AData2 <> nil);
-  Assert(TClassList(AData1^) <> nil);
-
-  if (ACE.SubType = '') and (ACE.gdClassKind = TgdClassKind(AData2^)) then
-    TClassList(AData1^).Add(ACE.TheClass);
-  Result := True;
-end;
-
-function TgdClassList.GetDefinedClasses(const AgdClassKind: TgdClassKind;
-  AClassList: TClassList): Boolean;
-begin
-  if AClassList = nil then
-    raise Exception.Create('ClassList is nil');
-
-  Traverse(TgdcBase, '', GetClassTree, @AClassList, @AgdClassKind);
-  Traverse(TgdcCreateableForm, '', GetClassTree, @AClassList, @AgdClassKind);
-
-  Result := AClassList.Count > 0;
-end;
-
-function TgdClassList.Find(const AClassName: AnsiString;
-  const ASubType: TgdcSubType): TgdClassEntry;
-var
-  Index: Integer;
-begin
-  if _Find(AClassName, ASubType, Index) then
-    Result := FClasses[Index]
-  else
-    Result := nil;
-end;
-
-function TgdClassList.Find(const AFullClassName: TgdcFullClassName): TgdClassEntry;
-begin
-  Result := Find(AFullClassName.gdClassName, AFullClassName.SubType);
-end;
-
-procedure TgdClassList.LoadUserDefinedClasses;
-
-  function LoadRelation(Prnt: TgdClassEntry; R: TatRelation): TgdClassEntry;
-  var
-    F: TatRelationField;
-    Index: Integer;
-  begin
-    F := R.RelationFields.ByFieldName('INHERITEDKEY');
-
-    if (F <> nil) and (F.References <> nil) then
-      Prnt := LoadRelation(Prnt, F.References);
-
-    Result := TgdClassEntry.Create(Prnt, Prnt.TheClass, ctUserDefined, R.LName, R.RelationName);
-    Prnt.AddChild(Result);
-
-    if not _Find(Result.TheClass.ClassName, Result.SubType, Index) then
-      _Insert(Index, Result)
-    else
-      raise Exception.Create('Internal consistency check');
-  end;
-
-  function LoadDocument(Prnt: TgdClassEntry; q: TIBSQL): TgdClassEntry;
-  var
-    Index, PrevRB: Integer;
-  begin
-    Result := TgdClassEntry.Create(Prnt, Prnt.TheClass, ctUserDocument,
-      q.FieldByName('name').AsString, q.FieldByName('ruid').AsString);
-    Prnt.AddChild(Result);
-
-    if not _Find(Result.TheClass.ClassName, Result.SubType, Index) then
-      _Insert(Index, Result)
-    else
-      raise Exception.Create('Internal consistency check');
-
-    PrevRB := q.FieldByName('rb').AsInteger;
-    q.Next;
-
-    while (not q.EOF) and (q.FieldByName('lb').AsInteger < PrevRB) do
-      LoadDocument(Result, q);
-  end;
-
-  procedure CopySubTree(Src, Dst: TgdClassEntry);
-  var
-    I, Index: Integer;
-    CE: TgdClassEntry;
-  begin
-    for I := 0 to Src.Count - 1 do
-    begin
-      CE := TgdClassEntry.Create(Dst, Dst.TheClass, ctInvRemains,
-        Src.Children[I].Caption, Src.Children[I].SubType);
-      Dst.AddChild(CE);
-
-      if not _Find(CE.TheClass.ClassName, CE.SubType, Index) then
-        _Insert(Index, CE)
-      else
-        raise Exception.Create('Internal consistency check');
-
-      if Src.Children[I].Count > 0 then
-        CopySubTree(Src.Children[I], CE);
-    end;
-  end;
-
-  procedure IterateStorage(F: TgsStorageFolder; APrnt: TgdClassEntry);
-  var
-    I, Index: Integer;
-    Prnt: TgdClassEntry;
-  begin
-    if APrnt = nil then
-    begin
-      Prnt := Find(F.Name);
-    end else
-    begin
-      Prnt := APrnt.FindChild(F.Name);
-      if Prnt = nil then
-      begin
-        Prnt := TgdStorageEntry.Create(APrnt, APrnt.TheClass, ctStorage,
-          F.ReadString('Caption'), F.Name);
-        APrnt.AddChild(Prnt);
-
-        if not _Find(Prnt.TheClass.ClassName, Prnt.SubType, Index) then
-          _Insert(Index, Prnt)
-        else
-          raise Exception.Create('Internal consistency check');
-      end;
-    end;
-
-    for I := 0 to F.FoldersCount - 1 do
-      IterateStorage(F.Folders[I], Prnt);
-  end;
-
-var
-  I, J, Index: Integer;
-  R: TatRelation;
-  CEAttrUserDefined,
-  CEAttrUserDefinedLBRBTree,
-  CEAttrUserDefinedTree,
-  CEUserDocument,
-  CEUserDocumentLine,
-  CEInvDocument,
-  CEInvDocumentLine,
-  CEInvPriceList,
-  CEInvPriceListLine,
-  CEInvRemains,
-  CEInvGoodRemains,
-  CE, CEStorage: TgdClassEntry;
-  q: TIBSQL;
-  FSubTypes: TgsStorageFolder;
-  SL: TStringList;
-begin
-  CEAttrUserDefined := Find('TgdcAttrUserDefined');
-  CEAttrUserDefinedTree := Find('TgdcAttrUserDefinedTree');
-  CEAttrUserDefinedLBRBTree := Find('TgdcAttrUserDefinedLBRBTree');
-
-  for I := 0 to atDatabase.Relations.Count - 1 do
-  begin
-    R := atDatabase.Relations[I];
-
-    if R.IsUserDefined then
-    begin
-      if R.IsStandartRelation then
-        LoadRelation(CEAttrUserDefined, R)
-      else if R.IsLBRBTreeRelation then
-        LoadRelation(CEAttrUserDefinedLBRBTree, R)
-      else if R.IsStandartTreeRelation then
-        LoadRelation(CEAttrUserDefinedTree, R);
-    end;
-  end;
-
-  CEUserDocument := Find('TgdcUserDocument');
-  CEUserDocumentLine := Find('TgdcUserDocumentLine');
-  CEInvDocument := Find('TgdcInvDocument');
-  CEInvDocumentLine := Find('TgdcInvDocumentLine');
-  CEInvPriceList := Find('TgdcInvPriceList');
-  CEInvPriceListLine := Find('TgdcInvPriceListLine');
-
-  q := TIBSQL.Create(nil);
-  try
-    q.Transaction := gdcBaseManager.ReadTransaction;
-    q.SQL.Text :=
-      'SELECT dt.* FROM gd_documenttype dt ' +
-      'WHERE dt.classname > '''' AND dt.documenttype = ''D'' ORDER BY lb';
-    q.ExecQuery;
-    while not q.EOF do
-    begin
-      if CompareText(q.FieldbyName('classname').AsString, 'TgdcUserDocumentType') = 0 then
-        LoadDocument(CEUserDocument, q)
-      else if CompareText(q.FieldbyName('classname').AsString, 'TgdcInvDocumentType') = 0 then
-        LoadDocument(CEInvDocument, q)
-      else if CompareText(q.FieldbyName('classname').AsString, 'TgdcInvPriceListType') = 0 then
-        LoadDocument(CEInvPriceList, q)
-      else
-        q.Next;
-    end;
-
-    CEInvRemains := Find('TgdcInvRemains');
-    CEInvGoodRemains := Find('TgdcInvGoodRemains');
-
-    q.Close;
-    q.SQL.Text := 'SELECT name, ruid FROM inv_balanceoption';
-    q.ExecQuery;
-    while not q.EOF do
-    begin
-      CE := TgdClassEntry.Create(CEInvRemains, CEInvRemains.TheClass, ctInvRemains,
-        q.FieldByName('name').AsString, q.FieldByName('ruid').AsString);
-      CEInvRemains.AddChild(CE);
-
-      if not _Find(CE.TheClass.ClassName, CE.SubType, Index) then
-        _Insert(Index, CE)
-      else
-        raise Exception.Create('Internal consistency check');
-
-      CE := TgdClassEntry.Create(CEInvGoodRemains, CEInvGoodRemains.TheClass, ctInvRemains,
-        q.FieldByName('name').AsString, q.FieldByName('ruid').AsString);
-      CEInvGoodRemains.AddChild(CE);
-
-      if not _Find(CE.TheClass.ClassName, CE.SubType, Index) then
-        _Insert(Index, CE)
-      else
-        raise Exception.Create('Internal consistency check');
-
-      q.Next;
-    end;
-
-    CopySubTree(CEInvDocument, CEInvRemains);
-    CopySubTree(CEInvDocument, CEInvGoodRemains);
-    CopySubTree(CEInvDocument, Find('TgdcSelectedGood'));
-  finally
-    q.Free;
-  end;
-
-  CopySubTree(CEUserDocument, CEUserDocumentLine);
-  CopySubTree(CEInvDocument, CEInvDocumentLine);
-  CopySubTree(CEInvPriceList, CEInvPriceListLine);
-
-  FSubTypes := GlobalStorage.OpenFolder('\SubTypes', False, False);
-  try
-    if FSubTypes <> nil then
-    begin
-      // support old format
-      if FSubTypes.ValuesCount > 0 then
-      begin
-        SL := TStringList.Create;
-        try
-          for I := 0 to FSubTypes.ValuesCount - 1 do
-          begin
-            CEStorage := Find(FSubTypes.Values[I].Name);
-            if CEStorage <> nil then
-            begin
-              SL.CommaText := FSubTypes.Values[I].AsString;
-              for J := 0 to SL.Count - 1 do
-              begin
-                if CEStorage.FindChild(SL.Values[SL.Names[J]]) = nil then
-                begin
-                  CE := TgdStorageEntry.Create(CEStorage, CEStorage.TheClass, ctStorage,
-                    SL.Names[J], SL.Values[SL.Names[J]]);
-                  CEStorage.AddChild(CE);
-
-                  if not _Find(CE.TheClass.ClassName, CE.SubType, Index) then
-                    _Insert(Index, CE)
-                  else
-                    raise Exception.Create('Internal consistency check');
-                end;
-              end;
-            end;
-          end;
-        finally
-          SL.Free;
-        end;
-      end;
-
-      IterateStorage(FSubTypes, nil);
-    end;
-  finally
-    GlobalStorage.CloseFolder(FSubTypes);
-  end;
-end;
-
-function TgdClassList.Add(const AClassName: AnsiString; const ASubType,
-  AParentSubType: TgdcSubType; const ACaption: String): TgdClassEntry;
-var
-  Index: Integer;
-  Prnt: TgdClassEntry;
-  AClass: TClass;
-begin
-  Result := Find(AClassName, ASubType);
-
-  if Result <> nil then
-  begin
-    if Result.FCaption = '' then
-      Result.FCaption := ACaption;
-  end else
-  begin
-    if AParentSubType > '' then
-    begin
-      Prnt := Find(AClassName, AParentSubType);
-      if Prnt = nil then
-        raise Exception.Create('Invalid parent subtype');
-      AClass := Prnt.TheClass;
-    end else
-    begin
-      if ASubType > '' then
-      begin
-        Prnt := Find(AClassName);
-        if Prnt = nil then
-          raise Exception.Create('Invalid class name');
-        AClass := Prnt.TheClass;
-      end else
-      begin
-        AClass := GetClass(AClassName);
-        if (AClass = TgdcBase) or (AClass = TgdcCreateableForm) then
-          Prnt := nil
-        else if AClass = nil then
-          raise Exception.Create('Invalid class name')
-        else
-          Prnt := Add(AClass.ClassParent);
-      end;    
-    end;
-
-    Result := TgdClassEntry.Create(Prnt, AClass, ctStorage, ACaption, ASubType);
-
-    if Prnt <> nil then
-      Prnt.AddChild(Result);
-
-    if not _Find(AClassName, ASubType, Index) then
-      _Insert(Index, Result)
-    else
-      raise Exception.Create('Internal consistency check');
-  end;
-end;
-
-procedure TgdClassList._Compact;
-var
-  B, E: Integer;
-begin
-  B := 0;
-  while B < FCount do
-  begin
-    E := B;
-    while (E < FCount) and (FClasses[E] = nil) do
-      Inc(E);
-    if E = FCount then
-    begin
-      FCount := B;
-      break;
-    end;
-    if E > B then
-    begin
-      System.Move(FClasses[E], FClasses[B], (FCount - E) * SizeOf(FClasses[0]));
-      Dec(FCount, E - B);
-    end;
-    Inc(B);
-  end;
 end;
 
 initialization
-  _gdClassList := nil;
   gdcObjectList := TObjectList.Create(False);
 
 finalization
   FreeAndNil(gdcObjectList);
-  FreeAndNil(_gdClassList);
+  FreeAndNil(gdcClassList);
+  FreeAndNil(frmClassList);
 
 {$IFDEF METHODSCHECK}
   if dbgMethodList <> nil then

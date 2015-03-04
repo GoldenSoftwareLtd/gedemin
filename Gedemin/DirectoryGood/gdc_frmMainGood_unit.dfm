@@ -6,10 +6,30 @@ inherited gdc_frmMainGood: Tgdc_frmMainGood
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 546
+    Top = 556
   end
   inherited TBDockTop: TTBDock
     inherited tbMainToolbar: TTBToolbar
+      object tbsiNew: TTBSubmenuItem [0]
+        Action = actNew
+        DropdownCombo = True
+        object tblMenuNew: TTBItem
+          Action = actNew
+        end
+        object tbiSubNew: TTBItem
+          Action = actNewSub
+        end
+      end
+      inherited tbiEdit: TTBItem [1]
+      end
+      inherited tbiDelete: TTBItem [2]
+      end
+      inherited tbiDuplicate: TTBItem [3]
+      end
+      inherited tbiReduction: TTBItem [4]
+      end
+      inherited tbsiMainOne: TTBSeparatorItem [5]
+      end
       inherited tbiCopy: TTBItem [6]
       end
       inherited tbiCut: TTBItem [7]
@@ -36,9 +56,12 @@ inherited gdc_frmMainGood: Tgdc_frmMainGood
       end
       inherited tbiHelp: TTBItem [18]
       end
-      inherited tbiEditInGrid: TTBItem [19]
+      inherited tbiNew: TTBItem [19]
+        Visible = False
       end
-      inherited tbiLinkObject: TTBItem [20]
+      inherited tbiEditInGrid: TTBItem [20]
+      end
+      inherited tbiLinkObject: TTBItem [21]
       end
     end
     inherited tbMainInvariant: TTBToolbar
@@ -46,18 +69,19 @@ inherited gdc_frmMainGood: Tgdc_frmMainGood
     end
   end
   inherited TBDockBottom: TTBDock
-    Top = 565
+    Top = 575
   end
   inherited pnlWorkArea: TPanel
     inherited pnlDetail: TPanel
       inherited TBDockDetail: TTBDock
         inherited tbDetailToolbar: TTBToolbar
+          Images = dmImages.il16x16
           object tbiViewAllCard: TTBItem
             Action = actViewAllCard
           end
         end
         inherited tbDetailCustom: TTBToolbar
-          Left = 309
+          Left = 298
         end
       end
     end

@@ -97,6 +97,8 @@ type
     class function NeedModifyFromStream(const SubType: String): Boolean; override;
     class function NeedDeleteTheSame(const SubType: String): Boolean; override;
 
+    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
+
     property Silent: Boolean read FSilent write FSilent default false;
     //property ActivateError: TSettingError read FActivateError;
     property ActivateErrorDescription: WideString read FActivateErrorDescription;
@@ -146,6 +148,8 @@ type
     procedure SetNeedModify(const Value: Boolean; BL: TBookmarkList);
     procedure SetNeedInsert(const Value: Boolean; BL: TBookmarkList);
     procedure SetNeedModifyDefault;
+
+    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
   end;
 
   TgdcSettingStorage = class(TgdcBase)
@@ -165,6 +169,7 @@ type
     procedure Valid;
 
     class function NeedModifyFromStream(const SubType: String): Boolean; override;
+    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
   end;
 
 // тип версия_настройки
@@ -755,6 +760,11 @@ begin
   {M}      ClearMacrosStack2('TGDCSETTING', 'DOBEFOREPOST', KEYDOBEFOREPOST);
   {M}  end;
   {END MACRO}
+end;
+
+class function TgdcSetting.GetDisplayName(const ASubType: TgdcSubType): String;
+begin
+  Result := 'Настройка';
 end;
 
 class function TgdcSetting.GetListField(const ASubType: TgdcSubType): String;
@@ -2544,6 +2554,11 @@ begin
   end;
 end;
 
+class function TgdcSettingPos.GetDisplayName(const ASubType: TgdcSubType): String;
+begin
+  Result := 'Позиция настройки';
+end;
+
 procedure TgdcSettingPos.SetNeedModify(const Value: Boolean;
   BL: TBookmarkList);
 var
@@ -2780,6 +2795,11 @@ constructor TgdcSettingStorage.Create(AnOwner: TComponent);
 begin
   inherited;
   CustomProcess := [cpInsert, cpDelete, cpModify];
+end;
+
+class function TgdcSettingStorage.GetDisplayName(const ASubType: TgdcSubType): String;
+begin
+  Result := 'Позиция настройки хранилища'
 end;
 
 class function TgdcSettingStorage.GetListField(
@@ -3391,7 +3411,7 @@ end;
 procedure TGSFList.LoadPackageInfo{(const isForce: Boolean = False)};
 var
   i: Integer;
-  CP: Boolean;
+  CP {CorrectPack}: Boolean;
   MaxVer: TSettingVersion;
   ErrMsg: String;
 begin
@@ -4681,12 +4701,12 @@ begin
       if not DontHideForms then
         if Assigned(frmSQLProcess) and AnModalSQLProcess and not frmSQLProcess.Silent then
         begin
-          frmSQLProcess.BringToFront;
           {$IFNDEF DUNIT_TEST}
           if frmSQLProcess.Visible then
             frmSQLProcess.Hide;
           frmSQLProcess.ShowModal;
           {$ENDIF}
+          frmSQLProcess.BringToFront;
         end;
     end
     else
@@ -5275,9 +5295,9 @@ begin
 end;
 
 initialization
-  RegisterGDCClass(TgdcSetting, ctStorage, 'Настройка');
-  RegisterGDCClass(TgdcSettingPos, ctStorage, 'Позиция настройки');
-  RegisterGDCClass(TgdcSettingStorage, ctStorage, 'Позиция настройки хранилища');
+  RegisterGDCClass(TgdcSetting);
+  RegisterGDCClass(TgdcSettingPos);
+  RegisterGDCClass(TgdcSettingStorage);
 
 finalization
   UnRegisterGDCClass(TgdcSetting);

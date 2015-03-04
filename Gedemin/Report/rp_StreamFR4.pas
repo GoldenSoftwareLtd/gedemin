@@ -231,9 +231,7 @@ procedure TFR4ReportInterface.CreatePreviewForm;
 begin
   //Форма просмотра
   FPreviewForm := TfrxPreviewForm.Create(Application);
-  {$IFDEF GEDEMIN}
   Ffr4Report.gsPreviewForm := FPreviewForm;
-  {$ENDIF}
 
   inherited;
 end;

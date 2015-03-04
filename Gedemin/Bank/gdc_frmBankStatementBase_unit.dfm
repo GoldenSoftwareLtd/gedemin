@@ -1,43 +1,43 @@
 inherited gdc_frmBankStatementBase: Tgdc_frmBankStatementBase
-  Left = 574
-  Top = 155
+  Left = 920
+  Top = 318
   Width = 764
   Height = 495
   Caption = 'gdc_frmBankStatementBase'
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 438
+    Top = 426
     Width = 748
   end
   inherited TBDockTop: TTBDock
     Width = 748
     inherited tbMainCustom: TTBToolbar
-      Left = 378
+      Left = 421
       BorderStyle = bsSingle
       inherited ibcmbAccount: TgsIBLookupComboBox
         Condition = '(disabled=0 or (disabled is null))'
       end
     end
     inherited tbMainInvariant: TTBToolbar
-      Left = 344
+      Left = 336
       object TBItem2: TTBItem [3]
         Action = actCreateEntry
       end
     end
     inherited tbChooseMain: TTBToolbar
-      Left = 672
+      Left = 715
     end
   end
   inherited TBDockLeft: TTBDock
-    Height = 378
+    Height = 366
   end
   inherited TBDockRight: TTBDock
     Left = 739
-    Height = 378
+    Height = 366
   end
   inherited TBDockBottom: TTBDock
-    Top = 429
+    Top = 417
     Width = 748
   end
   inherited pnlWorkArea: TPanel
@@ -56,7 +56,10 @@ inherited gdc_frmBankStatementBase: Tgdc_frmBankStatementBase
         Top = 29
         Height = 138
         inherited sbSearchMain: TScrollBox
-          Height = 111
+          Height = 100
+        end
+        inherited pnlSearchMainButton: TPanel
+          Top = 100
         end
       end
       inherited ibgrMain: TgsIBGrid
@@ -111,7 +114,7 @@ inherited gdc_frmBankStatementBase: Tgdc_frmBankStatementBase
           EditMask = '!99\.99\.9999;1;_'
           MaxLength = 10
           TabOrder = 0
-          Text = '29.01.2015'
+          Text = '11.04.2012'
         end
       end
     end
@@ -139,13 +142,17 @@ inherited gdc_frmBankStatementBase: Tgdc_frmBankStatementBase
           end
         end
         inherited tbDetailCustom: TTBToolbar
+          Left = 298
           Visible = True
         end
       end
       inherited pnlSearchDetail: TPanel
         Height = 74
         inherited sbSearchDetail: TScrollBox
-          Height = 47
+          Height = 36
+        end
+        inherited pnlSearchDetailButton: TPanel
+          Top = 36
         end
       end
       inherited ibgrDetail: TgsIBGrid
@@ -174,7 +181,6 @@ inherited gdc_frmBankStatementBase: Tgdc_frmBankStatementBase
       Hint = 'Провести проводки по документу'
       ImageIndex = 104
       OnExecute = actCreateEntryExecute
-      OnUpdate = actCreateEntryUpdate
     end
     object actGotoEntry: TAction
       Category = 'Detail'

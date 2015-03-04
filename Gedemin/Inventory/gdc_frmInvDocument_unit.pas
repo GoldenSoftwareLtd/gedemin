@@ -57,12 +57,15 @@ type
     procedure actGotoEntryExecute(Sender: TObject);
     procedure actMainGotoEntryExecute(Sender: TObject);
     procedure actViewAllCardExecute(Sender: TObject);
-    procedure actCreateEntryUpdate(Sender: TObject);
 
   private
 
   public
     class function CreateAndAssign(AnOwner: TComponent): TForm; override;
+    class function GetSubTypeList(SubTypeList: TStrings;
+      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; override;
+
+    class function ClassParentSubtype(Subtype: String): String; override;
 
     procedure SaveDesktopSettings; override;
   end;
@@ -80,9 +83,7 @@ uses
   Storages,
   gdcAcctEntryRegister,
   gdc_frmTransaction_unit,
-  IBDatabase,
-  IBSQL,
-  gdcBaseInterface
+  IBDatabase
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -107,6 +108,18 @@ begin
 
   Caption := gdcInvDocument.DocumentName[True];
 
+end;
+
+class function Tgdc_frmInvDocument.GetSubTypeList(
+  SubTypeList: TStrings; Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
+begin
+  Result := TgdcInvDocument.GetSubTypeList(SubTypeList, Subtype, OnlyDirect);
+end;
+
+class function Tgdc_frmInvDocument.ClassParentSubtype(
+  Subtype: String): String;
+begin
+  Result := TgdcInvDocument.ClassParentSubtype(SubType);
 end;
 
 procedure Tgdc_frmInvDocument.SaveDesktopSettings;
@@ -329,13 +342,8 @@ begin
 
 end;
 
-procedure Tgdc_frmInvDocument.actCreateEntryUpdate(Sender: TObject);
-begin
-  actCreateEntry.Enabled := (gdcObject <> nil) and (gdcObject.CanEdit);
-end;
-
 initialization
-  RegisterFrmClass(Tgdc_frmInvDocument, ctInvDocument);
+  RegisterFrmClass(Tgdc_frmInvDocument);
 
 finalization
   UnRegisterFrmClass(Tgdc_frmInvDocument);

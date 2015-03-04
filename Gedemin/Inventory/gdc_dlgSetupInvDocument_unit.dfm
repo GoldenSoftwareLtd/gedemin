@@ -1,10 +1,10 @@
 inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
-  Top = 190
+  Left = 473
+  Top = 186
   Caption = 'Складской документ'
   PixelsPerInch = 96
   TextHeight = 13
   inherited pcMain: TPageControl
-    ActivePage = tsIncomeMovement
     OnChange = pcMainChange
     OnChanging = pcMainChanging
     inherited tsCommon: TTabSheet
@@ -665,7 +665,6 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
         ParentShowHint = False
         ShowHint = True
         TabOrder = 9
-        Visible = False
         object lvMinusFeatures: TListView
           Left = 7
           Top = 21
@@ -748,7 +747,7 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
         Top = 147
         Width = 273
         Height = 17
-        Caption = 'Сохранять настройки окна остатков'
+        Caption = 'Сохранять настройки окна остаков'
         TabOrder = 8
       end
       object cbEndMonthRemains: TCheckBox
@@ -758,15 +757,6 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
         Height = 17
         Caption = 'Контроль остатков на конец месяца'
         TabOrder = 10
-      end
-      object cbWithoutSearchRemains: TCheckBox
-        Left = 276
-        Top = 146
-        Width = 221
-        Height = 17
-        Caption = 'Движение без поиска остатков'
-        TabOrder = 11
-        Visible = False
       end
     end
   end

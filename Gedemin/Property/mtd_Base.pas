@@ -887,7 +887,7 @@ begin
   Inc(MethodClassListCount);
   {$ENDIF}
 
-  FHashMethodClassList := TStringHashMap.Create(CaseInSensitiveTraits, 2048);
+  FHashMethodClassList := TStringHashMap.Create(CaseInSensitiveTraits, 512);
 end;
 
 destructor TMethodClassList.Destroy;
@@ -987,10 +987,11 @@ var
   LMethodItem: TMethodItem;
   LFunction: TrpCustomFunction;
   AnObjectClassName: string;
-  Index, mtdCacheIndex: Integer;
+  Index, k, mtdCacheIndex: Integer;
   //SubTypeList: TStrings;
   tmpStackStrings: TStackStrings;
   ObjectSubType: String;
+  SubTypePresent{, IsGdcBase}: Boolean;
   LClassName: String;
   LmtdCacheItem: TmtdCacheItem;
   LFullClassName_: TgdcFullClassName;
@@ -1000,8 +1001,8 @@ var
   FullFindFlag: Boolean;
   LCurrentFullClass, LFullChildName: TgdcFullClassName;
   LClassType: TmtdClassType;
-//  LgdcCreateableFormClass: CgdcCreateableForm;
-//  LgdcBaseClass: CgdcBase;
+  LgdcCreateableFormClass: CgdcCreateableForm;
+  LgdcBaseClass: CgdcBase;
 const
   LMsgMethodUserError =
                   'Метод %s для класса %s вызвал ошибку.'#13#10 +
@@ -1144,30 +1145,57 @@ begin
                 LFullChildName := LCurrentFullClass;
                 // Если в последнем в стеке полном имени класса есть подтип, то
                 // текущий полный класс - это тот-же полный класс без подтипа,
-                // если нет родителя с подтипом
+                // если нет родителя по подтипу GD_ DOCUMENTTYPE
                 if GetClass(LCurrentFullClass.gdClassName).InheritsFrom(TgdcBase) then
                 begin
-                  if not Assigned(gdClassList.GetGDCClass(LCurrentFullClass.gdClassName))then
+                  if not Assigned(gdcClassList.GetGDCClass(LCurrentFullClass))then
                     raise Exception.Create('Ошибка перекрытия метода класса '
                       + LCurrentFullClass.gdClassName);
                   LCurrentFullClass.SubType :=
-                    gdClassList.GetGDCClass(LCurrentFullClass.gdClassName).ClassParentSubType(LCurrentFullClass.SubType)
+                    gdcClassList.GetGDCClass(LCurrentFullClass).ClassParentSubtype(LCurrentFullClass.SubType)
                 end
                 else
                 begin
-                  if not Assigned(gdClassList.GetFRMClass(LCurrentFullClass.gdClassName))then
+                  if not Assigned(frmClassList.GetFRMClass(LCurrentFullClass))then
                     raise Exception.Create('Ошибка перекрытия метода класса '
                       + LCurrentFullClass.gdClassName);
                   LCurrentFullClass.SubType :=
-                    gdClassList.GetFRMClass(LCurrentFullClass.gdClassName).ClassParentSubtype(LCurrentFullClass.SubType)
+                    frmClassList.GetFRMClass(LCurrentFullClass).ClassParentSubtype(LCurrentFullClass.SubType)
                 end;
               end else
                 begin
                   // Если последний обработанный класс без подтипа, то получаем
-                  // класс родителя
+                  // класс родителя, проверяем для него наличия подтипа объект.
+                  // Если подтип для класса родителя определен, то текущий
+                  // полный класс - класс родителя + подтип, иначе только класс
+                  // родителя
                   LFullChildName := LCurrentFullClass;
                   LCurrentFullClass.gdClassName :=
                     AnsiUpperCase(GetParentClassName(LCurrentFullClass, LClassType));
+                  if AgdcBase.InheritsFrom(TgdcBase) then
+                  begin
+                    LgdcBaseClass := gdcClassList.GetGDCClass(LCurrentFullClass);
+                    if LgdcBaseClass = nil then
+                      raise Exception.Create('Ошибка перекрытия метода. Обратитесь к разработчикам.');
+                    SubTypePresent := LgdcBaseClass.GetSubTypeList(LocalSubTypeList);
+                  end else
+                    begin
+                      LgdcCreateableFormClass := frmClassList.GetFRMClass(LCurrentFullClass);
+                      if LgdcCreateableFormClass = nil then
+                        raise Exception.Create('Ошибка перекрытия метода. Обратитесь к разработчикам.');
+                      SubTypePresent := LgdcCreateableFormClass.GetSubTypeList(LocalSubTypeList);
+                    end;
+
+                  if SubTypePresent then
+                  begin
+                    for k := 0 to LocalSubTypeList.Count - 1 do
+                      if ObjectSubType =
+                        AnsiUpperCase(GetSubTypeFromStr(LocalSubTypeList[k])) then
+                      begin
+                        LCurrentFullClass.SubType := ObjectSubType;
+                        break;
+                      end;
+                  end;
                 end;
             end;
         end;
@@ -1666,11 +1694,22 @@ begin
         'MethodControl: Передан некоррестный класс ' + AnObject.ClassName);
 end;
 
-function TMethodControl.VerifyingClass(const FullClassName: TgdcFullClassName;
-  const ClassType: TmtdClassType): Boolean;
+function TMethodControl.VerifyingClass(
+  const FullClassName: TgdcFullClassName; const ClassType: TmtdClassType): Boolean;
 begin
-  Assert(gdClassList <> nil);
-  Result := gdClassList.Find(FullClassName) <> nil;
+  Result := False;
+  case ClassType of
+    mtd_gdcBase:
+    begin
+      if (gdcClassList <> nil) and (gdcClassList.IndexOfByName(FullClassName) > -1) then
+        Result := True;
+    end;
+    mtd_gdcForm:
+    begin
+      if (frmClassList <> nil) and (frmClassList.IndexOfByName(FullClassName) > -1) then
+        Result := True;
+    end;
+  end;
 end;
 
 function TMethodControl.GetSubType(
@@ -1693,9 +1732,9 @@ begin
   LClass := nil;
   case ClassType of
     mtd_gdcBase:
-      LClass := gdClassList.GetGDCClass(FullClassName.gdClassName);
+      LClass := gdcClassList.GetGDCClass(FullClassName);
     mtd_gdcForm:
-      LClass := gdClassList.GetFRMClass(FullClassName.gdClassName);
+      LClass := frmClassList.GetFRMClass(FullClassName);
   end;
   if LClass = nil then raise Exception.Create('Ошибка перекрытия метода. Обратитесь к разработчикам.');
   Result :=

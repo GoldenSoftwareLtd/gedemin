@@ -1,7 +1,8 @@
 
  {++
 
-   Copyright © 2000-2014 by Golden Software of Belarus, Ltd
+   Project ADDRESSBOOK
+   Copyright © 2000-2012 by Golden Software
 
    Модуль
 
@@ -13,15 +14,15 @@
 
    Автор
 
-     Anton
+    Anton
 
    История
 
      ver    date    who    what
-
      1.00 - 25.06.2001 - anton - Первая версия
 
  --}
+
 
 unit gdc_dlgBank_unit;
 
@@ -30,9 +31,10 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   gdc_dlgCustomCompany_unit, Db, IBCustomDataSet, gdcBase, gdcContacts,
-  ActnList, at_Container, ComCtrls, ToolWin, ExtCtrls, DBCtrls, StdCtrls,
-  Grids, Mask, Buttons, gsIBGrid, Menus, IBDatabase, TB2Item, TB2Dock,
-  TB2Toolbar, JvDBImage, gsDBGrid, gsIBLookupComboBox, DBGrids;
+  ActnList, at_Container, ComCtrls, ToolWin, ExtCtrls, gsDBGrid,
+  gsDBTreeView, DBCtrls, gsIBLookupComboBox, StdCtrls, Grids, DBGrids,
+  Mask, Buttons, gsIBGrid, Menus, IBDatabase, gdcTree,
+  TB2Item, TB2Dock, TB2Toolbar, JvDBImage;
 
 type
   Tgdc_dlgBank = class(Tgdc_dlgCustomCompany)
@@ -44,6 +46,9 @@ type
     dbeSWIFT: TDBEdit;
     lblBankBranch: TLabel;
     dbedBankBranch: TDBEdit;
+    procedure FormCreate(Sender: TObject);
+
+  private
 
   public
     function TestCorrect: Boolean; override;
@@ -57,7 +62,26 @@ implementation
 {$R *.DFM}
 
 uses
-  gd_ClassList, gdcBaseInterface;
+  gd_ClassList, at_Classes, gdcBaseInterface;
+
+procedure Tgdc_dlgBank.FormCreate(Sender: TObject);
+var
+  F: TatRelationField;
+begin
+  inherited;
+  F := atDatabase.FindRelationField('GD_BANK', 'BANKBRANCH');
+  if Assigned(F) then
+  begin
+    dbedBankBranch.DataField := 'BANKBRANCH';
+    dbedBankBranch.Visible := True;
+    lblBankBranch.Visible := True;
+  end
+  else
+  begin
+    dbedBankBranch.Visible := False;
+    lblBankBranch.Visible := False;
+  end;  
+end;
 
 function Tgdc_dlgBank.TestCorrect: Boolean;
 var
@@ -72,13 +96,13 @@ begin
       or gdcObject.FieldChanged('bankbranch') then
     begin
       Temp := 'SELECT FIRST 1 * FROM gd_bank WHERE TRIM(bankcode) = ''' +
-        Trim(StringReplace(gdcObject.FieldByName('bankcode').AsString, '''', '''''', [rfReplaceAll])) + ''' ';
+        Trim(gdcObject.FieldByName('bankcode').AsString) + ''' ';
 
       if gdcObject.FieldByName('bankbranch').isNull then
-        Temp := Temp + ' AND COALESCE(bankbranch, '''') = '''' '
+        Temp := Temp + ' AND bankbranch IS NULL'
       else
         Temp := Temp + ' AND TRIM(bankbranch) = ''' +
-          Trim(StringReplace(gdcObject.FieldByName('bankbranch').AsString, '''', '''''', [rfReplaceAll])) + '''';
+          Trim(gdcObject.FieldByName('bankbranch').AsString) + '''';
 
       Temp := Temp + ' AND bankkey <> ' + gdcObject.FieldByName('bankkey').AsString;
 
@@ -101,4 +125,5 @@ initialization
 
 finalization
   UnRegisterFrmClass(Tgdc_dlgBank);
+
 end.

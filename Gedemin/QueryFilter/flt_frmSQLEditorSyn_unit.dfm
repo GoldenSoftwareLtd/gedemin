@@ -1,6 +1,6 @@
 object frmSQLEditorSyn: TfrmSQLEditorSyn
-  Left = 317
-  Top = 172
+  Left = 420
+  Top = 272
   Width = 963
   Height = 556
   HelpContext = 121
@@ -445,8 +445,6 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
             Width = 150
             Height = 22
             Caption = 'tbResult'
-            CloseButton = False
-            DockMode = dmCannotFloatOrChangeDocks
             Images = dmImages.il16x16
             Options = [tboShowHint]
             ParentShowHint = False
@@ -510,6 +508,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
           ParentField = 'PARENT'
           DisplayField = 'NAME'
           Align = alClient
+          HideSelection = False
           Indent = 19
           ReadOnly = True
           SortType = stText
@@ -874,7 +873,6 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
             Left = 0
             Top = 0
             Caption = 'tbStatistic'
-            CloseButton = False
             DefaultDock = TBDock5
             DockMode = dmCannotFloatOrChangeDocks
             FullSize = True
@@ -1068,8 +1066,6 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
             Width = 104
             Height = 22
             Caption = 'TBToolbar2'
-            CloseButton = False
-            DockMode = dmCannotFloatOrChangeDocks
             Images = dmImages.il16x16
             ParentShowHint = False
             ShowHint = True
@@ -1502,18 +1498,10 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
           BevelOuter = bvNone
           TabOrder = 0
           object lblClassesCount: TLabel
-            Left = 273
+            Left = 72
             Top = 6
-            Width = 10
+            Width = 3
             Height = 13
-            Caption = 'lbl'
-          end
-          object Label17: TLabel
-            Left = 60
-            Top = 6
-            Width = 42
-            Height = 13
-            Caption = 'Фильтр:'
           end
           object tbClasses: TTBToolbar
             Left = 6
@@ -1521,8 +1509,6 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
             Width = 46
             Height = 22
             Caption = 'tbClasses'
-            CloseButton = False
-            DockMode = dmCannotFloatOrChangeDocks
             Images = dmImages.il16x16
             ParentShowHint = False
             ShowHint = True
@@ -1534,14 +1520,6 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
               Action = actClassesShowViewForm
             end
           end
-          object edClassesFilter: TEdit
-            Left = 106
-            Top = 3
-            Width = 160
-            Height = 21
-            TabOrder = 1
-            OnChange = edClassesFilterChange
-          end
         end
         object lvClasses: TListView
           Left = 0
@@ -1552,29 +1530,24 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
           Columns = <
             item
               Caption = 'Бизнес-класс'
-              Width = 380
+              Width = 180
             end
             item
               Caption = 'Подтип'
-              Width = 208
+              Width = 180
             end
             item
               Caption = 'Описание'
-              Width = 260
+              Width = 240
             end
             item
               Caption = 'Таблица'
               Width = 180
             end>
-          Font.Charset = DEFAULT_CHARSET
-          Font.Color = clWindowText
-          Font.Height = -12
-          Font.Name = 'Courier New'
-          Font.Style = []
           HideSelection = False
           ReadOnly = True
           RowSelect = True
-          ParentFont = False
+          SortType = stText
           TabOrder = 1
           ViewStyle = vsReport
         end
@@ -1590,7 +1563,6 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         Top = 0
         Caption = 'Панель инструментов'
         CloseButton = False
-        DockMode = dmCannotFloatOrChangeDocks
         Font.Charset = RUSSIAN_CHARSET
         Font.Color = clWindowText
         Font.Height = -11
@@ -1985,7 +1957,6 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
       ImageIndex = 24
       ShortCut = 114
       OnExecute = actFindNextExecute
-      OnUpdate = actFindNextUpdate
     end
     object actShowTree: TAction
       Category = 'Result'

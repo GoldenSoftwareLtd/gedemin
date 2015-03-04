@@ -13,6 +13,10 @@ type
     pnlAttributes: TPanel;
     Bevel1: TBevel;
     atAttributes: TatContainer;
+  public  
+    class function GetSubTypeList(SubTypeList: TStrings;
+      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; override;
+    class function ClassParentSubtype(Subtype: String): String; override;
   end;
 
 var
@@ -23,12 +27,24 @@ implementation
 {$R *.DFM}
 
 uses
-  gd_ClassList, gdcClasses, IBSQL, gdcBaseInterface, gdcBase;
+  gd_ClassList, gdcClasses;
 
 { Tgdc_dlgUserDocumentLine }
 
+class function Tgdc_dlgUserDocumentLine.GetSubTypeList(
+  SubTypeList: TStrings; Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
+begin
+  Result := TgdcUserDocument.GetSubTypeList(SubTypeList, Subtype, OnlyDirect);
+end;
+
+class function Tgdc_dlgUserDocumentLine.ClassParentSubtype(
+  Subtype: String): String;
+begin
+  Result := TgdcUserDocument.ClassParentSubtype(SubType);
+end;
+
 initialization
-  RegisterFrmClass(Tgdc_dlgUserDocumentLine, ctUserDocument);
+  RegisterFrmClass(Tgdc_dlgUserDocumentLine);
 
 finalization
   UnRegisterFrmClass(Tgdc_dlgUserDocumentLine);

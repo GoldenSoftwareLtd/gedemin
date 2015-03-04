@@ -1,7 +1,8 @@
 
+
 {++
 
-  Copyright (c) 2000-2015 by Golden Software of Belarus
+  Copyright (c) 2000-2014 by Golden Software of Belarus
 
   Module
 
@@ -387,8 +388,6 @@ type
 
     FSearchValue: String;
 
-    FColFormatChanged: Boolean;
-
     function GetTableFont: TFont;
     function GetTableColor: TColor;
 
@@ -675,8 +674,6 @@ begin
   FFields := TList.Create;
 
   FPreparingForEditing := False;
-
-  FColFormatChanged := False;
 end;
 
 destructor TdlgMaster.Destroy;
@@ -780,12 +777,13 @@ begin
       CurrItem.Caption := NewColumn.Title.Caption;
       CurrItem.SubItems.Add(NewColumn.FieldName);
       CurrItem.Data := NewColumn;
-                             
+
       // Создаем список колонок для раздела условного форматирования
       New(P);
       FFields.Add(P);
       P^ := NewColumn.FieldName;
       editConditionColumn.Items.AddObject(NewColumn.Title.Caption, Pointer(P));
+      //FFields.Add(NewColumn.FieldName);
     end;
 
     EnableCategory('Column', True);
@@ -2352,13 +2350,9 @@ begin
   if lvColumns.SelCount = 1 then
     CurrColumn.DisplayFormat := editColumnFormat.Text
   else
-    if FColFormatChanged then
-    begin
-      FColFormatChanged := False;
-      for I := 0 to lvColumns.Items.Count - 1 do
-        if lvColumns.Items[I].Selected then
-          TgsColumn(lvColumns.Items[I].Data).DisplayFormat := editColumnFormat.Text;
-    end;
+    for I := 0 to lvColumns.Items.Count - 1 do
+      if lvColumns.Items[I].Selected then
+        TgsColumn(lvColumns.Items[I].Data).DisplayFormat := editColumnFormat.Text
 end;
 
 {
@@ -2921,12 +2915,9 @@ begin
   try
     if ShowModal = mrOk then
     begin
-      FColFormatChanged := True;
       editColumnFormat.Text := DisplayFormat;
       editColumnFormatExit(editColumnFormat);
-    end
-    else
-      FColFormatChanged := False;
+    end;
   finally
     Free;
   end;

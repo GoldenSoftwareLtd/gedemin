@@ -35,7 +35,7 @@ type
   end;
 
 const
-  AccCardAdditionalFieldCount = 12;
+  AccCardAdditionalFieldCount = 11;
 
   AccCardAdditionalFieldList: array[0 .. AccCardAdditionalFieldCount - 1] of TgdvFieldInfoRec =(
     (FieldName: 'ID'; Caption: 'Ключ проводки'; DisplayFieldName: ''),
@@ -48,8 +48,7 @@ const
     (FieldName: 'TRANSACTIONNAME'; Caption: 'Типовая хоз. операция'; DisplayFieldName: ''),
     (FieldName: 'DESCRIPTION'; Caption: 'Описание'; DisplayFieldName: ''),
     (FieldName: 'NUMBER'; Caption: 'Номер'; DisplayFieldName: ''),
-    (FieldName: 'ENTRYDATE'; Caption: 'Дата проводки'; DisplayFieldName: ''),
-    (FieldName: 'TRRECORDNAME'; Caption: 'Типовая проводка'; DisplayFieldName: '')
+    (FieldName: 'ENTRYDATE'; Caption: 'Дата проводки'; DisplayFieldName: '')
     );
 
 procedure Register;
@@ -69,14 +68,16 @@ end;
 constructor TgdvAcctAccCard.Create(AOwner: TComponent);
 begin
   inherited;
-  FIBDSSaldoQuantityBegin := TIBDataset.Create(nil);
-  FIBDSSaldoQuantityEnd := TIBDataset.Create(nil);
+
+  FIBDSSaldoQuantityBegin := TIBDataset.Create(Self);
+  FIBDSSaldoQuantityEnd := TIBDataset.Create(Self);
 end;
 
 destructor TgdvAcctAccCard.Destroy;
 begin
   FIBDSSaldoQuantityBegin.Free;
   FIBDSSaldoQuantityEnd.Free;
+
   inherited;
 end;
 
@@ -357,8 +358,7 @@ begin
     '  t.Name as TransactionName, '#13#10 +
     '  r.description, '#13#10 +
     '  e.documentkey, '#13#10 +
-    '  e.transactionkey, '#13#10 +
-    '  tr.description as trrecordname ' +
+    '  e.transactionkey '+
     ValueSelect + #13#10 +
     ' FROM ac_entry e  '#13#10 +
     '  LEFT JOIN gd_document doc ON e.documentkey = doc.id '#13#10 +
@@ -374,11 +374,10 @@ begin
     '  LEFT JOIN ac_transaction t ON e.transactionkey = t.id '#13#10 +
     '  LEFT JOIN ac_account a ON a.id = e.accountkey '#13#10 +
     '  LEFT JOIN ac_record r ON e.recordkey = r.id '#13#10 +
-    '  LEFT JOIN ac_trrecord tr ON r.trrecordkey = tr.id'#13#10 +
     ValueJoin + #13#10 + AFrom + ACorrFrom + #13#10 +
     ' WHERE '#13#10 + AccWhere +
     '  ' + CompanyS + ' AND '#13#10 +
-    IIF(Trim(AccWhereQuantity) > '', '  (' + AccWhereQuantity + ') AND'#13#10, '') +
+    IIF(Trim(AccWhereQuantity) > '', '  (' + AccWhereQuantity + ') AND'#13#10, '') + 
     '  e.entrydate >= :begindate AND e.entrydate <= :enddate '#13#10 +
       IIF(EntryCondition <> '', ' AND ' + EntryCondition, '') +
     Self.InternalMovementClause,
@@ -406,7 +405,7 @@ begin
     'SELECT'#13#10 + Format(
     '  MAX(e.recordkey) AS ID,'#13#10 +
     '  doc.number,'#13#10 +
-    '  e.entrydate, '#13#10 +
+    '  e.entrydate, '#13#10 +                     
     '  CAST(SUM(IIF(e1.issimple = 0, e1.creditncu, e.debitncu)) / %0:d AS NUMERIC(15, %1:d)) AS NCU_DEBIT,'#13#10 +
     '  CAST(SUM(IIF(e1.issimple = 0, e1.debitncu, e.creditncu)) / %0:d AS NUMERIC(15, %1:d)) AS NCU_CREDIT, '#13#10 +
     IIF(FCurrSumInfo.Show and (FCurrkey > 0),
@@ -423,8 +422,7 @@ begin
     '  t.Name as TransactionName, '#13#10 +
     '  r.description, '#13#10 +
     '  e.masterdockey, '#13#10 +
-    '  e.transactionkey, '#13#10 +
-    '  tr.description as trrecordname ',
+    '  e.transactionkey ',
       [FNcuSumInfo.Scale, FNcuSumInfo.DecDigits,
       FCurrSumInfo.Scale, FCurrSumInfo.DecDigits,
       FEQSumInfo.Scale, FEQSumInfo.DecDigits]) +
@@ -443,7 +441,6 @@ begin
     '  LEFT JOIN ac_transaction t ON e.transactionkey = t.id '#13#10 +
     '  LEFT JOIN ac_account corr_a ON e1.accountkey = corr_a.id '#13#10 +
     '  LEFT JOIN ac_record r ON e.recordkey = r.id '#13#10 +
-    '  LEFT JOIN ac_trrecord tr ON r.trrecordkey = tr.id '#13#10 +
       ValueJoin + #13#10 + AFrom + ACorrFrom +
     ' WHERE '#13#10 + AccWhere +
     '  ' + CompanyS + ' AND '#13#10 +
@@ -454,7 +451,7 @@ begin
         ' AND e.currkey = ' + IntToStr(FCurrkey), '') +
     ' GROUP BY doc.number, e.entrydate, doct.name, a.alias, corr_a.alias, '#13#10 +
     '   r.description, doc.parent, '#13#10 +
-    '   curr.ShortName, e.transactionkey, t.Name, tr.description, e.masterdockey ' + AGroup + ACorrGroup + #13#10 +
+    '   curr.ShortName, e.transactionkey, t.Name, e.masterdockey ' + AGroup + ACorrGroup + #13#10 +
     ' HAVING '#13#10+
     '   SUM(IIF(e1.issimple = 0, e1.creditncu, e.debitncu)) <> 0 OR'#13#10 +
     '   SUM(IIF(e1.issimple = 0, e1.debitncu, e.creditncu)) <> 0 OR'#13#10 +

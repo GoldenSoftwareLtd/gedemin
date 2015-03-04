@@ -1289,17 +1289,9 @@ begin
 end;
 
 function TgdcAcctBaseEntryRegister.GetCurrRecordClass: TgdcFullClass;
-var
-  F: TField;
 begin
   Result.gdClass := TgdcAcctEntryRegister;
-  Result.SubType := '';
-  
-  F := FindField('USR$ST');
-  if F <> nil then
-    Result.SubType := F.AsString;
-  if (Result.SubType > '') and (not Result.gdClass.CheckSubType(Result.SubType)) then
-    raise EgdcException.Create('Invalid USR$ST value.');
+  Result.SubType := Self.SubType; 
 end;
 
 class function TgdcAcctBaseEntryRegister.IsAbstractClass: Boolean;
@@ -1372,8 +1364,6 @@ var
   {$IFDEF DEBUGMOVE}
   T: LongWord;
   {$ENDIF}
-  ibsql: TIBSQL;
-  IsDisabled: Boolean;
 begin
   Assert(Assigned(Document), 'Ќе задан документ дл€ формировани€ проводок');
 
@@ -1403,23 +1393,6 @@ begin
   begin
     Exit;
   end;
-
-  ibsql := TIBSQL.Create(nil);
-  try
-    ibsql.Transaction := ReadTransaction;
-    ibsql.SQL.Text := 'SELECT DISABLED FROM AC_TRRECORD ' +
-      'WHERE transactionkey = :transactionkey and  disabled = 0';
-    ibsql.ParamByName('transactionkey').AsInteger :=
-      Document.FieldByName(fnTransactionkey).AsInteger;
-    ibsql.ExecQuery;
-    IsDisabled := ibsql.Eof;
-
-  finally
-    ibsql.Free;
-  end;
-
-  if IsDisabled then
-    Exit;
 
   {$IFDEF DEBUGMOVE}
    T := GetTickCount;
@@ -2316,17 +2289,9 @@ begin
 end;
 
 function TgdcAcctViewEntryRegister.GetCurrRecordClass: TgdcFullClass;
-var
-  F: TField;
 begin
   Result.gdClass := TgdcAcctViewEntryRegister;
-  Result.SubType := '';
-
-  F := FindField('USR$ST');
-  if F <> nil then
-    Result.SubType := F.AsString;
-  if (Result.SubType > '') and (not Result.gdClass.CheckSubType(Result.SubType)) then
-    raise EgdcException.Create('Invalid USR$ST value.');
+  Result.SubType := Self.SubType; 
 end;
 
 function TgdcAcctViewEntryRegister.GetDocument: TgdcDocument;

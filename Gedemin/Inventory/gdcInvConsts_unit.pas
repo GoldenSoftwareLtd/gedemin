@@ -45,7 +45,7 @@ type
   // Тип используемого контакта в движении
   TgdcInvMovementContactType = (
     imctOurCompany, imctOurDepartment, imctOurPeople, imctCompany,
-      imctCompanyDepartment, imctCompanyPeople, imctPeople, imctOurDepartAndPeople
+      imctCompanyDepartment, imctCompanyPeople, imctPeople
   );
   // imctOurCompany - Наша компания
   // imctOurDepartment - Подразделение нашей компании

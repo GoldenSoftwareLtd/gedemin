@@ -1,7 +1,7 @@
 object dlgFunctionWisard: TdlgFunctionWisard
-  Left = 888
-  Top = 326
-  Width = 793
+  Left = 222
+  Top = 172
+  Width = 668
   Height = 462
   HelpContext = 204
   BorderIcons = [biSystemMenu, biMaximize]
@@ -10,7 +10,7 @@ object dlgFunctionWisard: TdlgFunctionWisard
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
-  Font.Name = 'Tahoma'
+  Font.Name = 'MS Sans Serif'
   Font.Style = []
   OldCreateOrder = False
   Position = poScreenCenter
@@ -23,14 +23,14 @@ object dlgFunctionWisard: TdlgFunctionWisard
   object TBDock1: TTBDock
     Left = 0
     Top = 0
-    Width = 777
+    Width = 652
     Height = 79
     object TBToolWindow1: TTBToolWindow
       Left = 0
       Top = 25
       Caption = 'TBToolWindow1'
       ClientAreaHeight = 50
-      ClientAreaWidth = 767
+      ClientAreaWidth = 642
       DockMode = dmCannotFloat
       DockPos = 560
       DockRow = 1
@@ -40,7 +40,7 @@ object dlgFunctionWisard: TdlgFunctionWisard
       object PageControl: TSuperPageControl
         Left = 0
         Top = 0
-        Width = 767
+        Width = 642
         Height = 50
         BorderStyle = bsNone
         TabsVisible = True
@@ -52,20 +52,13 @@ object dlgFunctionWisard: TdlgFunctionWisard
         object tsStandart: TSuperTabSheet
           BorderWidth = 2
           Caption = 'Стандартные'
-          Font.Charset = DEFAULT_CHARSET
-          Font.Color = clWindowText
-          Font.Height = -11
-          Font.Name = 'Tahoma'
-          Font.Style = []
-          ParentFont = False
           object tbtStandart: TTBToolbar
             Left = 0
             Top = 0
-            Width = 763
+            Width = 638
             Height = 22
             Align = alTop
             Caption = 'tbtStandart'
-            DockMode = dmCannotFloatOrChangeDocks
             DockPos = 0
             DockRow = 1
             FullSize = True
@@ -117,11 +110,10 @@ object dlgFunctionWisard: TdlgFunctionWisard
           object tbtAdditional: TTBToolbar
             Left = 0
             Top = 0
-            Width = 763
+            Width = 638
             Height = 22
             Align = alTop
             Caption = 'tbtAdditional'
-            DockMode = dmCannotFloatOrChangeDocks
             Images = dmImages.il16x16
             TabOrder = 0
             object TBItem2: TTBItem
@@ -180,7 +172,6 @@ object dlgFunctionWisard: TdlgFunctionWisard
       Top = 0
       Caption = 'TBToolbar1'
       CloseButton = False
-      DockMode = dmCannotFloatOrChangeDocks
       FullSize = True
       Images = dmImages.il16x16
       MenuBar = True
@@ -266,13 +257,13 @@ object dlgFunctionWisard: TdlgFunctionWisard
   object Panel1: TPanel
     Left = 0
     Top = 392
-    Width = 777
+    Width = 652
     Height = 32
     Align = alBottom
     BevelOuter = bvNone
     TabOrder = 1
     object Panel4: TPanel
-      Left = 592
+      Left = 467
       Top = 0
       Width = 185
       Height = 32
@@ -280,7 +271,7 @@ object dlgFunctionWisard: TdlgFunctionWisard
       BevelOuter = bvNone
       TabOrder = 0
       object Button2: TButton
-        Left = 22
+        Left = 26
         Top = 6
         Width = 75
         Height = 21
@@ -289,7 +280,7 @@ object dlgFunctionWisard: TdlgFunctionWisard
         TabOrder = 0
       end
       object Button1: TButton
-        Left = 103
+        Left = 107
         Top = 6
         Width = 75
         Height = 21
@@ -302,7 +293,7 @@ object dlgFunctionWisard: TdlgFunctionWisard
   object Panel2: TPanel
     Left = 0
     Top = 79
-    Width = 777
+    Width = 652
     Height = 313
     Align = alClient
     BevelOuter = bvNone
@@ -318,7 +309,7 @@ object dlgFunctionWisard: TdlgFunctionWisard
     object Panel3: TPanel
       Left = 300
       Top = 0
-      Width = 477
+      Width = 352
       Height = 313
       Align = alClient
       BevelOuter = bvLowered
@@ -327,13 +318,13 @@ object dlgFunctionWisard: TdlgFunctionWisard
       object TBDock2: TTBDock
         Left = 1
         Top = 1
-        Width = 475
+        Width = 350
         Height = 26
         object TBToolbar2: TTBToolbar
           Left = 0
           Top = 0
           Caption = 'TBToolbar2'
-          DockMode = dmCannotFloatOrChangeDocks
+          DockMode = dmCannotFloat
           DockPos = 0
           DockRow = 1
           FullSize = True
@@ -398,7 +389,7 @@ object dlgFunctionWisard: TdlgFunctionWisard
       object seScript: TSynEdit
         Left = 1
         Top = 27
-        Width = 475
+        Width = 350
         Height = 285
         Cursor = crIBeam
         Align = alClient
@@ -799,7 +790,7 @@ object dlgFunctionWisard: TdlgFunctionWisard
       Hint = 'Выйти с сохранением измнений'
       ImageIndex = 25
       OnExecute = actOkExecute
-      OnUpdate = actOkUpdate
+      OnUpdate = actCancelUpdate
     end
     object actCancel: TAction
       Caption = 'Отмена'

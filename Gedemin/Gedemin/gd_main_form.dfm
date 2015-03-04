@@ -2,7 +2,7 @@ object frmGedeminMain: TfrmGedeminMain
   Left = 393
   Top = 87
   Width = 969
-  Height = 85
+  Height = 80
   HelpContext = 76
   HorzScrollBar.Visible = False
   VertScrollBar.Visible = False

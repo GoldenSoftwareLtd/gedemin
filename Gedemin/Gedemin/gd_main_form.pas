@@ -527,8 +527,7 @@ uses
     , gd_localization_stub
   {$ENDIF}
   , gdcExplorer,
-  gd_dlgStreamSaverOptions,
-  gdc_frmStreamSaver;
+  gd_dlgStreamSaverOptions;
 
 type
   TCrackPopupMenu = class(TPopupMenu);
@@ -817,9 +816,6 @@ begin
   {$ENDIF}
   DesktopManager.InitComboBox(cbDesktop);
 
-  if Assigned(frmStreamSaver) and frmStreamSaver.Visible then
-    SetWindowPos(frmStreamSaver.Handle, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE or SWP_NOMOVE);
-
   // кожны раз, як карыстальнік мяняе кампанію
   // трэба сфарміраваць новы кэпшэн
 
@@ -1082,9 +1078,27 @@ begin
     end;
   end;
 
-  {$IFDEF GEDEMIN_LOCK}
-  RegParams.CheckRegistration(True);
-  {$ENDIF}
+{$IFDEF GEDEMIN_LOCK}
+  if IsRegisteredCopy and
+    (RegParams.UserCount > 0) then
+  begin
+    with TIBDatabaseInfo.Create(Application) do
+    try
+      Database := IBLogin.Database;
+      if UserNames.Count > RegParams.UserCount then
+      begin
+        MessageBox(0,
+          'Количество подключенных к базе данных пользователей превышает лимит, установленный Вашей лицензией!' + #13#10 +
+          'Обратитесь в компанию ''Золотые программы'' по тел. 256-17-59, 256-27-83!',
+          'Внимание',
+          MB_OK or MB_ICONHAND or MB_TASKMODAL);
+        Application.Terminate;
+      end;
+    finally
+      Free;
+    end
+  end;
+{$ENDIF}
 
   if IBLogin.IsUserAdmin then
     FNotificationID := gdNotifierThread.Add(IBLogin.Database.DatabaseName)
@@ -1426,9 +1440,6 @@ begin
     if Assigned(IBLogin) and IBLogin.LoggedIn then
       PostMessage(Handle, WM_GD_RUNONLOGINMACROS, 0, 0);
   end;
-
-  if Assigned(tbMainMenu) then
-    tbMainMenu.SetFocus;
 end;
 
 procedure TfrmGedeminMain.actShowSQLObjectsUpdate(Sender: TObject);

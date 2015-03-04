@@ -1,3 +1,0 @@
-inherited BaseAddInformation1: TBaseAddInformation1
-  OnCreate = FormCreate
-end

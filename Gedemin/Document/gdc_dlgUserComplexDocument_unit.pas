@@ -32,6 +32,11 @@ type
     procedure Post; override;
 
   public
+    class function GetSubTypeList(SubTypeList: TStrings;
+      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; override;
+
+    class function ClassParentSubtype(Subtype: String): String; override;
+
     procedure SetupDialog; override;
     function GetDetailBookmarkList: TBookmarkList; override;
 
@@ -47,7 +52,7 @@ implementation
 
 uses
   gdcClasses, Storages, at_Classes,  gd_ClassList, gdcBase, gdcBaseInterface,
-  gd_security, IBSQL;
+  gd_security;
 
 procedure Tgdc_dlgUserComplexDocument.atContainerRelationNames(
   Sender: TObject; Relations, FieldAliases: TStringList);
@@ -120,6 +125,19 @@ begin
   {M}end;
   {END MACRO}
 end;*)
+
+
+class function Tgdc_dlgUserComplexDocument.GetSubTypeList(SubTypeList: TStrings;
+  Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
+begin
+  Result := TgdcUserDocument.GetSubTypeList(SubTypeList, Subtype, OnlyDirect);
+end;
+
+class function Tgdc_dlgUserComplexDocument.ClassParentSubtype(
+  Subtype: String): String;
+begin
+  Result := TgdcUserDocument.ClassParentSubtype(SubType);
+end;
 
 procedure Tgdc_dlgUserComplexDocument.actDetailNewExecute(Sender: TObject);
 begin
@@ -354,7 +372,7 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_dlgUserComplexDocument, ctUserDocument);
+  RegisterFrmClass(Tgdc_dlgUserComplexDocument);
 
 finalization
   UnRegisterFrmClass(Tgdc_dlgUserComplexDocument);

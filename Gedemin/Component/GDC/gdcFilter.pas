@@ -252,12 +252,10 @@ begin
 end;
 
 initialization
-  RegisterGDCClass(TgdcComponentFilter);
-  RegisterGDCClass(TgdcSavedFilter);
+  RegisterGDCClasses([TgdcComponentFilter, TgdcSavedFilter]);
 
 finalization
-  UnRegisterGDCClass(TgdcComponentFilter);
-  UnRegisterGDCClass(TgdcSavedFilter);
+  UnRegisterGDCClasses([TgdcComponentFilter, TgdcSavedFilter]);
 end.
 
  

@@ -109,7 +109,7 @@ type
     ['{823AC601-4D13-11D5-B4C1-0060520A1991}']
 
     function GetClassName: String;
-    function GetSubType: TgdcSubType;
+    function GetSubType: String;
     function GetObject: TObject;
     function GetFieldByNameValue(const AField: String): Variant;
     function FindField(const AFieldName: String): TField;
@@ -143,7 +143,7 @@ type
 
 const
   IDCacheRegKey = ClientRootRegistrySubKey + 'IDCache\';
-  IDCacheStep: Integer = 100; // will be set to 1 if in terminal session
+  IDCacheStep = 100;
   IDCacheCurrentName = 'IDCurrent';
   IDCacheLimitName = 'IDLimit';
   IDCacheTestName = 'IDTest';

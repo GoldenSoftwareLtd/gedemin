@@ -68,9 +68,9 @@ begin
 end;
 
 initialization
-  RegisterGDCClass(TgdcSQLStatement);
+  RegisterGDCClasses([TgdcSQLStatement]);
 
 finalization
-  UnRegisterGDCClass(TgdcSQLStatement);
+  UnRegisterGDCClasses([TgdcSQLStatement]);
 end.
  

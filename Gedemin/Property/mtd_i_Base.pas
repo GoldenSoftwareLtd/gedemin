@@ -24,7 +24,7 @@ type
 
     procedure Drop;
 
-    function FindMethodClass(const AnFullClassName: TgdcFullClassName): TObject;
+    function  FindMethodClass(const AnFullClassName: TgdcFullClassName): TObject;
 
     // !!! пока TObject, вообще возвращает TCustomMethodClass
     function  AddClass(const AnClassKey: Integer;  const AnFullClassName: TgdcFullClassName;

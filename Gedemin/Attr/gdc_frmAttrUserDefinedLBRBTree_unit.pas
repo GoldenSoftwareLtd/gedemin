@@ -47,6 +47,8 @@ type
   public
     constructor Create(AnOwner: TComponent); override;
     class function CreateAndAssign(AnOwner: TComponent): TForm; override;
+    class function GetSubTypeList(SubTypeList: TStrings; Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; override;
+    class function ClassParentSubtype(Subtype: String): String; override;
   end;
 
 var
@@ -72,12 +74,21 @@ begin
 end;
 
 procedure Tgdc_frmAttrUserDefinedLBRBTree.FormCreate(Sender: TObject);
+var
+  R: TatRelation;
+  LSubtype: string;
 begin
   gdcObject := Master;
   //gdcObject.SubType := FSubType;
 
+  LSubtype := FSubType;
+  While ClassParentSubtype(LSubtype) <> '' do
+    LSubtype := ClassParentSubtype(LSubtype);
+  R := atDatabase.Relations.ByRelationName(LSubType);
+  Assert(R <> nil);
+
   if tvGroup.DisplayField = '' then
-    tvGroup.DisplayField := gdcObject.GetListField(gdcObject.SubType);
+    tvGroup.DisplayField := R.ListField.FieldName;
 
   gdcDetailObject := Detail;
   gdcDetailObject.SubType := FSubType;
@@ -94,8 +105,20 @@ begin
   end;
 end;
 
+class function Tgdc_frmAttrUserDefinedLBRBTree.GetSubTypeList(
+  SubTypeList: TStrings; Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
+begin
+  Result := TgdcAttrUserDefinedLBRBTree.GetSubTypeList(SubTypeList, Subtype, OnlyDirect);
+end;
+
+class function Tgdc_frmAttrUserDefinedLBRBTree.ClassParentSubtype(
+  Subtype: String): String;
+begin
+  Result := TgdcAttrUserDefinedLBRBTree.ClassParentSubtype(SubType);
+end;
+
 initialization
-  RegisterFrmClass(Tgdc_frmAttrUserDefinedLBRBTree, ctUserDefinedLBRBTree);
+  RegisterFrmClass(Tgdc_frmAttrUserDefinedLBRBTree);
 
 finalization
   UnRegisterFrmClass(Tgdc_frmAttrUserDefinedLBRBTree);
