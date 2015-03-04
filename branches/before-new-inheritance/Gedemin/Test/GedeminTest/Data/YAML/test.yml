@@ -1,0 +1,123 @@
+# %YAML 1.0
+---
+"aaa \"bbb"
+---
+'aaa ''bbb'
+---
+123
+--- |
+  123 456
+  789 876
+  543
+abc  def
+--- >
+  123 456
+  789 876
+  543
+abc  def
+---
+abc:
+  a: 89 # comment
+  b: 90
+  c:
+    - Item 1
+    - Item 2
+nm: #comment
+  - a: 1
+    b: 2
+  - c: 345
+      678 9078
+    d: 55
+---
+a: 
+  - Item1 # comment
+# comment
+  - Item2
+b: 
+  - Item3
+  - Item4
+  - "Item5"
+  - 
+    Item6: |
+       123 456   
+      
+         789 111
+       568
+    Item7: >
+       123 456
+         789 111
+           568
+    Item8: "test | test"
+    Item9: !!int 67
+c: !!seq
+  - Item1
+---
+- 
+  a: b
+  c: d
+- 
+  f: e
+  g: i
+- 
+  - 
+    n: m
+    k: s
+  - 
+    t: o
+    p: q
+  - 
+    - 
+      a: b
+    - 
+      d: e
+- 
+  z: x
+  k: |
+    test
+    #.##.#
+  l: >
+    test
+    #.##.#
+  n: '#.##.#'
+  m: test
+---
+  r: |
+    123 456   
+     111
+  j: |
+    
+    test
+  p: |
+    i
+    
+    
+    j
+  o: |
+    h
+      
+    h 
+  h: |
+    test
+    
+      
+    test
+    
+  s: |
+    @   test  
+---
+-
+-
+  -
+  -
+-  
+---
+test: "text with colon:\n
+  line2"
+...
+
+
+
+
+
+
+

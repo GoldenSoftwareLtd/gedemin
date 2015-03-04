@@ -1,0 +1,12 @@
+select
+  c.name,
+  count(c.name)
+from
+  gd_contact c join msg_message m
+    on c.id = m.fromcontactkey
+where
+  m.msgstartdate between '01.06.2006' and '30.11.2006'
+group by
+  c.name
+order by
+  2 desc
