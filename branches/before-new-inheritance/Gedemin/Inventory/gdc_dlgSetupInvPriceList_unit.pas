@@ -95,8 +95,6 @@ type
     lblExplorer: TLabel;
     ibcmbExplorer: TgsIBLookupComboBox;
     dbcbIsCommon: TDBCheckBox;
-    lblParent: TLabel;
-    edParentName: TEdit;
 
     procedure pcMainChange(Sender: TObject);
     procedure pcMainChanging(Sender: TObject; var AllowChange: Boolean);
@@ -993,6 +991,7 @@ var
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
   Stream: TStream;
+var
   ibsql: TIBSQL;
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TDLGSETUPINVPRICELIST', 'SETUPRECORD', KEYSETUPRECORD)}
@@ -1018,22 +1017,7 @@ begin
   inherited;
 
   ActivateTransaction(gdcObject.Transaction);
-  edParentName.Text := '';
 
-  ibsql := TIBSQL.Create(nil);
-  try
-    ibsql.Transaction := gdcObject.ReadTransaction;
-
-    ibsql.SQL.Text := 'SELECT name FROM gd_documenttype WHERE id = :id AND documenttype = ''D'' ';
-    ibsql.ParamByName('id').AsInteger := gdcObject.FieldByName('parent').AsInteger;
-    ibsql.ExecQuery;
-    if not ibsql.Eof then
-      edParentName.Text := ibsql.FieldByName('name').AsString
-    else
-      edParentName.Text := gdcObject.FieldByName('classname').AsString;
-  finally
-    ibsql.Free;
-  end;
   if Document.State = dsEdit then
   begin
     if not Document.FieldByName('OPTIONS').IsNull then
@@ -1051,24 +1035,6 @@ begin
 
   if Document.State = dsInsert then
   begin
-    ibsql := TIBSQL.Create(nil);
-    try
-      ibsql.Transaction := gdcObject.ReadTransaction;
-      ibsql.SQL.Text := 'SELECT OPTIONS FROM gd_documenttype WHERE id = :id AND documenttype = ''D'' ';
-      ibsql.ParamByName('id').AsInteger := gdcObject.FieldByName('parent').AsInteger;
-      ibsql.ExecQuery;
-      if not ibsql.Eof then
-      begin
-        Stream := TStringStream.Create(ibsql.FieldByName('OPTIONS').AsString);
-        try
-          ReadOptions(Stream);
-        finally
-          Stream.Free;
-        end;
-      end
-    finally
-      ibsql.Free;
-    end;
     UpdateInsertingSettings;
   end;
 

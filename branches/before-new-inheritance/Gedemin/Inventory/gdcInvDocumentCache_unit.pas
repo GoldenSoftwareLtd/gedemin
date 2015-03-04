@@ -9,11 +9,10 @@ uses
 type
   IgdcInvDocumentCache = interface
     function GetSubTypeList(const InvDocumentTypeBranchKey: TID;
-      SubTypeList: TStrings; SubType: string = ''; OnlyDirect: Boolean = False): Boolean;
+      SubTypeList: TStrings): Boolean;
     function GetSubTypeList2(const ClassName: String;
-      SubTypeList: TStrings; Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
-    procedure Clear;
-    function ClassParentSubtype(SubType: string): string;
+      SubTypeList: TStrings): Boolean;
+    procedure Clear;  
   end;
 
 var

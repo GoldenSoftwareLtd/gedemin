@@ -264,7 +264,6 @@ begin
   FEnumField := nil;
   FAutoComplete := True;
   FAutoDropDown := True;
-//  FItemsList := TStringList.Create;
 end;
 
 destructor TgdEnumComboBox.Destroy;

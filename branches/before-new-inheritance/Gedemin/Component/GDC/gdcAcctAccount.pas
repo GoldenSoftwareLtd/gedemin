@@ -223,7 +223,7 @@ begin
 
   if HasSubSet(cst_ByCompany) and Assigned(IBLogin) then
   begin
-    S.Add(Format(' exists (SELECT lb FROM ac_account c1 JOIN ac_companyaccount cc ' +
+    S.Add(Format(' EXISTS (SELECT lb FROM ac_account c1 JOIN ac_companyaccount cc ' +
     '  ON c1.ID = cc.accountkey  ' +
     '  WHERE z.LB >= c1.lb AND z.rb <= c1.rb AND cc.companykey IN (%s) ) ',
     [IBLogin.HoldingList]));

@@ -366,7 +366,7 @@ type
     //Сохранеи и востановление настроек
 //    procedure SetDefaultValues(AComponent: TComponent);
 
-    procedure CheckPosition(AnOwner: TComponent; Stream: TStream; const Attr: Boolean; ReplaceSubType: Boolean = False);
+    procedure CheckPosition(AnOwner: TComponent; Stream: TStream; const Attr: Boolean);
     procedure DisableEvents(AnOwner: TComponent);
     procedure EnableEvents;
 
@@ -495,7 +495,7 @@ uses
   gsStorage, gsComponentEmulator, consts, gsDesignerRW, dmDatabase_unit,
   gdc_createable_form, gd_security, gd_createable_form, evt_i_Base, Clipbrd,
   TB2Item, imglist, gsPropertyEditor, prp_frmGedeminProperty_Unit, evt_Base,
-  gdcDelphiObject, gdcConstants, gd_ClassList, gdcBaseInterface
+  gdcDelphiObject, gdcConstants
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -3751,7 +3751,7 @@ begin
 end;
 
 procedure TgsResizeManager.CheckPosition(AnOwner: TComponent;
-  Stream: TStream; const Attr: Boolean; ReplaceSubType: Boolean);
+  Stream: TStream; const Attr: Boolean);
 var
   Reader: TDesignReader;
 begin
@@ -3760,7 +3760,7 @@ begin
   try
     Reader.Designer := Self;
     Reader.Attributes := Attr;
-    Reader.ProcessComponents(AnOwner, FFormSubType, ReplaceSubType);
+    Reader.ProcessComponents(AnOwner, FFormSubType);
   finally
     Reader.Free;
   end;
@@ -3921,16 +3921,11 @@ procedure TgsResizeManager.ReloadComponent(const Attr: Boolean);
 var
   F: TMemoryStream;
   OldVisible, bLoadedFromStorage: Boolean;
-  bLoadedFromUserStorage: Boolean;
   OldControl: TWinControl;
   Flag: Integer;
   SF: TgsStorageFolder;
   H: THandle;
-  SubType: string;
-  ParentSubType: string;
-  ReplaceSubType: boolean;
-  LFullClassName : TgdcFullClassName;
-  
+
 const
   ErrorMsg =
     'При загрузке настроек произошла ошибка: %s'#10#13 +
@@ -3938,7 +3933,6 @@ const
 
 begin
   H := GETDC(FEditForm.Handle);
-  ReplaceSubType := False;
   try
     Flag := 0;
     FGlobalLoading := False;
@@ -3951,29 +3945,8 @@ begin
           if Assigned(UserStorage) and Assigned(GlobalStorage) then
           begin
             bLoadedFromStorage:= GlobalStorage.ReadStream(FResourceName, FFormSubType, F, IBLogin.IsIBUserAdmin);
-            if (not bLoadedFromStorage) and (FFormSubType > '')
-              and(FFormSubType <> SubtypeDefaultName) then
-            begin
-              SubType := FFormSubType;
-              repeat
-                LFullClassName.gdClassName := FEditForm.ClassName;
-                LFullClassName.SubType := SubType;
-                if not Assigned(frmClassList.GetFRMClass(LFullClassName))then
-                  raise Exception.Create('Ошибка при загрузке настроек формы');
-                ParentSubType := frmClassList.GetFRMClass(LFullClassName).ClassParentSubtype(SubType);
-                if ParentSubType <> '' then
-                begin
-                  bLoadedFromStorage:= GlobalStorage.ReadStream(FResourceName, ParentSubType, F, IBLogin.IsIBUserAdmin);
-                  if bLoadedFromStorage then
-                    ReplaceSubType := True;
-                  SubType := ParentSubType;
-                end;
-              until (bLoadedFromStorage) or (ParentSubType = '');
-
-              if not bLoadedFromStorage then
-                bLoadedFromStorage:= GlobalStorage.ReadStream(FResourceName, SubtypeDefaultName, F, IBLogin.IsIBUserAdmin);
-            end;
-
+            if not bLoadedFromStorage then
+              bLoadedFromStorage:= GlobalStorage.ReadStream(FResourceName, SubtypeDefaultName, F, IBLogin.IsIBUserAdmin);
             if bLoadedFromStorage then
             begin
               Flag := 1;
@@ -3982,31 +3955,8 @@ begin
 
             if (FDesignerType = dtUser) and (Flag = 0) then
             begin
-              bLoadedFromUserStorage:= UserStorage.ReadStream(FResourceName, FFormSubType, F);
-              if (not bLoadedFromUserStorage) and (FFormSubType > '')
-                and(FFormSubType <> SubtypeDefaultName) then
-              begin
-                SubType := FFormSubType;
-                repeat
-                  LFullClassName.gdClassName := FEditForm.ClassName;
-                  LFullClassName.SubType := SubType;
-                  if not Assigned(frmClassList.GetFRMClass(LFullClassName))then
-                    raise Exception.Create('Ошибка при загрузке настроек формы');
-                  ParentSubType := frmClassList.GetFRMClass(LFullClassName).ClassParentSubtype(SubType);
-                  if ParentSubType <> '' then
-                  begin
-                    bLoadedFromUserStorage:= UserStorage.ReadStream(FResourceName, ParentSubType, F);
-                    if bLoadedFromUserStorage then
-                      ReplaceSubType := True;
-                    SubType := ParentSubType;
-                  end;
-                until (bLoadedFromUserStorage) or (ParentSubType = '');
-              end;
-
-              if bLoadedFromUserStorage then
-              begin
+              if UserStorage.ReadStream(FResourceName, FFormSubType, F) then
                 Flag := 2;
-              end;
             end;
 
             if Flag <> 0 then
@@ -4017,39 +3967,19 @@ begin
                 OldVisible := FEditForm.Visible;
                 OldControl := FEditForm.ActiveControl;
                 try
-                  CheckPosition(FEditForm, F, Attr, ReplaceSubType);
+                  CheckPosition(FEditForm, F, Attr);
 
                   FGlobalLoading := False;
+
 
                   if (FDesignerType = dtUser) and (Flag = 1) then
                   begin
                     Flag := 0;
                     F.Clear;
-                    bLoadedFromUserStorage:= UserStorage.ReadStream(FResourceName, FFormSubType, F);
-                    if not bLoadedFromUserStorage and (FFormSubType > '')
-                      and(FFormSubType <> SubtypeDefaultName) then
-                    begin
-                      SubType := FFormSubType;
-                      repeat
-                        LFullClassName.gdClassName := FEditForm.ClassName;
-                        LFullClassName.SubType := SubType;
-                        if not Assigned(frmClassList.GetFRMClass(LFullClassName))then
-                          raise Exception.Create('Ошибка при загрузке настроек формы');
-                        ParentSubType := frmClassList.GetFRMClass(LFullClassName).ClassParentSubtype(SubType);
-                        if ParentSubType <> '' then
-                        begin
-                          bLoadedFromUserStorage:= UserStorage.ReadStream(FResourceName, ParentSubType, F);
-                          if bLoadedFromUserStorage then
-                            ReplaceSubType := True;
-                          SubType := ParentSubType;
-                        end;
-                      until (bLoadedFromUserStorage) or (ParentSubType = '');
-                    end;
-                    
-                    if bLoadedFromUserStorage then
+                    if UserStorage.ReadStream(FResourceName, FFormSubType, F) then
                     begin
                       F.Seek(0, soFromBeginning);
-                      CheckPosition(FEditForm, F, Attr, ReplaceSubType);
+                      CheckPosition(FEditForm, F, Attr);
                     end;
                   end
                 finally

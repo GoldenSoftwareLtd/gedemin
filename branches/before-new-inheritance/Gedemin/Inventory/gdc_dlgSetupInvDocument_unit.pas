@@ -2333,7 +2333,6 @@ end;
 procedure Tgdc_dlgSetupInvDocument.SetupRecord;
 var
   Stream: TStringStream;
-  ibsql: TIBSQL;
   {@UNFOLD MACRO INH_CRFORM_PARAMS()}
   {M}
   {M}  Params, LResult: Variant;
@@ -2378,24 +2377,6 @@ begin
 
   if Document.State = dsInsert then
   begin
-    ibsql := TIBSQL.Create(nil);
-    try
-      ibsql.Transaction := gdcObject.ReadTransaction;
-      ibsql.SQL.Text := 'SELECT OPTIONS FROM gd_documenttype WHERE id = :id AND documenttype = ''D'' ';
-      ibsql.ParamByName('id').AsInteger := gdcObject.FieldByName('parent').AsInteger;
-      ibsql.ExecQuery;
-      if not ibsql.Eof then
-      begin
-        Stream := TStringStream.Create(ibsql.FieldByName('OPTIONS').AsString);
-        try
-          ReadOptions(Stream);
-        finally
-          Stream.Free;
-        end;
-      end
-    finally
-      ibsql.Free;
-    end;
     UpdateInsertingSettings;
   end;
 

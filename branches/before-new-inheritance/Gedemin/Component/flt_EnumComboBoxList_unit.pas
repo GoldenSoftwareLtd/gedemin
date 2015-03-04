@@ -55,12 +55,9 @@ type
 constructor TEnumComboBoxList.Create(AOwner: TComponent);
 begin
   inherited;
-
-//  ControlStyle := ControlStyle + [csNoDesignVisible, csReflector, csReplicatable];
   BevelInner := bvNone;
   BevelOuter := bvNone;
   Height := 100;
-
 end;
 
 procedure TEnumComboBoxList.CreateParams(var Params: TCreateParams);

@@ -9,7 +9,7 @@ uses
   mtd_Base, gdc_createable_form, ActnList, gdcFunction, TB2Item, TB2Dock,
   TB2Toolbar, gdcMacros, gdcReport, SuperPageControl, gd_createable_form,
   Menus, StdCtrls, FR_Ctrls, FR_Combo, prp_DOCKFORM_unit, evt_i_Base,
-  gdcCustomFunction, ExtCtrls, gdcClasses;
+  gdcCustomFunction, ExtCtrls;
 
 const
   dfPasteError = 'Невозможно вставить данные из буфера обмена.';
@@ -192,7 +192,6 @@ type
     actFind: TAction;
     actClassInfo: TAction;
     N14: TMenuItem;
-    gdcDocumentType: TgdcDocumentType;
     procedure FormCreate(Sender: TObject);
     procedure tvClassesDeletion(Sender: TObject; Node: TTreeNode);
     procedure tvClassesDblClick(Sender: TObject);
@@ -2271,22 +2270,20 @@ begin
           try
             MC := TGDCClassTreeItem(AParent.Data).TheClass;
             if MC.Class_Reference.InheritsFrom(TgdcBase) then
-              CgdcBase(MC.Class_Reference).GetSubTypeList(ST, '', True)
+              CgdcBase(MC.Class_Reference).GetSubTypeList(ST)
             else
-              CgdcCreateableForm(MC.Class_Reference).GetSubTypeList(ST, '', True);
-            //Добавляем SubTypы класса
-            for I := 0 to ST.Count - 1 do
-            begin
-              if ClassFilter(Index, IsGDC, Replace(ST.Values[ST.Names[I]])) then
+              CgdcCreateableForm(MC.Class_Reference).GetSubTypeList(ST);
+              //Добавляем SubTypы класса
+              for I := 0 to ST.Count - 1 do
               begin
-                if MC.Class_Reference.InheritsFrom(TgdcBase) then
-                  TN := AddGDCClassNode(AParent, Index,
-                    Replace(ST.Values[ST.Names[I]]), ST.Names[I])
-                else
-                  TN := AddFRMClassNode(AParent, Index,
-                    Replace(ST.Values[ST.Names[I]]), ST.Names[I]);
-                if TN <> nil then
+                if ClassFilter(Index, IsGDC, Replace(ST.Values[ST.Names[I]])) then
                 begin
+                  if MC.Class_Reference.InheritsFrom(TgdcBase) then
+                    TN := AddGDCClassNode(AParent, Index,
+                      Replace(ST.Values[ST.Names[I]]), ST.Names[I])
+                  else
+                    TN := AddFRMClassNode(AParent, Index,
+                      Replace(ST.Values[ST.Names[I]]), ST.Names[I]);
                   TN.HasChildren := True;
                   //Если установлен флаг PropertySettings.Filter.OnlySpecEvent то
                   //InitOverloadAndDisable для данного класса вызывалась при фильтрации
@@ -2299,41 +2296,9 @@ begin
                     TGDCClassTreeItem(TN.Data).TheClass.SpecDisableMethod;
                 end;
               end;
-            end;
           finally
             ST.Free;
           end;
-        end;
-      end;
-
-      if (TCustomTreeItem(AParent.Data).ItemType = tiGDCClass) and
-        (TGDCClassTreeItem(AParent.Data).SubType <> '') then
-      begin
-        MC := TGDCClassTreeItem(AParent.Data).TheClass;
-        ST := TStringList.Create;
-        try
-          if MC.Class_Reference.InheritsFrom(TgdcBase) then
-            CgdcBase(MC.Class_Reference).GetSubTypeList(ST, TGDCClassTreeItem(AParent.Data).SubType, True)
-          else
-            CgdcCreateableForm(MC.Class_Reference).GetSubTypeList(ST, TGDCClassTreeItem(AParent.Data).SubType, True);
-          for I := 0 to ST.Count - 1 do
-          begin
-            if MC.Class_Reference.InheritsFrom(TgdcBase) then
-              TN := AddGDCClassNode(AParent, Index,
-                Replace(ST.Values[ST.Names[I]]), ST.Names[I])
-            else
-              TN := AddFRMClassNode(AParent, Index,
-                Replace(ST.Values[ST.Names[I]]), ST.Names[I]);
-            TN.HasChildren := True;
-            if not PropertySettings.Filter.OnlySpecEvent then
-              InitOverloadAndDisable(TGDCClassTreeItem(TN.Data).TheClass);
-            TGDCClassTreeItem(TN.Data).OverloadMethods :=
-              TGDCClassTreeItem(TN.Data).TheClass.SpecMethodCount;
-            TGDCClassTreeItem(TN.Data).DisabledMethods :=
-              TGDCClassTreeItem(TN.Data).TheClass.SpecDisableMethod;
-          end;
-        finally
-          ST.Free;
         end;
       end;
 

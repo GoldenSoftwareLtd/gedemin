@@ -49,10 +49,7 @@ type
 
     procedure PassSelectedGoods(const gdcObject: TgdcBase; const SubType: String = '');
 
-    class function GetSubTypeList(SubTypeList: TStrings;
-      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; override;
-
-    class function ClassParentSubtype(Subtype: String): String; override;
+    class function GetSubTypeList(SubTypeList: TStrings): Boolean; override;
 
     //Строка-список присваиваемых полей вида:
     //имя поля 1 приемника = имя поля 1 gdcObject; имя поля 2 приемника = имя поля 2 gdcObject и т.д
@@ -329,17 +326,10 @@ begin
 end;
 
 class function Tgdc_frmInvSelectedGoods.GetSubTypeList(
-  SubTypeList: TStrings; Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
+  SubTypeList: TStrings): Boolean;
 begin
-  Result := TgdcSelectedGood.GetSubTypeList(SubTypeList, Subtype, OnlyDirect);
+  Result := TgdcSelectedGood.GetSubTypeList(SubTypeList);
 end;
-
-class function Tgdc_frmInvSelectedGoods.ClassParentSubtype(
-  Subtype: String): String;
-begin
-  Result := TgdcSelectedGood.ClassParentSubtype(SubType);
-end;
-
 
 procedure Tgdc_frmInvSelectedGoods.AfterSelectedGoodDelete(DataSet: TDataSet);
 var

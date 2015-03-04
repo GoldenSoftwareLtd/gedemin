@@ -35,7 +35,7 @@ AppPublisher=Golden Software of Belarus, Ltd
 AppPublisherURL={#URL}
 AppSupportURL={#URL}
 AppUpdatesURL={#URL}
-AppCopyright=Copyright (c) 1995-2013 Golden Software of Belarus, Ltd.
+AppCopyright=Copyright (c) 1995-2014 Golden Software of Belarus, Ltd.
 AppSupportPhone={#SupportPhone}
 DefaultDirName={sd}{#DefDir}
 DefaultGroupName={#DefGroup}
@@ -66,7 +66,6 @@ Name: "belarusian"; MessagesFile: "compiler:Languages\Belarusian.isl"
 Name: "databasefile"; Description: "Установить файл базы данных"; GroupDescription: "База данных:"; Flags:
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags:
 Name: "quicklaunchicon"; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
-Name: "swipl"; Description: "Установить встроенный SWI-Prolog"; GroupDescription: "SWI-Prolog:"; Flags:
 
 #ifdef Cash
   Name: "ppserver"; Description: "Установить драйвер платежного терминала"; GroupDescription: "Торговое оборудование:"; Flags:
@@ -96,12 +95,15 @@ Source: "Help\fr24rus.chm"; DestDir: "{app}\Help"; Flags: ignoreversion
 Source: "Help\vbs55.chm"; DestDir: "{app}\Help"; Flags: ignoreversion
 Source: "Database\{#DBFileOnlyName}.bk"; DestDir: "{app}\Database"; Flags: deleteafterinstall; Tasks: databasefile
 
-Source: "SWIPl\Lib\memfile.dll"; DestDir: "{app}\SWIPl\Lib"; Flags: ignoreversion; Tasks: swipl
-Source: "SWIPl\Lib\readutil.dll"; DestDir: "{app}\SWIPl\Lib"; Flags: ignoreversion; Tasks: swipl
-Source: "SWIPl\gd_pl_state.dat"; DestDir: "{app}\SWIPl"; Flags: ignoreversion; Tasks: swipl
-Source: "SWIPl\libgmp-10.dll"; DestDir: "{app}\SWIPl"; Flags: ignoreversion; Tasks: swipl
-Source: "SWIPl\libswipl.dll"; DestDir: "{app}\SWIPl"; Flags: ignoreversion; Tasks: swipl
-Source: "SWIPl\pthreadGC2.dll"; DestDir: "{app}\SWIPl"; Flags: ignoreversion; Tasks: swipl
+Source: "libeay32.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "ssleay32.dll"; DestDir: "{app}"; Flags: ignoreversion
+
+Source: "SWIPl\Lib\memfile.dll"; DestDir: "{app}\SWIPl\Lib"; Flags: ignoreversion
+Source: "SWIPl\Lib\readutil.dll"; DestDir: "{app}\SWIPl\Lib"; Flags: ignoreversion
+Source: "SWIPl\gd_pl_state.dat"; DestDir: "{app}\SWIPl"; Flags: ignoreversion
+Source: "SWIPl\libgmp-10.dll"; DestDir: "{app}\SWIPl"; Flags: ignoreversion
+Source: "SWIPl\libswipl.dll"; DestDir: "{app}\SWIPl"; Flags: ignoreversion
+Source: "SWIPl\pthreadGC2.dll"; DestDir: "{app}\SWIPl"; Flags: ignoreversion
 
 #ifdef Cash
   Source: "USBPD.dll"; DestDir: "{app}"; Flags: ignoreversion; Tasks: usbpd
@@ -116,6 +118,9 @@ Source: "SWIPl\pthreadGC2.dll"; DestDir: "{app}\SWIPl"; Flags: ignoreversion; Ta
 Filename: "{app}\gedemin.ini"; Section: "WEB CLIENT"; Key: "Token"; String: "{#UpdateToken}"; 
 Filename: "{app}\databases.ini"; Section: "{#GedSafeAppName}"; Key: "FileName"; String: "Database\{#DBFileOnlyName}.fdb"; Tasks: "databasefile"
 Filename: "{app}\databases.ini"; Section: "{#GedSafeAppName}"; Key: "Selected"; String: "1"; Tasks: "databasefile"
+#ifdef Cash
+  Filename: "{app}\gedemin.ini"; Section: "WEB CLIENT"; Key: "AutoUpdate"; String: "0"; 
+#endif
 
 [Icons]
 Name: "{group}\{#GedSafeAppName}"; Filename: "{app}\gedemin.exe"; WorkingDir: "{app}"

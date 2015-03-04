@@ -25,6 +25,9 @@ type
     btnDelete: TButton;
     btnSelect: TButton;
     btnClose: TButton;
+    actNew: TAction;
+    btnNew: TButton;
+    N4: TMenuItem;
     procedure acEditExecute(Sender: TObject);
     procedure acDeleteExecute(Sender: TObject);
     procedure actSelectExecute(Sender: TObject);
@@ -35,6 +38,8 @@ type
     procedure acDeleteUpdate(Sender: TObject);
     procedure acEditUpdate(Sender: TObject);
     procedure actSelectUpdate(Sender: TObject);
+    procedure actNewExecute(Sender: TObject);
+    procedure actNewUpdate(Sender: TObject);
   private
     FComponentKey: Integer;
     FChange: Boolean;
@@ -54,7 +59,8 @@ implementation
 {$R *.DFM}
 
 uses
-  gd_directories_const
+  gd_directories_const,
+  flt_sqlFilter
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -198,6 +204,21 @@ end;
 procedure TdlgFilterList.actSelectUpdate(Sender: TObject);
 begin
   (Sender as TAction).Enabled := lvFilter.Selected <> nil;
+end;
+
+procedure TdlgFilterList.actNewExecute(Sender: TObject);
+begin
+  if Self.Owner is TgsQueryFilter then
+  begin
+    (Self.Owner as TgsQueryFilter).CreateFilterExecute;
+    ShowFilter(0);
+    FChange := True;
+  end;
+end;
+
+procedure TdlgFilterList.actNewUpdate(Sender: TObject);
+begin
+  (Sender as TAction).Enabled := Self.Owner is TgsQueryFilter;
 end;
 
 end.

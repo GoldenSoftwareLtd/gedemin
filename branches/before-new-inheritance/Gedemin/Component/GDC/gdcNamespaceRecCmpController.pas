@@ -23,6 +23,8 @@ type
     function Compare(AnOwner: TComponent; AnObj: TgdcBase; AMapping: TYAMLMapping): Boolean;
     procedure FillGrid(AGrid: TStringGrid; const AShowEqual: Boolean);
     function OverwriteField(const AFieldName: String): Boolean;
+    procedure EditObject;
+    procedure ViewObjectProperties;
 
     property InequalFields: TStringList read FInequalFields;
     property OverwriteFields: TStringList read FOverwriteFields;
@@ -33,7 +35,8 @@ type
 implementation
 
 uses
-  Forms, Controls, DB, gdcBaseInterface, gdcNamespace, at_dlgCompareNSRecords_unit;
+  SysUtils, Forms, Controls, DB, gdcBaseInterface, gdcNamespace,
+  at_dlgCompareNSRecords_unit;
 
 { TgdcNamespaceRecCmpController }
 
@@ -91,17 +94,23 @@ begin
 
   FCancelLoad := False;
 
-  with TdlgCompareNSRecords.Create(AnOwner) do
-  try
-    FgdcNamespaceRecCmpController := Self;
-    FillGrid(sgMain, not chbxShowOnlyDiff.Checked);
-    lblClassName.Caption := AnObj.GetDisplayName(AnObj.SubType);
-    lblName.Caption := AnObj.ObjectName;
-    lblID.Caption := RUIDToStr(AnObj.GetRUID);
-    Result := ShowModal = mrOk;
-  finally
-    Free;
-  end;
+  if (FInequalFields.Count = 1) and (AnsiCompareText(FInequalFields[0], 'EDITIONDATE') = 0) then
+  begin
+    if FMapping.ReadDateTime('Fields\EDITIONDATE', 0) > FObj.FieldByName('EDITIONDATE').AsDateTime then
+      FOverwriteFields.Text := 'EDITIONDATE';
+
+    Result := True;
+  end else
+    with TdlgCompareNSRecords.Create(AnOwner) do
+    try
+      FgdcNamespaceRecCmpController := Self;
+      FillGrid(sgMain, not chbxShowOnlyDiff.Checked);
+      mObject.Lines.Text := StringReplace(mObject.Lines.Text, '%s',
+        AnObj.ObjectName, []);
+      Result := ShowModal = mrOk;
+    finally
+      Free;
+    end;
 end;
 
 constructor TgdcNamespaceRecCmpController.Create;
@@ -125,6 +134,17 @@ begin
   FOverwriteFields.Free;
   FDisplayFields.Free;
   inherited;
+end;
+
+procedure TgdcNamespaceRecCmpController.EditObject;
+begin
+  Assert(FObj <> nil);
+  with FObj.CreateSingularByID(nil, FObj.Database, FObj.Transaction, FObj.ID, FObj.SubType) do
+  try
+    EditDialog;
+  finally
+    Free;
+  end;
 end;
 
 procedure TgdcNamespaceRecCmpController.FillGrid(AGrid: TStringGrid;
@@ -170,6 +190,17 @@ begin
   AGrid.Cells[0, 0] := 'Имя поля';
   AGrid.Cells[1, 0] := 'В базе данных';
   AGrid.Cells[2, 0] := 'В файле';
+end;
+
+procedure TgdcNamespaceRecCmpController.ViewObjectProperties;
+begin
+  Assert(FObj <> nil);
+  with FObj.CreateSingularByID(nil, FObj.Database, FObj.Transaction, FObj.ID, FObj.SubType) do
+  try
+    EditDialog('TGDC_DLGOBJECTPROPERTIES');
+  finally
+    Free;
+  end;
 end;
 
 function TgdcNamespaceRecCmpController.OverwriteField(

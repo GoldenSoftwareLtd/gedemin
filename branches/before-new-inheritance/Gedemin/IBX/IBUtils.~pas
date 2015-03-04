@@ -106,12 +106,12 @@ begin
   Result := Value;
 end;
 
-{$IFDEF GEDEMIN}
-function FormatIdentifierValue(Dialect: Integer; const Value: String): String;
-begin
-  Result := Trim(Value);
-end;
-{$ELSE}
+//{$IFDEF GEDEMIN}
+//function FormatIdentifierValue(Dialect: Integer; const Value: String): String;
+//begin
+//  Result := Trim(Value);
+//end;
+//{$ELSE}
 function FormatIdentifierValue(Dialect: Integer; Value: String): String;
 begin
   Value := Trim(Value);
@@ -130,7 +130,7 @@ begin
   end;
   Result := Value;
 end;
-{$ENDIF}
+//{$ENDIF}
 
 {function ExtractIdentifier(Dialect: Integer; Value: String): String;
 begin

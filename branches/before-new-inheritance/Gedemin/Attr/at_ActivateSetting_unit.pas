@@ -31,7 +31,7 @@ var
 implementation
 
 uses
-  IB, IBDatabase, at_classes, gdcSetting, gdcBaseInterface, gd_security;
+  IBDatabase, at_classes, gdcSetting, gdcBaseInterface, gd_security;
 
 {$R *.DFM}
 

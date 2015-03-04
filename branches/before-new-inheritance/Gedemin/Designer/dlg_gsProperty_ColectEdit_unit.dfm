@@ -12,6 +12,7 @@ object dlg_gsProperty_ColectEdit: Tdlg_gsProperty_ColectEdit
   ParentFont = True
   KeyPreview = True
   OldCreateOrder = True
+  Position = poScreenCenter
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   PixelsPerInch = 96
@@ -19,7 +20,7 @@ object dlg_gsProperty_ColectEdit: Tdlg_gsProperty_ColectEdit
   object Splitter1: TSplitter
     Left = 0
     Top = 29
-    Width = 157
+    Width = 149
     Height = 4
     Cursor = crVSplit
     Align = alTop
@@ -27,8 +28,9 @@ object dlg_gsProperty_ColectEdit: Tdlg_gsProperty_ColectEdit
   object ToolBar1: TToolBar
     Left = 0
     Top = 0
-    Width = 157
+    Width = 149
     Height = 29
+    EdgeBorders = [ebLeft, ebTop]
     Images = ImageList1
     TabOrder = 1
     object ToolButton1: TToolButton
@@ -63,16 +65,16 @@ object dlg_gsProperty_ColectEdit: Tdlg_gsProperty_ColectEdit
   object Panel3: TPanel
     Left = 0
     Top = 33
-    Width = 157
-    Height = 173
+    Width = 149
+    Height = 162
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 0
     object ListView1: TListView
       Left = 0
       Top = 0
-      Width = 157
-      Height = 173
+      Width = 149
+      Height = 162
       Align = alClient
       Columns = <>
       ColumnClick = False

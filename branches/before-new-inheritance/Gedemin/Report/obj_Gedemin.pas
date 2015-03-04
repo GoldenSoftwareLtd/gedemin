@@ -358,7 +358,7 @@ end;
 function TgsGedemin.GetCodeByParams(const ParamList: WideString): LongWord;
 begin
 {$IFDEF GEDEMIN_LOCK}
-  Result := GetCode(ParamList);
+  Result := TRegParams.GetCode(ParamList);
 {$ELSE}
   Result := 0;
 {$ENDIF}

@@ -63,7 +63,7 @@ implementation
 {$R *.DFM}
 
 uses
-  gd_classlist, gdcNamespace, IBSQL, at_AddToSetting;
+  gd_classlist, gdcNamespace, gdcMetaData, IBSQL, at_AddToSetting;
 
 const
   ArrayOfGDC: array[0..23] of String = (
@@ -249,7 +249,7 @@ end;
 
 procedure Tat_frmNSObjects.actSetFilterExecute(Sender: TObject);
 var
-  S: String;
+  S, USRCond: String;
   C: TPersistentClass;
   I: Integer;
 begin
@@ -262,6 +262,13 @@ begin
       if (C <> nil) and C.InheritsFrom(TgdcBase)
         and (CgdcBase(C).GetListTable('') > '') then
       begin
+        if C.InheritsFrom(TgdcMetaBase) then
+          USRCond := 
+            '  (' + CgdcBase(C).GetListField('') + ' LIKE ''USR$%'')'#13#10 +
+            '  AND (NOT r.' + CgdcBase(C).GetListField('') + ' LIKE ''USR$CROSS%'')'#13#10        
+        else
+          USRCond := '';
+
         if S > '' then
           S := S + #13#10#13#10 + 'UNION ALL'#13#10#13#10;
         if chbxInNS.Checked then
@@ -281,9 +288,7 @@ begin
             '  JOIN at_object o ON o.xid = ruid.xid AND o.dbid = ruid.dbid'#13#10 +
             '  JOIN at_namespace n ON n.id = o.namespacekey'#13#10 +
             'WHERE '#13#10 +
-            '  (NOT r.' + CgdcBase(C).GetListField('') + ' LIKE ''RDB$%'')'#13#10 +
-            '  AND (NOT r.' + CgdcBase(C).GetListField('') + ' LIKE ''MON$%'')'#13#10 +
-            '  AND (NOT r.' + CgdcBase(C).GetListField('') + ' LIKE ''USR$CROSS%'')'#13#10 +
+            USRCond +
             '  AND (ruid.xid >= 147000000)'#13#10;
           if gsPeriodEdit.Text > '' then
             S := S +
@@ -307,10 +312,8 @@ begin
             '  JOIN gd_ruid ruid ON ruid.id = r.id'#13#10 +
             '  LEFT JOIN at_object o ON o.xid = ruid.xid AND o.dbid = ruid.dbid'#13#10 +
             'WHERE '#13#10 +
-            '  (o.id IS NULL)'#13#10 +
-            '  AND (NOT r.' + CgdcBase(C).GetListField('') + ' LIKE ''RDB$%'')'#13#10 +
-            '  AND (NOT r.' + CgdcBase(C).GetListField('') + ' LIKE ''MON$%'')'#13#10 +
-            '  AND (NOT r.' + CgdcBase(C).GetListField('') + ' LIKE ''USR$CROSS%'')'#13#10 +
+            USRCond +
+            '  AND (o.id IS NULL)'#13#10 +
             '  AND (ruid.xid >= 147000000)'#13#10;
           if gsPeriodEdit.Text > '' then
             S := S +

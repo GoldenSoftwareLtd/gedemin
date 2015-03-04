@@ -981,6 +981,40 @@ begin
           '  VALUES (214, ''0000.0001.0000.0245'', ''16.06.2014'', ''Add GD_WEBLOG, GD_WEBLOGDATA tables.'') ' +
           '  MATCHING (id)';
         q.ExecQuery;
+
+        if not IndexExist2('gd_x_currrate_fordate', FTransaction) then
+        begin
+          q.SQL.Text := 'CREATE DESC INDEX gd_x_currrate_fordate ON gd_currrate(fordate)';
+          q.ExecQuery;
+        end;
+
+        q.SQL.Text :=
+          'UPDATE OR INSERT INTO fin_versioninfo ' +
+          '  VALUES (215, ''0000.0001.0000.0246'', ''02.09.2014'', ''gd_x_currrate_fordate index added.'') ' +
+          '  MATCHING (id)';
+        q.ExecQuery;
+
+        q.SQL.Text :=
+          'UPDATE OR INSERT INTO gd_command ' +
+          '  (ID,PARENT,NAME,CMD,CMDTYPE,HOTKEY,IMGINDEX,ORDR,CLASSNAME,SUBTYPE,AVIEW,ACHAG,AFULL,DISABLED,RESERVED) ' +
+          'VALUES ' +
+          '  (741118,740400,''Ограничения'',''gdcCheckConstraint'',0,NULL,214,NULL,''TgdcCheckConstraint'',NULL,1,1,1,0,NULL)';
+        q.ExecQuery;
+
+        q.SQL.Text :=
+          'UPDATE OR INSERT INTO fin_versioninfo ' +
+          '  VALUES (216, ''0000.0001.0000.0247'', ''03.09.2014'', ''Added command for TgdcCheckConstraint.'') ' +
+          '  MATCHING (id)';
+        q.ExecQuery;
+
+        AddField2('AT_NAMESPACE', 'MD5', 'CHAR(32)', FTransaction);
+        AddField2('AT_NAMESPACE_FILE', 'MD5', 'CHAR(32)', FTransaction);
+
+        q.SQL.Text :=
+          'UPDATE OR INSERT INTO fin_versioninfo ' +
+          '  VALUES (217, ''0000.0001.0000.0248'', ''06.09.2014'', ''MD5 field added to namespace table.'') ' +
+          '  MATCHING (id)';
+        q.ExecQuery;
       finally
         q.Free;
       end;

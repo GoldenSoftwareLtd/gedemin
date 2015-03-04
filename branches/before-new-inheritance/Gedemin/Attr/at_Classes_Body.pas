@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2001-2014 by Golden Software of Belarus
+  Copyright (c) 2001-2015 by Golden Software of Belarus
 
   Module
 
@@ -35,8 +35,7 @@ interface
 
 uses
   Classes,           Contnrs,           Comctrls,          SysUtils,
-  IBDatabase,        DB,                IB,                IBHeader,
-  Forms,             IBSQL,             gd_security_OperationConst,
+  IBDatabase,        DB,                Forms,             IBSQL,
   at_Classes;
 
 const
@@ -147,6 +146,7 @@ type
     function GetIsSystem: Boolean; override;
     function GetHasSecurityDescriptors: Boolean; override;
     function GetListField: TatRelationField; override;
+    function GetIsStandartRelation: Boolean; override;
     function GetIsStandartTreeRelation: Boolean; override;
     function GetIsLBRBTreeRelation: Boolean; override;
 
@@ -474,11 +474,11 @@ implementation
 
 uses
   Windows,           JclSysUtils,       Graphics,          Messages,
-  gd_resourcestring, IBCustomDataset,   gdcBase,           ZLib,
-  IBStoredProc,      JclStrings,        gd_security,       at_sql_setup,
+  gd_resourcestring, IBCustomDataset,   ZLib,
+  JclStrings,        gd_security,       at_sql_setup,
   gd_directories_const,                 at_sql_metadata,   gd_CmdLineParams_unit,
   IBUtils,           gd_splash,         at_frmIBUserList,  iberrorcodes,
-  dmDatabase_unit
+  dmDatabase_unit,   IB,                IBHeader
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -911,17 +911,12 @@ end;
 
 function TatBodyRelation.GetIsSystem: Boolean;
 begin
-  // мы провер€ем на наличие префикса в имени, а не
-  // на то начинаетс€ им€ с такого префикса или нет
-  // преднамеренно. ћы еще не определились будем ли мы
-  // хранить имена идентификаторов с кавычками или без
-  Result := AnsiPos(SystemPrefix, AnsiUpperCase(FRelationName)) > 0;
+  Result := StrIPos(SystemPrefix, FRelationName) = 1;
 end;
 
 function TatBodyRelation.GetIsUserDefined: Boolean;
 begin
-  // см. комментарий к √ет»з—ыстем
-  Result := AnsiPos(UserPrefix, AnsiUpperCase(FRelationName)) > 0;
+  Result := StrIPos(UserPrefix, FRelationName) = 1;
 end;
 
 function TatBodyRelation.GetListField: TatRelationField;
@@ -1180,23 +1175,21 @@ end;
 
 function TatBodyRelation.GetIsStandartTreeRelation: Boolean;
 begin
-  Result :=
-    Assigned(FRelationFields.ByFieldName('ID'))
-      and
-    Assigned(FRelationFields.ByFieldName('PARENT'));
+  Result := (FPrimaryKey <> nil)
+    and (FPrimaryKey.ConstraintFields.Count = 1)
+    and (FPrimaryKey.ConstraintFields[0].FieldName = 'ID')
+    and (FRelationFields.ByFieldName('PARENT') <> nil)
+    and (FRelationFields.ByFieldName('LB') = nil);
 end;
 
 function TatBodyRelation.GetIsLBRBTreeRelation: Boolean;
 begin
-  Result :=
-    Assigned(FRelationFields.ByFieldName('ID'))
-      and
-    Assigned(FRelationFields.ByFieldName('PARENT'))
-      and
-    Assigned(FRelationFields.ByFieldName('LB'))
-      and
-    Assigned(FRelationFields.ByFieldName('RB'))
-    ;
+  Result := (FPrimaryKey <> nil)
+    and (FPrimaryKey.ConstraintFields.Count = 1)
+    and (FPrimaryKey.ConstraintFields[0].FieldName = 'ID')
+    and (FRelationFields.ByFieldName('PARENT') <> nil)
+    and (FRelationFields.ByFieldName('LB') <> nil)
+    and (FRelationFields.ByFieldName('RB') <> nil);
 end;
 
 { TatBodyRelations }
@@ -3654,7 +3647,7 @@ end;
 
 function TatBodyRelationField.GetIsUserDefined: Boolean;
 begin
-  Result := AnsiPos(UserPrefix, AnsiUpperCase(FFieldName)) = 1;
+  Result := StrIPos(UserPrefix, FFieldName) = 1;
 end;
 
 function TatBodyRelationField.GetSQLType: Smallint;
@@ -5006,6 +4999,14 @@ begin
     (PrimaryKey.ConstraintFields[0].References <> nil)
   then
     Result := PrimaryKey.ConstraintFields[0].References;
+end;
+
+function TatBodyRelation.GetIsStandartRelation: Boolean;
+begin
+  Result := (FPrimaryKey <> nil)
+    and (FPrimaryKey.ConstraintFields.Count = 1)
+    and (FPrimaryKey.ConstraintFields[0].FieldName = 'ID')
+    and (FRelationFields.ByFieldName('PARENT') = nil);
 end;
 
 initialization

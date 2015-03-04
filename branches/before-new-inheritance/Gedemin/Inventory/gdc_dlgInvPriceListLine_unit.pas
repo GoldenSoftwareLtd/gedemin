@@ -22,10 +22,7 @@ type
   public
     constructor Create(AnOwner: TComponent); override;
 
-    class function GetSubTypeList(SubTypeList: TStrings;
-      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; override;
-
-    class function ClassParentSubtype(Subtype: String): String; override;
+    class function GetSubTypeList(SubTypeList: TStrings): Boolean; override;
 
     property Document: TgdcInvPriceList read GetDocument;
     property DocumentLine: TgdcInvPriceListLine read GetDocumentLine;
@@ -44,15 +41,9 @@ uses
 { TdlgInvPriceLine }
 
 class function TdlgInvPriceLine.GetSubTypeList(
-  SubTypeList: TStrings; Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
+  SubTypeList: TStrings): Boolean;
 begin
-  Result := TgdcInvPriceList.GetSubTypeList(SubTypeList, Subtype, OnlyDirect);
-end;
-
-class function TdlgInvPriceLine.ClassParentSubtype(
-  Subtype: String): String;
-begin
-  Result := TgdcInvPriceList.ClassParentSubtype(SubType);
+  Result := TgdcInvPriceList.GetSubTypeList(SubTypeList);
 end;
 
 procedure TdlgInvPriceLine.atAttributesRelationNames(Sender: TObject;

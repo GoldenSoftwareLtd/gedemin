@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2012-2013 by Golden Software of Belarus
+  Copyright (c) 2012-2014 by Golden Software of Belarus
 
   Module
 
@@ -265,13 +265,13 @@ end;
 
 procedure TgdWebServerControl.ServerOnCommandGetSync;
 var
-  RequestToken, S: String;
+  RequestToken, S, ConType: String;
   HandlerCounter: Integer;
   Handler: TgdHttpHandler;
   HandlerFunction: TrpCustomFunction;
   LParams, LResult: Variant;
   Processed: Boolean;
-  I: Integer;
+  I, P: Integer;
 begin
   Assert(FHTTPGetHandlerList <> nil);
 
@@ -331,13 +331,22 @@ begin
             FResponseInfo.ResponseNo := Integer(GetVarParam(LParams[2]));
             FResponseInfo.ContentText := String(GetVarParam(LParams[3]));
 
-            if Copy(FResponseInfo.ContentText, 1, 5) = '<?xml' then
+            ConType := Copy(FResponseInfo.ContentText, 1, 128);
+            if Pos('<?xml', ConType) = 1 then
               FResponseInfo.ContentType := 'text/xml; charset=Windows-1251'
-            else if Copy(FResponseInfo.ContentText, 1, 14) = '<!DOCTYPE HTML' then
+            else if Pos('<!DOCTYPE HTML', ConType) = 1 then
               FResponseInfo.ContentType := 'text/html; charset=Windows-1251'
-            else
+            else if Pos('Content-Type:', ConType) = 1 then
+            begin
+              P := Pos(#13#10, ConType);
+              if P > 0 then
+              begin
+                FResponseInfo.ContentType := Trim(Copy(ConType, 14, P - 1)); // Length('Content-Type:')
+                FResponseInfo.ContentText := Copy(FResponseInfo.ContentText, P + 2, MaxInt);
+              end else
+                FResponseInfo.ContentType := 'text/plain; charset=Windows-1251';
+            end else
               FResponseInfo.ContentType := 'text/plain; charset=Windows-1251';
-
             Processed := True;
             Break;
           end;
@@ -369,7 +378,7 @@ begin
         end else}
         begin
           S := 'Gedemin Web Server.';
-          S := S + '<br/>Copyright (c) 2013 by <a href="http://gsbelarus.com">Golden Software of Belarus, Ltd.</a>';
+          S := S + '<br/>Copyright (c) 2014 by <a href="http://gsbelarus.com">Golden Software of Belarus, Ltd.</a>';
           S := S + '<br/>All rights reserved.';
 
           S := S + '<br/><br/>Now serving tokens:<ol>';

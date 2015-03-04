@@ -129,7 +129,7 @@ function Tgdc_dlgDocumentType.TestCorrect: Boolean;
   {END MACRO}
 begin
   {@UNFOLD MACRO INH_CRFORM_TESTCORRECT('TGDC_DLGDOCUMENTTYPE', 'TESTCORRECT', KEYTESTCORRECT)}
-  {M}Result := True;
+  {M}Result := True;              
   {M}try
   {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
   {M}  begin
@@ -187,7 +187,7 @@ begin
   begin
     if not (dbcMask.Field.Dataset.State in [dsInsert, dsEdit]) then
       dbcMask.Field.Dataset.Edit;
-
+      
     dbcMask.Field.AsString :=
       dbcMask.Field.AsString +
       '"' +
@@ -214,7 +214,7 @@ begin
         gdcObject.FieldByName('fixlength').AsInteger);
     finally
       dbcMask.OnChange := dbcMaskChange;
-    end;
+    end;  
   end;
 end;
 
@@ -271,7 +271,7 @@ end;
 procedure Tgdc_dlgDocumentType.actOkUpdate(Sender: TObject);
 begin
   inherited;
-  iblcHeaderTable.Enabled := (edEnglishName.Text > '') and (edEnglishName.Enabled);
+  iblcHeaderTable.Enabled := edEnglishName.Text > '';
   iblcLineTable.Enabled := iblcHeaderTable.Enabled and (iblcHeaderTable.CurrentKey > '');
 end;
 
@@ -637,26 +637,6 @@ begin
 
     dbcMask.Items.Assign(List);
 
-    if gdcObject.FieldByName('headerrelkey').IsNull then
-    begin
-      ibsql.SQL.Text := 'SELECT headerrelkey FROM gd_documenttype WHERE id = :id AND documenttype = ''D'' ';
-      ibsql.ParamByName('id').AsInteger := gdcObject.FieldByName('parent').AsInteger;
-      ibsql.ExecQuery;
-      if (not ibsql.Eof) and (not ibsql.FieldByName('headerrelkey').IsNull)then
-        gdcObject.FieldByName('headerrelkey').Asinteger := ibsql.FieldByName('headerrelkey').AsInteger;
-      ibsql.Close;
-    end;
-
-    if gdcObject.FieldByName('linerelkey').IsNull then
-    begin
-      ibsql.SQL.Text := 'SELECT linerelkey FROM gd_documenttype WHERE id = :id AND documenttype = ''D'' ';
-      ibsql.ParamByName('id').AsInteger := gdcObject.FieldByName('parent').AsInteger;
-      ibsql.ExecQuery;
-      if (not ibsql.Eof) and (not ibsql.FieldByName('linerelkey').IsNull)then
-        gdcObject.FieldByName('linerelkey').Asinteger := ibsql.FieldByName('linerelkey').AsInteger;
-      ibsql.Close;
-    end;
-
     if not gdcObject.FieldByName('headerrelkey').IsNull then
     begin
       ibsql.SQL.Text := 'SELECT relationname FROM at_relations WHERE id = :id';
@@ -670,12 +650,7 @@ begin
     ibsql.ParamByName('id').AsInteger := gdcObject.FieldByName('parent').AsInteger;
     ibsql.ExecQuery;
     if not ibsql.Eof then
-      begin
-        edParentName.Text := ibsql.FieldByName('name').AsString;
-        edEnglishName.Enabled := false;
-        iblcHeaderTable.Enabled := false;
-        iblcLineTable.Enabled := false;
-      end
+      edParentName.Text := ibsql.FieldByName('name').AsString
     else
       edParentName.Text := gdcObject.FieldByName('classname').AsString;
   finally

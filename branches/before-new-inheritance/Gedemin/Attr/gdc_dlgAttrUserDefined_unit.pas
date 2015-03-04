@@ -43,9 +43,7 @@ type
 
     procedure SaveSettings; override;
 
-    class function GetSubTypeList(SubTypeList: TStrings;
-      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; override;
-    class function ClassParentSubtype(Subtype: String): String; override;
+    class function GetSubTypeList(SubTypeList: TStrings): Boolean; override;
   end;
 
 var
@@ -60,15 +58,9 @@ uses
 { Tgdc_dlgAttrUserDefined }
 
 class function Tgdc_dlgAttrUserDefined.GetSubTypeList(
-  SubTypeList: TStrings; Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
+  SubTypeList: TStrings): Boolean;
 begin
-  Result := TgdcAttrUserDefined.GetSubTypeList(SubTypeList, Subtype, OnlyDirect);
-end;
-
-class function Tgdc_dlgAttrUserDefined.ClassParentSubtype(
-  Subtype: String): String;
-begin
-  Result := TgdcAttrUserDefined.ClassParentSubtype(SubType);
+  Result := TgdcAttrUserDefined.GetSubTypeList(SubTypeList);
 end;
 
 procedure Tgdc_dlgAttrUserDefined.SaveSettings;

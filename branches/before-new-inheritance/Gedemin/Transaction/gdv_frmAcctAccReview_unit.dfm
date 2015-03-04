@@ -7,15 +7,11 @@ inherited gdv_frmAcctAccReview: Tgdv_frmAcctAccReview
   PixelsPerInch = 96
   TextHeight = 13
   inherited sLeft: TSplitter
-    Height = 579
+    Height = 567
   end
   inherited TBDock1: TTBDock
-    Width = 930
-    inherited TBToolbar2: TTBToolbar
-      Left = 166
-    end
+    Width = 922
     inherited TBToolbar1: TTBToolbar
-      Left = 446
       inherited pCofiguration: TPanel
         inherited iblConfiguratior: TgsIBLookupComboBox
           gdClassName = 'TgdcAcctAccReviewConfig'
@@ -24,28 +20,28 @@ inherited gdv_frmAcctAccReview: Tgdv_frmAcctAccReview
     end
   end
   inherited Panel1: TPanel
-    Width = 660
-    Height = 579
+    Width = 652
+    Height = 567
     inherited ibgrMain: TgsIBGrid
-      Width = 660
-      Height = 579
+      Width = 652
+      Height = 567
     end
   end
   inherited TBDock2: TTBDock
-    Height = 579
+    Height = 567
   end
   inherited TBDock3: TTBDock
-    Left = 921
-    Height = 579
+    Left = 913
+    Height = 567
   end
   inherited TBDock4: TTBDock
-    Top = 609
-    Width = 930
+    Top = 597
+    Width = 922
   end
   inherited pLeft: TPanel
-    Height = 579
+    Height = 567
     inherited ScrollBox: TScrollBox
-      Height = 562
+      Height = 550
       inherited Panel5: TPanel
         Height = 65
         inherited bAccounts: TButton
@@ -207,8 +203,8 @@ inherited gdv_frmAcctAccReview: Tgdv_frmAcctAccReview
   end
   object Panel3: TPanel [7]
     Left = 0
-    Top = 618
-    Width = 930
+    Top = 606
+    Width = 922
     Height = 81
     Align = alBottom
     BevelOuter = bvNone
@@ -217,7 +213,7 @@ inherited gdv_frmAcctAccReview: Tgdv_frmAcctAccReview
     object Bevel2: TBevel
       Left = 0
       Top = 0
-      Width = 930
+      Width = 922
       Height = 4
       Align = alTop
       Shape = bsBottomLine
@@ -520,9 +516,6 @@ inherited gdv_frmAcctAccReview: Tgdv_frmAcctAccReview
       Caption = 'Перейти на карту счета'
       Hint = 'Перейти на карту счета'
       ImageIndex = 220
-    end
-    inherited actEditInGrid: TAction
-      Visible = False
     end
   end
   inherited AccountDelayTimer: TTimer

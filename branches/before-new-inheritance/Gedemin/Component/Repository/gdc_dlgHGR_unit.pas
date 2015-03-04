@@ -7,7 +7,7 @@ uses
   gdc_dlgG_unit, Db, ActnList, StdCtrls,Mask, xDateEdits, DBCtrls, ExtCtrls, Grids, DBGrids,
   gsDBGrid, gsIBGrid, gsIBCtrlGrid, gdcBase, ComCtrls, ToolWin, gdcBaseInterface,
   dmDatabase_unit, FrmPlSvr, TB2Item, TB2Dock, TB2Toolbar, gdc_dlgTR_unit,
-  IBDatabase, Menus, ibsql;
+  IBDatabase, Menus;
 
 type
   Tgdc_dlgHGR = class(Tgdc_dlgTR)
@@ -206,12 +206,6 @@ var
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
   H: Integer;
-  bLoadedFromUserStorage: boolean;
-  Path: String;
-  F: TMemoryStream;
-  SubType: String;
-  ParentSubType: String;
-
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGHGR', 'LOADSETTINGS', KEYLOADSETTINGS)}
   {M}  try
@@ -244,29 +238,7 @@ begin
 
     pnlMaster.Height := H;
 
-    F := TMemoryStream.Create;
-    try
-      Path := BuildComponentPath(ibgrDetail);
-      bLoadedFromUserStorage:= UserStorage.ReadStream(Path, 'data', F);
-      if not bLoadedFromUserStorage then
-      begin
-        SubType := FSubType;
-        repeat
-          ParentSubType := ClassParentSubtype(SubType);
-          if ParentSubType <> '' then
-          begin
-            Path := StringReplace(Path, SubType, ParentSubType, [rfReplaceAll, rfIgnoreCase]);
-            bLoadedFromUserStorage:= UserStorage.ReadStream(Path, 'data', F);
-            SubType := ParentSubType;
-          end;
-        until (bLoadedFromUserStorage) or (ParentSubType = '');
-      end;
-
-      if bLoadedFromUserStorage then
-        ibgrDetail.LoadFromStream(F);
-    finally
-      F.Free;
-    end;
+    UserStorage.LoadComponent(ibgrDetail, ibgrDetail.LoadFromStream);
   end;  
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGHGR', 'LOADSETTINGS', KEYLOADSETTINGS)}

@@ -77,9 +77,7 @@ type
   public
     constructor Create(AnOwner: TComponent); override;
 
-    class function GetSubTypeList(SubTypeList: TStrings;
-      Subtype: string = ''; OnlyDirect: Boolean = False): Boolean; override;
-    class function ClassParentSubtype(Subtype: String): String; override;
+    class function GetSubTypeList(SubTypeList: TStrings): Boolean; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
 
     function DocumentTypeKey: Integer; override;
@@ -339,18 +337,13 @@ begin
   {END MACRO}
 end;
 
-class function TgdcInvBasePriceList.GetSubTypeList(SubTypeList: TStrings;
-  Subtype: string = ''; OnlyDirect: Boolean = False): Boolean;
+class function TgdcInvBasePriceList.GetSubTypeList(
+  SubTypeList: TStrings): Boolean;
 begin
   Assert(Assigned(gdcInvDocumentCache));
 
   Result := gdcInvDocumentCache.GetSubTypeList(INV_DOC_PRICELISTBRANCH,
-    SubTypeList, Subtype, OnlyDirect);
-end;
-
-class function TgdcInvBasePriceList.ClassParentSubtype(Subtype: String): String;
-begin
-  Result := gdcInvDocumentCache.ClassParentSubtype(SubType);
+    SubTypeList);
 end;
 
 class function TgdcInvBasePriceList.GetViewFormClassName(

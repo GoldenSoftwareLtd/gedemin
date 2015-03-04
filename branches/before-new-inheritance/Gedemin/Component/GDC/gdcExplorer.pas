@@ -889,8 +889,6 @@ var
   F: TrpCustomFunction;
   R: TgdcReport;
   P: Variant;
-  RL: TatRelation;
-  LFullClass: TgdcFullClassName;
 begin
   CheckBrowseMode;
 
@@ -945,45 +943,8 @@ begin
   else
     if FieldByName('classname').AsString > '' then
     begin
-      if FieldByName('classname').AsString = 'TgdcAttrUserDefined' then
-      begin
-        LFullClass.gdClassName := 'TgdcAttrUserDefined';
-        LFullClass.SubType := FieldByName('subtype').AsString;
-        if LFullClass.SubType > '' then
-        begin
-          RL := atDatabase.Relations.ByRelationName(LFullClass.SubType);
-          if Assigned(RL) then
-          begin
-            if Assigned(gdcClassList.GetGDCClass(LFullClass))
-              and (gdcClassList.GetGDCClass(LFullClass).ClassParentSubtype(LFullClass.Subtype) > '') then
-              repeat
-                LFullClass.SubType := gdcClassList.GetGDCClass(LFullClass).ClassParentSubtype(LFullClass.Subtype);
-                if (LFullClass.SubType > '')
-                  and Assigned(atDatabase.Relations.ByRelationName(LFullClass.SubType)) then
-                  RL := atDatabase.Relations.ByRelationName(LFullClass.SubType);
-              until (not (LFullClass.SubType > ''))
-                or (not Assigned(gdcClassList.GetGDCClass(LFullClass)))
-                or  (gdcClassList.GetGDCClass(LFullClass).ClassParentSubtype(LFullClass.Subtype) = '');
-
-            Assert(RL <> nil);
-
-            if Assigned(RL) then
-              if Assigned(RL.RelationFields.ByFieldName('PARENT'))
-                and Assigned(RL.RelationFields.ByFieldName('LB')) then
-                  LFullClass.gdClassName := 'TgdcAttrUserDefinedLBRBTree'
-              else if Assigned(RL.RelationFields.ByFieldName('PARENT')) then
-                LFullClass.gdClassName := 'TgdcAttrUserDefinedTree'
-              else LFullClass.gdClassName := 'TgdcAttrUserDefined'
-          end;
-        end;
-      end
-      else
-      begin
-        LFullClass.gdClassName := FieldByName('classname').AsString;
-      end;
-
       // JKL: Вынесено в отдельную функцию
-      ViewFormByClass(LFullClass.gdClassName, FieldByName('subtype').AsString,
+      ViewFormByClass(FieldByName('classname').AsString, FieldByName('subtype').AsString,
         AlwaysCreateWindow);
     end;
   end;

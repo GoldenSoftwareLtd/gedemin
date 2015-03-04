@@ -1,6 +1,7 @@
+
 {++
 
-  Copyright (c) 2001 by Golden Software of Belarus
+  Copyright (c) 2001-2014 by Golden Software of Belarus
 
   Module
 
@@ -17,7 +18,9 @@
   Revisions history
 
     1.00    30.05.03    tiptop        Initial version.
+
 --}
+
 unit wiz_ExpressionEditorForm_unit;
 
 interface
@@ -94,8 +97,8 @@ type
     procedure tbiAddAnaliticsClick(Sender: TObject);
     procedure actAddVarExecute(Sender: TObject);
     procedure Action1Execute(Sender: TObject);
+
   private
-    { Private declarations }
     FAccountPopupMenu: TAccountPopupMenu;
     FAnalPopupMenu: TAnalPopupMenu;
     FBlock: TVisualBlock;
@@ -107,8 +110,8 @@ type
     procedure ClickCustomAnal(Sender: TObject);
     procedure ClickAnalCycle(Sender: TObject);
     procedure SetBlock(const Value: TVisualBlock);
+
   public
-    { Public declarations }
     property Block: TVisualBlock read FBlock write SetBlock;
   end;
 
@@ -116,8 +119,11 @@ var
   ExpressionEditorForm: TExpressionEditorForm;
 
 implementation
-uses wiz_frmAvailableTaxFunc_unit, gdc_frmAccountSel_unit, tax_frmAnalytics_unit,
+
+uses
+  wiz_frmAvailableTaxFunc_unit, gdc_frmAccountSel_unit, tax_frmAnalytics_unit,
   wiz_dlgVarSelect_unit, wiz_dlgCustumAnalytic_unit;
+
 {$R *.DFM}
 
 procedure TExpressionEditorForm.actOkExecute(Sender: TObject);
@@ -307,6 +313,5 @@ procedure TExpressionEditorForm.Action1Execute(Sender: TObject);
 begin
   mExpression.SelText := TAction(Sender).Caption;
 end;
-
 
 end.
