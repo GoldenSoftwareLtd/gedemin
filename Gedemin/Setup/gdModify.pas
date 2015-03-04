@@ -121,9 +121,29 @@ begin
       ReadDBVersion;
       try
         try
-          if FIBDatabase.IsFirebird25Connect then
+          if FIBDatabase.IsFirebird30Connect then
           begin
-            for I := 0 to 207 do
+            if FDBVersion >= cProcList[cFinalProcFB25 + 1].ModifyVersion then
+            begin
+              for I := cFinalProcFB25 + 1 to cProcCount - 1 do
+              begin
+                if FDBVersion <= cProcList[I].ModifyVersion then
+                begin
+                  DoModifyLog('>  Номер версии базы данных: ' + cProcList[I].ModifyVersion);
+                  cProcList[I].ModifyProc(FIBDatabase, DoModifyLog);
+                end;
+              end;
+            end
+            else
+              MessageBox(0,
+                'Выполните процесс обновления базы данных'#13#10 +
+                'на сервере Firebird 2.5',
+                'Внимание',
+                MB_OK or MB_ICONINFORMATION or MB_TASKMODAL or MB_TOPMOST);
+          end
+          else
+          begin
+            for I := 0 to cFinalProcFB25 do
             begin
               if FDBVersion <= cProcList[I].ModifyVersion then
               begin
@@ -136,27 +156,6 @@ begin
               'необходимо перейти на сервер Firebird 3',
               'Внимание',
               MB_OK or MB_ICONINFORMATION or MB_TASKMODAL or MB_TOPMOST);
-          end
-          else if FIBDatabase.IsFirebird30Connect then
-          begin
-            if FDBVersion >= cProcList[208].ModifyVersion then
-            begin
-              for I := 208 to cProcCount - 1 do
-              begin
-                if FDBVersion <= cProcList[I].ModifyVersion then
-                begin
-                  DoModifyLog('>  Номер версии базы данных: ' + cProcList[I].ModifyVersion);
-                  cProcList[I].ModifyProc(FIBDatabase, DoModifyLog);
-                end;
-              end;
-              DoModifyLog('Процесс модификации БД завершен');
-            end
-            else
-              MessageBox(0,
-                'Выполните процесс обновления базы данных'#13#10 +
-                'на сервере Firebird 2.5',
-                'Внимание',
-                MB_OK or MB_ICONINFORMATION or MB_TASKMODAL or MB_TOPMOST);
           end;
           DoModifyLog('Процесс модификации БД завершен');
         except
