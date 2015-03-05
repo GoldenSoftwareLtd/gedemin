@@ -95,6 +95,7 @@ Source: "icuin52.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "icuuc52.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "msvcp100.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "msvcr100.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "zlib1.dll"; DestDir: "{app}"; Flags: ignoreversion
 
 Source: "firebird.msg"; DestDir: "{app}"; Flags: ignoreversion
 Source: "Intl\fbintl.dll"; DestDir: "{app}\Intl"; Flags: ignoreversion
