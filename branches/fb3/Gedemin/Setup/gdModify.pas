@@ -152,7 +152,7 @@ begin
               end;
             end;
             MessageBox(0,
-              'Для далнейшего обновления базы данных'#13#10 +
+              'Для дальнейшего обновления базы данных'#13#10 +
               'необходимо перейти на сервер Firebird 3',
               'Внимание',
               MB_OK or MB_ICONINFORMATION or MB_TASKMODAL or MB_TOPMOST);
