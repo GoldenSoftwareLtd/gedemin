@@ -96,7 +96,6 @@ Source: "icuuc52.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "msvcp100.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "msvcr100.dll"; DestDir: "{app}"; Flags: ignoreversion
 
-Source: "Microsoft.VC80.CRT.manifest"; DestDir: "{app}"; Flags: ignoreversion
 Source: "firebird.msg"; DestDir: "{app}"; Flags: ignoreversion
 Source: "Intl\fbintl.dll"; DestDir: "{app}\Intl"; Flags: ignoreversion
 Source: "Intl\fbintl.conf"; DestDir: "{app}\Intl"; Flags: ignoreversion
@@ -152,12 +151,12 @@ Type: files; Name: "{app}\gedemin.jpg"
 
 Type: files; Name: "{app}\gds32.dll"
 Type: files; Name: "{app}\fbembed.dll"
-Type: files; Name: "{app}\ib_util.dll"
 Type: files; Name: "{app}\icudt30.dll"
 Type: files; Name: "{app}\icuin30.dll"
 Type: files; Name: "{app}\icuuc30.dll"
 Type: files; Name: "{app}\msvcp80.dll"
 Type: files; Name: "{app}\msvcr80.dll"
+Type: files; Name: "{app}\Microsoft.VC80.CRT.manifest"
 
 [UninstallDelete]
 Type: files; Name: "{app}\gedemin.ini"
