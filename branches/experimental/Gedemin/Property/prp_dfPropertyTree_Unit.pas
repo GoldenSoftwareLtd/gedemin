@@ -2367,17 +2367,17 @@ var
 begin
   Result := nil;
 
-  if ACE.frmClass <> nil then
+  if ACE is TgdFormEntry then
   begin
-    FullName.gdClassName := ACE.frmClass.ClassName;
+    FullName.gdClassName := ACE.TheClass.ClassName;
     FullName.SubType := StringReplace(ACE.SubType, 'USR$', 'USR_',[rfReplaceAll, rfIgnoreCase]);
     MObj := MethodControl.FindMethodClass(FullName);
     if MObj is TMethodClass then
       MClass := TMethodClass(MObj)
     else
       //≈сли не найден то регистрируем его в списке
-      MClass := TMethodClass(MethodControl.AddClass(0, FullName, ACE.frmClass));
-    MClass.Class_Reference := ACE.frmClass;
+      MClass := TMethodClass(MethodControl.AddClass(0, FullName, ACE.TheClass));
+    MClass.Class_Reference := ACE.TheClass;
     MClass.SubTypeComment := ACE.Caption;
 
     CI := TgdcClassTreeItem.Create;
