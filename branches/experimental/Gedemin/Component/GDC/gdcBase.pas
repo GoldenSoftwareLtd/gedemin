@@ -2421,11 +2421,7 @@ var
 begin
   Assert(ARelationName > '');
   Assert(AnID > 0);
-  Assert(atDatabase <> nil);
   Assert(Assigned(ibtr));
-
-  {if not Assigned(gdClassList) then
-    raise Exception.Create(cgdClassListIsNotAssigned);}
 
   Result := GetBaseClassForRelation(ARelationName);
 
@@ -2457,14 +2453,14 @@ end;
 
 function BuildTree2(ACE: TgdClassEntry; AData1: Pointer; AData2: Pointer): Boolean;
 begin
-  if ACE.SubType = '' then
+  if (ACE is TgdBaseEntry) and (ACE.SubType = '') then
   begin
-    if (AnsiCompareText(ACE.gdcClass.GetListTable(''), String(AData2^)) = 0) then
-        if (TgdcFullClass(AData1^).gdClass = nil)
-          or TgdcFullClass(AData1^).gdClass.InheritsFrom(ACE.gdcClass) then
-        begin
-          TgdcFullClass(AData1^).gdClass := ACE.gdcClass;
-        end;
+    if (CompareText(TgdBaseEntry(ACE).gdcClass.GetListTable(''), String(AData2^)) = 0) then
+      if (TgdcFullClass(AData1^).gdClass = nil)
+        or TgdcFullClass(AData1^).gdClass.InheritsFrom(ACE.TheClass) then
+      begin
+        TgdcFullClass(AData1^).gdClass := TgdBaseEntry(ACE).gdcClass;
+      end;
   end;
   Result := True;
 end;
@@ -10784,8 +10780,8 @@ begin
 
     if OL.Count = 1 then
     begin
-      Result.gdClass := TgdClassEntry(OL[0]).gdcClass;
-      Result.SubType := TgdClassEntry(OL[0]).SubType;
+      Result.gdClass := TgdBaseEntry(OL[0]).gdcClass;
+      Result.SubType := TgdBaseEntry(OL[0]).SubType;
       exit;
     end;
 
@@ -10795,8 +10791,8 @@ begin
 
       if (ShowModal = mrOk) and (rgObjects.ItemIndex > -1) then
       begin
-        Result.gdClass := TgdClassEntry(rgObjects.Items.Objects[rgObjects.ItemIndex]).gdcClass;
-        Result.SubType := TgdClassEntry(rgObjects.Items.Objects[rgObjects.ItemIndex]).SubType;
+        Result.gdClass := TgdBaseEntry(rgObjects.Items.Objects[rgObjects.ItemIndex]).gdcClass;
+        Result.SubType := TgdBaseEntry(rgObjects.Items.Objects[rgObjects.ItemIndex]).SubType;
       end;
     finally
       Free;
@@ -10971,7 +10967,7 @@ begin
   if not AnIncludeAbstract then
     for I := AnOL.Count - 1 downto 0 do
     begin
-      if TgdClassEntry(AnOL[I]).gdcClass.IsAbstractClass then
+      if TgdBaseEntry(AnOL[I]).gdcClass.IsAbstractClass then
         AnOL.Delete(I);
     end;
 

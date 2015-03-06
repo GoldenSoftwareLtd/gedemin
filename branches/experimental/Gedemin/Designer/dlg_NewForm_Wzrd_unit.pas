@@ -170,9 +170,9 @@ end;
 function Tdlg_NewForm_Wzrd.BuildClassTree(ACE: TgdClassEntry; AData1: Pointer;
   AData2: Pointer): Boolean;
 begin
-  if (ACE <> nil) and (not (ACE.SubType > '')) then
-    if not ACE.gdcClass.IsAbstractClass then
-      cbGdcType.Items.Add(ACE.gdcClass.ClassName);
+  if (ACE is TgdBaseEntry) and (ACE.SubType = '') then
+    if not TgdBaseEntry(ACE).gdcClass.IsAbstractClass then
+      cbGdcType.Items.Add(ACE.TheClass.ClassName);
       
   Result := True;
 end;

@@ -8150,8 +8150,10 @@ begin
     TgdcInvRemains.ClassName, False, FieldByName('branchkey').AsInteger
   );
 
-  gdClassList.Add(TgdcInvRemains, FieldByName('RUID').AsString, '', FieldByName('name').AsString);
-  gdClassList.Add(TgdcInvGoodRemains, FieldByName('RUID').AsString, '', FieldByName('name').AsString);
+  gdClassList.Add(TgdcInvRemains, FieldByName('RUID').AsString, '',
+    TgdBaseEntry, FieldByName('name').AsString);
+  gdClassList.Add(TgdcInvGoodRemains, FieldByName('RUID').AsString, '',
+    TgdBaseEntry, FieldByName('name').AsString);
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVREMAINSOPTION', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  finally

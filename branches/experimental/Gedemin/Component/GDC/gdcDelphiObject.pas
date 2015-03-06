@@ -412,29 +412,27 @@ var
   var
     CE: TgdClassEntry;
   begin
-    if AnsiPos('USR_', AnsiUpperCase(ChildFN.SubType)) > 0 then
-      raise Exception.Create('Недопустимый символ ''_''в подтипе');
-
     Result.gdClassName := '';
     Result.SubType := '';
+
     CE := gdClassList.Find(ChildFN);
 
     if CE = nil then
       raise Exception.Create('Передан некорректный класс.');
 
-    if CE.TheClass.InheritsFrom(TgdcBase) then
+    if CE is TgdBaseEntry then
     begin
       if CE.Parent <> nil then
       begin
-        Result.gdClassName := CE.Parent.gdcClass.ClassName;
+        Result.gdClassName := CE.Parent.TheClass.ClassName;
         Result.SubType := CE.Parent.SubType;
       end;
     end
-    else if CE.TheClass.InheritsFrom(TgdcCreateableForm) then
+    else if CE is TgdFormEntry then
     begin
       if CE.Parent <> nil then
       begin
-        Result.gdClassName := CE.Parent.frmClass.ClassName;
+        Result.gdClassName := CE.Parent.TheClass.ClassName;
         Result.SubType := CE.Parent.SubType;
       end;
     end;

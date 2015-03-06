@@ -1609,34 +1609,37 @@ var
   LI: TListItem;
   S: String;
   Level: Integer;
+  CE: TgdBaseEntry;
 begin
-  if ACE = nil then
+  if not (ACE is TgdBaseEntry) then
   begin
     Result := False;
     exit;
   end;
 
-  S := ACE.TheClass.ClassName + ACE.SubType
-    + ACE.gdcClass.GetDisplayName(ACE.SubType)
-    + ACE.gdcClass.GetListTable(ACE.SubType);
+  CE := ACE as TgdBaseEntry;
+
+  S := CE.TheClass.ClassName + CE.SubType
+    + CE.gdcClass.GetDisplayName(CE.SubType)
+    + CE.gdcClass.GetListTable(CE.SubType);
   Level := PInteger(AData1)^;
 
   if (edClassesFilter.Text = '') or (StrIPos(edClassesFilter.Text, S) > 0) then
   begin
     LI := lvClasses.Items.Add;
-    LI.Caption := StringOfChar(' ', Level * 2) + ACE.TheClass.ClassName;
+    LI.Caption := StringOfChar(' ', Level * 2) + CE.TheClass.ClassName;
 
-    if ACE.gdcClass.IsAbstractClass then
+    if CE.gdcClass.IsAbstractClass then
       LI.SubItems.Add('<Абстрактный базовый класс>')
     else
-      LI.SubItems.Add(ACE.SubType);
+      LI.SubItems.Add(CE.SubType);
 
-    LI.SubItems.Add(ACE.gdcClass.GetDisplayName(ACE.SubType));
-    LI.SubItems.Add(ACE.gdcClass.GetListTable(ACE.SubType));
+    LI.SubItems.Add(CE.gdcClass.GetDisplayName(CE.SubType));
+    LI.SubItems.Add(CE.gdcClass.GetListTable(CE.SubType));
   end;
 
   Inc(Level);
-  gdClassList.Traverse(ACE.gdcClass, ACE.SubType, BuildClassTree, @Level, nil, False, True);
+  gdClassList.Traverse(CE.gdcClass, CE.SubType, BuildClassTree, @Level, nil, False, True);
 
   Result := True;
 end;
@@ -2377,12 +2380,13 @@ end;
 {$IFDEF GEDEMIN}
 function TfrmSQLEditorSyn.CreateCurrClassBusinessObject(out Obj: TgdcBase): Boolean;
 var
-  CE: TgdClassEntry;
+  CE: TgdBaseEntry;
 begin
   Assert(lvClasses.Selected <> nil);
 
   Obj := nil;
-  CE := gdClassList.Find(Trim(lvClasses.Selected.Caption), lvClasses.Selected.SubItems[0]);
+  CE := gdClassList.Find(Trim(lvClasses.Selected.Caption),
+    lvClasses.Selected.SubItems[0]) as TgdBaseEntry;
 
   if (CE <> nil) and (CE.gdcClass <> nil) and (not CE.gdcClass.IsAbstractClass) then
   begin

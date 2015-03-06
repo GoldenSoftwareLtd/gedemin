@@ -2306,15 +2306,15 @@ var
 begin
   Result := nil;
 
-  if Assigned(ACE.gdcClass) then
+  if ACE is TgdBaseEntry then
   begin
-    FullName.gdClassName := ACE.gdcClass.ClassName;
+    FullName.gdClassName := ACE.TheClass.ClassName;
     FullName.SubType := StringReplace(ACE.SubType, 'USR$', 'USR_',[rfReplaceAll, rfIgnoreCase]);
     MClass := TMethodClass(MethodControl.FindMethodClass(FullName));
     if MClass = nil then
       //≈сли не найден то регистрируем его в списке
-      MClass := TMethodClass(MethodControl.AddClass(0, FullName, ACE.gdcClass));
-    MClass.Class_Reference := ACE.gdcClass;
+      MClass := TMethodClass(MethodControl.AddClass(0, FullName, TgdBaseEntry(ACE).gdcClass));
+    MClass.Class_Reference := TgdBaseEntry(ACE).gdcClass;
     MClass.SubTypeComment := ACE.Caption;
 
     CI := TgdcClassTreeItem.Create;
@@ -2329,7 +2329,7 @@ begin
     end else
     begin
       CI.OwnerId := MClass.Class_Key;
-      CI.MainOwnerName := ACE.gdcClass.ClassName;
+      CI.MainOwnerName := ACE.TheClass.ClassName;
     end;
     CI.OverloadMethods := MClass.SpecMethodCount;
     Ci.DisabledMethods := MClass.SpecDisableMethod;

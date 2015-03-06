@@ -177,11 +177,11 @@ function BuildTree(ACE: TgdClassEntry; AData1: Pointer;
   AData2: Pointer): Boolean;
 begin
   if (ACE.SubType = '')
-    and (ACE.gdcClass.ClassName <> 'TgdcBase')
-    and (ACE.gdcClass.ClassName <> 'TgdcTree')
-    and (ACE.gdcClass.ClassName <> 'TgdcLBRBTree') then
+    and (ACE.TheClass.ClassName <> 'TgdcBase')
+    and (ACE.TheClass.ClassName <> 'TgdcTree')
+    and (ACE.TheClass.ClassName <> 'TgdcLBRBTree') then
   begin
-    TClassList(AData1).Add(ACE.gdcClass);
+    TClassList(AData1).Add(ACE.TheClass);
   end;
   Result := True;
 end;

@@ -484,28 +484,24 @@ begin
   end;
 end;
 
-procedure Tgdc_frmMDH.DoOnDetailDescendantClick (Sender: TObject);
+procedure Tgdc_frmMDH.DoOnDetailDescendantClick(Sender: TObject);
 var
-  CE: TgdClassEntry;
+  CE: TgdBaseEntry;
   C: TgdcFullClass;
   Index: Integer;
 begin
   if Sender is TTBItem then
   begin
     Index := (Sender as TTBItem).Tag;
-    CE := TgdClassEntry(TCreatedObject(FpmDetailNewObject[Index]).Obj);
-  end
-  else
-    raise Exception.Create('invalid classtype.');
-
-  if CE = nil then
-    raise Exception.Create('DescendantObject = nil');
+    CE := TCreatedObject(FpmDetailNewObject[Index]).Obj as TgdBaseEntry;
+  end else
+    raise Exception.Create('Invalid class');
 
   C.gdClass := CE.gdcClass;
   C.SubType := CE.SubType;
 
   if gdcDetailObject <> nil then
-    gdcDetailObject.CreateDialog(C)
+    gdcDetailObject.CreateDialog(C);
 end;
 
 procedure Tgdc_frmMDH.FillPopupDetailNew(ATBSubmenuItem: TTBSubmenuItem);
