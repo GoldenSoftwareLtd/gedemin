@@ -501,18 +501,23 @@ var
   COMClassItem: TgdcCOMClassItem;
   ClassRef: TClass;
 begin
+  if not (ACE is TgdFormEntry) then
+  begin
+    Result := False;
+    exit;
+  end;
+
   TreeNode := TTreeNode(AData1^);
 
-  if (ACE <> nil) and (TTreeNode <> nil) and (not (ACE.SubType > '')) then
+  if (ACE <> nil) and (TTreeNode <> nil) and (ACE.SubType = '') then
   begin
-    COMClassItem := OLEClassList.FindOLEClassItem(ACE.frmClass);
+    COMClassItem := OLEClassList.FindOLEClassItem(ACE.TheClass);
     if Assigned(COMClassItem) then
     begin
       ClassRef := COMClassItem.DelphiClass;
       TmpNode := tvClassesInsp.Items.AddChild(TreeNode,
-        ACE.frmClass.ClassName);
-      AddItemData(TmpNode, ciFrmClass,
-        'Класс стандартной формы', ClassRef, Self);
+        ACE.TheClass.ClassName);
+      AddItemData(TmpNode, ciFrmClass, 'Класс стандартной формы', ClassRef, Self);
 
       if Assigned(prpClassesInspector) then
       begin

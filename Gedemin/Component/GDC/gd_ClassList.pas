@@ -284,7 +284,6 @@ type
 
     function GetChildren(Index: Integer): TgdClassEntry;
     function GetCount: Integer;
-    function GetFrmClass: CgdcCreateableForm;
     function ListCallback(ACE: TgdClassEntry; AData1: Pointer;
       AData2: Pointer): Boolean;
 
@@ -317,7 +316,6 @@ type
     property Parent: TgdClassEntry read FParent;
     property TheClass: TClass read FClass;
     property SubType: TgdcSubType read FSubType;
-    property frmClass: CgdcCreateableForm read GetFrmClass;
     property Caption: String read FCaption write FCaption;
     property Count: Integer read GetCount;
     property Children[Index: Integer]: TgdClassEntry read GetChildren;
@@ -337,7 +335,7 @@ type
     property gdcClass: CgdcBase read GetGdcClass;
   end;
 
-  TgdAttrUserDefinedEntry = class(TgdClassEntry)
+  TgdAttrUserDefinedEntry = class(TgdBaseEntry)
   end;
 
   TgdDocumentEntry = class(TgdBaseEntry)
@@ -347,6 +345,15 @@ type
   end;
 
   TgdFormEntry = class(TgdClassEntry)
+  private
+    function GetFrmClass: CgdcCreateableForm;
+
+  public
+    constructor Create(AParent: TgdClassEntry; const AClass: TClass;
+      const ASubType: TgdcSubType = '';
+      const ACaption: String = ''); overload; override;
+
+    property frmClass: CgdcCreateableForm read GetFrmClass;
   end;
 
   TgdClassList = class(TObject)
@@ -1204,9 +1211,19 @@ begin
     Result := nil;
 end;
 
-function TgdClassEntry.GetFrmClass: CgdcCreateableForm;
+constructor TgdFormEntry.Create(AParent: TgdClassEntry;
+  const AClass: TClass; const ASubType: TgdcSubType;
+  const ACaption: String);
 begin
-  if (FClass <> nil) and FClass.InheritsFrom(TgdcCreateableForm) then
+  if (AClass = nil) or (not AClass.InheritsFrom(TgdcCreateableForm)) then
+    raise Exception.Create('Invalid class');
+
+  inherited;
+end;
+
+function TgdFormEntry.GetFrmClass: CgdcCreateableForm;
+begin
+  if FClass <> nil then
     Result := CgdcCreateableForm(FClass)
   else
     Result := nil;
@@ -1340,7 +1357,7 @@ var
 begin
   CE := Find(AClassName, '');
 
-  if (CE <> nil) and (CE is TgdBaseEntry) then
+  if CE is TgdBaseEntry then
     Result := TgdBaseEntry(CE).gdcClass
   else
     Result := nil;
@@ -1352,8 +1369,8 @@ var
 begin
   CE := Find(AClassName, '');
 
-  if CE <> nil then
-    Result := CE.frmClass
+  if CE is TgdFormEntry then
+    Result := TgdFormEntry(CE).frmClass
   else
     Result := nil;
 end;
@@ -1406,7 +1423,10 @@ begin
       end;
     end;
 
-    Result := _Create(Prnt, AnEntryClass, AClass, ASubType, ACaption);
+    if AnEntryClass.InheritsFrom(Prnt.ClassType) then
+      Result := _Create(Prnt, AnEntryClass, AClass, ASubType, ACaption)
+    else
+      Result := _Create(Prnt, CgdClassEntry(Prnt.ClassType), AClass, ASubType, ACaption)
   end;
 end;
 
@@ -1672,8 +1692,8 @@ procedure TgdClassList.LoadUserDefinedClasses;
   begin
     for I := 0 to Src.Count - 1 do
     begin
-      CE := _Create(Dst, CgdClassEntry(Src.ClassType), Dst.TheClass, Src.Children[I].SubType,
-        Src.Children[I].Caption);
+      CE := _Create(Dst, CgdClassEntry(Src.Children[I].ClassType), Dst.TheClass,
+        Src.Children[I].SubType, Src.Children[I].Caption);
       if Src.Children[I].Count > 0 then
         CopySubTree(Src.Children[I], CE);
     end;
