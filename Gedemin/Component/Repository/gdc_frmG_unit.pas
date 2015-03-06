@@ -1503,7 +1503,7 @@ end;
 
 procedure Tgdc_frmG.DoOnDescendantClick (Sender: TObject);
 var
-  CE: TgdClassEntry;
+  CE: TgdBaseEntry;
   C: TgdcFullClass;
   IsSubLevel: Boolean;
   Index: Integer;
@@ -1511,18 +1511,13 @@ begin
   if Sender is TTBItem then
   begin
     Index := (Sender as TTBItem).Tag;
-    CE := TgdClassEntry(TCreatedObject(FpmNewObject[Index]).Obj);
+    CE := TCreatedObject(FpmNewObject[Index]).Obj as TgdBaseEntry;
     IsSubLevel := TCreatedObject(FpmNewObject[Index]).IsSubLevel;
-  end
-  else
+  end else
     raise Exception.Create('invalid classtype.');
-
-  if CE = nil then
-    raise Exception.Create('DescendantObject is nil');
 
   C.gdClass := CE.gdcClass;
   C.SubType := CE.SubType;
-
 
   if gdcObject <> nil then
   begin

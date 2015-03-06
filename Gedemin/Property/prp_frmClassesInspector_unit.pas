@@ -1,6 +1,6 @@
 {++
 
-  Copyright (c) 2001 by Golden Software of Belarus
+  Copyright (c) 2001-2015 by Golden Software of Belarus
 
   Module
 
@@ -143,8 +143,6 @@ type
 
     procedure AddItemsForDelphiClass(Node: TTreeNode; const ClassInterface: IUnknown;
       const ClassGUID: TGUID; const prpClassesFrm: IprpClassesFrm);
-//    procedure AddItemsForVBClass(Node: TTreeNode; const ClassInterface: IDispatch;
-//      const PDescr, MDescr: String);
     procedure AddItemsByDispath(Node: TTreeNode; const ClassInterface: IDispatch; const prpClassesFrm: IprpClassesFrm);
 
     procedure CreateHierarchyNode(Node: TTreeNode; const ClassName: String;
@@ -539,14 +537,14 @@ var
 begin
   TreeNode := TTreeNode(AData1^);
 
-  if (ACE <> nil) and (TTreeNode <> nil) and (not (ACE.SubType > '')) then
+  if (ACE is TgdBaseEntry) and (TTreeNode <> nil) and (ACE.SubType = '') then
   begin
-    COMClassItem := OLEClassList.FindOLEClassItem(ACE.gdcClass);
+    COMClassItem := OLEClassList.FindOLEClassItem(TgdBaseEntry(ACE).gdcClass);
     if Assigned(COMClassItem) then
     begin
       ClassRef := COMClassItem.DelphiClass;
       TmpNode := tvClassesInsp.Items.AddChild(TreeNode,
-        ACE.gdcClass.ClassName);
+        ACE.TheClass.ClassName);
       AddItemData(TmpNode, ciGdcClass, 'Бизнес-класс', ClassRef, Self);
 
       if Assigned(prpClassesInspector) then

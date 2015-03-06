@@ -3269,7 +3269,7 @@ begin
   begin
     if gdClassList.Find(FieldbyName('classname').AsString, GetParentSubType) <> nil then
       gdClassList.Add(FieldbyName('classname').AsString, FieldByName('ruid').AsString,
-        GetParentSubType, FieldbyName('name').AsString);
+        GetParentSubType, TgdDocumentEntry, FieldbyName('name').AsString);
   end
   else if Process = cpModify then
   begin

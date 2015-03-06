@@ -36,11 +36,11 @@ implementation
 procedure Tgdc_dlgQueryDescendant.FillrgObjects(OL: TObjectList);
 var
   I: Integer;
-  CE: TgdClassEntry;
+  CE: TgdBaseEntry;
 begin
   for I := 0 to OL.Count - 1 do
   begin
-    CE := TgdClassEntry(OL[I]);
+    CE := OL[I] as TgdBaseEntry;
     rgObjects.Items.AddObject(CE.gdcClass.GetDisplayName(CE.SubType), CE);
 
     if (Height < rgObjects.Items.Count * 24 + 30) and (Height < 540) then
@@ -66,15 +66,15 @@ end;
 procedure Tgdc_dlgQueryDescendant.actClassesExecute(Sender: TObject);
 var
   I: Integer;
-  CE: TgdClassEntry;
+  CE: TgdBaseEntry;
 begin
   actClasses.Checked := not actClasses.Checked;
 
   for I := 0 to rgObjects.Items.Count - 1 do
   begin
-    CE := rgObjects.Items.Objects[I] as TgdClassEntry;
+    CE := rgObjects.Items.Objects[I] as TgdBaseEntry;
     if actClasses.Checked then
-      rgObjects.Items[I] := CE.gdcClass.ClassName + CE.SubType
+      rgObjects.Items[I] := CE.TheClass.ClassName + CE.SubType
     else
       rgObjects.Items[I] := CE.Caption;
   end;

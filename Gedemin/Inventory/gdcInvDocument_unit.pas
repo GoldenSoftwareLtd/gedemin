@@ -5596,15 +5596,15 @@ begin
     LParentSubType := GetParentSubType;
 
     gdClassList.Add('TgdcInvDocument', FieldByName('RUID').AsString,
-      LParentSubType, FieldByName('name').AsString);
+      LParentSubType, TgdDocumentEntry, FieldByName('name').AsString);
     gdClassList.Add('TgdcInvDocumentLine', FieldByName('RUID').AsString,
-      LParentSubType, FieldByName('name').AsString);
+      LParentSubType, TgdDocumentEntry, FieldByName('name').AsString);
     gdClassList.Add('TgdcInvRemains', FieldByName('RUID').AsString,
-      LParentSubType, FieldByName('name').AsString);
+      LParentSubType, TgdBaseEntry, FieldByName('name').AsString);
     gdClassList.Add('TgdcInvGoodRemains', FieldByName('RUID').AsString,
-      LParentSubType, FieldByName('name').AsString);
+      LParentSubType, TgdBaseEntry, FieldByName('name').AsString);
     gdClassList.Add('TgdcSelectedGood', FieldByName('RUID').AsString,
-      LParentSubType, FieldByName('name').AsString);
+      LParentSubType, TgdBaseEntry, FieldByName('name').AsString);
   end
   else if Process = cpModify then
   begin

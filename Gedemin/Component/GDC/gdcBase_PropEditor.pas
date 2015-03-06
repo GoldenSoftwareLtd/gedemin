@@ -119,7 +119,7 @@ function TgdcClassNameProperty.BuildClassTree(ACE: TgdClassEntry; AData1: Pointe
   AData2: Pointer): Boolean;
 begin
   if (ACE <> nil) then
-    TGetStrProc(AData1^)(ACE.gdcClass.ClassName);
+    TGetStrProc(AData1^)(ACE.TheClass.ClassName);
 
   Result := True;
 end;
