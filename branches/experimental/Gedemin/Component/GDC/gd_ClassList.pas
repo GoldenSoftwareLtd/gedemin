@@ -325,6 +325,8 @@ type
 
   TgdBaseEntry = class(TgdClassEntry)
   private
+    FDistinctRelation: String;
+
     function GetGdcClass: CgdcBase;
 
   public
@@ -333,12 +335,19 @@ type
       const ACaption: String = ''); overload; override;
 
     property gdcClass: CgdcBase read GetGdcClass;
+    property DistinctRelation: String read FDistinctRelation;
   end;
 
   TgdAttrUserDefinedEntry = class(TgdBaseEntry)
+  public
+    constructor Create(AParent: TgdClassEntry; const AClass: TClass;
+      const ASubType: TgdcSubType = '';
+      const ACaption: String = ''); overload; override;
   end;
 
   TgdDocumentEntry = class(TgdBaseEntry)
+  public
+    procedure InitData(const ARelationName: String); overload;
   end;
 
   TgdStorageEntry = class(TgdBaseEntry)
@@ -1201,6 +1210,7 @@ begin
   if (AClass = nil) or (not AClass.InheritsFrom(TgdcBase)) then
     raise Exception.Create('Invalid class');
   inherited;
+  FDistinctRelation := UpperCase(CgdcBase(AClass).GetListTable(ASubType));
 end;
 
 function TgdBaseEntry.GetGdcClass: CgdcBase;
@@ -1762,7 +1772,10 @@ begin
   try
     q.Transaction := gdcBaseManager.ReadTransaction;
     q.SQL.Text :=
-      'SELECT dt.* FROM gd_documenttype dt ' +
+      'SELECT dt.*, rh.relationname as hname, rl.relationname as lname ' +
+      'FROM gd_documenttype dt ' +
+      'JOIN at_relations rh ON rh.id = dt.headerrelkey ' +
+      'LEFT JOIN at_relations rl ON rl.id = dt.linerelkey ' +
       'WHERE dt.classname > '''' AND dt.documenttype = ''D'' ORDER BY lb';
     q.ExecQuery;
     while not q.EOF do
@@ -2020,6 +2033,23 @@ begin
     end else
       Inc(I);
   end;
+end;
+
+{ TgdAttrUserDefinedEntry }
+
+constructor TgdAttrUserDefinedEntry.Create(AParent: TgdClassEntry;
+  const AClass: TClass; const ASubType: TgdcSubType;
+  const ACaption: String);
+begin
+  inherited;
+  FDistinctRelation := UpperCase(ASubType);
+end;
+
+{ TgdDocumentEntry }
+
+procedure TgdDocumentEntry.InitData(const ARelationName: String);
+begin
+  FDistinctRelation := UpperCase(ARelationName);
 end;
 
 initialization

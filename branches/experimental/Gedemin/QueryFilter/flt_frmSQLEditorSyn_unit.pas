@@ -1637,6 +1637,7 @@ begin
     LI.SubItems.Add(CE.gdcClass.GetDisplayName(CE.SubType));
     LI.SubItems.Add(CE.gdcClass.GetListTable(CE.SubType));
     LI.SubItems.Add(CE.ClassName);
+    LI.SubItems.Add(CE.DistinctRelation);
   end;
 
   Inc(Level);
