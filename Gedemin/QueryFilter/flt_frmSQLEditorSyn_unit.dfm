@@ -1563,12 +1563,16 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
               Width = 260
             end
             item
-              Caption = 'Таблица'
+              Caption = 'ListTable'
               Width = 180
             end
             item
-              Caption = 'Тип объекта'
+              Caption = 'Тип в списке объектов'
               Width = 120
+            end
+            item
+              Caption = 'DistinctTable'
+              Width = 140
             end>
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clWindowText

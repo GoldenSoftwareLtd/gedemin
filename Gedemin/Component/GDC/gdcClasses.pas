@@ -361,24 +361,15 @@ type
     FHeaderRelKey: Integer;
     FLineRelKey: Integer;
 
-    procedure SetHeaderFunctionKey(const Value: Integer);
-    procedure SetIsCommon(const Value: Boolean);
-    procedure SetLineFunctionKey(const Value: Integer);
-    procedure SetDescription(const Value: string);
-    procedure SetName(const Value: string);
-    procedure SetRUID(const Value: string);
-    procedure SetHeaderRelKey(const Value: Integer);
-    procedure SetLineRelKey(const Value: Integer);
-
   public
-    property HeaderFunctionKey: Integer read FHeaderFunctionKey write SetHeaderFunctionKey;
-    property LineFunctionKey: Integer read FLineFunctionKey write SetLineFunctionKey;
-    property HeaderRelKey: Integer read FHeaderRelKey write SetHeaderRelKey;
-    property LineRelKey: Integer read FLineRelKey write SetLineRelKey;
-    property IsCommon: Boolean read FIsCommon write SetIsCommon;
-    property Name: String read FName write SetName;
-    property Description: String read FDescription write SetDescription;
-    property RUID: String read FRUID write SetRUID;
+    property HeaderFunctionKey: Integer read FHeaderFunctionKey write FHeaderFunctionKey;
+    property LineFunctionKey: Integer read FLineFunctionKey write FLineFunctionKey;
+    property HeaderRelKey: Integer read FHeaderRelKey write FHeaderRelKey;
+    property LineRelKey: Integer read FLineRelKey write FLineRelKey;
+    property IsCommon: Boolean read FIsCommon write FIsCommon;
+    property Name: String read FName write FName;
+    property Description: String read FDescription write FDescription;
+    property RUID: String read FRUID write FRUID;
     property IsCheckNumber: TIsCheckNumber read FIsCheckNumber write FIsCheckNumber;
     property Options: String read FOptions write FOptions;
     property ID: Integer read FID write FID;
@@ -913,15 +904,12 @@ begin
 
   if FNumberUpdated then
   begin
-    {if State = dsInsert then
-    begin}
-      if (GetDocumentClassPart = dcpHeader)
-        and (FAddNumber <> 0)
-        and (not (sPost in BaseState)) then
-      begin
-        MakeRollbackNumber;
-      end;
-    {end;}
+    if (GetDocumentClassPart = dcpHeader)
+      and (FAddNumber <> 0)
+      and (not (sPost in BaseState)) then
+    begin
+      MakeRollbackNumber;
+    end;
 
     FNumberUpdated := False;
   end;
@@ -930,7 +918,6 @@ end;
 destructor TgdcDocument.Destroy;
 begin
   FreeAndNil(FgdcAcctEntryRegister);
-    
   inherited;
 end;
 
@@ -4342,48 +4329,6 @@ end;
 procedure Clear_DocTypeCache;
 begin
   DocTypeCache.Clear;
-end;
-
-{ TDocumentTypeCacheItem }
-
-procedure TDocumentTypeCacheItem.SetDescription(const Value: string);
-begin
-  FDescription := Value;
-end;
-
-procedure TDocumentTypeCacheItem.SetHeaderFunctionKey(const Value: Integer);
-begin
-  FHeaderFunctionKey := Value;
-end;
-
-procedure TDocumentTypeCacheItem.SetHeaderRelKey(const Value: Integer);
-begin
-  FHeaderRelKey := Value;
-end;
-
-procedure TDocumentTypeCacheItem.SetIsCommon(const Value: Boolean);
-begin
-  FIsCommon := Value;
-end;
-
-procedure TDocumentTypeCacheItem.SetLineFunctionKey(const Value: Integer);
-begin
-  FLineFunctionKey := Value;
-end;
-
-procedure TDocumentTypeCacheItem.SetLineRelKey(const Value: Integer);
-begin
-  FLineRelKey := Value;
-end;
-
-procedure TDocumentTypeCacheItem.SetName(const Value: string);
-begin
-  FName := Value;
-end;
-
-procedure TDocumentTypeCacheItem.SetRUID(const Value: string);
-begin
-  FRUID := AnsiUpperCase(Value);
 end;
 
 { TDocumentTypeCache }
