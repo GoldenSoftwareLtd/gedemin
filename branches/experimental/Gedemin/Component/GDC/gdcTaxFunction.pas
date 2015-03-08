@@ -111,8 +111,7 @@ type
     procedure _DoOnNewRecord; override;
     function GetGroupID: Integer; override;
   public
-    function DocumentTypeKey: Integer; override;
-
+    class function ClassDocumentTypeKey: Integer; override;
     class function GetDocumentClassPart: TgdcDocumentClassPart; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetViewFormName: String;
@@ -134,11 +133,9 @@ type
     procedure _DoOnNewRecord; override;
     function GetGroupID: Integer; override;
   public
-    function DocumentTypeKey: Integer; override;
-
+    class function ClassDocumentTypeKey: Integer; override;
     class function GetDocumentClassPart: TgdcDocumentClassPart; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
-
     class function GetSubSetList: String; override;
 
     property CorrectResult: OleVariant read GetCorrectResult;
@@ -755,7 +752,7 @@ begin
   {END MACRO}
 end;
 
-function TgdcTaxResult.DocumentTypeKey: Integer;
+class function TgdcTaxResult.ClassDocumentTypeKey: Integer;
 begin
   Result := GD_DOC_TAXRESULT;
 end;
@@ -1060,7 +1057,7 @@ begin
   {END MACRO}
 end;
 
-function TgdcTaxDesignDate.DocumentTypeKey: Integer;
+class function TgdcTaxDesignDate.ClassDocumentTypeKey: Integer;
 begin
   Result := GD_DOC_TAXRESULT;
 end;
@@ -1336,13 +1333,13 @@ end;
 
 initialization
   RegisterGdcClass(TgdcTaxActual);
-  RegisterGdcClass(TgdcTaxResult);
-  RegisterGdcClass(TgdcTaxDesignDate);
+  RegisterDocClass(TgdcTaxResult);
+  RegisterDocClass(TgdcTaxDesignDate);
   RegisterGdcClass(TgdcTaxName, 'Бухгалтерский отчет');
 
 finalization
   UnRegisterGdcClass(TgdcTaxActual);
-  UnRegisterGdcClass(TgdcTaxResult);
-  UnRegisterGdcClass(TgdcTaxDesignDate);
+  UnRegisterDocClass(TgdcTaxResult);
+  UnRegisterDocClass(TgdcTaxDesignDate);
   UnRegisterGdcClass(TgdcTaxName);
 end.

@@ -24,18 +24,16 @@ type
     procedure CustomInsert(Buff: Pointer); override;
     procedure CustomModify(Buff: Pointer); override;
 
-    function CreateDialogForm: TCreateableForm; override;
-
     function GetGroupID: Integer; override;
 
   public
-    function DocumentTypeKey: Integer; override;
+    class function ClassDocumentTypeKey: Integer; override;
 
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
+    class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
   end;
 
   TgdcCurrCommissSell = class(TgdcCurrDocument)
-  private
   protected
     function GetSelectClause: String; override;
     function GetFromClause(const ARefresh: Boolean = False): String; override;
@@ -43,18 +41,15 @@ type
     procedure CustomInsert(Buff: Pointer); override;
     procedure CustomModify(Buff: Pointer); override;
 
-    function CreateDialogForm: TCreateableForm; override;
-
     function GetGroupID: Integer; override;
 
   public
-    function DocumentTypeKey: Integer; override;
-
+    class function ClassDocumentTypeKey: Integer; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
+    class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
   end;
 
   TgdcCurrListAllocation = class(TgdcCurrDocument)
-  private
   protected
     function GetSelectClause: String; override;
     function GetFromClause(const ARefresh: Boolean = False): String; override;
@@ -62,14 +57,12 @@ type
     procedure CustomInsert(Buff: Pointer); override;
     procedure CustomModify(Buff: Pointer); override;
 
-    function CreateDialogForm: TCreateableForm; override;
-
     function GetGroupID: Integer; override;
 
   public
-    function DocumentTypeKey: Integer; override;
-
+    class function ClassDocumentTypeKey: Integer; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
+    class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
   end;
 
   TgdcCurrBuyContract = class(TgdcCurrDocument)
@@ -80,14 +73,12 @@ type
 
     procedure CustomInsert(Buff: Pointer); override;
     procedure CustomModify(Buff: Pointer); override;
-
-    function CreateDialogForm: TCreateableForm; override;
     function GetGroupID: Integer; override;
 
   public
-    function DocumentTypeKey: Integer; override;
-
+    class function ClassDocumentTypeKey: Integer; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
+    class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
   end;
 
   TgdcCurrConvContract = class(TgdcCurrDocument)
@@ -98,14 +89,12 @@ type
 
     procedure CustomInsert(Buff: Pointer); override;
     procedure CustomModify(Buff: Pointer); override;
-
-    function CreateDialogForm: TCreateableForm; override;
     function GetGroupID: Integer; override;
 
   public
-    function DocumentTypeKey: Integer; override;
-
+    class function ClassDocumentTypeKey: Integer; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
+    class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
   end;
 
 procedure Register;
@@ -142,61 +131,9 @@ end;
 
 { TgdcCurrSellContract }
 
-function TgdcCurrSellContract.DocumentTypeKey: Integer;
+class function TgdcCurrSellContract.ClassDocumentTypeKey: Integer;
 begin
   Result := BN_DOC_CURRSELLCONTRACT;
-end;
-
-function TgdcCurrSellContract.CreateDialogForm: TCreateableForm;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_FUNCCREATEDIALOGFORM('TGDCCURRSELLCONTRACT', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  try
-  {M}    Result := nil;
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCCURRSELLCONTRACT', KEYCREATEDIALOGFORM);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCREATEDIALOGFORM]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCCURRSELLCONTRACT') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCCURRSELLCONTRACT',
-  {M}          'CREATEDIALOGFORM', KEYCREATEDIALOGFORM, Params, LResult) then
-  {M}          begin
-  {M}            Result := nil;
-  {M}            if VarType(LResult) <> varDispatch then
-  {M}              raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен не объект.')
-  {M}            else
-  {M}              if IDispatch(LResult) = nil then
-  {M}                raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                  'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен пустой (null) объект.');
-  {M}            Result := GetInterfaceToObject(LResult) as TCreateableForm;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCCURRSELLCONTRACT' then
-  {M}        begin
-  {M}          Result := Inherited CreateDialogForm;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  Result := Tgd_dlgCurrSellContract.Create(ParentForm);
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCCURRSELLCONTRACT', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCCURRSELLCONTRACT', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM);
-  {M}  end;
-  {END MACRO}
 end;
 
 procedure TgdcCurrSellContract.CustomInsert(Buff: Pointer);
@@ -404,63 +341,17 @@ begin
   Result := 'Tbn_frmCurrSellContract';
 end;
 
-{ TgdcCurrCommissSell }
-
-function TgdcCurrCommissSell.DocumentTypeKey: Integer;
+class function TgdcCurrSellContract.GetDialogFormClassName(
+  const ASubType: TgdcSubType): String;
 begin
-  Result := BN_DOC_CURRCOMMISSSELL; 
+  Result := 'Tgd_dlgCurrSellContract';
 end;
 
-function TgdcCurrCommissSell.CreateDialogForm: TCreateableForm;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
+{ TgdcCurrCommissSell }
+
+class function TgdcCurrCommissSell.ClassDocumentTypeKey: Integer;
 begin
-  {@UNFOLD MACRO INH_ORIG_FUNCCREATEDIALOGFORM('TGDCCURRCOMMISSSELL', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  try
-  {M}    Result := nil;
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCCURRCOMMISSSELL', KEYCREATEDIALOGFORM);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCREATEDIALOGFORM]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCCURRCOMMISSSELL') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCCURRCOMMISSSELL',
-  {M}          'CREATEDIALOGFORM', KEYCREATEDIALOGFORM, Params, LResult) then
-  {M}          begin
-  {M}            Result := nil;
-  {M}            if VarType(LResult) <> varDispatch then
-  {M}              raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен не объект.')
-  {M}            else
-  {M}              if IDispatch(LResult) = nil then
-  {M}                raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                  'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен пустой (null) объект.');
-  {M}            Result := GetInterfaceToObject(LResult) as TCreateableForm;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCCURRCOMMISSSELL' then
-  {M}        begin
-  {M}          Result := Inherited CreateDialogForm;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  Result := Tgd_dlgCurrCommissSell.Create(ParentForm);
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCCURRCOMMISSSELL', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCCURRCOMMISSSELL', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM);
-  {M}  end;
-  {END MACRO}
+  Result := BN_DOC_CURRCOMMISSSELL;
 end;
 
 procedure TgdcCurrCommissSell.CustomInsert(Buff: Pointer);
@@ -672,63 +563,17 @@ begin
   Result := 'Tbn_frmCurrCommissSell';
 end;
 
-{ TgdcCurrListAllocation }
-
-function TgdcCurrListAllocation.DocumentTypeKey: Integer;
+class function TgdcCurrCommissSell.GetDialogFormClassName(
+  const ASubType: TgdcSubType): String;
 begin
-  Result := BN_DOC_CURRLISTALLOCATION;
+  Result := 'Tgd_dlgCurrCommissSell';
 end;
 
-function TgdcCurrListAllocation.CreateDialogForm: TCreateableForm;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
+{ TgdcCurrListAllocation }
+
+class function TgdcCurrListAllocation.ClassDocumentTypeKey: Integer;
 begin
-  {@UNFOLD MACRO INH_ORIG_FUNCCREATEDIALOGFORM('TGDCCURRLISTALLOCATION', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  try
-  {M}    Result := nil;
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCCURRLISTALLOCATION', KEYCREATEDIALOGFORM);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCREATEDIALOGFORM]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCCURRLISTALLOCATION') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCCURRLISTALLOCATION',
-  {M}          'CREATEDIALOGFORM', KEYCREATEDIALOGFORM, Params, LResult) then
-  {M}          begin
-  {M}            Result := nil;
-  {M}            if VarType(LResult) <> varDispatch then
-  {M}              raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен не объект.')
-  {M}            else
-  {M}              if IDispatch(LResult) = nil then
-  {M}                raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                  'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен пустой (null) объект.');
-  {M}            Result := GetInterfaceToObject(LResult) as TCreateableForm;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCCURRLISTALLOCATION' then
-  {M}        begin
-  {M}          Result := Inherited CreateDialogForm;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  Result := Tgd_dlgCurrListAllocation.Create(ParentForm);
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCCURRLISTALLOCATION', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCCURRLISTALLOCATION', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM);
-  {M}  end;
-  {END MACRO}
+  Result := BN_DOC_CURRLISTALLOCATION;
 end;
 
 procedure TgdcCurrListAllocation.CustomInsert(Buff: Pointer);
@@ -952,59 +797,13 @@ begin
   Result := 'Tbn_frmCurrListAllocation';
 end;
 
-{ TgdcCurrBuyContract }
-
-function TgdcCurrBuyContract.CreateDialogForm: TCreateableForm;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
+class function TgdcCurrListAllocation.GetDialogFormClassName(
+  const ASubType: TgdcSubType): String;
 begin
-  {@UNFOLD MACRO INH_ORIG_FUNCCREATEDIALOGFORM('TGDCCURRBUYCONTRACT', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  try
-  {M}    Result := nil;
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCCURRBUYCONTRACT', KEYCREATEDIALOGFORM);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCREATEDIALOGFORM]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCCURRBUYCONTRACT') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCCURRBUYCONTRACT',
-  {M}          'CREATEDIALOGFORM', KEYCREATEDIALOGFORM, Params, LResult) then
-  {M}          begin
-  {M}            Result := nil;
-  {M}            if VarType(LResult) <> varDispatch then
-  {M}              raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен не объект.')
-  {M}            else
-  {M}              if IDispatch(LResult) = nil then
-  {M}                raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                  'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен пустой (null) объект.');
-  {M}            Result := GetInterfaceToObject(LResult) as TCreateableForm;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCCURRBUYCONTRACT' then
-  {M}        begin
-  {M}          Result := Inherited CreateDialogForm;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  Result := Tgd_dlgCurrBuyContract.Create(ParentForm);
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCCURRBUYCONTRACT', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCCURRBUYCONTRACT', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM);
-  {M}  end;
-  {END MACRO}
+  Result := 'Tgd_dlgCurrListAllocation';
 end;
+
+{ TgdcCurrBuyContract }
 
 procedure TgdcCurrBuyContract.CustomInsert(Buff: Pointer);
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
@@ -1114,7 +913,7 @@ begin
   {END MACRO}
 end;
 
-function TgdcCurrBuyContract.DocumentTypeKey: Integer;
+class function TgdcCurrBuyContract.ClassDocumentTypeKey: Integer;
 begin
   Result := BN_DOC_CURRBUYCONTRACT;
 end;
@@ -1234,59 +1033,13 @@ begin
   Result := 'Tbn_frmCurrBuyContract';
 end;
 
-{ TgdcCurrConvContract }
-
-function TgdcCurrConvContract.CreateDialogForm: TCreateableForm;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
+class function TgdcCurrBuyContract.GetDialogFormClassName(
+  const ASubType: TgdcSubType): String;
 begin
-  {@UNFOLD MACRO INH_ORIG_FUNCCREATEDIALOGFORM('TGDCCURRCONVCONTRACT', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  try
-  {M}    Result := nil;
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCCURRCONVCONTRACT', KEYCREATEDIALOGFORM);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCREATEDIALOGFORM]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCCURRCONVCONTRACT') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCCURRCONVCONTRACT',
-  {M}          'CREATEDIALOGFORM', KEYCREATEDIALOGFORM, Params, LResult) then
-  {M}          begin
-  {M}            Result := nil;
-  {M}            if VarType(LResult) <> varDispatch then
-  {M}              raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен не объект.')
-  {M}            else
-  {M}              if IDispatch(LResult) = nil then
-  {M}                raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                  'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен пустой (null) объект.');
-  {M}            Result := GetInterfaceToObject(LResult) as TCreateableForm;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCCURRCONVCONTRACT' then
-  {M}        begin
-  {M}          Result := Inherited CreateDialogForm;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  Result := Tgd_dlgCurrConvContract.Create(ParentForm);
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCCURRCONVCONTRACT', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCCURRCONVCONTRACT', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM);
-  {M}  end;
-  {END MACRO}
+  Result := 'Tgd_dlgCurrBuyContract';
 end;
+
+{ TgdcCurrConvContract }
 
 procedure TgdcCurrConvContract.CustomInsert(Buff: Pointer);
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
@@ -1391,7 +1144,7 @@ begin
   {END MACRO}
 end;
 
-function TgdcCurrConvContract.DocumentTypeKey: Integer;
+class function TgdcCurrConvContract.ClassDocumentTypeKey: Integer;
 begin
   Result := BN_DOC_CURRCONVCONTRACT;
 end;
@@ -1510,6 +1263,12 @@ begin
   Result := 'Tbn_frmCurrConvContract';
 end;
 
+class function TgdcCurrConvContract.GetDialogFormClassName(
+  const ASubType: TgdcSubType): String;
+begin
+  Result := 'Tgd_dlgCurrConvContract';
+end;
+
 { TgdcCurrDocument }
 
 procedure TgdcCurrDocument._DoOnNewRecord;
@@ -1593,21 +1352,20 @@ begin
 end;
 
 initialization
-  RegisterGDCClass(TgdcCurrDocument);
-  RegisterGDCClass(TgdcCurrSellContract);
-  RegisterGDCClass(TgdcCurrCommissSell);
-  RegisterGDCClass(TgdcCurrListAllocation);
-  RegisterGDCClass(TgdcCurrBuyContract);
-  RegisterGDCClass(TgdcCurrConvContract);
+  RegisterDocClass(TgdcCurrDocument);
+  RegisterDocClass(TgdcCurrSellContract);
+  RegisterDocClass(TgdcCurrCommissSell);
+  RegisterDocClass(TgdcCurrListAllocation);
+  RegisterDocClass(TgdcCurrBuyContract);
+  RegisterDocClass(TgdcCurrConvContract);
 
 finalization
-  UnRegisterGDCClass(TgdcCurrDocument);
-  UnRegisterGDCClass(TgdcCurrSellContract);
-  UnRegisterGDCClass(TgdcCurrCommissSell);
-  UnRegisterGDCClass(TgdcCurrListAllocation);
-  UnRegisterGDCClass(TgdcCurrBuyContract);
-  UnRegisterGDCClass(TgdcCurrConvContract);
-
+  UnRegisterDocClass(TgdcCurrDocument);
+  UnRegisterDocClass(TgdcCurrSellContract);
+  UnRegisterDocClass(TgdcCurrCommissSell);
+  UnRegisterDocClass(TgdcCurrListAllocation);
+  UnRegisterDocClass(TgdcCurrBuyContract);
+  UnRegisterDocClass(TgdcCurrConvContract);
 end.
 
 

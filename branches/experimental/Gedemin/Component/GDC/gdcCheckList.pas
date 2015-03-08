@@ -25,20 +25,19 @@ type
     procedure CustomInsert(Buff: Pointer); override;
     procedure CustomModify(Buff: Pointer); override;
 
-    function CreateDialogForm: TCreateableForm; override;
-
     procedure DoBeforePost; override;
     procedure DoAfterOpen; override;
     procedure GetWhereClauseConditions(S: TStrings); override;
 
   public
-    function DocumentTypeKey: Integer; override;
+    class function ClassDocumentTypeKey: Integer; override;
     class function GetSubSetList: String; override;
 
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
+    class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
 
   published
-  //Хранит ссылку на детальный объект. Для окна редактирования.
+    //Хранит ссылку на детальный объект. Для окна редактирования.
     property DetailObject: TgdcBase read GetDetail write SetDetail;
   end;
 
@@ -49,8 +48,6 @@ type
 
     procedure CustomInsert(Buff: Pointer); override;
     procedure CustomModify(Buff: Pointer); override;
-
-    function CreateDialogForm: TCreateableForm; override;
 
     procedure DoAfterOpen; override;
     procedure DoBeforeInsert; override;
@@ -63,9 +60,9 @@ type
   public
     constructor Create(AnOnwer: TComponent); override;
 
-    function DocumentTypeKey: Integer; override;
-
+    class function ClassDocumentTypeKey: Integer; override;
     class function GetSubSetList: String; override;
+    class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
   end;
 
   procedure Register;
@@ -88,58 +85,6 @@ const
   end;
 
 { TgdcCheckListLine }
-
-function TgdcCheckListLine.CreateDialogForm: TCreateableForm;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_FUNCCREATEDIALOGFORM('TGDCCHECKLISTLINE', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  try
-  {M}    Result := nil;
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCCHECKLISTLINE', KEYCREATEDIALOGFORM);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCREATEDIALOGFORM]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCCHECKLISTLINE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCCHECKLISTLINE',
-  {M}          'CREATEDIALOGFORM', KEYCREATEDIALOGFORM, Params, LResult) then
-  {M}          begin
-  {M}            Result := nil;
-  {M}            if VarType(LResult) <> varDispatch then
-  {M}              raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен не объект.')
-  {M}            else
-  {M}              if IDispatch(LResult) = nil then
-  {M}                raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                  'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен пустой (null) объект.');
-  {M}            Result := GetInterfaceToObject(LResult) as TCreateableForm;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCCHECKLISTLINE' then
-  {M}        begin
-  {M}          Result := Inherited CreateDialogForm;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  Result := Tgdc_dlgCheckListLine.CreateSubType(ParentForm, SubType);
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCCHECKLISTLINE', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCCHECKLISTLINE', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM);
-  {M}  end;
-  {END MACRO}
-end;
 
 procedure TgdcCheckListLine.CustomInsert(Buff: Pointer);
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
@@ -399,7 +344,7 @@ begin
   {END MACRO}
 end;
 
-function TgdcCheckListLine.DocumentTypeKey: Integer;
+class function TgdcCheckListLine.ClassDocumentTypeKey: Integer;
 begin
   Result := BN_DOC_CHECKLIST;
 end;
@@ -446,50 +391,6 @@ begin
   {M}  end;
   {END MACRO}
 end;
-
-(*
-procedure TgdcCheckListLine.DoOnReportClick(Sender: TObject);
-var
-  {@UNFOLD MACRO INH_ORIG_PARAMS()}
-  {M}
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-  I: Integer;
-
-begin
-  {@UNFOLD MACRO INH_ORIG_SENDER('TGDCCHECKLISTLINE', 'DOONREPORTCLICK', KEYDOONREPORTCLICK)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCCHECKLISTLINE', KEYDOONREPORTCLICK);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOONREPORTCLICK]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCCHECKLISTLINE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), GetGdcInterface(Sender)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCCHECKLISTLINE',
-  {M}          'DOONREPORTCLICK', KEYDOONREPORTCLICK, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCCHECKLISTLINE' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  inherited;
-{  for I := 0 to FPrintList.Count - 1 do
-    if Tgdc_frmMDHGRAccount(Owner).ibgrMain.CheckBox.CheckList.IndexOf(FPrintList.Strings[I]) = -1 then
-	   	Tgdc_frmMDHGRAccount(Owner).ibgrMain.CheckBox.CheckList.Add(FPrintList.Strings[I]);}
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCCHECKLISTLINE', 'DOONREPORTCLICK', KEYDOONREPORTCLICK)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCCHECKLISTLINE', 'DOONREPORTCLICK', KEYDOONREPORTCLICK);
-  {M}  end;
-  {END MACRO}
-end;
-*)
 
 function TgdcCheckListLine.GetFromClause(const ARefresh: Boolean = False): String;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
@@ -610,59 +511,13 @@ begin
   Result := inherited GetSubSetList + 'ByCheckList;';
 end;
 
-{ TgdcCheckList }
-
-function TgdcCheckList.CreateDialogForm: TCreateableForm;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
+class function TgdcCheckListLine.GetDialogFormClassName(
+  const ASubType: TgdcSubType): String;
 begin
-  {@UNFOLD MACRO INH_ORIG_FUNCCREATEDIALOGFORM('TGDCCHECKLIST', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  try
-  {M}    Result := nil;
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCCHECKLIST', KEYCREATEDIALOGFORM);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCREATEDIALOGFORM]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCCHECKLIST') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCCHECKLIST',
-  {M}          'CREATEDIALOGFORM', KEYCREATEDIALOGFORM, Params, LResult) then
-  {M}          begin
-  {M}            Result := nil;
-  {M}            if VarType(LResult) <> varDispatch then
-  {M}              raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен не объект.')
-  {M}            else
-  {M}              if IDispatch(LResult) = nil then
-  {M}                raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                  'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен пустой (null) объект.');
-  {M}            Result := GetInterfaceToObject(LResult) as TCreateableForm;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCCHECKLIST' then
-  {M}        begin
-  {M}          Result := Inherited CreateDialogForm;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  Result := Tgdc_dlgCheckList.CreateSubType(ParentForm, SubType);
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCCHECKLIST', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCCHECKLIST', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM);
-  {M}  end;
-  {END MACRO}
+  Result := 'Tgdc_dlgCheckListLine';
 end;
+
+{ TgdcCheckList }
 
 procedure TgdcCheckList.CustomInsert(Buff: Pointer);
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
@@ -894,7 +749,7 @@ begin
       q.Free;
     end;
   end;
-    
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCCHECKLIST', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -903,7 +758,7 @@ begin
   {END MACRO}
 end;
 
-function TgdcCheckList.DocumentTypeKey: Integer;
+class function TgdcCheckList.ClassDocumentTypeKey: Integer;
 begin
   Result := BN_DOC_CHECKLIST;
 end;
@@ -1035,11 +890,17 @@ begin
   FDetailObject := Value;
 end;
 
+class function TgdcCheckList.GetDialogFormClassName(
+  const ASubType: TgdcSubType): String;
+begin
+  Result := 'Tgdc_dlgCheckList';
+end;
+
 initialization
-  RegisterGdcClass(TgdcCheckList);
-  RegisterGdcClass(TgdcCheckListLine);
+  RegisterDocClass(TgdcCheckList);
+  RegisterDocClass(TgdcCheckListLine);
 
 finalization
-  UnRegisterGdcClass(TgdcCheckList);
-  UnRegisterGdcClass(TgdcCheckListLine);
+  UnRegisterDocClass(TgdcCheckList);
+  UnRegisterDocClass(TgdcCheckListLine);
 end.
