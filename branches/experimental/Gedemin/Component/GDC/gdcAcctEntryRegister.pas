@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2001-2014 by Golden Software of Belarus
+  Copyright (c) 2001-2015 by Golden Software of Belarus
 
   Module
 
@@ -29,10 +29,9 @@ unit gdcAcctEntryRegister;
 interface
 
 uses
-  Classes, Contnrs, SysUtils,
-  DB, IBSQL, Windows, IBDataBase, Dialogs, 
-  gd_createable_form, Forms, gdcConstants,
-  gdcBase, gdcClasses, gdcAcctTransaction, gdcBaseInterface;
+  Classes, Contnrs, SysUtils, DB, IBSQL, Windows, IBDataBase, Dialogs,
+  gd_createable_form, Forms, gdcConstants, gdcBase, gdcClasses_interface,
+  gdcClasses, gdcAcctTransaction, gdcBaseInterface;
 
 const
   ByDocument = 'ByDocument';

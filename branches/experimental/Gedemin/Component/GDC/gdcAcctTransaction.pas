@@ -27,8 +27,9 @@ unit gdcAcctTransaction;
 interface
 
 uses
-  Classes, gdcBase, gdcTree, gd_createable_form, Forms, gdcClasses, Contnrs,
-  DB, IBSQL, SysUtils, gdcBaseInterface, gd_KeyAssoc, gd_security, gdcConstants;
+  Classes, gdcBase, gdcTree, gd_createable_form, Forms, gdcClasses_interface,
+  gdcClasses, Contnrs, DB, IBSQL, SysUtils, gdcBaseInterface, gd_KeyAssoc,
+  gd_security, gdcConstants;
 
 const
   ByTransaction = 'ByTransaction';

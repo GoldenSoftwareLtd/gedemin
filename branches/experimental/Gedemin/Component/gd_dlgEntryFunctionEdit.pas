@@ -3,8 +3,9 @@ unit gd_dlgEntryFunctionEdit;
 interface
 
 uses
-  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  ExtCtrls, Buttons, StdCtrls, gdcBase, ActnList, gdcClasses, at_classes;
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms,
+  Dialogs, ExtCtrls, Buttons, StdCtrls, gdcBase, ActnList,
+  gdcClasses_interface, gdcClasses, at_classes;
 
 const
   feFieldSynt = '[%s.%s]';

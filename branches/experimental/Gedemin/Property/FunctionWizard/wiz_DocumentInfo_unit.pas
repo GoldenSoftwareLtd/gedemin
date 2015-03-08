@@ -1,7 +1,9 @@
 unit wiz_DocumentInfo_unit;
 
 interface
-uses gdcBase, gdcBaseInterface, gdcConstants, gdcClasses,
+
+uses
+  gdcBase, gdcBaseInterface, gdcConstants, gdcClasses_interface, gdcClasses,
   wiz_Strings_unit, contnrs, at_Classes, classes, Sysutils;
 
 type

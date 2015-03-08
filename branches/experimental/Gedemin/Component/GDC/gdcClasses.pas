@@ -34,26 +34,13 @@ uses
   Classes,      IBCustomDataSet,   IBDataBase,     gdcBase,
   gdcTree,      Forms,             gd_createable_form,
   at_classes,   gdcBaseInterface,  DB,             gd_KeyAssoc,
-  gdcConstants, gd_i_ScriptFactory,
+  gdcConstants, gd_i_ScriptFactory,gdcClasses_Interface,
   gd_security,  gdcOLEClassList,   DBGrids, Contnrs;
 
 {$IFDEF DEBUGMOVE}
 const
   TimeDoOnNewRecordClasses: LongWord = 0;
 {$ENDIF}
-
-type
-  TgdcDocumentClassPart = (
-    dcpHeader,        // dcpHeader - шапка документа
-    dcpLine           // dcpLine - позиция документа
-  );
-
-  TIsCheckNumber = (
-    icnNever,         // не проверять уникальность номера
-    icnAlways,        // проверять для всех документов
-    icnYear,          // проверять только в течение года
-    icnMonth          // проверять только в течение месяца
-  );
 
 type
   TgdcDocument = class;
@@ -3219,6 +3206,50 @@ end;
 
 procedure TgdcDocumentType.DoAfterCustomProcess(Buff: Pointer;
   Process: TgsCustomProcess);
+
+  procedure _Add(const AClassName: String);
+  var
+    DE: TgdDocumentEntry;
+  begin
+    DE := gdClassList.Add(AClassName, FieldByName('ruid').AsString,
+      GetParentSubType, TgdDocumentEntry, FieldbyName('name').AsString) as TgdDocumentEntry;
+
+    DE.ID := ID;
+    DE.IsCommon := FieldByName('iscommon').AsInteger > 0;
+    DE.HeaderFunctionKey := FieldByName('headerfunctionkey').AsInteger;
+    DE.LineFunctionKey := FieldByName('linefunctionkey').AsInteger;
+    DE.Description := FieldByName('description').AsString;
+    DE.IsCheckNumber := TIsCheckNumber(FieldByName('ischecknumber').AsInteger);
+    DE.Options := FieldByName('options').AsString;
+    DE.ReportGroupKey := FieldByName('reportgroupkey').AsInteger;
+    DE.HeaderRelKey := FieldByName('headerrelkey').AsInteger;
+    DE.LineRelKey := FieldByName('linerelkey').AsInteger;
+  end;
+
+  procedure _Update(const AClassName: String);
+  var
+    DE: TgdDocumentEntry;
+    CE: TgdClassEntry;
+  begin
+    CE := gdClassList.Find(AClassName, FieldByName('ruid').AsString);
+
+    if CE <> nil then
+    begin
+      DE := CE as TgdDocumentEntry;
+
+      DE.ID := ID;
+      DE.IsCommon := FieldByName('iscommon').AsInteger > 0;
+      DE.HeaderFunctionKey := FieldByName('headerfunctionkey').AsInteger;
+      DE.LineFunctionKey := FieldByName('linefunctionkey').AsInteger;
+      DE.Description := FieldByName('description').AsString;
+      DE.IsCheckNumber := TIsCheckNumber(FieldByName('ischecknumber').AsInteger);
+      DE.Options := FieldByName('options').AsString;
+      DE.ReportGroupKey := FieldByName('reportgroupkey').AsInteger;
+      DE.HeaderRelKey := FieldByName('headerrelkey').AsInteger;
+      DE.LineRelKey := FieldByName('linerelkey').AsInteger;
+    end;
+  end;
+
 var
   {@UNFOLD MACRO INH_ORIG_PARAMS()}
   {M}
@@ -3226,7 +3257,6 @@ var
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
   q: TIBSQL;
-  CE: TgdClassEntry;
 begin
   {@UNFOLD MACRO INH_ORIG_DOAFTERCUSTOMPROCESS('TGDCDOCUMENTTYPE', 'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS)}
   {M}  try
@@ -3254,17 +3284,41 @@ begin
 
   if Process = cpInsert then
   begin
-    if gdClassList.Find(FieldbyName('classname').AsString, GetParentSubType) <> nil then
-      gdClassList.Add(FieldbyName('classname').AsString, FieldByName('ruid').AsString,
-        GetParentSubType, TgdDocumentEntry, FieldbyName('name').AsString);
+    if gdClassList.Find(FieldByName('classname').AsString, GetParentSubType) <> nil then
+    begin
+      if FieldByName('classname').AsString = 'TgdcUserDocument' then
+      begin
+        _Add('TgdcUserDocument');
+        _Add('TgdcUserDocumentLine');
+      end
+      else if FieldByName('classname').AsString = 'TgdcInvDocument' then
+      begin
+        _Add('TgdcInvDocument');
+        _Add('TgdcInvDocumentLine');
+      end
+      else if FieldByName('classname').AsString = 'TgdcInvPriceList' then
+      begin
+        _Add('TgdcInvPriceList');
+        _Add('TgdcInvPriceListLine');
+      end;
+    end;
   end
   else if Process = cpModify then
   begin
-    if FieldChanged('name') then
+    if FieldByName('classname').AsString = 'TgdcUserDocument' then
     begin
-      CE := gdClassList.Find(FieldbyName('classname').AsString, FieldbyName('ruid').AsString);
-      if CE <> nil then
-        CE.Caption := FieldByName('name').AsString;
+      _Update('TgdcUserDocument');
+      _Update('TgdcUserDocumentLine');
+    end
+    else if FieldByName('classname').AsString = 'TgdcInvDocument' then
+    begin
+      _Update('TgdcInvDocument');
+      _Update('TgdcInvDocumentLine');
+    end
+    else if FieldByName('classname').AsString = 'TgdcInvPriceList' then
+    begin
+      _Update('TgdcInvPriceList');
+      _Update('TgdcInvPriceListLine');
     end;
   end else
     gdClassList.RemoveSubType(FieldByName('ruid').AsString);

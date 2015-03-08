@@ -32,8 +32,9 @@ unit gd_ClassList;
 interface
 
 uses
-  Contnrs,        Classes,   TypInfo,     Forms,        gd_KeyAssoc,
+  Contnrs,        Classes,   TypInfo,     Forms,            gd_KeyAssoc,
   gdcBase,        gdc_createable_form,    gdcBaseInterface, at_classes,
+  gdcClasses_Interface,
   {$IFDEF VER130}
   gsStringHashList
   {$ELSE}
@@ -307,6 +308,7 @@ type
 
     destructor Destroy; override;
 
+    procedure Assign(CE: TgdClassEntry); virtual;
     function Compare(const AClass: TClass; const ASubType: TgdcSubType = ''): Integer; overload;
     function Compare(const AClassName: AnsiString; const ASubType: TgdcSubType = ''): Integer; overload;
     procedure AddChild(AChild: TgdClassEntry);
@@ -346,8 +348,38 @@ type
   end;
 
   TgdDocumentEntry = class(TgdBaseEntry)
+  private
+    FID: Integer;
+    FIsCommon: Boolean;
+    FHeaderFunctionKey: Integer;
+    FLineFunctionKey: Integer;
+    FDescription: String;
+    FOptions: String;
+    FIsCheckNumber: TIsCheckNumber;
+    FReportGroupKey: Integer;
+    FHeaderRelKey: Integer;
+    FLineRelKey: Integer;
+    FHeaderRelName: String;
+    FLineRelName: String;
+
+    procedure SetHeaderRelKey(const Value: Integer);
+    procedure SetLineRelKey(const Value: Integer);
+
   public
-    procedure InitData(const ARelationName: String); overload;
+    procedure Assign(CE: TgdClassEntry); override;
+
+    property HeaderFunctionKey: Integer read FHeaderFunctionKey write FHeaderFunctionKey;
+    property LineFunctionKey: Integer read FLineFunctionKey write FLineFunctionKey;
+    property HeaderRelKey: Integer read FHeaderRelKey write SetHeaderRelKey;
+    property LineRelKey: Integer read FLineRelKey write SetLineRelKey;
+    property HeaderRelName: String read FHeaderRelName;
+    property LineRelName: String read FLineRelName;
+    property IsCommon: Boolean read FIsCommon write FIsCommon;
+    property Description: String read FDescription write FDescription;
+    property IsCheckNumber: TIsCheckNumber read FIsCheckNumber write FIsCheckNumber;
+    property Options: String read FOptions write FOptions;
+    property ID: Integer read FID write FID;
+    property ReportGroupKey: Integer read FReportGroupKey write FReportGroupKey;
   end;
 
   TgdStorageEntry = class(TgdBaseEntry)
@@ -469,7 +501,7 @@ var
 implementation
 
 uses
-  SysUtils, gs_Exception, IBSQL, gd_security, gsStorage, Storages
+  SysUtils, gs_Exception, IBSQL, gd_security, gsStorage, Storages, gdcClasses
   {$IFDEF DEBUG}
   , gd_DebugLog
   {$ENDIF}
@@ -1359,6 +1391,11 @@ begin
   Result := nil;
 end;
 
+procedure TgdClassEntry.Assign(CE: TgdClassEntry);
+begin
+  //
+end;
+
 {TgdClassList}
 
 function TgdClassList.GetGDCClass(const AClassName: String): CgdcBase;
@@ -1688,6 +1725,20 @@ procedure TgdClassList.LoadUserDefinedClasses;
     Result := _Create(Prnt, TgdDocumentEntry, Prnt.TheClass,
       q.FieldByName('ruid').AsString, q.FieldByName('name').AsString);
 
+    with TgdDocumentEntry(Result) do
+    begin
+      ID := q.FieldByName('id').AsInteger;
+      IsCommon := q.FieldByName('iscommon').AsInteger > 0;
+      HeaderFunctionKey := q.FieldByName('headerfunctionkey').AsInteger;
+      LineFunctionKey := q.FieldByName('linefunctionkey').AsInteger;
+      Description := q.FieldByName('description').AsString;
+      IsCheckNumber := TIsCheckNumber(q.FieldByName('ischecknumber').AsInteger);
+      Options := q.FieldByName('options').AsString;
+      ReportGroupKey := q.FieldByName('reportgroupkey').AsInteger;
+      HeaderRelKey := q.FieldByName('headerrelkey').AsInteger;
+      LineRelKey := q.FieldByName('linerelkey').AsInteger;
+    end;
+
     PrevRB := q.FieldByName('rb').AsInteger;
     q.Next;
 
@@ -1702,10 +1753,28 @@ procedure TgdClassList.LoadUserDefinedClasses;
   begin
     for I := 0 to Src.Count - 1 do
     begin
-      CE := _Create(Dst, CgdClassEntry(Src.Children[I].ClassType), Dst.TheClass,
+      CE := _Create(Dst, TgdBaseEntry, Dst.TheClass,
         Src.Children[I].SubType, Src.Children[I].Caption);
       if Src.Children[I].Count > 0 then
         CopySubTree(Src.Children[I], CE);
+    end;
+  end;
+
+  procedure CopyDocSubTree(Src, Dst: TgdClassEntry);
+  var
+    I: Integer;
+    CE: TgdClassEntry;
+  begin
+    for I := 0 to Src.Count - 1 do
+    begin
+      if (Src.Children[I] as TgdDocumentEntry).LineRelKey > 0 then
+      begin
+        CE := _Create(Dst, TgdDocumentEntry, Dst.TheClass,
+          Src.Children[I].SubType, Src.Children[I].Caption);
+        CE.Assign(Src.Children[I]);
+        if Src.Children[I].Count > 0 then
+          CopyDocSubTree(Src.Children[I], CE);
+      end;
     end;
   end;
 
@@ -1772,10 +1841,8 @@ begin
   try
     q.Transaction := gdcBaseManager.ReadTransaction;
     q.SQL.Text :=
-      'SELECT dt.*, rh.relationname as hname, rl.relationname as lname ' +
+      'SELECT dt.* ' +
       'FROM gd_documenttype dt ' +
-      'JOIN at_relations rh ON rh.id = dt.headerrelkey ' +
-      'LEFT JOIN at_relations rl ON rl.id = dt.linerelkey ' +
       'WHERE dt.classname > '''' AND dt.documenttype = ''D'' ORDER BY lb';
     q.ExecQuery;
     while not q.EOF do
@@ -1812,9 +1879,9 @@ begin
     q.Free;
   end;
 
-  CopySubTree(CEUserDocument, CEUserDocumentLine);
-  CopySubTree(CEInvDocument, CEInvDocumentLine);
-  CopySubTree(CEInvPriceList, CEInvPriceListLine);
+  CopyDocSubTree(CEUserDocument, CEUserDocumentLine);
+  CopyDocSubTree(CEInvDocument, CEInvDocumentLine);
+  CopyDocSubTree(CEInvPriceList, CEInvPriceListLine);
 
   FSubTypes := GlobalStorage.OpenFolder('\SubTypes', False, False);
   try
@@ -2047,9 +2114,45 @@ end;
 
 { TgdDocumentEntry }
 
-procedure TgdDocumentEntry.InitData(const ARelationName: String);
+procedure TgdDocumentEntry.Assign(CE: TgdClassEntry);
 begin
-  FDistinctRelation := UpperCase(ARelationName);
+  Assert(CE is TgdDocumentEntry);
+  FID := TgdDocumentEntry(CE).ID;
+  FIsCommon := TgdDocumentEntry(CE).IsCommon;
+  FHeaderFunctionKey := TgdDocumentEntry(CE).HeaderFunctionKey;
+  FLineFunctionKey := TgdDocumentEntry(CE).LineFunctionKey;
+  FDescription := TgdDocumentEntry(CE).Description;
+  FIsCheckNumber := TgdDocumentEntry(CE).IsCheckNumber;
+  FOptions := TgdDocumentEntry(CE).Options;
+  FReportGroupKey := TgdDocumentEntry(CE).ReportGroupKey;
+  FHeaderRelKey := TgdDocumentEntry(CE).HeaderRelKey;
+  FHeaderRelName := TgdDocumentEntry(CE).HeaderRelName;
+  FLineRelKey := TgdDocumentEntry(CE).LineRelKey;
+  FLineRelName := TgdDocumentEntry(CE).LineRelName;
+end;
+
+procedure TgdDocumentEntry.SetHeaderRelKey(const Value: Integer);
+var
+  R: TatRelation;
+begin
+  FHeaderRelKey := Value;
+  R := atDatabase.Relations.ByID(Value);
+  if R <> nil then
+    FHeaderRelName := R.RelationName;
+  if CgdcDocument(TheClass).GetDocumentClassPart = dcpHeader then
+    FDistinctRelation := FHeaderRelName;
+end;
+
+procedure TgdDocumentEntry.SetLineRelKey(const Value: Integer);
+var
+  R: TatRelation;
+begin
+  FLineRelKey := Value;
+  R := atDatabase.Relations.ByID(Value);
+  if R <> nil then
+    FLineRelName := R.RelationName;
+  if CgdcDocument(TheClass).GetDocumentClassPart = dcpLine then
+    FDistinctRelation := FLineRelName;
 end;
 
 initialization

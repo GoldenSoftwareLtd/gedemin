@@ -29,9 +29,10 @@ object dlgFunctionWisard: TdlgFunctionWisard
       Left = 0
       Top = 25
       Caption = 'TBToolWindow1'
+      CloseButton = False
       ClientAreaHeight = 50
       ClientAreaWidth = 767
-      DockMode = dmCannotFloat
+      DockMode = dmCannotFloatOrChangeDocks
       DockPos = 560
       DockRow = 1
       FullSize = True
@@ -65,6 +66,7 @@ object dlgFunctionWisard: TdlgFunctionWisard
             Height = 22
             Align = alTop
             Caption = 'tbtStandart'
+            CloseButton = False
             DockMode = dmCannotFloatOrChangeDocks
             DockPos = 0
             DockRow = 1
@@ -121,6 +123,7 @@ object dlgFunctionWisard: TdlgFunctionWisard
             Height = 22
             Align = alTop
             Caption = 'tbtAdditional'
+            CloseButton = False
             DockMode = dmCannotFloatOrChangeDocks
             Images = dmImages.il16x16
             TabOrder = 0
@@ -333,6 +336,7 @@ object dlgFunctionWisard: TdlgFunctionWisard
           Left = 0
           Top = 0
           Caption = 'TBToolbar2'
+          CloseButton = False
           DockMode = dmCannotFloatOrChangeDocks
           DockPos = 0
           DockRow = 1
