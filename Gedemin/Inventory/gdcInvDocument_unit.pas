@@ -28,8 +28,8 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  gdcBase, gd_createable_form, gdcClasses, at_Classes, gdcInvConsts_unit,
-  gdcInvMovement, IBDatabase, DB, IBSQL, IB, IBErrorCodes,
+  gdcBase, gd_createable_form, gdcClasses_interface, gdcClasses, at_Classes,
+  gdcInvMovement, IBDatabase, DB, IBSQL, IB, IBErrorCodes, gdcInvConsts_unit,
   gdcBaseInterface, ComObj, gd_resourcestring, gd_KeyAssoc;
 
 const
@@ -5595,10 +5595,6 @@ begin
   begin
     LParentSubType := GetParentSubType;
 
-    gdClassList.Add('TgdcInvDocument', FieldByName('RUID').AsString,
-      LParentSubType, TgdDocumentEntry, FieldByName('name').AsString);
-    gdClassList.Add('TgdcInvDocumentLine', FieldByName('RUID').AsString,
-      LParentSubType, TgdDocumentEntry, FieldByName('name').AsString);
     gdClassList.Add('TgdcInvRemains', FieldByName('RUID').AsString,
       LParentSubType, TgdBaseEntry, FieldByName('name').AsString);
     gdClassList.Add('TgdcInvGoodRemains', FieldByName('RUID').AsString,
@@ -5613,12 +5609,6 @@ begin
 
     if FieldChanged('name') then
     begin
-      CE := gdClassList.Find('TgdcInvDocument', FieldByName('RUID').AsString);
-      if CE <> nil then
-        CE.Caption := FieldByName('name').AsString;
-      CE := gdClassList.Find('TgdcInvDocumentLine', FieldByName('RUID').AsString);
-      if CE <> nil then
-        CE.Caption := FieldByName('name').AsString;
       CE := gdClassList.Find('TgdcInvRemains', FieldByName('RUID').AsString);
       if CE <> nil then
         CE.Caption := FieldByName('name').AsString;
@@ -5631,8 +5621,6 @@ begin
     end;
   end else
   begin
-    gdClassList.Remove('TgdcInvDocument', FieldByName('RUID').AsString);
-    gdClassList.Remove('TgdcInvDocumentLine', FieldByName('RUID').AsString);
     gdClassList.Remove('TgdcInvRemains', FieldByName('RUID').AsString);
     gdClassList.Remove('TgdcInvGoodRemains', FieldByName('RUID').AsString);
     gdClassList.Remove('TgdcSelectedGood', FieldByName('RUID').AsString);

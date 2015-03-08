@@ -5,9 +5,9 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   gdc_dlgTR_unit, IBDatabase, Db, ActnList, StdCtrls, gsIBLookupComboBox,
-  DBCtrls, Mask, ComCtrls, IBCustomDataSet, gdcBase, gdcClasses, TB2Item,
-  TB2Dock, TB2Toolbar, Grids, DBGrids, gsDBGrid, gsIBGrid, ExtCtrls,
-  gdcAcctTransaction, IBSQL, Menus, gdcFunction, gdcTree,
+  DBCtrls, Mask, ComCtrls, IBCustomDataSet, gdcBase, gdcClasses_interface,
+  gdcClasses, TB2Item, TB2Dock, TB2Toolbar, Grids, DBGrids, gsDBGrid,
+  gsIBGrid, ExtCtrls, gdcAcctTransaction, IBSQL, Menus, gdcFunction, gdcTree,
   gdcDelphiObject, gdcEvent, at_Classes, gdcCustomFunction, dbConsts;
 
 type

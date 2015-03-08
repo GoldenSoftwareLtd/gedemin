@@ -68,8 +68,8 @@ var
 implementation
 
 uses
-  IBSQL, gdcBaseInterface, gd_dlgEntryFunctionEdit, gdcClasses, at_classes,
-  gd_dlgEntryFunctionWizard
+  IBSQL, gdcBaseInterface, gd_dlgEntryFunctionEdit, gdcClasses_interface,
+  at_classes, gd_dlgEntryFunctionWizard
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub

@@ -27,7 +27,7 @@ interface
 
 uses
   classes, gdcBase, gdcBaseInterface, gd_createable_form, menus, Controls,
-  gdcClasses, graphics, dmImages_unit;
+  gdcClasses_Interface, gdcClasses, graphics, dmImages_unit;
 
 const
   tfVBF = 'VB';

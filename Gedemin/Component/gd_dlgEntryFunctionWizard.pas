@@ -5,17 +5,16 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   ActnList, Db, IBCustomDataSet, gdcBase, gdcCustomFunction, gdcFunction,
-  StdCtrls, ExtCtrls, gdcAcctEntryRegister, gdcAcctTransaction, gdcClasses,
-  Mask, DBCtrls, IBSQL, Grids, contnrs, ComCtrls, Buttons, BtnEdit, at_classes,
-  gd_dlgQuantityEntryEdit, gd_dlgEntryFunctionEdit, gdcAttrUserDefined,
-  DBGrids, gsIBLookupComboBox, IBDatabase, Spin, xCalculatorEdit,
-  rf_Control;
+  StdCtrls, ExtCtrls, gdcAcctEntryRegister, gdcAcctTransaction,
+  gdcClasses_interface, gdcClasses, Mask, DBCtrls, IBSQL, Grids, contnrs,
+  ComCtrls, Buttons, BtnEdit, at_classes, gd_dlgQuantityEntryEdit,
+  gd_dlgEntryFunctionEdit, gdcAttrUserDefined, DBGrids, gsIBLookupComboBox,
+  IBDatabase, Spin, xCalculatorEdit, rf_Control;
 
 const
   cwHeader = 'шапка';
   cwLine   = 'позиция';
   cCurrStr = '%s: %s(%s)';
-
 
 type
   TUnitType = (utRUID, utKey);
@@ -138,7 +137,6 @@ type
 
     function  CreateScript(out Comment: String): String;
     function  GetScrDocField(const DocField, AsType: String): String;
-//    function  GetScrFixKey(const KeyStr: String): String;
 
     procedure ActivateWizard;
     procedure CreateNewFunction;
@@ -166,7 +164,6 @@ type
     property  gdcTransactionEntry: TgdcAcctTransactionEntry read FgdcTransactionEntry write SetgdcTransactionEntry;
   end;
 
-
 function  GetFieldFromCB(const CBText: String): String;
 
 implementation
@@ -182,7 +179,6 @@ uses
 
 const
   csComp = '[comp]';
-//  csItem = 'SubItem: ';
   cBeginAnalytics = '*BeginAnalytics*';
   cEndAnalytics   = '*EndAnalytics*';
   cBeginQuantity  = '*BeginQuantity*';
@@ -267,15 +263,14 @@ end;
 procedure TdlgEntryFunctionWizard.CreateFullAnalyticList(const AnList: TAnalyticList);
 var
   atRelation: TatRelation;
-  I{, OrigHeight}: Integer;
+  I: Integer;
 
 begin
   AnList.Clear;
   atRelation := atDatabase.Relations.ByRelationName('AC_ENTRY');
   for I := 0 to atRelation.RelationFields.Count - 1 do
   with atRelation do
-    if (Pos('USR$', RelationFields[I].FieldName) = 1){ and
-      (RelationFields[I].Field.RefTable <> nil)} then
+    if (Pos('USR$', RelationFields[I].FieldName) = 1) then
       AnList.AddAnalytic(RelationFields[I]);
 end;
 
@@ -294,7 +289,6 @@ function TdlgEntryFunctionWizard.ShowModal: Integer;
 var
   Str: String;
   FunctionKey: Integer;
-//  ListItem: TListItem;
 begin
   Result := mrAbort;
   if FIsWizardActive then
@@ -309,7 +303,6 @@ begin
     FReadIBSQL.Close;
   FReadIBSQL.SQL.Text := 'SELECT dt.name FROM GD_DOCUMENTTYPE dt WHERE id = :id';
   FReadIBSQL.Params[0].AsInteger := DocumentType;
-//    FgdcTransactionRecord.FieldByName('documenttypekey').AsInteger;
   FReadIBSQL.ExecQuery;
   if FReadIBSQL.Eof then
     raise Exception.Create('Не выбран тип документа.');
@@ -351,10 +344,7 @@ begin
     if not LoadFunction then
       Exit;
   end else
-//  if gdcFunction.IsEmpty then
-  begin
     CreateNewFunction;
-  end;
 
   Result := inherited ShowModal;
 end;
@@ -508,15 +498,6 @@ begin
           ListItem.SubItems[1] := rfcValue.CurrentValue;
           TItemData(ListItem.Data).AnalyticsType := antUserValue;
         end;
-{      if ibcbAnalyticsKeys.CurrentKeyInt > -1 then
-      begin
-
-        ListItem.SubItems[1] := Format(jcValue,
-          [gdcBaseManager.GetRUIDStringByID(ibcbAnalyticsKeys.CurrentKeyInt),
-          ibcbAnalyticsKeys.Text]);
-        TItemData(ListItem.Data).AnalyticsType := antFixKey;
-      end;
-      }
     end;
   end;
 
@@ -698,16 +679,12 @@ begin
       cbAccountKey.SetFocus;
       raise Exception.Create('Не заполнено поле "Счет".');
     end;
-//    ;
 
     Result := Result + cAccountKey;
 
     Result := Result +
       Format(cWithCondition, [' not ' + GetScrDocField(GetFieldFromCB(cbAccountKey.Text), cIsNull),
         Format(cVarStr, ['accountkey', GetScrDocField(GetFieldFromCB(cbAccountKey.Text), cAsVar)])]);
-
-//    Result := Result + Format(cVarStr, ['accountkey',
-//      GetScrDocField(GetFieldFromCB(cbAccountKey.Text), cAsVar)])
   end;
 
   if cbCurKey.Enabled and edtEditCURF.Enabled and (Length(Trim(cbCurKey.Text)) > 0) then
@@ -753,8 +730,6 @@ begin
             tmpStrings.Clear;
             tmpStrings.Text := lvAnalytics.Items[I].SubItems[1];
             AddText(Result, cVarStr, lvAnalytics.Items[I].SubItems[0], tmpStrings)
-//            Result := Result + Format(cVarStr, [lvAnalytics.Items[I].SubItems[0],
-//              '"' + lvAnalytics.Items[I].SubItems[1] + '"']);
           end;
           antRUID:
             Result := Result + Format(cIntRUIDStr, [lvAnalytics.Items[I].SubItems[0],
@@ -1024,7 +999,6 @@ var
             if ServFields.IndexOf(gdcDoc.Fields[AI].FieldName) = -1 then
               cbCurKey.Items.Add(Str);
           end;
-    //          cbCurKey.Items.AddObject(Str, gdcDoc.Fields[AI]);
         except
         end;
       end;
@@ -1063,16 +1037,12 @@ begin
   if cbxAccount.Checked then
   begin
     cbAccountKey.Enabled := True;
-//    lblAccountTypeTitle.Enabled := False;
-//    lblAccountType.Enabled := False;
     lblCurrSignTitle.Enabled := False;
     lblCurrSign.Enabled := False;
     EnablePnlCurr(False);
   end else
     begin
       cbAccountKey.Enabled := False;
-//      lblAccountTypeTitle.Enabled := True;
-//      lblAccountType.Enabled := True;
       lblCurrSignTitle.Enabled := True;
       lblCurrSign.Enabled := True;
       EnablePnlCurr(True);
@@ -1120,7 +1090,6 @@ const
             if gdcDoc = FgdcDocumentLine then
               Str := Format(cCurrStr, [cwLine, gdcDoc.Fields[AI].DisplayName, gdcDoc.Fields[AI].FieldName]);
           cbAccountKey.Items.Add(Str);
-  //        cbAccountKey.Items.AddObject(Str, gdcDoc.Fields[AI]);
         end;
       end;
   end;
@@ -1176,7 +1145,6 @@ begin
   gdcFunction.FieldByName('script').AsString := CreateScript(Str);
   gdcFunction.FieldByName('comment').AsString := Str;
   gdcFunction.Post;
-//  gdcFunction.Edit;
 
   if FgdcTransactionEntry.State <> dsEdit then
     FgdcTransactionEntry.Edit;
@@ -1273,7 +1241,6 @@ var
     RAT: TAnalyticsType;
     RCheck: Boolean;
 
-
     // проверяет корректность строки
     procedure CheckCompName(CompName, FuncStorStr: String);
     begin
@@ -1290,7 +1257,6 @@ var
     procedure ReadStrFromStream;
     begin
       BlobStream.ReadBuffer(RI, SizeOf(Integer));
-//      UniqueString(RStr);
       if RI > (BlobStream.Size - BlobStream.Position) then
         raise EAbort.Create('Ошибка считывания из потока');
       SetLength(RStr, RI);
@@ -1417,7 +1383,7 @@ begin
 
   BlobStream := FgdcTransactionEntry.CreateBlobStream(
     FgdcTransactionEntry.FieldByName('ENTRYFUNCTIONSTOR'), bmRead);
-  if BlobStream.Size = 0{FgdcTransactionEntry.FieldByName('ENTRYFUNCTIONSTOR').IsNull} then
+  if BlobStream.Size = 0 then
   begin
     Str :=
       'Функция ' + gdcFunction.FieldByName('name').AsString +  ' не была создана в конструкторе.'#13#10 +
@@ -1485,7 +1451,6 @@ begin
       end;
     end else
       Result := False;
-    // обработка ошибки
   end;
 end;
 
@@ -1555,7 +1520,6 @@ begin
     begin
       if AnsiCompareText(gdcEvent.FieldByName('eventname').AsString, 'DOBEFOREPOST') = 0 then
       begin
-//        mtdFunctionKey := gdcEvent.FieldByName('entryfunctionkey').AsInteger;
         if (not gdcEvent.FieldByName('disable').IsNull) and
           (gdcEvent.FieldByName('disable').AsInteger = 1) then
         begin
@@ -1579,13 +1543,6 @@ begin
       if gdcMethodFunc.Eof then
       begin
         gdcMethodFunc.AddMethodFunction(ClassKey, 'DoBeforePost', gdcClass);
-{        mtdFunctionKey := gdcMethodFunc.ID;
-        gdcEvent.Insert;
-        gdcEvent.ParamByName('objectkey').AsInteger := ClassKey;
-        gdcEvent.FieldByName('eventname').AsString  := 'DOBEFOREPOST';
-        gdcEvent.FieldByName('functionkey').AsInteger  := mtdFunctionKey;
-        gdcEvent.Post;
-        }
       end;
       gdcMethodFunc.EditDialog;
     finally
@@ -1727,27 +1684,6 @@ begin
   if FgdcDocumentLine <> nil then
     AddDoc(FgdcDocumentLine);
 end;
- {
-function TdlgEntryFunctionWizard.GetScrFixKey(
-  const KeyStr: String): String;
-var
-  I: Integer;
-begin
-  I := Pos('(', KeyStr);
-  if I > 0 then
-    Result := Copy(KeyStr, 1, I - 1)
-  else
-    Result := KeyStr;
-
-  try
-//    I := StrToInt(Result);
-  except
-//    raise Exception.Create('Фиксированное значение аналитики не соответсвует формату: ключ(наименование).');
-  end;
-
-  Result := 'gdcBaseManager.GetIDByRUIDString("' + Result + '")';
-end;
-}
 
 { TItemData }
 

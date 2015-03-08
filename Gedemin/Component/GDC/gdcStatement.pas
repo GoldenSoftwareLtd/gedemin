@@ -5,8 +5,8 @@ interface
 
 uses
   Classes, IBCustomDataSet, gdcBase, Forms, gd_createable_form,
-  dmDatabase_unit, IBSQL, contnrs, tr_Type_unit, gdcClasses,
-  gdcBaseBank, DB, gdcBaseInterface;
+  dmDatabase_unit, IBSQL, contnrs, tr_Type_unit, gdcClasses_interface,
+  gdcClasses, gdcBaseBank, DB, gdcBaseInterface;
 
 type
   TgdcBaseLine = class(TgdcDocument)

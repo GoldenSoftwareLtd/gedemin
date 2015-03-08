@@ -27,8 +27,8 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  gdcBase, gd_createable_form, gdcClasses, at_Classes, IBDatabase, DB, IBSQL,
-  gdcInvConsts_unit, gdcBaseInterface;
+  gdcBase, gd_createable_form, gdcClasses_interface, gdcClasses, at_Classes,
+  IBDatabase, DB, IBSQL, gdcInvConsts_unit, gdcBaseInterface;
 
 const
   // Незаконченный документ (не до конца настроенный документ)
