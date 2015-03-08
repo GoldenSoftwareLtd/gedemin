@@ -26,7 +26,7 @@ type
     procedure GetWhereClauseConditions(S: TStrings); override;
 
   public
-    function DocumentTypeKey: Integer; override;
+    class function ClassDocumentTypeKey: Integer; override;
 
     function GetCurrencyByAccount(AccountKey: Integer): String;
     procedure UpdateAdditional;
@@ -504,7 +504,7 @@ begin
   {END MACRO}
 end;
 
-function TgdcCurrCommission.DocumentTypeKey: Integer;
+class function TgdcCurrCommission.ClassDocumentTypeKey: Integer;
 begin
   Result := BN_DOC_CURRCOMMISION;
 end;
@@ -655,9 +655,8 @@ begin
 end;
 
 initialization
-  RegisterGdcClass(TgdcCurrCommission);
+  RegisterDocClass(TgdcCurrCommission);
 
 finalization
-  UnRegisterGdcClass(TgdcCurrCommission);
-
+  UnRegisterDocClass(TgdcCurrCommission);
 end.

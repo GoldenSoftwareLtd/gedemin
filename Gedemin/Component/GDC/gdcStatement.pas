@@ -43,11 +43,9 @@ type
     function GetDetailObject: TgdcDocument; override;
 
   public
-    function DocumentTypeKey: Integer; override;
-
+    class function ClassDocumentTypeKey: Integer; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
-
   end;
 
   TgdcBankCatalogueLine = class(TgdcBaseLine)
@@ -65,8 +63,7 @@ type
   public
     constructor Create(AnOwner: TComponent); override;
 
-    function DocumentTypeKey: Integer; override;
-
+    class function ClassDocumentTypeKey: Integer; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
   end;
@@ -88,8 +85,7 @@ type
     function GetDetailObject: TgdcDocument; override;
 
   public
-    function DocumentTypeKey: Integer; override;
-
+    class function ClassDocumentTypeKey: Integer; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
  end;
@@ -108,7 +104,7 @@ type
     procedure InternalSetFieldData(Field: TField; Buffer: Pointer); override;
 
   public
-    function DocumentTypeKey: Integer; override;
+    class function ClassDocumentTypeKey: Integer; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function IsAbstractClass: Boolean; override;
   end;
@@ -353,7 +349,7 @@ begin
   {END MACRO}
 end;
 
-function TgdcBankCatalogue.DocumentTypeKey: Integer;
+class function TgdcBankCatalogue.ClassDocumentTypeKey: Integer;
 begin
   Result := BN_DOC_BANKCATALOGUE;
 end;
@@ -471,7 +467,7 @@ begin
   CustomProcess := [cpInsert, cpModify];
 end;
 
-function TgdcBankCatalogueLine.DocumentTypeKey: Integer;
+class function TgdcBankCatalogueLine.ClassDocumentTypeKey: Integer;
 begin
   Result := BN_DOC_BANKCATALOGUE;
 end;
@@ -946,7 +942,7 @@ begin
   {END MACRO}
 end;
 
-function TgdcBankStatement.DocumentTypeKey: Integer;
+class function TgdcBankStatement.ClassDocumentTypeKey: Integer;
 begin
   Result := BN_DOC_BANKSTATEMENT;
 end;
@@ -1302,7 +1298,7 @@ begin
   {END MACRO}
 end;
 
-function TgdcBaseStatementLine.DocumentTypeKey: Integer;
+class function TgdcBaseStatementLine.ClassDocumentTypeKey: Integer;
 begin
   Result := BN_DOC_BANKSTATEMENT;
 end;
@@ -2053,17 +2049,17 @@ begin
 end;
 
 initialization
-  RegisterGdcClass(TgdcBaseLine);
-  RegisterGdcClass(TgdcBankCatalogue,    'Банковская картотека');
-  RegisterGdcClass(TgdcBankCatalogueLine);
-  RegisterGdcClass(TgdcBankStatement,    'Банковская выписка');
-  RegisterGdcClass(TgdcBankStatementLine);
+  RegisterDocClass(TgdcBaseLine);
+  RegisterDocClass(TgdcBankCatalogue,    'Банковская картотека');
+  RegisterDocClass(TgdcBankCatalogueLine);
+  RegisterDocClass(TgdcBankStatement,    'Банковская выписка');
+  RegisterDocClass(TgdcBankStatementLine);
 
 finalization
-  UnRegisterGdcClass(TgdcBaseLine);
-  UnRegisterGdcClass(TgdcBankCatalogue);
-  UnRegisterGdcClass(TgdcBankCatalogueLine);
-  UnRegisterGdcClass(TgdcBankStatement);
-  UnRegisterGdcClass(TgdcBankStatementLine);
+  UnRegisterDocClass(TgdcBaseLine);
+  UnRegisterDocClass(TgdcBankCatalogue);
+  UnRegisterDocClass(TgdcBankCatalogueLine);
+  UnRegisterDocClass(TgdcBankStatement);
+  UnRegisterDocClass(TgdcBankStatementLine);
 end.
 

@@ -112,6 +112,7 @@ type
 
     procedure CreateEntry;
 
+    class function ClassDocumentTypeKey: Integer; virtual;
     function DocumentTypeKey: Integer; virtual;
 
     function Reduction(BL: TBookmarkList): Boolean; override;
@@ -1511,7 +1512,7 @@ end;
 
 function TgdcDocument.DocumentTypeKey: Integer;
 begin
-  Result := -1;
+  Result := ClassDocumentTypeKey;
 end;
 
 function TgdcDocument.AcceptClipboard(CD: PgdcClipboardData): Boolean;
@@ -2318,6 +2319,11 @@ begin
   {M}      ClearMacrosStack2('TGDCDOCUMENT', 'EDITDIALOG', KEYEDITDIALOG);
   {M}  end;
   {END MACRO}
+end;
+
+class function TgdcDocument.ClassDocumentTypeKey: Integer;
+begin
+  Result := -1;
 end;
 
 { TgdcBaseDocumentType }
@@ -4472,24 +4478,24 @@ begin
 end;
 
 initialization
-  RegisterGdcClass(TgdcDocument);
+  RegisterDocClass(TgdcDocument);
   RegisterGdcClass(TgdcBaseDocumentType);
   RegisterGdcClass(TgdcDocumentBranch,    'Папка');
   RegisterGdcClass(TgdcDocumentType,      'Тип документа');
   RegisterGdcClass(TgdcUserDocumentType,  'Тип пользовательского документа');
-  RegisterGdcClass(TgdcUserBaseDocument);
-  RegisterGdcClass(TgdcUserDocument);
-  RegisterGdcClass(TgdcUserDocumentLine);
+  RegisterDocClass(TgdcUserBaseDocument);
+  RegisterDocClass(TgdcUserDocument);
+  RegisterDocClass(TgdcUserDocumentLine);
 
 finalization
-  UnRegisterGdcClass(TgdcDocument);
+  UnRegisterDocClass(TgdcDocument);
   UnRegisterGdcClass(TgdcBaseDocumentType);
   UnRegisterGdcClass(TgdcDocumentBranch);
   UnRegisterGdcClass(TgdcDocumentType);
   UnRegisterGdcClass(TgdcUserDocumentType);
-  UnRegisterGdcClass(TgdcUserBaseDocument);
-  UnRegisterGdcClass(TgdcUserDocument);
-  UnRegisterGdcClass(TgdcUserDocumentLine);
+  UnRegisterDocClass(TgdcUserBaseDocument);
+  UnRegisterDocClass(TgdcUserDocument);
+  UnRegisterDocClass(TgdcUserDocumentLine);
 
   FreeAndNil(_DocTypeCache);
 end.

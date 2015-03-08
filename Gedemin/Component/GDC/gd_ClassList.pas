@@ -479,6 +479,9 @@ function gdClassList: TgdClassList;
 procedure RegisterGdcClass(const AClass: CgdcBase; const ACaption: String = '');
 procedure UnRegisterGdcClass(AClass: CgdcBase);
 
+procedure RegisterDocClass(const AClass: CgdcBase; const ACaption: String = '');
+procedure UnRegisterDocClass(AClass: CgdcBase);
+
 // добавляет класс в список классов
 {Регистрация класса в списке TgdcClassList}
 procedure RegisterFrmClass(AClass: CgdcCreateableForm);
@@ -554,6 +557,20 @@ end;
 
 procedure UnRegisterGdcClass(AClass: CgdcBase);
 begin
+  gdClassList.Remove(AClass);
+  UnRegisterClass(AClass);
+end;
+
+procedure RegisterDocClass(const AClass: CgdcBase; const ACaption: String = '');
+begin
+  Assert(AClass.InheritsFrom(TgdcDocument));
+  Classes.RegisterClass(AClass);
+  gdClassList.Add(AClass, '', '', TgdDocumentEntry, ACaption);
+end;
+
+procedure UnRegisterDocClass(AClass: CgdcBase);
+begin
+  Assert(AClass.InheritsFrom(TgdcDocument));
   gdClassList.Remove(AClass);
   UnRegisterClass(AClass);
 end;
@@ -2125,10 +2142,8 @@ begin
   FIsCheckNumber := TgdDocumentEntry(CE).IsCheckNumber;
   FOptions := TgdDocumentEntry(CE).Options;
   FReportGroupKey := TgdDocumentEntry(CE).ReportGroupKey;
-  FHeaderRelKey := TgdDocumentEntry(CE).HeaderRelKey;
-  FHeaderRelName := TgdDocumentEntry(CE).HeaderRelName;
-  FLineRelKey := TgdDocumentEntry(CE).LineRelKey;
-  FLineRelName := TgdDocumentEntry(CE).LineRelName;
+  HeaderRelKey := TgdDocumentEntry(CE).HeaderRelKey;
+  LineRelKey := TgdDocumentEntry(CE).LineRelKey;
 end;
 
 procedure TgdDocumentEntry.SetHeaderRelKey(const Value: Integer);
