@@ -198,6 +198,7 @@ type
   public
     constructor Create(AnOwner: TComponent); override;
 
+    class function GetDistinctTable(const ASubType: TgdcSubType): String; override;
     class function GetRestrictCondition(const ATableName, ASubType: String): String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
@@ -288,9 +289,9 @@ type
     procedure _DoOnNewRecord; override;
 
   public
+    class function GetDistinctTable(const ASubType: TgdcSubType): String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
-    //
     class procedure GetClassImage(const ASizeX, ASizeY: Integer; AGraphic: TGraphic); override;
 
     function CheckTheSameStatement: String; override;
@@ -2939,6 +2940,11 @@ begin
   Result := 'Tgdc_dlgCompany';
 end;
 
+class function TgdcCompany.GetDistinctTable(const ASubType: TgdcSubType): String;
+begin
+  Result := 'GD_COMPANY';
+end;
+
 { TgdcBank }
 
 procedure TgdcBank.CustomInsert(Buff: Pointer);
@@ -3728,6 +3734,12 @@ class function TgdcBank.GetDialogFormClassName(
   const ASubType: TgdcSubType): String;
 begin
   Result := 'Tgdc_dlgBank';
+end;
+
+class function TgdcBank.GetDistinctTable(
+  const ASubType: TgdcSubType): String;
+begin
+  Result := 'GD_BANK';
 end;
 
 initialization

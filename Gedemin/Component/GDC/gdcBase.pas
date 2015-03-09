@@ -1584,6 +1584,7 @@ type
     // адз_н _ тольк_ адз_н аб'ект дадзенага тыпу _ якая ўтрымл_вае першасны
     // ключ
     class function GetListTable(const ASubType: TgdcSubType): String; virtual;
+    class function GetDistinctTable(const ASubType: TgdcSubType): String; virtual;
     // поле з назвай аб'екту
     class function GetListField(const ASubType: TgdcSubType): String; virtual;
     // поля для расширенного отображения в лукапе (через ,)
@@ -2134,6 +2135,7 @@ const
 // а не TgdcContact или TgdcContactList
 // если для таблицы нет базового класса. например, это кросс таблица,
 // то возвращает пустую запись: класс=нил и подтип=пустой строке
+function GetBaseClassForRelation2(const ARelationName: String): TgdcFullClass;
 function GetBaseClassForRelation(const ARelationName: String): TgdcFullClass;
 function GetBaseClassForRelationByID(const ARelationName: String;
   const AnID: Integer; ibtr: TIBTransaction): TgdcFullClass;
@@ -2463,6 +2465,38 @@ begin
       end;
   end;
   Result := True;
+end;
+
+function GetBaseClassForRelation2(const ARelationName: String): TgdcFullClass;
+var
+  BE: TgdBaseEntry;
+  R: TatRelation;
+begin
+  Assert(gdClassList <> nil);
+  BE := gdClassList.FindByRelation(ARelationName);
+  if BE <> nil then
+  begin
+    Result.gdClass := BE.gdcClass;
+    Result.SubType := BE.SubType;
+  end else
+  begin
+    R := atDatabase.Relations.ByRelationName(ARelationName);
+    if (R <> nil) and (R.PrimaryKey <> nil) and (R.PrimaryKey.ConstraintFields.Count = 1) then
+    begin
+      R := R.PrimaryKey.ConstraintFields[0].References;
+
+      if R <> nil then
+        Result := GetBaseClassForRelation2(R.RelationName)
+      else begin
+        Result.gdClass := nil;
+        Result.SubType := '';
+      end;
+    end else
+    begin
+      Result.gdClass := nil;
+      Result.SubType := '';
+    end;
+  end;
 end;
 
 function GetBaseClassForRelation(const ARelationName: String): TgdcFullClass;
@@ -18453,6 +18487,11 @@ end;
 function TgdcBase.GetCompoundMasterTable: String;
 begin
   Result := GetListTable(SubType);
+end;
+
+class function TgdcBase.GetDistinctTable(const ASubType: TgdcSubType): String;
+begin
+  Result := GetListTable(ASubType);
 end;
 
 initialization

@@ -85,6 +85,7 @@ type
     function GetDetailObject: TgdcDocument; override;
 
   public
+    class function GetDistinctTable(const ASubType: TgdcSubType): String; override;
     class function ClassDocumentTypeKey: Integer; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
@@ -120,6 +121,7 @@ type
     function GetMasterObject: TgdcDocument; override;
 
   public
+    class function GetDistinctTable(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
   end;
 
@@ -1135,6 +1137,11 @@ begin
   Result := 'Tgdc_dlgBankStatement';
 end;
 
+class function TgdcBankStatement.GetDistinctTable(const ASubType: TgdcSubType): String;
+begin
+  Result := 'BN_BANKSTATEMENT';
+end;
+
 { TgdcBaseStatementLine }
 
 procedure TgdcBaseStatementLine.DoBeforeEdit;
@@ -1902,6 +1909,11 @@ class function TgdcBankStatementLine.GetDialogFormClassName(
   const ASubType: TgdcSubType): String;
 begin
   Result := 'Tgdc_dlgBankStatementLine'; 
+end;
+
+class function TgdcBankStatementLine.GetDistinctTable(const ASubType: TgdcSubType): String;
+begin
+  Result := 'BN_BANKSTATEMENTLINE';
 end;
 
 function TgdcBankStatementLine.GetFromClause(const ARefresh: Boolean = False): String;

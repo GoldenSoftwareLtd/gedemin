@@ -253,6 +253,9 @@ type
     tbiFilter: TTBItem;
     Label17: TLabel;
     edClassesFilter: TEdit;
+    tsRelations: TSuperTabSheet;
+    Panel2: TPanel;
+    lvRelations: TListView;
     procedure actPrepareExecute(Sender: TObject);
     procedure actExecuteExecute(Sender: TObject);
     procedure actCommitExecute(Sender: TObject);
@@ -375,6 +378,7 @@ type
     function GetTransactionParams: String;
     function ConcatErrorMessage(const M: String): String;
     procedure FillClassesList;
+    procedure FillRelationsList;
     function ibtrEditor: TIBTransaction;
 
     function BuildClassTree(ACE: TgdClassEntry; AData1: Pointer;
@@ -1667,6 +1671,58 @@ begin
   lblClassesCount.Caption := 'Бизнес-классов: ' + IntToStr(lvClasses.Items.Count);
 end;
 
+procedure TfrmSQLEditorSyn.FillRelationsList;
+{$IFDEF GEDEMIN}
+var
+  q: TIBSQL;
+  LI: TListItem;
+  FC, FC2: TgdcFullClass;
+{$ENDIF}
+begin
+{$IFDEF GEDEMIN}
+  lvClasses.Items.BeginUpdate;
+  q := TIBSQL.Create(nil);
+  try
+    lvClasses.Items.Clear;
+    q.Transaction := gdcBaseManager.ReadTransaction;
+    q.SQL.Text :=
+      'SELECT rdb$relation_name ' +
+      'FROM rdb$relations WHERE rdb$system_flag = 0 ' +
+      'ORDER BY rdb$relation_name';
+    q.ExecQuery;
+    while not q.EOF do
+    begin
+      LI := lvRelations.Items.Add;
+      LI.Caption := q.FieldByName('RDB$RELATION_NAME').AsTrimString;
+      FC := GetBaseClassForRelation(LI.Caption);
+      if FC.gdClass <> nil then
+      begin
+        LI.SubItems.Add(FC.gdClass.ClassName);
+        LI.SubItems.Add(FC.SubType);
+        FC2 := GetBaseClassForRelation2(LI.Caption);
+        if FC2.gdClass <> nil then
+        begin
+          LI.SubItems.Add(FC2.gdClass.ClassName);
+          LI.SubItems.Add(FC2.SubType);
+        end else
+        begin
+          LI.SubItems.Add('');
+          LI.SubItems.Add('');
+        end;
+        if (LI.SubItems[0] <> LI.SubItems[2]) or (LI.SubItems[1] <> LI.SubItems[3]) then
+          LI.SubItems.Add('!!!')
+        else
+          LI.SubItems.Add(FC.gdClass.GetDisplayName(FC.SubType));
+      end;
+      q.Next;
+    end;
+  finally
+    q.Free;
+    lvClasses.Items.EndUpdate;
+  end;
+{$ENDIF}
+end;
+
 procedure TfrmSQLEditorSyn.OnHistoryDblClick(Sender: TObject);
 begin
   {$IFDEF GEDEMIN}
@@ -2007,6 +2063,11 @@ begin
   begin
     if lvClasses.Items.Count = 0 then
       FillClassesList;
+  end
+  else if pcMain.ActivePage = tsRelations then
+  begin
+    if lvRelations.Items.Count = 0 then
+      FillRelationsList;
   end
   else if pcMain.ActivePage = tsTransaction then
     FillTransactionsList

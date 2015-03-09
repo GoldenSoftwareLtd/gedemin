@@ -427,6 +427,7 @@ type
     function Find(const AClassName: AnsiString; const ASubType: TgdcSubType = ''): TgdClassEntry; overload;
     function Find(const AFullClassName: TgdcFullClassName): TgdClassEntry; overload;
     function Find(const ADocTypeID: TID): TgdDocumentEntry; overload;
+    function FindByRelation(const ARelationName: String): TgdBaseEntry;
 
     function Traverse(const AClass: TClass; const ASubType: TgdcSubType;
       ACallback: TgdClassEntryCallback; AData1: Pointer; AData2: Pointer;
@@ -1250,7 +1251,7 @@ begin
   if (AClass = nil) or (not AClass.InheritsFrom(TgdcBase)) then
     raise Exception.Create('Invalid class');
   inherited;
-  FDistinctRelation := UpperCase(CgdcBase(AClass).GetListTable(ASubType));
+  FDistinctRelation := UpperCase(CgdcBase(AClass).GetDistinctTable(ASubType));
 end;
 
 function TgdBaseEntry.GetGdcClass: CgdcBase;
@@ -2147,6 +2148,56 @@ begin
     Result := False;
   end else
     Result := True;
+end;
+
+function TgdClassList.FindByRelation(
+  const ARelationName: String): TgdBaseEntry;
+
+  function Iterate(ACE: TgdBaseEntry; const ALvl: Integer; APrevLvl: Integer;
+    var AFound: TgdBaseEntry): Boolean;
+  var
+    I: Integer;
+  begin
+    if ALvl < APrevLvl then
+      Result := False
+    else begin
+      Result := True;
+
+      if CompareText(ARelationName, ACE.DistinctRelation) = 0 then
+      begin
+        if AFound = nil then
+        begin
+          AFound := ACE;
+          APrevLvl := ALvl;
+        end else
+        begin
+          if AFound.Parent = ACE.Parent then
+            AFound := AFound.Parent as TgdBaseEntry;
+          Result := False;
+        end;
+      end;
+
+      if Result then
+      begin
+        for I := 0 to ACE.Count - 1 do
+        begin
+          if not Iterate(ACE.Children[I] as TgdBaseEntry, ALvl + 1, APrevLvl, AFound) then
+          begin
+            Result := False;
+            break;
+          end;
+        end;
+      end;
+    end;
+  end;
+
+var
+  CE: TgdBaseEntry;
+begin
+  Result := nil;
+  CE := Find('TgdcBase') as TgdBaseEntry;
+  if (CE <> nil) and (ARelationName > '') then
+    Iterate(CE, 0, 0, Result);
 end;
 
 { TgdAttrUserDefinedEntry }
