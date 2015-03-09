@@ -965,6 +965,6 @@ initialization
   RegisterGDCClass(TgdcMacros,      'Макрос');
 
 finalization
-  UnRegisterGDCClass(TgdcMacrosGroup);
-  UnRegisterGDCClass(TgdcMacros);
+  UnregisterGdcClass(TgdcMacrosGroup);
+  UnregisterGdcClass(TgdcMacros);
 end.

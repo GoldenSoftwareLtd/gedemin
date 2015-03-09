@@ -1379,8 +1379,8 @@ initialization
   RegisterGdcClass(TgdcInvPriceListLine);
 
 finalization
-  UnRegisterGdcClass(TgdcInvPriceListType);
-  UnRegisterGdcClass(TgdcInvPriceList);
-  UnRegisterGdcClass(TgdcInvPriceListLine);
+  UnregisterGdcClass(TgdcInvPriceListType);
+  UnregisterGdcClass(TgdcInvPriceList);
+  UnregisterGdcClass(TgdcInvPriceListLine);
 end.
 

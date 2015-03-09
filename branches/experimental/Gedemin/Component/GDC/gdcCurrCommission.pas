@@ -655,8 +655,8 @@ begin
 end;
 
 initialization
-  RegisterDocClass(TgdcCurrCommission);
+  RegisterGdcClass(TgdcCurrCommission);
 
 finalization
-  UnRegisterDocClass(TgdcCurrCommission);
+  UnregisterGdcClass(TgdcCurrCommission);
 end.

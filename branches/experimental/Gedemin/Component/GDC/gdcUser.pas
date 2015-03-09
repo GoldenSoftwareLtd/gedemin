@@ -1814,6 +1814,6 @@ initialization
   RegisterGDCClass(TgdcUserGroup);
 
 finalization
-  UnRegisterGDCClass(TgdcUser);
-  UnRegisterGDCClass(TgdcUserGroup);
+  UnregisterGdcClass(TgdcUser);
+  UnregisterGdcClass(TgdcUserGroup);
 end.

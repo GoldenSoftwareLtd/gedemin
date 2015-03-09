@@ -464,5 +464,5 @@ initialization
   RegisterGDCClass(TgdcLink);
 
 finalization
-  UnRegisterGDCClass(TgdcLink);
+  UnregisterGdcClass(TgdcLink);
 end.

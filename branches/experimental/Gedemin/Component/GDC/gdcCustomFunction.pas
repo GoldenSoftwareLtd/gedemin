@@ -1221,7 +1221,7 @@ initialization
   RegisterGdcClass(TgdcCustomFunction);
 
 finalization
-  UnRegisterGdcClass(TgdcCustomFunction);
+  UnregisterGdcClass(TgdcCustomFunction);
   FreeAndNil(_VBCompiler);
 end.
 

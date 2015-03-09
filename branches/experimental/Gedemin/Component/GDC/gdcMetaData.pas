@@ -10759,28 +10759,28 @@ initialization
   end;
 
 finalization
-  UnRegisterGdcClass(TgdcMetaBase);
-  UnRegisterGdcClass(TgdcField);
-  UnRegisterGdcClass(TgdcRelation);
-  UnRegisterGdcClass(TgdcTable);
-  UnRegisterGdcClass(TgdcBaseTable);
-  UnRegisterGdcClass(TgdcSimpleTable);
-  UnRegisterGdcClass(TgdcPrimeTable);
-  UnRegisterGdcClass(TgdcUnknownTable);
-  UnRegisterGdcClass(TgdcTableToTable);
-  UnRegisterGdcClass(TgdcTableToDefinedTable);
-  UnRegisterGdcClass(TgdcTreeTable);
-  UnRegisterGdcClass(TgdcLBRBTreeTable);
-  UnRegisterGdcClass(TgdcView);
-  UnRegisterGdcClass(TgdcRelationField);
-  UnRegisterGdcClass(TgdcTableField);
-  UnRegisterGdcClass(TgdcViewField);
-  UnRegisterGdcClass(TgdcStoredProc);
-  UnRegisterGdcClass(TgdcException);
-  UnRegisterGdcClass(TgdcIndex);
-  UnRegisterGdcClass(TgdcTrigger);
-  UnRegisterGdcClass(TgdcGenerator);
-  UnRegisterGdcClass(TgdcCheckConstraint);
+  UnregisterGdcClass(TgdcMetaBase);
+  UnregisterGdcClass(TgdcField);
+  UnregisterGdcClass(TgdcRelation);
+  UnregisterGdcClass(TgdcTable);
+  UnregisterGdcClass(TgdcBaseTable);
+  UnregisterGdcClass(TgdcSimpleTable);
+  UnregisterGdcClass(TgdcPrimeTable);
+  UnregisterGdcClass(TgdcUnknownTable);
+  UnregisterGdcClass(TgdcTableToTable);
+  UnregisterGdcClass(TgdcTableToDefinedTable);
+  UnregisterGdcClass(TgdcTreeTable);
+  UnregisterGdcClass(TgdcLBRBTreeTable);
+  UnregisterGdcClass(TgdcView);
+  UnregisterGdcClass(TgdcRelationField);
+  UnregisterGdcClass(TgdcTableField);
+  UnregisterGdcClass(TgdcViewField);
+  UnregisterGdcClass(TgdcStoredProc);
+  UnregisterGdcClass(TgdcException);
+  UnregisterGdcClass(TgdcIndex);
+  UnregisterGdcClass(TgdcTrigger);
+  UnregisterGdcClass(TgdcGenerator);
+  UnregisterGdcClass(TgdcCheckConstraint);
 end.
 
 

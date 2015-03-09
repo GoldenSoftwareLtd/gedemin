@@ -1323,8 +1323,8 @@ initialization
   RegisterGDCClass(TgdcLBRBTree);
 
 finalization
-  UnRegisterGDCClass(TgdcTree);
-  UnRegisterGDCClass(TgdcLBRBTree);
+  UnregisterGdcClass(TgdcTree);
+  UnregisterGdcClass(TgdcLBRBTree);
 end.
 
 

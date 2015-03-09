@@ -1333,13 +1333,13 @@ end;
 
 initialization
   RegisterGdcClass(TgdcTaxActual);
-  RegisterDocClass(TgdcTaxResult);
-  RegisterDocClass(TgdcTaxDesignDate);
+  RegisterGdcClass(TgdcTaxResult);
+  RegisterGdcClass(TgdcTaxDesignDate);
   RegisterGdcClass(TgdcTaxName, 'Бухгалтерский отчет');
 
 finalization
-  UnRegisterGdcClass(TgdcTaxActual);
-  UnRegisterDocClass(TgdcTaxResult);
-  UnRegisterDocClass(TgdcTaxDesignDate);
-  UnRegisterGdcClass(TgdcTaxName);
+  UnregisterGdcClass(TgdcTaxActual);
+  UnregisterGdcClass(TgdcTaxResult);
+  UnregisterGdcClass(TgdcTaxDesignDate);
+  UnregisterGdcClass(TgdcTaxName);
 end.

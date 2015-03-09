@@ -696,9 +696,9 @@ initialization
   RegisterGdcClass(TgdcAcctSubAccount, 'Субсчет');
 
 finalization
-  UnRegisterGdcClass(TgdcAcctBase);
-  UnRegisterGdcClass(TgdcAcctChart);
-  UnRegisterGdcClass(TgdcAcctFolder);
-  UnRegisterGdcClass(TgdcAcctAccount);
-  UnRegisterGdcClass(TgdcAcctSubAccount);
+  UnregisterGdcClass(TgdcAcctBase);
+  UnregisterGdcClass(TgdcAcctChart);
+  UnregisterGdcClass(TgdcAcctFolder);
+  UnregisterGdcClass(TgdcAcctAccount);
+  UnregisterGdcClass(TgdcAcctSubAccount);
 end.

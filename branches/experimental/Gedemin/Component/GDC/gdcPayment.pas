@@ -565,7 +565,6 @@ begin
   DidActivate := False;
   q := TIBSQL.Create(nil);
   try
-    q.Database := Database;
     q.Transaction := ReadTransaction;
     DidActivate := ActivateReadTransaction;
 
@@ -925,16 +924,16 @@ begin
 end;
 
 initialization
-  RegisterDocClass(TgdcPaymentDemand);
-  RegisterDocClass(TgdcPaymentOrder);
-  RegisterDocClass(TgdcDemandOrder);
-  RegisterDocClass(TgdcAdviceOfCollection);
+  RegisterGdcClass(TgdcPaymentDemand);
+  RegisterGdcClass(TgdcPaymentOrder);
+  RegisterGdcClass(TgdcDemandOrder);
+  RegisterGdcClass(TgdcAdviceOfCollection);
   RegisterGdcClass(TgdcDestCode);
 
 finalization
-  UnRegisterDocClass(TgdcPaymentDemand);
-  UnRegisterDocClass(TgdcPaymentOrder);
-  UnRegisterDocClass(TgdcDemandOrder);
-  UnRegisterDocClass(TgdcAdviceOfCollection);
-  UnRegisterGdcClass(TgdcDestCode);
+  UnregisterGdcClass(TgdcPaymentDemand);
+  UnregisterGdcClass(TgdcPaymentOrder);
+  UnregisterGdcClass(TgdcDemandOrder);
+  UnregisterGdcClass(TgdcAdviceOfCollection);
+  UnregisterGdcClass(TgdcDestCode);
 end.

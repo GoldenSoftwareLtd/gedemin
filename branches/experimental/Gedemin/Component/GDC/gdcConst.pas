@@ -637,6 +637,6 @@ initialization
   RegisterGdcClass(TgdcConstValue);
 
 finalization
-  UnRegisterGdcClass(TgdcConst);
-  UnRegisterGdcClass(TgdcConstValue);
+  UnregisterGdcClass(TgdcConst);
+  UnregisterGdcClass(TgdcConstValue);
 end.

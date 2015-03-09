@@ -704,5 +704,5 @@ initialization
   RegisterGdcClass(TgdcFunction, 'Скрипт-функция');
 
 finalization
-  UnRegisterGdcClass(TgdcFunction);
+  UnregisterGdcClass(TgdcFunction);
 end.

@@ -105,5 +105,5 @@ initialization
   RegisterGDCClass(TgdcTemplate, 'Шаблон отчета');
 
 finalization
-  UnRegisterGDCClass(TgdcTemplate);
+  UnregisterGdcClass(TgdcTemplate);
 end.

@@ -1352,20 +1352,20 @@ begin
 end;
 
 initialization
-  RegisterDocClass(TgdcCurrDocument);
-  RegisterDocClass(TgdcCurrSellContract);
-  RegisterDocClass(TgdcCurrCommissSell);
-  RegisterDocClass(TgdcCurrListAllocation);
-  RegisterDocClass(TgdcCurrBuyContract);
-  RegisterDocClass(TgdcCurrConvContract);
+  RegisterGdcClass(TgdcCurrDocument);
+  RegisterGdcClass(TgdcCurrSellContract);
+  RegisterGdcClass(TgdcCurrCommissSell);
+  RegisterGdcClass(TgdcCurrListAllocation);
+  RegisterGdcClass(TgdcCurrBuyContract);
+  RegisterGdcClass(TgdcCurrConvContract);
 
 finalization
-  UnRegisterDocClass(TgdcCurrDocument);
-  UnRegisterDocClass(TgdcCurrSellContract);
-  UnRegisterDocClass(TgdcCurrCommissSell);
-  UnRegisterDocClass(TgdcCurrListAllocation);
-  UnRegisterDocClass(TgdcCurrBuyContract);
-  UnRegisterDocClass(TgdcCurrConvContract);
+  UnregisterGdcClass(TgdcCurrDocument);
+  UnregisterGdcClass(TgdcCurrSellContract);
+  UnregisterGdcClass(TgdcCurrCommissSell);
+  UnregisterGdcClass(TgdcCurrListAllocation);
+  UnregisterGdcClass(TgdcCurrBuyContract);
+  UnregisterGdcClass(TgdcCurrConvContract);
 end.
 
 

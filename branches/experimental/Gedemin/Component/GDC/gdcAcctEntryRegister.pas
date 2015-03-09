@@ -4793,11 +4793,11 @@ initialization
   RegisterGdcClass(TgdcAcctQuantity);
   RegisterGdcClass(TgdcAcctComplexRecord);
 finalization
-  UnRegisterGdcClass(TgdcAcctEntryRegister);
-  UnRegisterGdcClass(TgdcAcctBaseEntryRegister);
-  UnRegisterGdcClass(TgdcAcctViewEntryRegister);
-  UnRegisterGdcClass(TgdcAcctEntryLine);
-  UnRegisterGdcClass(TgdcAcctSimpleRecord);
-  UnRegisterGdcClass(TgdcAcctQuantity);
-  UnRegisterGdcClass(TgdcAcctComplexRecord);
+  UnregisterGdcClass(TgdcAcctEntryRegister);
+  UnregisterGdcClass(TgdcAcctBaseEntryRegister);
+  UnregisterGdcClass(TgdcAcctViewEntryRegister);
+  UnregisterGdcClass(TgdcAcctEntryLine);
+  UnregisterGdcClass(TgdcAcctSimpleRecord);
+  UnregisterGdcClass(TgdcAcctQuantity);
+  UnregisterGdcClass(TgdcAcctComplexRecord);
 end.

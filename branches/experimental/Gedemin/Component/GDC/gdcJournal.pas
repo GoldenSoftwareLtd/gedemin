@@ -669,5 +669,5 @@ initialization
   RegisterGDCClass(TgdcJournal);
 
 finalization
-  UnRegisterGDCClass(TgdcJournal);
+  UnregisterGdcClass(TgdcJournal);
 end.

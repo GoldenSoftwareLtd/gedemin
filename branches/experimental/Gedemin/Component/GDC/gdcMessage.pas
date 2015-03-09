@@ -747,8 +747,8 @@ initialization
   RegisterGDCClass(TgdcAttachment, 'Прикрепление');
 
 finalization
-  UnRegisterGDCClass(TgdcMessageBox);
-  UnRegisterGDCClass(TgdcBaseMessage);
-  UnRegisterGDCClass(TgdcPhoneCall);
-  UnRegisterGDCClass(TgdcAttachment);
+  UnregisterGdcClass(TgdcMessageBox);
+  UnregisterGdcClass(TgdcBaseMessage);
+  UnregisterGdcClass(TgdcPhoneCall);
+  UnregisterGdcClass(TgdcAttachment);
 end.

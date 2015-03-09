@@ -349,7 +349,7 @@ type
 
   TgdDocumentEntry = class(TgdBaseEntry)
   private
-    FID: Integer;
+    FTypeID: Integer;
     FIsCommon: Boolean;
     FHeaderFunctionKey: Integer;
     FLineFunctionKey: Integer;
@@ -378,7 +378,7 @@ type
     property Description: String read FDescription write FDescription;
     property IsCheckNumber: TIsCheckNumber read FIsCheckNumber write FIsCheckNumber;
     property Options: String read FOptions write FOptions;
-    property ID: Integer read FID write FID;
+    property TypeID: Integer read FTypeID write FTypeID;
     property ReportGroupKey: Integer read FReportGroupKey write FReportGroupKey;
   end;
 
@@ -409,6 +409,8 @@ type
     procedure _Compact;
     function _Create(APrnt: TgdClassEntry; AnEntryClass: CgdClassEntry;
       AClass: TClass; const ASubType: TgdcSubType; const ACaption: String): TgdClassEntry;
+    function _FindDoc(ACE: TgdClassEntry; AData1: Pointer;
+      AData2: Pointer): Boolean;
 
   public
     constructor Create;
@@ -424,6 +426,7 @@ type
     function Find(const AClass: TClass; const ASubType: TgdcSubType = ''): TgdClassEntry; overload;
     function Find(const AClassName: AnsiString; const ASubType: TgdcSubType = ''): TgdClassEntry; overload;
     function Find(const AFullClassName: TgdcFullClassName): TgdClassEntry; overload;
+    function Find(const ADocTypeID: TID): TgdDocumentEntry; overload;
 
     function Traverse(const AClass: TClass; const ASubType: TgdcSubType;
       ACallback: TgdClassEntryCallback; AData1: Pointer; AData2: Pointer;
@@ -477,10 +480,7 @@ function gdClassList: TgdClassList;
 
 {Регистрация класса в списке TgdcClassList}
 procedure RegisterGdcClass(const AClass: CgdcBase; const ACaption: String = '');
-procedure UnRegisterGdcClass(AClass: CgdcBase);
-
-procedure RegisterDocClass(const AClass: CgdcBase; const ACaption: String = '');
-procedure UnRegisterDocClass(AClass: CgdcBase);
+procedure UnregisterGdcClass(AClass: CgdcBase);
 
 // добавляет класс в список классов
 {Регистрация класса в списке TgdcClassList}
@@ -504,7 +504,8 @@ var
 implementation
 
 uses
-  SysUtils, gs_Exception, IBSQL, gd_security, gsStorage, Storages, gdcClasses
+  SysUtils, gs_Exception, IBSQL, gd_security, gsStorage, Storages,
+  gdcClasses
   {$IFDEF DEBUG}
   , gd_DebugLog
   {$ENDIF}
@@ -552,27 +553,17 @@ end;
 procedure RegisterGdcClass(const AClass: CgdcBase; const ACaption: String = '');
 begin
   Classes.RegisterClass(AClass);
-  gdClassList.Add(AClass, '', '', TgdBaseEntry, ACaption);
+  if AClass.InheritsFrom(TgdcDocument) then
+    TgdDocumentEntry(gdClassList.Add(AClass, '', '',
+      TgdDocumentEntry, ACaption)).TypeID := CgdcDocument(AClass).ClassDocumentTypeKey
+  else
+    gdClassList.Add(AClass, '', '', TgdBaseEntry, ACaption);
 end;
 
-procedure UnRegisterGdcClass(AClass: CgdcBase);
+procedure UnregisterGdcClass(AClass: CgdcBase);
 begin
   gdClassList.Remove(AClass);
-  UnRegisterClass(AClass);
-end;
-
-procedure RegisterDocClass(const AClass: CgdcBase; const ACaption: String = '');
-begin
-  Assert(AClass.InheritsFrom(TgdcDocument));
-  Classes.RegisterClass(AClass);
-  gdClassList.Add(AClass, '', '', TgdDocumentEntry, ACaption);
-end;
-
-procedure UnRegisterDocClass(AClass: CgdcBase);
-begin
-  Assert(AClass.InheritsFrom(TgdcDocument));
-  gdClassList.Remove(AClass);
-  UnRegisterClass(AClass);
+  Classes.UnRegisterClass(AClass);
 end;
 
 procedure RegisterFrmClass(AClass: CgdcCreateableForm);
@@ -583,8 +574,8 @@ end;
 
 procedure UnRegisterFrmClass(AClass: CgdcCreateableForm);
 begin
-  UnRegisterClass(AClass);
   gdClassList.Remove(AClass);
+  Classes.UnRegisterClass(AClass);
 end;
 
 procedure CustomRegisterClassMethod(ATypeList: TClassTypeList; const AnClass: TComponentClass; AnMethod: String;
@@ -1735,16 +1726,11 @@ end;
 
 procedure TgdClassList.LoadUserDefinedClasses;
 
-  function LoadDocument(Prnt: TgdClassEntry; q: TIBSQL): TgdClassEntry;
-  var
-    PrevRB: Integer;
+  procedure LoadDE(DE: TgdDocumentEntry; q: TIBSQL);
   begin
-    Result := _Create(Prnt, TgdDocumentEntry, Prnt.TheClass,
-      q.FieldByName('ruid').AsString, q.FieldByName('name').AsString);
-
-    with TgdDocumentEntry(Result) do
+    with DE do
     begin
-      ID := q.FieldByName('id').AsInteger;
+      TypeID := q.FieldByName('id').AsInteger;
       IsCommon := q.FieldByName('iscommon').AsInteger > 0;
       HeaderFunctionKey := q.FieldByName('headerfunctionkey').AsInteger;
       LineFunctionKey := q.FieldByName('linefunctionkey').AsInteger;
@@ -1755,10 +1741,17 @@ procedure TgdClassList.LoadUserDefinedClasses;
       HeaderRelKey := q.FieldByName('headerrelkey').AsInteger;
       LineRelKey := q.FieldByName('linerelkey').AsInteger;
     end;
+  end;
 
+  function LoadDocument(Prnt: TgdClassEntry; q: TIBSQL): TgdClassEntry;
+  var
+    PrevRB: Integer;
+  begin
+    Result := _Create(Prnt, TgdDocumentEntry, Prnt.TheClass,
+      q.FieldByName('ruid').AsString, q.FieldByName('name').AsString);
+    LoadDE(TgdDocumentEntry(Result), q);
     PrevRB := q.FieldByName('rb').AsInteger;
     q.Next;
-
     while (not q.EOF) and (q.FieldByName('lb').AsInteger < PrevRB) do
       LoadDocument(Result, q);
   end;
@@ -1828,6 +1821,7 @@ var
   CEInvRemains,
   CEInvGoodRemains,
   CEStorage: TgdClassEntry;
+  DE: TgdDocumentEntry;
   q: TIBSQL;
   FSubTypes: TgsStorageFolder;
   SL: TStringList;
@@ -1860,7 +1854,7 @@ begin
     q.SQL.Text :=
       'SELECT dt.* ' +
       'FROM gd_documenttype dt ' +
-      'WHERE dt.classname > '''' AND dt.documenttype = ''D'' ORDER BY lb';
+      'WHERE dt.documenttype = ''D'' ORDER BY lb';
     q.ExecQuery;
     while not q.EOF do
     begin
@@ -1870,8 +1864,12 @@ begin
         LoadDocument(CEInvDocument, q)
       else if CompareText(q.FieldbyName('classname').AsString, 'TgdcInvPriceListType') = 0 then
         LoadDocument(CEInvPriceList, q)
-      else
+      else begin
+        DE := Find(q.FieldByName('id').AsInteger);
+        if DE <> nil then
+          LoadDE(DE, q);
         q.Next;
+      end;
     end;
 
     CEInvRemains := Find('TgdcInvRemains');
@@ -2082,16 +2080,18 @@ begin
     try
       FClasses[Index].Traverse(OL, False);
       FClasses[Index].Free;
-      System.Move(FClasses[Index + 1], FClasses[Index],
-        (FCount - Index - 1) * SizeOf(FClasses[0]));
+      if Index < (FCount - 1) then
+        System.Move(FClasses[Index + 1], FClasses[Index],
+          (FCount - Index - 1) * SizeOf(FClasses[0]));
       Dec(FCount);
       for I := OL.Count - 1 downto 0 do
       begin
         if _Find(TgdClassEntry(OL[I]).TheClass.ClassName, TgdClassEntry(OL[I]).SubType, Index) then
         begin
           FClasses[Index].Free;
-          System.Move(FClasses[Index + 1], FClasses[Index],
-            (FCount - Index - 1) * SizeOf(FClasses[0]));
+          if Index < (FCount - 1) then
+            System.Move(FClasses[Index + 1], FClasses[Index],
+              (FCount - Index - 1) * SizeOf(FClasses[0]));
           Dec(FCount);
         end;
       end;
@@ -2119,6 +2119,36 @@ begin
   end;
 end;
 
+function TgdClassList.Find(const ADocTypeID: TID): TgdDocumentEntry;
+var
+  CE, Doc: TgdClassEntry;
+begin
+  Doc := Find('TgdcDocument');
+
+  if Doc = nil then
+    Result := nil
+  else begin
+    CE := nil;
+    Doc.Traverse(_FindDoc, Pointer(ADocTypeID), @CE,
+      False, False);
+    if CE is TgdDocumentEntry then
+      Result := CE as TgdDocumentEntry
+    else
+      Result := nil;
+  end;
+end;
+
+function TgdClassList._FindDoc(ACE: TgdClassEntry; AData1,
+  AData2: Pointer): Boolean;
+begin
+  if TgdDocumentEntry(ACE).TypeID = TID(AData1) then
+  begin
+    TgdClassEntry(AData2^) := ACE;
+    Result := False;
+  end else
+    Result := True;
+end;
+
 { TgdAttrUserDefinedEntry }
 
 constructor TgdAttrUserDefinedEntry.Create(AParent: TgdClassEntry;
@@ -2134,7 +2164,7 @@ end;
 procedure TgdDocumentEntry.Assign(CE: TgdClassEntry);
 begin
   Assert(CE is TgdDocumentEntry);
-  FID := TgdDocumentEntry(CE).ID;
+  FTypeID := TgdDocumentEntry(CE).TypeID;
   FIsCommon := TgdDocumentEntry(CE).IsCommon;
   FHeaderFunctionKey := TgdDocumentEntry(CE).HeaderFunctionKey;
   FLineFunctionKey := TgdDocumentEntry(CE).LineFunctionKey;

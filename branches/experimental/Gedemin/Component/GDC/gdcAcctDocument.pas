@@ -40,8 +40,8 @@ begin
 end;
 
 initialization
-  RegisterDocClass(TgdcAcctDocument);
+  RegisterGdcClass(TgdcAcctDocument);
 
 finalization
-  UnRegisterDocClass(TgdcAcctDocument);
+  UnregisterGdcClass(TgdcAcctDocument);
 end.

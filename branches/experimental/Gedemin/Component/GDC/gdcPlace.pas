@@ -138,7 +138,7 @@ initialization
   RegisterGdcClass(TgdcPlace, 'Административно-территориальная единица');
 
 finalization
-  UnRegisterGdcClass(TgdcPlace);
+  UnregisterGdcClass(TgdcPlace);
 end.
 
 

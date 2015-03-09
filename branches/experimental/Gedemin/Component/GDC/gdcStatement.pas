@@ -2049,17 +2049,17 @@ begin
 end;
 
 initialization
-  RegisterDocClass(TgdcBaseLine);
-  RegisterDocClass(TgdcBankCatalogue,    'Банковская картотека');
-  RegisterDocClass(TgdcBankCatalogueLine);
-  RegisterDocClass(TgdcBankStatement,    'Банковская выписка');
-  RegisterDocClass(TgdcBankStatementLine);
+  RegisterGdcClass(TgdcBaseLine);
+  RegisterGdcClass(TgdcBankCatalogue,    'Банковская картотека');
+  RegisterGdcClass(TgdcBankCatalogueLine);
+  RegisterGdcClass(TgdcBankStatement,    'Банковская выписка');
+  RegisterGdcClass(TgdcBankStatementLine);
 
 finalization
-  UnRegisterDocClass(TgdcBaseLine);
-  UnRegisterDocClass(TgdcBankCatalogue);
-  UnRegisterDocClass(TgdcBankCatalogueLine);
-  UnRegisterDocClass(TgdcBankStatement);
-  UnRegisterDocClass(TgdcBankStatementLine);
+  UnregisterGdcClass(TgdcBaseLine);
+  UnregisterGdcClass(TgdcBankCatalogue);
+  UnregisterGdcClass(TgdcBankCatalogueLine);
+  UnregisterGdcClass(TgdcBankStatement);
+  UnregisterGdcClass(TgdcBankStatementLine);
 end.
 

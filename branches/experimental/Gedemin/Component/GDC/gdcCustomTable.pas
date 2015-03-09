@@ -884,14 +884,14 @@ initialization
   RegisterGdcClass(TgdcInvTransformDocumentLineTable);
 
 finalization
-  UnRegisterGdcClass(TgdcCustomTable);
-  UnRegisterGdcClass(TgdcBaseDocumentTable);
-  UnRegisterGdcClass(TgdcDocumentTable);
-  UnRegisterGdcClass(TgdcDocumentLineTable);
-  UnRegisterGdcClass(TgdcBaseDocumentLineTable);
-  UnRegisterGdcClass(TgdcInvSimpleDocumentLineTable);
-  UnRegisterGdcClass(TgdcInvFeatureDocumentLineTable);
-  UnRegisterGdcClass(TgdcInvInventDocumentLineTable);
-  UnRegisterGdcClass(TgdcInvTransformDocumentLineTable);
+  UnregisterGdcClass(TgdcCustomTable);
+  UnregisterGdcClass(TgdcBaseDocumentTable);
+  UnregisterGdcClass(TgdcDocumentTable);
+  UnregisterGdcClass(TgdcDocumentLineTable);
+  UnregisterGdcClass(TgdcBaseDocumentLineTable);
+  UnregisterGdcClass(TgdcInvSimpleDocumentLineTable);
+  UnregisterGdcClass(TgdcInvFeatureDocumentLineTable);
+  UnregisterGdcClass(TgdcInvInventDocumentLineTable);
+  UnregisterGdcClass(TgdcInvTransformDocumentLineTable);
 
 end.

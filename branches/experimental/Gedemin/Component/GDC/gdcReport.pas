@@ -1311,7 +1311,7 @@ initialization
   RegisterGDCClass(TgdcReport,      'Отчет');
 
 finalization
-  UnRegisterGDCClass(TgdcReportGroup);
-  UnRegisterGDCClass(TgdcReport);
+  UnregisterGdcClass(TgdcReportGroup);
+  UnregisterGdcClass(TgdcReport);
 end.
 

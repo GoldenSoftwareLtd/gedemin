@@ -1017,12 +1017,12 @@ initialization
   RegisterGdcClass(TgdcSelectedGood);
 
 finalization
-  UnRegisterGdcClass(TgdcTNVD);
-  UnRegisterGdcClass(TgdcGoodBarCode);
-  UnRegisterGdcClass(TgdcGoodGroup);
-  UnRegisterGdcClass(TgdcGood);
-  UnRegisterGdcClass(TgdcValue);
-  UnRegisterGdcClass(TgdcTax);
-  UnRegisterGdcClass(TgdcMetal);
-  UnRegisterGdcClass(TgdcSelectedGood);
+  UnregisterGdcClass(TgdcTNVD);
+  UnregisterGdcClass(TgdcGoodBarCode);
+  UnregisterGdcClass(TgdcGoodGroup);
+  UnregisterGdcClass(TgdcGood);
+  UnregisterGdcClass(TgdcValue);
+  UnregisterGdcClass(TgdcTax);
+  UnregisterGdcClass(TgdcMetal);
+  UnregisterGdcClass(TgdcSelectedGood);
 end.

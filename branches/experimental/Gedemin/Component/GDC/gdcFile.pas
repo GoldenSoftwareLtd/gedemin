@@ -1409,7 +1409,7 @@ initialization
   FRootDirectory := '';
 
 finalization
-  UnRegisterGDCClass(TgdcBaseFile);
-  UnRegisterGDCClass(TgdcFile);
-  UnRegisterGDCClass(TgdcFileFolder);
+  UnregisterGdcClass(TgdcBaseFile);
+  UnregisterGdcClass(TgdcFile);
+  UnregisterGdcClass(TgdcFileFolder);
 end.

@@ -181,5 +181,5 @@ initialization
   RegisterGDCClass(TgdcRUID);
 
 finalization
-  UnRegisterGDCClass(TgdcRUID);
+  UnregisterGdcClass(TgdcRUID);
 end.

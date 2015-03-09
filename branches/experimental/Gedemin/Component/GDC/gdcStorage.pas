@@ -825,7 +825,7 @@ initialization
   RegisterGdcClass(TgdcStorageValue);
 
 finalization
-  UnRegisterGdcClass(TgdcStorage);
-  UnRegisterGdcClass(TgdcStorageFolder);
-  UnRegisterGdcClass(TgdcStorageValue);
+  UnregisterGdcClass(TgdcStorage);
+  UnregisterGdcClass(TgdcStorageFolder);
+  UnregisterGdcClass(TgdcStorageValue);
 end.

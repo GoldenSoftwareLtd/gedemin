@@ -730,7 +730,7 @@ initialization
   RegisterGDCClass(TgdcTableCalendarDay);
 
 finalization
-  UnRegisterGDCClass(TgdcHoliday);
-  UnRegisterGDCClass(TgdcTableCalendar);
-  UnRegisterGDCClass(TgdcTableCalendarDay);
+  UnregisterGdcClass(TgdcHoliday);
+  UnregisterGdcClass(TgdcTableCalendar);
+  UnregisterGdcClass(TgdcTableCalendarDay);
 end.
