@@ -1,6 +1,6 @@
 object frmSQLEditorSyn: TfrmSQLEditorSyn
-  Left = 317
-  Top = 172
+  Left = 427
+  Top = 221
   Width = 963
   Height = 556
   HelpContext = 121
@@ -33,7 +33,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
       Height = 453
       BorderStyle = bsNone
       TabsVisible = True
-      ActivePage = tsQuery
+      ActivePage = tsRelations
       Align = alClient
       TabHeight = 23
       TabOrder = 0
@@ -1018,7 +1018,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
             Height = 21
             Style = csDropDownList
             DropDownCount = 24
-            ItemHeight = 13
+            ItemHeight = 0
             TabOrder = 0
             OnChange = cbTransactionsChange
           end
@@ -1573,6 +1573,59 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
             item
               Caption = 'DistinctTable'
               Width = 140
+            end>
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -12
+          Font.Name = 'Courier New'
+          Font.Style = []
+          HideSelection = False
+          ReadOnly = True
+          RowSelect = True
+          ParentFont = False
+          TabOrder = 1
+          ViewStyle = vsReport
+        end
+      end
+      object tsRelations: TSuperTabSheet
+        Caption = 'Таблицы'
+        object Panel2: TPanel
+          Left = 0
+          Top = 0
+          Width = 929
+          Height = 26
+          Align = alTop
+          BevelOuter = bvNone
+          TabOrder = 0
+        end
+        object lvRelations: TListView
+          Left = 0
+          Top = 26
+          Width = 929
+          Height = 404
+          Align = alClient
+          Columns = <
+            item
+              Caption = 'Таблица'
+              Width = 180
+            end
+            item
+              Caption = 'Бизнес-класс'
+              Width = 180
+            end
+            item
+              Caption = 'Подтип'
+              Width = 208
+            end
+            item
+              Width = 180
+            end
+            item
+              Width = 180
+            end
+            item
+              Caption = 'Описание'
+              Width = 260
             end>
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clWindowText
