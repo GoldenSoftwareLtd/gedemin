@@ -3220,7 +3220,7 @@ procedure TgdcDocumentType.DoAfterCustomProcess(Buff: Pointer;
     DE := gdClassList.Add(AClassName, FieldByName('ruid').AsString,
       GetParentSubType, TgdDocumentEntry, FieldbyName('name').AsString) as TgdDocumentEntry;
 
-    DE.ID := ID;
+    DE.TypeID := ID;
     DE.IsCommon := FieldByName('iscommon').AsInteger > 0;
     DE.HeaderFunctionKey := FieldByName('headerfunctionkey').AsInteger;
     DE.LineFunctionKey := FieldByName('linefunctionkey').AsInteger;
@@ -3243,7 +3243,7 @@ procedure TgdcDocumentType.DoAfterCustomProcess(Buff: Pointer;
     begin
       DE := CE as TgdDocumentEntry;
 
-      DE.ID := ID;
+      DE.TypeID := ID;
       DE.IsCommon := FieldByName('iscommon').AsInteger > 0;
       DE.HeaderFunctionKey := FieldByName('headerfunctionkey').AsInteger;
       DE.LineFunctionKey := FieldByName('linefunctionkey').AsInteger;
@@ -4478,24 +4478,24 @@ begin
 end;
 
 initialization
-  RegisterDocClass(TgdcDocument);
+  RegisterGdcClass(TgdcDocument);
   RegisterGdcClass(TgdcBaseDocumentType);
   RegisterGdcClass(TgdcDocumentBranch,    'Папка');
   RegisterGdcClass(TgdcDocumentType,      'Тип документа');
   RegisterGdcClass(TgdcUserDocumentType,  'Тип пользовательского документа');
-  RegisterDocClass(TgdcUserBaseDocument);
-  RegisterDocClass(TgdcUserDocument);
-  RegisterDocClass(TgdcUserDocumentLine);
+  RegisterGdcClass(TgdcUserBaseDocument);
+  RegisterGdcClass(TgdcUserDocument);
+  RegisterGdcClass(TgdcUserDocumentLine);
 
 finalization
-  UnRegisterDocClass(TgdcDocument);
-  UnRegisterGdcClass(TgdcBaseDocumentType);
-  UnRegisterGdcClass(TgdcDocumentBranch);
-  UnRegisterGdcClass(TgdcDocumentType);
-  UnRegisterGdcClass(TgdcUserDocumentType);
-  UnRegisterDocClass(TgdcUserBaseDocument);
-  UnRegisterDocClass(TgdcUserDocument);
-  UnRegisterDocClass(TgdcUserDocumentLine);
+  UnregisterGdcClass(TgdcDocument);
+  UnregisterGdcClass(TgdcBaseDocumentType);
+  UnregisterGdcClass(TgdcDocumentBranch);
+  UnregisterGdcClass(TgdcDocumentType);
+  UnregisterGdcClass(TgdcUserDocumentType);
+  UnregisterGdcClass(TgdcUserBaseDocument);
+  UnregisterGdcClass(TgdcUserDocument);
+  UnregisterGdcClass(TgdcUserDocumentLine);
 
   FreeAndNil(_DocTypeCache);
 end.

@@ -57,7 +57,6 @@ uses
   DB, SysUtils, Dialogs, Controls, Windows,
   gdc_dlgCompanyAccountType_unit, gd_ClassList, gdc_frmAccountType_unit;
 
-
 procedure Register;
 begin
   RegisterComponents('gsNew', [TgdcCompanyAccountType]);
@@ -195,18 +194,17 @@ begin
 
   inherited;
 
-  ibsql := TIBSQL.Create(Self);
+  ibsql := TIBSQL.Create(nil);
   try
     ibsql.Transaction := ReadTransaction;
     ibsql.SQL.Text := 'SELECT companykey FROM gd_companyaccount WHERE id = :id';
     ibsql.ParamByName('id').AsInteger := FieldByName('accountkey').AsInteger;
     ibsql.ExecQuery;
-    if ibsql.RecordCount > 0 then
+    if not ibsql.EOF then
     begin
       if FieldByName('companykey').AsInteger <> ibsql.FieldByName('companykey').AsInteger then
         FieldByName('companykey').AsInteger := ibsql.FieldByName('companykey').AsInteger;
     end;
-    ibsql.Close;
   finally
     ibsql.Free;
   end;
@@ -302,6 +300,6 @@ initialization
   RegisterGdcClass(TgdcCompanyAccountType);
 
 finalization
-  UnRegisterGdcClass(TgdcBaseBank);
-  UnRegisterGdcClass(TgdcCompanyAccountType);
+  UnregisterGdcClass(TgdcBaseBank);
+  UnregisterGdcClass(TgdcCompanyAccountType);
 end.

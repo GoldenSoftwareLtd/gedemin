@@ -530,5 +530,5 @@ initialization
   RegisterGDCClass(TgdcDelphiObject);
 
 finalization
-  UnRegisterGDCClass(TgdcDelphiObject);
+  UnregisterGdcClass(TgdcDelphiObject);
 end.

@@ -3582,18 +3582,18 @@ initialization
   RegisterGdcClass(Tgdc_dpBSLine);
 
 finalization
-  UnRegisterGdcClass(Tgdc_dpInventory);
-  UnRegisterGdcClass(Tgdc_dpTransfer);
-  UnRegisterGdcClass(Tgdc_dpRevaluation);
-  UnRegisterGdcClass(Tgdc_dpSale);
-  UnRegisterGdcClass(Tgdc_dpMain);
-  UnRegisterGdcClass(Tgdc_dpAuthority);
-  UnRegisterGdcClass(Tgdc_dpFinancial);
-  UnRegisterGdcClass(Tgdc_dpDecree);
-  UnRegisterGdcClass(Tgdc_dpComittee);
-  UnRegisterGdcClass(Tgdc_dpWithDrawal);
-  UnRegisterGdcClass(Tgdc_dpAssetDest);
-  UnRegisterGdcClass(TgdcBankStatementLineD);
-  UnRegisterGdcClass(Tgdc_dpBSLine);
+  UnregisterGdcClass(Tgdc_dpInventory);
+  UnregisterGdcClass(Tgdc_dpTransfer);
+  UnregisterGdcClass(Tgdc_dpRevaluation);
+  UnregisterGdcClass(Tgdc_dpSale);
+  UnregisterGdcClass(Tgdc_dpMain);
+  UnregisterGdcClass(Tgdc_dpAuthority);
+  UnregisterGdcClass(Tgdc_dpFinancial);
+  UnregisterGdcClass(Tgdc_dpDecree);
+  UnregisterGdcClass(Tgdc_dpComittee);
+  UnregisterGdcClass(Tgdc_dpWithDrawal);
+  UnregisterGdcClass(Tgdc_dpAssetDest);
+  UnregisterGdcClass(TgdcBankStatementLineD);
+  UnregisterGdcClass(Tgdc_dpBSLine);
 
 end.

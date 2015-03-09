@@ -3743,16 +3743,16 @@ initialization
   RegisterGdcClass(TgdcAccount,     'Расчетный счет');
 
 finalization
-  UnRegisterGdcClass(TgdcBaseContact);
-  UnRegisterGdcClass(TgdcFolder);
-  UnRegisterGdcClass(TgdcGroup);
-  UnRegisterGdcClass(TgdcContact);
-  UnRegisterGdcClass(TgdcEmployee);
-  UnRegisterGdcClass(TgdcDepartment);
-  UnRegisterGdcClass(TgdcCompany);
-  UnRegisterGdcClass(TgdcOurCompany);
-  UnRegisterGdcClass(TgdcBank);
-  UnRegisterGdcClass(TgdcAccount);
+  UnregisterGdcClass(TgdcBaseContact);
+  UnregisterGdcClass(TgdcFolder);
+  UnregisterGdcClass(TgdcGroup);
+  UnregisterGdcClass(TgdcContact);
+  UnregisterGdcClass(TgdcEmployee);
+  UnregisterGdcClass(TgdcDepartment);
+  UnregisterGdcClass(TgdcCompany);
+  UnregisterGdcClass(TgdcOurCompany);
+  UnregisterGdcClass(TgdcBank);
+  UnregisterGdcClass(TgdcAccount);
 end.
 
 

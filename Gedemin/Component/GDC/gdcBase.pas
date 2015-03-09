@@ -18471,7 +18471,7 @@ initialization
 finalization
   FreeAndNil(CacheList);
   FreeAndNil(CacheBaseClassForRel);
-  UnRegisterGDCClass(TgdcBase);
+  UnregisterGdcClass(TgdcBase);
 
   {$IFDEF DEBUG}
   if InvokeCounts <> nil then

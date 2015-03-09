@@ -1090,5 +1090,5 @@ initialization
   RegisterGdcClass(TgdcExplorer);
 
 finalization
-  UnRegisterGdcClass(TgdcExplorer);
+  UnregisterGdcClass(TgdcExplorer);
 end.

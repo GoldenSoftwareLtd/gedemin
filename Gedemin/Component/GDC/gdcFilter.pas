@@ -256,8 +256,8 @@ initialization
   RegisterGDCClass(TgdcSavedFilter);
 
 finalization
-  UnRegisterGDCClass(TgdcComponentFilter);
-  UnRegisterGDCClass(TgdcSavedFilter);
+  UnregisterGdcClass(TgdcComponentFilter);
+  UnregisterGdcClass(TgdcSavedFilter);
 end.
 
  

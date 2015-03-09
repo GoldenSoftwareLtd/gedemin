@@ -897,10 +897,10 @@ begin
 end;
 
 initialization
-  RegisterDocClass(TgdcCheckList);
-  RegisterDocClass(TgdcCheckListLine);
+  RegisterGdcClass(TgdcCheckList);
+  RegisterGdcClass(TgdcCheckListLine);
 
 finalization
-  UnRegisterDocClass(TgdcCheckList);
-  UnRegisterDocClass(TgdcCheckListLine);
+  UnregisterGdcClass(TgdcCheckList);
+  UnregisterGdcClass(TgdcCheckListLine);
 end.

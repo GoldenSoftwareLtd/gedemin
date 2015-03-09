@@ -623,11 +623,11 @@ initialization
   RegisterGdcClass(TgdcAcctAccReviewConfig,      'Конфигурация анализа счета');
 
 finalization
-  UnRegisterGdcClass(TgdcAcctBaseConfig);
-  UnRegisterGdcClass(TgdcAcctAccConfig);
-  UnRegisterGdcClass(TgdcAcctLedgerConfig);
-  UnRegisterGdcClass(TgdcAcctCicrilationListConfig);
-  UnRegisterGdcClass(TgdcAcctGeneralLedgerConfig);
-  UnRegisterGdcClass(TgdcAcctAccReviewConfig);
+  UnregisterGdcClass(TgdcAcctBaseConfig);
+  UnregisterGdcClass(TgdcAcctAccConfig);
+  UnregisterGdcClass(TgdcAcctLedgerConfig);
+  UnregisterGdcClass(TgdcAcctCicrilationListConfig);
+  UnregisterGdcClass(TgdcAcctGeneralLedgerConfig);
+  UnregisterGdcClass(TgdcAcctAccReviewConfig);
 end.
 

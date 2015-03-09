@@ -522,6 +522,6 @@ initialization
   RegisterGdcClass(TgdcAutoTransaction, 'Автоматическая операция');
   
 finalization
-  UnRegisterGdcClass(TgdcAutoTrRecord);
-  UnRegisterGdcClass( TgdcAutoTransaction);
+  UnregisterGdcClass(TgdcAutoTrRecord);
+  UnregisterGdcClass( TgdcAutoTransaction);
 end.

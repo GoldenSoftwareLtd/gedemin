@@ -1737,8 +1737,8 @@ initialization
   RegisterGdcClass(TgdcAttrUserDefinedLBRBTree, '“аблица пользовател€ (интервальное дерево)');
 
 finalization
-  UnRegisterGdcClass(TgdcAttrUserDefined);
-  UnRegisterGdcClass(TgdcAttrUserDefinedTree);
-  UnRegisterGdcClass(TgdcAttrUserDefinedLBRBTree);
+  UnregisterGdcClass(TgdcAttrUserDefined);
+  UnregisterGdcClass(TgdcAttrUserDefinedTree);
+  UnregisterGdcClass(TgdcAttrUserDefinedLBRBTree);
 end.
 

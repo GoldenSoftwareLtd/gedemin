@@ -1541,6 +1541,6 @@ initialization
   RegisterGDCClass(TgdcNamespaceObject);
 
 finalization
-  UnRegisterGDCClass(TgdcNamespace);
-  UnRegisterGDCClass(TgdcNamespaceObject);
+  UnregisterGdcClass(TgdcNamespace);
+  UnregisterGdcClass(TgdcNamespaceObject);
 end.

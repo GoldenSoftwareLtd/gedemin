@@ -6118,9 +6118,9 @@ initialization
   RegisterGdcClass(TgdcInvDocumentLine, 'Позиция складского документа');
 
 finalization
-  UnRegisterGdcClass(TgdcInvDocumentLine);
-  UnRegisterGdcClass(TgdcInvDocument);
-  UnRegisterGdcClass(TgdcInvBaseDocument);
-  UnRegisterGdcClass(TgdcInvDocumentType);
+  UnregisterGdcClass(TgdcInvDocumentLine);
+  UnregisterGdcClass(TgdcInvDocument);
+  UnregisterGdcClass(TgdcInvBaseDocument);
+  UnregisterGdcClass(TgdcInvDocumentType);
 end.
 

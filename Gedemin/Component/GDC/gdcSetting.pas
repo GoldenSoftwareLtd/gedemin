@@ -5275,7 +5275,7 @@ initialization
   RegisterGDCClass(TgdcSettingStorage, 'Позиция настройки хранилища');
 
 finalization
-  UnRegisterGDCClass(TgdcSetting);
-  UnRegisterGDCClass(TgdcSettingPos);
-  UnRegisterGDCClass(TgdcSettingStorage);
+  UnregisterGdcClass(TgdcSetting);
+  UnregisterGdcClass(TgdcSettingPos);
+  UnregisterGdcClass(TgdcSettingStorage);
 end.

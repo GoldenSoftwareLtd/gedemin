@@ -9102,12 +9102,12 @@ initialization
   RegisterGdcClass(TgdcInvCardConfig);
 
 finalization
-  UnRegisterGdcClass(TgdcInvGoodRemains);
-  UnRegisterGdcClass(TgdcInvRemains);
-  UnRegisterGdcClass(TgdcInvBaseRemains);
-  UnRegisterGdcClass(TgdcInvMovement);
-  UnRegisterGdcClass(TgdcInvCard);
-  UnRegisterGdcClass(TgdcInvRemainsOption);
-  UnRegisterGdcClass(TgdcInvCardConfig);
+  UnregisterGdcClass(TgdcInvGoodRemains);
+  UnregisterGdcClass(TgdcInvRemains);
+  UnregisterGdcClass(TgdcInvBaseRemains);
+  UnregisterGdcClass(TgdcInvMovement);
+  UnregisterGdcClass(TgdcInvCard);
+  UnregisterGdcClass(TgdcInvRemainsOption);
+  UnregisterGdcClass(TgdcInvCardConfig);
 end.
 

@@ -890,10 +890,10 @@ initialization
   RegisterGdcClass(TgdcAcctTransactionEntry, 'Типовая проводка');
 
 finalization
-  UnRegisterGdcClass(TgdcAcctTransaction);
-  UnRegisterGdcClass(TgdcAcctTransactionEntry);
+  UnregisterGdcClass(TgdcAcctTransaction);
+  UnregisterGdcClass(TgdcAcctTransactionEntry);
   RegistergdcClass(TgdcBaseAcctTransactionEntry);
-  UnRegisterGdcClass(TgdcBaseAcctTransaction);
+  UnregisterGdcClass(TgdcBaseAcctTransaction);
 
   FreeAndNil(_TransactionCache);
 end.

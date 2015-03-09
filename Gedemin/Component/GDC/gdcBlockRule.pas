@@ -112,5 +112,5 @@ initialization
   RegisterGdcClass(TgdcBlockRule);
 
 finalization
-  UnRegisterGdcClass(TgdcBlockRule);
+  UnregisterGdcClass(TgdcBlockRule);
 end.

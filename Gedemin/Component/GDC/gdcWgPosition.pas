@@ -114,6 +114,6 @@ initialization
   RegisterGDCClass(TgdcWgPosition, 'Должность');
 
 finalization
-  UnRegisterGDCClass(TgdcWgPosition);
+  UnregisterGdcClass(TgdcWgPosition);
 end.
  

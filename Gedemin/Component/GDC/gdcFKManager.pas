@@ -689,5 +689,5 @@ initialization
   RegisterGdcClass(TgdcFKManager, 'Внешний ключ');
 
 finalization
-  UnRegisterGdcClass(TgdcFKManager);
+  UnregisterGdcClass(TgdcFKManager);
 end.
