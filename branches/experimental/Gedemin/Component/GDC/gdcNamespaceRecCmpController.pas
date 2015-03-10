@@ -94,7 +94,9 @@ begin
 
   FCancelLoad := False;
 
-  if (FInequalFields.Count = 1) and (AnsiCompareText(FInequalFields[0], 'EDITIONDATE') = 0) then
+  if FInequalFields.Count = 0 then
+    Result := False
+  else if (FInequalFields.Count = 1) and (AnsiCompareText(FInequalFields[0], 'EDITIONDATE') = 0) then
   begin
     if FMapping.ReadDateTime('Fields\EDITIONDATE', 0) > FObj.FieldByName('EDITIONDATE').AsDateTime then
       FOverwriteFields.Text := 'EDITIONDATE';
