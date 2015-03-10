@@ -121,6 +121,9 @@ copy result.sql /a + at_setting.sql            /a result.sql    > nul
 copy result.sql /a + gd_file.sql               /a result.sql    > nul
 copy result.sql /a + gd_block_rule.sql         /a result.sql    > nul
 copy result.sql /a + rpl_database.sql          /a result.sql    > nul
+copy result.sql /a + ddl_privileges.sql        /a result.sql    > nul
+copy result.sql /a + usage_privileges.sql      /a result.sql    > nul
+copy result.sql /a + execute_privileges.sql    /a result.sql    > nul
 
 echo SET NAMES WIN1251;                        >  temp_hdr.sql
 echo SET SQL DIALECT 3;                        >> temp_hdr.sql

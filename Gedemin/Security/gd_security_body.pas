@@ -1119,7 +1119,7 @@ function TboLogin.Login: Boolean;
       'AS ' +
       'BEGIN ' +
       '  IF ((SELECT GEN_ID(gd_g_dbid, 0) FROM rdb$database) = 0) THEN ' +
-      '    EXECUTE STATEMENT ''SET GENERATOR gd_g_dbid TO ' + IntToStr(gdcBaseManager.GenerateNewDBID) + '''; ' +
+      '    EXECUTE STATEMENT ''SELECT GEN_ID(gd_g_dbid, ' + IntToStr(gdcBaseManager.GenerateNewDBID) + ') FROM rdb$database''; ' +
       'END';
     AQ.ExecQuery;
     AQ.Close;
