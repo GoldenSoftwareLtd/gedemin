@@ -887,8 +887,9 @@ begin
           begin
             AddWarning('Процесс загрузки прерван пользователем.');
             Abort;
-          end else
-            AddText('Объект сохранен в исходном состоянии: ' + Obj.ObjectName);
+          end
+          else if InequalFields.Count > 0 then
+            AddText('Объект в базе не обновлен данными из файла: ' + Obj.ObjectName);
         end;
       finally
         Free;
