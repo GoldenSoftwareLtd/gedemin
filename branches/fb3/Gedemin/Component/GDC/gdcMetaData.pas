@@ -1165,6 +1165,10 @@ var
 begin
   FSQL := TSQLProcessList.Create;
   try
+    if Database.IsFirebird30Connect then
+      FSQL.Add(Format ('REVOKE USAGE ON DOMAIN %s FROM PUBLIC',
+        [FieldByName('fieldname').AsString]));
+
     FSQL.Add(Format('DROP DOMAIN %s', [FieldByName('fieldname').AsString]));
     ShowSQLProcess(FSQL);
   finally
@@ -1619,6 +1623,10 @@ begin
     FSQL.Add(Format ('CREATE DOMAIN %s AS %s',
       [FieldByName('fieldname').AsString,
       GetDomainText]));
+
+    if Database.IsFirebird30Connect then
+      FSQL.Add(Format ('GRANT USAGE ON DOMAIN %s TO PUBLIC',
+        [FieldByName('fieldname').AsString]));
     ShowSQLProcess(FSQL);
   finally
     FSQL.Free;
@@ -7508,6 +7516,10 @@ var
 begin
   FSQL := TSQLProcessList.Create;
   try
+    if Database.IsFirebird30Connect then
+      FSQL.Add(Format ('REVOKE USAGE ON EXCEPTION %s FROM PUBLIC',
+        [FieldByName('exceptionname').AsString]));
+
     FSQL.Add(Format('DROP EXCEPTION %s', [FieldByName('exceptionname').AsString]));
     ShowSQLProcess(FSQL);
   finally
@@ -7667,6 +7679,10 @@ begin
     FSQL.Add(Format('CREATE EXCEPTION %s ''%s''',
       [FieldByName('exceptionname').AsString,
        FieldByName('exceptionmessage').AsString]));
+
+    if Database.IsFirebird30Connect then
+      FSQL.Add(Format ('GRANT USAGE ON EXCEPTION %s TO PUBLIC',
+        [FieldByName('exceptionname').AsString]));
 
     ShowSQLProcess(FSQL);
   finally
@@ -10250,6 +10266,10 @@ var
 begin
   FSQL := TSQLProcessList.Create;
   try
+    if Database.IsFirebird30Connect then
+      FSQL.Add(Format ('REVOKE USAGE ON GENERATOR %s FROM PUBLIC',
+        [FieldByName('generatorname').AsString]));
+
     FSQL.Add(Format('DROP GENERATOR %s',
       [FieldByName('generatorname').AsString]));
 
@@ -10399,6 +10419,11 @@ begin
   FSQL := TSQLProcessList.Create;
   try
     FSQL.Add(Format('CREATE GENERATOR %s ',[AnsiUpperCase(FieldByName('generatorname').AsString)]));
+
+    if Database.IsFirebird30Connect then
+      FSQL.Add(Format ('GRANT USAGE ON GENERATOR %s TO PUBLIC',
+        [AnsiUpperCase(FieldByName('generatorname').AsString)]));
+
     ShowSQLProcess(FSQL);
   finally
     FSQL.Free;
