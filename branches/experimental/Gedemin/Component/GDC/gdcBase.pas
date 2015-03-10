@@ -2214,7 +2214,7 @@ const
 
 var
   CacheList: TStringHashMap;
-  CacheBaseClassForRel: TStringList;
+  //CacheBaseClassForRel: TStringList;
   UseSavepoints: Boolean;
   {$IFDEF DEBUG}
   InvokeCounts: TStringList;
@@ -18507,11 +18507,11 @@ initialization
 
   CacheDBID := -1;
   CacheList := nil;
-  CacheBaseClassForRel := nil;
+  //CacheBaseClassForRel := nil;
 
 finalization
   FreeAndNil(CacheList);
-  FreeAndNil(CacheBaseClassForRel);
+  //FreeAndNil(CacheBaseClassForRel);
   UnregisterGdcClass(TgdcBase);
 
   {$IFDEF DEBUG}
