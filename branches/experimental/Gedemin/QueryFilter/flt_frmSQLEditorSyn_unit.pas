@@ -256,6 +256,7 @@ type
     tsRelations: TSuperTabSheet;
     Panel2: TPanel;
     lvRelations: TListView;
+    lblTablesCount: TLabel;
     procedure actPrepareExecute(Sender: TObject);
     procedure actExecuteExecute(Sender: TObject);
     procedure actCommitExecute(Sender: TObject);
@@ -1625,7 +1626,8 @@ begin
 
   S := CE.TheClass.ClassName + CE.SubType
     + CE.gdcClass.GetDisplayName(CE.SubType)
-    + CE.gdcClass.GetListTable(CE.SubType);
+    + CE.gdcClass.GetListTable(CE.SubType)
+    + CE.DistinctRelation;
   Level := PInteger(AData1)^;
 
   if (edClassesFilter.Text = '') or (StrIPos(edClassesFilter.Text, S) > 0) then
@@ -1651,8 +1653,10 @@ begin
 end;
 
 procedure TfrmSQLEditorSyn.FillClassesList;
+{$IFDEF GEDEMIN}
 var
   Level: Integer;
+{$ENDIF}
 begin
   {$IFDEF GEDEMIN}
   if gdClassList <> nil then
@@ -1676,18 +1680,19 @@ procedure TfrmSQLEditorSyn.FillRelationsList;
 var
   q: TIBSQL;
   LI: TListItem;
-  FC, FC2: TgdcFullClass;
+  FC: TgdcFullClass;
 {$ENDIF}
 begin
 {$IFDEF GEDEMIN}
-  lvClasses.Items.BeginUpdate;
+  lvRelations.Items.BeginUpdate;
   q := TIBSQL.Create(nil);
   try
-    lvClasses.Items.Clear;
+    lvRelations.Items.Clear;
     q.Transaction := gdcBaseManager.ReadTransaction;
     q.SQL.Text :=
       'SELECT rdb$relation_name ' +
-      'FROM rdb$relations WHERE rdb$system_flag = 0 ' +
+      'FROM rdb$relations ' +
+      'WHERE rdb$relation_type = 0 AND rdb$system_flag = 0 ' +
       'ORDER BY rdb$relation_name';
     q.ExecQuery;
     while not q.EOF do
@@ -1699,28 +1704,16 @@ begin
       begin
         LI.SubItems.Add(FC.gdClass.ClassName);
         LI.SubItems.Add(FC.SubType);
-        FC2 := GetBaseClassForRelation2(LI.Caption);
-        if FC2.gdClass <> nil then
-        begin
-          LI.SubItems.Add(FC2.gdClass.ClassName);
-          LI.SubItems.Add(FC2.SubType);
-        end else
-        begin
-          LI.SubItems.Add('');
-          LI.SubItems.Add('');
-        end;
-        if (LI.SubItems[0] <> LI.SubItems[2]) or (LI.SubItems[1] <> LI.SubItems[3]) then
-          LI.SubItems.Add('!!!')
-        else
-          LI.SubItems.Add(FC.gdClass.GetDisplayName(FC.SubType));
+        LI.SubItems.Add(FC.gdClass.GetDisplayName(FC.SubType));
       end;
       q.Next;
     end;
   finally
     q.Free;
-    lvClasses.Items.EndUpdate;
+    lvRelations.Items.EndUpdate;
   end;
 {$ENDIF}
+  lblTablesCount.Caption := 'Таблиц в списке: ' + IntToStr(lvRelations.Items.Count);
 end;
 
 procedure TfrmSQLEditorSyn.OnHistoryDblClick(Sender: TObject);

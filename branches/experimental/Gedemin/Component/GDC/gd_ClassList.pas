@@ -314,6 +314,7 @@ type
     procedure AddChild(AChild: TgdClassEntry);
     procedure RemoveChild(AChild: TgdClassEntry);
     function FindChild(const AClassName: AnsiString): TgdClassEntry;
+    function InheritsFromCE(ACE: TgdClassEntry): Boolean;
 
     property Parent: TgdClassEntry read FParent;
     property TheClass: TClass read FClass;
@@ -1405,6 +1406,28 @@ begin
   //
 end;
 
+function TgdClassEntry.InheritsFromCE(ACE: TgdClassEntry): Boolean;
+begin
+  Result := (ACE <> nil) and
+    (
+      (
+        Self = ACE
+      )
+      or
+      (
+        TheClass.InheritsFrom(ACE.TheClass)
+        and
+        (TheClass <> ACE.TheClass)
+      )
+      or
+      (
+        (TheClass = ACE.TheClass)
+        and
+        Parent.InheritsFromCE(ACE)
+      )
+    );
+end;
+
 {TgdClassList}
 
 function TgdClassList.GetGDCClass(const AClassName: String): CgdcBase;
@@ -2153,42 +2176,45 @@ end;
 function TgdClassList.FindByRelation(
   const ARelationName: String): TgdBaseEntry;
 
-  function Iterate(ACE: TgdBaseEntry; const ALvl: Integer; APrevLvl: Integer;
-    var AFound: TgdBaseEntry): Boolean;
+  function GetCommonAncestor(A, B: TgdClassEntry): TgdClassEntry;
+  begin
+    if A = B then
+      Result := A
+    else if (A = nil) or (B = nil) then
+      Result := nil
+    else if B.InheritsFromCE(A) then
+      Result := A
+    else if A.InheritsFromCE(B) then
+      Result := B
+    else
+      Result := GetCommonAncestor(A.Parent, B.Parent);
+  end;
+
+  function Iterate(ACE: TgdBaseEntry; var AFound: TgdBaseEntry): Boolean;
   var
     I: Integer;
   begin
-    if ALvl < APrevLvl then
-      Result := False
-    else begin
-      Result := True;
-
-      if CompareText(ARelationName, ACE.DistinctRelation) = 0 then
-      begin
-        if AFound = nil then
-        begin
-          AFound := ACE;
-          APrevLvl := ALvl;
-        end else
-        begin
-          if AFound.Parent = ACE.Parent then
-            AFound := AFound.Parent as TgdBaseEntry;
-          Result := False;
-        end;
-      end;
-
-      if Result then
-      begin
-        for I := 0 to ACE.Count - 1 do
-        begin
-          if not Iterate(ACE.Children[I] as TgdBaseEntry, ALvl + 1, APrevLvl, AFound) then
-          begin
-            Result := False;
-            break;
-          end;
-        end;
+    if CompareText(ARelationName, ACE.DistinctRelation) = 0 then
+    begin
+      if AFound = nil then
+        AFound := ACE
+      else begin
+        AFound := GetCommonAncestor(AFound, ACE) as TgdBaseEntry;
+        Result := False;
+        exit;
       end;
     end;
+
+    for I := 0 to ACE.Count - 1 do
+    begin
+      if not Iterate(ACE.Children[I] as TgdBaseEntry, AFound) then
+      begin
+        Result := False;
+        exit;
+      end;
+    end;
+
+    Result := True;
   end;
 
 var
@@ -2197,7 +2223,7 @@ begin
   Result := nil;
   CE := Find('TgdcBase') as TgdBaseEntry;
   if (CE <> nil) and (ARelationName > '') then
-    Iterate(CE, 0, 0, Result);
+    Iterate(CE, Result);
 end;
 
 { TgdAttrUserDefinedEntry }

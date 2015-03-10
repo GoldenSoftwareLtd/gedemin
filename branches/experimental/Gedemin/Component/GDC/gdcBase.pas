@@ -2135,7 +2135,6 @@ const
 // а не TgdcContact или TgdcContactList
 // если для таблицы нет базового класса. например, это кросс таблица,
 // то возвращает пустую запись: класс=нил и подтип=пустой строке
-function GetBaseClassForRelation2(const ARelationName: String): TgdcFullClass;
 function GetBaseClassForRelation(const ARelationName: String): TgdcFullClass;
 function GetBaseClassForRelationByID(const ARelationName: String;
   const AnID: Integer; ibtr: TIBTransaction): TgdcFullClass;
@@ -2467,7 +2466,7 @@ begin
   Result := True;
 end;
 
-function GetBaseClassForRelation2(const ARelationName: String): TgdcFullClass;
+function GetBaseClassForRelation(const ARelationName: String): TgdcFullClass;
 var
   BE: TgdBaseEntry;
   R: TatRelation;
@@ -2481,12 +2480,13 @@ begin
   end else
   begin
     R := atDatabase.Relations.ByRelationName(ARelationName);
-    if (R <> nil) and (R.PrimaryKey <> nil) and (R.PrimaryKey.ConstraintFields.Count = 1) then
+    if (R <> nil) and (R.PrimaryKey <> nil)
+      and (R.PrimaryKey.ConstraintFields.Count = 1) then
     begin
       R := R.PrimaryKey.ConstraintFields[0].References;
 
       if R <> nil then
-        Result := GetBaseClassForRelation2(R.RelationName)
+        Result := GetBaseClassForRelation(R.RelationName)
       else begin
         Result.gdClass := nil;
         Result.SubType := '';
@@ -2499,6 +2499,7 @@ begin
   end;
 end;
 
+{
 function GetBaseClassForRelation(const ARelationName: String): TgdcFullClass;
 var
   I: Integer;
@@ -2645,7 +2646,7 @@ begin
       Result.SubType := '';
 
       gdClassList.Traverse(TgdcBase, '', BuildTree2, @Result, @ARelationName, True, False);
-   
+
       if Result.gdClass = nil then
       begin
         R := atDatabase.Relations.ByRelationName(ARelationName);
@@ -2681,11 +2682,12 @@ begin
     end;
   end;
 end;
+}
 
 function BuildTree(ACE: TgdClassEntry; AData1: Pointer;
   AData2: Pointer): Boolean;
 begin
-    TObjectList(AData1).Add(ACE);
+  TObjectList(AData1).Add(ACE);
   Result := True;
 end;
 

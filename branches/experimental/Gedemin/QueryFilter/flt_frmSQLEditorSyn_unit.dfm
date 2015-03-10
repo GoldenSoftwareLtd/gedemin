@@ -33,7 +33,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
       Height = 453
       BorderStyle = bsNone
       TabsVisible = True
-      ActivePage = tsRelations
+      ActivePage = tsQuery
       Align = alClient
       TabHeight = 23
       TabOrder = 0
@@ -1597,6 +1597,13 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
           Align = alTop
           BevelOuter = bvNone
           TabOrder = 0
+          object lblTablesCount: TLabel
+            Left = 8
+            Top = 7
+            Width = 70
+            Height = 13
+            Caption = 'lblTablesCount'
+          end
         end
         object lvRelations: TListView
           Left = 0
@@ -1616,12 +1623,6 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
             item
               Caption = 'Подтип'
               Width = 208
-            end
-            item
-              Width = 180
-            end
-            item
-              Width = 180
             end
             item
               Caption = 'Описание'
