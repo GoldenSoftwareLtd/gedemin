@@ -109,6 +109,7 @@ type
   public
     constructor Create(AnOwner: TComponent); override;
 
+    class function GetDistinctTable(const ASubType: TgdcSubType): String; override;
     class function GetDocumentClassPart: TgdcDocumentClassPart; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
@@ -135,6 +136,7 @@ type
   public
     constructor Create(AnOwner: TComponent); override;
 
+    class function GetDistinctTable(const ASubType: TgdcSubType): String; override;
     class function GetDocumentClassPart: TgdcDocumentClassPart; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
 
@@ -927,6 +929,12 @@ begin
   Result := 'TdlgInvPriceList';
 end;
 
+class function TgdcInvPriceList.GetDistinctTable(
+  const ASubType: TgdcSubType): String;
+begin
+  Result := 'INV_PRICE';
+end;
+
 { TgdcInvPriceListLine }
 
 constructor TgdcInvPriceListLine.Create(AnOwner: TComponent);
@@ -1302,6 +1310,12 @@ class function TgdcInvPriceListLine.GetDialogFormClassName(
   const ASubType: TgdcSubType): String;
 begin
   Result := 'TdlgInvPriceLine';
+end;
+
+class function TgdcInvPriceListLine.GetDistinctTable(
+  const ASubType: TgdcSubType): String;
+begin
+  Result := 'INV_PRICELINE';
 end;
 
 { TgdcInvPriceListType }

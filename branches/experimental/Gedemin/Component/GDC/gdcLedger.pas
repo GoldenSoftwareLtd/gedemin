@@ -4,10 +4,11 @@ unit gdcLedger;
 interface
 
 uses
-  Classes, gdcBase, gdcBaseInterface, gd_createable_form, Forms, gdv_AcctConfig_unit;
+  Classes, gdcBase, gdcBaseInterface, gd_createable_form, Forms, gdcAcctConfig,
+  gdv_AcctConfig_unit;
 
 type
-  TgdcAcctBaseConfig = class(TgdcBase)
+  TgdcAcctBaseConfig = class(TgdcBaseAcctConfig)
   protected
     procedure DeleteSF;
     procedure CreateSF;
@@ -15,15 +16,12 @@ type
     procedure DeleteCommand(SFRUID: TRUID);
     procedure HideCommand;
     procedure DoAfterCustomProcess(Buff: Pointer; Process: TgsCustomProcess); override;
+    function GetGDVViewForm: String; virtual;
 
-    function GetGDVViewForm: string; virtual;
   public
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
     class function IsAbstractClass: Boolean; override;
-
-    class function GetListTable(const ASubType: TgdcSubType): String; override;
-    class function GetListField(const ASubType: TgdcSubType): String; override;
   end;
 
   TgdcAcctLedgerConfig = class(TgdcAcctBaseConfig)
@@ -464,18 +462,6 @@ end;
 function TgdcAcctBaseConfig.GetGDVViewForm: string;
 begin
   Result := 'Tgdv_frmAcctBaseConfig'
-end;
-
-class function TgdcAcctBaseConfig.GetListField(
-  const ASubType: TgdcSubType): String;
-begin
-  Result := 'Name'
-end;
-
-class function TgdcAcctBaseConfig.GetListTable(
-  const ASubType: TgdcSubType): String;
-begin
-  Result := 'AC_ACCT_CONFIG'
 end;
 
 class function TgdcAcctBaseConfig.IsAbstractClass: Boolean;

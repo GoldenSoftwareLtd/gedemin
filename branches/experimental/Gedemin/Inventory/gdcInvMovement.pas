@@ -1,8 +1,7 @@
 
 {++
 
-
-  Copyright (c) 2001-2014 by Golden Software of Belarus
+  Copyright (c) 2001-2015 by Golden Software of Belarus
 
   Module
 
@@ -36,7 +35,7 @@ uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   Db, IB, IBCustomDataSet, gdcBase, gdcClasses, gdcInvConsts_unit, IBSQL,
   at_classes, gdcGood, Math, iberrorcodes, IBDataBase, gd_createable_form,
-  gdc_createable_form, gdcBaseInterface, gdv_InvCardConfig_unit,
+  gdc_createable_form, gdcBaseInterface, gdv_InvCardConfig_unit, gdcAcctConfig,
   gsIBGrid, gdcExplorer, gdcFunction, prm_ParamFunctions_unit, rp_report_const,
   gdcConstants, gd_security_operationconst, Storages, gd_i_ScriptFactory;
 
@@ -634,11 +633,13 @@ type
     property GoodSumFeatures: TgdcInvFeatures read FGoodSumFeatures;
   end;
 
-  TgdcInvCardConfig = class(TgdcBase)
+  TgdcInvCardConfig = class(TgdcBaseAcctConfig)
   private
     FConfig: TInvCardConfig;
+
     function GetConfig: TInvCardConfig;
     function GetIPCount: integer;
+
   protected
     procedure DeleteSF;
     procedure CreateSF;
@@ -651,21 +652,21 @@ type
     procedure DoAfterCustomProcess(Buff: Pointer; Process: TgsCustomProcess); override;
 
     function GetGDVViewForm: string;
+
   public
+    constructor Create(AnOwner: TComponent); override;
+    destructor Destroy; override;
+
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
 
-    class function GetListTable(const ASubType: TgdcSubType): String; override;
-    class function GetListField(const ASubType: TgdcSubType): String; override;
-    class function GetKeyField(const ASubType: TgdcSubType): String; override;
-    property Config: TInvCardConfig read GetConfig;
-    property InputParamsCount: integer read GetIPCount;
     procedure SaveConfig;
     procedure LoadConfig;
     procedure SaveGrid(Grid: TgsIBGrid);
     procedure ClearGrid;
-    constructor Create(AnOwner: TComponent); override;
-    destructor Destroy; override;
+
+    property Config: TInvCardConfig read GetConfig;
+    property InputParamsCount: integer read GetIPCount;
   end;
 
 
@@ -8737,24 +8738,6 @@ class function TgdcInvCardConfig.GetDialogFormClassName(
   const ASubType: TgdcSubType): String;
 begin
   Result := 'Tgdc_dlgInvCardConfig'
-end;
-
-class function TgdcInvCardConfig.GetKeyField(
-  const ASubType: TgdcSubType): String;
-begin
-  Result := 'ID'
-end;
-
-class function TgdcInvCardConfig.GetListField(
-  const ASubType: TgdcSubType): String;
-begin
-  Result := 'NAME'
-end;
-
-class function TgdcInvCardConfig.GetListTable(
-  const ASubType: TgdcSubType): String;
-begin
-  Result := 'AC_ACCT_CONFIG'
 end;
 
 class function TgdcInvCardConfig.GetViewFormClassName(
