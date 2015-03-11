@@ -1453,13 +1453,15 @@ begin
         end;
         TfrmGedeminProperty(GetParentForm(Self)).FindAndEdit(SQL.Fields[0].AsInteger);
       end else
+      begin
         MessageBox(Application.Handle,
           PChar(Format('Функция %s не найдена.', [CurrentWord])),
           'Внимание',
           MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+      end;
     end;
   finally
-    SQl.Free;
+    SQL.Free;
   end;
 end;
 

@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2001-2013 by Golden Software of Belarus
+  Copyright (c) 2001-2015 by Golden Software of Belarus
 
   Module
 
@@ -1247,6 +1247,7 @@ procedure Tgdc_dlgRelation.SetupRecord;
   {END MACRO}
 var
   R: TatRelation;
+  CF: TatRelationField;
   ibsql: TIBSQL;
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGRELATION', 'SETUPRECORD', KEYSETUPRECORD)}
@@ -1334,28 +1335,27 @@ begin
       else
         raise Exception.Create('“аблица не может быть открыта на редактирование.');
 
-
     if Assigned(R) then
-      with R do
-      begin
-        iblcExplorerBranch.Visible :=
-          (gdcObject.State = dsEdit) and
-          IsUserDefined and
-          (
-           (gdcObject is TgdcView) or
-           (gdcObject is TgdcPrimeTable) or
-           (gdcObject is TgdcSimpleTable) or
-           (gdcObject is TgdcTreeTable) or
-           (gdcObject is TgdcLBRBTreeTable) or
-           (gdcObject is TgdcTableToTable)  or
-           (gdcObject is TgdcTableToDefinedTable)
-          );
-      end;
+    with R do
+    begin
+      iblcExplorerBranch.Visible :=
+        (gdcObject.State = dsEdit) and
+        IsUserDefined and
+        (
+         (gdcObject is TgdcView) or
+         (gdcObject is TgdcPrimeTable) or
+         (gdcObject is TgdcSimpleTable) or
+         (gdcObject is TgdcTreeTable) or
+         (gdcObject is TgdcLBRBTreeTable) or
+         (gdcObject is TgdcTableToTable)  or
+         (gdcObject is TgdcTableToDefinedTable)
+        );
+    end;
   end;
 
   lblBranch.Visible := iblcExplorerBranch.Visible;
 
-//¬ыведем родител€ нашей ветки в исследователе
+  //¬ыведем родител€ нашей ветки в исследователе
   if lblBranch.Visible and (gdcObject.FieldByName('branchkey').AsInteger > 0) then
   begin
     ibsql := TIBSQL.Create(nil);
@@ -1384,8 +1384,16 @@ begin
     ibcmbReference.DataField := 'referencekey';
     if (gdcObject.State = dsEdit) then
     begin
-      ibcmbReference.CurrentKeyInt := atDatabase.Relations.ByRelationName(
-      atDatabase.Relations.ByRelationName(gdcObject.FieldByName('relationname').AsString).RelationFields.ByFieldName('id').Field.RefTableName).ID;
+      R := atDatabase.Relations.ByRelationName(gdcObject.FieldByName('relationname').AsString);
+
+      if (R <> nil) and (R.PrimaryKey <> nil) and (R.PrimaryKey.ConstraintFields.Count = 1) then
+      begin
+        CF := R.PrimaryKey.ConstraintFields[0];
+
+        if CF.Field.RefTable <> nil then
+          ibcmbReference.CurrentKeyInt := CF.Field.RefTable.ID;
+      end;
+
       ibcmbReference.Enabled := False;
     end;
   end;
