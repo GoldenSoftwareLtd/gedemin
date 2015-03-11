@@ -103,7 +103,7 @@ begin
 
   inherited;
 
-  Caption := gdcInvDocument.DocumentName[True];
+  Caption := gdcInvDocument.DocumentName;
 end;
 
 procedure Tgdc_frmInvDocument.SaveDesktopSettings;

@@ -8207,12 +8207,12 @@ end;
 function TwrpGDCDocument.Get_DocumentDescription(
   ReadNow: WordBool): WideString;
 begin
-  Result := GetGDCDocument.DocumentDescription[ReadNow];
+  Result := GetGDCDocument.DocumentDescription;
 end;
 
 function TwrpGDCDocument.Get_DocumentName(ReadNow: WordBool): WideString;
 begin
-  Result := GetGDCDocument.DocumentName[ReadNow];
+  Result := GetGDCDocument.DocumentName;
 end;
 
 function TwrpGDCDocument.GetDocumentClassPart: TgsGDCDocumentClassPart;
@@ -8316,7 +8316,7 @@ end;
 
 procedure TwrpGdcUserDocumentType.ReadOptions;
 begin
-  GetGdcUserDocumentType.ReadOptions;
+  //GetGdcUserDocumentType.ReadOptions;
 end;
 
 procedure TwrpGdcUserDocumentType.Set_BranchKey(Value: Integer);

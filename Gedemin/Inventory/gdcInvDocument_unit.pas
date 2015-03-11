@@ -398,13 +398,12 @@ type
     property SaveRestWindowOption: Boolean read FSaveRestWindowOption write FSaveRestWindowOption;
     property EndMonthRemains: Boolean read FEndMonthRemains write FEndMonthRemains;
     property WithoutSearchRemains: Boolean read FWithoutSearchRemains write FWithoutSearchRemains;
-
   end;
 
-  EgdcInvBaseDocument = class(Exception);
-  EgdcInvDocument = class(Exception);
-  EgdcInvDocumentLine = class(Exception);
-  EgdcInvDocumentType = class(Exception);
+  EgdcInvBaseDocument = class(EgdcException);
+  EgdcInvDocument = class(EgdcException);
+  EgdcInvDocumentLine = class(EgdcException);
+  EgdcInvDocumentType = class(EgdcException);
 
 procedure Register;
 
@@ -826,15 +825,15 @@ end;
 
 procedure TgdcInvBaseDocument.ReadOptions(Stream: TStream);
 var
-  Index: Integer;
+  DE: TgdDocumentEntry;
 begin
   Assert(not Active);
 
-  Index := CacheDocumentTypeByRUID(SubType);
-  if Index > - 1 then
+  DE := gdClassList.FindDocByRUID(SubType, GetDocumentClassPart);
+  if DE <> nil then
   begin
-    FReportGroupKey := DocTypeCache.CacheItemsByIndex[Index].ReportGroupKey;
-    FBranchKey := DocTypeCache.CacheItemsByIndex[Index].BranchKey;
+    FReportGroupKey := DE.ReportGroupKey;
+    FBranchKey := DE.BranchKey;
   end else
     raise EgdcInvDocumentType.Create('Складской документ не найден!');
 
@@ -1108,29 +1107,26 @@ end;
 procedure TgdcInvBaseDocument.SetSubType(const Value: TgdcSubType);
 var
   Stream: TStream;
-  Index: Integer;
+  DE: TgdDocumentEntry;
 begin
   if (SubType <> Value) then
   begin
     inherited;
-
     FDocumentTypeKey := -1;
-
     if SubType > '' then
     begin
-      Index := CacheDocumentTypeByRUID(Value);
-      if Index > -1 then
+      DE := gdClassList.FindDocByRUID(Value, GetDocumentClassPart);
+      if DE <> nil then
       begin
-        FDocumentTypeKey := DocTypeCache.CacheItemsByIndex[Index].ID;
-
-        Stream := TStringStream.Create(DocTypeCache.CacheItemsByIndex[Index].Options);
+        FDocumentTypeKey := DE.TypeID;
+        Stream := TStringStream.Create(DE.Options);
         try
           ReadOptions(Stream);
         finally
           Stream.Free;
         end;
       end else
-        raise EgdcInvBaseDocument.Create(sInventoryDocumentDontFound);
+        raise EgdcInvBaseDocument.CreateObj(sInventoryDocumentDontFound, Self);
     end;
   end;
 end;

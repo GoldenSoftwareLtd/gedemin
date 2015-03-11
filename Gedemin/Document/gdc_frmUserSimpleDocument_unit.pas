@@ -59,7 +59,7 @@ procedure Tgdc_frmUserSimpleDocument.FormCreate(Sender: TObject);
 begin
   gdcObject := gdcUserDocument;
   inherited;
-  Caption := gdcUserDocument.DocumentName[True];
+  Caption := gdcUserDocument.DocumentName;
 end;
 
 procedure Tgdc_frmUserSimpleDocument.actCreateEntryExecute(

@@ -95,7 +95,7 @@ begin
 
   pnlHolding.Visible := IBLogin.IsHolding;
 
-  Caption := (gdcObject as TgdcUserBaseDocument).DocumentName[False];
+  Caption := (gdcObject as TgdcUserBaseDocument).DocumentName;
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGUSERSIMPLEDOCUMENT', 'SETUPDIALOG', KEYSETUPDIALOG)}
   {M}finally

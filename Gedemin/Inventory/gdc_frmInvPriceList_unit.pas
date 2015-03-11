@@ -71,7 +71,7 @@ begin
 
   inherited;
 
-  Caption := gdcInvPriceList.DocumentName[True];
+  Caption := gdcInvPriceList.DocumentName;
 end;
 
 procedure Tgdc_frmInvPriceList.SaveDesktopSettings;
