@@ -729,12 +729,12 @@ begin
   inherited;
 
   if DocumentLine.State = dsInsert then
-    Caption := 'Добавление позиции документа: ' + DocumentLine.DocumentName[False]
+    Caption := 'Добавление позиции документа: ' + DocumentLine.DocumentName
   else
   if DocumentLine.State = dsEdit then
-    Caption := 'Редактирование позиции документа: ' + DocumentLine.DocumentName[False]
+    Caption := 'Редактирование позиции документа: ' + DocumentLine.DocumentName
   else
-    Caption := 'Позиции документа: ' + DocumentLine.DocumentName[False];
+    Caption := 'Позиции документа: ' + DocumentLine.DocumentName;
 
   //
   //  Настройка используемых справочников

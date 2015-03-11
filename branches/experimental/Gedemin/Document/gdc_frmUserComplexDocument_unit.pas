@@ -68,7 +68,7 @@ begin
 
   gdcDetailObject.Open;
 
-  Caption := gdcUserDocument.DocumentName[True];
+  Caption := gdcUserDocument.DocumentName;
 end;
 
 procedure Tgdc_frmUserComplexDocument.actCreateEntryExecute(

@@ -362,6 +362,7 @@ type
     FLineRelKey: Integer;
     FHeaderRelName: String;
     FLineRelName: String;
+    FBranchKey: Integer;
 
     procedure SetHeaderRelKey(const Value: Integer);
     procedure SetLineRelKey(const Value: Integer);
@@ -381,6 +382,7 @@ type
     property Options: String read FOptions write FOptions;
     property TypeID: Integer read FTypeID write FTypeID;
     property ReportGroupKey: Integer read FReportGroupKey write FReportGroupKey;
+    property BranchKey: Integer read FBranchKey write FBranchKey;
   end;
 
   TgdStorageEntry = class(TgdBaseEntry)
@@ -412,6 +414,8 @@ type
       AClass: TClass; const ASubType: TgdcSubType; const ACaption: String): TgdClassEntry;
     function _FindDoc(ACE: TgdClassEntry; AData1: Pointer;
       AData2: Pointer): Boolean;
+    function _FindDocByRUID(ACE: TgdClassEntry; AData1: Pointer;
+      AData2: Pointer): Boolean;
 
   public
     constructor Create;
@@ -427,7 +431,9 @@ type
     function Find(const AClass: TClass; const ASubType: TgdcSubType = ''): TgdClassEntry; overload;
     function Find(const AClassName: AnsiString; const ASubType: TgdcSubType = ''): TgdClassEntry; overload;
     function Find(const AFullClassName: TgdcFullClassName): TgdClassEntry; overload;
-    function Find(const ADocTypeID: TID): TgdDocumentEntry; overload;
+    function Find(AnObj: TgdcBase): TgdBaseEntry; overload;
+    function FindDocByTypeID(const ADocTypeID: TID; const APart: TgdcDocumentClassPart): TgdDocumentEntry; overload;
+    function FindDocByRUID(const ARUID: String; const APart: TgdcDocumentClassPart): TgdDocumentEntry;
     function FindByRelation(const ARelationName: String): TgdBaseEntry;
 
     function Traverse(const AClass: TClass; const ASubType: TgdcSubType;
@@ -516,6 +522,13 @@ uses
 type
   TPrefixType = array [0..3] of Char;
   TClassTypeList = (GDC, FRM);
+  TAuxRec = record
+    ID: TID;
+    Part: TgdcDocumentClassPart;
+    RUID: String;
+    CE: TgdClassEntry;
+  end;
+  PAuxRec = ^TAuxRec;
 
 const
   PARAM_PREFIX         : TPrefixType = '^PAR';
@@ -1764,6 +1777,7 @@ procedure TgdClassList.LoadUserDefinedClasses;
       ReportGroupKey := q.FieldByName('reportgroupkey').AsInteger;
       HeaderRelKey := q.FieldByName('headerrelkey').AsInteger;
       LineRelKey := q.FieldByName('linerelkey').AsInteger;
+      BranchKey := q.FieldByName('branchkey').AsInteger;
     end;
   end;
 
@@ -1889,7 +1903,7 @@ begin
       else if CompareText(q.FieldbyName('classname').AsString, 'TgdcInvPriceListType') = 0 then
         LoadDocument(CEInvPriceList, q)
       else begin
-        DE := Find(q.FieldByName('id').AsInteger);
+        DE := FindDocByTypeID(q.FieldByName('id').AsInteger, dcpHeader);
         if DE <> nil then
           LoadDE(DE, q);
         q.Next;
@@ -2143,20 +2157,24 @@ begin
   end;
 end;
 
-function TgdClassList.Find(const ADocTypeID: TID): TgdDocumentEntry;
+function TgdClassList.FindDocByTypeID(const ADocTypeID: TID;
+  const APart: TgdcDocumentClassPart): TgdDocumentEntry;
 var
-  CE, Doc: TgdClassEntry;
+  Doc: TgdClassEntry;
+  AuxRec: TAuxRec;
 begin
   Doc := Find('TgdcDocument');
 
-  if Doc = nil then
+  if (Doc = nil) or (ADocTypeID <= 0) then
     Result := nil
   else begin
-    CE := nil;
-    Doc.Traverse(_FindDoc, Pointer(ADocTypeID), @CE,
-      False, False);
-    if CE is TgdDocumentEntry then
-      Result := CE as TgdDocumentEntry
+    AuxRec.ID := ADocTypeID;
+    AuxRec.Part := APart;
+    AuxRec.RUID := '';
+    AuxRec.CE := nil;
+    Doc.Traverse(_FindDoc, @AuxRec, nil, False, False);
+    if AuxRec.CE is TgdDocumentEntry then
+      Result := AuxRec.CE as TgdDocumentEntry
     else
       Result := nil;
   end;
@@ -2165,9 +2183,10 @@ end;
 function TgdClassList._FindDoc(ACE: TgdClassEntry; AData1,
   AData2: Pointer): Boolean;
 begin
-  if TgdDocumentEntry(ACE).TypeID = TID(AData1) then
+  if (TgdDocumentEntry(ACE).TypeID = PAuxRec(AData1)^.ID)
+    and (CgdcDocument(ACE.TheClass).GetDocumentClassPart = PAuxRec(AData1)^.Part) then
   begin
-    TgdClassEntry(AData2^) := ACE;
+    PAuxRec(AData1)^.CE := ACE;
     Result := False;
   end else
     Result := True;
@@ -2226,6 +2245,47 @@ begin
     Iterate(CE, Result);
 end;
 
+function TgdClassList.FindDocByRUID(const ARUID: String;
+  const APart: TgdcDocumentClassPart): TgdDocumentEntry;
+var
+  Doc: TgdClassEntry;
+  AuxRec: TAuxRec;
+begin
+  Doc := Find('TgdcDocument');
+
+  if (Doc = nil) or (ARUID = '') then
+    Result := nil
+  else begin
+    AuxRec.ID := -1;
+    AuxRec.Part := APart;
+    AuxRec.RUID := ARUID;
+    AuxRec.CE := nil;
+    Doc.Traverse(_FindDocByRUID, @AuxRec, nil, False, False);
+    if AuxRec.CE is TgdDocumentEntry then
+      Result := AuxRec.CE as TgdDocumentEntry
+    else
+      Result := nil;
+  end;
+end;
+
+function TgdClassList._FindDocByRUID(ACE: TgdClassEntry; AData1,
+  AData2: Pointer): Boolean;
+begin
+  if (TgdDocumentEntry(ACE).SubType = PAuxRec(AData1)^.RUID)
+    and (CgdcDocument(ACE.TheClass).GetDocumentClassPart = PAuxRec(AData1)^.Part) then
+  begin
+    PAuxRec(AData1)^.CE := ACE;
+    Result := False;
+  end else
+    Result := True;
+end;
+
+function TgdClassList.Find(AnObj: TgdcBase): TgdBaseEntry;
+begin
+  Assert(AnObj <> nil);
+  Result := Find(AnObj.ClassName, AnObj.SubType) as TgdBaseEntry;
+end;
+
 { TgdAttrUserDefinedEntry }
 
 constructor TgdAttrUserDefinedEntry.Create(AParent: TgdClassEntry;
@@ -2251,6 +2311,7 @@ begin
   FReportGroupKey := TgdDocumentEntry(CE).ReportGroupKey;
   HeaderRelKey := TgdDocumentEntry(CE).HeaderRelKey;
   LineRelKey := TgdDocumentEntry(CE).LineRelKey;
+  BranchKey := TgdDocumentEntry(CE).BranchKey;
 end;
 
 procedure TgdDocumentEntry.SetHeaderRelKey(const Value: Integer);

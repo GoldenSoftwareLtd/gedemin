@@ -2127,7 +2127,7 @@ begin
   begin
     HelpID := gdcObject.GetDisplayName(gdcObject.SubType);
     if gdcObject is TgdcDocument then
-      HelpID := HelpID + ' ' + TgdcDocument(gdcObject).DocumentName[False];
+      HelpID := HelpID + ' ' + TgdcDocument(gdcObject).DocumentName;
     ShowHelp(HelpID + ' (диалог)');
   end;  
 end;

@@ -48,19 +48,16 @@ type
 
   TgdcDocument = class(TgdcTree)
   private
-    FDocumentName, FDocumentDescription: String;
     FgdcAcctEntryRegister: TgdcBase;
-
     FNumberUpdated: Boolean;
     FLastNumber, FAddNumber, FNumberCompanyKey: Integer;
     FMask: String;
     FAutoNumber: String;
 
-    procedure RefreshDocumentData;
     procedure UpdateLineFromHeader;
 
-    function GetDocumentDescription(ReadNow: Boolean): String;
-    function GetDocumentName(ReadNow: Boolean): String;
+    function GetDocumentDescription: String;
+    function GetDocumentName: String;
     function GetIsCommon: Boolean;
 
     function GetNextNumber: String;
@@ -132,18 +129,12 @@ type
 
     function GetDescendantCount(const AnOnlySameLevel: Boolean): Integer; override;
 
-    //Кэширует документтайп и возвращает индекс в кэше
-    function CacheDocumentType: Integer;
-    class function CacheDocumentTypeByRUID(const RUIDString: String): Integer;
-    class function DoCacheDocumentType(const ADocTypeKey: Integer;
-      const RUID: String = ''; const ByRUID: Boolean = False): Integer;
-
     // Возвращает класс документа
     class function GetDocumentClass(const TypeKey: Integer;
       const DocClassPart: TgdcDocumentClassPart): TgdcFullClass;
 
-    property DocumentName[ReadNow: Boolean]: String read GetDocumentName;
-    property DocumentDescription[ReadNow: Boolean]: String read GetDocumentDescription;
+    property DocumentName: String read GetDocumentName;
+    property DocumentDescription: String read GetDocumentDescription;
 
     property gdcAcctEntryRegister: TgdcBase read GetgdcAcctEntryRegister;
 
@@ -154,11 +145,13 @@ type
   TgdcBaseDocumentType = class(TgdcLBRBTree)
   private
     FCurrentClassName: String;
+    function GetDocLineRelationName: String;
+    function GetDocRelationName: String;
+    function GetIsComplexDocument: Boolean;
 
   protected
     function GetParent: TID; override;
     procedure _DoOnNewRecord; override;
-    procedure DoAfterCustomProcess(Buff: Pointer; Process: TgsCustomProcess); override;
     procedure GetWhereClauseConditions(S: TStrings); override;
     function GetNotCopyField: String; override;
     procedure DoBeforePost; override;
@@ -182,6 +175,10 @@ type
     class function GetSubSetList: String; override;
     class function NeedModifyFromStream(const SubType: String): Boolean; override;
     class function IsAbstractClass: Boolean; override;
+
+    property DocRelationName: String read GetDocRelationName;
+    property DocLineRelationName: String read GetDocLineRelationName;
+    property IsComplexDocument: Boolean read GetIsComplexDocument;
 
     class function GetChildrenClass(const ASubType: TgdcSubType;
       AnOL: TObjectList; const AnIncludeRoot: Boolean = True;
@@ -226,11 +223,6 @@ type
   end;
 
   TgdcUserDocumentType = class(TgdcDocumentType)
-  private
-    FIsComplexDocument: Boolean;
-    FDocRelationName: String;
-    FDocLineRelationName: String;
-
   protected
     procedure _DoOnNewRecord; override;
 
@@ -239,12 +231,6 @@ type
 
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetHeaderDocumentClass: CgdcBase; override;
-
-    procedure ReadOptions;
-
-    property DocRelationName: String read FDocRelationName;
-    property DocLineRelationName: String read FDocLineRelationName;
-    property IsComplexDocument: Boolean read FIsComplexDocument;
   end;
 
   TgdcUserBaseDocument = class(TgdcDocument)
@@ -331,68 +317,7 @@ type
   function EncodeNumber(const AMask: String; const ALastNumber: Integer;
     const ADate: TDateTime; const FixLength: Integer{ = 0}): String;
 
-type
-  TDocumentTypeCacheItem = class
-  private
-    FID: Integer;
-    FIsCommon: Boolean;
-    FHeaderFunctionKey: Integer;
-    FLineFunctionKey: Integer;
-    FDescription: string;
-    FName: string;
-    FRUID: string;
-    FOptions: String;
-    FIsCheckNumber: TIsCheckNumber;
-    FReportGroupKey: Integer;
-    FBranchKey: Integer;
-    FDTClassName: String;
-    FHeaderRelKey: Integer;
-    FLineRelKey: Integer;
-
-  public
-    property HeaderFunctionKey: Integer read FHeaderFunctionKey write FHeaderFunctionKey;
-    property LineFunctionKey: Integer read FLineFunctionKey write FLineFunctionKey;
-    property HeaderRelKey: Integer read FHeaderRelKey write FHeaderRelKey;
-    property LineRelKey: Integer read FLineRelKey write FLineRelKey;
-    property IsCommon: Boolean read FIsCommon write FIsCommon;
-    property Name: String read FName write FName;
-    property Description: String read FDescription write FDescription;
-    property RUID: String read FRUID write FRUID;
-    property IsCheckNumber: TIsCheckNumber read FIsCheckNumber write FIsCheckNumber;
-    property Options: String read FOptions write FOptions;
-    property ID: Integer read FID write FID;
-    property ReportGroupKey: Integer read FReportGroupKey write FReportGroupKey;
-    property BranchKey: Integer read FBranchKey write FBranchKey;
-    property DTClassName: String read FDTClassName write FDTClassName;
-  end;
-
-  TDocumentTypeCache = class(TgdKeyObjectAssoc, IConnectChangeNotify)
-  private
-    function GetCacheItems(Key: Integer): TDocumentTypeCacheItem;
-    function GetCacheItemsByIndex(Index: Integer): TDocumentTypeCacheItem;
-    function GetCacheItemsByRUID(RUID: string): TDocumentTypeCacheItem;
-
-    procedure DoAfterSuccessfullConnection;
-    procedure DoBeforeDisconnect;
-    procedure DoAfterConnectionLost;
-
-    function QueryInterface(const IID: TGUID; out Obj): HResult; virtual; stdcall;
-    function _AddRef: Integer; stdcall;
-    function _Release: Integer; stdcall;
-
-  public
-    constructor Create;
-    destructor Destroy; override;
-
-    function IndexOfByRUID(RUID: string): Integer;
-    property CacheItemsByKey[Key: Integer]: TDocumentTypeCacheItem read GetCacheItems;
-    property CacheItemsByIndex[Index: Integer]: TDocumentTypeCacheItem read GetCacheItemsByIndex;
-    property CacheItemsByRUID[RUID: string]: TDocumentTypeCacheItem read GetCacheItemsByRUID;
-  end;
-
 procedure Register;
-
-function DocTypeCache: TDocumentTypeCache;
 
 implementation
 
@@ -446,19 +371,6 @@ const
      '"MONTHSTR"',
      '"COMPUTER"',
      '"USER"');
-
-var
-  _DocTypeCache: TDocumentTypeCache;
-
-function DocTypeCache: TDocumentTypeCache;
-begin
-  if _DocTypeCache = nil then
-  begin
-    _DocTypeCache := TDocumentTypeCache.Create;
-    _DocTypeCache.OwnsObjects := True;
-  end;
-  Result := _DocTypeCache;
-end;
 
 const
 {SQL для работы с порядковой нумерацией документа}
@@ -848,42 +760,26 @@ begin
   {END MACRO}
 end;
 
-function TgdcDocument.GetDocumentDescription(ReadNow: Boolean): String;
-begin
-  if
-    ReadNow or (FDocumentDescription = '') or
-    (FDocumentDescription = '(UNKNOWN DOCUMENT TYPE)')
-  then
-    RefreshDocumentData;
-
-  Result := FDocumentDescription;
-end;
-
-function TgdcDocument.GetDocumentName(ReadNow: Boolean): String;
-begin
-  if
-    ReadNow or (FDocumentName = '') or
-    (FDocumentName = '(UNKNOWN DOCUMENT TYPE)')
-  then
-    RefreshDocumentData;
-
-  Result := FDocumentName;
-end;
-
-procedure TgdcDocument.RefreshDocumentData;
+function TgdcDocument.GetDocumentDescription: String;
 var
-  Index: Integer;
+  DE: TgdDocumentEntry;
 begin
-  Index := CacheDocumentType;
-  if Index > - 1 then
-  begin
-    FDocumentName := DocTypeCache.CacheItemsByIndex[Index].Name;
-    FDocumentDescription := DocTypeCache.CacheItemsByIndex[Index].Description;
-  end else
-  begin
-    FDocumentName := '(UNKNOWN DOCUMENT TYPE)';
-    FDocumentDescription := '(UNKNOWN DOCUMENT TYPE)';
-  end;
+  DE := gdClassList.FindDocByTypeID(DocumentTypeKey, GetDocumentClassPart);
+  if DE <> nil then
+    Result := DE.Description
+  else
+    Result := '';
+end;
+
+function TgdcDocument.GetDocumentName: String;
+var
+  DE: TgdDocumentEntry;
+begin
+  DE := gdClassList.FindDocByTypeID(DocumentTypeKey, GetDocumentClassPart);
+  if DE <> nil then
+    Result := DE.Caption
+  else
+    Result := '';
 end;
 
 procedure TgdcDocument.DoBeforeCancel;
@@ -1264,182 +1160,25 @@ end;
 
 function TgdcDocument.GetCurrRecordClass: TgdcFullClass;
 var
-  S: String;
-  ibsql: TIBSQL;
-  C: CgdcBase;
-  ClName, RUID: String;
-  DTK, Idx: Integer;
-  F: TField;
+  DE: TgdDocumentEntry;
+  Part: TgdcDocumentClassPart;
 begin
-  Result.gdClass := CgdcBase(Self.ClassType);
-  Result.SubType := '';
+  if IsEmpty then
+    Result := inherited GetCurrRecordClass
+  else begin
+    if FieldByName('parent').IsNull then
+      Part := dcpHeader
+    else
+      Part := dcpLine;
 
-  DTK := FieldByName('documenttypekey').AsInteger;
+    DE := gdClassList.FindDocByTypeID(FieldByName('documenttypekey').AsInteger, Part);
 
-  if DTK = 0 then
-    Exit;
-
-  S := '';
-  if (DTK >= cstUserIDStart) then
-  begin
-    Idx := DoCacheDocumentType(DTK);
-
-    if Idx > -1 then
-    begin
-      ClName := DocTypeCache.CacheItemsByIndex[Idx].DTClassName;
-      RUID := DocTypeCache.CacheItemsByIndex[Idx].RUID;
-    end else
-    begin
-      ClName := '';
-      RUID := '';
+    if DE = nil then
+      Result := inherited GetCurrRecordClass
+    else begin
+      Result.gdClass := DE.gdcClass;
+      Result.SubType := DE.SubType;
     end;
-
-    if ClName = '' then
-    begin
-      ibsql := CreateReadIBSQL;
-      try
-        ibsql.SQL.Text :=
-          ' SELECT dt.ruid, dt.classname, dt1.classname as folderclassname ' +
-          ' FROM gd_documenttype dt LEFT JOIN gd_documenttype dt1 ON dt.lb >= dt1.lb AND ' +
-          ' dt.rb <= dt1.rb WHERE dt.id = :id ' ;
-        ibsql.ParamByName('id').AsInteger := DTK;
-        ibsql.ExecQuery;
-        if ibsql.RecordCount > 0 then
-        begin
-          ClName := Trim(ibsql.FieldByname('classname').AsString);
-
-          if ClName = '' then
-            ClName := Trim(ibsql.FieldByname('folderclassname').AsString);
-
-          RUID := ibsql.FieldByName('ruid').AsString;
-        end;
-      finally
-        ibsql.Free;
-      end;
-    end;
-
-    if AnsiCompareText(ClName, 'TgdcInvDocumentType') = 0 then
-    begin
-      if FieldByName('parent').IsNull then
-        S := 'TgdcInvDocument'
-      else
-        S := 'TgdcInvDocumentLine';
-    end
-    else if ANSICompareText(ClName, 'TgdcInvPriceListType') = 0 then
-    begin
-      if FieldByName('parent').IsNull then
-        S := 'TgdcInvPriceList'
-      else
-        S := 'TgdcInvPriceListLine';
-    end
-    else if ANSICompareText(ClName, 'TgdcUserDocumentType') = 0 then
-    begin
-      if FieldByName('parent').IsNull then
-        S := 'TgdcUserDocument'
-      else
-        S := 'TgdcUserDocumentLine';
-    end;
-
-    if S > '' then
-    begin
-      C := gdClassList.GetGDCClass(S);
-      if C <> nil then
-      begin
-        Result.gdClass := C;
-        Result.SubType := RUID;
-      end;
-    end;
-  end
-  else
-  begin
-    case FieldByName('documenttypekey').AsInteger of
-      BN_DOC_PAYMENTORDER:                      // платежное поручение
-        S := 'TgdcPaymentOrder';
-      BN_DOC_PAYMENTDEMAND:                     // платежное требование
-        S := 'TgdcPaymentDemand';
-      BN_DOC_PAYMENTDEMANDPAYMENT:              // требование-поручение
-        S := 'TgdcDemandOrder';
-      BN_DOC_ADVICEOFCOLLECTION:                // инкассовое распоряжение
-        S := 'TgdcAdviceOfCollection';
-      BN_DOC_BANKSTATEMENT:                     // банковская выписка
-        if FieldByName('parent').IsNull then
-          S := 'TgdcBankStatement'
-        else
-          {$IFDEF DEPARTMENT}
-          S := 'TgdcBankStatementLineD';
-          {$ELSE}
-          S := 'TgdcBankStatementLine';
-          {$ENDIF}
-      BN_DOC_BANKCATALOGUE:                     // картатэка
-        if FieldByName('parent').IsNull then
-          S := 'TgdcBankCatalogue'
-        else
-          S := 'TgdcBankCatalogueLine';
-      BN_DOC_CHECKLIST:                         // реестр чеков
-        S := 'TgdcCheckList';
-      BN_DOC_CURRCOMMISION:                     // валютная платежка
-        S := 'TgdcCurrCommission';
-      BN_DOC_CURRSELLCONTRACT:                  // договор на продажу валюты
-        S := 'TgdcCurrSellContract';
-      BN_DOC_CURRCOMMISSSELL:                   // поручение на продажу валюты
-        S := 'TgdcCurrCommissSell';
-      BN_DOC_CURRLISTALLOCATION:                // реестр распределения валюты
-        S := 'TgdcCurrListAllocation';
-      BN_DOC_CURRBUYCONTRACT:                   // договор на покупку валюты
-        S := 'TgdcCurrBuyContract';
-      BN_DOC_CURRCONVCONTRACT:                  // контракт на коверсию валюты
-        S := 'TgdcCurrConvContract';
-      GD_DOC_TAXRESULT:
-        case GetDocumentClassPart of
-          dcpHeader: S := 'TgdcTaxDesignDate';
-          dcpLine:   S := 'TgdcTaxResult';
-        end;
-
-     { TODO -oJulia : А как быть с документами, которые не имеют бизнес-объектов }
-     { TODO : это код специально для Березы?? }
-      GD_DOC_REALIZATIONBILL:                   // накладная на отпуск ТМЦ
-        S := '';
-      GD_DOC_CONTRACT:                          // договора
-        S := '';
-      GD_DOC_RETURNBILL:                        // накладная на возврат ТМЦ
-        S := '';
-      GD_DOC_BILL:                              // счет-фактура
-        S := '';
-
-      CTL_DOC_INVOICE:                          // отвес-накладная
-        S := '';
-      CTL_DOC_RECEIPT:                          // приемная квитанция
-        S := '';
-
-      {$IFDEF DEPARTMENT}
-      DP_DOC_INVENTORY:                         // акт описи и оценки
-        S := 'Tgdc_dpInventory';
-      DP_DOC_TRANSFER:                          // акт передачи
-        S := 'Tgdc_dpTransfer';
-      DP_DOC_REVALUATION:                       // акт переоценки
-        S := 'Tgdc_dpRevaluation';
-      DP_DOC_WITHDRAWAL:                        // акт изъятия валюты
-        S := 'Tgdc_dpWithdrawal';
-      {$ENDIF}
-
-    end;
-
-    if S > '' then
-    begin
-      Result.gdClass := CgdcBase(GetClass(S));
-      Result.SubType := '';
-    end;
-  end;
-
-  // С классом определились
-  // Если подтип еще не определен пытаемся найти
-  if (Result.SubType = '') then
-  begin
-    F := FindField('USR$ST');
-    if F <> nil then
-      Result.SubType := F.AsString;
-    if (Result.SubType > '') and (not Result.gdClass.CheckSubType(Result.SubType)) then
-      raise EgdcException.Create('Invalid USR$ST value.');
   end;
 end;
 
@@ -1669,14 +1408,10 @@ end;
 
 function TgdcDocument.GetIsCommon: Boolean;
 var
-  Index: Integer;
+  DE: TgdDocumentEntry;
 begin
-  Result := false;
-  Index := CacheDocumentType;
-  if Index > - 1 then
-  begin
-    Result := DocTypeCache.CacheItemsByIndex[Index].IsCommon;
-  end;
+  DE := gdClassList.FindDocByTypeID(DocumentTypeKey, GetDocumentClassPart);
+  Result := (DE <> nil) and DE.IsCommon;
 end;
 
 function TgdcDocument.GetNextNumber: String;
@@ -1795,82 +1530,20 @@ begin
   end;
 end;
 
-class function TgdcDocument.DoCacheDocumentType(const ADocTypeKey: Integer;
-  const RUID: String = ''; const ByRUID: Boolean = False): Integer;
-var
-  ibsql: TIBSQL;
-  CI: TDocumentTypeCacheItem;
-begin
-  if ByRUID then
-  begin
-    Result := DocTypeCache.IndexOfByRUID(RUID);
-  end else
-  begin
-    if ADocTypeKey <= 0 then
-    begin
-      Result := - 1;
-      exit;
-    end;
-
-    Result := DocTypeCache.IndexOf(ADocTypeKey);
-  end;
-
-  if Result > -1 then
-    exit;
-
-  ibsql := TIBSQL.Create(nil);
-  try
-    ibsql.Transaction := gdcBaseManager.ReadTransaction;
-    if ByRUID then
-    begin
-      ibsql.SQL.Text := 'SELECT * FROM gd_documenttype WHERE ruid = :ruid';
-      ibsql.ParamByName(fnRUID).AsString := RUID;
-    end else
-    begin
-      ibsql.SQL.Text := 'SELECT * FROM gd_documenttype WHERE id = :id';
-      ibsql.ParamByName(fnId).AsInteger := ADocTypeKey;
-    end;
-    ibsql.ExecQuery;
-    if not ibsql.EOF then
-    begin
-      CI := TDocumentTypeCacheItem.Create;
-      CI.ID := ibsql.FieldByName(fnID).AsInteger;
-      CI.IsCommon := ibsql.FieldByName('iscommon').AsInteger > 0;
-      CI.HeaderFunctionKey := ibsql.FieldByName('headerfunctionkey').AsInteger;
-      CI.LineFunctionKey := ibsql.FieldByName('linefunctionkey').AsInteger;
-      CI.HeaderRelKey := ibsql.FieldByName('headerrelkey').AsInteger;
-      CI.LineRelKey := ibsql.FieldByName('linerelkey').AsInteger;
-      CI.Name := ibsql.FieldByName(fnName).AsString;
-      CI.DTClassName := Trim(ibsql.FieldByName(fnClassName).AsString);
-      CI.Description := ibsql.FieldByName(fnDescription).AsString;
-      CI.IsCheckNumber := TIsCheckNumber(ibsql.FieldByName(fnIsCheckNumber).AsInteger);
-      CI.RUID := ibsql.FieldByName(fnRUID).AsString;
-      CI.Options := ibsql.FieldByName(fnOptions).AsString;
-      CI.ReportGroupKey := ibsql.FieldByName(fnReportGroupKey).AsInteger;
-      CI.BranchKey := ibsql.FieldByName(fnBranchKey).AsInteger;
-      Result := DocTypeCache.AddObject(ibsql.FieldByName(fnId).AsInteger, CI);
-    end else
-      Result := - 1;
-    ibsql.Close;
-  finally
-    ibsql.Free;
-  end;
-end;
-
 procedure TgdcDocument.ExecuteTransactionFunction;
 var
-  Index: Integer;
+  DE: TgdDocumentEntry;
   FunctionKey: Integer;
   LParams, LResult: Variant;
 begin
-  Index := CacheDocumentType;
+  DE := gdClassList.FindDocByTypeID(DocumentTypeKey, GetDocumentClassPart);
 
-  if Index > - 1 then
+  if DE <> nil then
   begin
-    if GetDocumentClassPart  = dcpHeader then
-      FunctionKey := DocTypeCache.CacheItemsByIndex[Index].HeaderFunctionKey
+    if GetDocumentClassPart = dcpHeader then
+      FunctionKey := DE.HeaderFunctionKey
     else
-      FunctionKey := DocTypeCache.CacheItemsByIndex[Index].LineFunctionKey;
+      FunctionKey := DE.LineFunctionKey;
 
     if FunctionKey > 0 then
     begin
@@ -1878,16 +1551,6 @@ begin
       ScriptFactory.ExecuteFunction(FunctionKey, LParams, LResult);
     end;
   end;
-end;
-
-class function TgdcDocument.CacheDocumentTypeByRUID(const RUIDString: String): Integer;
-begin
-  Result := DoCacheDocumentType(0, RUIDString, True)
-end;
-
-function TgdcDocument.CacheDocumentType: Integer;
-begin
-  Result := DoCacheDocumentType(DocumentTypeKey)
 end;
 
 function TgdcDocument.GetgdcAcctEntryRegister: TgdcBase;
@@ -2246,10 +1909,17 @@ begin
 end;
 
 function TgdcDocument.GetIsCheckNumber: TIsCheckNumber;
+var
+  DE: TgdDocumentEntry;
 begin
   if (not IsEmpty) and (FieldByName('documenttypekey').AsInteger > 0) then
   begin
-    Result := DocTypeCache.CacheItemsByIndex[DoCacheDocumentType(FieldByName('documenttypekey').AsInteger, '', False)].IsCheckNumber;
+    DE := gdClassList.FindDocByTypeID(FieldByName('documenttypekey').AsInteger,
+      GetDocumentClassPart);
+    if DE <> nil then
+      Result := DE.IsCheckNumber
+    else
+      Result := icnNever;
   end else
     Result := icnNever;
 end;
@@ -2641,45 +2311,6 @@ begin
   Result := True;
 end;
 
-procedure TgdcBaseDocumentType.DoAfterCustomProcess(Buff: Pointer;
-  Process: TgsCustomProcess);
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_DOAFTERCUSTOMPROCESS('TGDCBASEDOCUMENTTYPE', 'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCBASEDOCUMENTTYPE', KEYDOAFTERCUSTOMPROCESS);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOAFTERCUSTOMPROCESS]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCBASEDOCUMENTTYPE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self),
-  {M}          Integer(Buff), TgsCustomProcess(Process)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCBASEDOCUMENTTYPE',
-  {M}          'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCBASEDOCUMENTTYPE' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  inherited;
-  DocTypeCache.Clear;
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASEDOCUMENTTYPE', 'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCBASEDOCUMENTTYPE', 'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS);
-  {M}  end;
-  {END MACRO}
-end;
-
 procedure TgdcBaseDocumentType.DoBeforePost;
 var
   ibsql: TIBSQL;
@@ -2906,6 +2537,41 @@ class function TgdcBaseDocumentType.GetDialogFormClassName(
   const ASubType: TgdcSubType): String;
 begin
   Result := 'Tgdc_dlgDocumentType';
+end;
+
+function TgdcBaseDocumentType.GetDocLineRelationName: String;
+var
+  R: TatRelation;
+begin
+  if not IsEmpty then
+  begin
+    R := atDatabase.Relations.ByID(FieldByName('linerelkey').AsInteger);
+    if R <> nil then
+      Result := R.RelationName
+    else
+      Result := '';
+  end else
+    Result := '';
+end;
+
+function TgdcBaseDocumentType.GetDocRelationName: String;
+var
+  R: TatRelation;
+begin
+  if not IsEmpty then
+  begin
+    R := atDatabase.Relations.ByID(FieldByName('headerrelkey').AsInteger);
+    if R <> nil then
+      Result := R.RelationName
+    else
+      Result := '';
+  end else
+    Result := '';
+end;
+
+function TgdcBaseDocumentType.GetIsComplexDocument: Boolean;
+begin
+  Result := DocLineRelationName > '';
 end;
 
 { TgdcDocumentBranch }
@@ -3213,13 +2879,8 @@ end;
 procedure TgdcDocumentType.DoAfterCustomProcess(Buff: Pointer;
   Process: TgsCustomProcess);
 
-  procedure _Add(const AClassName: String);
-  var
-    DE: TgdDocumentEntry;
+  procedure _Set(DE: TgdDocumentEntry);
   begin
-    DE := gdClassList.Add(AClassName, FieldByName('ruid').AsString,
-      GetParentSubType, TgdDocumentEntry, FieldbyName('name').AsString) as TgdDocumentEntry;
-
     DE.TypeID := ID;
     DE.IsCommon := FieldByName('iscommon').AsInteger > 0;
     DE.HeaderFunctionKey := FieldByName('headerfunctionkey').AsInteger;
@@ -3230,30 +2891,23 @@ procedure TgdcDocumentType.DoAfterCustomProcess(Buff: Pointer;
     DE.ReportGroupKey := FieldByName('reportgroupkey').AsInteger;
     DE.HeaderRelKey := FieldByName('headerrelkey').AsInteger;
     DE.LineRelKey := FieldByName('linerelkey').AsInteger;
+    DE.BranchKey := FieldByName('branchkey').AsInteger;
+  end;
+
+  procedure _Add(const AClassName: String);
+  begin
+    _Set(gdClassList.Add(AClassName, FieldByName('ruid').AsString,
+      GetParentSubType, TgdDocumentEntry, FieldbyName('name').AsString) as TgdDocumentEntry);
   end;
 
   procedure _Update(const AClassName: String);
   var
-    DE: TgdDocumentEntry;
     CE: TgdClassEntry;
   begin
     CE := gdClassList.Find(AClassName, FieldByName('ruid').AsString);
 
     if CE <> nil then
-    begin
-      DE := CE as TgdDocumentEntry;
-
-      DE.TypeID := ID;
-      DE.IsCommon := FieldByName('iscommon').AsInteger > 0;
-      DE.HeaderFunctionKey := FieldByName('headerfunctionkey').AsInteger;
-      DE.LineFunctionKey := FieldByName('linefunctionkey').AsInteger;
-      DE.Description := FieldByName('description').AsString;
-      DE.IsCheckNumber := TIsCheckNumber(FieldByName('ischecknumber').AsInteger);
-      DE.Options := FieldByName('options').AsString;
-      DE.ReportGroupKey := FieldByName('reportgroupkey').AsInteger;
-      DE.HeaderRelKey := FieldByName('headerrelkey').AsInteger;
-      DE.LineRelKey := FieldByName('linerelkey').AsInteger;
-    end;
+      _Set(CE as TgdDocumentEntry);
   end;
 
 var
@@ -3263,6 +2917,7 @@ var
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
   q: TIBSQL;
+  DE: TgdDocumentEntry;
 begin
   {@UNFOLD MACRO INH_ORIG_DOAFTERCUSTOMPROCESS('TGDCDOCUMENTTYPE', 'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS)}
   {M}  try
@@ -3290,42 +2945,39 @@ begin
 
   if Process = cpInsert then
   begin
-    if gdClassList.Find(FieldByName('classname').AsString, GetParentSubType) <> nil then
+    if FieldByName('classname').AsString = 'TgdcUserDocumentType' then
     begin
-      if FieldByName('classname').AsString = 'TgdcUserDocument' then
-      begin
-        _Add('TgdcUserDocument');
-        _Add('TgdcUserDocumentLine');
-      end
-      else if FieldByName('classname').AsString = 'TgdcInvDocument' then
-      begin
-        _Add('TgdcInvDocument');
-        _Add('TgdcInvDocumentLine');
-      end
-      else if FieldByName('classname').AsString = 'TgdcInvPriceList' then
-      begin
-        _Add('TgdcInvPriceList');
-        _Add('TgdcInvPriceListLine');
-      end;
-    end;
+      _Add('TgdcUserDocument');
+      _Add('TgdcUserDocumentLine');
+    end
+    else if FieldByName('classname').AsString = 'TgdcInvDocumentType' then
+    begin
+      _Add('TgdcInvDocument');
+      _Add('TgdcInvDocumentLine');
+
+      gdClassList.Add('TgdcInvRemains', FieldByName('ruid').AsString,
+        GetParentSubType, TgdBaseEntry, FieldbyName('name').AsString);
+      gdClassList.Add('TgdcInvGoodRemains', FieldByName('ruid').AsString,
+        GetParentSubType, TgdBaseEntry, FieldbyName('name').AsString);
+      gdClassList.Add('TgdcSelectedGood', FieldByName('ruid').AsString,
+        GetParentSubType, TgdBaseEntry, FieldbyName('name').AsString);
+    end
+    else if FieldByName('classname').AsString = 'TgdcInvPriceListType' then
+    begin
+      _Add('TgdcInvPriceList');
+      _Add('TgdcInvPriceListLine');
+    end else
+      raise EgdcException.CreateObj('Invalid document type', Self);
   end
   else if Process = cpModify then
   begin
-    if FieldByName('classname').AsString = 'TgdcUserDocument' then
-    begin
-      _Update('TgdcUserDocument');
-      _Update('TgdcUserDocumentLine');
-    end
-    else if FieldByName('classname').AsString = 'TgdcInvDocument' then
-    begin
-      _Update('TgdcInvDocument');
-      _Update('TgdcInvDocumentLine');
-    end
-    else if FieldByName('classname').AsString = 'TgdcInvPriceList' then
-    begin
-      _Update('TgdcInvPriceList');
-      _Update('TgdcInvPriceListLine');
-    end;
+    DE := gdClassList.FindDocByRUID(FieldByName('ruid').AsString, dcpHeader);
+    if DE = nil then
+      raise EgdcException.CreateObj('Unknown document type RUID', Self);
+    _Set(DE);
+    DE := gdClassList.FindDocByRUID(FieldByName('ruid').AsString, dcpLine);
+    if DE <> nil then
+      _Set(DE);
   end else
     gdClassList.RemoveSubType(FieldByName('ruid').AsString);
 
@@ -3446,28 +3098,6 @@ begin
   {M}  end;
   {END MACRO}
 end;
-
-procedure TgdcUserDocumentType.ReadOptions;
-var
-  R: TatRelation;
-begin
-  Assert(not EOF);
-
-  R := atDatabase.Relations.ByID(FieldByName('headerrelkey').AsInteger);
-  if Assigned(R) then
-   FDocRelationName := R.RelationName
-  else
-   FDocRelationName := '';
-  FDocLineRelationName := '';
-  if FieldByName('linerelkey').AsInteger > 0 then
-  begin
-   R := atDatabase.Relations.ByID(FieldByName('linerelkey').AsInteger);
-   if Assigned(R) then
-     FDocLineRelationName := R.RelationName;
-  end;
-  FIsComplexDocument := FDocLineRelationName <> '';
-end;
-
 
 class function TgdcUserDocumentType.GetHeaderDocumentClass: CgdcBase;
 begin
@@ -3638,51 +3268,26 @@ end;
 
 class function TgdcUserBaseDocument.GetRestrictCondition(const ATableName,
   ASubType: String): String;
-var
-  XID, DBID: String;
-  UnderLinePos: Integer;
 begin
-  UnderLinePos := AnsiPos('_', ASubType);
-  if UnderLinePos = 0 then
-    raise Exception.Create('Передан неверный Subtype: ' + ASubType);
-  XID := System.Copy(ASubType, 1, UnderLinePos - 1);
-  DBID := System.Copy(ASubType, UnderLinePos + 1, Length(ASubType) - UnderLinePos);
-  Result := Format('z.documenttypekey = <RUID XID = "%s" DBID = "%s"/> AND z.parent + 0 IS NULL ',
-    [XID, DBID]);
+  Result := Format('z.documenttypekey = %d AND z.parent + 0 IS NULL ',
+    [gdcBaseManager.GetIDByRUIDString(ASubType)]);
 end;
 
-procedure TgdcUserBaseDocument.ReadOptions(const aRuid: String);
+procedure TgdcUserBaseDocument.ReadOptions(const ARUID: String);
 var
-  R: TatRelation;
-  Index: Integer;
-  T: TDocumentTypeCacheItem;
+  DE: TgdDocumentEntry;
 begin
-  Index := CacheDocumentTypeByRUID(aRUID);
-  if Index > - 1 then
+  DE := gdClassList.FindDocByRUID(ARUID, GetDocumentClassPart);
+  if DE <> nil then
   begin
-    T := DocTypeCache.CacheItemsByIndex[Index];
-
-    FDocumentTypeKey := T.ID;
-    FReportGroupKey := T.ReportGroupKey;
-    FBranchKey := T.BranchKey;
-
-    R := atDatabase.Relations.ByID(T.HeaderRelKey);
-    if Assigned(R) then
-      FRelation := R.RelationName
-    else
-      FRelation := '';
-
-    FRelationLine := '';
-    if T.LineRelKey > 0 then
-    begin
-      R := atDatabase.Relations.ByID(T.LineRelKey);
-      if Assigned(R) then
-        FRelationLine := R.RelationName;
-    end;
-
+    FDocumentTypeKey := DE.TypeID;
+    FReportGroupKey := DE.ReportGroupKey;
+    FBranchKey := DE.BranchKey;
+    FRelation := DE.HeaderRelName;
+    FRelationLine := DE.LineRelName;
     FIsComplexDocument := FRelationLine > '';
   end else
-    raise EgdcIBError.Create('Не верен тип документа');
+    raise EgdcIBError.Create('Неверен тип документа');
 end;
 
 procedure TgdcUserBaseDocument.SetSubType(const Value: TgdcSubType);
@@ -3708,28 +3313,17 @@ end;
 class function TgdcUserBaseDocument.GetViewFormClassName(
   const ASubType: TgdcSubType): String;
 var
-  R: TatRelation;
-  Index: Integer;
-  T: TDocumentTypeCacheItem;
-  RL: String;
+  DE: TgdDocumentEntry;
 begin
-  Index := CacheDocumentTypeByRUID(ASubType);
-  if Index > - 1 then
+  DE := gdClassList.FindDocByRUID(ASubType, GetDocumentClassPart);
+  if DE <> nil then
   begin
-    T := DocTypeCache.CacheItemsByIndex[Index];
-    RL := '';
-    if T.LineRelKey > 0 then
-    begin
-      R := atDatabase.Relations.ByID(T.LineRelKey);
-      if Assigned(R) then
-        RL := R.RelationName;
-    end;
-    if RL = '' then
+    if DE.LineRelName = '' then
       Result := 'Tgdc_frmUserSimpleDocument'
     else
       Result := 'Tgdc_frmUserComplexDocument';
   end else
-    raise EgdcIBError.Create('Не верен тип документа');
+    raise EgdcIBError.Create('Неверен тип документа');
 end;
 
 class function TgdcUserBaseDocument.IsAbstractClass: Boolean;
@@ -4194,7 +3788,6 @@ procedure TgdcUserDocumentLine.DoBeforeInsert;
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-
 begin
   {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCUSERDOCUMENTLINE', 'DOBEFOREINSERT', KEYDOBEFOREINSERT)}
   {M}  try
@@ -4322,17 +3915,9 @@ end;
 
 class function TgdcUserDocumentLine.GetRestrictCondition(const ATableName,
   ASubType: String): String;
-var
-  XID, DBID: String;
-  UnderLinePos: Integer;
 begin
-  UnderLinePos := AnsiPos('_', ASubType);
-  if UnderLinePos = 0 then
-    raise Exception.Create('Передан неверный Subtype: ' + ASubType);
-  XID := System.Copy(ASubType, 1, UnderLinePos - 1);
-  DBID := System.Copy(ASubType, UnderLinePos + 1, Length(ASubType) - UnderLinePos);
-  Result := Format('z.documenttypekey = <RUID XID = "%s" DBID = "%s"/> AND z.parent IS NOT NULL ',
-    [XID, DBID]);
+  Result := Format('z.documenttypekey = %d AND z.parent IS NOT NULL ',
+    [gdcBaseManager.GetIDByRUIDString(ASubType)]);
 end;
 
 function TgdcUserDocumentLine.GetSelectClause: String;
@@ -4386,97 +3971,6 @@ begin
   {END MACRO}
 end;
 
-procedure Clear_DocTypeCache;
-begin
-  DocTypeCache.Clear;
-end;
-
-{ TDocumentTypeCache }
-
-constructor TDocumentTypeCache.Create;
-begin
-  if IbLogin <> nil then
-  begin
-    IbLogin.AddConnectNotify(Self)
-  end;
-end;
-
-destructor TDocumentTypeCache.Destroy;
-begin
-  if IbLogin <> nil then
-  begin
-    IbLogin.RemoveConnectNotify(Self)
-  end;
-  inherited;
-end;
-
-procedure TDocumentTypeCache.DoAfterConnectionLost;
-begin
-end;
-
-procedure TDocumentTypeCache.DoAfterSuccessfullConnection;
-begin
-  Clear;
-end;
-
-procedure TDocumentTypeCache.DoBeforeDisconnect;
-begin
-end;
-
-function TDocumentTypeCache.GetCacheItems(
-  Key: Integer): TDocumentTypeCacheItem;
-begin
-  Result := TDocumentTypeCacheItem(ObjectByKey[Key]);
-end;
-
-function TDocumentTypeCache.GetCacheItemsByIndex(
-  Index: Integer): TDocumentTypeCacheItem;
-begin
-  Result := TDocumentTypeCacheItem(ObjectByIndex[Index]);
-end;
-
-function TDocumentTypeCache.GetCacheItemsByRUID(
-  RUID: string): TDocumentTypeCacheItem;
-var
-  Index: Integer;
-begin
-  Result := nil;
-  Index := IndexOfByRUID(RUID);
-  if Index > - 1 then
-    Result := CacheItemsByIndex[Index]
-end;
-
-function TDocumentTypeCache.IndexOfByRUID(RUID: string): Integer;
-var
-  I: Integer;
-begin
-  Result := - 1;
-  for I := 0 to Count- 1 do
-  begin
-    if CacheItemsByIndex[I].RUID = RUID then
-    begin
-      Result := I;
-      Exit
-    end;
-  end;
-end;
-
-function TDocumentTypeCache._AddRef: Integer;
-begin
-  Result := 0;
-end;
-
-function TDocumentTypeCache._Release: Integer;
-begin
-  Result := 0;
-end;
-
-function TDocumentTypeCache.QueryInterface(const IID: TGUID;
-  out Obj): HResult;
-begin
-  Result := 0;
-end;
-
 initialization
   RegisterGdcClass(TgdcDocument);
   RegisterGdcClass(TgdcBaseDocumentType);
@@ -4496,7 +3990,5 @@ finalization
   UnregisterGdcClass(TgdcUserBaseDocument);
   UnregisterGdcClass(TgdcUserDocument);
   UnregisterGdcClass(TgdcUserDocumentLine);
-
-  FreeAndNil(_DocTypeCache);
 end.
 

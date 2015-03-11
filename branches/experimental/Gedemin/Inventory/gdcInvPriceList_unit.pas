@@ -143,7 +143,6 @@ type
     procedure UpdateGoodNames;
   end;
 
-
   TgdcInvPriceListType = class(TgdcDocumentType)
   protected
     procedure CreateFields; override;
@@ -158,9 +157,9 @@ type
     class function GetHeaderDocumentClass: CgdcBase; override;
   end;
 
-  EgdcInvPriceList = class(Exception);
-  EgdcInvPriceListLine = class(Exception);
-  EgdcInvPriceListType = class(Exception);
+  EgdcInvPriceList = class(EgdcException);
+  EgdcInvPriceListLine = class(EgdcException);
+  EgdcInvPriceListType = class(EgdcException);
 
 procedure Register;
 
@@ -417,35 +416,27 @@ end;
 
 procedure TgdcInvBasePriceList.SetSubType(const Value: TgdcSubType);
 var
-  ibsql: TIBSQL;
+  DE: TgdDocumentEntry;
   Stream: TStream;
 begin
   if SubType <> Value then
   begin
     inherited;
     FDocumentTypeKey := -1;
-    if SubType <> '' then
+    if SubType > '' then
     begin
-      ibsql := TIBSQL.Create(nil);
-      try
-        ibsql.Transaction := gdcBaseManager.ReadTransaction;
-        ibsql.SQL.Text := 'SELECT id, options FROM gd_documenttype WHERE ruid = :ruid';
-        ibsql.ParamByName('ruid').AsString := SubType;
-        ibsql.ExecQuery;
-        if ibsql.RecordCount = 0 then
-          raise EgdcInvPriceList.Create('Прайс-лист не найден!');
-
-        Stream := TStringStream.Create(ibsql.FieldByName('options').AsString);
+      DE := gdClassList.FindDocByRUID(SubType, GetDocumentClassPart);
+      if DE <> nil then
+      begin
+        FDocumentTypeKey := DE.TypeID;
+        Stream := TStringStream.Create(DE.Options);
         try
           ReadOptions(Stream);
         finally
           Stream.Free;
         end;
-
-        FDocumentTypeKey := ibsql.FieldByName('id').AsInteger;
-      finally
-        ibsql.Free;
-      end;
+      end else
+        raise EgdcInvPriceList.CreateObj('Прайс-лист не найден!', Self);
     end;
   end;
 end;
@@ -626,7 +617,7 @@ begin
 
   FieldByName('documentkey').AsInteger := FieldByName('id').AsInteger;
 
-  FieldByName('name').AsString := DocumentName[sDialog in BaseState];
+  FieldByName('name').AsString := DocumentName;
   FieldByName('relevancedate').AsDateTime := FieldByName('documentdate').AsDateTime;
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVPRICELIST', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
   {M}  finally

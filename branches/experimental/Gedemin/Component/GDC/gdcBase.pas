@@ -5603,8 +5603,6 @@ begin
                       try
                         Transaction.RollBackToSavePoint(FSavepoint);
                         Transaction.ReleaseSavePoint(FSavepoint);
-                        //ExecSingleQuery('ROLLBACK TO ' + FSavepoint);
-                        //ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
                         FSavepoint := '';
                       except
                         FSavepoint := '';
@@ -5615,7 +5613,6 @@ begin
                     begin
                       try
                         Transaction.ReleaseSavePoint(FSavepoint);
-                        //ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
                         FSavepoint := '';
                       except
                         FSavepoint := '';
@@ -5635,8 +5632,6 @@ begin
                 try
                   Transaction.RollBackToSavePoint(FSavepoint);
                   Transaction.ReleaseSavePoint(FSavepoint);
-                  //ExecSingleQuery('ROLLBACK TO ' + FSavepoint);
-                  //ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
                   FSavepoint := '';
                 except
                   FSavepoint := '';
@@ -5673,8 +5668,6 @@ begin
               try
                 Transaction.RollBackToSavePoint(FSavepoint);
                 Transaction.ReleaseSavePoint(FSavepoint);
-                //ExecSingleQuery('ROLLBACK TO ' + FSavepoint);
-                //ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
               except
               end;
             end;
@@ -10054,14 +10047,17 @@ var
 begin
   Result.gdClass := CgdcBase(Self.ClassType);
   Result.SubType := '';
-  
-  F := FindField('USR$ST');
-  if F <> nil then
+
+  if not IsEmpty then
   begin
-    Result.SubType := F.AsString;
-    if not CheckSubType(Result.SubType) then
-      raise EgdcException.Create('Invalid USR$ST value.');
-  end;    
+    F := FindField('USR$ST');
+    if F <> nil then
+    begin
+      Result.SubType := F.AsString;
+      if not CheckSubType(Result.SubType) then
+        raise EgdcException.Create('Invalid USR$ST value.');
+    end;
+  end;  
 end;
 
 function TgdcBase.GetNameInScript: String;
@@ -10411,7 +10407,7 @@ begin
                   if (gdcClassByRecord is TgdcDocument) then
                   begin
                     GroupName := gdcClassByRecord.GetDisplayName(gdcClassByRecord.SubType) +
-                      ' (' + (gdcClassByRecord as TgdcDocument).DocumentName[False] + ')';
+                      ' (' + (gdcClassByRecord as TgdcDocument).DocumentName + ')';
                   end else
                     GroupName := gdcClassByRecord.GetDisplayName(gdcClassByRecord.SubType);
 

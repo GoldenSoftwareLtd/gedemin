@@ -2847,11 +2847,11 @@ begin
   Path := BuildComponentPath(Self);
 
   if Document.State = dsInsert then
-    Caption := 'Добавление документа: ' + Document.DocumentName[False]
+    Caption := 'Добавление документа: ' + Document.DocumentName
   else
 
   if Document.State = dsEdit then
-    Caption := 'Редактирование документа: ' + Document.DocumentName[False];
+    Caption := 'Редактирование документа: ' + Document.DocumentName;
 
   SetupDetailPart;
 
