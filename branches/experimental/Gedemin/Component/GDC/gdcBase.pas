@@ -6203,6 +6203,52 @@ function TgdcBase.GetSelectClause: String;
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
+  CE: TgdClassEntry;
+
+  function GetUserDefinedSelectClause: String;
+  var
+    R: TatRelation;
+    RF: TatRelationFields;
+    I, J: integer;
+    LSubtype: TgdcSubType;
+    ST: TStringList;
+  begin
+    Result := '';
+    LSubtype := SubType;
+    While ClassParentSubtype(LSubtype) <> '' do
+    begin
+      R := atDatabase.Relations.ByRelationName(LSubtype);
+      if Assigned(R) then
+      begin
+        RF := R.RelationFields;
+        if Assigned(RF) then
+        for i := 0 to RF.Count - 1 do
+          Result := Result + ', z_' + R.RelationName + '.'
+            + RF.Items[I].FieldName;
+      end;
+      LSubtype := ClassParentSubtype(LSubtype);
+    end;
+
+    ST := TStringList.Create;
+    try
+      GetSubTypeList(ST, SubType, False);
+      for I := 0 to ST.Count - 1 do
+      begin
+        R := atDatabase.Relations.ByRelationName(ST.Values[ST.Names[I]]);
+        if Assigned(R) then
+        begin
+          RF := R.RelationFields;
+          if Assigned(RF) then
+            for J := 0 to RF.Count - 1 do
+              Result := Result + ', z_' + R.RelationName + '.'
+                + RF.Items[J].FieldName;
+        end;
+      end;
+    finally
+      ST.Free;
+    end;
+  end;
+
 begin
   {@UNFOLD MACRO INH_ORIG_GETSELECTCLAUSE('TGDCBASE', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE)}
   {M}  try
@@ -6234,7 +6280,19 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+  
   Result := Format('SELECT %s.* ', [GetListTableAlias]);
+
+  CE := gdClassList.Find(Self.ClassType, SubType);
+
+  if CE = nil then
+    raise EgdcException.Create('Класс ' + Self.ClassName + SubType + ' не найден');
+
+  if CE.ClassType = TgdAttrUserDefinedEntry then
+  begin
+    Result := Result + GetUserDefinedSelectClause;
+  end;
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASE', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -11074,6 +11132,68 @@ procedure TgdcBase.CustomInsert(Buff: Pointer);
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
+  CE: TgdClassEntry;
+
+  procedure UserDefinedCustomInsert;
+  var
+    LSQL: string;
+    I: Integer;
+    J: Integer;
+    R: TatRelation;
+    RF: TatRelationFields;
+    LSubtype: string;
+    ST: TstringList;
+  begin
+    LSubtype := SubType;
+
+    ST := TStringList.Create;
+    try
+      While ClassParentSubtype(LSubtype) <> '' do
+      begin
+        ST.Add(LSubType);
+        LSubType := ClassParentSubtype(LSubtype);
+      end;
+
+      for J := ST.Count - 1 downto 0 do
+      begin
+        R := atDatabase.Relations.ByRelationName(ST[J]);
+        if Assigned(R) then
+        begin
+          RF := R.RelationFields;
+          if Assigned(RF) then
+          begin
+            LSQL := 'INSERT INTO ';
+            LSQL := LSQL + R.RelationName + ' (';
+            for i := 0 to RF.Count - 1 do
+            begin
+              if (i <> (RF.Count - 1)) then
+                LSQL := LSQL + RF.Items[I].FieldName + ', '
+              else
+                LSQL := LSQL + RF.Items[I].FieldName + ')'
+            end;
+            LSQL := LSQL + ' VALUES (';
+            for i := 0 to RF.Count - 1 do
+            begin
+              if (i <> (RF.Count - 1)) then
+                if RF.Items[I].FieldName = 'INHERITEDKEY' then
+                  LSQL := LSQL + ':new_id, '
+                else
+                  LSQL := LSQL + ':new_' + RF.Items[I].FieldName + ', '
+              else
+                if RF.Items[I].FieldName = 'INHERITEDKEY' then
+                  LSQL := LSQL + ':new_id)'
+                else
+                  LSQL := LSQL + ':new_' + RF.Items[I].FieldName + ')';
+            end;
+            CustomExecQuery(LSQL, Buff);
+          end;
+        end;
+      end;
+    finally
+      ST.Free;
+    end;
+  end;
+
 begin
   {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCBASE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  try
@@ -11103,6 +11223,16 @@ begin
     FLastQuery := lqInsert;
   end;
 
+  CE := gdClassList.Find(Self.ClassType, SubType);
+
+  if CE = nil then
+    raise EgdcException.Create('Класс ' + Self.ClassName + SubType + ' не найден');
+
+  if CE.ClassType = TgdAttrUserDefinedEntry then
+  begin
+    UserDefinedCustomInsert;
+  end;
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -11120,6 +11250,87 @@ var
   {END MACRO}
   QModifySet: TIBSQL;
   DidActivate: Boolean;
+  CE: TgdClassEntry;
+
+  procedure UserDefinedCustomModify;
+  var
+    LSQL: string;
+    I, J: Integer;
+    R: TatRelation;
+    RF: TatRelationFields;
+    LSubtype: string;
+    ST: TstringList;
+  begin
+    LSubtype := SubType;
+    While ClassParentSubtype(LSubtype) <> '' do
+    begin
+      R := atDatabase.Relations.ByRelationName(LSubtype);
+      if Assigned(R) then
+      begin
+        RF := R.RelationFields;
+        if Assigned(RF) then
+        begin
+          LSQL := 'UPDATE ';
+          LSQL := LSQL + R.RelationName + ' SET ';
+          for i := 0 to RF.Count - 1 do
+          begin
+            if (i <> (RF.Count - 1)) then
+              if RF.Items[I].FieldName = 'INHERITEDKEY' then
+                LSQL := LSQL + RF.Items[I].FieldName + ' = :new_id, '
+              else
+                LSQL := LSQL + RF.Items[I].FieldName + ' = :new_'
+                  + RF.Items[I].FieldName + ', '
+            else
+              if RF.Items[I].FieldName = 'INHERITEDKEY' then
+                LSQL := LSQL + RF.Items[I].FieldName + ' = :new_id'
+              else
+                LSQL := LSQL + RF.Items[I].FieldName + ' = :new_'
+                  + RF.Items[I].FieldName
+          end;
+          LSQL := LSQL + ' WHERE INHERITEDKEY = :old_id';
+          CustomExecQuery(LSQL, Buff);
+        end;
+      end;
+      LSubtype := ClassParentSubtype(LSubtype);
+    end;
+
+    ST := TStringList.Create;
+    try
+      GetSubTypeList(ST, SubType, False);
+      for I := 0 to ST.Count - 1 do
+      begin
+        R := atDatabase.Relations.ByRelationName(ST.Values[ST.Names[I]]);
+        if Assigned(R) then
+        begin
+          RF := R.RelationFields;
+          if Assigned(RF) then
+          begin
+            LSQL := 'UPDATE ';
+            LSQL := LSQL + R.RelationName + ' SET ';
+            for J := 0 to RF.Count - 1 do
+            begin
+              if (J <> (RF.Count - 1)) then
+                if RF.Items[J].FieldName = 'INHERITEDKEY' then
+                  LSQL := LSQL + RF.Items[J].FieldName + ' = :new_id, '
+                else
+                  LSQL := LSQL + RF.Items[J].FieldName + ' = :new_'
+                    + RF.Items[J].FieldName + ', '
+              else
+                if RF.Items[J].FieldName = 'INHERITEDKEY' then
+                  LSQL := LSQL + RF.Items[J].FieldName + ' = :new_id'
+                else
+                  LSQL := LSQL + RF.Items[J].FieldName + ' = :new_'
+                    + RF.Items[J].FieldName
+            end;
+            LSQL := LSQL + ' WHERE INHERITEDKEY = :old_id';
+            CustomExecQuery(LSQL, Buff);
+          end;
+        end;
+      end;
+    finally
+      ST.Free;
+    end;
+  end;
 
   function GetModifySQLTextForSet: String;
   var
@@ -11235,6 +11446,16 @@ begin
     if DidActivate and Transaction.InTransaction then
       Transaction.Rollback;
     raise;
+  end;
+
+  CE := gdClassList.Find(Self.ClassType, SubType);
+
+  if CE = nil then
+    raise EgdcException.Create('Класс ' + Self.ClassName + SubType + ' не найден');
+
+  if CE.ClassType = TgdAttrUserDefinedEntry then
+  begin
+    UserDefinedCustomModify;
   end;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASE', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
@@ -14503,6 +14724,36 @@ function TgdcBase.GetFromClause(const ARefresh: Boolean = False): String;
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
+  CE: TgdClassEntry;
+
+  function GetUserDefinedFromClause: String;
+  var
+    LSubtype: string;
+    ST: TStringList;
+    I: Integer;
+  begin
+    LSubtype := SubType;
+    While ClassParentSubtype(LSubtype) <> '' do
+    begin
+      Result := Result + ' JOIN ' + LSubtype + ' z_' + LSubtype
+        + ' ON z_' + LSubtype + '.inheritedkey = z.id';
+      LSubtype := ClassParentSubtype(LSubtype);
+    end;
+
+    ST := TStringList.Create;
+    try
+      GetSubTypeList(ST, Subtype, False);
+      for I := 0 to ST.Count - 1 do
+      begin
+        Result := Result + ' LEFT JOIN ' + ST.Values[ST.Names[I]]
+          + ' z_' + ST.Values[ST.Names[I]] + ' ON z_'
+          + ST.Values[ST.Names[I]] + '.inheritedkey = z.id';
+      end;
+    finally
+      ST.Free;
+    end;
+  end;
+
 begin
   {@UNFOLD MACRO INH_ORIG_GETFROMCLAUSE('TGDCBASE', 'GETFROMCLAUSE', KEYGETFROMCLAUSE)}
   {M}  try
@@ -14534,7 +14785,19 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
   Result := Format('FROM %s %s ', [GetListTable(SubType), GetListTableAlias]);
+
+  CE := gdClassList.Find(Self.ClassType, SubType);
+
+  if CE = nil then
+    raise EgdcException.Create('Класс ' + Self.ClassName + SubType + ' не найден');
+
+  if CE.ClassType = TgdAttrUserDefinedEntry then
+  begin
+    Result := Result + GetUserDefinedFromClause;
+  end;
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASE', 'GETFROMCLAUSE', KEYGETFROMCLAUSE)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
