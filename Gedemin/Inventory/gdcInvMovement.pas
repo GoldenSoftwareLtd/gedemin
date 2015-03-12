@@ -7246,12 +7246,10 @@ begin
       Result := Result + ' LEFT JOIN gd_holding H ON hold.id = h.companykey ';
   end;
 
-
   Result := Result +
   ' LEFT JOIN inv_movement m1 ON m.movementkey = m1.movementkey AND m.id <> m1.id ' +
   ' LEFT JOIN gd_contact con ON  con.id = (case when M1.CONTACTKEY is not null then M1.CONTACTKEY else M.CONTACTKEY end) ' +
   ' LEFT JOIN gd_contact main_con ON main_con.id = m.contactkey ';
-
 
   Result := Result +
   ' LEFT JOIN inv_card c ON c.id = (case when M1.DEBIT > 0 then M1.cardkey else M.cardkey end) ' +
@@ -7259,7 +7257,6 @@ begin
   ' LEFT JOIN gd_documenttype doct ON doc.documenttypekey = doct.id ' +
   ' LEFT JOIN gd_good g ON z.goodkey = g.id ' +
   ' LEFT JOIN gd_value v ON g.valuekey = v.id ';
-
 
   if Assigned(FViewFeatures) then
     for i:= 0 to FViewFeatures.Count - 1 do

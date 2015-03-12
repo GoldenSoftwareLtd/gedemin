@@ -609,7 +609,6 @@ var
     DidActivate := False;
     LocSQL := TIBSQL.Create(nil);
     try
-      LocSQL.Database := Database;
       LocSQL.Transaction := Transaction;
       DidActivate := ActivateTransaction;
       LocSQL.SQL.Text := 'DELETE FROM rp_additionalfunction WHERE mainfunctionkey = ' +
