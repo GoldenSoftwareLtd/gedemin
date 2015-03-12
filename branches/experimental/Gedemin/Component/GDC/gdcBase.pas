@@ -6198,47 +6198,29 @@ function TgdcBase.GetSelectClause: String;
   {END MACRO}
   CE: TgdClassEntry;
 
-  function GetUserDefinedSelectClause: String;
+  procedure IterateAncestor(CE: TgdClassEntry; var R: String);
   var
-    R: TatRelation;
-    RF: TatRelationFields;
-    I, J: integer;
-    LSubtype: TgdcSubType;
-    ST: TStringList;
+    N: String;
   begin
-    Result := '';
-    LSubtype := SubType;
-    While ClassParentSubtype(LSubtype) <> '' do
-    begin
-      R := atDatabase.Relations.ByRelationName(LSubtype);
-      if Assigned(R) then
-      begin
-        RF := R.RelationFields;
-        if Assigned(RF) then
-        for i := 0 to RF.Count - 1 do
-          Result := Result + ', z_' + R.RelationName + '.'
-            + RF.Items[I].FieldName;
-      end;
-      LSubtype := ClassParentSubtype(LSubtype);
+    if (CE.Parent = nil) or (CE.Parent.SubType = '') then
+      R := R + GetListTableAlias + '.* '
+    else begin
+      IterateAncestor(CE.Parent, R);
+      N := gdcBaseManager.AdjustMetaName('a_' + CE.SubType);
+      R := R + ', ' + N + '.* ';
     end;
+  end;
 
-    ST := TStringList.Create;
-    try
-      GetSubTypeList(ST, SubType, False);
-      for I := 0 to ST.Count - 1 do
-      begin
-        R := atDatabase.Relations.ByRelationName(ST.Values[ST.Names[I]]);
-        if Assigned(R) then
-        begin
-          RF := R.RelationFields;
-          if Assigned(RF) then
-            for J := 0 to RF.Count - 1 do
-              Result := Result + ', z_' + R.RelationName + '.'
-                + RF.Items[J].FieldName;
-        end;
-      end;
-    finally
-      ST.Free;
+  procedure TraverseDescendants(CE: TgdClassEntry; var R: String);
+  var
+    I: Integer;
+    N: String;
+  begin
+    for I := 0 to CE.Count - 1 do
+    begin
+      N := gdcBaseManager.AdjustMetaName('d_' + CE.Children[I].SubType);
+      R := R + ', ' + N + '.* ';
+      TraverseDescendants(CE.Children[I], R);
     end;
   end;
 
@@ -6273,18 +6255,19 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  
-  Result := Format('SELECT %s.* ', [GetListTableAlias]);
 
-  CE := gdClassList.Find(Self.ClassType, SubType);
+  CE := gdClassList.Find(Self.ClassName, SubType);
 
-  if CE = nil then
-    raise EgdcException.Create('Класс ' + Self.ClassName + SubType + ' не найден');
-
-  if CE.ClassType = TgdAttrUserDefinedEntry then
+  if CE is TgdAttrUserDefinedEntry then
   begin
-    Result := Result + GetUserDefinedSelectClause;
-  end;
+    Result := 'SELECT ';
+    IterateAncestor(CE, Result);
+    TraverseDescendants(CE, Result);
+  end else if CE is TgdBaseEntry then
+    Result := Format('SELECT %s.* ', [GetListTableAlias])
+  else
+    raise EgdcException.CreateObj('Класс ' + Self.ClassName + SubType + ' не найден', Self);
+
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASE', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE)}
   {M}  finally
@@ -14722,31 +14705,31 @@ function TgdcBase.GetFromClause(const ARefresh: Boolean = False): String;
   {END MACRO}
   CE: TgdClassEntry;
 
-  function GetUserDefinedFromClause: String;
+  procedure IterateAncestor(CE: TgdClassEntry; var R: String);
   var
-    LSubtype: string;
-    ST: TStringList;
-    I: Integer;
+    N: String;
   begin
-    LSubtype := SubType;
-    While ClassParentSubtype(LSubtype) <> '' do
-    begin
-      Result := Result + ' JOIN ' + LSubtype + ' z_' + LSubtype
-        + ' ON z_' + LSubtype + '.inheritedkey = z.id';
-      LSubtype := ClassParentSubtype(LSubtype);
+    if (CE.Parent = nil) or (CE.Parent.SubType = '') then
+      R := R + CE.SubType + ' ' + GetListTableAlias + ' '
+    else begin
+      IterateAncestor(CE.Parent, R);
+      N := gdcBaseManager.AdjustMetaName('a_' + CE.SubType);
+      R := R + ' JOIN ' + CE.SubType + ' ' + N +
+        ' ON ' + N + '.inheritedkey = ' + GetListTableAlias + '.id';
     end;
+  end;
 
-    ST := TStringList.Create;
-    try
-      GetSubTypeList(ST, Subtype, False);
-      for I := 0 to ST.Count - 1 do
-      begin
-        Result := Result + ' LEFT JOIN ' + ST.Values[ST.Names[I]]
-          + ' z_' + ST.Values[ST.Names[I]] + ' ON z_'
-          + ST.Values[ST.Names[I]] + '.inheritedkey = z.id';
-      end;
-    finally
-      ST.Free;
+  procedure TraverseDescendants(CE: TgdClassEntry; var R: String);
+  var
+    I: Integer;
+    N: String;
+  begin
+    for I := 0 to CE.Count - 1 do
+    begin
+      N := gdcBaseManager.AdjustMetaName('d_' + CE.Children[I].SubType);
+      R := R + ' LEFT JOIN ' + CE.Children[I].SubType + ' ' + N +
+        ' ON ' + N + '.inheritedkey = ' + GetListTableAlias + '.id';
+      TraverseDescendants(CE.Children[I], R);
     end;
   end;
 
@@ -14782,17 +14765,17 @@ begin
   {M}    end;
   {END MACRO}
 
-  Result := Format('FROM %s %s ', [GetListTable(SubType), GetListTableAlias]);
+  CE := gdClassList.Find(Self.ClassName, SubType);
 
-  CE := gdClassList.Find(Self.ClassType, SubType);
-
-  if CE = nil then
-    raise EgdcException.Create('Класс ' + Self.ClassName + SubType + ' не найден');
-
-  if CE.ClassType = TgdAttrUserDefinedEntry then
+  if CE is TgdAttrUserDefinedEntry then
   begin
-    Result := Result + GetUserDefinedFromClause;
-  end;
+    Result := 'FROM ';
+    IterateAncestor(CE, Result);
+    TraverseDescendants(CE, Result);
+  end else if CE is TgdBaseEntry then
+    Result := Format('FROM %s %s ', [GetListTable(SubType), GetListTableAlias])
+  else
+    raise EgdcException.CreateObj('Класс ' + Self.ClassName + SubType + ' не найден', Self);
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASE', 'GETFROMCLAUSE', KEYGETFROMCLAUSE)}
   {M}  finally

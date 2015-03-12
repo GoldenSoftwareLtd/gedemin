@@ -3532,7 +3532,8 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  if FRelation <> '' then
+  
+  if FRelation > '' then
   begin
     Result :=
       inherited GetFromClause(ARefresh) +
@@ -3542,11 +3543,9 @@ begin
         [FRelation]
       );
     if ARefresh then
-      Result := Result + ' and z.id = :NEW_id ';  
-  end
-  else
-    Result :=
-      inherited GetFromClause(ARefresh);
+      Result := Result + ' and z.id = :NEW_id ';
+  end else
+    Result := inherited GetFromClause(ARefresh);
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCUSERDOCUMENT', 'GETFROMCLAUSE', KEYGETFROMCLAUSE)}
   {M}  finally

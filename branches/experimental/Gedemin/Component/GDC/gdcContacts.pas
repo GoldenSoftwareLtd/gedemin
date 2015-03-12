@@ -3106,8 +3106,8 @@ begin
   {END MACRO}
   Result :=
     'FROM ' +
-    '  gd_bank b LEFT JOIN gd_contact z ON b.bankkey = z.id ' +
-    '  LEFT JOIN gd_company cm ON cm.contactkey = z.id ' +
+    '  gd_bank b JOIN gd_contact z ON b.bankkey = z.id ' +
+    '  JOIN gd_company cm ON cm.contactkey = z.id ' +
     '  LEFT JOIN gd_companycode cc ON cc.companykey = cm.contactkey ';
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBANK', 'GETFROMCLAUSE', KEYGETFROMCLAUSE)}
   {M}  finally
