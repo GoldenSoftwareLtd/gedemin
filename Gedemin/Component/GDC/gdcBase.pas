@@ -10045,15 +10045,61 @@ begin
   end;
 end;
 
+procedure _Traverse(CE: TgdClassEntry; q: TIBSQL; const ARoot: Boolean;
+  const AnID: TID; var ASubType: TgdcSubType);
+var
+  I: Integer;
+begin
+  for I := 0 to CE.Count - 1 do
+  begin
+    _Traverse(CE.Children[I], q, False, AnID, ASubType);
+    if ASubType > '' then
+      exit;
+  end;
+
+  if not ARoot then
+  begin
+    q.SQL.Text :=
+      'SELECT inheritedkey FROM ' + CE.SubType +
+      'WHERE inheritedkey = :id';
+    q.ParamByName('id').AsInteger := AnID;
+    q.ExecQuery;
+    if not q.EOF then
+      ASubType := CE.SubType;
+    q.Close;
+  end;
+end;
+
 function TgdcBase.GetCurrRecordClass: TgdcFullClass;
 var
   F: TField;
+  q: TIBSQL;
+  CE: TgdClassEntry;
+  S: TgdcSubType;
 begin
   Result.gdClass := CgdcBase(Self.ClassType);
-  Result.SubType := '';
+  Result.SubType := SubType;
 
   if not IsEmpty then
   begin
+    CE := gdClassList.Get(TgdBaseEntry, Self.ClassName, SubType);
+    if CE is TgdAttrUserDefinedEntry then
+    begin
+      if CE.Count > 0 then
+      begin
+        S := '';
+        q := TIBSQL.Create(nil);
+        try
+          q.Transaction := ReadTransaction;
+          _Traverse(CE, q, True, ID, S);
+        finally
+          q.Free;
+        end;
+        if S > '' then
+          Result.SubType := S;
+      end;
+    end;
+
     F := FindField('USR$ST');
     if F <> nil then
     begin
@@ -13128,13 +13174,39 @@ begin
 end;
 
 class function TgdcBase.GetListTable(const ASubType: TgdcSubType): String;
+var
+  CE: TgdClassEntry;
 begin
-  Result := '';
+  if ASubType > '' then
+  begin
+    CE := gdClassList.Get(TgdBaseEntry, Self.ClassName, ASubType);
+    if CE is TgdAttrUserDefinedEntry then
+      Result := CE.GetRootSubType.SubType
+    else
+      Result := '';
+  end else
+    Result := '';
 end;
 
 class function TgdcBase.GetListField(const ASubType: TgdcSubType): String;
+var
+  CE: TgdClassEntry;
+  R: TatRelation;
 begin
-  Result := '';
+  if ASubType > '' then
+  begin
+    CE := gdClassList.Get(TgdBaseEntry, Self.ClassName, ASubType);
+    if CE is TgdAttrUserDefinedEntry then
+    begin
+      R := atDatabase.Relations.ByRelationName(GetListTable(ASubType));
+      if Assigned(R) then
+        Result := R.ListField.FieldName
+      else
+        Result := '';
+    end else
+      Result := '';
+  end else
+    Result := '';
 end;
 
 procedure TgdcBase.GetDistinctColumnValues(const AFieldName: String;
@@ -18715,8 +18787,18 @@ begin
 end;
 
 class function TgdcBase.GetDistinctTable(const ASubType: TgdcSubType): String;
+var
+  CE: TgdClassEntry;
 begin
-  Result := GetListTable(ASubType);
+  if ASubType > '' then
+  begin
+    CE := gdClassList.Get(TgdBaseEntry, Self.ClassName, ASubType);
+    if CE is TgdAttrUserDefinedEntry then
+      Result := ASubType
+    else
+      Result := GetListTable(ASubType);
+  end else
+    Result := GetListTable(ASubType);
 end;
 
 initialization
