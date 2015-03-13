@@ -61,12 +61,8 @@ type
     function GetCanEdit: Boolean; override;
 
   public
-    class function GetListTable(const ASubType: TgdcSubType): String; override;
-    class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
-
-    function GetCurrRecordClass: TgdcFullClass; override;
 
     property RelationName: String read GetRelationName;
     property IsView: Boolean read GetIsView;
@@ -85,12 +81,8 @@ type
   public
     constructor Create(AnOwner: TComponent); override;
 
-    class function GetListTable(const ASubType: TgdcSubType): String; override;
-    class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
-
-    function GetCurrRecordClass: TgdcFullClass; override;
 
     property RelationName: String read GetRelationName;
   end;
@@ -108,11 +100,7 @@ type
   public
     constructor Create(AnOwner: TComponent); override;
 
-    class function GetListTable(const ASubType: TgdcSubType): String; override;
-    class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
-
-    function GetCurrRecordClass: TgdcFullClass; override;
 
     property RelationName: String read GetRelationName;
   end;
@@ -239,49 +227,6 @@ begin
   Result := FIsView;
 end;
 
-
-function TgdcAttrUserDefined.GetCurrRecordClass: TgdcFullClass;
-var
-  ST: TStringList;
-  I: Integer;
-begin
-  Result.gdClass := CgdcBase(Self.ClassType);
-  Result.SubType := RelationName;
-
-  ST := TStringList.Create;
-  try
-    GetSubTypeList(ST, RelationName, False);
-    for I := 0 to ST.Count - 1 do
-    begin
-      if not FieldByName(ST.Values[ST.Names[I]], 'INHERITEDKEY').IsNull then
-        Result.SubType := ST.Values[ST.Names[I]];
-    end;
-  finally
-    ST.Free;
-  end;
-end;
-
-class function TgdcAttrUserDefined.GetListField(const ASubType: TgdcSubType): String;
-var
-  R: TatRelation;
-  CE: TgdClassEntry;
-begin
-  Result := inherited GetListField(ASubType);
-
-  R := atDatabase.Relations.ByRelationName(GetListTable(ASubType));
-  if Assigned(R) then
-    Result := R.ListField.FieldName
-end;
-
-class function TgdcAttrUserDefined.GetListTable(const ASubType: TgdcSubType): String;
-begin
-  if ASubType = '' then
-    Result := ''
-  else
-    Result := gdClassList.Get(TgdAttrUserDefinedEntry, Self.ClassName,
-      ASubType).GetRootSubType.SubType;
-end;
-
 function TgdcAttrUserDefined.GetModifySQLText: String;
 begin
   if not IsView then
@@ -331,48 +276,6 @@ begin
   CustomProcess := [];
 end;
 
-function TgdcAttrUserDefinedTree.GetCurrRecordClass: TgdcFullClass;
-var
-  ST: TStringList;
-  I: Integer;
-begin
-  Result.gdClass := CgdcBase(Self.ClassType);
-  Result.SubType := RelationName;
-
-  ST := TStringList.Create;
-  try
-    GetSubTypeList(ST, RelationName, False);
-    for I := 0 to ST.Count - 1 do
-    begin
-      if not FieldByName(ST.Values[ST.Names[I]], 'INHERITEDKEY').IsNull then
-        Result.SubType := ST.Values[ST.Names[I]];
-    end;
-  finally
-    ST.Free;
-  end;
-end;
-
-class function TgdcAttrUserDefinedTree.GetListField(const ASubType: TgdcSubType): String;
-var
-  R: TatRelation;
-  CE: TgdClassEntry;
-begin
-  Result := inherited GetListField(ASubType);
-
-  R := atDatabase.Relations.ByRelationName(GetListTable(ASubType));
-  if Assigned(R) then
-    Result := R.ListField.FieldName
-end;
-
-class function TgdcAttrUserDefinedTree.GetListTable(const ASubType: TgdcSubType): String;
-begin
-  if ASubType = '' then
-    Result := ''
-  else
-    Result := gdClassList.Get(TgdAttrUserDefinedEntry,
-      Self.ClassName, ASubType).GetRootSubType.SubType;
-end;
-
 function TgdcAttrUserDefinedTree.GetRelation: TatRelation;
 begin
   Result := atDatabase.Relations.ByRelationName(RelationName);
@@ -410,48 +313,6 @@ constructor TgdcAttrUserDefinedLBRBTree.Create(AnOwner: TComponent);
 begin
   inherited;
   CustomProcess := [];
-end;
-
-function TgdcAttrUserDefinedLBRBTree.GetCurrRecordClass: TgdcFullClass;
-var
-  ST: TStringList;
-  I: Integer;
-begin
-  Result.gdClass := CgdcBase(Self.ClassType);
-  Result.SubType := RelationName;
-
-  ST := TStringList.Create;
-  try
-    GetSubTypeList(ST, RelationName, False);
-    for I := 0 to ST.Count - 1 do
-    begin
-      if not FieldByName(ST.Values[ST.Names[I]], 'INHERITEDKEY').IsNull then
-        Result.SubType := ST.Values[ST.Names[I]];
-    end;
-  finally
-    ST.Free;
-  end;
-end;
-
-class function TgdcAttrUserDefinedLBRBTree.GetListField(const ASubType: TgdcSubType): String;
-var
-  R: TatRelation;
-  CE: TgdClassEntry;
-begin
-  Result := inherited GetListField(ASubType);
-
-  R := atDatabase.Relations.ByRelationName(GetListTable(ASubType));
-  if Assigned(R) then
-    Result := R.ListField.FieldName
-end;
-
-class function TgdcAttrUserDefinedLBRBTree.GetListTable(const ASubType: TgdcSubType): String;
-begin
-  if ASubType = '' then
-    Result := ''
-  else
-    Result := gdClassList.Get(TgdAttrUserDefinedEntry,
-      Self.ClassName, ASubType).GetRootSubType.SubType;
 end;
 
 function TgdcAttrUserDefinedLBRBTree.GetRelation: TatRelation;
