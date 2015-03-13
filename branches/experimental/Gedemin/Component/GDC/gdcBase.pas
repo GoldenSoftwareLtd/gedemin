@@ -6157,23 +6157,19 @@ function TgdcBase.GetRefreshSQLText: String;
   end;
 var
   SelectClause, FromClause, Cond: String;
-  InheritedTableSelect, InheritedTableJoin: String;
 begin
-  SelectClause := GetSelectClause;
+  SelectClause := GetSelectClause + ' ' + GetInheritedTableSelect;
   if Assigned(FOnGetSelectClause) then
     FOnGetSelectClause(Self, SelectClause);
 
-  FromClause := GetFromClause(True);
+  FromClause := GetFromClause(True) + ' ' + GetInheritedTableJoin;
   if Assigned(FOnGetFromClause) then
     FOnGetFromClause(Self, FromClause);
 
-  InheritedTableSelect := GetInheritedTableSelect;
-  InheritedTableJoin := GetInheritedTableJoin;
-
   if FSetTable > '' then
     Result :=
-      SelectClause + ' ' + InheritedTableSelect + ' ' + GetSetTableSelect +
-      FromClause + ' ' + InheritedTableJoin + ' ' + GetSetTableJoin +
+      SelectClause + ' ' + GetSetTableSelect +
+      FromClause + ' ' + GetSetTableJoin +
       Format('WHERE %s ', [GetWhereClauseForSet])
   else
   begin
@@ -6181,8 +6177,8 @@ begin
       GetKeyField(SubType), GetKeyField(SubType)]);
 
     Result :=
-      SelectClause + ' ' + InheritedTableSelect + ' ' +
-      FromClause + ' ' + InheritedTableJoin;
+      SelectClause + ' ' +
+      FromClause + ' ';
 
     if StrIPos(Cond,
       StringReplace(FromClause, ' ', '', [rfReplaceAll])) = 0 then
@@ -6446,6 +6442,7 @@ function TgdcBase.GetSelectSQLText: String;
     S := StringReplace(S, #13, '', [rfReplaceAll]);
     S := StringReplace(S, #10, '', [rfReplaceAll]);
     Result := (StrIPos('SUM(', S) > 0)
+      or (StrIPos('LIST(', S) > 0)
       or (StrIPos('MIN(', S) > 0)
       or (StrIPos('MAX(', S) > 0)
       or (StrIPos('AVG(', S) > 0);
@@ -6454,11 +6451,11 @@ function TgdcBase.GetSelectSQLText: String;
 var
   SelectClause, FromClause, WhereClause, GroupClause, OrderClause: String;
 begin
-  SelectClause := GetSelectClause;
+  SelectClause := GetSelectClause + ' ' + GetInheritedTableSelect;
   if Assigned(FOnGetSelectClause) then
     FOnGetSelectClause(Self, SelectClause);
 
-  FromClause := GetFromClause;
+  FromClause := GetFromClause + ' ' + GetInheritedTableJoin;
   if Assigned(FOnGetFromClause) then
     FOnGetFromClause(Self, FromClause);
 
@@ -6475,15 +6472,15 @@ begin
     FOnGetOrderClause(Self, OrderClause);
 
   Result :=
-    SelectClause + ' ' + GetInheritedTableSelect + ' ' + GetSetTableSelect +
-    FromClause + ' ' + GetInheritedTableJoin + ' ' + GetSetTableJoin +
+    SelectClause + ' ' + GetSetTableSelect +
+    FromClause + ' ' + GetSetTableJoin +
     WhereClause + ' ';
   if (GroupClause > '') and
     ((not HasSubSet('ByID')) or (HasAggregates(SelectClause))) then
   begin
     Result := Result +
       GroupClause + ' ';
-  end;    
+  end;
   if (not HasSubSet('ByID')) and (not HasSubSet('ByName')) then
   begin
     Result := Result +
