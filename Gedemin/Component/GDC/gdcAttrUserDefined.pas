@@ -264,17 +264,13 @@ end;
 class function TgdcAttrUserDefined.GetListField(const ASubType: TgdcSubType): String;
 var
   R: TatRelation;
-  LSubType: String;
+  CE: TgdClassEntry;
 begin
-  LSubType := ASubType;
-  while ClassParentSubType(LSubType) <> '' do
-    LSubType := ClassParentSubtype(LSubType);
+  Result := inherited GetListField(ASubType);
 
-  R := atDatabase.Relations.ByRelationName(LSubType);
+  R := atDatabase.Relations.ByRelationName(GetListTable(ASubType));
   if Assigned(R) then
     Result := R.ListField.FieldName
-  else
-    Result := '';
 end;
 
 class function TgdcAttrUserDefined.GetListTable(const ASubType: TgdcSubType): String;
@@ -359,17 +355,13 @@ end;
 class function TgdcAttrUserDefinedTree.GetListField(const ASubType: TgdcSubType): String;
 var
   R: TatRelation;
-  LSubType: String;
+  CE: TgdClassEntry;
 begin
-  LSubType := ASubType;
-  While ClassParentSubType(LSubType) <> '' do
-    LSubType := ClassParentSubtype(LSubType);
+  Result := inherited GetListField(ASubType);
 
-  R := atDatabase.Relations.ByRelationName(LSubType);
+  R := atDatabase.Relations.ByRelationName(GetListTable(ASubType));
   if Assigned(R) then
     Result := R.ListField.FieldName
-  else
-    Result := '';
 end;
 
 class function TgdcAttrUserDefinedTree.GetListTable(const ASubType: TgdcSubType): String;
@@ -444,17 +436,13 @@ end;
 class function TgdcAttrUserDefinedLBRBTree.GetListField(const ASubType: TgdcSubType): String;
 var
   R: TatRelation;
-  LSubType: String;
+  CE: TgdClassEntry;
 begin
-  LSubType := ASubType;
-  While ClassParentSubType(LSubType) <> '' do
-    LSubType := ClassParentSubtype(LSubType);
+  Result := inherited GetListField(ASubType);
 
-  R := atDatabase.Relations.ByRelationName(LSubType);
+  R := atDatabase.Relations.ByRelationName(GetListTable(ASubType));
   if Assigned(R) then
     Result := R.ListField.FieldName
-  else
-    Result := '';
 end;
 
 class function TgdcAttrUserDefinedLBRBTree.GetListTable(const ASubType: TgdcSubType): String;
