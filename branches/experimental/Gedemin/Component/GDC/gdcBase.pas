@@ -6266,18 +6266,6 @@ var
     end;
   end;
 
-  procedure TraverseDescendants(CE: TgdClassEntry; var R: String);
-  var
-    I: Integer;
-    N: String;
-  begin
-    for I := 0 to CE.Count - 1 do
-    begin
-      N := gdcBaseManager.AdjustMetaName('d_' + CE.Children[I].SubType);
-      R := R + ', ' + N + '.* ';
-      TraverseDescendants(CE.Children[I], R);
-    end;
-  end;
 begin
   Result := '';
 
@@ -6286,10 +6274,7 @@ begin
     raise EgdcException.CreateObj('Класс ' + Self.ClassName + SubType + ' не найден', Self);
 
   if CE is TgdAttrUserDefinedEntry then
-  begin
     IterateAncestor(CE, Result);
-    TraverseDescendants(CE, Result);
-  end;
 end;
 
 function TgdcBase.GetInheritedTableJoin: String;
@@ -6309,19 +6294,6 @@ var
     end;
   end;
 
-  procedure TraverseDescendants(CE: TgdClassEntry; var R: String);
-  var
-    I: Integer;
-    N: String;
-  begin
-    for I := 0 to CE.Count - 1 do
-    begin
-      N := gdcBaseManager.AdjustMetaName('d_' + CE.Children[I].SubType);
-      R := R + ' LEFT JOIN ' + CE.Children[I].SubType + ' ' + N +
-        ' ON ' + N + '.inheritedkey = ' + GetListTableAlias + '.id';
-      TraverseDescendants(CE.Children[I], R);
-    end;
-  end;
 begin
   Result := '';
 
@@ -6330,10 +6302,7 @@ begin
     raise EgdcException.CreateObj('Класс ' + Self.ClassName + SubType + ' не найден', Self);
 
   if CE is TgdAttrUserDefinedEntry then
-  begin
     IterateAncestor(CE, Result);
-    TraverseDescendants(CE, Result);
-  end;
 end;
 
 function TgdcBase.GetSetTableJoin: String;
