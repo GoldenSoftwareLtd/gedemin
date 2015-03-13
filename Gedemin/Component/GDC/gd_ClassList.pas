@@ -315,6 +315,7 @@ type
     procedure RemoveChild(AChild: TgdClassEntry);
     function FindChild(const AClassName: AnsiString): TgdClassEntry;
     function InheritsFromCE(ACE: TgdClassEntry): Boolean;
+    function GetRootSubType: TgdClassEntry;
 
     property Parent: TgdClassEntry read FParent;
     property TheClass: TClass read FClass;
@@ -328,9 +329,8 @@ type
 
   TgdBaseEntry = class(TgdClassEntry)
   private
-    FDistinctRelation: String;
-
     function GetGdcClass: CgdcBase;
+    function GetDistinctRelation: String; virtual;
 
   public
     constructor Create(AParent: TgdClassEntry; const AClass: TClass;
@@ -338,14 +338,10 @@ type
       const ACaption: String = ''); overload; override;
 
     property gdcClass: CgdcBase read GetGdcClass;
-    property DistinctRelation: String read FDistinctRelation;
+    property DistinctRelation: String read GetDistinctRelation;
   end;
 
   TgdAttrUserDefinedEntry = class(TgdBaseEntry)
-  public
-    constructor Create(AParent: TgdClassEntry; const AClass: TClass;
-      const ASubType: TgdcSubType = '';
-      const ACaption: String = ''); overload; override;
   end;
 
   TgdDocumentEntry = class(TgdBaseEntry)
@@ -364,6 +360,7 @@ type
     FLineRelName: String;
     FBranchKey: Integer;
 
+    function GetDistinctRelation: String; override;
     procedure SetHeaderRelKey(const Value: Integer);
     procedure SetLineRelKey(const Value: Integer);
 
@@ -435,6 +432,8 @@ type
     function FindDocByTypeID(const ADocTypeID: TID; const APart: TgdcDocumentClassPart): TgdDocumentEntry; overload;
     function FindDocByRUID(const ARUID: String; const APart: TgdcDocumentClassPart): TgdDocumentEntry;
     function FindByRelation(const ARelationName: String): TgdBaseEntry;
+
+    function Get(const AClass: CgdClassEntry; const AClassName: AnsiString; const ASubType: TgdcSubType = ''): TgdClassEntry;
 
     function Traverse(const AClass: TClass; const ASubType: TgdcSubType;
       ACallback: TgdClassEntryCallback; AData1: Pointer; AData2: Pointer;
@@ -1265,7 +1264,11 @@ begin
   if (AClass = nil) or (not AClass.InheritsFrom(TgdcBase)) then
     raise Exception.Create('Invalid class');
   inherited;
-  FDistinctRelation := UpperCase(CgdcBase(AClass).GetDistinctTable(ASubType));
+end;
+
+function TgdBaseEntry.GetDistinctRelation: String;
+begin
+  Result := UpperCase(gdcClass.GetDistinctTable(SubType));
 end;
 
 function TgdBaseEntry.GetGdcClass: CgdcBase;
@@ -1439,6 +1442,13 @@ begin
         Parent.InheritsFromCE(ACE)
       )
     );
+end;
+
+function TgdClassEntry.GetRootSubType: TgdClassEntry;
+begin
+  Result := Self;
+  while (Result.Parent <> nil) and (Result.Parent.SubType > '') do
+    Result := Result.Parent;
 end;
 
 {TgdClassList}
@@ -2286,14 +2296,14 @@ begin
   Result := Find(AnObj.ClassName, AnObj.SubType) as TgdBaseEntry;
 end;
 
-{ TgdAttrUserDefinedEntry }
-
-constructor TgdAttrUserDefinedEntry.Create(AParent: TgdClassEntry;
-  const AClass: TClass; const ASubType: TgdcSubType;
-  const ACaption: String);
+function TgdClassList.Get(const AClass: CgdClassEntry; const AClassName: AnsiString;
+  const ASubType: TgdcSubType = ''): TgdClassEntry;
 begin
-  inherited;
-  FDistinctRelation := UpperCase(ASubType);
+  Result := Find(AClassName, ASubType);
+  if Result = nil then
+    raise Exception.Create('Unknown class name/subtype')
+  else if not Result.InheritsFrom(AClass) then
+    raise Exception.Create('Invalid type cast');
 end;
 
 { TgdDocumentEntry }
@@ -2314,6 +2324,14 @@ begin
   BranchKey := TgdDocumentEntry(CE).BranchKey;
 end;
 
+function TgdDocumentEntry.GetDistinctRelation: String;
+begin
+  if CgdcDocument(TheClass).GetDocumentClassPart = dcpHeader then
+    Result := FHeaderRelName
+  else
+    Result := FLineRelName;
+end;
+
 procedure TgdDocumentEntry.SetHeaderRelKey(const Value: Integer);
 var
   R: TatRelation;
@@ -2321,9 +2339,9 @@ begin
   FHeaderRelKey := Value;
   R := atDatabase.Relations.ByID(Value);
   if R <> nil then
-    FHeaderRelName := R.RelationName;
-  if CgdcDocument(TheClass).GetDocumentClassPart = dcpHeader then
-    FDistinctRelation := FHeaderRelName;
+    FHeaderRelName := R.RelationName
+  else
+    FHeaderRelName := '';
 end;
 
 procedure TgdDocumentEntry.SetLineRelKey(const Value: Integer);
@@ -2333,9 +2351,9 @@ begin
   FLineRelKey := Value;
   R := atDatabase.Relations.ByID(Value);
   if R <> nil then
-    FLineRelName := R.RelationName;
-  if CgdcDocument(TheClass).GetDocumentClassPart = dcpLine then
-    FDistinctRelation := FLineRelName;
+    FLineRelName := R.RelationName
+  else
+    FLineRelName := '';
 end;
 
 initialization

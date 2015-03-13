@@ -44,7 +44,7 @@ type
     function GetRelationName: String;
     function GetRelation: TatRelation;
     function GetIsView: Boolean;
-    
+
   protected
     //Для представлений не должно быть sql на изменение
     function GetModifySQLText: String; override;
@@ -61,13 +61,12 @@ type
     function GetCanEdit: Boolean; override;
 
   public
-    function GetCurrRecordClass: TgdcFullClass; override;
-
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
-
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
+
+    function GetCurrRecordClass: TgdcFullClass; override;
 
     property RelationName: String read GetRelationName;
     property IsView: Boolean read GetIsView;
@@ -81,20 +80,17 @@ type
   protected
     procedure SetActive(Value: Boolean); override;
 
-    function CreateDialogForm: TCreateableForm; override;
-
     property Relation: TatRelation read GetRelation;
 
   public
     constructor Create(AnOwner: TComponent); override;
 
-    function GetCurrRecordClass: TgdcFullClass; override;
-
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
-    class function GetKeyField(const ASubType: TgdcSubType): String; override;
-
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
+    class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
+
+    function GetCurrRecordClass: TgdcFullClass; override;
 
     property RelationName: String read GetRelationName;
   end;
@@ -105,7 +101,6 @@ type
     function GetRelation: TatRelation;
 
   protected
-    function CreateDialogForm: TCreateableForm; override;
     procedure SetActive(Value: Boolean); override;
 
     property Relation: TatRelation read GetRelation;
@@ -113,28 +108,21 @@ type
   public
     constructor Create(AnOwner: TComponent); override;
 
-    function GetCurrRecordClass: TgdcFullClass; override;
-
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
-    class function GetKeyField(const ASubType: TgdcSubType): String; override;
-
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
 
+    function GetCurrRecordClass: TgdcFullClass; override;
+
     property RelationName: String read GetRelationName;
-
-  published
-
   end;
 
 procedure Register;
 
 //Возвращает РУИД таблицы
-function GetRUIDForRelation(ARelationName: String): String;
-
+function GetRUIDForRelation(const ARelationName: String): String;
 
 implementation
-
 
 uses
   gdc_frmAttrUserDefined_unit,         gdc_frmAttrUserDefinedTree_unit,
@@ -158,7 +146,7 @@ begin
 end;
 
 {По наименованию таблицы возвращает ее руид}
-function GetRUIDForRelation(ARelationName: String): String;
+function GetRUIDForRelation(const ARelationName: String): String;
 var
   ibsql: TIBSQL;
 begin
@@ -291,9 +279,11 @@ end;
 
 class function TgdcAttrUserDefined.GetListTable(const ASubType: TgdcSubType): String;
 begin
-  Result := ASubType;
-  while ClassParentSubtype(Result) <> '' do
-    Result := ClassParentSubtype(Result);
+  if ASubType = '' then
+    Result := ''
+  else
+    Result := gdClassList.Get(TgdAttrUserDefinedEntry, Self.ClassName,
+      ASubType).GetRootSubType.SubType;
 end;
 
 function TgdcAttrUserDefined.GetModifySQLText: String;
@@ -366,65 +356,6 @@ begin
   end;
 end;
 
-function TgdcAttrUserDefinedTree.CreateDialogForm: TCreateableForm;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_FUNCCREATEDIALOGFORM('TGDCATTRUSERDEFINEDTREE', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  try
-  {M}    Result := nil;
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCATTRUSERDEFINEDTREE', KEYCREATEDIALOGFORM);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCREATEDIALOGFORM]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCATTRUSERDEFINEDTREE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCATTRUSERDEFINEDTREE',
-  {M}          'CREATEDIALOGFORM', KEYCREATEDIALOGFORM, Params, LResult) then
-  {M}          begin
-  {M}            Result := nil;
-  {M}            if VarType(LResult) <> varDispatch then
-  {M}              raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен не объект.')
-  {M}            else
-  {M}              if IDispatch(LResult) = nil then
-  {M}                raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                  'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен пустой (null) объект.');
-  {M}            Result := GetInterfaceToObject(LResult) as TCreateableForm;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCATTRUSERDEFINEDTREE' then
-  {M}        begin
-  {M}          Result := Inherited CreateDialogForm;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  Result := Tgdc_dlgAttrUserDefinedTree.CreateSubType(ParentForm, SubType);
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCATTRUSERDEFINEDTREE', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCATTRUSERDEFINEDTREE', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM);
-  {M}  end;
-  {END MACRO}
-end;
-
-class function TgdcAttrUserDefinedTree.GetKeyField(const ASubType: TgdcSubType): String;
-begin
-  Result := 'ID'
-end;
-
 class function TgdcAttrUserDefinedTree.GetListField(const ASubType: TgdcSubType): String;
 var
   R: TatRelation;
@@ -443,9 +374,11 @@ end;
 
 class function TgdcAttrUserDefinedTree.GetListTable(const ASubType: TgdcSubType): String;
 begin
-  Result := ASubType;
-  While ClassParentSubtype(Result) <> '' do
-    Result := ClassParentSubtype(Result);
+  if ASubType = '' then
+    Result := ''
+  else
+    Result := gdClassList.Get(TgdAttrUserDefinedEntry,
+      Self.ClassName, ASubType).GetRootSubType.SubType;
 end;
 
 function TgdcAttrUserDefinedTree.GetRelation: TatRelation;
@@ -471,6 +404,12 @@ procedure TgdcAttrUserDefinedTree.SetActive(Value: Boolean);
 begin
   if (SubType <> '') or not Value then
     inherited;
+end;
+
+class function TgdcAttrUserDefinedTree.GetDialogFormClassName(
+  const ASubType: TgdcSubType): String;
+begin
+  Result := 'Tgdc_dlgAttrUserDefinedTree';
 end;
 
 { TgdcAttrUserDefinedLBRBTree }
@@ -502,65 +441,6 @@ begin
   end;
 end;
 
-function TgdcAttrUserDefinedLBRBTree.CreateDialogForm: TCreateableForm;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_FUNCCREATEDIALOGFORM('TGDCATTRUSERDEFINEDLBRBTREE', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  try
-  {M}    Result := nil;
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCATTRUSERDEFINEDLBRBTREE', KEYCREATEDIALOGFORM);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCREATEDIALOGFORM]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCATTRUSERDEFINEDLBRBTREE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCATTRUSERDEFINEDLBRBTREE',
-  {M}          'CREATEDIALOGFORM', KEYCREATEDIALOGFORM, Params, LResult) then
-  {M}          begin
-  {M}            Result := nil;
-  {M}            if VarType(LResult) <> varDispatch then
-  {M}              raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен не объект.')
-  {M}            else
-  {M}              if IDispatch(LResult) = nil then
-  {M}                raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                  'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен пустой (null) объект.');
-  {M}            Result := GetInterfaceToObject(LResult) as TCreateableForm;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCATTRUSERDEFINEDLBRBTREE' then
-  {M}        begin
-  {M}          Result := Inherited CreateDialogForm;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  Result := Tgdc_dlgAttrUserDefinedTree.CreateSubType(ParentForm, SubType);
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCATTRUSERDEFINEDLBRBTREE', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCATTRUSERDEFINEDLBRBTREE', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM);
-  {M}  end;
-  {END MACRO}
-end;
-
-class function TgdcAttrUserDefinedLBRBTree.GetKeyField(const ASubType: TgdcSubType): String;
-begin
-  Result := 'ID'
-end;
-
 class function TgdcAttrUserDefinedLBRBTree.GetListField(const ASubType: TgdcSubType): String;
 var
   R: TatRelation;
@@ -579,9 +459,11 @@ end;
 
 class function TgdcAttrUserDefinedLBRBTree.GetListTable(const ASubType: TgdcSubType): String;
 begin
-  Result := ASubType;
-  While ClassParentSubtype(Result) <> '' do
-    Result := ClassParentSubtype(Result);
+  if ASubType = '' then
+    Result := ''
+  else
+    Result := gdClassList.Get(TgdAttrUserDefinedEntry,
+      Self.ClassName, ASubType).GetRootSubType.SubType;
 end;
 
 function TgdcAttrUserDefinedLBRBTree.GetRelation: TatRelation;
