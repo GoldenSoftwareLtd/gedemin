@@ -5824,46 +5824,13 @@ var
   R: TatRelation;
   CE: TgdClassEntry;
 begin
-  if AnsiPos('USR_', AnsiUpperCase(ASubType)) > 0 then
-    raise EgdcException.Create('Недопустимый символ ''_''в подтипе');
-
-  Result := '';
-
-  if ASubType > '' then
+  CE := gdClassList.Get(TgdBaseEntry, Self.ClassName, ASubType);
+  Result := CE.Caption;
+  if (Result = '') and Assigned(atDatabase) then
   begin
-    CE := gdClassList.Find(Self, ASubType);
-    //Тут возможно надо кидать исключение если  CE = nil
-    if CE <> nil then
-      Result := CE.Caption;
-  end;
-
-  if ASubType = '' then
-  begin
-    CE := gdClassList.Find(Self, '');
-
-    if CE = nil then
-      raise EgdcException.Create('Класс ' + Self.ClassName + ' не найден');
-
-    Result := CE.Caption;
-  end;
-
-  if Result > '' then
-    exit;
-
-  Result := GetListTable(ASubType);
-
-  if Assigned(atDatabase) then
-  begin
-    R := atDatabase.Relations.ByRelationName(Result);
+    R := atDatabase.Relations.ByRelationName(GetDistinctTable(ASubType));
     if R <> nil then
-    begin
-      if AnsiCompareText(R.LShortName, Result) <> 0 then
-        Result := R.LShortName
-      else if AnsiCompareText(R.LName, Result) <> 0 then
-        Result := R.LName
-      else
-        Result := ClassName + ASubType + ' - ' + Result;
-    end;
+      Result := R.LName;
   end;
 end;
 
@@ -6254,55 +6221,54 @@ function TgdcBase.GetInheritedTableSelect: String;
 var
   CE: TgdClassEntry;
 
-  procedure IterateAncestor(CE: TgdClassEntry; var R: String);
+  procedure IterateAncestor(BE: TgdBaseEntry; var SQL: String);
   var
-    N: String;
+    RA: String;
+    R: TatRelation;
+    I: Integer;
   begin
-    if (CE.Parent <> nil) and (CE.Parent.SubType <> '') then
+    if (BE.Parent is TgdBaseEntry) and (BE.Parent.SubType <> '') then
     begin
-      IterateAncestor(CE.Parent, R);
-      N := gdcBaseManager.AdjustMetaName('a_' + CE.SubType);
-      R := R + ', ' + N + '.* ';
+      IterateAncestor(BE.Parent as TgdBaseEntry, SQL);
+      RA := gdcBaseManager.AdjustMetaName('d_' + BE.SubType);
+      R := atDatabase.Relations.ByRelationName(BE.DistinctRelation);
+      if R = nil then
+        raise EgdcException.CreateObj('Unknown relation ' + BE.DistinctRelation, Self);
+      for I := 0 to R.RelationFields.Count - 1 do
+        SQL := SQL + ', ' + RA + '.' + R.RelationFields[I].FieldName + ' ' +
+          gdcBaseManager.AdjustMetaName(RA + '_' + R.RelationFields[I].FieldName);
     end;
   end;
 
 begin
   Result := '';
-
-  CE := gdClassList.Find(Self.ClassName, SubType);
-  if CE = nil then
-    raise EgdcException.CreateObj('Класс ' + Self.ClassName + SubType + ' не найден', Self);
-
+  CE := gdClassList.Get(TgdBaseEntry, Self.ClassName, SubType);
   if CE is TgdAttrUserDefinedEntry then
-    IterateAncestor(CE, Result);
+    IterateAncestor(CE as TgdBaseEntry, Result);
 end;
 
 function TgdcBase.GetInheritedTableJoin: String;
 var
   CE: TgdClassEntry;
   
-  procedure IterateAncestor(CE: TgdClassEntry; var R: String);
+  procedure IterateAncestor(BE: TgdBaseEntry; var SQL: String);
   var
     N: String;
   begin
-    if (CE.Parent <> nil) and (CE.Parent.SubType <> '') then
+    if (BE.Parent is TgdBaseEntry) and (BE.Parent.SubType <> '') then
     begin
-      IterateAncestor(CE.Parent, R);
-      N := gdcBaseManager.AdjustMetaName('a_' + CE.SubType);
-      R := R + ' JOIN ' + CE.SubType + ' ' + N +
+      IterateAncestor(BE.Parent as TgdBaseEntry, SQL);
+      N := gdcBaseManager.AdjustMetaName('d_' + BE.DistinctRelation);
+      SQL := SQL + ' JOIN ' + BE.DistinctRelation + ' ' + N +
         ' ON ' + N + '.inheritedkey = ' + GetListTableAlias + '.id';
     end;
   end;
 
 begin
   Result := '';
-
-  CE := gdClassList.Find(Self.ClassName, SubType);
-  if CE = nil then
-    raise EgdcException.CreateObj('Класс ' + Self.ClassName + SubType + ' не найден', Self);
-
+  CE := gdClassList.Get(TgdBaseEntry, Self.ClassName, SubType);
   if CE is TgdAttrUserDefinedEntry then
-    IterateAncestor(CE, Result);
+    IterateAncestor(CE as TgdBaseEntry, Result);
 end;
 
 function TgdcBase.GetSetTableJoin: String;
@@ -11269,15 +11235,9 @@ begin
     FLastQuery := lqInsert;
   end;
 
-  CE := gdClassList.Find(Self.ClassType, SubType);
-
-  if CE = nil then
-    raise EgdcException.Create('Класс ' + Self.ClassName + SubType + ' не найден');
-
-  if CE.ClassType = TgdAttrUserDefinedEntry then
-  begin
+  CE := gdClassList.Get(TgdBaseEntry, Self.ClassName, SubType);
+  if CE is TgdAttrUserDefinedEntry then
     UserDefinedCustomInsert;
-  end;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  finally
@@ -11494,15 +11454,9 @@ begin
     raise;
   end;
 
-  CE := gdClassList.Find(Self.ClassType, SubType);
-
-  if CE = nil then
-    raise EgdcException.Create('Класс ' + Self.ClassName + SubType + ' не найден');
-
-  if CE.ClassType = TgdAttrUserDefinedEntry then
-  begin
+  CE := gdClassList.Get(TgdBaseEntry, Self.ClassName, SubType);
+  if CE is TgdAttrUserDefinedEntry then
     UserDefinedCustomModify;
-  end;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASE', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
   {M}  finally
