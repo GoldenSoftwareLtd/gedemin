@@ -11151,20 +11151,14 @@ procedure TgdcBase.CustomInsert(Buff: Pointer);
   {END MACRO}
   CE: TgdClassEntry;
 
-  procedure UserDefinedCustomInsert(BE: TgdAttrUserDefinedEntry);
+  procedure UserDefinedCustomInsert(BE: TgdBaseEntry);
   var
     I: Integer;
     RelationName, FieldName: String;
     F, V: String;
   begin
-    if BE.SubType = BE.GetRootSubType.SubType then
-      exit;
-
-    if (BE.Parent is TgdAttrUserDefinedEntry) and
-      (BE.Parent.SubType <> BE.GetRootSubType.SubType) then
-    begin
-      UserDefinedCustomInsert(BE.Parent as TgdAttrUserDefinedEntry);
-    end;
+    if (BE.Parent <> nil) and (BE.Parent <> BE.GetRootSubType) then
+      UserDefinedCustomInsert(BE.Parent as TgdBaseEntry);
 
     F := 'inheritedkey,';
     V := ':new_id,';
@@ -11173,11 +11167,11 @@ procedure TgdcBase.CustomInsert(Buff: Pointer);
     begin
       ParseFieldOrigin(Fields[I].Origin, RelationName, FieldName);
 
-      if RelationName <> BE.DistinctRelation then
-        continue;
-
-      F := F + FieldName + ',';
-      V := V + ':new_' + Fields[I].FieldName + ',';
+      if RelationName = BE.DistinctRelation then
+      begin
+        F := F + FieldName + ',';
+        V := V + ':new_' + Fields[I].FieldName + ',';
+      end;  
     end;
 
     SetLength(F, Length(F) - 1);
@@ -11217,8 +11211,8 @@ begin
   end;
 
   CE := gdClassList.Get(TgdBaseEntry, Self.ClassName, SubType);
-  if CE is TgdAttrUserDefinedEntry then
-    UserDefinedCustomInsert(CE as TgdAttrUserDefinedEntry);
+  if CE <> CE.GetRootSubType then
+    UserDefinedCustomInsert(CE as TgdBaseEntry);
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  finally
@@ -11239,35 +11233,30 @@ var
   DidActivate: Boolean;
   CE: TgdClassEntry;
 
-  procedure UserDefinedCustomModify(BE: TgdAttrUserDefinedEntry);
+  procedure UserDefinedCustomModify(BE: TgdBaseEntry);
   var
     I: Integer;
     RelationName, FieldName: String;
     S: String;
   begin
-    if BE.SubType = BE.GetRootSubType.SubType then
-      exit;
-
-    if (BE.Parent is TgdAttrUserDefinedEntry) and
-      (BE.Parent.SubType <> BE.GetRootSubType.SubType) then
-    begin
-      UserDefinedCustomModify(BE.Parent as TgdAttrUserDefinedEntry);
-    end;
+    if (BE.Parent <> nil) and (BE.Parent <> BE.GetRootSubType) then
+      UserDefinedCustomModify(BE.Parent as TgdBaseEntry);
 
     S := '';
     for I := 0 to FieldCount - 1 do
     begin
       ParseFieldOrigin(Fields[I].Origin, RelationName, FieldName);
 
-      if RelationName <> BE.DistinctRelation then
-        continue;
-      S := S + FieldName + ' = :new_' + Fields[I].FieldName + ',';
-
+      if (RelationName = BE.DistinctRelation) and FieldChanged(Fields[I].FieldName) then
+        S := S + FieldName + ' = :new_' + Fields[I].FieldName + ',';
     end;
 
-    SetLength(S, Length(S) - 1);
-    CustomExecQuery('UPDATE ' + BE.DistinctRelation + ' SET ' +
-      S + ' WHERE INHERITEDKEY = :old_id', Buff, False);
+    if S > '' then
+    begin
+      SetLength(S, Length(S) - 1);
+      CustomExecQuery('UPDATE ' + BE.DistinctRelation + ' SET ' +
+        S + ' WHERE INHERITEDKEY = :old_id', Buff, False);
+    end;    
   end;
 
   function GetModifySQLTextForSet: String;
@@ -11387,8 +11376,8 @@ begin
   end;
 
   CE := gdClassList.Get(TgdBaseEntry, Self.ClassName, SubType);
-  if CE is TgdAttrUserDefinedEntry then
-    UserDefinedCustomModify(CE as TgdAttrUserDefinedEntry);
+  if CE <> CE.GetRootSubType then
+    UserDefinedCustomModify(CE as TgdBaseEntry);
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASE', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
   {M}  finally
