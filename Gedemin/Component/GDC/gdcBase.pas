@@ -102,7 +102,7 @@ uses
   menus,                flt_QueryFilterGDC,    at_sql_setup,     gd_createable_form,
   ActnList,             gsStorage,             gd_KeyAssoc,      ExtCtrls,
   Graphics,             mtd_i_Base,            evt_i_Base,       zlib,
-  gdcConstants,         Registry,              gsStreamHelper;
+  gdcConstants,         Registry,              gsStreamHelper,   gd_directories_const;
 
 resourcestring
   strHaventRights =
@@ -448,7 +448,7 @@ type
     //Возвращает поля xid, dbid из таблицы gd_ruid по id
     //Если запись по id не найдена вернет xid = id, dbid = IBLogin.DBID
     function ProcessSQL(const S: String): String;
-    function AdjustMetaName(const S: AnsiString): AnsiString;
+    function AdjustMetaName(const S: AnsiString; const MaxLength: Integer = cstMetaDataNameLength): AnsiString;
 
     //
     procedure ClearSecDescArr;
@@ -2188,7 +2188,7 @@ uses
   flt_sql_parser,               JclStrHashMap,                gdDBImpExp_unit,
   gdcClasses,                   gdc_dlgG_unit,                gdc_dlgSelectObject_unit,
   mtd_i_Inherited,              gdcOLEClassList,              prp_methods,
-  gs_Exception,                 gd_directories_const,         Storages,
+  gs_Exception,                 Storages,
   at_sql_parser,                scrReportGroup,               at_frmSQLProcess,
   DBConsts,                     gd_common_functions,          ComObj,
   gdc_frmMDH_unit,              AcctUtils
@@ -5922,7 +5922,7 @@ begin
       F := '';
       V := '';
       for I := 0 to SL.Count - 1 do
-        if (IsUserTable or (Pos(UserPrefix, UpperCase(SL[I])) <> 1)) and //атрибуты вставит наш анализатор кода
+        if (IsUserTable or (StrIPos(UserPrefix, SL[I]) <> 1)) and //атрибуты вставит наш анализатор кода
           (not Database.Has_Computed_BLR(UpperCase(LT), UpperCase(SL[I]))) and
           (UpperCase(SL[I]) <> 'LB') and
           (UpperCase(SL[I]) <> 'RB') then
@@ -6235,8 +6235,12 @@ var
       if R = nil then
         raise EgdcException.CreateObj('Unknown relation ' + BE.DistinctRelation, Self);
       for I := 0 to R.RelationFields.Count - 1 do
-        SQL := SQL + ', ' + RA + '.' + R.RelationFields[I].FieldName + ' ' +
-          gdcBaseManager.AdjustMetaName(RA + '_' + R.RelationFields[I].FieldName);
+      begin
+        if R.RelationFields[I].IsUserDefined then
+          SQL := SQL + ', ' + RA + '.' + R.RelationFields[I].FieldName + ' ' +
+            gdcBaseManager.AdjustMetaName(RA + '_' + R.RelationFields[I].FieldName,
+            31 - 4); // account for "new_" prefix
+      end;
     end;
   end;
 
@@ -9307,17 +9311,18 @@ end;
 
 { TgdcBaseManager }
 
-function TgdcBaseManager.AdjustMetaName(const S: AnsiString): AnsiString;
+function TgdcBaseManager.AdjustMetaName(const S: AnsiString;
+  const MaxLength: Integer): AnsiString;
 var
   Tmp, S1: AnsiString;
 begin
   S1 := AnsiUpperCase(S);
 
-  if Length(S1) < 32 then
+  if Length(S1) <= MaxLength then
     Result := S1
   else begin
     Tmp := IntToStr(Crc32_P(@S1[1], Length(S1), 0));
-    Result := Copy(S1, 1, 31 - Length(Tmp)) + Tmp;
+    Result := Copy(S1, 1, MaxLength - Length(Tmp)) + Tmp;
   end;
 end;
 
@@ -10026,8 +10031,8 @@ begin
   if not ARoot then
   begin
     q.SQL.Text :=
-      'SELECT inheritedkey FROM ' + CE.SubType +
-      'WHERE inheritedkey = :id';
+      'SELECT inheritedkey FROM ' + (CE as TgdBaseEntry).DistinctRelation +
+      ' WHERE inheritedkey = :id';
     q.ParamByName('id').AsInteger := AnID;
     q.ExecQuery;
     if not q.EOF then
@@ -11146,64 +11151,37 @@ procedure TgdcBase.CustomInsert(Buff: Pointer);
   {END MACRO}
   CE: TgdClassEntry;
 
-  procedure UserDefinedCustomInsert;
+  procedure UserDefinedCustomInsert(BE: TgdAttrUserDefinedEntry);
   var
-    LSQL: string;
     I: Integer;
-    J: Integer;
-    R: TatRelation;
-    RF: TatRelationFields;
-    LSubtype: string;
-    ST: TstringList;
+    RelationName, FieldName: String;
+    F, V: String;
   begin
-    LSubtype := SubType;
-
-    ST := TStringList.Create;
-    try
-      While ClassParentSubtype(LSubtype) <> '' do
-      begin
-        ST.Add(LSubType);
-        LSubType := ClassParentSubtype(LSubtype);
-      end;
-
-      for J := ST.Count - 1 downto 0 do
-      begin
-        R := atDatabase.Relations.ByRelationName(ST[J]);
-        if Assigned(R) then
-        begin
-          RF := R.RelationFields;
-          if Assigned(RF) then
-          begin
-            LSQL := 'INSERT INTO ';
-            LSQL := LSQL + R.RelationName + ' (';
-            for i := 0 to RF.Count - 1 do
-            begin
-              if (i <> (RF.Count - 1)) then
-                LSQL := LSQL + RF.Items[I].FieldName + ', '
-              else
-                LSQL := LSQL + RF.Items[I].FieldName + ')'
-            end;
-            LSQL := LSQL + ' VALUES (';
-            for i := 0 to RF.Count - 1 do
-            begin
-              if (i <> (RF.Count - 1)) then
-                if RF.Items[I].FieldName = 'INHERITEDKEY' then
-                  LSQL := LSQL + ':new_id, '
-                else
-                  LSQL := LSQL + ':new_' + RF.Items[I].FieldName + ', '
-              else
-                if RF.Items[I].FieldName = 'INHERITEDKEY' then
-                  LSQL := LSQL + ':new_id)'
-                else
-                  LSQL := LSQL + ':new_' + RF.Items[I].FieldName + ')';
-            end;
-            CustomExecQuery(LSQL, Buff);
-          end;
-        end;
-      end;
-    finally
-      ST.Free;
+    if (BE.Parent is TgdAttrUserDefinedEntry) and
+      (BE.Parent.SubType <> BE.GetRootSubType.SubType) then
+    begin
+      UserDefinedCustomInsert(BE.Parent as TgdAttrUserDefinedEntry);
     end;
+
+    F := 'inheritedkey,';
+    V := ':new_id,';
+
+    for I := 0 to FieldCount - 1 do
+    begin
+      ParseFieldOrigin(Fields[I].Origin, RelationName, FieldName);
+
+      if RelationName <> BE.DistinctRelation then
+        continue;
+
+      F := F + FieldName + ',';
+      V := V + ':new_' + Fields[I].FieldName + ',';
+    end;
+
+    SetLength(F, Length(F) - 1);
+    SetLength(V, Length(V) - 1);
+
+    CustomExecQuery('INSERT INTO ' + BE.DistinctRelation +
+      ' (' + F + ') VALUES (' + V + ')', Buff, False);
   end;
 
 begin
@@ -11237,7 +11215,7 @@ begin
 
   CE := gdClassList.Get(TgdBaseEntry, Self.ClassName, SubType);
   if CE is TgdAttrUserDefinedEntry then
-    UserDefinedCustomInsert;
+    UserDefinedCustomInsert(CE as TgdAttrUserDefinedEntry);
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  finally

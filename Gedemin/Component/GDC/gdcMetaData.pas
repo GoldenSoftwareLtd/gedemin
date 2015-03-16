@@ -810,8 +810,6 @@ type
 function GetDefaultExpression(const ADefaultExpression: String): Variant;
 
 const
-//Длина имени мета-данных
-  cstMetaDataNameLength = 31;
   MaxInvCardTrigger = 5;
 
 implementation
