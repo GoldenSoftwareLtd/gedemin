@@ -236,7 +236,6 @@ type
   TgdcUserBaseDocument = class(TgdcDocument)
   private
     FRelation, FRelationLine: String;
-    FIsComplexDocument: Boolean;
 
   protected
     FDocumentTypeKey: Integer;
@@ -281,16 +280,15 @@ type
     procedure CustomInsert(Buff: Pointer); override;
     procedure CustomModify(Buff: Pointer); override;
 
-    function CreateDialogForm: TCreateableForm; override;
     function GetDetailObject: TgdcDocument; override;
     function GetCompoundMasterTable: String; override;
     procedure CheckCompoundClasses; override;
 
   public
-    constructor Create(AnOwner: TComponent); override;
     destructor Destroy; override;
 
     class function GetSubSetList: String; override;
+    class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
   end;
 
   TgdcUserDocumentLine = class(TgdcUserBaseDocument)
@@ -3285,7 +3283,6 @@ begin
     FBranchKey := DE.BranchKey;
     FRelation := DE.HeaderRelName;
     FRelationLine := DE.LineRelName;
-    FIsComplexDocument := FRelationLine > '';
   end else
     raise EgdcIBError.Create('Неверен тип документа');
 end;
@@ -3332,66 +3329,6 @@ begin
 end;
 
 { TgdcUserDocument }
-
-constructor TgdcUserDocument.Create(AnOwner: TComponent);
-begin
-  inherited;
-end;
-
-function TgdcUserDocument.CreateDialogForm: TCreateableForm;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_FUNCCREATEDIALOGFORM('TGDCUSERDOCUMENT', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  try
-  {M}    Result := nil;
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCUSERDOCUMENT', KEYCREATEDIALOGFORM);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCREATEDIALOGFORM]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCUSERDOCUMENT') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCUSERDOCUMENT',
-  {M}          'CREATEDIALOGFORM', KEYCREATEDIALOGFORM, Params, LResult) then
-  {M}          begin
-  {M}            Result := nil;
-  {M}            if VarType(LResult) <> varDispatch then
-  {M}              raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен не объект.')
-  {M}            else
-  {M}              if IDispatch(LResult) = nil then
-  {M}                raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                  'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен пустой (null) объект.');
-  {M}            Result := GetInterfaceToObject(LResult) as TCreateableForm;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCUSERDOCUMENT' then
-  {M}        begin
-  {M}          Result := Inherited CreateDialogForm;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  if not FIsComplexDocument then
-    Result := Tgdc_dlgUserSimpleDocument.CreateSubType(ParentForm, SubType)
-  else
-    Result := Tgdc_dlgUserComplexDocument.CreateSubType(ParentForm, SubType);
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCUSERDOCUMENT', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCUSERDOCUMENT', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM);
-  {M}  end;
-  {END MACRO}
-end;
 
 procedure TgdcUserDocument.CustomInsert(Buff: Pointer);
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
@@ -3670,6 +3607,19 @@ begin
     TgdcCompoundClass.Create(TgdcUserDocumentLine, SubType,
       RelationLine,
       'MASTERKEY'));
+end;
+
+class function TgdcUserDocument.GetDialogFormClassName(
+  const ASubType: TgdcSubType): String;
+var
+  CE: TgdClassEntry;
+begin
+  CE := gdClassList.Get(TgdDocumentEntry, Self.ClassName, ASubType);
+
+  if (CE as TgdDocumentEntry).LineRelKey > 0 then
+    Result := 'Tgdc_dlgUserComplexDocument'
+  else
+    Result := 'Tgdc_dlgUserSimpleDocument';
 end;
 
 { TgdcUserDocumentLine }
