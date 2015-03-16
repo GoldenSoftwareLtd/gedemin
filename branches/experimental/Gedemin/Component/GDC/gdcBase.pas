@@ -11157,6 +11157,9 @@ procedure TgdcBase.CustomInsert(Buff: Pointer);
     RelationName, FieldName: String;
     F, V: String;
   begin
+    if BE.SubType = BE.GetRootSubType.SubType then
+      exit;
+
     if (BE.Parent is TgdAttrUserDefinedEntry) and
       (BE.Parent.SubType <> BE.GetRootSubType.SubType) then
     begin
@@ -11236,84 +11239,35 @@ var
   DidActivate: Boolean;
   CE: TgdClassEntry;
 
-  procedure UserDefinedCustomModify;
+  procedure UserDefinedCustomModify(BE: TgdAttrUserDefinedEntry);
   var
-    LSQL: string;
-    I, J: Integer;
-    R: TatRelation;
-    RF: TatRelationFields;
-    LSubtype: string;
-    ST: TstringList;
+    I: Integer;
+    RelationName, FieldName: String;
+    S: String;
   begin
-    LSubtype := SubType;
-    While ClassParentSubtype(LSubtype) <> '' do
+    if BE.SubType = BE.GetRootSubType.SubType then
+      exit;
+
+    if (BE.Parent is TgdAttrUserDefinedEntry) and
+      (BE.Parent.SubType <> BE.GetRootSubType.SubType) then
     begin
-      R := atDatabase.Relations.ByRelationName(LSubtype);
-      if Assigned(R) then
-      begin
-        RF := R.RelationFields;
-        if Assigned(RF) then
-        begin
-          LSQL := 'UPDATE ';
-          LSQL := LSQL + R.RelationName + ' SET ';
-          for i := 0 to RF.Count - 1 do
-          begin
-            if (i <> (RF.Count - 1)) then
-              if RF.Items[I].FieldName = 'INHERITEDKEY' then
-                LSQL := LSQL + RF.Items[I].FieldName + ' = :new_id, '
-              else
-                LSQL := LSQL + RF.Items[I].FieldName + ' = :new_'
-                  + RF.Items[I].FieldName + ', '
-            else
-              if RF.Items[I].FieldName = 'INHERITEDKEY' then
-                LSQL := LSQL + RF.Items[I].FieldName + ' = :new_id'
-              else
-                LSQL := LSQL + RF.Items[I].FieldName + ' = :new_'
-                  + RF.Items[I].FieldName
-          end;
-          LSQL := LSQL + ' WHERE INHERITEDKEY = :old_id';
-          CustomExecQuery(LSQL, Buff);
-        end;
-      end;
-      LSubtype := ClassParentSubtype(LSubtype);
+      UserDefinedCustomModify(BE.Parent as TgdAttrUserDefinedEntry);
     end;
 
-    ST := TStringList.Create;
-    try
-      GetSubTypeList(ST, SubType, False);
-      for I := 0 to ST.Count - 1 do
-      begin
-        R := atDatabase.Relations.ByRelationName(ST.Values[ST.Names[I]]);
-        if Assigned(R) then
-        begin
-          RF := R.RelationFields;
-          if Assigned(RF) then
-          begin
-            LSQL := 'UPDATE ';
-            LSQL := LSQL + R.RelationName + ' SET ';
-            for J := 0 to RF.Count - 1 do
-            begin
-              if (J <> (RF.Count - 1)) then
-                if RF.Items[J].FieldName = 'INHERITEDKEY' then
-                  LSQL := LSQL + RF.Items[J].FieldName + ' = :new_id, '
-                else
-                  LSQL := LSQL + RF.Items[J].FieldName + ' = :new_'
-                    + RF.Items[J].FieldName + ', '
-              else
-                if RF.Items[J].FieldName = 'INHERITEDKEY' then
-                  LSQL := LSQL + RF.Items[J].FieldName + ' = :new_id'
-                else
-                  LSQL := LSQL + RF.Items[J].FieldName + ' = :new_'
-                    + RF.Items[J].FieldName
-            end;
-            LSQL := LSQL + ' WHERE INHERITEDKEY = :old_id';
-            CustomExecQuery(LSQL, Buff);
-          end;
-        end;
-      end;
-    finally
-      ST.Free;
+    S := '';
+    for I := 0 to FieldCount - 1 do
+    begin
+      ParseFieldOrigin(Fields[I].Origin, RelationName, FieldName);
+
+      if RelationName <> BE.DistinctRelation then
+        continue;
+      S := S + FieldName + ' = :new_' + Fields[I].FieldName + ',';
+
     end;
+
+    SetLength(S, Length(S) - 1);
+    CustomExecQuery('UPDATE ' + BE.DistinctRelation + ' SET ' +
+      S + ' WHERE INHERITEDKEY = :old_id', Buff, False);
   end;
 
   function GetModifySQLTextForSet: String;
@@ -11434,7 +11388,7 @@ begin
 
   CE := gdClassList.Get(TgdBaseEntry, Self.ClassName, SubType);
   if CE is TgdAttrUserDefinedEntry then
-    UserDefinedCustomModify;
+    UserDefinedCustomModify(CE as TgdAttrUserDefinedEntry);
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASE', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
   {M}  finally
