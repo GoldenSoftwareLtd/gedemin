@@ -628,7 +628,12 @@ function TgsPLClient.GetFileName(const AFileName: String): String;
 var
   TempS: String;
 begin
-  TempS := ExtractFilePath(Application.EXEName) + PrologTempPath;
+  //TempS := ExtractFilePath(Application.EXEName) + PrologTempPath;
+  TempS := GetSWIPath;
+  if not DirectoryExists(TempS) then
+    if not CreateDir(TempS) then
+      raise EgsPLClientException.Create('Не удается создать директорию ''' + TempS + '''');
+  TempS := GetSWITempPath;
   if not DirectoryExists(TempS) then
     if not CreateDir(TempS) then
       raise EgsPLClientException.Create('Не удается создать директорию ''' + TempS + '''');
@@ -1032,8 +1037,7 @@ function TgsPLClient.GetDefaultPLInitString: String;
 var
   Path: String;
 begin
-  Path := ExtractFilePath(Application.EXEName) + IncludeTrailingBackSlash(PrologPath);
-  Path := StringReplace(Path, '\', '/', [rfReplaceAll]);
+  Path := StringReplace(GetPath, '\', '/', [rfReplaceAll]);
   Result := Format('[libswipl.dll],[-x],[%0:sgd_pl_state.dat],[-p],[foreign=%0:slib]', [Path]);
 end;
 

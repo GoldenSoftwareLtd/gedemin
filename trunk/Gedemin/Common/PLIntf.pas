@@ -3,7 +3,7 @@ unit PLIntf;
 interface
 
 uses
-  Windows, PLHeader;
+  Windows, PLHeader, gd_GlobalParams_unit;
 
 var
   PL_initialise: TPL_initialise;
@@ -92,6 +92,8 @@ procedure FreePLDependentLibraries;
 procedure LoadPLLibrary;
 procedure FreePLLibrary;
 function GetPath: String;
+function GetSWIPath: String;
+function GetSWITempPath: String;
 function TryPLLoad: Boolean;
 
 implementation
@@ -106,7 +108,23 @@ var
 
 function GetPath: String;
 begin
-  Result := ExtractFilePath(Application.EXEName) + 'swipl\';
+  Result := ExtractFilePath(Application.EXEName) + IncludeTrailingBackslash(PrologPath);
+end;
+
+function GetSWIPath: String;
+begin
+  if gd_GlobalParams.LocalAppDataDir > '' then
+    Result := IncludeTrailingBackslash(gd_GlobalParams.LocalAppDataDir) + PrologPath
+  else
+    Result := ExtractFilePath(Application.EXEName) + PrologPath;
+end;
+
+function GetSWITempPath: String;
+begin
+  if gd_GlobalParams.LocalAppDataDir > '' then
+    Result := IncludeTrailingBackslash(gd_GlobalParams.LocalAppDataDir) + PrologTempPath
+  else
+    Result := ExtractFilePath(Application.EXEName) + PrologTempPath;
 end;
 
 function LoadPLDependentLibraries: Boolean;
