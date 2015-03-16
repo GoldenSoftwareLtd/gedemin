@@ -137,9 +137,9 @@ implementation
 
 {$R *.DFM}
 uses
-  gdcTree, Clipbrd, gd_ClassList, flt_frmSQLEditorSyn_unit, ContNrs,
-  at_classes, gdcMetaData, IBUtils, IBSQL, gdcClasses, gdcNamespace,
-  yaml_writer, jclStrings, at_sql_parser, gdc_createable_form;
+  gdcTree, Clipbrd, gd_ClassList, flt_frmSQLEditorSyn_unit, ContNrs, at_classes,
+  gdcMetaData, IBUtils, IBSQL, gdcClasses, gdcNamespace, yaml_writer, jclStrings,
+  at_sql_parser, gdc_createable_form, gd_directories_const;
 
 { Tgdc_dlgObjectProperties }
 
@@ -503,6 +503,7 @@ begin
     if Trim(gdcObject.ExtraConditions.CommaText) > '' then
       Add(AddSpaces('Доп. условия:') + Trim(gdcObject.ExtraConditions.CommaText));
     Add(AddSpaces('Тип текущей записи:') + gdcObject.GetCurrRecordClass.gdClass.ClassName);
+    Add(AddSpaces('Подтип тек. записи:') + gdcObject.GetCurrRecordClass.SubType);
     Add(AddSpaces('Идентификатор:') + IntToStr(gdcObject.ID));
     Add(AddSpaces('RUID:') + RUIDToStr(gdcObject.GetRUID));
     Add(AddSpaces('Наименование:') + gdcObject.ObjectName);
