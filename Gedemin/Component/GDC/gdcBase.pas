@@ -10694,7 +10694,7 @@ begin
             I := 0;
 
             repeat
-              N := GetDisplayName(SubSet);
+              N := GetDisplayName(SubType);
               if I > 0 then
                 N := N + IntToStr(I);
               Inc(I);
