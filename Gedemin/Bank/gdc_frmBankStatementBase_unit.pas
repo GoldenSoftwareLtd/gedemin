@@ -183,7 +183,7 @@ end;
 
 procedure Tgdc_frmBankStatementBase.actCreateEntryUpdate(Sender: TObject);
 begin
-  actCreateEntry.Enabled := (gdcObject <> nil) and (gdcObject.CanEdit);
+  actCreateEntry.Enabled := (gdcObject <> nil) and gdcObject.CanEdit;
 end;
 
 initialization
@@ -191,5 +191,4 @@ initialization
 
 finalization
   UnRegisterFrmClass(Tgdc_frmBankStatementBase);
-
 end.

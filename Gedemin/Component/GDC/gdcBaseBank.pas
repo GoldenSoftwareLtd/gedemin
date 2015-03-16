@@ -32,10 +32,10 @@ type
     function GetNotCopyField: String; override;
 
   public
+    class function GetSubSetList: String; override;
+
     procedure Assign(Source: TPersistent); override;
     function GetBankInfo(AccountKey: String): String;
-
-    class function GetSubSetList: String; override;
 
     property gsTransaction: TgsTransaction read GetgsTransaction write SetgsTransaction;
   end;
@@ -44,7 +44,6 @@ type
   public
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
-    class function GetKeyField(const ASubType: TgdcSubType): String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
   end;
@@ -123,7 +122,6 @@ begin
   DidActivate := False;
   q := TIBSQL.Create(nil);
   try
-    q.Database := Database;
     q.Transaction := ReadTransaction;
     DidActivate := ActivateReadTransaction;
 
@@ -272,11 +270,6 @@ class function TgdcCompanyAccountType.GetDialogFormClassName(
   const ASubType: TgdcSubType): String;
 begin
   Result := 'Tgdc_dlgCompanyAccountType';
-end;
-
-class function TgdcCompanyAccountType.GetKeyField(const ASubType: TgdcSubType): String;
-begin
-  Result := 'id';
 end;
 
 class function TgdcCompanyAccountType.GetListField(const ASubType: TgdcSubType): String;
