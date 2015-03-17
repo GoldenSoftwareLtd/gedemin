@@ -1288,17 +1288,9 @@ begin
 end;
 
 function TgdcAcctBaseEntryRegister.GetCurrRecordClass: TgdcFullClass;
-var
-  F: TField;
 begin
   Result.gdClass := TgdcAcctEntryRegister;
   Result.SubType := '';
-  
-  F := FindField('USR$ST');
-  if F <> nil then
-    Result.SubType := F.AsString;
-  if (Result.SubType > '') and (not Result.gdClass.CheckSubType(Result.SubType)) then
-    raise EgdcException.Create('Invalid USR$ST value.');
 end;
 
 class function TgdcAcctBaseEntryRegister.IsAbstractClass: Boolean;
@@ -2315,17 +2307,9 @@ begin
 end;
 
 function TgdcAcctViewEntryRegister.GetCurrRecordClass: TgdcFullClass;
-var
-  F: TField;
 begin
   Result.gdClass := TgdcAcctViewEntryRegister;
   Result.SubType := '';
-
-  F := FindField('USR$ST');
-  if F <> nil then
-    Result.SubType := F.AsString;
-  if (Result.SubType > '') and (not Result.gdClass.CheckSubType(Result.SubType)) then
-    raise EgdcException.Create('Invalid USR$ST value.');
 end;
 
 function TgdcAcctViewEntryRegister.GetDocument: TgdcDocument;
