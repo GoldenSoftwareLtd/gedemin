@@ -6436,8 +6436,6 @@ var
   {END MACRO}
   SL: TStringList;
   I: Integer;
-  LSubType: TgdcSubType;
-  CE: TgdClassEntry;
 begin
   {@UNFOLD MACRO INH_ORIG_GETWHERECLAUSE('TGDCBASE', 'GETWHERECLAUSE', KEYGETWHERECLAUSE)}
   {M}  try
@@ -6478,24 +6476,6 @@ begin
     for I := SL.Count - 1 downto 0 do
       if Trim(SL[I]) = '' then
         SL.Delete(I);
-
-    if SubType > '' then
-    begin
-      CE := gdClassList.Find(Self.ClassType, SubType);
-      // подтип может быть липовым поэтому CE = nil это нормально
-      // можно конечно добавить проверку подтипа
-      if CE is TgdStorageEntry then
-      begin
-        LSubType := SubType;
-        repeat
-          LSubType := ClassParentSubType(LSubType);
-          if LSubType = '' then
-            SL.Add(GetListTableAlias + '.USR$ST IS NOT NULL')
-          else
-            SL.Add(GetListTableAlias + '.USR$ST <> ''' + AnsiUpperCase(LSubType) + '''')
-        until LSubType = '';
-      end;
-    end;
 
     if SL.Count > 0 then
     begin
@@ -10043,7 +10023,6 @@ end;
 
 function TgdcBase.GetCurrRecordClass: TgdcFullClass;
 var
-  F: TField;
   q: TIBSQL;
   CE: TgdClassEntry;
   S: TgdcSubType;
@@ -10069,14 +10048,6 @@ begin
         if S > '' then
           Result.SubType := S;
       end;
-    end;
-
-    F := FindField('USR$ST');
-    if F <> nil then
-    begin
-      Result.SubType := F.AsString;
-      if not CheckSubType(Result.SubType) then
-        raise EgdcException.Create('Invalid USR$ST value.');
     end;
   end;  
 end;

@@ -2042,8 +2042,6 @@ begin
 end;
 
 function TgdcBaseDocumentType.GetCurrRecordClass: TgdcFullClass;
-var
-  F: TField;
 begin
   Result.gdClass := CgdcBase(Self.ClassType);
   Result.SubType := '';
@@ -2065,12 +2063,6 @@ begin
       Result.SubType := '';
     end;
   end;
-
-  F := FindField('USR$ST');
-  if F <> nil then
-    Result.SubType := F.AsString;
-  if (Result.SubType > '') and (not Result.gdClass.CheckSubType(Result.SubType)) then
-    raise EgdcException.Create('Invalid USR$ST value.');
 end;
 
 class function TgdcBaseDocumentType.GetKeyField(
@@ -2737,19 +2729,11 @@ begin
 end;
 
 function TgdcDocumentType.GetCurrRecordClass: TgdcFullClass;
-var
-  F: TField;
 begin
   if FieldByName('classname').AsString > '' then
   begin
     Result.gdClass := CgdcBase(GetClass(FieldByName('classname').AsString));
     Result.SubType := '';
-
-    F := FindField('USR$ST');
-    if F <> nil then
-      Result.SubType := F.AsString;
-    if (Result.SubType > '') and (not Result.gdClass.CheckSubType(Result.SubType)) then
-      raise EgdcException.Create('Invalid USR$ST value.');
   end else
     Result := inherited GetCurrRecordClass;
 end;

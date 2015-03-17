@@ -1925,7 +1925,6 @@ end;
 function TgdcRelation.GetCurrRecordClass: TgdcFullClass;
 var
   S: String;
-  F: TField;
 begin
   if EOF then
   begin
@@ -1967,12 +1966,6 @@ begin
       Result.gdClass := CgdcBase(Self.ClassType);
       Result.SubType := '';
     end;
-
-    F := FindField('USR$ST');
-    if F <> nil then
-      Result.SubType := F.AsString;
-    if (Result.SubType > '') and (not Result.gdClass.CheckSubType(Result.SubType)) then
-      raise EgdcException.Create('Invalid USR$ST value.');
   end;
 end;
 
@@ -5288,8 +5281,6 @@ begin
 end;
 
 function TgdcRelationField.GetCurrRecordClass: TgdcFullClass;
-var
-  F: TField;
 begin
   Result.gdClass := CgdcBase(Self.ClassType);
   Result.SubType := '';
@@ -5302,12 +5293,6 @@ begin
       Result.gdClass := CgdcBase(TgdcViewField);
     Result.SubType := '';
   end;
-
-  F := FindField('USR$ST');
-  if F <> nil then
-    Result.SubType := F.AsString;
-  if (Result.SubType > '') and (not Result.gdClass.CheckSubType(Result.SubType)) then
-    raise EgdcException.Create('Invalid USR$ST value.');
 end;
 
 function TgdcRelationField.ReadObjectState(AFieldId,
