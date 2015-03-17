@@ -9724,15 +9724,13 @@ end;
 function TEventControl.SetParentEventObjectsBySubType(AnComponent: TComponent;
   AnEventObject: TEventObject): Boolean;
 var
-  LSubType: String;
-  LParentSubType: String;
   LParentEventObject: TEventObject;
   LTempEventObject: TEventObject;
   LTempChildEventObject: TEventObject;
   LOwnerEventObject: TEventObject;
   LParentCompName: String;
   I: Integer;
-  LFullClassName: TgdcFullClassName;
+  CE: TgdClassEntry;
 begin
   Result := False;
 
@@ -9740,31 +9738,29 @@ begin
   begin
     if (AnComponent is TgdcCreateableForm) then
     begin
-      LSubType := TgdcCreateableForm(AnComponent).SubType;
-      LParentSubType := '';
       AnEventObject.ParentObjectsBySubType.Clear;
-      if LSubType > '' then
-        repeat
-          LFullClassName.gdClassName := AnComponent.ClassName;
-          LFullClassName.SubType := StringReplace(LSubType, 'USR_', 'USR$', [rfReplaceAll, rfIgnoreCase]);
-          if (not Assigned(gdClassList.GetFRMClass(LFullClassName.gdClassName)))then
-            raise Exception.Create('Ошибка перекрытия события ' + LFullClassName.gdClassName);
-          LParentSubType := gdClassList.GetFRMClass(LFullClassName.gdClassName).ClassParentSubtype(LFullClassName.SubType);
-          LParentSubType := StringReplace(LParentSubType, 'USR$', 'USR_', [rfReplaceAll, rfIgnoreCase]);
 
-          LParentCompName :=
-            Copy(AnComponent.ClassName, 2, Length(AnComponent.ClassName) - 1)
-            + LParentSubType;
+      if TgdcCreateableForm(AnComponent).SubType > '' then
+      begin
+        CE := gdClassList.Get(TgdFormEntry, AnComponent.ClassName,
+          StringReplace(TgdcCreateableForm(AnComponent).SubType,
+          'USR_', 'USR$', [rfReplaceAll, rfIgnoreCase]));
+
+        While (CE.SubType <> '') do
+        begin
+          LParentCompName := Copy(AnComponent.ClassName, 2, Length(AnComponent.ClassName) - 1)
+            + StringReplace(CE.Parent.SubType, 'USR$', 'USR_', [rfReplaceAll, rfIgnoreCase]);
 
           LParentEventObject := EventObjectList.FindAllObject(LParentCompName);
-          if Assigned(LParentEventObject) then
+          if LParentEventObject <> nil then
           begin
             AnEventObject.CurrIndexParentObject := -1;
             AnEventObject.ParentObjectsBySubType.AddObject(LParentEventObject);
           end;
 
-          LSubType := LParentSubType;
-        until LParentSubType = '';
+          CE := CE.Parent;
+        end;
+      end;
     end;
   end else
   begin
