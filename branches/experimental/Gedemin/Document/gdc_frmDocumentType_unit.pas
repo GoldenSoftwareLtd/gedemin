@@ -13,7 +13,7 @@ type
   Tgdc_frmDocumentType = class(Tgdc_frmMDVTree)
     gdcDocumentType: TgdcDocumentType;
     actNewSub: TAction;
-    gdcBaseDocumentType: TgdcBaseDocumentType;
+    gdcDocumentBranch: TgdcDocumentBranch;
     procedure FormCreate(Sender: TObject);
     procedure tvGroupGetImageIndex(Sender: TObject; Node: TTreeNode);
     procedure actDetailNewExecute(Sender: TObject);
@@ -21,9 +21,6 @@ type
 
   public
     class function CreateAndAssign(AnOwner: TComponent): TForm; override;
-
-    procedure GetDisabledDetailClasses(ACL: TClassList); override;
-
   end;
 
 var
@@ -46,47 +43,11 @@ begin
   Result := gdc_frmDocumentType;
 end;
 
-procedure Tgdc_frmDocumentType.GetDisabledDetailClasses(ACL: TClassList);
-var
-  N: TTreeNode;
-  RUID: String;
-begin
-  N := tvGroup.Selected;
-  while (N <> nil) and (N.Parent <> nil) do
-    N := N.Parent;
-
-  if N <> nil then
-  begin
-    RUID := gdcBaseManager.GetRUIDStringByID(Integer(N.Data));
-    if RUID = '804000_17' then
-    begin
-      ACL.Add(TgdcUserDocumentType);
-      ACL.Add(TgdcInvPriceListType);
-    end
-    else
-      if RUID = '805000_17' then
-      begin
-        ACL.Add(TgdcUserDocumentType);
-        ACL.Add(TgdcInvDocumentType);
-      end
-      else
-      begin
-        ACL.Add(TgdcInvPriceListType);
-        ACL.Add(TgdcInvDocumentType);
-      end;
-  end;
-end;
-
 procedure Tgdc_frmDocumentType.FormCreate(Sender: TObject);
 begin
-  gdcObject := gdcBaseDocumentType;
+  gdcObject := gdcDocumentBranch;
   gdcDetailObject := gdcDocumentType;
   inherited;
-
-  //хз почему руками не выставляется???
-  tbsiDetailNew.Visible := True;
-  nDetailNew.Visible := True;
-  tbi_mm_DetailNew.Visible := True;
 end;
 
 procedure Tgdc_frmDocumentType.tvGroupGetImageIndex(Sender: TObject;
@@ -107,7 +68,7 @@ var
   N: TTreeNode;
   RUID: String;
 begin
-    N := tvGroup.Selected;
+  N := tvGroup.Selected;
   while (N <> nil) and (N.Parent <> nil) do
     N := N.Parent;
 

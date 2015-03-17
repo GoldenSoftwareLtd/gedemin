@@ -26,11 +26,6 @@ type
     procedure actAddAnalizeUpdate(Sender: TObject);
     procedure actDetailNewUpdate(Sender: TObject);
 
-  protected
-    procedure GetDisabledClasses(ACL: TClassList); override;
-
-    procedure GetDisabledDetailClasses(ACL: TClassList); override;
-
   public
     procedure SetChoose(AnObject: TgdcBase); override;
   end;
@@ -72,31 +67,6 @@ begin
       Free;
     end;
 
-end;
-
-procedure Tgdc_frmAcctAccount.GetDisabledClasses(ACL: TClassList);
-begin
-  if gdcObject.IsEmpty then
-    ACL.Add(TgdcAcctFolder);
-end;
-
-procedure Tgdc_frmAcctAccount.GetDisabledDetailClasses(ACL: TClassList);
-begin
-  if (not gdcObject.Active)
-    or (gdcObject.IsEmpty)
-    or (gdcObject.FieldByName('accounttype').AsString <> 'F') then
-  begin
-    ACL.Add(TgdcAcctAccount);
-  end;
-
-  if (not gdcDetailObject.Active)
-    or (gdcDetailObject.IsEmpty)
-    or (not gdcObject.Active)
-    or (gdcObject.IsEmpty)
-    or (gdcObject.FieldByName('accounttype').AsString <> 'F') then
-  begin
-    ACL.Add(TgdcAcctSubAccount);
-  end;
 end;
 
 procedure Tgdc_frmAcctAccount.SetChoose(AnObject: TgdcBase);

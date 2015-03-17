@@ -158,7 +158,6 @@ inherited gdc_frmMDH: Tgdc_frmMDH
           TabOrder = 0
           object tbsiDetailNew: TTBSubmenuItem
             Action = actDetailNew
-            DropdownCombo = True
             OnPopup = tbsiDetailNewPopup
           end
           object tbiDetailEdit: TTBItem
@@ -206,7 +205,7 @@ inherited gdc_frmMDH: Tgdc_frmMDH
           end
         end
         object tbDetailCustom: TTBToolbar
-          Left = 257
+          Left = 256
           Top = 0
           Caption = 'ƒополнительна€ панель инструментов (детальна€)'
           CloseButton = False

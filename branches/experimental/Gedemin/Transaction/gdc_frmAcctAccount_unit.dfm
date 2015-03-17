@@ -32,6 +32,9 @@ inherited gdc_frmAcctAccount: Tgdc_frmAcctAccount
             Caption = 'Добавить аналитику'
           end
         end
+        inherited tbDetailCustom: TTBToolbar
+          Left = 309
+        end
       end
     end
   end

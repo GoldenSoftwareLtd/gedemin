@@ -315,12 +315,11 @@ implementation
 
 uses
   IB, IBSQL, IBErrorCodes, gdcBaseInterface, gd_createable_form,
-  IBCustomDataSet, TypInfo, gd_directories_const,
-  Storages, gd_ClassList, dmImages_unit, evt_i_Base,
-  jclStrings, at_frmSQLProcess, gsStorage_CompPath,
-  gd_security, prp_methods, Gedemin_TLB, gsStorage,
-  gdcUser, at_classes, DBCtrls, at_AddToSetting,
-  gdcClasses, DBGrids, gdcJournal, gdHelp_Interface, gdcDelphiObject, Contnrs
+  IBCustomDataSet, TypInfo, gd_directories_const, Storages, gd_ClassList,
+  dmImages_unit, evt_i_Base, jclStrings, at_frmSQLProcess, gsStorage_CompPath,
+  gd_security, prp_methods, Gedemin_TLB, gsStorage, gdcUser, at_classes,
+  DBCtrls, at_AddToSetting, gdcClasses, DBGrids, gdcJournal, gdHelp_Interface,
+  gdcDelphiObject
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -332,7 +331,6 @@ type
   end;
 
 { Tgdc_dlgG }
-
 
 procedure Tgdc_dlgG.Setup(AnObject: TObject);
   {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
