@@ -1,6 +1,6 @@
 inherited gdc_frmDocumentType: Tgdc_frmDocumentType
-  Left = 262
-  Top = 136
+  Left = 450
+  Top = 230
   Width = 1067
   Height = 749
   Caption = 'Типовые документы'
@@ -86,9 +86,6 @@ inherited gdc_frmDocumentType: Tgdc_frmDocumentType
       Hint = 'Добавить ветвь...'
       ImageIndex = 0
     end
-    inherited actDetailNew: TAction
-      Visible = False
-    end
   end
   inherited pmMain: TPopupMenu
     Left = 113
@@ -114,8 +111,8 @@ inherited gdc_frmDocumentType: Tgdc_frmDocumentType
     Left = 428
     Top = 140
   end
-  object gdcBaseDocumentType: TgdcBaseDocumentType
-    Left = 137
-    Top = 222
+  object gdcDocumentBranch: TgdcDocumentBranch
+    Left = 48
+    Top = 288
   end
 end

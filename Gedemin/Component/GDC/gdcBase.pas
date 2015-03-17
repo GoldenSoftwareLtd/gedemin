@@ -266,18 +266,6 @@ type
     SubType: TgdcSubType;
   end;
 
-  TCreatedObject = class(TObject)
-  private
-    FObj: TObject;
-    FCaption: String;
-    FIsSubLevel: Boolean;
-
-  public
-    property Obj: TObject read FObj write FObj;
-    property Caption: String read FCaption write FCaption;
-    property IsSubLevel: Boolean read FIsSubLevel write FIsSubLevel;
-  end;
-
   //
   TgdcSetAttribute = class(TObject)
   private
@@ -1339,15 +1327,6 @@ type
     // выводит на экран меню со списком доступных для объекта отчетов
     procedure PopupReportMenu(const X, Y: Integer);
 
-    // возвращает количество доступных обектов для вставки
-    function GetDescendantCount(const AnOnlySameLevel: Boolean): Integer; virtual;
-    // возвращает список доступных обектов для вставки
-    function GetDescendantList(AOL: TObjectList;
-      const AnOnlySameLevel: Boolean): Boolean; virtual;
-
-    function GetDefaultClassForDialog: TgdcFullClass; virtual;
-
-    procedure CreateDefaultDialog; virtual;
     //
     procedure PopupFilterMenu(const X, Y: Integer);
 
@@ -5312,48 +5291,6 @@ begin
     if DidActivate then
       DeactivateReadTransaction;
   end;
-end;
-
-function TgdcBase.GetDescendantCount(const AnOnlySameLevel: Boolean): Integer;
-var
-  OL: TObjectList;
-begin
-  OL := TObjectList.Create(False);
-  try
-    GetChildrenClass(SubType, OL);
-    Result := OL.Count;
-  finally
-    OL.Free;
-  end;
-end;
-
-function TgdcBase.GetDescendantList(AOL: TObjectList;
-  const AnOnlySameLevel: Boolean): Boolean;
-var
-  OL: TObjectList;
-  I: Integer;
-  CO : TCreatedObject;
-begin
-  OL := TObjectList.Create(False);
-  try
-    if GetChildrenClass(SubType, OL) then
-    begin
-      for I := 0 to OL.Count - 1 do
-      begin
-        CO := TCreatedObject.Create;
-        CO.Obj := OL[I];
-        CO.Caption := TgdClassEntry(OL[I]).Caption;
-        if CO.Caption = '' then
-          CO.Caption := TgdClassEntry(OL[I]).TheClass.ClassName;
-        CO.IsSubLevel := False;
-        AOL.Add(CO);
-      end;
-    end;
-  finally
-    OL.Free;
-  end;
-
-  Result := AOL.Count > 0;
 end;
 
 procedure TgdcBase.DoBeforeOpen;
@@ -14992,20 +14929,6 @@ end;
 class function TgdcBase.IsAbstractClass: Boolean;
 begin
   Result := Self.ClassNameIs('TgdcBase');
-end;
-
-function TgdcBase.GetDefaultClassForDialog: TgdcFullClass;
-begin
-  Result := QueryDescendant;
-end;
-
-procedure TgdcBase.CreateDefaultDialog;
-var
-  C: TgdcFullClass;
-begin
-  C := GetDefaultClassForDialog;
-  if C.gdClass <> nil then
-    CreateDialog(C);
 end;
 
 function TgdcBase.GetSubSet: TgdcSubSet;
