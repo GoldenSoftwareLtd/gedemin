@@ -91,8 +91,7 @@ procedure Tgdc_frmMDHGR.LoadSettings;
   bLoadedFromUserStorage: boolean;
   Path: String;
   F: TMemoryStream;
-  SubType: String;
-  ParentSubType: String;
+  CE: TgdClassEntry;
 
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_FRMMDHGR', 'LOADSETTINGS', KEYLOADSETTINGS)}
@@ -122,19 +121,17 @@ begin
     F := TMemoryStream.Create;
     try
       Path := BuildComponentPath(ibgrMain);
-      bLoadedFromUserStorage:= UserStorage.ReadStream(Path, 'data', F);
+      bLoadedFromUserStorage := UserStorage.ReadStream(Path, 'data', F);
+
       if not bLoadedFromUserStorage then
       begin
-        SubType := FSubType;
-        repeat
-          ParentSubType := ClassParentSubtype(SubType);
-          if ParentSubType <> '' then
-          begin
-            Path := StringReplace(Path, SubType, ParentSubType, [rfReplaceAll, rfIgnoreCase]);
-            bLoadedFromUserStorage:= UserStorage.ReadStream(Path, 'data', F);
-            SubType := ParentSubType;
-          end;
-        until (bLoadedFromUserStorage) or (ParentSubType = '');
+        CE := gdClassList.Get(TgdFormEntry, Self.ClassName, SubType);
+        While (CE.Parent.SubType <> '') and (not bLoadedFromUserStorage) do
+        begin
+          Path := StringReplace(Path, CE.SubType, CE.Parent.SubType, [rfReplaceAll, rfIgnoreCase]);
+          bLoadedFromUserStorage := UserStorage.ReadStream(Path, 'data', F);
+          CE := CE.Parent;
+        end;
       end;
 
       if bLoadedFromUserStorage then
@@ -147,18 +144,16 @@ begin
     try
       Path := BuildComponentPath(ibgrDetail);
       bLoadedFromUserStorage:= UserStorage.ReadStream(Path, 'data', F);
+      
       if not bLoadedFromUserStorage then
       begin
-        SubType := FSubType;
-        repeat
-          ParentSubType := ClassParentSubtype(SubType);
-          if ParentSubType <> '' then
-          begin
-            Path := StringReplace(Path, SubType, ParentSubType, [rfReplaceAll, rfIgnoreCase]);
-            bLoadedFromUserStorage:= UserStorage.ReadStream(Path, 'data', F);
-            SubType := ParentSubType;
-          end;
-        until (bLoadedFromUserStorage) or (ParentSubType = '');
+        CE := gdClassList.Get(TgdFormEntry, Self.ClassName, SubType);
+        While (CE.Parent.SubType <> '') and (not bLoadedFromUserStorage) do
+        begin
+          Path := StringReplace(Path, CE.SubType, CE.Parent.SubType, [rfReplaceAll, rfIgnoreCase]);
+          bLoadedFromUserStorage:= UserStorage.ReadStream(Path, 'data', F);
+          CE := CE.Parent;
+        end;
       end;
 
       if bLoadedFromUserStorage then

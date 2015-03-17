@@ -35,7 +35,7 @@ procedure TGDC_DLGATTRUSERDEFINEDTREE.SetupDialog;
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-  LSubtype: TgdcSubType;
+  CE : TgdClassEntry;
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGATTRUSERDEFINEDTREE', 'SETUPDIALOG', KEYSETUPDIALOG)}
   {M}  try
@@ -60,10 +60,9 @@ begin
   inherited;
 
   gsiblkupParent.gdClassName := gdcObject.ClassName;
-  LSubtype := gdcObject.SubType;
-  while gdcObject.ClassParentSubtype(LSubtype) > '' do
-    LSubtype := gdcObject.ClassParentSubtype(LSubtype);
-  gsiblkupParent.SubType := LSubType;
+
+  CE := gdClassList.Get(TgdBaseEntry, gdcObject.ClassName, gdcObject.SubType);
+  gsiblkupParent.SubType := CE.GetRootSubType.SubType;
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGATTRUSERDEFINEDTREE', 'SETUPDIALOG', KEYSETUPDIALOG)}
   {M}finally
