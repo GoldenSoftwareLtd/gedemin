@@ -1989,8 +1989,13 @@ begin
   F := R.RelationFields.ByFieldName('INHERITEDKEY');
 
   if (F <> nil) and (F.References <> nil) then
-    Prnt := LoadRelation(nil, F.References, ACEAttrUserDefined,
-      ACEAttrUserDefinedTree, ACEAttrUserDefinedLBRBTree);
+  begin
+    if F.References.IsUserDefined then
+      Prnt := LoadRelation(nil, F.References, ACEAttrUserDefined,
+        ACEAttrUserDefinedTree, ACEAttrUserDefinedLBRBTree)
+    else
+      Prnt := FindByRelation(F.References.RelationName);
+  end;
 
   if Prnt = nil then
   begin

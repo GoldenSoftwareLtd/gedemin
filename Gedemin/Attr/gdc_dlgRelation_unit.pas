@@ -903,8 +903,8 @@ begin
 
   if gdcObject is TgdcTableToDefinedTable then
   begin
-    if AnsiPos('USR$', (gdcObject as TgdcTableToDefinedTable).GetReferenceName) = 0 then
-      raise Exception.Create('Ссылка может быть только на пользовательскую таблицу.');
+//    if AnsiPos('USR$', (gdcObject as TgdcTableToDefinedTable).GetReferenceName) = 0 then
+//      raise Exception.Create('Ссылка может быть только на пользовательскую таблицу.');
   end;
 
   inherited;
