@@ -143,8 +143,6 @@ type
   end;
 
   TgdcSelectedGood = class(TgdcGood)
-  public
-
   end;
 
   procedure Register;
@@ -955,7 +953,7 @@ initialization
   RegisterGdcClass(TgdcValue, 'Единица измерения');
   RegisterGdcClass(TgdcTax, 'Налог');
   RegisterGdcClass(TgdcMetal, 'Драгоценный металл');
-  RegisterGdcClass(TgdcSelectedGood);
+  RegisterGdcClass(TgdcSelectedGood).Hidden := True;
 
 finalization
   UnregisterGdcClass(TgdcTNVD);

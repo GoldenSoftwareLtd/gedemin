@@ -2030,7 +2030,8 @@ procedure Tgdc_frmG.FillPopupNew(AnObject: TgdcBase; ATBSubmenuItem: TTBSubmenuI
     TBI: TTBItem;
     I: Integer;
   begin
-    if not (CE as TgdBaseEntry).gdcClass.IsAbstractClass then
+    if (not (CE as TgdBaseEntry).gdcClass.IsAbstractClass)
+      and (not CE.Hidden) then
     begin
       TBI := TTBItem.Create(ATBSubmenuItem);
       TBI.Tag := Integer(CE);

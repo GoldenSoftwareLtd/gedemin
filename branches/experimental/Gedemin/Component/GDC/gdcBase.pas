@@ -1683,10 +1683,6 @@ type
     // Добавляют итем для хранения Objects
     procedure AddObjectItem(const Name: String);
 
-    function CreateChildrenDialog: Boolean; overload; virtual;
-    function CreateChildrenDialog(C: CgdcBase): Boolean; overload; virtual;
-    function CreateChildrenDialog(C:  TgdcFullClass): Boolean; overload; virtual;
-
     // Свойства только для использования в скрипт-функциях
     // В СФ являются аналогами свойств формы
     // Список переменных привязанных к форме
@@ -17297,21 +17293,6 @@ begin
     S.Write(Strings[I][1], J);
     Objects[I].SaveToStream(S);
   end;
-end;
-
-function TgdcBase.CreateChildrenDialog: Boolean;
-begin
-  Result := CreateDialog;
-end;
-
-function TgdcBase.CreateChildrenDialog(C: CgdcBase): Boolean;
-begin
-  Result := CreateDialog(C);
-end;
-
-function TgdcBase.CreateChildrenDialog(C: TgdcFullClass): Boolean;
-begin
-  Result := CreateDialog(C);
 end;
 
 procedure TgdcBase.AddObjectItem(const Name: String);
