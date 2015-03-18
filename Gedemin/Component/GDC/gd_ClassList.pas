@@ -282,6 +282,7 @@ type
     FClassMethods: TgdClassMethods;
     FCaption: String;
     FChildren: TObjectList;
+    FHidden: Boolean;
 
     function GetChildren(Index: Integer): TgdClassEntry;
     function GetCount: Integer;
@@ -324,6 +325,7 @@ type
     property Count: Integer read GetCount;
     property Children[Index: Integer]: TgdClassEntry read GetChildren;
     property ClassMethods: TgdClassMethods read FClassMethods;
+    property Hidden: Boolean read FHidden write FHidden;
   end;
   CgdClassEntry = class of TgdClassEntry;
 
@@ -488,7 +490,7 @@ var
 function gdClassList: TgdClassList;
 
 {Регистрация класса в списке TgdcClassList}
-procedure RegisterGdcClass(const AClass: CgdcBase; const ACaption: String = '');
+function RegisterGdcClass(const AClass: CgdcBase; const ACaption: String = ''): TgdBaseEntry;
 procedure UnregisterGdcClass(AClass: CgdcBase);
 
 // добавляет класс в список классов
@@ -566,14 +568,16 @@ begin
   Result := _gdClassList;
 end;
 
-procedure RegisterGdcClass(const AClass: CgdcBase; const ACaption: String = '');
+function RegisterGdcClass(const AClass: CgdcBase; const ACaption: String = ''): TgdBaseEntry;
 begin
   Classes.RegisterClass(AClass);
   if AClass.InheritsFrom(TgdcDocument) then
-    TgdDocumentEntry(gdClassList.Add(AClass, '', '',
-      TgdDocumentEntry, ACaption)).TypeID := CgdcDocument(AClass).ClassDocumentTypeKey
-  else
-    gdClassList.Add(AClass, '', '', TgdBaseEntry, ACaption);
+  begin
+    Result := gdClassList.Add(AClass, '', '',
+      TgdDocumentEntry, ACaption) as TgdDocumentEntry;
+    TgdDocumentEntry(Result).TypeID := CgdcDocument(AClass).ClassDocumentTypeKey;
+  end else
+    Result := gdClassList.Add(AClass, '', '', TgdBaseEntry, ACaption) as TgdBaseEntry;
 end;
 
 procedure UnregisterGdcClass(AClass: CgdcBase);
@@ -2078,7 +2082,7 @@ begin
       Result := nil;
       exit;
     end;
-  end;
+  end;                
 
   Result := Find(Prnt.TheClass.ClassName, R.RelationName);
 

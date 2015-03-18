@@ -3750,7 +3750,7 @@ initialization
   RegisterGdcClass(TgdcEmployee,    'Сотрудник предприятия');
   RegisterGdcClass(TgdcDepartment,  'Подразделение');
   RegisterGdcClass(TgdcCompany,     'Организация');
-  RegisterGdcClass(TgdcOurCompany,  'Рабочая организация');
+  RegisterGdcClass(TgdcOurCompany,  'Рабочая организация').Hidden := True;
   RegisterGdcClass(TgdcBank,        'Банк');
   RegisterGdcClass(TgdcAccount,     'Расчетный счет');
 
