@@ -369,7 +369,7 @@ begin
 
   FreePLLibrary;
   FreePLDependentLibraries;
-
+  
   inherited;
 end;
 
@@ -682,7 +682,7 @@ function TgsPLClient.Initialise(const AParams: String = ''): Boolean;
     while (F <= Length(S)) and (S[F] <> '!') and (S[F + 1] <> '@') do
       Inc(F);
 
-      
+
     Result := Trim(Copy(S, L, F - L));
     Inc(F, 2);
     L := F;
@@ -703,7 +703,7 @@ var
   TempS: String;
 begin
   if not TryPLLoad then
-    raise EgsPLClientException.Create('Клиентская часть Prolog не установлена!'); 
+    raise EgsPLClientException.Create('Клиентская часть Prolog не установлена!');
 
   if AParams > '' then
     TempS := Trim(AParams)
@@ -714,7 +714,7 @@ begin
 
   SL := TStringList.Create;
   try
-    if AParams = '' then
+    //if AParams = '' then
       GetParamsList(TempS, SL);
 
     SetLength(FInitArgv, SL.Count + 1);
@@ -726,7 +726,8 @@ begin
     begin
       Result := PL_initialise(High(FInitArgv), FInitArgv) <> 0;
       if not Result then
-        PL_halt(1);
+        //PL_halt(1);
+        PL_cleanup(0);
     end else
       Result := False;
   finally
