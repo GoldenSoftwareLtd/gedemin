@@ -815,42 +815,20 @@ procedure Tgdc_dlgRelation.BeforePost;
   function GetTableTypeName: String;
   var
     R: TatRelation;
-    F: TatRelationField;
+    C: TgdcFullClass;
   begin
-    case (gdcObject as TgdcRelation).TableType of
-      ttIntervalTree: Result := 'TgdcAttrUserDefinedLBRBTree';
-      ttTree: Result := 'TgdcAttrUserDefinedTree';
-      else Result := 'TgdcAttrUserDefined';
-    end;
-
     if gdcObject is TgdcTableToDefinedTable then
     begin
       R := atDatabase.Relations.ByRelationName((gdcObject as TgdcTableToDefinedTable).GetReferenceName);
-      if Assigned(R) then
-      begin
-        F := R.RelationFields.ByFieldName('INHERITEDKEY');
-        if Assigned(F) then
-          repeat
-            R := R.RelationFields.ByFieldName('INHERITEDKEY').ForeignKey.ReferencesRelation;
-          until not Assigned(R.RelationFields.ByFieldName('INHERITEDKEY'));
+      C := GetBaseClassForRelation(R.RelationName);
+      Result := C.gdClass.ClassName;
+    end
+    else
+      case (gdcObject as TgdcRelation).TableType of
+        ttIntervalTree: Result := 'TgdcAttrUserDefinedLBRBTree';
+        ttTree: Result := 'TgdcAttrUserDefinedTree';
+        else Result := 'TgdcAttrUserDefined';
       end;
-
-      if Assigned(R) then
-      begin
-        F := R.RelationFields.ByFieldName('LB');
-        if Assigned(F) then
-          Result := 'TgdcAttrUserDefinedLBRBTree'
-        else
-        begin
-          F := R.RelationFields.ByFieldName('PARENT');
-          if Assigned(F) then
-            Result := 'TgdcAttrUserDefinedTree'
-          else
-            Result := 'TgdcAttrUserDefined';
-        end;
-      end;
-    end;
-
   end;
 
   {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
