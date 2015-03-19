@@ -6192,9 +6192,7 @@ var
   var
     N: String;
   begin
-    if (BE.Parent is TgdBaseEntry)
-      and ((BE.Parent.SubType <> '') or ((BE.Parent as TgdBaseEntry).DistinctRelation <> ''))
-      and (BE.SubType <> '') then
+    if (BE.Parent is TgdBaseEntry) and (BE.Parent.SubType <> '') then
     begin
       IterateAncestor(BE.Parent as TgdBaseEntry, SQL);
       N := gdcBaseManager.AdjustMetaName('d_' + BE.DistinctRelation);
