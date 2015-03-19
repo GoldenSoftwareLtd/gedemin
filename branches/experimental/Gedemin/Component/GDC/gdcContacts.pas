@@ -228,6 +228,7 @@ type
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
     class function ContactType: Integer; override;
+    class function GetDistinctTable(const ASubType: TgdcSubType): String; override;
 
     class function Class_TestUserRights(const SS: TgdcTableInfos;
       const ST: String): Boolean; override;
@@ -3740,6 +3741,12 @@ class function TgdcBank.GetDistinctTable(
   const ASubType: TgdcSubType): String;
 begin
   Result := 'GD_BANK';
+end;
+
+class function TgdcOurCompany.GetDistinctTable(
+  const ASubType: TgdcSubType): String;
+begin
+  Result := 'GD_OURCOMPANY';
 end;
 
 initialization
