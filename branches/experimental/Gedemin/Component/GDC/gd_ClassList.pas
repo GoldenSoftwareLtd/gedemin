@@ -339,6 +339,8 @@ type
       const ASubType: TgdcSubType = '';
       const ACaption: String = ''); overload; override;
 
+    function GetRootSubType: TgdClassEntry;
+
     property gdcClass: CgdcBase read GetGdcClass;
     property DistinctRelation: String read GetDistinctRelation;
   end;
@@ -576,7 +578,15 @@ begin
     Result := gdClassList.Add(AClass, '', '',
       TgdDocumentEntry, ACaption) as TgdDocumentEntry;
     TgdDocumentEntry(Result).TypeID := CgdcDocument(AClass).ClassDocumentTypeKey;
-  end else
+  end
+  else if (AClass.ClassName  = 'TgdcAttrUserDefined')
+    or (AClass.ClassName  = 'TgdcAttrUserDefinedTree')
+    or (AClass.ClassName  = 'TgdcAttrUserDefinedLBRBTree') then
+  begin
+    Result := gdClassList.Add(AClass, '', '',
+      TgdAttrUserDefinedEntry, ACaption) as TgdAttrUserDefinedEntry;
+  end
+  else
     Result := gdClassList.Add(AClass, '', '', TgdBaseEntry, ACaption) as TgdBaseEntry;
 end;
 
@@ -1272,6 +1282,15 @@ begin
   inherited;
 end;
 
+function TgdBaseEntry.GetRootSubType: TgdClassEntry;
+begin
+  Result := inherited GetRootSubType;
+
+  if Result.SubType <> '' then
+    if (Result.Parent <> nil) and (Result.Parent.ClassType = TgdBaseEntry) then
+      Result := Result.Parent;
+end;
+
 function TgdBaseEntry.GetDistinctRelation: String;
 begin
   Result := UpperCase(gdcClass.GetDistinctTable(SubType));
@@ -1453,6 +1472,10 @@ end;
 function TgdClassEntry.GetRootSubType: TgdClassEntry;
 begin
   Result := Self;
+
+  if Result.SubType = '' then
+    exit;
+
   while (Result.Parent <> nil) and (Result.Parent.SubType > '') do
     Result := Result.Parent;
 end;
