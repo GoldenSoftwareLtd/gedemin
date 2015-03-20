@@ -188,15 +188,13 @@ end;
 
 function TgdcBaseMessage.GetCurrRecordClass: TgdcFullClass;
 begin
+  Result.gdClass := CgdcBase(Self.ClassType);
+  Result.SubType := SubType;
+
   if System.Copy(FieldByName('msgtype').AsString, 1, 1) = 'A' then
-  begin
     Result.gdClass := TgdcPhoneCall;
-    Result.SubType := '';
-  end else
-  begin
-    Result.gdClass := CgdcBase(Self.ClassType);
-    Result.SubType := '';
-  end;
+
+  FindInheritedSubType(Result);
 end;
 
 function TgdcBaseMessage.GetFromClause(const ARefresh: Boolean = False): String;

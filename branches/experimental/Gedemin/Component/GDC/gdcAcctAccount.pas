@@ -168,7 +168,8 @@ end;
 
 function TgdcAcctBase.GetCurrRecordClass: TgdcFullClass;
 begin
-  Result := inherited GetCurrRecordClass;
+  Result.gdClass := CgdcBase(Self.ClassType);
+  Result.SubType := SubType;
 
   if (not IsEmpty) and (FieldByName('accounttype').AsString > '') then
     case FieldByName('accounttype').AsString[1] of
@@ -176,7 +177,11 @@ begin
       'F': Result.gdClass := TgdcAcctFolder;
       'A': Result.gdClass := TgdcAcctAccount;
       'S': Result.gdClass := TgdcAcctSubAccount;
+    else
+      raise EgdcException.CreateObj('Invalid record type', Self);
     end;
+
+  FindInheritedSubType(Result);
 end;
 
 class function TgdcAcctBase.IsAbstractClass: Boolean;

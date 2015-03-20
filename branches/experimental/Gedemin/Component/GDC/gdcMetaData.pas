@@ -1925,16 +1925,15 @@ end;
 function TgdcRelation.GetCurrRecordClass: TgdcFullClass;
 var
   S: String;
+  CE: TgdClassEntry;
 begin
-  if EOF then
+  Result.gdClass := CgdcBase(Self.ClassType);
+  Result.SubType := SubType;
+
+  if not IsEmpty then
   begin
-    Result.gdClass := CgdcBase(Self.ClassType);
-    Result.SubType := '';
-  end
-  else begin
     if FieldByName('relationtype').AsString = 'T' then
     begin
-      S := '';
       case GetTableTypeByName(FieldByName('relationname').AsString) of
         ttTableToDefinedTable: S := 'TgdcTableToDefinedTable';
         ttTableToTable: S := 'TgdcTableToTable';
@@ -1950,23 +1949,22 @@ begin
         ttInvTransfrom: S := 'TgdcInvTransformDocumentLineTable';
         ttUnknow: S := 'TgdcUnknownTable';
         ttPrimeTable: S := 'TgdcPrimeTable';
-      end;
-      if (S > '') and (GetClass(S) <> nil) then
-        Result.gdClass := CgdcBase(GetClass(S))
       else
-        Result.gdClass := CgdcBase(TgdcTable);
-      Result.SubType := '';
+        S := '';
+      end;
+
+      CE := gdClassList.Find(S, '');
+
+      if CE is TgdBaseEntry then
+        Result.gdClass := TgdBaseEntry(CE).gdcClass
+      else
+        Result.gdClass := TgdcTable;
     end
     else if FieldByName('relationtype').AsString = 'V' then
-    begin
-      Result.gdClass := CgdcBase(TgdcView);
-      Result.SubType := '';
-    end else
-    begin
-      Result.gdClass := CgdcBase(Self.ClassType);
-      Result.SubType := '';
-    end;
+      Result.gdClass := TgdcView;
   end;
+
+  FindInheritedSubType(Result);
 end;
 
 class function TgdcRelation.GetKeyField(const ASubType: TgdcSubType): String;
@@ -5283,16 +5281,17 @@ end;
 function TgdcRelationField.GetCurrRecordClass: TgdcFullClass;
 begin
   Result.gdClass := CgdcBase(Self.ClassType);
-  Result.SubType := '';
+  Result.SubType := SubType;
 
-  if RecordCount > 0 then
+  if not IsEmpty then
   begin
     if FieldByName('relationtype').AsString = 'T' then
-      Result.gdClass := CgdcBase(TgdcTableField)
+      Result.gdClass := TgdcTableField
     else if FieldByName('relationtype').AsString = 'V' then
-      Result.gdClass := CgdcBase(TgdcViewField);
-    Result.SubType := '';
+      Result.gdClass := TgdcViewField;
   end;
+
+  FindInheritedSubType(Result);
 end;
 
 function TgdcRelationField.ReadObjectState(AFieldId,

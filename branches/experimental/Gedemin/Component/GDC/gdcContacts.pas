@@ -958,7 +958,8 @@ function TgdcBaseContact.GetCurrRecordClass: TgdcFullClass;
 var
   q: TIBSQL;
 begin
-  Result := inherited GetCurrRecordClass;
+  Result.gdClass := CgdcBase(Self.ClassType);
+  Result.SubType := SubType;
 
   if not IsEmpty then
   begin
@@ -977,6 +978,8 @@ begin
       ct_Main: Result.gdClass := Tgdc_dpMain;
       ct_Comittee: Result.gdClass := Tgdc_dpComittee;
       {$ENDIF}
+    else
+      raise EgdcException.CreateObj('Invalid contact type', Self);
     end;
 
     if (Result.gdClass = TgdcContact) and (not FieldByName('parent').IsNull) then
@@ -993,6 +996,8 @@ begin
       end;
     end;
   end;
+
+  FindInheritedSubType(Result);
 end;
 
 function TgdcBaseContact.GetGroupID: Integer;
@@ -2653,9 +2658,10 @@ function TgdcCompany.GetCurrRecordClass: TgdcFullClass;
 var
   q: TIBSQL;
 begin
-  Result := inherited GetCurrRecordClass;
+  Result.gdClass := CgdcBase(Self.ClassType);
+  Result.SubType := SubType;
 
-  if Active and (not IsEmpty) and Assigned(IBLogin) then
+  if (not IsEmpty) and Assigned(IBLogin) then
   begin
     if ID = IBLogin.CompanyKey then
       Result.gdClass := TgdcOurCompany
@@ -2674,6 +2680,8 @@ begin
       end;
     end;
   end;
+
+  FindInheritedSubType(Result);
 end;
 
 procedure TgdcCompany.DoBeforePost;

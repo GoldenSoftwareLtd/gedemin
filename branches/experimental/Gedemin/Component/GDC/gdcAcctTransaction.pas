@@ -319,7 +319,8 @@ end;
 
 function TgdcBaseAcctTransaction.GetCurrRecordClass: TgdcFullClass;
 begin
-  Result := inherited GetCurrRecordClass;
+  Result.gdClass := CgdcBase(Self.ClassType);
+  Result.SubType := SubType;
 
   if not IsEmpty then
   begin
@@ -328,6 +329,8 @@ begin
     else
       Result.gdClass := TgdcAcctTransaction;
   end;
+
+  FindInheritedSubType(Result);
 end;
 
 class function TgdcBaseAcctTransaction.GetListField(
@@ -579,7 +582,8 @@ function TgdcBaseAcctTransactionEntry.GetCurrRecordClass: TgdcFullClass;
 var
   q: TIBSQL;
 begin
-  Result := inherited GetCurrRecordClass;
+  Result.gdClass := CgdcBase(Self.ClassType);
+  Result.SubType := SubType;
 
   if State = dsInsert then
   begin
@@ -611,6 +615,8 @@ begin
       q.Free;
     end;
   end;
+
+  FindInheritedSubType(Result);
 end;
 
 procedure TgdcBaseAcctTransactionEntry.LoadDialogDefaults;
