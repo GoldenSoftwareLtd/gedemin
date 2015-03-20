@@ -85,7 +85,6 @@ type
     function GetDetailObject: TgdcDocument; override;
 
   public
-    class function GetDistinctTable(const ASubType: TgdcSubType): String; override;
     class function ClassDocumentTypeKey: Integer; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
@@ -121,7 +120,6 @@ type
     function GetMasterObject: TgdcDocument; override;
 
   public
-    class function GetDistinctTable(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
   end;
 
@@ -1137,11 +1135,6 @@ begin
   Result := 'Tgdc_dlgBankStatement';
 end;
 
-class function TgdcBankStatement.GetDistinctTable(const ASubType: TgdcSubType): String;
-begin
-  Result := 'BN_BANKSTATEMENT';
-end;
-
 { TgdcBaseStatementLine }
 
 procedure TgdcBaseStatementLine.DoBeforeEdit;
@@ -1911,11 +1904,6 @@ begin
   Result := 'Tgdc_dlgBankStatementLine'; 
 end;
 
-class function TgdcBankStatementLine.GetDistinctTable(const ASubType: TgdcSubType): String;
-begin
-  Result := 'BN_BANKSTATEMENTLINE';
-end;
-
 function TgdcBankStatementLine.GetFromClause(const ARefresh: Boolean = False): String;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
   {M}VAR
@@ -2064,8 +2052,10 @@ initialization
   RegisterGdcClass(TgdcBaseLine);
   RegisterGdcClass(TgdcBankCatalogue,    'Банковская картотека');
   RegisterGdcClass(TgdcBankCatalogueLine);
-  RegisterGdcClass(TgdcBankStatement,    'Банковская выписка');
-  RegisterGdcClass(TgdcBankStatementLine);
+  with RegisterGdcClass(TgdcBankStatement, 'Банковская выписка') as TgdBaseEntry do
+    DistinctRelation := 'BN_BANKSTATEMENT';
+  with RegisterGdcClass(TgdcBankStatementLine) as TgdBaseEntry do
+    DistinctRelation := 'BN_BANKSTATEMENTLINE';
 
 finalization
   UnregisterGdcClass(TgdcBaseLine);

@@ -198,7 +198,6 @@ type
   public
     constructor Create(AnOwner: TComponent); override;
 
-    class function GetDistinctTable(const ASubType: TgdcSubType): String; override;
     class function GetRestrictCondition(const ATableName, ASubType: String): String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
@@ -228,7 +227,6 @@ type
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
     class function ContactType: Integer; override;
-    class function GetDistinctTable(const ASubType: TgdcSubType): String; override;
 
     class function Class_TestUserRights(const SS: TgdcTableInfos;
       const ST: String): Boolean; override;
@@ -290,7 +288,6 @@ type
     procedure _DoOnNewRecord; override;
 
   public
-    class function GetDistinctTable(const ASubType: TgdcSubType): String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
     class procedure GetClassImage(const ASizeX, ASizeY: Integer; AGraphic: TGraphic); override;
@@ -2941,11 +2938,6 @@ begin
   Result := 'Tgdc_dlgCompany';
 end;
 
-class function TgdcCompany.GetDistinctTable(const ASubType: TgdcSubType): String;
-begin
-  Result := 'GD_COMPANY';
-end;
-
 { TgdcBank }
 
 procedure TgdcBank.CustomInsert(Buff: Pointer);
@@ -3737,18 +3729,6 @@ begin
   Result := 'Tgdc_dlgBank';
 end;
 
-class function TgdcBank.GetDistinctTable(
-  const ASubType: TgdcSubType): String;
-begin
-  Result := 'GD_BANK';
-end;
-
-class function TgdcOurCompany.GetDistinctTable(
-  const ASubType: TgdcSubType): String;
-begin
-  Result := 'GD_OURCOMPANY';
-end;
-
 initialization
   RegisterGdcClass(TgdcBaseContact, 'Адресная книга');
   RegisterGdcClass(TgdcFolder,      'Папка');
@@ -3756,9 +3736,15 @@ initialization
   RegisterGdcClass(TgdcContact,     'Физическое лицо');
   RegisterGdcClass(TgdcEmployee,    'Сотрудник предприятия');
   RegisterGdcClass(TgdcDepartment,  'Подразделение');
-  RegisterGdcClass(TgdcCompany,     'Организация');
-  RegisterGdcClass(TgdcOurCompany,  'Рабочая организация').Hidden := True;
-  RegisterGdcClass(TgdcBank,        'Банк');
+  with RegisterGdcClass(TgdcCompany, 'Организация') as TgdBaseEntry do
+    DistinctRelation := 'GD_COMPANY';
+  with RegisterGdcClass(TgdcOurCompany, 'Рабочая организация') as TgdBaseEntry do
+  begin
+    Hidden := True;
+    DistinctRelation := 'GD_OURCOMPANY';
+  end;
+  with RegisterGdcClass(TgdcBank, 'Банк') as TgdBaseEntry do
+    DistinctRelation := 'GD_BANK';
   RegisterGdcClass(TgdcAccount,     'Расчетный счет');
 
 finalization

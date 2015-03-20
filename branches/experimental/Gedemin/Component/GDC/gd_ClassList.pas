@@ -331,18 +331,19 @@ type
 
   TgdBaseEntry = class(TgdClassEntry)
   private
+    FDistinctRelation: String;
+
     function GetGdcClass: CgdcBase;
     function GetDistinctRelation: String; virtual;
+    procedure SetDistinctRelation(const Value: String);
 
   public
     constructor Create(AParent: TgdClassEntry; const AClass: TClass;
       const ASubType: TgdcSubType = '';
       const ACaption: String = ''); overload; override;
 
-    function GetRootSubType: TgdClassEntry;
-
     property gdcClass: CgdcBase read GetGdcClass;
-    property DistinctRelation: String read GetDistinctRelation;
+    property DistinctRelation: String read GetDistinctRelation write SetDistinctRelation;
   end;
 
   TgdAttrUserDefinedEntry = class(TgdBaseEntry)
@@ -578,15 +579,7 @@ begin
     Result := gdClassList.Add(AClass, '', '',
       TgdDocumentEntry, ACaption) as TgdDocumentEntry;
     TgdDocumentEntry(Result).TypeID := CgdcDocument(AClass).ClassDocumentTypeKey;
-  end
-  else if (AClass.ClassName  = 'TgdcAttrUserDefined')
-    or (AClass.ClassName  = 'TgdcAttrUserDefinedTree')
-    or (AClass.ClassName  = 'TgdcAttrUserDefinedLBRBTree') then
-  begin
-    Result := gdClassList.Add(AClass, '', '',
-      TgdAttrUserDefinedEntry, ACaption) as TgdAttrUserDefinedEntry;
-  end
-  else
+  end else
     Result := gdClassList.Add(AClass, '', '', TgdBaseEntry, ACaption) as TgdBaseEntry;
 end;
 
@@ -1282,18 +1275,12 @@ begin
   inherited;
 end;
 
-function TgdBaseEntry.GetRootSubType: TgdClassEntry;
-begin
-  Result := inherited GetRootSubType;
-
-  if Result.SubType <> '' then
-    if (Result.Parent <> nil) and (Result.Parent.ClassType = TgdBaseEntry) then
-      Result := Result.Parent;
-end;
-
 function TgdBaseEntry.GetDistinctRelation: String;
 begin
-  Result := UpperCase(gdcClass.GetDistinctTable(SubType));
+  if FDistinctRelation > '' then
+    Result := FDistinctRelation
+  else
+    Result := UpperCase(gdcClass.GetListTable(SubType));
 end;
 
 function TgdBaseEntry.GetGdcClass: CgdcBase;
@@ -1472,12 +1459,13 @@ end;
 function TgdClassEntry.GetRootSubType: TgdClassEntry;
 begin
   Result := Self;
-
-  if Result.SubType = '' then
-    exit;
-
   while (Result.Parent <> nil) and (Result.Parent.SubType > '') do
     Result := Result.Parent;
+  if (Result is TgdAttrUserDefinedEntry) and (Result.Parent is TgdBaseEntry)
+    and (TgdBaseEntry(Result.Parent).DistinctRelation > '') then
+  begin
+    Result := Result.Parent;
+  end;    
 end;
 
 {TgdClassList}
@@ -2110,9 +2098,11 @@ begin
   Result := Find(Prnt.TheClass.ClassName, R.RelationName);
 
   if Result = nil then
+  begin
     Result := _Create(Prnt, TgdAttrUserDefinedEntry, Prnt.TheClass,
-      R.RelationName, R.LName)
-  else
+      R.RelationName, R.LName);
+    (Result as TgdBaseEntry).DistinctRelation := R.RelationName;
+  end else
     Result.Caption := R.LName;
 end;
 
@@ -2425,6 +2415,11 @@ begin
     FLineRelName := R.RelationName
   else
     FLineRelName := '';
+end;
+
+procedure TgdBaseEntry.SetDistinctRelation(const Value: String);
+begin
+  FDistinctRelation := UpperCase(Value);
 end;
 
 initialization

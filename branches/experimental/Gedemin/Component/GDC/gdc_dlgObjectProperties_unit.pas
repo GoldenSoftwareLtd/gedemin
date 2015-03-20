@@ -481,11 +481,15 @@ begin
     Clear;
     Add(AddSpaces('Метка типа:') + gdcObject.GetDisplayName(gdcObject.SubType));
     Add(AddSpaces('Тип объекта:') + gdcObject.ClassName);
-    Add(AddSpaces('Подтип:') + gdcObject.SubType);
-    if gdcObject.ClassParentSubType(gdcObject.SubType) = '' then
+    Add(AddSpaces('Подтип объекта:') + gdcObject.SubType);
+    if gdcObject.SubType = '' then
       Add(AddSpaces('Тип родителя:') + gdcObject.ClassParent.ClassName)
+    else if gdcObject.ClassParentSubType(gdcObject.SubType) = '' then
+      Add(AddSpaces('Тип родителя:') + gdcObject.ClassName)
     else
       Add(AddSpaces('Тип родителя:') + gdcObject.ClassName + gdcObject.ClassParentSubType(gdcObject.SubType));
+    Add(AddSpaces('Тип текущей записи:') + gdcObject.GetCurrRecordClass.gdClass.ClassName);
+    Add(AddSpaces('Подтип тек. записи:') + gdcObject.GetCurrRecordClass.SubType);
     Add(AddSpaces('Имя компонента:') + gdcObject.Name);
     if gdcObject.Owner is TCustomForm then
     begin
@@ -502,8 +506,6 @@ begin
     Add(AddSpaces('Подмножество:') + gdcObject.SubSet);
     if Trim(gdcObject.ExtraConditions.CommaText) > '' then
       Add(AddSpaces('Доп. условия:') + Trim(gdcObject.ExtraConditions.CommaText));
-    Add(AddSpaces('Тип текущей записи:') + gdcObject.GetCurrRecordClass.gdClass.ClassName);
-    Add(AddSpaces('Подтип тек. записи:') + gdcObject.GetCurrRecordClass.SubType);
     Add(AddSpaces('Идентификатор:') + IntToStr(gdcObject.ID));
     Add(AddSpaces('RUID:') + RUIDToStr(gdcObject.GetRUID));
     Add(AddSpaces('Наименование:') + gdcObject.ObjectName);
@@ -511,7 +513,7 @@ begin
     begin
       Add(AddSpaces('Путь:') + (gdcObject as TgdcTree).GetPath);
       if (gdcObject as TgdcTree).Parent = -1 then
-        Add(AddSpaces('Родитель:') + 'NULL') 
+        Add(AddSpaces('Родитель:') + 'NULL')
       else
         Add(AddSpaces('Родитель:') + IntToStr((gdcObject as TgdcTree).Parent));
       if gdcObject is TgdcLBRBTree then
@@ -529,6 +531,7 @@ begin
     if (tiEditorKey in gdcObject.gdcTableInfos) and (gdcObject.EditorName > '') then
       Add(AddSpaces('Кем изменен:') + gdcObject.EditorName);
     Add(AddSpaces('Главная таблица:') + gdcObject.GetListTable(gdcObject.SubType));
+    Add(AddSpaces('Уникальная таблица:') + gdcObject.GetDistinctTable(gdcObject.SubType));
     S := '';
     Lst := TObjectList.Create(False);
     try
