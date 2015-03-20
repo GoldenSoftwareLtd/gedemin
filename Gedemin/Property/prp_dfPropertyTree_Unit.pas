@@ -941,9 +941,9 @@ begin
       else
         SetTextColor(Sender.Canvas.Handle, ColorToRGB(clGreen));
 
-      Sender.Canvas.TextOut(NodeRect.Left + 1, NodeRect.Top, Node.Text);
+      Sender.Canvas.TextOut(NodeRect.Left + 3, NodeRect.Top + 1, Node.Text);
       SetTextColor(Sender.Canvas.Handle, ColorToRGB(TempColor));
-      Sender.Canvas.TextOut(NodeRect.Left, NodeRect.Top, TgdcClassTreeItem(Node.Data).Name);
+      Sender.Canvas.TextOut(NodeRect.Left + 2, NodeRect.Top + 1, TgdcClassTreeItem(Node.Data).Name);
     end;
   end;
 end;
