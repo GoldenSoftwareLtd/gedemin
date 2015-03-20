@@ -349,7 +349,7 @@ end;
 function TgdcStorage.GetCurrRecordClass: TgdcFullClass;
 begin
   Result.gdClass := CgdcBase(Self.ClassType);
-  Result.SubType := '';
+  Result.SubType := SubType;
 
   if (not IsEmpty) and (Length(FieldByName('data_type').AsString) = 1) then
   begin
@@ -363,6 +363,8 @@ begin
         Result.gdClass := TgdcStorageValue;
     end;
   end;
+
+  FindInheritedSubType(Result);
 end;
 
 procedure TgdcStorage._DoOnNewRecord;

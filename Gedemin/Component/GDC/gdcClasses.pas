@@ -122,7 +122,6 @@ type
 
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
-    class function GetKeyField(const ASubType: TgdcSubType): String; override;
     class function GetSubSetList: String; override;
 
     function GetCurrRecordClass: TgdcFullClass; override;
@@ -163,7 +162,6 @@ type
 
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
-    class function GetKeyField(const ASubType: TgdcSubType): String; override;
     class function GetRestrictCondition(const ATableName, ASubType: String): String; override;
 
     function GetCurrRecordClass: TgdcFullClass; override;
@@ -526,11 +524,6 @@ begin
   {M}      ClearMacrosStack2('TGDCDOCUMENT', '_DOONNEWRECORD', KEY_DOONNEWRECORD);
   {M}  end;
   {END MACRO}
-end;
-
-class function TgdcDocument.GetKeyField(const ASubType: TgdcSubType): String;
-begin
-  Result := 'ID';
 end;
 
 class function TgdcDocument.GetListField(const ASubType: TgdcSubType): String;
@@ -1152,9 +1145,11 @@ var
   DE: TgdDocumentEntry;
   Part: TgdcDocumentClassPart;
 begin
-  if IsEmpty then
-    Result := inherited GetCurrRecordClass
-  else begin
+  Result.gdClass := CgdcBase(Self.ClassType);
+  Result.SubType := SubType;
+
+  if not IsEmpty then
+  begin
     if FieldByName('parent').IsNull then
       Part := dcpHeader
     else
@@ -1162,9 +1157,8 @@ begin
 
     DE := gdClassList.FindDocByTypeID(FieldByName('documenttypekey').AsInteger, Part);
 
-    if DE = nil then
-      Result := inherited GetCurrRecordClass
-    else begin
+    if DE <> nil then
+    begin
       Result.gdClass := DE.gdcClass;
       Result.SubType := DE.SubType;
     end;
@@ -2030,31 +2024,19 @@ end;
 function TgdcBaseDocumentType.GetCurrRecordClass: TgdcFullClass;
 begin
   Result.gdClass := CgdcBase(Self.ClassType);
-  Result.SubType := '';
-  
-  if RecordCount > 0 then
+  Result.SubType := SubType;
+
+  if not IsEmpty then
   begin
     if FieldByName('documenttype').AsString = 'B' then
-    begin
-      Result.gdClass := CgdcBase(TgdcDocumentBranch);
-      Result.SubType := '';
-    end
+      Result.gdClass := TgdcDocumentBranch
     else if (FieldByName('documenttype').AsString = 'D') and (FieldByName('classname').AsString > '') then
-    begin
-      Result.gdClass := CgdcBase(FindClass(FieldByName('classname').AsString));
-      Result.SubType := '';
-    end else
-    begin
-      Result.gdClass := CgdcBase(TgdcDocumentType);
-      Result.SubType := '';
-    end;
+      Result.gdClass := (gdClassList.Get(TgdBaseEntry, FieldByName('classname').AsString, '') as TgdBaseEntry).gdcClass
+    else
+      Result.gdClass := TgdcDocumentType;
   end;
-end;
 
-class function TgdcBaseDocumentType.GetKeyField(
-  const ASubType: TgdcSubType): String;
-begin
-  Result := 'id';
+  FindInheritedSubType(Result);
 end;
 
 class function TgdcBaseDocumentType.GetListField(
@@ -2651,12 +2633,13 @@ end;
 
 function TgdcDocumentType.GetCurrRecordClass: TgdcFullClass;
 begin
+  Result.gdClass := CgdcBase(Self.ClassType);
+  Result.SubType := SubType;
+
   if FieldByName('classname').AsString > '' then
-  begin
-    Result.gdClass := CgdcBase(GetClass(FieldByName('classname').AsString));
-    Result.SubType := '';
-  end else
-    Result := inherited GetCurrRecordClass;
+    Result.gdClass := (gdClassList.Get(TgdBaseEntry, FieldByName('classname').AsString, '') as TgdBaseEntry).gdcClass;
+
+  FindInheritedSubType(Result);
 end;
 
 function TGDCDOCUMENTTYPE.GetFromClause(

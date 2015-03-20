@@ -22,7 +22,8 @@ uses
 
 function TgdcBaseAcctConfig.GetCurrRecordClass: TgdcFullClass;
 begin
-  Result := inherited GetCurrRecordClass;
+  Result.gdClass := CgdcBase(Self.ClassType);
+  Result.SubType := SubType;
 
   if not IsEmpty then
   begin
@@ -41,6 +42,8 @@ begin
     else
       raise EgdcException.CreateObj('Invalid acct config class', Self);
   end;
+
+  FindInheritedSubType(Result);
 end;
 
 class function TgdcBaseAcctConfig.GetListField(

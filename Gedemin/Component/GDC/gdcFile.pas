@@ -280,12 +280,15 @@ end;
 
 function TgdcBaseFile.GetCurrRecordClass: TgdcFullClass;
 begin
-  Result := inherited GetCurrRecordClass;
+  Result.gdClass := CgdcBase(Self.ClassType);
+  Result.SubType := SubType;
 
   if FieldByName('filetype').AsString = 'D' then
     Result.gdClass := TgdcFileFolder
   else if FieldByName('filetype').AsString = 'F' then
     Result.gdClass := TgdcFile;
+
+  FindInheritedSubType(Result);
 end;
 
 function TgdcBaseFile.GetFullPath: String;

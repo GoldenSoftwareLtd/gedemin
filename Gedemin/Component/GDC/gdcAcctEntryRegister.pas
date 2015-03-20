@@ -1290,7 +1290,8 @@ end;
 function TgdcAcctBaseEntryRegister.GetCurrRecordClass: TgdcFullClass;
 begin
   Result.gdClass := TgdcAcctEntryRegister;
-  Result.SubType := '';
+  Result.SubType := SubType;
+  FindInheritedSubType(Result);
 end;
 
 class function TgdcAcctBaseEntryRegister.IsAbstractClass: Boolean;
@@ -2309,7 +2310,8 @@ end;
 function TgdcAcctViewEntryRegister.GetCurrRecordClass: TgdcFullClass;
 begin
   Result.gdClass := TgdcAcctViewEntryRegister;
-  Result.SubType := '';
+  Result.SubType := SubType;
+  FindInheritedSubType(Result);
 end;
 
 function TgdcAcctViewEntryRegister.GetDocument: TgdcDocument;

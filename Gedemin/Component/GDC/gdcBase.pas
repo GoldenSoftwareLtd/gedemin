@@ -1200,6 +1200,8 @@ type
     procedure CheckCompoundClasses; virtual;
     function GetCompoundMasterTable: String; virtual;
 
+    procedure FindInheritedSubType(var FC: TgdcFullClass);
+
   public
     FReadUserFromStream: Boolean;
     // 1
@@ -9943,7 +9945,7 @@ begin
       exit;
   end;
 
-  if not ARoot then
+  if (not ARoot) and (CE is TgdAttrUserDefinedEntry) then
   begin
     q.SQL.Text :=
       'SELECT inheritedkey FROM ' + (CE as TgdBaseEntry).DistinctRelation +
@@ -9956,35 +9958,36 @@ begin
   end;
 end;
 
-function TgdcBase.GetCurrRecordClass: TgdcFullClass;
+procedure TgdcBase.FindInheritedSubType(var FC: TgdcFullClass);
 var
   q: TIBSQL;
   CE: TgdClassEntry;
   S: TgdcSubType;
 begin
-  Result.gdClass := CgdcBase(Self.ClassType);
-  Result.SubType := SubType;
-
   if not IsEmpty then
   begin
-    CE := gdClassList.Get(TgdBaseEntry, Self.ClassName, SubType);
-    if CE is TgdAttrUserDefinedEntry then
+    CE := gdClassList.Get(TgdBaseEntry, FC.gdClass.ClassName, FC.SubType);
+    if CE.Count > 0 then
     begin
-      if CE.Count > 0 then
-      begin
-        S := '';
-        q := TIBSQL.Create(nil);
-        try
-          q.Transaction := ReadTransaction;
-          _Traverse(CE, q, True, ID, S);
-        finally
-          q.Free;
-        end;
-        if S > '' then
-          Result.SubType := S;
+      S := '';
+      q := TIBSQL.Create(nil);
+      try
+        q.Transaction := ReadTransaction;
+        _Traverse(CE, q, True, ID, S);
+      finally
+        q.Free;
       end;
+      if S > '' then
+        FC.SubType := S;
     end;
-  end;  
+  end;
+end;
+
+function TgdcBase.GetCurrRecordClass: TgdcFullClass;
+begin
+  Result.gdClass := CgdcBase(Self.ClassType);
+  Result.SubType := SubType;
+  FindInheritedSubType(Result);
 end;
 
 function TgdcBase.GetNameInScript: String;

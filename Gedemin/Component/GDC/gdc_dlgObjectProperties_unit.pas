@@ -479,24 +479,28 @@ begin
   with mProp.Lines do
   begin
     Clear;
+    Add(AddSpaces('Наименование:') + gdcObject.ObjectName);
+    Add(AddSpaces('Идентификатор:') + IntToStr(gdcObject.ID));
+    Add(AddSpaces('RUID:') + RUIDToStr(gdcObject.GetRUID));
     Add(AddSpaces('Метка типа:') + gdcObject.GetDisplayName(gdcObject.SubType));
-    Add(AddSpaces('Тип объекта:') + gdcObject.ClassName);
-    Add(AddSpaces('Подтип объекта:') + gdcObject.SubType);
+    Add(AddSpaces('Тип текущей записи:') + gdcObject.GetCurrRecordClass.gdClass.ClassName + ' ' +
+      gdcObject.GetCurrRecordClass.SubType);
+    Add(AddSpaces('Тип объекта:') + gdcObject.ClassName + ' ' + gdcObject.SubType);
     if gdcObject.SubType = '' then
       Add(AddSpaces('Тип родителя:') + gdcObject.ClassParent.ClassName)
     else if gdcObject.ClassParentSubType(gdcObject.SubType) = '' then
       Add(AddSpaces('Тип родителя:') + gdcObject.ClassName)
     else
-      Add(AddSpaces('Тип родителя:') + gdcObject.ClassName + gdcObject.ClassParentSubType(gdcObject.SubType));
-    Add(AddSpaces('Тип текущей записи:') + gdcObject.GetCurrRecordClass.gdClass.ClassName);
-    Add(AddSpaces('Подтип тек. записи:') + gdcObject.GetCurrRecordClass.SubType);
+      Add(AddSpaces('Тип родителя:') + gdcObject.ClassName + ' ' + gdcObject.ClassParentSubType(gdcObject.SubType));
     Add(AddSpaces('Имя компонента:') + gdcObject.Name);
     if gdcObject.Owner is TCustomForm then
     begin
       Add(AddSpaces('Принадлежит форме:') + gdcObject.Owner.Name);
-      Add(AddSpaces('Класс формы:') + gdcObject.Owner.ClassName);
       if gdcObject.Owner is TgdcCreateableForm then
-        Add(AddSpaces('Подтип формы:') + (gdcObject.Owner as TgdcCreateableForm).SubType);
+        Add(AddSpaces('Тип формы:') + gdcObject.Owner.ClassName + ' ' +
+          (gdcObject.Owner as TgdcCreateableForm).SubType)
+      else
+        Add(AddSpaces('Тип формы:') + gdcObject.Owner.ClassName);
     end;
     if gdcObject.GetDlgForm is TCustomForm then
     begin
@@ -506,9 +510,6 @@ begin
     Add(AddSpaces('Подмножество:') + gdcObject.SubSet);
     if Trim(gdcObject.ExtraConditions.CommaText) > '' then
       Add(AddSpaces('Доп. условия:') + Trim(gdcObject.ExtraConditions.CommaText));
-    Add(AddSpaces('Идентификатор:') + IntToStr(gdcObject.ID));
-    Add(AddSpaces('RUID:') + RUIDToStr(gdcObject.GetRUID));
-    Add(AddSpaces('Наименование:') + gdcObject.ObjectName);
     if gdcObject is TgdcTree then
     begin
       Add(AddSpaces('Путь:') + (gdcObject as TgdcTree).GetPath);
