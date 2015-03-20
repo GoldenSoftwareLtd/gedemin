@@ -6160,9 +6160,10 @@ var
     R: TatRelation;
     I: Integer;
   begin
-    if (BE.Parent is TgdBaseEntry) and (BE <> BE.GetRootSubType) then
+    if BE <> BE.GetRootSubType then
     begin
-      IterateAncestor(BE.Parent as TgdBaseEntry, SQL);
+      if BE.Parent is TgdBaseEntry then
+        IterateAncestor(BE.Parent as TgdBaseEntry, SQL);
       RA := gdcBaseManager.AdjustMetaName('d_' + BE.SubType);
       R := atDatabase.Relations.ByRelationName(BE.DistinctRelation);
       if R = nil then
@@ -6192,9 +6193,10 @@ var
   var
     N: String;
   begin
-    if (BE.Parent is TgdBaseEntry) and (BE <> BE.GetRootSubType) then
+    if BE <> BE.GetRootSubType then
     begin
-      IterateAncestor(BE.Parent as TgdBaseEntry, SQL);
+      if BE.Parent is TgdBaseEntry then
+        IterateAncestor(BE.Parent as TgdBaseEntry, SQL);
       N := gdcBaseManager.AdjustMetaName('d_' + BE.DistinctRelation);
       SQL := SQL + ' JOIN ' + BE.DistinctRelation + ' ' + N +
         ' ON ' + N + '.inheritedkey = ' + GetListTableAlias + '.id';
@@ -9936,12 +9938,9 @@ var
 begin
   for I := 0 to CE.Count - 1 do
   begin
-    if CE.Children[I].SubType > '' then
-    begin
-      _Traverse(CE.Children[I], q, False, AnID, ASubType);
-      if ASubType > '' then
-        exit;
-    end;
+    _Traverse(CE.Children[I], q, False, AnID, ASubType);
+    if ASubType > '' then
+      exit;
   end;
 
   if not ARoot then
@@ -9969,7 +9968,7 @@ begin
   if not IsEmpty then
   begin
     CE := gdClassList.Get(TgdBaseEntry, Self.ClassName, SubType);
-    if CE is TgdBaseEntry then
+    if CE is TgdAttrUserDefinedEntry then
     begin
       if CE.Count > 0 then
       begin
@@ -11056,40 +11055,6 @@ procedure TgdcBase.CustomInsert(Buff: Pointer);
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-  CE: TgdClassEntry;
-
-  procedure IterateAncestor(BE: TgdBaseEntry);
-  var
-    I: Integer;
-    RelationName, FieldName: String;
-    F, V: String;
-  begin
-    if (BE.Parent is TgdBaseEntry) and (BE <> BE.GetRootSubType) then
-    begin
-      IterateAncestor(BE.Parent as TgdBaseEntry);
-
-      F := 'inheritedkey,';
-      V := ':new_id,';
-
-      for I := 0 to FieldCount - 1 do
-      begin
-        ParseFieldOrigin(Fields[I].Origin, RelationName, FieldName);
-
-        if RelationName = BE.DistinctRelation then
-        begin
-          F := F + FieldName + ',';
-          V := V + ':new_' + Fields[I].FieldName + ',';
-        end;
-      end;
-
-      SetLength(F, Length(F) - 1);
-      SetLength(V, Length(V) - 1);
-
-      CustomExecQuery('INSERT INTO ' + BE.DistinctRelation +
-        ' (' + F + ') VALUES (' + V + ')', Buff, False);
-    end;
-  end;
-
 begin
   {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCBASE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  try
@@ -11119,10 +11084,6 @@ begin
     FLastQuery := lqInsert;
   end;
 
-  CE := gdClassList.Get(TgdBaseEntry, Self.ClassName, SubType);
-  if CE is TgdAttrUserDefinedEntry then
-    IterateAncestor(CE as TgdBaseEntry);
-
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -11140,35 +11101,6 @@ var
   {END MACRO}
   QModifySet: TIBSQL;
   DidActivate: Boolean;
-  CE: TgdClassEntry;
-
-  procedure IterateAncestor(BE: TgdBaseEntry);
-  var
-    I: Integer;
-    RelationName, FieldName: String;
-    S: String;
-  begin
-    if (BE.Parent is TgdBaseEntry) and (BE <> BE.GetRootSubType) then
-    begin
-      IterateAncestor(BE.Parent as TgdBaseEntry);
-
-      S := '';
-      for I := 0 to FieldCount - 1 do
-      begin
-        ParseFieldOrigin(Fields[I].Origin, RelationName, FieldName);
-
-        if (RelationName = BE.DistinctRelation) and FieldChanged(Fields[I].FieldName) then
-          S := S + FieldName + ' = :new_' + Fields[I].FieldName + ',';
-      end;
-
-      if S > '' then
-      begin
-        SetLength(S, Length(S) - 1);
-        CustomExecQuery('UPDATE ' + BE.DistinctRelation + ' SET ' +
-          S + ' WHERE INHERITEDKEY = :old_id', Buff, False);
-      end;
-    end;
-  end;
 
   function GetModifySQLTextForSet: String;
   var
@@ -11285,10 +11217,6 @@ begin
       Transaction.Rollback;
     raise;
   end;
-
-  CE := gdClassList.Get(TgdBaseEntry, Self.ClassName, SubType);
-  if CE is TgdAttrUserDefinedEntry then
-    IterateAncestor(CE as TgdBaseEntry);
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASE', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
   {M}  finally
@@ -12433,9 +12361,44 @@ end;
 procedure TgdcBase._CustomInsert(Buff: Pointer);
 var
   OldState: TDataSetState;
+  CE: TgdClassEntry;
+
+  procedure UserDefinedCustomInsert(BE: TgdBaseEntry);
+  var
+    I: Integer;
+    RelationName, FieldName: String;
+    F, V: String;
+  begin
+    if (BE.Parent <> nil) and (BE.Parent <> BE.GetRootSubType) then
+      UserDefinedCustomInsert(BE.Parent as TgdBaseEntry);
+
+    F := 'inheritedkey,';
+    V := ':new_id,';
+
+    for I := 0 to FieldCount - 1 do
+    begin
+      ParseFieldOrigin(Fields[I].Origin, RelationName, FieldName);
+
+      if RelationName = BE.DistinctRelation then
+      begin
+        F := F + FieldName + ',';
+        V := V + ':new_' + Fields[I].FieldName + ',';
+      end;
+    end;
+
+    SetLength(F, Length(F) - 1);
+    SetLength(V, Length(V) - 1);
+
+    CustomExecQuery('INSERT INTO ' + BE.DistinctRelation +
+      ' (' + F + ') VALUES (' + V + ')', Buff, False);
+  end;
+  
 begin
   OldState := State;
   CustomInsert(Buff);
+  CE := gdClassList.Get(TgdBaseEntry, Self.ClassName, SubType);
+  if CE <> CE.GetRootSubType then
+    UserDefinedCustomInsert(CE as TgdBaseEntry);
   DoAfterCustomProcess(Buff, cpInsert);
   if OldState <> State then
     MessageBox(ParentHandle,
@@ -12448,9 +12411,40 @@ end;
 procedure TgdcBase._CustomModify(Buff: Pointer);
 var
   OldState: TDataSetState;
+  CE: TgdClassEntry;
+
+  procedure UserDefinedCustomModify(BE: TgdBaseEntry);
+  var
+    I: Integer;
+    RelationName, FieldName: String;
+    S: String;
+  begin
+    if (BE.Parent <> nil) and (BE.Parent <> BE.GetRootSubType) then
+      UserDefinedCustomModify(BE.Parent as TgdBaseEntry);
+
+    S := '';
+    for I := 0 to FieldCount - 1 do
+    begin
+      ParseFieldOrigin(Fields[I].Origin, RelationName, FieldName);
+
+      if (RelationName = BE.DistinctRelation) and FieldChanged(Fields[I].FieldName) then
+        S := S + FieldName + ' = :new_' + Fields[I].FieldName + ',';
+    end;
+
+    if S > '' then
+    begin
+      SetLength(S, Length(S) - 1);
+      CustomExecQuery('UPDATE ' + BE.DistinctRelation + ' SET ' +
+        S + ' WHERE INHERITEDKEY = :old_id', Buff, False);
+    end;
+  end;
+  
 begin
   OldState := State;
   CustomModify(Buff);
+  CE := gdClassList.Get(TgdBaseEntry, Self.ClassName, SubType);
+  if CE <> CE.GetRootSubType then
+    UserDefinedCustomModify(CE as TgdBaseEntry);
   DoAfterCustomProcess(Buff, cpModify);
   if OldState <> State then
     MessageBox(ParentHandle,
@@ -18544,18 +18538,9 @@ begin
 end;
 
 class function TgdcBase.GetDistinctTable(const ASubType: TgdcSubType): String;
-var
-  CE: TgdClassEntry;
 begin
-  if ASubType > '' then
-  begin
-    CE := gdClassList.Get(TgdBaseEntry, Self.ClassName, ASubType);
-    if CE is TgdAttrUserDefinedEntry then
-      Result := ASubType
-    else
-      Result := GetListTable(ASubType);
-  end else
-    Result := GetListTable(ASubType);
+  Result := (gdClassList.Get(TgdBaseEntry, Self.ClassName,
+    ASubType) as TgdBaseEntry).DistinctRelation;
 end;
 
 initialization
