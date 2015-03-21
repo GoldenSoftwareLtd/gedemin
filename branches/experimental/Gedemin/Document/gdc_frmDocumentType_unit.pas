@@ -13,7 +13,7 @@ type
   Tgdc_frmDocumentType = class(Tgdc_frmMDVTree)
     gdcDocumentType: TgdcDocumentType;
     actNewSub: TAction;
-    gdcDocumentBranch: TgdcDocumentBranch;
+    gdcBaseDocumentType: TgdcBaseDocumentType;
     procedure FormCreate(Sender: TObject);
     procedure tvGroupGetImageIndex(Sender: TObject; Node: TTreeNode);
     procedure actDetailNewExecute(Sender: TObject);
@@ -45,7 +45,7 @@ end;
 
 procedure Tgdc_frmDocumentType.FormCreate(Sender: TObject);
 begin
-  gdcObject := gdcDocumentBranch;
+  gdcObject := gdcBaseDocumentType;
   gdcDetailObject := gdcDocumentType;
   inherited;
 end;
