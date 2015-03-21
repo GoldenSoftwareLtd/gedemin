@@ -256,7 +256,7 @@ type
     destructor Destroy; override;
 
     // Добавляет информацию о классе в кэш
-    // (AChildClassName - имя предыдущего класса в стеке вызавов объекта)
+    // (AChildClassName - имя предыдущего класса в стеке вызовов объекта)
     function AddClass(const AFullClassName, AChildClassName: TgdcFullClassName;
       AScriptFuncion: TrpCustomFunction; const MethodPresent: Boolean): TmtdCacheItem;
     // Имя кэшировонного метода.

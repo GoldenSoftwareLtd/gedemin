@@ -16331,7 +16331,7 @@ end;
 procedure TgdcBase.SetFirstMethodAssoc(const AClass: String;
   const AMethodKey: Byte);
 begin
-  if Length(FClassMethodAssoc.StrByKey[AMethodKey]) = 0 then
+  if FClassMethodAssoc.StrByKey[AMethodKey] = '' then
     FClassMethodAssoc.StrByKey[AMethodKey] := AClass;
 end;
 
