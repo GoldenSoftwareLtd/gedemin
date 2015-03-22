@@ -253,6 +253,8 @@ type
     procedure CustomDelete(Buff: Pointer); override;
     procedure CustomInsert(Buff: Pointer); override;
 
+    procedure DoAfterCustomProcess(Buff: Pointer; Process: TgsCustomProcess); override;
+
     function GetTableType: TgdcTableType; override;
 
     procedure NewField(FieldName, LName, FieldSource, Description,
@@ -9432,6 +9434,67 @@ begin
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
   {M}      ClearMacrosStack2('TGDCBASETABLE', 'CUSTOMINSERT', KEYCUSTOMINSERT);
+  {M}  end;
+  {END MACRO}
+end;
+
+procedure TgdcBaseTable.DoAfterCustomProcess(Buff: Pointer; Process: TgsCustomProcess);
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+  CN: String;
+begin
+  {@UNFOLD MACRO INH_ORIG_DOAFTERCUSTOMPROCESS('TGDCBASETABLE', 'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCBASETABLE', KEYDOAFTERCUSTOMPROCESS);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOAFTERCUSTOMPROCESS]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCBASETABLE') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self),
+  {M}          Integer(Buff), TgsCustomProcess(Process)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCBASETABLE',
+  {M}          'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS, Params, LResult) then
+  {M}          exit;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCBASETABLE' then
+  {M}        begin
+  {M}          Inherited;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  inherited;
+
+  CN := '';
+  if (Self.ClassType = TgdcSimpleTable)
+    or (Self.ClassType = TgdcPrimeTable)
+    or (Self.ClassType = TgdcTableToDefinedTable) then
+  begin
+    CN := 'TgdcAttrUserDefined';
+  end
+  else if Self.ClassType = TgdcTreeTable then
+    CN := 'TgdcAttrUserDefinedTree'
+  else if Self.ClassType = TgdcLBRBTreeTable then
+    CN := 'TgdcAttrUserDefinedLBRBTree';
+
+  if CN = '' then
+    exit;
+
+  if Process = cpInsert then
+    gdClassList.Add(CN, FieldByName('RELATIONNAME').AsString, '',
+      TgdAttrUserDefinedEntry, FieldByName('LNAME').AsString)
+  else if Process <> cpModify then
+    gdClassList.Remove(CN, FieldByName('RELATIONNAME').AsString);
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASETABLE', 'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCBASETABLE', 'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS);
   {M}  end;
   {END MACRO}
 end;
