@@ -253,8 +253,6 @@ type
     procedure CustomDelete(Buff: Pointer); override;
     procedure CustomInsert(Buff: Pointer); override;
 
-    procedure DoAfterCustomProcess(Buff: Pointer; Process: TgsCustomProcess); override;
-
     function GetTableType: TgdcTableType; override;
 
     procedure NewField(FieldName, LName, FieldSource, Description,
@@ -1926,36 +1924,30 @@ end;
 
 function TgdcRelation.GetCurrRecordClass: TgdcFullClass;
 var
-  S: String;
   CE: TgdClassEntry;
 begin
-  Result.gdClass := CgdcBase(Self.ClassType);
-  Result.SubType := SubType;
-
   if not IsEmpty then
   begin
     if FieldByName('relationtype').AsString = 'T' then
     begin
       case GetTableTypeByName(FieldByName('relationname').AsString) of
-        ttTableToDefinedTable: S := 'TgdcTableToDefinedTable';
-        ttTableToTable: S := 'TgdcTableToTable';
-        ttSimpleTable: S := 'TgdcSimpleTable';
-        ttTree: S := 'TgdcTreeTable';
-        ttIntervalTree: S := 'TgdcLBRBTreeTable';
-        ttCustomTable: S := 'TgdcCustomTable';
-        ttDocument: S := 'TgdcDocumentTable';
-        ttDocumentLine: S := 'TgdcDocumentLineTable';
-        ttInvSimple: S := 'TgdcInvSimpleDocumentLineTable';
-        ttInvFeature: S := 'TgdcInvFeatureDocumentLineTable';
-        ttInvInvent: S := 'TgdcInvInventDocumentLineTable';
-        ttInvTransfrom: S := 'TgdcInvTransformDocumentLineTable';
-        ttUnknow: S := 'TgdcUnknownTable';
-        ttPrimeTable: S := 'TgdcPrimeTable';
+        ttTableToDefinedTable: CE := gdClassList.Get(TgdBaseEntry, 'TgdcTableToDefinedTable', '');
+        ttTableToTable:        CE := gdClassList.Get(TgdBaseEntry, 'TgdcTableToTable', '');
+        ttSimpleTable:         CE := gdClassList.Get(TgdBaseEntry, 'TgdcSimpleTable', '');
+        ttTree:                CE := gdClassList.Get(TgdBaseEntry, 'TgdcTreeTable', '');
+        ttIntervalTree:        CE := gdClassList.Get(TgdBaseEntry, 'TgdcLBRBTreeTable', '');
+        ttCustomTable:         CE := gdClassList.Get(TgdBaseEntry, 'TgdcCustomTable', '');
+        ttDocument:            CE := gdClassList.Get(TgdBaseEntry, 'TgdcDocumentTable', '');
+        ttDocumentLine:        CE := gdClassList.Get(TgdBaseEntry, 'TgdcDocumentLineTable', '');
+        ttInvSimple:           CE := gdClassList.Get(TgdBaseEntry, 'TgdcInvSimpleDocumentLineTable', '');
+        ttInvFeature:          CE := gdClassList.Get(TgdBaseEntry, 'TgdcInvFeatureDocumentLineTable', '');
+        ttInvInvent:           CE := gdClassList.Get(TgdBaseEntry, 'TgdcInvInventDocumentLineTable', '');
+        ttInvTransfrom:        CE := gdClassList.Get(TgdBaseEntry, 'TgdcInvTransformDocumentLineTable', '');
+        ttUnknow:              CE := gdClassList.Get(TgdBaseEntry, 'TgdcUnknownTable', '');
+        ttPrimeTable:          CE := gdClassList.Get(TgdBaseEntry, 'TgdcPrimeTable', '');
       else
-        S := '';
+        CE := nil;
       end;
-
-      CE := gdClassList.Find(S, '');
 
       if CE is TgdBaseEntry then
         Result.gdClass := TgdBaseEntry(CE).gdcClass
@@ -1963,9 +1955,13 @@ begin
         Result.gdClass := TgdcTable;
     end
     else if FieldByName('relationtype').AsString = 'V' then
-      Result.gdClass := TgdcView;
-  end;
+      Result.gdClass := TgdcView
+    else
+      raise EgdcException.Create('Invalid relation type', Self);  
+  end else
+    Result.gdClass := CgdcBase(Self.ClassType);
 
+  Result.SubType := SubType;
   FindInheritedSubType(Result);
 end;
 
@@ -4787,83 +4783,45 @@ var
   R: TatRelation;
   RF: TatRelationField;
 begin
+  R := atDatabase.Relations.ByRelationName(ARelationName);
+  if R = nil then
+    raise EgdcIBError.Create('Ошибка при считывании атрибутов. Перезагрузите программу!');
+
   Result := ttUnknow;
-  if AnsiPos(UserPrefix, AnsiUpperCase(Trim(ARelationName))) = 1 then
-  begin
-    R := atDatabase.Relations.ByRelationName(ARelationName);
-    if not Assigned(R) then
-      raise EgdcIBError.Create('Ошибка при считывании атрибутов. Перезагрузите программу!');
-      
-    if Assigned(R) then
+
+  if not R.IsUserDefined then
+    exit;
+
+  if R.RelationFields.ByFieldName('INHERITEDKEY') <> nil then
+    Result := ttTableToDefinedTable
+  else if R.IsLBRBTreeRelation then
+    Result := ttIntervalTree
+  else if R.IsTreeRelation then
+    Result := ttTree
+  else if R.RelationFields.ByFieldName('TOCARDKEY') <> nil then
+    Result := ttInvFeature
+  else if R.RelationFields.ByFieldName('TOQUANTITY') <> nil then
+    Result := ttInvInvent
+  else if R.RelationFields.ByFieldName('OUTQUANTITY') <> nil then
+    Result := ttInvTransfrom
+  else if R.RelationFields.ByFieldName('FROMCARDKEY') <> nil then
+    Result := ttInvSimple
+  else if R.RelationFields.ByFieldName('MASTERKEY') <> nil then
+    Result := ttDocumentLine
+  else if R.RelationFields.ByFieldName('DOCUMENTKEY') <> nil then
+    Result := ttDocument
+  else begin
+    RF := R.RelationFields.ByFieldName('ID');
+    if RF <> nil then
     begin
-      RF := R.RelationFields.ByFieldName('INHERITEDKEY');
-      if Assigned(RF) then
-        Result := ttTableToDefinedTable
-      else
-      begin
-        RF := R.RelationFields.ByFieldName('LB');
+      if RF.Field.RefTable <> nil then
+        Result := ttTableToTable
+      else begin
+        RF := R.RelationFields.ByFieldName('EDITORKEY');
         if Assigned(RF) then
-          Result := ttIntervalTree
+          Result := ttSimpleTable
         else
-        begin
-          RF := R.RelationFields.ByFieldName('PARENT');
-          if Assigned(RF) then
-            Result := ttTree
-          else
-          begin
-            RF := R.RelationFields.ByFieldName('TOCARDKEY');
-            if Assigned(RF) then
-              Result := ttInvFeature
-            else
-            begin
-              RF := R.RelationFields.ByFieldName('TOQUANTITY');
-              if Assigned(RF) then
-                Result := ttInvInvent
-              else
-              begin
-                RF := R.RelationFields.ByFieldName('OUTQUANTITY');
-                if Assigned(RF) then
-                  Result := ttInvTransfrom
-                else
-                begin
-                  RF := R.RelationFields.ByFieldName('FROMCARDKEY');
-                  if Assigned(RF) then
-                    Result := ttInvSimple
-                  else
-                  begin
-                    RF := R.RelationFields.ByFieldName('MASTERKEY');
-                    if Assigned(RF) then
-                      Result := ttDocumentLine
-                    else
-                    begin
-                      RF := R.RelationFields.ByFieldName('DOCUMENTKEY');
-                      if Assigned(RF) then
-                        Result := ttDocument
-                      else
-                      begin
-                        RF := R.RelationFields.ByFieldName('ID');
-                        if Assigned(RF) then
-                        begin
-                          if RF.Field.RefTable <> nil then
-                            Result := ttTableToTable
-                          else begin
-                            RF := R.RelationFields.ByFieldName('EDITORKEY');
-                            if Assigned(RF) then
-                              Result := ttSimpleTable
-                            else
-                              Result := ttPrimeTable;
-                          end;
-                        end
-                        else
-                          Result := ttUnknow;
-                      end;
-                    end;
-                  end;
-                end;
-              end;
-            end;
-          end;
-        end;
+          Result := ttPrimeTable;
       end;
     end;
   end;
@@ -9276,7 +9234,7 @@ begin
         FieldByName('referencekey').FocusControl;
       raise EgdcIBError.Create('Не указана таблица-ссылка!');
     end else
-      Result :=  q.FieldByName('relationname').AsString;
+      Result := q.FieldByName('relationname').AsString;
   finally
     q.Free;
   end;
@@ -9434,67 +9392,6 @@ begin
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
   {M}      ClearMacrosStack2('TGDCBASETABLE', 'CUSTOMINSERT', KEYCUSTOMINSERT);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcBaseTable.DoAfterCustomProcess(Buff: Pointer; Process: TgsCustomProcess);
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-  CN: String;
-begin
-  {@UNFOLD MACRO INH_ORIG_DOAFTERCUSTOMPROCESS('TGDCBASETABLE', 'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCBASETABLE', KEYDOAFTERCUSTOMPROCESS);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOAFTERCUSTOMPROCESS]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCBASETABLE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self),
-  {M}          Integer(Buff), TgsCustomProcess(Process)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCBASETABLE',
-  {M}          'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCBASETABLE' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  inherited;
-
-  CN := '';
-  if (Self.ClassType = TgdcSimpleTable)
-    or (Self.ClassType = TgdcPrimeTable)
-    or (Self.ClassType = TgdcTableToDefinedTable) then
-  begin
-    CN := 'TgdcAttrUserDefined';
-  end
-  else if Self.ClassType = TgdcTreeTable then
-    CN := 'TgdcAttrUserDefinedTree'
-  else if Self.ClassType = TgdcLBRBTreeTable then
-    CN := 'TgdcAttrUserDefinedLBRBTree';
-
-  if CN = '' then
-    exit;
-
-  if Process = cpInsert then
-    gdClassList.Add(CN, FieldByName('RELATIONNAME').AsString, '',
-      TgdAttrUserDefinedEntry, FieldByName('LNAME').AsString)
-  else if Process <> cpModify then
-    gdClassList.Remove(CN, FieldByName('RELATIONNAME').AsString);
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASETABLE', 'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCBASETABLE', 'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS);
   {M}  end;
   {END MACRO}
 end;
