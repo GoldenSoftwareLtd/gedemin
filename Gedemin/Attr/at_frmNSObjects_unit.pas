@@ -190,14 +190,14 @@ end;
 
 function Tat_frmNSObjects.GetObject: TgdcBase;
 var
-  C: CgdcBase;
+  CE: TgdClassEntry;
 begin
-  C := gdClassList.GetGdcClass(ibds.FieldByName('objectclass').AsString);
-  if C = nil then
-    Result := nil
-  else begin
-    Result := C.Create(nil);
-    Result.SubType := ibds.FieldByName('subtype').AsString;
+  CE := gdClassList.Find(ibds.FieldByName('objectclass').AsString,
+    ibds.FieldByName('subtype').AsString);
+  if CE is TgdBaseEntry then
+  begin
+    Result := TgdBaseEntry(CE).gdcClass.Create(nil);
+    Result.SubType := CE.SubType;
     Result.SubSet := 'ByID';
     Result.ID := gdcBaseManager.GetIDByRUID(ibds.FieldByName('xid').AsInteger,
       ibds.FieldByName('dbid').AsInteger);
@@ -208,9 +208,10 @@ begin
         'Объект для такого РУИДа не найден в базе данных.',
         'Внимание',
         MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
-      FreeAndNil(Result);  
+      FreeAndNil(Result);
     end;
-  end;
+  end else
+    Result := nil
 end;
 
 procedure Tat_frmNSObjects.actAddToNamespaceExecute(Sender: TObject);

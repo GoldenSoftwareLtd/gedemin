@@ -2499,35 +2499,24 @@ begin
 end;
 
 function TdfPropertyTree.AddGDCClass(AParent: TTreeNode;
-  const AClassName: String; const ASubType: string): TTreeNode;
+  const AClassName: String; const ASubType: String): TTreeNode;
 var
-  C: TClass;
   CE: TgdClassEntry;
 begin
-  Result := nil;
-
-  C := gdClassList.GetGDCClass(AClassName);
-  if C <> nil then
+  CE := gdClassList.Find(AClassName, ASubType);
+  if CE is TgdBaseEntry then
   begin
-    CE := gdClassList.Find(GetClass(AClassName), ASubType);
-    if CE <> nil then
-    begin
-      Result := AddGDCClassNode(AParent, CE);
-
-      TCustomTreeFolder(Result.Data).ChildsCreated := True;
-      AddMethods(Result, True, CE);
-    end;
+    Result := AddGDCClassNode(AParent, CE);
+    TCustomTreeFolder(Result.Data).ChildsCreated := True;
+    AddMethods(Result, True, CE);
+  end
+  else if CE is TgdFormEntry then
+  begin
+    Result := AddFRMClassNode(AParent, CE);
+    TCustomTreeFolder(Result.Data).ChildsCreated := True;
+    AddMethods(Result, False, CE);
   end else
-  begin
-    CE := gdClassList.Find(GetClass(AClassName), ASubType);
-    if CE <> nil then
-    begin
-      Result := AddFRMClassNode(AParent, CE);
-
-      TCustomTreeFolder(Result.Data).ChildsCreated := True;
-      AddMethods(Result, False, CE);
-    end;
-  end;
+    Result := nil;
 end;
 
 procedure TdfPropertyTree.InitOverloadAndDisable(C: TMethodClass);

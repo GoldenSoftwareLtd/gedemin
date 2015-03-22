@@ -378,18 +378,16 @@ end;
 function TgdcLink.CreateLinkedObject(const AClassName, ASubType: String;
   const AnObjectKey, ALinkedKey: Integer): TgdcBase;
 var
-  C: CgdcBase;
+  CE: TgdClassEntry;
 begin
   Result := nil;
-  
-  C := gdClassList.GetGDCClass(AClassName);
-
-  if C <> nil then
+  CE := gdClassList.Find(AClassName, ASubType);
+  if CE is TgdBaseEntry then
   begin
     try
-      Result := C.CreateSingularByID(nil,
+      Result := TgdBaseEntry(CE).gdcClass.CreateSingularByID(nil,
         ALinkedKey,
-        ASubType);
+        CE.SubType);
     except
       if MessageBox(ParentHandle,
         'Невозможно найти прикрепленный объект. Вероятно, он был удален из базы данных.'#13#10#13#10 +

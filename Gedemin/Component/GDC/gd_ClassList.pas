@@ -402,6 +402,9 @@ type
     property frmClass: CgdcCreateableForm read GetFrmClass;
   end;
 
+  TgdNewFormEntry = class(TgdFormEntry)
+  end;
+
   TgdClassList = class(TObject)
   private
     FClasses: array of TgdClassEntry;
@@ -464,9 +467,6 @@ type
     procedure AddClassMethods(AClass: TComponentClass;
       AMethods: array of TgdMethod); overload;
 
-    function GetGDCClass(const AClassName: String): CgdcBase;
-    function GetFrmClass(const AClassName: String): CgdcCreateableForm;
-
     procedure LoadUserDefinedClasses;
     function LoadRelation(Prnt: TgdClassEntry; R: TatRelation; ACEAttrUserDefined,
       ACEAttrUserDefinedTree, ACEAttrUserDefinedLBRBTree: TgdClassEntry): TgdClassEntry; overload;
@@ -519,7 +519,7 @@ implementation
 
 uses
   SysUtils, gs_Exception, IBSQL, gd_security, gsStorage, Storages,
-  gdcClasses
+  gdcClasses, gd_directories_const
   {$IFDEF DEBUG}
   , gd_DebugLog
   {$ENDIF}
@@ -1470,30 +1470,6 @@ end;
 
 {TgdClassList}
 
-function TgdClassList.GetGDCClass(const AClassName: String): CgdcBase;
-var
-  CE: TgdClassEntry;
-begin
-  CE := Find(AClassName, '');
-
-  if CE is TgdBaseEntry then
-    Result := TgdBaseEntry(CE).gdcClass
-  else
-    Result := nil;
-end;
-
-function TgdClassList.GetFrmClass(const AClassName: String): CgdcCreateableForm;
-var
-  CE: TgdClassEntry;
-begin
-  CE := Find(AClassName, '');
-
-  if CE is TgdFormEntry then
-    Result := TgdFormEntry(CE).frmClass
-  else
-    Result := nil;
-end;
-
 function TgdClassList.Add(const AClass: TClass;
   const ASubType: TgdcSubType;
   const AParentSubType: TgdcSubType;
@@ -1937,6 +1913,30 @@ procedure TgdClassList.LoadUserDefinedClasses;
       IterateStorage(F.Folders[I], Prnt);
   end;
 
+  procedure LoadNewForm;
+  var
+    FNewForm: TgsStorageFolder;
+    I: Integer;
+    CEParentForm: TgdClassEntry;
+  begin
+    FNewForm := GlobalStorage.OpenFolder(st_ds_NewFormPath);
+    if Assigned(FNewForm) then
+      try
+        for I := 0 to FNewForm.FoldersCount - 1 do
+        begin
+          if Find(FNewForm.Folders[I].ReadString('Class'),
+            FNewForm.Folders[I].ReadString('GDCSubType')) = nil then
+          begin
+            CEParentForm := Get(TgdFormEntry, FNewForm.Folders[I].ReadString('Class'));
+            _Create(CEParentForm, TgdNewFormEntry, CEParentForm.TheClass,
+              FNewForm.Folders[I].ReadString('GDCSubType'), FNewForm.Folders[I].Name);
+          end;
+        end;
+      finally
+        GlobalStorage.CloseFolder(FNewForm);
+      end;
+  end;
+
 var
   I, J: Integer;
   CEAttrUserDefined,
@@ -2061,6 +2061,8 @@ begin
   finally
     GlobalStorage.CloseFolder(FSubTypes);
   end;
+
+  LoadNewForm;
 
   Get(TgdBaseEntry, 'TgdcBase', '').Traverse(_CreateFormSubTypes, nil, nil, False, False);
 end;
@@ -2362,7 +2364,7 @@ function TgdClassList.Get(const AClass: CgdClassEntry; const AClassName: AnsiStr
 begin
   Result := Find(AClassName, ASubType);
   if Result = nil then
-    raise Exception.Create('Unknown class name/subtype ' + AClassName + ASubType)
+    raise Exception.Create('Unknown class name/subtype ' + AClassName + ' ' + ASubType)
   else if not Result.InheritsFrom(AClass) then
     raise Exception.Create('Invalid type cast');
 end;

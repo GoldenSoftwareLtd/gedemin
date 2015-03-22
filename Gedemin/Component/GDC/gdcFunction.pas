@@ -587,23 +587,17 @@ end;
 
 procedure TgdcFunction.AddMethodFunction(const ClassID: Integer;
   const MethodName: String; const FullClassName: TgdcFullClassName);
+const
+  cCMErr = 'Для класса не найден объект описания методов класса.';
 var
   MethodItem: TMethodItem;
   tmpObject: TObject;
   I: Integer;
   ClassMethods: TgdClassMethods;
   gdcEvent: TgdcEvent;
-  tmpClass: TClass;
   CE: TgdClassEntry;
-
-const
-  cCMErr = 'Для класса не найден объект описания методов класса.';
-
 begin
-  CE := gdClassList.Find(GetClass(FullClassName.gdClassName));
-
-  if CE = nil then
-    raise Exception.Create('Класс ' + FullClassName.gdClassName + ' не найден');
+  CE := gdClassList.Get(TgdClassEntry, FullClassName.gdClassName);
 
   ClassMethods := CE.ClassMethods;
 
@@ -617,13 +611,7 @@ begin
       I := AddClass(FullClassName);
       if I > -1 then
       begin
-        tmpClass := gdClassList.GetGDCClass(FullClassName.gdClassName);
-        if tmpClass = nil then
-          tmpClass := gdClassList.GetFrmClass(FullClassName.gdClassName);
-        if tmpClass = nil then
-          raise Exception.Create('Класс ' + FullClassName.gdClassName + ' не зарегистрирован в системе.');
-
-        tmpObject := MethodControl.AddClass(I, FullClassName, tmpClass);
+        tmpObject := MethodControl.AddClass(I, FullClassName, CE.TheClass);
         if tmpObject = nil then
           raise Exception.Create('Не найден объект для класса ' + FullClassName.gdClassName +
             '.'#13#10 + 'Попытайтесь перекрыть метод в инспекторе скрипт-объектов.');
@@ -678,7 +666,6 @@ begin
   finally
     gdcEvent.Free;
   end;
-
 end;
 
 class function TgdcFunction.GetNotStreamSavedField(const IsReplicationMode: Boolean = False): String;

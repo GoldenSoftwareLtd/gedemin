@@ -898,21 +898,21 @@ procedure TfrmClassesInspector.AddStandartComponent(
   var CompNode: TTreeNode; const Node: TTreeNode; const FrmClassName: String);
 var
   HRsrc, HInst: THandle;
-  gdcFullClassName: TgdcFullClassName;
   TmpClass: TClass;
   ResStream: TResourceStream;
   CompList: TStrings;
   StrStream: TStringStream;
   I: Integer;
   tmpNode: TTreeNode;
+  CE: TgdClassEntry;
 begin
-  gdcFullClassName.SubType := '';
-  gdcFullClassName.gdClassName := FrmClassName;
-  TmpClass := gdClassList.GetFrmClass(gdcFullClassName.gdClassName);
-  if not Assigned(TmpClass) then
+  CE := gdClassList.Find(FrmClassName);
+  if CE is TgdFormEntry then
+    TmpClass := CE.TheClass
+  else
     TmpClass := GetClass(FrmClassName);
-  if not Assigned(TmpClass) then
-    Exit;
+  if TmpClass = nil then
+    exit;
 
   HInst := FindResourceHInstance(FindClassHInstance(TmpClass));
   if HInst = 0 then HInst := HInstance;

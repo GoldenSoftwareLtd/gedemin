@@ -430,12 +430,11 @@ procedure Tgdc_frmExplorer.dbtvExplorerAdvancedCustomDrawItem(
   Stage: TCustomDrawStage; var PaintImages, DefaultDraw: Boolean);
 var
   V: Variant;
-  C: TClass;
   B: TBitmap;
   R: TRect;
-  LFullClass: TgdcFullClassName;
   F: Boolean;
   M: Integer;
+  CE: TgdClassEntry;
 begin
   if (Stage = cdPostPaint) and (Node <> nil) and (Integer(Node.Data) > 0) then
   begin
@@ -448,19 +447,10 @@ begin
         dmImages.il16x16.GetBitmap(V, B);
       end else
       begin
-        V := gdcExplorer.GetFieldValueForID(Integer(Node.Data), 'classname');
-        if VarType(V) = varString then
-        begin
-          LFullClass.gdClassName := V;
-          LFullClass.SubType := '';
-          C := gdClassList.GetGdcClass(LFullClass.gdClassName);
-
-          if (C <> nil) and C.InheritsFrom(TgdcBase) then
-          begin
-            CgdcBase(C).GetClassImage(16, 16, B);
-          end else
-            F := True;
-        end else
+        CE := gdClassList.Find(VarToStr(gdcExplorer.GetFieldValueForID(Integer(Node.Data), 'classname')));
+        if CE is TgdBaseEntry then
+          TgdBaseEntry(CE).gdcClass.GetClassImage(16, 16, B)
+        else
           F := True;
       end;
 
