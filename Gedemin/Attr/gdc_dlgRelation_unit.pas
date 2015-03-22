@@ -820,7 +820,13 @@ procedure Tgdc_dlgRelation.BeforePost;
     if gdcObject is TgdcTableToDefinedTable then
     begin
       R := atDatabase.Relations.ByRelationName((gdcObject as TgdcTableToDefinedTable).GetReferenceName);
+      if R = nil then
+        raise Exception.Create('Unregistered class.');
+
       C := GetBaseClassForRelation(R.RelationName);
+      if C.gdClass = nil then
+        raise Exception.Create('Unregistered relation.');
+
       Result := C.gdClass.ClassName;
     end
     else
