@@ -6841,10 +6841,11 @@ function TwrpGDCBase.ChooseItems(const Cl: WideString;
 var
   LgdcClass: CgdcBase;
   V: OleVariant;
+  CE: TgdClassEntry;
 begin
-  Result := False;
-  if Cl > '' then
-    LgdcClass := gdClassList.GetGDCClass(Cl)
+  CE := gdClassList.Find(Cl);
+  if CE is TgdBaseEntry then
+    LgdcClass := TgdBaseEntry(CE).gdcClass
   else
     LgdcClass := nil;
   Result := GetGDCBase.ChooseItems(LgdcClass, InterfaceToObject(KeyArray) as TgdKeyArray,
@@ -7382,15 +7383,14 @@ function TwrpGDCBase.ChooseOrderItems(const Cl: WideString;
   const ChooseComponentName, ChooseSubSet, ChooseSubType,
   ChooseExtraConditions: WideString): WordBool;
 var
-  LgdcClass: CgdcBase;
-  LFullClass: TgdcFullClassName;
+  CE: TgdClassEntry;
 begin
-  Result := False;
-  LFullClass.gdClassName := Cl;
-  LgdcClass := gdClassList.GetGDCClass(LFullClass.gdClassName);
-  if Assigned(LgdcClass) then
-    Result := GetGDCBase.ChooseItems(LgdcClass, InterfaceToObject(KA) as TgdKeyArray,
-      AChosenIDInOrder, ChooseComponentName, ChooseSubSet, ChooseSubType, ChooseExtraConditions);
+  CE := gdClassList.Find(Cl);
+  if CE is TgdBaseEntry then
+    Result := GetGDCBase.ChooseItems(TgdBaseEntry(CE).gdcClass, InterfaceToObject(KA) as TgdKeyArray,
+      AChosenIDInOrder, ChooseComponentName, ChooseSubSet, ChooseSubType, ChooseExtraConditions)
+  else
+    Result := False;
 end;
 
 function TwrpGDCBase.ChooseOrderItemsSelf(
@@ -8186,15 +8186,10 @@ end;
 function TwrpGDCTree.CreateChildrenDialogWithParam(
   const AgdcClassName: WideString): WordBool;
 var
-  LgdcClass: CgdcBase;
-  LFullClass: TgdcFullClassName;
+  CE: TgdClassEntry;
 begin
-  LFullClass.gdClassName := AgdcClassName;
-  LgdcClass := gdClassList.GetGDCClass(LFullClass.gdClassName);
-  if LgdcClass = nil then
-    raise Exception.Create('Класс ' + AgdcClassName + 'не найден.');
-
-  Result := GetGDCTree.CreateChildrenDialog(LgdcClass);
+  CE := gdClassList.Get(TgdBaseEntry, AgdcClassName);
+  Result := GetGDCTree.CreateChildrenDialog(TgdBaseEntry(CE).gdcClass);
 end;
 
 { TwrpGDCDocument }
@@ -12750,19 +12745,14 @@ end;
 
 procedure TwrpGdcObjectSet.Set_gdClass(const Value: WideString);
 var
-  LClass: CgdcBase;
-  LFullClass: TgdcFullClassName;
+  CE: TgdClassEntry;
 begin
   { TODO : перепроверить!
   тут тип и подтип отдельно присваиваются.
   правильно ли это?
   }
-  LFullClass.gdClassName := Value;
-  LClass := gdClassList.GetGDCClass(LFullClass.gdClassName);
-  if LClass = nil then
-    raise Exception.Create('Класс ' + Value + ' не найден.');
-
-  GetGdcObjectSet.gdClass := LClass;
+  CE := gdClassList.Get(TgdBaseEntry, Value);
+  GetGdcObjectSet.gdClass := TgdBaseEntry(CE).gdcClass;
 end;
 
 procedure TwrpGdcObjectSet.Set_SubType(const Value: WideString);

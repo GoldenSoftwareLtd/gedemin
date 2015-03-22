@@ -1002,6 +1002,7 @@ var
   LClassType: TmtdClassType;
 //  LgdcCreateableFormClass: CgdcCreateableForm;
 //  LgdcBaseClass: CgdcBase;
+  CE: TgdClassEntry;
 const
   LMsgMethodUserError =
                   'Метод %s для класса %s вызвал ошибку.'#13#10 +
@@ -1138,38 +1139,19 @@ begin
             LCurrentFullClass.gdClassName := AnObjectClassName;
             LCurrentFullClass.SubType := ObjectSubType;
           end else
+          begin
+            LFullChildName := LCurrentFullClass;
+            CE := gdClassList.Get(TgdClassEntry, LCurrentFullClass.gdClassName, LCurrentFullClass.SubType);
+            if CE.Parent <> nil then
             begin
-              if LCurrentFullClass.SubType <> '' then
-              begin
-                LFullChildName := LCurrentFullClass;
-                // Если в последнем в стеке полном имени класса есть подтип, то
-                // текущий полный класс - это тот-же полный класс без подтипа,
-                // если нет родителя с подтипом
-                if GetClass(LCurrentFullClass.gdClassName).InheritsFrom(TgdcBase) then
-                begin
-                  if not Assigned(gdClassList.GetGDCClass(LCurrentFullClass.gdClassName))then
-                    raise Exception.Create('Ошибка перекрытия метода класса '
-                      + LCurrentFullClass.gdClassName);
-                  LCurrentFullClass.SubType :=
-                    gdClassList.GetGDCClass(LCurrentFullClass.gdClassName).ClassParentSubType(LCurrentFullClass.SubType)
-                end
-                else
-                begin
-                  if not Assigned(gdClassList.GetFRMClass(LCurrentFullClass.gdClassName))then
-                    raise Exception.Create('Ошибка перекрытия метода класса '
-                      + LCurrentFullClass.gdClassName);
-                  LCurrentFullClass.SubType :=
-                    gdClassList.GetFRMClass(LCurrentFullClass.gdClassName).ClassParentSubtype(LCurrentFullClass.SubType)
-                end;
-              end else
-                begin
-                  // Если последний обработанный класс без подтипа, то получаем
-                  // класс родителя
-                  LFullChildName := LCurrentFullClass;
-                  LCurrentFullClass.gdClassName :=
-                    AnsiUpperCase(GetParentClassName(LCurrentFullClass, LClassType));
-                end;
+              LCurrentFullClass.gdClassName := UpperCase(CE.Parent.TheClass.ClassName);
+              LCurrentFullClass.SubType := CE.Parent.SubType;
+            end else
+            begin
+              LCurrentFullClass.gdClassName := UpperCase(CE.TheClass.ClassParent.ClassName);
+              LCurrentFullClass.SubType := '';
             end;
+          end;
         end;
 
       try
@@ -1688,18 +1670,10 @@ end;
 function TMethodControl.GetParentClassName(
   const FullClassName: TgdcFullClassName; const ClassType: TmtdClassType): String;
 var
-  LClass: TComponentClass;
+  CE: TgdClassEntry;
 begin
-  LClass := nil;
-  case ClassType of
-    mtd_gdcBase:
-      LClass := gdClassList.GetGDCClass(FullClassName.gdClassName);
-    mtd_gdcForm:
-      LClass := gdClassList.GetFRMClass(FullClassName.gdClassName);
-  end;
-  if LClass = nil then raise Exception.Create('Ошибка перекрытия метода. Обратитесь к разработчикам.');
-  Result :=
-    LClass.ClassParent.ClassName;
+  CE := gdClassList.Get(TgdClassEntry, FullClassName.gdClassName, '');
+  Result := CE.TheClass.ClassParent.ClassName;
 end;
 
 procedure TMethodControl.SaveDisableFlag(

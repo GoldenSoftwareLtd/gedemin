@@ -69,18 +69,16 @@ end;
 
 procedure Tat_frmDuplicates.actOpenObjectExecute(Sender: TObject);
 var
-  FC: TgdcFullClassName;
-  C: CgdcBase;
   Obj: TgdcBase;
+  CE: TgdClassEntry;
 begin
-  FC.gdClassName := ibds.FieldByName('objectclass').AsString;
-  FC.SubType := ibds.FieldByName('subtype').AsString;
-  C := gdClassList.GetGdcClass(FC.gdClassName);
-  if C <> nil then
+  CE := gdClassList.Find(ibds.FieldByName('objectclass').AsString,
+    ibds.FieldByName('subtype').AsString);
+  if CE is TgdBaseEntry then
   begin
-    Obj := C.Create(nil);
+    Obj := TgdBaseEntry(CE).gdcClass.Create(nil);
     try
-      Obj.SubType := FC.SubType;
+      Obj.SubType := CE.SubType;
       Obj.SubSet := 'ByID';
       Obj.ID := gdcBaseManager.GetIDByRUID(ibds.FieldByName('xid').AsInteger,
         ibds.FieldByName('dbid').AsInteger);
