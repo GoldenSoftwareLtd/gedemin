@@ -2696,7 +2696,6 @@ begin
 end;
 
 { TgdcBase }
-// Events
 
 procedure TgdcBase.DoAfterDelete;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
@@ -4917,7 +4916,8 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  Result := CgdcCreateableForm(FindClass(GetDialogFormClassName(SubType))).CreateSubType(FParentForm, SubType);
+  Result := TgdFormEntry(gdClassList.Get(TgdFormEntry, GetDialogFormClassName(SubType), SubType)).frmClass.CreateSubType(FParentForm, SubType);
+  //Result := CgdcCreateableForm(FindClass(GetDialogFormClassName(SubType))).CreateSubType(FParentForm, SubType);
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASE', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then

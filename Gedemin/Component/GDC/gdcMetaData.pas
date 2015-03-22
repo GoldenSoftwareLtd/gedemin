@@ -1957,7 +1957,7 @@ begin
     else if FieldByName('relationtype').AsString = 'V' then
       Result.gdClass := TgdcView
     else
-      raise EgdcException.Create('Invalid relation type', Self);  
+      raise EgdcException.CreateObj('Invalid relation type', Self);
   end else
     Result.gdClass := CgdcBase(Self.ClassType);
 
@@ -4796,7 +4796,7 @@ begin
     Result := ttTableToDefinedTable
   else if R.IsLBRBTreeRelation then
     Result := ttIntervalTree
-  else if R.IsTreeRelation then
+  else if R.IsStandartTreeRelation then
     Result := ttTree
   else if R.RelationFields.ByFieldName('TOCARDKEY') <> nil then
     Result := ttInvFeature
