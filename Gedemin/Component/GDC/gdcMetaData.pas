@@ -2009,6 +2009,8 @@ procedure TgdcRelation.CustomInsert(Buff: Pointer);
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
+  CN : String;
+  ParentSubType: String;
 begin
   {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCRELATION', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  try
@@ -2038,7 +2040,28 @@ begin
 
   atDatabase.Relations.RefreshData(Database, Transaction, True);
   Clear_atSQLSetupCache;
-  gdClassList.LoadRelation(FieldByName('relationname').AsString);
+
+  CN := '';
+  ParentSubType := '';
+
+  if (Self is TgdcSimpleTable)
+    or (Self is TgdcPrimeTable)
+    or (Self is TgdcTableToDefinedTable) then
+  begin
+    CN := 'TgdcAttrUserDefined';
+    if Self is TgdcTableToDefinedTable then
+      ParentSubType := (Self as TgdcTableToDefinedTable).GetReferenceName;
+  end
+  else if Self is TgdcTreeTable then
+    CN := 'TgdcAttrUserDefinedTree'
+  else if Self is TgdcLBRBTreeTable then
+    CN := 'TgdcAttrUserDefinedLBRBTree';
+
+  if CN = '' then
+    exit;
+
+  gdClassList.Add(CN, FieldByName('RELATIONNAME').AsString, ParentSubType,
+      TgdAttrUserDefinedEntry, FieldByName('LNAME').AsString)
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCRELATION', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  finally
