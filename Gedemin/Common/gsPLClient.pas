@@ -63,7 +63,7 @@ type
 
     property Eof: Boolean read GetEof;
     property PredicateName: String read FPredicateName write FPredicateName;
-    property Termv: TgsPLTermv read FTermv write FTermv; 
+    property Termv: TgsPLTermv read FTermv write FTermv;
   end;
 
   TgsPLClient = class(TObject)
@@ -87,6 +87,8 @@ type
       const APredicateName: String; const AStream: TStream = nil): Integer;
     function InternalMakePredicatesOfSQLSelect(const ASQL: String; ATr: TIBTransaction;
       const APredicateName: String; const AStream: TStream = nil): Integer;
+
+    function GetScriptIDByName(const Name: String): Integer;
   public
     destructor Destroy; override;
 
@@ -104,7 +106,9 @@ type
       const APredicateName: String; const AFileName: String; const AnAppend: Boolean = False): Integer;
     procedure ExtractData(ADataSet: TClientDataSet; const APredicateName: String; ATermv: TgsPLTermv);
     procedure SavePredicatesToFile(const APredicateName: String; ATermv: TgsPLTermv; const AFileName: String);
+
     function LoadScript(AScriptID: Integer): Boolean;
+    function LoadScriptByName(const AScriptName: String): Boolean;
 
     property Debug: Boolean read FDebug write FDebug;
   end;
@@ -444,6 +448,7 @@ end;
 
 function TgsPLClient.LoadScript(AScriptID: Integer): Boolean;
 
+{*
   function GetScriptIDByName(const Name: String): Integer;
   var
     q: TIBSQL;
@@ -468,6 +473,7 @@ function TgsPLClient.LoadScript(AScriptID: Integer): Boolean;
       end;
     end;
   end;
+*}
 
   procedure LoadUsesScript(const S: String);
   const
@@ -537,6 +543,11 @@ begin
     q.Free;
     TermV.Free;    
   end;
+end;
+
+function TgsPLClient.LoadScriptByName(const AScriptName: String): Boolean;
+begin
+  Result := LoadScript(GetScriptIDByName(AScriptName));
 end;
 
 function TgsPLClient.Call2(const AGoal: String): Boolean;
@@ -1040,6 +1051,31 @@ var
 begin
   Path := StringReplace(GetPath, '\', '/', [rfReplaceAll]);
   Result := Format('[libswipl.dll],[-x],[%0:sgd_pl_state.dat],[-p],[foreign=%0:slib]', [Path]);
+end;
+
+function TgsPLClient.GetScriptIDByName(const Name: String): Integer;
+  var
+    q: TIBSQL;
+begin
+    Result := -1;
+
+    if Name > '' then
+    begin
+      q := TIBSQL.Create(nil);
+      try
+        q.Transaction := gdcBaseManager.ReadTransaction;
+        q.SQL.Text := 'SELECT * FROM gd_function ' +
+          'WHERE UPPER(name) = UPPER(:name) AND module = :module';
+        q.ParamByName('name').AsString := Name;
+        q.ParamByName('module').AsString := scrPrologModuleName;
+        q.ExecQuery;
+
+        if not q.Eof then
+          Result := q.FieldByName('id').AsInteger;
+      finally
+        q.Free;
+      end;
+    end;
 end;
 
 end.
