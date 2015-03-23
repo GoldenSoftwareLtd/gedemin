@@ -117,6 +117,12 @@ type
     TBItem7: TTBItem;
     TBItem8: TTBItem;
     TBItem9: TTBItem;
+    edParentClass: TEdit;
+    edParentSubType: TEdit;
+    btnSelectClass: TButton;
+    actSelectClass: TAction;
+    lbParentClass: TLabel;
+    lbParentSubType: TLabel;
 
     procedure actNewFieldExecute(Sender: TObject);
     procedure actNewFieldUpdate(Sender: TObject);
@@ -158,6 +164,7 @@ type
     procedure actEditCheckExecute(Sender: TObject);
     procedure actDeleteCheckExecute(Sender: TObject);
     procedure actDeleteCheckUpdate(Sender: TObject);
+    procedure actSelectClassExecute(Sender: TObject);
 
   private
     TriggerList: TObjectList;
@@ -209,7 +216,7 @@ uses
   IBSQL, at_Classes,
 
   at_sql_metadata, Storages, gd_ClassList, gdcExplorer, dbConsts,
-  gdcAttrUserDefined, IBExtract, jclStrings
+  gdcAttrUserDefined, IBExtract, jclStrings, gd_dlgClassList_unit
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -1353,13 +1360,23 @@ begin
   //Для редактирования нескольких веток запрещаем изменении ветки исследователя
   iblcExplorerBranch.Enabled := not (sMultiple in gdcObject.BaseState);
 
-  if (gdcObject.ClassType = TgdcTableToTable)
-    or (gdcObject.ClassType = TgdcTableToDefinedTable) then
+  if (gdcObject is TgdcTableToTable) or (gdcObject is TgdcTableToDefinedTable) then
   begin
     lblReference.Visible := True;
     ibcmbReference.Visible := True;
     ibcmbReference.DataSource := dsgdcBase;
     ibcmbReference.DataField := 'referencekey';
+
+    if (gdcObject is TgdcTableToDefinedTable) and (gdcObject.State = dsInsert) then
+    begin
+      edParentClass.Visible := True;
+      edParentSubType.Visible := True;
+      lbParentClass.Visible := True;
+      lbParentSubType.Visible := True;
+      btnSelectClass.Visible := True;
+      ibcmbReference.Enabled := False;
+    end;
+
     if (gdcObject.State = dsEdit) then
     begin
       R := atDatabase.Relations.ByRelationName(gdcObject.FieldByName('relationname').AsString);
@@ -1375,6 +1392,8 @@ begin
       ibcmbReference.Enabled := False;
     end;
   end;
+
+
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGRELATION', 'SETUPRECORD', KEYSETUPRECORD)}
   {M}finally
@@ -1558,6 +1577,30 @@ begin
   {M}    ClearMacrosStack('TGDC_DLGRELATION', 'TESTCORRECT', KEYTESTCORRECT);
   {M}end;
   {END MACRO}
+end;
+
+procedure Tgdc_dlgRelation.actSelectClassExecute(Sender: TObject);
+var
+  FC: TgdcFullClassName;
+  CE: TgdClassEntry;
+  R: TatRelation;
+begin
+  with Tgd_dlgClassList.Create(nil) do
+  try
+    if SelectModal('', FC) then
+    begin
+      edParentClass.Text := FC.gdClassName;
+      edParentSubType.Text := FC.SubType;
+
+      CE := gdClassList.Get(TgdBaseEntry, FC.gdClassName, FC.SubType);
+      R := atDatabase.Relations.ByRelationName((CE as TgdBaseEntry).DistinctRelation);
+
+      if R <> nil then
+        ibcmbReference.CurrentKeyInt := R.ID;
+    end;  
+  finally
+    Free;
+  end;
 end;
 
 initialization
