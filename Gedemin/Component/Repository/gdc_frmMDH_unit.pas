@@ -431,8 +431,8 @@ begin
       FgdcDetailObject.RemoveFreeNotification(Self);
 
     FgdcDetailObject := Value;
-    if (FgdcDetailObject <> nil) and FgdcDetailObject.CheckSubType(FSubType) then
-      FgdcDetailObject.SubType := FSubType;
+    if (FSubType > '') and (FgdcDetailObject <> nil) and (FgdcDetailObject.CheckSubType(FSubType))then
+      FgdcObject.SubType := FSubType;
     if dsDetail.DataSet <> Value then
       dsDetail.DataSet := Value;
     if FgdcDetailObject <> nil then
