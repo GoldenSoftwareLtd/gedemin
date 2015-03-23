@@ -3986,6 +3986,7 @@ type
       const APredicateName: WideString; const AFileName: WideString; AnAppend: WordBool): Integer; safecall;
     procedure Compound(AGoal: LongWord; const AFunctor: WideString; const ATermv: IgsPLTermv); safecall;
     function LoadScript(AScriptID: Integer): WordBool; safecall;
+    function LoadScriptByName(const AScriptName: WideString): WordBool; safecall;
     function Get_Debug: WordBool; safecall;
     procedure Set_Debug(Value: WordBool); safecall;
     procedure SavePredicatesToFile(const APredicateName: WideString; const ATermv: IgsPLTermv; 
@@ -19179,6 +19180,11 @@ end;
 function TwrpPLClient.LoadScript(AScriptID: Integer): WordBool;
 begin
   Result := GetPLClient.LoadScript(AScriptID);
+end;
+
+function TwrpPLClient.LoadScriptByName(const AScriptName: WideString): WordBool;
+begin
+  Result := GetPLClient.LoadScriptByName(AScriptName);
 end;
 
 function TwrpPLClient.Get_Debug: WordBool;
