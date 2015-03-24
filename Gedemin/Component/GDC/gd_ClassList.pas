@@ -2028,6 +2028,8 @@ begin
   CopyDocSubTree(CEInvDocument, CEInvDocumentLine);
   CopyDocSubTree(CEInvPriceList, CEInvPriceListLine);
 
+  CopySubTree(CEInvDocument, Find('TgdcInvMovement'));
+
   FSubTypes := GlobalStorage.OpenFolder('\SubTypes', False, False);
   try
     if FSubTypes <> nil then
