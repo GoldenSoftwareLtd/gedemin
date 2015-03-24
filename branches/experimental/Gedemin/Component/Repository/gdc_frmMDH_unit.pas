@@ -442,8 +442,9 @@ begin
       FgdcDetailObject.OnFilterChanged := DoOnFilterChanged;
       DoOnFilterChanged(nil);
 
-      tbsiDetailNew.DropDownCombo := gdClassList.Get(TgdBaseEntry,
-        FgdcDetailObject.ClassName, FgdcDetailObject.SubType).Count > 0;
+      if tbsiDetailNew <> nil then
+        tbsiDetailNew.DropDownCombo := gdClassList.Get(TgdBaseEntry,
+          FgdcDetailObject.ClassName, FgdcDetailObject.SubType).Count > 0;
     end;
   end;
 end;
