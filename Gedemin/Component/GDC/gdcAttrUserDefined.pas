@@ -101,6 +101,7 @@ type
     constructor Create(AnOwner: TComponent); override;
 
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
+    class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
 
     property RelationName: String read GetRelationName;
   end;
@@ -332,6 +333,12 @@ begin
     Result := ''
   else
     Result := 'Tgdc_frmAttrUserDefinedLBRBTree';
+end;
+
+class function TgdcAttrUserDefinedLBRBTree.GetDialogFormClassName(
+  const ASubType: TgdcSubType): String;
+begin
+  Result := 'Tgdc_dlgAttrUserDefinedTree';
 end;
 
 procedure TgdcAttrUserDefinedLBRBTree.SetActive(Value: Boolean);
