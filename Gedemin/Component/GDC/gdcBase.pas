@@ -11330,10 +11330,19 @@ begin
         raise EgdcException.CreateObj('Can not change subtype', Self);
 
       if not CheckSubType(Value) then
-        raise EgdcException.CreateObj('Invalid subtype specified', Self);  
+        raise EgdcException.CreateObj('Invalid subtype specified', Self);
     end;
 
     Close;
+
+    if not CheckSubType(Value) then
+    begin
+      if (AnsiPos('usr_', Self.Name) = 1) or (AnsiPos('usrg_', Self.Name) = 1) then
+        gdClassList.CreateDynamicSybType(Self.ClassType.ClassName, Value)
+      else
+        raise EgdcException.CreateObj('Invalid subtype specified', Self);
+    end;
+
     FSubType := Value;
     FGroupID := -1;
     FgdcTableInfos := GetTableInfos(FSubType);

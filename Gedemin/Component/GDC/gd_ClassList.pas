@@ -472,6 +472,9 @@ type
       ACEAttrUserDefinedTree, ACEAttrUserDefinedLBRBTree: TgdClassEntry): TgdClassEntry; overload;
     function LoadRelation(const ARelationName: String): TgdClassEntry; overload;
 
+    function CreateDynamicSybType(const AClassName: AnsiString;
+      const ASubType: TgdcSubType): TgdClassEntry;
+
     property Count: Integer read FCount;
   end;
 
@@ -1827,6 +1830,17 @@ begin
     end;
   end;
   Result := True;
+end;
+
+function TgdClassList.CreateDynamicSybType(const AClassName: AnsiString;
+  const ASubType: TgdcSubType): TgdClassEntry;
+var
+  Prnt: TgdClassEntry;
+begin
+  Prnt := Find(AClassName);
+  if Prnt = nil then
+    raise Exception.Create('Unknown class name ' + AClassName);
+  Result := Add(AClassName, ASubType, '', TgdStorageEntry, '');
 end;
 
 procedure TgdClassList.LoadUserDefinedClasses;
