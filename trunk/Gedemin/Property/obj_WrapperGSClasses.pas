@@ -3980,10 +3980,11 @@ type
       const APredicateName: WideString; const AFileName: WideString; AnAppend: WordBool): Integer; safecall;
     function MakePredicatesOfDataSet(const ADataSet: IgsDataSet; const AFieldList: WideString;
       const APredicateName: WideString; const AFileName: WideString; AnAppend: WordBool): Integer; safecall;
-    function MakePredicatesOfObject(const AClassName: WideString; const SubType: WideString;
+    {*function MakePredicatesOfObject(const AClassName: WideString; const SubType: WideString;
       const ASubSet: WideString; AParams: OleVariant; const AnExtraConditions: IgsStringList;
       const AFieldList: WideString; const ATr: IgsIBTransaction;
       const APredicateName: WideString; const AFileName: WideString; AnAppend: WordBool): Integer; safecall;
+    *}
     procedure Compound(AGoal: LongWord; const AFunctor: WideString; const ATermv: IgsPLTermv); safecall;
     function LoadScript(AScriptID: Integer): WordBool; safecall;
     function LoadScriptByName(const AScriptName: WideString): WordBool; safecall;
@@ -19156,6 +19157,7 @@ begin
     AFileName, AnAppend);
 end;
 
+{*
 function TwrpPLClient.MakePredicatesOfObject(const AClassName: WideString; const SubType: WideString;
   const ASubSet: WideString; AParams: OleVariant; const AnExtraConditions: IgsStringList;
   const AFieldList: WideString; const ATr: IgsIBTransaction;
@@ -19165,6 +19167,7 @@ begin
     InterfaceToObject(AnExtraConditions) as TStringList, AFieldList, InterfaceToObject(ATr) as TIBTransaction,
     APredicateName, AFileName, AnAppend);
 end;
+*}
 
 procedure TwrpPLClient.SavePredicatesToFile(const APredicateName: WideString; const ATermv: IgsPLTermv;
   const AFileName: WideString);
