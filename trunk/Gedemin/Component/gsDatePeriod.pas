@@ -139,11 +139,12 @@ begin
     'Ê', 'R':
       begin
         FKind := dpkQuarter;
+
         case Month of
           1..3:
           begin
             FDate := EncodeDate(Year, 01, 01);
-            FEndDate := EncodeDate(Year, 03, 30);
+            FEndDate := EncodeDate(Year, 03, 31);
           end;
           4..6:
           begin
