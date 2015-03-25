@@ -274,8 +274,6 @@ type
     procedure CheckCompoundClasses; override;
 
   public
-    destructor Destroy; override;
-
     class function GetSubSetList: String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
   end;
@@ -602,24 +600,19 @@ begin
 end;
 
 procedure TgdcDocument.GetWhereClauseConditions(S: TStrings);
-var
-  CE: TgdClassEntry;
-  Str: String;
 
-  procedure _Traverse(CE: TgdClassEntry; var Str: String);
+  procedure _Traverse(CE: TgdClassEntry; var IDs: String);
   var
     I: Integer;
   begin
     for I := 0 to CE.Count - 1 do
-    begin
-      _Traverse(CE.Children[I], Str);
-    end;
-
-    if Str = '' then
-      Str := ' z.documenttypekey = ' + IntToStr((CE as TgdDocumentEntry).TypeID)
-    else
-      Str := Str + ' OR z.documenttypekey = ' + IntToStr((CE as TgdDocumentEntry).TypeID)
+      _Traverse(CE.Children[I], IDs);
+    IDs := IDs + IntToStr((CE as TgdDocumentEntry).TypeID) + ',';
   end;
+
+var
+  CE: TgdClassEntry;
+  IDs: String;
 begin
   Assert(IBLogin <> nil);
 
@@ -628,13 +621,17 @@ begin
   if HasSubSet(ss_ByIntervalDate) then
     S.Add(' z.documentdate >= :datebegin  AND z.documentdate <= :dateend ');
 
-  if Self.ClassType <> TgdcDocument then
+  if SubType > '' then
   begin
     CE := gdClassList.Get(TgdDocumentEntry, Self.ClassName, Self.SubType);
-    Str := '';
-    _Traverse(CE, Str);
+    IDs := '';
+    _Traverse(CE, IDs);
 
-    S.Add('(' + Str + ')');
+    if IDs > '' then
+    begin
+      SetLength(IDs, Length(IDs) - 1);
+      S.Add('z.documenttypekey IN (' + IDs + ')');
+    end;
 
     if GetDocumentClassPart = dcpLine then
       S.Add('z.parent + 0 IS NOT NULL')
@@ -643,7 +640,7 @@ begin
   end;
 
   if not IsCommon and not HasSubSet('ByID') and not HasSubSet('ByParent') then
-    S.Add(' z.companykey in (' + IBLogin.HoldingList + ')');
+    S.Add('z.companykey in (' + IBLogin.HoldingList + ')');
 end;
 
 procedure TgdcDocument.DoOnReportClick(Sender: TObject);
@@ -3225,20 +3222,14 @@ begin
   {M}    end;
   {END MACRO}
 
-  Result := inherited GetSelectClause;
-
-  if (FRelation <> '') and (Self.ClassType <> TgdcUserBaseDocument) then
+  if SubType > '' then
   begin
-    CE := gdClassList.Get(TgdDocumentEntry, Self.ClassName, Self.SubType);
-    CE := CE.GetRootSubType;
-
-    if Self.ClassType = TgdcUserDocument then
-      Result := Result + ', ' +
-        EnumRelationFields((CE as TgdDocumentEntry).HeaderRelName, 'U', True)
-    else
-      Result := Result + ', ' +
-        EnumRelationFields((CE as TgdDocumentEntry).LineRelName, 'U', True);
-  end;
+    CE := gdClassList.Get(TgdDocumentEntry, Self.ClassName, Self.SubType).GetRootSubType;
+    Result :=
+      inherited GetSelectClause + ', ' +
+      EnumRelationFields(TgdDocumentEntry(CE).DistinctRelation, 'U', True);
+  end else
+    Result := inherited GetSelectClause;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCUSERBASEDOCUMENT', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE)}
   {M}  finally
@@ -3287,22 +3278,16 @@ begin
   {M}    end;
   {END MACRO}
 
-  if FRelation > '' then
+  if SubType > '' then
   begin
-    Result := inherited GetFromClause(ARefresh);
-
-    CE := gdClassList.Get(TgdDocumentEntry, Self.ClassName, Self.SubType);
-    CE := CE.GetRootSubType;
-
-    if Self.ClassType = TgdcUserDocument then
-      Result := Result + Format(' JOIN %s u ON u.documentkey = z.id ',
-        [(CE as TgdDocumentEntry).HeaderRelName])
-    else
-      Result := Result + Format(' JOIN %s u ON u.documentkey = z.id ',
-        [(CE as TgdDocumentEntry).LineRelName]);
-
-    if ARefresh then
-      Result := Result + ' and z.id = :NEW_id ';
+    CE := gdClassList.Get(TgdDocumentEntry, Self.ClassName, Self.SubType).GetRootSubType;
+    Result :=
+      inherited GetFromClause(ARefresh) +
+      Format(
+        '  JOIN %s u ON ' +
+        '    u.documentkey = z.id ',
+        [TgdDocumentEntry(CE).DistinctRelation]
+      );
   end else
     Result := inherited GetFromClause(ARefresh);
 
@@ -3320,7 +3305,6 @@ procedure TgdcUserBaseDocument.CustomInsert(Buff: Pointer);
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-  RL: String;
   CE: TgdClassEntry;
 begin
   {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCUSERBASEDOCUMENT', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
@@ -3346,36 +3330,18 @@ begin
 
   inherited;
 
-  if Self.ClassType = TgdcUserBaseDocument then
-    exit;
-
-  CE := gdClassList.Get(TgdDocumentEntry, Self.ClassName, Self.SubType);
-  CE := CE.GetRootSubType;
-
-  if Self.ClassType = TgdcUserDocument then
-    RL := (CE as TgdDocumentEntry).HeaderRelName
-  else
-    RL := (CE as TgdDocumentEntry).LineRelName;
-
-  try
-    CustomExecQuery(
-      Format(
-        'INSERT INTO %s ' +
-        '  (%s) ' +
-        'VALUES ' +
-        '  (%s) ',
-        [RL, EnumRelationFields(RL, '', False),
-          EnumRelationFields(RL, ':', False)]
-      ),
-      Buff
-    );
-  except
-    if Self.ClassType = TgdcUserDocumentLine then
-    begin
-      inherited CustomDelete(Buff);
-      raise;
-    end;
-  end;
+  CE := gdClassList.Get(TgdDocumentEntry, Self.ClassName, Self.SubType).GetRootSubType;
+  CustomExecQuery(
+    Format(
+      'INSERT INTO %s ' +
+      '  (%s) ' +
+      'VALUES ' +
+      '  (%s) ',
+      [TgdBaseEntry(CE).DistinctRelation, EnumRelationFields(TgdBaseEntry(CE).DistinctRelation, '', False),
+        EnumRelationFields(TgdBaseEntry(CE).DistinctRelation, ':', False)]
+    ),
+    Buff
+  );
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCUSERBASEDOCUMENT', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  finally
@@ -3391,7 +3357,6 @@ procedure TgdcUserBaseDocument.CustomModify(Buff: Pointer);
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-  RL: String;
   CE: TgdClassEntry;
 begin
   {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCUSERBASEDOCUMENT', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
@@ -3417,17 +3382,7 @@ begin
 
   inherited;
 
-  if Self.ClassType = TgdcUserBaseDocument then
-    exit;
-
-  CE := gdClassList.Get(TgdDocumentEntry, Self.ClassName, Self.SubType);
-  CE := CE.GetRootSubType;
-
-  if Self.ClassType = TgdcUserDocument then
-    RL := (CE as TgdDocumentEntry).HeaderRelName
-  else
-    RL := (CE as TgdDocumentEntry).LineRelName;
-
+  CE := gdClassList.Get(TgdDocumentEntry, Self.ClassName, Self.SubType).GetRootSubType;
   CustomExecQuery(
     Format(
       'UPDATE %s ' +
@@ -3435,10 +3390,11 @@ begin
       '  %s ' +
       'WHERE ' +
       '  (documentkey = :old_documentkey) ',
-      [RL, EnumModificationList(RL)]
+      [TgdBaseEntry(CE).DistinctRelation, EnumModificationList(TgdBaseEntry(CE).DistinctRelation)]
     ),
     Buff
   );
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCUSERBASEDOCUMENT', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -3469,11 +3425,6 @@ begin
 end;
 
 { TgdcUserDocument }
-
-destructor TgdcUserDocument.Destroy;
-begin
-  inherited;
-end;
 
 class function TgdcUserDocument.GetSubSetList: String;
 begin
