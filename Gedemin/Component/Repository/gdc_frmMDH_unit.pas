@@ -432,7 +432,7 @@ begin
 
     FgdcDetailObject := Value;
     if (FSubType > '') and (FgdcDetailObject <> nil) and (FgdcDetailObject.CheckSubType(FSubType))then
-      FgdcObject.SubType := FSubType;
+      FgdcDetailObject.SubType := FSubType;
     if dsDetail.DataSet <> Value then
       dsDetail.DataSet := Value;
     if FgdcDetailObject <> nil then

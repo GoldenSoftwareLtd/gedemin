@@ -245,6 +245,12 @@ type
 
     function GetGroupID: Integer; override;
 
+    function GetSelectClause: String; override;
+    function GetFromClause(const ARefresh: Boolean = False): String; override;
+
+    procedure CustomInsert(Buff: Pointer); override;
+    procedure CustomModify(Buff: Pointer); override;
+
   public
     constructor Create(AnOwner: TComponent); override;
 
@@ -261,13 +267,7 @@ type
 
   TgdcUserDocument = class(TgdcUserBaseDocument)
   protected
-    function GetSelectClause: String; override;
-    function GetFromClause(const ARefresh: Boolean = False): String; override;
-
     procedure GetWhereClauseConditions(S: TStrings); override;
-
-    procedure CustomInsert(Buff: Pointer); override;
-    procedure CustomModify(Buff: Pointer); override;
 
     function GetDetailObject: TgdcDocument; override;
     function GetCompoundMasterTable: String; override;
@@ -282,13 +282,7 @@ type
 
   TgdcUserDocumentLine = class(TgdcUserBaseDocument)
   protected
-    function GetSelectClause: String; override;
-    function GetFromClause(const ARefresh: Boolean = False): String; override;
-
     procedure DoBeforeInsert; override;
-
-    procedure CustomInsert(Buff: Pointer); override;
-    procedure CustomModify(Buff: Pointer); override;
 
     function GetMasterObject: TgdcDocument; override;
     function GetCompoundMasterTable: String; override;
@@ -608,6 +602,24 @@ begin
 end;
 
 procedure TgdcDocument.GetWhereClauseConditions(S: TStrings);
+var
+  CE: TgdClassEntry;
+  Str: String;
+
+  procedure _Traverse(CE: TgdClassEntry; var Str: String);
+  var
+    I: Integer;
+  begin
+    for I := 0 to CE.Count - 1 do
+    begin
+      _Traverse(CE.Children[I], Str);
+    end;
+
+    if Str = '' then
+      Str := ' z.documenttypekey = ' + IntToStr((CE as TgdDocumentEntry).TypeID)
+    else
+      Str := Str + ' OR z.documenttypekey = ' + IntToStr((CE as TgdDocumentEntry).TypeID)
+  end;
 begin
   Assert(IBLogin <> nil);
 
@@ -616,9 +628,13 @@ begin
   if HasSubSet(ss_ByIntervalDate) then
     S.Add(' z.documentdate >= :datebegin  AND z.documentdate <= :dateend ');
 
-  if ClassName <> 'TgdcDocument' then
+  if Self.ClassType <> TgdcDocument then
   begin
-    S.Add(' z.documenttypekey = ' + IntToStr(DocumentTypeKey));
+    CE := gdClassList.Get(TgdDocumentEntry, Self.ClassName, Self.SubType);
+    Str := '';
+    _Traverse(CE, Str);
+
+    S.Add('(' + Str + ')');
 
     if GetDocumentClassPart = dcpLine then
       S.Add('z.parent + 0 IS NOT NULL')
@@ -2527,7 +2543,6 @@ procedure TgdcDocumentType.DoAfterInsert;
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-  ibsql: TIBSQL;
 begin
   {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCDOCUMENTTYPE', 'DOAFTERINSERT', KEYDOAFTERINSERT)}
   {M}  try
@@ -2550,30 +2565,6 @@ begin
   {END MACRO}
 
   inherited;
-
-  if not (sLoadFromStream in BaseState) then
-  begin
-    ibsql := TIBSQL.Create(nil);
-    try
-      ibsql.Transaction := ReadTransaction;
-      ibsql.SQL.Text := 'SELECT * FROM gd_documenttype WHERE id = :id AND documenttype = ''D'' ';
-      ibsql.ParamByName('id').AsInteger := FieldByName('parent').AsInteger;
-      ibsql.ExecQuery;
-      if not ibsql.Eof then
-      begin
-        if not ibsql.FieldByName('HEADERRELKEY').IsNull then
-          FieldByName('HEADERRELKEY').AsInteger := ibsql.FieldByName('HEADERRELKEY').AsInteger;
-        if not ibsql.FieldByName('LINERELKEY').IsNull then
-          FieldByName('LINERELKEY').AsInteger := ibsql.FieldByName('LINERELKEY').AsInteger;
-        if not ibsql.FieldByName('NAME').IsNull then
-          FieldByName('NAME').AsString := 'Наследник ' + ibsql.FieldByName('NAME').AsString;
-        if not ibsql.FieldByName('BRANCHKEY').IsNull then
-          FieldByName('BRANCHKEY').AsInteger := ibsql.FieldByName('BRANCHKEY').AsInteger;
-      end
-    finally
-      ibsql.Free;
-    end;
-  end;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCDOCUMENTTYPE', 'DOAFTERINSERT', KEYDOAFTERINSERT)}
   {M}  finally
@@ -3195,6 +3186,267 @@ begin
   Result := FReportGroupKey;
 end;
 
+function TgdcUserBaseDocument.GetSelectClause: String;
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+  CE: TgdClassEntry;
+begin
+  {@UNFOLD MACRO INH_ORIG_GETSELECTCLAUSE('TGDCUSERBASEDOCUMENT', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCUSERBASEDOCUMENT', KEYGETSELECTCLAUSE);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYGETSELECTCLAUSE]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCUSERBASEDOCUMENT') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCUSERBASEDOCUMENT',
+  {M}          'GETSELECTCLAUSE', KEYGETSELECTCLAUSE, Params, LResult) then
+  {M}          begin
+  {M}            if (VarType(LResult) = varOleStr) or (VarType(LResult) = varString) then
+  {M}              Result := String(LResult)
+  {M}            else
+  {M}              begin
+  {M}                raise Exception.Create('Для метода ''' + 'GETSELECTCLAUSE' + ' ''' +
+  {M}                  ' класса ' + Self.ClassName + TgdcBase(Self).SubType + #10#13 +
+  {M}                  'Из макроса возвращен не строковый тип');
+  {M}              end;
+  {M}            exit;
+  {M}          end;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCUSERBASEDOCUMENT' then
+  {M}        begin
+  {M}          Result := Inherited GetSelectClause;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  Result := inherited GetSelectClause;
+
+  if (FRelation <> '') and (Self.ClassType <> TgdcUserBaseDocument) then
+  begin
+    CE := gdClassList.Get(TgdDocumentEntry, Self.ClassName, Self.SubType);
+    CE := CE.GetRootSubType;
+
+    if Self.ClassType = TgdcUserDocument then
+      Result := Result + ', ' +
+        EnumRelationFields((CE as TgdDocumentEntry).HeaderRelName, 'U', True)
+    else
+      Result := Result + ', ' +
+        EnumRelationFields((CE as TgdDocumentEntry).LineRelName, 'U', True);
+  end;
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCUSERBASEDOCUMENT', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCUSERBASEDOCUMENT', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE);
+  {M}  end;
+  {END MACRO}
+end;
+
+function TgdcUserBaseDocument.GetFromClause(const ARefresh: Boolean = False): String;
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+  CE: TgdClassEntry;
+begin
+  {@UNFOLD MACRO INH_ORIG_GETFROMCLAUSE('TGDCUSERBASEDOCUMENT', 'GETFROMCLAUSE', KEYGETFROMCLAUSE)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCUSERBASEDOCUMENT', KEYGETFROMCLAUSE);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYGETFROMCLAUSE]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCUSERBASEDOCUMENT') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self), ARefresh]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCUSERBASEDOCUMENT',
+  {M}          'GETFROMCLAUSE', KEYGETFROMCLAUSE, Params, LResult) then
+  {M}          begin
+  {M}            if (VarType(LResult) = varOleStr) or (VarType(LResult) = varString) then
+  {M}              Result := String(LResult)
+  {M}            else
+  {M}              begin
+  {M}                raise Exception.Create('Для метода ''' + 'GETFROMCLAUSE' + ' ''' +
+  {M}                  ' класса ' + Self.ClassName + TgdcBase(Self).SubType + #10#13 +
+  {M}                  'Из макроса возвращен не строковый тип');
+  {M}              end;
+  {M}            exit;
+  {M}          end;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCUSERBASEDOCUMENT' then
+  {M}        begin
+  {M}          Result := Inherited GetFromClause(ARefresh);
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  if FRelation > '' then
+  begin
+    Result := inherited GetFromClause(ARefresh);
+
+    CE := gdClassList.Get(TgdDocumentEntry, Self.ClassName, Self.SubType);
+    CE := CE.GetRootSubType;
+
+    if Self.ClassType = TgdcUserDocument then
+      Result := Result + Format(' JOIN %s u ON u.documentkey = z.id ',
+        [(CE as TgdDocumentEntry).HeaderRelName])
+    else
+      Result := Result + Format(' JOIN %s u ON u.documentkey = z.id ',
+        [(CE as TgdDocumentEntry).LineRelName]);
+
+    if ARefresh then
+      Result := Result + ' and z.id = :NEW_id ';
+  end else
+    Result := inherited GetFromClause(ARefresh);
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCUSERBASEDOCUMENT', 'GETFROMCLAUSE', KEYGETFROMCLAUSE)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCUSERBASEDOCUMENT', 'GETFROMCLAUSE', KEYGETFROMCLAUSE);
+  {M}  end;
+  {END MACRO}
+end;
+
+procedure TgdcUserBaseDocument.CustomInsert(Buff: Pointer);
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+  RL: String;
+  CE: TgdClassEntry;
+begin
+  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCUSERBASEDOCUMENT', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCUSERBASEDOCUMENT', KEYCUSTOMINSERT);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMINSERT]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCUSERBASEDOCUMENT') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCUSERBASEDOCUMENT',
+  {M}          'CUSTOMINSERT', KEYCUSTOMINSERT, Params, LResult) then
+  {M}          exit;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCUSERBASEDOCUMENT' then
+  {M}        begin
+  {M}          Inherited;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  inherited;
+
+  if Self.ClassType = TgdcUserBaseDocument then
+    exit;
+
+  CE := gdClassList.Get(TgdDocumentEntry, Self.ClassName, Self.SubType);
+  CE := CE.GetRootSubType;
+
+  if Self.ClassType = TgdcUserDocument then
+    RL := (CE as TgdDocumentEntry).HeaderRelName
+  else
+    RL := (CE as TgdDocumentEntry).LineRelName;
+
+  try
+    CustomExecQuery(
+      Format(
+        'INSERT INTO %s ' +
+        '  (%s) ' +
+        'VALUES ' +
+        '  (%s) ',
+        [RL, EnumRelationFields(RL, '', False),
+          EnumRelationFields(RL, ':', False)]
+      ),
+      Buff
+    );
+  except
+    if Self.ClassType = TgdcUserDocumentLine then
+    begin
+      inherited CustomDelete(Buff);
+      raise;
+    end;
+  end;
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCUSERBASEDOCUMENT', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCUSERBASEDOCUMENT', 'CUSTOMINSERT', KEYCUSTOMINSERT);
+  {M}  end;
+  {END MACRO}
+end;
+
+procedure TgdcUserBaseDocument.CustomModify(Buff: Pointer);
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+  RL: String;
+  CE: TgdClassEntry;
+begin
+  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCUSERBASEDOCUMENT', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCUSERBASEDOCUMENT', KEYCUSTOMMODIFY);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMMODIFY]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCUSERBASEDOCUMENT') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCUSERBASEDOCUMENT',
+  {M}          'CUSTOMMODIFY', KEYCUSTOMMODIFY, Params, LResult) then
+  {M}          exit;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCUSERBASEDOCUMENT' then
+  {M}        begin
+  {M}          Inherited;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  inherited;
+
+  if Self.ClassType = TgdcUserBaseDocument then
+    exit;
+
+  CE := gdClassList.Get(TgdDocumentEntry, Self.ClassName, Self.SubType);
+  CE := CE.GetRootSubType;
+
+  if Self.ClassType = TgdcUserDocument then
+    RL := (CE as TgdDocumentEntry).HeaderRelName
+  else
+    RL := (CE as TgdDocumentEntry).LineRelName;
+
+  CustomExecQuery(
+    Format(
+      'UPDATE %s ' +
+      'SET ' +
+      '  %s ' +
+      'WHERE ' +
+      '  (documentkey = :old_documentkey) ',
+      [RL, EnumModificationList(RL)]
+    ),
+    Buff
+  );
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCUSERBASEDOCUMENT', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCUSERBASEDOCUMENT', 'CUSTOMMODIFY', KEYCUSTOMMODIFY);
+  {M}  end;
+  {END MACRO}
+end;
+
 class function TgdcUserBaseDocument.GetViewFormClassName(
   const ASubType: TgdcSubType): String;
 var
@@ -3218,218 +3470,9 @@ end;
 
 { TgdcUserDocument }
 
-procedure TgdcUserDocument.CustomInsert(Buff: Pointer);
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCUSERDOCUMENT', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCUSERDOCUMENT', KEYCUSTOMINSERT);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMINSERT]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCUSERDOCUMENT') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCUSERDOCUMENT',
-  {M}          'CUSTOMINSERT', KEYCUSTOMINSERT, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCUSERDOCUMENT' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  inherited;
-
-
-  CustomExecQuery(
-    Format(
-      'INSERT INTO %s ' +
-      '  (%s) ' +
-      'VALUES ' +
-      '  (%s) ',
-      [FRelation, EnumRelationFields(FRelation, '', False),
-        EnumRelationFields(FRelation, ':', False)]
-    ),
-    Buff
-  );
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCUSERDOCUMENT', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCUSERDOCUMENT', 'CUSTOMINSERT', KEYCUSTOMINSERT);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcUserDocument.CustomModify(Buff: Pointer);
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCUSERDOCUMENT', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCUSERDOCUMENT', KEYCUSTOMMODIFY);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMMODIFY]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCUSERDOCUMENT') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCUSERDOCUMENT',
-  {M}          'CUSTOMMODIFY', KEYCUSTOMMODIFY, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCUSERDOCUMENT' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  inherited;
-
-  CustomExecQuery(
-    Format(
-      'UPDATE %s ' +
-      'SET ' +
-      '  %s ' +
-      'WHERE ' +
-      '  (documentkey = :old_documentkey) ',
-      [FRelation, EnumModificationList(FRelation)]
-    ),
-    Buff
-  );
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCUSERDOCUMENT', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCUSERDOCUMENT', 'CUSTOMMODIFY', KEYCUSTOMMODIFY);
-  {M}  end;
-  {END MACRO}
-end;
-
 destructor TgdcUserDocument.Destroy;
 begin
   inherited;
-end;
-
-function TgdcUserDocument.GetFromClause(const ARefresh: Boolean = False): String;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_GETFROMCLAUSE('TGDCUSERDOCUMENT', 'GETFROMCLAUSE', KEYGETFROMCLAUSE)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCUSERDOCUMENT', KEYGETFROMCLAUSE);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYGETFROMCLAUSE]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCUSERDOCUMENT') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), ARefresh]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCUSERDOCUMENT',
-  {M}          'GETFROMCLAUSE', KEYGETFROMCLAUSE, Params, LResult) then
-  {M}          begin
-  {M}            if (VarType(LResult) = varOleStr) or (VarType(LResult) = varString) then
-  {M}              Result := String(LResult)
-  {M}            else
-  {M}              begin
-  {M}                raise Exception.Create('Для метода ''' + 'GETFROMCLAUSE' + ' ''' +
-  {M}                  ' класса ' + Self.ClassName + TgdcBase(Self).SubType + #10#13 +
-  {M}                  'Из макроса возвращен не строковый тип');
-  {M}              end;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCUSERDOCUMENT' then
-  {M}        begin
-  {M}          Result := Inherited GetFromClause(ARefresh);
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  
-  if FRelation > '' then
-  begin
-    Result :=
-      inherited GetFromClause(ARefresh) +
-      Format(
-        '  JOIN %s u ON ' +
-        '    u.documentkey = z.id ',
-        [FRelation]
-      );
-    if ARefresh then
-      Result := Result + ' and z.id = :NEW_id ';
-  end else
-    Result := inherited GetFromClause(ARefresh);
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCUSERDOCUMENT', 'GETFROMCLAUSE', KEYGETFROMCLAUSE)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCUSERDOCUMENT', 'GETFROMCLAUSE', KEYGETFROMCLAUSE);
-  {M}  end;
-  {END MACRO}
-end;
-
-function TgdcUserDocument.GetSelectClause: String;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_GETSELECTCLAUSE('TGDCUSERDOCUMENT', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCUSERDOCUMENT', KEYGETSELECTCLAUSE);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYGETSELECTCLAUSE]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCUSERDOCUMENT') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCUSERDOCUMENT',
-  {M}          'GETSELECTCLAUSE', KEYGETSELECTCLAUSE, Params, LResult) then
-  {M}          begin
-  {M}            if (VarType(LResult) = varOleStr) or (VarType(LResult) = varString) then
-  {M}              Result := String(LResult)
-  {M}            else
-  {M}              begin
-  {M}                raise Exception.Create('Для метода ''' + 'GETSELECTCLAUSE' + ' ''' +
-  {M}                  ' класса ' + Self.ClassName + TgdcBase(Self).SubType + #10#13 +
-  {M}                  'Из макроса возвращен не строковый тип');
-  {M}              end;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCUSERDOCUMENT' then
-  {M}        begin
-  {M}          Result := Inherited GetSelectClause;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  if FRelation <> '' then
-    Result :=
-      inherited GetSelectClause + ', ' +
-      EnumRelationFields(FRelation, 'U', True)
-  else
-    Result :=
-      inherited GetSelectClause ;
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCUSERDOCUMENT', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCUSERDOCUMENT', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE);
-  {M}  end;
-  {END MACRO}
 end;
 
 class function TgdcUserDocument.GetSubSetList: String;
@@ -3518,107 +3561,6 @@ begin
   DetailField := 'Parent';
 end;
 
-procedure TgdcUserDocumentLine.CustomInsert(Buff: Pointer);
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCUSERDOCUMENTLINE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCUSERDOCUMENTLINE', KEYCUSTOMINSERT);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMINSERT]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCUSERDOCUMENTLINE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCUSERDOCUMENTLINE',
-  {M}          'CUSTOMINSERT', KEYCUSTOMINSERT, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCUSERDOCUMENTLINE' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  inherited;
-
-  try
-    CustomExecQuery(
-      Format(
-        'INSERT INTO %s ' +
-        '  (%s) ' +
-        'VALUES ' +
-        '  (%s) ',
-        [FRelationLine, EnumRelationFields(FRelationLine, '', False),
-          EnumRelationFields(FRelationLine, ':', False)]
-      ),
-      Buff
-    );
-  except
-    inherited CustomDelete(Buff);
-    raise;
-  end;
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCUSERDOCUMENTLINE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCUSERDOCUMENTLINE', 'CUSTOMINSERT', KEYCUSTOMINSERT);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcUserDocumentLine.CustomModify(Buff: Pointer);
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCUSERDOCUMENTLINE', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCUSERDOCUMENTLINE', KEYCUSTOMMODIFY);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMMODIFY]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCUSERDOCUMENTLINE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCUSERDOCUMENTLINE',
-  {M}          'CUSTOMMODIFY', KEYCUSTOMMODIFY, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCUSERDOCUMENTLINE' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  inherited;
-
-  CustomExecQuery(
-    Format(
-      'UPDATE %s ' +
-      'SET ' +
-      '  %s ' +
-      'WHERE ' +
-      '  (DOCUMENTKEY = :OLD_DOCUMENTKEY) ',
-      [FRelationLine, EnumModificationList(FRelationLine)]
-    ),
-    Buff
-  );
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCUSERDOCUMENTLINE', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCUSERDOCUMENTLINE', 'CUSTOMMODIFY', KEYCUSTOMMODIFY);
-  {M}  end;
-  {END MACRO}
-end;
-
 procedure TgdcUserDocumentLine.DoBeforeInsert;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
   {M} VAR
@@ -3689,65 +3631,9 @@ begin
   Result := dcpLine;
 end;
 
-function TgdcUserDocumentLine.GetFromClause(const ARefresh: Boolean = False): String;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_GETFROMCLAUSE('TGDCUSERDOCUMENTLINE', 'GETFROMCLAUSE', KEYGETFROMCLAUSE)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCUSERDOCUMENTLINE', KEYGETFROMCLAUSE);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYGETFROMCLAUSE]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCUSERDOCUMENTLINE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), ARefresh]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCUSERDOCUMENTLINE',
-  {M}          'GETFROMCLAUSE', KEYGETFROMCLAUSE, Params, LResult) then
-  {M}          begin
-  {M}            if (VarType(LResult) = varOleStr) or (VarType(LResult) = varString) then
-  {M}              Result := String(LResult)
-  {M}            else
-  {M}              begin
-  {M}                raise Exception.Create('Для метода ''' + 'GETFROMCLAUSE' + ' ''' +
-  {M}                  ' класса ' + Self.ClassName + TgdcBase(Self).SubType + #10#13 +
-  {M}                  'Из макроса возвращен не строковый тип');
-  {M}              end;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCUSERDOCUMENTLINE' then
-  {M}        begin
-  {M}          Result := Inherited GetFromClause(ARefresh);
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  if FRelationLine <> '' then
-    Result :=
-      inherited GetFromClause(ARefresh) +
-      Format(
-        '  LEFT JOIN %s u ON ' +
-        '    u.documentkey = z.id ',
-        [FRelationLine]
-      )
-  else
-    Result :=
-      inherited GetFromClause(ARefresh);
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCUSERDOCUMENTLINE', 'GETFROMCLAUSE', KEYGETFROMCLAUSE)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCUSERDOCUMENTLINE', 'GETFROMCLAUSE', KEYGETFROMCLAUSE);
-  {M}  end;
-  {END MACRO}
-end;
-
 function TgdcUserDocumentLine.GetMasterObject: TgdcDocument;
 begin
-  Result := TgdcUserDocument.CreateSubType(Owner, SubType); 
+  Result := TgdcUserDocument.CreateSubType(Owner, SubType);
 end;
 
 class function TgdcUserDocumentLine.GetRestrictCondition(const ATableName,
@@ -3755,57 +3641,6 @@ class function TgdcUserDocumentLine.GetRestrictCondition(const ATableName,
 begin
   Result := Format('z.documenttypekey = %d AND z.parent IS NOT NULL ',
     [gdcBaseManager.GetIDByRUIDString(ASubType)]);
-end;
-
-function TgdcUserDocumentLine.GetSelectClause: String;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_GETSELECTCLAUSE('TGDCUSERDOCUMENTLINE', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCUSERDOCUMENTLINE', KEYGETSELECTCLAUSE);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYGETSELECTCLAUSE]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCUSERDOCUMENTLINE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCUSERDOCUMENTLINE',
-  {M}          'GETSELECTCLAUSE', KEYGETSELECTCLAUSE, Params, LResult) then
-  {M}          begin
-  {M}            if (VarType(LResult) = varOleStr) or (VarType(LResult) = varString) then
-  {M}              Result := String(LResult)
-  {M}            else
-  {M}              begin
-  {M}                raise Exception.Create('Для метода ''' + 'GETSELECTCLAUSE' + ' ''' +
-  {M}                  ' класса ' + Self.ClassName + TgdcBase(Self).SubType + #10#13 +
-  {M}                  'Из макроса возвращен не строковый тип');
-  {M}              end;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCUSERDOCUMENTLINE' then
-  {M}        begin
-  {M}          Result := Inherited GetSelectClause;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  if FRelation <> '' then
-    Result :=
-      inherited GetSelectClause + ', ' +
-      EnumRelationFields(FRelationLine, 'u', True)
-  else
-    Result := inherited GetSelectClause;
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCUSERDOCUMENTLINE', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCUSERDOCUMENTLINE', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE);
-  {M}  end;
-  {END MACRO}
 end;
 
 initialization

@@ -616,6 +616,7 @@ procedure Tgdc_dlgDocumentType.SetupRecord;
 var
   List: TStringList;
   ibsql: TIBSQL;
+  DE: TgdDocumentEntry;
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGDOCUMENTTYPE', 'SETUPRECORD', KEYSETUPRECORD)}
   {M}  try
@@ -669,40 +670,30 @@ begin
     ibsql.Close;
 
     dbcMask.Items.Assign(List);
-
-    if not gdcObject.FieldByName('headerrelkey').IsNull then
-    begin
-      ibsql.SQL.Text := 'SELECT relationname FROM at_relations WHERE id = :id';
-      ibsql.ParamByName('id').AsInteger := gdcObject.FieldByName('headerrelkey').AsInteger;
-      ibsql.ExecQuery;
-      edEnglishName.Text := ibsql.FieldByName('relationname').AsTrimString;
-      ibsql.Close;
-    end;
-
-    ibsql.Close;
-    ibsql.SQL.Text := 'SELECT name FROM gd_documenttype WHERE id = :id AND documenttype = ''D'' ';
-    ibsql.ParamByName('id').AsInteger := gdcObject.FieldByName('parent').AsInteger;
-    ibsql.ExecQuery;
-    if not ibsql.Eof then
-      begin
-        edParentName.Text := ibsql.FieldByName('name').AsString;
-        edEnglishName.Enabled := false;
-        iblcHeaderTable.Enabled := false;
-        iblcLineTable.Enabled := false;
-      end
-    else
-    begin
-      edParentName.Text := gdcObject.FieldByName('classname').AsString;
-      edEnglishName.Enabled := True;
-      iblcHeaderTable.Enabled := True;
-      iblcLineTable.Enabled := True;
-    end;
   finally
     List.Free;
     ibsql.Free;
   end;
 
   dbcMaskChange(dbcMask);
+
+  DE := gdClassList.FindDocByTypeID(gdcObject.FieldByName('parent').AsInteger, dcpHeader);
+  if DE <> nil then
+  begin
+    edParentName.Text := DE.Caption;
+    if gdcObject.State = dsInsert then
+    begin
+      gdcObject.FieldByName('name').AsString := 'Наследник ' + DE.Caption;
+      gdcObject.FieldByName('branchkey').AsInteger := DE.BranchKey;
+    end;
+  end;
+
+  if gdcObject.State = dsEdit then
+  begin
+    DE := gdClassList.FindDocByTypeID(gdcObject.FieldByName('id').AsInteger, dcpHeader);
+    if DE <> nil then
+      edEnglishName.Text := DE.HeaderRelName;
+  end;
 
   //Выведем родителя нашей ветки в исследователе
   if (gdcObject.FieldByName('branchkey').AsInteger > 0) then
