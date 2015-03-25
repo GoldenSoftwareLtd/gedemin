@@ -1135,8 +1135,10 @@ begin
   if V <> nil then
   begin
     V.Drop;
+    { сейчас по другому хран€тс€ подтипы в ’ранилище
     if (AnsiPos('\SUBTYPES', AnsiUpperCase(Parent.Path)) = 1) then
       gdClassList.RemoveAllSubTypes;
+    }
     Result := True;
   end else
     Result := False;
@@ -2129,8 +2131,10 @@ begin
     raise EgsStorageFolderError.Create('Can not delete root folder!');
   if F <> nil then
   begin
+    { сейчас по другому хран€тс€ подтипы в ’ранилище
     if (AnsiPos('\SUBTYPES', AnsiUpperCase(F.Path)) = 1) then
       gdClassList.RemoveAllSubTypes;
+    }  
     F.Drop;
   end;
   if SyncWithDatabase then
@@ -3375,8 +3379,10 @@ begin
     FData := Value;
     FChanged := FChanged or (not StorageLoading);
     FModified := Now;
+    { сейчас по другому хран€тс€ подтипы в ’ранилище
     if (not StorageLoading) and (AnsiPos('\SUBTYPES', AnsiUpperCase(Parent.Path)) = 1) then
       gdClassList.RemoveAllSubTypes;
+    }  
   end;
 end;
 

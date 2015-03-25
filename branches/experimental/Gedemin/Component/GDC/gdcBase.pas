@@ -6166,7 +6166,7 @@ var
     begin
       if BE.Parent is TgdBaseEntry then
         IterateAncestor(BE.Parent as TgdBaseEntry, SQL);
-      RA := gdcBaseManager.AdjustMetaName('d_' + BE.SubType);
+      RA := gdcBaseManager.AdjustMetaName('d_' + BE.DistinctRelation);
       R := atDatabase.Relations.ByRelationName(BE.DistinctRelation);
       if R = nil then
         raise EgdcException.CreateObj('Unknown relation ' + BE.DistinctRelation, Self);
@@ -6183,25 +6183,26 @@ var
 begin
   Result := '';
   CE := gdClassList.Get(TgdBaseEntry, Self.ClassName, SubType);
-  if CE is TgdAttrUserDefinedEntry then
+  //if CE is TgdAttrUserDefinedEntry then
     IterateAncestor(CE as TgdBaseEntry, Result);
 end;
 
 function TgdcBase.GetInheritedTableJoin: String;
 var
   CE: TgdClassEntry;
-  
-  procedure IterateAncestor(BE: TgdBaseEntry; var SQL: String);
+
+  procedure IterateAncestor(BE: TgdBaseEntry; var SQL: String;
+    const LinkFieldName: String);
   var
     N: String;
   begin
     if BE <> BE.GetRootSubType then
     begin
       if BE.Parent is TgdBaseEntry then
-        IterateAncestor(BE.Parent as TgdBaseEntry, SQL);
+        IterateAncestor(BE.Parent as TgdBaseEntry, SQL, LinkFieldName);
       N := gdcBaseManager.AdjustMetaName('d_' + BE.DistinctRelation);
       SQL := SQL + ' JOIN ' + BE.DistinctRelation + ' ' + N +
-        ' ON ' + N + '.inheritedkey = ' + GetListTableAlias + '.id';
+        ' ON ' + N + '.' + LinkFieldName + ' = ' + GetListTableAlias + '.id';
     end;
   end;
 
@@ -6209,7 +6210,9 @@ begin
   Result := '';
   CE := gdClassList.Get(TgdBaseEntry, Self.ClassName, SubType);
   if CE is TgdAttrUserDefinedEntry then
-    IterateAncestor(CE as TgdBaseEntry, Result);
+    IterateAncestor(CE as TgdBaseEntry, Result, 'inheritedkey')
+  else if CE is TgdDocumentEntry then
+    IterateAncestor(CE as TgdBaseEntry, Result, 'documentkey');
 end;
 
 function TgdcBase.GetSetTableJoin: String;
@@ -11330,18 +11333,15 @@ begin
         raise EgdcException.CreateObj('Can not change subtype', Self);
 
       if not CheckSubType(Value) then
-        raise EgdcException.CreateObj('Invalid subtype specified', Self);
+      begin
+        if (StrIPos('usr_', Self.Name) = 1) or (StrIPos('usrg_', Self.Name) = 1) then
+          gdClassList.Add(Self.ClassType, Value, '', TgdBaseEntry, '')
+        else
+          raise EgdcException.CreateObj('Invalid subtype specified', Self);
+      end;
     end;
 
     Close;
-
-    if not CheckSubType(Value) then
-    begin
-      if (AnsiPos('usr_', Self.Name) = 1) or (AnsiPos('usrg_', Self.Name) = 1) then
-        gdClassList.CreateDynamicSybType(Self.ClassType.ClassName, Value)
-      else
-        raise EgdcException.CreateObj('Invalid subtype specified', Self);
-    end;
 
     FSubType := Value;
     FGroupID := -1;
@@ -12384,7 +12384,10 @@ var
     if (BE.Parent <> nil) and (BE.Parent <> BE.GetRootSubType) then
       UserDefinedCustomInsert(BE.Parent as TgdBaseEntry);
 
-    F := 'inheritedkey,';
+    if BE is TgdDocumentEntry then
+      F := 'documentkey,'
+    else
+      F := 'inheritedkey,';
     V := ':new_id,';
 
     for I := 0 to FieldCount - 1 do
@@ -12425,14 +12428,14 @@ var
   OldState: TDataSetState;
   CE: TgdClassEntry;
 
-  procedure UserDefinedCustomModify(BE: TgdBaseEntry);
+  procedure UserDefinedCustomModify(BE: TgdBaseEntry; const LinkFieldName: String);
   var
     I: Integer;
     RelationName, FieldName: String;
     S: String;
   begin
     if (BE.Parent <> nil) and (BE.Parent <> BE.GetRootSubType) then
-      UserDefinedCustomModify(BE.Parent as TgdBaseEntry);
+      UserDefinedCustomModify(BE.Parent as TgdBaseEntry, LinkFieldName);
 
     S := '';
     for I := 0 to FieldCount - 1 do
@@ -12447,7 +12450,7 @@ var
     begin
       SetLength(S, Length(S) - 1);
       CustomExecQuery('UPDATE ' + BE.DistinctRelation + ' SET ' +
-        S + ' WHERE INHERITEDKEY = :old_id', Buff, False);
+        S + ' WHERE ' + LinkFieldName + ' = :old_id', Buff, False);
     end;
   end;
   
@@ -12456,7 +12459,12 @@ begin
   CustomModify(Buff);
   CE := gdClassList.Get(TgdBaseEntry, Self.ClassName, SubType);
   if CE <> CE.GetRootSubType then
-    UserDefinedCustomModify(CE as TgdBaseEntry);
+  begin
+    if CE is TgdDocumentEntry then
+      UserDefinedCustomModify(CE as TgdBaseEntry, 'documentkey')
+    else
+      UserDefinedCustomModify(CE as TgdBaseEntry, 'inheritedkey');
+  end;
   DoAfterCustomProcess(Buff, cpModify);
   if OldState <> State then
     MessageBox(ParentHandle,

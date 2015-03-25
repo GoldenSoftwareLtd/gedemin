@@ -407,11 +407,6 @@ begin
   Result := 'parent';
 end;
 
-{function TgdcTree.GetCopyFieldName: String;
-begin
-  Result := 'parent';
-end;}
-
 class function TgdcTree.GetSubSetList: String;
 begin
   Result := inherited GetSubSetList +

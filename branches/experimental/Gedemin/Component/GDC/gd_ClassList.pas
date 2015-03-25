@@ -472,9 +472,6 @@ type
       ACEAttrUserDefinedTree, ACEAttrUserDefinedLBRBTree: TgdClassEntry): TgdClassEntry; overload;
     function LoadRelation(const ARelationName: String): TgdClassEntry; overload;
 
-    function CreateDynamicSybType(const AClassName: AnsiString;
-      const ASubType: TgdcSubType): TgdClassEntry;
-
     property Count: Integer read FCount;
   end;
 
@@ -1832,17 +1829,6 @@ begin
   Result := True;
 end;
 
-function TgdClassList.CreateDynamicSybType(const AClassName: AnsiString;
-  const ASubType: TgdcSubType): TgdClassEntry;
-var
-  Prnt: TgdClassEntry;
-begin
-  Prnt := Find(AClassName);
-  if Prnt = nil then
-    raise Exception.Create('Unknown class name ' + AClassName);
-  Result := Add(AClassName, ASubType, '', TgdStorageEntry, '');
-end;
-
 procedure TgdClassList.LoadUserDefinedClasses;
 
   procedure LoadDE(DE: TgdDocumentEntry; q: TIBSQL);
@@ -2042,7 +2028,7 @@ begin
   CopyDocSubTree(CEInvDocument, CEInvDocumentLine);
   CopyDocSubTree(CEInvPriceList, CEInvPriceListLine);
 
-  CopySubTree(CEInvDocument, Find('TgdcInvMovement'));
+  CopySubTree(CEInvDocument, Get(TgdBaseEntry, 'TgdcInvMovement', ''));
 
   FSubTypes := GlobalStorage.OpenFolder('\SubTypes', False, False);
   try
