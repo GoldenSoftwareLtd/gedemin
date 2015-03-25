@@ -124,7 +124,7 @@ begin
       cds.FieldDefs.Add('City', ftString, 60, True);
       cds.FieldDefs.Add('Name', ftString, 60, True);
       cds.CreateDataSet;
-      cds.Open; 
+      cds.Open;
 
       PLTermv.PutString(0, 'pred');
       PLTermv.PutString(1, Pred);
@@ -147,8 +147,10 @@ begin
       Check(FQ.FieldByName('count').AsInteger = cds.RecordCount, 'Error number of records!');
       FQ.Close;
 
+      {*
       FQ.SQL.Text := 'SELECT id, name FROM gd_curr WHERE id < 147000000';
       FQ.ExecQuery;
+
 
       if not FQ.Eof then
       begin
@@ -168,6 +170,7 @@ begin
           PLClient.MakePredicatesOfObject('TgdcCurr', '', 'ByID', V, nil, 'ID,Name', FTr,
             'gd_curr', 'gd_curr');
 
+
           PLTermv.Reset;
           PLQuery := TgsPLQuery.Create;
           try
@@ -185,22 +188,23 @@ begin
             end;
             Check(SL.Count = 0);
             FQ.Close;
-            
+
             PLQuery.Close;
           finally
             PLQuery.Free;
-          end; 
+          end;
         finally
           SL.Free;
         end;
       end;
+      *}
     finally
       PLTermv.Free;
       cds.Free;
     end;
   finally
     PLClient.Free;
-  end; 
+  end;
 end;
 
 initialization

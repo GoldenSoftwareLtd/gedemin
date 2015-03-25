@@ -82,9 +82,10 @@ type
     //function GetConsultString(const AFileName: String): String;
     function InternalMakePredicatesOfDataSet(ADataSet: TDataSet; const AFieldList: String;
       const APredicateName: String; const AStream: TStream = nil): Integer;
-    function InternalMakePredicatesOfObject(const AClassName: String; const ASubType: String; const ASubSet: String;
+    {*function InternalMakePredicatesOfObject(const AClassName: String; const ASubType: String; const ASubSet: String;
       AParams: Variant; AnExtraConditions: TStringList; const AFieldList: String; ATr: TIBTransaction;
       const APredicateName: String; const AStream: TStream = nil): Integer;
+    *}
     function InternalMakePredicatesOfSQLSelect(const ASQL: String; ATr: TIBTransaction;
       const APredicateName: String; const AStream: TStream = nil): Integer;
 
@@ -101,9 +102,10 @@ type
       const APredicateName: String; const AFileName: String; const AnAppend: Boolean = False): Integer;
     function MakePredicatesOfDataSet(ADataSet: TDataSet; const AFieldList: String;
       const APredicateName: String; const AFileName: String; const AnAppend: Boolean = False): Integer;
-    function MakePredicatesOfObject(const AClassName: String; const ASubType: String; const ASubSet: String;
+    {*function MakePredicatesOfObject(const AClassName: String; const ASubType: String; const ASubSet: String;
       AParams: Variant; AnExtraConditions: TStringList; const AFieldList: String; ATr: TIBTransaction;
       const APredicateName: String; const AFileName: String; const AnAppend: Boolean = False): Integer;
+    *}
     procedure ExtractData(ADataSet: TClientDataSet; const APredicateName: String; ATermv: TgsPLTermv);
     procedure SavePredicatesToFile(const APredicateName: String; ATermv: TgsPLTermv; const AFileName: String);
 
@@ -968,6 +970,7 @@ begin
     Result := InternalMakePredicatesOfSQLSelect(ASQL, ATr, APredicateName, nil);
 end;
 
+{*
 function TgsPLClient.InternalMakePredicatesOfObject(const AClassName: String; const ASubType: String; const ASubSet: String;
   AParams: Variant; AnExtraConditions: TStringList; const AFieldList: String; ATr: TIBTransaction;
   const APredicateName: String; const AStream: TStream = nil): Integer;
@@ -1017,7 +1020,9 @@ begin
     Obj.Free;
   end;
 end;
+*}
 
+{*
 function TgsPLClient.MakePredicatesOfObject(const AClassName: String; const ASubType: String; const ASubSet: String;
   AParams: Variant; AnExtraConditions: TStringList; const AFieldList: String; ATr: TIBTransaction;
   const APredicateName: String; const AFileName: String; const AnAppend: Boolean = False): Integer;
@@ -1043,7 +1048,8 @@ begin
   end else
     Result := InternalMakePredicatesOfObject(AClassName, ASubType, ASubSet, AParams,
       AnExtraConditions, AFieldList, ATr, APredicateName, nil);
-end; 
+end;
+*}
 
 function TgsPLClient.GetDefaultPLInitString: String;
 var
