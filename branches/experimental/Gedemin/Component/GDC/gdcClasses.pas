@@ -223,9 +223,6 @@ type
   end;
 
   TgdcUserBaseDocument = class(TgdcDocument)
-  private
-    FRelation, FRelationLine: String;
-
   protected
     FDocumentTypeKey: Integer;
     FReportGroupKey: Integer;
@@ -260,9 +257,6 @@ type
 
     procedure ReadOptions(const ARuid: String);
     function DocumentTypeKey: Integer; override;
-
-    property Relation: String read FRelation;
-    property RelationLine: String read FRelationLine;
   end;
 
   TgdcUserDocument = class(TgdcUserBaseDocument)
@@ -3157,8 +3151,6 @@ begin
     FDocumentTypeKey := DE.TypeID;
     FReportGroupKey := DE.ReportGroupKey;
     FBranchKey := DE.BranchKey;
-    FRelation := DE.HeaderRelName;
-    FRelationLine := DE.LineRelName;
   end else
     raise EgdcIBError.Create('Неверен тип документа');
 end;
@@ -3467,7 +3459,7 @@ end;
 
 function TgdcUserDocument.GetCompoundMasterTable: String;
 begin
-  Result := Relation;
+  Result := TgdBaseEntry(gdClassList.Get(TgdDocumentEntry, ClassName, SubType)).DistinctRelation;
 end;
 
 procedure TgdcUserDocument.CheckCompoundClasses;
@@ -3483,11 +3475,11 @@ begin
   begin
     if (FCompoundClasses[I] as TgdcCompoundClass).SubType = SubType then
       exit;
-  end;    
+  end;
 
   FCompoundClasses.Add(
     TgdcCompoundClass.Create(TgdcUserDocumentLine, SubType,
-      RelationLine,
+      TgdDocumentEntry(gdClassList.Get(TgdDocumentEntry, ClassName, SubType)).LineRelName,
       'MASTERKEY'));
 end;
 
@@ -3568,7 +3560,7 @@ end;
 
 function TgdcUserDocumentLine.GetCompoundMasterTable: String;
 begin
-  Result := RelationLine;
+  Result := TgdDocumentEntry(gdClassList.Get(TgdDocumentEntry, ClassName, SubType)).LineRelName;
 end;
 
 class function TgdcUserDocumentLine.GetDialogFormClassName(
