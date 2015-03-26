@@ -8330,12 +8330,12 @@ end;
 
 function TwrpGdcUserBaseDocument.Get_Relation: WideString;
 begin
-  Result := GetGdcUserBaseDocument.Relation;
+  Result := ''; //GetGdcUserBaseDocument.Relation;
 end;
 
 function TwrpGdcUserBaseDocument.Get_RelationLine: WideString;
 begin
-  Result := GetGdcUserBaseDocument.RelationLine;
+  Result := ''; //GetGdcUserBaseDocument.RelationLine;
 end;
 
 function TwrpGdcUserBaseDocument.GetGdcUserBaseDocument: TgdcUserBaseDocument;

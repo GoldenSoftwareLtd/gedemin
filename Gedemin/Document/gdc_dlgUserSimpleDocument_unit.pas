@@ -30,38 +30,47 @@ implementation
 
 uses
   gdcClasses, Storages, gd_ClassList, gd_security, IBSQL, gdcBaseInterface,
-  gdcBase;
+  gdcBase, gd_common_functions;
 
 { Tgdc_dlgUserSimpleDocument }
 
 procedure Tgdc_dlgUserSimpleDocument.atContainerRelationNames(
   Sender: TObject; Relations, FieldAliases: TStringList);
 var
-  i: Integer;
-  F: TatRelationField;
+  I: Integer;
+  CE: TgdClassEntry;
+  RelationName, FieldName: String;
+  SL: TStringList;
 begin
+  Assert(gdcObject <> nil);
+
   inherited;
 
   FieldAliases.Add('NUMBER');
   FieldAliases.Add('DOCUMENTDATE');
 
-  for I := 0 to gdcObject.FieldCount - 1 do
-    if ((AnsiCompareText(gdcObject.RelationByAliasName(gdcObject.Fields[I].FieldName),
-      (gdcObject as TgdcUserBaseDocument).Relation) = 0) or
-      (AnsiCompareText(gdcObject.RelationByAliasName(gdcObject.Fields[I].FieldName),
-      'GD_DOCUMENT') = 0))
-       then
+  SL := TStringList.Create;
+  try
+    CE := gdClassList.Get(TgdDocumentEntry, gdcObject.ClassName, gdcObject.SubType);
+
+    while (CE.Parent is TgdDocumentEntry)
+      and (TgdBaseEntry(CE).DistinctRelation <> 'GD_DOCUMENT') do
     begin
-      F := atDatabase.FindRelationField((gdcObject as TgdcUserBaseDocument).Relation,
-        gdcObject.FieldNameByAliasName(gdcObject.Fields[I].FieldName));
+      SL.Add(TgdBaseEntry(CE).DistinctRelation);
+      CE := CE.Parent;
+    end;
 
-      if not Assigned(F) then
-        F := atDatabase.FindRelationField('GD_DOCUMENT',
-          gdcObject.FieldNameByAliasName(gdcObject.Fields[I].FieldName));
+    SL.Add('GD_DOCUMENT');
 
-      if Assigned(F) and F.IsUserDefined then
+    for I := 0 to gdcObject.FieldCount - 1 do
+    begin
+      ParseFieldOrigin(gdcObject.Fields[I].Origin, RelationName, FieldName);
+      if (SL.IndexOf(RelationName) > -1) and (Pos('USR$', FieldName) = 1) then
         FieldAliases.Add(gdcObject.Fields[I].FieldName);
     end;
+  finally
+    SL.Free;
+  end;
 end;
 
 procedure Tgdc_dlgUserSimpleDocument.SetupDialog;
