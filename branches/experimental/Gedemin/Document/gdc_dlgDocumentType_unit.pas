@@ -308,29 +308,30 @@ end;
 
 function Tgdc_dlgDocumentType.GetRootRelation(isDocument: Boolean): TatRelation;
 var
-  CurrKey: String;
   CE: TgdClassEntry;
   Part: TgdcDocumentClassPart;
-  FN: String;
+  DocID: Integer;
 begin
+  Result := nil;
+
   if isDocument then
     Part := dcpHeader
   else
     Part := dcpLine;
 
   if gdcObject.State = dsInsert then
-    FN := 'parent'
+    DocID := (gdcObject as TgdcTree).Parent
   else
-    FN := 'id';
+    DocID := gdcObject.ID;
 
-  CE := gdClassList.FindDocByTypeID(gdcObject.FieldByName(FN).AsInteger, Part).GetRootSubType;
+  CE := gdClassList.FindDocByTypeID(DocID, Part);
 
-  if (CE <> nil) and (TgdDocumentEntry(CE).DistinctRelation > '') then
-    Result := atDatabase.Relations.ByRelationName(TgdDocumentEntry(CE).DistinctRelation)
-  else
-    Result := nil;
+  if CE <> nil then
+    CE := CE.GetRootSubType;
+
+  if CE <> nil then
+    Result := atDatabase.Relations.ByRelationName(TgdDocumentEntry(CE).DistinctRelation);
 end;
-
 
 procedure Tgdc_dlgDocumentType.SetupDialog;
 var
