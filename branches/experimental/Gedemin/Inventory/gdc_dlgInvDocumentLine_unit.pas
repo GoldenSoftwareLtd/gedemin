@@ -232,34 +232,39 @@ procedure TdlgInvDocumentLine.atAttributesRelationNames(Sender: TObject;
 var
   I: Integer;
   F: TatRelationField;
+  CE: TgdClassEntry;
+  flag: boolean;
 begin
-  //
   // Добавляем поля
-
   for I := 0 to DocumentLine.FieldCount - 1 do
-    if
-      not DocumentLine.Fields[I].Calculated and
-      (
-        (AnsiCompareText(
+  begin
+    if not DocumentLine.Fields[I].Calculated then
+    begin
+      flag := (AnsiCompareText(DocumentLine.RelationByAliasName(DocumentLine.Fields[I].FieldName),
+        'INV_CARD') = 0);
+      if not flag then
+        flag := (AnsiCompareText(DocumentLine.RelationByAliasName(DocumentLine.Fields[I].FieldName),
+        'GD_GOOD') = 0);
+      if not flag then
+      begin
+        CE := gdClassList.Get(TgdDocumentEntry, DocumentLine.ClassName, DocumentLine.SubType);
+        repeat
+          flag := (AnsiCompareText(DocumentLine.RelationByAliasName(DocumentLine.Fields[I].FieldName),
+            TgdDocumentEntry(CE).DistinctRelation) = 0);
+          CE := CE.Parent;
+        until (CE.SubType = '') or flag;
+      end;
+      if flag then
+      begin
+        F := atDatabase.FindRelationField(
           DocumentLine.RelationByAliasName(DocumentLine.Fields[I].FieldName),
-          DocumentLine.RelationLineName) = 0)
-          or
-        (AnsiCompareText(
-          DocumentLine.RelationByAliasName(DocumentLine.Fields[I].FieldName),
-          'INV_CARD') = 0)
-          or
-        (AnsiCompareText(
-          DocumentLine.RelationByAliasName(DocumentLine.Fields[I].FieldName),
-          'GD_GOOD') = 0)
-      )
-    then begin
-      F := atDatabase.FindRelationField(
-        DocumentLine.RelationByAliasName(DocumentLine.Fields[I].FieldName),
-        DocumentLine.FieldNameByAliasName(DocumentLine.Fields[I].FieldName));
+          DocumentLine.FieldNameByAliasName(DocumentLine.Fields[I].FieldName));
 
-      if Assigned(F) and F.IsUserDefined then
-        FieldAliases.Add(DocumentLine.Fields[I].FieldName);
+        if Assigned(F) and F.IsUserDefined then
+          FieldAliases.Add(DocumentLine.Fields[I].FieldName);
+      end;
     end;
+  end;
 
   FieldAliases.Add('GOODKEY');
 

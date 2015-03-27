@@ -1652,23 +1652,32 @@ procedure TdlgInvDocument.atAttributesRelationNames(Sender: TObject;
   Relations, FieldAliases: TStringList);
 var
   I: Integer;
+  CE: TgdClassEntry;
+  flag: Boolean;
 begin
   inherited;
-
-  //
+  
   // Добавляем поля
   FieldAliases.Add('NUMBER');
   FieldAliases.Add('DOCUMENTDATE');
 
   for I := 0 to Document.FieldCount - 1 do
-    if ((AnsiCompareText(Document.RelationByAliasName(Document.Fields[I].FieldName),
-      Document.RelationName) = 0) OR
-      (AnsiCompareText(Document.RelationByAliasName(Document.Fields[I].FieldName),
-      'GD_DOCUMENT') = 0)) then
+  begin
+    flag := (AnsiCompareText(Document.RelationByAliasName(Document.Fields[I].FieldName),
+      'GD_DOCUMENT') = 0);
+    if not flag then
     begin
+      CE := gdClassList.Get(TgdDocumentEntry, Document.ClassName, Document.SubType);
+      repeat
+        flag := (AnsiCompareText(Document.RelationByAliasName(Document.Fields[I].FieldName),
+          TgdDocumentEntry(CE).DistinctRelation) = 0);
+        CE := CE.Parent;
+      until (CE.SubType = '') or flag;
+    end;
+    if flag then
       if StrIPos(UserPrefix, Document.FieldNameByAliasName(Document.Fields[I].FieldName)) = 1 then
         FieldAliases.Add(Document.Fields[I].FieldName);
-    end;
+  end;
 
   if DocumentLine.CanBeDelayed then
     FieldAliases.Add('DELAYED');

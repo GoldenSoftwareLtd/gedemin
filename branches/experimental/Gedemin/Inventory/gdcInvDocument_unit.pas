@@ -627,11 +627,13 @@ function TgdcInvBaseDocument.EnumRelationFields(const Alias: String;
 var
   I: Integer;
   R: TatRelation;
+  CE: TgdClassEntry;
 begin
-  if Self is TgdcInvDocument then
-    R := Relation
-  else
-    R := RelationLine;
+  CE := gdClassList.Get(TgdDocumentEntry, Self.ClassName, Self.SubType).GetRootSubType;
+
+  Assert(atDatabase <> nil, 'Relation not assigned!');
+
+  R := atDatabase.Relations.ByRelationName(TgdDocumentEntry(CE).DistinctRelation);
 
   Assert(R <> nil, 'Relation not assigned!');
 
@@ -813,8 +815,15 @@ begin
 end;
 
 function TgdcInvBaseDocument.GetRelationType: TgdcInvRelationType;
+var
+  R: TatRelation;
+  CE: TgdClassEntry;
 begin
-  Result := RelationTypeByRelation(RelationLine);
+  CE := gdClassList.Get(TgdDocumentEntry, Self.ClassName, Self.SubType).GetRootSubType;
+  Assert(atDatabase <> nil, 'Attributes database not assigned!');
+  R := atDatabase.Relations.ByRelationName(TgdDocumentEntry(CE).DistinctRelation);
+  Assert(R <> nil, 'Relation not assigned!');
+  Result := RelationTypeByRelation(R);
 end;
 
 function TgdcInvBaseDocument.JoinListFieldByFieldName(
@@ -942,6 +951,7 @@ end;
 procedure TgdcInvBaseDocument.UpdatePredefinedFields;
 var
   RelName: String;
+  CE: TgdClassEntry;
 
   procedure CheckMovement(M: TgdcInvMovementContactOption);
   begin
@@ -996,10 +1006,13 @@ var
 begin
   if State <> dsInsert then Exit;
 
-  if Self is TgdcInvDocument then
+  {if Self is TgdcInvDocument then
     RelName := RelationName
   else
-    RelName := RelationLineName;
+    RelName := RelationLineName;}
+
+  CE := gdClassList.Get(TgdDocumentEntry, Self.ClassName, Self.SubType).GetRootSubType;
+  RelName := TgdDocumentEntry(CE).DistinctRelation;
 
   CheckMovement(MovementSource);
   CheckMovement(MovementTarget);
@@ -1248,6 +1261,7 @@ procedure TgdcInvDocument.CustomInsert(Buff: Pointer);
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
+  CE: TgdClassEntry;
 begin
   {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCINVDOCUMENT', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  try
@@ -1269,17 +1283,23 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
   inherited;
-  CustomExecQuery(
-    Format(
-      'INSERT INTO %s ' +
-      '  (%s) ' +
-      'VALUES ' +
-      '  (%s) ',
-      [FRelationName, EnumRelationFields('', '', False), EnumRelationFields(':', '', False)]
-    ),
-    Buff
-  );
+
+  if SubType > '' then
+  begin
+    CE := gdClassList.Get(TgdDocumentEntry, Self.ClassName, Self.SubType).GetRootSubType;
+    CustomExecQuery(
+      Format(
+        'INSERT INTO %s ' +
+        '  (%s) ' +
+        'VALUES ' +
+        '  (%s) ',
+        [TgdDocumentEntry(CE).DistinctRelation, EnumRelationFields('', '', False), EnumRelationFields(':', '', False)]
+      ),
+      Buff
+    );
+  end;
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVDOCUMENT', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -1294,6 +1314,7 @@ procedure TgdcInvDocument.CustomModify(Buff: Pointer);
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
+  CE: TgdClassEntry;
 begin
   {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCINVDOCUMENT', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
   {M}  try
@@ -1315,19 +1336,24 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
   inherited;
 
-  CustomExecQuery(
-    Format(
-      'UPDATE %s ' +
-      'SET ' +
-      '  %s ' +
-      'WHERE ' +
-      '  (DOCUMENTKEY = :NEW_DOCUMENTKEY) ',
-      [FRelationName, EnumModificationList]
-    ),
-    Buff
-  );
+  if SubType > '' then
+  begin
+    CE := gdClassList.Get(TgdDocumentEntry, Self.ClassName, Self.SubType).GetRootSubType;
+    CustomExecQuery(
+      Format(
+        'UPDATE %s ' +
+        'SET ' +
+        '  %s ' +
+        'WHERE ' +
+        '  (DOCUMENTKEY = :NEW_DOCUMENTKEY) ',
+        [TgdDocumentEntry(CE).DistinctRelation, EnumModificationList]
+      ),
+      Buff
+    );
+  end;
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVDOCUMENT', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -1395,6 +1421,7 @@ var
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
   Relations: TgdcInvRelationAliases;
+  CE: TgdClassEntry;
 begin
   {@UNFOLD MACRO INH_ORIG_GETFROMCLAUSE('TGDCINVDOCUMENT', 'GETFROMCLAUSE', KEYGETFROMCLAUSE)}
   {M}  try
@@ -1426,23 +1453,28 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
   if (csDesigning in ComponentState) or (DocumentTypeKey = -1) then
   begin
     Result := inherited GetFromClause(ARefresh);
     Exit;
   end;
 
-  SetLength(Relations, 1);
-  Relations[0].RelationName := RelationName;
-  Relations[0].AliasName := 'INVDOC';
+  if SubType > '' then
+  begin
+    CE := gdClassList.Get(TgdDocumentEntry, Self.ClassName, Self.SubType).GetRootSubType;
 
-  Result := Format(
-    inherited GetFromClause(ARefresh) +
-    '  JOIN %s INVDOC ON (Z.ID = INVDOC.DOCUMENTKEY) AND z.documenttypekey = %d ',
-    [FRelationName, DocumentTypeKey]
-  );
-  if ARefresh then
-    Result := Result + ' AND z.id = :NEW_id '#13#10
+    SetLength(Relations, 1);
+    Relations[0].RelationName := TgdDocumentEntry(CE).DistinctRelation;
+    Relations[0].AliasName := 'INVDOC';
+
+    Result := Format(
+      inherited GetFromClause(ARefresh) +
+      '  JOIN %s INVDOC ON (Z.ID = INVDOC.DOCUMENTKEY) AND z.documenttypekey = %d ',
+      [TgdDocumentEntry(CE).DistinctRelation, TgdDocumentEntry(CE).TypeID]
+    );
+  end;
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVDOCUMENT', 'GETFROMCLAUSE', KEYGETFROMCLAUSE)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -1556,6 +1588,7 @@ var
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
   Relations: TgdcInvRelationAliases;
+  CE: TgdClassEntry;
 begin
   {@UNFOLD MACRO INH_ORIG_GETSELECTCLAUSE('TGDCINVDOCUMENT', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE)}
   {M}  try
@@ -1587,21 +1620,27 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+  
   if (csDesigning in ComponentState) or (DocumentTypeKey = -1) then
   begin
     Result := inherited GetSelectClause;
     Exit;
   end;
 
-  SetLength(Relations, 1);
-  Relations[0].RelationName := RelationName;
-  Relations[0].AliasName := 'INVDOC';
+  if SubType > '' then
+  begin
+    CE := gdClassList.Get(TgdDocumentEntry, Self.ClassName, Self.SubType).GetRootSubType;
+    SetLength(Relations, 1);
+    Relations[0].RelationName := TgdDocumentEntry(CE).DistinctRelation;
+    Relations[0].AliasName := 'INVDOC';
 
-  Result := Format(
-    inherited GetSelectClause +
-    ', %s ',
-    [EnumRelationFields('INVDOC', '')]
-  );
+    Result := Format(
+      inherited GetSelectClause +
+      ', %s ',
+      [EnumRelationFields('INVDOC', '')]
+    );
+  end;
+  
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVDOCUMENT', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -1994,7 +2033,8 @@ procedure TgdcInvDocumentLine.CustomDelete(Buff: Pointer);
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-       S: String;
+  S: String;
+  CE: TgdClassEntry;
 begin
   {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCINVDOCUMENTLINE', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
   {M}  try
@@ -2016,6 +2056,7 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+  
   try
     try
       FSavePoint := '';
@@ -2035,10 +2076,11 @@ begin
       end;
 
       try
+        CE := gdClassList.Get(TgdDocumentEntry, Self.ClassName, Self.SubType).GetRootSubType;
         CustomExecQuery(
           Format(
             'DELETE FROM %s WHERE documentkey = :old_documentkey',
-            [FRelationLineName]),
+            [TgdDocumentEntry(CE).DistinctRelation]),
           Buff
         );
       except
@@ -2128,6 +2170,7 @@ var
 {$IFDEF DEBUGMOVE}
   TimeTmp: LongWord;
 {$ENDIF}
+  CE: TgdClassEntry;
 begin
   {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCINVDOCUMENTLINE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  try
@@ -2217,13 +2260,14 @@ begin
       {$IFDEF DEBUGMOVE}
       TimeTmp := GetTickCount;
       {$ENDIF}
+      CE := gdClassList.Get(TgdDocumentEntry, Self.ClassName, Self.SubType).GetRootSubType;
       CustomExecQuery(
         Format(
           'INSERT INTO %s ' +
           '  (%s, disabled) ' +
           'VALUES ' +
           '  (%s, %d) ',
-          [FRelationLineName,
+          [TgdDocumentEntry(CE).DistinctRelation,
             EnumRelationFields('', 'DISABLED;', False), EnumRelationFields(':', 'DISABLED;', False),
             FieldByName('linedisabled').AsInteger]
         ),
@@ -2305,6 +2349,7 @@ var
   DataSet: TgdcBase;
   ADataSource: TDataSource;
   isCreate: Boolean;
+  CE: TgdClassEntry;
 begin
   {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCINVDOCUMENTLINE', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
   {M}  try
@@ -2381,7 +2426,7 @@ begin
       {$ELSE}
       NewCreateMovement;
       {$ENDIF}
-      
+       CE := gdClassList.Get(TgdDocumentEntry, Self.ClassName, Self.SubType).GetRootSubType;
        CustomExecQuery(
         Format(
           'UPDATE %s ' +
@@ -2389,7 +2434,7 @@ begin
           '  %s, disabled = %d ' +
           'WHERE ' +
           '  (documentkey = :new_documentkey) ',
-          [FRelationLineName, EnumModificationList('DISABLED;'), FieldByName('linedisabled').AsInteger]
+          [TgdDocumentEntry(CE).DistinctRelation, EnumModificationList('DISABLED;'), FieldByName('linedisabled').AsInteger]
         ),
         Buff
       );
@@ -2694,6 +2739,7 @@ var
   {END MACRO}
   Ignore: TatIgnore;
   Relations: TgdcInvRelationAliases;
+  CE: TgdClassEntry;
 begin
   {@UNFOLD MACRO INH_ORIG_GETFROMCLAUSE('TGDCINVDOCUMENTLINE', 'GETFROMCLAUSE', KEYGETFROMCLAUSE)}
   {M}  try
@@ -2731,6 +2777,7 @@ begin
     Exit;
   end;
 
+  CE := gdClassList.Get(TgdDocumentEntry, Self.ClassName, Self.SubType).GetRootSubType;
   Result := Format(
     inherited GetFromClause(ARefresh) +
     '  LEFT JOIN %s INVLINE ON (Z.ID = INVLINE.DOCUMENTKEY) ' +
@@ -2739,7 +2786,7 @@ begin
 
     '  LEFT JOIN GD_GOOD G ON (G.ID = CARD.GOODKEY) ' +
     '  LEFT JOIN GD_VALUE V ON (G.VALUEKEY = V.ID) ',
-    [FRelationLineName]
+    [TgdDocumentEntry(CE).DistinctRelation]
   );
 
   FSQLSetup.Ignores.AddAliasName('CARD');
@@ -2762,6 +2809,7 @@ begin
   end;
 
   Result := Result + ' ' + EnumRelationJoins(Relations);
+  
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVDOCUMENTLINE', 'GETFROMCLAUSE', KEYGETFROMCLAUSE)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -2908,6 +2956,7 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
   if (csDesigning in ComponentState) or (DocumentTypeKey = -1) then
   begin
     Result := inherited GetSelectClause;
