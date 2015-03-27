@@ -94,6 +94,7 @@ type
   protected
     function DlgModified: Boolean; override;
     function GetRelation(isDocument: Boolean): TatRelation;
+    function GetRootRelation(isDocument: Boolean): TatRelation;
 
     procedure BeforePost; override;
 
@@ -301,6 +302,31 @@ begin
 
   if CurrKey > '' then
     Result := atDatabase.Relations.ByID(StrToInt(CurrKey))
+  else
+    Result := nil;
+end;
+
+function Tgdc_dlgDocumentType.GetRootRelation(isDocument: Boolean): TatRelation;
+var
+  CurrKey: String;
+  CE: TgdClassEntry;
+  Part: TgdcDocumentClassPart;
+  FN: String;
+begin
+  if isDocument then
+    Part := dcpHeader
+  else
+    Part := dcpLine;
+
+  if gdcObject.State = dsInsert then
+    FN := 'parent'
+  else
+    FN := 'id';
+
+  CE := gdClassList.FindDocByTypeID(gdcObject.FieldByName(FN).AsInteger, Part).GetRootSubType;
+
+  if (CE <> nil) and (TgdDocumentEntry(CE).DistinctRelation > '') then
+    Result := atDatabase.Relations.ByRelationName(TgdDocumentEntry(CE).DistinctRelation)
   else
     Result := nil;
 end;
