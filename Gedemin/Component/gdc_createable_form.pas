@@ -102,8 +102,6 @@ type
     class function GetSubTypeList(ASubTypeList: TStrings;
       const ASubType: String = ''; AnOnlyDirect: Boolean = False): Boolean; virtual;
 
-    class function ClassParentSubType(const ASubType: TgdcSubType): TgdcSubType; virtual;
-
     class function CheckSubType(ASubType: String): Boolean; virtual;
 
     class function CreateAndAssign(AnOwner: TComponent): TForm; override;
@@ -384,18 +382,6 @@ class function TgdcCreateableForm.GetSubTypeList(ASubTypeList: TStrings;
 begin
   Assert(ASubTypeList <> nil);
   Result := gdClassList.GetSubTypeList(Self, ASubType, ASubTypeList, AnOnlyDirect, True)
-end;
-
-class function TgdcCreateableForm.ClassParentSubType(const ASubType: TgdcSubType): TgdcSubType;
-var
-  CE: TgdClassEntry;
-begin
-  Result := '';
-
-  CE := gdClassList.Find(Self, ASubType);
-
-  if (CE <> nil) and (CE.Parent <> nil) then
-    Result := CE.Parent.SubType;
 end;
 
 class function TgdcCreateableForm.CheckSubType(ASubType: String): Boolean;

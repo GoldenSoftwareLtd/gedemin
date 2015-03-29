@@ -447,6 +447,7 @@ procedure Tgdc_dlgObjectProperties.SetupRecord;
   PK, PK2: TatPrimaryKey;
   I: Integer;
   S: String;
+  CE: TgdClassEntry;
 
   function AddSpaces(const S: String): String;
   begin
@@ -486,12 +487,10 @@ begin
     Add(AddSpaces('Тип текущей записи:') + gdcObject.GetCurrRecordClass.gdClass.ClassName + ' ' +
       gdcObject.GetCurrRecordClass.SubType);
     Add(AddSpaces('Тип объекта:') + gdcObject.ClassName + ' ' + gdcObject.SubType);
-    if gdcObject.SubType = '' then
-      Add(AddSpaces('Тип родителя:') + gdcObject.ClassParent.ClassName)
-    else if gdcObject.ClassParentSubType(gdcObject.SubType) = '' then
-      Add(AddSpaces('Тип родителя:') + gdcObject.ClassName)
-    else
-      Add(AddSpaces('Тип родителя:') + gdcObject.ClassName + ' ' + gdcObject.ClassParentSubType(gdcObject.SubType));
+
+    CE := gdClassList.Get(TgdBaseEntry, gdcObject.ClassName, gdcObject.SubType);
+    Add(AddSpaces('Тип родителя:') + CE.TheClass.ClassName + ' ' + CE.SubType);
+
     Add(AddSpaces('Имя компонента:') + gdcObject.Name);
     if gdcObject.Owner is TCustomForm then
     begin

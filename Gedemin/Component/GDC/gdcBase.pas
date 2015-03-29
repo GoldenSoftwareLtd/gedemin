@@ -1605,7 +1605,6 @@ type
       const ASubType: String = ''; const AnOnlyDirect: Boolean = False;
       const AVerbose: Boolean = True): Boolean; virtual;
 
-    class function ClassParentSubType(const ASubType: String): String; virtual;
     //
     class function CheckSubType(const ASubType: String): Boolean;
 
@@ -12522,17 +12521,6 @@ begin
   Assert(ASubTypeList <> nil);
   Result := gdClassList.GetSubTypeList(Self, ASubType, ASubTypeList,
     AnOnlyDirect, AVerbose);
-end;
-
-class function TgdcBase.ClassParentSubType(const ASubType: String): String;
-var
-  CE: TgdClassEntry;
-begin
-  CE := gdClassList.Find(Self, ASubType);
-  if (CE <> nil) and (CE.Parent <> nil) then
-    Result := CE.Parent.SubType
-  else
-    Result := '';
 end;
 
 function TgdcBase.GetNextID(const Increment: Boolean = True; const ResetCache: Boolean = False): Integer;
