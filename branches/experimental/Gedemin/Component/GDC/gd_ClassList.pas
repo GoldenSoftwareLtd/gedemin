@@ -1538,6 +1538,12 @@ begin
         end else
           ParentST := '';
         Add(CN, ASubType, ParentST, TgdFormEntry, '');
+
+        if CN = 'TdlgInvDocument' then
+        begin
+          CN := 'Tgdc_frmInvSelectedGoods';
+          Add(CN, ASubType, ParentST, TgdFormEntry, '');
+        end;
       end;
 
       CN := CgdcBase(AClass).GetViewFormClassName(ASubType);
@@ -1549,6 +1555,19 @@ begin
           ParentST := Prnt.SubType;
         end else
           ParentST := '';
+        Add(CN, ASubType, ParentST, TgdFormEntry, '');
+      end;
+
+      if AClass.ClassName = 'TgdcInvDocumentLine' then
+      begin
+        if (Prnt <> nil) and (Prnt.SubType > '') and (Prnt is TgdBaseEntry) then
+        begin
+          ParentST := Prnt.SubType;
+        end else
+          ParentST := '';
+        CN := 'Tgdc_frmInvSelectGoodRemains';
+        Add(CN, ASubType, ParentST, TgdFormEntry, '');
+        CN := 'Tgdc_frmInvSelectRemains';
         Add(CN, ASubType, ParentST, TgdFormEntry, '');
       end;
     end;
@@ -1812,6 +1831,12 @@ begin
       end else
         ParentST := '';
       Add(CN, ACE.SubType, ParentST, TgdFormEntry, '');
+
+      if CN = 'TdlgInvDocument' then
+      begin
+        CN := 'Tgdc_frmInvSelectedGoods';
+        Add(CN, ACE.SubType, ParentST, TgdFormEntry, '');
+      end;
     end;
 
     CN := TgdBaseEntry(ACE).gdcClass.GetViewFormClassName(ACE.SubType);
@@ -1823,6 +1848,19 @@ begin
         ParentST := ACE.Parent.SubType;
       end else
         ParentST := '';
+      Add(CN, ACE.SubType, ParentST, TgdFormEntry, '');
+    end;
+
+    if TgdBaseEntry(ACE).gdcClass.ClassName = 'TgdcInvDocumentLine' then
+    begin
+      if (ACE.Parent is TgdBaseEntry) and (ACE.Parent.SubType > '') then
+      begin
+        ParentST := ACE.Parent.SubType;
+      end else
+        ParentST := '';
+      CN := 'Tgdc_frmInvSelectGoodRemains';
+      Add(CN, ACE.SubType, ParentST, TgdFormEntry, '');
+      CN := 'Tgdc_frmInvSelectRemains';
       Add(CN, ACE.SubType, ParentST, TgdFormEntry, '');
     end;
   end;
