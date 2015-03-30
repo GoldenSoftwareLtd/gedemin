@@ -716,7 +716,10 @@ end;
 class function TgdcGood.GetViewFormClassName(
   const ASubType: TgdcSubType): String;
 begin
-  Result := 'Tgdc_frmMainGood';
+  if Self = TgdcGood then
+    Result := 'Tgdc_frmMainGood'
+  else
+    Result := '';
 end;
 
 function TgdcGood.GetTaxRateByID(const aID, TaxKey: Integer;
@@ -812,7 +815,10 @@ end;
 class function TgdcGood.GetDialogFormClassName(
   const ASubType: TgdcSubType): String;
 begin
-  Result := 'Tgdc_dlgGood';
+  if Self = TgdcGood then
+    Result := 'Tgdc_dlgGood'
+  else
+    Result := '';
 end;
 
 class function TgdcGood.GetChildrenClass(const ASubType: TgdcSubType;
