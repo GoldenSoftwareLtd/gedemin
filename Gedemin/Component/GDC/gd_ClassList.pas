@@ -1831,12 +1831,6 @@ begin
       end else
         ParentST := '';
       Add(CN, ACE.SubType, ParentST, TgdFormEntry, '');
-
-      if CN = 'TdlgInvDocument' then
-      begin
-        CN := 'Tgdc_frmInvSelectedGoods';
-        Add(CN, ACE.SubType, ParentST, TgdFormEntry, '');
-      end;
     end;
 
     CN := TgdBaseEntry(ACE).gdcClass.GetViewFormClassName(ACE.SubType);
@@ -1848,19 +1842,6 @@ begin
         ParentST := ACE.Parent.SubType;
       end else
         ParentST := '';
-      Add(CN, ACE.SubType, ParentST, TgdFormEntry, '');
-    end;
-
-    if TgdBaseEntry(ACE).gdcClass.ClassName = 'TgdcInvDocumentLine' then
-    begin
-      if (ACE.Parent is TgdBaseEntry) and (ACE.Parent.SubType > '') then
-      begin
-        ParentST := ACE.Parent.SubType;
-      end else
-        ParentST := '';
-      CN := 'Tgdc_frmInvSelectGoodRemains';
-      Add(CN, ACE.SubType, ParentST, TgdFormEntry, '');
-      CN := 'Tgdc_frmInvSelectRemains';
       Add(CN, ACE.SubType, ParentST, TgdFormEntry, '');
     end;
   end;
@@ -1911,6 +1892,22 @@ procedure TgdClassList.LoadUserDefinedClasses;
         Src.Children[I].SubType, Src.Children[I].Caption);
       if Src.Children[I].Count > 0 then
         CopySubTree(Src.Children[I], CE);
+    end;
+  end;
+
+  procedure CopyFormSubTree(Src, Dst: TgdClassEntry);
+  var
+    I: Integer;
+    CE: TgdClassEntry;
+  begin
+    for I := 0 to Src.Count - 1 do
+    begin
+      CE := Find(Dst.TheClass.ClassName, Src.Children[I].SubType);
+      if CE = nil then
+        CE := _Create(Dst, TgdFormEntry, Dst.TheClass,
+          Src.Children[I].SubType, Src.Children[I].Caption);
+      if Src.Children[I].Count > 0 then
+        CopyFormSubTree(Src.Children[I], CE);
     end;
   end;
 
@@ -1997,9 +1994,9 @@ var
 begin
   Assert(atDatabase <> nil);
 
-  CEAttrUserDefined := Find('TgdcAttrUserDefined');
-  CEAttrUserDefinedTree := Find('TgdcAttrUserDefinedTree');
-  CEAttrUserDefinedLBRBTree := Find('TgdcAttrUserDefinedLBRBTree');
+  CEAttrUserDefined := Get(TgdBaseEntry, 'TgdcAttrUserDefined');
+  CEAttrUserDefinedTree := Get(TgdBaseEntry, 'TgdcAttrUserDefinedTree');
+  CEAttrUserDefinedLBRBTree := Get(TgdBaseEntry, 'TgdcAttrUserDefinedLBRBTree');
 
   for I := 0 to atDatabase.Relations.Count - 1 do
   begin
@@ -2009,12 +2006,12 @@ begin
         CEAttrUserDefinedLBRBTree);
   end;
 
-  CEUserDocument := Find('TgdcUserDocument');
-  CEUserDocumentLine := Find('TgdcUserDocumentLine');
-  CEInvDocument := Find('TgdcInvDocument');
-  CEInvDocumentLine := Find('TgdcInvDocumentLine');
-  CEInvPriceList := Find('TgdcInvPriceList');
-  CEInvPriceListLine := Find('TgdcInvPriceListLine');
+  CEUserDocument := Get(TgdBaseEntry, 'TgdcUserDocument');
+  CEUserDocumentLine := Get(TgdBaseEntry, 'TgdcUserDocumentLine');
+  CEInvDocument := Get(TgdBaseEntry, 'TgdcInvDocument');
+  CEInvDocumentLine := Get(TgdBaseEntry, 'TgdcInvDocumentLine');
+  CEInvPriceList := Get(TgdBaseEntry, 'TgdcInvPriceList');
+  CEInvPriceListLine := Get(TgdBaseEntry, 'TgdcInvPriceListLine');
 
   q := TIBSQL.Create(nil);
   try
@@ -2040,8 +2037,8 @@ begin
       end;
     end;
 
-    CEInvRemains := Find('TgdcInvRemains');
-    CEInvGoodRemains := Find('TgdcInvGoodRemains');
+    CEInvRemains := Get(TgdBaseEntry, 'TgdcInvRemains');
+    CEInvGoodRemains := Get(TgdBaseEntry, 'TgdcInvGoodRemains');
 
     q.Close;
     q.SQL.Text := 'SELECT name, ruid FROM inv_balanceoption';
@@ -2057,7 +2054,12 @@ begin
 
     CopySubTree(CEInvDocument, CEInvRemains);
     CopySubTree(CEInvDocument, CEInvGoodRemains);
-    CopySubTree(CEInvDocument, Find('TgdcSelectedGood'));
+    CopySubTree(CEInvDocument, Get(TgdBaseEntry, 'TgdcSelectedGood'));
+    CopySubTree(CEInvDocument, Get(TgdBaseEntry, 'TgdcInvMovement'));
+
+    CopyFormSubTree(CEInvDocument, Get(TgdFormEntry, 'Tgdc_frmInvSelectedGoods'));
+    CopyFormSubTree(CEInvGoodRemains, Get(TgdFormEntry, 'Tgdc_frmInvSelectGoodRemains'));
+    CopyFormSubTree(CEInvRemains, Get(TgdFormEntry, 'Tgdc_frmInvSelectRemains'));
   finally
     q.Free;
   end;
@@ -2065,8 +2067,6 @@ begin
   CopyDocSubTree(CEUserDocument, CEUserDocumentLine);
   CopyDocSubTree(CEInvDocument, CEInvDocumentLine);
   CopyDocSubTree(CEInvPriceList, CEInvPriceListLine);
-
-  CopySubTree(CEInvDocument, Get(TgdBaseEntry, 'TgdcInvMovement', ''));
 
   FSubTypes := GlobalStorage.OpenFolder('\SubTypes', False, False);
   try
