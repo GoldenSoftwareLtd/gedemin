@@ -1529,7 +1529,7 @@ begin
       and (not CgdcBase(AClass).IsAbstractClass) then
     begin
       CN := CgdcBase(AClass).GetDialogFormClassName(ASubType);
-      if CN > '' then
+      if (CN > '') and (CN <> TgdcBase.GetDialogFormClassName(ASubType)) then
       begin
         if (Prnt <> nil) and (Prnt.SubType > '') and (Prnt is TgdBaseEntry)
           and (TgdBaseEntry(Prnt).gdcClass.GetDialogFormClassName(Prnt.SubType) = CN) then
