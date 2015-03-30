@@ -1822,7 +1822,7 @@ begin
     and (not TgdBaseEntry(ACE).gdcClass.IsAbstractClass) then
   begin
     CN := TgdBaseEntry(ACE).gdcClass.GetDialogFormClassName(ACE.SubType);
-    if CN > '' then
+    if (CN > '') and (CN <> TgdcBase.GetDialogFormClassName(ACE.SubType)) then
     begin
       if (ACE.Parent is TgdBaseEntry) and (ACE.Parent.SubType > '')
         and (TgdBaseEntry(ACE.Parent).gdcClass.GetDialogFormClassName(ACE.Parent.SubType) = CN) then
