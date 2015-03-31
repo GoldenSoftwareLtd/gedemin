@@ -2040,21 +2040,22 @@ begin
   atDatabase.Relations.RefreshData(Database, Transaction, True);
   Clear_atSQLSetupCache;
 
-  if (Self is TgdcSimpleTable) or (Self is TgdcPrimeTable) or (Self is TgdcTableToTable) then
-    Prnt := gdClassList.Get(TgdBaseEntry, 'TgdcAttrUserDefined')
+  Prnt := nil;
+
+  if Self is TgdcLBRBTreeTable then
+    Prnt := gdClassList.Get(TgdBaseEntry, 'TgdcAttrUserDefinedLBRBTree')
   else if Self is TgdcTreeTable then
     Prnt := gdClassList.Get(TgdBaseEntry, 'TgdcAttrUserDefinedTree')
-  else if Self is TgdcLBRBTreeTable then
-    Prnt := gdClassList.Get(TgdBaseEntry, 'TgdcAttrUserDefinedLBRBTree')
+  else if (Self is TgdcSimpleTable) or (Self is TgdcPrimeTable) or (Self is TgdcTableToTable) then
+    Prnt := gdClassList.Get(TgdBaseEntry, 'TgdcAttrUserDefined')
   else if Self is TgdcTableToDefinedTable then
-    Prnt := gdClassList.FindByRelation((Self as TgdcTableToDefinedTable).GetReferenceName) as TgdClassEntry
-  else
-    raise Exception.Create('Unknown relationtype.');
+    Prnt := gdClassList.FindByRelation((Self as TgdcTableToDefinedTable).GetReferenceName);
 
   if Prnt = nil then
-    raise Exception.Create('Unknown class.');
+    raise EgdcException.CreateObj('Unknown metadata class.', Self);
 
-  gdClassList.LoadRelation(Prnt, FieldByName('relationname').AsString);
+  gdClassList.Add(Prnt.TheClass, FieldByName('relationname').AsString,
+    Prnt.SubType, CgdClassEntry(Prnt.ClassType), FieldByName('lname').AsString);
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCRELATION', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  finally
@@ -2163,7 +2164,7 @@ begin
   inherited;
 
   if FieldChanged('lname') then
-    gdClassList.LoadRelation(nil, FieldByName('relationname').AsString);
+    gdClassList.LoadRelation(FieldByName('relationname').AsString);
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCRELATION', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
   {M}  finally
