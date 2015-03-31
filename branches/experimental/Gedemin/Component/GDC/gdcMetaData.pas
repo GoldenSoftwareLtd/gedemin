@@ -2009,6 +2009,7 @@ procedure TgdcRelation.CustomInsert(Buff: Pointer);
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
+  Prnt: TgdClassEntry;
 begin
   {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCRELATION', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  try
@@ -2038,7 +2039,22 @@ begin
 
   atDatabase.Relations.RefreshData(Database, Transaction, True);
   Clear_atSQLSetupCache;
-  gdClassList.LoadRelation(FieldByName('relationname').AsString);
+
+  if (Self is TgdcSimpleTable) or (Self is TgdcPrimeTable) or (Self is TgdcTableToTable) then
+    Prnt := gdClassList.Get(TgdBaseEntry, 'TgdcAttrUserDefined')
+  else if Self is TgdcTreeTable then
+    Prnt := gdClassList.Get(TgdBaseEntry, 'TgdcAttrUserDefinedTree')
+  else if Self is TgdcLBRBTreeTable then
+    Prnt := gdClassList.Get(TgdBaseEntry, 'TgdcAttrUserDefinedLBRBTree')
+  else if Self is TgdcTableToDefinedTable then
+    Prnt := gdClassList.FindByRelation((Self as TgdcTableToDefinedTable).GetReferenceName) as TgdClassEntry
+  else
+    raise Exception.Create('Unknown relationtype.');
+
+  if Prnt = nil then
+    raise Exception.Create('Unknown class.');
+
+  gdClassList.LoadRelation(Prnt, FieldByName('relationname').AsString);
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCRELATION', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  finally
@@ -2147,7 +2163,7 @@ begin
   inherited;
 
   if FieldChanged('lname') then
-    gdClassList.LoadRelation(FieldByName('relationname').AsString);
+    gdClassList.LoadRelation(nil, FieldByName('relationname').AsString);
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCRELATION', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
   {M}  finally

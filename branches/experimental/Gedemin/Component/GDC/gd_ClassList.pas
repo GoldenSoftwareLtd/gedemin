@@ -470,7 +470,8 @@ type
     procedure LoadUserDefinedClasses;
     function LoadRelation(Prnt: TgdClassEntry; R: TatRelation; ACEAttrUserDefined,
       ACEAttrUserDefinedTree, ACEAttrUserDefinedLBRBTree: TgdClassEntry): TgdClassEntry; overload;
-    function LoadRelation(const ARelationName: String): TgdClassEntry; overload;
+    //function LoadRelation(const ARelationName: String): TgdClassEntry; overload;
+    procedure LoadRelation(Prnt: TgdClassEntry; const ARelationName: String); overload;
 
     property Count: Integer read FCount;
   end;
@@ -2148,7 +2149,7 @@ begin
     Result.Caption := R.LName;
 end;
 
-function TgdClassList.LoadRelation(const ARelationName: String): TgdClassEntry;
+{function TgdClassList.LoadRelation(const ARelationName: String): TgdClassEntry;
 var
   R: TatRelation;
 begin
@@ -2159,6 +2160,46 @@ begin
       Find('TgdcAttrUserDefinedTree'), Find('TgdcAttrUserDefinedLBRBTree'))
   else
     raise Exception.Create('Invalid relation.');
+end;}
+
+procedure TgdClassList.LoadRelation(Prnt: TgdClassEntry; const ARelationName: String);
+var
+  CE: TgdClassEntry;
+  CN: String;
+  R: TatRelation;
+begin
+  Assert(atDatabase <> nil);
+  R := atDatabase.Relations.ByRelationName(ARelationName);
+  if (R = nil) or (R.RelationType <> rtTable) then
+    raise Exception.Create('Invalid relation.');
+
+  if Prnt <> nil then
+  begin
+    CE := _Create(Prnt, TgdAttrUserDefinedEntry, Prnt.TheClass,
+      R.RelationName, R.LName);
+    (CE as TgdBaseEntry).DistinctRelation := R.RelationName;
+
+    CN := TgdBaseEntry(Prnt).gdcClass.GetDialogFormClassName(Prnt.SubType);
+    if CN >'' then
+      Add(CN, R.RelationName, Prnt.SubType, TgdFormEntry, R.LName);
+
+    CN := TgdBaseEntry(Prnt).gdcClass.GetViewFormClassName(Prnt.SubType);
+    if CN >'' then
+      Add(CN, R.RelationName, Prnt.SubType, TgdFormEntry, R.LName);
+  end
+  else
+  begin
+    CE := FindByRelation(ARelationName);
+    CE.Caption := R.LName;
+
+    CN := TgdBaseEntry(CE).gdcClass.GetDialogFormClassName(CE.SubType);
+    if CN > '' then
+      Get(TgdFormEntry, CN, CE.SubType).Caption := R.LName;
+
+    CN := TgdBaseEntry(CE).gdcClass.GetViewFormClassName(CE.SubType);
+    if CN > '' then
+      Get(TgdFormEntry, CN, CE.SubType).Caption := R.LName;
+  end;
 end;
 
 function TgdClassList.Add(const AClassName: AnsiString;
