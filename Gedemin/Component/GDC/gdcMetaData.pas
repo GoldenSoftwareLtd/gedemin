@@ -2162,9 +2162,10 @@ begin
   {END MACRO}
 
   inherited;
-
-  if FieldChanged('lname') then
-    gdClassList.LoadRelation(FieldByName('relationname').AsString);
+  //непонятно вообще зачем полезли на такой низкий уровень????
+  if Self.ClassType.InheritsFrom(TgdcTable) then
+    if FieldChanged('lname') then
+      gdClassList.LoadRelation(FieldByName('relationname').AsString);
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCRELATION', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
   {M}  finally
