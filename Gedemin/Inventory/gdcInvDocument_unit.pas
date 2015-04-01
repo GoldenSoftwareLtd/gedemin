@@ -5609,8 +5609,6 @@ procedure TgdcInvDocumentType.DoAfterCustomProcess(Buff: Pointer;
   {$IFDEF NEWDEPOT}
   Stream: TStream;
   {$ENDIF}
-  LParentSubType: TgdcSubType;
-  CE: TgdClassEntry;
 begin
   {@UNFOLD MACRO INH_ORIG_DOAFTERCUSTOMPROCESS('TGDCBASE', 'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS)}
   {M}  try
@@ -5635,41 +5633,6 @@ begin
   {END MACRO}
 
   inherited;
-
-  if Process = cpInsert then
-  begin
-    LParentSubType := GetParentSubType;
-
-    gdClassList.Add('TgdcInvRemains', FieldByName('RUID').AsString,
-      LParentSubType, TgdBaseEntry, FieldByName('name').AsString);
-    gdClassList.Add('TgdcInvGoodRemains', FieldByName('RUID').AsString,
-      LParentSubType, TgdBaseEntry, FieldByName('name').AsString);
-    gdClassList.Add('TgdcSelectedGood', FieldByName('RUID').AsString,
-      LParentSubType, TgdBaseEntry, FieldByName('name').AsString);
-  end
-  else if Process = cpModify then
-  begin
-    if FieldChanged('ruid') then
-      raise EgdcInvDocumentType.Create('Can not change a document type RUID');
-
-    if FieldChanged('name') then
-    begin
-      CE := gdClassList.Find('TgdcInvRemains', FieldByName('RUID').AsString);
-      if CE <> nil then
-        CE.Caption := FieldByName('name').AsString;
-      CE := gdClassList.Find('TgdcInvGoodRemains', FieldByName('RUID').AsString);
-      if CE <> nil then
-        CE.Caption := FieldByName('name').AsString;
-      CE := gdClassList.Find('TgdcSelectedGood', FieldByName('RUID').AsString);
-      if CE <> nil then
-        CE.Caption := FieldByName('name').AsString;
-    end;
-  end else
-  begin
-    gdClassList.Remove('TgdcInvRemains', FieldByName('RUID').AsString);
-    gdClassList.Remove('TgdcInvGoodRemains', FieldByName('RUID').AsString);
-    gdClassList.Remove('TgdcSelectedGood', FieldByName('RUID').AsString);
-  end;
 
   {$IFDEF NEWDEPOT}
   if not FieldByName('OPTIONS').IsNull then

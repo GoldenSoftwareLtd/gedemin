@@ -2760,22 +2760,8 @@ procedure TgdcDocumentType.DoAfterCustomProcess(Buff: Pointer;
     DE.HeaderRelKey := FieldByName('headerrelkey').AsInteger;
     DE.LineRelKey := FieldByName('linerelkey').AsInteger;
     DE.BranchKey := FieldByName('branchkey').AsInteger;
-  end;
 
-  procedure _Add(const AClassName: String);
-  begin
-    _Set(gdClassList.Add(AClassName, FieldByName('ruid').AsString,
-      GetParentSubType, TgdDocumentEntry, FieldbyName('name').AsString) as TgdDocumentEntry);
-  end;
-
-  procedure _Update(const AClassName: String);
-  var
-    CE: TgdClassEntry;
-  begin
-    CE := gdClassList.Find(AClassName, FieldByName('ruid').AsString);
-
-    if CE <> nil then
-      _Set(CE as TgdDocumentEntry);
+    gdClassList.SpreadSettings(DE as TgdClassEntry);
   end;
 
 var
@@ -2785,7 +2771,8 @@ var
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
   q: TIBSQL;
-  DE: TgdDocumentEntry;
+  CE: TgdClassEntry;
+  CN: String;
 begin
   {@UNFOLD MACRO INH_ORIG_DOAFTERCUSTOMPROCESS('TGDCDOCUMENTTYPE', 'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS)}
   {M}  try
@@ -2811,42 +2798,27 @@ begin
 
   inherited;
 
-  if Process = cpInsert then
+  if (Process = cpInsert) or (Process = cpModify) then
   begin
     if FieldByName('classname').AsString = 'TgdcUserDocumentType' then
-    begin
-      _Add('TgdcUserDocument');
-      _Add('TgdcUserDocumentLine');
-    end
+      CN := 'TgdcUserDocument'
     else if FieldByName('classname').AsString = 'TgdcInvDocumentType' then
-    begin
-      _Add('TgdcInvDocument');
-      _Add('TgdcInvDocumentLine');
-
-      gdClassList.Add('TgdcInvRemains', FieldByName('ruid').AsString,
-        GetParentSubType, TgdBaseEntry, FieldbyName('name').AsString);
-      gdClassList.Add('TgdcInvGoodRemains', FieldByName('ruid').AsString,
-        GetParentSubType, TgdBaseEntry, FieldbyName('name').AsString);
-      gdClassList.Add('TgdcSelectedGood', FieldByName('ruid').AsString,
-        GetParentSubType, TgdBaseEntry, FieldbyName('name').AsString);
-    end
+      CN := 'TgdcInvDocument'
     else if FieldByName('classname').AsString = 'TgdcInvPriceListType' then
-    begin
-      _Add('TgdcInvPriceList');
-      _Add('TgdcInvPriceListLine');
-    end else
+      CN := 'TgdcInvPriceList'
+    else
       raise EgdcException.CreateObj('Invalid document type', Self);
+
+    if Process = cpInsert then
+      CE := gdClassList.Add(CN, FieldByName('ruid').AsString,
+        GetParentSubType, TgdDocumentEntry, FieldbyName('name').AsString)
+    else
+      CE := gdClassList.Get(TgdDocumentEntry, CN, FieldByName('ruid').AsString);
+
+    if CE <> nil then
+      _Set(CE as TgdDocumentEntry);
   end
-  else if Process = cpModify then
-  begin
-    DE := gdClassList.FindDocByRUID(FieldByName('ruid').AsString, dcpHeader);
-    if DE = nil then
-      raise EgdcException.CreateObj('Unknown document type RUID', Self);
-    _Set(DE);
-    DE := gdClassList.FindDocByRUID(FieldByName('ruid').AsString, dcpLine);
-    if DE <> nil then
-      _Set(DE);
-  end else
+  else
     gdClassList.RemoveSubType(FieldByName('ruid').AsString);
 
   if Process <> cpDelete then
