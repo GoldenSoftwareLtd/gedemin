@@ -143,6 +143,7 @@ type
 
   TgdcInvPriceListType = class(TgdcDocumentType)
   protected
+    procedure DoAfterInsert; override;
     procedure CreateFields; override;
 
   public
@@ -1301,6 +1302,59 @@ constructor TgdcInvPriceListType.Create(AnOwner: TComponent);
 begin
   inherited;
   CustomProcess := [cpInsert, cpModify];
+end;
+
+procedure TgdcInvPriceListType.DoAfterInsert;
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+  ibsql: TIBSQL;
+begin
+  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCINVPRICELISTTYPE', 'DOAFTERINSERT', KEYDOAFTERINSERT)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCINVPRICELISTTYPE', KEYDOAFTERINSERT);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOAFTERINSERT]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCBASE') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCINVPRICELISTTYPE',
+  {M}          'DOAFTERINSERT', KEYDOAFTERINSERT, Params, LResult) then exit;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCINVPRICELISTTYPE' then
+  {M}        begin
+  {M}          Inherited;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  inherited;
+
+  if not (sLoadFromStream in BaseState) then
+  begin
+    ibsql := TIBSQL.Create(nil);
+    try
+      ibsql.Transaction := ReadTransaction;
+      ibsql.SQL.Text := 'SELECT OPTIONS FROM gd_documenttype WHERE id = :id AND documenttype = ''D'' ';
+      ibsql.ParamByName('id').AsInteger := FieldByName('parent').AsInteger;
+      ibsql.ExecQuery;
+      if (not ibsql.Eof) and (not ibsql.FieldByName('OPTIONS').IsNull) then
+        FieldByName('OPTIONS').AsString := ibsql.FieldByName('OPTIONS').AsString;
+    finally
+      ibsql.Free;
+    end;
+  end;
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVPRICELISTTYPE', 'DOAFTERINSERT', KEYDOAFTERINSERT)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCINVPRICELISTTYPE', 'DOAFTERINSERT', KEYDOAFTERINSERT);
+  {M}  end;
+  {END MACRO}
 end;
 
 procedure TgdcInvPriceListType.CreateFields;

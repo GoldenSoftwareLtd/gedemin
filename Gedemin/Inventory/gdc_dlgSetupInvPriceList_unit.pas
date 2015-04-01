@@ -217,7 +217,7 @@ implementation
 
 uses
   dmImages_unit, at_frmSQLProcess, Storages,  gd_ClassList, gdcExplorer, gdcClasses,
-  gdcBaseInterface;
+  gdcBaseInterface, gdcClasses_interface;
 
 {$R *.DFM}
 
@@ -994,6 +994,7 @@ var
   {END MACRO}
   Stream: TStream;
   ibsql: TIBSQL;
+  DE: TgdDocumentEntry;
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TDLGSETUPINVPRICELIST', 'SETUPRECORD', KEYSETUPRECORD)}
   {M}  try
@@ -1020,21 +1021,19 @@ begin
   ActivateTransaction(gdcObject.Transaction);
   edParentName.Text := '';
 
-  ibsql := TIBSQL.Create(nil);
-  try
-    ibsql.Transaction := gdcObject.ReadTransaction;
 
-    ibsql.SQL.Text := 'SELECT name FROM gd_documenttype WHERE id = :id AND documenttype = ''D'' ';
-    ibsql.ParamByName('id').AsInteger := gdcObject.FieldByName('parent').AsInteger;
-    ibsql.ExecQuery;
-    if not ibsql.Eof then
-      edParentName.Text := ibsql.FieldByName('name').AsString
-    else
-      edParentName.Text := gdcObject.FieldByName('classname').AsString;
-  finally
-    ibsql.Free;
+  DE := gdClassList.FindDocByTypeID(gdcObject.FieldByName('parent').AsInteger, dcpHeader);
+  if DE <> nil then
+  begin
+    edParentName.Text := DE.Caption;
+    if gdcObject.State = dsInsert then
+    begin
+      gdcObject.FieldByName('name').AsString := 'Наследник ' + DE.Caption;
+      gdcObject.FieldByName('branchkey').AsInteger := DE.BranchKey;
+    end;
   end;
-  if Document.State = dsEdit then
+
+  if Document.State in [dsEdit, dsInsert] then
   begin
     if not Document.FieldByName('OPTIONS').IsNull then
     begin
@@ -1046,30 +1045,10 @@ begin
       end;
     end;
 
-    UpdateEditingSettings;
-  end else
-
-  if Document.State = dsInsert then
-  begin
-    ibsql := TIBSQL.Create(nil);
-    try
-      ibsql.Transaction := gdcObject.ReadTransaction;
-      ibsql.SQL.Text := 'SELECT OPTIONS FROM gd_documenttype WHERE id = :id AND documenttype = ''D'' ';
-      ibsql.ParamByName('id').AsInteger := gdcObject.FieldByName('parent').AsInteger;
-      ibsql.ExecQuery;
-      if not ibsql.Eof then
-      begin
-        Stream := TStringStream.Create(ibsql.FieldByName('OPTIONS').AsString);
-        try
-          ReadOptions(Stream);
-        finally
-          Stream.Free;
-        end;
-      end
-    finally
-      ibsql.Free;
-    end;
-    UpdateInsertingSettings;
+    if Document.State = dsEdit then
+      UpdateEditingSettings
+    else
+      UpdateInsertingSettings;
   end;
 
   //Выведем родителя нашей ветки в исследователе

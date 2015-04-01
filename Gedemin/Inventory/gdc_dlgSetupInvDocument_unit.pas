@@ -2290,26 +2290,19 @@ begin
 
   inherited;
 
-  if Document.State = dsEdit then
+  if Document.State in [dsEdit, dsInsert] then
   begin
     if not Document.FieldByName('OPTIONS').IsNull then
     begin
       ReadOptions;
       UpdateTabs;
-    end else
-      UpdateEditingSettings;
+    end
+    else
+      if Document.State = dsEdit then
+        UpdateEditingSettings
+      else
+        UpdateInsertingSettings;
   end;
-
-  if Document.State = dsInsert then
-  begin
-    if not Document.FieldByName('OPTIONS').IsNull then
-    begin
-      ReadOptions;
-      UpdateTabs;
-    end else
-      UpdateInsertingSettings;
-  end;
-
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGSETUPINVDOCUMENT', 'SETUPRECORD', KEYSETUPRECORD)}
   {M}finally
