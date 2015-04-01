@@ -5799,15 +5799,17 @@ begin
       ibsql.ExecQuery;
       if not ibsql.Eof then
       begin
-        Stream := TStringStream.Create(ibsql.FieldByName('OPTIONS').AsString);
-        try
-          ReadOptions(Stream);
-          if not ibsql.FieldByName('OPTIONS').IsNull then
-            FieldByName('OPTIONS').AsString := ibsql.FieldByName('OPTIONS').AsString;
-        finally
-          Stream.Free;
+        if not ibsql.FieldByName('OPTIONS').IsNull then
+        begin
+          FieldByName('OPTIONS').AsString := ibsql.FieldByName('OPTIONS').AsString;
+          Stream := TStringStream.Create(FieldByName('OPTIONS').AsString);
+          try
+            ReadOptions(Stream);
+          finally
+            Stream.Free;
+          end;
         end;
-      end
+      end;
     finally
       ibsql.Free;
     end;
@@ -5879,7 +5881,6 @@ begin
           Edit;
         FieldByName('headerrelkey').AsInteger := R.ID;
       end;
-
     end;
 
     if FieldByName('linerelkey').IsNull then
@@ -5891,7 +5892,6 @@ begin
           Edit;
         FieldByName('linerelkey').AsInteger := R.ID;
       end;
-
     end;
 
     FEnglishName := RelationName;
