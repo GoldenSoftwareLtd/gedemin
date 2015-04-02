@@ -819,7 +819,7 @@ var
   R: TatRelation;
   CE: TgdClassEntry;
 begin
-  CE := gdClassList.Get(TgdDocumentEntry, Self.ClassName, Self.SubType).GetRootSubType;
+  CE := gdClassList.Get(TgdDocumentEntry, 'TgdcInvDocumentLine', Self.SubType).GetRootSubType;
   Assert(atDatabase <> nil, 'Attributes database not assigned!');
   R := atDatabase.Relations.ByRelationName(TgdDocumentEntry(CE).DistinctRelation);
   Assert(R <> nil, 'Relation not assigned!');
