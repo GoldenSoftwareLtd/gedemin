@@ -9,6 +9,8 @@ uses
   ComCtrls, gdcBase;
 
 type
+  TCrTBItem = Class(TTBItem);
+  
   Tgdc_frmMD2H = class(Tgdc_frmMDH)
     pnlSubDetail: TPanel;
     sSubDetail: TSplitter;
@@ -30,7 +32,7 @@ type
     tbiSubDetailDel: TTBItem;
     tbiSubDetailEdit: TTBItem;
     tbsSubdetail1: TTBSeparatorItem;
-    tbsiSubDetailNew: TTBSubmenuItem;
+    tbiSubDetailNew: TTBItem;
     procedure actSubDetailNewExecute(Sender: TObject);
     procedure actSubDetailNewUpdate(Sender: TObject);
     procedure actSubDetailEditExecute(Sender: TObject);
@@ -53,7 +55,7 @@ type
       Bar: TTBCustomDockableWindow; var Accept: Boolean);
     procedure TBDockTopRequestDock(Sender: TObject;
       Bar: TTBCustomDockableWindow; var Accept: Boolean);
-    procedure tbsiSubDetailNewPopup(Sender: TTBCustomItem;
+    procedure tbiSubDetailNewPopup(Sender: TTBCustomItem;
       FromLink: Boolean);
 
   private
@@ -125,9 +127,13 @@ begin
       FgdcSubDetailObject.OnFilterChanged := DoOnFilterChanged;
       DoOnFilterChanged(nil);
 
-      if tbsiSubDetailNew <> nil then
-        tbsiSubDetailNew.DropDownCombo := gdClassList.Get(TgdBaseEntry,
-          FgdcSubDetailObject.ClassName, FgdcSubDetailObject.SubType).Count > 0;
+      if gdClassList.Get(TgdBaseEntry,
+        FgdcSubDetailObject.ClassName, FgdcSubDetailObject.SubType).Count > 0 then
+      begin
+        TCrTBItem(tbiSubDetailNew).ItemStyle :=
+          TCrTBItem(tbiSubDetailNew).ItemStyle + [tbisSubMenu, tbisSubitemsEditable, tbisCombo];
+        tbiSubDetailNew.OnPopup := tbiSubDetailNewPopup;
+      end;
     end;
   end;
 end;
@@ -367,11 +373,11 @@ begin
   {END MACRO}
 end;
 
-procedure Tgdc_frmMD2H.tbsiSubDetailNewPopup(Sender: TTBCustomItem;
+procedure Tgdc_frmMD2H.tbiSubDetailNewPopup(Sender: TTBCustomItem;
   FromLink: Boolean);
 begin
-  if TTBSubmenuItem(Sender).DropDownCombo and (gdcSubDetailObject <> nil) then
-    FillPopupNew(gdcSubDetailObject, Sender as TTBSubmenuItem, DoOnSubDetailDescendantClick);
+  if gdcSubDetailObject <> nil then
+    FillPopupNew(gdcSubDetailObject, Sender, DoOnSubDetailDescendantClick);
 end;
 
 initialization

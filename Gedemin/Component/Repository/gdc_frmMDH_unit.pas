@@ -12,6 +12,8 @@ uses
   StdCtrls, gd_MacrosMenu, Grids, gsDBGrid, gsIBGrid, amSplitter;
 
 type
+  TCrTBItem = Class(TTBItem);
+
   Tgdc_frmMDH = class(Tgdc_frmG)
     sMasterDetail: TSplitter;
     pnlDetail: TPanel;
@@ -83,8 +85,8 @@ type
     tbiDetailMenuAddToSelected: TTBItem;
     actDetailLinkObject: TAction;
     tbiDetailLinkObject: TTBItem;
-    tbsiDetailNew: TTBSubmenuItem;
     tbi_mm_DetailNew: TTBItem;
+    tbiDetailNew: TTBItem;
     procedure actDetailEditExecute(Sender: TObject);
     procedure actDetailNewExecute(Sender: TObject);
     procedure actDetailNewUpdate(Sender: TObject);
@@ -141,7 +143,7 @@ type
     procedure actDetailFilterUpdate(Sender: TObject);
     procedure pnlSearchDetailEnter(Sender: TObject);
     procedure pnlSearchDetailExit(Sender: TObject);
-    procedure tbsiDetailNewPopup(Sender: TTBCustomItem; FromLink: Boolean);
+    procedure tbiDetailNewPopup(Sender: TTBCustomItem; FromLink: Boolean);
 
   private
     FgdcDetailObject: TgdcBase;
@@ -442,9 +444,13 @@ begin
       FgdcDetailObject.OnFilterChanged := DoOnFilterChanged;
       DoOnFilterChanged(nil);
 
-      if tbsiDetailNew <> nil then
-        tbsiDetailNew.DropDownCombo := gdClassList.Get(TgdBaseEntry,
-          FgdcDetailObject.ClassName, FgdcDetailObject.SubType).Count > 0;
+      if gdClassList.Get(TgdBaseEntry,
+        FgdcDetailObject.ClassName, FgdcDetailObject.SubType).Count > 0 then
+      begin
+        TCrTBItem(tbiDetailNew).ItemStyle :=
+          TCrTBItem(tbiDetailNew).ItemStyle + [tbisSubMenu, tbisSubitemsEditable, tbisCombo];
+        tbiDetailNew.OnPopup := tbiDetailNewPopup;
+      end;
     end;
   end;
 end;
@@ -1205,11 +1211,11 @@ begin
     inherited;
 end;
 
-procedure Tgdc_frmMDH.tbsiDetailNewPopup(Sender: TTBCustomItem;
+procedure Tgdc_frmMDH.tbiDetailNewPopup(Sender: TTBCustomItem;
   FromLink: Boolean);
 begin
-  if (Sender as TTBSubmenuItem).DropDownCombo and (gdcDetailObject <> nil) then
-    FillPopupNew(gdcDetailObject, Sender as TTBSubmenuItem, DoOnDetailDescendantClick);
+  if gdcDetailObject <> nil then
+    FillPopupNew(gdcDetailObject, Sender, DoOnDetailDescendantClick);
 end;
 
 initialization
