@@ -4070,16 +4070,21 @@ begin
             if Assigned(UserStorage) and Assigned(GlobalStorage) then
             begin
               if (Flag = 0) or (Flag = 2) then
-                SF := UserStorage.OpenFolder(FResourceName, False)
-              else
+              begin
+                SF := UserStorage.OpenFolder(FResourceName, False);
+                if SF <> nil then
+                begin
+                  SF.DeleteValue(FFormSubType);
+                  UserStorage.CloseFolder(SF);
+                end;
+              end else
+              begin
                 SF := GlobalStorage.OpenFolder(FResourceName, IBLogin.IsIBUserAdmin);
-              try
-                SF.DeleteValue(FFormSubType);
-              finally
-                if (Flag = 0) or (Flag = 2) then
-                  UserStorage.CloseFolder(SF)
-                else
+                if SF <> nil then
+                begin
+                  SF.DeleteValue(FFormSubType);
                   GlobalStorage.CloseFolder(SF);
+                end;
               end;
             end;
           end;

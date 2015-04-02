@@ -604,11 +604,6 @@ begin
   InitDatabase(dmLogin.ibtrAttr);
   atDatabase.ProceedLoading(True);
 
-  if Assigned(gdSplash) then
-    gdSplash.ShowText(sLoadingUserDefinedClasses);
-
-  gdClassList.LoadUserDefinedClasses;
-
   ClearHoldingListCache;
 
   if dm_i_ClientReport <> nil then begin

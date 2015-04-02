@@ -9968,7 +9968,14 @@ var
 begin
   if not IsEmpty then
   begin
-    CE := gdClassList.Get(TgdBaseEntry, FC.gdClass.ClassName, FC.SubType);
+    CE := gdClassList.Find(FC.gdClass.ClassName, FC.SubType);
+
+    if not (CE is TgdBaseEntry) then
+    begin
+      FC.SubType := '';
+      CE := gdClassList.Get(TgdBaseEntry, FC.gdClass.ClassName, FC.SubType);
+    end;
+
     if CE.Count > 0 then
     begin
       S := '';
