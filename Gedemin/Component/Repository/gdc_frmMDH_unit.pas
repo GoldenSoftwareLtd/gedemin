@@ -150,14 +150,14 @@ type
     FFieldOriginDetail: TStringList;
     FDetailPreservedConditions: String;
 
-    procedure SetgdcDetailObject(const Value: TgdcBase);
-
     procedure DoOnDetailDescendantClick (Sender: TObject);
 
   protected
     FSavedMasterSource: TDataSource;
     FSavedSubSet: String;
 
+    procedure SetgdcDetailObject(const Value: TgdcBase); virtual;
+    
     procedure RemoveSubSetList(S: TStrings); virtual;
 
     class procedure RegisterMethod;
