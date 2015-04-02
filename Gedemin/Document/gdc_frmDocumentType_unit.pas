@@ -64,29 +64,20 @@ procedure Tgdc_frmDocumentType.SetgdcDetailObject(const Value: TgdcBase);
 begin
   inherited;
 
-  tbsmNew.Clear;
-  tbsmNew.DropdownCombo := gdClassList.Get(TgdBaseEntry, gdcDetailObject.ClassName,
-    gdcDetailObject.SubType).Count > 0;
-  tbsmNew.OnPopup := tbiDetailNewPopup;
+  tbsmNew.Visible := False;
 
+  tbiDetailNew.Visible := True;
   actDetailNew.Visible := True;
   actDetailNew.OnExecute := actDetailNewExecute;
-
-  tbiDetailNew.Visible := False;
-
-  tbsmNew.Action := actDetailNew;
 end;
 
 procedure Tgdc_frmDocumentType.SetGdcObject(const Value: TgdcBase);
 begin
   inherited;
 
-  tbiNew.Visible := False;
-
-  TBSubmenuItem1.Clear;
-  TBSubmenuItem1.DropdownCombo := gdClassList.Get(TgdBaseEntry, gdcObject.ClassName,
-    gdcObject.SubType).Count > 0;
-  TBSubmenuItem1.OnPopup := tbiNewPopup;
+  TBSubmenuItem1.Visible := False;
+  
+  tbiNew.Visible := True;
 end;
 
 class function Tgdc_frmDocumentType.CreateAndAssign(
@@ -107,12 +98,12 @@ end;
 
 procedure Tgdc_frmDocumentType.actNewSubExecute(Sender: TObject);
 begin
-  // Не удалять!!! Нужен для подджки dfm до наследования!!!
+  // Не удалять!!! Нужен для поддержки dfm до наследования!!!
 end;
 
 procedure Tgdc_frmDocumentType.actNewSubUpdate(Sender: TObject);
 begin
-// Не удалять!!! Нужен для подджки dfm до наследования!!!
+  // Не удалять!!! Нужен для поддержки dfm до наследования!!!
 end;
 
 procedure Tgdc_frmDocumentType.actDetailNewExecute(Sender: TObject);
@@ -139,37 +130,37 @@ end;
 
 procedure Tgdc_frmDocumentType.actAddUserDocExecute(Sender: TObject);
 begin
-  // Не удалять!!! Нужен для подджки dfm до наследования!!!
+  // Не удалять!!! Нужен для поддержки dfm до наследования!!!
 end;
 
 procedure Tgdc_frmDocumentType.actAddInvDocumentExecute(Sender: TObject);
 begin
-  // Не удалять!!! Нужен для подджки dfm до наследования!!!
+  // Не удалять!!! Нужен для поддержки dfm до наследования!!!
 end;
 
 procedure Tgdc_frmDocumentType.actAddInvPriceListExecute(Sender: TObject);
 begin
-  // Не удалять!!! Нужен для подджки dfm до наследования!!!
+  // Не удалять!!! Нужен для поддержки dfm до наследования!!!
 end;
 
 procedure Tgdc_frmDocumentType.actAddInvDocumentUpdate(Sender: TObject);
 begin
-  // Не удалять!!! Нужен для подджки dfm до наследования!!!
+  // Не удалять!!! Нужен для поддержки dfm до наследования!!!
 end;
 
 procedure Tgdc_frmDocumentType.actAddInvPriceListUpdate(Sender: TObject);
 begin
-  // Не удалять!!! Нужен для подджки dfm до наследования!!!
+  // Не удалять!!! Нужен для поддержки dfm до наследования!!!
 end;
 
 procedure Tgdc_frmDocumentType.actAddUserDocUpdate(Sender: TObject);
 begin
-  // Не удалять!!! Нужен для подджки dfm до наследования!!!
+  // Не удалять!!! Нужен для поддержки dfm до наследования!!!
 end;
 
 procedure Tgdc_frmDocumentType.tbsmNewClick(Sender: TObject);
 begin
-  // Не удалять!!! Нужен для подджки dfm до наследования!!!
+  // Не удалять!!! Нужен для поддержки dfm до наследования!!!
 end;
 
 procedure Tgdc_frmDocumentType.actNewExecute(Sender: TObject);
