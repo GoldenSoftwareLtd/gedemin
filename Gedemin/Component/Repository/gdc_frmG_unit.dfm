@@ -66,9 +66,8 @@ object gdc_frmG: Tgdc_frmG
       ShowHint = True
       Stretch = True
       TabOrder = 0
-      object tbsiNew: TTBSubmenuItem
+      object tbiNew: TTBItem
         Action = actNew
-        OnPopup = tbsiNewPopup
       end
       object tbiEdit: TTBItem
         Action = actEdit
