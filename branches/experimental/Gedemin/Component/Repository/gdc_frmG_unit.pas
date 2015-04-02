@@ -26,6 +26,8 @@ const
   cst_st_cat_Choose  = 'Choose';
 
 type
+  TCrTBItem = Class(TTBItem);
+
   Tgdc_frmG = class(TgdcCreateableForm)
     sbMain: TStatusBar;
     alMain: TActionList;
@@ -171,8 +173,8 @@ type
     tbiDistributeSettings: TTBItem;
     actDontSaveSettings: TAction;
     tbiDontSaveSettings: TTBItem;
-    tbsiNew: TTBSubmenuItem;
     tbi_mm_New: TTBItem;
+    tbiNew: TTBItem;
 
     procedure actFilterExecute(Sender: TObject);
     procedure actPrintExecute(Sender: TObject);
@@ -250,7 +252,7 @@ type
     procedure actHlpUpdate(Sender: TObject);
     procedure FormHide(Sender: TObject);
     procedure FormShow(Sender: TObject);
-    procedure tbsiNewPopup(Sender: TTBCustomItem; FromLink: Boolean);
+    procedure tbiNewPopup(Sender: TTBCustomItem; FromLink: Boolean);
 
   private
     FFieldOrigin: TStringList;
@@ -321,6 +323,8 @@ type
     procedure DoShowAllFields(Sender: TObject); virtual;
 
     procedure FillPopupNew(AnObject: TgdcBase; ATBSubmenuItem: TTBSubmenuItem;
+      AnEvent: TNotifyEvent);
+    procedure FillPopupNew2(AnObject: TgdcBase; ATBItem: TTBItem;
       AnEvent: TNotifyEvent);
 
   public
@@ -768,9 +772,17 @@ begin
       FgdcObject.OnFilterChanged := DoOnFilterChanged;
       DoOnFilterChanged(nil);
 
-      if tbsiNew <> nil then
-        tbsiNew.DropDownCombo := gdClassList.Get(TgdBaseEntry,
-          FgdcObject.ClassName, FgdcObject.SubType).Count > 0;
+
+      if gdClassList.Get(TgdBaseEntry, FgdcObject.ClassName,
+        FgdcObject.SubType).Count > 0 then
+      begin
+        TCrTBItem(tbiNew).ItemStyle :=
+          TCrTBItem(tbiNew).ItemStyle + [tbisSubMenu, tbisSubitemsEditable, tbisCombo];
+        tbiNew.OnPopup := tbiNewPopup;
+      end;
+      //if tbiNew <> nil then
+      //  tbiNew.DropDownCombo := gdClassList.Get(TgdBaseEntry,
+      //    FgdcObject.ClassName, FgdcObject.SubType).Count > 0;
     end;
   end;
 end;
@@ -2055,11 +2067,43 @@ begin
   Iterate(CE, 0);
 end;
 
-procedure Tgdc_frmG.tbsiNewPopup(Sender: TTBCustomItem;
+procedure Tgdc_frmG.FillPopupNew2(AnObject: TgdcBase; ATBItem: TTBItem;
+  AnEvent: TNotifyEvent);
+
+  procedure Iterate(CE: TgdClassEntry; ALevel: Integer);
+  var
+    TBI: TTBItem;
+    I: Integer;
+  begin
+    if (not (CE as TgdBaseEntry).gdcClass.IsAbstractClass)
+      and (not CE.Hidden) then
+    begin
+      TBI := TTBItem.Create(ATBItem);
+      TBI.Tag := Integer(CE);
+      TBI.Caption := StringOfChar(' ', ALevel) + CE.Caption;
+      TBI.OnClick := AnEvent;
+      TBI.ImageIndex := 0;
+      ATBItem.Add(TBI);
+      Inc(ALevel, 4);
+    end;
+
+    for I := 0 to CE.Count - 1 do
+      Iterate(CE.Children[I], ALevel);
+  end;
+
+var
+  CE: TgdClassEntry;
+begin
+  ATBItem.Clear;
+  CE := gdClassList.Get(TgdBaseEntry, AnObject.ClassName, AnObject.SubType);
+  Iterate(CE, 0);
+end;
+
+procedure Tgdc_frmG.tbiNewPopup(Sender: TTBCustomItem;
   FromLink: Boolean);
 begin
-  if (Sender as TTBSubmenuItem).DropDownCombo and (gdcObject <> nil) then
-    FillPopupNew(gdcObject, Sender as TTBSubmenuItem, DoOnDescendantClick);
+  if (gdcObject <> nil) then
+    FillPopupNew2(gdcObject, Sender as TTBItem, DoOnDescendantClick);
 end;
 
 procedure Tgdc_frmG.actDistributeSettingsExecute(Sender: TObject);
