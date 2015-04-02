@@ -486,10 +486,10 @@ begin
     Add(AddSpaces('Метка типа:') + gdcObject.GetDisplayName(gdcObject.SubType));
     Add(AddSpaces('Тип текущей записи:') + gdcObject.GetCurrRecordClass.gdClass.ClassName + ' ' +
       gdcObject.GetCurrRecordClass.SubType);
-    Add(AddSpaces('Тип объекта:') + gdcObject.ClassName + ' ' + gdcObject.SubType);
-
     CE := gdClassList.Get(TgdBaseEntry, gdcObject.ClassName, gdcObject.SubType);
-    Add(AddSpaces('Тип родителя:') + CE.TheClass.ClassName + ' ' + CE.SubType);
+    Add(AddSpaces('Тип объекта:') + CE.TheClass.ClassName + ' ' + CE.SubType);
+    if CE.Parent <> nil then
+      Add(AddSpaces('Тип родителя:') + CE.Parent.TheClass.ClassName + ' ' + CE.Parent.SubType);
 
     Add(AddSpaces('Имя компонента:') + gdcObject.Name);
     if gdcObject.Owner is TCustomForm then
