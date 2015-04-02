@@ -156,9 +156,8 @@ inherited gdc_frmMDH: Tgdc_frmMDH
           ShowHint = True
           Stretch = True
           TabOrder = 0
-          object tbsiDetailNew: TTBSubmenuItem
+          object tbiDetailNew: TTBItem
             Action = actDetailNew
-            OnPopup = tbsiDetailNewPopup
           end
           object tbiDetailEdit: TTBItem
             Action = actDetailEdit
