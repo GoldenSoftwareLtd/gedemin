@@ -11333,21 +11333,18 @@ procedure TgdcBase.SetSubType(const Value: TgdcSubType);
 begin
   if FSubType <> Value then
   begin
-    if FSubType > '' then
-    begin
-      if (ComponentState * [csDesigning, csLoading] = []) then
-        raise EgdcException.CreateObj('Can not change subtype', Self);
-
-      if not CheckSubType(Value) then
-      begin
-        if (StrIPos('usr_', Self.Name) = 1) or (StrIPos('usrg_', Self.Name) = 1) then
-          gdClassList.Add(Self.ClassType, Value, '', TgdBaseEntry, '')
-        else
-          raise EgdcException.CreateObj('Invalid subtype specified', Self);
-      end;
-    end;
+    if (FSubType > '') and (ComponentState * [csDesigning, csLoading] = []) then
+      raise EgdcException.CreateObj('Can not change subtype', Self);
 
     Close;
+
+    if not CheckSubType(Value) then
+    begin
+      if (StrIPos('usr_', Self.Name) = 1) or (StrIPos('usrg_', Self.Name) = 1) then
+        gdClassList.Add(Self.ClassType, Value, '', TgdBaseEntry, '')
+      else
+        raise EgdcException.CreateObj('Invalid subtype specified', Self);
+    end;
 
     FSubType := Value;
     FGroupID := -1;
