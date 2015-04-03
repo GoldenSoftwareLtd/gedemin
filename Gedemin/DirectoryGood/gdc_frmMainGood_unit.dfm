@@ -10,35 +10,48 @@ inherited gdc_frmMainGood: Tgdc_frmMainGood
   end
   inherited TBDockTop: TTBDock
     inherited tbMainToolbar: TTBToolbar
-      inherited tbiCopy: TTBItem [6]
+      inherited tbiNew: TTBItem
+        Visible = False
       end
-      inherited tbiCut: TTBItem [7]
+      object tbsiNew: TTBSubmenuItem [1]
+        Action = actNew
+        DropdownCombo = True
+        object tblMenuNew: TTBItem
+          Action = actNew
+        end
+        object tbiSubNew: TTBItem
+          Action = actNewSub
+        end
       end
-      inherited tbiPaste: TTBItem [8]
+      inherited tbiCopy: TTBItem [7]
       end
-      inherited tbsiMainOneAndHalf: TTBSeparatorItem [9]
+      inherited tbiCut: TTBItem [8]
       end
-      inherited tbiLoadFromFile: TTBItem [10]
+      inherited tbiPaste: TTBItem [9]
       end
-      inherited tbiSaveToFile: TTBItem [11]
+      inherited tbsiMainOneAndHalf: TTBSeparatorItem [10]
       end
-      inherited tbsiMainTwo: TTBSeparatorItem [12]
+      inherited tbiLoadFromFile: TTBItem [11]
       end
-      inherited tbiFind: TTBItem [13]
+      inherited tbiSaveToFile: TTBItem [12]
       end
-      inherited tbiFilter: TTBItem [14]
+      inherited tbsiMainTwo: TTBSeparatorItem [13]
       end
-      inherited tbiPrint: TTBItem [15]
+      inherited tbiFind: TTBItem [14]
       end
-      inherited tbiOnlySelected: TTBItem [16]
+      inherited tbiFilter: TTBItem [15]
       end
-      inherited tbsiMainThreeAndAHalf: TTBSeparatorItem [17]
+      inherited tbiPrint: TTBItem [16]
       end
-      inherited tbiHelp: TTBItem [18]
+      inherited tbiOnlySelected: TTBItem [17]
       end
-      inherited tbiEditInGrid: TTBItem [19]
+      inherited tbsiMainThreeAndAHalf: TTBSeparatorItem [18]
       end
-      inherited tbiLinkObject: TTBItem [20]
+      inherited tbiHelp: TTBItem [19]
+      end
+      inherited tbiEditInGrid: TTBItem [20]
+      end
+      inherited tbiLinkObject: TTBItem [21]
       end
     end
     inherited tbMainInvariant: TTBToolbar
@@ -57,7 +70,7 @@ inherited gdc_frmMainGood: Tgdc_frmMainGood
           end
         end
         inherited tbDetailCustom: TTBToolbar
-          Left = 309
+          Left = 298
         end
       end
     end

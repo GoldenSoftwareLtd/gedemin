@@ -1,9 +1,29 @@
 inherited gdc_frmAcctTransaction: Tgdc_frmAcctTransaction
-  Left = 358
-  Top = 68
+  Left = 260
+  Top = 103
   Caption = 'Типовые операции'
   PixelsPerInch = 96
   TextHeight = 13
+  inherited TBDockTop: TTBDock
+    inherited tbMainToolbar: TTBToolbar
+      inherited tbiNew: TTBItem
+        Visible = False
+      end
+      object TBSubmenuItem1: TTBSubmenuItem [1]
+        Action = actNew
+        DropdownCombo = True
+        object TBItem1: TTBItem
+          Action = actNew
+        end
+        object TBItem2: TTBItem
+          Action = actNewSub
+        end
+      end
+    end
+    inherited tbMainInvariant: TTBToolbar
+      Left = 286
+    end
+  end
   inherited pnlWorkArea: TPanel
     inherited sMasterDetail: TSplitter
       Left = 200
@@ -27,10 +47,28 @@ inherited gdc_frmAcctTransaction: Tgdc_frmAcctTransaction
   end
   inherited alMain: TActionList
     Top = 141
+    object actNewSub: TAction [1]
+      Category = 'Main'
+      Caption = 'Добавить подуровень...'
+      ImageIndex = 0
+      OnExecute = actNewSubExecute
+      OnUpdate = actNewSubUpdate
+    end
   end
   inherited pmMain: TPopupMenu
     Left = 115
     Top = 174
+    inherited nNew_OLD: TMenuItem
+      Action = nil
+      ShortCut = 0
+      OnClick = nil
+      object N1: TMenuItem
+        Action = actNew
+      end
+      object N2: TMenuItem
+        Action = actNewSub
+      end
+    end
   end
   inherited dsMain: TDataSource
     DataSet = gdcAcctTransaction
