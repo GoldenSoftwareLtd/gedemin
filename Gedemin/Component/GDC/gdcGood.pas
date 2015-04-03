@@ -143,6 +143,8 @@ type
   end;
 
   TgdcSelectedGood = class(TgdcGood)
+  public
+    class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
   end;
 
   procedure Register;
@@ -716,10 +718,7 @@ end;
 class function TgdcGood.GetViewFormClassName(
   const ASubType: TgdcSubType): String;
 begin
-  if Self = TgdcGood then
-    Result := 'Tgdc_frmMainGood'
-  else
-    Result := '';
+  Result := 'Tgdc_frmMainGood';
 end;
 
 function TgdcGood.GetTaxRateByID(const aID, TaxKey: Integer;
@@ -908,6 +907,11 @@ begin
 end;
 
 { TgdcSelectedGood }
+
+class function TgdcSelectedGood.GetViewFormClassName(const ASubType: TgdcSubType): String;
+begin
+  Result := 'Tgdc_frmInvSelectedGoods';
+end;
 
 procedure TgdcGood.CreateFields;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
