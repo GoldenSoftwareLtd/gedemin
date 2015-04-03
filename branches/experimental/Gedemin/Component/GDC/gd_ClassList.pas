@@ -1567,8 +1567,8 @@ begin
         Add('TgdcInvRemains', ASubType, Prnt.SubType, AnEntryClass, ACaption);
         Add('TgdcInvGoodRemains', ASubType, Prnt.SubType, AnEntryClass, ACaption);
         Add('TgdcSelectedGood', ASubType, Prnt.SubType, AnEntryClass, ACaption);
-        Add('TgdcInvMovement', ASubType, Prnt.SubType, AnEntryClass, ACaption);
         Add('Tgdc_frmInvSelectedGoods', ASubType, Prnt.SubType, AnEntryClass, ACaption);
+        Add('TgdcInvMovement', ASubType, Prnt.SubType, AnEntryClass, ACaption);
         Add('Tgdc_frmInvSelectGoodRemains', ASubType, Prnt.SubType, AnEntryClass, ACaption);
         Add('Tgdc_frmInvSelectRemains', ASubType, Prnt.SubType, AnEntryClass, ACaption);
       end
@@ -2108,7 +2108,7 @@ begin
     CopySubTree(CEInvDocument, Get(TgdBaseEntry, 'TgdcSelectedGood'));
     CopySubTree(CEInvDocument, Get(TgdBaseEntry, 'TgdcInvMovement'));
 
-    CopyFormSubTree(CEInvDocument, Get(TgdFormEntry, 'Tgdc_frmInvSelectedGoods'));
+    //CopyFormSubTree(CEInvDocument, Get(TgdFormEntry, 'Tgdc_frmInvSelectedGoods'));
     CopyFormSubTree(CEInvGoodRemains, Get(TgdFormEntry, 'Tgdc_frmInvSelectGoodRemains'));
     CopyFormSubTree(CEInvRemains, Get(TgdFormEntry, 'Tgdc_frmInvSelectRemains'));
   finally
