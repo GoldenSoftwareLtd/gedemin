@@ -1,6 +1,6 @@
 inherited gdc_ab_frmmain: Tgdc_ab_frmmain
-  Left = 398
-  Top = 392
+  Left = 219
+  Top = 221
   Width = 785
   Height = 405
   HelpContext = 31
@@ -15,7 +15,7 @@ inherited gdc_ab_frmmain: Tgdc_ab_frmmain
   inherited TBDockTop: TTBDock
     Width = 769
     inherited tbMainCustom: TTBToolbar
-      Left = 317
+      Left = 342
       DockPos = 317
     end
   end
@@ -80,6 +80,39 @@ inherited gdc_ab_frmmain: Tgdc_ab_frmmain
       Height = 183
       inherited TBDockDetail: TTBDock
         Width = 577
+        inherited tbDetailToolbar: TTBToolbar
+          object TBSubmenuItem2: TTBSubmenuItem [0]
+            Action = actAddCompany
+            DropdownCombo = True
+            object TBItem4: TTBItem
+              Action = actAddContact
+            end
+            object TBSeparatorItem2: TTBSeparatorItem
+            end
+            object TBItem3: TTBItem
+              Action = actAddCompany
+            end
+            object TBItem5: TTBItem
+              Action = actAddBank
+            end
+            object TBSeparatorItem3: TTBSeparatorItem
+            end
+            object TBItem2: TTBItem
+              Action = actAddEmployee
+            end
+            object TBSeparatorItem4: TTBSeparatorItem
+            end
+            object TBItem1: TTBItem
+              Action = actAddGroup
+            end
+          end
+          inherited tbiDetailNew: TTBItem
+            Visible = False
+          end
+        end
+        inherited tbDetailCustom: TTBToolbar
+          Left = 286
+        end
       end
       inherited pnlSearchDetail: TPanel
         Height = 157
@@ -116,9 +149,33 @@ inherited gdc_ab_frmmain: Tgdc_ab_frmmain
     inherited actDetailEdit: TAction
       Caption = 'Изменить'
     end
+    object actAddContact: TAction [21]
+      Caption = 'Добавить контакт'
+      OnExecute = actAddContactExecute
+    end
+    object actAddBank: TAction [22]
+      Caption = 'Добавить банк'
+      OnExecute = actAddBankExecute
+    end
+    object actAddCompany: TAction [23]
+      Caption = 'Добавить компанию'
+      ImageIndex = 0
+      OnExecute = actAddCompanyExecute
+    end
+    object actAddGroup: TAction [24]
+      Caption = 'Добавить группу'
+      ImageIndex = 3
+      OnExecute = actAddGroupExecute
+    end
+    object actAddFolder: TAction [25]
+      Caption = 'Добавить папку'
+      ImageIndex = 0
+      OnExecute = actAddFolderExecute
+    end
     object actAddEmployee: TAction
       Caption = 'Добавить сотрудника'
       ImageIndex = 0
+      OnExecute = actAddEmployeeExecute
     end
   end
   inherited pmMain: TPopupMenu
@@ -141,6 +198,21 @@ inherited gdc_ab_frmmain: Tgdc_ab_frmmain
   inherited pmDetail: TPopupMenu
     Left = 435
     Top = 230
+    inherited nDetailNew: TMenuItem
+      Action = nil
+      Caption = 'Добавить'
+      ShortCut = 0
+      OnClick = nil
+      object nAddCompany2: TMenuItem
+        Action = actAddCompany
+      end
+      object nAddContact2: TMenuItem
+        Action = actAddContact
+      end
+      object nAddBank2: TMenuItem
+        Action = actAddBank
+      end
+    end
   end
   object gdcContacts: TgdcBaseContact
     MasterSource = dsMain
