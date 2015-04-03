@@ -14,6 +14,10 @@ type
   Tgdc_frmDepartment = class(Tgdc_frmMDVTree)
     gdcDepartment: TgdcDepartment;
     IBTransaction: TIBTransaction;
+    actSubNew: TAction;
+    tbsiNew: TTBSubmenuItem;
+    tbiMenuSubNew: TTBItem;
+    tbiMenuNew: TTBItem;
     TBControlItem2: TTBControlItem;
     Label1: TLabel;
     TBControlItem1: TTBControlItem;
@@ -26,6 +30,9 @@ type
     procedure gdcDepartmentNewRecord(DataSet: TDataSet);
   private
     isHolding: Boolean;
+
+  protected
+    procedure SetGdcObject(const Value: TgdcBase); override;
 
   public
     procedure SaveSettings; override;
@@ -52,6 +59,14 @@ begin
   ibcmbCompany.CurrentKeyInt := IBLogin.CompanyKey;
 
   inherited;
+end;
+
+procedure Tgdc_frmDepartment.SetGdcObject(const Value: TgdcBase);
+begin
+  inherited;
+
+  tbsiNew.Visible := False;
+  tbiNew.Visible := True;
 end;
 
 procedure Tgdc_frmDepartment.actNewExecute(Sender: TObject);
