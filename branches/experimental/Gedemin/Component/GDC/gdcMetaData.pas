@@ -9264,10 +9264,9 @@ function TgdcTableToDefinedTable.CreateSimpleTable: String;
 begin
   Result := Format
   (
-    'CREATE TABLE %s (inheritedkey %s, CONSTRAINT %s PRIMARY KEY (inheritedkey))',
+    'CREATE TABLE %s (inheritedkey dintkey, CONSTRAINT %s PRIMARY KEY (inheritedkey))',
     [
       FieldByName('relationname').AsString,
-      FIDDomain,
       gdcBaseManager.AdjustMetaName(FieldByName('relationname').AsString + '_PK')
     ]
   );
