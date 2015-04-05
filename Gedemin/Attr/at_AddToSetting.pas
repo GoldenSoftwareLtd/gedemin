@@ -12,7 +12,8 @@ procedure AddToSetting(FromStorage: Boolean; ABranchName, AValueName: String;
 implementation
 
 uses
-  Windows, DB, gdcBaseInterface, at_dlgToSetting_unit, gdcNamespaceController;
+  Windows, DB, IBDatabase, IBSQL, gdcBaseInterface, at_dlgToSetting_unit,
+  at_dlgToNamespace_unit, gdcNamespace;
 
 procedure AddToSetting(FromStorage: Boolean; ABranchName, AValueName: String;
   AgdcObject: TgdcBase; BL: TBookmarkList);
@@ -24,10 +25,10 @@ begin
 
   if (GetAsyncKeyState(VK_SHIFT) shr 1) = 0 then
   begin
-    with TgdcNamespaceController.Create do
+    with TdlgToNamespace.Create(nil) do
     try
-      Setup(AgdcObject, BL);
-      ShowDialog;
+      SetupObject(AgdcObject, BL);
+      ShowModal;
     finally
       Free;
     end;

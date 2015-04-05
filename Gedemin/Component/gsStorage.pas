@@ -678,7 +678,8 @@ end;
 function TgsStorageFolder.CheckForName(const AName: String): String;
 begin
   Result := inherited CheckForName(AName);
-  if Assigned(FParent) and (FParent as TgsStorageFolder).FolderExists(AName) then
+  if Assigned(FParent) and (FParent as TgsStorageFolder).FolderExists(AName)
+    and ((FParent as TgsStorageFolder).FolderByName(AName) <> Self) then
     raise EgsStorageError.Create('Duplicate folder name');
 end;
 
