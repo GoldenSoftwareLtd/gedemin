@@ -351,12 +351,11 @@ type
   end;
 
   TgdcTableToDefinedTable = class(TgdcTableToTable)
-  private
-    function CreateSimpleTable: String; override;
-    function CreateForeignKey: String; override;
-
   protected
     procedure CreateRelationSQL(Scripts: TSQLProcessList); override;
+
+  public
+    class function GetPrimaryFieldName: String; override;
   end;
 
   TgdcTreeTable = class(TgdcTable)
@@ -9141,11 +9140,13 @@ function TgdcTableToTable.CreateSimpleTable: String;
 begin
   Result := Format
   (
-    'CREATE TABLE %s (id %s, CONSTRAINT %s PRIMARY KEY (id))',
+    'CREATE TABLE %s (%s %s, CONSTRAINT %s PRIMARY KEY (%s))',
     [
       FieldByName('relationname').AsString,
+      GetPrimaryFieldName,
       FIDDomain,
-      gdcBaseManager.AdjustMetaName(FieldByName('relationname').AsString + '_PK')
+      gdcBaseManager.AdjustMetaName(FieldByName('relationname').AsString + '_PK'),
+      GetPrimaryFieldName
     ]
   );
 end;
@@ -9154,10 +9155,11 @@ function TgdcTableToTable.CreateForeignKey: String;
 begin
  Result := Format
   (
-    'ALTER TABLE %s ADD CONSTRAINT %s FOREIGN KEY (id) REFERENCES %s (%s) ON UPDATE CASCADE ON DELETE CASCADE',
+    'ALTER TABLE %s ADD CONSTRAINT %s FOREIGN KEY (%s) REFERENCES %s (%s) ON UPDATE CASCADE ON DELETE CASCADE',
     [
       FieldByName('relationname').AsString,
       gdcBaseManager.AdjustMetaName(FieldByName('relationname').AsString + '_FK'),
+      GetPrimaryFieldName,
       GetReferenceName,
       GetKeyFieldName(GetReferenceName)
     ]
@@ -9224,7 +9226,8 @@ begin
 
     inherited;
 
-    FSQL.Add('DROP DOMAIN ' + KeyDomain.FieldName);
+    if KeyDomain.IsUserDefined then
+      FSQL.Add('DROP DOMAIN ' + KeyDomain.FieldName);
 
     ShowSQLProcess(FSQL);
   finally
@@ -9260,36 +9263,15 @@ end;
 
 { TgdcTableToDefinedTable }
 
-function TgdcTableToDefinedTable.CreateSimpleTable: String;
-begin
-  Result := Format
-  (
-    'CREATE TABLE %s (inheritedkey dintkey, CONSTRAINT %s PRIMARY KEY (inheritedkey))',
-    [
-      FieldByName('relationname').AsString,
-      gdcBaseManager.AdjustMetaName(FieldByName('relationname').AsString + '_PK')
-    ]
-  );
-end;
-
-function TgdcTableToDefinedTable.CreateForeignKey: String;
-begin
- Result := Format
-  (
-    'ALTER TABLE %s ADD CONSTRAINT %s FOREIGN KEY (inheritedkey) REFERENCES %s (%s) ON UPDATE CASCADE ON DELETE CASCADE',
-    [
-      FieldByName('relationname').AsString,
-      gdcBaseManager.AdjustMetaName(FieldByName('relationname').AsString + '_FK'),
-      GetReferenceName,
-      GetKeyFieldName(GetReferenceName)
-    ]
-  );
-end;
-
 procedure TgdcTableToDefinedTable.CreateRelationSQL(Scripts: TSQLProcessList);
 begin
   inherited;
-  atDatabase.NotifyMultiConnectionTransaction;
+  //atDatabase.NotifyMultiConnectionTransaction;
+end;
+
+class function TgdcTableToDefinedTable.GetPrimaryFieldName: String;
+begin
+  Result := 'INHERITEDKEY';
 end;
 
 { TgdcBaseTable }
