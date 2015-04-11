@@ -58,6 +58,7 @@ type
     procedure actMainGotoEntryExecute(Sender: TObject);
     procedure actViewAllCardExecute(Sender: TObject);
     procedure actCreateEntryUpdate(Sender: TObject);
+    procedure actDetailNewExecute(Sender: TObject);
 
   private
 
@@ -254,6 +255,27 @@ end;
 procedure Tgdc_frmInvDocument.actCreateEntryUpdate(Sender: TObject);
 begin
   actCreateEntry.Enabled := (gdcObject <> nil) and (gdcObject.CanEdit);
+end;
+
+procedure Tgdc_frmInvDocument.actDetailNewExecute(Sender: TObject);
+var
+  OldID: Integer;
+  C: TgdcFullClass;
+begin
+  if not gdcDetailObject.IsEmpty then
+    OldID := gdcDetailObject.ID
+  else
+    OldID := -1;
+
+  C := gdcObject.GetCurrRecordClass;
+  C.gdClass := CgdcBase(gdcDetailObject.ClassType);
+  gdcDetailObject.CreateDialog(C);
+
+  if OldID <> gdcDetailObject.ID then
+  begin
+    if ibgrDetail.SelectedRows.Count > 0 then
+      ibgrDetail.SelectedRows.Clear;
+  end;
 end;
 
 initialization

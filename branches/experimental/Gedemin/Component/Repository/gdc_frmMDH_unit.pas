@@ -447,9 +447,13 @@ begin
       if gdClassList.Get(TgdBaseEntry,
         FgdcDetailObject.ClassName, FgdcDetailObject.SubType).Count > 0 then
       begin
-        TCrTBItem(tbiDetailNew).ItemStyle :=
-          TCrTBItem(tbiDetailNew).ItemStyle + [tbisSubMenu, tbisSubitemsEditable, tbisCombo];
-        tbiDetailNew.OnPopup := tbiDetailNewPopup;
+        if (Self.ClassName <> 'Tgdc_frmUserComplexDocument')
+        and (Self.ClassName <> 'Tgdc_frmInvDocument') then
+        begin
+          TCrTBItem(tbiDetailNew).ItemStyle :=
+            TCrTBItem(tbiDetailNew).ItemStyle + [tbisSubMenu, tbisSubitemsEditable, tbisCombo];
+          tbiDetailNew.OnPopup := tbiDetailNewPopup;
+        end;
       end;
     end;
   end;
