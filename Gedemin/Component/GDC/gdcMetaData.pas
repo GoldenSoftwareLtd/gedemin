@@ -303,6 +303,10 @@ type
   end;
 
   TgdcTable = class(TgdcBaseTable)
+  protected
+    procedure CustomInsert(Buff: Pointer); override;
+    procedure CustomDelete(Buff: Pointer); override;
+    procedure CustomModify(Buff: Pointer); override;
   end;
 
   TgdcPrimeTable = class(TgdcTable)
@@ -2008,7 +2012,6 @@ procedure TgdcRelation.CustomInsert(Buff: Pointer);
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-  Prnt: TgdClassEntry;
 begin
   {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCRELATION', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  try
@@ -2038,23 +2041,6 @@ begin
 
   atDatabase.Relations.RefreshData(Database, Transaction, True);
   Clear_atSQLSetupCache;
-
-  Prnt := nil;
-
-  if Self is TgdcLBRBTreeTable then
-    Prnt := gdClassList.Get(TgdBaseEntry, 'TgdcAttrUserDefinedLBRBTree')
-  else if Self is TgdcTreeTable then
-    Prnt := gdClassList.Get(TgdBaseEntry, 'TgdcAttrUserDefinedTree')
-  else if (Self is TgdcSimpleTable) or (Self is TgdcPrimeTable) or (Self is TgdcTableToTable) then
-    Prnt := gdClassList.Get(TgdBaseEntry, 'TgdcAttrUserDefined')
-  else if Self is TgdcTableToDefinedTable then
-    Prnt := gdClassList.FindByRelation((Self as TgdcTableToDefinedTable).GetReferenceName);
-
-  if Prnt = nil then
-    raise EgdcException.CreateObj('Unknown metadata class.', Self);
-
-  gdClassList.Add(Prnt.TheClass, FieldByName('relationname').AsString,
-    Prnt.SubType, CgdClassEntry(Prnt.ClassType), FieldByName('lname').AsString);
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCRELATION', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  finally
@@ -2161,10 +2147,6 @@ begin
   {END MACRO}
 
   inherited;
-  //непонятно вообще зачем полезли на такой низкий уровень????
-  if Self.ClassType.InheritsFrom(TgdcTable) then
-    if FieldChanged('lname') then
-      gdClassList.LoadRelation(FieldByName('relationname').AsString);
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCRELATION', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
   {M}  finally
@@ -2356,15 +2338,12 @@ begin
     atDatabase.Relations.Remove(atDatabase.Relations.ByRelationName(DelRelName));
   end;
 
-  gdClassList.RemoveSubType(DelRelName);
-
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCRELATION', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
   {M}      ClearMacrosStack2('TGDCRELATION', 'CUSTOMDELETE', KEYCUSTOMDELETE);
   {M}  end;
   {END MACRO}
-
 end;
 
 procedure TgdcRelation.TestRelationName;
@@ -9588,6 +9567,146 @@ end;
 
 var
   TrCount: Integer;
+
+{ TgdcTable }
+
+procedure TgdcTable.CustomInsert(Buff: Pointer);
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+  Prnt: TgdClassEntry;
+begin
+  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCTABLE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCTABLE', KEYCUSTOMINSERT);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMINSERT]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCTABLE') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCTABLE',
+  {M}          'CUSTOMINSERT', KEYCUSTOMINSERT, Params, LResult) then
+  {M}          exit;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCTABLE' then
+  {M}        begin
+  {M}          Inherited;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  inherited;
+
+  Prnt := nil;
+
+  if Self is TgdcLBRBTreeTable then
+    Prnt := gdClassList.Get(TgdBaseEntry, 'TgdcAttrUserDefinedLBRBTree')
+  else if Self is TgdcTreeTable then
+    Prnt := gdClassList.Get(TgdBaseEntry, 'TgdcAttrUserDefinedTree')
+  else if (Self is TgdcSimpleTable) or (Self is TgdcPrimeTable) or (Self is TgdcTableToTable) then
+    Prnt := gdClassList.Get(TgdBaseEntry, 'TgdcAttrUserDefined')
+  else if Self is TgdcTableToDefinedTable then
+    Prnt := gdClassList.FindByRelation((Self as TgdcTableToDefinedTable).GetReferenceName);
+
+  if Prnt = nil then
+    raise EgdcException.CreateObj('Unknown metadata class.', Self);
+
+  gdClassList.Add(Prnt.TheClass, FieldByName('relationname').AsString,
+    Prnt.SubType, CgdClassEntry(Prnt.ClassType), FieldByName('lname').AsString);
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCTABLE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCTABLE', 'CUSTOMINSERT', KEYCUSTOMINSERT);
+  {M}  end;
+  {END MACRO}
+end;
+
+procedure TgdcTable.CustomDelete(Buff: Pointer);
+var
+  {@UNFOLD MACRO INH_ORIG_PARAMS()}
+  {M}
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+begin
+  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCTABLE', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCTABLE', KEYCUSTOMDELETE);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMDELETE]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCTABLE') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCTABLE',
+  {M}          'CUSTOMDELETE', KEYCUSTOMDELETE, Params, LResult) then
+  {M}          exit;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCTABLE' then
+  {M}        begin
+  {M}          Inherited;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  inherited;
+
+  gdClassList.RemoveSubType(FieldByName('relationname').AsString);
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCTABLE', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCTABLE', 'CUSTOMDELETE', KEYCUSTOMDELETE);
+  {M}  end;
+  {END MACRO}
+end;
+
+procedure TgdcTable.CustomModify(Buff: Pointer);
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+begin
+  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCTABLE', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCTABLE', KEYCUSTOMMODIFY);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMMODIFY]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCTABLE') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCTABLE',
+  {M}          'CUSTOMMODIFY', KEYCUSTOMMODIFY, Params, LResult) then
+  {M}          exit;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCTABLE' then
+  {M}        begin
+  {M}          Inherited;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  inherited;
+
+  if FieldChanged('lname') then
+    gdClassList.LoadRelation(FieldByName('relationname').AsString);
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCRELATION', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCRELATION', 'CUSTOMMODIFY', KEYCUSTOMMODIFY);
+  {M}  end;
+  {END MACRO}
+end;
 
 { TgdcPrimeTable }
 

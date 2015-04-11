@@ -25,6 +25,7 @@ type
     procedure actGotoEntryExecute(Sender: TObject);
     procedure actMainGotoEntryExecute(Sender: TObject);
     procedure actCreateEntryUpdate(Sender: TObject);
+    procedure actDetailNewExecute(Sender: TObject);
 
   public
     class function CreateAndAssign(AnOwner: TComponent): TForm; override;
@@ -146,6 +147,27 @@ procedure Tgdc_frmUserComplexDocument.actCreateEntryUpdate(
   Sender: TObject);
 begin
   actCreateEntry.Enabled := (gdcObject <> nil) and gdcObject.CanEdit;
+end;
+
+procedure Tgdc_frmUserComplexDocument.actDetailNewExecute(Sender: TObject);
+var
+  OldID: Integer;
+  C: TgdcFullClass;
+begin
+  if not gdcDetailObject.IsEmpty then
+    OldID := gdcDetailObject.ID
+  else
+    OldID := -1;
+
+  C := gdcObject.GetCurrRecordClass;
+  C.gdClass := CgdcBase(gdcDetailObject.ClassType);
+  gdcDetailObject.CreateDialog(C);
+
+  if OldID <> gdcDetailObject.ID then
+  begin
+    if ibgrDetail.SelectedRows.Count > 0 then
+      ibgrDetail.SelectedRows.Clear;
+  end;
 end;
 
 initialization
