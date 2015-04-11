@@ -78,7 +78,7 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
       end
       object lblReference: TLabel
         Left = 6
-        Top = 262
+        Top = 201
         Width = 218
         Height = 13
         Caption = 'Ссылка на таблицу (связь один к одному):'
@@ -93,14 +93,14 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
       end
       object Label3: TLabel
         Left = 6
-        Top = 291
+        Top = 230
         Width = 206
         Height = 13
         Caption = 'Поле для отображения (на английском):'
       end
       object Label4: TLabel
         Left = 6
-        Top = 321
+        Top = 260
         Width = 235
         Height = 31
         AutoSize = False
@@ -111,33 +111,17 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
       end
       object Label5: TLabel
         Left = 6
-        Top = 356
+        Top = 295
         Width = 70
         Height = 13
         Caption = 'Бизнес-класс:'
       end
       object Label6: TLabel
         Left = 6
-        Top = 381
+        Top = 320
         Width = 42
         Height = 13
         Caption = 'Подтип:'
-      end
-      object lbParentClass: TLabel
-        Left = 8
-        Top = 208
-        Width = 65
-        Height = 13
-        Caption = 'lbParentClass'
-        Visible = False
-      end
-      object lbParentSubType: TLabel
-        Left = 8
-        Top = 232
-        Width = 82
-        Height = 13
-        Caption = 'lbParentSubType'
-        Visible = False
       end
       object dbedRelationName: TDBEdit
         Left = 256
@@ -182,7 +166,7 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
       end
       object ibcmbReference: TgsIBLookupComboBox
         Left = 256
-        Top = 259
+        Top = 198
         Width = 222
         Height = 21
         HelpContext = 1
@@ -221,7 +205,7 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
       end
       object dbeExtendedFields: TDBEdit
         Left = 256
-        Top = 321
+        Top = 260
         Width = 222
         Height = 21
         CharCase = ecUpperCase
@@ -231,7 +215,7 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
       end
       object dbeListField: TDBEdit
         Left = 256
-        Top = 291
+        Top = 230
         Width = 222
         Height = 21
         CharCase = ecUpperCase
@@ -241,7 +225,7 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
       end
       object lClass: TEdit
         Left = 256
-        Top = 356
+        Top = 295
         Width = 222
         Height = 21
         TabStop = False
@@ -251,40 +235,13 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
       end
       object lSubType: TEdit
         Left = 256
-        Top = 381
+        Top = 320
         Width = 222
         Height = 21
         TabStop = False
         BorderStyle = bsNone
         Color = clBtnFace
         TabOrder = 9
-      end
-      object edParentClass: TEdit
-        Left = 256
-        Top = 200
-        Width = 222
-        Height = 21
-        ReadOnly = True
-        TabOrder = 10
-        Visible = False
-      end
-      object edParentSubType: TEdit
-        Left = 256
-        Top = 224
-        Width = 222
-        Height = 21
-        ReadOnly = True
-        TabOrder = 11
-        Visible = False
-      end
-      object btnSelectClass: TButton
-        Left = 480
-        Top = 200
-        Width = 25
-        Height = 25
-        Action = actSelectClass
-        TabOrder = 12
-        Visible = False
       end
     end
     object tsFields: TTabSheet
@@ -1370,11 +1327,6 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
       ImageIndex = 2
       OnExecute = actDeleteCheckExecute
       OnUpdate = actDeleteCheckUpdate
-    end
-    object actSelectClass: TAction
-      Caption = '...'
-      Hint = 'Выбор класса'
-      OnExecute = actSelectClassExecute
     end
   end
   inherited dsgdcBase: TDataSource
