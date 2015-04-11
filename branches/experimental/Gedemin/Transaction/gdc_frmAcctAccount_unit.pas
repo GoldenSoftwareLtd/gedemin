@@ -42,12 +42,10 @@ type
     procedure actNewSubAccountExecute(Sender: TObject);
     procedure actNewSubAccountUpdate(Sender: TObject);
     procedure actAddAnalizeExecute(Sender: TObject);
+    procedure actDetailNewExecute(Sender: TObject);
     procedure actNewFolderUpdate(Sender: TObject);
     procedure actNewAccountUpdate(Sender: TObject);
     procedure actAddAnalizeUpdate(Sender: TObject);
-  protected
-     procedure SetGdcObject(const Value: TgdcBase); override;
-     procedure SetgdcDetailObject(const Value: TgdcBase); override;
 
   public
     procedure SetChoose(AnObject: TgdcBase); override;
@@ -80,82 +78,52 @@ begin
   end;
 end;
 
-procedure Tgdc_frmAcctAccount.SetGdcObject(const Value: TgdcBase);
-begin
-  inherited;
-
-  TBSubmenuItem1.Visible := False;
-  tbiNew.Visible := True;
-
-  nNew_OLD.Clear;
-  nNew_OLD.Action := actNew;
-
-  tbi_mm_New.Visible := True;
-end;
-
-procedure Tgdc_frmAcctAccount.SetgdcDetailObject(const Value: TgdcBase);
-begin
-  inherited;
-
-  TBSubmenuItem2.Visible := False;
-  tbiDetailNew.Visible := True;
-
-  nDetailNew.Clear;
-  nDetailNew.Action := actDetailNew;
-
-  tbi_mm_DetailNew.Visible := True;
-end;
-
 procedure Tgdc_frmAcctAccount.actNewChartExecute(Sender: TObject);
 begin
   gdcObject.CreateDialog(MakeFullClass(TgdcAcctChart, ''));
 end;
 
 procedure Tgdc_frmAcctAccount.actNewFolderExecute(Sender: TObject);
-//var
-//  Obj: TgdcBase;
+var
+  Obj: TgdcBase;
 begin
-//Это еще возможно пригодится
-//  Obj := TgdcAcctFolder.Create(Self);
-//  try
-//    Obj.SubSet := 'ByID';
-//    Obj.Open;
-//    Obj.Insert;
-//    Obj.FieldByName('parent').AsInteger := gdcObject.ID;
-//    if Obj.CreateDialog then
-//    begin
-//      gdcObject.Close;
-//      gdcObject.Open;
-//      gdcObject.Locate('ID', Obj.ID, []);
-//    end;
-//    Obj.Close;
-//  finally
-//    Obj.Free;
-//  end;
+  Obj := TgdcAcctFolder.Create(Self);
+  try
+    Obj.SubSet := 'ByID';
+    Obj.Open;
+    Obj.Insert;
+    Obj.FieldByName('parent').AsInteger := gdcObject.ID;
+    if Obj.CreateDialog then
+    begin
+      gdcObject.Close;
+      gdcObject.Open;
+      gdcObject.Locate('ID', Obj.ID, []);
+    end;
+    Obj.Close;
+  finally
+    Obj.Free;
+  end;
 end;
 
 procedure Tgdc_frmAcctAccount.actNewAccountExecute(Sender: TObject);
 begin
-  //Это еще возможно пригодится
-  //gdcAcctAccount.Parent := gdcObject.ID;
-  //gdcDetailObject.CreateDialog(MakeFullClass(TgdcAcctAccount, ''));
+  gdcAcctAccount.Parent := gdcObject.ID;
+  gdcDetailObject.CreateDialog(MakeFullClass(TgdcAcctAccount, ''));
 end;
 
 procedure Tgdc_frmAcctAccount.actNewSubAccountExecute(Sender: TObject);
 begin
-  //Это еще возможно пригодится
-  //gdcAcctAccount.Parent := gdcDetailObject.ID;
-  //gdcDetailObject.CreateDialog(TgdcAcctSubAccount);
+  gdcAcctAccount.Parent := gdcDetailObject.ID;
+  gdcDetailObject.CreateDialog(TgdcAcctSubAccount);
 end;
 
 procedure Tgdc_frmAcctAccount.actNewSubAccountUpdate(Sender: TObject);
 begin
-  //Это еще возможно пригодится
-  //TAction(Sender).Enabled := gdcDetailObject.Active
-  //  and (not gdcDetailObject.IsEmpty)
-  //  and gdcObject.Active
-  //  and (not gdcObject.IsEmpty)
-  //  and (gdcObject.FieldByName('accounttype').AsString = 'F');
+  TAction(Sender).Enabled := gdcDetailObject.Active
+    and (not gdcDetailObject.IsEmpty)
+    and gdcObject.Active
+    and (not gdcObject.IsEmpty)
+    and (gdcObject.FieldByName('accounttype').AsString = 'F');
 end;
 
 procedure Tgdc_frmAcctAccount.actAddAnalizeExecute(Sender: TObject);
@@ -167,6 +135,7 @@ begin
     finally
       Free;
     end;
+
 end;
 
 procedure Tgdc_frmAcctAccount.SetChoose(AnObject: TgdcBase);
@@ -206,19 +175,23 @@ begin
   {END MACRO}
 end;
 
+procedure Tgdc_frmAcctAccount.actDetailNewExecute(Sender: TObject);
+begin
+//  inherited;
+
+end;
+
 procedure Tgdc_frmAcctAccount.actNewFolderUpdate(Sender: TObject);
 begin
-  //Это еще возможно пригодится
-  //actNewFolder.Enabled := Assigned(gdcObject)
-  //  and (not gdcObject.IsEmpty);
+  actNewFolder.Enabled := Assigned(gdcObject)
+    and (not gdcObject.IsEmpty);
 end;
 
 procedure Tgdc_frmAcctAccount.actNewAccountUpdate(Sender: TObject);
 begin
-  //Это еще возможно пригодится
-  //actNewAccount.Enabled := gdcObject.Active
-  //  and (not gdcObject.IsEmpty)
-  //  and (gdcObject.FieldByName('accounttype').AsString = 'F');
+  actNewAccount.Enabled := gdcObject.Active
+    and (not gdcObject.IsEmpty)
+    and (gdcObject.FieldByName('accounttype').AsString = 'F');
 end;
 
 procedure Tgdc_frmAcctAccount.actAddAnalizeUpdate(Sender: TObject);

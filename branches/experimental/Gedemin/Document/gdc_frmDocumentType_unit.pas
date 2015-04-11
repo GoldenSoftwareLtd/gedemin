@@ -39,11 +39,6 @@ type
     procedure tvGroupGetImageIndex(Sender: TObject; Node: TTreeNode);
   private
 
-  protected
-    procedure SetGdcObject(const Value: TgdcBase); override;
-
-    procedure SetgdcDetailObject(const Value: TgdcBase); override;
-
   public
     class function CreateAndAssign(AnOwner: TComponent): TForm; override;
 
@@ -59,26 +54,6 @@ implementation
 uses gdcBaseInterface,  gd_ClassList, gdcInvPriceList_unit, gdcInvDocument_unit;
 
 { Tgdc_frmDocumentType }
-
-procedure Tgdc_frmDocumentType.SetgdcDetailObject(const Value: TgdcBase);
-begin
-  inherited;
-
-  tbsmNew.Visible := False;
-
-  tbiDetailNew.Visible := True;
-  actDetailNew.Visible := True;
-  actDetailNew.OnExecute := actDetailNewExecute;
-end;
-
-procedure Tgdc_frmDocumentType.SetGdcObject(const Value: TgdcBase);
-begin
-  inherited;
-
-  TBSubmenuItem1.Visible := False;
-  
-  tbiNew.Visible := True;
-end;
 
 class function Tgdc_frmDocumentType.CreateAndAssign(
   AnOwner: TComponent): TForm;
@@ -98,69 +73,86 @@ end;
 
 procedure Tgdc_frmDocumentType.actNewSubExecute(Sender: TObject);
 begin
-  // Не удалять!!! Нужен для поддержки dfm до наследования!!!
+  (gdcObject as TgdcTree).CreateChildrenDialog(TgdcDocumentBranch);
 end;
 
 procedure Tgdc_frmDocumentType.actNewSubUpdate(Sender: TObject);
 begin
-  // Не удалять!!! Нужен для поддержки dfm до наследования!!!
+  actNewSub.Enabled :=
+    (gdcObject <> nil) and (gdcObject.CanCreate)
+    and (gdcObject.State = dsBrowse)
+    and (not gdcObject.EOF);
 end;
 
 procedure Tgdc_frmDocumentType.actDetailNewExecute(Sender: TObject);
-var
-  N: TTreeNode;
-  RUID: String;
 begin
-  N := tvGroup.Selected;
-  while (N <> nil) and (N.Parent <> nil) do
-    N := N.Parent;
-
-  if N <> nil then
-  begin
-    RUID := gdcBaseManager.GetRUIDStringByID(Integer(N.Data));
-    if RUID = '804000_17' then
-      gdcDetailObject.CreateDialog(TgdcInvDocumentType)
-    else
-      if RUID = '805000_17' then
-        gdcDetailObject.CreateDialog(TgdcInvPriceListType)
-      else
-        gdcDetailObject.CreateDialog(TgdcUserDocumentType);
-  end;
+  gdcDocumentType.CreateDialog;
 end;
 
 procedure Tgdc_frmDocumentType.actAddUserDocExecute(Sender: TObject);
 begin
-  // Не удалять!!! Нужен для поддержки dfm до наследования!!!
+  gdcDetailObject.CreateDialog(TgdcUserDocumentType);
 end;
 
 procedure Tgdc_frmDocumentType.actAddInvDocumentExecute(Sender: TObject);
 begin
-  // Не удалять!!! Нужен для поддержки dfm до наследования!!!
+  gdcDetailObject.CreateDialog(TgdcInvDocumentType);
 end;
 
 procedure Tgdc_frmDocumentType.actAddInvPriceListExecute(Sender: TObject);
 begin
-  // Не удалять!!! Нужен для поддержки dfm до наследования!!!
+  gdcDetailObject.CreateDialog(TgdcInvPriceListType);
 end;
 
 procedure Tgdc_frmDocumentType.actAddInvDocumentUpdate(Sender: TObject);
+var
+  N: TTreeNode;
 begin
-  // Не удалять!!! Нужен для поддержки dfm до наследования!!!
+  N := tvGroup.Selected;
+  while (N <> nil) and (N.Parent <> nil) do
+    N := N.Parent;
+  actAddInvDocument.Enabled := actDetailNew.Enabled
+    and (N <> nil)
+    and (gdcBaseManager.GetRUIDStringByID(Integer(N.Data)) = '804000_17');
 end;
 
 procedure Tgdc_frmDocumentType.actAddInvPriceListUpdate(Sender: TObject);
+var
+  N: TTreeNode;
 begin
-  // Не удалять!!! Нужен для поддержки dfm до наследования!!!
+  N := tvGroup.Selected;
+  while (N <> nil) and (N.Parent <> nil) do
+    N := N.Parent;
+  actAddInvPriceList.Enabled := actDetailNew.Enabled
+    and (N <> nil)
+    and (gdcBaseManager.GetRUIDStringByID(Integer(N.Data)) = '805000_17');
 end;
 
 procedure Tgdc_frmDocumentType.actAddUserDocUpdate(Sender: TObject);
+var
+  N: TTreeNode;
 begin
-  // Не удалять!!! Нужен для поддержки dfm до наследования!!!
+  N := tvGroup.Selected;
+  while (N <> nil) and (N.Parent <> nil) do
+    N := N.Parent;
+  actAddUserDoc.Enabled := actDetailNew.Enabled
+    and (N <> nil)
+    and (gdcBaseManager.GetRUIDStringByID(Integer(N.Data)) <> '805000_17')
+    and (gdcBaseManager.GetRUIDStringByID(Integer(N.Data)) <> '804000_17');
 end;
 
 procedure Tgdc_frmDocumentType.tbsmNewClick(Sender: TObject);
 begin
-  // Не удалять!!! Нужен для поддержки dfm до наследования!!!
+  actAddUserDoc.Update;
+  actAddInvPriceList.Update;
+  actAddInvDocument.Update;
+
+  if actAddUserDoc.Enabled then
+    actAddUserDoc.Execute
+  else if actAddInvPriceList.Enabled then
+    actAddInvPriceList.Execute
+  else if actAddInvDocument.Enabled then
+    actAddInvDocument.Execute;
 end;
 
 procedure Tgdc_frmDocumentType.actNewExecute(Sender: TObject);

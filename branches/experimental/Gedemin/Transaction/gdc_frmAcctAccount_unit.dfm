@@ -1,6 +1,6 @@
 inherited gdc_frmAcctAccount: Tgdc_frmAcctAccount
-  Left = 333
-  Top = 61
+  Left = 212
+  Top = 48
   HelpContext = 160
   Caption = 'План счетов'
   PixelsPerInch = 96
@@ -71,6 +71,9 @@ inherited gdc_frmAcctAccount: Tgdc_frmAcctAccount
             Action = actAddAnalize
             Caption = 'Добавить аналитику'
           end
+        end
+        inherited tbDetailCustom: TTBToolbar
+          Left = 309
         end
       end
     end
