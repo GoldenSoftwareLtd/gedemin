@@ -1530,28 +1530,61 @@ begin
     if (ASubType > '') and AClass.InheritsFrom(TgdcBase)
       and (not CgdcBase(AClass).IsAbstractClass) then
     begin
-      CN := CgdcBase(AClass).GetDialogFormClassName(ASubType);
-      if (CN > '') and (CN <> TgdcBase.GetDialogFormClassName(ASubType)) then
+      if (AClass.ClassName = 'TgdcUserDocument') then
       begin
-        if (Prnt <> nil) and (Prnt.SubType > '') and (Prnt is TgdBaseEntry)
-          and (TgdBaseEntry(Prnt).gdcClass.GetDialogFormClassName(Prnt.SubType) = CN) then
+        if (Prnt <> nil) and (Prnt.SubType > '') and (Prnt is TgdBaseEntry) then
         begin
           ParentST := Prnt.SubType;
         end else
           ParentST := '';
-        Add(CN, ASubType, ParentST, TgdFormEntry, '');
+        
+        CN := 'Tgdc_dlgUserComplexDocument';
+        Add(CN, ASubType, Prnt.SubType, TgdDocumentEntry, '');
+        CN := 'Tgdc_dlgUserSimpleDocument';
+        Add(CN, ASubType, ParentST, TgdDocumentEntry, '');
+      end
+      else
+      begin
+        CN := CgdcBase(AClass).GetDialogFormClassName(ASubType);
+        if (CN > '') and (CN <> TgdcBase.GetDialogFormClassName(ASubType)) then
+        begin
+          if (Prnt <> nil) and (Prnt.SubType > '') and (Prnt is TgdBaseEntry)
+            and (TgdBaseEntry(Prnt).gdcClass.GetDialogFormClassName(Prnt.SubType) = CN) then
+          begin
+            ParentST := Prnt.SubType;
+          end else
+            ParentST := '';
+          Add(CN, ASubType, ParentST, TgdFormEntry, '');
+        end;
       end;
 
-      CN := CgdcBase(AClass).GetViewFormClassName(ASubType);
-      if CN > '' then
+      if (AClass.ClassName = 'TgdcUserDocument')
+        or (AClass.ClassName = 'TgdcUserDocumentLine') then
       begin
-        if (Prnt <> nil) and (Prnt.SubType > '') and (Prnt is TgdBaseEntry)
-          and (TgdBaseEntry(Prnt).gdcClass.GetViewFormClassName(Prnt.SubType) = CN) then
+        if (Prnt <> nil) and (Prnt.SubType > '') and (Prnt is TgdBaseEntry) then
         begin
           ParentST := Prnt.SubType;
         end else
           ParentST := '';
+
+        CN := 'Tgdc_frmUserSimpleDocument';
         Add(CN, ASubType, Prnt.SubType, TgdDocumentEntry, '');
+        CN := 'Tgdc_frmUserComplexDocument';
+        Add(CN, ASubType, ParentST, TgdDocumentEntry, '');
+      end
+      else
+      begin
+        CN := CgdcBase(AClass).GetViewFormClassName(ASubType);
+        if CN > '' then
+        begin
+          if (Prnt <> nil) and (Prnt.SubType > '') and (Prnt is TgdBaseEntry)
+            and (TgdBaseEntry(Prnt).gdcClass.GetViewFormClassName(Prnt.SubType) = CN) then
+          begin
+            ParentST := Prnt.SubType;
+          end else
+            ParentST := '';
+          Add(CN, ASubType, ParentST, TgdDocumentEntry, '');
+        end;
       end;
     end;
 
@@ -1872,29 +1905,61 @@ begin
   if (ACE.SubType > '')
     and (not TgdBaseEntry(ACE).gdcClass.IsAbstractClass) then
   begin
-    CN := TgdBaseEntry(ACE).gdcClass.GetDialogFormClassName(ACE.SubType);
-    if (CN > '') and (CN <> TgdcBase.GetDialogFormClassName(ACE.SubType)) then
+    if (ACE.TheClass.ClassName = 'TgdcUserDocument') then
     begin
-      if (ACE.Parent is TgdBaseEntry) and (ACE.Parent.SubType > '')
-        and (TgdBaseEntry(ACE.Parent).gdcClass.GetDialogFormClassName(ACE.Parent.SubType) = CN) then
-      begin
-        ParentST := ACE.Parent.SubType;
-      end else
+      if (ACE.Parent is TgdBaseEntry) and (ACE.Parent.SubType > '') then
+        ParentST := ACE.Parent.SubType
+      else
         ParentST := '';
-      Add(CN, ACE.SubType, ParentST, TgdFormEntry, '');
+
+      CN := 'Tgdc_dlgUserComplexDocument';
+      Add(CN, ACE.SubType, ParentST, TgdDocumentEntry, '');
+      CN := 'Tgdc_dlgUserSimpleDocument';
+      Add(CN, ACE.SubType, ParentST, TgdDocumentEntry, '');
+    end
+    else
+    begin
+      CN := TgdBaseEntry(ACE).gdcClass.GetDialogFormClassName(ACE.SubType);
+      if (CN > '') and (CN <> TgdcBase.GetDialogFormClassName(ACE.SubType)) then
+      begin
+        if (ACE.Parent is TgdBaseEntry) and (ACE.Parent.SubType > '')
+          and (TgdBaseEntry(ACE.Parent).gdcClass.GetDialogFormClassName(ACE.Parent.SubType) = CN) then
+        begin
+          ParentST := ACE.Parent.SubType;
+        end else
+          ParentST := '';
+        Add(CN, ACE.SubType, ParentST, TgdFormEntry, '');
+      end;
     end;
 
-    CN := TgdBaseEntry(ACE).gdcClass.GetViewFormClassName(ACE.SubType);
-    if CN > '' then
+    if (ACE.TheClass.ClassName = 'TgdcUserDocument')
+      or (ACE.TheClass.ClassName = 'TgdcUserDocumentLine') then
     begin
-      if (ACE.Parent is TgdBaseEntry) and (ACE.Parent.SubType > '')
-        and (TgdBaseEntry(ACE.Parent).gdcClass.GetViewFormClassName(ACE.Parent.SubType) = CN) then
-      begin
-        ParentST := ACE.Parent.SubType;
-      end else
+      if (ACE.Parent is TgdBaseEntry) and (ACE.Parent.SubType > '') then
+        ParentST := ACE.Parent.SubType
+      else
         ParentST := '';
-      Add(CN, ACE.SubType, ParentST, TgdFormEntry, '');
+
+      CN := 'Tgdc_frmUserSimpleDocument';
+      Add(CN, ACE.SubType, ParentST, TgdDocumentEntry, '');
+      CN := 'Tgdc_frmUserComplexDocument';
+      Add(CN, ACE.SubType, ParentST, TgdDocumentEntry, '');
+    end
+    else
+    begin
+      CN := TgdBaseEntry(ACE).gdcClass.GetViewFormClassName(ACE.SubType);
+      if CN > '' then
+      begin
+        if (ACE.Parent is TgdBaseEntry) and (ACE.Parent.SubType > '')
+          and (TgdBaseEntry(ACE.Parent).gdcClass.GetViewFormClassName(ACE.Parent.SubType) = CN) then
+        begin
+          ParentST := ACE.Parent.SubType;
+        end else
+          ParentST := '';
+        Add(CN, ACE.SubType, ParentST, TgdFormEntry, '');
+      end;
     end;
+    
   end;
   Result := True;
 end;
