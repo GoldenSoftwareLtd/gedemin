@@ -30,6 +30,8 @@ type
   TgdcDocumentTable = class(TgdcBaseDocumentTable)
   end;
 
+  TgdcTableToDocumentTable = class(TgdcBaseDocumentTable)
+  end;
 
   TgdcBaseDocumentLineTable = class(TgdcBaseDocumentTable)
   protected
@@ -42,6 +44,8 @@ type
   TgdcDocumentLineTable = class(TgdcBaseDocumentLineTable)
   end;
 
+  TgdcTableToDocumentLineTable = class(TgdcBaseDocumentLineTable)
+  end;
 
   TgdcInvSimpleDocumentLineTable = class(TgdcBaseDocumentLineTable)
   protected
@@ -108,15 +112,28 @@ end;
 
 function TgdcBaseDocumentTable.CreateDocumentTable: String;
 begin
-  Result := Format(
-    'CREATE TABLE %s '#13#10 +
-    '( '#13#10 +
-    '  documentkey               dintkey, '#13#10 +
-    '  reserved                  dinteger, '#13#10 +
+  if (Self.ClassType <> TgdcTableToDocumentTable)
+    and (Self.ClassType <> TgdcTableToDocumentLineTable) then
+  begin
+    Result := Format(
+      'CREATE TABLE %s '#13#10 +
+      '( '#13#10 +
+      '  documentkey               dintkey, '#13#10 +
+      '  reserved                  dinteger, '#13#10 +
+      
+      '  PRIMARY KEY (documentkey) '#13#10 +
+      ')',
+      [FieldByName('relationname').AsString]);
+  end
+  else
+    Result := Format(
+      'CREATE TABLE %s '#13#10 +
+      '( '#13#10 +
+      '  documentkey               dintkey, '#13#10 +
 
-    '  PRIMARY KEY (documentkey) '#13#10 +
-    ')',
-    [FieldByName('relationname').AsString]);
+      '  PRIMARY KEY (documentkey) '#13#10 +
+      ')',
+      [FieldByName('relationname').AsString]);
 end;
 
 procedure TgdcBaseDocumentTable.CreateRelationSQL(Scripts: TSQLProcessList);
@@ -148,9 +165,14 @@ begin
     NewField('DOCUMENTKEY',
       'Ключ документа', 'DINTKEY', 'Ключ документа', 'Ключ документа',
       'L', '10', '1', '0');
-    NewField('RESERVED',
-      'Зарезервировано', 'DRESERVED', 'Зарезервировано', 'Зарезервировано',
-      'L', '10', '1', '0');
+
+    if (Self.ClassType <> TgdcTableToDocumentTable)
+      and (Self.ClassType <> TgdcTableToDocumentLineTable) then
+    begin
+      NewField('RESERVED',
+        'Зарезервировано', 'DRESERVED', 'Зарезервировано', 'Зарезервировано',
+        'L', '10', '1', '0');
+    end;
   end;
 
 end;
@@ -165,16 +187,19 @@ begin
   inherited CreateRelationSQL(Scripts);
 
   NeedSingleUser := True;
-  Scripts.Add(Format('ALTER TABLE %s ADD masterkey DMASTERKEY ',
-    [FieldByName('relationname').AsString]));
+  if Self.ClassType <> TgdcTableToDocumentLineTable then
+  begin
+    Scripts.Add(Format('ALTER TABLE %s ADD masterkey DMASTERKEY ',
+      [FieldByName('relationname').AsString]));
 
-  S := gdcBaseManager.AdjustMetaName(Format('USR$FK%0:s_MK',
-    [FieldByName('relationname').AsString]));
+    S := gdcBaseManager.AdjustMetaName(Format('USR$FK%0:s_MK',
+      [FieldByName('relationname').AsString]));
 
-  Scripts.Add(Format(
-    'ALTER TABLE %0:s ADD CONSTRAINT %1:s ' +
-    '  FOREIGN KEY (masterkey) REFERENCES gd_document(id) ON UPDATE CASCADE ON DELETE CASCADE ',
-    [FieldByName('relationname').AsString, S]));
+    Scripts.Add(Format(
+      'ALTER TABLE %0:s ADD CONSTRAINT %1:s ' +
+      '  FOREIGN KEY (masterkey) REFERENCES gd_document(id) ON UPDATE CASCADE ON DELETE CASCADE ',
+      [FieldByName('relationname').AsString, S]));
+  end;
 end;
 
 procedure TgdcBaseDocumentLineTable.MakePredefinedRelationFields;
@@ -186,9 +211,10 @@ begin
   inherited;
   if Assigned(gdcTableField) then
   begin
-    NewField('MASTERKEY',
-      'Родитель', 'DMASTERKEY', 'Родитель', 'Родитель',
-      'L', '10', '1', '0');
+    if Self.ClassType <> TgdcTableToDocumentLineTable then
+      NewField('MASTERKEY',
+        'Родитель', 'DMASTERKEY', 'Родитель', 'Родитель',
+        'L', '10', '1', '0');
     for i:= 0 to AdditionCreateField.Count - 1 do
     begin
       S := AdditionCreateField[i];
@@ -876,8 +902,10 @@ initialization
   RegisterGdcClass(TgdcCustomTable);
   RegisterGdcClass(TgdcBaseDocumentTable);
   RegisterGdcClass(TgdcDocumentTable);
+  RegisterGdcClass(TgdcTableToDocumentTable);
   RegisterGdcClass(TgdcBaseDocumentLineTable);
   RegisterGdcClass(TgdcDocumentLineTable);
+  RegisterGdcClass(TgdcTableToDocumentLineTable);
   RegisterGdcClass(TgdcInvSimpleDocumentLineTable);
   RegisterGdcClass(TgdcInvFeatureDocumentLineTable);
   RegisterGdcClass(TgdcInvInventDocumentLineTable);
@@ -887,7 +915,9 @@ finalization
   UnregisterGdcClass(TgdcCustomTable);
   UnregisterGdcClass(TgdcBaseDocumentTable);
   UnregisterGdcClass(TgdcDocumentTable);
+  UnRegisterGdcClass(TgdcTableToDocumentTable);
   UnregisterGdcClass(TgdcDocumentLineTable);
+  UnRegisterGdcClass(TgdcTableToDocumentLineTable);
   UnregisterGdcClass(TgdcBaseDocumentLineTable);
   UnregisterGdcClass(TgdcInvSimpleDocumentLineTable);
   UnregisterGdcClass(TgdcInvFeatureDocumentLineTable);
