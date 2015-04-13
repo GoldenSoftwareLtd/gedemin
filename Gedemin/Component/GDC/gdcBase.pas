@@ -12388,15 +12388,11 @@ var
       UserDefinedCustomInsert(BE.Parent as TgdBaseEntry);
 
     if BE is TgdDocumentEntry then
-    begin
-      F := 'documentkey, masterkey,';
-      V := ':new_id, :new_masterkey,';
-    end
+      F := 'documentkey,'
     else
-    begin
       F := 'inheritedkey,';
-      V := ':new_id,';
-    end;
+      
+    V := ':new_id,';
 
     for I := 0 to FieldCount - 1 do
     begin

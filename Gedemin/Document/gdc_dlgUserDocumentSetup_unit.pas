@@ -53,6 +53,8 @@ type
     procedure BeforePost; override;
 
   public
+    procedure SetupRecord; override;
+
     function TestCorrect: Boolean; override;
   end;
 
@@ -63,11 +65,56 @@ var
 
 implementation
 
-uses dmImages_unit, at_classes, dmDatabase_unit,  gd_ClassList;
+uses dmImages_unit, at_classes, dmDatabase_unit,  gd_ClassList, gdcClasses_interface;
 
 {$R *.DFM}
 
 { Tgdc_dlgUserDocumentSetup }
+
+procedure Tgdc_dlgUserDocumentSetup.SetupRecord;
+  {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+  DE: TgdDocumentEntry;
+begin
+  {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGUSERDOCUMENTSETUP', 'SETUPRECORD', KEYSETUPRECORD)}
+  {M}  try
+  {M}    if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDC_DLGUSERDOCUMENTSETUP', KEYSETUPRECORD);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYSETUPRECORD]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDC_DLGUSERDOCUMENTSETUP') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
+  {M}        if gdcMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDC_DLGUSERDOCUMENTSETUP',
+  {M}          'SETUPRECORD', KEYSETUPRECORD, Params, LResult) then exit;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDC_DLGUSERDOCUMENTSETUP' then
+  {M}        begin
+  {M}          Inherited;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  inherited;
+
+  DE := gdClassList.FindDocByTypeID(gdcObject.FieldByName('parent').AsInteger, dcpHeader);
+  if DE <> nil then
+  begin
+    iblcHeaderTable.gdClassName := 'TgdcTableToDocumentTable';
+    iblcLineTable.gdClassName := 'TgdcTableToDocumentLineTable';
+  end;
+
+  {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGUSERDOCUMENTTYPE', 'SETUPRECORD', KEYSETUPRECORD)}
+  {M}finally
+  {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
+  {M}    ClearMacrosStack('TGDC_DLGUSERDOCUMENTTYPE', 'SETUPRECORD', KEYSETUPRECORD);
+  {M}end;
+  {END MACRO}
+end;
 
 function Tgdc_dlgUserDocumentSetup.TestCorrect: Boolean;
   {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
