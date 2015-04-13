@@ -2433,7 +2433,7 @@ begin
   end;
 end;
 
-function BuildTree2(ACE: TgdClassEntry; AData1: Pointer; AData2: Pointer): Boolean;
+{function BuildTree2(ACE: TgdClassEntry; AData1: Pointer; AData2: Pointer): Boolean;
 begin
   if (ACE is TgdBaseEntry) and (ACE.SubType = '') then
   begin
@@ -2445,7 +2445,7 @@ begin
       end;
   end;
   Result := True;
-end;
+end;}
 
 function GetBaseClassForRelation(const ARelationName: String): TgdcFullClass;
 var
@@ -2664,13 +2664,6 @@ begin
   end;
 end;
 }
-
-function BuildTree(ACE: TgdClassEntry; AData1: Pointer;
-  AData2: Pointer): Boolean;
-begin
-  TObjectList(AData1).Add(ACE);
-  Result := True;
-end;
 
 procedure MakeFieldList(Fields: String; List: TStrings);
 begin
@@ -10983,22 +10976,47 @@ class function TgdcBase.GetChildrenClass(const ASubType: TgdcSubType;
   AnOL: TObjectList; const AnIncludeRoot: Boolean = True;
   const AnOnlyDirect: Boolean = False;
   const AnIncludeAbstract: Boolean = False): Boolean;
+
+  procedure _Traverse(CE: TgdClassEntry; AnOL: TObjectList;
+    AnIncludeAbstract: Boolean; AnOnlyDirect: Boolean);
+  var
+    I: Integer;
+  begin
+    if CE.Hidden then
+      exit;
+
+    if AnIncludeAbstract then
+      AnOL.Add(CE)
+    else if not TgdBaseEntry(CE).gdcClass.IsAbstractClass then
+      AnOL.Add(CE);
+
+    if not AnOnlyDirect then
+      for I := 0 to CE.Count - 1 do
+        _Traverse(CE.Children[I], AnOL, AnIncludeAbstract, AnOnlyDirect);
+  end;
+
 var
   I: Integer;
+  CE: TgdClassEntry;
 begin
   if AnOL = nil then
     raise Exception.Create('');
   AnOL.Clear;
 
-  gdClassList.Traverse(Self, ASubType, BuildTree,
-    AnOL, nil, AnIncludeRoot, AnOnlyDirect);
+  CE := gdClassList.Get(TgdBaseEntry, Self.ClassName, ASubType);
 
-  if not AnIncludeAbstract then
-    for I := AnOL.Count - 1 downto 0 do
-    begin
-      if TgdBaseEntry(AnOL[I]).gdcClass.IsAbstractClass then
-        AnOL.Delete(I);
-    end;
+  if AnIncludeRoot then
+  begin
+    if AnIncludeAbstract then
+      AnOL.Add(CE)
+    else if not TgdBaseEntry(CE).gdcClass.IsAbstractClass then
+      AnOL.Add(CE);
+  end;
+
+  for I := 0 to CE.Count - 1 do
+  begin
+    _Traverse(CE.Children[I], AnOL, AnIncludeAbstract, AnOnlyDirect);
+  end;
 
   Result := AnOL.Count > 0;
 end;
