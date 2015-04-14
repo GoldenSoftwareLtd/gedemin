@@ -360,6 +360,8 @@ type
 
   public
     class function GetPrimaryFieldName: String; override;
+
+    procedure MakePredefinedRelationFields; override;
   end;
 
   TgdcTreeTable = class(TgdcTable)
@@ -9251,6 +9253,21 @@ end;
 class function TgdcTableToDefinedTable.GetPrimaryFieldName: String;
 begin
   Result := 'INHERITEDKEY';
+end;
+
+procedure TgdcTableToDefinedTable.MakePredefinedRelationFields;
+begin
+  TestRelationName;
+
+  if (sLoadFromStream in BaseState) and (not IsUserDefined) then
+    exit;
+
+  if (State = dsInsert) and Assigned(gdcTableField) then
+  begin
+    NewField('INHERITEDKEY',
+      'Идентификатор', 'DINTKEY', 'Идентификатор', 'Идентификатор',
+      'L', '10', '1', '0');
+  end;
 end;
 
 { TgdcBaseTable }
