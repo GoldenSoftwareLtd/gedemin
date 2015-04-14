@@ -10999,8 +10999,8 @@ var
   I: Integer;
   CE: TgdClassEntry;
 begin
-  if AnOL = nil then
-    raise Exception.Create('');
+  Assert(AnOL <> nil);
+
   AnOL.Clear;
 
   CE := gdClassList.Get(TgdBaseEntry, Self.ClassName, ASubType);
@@ -11014,9 +11014,7 @@ begin
   end;
 
   for I := 0 to CE.Count - 1 do
-  begin
     _Traverse(CE.Children[I], AnOL, AnIncludeAbstract, AnOnlyDirect);
-  end;
 
   Result := AnOL.Count > 0;
 end;

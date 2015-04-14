@@ -35,7 +35,7 @@ uses
   gdcTree,      Forms,             gd_createable_form,
   at_classes,   gdcBaseInterface,  DB,             gd_KeyAssoc,
   gdcConstants, gd_i_ScriptFactory,gdcClasses_Interface,
-  gd_security,  gdcOLEClassList,   DBGrids, Contnrs;
+  gd_security,  gdcOLEClassList,   DBGrids,        Contnrs;
 
 {$IFDEF DEBUGMOVE}
 const
@@ -301,9 +301,9 @@ uses
 
   gdc_frmG_unit,
 
+  gd_ClassList,
   gd_security_operationconst,
 
-  gd_ClassList,
   gdcInvDocument_unit,
   gdcEvent,
 
@@ -328,6 +328,14 @@ uses
     , gd_localization_stub
   {$ENDIF}
   ;
+
+type
+  TgdInitDocClassEntry = class(TgdInitClassEntry)
+  public
+    Obj: TgdcDocumentType;
+
+    procedure Init(CE: TgdClassEntry); override;
+  end;
 
 const
   ss_ByIntervalDate = 'ByIntervalDate';
@@ -2746,24 +2754,6 @@ end;
 
 procedure TgdcDocumentType.DoAfterCustomProcess(Buff: Pointer;
   Process: TgsCustomProcess);
-
-  procedure _Set(DE: TgdDocumentEntry);
-  begin
-    DE.TypeID := ID;
-    DE.IsCommon := FieldByName('iscommon').AsInteger > 0;
-    DE.HeaderFunctionKey := FieldByName('headerfunctionkey').AsInteger;
-    DE.LineFunctionKey := FieldByName('linefunctionkey').AsInteger;
-    DE.Description := FieldByName('description').AsString;
-    DE.IsCheckNumber := TIsCheckNumber(FieldByName('ischecknumber').AsInteger);
-    DE.Options := FieldByName('options').AsString;
-    DE.ReportGroupKey := FieldByName('reportgroupkey').AsInteger;
-    DE.HeaderRelKey := FieldByName('headerrelkey').AsInteger;
-    DE.LineRelKey := FieldByName('linerelkey').AsInteger;
-    DE.BranchKey := FieldByName('branchkey').AsInteger;
-
-    gdClassList.SpreadSettings(DE as TgdClassEntry);
-  end;
-
 var
   {@UNFOLD MACRO INH_ORIG_PARAMS()}
   {M}
@@ -2771,8 +2761,9 @@ var
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
   q: TIBSQL;
-  CE: TgdClassEntry;
   CN: String;
+  P: TgdInitDocClassEntry;
+  CE: TgdClassEntry;
 begin
   {@UNFOLD MACRO INH_ORIG_DOAFTERCUSTOMPROCESS('TGDCDOCUMENTTYPE', 'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS)}
   {M}  try
@@ -2809,14 +2800,20 @@ begin
     else
       raise EgdcException.CreateObj('Invalid document type', Self);
 
-    if Process = cpInsert then
-      CE := gdClassList.Add(CN, FieldByName('ruid').AsString,
-        GetParentSubType, TgdDocumentEntry, FieldbyName('name').AsString)
-    else
-      CE := gdClassList.Get(TgdDocumentEntry, CN, FieldByName('ruid').AsString);
-
-    if CE <> nil then
-      _Set(CE as TgdDocumentEntry);
+    P := TgdInitDocClassEntry.Create;
+    try
+      P.Obj := Self;
+      if Process = cpInsert then
+        gdClassList.Add(CN, FieldByName('ruid').AsString, GetParentSubType,
+        TgdDocumentEntry, FieldbyName('name').AsString, P)
+      else begin
+        CE := gdClassList.Get(TgdDocumentEntry, CN, FieldByName('ruid').AsString);
+        P.Init(CE);
+        gdClassList.SpreadSettings(CE);
+      end;
+    finally
+      P.Free;
+    end;
   end
   else
     gdClassList.RemoveSubType(FieldByName('ruid').AsString);
@@ -3556,6 +3553,29 @@ class function TgdcUserDocumentLine.GetRestrictCondition(const ATableName,
 begin
   Result := Format('z.documenttypekey = %d AND z.parent IS NOT NULL ',
     [gdcBaseManager.GetIDByRUIDString(ASubType)]);
+end;
+
+{ TgdInitDocClassEntry }
+
+procedure TgdInitDocClassEntry.Init(CE: TgdClassEntry);
+var
+  DE: TgdDocumentEntry;
+begin
+  Assert(Obj is TgdcDocumentType);
+
+  DE := CE as TgdDocumentEntry;
+
+  DE.TypeID := Obj.ID;
+  DE.IsCommon := Obj.FieldByName('iscommon').AsInteger > 0;
+  DE.HeaderFunctionKey := Obj.FieldByName('headerfunctionkey').AsInteger;
+  DE.LineFunctionKey := Obj.FieldByName('linefunctionkey').AsInteger;
+  DE.Description := Obj.FieldByName('description').AsString;
+  DE.IsCheckNumber := TIsCheckNumber(Obj.FieldByName('ischecknumber').AsInteger);
+  DE.Options := Obj.FieldByName('options').AsString;
+  DE.ReportGroupKey := Obj.FieldByName('reportgroupkey').AsInteger;
+  DE.HeaderRelKey := Obj.FieldByName('headerrelkey').AsInteger;
+  DE.LineRelKey := Obj.FieldByName('linerelkey').AsInteger;
+  DE.BranchKey := Obj.FieldByName('branchkey').AsInteger;
 end;
 
 initialization

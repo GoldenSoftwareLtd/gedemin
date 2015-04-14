@@ -405,6 +405,11 @@ type
   TgdNewFormEntry = class(TgdFormEntry)
   end;
 
+  TgdInitClassEntry = class(TObject)
+  public
+    procedure Init(CE: TgdClassEntry); virtual;
+  end;
+
   TgdClassList = class(TObject)
   private
     FClasses: array of TgdClassEntry;
@@ -432,10 +437,12 @@ type
 
     function Add(const AClass: TClass; const ASubType: TgdcSubType;
       const AParentSubType: TgdcSubType; const AnEntryClass: CgdClassEntry;
-      const ACaption: String): TgdClassEntry; overload;
+      const ACaption: String;
+      const AnInitProc: TgdInitClassEntry = nil): TgdClassEntry; overload;
     function Add(const AClassName: AnsiString; const ASubType: TgdcSubType;
       const AParentSubType: TgdcSubType; const AnEntryClass: CgdClassEntry;
-      const ACaption: String): TgdClassEntry; overload;
+      const ACaption: String;
+      const AnInitProc: TgdInitClassEntry = nil): TgdClassEntry; overload;
 
     function Find(const AClass: TClass; const ASubType: TgdcSubType = ''): TgdClassEntry; overload;
     function Find(const AClassName: AnsiString; const ASubType: TgdcSubType = ''): TgdClassEntry; overload;
@@ -1476,7 +1483,8 @@ function TgdClassList.Add(const AClass: TClass;
   const ASubType: TgdcSubType;
   const AParentSubType: TgdcSubType;
   const AnEntryClass: CgdClassEntry;
-  const ACaption: String): TgdClassEntry;
+  const ACaption: String;
+  const AnInitProc: TgdInitClassEntry = nil): TgdClassEntry;
 var
   Prnt: TgdClassEntry;
   CN: String;
@@ -1527,64 +1535,34 @@ begin
     else
       Result := _Create(Prnt, CgdClassEntry(Prnt.ClassType), AClass, ASubType, ACaption);
 
+    if AnInitProc <> nil then
+      AnInitProc.Init(Result);
+
     if (ASubType > '') and AClass.InheritsFrom(TgdcBase)
       and (not CgdcBase(AClass).IsAbstractClass) then
     begin
-      if (AClass.ClassName = 'TgdcUserDocument') then
+      CN := CgdcBase(AClass).GetDialogFormClassName(ASubType);
+      if (CN > '') and (CN <> TgdcBase.GetDialogFormClassName(ASubType)) then
       begin
-        if (Prnt <> nil) and (Prnt.SubType > '') and (Prnt is TgdBaseEntry) then
+        if (Prnt <> nil) and (Prnt.SubType > '') and (Prnt is TgdBaseEntry)
+          and (TgdBaseEntry(Prnt).gdcClass.GetDialogFormClassName(Prnt.SubType) = CN) then
         begin
           ParentST := Prnt.SubType;
         end else
           ParentST := '';
-        
-        CN := 'Tgdc_dlgUserComplexDocument';
-        Add(CN, ASubType, Prnt.SubType, TgdDocumentEntry, '');
-        CN := 'Tgdc_dlgUserSimpleDocument';
-        Add(CN, ASubType, ParentST, TgdDocumentEntry, '');
-      end
-      else
-      begin
-        CN := CgdcBase(AClass).GetDialogFormClassName(ASubType);
-        if (CN > '') and (CN <> TgdcBase.GetDialogFormClassName(ASubType)) then
-        begin
-          if (Prnt <> nil) and (Prnt.SubType > '') and (Prnt is TgdBaseEntry)
-            and (TgdBaseEntry(Prnt).gdcClass.GetDialogFormClassName(Prnt.SubType) = CN) then
-          begin
-            ParentST := Prnt.SubType;
-          end else
-            ParentST := '';
-          Add(CN, ASubType, ParentST, TgdFormEntry, '');
-        end;
+        Add(CN, ASubType, ParentST, TgdFormEntry, '');
       end;
 
-      if (AClass.ClassName = 'TgdcUserDocument')
-        or (AClass.ClassName = 'TgdcUserDocumentLine') then
+      CN := CgdcBase(AClass).GetViewFormClassName(ASubType);
+      if CN > '' then
       begin
-        if (Prnt <> nil) and (Prnt.SubType > '') and (Prnt is TgdBaseEntry) then
+        if (Prnt <> nil) and (Prnt.SubType > '') and (Prnt is TgdBaseEntry)
+          and (TgdBaseEntry(Prnt).gdcClass.GetViewFormClassName(Prnt.SubType) = CN) then
         begin
           ParentST := Prnt.SubType;
         end else
           ParentST := '';
-
-        CN := 'Tgdc_frmUserSimpleDocument';
-        Add(CN, ASubType, Prnt.SubType, TgdDocumentEntry, '');
-        CN := 'Tgdc_frmUserComplexDocument';
         Add(CN, ASubType, ParentST, TgdDocumentEntry, '');
-      end
-      else
-      begin
-        CN := CgdcBase(AClass).GetViewFormClassName(ASubType);
-        if CN > '' then
-        begin
-          if (Prnt <> nil) and (Prnt.SubType > '') and (Prnt is TgdBaseEntry)
-            and (TgdBaseEntry(Prnt).gdcClass.GetViewFormClassName(Prnt.SubType) = CN) then
-          begin
-            ParentST := Prnt.SubType;
-          end else
-            ParentST := '';
-          Add(CN, ASubType, ParentST, TgdDocumentEntry, '');
-        end;
       end;
     end;
 
@@ -2281,7 +2259,8 @@ end;
 function TgdClassList.Add(const AClassName: AnsiString;
   const ASubType, AParentSubType: TgdcSubType;
   const AnEntryClass: CgdClassEntry;
-  const ACaption: String): TgdClassEntry;
+  const ACaption: String;
+  const AnInitProc: TgdInitClassEntry = nil): TgdClassEntry;
 begin
   Result := Find(AClassName, ASubType);
 
@@ -2291,7 +2270,7 @@ begin
       Result.FCaption := ACaption;
   end else
     Result := Add(GetClass(AClassName), ASubType, AParentSubType,
-      AnEntryClass, ACaption);
+      AnEntryClass, ACaption, AnInitProc);
 end;
 
 procedure TgdClassList._Compact;
@@ -2579,6 +2558,13 @@ end;
 procedure TgdBaseEntry.SetDistinctRelation(const Value: String);
 begin
   FDistinctRelation := UpperCase(Value);
+end;
+
+{ TgdInitClassEntry }
+
+procedure TgdInitClassEntry.Init(CE: TgdClassEntry);
+begin
+  //
 end;
 
 initialization
