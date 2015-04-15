@@ -1721,12 +1721,13 @@ begin
 
   iblcLineTable.Enabled := iblcLineTable.ItemIndex >= 0;
 
-  case cbTemplate.ItemIndex of
-  0: iblcLineTable.gdClassName := 'TgdcInvSimpleDocumentLineTable';
-  1: iblcLineTable.gdClassName := 'TgdcInvFeatureDocumentLineTable';
-  2: iblcLineTable.gdClassName := 'TgdcInvInventDocumentLineTable';
-  3: iblcLineTable.gdClassName := 'TgdcInvTransformDocumentLineTable';
-  end;
+  if iblcLineTable.gdClassName <> 'TgdcInheritedTable' then
+    case cbTemplate.ItemIndex of
+    0: iblcLineTable.gdClassName := 'TgdcInvSimpleDocumentLineTable';
+    1: iblcLineTable.gdClassName := 'TgdcInvFeatureDocumentLineTable';
+    2: iblcLineTable.gdClassName := 'TgdcInvInventDocumentLineTable';
+    3: iblcLineTable.gdClassName := 'TgdcInvTransformDocumentLineTable';
+    end;
 
   tsFeatures.TabVisible :=
     (edDocumentName.Text > '') and
