@@ -215,6 +215,8 @@ type
   protected
     procedure _DoOnNewRecord; override;
 
+    procedure DoAfterCustomProcess(Buff: Pointer; Process: TgsCustomProcess); override;
+
   public
     constructor Create(AnOwner: TComponent); override;
 
@@ -321,6 +323,7 @@ uses
   gd_directories_const,
   IB, gdc_frmMDH_unit,
   gd_resourcestring,
+  gdInitDoc_Unit,
 
   jclStrings
   {must be placed after Windows unit!}
@@ -328,14 +331,6 @@ uses
     , gd_localization_stub
   {$ENDIF}
   ;
-
-type
-  TgdInitDocClassEntry = class(TgdInitClassEntry)
-  public
-    Obj: TgdcDocumentType;
-
-    procedure Init(CE: TgdClassEntry); override;
-  end;
 
 const
   ss_ByIntervalDate = 'ByIntervalDate';
@@ -2761,9 +2756,6 @@ var
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
   q: TIBSQL;
-  CN: String;
-  P: TgdInitDocClassEntry;
-  CE: TgdClassEntry;
 begin
   {@UNFOLD MACRO INH_ORIG_DOAFTERCUSTOMPROCESS('TGDCDOCUMENTTYPE', 'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS)}
   {M}  try
@@ -2788,35 +2780,6 @@ begin
   {END MACRO}
 
   inherited;
-
-  if (Process = cpInsert) or (Process = cpModify) then
-  begin
-    if FieldByName('classname').AsString = 'TgdcUserDocumentType' then
-      CN := 'TgdcUserDocument'
-    else if FieldByName('classname').AsString = 'TgdcInvDocumentType' then
-      CN := 'TgdcInvDocument'
-    else if FieldByName('classname').AsString = 'TgdcInvPriceListType' then
-      CN := 'TgdcInvPriceList'
-    else
-      raise EgdcException.CreateObj('Invalid document type', Self);
-
-    P := TgdInitDocClassEntry.Create;
-    try
-      P.Obj := Self;
-      if Process = cpInsert then
-        gdClassList.Add(CN, FieldByName('ruid').AsString, GetParentSubType,
-        TgdDocumentEntry, FieldbyName('name').AsString, P)
-      else begin
-        CE := gdClassList.Get(TgdDocumentEntry, CN, FieldByName('ruid').AsString);
-        P.Init(CE);
-        gdClassList.SpreadSettings(CE);
-      end;
-    finally
-      P.Free;
-    end;
-  end
-  else
-    gdClassList.RemoveSubType(FieldByName('ruid').AsString);
 
   if Process <> cpDelete then
   begin
@@ -2932,6 +2895,82 @@ begin
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
   {M}      ClearMacrosStack2('TGDCUSERDOCUMENTTYPE', '_DOONNEWRECORD', KEY_DOONNEWRECORD);
+  {M}  end;
+  {END MACRO}
+end;
+
+procedure TgdcUserDocumentType.DoAfterCustomProcess(Buff: Pointer;
+  Process: TgsCustomProcess);
+var
+  {@UNFOLD MACRO INH_ORIG_PARAMS()}
+  {M}
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+  CN: String;
+  P: TgdInitDocClassEntry;
+  CE: TgdClassEntry;
+begin
+  {@UNFOLD MACRO INH_ORIG_DOAFTERCUSTOMPROCESS('TGDCUSERDOCUMENTTYPE', 'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCUSERDOCUMENTTYPE', KEYDOAFTERCUSTOMPROCESS);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOAFTERCUSTOMPROCESS]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCUSERDOCUMENTTYPE') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self),
+  {M}          Integer(Buff), TgsCustomProcess(Process)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCUSERDOCUMENTTYPE',
+  {M}          'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS, Params, LResult) then
+  {M}          exit;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCUSERDOCUMENTTYPE' then
+  {M}        begin
+  {M}          Inherited;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  inherited;
+
+  if (Process = cpInsert) or (Process = cpModify) then
+  begin
+    P := TgdInitDocClassEntry.Create;
+    try
+      P.Obj := Self;
+
+      CN := 'TgdcUserDocument';
+      if (Process = cpInsert) then
+        gdClassList.Add(CN, FieldByName('ruid').AsString, GetParentSubType,
+          TgdDocumentEntry, FieldbyName('name').AsString, P)
+      else
+      begin
+        CE := gdClassList.Get(TgdDocumentEntry, CN, FieldByName('ruid').AsString);
+        P.Init(CE);
+      end;
+
+      CN := 'TgdcUserDocumentLine';
+      if (Process = cpInsert) then
+        gdClassList.Add(CN, FieldByName('ruid').AsString, GetParentSubType,
+          TgdDocumentEntry, FieldbyName('name').AsString, P)
+      else
+      begin
+        CE := gdClassList.Get(TgdDocumentEntry, CN, FieldByName('ruid').AsString);
+        P.Init(CE);
+      end;
+    finally
+      P.Free;
+    end;
+  end
+  else
+    gdClassList.RemoveSubType(FieldByName('ruid').AsString);
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCUSERDOCUMENTTYPE', 'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCUSERDOCUMENTTYPE', 'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS);
   {M}  end;
   {END MACRO}
 end;
@@ -3553,29 +3592,6 @@ class function TgdcUserDocumentLine.GetRestrictCondition(const ATableName,
 begin
   Result := Format('z.documenttypekey = %d AND z.parent IS NOT NULL ',
     [gdcBaseManager.GetIDByRUIDString(ASubType)]);
-end;
-
-{ TgdInitDocClassEntry }
-
-procedure TgdInitDocClassEntry.Init(CE: TgdClassEntry);
-var
-  DE: TgdDocumentEntry;
-begin
-  Assert(Obj is TgdcDocumentType);
-
-  DE := CE as TgdDocumentEntry;
-
-  DE.TypeID := Obj.ID;
-  DE.IsCommon := Obj.FieldByName('iscommon').AsInteger > 0;
-  DE.HeaderFunctionKey := Obj.FieldByName('headerfunctionkey').AsInteger;
-  DE.LineFunctionKey := Obj.FieldByName('linefunctionkey').AsInteger;
-  DE.Description := Obj.FieldByName('description').AsString;
-  DE.IsCheckNumber := TIsCheckNumber(Obj.FieldByName('ischecknumber').AsInteger);
-  DE.Options := Obj.FieldByName('options').AsString;
-  DE.ReportGroupKey := Obj.FieldByName('reportgroupkey').AsInteger;
-  DE.HeaderRelKey := Obj.FieldByName('headerrelkey').AsInteger;
-  DE.LineRelKey := Obj.FieldByName('linerelkey').AsInteger;
-  DE.BranchKey := Obj.FieldByName('branchkey').AsInteger;
 end;
 
 initialization

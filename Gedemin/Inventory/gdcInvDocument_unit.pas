@@ -415,7 +415,7 @@ uses
   gd_security_OperationConst, gdc_dlgSetupInvDocument_unit, gdc_dlgG_unit,
   gdc_dlgInvDocument_unit, gdc_dlgInvDocumentLine_unit,
   at_sql_setup, gdc_frmInvDocument_unit, gdc_frmInvDocumentType_unit,
-  gd_ClassList, gdc_dlgViewMovement_unit, gdcMetaData, gd_security
+  gd_ClassList, gdc_dlgViewMovement_unit, gdcMetaData, gd_security, gdInitDoc_Unit
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -5609,6 +5609,9 @@ procedure TgdcInvDocumentType.DoAfterCustomProcess(Buff: Pointer;
   {$IFDEF NEWDEPOT}
   Stream: TStream;
   {$ENDIF}
+  CN: String;
+  P: TgdInitDocClassEntry;
+  CE: TgdClassEntry;
 begin
   {@UNFOLD MACRO INH_ORIG_DOAFTERCUSTOMPROCESS('TGDCBASE', 'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS)}
   {M}  try
@@ -5633,6 +5636,65 @@ begin
   {END MACRO}
 
   inherited;
+
+  if (Process = cpInsert) or (Process = cpModify) then
+  begin
+    P := TgdInitDocClassEntry.Create;
+    try
+      P.Obj := Self;
+
+      CN := 'TgdcInvDocument';
+      if (Process = cpInsert) then
+        gdClassList.Add(CN, FieldByName('ruid').AsString, GetParentSubType,
+          TgdDocumentEntry, FieldbyName('name').AsString, P)
+      else
+      begin
+        CE := gdClassList.Get(TgdDocumentEntry, CN, FieldByName('ruid').AsString);
+        P.Init(CE);
+      end;
+
+      CN := 'TgdcInvDocumentLine';
+      if (Process = cpInsert) then
+        gdClassList.Add(CN, FieldByName('ruid').AsString, GetParentSubType,
+          TgdDocumentEntry, FieldbyName('name').AsString, P)
+      else
+      begin
+        CE := gdClassList.Get(TgdDocumentEntry, CN, FieldByName('ruid').AsString);
+        P.Init(CE);
+      end;
+
+      if (Process = cpInsert) then
+      begin
+        CN := 'TgdcInvRemains';
+        gdClassList.Add(CN, FieldByName('ruid').AsString, GetParentSubType,
+          TgdBaseEntry, FieldbyName('name').AsString);
+
+        CN := 'TgdcInvGoodRemains';
+        gdClassList.Add(CN, FieldByName('ruid').AsString, GetParentSubType,
+          TgdBaseEntry, FieldbyName('name').AsString);
+
+        CN := 'TgdcSelectedGood';
+        gdClassList.Add(CN, FieldByName('ruid').AsString, GetParentSubType,
+          TgdBaseEntry, FieldbyName('name').AsString);
+
+        CN := 'TgdcInvMovement';
+        gdClassList.Add(CN, FieldByName('ruid').AsString, GetParentSubType,
+          TgdBaseEntry, FieldbyName('name').AsString);
+
+        CN := 'Tgdc_frmInvSelectGoodRemains';
+        gdClassList.Add(CN, FieldByName('ruid').AsString, GetParentSubType,
+          TgdFormEntry, FieldbyName('name').AsString);
+
+        CN := 'Tgdc_frmInvSelectRemains';
+        gdClassList.Add(CN, FieldByName('ruid').AsString, GetParentSubType,
+          TgdFormEntry, FieldbyName('name').AsString);
+      end;
+    finally
+      P.Free;
+    end;
+  end
+  else
+    gdClassList.RemoveSubType(FieldByName('ruid').AsString);
 
   {$IFDEF NEWDEPOT}
   if not FieldByName('OPTIONS').IsNull then
