@@ -713,6 +713,9 @@ begin
       gdcObject.FieldByName('name').AsString := 'Наследник ' + DE.Caption;
       gdcObject.FieldByName('branchkey').AsInteger := DE.BranchKey;
     end;
+
+    iblcHeaderTable.gdClassName := 'TgdcInheritedTable';
+    iblcLineTable.gdClassName := 'TgdcInheritedTable';
   end;
 
   if gdcObject.State = dsEdit then
