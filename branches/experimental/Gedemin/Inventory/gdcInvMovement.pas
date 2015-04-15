@@ -8039,8 +8039,7 @@ begin
     '  subtype = ''%s''',
     [FieldByName('ruid').AsString]));
 
-  gdClassList.Remove(TgdcInvRemains, FieldByName('RUID').AsString);
-  gdClassList.Remove(TgdcInvGoodRemains, FieldByName('RUID').AsString);
+  gdClassList.RemoveSubType(FieldByName('ruid').AsString);
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVREMAINSOPTION', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
   {M}  finally
@@ -8091,6 +8090,12 @@ begin
   gdClassList.Add(TgdcInvGoodRemains, FieldByName('RUID').AsString, '',
     TgdBaseEntry, FieldByName('name').AsString);
 
+  gdClassList.Add('Tgdc_frmInvSelectGoodRemains', FieldByName('RUID').AsString, '',
+    TgdFormEntry, FieldByName('name').AsString);
+  gdClassList.Add('Tgdc_frmInvSelectRemains', FieldByName('RUID').AsString, '',
+    TgdFormEntry, FieldByName('name').AsString);
+
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVREMAINSOPTION', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -8139,12 +8144,17 @@ begin
 
   if FieldChanged('name') then
   begin
-    CE := gdClassList.Find(TgdcInvRemains, FieldByName('RUID').AsString);
-    if CE <> nil then
-      CE.Caption := FieldByName('name').AsString;
-    CE := gdClassList.Find(TgdcInvGoodRemains, FieldByName('RUID').AsString);
-    if CE <> nil then
-      CE.Caption := FieldByName('name').AsString;
+    CE := gdClassList.Get(TgdBaseEntry, 'TgdcInvRemains', FieldByName('RUID').AsString);
+    CE.Caption := FieldByName('name').AsString;
+
+    CE := gdClassList.Get(TgdBaseEntry, 'TgdcInvGoodRemains', FieldByName('RUID').AsString);
+    CE.Caption := FieldByName('name').AsString;
+
+    CE := gdClassList.Get(TgdFormEntry, 'Tgdc_frmInvSelectGoodRemains', FieldByName('RUID').AsString);
+    CE.Caption := FieldByName('name').AsString;
+
+    CE := gdClassList.Get(TgdFormEntry, 'Tgdc_frmInvSelectRemains', FieldByName('RUID').AsString);
+    CE.Caption := FieldByName('name').AsString;
   end;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVREMAINSOPTION', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}

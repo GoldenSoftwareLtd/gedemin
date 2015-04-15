@@ -146,6 +146,8 @@ type
     procedure DoAfterInsert; override;
     procedure CreateFields; override;
 
+    procedure DoAfterCustomProcess(Buff: Pointer; Process: TgsCustomProcess); override;
+
   public
     constructor Create(AnOwner: TComponent); override;
 
@@ -168,7 +170,7 @@ uses
   gd_security_OperationConst, gdc_dlgSetupInvPriceList_unit,
   gdc_frmInvPriceList_unit, gdc_frmInvPriceListType_unit,
   gdc_dlgInvPriceList_unit, at_sql_setup, gd_ClassList,
-  gdc_dlgInvPriceListLine_unit, gdcInvDocument_unit;
+  gdc_dlgInvPriceListLine_unit, gdcInvDocument_unit, gdInitDoc_Unit;
 
 procedure Register;
 begin
@@ -1392,6 +1394,82 @@ begin
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
   {M}      ClearMacrosStack2('TGDCINVPRICELISTTYPE', 'CREATEFIELDS', KEYCREATEFIELDS);
+  {M}  end;
+  {END MACRO}
+end;
+
+procedure TgdcInvPriceListType.DoAfterCustomProcess(Buff: Pointer;
+  Process: TgsCustomProcess);
+var
+  {@UNFOLD MACRO INH_ORIG_PARAMS()}
+  {M}
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+  CN: String;
+  P: TgdInitDocClassEntry;
+  CE: TgdClassEntry;
+begin
+  {@UNFOLD MACRO INH_ORIG_DOAFTERCUSTOMPROCESS('TGDCINVPRICELISTTYPE', 'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCINVPRICELISTTYPE', KEYDOAFTERCUSTOMPROCESS);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOAFTERCUSTOMPROCESS]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCINVPRICELISTTYPE') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self),
+  {M}          Integer(Buff), TgsCustomProcess(Process)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCINVPRICELISTTYPE',
+  {M}          'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS, Params, LResult) then
+  {M}          exit;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCINVPRICELISTTYPE' then
+  {M}        begin
+  {M}          Inherited;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  inherited;
+
+  if (Process = cpInsert) or (Process = cpModify) then
+  begin
+    P := TgdInitDocClassEntry.Create;
+    try
+      P.Obj := Self;
+
+      CN := 'TgdcInvPriceList';
+      if (Process = cpInsert) then
+        gdClassList.Add(CN, FieldByName('ruid').AsString, GetParentSubType,
+          TgdDocumentEntry, FieldbyName('name').AsString, P)
+      else
+      begin
+        CE := gdClassList.Get(TgdDocumentEntry, CN, FieldByName('ruid').AsString);
+        P.Init(CE);
+      end;
+
+      CN := 'TgdcInvPriceListLine';
+      if (Process = cpInsert) then
+        gdClassList.Add(CN, FieldByName('ruid').AsString, GetParentSubType,
+          TgdDocumentEntry, FieldbyName('name').AsString, P)
+      else
+      begin
+        CE := gdClassList.Get(TgdDocumentEntry, CN, FieldByName('ruid').AsString);
+        P.Init(CE);
+      end;
+    finally
+      P.Free;
+    end;
+  end
+  else
+    gdClassList.RemoveSubType(FieldByName('ruid').AsString);
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVPRICELISTTYPE', 'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCINVPRICELISTTYPE', 'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS);
   {M}  end;
   {END MACRO}
 end;

@@ -433,8 +433,6 @@ type
     constructor Create;
     destructor Destroy; override;
 
-    procedure SpreadSettings(ACE: TgdClassEntry);
-
     function Add(const AClass: TClass; const ASubType: TgdcSubType;
       const AParentSubType: TgdcSubType; const AnEntryClass: CgdClassEntry;
       const ACaption: String;
@@ -1565,31 +1563,6 @@ begin
         Add(CN, ASubType, ParentST, TgdDocumentEntry, '');
       end;
     end;
-
-    if (Prnt <> nil) and (ASubType > '') then
-    begin
-      if AClass.ClassName = 'TgdcUserDocument' then
-        Add('TgdcUserDocumentLine', ASubType, Prnt.SubType, AnEntryClass, ACaption)
-      else if AClass.ClassName = 'TgdcInvPriceList' then
-        Add('TgdcInvPriceListLine', ASubType, Prnt.SubType, AnEntryClass, ACaption)
-      else if AClass.ClassName = 'TgdcInvDocument' then
-      begin
-        Add('TgdcInvDocumentLine', ASubType, Prnt.SubType, AnEntryClass, ACaption);
-        Add('TgdcInvRemains', ASubType, Prnt.SubType, AnEntryClass, ACaption);
-        Add('TgdcInvGoodRemains', ASubType, Prnt.SubType, AnEntryClass, ACaption);
-        Add('TgdcSelectedGood', ASubType, Prnt.SubType, AnEntryClass, ACaption);
-        Add('Tgdc_frmInvSelectedGoods', ASubType, Prnt.SubType, AnEntryClass, ACaption);
-        Add('TgdcInvMovement', ASubType, Prnt.SubType, AnEntryClass, ACaption);
-        Add('Tgdc_frmInvSelectGoodRemains', ASubType, Prnt.SubType, AnEntryClass, ACaption);
-        Add('Tgdc_frmInvSelectRemains', ASubType, Prnt.SubType, AnEntryClass, ACaption);
-      end
-      else if AClass.ClassName = 'TgdcInvRemains' then
-      begin
-        Add('TgdcInvGoodRemains', ASubType, Prnt.SubType, AnEntryClass, ACaption);
-        Add('Tgdc_frmInvSelectGoodRemains', ASubType, Prnt.SubType, AnEntryClass, ACaption);
-        Add('Tgdc_frmInvSelectRemains', ASubType, Prnt.SubType, AnEntryClass, ACaption);
-      end;
-    end;
   end;
 end;
 
@@ -1613,49 +1586,6 @@ begin
 {$IFDEF DEBUG}
   Dec(glbClassListCount);
 {$ENDIF}
-end;
-
-procedure TgdClassList.SpreadSettings(ACE: TgdClassEntry);
-var
-  CE: TgdClassEntry;
-begin
-  if ACE = nil then
-    raise Exception.Create('');
-
-  if ACE.TheClass.ClassName = 'TgdcUserDocument' then
-  begin
-    CE := Get(TgdDocumentEntry, 'TgdcUserDocumentLine' ACE.SubType);
-    (CE as TgdDocumentEntry).Assign(ACE);
-    CE.Caption := ACE.Caption;
-  end
-  else if ACE.TheClass.ClassName = 'TgdcInvDocument' then
-  begin
-    CE := Get(TgdDocumentEntry, 'TgdcInvDocumentLine' ACE.SubType);
-    (CE as TgdDocumentEntry).Assign(ACE);
-    CE.Caption := ACE.Caption;
-
-    CE := Get(TgdDocumentEntry, 'TgdcInvRemains' ACE.SubType);
-    (CE as TgdDocumentEntry).Assign(ACE);
-    CE.Caption := ACE.Caption;
-
-    CE := Get(TgdDocumentEntry, 'TgdcInvGoodRemains' ACE.SubType);
-    (CE as TgdDocumentEntry).Assign(ACE);
-    CE.Caption := ACE.Caption;
-
-    CE := Get(TgdDocumentEntry, 'TgdcSelectedGood' ACE.SubType);
-    (CE as TgdDocumentEntry).Assign(ACE);
-    CE.Caption := ACE.Caption;
-
-    CE := Get(TgdDocumentEntry, 'TgdcInvMovement' ACE.SubType);
-    (CE as TgdDocumentEntry).Assign(ACE);
-    CE.Caption := ACE.Caption;
-  end
-  else if ACE.TheClass.ClassName = 'TgdcInvPriceList' then
-  begin
-    CE := Get(TgdDocumentEntry, 'TgdcInvPriceListLine' ACE.SubType);
-    (CE as TgdDocumentEntry).Assign(ACE);
-    CE.Caption := ACE.Caption;
-  end;
 end;
 
 function TgdClassList.Find(const AClass: TClass;
