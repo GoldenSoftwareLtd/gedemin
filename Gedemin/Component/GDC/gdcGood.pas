@@ -814,10 +814,7 @@ end;
 class function TgdcGood.GetDialogFormClassName(
   const ASubType: TgdcSubType): String;
 begin
-  if Self = TgdcGood then
-    Result := 'Tgdc_dlgGood'
-  else
-    Result := '';
+  Result := 'Tgdc_dlgGood';
 end;
 
 class function TgdcGood.GetChildrenClass(const ASubType: TgdcSubType;
