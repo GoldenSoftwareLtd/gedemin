@@ -167,10 +167,9 @@ procedure Register;
 implementation
 
 uses
-  gd_security_OperationConst, gdc_dlgSetupInvPriceList_unit,
-  gdc_frmInvPriceList_unit, gdc_frmInvPriceListType_unit,
-  gdc_dlgInvPriceList_unit, at_sql_setup, gd_ClassList,
-  gdc_dlgInvPriceListLine_unit, gdcInvDocument_unit, gdInitDoc_Unit;
+  gd_security_OperationConst, gdc_dlgSetupInvPriceList_unit, gdc_frmInvPriceList_unit,
+  gdc_frmInvPriceListType_unit, gdc_dlgInvPriceList_unit, at_sql_setup, gd_ClassList,
+  gd_ClassList_InitDoc, gdc_dlgInvPriceListLine_unit, gdcInvDocument_unit;
 
 procedure Register;
 begin
