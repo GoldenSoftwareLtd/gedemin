@@ -9594,6 +9594,7 @@ procedure TgdcTable.CustomInsert(Buff: Pointer);
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
   Prnt: TgdClassEntry;
+  CE: TgdClassEntry;
 begin
   {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCTABLE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  try
@@ -9624,16 +9625,18 @@ begin
     Prnt := gdClassList.Get(TgdBaseEntry, 'TgdcAttrUserDefinedLBRBTree')
   else if Self is TgdcTreeTable then
     Prnt := gdClassList.Get(TgdBaseEntry, 'TgdcAttrUserDefinedTree')
-  else if (Self is TgdcSimpleTable) or (Self is TgdcPrimeTable) or (Self is TgdcTableToTable) then
-    Prnt := gdClassList.Get(TgdBaseEntry, 'TgdcAttrUserDefined')
   else if Self is TgdcTableToDefinedTable then
-    Prnt := gdClassList.FindByRelation((Self as TgdcTableToDefinedTable).GetReferenceName);
+    Prnt := gdClassList.FindByRelation((Self as TgdcTableToDefinedTable).GetReferenceName)
+  else if (Self is TgdcSimpleTable) or (Self is TgdcPrimeTable) or (Self is TgdcTableToTable) then
+    Prnt := gdClassList.Get(TgdBaseEntry, 'TgdcAttrUserDefined');
 
   if Prnt = nil then
     raise EgdcException.CreateObj('Unknown metadata class.', Self);
 
-  gdClassList.Add(Prnt.TheClass, FieldByName('relationname').AsString,
+  CE := gdClassList.Add(Prnt.TheClass, FieldByName('relationname').AsString,
     Prnt.SubType, CgdClassEntry(Prnt.ClassType), FieldByName('lname').AsString);
+  if CE <> nil then
+    (CE as TgdBaseEntry).DistinctRelation := UpperCase(FieldByName('relationname').AsString);
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCTABLE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  finally
