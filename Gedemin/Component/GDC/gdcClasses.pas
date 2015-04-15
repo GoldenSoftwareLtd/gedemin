@@ -304,6 +304,7 @@ uses
   gdc_frmG_unit,
 
   gd_ClassList,
+  gd_ClassList_InitDoc,
   gd_security_operationconst,
 
   gdcInvDocument_unit,
@@ -323,7 +324,6 @@ uses
   gd_directories_const,
   IB, gdc_frmMDH_unit,
   gd_resourcestring,
-  gdInitDoc_Unit,
 
   jclStrings
   {must be placed after Windows unit!}

@@ -1,4 +1,4 @@
-unit gdInitDoc_Unit;
+unit gd_ClassList_InitDoc;
 
 interface
 
