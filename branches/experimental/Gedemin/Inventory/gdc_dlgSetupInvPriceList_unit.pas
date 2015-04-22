@@ -97,6 +97,8 @@ type
     dbcbIsCommon: TDBCheckBox;
     lblParent: TLabel;
     edParentName: TEdit;
+    lbEnglishName: TLabel;
+    edEnglishName: TEdit;
 
     procedure pcMainChange(Sender: TObject);
     procedure pcMainChanging(Sender: TObject; var AllowChange: Boolean);
@@ -120,6 +122,10 @@ type
     procedure actSelectDetailFieldUpdate(Sender: TObject);
     procedure actSelectDetailFieldExecute(Sender: TObject);
     procedure actDeselectDetailFieldExecute(Sender: TObject);
+    procedure iblcHeaderTableCreateNewObject(Sender: TObject;
+      ANewObject: TgdcBase);
+    procedure iblcLineTableCreateNewObject(Sender: TObject;
+      ANewObject: TgdcBase);
 
   private
     FOperationCount: Integer; // Список операций по созданию полей с переподключением
@@ -291,11 +297,6 @@ begin
 
   gdcLineTable.ID := PriceLine.ID;
   gdcLineTable.Open;
-
-  iblcHeaderTable.CurrentKey := IntToStr(Price.ID);
-  iblcHeaderTable.Condition := 'ID = ' + IntToStr(Price.ID);
-  iblcLineTable.CurrentKey := IntToStr(PriceLine.ID);
-  iblcLineTable.Condition := 'ID = ' + IntToStr(PriceLine.ID);
 
   FCurrency.Database := Document.Database;
   FCurrency.Transaction := Document.ReadTransaction;
@@ -1021,9 +1022,26 @@ begin
   ActivateTransaction(gdcObject.Transaction);
   edParentName.Text := '';
 
+  edEnglishName.Text := '';
+  edEnglishName.MaxLength := 14;
+
+  if gdcObject.State = dsEdit then
+  begin
+    DE := gdClassList.FindDocByTypeID(gdcObject.FieldByName('id').AsInteger, dcpHeader);
+    if DE <> nil then
+      edEnglishName.Text := DE.HeaderRelName;
+  end;
+
 
   DE := gdClassList.FindDocByTypeID(gdcObject.FieldByName('parent').AsInteger, dcpHeader);
-  if DE <> nil then
+  if DE = nil then
+  begin
+    iblcHeaderTable.CurrentKey := IntToStr(Price.ID);
+    iblcHeaderTable.Condition := 'ID = ' + IntToStr(Price.ID);
+    iblcLineTable.CurrentKey := IntToStr(PriceLine.ID);
+    iblcLineTable.Condition := 'ID = ' + IntToStr(PriceLine.ID);
+  end
+  else
   begin
     edParentName.Text := DE.Caption;
     if gdcObject.State = dsInsert then
@@ -1179,6 +1197,44 @@ begin
     else
       Used.Selected := Used.Items[Used.Items.Count - 1];
   end;
+end;
+
+procedure TdlgSetupInvPriceList.iblcHeaderTableCreateNewObject(
+  Sender: TObject; ANewObject: TgdcBase);
+begin
+  if not CheckEnName(edEnglishName.Text) then
+  begin
+    edEnglishName.Show;
+    raise EgdcIBError.Create(
+      'В наименовании на английском должны быть только латинские символы');
+  end;
+
+  if gdcObject.State <> dsInsert then
+    abort
+  else
+  begin
+    if Pos(UserPrefix, UpperCase(edEnglishName.Text)) = 0 then
+      edEnglishName.Text := UserPrefix + edEnglishName.Text;
+    aNewObject.FieldByName('relationname').AsString := edEnglishName.Text;
+    aNewObject.FieldByName('lname').AsString := edDocumentName.Text;
+    aNewObject.FieldByName('lshortname').AsString := aNewObject.FieldByName('lname').AsString;
+  end;
+end;
+
+procedure TdlgSetupInvPriceList.iblcLineTableCreateNewObject(
+  Sender: TObject; ANewObject: TgdcBase);
+begin
+  if not CheckEnName(edEnglishName.Text) then
+  begin
+    edEnglishName.Show;
+    raise EgdcIBError.Create('В наименовании на английском должны быть только латинские символы');
+  end;
+
+  if Pos(UserPrefix, UpperCase(edEnglishName.Text)) = 0 then
+    edEnglishName.Text := UserPrefix + edEnglishName.Text;
+  aNewObject.FieldByName('relationname').AsString := edEnglishName.Text + 'LINE';
+  aNewObject.FieldByName('lname').AsString := edDocumentName.Text + '(позиция)';
+  aNewObject.FieldByName('lshortname').AsString := aNewObject.FieldByName('lname').AsString;
 end;
 
 initialization
