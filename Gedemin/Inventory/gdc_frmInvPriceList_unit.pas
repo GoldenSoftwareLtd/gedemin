@@ -37,6 +37,7 @@ type
     gdcInvPriceList: TgdcInvPriceList;
     gdcInvPriceListLine: TgdcInvPriceListLine;
     procedure FormCreate(Sender: TObject);
+    procedure actDetailNewExecute(Sender: TObject);
 
   public
     class function CreateAndAssign(AnOwner: TComponent): TForm; override;
@@ -79,6 +80,27 @@ begin
   inherited;
   if Assigned(DesktopManager) then
     DesktopManager.SaveDesktopItem(Self);
+end;
+
+procedure Tgdc_frmInvPriceList.actDetailNewExecute(Sender: TObject);
+var
+  OldID: Integer;
+  C: TgdcFullClass;
+begin
+  if not gdcDetailObject.IsEmpty then
+    OldID := gdcDetailObject.ID
+  else
+    OldID := -1;
+
+  C := gdcObject.GetCurrRecordClass;
+  C.gdClass := CgdcBase(gdcDetailObject.ClassType);
+  gdcDetailObject.CreateDialog(C);
+
+  if OldID <> gdcDetailObject.ID then
+  begin
+    if ibgrDetail.SelectedRows.Count > 0 then
+      ibgrDetail.SelectedRows.Clear;
+  end;
 end;
 
 initialization

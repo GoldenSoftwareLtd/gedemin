@@ -1,6 +1,6 @@
 inherited dlgSetupInvPriceList: TdlgSetupInvPriceList
-  Left = 438
-  Top = 307
+  Left = 505
+  Top = 165
   Caption = 'Настройка прайс-листа'
   ClientHeight = 423
   ClientWidth = 532
@@ -68,7 +68,7 @@ inherited dlgSetupInvPriceList: TdlgSetupInvPriceList
         end
         object Label1: TLabel
           Left = 7
-          Top = 151
+          Top = 171
           Width = 103
           Height = 13
           Caption = 'Шапка прайс-листа:'
@@ -76,7 +76,7 @@ inherited dlgSetupInvPriceList: TdlgSetupInvPriceList
         end
         object Label2: TLabel
           Left = 7
-          Top = 176
+          Top = 196
           Width = 111
           Height = 13
           Caption = 'Позиция прайс-листа:'
@@ -84,7 +84,7 @@ inherited dlgSetupInvPriceList: TdlgSetupInvPriceList
         end
         object lblExplorer: TLabel
           Left = 7
-          Top = 126
+          Top = 146
           Width = 123
           Height = 13
           Caption = 'Ветка в исследователе:'
@@ -95,6 +95,15 @@ inherited dlgSetupInvPriceList: TdlgSetupInvPriceList
           Width = 80
           Height = 13
           Caption = 'Наследован от:'
+        end
+        object lbEnglishName: TLabel
+          Left = 8
+          Top = 123
+          Width = 122
+          Height = 13
+          Caption = 'Наименование на англ.:'
+          FocusControl = edEnglishName
+          WordWrap = True
         end
         object edDocumentName: TDBEdit
           Left = 157
@@ -116,7 +125,7 @@ inherited dlgSetupInvPriceList: TdlgSetupInvPriceList
         end
         object iblcHeaderTable: TgsIBLookupComboBox
           Left = 157
-          Top = 147
+          Top = 167
           Width = 352
           Height = 21
           HelpContext = 1
@@ -129,6 +138,7 @@ inherited dlgSetupInvPriceList: TdlgSetupInvPriceList
           ListField = 'LNAME'
           KeyField = 'ID'
           gdClassName = 'TgdcTable'
+          OnCreateNewObject = iblcHeaderTableCreateNewObject
           ItemHeight = 13
           ParentShowHint = False
           ShowHint = True
@@ -136,7 +146,7 @@ inherited dlgSetupInvPriceList: TdlgSetupInvPriceList
         end
         object iblcLineTable: TgsIBLookupComboBox
           Left = 157
-          Top = 172
+          Top = 192
           Width = 352
           Height = 21
           HelpContext = 1
@@ -149,6 +159,7 @@ inherited dlgSetupInvPriceList: TdlgSetupInvPriceList
           ListField = 'lname'
           KeyField = 'id'
           gdClassName = 'TgdcTable'
+          OnCreateNewObject = iblcLineTableCreateNewObject
           ItemHeight = 13
           ParentShowHint = False
           ShowHint = True
@@ -156,7 +167,7 @@ inherited dlgSetupInvPriceList: TdlgSetupInvPriceList
         end
         object ibcmbExplorer: TgsIBLookupComboBox
           Left = 157
-          Top = 122
+          Top = 142
           Width = 352
           Height = 21
           HelpContext = 1
@@ -175,7 +186,7 @@ inherited dlgSetupInvPriceList: TdlgSetupInvPriceList
         end
         object dbcbIsCommon: TDBCheckBox
           Left = 7
-          Top = 197
+          Top = 219
           Width = 163
           Height = 17
           Alignment = taLeftJustify
@@ -195,6 +206,14 @@ inherited dlgSetupInvPriceList: TdlgSetupInvPriceList
           ReadOnly = True
           TabOrder = 6
           Text = 'edParentName'
+        end
+        object edEnglishName: TEdit
+          Left = 157
+          Top = 119
+          Width = 352
+          Height = 21
+          CharCase = ecUpperCase
+          TabOrder = 7
         end
       end
       object tsHeader: TTabSheet

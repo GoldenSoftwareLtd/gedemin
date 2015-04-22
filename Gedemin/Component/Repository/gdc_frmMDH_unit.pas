@@ -448,7 +448,8 @@ begin
         FgdcDetailObject.ClassName, FgdcDetailObject.SubType).Count > 0 then
       begin
         if (Self.ClassName <> 'Tgdc_frmUserComplexDocument')
-        and (Self.ClassName <> 'Tgdc_frmInvDocument') then
+          and (Self.ClassName <> 'Tgdc_frmInvDocument')
+          and (Self.ClassName <> 'Tgdc_frmInvPriceList') then
         begin
           TCrTBItem(tbiDetailNew).ItemStyle :=
             TCrTBItem(tbiDetailNew).ItemStyle + [tbisSubMenu, tbisSubitemsEditable, tbisCombo];
