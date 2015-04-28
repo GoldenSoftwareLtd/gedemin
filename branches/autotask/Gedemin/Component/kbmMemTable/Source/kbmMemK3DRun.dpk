@@ -1,0 +1,40 @@
+package kbmMemK3DRun;
+
+{$R *.res}
+{$R 'kbmMemTable.dcr'}
+{$ALIGN 8}
+{$ASSERTIONS ON}
+{$BOOLEVAL OFF}
+{$DEBUGINFO OFF}
+{$EXTENDEDSYNTAX ON}
+{$IMPORTEDDATA ON}
+{$IOCHECKS OFF}
+{$LOCALSYMBOLS OFF}
+{$LONGSTRINGS ON}
+{$OPENSTRINGS ON}
+{$OPTIMIZATION ON}
+{$OVERFLOWCHECKS OFF}
+{$RANGECHECKS OFF}
+{$REFERENCEINFO ON}
+{$SAFEDIVIDE OFF}
+{$STACKFRAMES OFF}
+{$TYPEDADDRESS OFF}
+{$VARSTRINGCHECKS ON}
+{$WRITEABLECONST ON}
+{$MINENUMSIZE 1}
+{$IMAGEBASE $400000}
+{$LIBPREFIX ''}
+{$RUNONLY}
+{$IMPLICITBUILD OFF}
+
+requires
+  vcl,
+  dataclx,
+  visualclx;
+
+contains
+  kbmMemTable in 'kbmMemTable.pas',
+  kbmMemCSVStreamFormat in 'kbmMemCSVStreamFormat.pas',
+  kbmMemBinaryStreamFormat in 'kbmMemBinaryStreamFormat.pas';
+
+end.

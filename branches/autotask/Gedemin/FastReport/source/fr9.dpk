@@ -1,0 +1,183 @@
+// Package file for Delphi 9
+
+package FR9;
+
+{$I FR.inc}
+{$R *.res}
+{$R 'FR_reg.dcr'}
+{$ALIGN 8}
+{$ASSERTIONS ON}
+{$BOOLEVAL OFF}
+{$DEBUGINFO ON}
+{$EXTENDEDSYNTAX ON}
+{$IMPORTEDDATA ON}
+{$IOCHECKS ON}
+{$LOCALSYMBOLS ON}
+{$LONGSTRINGS ON}
+{$OPENSTRINGS ON}
+{$OPTIMIZATION ON}
+{$OVERFLOWCHECKS OFF}
+{$RANGECHECKS OFF}
+{$REFERENCEINFO ON}
+{$SAFEDIVIDE OFF}
+{$STACKFRAMES OFF}
+{$TYPEDADDRESS OFF}
+{$VARSTRINGCHECKS ON}
+{$WRITEABLECONST ON}
+{$MINENUMSIZE 1}
+{$IMAGEBASE $400000}
+{$DESCRIPTION 'FastReport 2.5 Components'}
+{$IMPLICITBUILD ON}
+
+requires
+  VCL,
+  VCLSMP,
+  DESIGNIDE
+{$IFDEF IBO}
+  {$IFDEF IBO4}
+, IBO40CRT,
+  IBO40FRT,
+  IBO40TRT,
+  IBO40VRT,
+  IBO40XRT
+  {$ELSE}
+, IBO_D7
+  {$ENDIF}
+{$ELSE}
+, VCLDB
+{$ENDIF}
+{$IFDEF BDE},        BDERTL    {$ENDIF}
+{$IFDEF IBX},        IBXPRESS  {$ENDIF}
+{$IFDEF ADO},        ADORTL    {$ENDIF}
+{$IFDEF JPEG},       VCLJPG    {$ENDIF}
+{$IFDEF TeeChartStd},TEE       {$ENDIF}
+{$IFDEF TeeChart45}, TEE45     {$ENDIF}
+{$IFDEF RX},         RXCTL7    {$ENDIF}
+{$IFDEF MWEDIT},     mwEdit_D7 {$ENDIF};
+
+
+contains
+  fr_reg    in 'fr_reg.pas',
+
+//----------------------------- tool controls
+  fr_combo  in 'fr_combo.pas',
+  fr_ctrls  in 'fr_ctrls.pas',
+  fr_dock   in 'fr_dock.pas',
+
+//----------------------------- db-aware components
+  fr_DBFldEditor  in 'FR_DBFldEditor.pas',
+  fr_DBFldList    in 'FR_DBFldList.pas',
+  fr_DBLookupCtl  in 'FR_DBLookupCtl.pas',
+  fr_DBNewLookup  in 'FR_DBNewLookup.pas',
+  fr_DBUtils      in 'FR_DBUtils.pas',
+  fr_DBSQLEdit    in 'FR_DBSQLEdit.pas',
+
+//----------------------------- reporter core
+  fr_class  in 'fr_class.pas',
+  fr_const  in 'fr_const.pas',
+  fr_dbrel  in 'fr_dbrel.pas',
+  fr_dbset  in 'fr_dbset.pas',
+  fr_dset   in 'fr_dset.pas',
+  fr_fmted  in 'fr_fmted.pas',
+  fr_intrp  in 'fr_intrp.pas',
+  fr_pars   in 'fr_pars.pas',
+  fr_prdlg  in 'fr_prdlg.pas',
+  fr_prntr  in 'fr_prntr.pas',
+  fr_progr  in 'fr_progr.pas',
+  fr_srch   in 'fr_srch.pas',
+  fr_utils  in 'fr_utils.pas',
+  fr_view   in 'fr_view.pas',
+  fr_passw  in 'fr_passw.pas',
+
+//----------------------------- add-in objects
+  frbarcod  in 'frbarcod.pas',
+  fr_barc   in 'fr_barc.pas'
+{$IFDEF TeeChart}
+, fr_chart  in 'fr_chart.pas'
+{$ENDIF}
+, fr_chbox  in 'fr_chbox.pas',
+  fr_cross  in 'fr_cross.pas',
+  fr_cross1 in 'fr_cross1.pas',
+  fr_crossd in 'fr_crossd.pas',
+  fr_dctrl  in 'fr_dctrl.pas',
+  fr_e_txt  in 'fr_e_txt.pas',
+  fr_e_rtf  in 'fr_e_rtf.pas',
+  fr_e_csv  in 'fr_e_csv.pas',
+  fr_e_htm  in 'fr_e_htm.pas',
+  fr_ledit  in 'fr_ledit.pas',
+  fr_ole    in 'fr_ole.pas',
+  fr_ptabl  in 'fr_ptabl.pas',
+  fr_rich   in 'fr_rich.pas',
+  fr_rrect  in 'fr_rrect.pas',
+  frOLEExl in 'frOLEExl.pas',
+  frRtfExp in 'frRtfExp.pas',
+  frexpimg in 'frexpimg.pas',
+// 2.52
+  frTXTExp in 'frTXTExp.pas',
+  frTXTExpPrn in 'frTXTExpPrn.pas',
+  frXMLExl in 'frXMLExl.pas',
+  frHTMExp in 'frHTMExp.pas',
+  frIEMatrix in 'frIEMatrix.pas',
+  frProgr in 'frProgr.pas',
+
+  fr_e_html2_editors in 'fr_e_html2_editors.pas',
+  fr_e_html2 in 'fr_e_html2.pas'
+{$IFDEF RX}
+, fr_rxrtf  in 'fr_rxrtf.pas'
+{$ENDIF}
+, fr_shape  in 'fr_shape.pas',
+
+//----------------------------- report designer
+  fr_about  in 'fr_about.pas',
+  fr_attre  in 'fr_attre.pas',
+  fr_arg    in 'fr_arg.pas',
+  fr_bnded  in 'fr_bnded.pas',
+  fr_btyp   in 'fr_btyp.pas',
+  fr_color  in 'fr_color.pas',
+  fr_desgn  in 'fr_desgn.pas',
+  fr_dict   in 'fr_dict.pas',
+  fr_dopt   in 'fr_dopt.pas',
+  fr_dsopt  in 'fr_dsopt.pas',
+  fr_edit   in 'fr_edit.pas',
+  fr_edit1   in 'fr_edit1.pas',
+  fr_expr   in 'fr_expr.pas',
+  fr_flds   in 'fr_flds.pas',
+  fr_flds1  in 'fr_flds1.pas',
+  fr_funcs  in 'fr_funcs.pas',
+  fr_gedit  in 'fr_gedit.pas',
+  fr_grped  in 'fr_grped.pas',
+  fr_hilit  in 'fr_hilit.pas',
+  fr_iflds  in 'fr_iflds.pas',
+  fr_insp   in 'fr_insp.pas',
+  fr_newrp  in 'fr_newrp.pas',
+  fr_pagef  in 'fr_pagef.pas',
+  fr_pgopt  in 'fr_pgopt.pas',
+  fr_popuplb in 'fr_popuplb.pas',
+  fr_restr  in 'fr_restr.pas',
+  fr_synmemo in 'fr_synmemo.pas',
+  fr_templ  in 'fr_templ.pas',
+  fr_var    in 'fr_var.pas',
+  fr_vared  in 'fr_vared.pas',
+  fr_vbnd   in 'fr_vbnd.pas'
+
+//----------------------------- data manager
+{$IFDEF DATAMANAGER}
+, fr_dbop   in 'fr_dbop.pas',
+  frd_db    in 'frd_db.pas',
+  frd_flde  in 'frd_flde.pas',
+  frd_fldl  in 'frd_fldl.pas',
+  frd_form  in 'frd_form.pas',
+  frd_list  in 'frd_list.pas',
+  frd_look  in 'frd_look.pas',
+  frd_md    in 'frd_md.pas',
+  frd_mngr  in 'frd_mngr.pas',
+  frd_parm  in 'frd_parm.pas',
+  frd_prop  in 'frd_prop.pas',
+  frd_qry   in 'frd_qry.pas',
+  frd_tbl   in 'frd_tbl.pas',
+  frd_tbl1  in 'frd_tbl1.pas',
+  frd_wrap  in 'frd_wrap.pas'
+{$ENDIF};
+
+
+end.

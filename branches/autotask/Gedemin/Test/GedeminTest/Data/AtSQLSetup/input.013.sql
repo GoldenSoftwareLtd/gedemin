@@ -1,0 +1,1 @@
+select * from fin_versioninfo f1 join fin_versioninfo f2 on trim(f1.comment)=trim(f2.comment) where trim(f1.comment)=trim(:p)

@@ -1,0 +1,1147 @@
+
+{******************************************}
+{                                          }
+{             FastReport v2.4              }
+{             Report classes               }
+{                                          }
+{ Copyright (c) 1998-2001 by Tzyganenko A. }
+{                                          }
+{******************************************}
+
+unit FR_Class;
+
+interface
+
+{$I FR.inc}
+
+uses
+  SysUtils, Windows, Messages, Classes, Graphics, Printers, Controls,
+  Forms, StdCtrls, ComCtrls, Dialogs, Menus, Buttons,
+  FR_View, FR_Pars, FR_Intrp, FR_DSet, FR_DBSet, FR_DBRel
+{$IFDEF IBO}
+, IB_Components, IB_Header
+{$ELSE}
+, DB
+{$ENDIF}
+{$IFDEF Delphi6}
+, Variants
+{$ENDIF};
+
+
+const
+// object flags
+  flStretched = 1;
+  flWordWrap = 2;
+  flWordBreak = 4;
+  flAutoSize = 8;
+  flTextOnly = $10;
+  flSuppressRepeated = $20;
+  flHideZeros = $40;
+  flUnderlines = $80;
+  flRTLReading = $100;
+  flBandNewPageAfter = 2;
+  flBandPrintifSubsetEmpty = 4;
+  flBandBreaked = 8;
+  flBandOnFirstPage = $10;
+  flBandOnLastPage = $20;
+  flBandRepeatHeader = $40;
+  flBandPrintChildIfInvisible = $80;
+  flPictCenter = 2;
+  flPictRatio = 4;
+  flWantHook = $8000;
+  flDontUndo = $4000;
+  flOnePerPage = $2000;
+
+// object types
+  gtMemo = 0;
+  gtPicture = 1;
+  gtBand = 2;
+  gtSubReport = 3;
+  gtLine = 4;
+  gtCross = 5;
+  gtAddIn = 10;
+
+// frame types
+  frftNone = 0;
+  frftRight = 1;
+  frftBottom = 2;
+  frftLeft = 4;
+  frftTop = 8;
+
+// text align
+  frtaLeft = 0;
+  frtaRight = 1;
+  frtaCenter = 2;
+  frtaVertical = 4;
+  frtaMiddle = 8;
+  frtaDown = 16;
+
+// band align
+  baNone = 0;
+  baLeft = 1;
+  baRight = 2;
+  baCenter = 3;
+  baWidth = 4;
+  baBottom = 5;
+  baTop = 6;
+  baRest = 7;
+
+// restriction flags
+  frrfDontEditMemo = 1;
+  frrfDontEditScript = 2;
+  frrfDontEditContents = 4;
+  frrfDontModify = 8;
+  frrfDontSize = 16;
+  frrfDontMove = 32;
+  frrfDontDelete = 64;
+
+  psDouble = 5;
+
+type
+  TfrDocMode = (dmDesigning, dmPrinting);
+  TfrDrawMode = (drAll, drAfterCalcHeight, drPart);
+  TfrBandType = (btReportTitle, btReportSummary,
+                 btPageHeader, btPageFooter,
+                 btMasterHeader, btMasterData, btMasterFooter,
+                 btDetailHeader, btDetailData, btDetailFooter,
+                 btSubDetailHeader, btSubDetailData, btSubDetailFooter,
+                 btOverlay, btColumnHeader, btColumnFooter,
+                 btGroupHeader, btGroupFooter,
+                 btCrossHeader, btCrossData, btCrossFooter,
+                 btChild, btNone);
+  TfrPageType = (ptReport, ptDialog);
+  TfrDataSetPosition = (psLocal, psGlobal);
+  TfrPageMode = (pmNormal, pmBuildList);
+  TfrBandRecType = (rtShowBand, rtFirst, rtNext);
+  TfrRgnType = (rtNormal, rtExtended);
+  TfrReportType = (rtSimple, rtMultiple);
+  TfrDataType = (frdtString, frdtInteger, frdtFloat, frdtBoolean,
+                 frdtColor, frdtEnum, frdtHasEditor, frdtSize,
+                 frdtOneObject);
+  TfrDataTypes = set of TfrDataType;
+  TfrPrintPages = (frAll, frOdd, frEven);
+
+  TfrView = class;
+  TfrBand = class;
+  TfrPage = class;
+  TfrReport = class;
+  TfrExportFilter = class;
+
+  TDetailEvent = procedure(const ParName: String; var ParValue: Variant) of object;
+  TEnterRectEvent = procedure(Memo: TStringList; View: TfrView) of object;
+  TBeginDocEvent = procedure of object;
+  TEndDocEvent = procedure of object;
+  TBeginPageEvent = procedure(pgNo: Integer) of object;
+  TEndPageEvent = procedure(pgNo: Integer) of object;
+  TBeginBandEvent = procedure(Band: TfrBand) of object;
+  TEndBandEvent = procedure(Band: TfrBand) of object;
+  TProgressEvent = procedure(n: Integer) of object;
+  TBeginColumnEvent = procedure(Band: TfrBand) of object;
+  TPrintColumnEvent = procedure(ColNo: Integer; var Width: Integer) of object;
+  TManualBuildEvent = procedure(Page: TfrPage) of object;
+  TObjectClickEvent = procedure(View: TfrView) of object;
+  TMouseOverObjectEvent = procedure(View: TfrView; var Cursor: TCursor) of object;
+  TBeforeExportEvent = procedure(var FileName: String; var bContinue: Boolean) of object;
+  TAfterExportEvent = procedure(const FileName: String) of object;
+  TPrintReportEvent = procedure of object;
+  TLocalizeEvent = procedure(StringID: Integer; var ResultString: String) of object;
+
+  TfrHighlightAttr = packed record
+    FontStyle: Word;
+    FontColor, FillColor: TColor;
+  end;
+
+  TfrPrnInfo = record // print info about page size, margins e.t.c
+    PPgw, PPgh, Pgw, Pgh: Integer; // page width/height (printer/screen)
+    POfx, POfy, Ofx, Ofy: Integer; // offset x/y
+    PPw, PPh, Pw, Ph: Integer;     // printable width/height
+  end;
+
+  PfrPageInfo = ^TfrPageInfo;
+  TfrPageInfo = packed record // pages of a preview
+    R: TRect;
+    pgSize: Word;
+    pgWidth, pgHeight: Integer;
+    pgOr: TPrinterOrientation;
+    pgBin: Integer;
+    UseMargins: Boolean;
+    pgMargins: TRect;
+    PrnInfo: TfrPrnInfo;
+    Visible: Boolean;
+    Stream: TMemoryStream;
+    Page: TfrPage;
+  end;
+
+  PfrBandRec = ^TfrBandRec;
+  TfrBandRec = packed record
+    Band: TfrBand;
+    Action: TfrBandRecType;
+  end;
+
+  PfrPropRec = ^TfrPropRec;
+  TfrPropRec = record
+    PropName: String[32];
+    PropType: TfrDataTypes;
+    Enum: TStringList;
+    EnumValues: Variant;
+    PropEditor: TNotifyEvent;
+  end;
+
+  TfrObject = class(TObject)
+  protected
+    PropList: TList;
+    procedure ClearPropList;
+    procedure AddProperty(PropName: String; PropType: TfrDataTypes;
+      PropEditor: TNotifyEvent);
+    procedure AddEnumProperty(PropName: String; Enum: String;
+      const EnumValues: array of Variant);
+    procedure DelProperty(PropName: String);
+    procedure SetPropValue(Index: String; Value: Variant); virtual;
+    function GetPropValue(Index: String): Variant; virtual;
+    function GetPropRec(Index: String): PfrPropRec;
+    function DoMethod(MethodName: String; Par1, Par2, Par3: Variant): Variant; virtual;
+// helper methods
+    procedure SetFontProp(Font: TFont; Prop: String; Value: Variant);
+    function GetFontProp(Font: TFont; Prop: String): Variant;
+    function LinesMethod(Lines: TStrings; MethodName, LinesName: String;
+      Par1, Par2, Par3: Variant): Variant;
+  public
+    constructor Create;
+    destructor Destroy; override;
+    procedure DefineProperties; virtual;
+    property Prop[Index: String]: Variant read GetPropValue write SetPropValue;
+    property PropRec[Index: String]: PfrPropRec read GetPropRec;
+  end;
+
+  TfrView = class(TfrObject)
+  private
+    procedure P1Click(Sender: TObject);
+  protected
+    Parent: TfrBand;
+    ParentPage: TfrPage;
+    SaveX, SaveY, SaveDX, SaveDY, SaveGX, SaveGY: Integer;
+    SaveFW: Single;
+    BaseName: String;
+    Canvas: TCanvas;
+    DRect: TRect;
+    Memo1: TStringList;
+    FDataSet: TfrTDataSet;
+    FField: String;
+    olddy: Integer;
+    StreamMode: (smFRF, smFRP);
+    procedure ShowBackground; virtual;
+    procedure ShowFrame; virtual;
+    procedure BeginDraw(ACanvas: TCanvas);
+    procedure GetBlob(b: TfrTField); virtual;
+    procedure OnHook(View: TfrView); virtual;
+    procedure ExpandVariables(var s: String);
+    procedure SetPropValue(Index: String; Value: Variant); override;
+    function GetPropValue(Index: String): Variant; override;
+    procedure Loaded; virtual;
+    function DoMethod(MethodName: String; Par1, Par2, Par3: Variant): Variant; override;
+    function ParentBand: TfrView;
+  public
+    Name: String;
+    Typ: Byte;                // One of gtXXX constants
+    HVersion, LVersion: Byte;
+    ID: Integer;              // UID - used in designer (undo support)
+    Selected: Boolean;        // used in designer
+    OriginalRect: TRect;
+    ScaleX, ScaleY: Double;   // used for scaling objects in preview
+    OffsX, OffsY: Integer;    //
+    IsPrinting: Boolean;      // True if printing on printer canvas
+    x, y, dx, dy: Integer;
+    Flags: Word;
+    FrameTyp: Word;
+    FrameWidth: Single;
+    FrameColor: TColor;
+    FrameStyle: Word;
+    FillColor: TColor;
+    Format: Integer;
+    FormatStr: String;
+    Visible: WordBool;
+    gapx, gapy: Integer;
+    Restrictions: Word;
+    Tag: String;
+    Memo, Script: TStringList;
+    BandAlign: Byte;
+    constructor Create; virtual;
+    destructor Destroy; override;
+    procedure Assign(From: TfrView);
+    procedure CalcGaps; virtual;
+    procedure RestoreCoord; virtual;
+    procedure Draw(Canvas: TCanvas); virtual; abstract;
+    procedure StreamOut(Stream: TStream); virtual;
+    procedure ExportData; virtual;
+    procedure LoadFromStream(Stream: TStream); virtual;
+    procedure SaveToStream(Stream: TStream); virtual;
+    procedure Resized; virtual;
+    procedure DefinePopupMenu(Popup: TPopupMenu); virtual;
+    function GetClipRgn(rt: TfrRgnType): HRGN; virtual;
+    procedure CreateUniqueName;
+    procedure SetBounds(Left, Top, Width, Height: Integer);
+    procedure DefineProperties; override;
+    procedure ShowEditor; virtual;
+  end;
+
+  TfrControl = class(TfrView)
+  protected
+    FControl: TControl;
+    procedure PaintDesignControl; virtual;
+    procedure SetPropValue(Index: String; Value: Variant); override;
+  public
+    constructor Create; override;
+    destructor Destroy; override;
+    procedure DefineProperties; override;
+    procedure PlaceControl(Form: TForm);
+    procedure Draw(Canvas: TCanvas); override;
+    procedure DefinePopupMenu(Popup: TPopupMenu); override;
+    property Control: TControl read FControl;
+  end;
+
+  TfrNonVisualControl = class(TfrControl)
+  protected
+    Bmp: TBitmap;
+    Component: TComponent;
+    FFixupList: TfrVariables;
+    procedure SetPropValue(Index: String; Value: Variant); override;
+    procedure PaintDesignControl; override;
+  public
+    constructor Create; override;
+    destructor Destroy; override;
+    procedure DefineProperties; override;
+    procedure PlaceControl(Form: TForm);
+    procedure Draw(Canvas: TCanvas); override;
+  end;
+
+  TfrStretcheable = class(TfrView)
+  protected
+    ActualHeight: Integer;
+    DrawMode: TfrDrawMode;
+    function CalcHeight: Integer; virtual; abstract;
+    function MinHeight: Integer; virtual; abstract;
+    function RemainHeight: Integer; virtual; abstract;
+  end;
+
+  TfrMemoView = class(TfrStretcheable)
+  private
+    FFont: TFont;
+    LastValue: String;
+    FWrapped: Boolean;
+    procedure P1Click(Sender: TObject);
+    procedure P2Click(Sender: TObject);
+    procedure P3Click(Sender: TObject);
+    procedure P5Click(Sender: TObject);
+    procedure P6Click(Sender: TObject);
+    procedure P8Click(Sender: TObject);
+    procedure P9Click(Sender: TObject);
+    procedure P10Click(Sender: TObject);
+    procedure P11Click(Sender: TObject);
+    procedure SetFont(Value: TFont);
+  protected
+    Streaming: Boolean;
+    TextHeight: Integer;
+    CurStrNo: Integer;
+    Exporting: Boolean;
+    procedure ExpandMemoVariables;
+    procedure AssignFont(Canvas: TCanvas);
+    procedure WrapMemo;
+    procedure ShowMemo;
+    procedure ShowUnderLines;
+    function CalcWidth(Memo: TStringList): Integer;
+    function CalcHeight: Integer; override;
+    function MinHeight: Integer; override;
+    function RemainHeight: Integer; override;
+    procedure GetBlob(b: TfrTField); override;
+    procedure SetPropValue(Index: String; Value: Variant); override;
+    function GetPropValue(Index: String): Variant; override;
+    function DoMethod(MethodName: String; Par1, Par2, Par3: Variant): Variant; override;
+  public
+    Alignment: Integer;
+    Highlight: TfrHighlightAttr;
+    HighlightStr: String;
+    LineSpacing, CharacterSpacing: Integer;
+    constructor Create; override;
+    destructor Destroy; override;
+    procedure Draw(Canvas: TCanvas); override;
+    procedure StreamOut(Stream: TStream); override;
+    procedure ExportData; override;
+    procedure LoadFromStream(Stream: TStream); override;
+    procedure SaveToStream(Stream: TStream); override;
+    procedure DefinePopupMenu(Popup: TPopupMenu); override;
+    procedure DefineProperties; override;
+    procedure ShowEditor; override;
+    property Font: TFont read FFont write SetFont;
+  end;
+
+  TfrBandView = class(TfrView)
+  private
+    procedure P1Click(Sender: TObject);
+    procedure P2Click(Sender: TObject);
+    procedure P3Click(Sender: TObject);
+    procedure P4Click(Sender: TObject);
+    procedure P5Click(Sender: TObject);
+    procedure P6Click(Sender: TObject);
+    procedure P7Click(Sender: TObject);
+    function GetBandType: TfrBandType;
+    procedure SetBandType(const Value: TfrBandType);
+    function GetRectangleWidth: Integer;
+  protected
+    procedure SetPropValue(Index: String; Value: Variant); override;
+    function GetPropValue(Index: String): Variant; override;
+    function DoMethod(MethodName: String; Par1, Par2, Par3: Variant): Variant; override;
+  public
+    ChildBand, Master: String;
+    Columns: Integer;
+    ColumnWidth: Integer;
+    ColumnGap: Integer;
+    NewColumnAfter: Integer;
+    constructor Create; override;
+    procedure Draw(Canvas: TCanvas); override;
+    procedure LoadFromStream(Stream: TStream); override;
+    procedure SaveToStream(Stream: TStream); override;
+    procedure DefinePopupMenu(Popup: TPopupMenu); override;
+    procedure DefineProperties; override;
+    function GetClipRgn(rt: TfrRgnType): HRGN; override;
+    property BandType: TfrBandType read GetBandType write SetBandType;
+    property DataSet: String read FormatStr write FormatStr;
+    property GroupCondition: String read FormatStr write FormatStr;
+  end;
+
+  TfrSubReportView = class(TfrView)
+  public
+    SubPage: Integer;
+    constructor Create; override;
+    procedure Draw(Canvas: TCanvas); override;
+    procedure LoadFromStream(Stream: TStream); override;
+    procedure SaveToStream(Stream: TStream); override;
+    procedure DefinePopupMenu(Popup: TPopupMenu); override;
+  end;
+
+  TfrPictureView = class(TfrView)
+  private
+    procedure P1Click(Sender: TObject);
+    procedure P2Click(Sender: TObject);
+  protected
+    procedure SetPropValue(Index: String; Value: Variant); override;
+    function GetPropValue(Index: String): Variant; override;
+    function DoMethod(MethodName: String; Par1, Par2, Par3: Variant): Variant; override;
+    procedure GetBlob(b: TfrTField); override;
+  public
+    Picture: TPicture;
+    BlobType: Byte;
+    constructor Create; override;
+    destructor Destroy; override;
+    procedure Draw(Canvas: TCanvas); override;
+    procedure LoadFromStream(Stream: TStream); override;
+    procedure SaveToStream(Stream: TStream); override;
+    procedure DefinePopupMenu(Popup: TPopupMenu); override;
+    procedure DefineProperties; override;
+    procedure ShowEditor; override;
+  end;
+
+  TfrLineView = class(TfrStretcheable)
+  private
+    FHeight: Integer;
+  public
+    constructor Create; override;
+    procedure Draw(Canvas: TCanvas); override;
+    procedure StreamOut(Stream: TStream); override;
+    function CalcHeight: Integer; override;
+    function MinHeight: Integer; override;
+    function RemainHeight: Integer; override;
+    function GetClipRgn(rt: TfrRgnType): HRGN; override;
+    procedure DefineProperties; override;
+  end;
+
+  TfrBand = class(TObject)
+  private
+    Parent: TfrPage;
+    View: TfrBandView;
+    Flags: Word;
+    Next, Prev: TfrBand;
+    NextGroup, PrevGroup: TfrBand;
+    FirstGroup, LastGroup: TfrBand;
+    Child: TfrBand;
+    AggrBand: TfrBand;
+    SubIndex, MaxY: Integer;
+    EOFReached: Boolean;
+    EOFArr: Array[0..31] of Boolean;
+    Positions: Array[TfrDatasetPosition] of Integer;
+    LastGroupValue: Variant;
+    HeaderBand, FooterBand, DataBand, LastBand: TfrBand;
+    Values: TfrVariables;
+    Count: Integer;
+    DisableInit: Boolean;
+    CalculatedHeight: Integer;
+    CurColumn: Integer;
+    SaveXAdjust: Integer;
+    SaveCurY: Boolean;
+    MaxColumns: Integer;
+    DisableBandScript: Boolean;
+    procedure InitDataSet(Desc: String);
+    procedure FreeDataSet;
+    function CalcHeight: Integer;
+    procedure StretchObjects(MaxHeight: Integer);
+    procedure UnStretchObjects;
+    procedure DrawObject(t: TfrView);
+    procedure PrepareSubReports;
+    procedure DoSubReports;
+    function DrawObjects: Boolean;
+    procedure DrawCrossCell(Parnt: TfrBand; CurX: Integer);
+    procedure DrawCross;
+    function CheckPageBreak(y, dy: Integer; PBreak: Boolean): Boolean;
+    procedure DrawPageBreak;
+    function HasCross: Boolean;
+    function DoCalcHeight: Integer;
+    procedure DoDraw;
+    function Draw: Boolean;
+    procedure InitValues;
+    procedure DoAggregate;
+    function ExtractField(const s: String; FieldNo: Integer): String;
+    procedure AddAggregateValue(s: String; v: Variant);
+    function GetAggregateValue(s: String): Variant;
+  public
+    x, y, dx, dy, maxdy: Integer;
+    Typ: TfrBandType;
+    Name: String;
+    PrintIfSubsetEmpty, NewPageAfter, Stretched, PageBreak,
+    PrintChildIfInvisible, Visible: Boolean;
+    Objects: TList;
+    Memo, Script: TStringList;
+    DataSet: TfrDataSet;
+    IsVirtualDS: Boolean;
+    VCDataSet: TfrDataSet;
+    IsVirtualVCDS: Boolean;
+    GroupCondition: String;
+    CallNewPage, CallNewColumn: Integer;
+    constructor Create(ATyp: TfrBandType; AParent: TfrPage);
+    destructor Destroy; override;
+  end;
+
+  TfrPage = class(TfrObject)
+  private
+    Bands: Array[TfrBandType] of TfrBand;
+    Skip, InitFlag: Boolean;
+    CurColumn, LastStaticColumnY, XAdjust: Integer;
+    List: TList;
+    Mode: TfrPageMode;
+    PlayFrom: Integer;
+    LastBand: TfrBand;
+    ColPos, CurPos: Integer;
+    WasBand: TfrBand;
+    DisableRepeatHeader: Boolean;
+    procedure InitPage;
+    procedure DonePage;
+    procedure TossObjects;
+    procedure PrepareObjects;
+    procedure FormPage;
+    procedure AddRecord(b: TfrBand; rt: TfrBandRecType);
+    procedure ClearRecList;
+    function PlayRecList: Boolean;
+    procedure DrawPageFooters;
+    function BandExists(b: TfrBand): Boolean;
+    procedure AfterPrint;
+    procedure LoadFromStream(Stream: TStream);
+    procedure SaveToStream(Stream: TStream);
+    procedure ShowBand(b: TfrBand);
+    function LeftOffset: Integer;
+    procedure DoScript(Script: TStrings);
+    procedure DialogFormActivate(Sender: TObject);
+    procedure ResetPosition(b: TfrBand; ResetTo: Integer);
+  protected
+    procedure SetPropValue(Index: String; Value: Variant); override;
+    function GetPropValue(Index: String): Variant; override;
+  public
+    pgSize, pgWidth, pgHeight: Integer;
+    pgMargins: TRect;
+    pgOr: TPrinterOrientation;
+    pgBin: Integer;
+    PrintToPrevPage, UseMargins: WordBool;
+    PrnInfo: TfrPrnInfo;
+    ColCount, ColWidth, ColGap: Integer;
+    PageType: TfrPageType;
+    Objects: TList;
+    CurY, CurBottomY: Integer;
+    Name: String;
+    // dialog properties
+    BorderStyle: Byte;
+    Caption: String;
+    Color: TColor;
+    Left, Top, Width, Height: Integer;
+    Position: Byte;
+    Form: TForm;
+    Script: TStringList;
+    Visible: Boolean;
+    PageNumber: Integer;
+    constructor Create(ASize, AWidth, AHeight, ABin: Integer;
+      AOr: TPrinterOrientation); virtual;
+    destructor Destroy; override;
+    procedure DefineProperties; override;
+    procedure CreateUniqueName;
+    function TopMargin: Integer;
+    function BottomMargin: Integer;
+    function LeftMargin: Integer;
+    function RightMargin: Integer;
+    procedure Clear;
+    procedure Delete(Index: Integer);
+    function FindObjectByID(ID: Integer): Integer;
+    function FindObject(Name: String): TfrView;
+    procedure ChangePaper(ASize, AWidth, AHeight, ABin: Integer; AOr: TPrinterOrientation);
+    procedure ShowBandByName(s: String);
+    procedure ShowBandByType(bt: TfrBandType);
+    procedure NewPage;
+    procedure NewColumn(Band: TfrBand);
+    procedure ScriptEditor(Sender: TObject);
+  end;
+
+  TfrPages = class(TObject)
+  private
+    FPages: TList;
+    Parent: TfrReport;
+    function GetCount: Integer;
+    function GetPages(Index: Integer): TfrPage;
+    procedure RefreshObjects;
+  public
+    constructor Create(AParent: TfrReport);
+    destructor Destroy; override;
+    procedure Clear;
+    procedure Add;
+    procedure Delete(Index: Integer);
+    procedure Move(OldIndex, NewIndex: Integer);
+    procedure LoadFromStream(Stream: TStream);
+    procedure SaveToStream(Stream: TStream);
+    property Pages[Index: Integer]: TfrPage read GetPages; default;
+    property Count: Integer read GetCount;
+  end;
+
+  TfrEMFPages = class(TObject)
+  private
+    FPages: TList;
+    Parent: TfrReport;
+    function GetCount: Integer;
+    function GetPages(Index: Integer): PfrPageInfo;
+    procedure ExportData(Index: Integer);
+    procedure PageToObjects(Index: Integer);
+    procedure ObjectsToPage(Index: Integer);
+  public
+    constructor Create(AParent: TfrReport);
+    destructor Destroy; override;
+    procedure Clear;
+    procedure Draw(Index: Integer; Canvas: TCanvas; DrawRect: TRect);
+    procedure Add(APage: TfrPage);
+    procedure AddFrom(Report: TfrReport);
+    procedure Insert(Index: Integer; APage: TfrPage);
+    procedure Delete(Index: Integer);
+    procedure LoadFromStream(AStream: TStream);
+    procedure SaveToStream(AStream: TStream);
+    function DoClick(Index: Integer; pt: TPoint; Click: Boolean; var Cursor: TCursor): Boolean;
+    property Pages[Index: Integer]: PfrPageInfo read GetPages; default;
+    property Count: Integer read GetCount;
+  end;
+
+  PfrCacheItem = ^TfrCacheItem;
+  TfrCacheItem = record
+    DataSet: TfrTDataSet;
+    DataField: String;
+  end;
+
+  TfrDataDictionary = class(TObject)
+  private
+    Cache: TStringList;
+    function GetValue(VarName: String): Variant;
+    function GetRealFieldName(ItemName: String): String;
+    function GetRealDataSetName(ItemName: String): String;
+    function GetRealDataSourceName(ItemName: String): String;
+    function GetAliasName(ItemName: String): String;
+    procedure AddCacheItem(VarName: String; DataSet: TfrTDataSet; DataField: String);
+    procedure ClearCache;
+  public
+    Variables: TfrVariables;
+    FieldAliases: TfrVariables;
+    BandDatasources: TfrVariables;
+    DisabledDatasets: TStringList;
+    constructor Create;
+    destructor Destroy; override;
+    procedure Clear;
+    procedure LoadFromStream(Stream: TStream);
+    procedure SaveToStream(Stream: TStream);
+    procedure LoadFromFile(FName: String);
+    procedure SaveToFile(FName: String);
+    procedure ExtractFieldName(ComplexName: String;
+      var DSName, FieldName: String);
+    function IsVariable(VarName: String): Boolean;
+    function DatasetEnabled(DatasetName: String): Boolean;
+    procedure GetDatasetList(List: TStrings);
+    procedure GetFieldList(DSName: String; List: TStrings);
+    procedure GetBandDatasourceList(List: TStrings);
+    procedure GetCategoryList(List: TStrings);
+    procedure GetVariablesList(Category: String; List: TStrings);
+    property Value[Index: String]: Variant read GetValue;
+    property RealDataSetName[Index: String]: String read GetRealDataSetName;
+    property RealDataSourceName[Index: String]: String read GetRealDataSourceName;
+    property RealFieldName[Index: String]: String read GetRealFieldName;
+    property AliasName[Index: String]: String read GetAliasName;
+  end;
+
+  TfrReport = class(TComponent)
+  private
+    FPages: TfrPages;
+    FEMFPages: TfrEMFPages;
+    FDictionary: TfrDataDictionary;
+    FDataset: TfrDataset;
+    FGrayedButtons: Boolean;
+    FReportType: TfrReportType;
+    FTitle: String;
+    FShowProgress: Boolean;
+    FModalPreview: Boolean;
+    FModifyPrepared: Boolean;
+    FStoreInDFM: Boolean;
+    FPreview: TfrPreview;
+    FPreviewButtons: TfrPreviewButtons;
+    FInitialZoom: TfrPreviewZoom;
+    FOnBeginDoc: TBeginDocEvent;
+    FOnEndDoc: TEndDocEvent;
+    FOnBeginPage: TBeginPageEvent;
+    FOnEndPage: TEndPageEvent;
+    FOnBeginBand: TBeginBandEvent;
+    FOnEndBand: TEndBandEvent;
+    FOnGetValue: TDetailEvent;
+    FOnEnterRect: TEnterRectEvent;
+    FOnProgress: TProgressEvent;
+    FOnFunction: TFunctionEvent;
+    FOnBeginColumn: TBeginColumnEvent;
+    FOnPrintColumn: TPrintColumnEvent;
+    FOnManualBuild: TManualBuildEvent;
+    FObjectClick: TObjectClickEvent;
+    FMouseOverObject: TMouseOverObjectEvent;
+    FOnPrintReportEvent: TPrintReportEvent;
+    FCurrentFilter: TfrExportFilter;
+    FPageNumbers: String;
+    FCopies: Integer;
+    FCollate: Boolean;
+    FPrintPages: TfrPrintPages;
+    FCurPage: TfrPage;
+    _DoublePass: Boolean;
+    FMDIPreview: Boolean;
+    FDefaultCopies: Integer;
+    FDefaultCollate: Boolean;
+    FPrnName: String;
+    FDFMStream: TStream;
+    FPrintIfEmpty: Boolean;
+    FShowPrintDialog: Boolean;
+    FOnCrossBeginDoc: TBeginDocEvent;
+    function FormatValue(V: Variant; Format: Integer;
+      const FormatStr: String): String;
+    procedure BuildBeforeModal(Sender: TObject);
+    procedure ExportBeforeModal(Sender: TObject);
+    procedure PrintBeforeModal(Sender: TObject);
+    function DoPrepareReport: Boolean;
+    procedure DoBuildReport; virtual;
+    procedure SetPrinterTo(PrnName: String);
+    procedure GetIntrpValue(const Name: String; var Value: Variant);
+    procedure GetIntrpFunction(const Name: String; p1, p2, p3: Variant;
+      var Val: Variant);
+  protected
+    procedure DefineProperties(Filer: TFiler); override;
+    procedure ReadBinaryData(Stream: TStream);
+    procedure WriteBinaryData(Stream: TStream);
+    procedure Notification(AComponent: TComponent; Operation: TOperation); override;
+    procedure DoPrintReport(PageNumbers: String; Copies: Integer;
+      Collate: Boolean; PrintPages: TfrPrintPages); virtual;
+    procedure Loaded; override;
+  public
+    CanRebuild: Boolean;            // true, if report can be rebuilded
+    Terminated: Boolean;
+    PrintToDefault, DoublePass: WordBool;
+    FinalPass: Boolean;
+    FileName: String;
+    Modified, ComponentModified: Boolean;
+    MixVariablesAndDBFields: Boolean;
+{$IFDEF 1CScript}
+    Script : TStringList;
+{$ENDIF}
+    constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
+    procedure Clear;
+    // internal events used through report building
+    property OnCrossBeginDoc: TBeginDocEvent read FOnCrossBeginDoc write FOnCrossBeginDoc;
+    procedure InternalOnEnterRect(Memo: TStringList; View: TfrView);
+    procedure InternalOnExportData(View: TfrView);
+    procedure InternalOnExportText(DrawRect: TRect; x, y: Integer;
+      const text: String; FrameTyp: Integer; View: TfrView);
+    procedure InternalOnGetValue(ParName: String; var ParValue: String);
+    procedure InternalOnProgress(Percent: Integer);
+    procedure InternalOnBeginColumn(Band: TfrBand);
+    procedure InternalOnPrintColumn(ColNo: Integer; var ColWidth: Integer);
+    procedure FillQueryParams;
+    procedure GetVariableValue(const s: String; var v: Variant);
+{$IFDEF 1CScript}
+    procedure GetVariableV(const s: String; var v: Variant);
+{$ENDIF}
+    procedure OnGetParsFunction(const name: String; p1, p2, p3: Variant;
+                                var val: Variant);
+    function FindObject(Name: String): TfrView;
+    // load/save methods
+    procedure LoadFromStream(Stream: TStream);
+    procedure SaveToStream(Stream: TStream);
+    function LoadFromFile(FName: String): Boolean;
+    procedure SaveToFile(FName: String);
+{$IFDEF IBO}
+    procedure LoadFromDB(Table: TIB_DataSet; DocN: Integer);
+    procedure SaveToDB(Table: TIB_DataSet; DocN: Integer);
+    procedure SaveToBlobField(Blob: TIB_ColumnBlob);
+    procedure LoadFromBlobField(Blob: TIB_ColumnBlob);
+{$ELSE}
+    procedure LoadFromDB(Table: TDataSet; DocN: Integer);
+    procedure SaveToDB(Table: TDataSet; DocN: Integer);
+    procedure SaveToBlobField(Blob: TField);
+    procedure LoadFromBlobField(Blob: TField);
+{$ENDIF}
+    procedure LoadFromResourceName(Instance: THandle; const ResName: string);
+    procedure LoadFromResourceID(Instance: THandle; ResID: Integer);
+    procedure LoadTemplate(fname: String; comm: TStrings;
+      Bmp: TBitmap; Load: Boolean);
+    procedure SaveTemplate(fname: String; comm: TStrings; Bmp: TBitmap);
+    procedure LoadPreparedReport(FName: String);
+    procedure SavePreparedReport(FName: String);
+    // report manipulation methods
+    function DesignReport: TModalResult;
+    function PrepareReport: Boolean;
+    procedure ExportTo(Filter: TfrExportFilter; FileName: String);
+    procedure ShowReport;
+    procedure ShowPreparedReport;
+    procedure PrintPreparedReportDlg;
+    procedure PrintPreparedReport(PageNumbers: String; Copies: Integer;
+      Collate: Boolean; PrintPages: TfrPrintPages);
+    function ChangePrinter(OldIndex, NewIndex: Integer): Boolean;
+    procedure EditPreparedReport(PageIndex: Integer);
+    //
+    property Pages: TfrPages read FPages;
+    property EMFPages: TfrEMFPages read FEMFPages write FEMFPages;
+    property Dictionary: TfrDataDictionary read FDictionary write FDictionary;
+  published
+    property Dataset: TfrDataset read FDataset write FDataset;
+    property DefaultCopies: Integer read FDefaultCopies write FDefaultCopies default 1;
+    property DefaultCollate: Boolean read FDefaultCollate write FDefaultCollate default True;
+    property GrayedButtons: Boolean read FGrayedButtons write FGrayedButtons default False;
+    property InitialZoom: TfrPreviewZoom read FInitialZoom write FInitialZoom;
+    property MDIPreview: Boolean read FMDIPreview write FMDIPreview default False;
+    property ModalPreview: Boolean read FModalPreview write FModalPreview default True;
+    property ModifyPrepared: Boolean read FModifyPrepared write FModifyPrepared default True;
+    property Preview: TfrPreview read FPreview write FPreview;
+    property PreviewButtons: TfrPreviewButtons read FPreviewButtons write FPreviewButtons;
+    property PrintIfEmpty: Boolean read FPrintIfEmpty write FPrintIfEmpty default True;
+    property ReportType: TfrReportType read FReportType write FReportType default rtSimple;
+    property ShowPrintDialog: Boolean read FShowPrintDialog write FShowPrintDialog default True;
+    property ShowProgress: Boolean read FShowProgress write FShowProgress default True;
+    property StoreInDFM: Boolean read FStoreInDFM write FStoreInDFM default False;
+    property Title: String read FTitle write FTitle;
+    property OnBeginDoc: TBeginDocEvent read FOnBeginDoc write FOnBeginDoc;
+    property OnEndDoc: TEndDocEvent read FOnEndDoc write FOnEndDoc;
+    property OnBeginPage: TBeginPageEvent read FOnBeginPage write FOnBeginPage;
+    property OnEndPage: TEndPageEvent read FOnEndPage write FOnEndPage;
+    property OnBeginBand: TBeginBandEvent read FOnBeginBand write FOnBeginBand;
+    property OnEndBand: TEndBandEvent read FOnEndBand write FOnEndBand;
+    property OnGetValue: TDetailEvent read FOnGetValue write FOnGetValue;
+    property OnBeforePrint: TEnterRectEvent read FOnEnterRect write FOnEnterRect;
+    property OnUserFunction: TFunctionEvent read FOnFunction write FOnFunction;
+    property OnProgress: TProgressEvent read FOnProgress write FOnProgress;
+    property OnBeginColumn: TBeginColumnEvent read FOnBeginColumn write FOnBeginColumn;
+    property OnPrintColumn: TPrintColumnEvent read FOnPrintColumn write FOnPrintColumn;
+    property OnManualBuild: TManualBuildEvent read FOnManualBuild write FOnManualBuild;
+    property OnObjectClick: TObjectClickEvent read FObjectClick write FObjectClick;
+    property OnMouseOverObject: TMouseOverObjectEvent read FMouseOverObject write FMouseOverObject;
+    property OnPrintReport: TPrintReportEvent read FOnPrintReportEvent write FOnPrintReportEvent;
+  end;
+
+  TfrCompositeReport = class(TfrReport)
+  private
+    procedure DoBuildReport; override;
+  public
+    Reports: TList;
+    constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
+  end;
+
+  TfrReportDesigner = class(TForm)
+  protected
+    function GetModified: Boolean; virtual; abstract;
+    procedure SetModified(Value: Boolean); virtual; abstract;
+  public
+    Page: TfrPage;
+    FirstInstance: Boolean;
+    constructor CreateDesigner(AFirstInstance: Boolean); virtual;
+    procedure BeforeChange; virtual; abstract;
+    procedure AfterChange; virtual; abstract;
+    procedure RedrawPage; virtual; abstract;
+    procedure SelectObject(ObjName: String); virtual; abstract;
+    function InsertDBField: String; virtual; abstract;
+    function InsertExpression: String; virtual; abstract;
+    property Modified: Boolean read GetModified write SetModified;
+  end;
+
+  TfrDataManager = class(TObject)
+  public
+    procedure Clear; virtual; abstract;
+    procedure LoadFromStream(Stream: TStream); virtual; abstract;
+    procedure SaveToStream(Stream: TStream); virtual; abstract;
+    procedure BeforePreparing; virtual; abstract;
+    procedure AfterPreparing; virtual; abstract;
+    procedure PrepareDataSet(ds: TfrTDataSet); virtual; abstract;
+    function ShowParamsDialog: Boolean; virtual; abstract;
+    procedure AfterParamsDialog; virtual; abstract;
+  end;
+
+  TfrObjEditorForm = class(TForm)
+  public
+    function ShowEditor(View: TfrView): TModalResult; virtual;
+  end;
+
+  TfrExportFilter = class(TComponent)
+  protected
+    FileName: String;
+    Stream: TStream;
+    Lines: TList;
+    FShowDialog: Boolean;
+    FDefault: Boolean;
+    FOnBeforeExport: TBeforeExportEvent;
+    FOnAfterExport: TAfterExportEvent;
+    procedure ClearLines; virtual;
+  public
+    constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
+    function ShowModal: Word; virtual;
+    procedure OnBeginDoc; virtual;
+    procedure OnEndDoc; virtual;
+    procedure OnBeginPage; virtual;
+    procedure OnEndPage; virtual;
+    procedure OnData(x, y: Integer; View: TfrView); virtual;
+    procedure OnText(DrawRect: TRect; x, y: Integer;
+      const text: String; FrameTyp: Integer; View: TfrView); virtual;
+  published
+    property Default: Boolean read FDefault write FDefault default False;
+    property ShowDialog: Boolean read FShowDialog write FShowDialog default True;
+    property OnBeforeExport: TBeforeExportEvent read FOnBeforeExport write FOnBeforeExport;
+    property OnAfterExport: TAfterExportEvent read FOnAfterExport write FOnAfterExport;
+  end;
+
+  TfrFunctionLibrary = class(TObject)
+  public
+    List: TStringList;
+    constructor Create; virtual;
+    destructor Destroy; override;
+    function OnFunction(const FName: String; p1, p2, p3: Variant;
+      var val: Variant): Boolean; virtual;
+    procedure DoFunction(FNo: Integer; p1, p2, p3: Variant; var val: Variant);
+      virtual; abstract;
+    procedure AddFunctionDesc(FuncName, Category, Description: String);
+  end;
+
+  TfrCompressor = class(TObject)
+  public
+    Enabled: Boolean;
+    constructor Create; virtual;
+    procedure Compress(StreamIn, StreamOut: TStream); virtual;
+    procedure DeCompress(StreamIn, StreamOut: TStream); virtual;
+  end;
+
+  TfrInstalledFunctions = class(TObject)
+  private
+    FList: TList;
+    procedure UnRegisterFunctionLibrary(FunctionLibrary: TfrFunctionLibrary);
+  public
+    constructor Create;
+    destructor Destroy; override;
+    procedure Add(FunctionLibrary: TfrFunctionLibrary;
+      FuncName, Category, Description: String);
+    function GetFunctionDesc(FuncName: String): String;
+    procedure GetCategoryList(List: TStrings);
+    procedure GetFunctionList(Category: String; List: TStrings);
+  end;
+
+{ TfrLocale class contains methods and properties for localization.
+  You can use global function frLocale: TfrLocale to access these methods.
+  FR localization can come from .exe resources (default) or dll resource file.
+
+  To make dll resource file, go RES folder and subfolder with needed language
+  and run mkdll.bat file. To use dll in your project, write the following code:
+
+  frLocale.LoadDll('FR_ENGL.DLL');
+
+  To use default .exe resources, unload dll by code:
+
+  frLocale.UnloadDll;
+
+  If you want to make own localization file (for instance, text file), use
+  event handler frLocale.OnLocalize. It takes StringID parameter and must
+  return ResultString string (see TLocalizeEvent for syntax). You handler
+  may look like this:
+
+  frLocale.OnLocalize := MyClass.OnLocalize;
+  ...
+  procedure TMyClass.OnLocalize(StringID: Integer; var ResultString: String);
+  begin
+    if StringID = 53000 then
+      ResultString := 'Search';
+  end;
+}
+
+  TfrLocale = class
+  private
+    FDllHandle: THandle;
+    FLoaded: Boolean;
+    FLocalizedPropertyNames: Boolean;
+    FOnLocalize: TLocalizeEvent;
+    FIDEMode: Boolean;
+  public
+    constructor Create;
+    function LoadBmp(ID: String): HBitmap;
+    function LoadStr(ID: Integer): String;
+    procedure LoadDll(Name: String);
+    procedure UnloadDll;
+    property LocalizedPropertyNames: Boolean read FLocalizedPropertyNames
+      write FLocalizedPropertyNames;
+    property OnLocalize: TLocalizeEvent read FOnLocalize write FOnLocalize;
+  end;
+
+  TfrGlobals = class
+  public
+    constructor Create;
+    destructor Destroy; override;
+    procedure Localize;
+  end;
+
+
+function frCreateObject(Typ: Byte; const ClassName: String): TfrView;
+procedure frRegisterObject(ClassRef: TClass; ButtonBmp: TBitmap;
+  const ButtonHint: String);
+procedure frRegisterControl(ClassRef: TClass; ButtonBmp: TBitmap;
+  const ButtonHint: String);
+procedure frUnRegisterObject(ClassRef: TClass);
+procedure frRegisterExportFilter(Filter: TfrExportFilter;
+  const FilterDesc, FilterExt: String);
+procedure frUnRegisterExportFilter(Filter: TfrExportFilter);
+procedure frRegisterFunctionLibrary(ClassRef: TClass);
+procedure frUnRegisterFunctionLibrary(ClassRef: TClass);
+procedure frRegisterTool(MenuCaption: String; ButtonBmp: TBitmap; OnClick: TNotifyEvent);
+procedure frAddFunctionDesc(FuncLibrary: TfrFunctionLibrary;
+  FuncName, Category, Description: String);
+function GetDefaultDataSet: TfrTDataSet;
+function frLocale: TfrLocale;
+
+const
+  frCurrentVersion = 24; // this is current version (2.4)
+  frSpecCount = 9;
+  frSpecFuncs: Array[0..frSpecCount - 1] of String =
+    ('PAGE#', '', 'DATE', 'TIME', 'LINE#', 'LINETHROUGH#', 'COLUMN#',
+     'CURRENT#', 'TOTALPAGES');
+  frColors: Array[0..41] of TColor =
+    (clWhite, clBlack, clMaroon, clGreen, clOlive, clNavy, clPurple, clTeal,
+     clGray, clSilver, clRed, clLime, clYellow, clBlue, clFuchsia,
+     clAqua, clNone,
+     clScrollBar, clBackground, clActiveCaption, clInactiveCaption,
+     clMenu, clWindow, clWindowFrame, clMenuText, clWindowText,
+     clCaptionText, clActiveBorder, clInactiveBorder, clAppWorkSpace,
+     clHighlight, clHighlightText, clBtnFace, clBtnShadow, clGrayText,
+     clBtnText, clInactiveCaptionText, clBtnHighlight, cl3DDkShadow,
+     cl3DLight, clInfoText, clInfoBk);
+  frColorNames: Array[0..41] of String =
+    ('clWhite', 'clBlack', 'clMaroon', 'clGreen', 'clOlive', 'clNavy',
+     'clPurple', 'clTeal', 'clGray', 'clSilver', 'clRed', 'clLime',
+     'clYellow', 'clBlue', 'clFuchsia', 'clAqua', 'clTransparent',
+     'clScrollBar', 'clBackground', 'clActiveCaption', 'clInactiveCaption',
+     'clMenu', 'clWindow', 'clWindowFrame', 'clMenuText', 'clWindowText',
+     'clCaptionText', 'clActiveBorder', 'clInactiveBorder', 'clAppWorkSpace',
+     'clHighlight', 'clHighlightText', 'clBtnFace', 'clBtnShadow', 'clGrayText',
+     'clBtnText', 'clInactiveCaptionText', 'clBtnHighlight', 'cl3DDkShadow',
+     'cl3DLight', 'clInfoText', 'clInfoBk');
+
+
+type
+  PfrTextRec = ^TfrTextRec;
+  TfrTextRec = record
+    Next: PfrTextRec;
+    X, Y: Integer;
+    Text: String;
+    FontName: String[32];
+    FontSize, FontStyle, FontColor, FontCharset, FillColor: Integer;
+    DrawRect: TRect;
+    FrameTyp, FrameWidth, FrameColor, Alignment: Integer;
+  end;
+
+  TfrAddInObjectInfo = record
+    ClassRef: TClass;
+    ButtonBmp: TBitmap;
+    ButtonHint: String;
+    IsControl: Boolean;
+  end;
+
+  TfrExportFilterInfo = record
+    Filter: TfrExportFilter;
+    FilterDesc, FilterExt: String;
+  end;
+
+  TfrFunctionInfo = record
+    FunctionLibrary: TfrFunctionLibrary;
+  end;
+
+  TfrToolsInfo = record
+    Caption: String;
+    ButtonBmp: TBitmap;
+    OnClick: TNotifyEvent;
+  end;
+
+var
+  frDesigner: TfrReportDesigner;                  // designer reference
+  frDesignerClass: TClass;
+  frDataManager: TfrDataManager;                  // data manager reference
+  frParser: TfrParser;                            // parser reference
+  frInterpretator: TfrInterpretator;              // interpretator reference
+  frVariables: TfrVariables;                      // report variables reference
+  frConsts: TfrVariables;                         // some constants like 'clRed'
+  frCompressor: TfrCompressor;                    // compressor reference
+  frDialogForm: TForm;                            // dialog form reference
+  CurReport: TfrReport;                           // currently proceeded report
+  MasterReport: TfrReport;               // reference to main composite report
+  CurView: TfrView;                               // currently proceeded view
+  CurBand: TfrBand;                               // currently proceeded band
+  CurPage: TfrPage;                               // currently proceeded page
+  DocMode: TfrDocMode;                            // current mode
+  DisableDrawing: Boolean;
+  frAddIns: Array[0..31] of TfrAddInObjectInfo;   // add-in objects
+  frAddInsCount: Integer;
+  frFilters: Array[0..31] of TfrExportFilterInfo; // export filters
+  frFiltersCount: Integer;
+  frFunctions: Array[0..31] of TfrFunctionInfo;   // function libraries
+  frFunctionsCount: Integer;
+  frTools: Array[0..31] of TfrToolsInfo;          // tools
+  frToolsCount: Integer;
+  frInstalledFunctions: TfrInstalledFunctions;
+  PageNo: Integer;                       // current page number in Building mode
+  frCharset: 0..255;
+  frBandNames: Array[0..22] of String;
+  frDateFormats, frTimeFormats: Array[0..3] of String;
+  frVersion: Byte;                       // version of currently loaded report
+  ErrorFlag: Boolean;          // error occured through TfrView drawing
+  ErrorStr: String;            // error description
+  SMemo: TStringList;          // temporary memo used during TfrView drawing
+  ShowBandTitles: Boolean = True;
+  frThreadDone: Boolean;
+// editors
+  frMemoEditor: TNotifyEvent;
+  frTagEditor: TNotifyEvent;
+  frRestrEditor: TNotifyEvent;
+  frHighlightEditor: TNotifyEvent;
+  frFieldEditor: TNotifyEvent;
+  frDataSourceEditor: TNotifyEvent;
+  frCrossDataSourceEditor: TNotifyEvent;
+  frGroupEditor: TNotifyEvent;
+  frPictureEditor: TNotifyEvent;
+  frFontEditor: TNotifyEvent;
+  frGlobals: TfrGlobals;
+
+
+implementation
+
+end.

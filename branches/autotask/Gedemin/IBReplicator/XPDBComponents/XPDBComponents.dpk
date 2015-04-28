@@ -1,0 +1,48 @@
+package XPDBComponents;
+
+{$R *.res}
+{$ALIGN 8}
+{$ASSERTIONS ON}
+{$BOOLEVAL OFF}
+{$DEBUGINFO ON}
+{$EXTENDEDSYNTAX ON}
+{$IMPORTEDDATA ON}
+{$IOCHECKS ON}
+{$LOCALSYMBOLS ON}
+{$LONGSTRINGS ON}
+{$OPENSTRINGS ON}
+{$OPTIMIZATION ON}
+{$OVERFLOWCHECKS OFF}
+{$RANGECHECKS OFF}
+{$REFERENCEINFO ON}
+{$SAFEDIVIDE OFF}
+{$STACKFRAMES OFF}
+{$TYPEDADDRESS OFF}
+{$VARSTRINGCHECKS ON}
+{$WRITEABLECONST OFF}
+{$MINENUMSIZE 1}
+{$IMAGEBASE $400000}
+{$IMPLICITBUILD ON}
+{$DEFINE PACK}
+
+requires
+  vcl,
+  rtl,
+  dbrtl,
+  vcldb,
+  ibxpress,
+  XPComPack,
+  tb2k_d7;
+
+contains
+  xpDBComboBox in 'xpDBComboBox.pas',
+  SizePanel in 'SizePanel.pas',
+  xpDBGrid in 'xpDBGrid.pas',
+  xp_frmMemoDropDown_unit in 'xp_frmMemoDropDown_unit.pas',
+  xp_frmDateTimeDropDown_unit in 'xp_frmDateTimeDropDown_unit.pas',
+  xp_frmDropDown_unit in 'xp_frmDropDown_unit.pas' {frmDropDown},
+  xp_frmFKDropDown_unit in 'xp_frmFKDropDown_unit.pas' {frmFKDropDown},
+  xp_frmCalcDropDown_unit in 'xp_frmCalcDropDown_unit.pas' {frmCalcDropDown},
+  xp_DBComboBoxResouceSring_unit in 'xp_DBComboBoxResouceSring_unit.pas';
+
+end.
