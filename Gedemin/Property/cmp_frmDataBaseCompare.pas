@@ -1099,7 +1099,7 @@ end;
 function TDataBaseCompare.LocaliseName(FSQL: TIBSQL): String;
 var
   SQL: TIBSQL;
-  C: CgdcBase;
+  CE: TgdClassEntry;
   S: String;
 begin
   Result := FSQL.FieldByName('NAME').AsString;
@@ -1121,13 +1121,13 @@ begin
       try
         SQL.Params[0].AsString := S;
         SQL.ExecQuery;
-        if SQL.RecordCount > 0 then
+        if not SQL.EOF then
           Result := SQL.Fields[0].AsString;
       finally
         SQL.Free;
       end;
     end
-    else if S <> '' then
+    else if S > '' then
     begin
       SQL := TIBSQL.Create(nil);
       SQL.Transaction := FSQL.Transaction;
@@ -1136,16 +1136,16 @@ begin
       try
         SQL.Params[0].AsString := S;
         SQL.ExecQuery;
-        if SQL.RecordCount > 0 then
+        if not SQL.EOF then
           Result := SQL.Fields[0].AsString;
       finally
         SQL.Free;
       end;
     end else
     begin
-      C := gdClassList.GetGDCClass(FSQL.FieldByName('CLASSNAME').AsString);
-      if (C <> nil) and (IBLogin.Database = FSQL.Database) then
-        Result := C.GetDisplayName(S)
+      CE := gdClassList.Find(FSQL.FieldByName('CLASSNAME').AsString);
+      if (CE is TgdBaseEntry) and (IBLogin.Database = FSQL.Database) then
+        Result := TgdBaseEntry(CE).gdcClass.GetDisplayName(S);
     end;
   end;
 end;

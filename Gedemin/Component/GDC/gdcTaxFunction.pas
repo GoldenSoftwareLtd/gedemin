@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2001-2013 by Golden Software of Belarus
+  Copyright (c) 2001-2015 by Golden Software of Belarus
 
   Module
 
@@ -27,7 +27,7 @@ interface
 
 uses
   classes, gdcBase, gdcBaseInterface, gd_createable_form, menus, Controls,
-  gdcClasses, graphics, dmImages_unit;
+  gdcClasses_Interface, gdcClasses, graphics, dmImages_unit;
 
 const
   tfVBF = 'VB';
@@ -111,8 +111,7 @@ type
     procedure _DoOnNewRecord; override;
     function GetGroupID: Integer; override;
   public
-    function DocumentTypeKey: Integer; override;
-
+    class function ClassDocumentTypeKey: Integer; override;
     class function GetDocumentClassPart: TgdcDocumentClassPart; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetViewFormName: String;
@@ -134,11 +133,9 @@ type
     procedure _DoOnNewRecord; override;
     function GetGroupID: Integer; override;
   public
-    function DocumentTypeKey: Integer; override;
-
+    class function ClassDocumentTypeKey: Integer; override;
     class function GetDocumentClassPart: TgdcDocumentClassPart; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
-
     class function GetSubSetList: String; override;
 
     property CorrectResult: OleVariant read GetCorrectResult;
@@ -157,11 +154,7 @@ uses
   gdcCustomFunction, gd_directories_const, gdcAutoTransaction, gdcAcctTransaction;
 
 const
-  txNameChars =
-    'qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890_';
-
   txReportFolder = '%s (%s)';
-
   gdcTaxNameReportGroupKey          = 1020002;
 
 type
@@ -759,7 +752,7 @@ begin
   {END MACRO}
 end;
 
-function TgdcTaxResult.DocumentTypeKey: Integer;
+class function TgdcTaxResult.ClassDocumentTypeKey: Integer;
 begin
   Result := GD_DOC_TAXRESULT;
 end;
@@ -1064,7 +1057,7 @@ begin
   {END MACRO}
 end;
 
-function TgdcTaxDesignDate.DocumentTypeKey: Integer;
+class function TgdcTaxDesignDate.ClassDocumentTypeKey: Integer;
 begin
   Result := GD_DOC_TAXRESULT;
 end;
@@ -1342,11 +1335,11 @@ initialization
   RegisterGdcClass(TgdcTaxActual);
   RegisterGdcClass(TgdcTaxResult);
   RegisterGdcClass(TgdcTaxDesignDate);
-  RegisterGdcClass(TgdcTaxName, ctStorage, 'Бухгалтерский отчет');
+  RegisterGdcClass(TgdcTaxName, 'Бухгалтерский отчет');
 
 finalization
-  UnRegisterGdcClass(TgdcTaxActual);
-  UnRegisterGdcClass(TgdcTaxResult);
-  UnRegisterGdcClass(TgdcTaxDesignDate);
-  UnRegisterGdcClass(TgdcTaxName);
+  UnregisterGdcClass(TgdcTaxActual);
+  UnregisterGdcClass(TgdcTaxResult);
+  UnregisterGdcClass(TgdcTaxDesignDate);
+  UnregisterGdcClass(TgdcTaxName);
 end.

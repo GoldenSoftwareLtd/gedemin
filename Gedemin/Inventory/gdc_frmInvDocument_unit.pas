@@ -58,6 +58,7 @@ type
     procedure actMainGotoEntryExecute(Sender: TObject);
     procedure actViewAllCardExecute(Sender: TObject);
     procedure actCreateEntryUpdate(Sender: TObject);
+    procedure actDetailNewExecute(Sender: TObject);
 
   private
 
@@ -91,22 +92,19 @@ uses
 
 class function Tgdc_frmInvDocument.CreateAndAssign(AnOwner: TComponent): TForm;
 begin
-  result := nil;
+  Result := nil;
 end;
 
 procedure Tgdc_frmInvDocument.FormCreate(Sender: TObject);
 begin
-
   gdcObject := gdcInvDocument;
   gdcDetailObject := gdcInvDocumentLine;
 
-  //gdcObject.SubType := FSubType;
   gdcDetailObject.SubType := FSubType;
 
   inherited;
 
-  Caption := gdcInvDocument.DocumentName[True];
-
+  Caption := gdcInvDocument.DocumentName;
 end;
 
 procedure Tgdc_frmInvDocument.SaveDesktopSettings;
@@ -117,83 +115,9 @@ begin
 end;
 
 procedure Tgdc_frmInvDocument.actDeleteExecute(Sender: TObject);
-{var
-  DidActivate, Asked: Boolean;
-  I: Integer;
-  Tr: TIBTransaction;}
 begin
   inherited;
-
-  (*
-  if (gdcObject = nil) or (not gdcObject.Active)
-    or (gdcObject.IsEmpty) then
-  begin
-    exit;
-  end;
-
-  I := 0;
-  Asked := False;
-  Tr := gdcObject.Transaction;
-
-  DidActivate := not Tr.InTransaction;
-  if DidActivate then
-    Tr.StartTransaction;
-  try
-    try
-      ibgrMain.SelectedRows.Refresh;
-
-      repeat
-        if I < ibgrMain.SelectedRows.Count then
-        begin
-          gdcObject.Bookmark := ibgrMain.SelectedRows[I];
-        end;
-
-        if Assigned(gdcDetailObject)
-          and (gdcDetailObject.Active)
-          and (gdcDetailObject.RecordCount > 0) then
-        begin
-          if not Asked then
-          begin
-            if MessageBox(Handle,
-              'Документ содержит позиции. Удалить их?',
-              'Внимание',
-              MB_ICONQUESTION or MB_YESNO or MB_TASKMODAL) = IDNO then
-            begin
-              Abort;
-            end;
-            Asked := True;
-          end;
-
-          gdcDetailObject.DisableControls;
-          try
-            while not gdcDetailObject.IsEmpty do
-            begin
-              gdcDetailObject.First;
-              gdcDetailObject.Delete;
-            end;
-          finally
-            gdcDetailObject.EnableControls;
-          end;
-        end;
-
-        Inc(I);
-      until I >= ibgrMain.SelectedRows.Count;
-
-      inherited;
-    except
-      if DidActivate and Tr.InTransaction then
-        Tr.Rollback;
-
-      gdcObject.Close;
-      gdcObject.Open;
-
-      raise;
-    end;
-  finally
-    if DidActivate and Tr.InTransaction then
-      Tr.Commit;
-  end;
-  *)
+  //
 end;
 
 procedure Tgdc_frmInvDocument.actViewCardExecute(Sender: TObject);
@@ -326,7 +250,6 @@ begin
   finally
     Free;
   end;
-
 end;
 
 procedure Tgdc_frmInvDocument.actCreateEntryUpdate(Sender: TObject);
@@ -334,10 +257,30 @@ begin
   actCreateEntry.Enabled := (gdcObject <> nil) and (gdcObject.CanEdit);
 end;
 
+procedure Tgdc_frmInvDocument.actDetailNewExecute(Sender: TObject);
+var
+  OldID: Integer;
+  C: TgdcFullClass;
+begin
+  if not gdcDetailObject.IsEmpty then
+    OldID := gdcDetailObject.ID
+  else
+    OldID := -1;
+
+  C := gdcObject.GetCurrRecordClass;
+  C.gdClass := CgdcBase(gdcDetailObject.ClassType);
+  gdcDetailObject.CreateDialog(C);
+
+  if OldID <> gdcDetailObject.ID then
+  begin
+    if ibgrDetail.SelectedRows.Count > 0 then
+      ibgrDetail.SelectedRows.Clear;
+  end;
+end;
+
 initialization
-  RegisterFrmClass(Tgdc_frmInvDocument, ctInvDocument);
+  RegisterFrmClass(Tgdc_frmInvDocument);
 
 finalization
   UnRegisterFrmClass(Tgdc_frmInvDocument);
-
 end.

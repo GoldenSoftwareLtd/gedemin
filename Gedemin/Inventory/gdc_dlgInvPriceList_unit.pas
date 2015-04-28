@@ -1,8 +1,7 @@
 
 {++
 
-
-  Copyright (c) 2001 by Golden Software of Belarus
+  Copyright (c) 2001-2015 by Golden Software of Belarus
 
   Module
 
@@ -105,7 +104,6 @@ uses
 constructor TdlgInvPriceList.Create(AnOwner: TComponent);
 begin
   inherited;
-
   FCurrency := TIBSQL.Create(nil);
   FCurrency.SQL.Text := 'SELECT NAME FROM GD_CURR WHERE ID = :ID';
 end;
@@ -113,7 +111,6 @@ end;
 destructor TdlgInvPriceList.Destroy;
 begin
   FCurrency.Free;
-
   inherited;
 end;
 
@@ -124,9 +121,8 @@ end;
 
 function TdlgInvPriceList.GetDocumentLine: TgdcInvPriceListLine;
 var
-  i: Integer;
+  I: Integer;
 begin
-
   Result := nil;
 
   if Assigned(gdcObject) and (gdcObject.DetailLinksCount > 0) then
@@ -150,7 +146,6 @@ begin
     end;
 
     Result := FFirstDocumentLine;
-
   end;
 end;
 
@@ -180,12 +175,12 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
   inherited;
 
   if Assigned(UserStorage) then
-  begin
     UserStorage.LoadComponent(ibgrDetail, ibgrDetail.LoadFromStream, FSubType);
-  end;
+
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TDLGINVPRICELIST', 'LOADSETTINGS', KEYLOADSETTINGS)}
   {M}finally
   {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
@@ -270,13 +265,9 @@ begin
             R.RelationFields[i].Field.RefListFieldName);
         except
           C.Free;
-//          C := nil;
         end;
-
       end;
   end;
-
-  
 end;
 
 procedure TdlgInvPriceList.SetupMaster;
@@ -302,11 +293,9 @@ begin
           'Внимание', MB_OK or MB_ICONINFORMATION);
         ErrorAction := True;
         PostMessage(HANDLE, wm_Close, 0, 0);
- //       abort;
-      end;  
+      end;
     end;
   end;
-  
 end;
 
 function TdlgInvPriceList.TestCorrect: Boolean;
@@ -382,7 +371,6 @@ var
   I: Integer;
   F: TatRelationField;
 begin
-
   //
   // Добавляем поля
 
@@ -477,15 +465,13 @@ var
 begin
   //
   // Осуществляем выбор товаров из справочника
-
   Good := TgdcGood.Create(nil);
-
   try
     if Good.ChooseItems(V, 'gdcGood') then
     begin
       for I := 0 to VarArrayHighBound(V, 1) do
       begin
-      {Чтобы добавление шло по порядку делаем Append, а не Insert}
+        {Чтобы добавление шло по порядку делаем Append, а не Insert}
         DocumentLine.Append;
         DocumentLine.FieldByName('goodkey').AsInteger := V[I];
         DocumentLine.UpdateGoodNames;
@@ -499,12 +485,8 @@ end;
 
 procedure TdlgInvPriceList.actCancelUpdate(Sender: TObject);
 begin
+  //
   inherited;
-
-  {
-  actCancel.Enabled :=
-    not (DocumentLine.State in dsEditModes);
-  }
 end;
 
 procedure TdlgInvPriceList.actDetailMacroExecute(Sender: TObject);
@@ -575,10 +557,9 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(TdlgInvPriceList, ctInvPriceList);
+  RegisterFrmClass(TdlgInvPriceList);
 
 finalization
   UnRegisterFrmClass(TdlgInvPriceList);
-
 end.
 

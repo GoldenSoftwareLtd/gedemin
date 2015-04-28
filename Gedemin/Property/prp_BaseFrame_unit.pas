@@ -345,7 +345,7 @@ var
   Value: Variant;
   FunctionKey: Integer;
   LocGdcBase: TgdcBase;
-  gdcBaseRef: CgdcBase;
+  CE: TgdClassEntry;
 begin
   Result := False;
   //If it has not rights for delete then exit
@@ -416,10 +416,10 @@ begin
   // 03.03.2003 DAlex. Удалять запись должен объект того же класса, что и создает ее.
   if FNeedDeleteDetail and Assigned(DetailObject) and (FunctionKey <> 0) then
   begin
-    gdcBaseRef := gdClassList.GetGDCClass(DetailObject.ClassName);
-    if gdcBaseRef <> nil then
+    CE := gdClassList.Find(DetailObject.ClassName);
+    if CE is TgdBaseEntry then
     begin
-      LocGdcBase :=  gdcBaseRef.Create(nil);
+      LocGdcBase := TgdBaseEntry(CE).gdcClass.Create(nil);
       try
         LocGdcBase.Transaction := MasterObject.Transaction;
         LocGdcBase.SubSet := 'ByID';

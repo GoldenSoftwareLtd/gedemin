@@ -5,9 +5,9 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   gdc_dlgTR_unit, IBDatabase, Db, ActnList, StdCtrls, gsIBLookupComboBox,
-  DBCtrls, Mask, ComCtrls, IBCustomDataSet, gdcBase, gdcClasses, TB2Item,
-  TB2Dock, TB2Toolbar, Grids, DBGrids, gsDBGrid, gsIBGrid, ExtCtrls,
-  gdcAcctTransaction, IBSQL, Menus, gdcFunction, gdcTree,
+  DBCtrls, Mask, ComCtrls, IBCustomDataSet, gdcBase, gdcClasses_interface,
+  gdcClasses, TB2Item, TB2Dock, TB2Toolbar, Grids, DBGrids, gsDBGrid,
+  gsIBGrid, ExtCtrls, gdcAcctTransaction, IBSQL, Menus, gdcFunction, gdcTree,
   gdcDelphiObject, gdcEvent, at_Classes, gdcCustomFunction, dbConsts;
 
 type
@@ -94,6 +94,7 @@ type
   protected
     function DlgModified: Boolean; override;
     function GetRelation(isDocument: Boolean): TatRelation;
+    function GetRootRelation(isDocument: Boolean): TatRelation;
 
     procedure BeforePost; override;
 
@@ -305,6 +306,32 @@ begin
     Result := nil;
 end;
 
+function Tgdc_dlgDocumentType.GetRootRelation(isDocument: Boolean): TatRelation;
+var
+  CE: TgdClassEntry;
+  Part: TgdcDocumentClassPart;
+  DocID: Integer;
+begin
+  Result := nil;
+
+  if isDocument then
+    Part := dcpHeader
+  else
+    Part := dcpLine;
+
+  if gdcObject.State = dsInsert then
+    DocID := (gdcObject as TgdcTree).Parent
+  else
+    DocID := gdcObject.ID;
+
+  CE := gdClassList.FindDocByTypeID(DocID, Part);
+
+  if CE <> nil then
+    CE := CE.GetRootSubType;
+
+  if CE <> nil then
+    Result := atDatabase.Relations.ByRelationName(TgdDocumentEntry(CE).DistinctRelation);
+end;
 
 procedure Tgdc_dlgDocumentType.SetupDialog;
 var
@@ -616,6 +643,7 @@ procedure Tgdc_dlgDocumentType.SetupRecord;
 var
   List: TStringList;
   ibsql: TIBSQL;
+  DE: TgdDocumentEntry;
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGDOCUMENTTYPE', 'SETUPRECORD', KEYSETUPRECORD)}
   {M}  try
@@ -669,40 +697,33 @@ begin
     ibsql.Close;
 
     dbcMask.Items.Assign(List);
-
-    if not gdcObject.FieldByName('headerrelkey').IsNull then
-    begin
-      ibsql.SQL.Text := 'SELECT relationname FROM at_relations WHERE id = :id';
-      ibsql.ParamByName('id').AsInteger := gdcObject.FieldByName('headerrelkey').AsInteger;
-      ibsql.ExecQuery;
-      edEnglishName.Text := ibsql.FieldByName('relationname').AsTrimString;
-      ibsql.Close;
-    end;
-
-    ibsql.Close;
-    ibsql.SQL.Text := 'SELECT name FROM gd_documenttype WHERE id = :id AND documenttype = ''D'' ';
-    ibsql.ParamByName('id').AsInteger := gdcObject.FieldByName('parent').AsInteger;
-    ibsql.ExecQuery;
-    if not ibsql.Eof then
-      begin
-        edParentName.Text := ibsql.FieldByName('name').AsString;
-        edEnglishName.Enabled := false;
-        iblcHeaderTable.Enabled := false;
-        iblcLineTable.Enabled := false;
-      end
-    else
-    begin
-      edParentName.Text := gdcObject.FieldByName('classname').AsString;
-      edEnglishName.Enabled := True;
-      iblcHeaderTable.Enabled := True;
-      iblcLineTable.Enabled := True;
-    end;
   finally
     List.Free;
     ibsql.Free;
   end;
 
   dbcMaskChange(dbcMask);
+
+  DE := gdClassList.FindDocByTypeID(gdcObject.FieldByName('parent').AsInteger, dcpHeader);
+  if DE <> nil then
+  begin
+    edParentName.Text := DE.Caption;
+    if gdcObject.State = dsInsert then
+    begin
+      gdcObject.FieldByName('name').AsString := 'Наследник ' + DE.Caption;
+      gdcObject.FieldByName('branchkey').AsInteger := DE.BranchKey;
+    end;
+
+    iblcHeaderTable.gdClassName := 'TgdcInheritedTable';
+    iblcLineTable.gdClassName := 'TgdcInheritedTable';
+  end;
+
+  if gdcObject.State = dsEdit then
+  begin
+    DE := gdClassList.FindDocByTypeID(gdcObject.FieldByName('id').AsInteger, dcpHeader);
+    if DE <> nil then
+      edEnglishName.Text := DE.HeaderRelName;
+  end;
 
   //Выведем родителя нашей ветки в исследователе
   if (gdcObject.FieldByName('branchkey').AsInteger > 0) then

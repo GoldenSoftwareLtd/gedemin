@@ -256,7 +256,7 @@ type
     destructor Destroy; override;
 
     // Добавляет информацию о классе в кэш
-    // (AChildClassName - имя предыдущего класса в стеке вызавов объекта)
+    // (AChildClassName - имя предыдущего класса в стеке вызовов объекта)
     function AddClass(const AFullClassName, AChildClassName: TgdcFullClassName;
       AScriptFuncion: TrpCustomFunction; const MethodPresent: Boolean): TmtdCacheItem;
     // Имя кэшировонного метода.
@@ -291,10 +291,6 @@ type
 
     // Возвращает тип объекта
     function  GetClassType(const AnObject: TObject): TmtdClassType;
-    // Проверяет регистрацию класса, если класс не зарегистрирован
-    // то False
-    function  VerifyingClass(
-      const FullClassName: TgdcFullClassName; const ClassType: TmtdClassType): Boolean;
     function GetSubType(
       const AnObject: TObject; const ClassType: TmtdClassType): String;
     function GetParentClassName(
@@ -346,9 +342,7 @@ var
   MethodItemCount: Integer;
   CustomMethodClassCount: Integer;
   MethodClassCount, MethodListCount, MethodClassListCount: Integer;
-
 {$ENDIF}
-
 
 implementation
 
@@ -430,7 +424,7 @@ begin
   case FMethodData^.MethodKind of
     mkSafeFunction, mkFunction:
     begin
-      LFN := 'function';
+      LFN := 'Function';
       case AnLang of
         fplDelphi: LFR := ': ' + LResultParam + ';';
         fplJScript, fplVBScript: LFR := '';
@@ -772,7 +766,7 @@ var
 begin
   Result := nil;
   for I := 0 to Count - 1 do
-    if AnsiUpperCase(Name[I]) = AnsiUpperCase(AName) then
+    if AnsiSameText(Name[I], AName) then
     begin
       Result := Items[I];
       Break;
@@ -988,7 +982,6 @@ var
   LFunction: TrpCustomFunction;
   AnObjectClassName: string;
   Index, mtdCacheIndex: Integer;
-  //SubTypeList: TStrings;
   tmpStackStrings: TStackStrings;
   ObjectSubType: String;
   LClassName: String;
@@ -1000,8 +993,7 @@ var
   FullFindFlag: Boolean;
   LCurrentFullClass, LFullChildName: TgdcFullClassName;
   LClassType: TmtdClassType;
-//  LgdcCreateableFormClass: CgdcCreateableForm;
-//  LgdcBaseClass: CgdcBase;
+  CE: TgdClassEntry;
 const
   LMsgMethodUserError =
                   'Метод %s для класса %s вызвал ошибку.'#13#10 +
@@ -1037,7 +1029,7 @@ begin
   if AClassMethodAssoc.IntByKey[AnMethodKey] = 0 then
   begin
     LFullClassName_.gdClassName := AnObjectClassName;
-    if not VerifyingClass(LFullClassName_, LClassType) then
+    if gdClassList.Find(LFullClassName_) = nil then
     begin
       {$IFDEF DEBUG}
       raise Exception.Create('Класс ' + AnObjectClassName + ' не зарегистрирован в gdcClassList!!!');
@@ -1045,15 +1037,15 @@ begin
       exit;
     end;
 
-    AClassMethodAssoc.IntByIndex[Index] := Integer(TStackStrings.Create);
     // добавляем список для классов (удаляться он будет вместе объектом)
-    tmpStackStrings := TStackStrings(AClassMethodAssoc.IntByIndex[Index]);
+    tmpStackStrings := TStackStrings.Create;
+    AClassMethodAssoc.IntByIndex[Index] := Integer(tmpStackStrings);
   end else
-    begin
-      tmpStackStrings := TStackStrings(AClassMethodAssoc.IntByIndex[Index]);
-      if not tmpStackStrings.IsEmpty then
-        LCurrentFullClass := tmpStackStrings.LastClass;
-    end;
+  begin
+    tmpStackStrings := TStackStrings(AClassMethodAssoc.IntByIndex[Index]);
+    if not tmpStackStrings.IsEmpty then
+      LCurrentFullClass := tmpStackStrings.LastClass;
+  end;
 
   LMethodItem := nil;
 
@@ -1138,55 +1130,28 @@ begin
             LCurrentFullClass.gdClassName := AnObjectClassName;
             LCurrentFullClass.SubType := ObjectSubType;
           end else
+          begin
+            LFullChildName := LCurrentFullClass;
+            CE := gdClassList.Get(TgdClassEntry, LCurrentFullClass.gdClassName, LCurrentFullClass.SubType);
+            if CE.Parent <> nil then
             begin
-              if LCurrentFullClass.SubType <> '' then
-              begin
-                LFullChildName := LCurrentFullClass;
-                // Если в последнем в стеке полном имени класса есть подтип, то
-                // текущий полный класс - это тот-же полный класс без подтипа,
-                // если нет родителя с подтипом
-                if GetClass(LCurrentFullClass.gdClassName).InheritsFrom(TgdcBase) then
-                begin
-                  if not Assigned(gdClassList.GetGDCClass(LCurrentFullClass.gdClassName))then
-                    raise Exception.Create('Ошибка перекрытия метода класса '
-                      + LCurrentFullClass.gdClassName);
-                  LCurrentFullClass.SubType :=
-                    gdClassList.GetGDCClass(LCurrentFullClass.gdClassName).ClassParentSubType(LCurrentFullClass.SubType)
-                end
-                else
-                begin
-                  if not Assigned(gdClassList.GetFRMClass(LCurrentFullClass.gdClassName))then
-                    raise Exception.Create('Ошибка перекрытия метода класса '
-                      + LCurrentFullClass.gdClassName);
-                  LCurrentFullClass.SubType :=
-                    gdClassList.GetFRMClass(LCurrentFullClass.gdClassName).ClassParentSubtype(LCurrentFullClass.SubType)
-                end;
-              end else
-                begin
-                  // Если последний обработанный класс без подтипа, то получаем
-                  // класс родителя
-                  LFullChildName := LCurrentFullClass;
-                  LCurrentFullClass.gdClassName :=
-                    AnsiUpperCase(GetParentClassName(LCurrentFullClass, LClassType));
-                end;
+              LCurrentFullClass.gdClassName := UpperCase(CE.Parent.TheClass.ClassName);
+              LCurrentFullClass.SubType := CE.Parent.SubType;
+            end else
+            begin
+              LCurrentFullClass.gdClassName := UpperCase(CE.TheClass.ClassParent.ClassName);
+              LCurrentFullClass.SubType := '';
             end;
+          end;
         end;
 
-      try
-        // Получаем элемент кэша быстрого вывова для полного класса.
-        // Далее по мере поступления информации для данного полного класса
-        // заносим ее в этот элемент.
-        LmtdCacheItem := AddClassInmtdCache(LCurrentFullClass, LFullChildName,
-          mtdCacheIndex, nil, False);
-        // Добавляем информацию об обработке в срек вызовов объекта.
-        tmpStackStrings.AddObject(LCurrentFullClass, LmtdCacheItem);
-      except
-        {$IFDEF DEBUG}
-        Beep(1000, 100);
-        {$ELSE}
-        raise;
-        {$ENDIF}
-      end;
+      // Получаем элемент кэша быстрого вывова для полного класса.
+      // Далее по мере поступления информации для данного полного класса
+      // заносим ее в этот элемент.
+      LmtdCacheItem := AddClassInmtdCache(LCurrentFullClass, LFullChildName,
+        mtdCacheIndex, nil, False);
+      // Добавляем информацию об обработке в стек вызовов объекта.
+      tmpStackStrings.AddObject(LCurrentFullClass, LmtdCacheItem);
 
       // Получаем объек, хранящий информацию о скрипт-методах, объявленных для
       // данного полного класса
@@ -1194,7 +1159,7 @@ begin
 
       // Если данная проверка истина, то для данного класса определен
       // метод в Делфи. Прекращаем поиск.
-      if (Length(LCurrentFullClass.SubType) = 0) and
+      if (LCurrentFullClass.SubType = '') and
         (LCurrentFullClass.gdClassName = LClassName) then
       begin
         LmtdCacheItem.MethodPresent := True;
@@ -1203,9 +1168,9 @@ begin
       if not Assigned(LMethodClass) then
       begin
         if LmtdCacheItem.MethodPresent then
-          Exit
+          exit
         else
-          Continue;
+          continue;
       end;
 
       // Получаем объект, хранящий инф-цию для данного метода
@@ -1220,9 +1185,9 @@ begin
       // скрипт-метод отключен, а для данного класса метод определен в Делфи,
       // то прекращаем поиск.
       if ((not Assigned(LMethodItem)) or (LMethodItem.FunctionKey = 0) or
-        (LMethodItem.Disable)) and LmtdCacheItem.MethodPresent then
+        LMethodItem.Disable) and LmtdCacheItem.MethodPresent then
         begin
-          Exit;
+          exit;
         end;
     until Assigned(LMethodItem) and (LMethodItem.FunctionKey <> 0) and (not LMethodItem.Disable);
   end;
@@ -1414,10 +1379,8 @@ end;
 
 constructor TmtdCache.Create(const AMethodName: String);
 begin
-  Inherited Create;
-
+  inherited Create;
   FHashItemList := TStringHashMap.Create(CaseInSensitiveTraits, 256);
-
   FMethodListName := AMethodName;
 end;
 
@@ -1425,7 +1388,6 @@ destructor TmtdCache.Destroy;
 begin
   FHashItemList.Iterate(nil, Iterate_FreeObjects);
   FHashItemList.Free;
-
   inherited;
 end;
 
@@ -1460,7 +1422,7 @@ begin
   Result := nil;
   LmtdCache := GetmtdCacheByIndex(mtdCacheIndex);
   if not Assigned(LmtdCache) then
-    Exit;
+    exit;
 
   Result := LmtdCache.GetCacheItem(ACurrentFullName);
 end;
@@ -1571,9 +1533,6 @@ function TMethodList.Add(const AName: String; const AFuncKey: Integer;
 var
   LMethodItem: TMethodItem;
 begin
-  {$IFDEF DEBUG}
-//  Assert(FMethodList.IndexOf(AName) = -1);
-  {$ENDIF}
   LMethodItem := TMethodItem.Create;
   LMethodItem.Name := AName;
   LMethodItem.FunctionKey := AFuncKey;
@@ -1666,13 +1625,6 @@ begin
         'MethodControl: Передан некоррестный класс ' + AnObject.ClassName);
 end;
 
-function TMethodControl.VerifyingClass(const FullClassName: TgdcFullClassName;
-  const ClassType: TmtdClassType): Boolean;
-begin
-  Assert(gdClassList <> nil);
-  Result := gdClassList.Find(FullClassName) <> nil;
-end;
-
 function TMethodControl.GetSubType(
   const AnObject: TObject; const ClassType: TmtdClassType): String;
 begin
@@ -1688,18 +1640,10 @@ end;
 function TMethodControl.GetParentClassName(
   const FullClassName: TgdcFullClassName; const ClassType: TmtdClassType): String;
 var
-  LClass: TComponentClass;
+  CE: TgdClassEntry;
 begin
-  LClass := nil;
-  case ClassType of
-    mtd_gdcBase:
-      LClass := gdClassList.GetGDCClass(FullClassName.gdClassName);
-    mtd_gdcForm:
-      LClass := gdClassList.GetFRMClass(FullClassName.gdClassName);
-  end;
-  if LClass = nil then raise Exception.Create('Ошибка перекрытия метода. Обратитесь к разработчикам.');
-  Result :=
-    LClass.ClassParent.ClassName;
+  CE := gdClassList.Get(TgdClassEntry, FullClassName.gdClassName, '');
+  Result := CE.TheClass.ClassParent.ClassName;
 end;
 
 procedure TMethodControl.SaveDisableFlag(

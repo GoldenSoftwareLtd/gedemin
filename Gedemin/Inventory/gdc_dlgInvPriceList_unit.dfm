@@ -15,6 +15,10 @@ inherited dlgInvPriceList: TdlgInvPriceList
     Left = 7
     Top = 386
   end
+  inherited btnHelp: TButton
+    Left = 164
+    Top = 386
+  end
   inherited btnOK: TButton
     Left = 367
     Top = 386
@@ -23,23 +27,19 @@ inherited dlgInvPriceList: TdlgInvPriceList
     Left = 447
     Top = 386
   end
-  inherited btnHelp: TButton
-    Left = 164
-    Top = 386
-  end
   inherited pnlMain: TPanel
-    Width = 522
+    Width = 514
     Height = 376
     inherited splMain: TSplitter
       Top = 156
-      Width = 522
+      Width = 514
     end
     inherited pnlDetail: TPanel
       Top = 160
-      Width = 522
+      Width = 514
       Height = 216
       inherited ibgrDetail: TgsIBGrid
-        Width = 504
+        Width = 496
         Height = 181
         Options = [dgEditing, dgTitles, dgIndicator, dgColumnResize, dgColLines, dgRowLines, dgTabs, dgConfirmDelete, dgCancelOnExit]
         OnColEnter = ibgrDetailColEnter
@@ -59,7 +59,7 @@ inherited dlgInvPriceList: TdlgInvPriceList
           end>
       end
       inherited tbdTop: TTBDock
-        Width = 522
+        Width = 514
         inherited tbDetail: TTBToolbar
           object TBSeparatorItem3: TTBSeparatorItem
           end
@@ -72,21 +72,21 @@ inherited dlgInvPriceList: TdlgInvPriceList
         Height = 181
       end
       inherited tbdRight: TTBDock
-        Left = 513
+        Left = 505
         Height = 181
       end
       inherited tbdBottom: TTBDock
         Top = 207
-        Width = 522
+        Width = 514
       end
     end
     inherited pnlMaster: TPanel
-      Width = 522
+      Width = 514
       Height = 156
       object atAttributes: TatContainer
         Left = 0
         Top = 0
-        Width = 522
+        Width = 514
         Height = 138
         DataSource = dsgdcBase
         Align = alClient
@@ -97,7 +97,7 @@ inherited dlgInvPriceList: TdlgInvPriceList
       object pnlInfo: TPanel
         Left = 0
         Top = 138
-        Width = 522
+        Width = 514
         Height = 18
         Align = alBottom
         BevelOuter = bvNone

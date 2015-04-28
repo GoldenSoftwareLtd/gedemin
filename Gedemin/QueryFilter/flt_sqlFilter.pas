@@ -725,7 +725,7 @@ begin
   else if (Owner is TgdcBase) then
   begin
     if Owner is TgdcDocument then
-      sFormName:= TgdcDocument(Owner).DocumentName[True]
+      sFormName:= TgdcDocument(Owner).DocumentName
     else
       sFormName:= TgdcBase(Owner).GetDisplayName(TgdcBase(Owner).SubType);
   end;    

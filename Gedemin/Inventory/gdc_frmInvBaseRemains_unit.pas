@@ -50,17 +50,17 @@ type
     procedure FormCreate(Sender: TObject);
     procedure actViewGoodExecute(Sender: TObject);
     procedure actViewGoodUpdate(Sender: TObject);
+
   private
-    FIsSetup: Boolean;  
+    FIsSetup: Boolean;
+
   protected
-    { Private declarations }
     FSavedMasterSource: TDataSource;
     FSavedSubSet: String;
     procedure SetupInvRemains(gdcInvRemains: TgdcInvRemains);
     function CheckHolding: Boolean; virtual;
 
   public
-    { Public declarations }
     procedure LoadSettings; override;
     procedure SaveSettings; override;
 
@@ -79,21 +79,16 @@ uses
 
 procedure Tgdc_frmInvBaseRemains.actOkExecute(Sender: TObject);
 begin
-
   if gdcObject.State in [dsEdit, dsInsert] then
     gdcObject.Post;
   ModalResult := mrOk;
-
 end;
 
 procedure Tgdc_frmInvBaseRemains.actCancelExecute(Sender: TObject);
 begin
-
   if gdcObject.State in [dsEdit, dsInsert] then
     gdcObject.Cancel;
-
   ModalResult := mrCancel;
-
 end;
 
 procedure Tgdc_frmInvBaseRemains.SaveSettings;
@@ -208,7 +203,7 @@ end;
 procedure Tgdc_frmInvBaseRemains.ibgrDetailAggregateChanged(Sender: TObject);
 begin
   inherited;
-  //sbMain.Panels[1].Text := (Sender as TgsIBGrid).Aggregate.AggregateText;
+  //
 end;
 
 procedure Tgdc_frmInvBaseRemains.FormClose(Sender: TObject;
@@ -216,7 +211,6 @@ procedure Tgdc_frmInvBaseRemains.FormClose(Sender: TObject;
 begin
   if not (fsModal in FormState) then
     inherited;
-
 end;
 
 procedure Tgdc_frmInvBaseRemains.sbMainClick(Sender: TObject);
@@ -342,7 +336,7 @@ end;
 
 procedure Tgdc_frmInvBaseRemains.actViewGoodExecute(Sender: TObject);
 begin
-  with TgdcGood.Create(Self) do
+  with TgdcGood.Create(nil) do
   try
     SubSet := 'ByID';
     ID := Self.gdcObject.FieldByName('GOODKEY').AsInteger;
@@ -359,9 +353,8 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmInvBaseRemains, ctInvRemains);
+  RegisterFrmClass(Tgdc_frmInvBaseRemains);
 
 finalization
   UnRegisterFrmClass(Tgdc_frmInvBaseRemains);
-
 end.

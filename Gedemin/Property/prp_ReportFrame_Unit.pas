@@ -2499,7 +2499,7 @@ begin
   RUID := gdcBaseManager.GetRUIDStringByID(gdcReport.ID);
 
   if (RUID <> '') and (gdcReport.State = dsBrowse)
-    and (gdcReport.FieldByName('folderkey').AsInteger > -1) then
+    and (gdcReport.FieldByName('folderkey').AsInteger > 0) then
   begin
     ibsql := TIBSQL.Create(nil);
     try

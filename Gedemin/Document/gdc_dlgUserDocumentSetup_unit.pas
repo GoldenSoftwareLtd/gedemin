@@ -63,7 +63,7 @@ var
 
 implementation
 
-uses dmImages_unit, at_classes, dmDatabase_unit,  gd_ClassList;
+uses dmImages_unit, at_classes, dmDatabase_unit,  gd_ClassList, gdcClasses_interface;
 
 {$R *.DFM}
 

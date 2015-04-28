@@ -3756,13 +3756,13 @@ procedure TgsIBColumnEditor.SetDisplayField(const Value: String);
 var
   I: Integer;
 begin
-  if AnsiUpperCase(FDisplayField) <> AnsiUpperCase(Value) then
+  if not AnsiSameText(FDisplayField, Value) then
   begin
     if not (csLoading in Grid.ComponentState) then
     begin
       for I := 0 to Collection.Count - 1 do
       begin
-        if AnsiUpperCase(TgsIBColumnEditor(Collection.Items[I]).DisplayField) = AnsiUpperCase(Value) then
+        if AnsiSameText(TgsIBColumnEditor(Collection.Items[I]).DisplayField, Value) then
           raise EDuplicateEditor.CreateFmt('Редактор для поля %s уже существует', [Value]);
       end;
     end;  

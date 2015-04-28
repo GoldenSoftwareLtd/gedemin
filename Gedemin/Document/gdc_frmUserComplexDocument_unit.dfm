@@ -71,6 +71,9 @@ inherited gdc_frmUserComplexDocument: Tgdc_frmUserComplexDocument
             Action = actGotoEntry
           end
         end
+        inherited tbDetailCustom: TTBToolbar
+          Left = 309
+        end
       end
       inherited pnlSearchDetail: TPanel
         Height = 119

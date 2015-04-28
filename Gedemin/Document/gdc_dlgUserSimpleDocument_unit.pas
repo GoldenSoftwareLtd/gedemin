@@ -19,9 +19,6 @@ type
 
   public
     procedure SetupDialog; override;
-
-    procedure SaveSettings; override;
-    procedure LoadSettingsAfterCreate; override;
   end;
 
 var
@@ -33,119 +30,47 @@ implementation
 
 uses
   gdcClasses, Storages, gd_ClassList, gd_security, IBSQL, gdcBaseInterface,
-  gdcBase;
+  gdcBase, gd_common_functions;
 
 { Tgdc_dlgUserSimpleDocument }
 
 procedure Tgdc_dlgUserSimpleDocument.atContainerRelationNames(
   Sender: TObject; Relations, FieldAliases: TStringList);
 var
-  i: Integer;
-  F: TatRelationField;
+  I: Integer;
+  CE: TgdClassEntry;
+  RelationName, FieldName: String;
+  SL: TStringList;
 begin
+  Assert(gdcObject <> nil);
+
   inherited;
 
   FieldAliases.Add('NUMBER');
   FieldAliases.Add('DOCUMENTDATE');
 
-  for I := 0 to gdcObject.FieldCount - 1 do
-    if ((AnsiCompareText(gdcObject.RelationByAliasName(gdcObject.Fields[I].FieldName),
-      (gdcObject as TgdcUserBaseDocument).Relation) = 0) or
-      (AnsiCompareText(gdcObject.RelationByAliasName(gdcObject.Fields[I].FieldName),
-      'GD_DOCUMENT') = 0))
-       then
+  SL := TStringList.Create;
+  try
+    CE := gdClassList.Get(TgdDocumentEntry, gdcObject.ClassName, gdcObject.SubType);
+
+    while (CE.Parent is TgdDocumentEntry)
+      and (TgdBaseEntry(CE).DistinctRelation <> 'GD_DOCUMENT') do
     begin
-      F := atDatabase.FindRelationField((gdcObject as TgdcUserBaseDocument).Relation,
-        gdcObject.FieldNameByAliasName(gdcObject.Fields[I].FieldName));
-
-      if not Assigned(F) then
-        F := atDatabase.FindRelationField('GD_DOCUMENT',
-          gdcObject.FieldNameByAliasName(gdcObject.Fields[I].FieldName));
-
-      if Assigned(F) and F.IsUserDefined then
-        FieldAliases.Add(gdcObject.Fields[I].FieldName);
+      SL.Add(TgdBaseEntry(CE).DistinctRelation);
+      CE := CE.Parent;
     end;
 
-end;
+    SL.Add('GD_DOCUMENT');
 
-procedure Tgdc_dlgUserSimpleDocument.SaveSettings;
-  {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGUSERSIMPLEDOCUMENT', 'SAVESETTINGS', KEYSAVESETTINGS)}
-  {M}  try
-  {M}    if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDC_DLGUSERSIMPLEDOCUMENT', KEYSAVESETTINGS);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYSAVESETTINGS]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDC_DLGUSERSIMPLEDOCUMENT') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDC_DLGUSERSIMPLEDOCUMENT',
-  {M}          'SAVESETTINGS', KEYSAVESETTINGS, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDC_DLGUSERSIMPLEDOCUMENT' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  inherited;
-
-{ if Assigned(UserStorage) then
-    UserStorage.SaveComponent(atContainer, atContainer.SaveToStream,
-      FSubType);}
-
-  {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGUSERSIMPLEDOCUMENT', 'SAVESETTINGS', KEYSAVESETTINGS)}
-  {M}finally
-  {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
-  {M}    ClearMacrosStack('TGDC_DLGUSERSIMPLEDOCUMENT', 'SAVESETTINGS', KEYSAVESETTINGS);
-  {M}end;
-  {END MACRO}
-end;
-
-procedure Tgdc_dlgUserSimpleDocument.LoadSettingsAfterCreate;
-  {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGUSERSIMPLEDOCUMENT', 'LOADSETTINGSAFTERCREATE', KEYLOADSETTINGSAFTERCREATE)}
-  {M}  try
-  {M}    if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDC_DLGUSERSIMPLEDOCUMENT', KEYLOADSETTINGSAFTERCREATE);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYLOADSETTINGSAFTERCREATE]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDC_DLGUSERSIMPLEDOCUMENT') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDC_DLGUSERSIMPLEDOCUMENT',
-  {M}          'LOADSETTINGSAFTERCREATE', KEYLOADSETTINGSAFTERCREATE, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDC_DLGUSERSIMPLEDOCUMENT' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  inherited;
-
-{ if Assigned(UserStorage) then
-    UserStorage.LoadComponent(atContainer, atContainer.LoadFromStream,
-      FSubType);}
-
-  {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGUSERSIMPLEDOCUMENT', 'LOADSETTINGSAFTERCREATE', KEYLOADSETTINGSAFTERCREATE)}
-  {M}finally
-  {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
-  {M}    ClearMacrosStack('TGDC_DLGUSERSIMPLEDOCUMENT', 'LOADSETTINGSAFTERCREATE', KEYLOADSETTINGSAFTERCREATE);
-  {M}end;
-  {END MACRO}
+    for I := 0 to gdcObject.FieldCount - 1 do
+    begin
+      ParseFieldOrigin(gdcObject.Fields[I].Origin, RelationName, FieldName);
+      if (SL.IndexOf(RelationName) > -1) and (Pos('USR$', FieldName) = 1) then
+        FieldAliases.Add(gdcObject.Fields[I].FieldName);
+    end;
+  finally
+    SL.Free;
+  end;
 end;
 
 procedure Tgdc_dlgUserSimpleDocument.SetupDialog;
@@ -179,7 +104,7 @@ begin
 
   pnlHolding.Visible := IBLogin.IsHolding;
 
-  Caption := (gdcObject as TgdcUserBaseDocument).DocumentName[False];
+  Caption := (gdcObject as TgdcUserBaseDocument).DocumentName;
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGUSERSIMPLEDOCUMENT', 'SETUPDIALOG', KEYSETUPDIALOG)}
   {M}finally
@@ -187,8 +112,6 @@ begin
   {M}    ClearMacrosStack('TGDC_DLGUSERSIMPLEDOCUMENT', 'SETUPDIALOG', KEYSETUPDIALOG);
   {M}end;
   {END MACRO}
-
-
 end;
 
 procedure Tgdc_dlgUserSimpleDocument.FormCreate(Sender: TObject);
@@ -197,15 +120,12 @@ begin
   Assert(IBLogin <> nil);
   pnlHolding.Enabled := IBLogin.IsHolding;
   if pnlHolding.Enabled then
-  begin
     iblkCompany.Condition := 'gd_contact.id IN (' + IBLogin.HoldingList + ')';
-  end;
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_dlgUserSimpleDocument, ctUserDocument);
+  RegisterFrmClass(Tgdc_dlgUserSimpleDocument);
 
 finalization
   UnRegisterFrmClass(Tgdc_dlgUserSimpleDocument);
-
 end.

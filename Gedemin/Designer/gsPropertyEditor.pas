@@ -748,7 +748,7 @@ function BuildTree(ACE: TgdClassEntry; AData1: Pointer;
   AData2: Pointer): Boolean;
 begin
   if ACE.SubType = '' then
-    TStringList(AData1).Add(ACE.gdcClass.ClassName);
+    TStringList(AData1).Add((ACE as TgdBaseEntry).gdcClass.ClassName);
   Result := True;
 end;
 

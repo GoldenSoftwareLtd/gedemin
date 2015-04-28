@@ -2,36 +2,36 @@ inherited gdc_dlgHGR: Tgdc_dlgHGR
   Left = 524
   Top = 339
   Width = 600
-  Height = 410
+  Height = 417
   BorderStyle = bsSizeable
   Caption = 'gdc_dlgHGR'
   PixelsPerInch = 96
   TextHeight = 13
   inherited btnAccess: TButton
     Left = 9
-    Top = 357
+    Top = 351
   end
   inherited btnNew: TButton
     Left = 85
-    Top = 357
+    Top = 351
   end
   inherited btnHelp: TButton
     Left = 161
-    Top = 357
+    Top = 351
   end
   inherited btnOK: TButton
-    Left = 438
-    Top = 357
+    Left = 431
+    Top = 351
   end
   inherited btnCancel: TButton
-    Left = 514
-    Top = 357
+    Left = 507
+    Top = 351
   end
   object pnlMain: TPanel [5]
     Left = 0
     Top = 0
     Width = 584
-    Height = 352
+    Height = 347
     Align = alTop
     Anchors = [akLeft, akTop, akRight, akBottom]
     BevelOuter = bvNone
@@ -48,7 +48,7 @@ inherited gdc_dlgHGR: Tgdc_dlgHGR
       Left = 0
       Top = 156
       Width = 584
-      Height = 196
+      Height = 191
       Align = alClient
       BevelOuter = bvNone
       TabOrder = 0
@@ -56,7 +56,7 @@ inherited gdc_dlgHGR: Tgdc_dlgHGR
         Left = 9
         Top = 26
         Width = 566
-        Height = 161
+        Height = 156
         Align = alClient
         DataSource = dsDetail
         Options = [dgEditing, dgTitles, dgIndicator, dgColumnResize, dgColLines, dgRowLines, dgConfirmDelete, dgCancelOnExit]
@@ -127,19 +127,19 @@ inherited gdc_dlgHGR: Tgdc_dlgHGR
         Left = 0
         Top = 26
         Width = 9
-        Height = 161
+        Height = 156
         Position = dpLeft
       end
       object tbdRight: TTBDock
         Left = 575
         Top = 26
         Width = 9
-        Height = 161
+        Height = 156
         Position = dpRight
       end
       object tbdBottom: TTBDock
         Left = 0
-        Top = 187
+        Top = 182
         Width = 584
         Height = 9
         Position = dpBottom

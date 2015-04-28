@@ -109,7 +109,7 @@ begin
 
   if Result then
   begin
-    if gdClassList.GetGdcClass(gdcObject.FieldByName('linkedclass').AsString) = nil then
+    if not (gdClassList.Find(gdcObject.FieldByName('linkedclass').AsString) is TgdBaseEntry) then
     begin
       Result := MessageBox(Self.Handle,
         'Возможно введен неверный класс прикрепленного объекта. Сохранить?',

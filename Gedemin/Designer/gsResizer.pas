@@ -3748,7 +3748,7 @@ begin
 end;
 
 procedure TgsResizeManager.CheckPosition(AnOwner: TComponent;
-  Stream: TStream; const Attr: Boolean; ReplaceSubType: Boolean);
+  Stream: TStream; const Attr: Boolean; ReplaceSubType: Boolean = False);
 var
   Reader: TDesignReader;
 begin
@@ -3917,16 +3917,15 @@ end;
 procedure TgsResizeManager.ReloadComponent(const Attr: Boolean);
 var
   F: TMemoryStream;
-  OldVisible, bLoadedFromStorage: Boolean;
+  OldVisible: Boolean;
+  bLoadedFromStorage: Boolean;
   bLoadedFromUserStorage: Boolean;
   OldControl: TWinControl;
   Flag: Integer;
   SF: TgsStorageFolder;
   H: THandle;
-  SubType: string;
-  ParentSubType: string;
-  ReplaceSubType: boolean;
-  LFullClassName : TgdcFullClassName;
+  CE: TgdClassEntry;
+  ReplaceSubType: Boolean;
   
 const
   ErrorMsg =
@@ -3934,8 +3933,8 @@ const
     'Хотите удалить настройки?';
 
 begin
-  H := GETDC(FEditForm.Handle);
   ReplaceSubType := False;
+  H := GETDC(FEditForm.Handle);
   try
     Flag := 0;
     FGlobalLoading := False;
@@ -3948,27 +3947,24 @@ begin
           if Assigned(UserStorage) and Assigned(GlobalStorage) then
           begin
             bLoadedFromStorage:= GlobalStorage.ReadStream(FResourceName, FFormSubType, F, IBLogin.IsIBUserAdmin);
-            if (not bLoadedFromStorage) and (FFormSubType > '')
-              and(FFormSubType <> SubtypeDefaultName) then
-            begin
-              SubType := FFormSubType;
-              repeat
-                LFullClassName.gdClassName := FEditForm.ClassName;
-                LFullClassName.SubType := SubType;
-                if not Assigned(gdClassList.GetFRMClass(LFullClassName.gdClassName))then
-                  raise Exception.Create('Ошибка при загрузке настроек формы');
-                ParentSubType := gdClassList.GetFRMClass(LFullClassName.gdClassName).ClassParentSubtype(SubType);
-                if ParentSubType <> '' then
-                begin
-                  bLoadedFromStorage:= GlobalStorage.ReadStream(FResourceName, ParentSubType, F, IBLogin.IsIBUserAdmin);
-                  if bLoadedFromStorage then
-                    ReplaceSubType := True;
-                  SubType := ParentSubType;
-                end;
-              until (bLoadedFromStorage) or (ParentSubType = '');
 
+            if (not bLoadedFromStorage) and (FFormSubType > '')
+              and(FFormSubType <> SubTypeDefaultName) then
+            begin
+              CE := gdClassList.Get(TgdFormEntry, FEditForm.ClassName, FFormSubType);
+              While (CE.Parent.SubType <> '') and (not bLoadedFromStorage) do
+              begin
+                bLoadedFromStorage :=
+                  GlobalStorage.ReadStream(FResourceName, CE.Parent.SubType, F, IBLogin.IsIBUserAdmin);
+
+                if bLoadedFromStorage then
+                  ReplaceSubType := True;
+
+                CE := CE.Parent;
+              end;
+              
               if not bLoadedFromStorage then
-                bLoadedFromStorage:= GlobalStorage.ReadStream(FResourceName, SubtypeDefaultName, F, IBLogin.IsIBUserAdmin);
+                bLoadedFromStorage:= GlobalStorage.ReadStream(FResourceName, SubTypeDefaultName, F, IBLogin.IsIBUserAdmin);
             end;
 
             if bLoadedFromStorage then
@@ -3983,21 +3979,17 @@ begin
               if (not bLoadedFromUserStorage) and (FFormSubType > '')
                 and(FFormSubType <> SubtypeDefaultName) then
               begin
-                SubType := FFormSubType;
-                repeat
-                  LFullClassName.gdClassName := FEditForm.ClassName;
-                  LFullClassName.SubType := SubType;
-                  if not Assigned(gdClassList.GetFRMClass(LFullClassName.gdClassName))then
-                    raise Exception.Create('Ошибка при загрузке настроек формы');
-                  ParentSubType := gdClassList.GetFRMClass(LFullClassName.gdClassName).ClassParentSubtype(SubType);
-                  if ParentSubType <> '' then
-                  begin
-                    bLoadedFromUserStorage:= UserStorage.ReadStream(FResourceName, ParentSubType, F);
-                    if bLoadedFromUserStorage then
-                      ReplaceSubType := True;
-                    SubType := ParentSubType;
-                  end;
-                until (bLoadedFromUserStorage) or (ParentSubType = '');
+                CE := gdClassList.Get(TgdFormEntry, FEditForm.ClassName, FFormSubType);
+                While (CE.Parent.SubType <> '') and (not bLoadedFromUserStorage) do
+                begin
+                  bLoadedFromUserStorage :=
+                    UserStorage.ReadStream(FResourceName, CE.Parent.SubType, F, IBLogin.IsIBUserAdmin);
+
+                  if bLoadedFromUserStorage then
+                    ReplaceSubType := True;
+
+                  CE := CE.Parent;
+                end;
               end;
 
               if bLoadedFromUserStorage then
@@ -4022,25 +4014,20 @@ begin
                   begin
                     Flag := 0;
                     F.Clear;
+                    ReplaceSubType := False;
                     bLoadedFromUserStorage:= UserStorage.ReadStream(FResourceName, FFormSubType, F);
                     if not bLoadedFromUserStorage and (FFormSubType > '')
                       and(FFormSubType <> SubtypeDefaultName) then
                     begin
-                      SubType := FFormSubType;
-                      repeat
-                        LFullClassName.gdClassName := FEditForm.ClassName;
-                        LFullClassName.SubType := SubType;
-                        if not Assigned(gdClassList.GetFRMClass(LFullClassName.gdClassName))then
-                          raise Exception.Create('Ошибка при загрузке настроек формы');
-                        ParentSubType := gdClassList.GetFRMClass(LFullClassName.gdClassName).ClassParentSubtype(SubType);
-                        if ParentSubType <> '' then
-                        begin
-                          bLoadedFromUserStorage:= UserStorage.ReadStream(FResourceName, ParentSubType, F);
-                          if bLoadedFromUserStorage then
-                            ReplaceSubType := True;
-                          SubType := ParentSubType;
-                        end;
-                      until (bLoadedFromUserStorage) or (ParentSubType = '');
+                      CE := gdClassList.Get(TgdFormEntry, FEditForm.ClassName, FFormSubType);
+                      While (CE.Parent.SubType <> '') and (not bLoadedFromUserStorage) do
+                      begin
+                        bLoadedFromUserStorage :=
+                          UserStorage.ReadStream(FResourceName, CE.Parent.SubType, F, IBLogin.IsIBUserAdmin);
+                        if bLoadedFromUserStorage then
+                          ReplaceSubType := True;
+                        CE := CE.Parent;
+                      end;
                     end;
                     
                     if bLoadedFromUserStorage then
@@ -4073,10 +4060,6 @@ begin
       except
         on E: Exception do
         begin
-  //        if IBLogin.IsUserAdmin
-  //          and IBLogin.Database.Connected
-  //          and (MessageDlg('При загрузке настроек произошла ошибка: ' + E.Message + #10#13 +  'Хотите удалить настройки?',
-  //                    mtConfirmation, [mbYes, mbNo], 0) = mrYes) then
           if IBLogin.IsUserAdmin
             and IBLogin.Database.Connected
             and (MessageBox(0,
@@ -4087,16 +4070,21 @@ begin
             if Assigned(UserStorage) and Assigned(GlobalStorage) then
             begin
               if (Flag = 0) or (Flag = 2) then
-                SF := UserStorage.OpenFolder(FResourceName, False)
-              else
+              begin
+                SF := UserStorage.OpenFolder(FResourceName, False);
+                if SF <> nil then
+                begin
+                  SF.DeleteValue(FFormSubType);
+                  UserStorage.CloseFolder(SF);
+                end;
+              end else
+              begin
                 SF := GlobalStorage.OpenFolder(FResourceName, IBLogin.IsIBUserAdmin);
-              try
-                SF.DeleteValue(FFormSubType);
-              finally
-                if (Flag = 0) or (Flag = 2) then
-                  UserStorage.CloseFolder(SF)
-                else
+                if SF <> nil then
+                begin
+                  SF.DeleteValue(FFormSubType);
                   GlobalStorage.CloseFolder(SF);
+                end;
               end;
             end;
           end;

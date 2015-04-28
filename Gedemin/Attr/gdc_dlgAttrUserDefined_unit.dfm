@@ -1,40 +1,35 @@
 inherited gdc_dlgAttrUserDefined: Tgdc_dlgAttrUserDefined
   Left = 691
   Top = 279
+  Width = 491
+  Height = 346
   BorderStyle = bsSizeable
   Caption = 'Таблица пользователя'
-  ClientHeight = 308
-  ClientWidth = 475
   PixelsPerInch = 96
   TextHeight = 13
   inherited btnAccess: TButton
     Left = 5
     Top = 283
-    Anchors = [akLeft, akBottom]
     TabOrder = 1
   end
   inherited btnNew: TButton
     Left = 79
     Top = 283
-    Anchors = [akLeft, akBottom]
     TabOrder = 2
+  end
+  inherited btnHelp: TButton
+    Top = 283
+    TabOrder = 5
   end
   inherited btnOK: TButton
     Left = 327
     Top = 283
-    Anchors = [akRight, akBottom]
     TabOrder = 3
   end
   inherited btnCancel: TButton
     Left = 401
     Top = 283
-    Anchors = [akRight, akBottom]
     TabOrder = 4
-  end
-  inherited btnHelp: TButton
-    Top = 283
-    Anchors = [akLeft, akBottom]
-    TabOrder = 5
   end
   object pnlMain: TPanel [5]
     Left = 0

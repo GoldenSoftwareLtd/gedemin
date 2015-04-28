@@ -41,15 +41,8 @@ const
   Libgmp10_dll = 'libgmp-10.dll';
   Libswipl_dll = 'libswipl.dll';
   PthreadGC2_dll = 'pthreadGC2.dll';
-  Libwinpthread1_dll = 'libwinpthread-1.dll';
-  Libgcc_s_sjlj1_dll = 'libgcc_s_sjlj-1.dll';
-  {$IFDEF SWI7}
-  PrologPath = 'swipl7';
-  PrologTempPath = 'swipl7\temp';
-  {$ELSE}
   PrologPath = 'swipl';
   PrologTempPath = 'swipl\temp';
-  {$ENDIF}
 
 type
   size_t = Cardinal;

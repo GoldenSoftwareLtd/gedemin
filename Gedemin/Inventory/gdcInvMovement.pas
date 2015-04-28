@@ -1,8 +1,7 @@
 
 {++
 
-
-  Copyright (c) 2001-2014 by Golden Software of Belarus
+  Copyright (c) 2001-2015 by Golden Software of Belarus
 
   Module
 
@@ -36,7 +35,7 @@ uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   Db, IB, IBCustomDataSet, gdcBase, gdcClasses, gdcInvConsts_unit, IBSQL,
   at_classes, gdcGood, Math, iberrorcodes, IBDataBase, gd_createable_form,
-  gdc_createable_form, gdcBaseInterface, gdv_InvCardConfig_unit,
+  gdc_createable_form, gdcBaseInterface, gdv_InvCardConfig_unit, gdcAcctConfig,
   gsIBGrid, gdcExplorer, gdcFunction, prm_ParamFunctions_unit, rp_report_const,
   gdcConstants, gd_security_operationconst, Storages, gd_i_ScriptFactory;
 
@@ -606,8 +605,6 @@ type
 
 
   protected
-    function CreateDialogForm: TCreateableForm; override;
-
     procedure _DoOnNewRecord; override;
     procedure CustomInsert(Buff: Pointer); override;
     procedure CustomModify(Buff: Pointer); override;
@@ -616,14 +613,12 @@ type
     procedure DoBeforePost; override;
 
   public
-    constructor Create(AnOwner: TComponent); override;
-    destructor Destroy; override;
-
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetKeyField(const ASubType: TgdcSubType): String; override;
 
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
+    class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
 
     procedure ReadOptions;
     procedure WriteOptions;
@@ -634,11 +629,13 @@ type
     property GoodSumFeatures: TgdcInvFeatures read FGoodSumFeatures;
   end;
 
-  TgdcInvCardConfig = class(TgdcBase)
+  TgdcInvCardConfig = class(TgdcBaseAcctConfig)
   private
     FConfig: TInvCardConfig;
+
     function GetConfig: TInvCardConfig;
     function GetIPCount: integer;
+
   protected
     procedure DeleteSF;
     procedure CreateSF;
@@ -651,21 +648,21 @@ type
     procedure DoAfterCustomProcess(Buff: Pointer; Process: TgsCustomProcess); override;
 
     function GetGDVViewForm: string;
+
   public
+    constructor Create(AnOwner: TComponent); override;
+    destructor Destroy; override;
+
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
 
-    class function GetListTable(const ASubType: TgdcSubType): String; override;
-    class function GetListField(const ASubType: TgdcSubType): String; override;
-    class function GetKeyField(const ASubType: TgdcSubType): String; override;
-    property Config: TInvCardConfig read GetConfig;
-    property InputParamsCount: integer read GetIPCount;
     procedure SaveConfig;
     procedure LoadConfig;
     procedure SaveGrid(Grid: TgsIBGrid);
     procedure ClearGrid;
-    constructor Create(AnOwner: TComponent); override;
-    destructor Destroy; override;
+
+    property Config: TInvCardConfig read GetConfig;
+    property InputParamsCount: integer read GetIPCount;
   end;
 
 
@@ -7245,12 +7242,10 @@ begin
       Result := Result + ' LEFT JOIN gd_holding H ON hold.id = h.companykey ';
   end;
 
-
   Result := Result +
   ' LEFT JOIN inv_movement m1 ON m.movementkey = m1.movementkey AND m.id <> m1.id ' +
   ' LEFT JOIN gd_contact con ON  con.id = (case when M1.CONTACTKEY is not null then M1.CONTACTKEY else M.CONTACTKEY end) ' +
   ' LEFT JOIN gd_contact main_con ON main_con.id = m.contactkey ';
-
 
   Result := Result +
   ' LEFT JOIN inv_card c ON c.id = (case when M1.DEBIT > 0 then M1.cardkey else M.cardkey end) ' +
@@ -7258,7 +7253,6 @@ begin
   ' LEFT JOIN gd_documenttype doct ON doc.documenttypekey = doct.id ' +
   ' LEFT JOIN gd_good g ON z.goodkey = g.id ' +
   ' LEFT JOIN gd_value v ON g.valuekey = v.id ';
-
 
   if Assigned(FViewFeatures) then
     for i:= 0 to FViewFeatures.Count - 1 do
@@ -8007,65 +8001,6 @@ end;
 
 { TgdcInvRemainsOption }
 
-constructor TgdcInvRemainsOption.Create(AnOwner: TComponent);
-begin
-  inherited;
-
-end;
-
-function TgdcInvRemainsOption.CreateDialogForm: TCreateableForm;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_FUNCCREATEDIALOGFORM('TGDCINVREMAINSOPTION', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  try
-  {M}    Result := nil;
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCINVREMAINSOPTION', KEYCREATEDIALOGFORM);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCREATEDIALOGFORM]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCINVREMAINSOPTION') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCINVREMAINSOPTION',
-  {M}          'CREATEDIALOGFORM', KEYCREATEDIALOGFORM, Params, LResult) then
-  {M}          begin
-  {M}            Result := nil;
-  {M}            if VarType(LResult) <> varDispatch then
-  {M}              raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен не объект.')
-  {M}            else
-  {M}              if IDispatch(LResult) = nil then
-  {M}                raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                  'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен пустой (null) объект.');
-  {M}            Result := GetInterfaceToObject(LResult) as TCreateableForm;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCINVREMAINSOPTION' then
-  {M}        begin
-  {M}          Result := Inherited CreateDialogForm;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  Result := Tgdc_dlgInvRemainsOption.Create(ParentForm);
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVREMAINSOPTION', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCINVREMAINSOPTION', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM);
-  {M}  end;
-  {END MACRO}
-end;
-
-
 procedure TgdcInvRemainsOption.CustomDelete(Buff: Pointer);
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
   {M}VAR
@@ -8104,7 +8039,7 @@ begin
     '  subtype = ''%s''',
     [FieldByName('ruid').AsString]));
 
-  UnRegisterGdClasses(ctInvRemains, FieldByName('RUID').AsString);
+  gdClassList.RemoveSubType(FieldByName('ruid').AsString);
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVREMAINSOPTION', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
   {M}  finally
@@ -8150,9 +8085,17 @@ begin
     TgdcInvRemains.ClassName, False, FieldByName('branchkey').AsInteger
   );
 
-  RegisterGdClasses(ctInvRemains, FieldByName('name').AsString,
-    FieldByName('RUID').AsString);
-  
+  gdClassList.Add(TgdcInvRemains, FieldByName('RUID').AsString, '',
+    TgdBaseEntry, FieldByName('name').AsString);
+  gdClassList.Add(TgdcInvGoodRemains, FieldByName('RUID').AsString, '',
+    TgdBaseEntry, FieldByName('name').AsString);
+
+  gdClassList.Add('Tgdc_frmInvSelectGoodRemains', FieldByName('RUID').AsString, '',
+    TgdFormEntry, FieldByName('name').AsString);
+  gdClassList.Add('Tgdc_frmInvSelectRemains', FieldByName('RUID').AsString, '',
+    TgdFormEntry, FieldByName('name').AsString);
+
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVREMAINSOPTION', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -8167,6 +8110,7 @@ procedure TgdcInvRemainsOption.CustomModify(Buff: Pointer);
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
+  CE: TgdClassEntry;
 begin
   {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCINVREMAINSOPTION', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
   {M}  try
@@ -8198,7 +8142,20 @@ begin
     True, FieldByName('branchkey').AsInteger
   );
 
-  UpdateGdClasses(ctInvRemains, FieldByName('name').AsString, FieldByName('RUID').AsString);
+  if FieldChanged('name') then
+  begin
+    CE := gdClassList.Get(TgdBaseEntry, 'TgdcInvRemains', FieldByName('RUID').AsString);
+    CE.Caption := FieldByName('name').AsString;
+
+    CE := gdClassList.Get(TgdBaseEntry, 'TgdcInvGoodRemains', FieldByName('RUID').AsString);
+    CE.Caption := FieldByName('name').AsString;
+
+    CE := gdClassList.Get(TgdFormEntry, 'Tgdc_frmInvSelectGoodRemains', FieldByName('RUID').AsString);
+    CE.Caption := FieldByName('name').AsString;
+
+    CE := gdClassList.Get(TgdFormEntry, 'Tgdc_frmInvSelectRemains', FieldByName('RUID').AsString);
+    CE.Caption := FieldByName('name').AsString;
+  end;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVREMAINSOPTION', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
   {M}  finally
@@ -8206,12 +8163,6 @@ begin
   {M}      ClearMacrosStack2('TGDCINVREMAINSOPTION', 'CUSTOMMODIFY', KEYCUSTOMMODIFY);
   {M}  end;
   {END MACRO}
-end;
-
-destructor TgdcInvRemainsOption.Destroy;
-begin
-  inherited;
-
 end;
 
 procedure TgdcInvRemainsOption.DoBeforePost;
@@ -8290,6 +8241,12 @@ begin
   {M}  end;
   {END MACRO}
 
+end;
+
+class function TgdcInvRemainsOption.GetDialogFormClassName(
+  const ASubType: TgdcSubType): String;
+begin
+  Result := 'Tgdc_dlgInvRemainsOption';
 end;
 
 class function TgdcInvRemainsOption.GetKeyField(
@@ -8728,24 +8685,6 @@ begin
   Result := 'Tgdc_dlgInvCardConfig'
 end;
 
-class function TgdcInvCardConfig.GetKeyField(
-  const ASubType: TgdcSubType): String;
-begin
-  Result := 'ID'
-end;
-
-class function TgdcInvCardConfig.GetListField(
-  const ASubType: TgdcSubType): String;
-begin
-  Result := 'NAME'
-end;
-
-class function TgdcInvCardConfig.GetListTable(
-  const ASubType: TgdcSubType): String;
-begin
-  Result := 'AC_ACCT_CONFIG'
-end;
-
 class function TgdcInvCardConfig.GetViewFormClassName(
   const ASubType: TgdcSubType): String;
 begin
@@ -9083,20 +9022,20 @@ end;
 
 initialization
   RegisterGdcClass(TgdcInvBaseRemains);
-  RegisterGdcClass(TgdcInvRemains, ctInvRemains);
-  RegisterGdcClass(TgdcInvGoodRemains, ctInvRemains);
-  RegisterGdcClass(TgdcInvMovement, ctInvDocument);
+  RegisterGdcClass(TgdcInvRemains);
+  RegisterGdcClass(TgdcInvGoodRemains);
+  RegisterGdcClass(TgdcInvMovement);
   RegisterGdcClass(TgdcInvCard);
   RegisterGdcClass(TgdcInvRemainsOption);
   RegisterGdcClass(TgdcInvCardConfig);
 
 finalization
-  UnRegisterGdcClass(TgdcInvBaseRemains);
-  UnRegisterGdcClass(TgdcInvRemains);
-  UnRegisterGdcClass(TgdcInvGoodRemains);
-  UnRegisterGdcClass(TgdcInvMovement);
-  UnRegisterGdcClass(TgdcInvCard);
-  UnRegisterGdcClass(TgdcInvRemainsOption);
-  UnRegisterGdcClass(TgdcInvCardConfig);
+  UnregisterGdcClass(TgdcInvGoodRemains);
+  UnregisterGdcClass(TgdcInvRemains);
+  UnregisterGdcClass(TgdcInvBaseRemains);
+  UnregisterGdcClass(TgdcInvMovement);
+  UnregisterGdcClass(TgdcInvCard);
+  UnregisterGdcClass(TgdcInvRemainsOption);
+  UnregisterGdcClass(TgdcInvCardConfig);
 end.
 

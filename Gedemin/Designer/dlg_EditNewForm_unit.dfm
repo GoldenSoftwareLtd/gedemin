@@ -18,16 +18,16 @@ object dlg_EditNewForm: Tdlg_EditNewForm
   PixelsPerInch = 96
   TextHeight = 13
   object Panel1: TPanel
-    Left = 243
+    Left = 235
     Top = 0
     Width = 93
-    Height = 375
+    Height = 364
     Align = alRight
     BevelOuter = bvNone
     TabOrder = 1
     object Button1: TButton
       Left = 4
-      Top = 349
+      Top = 338
       Width = 85
       Height = 21
       Action = actExit
@@ -88,8 +88,8 @@ object dlg_EditNewForm: Tdlg_EditNewForm
   object pnlList: TPanel
     Left = 0
     Top = 0
-    Width = 243
-    Height = 375
+    Width = 235
+    Height = 364
     Align = alClient
     BevelOuter = bvNone
     BorderWidth = 4
@@ -98,8 +98,8 @@ object dlg_EditNewForm: Tdlg_EditNewForm
     object lbForms: TListBox
       Left = 4
       Top = 4
-      Width = 235
-      Height = 367
+      Width = 227
+      Height = 356
       Align = alClient
       ItemHeight = 13
       PopupMenu = PopupMenu1

@@ -170,9 +170,9 @@ end;
 function Tdlg_NewForm_Wzrd.BuildClassTree(ACE: TgdClassEntry; AData1: Pointer;
   AData2: Pointer): Boolean;
 begin
-  if (ACE <> nil) and (not (ACE.SubType > '')) then
-    if not ACE.gdcClass.IsAbstractClass then
-      cbGdcType.Items.Add(ACE.gdcClass.ClassName);
+  if (ACE is TgdBaseEntry) and (ACE.SubType = '') then
+    if not TgdBaseEntry(ACE).gdcClass.IsAbstractClass then
+      cbGdcType.Items.Add(ACE.TheClass.ClassName);
       
   Result := True;
 end;
@@ -268,16 +268,6 @@ var
   P: TPersistentClass;
   I: Integer;
 begin
-{ if cbGdcType.ItemIndex > -1 then
-  begin
-    P := GetClass(cbGdcType.Text);
-    CgdcBase(P).GetSubTypeList(FSubTypeList);
-    cbGdcSubtype.Items.Clear;
-    for I := 0 to FSubTypeList.Count - 1 do
-    begin
-      cbGdcSubtype.Items.Add(FSubTypeList.Names[I]);
-    end;
-  end;}
   if cbGdcType.ItemIndex > -1 then
   begin
     P := GetClass(cbGdcType.Text);
@@ -287,7 +277,6 @@ begin
       for I := 0 to FSubTypeList.Count - 1 do
         cbGdcSubtype.Items.Add(FSubTypeList.Names[I]);
   end;
-
 end;
 
 procedure RegisterAncestorForm(AncestorForms: Array of TPersistentClass);

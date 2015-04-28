@@ -315,12 +315,11 @@ implementation
 
 uses
   IB, IBSQL, IBErrorCodes, gdcBaseInterface, gd_createable_form,
-  IBCustomDataSet, TypInfo, gd_directories_const,
-  Storages, gd_ClassList, dmImages_unit, evt_i_Base,
-  jclStrings, at_frmSQLProcess, gsStorage_CompPath,
-  gd_security, prp_methods, Gedemin_TLB, gsStorage,
-  gdcUser, at_classes, DBCtrls, at_AddToSetting,
-  gdcClasses, DBGrids, gdcJournal, gdHelp_Interface, gdcDelphiObject, Contnrs
+  IBCustomDataSet, TypInfo, gd_directories_const, Storages, gd_ClassList,
+  dmImages_unit, evt_i_Base, jclStrings, at_frmSQLProcess, gsStorage_CompPath,
+  gd_security, prp_methods, Gedemin_TLB, gsStorage, gdcUser, at_classes,
+  DBCtrls, at_AddToSetting, gdcClasses, DBGrids, gdcJournal, gdHelp_Interface,
+  gdcDelphiObject
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -332,7 +331,6 @@ type
   end;
 
 { Tgdc_dlgG }
-
 
 procedure Tgdc_dlgG.Setup(AnObject: TObject);
   {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
@@ -1294,8 +1292,6 @@ var
   L: TList;
   I, P: Integer;
   IsNewCtrl: Boolean;
-  CE : TgdClassEntry;
-
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGG', 'SETUPRECORD', KEYSETUPRECORD)}
   {M}  try
@@ -1379,18 +1375,6 @@ begin
   end;
 
   FOldPostCount := gdcObject.PostCount;
-
-  if (SubType > '') then
-  begin
-    CE := gdClassList.Find(gdcObject.ClassType, SubType);
-    if (CE <> nil) and (CE.gdClassKind = ctStorage) then
-    begin
-      if fgdcObject.FindField('USR$ST') = nil then
-        raise Exception.Create('Поле ''USR$ST'' не найдено');
-
-      gdcObject.FieldByName('USR$ST').AsString := AnsiUpperCase(gdcObject.SubType);
-    end;
-  end;
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGG', 'SETUPRECORD', KEYSETUPRECORD)}
   {M}finally
@@ -2141,7 +2125,7 @@ begin
   begin
     HelpID := gdcObject.GetDisplayName(gdcObject.SubType);
     if gdcObject is TgdcDocument then
-      HelpID := HelpID + ' ' + TgdcDocument(gdcObject).DocumentName[False];
+      HelpID := HelpID + ' ' + TgdcDocument(gdcObject).DocumentName;
     ShowHelp(HelpID + ' (диалог)');
   end;  
 end;

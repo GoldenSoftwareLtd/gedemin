@@ -53,9 +53,9 @@ type
 
     procedure InsertChildren;
 
-    function CreateChildrenDialog: Boolean; overload; override;
-    function CreateChildrenDialog(C: CgdcBase): Boolean; overload; override;
-    function CreateChildrenDialog(C:  TgdcFullClass): Boolean; overload; override;
+    function CreateChildrenDialog: Boolean; overload;
+    function CreateChildrenDialog(C: CgdcBase): Boolean; overload;
+    function CreateChildrenDialog(C:  TgdcFullClass): Boolean; overload; 
 
     // функция создает и возвращает объект, на который ссылается
     // поле пэрэнт, т.е. родительский объект
@@ -300,7 +300,7 @@ function TgdcTree.CreateChildrenDialog: Boolean;
 begin
   FForceChildren := True;
   try
-    Result := inherited CreateChildrenDialog;
+    Result := CreateDialog;
   finally
     FForceChildren := False;
   end;
@@ -310,7 +310,7 @@ function TgdcTree.CreateChildrenDialog(C: CgdcBase): Boolean;
 begin
   FForceChildren := True;
   try
-    Result := inherited CreateChildrenDialog(C);
+    Result := CreateDialog(C);
   finally
     FForceChildren := False;
   end;
@@ -320,7 +320,7 @@ function TgdcTree.CreateChildrenDialog(C:  TgdcFullClass): Boolean;
 begin
   FForceChildren := True;
   try
-    Result := inherited CreateChildrenDialog(C);
+    Result := CreateDialog(C);
   finally
     FForceChildren := False;
   end;
@@ -406,11 +406,6 @@ class function TgdcTree.GetParentField(const ASubType: TgdcSubType): String;
 begin
   Result := 'parent';
 end;
-
-{function TgdcTree.GetCopyFieldName: String;
-begin
-  Result := 'parent';
-end;}
 
 class function TgdcTree.GetSubSetList: String;
 begin
@@ -1323,8 +1318,8 @@ initialization
   RegisterGDCClass(TgdcLBRBTree);
 
 finalization
-  UnRegisterGDCClass(TgdcTree);
-  UnRegisterGDCClass(TgdcLBRBTree);
+  UnregisterGdcClass(TgdcTree);
+  UnregisterGdcClass(TgdcLBRBTree);
 end.
 
 

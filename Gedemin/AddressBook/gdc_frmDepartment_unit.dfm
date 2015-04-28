@@ -1,6 +1,6 @@
 inherited gdc_frmDepartment: Tgdc_frmDepartment
-  Left = 220
-  Top = 184
+  Left = 258
+  Top = 181
   Width = 747
   Height = 521
   Caption = 'Подразделения'
@@ -12,6 +12,21 @@ inherited gdc_frmDepartment: Tgdc_frmDepartment
   end
   inherited TBDockTop: TTBDock
     Width = 731
+    inherited tbMainToolbar: TTBToolbar
+      object tbsiNew: TTBSubmenuItem [0]
+        Action = actNew
+        DropdownCombo = True
+        object tbiMenuNew: TTBItem
+          Action = actNew
+        end
+        object tbiMenuSubNew: TTBItem
+          Action = actSubNew
+        end
+      end
+      inherited tbiNew: TTBItem
+        Visible = False
+      end
+    end
     inherited tbMainCustom: TTBToolbar
       Left = 422
       DockPos = 454
@@ -45,6 +60,9 @@ inherited gdc_frmDepartment: Tgdc_frmDepartment
         TabOrder = 0
         OnChange = ibcmbCompanyChange
       end
+    end
+    inherited tbMainInvariant: TTBToolbar
+      Left = 286
     end
     inherited tbChooseMain: TTBToolbar
       Left = 698
@@ -117,6 +135,13 @@ inherited gdc_frmDepartment: Tgdc_frmDepartment
   inherited alMain: TActionList
     Left = 55
     Top = 170
+    object actSubNew: TAction
+      Category = 'Main'
+      Caption = 'Добавить подуровень...'
+      Hint = 'Добавить подуровень...'
+      ImageIndex = 0
+      OnExecute = actSubNewExecute
+    end
   end
   inherited pmMain: TPopupMenu
     Left = 115

@@ -150,16 +150,14 @@ inherited gdc_frmMDH: Tgdc_frmMDH
           Top = 0
           Caption = 'ѕанель инструментов (детальна€)'
           CloseButton = False
-          DockMode = dmCannotFloat
+          DockMode = dmCannotFloatOrChangeDocks
           Images = dmImages.il16x16
           ParentShowHint = False
           ShowHint = True
           Stretch = True
           TabOrder = 0
-          object tbsiDetailNew: TTBSubmenuItem
+          object tbiDetailNew: TTBItem
             Action = actDetailNew
-            DropdownCombo = True
-            OnPopup = tbsiDetailNewPopup
           end
           object tbiDetailEdit: TTBItem
             Action = actDetailEdit
@@ -206,11 +204,11 @@ inherited gdc_frmMDH: Tgdc_frmMDH
           end
         end
         object tbDetailCustom: TTBToolbar
-          Left = 257
+          Left = 256
           Top = 0
           Caption = 'ƒополнительна€ панель инструментов (детальна€)'
           CloseButton = False
-          DockMode = dmCannotFloat
+          DockMode = dmCannotFloatOrChangeDocks
           DockPos = 256
           ParentShowHint = False
           ShowHint = True

@@ -1,10 +1,9 @@
 object dlgToNamespace: TdlgToNamespace
-  Left = 703
-  Top = 218
-  BorderStyle = bsDialog
+  Left = 702
+  Top = 216
+  Width = 737
+  Height = 542
   Caption = 'Добавление объекта в пространство имен'
-  ClientHeight = 504
-  ClientWidth = 721
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -19,20 +18,61 @@ object dlgToNamespace: TdlgToNamespace
   TextHeight = 13
   object pnlGrid: TPanel
     Left = 0
-    Top = 68
+    Top = 112
     Width = 721
-    Height = 437
+    Height = 392
+    Align = alClient
     BevelOuter = bvNone
     BorderWidth = 8
     TabOrder = 1
+    object dbgrListLink: TgsDBGrid
+      Left = 8
+      Top = 8
+      Width = 705
+      Height = 348
+      Align = alClient
+      DataSource = dsLink
+      Options = [dgTitles, dgColLines, dgRowLines, dgTabs, dgRowSelect, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit]
+      ParentFont = False
+      ReadOnly = True
+      TabOrder = 0
+      TableFont.Charset = DEFAULT_CHARSET
+      TableFont.Color = clWindowText
+      TableFont.Height = -11
+      TableFont.Name = 'Tahoma'
+      TableFont.Style = []
+      SelectedFont.Charset = DEFAULT_CHARSET
+      SelectedFont.Color = clHighlightText
+      SelectedFont.Height = -11
+      SelectedFont.Name = 'Tahoma'
+      SelectedFont.Style = []
+      TitleFont.Charset = DEFAULT_CHARSET
+      TitleFont.Color = clWindowText
+      TitleFont.Height = -11
+      TitleFont.Name = 'Tahoma'
+      TitleFont.Style = []
+      InternalMenuKind = imkWithSeparator
+      Expands = <>
+      ExpandsActive = True
+      ExpandsSeparate = False
+      Conditions = <>
+      ConditionsActive = False
+      CheckBox.DisplayField = 'class'
+      CheckBox.FieldName = 'id'
+      CheckBox.Visible = False
+      CheckBox.FirstColumn = True
+      ScaleColumns = True
+      MinColWidth = 40
+      ShowTotals = False
+    end
     object pnlButtons: TPanel
       Left = 8
-      Top = 401
+      Top = 356
       Width = 705
       Height = 28
       Align = alBottom
       BevelOuter = bvNone
-      TabOrder = 0
+      TabOrder = 1
       object pnlRightBottom: TPanel
         Left = 481
         Top = 0
@@ -62,20 +102,12 @@ object dlgToNamespace: TdlgToNamespace
         end
       end
     end
-    object sb: TScrollBox
-      Left = 8
-      Top = 8
-      Width = 705
-      Height = 393
-      Align = alClient
-      TabOrder = 1
-    end
   end
   object pnlTop: TPanel
     Left = 0
     Top = 0
     Width = 721
-    Height = 73
+    Height = 112
     Align = alTop
     BevelOuter = bvNone
     TabOrder = 0
@@ -93,6 +125,13 @@ object dlgToNamespace: TdlgToNamespace
       ParentFont = False
       WordWrap = True
     end
+    object Label2: TLabel
+      Left = 8
+      Top = 51
+      Width = 43
+      Height = 13
+      Caption = 'Объект:'
+    end
     object chbxIncludeSiblings: TCheckBox
       Left = 344
       Top = 55
@@ -105,7 +144,7 @@ object dlgToNamespace: TdlgToNamespace
       Font.Name = 'Tahoma'
       Font.Style = []
       ParentFont = False
-      TabOrder = 3
+      TabOrder = 5
     end
     object chbxDontRemove: TCheckBox
       Left = 344
@@ -119,7 +158,7 @@ object dlgToNamespace: TdlgToNamespace
       Font.Name = 'Tahoma'
       Font.Style = []
       ParentFont = False
-      TabOrder = 2
+      TabOrder = 4
     end
     object chbxAlwaysOverwrite: TCheckBox
       Left = 344
@@ -133,7 +172,7 @@ object dlgToNamespace: TdlgToNamespace
       Font.Name = 'Tahoma'
       Font.Style = []
       ParentFont = False
-      TabOrder = 1
+      TabOrder = 3
     end
     object lkupNS: TgsIBLookupComboBox
       Left = 8
@@ -152,6 +191,36 @@ object dlgToNamespace: TdlgToNamespace
       ShowHint = True
       TabOrder = 0
     end
+    object edObjectName: TEdit
+      Left = 8
+      Top = 66
+      Width = 305
+      Height = 21
+      TabStop = False
+      Color = clBtnFace
+      ReadOnly = True
+      TabOrder = 2
+    end
+    object btnClear: TButton
+      Left = 313
+      Top = 23
+      Width = 24
+      Height = 21
+      Action = actClear
+      ParentShowHint = False
+      ShowHint = True
+      TabOrder = 1
+    end
+    object chbxIncludeLinked: TCheckBox
+      Left = 8
+      Top = 95
+      Width = 665
+      Height = 17
+      Caption = 
+        'Включить связанные объекты (для объектов из других ПИ будут доба' +
+        'влены ссылки)'
+      TabOrder = 6
+    end
   end
   object dsLink: TDataSource
     Left = 304
@@ -164,6 +233,12 @@ object dlgToNamespace: TdlgToNamespace
       Caption = '&ОК'
       OnExecute = actOKExecute
       OnUpdate = actOKUpdate
+    end
+    object actClear: TAction
+      Caption = 'X'
+      Hint = 'Удалить объект из пространства имен'
+      OnExecute = actClearExecute
+      OnUpdate = actClearUpdate
     end
   end
   object Tr: TIBTransaction

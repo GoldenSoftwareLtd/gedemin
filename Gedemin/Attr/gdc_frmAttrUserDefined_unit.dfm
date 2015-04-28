@@ -6,40 +6,37 @@ inherited gdc_frmAttrUserDefined: Tgdc_frmAttrUserDefined
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 378
+    Top = 367
   end
   inherited TBDockLeft: TTBDock
-    Height = 329
+    Height = 316
   end
   inherited TBDockRight: TTBDock
-    Height = 329
+    Height = 316
   end
   inherited TBDockBottom: TTBDock
-    Top = 397
+    Top = 386
   end
   inherited pnlWorkArea: TPanel
-    Height = 329
+    Height = 316
     inherited spChoose: TSplitter
-      Top = 227
+      Top = 213
     end
     inherited pnlMain: TPanel
-      Height = 227
+      Height = 213
       inherited pnlSearchMain: TPanel
-        Height = 227
+        Height = 213
         inherited sbSearchMain: TScrollBox
-          Height = 189
+          Height = 186
           Anchors = [akLeft, akTop]
-        end
-        inherited pnlSearchMainButton: TPanel
-          Top = 189
         end
       end
       inherited ibgrMain: TgsIBGrid
-        Height = 227
+        Height = 213
       end
     end
     inherited pnChoose: TPanel
-      Top = 230
+      Top = 217
     end
   end
   inherited alMain: TActionList

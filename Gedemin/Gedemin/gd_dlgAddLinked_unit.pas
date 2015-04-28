@@ -25,9 +25,7 @@ type
     actBrowse: TAction;
     actViewFile: TAction;
     Button5: TButton;
-    Label2: TLabel;
     Label3: TLabel;
-    cbClasses: TComboBox;
     iblkupObject: TgsIBLookupComboBox;
     od: TOpenDialog;
     Label4: TLabel;
@@ -35,30 +33,23 @@ type
     edLinkedName: TEdit;
     edUserType: TEdit;
     ibtr: TIBTransaction;
-    Label6: TLabel;
-    cbSubTypes: TComboBox;
     Button6: TButton;
     actCreateName: TAction;
-    chbxClassFirst: TCheckBox;
     iblkupFolder: TgsIBLookupComboBox;
     Label7: TLabel;
+    actSelectClass: TAction;
+    gbClass: TGroupBox;
+    Button1: TButton;
+    lblClass: TLabel;
     procedure FormCreate(Sender: TObject);
     procedure actBrowseExecute(Sender: TObject);
     procedure actViewFileExecute(Sender: TObject);
     procedure actViewFileUpdate(Sender: TObject);
-    procedure iblkupObjectEnter(Sender: TObject);
     procedure actCancelExecute(Sender: TObject);
     procedure actOkExecute(Sender: TObject);
     procedure actOkUpdate(Sender: TObject);
-    procedure cbClassesChange(Sender: TObject);
     procedure actCreateNameExecute(Sender: TObject);
-    procedure cbSubTypesChange(Sender: TObject);
-    procedure chbxClassFirstClick(Sender: TObject);
-
-  private
-    procedure FillListBox;
-    function BuildClassTree(ACE: TgdClassEntry; AData1: Pointer;
-      AData2: Pointer): Boolean;
+    procedure actSelectClassExecute(Sender: TObject);
   end;
 
 var
@@ -69,7 +60,7 @@ implementation
 {$R *.DFM}
 
 uses
-  ShellAPI, IBSQL, gdcBaseInterface
+  ShellAPI, IBSQL, gdcBaseInterface, gd_dlgClassList_unit
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -78,11 +69,9 @@ uses
 
 procedure Tgd_dlgAddLinked.FormCreate(Sender: TObject);
 begin
-  ibtr.DefaultDatabase := dmDatabase.ibdbGAdmin;
+  Assert(gdcBaseManager <> nil);
+  ibtr.DefaultDatabase := gdcBaseManager.Database;
   ibtr.StartTransaction;
-
-  FillListBox;
-
   iblkupObject.Transaction := ibtr;
   iblkupFolder.Transaction := ibtr;
 end;
@@ -91,9 +80,7 @@ procedure Tgd_dlgAddLinked.actBrowseExecute(Sender: TObject);
 begin
   od.FileName := edFileName.Text;
   if od.Execute then
-  begin
     edFileName.Text := od.FileName;
-  end;
 end;
 
 procedure Tgd_dlgAddLinked.actViewFileExecute(Sender: TObject);
@@ -190,25 +177,6 @@ begin
   actViewFile.Enabled := FileExists(edFileName.Text);
 end;
 
-procedure Tgd_dlgAddLinked.iblkupObjectEnter(Sender: TObject);
-begin
-  if cbClasses.ItemIndex > -1 then
-  begin
-    iblkupObject.CurrentKey := '';
-    iblkupObject.ListTable := '';
-    iblkupObject.ListField := '';
-    iblkupObject.KeyField := '';
-    iblkupObject.Condition := '';
-    iblkupObject.Fields := '';
-    iblkupObject.SubType := '';
-    iblkupObject.gdClassName :=
-      CgdcBase(cbClasses.Items.Objects[cbClasses.ItemIndex]).ClassName;
-    iblkupObject.SubType := cbSubTypes.Text;
-  end;
-
-  iblkupObject.Enabled := iblkupObject.ListTable > '';
-end;
-
 procedure Tgd_dlgAddLinked.actCancelExecute(Sender: TObject);
 begin
   ModalResult := mrCancel;
@@ -265,32 +233,7 @@ begin
   actOk.Enabled :=
     ((pc.ActivePage = tsFile) and FileExists(edFileName.Text))
     or
-    ((pc.ActivePage = tsObject) and
-      ((iblkupObject.CurrentKey > '') and (cbClasses.Text > '')));
-end;
-
-procedure Tgd_dlgAddLinked.cbClassesChange(Sender: TObject);
-var
-  SL: TStringList;
-  C: CgdcBase;
-  I: Integer;
-begin
-  if cbClasses.ItemIndex > -1 then
-  begin
-    cbSubTypes.Items.Clear;
-    cbSubTypes.Text := '';
-    SL := TStringList.Create;
-    try
-      C := CgdcBase(cbClasses.Items.Objects[cbClasses.ItemIndex]);
-      C.GetSubTypeList(SL);
-      for I := 0 to SL.Count - 1 do
-        cbSubTypes.Items.Add(SL.Values[SL.Names[I]]);
-    finally
-      SL.Free;
-    end;
-    iblkupObject.Enabled := True;
-    iblkupObject.CurrentKey := '';
-  end;
+    ((pc.ActivePage = tsObject) and (iblkupObject.CurrentKey > ''));
 end;
 
 procedure Tgd_dlgAddLinked.actCreateNameExecute(Sender: TObject);
@@ -309,39 +252,30 @@ begin
   end;
 end;
 
-procedure Tgd_dlgAddLinked.cbSubTypesChange(Sender: TObject);
+procedure Tgd_dlgAddLinked.actSelectClassExecute(Sender: TObject);
+var
+  FC: TgdcFullClassName;
 begin
-  iblkupObject.Enabled := True;
-  iblkupObject.CurrentKey := '';
-end;
+  with Tgd_dlgClassList.Create(nil) do
+  try
+    if SelectModal('', FC) then
+    begin
+      lblClass.Caption := FC.gdClassName + FC.SubType;
 
-procedure Tgd_dlgAddLinked.FillListBox;
-begin
-  cbClasses.Clear;
-  gdClassList.Traverse(TgdcBase, '', BuildClassTree, nil, nil);
-  cbSubTypes.Clear;
-end;
-
-procedure Tgd_dlgAddLinked.chbxClassFirstClick(Sender: TObject);
-begin
-  FillListBox;
-end;
-
-function Tgd_dlgAddLinked.BuildClassTree(ACE: TgdClassEntry; AData1: Pointer;
-  AData2: Pointer): Boolean;
-begin
-  if (ACE <> nil) and (ACE.SubType = '') then
-  begin
-    if chbxClassFirst.Checked then
-      cbClasses.Items.AddObject(ACE.gdcClass.ClassName + ' - '
-      + ACE.gdcClass.GetDisplayName(''),
-      Pointer(ACE.gdcClass))
-    else
-      cbClasses.Items.AddObject(ACE.gdcClass.GetDisplayName('') + ' - '
-      + ACE.gdcClass.ClassName,
-      Pointer(ACE.gdcClass));
+      iblkupObject.CurrentKey := '';
+      iblkupObject.ListTable := '';
+      iblkupObject.ListField := '';
+      iblkupObject.KeyField := '';
+      iblkupObject.Condition := '';
+      iblkupObject.Fields := '';
+      iblkupObject.SubType := '';
+      iblkupObject.gdClassName := FC.gdClassName;
+      iblkupObject.SubType := FC.SubType;
+      iblkupObject.Enabled := True;
+    end;
+  finally
+    Free;
   end;
-  Result := True;
 end;
 
 end.

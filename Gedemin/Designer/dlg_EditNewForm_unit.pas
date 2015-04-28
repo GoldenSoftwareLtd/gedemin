@@ -68,7 +68,6 @@ type
     procedure Prepare;
   end;
 
-
 var
   dlg_EditNewForm: Tdlg_EditNewForm;
 

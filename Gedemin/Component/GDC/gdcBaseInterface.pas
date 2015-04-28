@@ -56,7 +56,7 @@ type
     function GetRUIDStringByID(const ID: TID; const Tr: TIBTransaction = nil): TRUIDString;
     procedure GetRUIDByID(const ID: TID; out XID, DBID: TID; const Tr: TIBTransaction = nil);
     function ProcessSQL(const S: String): String;
-    function AdjustMetaName(const S: AnsiString): AnsiString;
+    function AdjustMetaName(const S: AnsiString; const MaxLength: Integer = cstMetaDataNameLength): AnsiString;
     function GetExplorer: IgdcBase;
     procedure SetExplorer(const Value: IgdcBase);
     function GenerateNewDBID: TID;

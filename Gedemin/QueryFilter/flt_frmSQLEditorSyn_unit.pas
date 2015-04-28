@@ -253,6 +253,10 @@ type
     tbiFilter: TTBItem;
     Label17: TLabel;
     edClassesFilter: TEdit;
+    tsRelations: TSuperTabSheet;
+    Panel2: TPanel;
+    lvRelations: TListView;
+    lblTablesCount: TLabel;
     procedure actPrepareExecute(Sender: TObject);
     procedure actExecuteExecute(Sender: TObject);
     procedure actCommitExecute(Sender: TObject);
@@ -375,6 +379,7 @@ type
     function GetTransactionParams: String;
     function ConcatErrorMessage(const M: String): String;
     procedure FillClassesList;
+    procedure FillRelationsList;
     function ibtrEditor: TIBTransaction;
 
     function BuildClassTree(ACE: TgdClassEntry; AData1: Pointer;
@@ -1609,41 +1614,49 @@ var
   LI: TListItem;
   S: String;
   Level: Integer;
+  CE: TgdBaseEntry;
 begin
-  if ACE = nil then
+  if not (ACE is TgdBaseEntry) then
   begin
     Result := False;
     exit;
   end;
 
-  S := ACE.TheClass.ClassName + ACE.SubType
-    + ACE.gdcClass.GetDisplayName(ACE.SubType)
-    + ACE.gdcClass.GetListTable(ACE.SubType);
+  CE := ACE as TgdBaseEntry;
+
+  S := CE.TheClass.ClassName + CE.SubType
+    + CE.gdcClass.GetDisplayName(CE.SubType)
+    + CE.gdcClass.GetListTable(CE.SubType)
+    + CE.DistinctRelation;
   Level := PInteger(AData1)^;
 
   if (edClassesFilter.Text = '') or (StrIPos(edClassesFilter.Text, S) > 0) then
   begin
     LI := lvClasses.Items.Add;
-    LI.Caption := StringOfChar(' ', Level * 2) + ACE.TheClass.ClassName;
+    LI.Caption := StringOfChar(' ', Level * 2) + CE.TheClass.ClassName;
 
-    if ACE.gdcClass.IsAbstractClass then
+    if CE.gdcClass.IsAbstractClass then
       LI.SubItems.Add('<Абстрактный базовый класс>')
     else
-      LI.SubItems.Add(ACE.SubType);
+      LI.SubItems.Add(CE.SubType);
 
-    LI.SubItems.Add(ACE.gdcClass.GetDisplayName(ACE.SubType));
-    LI.SubItems.Add(ACE.gdcClass.GetListTable(ACE.SubType));
+    LI.SubItems.Add(CE.gdcClass.GetDisplayName(CE.SubType));
+    LI.SubItems.Add(CE.gdcClass.GetListTable(CE.SubType));
+    LI.SubItems.Add(CE.ClassName);
+    LI.SubItems.Add(CE.DistinctRelation);
   end;
 
   Inc(Level);
-  gdClassList.Traverse(ACE.gdcClass, ACE.SubType, BuildClassTree, @Level, nil, False, True);
+  gdClassList.Traverse(CE.gdcClass, CE.SubType, BuildClassTree, @Level, nil, False, True);
 
   Result := True;
 end;
 
 procedure TfrmSQLEditorSyn.FillClassesList;
+{$IFDEF GEDEMIN}
 var
   Level: Integer;
+{$ENDIF}
 begin
   {$IFDEF GEDEMIN}
   if gdClassList <> nil then
@@ -1660,6 +1673,47 @@ begin
   {$ENDIF}
 
   lblClassesCount.Caption := 'Бизнес-классов: ' + IntToStr(lvClasses.Items.Count);
+end;
+
+procedure TfrmSQLEditorSyn.FillRelationsList;
+{$IFDEF GEDEMIN}
+var
+  q: TIBSQL;
+  LI: TListItem;
+  FC: TgdcFullClass;
+{$ENDIF}
+begin
+{$IFDEF GEDEMIN}
+  lvRelations.Items.BeginUpdate;
+  q := TIBSQL.Create(nil);
+  try
+    lvRelations.Items.Clear;
+    q.Transaction := gdcBaseManager.ReadTransaction;
+    q.SQL.Text :=
+      'SELECT rdb$relation_name ' +
+      'FROM rdb$relations ' +
+      'WHERE rdb$relation_type = 0 AND rdb$system_flag = 0 ' +
+      'ORDER BY rdb$relation_name';
+    q.ExecQuery;
+    while not q.EOF do
+    begin
+      LI := lvRelations.Items.Add;
+      LI.Caption := q.FieldByName('RDB$RELATION_NAME').AsTrimString;
+      FC := GetBaseClassForRelation(LI.Caption);
+      if FC.gdClass <> nil then
+      begin
+        LI.SubItems.Add(FC.gdClass.ClassName);
+        LI.SubItems.Add(FC.SubType);
+        LI.SubItems.Add(FC.gdClass.GetDisplayName(FC.SubType));
+      end;
+      q.Next;
+    end;
+  finally
+    q.Free;
+    lvRelations.Items.EndUpdate;
+  end;
+{$ENDIF}
+  lblTablesCount.Caption := 'Таблиц в списке: ' + IntToStr(lvRelations.Items.Count);
 end;
 
 procedure TfrmSQLEditorSyn.OnHistoryDblClick(Sender: TObject);
@@ -2002,6 +2056,11 @@ begin
   begin
     if lvClasses.Items.Count = 0 then
       FillClassesList;
+  end
+  else if pcMain.ActivePage = tsRelations then
+  begin
+    if lvRelations.Items.Count = 0 then
+      FillRelationsList;
   end
   else if pcMain.ActivePage = tsTransaction then
     FillTransactionsList
@@ -2377,12 +2436,13 @@ end;
 {$IFDEF GEDEMIN}
 function TfrmSQLEditorSyn.CreateCurrClassBusinessObject(out Obj: TgdcBase): Boolean;
 var
-  CE: TgdClassEntry;
+  CE: TgdBaseEntry;
 begin
   Assert(lvClasses.Selected <> nil);
 
   Obj := nil;
-  CE := gdClassList.Find(Trim(lvClasses.Selected.Caption), lvClasses.Selected.SubItems[0]);
+  CE := gdClassList.Find(Trim(lvClasses.Selected.Caption),
+    lvClasses.Selected.SubItems[0]) as TgdBaseEntry;
 
   if (CE <> nil) and (CE.gdcClass <> nil) and (not CE.gdcClass.IsAbstractClass) then
   begin

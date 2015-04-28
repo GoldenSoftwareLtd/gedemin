@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2000-2013 by Golden Software of Belarus
+  Copyright (c) 2000-2015 by Golden Software of Belarus
                                                                
   Module
 
@@ -48,17 +48,17 @@ const
 type
   TgdcExplorer = class(TgdcTree)
   private
-    FOldSubType, FOldClassName: Variant;
+    //FOldSubType, FOldClassName: Variant;
 
     function Get_gdcClass: CgdcBase;
 
+    {
     function TestSubType(const AClassName, ASubType: String): Boolean;
     procedure AddSubType(const AClassName, ASubType: String);
     procedure RemoveSubType(const AClassName, ASubType: String);
+    }
 
   protected
-    procedure GetWhereClauseConditions(S: TStrings); override;
-
     procedure DoAfterPost; override;
     procedure DoAfterEdit; override;
     procedure DoAfterInsert; override;
@@ -122,8 +122,7 @@ end;
 
 { TgdcExplorer }
 
-
-procedure TgdcExplorer.AddSubType(const AClassName, ASubType: String);
+{procedure TgdcExplorer.AddSubType(const AClassName, ASubType: String);
 var
   C: TPersistentClass;
   F: TgsStorageFolder;
@@ -181,7 +180,7 @@ begin
       end;
     end;
   end;
-end;
+end;}
 
 function TgdcExplorer.CheckTheSameStatement: String;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
@@ -255,7 +254,7 @@ procedure TgdcExplorer.DoAfterDelete;
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-  V: OleVariant;
+  //V: OleVariant;
 begin
   {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCEXPLORER', 'DOAFTERDELETE', KEYDOAFTERDELETE)}
   {M}  try
@@ -282,6 +281,7 @@ begin
 
   inherited;
 
+  {
   if (VarType(FOldClassName) = varString)
     and (VarType(FOldSubType) = varString) then
   begin
@@ -291,8 +291,9 @@ begin
     if VarType(V) = varEmpty then
     begin
       RemoveSubType(FOldClassName, FOldSubType);
-    end;  
+    end;
   end;
+  }
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCEXPLORER', 'DOAFTERDELETE', KEYDOAFTERDELETE)}
   {M}  finally
@@ -334,8 +335,10 @@ begin
 
   inherited;
 
+  {
   FOldClassName := FieldByName('classname').AsVariant;
-  FOldSubType := FieldByName('subtype').AsVariant;  
+  FOldSubType := FieldByName('subtype').AsVariant;
+  }  
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCEXPLORER', 'DOAFTEREDIT', KEYDOAFTEREDIT)}
   {M}  finally
@@ -377,8 +380,10 @@ begin
 
   inherited;
 
+  {
   FOldClassName := Unassigned;
   FOldSubType := Unassigned;
+  }
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCEXPLORER', 'DOAFTERINSERT', KEYDOAFTERINSERT)}
   {M}  finally
@@ -498,7 +503,7 @@ var
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-  V: OleVariant;
+  //V: OleVariant;
 begin
   {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCEXPLORER', 'DOAFTERPOST', KEYDOAFTERPOST)}
   {M}  try
@@ -534,6 +539,7 @@ begin
       FieldByName('afull').AsInteger)
   end;
 
+  {
   if (VarType(FOldClassName) = varEmpty) and (VarType(FOldSubType) = varEmpty) then
   begin
     if (FieldByName('classname').AsString > '')
@@ -569,6 +575,7 @@ begin
       end;
     end;
   end;
+  }
 
   // Через поток поля настройки прав не переносятся,
   //  поэтому обновлять права у зависимых объектов не надо
@@ -631,8 +638,10 @@ begin
 
   inherited;
 
+  {
   FOldClassName := FieldByName('classname').AsVariant;
   FOldSubType := FieldByName('subtype').AsVariant;
+  }
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCEXPLORER', 'DOBEFOREDELETE', KEYDOBEFOREDELETE)}
   {M}  finally
@@ -797,20 +806,6 @@ begin
   Result := True;
 end;
 
-procedure TgdcExplorer.GetWhereClauseConditions(S: TStrings);
-begin
-  inherited;
-  {
-  if HasSubSet('ByExplorer') then
-  begin
-    S.Add('z.id > 710000'); // саму "голову" Исследователь в дерево не будем включать
-    S.Add('z.disabled = 0'); // Только активные пункты меню. Таким образом мы можем отключать
-                             // не неужные пункты меню не удаляя их из gd_command и затем при
-                             // Upgrade все будет нормально.
-  end;
-  }
-end;
-
 function TgdcExplorer.Get_gdcClass: CgdcBase;
 var
   Cl: TClass;
@@ -850,7 +845,7 @@ begin
   end;
 end;
 
-procedure TgdcExplorer.RemoveSubType(const AClassName, ASubType: String);
+{procedure TgdcExplorer.RemoveSubType(const AClassName, ASubType: String);
 var
   C: TPersistentClass;
   S: String;
@@ -889,7 +884,7 @@ begin
       end;
     end;
   end;
-end;
+end;}
 
 procedure TgdcExplorer.ShowProgram(const AlwaysCreateWindow: Boolean = False);
 var
@@ -1038,7 +1033,7 @@ begin
   end;
 end;
 
-function TgdcExplorer.TestSubType(const AClassName,
+{function TgdcExplorer.TestSubType(const AClassName,
   ASubType: String): Boolean;
 var
   C: TPersistentClass;
@@ -1047,9 +1042,9 @@ begin
 
   C := GetClass(AClassName);
 
-  if (C <> nil) and (C.InheritsFrom(TgdcBase)) and (ASubType > '')then
+  if (C <> nil) and C.InheritsFrom(TgdcBase) and (ASubType > '')then
     Result := CgdcBase(C).CheckSubType(ASubType);
-end;
+end;}
 
 procedure TgdcExplorer._SaveToStream(Stream: TStream;
   ObjectSet: TgdcObjectSet; PropertyList: TgdcPropertySets;
@@ -1106,5 +1101,5 @@ initialization
   RegisterGdcClass(TgdcExplorer);
 
 finalization
-  UnRegisterGdcClass(TgdcExplorer);
+  UnregisterGdcClass(TgdcExplorer);
 end.

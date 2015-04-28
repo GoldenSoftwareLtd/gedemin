@@ -11,31 +11,32 @@ inherited gdc_frmInvBaseSelectRemains: Tgdc_frmInvBaseSelectRemains
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 494
-    Width = 775
+    Top = 483
+    Width = 767
   end
   inherited TBDockTop: TTBDock
-    Width = 775
-    Height = 52
+    Width = 767
+    Height = 54
     inherited tbMainCustom: TTBToolbar
-      Left = 742
+      Left = 734
       DockPos = 424
     end
     inherited tbMainInvariant: TTBToolbar
-      Left = 260
+      Left = 252
       inherited cbAllRemains: TCheckBox
-        Top = 4
+        Left = 218
+        Top = 25
       end
     end
     inherited tbChooseMain: TTBToolbar
-      Left = 471
+      Left = 480
       DockPos = 296
       Visible = True
       object tbciBaseRemains: TTBControlItem
         Control = Panel1
       end
       object Panel1: TPanel
-        Left = 23
+        Left = 6
         Top = 0
         Width = 238
         Height = 25
@@ -65,53 +66,50 @@ inherited gdc_frmInvBaseSelectRemains: Tgdc_frmInvBaseSelectRemains
     end
   end
   inherited TBDockLeft: TTBDock
-    Top = 52
-    Height = 433
+    Top = 54
+    Height = 420
   end
   inherited TBDockRight: TTBDock
-    Left = 766
-    Top = 52
-    Height = 433
+    Left = 758
+    Top = 54
+    Height = 420
   end
   inherited TBDockBottom: TTBDock
-    Top = 485
-    Width = 775
+    Top = 474
+    Width = 767
   end
   inherited pnlWorkArea: TPanel
-    Top = 52
-    Width = 757
-    Height = 433
+    Top = 54
+    Width = 749
+    Height = 420
     inherited spChoose: TSplitter
-      Top = 330
-      Width = 757
+      Top = 317
+      Width = 749
     end
     inherited pnlMain: TPanel
-      Width = 757
-      Height = 330
+      Width = 749
+      Height = 317
       inherited Splitter1: TSplitter
-        Height = 330
+        Height = 317
       end
       inherited pnlSearchMain: TPanel
-        Height = 330
+        Height = 317
         inherited sbSearchMain: TScrollBox
-          Height = 292
-        end
-        inherited pnlSearchMainButton: TPanel
-          Top = 292
+          Height = 290
         end
       end
       inherited pnMain: TPanel
-        Height = 330
+        Height = 317
         inherited tvGroup: TgsDBTreeView
-          Height = 330
+          Height = 317
         end
       end
       inherited pnDetail: TPanel
-        Width = 377
-        Height = 330
+        Width = 369
+        Height = 317
         inherited ibgrDetail: TgsIBGrid
-          Width = 377
-          Height = 330
+          Width = 369
+          Height = 317
           Options = [dgTitles, dgColumnResize, dgColLines, dgRowLines, dgTabs, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit, dgMultiSelect]
           ReadOnly = False
           OnColEnter = ibgrDetailColEnter
@@ -128,17 +126,17 @@ inherited gdc_frmInvBaseSelectRemains: Tgdc_frmInvBaseSelectRemains
       end
     end
     inherited pnChoose: TPanel
-      Top = 334
-      Width = 757
+      Top = 321
+      Width = 749
       inherited pnButtonChoose: TPanel
-        Left = 652
+        Left = 644
       end
       inherited ibgrChoose: TgsIBGrid
-        Width = 652
+        Width = 644
         Visible = True
       end
       inherited pnlChooseCaption: TPanel
-        Width = 757
+        Width = 749
       end
     end
   end

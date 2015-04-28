@@ -8,12 +8,26 @@ uses
   gdc_frmMDVTree_unit, Db, Menus, ActnList, Grids, DBGrids, gsDBGrid,
   gsIBGrid, ComCtrls, gsDBTreeView, ToolWin, ExtCtrls, TB2Item, TB2Dock,
   TB2Toolbar, gdcAcctAccount, IBCustomDataSet, gdcBase, IBDatabase, gdcTree,
-  gd_MacrosMenu, StdCtrls, Contnrs;
+  gd_MacrosMenu, StdCtrls;
 
 type
   Tgdc_frmAcctAccount = class(Tgdc_frmMDVTree)
     gdcAcctAccount: TgdcAcctAccount;
     IBTransaction: TIBTransaction;
+    actNewChart: TAction;
+    actNewFolder: TAction;
+    actNewAccount: TAction;
+    actNewSubAccount: TAction;
+    TBSubmenuItem1: TTBSubmenuItem;
+    TBItem1: TTBItem;
+    TBItem2: TTBItem;
+    TBSubmenuItem2: TTBSubmenuItem;
+    TBItem3: TTBItem;
+    TBItem4: TTBItem;
+    N1: TMenuItem;
+    N2: TMenuItem;
+    N3: TMenuItem;
+    N4: TMenuItem;
     actAddAnalize: TAction;
     TBItem6: TTBItem;
     gdcAcctChart: TgdcAcctBase;
@@ -22,14 +36,16 @@ type
     NSepAddAn: TMenuItem;
     NAddAn: TMenuItem;
     procedure FormCreate(Sender: TObject);
+    procedure actNewChartExecute(Sender: TObject);
+    procedure actNewFolderExecute(Sender: TObject);
+    procedure actNewAccountExecute(Sender: TObject);
+    procedure actNewSubAccountExecute(Sender: TObject);
+    procedure actNewSubAccountUpdate(Sender: TObject);
     procedure actAddAnalizeExecute(Sender: TObject);
+    procedure actDetailNewExecute(Sender: TObject);
+    procedure actNewFolderUpdate(Sender: TObject);
+    procedure actNewAccountUpdate(Sender: TObject);
     procedure actAddAnalizeUpdate(Sender: TObject);
-    procedure actDetailNewUpdate(Sender: TObject);
-
-  protected
-    procedure GetDisabledClasses(ACL: TClassList); override;
-
-    procedure GetDisabledDetailClasses(ACL: TClassList); override;
 
   public
     procedure SetChoose(AnObject: TgdcBase); override;
@@ -62,6 +78,54 @@ begin
   end;
 end;
 
+procedure Tgdc_frmAcctAccount.actNewChartExecute(Sender: TObject);
+begin
+  gdcObject.CreateDialog(MakeFullClass(TgdcAcctChart, ''));
+end;
+
+procedure Tgdc_frmAcctAccount.actNewFolderExecute(Sender: TObject);
+var
+  Obj: TgdcBase;
+begin
+  Obj := TgdcAcctFolder.Create(Self);
+  try
+    Obj.SubSet := 'ByID';
+    Obj.Open;
+    Obj.Insert;
+    Obj.FieldByName('parent').AsInteger := gdcObject.ID;
+    if Obj.CreateDialog then
+    begin
+      gdcObject.Close;
+      gdcObject.Open;
+      gdcObject.Locate('ID', Obj.ID, []);
+    end;
+    Obj.Close;
+  finally
+    Obj.Free;
+  end;
+end;
+
+procedure Tgdc_frmAcctAccount.actNewAccountExecute(Sender: TObject);
+begin
+  gdcAcctAccount.Parent := gdcObject.ID;
+  gdcDetailObject.CreateDialog(MakeFullClass(TgdcAcctAccount, ''));
+end;
+
+procedure Tgdc_frmAcctAccount.actNewSubAccountExecute(Sender: TObject);
+begin
+  gdcAcctAccount.Parent := gdcDetailObject.ID;
+  gdcDetailObject.CreateDialog(TgdcAcctSubAccount);
+end;
+
+procedure Tgdc_frmAcctAccount.actNewSubAccountUpdate(Sender: TObject);
+begin
+  TAction(Sender).Enabled := gdcDetailObject.Active
+    and (not gdcDetailObject.IsEmpty)
+    and gdcObject.Active
+    and (not gdcObject.IsEmpty)
+    and (gdcObject.FieldByName('accounttype').AsString = 'F');
+end;
+
 procedure Tgdc_frmAcctAccount.actAddAnalizeExecute(Sender: TObject);
 begin
   with Tgdc_acct_dlgAnalysis.Create(Self) do
@@ -72,31 +136,6 @@ begin
       Free;
     end;
 
-end;
-
-procedure Tgdc_frmAcctAccount.GetDisabledClasses(ACL: TClassList);
-begin
-  if gdcObject.IsEmpty then
-    ACL.Add(TgdcAcctFolder);
-end;
-
-procedure Tgdc_frmAcctAccount.GetDisabledDetailClasses(ACL: TClassList);
-begin
-  if (not gdcObject.Active)
-    or (gdcObject.IsEmpty)
-    or (gdcObject.FieldByName('accounttype').AsString <> 'F') then
-  begin
-    ACL.Add(TgdcAcctAccount);
-  end;
-
-  if (not gdcDetailObject.Active)
-    or (gdcDetailObject.IsEmpty)
-    or (not gdcObject.Active)
-    or (gdcObject.IsEmpty)
-    or (gdcObject.FieldByName('accounttype').AsString <> 'F') then
-  begin
-    ACL.Add(TgdcAcctSubAccount);
-  end;
 end;
 
 procedure Tgdc_frmAcctAccount.SetChoose(AnObject: TgdcBase);
@@ -136,20 +175,29 @@ begin
   {END MACRO}
 end;
 
+procedure Tgdc_frmAcctAccount.actDetailNewExecute(Sender: TObject);
+begin
+//  inherited;
+
+end;
+
+procedure Tgdc_frmAcctAccount.actNewFolderUpdate(Sender: TObject);
+begin
+  actNewFolder.Enabled := Assigned(gdcObject)
+    and (not gdcObject.IsEmpty);
+end;
+
+procedure Tgdc_frmAcctAccount.actNewAccountUpdate(Sender: TObject);
+begin
+  actNewAccount.Enabled := gdcObject.Active
+    and (not gdcObject.IsEmpty)
+    and (gdcObject.FieldByName('accounttype').AsString = 'F');
+end;
+
 procedure Tgdc_frmAcctAccount.actAddAnalizeUpdate(Sender: TObject);
 begin
   actAddAnalize.Enabled := Assigned(IBLogin)
     and IBLogin.IsUserAdmin;
-end;
-
-procedure Tgdc_frmAcctAccount.actDetailNewUpdate(Sender: TObject);
-begin
-  inherited;
-
-  if actDetailNew.Enabled then
-    actDetailNew.Enabled := gdcObject.Active
-      and (not gdcObject.IsEmpty)
-      and (gdcObject.FieldByName('accounttype').AsString = 'F');
 end;
 
 initialization

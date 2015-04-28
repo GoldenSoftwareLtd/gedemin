@@ -28,6 +28,9 @@ inherited gdc_frmMDVTree: Tgdc_frmMDVTree
         end
       end
     end
+    inherited tbMainInvariant: TTBToolbar
+      Left = 280
+    end
   end
   inherited TBDockLeft: TTBDock
     Height = 495
@@ -112,6 +115,9 @@ inherited gdc_frmMDVTree: Tgdc_frmMDVTree
         Left = 0
         Top = 0
         Width = 606
+        inherited tbDetailCustom: TTBToolbar
+          Left = 275
+        end
       end
       inherited pnlSearchDetail: TPanel
         Left = 0

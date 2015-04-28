@@ -30,8 +30,8 @@ uses
   StdCtrls, TB2ToolWindow, wiz_FunctionsParams_unit, SuperPageControl,
   prp_frmGedeminProperty_Unit, gd_security_operationconst, gdcBaseInterface,
   obj_i_Debugger, prp_PropertySettings, SynDBEdit, gsFunctionSyncEdit,
-  wiz_Strings_unit, gdcClasses, clipbrd, prp_MessageConst, contnrs,
-  gsSearchReplaceHelper;
+  wiz_Strings_unit, gdcClasses_interface, gdcClasses, clipbrd, prp_MessageConst,
+  ContNrs, gsSearchReplaceHelper;
 
 type
   TdlgFunctionWisard = class;

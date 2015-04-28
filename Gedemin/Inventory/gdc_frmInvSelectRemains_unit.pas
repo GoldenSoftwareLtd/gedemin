@@ -17,10 +17,9 @@ type
       Checked: Boolean);
     procedure gdcInvRemainsAfterPost(DataSet: TDataSet);
     procedure FormCreate(Sender: TObject);
+
   public
     procedure Setup(anObject: TObject); override;
-
-   
   end;
 
 var
@@ -72,8 +71,6 @@ begin
   {END MACRO}
 end;
 
-
-
 procedure Tgdc_frmInvSelectRemains.actDeleteChooseExecute(Sender: TObject);
 begin
   FgdcChooseObject.DeleteMultiple(ibgrChoose.SelectedRows);
@@ -108,9 +105,8 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmInvSelectRemains, ctInvRemains);
+  RegisterFrmClass(Tgdc_frmInvSelectRemains);
 
 finalization
   UnRegisterFrmClass(Tgdc_frmInvSelectRemains);
-
 end.

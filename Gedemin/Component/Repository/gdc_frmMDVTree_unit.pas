@@ -263,7 +263,7 @@ begin
   if UserStorage <> nil then
   begin
     UserStorage.WriteBoolean(BuildComponentPath(Self), 'ShSG',
-     Assigned(gdcDetailObject) and gdcDetailObject.HasSubSet(ByLBRBSubSetName));
+      Assigned(gdcDetailObject) and gdcDetailObject.HasSubSet(ByLBRBSubSetName));
 
     UserStorage.WriteBoolean(BuildComponentPath(Self), 'AllowDD', DragnDropAllowed);
 

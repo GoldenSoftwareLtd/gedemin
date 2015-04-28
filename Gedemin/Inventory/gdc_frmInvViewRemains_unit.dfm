@@ -8,12 +8,12 @@ inherited gdc_frmInvViewRemains: Tgdc_frmInvViewRemains
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 619
-    Width = 856
+    Top = 608
+    Width = 848
   end
   inherited TBDockTop: TTBDock
-    Width = 856
-    Height = 101
+    Width = 848
+    Height = 103
     inherited tbMainToolbar: TTBToolbar
       object TBSubmenuItem1: TTBSubmenuItem [18]
         Caption = 'Настройка остатков'
@@ -49,7 +49,7 @@ inherited gdc_frmInvViewRemains: Tgdc_frmInvViewRemains
     end
     inherited tbMainCustom: TTBToolbar
       Left = 0
-      Top = 49
+      Top = 51
       AutoResize = False
       DockPos = 312
       DockRow = 2
@@ -184,63 +184,60 @@ inherited gdc_frmInvViewRemains: Tgdc_frmInvViewRemains
     end
     inherited tbChooseMain: TTBToolbar
       Left = 0
-      Top = 75
+      Top = 77
       DockPos = -2
       DockRow = 3
     end
   end
   inherited TBDockLeft: TTBDock
-    Top = 101
-    Height = 509
+    Top = 103
+    Height = 496
   end
   inherited TBDockRight: TTBDock
-    Left = 847
-    Top = 101
-    Height = 509
+    Left = 839
+    Top = 103
+    Height = 496
   end
   inherited TBDockBottom: TTBDock
-    Top = 610
-    Width = 856
+    Top = 599
+    Width = 848
   end
   inherited pnlWorkArea: TPanel
-    Top = 101
-    Width = 838
-    Height = 509
+    Top = 103
+    Width = 830
+    Height = 496
     inherited spChoose: TSplitter
-      Top = 406
-      Width = 838
+      Top = 393
+      Width = 830
     end
     inherited pnlMain: TPanel
-      Width = 838
-      Height = 406
+      Width = 830
+      Height = 393
       inherited Splitter1: TSplitter
-        Height = 406
+        Height = 393
       end
       inherited pnlSearchMain: TPanel
-        Height = 406
+        Height = 393
         inherited sbSearchMain: TScrollBox
-          Height = 368
-        end
-        inherited pnlSearchMainButton: TPanel
-          Top = 368
+          Height = 366
         end
       end
       inherited pnMain: TPanel
-        Height = 406
+        Height = 393
         inherited tvGroup: TgsDBTreeView
-          Height = 406
+          Height = 393
         end
       end
       inherited pnDetail: TPanel
-        Width = 458
-        Height = 406
+        Width = 450
+        Height = 393
         Caption = 'Для отображения остатков нажмите кнопку "Перестроить" (F5)'
         Font.Height = -13
         Font.Style = [fsBold]
         ParentFont = False
         inherited ibgrDetail: TgsIBGrid
-          Width = 458
-          Height = 406
+          Width = 450
+          Height = 393
           Options = [dgTitles, dgColumnResize, dgColLines, dgRowLines, dgTabs, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit, dgMultiSelect]
           ParentFont = False
           Visible = False
@@ -254,16 +251,16 @@ inherited gdc_frmInvViewRemains: Tgdc_frmInvViewRemains
       end
     end
     inherited pnChoose: TPanel
-      Top = 410
-      Width = 838
+      Top = 397
+      Width = 830
       inherited pnButtonChoose: TPanel
-        Left = 733
+        Left = 725
       end
       inherited ibgrChoose: TgsIBGrid
-        Width = 733
+        Width = 725
       end
       inherited pnlChooseCaption: TPanel
-        Width = 838
+        Width = 830
       end
     end
   end

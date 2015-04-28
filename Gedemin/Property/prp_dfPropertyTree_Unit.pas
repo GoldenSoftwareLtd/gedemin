@@ -941,9 +941,9 @@ begin
       else
         SetTextColor(Sender.Canvas.Handle, ColorToRGB(clGreen));
 
-      Sender.Canvas.TextOut(NodeRect.Left + 1, NodeRect.Top, Node.Text);
+      Sender.Canvas.TextOut(NodeRect.Left + 3, NodeRect.Top + 1, Node.Text);
       SetTextColor(Sender.Canvas.Handle, ColorToRGB(TempColor));
-      Sender.Canvas.TextOut(NodeRect.Left, NodeRect.Top, TgdcClassTreeItem(Node.Data).Name);
+      Sender.Canvas.TextOut(NodeRect.Left + 2, NodeRect.Top + 1, TgdcClassTreeItem(Node.Data).Name);
     end;
   end;
 end;
@@ -2306,15 +2306,15 @@ var
 begin
   Result := nil;
 
-  if Assigned(ACE.gdcClass) then
+  if ACE is TgdBaseEntry then
   begin
-    FullName.gdClassName := ACE.gdcClass.ClassName;
+    FullName.gdClassName := ACE.TheClass.ClassName;
     FullName.SubType := StringReplace(ACE.SubType, 'USR$', 'USR_',[rfReplaceAll, rfIgnoreCase]);
     MClass := TMethodClass(MethodControl.FindMethodClass(FullName));
     if MClass = nil then
       //≈сли не найден то регистрируем его в списке
-      MClass := TMethodClass(MethodControl.AddClass(0, FullName, ACE.gdcClass));
-    MClass.Class_Reference := ACE.gdcClass;
+      MClass := TMethodClass(MethodControl.AddClass(0, FullName, TgdBaseEntry(ACE).gdcClass));
+    MClass.Class_Reference := TgdBaseEntry(ACE).gdcClass;
     MClass.SubTypeComment := ACE.Caption;
 
     CI := TgdcClassTreeItem.Create;
@@ -2329,7 +2329,7 @@ begin
     end else
     begin
       CI.OwnerId := MClass.Class_Key;
-      CI.MainOwnerName := ACE.gdcClass.ClassName;
+      CI.MainOwnerName := ACE.TheClass.ClassName;
     end;
     CI.OverloadMethods := MClass.SpecMethodCount;
     Ci.DisabledMethods := MClass.SpecDisableMethod;
@@ -2367,17 +2367,17 @@ var
 begin
   Result := nil;
 
-  if ACE.frmClass <> nil then
+  if ACE is TgdFormEntry then
   begin
-    FullName.gdClassName := ACE.frmClass.ClassName;
+    FullName.gdClassName := ACE.TheClass.ClassName;
     FullName.SubType := StringReplace(ACE.SubType, 'USR$', 'USR_',[rfReplaceAll, rfIgnoreCase]);
     MObj := MethodControl.FindMethodClass(FullName);
     if MObj is TMethodClass then
       MClass := TMethodClass(MObj)
     else
       //≈сли не найден то регистрируем его в списке
-      MClass := TMethodClass(MethodControl.AddClass(0, FullName, ACE.frmClass));
-    MClass.Class_Reference := ACE.frmClass;
+      MClass := TMethodClass(MethodControl.AddClass(0, FullName, ACE.TheClass));
+    MClass.Class_Reference := ACE.TheClass;
     MClass.SubTypeComment := ACE.Caption;
 
     CI := TgdcClassTreeItem.Create;
@@ -2499,35 +2499,24 @@ begin
 end;
 
 function TdfPropertyTree.AddGDCClass(AParent: TTreeNode;
-  const AClassName: String; const ASubType: string): TTreeNode;
+  const AClassName: String; const ASubType: String): TTreeNode;
 var
-  C: TClass;
   CE: TgdClassEntry;
 begin
-  Result := nil;
-
-  C := gdClassList.GetGDCClass(AClassName);
-  if C <> nil then
+  CE := gdClassList.Find(AClassName, ASubType);
+  if CE is TgdBaseEntry then
   begin
-    CE := gdClassList.Find(GetClass(AClassName), ASubType);
-    if CE <> nil then
-    begin
-      Result := AddGDCClassNode(AParent, CE);
-
-      TCustomTreeFolder(Result.Data).ChildsCreated := True;
-      AddMethods(Result, True, CE);
-    end;
+    Result := AddGDCClassNode(AParent, CE);
+    TCustomTreeFolder(Result.Data).ChildsCreated := True;
+    AddMethods(Result, True, CE);
+  end
+  else if CE is TgdFormEntry then
+  begin
+    Result := AddFRMClassNode(AParent, CE);
+    TCustomTreeFolder(Result.Data).ChildsCreated := True;
+    AddMethods(Result, False, CE);
   end else
-  begin
-    CE := gdClassList.Find(GetClass(AClassName), ASubType);
-    if CE <> nil then
-    begin
-      Result := AddFRMClassNode(AParent, CE);
-
-      TCustomTreeFolder(Result.Data).ChildsCreated := True;
-      AddMethods(Result, False, CE);
-    end;
-  end;
+    Result := nil;
 end;
 
 procedure TdfPropertyTree.InitOverloadAndDisable(C: TMethodClass);

@@ -496,7 +496,7 @@ var
   TmpClass: TClass;
   HierNode, tmpNode: TTreeNode;
   LClassName: String;
-  gdcFullClassName: TgdcFullClassName;
+  CE: TgdClassEntry;
   I: Integer;
   FtmpUnsortList: TStrings;
 begin
@@ -512,15 +512,11 @@ begin
 
     if not Assigned(TmpClass) then
     begin
-      gdcFullClassName.gdClassName := LClassName;
-      gdcFullClassName.SubType := '';
-      TmpClass := gdClassList.GetFrmClass(gdcFullClassName.gdClassName);
-      if not Assigned(TmpClass) then
-      begin
-        TmpClass := gdClassList.GetGDCClass(gdcFullClassName.gdClassName);
-        if not Assigned(TmpClass) then
-          TmpClass := OLEClassList.GetClass(LClassName);
-      end;
+      CE := gdClassList.Find(LClassName);
+      if CE <> nil then
+        TmpClass := CE.TheClass
+      else
+        TmpClass := OLEClassList.GetClass(LClassName);
     end;
 
     if (TmpClass <> nil) and (TmpClass.ClassParent <> nil) then

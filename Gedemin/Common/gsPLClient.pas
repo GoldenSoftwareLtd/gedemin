@@ -63,7 +63,7 @@ type
 
     property Eof: Boolean read GetEof;
     property PredicateName: String read FPredicateName write FPredicateName;
-    property Termv: TgsPLTermv read FTermv write FTermv;
+    property Termv: TgsPLTermv read FTermv write FTermv; 
   end;
 
   TgsPLClient = class(TObject)
@@ -82,14 +82,11 @@ type
     //function GetConsultString(const AFileName: String): String;
     function InternalMakePredicatesOfDataSet(ADataSet: TDataSet; const AFieldList: String;
       const APredicateName: String; const AStream: TStream = nil): Integer;
-    {*function InternalMakePredicatesOfObject(const AClassName: String; const ASubType: String; const ASubSet: String;
+    function InternalMakePredicatesOfObject(const AClassName: String; const ASubType: String; const ASubSet: String;
       AParams: Variant; AnExtraConditions: TStringList; const AFieldList: String; ATr: TIBTransaction;
       const APredicateName: String; const AStream: TStream = nil): Integer;
-    *}
     function InternalMakePredicatesOfSQLSelect(const ASQL: String; ATr: TIBTransaction;
       const APredicateName: String; const AStream: TStream = nil): Integer;
-
-    function GetScriptIDByName(const Name: String): Integer;
   public
     destructor Destroy; override;
 
@@ -102,15 +99,12 @@ type
       const APredicateName: String; const AFileName: String; const AnAppend: Boolean = False): Integer;
     function MakePredicatesOfDataSet(ADataSet: TDataSet; const AFieldList: String;
       const APredicateName: String; const AFileName: String; const AnAppend: Boolean = False): Integer;
-    {*function MakePredicatesOfObject(const AClassName: String; const ASubType: String; const ASubSet: String;
+    function MakePredicatesOfObject(const AClassName: String; const ASubType: String; const ASubSet: String;
       AParams: Variant; AnExtraConditions: TStringList; const AFieldList: String; ATr: TIBTransaction;
       const APredicateName: String; const AFileName: String; const AnAppend: Boolean = False): Integer;
-    *}
     procedure ExtractData(ADataSet: TClientDataSet; const APredicateName: String; ATermv: TgsPLTermv);
     procedure SavePredicatesToFile(const APredicateName: String; ATermv: TgsPLTermv; const AFileName: String);
-
     function LoadScript(AScriptID: Integer): Boolean;
-    function LoadScriptByName(const AScriptName: String): Boolean;
 
     property Debug: Boolean read FDebug write FDebug;
   end;
@@ -375,7 +369,7 @@ begin
 
   FreePLLibrary;
   FreePLDependentLibraries;
-  
+
   inherited;
 end;
 
@@ -450,7 +444,6 @@ end;
 
 function TgsPLClient.LoadScript(AScriptID: Integer): Boolean;
 
-{*
   function GetScriptIDByName(const Name: String): Integer;
   var
     q: TIBSQL;
@@ -475,7 +468,6 @@ function TgsPLClient.LoadScript(AScriptID: Integer): Boolean;
       end;
     end;
   end;
-*}
 
   procedure LoadUsesScript(const S: String);
   const
@@ -545,11 +537,6 @@ begin
     q.Free;
     TermV.Free;    
   end;
-end;
-
-function TgsPLClient.LoadScriptByName(const AScriptName: String): Boolean;
-begin
-  Result := LoadScript(GetScriptIDByName(AScriptName));
 end;
 
 function TgsPLClient.Call2(const AGoal: String): Boolean;
@@ -641,12 +628,7 @@ function TgsPLClient.GetFileName(const AFileName: String): String;
 var
   TempS: String;
 begin
-  //TempS := ExtractFilePath(Application.EXEName) + PrologTempPath;
-  TempS := GetSWIPath;
-  if not DirectoryExists(TempS) then
-    if not CreateDir(TempS) then
-      raise EgsPLClientException.Create('Не удается создать директорию ''' + TempS + '''');
-  TempS := GetSWITempPath;
+  TempS := ExtractFilePath(Application.EXEName) + PrologTempPath;
   if not DirectoryExists(TempS) then
     if not CreateDir(TempS) then
       raise EgsPLClientException.Create('Не удается создать директорию ''' + TempS + '''');
@@ -695,7 +677,7 @@ function TgsPLClient.Initialise(const AParams: String = ''): Boolean;
     while (F <= Length(S)) and (S[F] <> '!') and (S[F + 1] <> '@') do
       Inc(F);
 
-
+      
     Result := Trim(Copy(S, L, F - L));
     Inc(F, 2);
     L := F;
@@ -716,7 +698,7 @@ var
   TempS: String;
 begin
   if not TryPLLoad then
-    raise EgsPLClientException.Create('Клиентская часть Prolog не установлена!');
+    raise EgsPLClientException.Create('Клиентская часть Prolog не установлена!'); 
 
   if AParams > '' then
     TempS := Trim(AParams)
@@ -727,7 +709,7 @@ begin
 
   SL := TStringList.Create;
   try
-    //if AParams = '' then
+    if AParams = '' then
       GetParamsList(TempS, SL);
 
     SetLength(FInitArgv, SL.Count + 1);
@@ -739,8 +721,7 @@ begin
     begin
       Result := PL_initialise(High(FInitArgv), FInitArgv) <> 0;
       if not Result then
-        //PL_halt(1);
-        PL_cleanup(0);
+        PL_halt(1);
     end else
       Result := False;
   finally
@@ -970,7 +951,6 @@ begin
     Result := InternalMakePredicatesOfSQLSelect(ASQL, ATr, APredicateName, nil);
 end;
 
-{*
 function TgsPLClient.InternalMakePredicatesOfObject(const AClassName: String; const ASubType: String; const ASubSet: String;
   AParams: Variant; AnExtraConditions: TStringList; const AFieldList: String; ATr: TIBTransaction;
   const APredicateName: String; const AStream: TStream = nil): Integer;
@@ -1020,9 +1000,7 @@ begin
     Obj.Free;
   end;
 end;
-*}
 
-{*
 function TgsPLClient.MakePredicatesOfObject(const AClassName: String; const ASubType: String; const ASubSet: String;
   AParams: Variant; AnExtraConditions: TStringList; const AFieldList: String; ATr: TIBTransaction;
   const APredicateName: String; const AFileName: String; const AnAppend: Boolean = False): Integer;
@@ -1048,40 +1026,15 @@ begin
   end else
     Result := InternalMakePredicatesOfObject(AClassName, ASubType, ASubSet, AParams,
       AnExtraConditions, AFieldList, ATr, APredicateName, nil);
-end;
-*}
+end; 
 
 function TgsPLClient.GetDefaultPLInitString: String;
 var
   Path: String;
 begin
-  Path := StringReplace(GetPath, '\', '/', [rfReplaceAll]);
+  Path := ExtractFilePath(Application.EXEName) + IncludeTrailingBackSlash(PrologPath);
+  Path := StringReplace(Path, '\', '/', [rfReplaceAll]);
   Result := Format('[libswipl.dll],[-x],[%0:sgd_pl_state.dat],[-p],[foreign=%0:slib]', [Path]);
-end;
-
-function TgsPLClient.GetScriptIDByName(const Name: String): Integer;
-  var
-    q: TIBSQL;
-begin
-    Result := -1;
-
-    if Name > '' then
-    begin
-      q := TIBSQL.Create(nil);
-      try
-        q.Transaction := gdcBaseManager.ReadTransaction;
-        q.SQL.Text := 'SELECT * FROM gd_function ' +
-          'WHERE UPPER(name) = UPPER(:name) AND module = :module';
-        q.ParamByName('name').AsString := Name;
-        q.ParamByName('module').AsString := scrPrologModuleName;
-        q.ExecQuery;
-
-        if not q.Eof then
-          Result := q.FieldByName('id').AsInteger;
-      finally
-        q.Free;
-      end;
-    end;
 end;
 
 end.

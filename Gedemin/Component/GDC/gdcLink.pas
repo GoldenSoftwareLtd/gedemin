@@ -289,9 +289,8 @@ begin
           if pc.ActivePage = tsObject then
           begin
             FieldByName('linkedkey').AsInteger := iblkupObject.CurrentKeyInt;
-            FieldByName('linkedclass').AsString :=
-              CgdcBase(cbClasses.Items.Objects[cbClasses.ItemIndex]).ClassName;
-            FieldByName('linkedsubtype').AsString := cbSubTypes.Text;
+            FieldByName('linkedclass').AsString := iblkupObject.gdClassName;
+            FieldByName('linkedsubtype').AsString := iblkupObject.SubType;
           end else
           begin
             Obj := TgdcFile.Create(nil);
@@ -379,18 +378,16 @@ end;
 function TgdcLink.CreateLinkedObject(const AClassName, ASubType: String;
   const AnObjectKey, ALinkedKey: Integer): TgdcBase;
 var
-  C: CgdcBase;
+  CE: TgdClassEntry;
 begin
   Result := nil;
-  
-  C := gdClassList.GetGDCClass(AClassName);
-
-  if C <> nil then
+  CE := gdClassList.Find(AClassName, ASubType);
+  if CE is TgdBaseEntry then
   begin
     try
-      Result := C.CreateSingularByID(nil,
+      Result := TgdBaseEntry(CE).gdcClass.CreateSingularByID(nil,
         ALinkedKey,
-        ASubType);
+        CE.SubType);
     except
       if MessageBox(ParentHandle,
         'Невозможно найти прикрепленный объект. Вероятно, он был удален из базы данных.'#13#10#13#10 +
@@ -465,5 +462,5 @@ initialization
   RegisterGDCClass(TgdcLink);
 
 finalization
-  UnRegisterGDCClass(TgdcLink);
+  UnregisterGdcClass(TgdcLink);
 end.

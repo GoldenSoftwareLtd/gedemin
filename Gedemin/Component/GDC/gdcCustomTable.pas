@@ -15,7 +15,7 @@ type
 
   TgdcBaseDocumentTable = class(TgdcCustomTable)
   private
-     function CreateDocumentTable: String;
+     function CreateDocumentTable: String; virtual;
 
   protected
      procedure CreateRelationSQL(Scripts: TSQLProcessList); override;
@@ -25,6 +25,14 @@ type
 
      class function GetPrimaryFieldName: String; override;
   published
+  end;
+
+  TgdcInheritedTable = class(TgdcBaseDocumentTable)
+  private
+     function CreateDocumentTable: String; override;
+
+  public
+     procedure MakePredefinedRelationFields; override;
   end;
 
   TgdcDocumentTable = class(TgdcBaseDocumentTable)
@@ -103,7 +111,6 @@ begin
   {}
 end;
 
-
 { TgdcDocumentTable }
 
 function TgdcBaseDocumentTable.CreateDocumentTable: String;
@@ -155,8 +162,28 @@ begin
 
 end;
 
-{ TgdcBaseDocumentLineTable }
+{ TgdcInheritedTable }
 
+function TgdcInheritedTable.CreateDocumentTable: String;
+begin
+  Result := Format(
+    'CREATE TABLE %s '#13#10 +
+    '( '#13#10 +
+    '  documentkey               dintkey, '#13#10 +
+    '  PRIMARY KEY (documentkey) '#13#10 +
+    ')',
+    [FieldByName('relationname').AsString]);
+end;
+
+procedure TgdcInheritedTable.MakePredefinedRelationFields;
+begin
+  if Assigned(gdcTableField) then
+    NewField('DOCUMENTKEY',
+      'Ключ документа', 'DINTKEY', 'Ключ документа', 'Ключ документа',
+      'L', '10', '1', '0');
+end;
+
+{ TgdcBaseDocumentLineTable }
 
 procedure TgdcBaseDocumentLineTable.CreateRelationSQL(Scripts: TSQLProcessList);
 var
@@ -875,6 +902,7 @@ end;
 initialization
   RegisterGdcClass(TgdcCustomTable);
   RegisterGdcClass(TgdcBaseDocumentTable);
+  RegisterGdcClass(TgdcInheritedTable);
   RegisterGdcClass(TgdcDocumentTable);
   RegisterGdcClass(TgdcBaseDocumentLineTable);
   RegisterGdcClass(TgdcDocumentLineTable);
@@ -884,14 +912,15 @@ initialization
   RegisterGdcClass(TgdcInvTransformDocumentLineTable);
 
 finalization
-  UnRegisterGdcClass(TgdcCustomTable);
-  UnRegisterGdcClass(TgdcBaseDocumentTable);
-  UnRegisterGdcClass(TgdcDocumentTable);
-  UnRegisterGdcClass(TgdcDocumentLineTable);
-  UnRegisterGdcClass(TgdcBaseDocumentLineTable);
-  UnRegisterGdcClass(TgdcInvSimpleDocumentLineTable);
-  UnRegisterGdcClass(TgdcInvFeatureDocumentLineTable);
-  UnRegisterGdcClass(TgdcInvInventDocumentLineTable);
-  UnRegisterGdcClass(TgdcInvTransformDocumentLineTable);
+  UnregisterGdcClass(TgdcCustomTable);
+  UnregisterGdcClass(TgdcBaseDocumentTable);
+  UnRegisterGdcClass(TgdcInheritedTable);
+  UnregisterGdcClass(TgdcDocumentTable);
+  UnregisterGdcClass(TgdcDocumentLineTable);
+  UnregisterGdcClass(TgdcBaseDocumentLineTable);
+  UnregisterGdcClass(TgdcInvSimpleDocumentLineTable);
+  UnregisterGdcClass(TgdcInvFeatureDocumentLineTable);
+  UnregisterGdcClass(TgdcInvInventDocumentLineTable);
+  UnregisterGdcClass(TgdcInvTransformDocumentLineTable);
 
 end.

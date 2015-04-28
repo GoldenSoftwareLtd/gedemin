@@ -609,7 +609,6 @@ var
     DidActivate := False;
     LocSQL := TIBSQL.Create(nil);
     try
-      LocSQL.Database := Database;
       LocSQL.Transaction := Transaction;
       DidActivate := ActivateTransaction;
       LocSQL.SQL.Text := 'DELETE FROM rp_additionalfunction WHERE mainfunctionkey = ' +
@@ -1221,7 +1220,7 @@ initialization
   RegisterGdcClass(TgdcCustomFunction);
 
 finalization
-  UnRegisterGdcClass(TgdcCustomFunction);
+  UnregisterGdcClass(TgdcCustomFunction);
   FreeAndNil(_VBCompiler);
 end.
 
