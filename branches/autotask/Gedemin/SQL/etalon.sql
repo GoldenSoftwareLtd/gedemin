@@ -1524,6 +1524,9 @@ INSERT INTO fin_versioninfo
 
 INSERT INTO fin_versioninfo
   VALUES (217, '0000.0001.0000.0248', '06.09.2014', 'MD5 field added to namespace table.');
+  
+INSERT INTO fin_versioninfo
+  VALUES (218, '0000.0001.0000.0249', '28.04.2015', 'Add GD_AUTOTASK, GD_AUTOTASK_LOG tables.');
 
 COMMIT;
 
@@ -17069,7 +17072,49 @@ CREATE TABLE rpl_record (
 );
 
 COMMIT;
-
+CREATE TABLE gd_autotask
+(
+  id               dintkey,
+  name             dname,
+  description      dtext180,
+  functionkey      dforeignkey,      /* если задано -- будет выполняться скрипт-функция */
+  cmdline          dtext255,         /* если задано -- командная строка для вызова внешней программы */
+  backupfile       dtext255,         /* если задано -- имя файла архива */
+  userkey          dforeignkey,      /* учетная запись, под которой выполнять. если не задана -- выполнять под любой*/
+  exactdate        dtimestamp,       /* дата и время однократного выполнения выполнения. Задача будет вы полнена НЕ РАНЬШЕ указанного значения */
+  monthly          dinteger,
+  weekly           dinteger,
+  starttime        dtime,            /* время начала интервала для выполнения */
+  endtime          dtime,            /* время конца интервала для выполнения  */
+  creatorkey       dforeignkey,
+  creationdate     dcreationdate,
+  editorkey        dforeignkey,
+  editiondate      deditiondate,
+  afull            dsecurity,
+  achag            dsecurity,
+  aview            dsecurity,
+  disabled         ddisabled,
+  CONSTRAINT gd_pk_autotask PRIMARY KEY (id),
+  CONSTRAINT gd_chk_autotask_monthly CHECK (monthly BETWEEN -30 AND 31),
+  CONSTRAINT gd_chk_autotask_weekly CHECK (weekly BETWEEN -6 AND 7)
+);
+ 
+CREATE TABLE gd_autotask_log
+(
+  id               dintkey,
+  autotaskkey      dintkey,
+  eventtime        dtimestamp_notnull,
+  eventtext        dtext255,            
+  creatorkey       dforeignkey,
+  creationdate     dcreationdate,
+  CONSTRAINT gd_pk_autotask_log PRIMARY KEY (id),
+  CONSTRAINT gd_fk_autotask_log_autotaskkey
+    FOREIGN KEY (autotaskkey) REFERENCES gd_autotask (id)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE
+ );
+ 
+COMMIT;
 /*******************************/
 /** Begin LB-RB Tree Metadata **/
 /*******************************/
