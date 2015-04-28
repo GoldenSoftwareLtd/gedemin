@@ -158,6 +158,7 @@ contains
   gsPeriodEdit in '..\Component\gsPeriodEdit.pas',
   xFileList in '..\..\Comp5\xStorm\xFileList.pas',
   gdcNamespace,
-  gdcRplDatabase in '..\Component\GDC\gdcRplDatabase.pas';
+  gdcRplDatabase in '..\Component\GDC\gdcRplDatabase.pas',
+  gdcAutoTask in '..\Component\GDC\gdcAutoTask.pas';
 
 end.
