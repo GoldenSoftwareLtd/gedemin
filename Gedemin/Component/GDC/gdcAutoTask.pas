@@ -18,6 +18,8 @@ type
 
   TgdcAutoTaskLog = class(TgdcBase)
   public
+    procedure GetWhereClauseConditions(S: TStrings); override;
+    class function GetSubSetList: String; override;
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
   end;
@@ -68,6 +70,19 @@ end;
 class function TgdcAutoTaskLog.GetListField(const ASubType: TgdcSubType): String;
 begin
   Result := 'ID';
+end;
+
+class function TgdcAutoTaskLog.GetSubSetList: String;
+begin
+  Result := inherited GetSubSetList + 'ByAutoTask;';
+end;
+
+procedure TgdcAutoTaskLog.GetWhereClauseConditions(S: TStrings);
+begin
+  inherited;
+  
+  if HasSubSet('ByAutoTask') then
+    S.Add(' Z.AUTOTASKKEY = :AUTOTASKKEY ');
 end;
 
 initialization
