@@ -82,7 +82,8 @@ inherited gdc_frmAutoTask: Tgdc_frmAutoTask
   object gdcAutoTaskLog: TgdcAutoTaskLog
     MasterSource = dsMain
     MasterField = 'ID'
-    DetailField = 'autotaskkey'
+    DetailField = 'AUTOTASKKEY'
+    SubSet = 'ByAutoTask'
     Left = 361
     Top = 293
   end

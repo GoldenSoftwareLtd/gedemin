@@ -1,16 +1,21 @@
-object gdc_dlgAutoTask: Tgdc_dlgAutoTask
-  Left = 236
-  Top = 124
-  Width = 928
-  Height = 480
+inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
+  Left = 300
+  Top = 182
   Caption = 'gdc_dlgAutoTask'
-  Color = clBtnFace
+  ClientHeight = 442
+  ClientWidth = 912
   Font.Charset = DEFAULT_CHARSET
-  Font.Color = clWindowText
-  Font.Height = -11
   Font.Name = 'MS Sans Serif'
-  Font.Style = []
   OldCreateOrder = False
   PixelsPerInch = 96
   TextHeight = 13
+  object DBEdit1: TDBEdit [5]
+    Left = 120
+    Top = 32
+    Width = 121
+    Height = 21
+    DataField = 'NAME'
+    DataSource = dsgdcBase
+    TabOrder = 5
+  end
 end

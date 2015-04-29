@@ -4,10 +4,11 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  gdc_dlgTR_unit, IBDatabase, Menus, Db, ActnList, StdCtrls;
+  gdc_dlgTR_unit, IBDatabase, Menus, Db, ActnList, StdCtrls, Mask, DBCtrls;
 
 type
   Tgdc_dlgAutoTask = class(Tgdc_dlgTR)
+    DBEdit1: TDBEdit;
   private
     { Private declarations }
   public
