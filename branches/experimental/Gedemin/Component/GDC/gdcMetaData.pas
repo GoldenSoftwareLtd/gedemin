@@ -9634,7 +9634,8 @@ begin
     raise EgdcException.CreateObj('Unknown metadata class.', Self);
 
   CE := gdClassList.Add(Prnt.TheClass, FieldByName('relationname').AsString,
-    Prnt.SubType, CgdClassEntry(Prnt.ClassType), FieldByName('lname').AsString);
+    Prnt.SubType, CgdClassEntry(TgdAttrUserDefinedEntry), FieldByName('lname').AsString);
+
   if CE <> nil then
     (CE as TgdBaseEntry).DistinctRelation := UpperCase(FieldByName('relationname').AsString);
 
