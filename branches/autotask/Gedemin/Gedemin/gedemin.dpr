@@ -313,7 +313,8 @@ uses
   , gd_frmMonitoring_unit in 'gd_frmMonitoring_unit.pas' {gd_frmMonitoring}
   , gd_GlobalParams_unit
   , gdcBlockRule
-  , gdcAutoTask in '..\Component\GDC\gdcAutoTask.pas';
+  , gdcAutoTask in '..\Component\GDC\gdcAutoTask.pas'
+  , gd_TaskManager in '..\Component\GDC\gd_TaskManager.pas';
 
 {$R Gedemin.TLB}
 {$R GEDEMIN.RES}
@@ -717,6 +718,8 @@ begin
           Application.ShowMainForm := False;
           Application.CreateForm(TfrmOLEMainForm, frmOLEMainForm);
         end;
+
+        gdTaskManager.Run;
 
         Application.Run;
       end;
