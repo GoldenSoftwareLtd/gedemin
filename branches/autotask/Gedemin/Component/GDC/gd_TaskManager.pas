@@ -6,12 +6,6 @@ uses
   Windows, Classes, Controls, Contnrs, SysUtils;
 
 type
-  TTaskManagerThread = class(TThread)
-  protected
-    procedure Execute; override;
-  end;
-
-
   TgdTaskLog = class(TObject)
   private
     FId: Integer;
@@ -49,12 +43,21 @@ type
 
     FTaskLogList: TObjectList;
 
+    function GetRightTime: Boolean;
+
   protected
+    procedure ExecuteFunction;
+    procedure ExecuteCmdLine;
+    procedure ExecuteBackupFile;
+    procedure CheckMissedTasks(AStartDate: TDateTime; AEndDate: TDateTime);
 
   public
     constructor Create;
     destructor Destroy; override;
 
+    procedure TaskExecute;
+
+    property RightTime: Boolean read GetRightTime;
 
     property Id: Integer read FId write FId;
     property Name: String read FName write FName;
@@ -71,6 +74,13 @@ type
     property Disabled: Boolean read FDisabled write FDisabled;
   end;
 
+  TTaskManagerThread = class(TThread)
+  private
+    FTask: TgdTask;
+  protected
+    procedure Execute; override;
+  end;
+
   TgdTaskManager = class(TObject)
   private
     FTaskList: TObjectList;
@@ -82,6 +92,9 @@ type
   public
     constructor Create;
     destructor Destroy; override;
+
+    function FindPriorityTask: TgdTask;
+
     procedure Run;
   end;
 
@@ -93,7 +106,8 @@ var
 implementation
 
 uses
-  at_classes, gdcBaseInterface, IBSQL;
+  at_classes, gdcBaseInterface, IBSQL, rp_BaseReport_unit, scr_i_FunctionList,
+  gd_i_ScriptFactory, ShellApi;
 
 { TaskManagerThread }
 
@@ -101,8 +115,25 @@ procedure TTaskManagerThread.Execute;
 begin
   while True do
   begin
-    if Self.Terminated then break;
-    Sleep(10);
+    if Self.Terminated then
+      break;
+
+    Sleep(100);
+
+    if FTask = nil then
+    begin
+      FTask := gdTaskManager.FindPriorityTask;
+      if FTask = nil then
+        break;
+    end
+    else if FTask.RightTime then
+    begin
+      try
+        FTask.TaskExecute;
+      finally
+        FTask := nil;
+      end;
+    end;
   end;
 end;
 
@@ -125,6 +156,92 @@ begin
   inherited;
 end;
 
+function TgdTask.GetRightTime: Boolean;
+begin
+  Result := True;
+end;
+
+procedure TgdTask.CheckMissedTasks(AStartDate: TDateTime; AEndDate: TDateTime);
+begin
+  // возможно во время выполнения текущей задачи
+  // было пропущено выполнение других задач
+  // надо записать соответствующий лог
+
+ //1) задача "такая-то" будет выполнена по завершении активных задач
+ //2) задача "такая-то" не может быть выполнена так как истек установленный интервал для выполения
+end;
+
+procedure TgdTask.TaskExecute;
+var
+  SDate: TDateTime;
+  EDate: TDateTime;
+begin
+  SDate := Now;
+
+  if FunctionKey > 0 then
+    ExecuteFunction
+  else if CmdLine > '' then
+    ExecuteCmdLine
+  else if BackupFile > '' then
+    ExecuteBackupFile;
+
+  EDate := Now;
+  CheckMissedTasks(SDate, EDate);
+end;
+
+procedure TgdTask.ExecuteFunction;
+var
+  F: TrpCustomFunction;
+  P: Variant;
+  ErrMsg: String;
+begin
+  F := glbFunctionList.FindFunction(Self.FFunctionKey);
+  if Assigned(F) then
+  try
+    try
+    P := VarArrayOf([]);
+    if ScriptFactory.InputParams(F, P) then
+      ScriptFactory.ExecuteFunction(F, P);
+    except
+      on E: Exception do
+      begin
+        // сообщение для лога
+        ErrMsg := E.Message;
+      end;
+    end;
+  finally
+    glbFunctionList.ReleaseFunction(F);
+  end;
+end;
+
+procedure TgdTask.ExecuteCmdLine;
+var
+  ErrMsg: String;
+  ExecInfo: TShellExecuteInfo;
+begin
+  FillChar(ExecInfo, SizeOf(ExecInfo), 0);
+  ExecInfo.cbSize := SizeOf(ExecInfo);
+  ExecInfo.Wnd := 0;
+  ExecInfo.lpVerb := 'open';
+  ExecInfo.lpFile := PChar(Self.CmdLine);
+  ExecInfo.lpParameters := nil;
+  ExecInfo.lpDirectory := nil;
+  ExecInfo.nShow := SW_SHOWNORMAL;
+  ExecInfo.fMask := SEE_MASK_FLAG_DDEWAIT or SEE_MASK_FLAG_NO_UI;
+
+  if not ShellExecuteEx(@ExecInfo) then
+//  begin
+    // сообщение для лога
+    ErrMsg := PChar(SysErrorMessage(GetLastError));
+
+//    MessageBox(0, PChar(ErrMsg), 'Ошибка', MB_OK or MB_ICONERROR);
+//  end;
+end;
+
+procedure TgdTask.ExecuteBackupFile;
+begin
+  //////
+end;
 
 { TgdTaskManager }
 
@@ -154,6 +271,15 @@ begin
   FTaskList.Free;
 
   inherited;
+end;
+
+function TgdTaskManager.FindPriorityTask: TgdTask;
+begin
+  // поиск ближайшей во времени задачи
+  if FTaskList.Count > 0 then
+    Result := FTaskList[0] as TgdTask
+  else
+    Result := nil;
 end;
 
 procedure TgdTaskManager.Run;
@@ -229,6 +355,7 @@ procedure TgdTaskManager.LoadFromRelation;
     LoadLog(Task);
 
     FTaskList.Add(Task);
+
   end;
 
 var
