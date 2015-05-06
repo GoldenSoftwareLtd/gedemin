@@ -121,7 +121,7 @@ implementation
 
 uses
   at_classes, gdcBaseInterface, IBSQL, rp_BaseReport_unit, scr_i_FunctionList,
-  gd_i_ScriptFactory, ShellApi;
+  gd_i_ScriptFactory, ShellApi, gdcAutoTask;
 
 { TaskManagerThread }
 
@@ -206,6 +206,7 @@ procedure TgdTask.AddLog(AnAutoTaskKey: Integer; AnEventText: String);
 var
   TL: TgdTaskLog;
   NTD: TDateTime;
+  gdcAutoTaskLog: TgdcAutoTaskLog;
 begin
   NTD := Now;
 
@@ -217,6 +218,18 @@ begin
   Self.FTaskLogList.Add(TL);
 
   // дописать добавление лога в базу
+
+  gdcAutoTaskLog := TgdcAutoTaskLog.Create(nil);
+  try
+    gdcAutoTaskLog.Open;
+    gdcAutoTaskLog.Insert;
+    gdcAutoTaskLog.FieldByName('autotaskkey').AsInteger := AnAutoTaskKey;
+    gdcAutoTaskLog.FieldByName('eventtime').AsDateTime := NTD;
+    gdcAutoTaskLog.FieldByName('eventtext').AsString := AnEventText;
+    gdcAutoTaskLog.Post;
+  finally
+    gdcAutoTaskLog.Free;
+  end;
 end;
 
 procedure TgdTask.TaskExecute;
@@ -493,6 +506,8 @@ procedure TgdTaskManager.LoadFromRelation;
          TaskLog.CreationDate := q.FieldbyName('creationdate').AsDateTime;
 
          ATask.FTaskLogList.Add(TaskLog);
+
+         q.Next;
        end;
      finally
        q.Free;
