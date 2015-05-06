@@ -51,6 +51,8 @@ type
     procedure ExecuteBackupFile;
     procedure CheckMissedTasks(AStartDate: TDateTime; AEndDate: TDateTime);
 
+    procedure AddLog(AnAutoTaskKey: Integer; AnEventText: String);
+
   public
     constructor Create;
     destructor Destroy; override;
@@ -171,6 +173,23 @@ begin
  //2) задача "такая-то" не может быть выполнена так как истек установленный интервал для выполения
 end;
 
+procedure TgdTask.AddLog(AnAutoTaskKey: Integer; AnEventText: String);
+var
+  TL: TgdTaskLog;
+  NTD: TDateTime;
+begin
+  NTD := Now;
+
+  TL := TgdTaskLog.Create;
+  TL.AutotaskKey := AnAutoTaskKey;
+  TL.EventText := AnEventText;
+  TL.EventTime := NTD;
+
+  Self.FTaskLogList.Add(TL);
+
+  // дописать добавление лога в базу
+end;
+
 procedure TgdTask.TaskExecute;
 var
   SDate: TDateTime;
@@ -193,20 +212,21 @@ procedure TgdTask.ExecuteFunction;
 var
   F: TrpCustomFunction;
   P: Variant;
-  ErrMsg: String;
 begin
+  AddLog(ID, 'Started');
+
   F := glbFunctionList.FindFunction(Self.FFunctionKey);
   if Assigned(F) then
   try
     try
-    P := VarArrayOf([]);
-    if ScriptFactory.InputParams(F, P) then
-      ScriptFactory.ExecuteFunction(F, P);
+      P := VarArrayOf([]);
+      if ScriptFactory.InputParams(F, P) then
+        ScriptFactory.ExecuteFunction(F, P);
+      AddLog(ID, 'Done');
     except
       on E: Exception do
       begin
-        // сообщение для лога
-        ErrMsg := E.Message;
+        AddLog(ID, E.Message);
       end;
     end;
   finally
@@ -216,9 +236,10 @@ end;
 
 procedure TgdTask.ExecuteCmdLine;
 var
-  ErrMsg: String;
   ExecInfo: TShellExecuteInfo;
 begin
+  AddLog(ID, 'Started');
+
   FillChar(ExecInfo, SizeOf(ExecInfo), 0);
   ExecInfo.cbSize := SizeOf(ExecInfo);
   ExecInfo.Wnd := 0;
@@ -229,13 +250,10 @@ begin
   ExecInfo.nShow := SW_SHOWNORMAL;
   ExecInfo.fMask := SEE_MASK_FLAG_DDEWAIT or SEE_MASK_FLAG_NO_UI;
 
-  if not ShellExecuteEx(@ExecInfo) then
-//  begin
-    // сообщение для лога
-    ErrMsg := PChar(SysErrorMessage(GetLastError));
-
-//    MessageBox(0, PChar(ErrMsg), 'Ошибка', MB_OK or MB_ICONERROR);
-//  end;
+  if ShellExecuteEx(@ExecInfo) then
+    AddLog(ID, 'Done')
+  else
+    AddLog(ID, PChar(SysErrorMessage(GetLastError)));
 end;
 
 procedure TgdTask.ExecuteBackupFile;
@@ -274,12 +292,114 @@ begin
 end;
 
 function TgdTaskManager.FindPriorityTask: TgdTask;
+
+  function DayOfTheWeek(const AValue: TDateTime): Word;
+  begin
+    Result := (DateTimeToTimeStamp(AValue).Date - 1) mod 7 + 1;
+  end;
+
+  function DayOfTheMonth(const AValue: TDateTime): Word;
+  var
+    LYear, LMonth: Word;
+  begin
+    DecodeDate(AValue, LYear, LMonth, Result);
+  end;
+
+  function DaysInMonth(const AValue: TDateTime): Word;
+  var
+    LYear, LMonth, LDay: Word;
+  begin
+    DecodeDate(AValue, LYear, LMonth, LDay);
+    Result := MonthDays[(LMonth = 2) and IsLeapYear(LYear), LMonth];
+  end;
+
+  // проверяем подходящий ли день недели или месяца для выполнения.
+  function GoodDay(AgdTask: TgdTask; ANTD: TDateTime): Boolean;
+  begin
+    Assert(AgdTask <> nil);
+
+    Result := False;
+
+    // наверно в днях недели не стоит использовать отрицательные числа
+    if AgdTask.Weekly <> 0 then
+      Result := AgdTask.Weekly = DayOfTheWeek(ANTD)
+    else if (AgdTask.Monthly <> 0) then
+    begin
+      if (AgdTask.Monthly > 0) then
+        Result := AgdTask.Monthly = DayOfTheMonth(ANTD)
+      else
+        Result := (DaysInMonth(ANTD) - AgdTask.Monthly + 1) = DayOfTheMonth(ANTD);
+    end;
+  end;
+
+  // проверяем по логу была ли задача уже выполнена.
+  // любая запись в логе в подходящем временном интервале
+  // говорит о том что задача уже запускалась и ее исключаем
+  function TaskExecuted(AgdTask: TgdTask; ANTD: TDateTime): Boolean;
+  var
+    I: Integer;
+  begin
+    Result := False;
+
+    if AgdTask.ExactDate <> 0 then
+    begin
+      for I := AgdTask.FTaskLogList.Count - 1 downto 0 do
+      begin
+        Result := (AgdTask.FTaskLogList[I] as TgdTaskLog).EventTime >= AgdTask.ExactDate;
+        if Result then
+          exit;
+      end;
+    end
+    else
+    begin
+
+    end;
+  end;
+
+var
+  I: Integer;
+  NDT: TDateTime;
+  MinDT: TDateTime;
 begin
-  // поиск ближайшей во времени задачи
-  if FTaskList.Count > 0 then
-    Result := FTaskList[0] as TgdTask
-  else
-    Result := nil;
+  // приоритет отдается задаче у которой наименьшее стартовое время
+  Result := nil;
+
+  if FTaskList.Count = 0 then
+    exit;
+
+  NDT := Now;
+
+  MinDT := 0;
+
+  for I := 0 to FTaskList.Count - 1 do
+  begin
+    if ((FTaskList[I] as TgdTask).ExactDate <> 0) then
+    begin
+      if ((FTaskList[I] as TgdTask).ExactDate <= NDT)
+        and (not TaskExecuted(FTaskList[I] as TgdTask, NDT)) then
+      begin
+        if (MinDT > (FTaskList[I] as TgdTask).ExactDate)
+          or (MinDT = 0) then
+        begin
+          MinDT := (FTaskList[I] as TgdTask).ExactDate;
+          Result := FTaskList[I] as TgdTask;
+        end;
+      end;
+    end
+    else if (FTaskList[I] as TgdTask).StartTime <> 0 then
+    begin
+      if GoodDay(FTaskList[I] as TgdTask, NDT)
+        and (not TaskExecuted(FTaskList[I] as TgdTask, NDT)) then
+      begin
+        if (MinDT > (Trunc(NDT) + (FTaskList[I] as TgdTask).StartTime))
+          or (MinDT = 0) then
+        begin
+          MinDT := Trunc(NDT) + (FTaskList[I] as TgdTask).StartTime;
+          Result := FTaskList[I] as TgdTask;
+        end;
+      end;
+    end;
+  end;
 end;
 
 procedure TgdTaskManager.Run;
