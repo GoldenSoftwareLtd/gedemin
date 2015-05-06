@@ -44,6 +44,8 @@ type
     FTaskLogList: TObjectList;
 
     function GetRightTime: Boolean;
+    function GetTaskLog(Index: Integer): TgdTaskLog;
+    function GetCount: Integer;
 
   protected
     procedure ExecuteFunction;
@@ -74,6 +76,9 @@ type
     property StartTime: TTime read FStartTime write FStartTime;
     property EndTime: TTime read FEndTime write FEndTime;
     property Disabled: Boolean read FDisabled write FDisabled;
+
+    property Count: Integer read GetCount;
+    property TaskLogList[Index: Integer]: TgdTaskLog read GetTaskLog; default;
   end;
 
   TTaskManagerThread = class(TThread)
@@ -88,7 +93,11 @@ type
     FTaskList: TObjectList;
     FTaskTread: TTaskManagerThread;
 
+    function GetTask(Index: Integer): TgdTask;
+    function GetCount: Integer;
+
     procedure LoadFromRelation;
+    
   protected
 
   public
@@ -98,6 +107,9 @@ type
     function FindPriorityTask: TgdTask;
 
     procedure Run;
+
+    property Count: Integer read GetCount;
+    property TaskList[Index: Integer]: TgdTask read GetTask; default;
   end;
 
 var
@@ -160,7 +172,23 @@ end;
 
 function TgdTask.GetRightTime: Boolean;
 begin
-  Result := True;
+  if FExactDate <> 0 then
+    Result := Now > FExactDate
+  else
+    Result := (FStartTime < Time) and (Time < FEndTime);
+end;
+
+function TgdTask.GetTaskLog(Index: Integer): TgdTaskLog;
+begin
+  Result := Self.FTaskLogList[Index] as TgdTaskLog;
+end;
+
+function TgdTask.GetCount: Integer;
+begin
+  if FTaskLogList <> nil then
+    Result := FTaskLogList.Count
+  else
+    Result := 0;
 end;
 
 procedure TgdTask.CheckMissedTasks(AStartDate: TDateTime; AEndDate: TDateTime);
@@ -171,6 +199,7 @@ begin
 
  //1) задача "такая-то" будет выполнена по завершении активных задач
  //2) задача "такая-то" не может быть выполнена так как истек установленный интервал для выполения
+  //'Missed'
 end;
 
 procedure TgdTask.AddLog(AnAutoTaskKey: Integer; AnEventText: String);
@@ -291,6 +320,19 @@ begin
   inherited;
 end;
 
+function TgdTaskManager.GetTask(Index: Integer): TgdTask;
+begin
+  Result := Self.FTaskList[Index] as TgdTask;
+end;
+
+function TgdTaskManager.GetCount: Integer;
+begin
+  if Self.FTaskList <> nil then
+    Result := Self.FTaskList.Count
+  else
+    Result := 0;
+end;
+
 function TgdTaskManager.FindPriorityTask: TgdTask;
 
   function DayOfTheWeek(const AValue: TDateTime): Word;
@@ -343,16 +385,21 @@ function TgdTaskManager.FindPriorityTask: TgdTask;
 
     if AgdTask.ExactDate <> 0 then
     begin
-      for I := AgdTask.FTaskLogList.Count - 1 downto 0 do
+      for I := AgdTask.Count - 1 downto 0 do
       begin
-        Result := (AgdTask.FTaskLogList[I] as TgdTaskLog).EventTime >= AgdTask.ExactDate;
+        Result := AgdTask[I].EventTime >= AgdTask.ExactDate;
         if Result then
           exit;
       end;
     end
     else
     begin
-
+      for I := AgdTask.Count - 1 downto 0 do
+      begin
+        Result := Trunc(AgdTask[I].EventTime) = Date;
+        if Result then
+          exit;
+      end;
     end;
   end;
 
@@ -364,38 +411,37 @@ begin
   // приоритет отдается задаче у которой наименьшее стартовое время
   Result := nil;
 
-  if FTaskList.Count = 0 then
+  if Self.Count = 0 then
     exit;
 
   NDT := Now;
 
   MinDT := 0;
 
-  for I := 0 to FTaskList.Count - 1 do
+  for I := 0 to Self.Count - 1 do
   begin
-    if ((FTaskList[I] as TgdTask).ExactDate <> 0) then
+    if Self[I].ExactDate <> 0 then
     begin
-      if ((FTaskList[I] as TgdTask).ExactDate <= NDT)
-        and (not TaskExecuted(FTaskList[I] as TgdTask, NDT)) then
+      if not TaskExecuted(Self[I], NDT) then
       begin
-        if (MinDT > (FTaskList[I] as TgdTask).ExactDate)
+        if (MinDT > Self[I].ExactDate)
           or (MinDT = 0) then
         begin
-          MinDT := (FTaskList[I] as TgdTask).ExactDate;
-          Result := FTaskList[I] as TgdTask;
+          MinDT := Self[I].ExactDate;
+          Result := Self[I];
         end;
       end;
     end
-    else if (FTaskList[I] as TgdTask).StartTime <> 0 then
+    else if Self[I].StartTime <> 0 then
     begin
-      if GoodDay(FTaskList[I] as TgdTask, NDT)
-        and (not TaskExecuted(FTaskList[I] as TgdTask, NDT)) then
+      if GoodDay(Self[I], NDT)
+        and (not TaskExecuted(Self[I], NDT)) then
       begin
-        if (MinDT > (Trunc(NDT) + (FTaskList[I] as TgdTask).StartTime))
+        if (MinDT > (Trunc(NDT) + Self[I].StartTime))
           or (MinDT = 0) then
         begin
-          MinDT := Trunc(NDT) + (FTaskList[I] as TgdTask).StartTime;
-          Result := FTaskList[I] as TgdTask;
+          MinDT := Trunc(NDT) + Self[I].StartTime;
+          Result := Self[I];
         end;
       end;
     end;
