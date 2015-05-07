@@ -38,6 +38,8 @@ type
     dbeBackupFile: TDBEdit;
     btnCmdLine: TButton;
     btnBackupFile: TButton;
+    odCmdLine: TOpenDialog;
+    dbcbDisabled: TDBCheckBox;
     procedure rbFunctionClick(Sender: TObject);
     procedure rbCmdLineClick(Sender: TObject);
     procedure rbBackupFileClick(Sender: TObject);
@@ -66,7 +68,7 @@ implementation
 {$R *.DFM}
 
 uses
-  gd_ClassList;
+  gd_ClassList, gd_security;
 
 procedure Tgdc_dlgAutoTask.UpdateTypeTabs;
 begin
@@ -459,14 +461,13 @@ end;
 
 procedure Tgdc_dlgAutoTask.btnCmdLineClick(Sender: TObject);
 begin
-  inherited;
-  //////////
+  if odCmdLine.Execute then
+    dbeCmdLine.Text := odCmdLine.FileName;
 end;
 
 procedure Tgdc_dlgAutoTask.btnBackupFileClick(Sender: TObject);
 begin
-  inherited;
-  ////////////////
+  //
 end;
 
 initialization
