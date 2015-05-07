@@ -44,6 +44,8 @@ type
     FTaskLogList: TObjectList;
 
     function GetRightTime: Boolean;
+    function GetRightUser: Boolean;
+
     function GetTaskLog(Index: Integer): TgdTaskLog;
     function GetCount: Integer;
 
@@ -62,6 +64,7 @@ type
     procedure TaskExecute;
 
     property RightTime: Boolean read GetRightTime;
+    property RightUser: Boolean read GetRightUser;
 
     property Id: Integer read FId write FId;
     property Name: String read FName write FName;
@@ -121,7 +124,7 @@ implementation
 
 uses
   at_classes, gdcBaseInterface, IBSQL, rp_BaseReport_unit, scr_i_FunctionList,
-  gd_i_ScriptFactory, ShellApi, gdcAutoTask;
+  gd_i_ScriptFactory, ShellApi, gdcAutoTask, gd_security;
 
 { TaskManagerThread }
 
@@ -176,6 +179,11 @@ begin
     Result := Now > FExactDate
   else
     Result := (FStartTime < Time) and (Time < FEndTime);
+end;
+
+function TgdTask.GetRightUser: Boolean;
+begin
+  Result := (FUserKey = 0) or (IBLogin.UserKey = FUserKey);
 end;
 
 function TgdTask.GetTaskLog(Index: Integer): TgdTaskLog;
@@ -435,7 +443,8 @@ begin
   begin
     if Self[I].ExactDate <> 0 then
     begin
-      if not TaskExecuted(Self[I], NDT) then
+      if Self[I].RightUser and (not Self[I].Disabled)
+        and (not TaskExecuted(Self[I], NDT)) then
       begin
         if (MinDT > Self[I].ExactDate)
           or (MinDT = 0) then
@@ -447,7 +456,8 @@ begin
     end
     else if Self[I].StartTime <> 0 then
     begin
-      if GoodDay(Self[I], NDT)
+      if Self[I].RightUser and (not Self[I].Disabled)
+        and GoodDay(Self[I], NDT)
         and (not TaskExecuted(Self[I], NDT)) then
       begin
         if (MinDT > (Trunc(NDT) + Self[I].StartTime))
@@ -457,7 +467,9 @@ begin
           Result := Self[I];
         end;
       end;
-    end;
+    end
+    else
+      raise Exception.Create('invalid task');
   end;
 end;
 
