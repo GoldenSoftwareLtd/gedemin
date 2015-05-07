@@ -1,8 +1,8 @@
 inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
-  Left = 484
-  Top = 162
+  Left = 660
+  Top = 155
   Caption = 'gdc_dlgAutoTask'
-  ClientHeight = 483
+  ClientHeight = 516
   ClientWidth = 461
   Font.Charset = DEFAULT_CHARSET
   Font.Name = 'MS Sans Serif'
@@ -31,21 +31,26 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
     Caption = 'Учетная запись:'
   end
   inherited btnAccess: TButton
-    Top = 453
+    Top = 486
+    TabOrder = 9
   end
   inherited btnNew: TButton
-    Top = 453
+    Top = 486
+    TabOrder = 10
   end
   inherited btnHelp: TButton
-    Top = 453
+    Top = 486
+    TabOrder = 11
   end
   inherited btnOK: TButton
     Left = 313
-    Top = 453
+    Top = 486
+    TabOrder = 7
   end
   inherited btnCancel: TButton
     Left = 385
-    Top = 453
+    Top = 486
+    TabOrder = 8
   end
   object dbedName: TDBEdit [8]
     Left = 104
@@ -55,7 +60,7 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
     Anchors = [akLeft, akTop, akRight]
     DataField = 'NAME'
     DataSource = dsgdcBase
-    TabOrder = 5
+    TabOrder = 0
   end
   object dbmDescription: TDBMemo [9]
     Left = 104
@@ -65,7 +70,7 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
     Anchors = [akLeft, akTop, akRight]
     DataField = 'Description'
     DataSource = dsgdcBase
-    TabOrder = 6
+    TabOrder = 1
   end
   object iblkupUser: TgsIBLookupComboBox [10]
     Left = 104
@@ -83,7 +88,7 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
     ItemHeight = 13
     ParentShowHint = False
     ShowHint = True
-    TabOrder = 7
+    TabOrder = 3
   end
   object gbTimeInterval: TGroupBox [11]
     Left = 8
@@ -91,7 +96,7 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
     Width = 177
     Height = 49
     Caption = 'Временной интервал'
-    TabOrder = 8
+    TabOrder = 5
     object lbStartTime: TLabel
       Left = 8
       Top = 22
@@ -139,7 +144,7 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
     Width = 297
     Height = 105
     Caption = 'Расписание'
-    TabOrder = 9
+    TabOrder = 4
     object lbMonthly: TLabel
       Left = 208
       Top = 48
@@ -193,13 +198,67 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
       DataSource = dsgdcBase
       ItemHeight = 13
       Items.Strings = (
+        '-30'
+        '-29'
+        '-28'
+        '-27'
+        '-26'
+        '-25'
+        '-24'
+        '-23'
+        '-22'
+        '-21'
+        '-20'
+        '-19'
+        '-18'
+        '-17'
+        '-16'
+        '-15'
+        '-14'
+        '-13'
+        '-12'
+        '-11'
+        '-10'
+        '-9'
+        '-8'
+        '-7'
+        '-6'
+        '-5'
+        '-4'
+        '-3'
+        '-2'
+        '-1'
         '1'
         '2'
         '3'
         '4'
         '5'
         '6'
-        '7')
+        '7'
+        '8'
+        '9'
+        '10'
+        '11'
+        '12'
+        '13'
+        '14'
+        '15'
+        '16'
+        '17'
+        '18'
+        '19'
+        '20'
+        '21'
+        '22'
+        '23'
+        '24'
+        '25'
+        '26'
+        '27'
+        '28'
+        '29'
+        '30'
+        '31')
       TabOrder = 3
     end
     object rbWeekly: TRadioButton
@@ -237,7 +296,7 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
     Height = 105
     Anchors = [akLeft, akTop, akRight]
     Caption = 'Тип задачи'
-    TabOrder = 10
+    TabOrder = 2
     object rbFunction: TRadioButton
       Left = 8
       Top = 20
@@ -290,7 +349,7 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
       Width = 89
       Height = 21
       Caption = 'Архив:'
-      TabOrder = 4
+      TabOrder = 5
       OnClick = rbBackupFileClick
     end
     object dbeBackupFile: TDBEdit
@@ -301,7 +360,7 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
       Anchors = [akLeft, akTop, akRight]
       DataField = 'backupfile'
       DataSource = dsgdcBase
-      TabOrder = 5
+      TabOrder = 6
     end
     object btnCmdLine: TButton
       Left = 412
@@ -310,7 +369,7 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
       Height = 21
       Anchors = [akTop, akRight]
       Caption = '...'
-      TabOrder = 6
+      TabOrder = 4
       OnClick = btnCmdLineClick
     end
     object btnBackupFile: TButton
@@ -323,6 +382,18 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
       TabOrder = 7
       OnClick = btnBackupFileClick
     end
+  end
+  object dbcbDisabled: TDBCheckBox [14]
+    Left = 8
+    Top = 448
+    Width = 97
+    Height = 17
+    Caption = 'Отключена'
+    DataField = 'disabled'
+    DataSource = dsgdcBase
+    TabOrder = 6
+    ValueChecked = '1'
+    ValueUnchecked = '0'
   end
   inherited alBase: TActionList
     Left = 238
@@ -339,5 +410,13 @@ inherited gdc_dlgAutoTask: Tgdc_dlgAutoTask
   inherited ibtrCommon: TIBTransaction
     Left = 312
     Top = 398
+  end
+  object odCmdLine: TOpenDialog
+    Filter = 
+      'Исполняемые файлы *.exe|*.exe|Пакетные файлы *.bat|*.bat|Все фай' +
+      'лы *.*|*.*'
+    Title = 'Выбор файла'
+    Left = 384
+    Top = 336
   end
 end
