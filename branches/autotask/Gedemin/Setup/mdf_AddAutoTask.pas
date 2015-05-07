@@ -51,8 +51,8 @@ begin
           '  aview            dsecurity, '#13#10 +
           '  disabled         ddisabled, '#13#10 +
           '  CONSTRAINT gd_pk_autotask PRIMARY KEY (id), '#13#10 +
-          '  CONSTRAINT gd_chk_autotask_monthly CHECK (monthly BETWEEN -30 AND 31), '#13#10 +
-          '  CONSTRAINT gd_chk_autotask_weekly CHECK (weekly BETWEEN -6 AND 7) '#13#10 +
+          '  CONSTRAINT gd_chk_autotask_monthly CHECK ((monthly BETWEEN -30 AND -1) OR (monthly BETWEEN 1 AND 31)), '#13#10 +
+          '  CONSTRAINT gd_chk_autotask_weekly CHECK (weekly BETWEEN 1 AND 7) '#13#10 +
           ');';
         FIBSQL.ExecQuery;
  
