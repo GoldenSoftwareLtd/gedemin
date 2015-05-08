@@ -14,7 +14,6 @@ type
     FEventText: String;
     FCreatorKey: Integer;
     FCreationDate: TDateTime;
-  protected
 
   public
     property Id: Integer read FId write FId;
@@ -49,17 +48,20 @@ type
     function GetTaskLog(Index: Integer): TgdTaskLog;
     function GetCount: Integer;
 
-  protected
     procedure ExecuteFunction;
     procedure ExecuteCmdLine;
     procedure ExecuteBackupFile;
-    procedure CheckMissedTasks(AStartDate: TDateTime; AEndDate: TDateTime);
 
+    procedure CheckMissedTasks(AStartDate: TDateTime; AEndDate: TDateTime);
     procedure AddLog(AnAutoTaskKey: Integer; AnEventText: String);
 
   public
     constructor Create;
     destructor Destroy; override;
+
+    function Get(AnId: Integer): TgdTaskLog;
+    function Add: TgdTaskLog;
+    procedure Remove(AnId: Integer);
 
     procedure TaskExecute;
 
@@ -100,8 +102,6 @@ type
     function GetCount: Integer;
 
     procedure LoadFromRelation;
-    
-  protected
 
   public
     constructor Create;
@@ -109,7 +109,13 @@ type
 
     function FindPriorityTask: TgdTask;
 
+    function Get(AnId: Integer): TgdTask;
+    function Add: TgdTask;
+    procedure Remove(AnId: Integer);
+
     procedure Run;
+
+    procedure Restart;
 
     property Count: Integer read GetCount;
     property TaskList[Index: Integer]: TgdTask read GetTask; default;
@@ -173,6 +179,46 @@ begin
   inherited;
 end;
 
+function TgdTask.Get(AnId: Integer): TgdTaskLog;
+var
+  I: Integer;
+begin
+  for I := 0 to Count - 1 do
+    if Self[I].FId = AnId then
+    begin
+      Result := Self[I];
+      exit;
+    end;
+
+  raise Exception.Create('Unknown TaskLog')
+end;
+
+function TgdTask.Add: TgdTaskLog;
+var
+  I: Integer;
+begin
+  I := Self.FTaskLogList.Add(TgdTaskLog.Create);
+  Result := Self[I];
+
+  if Result = nil then
+    raise Exception.Create('Error Creation TaskLog');
+end;
+
+procedure TgdTask.Remove(AnId: Integer);
+var
+  I: Integer;
+begin
+  for I := Self.Count - 1 downto 0 do
+    if Self[I].FId = AnId then
+    begin
+      Self[I].Free;
+      Self.FTaskLogList.Delete(I);
+      exit;
+    end;
+
+  raise Exception.Create('Unknown TaskLog');
+end;
+
 function TgdTask.GetRightTime: Boolean;
 begin
   if FExactDate <> 0 then
@@ -212,18 +258,18 @@ end;
 
 procedure TgdTask.AddLog(AnAutoTaskKey: Integer; AnEventText: String);
 var
-  TL: TgdTaskLog;
-  NTD: TDateTime;
+  //TL: TgdTaskLog;
+  //NTD: TDateTime;
   gdcAutoTaskLog: TgdcAutoTaskLog;
 begin
-  NTD := Now;
+  //NTD := Now;
 
-  TL := TgdTaskLog.Create;
-  TL.AutotaskKey := AnAutoTaskKey;
-  TL.EventText := AnEventText;
-  TL.EventTime := NTD;
+  //TL := TgdTaskLog.Create;
+  //TL.AutotaskKey := AnAutoTaskKey;
+  //TL.EventText := AnEventText;
+  //TL.EventTime := NTD;
 
-  Self.FTaskLogList.Add(TL);
+  //Self.FTaskLogList.Add(TL);
 
   // дописать добавление лога в базу
 
@@ -232,7 +278,8 @@ begin
     gdcAutoTaskLog.Open;
     gdcAutoTaskLog.Insert;
     gdcAutoTaskLog.FieldByName('autotaskkey').AsInteger := AnAutoTaskKey;
-    gdcAutoTaskLog.FieldByName('eventtime').AsDateTime := NTD;
+    //gdcAutoTaskLog.FieldByName('eventtime').AsDateTime := NTD;
+    gdcAutoTaskLog.FieldByName('eventtime').AsDateTime := Now;
     gdcAutoTaskLog.FieldByName('eventtext').AsString := AnEventText;
     gdcAutoTaskLog.Post;
   finally
@@ -327,14 +374,13 @@ destructor TgdTaskManager.Destroy;
 var
   I: Integer;
 begin
-  if FTaskTread <> nil then
-  begin
-    FTaskTread.Terminate;
-    FTaskTread.Free;
-  end;
+  FreeAndNil(FTaskTread);
 
-  for I := FTaskList.Count - 1 downto 0 do
-    (FTaskList[I] as TgdTask).Free;
+  for I := Self.Count - 1 downto 0 do
+  begin
+    Self[I].Free;
+    FTaskList.Delete(I);
+  end;
 
   FTaskList.Free;
 
@@ -383,7 +429,6 @@ function TgdTaskManager.FindPriorityTask: TgdTask;
 
     Result := False;
 
-    // наверно в днях недели не стоит использовать отрицательные числа
     if AgdTask.Weekly <> 0 then
       Result := AgdTask.Weekly = DayOfTheWeek(ANTD)
     else if (AgdTask.Monthly <> 0) then
@@ -473,6 +518,46 @@ begin
   end;
 end;
 
+function TgdTaskManager.Get(AnId: Integer): TgdTask;
+var
+  I: Integer;
+begin
+  for I := 0 to Count - 1 do
+    if Self[I].FId = AnId then
+    begin
+      Result := Self[I];
+      exit;
+    end;
+
+  raise Exception.Create('Unknown Task')
+end;
+
+function TgdTaskManager.Add: TgdTask;
+var
+  I: Integer;
+begin
+  I := Self.FTaskList.Add(TgdTask.Create);
+  Result := Self[I];
+
+  if Result = nil then
+    raise Exception.Create('Error Creation Task');
+end;
+
+procedure TgdTaskManager.Remove(AnId: Integer);
+var
+  I: Integer;
+begin
+  for I := 0 to Count - 1 do
+    if Self[I].FId = AnId then
+    begin
+      Self[I].Free;
+      Self.FTaskList.Delete(I);
+      exit;
+    end;
+
+  raise Exception.Create('Unknown Task');
+end;
+
 procedure TgdTaskManager.Run;
 begin
   //загрузка из базы
@@ -490,6 +575,18 @@ begin
 
 
   FTaskTread.Resume;
+end;
+
+procedure TgdTaskManager.Restart;
+begin
+  if not FTaskTread.Terminated then
+  begin
+    FTaskTread.Free;
+
+    FTaskTread := TTaskManagerThread.Create(True);
+    FTaskTread.Priority := tpLowest;
+    FTaskTread.Resume;
+  end;
 end;
 
 procedure TgdTaskManager.LoadFromRelation;
