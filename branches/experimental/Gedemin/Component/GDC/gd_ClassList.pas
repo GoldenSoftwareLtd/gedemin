@@ -1983,8 +1983,10 @@ procedure TgdClassList.LoadUserDefinedClasses;
       try
         for I := 0 to FNewForm.FoldersCount - 1 do
         begin
-          if Find(FNewForm.Folders[I].ReadString('Class'),
-            FNewForm.Folders[I].ReadString('GDCSubType')) = nil then
+          if (FNewForm.Folders[I].ReadString('Class') > '')
+            and (FNewForm.Folders[I].ReadString('GDCSubType') > '')
+            and (Find(FNewForm.Folders[I].ReadString('Class'),
+              FNewForm.Folders[I].ReadString('GDCSubType')) = nil) then
           begin
             CEParentForm := Get(TgdFormEntry, FNewForm.Folders[I].ReadString('Class'));
             _Create(CEParentForm, TgdNewFormEntry, CEParentForm.TheClass,

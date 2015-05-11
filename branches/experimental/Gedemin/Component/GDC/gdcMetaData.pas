@@ -10815,11 +10815,11 @@ initialization
   RegisterGdcClass(TgdcRelation, 'Отношение');
   RegisterGdcClass(TgdcBaseTable, 'Таблица');
   RegisterGdcClass(TgdcTable);
-  RegisterGdcClass(TgdcSimpleTable, 'Таблица с идентификатором');
-  RegisterGdcClass(TgdcPrimeTable, 'Простая таблица с идентификатором');
+  RegisterGdcClass(TgdcSimpleTable, 'Таблица с идентификатором и служебными полями');
+  RegisterGdcClass(TgdcPrimeTable, 'Таблица с идентификатором');
   RegisterGdcClass(TgdcUnknownTable, 'Таблица');
-  RegisterGdcClass(TgdcTableToTable, 'Таблица со ссылкой');
-  RegisterGdcClass(TgdcTableToDefinedTable, 'Наследуемая таблица');
+  RegisterGdcClass(TgdcTableToTable, 'Таблица, связанная 1-к-1');
+  RegisterGdcClass(TgdcTableToDefinedTable, 'Наследованная таблица');
   RegisterGdcClass(TgdcTreeTable, 'Простое дерево');
   RegisterGdcClass(TgdcLBRBTreeTable, 'Интервальное дерево');
   RegisterGdcClass(TgdcView, 'Представление');
