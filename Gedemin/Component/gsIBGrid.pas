@@ -153,6 +153,7 @@ type
     procedure SetFullSearchOnExit(const Value: Boolean);
     function GetFullSearchOnExit: Boolean;
     procedure SetViewType(const Value: TgsViewType);
+    procedure SetSubType(const Value: String);
 
   public
     constructor Create(Owner: TgsIBColumnEditor);
@@ -175,7 +176,7 @@ type
      default DefSortOrder;
     property ViewType: TgsViewType read FViewType write SetViewType default vtByClass;
     property gdClassName: String read FgdClassName write SetgdClassName;
-    property SubType: String read FSubType write FSubType;
+    property SubType: String read FSubType write SetSubType;
     property Database: TIBDatabase read GetDatabase write SetDatabase;
     property Transaction: TIBTransaction read GetTransaction write SetTransaction;
     property Fields: String read FFields write SetFields;
@@ -5271,6 +5272,11 @@ begin
     end;
   end;
 
+end;
+
+procedure TLookup.SetSubType(const Value: String);
+begin
+  FSubType := Value;
 end;
 
 { TSet }
