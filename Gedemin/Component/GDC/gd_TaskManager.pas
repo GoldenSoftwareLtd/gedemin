@@ -3,7 +3,7 @@ unit gd_TaskManager;
 interface
 
 uses
-  Windows, Classes, Controls, Contnrs, SysUtils;
+  Windows, Classes, Controls, Contnrs, SysUtils, gdMessagedThread, gd_ProgressNotifier_unit;
 
 type
   TgdTaskLog = class(TObject)
@@ -86,11 +86,16 @@ type
     property TaskLogList[Index: Integer]: TgdTaskLog read GetTaskLog; default;
   end;
 
-  TTaskManagerThread = class(TThread)
+  TTaskManagerThread = class(TgdMessagedThread)
   private
     FTask: TgdTask;
   protected
-    procedure Execute; override;
+
+    function ProcessMessage(var Msg: TMsg): Boolean; override;
+
+    //procedure Execute; override;
+    public
+      //constructor Create;
   end;
 
   TgdTaskManager = class(TObject)
@@ -102,6 +107,8 @@ type
     function GetCount: Integer;
 
     procedure LoadFromRelation;
+
+    //procedure UpdateProgress(const AProgressInfo: TgdProgressInfo);
 
   public
     constructor Create;
@@ -132,31 +139,52 @@ uses
   at_classes, gdcBaseInterface, IBSQL, rp_BaseReport_unit, scr_i_FunctionList,
   gd_i_ScriptFactory, ShellApi, gdcAutoTask, gd_security;
 
+const
+  WM_GD_FIND_TASK = WM_GD_THREAD_USER + 1;
+  WM_GD_EXEC = WM_GD_THREAD_USER + 2;
+  WM_GD_CHECK_TIME = WM_GD_THREAD_USER + 3;
+  WM_GD_INIT = WM_GD_THREAD_USER + 4;
+
 { TaskManagerThread }
 
-procedure TTaskManagerThread.Execute;
+function TTaskManagerThread.ProcessMessage(var Msg: TMsg): Boolean;
 begin
-  while True do
-  begin
-    if Self.Terminated then
-      break;
+  Result := True;
 
-    Sleep(100);
+  case Msg.Message of
+    WM_GD_INIT:
+    begin
+      PostMsg(WM_GD_FIND_TASK);
+    end;
 
-    if FTask = nil then
+    WM_GD_FIND_TASK:
     begin
       FTask := gdTaskManager.FindPriorityTask;
       if FTask = nil then
-        break;
-    end
-    else if FTask.RightTime then
-    begin
-      try
-        FTask.TaskExecute;
-      finally
-        FTask := nil;
-      end;
+        ExitThread
+      else
+        PostMsg(WM_GD_CHECK_TIME);
     end;
+
+    WM_GD_EXEC:
+    begin
+      Synchronize(FTask.TaskExecute);
+      PostMsg(WM_GD_FIND_TASK);
+    end;
+
+    WM_GD_CHECK_TIME:
+    begin
+      if FTask.RightTime then
+        PostMsg(WM_GD_EXEC)
+      else
+      begin
+        Sleep(100);
+        PostMsg(WM_GD_CHECK_TIME);
+      end;
+    end
+
+  else
+    Result := False;
   end;
 end;
 
@@ -258,21 +286,8 @@ end;
 
 procedure TgdTask.AddLog(AnAutoTaskKey: Integer; AnEventText: String);
 var
-  //TL: TgdTaskLog;
-  //NTD: TDateTime;
   gdcAutoTaskLog: TgdcAutoTaskLog;
 begin
-  //NTD := Now;
-
-  //TL := TgdTaskLog.Create;
-  //TL.AutotaskKey := AnAutoTaskKey;
-  //TL.EventText := AnEventText;
-  //TL.EventTime := NTD;
-
-  //Self.FTaskLogList.Add(TL);
-
-  // дописать добавление лога в базу
-
   gdcAutoTaskLog := TgdcAutoTaskLog.Create(nil);
   try
     gdcAutoTaskLog.Open;
@@ -367,6 +382,7 @@ begin
   FTaskList := TObjectList.Create(False);
 
   FTaskTread := TTaskManagerThread.Create(True);
+  FTaskTread.FreeOnTerminate := False;
   FTaskTread.Priority := tpLowest;
 end;
 
@@ -575,6 +591,7 @@ begin
 
 
   FTaskTread.Resume;
+  FTaskTread.PostMsg(WM_GD_INIT);
 end;
 
 procedure TgdTaskManager.Restart;
@@ -584,8 +601,10 @@ begin
     FTaskTread.Free;
 
     FTaskTread := TTaskManagerThread.Create(True);
+    FTaskTread.FreeOnTerminate := False;
     FTaskTread.Priority := tpLowest;
     FTaskTread.Resume;
+    FTaskTread.PostMsg(WM_GD_INIT);
   end;
 end;
 
@@ -668,6 +687,11 @@ begin
     q.Free;
   end;
 end;
+
+{procedure gdTaskManager.UpdateProgress(const AProgressInfo: TgdProgressInfo);
+begin
+
+end;}
 
 function gdTaskManager: TgdTaskManager;
 begin

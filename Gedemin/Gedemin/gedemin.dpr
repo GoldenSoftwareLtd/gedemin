@@ -719,8 +719,6 @@ begin
           Application.CreateForm(TfrmOLEMainForm, frmOLEMainForm);
         end;
 
-        gdTaskManager.Run;
-
         Application.Run;
       end;
 
