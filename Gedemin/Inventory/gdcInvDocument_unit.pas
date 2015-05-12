@@ -1470,8 +1470,8 @@ begin
 
     Result := Format(
       inherited GetFromClause(ARefresh) +
-      '  JOIN %s INVDOC ON (Z.ID = INVDOC.DOCUMENTKEY) AND z.documenttypekey = %d ',
-      [TgdDocumentEntry(CE).DistinctRelation, TgdDocumentEntry(CE).TypeID]
+      '  JOIN %s INVDOC ON (Z.ID = INVDOC.DOCUMENTKEY) ',
+      [TgdDocumentEntry(CE).DistinctRelation]
     );
   end;
 

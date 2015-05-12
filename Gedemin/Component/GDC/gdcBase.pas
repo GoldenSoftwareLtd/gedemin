@@ -6158,16 +6158,20 @@ var
     begin
       if BE.Parent is TgdBaseEntry then
         IterateAncestor(BE.Parent as TgdBaseEntry, SQL);
-      RA := gdcBaseManager.AdjustMetaName('d_' + BE.DistinctRelation);
-      R := atDatabase.Relations.ByRelationName(BE.DistinctRelation);
-      if R = nil then
-        raise EgdcException.CreateObj('Unknown relation ' + BE.DistinctRelation, Self);
-      for I := 0 to R.RelationFields.Count - 1 do
+
+      if BE.DistinctRelation <> TgdBaseEntry(BE.Parent).DistinctRelation then
       begin
-        if R.RelationFields[I].IsUserDefined then
-          SQL := SQL + ', ' + RA + '.' + R.RelationFields[I].FieldName + ' ' +
-            gdcBaseManager.AdjustMetaName(RA + '_' + R.RelationFields[I].FieldName,
-            31 - 4); // account for "new_" prefix
+        RA := gdcBaseManager.AdjustMetaName('d_' + BE.DistinctRelation);
+        R := atDatabase.Relations.ByRelationName(BE.DistinctRelation);
+        if R = nil then
+          raise EgdcException.CreateObj('Unknown relation ' + BE.DistinctRelation, Self);
+        for I := 0 to R.RelationFields.Count - 1 do
+        begin
+          if R.RelationFields[I].IsUserDefined then
+            SQL := SQL + ', ' + RA + '.' + R.RelationFields[I].FieldName + ' ' +
+              gdcBaseManager.AdjustMetaName(RA + '_' + R.RelationFields[I].FieldName,
+              31 - 4); // account for "new_" prefix
+        end;
       end;
     end;
   end;
@@ -6193,8 +6197,12 @@ var
       if BE.Parent is TgdBaseEntry then
         IterateAncestor(BE.Parent as TgdBaseEntry, SQL, LinkFieldName);
       N := gdcBaseManager.AdjustMetaName('d_' + BE.DistinctRelation);
-      SQL := SQL + ' JOIN ' + BE.DistinctRelation + ' ' + N +
-        ' ON ' + N + '.' + LinkFieldName + ' = ' + GetListTableAlias + '.id';
+
+      if BE.DistinctRelation <> TgdBaseEntry(BE.Parent).DistinctRelation then
+      begin
+        SQL := SQL + ' JOIN ' + BE.DistinctRelation + ' ' + N +
+          ' ON ' + N + '.' + LinkFieldName + ' = ' + GetListTableAlias + '.id';
+      end;
     end;
   end;
 
@@ -12403,31 +12411,34 @@ var
     if (BE.Parent <> nil) and (BE.Parent <> BE.GetRootSubType) then
       UserDefinedCustomInsert(BE.Parent as TgdBaseEntry);
 
-    if BE is TgdDocumentEntry then
-      F := 'documentkey,'
-    else
-      F := 'inheritedkey,';
-      
-    V := ':new_id,';
-
-    for I := 0 to FieldCount - 1 do
+    if BE.DistinctRelation <> TgdBaseEntry(BE.Parent).DistinctRelation then
     begin
-      ParseFieldOrigin(Fields[I].Origin, RelationName, FieldName);
+      if BE is TgdDocumentEntry then
+        F := 'documentkey,'
+      else
+        F := 'inheritedkey,';
 
-      if RelationName = BE.DistinctRelation then
+      V := ':new_id,';
+
+      for I := 0 to FieldCount - 1 do
       begin
-        F := F + FieldName + ',';
-        V := V + ':new_' + Fields[I].FieldName + ',';
+        ParseFieldOrigin(Fields[I].Origin, RelationName, FieldName);
+
+        if RelationName = BE.DistinctRelation then
+        begin
+          F := F + FieldName + ',';
+          V := V + ':new_' + Fields[I].FieldName + ',';
+        end;
       end;
-    end;
 
-    SetLength(F, Length(F) - 1);
-    SetLength(V, Length(V) - 1);
+      SetLength(F, Length(F) - 1);
+      SetLength(V, Length(V) - 1);
 
-    CustomExecQuery('INSERT INTO ' + BE.DistinctRelation +
-      ' (' + F + ') VALUES (' + V + ')', Buff, False);
+      CustomExecQuery('INSERT INTO ' + BE.DistinctRelation +
+        ' (' + F + ') VALUES (' + V + ')', Buff, False);
+    end
   end;
-  
+
 begin
   OldState := State;
   CustomInsert(Buff);
@@ -12457,20 +12468,23 @@ var
     if (BE.Parent <> nil) and (BE.Parent <> BE.GetRootSubType) then
       UserDefinedCustomModify(BE.Parent as TgdBaseEntry, LinkFieldName);
 
-    S := '';
-    for I := 0 to FieldCount - 1 do
+    if BE.DistinctRelation <> TgdBaseEntry(BE.Parent).DistinctRelation then
     begin
-      ParseFieldOrigin(Fields[I].Origin, RelationName, FieldName);
+      S := '';
+      for I := 0 to FieldCount - 1 do
+      begin
+        ParseFieldOrigin(Fields[I].Origin, RelationName, FieldName);
 
-      if (RelationName = BE.DistinctRelation) and FieldChanged(Fields[I].FieldName) then
-        S := S + FieldName + ' = :new_' + Fields[I].FieldName + ',';
-    end;
+        if (RelationName = BE.DistinctRelation) and FieldChanged(Fields[I].FieldName) then
+          S := S + FieldName + ' = :new_' + Fields[I].FieldName + ',';
+      end;
 
-    if S > '' then
-    begin
-      SetLength(S, Length(S) - 1);
-      CustomExecQuery('UPDATE ' + BE.DistinctRelation + ' SET ' +
-        S + ' WHERE ' + LinkFieldName + ' = :old_id', Buff, False);
+      if S > '' then
+      begin
+        SetLength(S, Length(S) - 1);
+        CustomExecQuery('UPDATE ' + BE.DistinctRelation + ' SET ' +
+          S + ' WHERE ' + LinkFieldName + ' = :old_id', Buff, False);
+      end;
     end;
   end;
   

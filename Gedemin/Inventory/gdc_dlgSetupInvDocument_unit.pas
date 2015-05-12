@@ -1666,7 +1666,7 @@ var
 begin
   cbTemplate.Enabled := False;
 
-  R := atDatabase.Relations.ByID(Document.FieldByName('linerelkey').AsInteger);
+  R := GetRootRelation(False);
   if Assigned(R) then
   begin
     RelType := RelationTypeByRelation(R);
