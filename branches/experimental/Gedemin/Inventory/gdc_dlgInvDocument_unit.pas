@@ -1618,15 +1618,17 @@ end;
 procedure TdlgInvDocument.CheckDisabledPosition;
 var
   ibsql: TIBSQL;
+  CE: TgdClassEntry;
 begin
   ibsql := TIBSQL.Create(nil);
   try
     if Document.Transaction.InTransaction then
     begin
       ibsql.Transaction := Document.Transaction;
+      CE := gdClassList.Get(TgdDocumentEntry, DocumentLine.ClassName, DocumentLine.SubType).GetRootSubType;
 
       ibsql.SQL.Text := Format('SELECT documentkey FROM %s WHERE disabled = 1 and masterkey = %d',
-        [DocumentLine.RelationLineName, Document.FieldByName('id').AsInteger]);
+        [TgdDocumentEntry(CE).DistinctRelation, Document.FieldByName('id').AsInteger]);
       ibsql.ExecQuery;
       if ibsql.RecordCount > 0 then
       begin
