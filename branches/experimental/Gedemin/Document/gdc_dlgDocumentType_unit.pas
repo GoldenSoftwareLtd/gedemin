@@ -714,7 +714,6 @@ begin
       gdcObject.FieldByName('branchkey').AsInteger := DE.BranchKey;
       gdcObject.FieldByName('headerrelkey').AsInteger := DE.HeaderRelKey;
       gdcObject.FieldByName('linerelkey').AsInteger := DE.LineRelKey;
-      gdcObject.FieldByName('linerelkey').AsInteger := DE.LineRelKey;
       edEnglishName.Text := DE.HeaderRelName;
     end;
 
