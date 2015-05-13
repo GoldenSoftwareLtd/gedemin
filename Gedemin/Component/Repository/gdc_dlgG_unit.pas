@@ -1822,9 +1822,6 @@ end;
 
 
 constructor Tgdc_dlgG.Create(AnOwner: TComponent);
-var
-  gdcDelphiObject: TgdcDelphiObject;
-  EvtCtrl: TEventControl;
 begin
   inherited;
   ErrorAction := False;
@@ -1832,20 +1829,14 @@ begin
   FAlreadyRestory := False;
   FAppliedID := -1;
 
-
-  EvtCtrl := nil;
-
-  if Assigned(EventControl) then
-    EvtCtrl:= EventControl.Get_Self as TEventControl;
-
-  if (EvtCtrl = nil) or (EvtCtrl.EventObjectList.FindObject(Self.InitialName) = nil) then
+  if (EventControl <> nil)
+    and ((EventControl.Get_Self as TEventControl).EventObjectList.FindObject(Self.InitialName) = nil) then
   begin
-    gdcDelphiObject := TgdcDelphiObject.Create(nil);
+    with TgdcDelphiObject.Create(nil) do
     try
-      gdcDelphiObject.AddObject(Self);
-      gdcDelphiObject.Close;
+      AddObject(Self);
     finally
-      gdcDelphiObject.Free;
+      Free;
     end;
   end;
 end;
