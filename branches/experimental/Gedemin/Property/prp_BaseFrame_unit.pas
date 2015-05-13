@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2001-2013 by Golden Software of Belarus
+  Copyright (c) 2001-2015 by Golden Software of Belarus, Ltd
 
   Module
 
@@ -19,6 +19,7 @@
   Revisions history
 
     1.00    17.10.02    tiptop        Initial version.
+
 --}
 
 unit prp_BaseFrame_unit;
@@ -217,8 +218,6 @@ type
 
     class function GetNameById(Id: Integer): string; virtual; abstract;
     class function GetFunctionIdEx(Id: Integer): integer; virtual; abstract;
-//    function GetUniname(SQLText, BaseName: String;
-//      const NameList: TStrings; const IBSQL: TIBSQL): String;
 
     //”казывает на то что скрипт был запущен из данного фрайма
     property Running: Boolean read GetRunning;

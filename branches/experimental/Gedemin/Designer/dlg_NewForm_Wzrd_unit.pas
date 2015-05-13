@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2002 by Golden Software of Belarus
+  Copyright (c) 2002-2015 by Golden Software of Belarus, Ltd
 
   Module
 
@@ -83,14 +83,13 @@ type
     procedure actOkExecute(Sender: TObject);
     procedure edFormNameKeyPress(Sender: TObject; var Key: Char);
     procedure FormDestroy(Sender: TObject);
-  private
-    { Private declarations }
-    FSubTypeList: TStringList;
-    procedure FormOnCloseQuery(Sender: TObject; var CanClose: Boolean);
 
+  private
+    FSubTypeList: TStringList;
+
+    procedure FormOnCloseQuery(Sender: TObject; var CanClose: Boolean);
     function BuildClassTree(ACE: TgdClassEntry; AData1: Pointer;
-      AData2: Pointer): Boolean;
-    
+      AData2: Pointer): Boolean;    
   end;
 
 var
@@ -151,7 +150,6 @@ end;
 
 procedure Tdlg_NewForm_Wzrd.actOkUpdate(Sender: TObject);
 begin
-
   if edFormName.Text > '' then
   begin
     if rbSimplyForm.Checked then
@@ -180,6 +178,7 @@ end;
 procedure Tdlg_NewForm_Wzrd.FormCreate(Sender: TObject);
 var
   I: Integer;
+
   function GetClassDescription(const AName: String): String;
   var
     S: String;
@@ -219,9 +218,8 @@ var
     else if S = 'TGDC_FRMMD2H' then
       Result := 'Master-detail-subdetail форма'
     else Result := '';
-{    if Result > '' then
-      Result := ' (' + Result + ')';}
   end;
+
 begin
   FSubTypeList := TStringList.Create;
   rbSimplyForm.Checked := True;
@@ -236,7 +234,6 @@ begin
   for I := 0 to AncestorFormList.Count - 1 do
   begin
     cbFormType.Items.AddObject(GetClassDescription(AncestorFormList[I].ClassName) + ' (' + AncestorFormList[I].ClassName + ')', Pointer(I));
-//    cbFormType.Items.AddObject(AncestorFormList[I].ClassName + GetClassDescription(AncestorFormList[I].ClassName), Pointer(I));
   end;
 end;
 
@@ -330,7 +327,6 @@ end;
 procedure Tdlg_NewForm_Wzrd.actOkExecute(Sender: TObject);
 var
   P: TPersistentClass;
-//  S: String;
   F: TgdcCreateableForm;
   FgdcClass: TgdcBase;
   FCS: TCreateableFormStates;
@@ -421,5 +417,4 @@ initialization
 
 finalization
   AncestorFormList.Free;
-
 end.
