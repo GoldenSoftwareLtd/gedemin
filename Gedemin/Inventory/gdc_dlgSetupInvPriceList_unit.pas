@@ -1048,6 +1048,9 @@ begin
     begin
       gdcObject.FieldByName('name').AsString := 'Наследник ' + DE.Caption;
       gdcObject.FieldByName('branchkey').AsInteger := DE.BranchKey;
+      gdcObject.FieldByName('headerrelkey').AsInteger := DE.HeaderRelKey;
+      gdcObject.FieldByName('linerelkey').AsInteger := DE.LineRelKey;
+      edEnglishName.Text := DE.HeaderRelName;
     end;
 
     iblcHeaderTable.gdClassName := 'TgdcInheritedTable';
