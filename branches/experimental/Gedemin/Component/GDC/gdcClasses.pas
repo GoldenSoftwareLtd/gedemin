@@ -1526,7 +1526,8 @@ var
 begin
   DE := gdClassList.FindDocByTypeID(DocumentTypeKey, GetDocumentClassPart);
 
-  if DE <> nil then
+  FunctionKey := 0;
+  While (DE <> nil) and (FunctionKey = 0) do
   begin
     if GetDocumentClassPart = dcpHeader then
       FunctionKey := DE.HeaderFunctionKey
@@ -1538,6 +1539,11 @@ begin
       LParams := VarArrayOf([GetGdcOLEObject(Self) as IDispatch]);
       ScriptFactory.ExecuteFunction(FunctionKey, LParams, LResult);
     end;
+
+    if DE = DE.GetRootSubType then
+      break;
+
+    DE := TgdDocumentEntry(DE.Parent);
   end;
 end;
 
