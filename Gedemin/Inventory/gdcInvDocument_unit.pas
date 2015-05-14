@@ -1006,11 +1006,6 @@ var
 begin
   if State <> dsInsert then Exit;
 
-  {if Self is TgdcInvDocument then
-    RelName := RelationName
-  else
-    RelName := RelationLineName;}
-
   CE := gdClassList.Get(TgdDocumentEntry, Self.ClassName, Self.SubType).GetRootSubType;
   RelName := TgdDocumentEntry(CE).DistinctRelation;
 

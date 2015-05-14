@@ -1524,10 +1524,10 @@ var
   FunctionKey: Integer;
   LParams, LResult: Variant;
 begin
+  FunctionKey := 0;
   DE := gdClassList.FindDocByTypeID(DocumentTypeKey, GetDocumentClassPart);
 
-  FunctionKey := 0;
-  While (DE <> nil) and (FunctionKey = 0) do
+  while DE <> nil do
   begin
     if GetDocumentClassPart = dcpHeader then
       FunctionKey := DE.HeaderFunctionKey
@@ -1535,15 +1535,18 @@ begin
       FunctionKey := DE.LineFunctionKey;
 
     if FunctionKey > 0 then
-    begin
-      LParams := VarArrayOf([GetGdcOLEObject(Self) as IDispatch]);
-      ScriptFactory.ExecuteFunction(FunctionKey, LParams, LResult);
-    end;
+      break;
 
-    if DE = DE.GetRootSubType then
+    if (not (DE.Parent is TgdDocumentEntry)) or (DE = DE.GetRootSubType) then
       break;
 
     DE := TgdDocumentEntry(DE.Parent);
+  end;
+
+  if FunctionKey > 0 then
+  begin
+    LParams := VarArrayOf([GetGdcOLEObject(Self) as IDispatch]);
+    ScriptFactory.ExecuteFunction(FunctionKey, LParams, LResult);
   end;
 end;
 
