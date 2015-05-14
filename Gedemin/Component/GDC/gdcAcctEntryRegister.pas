@@ -1366,6 +1366,8 @@ var
   {$ENDIF}
   ibsql: TIBSQL;
   IsDisabled: Boolean;
+  DE: TgdDocumentEntry;
+  Flag: Boolean;
 begin
   Assert(Assigned(Document), 'Ќе задан документ дл€ формировани€ проводок');
 
@@ -1477,24 +1479,44 @@ begin
 
     for I := 0 to CIs.Count - 1 do
     begin
-      if (CIs[i].DocumentTypeKey = Document.DocumentTypeKey) and
+      if {(CIs[i].DocumentTypeKey = Document.DocumentTypeKey) and}
         (CIs[i].DocumentPart = Document.GetDocumentClassPart) then
       begin
-        FTrRecordKey := CIs[i].TrRecordKey;
-        FRecordAdded := False;
-        FunctionKey := CIs[I].FunctionKey;
-        if not EmptyEntry then
+        Flag := CIs[i].DocumentTypeKey = Document.DocumentTypeKey;
+
+        if not Flag then
         begin
-          if FunctionKey > 0 then
+          DE := gdClassList.FindDocByTypeID(Document.DocumentTypeKey, CIs[i].DocumentPart);
+
+          While (DE <> nil) and (not Flag)do
           begin
-            {$IFDEF DEBUGMOVE}
-             T := GetTickCount;
-            {$ENDIF}
-            LParams := VarArrayOf([GetGdcOLEObject(Self) as IDispatch, GetGdcOLEObject(Document) as IDispatch]);
-            ScriptFactory.ExecuteFunction(FunctionKey,  LParams, LResult);
-            {$IFDEF DEBUGMOVE}
-             ExecuteFunction := ExecuteFunction + GetTickCount - T;
-            {$ENDIF}
+            Flag := DE.TypeID = CIs[i].DocumentTypeKey;
+
+            if Flag or (DE = DE.GetRootSubType) then
+              break;
+
+            DE := TgdDocumentEntry(DE.Parent);
+          end;
+        end;
+
+        if Flag then
+        begin
+          FTrRecordKey := CIs[i].TrRecordKey;
+          FRecordAdded := False;
+          FunctionKey := CIs[I].FunctionKey;
+          if not EmptyEntry then
+          begin
+            if FunctionKey > 0 then
+            begin
+              {$IFDEF DEBUGMOVE}
+               T := GetTickCount;
+              {$ENDIF}
+              LParams := VarArrayOf([GetGdcOLEObject(Self) as IDispatch, GetGdcOLEObject(Document) as IDispatch]);
+              ScriptFactory.ExecuteFunction(FunctionKey,  LParams, LResult);
+              {$IFDEF DEBUGMOVE}
+               ExecuteFunction := ExecuteFunction + GetTickCount - T;
+              {$ENDIF}
+            end;
           end;
         end;
       end;
