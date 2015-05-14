@@ -128,10 +128,6 @@ type
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetSubSetList: String; override;
-    class function GetChildrenClass(const ASubType: TgdcSubType;
-      AnOL: TObjectList; const AnIncludeRoot: Boolean = True;
-      const AnOnlyDirect: Boolean = False;
-      const AnIncludeAbstract: Boolean = False): Boolean; override;
 
     function GetTaxRate(const TaxKey: Integer; const ForDate: TDateTime): Currency;
     function GetTaxRateOnName(const TaxName: String; const ForDate: TDateTime): Currency;
@@ -815,28 +811,6 @@ class function TgdcGood.GetDialogFormClassName(
   const ASubType: TgdcSubType): String;
 begin
   Result := 'Tgdc_dlgGood';
-end;
-
-class function TgdcGood.GetChildrenClass(const ASubType: TgdcSubType;
-  AnOL: TObjectList; const AnIncludeRoot: Boolean = True;
-  const AnOnlyDirect: Boolean = False;
-  const AnIncludeAbstract: Boolean = False): Boolean;
-var
-  I: Integer;
-begin
-  Result := inherited GetChildrenClass(ASubType, AnOL, AnIncludeRoot,
-    AnOnlyDirect, AnIncludeAbstract);
-
-  if Result then
-  begin
-    for I := AnOL.Count - 1 downto 0 do
-    begin
-      if TgdClassEntry(AnOL[I]).TheClass = TgdcSelectedGood then
-        AnOL.Delete(I);
-    end;
-  end;
-
-  Result := AnOL.Count > 0;
 end;
 
 function TgdcGood.CheckTheSameStatement: String;
