@@ -1820,7 +1820,6 @@ begin
   Result := FFieldsCallOnSync;
 end;
 
-
 constructor Tgdc_dlgG.Create(AnOwner: TComponent);
 begin
   inherited;

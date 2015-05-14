@@ -371,6 +371,8 @@ type
 
   public
     procedure Assign(CE: TgdClassEntry); override;
+    function FindParentByDocumentTypeKey(const ADocumentTypeKey: Integer;
+      const APart: TgdcDocumentClassPart): TgdDocumentEntry;
 
     property HeaderFunctionKey: Integer read FHeaderFunctionKey write FHeaderFunctionKey;
     property LineFunctionKey: Integer read FLineFunctionKey write FLineFunctionKey;
@@ -2453,6 +2455,23 @@ begin
   HeaderRelKey := TgdDocumentEntry(CE).HeaderRelKey;
   LineRelKey := TgdDocumentEntry(CE).LineRelKey;
   BranchKey := TgdDocumentEntry(CE).BranchKey;
+end;
+
+function TgdDocumentEntry.FindParentByDocumentTypeKey(
+  const ADocumentTypeKey: Integer; const APart: TgdcDocumentClassPart): TgdDocumentEntry;
+begin
+  Result := Self;
+  while Result.TypeID <> ADocumentTypeKey do
+  begin
+    if (not (Result.Parent is TgdDocumentEntry)) or (Result = Result.GetRootSubType) then
+    begin
+      Result := nil;
+      break;
+    end;
+    Result := Result.Parent as TgdDocumentEntry;
+  end;
+
+  Assert((Result = nil) or (CgdcDocument(Result.TheClass).GetDocumentClassPart = APart));
 end;
 
 function TgdDocumentEntry.GetDistinctRelation: String;
