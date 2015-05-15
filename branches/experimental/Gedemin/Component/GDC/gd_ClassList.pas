@@ -288,6 +288,7 @@ type
     function GetCount: Integer;
     function ListCallback(ACE: TgdClassEntry; AData1: Pointer;
       AData2: Pointer): Boolean;
+    function GetCaption: String;
 
   protected
     function Traverse(ACallback: TgdClassEntryCallback; AData1: Pointer; AData2: Pointer;
@@ -321,7 +322,7 @@ type
     property Parent: TgdClassEntry read FParent;
     property TheClass: TClass read FClass;
     property SubType: TgdcSubType read FSubType;
-    property Caption: String read FCaption write FCaption;
+    property Caption: String read GetCaption write FCaption;
     property Count: Integer read GetCount;
     property Children[Index: Integer]: TgdClassEntry read GetChildren;
     property ClassMethods: TgdClassMethods read FClassMethods;
@@ -1475,6 +1476,18 @@ begin
   begin
     Result := Result.Parent;
   end;    
+end;
+
+function TgdClassEntry.GetCaption: String;
+begin
+  if FCaption > '' then
+    Result := FCaption
+  else if FSubType > '' then
+    Result := FSubType
+  else if FClass <> nil then
+    Result := FClass.ClassName
+  else
+    Result := '';    
 end;
 
 {TgdClassList}
