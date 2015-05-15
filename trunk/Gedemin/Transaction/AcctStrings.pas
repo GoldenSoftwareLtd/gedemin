@@ -66,7 +66,7 @@ const
     '    SELECT'#13#10 +
     '      e_m.id'#13#10 +
     '    FROM'#13#10+
-    '      ac_entry e_m'#13#10 +
+    '      ac_entry e_m join ac_transaction tr ON e_m.transactionkey = tr.id and tr.isinternal = 1 '#13#10 +
     '      JOIN ac_entry e_cm ON e_cm.recordkey = e_m.recordkey AND'#13#10 +
     '        e_cm.accountpart <> e_m.accountpart AND'#13#10 +
     '        e_cm.accountkey + 0 = e_m.accountkey AND'#13#10 +
@@ -76,17 +76,14 @@ const
     '        e_m.creditcurr = e_cm.debitcurr) ' +
     '    %s'#13#10 +
     '    WHERE'#13#10 +
-    '      e_m.id = e.id)'#13#10 +
-    ' AND NOT EXISTS( '#13#10 +
-    '    SELECT t.id FROM ac_transaction t WHERE '#13#10 +
-    '      t.id = e.transactionkey AND t.isinternal=1) '#13#10;
+    '      e_m.id = e.id)'#13#10;
 
   cInternalMovementClauseTemplateNew =
     ' AND NOT EXISTS( '#13#10 +
     '    SELECT '#13#10 +
     '      e_cm.id '#13#10 +
     '    FROM '#13#10+
-    '      ac_entry e_cm '#13#10 +
+    '      ac_entry e_cm join ac_transaction tr ON e_cm.transactionkey = tr.id and tr.isinternal = 1 '#13#10 +
     '    WHERE '#13#10 +
     '      e_cm.recordkey = %0:s.recordkey AND '#13#10 +
     '      e_cm.accountpart <> %0:s.accountpart AND '#13#10 +
@@ -95,10 +92,7 @@ const
     '        %0:s.creditncu = e_cm.debitncu AND '#13#10 +
     '        %0:s.debitcurr = e_cm.creditcurr AND '#13#10 +
     '        %0:s.creditcurr = e_cm.debitcurr) ' +
-    '    %1:s )'#13#10 +
-    ' AND NOT EXISTS( '#13#10 +
-    '    SELECT t.id FROM ac_transaction t WHERE '#13#10 +
-    '      t.id = %0:s.transactionkey AND t.isinternal=1) '#13#10;
+    '    %1:s )'#13#10;
 
   cDebitCredit =
     'SELECT '#13#10 +
