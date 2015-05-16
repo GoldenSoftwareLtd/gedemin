@@ -283,6 +283,7 @@ type
     FCaption: String;
     FChildren: TObjectList;
     FHidden: Boolean;
+    FVirtualSubType: Boolean;
 
     function GetChildren(Index: Integer): TgdClassEntry;
     function GetCount: Integer;
@@ -327,6 +328,7 @@ type
     property Children[Index: Integer]: TgdClassEntry read GetChildren;
     property ClassMethods: TgdClassMethods read FClassMethods;
     property Hidden: Boolean read FHidden write FHidden;
+    property VirtualSubType: Boolean read FVirtualSubType write FVirtualSubType;
   end;
   CgdClassEntry = class of TgdClassEntry;
 

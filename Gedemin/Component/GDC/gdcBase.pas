@@ -624,8 +624,10 @@ type
     procedure Clear; override;
   end;
 
+  TgdcBaseInitProc = procedure(Obj: TgdcBase) of object;
+
   /////////////////////////////////////////////////////////
-  // базавы клас дл€ б_знэс аб'ектаҐ
+  // базавы клас дл€ б≥знэс аб'ектаҐ
 
   TgdcBase = class(TIBCustomDataSet, IgdcBase)
   private
@@ -1343,7 +1345,7 @@ type
     // стварае новы зап_с _ адкрывае ды€лог дл€ €го рэдактаваньн€
     function CreateDialog(const ADlgClassName: String = ''): Boolean; overload; virtual;
     function CreateDialog(C: CgdcBase): Boolean; overload; virtual;
-    function CreateDialog(C: TgdcFullClass): Boolean; overload; virtual;
+    function CreateDialog(C: TgdcFullClass; const AnInitProc: TgdcBaseInitProc = nil): Boolean; overload; virtual;
 
     // делает новую запись, с предварительным выбором потомков
     function CreateDescendant: Boolean; virtual;
@@ -2431,20 +2433,6 @@ begin
     end;
   end;
 end;
-
-{function BuildTree2(ACE: TgdClassEntry; AData1: Pointer; AData2: Pointer): Boolean;
-begin
-  if (ACE is TgdBaseEntry) and (ACE.SubType = '') then
-  begin
-    if (CompareText(TgdBaseEntry(ACE).gdcClass.GetListTable(''), String(AData2^)) = 0) then
-      if (TgdcFullClass(AData1^).gdClass = nil)
-        or TgdcFullClass(AData1^).gdClass.InheritsFrom(ACE.TheClass) then
-      begin
-        TgdcFullClass(AData1^).gdClass := TgdBaseEntry(ACE).gdcClass;
-      end;
-  end;
-  Result := True;
-end;}
 
 function GetBaseClassForRelation(const ARelationName: String): TgdcFullClass;
 var
@@ -9806,7 +9794,8 @@ begin
   Result := CreateDialog(MakeFullClass(C, ''));
 end;
 
-function TgdcBase.CreateDialog(C: TgdcFullClass): Boolean;
+function TgdcBase.CreateDialog(C: TgdcFullClass;
+  const AnInitProc: TgdcBaseInitProc = nil): Boolean;
 var
   Obj: TgdcBase;
   I: Integer;
@@ -9815,10 +9804,13 @@ begin
   if C.gdClass <> nil then
   begin
     CheckClass(C.gdClass);
-    if (C.gdClass = Self.ClassType) and (AnsiUpperCase(C.SubType) = AnsiUpperCase(SubType)) then
+    if (C.gdClass = Self.ClassType) and AnsiSameText(C.SubType, SubType) then
       Result := CreateDialog
     else begin
-      Obj := C.gdClass.CreateWithParams(Owner, Database, Transaction, C.SubType, 'OnlySelected');
+      Obj := C.gdClass.CreateWithParams(Owner, Database, Transaction,
+        C.SubType, 'OnlySelected');
+      if Assigned(AnInitProc) then
+        AnInitProc(Obj);
       try
         // об€зательно надо сохранить мастера!
         //Obj.MasterField := MasterField;
@@ -11146,16 +11138,16 @@ begin
     if (FSubType > '') and (ComponentState * [csDesigning, csLoading] = []) then
       raise EgdcException.CreateObj('Can not change subtype', Self);
 
-    Close;
-
     if not CheckSubType(Value) then
     begin
       if (StrIPos('usr_', Self.Name) = 1) or (StrIPos('usrg_', Self.Name) = 1) then
-        gdClassList.Add(Self.ClassType, Value, '', TgdBaseEntry, '')
+        gdClassList.Add(Self.ClassName, Value, Self.SubType,
+          CgdClassEntry(gdClassList.Get(TgdBaseEntry, Self.ClassName, Self.SubType).ClassType), '')
       else
         raise EgdcException.CreateObj('Invalid subtype specified', Self);
     end;
 
+    Close;
     FSubType := Value;
     FGroupID := -1;
     FgdcTableInfos := GetTableInfos(FSubType);
@@ -12197,11 +12189,11 @@ var
     if BE.DistinctRelation <> TgdBaseEntry(BE.Parent).DistinctRelation then
     begin
       if BE is TgdDocumentEntry then
-        F := 'documentkey,'
+        F := 'DOCUMENTKEY,'
       else
-        F := 'inheritedkey,';
+        F := 'INHERITEDKEY,';
 
-      V := ':new_id,';
+      V := ':NEW_ID,';
 
       for I := 0 to FieldCount - 1 do
       begin
@@ -12210,7 +12202,7 @@ var
         if RelationName = BE.DistinctRelation then
         begin
           F := F + FieldName + ',';
-          V := V + ':new_' + Fields[I].FieldName + ',';
+          V := V + ':NEW_' + Fields[I].FieldName + ',';
         end;
       end;
 
@@ -12226,7 +12218,7 @@ begin
   OldState := State;
   CustomInsert(Buff);
   CE := gdClassList.Get(TgdBaseEntry, Self.ClassName, SubType);
-  if CE <> CE.GetRootSubType then
+  if (not (CE is TgdStorageEntry)) and (CE <> CE.GetRootSubType) then
     UserDefinedCustomInsert(CE as TgdBaseEntry);
   DoAfterCustomProcess(Buff, cpInsert);
   if OldState <> State then
@@ -12259,14 +12251,14 @@ var
         ParseFieldOrigin(Fields[I].Origin, RelationName, FieldName);
 
         if (RelationName = BE.DistinctRelation) and FieldChanged(Fields[I].FieldName) then
-          S := S + FieldName + ' = :new_' + Fields[I].FieldName + ',';
+          S := S + FieldName + ' = :NEW_' + Fields[I].FieldName + ',';
       end;
 
       if S > '' then
       begin
         SetLength(S, Length(S) - 1);
         CustomExecQuery('UPDATE ' + BE.DistinctRelation + ' SET ' +
-          S + ' WHERE ' + LinkFieldName + ' = :old_id', Buff, False);
+          S + ' WHERE ' + LinkFieldName + ' = :OLD_ID', Buff, False);
       end;
     end;
   end;
@@ -12275,7 +12267,7 @@ begin
   OldState := State;
   CustomModify(Buff);
   CE := gdClassList.Get(TgdBaseEntry, Self.ClassName, SubType);
-  if CE <> CE.GetRootSubType then
+  if (not (CE is TgdStorageEntry)) and (CE <> CE.GetRootSubType) then
   begin
     if CE is TgdDocumentEntry then
       UserDefinedCustomModify(CE as TgdBaseEntry, 'documentkey')
@@ -12358,7 +12350,6 @@ begin
         q.SQL.Text := 'SELECT GEN_ID(gd_g_unique, 0) + GEN_ID(gd_g_offset, 0) FROM rdb$database';
       q.ExecQuery;
       Result := q.Fields[0].AsInteger;
-      q.Close;
     finally
       q.Free;
     end;
@@ -18347,11 +18338,9 @@ initialization
 
   CacheDBID := -1;
   CacheList := nil;
-  //CacheBaseClassForRel := nil;
 
 finalization
   FreeAndNil(CacheList);
-  //FreeAndNil(CacheBaseClassForRel);
   UnregisterGdcClass(TgdcBase);
 
   {$IFDEF DEBUG}
