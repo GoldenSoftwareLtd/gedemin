@@ -118,11 +118,6 @@ type
   TgsDataSet = class(TAutoObject, {IConnectionPointContainer, }IgsQuery)
   private
     FOnCalcEvent: TThreadMethod;
-
-{    FConnectionPoints: TConnectionPoints;
-    FConnectionPoint: TConnectionPoint;
-    FSinkList: TList;
-    FEvents: IgsQueryEvents;}
     FFetchBlob: Boolean;
     FIndexFields: String;
 
@@ -137,10 +132,6 @@ type
   protected
     FDataSet: TDataSet;
     FCurrentField: TField;
-
-{    property ConnectionPoints: TConnectionPoints read FConnectionPoints
-      implements IConnectionPointContainer;
-    procedure EventSinkChanged(const EventSink: IUnknown); override;}
 
     procedure Open; virtual; safecall;
     procedure ExecSQL; virtual; safecall;
@@ -368,7 +359,6 @@ uses
 type
   TFieldCracker = class(TField);
   TCrackIBCustomDataSet = class(TIBCustomDataSet);
-
 
 constructor TgsDataSet.Create(const AnMemTable: Boolean; const AnChildClass: Boolean = False);
 begin
