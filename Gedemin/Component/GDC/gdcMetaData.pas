@@ -55,7 +55,7 @@ type
     ttInvTransfrom,
     ttTableToTable,
     ttPrimeTable,
-    ttTableToDefinedTable);
+    ttInheritedTable);
 
   TgdcTablePersistence = (
     tpRegular,
@@ -167,7 +167,6 @@ type
 
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
-    class function GetKeyField(const ASubType: TgdcSubType): String; override;
     class function GetSubSetList: String; override;
 
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
@@ -211,7 +210,6 @@ type
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetListFieldExtended(const ASubType: TgdcSubType): String; override;
-    class function GetKeyField(const ASubType: TgdcSubType): String; override;
 
     class function GetSubSetList: String; override;
 
@@ -354,10 +352,7 @@ type
     property ReferenceName: String read GetReferenceName;// write SetReferenceName;
   end;
 
-  TgdcTableToDefinedTable = class(TgdcTableToTable)
-  protected
-    procedure CreateRelationSQL(Scripts: TSQLProcessList); override;
-
+  TgdcInheritedTable = class(TgdcTableToTable)
   public
     class function GetPrimaryFieldName: String; override;
 
@@ -487,7 +482,6 @@ type
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetListFieldExtended(const ASubType: TgdcSubType): String; override;
-    class function GetKeyField(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
 
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
@@ -560,7 +554,6 @@ type
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
-    class function GetKeyField(const ASubType: TgdcSubType): String; override;
     class function GetSubSetList: String; override;
 
     // Список полей, которые не надо сохранять в поток.
@@ -597,7 +590,6 @@ type
 
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
-    class function GetKeyField(const ASubType: TgdcSubType): String; override;
 
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
@@ -652,7 +644,6 @@ type
 
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
-    class function GetKeyField(const ASubType: TgdcSubType): String; override;
 
     class function GetSubSetList: String; override;
 
@@ -701,7 +692,6 @@ type
 
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
-    class function GetKeyField(const ASubType: TgdcSubType): String; override;
 
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
@@ -752,7 +742,6 @@ type
 
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
-    class function GetKeyField(const ASubType: TgdcSubType): String; override;
 
     class function GetSubSetList: String; override;
 
@@ -793,7 +782,6 @@ type
 
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
-    class function GetKeyField(const ASubType: TgdcSubType): String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
 
@@ -806,6 +794,7 @@ type
   EgdcIBError = class(Exception);
 
   procedure Register;
+
   function GetKeyFieldName(const ARelationName: String): String;
   function GetTableTypeByName(const ARelationName: String): TgdcTableType;
   function GetDefValueInQuotes(const DefaultValue: String): String;
@@ -1226,11 +1215,6 @@ begin
   {M}      ClearMacrosStack2('TGDCFIELD', 'GETFROMCLAUSE', KEYGETFROMCLAUSE);
   {M}  end;
   {END MACRO}
-end;
-
-class function TgdcField.GetKeyField(const ASubType: TgdcSubType): String;
-begin
-  Result := 'ID';
 end;
 
 class function TgdcField.GetListField(const ASubType: TgdcSubType): String;
@@ -1936,7 +1920,7 @@ begin
     if FieldByName('relationtype').AsString = 'T' then
     begin
       case GetTableTypeByName(FieldByName('relationname').AsString) of
-        ttTableToDefinedTable: CE := gdClassList.Get(TgdBaseEntry, 'TgdcTableToDefinedTable', '');
+        ttInheritedTable:      CE := gdClassList.Get(TgdBaseEntry, 'TgdcInheritedTable', '');
         ttTableToTable:        CE := gdClassList.Get(TgdBaseEntry, 'TgdcTableToTable', '');
         ttSimpleTable:         CE := gdClassList.Get(TgdBaseEntry, 'TgdcSimpleTable', '');
         ttTree:                CE := gdClassList.Get(TgdBaseEntry, 'TgdcTreeTable', '');
@@ -1968,11 +1952,6 @@ begin
 
   Result.SubType := SubType;
   FindInheritedSubType(Result);
-end;
-
-class function TgdcRelation.GetKeyField(const ASubType: TgdcSubType): String;
-begin
-  Result := 'id';
 end;
 
 class function TgdcRelation.GetListField(const ASubType: TgdcSubType): String;
@@ -2731,7 +2710,7 @@ begin
   if (sLoadFromStream in BaseState) and (not IsUserDefined) then
     exit;
 
-//Только для пользовательских таблиц!!!!!
+  //Только для пользовательских таблиц!!!!!
   if (AnsiPos(UserPrefix, AnsiUpperCase(FieldByName('relationname').AsString)) <> 1)
   then
     FieldByName('relationname').AsString := UserPrefix +
@@ -3915,12 +3894,6 @@ begin
   {END MACRO}
 end;
 
-class function TgdcRelationField.GetKeyField(
-  const ASubType: TgdcSubType): String;
-begin
-  Result := 'ID';
-end;
-
 class function TgdcRelationField.GetListField(
   const ASubType: TgdcSubType): String;
 begin
@@ -4730,7 +4703,7 @@ begin
     case TblType of
       ttDocument, ttDocumentLine, ttInvSimple,
       ttInvFeature, ttInvInvent, ttInvTransfrom: Result := 'DOCUMENTKEY';
-      ttTableToDefinedTable: Result := 'INHERITEDKEY';
+      ttInheritedTable: Result := 'INHERITEDKEY';
       else Result := 'ID';
     end;
   end;
@@ -4791,7 +4764,7 @@ begin
     exit;
 
   if R.RelationFields.ByFieldName('INHERITEDKEY') <> nil then
-    Result := ttTableToDefinedTable
+    Result := ttInheritedTable
   else if R.IsLBRBTreeRelation then
     Result := ttIntervalTree
   else if R.IsStandartTreeRelation then
@@ -6039,11 +6012,6 @@ begin
   {END MACRO}
 end;
 
-class function TgdcStoredProc.GetKeyField(const ASubType: TgdcSubType): String;
-begin
-  Result := 'id';
-end;
-
 class function TgdcStoredProc.GetListField(const ASubType: TgdcSubType): String;
 begin
   Result := 'procedurename';
@@ -6399,7 +6367,6 @@ begin
       'Кто модифицировал', 'DINTKEY', 'Кто модифицировал', 'Кто модифицировал',
       'L', '20', '1', '0');
   end;
-
 end;
 
 procedure TgdcSimpleTable._DoOnNewRecord;
@@ -6464,7 +6431,6 @@ begin
     'ON DELETE CASCADE ON UPDATE CASCADE )',
     [FieldByName('relationname').AsString]
   );
-
 end;
 
 procedure TgdcTreeTable.MakePredefinedRelationFields;
@@ -7293,8 +7259,10 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-    MetaDataAlter;
-    inherited;
+
+  MetaDataAlter;
+  inherited;
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCEXCEPTION', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -7442,11 +7410,6 @@ begin
   {M}      ClearMacrosStack2('TGDCEXCEPTION', 'GETFROMCLAUSE', KEYGETFROMCLAUSE);
   {M}  end;
   {END MACRO}
-end;
-
-class function TgdcException.GetKeyField(const ASubType: TgdcSubType): String;
-begin
-  Result := 'id';
 end;
 
 class function TgdcException.GetListField(const ASubType: TgdcSubType): String;
@@ -7690,11 +7653,6 @@ begin
   finally
     FSQL.Free;
   end;
-end;
-
-class function TgdcIndex.GetKeyField(const ASubType: TgdcSubType): String;
-begin
-  Result := 'id';
 end;
 
 class function TgdcIndex.GetListField(
@@ -8564,8 +8522,8 @@ begin
     raise Exception.Create('Введите наименование!');
   end;
 
- //  Имя индекса должно содержать только
- //  английские символы
+  //  Имя индекса должно содержать только
+  //  английские символы
   S := Trim(AnsiUpperCase(FieldByName('triggername').AsString));
    for I := 1 to Length(S) do
      if not (S[I] in ['A'..'Z', '_', '0'..'9', '$']) then
@@ -8647,7 +8605,6 @@ begin
   finally
     FSQL.Free;
   end;
-
 end;
 
 function TgdcTrigger.GetFromClause(const ARefresh: Boolean = False): String;
@@ -8694,11 +8651,6 @@ begin
   {M}      ClearMacrosStack2('TGDCTRIGGER', 'GETFROMCLAUSE', KEYGETFROMCLAUSE);
   {M}  end;
   {END MACRO}
-end;
-
-class function TgdcTrigger.GetKeyField(const ASubType: TgdcSubType): String;
-begin
-  Result := 'id';
 end;
 
 class function TgdcTrigger.GetListField(const ASubType: TgdcSubType): String;
@@ -9242,20 +9194,14 @@ begin
   end;
 end;
 
-{ TgdcTableToDefinedTable }
+{ TgdcInheritedTable }
 
-procedure TgdcTableToDefinedTable.CreateRelationSQL(Scripts: TSQLProcessList);
-begin
-  inherited;
-  //atDatabase.NotifyMultiConnectionTransaction;
-end;
-
-class function TgdcTableToDefinedTable.GetPrimaryFieldName: String;
+class function TgdcInheritedTable.GetPrimaryFieldName: String;
 begin
   Result := 'INHERITEDKEY';
 end;
 
-procedure TgdcTableToDefinedTable.MakePredefinedRelationFields;
+procedure TgdcInheritedTable.MakePredefinedRelationFields;
 begin
   TestRelationName;
 
@@ -9625,8 +9571,8 @@ begin
     Prnt := gdClassList.Get(TgdBaseEntry, 'TgdcAttrUserDefinedLBRBTree')
   else if Self is TgdcTreeTable then
     Prnt := gdClassList.Get(TgdBaseEntry, 'TgdcAttrUserDefinedTree')
-  else if Self is TgdcTableToDefinedTable then
-    Prnt := gdClassList.FindByRelation((Self as TgdcTableToDefinedTable).GetReferenceName)
+  else if Self is TgdcInheritedTable then
+    Prnt := gdClassList.FindByRelation((Self as TgdcInheritedTable).GetReferenceName)
   else if (Self is TgdcSimpleTable) or (Self is TgdcPrimeTable) or (Self is TgdcTableToTable) then
     Prnt := gdClassList.Get(TgdBaseEntry, 'TgdcAttrUserDefined');
 
@@ -10028,11 +9974,6 @@ begin
   {M}      ClearMacrosStack2('TGDCGENERATOR', 'GETFROMCLAUSE', KEYGETFROMCLAUSE);
   {M}  end;
   {END MACRO}
-end;
-
-class function TgdcGenerator.GetKeyField(const ASubType: TgdcSubType): String;
-begin
-  Result := 'id';
 end;
 
 class function TgdcGenerator.GetListField(const ASubType: TgdcSubType): String;
@@ -10615,12 +10556,6 @@ begin
   {END MACRO}
 end;
 
-class function TgdcCheckConstraint.GetKeyField(
-  const ASubType: TgdcSubType): String;
-begin
-  Result := 'id';
-end;
-
 class function TgdcCheckConstraint.GetListField(
   const ASubType: TgdcSubType): String;
 begin
@@ -10819,7 +10754,7 @@ initialization
   RegisterGdcClass(TgdcPrimeTable, 'Таблица с идентификатором');
   RegisterGdcClass(TgdcUnknownTable, 'Таблица');
   RegisterGdcClass(TgdcTableToTable, 'Таблица, связанная 1-к-1');
-  RegisterGdcClass(TgdcTableToDefinedTable, 'Наследованная таблица');
+  RegisterGdcClass(TgdcInheritedTable, 'Наследованная таблица');
   RegisterGdcClass(TgdcTreeTable, 'Простое дерево');
   RegisterGdcClass(TgdcLBRBTreeTable, 'Интервальное дерево');
   RegisterGdcClass(TgdcView, 'Представление');
@@ -10849,7 +10784,7 @@ finalization
   UnregisterGdcClass(TgdcPrimeTable);
   UnregisterGdcClass(TgdcUnknownTable);
   UnregisterGdcClass(TgdcTableToTable);
-  UnregisterGdcClass(TgdcTableToDefinedTable);
+  UnregisterGdcClass(TgdcInheritedTable);
   UnregisterGdcClass(TgdcTreeTable);
   UnregisterGdcClass(TgdcLBRBTreeTable);
   UnregisterGdcClass(TgdcView);

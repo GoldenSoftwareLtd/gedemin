@@ -1721,7 +1721,7 @@ begin
 
   iblcLineTable.Enabled := iblcLineTable.ItemIndex >= 0;
 
-  if iblcLineTable.gdClassName <> 'TgdcInheritedTable' then
+  if iblcLineTable.gdClassName <> 'TgdcInheritedDocumentTable' then
     case cbTemplate.ItemIndex of
     0: iblcLineTable.gdClassName := 'TgdcInvSimpleDocumentLineTable';
     1: iblcLineTable.gdClassName := 'TgdcInvFeatureDocumentLineTable';
