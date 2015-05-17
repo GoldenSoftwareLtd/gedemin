@@ -727,8 +727,8 @@ begin
       edEnglishName.Text := DE.HeaderRelName;
     end;
 
-    iblcHeaderTable.gdClassName := 'TgdcInheritedTable';
-    iblcLineTable.gdClassName := 'TgdcInheritedTable';
+    iblcHeaderTable.gdClassName := 'TgdcInheritedDocumentTable';
+    iblcLineTable.gdClassName := 'TgdcInheritedDocumentTable';
   end;
 
   if gdcObject.State = dsEdit then

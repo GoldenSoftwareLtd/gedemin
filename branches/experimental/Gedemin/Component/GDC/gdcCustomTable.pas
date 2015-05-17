@@ -27,7 +27,7 @@ type
   published
   end;
 
-  TgdcInheritedTable = class(TgdcBaseDocumentTable)
+  TgdcInheritedDocumentTable = class(TgdcBaseDocumentTable)
   private
      function CreateDocumentTable: String; override;
 
@@ -37,7 +37,6 @@ type
 
   TgdcDocumentTable = class(TgdcBaseDocumentTable)
   end;
-
 
   TgdcBaseDocumentLineTable = class(TgdcBaseDocumentTable)
   protected
@@ -162,9 +161,9 @@ begin
 
 end;
 
-{ TgdcInheritedTable }
+{ TgdcInheritedDocumentTable }
 
-function TgdcInheritedTable.CreateDocumentTable: String;
+function TgdcInheritedDocumentTable.CreateDocumentTable: String;
 begin
   Result := Format(
     'CREATE TABLE %s '#13#10 +
@@ -175,7 +174,7 @@ begin
     [FieldByName('relationname').AsString]);
 end;
 
-procedure TgdcInheritedTable.MakePredefinedRelationFields;
+procedure TgdcInheritedDocumentTable.MakePredefinedRelationFields;
 begin
   if Assigned(gdcTableField) then
     NewField('DOCUMENTKEY',
@@ -902,7 +901,7 @@ end;
 initialization
   RegisterGdcClass(TgdcCustomTable);
   RegisterGdcClass(TgdcBaseDocumentTable);
-  RegisterGdcClass(TgdcInheritedTable);
+  RegisterGdcClass(TgdcInheritedDocumentTable);
   RegisterGdcClass(TgdcDocumentTable);
   RegisterGdcClass(TgdcBaseDocumentLineTable);
   RegisterGdcClass(TgdcDocumentLineTable);
@@ -914,7 +913,7 @@ initialization
 finalization
   UnregisterGdcClass(TgdcCustomTable);
   UnregisterGdcClass(TgdcBaseDocumentTable);
-  UnRegisterGdcClass(TgdcInheritedTable);
+  UnRegisterGdcClass(TgdcInheritedDocumentTable);
   UnregisterGdcClass(TgdcDocumentTable);
   UnregisterGdcClass(TgdcDocumentLineTable);
   UnregisterGdcClass(TgdcBaseDocumentLineTable);

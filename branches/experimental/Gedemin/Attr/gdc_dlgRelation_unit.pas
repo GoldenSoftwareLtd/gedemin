@@ -816,9 +816,9 @@ procedure Tgdc_dlgRelation.BeforePost;
   var
     C: TgdcFullClass;
   begin
-    if gdcObject is TgdcTableToDefinedTable then
+    if gdcObject is TgdcInheritedTable then
     begin
-      C := GetBaseClassForRelation((gdcObject as TgdcTableToDefinedTable).GetReferenceName);
+      C := GetBaseClassForRelation((gdcObject as TgdcInheritedTable).GetReferenceName);
       if C.gdClass = nil then
         raise Exception.Create('Unregistered relation.');
       Result := C.gdClass.ClassName;
@@ -879,9 +879,9 @@ begin
   {M}    end;
   {END MACRO}
 
-  if gdcObject is TgdcTableToDefinedTable then
+  if gdcObject is TgdcInheritedTable then
   begin
-//    if AnsiPos('USR$', (gdcObject as TgdcTableToDefinedTable).GetReferenceName) = 0 then
+//    if AnsiPos('USR$', (gdcObject as TgdcInheritedTable).GetReferenceName) = 0 then
 //      raise Exception.Create('Ссылка может быть только на пользовательскую таблицу.');
   end;
 
@@ -1295,7 +1295,7 @@ begin
        (gdcObject is TgdcTreeTable) or
        (gdcObject is TgdcLBRBTreeTable) or
        (gdcObject is TgdcTableToTable) or
-       (gdcObject is TgdcTableToDefinedTable)
+       (gdcObject is TgdcInheritedTable)
       )
 
   else
@@ -1326,7 +1326,7 @@ begin
          (gdcObject is TgdcTreeTable) or
          (gdcObject is TgdcLBRBTreeTable) or
          (gdcObject is TgdcTableToTable)  or
-         (gdcObject is TgdcTableToDefinedTable)
+         (gdcObject is TgdcInheritedTable)
         );
     end;
   end;
@@ -1353,7 +1353,7 @@ begin
   //Для редактирования нескольких веток запрещаем изменении ветки исследователя
   iblcExplorerBranch.Enabled := not (sMultiple in gdcObject.BaseState);
 
-  if (gdcObject is TgdcTableToTable) or (gdcObject is TgdcTableToDefinedTable) then
+  if (gdcObject is TgdcTableToTable) or (gdcObject is TgdcInheritedTable) then
   begin
     lblReference.Visible := True;
     ibcmbReference.Visible := True;
@@ -1557,7 +1557,7 @@ begin
   Result := inherited TestCorrect;
 
   //Проверка на возможность создания связанной таблицы (наследование)
-  if Result and (gdcObject.ClassType = TgdcTableToDefinedTable) then
+  if Result and (gdcObject.ClassType = TgdcInheritedTable) then
   begin
     Result := False;
     if ibcmbReference.CurrentKeyInt > -1 then
