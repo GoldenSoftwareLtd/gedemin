@@ -264,7 +264,7 @@ type
 
     class procedure RegisterMethod;
     function GetChosenIDInOrder: OleVariant;
-    procedure DoOnDescendantClick (Sender: TObject);
+    procedure DoOnDescendantClick(Sender: TObject);
 
   protected
     FgdcChooseObject: TgdcBase; // объект, который хранит выбранные записи
@@ -330,6 +330,8 @@ type
 
     constructor CreateUser(AnOwner: TComponent; const AFormName: String; const ASubType: String = ''; const AForEdit: Boolean = False); override;
     destructor Destroy; override;
+
+    procedure Setup(AnObject: TObject); override;
 
     //
     procedure SaveSettings; override;
@@ -761,8 +763,6 @@ begin
 end;
 
 procedure Tgdc_frmG.SetGdcObject(const Value: TgdcBase);
-var
-  OL: TObjectList;
 begin
   if FgdcObject <> Value then
   begin
@@ -773,19 +773,6 @@ begin
     begin
       FgdcObject.OnFilterChanged := DoOnFilterChanged;
       DoOnFilterChanged(nil);
-
-      OL := TObjectList.Create(False);
-      try
-        if FgdcObject.GetChildrenClass(FgdcObject.SubType, OL, False) then
-        begin
-          TCrTBItem(tbiNew).ItemStyle :=
-            TCrTBItem(tbiNew).ItemStyle + [tbisSubMenu, tbisSubitemsEditable, tbisCombo];
-          tbiNew.OnPopup := tbiNewPopup;
-        end;
-      finally
-        OL.Free;
-      end;
-      
     end;
   end;
 end;
@@ -930,9 +917,6 @@ end;
 
 destructor Tgdc_frmG.Destroy;
 begin
-//т.к. для Choose у нас форма создается, а потом уничтожается
-//будем уничтожать объект в Destroy
-//  FgdcChooseObject.Free;
   if FInChoose then
     FgdcChooseObject.Free;
 
@@ -947,6 +931,56 @@ begin
   PreviousSelectedID.Free;
   FgdcLink.Free;
   inherited;
+end;
+
+procedure Tgdc_frmG.Setup(AnObject: TObject);
+  {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+  OL: TObjectList;
+begin
+  {@UNFOLD MACRO INH_CRFORM_SETUP('TGDC_FRMG', 'SETUP', KEYSETUP)}
+  {M}try
+  {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
+  {M}  begin
+  {M}    SetFirstMethodAssoc('TGDC_FRMG', KEYSETUP);
+  {M}    tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYSETUP]);
+  {M}    if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDC_FRMG') = -1) then
+  {M}    begin
+  {M}      Params := VarArrayOf([GetGdcInterface(Self), GetGdcInterface(AnObject)]);
+  {M}      if gdcMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDC_FRMG',
+  {M}        'SETUP', KEYSETUP, Params, LResult) then exit;
+  {M}    end else
+  {M}      if tmpStrings.LastClass.gdClassName <> 'TGDC_FRMG' then
+  {M}      begin
+  {M}        Inherited;
+  {M}        Exit;
+  {M}      end;
+  {M}  end;
+  {END MACRO}
+
+  inherited Setup(AnObject);
+
+  OL := TObjectList.Create(False);
+  try
+    if (gdcObject <> nil) and gdcObject.GetChildrenClass(gdcObject.SubType, OL, False) then
+    begin
+      TCrTBItem(tbiNew).ItemStyle :=
+        TCrTBItem(tbiNew).ItemStyle + [tbisSubMenu, tbisSubitemsEditable, tbisCombo];
+      tbiNew.OnPopup := tbiNewPopup;
+    end;
+  finally
+    OL.Free;
+  end;
+
+  {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_FRMG', 'SETUP', KEYSETUP)}
+  {M}finally
+  {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
+  {M}    ClearMacrosStack('TGDC_FRMG', 'SETUP', KEYSETUP);
+  {M}end;
+  {END MACRO}
 end;
 
 procedure Tgdc_frmG.actSearchMainCloseExecute(Sender: TObject);
