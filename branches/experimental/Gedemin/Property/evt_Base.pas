@@ -147,8 +147,6 @@ type
     FIsOldEventSet: Boolean;
     FObject: TEventObject;
     FEventID: Integer;
-    FIsParental: Boolean;
-    FParentIndex: Integer;
     function GetDelphiParamString(const LocParamCount: Integer;
       const LocParams: array of Char; const AnLang: TFuncParamLang;
       out AnResultParam: String): String;
@@ -167,7 +165,6 @@ type
     property IsOldEventSet: Boolean read FIsOldEventSet default False;
     function GetObjectName: String; override;
 
-    property ParentIndex: Integer read FParentIndex write FParentIndex default -1;
   public
     procedure Assign(ASource: TEventItem);
     function AutoFunctionName: String;
@@ -178,7 +175,6 @@ type
     property EventData: PTypeData read FEventData write FEventData;
     property EventObject: TEventObject read FObject write FObject;
     property EventID: Integer read FEventID write SetEventID;
-    property IsParental: Boolean read FIsParental write FIsParental default False;
   end;
 
   // Класс для хранения списка присвоенных ивентов
@@ -228,7 +224,7 @@ type
     FObjectRef: TComponent;
     // Список родителей по SubType
     FParentObjectsBySubType: TEventObjectList;
-    // Индекс текущего родителя по SubType (По умолчению -1)
+    // Индекс текущего родителя по SubType
     FCurrIndexParentObject: integer;
 
 //    procedure SetHasSpecEvent(const Value: Boolean);
@@ -242,6 +238,8 @@ type
 
     procedure SaveToStream(AnStream: TStream);
     procedure LoadFromStream(AnStream: TStream);
+
+    function FindRightEvent(AnEventName: String): TEventItem;
 
     property ObjectClassType: TClass read FObjectClassType write FObjectClassType;
     property ObjectKey: Integer read FObjectKey write FObjectKey;
@@ -567,6 +565,43 @@ type
     procedure ResetAllEvents(ObjectList: TEventObjectList);
     function SetParentEventObjectsBySubType(AnComponent: TComponent;
       AnEventObject: TEventObject): boolean;
+
+    ////////////////////////////////////////////////////////////////
+
+
+    procedure ExecuteNotifyEvent(Sender: TObject;
+      const AnEventName: String; GenerateException: Boolean = True);
+
+    procedure ExecuteDataSetNotifyEvent(DataSet: TDataSet;
+      const AnEventName: String);
+
+    procedure ExecuteEndDragEvent(Sender, Target: TObject; X, Y: Integer;
+      const AnEventName: String);
+
+    procedure ExecuteActionEvent(Action: TBasicAction; var Handled: Boolean;
+      const AnEventName: String);
+
+    procedure ExecuteDataSetErrorEvent(DataSet: TDataSet; E: EDatabaseError;
+      var Action: TDataAction; const AnEventName: String);
+
+    procedure ExecuteFilterRecordEvent(DataSet: TDataSet; var Accept: Boolean;
+      const AnEventName: String);
+
+    procedure ExecuteOnCreateNewObject(Sender: TObject; ANewObject: TgdcBase;
+      const AnEventName: String);
+
+    procedure ExecuteMouseEvent(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer; const AnEventName: String);
+
+    procedure ExecuteMouseWheelUpDownEvent(Sender: TObject; Shift: TShiftState;
+      MousePos: TPoint; var Handled: Boolean; const AnEventName: String);
+
+    procedure ExecuteKeyEvent(Sender: TObject; var Key: Word;
+      Shift: TShiftState; const AnEventName: String);
+
+    procedure ExecutegdcOnGetSQLClause(Sender: TObject; var Clause: String;
+      const AnEventName: String);
+
   protected
     procedure Notification(AComponent: TComponent; Operation: TOperation); override;
 
@@ -1270,1545 +1305,194 @@ end;
 { TEventControl }
 
 procedure TEventControl.AfterCancel(DataSet: TDataSet);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TDataSetNotifyEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(DataSet as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(DataSet) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cAfterCancelEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cAfterCancelEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cAfterCancelEventName);
-        end;
-      end;
-
-    // Выполнение события
-    ExecuteEvent(LEventOfObject, LParams, DataSet, cAfterCancelEventName);
-    
-    {if Assigned(LEventOfObject.OldEvent.Code) then
-    begin
-      LEvent := @LEventOfObject.OldEvent.Code;
-      LEvent^(DataSet);
-    end;
-    }
-    finally
-      if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-             TDataSetNotifyEvent(LNotifyEvent^)(DataSet);
-        end;
-    end;
-
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteDataSetNotifyEvent(DataSet, cAfterCancelEventName);
 end;
 
 procedure TEventControl.AfterClose(DataSet: TDataSet);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TDataSetNotifyEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(DataSet as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(DataSet) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cAfterCloseEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cAfterCloseEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cAfterCloseEventName);
-        end;
-      end;
-
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, DataSet, cAfterCloseEventName);
-    
-    {if Assigned(LEventOfObject.OldEvent.Code) then
-    begin
-      LEvent := @LEventOfObject.OldEvent.Code;
-      LEvent^(DataSet);
-    end;
-    }
-
-    finally
-      if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            TDataSetNotifyEvent(LNotifyEvent^)(DataSet);
-        end;
-    end;
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteDataSetNotifyEvent(DataSet, cAfterCloseEventName);
 end;
 
 procedure TEventControl.AfterDatabaseDisconnect(Sender: TObject);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TNotifyEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cAfterDatabaseDisconnectEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cAfterDatabaseDisconnectEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cAfterDatabaseDisconnectEventName);
-        end;
-      end;
-
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cAfterDatabaseDisconnectEventName);
-    
-    {if Assigned(LEventOfObject.OldEvent.Code) then
-    begin
-      LEvent := @LEventOfObject.OldEvent.Code;
-      LEvent^(Sender);
-    end;
-    }
-    finally
-      if ResetIndex then
-      begin
-        if Assigned(TempEventObject)  then
-          TempEventObject.CurrIndexParentObject := -1;
-        //Выполнить метод Delphi
-        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-          LNotifyEvent^(Sender);
-      end;
-    end;
-
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteNotifyEvent(Sender, cAfterDatabaseDisconnectEventName);
 end;
 
 procedure TEventControl.AfterDelete(DataSet: TDataSet);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TDataSetNotifyEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(DataSet as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(DataSet) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cAfterDeleteEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cAfterDeleteEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cAfterDeleteEventName);
-        end;
-      end;
-
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, DataSet, cAfterDeleteEventName);
-    
-    {if Assigned(LEventOfObject.OldEvent.Code) then
-    begin
-      LEvent := @LEventOfObject.OldEvent.Code;
-      LEvent^(DataSet);
-    end;
-    }
-    finally
-      if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            TDataSetNotifyEvent(LNotifyEvent^)(DataSet);
-        end;
-    end;
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteDataSetNotifyEvent(DataSet, cAfterDeleteEventName);
 end;
 
 procedure TEventControl.AfterEdit(DataSet: TDataSet);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TDataSetNotifyEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(DataSet as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(DataSet) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cAfterEditEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cAfterEditEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cAfterEditEventName);
-        end;
-      end;
-
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, DataSet, cAfterEditEventName);
-
-    finally
-      if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            TDataSetNotifyEvent(LNotifyEvent^)(DataSet);
-        end;
-    end;
-
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteDataSetNotifyEvent(DataSet, cAfterEditEventName);
 end;
 
 procedure TEventControl.AfterInsert(DataSet: TDataSet);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TDataSetNotifyEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(DataSet as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(DataSet) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cAfterInsertEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cAfterInsertEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cAfterInsertEventName);
-        end;
-      end;
-
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, DataSet, cAfterInsertEventName);
-    
-    {if Assigned(LEventOfObject.OldEvent.Code) then
-    begin
-      LEvent := @LEventOfObject.OldEvent.Code;
-      LEvent^(DataSet);
-    end;
-    }
-    finally
-      if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            TDataSetNotifyEvent(LNotifyEvent^)(DataSet);
-        end;
-    end;
-
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteDataSetNotifyEvent(DataSet, cAfterInsertEventName);
 end;
 
 procedure TEventControl.AfterOpen(DataSet: TDataSet);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TDataSetNotifyEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(DataSet as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(DataSet) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cAfterOpenEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cAfterOpenEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cAfterOpenEventName);
-        end;
-      end;
-
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, DataSet, cAfterOpenEventName);
-    
-    {if Assigned(LEventOfObject.OldEvent.Code) then
-    begin
-      LEvent := @LEventOfObject.OldEvent.Code;
-      LEvent^(DataSet);
-    end;
-    }
-    finally
-      if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            TDataSetNotifyEvent(LNotifyEvent^)(DataSet);
-        end;
-    end;
-
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteDataSetNotifyEvent(DataSet, cAfterOpenEventName);
 end;
 
 procedure TEventControl.AfterPost(DataSet: TDataSet);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TDataSetNotifyEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(DataSet as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(DataSet) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cAfterPostEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cAfterPostEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cAfterPostEventName);
-        end;
-      end;
-
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, DataSet, cAfterPostEventName);
-
-    finally
-      if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            TDataSetNotifyEvent(LNotifyEvent^)(DataSet);
-        end;
-    end;
-
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteDataSetNotifyEvent(DataSet, cAfterPostEventName);
 end;
 
 procedure TEventControl.AfterRefresh(DataSet: TDataSet);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TDataSetNotifyEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(DataSet as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(DataSet) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cAfterRefreshEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cAfterRefreshEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cAfterRefreshEventName);
-        end;
-      end;
-
-    // Выполнение события
-    ExecuteEvent(LEventOfObject, LParams, DataSet, cAfterRefreshEventName);
-
-    finally
-      if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            TDataSetNotifyEvent(LNotifyEvent^)(DataSet);
-        end;
-    end;
-    
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteDataSetNotifyEvent(DataSet, cAfterRefreshEventName);
 end;
 
 procedure TEventControl.AfterScroll(DataSet: TDataSet);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TDataSetNotifyEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(DataSet as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(DataSet) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cAfterScrollEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cAfterScrollEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cAfterScrollEventName);
-        end;
-      end;
-
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, DataSet, cAfterScrollEventName);
-
-    finally
-      if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            TDataSetNotifyEvent(LNotifyEvent^)(DataSet);
-        end;
-    end;
-    
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteDataSetNotifyEvent(DataSet, cAfterScrollEventName);
 end;
 
 procedure TEventControl.AfterShowDialog(Sender: TObject;
   DlgForm: TCustomForm; IsOk: Boolean);
 var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TgdcDoAfterShowDialog;
+  EO: TEventObject;
+  EI: TEventItem;
   LParams: Variant;
-  TempEventObject: TEventObject;
   ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
+  NE: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
+  EO := FEventObjectList.FindAllObject(Sender as TComponent);
+
+  if EO <> nil then
   begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-      GetGdcOLEObject(DlgForm) as IDispatch, IsOk]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cAfterShowDialogEventName);
+    ResetIndex := EO.CurrIndexParentObject = -1;
+
+    NE := @EO.EventList.Find(cAfterShowDialogEventName).OldEvent.Code;
 
     try
-      If Assigned(LEventOfObject) then
+      EI := EO.FindRightEvent(cAfterShowDialogEventName);
+
+      if EI <> nil then
       begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cAfterShowDialogEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cAfterShowDialogEventName);
-        end;
-      end;
+        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+          GetGdcOLEObject(DlgForm) as IDispatch, IsOk]);
 
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cAfterShowDialogEventName);
+        ExecuteEvent(EI, LParams, Sender, cAfterShowDialogEventName);
 
+      end
+      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
+        TgdcDoAfterShowDialog(NE^)(Sender, DlgForm, IsOk);
     finally
       if ResetIndex then
-      begin
-        if Assigned(TempEventObject)  then
-          TempEventObject.CurrIndexParentObject := -1;
-        //Выполнить метод Delphi
-        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-          TgdcDoAfterShowDialog(LNotifyEvent^)(Sender, DlgForm, IsOk);
-      end;
+        EO.CurrIndexParentObject := -1;
     end;
-
-  end else
+  end
+  else
     raise Exception.Create(cMsgCantFindObject);
 end;
 
 procedure TEventControl.AfterTransactionEnd(Sender: TObject);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TNotifyEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cAfterTransactionEndEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cAfterTransactionEndEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cAfterTransactionEndEventName);
-        end;
-      end;
-
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cAfterTransactionEndEventName);
-
-    finally
-      if ResetIndex then
-      begin
-        if Assigned(TempEventObject)  then
-          TempEventObject.CurrIndexParentObject := -1;
-        //Выполнить метод Delphi
-        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-          LNotifyEvent^(Sender);
-      end;
-    end;
-    
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteNotifyEvent(Sender, cAfterTransactionEndEventName);
 end;
 
 procedure TEventControl.BeforeCancel(DataSet: TDataSet);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TDataSetNotifyEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(DataSet as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(DataSet) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cBeforeCancelEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cBeforeCancelEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cBeforeCancelEventName);
-        end;
-      end;
-
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, DataSet, cBeforeCancelEventName);
-
-    finally
-      if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            TDataSetNotifyEvent(LNotifyEvent^)(DataSet);
-        end;
-    end;
-
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteDataSetNotifyEvent(DataSet, cBeforeCancelEventName);
 end;
 
 procedure TEventControl.BeforeClose(DataSet: TDataSet);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TDataSetNotifyEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(DataSet as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(DataSet) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cBeforeCloseEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cBeforeCloseEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cBeforeCloseEventName);
-        end;
-      end;
-
-    // Выполнение события
-    ExecuteEvent(LEventOfObject, LParams, DataSet, cBeforeCloseEventName);
-
-    finally
-      if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            TDataSetNotifyEvent(LNotifyEvent^)(DataSet);
-        end;
-    end;
-    
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteDataSetNotifyEvent(DataSet, cBeforeCloseEventName);
 end;
 
 procedure TEventControl.BeforeDatabaseDisconnect(Sender: TObject);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TNotifyEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cBeforeDatabaseDisconnectEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cBeforeDatabaseDisconnectEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cBeforeDatabaseDisconnectEventName);
-        end;
-      end;
-
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cBeforeDatabaseDisconnectEventName);
-
-    finally
-      if ResetIndex then
-      begin
-        if Assigned(TempEventObject)  then
-          TempEventObject.CurrIndexParentObject := -1;
-        //Выполнить метод Delphi
-        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-          LNotifyEvent^(Sender);
-      end;
-    end;
-    
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteNotifyEvent(Sender, cBeforeDatabaseDisconnectEventName);
 end;
 
 procedure TEventControl.BeforeDelete(DataSet: TDataSet);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TDataSetNotifyEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(DataSet as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(DataSet) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cBeforeDeleteEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cBeforeDeleteEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cBeforeDeleteEventName);
-        end;
-      end;
-
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, DataSet, cBeforeDeleteEventName);
-
-    finally
-      if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            TDataSetNotifyEvent(LNotifyEvent^)(DataSet);
-        end;
-    end;
-    
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteDataSetNotifyEvent(DataSet, cBeforeDeleteEventName);
 end;
 
 procedure TEventControl.BeforeEdit(DataSet: TDataSet);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TDataSetNotifyEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(DataSet as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(DataSet) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cBeforeEditEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cBeforeEditEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cBeforeEditEventName);
-        end;
-      end;
-
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, DataSet, cBeforeEditEventName);
-
-    finally
-      if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            TDataSetNotifyEvent(LNotifyEvent^)(DataSet);
-        end;
-    end;
-
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteDataSetNotifyEvent(DataSet, cBeforeEditEventName);
 end;
 
 procedure TEventControl.BeforeInsert(DataSet: TDataSet);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TDataSetNotifyEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(DataSet as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(DataSet) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cBeforeInsertEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cBeforeInsertEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cBeforeInsertEventName);
-        end;
-      end;
-
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, DataSet, cBeforeInsertEventName);
-
-    finally
-      if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            TDataSetNotifyEvent(LNotifyEvent^)(DataSet);
-        end;
-    end;
-    
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteDataSetNotifyEvent(DataSet, cBeforeInsertEventName);
 end;
 
 procedure TEventControl.BeforeOpen(DataSet: TDataSet);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TDataSetNotifyEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(DataSet as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(DataSet) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cBeforeOpenEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cBeforeOpenEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cBeforeOpenEventName);
-        end;
-      end;
-
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, DataSet, cBeforeOpenEventName);
-
-    finally
-      if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            TDataSetNotifyEvent(LNotifyEvent^)(DataSet);
-        end;
-    end;
-    
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteDataSetNotifyEvent(DataSet, cBeforeOpenEventName);
 end;
 
 procedure TEventControl.BeforePost(DataSet: TDataSet);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TDataSetNotifyEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(DataSet as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(DataSet) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cBeforePostEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cBeforePostEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cBeforePostEventName);
-        end;
-      end;
-
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, DataSet, cBeforePostEventName);
-
-    finally
-      if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            TDataSetNotifyEvent(LNotifyEvent^)(DataSet);
-        end;
-    end;
-    
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteDataSetNotifyEvent(DataSet, cBeforePostEventName);
 end;
 
 procedure TEventControl.BeforeScroll(DataSet: TDataSet);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TDataSetNotifyEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(DataSet as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(DataSet) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cBeforeScrollEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cBeforeScrollEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cBeforeScrollEventName);
-        end;
-      end;
-
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, DataSet, cBeforeScrollEventName);
-
-    finally
-      if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            TDataSetNotifyEvent(LNotifyEvent^)(DataSet);
-        end;
-    end;
-    
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteDataSetNotifyEvent(DataSet, cBeforeScrollEventName);
 end;
 
 procedure TEventControl.BeforeShowDialog(Sender: TObject;
   DlgForm: TCustomForm);
 var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TgdcDoBeforeShowDialog;
+  EO: TEventObject;
+  EI: TEventItem;
   LParams: Variant;
-  TempEventObject: TEventObject;
   ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
+  NE: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
+  EO := FEventObjectList.FindAllObject(Sender as TComponent);
+
+  if EO <> nil then
   begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-      GetGdcOLEObject(DlgForm) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cBeforeShowDialogEventName);
+    ResetIndex := EO.CurrIndexParentObject = -1;
+
+    NE := @EO.EventList.Find(cBeforeShowDialogEventName).OldEvent.Code;
 
     try
-      If Assigned(LEventOfObject) then
+      EI := EO.FindRightEvent(cBeforeShowDialogEventName);
+
+      if EI <> nil then
       begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cBeforeShowDialogEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cBeforeShowDialogEventName);
-        end;
-      end;
+        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+          GetGdcOLEObject(DlgForm) as IDispatch]);
 
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cBeforeShowDialogEventName);
+        ExecuteEvent(EI, LParams, Sender, cBeforeShowDialogEventName);
 
+      end
+      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
+        TgdcDoBeforeShowDialog(NE^)(Sender, DlgForm);
     finally
       if ResetIndex then
-      begin
-        if Assigned(TempEventObject)  then
-          TempEventObject.CurrIndexParentObject := -1;
-        //Выполнить метод Delphi
-        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-          TgdcDoBeforeShowDialog(LNotifyEvent^)(Sender, DlgForm);
-      end;
+        EO.CurrIndexParentObject := -1;
     end;
-    
-  end else
+  end
+  else
     raise Exception.Create(cMsgCantFindObject);
 end;
 
 procedure TEventControl.BeforeTransactionEnd(Sender: TObject);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TNotifyEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cBeforeTransactionEndEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cBeforeTransactionEndEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cBeforeTransactionEndEventName);
-        end;
-      end;
-
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cBeforeTransactionEndEventName);
-
-    finally
-      if ResetIndex then
-      begin
-        if Assigned(TempEventObject)  then
-          TempEventObject.CurrIndexParentObject := -1;
-        //Выполнить метод Delphi
-        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-          LNotifyEvent^(Sender);
-      end;
-    end;
-
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteNotifyEvent(Sender, cBeforeTransactionEndEventName);
 end;
 
 procedure TEventControl.CheckCreateForm;
 begin
   if not Assigned(frmGedeminProperty) then
   begin
-  { TODO : 
-DAlex: Если дебаггер здесь отключается, то, 
+  { TODO :
+DAlex: Если дебаггер здесь отключается, то,
 если открыт инспектор классов и есть ошибка в глобальном объекте, 
 то может появиться сообщение, что ID функции = 0.
 Если не отключение не повлечет пагубных последствий, то так нужно и оставить. }
@@ -3179,196 +1863,18 @@ begin
 end;
 
 procedure TEventControl.DatabaseDisconnected(Sender: TObject);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cDatabaseDisconnectedEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cDatabaseDisconnectedEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cDatabaseDisconnectedEventName);
-        end;
-      end;
-
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cDatabaseDisconnectedEventName);
-
-    finally
-      if ResetIndex then
-      begin
-        if Assigned(TempEventObject)  then
-          TempEventObject.CurrIndexParentObject := -1;
-        //Выполнить метод Delphi
-        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-          LNotifyEvent^(Sender);
-      end;
-    end;
-
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteNotifyEvent(Sender, cDatabaseDisconnectedEventName);
 end;
 
 procedure TEventControl.DatabaseDisconnecting(Sender: TObject);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cDatabaseDisconnectingEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cDatabaseDisconnectingEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cDatabaseDisconnectingEventName);
-        end;
-      end;
-
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cDatabaseDisconnectingEventName);
-
-    finally
-      if ResetIndex then
-      begin
-        if Assigned(TempEventObject)  then
-          TempEventObject.CurrIndexParentObject := -1;
-        //Выполнить метод Delphi
-        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-          LNotifyEvent^(Sender);
-      end;
-    end;
-
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteNotifyEvent(Sender, cDatabaseDisconnectingEventName);
 end;
 
 procedure TEventControl.DatabaseFree(Sender: TObject);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TNotifyEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cDatabaseFreeEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cDatabaseFreeEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cDatabaseFreeEventName);
-        end;
-      end;
-
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cDatabaseFreeEventName);
-
-    finally
-      if ResetIndex then
-      begin
-        if Assigned(TempEventObject)  then
-          TempEventObject.CurrIndexParentObject := -1;
-        //Выполнить метод Delphi
-        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-          LNotifyEvent^(Sender);
-      end;
-    end;
-    
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteNotifyEvent(Sender, cDatabaseFreeEventName);
 end;
 
 procedure TEventControl.DebugScriptFunction(const AFunctionKey: Integer;
@@ -3815,2010 +2321,622 @@ begin
 end;
 
 procedure TEventControl.OnActivate(Sender: TObject);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TNotifyEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cActivateEventName);
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cActivateEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cActivateEventName);
-        end;
-      end;
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cActivateEventName);
-    finally
-      if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            LNotifyEvent^(Sender);
-        end;
-    end;
-    
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteNotifyEvent(Sender, cActivateEventName);
 end;
 
 procedure TEventControl.OnAfterInitSQL(Sender: TObject;
   var SQLText: String; var isReplaceSQL: Boolean);
 var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TgdcAfterInitSQL;
+  EO: TEventObject;
+  EI: TEventItem;
   LParams: Variant;
-  TempEventObject: TEventObject;
   ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
+  NE: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-      GetVarInterface(SQLText), GetVarInterface(isReplaceSQL)]);
+  EO := FEventObjectList.FindAllObject(Sender as TComponent);
 
-    {!!!} {jkl} // Нет обратного присвоения параметров
+  if EO <> nil then
+  begin
+    ResetIndex := EO.CurrIndexParentObject = -1;
 
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cAfterInitSQLEventName);
+    NE := @EO.EventList.Find(cAfterInitSQLEventName).OldEvent.Code;
 
     try
-      If Assigned(LEventOfObject) then
+      EI := EO.FindRightEvent(cAfterInitSQLEventName);
+
+      if EI <> nil then
       begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cAfterInitSQLEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cAfterInitSQLEventName);
-        end;
-      end;
+        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+          GetVarInterface(SQLText), GetVarInterface(isReplaceSQL)]);
 
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cAfterInitSQLEventName);
-      // Обратное присвоение значений
-
-      SQLText := String(GetVarParam(LParams[1]));
-      isReplaceSQL := Boolean(GetVarParam(LParams[2]));
-
+        ExecuteEvent(EI, LParams, Sender, cAfterInitSQLEventName);
+        
+        SQLText := String(GetVarParam(LParams[1]));
+        isReplaceSQL := Boolean(GetVarParam(LParams[2]));
+      end
+      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
+        TgdcAfterInitSQL(NE^)(Sender, SQLText, isReplaceSQL);
     finally
       if ResetIndex then
-      begin
-        if Assigned(TempEventObject)  then
-          TempEventObject.CurrIndexParentObject := -1;
-        //Выполнить метод Delphi
-        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-          TgdcAfterInitSQL(LNotifyEvent^)(Sender, SQLText, isReplaceSQL);
-      end;
+        EO.CurrIndexParentObject := -1;
     end;
-
-  end else
+  end
+  else
     raise Exception.Create(cMsgCantFindObject);
 end;
 
 procedure TEventControl.OnAggregateChanged(Sender: TObject);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TNotifyEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cAggregateChangedEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cAggregateChangedEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cAggregateChangedEventName);
-        end;
-      end;
-
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cAggregateChangedEventName);
-
-    finally
-      if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            LNotifyEvent^(Sender);
-        end;
-    end;
-    
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteNotifyEvent(Sender, cAggregateChangedEventName);
 end;
 
 procedure TEventControl.OnCalcFields(DataSet: TDataSet);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TDataSetNotifyEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(DataSet as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(DataSet) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cCalcFieldsEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cCalcFieldsEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cCalcFieldsEventName);
-        end;
-      end;
-
-    // Выполнение события
-    ExecuteEvent(LEventOfObject, LParams, DataSet, cCalcFieldsEventName);
-
-    finally
-      if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            TDataSetNotifyEvent(LNotifyEvent^)(DataSet);
-        end;
-    end;
-    
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteDataSetNotifyEvent(DataSet, cCalcFieldsEventName);
 end;
 
 procedure TEventControl.OnCanResize(Sender: TObject; var NewWidth,
   NewHeight: Integer; var Resize: Boolean);
 var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TCanResizeEvent;
+  EO: TEventObject;
+  EI: TEventItem;
   LParams: Variant;
-  TempEventObject: TEventObject;
   ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
+  NE: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-     GetVarInterface(NewWidth), GetVarInterface(NewHeight), GetVarInterface(Resize)]);
+  EO := FEventObjectList.FindAllObject(Sender as TComponent);
 
-    {!!!} {jkl} // Нет обратного присвоения параметров
+  if EO <> nil then
+  begin
+    ResetIndex := EO.CurrIndexParentObject = -1;
 
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cCanResizeEventName);
+    NE := @EO.EventList.Find(cCanResizeEventName).OldEvent.Code;
+
     try
-      If Assigned(LEventOfObject) then
+      EI := EO.FindRightEvent(cCanResizeEventName);
+
+      if EI <> nil then
       begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cCanResizeEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cCanResizeEventName);
-        end;
-      end;
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cCanResizeEventName);
-      // Обратное присвоение значений
-      NewWidth := Integer(GetVarParam(LParams[1]));
-      NewHeight := Integer(GetVarParam(LParams[2]));
-      Resize := Boolean(GetVarParam(LParams[3]));
+        // Формирование массива параметров.
+        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+          GetVarInterface(NewWidth), GetVarInterface(NewHeight), GetVarInterface(Resize)]);
+        // Выполнение события
+        ExecuteEvent(EI, LParams, Sender, cCanResizeEventName);
+        // Обратное присвоение значений
+        NewWidth := Integer(GetVarParam(LParams[1]));
+        NewHeight := Integer(GetVarParam(LParams[2]));
+        Resize := Boolean(GetVarParam(LParams[3]));
+      end
+      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
+        TCanResizeEvent(NE^)(Sender, NewWidth, NewHeight, Resize);
     finally
       if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-             TCanResizeEvent(LNotifyEvent^)(Sender, NewWidth, NewHeight, Resize);
-        end;
+        EO.CurrIndexParentObject := -1;
     end;
-  end else
+  end
+  else
     raise Exception.Create(cMsgCantFindObject);
 end;
 
 procedure TEventControl.OnChange(Sender: TObject; Source: TMenuItem;
   Rebuild: Boolean);
 var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TMenuChangeEvent;
+  EO: TEventObject;
+  EI: TEventItem;
   LParams: Variant;
-  TempEventObject: TEventObject;
   ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
+  NE: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  if Assigned(Source) then
+  if not Assigned(Source) then
+    exit;
+
+  EO := FEventObjectList.FindAllObject(Sender as TComponent);
+
+  if EO <> nil then
   begin
-    // Поиск объекта вызывающего событие
-    LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-    if Assigned(LEventObject) then
-    begin
-      //Проверка на вызов родительского объекта
-      if LEventObject.CurrIndexParentObject > -1 then
-        LEventObject :=
-          LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-    end;
-    // Проверка результата поиска
-    if Assigned(LEventObject) then
-    begin
-      // Формирование массива параметров. Различается в зависимости от параметров
-      LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-        GetGdcOLEObject(Source) as IDispatch, Rebuild]);
-      // Поиск виртуального объекта для обработки события
-      LEventOfObject := LEventObject.EventList.Find(cChangeEventName);
-      try
-      If Assigned(LEventOfObject) then
+    ResetIndex := EO.CurrIndexParentObject = -1;
+
+    NE := @EO.EventList.Find(cChangeEventName).OldEvent.Code;
+
+    try
+      EI := EO.FindRightEvent(cChangeEventName);
+
+      if EI <> nil then
       begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cChangeEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cChangeEventName);
-        end;
-      end;
-        // Выполнение события
-        ExecuteEvent(LEventOfObject, LParams, Sender, cChangeEventName);
+        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+          GetGdcOLEObject(Source) as IDispatch, Rebuild]);
 
-      finally
+        ExecuteEvent(EI, LParams, Sender, cChangeEventName);
+
+      end
+      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
+        TMenuChangeEvent(NE^)(Sender, Source, Rebuild);
+    finally
       if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            TMenuChangeEvent(LNotifyEvent^)(Sender, Source, Rebuild);
-        end;
+        EO.CurrIndexParentObject := -1;
     end;
-
-    end else
-      raise Exception.Create(cMsgCantFindObject);
-  end;
+  end
+  else
+    raise Exception.Create(cMsgCantFindObject);
 end;
 
 procedure TEventControl.OnChangeEdit(Sender: TObject);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TNotifyEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cChangeEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cChangeEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cChangeEventName);
-        end;
-      end;
-
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cChangeEventName);
-
-    finally
-      if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            LNotifyEvent^(Sender);
-        end;
-    end;
-
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteNotifyEvent(Sender, cChangeEventName);
 end;
 
 procedure TEventControl.OnClick(Sender: TObject);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if  Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cClickEventName);
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cClickEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cClickEventName);
-        end;
-      end;
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cClickEventName);
-    finally
-      if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            LNotifyEvent^(Sender);
-        end;
-    end;
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteNotifyEvent(Sender, cClickEventName);
 end;
 
 procedure TEventControl.OnClickCheck(Sender: TObject; CheckID: String;
   var Checked: Boolean);
 var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TCheckBoxEvent;
+  EO: TEventObject;
+  EI: TEventItem;
   LParams: Variant;
-  TempEventObject: TEventObject;
   ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
+  NE: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-// ??? вместо Sender Action no
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-      CheckID, GetVarInterface(Checked)]);
+  EO := FEventObjectList.FindAllObject(Sender as TComponent);
 
-    {!!!} {jkl} // Нет обратного присвоения параметров
+  if EO <> nil then
+  begin
+    ResetIndex := EO.CurrIndexParentObject = -1;
 
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cClickCheckEventName);
+    NE := @EO.EventList.Find(cClickCheckEventName).OldEvent.Code;
 
     try
-      If Assigned(LEventOfObject) then
+      EI := EO.FindRightEvent(cClickCheckEventName);
+
+      if EI <> nil then
       begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cClickCheckEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cClickCheckEventName);
-        end;
-      end;
+        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+          CheckID, GetVarInterface(Checked)]);
 
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cClickCheckEventName);
-      // Обратное присвоение значений
-
-      Checked := Boolean(GetVarParam(LParams[2]));
-
+        ExecuteEvent(EI, LParams, Sender, cClickCheckEventName);
+        
+        Checked := Boolean(GetVarParam(LParams[2]));
+      end
+      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
+        TCheckBoxEvent(NE^)(Sender, CheckID, Checked);
     finally
       if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            TCheckBoxEvent(LNotifyEvent^)(Sender, CheckID, Checked);
-        end;
+        EO.CurrIndexParentObject := -1;
     end;
-
-  end else
+  end
+  else
     raise Exception.Create(cMsgCantFindObject);
 end;
 
 procedure TEventControl.OnClickedCheck(Sender: TObject; CheckID: String;
   Checked: Boolean);
 var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TAfterCheckEvent;
+  EO: TEventObject;
+  EI: TEventItem;
   LParams: Variant;
-  TempEventObject: TEventObject;
   ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
+  NE: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-// ??? вместо Sender Action no
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-      CheckID, GetVarInterface(Checked)]);
+  EO := FEventObjectList.FindAllObject(Sender as TComponent);
 
-    {!!!} {jkl} // Нет обратного присвоения параметров
+  if EO <> nil then
+  begin
+    ResetIndex := EO.CurrIndexParentObject = -1;
 
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cClickedCheckEventName);
+    NE := @EO.EventList.Find(cClickedCheckEventName).OldEvent.Code;
 
     try
-      If Assigned(LEventOfObject) then
+      EI := EO.FindRightEvent(cClickedCheckEventName);
+
+      if EI <> nil then
       begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cClickedCheckEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cClickedCheckEventName);
-        end;
-      end;
+        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+          CheckID, GetVarInterface(Checked)]);
 
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cClickedCheckEventName);
-      // Обратное присвоение значений
+        ExecuteEvent(EI, LParams, Sender, cClickedCheckEventName);
 
-{    Checked := LParams[2];
-
-    }
-
+      end
+      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
+        TAfterCheckEvent(NE^)(Sender, CheckID, Checked);
     finally
       if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            TAfterCheckEvent(LNotifyEvent^)(Sender, CheckID, Checked);
-        end;
+        EO.CurrIndexParentObject := -1;
     end;
-  end else
+  end
+  else
     raise Exception.Create(cMsgCantFindObject);
 end;
 
 procedure TEventControl.OnClose(Sender: TObject; var Action: TCloseAction);
 var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
+  EO: TEventObject;
+  EI: TEventItem;
   LParams: Variant;
-  TempEventObject: TEventObject;
   ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
+  NE: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-      GetVarInterface(TgsCloseAction(Action))]);
+  EO := FEventObjectList.FindAllObject(Sender as TComponent);
 
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cCloseEventName);
+  if EO <> nil then
+  begin
+    ResetIndex := EO.CurrIndexParentObject = -1;
+
+    NE := @EO.EventList.Find(cCloseEventName).OldEvent.Code;
+
     try
-      If Assigned(LEventOfObject) then
+      EI := EO.FindRightEvent(cCloseEventName);
+
+      if EI <> nil then
       begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cCloseEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cCloseEventName);
-        end;
-      end;
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cCloseEventName);
-      // Обратное присвоение значений
+        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+          GetVarInterface(TgsCloseAction(Action))]);
 
-      Action := TCloseAction(GetVarParam(LParams[1]));
-
+        ExecuteEvent(EI, LParams, Sender, cCloseEventName);
+        
+        Action := TCloseAction(GetVarParam(LParams[1]));
+      end
+      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
+        TCloseEvent(NE^)(Sender, Action);
     finally
       if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            TCloseEvent(LNotifyEvent^)(Sender, Action);
-        end;
+        EO.CurrIndexParentObject := -1;
     end;
-
-  end else
+  end
+  else
     raise Exception.Create(cMsgCantFindObject);
 end;
 
 procedure TEventControl.OnCloseNotify(Sender: TObject);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TNotifyEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cCloseEventName);
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cCloseEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cCloseEventName);
-        end;
-      end;
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cCloseEventName);
-    finally
-      if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            LNotifyEvent^(Sender);
-        end;
-    end;
-    
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteNotifyEvent(Sender, cCloseEventName);
 end;
 
 procedure TEventControl.OnCloseQuery(Sender: TObject;
   var CanClose: Boolean);
 var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TCloseQueryEvent;
+  EO: TEventObject;
+  EI: TEventItem;
   LParams: Variant;
-  TempEventObject: TEventObject;
   ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
+  NE: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-      GetVarInterface(CanClose)]);
+  EO := FEventObjectList.FindAllObject(Sender as TComponent);
 
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cCloseQueryEventName);
+  if EO <> nil then
+  begin
+    ResetIndex := EO.CurrIndexParentObject = -1;
+
+    NE := @EO.EventList.Find(cCloseQueryEventName).OldEvent.Code;
+
     try
-      If Assigned(LEventOfObject) then
+      EI := EO.FindRightEvent(cCloseQueryEventName);
+
+      if EI <> nil then
       begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cCloseQueryEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cCloseQueryEventName);
-        end;
-      end;
-      // Выполнение события
-      if Assigned(LEventOfObject) then
-        ExecuteEvent(LEventOfObject, LParams, Sender, cCloseQueryEventName);
+        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+          GetVarInterface(CanClose)]);
 
-      // Обратное присвоение значений
-      CanClose := Boolean(GetVarParam(LParams[1]));
-
+        ExecuteEvent(EI, LParams, Sender, cCloseQueryEventName);
+        
+        CanClose := Boolean(GetVarParam(LParams[1]));
+      end
+      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
+        TCloseQueryEvent(NE^)(Sender, CanClose);
     finally
       if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            TCloseQueryEvent(LNotifyEvent^)(Sender, CanClose);
-        end;
+        EO.CurrIndexParentObject := -1;
     end;
-
-  end else
+  end
+  else
     raise Exception.Create(cMsgCantFindObject);
 end;
 
 procedure TEventControl.OnColEnter(Sender: TObject);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TNotifyEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cColEnterEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cColEnterEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cColEnterEventName);
-        end;
-      end;
-
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cColEnterEventName);
-
-    finally
-      if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            LNotifyEvent^(Sender);
-        end;
-    end;
-    
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteNotifyEvent(Sender, cColEnterEventName);
 end;
 
 procedure TEventControl.OnColExit(Sender: TObject);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TNotifyEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cColExitEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cColExitEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cColExitEventName);
-        end;
-      end;
-
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cColExitEventName);
-
-    finally
-      if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            LNotifyEvent^(Sender);
-        end;
-    end;
-    
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteNotifyEvent(Sender, cColExitEventName);
 end;
 
 procedure TEventControl.OnColumnMoved(Sender: TObject; FromIndex,
   ToIndex: Integer);
 var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TMovedEvent;
+  EO: TEventObject;
+  EI: TEventItem;
   LParams: Variant;
-  TempEventObject: TEventObject;
   ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
+  NE: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
+  EO := FEventObjectList.FindAllObject(Sender as TComponent);
+
+  if EO <> nil then
   begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-      FromIndex, ToIndex]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cColumnMovedEventName);
+    ResetIndex := EO.CurrIndexParentObject = -1;
+
+    NE := @EO.EventList.Find(cColumnMovedEventName).OldEvent.Code;
 
     try
-      If Assigned(LEventOfObject) then
+      EI := EO.FindRightEvent(cColumnMovedEventName);
+
+      if EI <> nil then
       begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cColumnMovedEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cColumnMovedEventName);
-        end;
-      end;
+        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+          FromIndex, ToIndex]);
 
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cColumnMovedEventName);
+        ExecuteEvent(EI, LParams, Sender, cColumnMovedEventName);
 
+      end
+      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
+        TMovedEvent(NE^)(Sender, FromIndex, ToIndex);
     finally
       if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            TMovedEvent(LNotifyEvent^)(Sender, FromIndex, ToIndex);
-        end;
+        EO.CurrIndexParentObject := -1;
     end;
-    
-  end else
+  end
+  else
     raise Exception.Create(cMsgCantFindObject);
 end;
 
 procedure TEventControl.OnConditionChanged(Sender: TObject);
 var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TConditionChanged;
+  EO: TEventObject;
+  EI: TEventItem;
   LParams: Variant;
-  TempEventObject: TEventObject;
   ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
+  NE: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
+  EO := FEventObjectList.FindAllObject(Sender as TComponent);
+
+  if EO <> nil then
   begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cConditionChangedEventName);
+    ResetIndex := EO.CurrIndexParentObject = -1;
+
+    NE := @EO.EventList.Find(cConditionChangedEventName).OldEvent.Code;
 
     try
-      If Assigned(LEventOfObject) then
+      EI := EO.FindRightEvent(cConditionChangedEventName);
+
+      if EI <> nil then
       begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cConditionChangedEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cConditionChangedEventName);
-        end;
-      end;
+        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
 
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cConditionChangedEventName);
+        ExecuteEvent(EI, LParams, Sender, cConditionChangedEventName);
 
+      end
+      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
+        TConditionChanged(NE^)(Sender);
     finally
       if ResetIndex then
-      begin
-        if Assigned(TempEventObject)  then
-          TempEventObject.CurrIndexParentObject := -1;
-        //Выполнить метод Delphi
-        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-          TConditionChanged(LNotifyEvent^)(Sender);
-      end;
+        EO.CurrIndexParentObject := -1;
     end;
-    
-  end else
+  end
+  else
     raise Exception.Create(cMsgCantFindObject);
 end;
 
 procedure TEventControl.OnConstrainedResize(Sender: TObject; var MinWidth,
   MinHeight, MaxWidth, MaxHeight: Integer);
 var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TConstrainedResizeEvent;
+  EO: TEventObject;
+  EI: TEventItem;
   LParams: Variant;
-  TempEventObject: TEventObject;
   ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
+  NE: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-     GetVarInterface(MinWidth), GetVarInterface(MinHeight),
-     GetVarInterface(MaxWidth), GetVarInterface(MaxHeight)]);
+  EO := FEventObjectList.FindAllObject(Sender as TComponent);
 
-    {!!!} {jkl} // Нет обратного присвоения параметров
+  if EO <> nil then
+  begin
+    ResetIndex := EO.CurrIndexParentObject = -1;
 
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cConstrainedResizeEventName);
+    NE := @EO.EventList.Find(cConstrainedResizeEventName).OldEvent.Code;
 
     try
-      If Assigned(LEventOfObject) then
+      EI := EO.FindRightEvent(cConstrainedResizeEventName);
+
+      if EI <> nil then
       begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cConstrainedResizeEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cConstrainedResizeEventName);
-        end;
-      end;
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cConstrainedResizeEventName);
-      // Обратное присвоение значений
-      MinWidth := Integer(GetVarParam(LParams[1]));
-      MinHeight := Integer(GetVarParam(LParams[2]));
-      MaxWidth := Integer(GetVarParam(LParams[3]));
-      MaxHeight := Integer(GetVarParam(LParams[4]));
+        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+          GetVarInterface(MinWidth), GetVarInterface(MinHeight),
+          GetVarInterface(MaxWidth), GetVarInterface(MaxHeight)]);
+
+        ExecuteEvent(EI, LParams, Sender, cConstrainedResizeEventName);
+
+        MinWidth := Integer(GetVarParam(LParams[1]));
+        MinHeight := Integer(GetVarParam(LParams[2]));
+        MaxWidth := Integer(GetVarParam(LParams[3]));
+        MaxHeight := Integer(GetVarParam(LParams[4]));
+      end
+      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
+        TConstrainedResizeEvent(NE^)(Sender, MinWidth, MinHeight, MaxWidth, MaxHeight);
     finally
       if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            TConstrainedResizeEvent(LNotifyEvent^)(Sender, MinWidth, MinHeight, MaxWidth, MaxHeight);
-        end;
+        EO.CurrIndexParentObject := -1;
     end;
-  end else
+  end
+  else
     raise Exception.Create(cMsgCantFindObject);
 end;
 
 procedure TEventControl.OnContextPopup(Sender: TObject; MousePos: TPoint;
   var Handled: Boolean);
 var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
+  EO: TEventObject;
+  EI: TEventItem;
   LParams: Variant;
   LgsPoint: TgsPoint;
   I: Integer;
-  TempEventObject: TEventObject;
   ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
+  NE: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    I := FPointList.IndexOf(Integer(Sender));
-    if I = -1 then
-    begin
-      LgsPoint := TgsPoint.Create2(TComponent(Sender), FPointList);
-      I := FPointList.Add(Integer(Sender));
-      FPointList.ValuesByIndex[I] := Integer(LgsPoint);
-    end else
-      LgsPoint := TgsPoint(FPointList.ValuesByIndex[I]);
-    LgsPoint.Point := MousePos;
+  EO := FEventObjectList.FindAllObject(Sender as TComponent);
 
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-     GetGdcOLEObject(LgsPoint) as IDispatch, GetVarInterface(Handled)]);
+  if EO <> nil then
+  begin
+    ResetIndex := EO.CurrIndexParentObject = -1;
 
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cContextPopupEventName);
+    NE := @EO.EventList.Find(cContextPopupEventName).OldEvent.Code;
+
     try
-      If Assigned(LEventOfObject) then
+      EI := EO.FindRightEvent(cContextPopupEventName);
+
+      if EI <> nil then
       begin
-        if LEventOfObject.IsParental then
+        I := FPointList.IndexOf(Integer(Sender));
+        if I = -1 then
         begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cContextPopupEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cContextPopupEventName);
-        end;
-      end;
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cContextPopupEventName);
-      // Обратное присвоение значений
-      Handled := Boolean(GetVarParam(LParams[2]));
+          LgsPoint := TgsPoint.Create2(TComponent(Sender), FPointList);
+          I := FPointList.Add(Integer(Sender));
+          FPointList.ValuesByIndex[I] := Integer(LgsPoint);
+        end else
+          LgsPoint := TgsPoint(FPointList.ValuesByIndex[I]);
+        LgsPoint.Point := MousePos;
+
+        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+         GetGdcOLEObject(LgsPoint) as IDispatch, GetVarInterface(Handled)]);
+
+        ExecuteEvent(EI, LParams, Sender, cContextPopupEventName);
+
+        Handled := Boolean(GetVarParam(LParams[2]));
+      end
+      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
+        TContextPopupEvent(NE^)(Sender, MousePos, Handled);;
     finally
       if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            TContextPopupEvent(LNotifyEvent^)(Sender, MousePos, Handled);
-        end;
+        EO.CurrIndexParentObject := -1;
     end;
-
-  end else
+  end
+  else
     raise Exception.Create(cMsgCantFindObject);
 end;
 
 procedure TEventControl.OnCreate(Sender: TObject);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TNotifyEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cCreateEventName);
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cCreateEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cCreateEventName);
-        end;
-      end;
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cCreateEventName);
-    finally
-      if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            LNotifyEvent^(Sender);
-        end;
-    end;
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteNotifyEvent(Sender, cCreateEventName);
 end;
 
 procedure TEventControl.OnCreateNewObject(Sender: TObject;
   ANewObject: TgdcBase);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TOnCreateNewObject;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-      GetGdcOLEObject(ANewObject) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cCreateNewObjectEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cCreateNewObjectEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cCreateNewObjectEventName);
-        end;
-      end;
-
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cCreateNewObjectEventName);
-
-    finally
-      if ResetIndex then
-      begin
-        if Assigned(TempEventObject)  then
-          TempEventObject.CurrIndexParentObject := -1;
-        //Выполнить метод Delphi
-        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-          TOnCreateNewObject(LNotifyEvent^)(Sender, ANewObject);
-      end;
-    end;
-    
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteOnCreateNewObject(Sender, ANewObject, cCreateNewObjectEventName);
 end;
 
 procedure TEventControl.OnDataChange(Sender: TObject; Field: TField);
 var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
+  EO: TEventObject;
+  EI: TEventItem;
   LParams: Variant;
-  TempEventObject: TEventObject;
   ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
+  NE: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
+  EO := FEventObjectList.FindAllObject(Sender as TComponent);
+
+  if EO <> nil then
   begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-      GetGdcOLEObject(Field) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cDataChangeEventName);
+    ResetIndex := EO.CurrIndexParentObject = -1;
+
+    NE := @EO.EventList.Find(cDataChangeEventName).OldEvent.Code;
 
     try
-      If Assigned(LEventOfObject) then
+      EI := EO.FindRightEvent(cDataChangeEventName);
+
+      if EI <> nil then
       begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cDataChangeEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cDataChangeEventName);
-        end;
-      end;
+        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+          GetGdcOLEObject(Field) as IDispatch]);
 
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cDataChangeEventName);
+        ExecuteEvent(EI, LParams, Sender, cDataChangeEventName);
 
+      end
+      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
+        TDataChangeEvent(NE^)(Sender, Field);
     finally
       if ResetIndex then
-      begin
-        if Assigned(TempEventObject)  then
-          TempEventObject.CurrIndexParentObject := -1;
-        //Выполнить метод Delphi
-        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-          TDataChangeEvent(LNotifyEvent^)(Sender, Field);
-      end;
+        EO.CurrIndexParentObject := -1;
     end;
-
-  end else
+  end
+  else
     raise Exception.Create(cMsgCantFindObject);
 end;
 
 procedure TEventControl.OnDblClick(Sender: TObject);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TNotifyEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cDblClickEventName);
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cDblClickEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cDblClickEventName);
-        end;
-      end;
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cDblClickEventName);
-    finally
-      if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            LNotifyEvent^(Sender);
-        end;
-    end;
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteNotifyEvent(Sender, cDblClickEventName);
 end;
 
 procedure TEventControl.OnDeactivate(Sender: TObject);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TNotifyEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cDeactivateEventName);
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cDeactivateEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cDeactivateEventName);
-        end;
-      end;
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cDeactivateEventName);
-
-    finally
-      if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            LNotifyEvent^(Sender);
-        end;
-    end;
-    
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteNotifyEvent(Sender, cDeactivateEventName);
 end;
 
 procedure TEventControl.OnDeleteError(DataSet: TDataSet; E: EDatabaseError;
   var Action: TDataAction);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TDataSetErrorEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-
-  if Assigned(E) then
-  begin
-    // Поиск объекта вызывающего событие
-    LEventObject := FEventObjectList.FindAllObject(DataSet as TComponent);
-    if Assigned(LEventObject) then
-    begin
-      //Проверка на вызов родительского объекта
-      if LEventObject.CurrIndexParentObject > -1 then
-        LEventObject :=
-          LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-    end;
-    // Проверка результата поиска
-    if Assigned(LEventObject) then
-    begin
-      // Формирование массива параметров. Различается в зависимости от параметров
-      LParams := VarArrayOf([GetGdcOLEObject(DataSet) as IDispatch,
-        GetGdcOLEObject(E) as IDispatch, GetVarInterface(TgsDataAction(Action))]);
-
-      {!!!} {jkl} // Нет обратного присвоения параметров
-
-      // Поиск виртуального объекта для обработки события
-      LEventOfObject := LEventObject.EventList.Find(cDeleteErrorEventName);
-
-      try
-        If Assigned(LEventOfObject) then
-        begin
-          if LEventOfObject.IsParental then
-          begin
-            // сохранение адреса Delphi обработчика события
-            LNotifyEvent := @LEventObject.EventList.Find(cDeleteErrorEventName).OldEvent.Code;
-            // выбор родительскокого объекта
-            LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-            TempEventObject := LEventObject;
-            ResetIndex := True;
-            LEventObject :=
-              LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-            LEventOfObject := LEventObject.EventList.Find(cDeleteErrorEventName);
-          end;
-        end;
-
-        // Выполнение события
-        ExecuteEvent(LEventOfObject, LParams, DataSet, cDeleteErrorEventName);
-        // Обратное присвоение значений
-
-        try
-          Action := TDataAction(GetVarParam(LParams[2]));
-        except
-        end;
-
-      finally
-        if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-              TDataSetErrorEvent(LNotifyEvent^)(DataSet, E, Action);
-        end;
-      end;
-      
-    end else
-      raise Exception.Create(cMsgCantFindObject);
-  end;
+  ExecuteDataSetErrorEvent(DataSet, E, Action, cDeleteErrorEventName);
 end;
 
 procedure TEventControl.OnDestroy(Sender: TObject);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TNotifyEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cDestroyEventName);
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cDestroyEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cDestroyEventName);
-        end;
-      end;
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cDestroyEventName);
-
-    finally
-      if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            LNotifyEvent^(Sender);
-        end;
-    end;
-    
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteNotifyEvent(Sender, cDestroyEventName);
 end;
 
 procedure TEventControl.OnDockChanged(Sender: TObject);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TNotifyEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cDockChangedEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cDockChangedEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cDockChangedEventName);
-        end;
-      end;
-
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cDockChangedEventName);
-
-    finally
-      if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            LNotifyEvent^(Sender);
-        end;
-    end;
-    
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteNotifyEvent(Sender, cDockChangedEventName);
 end;
 
 procedure TEventControl.OnDockChanging(Sender: TObject);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TNotifyEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cDockChangingEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cDockChangingEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cDockChangingEventName);
-        end;
-      end;
-
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cDockChangingEventName);
-
-    finally
-      if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            LNotifyEvent^(Sender);
-        end;
-    end;
-
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteNotifyEvent(Sender, cDockChangingEventName);
 end;
 
 procedure TEventControl.OnDockChangingHidden(Sender: TObject);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TNotifyEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cDockChangingHiddenEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cDockChangingHiddenEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cDockChangingHiddenEventName);
-        end;
-      end;
-
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cDockChangingHiddenEventName);
-
-    finally
-      if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            LNotifyEvent^(Sender);
-        end;
-    end;
-
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteNotifyEvent(Sender, cDockChangingHiddenEventName);
 end;
 
 procedure TEventControl.OnDockDrop(Sender: TObject;
   Source: TDragDockObject; X, Y: Integer);
 var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TDockDropEvent;
+  EO: TEventObject;
+  EI: TEventItem;
   LParams: Variant;
-  TempEventObject: TEventObject;
   ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
+  NE: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
+  EO := FEventObjectList.FindAllObject(Sender as TComponent);
+
+  if EO <> nil then
   begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-      GetGdcOLEObject(Source) as IDispatch, X, Y]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cDockDropEventName);
+    ResetIndex := EO.CurrIndexParentObject = -1;
+
+    NE := @EO.EventList.Find(cDockDropEventName).OldEvent.Code;
+
     try
-      If Assigned(LEventOfObject) then
+      EI := EO.FindRightEvent(cDockDropEventName);
+
+      if EI <> nil then
       begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cDockDropEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cDockDropEventName);
-        end;
-      end;
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cDockDropEventName);
+        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+          GetGdcOLEObject(Source) as IDispatch, X, Y]);
+
+        ExecuteEvent(EI, LParams, Sender, cDockDropEventName);
+ 
+      end
+      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
+        TDockDropEvent(NE^)(Sender, Source, X, Y);
     finally
       if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            TDockDropEvent(LNotifyEvent^)(Sender, Source, X, Y);
-        end;
+        EO.CurrIndexParentObject := -1;
     end;
-    
-  end else
+  end
+  else
     raise Exception.Create(cMsgCantFindObject);
 end;
 
@@ -5826,196 +2944,118 @@ procedure TEventControl.OnDockOver(Sender: TObject;
   Source: TDragDockObject; X, Y: Integer; State: TDragState;
   var Accept: Boolean);
 var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TDockOverEvent;
+  EO: TEventObject;
+  EI: TEventItem;
   LParams: Variant;
-  TempEventObject: TEventObject;
   ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
+  NE: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-      GetGdcOLEObject(Source) as IDispatch, X, Y, State, GetVarInterface(Accept)]);
+  EO := FEventObjectList.FindAllObject(Sender as TComponent);
 
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cDockOverEventName);
+  if EO <> nil then
+  begin
+    ResetIndex := EO.CurrIndexParentObject = -1;
+
+    NE := @EO.EventList.Find(cDockOverEventName).OldEvent.Code;
+
     try
-      If Assigned(LEventOfObject) then
+      EI := EO.FindRightEvent(cDockOverEventName);
+
+      if EI <> nil then
       begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cDockOverEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cDockOverEventName);
-        end;
-      end;
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cDockOverEventName);
-      // Обратное присвоение значений
-      Accept := Boolean(GetVarParam(LParams[5]));
+        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+          GetGdcOLEObject(Source) as IDispatch, X, Y, State, GetVarInterface(Accept)]);
+
+        ExecuteEvent(EI, LParams, Sender, cDockOverEventName);
+
+        Accept := Boolean(GetVarParam(LParams[5]));
+      end
+      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
+        TDockOverEvent(NE^)(Sender, Source, X, Y, State, Accept);
     finally
       if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-             TDockOverEvent(LNotifyEvent^)(Sender, Source, X, Y, State, Accept);
-        end;
+        EO.CurrIndexParentObject := -1;
     end;
-
-  end else
+  end
+  else
     raise Exception.Create(cMsgCantFindObject);
 end;
 
 procedure TEventControl.OnDragDrop(Sender, Source: TObject; X, Y: Integer);
 var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TDragDropEvent;
+  EO: TEventObject;
+  EI: TEventItem;
   LParams: Variant;
-  TempEventObject: TEventObject;
   ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
+  NE: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
+  EO := FEventObjectList.FindAllObject(Sender as TComponent);
+
+  if EO <> nil then
   begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-      GetGdcOLEObject(Source) as IDispatch,X , Y]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cDragDropEventName);
+    ResetIndex := EO.CurrIndexParentObject = -1;
+
+    NE := @EO.EventList.Find(cDragDropEventName).OldEvent.Code;
+
     try
-      If Assigned(LEventOfObject) then
+      EI := EO.FindRightEvent(cDragDropEventName);
+
+      if EI <> nil then
       begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cDragDropEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cDragDropEventName);
-        end;
-      end;
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cDragDropEventName);
-      finally
+        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+          GetGdcOLEObject(Source) as IDispatch,X , Y]);
+
+        ExecuteEvent(EI, LParams, Sender, cDragDropEventName);
+ 
+      end
+      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
+        TDragDropEvent(NE^)(Sender, Source, X, Y);;
+    finally
       if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            TDragDropEvent(LNotifyEvent^)(Sender, Source, X, Y);
-        end;
+        EO.CurrIndexParentObject := -1;
     end;
-    
-  end else
+  end
+  else
     raise Exception.Create(cMsgCantFindObject);
 end;
 
 procedure TEventControl.OnDragOver(Sender, Source: TObject; X, Y: Integer;
   State: TDragState; var Accept: Boolean);
 var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TDragOverEvent;
+  EO: TEventObject;
+  EI: TEventItem;
   LParams: Variant;
-  TempEventObject: TEventObject;
   ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
+  NE: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-      GetGdcOLEObject(Source) as IDispatch, X, Y, State, GetVarInterface(Accept)]);
+  EO := FEventObjectList.FindAllObject(Sender as TComponent);
 
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cDragOverEventName);
+  if EO <> nil then
+  begin
+    ResetIndex := EO.CurrIndexParentObject = -1;
+
+    NE := @EO.EventList.Find(cDragOverEventName).OldEvent.Code;
+
     try
-      If Assigned(LEventOfObject) then
+      EI := EO.FindRightEvent(cDragOverEventName);
+
+      if EI <> nil then
       begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cDragOverEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cDragOverEventName);
-        end;
-      end;
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cDragOverEventName);
-      // Обратное присвоение значений
-      Accept := Boolean(GetVarParam(LParams[5]));
+        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+          GetGdcOLEObject(Source) as IDispatch, X, Y, State, GetVarInterface(Accept)]);
+
+        ExecuteEvent(EI, LParams, Sender, cDragOverEventName);
+
+        Accept := Boolean(GetVarParam(LParams[5]));
+      end
+      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
+        TDragOverEvent(NE^)(Sender, Source, X, Y, State, Accept);
     finally
       if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            TDragOverEvent(LNotifyEvent^)(Sender, Source, X, Y, State, Accept);
-        end;
+        EO.CurrIndexParentObject := -1;
     end;
-    
-  end else
+  end
+  else
     raise Exception.Create(cMsgCantFindObject);
 end;
 
@@ -6023,156 +3063,103 @@ procedure TEventControl.OnDrawColumnCell(Sender: TObject;
   const Rect: TRect; DataCol: Integer; Column: TColumn;
   State: TGridDrawState);
 var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
+  EO: TEventObject;
+  EI: TEventItem;
   LParams: Variant;
   LgsRect: TgsRect;
   I: Integer;
-  TempEventObject: TEventObject;
   ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
+  NE: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
+  EO := FEventObjectList.FindAllObject(Sender as TComponent);
+
+  if EO <> nil then
   begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    I := FRectList.IndexOf(Integer(Sender));
-    if I = -1 then
-    begin
-      LgsRect := TgsRect.Create2(TComponent(Sender), FRectList);
-      I := FRectList.Add(Integer(Sender));
-      FRectList.ValuesByIndex[I] := Integer(LgsRect);
-    end else
-      LgsRect := TgsRect(FRectList.ValuesByIndex[I]);
-    LgsRect.Rect := Rect;
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-      GetGdcOLEObject(LgsRect) as IDispatch, DataCol,
-      GetGdcOLEObject(Column) as IDispatch, TGridDrawStateToStr(State)]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cDrawColumnCellEventName);
+    ResetIndex := EO.CurrIndexParentObject = -1;
+
+    NE := @EO.EventList.Find(cDrawColumnCellEventName).OldEvent.Code;
 
     try
-      If Assigned(LEventOfObject) then
+      EI := EO.FindRightEvent(cDrawColumnCellEventName);
+
+      if EI <> nil then
       begin
-        if LEventOfObject.IsParental then
+        I := FRectList.IndexOf(Integer(Sender));
+        if I = -1 then
         begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cDrawColumnCellEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cDrawColumnCellEventName);
-        end;
-      end;
+          LgsRect := TgsRect.Create2(TComponent(Sender), FRectList);
+          I := FRectList.Add(Integer(Sender));
+          FRectList.ValuesByIndex[I] := Integer(LgsRect);
+        end else
+          LgsRect := TgsRect(FRectList.ValuesByIndex[I]);
+        LgsRect.Rect := Rect;
 
-    // Выполнение события
-    ExecuteEvent(LEventOfObject, LParams, Sender, cDrawColumnCellEventName);
+        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+          GetGdcOLEObject(LgsRect) as IDispatch, DataCol,
+          GetGdcOLEObject(Column) as IDispatch, TGridDrawStateToStr(State)]);
 
+        ExecuteEvent(EI, LParams, Sender, cDrawColumnCellEventName);
+
+      end
+      else if ResetIndex and Assigned(NE) and Assigned(NE^) then
+        TDrawColumnCellEvent(NE^)(Sender, Rect, DataCol, Column, State);
     finally
       if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            TDrawColumnCellEvent(LNotifyEvent^)(Sender, Rect, DataCol, Column, State);
-        end;
+        EO.CurrIndexParentObject := -1;
     end;
-
-  end else
+  end
+  else
     raise Exception.Create(cMsgCantFindObject);
 end;
 
 procedure TEventControl.OnDrawDataCell(Sender: TObject; const Rect: TRect;
   Field: TField; State: TGridDrawState);
 var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
+  EO: TEventObject;
+  EI: TEventItem;
   LParams: Variant;
   LgsRect: TgsRect;
   I: Integer;
-  TempEventObject: TEventObject;
   ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
+  NE: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
+  EO := FEventObjectList.FindAllObject(Sender as TComponent);
+
+  if EO <> nil then
   begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    I := FRectList.IndexOf(Integer(Sender));
-    if I = -1 then
-    begin
-      LgsRect := TgsRect.Create2(TComponent(Sender), FRectList);
-      I := FRectList.Add(Integer(Sender));
-      FRectList.ValuesByIndex[I] := Integer(LgsRect);
-    end else
-      LgsRect := TgsRect(FRectList.ValuesByIndex[I]);
-    LgsRect.Rect := Rect;
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-      GetGdcOLEObject(LgsRect) as IDispatch,
-      GetGdcOLEObject(Field) as IDispatch, TGridDrawStateToStr(State)]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cDrawDataCellEventName);
+    ResetIndex := EO.CurrIndexParentObject = -1;
+
+    NE := @EO.EventList.Find(cDrawDataCellEventName).OldEvent.Code;
 
     try
-      If Assigned(LEventOfObject) then
+      EI := EO.FindRightEvent(cDrawDataCellEventName);
+
+      if EI <> nil then
       begin
-        if LEventOfObject.IsParental then
+        I := FRectList.IndexOf(Integer(Sender));
+        if I = -1 then
         begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cDrawDataCellEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cDrawDataCellEventName);
-        end;
-      end;
+          LgsRect := TgsRect.Create2(TComponent(Sender), FRectList);
+          I := FRectList.Add(Integer(Sender));
+          FRectList.ValuesByIndex[I] := Integer(LgsRect);
+        end else
+          LgsRect := TgsRect(FRectList.ValuesByIndex[I]);
+        LgsRect.Rect := Rect;
+        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+          GetGdcOLEObject(LgsRect) as IDispatch,
+          GetGdcOLEObject(Field) as IDispatch, TGridDrawStateToStr(State)]);
 
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cDrawDataCellEventName);
+        ExecuteEvent(EI, LParams, Sender, cDrawDataCellEventName);
 
+      end
+      else if ResetIndex and Assigned(NE) and Assigned(NE^) then
+        TDrawDataCellEvent(NE^)(Sender, Rect, Field, State);
     finally
       if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-             TDrawDataCellEvent(LNotifyEvent^)(Sender, Rect, Field, State);
-        end;
+        EO.CurrIndexParentObject := -1;
     end;
-
-  end else
+  end
+  else
     raise Exception.Create(cMsgCantFindObject);
 end;
 
@@ -6193,563 +3180,601 @@ end;
 procedure TEventControl.OnDrawItem(Control: TWinControl; Index: Integer;
   Rect: TRect; State: TOwnerDrawState);
 var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TDrawItemEvent;
+  EO: TEventObject;
+  EI: TEventItem;
   LParams: Variant;
   LgsRect: TgsRect;
   I: Integer;
-  TempEventObject: TEventObject;
   ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
+  NE: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Control as TComponent);
-  if Assigned(LEventObject) then
+  EO := FEventObjectList.FindAllObject(Control as TComponent);
+
+  if EO <> nil then
   begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    I := FRectList.IndexOf(Integer(Control));
-    if I = -1 then
-    begin
-      LgsRect := TgsRect.Create2(Control, FRectList);
-      I := FRectList.Add(Integer(Control));
-      FRectList.ValuesByIndex[I] := Integer(LgsRect);
-    end else
-      LgsRect := TgsRect(FRectList.ValuesByIndex[I]);
-    LgsRect.Rect := Rect;
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Control) as IDispatch,
-      Index, GetGdcOLEObject(LgsRect) as IDispatch,  TOwnerDrawStateToStr(State)]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cDrawItemEventName);
+    ResetIndex := EO.CurrIndexParentObject = -1;
+
+    NE := @EO.EventList.Find(cDrawItemEventName).OldEvent.Code;
 
     try
-      If Assigned(LEventOfObject) then
+      EI := EO.FindRightEvent(cDrawItemEventName);
+
+      if EI <> nil then
       begin
-        if LEventOfObject.IsParental then
+        I := FRectList.IndexOf(Integer(Control));
+        if I = -1 then
         begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cDrawItemEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cDrawItemEventName);
-        end;
-      end;
+          LgsRect := TgsRect.Create2(Control, FRectList);
+          I := FRectList.Add(Integer(Control));
+          FRectList.ValuesByIndex[I] := Integer(LgsRect);
+        end else
+          LgsRect := TgsRect(FRectList.ValuesByIndex[I]);
+        LgsRect.Rect := Rect;
 
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Control, cDrawItemEventName);
+        LParams := VarArrayOf([GetGdcOLEObject(Control) as IDispatch,
+          Index, GetGdcOLEObject(LgsRect) as IDispatch,  TOwnerDrawStateToStr(State)]);
 
+        ExecuteEvent(EI, LParams, Control, cDrawItemEventName);
+
+      end
+      else if ResetIndex and Assigned(NE) and Assigned(NE^) then
+        TDrawItemEvent(NE^)(Control, Index, Rect, State);
     finally
       if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            TDrawItemEvent(LNotifyEvent^)(Control, Index, Rect, State);
-        end;
+        EO.CurrIndexParentObject := -1;
     end;
-
-  end else
+  end
+  else
     raise Exception.Create(cMsgCantFindObject);
 end;
 
 procedure TEventControl.OnDropDown(Sender: TObject);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TNotifyEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cDropDownEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cDropDownEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cDropDownEventName);
-        end;
-      end;
-
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cDropDownEventName);
-    finally
-      if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            LNotifyEvent^(Sender);
-        end;
-    end;
-
-
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteNotifyEvent(Sender, cDropDownEventName);
 end;
 
 procedure TEventControl.OnEditButtonClick(Sender: TObject);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TNotifyEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cEditButtonClickEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cEditButtonClickEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cEditButtonClickEventName);
-        end;
-      end;
-
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cEditButtonClickEventName);
-
-    finally
-      if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            LNotifyEvent^(Sender);
-        end;
-    end;
-    
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteNotifyEvent(Sender, cEditButtonClickEventName);
 end;
 
 procedure TEventControl.OnEditError(DataSet: TDataSet; E: EDatabaseError;
   var Action: TDataAction);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TDataSetErrorEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-
-  if Assigned(E) then
-  begin
-    // Поиск объекта вызывающего событие
-    LEventObject := FEventObjectList.FindAllObject(DataSet as TComponent);
-    if Assigned(LEventObject) then
-    begin
-      //Проверка на вызов родительского объекта
-      if LEventObject.CurrIndexParentObject > -1 then
-        LEventObject :=
-          LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-    end;
-    // Проверка результата поиска
-    if Assigned(LEventObject) then
-    begin
-      // Формирование массива параметров. Различается в зависимости от параметров
-      LParams := VarArrayOf([GetGdcOLEObject(DataSet) as IDispatch,
-        GetGdcOLEObject(E) as IDispatch, GetVarInterface(TgsDataAction(Action))]);
-
-      // Поиск виртуального объекта для обработки события
-      LEventOfObject := LEventObject.EventList.Find(cEditErrorEventName);
-
-      try
-        If Assigned(LEventOfObject) then
-        begin
-          if LEventOfObject.IsParental then
-          begin
-            // сохранение адреса Delphi обработчика события
-            LNotifyEvent := @LEventObject.EventList.Find(cEditErrorEventName).OldEvent.Code;
-            // выбор родительскокого объекта
-            LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-            TempEventObject := LEventObject;
-            ResetIndex := True;
-            LEventObject :=
-              LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-            LEventOfObject := LEventObject.EventList.Find(cEditErrorEventName);
-          end;
-        end;
-
-        // Выполнение события
-        ExecuteEvent(LEventOfObject, LParams, DataSet, cEditErrorEventName);
-        // Обратное присвоение значений
-
-        try
-          Action := TDataAction(GetVarParam(LParams[2]));
-        except
-        end;
-
-      finally
-        if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            TDataSetErrorEvent(LNotifyEvent^)(DataSet, E, Action);
-        end;
-      end;
-
-    end else
-      raise Exception.Create(cMsgCantFindObject);
-  end;
+  ExecuteDataSetErrorEvent(DataSet, E, Action, cEditErrorEventName);
 end;
 
 procedure TEventControl.OnEndDock(Sender, Target: TObject; X, Y: Integer);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TEndDragEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-      GetGdcOLEObject(Target) as IDispatch, X, Y]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cEndDockEventName);
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cEndDockEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cEndDockEventName);
-        end;
-      end;
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cEndDockEventName);
-    finally
-      if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            TEndDragEvent(LNotifyEvent^)(Sender, Target, X, Y);
-        end;
-    end;
-    
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteEndDragEvent(Sender, Target, X, Y, cEndDockEventName)
 end;
 
 procedure TEventControl.OnEndDrag(Sender, Target: TObject; X, Y: Integer);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TEndDragEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-      GetGdcOLEObject(Target) as IDispatch, X, Y]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cEndDragEventName);
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cEndDragEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cEndDragEventName);
-        end;
-      end;
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cEndDragEventName);
-    finally
-      if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            TEndDragEvent(LNotifyEvent^)(Sender, Target, X, Y);
-        end;
-    end;
-
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteEndDragEvent(Sender, Target, X, Y, cEndDragEventName)
 end;
 
 procedure TEventControl.OnEnter(Sender: TObject);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TNotifyEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cEnterEventName);
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cEnterEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cEnterEventName);
-        end;
-      end;
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cEnterEventName);
-    finally
-      if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            LNotifyEvent^(Sender);
-        end;
-    end;
-    
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteNotifyEvent(Sender, cEnterEventName);
 end;
 
 procedure TEventControl.OnExecute(Action: TBasicAction;
   var Handled: Boolean);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TActionEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-// ??? вместо Sender Action no
-  LEventObject := FEventObjectList.FindAllObject(TAction(Action).ActionList as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Action) as IDispatch,
-      GetVarInterface(Handled)]);
+  ExecuteActionEvent(Action, Handled, cExecuteEventName)
+end;
 
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cExecuteEventName);
+function TEventObject.FindRightEvent(AnEventName: String): TEventItem;
+var
+  EO: TEventObject;
+  EI: TEventItem;
+  I, J, K: Integer;
+begin
+  Result := nil;
+
+  if Self.CurrIndexParentObject = -1 then
+    EO := Self
+  else
+    EO := Self.ParentObjectsBySubType.EventObject[Self.CurrIndexParentObject];
+
+  if EO = nil then
+    exit;
+
+  EI := EO.EventList.Find(AnEventName);
+
+  if (EI <> nil) and (EI.FunctionKey > 0) and (not EI.Disable) then
+  begin
+    Result := EI;
+    exit;
+  end;
+
+  //если не нашли подходящий ивент продолжаем искать по родителям
+
+  J := Self.CurrIndexParentObject + 1;
+  K := Self.ParentObjectsBySubType.Count - 1;
+  for I := J to K do
+  begin
+    EO := Self.ParentObjectsBySubType.EventObject[I];
+    if EO <> nil then
+    begin
+      EI := EO.EventList.Find(AnEventName);
+
+      if (EI <> nil) and (EI.FunctionKey > 0) and (not EI.Disable) then
+      begin
+        Result := EI;
+        Self.CurrIndexParentObject := I;
+        break;
+      end;
+    end;
+  end;
+
+end;
+
+procedure TEventControl.ExecuteNotifyEvent(Sender: TObject;
+  const AnEventName: String; GenerateException: Boolean = True);
+var
+  EO: TEventObject;
+  EI: TEventItem;
+  LParams: Variant;
+  ResetIndex: boolean;
+  NE: ^TNotifyEvent;
+begin
+  EO := FEventObjectList.FindAllObject(Sender as TComponent);
+
+  if EO <> nil then
+  begin
+    ResetIndex := EO.CurrIndexParentObject = -1;
+
+    NE := @EO.EventList.Find(AnEventName).OldEvent.Code;
 
     try
-      If Assigned(LEventOfObject) then
+      EI := EO.FindRightEvent(AnEventName);
+
+      if EI <> nil then
       begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cExecuteEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cExecuteEventName);
-        end;
-      end;
-
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Action, cExecuteEventName);
-      // Обратное присвоение значений
-
-      Handled := Boolean(GetVarParam(LParams[1]));
-
+        LParams := VarArrayOf([GetGdcOLEObject(Sender as TComponent) as IDispatch]);
+        ExecuteEvent(EI, LParams, Sender, AnEventName);
+      end
+      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
+        NE^(Sender);
     finally
       if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            TActionEvent(LNotifyEvent^)(Action, Handled);
-        end;
+        EO.CurrIndexParentObject := -1;
     end;
+  end
+  else if GenerateException then
+    raise Exception.Create(cMsgCantFindObject);
 
-  end else
+
+// Если во время OnPaint возникла ошибка, обработчик ошибки пытается
+// показать диалоговое окно, во время вызова, которого снова вызывается
+// кривой OnPaint.
+// Т.е. при втором попадании в этот OnPaint его надо сразу отключить.
+// если удачное выполнение, то сбрасываем флаг в ложь
+  if AnEventName = cPaintEventName then
+    FPaintFlag.Flag := False;
+end;
+
+procedure TEventControl.ExecuteDataSetNotifyEvent(DataSet: TDataSet;
+  const AnEventName: String);
+var
+  EO: TEventObject;
+  EI: TEventItem;
+  LParams: Variant;
+  ResetIndex: boolean;
+  NE: ^TNotifyEvent;
+begin
+  EO := FEventObjectList.FindAllObject(DataSet as TComponent);
+
+  if EO <> nil then
+  begin
+    ResetIndex := EO.CurrIndexParentObject = -1;
+
+    NE := @EO.EventList.Find(AnEventName).OldEvent.Code;
+
+    try
+      EI := EO.FindRightEvent(AnEventName);
+
+      if EI <> nil then
+      begin
+        LParams := VarArrayOf([GetGdcOLEObject(DataSet) as IDispatch]);
+
+        ExecuteEvent(EI, LParams, DataSet, AnEventName);
+      end
+      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
+        TDataSetNotifyEvent(NE^)(DataSet);
+    finally
+      if ResetIndex then
+        EO.CurrIndexParentObject := -1;
+    end;
+  end
+  else
+    raise Exception.Create(cMsgCantFindObject);
+end;
+
+procedure TEventControl.ExecuteEndDragEvent(Sender, Target: TObject; X, Y: Integer;
+  const AnEventName: String);
+var
+  EO: TEventObject;
+  EI: TEventItem;
+  LParams: Variant;
+  ResetIndex: boolean;
+  NE: ^TNotifyEvent;
+begin
+  EO := FEventObjectList.FindAllObject(Sender as TComponent);
+
+  if EO <> nil then
+  begin
+    ResetIndex := EO.CurrIndexParentObject = -1;
+
+    NE := @EO.EventList.Find(AnEventName).OldEvent.Code;
+
+    try
+      EI := EO.FindRightEvent(AnEventName);
+
+      if EI <> nil then
+      begin
+        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+          GetGdcOLEObject(Target) as IDispatch, X, Y]);
+
+        ExecuteEvent(EI, LParams, Sender, AnEventName);
+ 
+      end
+      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
+        TEndDragEvent(NE^)(Sender, Target, X, Y);
+    finally
+      if ResetIndex then
+        EO.CurrIndexParentObject := -1;
+    end;
+  end
+  else
+    raise Exception.Create(cMsgCantFindObject);
+end;
+
+procedure TEventControl.ExecuteActionEvent(Action: TBasicAction; var Handled: Boolean;
+  const AnEventName: String);
+var
+  EO: TEventObject;
+  EI: TEventItem;
+  LParams: Variant;
+  ResetIndex: boolean;
+  NE: ^TNotifyEvent;
+begin
+  EO := FEventObjectList.FindAllObject(Action as TComponent);
+
+  if EO <> nil then
+  begin
+    ResetIndex := EO.CurrIndexParentObject = -1;
+
+    NE := @EO.EventList.Find(AnEventName).OldEvent.Code;
+
+    try
+      EI := EO.FindRightEvent(AnEventName);
+
+      if EI <> nil then
+      begin
+        LParams := VarArrayOf([GetGdcOLEObject(Action) as IDispatch,
+          GetVarInterface(Handled)]);
+
+        ExecuteEvent(EI, LParams, Action, AnEventName);
+        
+        Handled := Boolean(GetVarParam(LParams[1]));
+      end
+      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
+        TActionEvent(NE^)(Action, Handled);
+    finally
+      if ResetIndex then
+        EO.CurrIndexParentObject := -1;
+    end;
+  end
+  else
+    raise Exception.Create(cMsgCantFindObject);
+end;
+
+procedure TEventControl.ExecuteDataSetErrorEvent(DataSet: TDataSet; E: EDatabaseError;
+  var Action: TDataAction; const AnEventName: String);
+var
+  EO: TEventObject;
+  EI: TEventItem;
+  LParams: Variant;
+  ResetIndex: boolean;
+  NE: ^TNotifyEvent;
+begin
+  EO := FEventObjectList.FindAllObject(DataSet as TComponent);
+
+  if EO <> nil then
+  begin
+    ResetIndex := EO.CurrIndexParentObject = -1;
+
+    NE := @EO.EventList.Find(AnEventName).OldEvent.Code;
+
+    try
+      EI := EO.FindRightEvent(AnEventName);
+
+      if EI <> nil then
+      begin
+        LParams := VarArrayOf([GetGdcOLEObject(DataSet) as IDispatch,
+          GetGdcOLEObject(E) as IDispatch, GetVarInterface(TgsDataAction(Action))]);
+
+        ExecuteEvent(EI, LParams, DataSet, AnEventName);
+        
+        try
+          Action := TDataAction(GetVarParam(LParams[2]));
+        except
+        end;
+      end
+      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
+        TDataSetErrorEvent(NE^)(DataSet, E, Action);
+    finally
+      if ResetIndex then
+        EO.CurrIndexParentObject := -1;
+    end;
+  end
+  else
+    raise Exception.Create(cMsgCantFindObject);
+end;
+
+procedure TEventControl.ExecuteFilterRecordEvent(DataSet: TDataSet; var Accept: Boolean;
+  const AnEventName: String);
+var
+  EO: TEventObject;
+  EI: TEventItem;
+  LParams: Variant;
+  ResetIndex: boolean;
+  NE: ^TNotifyEvent;
+begin
+  EO := FEventObjectList.FindAllObject(DataSet as TComponent);
+
+  if EO <> nil then
+  begin
+    ResetIndex := EO.CurrIndexParentObject = -1;
+
+    NE := @EO.EventList.Find(AnEventName).OldEvent.Code;
+
+    try
+      EI := EO.FindRightEvent(AnEventName);
+
+      if EI <> nil then
+      begin
+        LParams := VarArrayOf([GetGdcOLEObject(DataSet) as IDispatch,
+          GetVarInterface(Accept)]);
+
+        ExecuteEvent(EI, LParams, DataSet, AnEventName);
+
+        if AnEventName = cFilterRecordEventName then
+          Accept := Boolean(GetVarParam(LParams[1]))
+        else
+          try
+            Accept := GetVarParam(LParams[1]);
+          except
+          end;
+      end
+      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
+        TFilterRecordEvent(NE^)(DataSet, Accept);
+    finally
+      if ResetIndex then
+        EO.CurrIndexParentObject := -1;
+    end;
+  end
+  else
+    raise Exception.Create(cMsgCantFindObject);
+end;
+
+procedure TEventControl.ExecuteOnCreateNewObject(Sender: TObject; ANewObject: TgdcBase;
+  const AnEventName: String);
+var
+  EO: TEventObject;
+  EI: TEventItem;
+  LParams: Variant;
+  ResetIndex: boolean;
+  NE: ^TNotifyEvent;
+begin
+  EO := FEventObjectList.FindAllObject(Sender as TComponent);
+
+  if EO <> nil then
+  begin
+    ResetIndex := EO.CurrIndexParentObject = -1;
+
+    NE := @EO.EventList.Find(AnEventName).OldEvent.Code;
+
+    try
+      EI := EO.FindRightEvent(AnEventName);
+
+      if EI <> nil then
+      begin
+        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+          GetGdcOLEObject(ANewObject) as IDispatch]);
+
+        ExecuteEvent(EI, LParams, Sender, AnEventName);
+
+      end
+      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
+        TOnCreateNewObject(NE^)(Sender, ANewObject);
+    finally
+      if ResetIndex then
+        EO.CurrIndexParentObject := -1;
+    end;
+  end
+  else
+    raise Exception.Create(cMsgCantFindObject);
+end;
+
+procedure TEventControl.ExecuteMouseEvent(Sender: TObject; Button: TMouseButton;
+  Shift: TShiftState; X, Y: Integer; const AnEventName: String);
+var
+  EO: TEventObject;
+  EI: TEventItem;
+  LParams: Variant;
+  ResetIndex: boolean;
+  NE: ^TNotifyEvent;
+begin
+  EO := FEventObjectList.FindAllObject(Sender as TComponent);
+
+  if EO <> nil then
+  begin
+    ResetIndex := EO.CurrIndexParentObject = -1;
+
+    NE := @EO.EventList.Find(AnEventName).OldEvent.Code;
+
+    try
+      EI := EO.FindRightEvent(AnEventName);
+
+      if EI <> nil then
+      begin
+        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+          TgsMouseButton(Button), TShiftStateToStr(Shift), X, Y]);
+
+        ExecuteEvent(EI, LParams, Sender, AnEventName);
+
+      end
+      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
+        TMouseEvent(NE^)(Sender, Button, Shift, X, Y);
+    finally
+      if ResetIndex then
+        EO.CurrIndexParentObject := -1;
+    end;
+  end
+  else
+    raise Exception.Create(cMsgCantFindObject);
+end;
+
+procedure TEventControl.ExecuteMouseWheelUpDownEvent(Sender: TObject; Shift: TShiftState;
+  MousePos: TPoint; var Handled: Boolean; const AnEventName: String);
+var
+  EO: TEventObject;
+  EI: TEventItem;
+  LParams: Variant;
+  LgsPoint: TgsPoint;
+  I: Integer;
+  ResetIndex: boolean;
+  NE: ^TNotifyEvent;
+begin
+  EO := FEventObjectList.FindAllObject(Sender as TComponent);
+
+  if EO <> nil then
+  begin
+    ResetIndex := EO.CurrIndexParentObject = -1;
+
+    NE := @EO.EventList.Find(AnEventName).OldEvent.Code;
+
+    try
+      EI := EO.FindRightEvent(AnEventName);
+
+      if EI <> nil then
+      begin
+        I := FPointList.IndexOf(Integer(Sender));
+        if I = -1 then
+        begin
+          LgsPoint := TgsPoint.Create2(TComponent(Sender), FPointList);
+          I := FPointList.Add(Integer(Sender));
+          FPointList.ValuesByIndex[I] := Integer(LgsPoint);
+        end else
+          LgsPoint := TgsPoint(FPointList.ValuesByIndex[I]);
+        LgsPoint.Point := MousePos;
+
+        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+          TShiftStateToStr(Shift), GetGdcOLEObject(LgsPoint) as IDispatch, GetVarInterface(Handled)]);
+
+        ExecuteEvent(EI, LParams, Sender, AnEventName);
+        
+        Handled := Boolean(GetVarParam(LParams[3]));
+      end
+      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
+        TMouseWheelUpDownEvent(NE^)(Sender, Shift, MousePos, Handled);
+    finally
+      if ResetIndex then
+        EO.CurrIndexParentObject := -1;
+    end;
+  end
+  else
+    raise Exception.Create(cMsgCantFindObject);
+end;
+
+procedure TEventControl.ExecuteKeyEvent(Sender: TObject; var Key: Word;
+  Shift: TShiftState; const AnEventName: String);
+var
+  EO: TEventObject;
+  EI: TEventItem;
+  LParams: Variant;
+  ResetIndex: boolean;
+  NE: ^TNotifyEvent;
+begin
+  EO := FEventObjectList.FindAllObject(Sender as TComponent);
+
+  if EO <> nil then
+  begin
+    ResetIndex := EO.CurrIndexParentObject = -1;
+
+    NE := @EO.EventList.Find(AnEventName).OldEvent.Code;
+
+    try
+      EI := EO.FindRightEvent(AnEventName);
+
+      if EI <> nil then
+      begin
+        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+          GetVarInterface(Key), TShiftStateToStr(Shift)]);
+
+        ExecuteEvent(EI, LParams, Sender, AnEventName);
+        
+        Key := Word(GetVarParam(LParams[1]));
+      end
+      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
+        TKeyEvent(NE^)(Sender, Key, Shift);
+    finally
+      if ResetIndex then
+        EO.CurrIndexParentObject := -1;
+    end;
+  end
+  else
+    raise Exception.Create(cMsgCantFindObject);
+end;
+
+procedure TEventControl.ExecutegdcOnGetSQLClause(Sender: TObject; var Clause: String;
+  const AnEventName: String);
+var
+  EO: TEventObject;
+  EI: TEventItem;
+  LParams: Variant;
+  ResetIndex: boolean;
+  NE: ^TNotifyEvent;
+begin
+  EO := FEventObjectList.FindAllObject(Sender as TComponent);
+
+  if EO <> nil then
+  begin
+    ResetIndex := EO.CurrIndexParentObject = -1;
+
+    NE := @EO.EventList.Find(AnEventName).OldEvent.Code;
+
+    try
+      EI := EO.FindRightEvent(AnEventName);
+
+      if EI <> nil then
+      begin
+        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+          GetVarInterface(Clause)]);
+
+        ExecuteEvent(EI, LParams, Sender, AnEventName);
+        
+        Clause := String(GetVarParam(LParams[1]));
+      end
+      else if ResetIndex and Assigned(NE) and Assigned(NE^) then
+        TgdcOnGetSQLClause(NE^)(Sender, Clause);
+    finally
+      if ResetIndex then
+        EO.CurrIndexParentObject := -1;
+    end;
+  end
+  else
     raise Exception.Create(cMsgCantFindObject);
 end;
 
 procedure TEventControl.OnExecuteAction(Sender: TObject);
 var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TNotifyEvent;
-  LParams: Variant;
   LComponent: TComponent;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
   // если сендер не экшен, то событие вызвано из события ОнКлик объекта, у
   // которого определено свойство Экшен, => необходимо работать не с
   // Sender, а с Sender.Action
@@ -6769,2591 +3794,656 @@ begin
       {$ENDIF}
       Exit;
     end;
-  LEventObject := FEventObjectList.FindAllObject(LComponent);
-  
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
 
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(LComponent) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cExecuteEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cExecuteEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cExecuteEventName);
-        end;
-      end;
-
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cExecuteEventName);
-
-    finally
-      if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            LNotifyEvent^(Sender);
-        end;
-    end;
-
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteNotifyEvent(LComponent as TObject, cExecuteEventName);
 end;
 
 procedure TEventControl.OnExit(Sender: TObject);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TNotifyEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cExitEventName);
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cExitEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cExitEventName);
-        end;
-      end;
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cExitEventName);
-    finally
-      if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            LNotifyEvent^(Sender);
-        end;
-    end;
-    
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteNotifyEvent(Sender, cExitEventName);
 end;
 
 procedure TEventControl.OnFilterChanged(Sender: TObject);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TNotifyEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cFilterChangedEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cFilterChangedEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cFilterChangedEventName);
-        end;
-      end;
-
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cFilterChangedEventName);
-
-    finally
-      if ResetIndex then
-      begin
-        if Assigned(TempEventObject)  then
-          TempEventObject.CurrIndexParentObject := -1;
-        //Выполнить метод Delphi
-        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-          LNotifyEvent^(Sender);
-      end;
-    end;
-    
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteNotifyEvent(Sender, cFilterChangedEventName);
 end;
 
 procedure TEventControl.OnFilterChangedSQLFilter(Sender: TObject;
   const AnCurrentFilter: Integer);
 var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TFilterChanged;
+  EO: TEventObject;
+  EI: TEventItem;
   LParams: Variant;
-  TempEventObject: TEventObject;
   ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
+  NE: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
+  EO := FEventObjectList.FindAllObject(Sender as TComponent);
+
+  if EO <> nil then
   begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch, AnCurrentFilter]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cFilterChangedEventName);
+    ResetIndex := EO.CurrIndexParentObject = -1;
+
+    NE := @EO.EventList.Find(cFilterChangedEventName).OldEvent.Code;
 
     try
-      If Assigned(LEventOfObject) then
+      EI := EO.FindRightEvent(cFilterChangedEventName);
+
+      if EI <> nil then
       begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cFilterChangedEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cFilterChangedEventName);
-        end;
-      end;
+        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch, AnCurrentFilter]);
 
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cFilterChangedEventName);
+        ExecuteEvent(EI, LParams, Sender, cFilterChangedEventName);
 
+      end
+      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
+        TFilterChanged(NE^)(Sender, AnCurrentFilter);
     finally
       if ResetIndex then
-      begin
-        if Assigned(TempEventObject)  then
-          TempEventObject.CurrIndexParentObject := -1;
-        //Выполнить метод Delphi
-        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-          TFilterChanged(LNotifyEvent^)(Sender, AnCurrentFilter);
-      end;
+        EO.CurrIndexParentObject := -1;
     end;
-
-  end else
+  end
+  else
     raise Exception.Create(cMsgCantFindObject);
 end;
 
 procedure TEventControl.OnFilterRecord(DataSet: TDataSet;
   var Accept: Boolean);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TFilterRecordEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(DataSet as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(DataSet) as IDispatch,
-      GetVarInterface(Accept)]);
-
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cFilterRecordEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cFilterRecordEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cFilterRecordEventName);
-        end;
-      end;
-
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, DataSet, cFilterRecordEventName);
-      // Обратное присвоение значений
-
-      Accept := Boolean(GetVarParam(LParams[1]));
-
-    finally
-      if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            TFilterRecordEvent(LNotifyEvent^)(DataSet, Accept);
-        end;
-    end;
-
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteFilterRecordEvent(DataSet, Accept, cFilterRecordEventName);
 end;
 
 procedure TEventControl.OnGetFooter(Sender: TObject;
   const FieldName: String;  const AggregatesObsolete: Boolean;
   var DisplayString: String);
 var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TMovedEvent;
-  LParams{, LResult}: Variant;
-  TempEventObject: TEventObject;
+  EO: TEventObject;
+  EI: TEventItem;
+  LParams: Variant;
   ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
+  NE: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // здесь обработка ошибок аналогична OnPaint
+  EO := FEventObjectList.FindAllObject(Sender as TComponent);
 
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
+  if EO <> nil then
   begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-      FieldName, AggregatesObsolete, GetVarInterface(DisplayString)]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cGetFooterEventName);
+    ResetIndex := EO.CurrIndexParentObject = -1;
+
+    NE := @EO.EventList.Find(cGetFooterEventName).OldEvent.Code;
 
     try
-      If Assigned(LEventOfObject) then
+      EI := EO.FindRightEvent(cGetFooterEventName);
+
+      if EI <> nil then
       begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cGetFooterEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cGetFooterEventName);
-        end;
-      end;
+        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+          FieldName, AggregatesObsolete, GetVarInterface(DisplayString)]);
 
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cGetFooterEventName);
-      DisplayString := String(GetVarParam(LParams[3]));
-
+        ExecuteEvent(EI, LParams, Sender, cGetFooterEventName);
+        
+        DisplayString := String(GetVarParam(LParams[3]));
+      end
+      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
+        TOnGetFooter(NE^)(Sender, FieldName, AggregatesObsolete, DisplayString);
     finally
       if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            TOnGetFooter(LNotifyEvent^)(Sender, FieldName, AggregatesObsolete, DisplayString);
-        end;
+        EO.CurrIndexParentObject := -1;
     end;
-
-  end else
+  end
+  else
     raise Exception.Create(cMsgCantFindObject);
+
   // если удачное выполнение, то сбрасываем флаг в ложь
   FGetFooterFlag.Flag := False;
 end;
 
 procedure TEventControl.OnHide(Sender: TObject);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TNotifyEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cHideEventName);
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cHideEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cHideEventName);
-        end;
-      end;
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cHideEventName);
-    finally
-      if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            LNotifyEvent^(Sender);
-        end;
-    end;
-    
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteNotifyEvent(Sender, cHideEventName);
 end;
 
 procedure TEventControl.OnKeyDown(Sender: TObject; var Key: Word;
   Shift: TShiftState);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TKeyEvent;
-  LParams: Variant;
-//  IVarPar: IgsVarParam;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-      GetVarInterface(Key), TShiftStateToStr(Shift)]);
-
-    {!!!} {jkl} // Нет обратного присвоения параметров
-
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cKeyDownEventName);
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cKeyDownEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cKeyDownEventName);
-        end;
-      end;
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cKeyDownEventName);
-      // Обратное присвоение значений
-      Key := Word(GetVarParam(LParams[1]));
-    finally
-      if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            TKeyEvent(LNotifyEvent^)(Sender, Key, Shift);
-        end;
-    end;
-
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteKeyEvent(Sender, Key, Shift, cKeyDownEventName);
 end;
 
 procedure TEventControl.OnKeyPress(Sender: TObject; var Key: Char);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TKeyPressEvent;
+  var
+  EO: TEventObject;
+  EI: TEventItem;
   LParams: Variant;
-  TempEventObject: TEventObject;
   ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
+  NE: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-      GetVarInterface(Key)]);
+  EO := FEventObjectList.FindAllObject(Sender as TComponent);
 
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cKeyPressEventName);
+  if EO <> nil then
+  begin
+    ResetIndex := EO.CurrIndexParentObject = -1;
+
+    NE := @EO.EventList.Find(cKeyPressEventName).OldEvent.Code;
+
     try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cKeyPressEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cKeyPressEventName);
-        end;
-      end;
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cKeyPressEventName);
-      // Обратное присвоение значений
+      EI := EO.FindRightEvent(cKeyPressEventName);
 
-      LParams[1] := GetVarParam(LParams[1]);
-      try
-        if VarType(LParams[1]) = varOleStr then
-          Key :=  String(LParams[1])[1]
-        else
-          if VarType(LParams[1]) = varSmallint then
-            Key := Chr(Byte(LParams[1]))
-          else begin
-            exit;
-          end;
-      except
-      end;
+      if EI <> nil then
+      begin
+        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+          GetVarInterface(Key)]);
+
+        ExecuteEvent(EI, LParams, Sender, cKeyPressEventName);
+
+        LParams[1] := GetVarParam(LParams[1]);
+        try
+          if VarType(LParams[1]) = varOleStr then
+            Key :=  String(LParams[1])[1]
+          else
+            if VarType(LParams[1]) = varSmallint then
+              Key := Chr(Byte(LParams[1]))
+            else
+              exit;
+        except
+        end;
+      end
+      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
+        TKeyPressEvent(NE^)(Sender, Key);
     finally
       if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            TKeyPressEvent(LNotifyEvent^)(Sender, Key);
-        end;
+        EO.CurrIndexParentObject := -1;
     end;
-
-  end else
+  end
+  else
     raise Exception.Create(cMsgCantFindObject);
 end;
 
 procedure TEventControl.OnKeyUp(Sender: TObject; var Key: Word;
   Shift: TShiftState);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TKeyEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-      GetVarInterface(Key), TShiftStateToStr(Shift)]);
-
-    {!!!} {jkl} // Нет обратного присвоения параметров
-
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cKeyUpEventName);
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cKeyUpEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cKeyUpEventName);
-        end;
-      end;
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cKeyUpEventName);
-      // Обратное присвоение значений
-      Key := Word(GetVarParam(LParams[1]));
-    finally
-      if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            TKeyEvent(LNotifyEvent^)(Sender, Key, Shift);
-        end;
-    end;
-    
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteKeyEvent(Sender, Key, Shift, cKeyUpEventName);
 end;
 
 procedure TEventControl.OnMeasureItem(Control: TWinControl; Index: Integer;
   var Height: Integer);
 var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TMeasureItemEvent;
+  EO: TEventObject;
+  EI: TEventItem;
   LParams: Variant;
-  TempEventObject: TEventObject;
   ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
+  NE: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-// ??? вместо Sender Control
-  LEventObject := FEventObjectList.FindAllObject(Control as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Control) as IDispatch, Index,
-      GetVarInterface(Height)]);
+  EO := FEventObjectList.FindAllObject(Control as TComponent);
 
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cMeasureItemEventName);
+  if EO <> nil then
+  begin
+    ResetIndex := EO.CurrIndexParentObject = -1;
+
+    NE := @EO.EventList.Find(cMeasureItemEventName).OldEvent.Code;
 
     try
-      If Assigned(LEventOfObject) then
+      EI := EO.FindRightEvent(cMeasureItemEventName);
+
+      if EI <> nil then
       begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cMeasureItemEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cMeasureItemEventName);
-        end;
-      end;
+        LParams := VarArrayOf([GetGdcOLEObject(Control) as IDispatch, Index,
+          GetVarInterface(Height)]);
 
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Control, cMeasureItemEventName);
-      // Обратное присвоение значений
-
-      Height := Integer(GetVarParam(LParams[2]));
-
+        ExecuteEvent(EI, LParams, Control, cMeasureItemEventName);
+        
+        Height := Integer(GetVarParam(LParams[2]));
+      end
+      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
+        TMeasureItemEvent(NE^)(Control, Index, Height);
     finally
       if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            TMeasureItemEvent(LNotifyEvent^)(Control, Index, Height);
-        end;
+        EO.CurrIndexParentObject := -1;
     end;
-
-  end else
+  end
+  else
     raise Exception.Create(cMsgCantFindObject);
 end;
 
 procedure TEventControl.OnMouseDown(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TMouseEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-      TgsMouseButton(Button), TShiftStateToStr(Shift), X, Y]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cMouseDownEventName);
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cMouseDownEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cMouseDownEventName);
-        end;
-      end;
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cMouseDownEventName);
-    finally
-      if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            TMouseEvent(LNotifyEvent^)(Sender, Button, Shift, X, Y);
-        end;
-    end;
-    
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteMouseEvent(Sender, Button, Shift, X, Y, cMouseDownEventName);
 end;
 
-procedure TEventControl.OnMouseMove(Sender: TObject; Shift: TShiftState; X,
-  Y: Integer);
+procedure TEventControl.OnMouseMove(Sender: TObject; Shift: TShiftState;
+  X, Y: Integer);
 var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TMouseMoveEvent;
+  EO: TEventObject;
+  EI: TEventItem;
   LParams: Variant;
-  TempEventObject: TEventObject;
   ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
+  NE: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
+  EO := FEventObjectList.FindAllObject(Sender as TComponent);
+
+  if EO <> nil then
   begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-{???}
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-      TShiftStateToStr(Shift), X, Y]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cMouseMoveEventName);
+    ResetIndex := EO.CurrIndexParentObject = -1;
+
+    NE := @EO.EventList.Find(cMouseMoveEventName).OldEvent.Code;
+
     try
-      If Assigned(LEventOfObject) then
+      EI := EO.FindRightEvent(cMouseMoveEventName);
+
+      if EI <> nil then
       begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cMouseMoveEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cMouseMoveEventName);
-        end;
-      end;
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cMouseMoveEventName);
+        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+          TShiftStateToStr(Shift), X, Y]);
+
+        ExecuteEvent(EI, LParams, Sender, cMouseMoveEventName);
+
+      end
+      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
+        TMouseMoveEvent(NE^)(Sender, Shift, X, Y);
     finally
       if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            TMouseMoveEvent(LNotifyEvent^)(Sender, Shift, X, Y);
-        end;
+        EO.CurrIndexParentObject := -1;
     end;
-  end else
+  end
+  else
     raise Exception.Create(cMsgCantFindObject);
 end;
 
 procedure TEventControl.OnMouseUp(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TMouseEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-      TgsMouseButton(Button), TShiftStateToStr(Shift), X, Y]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cMouseUpEventName);
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cMouseUpEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cMouseUpEventName);
-        end;
-      end;
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cMouseUpEventName);
-    finally
-      if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            TMouseEvent(LNotifyEvent^)(Sender, Button, Shift, X, Y)
-        end;
-    end;
-    
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteMouseEvent(Sender, Button, Shift, X, Y, cMouseUpEventName);
 end;
 
 procedure TEventControl.OnMouseWheel(Sender: TObject; Shift: TShiftState;
   WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
 var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
+  EO: TEventObject;
+  EI: TEventItem;
   LParams: Variant;
   LgsPoint: TgsPoint;
   I: Integer;
-  TempEventObject: TEventObject;
   ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
+  NE: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    I := FPointList.IndexOf(Integer(Sender));
-    if I = -1 then
-    begin
-      LgsPoint := TgsPoint.Create2(TComponent(Sender), FPointList);
-      I := FPointList.Add(Integer(Sender));
-      FPointList.ValuesByIndex[I] := Integer(LgsPoint);
-    end else
-      LgsPoint := TgsPoint(FPointList.ValuesByIndex[I]);
-    LgsPoint.Point := MousePos;
+  EO := FEventObjectList.FindAllObject(Sender as TComponent);
 
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-      TShiftStateToStr(Shift), WheelDelta,
-      GetGdcOLEObject(LgsPoint) as IDispatch, GetVarInterface(Handled)]);
+  if EO <> nil then
+  begin
+    ResetIndex := EO.CurrIndexParentObject = -1;
 
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cMouseWheelEventName);
+    NE := @EO.EventList.Find(cMouseWheelEventName).OldEvent.Code;
+
     try
-      If Assigned(LEventOfObject) then
+      EI := EO.FindRightEvent(cMouseWheelEventName);
+
+      if EI <> nil then
       begin
-        if LEventOfObject.IsParental then
+        I := FPointList.IndexOf(Integer(Sender));
+        if I = -1 then
         begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cMouseWheelEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cMouseWheelEventName);
-        end;
-      end;
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cMouseWheelEventName);
-      // Обратное присвоение значений
-      Handled := Boolean(GetVarParam(LParams[4]));
+          LgsPoint := TgsPoint.Create2(TComponent(Sender), FPointList);
+          I := FPointList.Add(Integer(Sender));
+          FPointList.ValuesByIndex[I] := Integer(LgsPoint);
+        end else
+          LgsPoint := TgsPoint(FPointList.ValuesByIndex[I]);
+        LgsPoint.Point := MousePos;
+
+        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+          TShiftStateToStr(Shift), WheelDelta,
+          GetGdcOLEObject(LgsPoint) as IDispatch, GetVarInterface(Handled)]);
+
+        ExecuteEvent(EI, LParams, Sender, cMouseWheelEventName);
+        
+        Handled := Boolean(GetVarParam(LParams[4]));
+      end
+      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
+        TMouseWheelEvent(NE^)(Sender, Shift, WheelDelta, MousePos, Handled);
     finally
       if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            TMouseWheelEvent(LNotifyEvent^)(Sender, Shift, WheelDelta, MousePos, Handled);
-        end;
+        EO.CurrIndexParentObject := -1;
     end;
-
-  end else
+  end
+  else
     raise Exception.Create(cMsgCantFindObject);
 end;
 
 procedure TEventControl.OnMouseWheelDown(Sender: TObject;
   Shift: TShiftState; MousePos: TPoint; var Handled: Boolean);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-  LParams: Variant;
-  LgsPoint: TgsPoint;
-  I: Integer;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    I := FPointList.IndexOf(Integer(Sender));
-    if I = -1 then
-    begin
-      LgsPoint := TgsPoint.Create2(TComponent(Sender), FPointList);
-      I := FPointList.Add(Integer(Sender));
-      FPointList.ValuesByIndex[I] := Integer(LgsPoint);
-    end else
-      LgsPoint := TgsPoint(FPointList.ValuesByIndex[I]);
-    LgsPoint.Point := MousePos;
-
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-      TShiftStateToStr(Shift), GetGdcOLEObject(LgsPoint) as IDispatch, GetVarInterface(Handled)]);
-
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cMouseWheelDownEventName);
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cMouseWheelDownEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cMouseWheelDownEventName);
-        end;
-      end;
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cMouseWheelDownEventName);
-      // Обратное присвоение значений
-      Handled := Boolean(GetVarParam(LParams[3]));
-    finally
-      if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            TMouseWheelUpDownEvent(LNotifyEvent^)(Sender, Shift, MousePos, Handled);
-        end;
-    end;
-
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteMouseWheelUpDownEvent(Sender, Shift,
+    MousePos, Handled, cMouseWheelDownEventName);
 end;
 
 procedure TEventControl.OnMouseWheelUp(Sender: TObject; Shift: TShiftState;
   MousePos: TPoint; var Handled: Boolean);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-  LParams: Variant;
-  LgsPoint: TgsPoint;
-  I: Integer;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    I := FPointList.IndexOf(Integer(Sender));
-    if I = -1 then
-    begin
-      LgsPoint := TgsPoint.Create2(TComponent(Sender), FPointList);
-      I := FPointList.Add(Integer(Sender));
-      FPointList.ValuesByIndex[I] := Integer(LgsPoint);
-    end else
-      LgsPoint := TgsPoint(FPointList.ValuesByIndex[I]);
-    LgsPoint.Point := MousePos;
-
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-      TShiftStateToStr(Shift),
-      GetGdcOLEObject(LgsPoint) as IDispatch, GetVarInterface(Handled)]);
-
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cMouseWheelUpEventName);
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cMouseWheelUpEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cMouseWheelUpEventName);
-        end;
-      end;
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cMouseWheelUpEventName);
-      // Обратное присвоение значений
-      Handled := Boolean(GetVarParam(LParams[3]));
-    finally
-      if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            TMouseWheelUpDownEvent(LNotifyEvent^)(Sender, Shift, MousePos, Handled);
-        end;
-    end;
-
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteMouseWheelUpDownEvent(Sender, Shift,
+    MousePos, Handled, cMouseWheelUpEventName);
 end;
 
 procedure TEventControl.OnMove(Sender: TObject);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TNotifyEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cMoveEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cMoveEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cMoveEventName);
-        end;
-      end;
-
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cMoveEventName);
-
-    finally
-      if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            LNotifyEvent^(Sender);
-        end;
-    end;
-    
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteNotifyEvent(Sender, cMoveEventName);
 end;
 
 procedure TEventControl.OnNewRecord(DataSet: TDataSet);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TDataSetNotifyEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(DataSet as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(DataSet) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cNewRecordEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cNewRecordEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cNewRecordEventName);
-        end;
-      end;
-
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, DataSet, cNewRecordEventName);
-
-    finally
-      if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            TDataSetNotifyEvent(LNotifyEvent^)(DataSet);
-        end;
-    end;
-    
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteDataSetNotifyEvent(DataSet, cNewRecordEventName);
 end;
 
 procedure TEventControl.OnPaint(Sender: TObject);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-{ TODO :
-Если во время OnPaint возникла ошибка, обработчик ошибки пытается
-показать диалоговое окно, во время вызова, которого снова вызывается
-кривой OnPaint.
-Т.е. при втором попадании в этот OnPaint его надо сразу отключить. }
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cPaintEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cPaintEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cPaintEventName);
-        end;
-      end;
-
-      ExecuteEvent(LEventOfObject, LParams, Sender, cPaintEventName);
-
-    finally
-      if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            LNotifyEvent^(Sender);
-        end;
-    end;
-
-  end else
-    raise Exception.Create(cMsgCantFindObject);
-  // если удачное выполнение, то сбрасываем флаг в ложь
-  FPaintFlag.Flag := False;
+  ExecuteNotifyEvent(Sender, cPaintEventName);
 end;
 
 procedure TEventControl.OnPopup(Sender: TObject);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TNotifyEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
   // OpPopup вызывается и при нажатии "быстрых клавиш", в этом случае, естественно,
-  // LEventObject будет не найден, поэтому исключение здесь не генерируем
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cPopupEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          LNotifyEvent := @LEventObject.EventList.Find(cPopupEventName).OldEvent.Code;
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cPopupEventName);
-        end;
-      end;
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cPopupEventName);
-    finally
-      if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            LNotifyEvent^(Sender);
-        end;
-    end;
-  end;
-//   else
-//    raise Exception.Create(cMsgCantFindObject);
+  // LEventObject будет не найден, поэтому исключение здесь не генерируем (False)
+  ExecuteNotifyEvent(Sender, cPopupEventName, False);
 end;
 
 procedure TEventControl.OnPostError(DataSet: TDataSet; E: EDatabaseError;
   var Action: TDataAction);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TDataSetErrorEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-
-  if Assigned(E) then
-  begin
-    // Поиск объекта вызывающего событие
-    LEventObject := FEventObjectList.FindAllObject(DataSet as TComponent);
-    if Assigned(LEventObject) then
-    begin
-      //Проверка на вызов родительского объекта
-      if LEventObject.CurrIndexParentObject > -1 then
-        LEventObject :=
-          LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-    end;
-    // Проверка результата поиска
-    if Assigned(LEventObject) then
-    begin
-      // Формирование массива параметров. Различается в зависимости от параметров
-      LParams := VarArrayOf([GetGdcOLEObject(DataSet) as IDispatch,
-        GetGdcOLEObject(E) as IDispatch, GetVarInterface(TgsDataAction(Action))]);
-
-      // Поиск виртуального объекта для обработки события
-      LEventOfObject := LEventObject.EventList.Find(cPostErrorEventName);
-
-      try
-        If Assigned(LEventOfObject) then
-        begin
-          if LEventOfObject.IsParental then
-          begin
-            // сохранение адреса Delphi обработчика события
-            LNotifyEvent := @LEventObject.EventList.Find(cPostErrorEventName).OldEvent.Code;
-            // выбор родительскокого объекта
-            LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-            TempEventObject := LEventObject;
-            ResetIndex := True;
-            LEventObject :=
-              LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-            LEventOfObject := LEventObject.EventList.Find(cPostErrorEventName);
-          end;
-        end;
-
-        // Выполнение события
-        ExecuteEvent(LEventOfObject, LParams, DataSet, cPostErrorEventName);
-        // Обратное присвоение значений
-
-        try
-          Action := TDataAction(GetVarParam(LParams[2]));
-        except
-        end;
-
-      finally
-        if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            TDataSetErrorEvent(LNotifyEvent^)(DataSet, E, Action);
-        end;
-      end;
-      
-    end else
-      raise Exception.Create(cMsgCantFindObject);
-  end;
+  ExecuteDataSetErrorEvent(DataSet, E, Action, cPostErrorEventName);
 end;
 
 procedure TEventControl.OnRecreated(Sender: TObject);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TNotifyEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cRecreatedEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cRecreatedEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cRecreatedEventName);
-        end;
-      end;
-
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cRecreatedEventName);
-
-    finally
-      if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            LNotifyEvent^(Sender);
-        end;
-    end;
-    
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteNotifyEvent(Sender, cRecreatedEventName);
 end;
 
 procedure TEventControl.OnRecreating(Sender: TObject);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TNotifyEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cRecreatingEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cRecreatingEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cRecreatingEventName);
-        end;
-      end;
-
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cRecreatingEventName);
-
-    finally
-      if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            LNotifyEvent^(Sender);
-        end;
-    end;
-    
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteNotifyEvent(Sender, cRecreatingEventName);
 end;
 
 procedure TEventControl.OnResize(Sender: TObject);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TNotifyEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cResizeEventName);
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cResizeEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cResizeEventName);
-        end;
-      end;
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cResizeEventName);
-      finally
-      if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            LNotifyEvent^(Sender);
-        end;
-    end;
-    
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteNotifyEvent(Sender, cResizeEventName);
 end;
 
 procedure TEventControl.OnScroll(Sender: TObject; ScrollCode: TScrollCode;
   var ScrollPos: Integer);
 var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TScrollEvent;
+  EO: TEventObject;
+  EI: TEventItem;
   LParams: Variant;
-  TempEventObject: TEventObject;
   ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
+  NE: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-// ??? вместо Sender Control
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-      TgsScrollCode(ScrollCode), GetVarInterface(ScrollPos)]);
+  EO := FEventObjectList.FindAllObject(Sender as TComponent);
 
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cScrollEventName);
+  if EO <> nil then
+  begin
+    ResetIndex := EO.CurrIndexParentObject = -1;
+
+    NE := @EO.EventList.Find(cScrollEventName).OldEvent.Code;
 
     try
-      If Assigned(LEventOfObject) then
+      EI := EO.FindRightEvent(cScrollEventName);
+
+      if EI <> nil then
       begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cScrollEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cScrollEventName);
-        end;
-      end;
+        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+          TgsScrollCode(ScrollCode), GetVarInterface(ScrollPos)]);
 
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cScrollEventName);
-      // Обратное присвоение значений
-
-      ScrollPos := Integer(GetVarParam(LParams[2]));
-
+        ExecuteEvent(EI, LParams, Sender, cScrollEventName);
+        
+        ScrollPos := Integer(GetVarParam(LParams[2]));
+      end
+      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
+        TScrollEvent(NE^)(Sender, ScrollCode, ScrollPos);
     finally
       if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            TScrollEvent(LNotifyEvent^)(Sender, ScrollCode, ScrollPos);
-        end;
+        EO.CurrIndexParentObject := -1;
     end;
-
-  end else
+  end
+  else
     raise Exception.Create(cMsgCantFindObject);
 end;
 
 procedure TEventControl.OnShow(Sender: TObject);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TNotifyEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cShowEventName);
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cShowEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cShowEventName);
-        end;
-      end;
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cShowEventName);
-
-    finally
-      if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            LNotifyEvent^(Sender);
-        end;
-    end;
-    
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteNotifyEvent(Sender, cShowEventName);
 end;
 
 procedure TEventControl.OnStartDock(Sender: TObject;
   var DragObject: TDragDockObject);
 var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TStartDockEvent;
+  EO: TEventObject;
+  EI: TEventItem;
   LParams: Variant;
-  TempEventObject: TEventObject;
   ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
+  NE: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-      GetVarInterface(GetGdcOLEObject(DragObject) as IDispatch)]);
+  EO := FEventObjectList.FindAllObject(Sender as TComponent);
 
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cStartDockEventName);
+  if EO <> nil then
+  begin
+    ResetIndex := EO.CurrIndexParentObject = -1;
+
+    NE := @EO.EventList.Find(cStartDockEventName).OldEvent.Code;
+
     try
-      If Assigned(LEventOfObject) then
+      EI := EO.FindRightEvent(cStartDockEventName);
+
+      if EI <> nil then
       begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cStartDockEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cStartDockEventName);
-        end;
-      end;
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cStartDockEventName);
-      DragObject := InterfaceToObject(GetVarParam(LParams[1])) as TDragDockObject;
+        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+          GetVarInterface(GetGdcOLEObject(DragObject) as IDispatch)]);
+
+        ExecuteEvent(EI, LParams, Sender, cStartDockEventName);
+
+        DragObject := InterfaceToObject(GetVarParam(LParams[1])) as TDragDockObject;
+      end
+      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
+        TStartDockEvent(NE^)(Sender, DragObject);
     finally
       if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            TStartDockEvent(LNotifyEvent^)(Sender, DragObject);
-        end;
+        EO.CurrIndexParentObject := -1;
     end;
-
-  end else
+  end
+  else
     raise Exception.Create(cMsgCantFindObject);
 end;
 
 procedure TEventControl.OnStartDrag(Sender: TObject;
   var DragObject: TDragObject);
 var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TStartDragEvent;
+  EO: TEventObject;
+  EI: TEventItem;
   LParams: Variant;
-  TempEventObject: TEventObject;
   ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
+  NE: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-      GetVarInterface(GetGdcOLEObject(DragObject) as IDispatch)]);
+  EO := FEventObjectList.FindAllObject(Sender as TComponent);
 
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cStartDragEventName);
+  if EO <> nil then
+  begin
+    ResetIndex := EO.CurrIndexParentObject = -1;
+
+    NE := @EO.EventList.Find(cStartDragEventName).OldEvent.Code;
+
     try
-      If Assigned(LEventOfObject) then
+      EI := EO.FindRightEvent(cStartDragEventName);
+
+      if EI <> nil then
       begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cStartDragEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cStartDragEventName);
-        end;
-      end;
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cStartDragEventName);
-      // Обратное присвоение значений
-      DragObject := InterfaceToObject(GetVarParam(LParams[1])) as TDragObject;
+        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+          GetVarInterface(GetGdcOLEObject(DragObject) as IDispatch)]);
+
+        ExecuteEvent(EI, LParams, Sender, cStartDragEventName);
+
+        DragObject := InterfaceToObject(GetVarParam(LParams[1])) as TDragObject;
+      end
+      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
+        TStartDragEvent(NE^)(Sender, DragObject);
     finally
       if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            TStartDragEvent(LNotifyEvent^)(Sender, DragObject);
-        end;
+        EO.CurrIndexParentObject := -1;
     end;
-
-  end else
+  end
+  else
     raise Exception.Create(cMsgCantFindObject);
 end;
 
 procedure TEventControl.OnStateChange(Sender: TObject);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cStateChangeEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cStateChangeEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cStateChangeEventName);
-        end;
-      end;
-
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cStateChangeEventName);
-
-    finally
-      if ResetIndex then
-      begin
-        if Assigned(TempEventObject)  then
-          TempEventObject.CurrIndexParentObject := -1;
-        //Выполнить метод Delphi
-        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-          LNotifyEvent^(Sender);
-      end;
-    end;
-
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteNotifyEvent(Sender, cStateChangeEventName);
 end;
 
 procedure TEventControl.OnTimer(Sender: TObject);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TNotifyEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cTimerEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cTimerEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cTimerEventName);
-        end;
-      end;
-
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cTimerEventName);
-
-    finally
-      if ResetIndex then
-      begin
-        if Assigned(TempEventObject)  then
-          TempEventObject.CurrIndexParentObject := -1;
-        //Выполнить метод Delphi
-        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-          LNotifyEvent^(Sender);
-      end;
-    end;
-
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteNotifyEvent(Sender, cTimerEventName);
 end;
 
 procedure TEventControl.OnUnDock(Sender: TObject; Client: TControl;
   NewTarget: TWinControl; var Allow: Boolean);
 var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TUnDockEvent;
+  EO: TEventObject;
+  EI: TEventItem;
   LParams: Variant;
-  TempEventObject: TEventObject;
   ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
+  NE: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-      GetGdcOLEObject(Client) as IDispatch, GetGdcOLEObject(NewTarget) as IDispatch,
-      GetVarInterface(Allow)]);
+  EO := FEventObjectList.FindAllObject(Sender as TComponent);
 
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cUnDockEventName);
+  if EO <> nil then
+  begin
+    ResetIndex := EO.CurrIndexParentObject = -1;
+
+    NE := @EO.EventList.Find(cUnDockEventName).OldEvent.Code;
+
     try
-      If Assigned(LEventOfObject) then
+      EI := EO.FindRightEvent(cUnDockEventName);
+
+      if EI <> nil then
       begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cUnDockEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cUnDockEventName);
-        end;
-      end;
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cUnDockEventName);
-      // Обратное присвоение значений
-      Allow := Boolean(GetVarParam(LParams[3]));
+        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+          GetGdcOLEObject(Client) as IDispatch, GetGdcOLEObject(NewTarget) as IDispatch,
+          GetVarInterface(Allow)]);
+
+        ExecuteEvent(EI, LParams, Sender, cUnDockEventName);
+        
+        Allow := Boolean(GetVarParam(LParams[3]));
+      end
+      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
+        TUnDockEvent(NE^)(Sender, Client, NewTarget, Allow);
     finally
       if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            TUnDockEvent(LNotifyEvent^)(Sender, Client, NewTarget, Allow);
-        end;
+        EO.CurrIndexParentObject := -1;
     end;
-    
-  end else
+  end
+  else
     raise Exception.Create(cMsgCantFindObject);
 end;
 
 procedure TEventControl.OnUpdate(Action: TBasicAction;
   var Handled: Boolean);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TActionEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-// ??? вместо Sender Action no
-  LEventObject := FEventObjectList.FindAllObject(Action as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Action) as IDispatch,
-      GetVarInterface(Handled)]);
-
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cUpdateEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cUpdateEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cUpdateEventName);
-        end;
-      end;
-
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Action, cUpdateEventName);
-      // Обратное присвоение значений
-
-      Handled := Boolean(GetVarParam(LParams[1]));
-
-    finally
-      if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            TActionEvent(LNotifyEvent^)(Action, Handled);
-        end;
-    end;
-
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteActionEvent(Action, Handled, cUpdateEventName);
 end;
 
 procedure TEventControl.OnUpdateAction(Sender: TObject);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TNotifyEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cUpdateEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cUpdateEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cUpdateEventName);
-        end;
-      end;
-
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cUpdateEventName);
-
-    finally
-      if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            LNotifyEvent^(Sender);
-        end;
-    end;
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteNotifyEvent(Sender, cUpdateEventName);
 end;
 
 procedure TEventControl.OnUpdateData(Sender: TObject);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cUpdateDataEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cUpdateDataEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cUpdateDataEventName);
-        end;
-      end;
-
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cUpdateDataEventName);
-
-    finally
-      if ResetIndex then
-      begin
-        if Assigned(TempEventObject)  then
-          TempEventObject.CurrIndexParentObject := -1;
-        //Выполнить метод Delphi
-        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-          LNotifyEvent^(Sender);
-      end;
-    end;
-
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteNotifyEvent(Sender, cUpdateDataEventName);
 end;
 
 procedure TEventControl.OnUpdateError(DataSet: TDataSet; E: EDatabaseError;
   UpdateKind: TUpdateKind; var UpdateAction: TIBUpdateAction);
 var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TIBUpdateErrorEvent;
+  EO: TEventObject;
+  EI: TEventItem;
   LParams: Variant;
-  TempEventObject: TEventObject;
   ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
+  NE: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
+  if not Assigned(E) then
+    exit;
 
-  if Assigned(E) then
+  EO := FEventObjectList.FindAllObject(DataSet as TComponent);
+
+  if EO <> nil then
   begin
-    // Поиск объекта вызывающего событие
-    LEventObject := FEventObjectList.FindAllObject(DataSet as TComponent);
-    if Assigned(LEventObject) then
-    begin
-      //Проверка на вызов родительского объекта
-      if LEventObject.CurrIndexParentObject > -1 then
-        LEventObject :=
-          LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-    // Проверка результата поиска
-    if Assigned(LEventObject) then
-    begin
-      // Формирование массива параметров. Различается в зависимости от параметров
-      LParams := VarArrayOf([GetGdcOLEObject(DataSet) as IDispatch,
-        GetGdcOLEObject(E) as IDispatch, TgsUpdatekind(UpdateKind),
-        GetVarInterface(TgsIBUpdateAction(UpdateAction))]);
+    ResetIndex := EO.CurrIndexParentObject = -1;
 
-      // Поиск виртуального объекта для обработки события
-      LEventOfObject := LEventObject.EventList.Find(cUpdateErrorEventName);
+    NE := @EO.EventList.Find(cUpdateErrorEventName).OldEvent.Code;
 
-      try
-        If Assigned(LEventOfObject) then
-        begin
-          if LEventOfObject.IsParental then
-          begin
-            // сохранение адреса Delphi обработчика события
-            LNotifyEvent := @LEventObject.EventList.Find(cUpdateErrorEventName).OldEvent.Code;
-            // выбор родительскокого объекта
-            LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-            TempEventObject := LEventObject;
-            ResetIndex := True;
-            LEventObject :=
-              LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-            LEventOfObject := LEventObject.EventList.Find(cUpdateErrorEventName);
-          end;
-        end;
+    try
+      EI := EO.FindRightEvent(cUpdateErrorEventName);
 
-        // Выполнение события
-        ExecuteEvent(LEventOfObject, LParams, DataSet, cUpdateErrorEventName);
-        // Обратное присвоение значений
+      if EI <> nil then
+      begin
+        LParams := VarArrayOf([GetGdcOLEObject(DataSet) as IDispatch,
+          GetGdcOLEObject(E) as IDispatch, TgsUpdatekind(UpdateKind),
+          GetVarInterface(TgsIBUpdateAction(UpdateAction))]);
 
+        ExecuteEvent(EI, LParams, DataSet, cUpdateErrorEventName);
+        
         try
           UpdateAction := TIBUpdateAction(GetVarParam(LParams[3]));
         except
         end;
-
-      finally
-        if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            TIBUpdateErrorEvent(LNotifyEvent^)(DataSet, E, UpdateKind, UpdateAction);
-        end;
-      end;
-
-    end else
-      raise Exception.Create(cMsgCantFindObject);
-  end;
+      end
+      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
+        TIBUpdateErrorEvent(NE^)(DataSet, E, UpdateKind, UpdateAction);
+    finally
+      if ResetIndex then
+        EO.CurrIndexParentObject := -1;
+    end;
+  end
+  else
+    raise Exception.Create(cMsgCantFindObject);
 end;
 
 procedure TEventControl.OnUpdateRecord(DataSet: TDataSet;
   UpdateKind: TUpdateKind; var UpdateAction: TIBUpdateAction);
 var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TIBUpdateRecordEvent;
+  EO: TEventObject;
+  EI: TEventItem;
   LParams: Variant;
-  TempEventObject: TEventObject;
   ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
+  NE: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(DataSet as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(DataSet) as IDispatch,
-      TgsUpdateKind(UpdateKind), GetVarInterface(TgsIBUpdateAction(UpdateAction))]);
+  EO := FEventObjectList.FindAllObject(DataSet as TComponent);
 
-    {!!!} {jkl} // Нет обратного присвоения параметров
+  if EO <> nil then
+  begin
+    ResetIndex := EO.CurrIndexParentObject = -1;
 
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cUpdateRecordEventName);
+    NE := @EO.EventList.Find(cUpdateRecordEventName).OldEvent.Code;
 
     try
-      If Assigned(LEventOfObject) then
+      EI := EO.FindRightEvent(cUpdateRecordEventName);
+
+      if EI <> nil then
       begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cUpdateRecordEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cUpdateRecordEventName);
-        end;
-      end;
+        LParams := VarArrayOf([GetGdcOLEObject(DataSet) as IDispatch,
+          TgsUpdateKind(UpdateKind), GetVarInterface(TgsIBUpdateAction(UpdateAction))]);
 
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, DataSet, cUpdateRecordEventName);
-      // Обратное присвоение значений
+        ExecuteEvent(EI, LParams, DataSet, cUpdateRecordEventName);
 
-{    try
-      UpdateAction := TIBUpdateAction(LParams[2]);
-    except
-    end;
-    
-    }
+      end
+      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
+        TIBUpdateRecordEvent(NE^)(DataSet, UpdateKind, UpdateAction);
     finally
       if ResetIndex then
-      begin
-        if Assigned(TempEventObject)  then
-          TempEventObject.CurrIndexParentObject := -1;
-        //Выполнить метод Delphi
-        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-          TIBUpdateRecordEvent(LNotifyEvent^)(DataSet, UpdateKind, UpdateAction);
-      end;
+        EO.CurrIndexParentObject := -1;
     end;
-
-  end else
+  end
+  else
     raise Exception.Create(cMsgCantFindObject);
 end;
 
 procedure TEventControl.OnVisibleChanged(Sender: TObject);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TNotifyEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cVisibleChangedEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cVisibleChangedEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cVisibleChangedEventName);
-        end;
-      end;
-
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cVisibleChangedEventName);
-
-    finally
-      if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            LNotifyEvent^(Sender);
-        end;
-    end;
-
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteNotifyEvent(Sender, cVisibleChangedEventName);
 end;
 
 function TEventControl.PropertyClose: Boolean;
@@ -9427,7 +4517,7 @@ begin
     for I := 0 to J - 1 do
     begin
       E := AnEventObject.EventList.Find(TempPropList[I]^.Name);
-      if (E <> nil) and (E.FunctionKey > 0) then
+      if (E <> nil) and ((E.FunctionKey > 0) or (E.FIsOldEventSet)) then
       begin
         if E.IsOldEventSet then
         begin
@@ -9551,13 +4641,11 @@ var
   TempPropList: TPropList;
   TempPropInfo: PPropInfo;
   MP: TMethod;
-  I, J, K: Integer;
+  I, J: Integer;
   LEventItem: TEventItem;
-  EI, EK: TEventItem;
-  TempEventObject: TEventObject;
+  EI: TEventItem;
+  SetFlag: Boolean;
 begin
-
-//  EK := nil;
   if UnEventMacro then
     Exit;
 
@@ -9571,34 +4659,22 @@ begin
     for I := 0 to J - 1 do
     begin
       EI := AnEventObject.EventList.Find(TempPropList[I]^.Name);
-      if (EI = nil) or (EI.FunctionKey = 0) or (EI.Disable) then
+
+      SetFlag := ((EI <> nil) and (EI.FunctionKey > 0) and (not EI.Disable))
+        or (AnEventObject.FindRightEvent(TempPropList[I]^.Name) <> nil);
+
+      //FindRightEvent переводит CurrIndexParentObject
+      //поэтому его надо установить в -1
+      AnEventObject.CurrIndexParentObject := -1;
+
+      if SetFlag and (EI = nil) then
       begin
-        if  (AnEventObject.ParentObjectsBySubType.Count > 0) then
-        begin
-          K := 0;
-          repeat
-            TempEventObject := AnEventObject.ParentObjectsBySubType.EventObject[K];
-            EK := TempEventObject.EventList.Find(TempPropList[I]^.Name);
-            inc(K);
-          until ((EK <> nil) and (EK.FunctionKey <> 0) and (not EK.Disable) and (not EK.IsParental))
-            or (K = AnEventObject.ParentObjectsBySubType.Count);
-
-
-          If (EK <> nil) and (EK.FunctionKey <> 0) and (not EK.Disable) then
-          begin
-            // добавляем родительский TEventItem
-            if EI <> nil then
-              AnEventObject.EventList.DeleteForName(TempPropList[I]^.Name);
-            AnEventObject.EventList.Add(EK);
-            EI := AnEventObject.EventList.Last;
-            // снимаем отметку об установке метода Delphi
-            EI.Reset;
-            EI.IsParental := True;
-            EI.ParentIndex := K - 1;
-          end;
-        end;
+        AnEventObject.EventList.Add(TempPropList[I]^.Name, 0);
+        EI := AnEventObject.EventList.Last;
+        EI.Reset;
       end;
-      if (EI <> nil) and (EI.FunctionKey <> 0) and (not EI.Disable) then
+
+      if SetFlag then
       begin
         MP.Code := nil;
         MP.Data := nil;
@@ -9733,6 +4809,7 @@ var
   CE: TgdClassEntry;
 begin
   Result := False;
+  AnEventObject.CurrIndexParentObject := -1;
 
   if AnComponent is TCreateableForm then
   begin
@@ -9811,74 +4888,8 @@ begin
 end;
 
 procedure TEventControl.TransactionFree(Sender: TObject);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TNotifyEvent;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cTransactionFreeEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cTransactionFreeEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cTransactionFreeEventName);
-        end;
-      end;
-
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cTransactionFreeEventName);
-{
-    if Assigned(LEventOfObject.OldEvent.Code) then
-    begin
-      LEvent := @LEventOfObject.OldEvent.Code;
-      LEvent^(Sender);
-    end;
-    }
-    finally
-      if ResetIndex then
-      begin
-        if Assigned(TempEventObject)  then
-          TempEventObject.CurrIndexParentObject := -1;
-        //Выполнить метод Delphi
-        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-          LNotifyEvent^(Sender);
-      end;
-    end;
-
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteNotifyEvent(Sender, cTransactionFreeEventName);
 end;
 
 procedure TEventControl.AssignEvents(const Source, Acceptor: TComponent);
@@ -10107,66 +5118,39 @@ end;
 procedure TEventControl.OnSyncField(
   Sender: TObject; Field: TField; SyncList: TList);
 var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
+  EO: TEventObject;
+  EI: TEventItem;
   LParams: Variant;
-  TempEventObject: TEventObject;
   ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
+  NE: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
+  EO := FEventObjectList.FindAllObject(Sender as TComponent);
+
+  if EO <> nil then
   begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-      GetGdcOLEObject(Field) as IDispatch, GetGdcOLEObject(SyncList) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cSyncFieldEventName);
+    ResetIndex := EO.CurrIndexParentObject = -1;
+
+    NE := @EO.EventList.Find(cSyncFieldEventName).OldEvent.Code;
 
     try
-      If Assigned(LEventOfObject) then
+      EI := EO.FindRightEvent(cSyncFieldEventName);
+
+      if EI <> nil then
       begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cSyncFieldEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cSyncFieldEventName);
-        end;
-      end;
+        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+          GetGdcOLEObject(Field) as IDispatch, GetGdcOLEObject(SyncList) as IDispatch]);
 
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cSyncFieldEventName);
+        ExecuteEvent(EI, LParams, Sender, cSyncFieldEventName);
 
+      end
+      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
+        TOnSyncFieldEvent(NE^)(Sender, Field, SyncList);
     finally
       if ResetIndex then
-      begin
-        if Assigned(TempEventObject)  then
-          TempEventObject.CurrIndexParentObject := -1;
-        //Выполнить метод Delphi
-        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-          TOnSyncFieldEvent(LNotifyEvent^)(Sender, Field, SyncList);
-      end;
+        EO.CurrIndexParentObject := -1;
     end;
-    
-  end else
+  end
+  else
     raise Exception.Create(cMsgCantFindObject);
 end;
 
@@ -10227,267 +5211,121 @@ end;
 
 procedure TEventControl.OnAfterCreateDialog(Sender: TObject;
   ANewObject: TgdcBase);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TOnCreateNewObject;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-      GetGdcOLEObject(ANewObject) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cAfterCreateDialogEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cAfterCreateDialogEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cAfterCreateDialogEventName);
-        end;
-      end;
-
-       // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cAfterCreateDialogEventName);
-
-    finally
-      if ResetIndex then
-      begin
-        if Assigned(TempEventObject)  then
-          TempEventObject.CurrIndexParentObject := -1;
-        //Выполнить метод Delphi
-        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-          TOnCreateNewObject(LNotifyEvent^)(Sender, ANewObject);
-      end;
-    end;
-
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteOnCreateNewObject(Sender, ANewObject, cAfterCreateDialogEventName);
 end;
 
 procedure TEventControl.OnGetText(Sender: TField; var Text: String;
   DisplayText: Boolean);
 var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
+  EO: TEventObject;
+  EI: TEventItem;
   LParams: Variant;
-  TempEventObject: TEventObject;
   ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
+  NE: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-      GetVarInterface(Text), DisplayText]);
+  EO := FEventObjectList.FindAllObject(Sender as TComponent);
 
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cGetTextEventName);
+  if EO <> nil then
+  begin
+    ResetIndex := EO.CurrIndexParentObject = -1;
+
+    NE := @EO.EventList.Find(cGetTextEventName).OldEvent.Code;
 
     try
-      If Assigned(LEventOfObject) then
+      EI := EO.FindRightEvent(cGetTextEventName);
+
+      if EI <> nil then
       begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cGetTextEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cGetTextEventName);
-        end;
-      end;
+        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+          GetVarInterface(Text), DisplayText]);
 
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cGetTextEventName);
-      // Обратное присвоение значений
-      Text := String(GetVarParam(LParams[1]));
-
+        ExecuteEvent(EI, LParams, Sender, cGetTextEventName);
+        
+        Text := String(GetVarParam(LParams[1]));
+      end
+      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
+        TFieldGetTextEvent(NE^)(Sender, Text, DisplayText);
     finally
       if ResetIndex then
-      begin
-        if Assigned(TempEventObject)  then
-          TempEventObject.CurrIndexParentObject := -1;
-        //Выполнить метод Delphi
-        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-          TFieldGetTextEvent(LNotifyEvent^)(Sender, Text, DisplayText);
-      end;
+        EO.CurrIndexParentObject := -1;
     end;
-
-  end else
+  end
+  else
     raise Exception.Create(cMsgCantFindObject);
 end;
 
 procedure TEventControl.OnSetText(Sender: TField; const Text: String);
 var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
+  EO: TEventObject;
+  EI: TEventItem;
   LParams: Variant;
-  TempEventObject: TEventObject;
   ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
+  NE: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch, Text]);
+  EO := FEventObjectList.FindAllObject(Sender as TComponent);
 
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cSetTextEventName);
+  if EO <> nil then
+  begin
+    ResetIndex := EO.CurrIndexParentObject = -1;
+
+    NE := @EO.EventList.Find(cSetTextEventName).OldEvent.Code;
 
     try
-      If Assigned(LEventOfObject) then
+      EI := EO.FindRightEvent(cSetTextEventName);
+
+      if EI <> nil then
       begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cSetTextEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cSetTextEventName);
-        end;
-      end;
+        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch, Text]);
 
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cSetTextEventName);
+        ExecuteEvent(EI, LParams, Sender, cSetTextEventName);
 
+      end
+      else if ResetIndex and Assigned(NE) and Assigned(NE^) then
+        TFieldSetTextEvent(NE^)(Sender, Text);
     finally
       if ResetIndex then
-      begin
-        if Assigned(TempEventObject)  then
-          TempEventObject.CurrIndexParentObject := -1;
-        //Выполнить метод Delphi
-        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-          TFieldSetTextEvent(LNotifyEvent^)(Sender, Text);
-      end;
+        EO.CurrIndexParentObject := -1;
     end;
-
-  end else
+  end
+  else
     raise Exception.Create(cMsgCantFindObject);
 end;
 
 procedure TEventControl.OnValidate(Sender: TField);
 var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
+  EO: TEventObject;
+  EI: TEventItem;
   LParams: Variant;
-  TempEventObject: TEventObject;
   ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
+  NE: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
+  EO := FEventObjectList.FindAllObject(Sender as TComponent);
 
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cValidateEventName);
+  if EO <> nil then
+  begin
+    ResetIndex := EO.CurrIndexParentObject = -1;
+
+    NE := @EO.EventList.Find(cValidateEventName).OldEvent.Code;
 
     try
-      If Assigned(LEventOfObject) then
+      EI := EO.FindRightEvent(cValidateEventName);
+
+      if EI <> nil then
       begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cValidateEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cValidateEventName);
-        end;
-      end;
+        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
 
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cValidateEventName);
+        ExecuteEvent(EI, LParams, Sender, cValidateEventName);
 
+      end
+      else if ResetIndex and Assigned(NE) and Assigned(NE^) then
+        TFieldNotifyEvent(NE^)(Sender);
     finally
       if ResetIndex then
-      begin
-        if Assigned(TempEventObject)  then
-          TempEventObject.CurrIndexParentObject := -1;
-        //Выполнить метод Delphi
-        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-          TFieldNotifyEvent(LNotifyEvent^)(Sender);
-      end;
+        EO.CurrIndexParentObject := -1;
     end;
-
-  end else
+  end
+  else
     raise Exception.Create(cMsgCantFindObject);
 end;
 
@@ -10527,203 +5365,121 @@ end;}
 
 function TEventControl.OnTestCorrect(Sender: TObject): Boolean;
 var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
+  EO: TEventObject;
+  EI: TEventItem;
   LParams: Variant;
   SrcResult: OleVariant;
-  TempEventObject: TEventObject;
   ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
+  NE: ^TNotifyEvent;
 begin
   Result := True;
 
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
+  EO := FEventObjectList.FindAllObject(Sender as TComponent);
+
+  if EO <> nil then
   begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cTestCorrectEventName);
+    ResetIndex := EO.CurrIndexParentObject = -1;
+
+    NE := @EO.EventList.Find(cTestCorrectEventName).OldEvent.Code;
 
     try
-      If Assigned(LEventOfObject) then
+      EI := EO.FindRightEvent(cTestCorrectEventName);
+
+      if EI <> nil then
       begin
-        if LEventOfObject.IsParental then
+        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
+
+        SrcResult := ExecuteEvent(EI, LParams, Sender, cTestCorrectEventName);
+        if VarType(SrcResult) = varBoolean then
+          Result := Boolean(SrcResult)
+        else
         begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cTestCorrectEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cTestCorrectEventName);
+          if VarType(SrcResult) <> varEmpty then
+            raise Exception.Create('Несоответствие типа. Тип возвращенный обработчиком OnTestCorrect не Boolean.');
         end;
-      end;
-
-      // Выполнение события
-      SrcResult := ExecuteEvent(LEventOfObject, LParams, Sender, cTestCorrectEventName);
-      if VarType(SrcResult) = varBoolean then
-        Result := Boolean(SrcResult)
-      else
-      begin
-        if VarType(SrcResult) <> varEmpty then
-          raise Exception.Create('Несоответствие типа. Тип возвращенный обработчиком OnTestCorrect не Boolean.');
-      end;
-
+      end
+      else if ResetIndex and Assigned(NE) and Assigned(NE^) then
+        Result := TOnTestCorrect(NE^)(Sender);
     finally
       if ResetIndex then
-      begin
-        if Assigned(TempEventObject)  then
-          TempEventObject.CurrIndexParentObject := -1;
-        //Выполнить метод Delphi
-        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-          Result := TOnTestCorrect(LNotifyEvent^)(Sender);
-      end;
+        EO.CurrIndexParentObject := -1;
     end;
-
-  end else
+  end
+  else
     raise Exception.Create(cMsgCantFindObject);
 end;
 
 procedure TEventControl.OnSetupDialog(Sender: TObject);
 var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
+  EO: TEventObject;
+  EI: TEventItem;
   LParams: Variant;
-  TempEventObject: TEventObject;
   ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
+  NE: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
+  EO := FEventObjectList.FindAllObject(Sender as TComponent);
+
+  if EO <> nil then
   begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cSetupDialogEventName);
+    ResetIndex := EO.CurrIndexParentObject = -1;
+
+    NE := @EO.EventList.Find(cSetupDialogEventName).OldEvent.Code;
 
     try
-      If Assigned(LEventOfObject) then
+      EI := EO.FindRightEvent(cSetupDialogEventName);
+
+      if EI <> nil then
       begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cSetupDialogEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cSetupDialogEventName);
-        end;
-      end;
+        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
 
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cSetupDialogEventName);
+        ExecuteEvent(EI, LParams, Sender, cSetupDialogEventName);
 
+      end
+      else if ResetIndex and Assigned(NE) and Assigned(NE^) then
+        TOnSetupDialog(NE^)(Sender);
     finally
       if ResetIndex then
-      begin
-        if Assigned(TempEventObject)  then
-          TempEventObject.CurrIndexParentObject := -1;
-        //Выполнить метод Delphi
-        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-          TOnSetupDialog(LNotifyEvent^)(Sender);
-      end;
+        EO.CurrIndexParentObject := -1;
     end;
-
-  end else
+  end
+  else
     raise Exception.Create(cMsgCantFindObject);
 end;
 
 procedure TEventControl.OnSetupRecord(Sender: TObject);
 var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
+  EO: TEventObject;
+  EI: TEventItem;
   LParams: Variant;
-  TempEventObject: TEventObject;
   ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
+  NE: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
+  EO := FEventObjectList.FindAllObject(Sender as TComponent);
+
+  if EO <> nil then
   begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cSetupRecordEventName);
+    ResetIndex := EO.CurrIndexParentObject = -1;
+
+    NE := @EO.EventList.Find(cSetupRecordEventName).OldEvent.Code;
 
     try
-      If Assigned(LEventOfObject) then
+      EI := EO.FindRightEvent(cSetupRecordEventName);
+
+      if EI <> nil then
       begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cSetupRecordEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cSetupRecordEventName);
-        end;
-      end;
+        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
 
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cSetupRecordEventName);
+        ExecuteEvent(EI, LParams, Sender, cSetupRecordEventName);
 
+      end
+      else if ResetIndex and Assigned(NE) and Assigned(NE^) then
+        TOnSetupRecord(NE^)(Sender);
     finally
       if ResetIndex then
-      begin
-        if Assigned(TempEventObject)  then
-          TempEventObject.CurrIndexParentObject := -1;
-        //Выполнить метод Delphi
-        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-          TOnSetupRecord(LNotifyEvent^)(Sender);
-      end;
+        EO.CurrIndexParentObject := -1;
     end;
-
-  end else
+  end
+  else
     raise Exception.Create(cMsgCantFindObject);
 end;
 
@@ -10736,351 +5492,32 @@ end;
 
 procedure TEventControl.OnGetFromClause(Sender: TObject;
   var Clause: String);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-      GetVarInterface(Clause)]);
-
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cOnGetFromClauseEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cOnGetFromClauseEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cOnGetFromClauseEventName);
-        end;
-      end;
-
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cOnGetFromClauseEventName);
-      // Обратное присвоение значений
-
-      Clause := String(GetVarParam(LParams[1]));
-
-    finally
-      if ResetIndex then
-      begin
-        if Assigned(TempEventObject)  then
-          TempEventObject.CurrIndexParentObject := -1;
-        //Выполнить метод Delphi
-        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-          TgdcOnGetSQLClause(LNotifyEvent^)(Sender, Clause);
-      end;
-    end;
-
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecutegdcOnGetSQLClause(Sender, Clause, cOnGetFromClauseEventName);
 end;
 
 procedure TEventControl.OnGetGroupClause(Sender: TObject;
   var Clause: String);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-      GetVarInterface(Clause)]);
-
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cOnGetGroupClauseEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cOnGetGroupClauseEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cOnGetGroupClauseEventName);
-        end;
-      end;
-
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cOnGetGroupClauseEventName);
-      // Обратное присвоение значений
-
-      Clause := String(GetVarParam(LParams[1]));
-
-    finally
-      if ResetIndex then
-      begin
-        if Assigned(TempEventObject)  then
-          TempEventObject.CurrIndexParentObject := -1;
-        //Выполнить метод Delphi
-        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-          TgdcOnGetSQLClause(LNotifyEvent^)(Sender, Clause);
-      end;
-    end;
-
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecutegdcOnGetSQLClause(Sender, Clause, cOnGetGroupClauseEventName);
 end;
 
 procedure TEventControl.OnGetOrderClause(Sender: TObject;
   var Clause: String);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-      GetVarInterface(Clause)]);
-
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cOnGetOrderClauseEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cOnGetOrderClauseEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cOnGetOrderClauseEventName);
-        end;
-      end;
-
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cOnGetOrderClauseEventName);
-      // Обратное присвоение значений
-
-      Clause := String(GetVarParam(LParams[1]));
-
-    finally
-      if ResetIndex then
-      begin
-        if Assigned(TempEventObject)  then
-          TempEventObject.CurrIndexParentObject := -1;
-        //Выполнить метод Delphi
-        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-          TgdcOnGetSQLClause(LNotifyEvent^)(Sender, Clause);
-      end;
-    end;
-
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecutegdcOnGetSQLClause(Sender, Clause, cOnGetOrderClauseEventName);
 end;
 
 procedure TEventControl.OnGetSelectClause(Sender: TObject;
   var Clause: String);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-      GetVarInterface(Clause)]);
-
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cOnGetSelectClauseEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cOnGetSelectClauseEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cOnGetSelectClauseEventName);
-        end;
-      end;
-
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cOnGetSelectClauseEventName);
-      // Обратное присвоение значений
-      Clause := String(GetVarParam(LParams[1]));
-
-    finally
-      if ResetIndex then
-      begin
-        if Assigned(TempEventObject)  then
-          TempEventObject.CurrIndexParentObject := -1;
-        //Выполнить метод Delphi
-        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-          TgdcOnGetSQLClause(LNotifyEvent^)(Sender, Clause);
-      end;
-    end;
-
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecutegdcOnGetSQLClause(Sender, Clause, cOnGetSelectClauseEventName);
 end;
 
 procedure TEventControl.OnGetWhereClause(Sender: TObject;
   var Clause: String);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-      GetVarInterface(Clause)]);
-
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cOnGetWhereClauseEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cOnGetWhereClauseEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cOnGetWhereClauseEventName);
-        end;
-      end;
-
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cOnGetWhereClauseEventName);
-      // Обратное присвоение значений
-
-      Clause := String(GetVarParam(LParams[1]));
-
-    finally
-      if ResetIndex then
-      begin
-        if Assigned(TempEventObject)  then
-          TempEventObject.CurrIndexParentObject := -1;
-        //Выполнить метод Delphi
-        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-          TgdcOnGetSQLClause(LNotifyEvent^)(Sender, Clause);
-      end;
-    end;
-
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecutegdcOnGetSQLClause(Sender, Clause, cOnGetWhereClauseEventName);
 end;
 
 procedure TEventControl.RebootEvents(AnComponent: TComponent);
@@ -11113,143 +5550,47 @@ end;}
 procedure TEventControl.OnChanging(Sender: TObject;
   var AllowChange: Boolean);
 var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
+  EO: TEventObject;
+  EI: TEventItem;
   LParams: Variant;
-  TempEventObject: TEventObject;
   ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
+  NE: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-      GetVarInterface(AllowChange)]);
+  EO := FEventObjectList.FindAllObject(Sender as TComponent);
 
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cChangingEventName);
+  if EO <> nil then
+  begin
+    ResetIndex := EO.CurrIndexParentObject = -1;
+
+    NE := @EO.EventList.Find(cChangingEventName).OldEvent.Code;
 
     try
-      If Assigned(LEventOfObject) then
+      EI := EO.FindRightEvent(cChangingEventName);
+
+      if EI <> nil then
       begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cChangingEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cChangingEventName);
-        end;
-      end;
+        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+          GetVarInterface(AllowChange)]);
 
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cChangingEventName);
-      // Обратное присвоение значений
-      AllowChange := Boolean(GetVarParam(LParams[1]));
-
+        ExecuteEvent(EI, LParams, Sender, cChangingEventName);
+        
+        AllowChange := Boolean(GetVarParam(LParams[1]));
+      end
+      else if ResetIndex and Assigned(NE) and Assigned(NE^) then
+        TTabChangingEvent(NE^)(Sender, AllowChange);
     finally
       if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            TTabChangingEvent(LNotifyEvent^)(Sender, AllowChange);
-        end;
+        EO.CurrIndexParentObject := -1;
     end;
-
-  end else
+  end
+  else
     raise Exception.Create(cMsgCantFindObject);
 end;
 
 procedure TEventControl.OnCalcAggregates(DataSet: TDataSet;
   var Accept: Boolean);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(DataSet as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(DataSet) as IDispatch,
-      GetVarInterface(Accept)]);
-
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cOnCalcAggregatesEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cOnCalcAggregatesEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cOnCalcAggregatesEventName);
-        end;
-      end;
-
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, DataSet, cOnCalcAggregatesEventName);
-      // Обратное присвоение значений
-
-      try
-        Accept := GetVarParam(LParams[1]);
-      except
-      end;
-
-    finally
-      if ResetIndex then
-      begin
-        if Assigned(TempEventObject)  then
-          TempEventObject.CurrIndexParentObject := -1;
-        //Выполнить метод Delphi
-        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-          TFilterRecordEvent(LNotifyEvent^)(DataSet, Accept);
-      end;
-    end;
-
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteFilterRecordEvent(DataSet, Accept, cOnCalcAggregatesEventName);
 end;
 
 procedure TEventControl.Drop;
@@ -11396,67 +5737,8 @@ begin
 end;
 
 procedure TEventControl.OnClickCheckListBox(Sender: TObject);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cClickCheckEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cClickCheckEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cClickCheckEventName);
-        end;
-      end;
-
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cClickCheckEventName);
-
-    finally
-      if ResetIndex then
-        begin
-          if Assigned(TempEventObject)  then
-            TempEventObject.CurrIndexParentObject := -1;
-          //Выполнить метод Delphi
-          if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-            LNotifyEvent^(Sender);
-        end;
-    end;
-
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteNotifyEvent(Sender, cClickCheckEventName);
 end;
 
 procedure TEventControl.PrepareSOEditorForModal;
@@ -11465,131 +5747,13 @@ begin
 end;
 
 procedure TEventControl.OnSaveSettings(Sender: TObject);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cSaveSettingsEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cSaveSettingsEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cSaveSettingsEventName);
-        end;
-      end;
-
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cSaveSettingsEventName);
-
-    finally
-      if ResetIndex then
-      begin
-        if Assigned(TempEventObject)  then
-          TempEventObject.CurrIndexParentObject := -1;
-        //Выполнить метод Delphi
-        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-          LNotifyEvent^(Sender);
-      end;
-    end;
-
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteNotifyEvent(Sender, cSaveSettingsEventName);
 end;
 
 procedure TEventControl.OnLoadSettingsAfterCreate(Sender: TObject);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cLoadSettingsAfterCreateEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cLoadSettingsAfterCreateEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cLoadSettingsAfterCreateEventName);
-        end;
-      end;
-
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cLoadSettingsAfterCreateEventName);
-
-    finally
-      if ResetIndex then
-      begin
-        if Assigned(TempEventObject)  then
-          TempEventObject.CurrIndexParentObject := -1;
-        //Выполнить метод Delphi
-        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-          LNotifyEvent^(Sender);
-      end;
-    end;
-
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteNotifyEvent(Sender, cLoadSettingsAfterCreateEventName);
 end;
 
 procedure TEventControl.OnChangeTV(Sender: TObject; Node: TTreeNode);
@@ -11704,259 +5868,23 @@ begin
 end;
 
 procedure TEventControl.AfterInternalDeleteRecord(DataSet: TDataSet);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(DataSet as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(DataSet) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cAfterInternalDeleteRecordEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cAfterInternalDeleteRecordEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cAfterInternalDeleteRecordEventName);
-        end;
-      end;
-
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, DataSet, cAfterInternalDeleteRecordEventName);
-
-    finally
-      if ResetIndex then
-      begin
-        if Assigned(TempEventObject)  then
-          TempEventObject.CurrIndexParentObject := -1;
-        //Выполнить метод Delphi
-        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-          TDataSetNotifyEvent(LNotifyEvent^)(DataSet);
-      end;
-    end;
-
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteDataSetNotifyEvent(DataSet, cAfterInternalDeleteRecordEventName);
 end;
 
 procedure TEventControl.AfterInternalPostRecord(DataSet: TDataSet);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(DataSet as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(DataSet) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cAfterInternalPostRecordEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cAfterInternalPostRecordEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cAfterInternalPostRecordEventName);
-        end;
-      end;
-
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, DataSet, cAfterInternalPostRecordEventName);
-
-    finally
-      if ResetIndex then
-      begin
-        if Assigned(TempEventObject)  then
-          TempEventObject.CurrIndexParentObject := -1;
-        //Выполнить метод Delphi
-        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-          TDataSetNotifyEvent(LNotifyEvent^)(DataSet);
-      end;
-    end;
-
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteDataSetNotifyEvent(DataSet, cAfterInternalPostRecordEventName);
 end;
 
 procedure TEventControl.BeforeInternalDeleteRecord(DataSet: TDataSet);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(DataSet as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(DataSet) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cBeforeInternalDeleteRecordEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cBeforeInternalDeleteRecordEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cBeforeInternalDeleteRecordEventName);
-        end;
-      end;
-
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, DataSet, cBeforeInternalDeleteRecordEventName);
-
-    finally
-      if ResetIndex then
-      begin
-        if Assigned(TempEventObject)  then
-          TempEventObject.CurrIndexParentObject := -1;
-        //Выполнить метод Delphi
-        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-          TDataSetNotifyEvent(LNotifyEvent^)(DataSet);
-      end;
-    end;
-
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteDataSetNotifyEvent(DataSet, cBeforeInternalDeleteRecordEventName);
 end;
 
 procedure TEventControl.BeforeInternalPostRecord(DataSet: TDataSet);
-var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-  LParams: Variant;
-  TempEventObject: TEventObject;
-  ResetIndex: boolean;
-  LNotifyEvent: ^TNotifyEvent;
 begin
-  ResetIndex := False;
-  LNotifyEvent := nil;
-  TempEventObject := nil;
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(DataSet as TComponent);
-  if Assigned(LEventObject) then
-  begin
-    //Проверка на вызов родительского объекта
-    if LEventObject.CurrIndexParentObject > -1 then
-      LEventObject :=
-        LEventObject.ParentObjectsBySubType.EventObject[LEventObject.CurrIndexParentObject];
-  end;
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(DataSet) as IDispatch]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cBeforeInternalPostRecordEventName);
-
-    try
-      If Assigned(LEventOfObject) then
-      begin
-        if LEventOfObject.IsParental then
-        begin
-          // сохранение адреса Delphi обработчика события
-          LNotifyEvent := @LEventObject.EventList.Find(cBeforeInternalPostRecordEventName).OldEvent.Code;
-          // выбор родительскокого объекта
-          LEventObject.CurrIndexParentObject := LEventOfObject.ParentIndex;
-          TempEventObject := LEventObject;
-          ResetIndex := True;
-          LEventObject :=
-            LEventObject.ParentObjectsBySubType.EventObject[LEventOfObject.ParentIndex];
-          LEventOfObject := LEventObject.EventList.Find(cBeforeInternalPostRecordEventName);
-        end;
-      end;
-
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, DataSet, cBeforeInternalPostRecordEventName);
-
-    finally
-      if ResetIndex then
-      begin
-        if Assigned(TempEventObject)  then
-          TempEventObject.CurrIndexParentObject := -1;
-        //Выполнить метод Delphi
-        if (Assigned(LNotifyEvent)) and (Assigned(LNotifyEvent^)) then
-          TDataSetNotifyEvent(LNotifyEvent^)(DataSet);
-      end;
-    end;
-
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  ExecuteDataSetNotifyEvent(DataSet, cBeforeInternalPostRecordEventName);
 end;
 
 procedure TEventControl.OnDocumentComplete(Sender: TObject;
@@ -13307,8 +7235,6 @@ begin
   FFunctionKey := ASource.FunctionKey;
   FOldEvent := ASource.OldEvent;
   FEventId := ASource.EventID;
-  FDisable := ASource.FDisable;
-  FIsParental := ASource.FIsParental;
 end;
 
 function TEventItem.AutoFunctionName: String;
