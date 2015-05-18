@@ -5765,14 +5765,12 @@ begin
 end;
 
 procedure TgdcInvDocumentType.DoBeforePost;
-  VAR
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}
+  {M}VAR
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
   Stream: TStream;
-
 begin
   {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCINVDOCUMENTTYPE', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
   {M}  try
@@ -5793,7 +5791,9 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
   inherited;
+
   //складские документы не могут быть общими!
   FieldByName('iscommon').AsInteger := 0;
 
