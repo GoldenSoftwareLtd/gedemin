@@ -88,7 +88,7 @@ implementation
 {$R *.DFM}
 
 uses
-  gd_ClassList, Storages, gsStorage_CompPath;
+  gd_ClassList, Storages, gsStorage_CompPath, Contnrs;
 
 { Tgdc_frmMD2H }
 
@@ -111,6 +111,8 @@ begin
 end;
 
 procedure Tgdc_frmMD2H.SetgdcSubDetailObject(const Value: TgdcBase);
+var
+  OL: TObjectList;
 begin
   if FgdcSubDetailObject <> Value then
   begin
@@ -127,13 +129,19 @@ begin
       FgdcSubDetailObject.OnFilterChanged := DoOnFilterChanged;
       DoOnFilterChanged(nil);
 
-      if gdClassList.Get(TgdBaseEntry,
-        FgdcSubDetailObject.ClassName, FgdcSubDetailObject.SubType).Count > 0 then
-      begin
-        TCrTBItem(tbiSubDetailNew).ItemStyle :=
-          TCrTBItem(tbiSubDetailNew).ItemStyle + [tbisSubMenu, tbisSubitemsEditable, tbisCombo];
-        tbiSubDetailNew.OnPopup := tbiSubDetailNewPopup;
+      OL := TObjectList.Create(False);
+      try
+        if FgdcSubDetailObject.GetChildrenClass(FgdcSubDetailObject.SubType, OL, False) then
+        begin
+          TCrTBItem(tbiSubDetailNew).ItemStyle :=
+            TCrTBItem(tbiSubDetailNew).ItemStyle
+            + [tbisSubMenu, tbisSubitemsEditable, tbisCombo];
+          tbiSubDetailNew.OnPopup := tbiSubDetailNewPopup;
+        end;
+      finally
+        OL.Free;
       end;
+
     end;
   end;
 end;

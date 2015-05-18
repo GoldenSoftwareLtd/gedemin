@@ -365,7 +365,9 @@ uses
   at_sql_setup, gd_createable_form, gd_ClassList,
   at_AddToSetting, Storages, gsStorage_CompPath,
   gdcUser, gsStorage, prp_methods, gsDBTreeView,
-  gsDesktopManager, IBSQL, jclSelected, gdHelp_Interface
+  gsDesktopManager, IBSQL, jclSelected, gdHelp_Interface,
+  Contnrs
+
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -759,6 +761,8 @@ begin
 end;
 
 procedure Tgdc_frmG.SetGdcObject(const Value: TgdcBase);
+var
+  OL: TObjectList;
 begin
   if FgdcObject <> Value then
   begin
@@ -770,12 +774,16 @@ begin
       FgdcObject.OnFilterChanged := DoOnFilterChanged;
       DoOnFilterChanged(nil);
 
-      if gdClassList.Get(TgdBaseEntry, FgdcObject.ClassName,
-        FgdcObject.SubType).Count > 0 then
-      begin
-        TCrTBItem(tbiNew).ItemStyle :=
-          TCrTBItem(tbiNew).ItemStyle + [tbisSubMenu, tbisSubitemsEditable, tbisCombo];
-        tbiNew.OnPopup := tbiNewPopup;
+      OL := TObjectList.Create(False);
+      try
+        if FgdcObject.GetChildrenClass(FgdcObject.SubType, OL, False) then
+        begin
+          TCrTBItem(tbiNew).ItemStyle :=
+            TCrTBItem(tbiNew).ItemStyle + [tbisSubMenu, tbisSubitemsEditable, tbisCombo];
+          tbiNew.OnPopup := tbiNewPopup;
+        end;
+      finally
+        OL.Free;
       end;
       
     end;
@@ -2038,8 +2046,10 @@ procedure Tgdc_frmG.FillPopupNew(AnObject: TgdcBase; ATBCustomItem: TTBCustomIte
     TBI: TTBItem;
     I: Integer;
   begin
-    if (not (CE as TgdBaseEntry).gdcClass.IsAbstractClass)
-      and (not CE.Hidden) then
+    if CE.Hidden then
+      exit;
+
+    if not (CE as TgdBaseEntry).gdcClass.IsAbstractClass then
     begin
       TBI := TTBItem.Create(ATBCustomItem);
       TBI.Tag := Integer(CE);
