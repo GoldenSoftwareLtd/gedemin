@@ -196,7 +196,7 @@ uses
   VExportDlg,
   {$ENDIF}
   gd_security, Storages, gd_ClassList, at_AddToSetting,
-  prp_methods
+  prp_methods, Contnrs
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -426,6 +426,8 @@ begin
 end;
 
 procedure Tgdc_frmMDH.SetgdcDetailObject(const Value: TgdcBase);
+var
+  OL: TObjectList;
 begin
   if FgdcDetailObject <> Value then
   begin
@@ -444,18 +446,23 @@ begin
       FgdcDetailObject.OnFilterChanged := DoOnFilterChanged;
       DoOnFilterChanged(nil);
 
-      if gdClassList.Get(TgdBaseEntry,
-        FgdcDetailObject.ClassName, FgdcDetailObject.SubType).Count > 0 then
-      begin
-        if (Self.ClassName <> 'Tgdc_frmUserComplexDocument')
-          and (Self.ClassName <> 'Tgdc_frmInvDocument')
-          and (Self.ClassName <> 'Tgdc_frmInvPriceList') then
+      OL := TObjectList.Create(False);
+      try
+        if FgdcDetailObject.GetChildrenClass(FgdcDetailObject.SubType, OL, False) then
         begin
-          TCrTBItem(tbiDetailNew).ItemStyle :=
-            TCrTBItem(tbiDetailNew).ItemStyle + [tbisSubMenu, tbisSubitemsEditable, tbisCombo];
-          tbiDetailNew.OnPopup := tbiDetailNewPopup;
+          if (Self.ClassName <> 'Tgdc_frmUserComplexDocument')
+            and (Self.ClassName <> 'Tgdc_frmInvDocument')
+            and (Self.ClassName <> 'Tgdc_frmInvPriceList') then
+          begin
+            TCrTBItem(tbiDetailNew).ItemStyle :=
+              TCrTBItem(tbiDetailNew).ItemStyle + [tbisSubMenu, tbisSubitemsEditable, tbisCombo];
+            tbiDetailNew.OnPopup := tbiDetailNewPopup;
+          end;
         end;
+      finally
+        OL.Free;
       end;
+
     end;
   end;
 end;
