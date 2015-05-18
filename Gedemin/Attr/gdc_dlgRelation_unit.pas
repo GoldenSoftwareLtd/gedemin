@@ -1486,6 +1486,9 @@ function Tgdc_dlgRelation.TestCorrect: Boolean;
   var
     I: Integer;
   begin
+    if CE.Hidden then
+      exit;
+
     if (CE as TgdBaseEntry).DistinctRelation = ARN then
       Inc(ACount);
 
@@ -1497,18 +1500,9 @@ function Tgdc_dlgRelation.TestCorrect: Boolean;
   var
     Count: Integer;
   begin
-    if RN = 'GD_GOOD' then
-    begin
-      Result := True;
-      Exit;
-    end;
-
     Count := 0;
     _Traverse(gdClassList.Get(TgdBaseEntry, 'TgdcBase'), RN, Count);
     Result := Count = 1;
-
-    if Count = 0 then
-      raise Exception.Create('Unregistered relation.');
   end;
 
 var
@@ -1518,7 +1512,6 @@ var
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
   q: TIBSQL;
-  R: TatRelation;
 begin
   {@UNFOLD MACRO INH_CRFORM_TESTCORRECT('TGDC_DLGRELATION', 'TESTCORRECT', KEYTESTCORRECT)}
   {M}Result := True;
@@ -1549,21 +1542,15 @@ begin
   Result := inherited TestCorrect;
 
   //ѕроверка на возможность создани€ св€занной таблицы (наследование)
-  if Result and (gdcObject is TgdcInheritedTable) then
+  if Result and (gdcObject is TgdcInheritedTable)
+    and (ibcmbReference.CurrentKeyInt > -1)
+    and (not CanInherit(Trim(ibcmbReference.Text))) then
   begin
+    MessageBox(Handle,
+      PChar(
+      'Ќельз€ наследовать класс от таблицы ' + ibcmbReference.Text),
+      '¬нимание', MB_OK or MB_ICONEXCLAMATION);
     Result := False;
-    if ibcmbReference.CurrentKeyInt > -1 then
-    begin
-      R := atDatabase.Relations.ByID(ibcmbReference.CurrentKeyInt);
-      if (R <> nil) and (R.RelationName > '') then
-        Result := CanInherit(R.RelationName);
-
-      if not Result then
-        MessageBox(Handle,
-          PChar(
-          '“аблица ' + R.RelationName + ' не может быть использована в качестве ссылки'),
-          '¬нимание', MB_OK or MB_ICONEXCLAMATION);
-    end;
   end;
 
   // ѕроверка на дублирование локализованного наименовани€ таблицы

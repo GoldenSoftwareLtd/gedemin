@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2001 - 2014 by Golden Software of Belarus
+  Copyright (c) 2001 - 2015 by Golden Software of Belarus
 
   Module
 
@@ -462,8 +462,12 @@ begin
 
   if ACE.SubType = '' then
   begin
-    LTreeNode := tvObjects.Items.AddChild(TTreeNode(AData1^),
-      TgdBaseEntry(ACE).gdcClass.GetDisplayName('') + ' [' + ACE.TheClass.ClassName + ']');
+    if ACE.Caption <> ACE.TheClass.ClassName then
+      LTreeNode := tvObjects.Items.AddChild(TTreeNode(AData1^),
+        ACE.Caption + ' [' + ACE.TheClass.ClassName + ']')
+    else
+      LTreeNode := tvObjects.Items.AddChild(TTreeNode(AData1^),
+        ACE.TheClass.ClassName);
 
     if gdcObject.State = dsInsert then
     begin
@@ -538,10 +542,8 @@ begin
       begin
         LTreeNode := nil;
         gdClassList.Traverse(TgdcBase, '', BuildClassTree, @LTreeNode, @F, True, True);
-      end
-      else
+      end else
         Label2.Caption := 'Объекты будут доступны после создания поля.';
-
     finally
       tvObjects.Items.EndUpdate;
     end;
@@ -573,9 +575,12 @@ begin
     begin
       if AnObjects > '' then
         AnObjects := AnObjects + ',';
-      AnObjects := AnObjects + Copy(tvObjects.Items[I].Text,
-        AnsiPos('[', tvObjects.Items[I].Text) + 1,
-        Length(tvObjects.Items[I].Text) - 1 - AnsiPos('[', tvObjects.Items[I].Text));
+      if Pos('[', tvObjects.Items[I].Text) > 0 then
+        AnObjects := AnObjects + Copy(tvObjects.Items[I].Text,
+          Pos('[', tvObjects.Items[I].Text) + 1,
+          Length(tvObjects.Items[I].Text) - 1 - Pos('[', tvObjects.Items[I].Text))
+      else
+        AnObjects := AnObjects + tvObjects.Items[I].Text;
     end;
   if AnObjects > '' then
     gdcObject.FieldByName('objects').AsString := AnObjects
