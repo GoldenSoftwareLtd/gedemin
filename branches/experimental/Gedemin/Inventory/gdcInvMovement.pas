@@ -3912,6 +3912,7 @@ var
   MasterDataSet: TgdcInvDocument;
   MasterCreate: Boolean;
   DidActivate: Boolean;
+  CE: TgdClassEntry;
 {$IFDEF DEBUGMOVE}
 TempTime: Longint;
 {$ENDIF}
@@ -3983,9 +3984,10 @@ begin
 
         with (gdcDocumentLine as TgdcInvBaseDocument) do
         begin
+          CE := gdClassList.Get(TgdDocumentEntry, ClassName, SubType).GetRootSubType;
           if
-            (AnsiCompareText(MovementSource.RelationName, RelationName) = 0) and
-            (MovementSource.SourceFieldName > '')
+            (AnsiCompareText(MovementSource.RelationName, TgdDocumentEntry(CE).HeaderRelName) = 0)
+               and (MovementSource.SourceFieldName > '')
           then
             ipSourceContactKey := MasterDataSet.
               FieldByName(MovementSource.SourceFieldName).AsInteger
@@ -3994,7 +3996,7 @@ begin
           if (MovementSource.SourceFieldName > '') then
             ipSourceContactKey := FieldByName(MovementSource.SourceFieldName).AsInteger;
 
-          if (AnsiCompareText(MovementTarget.RelationName, RelationName) = 0) and
+          if (AnsiCompareText(MovementTarget.RelationName, TgdDocumentEntry(CE).HeaderRelName) = 0) and
              (MovementTarget.SourceFieldName > '')
           then
             ipDestContactKey := MasterDataSet.
@@ -4010,7 +4012,7 @@ begin
           ipSubDestContactKey := -1;
 
           if
-            (AnsiCompareText(MovementSource.SubRelationName, RelationName) = 0) and
+            (AnsiCompareText(MovementSource.SubRelationName, TgdDocumentEntry(CE).HeaderRelName) = 0) and
             (MovementSource.SubSourceFieldName > '')
           then
             ipSubSourceContactKey := MasterDataSet.
@@ -4020,7 +4022,7 @@ begin
           if (MovementSource.SubSourceFieldName > '') then
             ipSubSourceContactKey := FieldByName(MovementSource.SubSourceFieldName).AsInteger;
 
-          if (AnsiCompareText(MovementTarget.SubRelationName, RelationName) = 0) and
+          if (AnsiCompareText(MovementTarget.SubRelationName, TgdDocumentEntry(CE).HeaderRelName) = 0) and
              (MovementTarget.SubSourceFieldName > '')
           then
             ipSubDestContactKey := MasterDataSet.
