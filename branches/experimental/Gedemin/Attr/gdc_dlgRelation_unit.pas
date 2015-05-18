@@ -879,12 +879,6 @@ begin
   {M}    end;
   {END MACRO}
 
-  if gdcObject is TgdcInheritedTable then
-  begin
-//    if AnsiPos('USR$', (gdcObject as TgdcInheritedTable).GetReferenceName) = 0 then
-//      raise Exception.Create('Ссылка может быть только на пользовательскую таблицу.');
-  end;
-
   inherited;
 
   if (gdcObject is TgdcBaseTable)
@@ -1294,8 +1288,7 @@ begin
        (gdcObject is TgdcSimpleTable) or
        (gdcObject is TgdcTreeTable) or
        (gdcObject is TgdcLBRBTreeTable) or
-       (gdcObject is TgdcTableToTable) or
-       (gdcObject is TgdcInheritedTable)
+       (gdcObject is TgdcTableToTable) 
       )
 
   else
@@ -1325,8 +1318,7 @@ begin
          (gdcObject is TgdcSimpleTable) or
          (gdcObject is TgdcTreeTable) or
          (gdcObject is TgdcLBRBTreeTable) or
-         (gdcObject is TgdcTableToTable)  or
-         (gdcObject is TgdcInheritedTable)
+         (gdcObject is TgdcTableToTable)
         );
     end;
   end;
@@ -1353,7 +1345,7 @@ begin
   //Для редактирования нескольких веток запрещаем изменении ветки исследователя
   iblcExplorerBranch.Enabled := not (sMultiple in gdcObject.BaseState);
 
-  if (gdcObject is TgdcTableToTable) or (gdcObject is TgdcInheritedTable) then
+  if gdcObject is TgdcTableToTable then
   begin
     lblReference.Visible := True;
     ibcmbReference.Visible := True;
@@ -1495,7 +1487,7 @@ function Tgdc_dlgRelation.TestCorrect: Boolean;
     I: Integer;
   begin
     if (CE as TgdBaseEntry).DistinctRelation = ARN then
-      inc(Acount);
+      Inc(ACount);
 
     for I := 0 to CE.Count - 1 do
       _Traverse(CE.Children[I], ARN, ACount);
@@ -1557,7 +1549,7 @@ begin
   Result := inherited TestCorrect;
 
   //Проверка на возможность создания связанной таблицы (наследование)
-  if Result and (gdcObject.ClassType = TgdcInheritedTable) then
+  if Result and (gdcObject is TgdcInheritedTable) then
   begin
     Result := False;
     if ibcmbReference.CurrentKeyInt > -1 then
@@ -1597,7 +1589,7 @@ begin
         Result := False;
       end;
     finally
-      FreeAndNil(q);
+      q.Free;
     end;
   end;
 

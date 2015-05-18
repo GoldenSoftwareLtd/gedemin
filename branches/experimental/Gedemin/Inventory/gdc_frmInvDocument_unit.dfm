@@ -37,7 +37,7 @@ inherited gdc_frmInvDocument: Tgdc_frmInvDocument
           end
         end
         inherited tbDetailCustom: TTBToolbar
-          Left = 355
+          Left = 344
         end
       end
     end
