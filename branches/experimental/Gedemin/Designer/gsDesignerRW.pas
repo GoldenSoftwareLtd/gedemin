@@ -19,14 +19,11 @@ type
     procedure BufOnFindMethod(Reader: TReader; const MethodName: string; var Address: Pointer; var Error: Boolean);
 
   public
-    procedure ProcessComponents(AnOwner: TComponent; const ASubType: string = ''; ReplaceSubType: boolean = false);
+    procedure ProcessComponents(AnOwner: TComponent; const ASubType: String = ''; ReplaceSubType: Boolean = false);
 
-//    procedure ReadProperty(AInstance: TPersistent); reintroduce;
     property Designer: TgsResizeManager read FDesigner write FDesigner;
     property Attributes: boolean read FAttributes write FAttributes;
     procedure ReadBufComponents(AOwner, AParent: TComponent; ACreatedList: TList);
-
-
   end;
 
   TgsPersistentCracker = class(TPersistent);
@@ -662,7 +659,8 @@ begin
   FResolving.Add(OldName + '=' + Name);
 end;
 
-procedure TDesignReader.ProcessComponents(AnOwner: TComponent; const ASubType: string; ReplaceSubType: boolean);
+procedure TDesignReader.ProcessComponents(AnOwner: TComponent;
+  const ASubType: String; ReplaceSubType: Boolean);
 var
   CompClass: String;
   CompName: String;
@@ -679,8 +677,9 @@ var
   FClientHeight: Integer;
   FClientWidth: Integer;
   FFormState: TComponentState;
-  LSubType: string;
-  LCompName: string;
+  LSubType: String;
+  LCompName: String;
+
   procedure SetLoading(AComponent: TComponent; const AState: boolean);
   var
     CS: TComponentState;
@@ -707,7 +706,7 @@ var
         or (((FDesigner.DesignerType = dtGlobal) or FDesigner.GlobalLoading)
          and (Pos(GLOBALUSERCOMPONENT_PREFIX, AComponent.Name) = 1))) then
         TgsComponentCracker(AComponent).Loaded;
-         
+
       Exclude(CS, csLoading);
       Exclude(CS, csReading);
     end;
@@ -734,24 +733,25 @@ begin
 
         if ReplaceSubType then
         begin
-          CompName := Copy(CompClass,2, Length(CompClass)) + ASubType;
+          CompName := Copy(CompClass, 2, 1024) + ASubType;
           ReplaceSubType := False;
         end;
 
         if CompName <> '' then
         begin
-          LSubType := ASubType;
-          LSubType := StringReplace(LSubType, 'USR$', 'USR_',[rfIgnoreCase]);
-          LCompName := CompName;
-          LCompName := StringReplace(LCompName, 'USR$', 'USR_',[rfIgnoreCase]);
-          if (CompClass = AnOwner.ClassName) and (AnOwner is TCreateableForm) and
-              ((UpperCase(TCreateableForm(AnOwner).InitialName) = UpperCase(LCompName)) or
-               (UpperCase(TCreateableForm(AnOwner).InitialName) = UpperCase(LCompName + LSubType))) then
+          LSubType := StringReplace(ASubType, 'USR$', 'USR_', [rfIgnoreCase]);
+          LCompName := StringReplace(CompName, 'USR$', 'USR_', [rfIgnoreCase]);
+          if (CompClass = AnOwner.ClassName) and (AnOwner is TCreateableForm)
+            and
+            (
+              AnsiSameText(TCreateableForm(AnOwner).InitialName, LCompName)
+              or
+              AnsiSameText(TCreateableForm(AnOwner).InitialName, LCompName + LSubType)
+            ) then
             C := AnOwner
           else
             C := GlobalFindComponent(CompName, AnOwner);
-        end
-        else
+        end else
           C := nil;
 
         if (C <> nil)then
@@ -819,7 +819,6 @@ begin
                   else if ParentList[ParentList.Count - 1] is TMenu then
                     TMenu(ParentList[ParentList.Count - 1]).Items.Add(TMenuItem(C));
                 end;
-
               end else
                 C := nil;
             end;
@@ -932,7 +931,6 @@ begin
             if ParentList[ParentList.Count - 1] is TatContainer then
               Skip := False;
 
-
             SetLoading(ParentList[ParentList.Count - 1], False);
 
             ParentList.Delete(ParentList.Count - 1);
@@ -1014,7 +1012,6 @@ begin
       end;
       ReadListEnd;
 
-
       FixupReferences;
     finally
       EndReferences;
@@ -1027,10 +1024,7 @@ begin
   end;
 end;
 
-
-
 { TgsWinControlCracker }
-
 
 procedure ClipboardTextToBinary(Input, Output: TStream);
 var
