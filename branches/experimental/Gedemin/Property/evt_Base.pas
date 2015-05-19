@@ -147,6 +147,7 @@ type
     FIsOldEventSet: Boolean;
     FObject: TEventObject;
     FEventID: Integer;
+    FIsVirtual: Boolean;
     function GetDelphiParamString(const LocParamCount: Integer;
       const LocParams: array of Char; const AnLang: TFuncParamLang;
       out AnResultParam: String): String;
@@ -166,6 +167,8 @@ type
     function GetObjectName: String; override;
 
   public
+    constructor Create;
+
     procedure Assign(ASource: TEventItem);
     function AutoFunctionName: String;
 
@@ -175,6 +178,7 @@ type
     property EventData: PTypeData read FEventData write FEventData;
     property EventObject: TEventObject read FObject write FObject;
     property EventID: Integer read FEventID write SetEventID;
+    property IsVirtual: Boolean read FIsVirtual write FIsVirtual;
   end;
 
   // Класс для хранения списка присвоенных ивентов
@@ -3265,52 +3269,6 @@ begin
   ExecuteActionEvent(Action, Handled, cExecuteEventName)
 end;
 
-function TEventObject.FindRightEvent(AnEventName: String): TEventItem;
-var
-  EO: TEventObject;
-  EI: TEventItem;
-  I, J, K: Integer;
-begin
-  Result := nil;
-
-  if Self.CurrIndexParentObject = -1 then
-    EO := Self
-  else
-    EO := Self.ParentObjectsBySubType.EventObject[Self.CurrIndexParentObject];
-
-  if EO = nil then
-    exit;
-
-  EI := EO.EventList.Find(AnEventName);
-
-  if (EI <> nil) and (EI.FunctionKey > 0) and (not EI.Disable) then
-  begin
-    Result := EI;
-    exit;
-  end;
-
-  //если не нашли подходящий ивент продолжаем искать по родителям
-
-  J := Self.CurrIndexParentObject + 1;
-  K := Self.ParentObjectsBySubType.Count - 1;
-  for I := J to K do
-  begin
-    EO := Self.ParentObjectsBySubType.EventObject[I];
-    if EO <> nil then
-    begin
-      EI := EO.EventList.Find(AnEventName);
-
-      if (EI <> nil) and (EI.FunctionKey > 0) and (not EI.Disable) then
-      begin
-        Result := EI;
-        Self.CurrIndexParentObject := I;
-        break;
-      end;
-    end;
-  end;
-
-end;
-
 procedure TEventControl.ExecuteNotifyEvent(Sender: TObject;
   const AnEventName: String; GenerateException: Boolean = True);
 var
@@ -4517,7 +4475,7 @@ begin
     for I := 0 to J - 1 do
     begin
       E := AnEventObject.EventList.Find(TempPropList[I]^.Name);
-      if (E <> nil) and ((E.FunctionKey > 0) or (E.FIsOldEventSet)) then
+      if (E <> nil) and ((E.FunctionKey > 0) or E.IsVirtual) then
       begin
         if E.IsOldEventSet then
         begin
@@ -4526,6 +4484,9 @@ begin
            AnEventObject.EventList.ItemByName[TempPropList[I]^.Name].OldEvent);
         end;   
         AnEventObject.EventList.ItemByName[TempPropList[I]^.Name].Reset;
+
+        if E.IsVirtual then
+          AnEventObject.EventList.DeleteForName(TempPropList[I]^.Name);
       end;
     end;  
 
@@ -4560,71 +4521,57 @@ end;
 procedure TEventControl.SetChildComponentEvent(
   const AnComponent: TComponent; const AnEventObject: TEventObject;
   const AnSafeMode: Boolean);
-var
-  I, J: Integer;
-  TempEventObject: TEventObject;
-  LChildObject: TEventObject;
-begin
-  if Assigned(AnEventObject) then
+
+  procedure _SetChildComponentEvent(
+    const AnComponent: TComponent; const AnEventObject: TEventObject;
+    const AnSafeMode: Boolean; ABasicAction: Boolean);
+  var
+    I, J: Integer;
+    TempEO: TEventObject;
+    ChildEO: TEventObject;
   begin
     for I := 0 to AnComponent.ComponentCount - 1 do
     begin
-      if AnComponent.Components[I].InheritsFrom(TBasicAction) then
+      if (ABasicAction and AnComponent.Components[I].InheritsFrom(TBasicAction))
+        or ((not ABasicAction) and ( not AnComponent.Components[I].InheritsFrom(TBasicAction))) then
       begin
-        LChildObject := AnEventObject.ChildObjects.FindObject(AnComponent.Components[I].Name);
-        if (not Assigned(LChildObject)) and (AnEventObject.FParentObjectsBySubType.Count > 0) then
-        begin
-          J := 0;
-          repeat
-            TempEventObject := AnEventObject.FParentObjectsBySubType.EventObject[J];
-            LChildObject := TempEventObject.ChildObjects.FindObject(AnComponent.Components[I].Name);
-            Inc(J);
-            if Assigned(LChildObject) then
+        ChildEO := AnEventObject.ChildObjects.FindObject(AnComponent.Components[I].Name);
+        if (ChildEO = nil) and (AnEventObject.FParentObjectsBySubType.Count > 0) then
+          for J := 0 to AnEventObject.FParentObjectsBySubType.Count - 1 do
             begin
-              AnEventObject.ChildObjects.AddObject(nil);
-              LChildObject := AnEventObject.ChildObjects.Last;
-              LChildObject.FSelfObject := AnComponent.Components[I];
-              LChildObject.FObjectKey := 0;
-              LChildObject.FObjectName := AnComponent.Components[I].Name;
-              LChildObject.FObjectRef := AnComponent.Components[I];
-              LChildObject := AnEventObject.ChildObjects.FindObject(AnComponent.Components[I]);
-            end;
-          until (Assigned(LChildObject)) or (J = AnEventObject.FParentObjectsBySubType.Count);
+             TempEO := AnEventObject.FParentObjectsBySubType.EventObject[J];
 
-        end;
-        SetComponentEvent(AnComponent.Components[I],
-          LChildObject, True, AnSafeMode);
-      end;
-    end;
-    for I := 0 to AnComponent.ComponentCount - 1 do
-    begin
-      if not AnComponent.Components[I].InheritsFrom(TBasicAction) then
-      begin
-        LChildObject := AnEventObject.ChildObjects.FindObject(AnComponent.Components[I].Name);
-        if (not Assigned(LChildObject)) and (AnEventObject.FParentObjectsBySubType.Count > 0) then
-        begin
-          J := 0;
-          repeat
-            TempEventObject := AnEventObject.FParentObjectsBySubType.EventObject[J];
-            LChildObject := TempEventObject.ChildObjects.FindObject(AnComponent.Components[I].Name);
-            Inc(J);
-            if Assigned(LChildObject) then
-            begin
-              AnEventObject.ChildObjects.AddObject(nil);
-              LChildObject := AnEventObject.ChildObjects.Last;
-              LChildObject.FSelfObject := AnComponent.Components[I];
-              LChildObject.FObjectKey := 0;
-              LChildObject.FObjectName := AnComponent.Components[I].Name;
-              LChildObject.FObjectRef := AnComponent.Components[I];
-              LChildObject := AnEventObject.ChildObjects.FindObject(AnComponent.Components[I]);
+             if TempEO <> nil then
+              begin
+                ChildEO := TempEO.ChildObjects.FindObject(AnComponent.Components[I].Name);
+
+                if ChildEO <> nil then
+                begin
+                  AnEventObject.ChildObjects.AddObject(nil);
+                  ChildEO := AnEventObject.ChildObjects.Last;
+                  ChildEO.FSelfObject := AnComponent.Components[I];
+                  ChildEO.FObjectKey := 0;
+                  ChildEO.FObjectName := AnComponent.Components[I].Name;
+                  ChildEO.FObjectRef := AnComponent.Components[I];
+                  ChildEO := AnEventObject.ChildObjects.FindObject(AnComponent.Components[I]);
+                end;
+              end;
+
+              if ChildEO <> nil then
+                break;
             end;
-          until (Assigned(LChildObject)) or (J = AnEventObject.FParentObjectsBySubType.Count);
-        end;
-        SetComponentEvent(AnComponent.Components[I],
-          LChildObject, True, AnSafeMode);
+        SetComponentEvent(AnComponent.Components[I], ChildEO, True, AnSafeMode);
       end;
     end;
   end;
+
+begin
+  if AnEventObject = nil then
+    exit;
+
+  _SetChildComponentEvent( AnComponent, AnEventObject, AnSafeMode, True);
+
+  _SetChildComponentEvent( AnComponent, AnEventObject, AnSafeMode, False);
 end;
 
 procedure TEventControl.SetChildEvents(AnComponent: TComponent);
@@ -4660,18 +4607,26 @@ begin
     begin
       EI := AnEventObject.EventList.Find(TempPropList[I]^.Name);
 
-      SetFlag := ((EI <> nil) and (EI.FunctionKey > 0) and (not EI.Disable))
-        or (AnEventObject.FindRightEvent(TempPropList[I]^.Name) <> nil);
+      SetFlag := (EI <> nil) and (EI.FunctionKey > 0) and (not EI.Disable);
 
-      //FindRightEvent переводит CurrIndexParentObject
-      //поэтому его надо установить в -1
-      AnEventObject.CurrIndexParentObject := -1;
+      if not SetFlag and (EI = nil)then
+      begin
+        if AnEventObject.ParentObjectsBySubType.Count > 0 then
+        begin
+          AnEventObject.CurrIndexParentObject := 0;
+          try
+            SetFlag := AnEventObject.FindRightEvent(TempPropList[I]^.Name) <> nil;
+          finally
+            AnEventObject.CurrIndexParentObject := -1;
+          end;
+        end;
+      end;
 
       if SetFlag and (EI = nil) then
       begin
         AnEventObject.EventList.Add(TempPropList[I]^.Name, 0);
         EI := AnEventObject.EventList.Last;
-        EI.Reset;
+        EI.IsVirtual := True;
       end;
 
       if SetFlag then
@@ -4800,16 +4755,16 @@ end;
 function TEventControl.SetParentEventObjectsBySubType(AnComponent: TComponent;
   AnEventObject: TEventObject): Boolean;
 var
-  LParentEventObject: TEventObject;
-  LTempEventObject: TEventObject;
-  LTempChildEventObject: TEventObject;
-  LOwnerEventObject: TEventObject;
-  LParentCompName: String;
+  PrntEO: TEventObject;
+  TempEO: TEventObject;
+  TempChildEO: TEventObject;
+  OwnerEO: TEventObject;
+  PrntCompName: String;
   I: Integer;
   CE: TgdClassEntry;
 begin
-  Result := False;
-  AnEventObject.CurrIndexParentObject := -1;
+  if (AnComponent = nil) or (AnEventObject =  nil) then
+    raise Exception.Create('Component is not assigned.');
 
   if AnComponent is TCreateableForm then
   begin
@@ -4823,41 +4778,42 @@ begin
           StringReplace(TgdcCreateableForm(AnComponent).SubType,
           'USR_', 'USR$', [rfReplaceAll, rfIgnoreCase]));
 
-        While (CE.SubType <> '') do
-        begin
-          LParentCompName := Copy(AnComponent.ClassName, 2, Length(AnComponent.ClassName) - 1)
-            + StringReplace(CE.Parent.SubType, 'USR$', 'USR_', [rfReplaceAll, rfIgnoreCase]);
-
-          LParentEventObject := EventObjectList.FindAllObject(LParentCompName);
-          if LParentEventObject <> nil then
-          begin
-            AnEventObject.CurrIndexParentObject := -1;
-            AnEventObject.ParentObjectsBySubType.AddObject(LParentEventObject);
-          end;
-
+        repeat
           CE := CE.Parent;
-        end;
+          PrntCompName := Copy(AnComponent.ClassName, 2, Length(AnComponent.ClassName) - 1)
+            + StringReplace(CE.SubType, 'USR$', 'USR_', [rfReplaceAll, rfIgnoreCase]);
+
+          PrntEO := EventObjectList.FindAllObject(PrntCompName);
+          
+          if PrntEO <> nil then
+            AnEventObject.ParentObjectsBySubType.AddObject(PrntEO);
+
+        until CE.SubType = '';
       end;
     end;
   end else
   begin
-    LOwnerEventObject := EventObjectList.FindAllObject(AnComponent.Owner);
-    if (Assigned (LOwnerEventObject))
-      and (LOwnerEventObject.ParentObjectsBySubType.Count > 0) then
+    OwnerEO := EventObjectList.FindAllObject(AnComponent.Owner);
+
+    if (OwnerEO <> nil)
+      and (OwnerEO.ParentObjectsBySubType.Count > 0) then
     begin
       AnEventObject.ParentObjectsBySubType.Clear;
-      for I := 0 to LOwnerEventObject.ParentObjectsBySubType.Count - 1 do
+
+      for I := 0 to OwnerEO.ParentObjectsBySubType.Count - 1 do
       begin
-        LTempEventObject := LOwnerEventObject.ParentObjectsBySubType.EventObject[I];
-        LTempChildEventObject := LTempEventObject.ChildObjects.FindObject(AnComponent.Name);
-        if Assigned(LTempChildEventObject)then
-        begin
-          AnEventObject.CurrIndexParentObject := -1;
-          AnEventObject.ParentObjectsBySubType.AddObject(LTempChildEventObject);
-        end;
+        TempEO := OwnerEO.ParentObjectsBySubType.EventObject[I];
+        TempChildEO := TempEO.ChildObjects.FindObject(AnComponent.Name);
+
+        if TempChildEO <> nil then
+          AnEventObject.ParentObjectsBySubType.AddObject(TempChildEO);
       end;
     end;
   end;
+
+  Result := AnEventObject.ParentObjectsBySubType.Count > 0;
+
+  AnEventObject.CurrIndexParentObject := -1;
 end;
 
 function TEventControl.SetSingleEvent(const AnComponent: TComponent;
@@ -6581,6 +6537,53 @@ begin
   FEventList.Assign(Source.EventList);
 end;
 
+function TEventObject.FindRightEvent(AnEventName: String): TEventItem;
+var
+  EO: TEventObject;
+  EI: TEventItem;
+  I, J, K: Integer;
+begin
+  Result := nil;
+
+  if Self.CurrIndexParentObject = -1 then
+    EO := Self
+  else
+    EO := Self.ParentObjectsBySubType.EventObject[Self.CurrIndexParentObject];
+
+  if EO = nil then
+    exit;
+
+  EI := EO.EventList.Find(AnEventName);
+
+  if (EI <> nil) and (EI.FunctionKey > 0) and (not EI.Disable) then
+  begin
+    Result := EI;
+    exit;
+  end;
+
+  //если не нашли подходящий ивент продолжаем искать по родителям
+
+  J := Self.CurrIndexParentObject + 1;
+  K := Self.ParentObjectsBySubType.Count - 1;
+  for I := J to K do
+  begin
+    Self.CurrIndexParentObject := I;
+    
+    EO := Self.ParentObjectsBySubType.EventObject[I];
+    if EO <> nil then
+    begin
+      EI := EO.EventList.Find(AnEventName);
+
+      if (EI <> nil) and (EI.FunctionKey > 0) and (not EI.Disable) then
+      begin
+        Result := EI;
+        break;
+      end;
+    end;
+  end;
+
+end;
+
 constructor TEventObject.Create;
 begin
   inherited;
@@ -7227,6 +7230,12 @@ end;
 
 { TEventItem }
 
+constructor TEventItem.Create;
+begin
+  inherited;
+  FIsVirtual := False;
+end;
+
 procedure TEventItem.Assign(ASource: TEventItem);
 begin
 //  FCustomName := ASource.Name;
@@ -7235,6 +7244,8 @@ begin
   FFunctionKey := ASource.FunctionKey;
   FOldEvent := ASource.OldEvent;
   FEventId := ASource.EventID;
+  FDisable := ASource.FDisable;
+  FIsVirtual := ASource.IsVirtual;
 end;
 
 function TEventItem.AutoFunctionName: String;
