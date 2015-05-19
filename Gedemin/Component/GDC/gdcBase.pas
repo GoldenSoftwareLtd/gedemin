@@ -4494,7 +4494,6 @@ begin
             '-', '', [rfReplaceAll]), 1, 30);
         try
           Transaction.SetSavePoint(FSavepoint);
-          //ExecSingleQuery('SAVEPOINT ' + FSavepoint);
         except
           UseSavepoints := False;
           FSavepoint := '';
@@ -9525,7 +9524,8 @@ class function TgdcBase.CreateViewForm(AnOwner: TComponent;
   const AClassName: String = ''; const ASubType: String = '';
   const ANewInstance: Boolean = False): TForm;
 var
-  C: TPersistentClass;
+  CE: TgdClassEntry;
+  F: TgdcCreateableForm;
 begin
   Assert(IBLogin <> nil);
   Assert(atDatabase <> nil);
@@ -9553,21 +9553,26 @@ begin
       'Имя класса: ' + Self.ClassName + #13#10 +
       'Подтип: ' + ASubType);
 
-  C := GetClass(AClassName);
-  if C = nil then
-    C := GetClass(GetViewFormClassName(ASubType));
-  if (C <> nil) and C.InheritsFrom(TgdcCreateableForm) then
+  CE := gdClassList.Find(AClassName, ASubType);
+  if not (CE is TgdFormEntry) then
+    CE := gdClassList.Find(GetViewFormClassName(ASubType), ASubType);
+  if (CE is TgdFormEntry) and CE.TheClass.InheritsFrom(TgdcCreateableForm) then
   begin
     if ANewInstance then
       Result := nil
     else
-      Result := CgdcCreateableForm(C).FindForm(CgdcCreateableForm(C), ASubType);
+      Result := CgdcCreateableForm(CE.TheClass).FindForm(CgdcCreateableForm(CE.TheClass), ASubType);
     if Result = nil then
-    try
-      Result := CgdcCreateableForm(C).CreateSubType(AnOwner, ASubType);
-    except
-      Result.Free;
-      raise;
+    begin
+      F := nil;
+      try
+        F := CgdcCreateableForm(CE.TheClass).CreateSubType(AnOwner, ASubType);
+        F.Setup(F.gdcObject);
+      except
+        F.Free;
+        raise;
+      end;
+      Result := F;
     end;
   end else
     Result := nil;
