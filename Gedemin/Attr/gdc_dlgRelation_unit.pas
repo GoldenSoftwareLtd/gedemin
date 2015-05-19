@@ -1482,7 +1482,7 @@ end;
 
 function Tgdc_dlgRelation.TestCorrect: Boolean;
 
-  procedure _Traverse(CE: TgdClassEntry; ARN: String; var ACount: Integer);
+  procedure _Traverse(CE: TgdClassEntry; const ARN: String; var ACount: Integer);
   var
     I: Integer;
   begin
@@ -1496,12 +1496,14 @@ function Tgdc_dlgRelation.TestCorrect: Boolean;
       _Traverse(CE.Children[I], ARN, ACount);
   end;
 
-  function CanInherit(RN: String): Boolean;
+  function CanInherit(const RID: TID): Boolean;
   var
     Count: Integer;
+    R: OleVariant;
   begin
     Count := 0;
-    _Traverse(gdClassList.Get(TgdBaseEntry, 'TgdcBase'), RN, Count);
+    if gdcBaseManager.ExecSingleQueryResult('SELECT relationname FROM at_relations WHERE id = :id', RID, R) then
+      _Traverse(gdClassList.Get(TgdBaseEntry, 'TgdcBase'), R[0, 0], Count);
     Result := Count = 1;
   end;
 
@@ -1544,7 +1546,7 @@ begin
   //Проверка на возможность создания связанной таблицы (наследование)
   if Result and (gdcObject is TgdcInheritedTable)
     and (ibcmbReference.CurrentKeyInt > -1)
-    and (not CanInherit(Trim(ibcmbReference.Text))) then
+    and (not CanInherit(ibcmbReference.CurrentKeyInt)) then
   begin
     MessageBox(Handle,
       PChar(
