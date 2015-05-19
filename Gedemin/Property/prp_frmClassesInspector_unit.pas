@@ -283,7 +283,6 @@ type
     procedure chkShowInheritedClick(Sender: TObject);
   private
     FIsTreeCreated: Boolean;
-//    FNoShowList: TStringList;
     FDelphiClassesNode: TTreeNode;
     FgdcClassesNode: TTreeNode;
     FfrmClassesNode: TTreeNode;
@@ -324,8 +323,6 @@ type
     procedure MarkChild(const Node: TTreeNode);
     procedure Reset;
     procedure Refresh;
-
-
 
     procedure AddPropMethod(const Node: TTreeNode);
     procedure AddStandartComponent(var CompNode: TTreeNode; const Node: TTreeNode;
@@ -374,16 +371,13 @@ type
 
     procedure SetModuleClass(const ModuleName: string;
       const ModuleClass: TClass);
-    
+
     property DelphiClassesNode: TTreeNode read FDelphiClassesNode;
     property frmClassesNode: TTreeNode read FfrmClassesNode;
     property gdcClassesNode: TTreeNode read FgdcClassesNode;
     property VBClassesNode: TTreeNode read FVBClassesNode;
     property UserFromNode: TTreeNode read FUserFromNode;
     property GlObjectNode: TTreeNode read FGlObjectNode;
-
-//    property NoShowList: TStringList read FNoShowList;
-
     property OnInsertCurrentText: TciInsertCurrentText read FOnInsertCurrentText
       write SetOnInsertCurrentText;
   end;
@@ -406,7 +400,7 @@ implementation
 uses
   IBSQL, IBDatabase, gdcBaseInterface, gd_directories_const,
   Storages, gsStorage, dmImages_unit, gsStorage_CompPath, registry,
-  prp_frmGedeminProperty_Unit, {HashUnit,} gd_i_ScriptFactory, gdcBase, gdc_createable_form
+  prp_frmGedeminProperty_Unit, gd_i_ScriptFactory, gdcBase, gdc_createable_form
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -457,9 +451,6 @@ begin
     FDispArray := TgdKeyIntAssoc.Create;
     FLibArray := TResList.Create;
     FHLNodeList := TList.Create;
-//    FNoShowList := TStringList.Create;
-//    FNoShowList.Sorted := True;
-//    FNoShowList.Text := NoShowProp;
 
     if Assigned(prpClassesInspector) then
       prpClassesInspector.SetFrmClassesInspector(Self);
@@ -509,7 +500,7 @@ begin
 
   TreeNode := TTreeNode(AData1^);
 
-  if (ACE <> nil) and (TTreeNode <> nil) and (ACE.SubType = '') then
+  if (ACE <> nil) and (TreeNode <> nil) and (ACE.SubType = '') then
   begin
     COMClassItem := OLEClassList.FindOLEClassItem(ACE.TheClass);
     if Assigned(COMClassItem) then
@@ -542,7 +533,7 @@ var
 begin
   TreeNode := TTreeNode(AData1^);
 
-  if (ACE is TgdBaseEntry) and (TTreeNode <> nil) and (ACE.SubType = '') then
+  if (ACE is TgdBaseEntry) and (TreeNode <> nil) and (ACE.SubType = '') then
   begin
     COMClassItem := OLEClassList.FindOLEClassItem(TgdBaseEntry(ACE).gdcClass);
     if Assigned(COMClassItem) then
@@ -961,7 +952,7 @@ end;
 procedure TfrmClassesInspector.AddComponentName(var CompNode: TTreeNode;
   const Node: TTreeNode; CompList: TStrings);
 var
-  AI{, AP}: Integer;
+  AI: Integer;
   S: String;
   tmpNode: TTreeNode;
 begin
@@ -1108,11 +1099,7 @@ begin
       AddAllDelphiClass(FfrmClassesNode, FCurrentModule.ClassRef)
     else
       AddAllDelphiClass(FDelphiClassesNode, FCurrentModule.ClassRef);
-    //!!!->
-    //Шура глянь этот код. Почем то для Application FVBClassesNode был
-    //равен nil
     if FVBClassesNode <> nil then
-    //!!!<-
       FindNodeAndAddAll(FVBClassesNode, Value.Name);
   end;
 end;
@@ -1182,18 +1169,10 @@ const
         [ciHierFolder, ciMethodFolder, ciPropertyFolder, ciCompFolder])) and
         (ETmpNode.getFirstChild <> nil ) then
         Exit;
-{      if ((TInspectorItem(ETmpNode.Data).ItemType in
-        [ciStClass, ciFrmClass, ciGdcClass, ciVBClass, ciUserForm])) and
-        (ETmpNode.getFirstChild <> nil ) then
-        Exit;}
-
-
-
 
       ExpFlag := ETmpNode.Expanded;
       sbCurrentNode.SimpleText := ActStr + ETmpNode.Text;
       ETmpNode.Expand(False);
-//      ETmpNode.Expand(True);
       if not ExpFlag then
         ETmpNode.Collapse(False);
       if not (TInspectorItem(ETmpNode.Data).ItemType in
@@ -1387,7 +1366,6 @@ begin
 
 end;
 
-
 procedure TfrmClassesInspector.lbWordsDblClick(Sender: TObject);
 begin
 end;
@@ -1490,9 +1468,7 @@ function AddItemData(Node: TTreeNode;
   const prpClassesFrm: IprpClassesFrm): TInspectorItem;
 var
   I: Integer;
-
 begin
-//  Assert(prpClassesFrm <> nil, 'Не передана форма');
   if prpClassesFrm = nil then raise Exception.Create('Не передана форма IprpClassesFrm');
 
   // Создаем инфо-класс нода
@@ -1939,7 +1915,6 @@ begin
   ScriptFactory.Eval('');
   Reset;
 
-//  FNoShowList.Text := NoShowProp;
   CreateFullTree;
 
   if frmGedeminProperty <> nil then
