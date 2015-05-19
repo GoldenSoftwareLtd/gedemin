@@ -480,8 +480,8 @@ type
     // коммит не делает
     procedure ExecSingleQuery(const S: String; const Transaction: TIBTransaction = nil); overload;
     procedure ExecSingleQuery(const S: String; Param: Variant; const Transaction: TIBTransaction = nil); overload;
-    procedure ExecSingleQueryResult(const S: String; Param: Variant;
-      out Res: OleVariant; const Transaction: TIBTransaction = nil); //overload;
+    function ExecSingleQueryResult(const S: String; Param: Variant;
+      out Res: OleVariant; const Transaction: TIBTransaction = nil): Boolean; 
 
     procedure ChangeRUID(const AnOldXID, AnOldDBID, ANewXID, ANewDBID: TID;
       ATr: TIBTRansaction);
@@ -870,8 +870,8 @@ type
     // коммит не делает
     procedure ExecSingleQuery(const S: String); overload;
     procedure ExecSingleQuery(const S: String; Param: Variant); overload;
-    procedure ExecSingleQueryResult(const S: String; Param: Variant;
-      out Res: OleVariant); //overload;
+    function ExecSingleQueryResult(const S: String; Param: Variant;
+      out Res: OleVariant): Boolean;
 
     // функция пытается удалить запись. Если ей это удается, то возвращает
     // Истину, если нет, то вызывает окно со списком ссылающихся таблиц
@@ -11597,8 +11597,8 @@ begin
   end;
 end;
 
-procedure TgdcBaseManager.ExecSingleQueryResult(const S: String;
-  Param: Variant; out Res: OleVariant; const Transaction: TIBTransaction);
+function TgdcBaseManager.ExecSingleQueryResult(const S: String;
+  Param: Variant; out Res: OleVariant; const Transaction: TIBTransaction): Boolean;
 var
   q: TIBSQL;
   I, J, CutOff: Integer;
@@ -11606,6 +11606,7 @@ var
   Tr: TIBTransaction;
   St: String;
 begin
+  Result := False;
   Tr := Transaction;
   if Tr = nil then
   begin
@@ -11616,7 +11617,6 @@ begin
     DidActivate := False;
     q := TIBSQL.Create(nil);
     try
-      q.Database := Database;
       q.Transaction := Tr;
       DidActivate := not Tr.InTransaction;
       if DidActivate then Tr.StartTransaction;
@@ -11692,6 +11692,7 @@ begin
                   VarArrayReDim(Res, J);
                 end;
               end;
+              Result := True;
             end;
 
           except
@@ -17556,10 +17557,10 @@ begin
    (FFieldsCallDoChange.IndexOf(Field.FieldName) > -1) and not (sLoadFromStream in BaseState);
 end;
 
-procedure TgdcBase.ExecSingleQueryResult(const S: String; Param: Variant;
-  out Res: OleVariant);
+function TgdcBase.ExecSingleQueryResult(const S: String; Param: Variant;
+  out Res: OleVariant): Boolean;
 begin
-  gdcBaseManager.ExecSingleQueryResult(S, Param, Res, Transaction);
+  Result := gdcBaseManager.ExecSingleQueryResult(S, Param, Res, Transaction);
 end;
 
 function TgdcBase.GetRuidFromStream: TRUID;

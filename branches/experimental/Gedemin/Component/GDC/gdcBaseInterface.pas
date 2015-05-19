@@ -89,8 +89,8 @@ type
     // коммит не делает
     procedure ExecSingleQuery(const S: String; const Transaction: TIBTransaction = nil); overload;
     procedure ExecSingleQuery(const S: String; Param: Variant; const Transaction: TIBTransaction = nil); overload;
-    procedure ExecSingleQueryResult(const S: String; Param: Variant;
-      out Res: OleVariant; const Transaction: TIBTransaction = nil);
+    function ExecSingleQueryResult(const S: String; Param: Variant;
+      out Res: OleVariant; const Transaction: TIBTransaction = nil): Boolean;
 
     function Class_TestUserRights(C: TClass;
       const ASubType: TgdcSubType; const AnAccess: Integer): Boolean;
