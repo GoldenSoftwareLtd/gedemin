@@ -6709,10 +6709,11 @@ var
     else
       LCurObjectName := '';
   end;
+
 begin
   Result := nil;
 
-  if Assigned(AObject) and (AObject is TCreateableForm) then
+  if AObject is TCreateableForm then
   begin
     i := FDinamicEventArray.IndexOf(Integer(AObject));
     if i > -1 then
@@ -6750,7 +6751,7 @@ begin
 
   }
   if Assigned(Result) then
-    Exit;
+    exit;
 
   LEventList := Self;
   LEventObject := nil;

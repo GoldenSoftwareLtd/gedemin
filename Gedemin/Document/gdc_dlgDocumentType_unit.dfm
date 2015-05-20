@@ -211,6 +211,7 @@ inherited gdc_dlgDocumentType: Tgdc_dlgDocumentType
         Color = clBtnFace
         Enabled = False
         TabOrder = 3
+        OnChange = edEnglishNameChange
         OnExit = edEnglishNameExit
       end
       object dbcbIsCommon: TDBCheckBox
