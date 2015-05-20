@@ -242,16 +242,11 @@ begin
       '¬ наименовании на английском должны быть только латинские символы');
   end;
 
-  if gdcObject.State <> dsInsert then
-    abort
-  else
-  begin
-    if Pos(UserPrefix, UpperCase(edEnglishName.Text)) = 0 then
-      edEnglishName.Text := UserPrefix + edEnglishName.Text;
-    aNewObject.FieldByName('relationname').AsString := edEnglishName.Text;
-    aNewObject.FieldByName('lname').AsString := edDocumentName.Text;
-    aNewObject.FieldByName('lshortname').AsString := aNewObject.FieldByName('lname').AsString;
-  end;
+  if Pos(UserPrefix, UpperCase(edEnglishName.Text)) = 0 then
+    edEnglishName.Text := UserPrefix + edEnglishName.Text;
+  aNewObject.FieldByName('relationname').AsString := edEnglishName.Text;
+  aNewObject.FieldByName('lname').AsString := edDocumentName.Text;
+  aNewObject.FieldByName('lshortname').AsString := aNewObject.FieldByName('lname').AsString;
 end;
 
 procedure Tgdc_dlgDocumentType.iblcLineTableCreateNewObject(
