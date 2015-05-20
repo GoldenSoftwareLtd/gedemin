@@ -126,6 +126,7 @@ type
       ANewObject: TgdcBase);
     procedure iblcLineTableCreateNewObject(Sender: TObject;
       ANewObject: TgdcBase);
+    procedure edEnglishNameChange(Sender: TObject);
 
   private
     FOperationCount: Integer; // Список операций по созданию полей с переподключением
@@ -170,6 +171,7 @@ type
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
 
+    procedure Setup(AnObject: TObject); override;
     procedure SetupDialog; override;
     procedure SetupRecord; override;
 
@@ -946,6 +948,45 @@ begin
   {END MACRO}
 end;
 
+procedure TdlgSetupInvPriceList.Setup(AnObject: TObject);
+  {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+begin
+  {@UNFOLD MACRO INH_CRFORM_SETUP('TDLGSETUPINVPRICELIST', 'SETUP', KEYSETUP)}
+  {M}try
+  {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
+  {M}  begin
+  {M}    SetFirstMethodAssoc('TDLGSETUPINVPRICELIST', KEYSETUP);
+  {M}    tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYSETUP]);
+  {M}    if (tmpStrings = nil) or (tmpStrings.IndexOf('TDLGSETUPINVPRICELIST') = -1) then
+  {M}    begin
+  {M}      Params := VarArrayOf([GetGdcInterface(Self), GetGdcInterface(AnObject)]);
+  {M}      if gdcMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TDLGSETUPINVPRICELIST',
+  {M}        'SETUP', KEYSETUP, Params, LResult) then exit;
+  {M}    end else
+  {M}      if tmpStrings.LastClass.gdClassName <> 'TDLGSETUPINVPRICELIST' then
+  {M}      begin
+  {M}        Inherited;
+  {M}        Exit;
+  {M}      end;
+  {M}  end;
+  {END MACRO}
+
+  inherited;
+
+  edEnglishName.OnChange := edEnglishNameChange;
+
+  {@UNFOLD MACRO INH_CRFORM_FINALLY('TDLGSETUPINVPRICELIST', 'SETUP', KEYSETUP)}
+  {M}finally
+  {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
+  {M}    ClearMacrosStack('TDLGSETUPINVPRICELIST', 'SETUP', KEYSETUP);
+  {M}end;
+  {END MACRO}
+end;
+
 procedure TdlgSetupInvPriceList.SetupDialog;
   {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
   {M}VAR
@@ -1238,6 +1279,15 @@ begin
   aNewObject.FieldByName('relationname').AsString := edEnglishName.Text + 'LINE';
   aNewObject.FieldByName('lname').AsString := edDocumentName.Text + '(позиция)';
   aNewObject.FieldByName('lshortname').AsString := aNewObject.FieldByName('lname').AsString;
+end;
+
+procedure TdlgSetupInvPriceList.edEnglishNameChange(Sender: TObject);
+begin
+  if (gdcObject.State = dsInsert) then
+  begin
+    iblcHeaderTable.CurrentKeyInt := 0;
+    iblcLineTable.CurrentKeyInt := 0;
+  end;
 end;
 
 initialization
