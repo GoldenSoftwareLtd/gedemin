@@ -606,6 +606,9 @@ type
     procedure ExecutegdcOnGetSQLClause(Sender: TObject; var Clause: String;
       const AnEventName: String);
 
+    function _EventExecute(Sender: TObject;
+      var AnParams: Variant; const AnEventName: String): Variant;
+
   protected
     procedure Notification(AComponent: TComponent; Operation: TOperation); override;
 
@@ -1361,40 +1364,12 @@ end;
 procedure TEventControl.AfterShowDialog(Sender: TObject;
   DlgForm: TCustomForm; IsOk: Boolean);
 var
-  EO: TEventObject;
-  EI: TEventItem;
   LParams: Variant;
-  ResetIndex: boolean;
-  NE: ^TNotifyEvent;
 begin
-  EO := FEventObjectList.FindAllObject(Sender as TComponent);
+  LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+    GetGdcOLEObject(DlgForm) as IDispatch, IsOk]);
 
-  if EO <> nil then
-  begin
-    ResetIndex := EO.CurrIndexParentObject = -1;
-
-    NE := @EO.EventList.Find(cAfterShowDialogEventName).OldEvent.Code;
-
-    try
-      EI := EO.FindRightEvent(cAfterShowDialogEventName);
-
-      if EI <> nil then
-      begin
-        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-          GetGdcOLEObject(DlgForm) as IDispatch, IsOk]);
-
-        ExecuteEvent(EI, LParams, Sender, cAfterShowDialogEventName);
-
-      end
-      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
-        TgdcDoAfterShowDialog(NE^)(Sender, DlgForm, IsOk);
-    finally
-      if ResetIndex then
-        EO.CurrIndexParentObject := -1;
-    end;
-  end
-  else
-    raise Exception.Create(cMsgCantFindObject);
+  _EventExecute(Sender, LParams, cAfterShowDialogEventName);
 end;
 
 procedure TEventControl.AfterTransactionEnd(Sender: TObject);
@@ -1450,40 +1425,12 @@ end;
 procedure TEventControl.BeforeShowDialog(Sender: TObject;
   DlgForm: TCustomForm);
 var
-  EO: TEventObject;
-  EI: TEventItem;
   LParams: Variant;
-  ResetIndex: boolean;
-  NE: ^TNotifyEvent;
 begin
-  EO := FEventObjectList.FindAllObject(Sender as TComponent);
+  LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+    GetGdcOLEObject(DlgForm) as IDispatch]);
 
-  if EO <> nil then
-  begin
-    ResetIndex := EO.CurrIndexParentObject = -1;
-
-    NE := @EO.EventList.Find(cBeforeShowDialogEventName).OldEvent.Code;
-
-    try
-      EI := EO.FindRightEvent(cBeforeShowDialogEventName);
-
-      if EI <> nil then
-      begin
-        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-          GetGdcOLEObject(DlgForm) as IDispatch]);
-
-        ExecuteEvent(EI, LParams, Sender, cBeforeShowDialogEventName);
-
-      end
-      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
-        TgdcDoBeforeShowDialog(NE^)(Sender, DlgForm);
-    finally
-      if ResetIndex then
-        EO.CurrIndexParentObject := -1;
-    end;
-  end
-  else
-    raise Exception.Create(cMsgCantFindObject);
+  _EventExecute(Sender, LParams, cBeforeShowDialogEventName);
 end;
 
 procedure TEventControl.BeforeTransactionEnd(Sender: TObject);
@@ -2329,38 +2276,23 @@ begin
   ExecuteNotifyEvent(Sender, cActivateEventName);
 end;
 
-procedure TEventControl.OnAfterInitSQL(Sender: TObject;
-  var SQLText: String; var isReplaceSQL: Boolean);
+function TEventControl._EventExecute(Sender: TObject;
+  var AnParams: Variant; const AnEventName: String): Variant;
 var
   EO: TEventObject;
   EI: TEventItem;
-  LParams: Variant;
   ResetIndex: boolean;
-  NE: ^TNotifyEvent;
 begin
   EO := FEventObjectList.FindAllObject(Sender as TComponent);
 
   if EO <> nil then
   begin
     ResetIndex := EO.CurrIndexParentObject = -1;
-
-    NE := @EO.EventList.Find(cAfterInitSQLEventName).OldEvent.Code;
-
     try
-      EI := EO.FindRightEvent(cAfterInitSQLEventName);
+      EI := EO.FindRightEvent(AnEventName);
 
       if EI <> nil then
-      begin
-        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-          GetVarInterface(SQLText), GetVarInterface(isReplaceSQL)]);
-
-        ExecuteEvent(EI, LParams, Sender, cAfterInitSQLEventName);
-        
-        SQLText := String(GetVarParam(LParams[1]));
-        isReplaceSQL := Boolean(GetVarParam(LParams[2]));
-      end
-      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
-        TgdcAfterInitSQL(NE^)(Sender, SQLText, isReplaceSQL);
+        Result := ExecuteEvent(EI, AnParams, Sender, AnEventName);
     finally
       if ResetIndex then
         EO.CurrIndexParentObject := -1;
@@ -2368,6 +2300,21 @@ begin
   end
   else
     raise Exception.Create(cMsgCantFindObject);
+end;
+
+
+procedure TEventControl.OnAfterInitSQL(Sender: TObject;
+  var SQLText: String; var isReplaceSQL: Boolean);
+var
+  LParams: Variant;
+begin
+  LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+    GetVarInterface(SQLText), GetVarInterface(isReplaceSQL)]);
+
+  _EventExecute(Sender, LParams, cAfterInitSQLEventName);
+
+  SQLText := String(GetVarParam(LParams[1]));
+  isReplaceSQL := Boolean(GetVarParam(LParams[2]));
 end;
 
 procedure TEventControl.OnAggregateChanged(Sender: TObject);
@@ -2383,86 +2330,30 @@ end;
 procedure TEventControl.OnCanResize(Sender: TObject; var NewWidth,
   NewHeight: Integer; var Resize: Boolean);
 var
-  EO: TEventObject;
-  EI: TEventItem;
   LParams: Variant;
-  ResetIndex: boolean;
-  NE: ^TNotifyEvent;
 begin
-  EO := FEventObjectList.FindAllObject(Sender as TComponent);
+  LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+    GetVarInterface(NewWidth), GetVarInterface(NewHeight), GetVarInterface(Resize)]);
 
-  if EO <> nil then
-  begin
-    ResetIndex := EO.CurrIndexParentObject = -1;
+  _EventExecute(Sender, LParams, cCanResizeEventName);
 
-    NE := @EO.EventList.Find(cCanResizeEventName).OldEvent.Code;
-
-    try
-      EI := EO.FindRightEvent(cCanResizeEventName);
-
-      if EI <> nil then
-      begin
-        // Формирование массива параметров.
-        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-          GetVarInterface(NewWidth), GetVarInterface(NewHeight), GetVarInterface(Resize)]);
-        // Выполнение события
-        ExecuteEvent(EI, LParams, Sender, cCanResizeEventName);
-        // Обратное присвоение значений
-        NewWidth := Integer(GetVarParam(LParams[1]));
-        NewHeight := Integer(GetVarParam(LParams[2]));
-        Resize := Boolean(GetVarParam(LParams[3]));
-      end
-      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
-        TCanResizeEvent(NE^)(Sender, NewWidth, NewHeight, Resize);
-    finally
-      if ResetIndex then
-        EO.CurrIndexParentObject := -1;
-    end;
-  end
-  else
-    raise Exception.Create(cMsgCantFindObject);
+  NewWidth := Integer(GetVarParam(LParams[1]));
+  NewHeight := Integer(GetVarParam(LParams[2]));
+  Resize := Boolean(GetVarParam(LParams[3]));
 end;
 
 procedure TEventControl.OnChange(Sender: TObject; Source: TMenuItem;
   Rebuild: Boolean);
 var
-  EO: TEventObject;
-  EI: TEventItem;
   LParams: Variant;
-  ResetIndex: boolean;
-  NE: ^TNotifyEvent;
 begin
   if not Assigned(Source) then
     exit;
 
-  EO := FEventObjectList.FindAllObject(Sender as TComponent);
+  LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+    GetGdcOLEObject(Source) as IDispatch, Rebuild]);
 
-  if EO <> nil then
-  begin
-    ResetIndex := EO.CurrIndexParentObject = -1;
-
-    NE := @EO.EventList.Find(cChangeEventName).OldEvent.Code;
-
-    try
-      EI := EO.FindRightEvent(cChangeEventName);
-
-      if EI <> nil then
-      begin
-        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-          GetGdcOLEObject(Source) as IDispatch, Rebuild]);
-
-        ExecuteEvent(EI, LParams, Sender, cChangeEventName);
-
-      end
-      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
-        TMenuChangeEvent(NE^)(Sender, Source, Rebuild);
-    finally
-      if ResetIndex then
-        EO.CurrIndexParentObject := -1;
-    end;
-  end
-  else
-    raise Exception.Create(cMsgCantFindObject);
+  _EventExecute(Sender, LParams, cChangeEventName);
 end;
 
 procedure TEventControl.OnChangeEdit(Sender: TObject);
@@ -2478,119 +2369,37 @@ end;
 procedure TEventControl.OnClickCheck(Sender: TObject; CheckID: String;
   var Checked: Boolean);
 var
-  EO: TEventObject;
-  EI: TEventItem;
   LParams: Variant;
-  ResetIndex: boolean;
-  NE: ^TNotifyEvent;
 begin
-  EO := FEventObjectList.FindAllObject(Sender as TComponent);
+  LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+    CheckID, GetVarInterface(Checked)]);
 
-  if EO <> nil then
-  begin
-    ResetIndex := EO.CurrIndexParentObject = -1;
+  _EventExecute(Sender, LParams, cClickCheckEventName);
 
-    NE := @EO.EventList.Find(cClickCheckEventName).OldEvent.Code;
-
-    try
-      EI := EO.FindRightEvent(cClickCheckEventName);
-
-      if EI <> nil then
-      begin
-        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-          CheckID, GetVarInterface(Checked)]);
-
-        ExecuteEvent(EI, LParams, Sender, cClickCheckEventName);
-        
-        Checked := Boolean(GetVarParam(LParams[2]));
-      end
-      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
-        TCheckBoxEvent(NE^)(Sender, CheckID, Checked);
-    finally
-      if ResetIndex then
-        EO.CurrIndexParentObject := -1;
-    end;
-  end
-  else
-    raise Exception.Create(cMsgCantFindObject);
+  Checked := Boolean(GetVarParam(LParams[2]));
 end;
 
 procedure TEventControl.OnClickedCheck(Sender: TObject; CheckID: String;
   Checked: Boolean);
 var
-  EO: TEventObject;
-  EI: TEventItem;
   LParams: Variant;
-  ResetIndex: boolean;
-  NE: ^TNotifyEvent;
 begin
-  EO := FEventObjectList.FindAllObject(Sender as TComponent);
+  LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+    CheckID, GetVarInterface(Checked)]);
 
-  if EO <> nil then
-  begin
-    ResetIndex := EO.CurrIndexParentObject = -1;
-
-    NE := @EO.EventList.Find(cClickedCheckEventName).OldEvent.Code;
-
-    try
-      EI := EO.FindRightEvent(cClickedCheckEventName);
-
-      if EI <> nil then
-      begin
-        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-          CheckID, GetVarInterface(Checked)]);
-
-        ExecuteEvent(EI, LParams, Sender, cClickedCheckEventName);
-
-      end
-      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
-        TAfterCheckEvent(NE^)(Sender, CheckID, Checked);
-    finally
-      if ResetIndex then
-        EO.CurrIndexParentObject := -1;
-    end;
-  end
-  else
-    raise Exception.Create(cMsgCantFindObject);
+  _EventExecute(Sender, LParams, cClickedCheckEventName);
 end;
 
 procedure TEventControl.OnClose(Sender: TObject; var Action: TCloseAction);
 var
-  EO: TEventObject;
-  EI: TEventItem;
   LParams: Variant;
-  ResetIndex: boolean;
-  NE: ^TNotifyEvent;
 begin
-  EO := FEventObjectList.FindAllObject(Sender as TComponent);
+  LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+    GetVarInterface(TgsCloseAction(Action))]);
 
-  if EO <> nil then
-  begin
-    ResetIndex := EO.CurrIndexParentObject = -1;
+  _EventExecute(Sender, LParams, cCloseEventName);
 
-    NE := @EO.EventList.Find(cCloseEventName).OldEvent.Code;
-
-    try
-      EI := EO.FindRightEvent(cCloseEventName);
-
-      if EI <> nil then
-      begin
-        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-          GetVarInterface(TgsCloseAction(Action))]);
-
-        ExecuteEvent(EI, LParams, Sender, cCloseEventName);
-        
-        Action := TCloseAction(GetVarParam(LParams[1]));
-      end
-      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
-        TCloseEvent(NE^)(Sender, Action);
-    finally
-      if ResetIndex then
-        EO.CurrIndexParentObject := -1;
-    end;
-  end
-  else
-    raise Exception.Create(cMsgCantFindObject);
+  Action := TCloseAction(GetVarParam(LParams[1]));
 end;
 
 procedure TEventControl.OnCloseNotify(Sender: TObject);
@@ -2601,41 +2410,14 @@ end;
 procedure TEventControl.OnCloseQuery(Sender: TObject;
   var CanClose: Boolean);
 var
-  EO: TEventObject;
-  EI: TEventItem;
   LParams: Variant;
-  ResetIndex: boolean;
-  NE: ^TNotifyEvent;
 begin
-  EO := FEventObjectList.FindAllObject(Sender as TComponent);
+  LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+    GetVarInterface(CanClose)]);
 
-  if EO <> nil then
-  begin
-    ResetIndex := EO.CurrIndexParentObject = -1;
+  _EventExecute(Sender, LParams, cCloseQueryEventName);
 
-    NE := @EO.EventList.Find(cCloseQueryEventName).OldEvent.Code;
-
-    try
-      EI := EO.FindRightEvent(cCloseQueryEventName);
-
-      if EI <> nil then
-      begin
-        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-          GetVarInterface(CanClose)]);
-
-        ExecuteEvent(EI, LParams, Sender, cCloseQueryEventName);
-        
-        CanClose := Boolean(GetVarParam(LParams[1]));
-      end
-      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
-        TCloseQueryEvent(NE^)(Sender, CanClose);
-    finally
-      if ResetIndex then
-        EO.CurrIndexParentObject := -1;
-    end;
-  end
-  else
-    raise Exception.Create(cMsgCantFindObject);
+  CanClose := Boolean(GetVarParam(LParams[1]));
 end;
 
 procedure TEventControl.OnColEnter(Sender: TObject);
@@ -2651,173 +2433,63 @@ end;
 procedure TEventControl.OnColumnMoved(Sender: TObject; FromIndex,
   ToIndex: Integer);
 var
-  EO: TEventObject;
-  EI: TEventItem;
   LParams: Variant;
-  ResetIndex: boolean;
-  NE: ^TNotifyEvent;
 begin
-  EO := FEventObjectList.FindAllObject(Sender as TComponent);
+  LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+    FromIndex, ToIndex]);
 
-  if EO <> nil then
-  begin
-    ResetIndex := EO.CurrIndexParentObject = -1;
-
-    NE := @EO.EventList.Find(cColumnMovedEventName).OldEvent.Code;
-
-    try
-      EI := EO.FindRightEvent(cColumnMovedEventName);
-
-      if EI <> nil then
-      begin
-        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-          FromIndex, ToIndex]);
-
-        ExecuteEvent(EI, LParams, Sender, cColumnMovedEventName);
-
-      end
-      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
-        TMovedEvent(NE^)(Sender, FromIndex, ToIndex);
-    finally
-      if ResetIndex then
-        EO.CurrIndexParentObject := -1;
-    end;
-  end
-  else
-    raise Exception.Create(cMsgCantFindObject);
+  _EventExecute(Sender, LParams, cColumnMovedEventName);
 end;
 
 procedure TEventControl.OnConditionChanged(Sender: TObject);
 var
-  EO: TEventObject;
-  EI: TEventItem;
   LParams: Variant;
-  ResetIndex: boolean;
-  NE: ^TNotifyEvent;
 begin
-  EO := FEventObjectList.FindAllObject(Sender as TComponent);
+  LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
 
-  if EO <> nil then
-  begin
-    ResetIndex := EO.CurrIndexParentObject = -1;
-
-    NE := @EO.EventList.Find(cConditionChangedEventName).OldEvent.Code;
-
-    try
-      EI := EO.FindRightEvent(cConditionChangedEventName);
-
-      if EI <> nil then
-      begin
-        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
-
-        ExecuteEvent(EI, LParams, Sender, cConditionChangedEventName);
-
-      end
-      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
-        TConditionChanged(NE^)(Sender);
-    finally
-      if ResetIndex then
-        EO.CurrIndexParentObject := -1;
-    end;
-  end
-  else
-    raise Exception.Create(cMsgCantFindObject);
+  _EventExecute(Sender, LParams, cConditionChangedEventName);
 end;
 
 procedure TEventControl.OnConstrainedResize(Sender: TObject; var MinWidth,
   MinHeight, MaxWidth, MaxHeight: Integer);
 var
-  EO: TEventObject;
-  EI: TEventItem;
   LParams: Variant;
-  ResetIndex: boolean;
-  NE: ^TNotifyEvent;
 begin
-  EO := FEventObjectList.FindAllObject(Sender as TComponent);
+  LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+    GetVarInterface(MinWidth), GetVarInterface(MinHeight),
+    GetVarInterface(MaxWidth), GetVarInterface(MaxHeight)]);
 
-  if EO <> nil then
-  begin
-    ResetIndex := EO.CurrIndexParentObject = -1;
+  _EventExecute(Sender, LParams, cConstrainedResizeEventName);
 
-    NE := @EO.EventList.Find(cConstrainedResizeEventName).OldEvent.Code;
-
-    try
-      EI := EO.FindRightEvent(cConstrainedResizeEventName);
-
-      if EI <> nil then
-      begin
-        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-          GetVarInterface(MinWidth), GetVarInterface(MinHeight),
-          GetVarInterface(MaxWidth), GetVarInterface(MaxHeight)]);
-
-        ExecuteEvent(EI, LParams, Sender, cConstrainedResizeEventName);
-
-        MinWidth := Integer(GetVarParam(LParams[1]));
-        MinHeight := Integer(GetVarParam(LParams[2]));
-        MaxWidth := Integer(GetVarParam(LParams[3]));
-        MaxHeight := Integer(GetVarParam(LParams[4]));
-      end
-      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
-        TConstrainedResizeEvent(NE^)(Sender, MinWidth, MinHeight, MaxWidth, MaxHeight);
-    finally
-      if ResetIndex then
-        EO.CurrIndexParentObject := -1;
-    end;
-  end
-  else
-    raise Exception.Create(cMsgCantFindObject);
+  MinWidth := Integer(GetVarParam(LParams[1]));
+  MinHeight := Integer(GetVarParam(LParams[2]));
+  MaxWidth := Integer(GetVarParam(LParams[3]));
+  MaxHeight := Integer(GetVarParam(LParams[4]));
 end;
 
 procedure TEventControl.OnContextPopup(Sender: TObject; MousePos: TPoint;
   var Handled: Boolean);
 var
-  EO: TEventObject;
-  EI: TEventItem;
   LParams: Variant;
   LgsPoint: TgsPoint;
   I: Integer;
-  ResetIndex: boolean;
-  NE: ^TNotifyEvent;
 begin
-  EO := FEventObjectList.FindAllObject(Sender as TComponent);
-
-  if EO <> nil then
+  I := FPointList.IndexOf(Integer(Sender));
+  if I = -1 then
   begin
-    ResetIndex := EO.CurrIndexParentObject = -1;
+    LgsPoint := TgsPoint.Create2(TComponent(Sender), FPointList);
+    I := FPointList.Add(Integer(Sender));
+    FPointList.ValuesByIndex[I] := Integer(LgsPoint);
+  end else
+    LgsPoint := TgsPoint(FPointList.ValuesByIndex[I]);
+  LgsPoint.Point := MousePos;
 
-    NE := @EO.EventList.Find(cContextPopupEventName).OldEvent.Code;
+  LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+   GetGdcOLEObject(LgsPoint) as IDispatch, GetVarInterface(Handled)]);
 
-    try
-      EI := EO.FindRightEvent(cContextPopupEventName);
+  _EventExecute(Sender, LParams, cContextPopupEventName);
 
-      if EI <> nil then
-      begin
-        I := FPointList.IndexOf(Integer(Sender));
-        if I = -1 then
-        begin
-          LgsPoint := TgsPoint.Create2(TComponent(Sender), FPointList);
-          I := FPointList.Add(Integer(Sender));
-          FPointList.ValuesByIndex[I] := Integer(LgsPoint);
-        end else
-          LgsPoint := TgsPoint(FPointList.ValuesByIndex[I]);
-        LgsPoint.Point := MousePos;
-
-        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-         GetGdcOLEObject(LgsPoint) as IDispatch, GetVarInterface(Handled)]);
-
-        ExecuteEvent(EI, LParams, Sender, cContextPopupEventName);
-
-        Handled := Boolean(GetVarParam(LParams[2]));
-      end
-      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
-        TContextPopupEvent(NE^)(Sender, MousePos, Handled);;
-    finally
-      if ResetIndex then
-        EO.CurrIndexParentObject := -1;
-    end;
-  end
-  else
-    raise Exception.Create(cMsgCantFindObject);
+  Handled := Boolean(GetVarParam(LParams[2]));
 end;
 
 procedure TEventControl.OnCreate(Sender: TObject);
@@ -2833,40 +2505,12 @@ end;
 
 procedure TEventControl.OnDataChange(Sender: TObject; Field: TField);
 var
-  EO: TEventObject;
-  EI: TEventItem;
   LParams: Variant;
-  ResetIndex: boolean;
-  NE: ^TNotifyEvent;
 begin
-  EO := FEventObjectList.FindAllObject(Sender as TComponent);
+  LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+    GetGdcOLEObject(Field) as IDispatch]);
 
-  if EO <> nil then
-  begin
-    ResetIndex := EO.CurrIndexParentObject = -1;
-
-    NE := @EO.EventList.Find(cDataChangeEventName).OldEvent.Code;
-
-    try
-      EI := EO.FindRightEvent(cDataChangeEventName);
-
-      if EI <> nil then
-      begin
-        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-          GetGdcOLEObject(Field) as IDispatch]);
-
-        ExecuteEvent(EI, LParams, Sender, cDataChangeEventName);
-
-      end
-      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
-        TDataChangeEvent(NE^)(Sender, Field);
-    finally
-      if ResetIndex then
-        EO.CurrIndexParentObject := -1;
-    end;
-  end
-  else
-    raise Exception.Create(cMsgCantFindObject);
+  _EventExecute(Sender, LParams, cDataChangeEventName);
 end;
 
 procedure TEventControl.OnDblClick(Sender: TObject);
@@ -2908,263 +2552,97 @@ end;
 procedure TEventControl.OnDockDrop(Sender: TObject;
   Source: TDragDockObject; X, Y: Integer);
 var
-  EO: TEventObject;
-  EI: TEventItem;
   LParams: Variant;
-  ResetIndex: boolean;
-  NE: ^TNotifyEvent;
 begin
-  EO := FEventObjectList.FindAllObject(Sender as TComponent);
+  LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+    GetGdcOLEObject(Source) as IDispatch, X, Y]);
 
-  if EO <> nil then
-  begin
-    ResetIndex := EO.CurrIndexParentObject = -1;
-
-    NE := @EO.EventList.Find(cDockDropEventName).OldEvent.Code;
-
-    try
-      EI := EO.FindRightEvent(cDockDropEventName);
-
-      if EI <> nil then
-      begin
-        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-          GetGdcOLEObject(Source) as IDispatch, X, Y]);
-
-        ExecuteEvent(EI, LParams, Sender, cDockDropEventName);
- 
-      end
-      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
-        TDockDropEvent(NE^)(Sender, Source, X, Y);
-    finally
-      if ResetIndex then
-        EO.CurrIndexParentObject := -1;
-    end;
-  end
-  else
-    raise Exception.Create(cMsgCantFindObject);
+  _EventExecute(Sender, LParams, cDockDropEventName);
 end;
 
 procedure TEventControl.OnDockOver(Sender: TObject;
   Source: TDragDockObject; X, Y: Integer; State: TDragState;
   var Accept: Boolean);
 var
-  EO: TEventObject;
-  EI: TEventItem;
   LParams: Variant;
-  ResetIndex: boolean;
-  NE: ^TNotifyEvent;
 begin
-  EO := FEventObjectList.FindAllObject(Sender as TComponent);
+  LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+    GetGdcOLEObject(Source) as IDispatch, X, Y, State, GetVarInterface(Accept)]);
 
-  if EO <> nil then
-  begin
-    ResetIndex := EO.CurrIndexParentObject = -1;
+  _EventExecute(Sender, LParams, cDockOverEventName);
 
-    NE := @EO.EventList.Find(cDockOverEventName).OldEvent.Code;
-
-    try
-      EI := EO.FindRightEvent(cDockOverEventName);
-
-      if EI <> nil then
-      begin
-        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-          GetGdcOLEObject(Source) as IDispatch, X, Y, State, GetVarInterface(Accept)]);
-
-        ExecuteEvent(EI, LParams, Sender, cDockOverEventName);
-
-        Accept := Boolean(GetVarParam(LParams[5]));
-      end
-      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
-        TDockOverEvent(NE^)(Sender, Source, X, Y, State, Accept);
-    finally
-      if ResetIndex then
-        EO.CurrIndexParentObject := -1;
-    end;
-  end
-  else
-    raise Exception.Create(cMsgCantFindObject);
+  Accept := Boolean(GetVarParam(LParams[5]));
 end;
 
 procedure TEventControl.OnDragDrop(Sender, Source: TObject; X, Y: Integer);
 var
-  EO: TEventObject;
-  EI: TEventItem;
   LParams: Variant;
-  ResetIndex: boolean;
-  NE: ^TNotifyEvent;
 begin
-  EO := FEventObjectList.FindAllObject(Sender as TComponent);
+  LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+    GetGdcOLEObject(Source) as IDispatch,X , Y]);
 
-  if EO <> nil then
-  begin
-    ResetIndex := EO.CurrIndexParentObject = -1;
-
-    NE := @EO.EventList.Find(cDragDropEventName).OldEvent.Code;
-
-    try
-      EI := EO.FindRightEvent(cDragDropEventName);
-
-      if EI <> nil then
-      begin
-        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-          GetGdcOLEObject(Source) as IDispatch,X , Y]);
-
-        ExecuteEvent(EI, LParams, Sender, cDragDropEventName);
- 
-      end
-      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
-        TDragDropEvent(NE^)(Sender, Source, X, Y);;
-    finally
-      if ResetIndex then
-        EO.CurrIndexParentObject := -1;
-    end;
-  end
-  else
-    raise Exception.Create(cMsgCantFindObject);
+  _EventExecute(Sender, LParams, cDragDropEventName);
 end;
 
 procedure TEventControl.OnDragOver(Sender, Source: TObject; X, Y: Integer;
   State: TDragState; var Accept: Boolean);
 var
-  EO: TEventObject;
-  EI: TEventItem;
   LParams: Variant;
-  ResetIndex: boolean;
-  NE: ^TNotifyEvent;
 begin
-  EO := FEventObjectList.FindAllObject(Sender as TComponent);
+  LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+    GetGdcOLEObject(Source) as IDispatch, X, Y, State, GetVarInterface(Accept)]);
 
-  if EO <> nil then
-  begin
-    ResetIndex := EO.CurrIndexParentObject = -1;
+  _EventExecute(Sender, LParams, cDragOverEventName);
 
-    NE := @EO.EventList.Find(cDragOverEventName).OldEvent.Code;
-
-    try
-      EI := EO.FindRightEvent(cDragOverEventName);
-
-      if EI <> nil then
-      begin
-        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-          GetGdcOLEObject(Source) as IDispatch, X, Y, State, GetVarInterface(Accept)]);
-
-        ExecuteEvent(EI, LParams, Sender, cDragOverEventName);
-
-        Accept := Boolean(GetVarParam(LParams[5]));
-      end
-      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
-        TDragOverEvent(NE^)(Sender, Source, X, Y, State, Accept);
-    finally
-      if ResetIndex then
-        EO.CurrIndexParentObject := -1;
-    end;
-  end
-  else
-    raise Exception.Create(cMsgCantFindObject);
+  Accept := Boolean(GetVarParam(LParams[5]));
 end;
 
 procedure TEventControl.OnDrawColumnCell(Sender: TObject;
   const Rect: TRect; DataCol: Integer; Column: TColumn;
   State: TGridDrawState);
 var
-  EO: TEventObject;
-  EI: TEventItem;
   LParams: Variant;
   LgsRect: TgsRect;
   I: Integer;
-  ResetIndex: boolean;
-  NE: ^TNotifyEvent;
 begin
-  EO := FEventObjectList.FindAllObject(Sender as TComponent);
-
-  if EO <> nil then
+  I := FRectList.IndexOf(Integer(Sender));
+  if I = -1 then
   begin
-    ResetIndex := EO.CurrIndexParentObject = -1;
+    LgsRect := TgsRect.Create2(TComponent(Sender), FRectList);
+    I := FRectList.Add(Integer(Sender));
+    FRectList.ValuesByIndex[I] := Integer(LgsRect);
+  end else
+    LgsRect := TgsRect(FRectList.ValuesByIndex[I]);
+  LgsRect.Rect := Rect;
 
-    NE := @EO.EventList.Find(cDrawColumnCellEventName).OldEvent.Code;
+  LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+    GetGdcOLEObject(LgsRect) as IDispatch, DataCol,
+    GetGdcOLEObject(Column) as IDispatch, TGridDrawStateToStr(State)]);
 
-    try
-      EI := EO.FindRightEvent(cDrawColumnCellEventName);
-
-      if EI <> nil then
-      begin
-        I := FRectList.IndexOf(Integer(Sender));
-        if I = -1 then
-        begin
-          LgsRect := TgsRect.Create2(TComponent(Sender), FRectList);
-          I := FRectList.Add(Integer(Sender));
-          FRectList.ValuesByIndex[I] := Integer(LgsRect);
-        end else
-          LgsRect := TgsRect(FRectList.ValuesByIndex[I]);
-        LgsRect.Rect := Rect;
-
-        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-          GetGdcOLEObject(LgsRect) as IDispatch, DataCol,
-          GetGdcOLEObject(Column) as IDispatch, TGridDrawStateToStr(State)]);
-
-        ExecuteEvent(EI, LParams, Sender, cDrawColumnCellEventName);
-
-      end
-      else if ResetIndex and Assigned(NE) and Assigned(NE^) then
-        TDrawColumnCellEvent(NE^)(Sender, Rect, DataCol, Column, State);
-    finally
-      if ResetIndex then
-        EO.CurrIndexParentObject := -1;
-    end;
-  end
-  else
-    raise Exception.Create(cMsgCantFindObject);
+  _EventExecute(Sender, LParams, cDrawColumnCellEventName);
 end;
 
 procedure TEventControl.OnDrawDataCell(Sender: TObject; const Rect: TRect;
   Field: TField; State: TGridDrawState);
 var
-  EO: TEventObject;
-  EI: TEventItem;
   LParams: Variant;
   LgsRect: TgsRect;
   I: Integer;
-  ResetIndex: boolean;
-  NE: ^TNotifyEvent;
 begin
-  EO := FEventObjectList.FindAllObject(Sender as TComponent);
-
-  if EO <> nil then
+  I := FRectList.IndexOf(Integer(Sender));
+  if I = -1 then
   begin
-    ResetIndex := EO.CurrIndexParentObject = -1;
+    LgsRect := TgsRect.Create2(TComponent(Sender), FRectList);
+    I := FRectList.Add(Integer(Sender));
+    FRectList.ValuesByIndex[I] := Integer(LgsRect);
+  end else
+    LgsRect := TgsRect(FRectList.ValuesByIndex[I]);
+  LgsRect.Rect := Rect;
+  LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+    GetGdcOLEObject(LgsRect) as IDispatch,
+    GetGdcOLEObject(Field) as IDispatch, TGridDrawStateToStr(State)]);
 
-    NE := @EO.EventList.Find(cDrawDataCellEventName).OldEvent.Code;
-
-    try
-      EI := EO.FindRightEvent(cDrawDataCellEventName);
-
-      if EI <> nil then
-      begin
-        I := FRectList.IndexOf(Integer(Sender));
-        if I = -1 then
-        begin
-          LgsRect := TgsRect.Create2(TComponent(Sender), FRectList);
-          I := FRectList.Add(Integer(Sender));
-          FRectList.ValuesByIndex[I] := Integer(LgsRect);
-        end else
-          LgsRect := TgsRect(FRectList.ValuesByIndex[I]);
-        LgsRect.Rect := Rect;
-        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-          GetGdcOLEObject(LgsRect) as IDispatch,
-          GetGdcOLEObject(Field) as IDispatch, TGridDrawStateToStr(State)]);
-
-        ExecuteEvent(EI, LParams, Sender, cDrawDataCellEventName);
-
-      end
-      else if ResetIndex and Assigned(NE) and Assigned(NE^) then
-        TDrawDataCellEvent(NE^)(Sender, Rect, Field, State);
-    finally
-      if ResetIndex then
-        EO.CurrIndexParentObject := -1;
-    end;
-  end
-  else
-    raise Exception.Create(cMsgCantFindObject);
+  _EventExecute(Sender, LParams, cDrawDataCellEventName);
 end;
 
 procedure TEventControl.OnCellClick(Column: TColumn);
@@ -3184,52 +2662,24 @@ end;
 procedure TEventControl.OnDrawItem(Control: TWinControl; Index: Integer;
   Rect: TRect; State: TOwnerDrawState);
 var
-  EO: TEventObject;
-  EI: TEventItem;
   LParams: Variant;
   LgsRect: TgsRect;
   I: Integer;
-  ResetIndex: boolean;
-  NE: ^TNotifyEvent;
 begin
-  EO := FEventObjectList.FindAllObject(Control as TComponent);
-
-  if EO <> nil then
+  I := FRectList.IndexOf(Integer(Control));
+  if I = -1 then
   begin
-    ResetIndex := EO.CurrIndexParentObject = -1;
+    LgsRect := TgsRect.Create2(Control, FRectList);
+    I := FRectList.Add(Integer(Control));
+    FRectList.ValuesByIndex[I] := Integer(LgsRect);
+  end else
+    LgsRect := TgsRect(FRectList.ValuesByIndex[I]);
+  LgsRect.Rect := Rect;
 
-    NE := @EO.EventList.Find(cDrawItemEventName).OldEvent.Code;
+  LParams := VarArrayOf([GetGdcOLEObject(Control) as IDispatch,
+    Index, GetGdcOLEObject(LgsRect) as IDispatch,  TOwnerDrawStateToStr(State)]);
 
-    try
-      EI := EO.FindRightEvent(cDrawItemEventName);
-
-      if EI <> nil then
-      begin
-        I := FRectList.IndexOf(Integer(Control));
-        if I = -1 then
-        begin
-          LgsRect := TgsRect.Create2(Control, FRectList);
-          I := FRectList.Add(Integer(Control));
-          FRectList.ValuesByIndex[I] := Integer(LgsRect);
-        end else
-          LgsRect := TgsRect(FRectList.ValuesByIndex[I]);
-        LgsRect.Rect := Rect;
-
-        LParams := VarArrayOf([GetGdcOLEObject(Control) as IDispatch,
-          Index, GetGdcOLEObject(LgsRect) as IDispatch,  TOwnerDrawStateToStr(State)]);
-
-        ExecuteEvent(EI, LParams, Control, cDrawItemEventName);
-
-      end
-      else if ResetIndex and Assigned(NE) and Assigned(NE^) then
-        TDrawItemEvent(NE^)(Control, Index, Rect, State);
-    finally
-      if ResetIndex then
-        EO.CurrIndexParentObject := -1;
-    end;
-  end
-  else
-    raise Exception.Create(cMsgCantFindObject);
+  _EventExecute(Control, LParams, cDrawItemEventName);
 end;
 
 procedure TEventControl.OnDropDown(Sender: TObject);
@@ -3304,7 +2754,6 @@ begin
   else if GenerateException then
     raise Exception.Create(cMsgCantFindObject);
 
-
 // Если во время OnPaint возникла ошибка, обработчик ошибки пытается
 // показать диалоговое окно, во время вызова, которого снова вызывается
 // кривой OnPaint.
@@ -3317,416 +2766,143 @@ end;
 procedure TEventControl.ExecuteDataSetNotifyEvent(DataSet: TDataSet;
   const AnEventName: String);
 var
-  EO: TEventObject;
-  EI: TEventItem;
   LParams: Variant;
-  ResetIndex: boolean;
-  NE: ^TNotifyEvent;
 begin
-  EO := FEventObjectList.FindAllObject(DataSet as TComponent);
-
-  if EO <> nil then
-  begin
-    ResetIndex := EO.CurrIndexParentObject = -1;
-
-    NE := @EO.EventList.Find(AnEventName).OldEvent.Code;
-
-    try
-      EI := EO.FindRightEvent(AnEventName);
-
-      if EI <> nil then
-      begin
-        LParams := VarArrayOf([GetGdcOLEObject(DataSet) as IDispatch]);
-
-        ExecuteEvent(EI, LParams, DataSet, AnEventName);
-      end
-      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
-        TDataSetNotifyEvent(NE^)(DataSet);
-    finally
-      if ResetIndex then
-        EO.CurrIndexParentObject := -1;
-    end;
-  end
-  else
-    raise Exception.Create(cMsgCantFindObject);
+  LParams := VarArrayOf([GetGdcOLEObject(DataSet) as IDispatch]);
+  _EventExecute(DataSet, LParams, AnEventName);
 end;
 
 procedure TEventControl.ExecuteEndDragEvent(Sender, Target: TObject; X, Y: Integer;
   const AnEventName: String);
 var
-  EO: TEventObject;
-  EI: TEventItem;
-  LParams: Variant;
-  ResetIndex: boolean;
-  NE: ^TNotifyEvent;
+  Params: Variant;
 begin
-  EO := FEventObjectList.FindAllObject(Sender as TComponent);
+  Params := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+    GetGdcOLEObject(Target) as IDispatch, X, Y]);
 
-  if EO <> nil then
-  begin
-    ResetIndex := EO.CurrIndexParentObject = -1;
-
-    NE := @EO.EventList.Find(AnEventName).OldEvent.Code;
-
-    try
-      EI := EO.FindRightEvent(AnEventName);
-
-      if EI <> nil then
-      begin
-        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-          GetGdcOLEObject(Target) as IDispatch, X, Y]);
-
-        ExecuteEvent(EI, LParams, Sender, AnEventName);
- 
-      end
-      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
-        TEndDragEvent(NE^)(Sender, Target, X, Y);
-    finally
-      if ResetIndex then
-        EO.CurrIndexParentObject := -1;
-    end;
-  end
-  else
-    raise Exception.Create(cMsgCantFindObject);
+  _EventExecute(Sender, Params, AnEventName);
 end;
 
 procedure TEventControl.ExecuteActionEvent(Action: TBasicAction; var Handled: Boolean;
   const AnEventName: String);
 var
-  EO: TEventObject;
-  EI: TEventItem;
   LParams: Variant;
-  ResetIndex: boolean;
-  NE: ^TNotifyEvent;
 begin
-  EO := FEventObjectList.FindAllObject(Action as TComponent);
+  LParams := VarArrayOf([GetGdcOLEObject(Action) as IDispatch,
+    GetVarInterface(Handled)]);
 
-  if EO <> nil then
-  begin
-    ResetIndex := EO.CurrIndexParentObject = -1;
+  _EventExecute(Action, LParams, AnEventName);
 
-    NE := @EO.EventList.Find(AnEventName).OldEvent.Code;
-
-    try
-      EI := EO.FindRightEvent(AnEventName);
-
-      if EI <> nil then
-      begin
-        LParams := VarArrayOf([GetGdcOLEObject(Action) as IDispatch,
-          GetVarInterface(Handled)]);
-
-        ExecuteEvent(EI, LParams, Action, AnEventName);
-        
-        Handled := Boolean(GetVarParam(LParams[1]));
-      end
-      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
-        TActionEvent(NE^)(Action, Handled);
-    finally
-      if ResetIndex then
-        EO.CurrIndexParentObject := -1;
-    end;
-  end
-  else
-    raise Exception.Create(cMsgCantFindObject);
+  Handled := Boolean(GetVarParam(LParams[1]));
 end;
 
 procedure TEventControl.ExecuteDataSetErrorEvent(DataSet: TDataSet; E: EDatabaseError;
   var Action: TDataAction; const AnEventName: String);
 var
-  EO: TEventObject;
-  EI: TEventItem;
   LParams: Variant;
-  ResetIndex: boolean;
-  NE: ^TNotifyEvent;
 begin
-  EO := FEventObjectList.FindAllObject(DataSet as TComponent);
+  LParams := VarArrayOf([GetGdcOLEObject(DataSet) as IDispatch,
+    GetGdcOLEObject(E) as IDispatch, GetVarInterface(TgsDataAction(Action))]);
 
-  if EO <> nil then
-  begin
-    ResetIndex := EO.CurrIndexParentObject = -1;
+  _EventExecute(DataSet, LParams, AnEventName);
 
-    NE := @EO.EventList.Find(AnEventName).OldEvent.Code;
-
-    try
-      EI := EO.FindRightEvent(AnEventName);
-
-      if EI <> nil then
-      begin
-        LParams := VarArrayOf([GetGdcOLEObject(DataSet) as IDispatch,
-          GetGdcOLEObject(E) as IDispatch, GetVarInterface(TgsDataAction(Action))]);
-
-        ExecuteEvent(EI, LParams, DataSet, AnEventName);
-        
-        try
-          Action := TDataAction(GetVarParam(LParams[2]));
-        except
-        end;
-      end
-      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
-        TDataSetErrorEvent(NE^)(DataSet, E, Action);
-    finally
-      if ResetIndex then
-        EO.CurrIndexParentObject := -1;
-    end;
-  end
-  else
-    raise Exception.Create(cMsgCantFindObject);
+  try
+    Action := TDataAction(GetVarParam(LParams[2]));
+  except
+  end;
 end;
 
 procedure TEventControl.ExecuteFilterRecordEvent(DataSet: TDataSet; var Accept: Boolean;
   const AnEventName: String);
 var
-  EO: TEventObject;
-  EI: TEventItem;
   LParams: Variant;
-  ResetIndex: boolean;
-  NE: ^TNotifyEvent;
 begin
-  EO := FEventObjectList.FindAllObject(DataSet as TComponent);
+  LParams := VarArrayOf([GetGdcOLEObject(DataSet) as IDispatch,
+    GetVarInterface(Accept)]);
 
-  if EO <> nil then
-  begin
-    ResetIndex := EO.CurrIndexParentObject = -1;
+  _EventExecute(DataSet, LParams, AnEventName);
 
-    NE := @EO.EventList.Find(AnEventName).OldEvent.Code;
-
-    try
-      EI := EO.FindRightEvent(AnEventName);
-
-      if EI <> nil then
-      begin
-        LParams := VarArrayOf([GetGdcOLEObject(DataSet) as IDispatch,
-          GetVarInterface(Accept)]);
-
-        ExecuteEvent(EI, LParams, DataSet, AnEventName);
-
-        if AnEventName = cFilterRecordEventName then
-          Accept := Boolean(GetVarParam(LParams[1]))
-        else
-          try
-            Accept := GetVarParam(LParams[1]);
-          except
-          end;
-      end
-      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
-        TFilterRecordEvent(NE^)(DataSet, Accept);
-    finally
-      if ResetIndex then
-        EO.CurrIndexParentObject := -1;
-    end;
-  end
+  if AnEventName = cFilterRecordEventName then
+    Accept := Boolean(GetVarParam(LParams[1]))
   else
-    raise Exception.Create(cMsgCantFindObject);
+    try
+      Accept := GetVarParam(LParams[1]);
+    except
+    end;
 end;
 
 procedure TEventControl.ExecuteOnCreateNewObject(Sender: TObject; ANewObject: TgdcBase;
   const AnEventName: String);
 var
-  EO: TEventObject;
-  EI: TEventItem;
-  LParams: Variant;
-  ResetIndex: boolean;
-  NE: ^TNotifyEvent;
+  Params: Variant;
 begin
-  EO := FEventObjectList.FindAllObject(Sender as TComponent);
+  Params := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+    GetGdcOLEObject(ANewObject) as IDispatch]);
 
-  if EO <> nil then
-  begin
-    ResetIndex := EO.CurrIndexParentObject = -1;
-
-    NE := @EO.EventList.Find(AnEventName).OldEvent.Code;
-
-    try
-      EI := EO.FindRightEvent(AnEventName);
-
-      if EI <> nil then
-      begin
-        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-          GetGdcOLEObject(ANewObject) as IDispatch]);
-
-        ExecuteEvent(EI, LParams, Sender, AnEventName);
-
-      end
-      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
-        TOnCreateNewObject(NE^)(Sender, ANewObject);
-    finally
-      if ResetIndex then
-        EO.CurrIndexParentObject := -1;
-    end;
-  end
-  else
-    raise Exception.Create(cMsgCantFindObject);
+  _EventExecute(Sender, Params, AnEventName);
 end;
 
 procedure TEventControl.ExecuteMouseEvent(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer; const AnEventName: String);
 var
-  EO: TEventObject;
-  EI: TEventItem;
-  LParams: Variant;
-  ResetIndex: boolean;
-  NE: ^TNotifyEvent;
+  Params: Variant;
 begin
-  EO := FEventObjectList.FindAllObject(Sender as TComponent);
+  Params := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+    TgsMouseButton(Button), TShiftStateToStr(Shift), X, Y]);
 
-  if EO <> nil then
-  begin
-    ResetIndex := EO.CurrIndexParentObject = -1;
-
-    NE := @EO.EventList.Find(AnEventName).OldEvent.Code;
-
-    try
-      EI := EO.FindRightEvent(AnEventName);
-
-      if EI <> nil then
-      begin
-        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-          TgsMouseButton(Button), TShiftStateToStr(Shift), X, Y]);
-
-        ExecuteEvent(EI, LParams, Sender, AnEventName);
-
-      end
-      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
-        TMouseEvent(NE^)(Sender, Button, Shift, X, Y);
-    finally
-      if ResetIndex then
-        EO.CurrIndexParentObject := -1;
-    end;
-  end
-  else
-    raise Exception.Create(cMsgCantFindObject);
+  _EventExecute(Sender, Params, AnEventName);
 end;
 
 procedure TEventControl.ExecuteMouseWheelUpDownEvent(Sender: TObject; Shift: TShiftState;
   MousePos: TPoint; var Handled: Boolean; const AnEventName: String);
 var
-  EO: TEventObject;
-  EI: TEventItem;
   LParams: Variant;
   LgsPoint: TgsPoint;
   I: Integer;
-  ResetIndex: boolean;
-  NE: ^TNotifyEvent;
 begin
-  EO := FEventObjectList.FindAllObject(Sender as TComponent);
-
-  if EO <> nil then
+  I := FPointList.IndexOf(Integer(Sender));
+  if I = -1 then
   begin
-    ResetIndex := EO.CurrIndexParentObject = -1;
+    LgsPoint := TgsPoint.Create2(TComponent(Sender), FPointList);
+    I := FPointList.Add(Integer(Sender));
+    FPointList.ValuesByIndex[I] := Integer(LgsPoint);
+  end else
+    LgsPoint := TgsPoint(FPointList.ValuesByIndex[I]);
+  LgsPoint.Point := MousePos;
 
-    NE := @EO.EventList.Find(AnEventName).OldEvent.Code;
+  LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+    TShiftStateToStr(Shift), GetGdcOLEObject(LgsPoint) as IDispatch,
+    GetVarInterface(Handled)]);
 
-    try
-      EI := EO.FindRightEvent(AnEventName);
+  _EventExecute(Sender, LParams, AnEventName);
 
-      if EI <> nil then
-      begin
-        I := FPointList.IndexOf(Integer(Sender));
-        if I = -1 then
-        begin
-          LgsPoint := TgsPoint.Create2(TComponent(Sender), FPointList);
-          I := FPointList.Add(Integer(Sender));
-          FPointList.ValuesByIndex[I] := Integer(LgsPoint);
-        end else
-          LgsPoint := TgsPoint(FPointList.ValuesByIndex[I]);
-        LgsPoint.Point := MousePos;
-
-        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-          TShiftStateToStr(Shift), GetGdcOLEObject(LgsPoint) as IDispatch, GetVarInterface(Handled)]);
-
-        ExecuteEvent(EI, LParams, Sender, AnEventName);
-        
-        Handled := Boolean(GetVarParam(LParams[3]));
-      end
-      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
-        TMouseWheelUpDownEvent(NE^)(Sender, Shift, MousePos, Handled);
-    finally
-      if ResetIndex then
-        EO.CurrIndexParentObject := -1;
-    end;
-  end
-  else
-    raise Exception.Create(cMsgCantFindObject);
+  Handled := Boolean(GetVarParam(LParams[3]));
 end;
 
 procedure TEventControl.ExecuteKeyEvent(Sender: TObject; var Key: Word;
   Shift: TShiftState; const AnEventName: String);
 var
-  EO: TEventObject;
-  EI: TEventItem;
   LParams: Variant;
-  ResetIndex: boolean;
-  NE: ^TNotifyEvent;
 begin
-  EO := FEventObjectList.FindAllObject(Sender as TComponent);
+  LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+    GetVarInterface(Key), TShiftStateToStr(Shift)]);
 
-  if EO <> nil then
-  begin
-    ResetIndex := EO.CurrIndexParentObject = -1;
+  _EventExecute(Sender, LParams, AnEventName);
 
-    NE := @EO.EventList.Find(AnEventName).OldEvent.Code;
-
-    try
-      EI := EO.FindRightEvent(AnEventName);
-
-      if EI <> nil then
-      begin
-        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-          GetVarInterface(Key), TShiftStateToStr(Shift)]);
-
-        ExecuteEvent(EI, LParams, Sender, AnEventName);
-        
-        Key := Word(GetVarParam(LParams[1]));
-      end
-      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
-        TKeyEvent(NE^)(Sender, Key, Shift);
-    finally
-      if ResetIndex then
-        EO.CurrIndexParentObject := -1;
-    end;
-  end
-  else
-    raise Exception.Create(cMsgCantFindObject);
+  Key := Word(GetVarParam(LParams[1]));
 end;
 
 procedure TEventControl.ExecutegdcOnGetSQLClause(Sender: TObject; var Clause: String;
   const AnEventName: String);
 var
-  EO: TEventObject;
-  EI: TEventItem;
   LParams: Variant;
-  ResetIndex: boolean;
-  NE: ^TNotifyEvent;
 begin
-  EO := FEventObjectList.FindAllObject(Sender as TComponent);
+  LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+    GetVarInterface(Clause)]);
 
-  if EO <> nil then
-  begin
-    ResetIndex := EO.CurrIndexParentObject = -1;
+  _EventExecute(Sender, LParams, AnEventName);
 
-    NE := @EO.EventList.Find(AnEventName).OldEvent.Code;
-
-    try
-      EI := EO.FindRightEvent(AnEventName);
-
-      if EI <> nil then
-      begin
-        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-          GetVarInterface(Clause)]);
-
-        ExecuteEvent(EI, LParams, Sender, AnEventName);
-        
-        Clause := String(GetVarParam(LParams[1]));
-      end
-      else if ResetIndex and Assigned(NE) and Assigned(NE^) then
-        TgdcOnGetSQLClause(NE^)(Sender, Clause);
-    finally
-      if ResetIndex then
-        EO.CurrIndexParentObject := -1;
-    end;
-  end
-  else
-    raise Exception.Create(cMsgCantFindObject);
+  Clause := String(GetVarParam(LParams[1]));
 end;
 
 procedure TEventControl.OnExecuteAction(Sender: TObject);
@@ -3769,39 +2945,11 @@ end;
 procedure TEventControl.OnFilterChangedSQLFilter(Sender: TObject;
   const AnCurrentFilter: Integer);
 var
-  EO: TEventObject;
-  EI: TEventItem;
   LParams: Variant;
-  ResetIndex: boolean;
-  NE: ^TNotifyEvent;
 begin
-  EO := FEventObjectList.FindAllObject(Sender as TComponent);
+  LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch, AnCurrentFilter]);
 
-  if EO <> nil then
-  begin
-    ResetIndex := EO.CurrIndexParentObject = -1;
-
-    NE := @EO.EventList.Find(cFilterChangedEventName).OldEvent.Code;
-
-    try
-      EI := EO.FindRightEvent(cFilterChangedEventName);
-
-      if EI <> nil then
-      begin
-        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch, AnCurrentFilter]);
-
-        ExecuteEvent(EI, LParams, Sender, cFilterChangedEventName);
-
-      end
-      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
-        TFilterChanged(NE^)(Sender, AnCurrentFilter);
-    finally
-      if ResetIndex then
-        EO.CurrIndexParentObject := -1;
-    end;
-  end
-  else
-    raise Exception.Create(cMsgCantFindObject);
+  _EventExecute(Sender, LParams, cFilterChangedEventName);
 end;
 
 procedure TEventControl.OnFilterRecord(DataSet: TDataSet;
@@ -3866,52 +3014,25 @@ begin
 end;
 
 procedure TEventControl.OnKeyPress(Sender: TObject; var Key: Char);
-  var
-  EO: TEventObject;
-  EI: TEventItem;
+var
   LParams: Variant;
-  ResetIndex: boolean;
-  NE: ^TNotifyEvent;
 begin
-  EO := FEventObjectList.FindAllObject(Sender as TComponent);
+  LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+    GetVarInterface(Key)]);
 
-  if EO <> nil then
-  begin
-    ResetIndex := EO.CurrIndexParentObject = -1;
+  _EventExecute(Sender, LParams, cKeyPressEventName);
 
-    NE := @EO.EventList.Find(cKeyPressEventName).OldEvent.Code;
-
-    try
-      EI := EO.FindRightEvent(cKeyPressEventName);
-
-      if EI <> nil then
-      begin
-        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-          GetVarInterface(Key)]);
-
-        ExecuteEvent(EI, LParams, Sender, cKeyPressEventName);
-
-        LParams[1] := GetVarParam(LParams[1]);
-        try
-          if VarType(LParams[1]) = varOleStr then
-            Key :=  String(LParams[1])[1]
-          else
-            if VarType(LParams[1]) = varSmallint then
-              Key := Chr(Byte(LParams[1]))
-            else
-              exit;
-        except
-        end;
-      end
-      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
-        TKeyPressEvent(NE^)(Sender, Key);
-    finally
-      if ResetIndex then
-        EO.CurrIndexParentObject := -1;
-    end;
-  end
-  else
-    raise Exception.Create(cMsgCantFindObject);
+  LParams[1] := GetVarParam(LParams[1]);
+  try
+    if VarType(LParams[1]) = varOleStr then
+      Key :=  String(LParams[1])[1]
+    else
+      if VarType(LParams[1]) = varSmallint then
+        Key := Chr(Byte(LParams[1]))
+      else
+        exit;
+  except
+  end;
 end;
 
 procedure TEventControl.OnKeyUp(Sender: TObject; var Key: Word;
@@ -3923,41 +3044,14 @@ end;
 procedure TEventControl.OnMeasureItem(Control: TWinControl; Index: Integer;
   var Height: Integer);
 var
-  EO: TEventObject;
-  EI: TEventItem;
   LParams: Variant;
-  ResetIndex: boolean;
-  NE: ^TNotifyEvent;
 begin
-  EO := FEventObjectList.FindAllObject(Control as TComponent);
+  LParams := VarArrayOf([GetGdcOLEObject(Control) as IDispatch, Index,
+    GetVarInterface(Height)]);
 
-  if EO <> nil then
-  begin
-    ResetIndex := EO.CurrIndexParentObject = -1;
+  _EventExecute(Control, LParams, cMeasureItemEventName);
 
-    NE := @EO.EventList.Find(cMeasureItemEventName).OldEvent.Code;
-
-    try
-      EI := EO.FindRightEvent(cMeasureItemEventName);
-
-      if EI <> nil then
-      begin
-        LParams := VarArrayOf([GetGdcOLEObject(Control) as IDispatch, Index,
-          GetVarInterface(Height)]);
-
-        ExecuteEvent(EI, LParams, Control, cMeasureItemEventName);
-        
-        Height := Integer(GetVarParam(LParams[2]));
-      end
-      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
-        TMeasureItemEvent(NE^)(Control, Index, Height);
-    finally
-      if ResetIndex then
-        EO.CurrIndexParentObject := -1;
-    end;
-  end
-  else
-    raise Exception.Create(cMsgCantFindObject);
+  Height := Integer(GetVarParam(LParams[2]));
 end;
 
 procedure TEventControl.OnMouseDown(Sender: TObject; Button: TMouseButton;
@@ -3969,40 +3063,12 @@ end;
 procedure TEventControl.OnMouseMove(Sender: TObject; Shift: TShiftState;
   X, Y: Integer);
 var
-  EO: TEventObject;
-  EI: TEventItem;
   LParams: Variant;
-  ResetIndex: boolean;
-  NE: ^TNotifyEvent;
 begin
-  EO := FEventObjectList.FindAllObject(Sender as TComponent);
+  LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+    TShiftStateToStr(Shift), X, Y]);
 
-  if EO <> nil then
-  begin
-    ResetIndex := EO.CurrIndexParentObject = -1;
-
-    NE := @EO.EventList.Find(cMouseMoveEventName).OldEvent.Code;
-
-    try
-      EI := EO.FindRightEvent(cMouseMoveEventName);
-
-      if EI <> nil then
-      begin
-        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-          TShiftStateToStr(Shift), X, Y]);
-
-        ExecuteEvent(EI, LParams, Sender, cMouseMoveEventName);
-
-      end
-      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
-        TMouseMoveEvent(NE^)(Sender, Shift, X, Y);
-    finally
-      if ResetIndex then
-        EO.CurrIndexParentObject := -1;
-    end;
-  end
-  else
-    raise Exception.Create(cMsgCantFindObject);
+  _EventExecute(Sender, LParams, cMouseMoveEventName);
 end;
 
 procedure TEventControl.OnMouseUp(Sender: TObject; Button: TMouseButton;
@@ -4014,54 +3080,27 @@ end;
 procedure TEventControl.OnMouseWheel(Sender: TObject; Shift: TShiftState;
   WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
 var
-  EO: TEventObject;
-  EI: TEventItem;
   LParams: Variant;
   LgsPoint: TgsPoint;
   I: Integer;
-  ResetIndex: boolean;
-  NE: ^TNotifyEvent;
 begin
-  EO := FEventObjectList.FindAllObject(Sender as TComponent);
-
-  if EO <> nil then
+  I := FPointList.IndexOf(Integer(Sender));
+  if I = -1 then
   begin
-    ResetIndex := EO.CurrIndexParentObject = -1;
+    LgsPoint := TgsPoint.Create2(TComponent(Sender), FPointList);
+    I := FPointList.Add(Integer(Sender));
+    FPointList.ValuesByIndex[I] := Integer(LgsPoint);
+  end else
+    LgsPoint := TgsPoint(FPointList.ValuesByIndex[I]);
+  LgsPoint.Point := MousePos;
 
-    NE := @EO.EventList.Find(cMouseWheelEventName).OldEvent.Code;
+  LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+    TShiftStateToStr(Shift), WheelDelta,
+    GetGdcOLEObject(LgsPoint) as IDispatch, GetVarInterface(Handled)]);
 
-    try
-      EI := EO.FindRightEvent(cMouseWheelEventName);
+  _EventExecute(Sender, LParams, cMouseWheelEventName);
 
-      if EI <> nil then
-      begin
-        I := FPointList.IndexOf(Integer(Sender));
-        if I = -1 then
-        begin
-          LgsPoint := TgsPoint.Create2(TComponent(Sender), FPointList);
-          I := FPointList.Add(Integer(Sender));
-          FPointList.ValuesByIndex[I] := Integer(LgsPoint);
-        end else
-          LgsPoint := TgsPoint(FPointList.ValuesByIndex[I]);
-        LgsPoint.Point := MousePos;
-
-        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-          TShiftStateToStr(Shift), WheelDelta,
-          GetGdcOLEObject(LgsPoint) as IDispatch, GetVarInterface(Handled)]);
-
-        ExecuteEvent(EI, LParams, Sender, cMouseWheelEventName);
-        
-        Handled := Boolean(GetVarParam(LParams[4]));
-      end
-      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
-        TMouseWheelEvent(NE^)(Sender, Shift, WheelDelta, MousePos, Handled);
-    finally
-      if ResetIndex then
-        EO.CurrIndexParentObject := -1;
-    end;
-  end
-  else
-    raise Exception.Create(cMsgCantFindObject);
+  Handled := Boolean(GetVarParam(LParams[4]));
 end;
 
 procedure TEventControl.OnMouseWheelDown(Sender: TObject;
@@ -4124,41 +3163,14 @@ end;
 procedure TEventControl.OnScroll(Sender: TObject; ScrollCode: TScrollCode;
   var ScrollPos: Integer);
 var
-  EO: TEventObject;
-  EI: TEventItem;
   LParams: Variant;
-  ResetIndex: boolean;
-  NE: ^TNotifyEvent;
 begin
-  EO := FEventObjectList.FindAllObject(Sender as TComponent);
+  LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+    TgsScrollCode(ScrollCode), GetVarInterface(ScrollPos)]);
 
-  if EO <> nil then
-  begin
-    ResetIndex := EO.CurrIndexParentObject = -1;
+  _EventExecute(Sender, LParams, cScrollEventName);
 
-    NE := @EO.EventList.Find(cScrollEventName).OldEvent.Code;
-
-    try
-      EI := EO.FindRightEvent(cScrollEventName);
-
-      if EI <> nil then
-      begin
-        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-          TgsScrollCode(ScrollCode), GetVarInterface(ScrollPos)]);
-
-        ExecuteEvent(EI, LParams, Sender, cScrollEventName);
-        
-        ScrollPos := Integer(GetVarParam(LParams[2]));
-      end
-      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
-        TScrollEvent(NE^)(Sender, ScrollCode, ScrollPos);
-    finally
-      if ResetIndex then
-        EO.CurrIndexParentObject := -1;
-    end;
-  end
-  else
-    raise Exception.Create(cMsgCantFindObject);
+  ScrollPos := Integer(GetVarParam(LParams[2]));
 end;
 
 procedure TEventControl.OnShow(Sender: TObject);
@@ -4169,81 +3181,27 @@ end;
 procedure TEventControl.OnStartDock(Sender: TObject;
   var DragObject: TDragDockObject);
 var
-  EO: TEventObject;
-  EI: TEventItem;
   LParams: Variant;
-  ResetIndex: boolean;
-  NE: ^TNotifyEvent;
 begin
-  EO := FEventObjectList.FindAllObject(Sender as TComponent);
+  LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+    GetVarInterface(GetGdcOLEObject(DragObject) as IDispatch)]);
 
-  if EO <> nil then
-  begin
-    ResetIndex := EO.CurrIndexParentObject = -1;
+  _EventExecute(Sender, LParams, cStartDockEventName);
 
-    NE := @EO.EventList.Find(cStartDockEventName).OldEvent.Code;
-
-    try
-      EI := EO.FindRightEvent(cStartDockEventName);
-
-      if EI <> nil then
-      begin
-        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-          GetVarInterface(GetGdcOLEObject(DragObject) as IDispatch)]);
-
-        ExecuteEvent(EI, LParams, Sender, cStartDockEventName);
-
-        DragObject := InterfaceToObject(GetVarParam(LParams[1])) as TDragDockObject;
-      end
-      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
-        TStartDockEvent(NE^)(Sender, DragObject);
-    finally
-      if ResetIndex then
-        EO.CurrIndexParentObject := -1;
-    end;
-  end
-  else
-    raise Exception.Create(cMsgCantFindObject);
+  DragObject := InterfaceToObject(GetVarParam(LParams[1])) as TDragDockObject;
 end;
 
 procedure TEventControl.OnStartDrag(Sender: TObject;
   var DragObject: TDragObject);
 var
-  EO: TEventObject;
-  EI: TEventItem;
   LParams: Variant;
-  ResetIndex: boolean;
-  NE: ^TNotifyEvent;
 begin
-  EO := FEventObjectList.FindAllObject(Sender as TComponent);
+  LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+    GetVarInterface(GetGdcOLEObject(DragObject) as IDispatch)]);
 
-  if EO <> nil then
-  begin
-    ResetIndex := EO.CurrIndexParentObject = -1;
+  _EventExecute(Sender, LParams, cStartDragEventName);
 
-    NE := @EO.EventList.Find(cStartDragEventName).OldEvent.Code;
-
-    try
-      EI := EO.FindRightEvent(cStartDragEventName);
-
-      if EI <> nil then
-      begin
-        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-          GetVarInterface(GetGdcOLEObject(DragObject) as IDispatch)]);
-
-        ExecuteEvent(EI, LParams, Sender, cStartDragEventName);
-
-        DragObject := InterfaceToObject(GetVarParam(LParams[1])) as TDragObject;
-      end
-      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
-        TStartDragEvent(NE^)(Sender, DragObject);
-    finally
-      if ResetIndex then
-        EO.CurrIndexParentObject := -1;
-    end;
-  end
-  else
-    raise Exception.Create(cMsgCantFindObject);
+  DragObject := InterfaceToObject(GetVarParam(LParams[1])) as TDragObject;
 end;
 
 procedure TEventControl.OnStateChange(Sender: TObject);
@@ -4259,42 +3217,15 @@ end;
 procedure TEventControl.OnUnDock(Sender: TObject; Client: TControl;
   NewTarget: TWinControl; var Allow: Boolean);
 var
-  EO: TEventObject;
-  EI: TEventItem;
   LParams: Variant;
-  ResetIndex: boolean;
-  NE: ^TNotifyEvent;
 begin
-  EO := FEventObjectList.FindAllObject(Sender as TComponent);
+  LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+    GetGdcOLEObject(Client) as IDispatch, GetGdcOLEObject(NewTarget) as IDispatch,
+    GetVarInterface(Allow)]);
 
-  if EO <> nil then
-  begin
-    ResetIndex := EO.CurrIndexParentObject = -1;
+  _EventExecute(Sender, LParams, cUnDockEventName);
 
-    NE := @EO.EventList.Find(cUnDockEventName).OldEvent.Code;
-
-    try
-      EI := EO.FindRightEvent(cUnDockEventName);
-
-      if EI <> nil then
-      begin
-        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-          GetGdcOLEObject(Client) as IDispatch, GetGdcOLEObject(NewTarget) as IDispatch,
-          GetVarInterface(Allow)]);
-
-        ExecuteEvent(EI, LParams, Sender, cUnDockEventName);
-        
-        Allow := Boolean(GetVarParam(LParams[3]));
-      end
-      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
-        TUnDockEvent(NE^)(Sender, Client, NewTarget, Allow);
-    finally
-      if ResetIndex then
-        EO.CurrIndexParentObject := -1;
-    end;
-  end
-  else
-    raise Exception.Create(cMsgCantFindObject);
+  Allow := Boolean(GetVarParam(LParams[3]));
 end;
 
 procedure TEventControl.OnUpdate(Action: TBasicAction;
@@ -4316,87 +3247,32 @@ end;
 procedure TEventControl.OnUpdateError(DataSet: TDataSet; E: EDatabaseError;
   UpdateKind: TUpdateKind; var UpdateAction: TIBUpdateAction);
 var
-  EO: TEventObject;
-  EI: TEventItem;
   LParams: Variant;
-  ResetIndex: boolean;
-  NE: ^TNotifyEvent;
 begin
   if not Assigned(E) then
     exit;
 
-  EO := FEventObjectList.FindAllObject(DataSet as TComponent);
+  LParams := VarArrayOf([GetGdcOLEObject(DataSet) as IDispatch,
+    GetGdcOLEObject(E) as IDispatch, TgsUpdatekind(UpdateKind),
+    GetVarInterface(TgsIBUpdateAction(UpdateAction))]);
 
-  if EO <> nil then
-  begin
-    ResetIndex := EO.CurrIndexParentObject = -1;
+  _EventExecute(DataSet, LParams, cUpdateErrorEventName);
 
-    NE := @EO.EventList.Find(cUpdateErrorEventName).OldEvent.Code;
-
-    try
-      EI := EO.FindRightEvent(cUpdateErrorEventName);
-
-      if EI <> nil then
-      begin
-        LParams := VarArrayOf([GetGdcOLEObject(DataSet) as IDispatch,
-          GetGdcOLEObject(E) as IDispatch, TgsUpdatekind(UpdateKind),
-          GetVarInterface(TgsIBUpdateAction(UpdateAction))]);
-
-        ExecuteEvent(EI, LParams, DataSet, cUpdateErrorEventName);
-        
-        try
-          UpdateAction := TIBUpdateAction(GetVarParam(LParams[3]));
-        except
-        end;
-      end
-      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
-        TIBUpdateErrorEvent(NE^)(DataSet, E, UpdateKind, UpdateAction);
-    finally
-      if ResetIndex then
-        EO.CurrIndexParentObject := -1;
-    end;
-  end
-  else
-    raise Exception.Create(cMsgCantFindObject);
+  try
+    UpdateAction := TIBUpdateAction(GetVarParam(LParams[3]));
+  except
+  end;
 end;
 
 procedure TEventControl.OnUpdateRecord(DataSet: TDataSet;
   UpdateKind: TUpdateKind; var UpdateAction: TIBUpdateAction);
 var
-  EO: TEventObject;
-  EI: TEventItem;
   LParams: Variant;
-  ResetIndex: boolean;
-  NE: ^TNotifyEvent;
 begin
-  EO := FEventObjectList.FindAllObject(DataSet as TComponent);
+  LParams := VarArrayOf([GetGdcOLEObject(DataSet) as IDispatch,
+    TgsUpdateKind(UpdateKind), GetVarInterface(TgsIBUpdateAction(UpdateAction))]);
 
-  if EO <> nil then
-  begin
-    ResetIndex := EO.CurrIndexParentObject = -1;
-
-    NE := @EO.EventList.Find(cUpdateRecordEventName).OldEvent.Code;
-
-    try
-      EI := EO.FindRightEvent(cUpdateRecordEventName);
-
-      if EI <> nil then
-      begin
-        LParams := VarArrayOf([GetGdcOLEObject(DataSet) as IDispatch,
-          TgsUpdateKind(UpdateKind), GetVarInterface(TgsIBUpdateAction(UpdateAction))]);
-
-        ExecuteEvent(EI, LParams, DataSet, cUpdateRecordEventName);
-
-      end
-      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
-        TIBUpdateRecordEvent(NE^)(DataSet, UpdateKind, UpdateAction);
-    finally
-      if ResetIndex then
-        EO.CurrIndexParentObject := -1;
-    end;
-  end
-  else
-    raise Exception.Create(cMsgCantFindObject);
+  _EventExecute(DataSet, LParams, cUpdateRecordEventName);
 end;
 
 procedure TEventControl.OnVisibleChanged(Sender: TObject);
@@ -5074,40 +3950,12 @@ end;
 procedure TEventControl.OnSyncField(
   Sender: TObject; Field: TField; SyncList: TList);
 var
-  EO: TEventObject;
-  EI: TEventItem;
   LParams: Variant;
-  ResetIndex: boolean;
-  NE: ^TNotifyEvent;
 begin
-  EO := FEventObjectList.FindAllObject(Sender as TComponent);
+  LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+    GetGdcOLEObject(Field) as IDispatch, GetGdcOLEObject(SyncList) as IDispatch]);
 
-  if EO <> nil then
-  begin
-    ResetIndex := EO.CurrIndexParentObject = -1;
-
-    NE := @EO.EventList.Find(cSyncFieldEventName).OldEvent.Code;
-
-    try
-      EI := EO.FindRightEvent(cSyncFieldEventName);
-
-      if EI <> nil then
-      begin
-        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-          GetGdcOLEObject(Field) as IDispatch, GetGdcOLEObject(SyncList) as IDispatch]);
-
-        ExecuteEvent(EI, LParams, Sender, cSyncFieldEventName);
-
-      end
-      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
-        TOnSyncFieldEvent(NE^)(Sender, Field, SyncList);
-    finally
-      if ResetIndex then
-        EO.CurrIndexParentObject := -1;
-    end;
-  end
-  else
-    raise Exception.Create(cMsgCantFindObject);
+  _EventExecute(Sender, LParams, cSyncFieldEventName);
 end;
 
 {procedure TEventControl.ChangeReport(const ReportObject: TObject;
@@ -5174,115 +4022,32 @@ end;
 procedure TEventControl.OnGetText(Sender: TField; var Text: String;
   DisplayText: Boolean);
 var
-  EO: TEventObject;
-  EI: TEventItem;
   LParams: Variant;
-  ResetIndex: boolean;
-  NE: ^TNotifyEvent;
 begin
-  EO := FEventObjectList.FindAllObject(Sender as TComponent);
+  LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+    GetVarInterface(Text), DisplayText]);
 
-  if EO <> nil then
-  begin
-    ResetIndex := EO.CurrIndexParentObject = -1;
+  _EventExecute(Sender, LParams, cGetTextEventName);
 
-    NE := @EO.EventList.Find(cGetTextEventName).OldEvent.Code;
-
-    try
-      EI := EO.FindRightEvent(cGetTextEventName);
-
-      if EI <> nil then
-      begin
-        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-          GetVarInterface(Text), DisplayText]);
-
-        ExecuteEvent(EI, LParams, Sender, cGetTextEventName);
-        
-        Text := String(GetVarParam(LParams[1]));
-      end
-      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
-        TFieldGetTextEvent(NE^)(Sender, Text, DisplayText);
-    finally
-      if ResetIndex then
-        EO.CurrIndexParentObject := -1;
-    end;
-  end
-  else
-    raise Exception.Create(cMsgCantFindObject);
+  Text := String(GetVarParam(LParams[1]));
 end;
 
 procedure TEventControl.OnSetText(Sender: TField; const Text: String);
 var
-  EO: TEventObject;
-  EI: TEventItem;
   LParams: Variant;
-  ResetIndex: boolean;
-  NE: ^TNotifyEvent;
 begin
-  EO := FEventObjectList.FindAllObject(Sender as TComponent);
+  LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch, Text]);
 
-  if EO <> nil then
-  begin
-    ResetIndex := EO.CurrIndexParentObject = -1;
-
-    NE := @EO.EventList.Find(cSetTextEventName).OldEvent.Code;
-
-    try
-      EI := EO.FindRightEvent(cSetTextEventName);
-
-      if EI <> nil then
-      begin
-        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch, Text]);
-
-        ExecuteEvent(EI, LParams, Sender, cSetTextEventName);
-
-      end
-      else if ResetIndex and Assigned(NE) and Assigned(NE^) then
-        TFieldSetTextEvent(NE^)(Sender, Text);
-    finally
-      if ResetIndex then
-        EO.CurrIndexParentObject := -1;
-    end;
-  end
-  else
-    raise Exception.Create(cMsgCantFindObject);
+  _EventExecute(Sender, LParams, cSetTextEventName);
 end;
 
 procedure TEventControl.OnValidate(Sender: TField);
 var
-  EO: TEventObject;
-  EI: TEventItem;
   LParams: Variant;
-  ResetIndex: boolean;
-  NE: ^TNotifyEvent;
 begin
-  EO := FEventObjectList.FindAllObject(Sender as TComponent);
+  LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
 
-  if EO <> nil then
-  begin
-    ResetIndex := EO.CurrIndexParentObject = -1;
-
-    NE := @EO.EventList.Find(cValidateEventName).OldEvent.Code;
-
-    try
-      EI := EO.FindRightEvent(cValidateEventName);
-
-      if EI <> nil then
-      begin
-        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
-
-        ExecuteEvent(EI, LParams, Sender, cValidateEventName);
-
-      end
-      else if ResetIndex and Assigned(NE) and Assigned(NE^) then
-        TFieldNotifyEvent(NE^)(Sender);
-    finally
-      if ResetIndex then
-        EO.CurrIndexParentObject := -1;
-    end;
-  end
-  else
-    raise Exception.Create(cMsgCantFindObject);
+  _EventExecute(Sender, LParams, cValidateEventName);
 end;
 
 {procedure TEventControl.OverSetEvents(AnComponent: TComponent);
@@ -5321,122 +4086,39 @@ end;}
 
 function TEventControl.OnTestCorrect(Sender: TObject): Boolean;
 var
-  EO: TEventObject;
-  EI: TEventItem;
   LParams: Variant;
   SrcResult: OleVariant;
-  ResetIndex: boolean;
-  NE: ^TNotifyEvent;
 begin
   Result := True;
 
-  EO := FEventObjectList.FindAllObject(Sender as TComponent);
+  LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
 
-  if EO <> nil then
-  begin
-    ResetIndex := EO.CurrIndexParentObject = -1;
-
-    NE := @EO.EventList.Find(cTestCorrectEventName).OldEvent.Code;
-
-    try
-      EI := EO.FindRightEvent(cTestCorrectEventName);
-
-      if EI <> nil then
-      begin
-        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
-
-        SrcResult := ExecuteEvent(EI, LParams, Sender, cTestCorrectEventName);
-        if VarType(SrcResult) = varBoolean then
-          Result := Boolean(SrcResult)
-        else
-        begin
-          if VarType(SrcResult) <> varEmpty then
-            raise Exception.Create('Несоответствие типа. Тип возвращенный обработчиком OnTestCorrect не Boolean.');
-        end;
-      end
-      else if ResetIndex and Assigned(NE) and Assigned(NE^) then
-        Result := TOnTestCorrect(NE^)(Sender);
-    finally
-      if ResetIndex then
-        EO.CurrIndexParentObject := -1;
-    end;
-  end
+  SrcResult := _EventExecute(Sender, LParams, cTestCorrectEventName);
+  if VarType(SrcResult) = varBoolean then
+    Result := Boolean(SrcResult)
   else
-    raise Exception.Create(cMsgCantFindObject);
+  begin
+    if VarType(SrcResult) <> varEmpty then
+      raise Exception.Create('Несоответствие типа. Тип возвращенный обработчиком OnTestCorrect не Boolean.');
+  end;
 end;
 
 procedure TEventControl.OnSetupDialog(Sender: TObject);
 var
-  EO: TEventObject;
-  EI: TEventItem;
   LParams: Variant;
-  ResetIndex: boolean;
-  NE: ^TNotifyEvent;
 begin
-  EO := FEventObjectList.FindAllObject(Sender as TComponent);
+  LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
 
-  if EO <> nil then
-  begin
-    ResetIndex := EO.CurrIndexParentObject = -1;
-
-    NE := @EO.EventList.Find(cSetupDialogEventName).OldEvent.Code;
-
-    try
-      EI := EO.FindRightEvent(cSetupDialogEventName);
-
-      if EI <> nil then
-      begin
-        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
-
-        ExecuteEvent(EI, LParams, Sender, cSetupDialogEventName);
-
-      end
-      else if ResetIndex and Assigned(NE) and Assigned(NE^) then
-        TOnSetupDialog(NE^)(Sender);
-    finally
-      if ResetIndex then
-        EO.CurrIndexParentObject := -1;
-    end;
-  end
-  else
-    raise Exception.Create(cMsgCantFindObject);
+  _EventExecute(Sender, LParams, cSetupDialogEventName);
 end;
 
 procedure TEventControl.OnSetupRecord(Sender: TObject);
 var
-  EO: TEventObject;
-  EI: TEventItem;
   LParams: Variant;
-  ResetIndex: boolean;
-  NE: ^TNotifyEvent;
 begin
-  EO := FEventObjectList.FindAllObject(Sender as TComponent);
+  LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
 
-  if EO <> nil then
-  begin
-    ResetIndex := EO.CurrIndexParentObject = -1;
-
-    NE := @EO.EventList.Find(cSetupRecordEventName).OldEvent.Code;
-
-    try
-      EI := EO.FindRightEvent(cSetupRecordEventName);
-
-      if EI <> nil then
-      begin
-        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
-
-        ExecuteEvent(EI, LParams, Sender, cSetupRecordEventName);
-
-      end
-      else if ResetIndex and Assigned(NE) and Assigned(NE^) then
-        TOnSetupRecord(NE^)(Sender);
-    finally
-      if ResetIndex then
-        EO.CurrIndexParentObject := -1;
-    end;
-  end
-  else
-    raise Exception.Create(cMsgCantFindObject);
+  _EventExecute(Sender, LParams, cSetupRecordEventName);
 end;
 
 procedure TEventControl.AssignEvents(const SourceName: String;
@@ -5506,41 +4188,14 @@ end;}
 procedure TEventControl.OnChanging(Sender: TObject;
   var AllowChange: Boolean);
 var
-  EO: TEventObject;
-  EI: TEventItem;
   LParams: Variant;
-  ResetIndex: boolean;
-  NE: ^TNotifyEvent;
 begin
-  EO := FEventObjectList.FindAllObject(Sender as TComponent);
+  LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+    GetVarInterface(AllowChange)]);
 
-  if EO <> nil then
-  begin
-    ResetIndex := EO.CurrIndexParentObject = -1;
+  _EventExecute(Sender, LParams, cChangingEventName);
 
-    NE := @EO.EventList.Find(cChangingEventName).OldEvent.Code;
-
-    try
-      EI := EO.FindRightEvent(cChangingEventName);
-
-      if EI <> nil then
-      begin
-        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-          GetVarInterface(AllowChange)]);
-
-        ExecuteEvent(EI, LParams, Sender, cChangingEventName);
-        
-        AllowChange := Boolean(GetVarParam(LParams[1]));
-      end
-      else if ResetIndex and Assigned(NE) and Assigned(NE^) then
-        TTabChangingEvent(NE^)(Sender, AllowChange);
-    finally
-      if ResetIndex then
-        EO.CurrIndexParentObject := -1;
-    end;
-  end
-  else
-    raise Exception.Create(cMsgCantFindObject);
+  AllowChange := Boolean(GetVarParam(LParams[1]));
 end;
 
 procedure TEventControl.OnCalcAggregates(DataSet: TDataSet;
@@ -5558,138 +4213,60 @@ procedure TEventControl.OnGetTotal(Sender: TObject;
   const FieldName: String; const AggregatesObsolete: Boolean;
   var DisplayString: String);
 var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
   LParams: Variant;
 begin
-  // здесь обработка ошибок аналогична OnPaint
+  LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+    FieldName, AggregatesObsolete, GetVarInterface(DisplayString)]);
 
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-      FieldName, AggregatesObsolete, GetVarInterface(DisplayString)]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cGetTotalEventName);
+  _EventExecute(Sender, LParams, cGetTotalEventName);
 
-    ExecuteEvent(LEventOfObject, LParams, Sender, cGetTotalEventName);
-    DisplayString := String(GetVarParam(LParams[3]));
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  DisplayString := String(GetVarParam(LParams[3]));
 end;
 
 procedure TEventControl.OnReceive(Sender: TObject; AFileName: String);
 var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
   LParams: Variant;
 begin
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch, AFileName]);
+  LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch, AFileName]);
 
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cModemReceiveEventName);
-    // Выполнение события
-    ExecuteEvent(LEventOfObject, LParams, Sender, cModemReceiveEventName);
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  _EventExecute(Sender, LParams, cModemReceiveEventName);
 end;
 
 procedure TEventControl.OnSend(Sender: TObject);
 var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
   LParams: Variant;
 begin
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
+  LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
 
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cModemSendEventName);
-    // Выполнение события
-    ExecuteEvent(LEventOfObject, LParams, Sender, cModemSendEventName);
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  _EventExecute(Sender, LParams, cModemSendEventName);
 end;
 
 procedure TEventControl.OnOpenPort(Sender: TObject);
 var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
   LParams: Variant;
 begin
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
+  LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
 
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cModemOpenPortEventName);
-    // Выполнение события
-    ExecuteEvent(LEventOfObject, LParams, Sender, cModemOpenPortEventName);
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  _EventExecute(Sender, LParams, cModemOpenPortEventName);
 end;
 
 procedure TEventControl.OnClosePort(Sender: TObject);
 var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
   LParams: Variant;
 begin
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
+  LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
 
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cModemClosePortEventName);
-    // Выполнение события
-    ExecuteEvent(LEventOfObject, LParams, Sender, cModemClosePortEventName);
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  _EventExecute(Sender, LParams, cModemClosePortEventName);
 end;
 
 procedure TEventControl.OnError(Sender: TObject; ErrorCode: Integer;
   ErrorDescription: String);
 var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
   LParams: Variant;
 begin
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch, ErrorCode, ErrorDescription]);
+  LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch, ErrorCode, ErrorDescription]);
 
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cModemErrorEventName);
-    // Выполнение события
-    ExecuteEvent(LEventOfObject, LParams, Sender, cModemErrorEventName);
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  _EventExecute(Sender, LParams, cModemErrorEventName);
 end;
 
 procedure TEventControl.OnClickCheckListBox(Sender: TObject);
@@ -5714,58 +4291,29 @@ end;
 
 procedure TEventControl.OnChangeTV(Sender: TObject; Node: TTreeNode);
 var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
-//  LEvent: ^TMenuChangeEvent;
   LParams: Variant;
 begin
-  if Assigned(Sender) then
-  begin
-    // Поиск объекта вызывающего событие
-    LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-    // Проверка результата поиска
-    if Assigned(LEventObject) then
-    begin
-      // Формирование массива параметров. Различается в зависимости от параметров
-      LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-        GetGdcOLEObject(Node) as IDispatch]);
-      // Поиск виртуального объекта для обработки события
-      LEventOfObject := LEventObject.EventList.Find(cChangeEventName);
-      // Выполнение события
-      ExecuteEvent(LEventOfObject, LParams, Sender, cChangeEventName);
+  if not Assigned(Sender) then
+    exit;
 
-    end else
-      raise Exception.Create(cMsgCantFindObject);
-  end;
+  LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+    GetGdcOLEObject(Node) as IDispatch]);
+
+  _EventExecute(Sender, LParams, cChangeEventName);
 end;
 
 procedure TEventControl.OnChangingTV(Sender: TObject;
   Node: TTreeNode; var AllowChange: Boolean);
 var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
   LParams: Variant;
 begin
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-      GetGdcOLEObject(Node) as IDispatch,
-      GetVarInterface(AllowChange)]);
+  LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+    GetGdcOLEObject(Node) as IDispatch,
+    GetVarInterface(AllowChange)]);
 
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cChangingEventName);
-    // Выполнение события
-    ExecuteEvent(LEventOfObject, LParams, Sender, cChangingEventName);
-    // Обратное присвоение значений
+  _EventExecute(Sender, LParams, cChangingEventName);
 
-    AllowChange := Boolean(GetVarParam(LParams[2]));
-
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  AllowChange := Boolean(GetVarParam(LParams[2]));
 end;
 
 procedure TEventControl.OnTBPopup(Sender: TTBCustomItem;
@@ -5792,35 +4340,21 @@ procedure TEventControl.OnBeforeNavigate2(Sender: TObject;
   const pDisp: IDispatch; var URL, Flags, TargetFrameName, PostData,
   Headers: OleVariant; var Cancel: WordBool);
 var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
   LParams: Variant;
 begin
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-      pDisp, GetVarInterface(URL), GetVarInterface(Flags),
-      GetVarInterface(TargetFrameName), GetVarInterface(PostData),
-      GetVarInterface(Headers), GetVarInterface(Cancel)]);
+  LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+    pDisp, GetVarInterface(URL), GetVarInterface(Flags),
+    GetVarInterface(TargetFrameName), GetVarInterface(PostData),
+    GetVarInterface(Headers), GetVarInterface(Cancel)]);
 
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cWebBrowserBeforeNavigate2Name);
+  _EventExecute(Sender, LParams, cWebBrowserBeforeNavigate2Name);
 
-    ExecuteEvent(LEventOfObject, LParams, Sender, cWebBrowserBeforeNavigate2Name);
-
-    URL := OleVariant(GetVarParam(LParams[2]));
-    Flags := OleVariant(GetVarParam(LParams[3]));
-    TargetFrameName := OleVariant(GetVarParam(LParams[4]));
-    PostData := OleVariant(GetVarParam(LParams[5]));
-    Headers := OleVariant(GetVarParam(LParams[6]));
-    Cancel := WordBool(GetVarParam(LParams[7]));
-
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  URL := OleVariant(GetVarParam(LParams[2]));
+  Flags := OleVariant(GetVarParam(LParams[3]));
+  TargetFrameName := OleVariant(GetVarParam(LParams[4]));
+  PostData := OleVariant(GetVarParam(LParams[5]));
+  Headers := OleVariant(GetVarParam(LParams[6]));
+  Cancel := WordBool(GetVarParam(LParams[7]));
 end;
 
 procedure TEventControl.AfterInternalDeleteRecord(DataSet: TDataSet);
@@ -5846,27 +4380,14 @@ end;
 procedure TEventControl.OnDocumentComplete(Sender: TObject;
   const pDisp: IDispatch; var URL: OleVariant);
 var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
   LParams: Variant;
 begin
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  // Проверка результата поиска
-  if Assigned(LEventObject) then
-  begin
-    // Формирование массива параметров. Различается в зависимости от параметров
-    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-      pDisp, GetVarInterface(URL)]);
+  LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+    pDisp, GetVarInterface(URL)]);
 
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cWebBrowserDocumentCompleteName);
+  _EventExecute(Sender, LParams, cWebBrowserDocumentCompleteName);
 
-    ExecuteEvent(LEventOfObject, LParams, Sender, cWebBrowserDocumentCompleteName);
-
-    URL := OleVariant(GetVarParam(LParams[2]));
-  end else
-    raise Exception.Create(cMsgCantFindObject);
+  URL := OleVariant(GetVarParam(LParams[2]));
 end;
 
 procedure TEventControl.ResetAllEvents(ObjectList: TEventObjectList);
