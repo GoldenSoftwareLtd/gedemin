@@ -42,8 +42,14 @@ type
 
     FTaskLogList: TObjectList;
 
+    function DayOfTheWeek(const AValue: TDateTime): Word;
+    function DayOfTheMonth(const AValue: TDateTime): Word;
+    function DaysInMonth(const AValue: TDateTime): Word;
+    
     function GetRightTime: Boolean;
     function GetRightUser: Boolean;
+    function GetGoodDay: Boolean;
+    function GetTaskExecuted: Boolean;
 
     function GetTaskLog(Index: Integer): TgdTaskLog;
     function GetCount: Integer;
@@ -53,7 +59,7 @@ type
     procedure ExecuteBackupFile;
 
     procedure CheckMissedTasks(AStartDate: TDateTime; AEndDate: TDateTime);
-    procedure AddLog(AnAutoTaskKey: Integer; AnEventText: String);
+    procedure AddLog(AnEventText: String);
 
   public
     constructor Create;
@@ -67,6 +73,8 @@ type
 
     property RightTime: Boolean read GetRightTime;
     property RightUser: Boolean read GetRightUser;
+    property GoodDay: Boolean read GetGoodDay;
+    property TaskExecuted: Boolean read GetTaskExecuted;
 
     property Id: Integer read FId write FId;
     property Name: String read FName write FName;
@@ -90,12 +98,7 @@ type
   private
     FTask: TgdTask;
   protected
-
     function ProcessMessage(var Msg: TMsg): Boolean; override;
-
-    //procedure Execute; override;
-    public
-      //constructor Create;
   end;
 
   TgdTaskManager = class(TObject)
@@ -108,8 +111,8 @@ type
 
     procedure LoadFromRelation;
 
+    procedure CheckLog;
     //procedure UpdateProgress(const AProgressInfo: TgdProgressInfo);
-
   public
     constructor Create;
     destructor Destroy; override;
@@ -121,7 +124,6 @@ type
     procedure Remove(AnId: Integer);
 
     procedure Run;
-
     procedure Restart;
 
     property Count: Integer read GetCount;
@@ -247,6 +249,26 @@ begin
   raise Exception.Create('Unknown TaskLog');
 end;
 
+function TgdTask.DayOfTheWeek(const AValue: TDateTime): Word;
+begin
+  Result := (DateTimeToTimeStamp(AValue).Date - 1) mod 7 + 1;
+end;
+
+function TgdTask.DayOfTheMonth(const AValue: TDateTime): Word;
+var
+  LYear, LMonth: Word;
+begin
+  DecodeDate(AValue, LYear, LMonth, Result);
+end;
+
+function TgdTask.DaysInMonth(const AValue: TDateTime): Word;
+var
+  LYear, LMonth, LDay: Word;
+begin
+  DecodeDate(AValue, LYear, LMonth, LDay);
+  Result := MonthDays[(LMonth = 2) and IsLeapYear(LYear), LMonth];
+end;
+
 function TgdTask.GetRightTime: Boolean;
 begin
   if FExactDate <> 0 then
@@ -258,6 +280,58 @@ end;
 function TgdTask.GetRightUser: Boolean;
 begin
   Result := (FUserKey = 0) or (IBLogin.UserKey = FUserKey);
+end;
+
+// проверяем подходящий ли день недели или месяца для выполнения.
+function TgdTask.GetGoodDay: Boolean;
+var
+  NDT: TDateTime;
+begin
+  Result := False;
+
+  NDT := Now;
+
+  if Weekly <> 0 then
+    Result := Weekly = DayOfTheWeek(NDT)
+  else if (Monthly <> 0) then
+  begin
+    if (Monthly > 0) then
+      Result := Monthly = DayOfTheMonth(NDT)
+    else
+      Result := (DaysInMonth(NDT) - Monthly + 1) = DayOfTheMonth(NDT);
+  end;
+end;
+
+// проверяем по логу была ли задача уже выполнена.
+// любая запись в логе в подходящем временном интервале
+// говорит о том что задача уже запускалась и ее исключаем
+function TgdTask.GetTaskExecuted: Boolean;
+var
+  I: Integer;
+  //NDT: TDateTime;
+begin
+  Result := False;
+
+  //NDT := Now;
+
+  if ExactDate <> 0 then
+  begin
+    for I := Self.Count - 1 downto 0 do
+    begin
+      Result := Self[I].EventTime >= ExactDate;
+      if Result then
+        exit;
+    end;
+  end
+  else
+  begin
+    for I := Self.Count - 1 downto 0 do
+    begin
+      Result := Trunc(Self[I].EventTime) = Date;
+      if Result then
+        exit;
+    end;
+  end;
 end;
 
 function TgdTask.GetTaskLog(Index: Integer): TgdTaskLog;
@@ -274,6 +348,8 @@ begin
 end;
 
 procedure TgdTask.CheckMissedTasks(AStartDate: TDateTime; AEndDate: TDateTime);
+var
+  I: Integer;
 begin
   // возможно во время выполнения текущей задачи
   // было пропущено выполнение других задач
@@ -282,9 +358,23 @@ begin
  //1) задача "такая-то" будет выполнена по завершении активных задач
  //2) задача "такая-то" не может быть выполнена так как истек установленный интервал для выполения
   //'Missed'
+  for I := 0 to gdTaskManager.Count - 1 do
+  begin
+    if gdTaskManager[I].StartTime <> 0 then
+    begin
+      if gdTaskManager[I].RightUser and (not gdTaskManager[I].Disabled)
+        and gdTaskManager[I].GoodDay
+        and (not gdTaskManager[I].TaskExecuted)
+        and (gdTaskManager[I].StartTime >= (AStartDate - Trunc(AStartDate)))
+        and (gdTaskManager[I].EndTime <= (AEndDate - Trunc(AEndDate))) then
+      begin
+        gdTaskManager[I].AddLog('Missed');
+      end;
+     end;
+  end;
 end;
 
-procedure TgdTask.AddLog(AnAutoTaskKey: Integer; AnEventText: String);
+procedure TgdTask.AddLog(AnEventText: String);
 var
   gdcAutoTaskLog: TgdcAutoTaskLog;
 begin
@@ -292,8 +382,7 @@ begin
   try
     gdcAutoTaskLog.Open;
     gdcAutoTaskLog.Insert;
-    gdcAutoTaskLog.FieldByName('autotaskkey').AsInteger := AnAutoTaskKey;
-    //gdcAutoTaskLog.FieldByName('eventtime').AsDateTime := NTD;
+    gdcAutoTaskLog.FieldByName('autotaskkey').AsInteger := Self.ID;
     gdcAutoTaskLog.FieldByName('eventtime').AsDateTime := Now;
     gdcAutoTaskLog.FieldByName('eventtext').AsString := AnEventText;
     gdcAutoTaskLog.Post;
@@ -317,6 +406,7 @@ begin
     ExecuteBackupFile;
 
   EDate := Now;
+
   CheckMissedTasks(SDate, EDate);
 end;
 
@@ -325,7 +415,7 @@ var
   F: TrpCustomFunction;
   P: Variant;
 begin
-  AddLog(ID, 'Started');
+  AddLog('Started');
 
   F := glbFunctionList.FindFunction(Self.FFunctionKey);
   if Assigned(F) then
@@ -334,11 +424,11 @@ begin
       P := VarArrayOf([]);
       if ScriptFactory.InputParams(F, P) then
         ScriptFactory.ExecuteFunction(F, P);
-      AddLog(ID, 'Done');
+      AddLog('Done');
     except
       on E: Exception do
       begin
-        AddLog(ID, E.Message);
+        AddLog(E.Message);
       end;
     end;
   finally
@@ -350,7 +440,7 @@ procedure TgdTask.ExecuteCmdLine;
 var
   ExecInfo: TShellExecuteInfo;
 begin
-  AddLog(ID, 'Started');
+  AddLog('Started');
 
   FillChar(ExecInfo, SizeOf(ExecInfo), 0);
   ExecInfo.cbSize := SizeOf(ExecInfo);
@@ -363,9 +453,9 @@ begin
   ExecInfo.fMask := SEE_MASK_FLAG_DDEWAIT or SEE_MASK_FLAG_NO_UI;
 
   if ShellExecuteEx(@ExecInfo) then
-    AddLog(ID, 'Done')
+    AddLog('Done')
   else
-    AddLog(ID, PChar(SysErrorMessage(GetLastError)));
+    AddLog(PChar(SysErrorMessage(GetLastError)));
 end;
 
 procedure TgdTask.ExecuteBackupFile;
@@ -418,72 +508,9 @@ end;
 
 function TgdTaskManager.FindPriorityTask: TgdTask;
 
-  function DayOfTheWeek(const AValue: TDateTime): Word;
-  begin
-    Result := (DateTimeToTimeStamp(AValue).Date - 1) mod 7 + 1;
-  end;
+  
 
-  function DayOfTheMonth(const AValue: TDateTime): Word;
-  var
-    LYear, LMonth: Word;
-  begin
-    DecodeDate(AValue, LYear, LMonth, Result);
-  end;
-
-  function DaysInMonth(const AValue: TDateTime): Word;
-  var
-    LYear, LMonth, LDay: Word;
-  begin
-    DecodeDate(AValue, LYear, LMonth, LDay);
-    Result := MonthDays[(LMonth = 2) and IsLeapYear(LYear), LMonth];
-  end;
-
-  // проверяем подходящий ли день недели или месяца для выполнения.
-  function GoodDay(AgdTask: TgdTask; ANTD: TDateTime): Boolean;
-  begin
-    Assert(AgdTask <> nil);
-
-    Result := False;
-
-    if AgdTask.Weekly <> 0 then
-      Result := AgdTask.Weekly = DayOfTheWeek(ANTD)
-    else if (AgdTask.Monthly <> 0) then
-    begin
-      if (AgdTask.Monthly > 0) then
-        Result := AgdTask.Monthly = DayOfTheMonth(ANTD)
-      else
-        Result := (DaysInMonth(ANTD) - AgdTask.Monthly + 1) = DayOfTheMonth(ANTD);
-    end;
-  end;
-
-  // проверяем по логу была ли задача уже выполнена.
-  // любая запись в логе в подходящем временном интервале
-  // говорит о том что задача уже запускалась и ее исключаем
-  function TaskExecuted(AgdTask: TgdTask; ANTD: TDateTime): Boolean;
-  var
-    I: Integer;
-  begin
-    Result := False;
-
-    if AgdTask.ExactDate <> 0 then
-    begin
-      for I := AgdTask.Count - 1 downto 0 do
-      begin
-        Result := AgdTask[I].EventTime >= AgdTask.ExactDate;
-        if Result then
-          exit;
-      end;
-    end
-    else
-    begin
-      for I := AgdTask.Count - 1 downto 0 do
-      begin
-        Result := Trunc(AgdTask[I].EventTime) = Date;
-        if Result then
-          exit;
-      end;
-    end;
-  end;
+  
 
 var
   I: Integer;
@@ -505,7 +532,7 @@ begin
     if Self[I].ExactDate <> 0 then
     begin
       if Self[I].RightUser and (not Self[I].Disabled)
-        and (not TaskExecuted(Self[I], NDT)) then
+        and (not Self[I].TaskExecuted) then
       begin
         if (MinDT > Self[I].ExactDate)
           or (MinDT = 0) then
@@ -518,8 +545,8 @@ begin
     else if Self[I].StartTime <> 0 then
     begin
       if Self[I].RightUser and (not Self[I].Disabled)
-        and GoodDay(Self[I], NDT)
-        and (not TaskExecuted(Self[I], NDT)) then
+        and Self[I].GoodDay
+        and (not Self[I].TaskExecuted) then
       begin
         if (MinDT > (Trunc(NDT) + Self[I].StartTime))
           or (MinDT = 0) then
@@ -585,13 +612,15 @@ begin
   //то выдается соответствующее предупреждение на экран.
   //Естественно, перед выдачей предупреждения мы проверяем
   //не работает ли система в "тихом" режиме.
-
-  //проверяем есть ли задачи для выполнения.
-  //если есть то запускаем поток.
-
+  CheckLog;
 
   FTaskTread.Resume;
   FTaskTread.PostMsg(WM_GD_INIT);
+end;
+
+procedure TgdTaskManager.CheckLog;
+begin
+  ////////////////////
 end;
 
 procedure TgdTaskManager.Restart;
