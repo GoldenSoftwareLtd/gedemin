@@ -214,6 +214,7 @@ inherited dlgSetupInvPriceList: TdlgSetupInvPriceList
           Height = 21
           CharCase = ecUpperCase
           TabOrder = 7
+          OnChange = edEnglishNameChange
         end
       end
       object tsHeader: TTabSheet

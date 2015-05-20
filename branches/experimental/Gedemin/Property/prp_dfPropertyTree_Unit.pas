@@ -2284,10 +2284,7 @@ begin
       BuildClassTree, @AParent, @IsGDC, False, True);
   end;
 
-  if IsGDC then
-    CEBase := gdClassList.Find(CClass)
-  else
-    CEBase := gdClassList.Find(CClass);
+  CEBase := gdClassList.Find(CClass);
 
   if CEBase <> nil then
   begin
