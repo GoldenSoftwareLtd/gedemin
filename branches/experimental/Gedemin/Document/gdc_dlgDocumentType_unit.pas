@@ -87,6 +87,7 @@ type
     procedure actAutoNumerationExecute(Sender: TObject);
     procedure actWizardHeaderUpdate(Sender: TObject);
     procedure actWizardLineUpdate(Sender: TObject);
+    procedure edEnglishNameChange(Sender: TObject);
 
   private
     FScriptChanged: Boolean;
@@ -101,6 +102,7 @@ type
   public
     function TestCorrect: Boolean; override;
 
+    procedure Setup(AnObject: TObject); override;
     procedure SetupDialog; override;
     procedure SetupRecord; override;
 
@@ -939,6 +941,54 @@ end;
 procedure Tgdc_dlgDocumentType.actWizardLineUpdate(Sender: TObject);
 begin
   (Sender as TAction).Enabled := IBLogin.IsIBUserAdmin;
+end;
+
+procedure Tgdc_dlgDocumentType.edEnglishNameChange(Sender: TObject);
+begin
+  if (gdcObject.State = dsInsert) then
+  begin
+    iblcHeaderTable.CurrentKeyInt := 0;
+    iblcLineTable.CurrentKeyInt := 0;
+  end;
+end;
+
+procedure Tgdc_dlgDocumentType.Setup(AnObject: TObject);
+  {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+begin
+  {@UNFOLD MACRO INH_CRFORM_SETUP('TGDC_DLGDOCUMENTTYPE', 'SETUP', KEYSETUP)}
+  {M}try
+  {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
+  {M}  begin
+  {M}    SetFirstMethodAssoc('TGDC_DLGDOCUMENTTYPE', KEYSETUP);
+  {M}    tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYSETUP]);
+  {M}    if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDC_DLGDOCUMENTTYPE') = -1) then
+  {M}    begin
+  {M}      Params := VarArrayOf([GetGdcInterface(Self), GetGdcInterface(AnObject)]);
+  {M}      if gdcMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDC_DLGDOCUMENTTYPE',
+  {M}        'SETUP', KEYSETUP, Params, LResult) then exit;
+  {M}    end else
+  {M}      if tmpStrings.LastClass.gdClassName <> 'TGDC_DLGDOCUMENTTYPE' then
+  {M}      begin
+  {M}        Inherited;
+  {M}        Exit;
+  {M}      end;
+  {M}  end;
+  {END MACRO}
+
+  inherited;
+
+  edEnglishName.OnChange := edEnglishNameChange;
+
+  {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGDOCUMENTTYPE', 'SETUP', KEYSETUP)}
+  {M}finally
+  {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
+  {M}    ClearMacrosStack('TGDC_DLGDOCUMENTTYPE', 'SETUP', KEYSETUP);
+  {M}end;
+  {END MACRO}
 end;
 
 initialization
