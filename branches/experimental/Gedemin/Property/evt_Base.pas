@@ -32,7 +32,6 @@ type
     FSFLoadTime: TStrings;
     {$ENDIF}
 
-
     // Свойства для работы с файл-кэшем СФ
     // Список указателей позиций СФ в файл-кэше
     FSFDHandleList: TgdKeyIntAssoc;
@@ -167,8 +166,6 @@ type
     function GetObjectName: String; override;
 
   public
-    constructor Create;
-
     procedure Assign(ASource: TEventItem);
     function AutoFunctionName: String;
 
@@ -3621,7 +3618,7 @@ begin
         repeat
           CE := CE.Parent;
           PrntCompName := Copy(AnComponent.ClassName, 2, Length(AnComponent.ClassName) - 1)
-            + SubTypeToComp(CE.SubType);
+            + SubTypeToComponentName(CE.SubType);
 
           PrntEO := EventObjectList.FindAllObject(PrntCompName);
           
@@ -5711,15 +5708,8 @@ end;
 
 { TEventItem }
 
-constructor TEventItem.Create;
-begin
-  inherited;
-  FIsVirtual := False;
-end;
-
 procedure TEventItem.Assign(ASource: TEventItem);
 begin
-//  FCustomName := ASource.Name;
   Name := ASource.Name;
   FEventData := ASource.EventData;
   FFunctionKey := ASource.FunctionKey;

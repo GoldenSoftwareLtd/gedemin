@@ -734,7 +734,7 @@ begin
 
         if ReplaceSubType then
         begin
-          CompName := Copy(CompClass, 2, 1024) + SubTypeToComp(ASubType);
+          CompName := Copy(CompClass, 2, 1024) + SubTypeToComponentName(ASubType);
           ReplaceSubType := False;
         end;
 
@@ -745,7 +745,7 @@ begin
             (
               AnsiSameText(TCreateableForm(AnOwner).InitialName, CompName)
               or
-              AnsiSameText(TCreateableForm(AnOwner).InitialName, CompName + SubTypeToComp(ASubType))
+              AnsiSameText(TCreateableForm(AnOwner).InitialName, CompName + SubTypeToComponentName(ASubType))
             ) then
             C := AnOwner
           else

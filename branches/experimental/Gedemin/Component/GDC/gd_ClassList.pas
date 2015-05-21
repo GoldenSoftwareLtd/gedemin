@@ -319,6 +319,7 @@ type
     function FindChild(const AClassName: AnsiString): TgdClassEntry;
     function InheritsFromCE(ACE: TgdClassEntry): Boolean;
     function GetRootSubType: TgdClassEntry;
+    procedure CheckSubType(const ASubType: TgdcSubType); virtual;
 
     property Parent: TgdClassEntry read FParent;
     property TheClass: TClass read FClass;
@@ -393,6 +394,8 @@ type
   end;
 
   TgdStorageEntry = class(TgdBaseEntry)
+  public
+    procedure CheckSubType(const ASubType: TgdcSubType); override;
   end;
 
   TgdFormEntry = class(TgdClassEntry)
@@ -521,8 +524,8 @@ procedure RegisterGDCClassMethod(const AnClass: TComponentClass; AnMethod: Strin
 //Заменяет символ $ на _
 function Replace(const Str: string): string;
 
-function SubTypeToComp(const ASubType: TgdcSubType): String;
-function CompToSubType(const Str: String): TgdcSubType;
+function SubTypeToComponentName(const ASubType: TgdcSubType): String;
+function ComponentNameToSubType(const Str: String): TgdcSubType;
 
 {$IFDEF DEBUG}
 var
@@ -534,7 +537,7 @@ implementation
 
 uses
   SysUtils, gs_Exception, IBSQL, gd_security, gsStorage, Storages,
-  gdcClasses, gd_directories_const
+  gdcClasses, gd_directories_const, jclStrings
   {$IFDEF DEBUG}
   , gd_DebugLog
   {$ENDIF}
@@ -579,17 +582,17 @@ begin
   end;
 end;
 
-function SubTypeToComp(const ASubType: TgdcSubType): String;
+function SubTypeToComponentName(const ASubType: TgdcSubType): String;
 begin
   Result := ASubType;
-  if AnsiPos('USR$', AnsiUpperCase(Result)) = 1 then
+  if StrIPos('USR$', Result) = 1 then
     Result[4] := '_';
 end;
 
-function CompToSubType(const Str: string): TgdcSubType;
+function ComponentNameToSubType(const Str: string): TgdcSubType;
 begin
   Result := Str;
-  if AnsiPos('USR_', AnsiUpperCase(Result)) = 1 then
+  if StrIPos('USR_', Result) = 1 then
     Result[4] := '$';
 end;
 
@@ -1278,6 +1281,7 @@ begin
   FSubType := ASubType;
   FChildren := nil;
   FClassMethods := TgdClassMethods.Create(TComponentClass(FClass));
+  CheckSubType(FSubType);
 end;
 
 destructor TgdClassEntry.Destroy;
@@ -1507,6 +1511,11 @@ begin
     Result := FClass.ClassName
   else
     Result := '';    
+end;
+
+procedure TgdClassEntry.CheckSubType(const ASubType: TgdcSubType);
+begin
+  // any subtype is valid on this level
 end;
 
 {TgdClassList}
@@ -2548,6 +2557,18 @@ end;
 procedure TgdInitClassEntry.Init(CE: TgdClassEntry);
 begin
   //
+end;
+
+{ TgdStorageEntry }
+
+procedure TgdStorageEntry.CheckSubType(const ASubType: TgdcSubType);
+begin
+  if (ASubType = '') or (not CharIsAlpha(ASubType[1]))
+    or (not StrIsAlphaNumUnderscore(ASubType))
+    or (StrIPos('USR_', ASubType) > 0) then
+  begin
+    raise Exception.Create('Invalid subtype.');
+  end;
 end;
 
 initialization
