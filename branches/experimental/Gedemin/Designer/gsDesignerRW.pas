@@ -91,8 +91,11 @@ type
   procedure ClipboardTextToBinary(Input, Output: TStream);
 
 implementation
-uses consts, contnrs,  comctrls, ActnList, gd_createable_form,
-     gdc_createable_form, gsResizerInterface, at_Container, TB2Item, TB2Toolbar, Menus, evt_Base, evt_i_Base;
+
+uses
+  consts, contnrs,  comctrls, ActnList, gd_createable_form,
+  gdc_createable_form, gsResizerInterface, at_Container,
+  TB2Item, TB2Toolbar, Menus, evt_Base, evt_i_Base, gd_ClassList;
 
 { TDesignWriter }
 
@@ -677,8 +680,6 @@ var
   FClientHeight: Integer;
   FClientWidth: Integer;
   FFormState: TComponentState;
-  LSubType: String;
-  LCompName: String;
 
   procedure SetLoading(AComponent: TComponent; const AState: boolean);
   var
@@ -733,20 +734,18 @@ begin
 
         if ReplaceSubType then
         begin
-          CompName := Copy(CompClass, 2, 1024) + ASubType;
+          CompName := Copy(CompClass, 2, 1024) + SubTypeToComp(ASubType);
           ReplaceSubType := False;
         end;
 
         if CompName <> '' then
         begin
-          LSubType := StringReplace(ASubType, 'USR$', 'USR_', [rfIgnoreCase]);
-          LCompName := StringReplace(CompName, 'USR$', 'USR_', [rfIgnoreCase]);
           if (CompClass = AnOwner.ClassName) and (AnOwner is TCreateableForm)
             and
             (
-              AnsiSameText(TCreateableForm(AnOwner).InitialName, LCompName)
+              AnsiSameText(TCreateableForm(AnOwner).InitialName, CompName)
               or
-              AnsiSameText(TCreateableForm(AnOwner).InitialName, LCompName + LSubType)
+              AnsiSameText(TCreateableForm(AnOwner).InitialName, CompName + SubTypeToComp(ASubType))
             ) then
             C := AnOwner
           else
