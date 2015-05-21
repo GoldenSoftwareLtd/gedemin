@@ -521,6 +521,9 @@ procedure RegisterGDCClassMethod(const AnClass: TComponentClass; AnMethod: Strin
 //Заменяет символ $ на _
 function Replace(const Str: string): string;
 
+function SubTypeToComp(const ASubType: TgdcSubType): String;
+function CompToSubType(const Str: String): TgdcSubType;
+
 {$IFDEF DEBUG}
 var
   glbParamCount, glbMethodCount, glbMethodListCount,
@@ -574,6 +577,20 @@ begin
     if Result[I] = '$' then
       Result[I] := '_';
   end;
+end;
+
+function SubTypeToComp(const ASubType: TgdcSubType): String;
+begin
+  Result := ASubType;
+  if AnsiPos('USR$', AnsiUpperCase(Result)) = 1 then
+    Result[4] := '_';
+end;
+
+function CompToSubType(const Str: string): TgdcSubType;
+begin
+  Result := Str;
+  if AnsiPos('USR_', AnsiUpperCase(Result)) = 1 then
+    Result[4] := '$';
 end;
 
 function gdClassList: TgdClassList;

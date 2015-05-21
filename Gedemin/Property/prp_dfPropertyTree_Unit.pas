@@ -2140,7 +2140,6 @@ var
 //  Init: Boolean;
   CE: TgdClassEntry;
   CEBase: TgdClassEntry;
-  LSubType: String;
   
 {  function ClassFilter(Index: Integer; AIsGDC: Boolean; SubType: string): Boolean;
   var
@@ -2278,9 +2277,7 @@ begin
 
   if (TCustomTreeItem(AParent.Data).ItemType = tiGDCClass) then
   begin
-    LSubType := StringReplace(TGDCClassTreeItem(AParent.Data).SubType, 'USR_',
-      'USR$',[rfReplaceAll, rfIgnoreCase]);
-    gdClassList.Traverse(CClass, LSubType,
+    gdClassList.Traverse(CClass, CompToSubType(TGDCClassTreeItem(AParent.Data).SubType),
       BuildClassTree, @AParent, @IsGDC, False, True);
   end;
 
@@ -2306,7 +2303,7 @@ begin
   if ACE is TgdBaseEntry then
   begin
     FullName.gdClassName := ACE.TheClass.ClassName;
-    FullName.SubType := StringReplace(ACE.SubType, 'USR$', 'USR_',[rfReplaceAll, rfIgnoreCase]);
+    FullName.SubType := SubTypeToComp(ACE.SubType);
     MClass := TMethodClass(MethodControl.FindMethodClass(FullName));
     if MClass = nil then
       //≈сли не найден то регистрируем его в списке
@@ -2367,7 +2364,7 @@ begin
   if ACE is TgdFormEntry then
   begin
     FullName.gdClassName := ACE.TheClass.ClassName;
-    FullName.SubType := StringReplace(ACE.SubType, 'USR$', 'USR_',[rfReplaceAll, rfIgnoreCase]);
+    FullName.SubType := SubTypeToComp(ACE.SubType);
     MObj := MethodControl.FindMethodClass(FullName);
     if MObj is TMethodClass then
       MClass := TMethodClass(MObj)
@@ -5761,33 +5758,27 @@ procedure TdfPropertyTree.actClassInfoExecute(Sender: TObject);
 var
   C: CgdcBase;
   F: TCustomForm;
-  SS: String;
 begin
   C := nil;
   with TdlgClassInfo.Create(Application) do
   try
     lblClassName.Caption := TgdcClassTreeItem(SelectedNode.Data).TheClass.Class_Name;
 
-    if Pos('USR_', TgdcClassTreeItem(SelectedNode.Data).TheClass.SubType) = 1 then
-      SS := StringReplace(TgdcClassTreeItem(SelectedNode.Data).TheClass.SubType, 'USR_', 'USR$', [])
-    else
-      SS := TgdcClassTreeItem(SelectedNode.Data).TheClass.SubType;
-
-    lblSubType.Caption := SS;
+    lblSubType.Caption := CompToSubType(TgdcClassTreeItem(SelectedNode.Data).TheClass.SubType);
     lblParentClass.Caption := TgdcClassTreeItem(SelectedNode.Data).TheClass.Class_Reference.ClassParent.ClassName;
 
     if TgdcClassTreeItem(SelectedNode.Data).TheClass.Class_Reference.InheritsFrom(TgdcBase) then
     begin
       C := CgdcBase(TgdcClassTreeItem(SelectedNode.Data).TheClass.Class_Reference);
-      lblMainTable.Caption := C.GetListTable(SS);
-      lblName.Caption := C.GetDisplayName(SS);
+      lblMainTable.Caption := C.GetListTable(lblSubType.Caption);
+      lblName.Caption := C.GetDisplayName(lblSubType.Caption);
     end;
 
     if ShowModal = mrYes then
     begin
       if C <> nil then
       begin
-        F := C.CreateViewForm(Application, '', SS);
+        F := C.CreateViewForm(Application, '', lblSubType.Caption);
         if F <> nil then
           F.Show
         else

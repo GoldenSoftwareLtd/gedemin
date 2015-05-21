@@ -3614,13 +3614,14 @@ begin
       if TgdcCreateableForm(AnComponent).SubType > '' then
       begin
         CE := gdClassList.Get(TgdFormEntry, AnComponent.ClassName,
-          StringReplace(TgdcCreateableForm(AnComponent).SubType,
-          'USR_', 'USR$', [rfReplaceAll, rfIgnoreCase]));
+          TgdcCreateableForm(AnComponent).SubType);
+          //StringReplace(TgdcCreateableForm(AnComponent).SubType,
+          //'USR_', 'USR$', [rfReplaceAll, rfIgnoreCase]));
 
         repeat
           CE := CE.Parent;
           PrntCompName := Copy(AnComponent.ClassName, 2, Length(AnComponent.ClassName) - 1)
-            + StringReplace(CE.SubType, 'USR$', 'USR_', [rfReplaceAll, rfIgnoreCase]);
+            + SubTypeToComp(CE.SubType);
 
           PrntEO := EventObjectList.FindAllObject(PrntCompName);
           
