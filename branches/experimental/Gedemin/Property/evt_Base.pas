@@ -2723,33 +2723,15 @@ procedure TEventControl.ExecuteNotifyEvent(Sender: TObject;
   const AnEventName: String; GenerateException: Boolean = True);
 var
   EO: TEventObject;
-  EI: TEventItem;
   LParams: Variant;
-  ResetIndex: boolean;
-  NE: ^TNotifyEvent;
 begin
   EO := FEventObjectList.FindAllObject(Sender as TComponent);
 
   if EO <> nil then
   begin
-    ResetIndex := EO.CurrIndexParentObject = -1;
+    LParams := VarArrayOf([GetGdcOLEObject(Sender as TComponent) as IDispatch]);
 
-    NE := @EO.EventList.Find(AnEventName).OldEvent.Code;
-
-    try
-      EI := EO.FindRightEvent(AnEventName);
-
-      if EI <> nil then
-      begin
-        LParams := VarArrayOf([GetGdcOLEObject(Sender as TComponent) as IDispatch]);
-        ExecuteEvent(EI, LParams, Sender, AnEventName);
-      end
-      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
-        NE^(Sender);
-    finally
-      if ResetIndex then
-        EO.CurrIndexParentObject := -1;
-    end;
+    _EventExecute(Sender, LParams, AnEventName);
   end
   else if GenerateException then
     raise Exception.Create(cMsgCantFindObject);
@@ -2963,37 +2945,18 @@ procedure TEventControl.OnGetFooter(Sender: TObject;
   var DisplayString: String);
 var
   EO: TEventObject;
-  EI: TEventItem;
   LParams: Variant;
-  ResetIndex: boolean;
-  NE: ^TNotifyEvent;
 begin
   EO := FEventObjectList.FindAllObject(Sender as TComponent);
 
   if EO <> nil then
   begin
-    ResetIndex := EO.CurrIndexParentObject = -1;
+    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
+      FieldName, AggregatesObsolete, GetVarInterface(DisplayString)]);
 
-    NE := @EO.EventList.Find(cGetFooterEventName).OldEvent.Code;
+   _EventExecute(Sender, LParams, cKeyPressEventName);
 
-    try
-      EI := EO.FindRightEvent(cGetFooterEventName);
-
-      if EI <> nil then
-      begin
-        LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch,
-          FieldName, AggregatesObsolete, GetVarInterface(DisplayString)]);
-
-        ExecuteEvent(EI, LParams, Sender, cGetFooterEventName);
-        
-        DisplayString := String(GetVarParam(LParams[3]));
-      end
-      else if ResetIndex and (Assigned(NE)) and (Assigned(NE^)) then
-        TOnGetFooter(NE^)(Sender, FieldName, AggregatesObsolete, DisplayString);
-    finally
-      if ResetIndex then
-        EO.CurrIndexParentObject := -1;
-    end;
+   DisplayString := String(GetVarParam(LParams[3]));
   end
   else
     raise Exception.Create(cMsgCantFindObject);
@@ -4319,20 +4282,15 @@ end;
 procedure TEventControl.OnTBPopup(Sender: TTBCustomItem;
   FromLink: Boolean);
 var
-  LEventObject: TEventObject;
-  LEventOfObject: TEventItem;
   LParams: Variant;
+  EO: TEventObject;
 begin
-  // Поиск объекта вызывающего событие
-  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
-  if Assigned(LEventObject) then
+  EO := FEventObjectList.FindAllObject(Sender as TComponent);
+
+  if EO <> nil then
   begin
-    // Формирование массива параметров. Различается в зависимости от параметров
     LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch, FromLink]);
-    // Поиск виртуального объекта для обработки события
-    LEventOfObject := LEventObject.EventList.Find(cPopupEventName);
-    // Выполнение события
-    ExecuteEvent(LEventOfObject, LParams, Sender, cPopupEventName);
+    _EventExecute(Sender, LParams, cPopupEventName);
   end;
 end;
 
