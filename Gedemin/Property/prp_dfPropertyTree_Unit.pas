@@ -2277,7 +2277,7 @@ begin
 
   if (TCustomTreeItem(AParent.Data).ItemType = tiGDCClass) then
   begin
-    gdClassList.Traverse(CClass, CompToSubType(TGDCClassTreeItem(AParent.Data).SubType),
+    gdClassList.Traverse(CClass, ComponentNameToSubType(TGDCClassTreeItem(AParent.Data).SubType),
       BuildClassTree, @AParent, @IsGDC, False, True);
   end;
 
@@ -2303,7 +2303,7 @@ begin
   if ACE is TgdBaseEntry then
   begin
     FullName.gdClassName := ACE.TheClass.ClassName;
-    FullName.SubType := SubTypeToComp(ACE.SubType);
+    FullName.SubType := SubTypeToComponentName(ACE.SubType);
     MClass := TMethodClass(MethodControl.FindMethodClass(FullName));
     if MClass = nil then
       //≈сли не найден то регистрируем его в списке
@@ -2364,7 +2364,7 @@ begin
   if ACE is TgdFormEntry then
   begin
     FullName.gdClassName := ACE.TheClass.ClassName;
-    FullName.SubType := SubTypeToComp(ACE.SubType);
+    FullName.SubType := SubTypeToComponentName(ACE.SubType);
     MObj := MethodControl.FindMethodClass(FullName);
     if MObj is TMethodClass then
       MClass := TMethodClass(MObj)
@@ -5764,7 +5764,7 @@ begin
   try
     lblClassName.Caption := TgdcClassTreeItem(SelectedNode.Data).TheClass.Class_Name;
 
-    lblSubType.Caption := CompToSubType(TgdcClassTreeItem(SelectedNode.Data).TheClass.SubType);
+    lblSubType.Caption := ComponentNameToSubType(TgdcClassTreeItem(SelectedNode.Data).TheClass.SubType);
     lblParentClass.Caption := TgdcClassTreeItem(SelectedNode.Data).TheClass.Class_Reference.ClassParent.ClassName;
 
     if TgdcClassTreeItem(SelectedNode.Data).TheClass.Class_Reference.InheritsFrom(TgdcBase) then
