@@ -1,6 +1,6 @@
 object frmSQLEditorSyn: TfrmSQLEditorSyn
-  Left = 317
-  Top = 172
+  Left = 427
+  Top = 221
   Width = 963
   Height = 556
   HelpContext = 121
@@ -1563,8 +1563,70 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
               Width = 260
             end
             item
+              Caption = 'ListTable'
+              Width = 180
+            end
+            item
+              Caption = 'Тип в списке объектов'
+              Width = 120
+            end
+            item
+              Caption = 'DistinctTable'
+              Width = 140
+            end>
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -12
+          Font.Name = 'Courier New'
+          Font.Style = []
+          HideSelection = False
+          ReadOnly = True
+          RowSelect = True
+          ParentFont = False
+          TabOrder = 1
+          ViewStyle = vsReport
+        end
+      end
+      object tsRelations: TSuperTabSheet
+        Caption = 'Таблицы'
+        object Panel2: TPanel
+          Left = 0
+          Top = 0
+          Width = 929
+          Height = 26
+          Align = alTop
+          BevelOuter = bvNone
+          TabOrder = 0
+          object lblTablesCount: TLabel
+            Left = 8
+            Top = 7
+            Width = 70
+            Height = 13
+            Caption = 'lblTablesCount'
+          end
+        end
+        object lvRelations: TListView
+          Left = 0
+          Top = 26
+          Width = 929
+          Height = 404
+          Align = alClient
+          Columns = <
+            item
               Caption = 'Таблица'
               Width = 180
+            end
+            item
+              Caption = 'Бизнес-класс'
+              Width = 180
+            end
+            item
+              Caption = 'Подтип'
+              Width = 208
+            end
+            item
+              Caption = 'Описание'
+              Width = 260
             end>
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clWindowText

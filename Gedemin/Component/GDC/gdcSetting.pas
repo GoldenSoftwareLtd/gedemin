@@ -28,7 +28,7 @@ type
 
     //Проверяет настройку на удаленные из нее объекты
     procedure CheckSetting;
-                                                    
+
     //Загружает в список id главных настроек
     procedure LoadMainSettingsID(KA: TgdKeyArray);
     procedure AddMainSettings(FKeys: TStrings; const MainID: Integer = 0);
@@ -41,8 +41,6 @@ type
     procedure OnObjectLoadNew(Sender: TatSettingWalker; const AClassName, ASubType: String; ADataSet: TDataSet);
 
   protected
-    function CreateDialogForm: TCreateableForm; override;
-
     procedure CustomModify(Buff: Pointer); override;
     procedure CustomInsert(Buff: Pointer); override;
 
@@ -53,7 +51,6 @@ type
     procedure GetWhereClauseConditions(S: TStrings); override;
 
   public
-  // constructor Create(AnOwner: TComponent); override;
     destructor Destroy; override;
 
     class function GetListTable(const ASubType: TgdcSubType): String; override;
@@ -61,6 +58,7 @@ type
     class function GetSubSetList: String; override;
 
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
+    class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
 
     procedure SaveToFile(const AFileName: String = ''; const ADetail: TgdcBase = nil;
       const BL: TBookmarkList = nil; const OnlyCurrent: Boolean = True; StreamFormat: TgsStreamType = sttUnknown); override;
@@ -481,59 +479,6 @@ begin
     AddKeyAr.Free;
     FinalKeyAr.Free;
   end;
-end;
-
-
-function TgdcSetting.CreateDialogForm: TCreateableForm;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_FUNCCREATEDIALOGFORM('TGDCSETTING', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  try
-  {M}    Result := nil;
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCSETTING', KEYCREATEDIALOGFORM);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCREATEDIALOGFORM]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCSETTING') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCSETTING',
-  {M}          'CREATEDIALOGFORM', KEYCREATEDIALOGFORM, Params, LResult) then
-  {M}          begin
-  {M}            Result := nil;
-  {M}            if VarType(LResult) <> varDispatch then
-  {M}              raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен не объект.')
-  {M}            else
-  {M}              if IDispatch(LResult) = nil then
-  {M}                raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                  'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен пустой (null) объект.');
-  {M}            Result := GetInterfaceToObject(LResult) as TCreateableForm;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCSETTING' then
-  {M}        begin
-  {M}          Result := Inherited CreateDialogForm;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  Result := Tgdc_dlgSetting.Create(ParentForm);
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCSETTING', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCSETTING', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM);
-  {M}  end;
-  {END MACRO}
 end;
 
 procedure TgdcSetting.CheckSetting;
@@ -3227,11 +3172,6 @@ begin
           Exit;
         end else
         begin
-//          if aRUID = '147050153_263731' then
-//          if aRUID = '147029166_3974129' then
-//          if aRUID = '147060927_33177288' then
-{          if aRUID = '147060929_33177288' then
-            ShowMessage((Objects[ind] as TGSFHeader).Name);}
           if (Objects[ind] as TGSFHeader).FilePath = aPath then
           begin                                 
             isFound := True; // промежуточная по нужному пути 
@@ -3330,7 +3270,7 @@ begin
       begin
         if InterRUID.Count > 0 then
         for k := 0 to InterRUID.Count-1 do
-        begin            // получаем версию промежуточной              
+        begin            // получаем версию промежуточной
           LoadInfoFor(-1, InterRUID[k], FilePath, Err, MaxPackVerInfo, isCorrect);
 
 //          if  (MaxPackVerInfo < VerInfo) then
@@ -3363,7 +3303,7 @@ begin
         if gdcSetts.FieldByName('Ending').AsInteger = 1 then
           isCorrect := True; 
       end
-    end 
+    end
   end;
 {  if MaxPackVerInfo > svEqual then
     if Result < svEqual then
@@ -5274,13 +5214,19 @@ begin
   end;
 end;
 
+class function TgdcSetting.GetDialogFormClassName(
+  const ASubType: TgdcSubType): String;
+begin
+  Result := 'Tgdc_dlgSetting';
+end;
+
 initialization
-  RegisterGDCClass(TgdcSetting, ctStorage, 'Настройка');
-  RegisterGDCClass(TgdcSettingPos, ctStorage, 'Позиция настройки');
-  RegisterGDCClass(TgdcSettingStorage, ctStorage, 'Позиция настройки хранилища');
+  RegisterGDCClass(TgdcSetting,        'Настройка');
+  RegisterGDCClass(TgdcSettingPos,     'Позиция настройки');
+  RegisterGDCClass(TgdcSettingStorage, 'Позиция настройки хранилища');
 
 finalization
-  UnRegisterGDCClass(TgdcSetting);
-  UnRegisterGDCClass(TgdcSettingPos);
-  UnRegisterGDCClass(TgdcSettingStorage);
+  UnregisterGdcClass(TgdcSetting);
+  UnregisterGdcClass(TgdcSettingPos);
+  UnregisterGdcClass(TgdcSettingStorage);
 end.

@@ -137,9 +137,9 @@ implementation
 
 {$R *.DFM}
 uses
-  gdcTree, Clipbrd, gd_ClassList, flt_frmSQLEditorSyn_unit, ContNrs,
-  at_classes, gdcMetaData, IBUtils, IBSQL, gdcClasses, gdcNamespace,
-  yaml_writer, jclStrings, at_sql_parser, gdc_createable_form;
+  gdcTree, Clipbrd, gd_ClassList, flt_frmSQLEditorSyn_unit, ContNrs, at_classes,
+  gdcMetaData, IBUtils, IBSQL, gdcClasses, gdcNamespace, yaml_writer, jclStrings,
+  at_sql_parser, gdc_createable_form, gd_directories_const;
 
 { Tgdc_dlgObjectProperties }
 
@@ -447,6 +447,7 @@ procedure Tgdc_dlgObjectProperties.SetupRecord;
   PK, PK2: TatPrimaryKey;
   I: Integer;
   S: String;
+  CE: TgdClassEntry;
 
   function AddSpaces(const S: String): String;
   begin
@@ -479,20 +480,26 @@ begin
   with mProp.Lines do
   begin
     Clear;
+    Add(AddSpaces('Наименование:') + gdcObject.ObjectName);
+    Add(AddSpaces('Идентификатор:') + IntToStr(gdcObject.ID));
+    Add(AddSpaces('RUID:') + RUIDToStr(gdcObject.GetRUID));
     Add(AddSpaces('Метка типа:') + gdcObject.GetDisplayName(gdcObject.SubType));
-    Add(AddSpaces('Тип объекта:') + gdcObject.ClassName);
-    Add(AddSpaces('Подтип:') + gdcObject.SubType);
-    if gdcObject.ClassParentSubType(gdcObject.SubType) = '' then
-      Add(AddSpaces('Тип родителя:') + gdcObject.ClassParent.ClassName)
-    else
-      Add(AddSpaces('Тип родителя:') + gdcObject.ClassName + gdcObject.ClassParentSubType(gdcObject.SubType));
+    Add(AddSpaces('Тип текущей записи:') + gdcObject.GetCurrRecordClass.gdClass.ClassName + ' ' +
+      gdcObject.GetCurrRecordClass.SubType);
+    CE := gdClassList.Get(TgdBaseEntry, gdcObject.ClassName, gdcObject.SubType);
+    Add(AddSpaces('Тип объекта:') + CE.TheClass.ClassName + ' ' + CE.SubType);
+    if CE.Parent <> nil then
+      Add(AddSpaces('Тип родителя:') + CE.Parent.TheClass.ClassName + ' ' + CE.Parent.SubType);
+
     Add(AddSpaces('Имя компонента:') + gdcObject.Name);
     if gdcObject.Owner is TCustomForm then
     begin
       Add(AddSpaces('Принадлежит форме:') + gdcObject.Owner.Name);
-      Add(AddSpaces('Класс формы:') + gdcObject.Owner.ClassName);
       if gdcObject.Owner is TgdcCreateableForm then
-        Add(AddSpaces('Подтип формы:') + (gdcObject.Owner as TgdcCreateableForm).SubType);
+        Add(AddSpaces('Тип формы:') + gdcObject.Owner.ClassName + ' ' +
+          (gdcObject.Owner as TgdcCreateableForm).SubType)
+      else
+        Add(AddSpaces('Тип формы:') + gdcObject.Owner.ClassName);
     end;
     if gdcObject.GetDlgForm is TCustomForm then
     begin
@@ -502,15 +509,11 @@ begin
     Add(AddSpaces('Подмножество:') + gdcObject.SubSet);
     if Trim(gdcObject.ExtraConditions.CommaText) > '' then
       Add(AddSpaces('Доп. условия:') + Trim(gdcObject.ExtraConditions.CommaText));
-    Add(AddSpaces('Тип текущей записи:') + gdcObject.GetCurrRecordClass.gdClass.ClassName);
-    Add(AddSpaces('Идентификатор:') + IntToStr(gdcObject.ID));
-    Add(AddSpaces('RUID:') + RUIDToStr(gdcObject.GetRUID));
-    Add(AddSpaces('Наименование:') + gdcObject.ObjectName);
     if gdcObject is TgdcTree then
     begin
       Add(AddSpaces('Путь:') + (gdcObject as TgdcTree).GetPath);
       if (gdcObject as TgdcTree).Parent = -1 then
-        Add(AddSpaces('Родитель:') + 'NULL') 
+        Add(AddSpaces('Родитель:') + 'NULL')
       else
         Add(AddSpaces('Родитель:') + IntToStr((gdcObject as TgdcTree).Parent));
       if gdcObject is TgdcLBRBTree then
@@ -528,6 +531,7 @@ begin
     if (tiEditorKey in gdcObject.gdcTableInfos) and (gdcObject.EditorName > '') then
       Add(AddSpaces('Кем изменен:') + gdcObject.EditorName);
     Add(AddSpaces('Главная таблица:') + gdcObject.GetListTable(gdcObject.SubType));
+    Add(AddSpaces('Уникальная таблица:') + gdcObject.GetDistinctTable(gdcObject.SubType));
     S := '';
     Lst := TObjectList.Create(False);
     try

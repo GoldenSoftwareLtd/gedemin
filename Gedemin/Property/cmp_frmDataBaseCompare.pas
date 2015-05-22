@@ -1099,20 +1099,21 @@ end;
 function TDataBaseCompare.LocaliseName(FSQL: TIBSQL): String;
 var
   SQL: TIBSQL;
-  C: CgdcBase;
+  CE: TgdClassEntry;
   S: String;
 begin
   Result := FSQL.FieldByName('NAME').AsString;
 
   //сначала заменяем USR$
   //если справочник, то смотрим в AT_Relations
-  //если есть subtype и не справвочник, то смотрим в gd_documenttype
-  //иначе смотрим через gdcClassList
+  //если есть subtype и не справочник, то смотрим в gd_documenttype
+  //иначе смотрим через gdClassList
 
-  if FSQL.FieldByName('CLASSNAME').AsString <> '' then
+  if FSQL.FieldByName('CLASSNAME').AsString > '' then
   begin
     S := StringReplace(FSQL.FieldByName('SUBTYPE').AsString, 'USR_', 'USR$', []);
-    if Pos('USR$', S) > 0 then
+
+    if Pos('USR$', S) = 1 then
     begin
       SQL := TIBSQL.Create(nil);
       SQL.Transaction := FSQL.Transaction;
@@ -1121,13 +1122,13 @@ begin
       try
         SQL.Params[0].AsString := S;
         SQL.ExecQuery;
-        if SQL.RecordCount > 0 then
+        if not SQL.EOF then
           Result := SQL.Fields[0].AsString;
       finally
         SQL.Free;
       end;
     end
-    else if S <> '' then
+    else if S > '' then
     begin
       SQL := TIBSQL.Create(nil);
       SQL.Transaction := FSQL.Transaction;
@@ -1136,16 +1137,16 @@ begin
       try
         SQL.Params[0].AsString := S;
         SQL.ExecQuery;
-        if SQL.RecordCount > 0 then
+        if not SQL.EOF then
           Result := SQL.Fields[0].AsString;
       finally
         SQL.Free;
       end;
     end else
     begin
-      C := gdClassList.GetGDCClass(FSQL.FieldByName('CLASSNAME').AsString);
-      if (C <> nil) and (IBLogin.Database = FSQL.Database) then
-        Result := C.GetDisplayName(S)
+      CE := gdClassList.Find(FSQL.FieldByName('CLASSNAME').AsString);
+      if (CE is TgdBaseEntry) and (IBLogin.Database = FSQL.Database) then
+        Result := TgdBaseEntry(CE).gdcClass.GetDisplayName(S);
     end;
   end;
 end;

@@ -1071,6 +1071,7 @@ var
   PC: TFormClass;
   F: TForm;
 //  GdC: CgdcBase;
+  CE: TgdClassEntry;
 begin
   // усе вокны, пра якія няма дадзеных у дэсктопе
   // хаваем
@@ -1124,8 +1125,8 @@ begin
           begin
             if (Items[i] is TgdcBaseData) then
             begin
-              PC := gdClassList.GetFrmClass((Items[i] as TgdcBaseData).gdcClassName);
-              if (PC <> nil) {and GdC.Class_TestUserRights([tiAView, tiAChag, tiAFull], (Items[i] as TgdcBaseData).gdcSubType)} then
+              CE := gdClassList.Find((Items[i] as TgdcBaseData).gdcClassName);
+              if CE is TgdFormEntry {and GdC.Class_TestUserRights([tiAView, tiAChag, tiAFull], (Items[i] as TgdcBaseData).gdcSubType)} then
               begin
                 // если был загружен деск-топ с пользовательскими формами
                 // подключаемся к другой базе данных, где таких форм нет
@@ -1133,7 +1134,7 @@ begin
                 // ее просто игнорируем.
                 { TODO : а как быть если это какая другая ошибка?? }
                 try
-                  F := CgdcCreateableForm(PC).CreateSubType(Application, (Items[i] as TgdcBaseData).gdcSubType);
+                  F := TgdFormEntry(CE).frmClass.CreateSubType(Application, (Items[i] as TgdcBaseData).gdcSubType);
                 except
                   F := nil;
                 end;

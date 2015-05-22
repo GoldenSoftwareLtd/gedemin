@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2001-2010 by Golden Software of Belarus
+  Copyright (c) 2001-2015 by Golden Software of Belarus
 
   Module
 
@@ -406,7 +406,7 @@ uses
   gd_createable_form, jclStrings, CodeExplorerParser, rp_report_const,
   prp_dfPropertyTree_Unit, gd_security_operationconst, prp_PropertySettings,
   prp_dlgInputLineNumber_unit, prp_dlgBreakPointProperty_unit, wiz_Main_Unit,
-  gdcClasses, prp_FunctionHistoryFrame_unit, gd_ExternalEditor
+  gdcClasses_interface, prp_FunctionHistoryFrame_unit, gd_ExternalEditor
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -1453,13 +1453,15 @@ begin
         end;
         TfrmGedeminProperty(GetParentForm(Self)).FindAndEdit(SQL.Fields[0].AsInteger);
       end else
+      begin
         MessageBox(Application.Handle,
           PChar(Format('Функция %s не найдена.', [CurrentWord])),
           'Внимание',
           MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+      end;
     end;
   finally
-    SQl.Free;
+    SQL.Free;
   end;
 end;
 

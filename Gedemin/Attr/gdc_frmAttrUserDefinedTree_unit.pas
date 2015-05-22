@@ -1,8 +1,7 @@
 
 {++
 
-
-  Copyright (c) 2001 by Golden Software of Belarus
+  Copyright (c) 2001-2015 by Golden Software of Belarus
 
   Module
 
@@ -20,7 +19,6 @@
   Revisions history
 
     1.0    30.10.2001    Dennis    Initial version.
-
 
 --}
 
@@ -45,7 +43,6 @@ type
   private
 
   public
-    constructor Create(AnOwner: TComponent); override;
     class function CreateAndAssign(AnOwner: TComponent): TForm; override;
   end;
 
@@ -60,11 +57,6 @@ uses at_classes,  gd_ClassList;
 
 { Tgdc_frmAttrUserDefinedTree }
 
-constructor Tgdc_frmAttrUserDefinedTree.Create(AnOwner: TComponent);
-begin
-  inherited;
-end;
-
 class function Tgdc_frmAttrUserDefinedTree.CreateAndAssign(
   AnOwner: TComponent): TForm;
 begin
@@ -74,7 +66,6 @@ end;
 procedure Tgdc_frmAttrUserDefinedTree.FormCreate(Sender: TObject);
 begin
   gdcObject := Master;
-  //gdcObject.SubType := FSubType;
 
   gdcDetailObject := Detail;
   gdcDetailObject.SubType := FSubType;
@@ -85,22 +76,14 @@ begin
 
   inherited;
 
-//  gdcObject.Open;
-//  gdcDetailObject.Open;
-
-  with atDatabase.Relations do
-    if ByRelationName(FSubType) <> nil then
-      Self.Caption := ByRelationName(FSubType).LName
-    else
-      Self.Caption := 'Подтип не определен!';
-
+  if gdcObject <> nil then
+    Self.Caption := gdcObject.GetDisplayName(gdcObject.SubType);
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmAttrUserDefinedTree, ctUserDefinedTree);
+  RegisterFrmClass(Tgdc_frmAttrUserDefinedTree);
 
 finalization
   UnRegisterFrmClass(Tgdc_frmAttrUserDefinedTree);
-
 end.
 

@@ -137,7 +137,7 @@ var
   F: TForm;
   SS, DN: String;
 begin
-  C := ACE.gdcClass;
+  C := (ACE as TgdBaseEntry).gdcClass;
   if not C.IsAbstractClass then
   begin
     DN := ACE.Caption;

@@ -12,7 +12,6 @@ uses
   ColorGrd, toolwin, Gauges, Spin, obj_WrapperIBXClasses, dbgrids, contnrs,
   printers, gdv_frAcctAnalytics_unit, shdocvw, JvDBImage, gsMorph, gsPeriodEdit, gsPanel;
 
-
 type
   TPointArray = array of TPoint;
 

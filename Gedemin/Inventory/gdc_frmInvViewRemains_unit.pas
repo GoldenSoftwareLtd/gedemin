@@ -56,8 +56,8 @@ type
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure gdcInvRemainsAfterOpen(DataSet: TDataSet);
     procedure cbSubDepartmentClick(Sender: TObject);
+
   private
-    { Private declarations }
     FCurrentCompany: Integer;
     FCurrentDate: TDateTime;
     isCreate: Boolean;
@@ -68,8 +68,8 @@ type
   protected
     procedure DoDestroy; override;
     function CheckHolding: Boolean; override;
+
   public
-    { Public declarations }
     property CurrentCompany: Integer read FCurrentCompany;
   end;
 
@@ -109,7 +109,6 @@ begin
 
     gdcInvRemains.SubType := FSubType;
     gdcInvRemains.SetSubDepartmentKeys([-1]);
-    //gdcInvRemains.SetDepartmentKeys([-1]);
     gdcInvRemains.RemainsDate := Date;
     gdcInvRemains.SubSet := cst_ByGroupKey;
 
@@ -138,16 +137,9 @@ begin
     dsMain.DataSet := gdcObject;
 
     isFirst := True;
-
-//    gdcInvRemains.MasterSource := dsDetail;
-
-//    gdcObject.Open;
-
-
   finally
     isCreate := False;
   end;
-
 end;
 
 procedure Tgdc_frmInvViewRemains.cbCurrentRemainsClick(Sender: TObject);
@@ -201,8 +193,6 @@ begin
     gdcObject.AddSubSet(cst_Holding)
   else
     gdcObject.RemoveSubSet(cst_Holding);  
-//  gdcInvRemains.SubSet := 'ByID';
-//  gdcInvRemains.SubSet := 'All';
   if not Assigned(gdcInvRemains.MasterSource) and not gdcInvRemains.HasSubSet('All') then
     gdcInvRemains.MasterSource := dsDetail;
   gdcInvRemains.Open;
@@ -255,7 +245,6 @@ end;
 
 procedure Tgdc_frmInvViewRemains.actExecRemainsUpdate(Sender: TObject);
 begin
-//  actExecRemains.Enabled := not cbCurrentRemains.Checked;
   deDateRemains.Enabled := not cbCurrentRemains.Checked;
   lDate.Enabled := not cbCurrentRemains.Checked;
 end;
@@ -267,53 +256,53 @@ var
   i: Integer;
   OldSubSet: String;
 begin
-   with Tgdc_attr_frmRelationField.Create(Self) do
-     try
-       gdcTableField.ExtraConditions.Clear;
-       gdcTableField.ExtraConditions.Add('z.relationname = ''INV_CARD'' AND z.fieldname LIKE ''USR$%''');
-       SetChoose(gdcTableField);
-       gdcTableField.SelectedID.Clear;
+ with Tgdc_attr_frmRelationField.Create(Self) do
+   try
+     gdcTableField.ExtraConditions.Clear;
+     gdcTableField.ExtraConditions.Add('z.relationname = ''INV_CARD'' AND z.fieldname LIKE ''USR$%''');
+     SetChoose(gdcTableField);
+     gdcTableField.SelectedID.Clear;
 
-       for i:= 0 to gdcInvRemains.ViewFeatures.Count - 1 do
+     for i:= 0 to gdcInvRemains.ViewFeatures.Count - 1 do
+     begin
+       R := atDatabase.Relations.ByRelationName('INV_CARD');
+       if Assigned(R) then
        begin
-         R := atDatabase.Relations.ByRelationName('INV_CARD');
-         if Assigned(R) then
+         F := R.RelationFields.ByFieldName(gdcInvRemains.ViewFeatures[i]);
+         if Assigned(F) then
          begin
-           F := R.RelationFields.ByFieldName(gdcInvRemains.ViewFeatures[i]);
-           if Assigned(F) then
-           begin
-             gdcTableField.SelectedID.Add(F.ID);
-             ibgrMain.CheckBox.AddCheck(F.ID);
-           end;
+           gdcTableField.SelectedID.Add(F.ID);
+           ibgrMain.CheckBox.AddCheck(F.ID);
          end;
        end;
-
-       gdcTableField.SubSet := 'All';
-       gdcTableField.Open;
-       if ShowModal = mrOk then
-       begin
-         gdcTableField.SubSet := 'OnlySelected';
-         gdcTableField.Open;
-         gdcTableField.First;
-         gdcInvRemains.Close;
-         gdcInvRemains.ViewFeatures.Clear;
-         while not gdcTableField.EOF do
-         begin
-           gdcInvRemains.ViewFeatures.Add(gdcTableField.FieldByName('fieldname').AsString);
-           gdcTableField.Next;
-         end;
-         gdcTableField.Close;
-         OldSubSet := gdcInvRemains.SubSet;
-         gdcInvRemains.SubSet := 'ByID';
-         gdcInvRemains.SubSet := OldSubSet;
-         if not Assigned(gdcInvRemains.MasterSource) and not gdcInvRemains.HasSubSet('All') then
-           gdcInvRemains.MasterSource := dsDetail;
-
-         gdcInvRemains.Open;
-       end;
-     finally
-       Free;
      end;
+
+     gdcTableField.SubSet := 'All';
+     gdcTableField.Open;
+     if ShowModal = mrOk then
+     begin
+       gdcTableField.SubSet := 'OnlySelected';
+       gdcTableField.Open;
+       gdcTableField.First;
+       gdcInvRemains.Close;
+       gdcInvRemains.ViewFeatures.Clear;
+       while not gdcTableField.EOF do
+       begin
+         gdcInvRemains.ViewFeatures.Add(gdcTableField.FieldByName('fieldname').AsString);
+         gdcTableField.Next;
+       end;
+       gdcTableField.Close;
+       OldSubSet := gdcInvRemains.SubSet;
+       gdcInvRemains.SubSet := 'ByID';
+       gdcInvRemains.SubSet := OldSubSet;
+       if not Assigned(gdcInvRemains.MasterSource) and not gdcInvRemains.HasSubSet('All') then
+         gdcInvRemains.MasterSource := dsDetail;
+
+       gdcInvRemains.Open;
+     end;
+   finally
+     Free;
+   end;
 end;
 
 procedure Tgdc_frmInvViewRemains.actSumFieldsExecute(Sender: TObject);
@@ -326,78 +315,19 @@ var
 begin
   KeyArray := TgdKeyArray.Create;
   try
-     with Tgdc_attr_frmRelationField.Create(Self) do
-       try
-         gdcTableField.ExtraConditions.Clear;
-         gdcTableField.ExtraConditions.Add('z.relationname = ''INV_CARD'' AND z.fieldname LIKE ''USR$%''');
-         SetChoose(gdcTableField);
-         gdcTableField.SelectedID.Clear;
-
-         for i:= 0 to gdcInvRemains.SumFeatures.Count - 1 do
-         begin
-           R := atDatabase.Relations.ByRelationName('INV_CARD');
-           if Assigned(R) then
-           begin
-             F := R.RelationFields.ByFieldName(gdcInvRemains.SumFeatures[i]);
-             if Assigned(F) then
-             begin
-               gdcTableField.SelectedID.Add(F.ID);
-               ibgrMain.CheckBox.AddCheck(F.ID);
-             end;
-           end;
-         end;
-
-         gdcTableField.SubSet := 'All';
-         gdcTableField.Open;
-         if ShowModal = mrOk then
-         begin
-           gdcTableField.SubSet := 'OnlySelected';
-           gdcTableField.Open;
-           gdcTableField.First;
-           gdcInvRemains.Close;
-           gdcInvRemains.SumFeatures.Clear;
-           while not gdcTableField.EOF do
-           begin
-             gdcInvRemains.SumFeatures.Add(gdcTableField.FieldByName('fieldname').AsString);
-             gdcTableField.Next;
-           end;
-           gdcTableField.Close;
-           OldSubSet := gdcInvRemains.SubSet;
-           gdcInvRemains.SubSet := 'ByID';
-           gdcInvRemains.SubSet := OldSubSet;
-           if not Assigned(gdcInvRemains.MasterSource) and not gdcInvRemains.HasSubSet('All') then
-             gdcInvRemains.MasterSource := dsDetail;
-
-           gdcInvRemains.Open;
-         end;
-       finally
-         Free;
-       end;
-  finally
-    KeyArray.Free;
-  end;
-end;
-
-procedure Tgdc_frmInvViewRemains.actGoodOptionsExecute(Sender: TObject);
- var
-  R: TatRelation;
-  F: TatRelationField;
-  i: Integer;
-  OldSubSet: String;
-begin
    with Tgdc_attr_frmRelationField.Create(Self) do
      try
        gdcTableField.ExtraConditions.Clear;
-       gdcTableField.ExtraConditions.Add('z.relationname = ''GD_GOOD'' AND z.fieldname LIKE ''USR$%''');
+       gdcTableField.ExtraConditions.Add('z.relationname = ''INV_CARD'' AND z.fieldname LIKE ''USR$%''');
        SetChoose(gdcTableField);
        gdcTableField.SelectedID.Clear;
 
-       for i:= 0 to gdcInvRemains.GoodViewFeatures.Count - 1 do
+       for i:= 0 to gdcInvRemains.SumFeatures.Count - 1 do
        begin
-         R := atDatabase.Relations.ByRelationName('GD_GOOD');
+         R := atDatabase.Relations.ByRelationName('INV_CARD');
          if Assigned(R) then
          begin
-           F := R.RelationFields.ByFieldName(gdcInvRemains.GoodViewFeatures[i]);
+           F := R.RelationFields.ByFieldName(gdcInvRemains.SumFeatures[i]);
            if Assigned(F) then
            begin
              gdcTableField.SelectedID.Add(F.ID);
@@ -414,10 +344,10 @@ begin
          gdcTableField.Open;
          gdcTableField.First;
          gdcInvRemains.Close;
-         gdcInvRemains.GoodViewFeatures.Clear;
+         gdcInvRemains.SumFeatures.Clear;
          while not gdcTableField.EOF do
          begin
-           gdcInvRemains.GoodViewFeatures.Add(gdcTableField.FieldByName('fieldname').AsString);
+           gdcInvRemains.SumFeatures.Add(gdcTableField.FieldByName('fieldname').AsString);
            gdcTableField.Next;
          end;
          gdcTableField.Close;
@@ -432,6 +362,65 @@ begin
      finally
        Free;
      end;
+  finally
+    KeyArray.Free;
+  end;
+end;
+
+procedure Tgdc_frmInvViewRemains.actGoodOptionsExecute(Sender: TObject);
+ var
+  R: TatRelation;
+  F: TatRelationField;
+  i: Integer;
+  OldSubSet: String;
+begin
+ with Tgdc_attr_frmRelationField.Create(Self) do
+   try
+     gdcTableField.ExtraConditions.Clear;
+     gdcTableField.ExtraConditions.Add('z.relationname = ''GD_GOOD'' AND z.fieldname LIKE ''USR$%''');
+     SetChoose(gdcTableField);
+     gdcTableField.SelectedID.Clear;
+
+     for i:= 0 to gdcInvRemains.GoodViewFeatures.Count - 1 do
+     begin
+       R := atDatabase.Relations.ByRelationName('GD_GOOD');
+       if Assigned(R) then
+       begin
+         F := R.RelationFields.ByFieldName(gdcInvRemains.GoodViewFeatures[i]);
+         if Assigned(F) then
+         begin
+           gdcTableField.SelectedID.Add(F.ID);
+           ibgrMain.CheckBox.AddCheck(F.ID);
+         end;
+       end;
+     end;
+
+     gdcTableField.SubSet := 'All';
+     gdcTableField.Open;
+     if ShowModal = mrOk then
+     begin
+       gdcTableField.SubSet := 'OnlySelected';
+       gdcTableField.Open;
+       gdcTableField.First;
+       gdcInvRemains.Close;
+       gdcInvRemains.GoodViewFeatures.Clear;
+       while not gdcTableField.EOF do
+       begin
+         gdcInvRemains.GoodViewFeatures.Add(gdcTableField.FieldByName('fieldname').AsString);
+         gdcTableField.Next;
+       end;
+       gdcTableField.Close;
+       OldSubSet := gdcInvRemains.SubSet;
+       gdcInvRemains.SubSet := 'ByID';
+       gdcInvRemains.SubSet := OldSubSet;
+       if not Assigned(gdcInvRemains.MasterSource) and not gdcInvRemains.HasSubSet('All') then
+         gdcInvRemains.MasterSource := dsDetail;
+
+       gdcInvRemains.Open;
+     end;
+   finally
+     Free;
+   end;
 end;
 
 procedure Tgdc_frmInvViewRemains.actGoodSumFieldsExecute(Sender: TObject);
@@ -444,52 +433,52 @@ var
 begin
   KeyArray := TgdKeyArray.Create;
   try
-     with Tgdc_attr_frmRelationField.Create(Self) do
-       try
-         gdcTableField.ExtraConditions.Clear;
-         gdcTableField.ExtraConditions.Add('z.relationname = ''GD_GOOD'' AND z.fieldname LIKE ''USR$%''');
-         SetChoose(gdcTableField);
-         gdcTableField.SelectedID.Clear;
+   with Tgdc_attr_frmRelationField.Create(Self) do
+     try
+       gdcTableField.ExtraConditions.Clear;
+       gdcTableField.ExtraConditions.Add('z.relationname = ''GD_GOOD'' AND z.fieldname LIKE ''USR$%''');
+       SetChoose(gdcTableField);
+       gdcTableField.SelectedID.Clear;
 
-         for i:= 0 to gdcInvRemains.GoodSumFeatures.Count - 1 do
+       for i:= 0 to gdcInvRemains.GoodSumFeatures.Count - 1 do
+       begin
+         R := atDatabase.Relations.ByRelationName('GD_GOOD');
+         if Assigned(R) then
          begin
-           R := atDatabase.Relations.ByRelationName('GD_GOOD');
-           if Assigned(R) then
+           F := R.RelationFields.ByFieldName(gdcInvRemains.GoodSumFeatures[i]);
+           if Assigned(F) then
            begin
-             F := R.RelationFields.ByFieldName(gdcInvRemains.GoodSumFeatures[i]);
-             if Assigned(F) then
-             begin
-               gdcTableField.SelectedID.Add(F.ID);
-               ibgrMain.CheckBox.AddCheck(F.ID);
-             end;
+             gdcTableField.SelectedID.Add(F.ID);
+             ibgrMain.CheckBox.AddCheck(F.ID);
            end;
          end;
-
-         gdcTableField.SubSet := 'All';
-         gdcTableField.Open;
-         if ShowModal = mrOk then
-         begin
-           gdcTableField.SubSet := 'OnlySelected';
-           gdcTableField.Open;
-           gdcTableField.First;
-           gdcInvRemains.Close;
-           gdcInvRemains.GoodSumFeatures.Clear;
-           while not gdcTableField.EOF do
-           begin
-             gdcInvRemains.GoodSumFeatures.Add(gdcTableField.FieldByName('fieldname').AsString);
-             gdcTableField.Next;
-           end;
-           gdcTableField.Close;
-           OldSubSet := gdcInvRemains.SubSet;
-           gdcInvRemains.SubSet := 'ByID';
-           gdcInvRemains.SubSet := OldSubSet;
-           if not Assigned(gdcInvRemains.MasterSource) and not gdcInvRemains.HasSubSet('All') then
-             gdcInvRemains.MasterSource := dsDetail;
-           gdcInvRemains.Open;
-         end;
-       finally
-         Free;
        end;
+
+       gdcTableField.SubSet := 'All';
+       gdcTableField.Open;
+       if ShowModal = mrOk then
+       begin
+         gdcTableField.SubSet := 'OnlySelected';
+         gdcTableField.Open;
+         gdcTableField.First;
+         gdcInvRemains.Close;
+         gdcInvRemains.GoodSumFeatures.Clear;
+         while not gdcTableField.EOF do
+         begin
+           gdcInvRemains.GoodSumFeatures.Add(gdcTableField.FieldByName('fieldname').AsString);
+           gdcTableField.Next;
+         end;
+         gdcTableField.Close;
+         OldSubSet := gdcInvRemains.SubSet;
+         gdcInvRemains.SubSet := 'ByID';
+         gdcInvRemains.SubSet := OldSubSet;
+         if not Assigned(gdcInvRemains.MasterSource) and not gdcInvRemains.HasSubSet('All') then
+           gdcInvRemains.MasterSource := dsDetail;
+         gdcInvRemains.Open;
+       end;
+     finally
+       Free;
+     end;
   finally
     KeyArray.Free;
   end;
@@ -499,11 +488,9 @@ procedure Tgdc_frmInvViewRemains.gsiblcCompanyChange(Sender: TObject);
 var
   ibsql: TIBSQL;
 begin
-//  if Application.MessageBox('Изменилось подразделение. Перестроить остатки?', 'Остатки',
-//    MB_YESNO or MB_ICONQUESTION	or MB_APPLMODAL	or MB_TOPMOST) = IDYES then actExecRemains.Execute;
   if gsiblcCompany.CurrentKeyInt > 0 then
   begin
-    ibsql := TIBSQL.Create(Self);
+    ibsql := TIBSQL.Create(nil);
     try
       ibsql.SQL.Text := 'SELECT holdingkey FROM gd_holding WHERE holdingkey = ' +
         gsiblcCompany.CurrentKey;
@@ -581,9 +568,8 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmInvViewRemains, ctInvRemains);
+  RegisterFrmClass(Tgdc_frmInvViewRemains);
 
 finalization
   UnRegisterFrmClass(Tgdc_frmInvViewRemains);
-
 end.

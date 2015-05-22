@@ -192,7 +192,8 @@ uses
   st_dlgEditValue_unit,   dlgEditDFM_unit,   gdcStorage,
   at_AddToSetting,        gsDesktopManager,  gd_directories_const,
   gsStorage_CompPath,     IBSQL,             gdcBaseInterface,
-  gdcStorage_Types,       gd_common_functions
+  gdcStorage_Types,       gd_common_functions,
+  gd_dlgClassList_unit,   gd_ClassList
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -408,31 +409,73 @@ begin
 end;
 
 procedure Tst_frmMain.actNewFolderExecute(Sender: TObject);
+
+  function Iterate(CE: TgdClassEntry): String;
+  var
+    S: String;
+    F: TgsStorageFolder;
+  begin
+    if CE.Parent <> nil then
+    begin
+      if CE.SubType > '' then
+        S := CE.SubType
+      else
+        S := CE.TheClass.ClassName;
+
+      F := GlobalStorage.OpenFolder(IncludeTrailingBackslash(Iterate(CE.Parent)) + S, True);
+      try
+        Result := F.Path;
+      finally
+        GlobalStorage.CloseFolder(F);
+      end;
+    end else
+      Result := '\SubTypes\' + CE.TheClass.ClassName;
+  end;
+
 var
   S: PString;
   F: TgsStorageFolder;
   NewName: String;
   I: Integer;
+  FC: TgdcFullClassName;
 begin
   S := tv.Selected.Data;
-  NewName := IncludeTrailingBackslash(S^) + 'New folder';
-  I := 0;
-  while CurrentStorage.FolderExists(NewName) do
+
+  if (S^ = '\SubTypes') and (CurrentStorage = GlobalStorage) then
   begin
-    Inc(I);
-    NewName := IncludeTrailingBackslash(S^) + 'New folder ' + IntToStr(I);
-  end;
-  F := CurrentStorage.OpenFolder(NewName, True);
-  try
-    New(S);
-    L.Add(S);
-    S^ := F.Path;
-    if I = 0 then
-      tv.Items.AddChildObject(tv.Selected, 'New folder', S).Selected := True
-    else
-      tv.Items.AddChildObject(tv.Selected, 'New folder ' + IntToStr(I), S).Selected := True;
-  finally
-    CurrentStorage.CloseFolder(F);
+    with Tgd_dlgClassList.Create(nil) do
+    try
+      FC.gdClassName := '';
+      FC.SubType := '';
+      if SelectModal('', FC) then
+      begin
+        Iterate(gdClassList.Get(TgdClassEntry, FC.gdClassName, FC.SubType));
+        actRefresh.Execute;
+      end;  
+    finally
+      Free;
+    end;
+  end else
+  begin
+    NewName := IncludeTrailingBackslash(S^) + 'New folder';
+    I := 0;
+    while CurrentStorage.FolderExists(NewName) do
+    begin
+      Inc(I);
+      NewName := IncludeTrailingBackslash(S^) + 'New folder ' + IntToStr(I);
+    end;
+    F := CurrentStorage.OpenFolder(NewName, True);
+    try
+      New(S);
+      L.Add(S);
+      S^ := F.Path;
+      if I = 0 then
+        tv.Items.AddChildObject(tv.Selected, 'New folder', S).Selected := True
+      else
+        tv.Items.AddChildObject(tv.Selected, 'New folder ' + IntToStr(I), S).Selected := True;
+    finally
+      CurrentStorage.CloseFolder(F);
+    end;
   end;
 end;
 

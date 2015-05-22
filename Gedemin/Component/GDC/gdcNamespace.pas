@@ -844,7 +844,7 @@ begin
     SL := TStringList.Create;
     try
       SL.Add(FN);
-      TgdcNamespaceLoader.LoadDelayed(SL, False, False, False);
+      TgdcNamespaceLoader.LoadDelayed(SL, False, False, False, False);
     finally
       SL.Free;
     end;
@@ -1541,6 +1541,6 @@ initialization
   RegisterGDCClass(TgdcNamespaceObject);
 
 finalization
-  UnRegisterGDCClass(TgdcNamespace);
-  UnRegisterGDCClass(TgdcNamespaceObject);
+  UnregisterGdcClass(TgdcNamespace);
+  UnregisterGdcClass(TgdcNamespaceObject);
 end.

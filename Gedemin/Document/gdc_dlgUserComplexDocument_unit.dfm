@@ -1,6 +1,6 @@
 inherited gdc_dlgUserComplexDocument: Tgdc_dlgUserComplexDocument
-  Left = 74
-  Top = 71
+  Left = 363
+  Top = 190
   Width = 644
   Height = 482
   Caption = 'gdc_dlgUserComplexDocument'
@@ -8,42 +8,42 @@ inherited gdc_dlgUserComplexDocument: Tgdc_dlgUserComplexDocument
   PixelsPerInch = 96
   TextHeight = 13
   inherited btnAccess: TButton
-    Left = 91
-    Top = 427
+    Left = 81
+    Top = 418
   end
   inherited btnNew: TButton
-    Left = 11
-    Top = 427
-  end
-  inherited btnOK: TButton
-    Left = 475
-    Top = 427
-  end
-  inherited btnCancel: TButton
-    Left = 558
-    Top = 427
+    Left = 8
+    Top = 418
   end
   inherited btnHelp: TButton
-    Left = 169
-    Top = 427
+    Left = 155
+    Top = 418
+  end
+  inherited btnOK: TButton
+    Left = 479
+    Top = 418
+  end
+  inherited btnCancel: TButton
+    Left = 553
+    Top = 418
   end
   inherited pnlMain: TPanel
-    Width = 636
+    Width = 628
     Height = 417
     inherited splMain: TSplitter
-      Width = 636
+      Width = 628
     end
     inherited pnlDetail: TPanel
-      Width = 636
+      Width = 628
       Height = 261
       inherited ibgrDetail: TgsIBGrid
-        Width = 618
+        Width = 610
         Height = 226
         BorderStyle = bsNone
         Options = [dgEditing, dgTitles, dgIndicator, dgColumnResize, dgColLines, dgRowLines, dgTabs, dgConfirmDelete, dgCancelOnExit, dgMultiSelect]
       end
       inherited tbdTop: TTBDock
-        Width = 636
+        Width = 628
         inherited tbDetail: TTBToolbar
           ParentShowHint = False
           ShowHint = True
@@ -53,20 +53,20 @@ inherited gdc_dlgUserComplexDocument: Tgdc_dlgUserComplexDocument
         Height = 226
       end
       inherited tbdRight: TTBDock
-        Left = 627
+        Left = 619
         Height = 226
       end
       inherited tbdBottom: TTBDock
         Top = 252
-        Width = 636
+        Width = 628
       end
     end
     inherited pnlMaster: TPanel
-      Width = 636
+      Width = 628
       object atContainer: TatContainer
         Left = 0
         Top = 25
-        Width = 636
+        Width = 628
         Height = 127
         DataSource = dsgdcBase
         Align = alClient
@@ -77,7 +77,7 @@ inherited gdc_dlgUserComplexDocument: Tgdc_dlgUserComplexDocument
       object pnlHolding: TPanel
         Left = 0
         Top = 0
-        Width = 636
+        Width = 628
         Height = 25
         Align = alTop
         BevelOuter = bvNone
@@ -90,7 +90,7 @@ inherited gdc_dlgUserComplexDocument: Tgdc_dlgUserComplexDocument
           Caption = 'Компания:'
         end
         object iblkCompany: TgsIBLookupComboBox
-          Left = 88
+          Left = 73
           Top = 2
           Width = 193
           Height = 21

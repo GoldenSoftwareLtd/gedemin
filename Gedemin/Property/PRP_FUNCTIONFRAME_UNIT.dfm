@@ -10,6 +10,7 @@ inherited FunctionFrame: TFunctionFrame
           Left = 0
           Top = 0
           Caption = 'TBToolbar1'
+          CloseButton = False
           DockMode = dmCannotFloatOrChangeDocks
           Images = dmImages.il16x16
           ParentShowHint = False

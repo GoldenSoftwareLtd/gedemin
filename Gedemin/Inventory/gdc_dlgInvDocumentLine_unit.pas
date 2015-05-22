@@ -1,8 +1,7 @@
 
 {++
 
-
-  Copyright (c) 2001 by Golden Software of Belarus
+  Copyright (c) 2001-2015 by Golden Software of Belarus
 
   Module
 
@@ -80,9 +79,6 @@ type
 
     procedure SetupDialog; override;
 
-    procedure LoadSettingsAfterCreate; override;
-    procedure SaveSettings; override;
-
     property Document: TgdcInvDocument read GetDocument;
     property DocumentLine: TgdcInvDocumentLine read GetDocumentLine;
   end;
@@ -96,7 +92,7 @@ implementation
 
 uses
   gdcInvConsts_unit, at_classes, Storages, gd_security, gdcGood, gdcBase,
-  gd_ClassList, gdcBaseInterface;
+  gd_ClassList;
 
 function GetArrAsCommaText(Ar: array of Integer): String;
 var
@@ -130,7 +126,7 @@ end;
 destructor TdlgInvDocumentLine.Destroy;
 begin
   FOurCompany.Free;
-  
+
   if Assigned(FContactSQL) then
     FreeAndNil(FContactSQL);
     
@@ -229,42 +225,46 @@ procedure TdlgInvDocumentLine.actMacroExecute(Sender: TObject);
 begin
   pcMain.ActivePage := tsMain;
   inherited;
-//
 end;
 
 procedure TdlgInvDocumentLine.atAttributesRelationNames(Sender: TObject;
   Relations, FieldAliases: TStringList);
 var
   I: Integer;
-  F: TatRelationField;  
+  F: TatRelationField;
+  CE: TgdClassEntry;
+  flag: boolean;
 begin
-  //
   // Добавляем поля
-
   for I := 0 to DocumentLine.FieldCount - 1 do
-    if
-      not DocumentLine.Fields[I].Calculated and
-      (
-        (AnsiCompareText(
+  begin
+    if not DocumentLine.Fields[I].Calculated then
+    begin
+      flag := (AnsiCompareText(DocumentLine.RelationByAliasName(DocumentLine.Fields[I].FieldName),
+        'INV_CARD') = 0);
+      if not flag then
+        flag := (AnsiCompareText(DocumentLine.RelationByAliasName(DocumentLine.Fields[I].FieldName),
+        'GD_GOOD') = 0);
+      if not flag then
+      begin
+        CE := gdClassList.Get(TgdDocumentEntry, DocumentLine.ClassName, DocumentLine.SubType);
+        repeat
+          flag := (AnsiCompareText(DocumentLine.RelationByAliasName(DocumentLine.Fields[I].FieldName),
+            TgdDocumentEntry(CE).DistinctRelation) = 0);
+          CE := CE.Parent;
+        until (CE.SubType = '') or flag;
+      end;
+      if flag then
+      begin
+        F := atDatabase.FindRelationField(
           DocumentLine.RelationByAliasName(DocumentLine.Fields[I].FieldName),
-          DocumentLine.RelationLineName) = 0)
-          or
-        (AnsiCompareText(
-          DocumentLine.RelationByAliasName(DocumentLine.Fields[I].FieldName),
-          'INV_CARD') = 0)
-          or
-        (AnsiCompareText(
-          DocumentLine.RelationByAliasName(DocumentLine.Fields[I].FieldName),
-          'GD_GOOD') = 0)
-      )
-    then begin
-      F := atDatabase.FindRelationField(
-        DocumentLine.RelationByAliasName(DocumentLine.Fields[I].FieldName),
-        DocumentLine.FieldNameByAliasName(DocumentLine.Fields[I].FieldName));
+          DocumentLine.FieldNameByAliasName(DocumentLine.Fields[I].FieldName));
 
-      if Assigned(F) and F.IsUserDefined then
-        FieldAliases.Add(DocumentLine.Fields[I].FieldName);
+        if Assigned(F) and F.IsUserDefined then
+          FieldAliases.Add(DocumentLine.Fields[I].FieldName);
+      end;
     end;
+  end;
 
   FieldAliases.Add('GOODKEY');
 
@@ -284,84 +284,6 @@ begin
       FieldAliases.Add('TOQUANTITY');
     end;
   end;
-end;
-
-procedure TdlgInvDocumentLine.LoadSettingsAfterCreate;
-  {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TDLGINVDOCUMENTLINE', 'LOADSETTINGSAFTERCREATE', KEYLOADSETTINGSAFTERCREATE)}
-  {M}  try
-  {M}    if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TDLGINVDOCUMENTLINE', KEYLOADSETTINGSAFTERCREATE);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYLOADSETTINGSAFTERCREATE]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TDLGINVDOCUMENTLINE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TDLGINVDOCUMENTLINE',
-  {M}          'LOADSETTINGSAFTERCREATE', KEYLOADSETTINGSAFTERCREATE, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TDLGINVDOCUMENTLINE' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  inherited;
-
-{ if UserStorage <> nil then
-    UserStorage.LoadComponent(atAttributes, atAttributes.LoadFromStream,
-      FSubType);}
-  {@UNFOLD MACRO INH_CRFORM_FINALLY('TDLGINVDOCUMENTLINE', 'LOADSETTINGSAFTERCREATE', KEYLOADSETTINGSAFTERCREATE)}
-  {M}finally
-  {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
-  {M}    ClearMacrosStack('TDLGINVDOCUMENTLINE', 'LOADSETTINGSAFTERCREATE', KEYLOADSETTINGSAFTERCREATE);
-  {M}end;
-  {END MACRO}
-end;
-
-procedure TdlgInvDocumentLine.SaveSettings;
-  {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TDLGINVDOCUMENTLINE', 'SAVESETTINGS', KEYSAVESETTINGS)}
-  {M}  try
-  {M}    if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TDLGINVDOCUMENTLINE', KEYSAVESETTINGS);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYSAVESETTINGS]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TDLGINVDOCUMENTLINE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TDLGINVDOCUMENTLINE',
-  {M}          'SAVESETTINGS', KEYSAVESETTINGS, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TDLGINVDOCUMENTLINE' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  inherited;
-
-{ if UserStorage <> nil then
-    UserStorage.SaveComponent(atAttributes, atAttributes.SaveToStream,
-      FSubType);}
-  {@UNFOLD MACRO INH_CRFORM_FINALLY('TDLGINVDOCUMENTLINE', 'SAVESETTINGS', KEYSAVESETTINGS)}
-  {M}finally
-  {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
-  {M}    ClearMacrosStack('TDLGINVDOCUMENTLINE', 'SAVESETTINGS', KEYSAVESETTINGS);
-  {M}end;
-  {END MACRO}
 end;
 
 procedure TdlgInvDocumentLine.atAttributesAdjustControl(Sender: TObject;
@@ -812,12 +734,12 @@ begin
   inherited;
 
   if DocumentLine.State = dsInsert then
-    Caption := 'Добавление позиции документа: ' + DocumentLine.DocumentName[False]
+    Caption := 'Добавление позиции документа: ' + DocumentLine.DocumentName
   else
   if DocumentLine.State = dsEdit then
-    Caption := 'Редактирование позиции документа: ' + DocumentLine.DocumentName[False]
+    Caption := 'Редактирование позиции документа: ' + DocumentLine.DocumentName
   else
-    Caption := 'Позиции документа: ' + DocumentLine.DocumentName[False];
+    Caption := 'Позиции документа: ' + DocumentLine.DocumentName;
 
   //
   //  Настройка используемых справочников
@@ -874,10 +796,9 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(TdlgInvDocumentLine, ctInvDocument);
+  RegisterFrmClass(TdlgInvDocumentLine);
 
 finalization
   UnRegisterFrmClass(TdlgInvDocumentLine);
-
 end.
 

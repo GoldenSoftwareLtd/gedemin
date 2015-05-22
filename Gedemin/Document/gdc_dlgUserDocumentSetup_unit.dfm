@@ -1,6 +1,6 @@
 inherited gdc_dlgUserDocumentSetup: Tgdc_dlgUserDocumentSetup
-  Left = 480
-  Top = 223
+  Left = 556
+  Top = 171
   Caption = 'Документ пользователя'
   PixelsPerInch = 96
   TextHeight = 13

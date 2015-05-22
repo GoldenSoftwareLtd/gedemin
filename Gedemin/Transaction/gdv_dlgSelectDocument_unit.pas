@@ -3,11 +3,12 @@ unit gdv_dlgSelectDocument_unit;
 interface
 
 uses
-  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, ExtCtrls, Db, IBCustomDataSet, gdcBase, gdcTree, gdcClasses,
-  Grids, DBGrids, gsDBGrid, gsIBGrid, ComCtrls, gsDBTreeView, ActnList,
-  IBSQL, gdcBaseInterface, TB2Item, TB2Dock, TB2Toolbar, gdc_createable_form,
-  gsStorage, Storages, gd_classList, gsPeriodEdit;
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms,
+  Dialogs, StdCtrls, ExtCtrls, Db, IBCustomDataSet, gdcBase, gdcTree,
+  gdcClasses_interface, gdcClasses, Grids, DBGrids, gsDBGrid, gsIBGrid,
+  ComCtrls, gsDBTreeView, ActnList, IBSQL, gdcBaseInterface, TB2Item,
+  TB2Dock, TB2Toolbar, gdc_createable_form, gsStorage, Storages,
+  gd_classList, gsPeriodEdit;
 
 type
   TdlgSelectDocument = class(TgdcCreateableForm)

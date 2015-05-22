@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2001-2013 by Golden Software of Belarus
+  Copyright (c) 2001-2015 by Golden Software of Belarus
 
   Module
 
@@ -27,8 +27,9 @@ unit gdcAcctTransaction;
 interface
 
 uses
-  Classes, gdcBase, gdcTree, gd_createable_form, Forms, gdcClasses, contnrs,
-  DB, IBSQL, SysUtils, gdcBaseInterface, gd_KeyAssoc, gd_security, gdcConstants;
+  Classes, gdcBase, gdcTree, gd_createable_form, Forms, gdcClasses_interface,
+  gdcClasses, Contnrs, DB, IBSQL, SysUtils, gdcBaseInterface, gd_KeyAssoc,
+  gd_security, gdcConstants;
 
 const
   ByTransaction = 'ByTransaction';
@@ -48,16 +49,14 @@ type
 
   public
     class function GetSubSetList: String; override;
-
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
-
     class function NeedModifyFromStream(const SubType: String): Boolean; override;
+    class function IsAbstractClass: Boolean; override;
 
     function GetCurrRecordClass: TgdcFullClass; override;
-
-    class function IsAbstractClass: Boolean; override;
   end;
+  
   //Ѕ.к. типовой операции
   TgdcAcctTransaction = class(TgdcBaseAcctTransaction)
   protected
@@ -67,11 +66,6 @@ type
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetRestrictCondition(const ATableName, ASubType: String): String; override;
-
-    function GetDescendantList(AOL: TObjectList;
-      const AnOnlySameLevel: Boolean): Boolean; override;
-
-    function GetDescendantCount(const AnOnlySameLevel: Boolean): Integer; override;
   end;
 
   TgdcBaseAcctTransactionEntry = class(TgdcBase)
@@ -99,7 +93,6 @@ type
 
   //Ѕ.к. типовой проводки
   TgdcAcctTransactionEntry = class(TgdcBaseAcctTransactionEntry)
-  private
   protected
     procedure GetWhereClauseConditions(S: TStrings); override;
   public
@@ -167,8 +160,9 @@ implementation
 uses
   gdc_dlgAcctTransaction_unit,
   gdc_dlgAcctTrEntry_unit,
-  gdc_frmAcctTransaction_unit, gd_ClassList;
-
+  gdc_frmAcctTransaction_unit,
+  gdcAutoTransaction,
+  gd_ClassList;
 
 procedure Register;
 begin
@@ -324,30 +318,19 @@ begin
 end;
 
 function TgdcBaseAcctTransaction.GetCurrRecordClass: TgdcFullClass;
-var
-  s: string;
-  F: TField;
 begin
-  S := '';
-  if FieldByName(fnAutoTransaction).AsInteger = 1 then
-  begin
-    S := 'TgdcAutoTransaction';
-  end else
-  begin
-    S := 'TgdcAcctTransaction';
-  end;
-  if S <> '' then
-  begin
-    Result.gdClass := CgdcBase(GetClass(S));
-    Result.SubType := '';
+  Result.gdClass := CgdcBase(Self.ClassType);
+  Result.SubType := SubType;
 
-    F := FindField('USR$ST');
-    if F <> nil then
-      Result.SubType := F.AsString;
-    if (Result.SubType > '') and (not Result.gdClass.CheckSubType(Result.SubType)) then
-      raise EgdcException.Create('Invalid USR$ST value.');
-  end else
-    Result := inherited GetCurrRecordClass;
+  if not IsEmpty then
+  begin
+    if FieldByName(fnAutoTransaction).AsInteger = 1 then
+      Result.gdClass := TgdcAutoTransaction
+    else
+      Result.gdClass := TgdcAcctTransaction;
+  end;
+
+  FindInheritedSubType(Result);
 end;
 
 class function TgdcBaseAcctTransaction.GetListField(
@@ -406,64 +389,10 @@ end;
 class function TgdcAcctTransaction.GetRestrictCondition(const ATableName,
   ASubType: String): String;
 begin
-  if (self = TgdcAcctTransaction) and (AnsiCompareText(ATableName, GetListTable(ASubType)) = 0) then
+  if CompareText(ATableName, GetListTable(ASubType)) = 0 then
     Result := ' (Z.AUTOTRANSACTION IS NULL OR Z.AUTOTRANSACTION = 0) '
   else
     Result := inherited GetRestrictCondition(ATableName, ASubType)
-end;
-
-function TgdcAcctTransaction.GetDescendantList(AOL: TObjectList;
-  const AnOnlySameLevel: Boolean): Boolean;
-var
-  OL: TObjectList;
-  I: Integer;
-  CO : TCreatedObject;
-begin
-  if Self.ClassType <> TgdcAcctTransaction then
-    Result := inherited GetDescendantList(AOL, AnOnlySameLevel)
-  else
-  begin
-    OL := TObjectList.Create(False);
-    try
-      if GetChildrenClass(SubType, OL) then
-      begin
-        for I := 0 to OL.Count - 1 do
-        begin
-          CO := TCreatedObject.Create;
-          CO.Obj := OL[I];
-          CO.Caption := TgdClassEntry(OL[I]).Caption;
-          if CO.Caption = '' then
-            CO.Caption := TgdClassEntry(OL[I]).TheClass.ClassName;
-          CO.IsSubLevel := False;
-          AOL.Add(CO);
-
-          if not AnOnlySameLevel then
-          begin
-            CO := TCreatedObject.Create;
-            CO.Obj := OL[I];
-            CO.Caption := TgdClassEntry(OL[I]).Caption;
-            if CO.Caption = '' then
-              CO.Caption := TgdClassEntry(OL[I]).TheClass.ClassName;
-            CO.Caption := CO.Caption + ' (подуровень)';
-            CO.IsSubLevel := True;
-            AOL.Add(CO);
-          end;
-        end;
-      end;
-    finally
-      OL.Free;
-    end;
-
-    Result := AOL.Count > 0;
-  end;
-end;
-
-function TgdcAcctTransaction.GetDescendantCount(const AnOnlySameLevel: Boolean): Integer;
-begin
-  Result := inherited GetDescendantCount(AnOnlySameLevel);
-
-  if (Self.ClassType = TgdcAcctTransaction) and (not AnOnlySameLevel) then
-    Result := Result * 2;
 end;
 
 { TgdcBaseAcctTransactionEntry }
@@ -476,7 +405,6 @@ begin
   else if HasSubSet(ByRecord) then
     S.Add(' z.id = :RecordKey ');
 end;
-
 
 function TgdcBaseAcctTransactionEntry.GetOrderClause: String;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
@@ -652,72 +580,43 @@ end;
 
 function TgdcBaseAcctTransactionEntry.GetCurrRecordClass: TgdcFullClass;
 var
-  F: TField;
-var
-  s: string;
-  SQL: TIBSQL;
-  DidActivate: Boolean;
+  q: TIBSQL;
 begin
-  S := '';
-  SQL := TIBSQL.Create(nil);
-  try
-    SQL.Transaction := Transaction;
-    DidActivate := not Transaction.InTransaction;
-    if DidActivate then
-      Transaction.StartTransaction;
-    try
-      if State = dsInsert then
-      begin
-        //Ёто конечно кор€во
-        //ќднако при выполнении команды дупликат
-        //записи в ac_autotrrecord ещЄ нет
-        { TODO : 
-        ¬ будуще нужно будет переделать добавить в таблицу
-        ac_trrecord поле идентифицирующее класс который
-        может редактировать данную запись }
-        if (FindField(fnImageIndex) <> nil) and
-          (FindField(fnFolderKey) <> nil) then
-        begin
-          S := 'TgdcAutoTrRecord';
-        end else
-        begin
-          S := 'TgdcAcctTransactionEntry';
-        end;
-      end else
-      begin
-        SQL.SQl.Text := 'SELECT * FROM ac_autotrrecord WHERE id = :id';
-        SQL.ParamByName(fnId).AsInteger := Id;
-        SQl.ExecQuery;
-        if SQL.RecordCount > 0 then
-        begin
-          S := 'TgdcAutoTrRecord';
-        end else
-        begin
-          S := 'TgdcAcctTransactionEntry';
-        end;
-      end;
-      if S <> '' then
-      begin
-        Result.gdClass := CgdcBase(GetClass(S));
-        Result.SubType := '';
+  Result.gdClass := CgdcBase(Self.ClassType);
+  Result.SubType := SubType;
 
-        F := FindField('USR$ST');
-        if F <> nil then
-          Result.SubType := F.AsString;
-        if (Result.SubType > '') and (not Result.gdClass.CheckSubType(Result.SubType)) then
-          raise EgdcException.Create('Invalid USR$ST value.');
-      end else
-        Result := inherited GetCurrRecordClass;
-      if DidActivate then
-        Transaction.Commit;
-    except
-      if DidActivate then
-        Transaction.Rollback;
-      raise;
+  if State = dsInsert then
+  begin
+    //Ёто конечно кор€во
+    //ќднако при выполнении команды дупликат
+    //записи в ac_autotrrecord ещЄ нет
+    { TODO :
+    ¬ будуще нужно будет переделать добавить в таблицу
+    ac_trrecord поле идентифицирующее класс который
+    может редактировать данную запись }
+    if (FindField(fnImageIndex) <> nil) and
+      (FindField(fnFolderKey) <> nil) then
+      Result.gdClass := TgdcAutoTrRecord
+    else
+      Result.gdClass := TgdcAcctTransactionEntry;
+  end else
+  begin
+    q := TIBSQL.Create(nil);
+    try
+      q.Transaction := ReadTransaction;
+      q.SQL.Text := 'SELECT id FROM ac_autotrrecord WHERE id = :id';
+      q.ParamByName(fnId).AsInteger := Id;
+      q.ExecQuery;
+      if not q.EOF then
+        Result.gdClass := TgdcAutoTrRecord
+      else
+        Result.gdClass := TgdcAcctTransactionEntry;
+    finally
+      q.Free;
     end;
-  finally
-    SQL.Free;
   end;
+
+  FindInheritedSubType(Result);
 end;
 
 procedure TgdcBaseAcctTransactionEntry.LoadDialogDefaults;
@@ -766,11 +665,11 @@ begin
     else
       ibsql.Transaction := ReadTransaction;
 
-    ibsql.SQL.Text := 'SELECT * FROM ac_record WHERE trrecordkey = :trkey';
+    ibsql.SQL.Text := 'SELECT id FROM ac_record WHERE trrecordkey = :trkey';
     ibsql.ParamByName('trkey').AsInteger := ID;
     ibsql.ExecQuery;
 
-    if ibsql.RecordCount > 0 then
+    if not ibsql.EOF then
       raise EgdcIBError.Create(Format('”даление невозможно: %s %s с идентификатором %d используетс€ в проводках!',
         [GetDisplayName(SubType), FieldByName(GetListField(SubType)).AsString, ID]));
   finally
@@ -830,15 +729,12 @@ function TTransactionCache.QueryInterface(const IID: TGUID;
   out Obj): HResult;
 begin
   Result := 0;
-  
 end;
 
 constructor TTransactionCache.Create;
 begin
   if IbLogin <> nil then
-  begin
     IbLogin.AddConnectNotify(Self)
-  end;
 end;
 
 destructor TTransactionCache.Destroy;
@@ -924,11 +820,11 @@ begin
     else
       ibsql.Transaction := ReadTransaction;
 
-    ibsql.SQL.Text := 'SELECT * FROM ac_record WHERE transactionkey = :trkey';
+    ibsql.SQL.Text := 'SELECT id FROM ac_record WHERE transactionkey = :trkey';
     ibsql.ParamByName('trkey').AsInteger := ID;
     ibsql.ExecQuery;
 
-    if ibsql.RecordCount > 0 then
+    if not ibsql.EOF then
       raise EgdcIBError.Create(Format('”даление невозможно: %s %s с идентификатором %d используетс€ в проводках!',
         [GetDisplayName(SubType), FieldByName(GetListField(SubType)).AsString, ID]));
   finally
@@ -994,14 +890,16 @@ begin
 end;
 
 initialization
-  RegisterGdcClass(TgdcAcctTransaction, ctStorage, '“ипова€ операци€');
-  RegisterGdcClass(TgdcAcctTransactionEntry, ctStorage, '“иповые проводки');
   RegistergdcClass(TgdcBaseAcctTransaction);
+  RegistergdcClass(TgdcBaseAcctTransactionEntry);
+  RegisterGdcClass(TgdcAcctTransaction,      '“ипова€ операци€');
+  RegisterGdcClass(TgdcAcctTransactionEntry, '“ипова€ проводка');
 
 finalization
-  UnRegisterGdcClass(TgdcAcctTransaction);
-  UnRegisterGdcClass(TgdcAcctTransactionEntry);
-  UnRegisterGdcClass(TgdcBaseAcctTransaction);
+  UnregisterGdcClass(TgdcAcctTransaction);
+  UnregisterGdcClass(TgdcAcctTransactionEntry);
+  RegistergdcClass(TgdcBaseAcctTransactionEntry);
+  UnregisterGdcClass(TgdcBaseAcctTransaction);
 
   FreeAndNil(_TransactionCache);
 end.

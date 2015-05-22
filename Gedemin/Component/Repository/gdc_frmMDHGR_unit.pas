@@ -9,7 +9,7 @@ uses
   gdc_frmMDH_unit, ExtCtrls, IBDatabase, Db, flt_sqlFilter,
   Menus, ActnList,  ComCtrls, ToolWin, Grids, DBGrids, gsDBGrid, gsIBGrid,
   FrmPlSvr, IBCustomDataSet, gdcBase, gdcConst, TB2Item, TB2Dock,
-  TB2Toolbar, StdCtrls, gd_MacrosMenu, gsStorage_CompPath, ibsql, dmDatabase_unit;
+  TB2Toolbar, StdCtrls, gd_MacrosMenu;
 
 type
   Tgdc_frmMDHGR = class(Tgdc_frmMDH)
@@ -82,18 +82,11 @@ uses
   , gdc_frmStreamSaver;
 
 procedure Tgdc_frmMDHGR.LoadSettings;
-
   {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
   {M}VAR
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-  bLoadedFromUserStorage: boolean;
-  Path: String;
-  F: TMemoryStream;
-  SubType: String;
-  ParentSubType: String;
-
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_FRMMDHGR', 'LOADSETTINGS', KEYLOADSETTINGS)}
   {M}  try
@@ -119,54 +112,9 @@ begin
 
   if Assigned(UserStorage) then
   begin
-    F := TMemoryStream.Create;
-    try
-      Path := BuildComponentPath(ibgrMain);
-      bLoadedFromUserStorage:= UserStorage.ReadStream(Path, 'data', F);
-      if not bLoadedFromUserStorage then
-      begin
-        SubType := FSubType;
-        repeat
-          ParentSubType := ClassParentSubtype(SubType);
-          if ParentSubType <> '' then
-          begin
-            Path := StringReplace(Path, SubType, ParentSubType, [rfReplaceAll, rfIgnoreCase]);
-            bLoadedFromUserStorage:= UserStorage.ReadStream(Path, 'data', F);
-            SubType := ParentSubType;
-          end;
-        until (bLoadedFromUserStorage) or (ParentSubType = '');
-      end;
-
-      if bLoadedFromUserStorage then
-        ibgrMain.LoadFromStream(F);
-    finally
-      F.Free;
-    end;
-
-    F := TMemoryStream.Create;
-    try
-      Path := BuildComponentPath(ibgrDetail);
-      bLoadedFromUserStorage:= UserStorage.ReadStream(Path, 'data', F);
-      if not bLoadedFromUserStorage then
-      begin
-        SubType := FSubType;
-        repeat
-          ParentSubType := ClassParentSubtype(SubType);
-          if ParentSubType <> '' then
-          begin
-            Path := StringReplace(Path, SubType, ParentSubType, [rfReplaceAll, rfIgnoreCase]);
-            bLoadedFromUserStorage:= UserStorage.ReadStream(Path, 'data', F);
-            SubType := ParentSubType;
-          end;
-        until (bLoadedFromUserStorage) or (ParentSubType = '');
-      end;
-
-      if bLoadedFromUserStorage then
-        ibgrDetail.LoadFromStream(F);
-    finally
-      F.Free;
-    end;
-  end;
+    UserStorage.LoadComponent(ibgrMain, ibgrMain.LoadFromStream);
+    UserStorage.LoadComponent(ibgrDetail, ibgrDetail.LoadFromStream);
+  end;  
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_FRMMDHGR', 'LOADSETTINGS', KEYLOADSETTINGS)}
   {M}finally

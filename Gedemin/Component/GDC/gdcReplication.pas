@@ -210,7 +210,7 @@ initialization
   RegisterGdcClass(TgdcRplDomainClass);
 
 finalization
-  UnRegisterGdcClass(TgdcRplDatabase);
-  UnRegisterGdcClass(TgdcRplDomain);
-  UnRegisterGdcClass(TgdcRplDomainClass);
+  UnregisterGdcClass(TgdcRplDatabase);
+  UnregisterGdcClass(TgdcRplDomain);
+  UnregisterGdcClass(TgdcRplDomainClass);
 end.

@@ -278,5 +278,5 @@ initialization
   RegisterGdcClass(TgdcSQLHistory);
 
 finalization
-  UnRegisterGdcClass(TgdcSQLHistory);
+  UnregisterGdcClass(TgdcSQLHistory);
 end.

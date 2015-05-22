@@ -1,7 +1,7 @@
 inherited gdc_dlgRelation: Tgdc_dlgRelation
   Left = 375
   Top = 190
-  Width = 620
+  Width = 538
   Height = 544
   HelpContext = 84
   BorderStyle = bsSizeable
@@ -27,19 +27,19 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
     Anchors = [akLeft, akBottom]
   end
   inherited btnOK: TButton
-    Left = 452
+    Left = 370
     Top = 475
     Anchors = [akRight, akBottom]
   end
   inherited btnCancel: TButton
-    Left = 528
+    Left = 446
     Top = 475
     Anchors = [akRight, akBottom]
   end
   object pcRelation: TPageControl [5]
     Left = 0
     Top = 0
-    Width = 596
+    Width = 514
     Height = 469
     ActivePage = tsCommon
     Align = alTop
@@ -126,8 +126,9 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
       object dbedRelationName: TDBEdit
         Left = 256
         Top = 8
-        Width = 221
+        Width = 241
         Height = 21
+        Anchors = [akLeft, akTop, akRight]
         CharCase = ecUpperCase
         DataField = 'RELATIONNAME'
         DataSource = dsgdcBase
@@ -140,8 +141,9 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
       object dbedLRelationName: TDBEdit
         Left = 256
         Top = 36
-        Width = 221
+        Width = 241
         Height = 21
+        Anchors = [akLeft, akTop, akRight]
         DataField = 'LNAME'
         DataSource = dsgdcBase
         TabOrder = 1
@@ -149,8 +151,9 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
       object dbeShortRelationName: TDBEdit
         Left = 256
         Top = 65
-        Width = 221
+        Width = 241
         Height = 21
+        Anchors = [akLeft, akTop, akRight]
         DataField = 'LSHORTNAME'
         DataSource = dsgdcBase
         TabOrder = 2
@@ -158,8 +161,9 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
       object dbeRelationDescription: TDBMemo
         Left = 256
         Top = 96
-        Width = 221
+        Width = 241
         Height = 61
+        Anchors = [akLeft, akTop, akRight]
         DataField = 'DESCRIPTION'
         DataSource = dsgdcBase
         TabOrder = 3
@@ -167,7 +171,7 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
       object ibcmbReference: TgsIBLookupComboBox
         Left = 256
         Top = 198
-        Width = 222
+        Width = 241
         Height = 21
         HelpContext = 1
         Database = dmDatabase.ibdbGAdmin
@@ -177,6 +181,7 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
         ListField = 'lname'
         KeyField = 'id'
         gdClassName = 'TgdcRelation'
+        Anchors = [akLeft, akTop, akRight]
         ItemHeight = 13
         ParentShowHint = False
         ShowHint = True
@@ -186,7 +191,7 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
       object iblcExplorerBranch: TgsIBLookupComboBox
         Left = 256
         Top = 167
-        Width = 222
+        Width = 241
         Height = 21
         HelpContext = 1
         Database = dmDatabase.ibdbGAdmin
@@ -197,6 +202,7 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
         Condition = 'ClassName IS NULL'
         gdClassName = 'TgdcExplorer'
         ViewType = vtTree
+        Anchors = [akLeft, akTop, akRight]
         ItemHeight = 13
         ParentShowHint = False
         ShowHint = True
@@ -206,8 +212,9 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
       object dbeExtendedFields: TDBEdit
         Left = 256
         Top = 260
-        Width = 222
+        Width = 241
         Height = 21
+        Anchors = [akLeft, akTop, akRight]
         CharCase = ecUpperCase
         DataField = 'extendedfields'
         DataSource = dsgdcBase
@@ -216,8 +223,9 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
       object dbeListField: TDBEdit
         Left = 256
         Top = 230
-        Width = 222
+        Width = 241
         Height = 21
+        Anchors = [akLeft, akTop, akRight]
         CharCase = ecUpperCase
         DataField = 'listfield'
         DataSource = dsgdcBase
@@ -226,7 +234,7 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
       object lClass: TEdit
         Left = 256
         Top = 295
-        Width = 222
+        Width = 241
         Height = 21
         TabStop = False
         BorderStyle = bsNone
@@ -251,7 +259,7 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
       object ibgrRelationFields: TgsIBGrid
         Left = 0
         Top = 26
-        Width = 584
+        Width = 502
         Height = 411
         HelpContext = 3
         Align = alClient
@@ -278,7 +286,7 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
       object TBDock1: TTBDock
         Left = 0
         Top = 0
-        Width = 584
+        Width = 502
         Height = 26
         object tbFields: TTBToolbar
           Left = 0
@@ -313,7 +321,7 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
       object Panel1: TPanel
         Left = 0
         Top = 0
-        Width = 584
+        Width = 502
         Height = 437
         Align = alClient
         BevelOuter = bvNone
@@ -321,7 +329,7 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
         object Splitter1: TSplitter
           Left = 0
           Top = 113
-          Width = 584
+          Width = 502
           Height = 4
           Cursor = crVSplit
           Align = alTop
@@ -329,7 +337,7 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
         object Panel2: TPanel
           Left = 0
           Top = 0
-          Width = 584
+          Width = 502
           Height = 113
           Align = alTop
           BevelOuter = bvNone
@@ -337,7 +345,7 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
           object tvTriggers: TTreeView
             Left = 0
             Top = 0
-            Width = 584
+            Width = 502
             Height = 113
             Align = alClient
             Images = dmImages.ilToolBarSmall
@@ -361,7 +369,7 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
         object Panel3: TPanel
           Left = 0
           Top = 117
-          Width = 584
+          Width = 502
           Height = 320
           Align = alClient
           BevelOuter = bvNone
@@ -369,7 +377,7 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
           object smTriggerBody: TSynMemo
             Left = 0
             Top = 26
-            Width = 584
+            Width = 502
             Height = 294
             Cursor = crIBeam
             Align = alClient
@@ -719,7 +727,7 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
           object TBDock2: TTBDock
             Left = 0
             Top = 0
-            Width = 584
+            Width = 502
             Height = 26
             object tbTriggers: TTBToolbar
               Left = 0
@@ -758,7 +766,7 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
       object ibgrIndices: TgsIBGrid
         Left = 0
         Top = 26
-        Width = 584
+        Width = 502
         Height = 411
         HelpContext = 3
         Align = alClient
@@ -786,7 +794,7 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
       object TBDock3: TTBDock
         Left = 0
         Top = 0
-        Width = 584
+        Width = 502
         Height = 26
         object tbIndices: TTBToolbar
           Left = 0
@@ -821,7 +829,7 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
       object ibgrConstraints: TgsIBGrid
         Left = 0
         Top = 26
-        Width = 584
+        Width = 502
         Height = 411
         Align = alClient
         DataSource = dsConstraints
@@ -847,7 +855,7 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
       object TBDock4: TTBDock
         Left = 0
         Top = 0
-        Width = 584
+        Width = 502
         Height = 26
         object tbChecks: TTBToolbar
           Left = 0
@@ -882,7 +890,7 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
       object smScriptText: TSynMemo
         Left = 0
         Top = 0
-        Width = 584
+        Width = 502
         Height = 437
         Cursor = crIBeam
         Align = alClient

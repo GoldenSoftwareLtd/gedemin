@@ -8,24 +8,19 @@ uses
 
 type
   TgdcAcctDocument = class(TgdcDocument)
-  private
-    { Private declarations }
   protected
-    { Protected declarations }
-
     procedure MakeEntry; override;
-  public
-    { Public declarations }
 
-    function DocumentTypeKey: Integer; override;
-  published
-    { Published declarations }
+  public
+    class function ClassDocumentTypeKey: Integer; override;
   end;
 
 procedure Register;
 
 implementation
-uses gd_ClassList;
+
+uses
+  gd_ClassList;
 
 procedure Register;
 begin
@@ -34,20 +29,19 @@ end;
 
 { TgdcAcctDocument }
 
-function TgdcAcctDocument.DocumentTypeKey: Integer;
+class function TgdcAcctDocument.ClassDocumentTypeKey: Integer;
 begin
   Result := 805001;
 end;
 
 procedure TgdcAcctDocument.MakeEntry;
 begin
-
   // Перекрыт так проводки создаются вручную
-
 end;
 
 initialization
   RegisterGdcClass(TgdcAcctDocument);
+
 finalization
-  UnRegisterGdcClass(TgdcAcctDocument);
+  UnregisterGdcClass(TgdcAcctDocument);
 end.

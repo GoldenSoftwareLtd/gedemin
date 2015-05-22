@@ -1272,7 +1272,7 @@ begin
         try
           GetDependentList(SL);
           TgdcNamespaceLoader.LoadDelayed(SL, chbxAlwaysOverwrite.Checked,
-            chbxDontRemove.Checked, chbxTerminate.Checked);
+            chbxDontRemove.Checked, chbxTerminate.Checked, chbxIgnoreMissedFields.Checked);
         finally
           SL.Free;
         end;
@@ -1293,7 +1293,7 @@ begin
       GetDependentList(SL);
       with TgdcNamespaceLoader.Create do
       try
-        LoadDelayed(SL, True, False, ATerminate);
+        LoadDelayed(SL, True, False, ATerminate, True);
       finally
         Free;
       end;

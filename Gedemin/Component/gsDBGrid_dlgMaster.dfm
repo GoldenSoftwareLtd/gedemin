@@ -1006,7 +1006,7 @@ object dlgMaster: TdlgMaster
         object lbTemplate: TListBox
           Left = 6
           Top = 26
-          Width = 556
+          Width = 545
           Height = 161
           Anchors = [akLeft, akTop, akRight, akBottom]
           Font.Charset = RUSSIAN_CHARSET
@@ -1158,7 +1158,7 @@ object dlgMaster: TdlgMaster
         object seQuery: TSynEdit
           Left = 5
           Top = 44
-          Width = 559
+          Width = 547
           Height = 298
           Cursor = crIBeam
           Anchors = [akLeft, akTop, akRight, akBottom]

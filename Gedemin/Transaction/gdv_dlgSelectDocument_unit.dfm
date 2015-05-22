@@ -21,12 +21,12 @@ object dlgSelectDocument: TdlgSelectDocument
     Left = 216
     Top = 0
     Width = 4
-    Height = 418
+    Height = 415
     Cursor = crHSplit
   end
   object pnlBottom: TPanel
     Left = 0
-    Top = 418
+    Top = 415
     Width = 683
     Height = 30
     Align = alBottom
@@ -75,7 +75,7 @@ object dlgSelectDocument: TdlgSelectDocument
     Left = 0
     Top = 0
     Width = 216
-    Height = 418
+    Height = 415
     Align = alLeft
     BevelOuter = bvNone
     Ctl3D = True
@@ -86,7 +86,7 @@ object dlgSelectDocument: TdlgSelectDocument
       Left = 0
       Top = 0
       Width = 216
-      Height = 418
+      Height = 415
       DataSource = dsDocumentType
       KeyField = 'ID'
       ParentField = 'PARENT'
@@ -108,13 +108,13 @@ object dlgSelectDocument: TdlgSelectDocument
     Left = 220
     Top = 0
     Width = 463
-    Height = 418
+    Height = 415
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 1
     object sLine: TSplitter
       Left = 0
-      Top = 247
+      Top = 244
       Width = 463
       Height = 4
       Cursor = crVSplit
@@ -122,7 +122,7 @@ object dlgSelectDocument: TdlgSelectDocument
     end
     object pLine: TPanel
       Left = 0
-      Top = 251
+      Top = 248
       Width = 463
       Height = 167
       Align = alBottom
@@ -184,7 +184,7 @@ object dlgSelectDocument: TdlgSelectDocument
       Left = 0
       Top = 0
       Width = 463
-      Height = 247
+      Height = 244
       Align = alClient
       BevelOuter = bvNone
       FullRepaint = False
@@ -193,7 +193,7 @@ object dlgSelectDocument: TdlgSelectDocument
         Left = 0
         Top = 46
         Width = 463
-        Height = 201
+        Height = 198
         Align = alClient
         Ctl3D = True
         DataSource = dsDocument
@@ -230,7 +230,8 @@ object dlgSelectDocument: TdlgSelectDocument
           Top = 0
           BorderStyle = bsNone
           Caption = 'TBToolbar1'
-          DockMode = dmCannotFloat
+          CloseButton = False
+          DockMode = dmCannotFloatOrChangeDocks
           FullSize = True
           Images = dmImages.il16x16
           ParentShowHint = False

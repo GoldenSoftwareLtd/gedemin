@@ -11,14 +11,14 @@ inherited gdc_frmInvSelectedGoods: Tgdc_frmInvSelectedGoods
         Left = 286
         Top = 0
         Width = 3
-        Height = 215
+        Height = 564
         Cursor = crHSplit
       end
       object tvMain: TgsDBTreeView
         Left = 160
         Top = 0
         Width = 126
-        Height = 215
+        Height = 564
         DataSource = dsGoodGroup
         KeyField = 'ID'
         ParentField = 'PARENT'
@@ -28,7 +28,6 @@ inherited gdc_frmInvSelectedGoods: Tgdc_frmInvSelectedGoods
           '101=3')
         Align = alLeft
         ChangeDelay = 300
-        HideSelection = False
         Indent = 19
         PopupMenu = pmMain
         RightClickSelect = True
@@ -42,8 +41,8 @@ inherited gdc_frmInvSelectedGoods: Tgdc_frmInvSelectedGoods
       object ibgrDetail: TgsIBGrid
         Left = 289
         Top = 0
-        Width = 352
-        Height = 215
+        Width = 736
+        Height = 564
         HelpContext = 3
         Align = alClient
         Ctl3D = True

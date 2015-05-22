@@ -5,8 +5,8 @@ interface
 
 uses
   Classes, IBCustomDataSet, gdcBase, Forms, gd_createable_form,
-  dmDatabase_unit, IBSQL, contnrs, tr_Type_unit, gdcClasses,
-  gdcBaseBank, DB, gdcBaseInterface;
+  dmDatabase_unit, IBSQL, contnrs, tr_Type_unit, gdcClasses_interface,
+  gdcClasses, gdcBaseBank, DB, gdcBaseInterface;
 
 type
   TgdcBaseLine = class(TgdcDocument)
@@ -43,11 +43,9 @@ type
     function GetDetailObject: TgdcDocument; override;
 
   public
-    function DocumentTypeKey: Integer; override;
-
+    class function ClassDocumentTypeKey: Integer; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
-
   end;
 
   TgdcBankCatalogueLine = class(TgdcBaseLine)
@@ -65,8 +63,7 @@ type
   public
     constructor Create(AnOwner: TComponent); override;
 
-    function DocumentTypeKey: Integer; override;
-
+    class function ClassDocumentTypeKey: Integer; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
   end;
@@ -88,8 +85,7 @@ type
     function GetDetailObject: TgdcDocument; override;
 
   public
-    function DocumentTypeKey: Integer; override;
-
+    class function ClassDocumentTypeKey: Integer; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
  end;
@@ -108,7 +104,7 @@ type
     procedure InternalSetFieldData(Field: TField; Buffer: Pointer); override;
 
   public
-    function DocumentTypeKey: Integer; override;
+    class function ClassDocumentTypeKey: Integer; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function IsAbstractClass: Boolean; override;
   end;
@@ -353,7 +349,7 @@ begin
   {END MACRO}
 end;
 
-function TgdcBankCatalogue.DocumentTypeKey: Integer;
+class function TgdcBankCatalogue.ClassDocumentTypeKey: Integer;
 begin
   Result := BN_DOC_BANKCATALOGUE;
 end;
@@ -471,7 +467,7 @@ begin
   CustomProcess := [cpInsert, cpModify];
 end;
 
-function TgdcBankCatalogueLine.DocumentTypeKey: Integer;
+class function TgdcBankCatalogueLine.ClassDocumentTypeKey: Integer;
 begin
   Result := BN_DOC_BANKCATALOGUE;
 end;
@@ -946,7 +942,7 @@ begin
   {END MACRO}
 end;
 
-function TgdcBankStatement.DocumentTypeKey: Integer;
+class function TgdcBankStatement.ClassDocumentTypeKey: Integer;
 begin
   Result := BN_DOC_BANKSTATEMENT;
 end;
@@ -1263,12 +1259,6 @@ begin
       raise Exception.Create('Не указана сумма выписки!');
   end;
 
- {!!!!! Сейчас на bn_bankstatementline стоит Check:
-     (dsumncu IS NULL) and (csumncu > 0) OR
-     (csumncu IS NULL) and (dsumncu > 0)
-   Поэтому если в поле с суммой 0 - то очистим это поле
-   Если Check уберут, здесь необходимо убрать очистку!!!!
-  }
   if (FieldByName('dsumncu').AsCurrency = 0) and (not FieldByName('dsumncu').IsNull)
   then
     FieldByName('dsumncu').Clear;
@@ -1300,7 +1290,6 @@ begin
   then
     raise EgdcIBError.Create('Если введена валютная сумма, то должна быть указана и сумма В НДЕ!');
 
-
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASESTATEMENTLINE', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -1309,7 +1298,7 @@ begin
   {END MACRO}
 end;
 
-function TgdcBaseStatementLine.DocumentTypeKey: Integer;
+class function TgdcBaseStatementLine.ClassDocumentTypeKey: Integer;
 begin
   Result := BN_DOC_BANKSTATEMENT;
 end;
@@ -1559,7 +1548,7 @@ begin
     MasterSource.DataSet.Post;
     MasterSource.DataSet.Edit;
   end;
-  
+
   inherited;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASELINE', 'DOBEFOREINSERT', KEYDOBEFOREINSERT)}
@@ -1724,14 +1713,12 @@ var
         gdcAccount.FieldByName('companykey').AsInteger := FieldByName('companykeyline').AsInteger;
         gdcAccount.Post;
       end;
-
     finally
       gdcBank.Free;
       gdcAccount.Free;
     end;
 
   end;
-
 
 begin
 {Если у такой компании нет расчетного счета и банка, подставим их}
@@ -2063,16 +2050,18 @@ end;
 
 initialization
   RegisterGdcClass(TgdcBaseLine);
-  RegisterGdcClass(TgdcBankCatalogue, ctStorage, 'Банковская картотека');
+  RegisterGdcClass(TgdcBankCatalogue,    'Банковская картотека');
   RegisterGdcClass(TgdcBankCatalogueLine);
-  RegisterGdcClass(TgdcBankStatement);
-  RegisterGdcClass(TgdcBankStatementLine);
+  with RegisterGdcClass(TgdcBankStatement, 'Банковская выписка') as TgdBaseEntry do
+    DistinctRelation := 'BN_BANKSTATEMENT';
+  with RegisterGdcClass(TgdcBankStatementLine) as TgdBaseEntry do
+    DistinctRelation := 'BN_BANKSTATEMENTLINE';
 
 finalization
-  UnRegisterGdcClass(TgdcBaseLine);
-  UnRegisterGdcClass(TgdcBankCatalogue);
-  UnRegisterGdcClass(TgdcBankCatalogueLine);
-  UnRegisterGdcClass(TgdcBankStatement);
-  UnRegisterGdcClass(TgdcBankStatementLine);
+  UnregisterGdcClass(TgdcBaseLine);
+  UnregisterGdcClass(TgdcBankCatalogue);
+  UnregisterGdcClass(TgdcBankCatalogueLine);
+  UnregisterGdcClass(TgdcBankStatement);
+  UnregisterGdcClass(TgdcBankStatementLine);
 end.
 

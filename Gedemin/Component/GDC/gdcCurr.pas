@@ -506,6 +506,6 @@ initialization
   RegisterGdcClass(TgdcCurrRate);
 
 finalization
-  UnRegisterGdcClass(TgdcCurr);
-  UnRegisterGdcClass(TgdcCurrRate);
+  UnregisterGdcClass(TgdcCurr);
+  UnregisterGdcClass(TgdcCurrRate);
 end.

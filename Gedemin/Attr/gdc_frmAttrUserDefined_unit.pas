@@ -1,8 +1,7 @@
 
 {++
 
-
-  Copyright (c) 2001 by Golden Software of Belarus
+  Copyright (c) 2001-2015 by Golden Software of Belarus
 
   Module
 
@@ -20,7 +19,6 @@
   Revisions history
 
     1.0    30.10.2001    Dennis    Initial version.
-
 
 --}
 
@@ -42,7 +40,6 @@ type
     procedure FormCreate(Sender: TObject);
 
   public
-    constructor Create(AnOwner: TComponent); override;
     class function CreateAndAssign(AnOwner: TComponent): TForm; override;
   end;
 
@@ -57,35 +54,24 @@ uses at_classes, gd_ClassList;
 
 { Tgdc_frmAttrUserDefined }
 
-constructor Tgdc_frmAttrUserDefined.Create(AnOwner: TComponent);
-begin
-  inherited;
-end;
-
 class function Tgdc_frmAttrUserDefined.CreateAndAssign(
   AnOwner: TComponent): TForm;
 begin
-  result := nil;
+  Result := nil;
 end;
 
 procedure Tgdc_frmAttrUserDefined.FormCreate(Sender: TObject);
 begin
   gdcObject := gdcAttrUserDefined;
-
   inherited;
-
-  with atDatabase.Relations do
-    if ByRelationName(FSubType) <> nil then
-      Self.Caption := ByRelationName(FSubType).LName
-    else
-      Self.Caption := 'Подтип не определен!';
+  if gdcObject <> nil then
+    Self.Caption := gdcObject.GetDisplayName(gdcObject.SubType);
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmAttrUserDefined, ctUserDefined);
+  RegisterFrmClass(Tgdc_frmAttrUserDefined);
 
 finalization
   UnRegisterFrmClass(Tgdc_frmAttrUserDefined);
-
 end.
 

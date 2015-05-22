@@ -22,10 +22,8 @@ type
     procedure actCreateEntryExecute(Sender: TObject);
     procedure actGotoEntryExecute(Sender: TObject);
     procedure actCreateEntryUpdate(Sender: TObject);
-  private
-    { Private declarations }
+
   public
-    { Public declarations }
     class function CreateAndAssign(AnOwner: TComponent): TForm; override;
   end;
 
@@ -59,14 +57,9 @@ end;
 
 procedure Tgdc_frmUserSimpleDocument.FormCreate(Sender: TObject);
 begin
-
   gdcObject := gdcUserDocument;
-  //gdcObject.SubType := FSubType;
-
   inherited;
-
-  Caption := gdcUserDocument.DocumentName[True];
-
+  Caption := gdcUserDocument.DocumentName;
 end;
 
 procedure Tgdc_frmUserSimpleDocument.actCreateEntryExecute(
@@ -118,7 +111,6 @@ begin
   else
     MessageBox(HANDLE, 'По данной позиции не установлена операция.', 'Внимание',
       mb_OK or mb_IconInformation);
-  
 end;
 
 procedure Tgdc_frmUserSimpleDocument.actCreateEntryUpdate(Sender: TObject);
@@ -127,9 +119,8 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmUserSimpleDocument, ctUserDocument);
+  RegisterFrmClass(Tgdc_frmUserSimpleDocument);
 
 finalization
   UnRegisterFrmClass(Tgdc_frmUserSimpleDocument);
-
 end.

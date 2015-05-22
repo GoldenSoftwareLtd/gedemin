@@ -1,8 +1,7 @@
 
 {++
 
-   Project gdcBaseClass
-   Copyright c 2000-2001 by Golden Software
+   Copyright c 2000-2015 by Golden Software of Belarus, Ltd
 
    Модуль
 
@@ -10,7 +9,7 @@
 
    Описание
 
-     Главная форма
+     Справочник контактов
 
    Автор
 
@@ -20,8 +19,10 @@
    История
 
      ver    date    who    what
+
      1.00 - 15.06.2001 - Anton - Первая версия
             01.03.2002   Julia
+
  --}
 
 unit gdc_ab_frmmain_unit;
@@ -39,11 +40,37 @@ uses
 type
   Tgdc_ab_frmmain = class(Tgdc_frmMDVTree)
     gdcContacts: TgdcBaseContact;
+    actAddContact: TAction;
+    actAddBank: TAction;
+    actAddCompany: TAction;
+    actAddGroup: TAction;
+    actAddFolder: TAction;
+    nAddCompany2: TMenuItem;
+    nAddContact2: TMenuItem;
+    nAddBank2: TMenuItem;
     ilSmall: TImageList;
+    TBSubmenuItem2: TTBSubmenuItem;
+    TBItem3: TTBItem;
+    TBItem4: TTBItem;
+    TBItem5: TTBItem;
+    TBItem1: TTBItem;
     gdcFolder: TgdcFolder;
+    TBItem2: TTBItem;
     actAddEmployee: TAction;
+    TBSeparatorItem2: TTBSeparatorItem;
+    TBSeparatorItem3: TTBSeparatorItem;
+    TBSeparatorItem4: TTBSeparatorItem;
     procedure FormCreate(Sender: TObject);
+    procedure actAddFolderExecute(Sender: TObject);
+    procedure actAddContactExecute(Sender: TObject);
+    procedure actAddBankExecute(Sender: TObject);
+    procedure actAddCompanyExecute(Sender: TObject);
+    procedure actAddGroupExecute(Sender: TObject);
     procedure actNewExecute(Sender: TObject);
+    procedure actAddEmployeeExecute(Sender: TObject);
+
+  protected
+    procedure SetgdcDetailObject(const Value: TgdcBase); override;
   end;
 
 var
@@ -64,9 +91,50 @@ begin
   inherited;
 end;
 
+procedure Tgdc_ab_frmmain.SetgdcDetailObject(const Value: TgdcBase);
+begin
+  inherited;
+
+  TBSubmenuItem2.Visible := False;
+  tbiDetailNew.Visible := True;
+
+  nDetailNew.Clear;
+  nDetailNew.Action := actDetailNew;
+end;
+
 procedure Tgdc_ab_frmmain.actNewExecute(Sender: TObject);
 begin
   gdcObject.CreateDialog(TgdcFolder);
+end;
+
+procedure Tgdc_ab_frmmain.actAddFolderExecute(Sender: TObject);
+begin
+  // Не удалять!!! Нужен для поддержки dfm до наследования!!!
+end;
+
+procedure Tgdc_ab_frmmain.actAddContactExecute(Sender: TObject);
+begin
+  // Не удалять!!! Нужен для поддержки dfm до наследования!!!
+end;
+
+procedure Tgdc_ab_frmmain.actAddBankExecute(Sender: TObject);
+begin
+  // Не удалять!!! Нужен для поддержки dfm до наследования!!!
+end;
+
+procedure Tgdc_ab_frmmain.actAddCompanyExecute(Sender: TObject);
+begin
+  // Не удалять!!! Нужен для поддержки dfm до наследования!!!
+end;
+
+procedure Tgdc_ab_frmmain.actAddGroupExecute(Sender: TObject);
+begin
+  // Не удалять!!! Нужен для поддержки dfm до наследования!!!
+end;
+
+procedure Tgdc_ab_frmmain.actAddEmployeeExecute(Sender: TObject);
+begin
+  // Не удалять!!! Нужен для поддержки dfm до наследования!!!
 end;
 
 initialization

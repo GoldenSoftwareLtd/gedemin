@@ -153,6 +153,7 @@ type
     procedure SetFullSearchOnExit(const Value: Boolean);
     function GetFullSearchOnExit: Boolean;
     procedure SetViewType(const Value: TgsViewType);
+    procedure SetSubType(const Value: String);
 
   public
     constructor Create(Owner: TgsIBColumnEditor);
@@ -175,7 +176,7 @@ type
      default DefSortOrder;
     property ViewType: TgsViewType read FViewType write SetViewType default vtByClass;
     property gdClassName: String read FgdClassName write SetgdClassName;
-    property SubType: String read FSubType write FSubType;
+    property SubType: String read FSubType write SetSubType;
     property Database: TIBDatabase read GetDatabase write SetDatabase;
     property Transaction: TIBTransaction read GetTransaction write SetTransaction;
     property Fields: String read FFields write SetFields;
@@ -3756,13 +3757,13 @@ procedure TgsIBColumnEditor.SetDisplayField(const Value: String);
 var
   I: Integer;
 begin
-  if AnsiUpperCase(FDisplayField) <> AnsiUpperCase(Value) then
+  if not AnsiSameText(FDisplayField, Value) then
   begin
     if not (csLoading in Grid.ComponentState) then
     begin
       for I := 0 to Collection.Count - 1 do
       begin
-        if AnsiUpperCase(TgsIBColumnEditor(Collection.Items[I]).DisplayField) = AnsiUpperCase(Value) then
+        if AnsiSameText(TgsIBColumnEditor(Collection.Items[I]).DisplayField, Value) then
           raise EDuplicateEditor.CreateFmt('Редактор для поля %s уже существует', [Value]);
       end;
     end;  
@@ -5271,6 +5272,11 @@ begin
     end;
   end;
 
+end;
+
+procedure TLookup.SetSubType(const Value: String);
+begin
+  FSubType := Value;
 end;
 
 { TSet }

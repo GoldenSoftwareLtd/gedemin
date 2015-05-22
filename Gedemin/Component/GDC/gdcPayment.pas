@@ -9,31 +9,23 @@ uses
 
 type
   TgdcDestCode = class(TgdcBase)
-  protected
-    function CreateDialogForm: TCreateableForm; override;
-
   public
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
+    class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
   end;
 
   TgdcBasePayment = class(TgdcBaseBank)
   protected
     function GetSelectClause: String; override;
     function GetFromClause(const ARefresh: Boolean = False): String; override;
-
     procedure CustomInsert(Buff: Pointer); override;
     procedure CustomModify(Buff: Pointer); override;
-
     procedure DoAfterOpen; override;
     procedure DoBeforePost; override;
     procedure _DoOnNewRecord; override;
-    //procedure DoOnReportClick (Sender: TObject); override;
-
     procedure GetWhereClauseConditions(S: TStrings); override;
-
-
 
   public
     procedure UpdateCorrAccount;
@@ -45,50 +37,46 @@ type
   TgdcPaymentDemand = class(TgdcBasePayment)
   protected
     function GetGroupID: Integer; override;
-    function CreateDialogForm: TCreateableForm; override;
-  public
-    function DocumentTypeKey: Integer; override;
-    class function GetRestrictCondition(const ATableName, ASubType: String): String; override;
 
+  public
+    class function ClassDocumentTypeKey: Integer; override;
+    class function GetRestrictCondition(const ATableName, ASubType: String): String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
+    class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
   end;
 
   TgdcPaymentOrder = class(TgdcBasePayment)
   protected
     function GetGroupID: Integer; override;
-    function CreateDialogForm: TCreateableForm; override;
-
     procedure CreateFields; override;
 
   public
-    function DocumentTypeKey: Integer; override;
+    class function ClassDocumentTypeKey: Integer; override;
     class function GetRestrictCondition(const ATableName, ASubType: String): String; override;
-
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
+    class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
   end;
 
   TgdcDemandOrder = class(TgdcBasePayment)
   protected
     function GetGroupID: Integer; override;
-    function CreateDialogForm: TCreateableForm; override;
 
   public
-    function DocumentTypeKey: Integer; override;
+    class function ClassDocumentTypeKey: Integer; override;
     class function GetRestrictCondition(const ATableName, ASubType: String): String; override;
-
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
+    class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
   end;
 
   TgdcAdviceOfCollection = class(TgdcBasePayment)
   protected
     function GetGroupID: Integer; override;
-    function CreateDialogForm: TCreateableForm; override;
 
   public
-    function DocumentTypeKey: Integer; override;
+    class function ClassDocumentTypeKey: Integer; override;
     class function GetRestrictCondition(const ATableName, ASubType: String): String; override;
-
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
+    class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
   end;
 
   procedure Register;
@@ -129,58 +117,6 @@ end;
 
 { TgdcDestCode }
 
-function TgdcDestCode.CreateDialogForm: TCreateableForm;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_FUNCCREATEDIALOGFORM('TGDCDESTCODE', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  try
-  {M}    Result := nil;
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCDESTCODE', KEYCREATEDIALOGFORM);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCREATEDIALOGFORM]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCDESTCODE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCDESTCODE',
-  {M}          'CREATEDIALOGFORM', KEYCREATEDIALOGFORM, Params, LResult) then
-  {M}          begin
-  {M}            Result := nil;
-  {M}            if VarType(LResult) <> varDispatch then
-  {M}              raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен не объект.')
-  {M}            else
-  {M}              if IDispatch(LResult) = nil then
-  {M}                raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                  'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен пустой (null) объект.');
-  {M}            Result := GetInterfaceToObject(LResult) as TCreateableForm;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCDESTCODE' then
-  {M}        begin
-  {M}          Result := Inherited CreateDialogForm;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  Result := Tgdc_dlgDestCode.Create(ParentForm);
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCDESTCODE', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCDESTCODE', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM);
-  {M}  end;
-  {END MACRO}
-end;
-
 class function TgdcDestCode.GetListTable(const ASubType: TgdcSubType): String;
 begin
   Result := 'BN_DESTCODE';
@@ -195,6 +131,12 @@ class function TgdcDestCode.GetViewFormClassName(
   const ASubType: TgdcSubType): String;
 begin
   Result := 'Tgdc_frmDestCode';
+end;
+
+class function TgdcDestCode.GetDialogFormClassName(
+  const ASubType: TgdcSubType): String;
+begin
+  Result := 'Tgdc_dlgDestCode';
 end;
 
 { TgdcBasePayment }
@@ -623,7 +565,6 @@ begin
   DidActivate := False;
   q := TIBSQL.Create(nil);
   try
-    q.Database := Database;
     q.Transaction := ReadTransaction;
     DidActivate := ActivateReadTransaction;
 
@@ -741,51 +682,6 @@ begin
     S.Add(' dp.accountkey = :accountkey');
 end;
 
-(*
-procedure TgdcBasePayment.DoOnReportClick(Sender: TObject);
-var
-  {@UNFOLD MACRO INH_ORIG_PARAMS()}
-  {M}
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-  I: Integer;
-
-begin
-  {@UNFOLD MACRO INH_ORIG_SENDER('TGDCBASEPAYMENT', 'DOONREPORTCLICK', KEYDOONREPORTCLICK)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCBASEPAYMENT', KEYDOONREPORTCLICK);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOONREPORTCLICK]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCBASEPAYMENT') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self), GetGdcInterface(Sender)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCBASEPAYMENT',
-  {M}          'DOONREPORTCLICK', KEYDOONREPORTCLICK, Params, LResult) then
-  {M}          exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCBASEPAYMENT' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  inherited;
-
-{  for I := 0 to FPrintList.Count - 1 do
-    if Tgdc_frmSGRAccount(Owner).ibgrMain.CheckBox.CheckList.IndexOf(FPrintList.Strings[I]) = -1 then
-	   	Tgdc_frmSGRAccount(Owner).ibgrMain.CheckBox.CheckList.Add(FPrintList.Strings[I]);}
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASEPAYMENT', 'DOONREPORTCLICK', KEYDOONREPORTCLICK)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCBASEPAYMENT', 'DOONREPORTCLICK', KEYDOONREPORTCLICK);
-  {M}  end;
-  {END MACRO}
-end;
-*)
-
 procedure TgdcBasePayment._DoOnNewRecord;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
   {M}VAR
@@ -872,59 +768,7 @@ end;
 
 { TgdcPaymentDemand }
 
-function TgdcPaymentDemand.CreateDialogForm: TCreateableForm;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_FUNCCREATEDIALOGFORM('TGDCPAYMENTDEMAND', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  try
-  {M}    Result := nil;
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCPAYMENTDEMAND', KEYCREATEDIALOGFORM);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCREATEDIALOGFORM]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCPAYMENTDEMAND') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCPAYMENTDEMAND',
-  {M}          'CREATEDIALOGFORM', KEYCREATEDIALOGFORM, Params, LResult) then
-  {M}          begin
-  {M}            Result := nil;
-  {M}            if VarType(LResult) <> varDispatch then
-  {M}              raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен не объект.')
-  {M}            else
-  {M}              if IDispatch(LResult) = nil then
-  {M}                raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                  'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен пустой (null) объект.');
-  {M}            Result := GetInterfaceToObject(LResult) as TCreateableForm;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCPAYMENTDEMAND' then
-  {M}        begin
-  {M}          Result := Inherited CreateDialogForm;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  Result := Tgdc_dlgPaymentDemand.Create(ParentForm);
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCPAYMENTDEMAND', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCPAYMENTDEMAND', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM);
-  {M}  end;
-  {END MACRO}
-end;
-
-function TgdcPaymentDemand.DocumentTypeKey: Integer;
+class function TgdcPaymentDemand.ClassDocumentTypeKey: Integer;
 begin
   Result := BN_DOC_PAYMENTDEMAND;
 end;
@@ -946,61 +790,15 @@ begin
   Result := 'Tgdc_frmPaymentDemand';
 end;
 
-{ TgdcPaymentOrder }
-
-function TgdcPaymentOrder.CreateDialogForm: TCreateableForm;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
+class function TgdcPaymentDemand.GetDialogFormClassName(
+  const ASubType: TgdcSubType): String;
 begin
-  {@UNFOLD MACRO INH_ORIG_FUNCCREATEDIALOGFORM('TGDCPAYMENTORDER', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  try
-  {M}    Result := nil;
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCPAYMENTORDER', KEYCREATEDIALOGFORM);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCREATEDIALOGFORM]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCPAYMENTORDER') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCPAYMENTORDER',
-  {M}          'CREATEDIALOGFORM', KEYCREATEDIALOGFORM, Params, LResult) then
-  {M}          begin
-  {M}            Result := nil;
-  {M}            if VarType(LResult) <> varDispatch then
-  {M}              raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен не объект.')
-  {M}            else
-  {M}              if IDispatch(LResult) = nil then
-  {M}                raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                  'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен пустой (null) объект.');
-  {M}            Result := GetInterfaceToObject(LResult) as TCreateableForm;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCPAYMENTORDER' then
-  {M}        begin
-  {M}          Result := Inherited CreateDialogForm;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  Result := Tgdc_dlgPaymentOrder.Create(ParentForm);
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCPAYMENTORDER', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCPAYMENTORDER', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM);
-  {M}  end;
-  {END MACRO}
+  Result := 'Tgdc_dlgPaymentDemand';
 end;
 
-function TgdcPaymentOrder.DocumentTypeKey: Integer;
+{ TgdcPaymentOrder }
+
+class function TgdcPaymentOrder.ClassDocumentTypeKey: Integer;
 begin
   Result := BN_DOC_PAYMENTORDER;
 end;
@@ -1059,61 +857,15 @@ begin
   {END MACRO}
 end;
 
-{ TgdcDemandOrder }
-
-function TgdcDemandOrder.CreateDialogForm: TCreateableForm;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
+class function TgdcPaymentOrder.GetDialogFormClassName(
+  const ASubType: TgdcSubType): String;
 begin
-  {@UNFOLD MACRO INH_ORIG_FUNCCREATEDIALOGFORM('TGDCDEMANDORDER', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  try
-  {M}    Result := nil;
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCDEMANDORDER', KEYCREATEDIALOGFORM);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCREATEDIALOGFORM]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCDEMANDORDER') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCDEMANDORDER',
-  {M}          'CREATEDIALOGFORM', KEYCREATEDIALOGFORM, Params, LResult) then
-  {M}          begin
-  {M}            Result := nil;
-  {M}            if VarType(LResult) <> varDispatch then
-  {M}              raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен не объект.')
-  {M}            else
-  {M}              if IDispatch(LResult) = nil then
-  {M}                raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                  'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен пустой (null) объект.');
-  {M}            Result := GetInterfaceToObject(LResult) as TCreateableForm;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCDEMANDORDER' then
-  {M}        begin
-  {M}          Result := Inherited CreateDialogForm;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  Result := Tgdc_dlgDemandOrder.Create(ParentForm);
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCDEMANDORDER', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCDEMANDORDER', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM);
-  {M}  end;
-  {END MACRO}
+  Result := 'Tgdc_dlgPaymentOrder';
 end;
 
-function TgdcDemandOrder.DocumentTypeKey: Integer;
+{ TgdcDemandOrder }
+
+class function TgdcDemandOrder.ClassDocumentTypeKey: Integer;
 begin
   Result := BN_DOC_PAYMENTDEMANDPAYMENT;
 end;
@@ -1135,9 +887,15 @@ begin
   Result := 'Tgdc_frmDemandOrder';
 end;
 
+class function TgdcDemandOrder.GetDialogFormClassName(
+  const ASubType: TgdcSubType): String;
+begin
+  Result := 'Tgdc_dlgDemandOrder';
+end;
+
 { TgdcAdviceOfCollection }
 
-function TgdcAdviceOfCollection.DocumentTypeKey: Integer;
+class function TgdcAdviceOfCollection.ClassDocumentTypeKey: Integer;
 begin
   Result := BN_DOC_ADVICEOFCOLLECTION;
 end;
@@ -1145,58 +903,6 @@ end;
 function TgdcAdviceOfCollection.GetGroupID: Integer;
 begin
   Result := grAdviceOfCollection;
-end;
-
-function TgdcAdviceOfCollection.CreateDialogForm: TCreateableForm;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_FUNCCREATEDIALOGFORM('TGDCADVICEOFCOLLECTION', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  try
-  {M}    Result := nil;
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCADVICEOFCOLLECTION', KEYCREATEDIALOGFORM);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCREATEDIALOGFORM]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCADVICEOFCOLLECTION') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCADVICEOFCOLLECTION',
-  {M}          'CREATEDIALOGFORM', KEYCREATEDIALOGFORM, Params, LResult) then
-  {M}          begin
-  {M}            Result := nil;
-  {M}            if VarType(LResult) <> varDispatch then
-  {M}              raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен не объект.')
-  {M}            else
-  {M}              if IDispatch(LResult) = nil then
-  {M}                raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                  'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен пустой (null) объект.');
-  {M}            Result := GetInterfaceToObject(LResult) as TCreateableForm;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCADVICEOFCOLLECTION' then
-  {M}        begin
-  {M}          Result := Inherited CreateDialogForm;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  Result := Tgdc_dlgAdviceOfCollection.Create(ParentForm);
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCADVICEOFCOLLECTION', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCADVICEOFCOLLECTION', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM);
-  {M}  end;
-  {END MACRO}
 end;
 
 class function TgdcAdviceOfCollection.GetRestrictCondition(
@@ -1211,6 +917,12 @@ begin
   Result := 'Tgdc_frmAdviceOfCollection';
 end;
 
+class function TgdcAdviceOfCollection.GetDialogFormClassName(
+  const ASubType: TgdcSubType): String;
+begin
+  Result := 'Tgdc_dlgAdviceOfCollection';
+end;
+
 initialization
   RegisterGdcClass(TgdcPaymentDemand);
   RegisterGdcClass(TgdcPaymentOrder);
@@ -1219,10 +931,9 @@ initialization
   RegisterGdcClass(TgdcDestCode);
 
 finalization
-  UnRegisterGdcClass(TgdcPaymentDemand);
-  UnRegisterGdcClass(TgdcPaymentOrder);
-  UnRegisterGdcClass(TgdcDemandOrder);
-  UnRegisterGdcClass(TgdcAdviceOfCollection);
-  UnRegisterGdcClass(TgdcDestCode);
-  
+  UnregisterGdcClass(TgdcPaymentDemand);
+  UnregisterGdcClass(TgdcPaymentOrder);
+  UnregisterGdcClass(TgdcDemandOrder);
+  UnregisterGdcClass(TgdcAdviceOfCollection);
+  UnregisterGdcClass(TgdcDestCode);
 end.

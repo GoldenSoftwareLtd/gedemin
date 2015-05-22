@@ -27,8 +27,8 @@ interface
 
 uses
   {$IFDEF GEDEMIN}
-   gdcClasses, gdc_frmAnalyticsSel_unit, wiz_DocumentInfo_unit, at_classes, gd_createable_form,
-   dmImages_unit,
+   gdcClasses_interface, gdcClasses, gdc_frmAnalyticsSel_unit,
+   wiz_DocumentInfo_unit, at_classes, gd_createable_form, dmImages_unit,
   {$ENDIF}
   controls, Graphics, Windows, Classes, Messages, Math, Forms, menus, Sysutils,
   wiz_FunctionsParams_unit, IBSQL, gd_common_functions, Dialogs, clipbrd,

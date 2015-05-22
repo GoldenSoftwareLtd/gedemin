@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2001-2014 by Golden Software of Belarus
+  Copyright (c) 2001-2015 by Golden Software of Belarus
 
   Module
 
@@ -29,10 +29,9 @@ unit gdcAcctEntryRegister;
 interface
 
 uses
-  Classes, Contnrs, SysUtils,
-  DB, IBSQL, Windows, IBDataBase, Dialogs, 
-  gd_createable_form, Forms, gdcConstants,
-  gdcBase, gdcClasses, gdcAcctTransaction, gdcBaseInterface;
+  Classes, Contnrs, SysUtils, DB, IBSQL, Windows, IBDataBase, Dialogs,
+  gd_createable_form, Forms, gdcConstants, gdcBase, gdcClasses_interface,
+  gdcClasses, gdcAcctTransaction, gdcBaseInterface;
 
 const
   ByDocument = 'ByDocument';
@@ -1289,17 +1288,10 @@ begin
 end;
 
 function TgdcAcctBaseEntryRegister.GetCurrRecordClass: TgdcFullClass;
-var
-  F: TField;
 begin
   Result.gdClass := TgdcAcctEntryRegister;
-  Result.SubType := '';
-  
-  F := FindField('USR$ST');
-  if F <> nil then
-    Result.SubType := F.AsString;
-  if (Result.SubType > '') and (not Result.gdClass.CheckSubType(Result.SubType)) then
-    raise EgdcException.Create('Invalid USR$ST value.');
+  Result.SubType := SubType;
+  FindInheritedSubType(Result);
 end;
 
 class function TgdcAcctBaseEntryRegister.IsAbstractClass: Boolean;
@@ -1374,6 +1366,7 @@ var
   {$ENDIF}
   ibsql: TIBSQL;
   IsDisabled: Boolean;
+  DE: TgdDocumentEntry;
 begin
   Assert(Assigned(Document), 'Ќе задан документ дл€ формировани€ проводок');
 
@@ -1485,8 +1478,8 @@ begin
 
     for I := 0 to CIs.Count - 1 do
     begin
-      if (CIs[i].DocumentTypeKey = Document.DocumentTypeKey) and
-        (CIs[i].DocumentPart = Document.GetDocumentClassPart) then
+      DE := gdClassList.FindDocByTypeID(Document.DocumentTypeKey, CIs[i].DocumentPart);
+      if DE.FindParentByDocumentTypeKey(CIs[i].DocumentTypeKey, CIs[i].DocumentPart) <> nil then
       begin
         FTrRecordKey := CIs[i].TrRecordKey;
         FRecordAdded := False;
@@ -2316,17 +2309,10 @@ begin
 end;
 
 function TgdcAcctViewEntryRegister.GetCurrRecordClass: TgdcFullClass;
-var
-  F: TField;
 begin
   Result.gdClass := TgdcAcctViewEntryRegister;
-  Result.SubType := '';
-
-  F := FindField('USR$ST');
-  if F <> nil then
-    Result.SubType := F.AsString;
-  if (Result.SubType > '') and (not Result.gdClass.CheckSubType(Result.SubType)) then
-    raise EgdcException.Create('Invalid USR$ST value.');
+  Result.SubType := SubType;
+  FindInheritedSubType(Result);
 end;
 
 function TgdcAcctViewEntryRegister.GetDocument: TgdcDocument;
@@ -4794,11 +4780,11 @@ initialization
   RegisterGdcClass(TgdcAcctQuantity);
   RegisterGdcClass(TgdcAcctComplexRecord);
 finalization
-  UnRegisterGdcClass(TgdcAcctEntryRegister);
-  UnRegisterGdcClass(TgdcAcctBaseEntryRegister);
-  UnRegisterGdcClass(TgdcAcctViewEntryRegister);
-  UnRegisterGdcClass(TgdcAcctEntryLine);
-  UnRegisterGdcClass(TgdcAcctSimpleRecord);
-  UnRegisterGdcClass(TgdcAcctQuantity);
-  UnRegisterGdcClass(TgdcAcctComplexRecord);
+  UnregisterGdcClass(TgdcAcctEntryRegister);
+  UnregisterGdcClass(TgdcAcctBaseEntryRegister);
+  UnregisterGdcClass(TgdcAcctViewEntryRegister);
+  UnregisterGdcClass(TgdcAcctEntryLine);
+  UnregisterGdcClass(TgdcAcctSimpleRecord);
+  UnregisterGdcClass(TgdcAcctQuantity);
+  UnregisterGdcClass(TgdcAcctComplexRecord);
 end.

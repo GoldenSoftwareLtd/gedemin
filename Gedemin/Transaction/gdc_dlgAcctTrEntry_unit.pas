@@ -9,7 +9,7 @@ uses
   ExtCtrls, TB2Item, TB2Dock, TB2Toolbar, gsIBCtrlGrid, gdc_dlgTR_unit,
   IBDatabase, Menus, at_Classes, gsIBLookupComboBox, gdcCustomFunction,
   gdcFunction, AcctStrings, gd_i_ScriptFactory, rp_report_const, gdcConstants,
-  prm_ParamFunctions_unit, gdcBaseInterface, gdcClasses;
+  prm_ParamFunctions_unit, gdcBaseInterface, gdcClasses_interface;
 
 type
   Tgdc_dlgAcctTrEntry = class(Tgdc_dlgTR)

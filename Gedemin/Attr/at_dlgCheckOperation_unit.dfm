@@ -74,7 +74,7 @@ object dlgCheckOperation: TdlgCheckOperation
           Height = 123
           ReadOnly = True
           ScrollBars = ssVertical
-          TabOrder = 3
+          TabOrder = 4
         end
         object chbxTerminate: TCheckBox
           Left = 376
@@ -83,6 +83,16 @@ object dlgCheckOperation: TdlgCheckOperation
           Height = 17
           Caption = 'Закрыть программу по завершении загрузки'
           TabOrder = 2
+        end
+        object chbxIgnoreMissedFields: TCheckBox
+          Left = 376
+          Top = 57
+          Width = 289
+          Height = 17
+          Caption = 'Игнорировать отсутствующие поля'
+          Checked = True
+          State = cbChecked
+          TabOrder = 3
         end
       end
       object pnlLoadObjects: TPanel

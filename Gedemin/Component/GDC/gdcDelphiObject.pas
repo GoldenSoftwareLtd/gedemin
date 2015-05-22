@@ -26,7 +26,6 @@ type
     procedure _DoOnNewRecord; override;
     procedure GetWhereClauseConditions(S: TStrings); override;
 
-
   public
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
@@ -412,71 +411,31 @@ var
   var
     CE: TgdClassEntry;
   begin
-    if AnsiPos('USR_', AnsiUpperCase(ChildFN.SubType)) > 0 then
-      raise Exception.Create('Недопустимый символ ''_''в подтипе');
-
     Result.gdClassName := '';
     Result.SubType := '';
+
     CE := gdClassList.Find(ChildFN);
 
     if CE = nil then
       raise Exception.Create('Передан некорректный класс.');
 
-    if CE.TheClass.InheritsFrom(TgdcBase) then
+    if CE is TgdBaseEntry then
     begin
       if CE.Parent <> nil then
       begin
-        Result.gdClassName := CE.Parent.gdcClass.ClassName;
+        Result.gdClassName := CE.Parent.TheClass.ClassName;
         Result.SubType := CE.Parent.SubType;
       end;
     end
-    else if CE.TheClass.InheritsFrom(TgdcCreateableForm) then
+    else if CE is TgdFormEntry then
     begin
       if CE.Parent <> nil then
       begin
-        Result.gdClassName := CE.Parent.frmClass.ClassName;
+        Result.gdClassName := CE.Parent.TheClass.ClassName;
         Result.SubType := CE.Parent.SubType;
       end;
     end;
   end;
-  
-  {function GetParentFullName(ChildFN: TgdcFullClassName): TgdcFullClassName;
-  var
-    GClass: TClass;
-  begin
-    Result.gdClassName := '';
-    GClass := gdClassList.GetGDCClass(ChildFN.gdClassName);
-    if GClass = nil then
-    begin
-      GClass := gdClassList.GetFrmClass(ChildFN.gdClassName);
-      if GClass = nil then
-        raise Exception.Create('Передан некорректный класс.');
-    end;
-
-    GClass := GClass.ClassParent;
-    if GClass.InheritsFrom(TgdcBase) then
-    begin
-      Result.gdClassName := CgdcBase(GClass).ClassName;
-      CgdcBase(GClass).GetSubTypeList(TmpSubTypeList);
-
-      if CgdcBase(GClass).CheckSubType(gdcClass.SubType) then
-        Result.SubType := gdcClass.SubType
-      else
-        Result.SubType := '';
-      Exit;
-    end else
-      if GClass.InheritsFrom(TgdcCreateableForm) then
-      begin
-        Result.gdClassName := CgdcCreateableForm(GClass).ClassName;
-        CgdcCreateableForm(GClass).GetSubTypeList(TmpSubTypeList);
-
-        if CgdcCreateableForm(GClass).CheckSubType(gdcClass.SubType) then
-          Result.SubType := gdcClass.SubType
-        else
-          Result.SubType := '';
-        Exit;
-      end;
-  end;}
 
   function GetClassID(ClFullName: TgdcFullClassName): Integer;
   begin
@@ -570,5 +529,5 @@ initialization
   RegisterGDCClass(TgdcDelphiObject);
 
 finalization
-  UnRegisterGDCClass(TgdcDelphiObject);
+  UnregisterGdcClass(TgdcDelphiObject);
 end.

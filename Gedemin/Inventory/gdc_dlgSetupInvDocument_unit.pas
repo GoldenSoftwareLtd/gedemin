@@ -738,8 +738,8 @@ begin
 
   if Assigned(rg) and Assigned(cmb) then
     case rg.ItemIndex of
-      0: UpdateBox(cmb, GetRelation(True));
-      1: UpdateBox(cmb, GetRelation(False));
+      0: UpdateBox(cmb, GetRootRelation(True));
+      1: UpdateBox(cmb, GetRootRelation(False));
       else
         cmb.Items.Clear;
     end
@@ -1324,14 +1324,14 @@ begin
   if pcMain.ActivePage = tsIncomeMovement then
   begin
     if rgDebitFrom.ItemIndex = 0 then
-      UpdateComboBox(GetRelation(True), luDebitFrom) else
+      UpdateComboBox(GetRootRelation(True), luDebitFrom) else
     if rgDebitFrom.ItemIndex = 1 then
-      UpdateComboBox(GetRelation(False), luDebitFrom);
+      UpdateComboBox(GetRootRelation(False), luDebitFrom);
 
     if rgDebitSubFrom.ItemIndex = 0 then
-      UpdateComboBox(GetRelation(True), luDebitSubFrom) else
+      UpdateComboBox(GetRootRelation(True), luDebitSubFrom) else
     if rgDebitSubFrom.ItemIndex = 1 then
-      UpdateComboBox(GetRelation(False), luDebitSubFrom);
+      UpdateComboBox(GetRootRelation(False), luDebitSubFrom);
 
     cbDebitMovementChange(cbDebitMovement);
   end else
@@ -1339,14 +1339,14 @@ begin
   if pcMain.ActivePage = tsOutlayMovement then
   begin
     if rgCreditFrom.ItemIndex = 0 then
-      UpdateComboBox(GetRelation(True), luCreditFrom) else
+      UpdateComboBox(GetRootRelation(True), luCreditFrom) else
     if rgCreditFrom.ItemIndex = 1 then
-      UpdateComboBox(GetRelation(False), luCreditFrom);
+      UpdateComboBox(GetRootRelation(False), luCreditFrom);
 
     if rgCreditSubFrom.ItemIndex = 0 then
-      UpdateComboBox(GetRelation(True), luCreditSubFrom) else
+      UpdateComboBox(GetRootRelation(True), luCreditSubFrom) else
     if rgCreditSubFrom.ItemIndex = 1 then
-      UpdateComboBox(GetRelation(False), luCreditSubFrom);
+      UpdateComboBox(GetRootRelation(False), luCreditSubFrom);
 
     cbDebitMovementChange(cbCreditMovement);
   end;
@@ -1666,7 +1666,7 @@ var
 begin
   cbTemplate.Enabled := False;
 
-  R := atDatabase.Relations.ByID(Document.FieldByName('linerelkey').AsInteger);
+  R := GetRootRelation(False);
   if Assigned(R) then
   begin
     RelType := RelationTypeByRelation(R);
@@ -1721,12 +1721,13 @@ begin
 
   iblcLineTable.Enabled := iblcLineTable.ItemIndex >= 0;
 
-  case cbTemplate.ItemIndex of
-  0: iblcLineTable.gdClassName := 'TgdcInvSimpleDocumentLineTable';
-  1: iblcLineTable.gdClassName := 'TgdcInvFeatureDocumentLineTable';
-  2: iblcLineTable.gdClassName := 'TgdcInvInventDocumentLineTable';
-  3: iblcLineTable.gdClassName := 'TgdcInvTransformDocumentLineTable';
-  end;
+  if iblcLineTable.gdClassName <> 'TgdcInheritedDocumentTable' then
+    case cbTemplate.ItemIndex of
+    0: iblcLineTable.gdClassName := 'TgdcInvSimpleDocumentLineTable';
+    1: iblcLineTable.gdClassName := 'TgdcInvFeatureDocumentLineTable';
+    2: iblcLineTable.gdClassName := 'TgdcInvInventDocumentLineTable';
+    3: iblcLineTable.gdClassName := 'TgdcInvTransformDocumentLineTable';
+    end;
 
   tsFeatures.TabVisible :=
     (edDocumentName.Text > '') and
@@ -1861,6 +1862,9 @@ begin
 
     Movement := TgdcInvMovementContactOption.Create;
     Movement.ContactType := TgdcInvMovementContactType(cbDebitMovement.ItemIndex);
+
+    R := GetRootRelation(True);
+    RL := GetRootRelation(False);
     if rgDebitFrom.ItemIndex = 0 then
       Movement.RelationName := R.RelationName
     else
@@ -1901,8 +1905,8 @@ begin
 
     // Расход
     Movement.ContactType := TgdcInvMovementContactType(cbCreditMovement.ItemIndex);
-    R := GetRelation(True);
-    RL := GetRelation(False);
+    R := GetRootRelation(True);
+    RL := GetRootRelation(False);
     if rgCreditFrom.ItemIndex = 0 then
       Movement.RelationName := R.RelationName
     else
@@ -2287,26 +2291,19 @@ begin
 
   inherited;
 
-  if Document.State = dsEdit then
+  if Document.State in [dsEdit, dsInsert] then
   begin
     if not Document.FieldByName('OPTIONS').IsNull then
     begin
       ReadOptions;
       UpdateTabs;
-    end else
-      UpdateEditingSettings;
+    end
+    else
+      if Document.State = dsEdit then
+        UpdateEditingSettings
+      else
+        UpdateInsertingSettings;
   end;
-
-  if Document.State = dsInsert then
-  begin
-    if not Document.FieldByName('OPTIONS').IsNull then
-    begin
-      ReadOptions;
-      UpdateTabs;
-    end else
-      UpdateInsertingSettings;
-  end;
-
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGSETUPINVDOCUMENT', 'SETUPRECORD', KEYSETUPRECORD)}
   {M}finally
