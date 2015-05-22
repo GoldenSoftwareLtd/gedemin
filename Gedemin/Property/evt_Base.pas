@@ -626,13 +626,13 @@ type
     function ObjectEventList(const AnComponent: TComponent;
      AnEventList: TStrings): Boolean;
     // Вызов окна редактирования для всех свойств
-    procedure GoToClassMethods(const AClassName, ASubType: string);
+    procedure GoToClassMethods(const AClassName, ASubType: String);
     procedure EditObject(const AnComponent: TComponent;
      const EditMode: TEditMode = emNone; const AnName: String = '';
      const AnFunctionID: integer = 0);
     //Уведомляет окно свойств об изменениях в системе
     procedure PropertyNotification(AComponent: TComponent;
-      Operation: TPrpOperation; const AOldName: string = '');
+      Operation: TPrpOperation; const AOldName: String = '');
     procedure PropertyUpDateErrorsList;
     procedure DisableProperty;
     procedure EnableProperty;
@@ -641,7 +641,7 @@ type
     procedure PrepareSOEditorForModal;
 
     procedure DebugScriptFunction(const AFunctionKey: Integer;
-      const AModuleName: string = scrUnkonownModule;
+      const AModuleName: String = scrUnkonownModule;
       const CurrentLine: Integer = - 1);
 
     //Редактирование отчета
@@ -655,7 +655,7 @@ type
     function Get_PropertyIsLoaded: Boolean;
     function PropertyClose: Boolean;
     function GetPropertyHanlde: THandle;
-    procedure DeleteEvent(FormName, ComponentName, EventName: string);
+    procedure DeleteEvent(FormName, ComponentName, EventName: String);
     procedure EventLog;
 //    procedure ReportRefresh;
     procedure RegisterFrmReport(frmReport: TObject);
@@ -1826,7 +1826,7 @@ begin
 end;
 
 procedure TEventControl.DebugScriptFunction(const AFunctionKey: Integer;
-  const AModuleName: string; const CurrentLine: Integer);
+  const AModuleName: String; const CurrentLine: Integer);
 begin
   if (not Application.Terminated) and IBLogin.Database.Connected then
   begin
@@ -1836,7 +1836,7 @@ begin
 end;
 
 procedure TEventControl.DeleteEvent(FormName, ComponentName,
-  EventName: string);
+  EventName: String);
 var
   Ob: TEventObject;
   E: TEventItem;
@@ -1930,7 +1930,7 @@ begin
 end;
 
 procedure TEventControl.GoToClassMethods(const AClassName,
-  ASubType: string);
+  ASubType: String);
 begin
   CheckCreateForm;
 
@@ -3262,7 +3262,7 @@ begin
 end;
 
 procedure TEventControl.PropertyNotification(AComponent: TComponent;
-  Operation: TPrpOperation; const AOldName: string);
+  Operation: TPrpOperation; const AOldName: String);
 begin
   if not Application.Terminated and Assigned(frmGedeminProperty) then
     frmGedeminProperty.PropertyNotification(AComponent, Operation, AOldName);
@@ -3360,7 +3360,7 @@ procedure TEventControl.SetChildComponentEvent(
 
   procedure _SetChildComponentEvent(
     const AnComponent: TComponent; const AnEventObject: TEventObject;
-    const AnSafeMode: Boolean; ABasicAction: Boolean);
+    const AnSafeMode: Boolean; const ABasicAction: Boolean);
   var
     I, J: Integer;
     TempEO: TEventObject;
@@ -3368,59 +3368,57 @@ procedure TEventControl.SetChildComponentEvent(
   begin
     for I := 0 to AnComponent.ComponentCount - 1 do
     begin
-      if (ABasicAction and AnComponent.Components[I].InheritsFrom(TBasicAction))
-        or ((not ABasicAction) and ( not AnComponent.Components[I].InheritsFrom(TBasicAction))) then
+      if ABasicAction = AnComponent.Components[I].InheritsFrom(TBasicAction) then
       begin
         ChildEO := AnEventObject.ChildObjects.FindObject(AnComponent.Components[I].Name);
         if (ChildEO = nil) and (AnEventObject.FParentObjectsBySubType.Count > 0) then
           for J := 0 to AnEventObject.FParentObjectsBySubType.Count - 1 do
+          begin
+            TempEO := AnEventObject.FParentObjectsBySubType.EventObject[J];
+
+            if TempEO <> nil then
             begin
-             TempEO := AnEventObject.FParentObjectsBySubType.EventObject[J];
-
-             if TempEO <> nil then
-              begin
-                ChildEO := TempEO.ChildObjects.FindObject(AnComponent.Components[I].Name);
-
-                if ChildEO <> nil then
-                begin
-                  AnEventObject.ChildObjects.AddObject(nil);
-                  ChildEO := AnEventObject.ChildObjects.Last;
-                  ChildEO.FSelfObject := AnComponent.Components[I];
-                  ChildEO.FObjectKey := 0;
-                  ChildEO.FObjectName := AnComponent.Components[I].Name;
-                  ChildEO.FObjectRef := AnComponent.Components[I];
-                  ChildEO := AnEventObject.ChildObjects.FindObject(AnComponent.Components[I]);
-                end;
-              end;
+              ChildEO := TempEO.ChildObjects.FindObject(AnComponent.Components[I].Name);
 
               if ChildEO <> nil then
-                break;
+              begin
+                AnEventObject.ChildObjects.AddObject(nil);
+                ChildEO := AnEventObject.ChildObjects.Last;
+                ChildEO.FSelfObject := AnComponent.Components[I];
+                ChildEO.FObjectKey := 0;
+                ChildEO.FObjectName := AnComponent.Components[I].Name;
+                ChildEO.FObjectRef := AnComponent.Components[I];
+                ChildEO := AnEventObject.ChildObjects.FindObject(AnComponent.Components[I]);
+              end;
             end;
+
+            if ChildEO <> nil then
+              break;
+          end;
         SetComponentEvent(AnComponent.Components[I], ChildEO, True, AnSafeMode);
       end;
     end;
   end;
 
 begin
-  if AnEventObject = nil then
-    exit;
-
-  _SetChildComponentEvent( AnComponent, AnEventObject, AnSafeMode, True);
-
-  _SetChildComponentEvent( AnComponent, AnEventObject, AnSafeMode, False);
+  if AnEventObject <> nil then
+  begin
+    _SetChildComponentEvent(AnComponent, AnEventObject, AnSafeMode, True);
+    _SetChildComponentEvent(AnComponent, AnEventObject, AnSafeMode, False);
+  end;
 end;
 
 procedure TEventControl.SetChildEvents(AnComponent: TComponent);
 begin
   SetChildComponentEvent(AnComponent,
-   FEventObjectList.FindAllObject(AnComponent), False);
+    FEventObjectList.FindAllObject(AnComponent), False);
 end;
 
 procedure TEventControl.SetComponentEvent(const AnComponent: TComponent;
   const AnEventObject: TEventObject; const OnlyComponent: Boolean;
   const AnSafeMode: Boolean);
 var
-  LName: string;
+  LName: String;
   TempPropList: TPropList;
   TempPropInfo: PPropInfo;
   MP: TMethod;
@@ -3554,6 +3552,9 @@ begin
           Exception.Create(GetGsException(Self, 'Can''t find event procedure.'));
         LEventItem := AnEventObject.EventList.ItemByName[TempPropList[I]^.Name];
 
+        if LEventItem = nil then
+          raise Exception.Create('Event item not found');
+
         if not (AnSafeMode and LEventItem.IsOldEventSet) then
         begin
           if not LEventItem.IsOldEventSet then
@@ -3612,9 +3613,6 @@ begin
       begin
         CE := gdClassList.Get(TgdFormEntry, AnComponent.ClassName,
           TgdcCreateableForm(AnComponent).SubType);
-          //StringReplace(TgdcCreateableForm(AnComponent).SubType,
-          //'USR_', 'USR$', [rfReplaceAll, rfIgnoreCase]));
-
         repeat
           CE := CE.Parent;
           PrntCompName := Copy(AnComponent.ClassName, 2, Length(AnComponent.ClassName) - 1)
@@ -5735,7 +5733,7 @@ var
   CallInherited, ReturnParam: String;
   Comment, EndComment: String;
   LFunctionName: String;
-  OptExplicit: string;
+  OptExplicit: String;
 
   function VarParamPresent(EventData: TTypeData): Boolean;
   var
