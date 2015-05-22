@@ -55,7 +55,6 @@ type
     property EditedFieldsName: String read GetEditedFieldsName write SetEditedFieldsName;
   end;
 
-
 var
   gdc_frmInvSelectedGoods: Tgdc_frmInvSelectedGoods;
 
@@ -64,8 +63,7 @@ implementation
 {$R *.DFM}
 
 uses
-  Storages, gd_ClassList, gsStorage_CompPath, IBSQL,
-  gdcBaseInterface;
+  Storages, gd_ClassList, gsStorage_CompPath, IBSQL;
 
 { Tgdc_frmInvSelectedGoods }
 
@@ -142,9 +140,6 @@ begin
       if gdcObject.FieldByName(sgSelQuantFieldName).AsCurrency = 0 then
       begin
         gdcObject.FieldByName(sgSelQuantFieldName).AsCurrency := 1;
-//      else
-//        gdcObject.FieldByName(sgSelQuantFieldName).AsCurrency :=
-//          gdcObject.FieldByName(sgSelQuantFieldName).AsCurrency;
         gdcObject.Post;
       end;
     except
@@ -369,7 +364,7 @@ end;
 
 procedure Tgdc_frmInvSelectedGoods.actDeleteChooseUpdate(Sender: TObject);
 begin
-  actDeleteChoose.Enabled := not FgdcSelectedGoods.Eof; 
+  actDeleteChoose.Enabled := not FgdcSelectedGoods.Eof;
 end;
 
 procedure Tgdc_frmInvSelectedGoods.PassSelectedGoods(
@@ -377,10 +372,7 @@ procedure Tgdc_frmInvSelectedGoods.PassSelectedGoods(
 var
   I, SepPos: Integer;
   SelectedField: TField;
-//  SourceFieldName: String;
 begin
-
-
   FgdcSelectedGoods.First;
 
   if (not FgdcSelectedGoods.Eof) and
@@ -402,9 +394,6 @@ begin
               SelectedField.AsVariant;
         end;
       end;
-//      gdcObject.FieldByName(GoodKeyFieldName).AsInteger := FgdcSelectedGoods.ID;
-//      gdcObject.FieldByName(QuantFieldName).AsCurrency  :=
-//        FgdcSelectedGoods.FieldByName(sgSelQuantFieldName).AsCurrency;
       gdcObject.Post;
     except
       gdcObject.Cancel;
@@ -541,16 +530,7 @@ begin
 end;
 
 procedure Tgdc_frmInvSelectedGoods.AllowEditColumns;
-{var
-  I: Integer;}
 begin
-{  for I := 0 to gdcSelectedGood.Fields.Count - 1 do
-  begin
-    if FEditedFieldList.IndexOf(gdcSelectedGood.Fields[I].FieldName) > -1  then
-      gdcSelectedGood.Fields[I].ReadOnly := False
-    else
-      gdcSelectedGood.Fields[I].ReadOnly := True;
-  end;}
 end;
 
 procedure Tgdc_frmInvSelectedGoods.ibgrDetailEnter(Sender: TObject);
@@ -559,9 +539,8 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmInvSelectedGoods, ctInvDocument);
+  RegisterFrmClass(Tgdc_frmInvSelectedGoods);
 
 finalization
   UnRegisterFrmClass(Tgdc_frmInvSelectedGoods);
-
 end.

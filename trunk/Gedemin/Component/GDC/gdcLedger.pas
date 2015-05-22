@@ -4,10 +4,11 @@ unit gdcLedger;
 interface
 
 uses
-  Classes, gdcBase, gdcBaseInterface, gd_createable_form, Forms, gdv_AcctConfig_unit;
+  Classes, gdcBase, gdcBaseInterface, gd_createable_form, Forms, gdcAcctConfig,
+  gdv_AcctConfig_unit;
 
 type
-  TgdcAcctBaseConfig = class(TgdcBase)
+  TgdcAcctBaseConfig = class(TgdcBaseAcctConfig)
   protected
     procedure DeleteSF;
     procedure CreateSF;
@@ -15,15 +16,12 @@ type
     procedure DeleteCommand(SFRUID: TRUID);
     procedure HideCommand;
     procedure DoAfterCustomProcess(Buff: Pointer; Process: TgsCustomProcess); override;
+    function GetGDVViewForm: String; virtual;
 
-    function GetGDVViewForm: string; virtual;
   public
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
     class function IsAbstractClass: Boolean; override;
-
-    class function GetListTable(const ASubType: TgdcSubType): String; override;
-    class function GetListField(const ASubType: TgdcSubType): String; override;
   end;
 
   TgdcAcctLedgerConfig = class(TgdcAcctBaseConfig)
@@ -80,6 +78,7 @@ uses
   prm_ParamFunctions_unit, IBDatabase, at_classes, gd_security, Windows, DB,
   AcctStrings, AcctUtils, gdcConstants, gd_common_functions, gd_i_ScriptFactory,
   Clipbrd, gdcFunction, gdcExplorer, rp_report_const, gd_security_operationconst;
+
 const
   cFunctionName = 'AcctReportScriptFunction%s';
 
@@ -89,6 +88,7 @@ begin
     TgdcAcctBaseConfig, TgdcAcctCicrilationListConfig,
     TgdcAcctGeneralLedgerConfig, TgdcAcctAccReviewConfig ]);
 end;
+
 { TgdcAcctBaseConfig }
 
 procedure TgdcAcctBaseConfig.CreateCommand(SFRUID: TRUID);
@@ -464,18 +464,6 @@ begin
   Result := 'Tgdv_frmAcctBaseConfig'
 end;
 
-class function TgdcAcctBaseConfig.GetListField(
-  const ASubType: TgdcSubType): String;
-begin
-  Result := 'Name'
-end;
-
-class function TgdcAcctBaseConfig.GetListTable(
-  const ASubType: TgdcSubType): String;
-begin
-  Result := 'AC_ACCT_CONFIG'
-end;
-
 class function TgdcAcctBaseConfig.IsAbstractClass: Boolean;
 begin
   Result := Self.ClassNameIs('TgdcAcctBaseConfig');
@@ -614,17 +602,18 @@ end;
 
 initialization
   RegisterGdcClass(TgdcAcctBaseConfig);
-  RegisterGdcClass(TgdcAcctAccConfig, ctStorage, 'Конфигурация карты счета');
-  RegisterGdcClass(TgdcAcctLedgerConfig, ctStorage, 'Конфигурация журнал-ордера');
-  RegisterGdcClass(TgdcAcctCicrilationListConfig ctStorage, 'Конфигурация оборотной ведомости');
-  RegisterGdcClass(TgdcAcctGeneralLedgerConfig, ctStorage, 'Конфигурация главной книги');
-  RegisterGdcClass(TgdcAcctAccReviewConfig, ctStorage, 'Конфигурация анализа счета');
+  RegisterGdcClass(TgdcAcctAccConfig,            'Конфигурация карты счета');
+  RegisterGdcClass(TgdcAcctLedgerConfig,         'Конфигурация журнал-ордера');
+  RegisterGdcClass(TgdcAcctCicrilationListConfig,'Конфигурация оборотной ведомости');
+  RegisterGdcClass(TgdcAcctGeneralLedgerConfig,  'Конфигурация главной книги');
+  RegisterGdcClass(TgdcAcctAccReviewConfig,      'Конфигурация анализа счета');
+
 finalization
-  UnRegisterGdcClass(TgdcAcctBaseConfig);
-  UnRegisterGdcClass(TgdcAcctAccConfig);
-  UnRegisterGdcClass(TgdcAcctLedgerConfig);
-  UnRegisterGdcClass(TgdcAcctCicrilationListConfig);
-  UnRegisterGdcClass(TgdcAcctGeneralLedgerConfig);
-  UnRegisterGdcClass(TgdcAcctAccReviewConfig);
+  UnregisterGdcClass(TgdcAcctBaseConfig);
+  UnregisterGdcClass(TgdcAcctAccConfig);
+  UnregisterGdcClass(TgdcAcctLedgerConfig);
+  UnregisterGdcClass(TgdcAcctCicrilationListConfig);
+  UnregisterGdcClass(TgdcAcctGeneralLedgerConfig);
+  UnregisterGdcClass(TgdcAcctAccReviewConfig);
 end.
 

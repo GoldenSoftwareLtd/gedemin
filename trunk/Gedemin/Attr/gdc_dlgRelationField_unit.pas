@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2001 - 2014 by Golden Software of Belarus
+  Copyright (c) 2001 - 2015 by Golden Software of Belarus
 
   Module
 
@@ -438,11 +438,10 @@ end;
 function Tgdc_dlgRelationField.BuildBaseClassTree(ACE: TgdClassEntry; AData1: Pointer;
   AData2: Pointer): Boolean;
 begin
-  if ACE <> nil then
-    if not (ACE.SubType > '') then
-      FClasses.Add(TgdcClassHandler.Create(
-        ACE.gdcClass, gdcObject.Transaction.DefaultDatabase,
-        gdcObject.Transaction));
+  if (ACE is TgdBaseEntry) and (ACE.SubType = '') then
+    FClasses.Add(TgdcClassHandler.Create(
+      TgdBaseEntry(ACE).gdcClass, gdcObject.Transaction.DefaultDatabase,
+      gdcObject.Transaction));
 
   Result := True;
 end;
@@ -455,10 +454,20 @@ begin
   Assert(AData1 <> nil);
   Assert(AData2 <> nil);
 
+  if not (ACE is TgdBaseEntry) then
+  begin
+    Result := False;
+    exit;
+  end;
+
   if ACE.SubType = '' then
   begin
-    LTreeNode := tvObjects.Items.AddChild(TTreeNode(AData1^),
-    ACE.gdcClass.GetDisplayName('') + ' [' + ACE.gdcClass.ClassName + ']');
+    if ACE.Caption <> ACE.TheClass.ClassName then
+      LTreeNode := tvObjects.Items.AddChild(TTreeNode(AData1^),
+        ACE.Caption + ' [' + ACE.TheClass.ClassName + ']')
+    else
+      LTreeNode := tvObjects.Items.AddChild(TTreeNode(AData1^),
+        ACE.TheClass.ClassName);
 
     if gdcObject.State = dsInsert then
     begin
@@ -469,7 +478,7 @@ begin
     end
     else
     begin
-      if TatRelationField(AData2^).InObject(ACE.gdcClass.ClassName) then
+      if TatRelationField(AData2^).InObject(ACE.TheClass.ClassName) then
         LTreeNode.StateIndex := 1
       else
         LTreeNode.StateIndex := 2;
@@ -481,16 +490,15 @@ begin
           LTreeNode.StateIndex := 3;
         end;
     end;
-  end
-  else
+  end else
   begin
     LTreeNode := tvObjects.Items.AddChild(TTreeNode(AData1^), ACE.Caption +
-     ' [' + ACE.gdcClass.ClassName + '(' + ACE.SubType + ')]');
+     ' [' + ACE.TheClass.ClassName + '(' + ACE.SubType + ')]');
     if dsgdcBase.DataSet.State = dsInsert then
       tvObjects.Items[tvObjects.Items.Count - 1].StateIndex := 2
     else
     begin
-      if TatRelationField(AData2^).InObject(ACE.gdcClass.ClassName + '(' + ACE.SubType + ')') then
+      if TatRelationField(AData2^).InObject(ACE.TheClass.ClassName + '(' + ACE.SubType + ')') then
         tvObjects.Items[tvObjects.Items.Count - 1].StateIndex := 1
       else
         tvObjects.Items[tvObjects.Items.Count - 1].StateIndex := 2;
@@ -509,7 +517,7 @@ begin
     TTreeNode(AData1^) := LTreeNode
   else
     begin
-      gdClassList.Traverse(ACE.gdcClass, ACE.SubType, BuildClassTree,
+      gdClassList.Traverse(ACE.TheClass, ACE.SubType, BuildClassTree,
         @LTreeNode, AData2, False, True);
     end;
   Result := True;
@@ -534,10 +542,8 @@ begin
       begin
         LTreeNode := nil;
         gdClassList.Traverse(TgdcBase, '', BuildClassTree, @LTreeNode, @F, True, True);
-      end
-      else
+      end else
         Label2.Caption := 'Объекты будут доступны после создания поля.';
-
     finally
       tvObjects.Items.EndUpdate;
     end;
@@ -569,9 +575,12 @@ begin
     begin
       if AnObjects > '' then
         AnObjects := AnObjects + ',';
-      AnObjects := AnObjects + Copy(tvObjects.Items[I].Text,
-        AnsiPos('[', tvObjects.Items[I].Text) + 1,
-        Length(tvObjects.Items[I].Text) - 1 - AnsiPos('[', tvObjects.Items[I].Text));
+      if Pos('[', tvObjects.Items[I].Text) > 0 then
+        AnObjects := AnObjects + Copy(tvObjects.Items[I].Text,
+          Pos('[', tvObjects.Items[I].Text) + 1,
+          Length(tvObjects.Items[I].Text) - 1 - Pos('[', tvObjects.Items[I].Text))
+      else
+        AnObjects := AnObjects + tvObjects.Items[I].Text;
     end;
   if AnObjects > '' then
     gdcObject.FieldByName('objects').AsString := AnObjects

@@ -3,8 +3,9 @@ unit gd_dlgEntryFunctionEdit;
 interface
 
 uses
-  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  ExtCtrls, Buttons, StdCtrls, gdcBase, ActnList, gdcClasses, at_classes;
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms,
+  Dialogs, ExtCtrls, Buttons, StdCtrls, gdcBase, ActnList,
+  gdcClasses_interface, gdcClasses, at_classes;
 
 const
   feFieldSynt = '[%s.%s]';
@@ -36,6 +37,7 @@ type
     procedure btnInsertHeadFieldClick(Sender: TObject);
     procedure actInsertHeadFieldUpdate(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
+
   private
     FgdcBaseHead: TgdcBase;
     FgdcBaseline: TgdcBase;
@@ -47,9 +49,10 @@ type
     procedure SetFunctionText(const Value: String);
     procedure SetgdcBaseHead(const Value: TgdcBase);
     procedure SetgdcBaseline(const Value: TgdcBase);
+
   public
     constructor Create(AOwner: TComponent); override;
-    { Public declarations }
+
     property gdcBaseHead: TgdcBase read FgdcBaseHead write SetgdcBaseHead;
     property gdcBaseline: TgdcBase read FgdcBaseline write SetgdcBaseline;
     property FunctionText: String read GetFunctionText write SetFunctionText;
@@ -206,7 +209,6 @@ begin
     end;
   end;
 end;
-
 
 procedure TdlgEntryFunctionEdit.btnInsertHeadFieldClick(Sender: TObject);
 begin

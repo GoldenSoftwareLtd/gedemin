@@ -559,10 +559,9 @@ var
   OL: TObjectList;
   SelectCondition: String;
   DistinctStr: String;
-//  Found: Boolean;
   NewClass: CgdcBase;
   dlgAction: TgsIBLkUp_dlgAction;
-  CE: TgdClassEntry;
+  CE: TgdBaseEntry;
 begin
   if (not Assigned(Database)) or (not Database.Connected) then
     exit;
@@ -756,7 +755,7 @@ begin
                 begin
                   for I := 0 to OL.Count - 1 do
                   begin
-                    CE := TgdClassEntry(OL[I]);
+                    CE := OL[I] as TgdBaseEntry;
                     cb.Items.AddObject(CE.gdcClass.GetDisplayName(CE.SubType), OL[I]);
                   end;
 
@@ -803,7 +802,7 @@ begin
                 mrYes:
                 begin
                   if cb.Visible and (cb.ItemIndex > 0) then
-                    NewClass := TgdClassEntry(cb.Items.Objects[cb.ItemIndex]).gdcClass;
+                    NewClass := TgdBaseEntry(cb.Items.Objects[cb.ItemIndex]).gdcClass;
                   MessageBoxResult := IDNO;
                   UserStorage.WriteInteger('Options', 'LkupDef', 2);
                 end;

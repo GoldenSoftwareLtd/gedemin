@@ -70,7 +70,7 @@ uses
   gd_localization_stub,
   {$ENDIF}
 
-  DB, IBSQL, at_frmSQLProcess, gdcNamespaceLoader;
+  DB, IBSQL, at_frmSQLProcess, gdcNamespaceLoader, gd_ClassList;
 
 {$R *.DFM}
 
@@ -83,6 +83,9 @@ var
   R: OleVariant;
 begin
   gdcBase.CacheDBID := -1;
+
+  if Assigned(gdSplash) then
+    gdSplash.ShowText(sLoadingStorage);
 
   {$IFDEF DEBUG}
   T := Now;
@@ -107,6 +110,11 @@ begin
   {$IFDEF DEBUG}
     OutputDebugString(PChar('UserStorage: ' + FormatDateTime('s.z', Now - T)));
   {$ENDIF}
+
+  if Assigned(gdSplash) then
+    gdSplash.ShowText(sLoadingUserDefinedClasses);
+
+  gdClassList.LoadUserDefinedClasses;
 
   // ћы отказываемс€ от использовани€ раздельных системных настроек
   // внутри √едымина

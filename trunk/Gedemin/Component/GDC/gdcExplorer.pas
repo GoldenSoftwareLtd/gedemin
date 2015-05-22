@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2000-2013 by Golden Software of Belarus
+  Copyright (c) 2000-2015 by Golden Software of Belarus
                                                                
   Module
 
@@ -48,17 +48,9 @@ const
 type
   TgdcExplorer = class(TgdcTree)
   private
-    FOldSubType, FOldClassName: Variant;
-
     function Get_gdcClass: CgdcBase;
 
-    function TestSubType(const AClassName, ASubType: String): Boolean;
-    procedure AddSubType(const AClassName, ASubType: String);
-    procedure RemoveSubType(const AClassName, ASubType: String);
-
   protected
-    procedure GetWhereClauseConditions(S: TStrings); override;
-
     procedure DoAfterPost; override;
     procedure DoAfterEdit; override;
     procedure DoAfterInsert; override;
@@ -121,67 +113,6 @@ begin
 end;
 
 { TgdcExplorer }
-
-
-procedure TgdcExplorer.AddSubType(const AClassName, ASubType: String);
-var
-  C: TPersistentClass;
-  F: TgsStorageFolder;
-  V: TgsStorageValue;
-begin
-  C := GetClass(AClassName);
-  if (C <> nil)
-    // список классов подтипы которых находятся не в хранилище
-    and (C.InheritsFrom(TgdcBase))
-    and (not C.ClassNameIs('TgdcAttrUserDefined'))
-    and (not C.ClassNameIs('TgdcAttrUserDefinedTree'))
-    and (not C.ClassNameIs('TgdcAttrUserDefinedLBRBTree'))
-    and (not C.ClassNameIs('TgdcUserDocument'))
-    and (not C.ClassNameIs('TgdcUserDocumentLine'))
-    and (not C.ClassNameIs('TgdcInvBasePriceList'))
-    and (not C.ClassNameIs('TgdcSelectedGood'))
-    and (not C.ClassNameIs('TgdcInvGoodRemains'))
-    and (not C.ClassNameIs('TgdcInvRemains'))
-    and (not C.ClassNameIs('TgdcInvMovement'))
-    and (not C.ClassNameIs('TgdcInvDocument'))
-    and (not C.ClassNameIs('TgdcInvDocumentLine'))
-    and (not C.ClassNameIs('TgdcInvBasePriceList'))
-    and (not C.ClassNameIs('TgdcInvPriceList'))
-    and (not C.ClassNameIs('TgdcInvPriceListLine'))
-    then
-  begin
-    if Assigned(GlobalStorage) then
-    begin
-      F := GlobalStorage.OpenFolder('SubTypes', True);
-      try
-        if Assigned(F) then
-        begin
-          V := F.ValueByName(C.ClassName);
-          if V = nil then
-          begin
-            F.WriteString(C.ClassName, '');
-            V := F.ValueByName(C.ClassName);
-          end;
-          if not (V is TgsStringValue) then
-          begin
-            F.DeleteValue(C.ClassName);
-            F.WriteString(C.ClassName, '');
-            V := F.ValueByName(C.ClassName);
-          end;
-          if V is TgsStringValue then
-          begin
-            if V.AsString > '' then
-              V.AsString := V.AsString + ',' + ASubType + '=' + ASubType
-            else
-              V.AsString := ASubType + '=' + ASubType
-          end;
-        end;
-      finally
-        GlobalStorage.CloseFolder(F);
-      end;
-    end;
-  end;
-end;
 
 function TgdcExplorer.CheckTheSameStatement: String;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
@@ -255,7 +186,6 @@ procedure TgdcExplorer.DoAfterDelete;
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-  V: OleVariant;
 begin
   {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCEXPLORER', 'DOAFTERDELETE', KEYDOAFTERDELETE)}
   {M}  try
@@ -281,18 +211,6 @@ begin
     exit;
 
   inherited;
-
-  if (VarType(FOldClassName) = varString)
-    and (VarType(FOldSubType) = varString) then
-  begin
-    ExecSingleQueryResult('SELECT id FROM gd_command WHERE classname=:cn AND subtype=:st',
-      VarArrayOf([FOldClassName, FOldSubType]), V);
-
-    if VarType(V) = varEmpty then
-    begin
-      RemoveSubType(FOldClassName, FOldSubType);
-    end;  
-  end;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCEXPLORER', 'DOAFTERDELETE', KEYDOAFTERDELETE)}
   {M}  finally
@@ -334,9 +252,6 @@ begin
 
   inherited;
 
-  FOldClassName := FieldByName('classname').AsVariant;
-  FOldSubType := FieldByName('subtype').AsVariant;  
-
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCEXPLORER', 'DOAFTEREDIT', KEYDOAFTEREDIT)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -376,9 +291,6 @@ begin
     exit;
 
   inherited;
-
-  FOldClassName := Unassigned;
-  FOldSubType := Unassigned;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCEXPLORER', 'DOAFTERINSERT', KEYDOAFTERINSERT)}
   {M}  finally
@@ -498,7 +410,6 @@ var
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-  V: OleVariant;
 begin
   {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCEXPLORER', 'DOAFTERPOST', KEYDOAFTERPOST)}
   {M}  try
@@ -532,42 +443,6 @@ begin
       FieldByName('aview').AsInteger,
       FieldByName('achag').AsInteger,
       FieldByName('afull').AsInteger)
-  end;
-
-  if (VarType(FOldClassName) = varEmpty) and (VarType(FOldSubType) = varEmpty) then
-  begin
-    if (FieldByName('classname').AsString > '')
-      and (FieldByName('subtype').AsString > '') then
-    begin
-      if not TestSubType(FieldByName('classname').AsString, FieldByName('subtype').AsString) then
-      begin
-        AddSubType(FieldByName('classname').AsString, FieldByName('subtype').AsString);
-      end;
-    end;
-  end else
-  begin
-    if (FieldByName('classname').AsVariant <> FOldClassName) or
-      (FieldByName('subtype').AsVariant <> FOldSubType) then
-    begin
-      if (VarType(FOldClassName) = varString) and (VarType(FOldSubType) = varString) then
-      begin
-        ExecSingleQueryResult('SELECT id FROM gd_command WHERE classname=:cn AND subtype=:st',
-          VarArrayOf([FOldClassName, FOldSubType]), V);
-
-        if VarType(V) = varEmpty then
-        begin
-          RemoveSubType(FOldClassName, FOldSubType);
-        end;
-      end;
-      if (FieldByName('classname').AsString > '')
-        and (FieldByName('subtype').AsString > '') then
-      begin
-        if not TestSubType(FieldByName('classname').AsString, FieldByName('subtype').AsString) then
-        begin
-          AddSubType(FieldByName('classname').AsString, FieldByName('subtype').AsString);
-        end;
-      end;
-    end;
   end;
 
   // Через поток поля настройки прав не переносятся,
@@ -630,9 +505,6 @@ begin
     exit;
 
   inherited;
-
-  FOldClassName := FieldByName('classname').AsVariant;
-  FOldSubType := FieldByName('subtype').AsVariant;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCEXPLORER', 'DOBEFOREDELETE', KEYDOBEFOREDELETE)}
   {M}  finally
@@ -797,20 +669,6 @@ begin
   Result := True;
 end;
 
-procedure TgdcExplorer.GetWhereClauseConditions(S: TStrings);
-begin
-  inherited;
-  {
-  if HasSubSet('ByExplorer') then
-  begin
-    S.Add('z.id > 710000'); // саму "голову" Исследователь в дерево не будем включать
-    S.Add('z.disabled = 0'); // Только активные пункты меню. Таким образом мы можем отключать
-                             // не неужные пункты меню не удаляя их из gd_command и затем при
-                             // Upgrade все будет нормально.
-  end;
-  }
-end;
-
 function TgdcExplorer.Get_gdcClass: CgdcBase;
 var
   Cl: TClass;
@@ -846,47 +704,6 @@ begin
       FieldByName('aview').AsInteger := Res[0, 0];
       FieldByName('achag').AsInteger := Res[1, 0];
       FieldByName('afull').AsInteger := Res[2, 0];
-    end;
-  end;
-end;
-
-procedure TgdcExplorer.RemoveSubType(const AClassName, ASubType: String);
-var
-  C: TPersistentClass;
-  S: String;
-  F: TgsStorageFolder;
-  V: TgsStorageValue;
-begin
-  C := GetClass(AClassName);
-  if (C <> nil) and (C.InheritsFrom(TgdcBase)) then
-  begin
-    if Assigned(GlobalStorage) then
-    begin
-      F := GlobalStorage.OpenFolder('SubTypes', False);
-      try
-        if Assigned(F) then
-        begin
-          V := F.ValueByName(C.ClassName);
-          if V <> nil then
-          begin
-            if V is TgsStringValue then
-            begin
-              S := StringReplace(V.AsString + ',', ASubType + '=' + ASubType + ',', '', [rfReplaceAll]);
-              if (Length(S) > 0) and (S[Length(S)] = ',') then
-              begin
-                SetLength(S, Length(S) - 1);
-              end;
-              if S > '' then
-                V.AsString := S
-              else
-                F.DeleteValue(C.ClassName);
-            end else
-              F.DeleteValue(C.ClassName);
-          end;
-        end;
-      finally
-        GlobalStorage.CloseFolder(F);
-      end;
     end;
   end;
 end;
@@ -1038,19 +855,6 @@ begin
   end;
 end;
 
-function TgdcExplorer.TestSubType(const AClassName,
-  ASubType: String): Boolean;
-var
-  C: TPersistentClass;
-begin
-  Result := False;
-
-  C := GetClass(AClassName);
-
-  if (C <> nil) and (C.InheritsFrom(TgdcBase)) and (ASubType > '')then
-    Result := CgdcBase(C).CheckSubType(ASubType);
-end;
-
 procedure TgdcExplorer._SaveToStream(Stream: TStream;
   ObjectSet: TgdcObjectSet; PropertyList: TgdcPropertySets;
   BindedList: TgdcObjectSet;
@@ -1106,5 +910,5 @@ initialization
   RegisterGdcClass(TgdcExplorer);
 
 finalization
-  UnRegisterGdcClass(TgdcExplorer);
+  UnregisterGdcClass(TgdcExplorer);
 end.

@@ -1290,12 +1290,7 @@ end;
 
 function TReportFrame.CanSaveToFile: Boolean;
 begin
-  Result := True{((PageControl.ActivePage = tsMainFunction) and
-    (MainFunctionFrame.CanSaveToFile)) or
-    ((PageControl.ActivePage = tsParamFunction) and
-    (ParamFunctionFrame.CanSaveToFile)) or
-    ((PageControl.ActivePage = tsEventFunction) and
-    (EventFunctionFrame.CanSaveToFile))};
+  Result := True;
 end;
 
 procedure TReportFrame.SaveToFile;
@@ -2029,7 +2024,6 @@ procedure TReportFrame.EventFunctionFrameactDeleteFunctionUpdate(
 begin
   inherited;
   EventFunctionFrame.actDeleteFunctionUpdate(Sender);
-
 end;
 
 procedure TReportFrame.EventFunctionFrameactNewFunctionExecute(
@@ -2043,7 +2037,6 @@ procedure TReportFrame.EventFunctionFrameactNewFunctionUpdate(
 begin
   inherited;
   EventFunctionFrame.actNewFunctionUpdate(Sender);
-
 end;
 
 procedure TReportFrame.MainFunctionFrameactDeleteFunctionUpdate(
@@ -2282,8 +2275,6 @@ begin
     if I > 0 then
       ObjectStream.ReadBuffer(Str[1], I);
 
-//        tmpStr := 'SELECT rl.name FROM rp_reportlist rl WHERE reportgroupkey = ' +
-//          gdcReport.FieldByName('reportgroupkey').AsString;
     tmpStr := GetUniCopyname(Str, gdcReport.ID);// GetUniname(TmpStr, Str, NameList, IBSQL);
     if Length(tmpStr) > 0 then
       gdcReport.FieldByName(fnName).AsString := TmpStr
@@ -2491,29 +2482,28 @@ end;
 
 procedure TReportFrame.gdcReportAfterOpen(DataSet: TDataSet);
 var
-  ibsql: TIBSQL;
+  q: TIBSQL;
   RUID: String;
 begin
   inherited;
 
   RUID := gdcBaseManager.GetRUIDStringByID(gdcReport.ID);
 
-  if (RUID <> '') and (gdcReport.State = dsBrowse)
-    and (gdcReport.FieldByName('folderkey').AsInteger > -1) then
+  if (RUID > '') and (gdcReport.State = dsBrowse)
+    and (gdcReport.FieldByName('folderkey').AsInteger > 0) then
   begin
-    ibsql := TIBSQL.Create(nil);
+    q := TIBSQL.Create(nil);
     try
-      ibsql.Transaction := gdcReport.ReadTransaction;
-      ibsql.SQL.Text := 'SELECT id FROM gd_command WHERE parent = '
-        + gdcReport.FieldByName('FOLDERKEY').AsString
-        + ' and CMD = ''' + RUID + '''';
+      q.Transaction := gdcReport.ReadTransaction;
+      q.SQL.Text := 'SELECT id FROM gd_command WHERE parent = :p AND cmd = :c';
+      q.ParamByName('p').AsInteger := gdcReport.FieldByName('FOLDERKEY').AsInteger;
+      q.ParamByName('c').AsString := RUID;
+      q.ExecQuery;
 
-      ibsql.ExecQuery;
-
-      if ibsql.EoF then
+      if q.EOF then
         iblFolder.CurrentKeyInt := -1;
     finally
-      ibsql.Free;
+      q.Free;
     end;
   end;
 end;

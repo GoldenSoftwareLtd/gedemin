@@ -133,11 +133,6 @@ type
     class function IsAbstractClass: Boolean; override;
     class function ContactType: Integer; virtual;
     class function GetRestrictCondition(const ATableName, ASubType: String): String; override;
-    class function GetChildrenClass(const ASubType: TgdcSubType;
-      AnOL: TObjectList; const AnIncludeRoot: Boolean = True;
-      const AnOnlyDirect: Boolean = False;
-      const AnIncludeAbstract: Boolean = False): Boolean; override;
-
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
 
     class function GetListTable(const ASubType: TgdcSubType): String; override;
@@ -148,8 +143,6 @@ type
     class function HasLeafs: Boolean; override;
 
     procedure SetInclude(const AnID: TID); override;
-
-    function GetDefaultClassForDialog: TgdcFullClass; override;
   end;
 
   TgdcFolder = class(TgdcBaseContact)
@@ -182,11 +175,6 @@ type
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetSubSetList: String; override;
     class function HasLeafs: Boolean; override;
-
-    function GetDescendantList(AOL: TObjectList;
-      const AnOnlySameLevel: Boolean): Boolean; override;
-
-    function GetDescendantCount(const AnOnlySameLevel: Boolean): Integer; override;
   end;
 
   TgdcCompany = class(TgdcBaseContact)
@@ -302,7 +290,6 @@ type
   public
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
-    //
     class procedure GetClassImage(const ASizeX, ASizeY: Integer; AGraphic: TGraphic); override;
 
     function CheckTheSameStatement: String; override;
@@ -969,35 +956,33 @@ end;
 
 function TgdcBaseContact.GetCurrRecordClass: TgdcFullClass;
 var
-  S: String;
   q: TIBSQL;
-  F: TField;
 begin
   Result.gdClass := CgdcBase(Self.ClassType);
-  Result.SubType := '';
+  Result.SubType := SubType;
 
   if not IsEmpty then
   begin
-    S := '';
-
     case FieldByName('contacttype').AsInteger of
-      ct_Folder: S := 'TgdcFolder';
-      ct_Group: S := 'TgdcGroup';
-      ct_Contact: S := 'TgdcContact';
-      ct_Company: S := 'TgdcCompany';
-      ct_Department: S := 'TgdcDepartment';
-      ct_Bank: S := 'TgdcBank';
+      ct_Folder: Result.gdClass := TgdcFolder;
+      ct_Group: Result.gdClass := TgdcGroup;
+      ct_Contact: Result.gdClass := TgdcContact;
+      ct_Company: Result.gdClass := TgdcCompany;
+      ct_Department: Result.gdClass := TgdcDepartment;
+      ct_Bank: Result.gdClass := TgdcBank;
 
       {$IFDEF DEPARTMENT}
-      ct_Sale: S := 'Tgdc_dpSale';
-      ct_Authority: S := 'Tgdc_dpAuthority';
-      ct_Financial: S := 'Tgdc_dpFinancial';
-      ct_Main: S := 'Tgdc_dpMain';
-      ct_Comittee: S :='Tgdc_dpComittee';
+      ct_Sale: Result.gdClass := Tgdc_dpSale;
+      ct_Authority: Result.gdClass := Tgdc_dpAuthority;
+      ct_Financial: Result.gdClass := Tgdc_dpFinancial;
+      ct_Main: Result.gdClass := Tgdc_dpMain;
+      ct_Comittee: Result.gdClass := Tgdc_dpComittee;
       {$ENDIF}
+    else
+      raise EgdcException.CreateObj('Invalid contact type', Self);
     end;
 
-    if (S = 'TgdcContact') and (not FieldByName('parent').IsNull) then
+    if (Result.gdClass = TgdcContact) and (not FieldByName('parent').IsNull) then
     begin
       q := TIBSQL.Create(nil);
       try
@@ -1005,30 +990,14 @@ begin
         q.SQL.Text := 'SELECT contacttype FROM gd_contact WHERE id = ' + FieldByName('parent').AsString;
         q.ExecQuery;
         if q.Fields[0].AsInteger in [3, 4, 5] then
-          S := 'TgdcEmployee';
-        q.Close;
+          Result.gdClass := TgdcEmployee;
       finally
         q.Free;
       end;
     end;
-
-    if (S > '') and (GetClass(S) <> nil) then
-      Result.gdClass := CgdcBase(GetClass(S))
-    else
-      {$IFDEF DEBUG}
-      raise EgdcException.CreateObj('Invalid contact type', Self)
-      {$ENDIF}
-      ;
   end;
 
-  if (Result.gdClass = TgdcCompany) or (Result.gdClass = TgdcOurCompany) then
-    Exit;
-
-  F := FindField('USR$ST');
-  if F <> nil then
-    Result.SubType := F.AsString;
-  if (Result.SubType > '') and (not Result.gdClass.CheckSubType(Result.SubType)) then
-    raise EgdcException.Create('Invalid USR$ST value.');
+  FindInheritedSubType(Result);
 end;
 
 function TgdcBaseContact.GetGroupID: Integer;
@@ -1070,50 +1039,6 @@ begin
   {M}      ClearMacrosStack2('TGDCBASECONTACT', '_DOONNEWRECORD', KEY_DOONNEWRECORD);
   {M}  end;
   {END MACRO}
-end;
-
-class function TgdcBaseContact.GetChildrenClass(const ASubType: TgdcSubType;
-  AnOL: TObjectList; const AnIncludeRoot: Boolean = True;
-  const AnOnlyDirect: Boolean = False;
-  const AnIncludeAbstract: Boolean = False): Boolean;
-var
-  CL: TClassList;
-  I, J: Integer;
-begin
-  Result := inherited GetChildrenClass(ASubType, AnOL, AnIncludeRoot,
-    AnOnlyDirect, AnIncludeAbstract);
-
-  if Result then
-  begin
-    CL := TClassList.Create;
-    try
-      if Self <> TgdcOurCompany then
-        CL.Add(TgdcOurCompany);
-      if Self <> TgdcFolder then
-        CL.Add(TgdcFolder);
-      if (Self <> TgdcGroup) and (Self <> TgdcBaseContact) then
-        CL.Add(TgdcGroup);
-      if Self <> TgdcDepartment then
-        CL.Add(TgdcDepartment);
-
-      if AnOL.Count > 0 then
-        for I := AnOL.Count - 1 downto 0 do
-        begin
-          for J := 0 to CL.Count - 1 do
-          begin
-            if TgdClassEntry(AnOL[I]).TheClass = CL[J] then
-            begin
-              AnOL.Delete(I);
-              break;
-            end;
-          end;
-        end;
-    finally
-      CL.Free;
-    end;
-  end;
-
-  Result := AnOL.Count > 0;
 end;
 
 class function TgdcBaseContact.GetListField(
@@ -1483,7 +1408,7 @@ begin
             ibsql.Close;
             ibsql.SQL.Text := (Format('INSERT INTO gd_ourcompany(companykey) ' +
               ' VALUES (%d)', [AnID]));
-            ibsql.ExecQuery;  
+            ibsql.ExecQuery;
           end;
         end;
       finally
@@ -1504,17 +1429,6 @@ end;
 class function TgdcBaseContact.IsAbstractClass: Boolean;
 begin
   Result := Self.ClassNameIs('TgdcBaseContact');
-end;
-
-function TgdcBaseContact.GetDefaultClassForDialog: TgdcFullClass;
-begin
-  if Self.ClassType <> TgdcBaseContact then
-    Result := inherited GetDefaultClassForDialog
-  else
-  begin
-    Result.gdClass := TgdcCompany;
-    Result.SubType := '';
-  end;
 end;
 
 { TgdcFolder }
@@ -1629,60 +1543,6 @@ class function TgdcDepartment.GetSubSetList: String;
 begin
   Result := inherited GetSubSetList +
     cst_ByLBRBDepartment + ';' + cst_Holding + ';';
-end;
-
-function TgdcDepartment.GetDescendantList(AOL: TObjectList;
-  const AnOnlySameLevel: Boolean): Boolean;
-var
-  OL: TObjectList;
-  I: Integer;
-  CO : TCreatedObject;
-begin
-  if Self.ClassType <> TgdcDepartment then
-    Result := inherited GetDescendantList(AOL, AnOnlySameLevel)
-  else
-  begin
-    OL := TObjectList.Create(False);
-    try
-      if GetChildrenClass(SubType, OL) then
-      begin
-        for I := 0 to OL.Count - 1 do
-        begin
-          CO := TCreatedObject.Create;
-          CO.Obj := OL[I];
-          CO.Caption := TgdClassEntry(OL[I]).Caption;
-          if CO.Caption = '' then
-            CO.Caption := TgdClassEntry(OL[I]).TheClass.ClassName;
-          CO.IsSubLevel := False;
-          AOL.Add(CO);
-
-          if not AnOnlySameLevel then
-          begin
-            CO := TCreatedObject.Create;
-            CO.Obj := OL[I];
-            CO.Caption := TgdClassEntry(OL[I]).Caption;
-            if CO.Caption = '' then
-              CO.Caption := TgdClassEntry(OL[I]).TheClass.ClassName;
-            CO.Caption := CO.Caption + ' (подуровень)';
-            CO.IsSubLevel := True;
-            AOL.Add(CO);
-          end;
-        end;
-      end;
-    finally
-      OL.Free;
-    end;
-
-    Result := AOL.Count > 0;
-  end;
-end;
-
-function TgdcDepartment.GetDescendantCount(const AnOnlySameLevel: Boolean): Integer;
-begin
-  Result := inherited GetDescendantCount(AnOnlySameLevel);
-
-  if (Self.ClassType = TgdcDepartment) and (not AnOnlySameLevel) then
-    Result := Result * 2;
 end;
 
 function TgdcDepartment.GetFromClause(const ARefresh: Boolean = False): String;
@@ -2797,15 +2657,14 @@ end;
 function TgdcCompany.GetCurrRecordClass: TgdcFullClass;
 var
   q: TIBSQL;
-  F: TField;
 begin
   Result.gdClass := CgdcBase(Self.ClassType);
-  Result.SubType := '';
+  Result.SubType := SubType;
 
-  if Active and (not IsEmpty) and Assigned(IBLogin) then
+  if (not IsEmpty) and Assigned(IBLogin) then
   begin
     if ID = IBLogin.CompanyKey then
-      Result.gdClass := CgdcBase(TgdcOurCompany)
+      Result.gdClass := TgdcOurCompany
     else begin
       q := TIBSQL.Create(nil);
       try
@@ -2815,19 +2674,14 @@ begin
         q.Params[0].AsInteger := ID;
         q.ExecQuery;
         if not q.EOF then
-          Result.gdClass := CgdcBase(TgdcOurCompany);
-        q.Close;
+          Result.gdClass := TgdcOurCompany;
       finally
         q.Free;
       end;
     end;
   end;
 
-  F := FindField('USR$ST');
-  if F <> nil then
-    Result.SubType := F.AsString;
-  if (Result.SubType > '') and (not Result.gdClass.CheckSubType(Result.SubType)) then
-    raise EgdcException.Create('Invalid USR$ST value.');
+  FindInheritedSubType(Result);
 end;
 
 procedure TgdcCompany.DoBeforePost;
@@ -3253,8 +3107,8 @@ begin
   {END MACRO}
   Result :=
     'FROM ' +
-    '  gd_bank b LEFT JOIN gd_contact z ON b.bankkey = z.id ' +
-    '  LEFT JOIN gd_company cm ON cm.contactkey = z.id ' +
+    '  gd_bank b JOIN gd_contact z ON b.bankkey = z.id ' +
+    '  JOIN gd_company cm ON cm.contactkey = z.id ' +
     '  LEFT JOIN gd_companycode cc ON cc.companykey = cm.contactkey ';
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBANK', 'GETFROMCLAUSE', KEYGETFROMCLAUSE)}
   {M}  finally
@@ -3309,7 +3163,6 @@ begin
   F := atDatabase.FindRelationField('GD_BANK', 'BANKBRANCH');
   if Assigned(F) then
     Result := Result + ', b.bankbranch';
-
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBANK', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE)}
   {M}  finally
@@ -3407,7 +3260,6 @@ end;
 class function TgdcOurCompany.GetRestrictCondition(const ATableName,
   ASubType: String): String;
 begin
-//  Result := inherited GetRestrictCondition(aTableName, aSubType);
   Result := ' EXISTS(SELECT * FROM gd_ourcompany our WHERE our.companykey = z.id) ';
 end;
 
@@ -3696,7 +3548,8 @@ begin
       else
         ibsql.Transaction := ReadTransaction;
 
-      ibsql.SQL.Text := ' SELECT FIRST 1 cc.id, cc.name, cc.lb ' +
+      ibsql.SQL.Text :=
+        ' SELECT FIRST 1 cc.id, cc.name, cc.lb ' +
         ' FROM ' +
         '   gd_contact c ' +
         ' LEFT JOIN gd_contact cc ON cc.lb <= c.lb AND cc.rb >= c.rb ' +
@@ -3708,10 +3561,8 @@ begin
       ibsql.ParamByName('id').AsInteger := FieldByName('parent').AsInteger;
       ibsql.ExecQuery;
 
-      if ibsql.RecordCount > 0 then
-      begin
+      if not ibsql.EOF then
         FieldByName('wcompanykey').AsInteger := ibsql.FieldByName('id').AsInteger;
-      end;
     finally
       ibsql.Free;
     end;
@@ -3730,7 +3581,6 @@ begin
         GD_POL_CHANGE_WO_ID, GD_POL_CHANGE_WO_MASK, False) and IBLogin.InGroup) <> 0);
   end;
 end;
-
 
 function TgdcOurCompany.CheckTheSameStatement: String;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
@@ -3888,28 +3738,34 @@ begin
 end;
 
 initialization
-  RegisterGdcClass(TgdcBaseContact, ctStorage, 'Адресная книга');
-  RegisterGdcClass(TgdcFolder, ctStorage, 'Папка');
-  RegisterGdcClass(TgdcGroup, ctStorage, 'Группа');
-  RegisterGdcClass(TgdcContact, ctStorage, 'Физическое лицо');
-  RegisterGdcClass(TgdcEmployee, ctStorage, 'Сотрудник предприятия');
-  RegisterGdcClass(TgdcDepartment, ctStorage, 'Подразделение');
-  RegisterGdcClass(TgdcCompany, ctStorage, 'Организация');
-  RegisterGdcClass(TgdcOurCompany, ctStorage, 'Рабочая организация');
-  RegisterGdcClass(TgdcBank, ctStorage, 'Банк');
-  RegisterGdcClass(TgdcAccount, ctStorage, 'Расчетный счет');
+  RegisterGdcClass(TgdcBaseContact, 'Адресная книга');
+  RegisterGdcClass(TgdcFolder,      'Папка');
+  RegisterGdcClass(TgdcGroup,       'Группа');
+  RegisterGdcClass(TgdcContact,     'Физическое лицо');
+  RegisterGdcClass(TgdcEmployee,    'Сотрудник предприятия');
+  RegisterGdcClass(TgdcDepartment,  'Подразделение');
+  with RegisterGdcClass(TgdcCompany, 'Организация') as TgdBaseEntry do
+    DistinctRelation := 'GD_COMPANY';
+  with RegisterGdcClass(TgdcOurCompany, 'Рабочая организация') as TgdBaseEntry do
+  begin
+    Hidden := True;
+    DistinctRelation := 'GD_OURCOMPANY';
+  end;
+  with RegisterGdcClass(TgdcBank, 'Банк') as TgdBaseEntry do
+    DistinctRelation := 'GD_BANK';
+  RegisterGdcClass(TgdcAccount,     'Расчетный счет');
 
 finalization
-  UnRegisterGdcClass(TgdcBaseContact);
-  UnRegisterGdcClass(TgdcFolder);
-  UnRegisterGdcClass(TgdcGroup);
-  UnRegisterGdcClass(TgdcContact);
-  UnRegisterGdcClass(TgdcEmployee);
-  UnRegisterGdcClass(TgdcDepartment);
-  UnRegisterGdcClass(TgdcCompany);
-  UnRegisterGdcClass(TgdcOurCompany);
-  UnRegisterGdcClass(TgdcBank);
-  UnRegisterGdcClass(TgdcAccount);
+  UnregisterGdcClass(TgdcBaseContact);
+  UnregisterGdcClass(TgdcFolder);
+  UnregisterGdcClass(TgdcGroup);
+  UnregisterGdcClass(TgdcContact);
+  UnregisterGdcClass(TgdcEmployee);
+  UnregisterGdcClass(TgdcDepartment);
+  UnregisterGdcClass(TgdcCompany);
+  UnregisterGdcClass(TgdcOurCompany);
+  UnregisterGdcClass(TgdcBank);
+  UnregisterGdcClass(TgdcAccount);
 end.
 
 

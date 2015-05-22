@@ -66,6 +66,8 @@ resourcestring
   
   sDBConnect = 'Соединение с базой данных';
   sReadingDbScheme = 'Считывание структуры базы данных';
+  sLoadingStorage = 'Загрузка хранилища';
+  sLoadingUserDefinedClasses = 'Загрузка бизнес-классов';
   sSinchronizationAtRelations = 'Синхронизация таблиц';
   sReadingDomens = 'Считывание доменов';
   sReadingRelations = 'Считывание таблиц';

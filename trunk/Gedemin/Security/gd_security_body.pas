@@ -604,8 +604,6 @@ begin
   InitDatabase(dmLogin.ibtrAttr);
   atDatabase.ProceedLoading(True);
 
-  gdClassList.LoadUserDefinedClasses;
-
   ClearHoldingListCache;
 
   if dm_i_ClientReport <> nil then begin

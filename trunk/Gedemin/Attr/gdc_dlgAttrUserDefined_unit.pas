@@ -1,8 +1,7 @@
 
 {++
 
-
-  Copyright (c) 2001 by Golden Software of Belarus
+  Copyright (c) 2001-2015 by Golden Software of Belarus
 
   Module
 
@@ -20,7 +19,6 @@
   Revisions history
 
     1.0    30.10.2001    Dennis    Initial version.
-
 
 --}
 
@@ -40,7 +38,6 @@ type
 
   public
     procedure SetupDialog; override;
-    procedure SaveSettings; override;
   end;
 
 var
@@ -54,43 +51,6 @@ uses
 
 { Tgdc_dlgAttrUserDefined }
 
-procedure Tgdc_dlgAttrUserDefined.SaveSettings;
-  {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGATTRUSERDEFINED', 'SAVESETTINGS', KEYSAVESETTINGS)}
-  {M}  try
-  {M}    if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDC_DLGATTRUSERDEFINED', KEYSAVESETTINGS);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYSAVESETTINGS]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDC_DLGATTRUSERDEFINED') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDC_DLGATTRUSERDEFINED',
-  {M}          'SAVESETTINGS', KEYSAVESETTINGS, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDC_DLGATTRUSERDEFINED' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  inherited;
-
-  {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGATTRUSERDEFINED', 'SAVESETTINGS', KEYSAVESETTINGS)}
-  {M}finally
-  {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
-  {M}    ClearMacrosStack('TGDC_DLGATTRUSERDEFINED', 'SAVESETTINGS', KEYSAVESETTINGS);
-  {M}end;
-  {END MACRO}
-end;
-
 procedure Tgdc_dlgAttrUserDefined.SetupDialog;
 var
   {@UNFOLD MACRO INH_CRFORM_PARAMS()}
@@ -98,7 +58,6 @@ var
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-  RelName: String;
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGATTRUSERDEFINED', 'SETUPDIALOG', KEYSETUPDIALOG)}
   {M}  try
@@ -121,24 +80,12 @@ begin
   {END MACRO}
   inherited;
 
-  RelName := '';
-
-  try
-    if gdcObject is TgdcAttrUserDefined then
-      RelName := atDatabase.Relations.ByRelationName((gdcObject as TgdcAttrUserDefined).RelationName).LName
-    else if gdcObject is TgdcAttrUserDefinedTree then
-      RelName := atDatabase.Relations.ByRelationName((gdcObject as TgdcAttrUserDefinedTree).RelationName).LName
-    else if gdcObject is TgdcAttrUserDefinedLBRBTree then
-      RelName := atDatabase.Relations.ByRelationName((gdcObject as TgdcAttrUserDefinedLBRBTree).RelationName).LName;
-  except
-  end;
-
   if gdcObject.State = dsInsert then
-    Caption := 'Добавление: ' + RelName
+    Caption := 'Добавление: ' + gdcObject.GetDisplayName(gdcObject.SubType)
   else if gdcObject.State = dsEdit then
-    Caption := 'Редактирование: ' + RelName
+    Caption := 'Редактирование: ' + gdcObject.GetDisplayName(gdcObject.SubType)
   else
-    Caption := 'Просмотр: ' + RelName;
+    Caption := 'Просмотр: ' + gdcObject.GetDisplayName(gdcObject.SubType);
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGATTRUSERDEFINED', 'SETUPDIALOG', KEYSETUPDIALOG)}
   {M}finally
@@ -149,10 +96,9 @@ begin
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_dlgAttrUserDefined, ctUserDefined);
+  RegisterFrmClass(Tgdc_dlgAttrUserDefined);
 
 finalization
   UnRegisterFrmClass(Tgdc_dlgAttrUserDefined);
-
 end.
 

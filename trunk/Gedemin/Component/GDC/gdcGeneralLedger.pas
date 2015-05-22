@@ -40,6 +40,6 @@ initialization
   RegisterGdcClass(TgdcGeneralLedger);
 
 finalization
-  UnRegisterGdcClass(TgdcGeneralLedger);
+  UnregisterGdcClass(TgdcGeneralLedger);
 end.
 

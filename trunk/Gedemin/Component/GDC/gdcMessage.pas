@@ -9,15 +9,13 @@ uses
 type
   TgdcMessageBox = class(TgdcLBRBTree)
   protected
-    function CreateDialogForm: TCreateableForm; override;
-
-    //
     function AcceptClipboard(CD: PgdcClipboardData): Boolean; override;
 
   public
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
+    class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
   end;
 
   TgdcBaseMessage = class(TgdcBase)
@@ -49,7 +47,6 @@ type
   TgdcPhoneCall = class(TgdcBaseMessage)
   protected
     procedure GetWhereClauseConditions(S: TStrings); override;
-    function CreateDialogForm: TCreateableForm; override;
     procedure _DoOnNewRecord; override;
     procedure DoBeforePost; override;
 
@@ -57,6 +54,7 @@ type
     class function GetMessageType: Char; override;
     function GetDialogDefaultsFields: String; override;
     function GetNotCopyField: String; override;
+    class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
   end;
 
   TgdcAttachment = class(TgdcBase)
@@ -152,56 +150,10 @@ begin
     Result := inherited AcceptClipboard(CD);
 end;
 
-function TgdcMessageBox.CreateDialogForm: TCreateableForm;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
+class function TgdcMessageBox.GetDialogFormClassName(
+  const ASubType: TgdcSubType): String;
 begin
-  {@UNFOLD MACRO INH_ORIG_FUNCCREATEDIALOGFORM('TGDCMESSAGEBOX', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  try
-  {M}    Result := nil;
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCMESSAGEBOX', KEYCREATEDIALOGFORM);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCREATEDIALOGFORM]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCMESSAGEBOX') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCMESSAGEBOX',
-  {M}          'CREATEDIALOGFORM', KEYCREATEDIALOGFORM, Params, LResult) then
-  {M}          begin
-  {M}            Result := nil;
-  {M}            if VarType(LResult) <> varDispatch then
-  {M}              raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен не объект.')
-  {M}            else
-  {M}              if IDispatch(LResult) = nil then
-  {M}                raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                  'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен пустой (null) объект.');
-  {M}            Result := GetInterfaceToObject(LResult) as TCreateableForm;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCMESSAGEBOX' then
-  {M}        begin
-  {M}//          Result := Inherited CreateDialogForm;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  Result := Tgdc_msg_dlgBox.CreateSubType(ParentForm, SubType);
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCMESSAGEBOX', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCMESSAGEBOX', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM);
-  {M}  end;
-  {END MACRO}
+  Result := 'Tgdc_msg_dlgBox';
 end;
 
 class function TgdcMessageBox.GetListField(const ASubType: TgdcSubType): String;
@@ -234,77 +186,15 @@ begin
     Result := inherited AcceptClipboard(CD);
 end;
 
-function TgdcPhoneCall.CreateDialogForm: TCreateableForm;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_FUNCCREATEDIALOGFORM('TGDCPHONECALL', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  try
-  {M}    Result := nil;
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCPHONECALL', KEYCREATEDIALOGFORM);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCREATEDIALOGFORM]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCPHONECALL') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCPHONECALL',
-  {M}          'CREATEDIALOGFORM', KEYCREATEDIALOGFORM, Params, LResult) then
-  {M}          begin
-  {M}            Result := nil;
-  {M}            if VarType(LResult) <> varDispatch then
-  {M}              raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен не объект.')
-  {M}            else
-  {M}              if IDispatch(LResult) = nil then
-  {M}                raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                  'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен пустой (null) объект.');
-  {M}            Result := GetInterfaceToObject(LResult) as TCreateableForm;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCPHONECALL' then
-  {M}        begin
-  {M}          Result := Inherited CreateDialogForm;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  Result := Tgdc_msg_dlgPhoneCall.CreateSubType(ParentForm, SubType);
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCPHONECALL', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCPHONECALL', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM);
-  {M}  end;
-  {END MACRO}
-end;
-
 function TgdcBaseMessage.GetCurrRecordClass: TgdcFullClass;
-var
-  F: TField;
 begin
-  if System.Copy(FieldByName('msgtype').AsString, 1, 1) = 'A' then
-  begin
-    Result.gdClass := TgdcPhoneCall;
-    Result.SubType := '';
-  end else
-  begin
-    Result.gdClass := CgdcBase(Self.ClassType);
-    Result.SubType := '';
-  end;
+  Result.gdClass := CgdcBase(Self.ClassType);
+  Result.SubType := SubType;
 
-  F := FindField('USR$ST');
-  if F <> nil then
-    Result.SubType := F.AsString;
-  if (Result.SubType > '') and (not Result.gdClass.CheckSubType(Result.SubType)) then
-    raise EgdcException.Create('Invalid USR$ST value.');
+  if System.Copy(FieldByName('msgtype').AsString, 1, 1) = 'A' then
+    Result.gdClass := TgdcPhoneCall;
+
+  FindInheritedSubType(Result);
 end;
 
 function TgdcBaseMessage.GetFromClause(const ARefresh: Boolean = False): String;
@@ -385,7 +275,6 @@ end;
 
 class function TgdcBaseMessage.GetMessageType: Char;
 begin
-{ TODO : расписать в теории что делать в таком случае }
   Result := #0;
 end;
 
@@ -433,8 +322,6 @@ begin
     '  z.boxkey, ' +
     '  z.msgtype, ' +
     '  z.msgstart, ' +
-//    '  z.msgstartdate, ' +
-//    '  z.msgstartmonth, ' +
     '  z.msgend, ' +
     '  z.subject, ' +
     '  z.header, ' +
@@ -560,6 +447,12 @@ begin
   {M}      ClearMacrosStack2('TGDCPHONECALL', 'GETDIALOGDEFAULTSFIELDS', KEYGETDIALOGDEFAULTSFIELDS);
   {M}  end;
   {END MACRO}
+end;
+
+class function TgdcPhoneCall.GetDialogFormClassName(
+  const ASubType: TgdcSubType): String;
+begin
+  Result := 'Tgdc_msg_dlgPhoneCall';
 end;
 
 class function TgdcPhoneCall.GetMessageType: Char;
@@ -814,8 +707,6 @@ end;
 
 procedure TgdcAttachment.OpenAttachment;
 var
-//  FS: TFileStream;
-//  S: TStringStream;
   Ch: array[0..1024] of Char;
   Operation: array[0..4] of Char;
   Directory: array[0..254] of Char;
@@ -840,14 +731,14 @@ begin
 end;
 
 initialization
-  RegisterGDCClass(TgdcMessageBox, ctStorage, 'Почтовый ящик');
+  RegisterGDCClass(TgdcMessageBox, 'Почтовый ящик');
   RegisterGDCClass(TgdcBaseMessage);
-  RegisterGDCClass(TgdcPhoneCall, ctStorage, 'Телефонный звонок');
-  RegisterGDCClass(TgdcAttachment);
+  RegisterGDCClass(TgdcPhoneCall, 'Телефонный звонок');
+  RegisterGDCClass(TgdcAttachment, 'Прикрепление');
 
 finalization
-  UnRegisterGDCClass(TgdcMessageBox);
-  UnRegisterGDCClass(TgdcBaseMessage);
-  UnRegisterGDCClass(TgdcPhoneCall);
-  UnRegisterGDCClass(TgdcAttachment);
+  UnregisterGdcClass(TgdcMessageBox);
+  UnregisterGdcClass(TgdcBaseMessage);
+  UnregisterGdcClass(TgdcPhoneCall);
+  UnregisterGdcClass(TgdcAttachment);
 end.

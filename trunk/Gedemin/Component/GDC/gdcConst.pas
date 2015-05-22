@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2000-2014 by Golden Software of Belarus
+  Copyright (c) 2000-2015 by Golden Software of Belarus
 
   Module
 
@@ -637,6 +637,6 @@ initialization
   RegisterGdcClass(TgdcConstValue);
 
 finalization
-  UnRegisterGdcClass(TgdcConst);
-  UnRegisterGdcClass(TgdcConstValue);
+  UnregisterGdcClass(TgdcConst);
+  UnregisterGdcClass(TgdcConstValue);
 end.

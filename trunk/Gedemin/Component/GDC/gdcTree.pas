@@ -28,6 +28,8 @@ type
     FCurrentParent: Integer;
     FParent: TID;
 
+    procedure _InitChild(AnObj: TgdcBase);
+
   protected
     procedure SetParent(const Value: TID); virtual;
     function GetParent: TID; virtual;
@@ -53,9 +55,9 @@ type
 
     procedure InsertChildren;
 
-    function CreateChildrenDialog: Boolean; overload; override;
-    function CreateChildrenDialog(C: CgdcBase): Boolean; overload; override;
-    function CreateChildrenDialog(C:  TgdcFullClass): Boolean; overload; override;
+    function CreateChildrenDialog: Boolean; overload;
+    function CreateChildrenDialog(C: CgdcBase): Boolean; overload;
+    function CreateChildrenDialog(C: TgdcFullClass): Boolean; overload; 
 
     // функция создает и возвращает объект, на который ссылается
     // поле пэрэнт, т.е. родительский объект
@@ -93,8 +95,6 @@ type
     // Данный метод дает нам ответ, содержит таблица листья
     // или нет.
     class function HasLeafs: Boolean; virtual;
-
-    function CreateDialog(C: TgdcFullClass): Boolean; override;
 
     property Parent: TID read GetParent write SetParent;
   end;
@@ -159,7 +159,6 @@ begin
   inherited;
   FForceChildren := False;
   FParent := -1;
-  FCurrentParent := -1;
 end;
 
 procedure TgdcTree.DoBeforeInsert;
@@ -199,11 +198,11 @@ begin
     if ((Parent = -1) or (RecordCount = 0)) and Active and (FgdcDataLink.DataSet is TgdcTree) then
       FCurrentParent := (FgdcDataLink.DataSet as TgdcBase).ID
     else if RecordCount > 0 then
-      FCurrentParent := Parent;
-//    else FCurrentParent
-//      FCurrentParent := -1;
+      FCurrentParent := Parent
+    else
+      FCurrentParent := -1;
   end else
-     FCurrentParent := ID;
+    FCurrentParent := ID;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCTREE', 'DOBEFOREINSERT', KEYDOBEFOREINSERT)}
   {M}  finally
@@ -298,29 +297,19 @@ end;
 
 function TgdcTree.CreateChildrenDialog: Boolean;
 begin
-  FForceChildren := True;
-  try
-    Result := inherited CreateChildrenDialog;
-  finally
-    FForceChildren := False;
-  end;
+  Result := CreateChildrenDialog(MakeFullClass(CgdcBase(Self.ClassType), Self.SubType));
 end;
 
 function TgdcTree.CreateChildrenDialog(C: CgdcBase): Boolean;
 begin
-  FForceChildren := True;
-  try
-    Result := inherited CreateChildrenDialog(C);
-  finally
-    FForceChildren := False;
-  end;
+  Result := CreateChildrenDialog(MakeFullClass(C, ''));
 end;
 
-function TgdcTree.CreateChildrenDialog(C:  TgdcFullClass): Boolean;
+function TgdcTree.CreateChildrenDialog(C: TgdcFullClass): Boolean;
 begin
   FForceChildren := True;
   try
-    Result := inherited CreateChildrenDialog(C);
+    Result := CreateDialog(C, _InitChild);
   finally
     FForceChildren := False;
   end;
@@ -407,11 +396,6 @@ begin
   Result := 'parent';
 end;
 
-{function TgdcTree.GetCopyFieldName: String;
-begin
-  Result := 'parent';
-end;}
-
 class function TgdcTree.GetSubSetList: String;
 begin
   Result := inherited GetSubSetList +
@@ -458,80 +442,6 @@ end;
 class function TgdcTree.HasLeafs: Boolean;
 begin
   Result := False;
-end;
-
-function TgdcTree.CreateDialog(C: TgdcFullClass): Boolean;
-var
-  Obj: TgdcBase;
-  I: Integer;
-  F: TField;
-begin
-  if C.gdClass <> nil then
-  begin
-    CheckClass(C.gdClass);
-    if (C.gdClass = Self.ClassType) and (AnsiUpperCase(C.SubType) = AnsiUpperCase(SubType)) then
-      Result := CreateDialog
-    else begin
-      Obj := C.gdClass.CreateWithParams(Owner, Database, Transaction, C.SubType, 'OnlySelected');
-      try
-        // обязательно надо сохранить мастера!
-        //Obj.MasterField := MasterField;
-        //Obj.DetailField := DetailField;
-        CopyEventHandlers(Obj, Self);
-
-        if Obj is TgdcTree then
-          if FForceChildren then
-            (Obj as TgdcTree).FCurrentParent := Self.ID
-          else
-            (Obj as TgdcTree).FCurrentParent := Self.Parent;
-        try
-
-          //Obj.Assign(Self);
-
-          Result := Obj.CreateDialog;
-
-          if Result and Active and Obj.Active then
-          begin
-            FDataTransfer := True;
-
-            ResetEventHandlers(Self);
-            try
-              { TODO : вернется только одна запись! поскольку СабСет стоит БайИД }
-
-              Obj.First;
-              while not Obj.EOF do
-              begin
-                Insert;
-                try
-                  for I := 0 to FieldCount - 1 do
-                  begin
-                    F := Obj.FindField(Fields[I].FieldName);
-                    if Assigned(F) then
-                      Fields[I].Assign(F);
-                  end;
-                  Post;
-                except
-                  if State in dsEditModes then
-                    Cancel;
-                  raise;
-                end;
-                Obj.Next;
-              end;
-            finally
-              FDataTransfer := False;
-            end;
-          end;
-
-        finally
-          CopyEventHandlers(Self, Obj);
-        end;
-
-      finally
-        Obj.Free;
-      end;
-    end;
-  end else
-    Result := False;
 end;
 
 class function TgdcTree.IsAbstractClass: Boolean;
@@ -1003,6 +913,17 @@ begin
   end;
 end;
 
+procedure TgdcTree._InitChild(AnObj: TgdcBase);
+begin
+  if AnObj is TgdcTree then
+  begin
+    if FForceChildren then
+      (AnObj as TgdcTree).FCurrentParent := Self.ID
+    else
+      (AnObj as TgdcTree).FCurrentParent := Self.Parent;
+  end;
+end;
+
 { TgdcLBRBTree }
 
 procedure TgdcLBRBTree.CreateFields;
@@ -1323,8 +1244,8 @@ initialization
   RegisterGDCClass(TgdcLBRBTree);
 
 finalization
-  UnRegisterGDCClass(TgdcTree);
-  UnRegisterGDCClass(TgdcLBRBTree);
+  UnregisterGdcClass(TgdcTree);
+  UnregisterGdcClass(TgdcLBRBTree);
 end.
 
 

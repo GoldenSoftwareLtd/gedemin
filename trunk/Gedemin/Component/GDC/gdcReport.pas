@@ -1307,11 +1307,11 @@ begin
 end;
 
 initialization
-  RegisterGDCClass(TgdcReportGroup, ctStorage, 'Папка отчетов');
-  RegisterGDCClass(TgdcReport, ctStorage, 'Отчет');
+  RegisterGDCClass(TgdcReportGroup, 'Папка отчетов');
+  RegisterGDCClass(TgdcReport,      'Отчет');
 
 finalization
-  UnRegisterGDCClass(TgdcReportGroup);
-  UnRegisterGDCClass(TgdcReport);
+  UnregisterGdcClass(TgdcReportGroup);
+  UnregisterGdcClass(TgdcReport);
 end.
 

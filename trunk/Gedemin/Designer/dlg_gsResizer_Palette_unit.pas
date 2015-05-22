@@ -1,5 +1,7 @@
+
 {++
-  Copyright (c) 2002 by Golden Software of Belarus
+
+  Copyright (c) 2002-2015 by Golden Software of Belarus, Ltd
 
   Module
     dlg_gsResizer_Palette_unit
@@ -21,6 +23,7 @@
   Revisions history
 
     Initial  17-01-2002  Nick  Initial version.
+
 --}
 
 unit dlg_gsResizer_Palette_unit;
@@ -36,7 +39,6 @@ const
   GDCFolderName = 'GDC';
 
 type
-
   Tdlg_gsResizer_Palette = class(TForm)
     ilPalette: TImageList;
     ActionList1: TActionList;
@@ -153,12 +155,10 @@ type
     destructor Destroy; override;
   end;
 
-
 procedure Tdlg_gsResizer_Palette.actArrowExecute(Sender: TObject);
 var
   I: Integer;
 begin
-
   for I := 0 to (pcPalette.ActivePage as TPaletteTabSheet).FToolbar.Items.Count - 1 do
     (pcPalette.ActivePage as TPaletteTabSheet).FToolbar.Items[I].Checked := False;
 
@@ -177,11 +177,11 @@ function BuildTree(ACE: TgdClassEntry; AData1: Pointer;
   AData2: Pointer): Boolean;
 begin
   if (ACE.SubType = '')
-    and (ACE.gdcClass.ClassName <> 'TgdcBase')
-    and (ACE.gdcClass.ClassName <> 'TgdcTree')
-    and (ACE.gdcClass.ClassName <> 'TgdcLBRBTree') then
+    and (ACE.TheClass.ClassName <> 'TgdcBase')
+    and (ACE.TheClass.ClassName <> 'TgdcTree')
+    and (ACE.TheClass.ClassName <> 'TgdcLBRBTree') then
   begin
-    TClassList(AData1).Add(ACE.gdcClass);
+    TClassList(AData1).Add(ACE.TheClass);
   end;
   Result := True;
 end;
@@ -209,32 +209,28 @@ begin
   else
     FManager := nil;
 
-  //if Assigned(gdClassList) then
+  if (ClassArray[High(ClassArray)]^.FolderName <> GDCFolderName) and
+     (gdClassList.Count > 0) then
   begin
-    if (ClassArray[High(ClassArray)]^.FolderName <> GDCFolderName) and
-       (gdClassList.Count > 0) then
-    begin
-      TempList := TClassList.Create;
-      try
-        gdClassList.Traverse(TgdcBase, '', BuildTree, TempList, nil, True, False);
+    TempList := TClassList.Create;
+    try
+      gdClassList.Traverse(TgdcBase, '', BuildTree, TempList, nil, True, False);
 
-        J := High(ClassArray);
-        SetLength(ClassArray, J + TempList.Count + 1);
-        for I := J + 1 to High(ClassArray) do
-        begin
-          New(P);
-          P^.ClassType := TPersistentClass(TempList[I - (J + 1)]);
-          P^.FolderName := GDCFolderName;
-          ClassArray[I] := P;
-        end;
-      finally
-        TempList.Free;
+      J := High(ClassArray);
+      SetLength(ClassArray, J + TempList.Count + 1);
+      for I := J + 1 to High(ClassArray) do
+      begin
+        New(P);
+        P^.ClassType := TPersistentClass(TempList[I - (J + 1)]);
+        P^.FolderName := GDCFolderName;
+        ClassArray[I] := P;
       end;
+    finally
+      TempList.Free;
     end;
   end;
 
   Bitmap := TBitmap.Create;
-
   try
     for I := Low(ClassArray) to High(ClassArray) do
     begin
@@ -279,14 +275,9 @@ begin
   finally
     Bitmap.Free;
   end;
+
   (pcPalette.ActivePage as TPaletteTabSheet).FbtnArrow.Down := True;
-
 end;
-
-{destructor Tdlg_gsResizer_Palette.Destroy;
-begin
-  inherited;
-end;}
 
 function Tdlg_gsResizer_Palette.GetNewClassName: TPersistentClass;
 var
@@ -658,11 +649,6 @@ initialization
     TVarBytesField, TBlobField, TIDispatchField, TVariantField, TBooleanField,
     TIntegerField, TWideStringField, TBytesField, TLargeIntField, TWordField,
     TCurrencyField, TMemoField, TIBBCDField]);
-{  RegisterNewClasses('Стандартные', [TLabel, TEdit, TButton, TMemo, TPopupMenu,
-                     TCheckBox, TRadioButton, TListBox, TComboBox, TGroupBox, TRadioGroup, TPanel]);
-  RegisterNewClasses('БД', [TDBEdit, TgsIBLookupCombobox, TgsIBGrid, TxDateDBEdit]);
-  RegisterNewClasses('Дополнительные', [TxDateEdit]);
- }
   RegisterNewClasses('Стандартные', [TBevel, TBitBtn, TButton, TCheckbox, TCheckListbox,
          TCombobox, TEdit, TGroupbox, TLabel, TListbox, TListview, TMainmenu, TMemo,
          TPageControl, TPanel, TPopupMenu, TRadioButton, TRadioGroup, TSpeedButton,
@@ -689,6 +675,4 @@ initialization
 
 finalization
   ClearComponents;
-
-
 end.

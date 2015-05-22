@@ -1770,12 +1770,11 @@ end;
 function Tgdc_dlgField.BuildClassTree(ACE: TgdClassEntry; AData1: Pointer;
   AData2: Pointer): Boolean;
 begin
-  if ACE <> nil then
-    if not (ACE.SubType > '') then
-      FClasses.Add(TgdcClassHandler.Create(
-        ACE.gdcClass, gdcObject.Transaction.DefaultDatabase,
-        gdcObject.Transaction));
-        
+  if (ACE is TgdBaseEntry) and (ACE.SubType = '') then
+    FClasses.Add(TgdcClassHandler.Create(
+      TgdBaseEntry(ACE).gdcClass, gdcObject.Transaction.DefaultDatabase,
+      gdcObject.Transaction));
+
   Result := True;
 end;
 

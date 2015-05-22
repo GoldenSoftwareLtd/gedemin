@@ -29,14 +29,13 @@ type
 
   private
     procedure ReopenRemains(CurrentRemains: Boolean);
+
   public
     procedure Setup(AnObject: TObject); override;
     procedure SetChoose(AnObject: TgdcBase); override;
 
     procedure LoadSettings; override;
     procedure SaveSettings; override;
-
-
   end;
 
 var
@@ -61,8 +60,6 @@ procedure Tgdc_frmInvBaseSelectRemains.actSelectAllExecute(
 var
   Bookmark: String;
 begin
-
-
   Bookmark := gdcObject.Bookmark;
 
   if not gdcObject.Filtered then
@@ -87,8 +84,7 @@ begin
     gdcObject.Close;
     gdcObject.Open;
     gdcObject.EnableControls;
-  end;  
-
+  end;
 end;
 
 
@@ -118,6 +114,7 @@ begin
   {M}      end;
   {M}  end;
   {END MACRO}
+
   IsSetup := True;
   try
     if (AnObject as TgdcBase).HasSubSet('AllRemains') then
@@ -158,19 +155,6 @@ end;
 type
   TgsCrackCustomDBGrid = class(TgsCustomDBGrid);
 
-  {
-procedure Tgdc_frmInvBaseSelectRemains.actCancelUpdate(Sender: TObject);
-begin
-  if (Assigned(TgsCrackCustomDBGrid(ibgrDetail).FFindDlg) and
-     IsWindowVisible(TgsCrackCustomDBGrid(ibgrDetail).FFindDlg.Handle)) or
-     tvGroup.IsFindDlgActive
-  then
-    actCancel.Enabled := False
-  else
-    actCancel.Enabled := True;
-end;
-}
-
 procedure Tgdc_frmInvBaseSelectRemains.FormCloseQuery(Sender: TObject;
   var CanClose: Boolean);
 begin
@@ -186,7 +170,6 @@ begin
         ModalResult := mrNone;
       end;
     end;
-
 end;
 
 procedure Tgdc_frmInvBaseSelectRemains.FormActivate(Sender: TObject);
@@ -234,7 +217,6 @@ begin
       gdcObject.Post;
   end;
   inherited;
-
 end;
 
 procedure Tgdc_frmInvBaseSelectRemains.SetChoose(AnObject: TgdcBase);
@@ -286,7 +268,6 @@ begin
   {M}    ClearMacrosStack('TGDC_FRMINVBASESELECTREMAINS', 'SETCHOOSE', KEYSETCHOOSE);
   {M}end;
   {END MACRO}
-
 end;
 
 procedure Tgdc_frmInvBaseSelectRemains.SaveSettings;
@@ -317,6 +298,7 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
   inherited;
 
   //
@@ -333,7 +315,6 @@ begin
     finally
       MS.Free;
     end;
-
   end;
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_FRMINVBASESELECTREMAINS', 'SAVESETTINGS', KEYSAVESETTINGS)}
@@ -437,7 +418,6 @@ begin
   (gdcObject as TgdcInvRemains).SubSet := OldSubSet;
   (gdcObject as TgdcInvRemains).CurrentRemains := CurrentRemains;
   (gdcObject as TgdcInvRemains).Open;
-
 end;
 
 procedure Tgdc_frmInvBaseSelectRemains.actChooseOkExecute(Sender: TObject);
@@ -448,14 +428,11 @@ begin
       gdcObject.Post;
   end;
   inherited;
-
 end;
 
 initialization
-  RegisterFrmClass(Tgdc_frmInvBaseSelectRemains, ctInvRemains);
+  RegisterFrmClass(Tgdc_frmInvBaseSelectRemains);
 
 finalization
   UnRegisterFrmClass(Tgdc_frmInvBaseSelectRemains);
-
-
 end.

@@ -20,6 +20,7 @@ type
     FDontRemove: Boolean;
     FTerminate: Boolean;
     FLoading: Boolean;
+    FIgnoreMissedFields: Boolean;
 
     procedure WMLoadNamespace(var Msg: TMessage);
       message WM_LOAD_NAMESPACE;
@@ -28,7 +29,7 @@ type
     destructor Destroy; override;
 
     procedure LoadNamespace(AList: TStrings; const AnAlwaysOverwrite: Boolean;
-      const ADontRemove: Boolean; const ATerminate: Boolean);
+      const ADontRemove: Boolean; const ATerminate: Boolean; const AnIgnoreMissedFields: Boolean);
 
     property Loading: Boolean read FLoading;
   end;
@@ -57,6 +58,7 @@ type
     FOurCompanies: TgdKeyArray;
     FLoading: Boolean;
     FNSList: TgdKeyArray;
+    FIgnoreMissedFields: Boolean;
 
     procedure FlushStorages;
     procedure LoadAtObjectCache(const ANamespaceKey: Integer);
@@ -83,7 +85,7 @@ type
     destructor Destroy; override;
 
     class procedure LoadDelayed(AList: TStrings; const AnAlwaysOverwrite: Boolean;
-      const ADontRemove: Boolean; const ATerminate: Boolean);
+      const ADontRemove: Boolean; const ATerminate: Boolean; const AnIgnoreMissedFields: Boolean);
     class function LoadingDelayed: Boolean;
 
     procedure Load(AList: TStrings);
@@ -91,6 +93,7 @@ type
     property AlwaysOverwrite: Boolean read FAlwaysOverwrite write FAlwaysOverwrite;
     property DontRemove: Boolean read FDontRemove write FDontRemove;
     property Loading: Boolean read FLoading;
+    property IgnoreMissedFields: Boolean read FIgnoreMissedFields write FIgnoreMissedFields;
   end;
 
   TAtRemoveRecord = class(TObject)
@@ -186,12 +189,15 @@ begin
           AddWarning('Отсутствует в файле: ' + F.Origin);
       end;
 
-      for I := 0 to SL.Count - 1 do
+      if not IgnoreMissedFields then
       begin
-        if not (SL.Objects[I] as TyamlScalar).IsNull then
+        for I := 0 to SL.Count - 1 do
         begin
-          AddWarning('Отсутствует в базе: ' + SL[I]);
-          Result := True;
+          if not (SL.Objects[I] as TyamlScalar).IsNull then
+          begin
+            AddWarning('Отсутствует в базе: ' + SL[I]);
+            Result := True;
+          end;
         end;
       end;
     finally
@@ -887,8 +893,9 @@ begin
           begin
             AddWarning('Процесс загрузки прерван пользователем.');
             Abort;
-          end else
-            AddText('Объект сохранен в исходном состоянии: ' + Obj.ObjectName);
+          end
+          else if InequalFields.Count > 0 then
+            AddText('Объект в базе не обновлен данными из файла: ' + Obj.ObjectName);
         end;
       finally
         Free;
@@ -928,8 +935,11 @@ begin
     if NeedSecondPass then
     begin
       if ASecondPass then
-        AddWarning('Поле(я) отсутствует(ют) в БД после повторной загрузки!')
-      else begin
+      begin
+        if not IgnoreMissedFields then
+          AddWarning('Поле(я) отсутствует(ют) в БД после повторной загрузки!');
+      end else
+      begin
         if Obj is TgdcMetaBase then
           AddMistake('Объект метаданных ' + Obj.ObjectName +
             '(' + Obj.ClassName + ') не может быть загружен повторно!')
@@ -1326,11 +1336,11 @@ begin
 end;
 
 class procedure TgdcNamespaceLoader.LoadDelayed(AList: TStrings;
-  const AnAlwaysOverwrite, ADontRemove, ATerminate: Boolean);
+  const AnAlwaysOverwrite, ADontRemove, ATerminate, AnIgnoreMissedFields: Boolean);
 begin
   if FNexus = nil then
     FNexus := TgdcNamespaceLoaderNexus.CreateNew(nil);
-  FNexus.LoadNamespace(AList, AnAlwaysOverwrite, ADontRemove, ATerminate);
+  FNexus.LoadNamespace(AList, AnAlwaysOverwrite, ADontRemove, ATerminate, AnIgnoreMissedFields);
 end;
 
 procedure TgdcNamespaceLoader.LoadParam(AParam: TIBXSQLVAR; const AFieldName: String;
@@ -1568,7 +1578,7 @@ begin
 end;
 
 procedure TgdcNamespaceLoaderNexus.LoadNamespace(AList: TStrings;
-  const AnAlwaysOverwrite, ADontRemove, ATerminate: Boolean);
+  const AnAlwaysOverwrite, ADontRemove, ATerminate, AnIgnoreMissedFields: Boolean);
 begin
   if FLoading then
     raise EgdcNamespaceLoader.Create('Namespace is loading.');
@@ -1578,6 +1588,7 @@ begin
   FAlwaysOverwrite := AnAlwaysOverwrite;
   FDontRemove := ADontRemove;
   FTerminate := ATerminate;
+  FIgnoreMissedFields := AnIgnoreMissedFields;
   PostMessage(Handle, WM_LOAD_NAMESPACE, 0, 0);
 end;
 
@@ -1594,6 +1605,7 @@ begin
     try
       L.AlwaysOverwrite := FAlwaysOverwrite;
       L.DontRemove := FDontRemove;
+      L.IgnoreMissedFields := FIgnoreMissedFields;
       try
         L.Load(FList);
       except

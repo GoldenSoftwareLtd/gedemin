@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2001-2013 by Golden Software of Belarus
+  Copyright (c) 2001-2015 by Golden Software of Belarus, Ltd
 
   Module
 
@@ -19,6 +19,7 @@
   Revisions history
 
     1.00    17.10.02    tiptop        Initial version.
+
 --}
 
 unit prp_BaseFrame_unit;
@@ -217,8 +218,6 @@ type
 
     class function GetNameById(Id: Integer): string; virtual; abstract;
     class function GetFunctionIdEx(Id: Integer): integer; virtual; abstract;
-//    function GetUniname(SQLText, BaseName: String;
-//      const NameList: TStrings; const IBSQL: TIBSQL): String;
 
     //”казывает на то что скрипт был запущен из данного фрайма
     property Running: Boolean read GetRunning;
@@ -345,7 +344,7 @@ var
   Value: Variant;
   FunctionKey: Integer;
   LocGdcBase: TgdcBase;
-  gdcBaseRef: CgdcBase;
+  CE: TgdClassEntry;
 begin
   Result := False;
   //If it has not rights for delete then exit
@@ -416,10 +415,10 @@ begin
   // 03.03.2003 DAlex. ”дал€ть запись должен объект того же класса, что и создает ее.
   if FNeedDeleteDetail and Assigned(DetailObject) and (FunctionKey <> 0) then
   begin
-    gdcBaseRef := gdClassList.GetGDCClass(DetailObject.ClassName);
-    if gdcBaseRef <> nil then
+    CE := gdClassList.Find(DetailObject.ClassName);
+    if CE is TgdBaseEntry then
     begin
-      LocGdcBase :=  gdcBaseRef.Create(nil);
+      LocGdcBase := TgdBaseEntry(CE).gdcClass.Create(nil);
       try
         LocGdcBase.Transaction := MasterObject.Transaction;
         LocGdcBase.SubSet := 'ByID';

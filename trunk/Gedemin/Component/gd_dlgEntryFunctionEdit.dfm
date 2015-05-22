@@ -1,6 +1,6 @@
 object dlgEntryFunctionEdit: TdlgEntryFunctionEdit
-  Left = 286
-  Top = 158
+  Left = 429
+  Top = 274
   BorderStyle = bsDialog
   BorderWidth = 5
   Caption = 'Редактор функции суммы проводки'
@@ -12,7 +12,7 @@ object dlgEntryFunctionEdit: TdlgEntryFunctionEdit
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
   Position = poScreenCenter
@@ -23,7 +23,7 @@ object dlgEntryFunctionEdit: TdlgEntryFunctionEdit
     Left = 0
     Top = 0
     Width = 620
-    Height = 215
+    Height = 225
     Align = alClient
     BevelInner = bvRaised
     BevelOuter = bvLowered
@@ -31,22 +31,22 @@ object dlgEntryFunctionEdit: TdlgEntryFunctionEdit
     object lblName: TLabel
       Left = 8
       Top = 4
-      Width = 49
+      Width = 48
       Height = 13
       Anchors = []
       Caption = 'Функция:'
     end
     object lblDocHeadFields: TLabel
       Left = 8
-      Top = 153
-      Width = 86
+      Top = 160
+      Width = 87
       Height = 13
       Anchors = []
       Caption = 'Поля документа:'
     end
     object btnInsertHeadField: TSpeedButton
       Left = 522
-      Top = 167
+      Top = 175
       Width = 90
       Height = 21
       Anchors = []
@@ -66,34 +66,31 @@ object dlgEntryFunctionEdit: TdlgEntryFunctionEdit
     end
     object Label1: TLabel
       Left = 8
-      Top = 193
+      Top = 202
       Width = 604
-      Height = 13
-      Alignment = taCenter
+      Height = 15
       Anchors = []
       AutoSize = False
       Caption = 
         'Поля документа добавляются в функцию, как наименование поля с ти' +
         'пом в квадратных скобках.'
-      Color = clGrayText
       Font.Charset = DEFAULT_CHARSET
-      Font.Color = clWindow
+      Font.Color = clRed
       Font.Height = -11
-      Font.Name = 'MS Sans Serif'
-      Font.Style = [fsBold]
-      ParentColor = False
+      Font.Name = 'Tahoma'
+      Font.Style = []
       ParentFont = False
     end
     object Bevel1: TBevel
       Left = 8
-      Top = 148
+      Top = 155
       Width = 604
       Height = 2
       Anchors = []
     end
     object mmFunction: TMemo
       Left = 8
-      Top = 21
+      Top = 25
       Width = 604
       Height = 119
       Anchors = []
@@ -102,7 +99,7 @@ object dlgEntryFunctionEdit: TdlgEntryFunctionEdit
     end
     object cbHeadDocField: TComboBox
       Left = 8
-      Top = 167
+      Top = 175
       Width = 509
       Height = 21
       Anchors = []
@@ -115,15 +112,15 @@ object dlgEntryFunctionEdit: TdlgEntryFunctionEdit
   end
   object pnlButton: TPanel
     Left = 0
-    Top = 215
+    Top = 225
     Width = 620
-    Height = 39
+    Height = 29
     Align = alBottom
     BevelOuter = bvNone
     TabOrder = 1
     object btnOk: TButton
-      Left = 440
-      Top = 12
+      Left = 464
+      Top = 6
       Width = 75
       Height = 21
       Anchors = [akTop, akRight]
@@ -133,8 +130,8 @@ object dlgEntryFunctionEdit: TdlgEntryFunctionEdit
       TabOrder = 0
     end
     object btnCancel: TButton
-      Left = 528
-      Top = 12
+      Left = 544
+      Top = 6
       Width = 75
       Height = 21
       Anchors = [akTop, akRight]

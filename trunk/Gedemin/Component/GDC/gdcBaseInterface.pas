@@ -56,7 +56,7 @@ type
     function GetRUIDStringByID(const ID: TID; const Tr: TIBTransaction = nil): TRUIDString;
     procedure GetRUIDByID(const ID: TID; out XID, DBID: TID; const Tr: TIBTransaction = nil);
     function ProcessSQL(const S: String): String;
-    function AdjustMetaName(const S: AnsiString): AnsiString;
+    function AdjustMetaName(const S: AnsiString; const MaxLength: Integer = cstMetaDataNameLength): AnsiString;
     function GetExplorer: IgdcBase;
     procedure SetExplorer(const Value: IgdcBase);
     function GenerateNewDBID: TID;
@@ -89,8 +89,8 @@ type
     // коммит не делает
     procedure ExecSingleQuery(const S: String; const Transaction: TIBTransaction = nil); overload;
     procedure ExecSingleQuery(const S: String; Param: Variant; const Transaction: TIBTransaction = nil); overload;
-    procedure ExecSingleQueryResult(const S: String; Param: Variant;
-      out Res: OleVariant; const Transaction: TIBTransaction = nil);
+    function ExecSingleQueryResult(const S: String; Param: Variant;
+      out Res: OleVariant; const Transaction: TIBTransaction = nil): Boolean;
 
     function Class_TestUserRights(C: TClass;
       const ASubType: TgdcSubType; const AnAccess: Integer): Boolean;

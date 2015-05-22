@@ -131,10 +131,10 @@ type
     procedure actDetailSecurityUpdate(Sender: TObject);
     procedure actDetailSecurityExecute(Sender: TObject);
     procedure actCommitUpdate(Sender: TObject);
-    procedure actViewCardUpdate(Sender: TObject);
     procedure actViewCardExecute(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure actViewFullCardExecute(Sender: TObject);
+    procedure actViewCardUpdate(Sender: TObject);
 
   private
     //FTopGrid: TgsIBGrid;
@@ -1618,15 +1618,17 @@ end;
 procedure TdlgInvDocument.CheckDisabledPosition;
 var
   ibsql: TIBSQL;
+  CE: TgdClassEntry;
 begin
   ibsql := TIBSQL.Create(nil);
   try
     if Document.Transaction.InTransaction then
     begin
       ibsql.Transaction := Document.Transaction;
+      CE := gdClassList.Get(TgdDocumentEntry, DocumentLine.ClassName, DocumentLine.SubType).GetRootSubType;
 
       ibsql.SQL.Text := Format('SELECT documentkey FROM %s WHERE disabled = 1 and masterkey = %d',
-        [DocumentLine.RelationLineName, Document.FieldByName('id').AsInteger]);
+        [TgdDocumentEntry(CE).DistinctRelation, Document.FieldByName('id').AsInteger]);
       ibsql.ExecQuery;
       if ibsql.RecordCount > 0 then
       begin
@@ -1652,23 +1654,32 @@ procedure TdlgInvDocument.atAttributesRelationNames(Sender: TObject;
   Relations, FieldAliases: TStringList);
 var
   I: Integer;
+  CE: TgdClassEntry;
+  flag: Boolean;
 begin
   inherited;
-
-  //
+  
   // Добавляем поля
   FieldAliases.Add('NUMBER');
   FieldAliases.Add('DOCUMENTDATE');
 
   for I := 0 to Document.FieldCount - 1 do
-    if ((AnsiCompareText(Document.RelationByAliasName(Document.Fields[I].FieldName),
-      Document.RelationName) = 0) OR
-      (AnsiCompareText(Document.RelationByAliasName(Document.Fields[I].FieldName),
-      'GD_DOCUMENT') = 0)) then
+  begin
+    flag := (AnsiCompareText(Document.RelationByAliasName(Document.Fields[I].FieldName),
+      'GD_DOCUMENT') = 0);
+    if not flag then
     begin
+      CE := gdClassList.Get(TgdDocumentEntry, Document.ClassName, Document.SubType);
+      repeat
+        flag := (AnsiCompareText(Document.RelationByAliasName(Document.Fields[I].FieldName),
+          TgdDocumentEntry(CE).DistinctRelation) = 0);
+        CE := CE.Parent;
+      until (CE.SubType = '') or flag;
+    end;
+    if flag then
       if StrIPos(UserPrefix, Document.FieldNameByAliasName(Document.Fields[I].FieldName)) = 1 then
         FieldAliases.Add(Document.Fields[I].FieldName);
-    end;
+  end;
 
   if DocumentLine.CanBeDelayed then
     FieldAliases.Add('DELAYED');
@@ -2847,11 +2858,11 @@ begin
   Path := BuildComponentPath(Self);
 
   if Document.State = dsInsert then
-    Caption := 'Добавление документа: ' + Document.DocumentName[False]
+    Caption := 'Добавление документа: ' + Document.DocumentName
   else
 
   if Document.State = dsEdit then
-    Caption := 'Редактирование документа: ' + Document.DocumentName[False];
+    Caption := 'Редактирование документа: ' + Document.DocumentName;
 
   SetupDetailPart;
 
@@ -3065,13 +3076,7 @@ begin
   begin
     Result := VarArrayOf([VarArrayOf([gdcObject.ID]),
       CreateSelectedArr(DocumentLine, ibgrdTop.SelectedRows)]);
-  end //else
-//  begin
-    {По-хорошему должен быть определен хотя бы один грид,
-    если грид не определен кидать ошибку не будем,
-    а для детального объекта вернем -1, чтобы сохранялся двумерный массив}
-//    Result := VarArrayOf([VarArrayOf([gdcObject.ID]), VarArrayOf([-1])]);
-//  end;
+  end;
 end;
 
 procedure TdlgInvDocument.actCommitUpdate(Sender: TObject);
@@ -3118,13 +3123,6 @@ begin
   {M}    ClearMacrosStack('TDLGINVDOCUMENT', 'LOADSETTINGS', KEYLOADSETTINGS);
   {M}end;
   {END MACRO}
-end;
-
-procedure TdlgInvDocument.actViewCardUpdate(Sender: TObject);
-begin
-{  actViewCard.Enabled := Assigned(DocumentLine)
-    and (DocumentLine.State = dsBrowse)
-    and (not DocumentLine.IsEmpty);}
 end;
 
 procedure TdlgInvDocument.actViewCardExecute(Sender: TObject);
@@ -3182,7 +3180,6 @@ begin
   FOldOnChangeEventList := TObjectList.Create;
   FOldDocOnChangeEventList := TObjectList.Create;
 
-//  FTopGrid := nil;
   FBottomGrid := nil;
 
   FTopDataSource := nil;
@@ -3190,7 +3187,6 @@ begin
 
   FFirstDocumentLine := nil;
   FSecondDocumentLine := nil;
-
 end;
 
 constructor TdlgInvDocument.CreateUser(AnOwner: TComponent;
@@ -3211,7 +3207,6 @@ begin
   FOldOnChangeEventList := TObjectList.Create;
   FOldDocOnChangeEventList := TObjectList.Create;
 
-//  FTopGrid := nil;
   FBottomGrid := nil;
 
   FTopDataSource := nil;
@@ -3219,7 +3214,6 @@ begin
 
   FFirstDocumentLine := nil;
   FSecondDocumentLine := nil;
-
 end;
 
 function TdlgInvDocument.GetTopGrid: TgsIBGrid;
@@ -3246,12 +3240,17 @@ begin
   end;
 end;
 
+procedure TdlgInvDocument.actViewCardUpdate(Sender: TObject);
+begin
+  inherited;
+  //
+end;
+
 initialization
-  RegisterFrmClass(TdlgInvDocument, ctInvDocument);
+  RegisterFrmClass(TdlgInvDocument);
 
 finalization
   UnRegisterFrmClass(TdlgInvDocument);
-
 end.
 
 

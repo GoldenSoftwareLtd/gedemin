@@ -32,10 +32,10 @@ type
     function GetNotCopyField: String; override;
 
   public
+    class function GetSubSetList: String; override;
+
     procedure Assign(Source: TPersistent); override;
     function GetBankInfo(AccountKey: String): String;
-
-    class function GetSubSetList: String; override;
 
     property gsTransaction: TgsTransaction read GetgsTransaction write SetgsTransaction;
   end;
@@ -44,7 +44,6 @@ type
   public
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
-    class function GetKeyField(const ASubType: TgdcSubType): String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
   end;
@@ -56,7 +55,6 @@ implementation
 uses
   DB, SysUtils, Dialogs, Controls, Windows,
   gdc_dlgCompanyAccountType_unit, gd_ClassList, gdc_frmAccountType_unit;
-
 
 procedure Register;
 begin
@@ -124,7 +122,6 @@ begin
   DidActivate := False;
   q := TIBSQL.Create(nil);
   try
-    q.Database := Database;
     q.Transaction := ReadTransaction;
     DidActivate := ActivateReadTransaction;
 
@@ -195,18 +192,17 @@ begin
 
   inherited;
 
-  ibsql := TIBSQL.Create(Self);
+  ibsql := TIBSQL.Create(nil);
   try
     ibsql.Transaction := ReadTransaction;
     ibsql.SQL.Text := 'SELECT companykey FROM gd_companyaccount WHERE id = :id';
     ibsql.ParamByName('id').AsInteger := FieldByName('accountkey').AsInteger;
     ibsql.ExecQuery;
-    if ibsql.RecordCount > 0 then
+    if not ibsql.EOF then
     begin
       if FieldByName('companykey').AsInteger <> ibsql.FieldByName('companykey').AsInteger then
         FieldByName('companykey').AsInteger := ibsql.FieldByName('companykey').AsInteger;
     end;
-    ibsql.Close;
   finally
     ibsql.Free;
   end;
@@ -276,11 +272,6 @@ begin
   Result := 'Tgdc_dlgCompanyAccountType';
 end;
 
-class function TgdcCompanyAccountType.GetKeyField(const ASubType: TgdcSubType): String;
-begin
-  Result := 'id';
-end;
-
 class function TgdcCompanyAccountType.GetListField(const ASubType: TgdcSubType): String;
 begin
   Result := 'name';
@@ -302,6 +293,6 @@ initialization
   RegisterGdcClass(TgdcCompanyAccountType);
 
 finalization
-  UnRegisterGdcClass(TgdcBaseBank);
-  UnRegisterGdcClass(TgdcCompanyAccountType);
+  UnregisterGdcClass(TgdcBaseBank);
+  UnregisterGdcClass(TgdcCompanyAccountType);
 end.

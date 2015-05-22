@@ -94,9 +94,8 @@ inherited gdc_frmMD2H: Tgdc_frmMD2H
             DockMode = dmCannotFloat
             Images = dmImages.il16x16
             TabOrder = 0
-            object tbsiSubDetailNew: TTBSubmenuItem
+            object tbiSubDetailNew: TTBItem
               Action = actSubDetailNew
-              OnPopup = tbsiSubDetailNewPopup
             end
             object tbiSubDetailEdit: TTBItem
               Action = actSubDetailEdit

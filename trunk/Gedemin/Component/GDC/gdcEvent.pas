@@ -212,79 +212,63 @@ end;
 function TgdcEvent.SaveEvent(const AnObjectNode: TTreeNode;
   const AnEventNode: TTreeNode): Boolean;
 var
-  ibsqlInsertEvent, LibsqlCheck: TIBSQL;
+  q: TIBSQL;
   DidActivate: Boolean;
+  OK, FK: TID;
+  EN: String;
 begin
-  Result := False;
+  Assert((AnObjectNode <> nil) and (AnObjectNode.Data <> nil));
+  Assert((AnEventNode <> nil) and (AnEventNode.Data <> nil));
+
+  OK := (TObject(AnObjectNode.Data) as TEventObject).ObjectKey;
+  EN := AnsiUpperCase((TObject(AnEventNode.Data) as TEventItem).Name);
+  FK := (TObject(AnEventNode.Data) as TEventItem).FunctionKey;
+
+  DidActivate := False;
+  q := TIBSQL.Create(nil);
   try
-    DidActivate := False;
-    LibsqlCheck := TIBSQL.Create(nil);
-    try
-      LibsqlCheck.Database := Database;
-      LibsqlCheck.Transaction := Transaction;
-      DidActivate := ActivateTransaction;
-      LibsqlCheck.SQL.Text := 'SELECT * FROM evt_objectevent WHERE objectkey = ' +
-       ' :objectkey AND eventname = :eventname';
-      LibsqlCheck.Params[0].AsInteger :=
-       (TObject(AnObjectNode.Data) as TEventObject).ObjectKey;
-      LibsqlCheck.Params[1].AsString :=
-       AnsiUpperCase((TObject(AnEventNode.Data) as TEventItem).Name);
-      LibsqlCheck.ExecQuery;
-      if not LibsqlCheck.Eof then
-      begin
-        Result := LibsqlCheck.FieldByName('functionkey').AsInteger =
-         (TObject(AnEventNode.Data) as TEventItem).FunctionKey;
-        if not Result then
-        begin
-          LibsqlCheck.Close;
-          LibsqlCheck.SQL.Text := 'DELETE FROM evt_objectevent WHERE objectkey = ' +
-           ' :objectkey AND eventname = :eventname';
-          LibsqlCheck.Params[0].AsInteger :=
-           (TObject(AnObjectNode.Data) as TEventObject).ObjectKey;
-          LibsqlCheck.Params[1].AsString :=
-           AnsiUpperCase((TObject(AnEventNode.Data) as TEventItem).Name);
-          LibsqlCheck.ExecQuery;
-        end else
-          Exit;
-      end;
-    finally
-      if DidActivate then
-        Transaction.Commit;
-      LibsqlCheck.Free;
+    DidActivate := ActivateTransaction;
+    q.Transaction := Transaction;
+    q.SQL.Text :=
+      'SELECT functionkey FROM evt_objectevent ' +
+      'WHERE objectkey = :OK AND eventname = :EN';
+    q.ParamByName('OK').AsInteger := OK;
+    q.ParamByName('EN').AsString := EN;
+    q.ExecQuery;
+    if not q.Eof then
+    begin
+      Result := q.FieldByName('functionkey').AsInteger = FK;
+
+      if Result then
+        exit;
+
+      q.Close;
+      q.SQL.Text :=
+        'DELETE FROM evt_objectevent WHERE objectkey = :OK AND eventname = :EN';
+      q.ParamByName('OK').AsInteger := OK;
+      q.ParamByName('EN').AsString := EN;
+      q.ExecQuery;
     end;
 
-    if (TObject(AnEventNode.Data) as TEventItem).FunctionKey <> 0 then
+    if FK <> 0 then
     begin
-      ibsqlInsertEvent := TIBSQL.Create(nil);
-      try
-        //ibsqlInsertEvent.Close;
-        ibsqlInsertEvent.Database := Database;
-        ibsqlInsertEvent.Transaction := Transaction;
-        DidActivate := ActivateTransaction;
-        ibsqlInsertEvent.SQL.Text := 'INSERT INTO evt_objectevent(id, objectkey, functionkey, eventname) VALUES' +
-         ' (:id, :objectkey, :functionkey, :eventname)';
-        ibsqlInsertEvent.ParamByName('id').AsInteger := GetNextID;
-        ibsqlInsertEvent.ParamByName('objectkey').AsInteger :=
-         (TObject(AnObjectNode.Data) as TEventObject).ObjectKey;
-        ibsqlInsertEvent.ParamByName('functionkey').AsInteger :=
-         (TObject(AnEventNode.Data) as TEventItem).FunctionKey;
-        ibsqlInsertEvent.ParamByName('eventname').AsString :=
-         AnsiUpperCase((TObject(AnEventNode.Data) as TEventItem).Name);
-       // ibsqlInsertEvent.ParamByName('afull').AsInteger := -1;
-        ibsqlInsertEvent.ExecQuery;
-        ibsqlInsertEvent.Close;
-      finally
-        if DidActivate then
-          Transaction.Commit;
-        ibsqlInsertEvent.Free;
-      end;
+      q.Close;
+      q.SQL.Text :=
+        'INSERT INTO evt_objectevent(id, objectkey, functionkey, eventname) ' +
+        'VALUES(:id, :objectkey, :functionkey, :eventname)';
+      q.ParamByName('id').AsInteger := GetNextID;
+      q.ParamByName('objectkey').AsInteger := OK;
+      q.ParamByName('functionkey').AsInteger := FK;
+      q.ParamByName('eventname').AsString := EN;
+      q.ExecQuery;
     end;
-    Result := True;
-  except
-    on E: Exception do
-      {MessageBox(Handle, PChar(MSG_ERROR_SAVE_EVENT + E.Message),
-       MSG_ERROR, MB_OK or MB_ICONERROR);}
+  finally
+    if DidActivate then
+      Transaction.Commit;
+    q.Free;
   end;
+
+  Result := True;
 end;
 
 class function TgdcEvent.GetViewFormClassName(const ASubType: TgdcSubType): String;
@@ -355,8 +339,8 @@ begin
 end;
 
 initialization
-  RegisterGdcClass(TgdcEvent, ctStorage, 'Событие');
+  RegisterGdcClass(TgdcEvent, 'Событие');
 
 finalization
-  UnRegisterGdcClass(TgdcEvent);
+  UnregisterGdcClass(TgdcEvent);
 end.

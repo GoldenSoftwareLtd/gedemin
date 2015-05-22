@@ -778,12 +778,12 @@ initialization
   RegisterGdcClass(Tfff5);
 
 finalization
-  UnRegisterGdcClass(TMainTestForm2);
-  UnRegisterGdcClass(Tfff4);
-  UnRegisterGdcClass(Tfff);
-  UnRegisterGdcClass(Tfff3);
-  UnRegisterGdcClass(Tfff2);
-  UnRegisterGdcClass(Tfff5);
+  UnregisterGdcClass(TMainTestForm2);
+  UnregisterGdcClass(Tfff4);
+  UnregisterGdcClass(Tfff);
+  UnregisterGdcClass(Tfff3);
+  UnregisterGdcClass(Tfff2);
+  UnregisterGdcClass(Tfff5);
 
 end.
 

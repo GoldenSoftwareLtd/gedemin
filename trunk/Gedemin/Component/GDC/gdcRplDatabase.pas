@@ -56,5 +56,5 @@ initialization
   RegisterGDCClass(TgdcRplDatabase2);
 
 finalization
-  UnRegisterGDCClass(TgdcRplDatabase2);
+  UnregisterGdcClass(TgdcRplDatabase2);
 end.

@@ -102,7 +102,7 @@ uses
   menus,                flt_QueryFilterGDC,    at_sql_setup,     gd_createable_form,
   ActnList,             gsStorage,             gd_KeyAssoc,      ExtCtrls,
   Graphics,             mtd_i_Base,            evt_i_Base,       zlib,
-  gdcConstants,         Registry,              gsStreamHelper;
+  gdcConstants,         Registry,              gsStreamHelper,   gd_directories_const;
 
 resourcestring
   strHaventRights =
@@ -264,18 +264,6 @@ type
   TgdcFullClass = record
     gdClass: CgdcBase;
     SubType: TgdcSubType;
-  end;
-
-  TCreatedObject = class(TObject)
-  private
-    FObj: TObject;
-    FCaption: String;
-    FIsSubLevel: Boolean;
-
-  public
-    property Obj: TObject read FObj write FObj;
-    property Caption: String read FCaption write FCaption;
-    property IsSubLevel: Boolean read FIsSubLevel write FIsSubLevel;
   end;
 
   //
@@ -448,7 +436,7 @@ type
     //Возвращает поля xid, dbid из таблицы gd_ruid по id
     //Если запись по id не найдена вернет xid = id, dbid = IBLogin.DBID
     function ProcessSQL(const S: String): String;
-    function AdjustMetaName(const S: AnsiString): AnsiString;
+    function AdjustMetaName(const S: AnsiString; const MaxLength: Integer = cstMetaDataNameLength): AnsiString;
 
     //
     procedure ClearSecDescArr;
@@ -492,8 +480,8 @@ type
     // коммит не делает
     procedure ExecSingleQuery(const S: String; const Transaction: TIBTransaction = nil); overload;
     procedure ExecSingleQuery(const S: String; Param: Variant; const Transaction: TIBTransaction = nil); overload;
-    procedure ExecSingleQueryResult(const S: String; Param: Variant;
-      out Res: OleVariant; const Transaction: TIBTransaction = nil); //overload;
+    function ExecSingleQueryResult(const S: String; Param: Variant;
+      out Res: OleVariant; const Transaction: TIBTransaction = nil): Boolean; 
 
     procedure ChangeRUID(const AnOldXID, AnOldDBID, ANewXID, ANewDBID: TID;
       ATr: TIBTRansaction);
@@ -636,8 +624,10 @@ type
     procedure Clear; override;
   end;
 
+  TgdcBaseInitProc = procedure(Obj: TgdcBase) of object;
+
   /////////////////////////////////////////////////////////
-  // базавы клас для б_знэс аб'ектаў
+  // базавы клас для бізнэс аб'ектаў
 
   TgdcBase = class(TIBCustomDataSet, IgdcBase)
   private
@@ -783,6 +773,11 @@ type
     function GetSetTableJoin: String;
     //Дополняет селект-часть полями таблицы-множества
     function GetSetTableSelect: String;
+    //Дополняет селект-часть полями присоединенных таблиц-наследников
+    function GetInheritedTableSelect: String;
+    //Дополняет фром-часть присоединенными таблицами-наследниками
+    function GetInheritedTableJoin: String;
+
     procedure SetExtraConditions(const Value: TStrings);
     procedure SetOnGetSelectClause(const Value: TgdcOnGetSQLClause);
     procedure SetOnGetFromClause(const Value: TgdcOnGetSQLClause);
@@ -875,8 +870,8 @@ type
     // коммит не делает
     procedure ExecSingleQuery(const S: String); overload;
     procedure ExecSingleQuery(const S: String; Param: Variant); overload;
-    procedure ExecSingleQueryResult(const S: String; Param: Variant;
-      out Res: OleVariant); //overload;
+    function ExecSingleQueryResult(const S: String; Param: Variant;
+      out Res: OleVariant): Boolean;
 
     // функция пытается удалить запись. Если ей это удается, то возвращает
     // Истину, если нет, то вызывает окно со списком ссылающихся таблиц
@@ -1207,6 +1202,8 @@ type
     procedure CheckCompoundClasses; virtual;
     function GetCompoundMasterTable: String; virtual;
 
+    procedure FindInheritedSubType(var FC: TgdcFullClass);
+
   public
     FReadUserFromStream: Boolean;
     // 1
@@ -1334,21 +1331,12 @@ type
     // выводит на экран меню со списком доступных для объекта отчетов
     procedure PopupReportMenu(const X, Y: Integer);
 
-    // возвращает количество доступных обектов для вставки
-    function GetDescendantCount(const AnOnlySameLevel: Boolean): Integer; virtual;
-    // возвращает список доступных обектов для вставки
-    function GetDescendantList(AOL: TObjectList;
-      const AnOnlySameLevel: Boolean): Boolean; virtual;
-
-    function GetDefaultClassForDialog: TgdcFullClass; virtual;
-
-    procedure CreateDefaultDialog; virtual;
     //
     procedure PopupFilterMenu(const X, Y: Integer);
 
     // функции производят поиск объекта (ов)
     // возвращают ИД (или список ИД)
-//    procedure Find;
+    //    procedure Find;
 
     // мы вымушаныя перавызначыць гэтую функцыю, бо
     // яе няма ў TIBCustomDataSet
@@ -1357,7 +1345,7 @@ type
     // стварае новы зап_с _ адкрывае дыялог для яго рэдактаваньня
     function CreateDialog(const ADlgClassName: String = ''): Boolean; overload; virtual;
     function CreateDialog(C: CgdcBase): Boolean; overload; virtual;
-    function CreateDialog(C: TgdcFullClass): Boolean; overload; virtual;
+    function CreateDialog(C: TgdcFullClass; const AnInitProc: TgdcBaseInitProc = nil): Boolean; overload; virtual;
 
     // делает новую запись, с предварительным выбором потомков
     function CreateDescendant: Boolean; virtual;
@@ -1513,7 +1501,7 @@ type
     class function GetChildrenClass(const ASubType: TgdcSubType;
       AnOL: TObjectList; const AnIncludeRoot: Boolean = True;
       const AnOnlyDirect: Boolean = False;
-      const AnIncludeAbstract: Boolean = False): Boolean; Virtual;
+      const AnIncludeAbstract: Boolean = False): Boolean; virtual;
 
     // предоставляет пользователю возможность выбрать один из классов
     // наследников для данного класса
@@ -1584,6 +1572,7 @@ type
     // адз_н _ тольк_ адз_н аб'ект дадзенага тыпу _ якая ўтрымл_вае першасны
     // ключ
     class function GetListTable(const ASubType: TgdcSubType): String; virtual;
+    class function GetDistinctTable(const ASubType: TgdcSubType): String; virtual;
     // поле з назвай аб'екту
     class function GetListField(const ASubType: TgdcSubType): String; virtual;
     // поля для расширенного отображения в лукапе (через ,)
@@ -1615,9 +1604,9 @@ type
     //OnlyDirect -- если True, то возвращаются только непосредственные наследники.
     //В противном случае -- возвращается вся иерархия наследников.
     class function GetSubTypeList(ASubTypeList: TStrings;
-      const ASubType: String = ''; AnOnlyDirect: Boolean = False): Boolean; virtual;
+      const ASubType: String = ''; const AnOnlyDirect: Boolean = False;
+      const AVerbose: Boolean = True): Boolean; virtual;
 
-    class function ClassParentSubType(const ASubType: String): String; virtual;
     //
     class function CheckSubType(const ASubType: String): Boolean;
 
@@ -1696,10 +1685,6 @@ type
     procedure AddVariableItem(const Name: String);
     // Добавляют итем для хранения Objects
     procedure AddObjectItem(const Name: String);
-
-    function CreateChildrenDialog: Boolean; overload; virtual;
-    function CreateChildrenDialog(C: CgdcBase): Boolean; overload; virtual;
-    function CreateChildrenDialog(C:  TgdcFullClass): Boolean; overload; virtual;
 
     // Свойства только для использования в скрипт-функциях
     // В СФ являются аналогами свойств формы
@@ -2181,7 +2166,7 @@ uses
   flt_sql_parser,               JclStrHashMap,                gdDBImpExp_unit,
   gdcClasses,                   gdc_dlgG_unit,                gdc_dlgSelectObject_unit,
   mtd_i_Inherited,              gdcOLEClassList,              prp_methods,
-  gs_Exception,                 gd_directories_const,         Storages,
+  gs_Exception,                 Storages,
   at_sql_parser,                scrReportGroup,               at_frmSQLProcess,
   DBConsts,                     gd_common_functions,          ComObj,
   gdc_frmMDH_unit,              AcctUtils
@@ -2212,7 +2197,6 @@ const
 
 var
   CacheList: TStringHashMap;
-  CacheBaseClassForRel: TStringList;
   UseSavepoints: Boolean;
   {$IFDEF DEBUG}
   InvokeCounts: TStringList;
@@ -2420,11 +2404,7 @@ var
 begin
   Assert(ARelationName > '');
   Assert(AnID > 0);
-  Assert(atDatabase <> nil);
   Assert(Assigned(ibtr));
-
-  {if not Assigned(gdClassList) then
-    raise Exception.Create(cgdClassListIsNotAssigned);}
 
   Result := GetBaseClassForRelation(ARelationName);
 
@@ -2454,208 +2434,37 @@ begin
   end;
 end;
 
-function BuildTree2(ACE: TgdClassEntry; AData1: Pointer; AData2: Pointer): Boolean;
-begin
-  if ACE.SubType = '' then
-  begin
-    if (AnsiCompareText(ACE.gdcClass.GetListTable(''), String(AData2^)) = 0) then
-        if (TgdcFullClass(AData1^).gdClass = nil)
-          or TgdcFullClass(AData1^).gdClass.InheritsFrom(ACE.gdcClass) then
-        begin
-          TgdcFullClass(AData1^).gdClass := ACE.gdcClass;
-        end;
-  end;
-  Result := True;
-end;
-
 function GetBaseClassForRelation(const ARelationName: String): TgdcFullClass;
 var
-  I: Integer;
-  R, ParentR: TatRelation;
-  L: TObjectList;
-  ibsql: TIBSQL;
-  S: String;
-  Ind, P: Integer;
-  BaseClassName, BaseSubType: String;
-  ClName: String;
-  F: TatRelationField;
+  BE: TgdBaseEntry;
+  R: TatRelation;
 begin
-  Assert(ARelationName > '');
-  Assert(atDatabase <> nil);
-
-  if not Assigned(CacheBaseClassForRel) then
+  Assert(gdClassList <> nil);
+  BE := gdClassList.FindByRelation(ARelationName);
+  if BE <> nil then
   begin
-    CacheBaseClassForRel := TStringList.Create;
-    CacheBaseClassForRel.Sorted := True;
-  end;
-
-  Ind := CacheBaseClassForRel.IndexOfName(UpperCase(ARelationName));
-  if Ind > -1 then
+    Result.gdClass := BE.gdcClass;
+    Result.SubType := BE.SubType;
+  end else
   begin
-    S := CacheBaseClassForRel.Values[ARelationName];
-    P := AnsiPos('(', S);
-    BaseClassName := Copy(S, 1, P - 1);
-    BaseSubType := Copy(S, P + 1, Length(S) - P - 1);
-    Result.gdClass := Pointer(CacheBaseClassForRel.Objects[Ind]);
-    if Result.gdClass = nil then
-      Result.gdClass := CgdcBase(GetClass(BaseClassName));
-    Result.SubType := BaseSubType;
-  end
-  else
-  begin
-    if StrIPos(UserPrefix, ARelationName) = 1 then
+    R := atDatabase.Relations.ByRelationName(ARelationName);
+    if (R <> nil) and (R.PrimaryKey <> nil)
+      and (R.PrimaryKey.ConstraintFields.Count = 1) then
     begin
-      R := atDatabase.Relations.ByRelationName(ARelationName);
-      if (R <> nil)
-        and (R.PrimaryKey <> nil)
-        and (R.PrimaryKey.ConstraintFields.Count = 1)
-        and (AnsiCompareText(R.PrimaryKey.ConstraintFields[0].FieldName, 'DOCUMENTKEY') = 0) then
-      begin
-        Result.gdClass := CgdcBase(GetClass('TgdcUserDocument'));
+      R := R.PrimaryKey.ConstraintFields[0].References;
+
+      if R <> nil then
+        Result := GetBaseClassForRelation(R.RelationName)
+      else begin
+        Result.gdClass := nil;
         Result.SubType := '';
-
-        ibsql := TIBSQL.Create(nil);
-        try
-          ibsql.Transaction := gdcBaseManager.ReadTransaction;
-          ibsql.SQL.Text :=
-            ' SELECT dt.ruid, dt.classname, dt1.classname as folderclassname, ' +
-            ' dt.headerrelkey  ' +
-            ' FROM gd_documenttype dt LEFT JOIN gd_documenttype dt1 ON dt.lb >= dt1.lb AND ' +
-            ' dt.rb <= dt1.rb WHERE (dt.headerrelkey = :id or dt.linerelkey = :id) ' ;
-          ibsql.ParamByName('id').AsInteger := atDatabase.Relations.ByRelationName(ARelationName).ID;
-          ibsql.ExecQuery;
-          if not ibsql.EOF then
-          begin
-            if Trim(ibsql.FieldByName('classname').AsString) = '' then
-              ClName := ibsql.FieldByname('folderclassname').AsString
-            else
-              ClName := ibsql.FieldByname('classname').AsString;
-
-            S := '';
-            if AnsiCompareText(ClName, 'TgdcInvDocumentType') = 0 then
-            begin
-              if ibsql.FieldByName('headerrelkey').AsInteger =
-                ibsql.ParamByName('id').AsInteger then
-                S := 'TgdcInvDocument'
-              else
-                S := 'TgdcInvDocumentLine';
-            end
-            else
-              if AnsiCompareText(ClName, 'TgdcInvPriceListType') = 0 then
-              begin
-                if ibsql.FieldByName('headerrelkey').AsInteger =
-                  ibsql.ParamByName('id').AsInteger then
-                  S := 'TgdcInvPriceList'
-                else
-                  S := 'TgdcInvPriceListLine';
-              end
-              else
-                if AnsiCompareText(ClName, 'TgdcUserDocumentType') = 0 then
-                begin
-                  if ibsql.FieldByName('headerrelkey').AsInteger =
-                    ibsql.ParamByName('id').AsInteger then
-                    S := 'TgdcUserDocument'
-                  else
-                    S := 'TgdcUserDocumentLine';
-                end;
-
-              Result.SubType := ibsql.FieldByName('ruid').AsString;
-              Result.gdClass := CgdcBase(GetClass(S));
-           end;
-        finally
-          ibsql.Free;
-        end;
-      end else
-      begin
-        if (R <> nil) and (StrIPos('USR$CROSS', ARelationName) <> 1) then
-        begin
-          F := R.RelationFields.ByFieldName('LB');
-          if Assigned(F) then
-            Result.gdClass := CgdcBase(GetClass('TgdcAttrUserDefinedLBRBTree'))
-          else
-          begin
-            F := R.RelationFields.ByFieldName('PARENT');
-            if Assigned(F) then
-              Result.gdClass := CgdcBase(GetClass('TgdcAttrUserDefinedTree'))
-            else
-            begin
-              Result.gdClass := CgdcBase(GetClass('TgdcAttrUserDefined'));
-
-              F := R.RelationFields.ByFieldName('INHERITEDKEY');
-              if Assigned(F) then
-              begin
-                ParentR := R.RelationFields.ByFieldName('INHERITEDKEY').ForeignKey.ReferencesRelation;
-                if Assigned(ParentR) and Assigned(ParentR.RelationFields.ByFieldName('INHERITEDKEY')) then
-                  repeat
-                    ParentR := ParentR.RelationFields.ByFieldName('INHERITEDKEY').ForeignKey.ReferencesRelation;
-                  until not Assigned(ParentR.RelationFields.ByFieldName('INHERITEDKEY'));
-
-                if Assigned(ParentR) then
-                begin
-                  if Assigned(ParentR.RelationFields.ByFieldName('PARENT'))
-                    and Assigned(ParentR.RelationFields.ByFieldName('LB')) then
-                      Result.gdClass := CgdcBase(GetClass('TgdcAttrUserDefinedLBRBTree'))
-                  else if Assigned(ParentR.RelationFields.ByFieldName('PARENT')) then
-                         Result.gdClass := CgdcBase(GetClass('TgdcAttrUserDefinedTree'))
-                end
-              end;
-            end;
-          end;
-          Result.SubType := ARelationName;
-        end else
-        begin
-          Result.gdClass := nil;
-          Result.SubType := '';
-        end;
       end;
     end else
     begin
       Result.gdClass := nil;
       Result.SubType := '';
-
-      gdClassList.Traverse(TgdcBase, '', BuildTree2, @Result, @ARelationName, True, False);
-   
-      if Result.gdClass = nil then
-      begin
-        R := atDatabase.Relations.ByRelationName(ARelationName);
-        if (R <> nil)
-          and Assigned(R.PrimaryKey)
-          and (R.PrimaryKey.ConstraintFields.Count = 1) then
-        begin
-          L := TObjectList.Create(False);
-          try
-            atDatabase.ForeignKeys.ConstraintsByRelation(ARelationName, L);
-            for I := 0 to L.Count - 1 do
-              with (L[I] as TatForeignKey) do
-              begin
-                if IsSimpleKey
-                  and (ConstraintField = R.PrimaryKey.ConstraintFields[0]) then
-                begin
-                  Result := GetBaseClassForRelation(ReferencesRelation.RelationName);
-                  if Result.gdClass <> nil then
-                    break;
-                end;
-              end;
-          finally
-            L.Free;
-          end;
-        end;
-      end;
-    end;
-
-    if Result.gdClass <> nil then
-    begin
-      CacheBaseClassForRel.AddObject(AnsiUpperCase(ARelationName + '=' + Result.gdClass.ClassName + '(' +
-        Result.SubType + ')'), Pointer(Result.gdClass));
     end;
   end;
-end;
-
-function BuildTree(ACE: TgdClassEntry; AData1: Pointer;
-  AData2: Pointer): Boolean;
-begin
-    TObjectList(AData1).Add(ACE);
-  Result := True;
 end;
 
 procedure MakeFieldList(Fields: String; List: TStrings);
@@ -2681,7 +2490,6 @@ begin
 end;
 
 { TgdcBase }
-// Events
 
 procedure TgdcBase.DoAfterDelete;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
@@ -4686,7 +4494,6 @@ begin
             '-', '', [rfReplaceAll]), 1, 30);
         try
           Transaction.SetSavePoint(FSavepoint);
-          //ExecSingleQuery('SAVEPOINT ' + FSavepoint);
         except
           UseSavepoints := False;
           FSavepoint := '';
@@ -4759,8 +4566,6 @@ begin
                     try
                       Transaction.RollBackToSavePoint(FSavepoint);
                       Transaction.ReleaseSavePoint(FSavepoint);
-                      //ExecSingleQuery('ROLLBACK TO ' + FSavepoint);
-                      //ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
                       FSavepoint := '';
                     except
                       FSavepoint := '';
@@ -4769,7 +4574,6 @@ begin
                   begin
                     try
                       Transaction.ReleaseSavePoint(FSavepoint);
-                      //ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
                       FSavepoint := '';
                     except
                       FSavepoint := '';
@@ -4786,8 +4590,6 @@ begin
               try
                 Transaction.RollBackToSavePoint(FSavepoint);
                 Transaction.ReleaseSavePoint(FSavepoint);
-                //ExecSingleQuery('ROLLBACK TO ' + FSavepoint);
-                //ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
                 FSavepoint := '';
               except
                 FSavepoint := '';
@@ -4825,8 +4627,6 @@ begin
             try
               Transaction.RollBackToSavePoint(FSavepoint);
               Transaction.ReleaseSavePoint(FSavepoint);
-              //ExecSingleQuery('ROLLBACK TO ' + FSavepoint);
-              //ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
             except
             end;
           end;
@@ -4902,7 +4702,7 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  Result := CgdcCreateableForm(FindClass(GetDialogFormClassName(SubType))).CreateSubType(FParentForm, SubType);
+  Result := TgdFormEntry(gdClassList.Get(TgdFormEntry, GetDialogFormClassName(SubType), SubType)).frmClass.CreateSubType(FParentForm, SubType);
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASE', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -5276,48 +5076,6 @@ begin
   end;
 end;
 
-function TgdcBase.GetDescendantCount(const AnOnlySameLevel: Boolean): Integer;
-var
-  OL: TObjectList;
-begin
-  OL := TObjectList.Create(False);
-  try
-    GetChildrenClass(SubType, OL);
-    Result := OL.Count;
-  finally
-    OL.Free;
-  end;
-end;
-
-function TgdcBase.GetDescendantList(AOL: TObjectList;
-  const AnOnlySameLevel: Boolean): Boolean;
-var
-  OL: TObjectList;
-  I: Integer;
-  CO : TCreatedObject;
-begin
-  OL := TObjectList.Create(False);
-  try
-    if GetChildrenClass(SubType, OL) then
-    begin
-      for I := 0 to OL.Count - 1 do
-      begin
-        CO := TCreatedObject.Create;
-        CO.Obj := OL[I];
-        CO.Caption := TgdClassEntry(OL[I]).Caption;
-        if CO.Caption = '' then
-          CO.Caption := TgdClassEntry(OL[I]).TheClass.ClassName;
-        CO.IsSubLevel := False;
-        AOL.Add(CO);
-      end;
-    end;
-  finally
-    OL.Free;
-  end;
-
-  Result := AOL.Count > 0;
-end;
-
 procedure TgdcBase.DoBeforeOpen;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
   {M}VAR
@@ -5570,8 +5328,6 @@ begin
                       try
                         Transaction.RollBackToSavePoint(FSavepoint);
                         Transaction.ReleaseSavePoint(FSavepoint);
-                        //ExecSingleQuery('ROLLBACK TO ' + FSavepoint);
-                        //ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
                         FSavepoint := '';
                       except
                         FSavepoint := '';
@@ -5582,7 +5338,6 @@ begin
                     begin
                       try
                         Transaction.ReleaseSavePoint(FSavepoint);
-                        //ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
                         FSavepoint := '';
                       except
                         FSavepoint := '';
@@ -5602,8 +5357,6 @@ begin
                 try
                   Transaction.RollBackToSavePoint(FSavepoint);
                   Transaction.ReleaseSavePoint(FSavepoint);
-                  //ExecSingleQuery('ROLLBACK TO ' + FSavepoint);
-                  //ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
                   FSavepoint := '';
                 except
                   FSavepoint := '';
@@ -5640,8 +5393,6 @@ begin
               try
                 Transaction.RollBackToSavePoint(FSavepoint);
                 Transaction.ReleaseSavePoint(FSavepoint);
-                //ExecSingleQuery('ROLLBACK TO ' + FSavepoint);
-                //ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
               except
               end;
             end;
@@ -5785,7 +5536,7 @@ begin
   if FgdcDataLink <> nil then
     Result := FgdcDataLink.DetailField
   else
-    Result := '';  
+    Result := '';
 end;
 
 class function TgdcBase.GetDisplayName(const ASubType: TgdcSubType): String;
@@ -5793,46 +5544,13 @@ var
   R: TatRelation;
   CE: TgdClassEntry;
 begin
-  if AnsiPos('USR_', AnsiUpperCase(ASubType)) > 0 then
-    raise EgdcException.Create('Недопустимый символ ''_''в подтипе');
-
-  Result := '';
-
-  if ASubType > '' then
+  CE := gdClassList.Get(TgdBaseEntry, Self.ClassName, ASubType);
+  Result := CE.Caption;
+  if (Result = '') and Assigned(atDatabase) then
   begin
-    CE := gdClassList.Find(Self, ASubType);
-    //Тут возможно надо кидать исключение если  CE = nil
-    if CE <> nil then
-      Result := CE.Caption;
-  end;
-
-  if ASubType = '' then
-  begin
-    CE := gdClassList.Find(Self, '');
-
-    if CE = nil then
-      raise EgdcException.Create('Класс ' + Self.ClassName + ' не найден');
-
-    Result := CE.Caption;
-  end;
-
-  if Result > '' then
-    exit;
-
-  Result := GetListTable(ASubType);
-
-  if Assigned(atDatabase) then
-  begin
-    R := atDatabase.Relations.ByRelationName(Result);
+    R := atDatabase.Relations.ByRelationName(GetDistinctTable(ASubType));
     if R <> nil then
-    begin
-      if AnsiCompareText(R.LShortName, Result) <> 0 then
-        Result := R.LShortName
-      else if AnsiCompareText(R.LName, Result) <> 0 then
-        Result := R.LName
-      else
-        Result := ClassName + ASubType + ' - ' + Result;
-    end;
+      Result := R.LName;
   end;
 end;
 
@@ -5924,7 +5642,7 @@ begin
       F := '';
       V := '';
       for I := 0 to SL.Count - 1 do
-        if (IsUserTable or (Pos(UserPrefix, UpperCase(SL[I])) <> 1)) and //атрибуты вставит наш анализатор кода
+        if (IsUserTable or (StrIPos(UserPrefix, SL[I]) <> 1)) and //атрибуты вставит наш анализатор кода
           (not Database.Has_Computed_BLR(UpperCase(LT), UpperCase(SL[I]))) and
           (UpperCase(SL[I]) <> 'LB') and
           (UpperCase(SL[I]) <> 'RB') then
@@ -6127,33 +5845,32 @@ function TgdcBase.GetRefreshSQLText: String;
 var
   SelectClause, FromClause, Cond: String;
 begin
-  SelectClause := GetSelectClause;
+  SelectClause := GetSelectClause + ' ' + GetInheritedTableSelect;
   if Assigned(FOnGetSelectClause) then
     FOnGetSelectClause(Self, SelectClause);
 
-  FromClause := GetFromClause(True);
+  FromClause := GetFromClause(True) + ' ' + GetInheritedTableJoin;
   if Assigned(FOnGetFromClause) then
     FOnGetFromClause(Self, FromClause);
 
   if FSetTable > '' then
-  Result :=
-    SelectClause + ' ' + GetSetTableSelect +
-    FromClause + ' ' + GetSetTableJoin +
-    Format('WHERE %s ', [GetWhereClauseForSet])
-  else begin
+    Result :=
+      SelectClause + ' ' + GetSetTableSelect +
+      FromClause + ' ' + GetSetTableJoin +
+      Format('WHERE %s ', [GetWhereClauseForSet])
+  else
+  begin
     Cond := Format('%s.%s=:NEW_%s', [GetListTableAlias,
       GetKeyField(SubType), GetKeyField(SubType)]);
+
+    Result :=
+      SelectClause + ' ' +
+      FromClause + ' ';
 
     if StrIPos(Cond,
       StringReplace(FromClause, ' ', '', [rfReplaceAll])) = 0 then
     begin
-      Result :=
-        SelectClause + ' ' + FromClause + ' ' +
-        'WHERE ' + Cond;
-    end else
-    begin
-      Result :=
-        SelectClause + ' ' + FromClause;
+      Result := Result + ' WHERE ' + Cond;
     end;
   end;
 end;
@@ -6201,7 +5918,9 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  Result := Format('SELECT %s.* ', [GetListTableAlias]);
+
+  Result := Format('SELECT %s.* ', [GetListTableAlias])
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASE', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -6216,6 +5935,77 @@ begin
     Result := Format(', %s.* ', [cstSetAlias])
   else
     Result := '';
+end;
+
+function TgdcBase.GetInheritedTableSelect: String;
+var
+  CE: TgdClassEntry;
+
+  procedure IterateAncestor(BE: TgdBaseEntry; var SQL: String);
+  var
+    RA: String;
+    R: TatRelation;
+    I: Integer;
+  begin
+    if BE <> BE.GetRootSubType then
+    begin
+      if BE.Parent is TgdBaseEntry then
+        IterateAncestor(BE.Parent as TgdBaseEntry, SQL);
+
+      if BE.DistinctRelation <> TgdBaseEntry(BE.Parent).DistinctRelation then
+      begin
+        RA := gdcBaseManager.AdjustMetaName('d_' + BE.DistinctRelation);
+        R := atDatabase.Relations.ByRelationName(BE.DistinctRelation);
+        if R = nil then
+          raise EgdcException.CreateObj('Unknown relation ' + BE.DistinctRelation, Self);
+        for I := 0 to R.RelationFields.Count - 1 do
+        begin
+          if R.RelationFields[I].IsUserDefined then
+            SQL := SQL + ', ' + RA + '.' + R.RelationFields[I].FieldName + ' ' +
+              gdcBaseManager.AdjustMetaName(RA + '_' + R.RelationFields[I].FieldName,
+              31 - 4); // account for "new_" prefix
+        end;
+      end;
+    end;
+  end;
+
+begin
+  Result := '';
+  CE := gdClassList.Get(TgdBaseEntry, Self.ClassName, SubType);
+  //if CE is TgdAttrUserDefinedEntry then
+    IterateAncestor(CE as TgdBaseEntry, Result);
+end;
+
+function TgdcBase.GetInheritedTableJoin: String;
+var
+  CE: TgdClassEntry;
+
+  procedure IterateAncestor(BE: TgdBaseEntry; var SQL: String;
+    const LinkFieldName: String);
+  var
+    N: String;
+  begin
+    if BE <> BE.GetRootSubType then
+    begin
+      if BE.Parent is TgdBaseEntry then
+        IterateAncestor(BE.Parent as TgdBaseEntry, SQL, LinkFieldName);
+      N := gdcBaseManager.AdjustMetaName('d_' + BE.DistinctRelation);
+
+      if BE.DistinctRelation <> TgdBaseEntry(BE.Parent).DistinctRelation then
+      begin
+        SQL := SQL + ' JOIN ' + BE.DistinctRelation + ' ' + N +
+          ' ON ' + N + '.' + LinkFieldName + ' = ' + GetListTableAlias + '.id';
+      end;
+    end;
+  end;
+
+begin
+  Result := '';
+  CE := gdClassList.Get(TgdBaseEntry, Self.ClassName, SubType);
+  if CE is TgdAttrUserDefinedEntry then
+    IterateAncestor(CE as TgdBaseEntry, Result, 'inheritedkey')
+  else if CE is TgdDocumentEntry then
+    IterateAncestor(CE as TgdBaseEntry, Result, 'documentkey');
 end;
 
 function TgdcBase.GetSetTableJoin: String;
@@ -6324,6 +6114,7 @@ function TgdcBase.GetSelectSQLText: String;
     S := StringReplace(S, #13, '', [rfReplaceAll]);
     S := StringReplace(S, #10, '', [rfReplaceAll]);
     Result := (StrIPos('SUM(', S) > 0)
+      or (StrIPos('LIST(', S) > 0)
       or (StrIPos('MIN(', S) > 0)
       or (StrIPos('MAX(', S) > 0)
       or (StrIPos('AVG(', S) > 0);
@@ -6332,11 +6123,11 @@ function TgdcBase.GetSelectSQLText: String;
 var
   SelectClause, FromClause, WhereClause, GroupClause, OrderClause: String;
 begin
-  SelectClause := GetSelectClause;
+  SelectClause := GetSelectClause + ' ' + GetInheritedTableSelect;
   if Assigned(FOnGetSelectClause) then
     FOnGetSelectClause(Self, SelectClause);
 
-  FromClause := GetFromClause;
+  FromClause := GetFromClause + ' ' + GetInheritedTableJoin;
   if Assigned(FOnGetFromClause) then
     FOnGetFromClause(Self, FromClause);
 
@@ -6361,7 +6152,7 @@ begin
   begin
     Result := Result +
       GroupClause + ' ';
-  end;    
+  end;
   if (not HasSubSet('ByID')) and (not HasSubSet('ByName')) then
   begin
     Result := Result +
@@ -6378,10 +6169,6 @@ var
   {END MACRO}
   SL: TStringList;
   I: Integer;
-  str: String;
-//  OL: TObjectList;
-  LSubType: String;
-  CE: TgdClassEntry;
 begin
   {@UNFOLD MACRO INH_ORIG_GETWHERECLAUSE('TGDCBASE', 'GETWHERECLAUSE', KEYGETWHERECLAUSE)}
   {M}  try
@@ -6422,6 +6209,7 @@ begin
     for I := SL.Count - 1 downto 0 do
       if Trim(SL[I]) = '' then
         SL.Delete(I);
+
     if SL.Count > 0 then
     begin
       Result := 'WHERE ' + SL[0];
@@ -6431,34 +6219,6 @@ begin
       Result := '';
   finally
     SL.Free;
-  end;
-
-
-  if SubType > '' then
-  begin
-    CE := gdClassList.Find(Self.ClassType, SubType);
-    // подтип может быть липовым поэтому CE = nil это нормально
-    // можно конечно добавить проверку подтипа
-    if (CE <> nil) and (CE.gdClassKind = ctStorage) then
-    begin
-      str := '';
-      LSubType := SubType;
-      repeat
-        LSubType := ClassParentSubType(LSubType);
-        if str <> '' then
-          str := str + ' AND ';
-
-        if LSubType = '' then
-          str := str + Format('%s.%s %s', [GetListTableAlias, 'USR$ST', ' is not null'])
-        else
-          str := str + Format('%s.%s<>''%s''', [GetListTableAlias, 'USR$ST', AnsiUpperCase(LSubType)]);
-      until LSubType = '';
-
-      if Result = '' then
-        Result := 'WHERE ' + str
-      else
-        Result := Result + ' AND ' + str;
-    end;
   end;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASE', 'GETWHERECLAUSE', KEYGETWHERECLAUSE)}
@@ -6514,7 +6274,7 @@ begin
       RefreshSQL.Text := '';
   end;
 
-// Событие на создание запроса. Для возможности его корректировки из вне.
+  // Событие на создание запроса. Для возможности его корректировки из вне.
 
   SQLText := DoAfterInitSQL(SelectSQL.Text);
   if SQLText > '' then
@@ -6566,7 +6326,6 @@ begin
                 '-', '', [rfReplaceAll]), 1, 30);
             try
               Transaction.SetSavePoint(FSavepoint);
-              //ExecSingleQuery('SAVEPOINT ' + FSavepoint);
             except
               UseSavepoints := False;
               FSavepoint := '';
@@ -9122,19 +8881,6 @@ MasterSource = nil? не трогать ни транзакции, ни состояние
 
     if FgdcDataLink.DataSet is TgdcBase then
       (FgdcDataLink.DataSet as TgdcBase).AddDetailLink(Self);
-
-    {for I := 0 to FDetailLinks.Count - 1 do
-    begin
-      if FDetailLinks[I] is TgdcBase then
-      begin
-        MS := TgdcBase(FDetailLinks[I]).MasterSource;
-        if MS <> nil then
-        begin
-          TgdcBase(FDetailLinks[I]).MasterSource := nil;
-          TgdcBase(FDetailLinks[I]).MasterSource := MS;
-        end;
-      end;
-    end;}
   end;
 end;
 
@@ -9194,10 +8940,6 @@ constructor TgdcDataLink.Create(ADetailObject: TgdcBase);
 begin
   inherited Create;
   FDetailObject := ADetailObject;
-  {FTimer := TTimer.Create(nil);
-  FTimer.Enabled := False;
-  FTimer.Interval := 0; //60
-  FTimer.OnTimer := DoOnTimer;}
   FMasterField := TStringList.Create;
   FDetailField := TStringList.Create;
   FLinkEstablished := False;
@@ -9264,17 +9006,18 @@ end;
 
 { TgdcBaseManager }
 
-function TgdcBaseManager.AdjustMetaName(const S: AnsiString): AnsiString;
+function TgdcBaseManager.AdjustMetaName(const S: AnsiString;
+  const MaxLength: Integer): AnsiString;
 var
   Tmp, S1: AnsiString;
 begin
   S1 := AnsiUpperCase(S);
 
-  if Length(S1) < 32 then
+  if Length(S1) <= MaxLength then
     Result := S1
   else begin
     Tmp := IntToStr(Crc32_P(@S1[1], Length(S1), 0));
-    Result := Copy(S1, 1, 31 - Length(Tmp)) + Tmp;
+    Result := Copy(S1, 1, MaxLength - Length(Tmp)) + Tmp;
   end;
 end;
 
@@ -9589,7 +9332,7 @@ begin
       else begin
         DBID := IBLogin.DBID;
         InsertRUID(ID, XID, DBID, Now, IBLogin.ContactKey, Tr);
-      end;  
+      end;
     end else
     begin
       XID := RR.XID;
@@ -9781,7 +9524,8 @@ class function TgdcBase.CreateViewForm(AnOwner: TComponent;
   const AClassName: String = ''; const ASubType: String = '';
   const ANewInstance: Boolean = False): TForm;
 var
-  C: TPersistentClass;
+  CE: TgdClassEntry;
+  F: TgdcCreateableForm;
 begin
   Assert(IBLogin <> nil);
   Assert(atDatabase <> nil);
@@ -9809,21 +9553,26 @@ begin
       'Имя класса: ' + Self.ClassName + #13#10 +
       'Подтип: ' + ASubType);
 
-  C := GetClass(AClassName);
-  if C = nil then
-    C := GetClass(GetViewFormClassName(ASubType));
-  if (C <> nil) and C.InheritsFrom(TgdcCreateableForm) then
+  CE := gdClassList.Find(AClassName, ASubType);
+  if not (CE is TgdFormEntry) then
+    CE := gdClassList.Find(GetViewFormClassName(ASubType), ASubType);
+  if (CE is TgdFormEntry) and CE.TheClass.InheritsFrom(TgdcCreateableForm) then
   begin
     if ANewInstance then
       Result := nil
     else
-      Result := CgdcCreateableForm(C).FindForm(CgdcCreateableForm(C), ASubType);
+      Result := CgdcCreateableForm(CE.TheClass).FindForm(CgdcCreateableForm(CE.TheClass), ASubType);
     if Result = nil then
-    try
-      Result := CgdcCreateableForm(C).CreateSubType(AnOwner, ASubType);
-    except
-      Result.Free;
-      raise;
+    begin
+      F := nil;
+      try
+        F := CgdcCreateableForm(CE.TheClass).CreateSubType(AnOwner, ASubType);
+        F.Setup(F.gdcObject);
+      except
+        F.Free;
+        raise;
+      end;
+      Result := F;
     end;
   end else
     Result := nil;
@@ -9968,18 +9717,68 @@ begin
   end;
 end;
 
-function TgdcBase.GetCurrRecordClass: TgdcFullClass;
+procedure _Traverse(CE: TgdClassEntry; q: TIBSQL; const ARoot: Boolean;
+  const AnID: TID; var ASubType: TgdcSubType);
 var
-  F: TField;
+  I: Integer;
+begin
+  for I := 0 to CE.Count - 1 do
+  begin
+    _Traverse(CE.Children[I], q, False, AnID, ASubType);
+    if ASubType > '' then
+      exit;
+  end;
+
+  if (not ARoot) and (CE is TgdAttrUserDefinedEntry) then
+  begin
+    q.SQL.Text :=
+      'SELECT inheritedkey FROM ' + (CE as TgdBaseEntry).DistinctRelation +
+      ' WHERE inheritedkey = :id';
+    q.ParamByName('id').AsInteger := AnID;
+    q.ExecQuery;
+    if not q.EOF then
+      ASubType := CE.SubType;
+    q.Close;
+  end;
+end;
+
+procedure TgdcBase.FindInheritedSubType(var FC: TgdcFullClass);
+var
+  q: TIBSQL;
+  CE: TgdClassEntry;
+  S: TgdcSubType;
+begin
+  if not IsEmpty then
+  begin
+    CE := gdClassList.Find(FC.gdClass.ClassName, FC.SubType);
+
+    if not (CE is TgdBaseEntry) then
+    begin
+      FC.SubType := '';
+      CE := gdClassList.Get(TgdBaseEntry, FC.gdClass.ClassName, FC.SubType);
+    end;
+
+    if CE.Count > 0 then
+    begin
+      S := '';
+      q := TIBSQL.Create(nil);
+      try
+        q.Transaction := ReadTransaction;
+        _Traverse(CE, q, True, ID, S);
+      finally
+        q.Free;
+      end;
+      if S > '' then
+        FC.SubType := S;
+    end;
+  end;
+end;
+
+function TgdcBase.GetCurrRecordClass: TgdcFullClass;
 begin
   Result.gdClass := CgdcBase(Self.ClassType);
-  Result.SubType := '';
-  
-  F := FindField('USR$ST');
-  if F <> nil then
-    Result.SubType := F.AsString;
-  if (Result.SubType > '') and (not CheckSubType(Result.SubType)) then
-    raise EgdcException.Create('Invalid USR$ST value.');
+  Result.SubType := SubType;
+  FindInheritedSubType(Result);
 end;
 
 function TgdcBase.GetNameInScript: String;
@@ -10000,7 +9799,8 @@ begin
   Result := CreateDialog(MakeFullClass(C, ''));
 end;
 
-function TgdcBase.CreateDialog(C: TgdcFullClass): Boolean;
+function TgdcBase.CreateDialog(C: TgdcFullClass;
+  const AnInitProc: TgdcBaseInitProc = nil): Boolean;
 var
   Obj: TgdcBase;
   I: Integer;
@@ -10009,10 +9809,13 @@ begin
   if C.gdClass <> nil then
   begin
     CheckClass(C.gdClass);
-    if (C.gdClass = Self.ClassType) and (AnsiUpperCase(C.SubType) = AnsiUpperCase(SubType)) then
+    if (C.gdClass = Self.ClassType) and AnsiSameText(C.SubType, SubType) then
       Result := CreateDialog
     else begin
-      Obj := C.gdClass.CreateWithParams(Owner, Database, Transaction, C.SubType, 'OnlySelected');
+      Obj := C.gdClass.CreateWithParams(Owner, Database, Transaction,
+        C.SubType, 'OnlySelected');
+      if Assigned(AnInitProc) then
+        AnInitProc(Obj);
       try
         // обязательно надо сохранить мастера!
         //Obj.MasterField := MasterField;
@@ -10329,7 +10132,7 @@ begin
                   if (gdcClassByRecord is TgdcDocument) then
                   begin
                     GroupName := gdcClassByRecord.GetDisplayName(gdcClassByRecord.SubType) +
-                      ' (' + (gdcClassByRecord as TgdcDocument).DocumentName[False] + ')';
+                      ' (' + (gdcClassByRecord as TgdcDocument).DocumentName + ')';
                   end else
                     GroupName := gdcClassByRecord.GetDisplayName(gdcClassByRecord.SubType);
 
@@ -10595,7 +10398,7 @@ begin
             I := 0;
 
             repeat
-              N := GetDisplayName(SubSet);
+              N := GetDisplayName(SubType);
               if I > 0 then
                 N := N + IntToStr(I);
               Inc(I);
@@ -10792,8 +10595,8 @@ begin
 
     if OL.Count = 1 then
     begin
-      Result.gdClass := TgdClassEntry(OL[0]).gdcClass;
-      Result.SubType := TgdClassEntry(OL[0]).SubType;
+      Result.gdClass := TgdBaseEntry(OL[0]).gdcClass;
+      Result.SubType := TgdBaseEntry(OL[0]).SubType;
       exit;
     end;
 
@@ -10803,8 +10606,8 @@ begin
 
       if (ShowModal = mrOk) and (rgObjects.ItemIndex > -1) then
       begin
-        Result.gdClass := TgdClassEntry(rgObjects.Items.Objects[rgObjects.ItemIndex]).gdcClass;
-        Result.SubType := TgdClassEntry(rgObjects.Items.Objects[rgObjects.ItemIndex]).SubType;
+        Result.gdClass := TgdBaseEntry(rgObjects.Items.Objects[rgObjects.ItemIndex]).gdcClass;
+        Result.SubType := TgdBaseEntry(rgObjects.Items.Objects[rgObjects.ItemIndex]).SubType;
       end;
     finally
       Free;
@@ -10966,22 +10769,45 @@ class function TgdcBase.GetChildrenClass(const ASubType: TgdcSubType;
   AnOL: TObjectList; const AnIncludeRoot: Boolean = True;
   const AnOnlyDirect: Boolean = False;
   const AnIncludeAbstract: Boolean = False): Boolean;
+
+  procedure _Traverse(CE: TgdClassEntry; AnOL: TObjectList;
+    AnIncludeAbstract: Boolean; AnOnlyDirect: Boolean);
+  var
+    I: Integer;
+  begin
+    if CE.Hidden then
+      exit;
+
+    if AnIncludeAbstract then
+      AnOL.Add(CE)
+    else if not TgdBaseEntry(CE).gdcClass.IsAbstractClass then
+      AnOL.Add(CE);
+
+    if not AnOnlyDirect then
+      for I := 0 to CE.Count - 1 do
+        _Traverse(CE.Children[I], AnOL, AnIncludeAbstract, AnOnlyDirect);
+  end;
+
 var
   I: Integer;
+  CE: TgdClassEntry;
 begin
-  if AnOL = nil then
-    raise Exception.Create('');
+  Assert(AnOL <> nil);
+
   AnOL.Clear;
 
-  gdClassList.Traverse(Self, ASubType, BuildTree,
-    AnOL, nil, AnIncludeRoot, AnOnlyDirect);
+  CE := gdClassList.Get(TgdBaseEntry, Self.ClassName, ASubType);
 
-  if not AnIncludeAbstract then
-    for I := AnOL.Count - 1 downto 0 do
-    begin
-      if TgdClassEntry(AnOL[I]).gdcClass.IsAbstractClass then
-        AnOL.Delete(I);
-    end;
+  if AnIncludeRoot then
+  begin
+    if AnIncludeAbstract then
+      AnOL.Add(CE)
+    else if not TgdBaseEntry(CE).gdcClass.IsAbstractClass then
+      AnOL.Add(CE);
+  end;
+
+  for I := 0 to CE.Count - 1 do
+    _Traverse(CE.Children[I], AnOL, AnIncludeAbstract, AnOnlyDirect);
 
   Result := AnOL.Count > 0;
 end;
@@ -11005,8 +10831,6 @@ procedure TgdcBase.CustomDelete(Buff: Pointer);
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-{  var
-    RUID: TRUID;}
 begin
   {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCBASE', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
   {M}  try
@@ -11316,13 +11140,16 @@ procedure TgdcBase.SetSubType(const Value: TgdcSubType);
 begin
   if FSubType <> Value then
   begin
-    if FSubType > '' then
-    begin
-      if (ComponentState * [csDesigning, csLoading] = []) then
-        raise EgdcException.CreateObj('Can not change subtype', Self);
+    if (FSubType > '') and (ComponentState * [csDesigning, csLoading] = []) then
+      raise EgdcException.CreateObj('Can not change subtype', Self);
 
-      if not CheckSubType(Value) then
-        raise EgdcException.CreateObj('Invalid subtype specified', Self);  
+    if not CheckSubType(Value) then
+    begin
+      if (StrIPos('usr_', Self.Name) = 1) or (StrIPos('usrg_', Self.Name) = 1) then
+        gdClassList.Add(Self.ClassName, Value, Self.SubType,
+          CgdClassEntry(gdClassList.Get(TgdBaseEntry, Self.ClassName, Self.SubType).ClassType), '')
+      else
+        raise EgdcException.CreateObj('Invalid subtype specified', Self);
     end;
 
     Close;
@@ -11770,8 +11597,8 @@ begin
   end;
 end;
 
-procedure TgdcBaseManager.ExecSingleQueryResult(const S: String;
-  Param: Variant; out Res: OleVariant; const Transaction: TIBTransaction);
+function TgdcBaseManager.ExecSingleQueryResult(const S: String;
+  Param: Variant; out Res: OleVariant; const Transaction: TIBTransaction): Boolean;
 var
   q: TIBSQL;
   I, J, CutOff: Integer;
@@ -11779,6 +11606,7 @@ var
   Tr: TIBTransaction;
   St: String;
 begin
+  Result := False;
   Tr := Transaction;
   if Tr = nil then
   begin
@@ -11789,7 +11617,6 @@ begin
     DidActivate := False;
     q := TIBSQL.Create(nil);
     try
-      q.Database := Database;
       q.Transaction := Tr;
       DidActivate := not Tr.InTransaction;
       if DidActivate then Tr.StartTransaction;
@@ -11865,6 +11692,7 @@ begin
                   VarArrayReDim(Res, J);
                 end;
               end;
+              Result := True;
             end;
 
           except
@@ -12289,9 +12117,6 @@ end;
 
 procedure TgdcBase.SyncField(Field: TField);
 begin
-//  if not (State in dsEditModes) then
-//  exit;
-
   if ((sDialog in FBaseState)
     and (FDlgStack.Count > 0)
     and (FDlgStack.Peek is Tgdc_dlgG))
@@ -12356,9 +12181,51 @@ end;
 procedure TgdcBase._CustomInsert(Buff: Pointer);
 var
   OldState: TDataSetState;
+  CE: TgdClassEntry;
+
+  procedure UserDefinedCustomInsert(BE: TgdBaseEntry);
+  var
+    I: Integer;
+    RelationName, FieldName: String;
+    F, V: String;
+  begin
+    if (BE.Parent <> nil) and (BE.Parent <> BE.GetRootSubType) then
+      UserDefinedCustomInsert(BE.Parent as TgdBaseEntry);
+
+    if BE.DistinctRelation <> TgdBaseEntry(BE.Parent).DistinctRelation then
+    begin
+      if BE is TgdDocumentEntry then
+        F := 'DOCUMENTKEY,'
+      else
+        F := 'INHERITEDKEY,';
+
+      V := ':NEW_ID,';
+
+      for I := 0 to FieldCount - 1 do
+      begin
+        ParseFieldOrigin(Fields[I].Origin, RelationName, FieldName);
+
+        if RelationName = BE.DistinctRelation then
+        begin
+          F := F + FieldName + ',';
+          V := V + ':NEW_' + Fields[I].FieldName + ',';
+        end;
+      end;
+
+      SetLength(F, Length(F) - 1);
+      SetLength(V, Length(V) - 1);
+
+      CustomExecQuery('INSERT INTO ' + BE.DistinctRelation +
+        ' (' + F + ') VALUES (' + V + ')', Buff, False);
+    end
+  end;
+
 begin
   OldState := State;
   CustomInsert(Buff);
+  CE := gdClassList.Get(TgdBaseEntry, Self.ClassName, SubType);
+  if (not (CE is TgdStorageEntry)) and (CE <> CE.GetRootSubType) then
+    UserDefinedCustomInsert(CE as TgdBaseEntry);
   DoAfterCustomProcess(Buff, cpInsert);
   if OldState <> State then
     MessageBox(ParentHandle,
@@ -12371,9 +12238,48 @@ end;
 procedure TgdcBase._CustomModify(Buff: Pointer);
 var
   OldState: TDataSetState;
+  CE: TgdClassEntry;
+
+  procedure UserDefinedCustomModify(BE: TgdBaseEntry; const LinkFieldName: String);
+  var
+    I: Integer;
+    RelationName, FieldName: String;
+    S: String;
+  begin
+    if (BE.Parent <> nil) and (BE.Parent <> BE.GetRootSubType) then
+      UserDefinedCustomModify(BE.Parent as TgdBaseEntry, LinkFieldName);
+
+    if BE.DistinctRelation <> TgdBaseEntry(BE.Parent).DistinctRelation then
+    begin
+      S := '';
+      for I := 0 to FieldCount - 1 do
+      begin
+        ParseFieldOrigin(Fields[I].Origin, RelationName, FieldName);
+
+        if (RelationName = BE.DistinctRelation) and FieldChanged(Fields[I].FieldName) then
+          S := S + FieldName + ' = :NEW_' + Fields[I].FieldName + ',';
+      end;
+
+      if S > '' then
+      begin
+        SetLength(S, Length(S) - 1);
+        CustomExecQuery('UPDATE ' + BE.DistinctRelation + ' SET ' +
+          S + ' WHERE ' + LinkFieldName + ' = :OLD_ID', Buff, False);
+      end;
+    end;
+  end;
+  
 begin
   OldState := State;
   CustomModify(Buff);
+  CE := gdClassList.Get(TgdBaseEntry, Self.ClassName, SubType);
+  if (not (CE is TgdStorageEntry)) and (CE <> CE.GetRootSubType) then
+  begin
+    if CE is TgdDocumentEntry then
+      UserDefinedCustomModify(CE as TgdBaseEntry, 'documentkey')
+    else
+      UserDefinedCustomModify(CE as TgdBaseEntry, 'inheritedkey');
+  end;
   DoAfterCustomProcess(Buff, cpModify);
   if OldState <> State then
     MessageBox(ParentHandle,
@@ -12425,29 +12331,12 @@ begin
 end;
 
 class function TgdcBase.GetSubTypeList(ASubTypeList: TStrings;
-  const ASubType: String = ''; AnOnlyDirect: Boolean = False): Boolean;
+  const ASubType: String = ''; const AnOnlyDirect: Boolean = False;
+  const AVerbose: Boolean = True): Boolean;
 begin
-  if AnsiPos('USR_', AnsiUpperCase(ASubType)) > 0 then
-    raise EgdcException.Create('Недопустимый символ ''_''в подтипе');
-
   Assert(ASubTypeList <> nil);
-
-  Result := gdClassList.GetSubTypeList(Self, ASubType, ASubTypeList, AnOnlyDirect)
-end;
-
-class function TgdcBase.ClassParentSubType(const ASubType: String): String;
-var
-  CE: TgdClassEntry;
-begin
-  if AnsiPos('USR_', AnsiUpperCase(ASubType)) > 0 then
-    raise EgdcException.Create('Недопустимый символ ''_''в подтипе');
-
-  Result := '';
-
-  CE := gdClassList.Find(Self, ASubType);
-
-  if (CE <> nil) and (CE.Parent <> nil) then
-    Result := CE.Parent.SubType;
+  Result := gdClassList.GetSubTypeList(Self, ASubType, ASubTypeList,
+    AnOnlyDirect, AVerbose);
 end;
 
 function TgdcBase.GetNextID(const Increment: Boolean = True; const ResetCache: Boolean = False): Integer;
@@ -12467,7 +12356,6 @@ begin
         q.SQL.Text := 'SELECT GEN_ID(gd_g_unique, 0) + GEN_ID(gd_g_offset, 0) FROM rdb$database';
       q.ExecQuery;
       Result := q.Fields[0].AsInteger;
-      q.Close;
     finally
       q.Free;
     end;
@@ -12520,7 +12408,6 @@ begin
       exit;
     end;
 end;
-
 
 procedure TgdcBase.DoAfterCustomProcess(Buff: Pointer;
   Process: TgsCustomProcess);
@@ -12889,13 +12776,39 @@ begin
 end;
 
 class function TgdcBase.GetListTable(const ASubType: TgdcSubType): String;
+var
+  CE: TgdClassEntry;
 begin
-  Result := '';
+  if ASubType > '' then
+  begin
+    CE := gdClassList.Get(TgdBaseEntry, Self.ClassName, ASubType);
+    if CE is TgdAttrUserDefinedEntry then
+      Result := CE.GetRootSubType.SubType
+    else
+      Result := '';
+  end else
+    Result := '';
 end;
 
 class function TgdcBase.GetListField(const ASubType: TgdcSubType): String;
+var
+  CE: TgdClassEntry;
+  R: TatRelation;
 begin
-  Result := '';
+  if ASubType > '' then
+  begin
+    CE := gdClassList.Get(TgdBaseEntry, Self.ClassName, ASubType);
+    if CE is TgdAttrUserDefinedEntry then
+    begin
+      R := atDatabase.Relations.ByRelationName(GetListTable(ASubType));
+      if Assigned(R) then
+        Result := R.ListField.FieldName
+      else
+        Result := '';
+    end else
+      Result := '';
+  end else
+    Result := '';
 end;
 
 procedure TgdcBase.GetDistinctColumnValues(const AFieldName: String;
@@ -13032,7 +12945,7 @@ begin
 
   if _Sub(FromClause + ' ' + WhereClause, AParamName, RN, Result) then
   begin
-    {Здесь допущение, что поля из главной таблицы имеею оригинальное название}
+    {Здесь допущение, что поля из главной таблицы имееют оригинальное название}
     if (RN > '') and (AnsiCompareText(GetListTableAlias, RN) <> 0) then
     begin
       S := TStringList.Create;
@@ -13218,35 +13131,19 @@ begin
     Proh := ';' + GetListField(SubType) + Prohibited +
       StringReplace(GetNotCopyField, ',', ';', [rfReplaceAll]) + ';';
 
-    {if FieldCount = 0 then
-    begin}
-      SL := TStringList.Create;
-      try
-        Database.GetFieldNames(GetListTable(SubType), SL);
-        for I := 0 to SL.Count - 1 do
-          if StrIPos(';' + SL[I] + ';', Proh) = 0 then
-          begin
-            F := FindField(SL[I]);
-            if (F <> nil) and (F.DefaultExpression = '') and (not (F is TBlobField)) and (F.Size < 64) then
-              Result := Result + F.FieldName + ';';
-          end;
-      finally
-        SL.Free;
-      end;
-    {end else
-    begin
-      for I := 0 to FieldCount - 1 do
-      begin
-        with Fields[I] do
+    SL := TStringList.Create;
+    try
+      Database.GetFieldNames(GetListTable(SubType), SL);
+      for I := 0 to SL.Count - 1 do
+        if StrIPos(';' + SL[I] + ';', Proh) = 0 then
         begin
-          if (Pos(';' + FieldName + ';', Proh) = 0) and
-            (DefaultExpression = '') and (not (Fields[I] is TBlobField)) and (Size < 64) then
-          begin
-            Result := Result + FieldName + ';';
-          end;
+          F := FindField(SL[I]);
+          if (F <> nil) and (F.DefaultExpression = '') and (not (F is TBlobField)) and (F.Size < 64) then
+            Result := Result + F.FieldName + ';';
         end;
-      end;
-    end;}
+    finally
+      SL.Free;
+    end;
 
     FGetDialogDefaultsFieldsCached := True;
     FGetDialogDefaultsFieldsCache := Result;
@@ -14516,7 +14413,9 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
   Result := Format('FROM %s %s ', [GetListTable(SubType), GetListTableAlias]);
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASE', 'GETFROMCLAUSE', KEYGETFROMCLAUSE)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -14835,20 +14734,6 @@ begin
   Result := Self.ClassNameIs('TgdcBase');
 end;
 
-function TgdcBase.GetDefaultClassForDialog: TgdcFullClass;
-begin
-  Result := QueryDescendant;
-end;
-
-procedure TgdcBase.CreateDefaultDialog;
-var
-  C: TgdcFullClass;
-begin
-  C := GetDefaultClassForDialog;
-  if C.gdClass <> nil then
-    CreateDialog(C);
-end;
-
 function TgdcBase.GetSubSet: TgdcSubSet;
 begin
   if Assigned(FSubSets) then
@@ -14918,7 +14803,6 @@ begin
     if Assigned(FOnFilterChanged) then
       FOnFilterChanged(Self);
   end;
-
 end;
 
 procedure TgdcBase.ClearSubSets;
@@ -16249,7 +16133,7 @@ end;
 procedure TgdcBase.SetFirstMethodAssoc(const AClass: String;
   const AMethodKey: Byte);
 begin
-  if Length(FClassMethodAssoc.StrByKey[AMethodKey]) = 0 then
+  if FClassMethodAssoc.StrByKey[AMethodKey] = '' then
     FClassMethodAssoc.StrByKey[AMethodKey] := AClass;
 end;
 
@@ -16498,27 +16382,12 @@ end;
 
 function TgdcBase.CreateBlobStream(Field: TField;
   Mode: TBlobStreamMode): TStream;
-{var
-  OldID: Integer;}
 begin
   if (State = dsEdit) and (Mode in [DB.bmWrite, DB.bmReadWrite]) then
     UpdateOldValues(Field);
 
-  {try}
-    Result := inherited CreateBlobStream(Field, Mode);
-  {except
-    if State = dsBrowse then
-    begin
-      OldID := ID;
-      InternalRef\reshRow;
-      if OldID = ID then
-        Result := inherited CreateBlobStream(Field, Mode)
-      else
-        raise;
-    end else
-      raise;
-  end;}
-  
+  Result := inherited CreateBlobStream(Field, Mode);
+
   if (State = dsEdit) and (Mode in [DB.bmWrite, DB.bmReadWrite]) then
     FDSModified := True;
 end;
@@ -17206,21 +17075,6 @@ begin
   end;
 end;
 
-function TgdcBase.CreateChildrenDialog: Boolean;
-begin
-  Result := CreateDialog;
-end;
-
-function TgdcBase.CreateChildrenDialog(C: CgdcBase): Boolean;
-begin
-  Result := CreateDialog(C);
-end;
-
-function TgdcBase.CreateChildrenDialog(C: TgdcFullClass): Boolean;
-begin
-  Result := CreateDialog(C);
-end;
-
 procedure TgdcBase.AddObjectItem(const Name: String);
 begin
   if FObjects = nil then
@@ -17703,10 +17557,10 @@ begin
    (FFieldsCallDoChange.IndexOf(Field.FieldName) > -1) and not (sLoadFromStream in BaseState);
 end;
 
-procedure TgdcBase.ExecSingleQueryResult(const S: String; Param: Variant;
-  out Res: OleVariant);
+function TgdcBase.ExecSingleQueryResult(const S: String; Param: Variant;
+  out Res: OleVariant): Boolean;
 begin
-  gdcBaseManager.ExecSingleQueryResult(S, Param, Res, Transaction);
+  Result := gdcBaseManager.ExecSingleQueryResult(S, Param, Res, Transaction);
 end;
 
 function TgdcBase.GetRuidFromStream: TRUID;
@@ -17909,18 +17763,8 @@ begin
 end;
 
 class function TgdcBase.CheckSubType(const ASubType: String): Boolean;
-var
-  CE: TgdClassEntry;
 begin
-  if AnsiPos('USR_', AnsiUpperCase(ASubType)) > 0 then
-    raise EgdcException.Create('Недопустимый символ ''_''в подтипе');
-
-  Result := False;
-
-  CE := gdClassList.Find(Self, ASubType);
-
-  if CE <> nil then
-    Result := True;
+  Result := gdClassList.Find(Self, ASubType) <> nil;
 end;
 
 { TgdcSetAttribute }
@@ -18483,6 +18327,12 @@ begin
   Result := GetListTable(SubType);
 end;
 
+class function TgdcBase.GetDistinctTable(const ASubType: TgdcSubType): String;
+begin
+  Result := (gdClassList.Get(TgdBaseEntry, Self.ClassName,
+    ASubType) as TgdBaseEntry).DistinctRelation;
+end;
+
 initialization
   UseSavepoints := True;
   gdcClipboardFormat := RegisterClipboardFormat(gdcClipboardFormatName);
@@ -18494,12 +18344,10 @@ initialization
 
   CacheDBID := -1;
   CacheList := nil;
-  CacheBaseClassForRel := nil;
 
 finalization
   FreeAndNil(CacheList);
-  FreeAndNil(CacheBaseClassForRel);
-  UnRegisterGDCClass(TgdcBase);
+  UnregisterGdcClass(TgdcBase);
 
   {$IFDEF DEBUG}
   if InvokeCounts <> nil then
@@ -19306,7 +19154,7 @@ begin
         // если текущий класс не последний в хранилище значит этот Делфи-метод
         // уже выполнялся - переходим по Inherited к следующему методу иерархии
         if tmpStrings.LastClass.gdClassName <> 'CURR_CLASS' then
-        begin
+        begin       
           Inherited;
           Exit;
         end;

@@ -66,39 +66,46 @@ function Tgd_dlgClassList.BuildClassTree(ACE: TgdClassEntry;
   AData1: Pointer; AData2: Pointer): Boolean;
 var
   LI: TListItem;
+  CE: TgdBaseEntry;
 begin
-  if (edFilter.Text = '')
-    or (StrIPos(edFilter.Text, ACE.TheClass.ClassName) > 0)
-    or
-    (
-      ACE.gdcClass.IsAbstractClass
-      and
-      (StrIPos(edFilter.Text, '<Абстрактный базовый класс>') > 0)
-    )
-    or
-    (
-      (not ACE.gdcClass.IsAbstractClass)
-      and
-      (StrIPos(edFilter.Text, ACE.SubType) > 0)
-    )
-    or (StrIPos(edFilter.Text, ACE.gdcClass.GetDisplayName(ACE.SubType)) > 0)
-    or (StrIPos(edFilter.Text, ACE.gdcClass.GetListTable(ACE.SubType)) > 0) then
+  if ACE is TgdBaseEntry then
   begin
-    LI := lvClasses.Items.Add;
-    LI.Caption := ACE.TheClass.ClassName;
+    CE := ACE as TgdBaseEntry;
 
-    if ACE.gdcClass.IsAbstractClass then
-      LI.SubItems.Add('<Абстрактный базовый класс>')
-    else
-      LI.SubItems.Add(ACE.SubType);
+    if (edFilter.Text = '')
+      or (StrIPos(edFilter.Text, CE.TheClass.ClassName) > 0)
+      or
+      (
+        CE.gdcClass.IsAbstractClass
+        and
+        (StrIPos(edFilter.Text, '<Абстрактный базовый класс>') > 0)
+      )
+      or
+      (
+        (not CE.gdcClass.IsAbstractClass)
+        and
+        (StrIPos(edFilter.Text, CE.SubType) > 0)
+      )
+      or (StrIPos(edFilter.Text, CE.gdcClass.GetDisplayName(CE.SubType)) > 0)
+      or (StrIPos(edFilter.Text, CE.gdcClass.GetListTable(CE.SubType)) > 0) then
+    begin
+      LI := lvClasses.Items.Add;
+      LI.Caption := CE.TheClass.ClassName;
 
-    LI.SubItems.Add(ACE.gdcClass.GetDisplayName(ACE.SubType));
-    LI.SubItems.Add(ACE.gdcClass.GetListTable(ACE.SubType));
+      if CE.gdcClass.IsAbstractClass then
+        LI.SubItems.Add('<Абстрактный базовый класс>')
+      else
+        LI.SubItems.Add(CE.SubType);
 
-    LI.Selected := (LI.Caption = FFullClass.gdClassName)
-      and (LI.SubItems[0] = FFullClass.SubType);
-  end;
-  Result := True;
+      LI.SubItems.Add(CE.gdcClass.GetDisplayName(CE.SubType));
+      LI.SubItems.Add(CE.gdcClass.GetListTable(CE.SubType));
+
+      LI.Selected := (LI.Caption = FFullClass.gdClassName)
+        and (LI.SubItems[0] = FFullClass.SubType);
+    end;
+    Result := True;
+  end else
+    Result := False;
 end;
 
 function Tgd_dlgClassList.SelectModal(const AFilter: String;

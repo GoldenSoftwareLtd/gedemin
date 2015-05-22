@@ -16,7 +16,10 @@ type
   Tgdc_frmMainGood = class(Tgdc_frmMDVTree)
     gdcGoodGroup: TgdcGoodGroup;
     gdcGood: TgdcGood;
+    tbsiNew: TTBSubmenuItem;
+    tbiSubNew: TTBItem;
     actNewSub: TAction;
+    tblMenuNew: TTBItem;
     actViewAllCard: TAction;
     tbiViewAllCard: TTBItem;
     procedure FormCreate(Sender: TObject);
@@ -26,6 +29,7 @@ type
 
   protected
     procedure RemoveSubSetList(S:TStrings); override;
+    procedure SetGdcObject(const Value: TgdcBase); override;
 
   public
     class function CreateAndAssign(
@@ -58,9 +62,18 @@ begin
   inherited;
 end;
 
+procedure Tgdc_frmMainGood.SetGdcObject(const Value: TgdcBase);
+begin
+  inherited;
+
+  tbsiNew.Visible := False;
+  tbiNew.Visible := True;
+end;
+
 procedure Tgdc_frmMainGood.actNewSubExecute(Sender: TObject);
 begin
-  gdcGoodGroup.CreateChildrenDialog;
+  // не удалять
+  //gdcGoodGroup.CreateChildrenDialog;
 end;
 
 procedure Tgdc_frmMainGood.RemoveSubSetList(S: TStrings);

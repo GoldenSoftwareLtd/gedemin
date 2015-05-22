@@ -66,10 +66,8 @@ object gdc_frmG: Tgdc_frmG
       ShowHint = True
       Stretch = True
       TabOrder = 0
-      object tbsiNew: TTBSubmenuItem
+      object tbiNew: TTBItem
         Action = actNew
-        DropdownCombo = True
-        OnPopup = tbsiNewPopup
       end
       object tbiEdit: TTBItem
         Action = actEdit
@@ -258,7 +256,7 @@ object gdc_frmG: Tgdc_frmG
       end
     end
     object tbMainInvariant: TTBToolbar
-      Left = 309
+      Left = 298
       Top = 25
       Caption = 'ƒополнительна€ панель инструментов'
       CloseButton = False

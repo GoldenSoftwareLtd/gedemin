@@ -71,6 +71,6 @@ initialization
   RegisterGDCClass(TgdcSQLStatement);
 
 finalization
-  UnRegisterGDCClass(TgdcSQLStatement);
+  UnregisterGdcClass(TgdcSQLStatement);
 end.
  

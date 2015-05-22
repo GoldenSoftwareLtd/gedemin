@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2001-2013 by Golden Software of Belarus
+  Copyright (c) 2001-2015 by Golden Software of Belarus
 
   Module
 
@@ -209,7 +209,7 @@ uses
   IBSQL, at_Classes,
 
   at_sql_metadata, Storages, gd_ClassList, gdcExplorer, dbConsts,
-  gdcAttrUserDefined, IBExtract, jclStrings
+  gdcAttrUserDefined, IBExtract, jclStrings, gd_dlgClassList_unit
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -814,43 +814,21 @@ procedure Tgdc_dlgRelation.BeforePost;
 
   function GetTableTypeName: String;
   var
-    R: TatRelation;
-    F: TatRelationField;
+    C: TgdcFullClass;
   begin
-    case (gdcObject as TgdcRelation).TableType of
-      ttIntervalTree: Result := 'TgdcAttrUserDefinedLBRBTree';
-      ttTree: Result := 'TgdcAttrUserDefinedTree';
-      else Result := 'TgdcAttrUserDefined';
-    end;
-
-    if gdcObject is TgdcTableToDefinedTable then
+    if gdcObject is TgdcInheritedTable then
     begin
-      R := atDatabase.Relations.ByRelationName((gdcObject as TgdcTableToDefinedTable).GetReferenceName);
-      if Assigned(R) then
-      begin
-        F := R.RelationFields.ByFieldName('INHERITEDKEY');
-        if Assigned(F) then
-          repeat
-            R := R.RelationFields.ByFieldName('INHERITEDKEY').ForeignKey.ReferencesRelation;
-          until not Assigned(R.RelationFields.ByFieldName('INHERITEDKEY'));
+      C := GetBaseClassForRelation((gdcObject as TgdcInheritedTable).GetReferenceName);
+      if C.gdClass = nil then
+        raise Exception.Create('Unregistered relation.');
+      Result := C.gdClass.ClassName;
+    end
+    else
+      case (gdcObject as TgdcRelation).TableType of
+        ttIntervalTree: Result := 'TgdcAttrUserDefinedLBRBTree';
+        ttTree: Result := 'TgdcAttrUserDefinedTree';
+        else Result := 'TgdcAttrUserDefined';
       end;
-
-      if Assigned(R) then
-      begin
-        F := R.RelationFields.ByFieldName('LB');
-        if Assigned(F) then
-          Result := 'TgdcAttrUserDefinedLBRBTree'
-        else
-        begin
-          F := R.RelationFields.ByFieldName('PARENT');
-          if Assigned(F) then
-            Result := 'TgdcAttrUserDefinedTree'
-          else
-            Result := 'TgdcAttrUserDefined';
-        end;
-      end;
-    end;
-
   end;
 
   {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
@@ -900,12 +878,6 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-
-  if gdcObject is TgdcTableToDefinedTable then
-  begin
-    if AnsiPos('USR$', (gdcObject as TgdcTableToDefinedTable).GetReferenceName) = 0 then
-      raise Exception.Create('—сылка может быть только на пользовательскую таблицу.');
-  end;
 
   inherited;
 
@@ -1247,6 +1219,7 @@ procedure Tgdc_dlgRelation.SetupRecord;
   {END MACRO}
 var
   R: TatRelation;
+  CF: TatRelationField;
   ibsql: TIBSQL;
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGRELATION', 'SETUPRECORD', KEYSETUPRECORD)}
@@ -1315,8 +1288,7 @@ begin
        (gdcObject is TgdcSimpleTable) or
        (gdcObject is TgdcTreeTable) or
        (gdcObject is TgdcLBRBTreeTable) or
-       (gdcObject is TgdcTableToTable) or
-       (gdcObject is TgdcTableToDefinedTable)
+       (gdcObject is TgdcTableToTable) 
       )
 
   else
@@ -1334,28 +1306,26 @@ begin
       else
         raise Exception.Create('“аблица не может быть открыта на редактирование.');
 
-
     if Assigned(R) then
-      with R do
-      begin
-        iblcExplorerBranch.Visible :=
-          (gdcObject.State = dsEdit) and
-          IsUserDefined and
-          (
-           (gdcObject is TgdcView) or
-           (gdcObject is TgdcPrimeTable) or
-           (gdcObject is TgdcSimpleTable) or
-           (gdcObject is TgdcTreeTable) or
-           (gdcObject is TgdcLBRBTreeTable) or
-           (gdcObject is TgdcTableToTable)  or
-           (gdcObject is TgdcTableToDefinedTable)
-          );
-      end;
+    with R do
+    begin
+      iblcExplorerBranch.Visible :=
+        (gdcObject.State = dsEdit) and
+        IsUserDefined and
+        (
+         (gdcObject is TgdcView) or
+         (gdcObject is TgdcPrimeTable) or
+         (gdcObject is TgdcSimpleTable) or
+         (gdcObject is TgdcTreeTable) or
+         (gdcObject is TgdcLBRBTreeTable) or
+         (gdcObject is TgdcTableToTable)
+        );
+    end;
   end;
 
   lblBranch.Visible := iblcExplorerBranch.Visible;
 
-//¬ыведем родител€ нашей ветки в исследователе
+  //¬ыведем родител€ нашей ветки в исследователе
   if lblBranch.Visible and (gdcObject.FieldByName('branchkey').AsInteger > 0) then
   begin
     ibsql := TIBSQL.Create(nil);
@@ -1375,17 +1345,25 @@ begin
   //ƒл€ редактировани€ нескольких веток запрещаем изменении ветки исследовател€
   iblcExplorerBranch.Enabled := not (sMultiple in gdcObject.BaseState);
 
-  if (gdcObject.ClassType = TgdcTableToTable)
-    or (gdcObject.ClassType = TgdcTableToDefinedTable) then
+  if gdcObject is TgdcTableToTable then
   begin
     lblReference.Visible := True;
     ibcmbReference.Visible := True;
     ibcmbReference.DataSource := dsgdcBase;
     ibcmbReference.DataField := 'referencekey';
+
     if (gdcObject.State = dsEdit) then
     begin
-      ibcmbReference.CurrentKeyInt := atDatabase.Relations.ByRelationName(
-      atDatabase.Relations.ByRelationName(gdcObject.FieldByName('relationname').AsString).RelationFields.ByFieldName('id').Field.RefTableName).ID;
+      R := atDatabase.Relations.ByRelationName(gdcObject.FieldByName('relationname').AsString);
+
+      if (R <> nil) and (R.PrimaryKey <> nil) and (R.PrimaryKey.ConstraintFields.Count = 1) then
+      begin
+        CF := R.PrimaryKey.ConstraintFields[0];
+
+        if CF.Field.RefTable <> nil then
+          ibcmbReference.CurrentKeyInt := CF.Field.RefTable.ID;
+      end;
+
       ibcmbReference.Enabled := False;
     end;
   end;
@@ -1503,6 +1481,32 @@ begin
 end;
 
 function Tgdc_dlgRelation.TestCorrect: Boolean;
+
+  procedure _Traverse(CE: TgdClassEntry; const ARN: String; var ACount: Integer);
+  var
+    I: Integer;
+  begin
+    if CE.Hidden then
+      exit;
+
+    if (CE as TgdBaseEntry).DistinctRelation = ARN then
+      Inc(ACount);
+
+    for I := 0 to CE.Count - 1 do
+      _Traverse(CE.Children[I], ARN, ACount);
+  end;
+
+  function CanInherit(const RID: TID): Boolean;
+  var
+    Count: Integer;
+    R: OleVariant;
+  begin
+    Count := 0;
+    if gdcBaseManager.ExecSingleQueryResult('SELECT relationname FROM at_relations WHERE id = :id', RID, R) then
+      _Traverse(gdClassList.Get(TgdBaseEntry, 'TgdcBase'), R[0, 0], Count);
+    Result := Count = 1;
+  end;
+
 var
   {@UNFOLD MACRO INH_CRFORM_PARAMS()}
   {M}
@@ -1539,6 +1543,18 @@ begin
 
   Result := inherited TestCorrect;
 
+  //ѕроверка на возможность создани€ св€занной таблицы (наследование)
+  if Result and (gdcObject is TgdcInheritedTable)
+    and (ibcmbReference.CurrentKeyInt > -1)
+    and (not CanInherit(ibcmbReference.CurrentKeyInt)) then
+  begin
+    MessageBox(Handle,
+      PChar(
+      'Ќельз€ наследовать класс от таблицы ' + ibcmbReference.Text),
+      '¬нимание', MB_OK or MB_ICONEXCLAMATION);
+    Result := False;
+  end;
+
   // ѕроверка на дублирование локализованного наименовани€ таблицы
   if Result and (not (sMultiple in gdcObject.BaseState))  then
   begin
@@ -1562,7 +1578,7 @@ begin
         Result := False;
       end;
     finally
-      FreeAndNil(q);
+      q.Free;
     end;
   end;
 

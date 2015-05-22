@@ -3,12 +3,14 @@ unit gdc_frmMD2H_unit;
 interface
 
 uses
-  Windows, Messages, SysUtils, Classes, Graphics, Controls, Contnrs, Forms, Dialogs,
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   gdc_frmMDH_unit, gd_MacrosMenu, Db, Menus, ActnList, Grids, DBGrids,
   gsDBGrid, gsIBGrid, StdCtrls, ExtCtrls, TB2Item, TB2Dock, TB2Toolbar,
   ComCtrls, gdcBase;
 
 type
+  TCrTBItem = Class(TTBItem);
+  
   Tgdc_frmMD2H = class(Tgdc_frmMDH)
     pnlSubDetail: TPanel;
     sSubDetail: TSplitter;
@@ -30,7 +32,7 @@ type
     tbiSubDetailDel: TTBItem;
     tbiSubDetailEdit: TTBItem;
     tbsSubdetail1: TTBSeparatorItem;
-    tbsiSubDetailNew: TTBSubmenuItem;
+    tbiSubDetailNew: TTBItem;
     procedure actSubDetailNewExecute(Sender: TObject);
     procedure actSubDetailNewUpdate(Sender: TObject);
     procedure actSubDetailEditExecute(Sender: TObject);
@@ -53,18 +55,15 @@ type
       Bar: TTBCustomDockableWindow; var Accept: Boolean);
     procedure TBDockTopRequestDock(Sender: TObject;
       Bar: TTBCustomDockableWindow; var Accept: Boolean);
-    procedure tbsiSubDetailNewPopup(Sender: TTBCustomItem;
+    procedure tbiSubDetailNewPopup(Sender: TTBCustomItem;
       FromLink: Boolean);
 
   private
     FgdcSubDetailObject: TgdcBase;
 
-    FpmSubDetailNewObject: TObjectList;
-
     procedure SetgdcSubDetailObject(const Value: TgdcBase);
 
     procedure DoOnSubDetailDescendantClick (Sender: TObject);
-    procedure FillPopupSubDetailNew(ATBSubmenuItem: TTBSubmenuItem);
 
   protected
     procedure Notification(AComponent: TComponent;
@@ -73,6 +72,8 @@ type
 
   public
     destructor Destroy; override;
+
+    procedure Setup(AnObject: TObject); override;
 
     procedure SaveSettings; override;
     procedure LoadSettingsAfterCreate; override;
@@ -89,7 +90,7 @@ implementation
 {$R *.DFM}
 
 uses
-  gd_ClassList, Storages, gsStorage_CompPath;
+  gd_ClassList, Storages, gsStorage_CompPath, Contnrs;
 
 { Tgdc_frmMD2H }
 
@@ -97,9 +98,6 @@ destructor Tgdc_frmMD2H.Destroy;
 begin
   if Assigned(FgdcSubDetailObject) then
     FgdcSubDetailObject.OnFilterChanged := nil;
-
-  FpmSubDetailNewObject.Free;  
-
   inherited;
 end;
 
@@ -122,8 +120,6 @@ begin
       FgdcSubDetailObject.RemoveFreeNotification(Self);
 
     FgdcSubDetailObject := Value;
-    {if (FSubType > '') and (FgdcDetailObject <> nil) then
-      FgdcDetailObject.SubType := FSubType;}
     if dsSubDetail.DataSet <> Value then
       dsSubDetail.DataSet := Value;
     if FgdcSubDetailObject <> nil then
@@ -132,112 +128,37 @@ begin
         FgdcSubDetailObject.FreeNotification(Self);
       FgdcSubDetailObject.OnFilterChanged := DoOnFilterChanged;
       DoOnFilterChanged(nil);
-      //tbsiMainMenuDetailObject.Caption := FgdcDetailObject.GetDisplayName(FgdcDetailObject.SubType);
     end;
   end;
 end;
 
 procedure Tgdc_frmMD2H.DoOnSubDetailDescendantClick (Sender: TObject);
 var
-  CE: TgdClassEntry;
+  CE: TgdBaseEntry;
   C: TgdcFullClass;
-  Index: Integer;
 begin
-  if Sender is TTBItem then
+  if (gdcSubDetailObject <> nil) and ((Sender as TTBItem).Tag <> 0) then
   begin
-    Index := (Sender as TTBItem).Tag;
-    CE := TgdClassEntry(TCreatedObject(FpmSubDetailNewObject[Index]).Obj);
-  end
-  else
-    raise Exception.Create('invalid classtype.');
-
-  if CE = nil then
-    raise Exception.Create('DescendantObject is nil');
-
-  C.gdClass := CE.gdcClass;
-  C.SubType := CE.SubType;
-
-  if gdcSubDetailObject <> nil then
-    gdcSubDetailObject.CreateDialog(C)
-end;
-
-procedure Tgdc_frmMD2H.FillPopupSubDetailNew(ATBSubmenuItem: TTBSubmenuItem);
-var
-  TBI: TTBItem;
-  I: Integer;
-begin
-  if gdcSubDetailObject = nil then
-    raise Exception.Create('gdcSubDetailObject is nil.');
-
-  if FpmSubDetailNewObject <> nil then
-  begin
-    FpmSubDetailNewObject.Free;
-    FpmSubDetailNewObject := nil;
-  end;
-
-  FpmSubDetailNewObject := TObjectList.Create;
-
-  gdcSubDetailObject.GetDescendantList(FpmSubDetailNewObject, True);
-
-  ATBSubmenuItem.Clear;
-
-  for I := 0 to FpmSubDetailNewObject.Count - 1 do
-  begin
-    TBI := TTBItem.Create(ATBSubmenuItem);
-    TBI.Tag := I;
-    TBI.Caption := TCreatedObject(FpmSubDetailNewObject[I]).Caption;
-
-    if TCreatedObject(FpmSubDetailNewObject[I]).IsSubLevel and gdcObject.IsEmpty then
-      TBI.Enabled := False;
-
-    TBI.OnClick := DoOnSubDetailDescendantClick;
-    TBI.ImageIndex := 0;
-
-    ATBSubmenuItem.Add(TBI);
+    CE := TgdBaseEntry((Sender as TTBItem).Tag);
+    C.gdClass := CE.gdcClass;
+    C.SubType := CE.SubType;
+    gdcSubDetailObject.CreateDialog(C);
   end;
 end;
 
 procedure Tgdc_frmMD2H.actSubDetailNewExecute(Sender: TObject);
 begin
-  if (gdcSubDetailObject <> nil) and (not gdcSubDetailObject.IsAbstractClass) then
-    gdcSubDetailObject.CreateDialog;
+  gdcSubDetailObject.CreateDescendant;
 end;
 
 procedure Tgdc_frmMD2H.actSubDetailNewUpdate(Sender: TObject);
-var
-  I: Integer;
-  DescendantCount: Integer;
-  SubMenu: Boolean;
 begin
-  if gdcSubDetailObject <> nil then
-    DescendantCount := gdcSubDetailObject.GetDescendantCount(True)
-  else
-    DescendantCount := 0;
-
   actSubDetailNew.Enabled := (gdcObject <> nil)
     and (gdcDetailObject <> nil)
     and (gdcSubDetailObject <> nil)
     and gdcSubDetailObject.CanCreate
     and ((gdcDetailObject.RecordCount > 0)
-      or (gdcSubDetailObject.HasSubSet('All')))
-    and (DescendantCount > 0);
-
-  SubMenu := DescendantCount > 1;
-
-  if not SubMenu then
-    SubMenu := (gdcSubDetailObject <> nil) and (gdcSubDetailObject.IsAbstractClass) and (DescendantCount > 0);
-
-  With tbSubDetailToolbar.Items do
-  begin
-    for I := 0 to Count - 1 do
-    begin
-      if (Items[I] is TTBSubmenuItem) and (Items[I].Action = (Sender as TBasicAction)) then
-      begin
-        (Items[I] as TTBSubmenuItem).DropDownCombo := SubMenu;
-        Break;
-      end
-    end;
-  end;
+      or (gdcSubDetailObject.HasSubSet('All')));
 end;
 
 procedure Tgdc_frmMD2H.actSubDetailEditExecute(Sender: TObject);
@@ -378,7 +299,6 @@ procedure Tgdc_frmMD2H.SaveSettings;
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-  //Path: String;
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_FRMMD2H', 'SAVESETTINGS', KEYSAVESETTINGS)}
   {M}  try
@@ -400,39 +320,6 @@ begin
   {M}    end;
   {END MACRO}
 
-  if UserStorage <> nil then
-  begin
-    {
-    if ((pnlSubdetail.Height > 1) and (pnlSubDetail.Width > 1)) then
-    begin
-      UserStorage.WriteInteger(BuildComponentPath(pnlSubDetail),
-        'Height', pnlSubDetail.Height);
-      UserStorage.WriteInteger(BuildComponentPath(pnlSubDetail),
-        'Width', pnlSubDetail.Width);
-    end;
-    }
-
-    {
-    if Assigned(gdcDetailObject) and (not FInChoose) then
-    begin
-      Path := BuildComponentPath(gdcDetailObject, 'Selected');
-
-      if (not gdcDetailObject.HasSubSet('OnlySelected'))
-        and (gdcDetailObject.SelectedID.Count = 0) then
-      begin
-        UserStorage.DeleteFolder(Path);
-      end else
-      begin
-        if (gdcDetailObject.SelectedID.WasModified) then
-          UserStorage.SaveComponent(gdcDetailObject,
-            gdcDetailObject.SaveSelectedToStream, 'Selected');
-        UserStorage.WriteBoolean(Path, 'OnlySelected',
-          gdcDetailObject.HasSubSet('OnlySelected'))
-      end;
-    end;
-    }
-  end;
-
   inherited;
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_FRMMD2H', 'SAVESETTINGS', KEYSAVESETTINGS)}
@@ -449,8 +336,6 @@ procedure Tgdc_frmMD2H.LoadSettingsAfterCreate;
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-  //Path: String;
-  //B: Boolean;
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_FRMMD2H', 'LOADSETTINGSAFTERCREATE', KEYLOADSETTINGSAFTERCREATE)}
   {M}  try
@@ -474,32 +359,6 @@ begin
 
   inherited;
 
-  if UserStorage <> nil then
-  begin
-    {
-    pnlSubDetail.Height := UserStorage.ReadInteger(BuildComponentPath(pnlSubDetail),
-      'Height', pnlSubDetail.Height);
-    pnlSubDetail.Width := UserStorage.ReadInteger(BuildComponentPath(pnlSubDetail),
-      'Width', pnlSubDetail.Width);
-    }
-
-    {
-    if Assigned(gdcDetailObject) then
-    begin
-      UserStorage.LoadComponent(gdcDetailObject, gdcDetailObject.LoadSelectedFromStream, 'Selected', False);
-      Path := BuildComponentPath(gdcDetailObject, 'Selected');
-      B := UserStorage.ReadInteger(Path, 'OnlySelected', 0) <> 0;
-      if B xor gdcDetailObject.HasSubSet('OnlySelected') then
-      begin
-        if B then
-          gdcDetailObject.AddSubSet('OnlySelected')
-        else
-          gdcDetailObject.RemoveSubSet('OnlySelected');
-      end;
-    end;
-    }
-  end;
-
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_FRMMD2H', 'LOADSETTINGSAFTERCREATE', KEYLOADSETTINGSAFTERCREATE)}
   {M}finally
   {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
@@ -508,11 +367,62 @@ begin
   {END MACRO}
 end;
 
-procedure Tgdc_frmMD2H.tbsiSubDetailNewPopup(Sender: TTBCustomItem;
+procedure Tgdc_frmMD2H.tbiSubDetailNewPopup(Sender: TTBCustomItem;
   FromLink: Boolean);
 begin
-  if (TTBSubmenuItem(Sender).DropDownCombo) and (gdcSubDetailObject <> nil) then
-    FillPopupSubDetailNew(TTBSubmenuItem(Sender));
+  if gdcSubDetailObject <> nil then
+    FillPopupNew(gdcSubDetailObject, Sender, DoOnSubDetailDescendantClick);
+end;
+
+procedure Tgdc_frmMD2H.Setup(AnObject: TObject);
+  {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+  OL: TObjectList;
+begin
+  {@UNFOLD MACRO INH_CRFORM_SETUP('TGDC_FRMMD2H', 'SETUP', KEYSETUP)}
+  {M}try
+  {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
+  {M}  begin
+  {M}    SetFirstMethodAssoc('TGDC_FRMMD2H', KEYSETUP);
+  {M}    tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYSETUP]);
+  {M}    if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDC_FRMMD2H') = -1) then
+  {M}    begin
+  {M}      Params := VarArrayOf([GetGdcInterface(Self), GetGdcInterface(AnObject)]);
+  {M}      if gdcMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDC_FRMMD2H',
+  {M}        'SETUP', KEYSETUP, Params, LResult) then exit;
+  {M}    end else
+  {M}      if tmpStrings.LastClass.gdClassName <> 'TGDC_FRMMD2H' then
+  {M}      begin
+  {M}        Inherited;
+  {M}        Exit;
+  {M}      end;
+  {M}  end;
+  {END MACRO}
+
+  inherited Setup(AnObject);
+
+  OL := TObjectList.Create(False);
+  try
+    if (gdcSubDetailObject <> nil) and gdcSubDetailObject.GetChildrenClass(gdcSubDetailObject.SubType, OL, False) then
+    begin
+      TCrTBItem(tbiSubDetailNew).ItemStyle :=
+        TCrTBItem(tbiSubDetailNew).ItemStyle
+        + [tbisSubMenu, tbisSubitemsEditable, tbisCombo];
+      tbiSubDetailNew.OnPopup := tbiSubDetailNewPopup;
+    end;
+  finally
+    OL.Free;
+  end;
+
+  {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_FRMMD2H', 'SETUP', KEYSETUP)}
+  {M}finally
+  {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
+  {M}    ClearMacrosStack('TGDC_FRMMD2H', 'SETUP', KEYSETUP);
+  {M}end;
+  {END MACRO}
 end;
 
 initialization
