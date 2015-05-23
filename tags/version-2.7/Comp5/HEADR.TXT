@@ -1,0 +1,36 @@
+
+{++
+
+  Copyright (c) 1995-97 by Golden Software of Belarus
+
+  Module
+
+    bkground.pas
+
+  Abstract
+
+    Delphi visual components that allow to set
+    bitmapped and gradientually filled backgrounds.
+
+  Author
+
+    Andrei Kireev (6-Oct-95)
+
+  Contact address
+
+    andreik@gs.minsk.by
+
+  Revisions history
+
+    1.00    9-Oct-95    andreik    Initial version.
+    1.01   11-Oct-95    andreik    Optimized gradient filling;
+                                   Added Repaint method.
+    2.00   11-Nov-95    andreik    A lot of changes.
+    2.01   16-Nov-95    andreik    Used inherited Align property
+                                   instead of hands-written.
+    2.02   05-Jul-96    andreik    Parent has been changed to TGraphicControl.
+
+    2.03   20-Oct-97    andreik    32bit version.
+
+--}
+

@@ -1,0 +1,13 @@
+SELECT 
+   AmountNCU + USR$AMOUNTVAT as EUSR$AMOUNTVAT, 
+   CAST(USR$AMOUNTVAT / (AMOUNTNCU + 0.001) * 100 as INTEGER) as                   USR$AMOUNTVATPERC, 
+  pos.*,
+  g.Name,
+ pos.AmountNCU / pos.Quantity  as CostNCU,
+ pos.AmountCurr / pos.Quantity  as CostCurr
+FROM
+   gd_docrealpos pos JOIN
+    gd_good g ON pos.goodkey = g.id
+WHERE
+   pos.quantity <> 0 
+ORDER BY pos.id

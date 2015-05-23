@@ -1,0 +1,178 @@
+object BaseOperation: TBaseOperation
+  Left = 642
+  Height = 469
+  Top = 221
+  Width = 655
+  BorderStyle = bsNone
+  Caption = 'Операция'
+  ChildSizing.LeftRightSpacing = 5
+  ChildSizing.TopBottomSpacing = 5
+  ClientHeight = 469
+  ClientWidth = 655
+  Color = 3092302
+  Font.CharSet = RUSSIAN_CHARSET
+  Font.Height = -11
+  Font.Name = 'Courier New'
+  KeyPreview = True
+  OnCloseQuery = FormCloseQuery
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  OnKeyDown = FormKeyDown
+  OnShow = FormShow
+  LCLVersion = '1.0.14.0'
+  object mTP: TMemo
+    Left = 5
+    Height = 128
+    Top = 5
+    Width = 645
+    Align = alTop
+    BorderStyle = bsNone
+    Color = 13425138
+    Enabled = False
+    Font.CharSet = RUSSIAN_CHARSET
+    Font.Color = clBlack
+    Font.Height = -13
+    Font.Name = 'Courier New'
+    Font.Style = [fsBold]
+    HideSelection = False
+    ParentBidiMode = False
+    ParentFont = False
+    ParentShowHint = False
+    ScrollBars = ssAutoVertical
+    TabOrder = 0
+  end
+  object lEnter: TLabel
+    Left = 5
+    Height = 17
+    Top = 447
+    Width = 645
+    Align = alBottom
+    Caption = 'lEnter'
+    Color = 12582911
+    Font.CharSet = RUSSIAN_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -13
+    Font.Name = 'Courier New'
+    Font.Style = [fsBold]
+    ParentBidiMode = False
+    ParentColor = False
+    ParentFont = False
+    Transparent = False
+  end
+  object lExit: TLabel
+    Left = 5
+    Height = 17
+    Top = 413
+    Width = 645
+    Align = alBottom
+    Caption = 'lExit'
+    Color = 12582911
+    Font.CharSet = RUSSIAN_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -13
+    Font.Name = 'Courier New'
+    Font.Style = [fsBold]
+    ParentColor = False
+    ParentFont = False
+    Transparent = False
+  end
+  object Panel1: TPanel
+    Left = 5
+    Height = 270
+    Top = 138
+    Width = 645
+    Align = alClient
+    BorderSpacing.Top = 5
+    BorderSpacing.Bottom = 5
+    BevelOuter = bvNone
+    ChildSizing.EnlargeHorizontal = crsHomogenousChildResize
+    ChildSizing.Layout = cclTopToBottomThenLeftToRight
+    ChildSizing.ControlsPerLine = 2
+    ClientHeight = 270
+    ClientWidth = 645
+    Color = 13425138
+    ParentColor = False
+    TabOrder = 1
+    object lWeight: TLabel
+      Left = 0
+      Height = 17
+      Top = 0
+      Width = 319
+      Caption = 'Общий вес(кг):'
+      Color = 13425138
+      Font.CharSet = RUSSIAN_CHARSET
+      Font.Color = clBlack
+      Font.Height = -13
+      Font.Name = 'Courier New'
+      Font.Style = [fsBold]
+      ParentColor = False
+      ParentFont = False
+      Transparent = False
+    end
+    object eWeight: TEdit
+      Left = 0
+      Height = 24
+      Top = 17
+      Width = 319
+      Color = 12582911
+      Enabled = False
+      Font.CharSet = RUSSIAN_CHARSET
+      Font.Color = clWindowText
+      Font.Height = -13
+      Font.Name = 'Courier New'
+      Font.Style = [fsBold]
+      ParentFont = False
+      TabOrder = 0
+      Text = 'eWeight'
+    end
+    object lWeight1: TLabel
+      Left = 319
+      Height = 17
+      Top = 0
+      Width = 326
+      Caption = 'Кол-во поз-ций:'
+      Color = 13425138
+      Font.CharSet = RUSSIAN_CHARSET
+      Font.Color = clBlack
+      Font.Height = -13
+      Font.Name = 'Courier New'
+      Font.Style = [fsBold]
+      ParentColor = False
+      ParentFont = False
+      Transparent = False
+    end
+    object eGoods: TEdit
+      Left = 319
+      Height = 24
+      Top = 17
+      Width = 326
+      Color = 12582911
+      Enabled = False
+      Font.CharSet = RUSSIAN_CHARSET
+      Font.Color = clWindowText
+      Font.Height = -13
+      Font.Name = 'Courier New'
+      Font.Style = [fsBold]
+      ParentFont = False
+      TabOrder = 1
+      Text = '0'
+    end
+  end
+  object lDelete: TLabel
+    Left = 5
+    Height = 17
+    Top = 430
+    Width = 645
+    Align = alBottom
+    Caption = 'lDelete'
+    Color = 12582911
+    Font.CharSet = RUSSIAN_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -13
+    Font.Name = 'Courier New'
+    Font.Style = [fsBold]
+    ParentColor = False
+    ParentFont = False
+    Transparent = False
+  end
+end

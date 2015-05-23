@@ -1,0 +1,4 @@
+SELECT 
+  *  
+FROM 
+  RDB$DATABASE
