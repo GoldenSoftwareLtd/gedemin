@@ -61,10 +61,10 @@ echo *************************************************
 
 cd ..\..\sql
 call create.bat %server_name% %database_path%\%2.fdb
-if not errorlevel 0 Error
+if not errorlevel 0 goto Error
 
 cd ..\setup\bootstrap
-if not errorlevel 0 Error
+if not errorlevel 0 goto Error
 
 echo *************************************************
 echo **                                             **
@@ -76,7 +76,7 @@ echo *************************************************
 
 set params=/sn "%server_name%:%database_path%\%2.fdb" /user Administrator /password Administrator /sp %setting_path% /rd /q
 ..\..\exe\gedemin.exe %params% /sfn "%~1" /ns
-if not errorlevel 0 Error
+if not errorlevel 0 goto Error
 
 echo *************************************************
 echo **                                             **
